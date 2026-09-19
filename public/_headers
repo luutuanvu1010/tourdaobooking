@@ -8,6 +8,7 @@
   X-Frame-Options: DENY
   Permissions-Policy: camera=(), microphone=(), geolocation=()
 
-# Service worker không được cache cứng: trình duyệt phải hỏi lại mỗi lần để nhận bản mới.
+# Service worker không được lưu bản nào: no-store (KHÔNG phải no-cache). no-cache vẫn cho trình duyệt giữ bản cũ và gửi If-None-Match, nên một ETag cũ làm nó nhận 304 và không bao giờ thấy bản mới.
+# Cách tắt khẩn cấp (docs/PWA-IPHONE.md) cũng đi qua /sw.js nên đường này không được phép kẹt. File 1,3 KB, tải một lần mỗi lần điều hướng.
 /sw.js
-  Cache-Control: no-cache
+  Cache-Control: no-store

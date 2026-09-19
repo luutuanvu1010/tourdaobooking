@@ -25,6 +25,8 @@
   --logo-login: 72px;
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
+  --fs-name: 1.1rem;        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
+  --fs-bar-title: 1.125rem; /* tiêu đề trên thanh đầu trang (điện thoại) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -136,8 +138,8 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 /* trang "Tôi" */
 .narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */
 .profile { display: flex; align-items: center; gap: var(--s3); }
-.avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-on-dark); background: var(--c-primary); font-weight: 800; font-size: 1.1rem; }
-.profile-name { font-weight: 800; font-size: 1.1rem; }
+.avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-on-dark); background: var(--c-primary); font-weight: 800; font-size: var(--fs-name); }
+.profile-name { font-weight: 800; font-size: var(--fs-name); }
 .list-card { padding-top: 0; padding-bottom: 0; }
 .row-link { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: var(--row-h); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
 .row-link:last-child { border-bottom: 0; }
@@ -153,7 +155,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   #topbar { position: sticky; top: 0; z-index: 20; flex-wrap: nowrap; gap: var(--s2); min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; }
   #topbar .topnav, #topbar .who { display: none; }
   body[data-title] #topbar .brand { display: none; }
-  .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: 1.125rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-back { display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); margin-left: calc(-1 * var(--s3)); color: var(--c-on-dark); }
   /* Tiêu đề đã nằm trên thanh đầu trang nên h1 của trang chỉ ẩn khỏi mắt, KHÔNG display:none: trình đọc màn hình vẫn cần một h1 mỗi trang (axe page-has-heading-one). */
   body[data-title] main > h1, .detail-head h1 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

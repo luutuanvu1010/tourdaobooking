@@ -27,11 +27,11 @@ const css = await (await get("/app.css")).text();
 const PRIMARY = css.match(/--c-primary:\s*(#[0-9a-fA-F]{6})/)?.[1]?.toLowerCase();
 assert.ok(PRIMARY, "không đọc được --c-primary trong app.css");
 // Luật cứng tầng giao diện của tourdaovn (CLAUDE.md §8): giá trị giao diện đi vào token, không viết cứng trong luật. Quét khối PWA của app.css.
-// Ngoại lệ có lý do: điểm gãy trong @media (CSS không cho dùng biến ở đó) và viền/ẩn-khỏi-mắt 1px.
+// Quét: màu hex, rgb()/hsl(), số px, và cỡ rem/em (cỡ chữ, chiều cao, khoảng cách). Ngoại lệ có lý do: điểm gãy trong @media (CSS không cho dùng biến ở đó) và viền/ẩn-khỏi-mắt 1px.
 const MARK = "/* ---------- app iPhone (PWA)";
 assert.ok(css.includes(MARK), "app.css mất dấu mốc khối PWA");
 const pwaCss = css.slice(css.indexOf(MARK)).replace(/\/\*[\s\S]*?\*\//g, "").replace(/@media\s*\([^)]*\)/g, "");
-const hardcoded = pwaCss.match(/#[0-9a-fA-F]{3,8}\b|(?<![\w.-])(?!1px\b)\d+(?:\.\d+)?px\b/g) ?? [];
+const hardcoded = pwaCss.match(/#[0-9a-fA-F]{3,8}\b|\b(?:rgb|hsl)a?\(|(?<![\w.-])(?!1px\b)\d+(?:\.\d+)?px\b|(?<![\w.-])\d+(?:\.\d+)?r?em\b/g) ?? [];
 assert.deepEqual(hardcoded, [], `khối PWA của app.css còn giá trị viết cứng (đưa vào token ở :root): ${hardcoded.join(", ")}`);
 assert.equal(manifest.display, "standalone");
 assert.equal(manifest.start_url, "/");
@@ -56,7 +56,8 @@ console.log("✓ icon");
 const sw = await get("/sw.js");
 assert.equal(sw.status, 200, "/sw.js phải có (npm run build:web)");
 assert.match(sw.headers.get("content-type") ?? "", /javascript/);
-assert.match(sw.headers.get("cache-control") ?? "", /no-cache/, "/sw.js phải Cache-Control: no-cache (public/_headers)");
+// no-store (không phải no-cache): no-cache vẫn cho trình duyệt giữ bản cũ và gửi If-None-Match → nhận 304 và không thấy bản mới (đo được ở wrangler dev). Cách tắt khẩn cấp cũng đi qua /sw.js nên đường này không được phép kẹt.
+assert.match(sw.headers.get("cache-control") ?? "", /no-store/, "/sw.js phải Cache-Control: no-store (public/_headers)");
 // Mã phiên bản do npm run build:web chèn (AAAAMMDDGGPPSS): mỗi lần build/deploy đổi thì cache cũ bị xoá, khung không lệch API sau deploy.
 const swText = await sw.text();
 assert.ok(swText.includes("td-shell-"), "sw.js phải chứa tiền tố tên cache");
