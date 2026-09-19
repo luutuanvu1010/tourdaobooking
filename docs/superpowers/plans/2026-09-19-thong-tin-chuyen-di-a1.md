@@ -3269,6 +3269,8 @@ git commit -m "orders: ghi dịch vụ + dòng tiền, xác nhận có điều k
 - Consumes: kết quả Task 3–8 (schema, luật, route).
 - Produces: tài liệu mô tả đúng hiện trạng (Điều 6.1 / P4: mã lệch tài liệu là lỗi).
 
+Các bước 1–9 làm **theo đúng thứ tự** — mỗi điểm neo (anchor) đã được kiểm là duy nhất ở trạng thái file SAU các bước trước đó (đã chạy thử toàn bộ chuỗi trên bản sao tài liệu; xem Bước 10). Với Edit tự động: khớp cả dòng, không khớp một phần.
+
 - [ ] **Bước 1: `docs/SPEC-tourdao-sales.md` §2.1 — thêm bảng `order_service`** ngay TRƯỚC dòng `` **`order_item`** — dòng sản phẩm/dịch vụ trong đơn (1 đơn nhiều dòng) ``
 
 Chèn nguyên khối sau (và một dòng trống sau nó):
@@ -3279,7 +3281,7 @@ Chèn nguyên khối sau (và một dòng trống sau nó):
 |---|---|---|
 | id | TEXT (uuid) | khoá chính; đơn cũ được chuyển thành dịch vụ nhập tay dùng lại id của dòng tiền |
 | order_id | TEXT | FK → orders.id, `ON DELETE CASCADE` |
-| sort_order | INTEGER | thứ tự hiển thị |
+| sort_order | INTEGER | thứ tự của dịch vụ trong đơn |
 | catalog_code | TEXT (nullable) | mã dịch vụ nguồn; NULL = nhập tay. Không FK |
 | name / unit | TEXT | tên và chuỗi đơn vị của Sheet (`perPax`, `per5Pax`…) chụp lúc lập đơn; `unit = 'manual'` = nhập tay |
 | pax_adult / pax_child / pax_senior / pax_infant | INTEGER | số khách theo loại, ≥ 0; tổng ≤ 50 kiểm ở code (`MAX_GUESTS_PER_SERVICE`). Dịch vụ chỉ một loại giá (giá chung/theo nhóm): số khách nằm ở `pax_adult` |
@@ -3298,7 +3300,7 @@ Thay dòng `| detail | TEXT | tuỳ chọn: ngày khởi hành, số khách, ghi
 | detail | TEXT | tuỳ chọn: ghi chú loại khách (sinh từ danh mục) hoặc ghi chú dòng nhập tay — ngày khởi hành và số khách nằm ở `order_service` |
 ```
 
-Chèn ba dòng sau ngay SAU dòng `| sort_order | INTEGER | thứ tự hiển thị |`:
+Rồi chèn ba dòng sau ngay SAU dòng `| sort_order | INTEGER | thứ tự hiển thị |`. Dòng này giờ vẫn **duy nhất** (thuộc bảng `order_item`): bảng `order_service` ở Bước 1 cố ý dùng câu chữ khác cho hàng `sort_order` — nếu thấy hai dòng trùng thì đã chèn nhầm khối ở Bước 1.
 
 ```markdown
 | service_id | TEXT | FK → order_service.id; dòng tiền thuộc một dịch vụ (trigger bảo đảm cùng đơn) |
@@ -3333,7 +3335,7 @@ Chèn ngay SAU dòng bắt đầu bằng `` | Schema `order`/`order_item`/`compa
 
 - [ ] **Bước 6: `docs/ARCHITECTURE.md` — cạnh phụ thuộc mới và luật ngày giờ**
 
-Ở cuối dòng bắt đầu bằng `` 1. **Module khác chỉ import `index.ts`** `` thêm câu:
+Ở cuối dòng bắt đầu bằng `` 1. **Module khác chỉ import `index.ts`** `` thêm câu (giữ dấu cách đầu):
 
 ```markdown
  Cạnh `orders → catalog` chỉ qua hàm công khai `getEffectiveServices` (giá hiệu lực + cờ `visible`); `GET /api/catalog` dùng cùng nguồn `toEffective` để lọc "đang hiện" — không có hai nguồn "giá hiệu lực". Đồ thị vẫn không vòng (`catalog` không import `orders`).
@@ -3362,7 +3364,7 @@ Chèn dòng sau ngay SAU dòng bắt đầu bằng `` | `orders.mjs` ``:
 | `trip.mjs` | thông tin chuyến theo dịch vụ, dùng danh mục **giả** `ZT*` chèn thẳng vào D1 (không cần Sheet, dọn ở `finally`): dòng tiền do máy chủ sinh, lệch giá, `catalog_changed`, xác nhận đòi đủ chuyến (thiếu ngày/quá khứ/quá xa/0 khách), đua "lưu xoá ngày" với xác nhận, khoá lạc quan `stale`, bản chụp dịch vụ đã ẩn/đổi giá, sửa trường vận hành sau xác nhận, bất biến SQL |
 ```
 
-- [ ] **Bước 9: Ghi sai khác thi công vào spec** — thêm mục cuối `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md`:
+- [ ] **Bước 9: Ghi sai khác thi công vào spec** — thêm mục cuối `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md` (sau một dòng trống):
 
 ```markdown
 ## 11. Ghi chú thi công A1 (sai khác so với bản 2)
@@ -3386,6 +3388,7 @@ npx tsc --noEmit
 npx tsc --noEmit -p web
 npm run test:e2e
 git status --short
+git diff --stat
 git log --oneline -12
 ```
 
