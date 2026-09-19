@@ -1,13 +1,12 @@
 // Luật nghiệp vụ thuần của đơn hàng (spec §2.3): kiểm tra đầu vào, tính tiền, chuyển trạng thái, mã đơn.
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
-import { CATALOG_CODE_RE } from "../../shared/order-lines.ts";
+import { CATALOG_CODE_RE, MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
 
 export type { DepositMethod, OrderStatus };
 
 export const DEPOSIT_METHODS: readonly DepositMethod[] = ["cash", "bank_transfer", "other"];
 
-const MAX_AMOUNT = 100_000_000_000; // 100 tỷ VNĐ — chặn số phi lý, giữ mọi phép cộng/nhân trong số nguyên an toàn
 const MAX_QUANTITY = 100_000;
 const MAX_ITEMS = 50;
 

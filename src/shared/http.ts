@@ -1,9 +1,7 @@
-export type Handler = (request: Request, env: Env) => Promise<Response | null>;
+// Tiện ích HTTP dùng chung cho mọi module. Route/khung xử lý ở ./router.ts.
 
-export interface AppModule {
-  name: string;
-  handle: Handler;
-}
+/** id sinh bởi crypto.randomUUID() (đơn, nhân viên). */
+export const UUID_RE = /^[0-9a-f-]{36}$/;
 
 export function json(data: unknown, status = 200, headers: HeadersInit = {}): Response {
   return new Response(JSON.stringify(data), {
@@ -24,6 +22,15 @@ export async function readJson(request: Request): Promise<Record<string, unknown
     return null;
   }
 }
+
+/** Tham số số nguyên của query string, kẹp trong [min, max]; thiếu/sai → fallback. */
+export function intParam(v: string | null, fallback: number, min: number, max: number): number {
+  const n = v === null ? NaN : Number(v);
+  return Number.isInteger(n) ? Math.min(Math.max(n, min), max) : fallback;
+}
+
+/** Thoát ký tự đặc biệt của LIKE (dùng kèm `ESCAPE '\'`). */
+export const escapeLike = (s: string): string => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 export function getCookie(request: Request, name: string): string | null {
   const header = request.headers.get("cookie");

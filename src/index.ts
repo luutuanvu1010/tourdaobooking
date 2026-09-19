@@ -1,22 +1,19 @@
+// Gốc lắp ráp: danh sách module + nối auth vào router + Cron. Thêm module mới = thêm một dòng vào `modules`.
 import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
-import { authModule } from "./modules/auth";
+import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { ordersModule } from "./modules/orders";
-import { staffModule } from "./modules/staff";
-import { error, type AppModule } from "./shared/http";
+import { createApp } from "./shared/router";
 
-// Mỗi module tự sở hữu route + dữ liệu của mình; thêm module mới = thêm một dòng ở đây.
-const modules: AppModule[] = [authModule, staffModule, accountsModule, ordersModule, catalogModule, auditModule];
+const app = createApp({
+  modules: [authModule, accountsModule, ordersModule, catalogModule, auditModule],
+  currentStaff,
+  checkConfig: checkAuthConfig,
+});
 
 export default {
-  async fetch(request: Request, env: Env): Promise<Response> {
-    for (const mod of modules) {
-      const response = await mod.handle(request, env);
-      if (response) return response;
-    }
-    return error(404, "not_found", "Không tìm thấy.");
-  },
+  fetch: app.fetch,
   // Cron Trigger (wrangler.jsonc "triggers.crons"): tự đồng bộ danh mục dịch vụ từ Google Sheet.
   async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
     ctx.waitUntil(runScheduledSync(env));

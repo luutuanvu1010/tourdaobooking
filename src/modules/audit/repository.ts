@@ -1,5 +1,6 @@
 import { isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
 import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
+import { escapeLike } from "../../shared/http";
 
 export { isAuditAction, type AuditAction, type AuditTargetType };
 
@@ -45,7 +46,6 @@ export async function listByOrder(db: D1Database, orderId: string): Promise<Audi
   return results.map((r) => ({ action: r.action, staffId: r.staff_id, staffName: r.staff_name ?? SYSTEM_ACTOR_NAME, at: r.created_at, detail: r.detail }));
 }
 
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 /** Nhật ký toàn hệ thống, mới nhất trước; lọc theo hành động và/hoặc tìm theo đối tượng / tên người thao tác. */
 export async function listAll(

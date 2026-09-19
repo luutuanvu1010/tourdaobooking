@@ -1,6 +1,9 @@
 // Dùng chung cho các kịch bản e2e. Chạy qua `npm run test:e2e` (tests/e2e/run.mjs dựng D1 tạm + wrangler dev riêng).
 // Chạy lẻ một kịch bản: đặt E2E_BASE_URL (server đang chạy) và E2E_PERSIST_TO (thư mục D1 local của server đó).
-import { execFileSync } from "node:child_process";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
+
+const execFileAsync = promisify(execFile);
 
 export const BASE = process.env.E2E_BASE_URL ?? "http://localhost:8787";
 const PERSIST = process.env.E2E_PERSIST_TO;
@@ -38,12 +41,16 @@ export async function session(account) {
   return r.cookie;
 }
 
-/** Chạy SQL thẳng vào D1 local của server đang test (giả lập Sheet đổi dữ liệu, thử chốt chặn SQL). Lỗi SQL → ném Error kèm stderr. */
-export function sql(q) {
+/**
+ * Chạy SQL thẳng vào D1 local của server đang test (giả lập Sheet đổi dữ liệu, thử chốt chặn SQL). Lỗi SQL → reject kèm stderr.
+ * Cố ý BẤT ĐỒNG BỘ: bản đồng bộ chặn event loop ~1–2 giây, server đóng kết nối keep-alive trong lúc đó mà fetch không hay
+ * → request kế tiếp dùng lại socket đã đóng và gặp ECONNRESET (lỗi chập chờn đã gặp khi chạy e2e).
+ */
+export async function sql(q) {
   const args = ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--command", q];
   if (PERSIST) args.push("--persist-to", PERSIST);
   try {
-    return execFileSync("npx", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    return (await execFileAsync("npx", args, { encoding: "utf8" })).stdout;
   } catch (e) {
     throw new Error(`${e.stderr ?? ""}${e.stdout ?? ""}`);
   }

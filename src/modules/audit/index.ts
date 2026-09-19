@@ -1,9 +1,9 @@
 // API công khai của module audit — module khác CHỈ import từ file này.
 // Nhật ký chỉ ghi thêm (append-only). Hàm ghi trả về câu lệnh D1 chưa chạy để module gọi gộp vào
 // cùng một db.batch() với thay đổi dữ liệu → ghi nhật ký và đổi dữ liệu thành công/thất bại cùng nhau.
-// Route riêng: GET /api/audit (nhật ký toàn hệ thống) — chỉ admin.
-import { requireAdmin } from "../auth";
-import { error, json, type AppModule } from "../../shared/http";
+// Route riêng: GET /api/audit (nhật ký toàn hệ thống) — chỉ admin. Module không phụ thuộc module nào.
+import { error, intParam, json } from "../../shared/http";
+import { route, type AppModule } from "../../shared/router";
 import {
   insertStatement, isAuditAction, listAll, listByOrder,
   type AuditAction, type AuditEntry, type AuditInput, type AuditRecord,
@@ -23,30 +23,21 @@ export function getAuditTrail(db: D1Database, orderId: string): Promise<AuditEnt
   return listByOrder(db, orderId);
 }
 
-function intParam(v: string | null, fallback: number, min: number, max: number): number {
-  const n = v === null ? NaN : Number(v);
-  return Number.isInteger(n) ? Math.min(Math.max(n, min), max) : fallback;
-}
-
 export const auditModule: AppModule = {
   name: "audit",
-  async handle(request, env) {
-    const url = new URL(request.url);
-    if (url.pathname !== "/api/audit") return null;
-
-    const staff = await requireAdmin(request, env);
-    if (staff instanceof Response) return staff;
-    if (request.method !== "GET") return error(405, "method_not_allowed", "Phương thức không được hỗ trợ.");
-
-    const action = url.searchParams.get("action");
-    if (action && !isAuditAction(action)) return error(400, "invalid_input", "Hành động lọc không hợp lệ.");
-    return json(
-      await listAll(env.DB, {
-        action: (action as AuditAction | null) || null,
-        q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
-        limit: intParam(url.searchParams.get("limit"), 50, 1, 100),
-        offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
-      }),
-    );
-  },
+  routes: [
+    route("GET", "/api/audit", "admin", async ({ env, url }) => {
+      const raw = url.searchParams.get("action");
+      const action = raw ? (isAuditAction(raw) ? raw : undefined) : null;
+      if (action === undefined) return error(400, "invalid_input", "Hành động lọc không hợp lệ.");
+      return json(
+        await listAll(env.DB, {
+          action,
+          q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
+          limit: intParam(url.searchParams.get("limit"), 50, 1, 100),
+          offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
+        }),
+      );
+    }),
+  ],
 };

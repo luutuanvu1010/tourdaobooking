@@ -1,5 +1,6 @@
 import { auditStatement } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderSummaryDto } from "../../shared/contracts";
+import { escapeLike } from "../../shared/http";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 
 interface OrderRow {
@@ -84,7 +85,6 @@ export async function getMeta(db: D1Database, id: string): Promise<{ status: Ord
   return row ? { status: row.status, staffId: row.staff_id } : null;
 }
 
-const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 
 export async function listOrders(
   db: D1Database,

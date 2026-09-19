@@ -20,7 +20,8 @@ export interface SyncPlan {
   unchanged: number;
 }
 
-const money = (n: number | null) => (n === null ? "(không có)" : `${n.toLocaleString("vi-VN")} ₫`);
+/** Định dạng tiền cho nhật ký: 850000 → "850.000 ₫", null → "(không có)". */
+export const money = (n: number | null): string => (n === null ? "(không có)" : `${n.toLocaleString("vi-VN")} ₫`);
 
 export function planSync(existing: Map<string, CatalogRecord>, incoming: CatalogInput[]): SyncPlan {
   const plan: SyncPlan = { added: [], changed: [], missing: [], unchanged: 0 };

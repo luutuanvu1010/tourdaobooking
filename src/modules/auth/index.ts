@@ -1,30 +1,32 @@
+// Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN. Route: /api/auth/*.
+// Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
 import { authenticate, getActiveStaff, isValidPin, normalizePhone, type StaffProfile } from "../staff";
 import type { MeResponse } from "../../shared/contracts";
-import { error, getCookie, json, readJson, type AppModule } from "../../shared/http";
+import { error, getCookie, json, readJson } from "../../shared/http";
+import { route, type AppModule } from "../../shared/router";
 import { SESSION_COOKIE, clearedSessionCookie, createSessionToken, sessionCookie, verifySessionToken } from "./session";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
 
 export { lockedPhones, unlockPhone };
 
+/** Độ dài tối thiểu của SESSION_SECRET (khoá ký phiên). */
+export const MIN_SECRET_LENGTH = 32;
+
+/** Kiểm cấu hình bắt buộc của auth; trả thông báo lỗi cho log, hoặc null nếu ổn. Không bao giờ in giá trị bí mật. */
+export function checkAuthConfig(env: Env): string | null {
+  const secret = env.SESSION_SECRET;
+  if (typeof secret !== "string" || secret.length === 0) return "Thiếu SESSION_SECRET (wrangler secret put SESSION_SECRET).";
+  if (secret.length < MIN_SECRET_LENGTH) return `SESSION_SECRET quá ngắn (${secret.length} < ${MIN_SECRET_LENGTH} ký tự).`;
+  return null;
+}
+
 const isSecure = (request: Request) => new URL(request.url).protocol === "https:";
 
 /** Nhân viên đang hoạt động ứng với cookie phiên của request, hoặc null. Phiên phát hành trước lần đổi PIN gần nhất bị từ chối. */
-async function currentStaff(request: Request, env: Env): Promise<StaffProfile | null> {
+export async function currentStaff(request: Request, env: Env): Promise<StaffProfile | null> {
   const token = getCookie(request, SESSION_COOKIE);
   const session = token ? await verifySessionToken(env.SESSION_SECRET, token) : null;
   return session ? getActiveStaff(env.DB, session.staffId, session.issuedAt) : null;
-}
-
-/** Dùng chung cho mọi module có API cần đăng nhập: trả StaffProfile, hoặc Response 401 để trả thẳng về client. */
-export async function requireStaff(request: Request, env: Env): Promise<StaffProfile | Response> {
-  return (await currentStaff(request, env)) ?? error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
-}
-
-/** Như requireStaff nhưng chỉ cho quản trị viên; người khác nhận Response 403. */
-export async function requireAdmin(request: Request, env: Env): Promise<StaffProfile | Response> {
-  const staff = await requireStaff(request, env);
-  if (staff instanceof Response) return staff;
-  return staff.role === "admin" ? staff : error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
 }
 
 /** Header Set-Cookie cho một phiên mới của nhân viên (dùng sau khi đổi PIN để giữ thiết bị hiện tại đăng nhập). */
@@ -62,30 +64,19 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
 
 export const authModule: AppModule = {
   name: "auth",
-  async handle(request, env) {
-    const { pathname } = new URL(request.url);
-    if (!pathname.startsWith("/api/auth/")) return null;
-
-    if (pathname === "/api/auth/login" && request.method === "POST") {
+  routes: [
+    route("POST", "/api/auth/login", "public", async ({ request, env }) => {
       const body = await readJson(request);
       const phone = typeof body?.phone === "string" ? body.phone : "";
       const pin = body?.pin;
       if (!phone || !isValidPin(pin)) return error(400, "invalid_input", "Cần số điện thoại và mã PIN 6 số.");
-
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
       return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, result.profile.id) });
-    }
+    }),
 
-    if (pathname === "/api/auth/me" && request.method === "GET") {
-      const staff = await requireStaff(request, env);
-      return staff instanceof Response ? staff : json({ staff } satisfies MeResponse);
-    }
+    route("GET", "/api/auth/me", "staff", async ({ staff }) => json({ staff } satisfies MeResponse)),
 
-    if (pathname === "/api/auth/logout" && request.method === "POST") {
-      return json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) });
-    }
-
-    return error(404, "not_found", "Không tìm thấy.");
-  },
+    route("POST", "/api/auth/logout", "public", async ({ request }) => json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) })),
+  ],
 };

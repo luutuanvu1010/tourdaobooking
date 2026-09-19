@@ -33,7 +33,7 @@ assert.deepEqual([r.body.added, r.body.changed, r.body.hidden], [0, 0, 0]);
 console.log(`✓ kéo lại không đổi gì (unchanged=${r.body.unchanged}, problems=${r.body.problems.length}, warnings=${r.body.warnings.length})`);
 
 // --- Sheet đổi giá (mô phỏng: sửa thẳng bản sao) → kéo về khôi phục + nhật ký ghi rõ
-sql("UPDATE catalog_item SET price_adult = 1 WHERE code = 'TD101'");
+await sql("UPDATE catalog_item SET price_adult = 1 WHERE code = 'TD101'");
 assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD101").prices.adult, 1);
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
 assert.equal(r.body.changed, 1);
@@ -62,7 +62,7 @@ assert.equal(sales.prices.adult, 800000, "kéo lại không được đè ghi đ
 console.log("✓ ghi đè giá; kéo lại KHÔNG đè");
 
 // --- Sheet đổi giá sau ghi đè → cảnh báo xung đột, giá ghi đè vẫn giữ
-sql("UPDATE catalog_item SET price_adult = 900000 WHERE code = 'TD101'");
+await sql("UPDATE catalog_item SET price_adult = 900000 WHERE code = 'TD101'");
 r = await call(ADMIN, "GET", "/api/catalog/admin");
 let a = r.body.items.find((i) => i.code === "TD101");
 assert.deepEqual(a.conflicts, [{ code: "adult", base: 850000, current: 900000, override: 800000 }]);
@@ -90,7 +90,7 @@ assert.ok((await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.co
 console.log("✓ ẩn/hiện dịch vụ");
 
 // --- Cron (giả lập): không có người thao tác → nhật ký "Hệ thống (tự động)"
-sql("UPDATE catalog_item SET price_child = 1 WHERE code = 'TD103'");
+await sql("UPDATE catalog_item SET price_child = 1 WHERE code = 'TD103'");
 const cron = await fetch(B + "/__scheduled?cron=*/15+*+*+*+*");
 assert.equal(cron.status, 200);
 await new Promise((r) => setTimeout(r, 3000));
@@ -102,14 +102,14 @@ console.log("✓ Cron tự kéo, nhật ký ghi 'Hệ thống (tự động)'");
 
 // --- chốt chặn: Sheet 'mất' hơn nửa dịch vụ
 const fake = Array.from({ length: 70 }, (_, i) => `('ZZ${i}','Giả ${i}','perPax',1,1,1,1,'2026-01-01','2026-01-01')`).join(",");
-sql(`INSERT INTO catalog_item (code,name,unit,price_adult,in_sheet,first_seen_at,updated_at) SELECT code,name,unit,price_adult,1,first_seen_at,updated_at FROM (SELECT 'ZZ'||value code,'Giả '||value name,'perPax' unit,1 price_adult,'2026-01-01' first_seen_at,'2026-01-01' updated_at FROM (WITH RECURSIVE c(value) AS (SELECT 0 UNION ALL SELECT value+1 FROM c WHERE value<69) SELECT value FROM c))`);
+await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,in_sheet,first_seen_at,updated_at) SELECT code,name,unit,price_adult,1,first_seen_at,updated_at FROM (SELECT 'ZZ'||value code,'Giả '||value name,'perPax' unit,1 price_adult,'2026-01-01' first_seen_at,'2026-01-01' updated_at FROM (WITH RECURSIVE c(value) AS (SELECT 0 UNION ALL SELECT value+1 FROM c WHERE value<69) SELECT value FROM c))`);
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
 assert.equal(r.status, 409); assert.equal(r.body.error.code, "sync_guard");
 assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.filter((i) => i.code.startsWith("ZZ")).length, 70, "chốt chặn: chưa ẩn gì");
 assert.match((await call(ADMIN, "GET", "/api/catalog/admin")).body.sync.lastError, /Chưa áp dụng thay đổi nào/);
 r = await call(ADMIN, "POST", "/api/catalog/sync", { force: true });
 assert.equal(r.status, 200); assert.equal(r.body.hidden, 70);
-sql("DELETE FROM catalog_item WHERE code LIKE 'ZZ%'");
+await sql("DELETE FROM catalog_item WHERE code LIKE 'ZZ%'");
 console.log("✓ chốt chặn Sheet hỏng + ép kéo");
 
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});

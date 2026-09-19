@@ -8,6 +8,9 @@ export const PAX_LABEL: Record<PaxCode, string> = { adult: "Người lớn", chi
 
 export type Prices = Record<PaxCode, number | null>;
 
+/** Trần mọi số tiền VNĐ (100 tỷ) — chặn số phi lý, giữ mọi phép cộng/nhân trong số nguyên an toàn. */
+export const MAX_AMOUNT_VND = 100_000_000_000;
+
 /** Dạng hợp lệ của "Mã tour" trong danh mục (Sheet → catalog_item.code → order_item.catalog_code). */
 export const CATALOG_CODE_RE = /^[A-Za-z0-9._-]{1,40}$/;
 

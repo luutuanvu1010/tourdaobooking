@@ -126,8 +126,8 @@ for (const bad of [
   `UPDATE orders SET remaining_amount = -1, deposit_amount = total + 1 WHERE id = '${traced.id}'`,
   `UPDATE order_item SET line_total = line_total + 1 WHERE order_id = '${traced.id}'`,
   `UPDATE orders SET deposit_amount = 1, remaining_amount = total - 1, deposit_method = NULL WHERE id = '${traced.id}'`,
-]) assert.throws(() => sql(bad), /money_invariant/, `TRIGGER phải chặn: ${bad}`);
-sql(`UPDATE orders SET customer_note = 'sửa hợp lệ' WHERE id = '${traced.id}'`); // cập nhật không đụng tiền vẫn qua
+]) await assert.rejects(sql(bad), /money_invariant/, `TRIGGER phải chặn: ${bad}`);
+await sql(`UPDATE orders SET customer_note = 'sửa hợp lệ' WHERE id = '${traced.id}'`); // cập nhật không đụng tiền vẫn qua
 r = await call(A, "GET", `/api/orders/${traced.id}`);
 assert.equal(r.body.order.total, 1700001); assert.deepEqual(r.body.order.items.map((i) => i.lineTotal), [1700000, 1]);
 r = await call(A, "PUT", `/api/orders/${traced.id}`, { ...input, discount: 1000, depositAmount: 200000 });

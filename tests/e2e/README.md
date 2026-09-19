@@ -15,6 +15,7 @@ npm run test:e2e -- orders catalog  # chỉ vài kịch bản
 
 | Kịch bản | Kiểm gì |
 |---|---|
+| `platform.mjs` | router: 404/405 JSON, 401/403 trước handler, chặn ghi cross-site (thiếu/lạ `Origin`), chặn thân không phải JSON (415) |
 | `orders.mjs` | bất biến §2.3, phân quyền sửa/huỷ, chuyển trạng thái, 30 đơn song song ra mã khác nhau, phân trang, `/api/audit`; thao tác thua khi tranh chấp không ghi nhật ký |
 | `admin.mjs` | quản lý nhân viên, đặt lại/đổi PIN thu hồi phiên, chống dò PIN (kể cả bắn song song, theo IP), xem trước Sheet nhân viên |
 | `catalog.mjs` | danh mục với Google Sheet thật: bootstrap, đồng bộ lại, đổi giá, ghi đè không bị đè, xung đột, ẩn/hiện, Cron (`/__scheduled`), chốt chặn |

@@ -1,4 +1,4 @@
-// API công khai của module staff — module khác CHỈ import từ file này.
+// API công khai của module staff — module khác CHỈ import từ file này. Không có route: API quản trị ở module `accounts`.
 // staff sở hữu bảng `staff` và luật tài khoản; các hàm ghi trả về CÂU LỆNH D1 chưa chạy để module gọi
 // (accounts) gộp cùng nhật ký audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau.
 import { hashPin, verifyDummy, verifyPin } from "./password";
@@ -7,7 +7,6 @@ import { countActiveAdmins, findById, findByPhone, listAll, type StaffRecord } f
 import { checkAccountChange, generatePin, isWeakPin } from "./rules";
 import { parseStaffSheet, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile, StaffRole } from "../../shared/contracts";
-import type { AppModule } from "../../shared/http";
 
 export type { StaffAccount, StaffCandidate, StaffProfile, StaffRole, StaffSheetParse };
 export { checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, parseStaffSheet };
@@ -105,6 +104,3 @@ function toProfile(s: StaffRecord): StaffProfile {
 function toAccount(s: StaffRecord): StaffAccount {
   return { ...toProfile(s), active: s.active === 1, createdAt: s.created_at };
 }
-
-// Route quản trị tài khoản nằm ở module `accounts` (cần auth + audit); staff chỉ cung cấp dữ liệu và luật.
-export const staffModule: AppModule = { name: "staff", handle: async () => null };
