@@ -1,6 +1,6 @@
 // Hành vi chung của router (src/shared/router.ts): 404/405 JSON, chặn ghi cross-site (CSRF), chỉ nhận JSON.
 import assert from "node:assert/strict";
-import { ACCOUNTS, BASE, call, freshIp, session } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, freshIp, manualService, orderInput, session } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
@@ -20,7 +20,7 @@ assert.equal(r.status, 403, "route admin với sales → 403");
 console.log("✓ 404/405/401/403 thống nhất");
 
 // CSRF: ghi mà không có Origin (và không có Sec-Fetch-Site same-origin) hoặc Origin lạ → 403, không có tác dụng
-const input = { customerName: "CSRF", customerPhone: "0901234567", items: [{ description: "x", quantity: 1, unitPrice: 1 }] };
+const input = orderInput({ customerName: "CSRF", customerPhone: "0901234567", services: [manualService([{ description: "x", quantity: 1, unitPrice: 1 }])] });
 const before = (await call(SALES, "GET", "/api/orders?q=CSRF")).body.orders.length;
 r = await raw("POST", "/api/orders", { cookie: SALES, "content-type": "application/json" }, JSON.stringify(input));
 assert.equal(r.status, 403); assert.equal(r.body.error.code, "cross_origin");

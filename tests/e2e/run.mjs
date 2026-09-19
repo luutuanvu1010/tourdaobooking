@@ -14,7 +14,7 @@ import { ACCOUNTS } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
-const ALL = ["platform", "orders", "admin", "catalog", "admin-race"];
+const ALL = ["platform", "orders", "trip", "admin", "catalog", "admin-race"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);

@@ -1,0 +1,266 @@
+// Thông tin chuyến đi theo từng dịch vụ (docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md): dòng tiền do MÁY CHỦ sinh,
+// lệch giá danh mục, xác nhận đòi đủ chuyến, đua tranh chấp, khoá lạc quan, bản chụp cho nháp cũ, sửa trường vận hành sau xác nhận.
+// Dùng danh mục GIẢ (mã ZT*) chèn thẳng vào D1 — không phụ thuộc Google Sheet; dọn ở `finally`.
+import assert from "node:assert/strict";
+import { ACCOUNTS, call, manualService, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
+
+const A = await session(ACCOUNTS.salesA);
+const Bc = await session(ACCOUNTS.salesB);
+const ADMIN = await session(ACCOUNTS.admin);
+
+const T = "'2026-01-01T00:00:00.000Z'";
+await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
+  ('ZT1','Tour thử','perPax',850000,595000,850000,0,'Trẻ em cao từ 1 m đến 1,4 mét',NULL,NULL,2,1,${T},${T}),
+  ('ZT2','Phao thử','per5Pax',1000000,NULL,NULL,NULL,NULL,NULL,NULL,3,1,${T},${T}),
+  ('ZT3','Motor thử','perPax',800000,NULL,NULL,NULL,NULL,NULL,NULL,4,1,${T},${T})`);
+
+const cat = (extra = {}) => ({ kind: "catalog", catalogCode: "ZT1", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 850000, child: 595000 }, departDate: vnDate(7), ...extra });
+const tourLine = [{ description: "Tour", quantity: 1, unitPrice: 100000 }];
+const lines = (order) => order.services.flatMap((s) => s.items);
+const post = (services, extra = {}) => call(A, "POST", "/api/orders", orderInput({ services, ...extra }));
+const put = (order, services, extra = {}) => call(A, "PUT", `/api/orders/${order.id}`, orderInput({ services, expectedUpdatedAt: order.updatedAt, ...extra }));
+const confirm = (who, order) => call(who, "POST", `/api/orders/${order.id}/status`, { status: "confirmed" });
+const get = async (who, order) => (await call(who, "GET", `/api/orders/${order.id}`)).body;
+const tripOf = (sv) => ({
+  departDate: sv.departDate ?? "", departTime: sv.departTime ?? "", pickupTime: sv.pickupTime ?? "", pickupPlace: sv.pickupPlace ?? "",
+  checkinDate: sv.checkinDate ?? "", checkinTime: sv.checkinTime ?? "", checkinPlace: sv.checkinPlace ?? "", note: sv.note ?? "",
+});
+/** PUT /trip gửi ĐỦ thông tin chuyến của dịch vụ đầu (trường vắng = xoá), rồi ghi đè `changes`. */
+const trip = (o, changes, who = A, expected = o.updatedAt) =>
+  call(who, "PUT", `/api/orders/${o.id}/trip`, { expectedUpdatedAt: expected, services: [{ id: o.services[0].id, ...tripOf(o.services[0]), ...changes }] });
+
+let r;
+try {
+  // 1) MÁY CHỦ SINH DÒNG TIỀN: không nhận số lượng từ client; lưu catalog_price, loại khách, số khách
+  r = await post([cat({ items: [{ description: "hack", quantity: 99, unitPrice: 1 }] }), cat({ catalogCode: "ZT2", pax: { adult: 7 }, catalogPriceSeen: { adult: 1000000 } })]);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const o1 = r.body.order;
+  assert.deepEqual(lines(o1).map((i) => [i.catalogCode, i.paxCode, i.quantity, i.unitPrice, i.catalogPrice, i.lineTotal]), [
+    ["ZT1", "adult", 2, 850000, 850000, 1700000],
+    ["ZT1", "child", 1, 595000, 595000, 595000],
+    ["ZT2", "adult", 2, 1000000, 1000000, 2000000], // 7 khách / nhóm 5 = 2 lượt
+  ]);
+  assert.equal(o1.subtotal, 4295000);
+  assert.deepEqual(o1.services.map((s) => [s.kind, s.unit, s.pax.adult, s.pax.child, s.catalogStatus]), [["catalog", "perPax", 2, 1, "ok"], ["catalog", "per5Pax", 7, 0, "ok"]]);
+  assert.equal(lines(o1)[1].detail, "Trẻ em cao từ 1 m đến 1,4 mét");
+  console.log("✓ máy chủ sinh dòng tiền từ danh mục, bỏ qua số lượng giả");
+
+  // 2) ĐƠN GIÁ THƯƠNG LƯỢNG: lưu unitPrice khác catalogPrice, nhật ký ghi lệch giá (không chặn)
+  r = await post([cat({ unitPrices: { adult: 800000 } })]);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.deepEqual(lines(r.body.order).map((i) => [i.unitPrice, i.catalogPrice]), [[800000, 850000], [595000, 595000]]);
+  assert.match((await get(A, r.body.order)).history[0].detail, /lệch giá danh mục: ZT1 người lớn 850\.000 ₫ → 800\.000 ₫/);
+  console.log("✓ đơn giá thương lượng: lưu lệch giá + ghi nhật ký, không chặn");
+
+  // 3) GIÁ DANH MỤC VỪA ĐỔI giữa lúc mở form và lúc lưu → 409 catalog_changed, không lưu gì
+  const newest = async () => (await call(A, "GET", "/api/orders?limit=1")).body.orders[0].id;
+  const before = await newest();
+  r = await post([cat({ catalogPriceSeen: { adult: 900000, child: 595000 } })]);
+  assert.equal(r.status, 409); assert.equal(r.body.error.code, "catalog_changed");
+  assert.deepEqual(r.body.error.changes, [{ serviceIndex: 0, catalogCode: "ZT1", pax: "adult", seen: 900000, current: 850000 }]);
+  assert.equal(await newest(), before, "không lưu đơn nào");
+  console.log("✓ giá danh mục đổi giữa chừng → 409 catalog_changed");
+
+  // 4) LỖI ĐẦU VÀO
+  r = await post([cat({ catalogCode: "NOPE" })]);
+  assert.equal(r.status, 400); assert.equal(r.body.error.code, "catalog_unavailable");
+  const rejected = [
+    [cat({ catalogCode: "ZT3", pax: { adult: 1, child: 1 }, catalogPriceSeen: { adult: 800000 } }), /không có giá cho trẻ em/],
+    [cat({ pax: { adult: 51 }, catalogPriceSeen: { adult: 850000 } }), /số khách người lớn/],
+    [cat({ pax: { adult: 30, child: 21 } }), /tối đa 50 khách/],
+    [cat({ pax: { infant: 2 }, catalogPriceSeen: { infant: 0 } }), /không phải em bé/],
+    [cat({ departDate: "2026-02-30" }), /ngày khởi hành/],
+    [cat({ departTime: "24:00" }), /giờ khởi hành/],
+    [cat({ pickupPlace: "x".repeat(201) }), /tối đa 200/],
+    [cat({ unitPrices: { adult: 1.5 } }), /số nguyên/],
+    [{ ...cat(), kind: "khac" }, /loại dịch vụ/],
+  ];
+  for (const [svc, re] of rejected) {
+    r = await post([svc]);
+    assert.equal(r.status, 400, JSON.stringify(svc));
+    assert.match(r.body.error.message, re);
+  }
+  console.log("✓ đầu vào sai bị từ chối đúng lý do");
+
+  // 5) TAB CŨ gửi `items` phẳng kiểu cũ → 409 client_outdated
+  r = await call(A, "POST", "/api/orders", { customerName: "A", customerPhone: "0901234567", items: [{ description: "x", quantity: 1, unitPrice: 1 }] });
+  assert.equal(r.status, 409); assert.equal(r.body.error.code, "client_outdated");
+
+  // 6) THÔNG TIN CHUYẾN lưu và đọc lại đúng, đã chuẩn hoá
+  r = await post([cat({ departTime: "07:30", pickupTime: "06:45", pickupPlace: "KS A\n50 Trần Phú", checkinDate: vnDate(7), checkinTime: "07:00", checkinPlace: "Cảng Cầu Đá", note: "ăn chay\nsay sóng" })]);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const s = r.body.order.services[0];
+  assert.deepEqual([s.departTime, s.pickupTime, s.pickupPlace, s.checkinDate, s.checkinTime, s.checkinPlace, s.note], ["07:30", "06:45", "KS A 50 Trần Phú", vnDate(7), "07:00", "Cảng Cầu Đá", "ăn chay\nsay sóng"]);
+  console.log("✓ thông tin chuyến lưu và chuẩn hoá");
+
+  // 7) XÁC NHẬN ĐÒI ĐỦ CHUYẾN (Q4): nháp thiếu ngày lưu được, xác nhận 409, bổ sung rồi mới xác nhận được
+  r = await post([cat({ departDate: "" }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { departDate: vnDate(8) })]);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const d1 = r.body.order;
+  r = await confirm(A, d1);
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "incomplete_trip");
+  assert.deepEqual(r.body.error.missing, [{ serviceId: d1.services[0].id, name: "Tour thử", reasons: ["no_date"] }]);
+  let g = await get(A, d1);
+  assert.equal(g.order.status, "draft");
+  assert.deepEqual(g.history.map((h) => h.action), ["created"], "xác nhận thất bại không ghi nhật ký");
+  r = await put(d1, [cat({ id: d1.services[0].id, departDate: vnDate(9) }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { id: d1.services[1].id, departDate: vnDate(8) })]);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body.order.services.map((x) => x.id), d1.services.map((x) => x.id), "id dịch vụ ổn định qua lần sửa");
+  r = await confirm(A, r.body.order);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.order.status, "confirmed");
+  assert.deepEqual((await get(A, d1)).history.map((h) => h.action), ["created", "updated", "confirmed"]);
+  console.log("✓ xác nhận đòi đủ ngày khởi hành; nhật ký khớp");
+
+  // 8) QUÁ KHỨ / QUÁ XA / 0 KHÁCH (Q12): nháp lưu được, xác nhận bị chặn; hai đầu khoảng [hôm nay, +365] thì được
+  const dated = async (departDate, pax = { adult: 1 }) => {
+    const x = await post([manualService([{ description: "x", quantity: 1, unitPrice: 1 }], { departDate, pax })]);
+    assert.equal(x.status, 201, JSON.stringify(x.body));
+    return x.body.order;
+  };
+  const gap = async (order) => {
+    const x = await confirm(A, order);
+    assert.equal(x.status, 409, JSON.stringify(x.body));
+    assert.equal(x.body.error.code, "incomplete_trip");
+    return x.body.error.missing[0].reasons;
+  };
+  assert.deepEqual(await gap(await dated(vnDate(-1))), ["past_date"]);
+  assert.deepEqual(await gap(await dated(vnDate(366))), ["too_far"]);
+  assert.deepEqual(await gap(await dated(vnDate(7), { adult: 0 })), ["no_guests"]);
+  for (const day of [vnDate(0), vnDate(365)]) {
+    const x = await confirm(A, await dated(day));
+    assert.equal(x.status, 200, `${day}: ${JSON.stringify(x.body)}`);
+  }
+  console.log("✓ xác nhận chặn quá khứ / quá xa / 0 khách; biên hôm nay và +365 được");
+
+  // 9) ĐUA "lưu xoá ngày" với "xác nhận": không bao giờ ra đơn xác nhận thiếu ngày (điều kiện nằm trong câu UPDATE)
+  for (let round = 0; round < 5; round++) {
+    const d = (await post([manualService(tourLine)])).body.order;
+    const clear = put(d, [manualService(tourLine, { id: d.services[0].id, departDate: "" })]);
+    const [p, c] = await Promise.all([clear, confirm(ADMIN, d)]);
+    const now = (await get(A, d)).order;
+    if (now.status === "confirmed") assert.ok(now.services.every((sv) => sv.departDate), `đơn xác nhận thiếu ngày (PUT ${p.status}, xác nhận ${c.status})`);
+    else assert.equal(now.status, "draft");
+  }
+  console.log("✓ đua lưu-xoá-ngày với xác nhận: không có đơn xác nhận thiếu ngày");
+
+  // 10) KHOÁ LẠC QUAN: mốc cũ → 409 stale; thiếu mốc → 400; hai PUT cùng mốc → đúng một bên thắng, bên thua không để lại gì
+  const s0 = (await post([manualService(tourLine)])).body.order;
+  const same = (order) => [manualService(tourLine, { id: order.services[0].id })];
+  r = await put(s0, same(s0), { customerNote: "v1" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await put(s0, same(s0), { customerNote: "v2" }); // mốc đã cũ
+  assert.equal(r.status, 409); assert.equal(r.body.error.code, "stale");
+  r = await call(A, "PUT", `/api/orders/${s0.id}`, orderInput());
+  assert.equal(r.status, 400);
+  const cur = (await get(A, s0)).order;
+  // Hai bên ghi nội dung KHÁC NHAU: nếu bên thua lọt qua điều kiện, dòng tiền của nó sẽ đè lên bản của bên thắng và lệch với ghi chú đơn.
+  const mine = (order, tag) => put(order, [manualService([{ description: tag.toUpperCase(), quantity: 1, unitPrice: 100000 }], { id: order.services[0].id })], { customerNote: tag });
+  const [x, y] = await Promise.all([mine(cur, "x"), mine(cur, "y")]);
+  assert.deepEqual([x.status, y.status].sort(), [200, 409], `${x.status}/${y.status}`);
+  const winner = x.status === 200 ? "x" : "y";
+  const after = await get(A, s0);
+  assert.equal(after.order.services.length, 1);
+  assert.equal(lines(after.order).length, 1, "bên thua không được nhân đôi dòng");
+  assert.equal(after.order.customerNote, winner);
+  assert.equal(lines(after.order)[0].description, winner.toUpperCase(), "dòng tiền phải là của bên thắng, không bị bên thua đè");
+  assert.deepEqual(after.history.map((h) => h.action), ["created", "updated", "updated"]);
+  console.log("✓ khoá lạc quan: stale / thiếu mốc / hai PUT cùng mốc");
+
+  // 11) BẢN CHỤP CHO NHÁP CŨ (Q11): dịch vụ bị ẩn / đổi giá — nháp vẫn sửa và xác nhận được; đổi số khách thì phải chọn lại
+  const sn = (await post([cat({ pax: { adult: 2 } })])).body.order;
+  const snId = sn.services[0].id;
+  const keep = (o, extra = {}) => put(o, [cat({ id: snId, pax: { adult: 2 }, ...extra })]);
+  await sql("UPDATE catalog_item SET in_sheet = 0 WHERE code = 'ZT1'"); // rời khỏi Sheet → không còn hiện
+  let v = (await get(A, sn)).order;
+  assert.equal(v.services[0].catalogStatus, "unavailable");
+  r = await keep(v);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  v = r.body.order;
+  assert.deepEqual([v.services[0].catalogStatus, v.services[0].name], ["unavailable", "Tour thử"]);
+  r = await put(v, [cat({ id: snId, pax: { adult: 3 }, catalogPriceSeen: { adult: 850000 } })]);
+  assert.equal(r.status, 400); assert.equal(r.body.error.code, "catalog_unavailable");
+  r = await post([cat()]);
+  assert.equal(r.status, 400); assert.equal(r.body.error.code, "catalog_unavailable");
+  await sql("UPDATE catalog_item SET in_sheet = 1, price_adult = 700000 WHERE code = 'ZT1'"); // hiện lại, Sheet đổi giá 850k → 700k
+  v = (await get(A, sn)).order;
+  assert.equal(v.services[0].catalogStatus, "price_changed");
+  assert.equal(lines(v)[0].unitPrice, 850000);
+  r = await keep(v);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual([lines(r.body.order)[0].unitPrice, lines(r.body.order)[0].catalogPrice], [850000, 850000], "giữ giá đã lưu");
+  r = await confirm(A, r.body.order);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  await sql("UPDATE catalog_item SET price_adult = 850000 WHERE code = 'ZT1'");
+  console.log("✓ bản chụp: dịch vụ ẩn/đổi giá vẫn sửa + xác nhận được, đổi số khách thì phải chọn lại");
+
+  // 12) SỬA TRƯỜNG VẬN HÀNH SAU XÁC NHẬN (Q9)
+  const cf = (await post([cat({ pickupPlace: "KS Novotel phòng 1205" })])).body.order;
+  r = await confirm(A, cf);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  let c = r.body.order;
+  r = await trip(c, { pickupTime: "06:30", pickupPlace: "Sân bay Cam Ranh", note: "đổi giờ đón" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "06:30", "Sân bay Cam Ranh"]);
+  c = r.body.order;
+  const last = (await get(A, c)).history.at(-1);
+  assert.equal(last.action, "trip_updated");
+  assert.match(last.detail, /giờ đón \(trống\) → 06:30/);
+  assert.match(last.detail, /đổi điểm đón/);
+  assert.ok(!last.detail.includes("Cam Ranh") && !last.detail.includes("Novotel"), "nhật ký không chứa địa điểm (dữ liệu cá nhân)");
+  r = await trip(c, { departDate: vnDate(20) });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  c = r.body.order;
+  for (const bad of [{ departDate: vnDate(-1) }, { departDate: vnDate(400) }, { departDate: "" }, { departTime: "24:00" }]) assert.equal((await trip(c, bad)).status, 400, JSON.stringify(bad));
+  const n0 = (await get(A, c)).history.length;
+  r = await trip(c, {}); // không đổi gì
+  assert.equal(r.status, 200);
+  assert.equal((await get(A, c)).history.length, n0, "không đổi gì thì không ghi nhật ký");
+  r = await trip(c, { note: "x" }, A, cf.updatedAt); // mốc cũ
+  assert.equal(r.status, 409); assert.equal(r.body.error.code, "stale");
+  assert.equal((await trip(c, { note: "x" }, Bc)).status, 403);
+  r = await trip(c, { note: "admin sửa" }, ADMIN);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  c = r.body.order;
+  // đơn đã xác nhận: sửa toàn bộ đơn bị từ chối; số khách/dịch vụ/ngày bị trigger giữ ngay cả khi ghi thẳng D1
+  assert.equal((await put(c, same(c))).status, 409);
+  const svId = c.services[0].id;
+  await assert.rejects(sql(`UPDATE order_service SET pax_adult = 9 WHERE id = '${svId}'`), /order_frozen/);
+  await assert.rejects(sql(`UPDATE order_service SET name = 'Đổi tên' WHERE id = '${svId}'`), /order_frozen/);
+  await assert.rejects(sql(`DELETE FROM order_service WHERE id = '${svId}'`), /order_frozen/);
+  await assert.rejects(sql(`INSERT INTO order_service (id, order_id, name, unit) VALUES ('zz1', '${c.id}', 'T', 'perPax')`), /order_frozen/);
+  await assert.rejects(sql(`UPDATE order_service SET depart_date = NULL WHERE id = '${svId}'`), /incomplete_trip/);
+  await sql(`UPDATE order_service SET note = 'ghi thẳng D1' WHERE id = '${svId}'`); // trường vận hành vẫn ghi được
+  // ngày đã qua (đơn đã đi) vẫn sửa được ghi chú nếu KHÔNG đổi ngày
+  const pd = (await post([manualService(tourLine, { departDate: vnDate(0) })])).body.order;
+  assert.equal((await confirm(A, pd)).status, 200);
+  await sql(`UPDATE order_service SET depart_date = '${vnDate(-3)}' WHERE order_id = '${pd.id}'`);
+  const pdNow = (await get(A, pd)).order;
+  r = await trip(pdNow, { note: "đã đi xong" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await trip(r.body.order, { departDate: vnDate(-2) })).status, 400, "ĐỔI sang ngày quá khứ vẫn bị chặn");
+  // đơn huỷ: không sửa được chuyến
+  r = await call(ADMIN, "POST", `/api/orders/${c.id}/status`, { status: "cancelled" });
+  assert.equal(r.status, 200);
+  assert.equal((await trip(r.body.order, { note: "sau huỷ" })).status, 409);
+  console.log("✓ sửa trường vận hành sau xác nhận: có nhật ký, khoá số khách/dịch vụ, chặn ngày sai");
+
+  // 13) BẤT BIẾN (Điều 8.3): kiểm bằng SQL trên MỌI đơn của lần chạy
+  const noPax = await sqlRows(`SELECT COUNT(*) AS n FROM order_item i JOIN order_service s ON s.id = i.service_id WHERE s.catalog_code IS NOT NULL AND (i.pax_code IS NULL OR i.catalog_price IS NULL)`);
+  assert.equal(noPax[0].n, 0, "dòng của dịch vụ danh mục phải có loại khách + giá danh mục");
+  const skew = await sqlRows(`SELECT COUNT(*) AS n FROM order_item i JOIN order_service s ON s.id = i.service_id WHERE s.catalog_code IS NOT NULL AND (
+      (s.unit = 'perPax' AND i.quantity <> CASE i.pax_code WHEN 'adult' THEN s.pax_adult WHEN 'child' THEN s.pax_child WHEN 'senior' THEN s.pax_senior WHEN 'infant' THEN s.pax_infant END)
+      OR (s.unit = 'per5Pax' AND i.quantity <> (s.pax_adult + 4) / 5))`);
+  assert.equal(skew[0].n, 0, "Σ số lượng dòng tiền phải khớp số khách của dịch vụ danh mục");
+  const incomplete = await sqlRows(`SELECT COUNT(*) AS n FROM orders o WHERE o.status = 'confirmed' AND EXISTS (
+      SELECT 1 FROM order_service s WHERE s.order_id = o.id AND (s.depart_date IS NULL OR s.pax_adult + s.pax_child + s.pax_senior + s.pax_infant < 1))`);
+  assert.equal(incomplete[0].n, 0, "không có đơn xác nhận thiếu ngày/khách");
+  const orphan = await sqlRows(`SELECT COUNT(*) AS n FROM order_item WHERE service_id IS NULL OR service_id NOT IN (SELECT id FROM order_service)`);
+  assert.equal(orphan[0].n, 0, "mọi dòng tiền thuộc một dịch vụ");
+  console.log("✓ bất biến SQL: số lượng khớp số khách, đơn xác nhận đủ chuyến, không dòng tiền mồ côi");
+} finally {
+  await sql("DELETE FROM catalog_override WHERE code LIKE 'ZT%'");
+  await sql("DELETE FROM catalog_item WHERE code LIKE 'ZT%'");
+}
+console.log("E2E OK");

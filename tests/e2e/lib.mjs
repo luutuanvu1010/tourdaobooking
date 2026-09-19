@@ -56,4 +56,32 @@ export async function sql(q) {
   }
 }
 
+/** Như sql() nhưng trả các dòng kết quả của câu SELECT (wrangler --json). */
+export async function sqlRows(q) {
+  const args = ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--json", "--command", q];
+  if (PERSIST) args.push("--persist-to", PERSIST);
+  try {
+    const out = (await execFileAsync("npx", args, { encoding: "utf8" })).stdout;
+    return JSON.parse(out)[0].results;
+  } catch (e) {
+    throw new Error(`${e.stderr ?? ""}${e.stdout ?? ""}`);
+  }
+}
+
 export const randomPhone = () => "09" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+
+/** Ngày (YYYY-MM-DD) theo giờ Việt Nam, cách hôm nay `days` ngày — cùng quy ước với src/shared/vn-date.ts. */
+export function vnDate(days = 0) {
+  return new Date(Date.now() + 7 * 3600_000 + days * 86400_000).toISOString().slice(0, 10);
+}
+
+/** Dịch vụ nhập tay tối thiểu (đủ ngày khởi hành + 1 khách để xác nhận được). `extra` ghi đè/bổ sung trường. */
+export const manualService = (items, extra = {}) => ({ kind: "manual", name: "Dịch vụ thử", pax: { adult: 1 }, departDate: vnDate(7), items, ...extra });
+
+/** Đơn hợp lệ tối thiểu; `extra` ghi đè trường cấp đơn (vd `services`, `discount`). */
+export const orderInput = (extra = {}) => ({
+  customerName: "Nguyễn Văn A",
+  customerPhone: "0901 234 567",
+  services: [manualService([{ description: "Tour", quantity: 1, unitPrice: 100000 }])],
+  ...extra,
+});
