@@ -22,14 +22,15 @@ a { color: var(--c-primary); }
 .muted { color: var(--c-muted); font-size: .9rem; }
 .num { text-align: right; white-space: nowrap; }
 
-#topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: var(--s3) var(--s4); background: var(--c-primary); color: #fff; }
+#topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-primary); color: #fff; }
 #topbar a { color: #fff; text-decoration: none; }
-.brand { font-weight: 800; font-size: 1.1rem; } .brand span { font-weight: 400; opacity: .8; }
+.brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: 1.1rem; } .brand span { font-weight: 400; opacity: .8; }
+.brand-logo { width: 30px; height: 30px; border-radius: 8px; display: block; }
 .topnav { display: flex; gap: var(--s4); flex: 1; }
 .who { display: flex; align-items: center; gap: var(--s3); font-size: .9rem; }
 .who .btn-link { color: #fff; }
 
-main { max-width: 960px; margin: 0 auto; padding: var(--s4); }
+main { max-width: 960px; margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); }
 .card h2 { margin-bottom: var(--s3); }
 
@@ -117,3 +118,26 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .price-cell { white-space: nowrap; }
 .price-cell .sheet { display: block; font-size: .8rem; color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: 700; }
+
+/* ---------- app iPhone (PWA) ---------- */
+html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
+body { -webkit-tap-highlight-color: transparent; }
+.bar-back, .bar-title, #tabbar { display: none; }
+/* Trang không có thanh đầu trang (đăng nhập): dải navy để chữ trắng của thanh trạng thái iOS đọc được. */
+body.login-page::before { content: ""; display: block; height: env(safe-area-inset-top); background: var(--c-primary); }
+
+@media (max-width: 640px) {
+  #topbar { position: sticky; top: 0; z-index: 20; flex-wrap: nowrap; gap: var(--s2); min-height: calc(52px + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; }
+  #topbar .topnav, #topbar .who { display: none; }
+  body[data-title] #topbar .brand { display: none; }
+  .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: 1.125rem; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .bar-back { display: flex; align-items: center; justify-content: center; flex: none; width: 44px; height: 44px; margin-left: calc(-1 * var(--s3)); color: #fff; }
+  body[data-title] main > h1 { display: none; }
+
+  #tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 0 var(--s1) env(safe-area-inset-bottom); background: #fff; border-top: 1px solid var(--c-line); }
+  #tabbar .tab { flex: 1 1 0; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--c-muted); text-decoration: none; }
+  #tabbar .tab[aria-current="page"] { color: var(--c-primary); font-weight: 800; }
+  #tabbar .tab-icon { display: flex; }
+  #tabbar .tab-new .tab-icon { width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: var(--c-accent); }
+  body.has-tabbar main { padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--s4)); }
+}
