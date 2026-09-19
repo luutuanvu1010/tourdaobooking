@@ -1,17 +1,9 @@
 import assert from "node:assert/strict";
-const B = "http://localhost:8787";
-async function login(phone, pin) {
-  const r = await fetch(`${B}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone, pin }) });
-  assert.equal(r.status, 200);
-  return r.headers.get("set-cookie").split(";")[0];
-}
-const call = async (cookie, method, path, body) => {
-  const r = await fetch(B + path, { method, headers: { cookie: cookie ?? "", "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
-  return { status: r.status, body: await r.json().catch(() => null) };
-};
-const A = await login("0900000002", "246810");
-const Bc = await login("0900000003", "135790");
-const ADMIN = await login("0900000004", "112233");
+import { ACCOUNTS, call, session } from "./lib.mjs";
+
+const A = await session(ACCOUNTS.salesA);
+const Bc = await session(ACCOUNTS.salesB);
+const ADMIN = await session(ACCOUNTS.admin);
 
 // chưa đăng nhập
 assert.equal((await call(null, "GET", "/api/orders")).status, 401);
@@ -119,4 +111,20 @@ console.log("song song:", codes.sort().join(" "));
 // phân trang
 r = await call(A, "GET", "/api/orders?limit=3");
 assert.equal(r.body.orders.length, 3); assert.equal(r.body.hasMore, true);
+
+// TRANH CHẤP: thao tác thua cuộc (điều kiện SQL không còn đúng) KHÔNG được để lại dòng nhật ký (idiom changes() > 0)
+for (let round = 0; round < 3; round++) {
+  const d = (await call(A, "POST", "/api/orders", { ...input, customerName: `Tranh chấp ${round}` })).body.order;
+  const [c1, c2] = await Promise.all([
+    call(A, "POST", `/api/orders/${d.id}/status`, { status: "confirmed" }),
+    call(ADMIN, "POST", `/api/orders/${d.id}/status`, { status: "cancelled" }),
+  ]);
+  const wins = [c1, c2].filter((x) => x.status === 200).length;
+  const hist = (await call(A, "GET", `/api/orders/${d.id}`)).body.history.map((h) => h.action);
+  // Nếu hai request chạy nối tiếp thì cả hai có thể thắng (draft→confirmed→cancelled); nếu đan xen thì kẻ thua nhận 409.
+  // Dù thế nào, số dòng nhật ký phải đúng bằng số thao tác thắng.
+  assert.ok(wins >= 1);
+  assert.equal(hist.length, 1 + wins, `nhật ký phải khớp số thao tác thắng: ${hist} / ${c1.status},${c2.status}`);
+}
+console.log("✓ thao tác thua khi tranh chấp không ghi nhật ký");
 console.log("E2E OK");

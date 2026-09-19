@@ -9,7 +9,8 @@
     "db:migrate:local": "wrangler d1 migrations apply tourdao-sales-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply tourdao-sales-db --remote",
     "build:web": "esbuild web/login.ts web/orders.ts web/order-form.ts web/order.ts web/audit.ts web/staff.ts web/account.ts web/catalog.ts --bundle --format=esm --target=es2022 --minify --outdir=public/js",
-    "test": "node --test \"src/**/*.test.ts\""
+    "test": "node --test \"src/**/*.test.ts\"",
+    "test:e2e": "node tests/e2e/run.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

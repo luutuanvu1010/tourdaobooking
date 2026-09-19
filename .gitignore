@@ -4,3 +4,4 @@ node_modules
 *.local.sql
 public/js
 *.local.txt
+.claude/

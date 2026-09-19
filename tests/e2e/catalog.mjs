@@ -1,14 +1,7 @@
 import assert from "node:assert/strict";
-import { execFileSync } from "node:child_process";
-const B = "http://localhost:8787"; let n = 0;
-const ip = () => `10.5.${Math.floor(Math.random() * 250)}.${++n}`;
-async function call(cookie, method, path, body) {
-  const r = await fetch(B + path, { method, headers: { cookie: cookie ?? "", "content-type": "application/json", "cf-connecting-ip": ip() }, body: body && method !== "GET" && method !== "DELETE" ? JSON.stringify(body) : undefined });
-  return { status: r.status, body: await r.json().catch(() => null), text: null, cookie: r.headers.get("set-cookie")?.split(";")[0] };
-}
-const login = async (phone, pin) => (await call(null, "POST", "/api/auth/login", { phone, pin })).cookie;
-const sql = (q) => execFileSync("npx", ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--command", q], { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
-const ADMIN = await login("0900000004", "112233"), SALES = await login("0900000002", "246810");
+import { ACCOUNTS, BASE as B, call, session, sql } from "./lib.mjs";
+// Cần D1 chưa từng đồng bộ danh mục (run.mjs luôn dựng D1 mới) và mạng để đọc Google Sheet thật.
+const ADMIN = await session(ACCOUNTS.admin), SALES = await session(ACCOUNTS.salesA);
 
 assert.equal((await call(null, "GET", "/api/catalog")).status, 401);
 for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", "/api/catalog/TD101"], ["DELETE", "/api/catalog/TD101/override"]]) {

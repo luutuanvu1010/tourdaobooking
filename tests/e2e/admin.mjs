@@ -1,17 +1,11 @@
 import assert from "node:assert/strict";
-const B = "http://localhost:8787";
-let ipn = 0;
-const fresh = () => `10.1.${Math.floor(Math.random() * 250)}.${++ipn}`; // IP giả riêng cho từng kịch bản
-async function raw(cookie, method, path, body, ip = "10.0.0.1") {
-  const r = await fetch(B + path, { method, headers: { cookie: cookie ?? "", "content-type": "application/json", "cf-connecting-ip": ip }, body: body ? JSON.stringify(body) : undefined });
-  return { status: r.status, body: await r.json().catch(() => null), setCookie: r.headers.get("set-cookie"), headers: r.headers };
-}
-const login = async (phone, pin, ip = fresh()) => raw(null, "POST", "/api/auth/login", { phone, pin }, ip);
-const cookieOf = (r) => r.setCookie.split(";")[0];
-const rnd = () => "09" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");
+import { ACCOUNTS, call as raw, freshIp as fresh, randomPhone as rnd, session } from "./lib.mjs";
 
-const ADMIN = cookieOf(await login("0900000004", "112233"));
-const SALES = cookieOf(await login("0900000002", "246810"));
+const login = (phone, pin, ip = fresh()) => raw(null, "POST", "/api/auth/login", { phone, pin }, ip);
+const cookieOf = (r) => r.cookie;
+
+const ADMIN = await session(ACCOUNTS.admin);
+const SALES = await session(ACCOUNTS.salesA);
 
 // --- phân quyền API
 assert.equal((await raw(null, "GET", "/api/staff")).status, 401);
