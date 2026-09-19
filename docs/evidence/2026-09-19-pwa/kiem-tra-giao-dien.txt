@@ -1,0 +1,127 @@
+{
+ "problems": [],
+ "login": {
+  "logo": true,
+  "h1": "Tour Đảo Desk",
+  "overflowX": false
+ },
+ "orders": {
+  "tabs": [
+   "Đơn hàng",
+   "Đơn mới",
+   "Tôi"
+  ],
+  "current": "Đơn hàng",
+  "tabBottomGap": 0,
+  "tabHeight": 58,
+  "headerText": "Tour Đảo DeskĐơn hàng+ Đơn mớiNguyễn Thị MaiĐăng xuất",
+  "brandVisible": true,
+  "topnavVisible": false,
+  "newBtnInToolbarHidden": true,
+  "overflowX": false,
+  "lastRowClearOfTabBar": 18
+ },
+ "detail": {
+  "barTitle": "TD-20260919-0018",
+  "backVisible": true,
+  "brandHidden": true,
+  "rowDisplay": "grid",
+  "theadHidden": true,
+  "actions": [
+   "Huỷ đơn"
+  ],
+  "current": "Đơn hàng",
+  "overflowX": false
+ },
+ "backWorks": true,
+ "draft": {
+  "actions": [
+   "Sửa",
+   "Xác nhận đơn",
+   "Huỷ đơn"
+  ],
+  "heights": [
+   46,
+   46,
+   46
+  ]
+ },
+ "editTitle": {
+  "h1": "Sửa đơn TD-20260919-0017",
+  "bar": "Sửa đơn TD-20260919-0017"
+ },
+ "form": {
+  "tabbarPresent": false,
+  "barTitle": "Tạo đơn mới",
+  "saveBtn": "Lưu đơn nháp",
+  "cancelHidden": true,
+  "actionsBottomGap": 0,
+  "h1Hidden": true,
+  "phoneMode": "tel",
+  "discountMode": "numeric",
+  "overflowX": false
+ },
+ "account": {
+  "rows": [
+   "Đăng xuất"
+  ],
+  "profile": "NMNguyễn Thị Mai0901000002 · Nhân viên",
+  "avatar": "NM",
+  "current": "Tôi",
+  "overflowX": false
+ },
+ "sw": {
+  "registered": true,
+  "active": "activated",
+  "controlled": true,
+  "keys": [
+   "td-shell-v1"
+  ],
+  "count": 14,
+  "apiEntries": [],
+  "hasShell": true,
+  "urlCount": 14
+ },
+ "offline": {
+  "brand": true,
+  "title": "Đơn hàng — Tour Đảo Desk",
+  "error": "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app."
+ },
+ "logoutWorks": true,
+ "admin": {
+  "tabs": [
+   "Đơn hàng",
+   "Đơn mới",
+   "Dịch vụ",
+   "Nhân viên",
+   "Tôi"
+  ]
+ },
+ "adminAccount": {
+  "rows": [
+   "Nhật ký",
+   "Đăng xuất"
+  ],
+  "avatar": "HH"
+ },
+ "audit": {
+  "back": true,
+  "title": "Nhật ký",
+  "current": "Tôi"
+ },
+ "desktop": {
+  "tabbarDisplay": "none",
+  "nav": [
+   "Đơn hàng",
+   "+ Đơn mới",
+   "Dịch vụ",
+   "Nhân viên",
+   "Nhật ký"
+  ],
+  "who": "Hoàng Gia HuyĐăng xuất",
+  "backHidden": "block",
+  "h1": "Đơn hàng"
+ }
+}
+
+KHÔNG CÓ VẤN ĐỀ

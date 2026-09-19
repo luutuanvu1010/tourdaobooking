@@ -19,6 +19,8 @@ Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế ho�
 
 ## Đã kiểm gì
 
+Rà soát theo Hiến pháp/ràng buộc của tourdaovn: `docs/AUDIT-PWA-IPHONE.md`; bằng chứng (số đo, axe, ảnh chụp, kịch bản): `docs/evidence/2026-09-19-pwa/`. Quy tắc giữ khi sửa tiếp: **giá trị giao diện mới đi vào token ở `:root` của `app.css`, không viết cứng trong luật** (`pwa.mjs` quét khối PWA); tên hiển thị và màu theme chỉ có một nguồn (manifest, token `--c-primary`), các bản sao phải khớp (`pwa.mjs` đối chiếu).
+
 Tự động: `npm run typecheck`, `npm test` (gồm `sw-policy`), `npm run test:e2e` (kịch bản `pwa.mjs`: manifest, icon không alpha, `/sw.js` không cache, meta iOS trên 8 trang, API `no-store`). Trên Chrome headless khổ 390×844 với `wrangler dev`: service worker đăng ký và điều khiển trang, cache không chứa mục nào của `/api`, khung mở được khi offline, tab và thanh đầu trang đúng cho nhân viên và admin, bản máy tính không đổi.
 
 **Chưa kiểm trên iPhone thật** (vùng an toàn `env(safe-area-inset-*)` luôn bằng 0 ngoài thiết bị có tai thỏ):
