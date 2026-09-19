@@ -1,4 +1,4 @@
-import { ApiError, api, type OrderStatus, type OrderSummary } from "./api";
+import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { STATUS_LABEL, dateTime, vnd } from "./format";
 import { initShell, showError } from "./shell";
@@ -33,7 +33,7 @@ async function load(reset: boolean): Promise<void> {
   if (qInput.value.trim()) params.set("q", qInput.value.trim());
   if (statusSel.value) params.set("status", statusSel.value as OrderStatus);
   try {
-    const { orders, hasMore } = await api<{ orders: OrderSummary[]; hasMore: boolean }>(`/api/orders?${params}`);
+    const { orders, hasMore } = await api<Api.OrderListResponse>(`/api/orders?${params}`);
     if (seq !== loadSeq) return;
     const rows = orders.map(row);
     if (reset) replaceChildren(listEl, ...rows);

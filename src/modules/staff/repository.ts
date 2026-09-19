@@ -1,4 +1,4 @@
-export type StaffRole = "sales" | "admin";
+import type { StaffRole } from "../../shared/contracts";
 
 export interface StaffRecord {
   id: string;

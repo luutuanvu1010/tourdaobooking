@@ -1,4 +1,4 @@
-import { ApiError, api, type AuditEntry, type Order } from "./api";
+import { ApiError, api, type AuditEntry, type Order, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { METHOD_LABEL, actionLabel, STATUS_LABEL, dateTime, vnd } from "./format";
 import { initShell, showError } from "./shell";
@@ -71,7 +71,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
       "section",
       { class: "card" },
       h("h2", null, "Lịch sử"),
-      h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} ·${e.staffName}`))),
+      h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} · ${e.staffName}`))),
     ),
   );
 
@@ -105,7 +105,7 @@ function change(label: string, to: "confirmed" | "cancelled", prompt: string, cl
 
 async function load(): Promise<void> {
   try {
-    const { order, history, canModify } = await api<{ order: Order; history: AuditEntry[]; canModify: boolean }>(`/api/orders/${encodeURIComponent(id!)}`);
+    const { order, history, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`);
     render(order, history, canModify);
   } catch (err) {
     showError(errorEl, err instanceof ApiError ? err.message : "Không tải được đơn.");

@@ -1,5 +1,5 @@
 import { AUDIT_ACTIONS, AUDIT_GROUPS, type AuditAction, type AuditGroup } from "../src/shared/audit-actions";
-import { ApiError, api, type AuditRecord } from "./api";
+import { ApiError, api, type AuditRecord, type Api } from "./api";
 import { append, byId, h, replaceChildren } from "./dom";
 import { actionLabel, dateTime } from "./format";
 import { initShell, showError } from "./shell";
@@ -44,7 +44,7 @@ async function load(reset: boolean): Promise<void> {
   if (qInput.value.trim()) params.set("q", qInput.value.trim());
   if (actionSel.value) params.set("action", actionSel.value);
   try {
-    const { entries, hasMore } = await api<{ entries: AuditRecord[]; hasMore: boolean }>(`/api/audit?${params}`);
+    const { entries, hasMore } = await api<Api.AuditListResponse>(`/api/audit?${params}`);
     if (seq !== loadSeq) return;
     const rows = entries.map(row);
     if (reset) replaceChildren(listEl, ...rows);

@@ -1,4 +1,5 @@
 import { auditStatement, type AuditAction } from "../audit";
+import type { CatalogSyncStateDto } from "../../shared/contracts";
 import type { PaxCode, Prices } from "../../shared/order-lines";
 import type { CatalogRecord, Override, SyncPlan } from "./rules";
 import { summarizePlan } from "./rules";
@@ -59,14 +60,7 @@ export async function loadOne(db: D1Database, code: string): Promise<StoredItem 
   return row ? toStored(row) : null;
 }
 
-export interface SyncState {
-  lastAttemptAt: string | null;
-  lastSuccessAt: string | null;
-  lastErrorCode: string | null;
-  lastError: string | null;
-  itemCount: number | null;
-  problems: { row: number; message: string }[];
-}
+export type SyncState = CatalogSyncStateDto;
 
 export async function getSyncState(db: D1Database): Promise<SyncState> {
   const r = await db

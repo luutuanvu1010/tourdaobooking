@@ -1,4 +1,5 @@
 import { isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
+import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
 
 export { isAuditAction, type AuditAction, type AuditTargetType };
 
@@ -14,23 +15,8 @@ export interface AuditInput {
   detail?: string;
 }
 
-export interface AuditEntry {
-  action: AuditAction;
-  staffId: string | null;
-  staffName: string;
-  at: string;
-  detail: string | null;
-}
-
-export interface AuditRecord extends AuditEntry {
-  id: string;
-  targetType: AuditTargetType | null;
-  targetId: string | null;
-  /** Nhãn dễ đọc của đối tượng: mã đơn, tên nhân viên hoặc mã dịch vụ. */
-  targetLabel: string | null;
-  /** Có giá trị khi đối tượng là đơn — để giao diện tạo liên kết. */
-  orderId: string | null;
-}
+export type AuditEntry = AuditEntryDto;
+export type AuditRecord = AuditRecordDto;
 
 export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string): D1PreparedStatement {
   // SQL không còn CHECK liệt kê (0007) → chốt ở đây để giá trị lạ không bao giờ vào nhật ký.
@@ -65,7 +51,7 @@ const escapeLike = (s: string) => s.replace(/[\\%_]/g, (c) => `\\${c}`);
 export async function listAll(
   db: D1Database,
   opts: { action: AuditAction | null; q: string; limit: number; offset: number },
-): Promise<{ entries: AuditRecord[]; hasMore: boolean }> {
+): Promise<AuditListResponse> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
   if (opts.action) {

@@ -1,4 +1,5 @@
 import { authenticate, getActiveStaff, isValidPin, normalizePhone, type StaffProfile } from "../staff";
+import type { MeResponse } from "../../shared/contracts";
 import { error, getCookie, json, readJson, type AppModule } from "../../shared/http";
 import { SESSION_COOKIE, clearedSessionCookie, createSessionToken, sessionCookie, verifySessionToken } from "./session";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
@@ -73,12 +74,12 @@ export const authModule: AppModule = {
 
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
-      return json({ staff: result.profile }, 200, { "set-cookie": await newSessionCookie(request, env, result.profile.id) });
+      return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, result.profile.id) });
     }
 
     if (pathname === "/api/auth/me" && request.method === "GET") {
       const staff = await requireStaff(request, env);
-      return staff instanceof Response ? staff : json({ staff });
+      return staff instanceof Response ? staff : json({ staff } satisfies MeResponse);
     }
 
     if (pathname === "/api/auth/logout" && request.method === "POST") {

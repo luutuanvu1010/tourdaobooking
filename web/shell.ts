@@ -1,9 +1,9 @@
-import { api, type Staff } from "./api";
+import { api, type Staff, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 
 /** Khung chung các trang sau đăng nhập: xác thực phiên, dựng thanh đầu trang. Trả nhân viên hiện tại. */
 export async function initShell(): Promise<Staff> {
-  const { staff } = await api<{ staff: Staff }>("/api/auth/me");
+  const { staff } = await api<Api.MeResponse>("/api/auth/me");
   const logout = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
   logout.addEventListener("click", async () => {
     await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);

@@ -1,4 +1,4 @@
-import { ApiError, api, type SheetCandidate, type StaffAccount } from "./api";
+import { ApiError, api, type SheetCandidate, type StaffAccount, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { initShell, showError } from "./shell";
@@ -69,7 +69,7 @@ function row(s: StaffAccount): HTMLElement {
       btn("Sửa", () => openEdit(s)),
       btn("Đặt lại PIN", async () => {
         if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
-        const r = await act(() => api<{ pin: string }>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
+        const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
         if (r) {
           showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
           await load();
@@ -120,7 +120,7 @@ function openEdit(s: StaffAccount): void {
 }
 
 async function load(): Promise<void> {
-  const r = await act(() => api<{ staff: StaffAccount[] }>("/api/staff"));
+  const r = await act(() => api<Api.StaffListResponse>("/api/staff"));
   if (!r) return;
   accounts = r.staff;
   replaceChildren(listEl, ...accounts.map(row));
@@ -132,7 +132,7 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   const name = byId<HTMLInputElement>("add-name");
   const phone = byId<HTMLInputElement>("add-phone");
   const role = byId<HTMLSelectElement>("add-role");
-  const r = await act(() => api<{ staff: StaffAccount; pin: string }>("/api/staff", { method: "POST", body: { fullName: name.value, phone: phone.value, role: role.value } }));
+  const r = await act(() => api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body: { fullName: name.value, phone: phone.value, role: role.value } }));
   if (r) {
     showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
     name.value = phone.value = "";
@@ -144,7 +144,7 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
 // ---- Đồng bộ từ Google Sheet: xem trước rồi mới xác nhận
 byId("sheet-pull").addEventListener("click", async () => {
   const r = await act(() =>
-    api<{ candidates: SheetCandidate[]; problems: { row: number; message: string }[]; notInSheet: { fullName: string; phone: string; active: boolean }[] }>("/api/staff/sheet"),
+    api<Api.StaffSheetPreviewResponse>("/api/staff/sheet"),
   );
   if (!r) return;
   const fresh = r.candidates.filter((c) => c.status === "new");
@@ -162,7 +162,7 @@ byId("sheet-pull").addEventListener("click", async () => {
   }
   apply.addEventListener("click", async () => {
     const phones = [...boxes].filter(([, b]) => b.checked).map(([p]) => p);
-    const res = await act(() => api<{ created: { fullName: string; phone: string; pin: string }[] }>("/api/staff/sheet/apply", { method: "POST", body: { phones } }));
+    const res = await act(() => api<Api.StaffSheetApplyResponse>("/api/staff/sheet/apply", { method: "POST", body: { phones } }));
     if (res) {
       sheetEl.hidden = true;
       showSecrets(`Đã tạo ${res.created.length} tài khoản`, res.created.map((c) => ({ name: c.fullName, phone: c.phone, pin: c.pin })));

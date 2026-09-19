@@ -2,6 +2,7 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ.
 import { getAuditTrail } from "../audit";
 import { requireStaff } from "../auth";
+import type { OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
 import { error, json, readJson, type AppModule } from "../../shared/http";
 import { createOrder, findOrder, getMeta, listOrders, transitionOrder, updateDraftOrder } from "./repository";
 import { canModify, canTransition, isOrderStatus, validateOrder } from "./rules";
@@ -38,13 +39,13 @@ export const ordersModule: AppModule = {
           limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
           offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
         });
-        return json(result);
+        return json(result satisfies OrderListResponse);
       }
       if (method === "POST") {
         const parsed = validateOrder(await readJson(request));
         if (!parsed.ok) return error(400, "invalid_input", parsed.message);
         const id = await createOrder(db, staff.id, parsed.value);
-        return json({ order: await findOrder(db, id) }, 201);
+        return json({ order: (await findOrder(db, id))! } satisfies OrderResponse, 201);
       }
       return error(405, "method_not_allowed", "Phương thức không được hỗ trợ.");
     }
@@ -57,7 +58,7 @@ export const ordersModule: AppModule = {
       if (method === "GET") {
         const order = await findOrder(db, id);
         if (!order) return error(404, "not_found", "Không tìm thấy đơn.");
-        return json({ order, history: await getAuditTrail(db, id), canModify: canModify(staff, order) });
+        return json({ order, history: await getAuditTrail(db, id), canModify: canModify(staff, order) } satisfies OrderDetailResponse);
       }
       if (method === "PUT") {
         const meta = await getMeta(db, id);
@@ -69,7 +70,7 @@ export const ordersModule: AppModule = {
         if (!(await updateDraftOrder(db, id, staff.id, parsed.value))) {
           return error(409, "not_editable", "Đơn vừa được đổi trạng thái, không sửa được nữa.");
         }
-        return json({ order: await findOrder(db, id) });
+        return json({ order: (await findOrder(db, id))! } satisfies OrderResponse);
       }
       return error(405, "method_not_allowed", "Phương thức không được hỗ trợ.");
     }
@@ -88,7 +89,7 @@ export const ordersModule: AppModule = {
       if (!(await transitionOrder(db, id, staff.id, from, to))) {
         return error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
       }
-      return json({ order: await findOrder(db, id) });
+      return json({ order: (await findOrder(db, id))! } satisfies OrderResponse);
     }
 
     return error(404, "not_found", "Không tìm thấy.");

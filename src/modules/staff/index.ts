@@ -3,25 +3,13 @@
 // (accounts) gộp cùng nhật ký audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau.
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
-import { countActiveAdmins, findById, findByPhone, listAll, type StaffRecord, type StaffRole } from "./repository";
+import { countActiveAdmins, findById, findByPhone, listAll, type StaffRecord } from "./repository";
 import { checkAccountChange, generatePin, isWeakPin } from "./rules";
 import { parseStaffSheet, type StaffCandidate, type StaffSheetParse } from "./sheet";
+import type { StaffAccount, StaffProfile, StaffRole } from "../../shared/contracts";
 import type { AppModule } from "../../shared/http";
 
-export interface StaffProfile {
-  id: string;
-  fullName: string;
-  phone: string;
-  role: StaffRole;
-}
-
-/** Hồ sơ đầy đủ cho màn hình quản trị. */
-export interface StaffAccount extends StaffProfile {
-  active: boolean;
-  createdAt: string;
-}
-
-export type { StaffCandidate, StaffRole, StaffSheetParse };
+export type { StaffAccount, StaffCandidate, StaffProfile, StaffRole, StaffSheetParse };
 export { checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, parseStaffSheet };
 
 /** Trả hồ sơ nhân viên nếu SĐT+PIN đúng và tài khoản còn hoạt động; ngược lại null. */

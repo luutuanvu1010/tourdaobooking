@@ -6,6 +6,7 @@ import {
   checkAccountChange, countActiveAdmins, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts, newStaffStatement, normalizePhone,
   parseStaffSheet, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount, type StaffRole,
 } from "../staff";
+import type { StaffAccountDto, StaffListResponse, StaffResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse } from "../../shared/contracts";
 import { error, json, readJson, type AppModule } from "../../shared/http";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
 
@@ -61,13 +62,13 @@ export const accountsModule: AppModule = {
 
     const audit = (action: AuditAction, targetId: string | undefined, detail?: string) =>
       auditStatement(db, { staffId: admin.id, action, at: new Date().toISOString(), targetType: "staff", targetId, detail });
-    const dto = (s: StaffAccount, locked: Set<string>) => ({ ...s, locked: locked.has(s.phone) });
+    const dto = (s: StaffAccount, locked: Set<string>): StaffAccountDto => ({ ...s, locked: locked.has(s.phone) });
 
     // ---- /api/staff -----------------------------------------------------------
     if (parts.length === 2) {
       if (method === "GET") {
         const [staff, locked] = await Promise.all([listStaffAccounts(db), lockedPhones(db)]);
-        return json({ staff: staff.map((s) => dto(s, locked)) });
+        return json({ staff: staff.map((s) => dto(s, locked)) } satisfies StaffListResponse);
       }
       if (method === "POST") {
         const body = await readJson(request);
@@ -85,7 +86,7 @@ export const accountsModule: AppModule = {
           if (isUniqueViolation(e)) return error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
           throw e;
         }
-        return json({ staff: dto((await getStaffAccount(db, created.id))!, new Set()), pin: created.pin }, 201);
+        return json({ staff: dto((await getStaffAccount(db, created.id))!, new Set()), pin: created.pin } satisfies StaffWithPinResponse, 201);
       }
       return error(405, "method_not_allowed", "Phương thức không được hỗ trợ.");
     }
@@ -109,7 +110,7 @@ export const accountsModule: AppModule = {
           }),
           problems: parsed.problems,
           notInSheet: [...existing.values()].filter((s) => !inSheet.has(s.phone)).map((s) => ({ fullName: s.fullName, phone: s.phone, active: s.active })),
-        });
+        } satisfies StaffSheetPreviewResponse);
       }
       if (parts.length === 4 && parts[3] === "apply" && method === "POST") {
         const body = await readJson(request);
@@ -137,7 +138,7 @@ export const accountsModule: AppModule = {
           if (isUniqueViolation(e)) return error(409, "phone_taken", "Có số điện thoại vừa được tạo bởi người khác. Hãy đồng bộ lại.");
           throw e;
         }
-        return json({ created: made.map((m) => ({ id: m.id, fullName: m.c.name, phone: m.c.phone, pin: m.pin })) }, 201);
+        return json({ created: made.map((m) => ({ id: m.id, fullName: m.c.name, phone: m.c.phone, pin: m.pin })) } satisfies StaffSheetApplyResponse, 201);
       }
       return error(404, "not_found", "Không tìm thấy.");
     }
@@ -173,7 +174,7 @@ export const accountsModule: AppModule = {
         if (typeof body.active !== "boolean") return error(400, "invalid_input", "Trạng thái phải là true/false.");
         if (body.active !== target.active) patch.active = body.active;
       }
-      if (Object.keys(patch).length === 0) return json({ staff: dto(target, await lockedPhones(db)) });
+      if (Object.keys(patch).length === 0) return json({ staff: dto(target, await lockedPhones(db)) } satisfies StaffResponse);
 
       const problem = checkAccountChange(admin.id, target, patch, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
@@ -198,14 +199,14 @@ export const accountsModule: AppModule = {
         throw e;
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
-      return json({ staff: dto((await getStaffAccount(db, id))!, await lockedPhones(db)) });
+      return json({ staff: dto((await getStaffAccount(db, id))!, await lockedPhones(db)) } satisfies StaffResponse);
     }
 
     if (parts.length === 4 && parts[3] === "reset-pin" && method === "POST") {
       const pin = generatePin();
       await db.batch([await setPinStatement(db, id, pin), audit("pin_reset", id)]); // nhật ký KHÔNG chứa PIN
       await unlockPhone(db, target.phone);
-      return json({ staff: dto((await getStaffAccount(db, id))!, new Set()), pin });
+      return json({ staff: dto((await getStaffAccount(db, id))!, new Set()), pin } satisfies StaffWithPinResponse);
     }
 
     if (parts.length === 4 && parts[3] === "unlock" && method === "POST") {

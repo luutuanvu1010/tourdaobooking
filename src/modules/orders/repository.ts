@@ -1,4 +1,5 @@
 import { auditStatement } from "../audit";
+import type { OrderDetailDto, OrderDto, OrderItemDto, OrderSummaryDto } from "../../shared/contracts";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 
 interface OrderRow {
@@ -33,43 +34,6 @@ interface ItemRow {
   line_total: number;
 }
 
-export interface OrderItemDto {
-  id: string;
-  catalogCode: string | null;
-  description: string;
-  detail: string | null;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-}
-
-export interface OrderDto {
-  id: string;
-  orderCode: string;
-  staffId: string;
-  staffName: string;
-  status: OrderStatus;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string | null;
-  customerNote: string | null;
-  subtotal: number;
-  discount: number;
-  total: number;
-  depositAmount: number;
-  depositMethod: DepositMethod | null;
-  remainingAmount: number;
-  paymentNote: string | null;
-  createdAt: string;
-  updatedAt: string;
-  confirmedAt: string | null;
-}
-
-export type OrderSummaryDto = Pick<
-  OrderDto,
-  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "total" | "remainingAmount" | "staffName" | "createdAt"
->;
-
 const ORDER_SELECT = `SELECT o.*, s.full_name AS staff_name FROM orders o JOIN staff s ON s.id = o.staff_id`;
 
 function toDto(r: OrderRow): OrderDto {
@@ -96,14 +60,14 @@ function toDto(r: OrderRow): OrderDto {
   };
 }
 
-export async function findOrder(db: D1Database, id: string): Promise<(OrderDto & { items: OrderItemDto[] }) | null> {
+export async function findOrder(db: D1Database, id: string): Promise<OrderDetailDto | null> {
   const [orderRes, itemsRes] = await db.batch([
     db.prepare(`${ORDER_SELECT} WHERE o.id = ?`).bind(id),
     db.prepare(`SELECT id, catalog_code, description, detail, quantity, unit_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`).bind(id),
   ]);
   const row = (orderRes!.results as OrderRow[])[0];
   if (!row) return null;
-  const items = (itemsRes!.results as ItemRow[]).map((i) => ({
+  const items = (itemsRes!.results as ItemRow[]).map((i): OrderItemDto => ({
     id: i.id,
     catalogCode: i.catalog_code,
     description: i.description,

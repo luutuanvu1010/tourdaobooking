@@ -1,6 +1,5 @@
-// Luật thuần của quản lý tài khoản nhân viên. Không import gì, không I/O.
-
-export type StaffRole = "sales" | "admin";
+// Luật thuần của quản lý tài khoản nhân viên. Chỉ import kiểu, không I/O.
+import type { StaffRole } from "../../shared/contracts.ts";
 
 /** PIN quá dễ đoán: cả 6 số giống nhau hoặc chạy liên tiếp tăng/giảm, kể cả cuộn vòng (000000, 123456, 654321, 890123…). */
 export function isWeakPin(pin: string): boolean {

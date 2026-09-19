@@ -1,4 +1,4 @@
-import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode } from "./api";
+import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
 import { PAX_LABEL, PAX_ORDER } from "../src/shared/order-lines";
@@ -55,7 +55,7 @@ function row(it: CatalogAdminItem): HTMLElement {
     return b;
   };
   const update = async (path: string, init: { method: string; body?: unknown }) => {
-    const r = await act(() => api<{ item: CatalogAdminItem }>(path, init));
+    const r = await act(() => api<Api.CatalogItemResponse>(path, init));
     if (r) {
       items = items.map((x) => (x.code === r.item.code ? r.item : x));
       render();
@@ -121,7 +121,7 @@ function openEdit(it: CatalogAdminItem): void {
       editEl.hidden = true;
       return;
     }
-    const r = await act(() => api<{ item: CatalogAdminItem }>(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { prices } }));
+    const r = await act(() => api<Api.CatalogItemResponse>(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { prices } }));
     if (r) {
       items = items.map((x) => (x.code === r.item.code ? r.item : x));
       editEl.hidden = true;
@@ -142,7 +142,7 @@ function openEdit(it: CatalogAdminItem): void {
 }
 
 async function load(): Promise<void> {
-  const r = await act(() => api<{ items: CatalogAdminItem[]; sync: CatalogSyncState }>("/api/catalog/admin"));
+  const r = await act(() => api<Api.CatalogAdminResponse>("/api/catalog/admin"));
   if (!r) return;
   items = r.items;
   sync = r.sync;
@@ -155,7 +155,7 @@ async function pull(force: boolean): Promise<void> {
   noticeEl.hidden = true;
   showError(errorEl, null);
   try {
-    const r = await api<{ added: number; changed: number; hidden: number; unchanged: number; problems: unknown[]; warnings: { message: string }[] }>("/api/catalog/sync", { method: "POST", body: { force } });
+    const r = await api<Api.CatalogSyncResponse>("/api/catalog/sync", { method: "POST", body: { force } });
     noticeEl.textContent = `Đã đồng bộ xong: thêm ${r.added}, đổi ${r.changed}, ẩn ${r.hidden}, giữ nguyên ${r.unchanged}.${r.problems.length ? ` ${r.problems.length} dòng bị bỏ qua.` : ""}${r.warnings.length ? ` Cảnh báo: ${r.warnings.map((w) => w.message).join("; ")}.` : ""}`;
     noticeEl.hidden = false;
   } catch (err) {

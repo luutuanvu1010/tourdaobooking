@@ -1,95 +1,24 @@
-export interface Staff {
-  id: string;
-  fullName: string;
-  phone: string;
-  role: "sales" | "admin";
-}
-
-export type OrderStatus = "draft" | "confirmed" | "cancelled";
-export type DepositMethod = "cash" | "bank_transfer" | "other";
-
-export interface OrderItem {
-  id: string;
-  catalogCode: string | null;
-  description: string;
-  detail: string | null;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-}
-
-export interface Order {
-  id: string;
-  orderCode: string;
-  staffId: string;
-  staffName: string;
-  status: OrderStatus;
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string | null;
-  customerNote: string | null;
-  subtotal: number;
-  discount: number;
-  total: number;
-  depositAmount: number;
-  depositMethod: DepositMethod | null;
-  remainingAmount: number;
-  paymentNote: string | null;
-  createdAt: string;
-  updatedAt: string;
-  confirmedAt: string | null;
-  items: OrderItem[];
-}
-
-export type OrderSummary = Pick<
-  Order,
-  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "total" | "remainingAmount" | "staffName" | "createdAt"
->;
-
-import type { AuditAction } from "../src/shared/audit-actions";
-export type { AuditAction };
-
-export interface AuditEntry {
-  action: AuditAction;
-  staffName: string;
-  at: string;
-  detail: string | null;
-}
-
-export interface AuditRecord extends AuditEntry {
-  id: string;
-  targetType: "order" | "staff" | "catalog" | null;
-  targetId: string | null;
-  targetLabel: string | null;
-  orderId: string | null;
-}
-
-export interface StaffAccount extends Staff {
-  active: boolean;
-  createdAt: string;
-  locked: boolean;
-}
-
-export interface SheetCandidate {
-  row: number;
-  name: string;
-  phone: string;
-  status: "new" | "same" | "name_differs";
-  currentName: string | null;
-}
-
-/** Dữ liệu client gửi lên: chỉ các trường nhập, không có tổng tiền — server tự tính. */
-export interface OrderInput {
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  customerNote: string;
-  items: { catalogCode: string | null; description: string; detail: string; quantity: number; unitPrice: number }[];
-  discount: number;
-  depositAmount: number;
-  depositMethod: DepositMethod | null;
-  paymentNote: string;
-}
+// Kiểu dữ liệu API lấy từ hợp đồng dùng chung với Worker (src/shared/contracts.ts) — không chép tay ở đây.
+export type {
+  AuditAction,
+  AuditEntryDto as AuditEntry,
+  AuditRecordDto as AuditRecord,
+  CatalogAdminItemDto as CatalogAdminItem,
+  CatalogServiceDto as CatalogService,
+  CatalogSyncStateDto as CatalogSyncState,
+  DepositMethod,
+  OrderDetailDto as Order,
+  OrderInput,
+  OrderItemDto as OrderItem,
+  OrderStatus,
+  OrderSummaryDto as OrderSummary,
+  PaxCode,
+  Prices,
+  StaffAccountDto as StaffAccount,
+  StaffProfile as Staff,
+  StaffSheetCandidateDto as SheetCandidate,
+} from "../src/shared/contracts";
+export type * as Api from "../src/shared/contracts";
 
 export class ApiError extends Error {
   constructor(
@@ -127,41 +56,4 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
     throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.");
   }
   return data as T;
-}
-
-export type PaxCode = "adult" | "child" | "senior" | "infant";
-export type Prices = Record<PaxCode, number | null>;
-
-/** Dịch vụ như nhân viên bán hàng thấy (giá đã áp ghi đè của Admin). */
-export interface CatalogService {
-  code: string;
-  name: string;
-  unit: string;
-  prices: Prices;
-  notes: { child: string | null; senior: string | null; infant: string | null };
-  supported: boolean;
-}
-
-export interface CatalogAdminItem {
-  code: string;
-  name: string;
-  unit: string;
-  supported: boolean;
-  inSheet: boolean;
-  sheetPrices: Prices;
-  prices: Prices;
-  hidden: boolean;
-  overridden: PaxCode[];
-  conflicts: { code: PaxCode; base: number | null; current: number | null; override: number }[];
-  overrideUpdatedAt: string | null;
-  updatedAt: string;
-}
-
-export interface CatalogSyncState {
-  lastAttemptAt: string | null;
-  lastSuccessAt: string | null;
-  lastErrorCode: string | null;
-  lastError: string | null;
-  itemCount: number | null;
-  problems: { row: number; message: string }[];
 }

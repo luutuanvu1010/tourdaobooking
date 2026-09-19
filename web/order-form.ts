@@ -1,4 +1,4 @@
-import { ApiError, api, type CatalogService, type DepositMethod, type Order, type OrderInput } from "./api";
+import { ApiError, api, type CatalogService, type DepositMethod, type Order, type OrderInput, type Api } from "./api";
 import { PAX_LABEL, availableCodes, buildLines, parseUnit, type PaxCode } from "../src/shared/order-lines";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
@@ -130,8 +130,8 @@ byId<HTMLFormElement>("order-form").addEventListener("submit", async (e) => {
   saveBtn.disabled = true;
   try {
     const { order } = editId
-      ? await api<{ order: Order }>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
-      : await api<{ order: Order }>("/api/orders", { method: "POST", body: collect() });
+      ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
+      : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
     location.assign(`/order?id=${encodeURIComponent(order.id)}`);
   } catch (err) {
     showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
@@ -227,7 +227,7 @@ document.addEventListener("click", (e) => {
 
 await initShell();
 try {
-  const res = await api<{ items: CatalogService[]; sync: { lastSuccessAt: string | null; error: string | null } }>("/api/catalog");
+  const res = await api<Api.CatalogPublicResponse>("/api/catalog");
   catalog = res.items;
   if (catalog.length === 0) showCatalogWarn("Danh mục dịch vụ đang trống — hãy nhập tay các dòng bên dưới.");
   else if (res.sync.error) showCatalogWarn(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
@@ -237,7 +237,7 @@ try {
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
   try {
-    const { order, canModify } = await api<{ order: Order; canModify: boolean }>(`/api/orders/${encodeURIComponent(editId)}`);
+    const { order, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`);
     if (!canModify) {
       showError(errorEl, "Chỉ người lập đơn hoặc quản trị viên mới được sửa đơn này.");
       saveBtn.disabled = true;
