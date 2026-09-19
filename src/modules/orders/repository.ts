@@ -85,7 +85,6 @@ export async function getMeta(db: D1Database, id: string): Promise<{ status: Ord
   return row ? { status: row.status, staffId: row.staff_id } : null;
 }
 
-
 export async function listOrders(
   db: D1Database,
   opts: { q: string; status: OrderStatus | null; limit: number; offset: number },

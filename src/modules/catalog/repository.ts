@@ -1,6 +1,6 @@
 import { auditStatement, type AuditAction } from "../audit";
 import type { CatalogSyncStateDto } from "../../shared/contracts";
-import type { PaxCode, Prices } from "../../shared/order-lines";
+import type { Prices } from "../../shared/order-lines";
 import type { CatalogRecord, Override, SyncPlan } from "./rules";
 import { summarizePlan } from "./rules";
 import type { CatalogInput } from "./sheet";
@@ -166,5 +166,3 @@ export async function saveOverride(
     : db.prepare("DELETE FROM catalog_override WHERE code = ?").bind(code);
   await db.batch([write, ...audits.map((a) => auditStatement(db, { staffId, action: a.action, at, targetType: "catalog", targetId: code, detail: a.detail }))]);
 }
-
-export const PRICE_COLUMNS: Record<PaxCode, string> = { adult: "price_adult", child: "price_child", senior: "price_senior", infant: "price_infant" };
