@@ -19,11 +19,16 @@ const res = await get("/manifest.webmanifest");
 assert.equal(res.status, 200, "manifest phải có");
 assert.match(res.headers.get("content-type") ?? "", /^application\/(manifest\+)?json/, "manifest sai content-type — nếu Workers Assets phục vụ sai, đổi tên file thành manifest.json");
 const manifest = await res.json();
-assert.equal(manifest.name, "Tour Đảo Desk");
-assert.equal(manifest.short_name, "Tour Đảo");
+// Nguồn sự thật của tên là manifest, của màu chính là token --c-primary trong app.css; mọi nơi khác chỉ là bản sao phải khớp (P6/N7 của tourdaovn).
+assert.ok(manifest.name.startsWith(manifest.short_name) && manifest.name.length > manifest.short_name.length, "name phải bắt đầu bằng short_name");
+const NAME = manifest.name;
+const SHORT = manifest.short_name;
+const css = await (await get("/app.css")).text();
+const PRIMARY = css.match(/--c-primary:\s*(#[0-9a-fA-F]{6})/)?.[1]?.toLowerCase();
+assert.ok(PRIMARY, "không đọc được --c-primary trong app.css");
 assert.equal(manifest.display, "standalone");
 assert.equal(manifest.start_url, "/");
-assert.equal(manifest.theme_color, "#0c4a6e");
+assert.equal(manifest.theme_color, PRIMARY, "theme_color của manifest phải bằng token --c-primary");
 for (const icon of manifest.icons) {
   const size = Number(icon.sizes.split("x")[0]);
   const p = await png(icon.src);
@@ -57,13 +62,21 @@ const NEEDLES = [
   'rel="apple-touch-icon"',
   'name="apple-mobile-web-app-capable" content="yes"',
   'content="black-translucent"',
-  'name="apple-mobile-web-app-title" content="Tour Đảo"',
-  "— Tour Đảo Desk</title>",
+  `name="apple-mobile-web-app-title" content="${SHORT}"`,
+  `<meta name="theme-color" content="${PRIMARY}">`,
+  `— ${NAME}</title>`,
 ];
 for (const path of ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit"]) {
   const html = await (await get(path)).text();
   for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
   assert.ok(!html.includes("Tour Đảo Sales"), `${path} còn tên cũ`);
 }
-console.log("✓ thẻ meta iOS trên 8 trang");
+assert.ok((await (await get("/login")).text()).includes(`<h1>${NAME}</h1>`), "trang đăng nhập phải có h1 đúng tên trong manifest");
+// thanh đầu trang do web/shell.ts dựng: tên tách thành "Tour Đảo " + <span>phần còn lại</span>
+const shellBundle = await (await get("/js/orders.js")).text();
+const REST = NAME.slice(SHORT.length).trim();
+// esbuild mặc định mã hoá ký tự không-ASCII thành \uXXXX (chữ HOA) trong bản build
+const esc = (s) => s.replace(/[^\x00-\x7f]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
+assert.ok(shellBundle.includes(`"${esc(SHORT)} "`) && shellBundle.includes(`"${esc(REST)}"`), "web/shell.ts phải dựng brand đúng tên trong manifest");
+console.log("✓ thẻ meta iOS, tên và màu nhất quán trên 8 trang");
 console.log("E2E PWA OK");
