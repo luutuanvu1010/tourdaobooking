@@ -29,7 +29,7 @@ Chạy local: tạo `.dev.vars` từ `.dev.vars.example`, `npm run db:migrate:lo
 
 Kiểm tra: `npm run typecheck`, `npm test` (luật thuần: `src/**/*.test.ts`), `npm run test:e2e` (API thật trên D1 local tạm, cần mạng để đọc Google Sheet — xem `tests/e2e/README.md`).
 
-Cấu trúc UI: `web/*.ts` (TypeScript vanilla, esbuild bundle từng trang → `public/js/`, thư mục này gitignored) + `public/*.html`, `public/app.css`. Trang: `/` danh sách, `/login`, `/order-form[?id=]`, `/order?id=`. Ứng dụng iPhone (PWA "Tour Đảo Desk"): `public/manifest.webmanifest`, `public/icons/`, service worker `web/sw/sw.ts` → `public/sw.js` (gitignored), thanh tab dưới đáy ở ≤640px — xem `docs/PWA-IPHONE.md`.
+Cấu trúc UI: `web/*.ts` (TypeScript vanilla, esbuild bundle từng trang → `public/js/`, thư mục này gitignored) + `public/*.html`, `public/app.css`. Trang: `/` danh sách, `/login`, `/order-form[?id=]`, `/order?id=`. Ứng dụng iPhone (PWA "Tour Đảo Desk"): `public/manifest.webmanifest`, `public/icons/`, service worker `web/sw/sw.ts` → `public/sw.js` (gitignored), thanh tab dưới đáy ở ≤640px; `/api/*` không bao giờ qua cache của service worker, mã phiên bản cache do build chèn — xem `docs/PWA-IPHONE.md` (rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`).
 
 ## Nạp nhân viên từ Google Sheet
 
