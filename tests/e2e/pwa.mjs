@@ -49,4 +49,21 @@ assert.match(await sw.text(), /td-shell-v/, "sw.js phải chứa tên cache");
 const me = await call(null, "GET", "/api/auth/me");
 assert.equal(me.headers.get("cache-control"), "no-store", "API phải no-store");
 console.log("✓ service worker + API no-store");
+
+// 8 trang: đủ thẻ meta iOS + tên mới, không còn tên cũ
+const NEEDLES = [
+  "viewport-fit=cover",
+  'rel="manifest"',
+  'rel="apple-touch-icon"',
+  'name="apple-mobile-web-app-capable" content="yes"',
+  'content="black-translucent"',
+  'name="apple-mobile-web-app-title" content="Tour Đảo"',
+  "— Tour Đảo Desk</title>",
+];
+for (const path of ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit"]) {
+  const html = await (await get(path)).text();
+  for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
+  assert.ok(!html.includes("Tour Đảo Sales"), `${path} còn tên cũ`);
+}
+console.log("✓ thẻ meta iOS trên 8 trang");
 console.log("E2E PWA OK");
