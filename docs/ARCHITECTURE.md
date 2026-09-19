@@ -41,7 +41,7 @@ File thuần (`rules.ts`, `sheet.ts`, mọi file trong `shared/`) import bằng 
 - Tên bảng: số ít, trừ `orders` (`ORDER` là từ khoá SQL). Không đổi tên bảng đã có.
 - Danh sách giá trị mở rộng theo thời gian (hành động nhật ký, loại đối tượng) kiểm ở **code**, không `CHECK` trong SQL. `CHECK` dành cho bất biến không bao giờ đổi (trạng thái đơn, vai trò, tiền không âm).
 - Migration: chỉ thêm file mới (`0007_…` trở đi), không sửa file đã áp remote. Thử local → e2e xanh → hỏi chủ dự án → remote.
-- Mọi đường XOÁ đơn trong tương lai phải tự chặn đơn không còn nháp: `ON DELETE CASCADE` từ `orders` xoá dịch vụ mà KHÔNG chạy trigger `order_service_frozen_delete`. Hiện mã không có đường xoá đơn.
+- Mọi đường XOÁ đơn trong tương lai phải tự chặn đơn không còn nháp: `ON DELETE CASCADE` từ `orders` xoá cả dịch vụ mà trigger `order_service_frozen_delete` KHÔNG chặn được (đã kiểm trên SQLite: xoá thẳng dịch vụ của đơn đã xác nhận bị chặn, nhưng xoá chính đơn đó thì dịch vụ đi theo). Hiện mã không có đường xoá đơn.
 
 ## Thêm một module mới (vd M4 `exports`, M5 `company`)
 
