@@ -1,8 +1,10 @@
 import { api, type Staff, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { registerServiceWorker } from "./pwa";
 
 /** Khung chung các trang sau đăng nhập: xác thực phiên, dựng thanh đầu trang. Trả nhân viên hiện tại. */
 export async function initShell(): Promise<Staff> {
+  registerServiceWorker();
   const { staff } = await api<Api.MeResponse>("/api/auth/me");
   const logout = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
   logout.addEventListener("click", async () => {

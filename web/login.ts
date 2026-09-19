@@ -1,6 +1,9 @@
 import { ApiError, api, safeNext } from "./api";
 import { byId } from "./dom";
+import { registerServiceWorker } from "./pwa";
 import { showError } from "./shell";
+
+registerServiceWorker();
 
 const form = byId<HTMLFormElement>("login-form");
 const errorEl = byId("error");

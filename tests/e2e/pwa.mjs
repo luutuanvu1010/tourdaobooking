@@ -1,6 +1,6 @@
 // PWA: manifest, icon, service worker và thẻ meta iOS được phục vụ đúng (không cần đăng nhập).
 import assert from "node:assert/strict";
-import { BASE } from "./lib.mjs";
+import { BASE, call } from "./lib.mjs";
 
 const get = (path) => fetch(BASE + path);
 
@@ -39,4 +39,14 @@ for (const [path, size] of [["/icons/apple-touch-icon.png", 180], ["/icons/icon-
   assert.equal(p.colorType, 2, `${path} phải là RGB không alpha`);
 }
 console.log("✓ icon");
+
+// service worker: có file, không bị cache cứng (để bản mới được nhận), API là no-store
+const sw = await get("/sw.js");
+assert.equal(sw.status, 200, "/sw.js phải có (npm run build:web)");
+assert.match(sw.headers.get("content-type") ?? "", /javascript/);
+assert.match(sw.headers.get("cache-control") ?? "", /no-cache/, "/sw.js phải Cache-Control: no-cache (public/_headers)");
+assert.match(await sw.text(), /td-shell-v/, "sw.js phải chứa tên cache");
+const me = await call(null, "GET", "/api/auth/me");
+assert.equal(me.headers.get("cache-control"), "no-store", "API phải no-store");
+console.log("✓ service worker + API no-store");
 console.log("E2E PWA OK");
