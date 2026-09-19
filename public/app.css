@@ -146,8 +146,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   #tabbar { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; padding: 0 var(--s1) env(safe-area-inset-bottom); background: #fff; border-top: 1px solid var(--c-line); }
   #tabbar .tab { flex: 1 1 0; min-width: 0; min-height: 56px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: 11px; font-weight: 600; color: var(--c-muted); text-decoration: none; }
   #tabbar .tab[aria-current="page"] { color: var(--c-primary); font-weight: 800; }
-  #tabbar .tab-icon { display: flex; }
-  #tabbar .tab-new .tab-icon { width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: var(--c-accent); }
+  #tabbar .tab-icon { display: flex; align-items: center; justify-content: center; height: 36px; } /* cùng chiều cao để các nhãn thẳng hàng với nút Đơn mới */
+  #tabbar .tab-new .tab-icon { width: 36px; border-radius: 50%; color: #fff; background: var(--c-accent); }
   body.has-tabbar main { padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--s4)); }
 
   .btn:not(.btn-link) { min-height: 44px; }
@@ -155,7 +155,8 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   .toolbar .btn-primary { display: none; } /* "+ Đơn mới" đã có ở thanh tab */
 
   /* chi tiết đơn: ba nút hành động chia đều; mã đơn đã nằm trên thanh đầu trang */
-  .actions .btn { flex: 1 1 0; }
+  .actions .btn { flex: 1 1 0; display: flex; align-items: center; justify-content: center; padding-left: var(--s2); padding-right: var(--s2); }
+  .actions .btn-accent { flex-grow: 1.5; }
   .detail-head h1 { display: none; }
 
   /* bảng dịch vụ thành từng khối: tên + chi tiết / "SL × đơn giá … thành tiền" */

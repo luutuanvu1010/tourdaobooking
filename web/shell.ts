@@ -1,4 +1,4 @@
-import { api, type Staff, type Api } from "./api";
+import { ApiError, api, type Staff, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { icon, type IconName } from "./icons";
 import { registerServiceWorker } from "./pwa";
@@ -72,7 +72,17 @@ export async function initShell(): Promise<Staff> {
     who,
   );
 
-  const { staff } = await api<Api.MeResponse>("/api/auth/me");
+  let me: Api.MeResponse;
+  try {
+    me = await api<Api.MeResponse>("/api/auth/me");
+  } catch (err) {
+    if (err instanceof ApiError) throw err;
+    // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
+    const el = document.getElementById("error");
+    if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.");
+    return new Promise<never>(() => undefined);
+  }
+  const { staff } = me;
   const admin = staff.role === "admin";
   const logoutBtn = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
   logoutBtn.addEventListener("click", () => void logout());
