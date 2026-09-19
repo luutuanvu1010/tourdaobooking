@@ -82,7 +82,16 @@ export async function getSyncState(db: D1Database): Promise<SyncState> {
   };
 }
 
-/** Đánh dấu bắt đầu một lần đồng bộ (để lần đọc đầu tiên không đồng bộ trùng). */
+/**
+ * Giành quyền đồng bộ LẦN ĐẦU: chỉ một request thắng (điều kiện `last_attempt_at IS NULL` nằm trong chính câu UPDATE,
+ * D1 ghi tuần tự) → nhiều người mở form đơn cùng lúc sau khi triển khai cũng chỉ gọi Sheet một lần.
+ */
+export async function claimFirstSync(db: D1Database, at: string): Promise<boolean> {
+  const r = await db.prepare("UPDATE catalog_sync SET last_attempt_at = ? WHERE id = 'default' AND last_attempt_at IS NULL").bind(at).run();
+  return (r.meta.changes ?? 0) > 0;
+}
+
+/** Đánh dấu bắt đầu một lần đồng bộ. */
 export async function markAttempt(db: D1Database, at: string): Promise<void> {
   await db.prepare("UPDATE catalog_sync SET last_attempt_at = ? WHERE id = 'default'").bind(at).run();
 }
@@ -94,6 +103,8 @@ export async function recordFailure(db: D1Database, at: string, code: string, me
     .run();
 }
 
+// Ghi theo lô vì D1 giới hạn số câu lệnh mỗi batch. KHÔNG nguyên tử xuyên lô: lỗi giữa chừng để lại một phần thay đổi,
+// nhưng upsert lặp lại được và `last_success_at` chỉ ghi ở cuối → lần đồng bộ sau tính kế hoạch từ trạng thái thật và tự lành.
 const CHUNK = 40;
 
 /**

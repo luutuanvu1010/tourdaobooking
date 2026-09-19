@@ -1,6 +1,6 @@
 // Đồng bộ danh mục từ Google Sheet: dùng chung cho Cron (không có người thao tác) và nút "Đồng bộ ngay" của Admin.
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
-import { applySync, getSyncState, loadAll, markAttempt, recordFailure } from "./repository";
+import { applySync, claimFirstSync, loadAll, markAttempt, recordFailure } from "./repository";
 import { planSync, syncGuard, type CatalogRecord, type SyncPlan } from "./rules";
 import { parseCatalogSheet } from "./sheet";
 
@@ -50,9 +50,11 @@ export async function syncCatalog(env: Env, actorId: string | null, opts: { forc
   };
 }
 
-/** Lần đọc đầu tiên sau khi triển khai: chưa từng đồng bộ lần nào thì đồng bộ ngay, không đợi Cron. */
+/**
+ * Lần đọc đầu tiên sau khi triển khai: chưa từng đồng bộ lần nào thì đồng bộ ngay, không đợi Cron.
+ * Chỉ request giành được quyền mới gọi Sheet; request khác cùng lúc trả danh mục hiện có (có thể rỗng → giao diện cho nhập tay).
+ */
 export async function bootstrapIfNeverSynced(env: Env): Promise<void> {
-  const state = await getSyncState(env.DB);
-  if (state.lastAttemptAt === null) await syncCatalog(env, null);
+  if (await claimFirstSync(env.DB, new Date().toISOString())) await syncCatalog(env, null);
 }
 
