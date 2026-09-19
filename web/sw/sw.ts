@@ -30,7 +30,7 @@ async function staleWhileRevalidate(event: FetchEvent): Promise<Response> {
   const cache = await caches.open(CACHE_NAME);
   const cached = await cache.match(key);
   const refresh = fetch(event.request).then(async (res) => {
-    if (isCacheable(res)) await cache.put(key, res.clone());
+    if (isCacheable({ status: res.status, type: res.type, redirected: res.redirected, contentType: res.headers.get("content-type") })) await cache.put(key, res.clone());
     return res;
   });
   if (cached) {

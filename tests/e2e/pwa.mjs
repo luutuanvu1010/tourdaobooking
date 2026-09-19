@@ -1,5 +1,6 @@
 // PWA: manifest, icon, service worker và thẻ meta iOS được phục vụ đúng (không cần đăng nhập).
 import assert from "node:assert/strict";
+import { PAGES, PRECACHE, isCacheable } from "../../src/shared/sw-policy.ts";
 import { BASE, call } from "./lib.mjs";
 
 const get = (path) => fetch(BASE + path);
@@ -64,7 +65,16 @@ assert.ok(swText.includes("td-shell-"), "sw.js phải chứa tiền tố tên ca
 assert.match(swText, /"\d{14}"/, "sw.js phải mang mã bản dựng 14 chữ số (--define:__BUILD_ID__ trong build:web)");
 const me = await call(null, "GET", "/api/auth/me");
 assert.equal(me.headers.get("cache-control"), "no-store", "API phải no-store");
-console.log("✓ service worker + API no-store");
+// Lớp chắn theo content-type (src/shared/sw-policy.ts): mọi trang và tệp nạp sẵn phải THOẢ isCacheable với Content-Type mà Workers Assets thực sự phục vụ,
+// nếu không service worker âm thầm không cache gì; còn phản hồi API (JSON) tuyệt đối không được thoả.
+for (const path of new Set([...PAGES, ...PRECACHE])) {
+  const r = await get(path);
+  assert.equal(r.status, 200, `${path} → ${r.status}`);
+  const contentType = r.headers.get("content-type");
+  assert.ok(isCacheable({ status: r.status, type: "basic", redirected: false, contentType }), `${path}: content-type "${contentType}" không qua isCacheable`);
+}
+assert.equal(isCacheable({ status: 200, type: "basic", redirected: false, contentType: me.headers.get("content-type") }), false, "phản hồi API không được phép thoả isCacheable");
+console.log("✓ service worker + API no-store + content-type của khung");
 
 // 8 trang: đủ thẻ meta iOS + tên mới, không còn tên cũ
 const NEEDLES = [
