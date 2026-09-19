@@ -1,4 +1,5 @@
-import { fromBase64Url, timingSafeEqual, toBase64Url } from "../../shared/encoding";
+// File thuần: import có đuôi .ts để scripts/*.mjs và node --test dùng trực tiếp (một định dạng hash duy nhất).
+import { fromBase64Url, timingSafeEqual, toBase64Url } from "../../shared/encoding.ts";
 
 // Workers giới hạn PBKDF2 tối đa 100000 vòng lặp.
 export const PBKDF2_ITERATIONS = 100_000;

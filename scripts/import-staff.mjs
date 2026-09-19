@@ -52,7 +52,7 @@ for (const c of parsed.candidates) {
   let pin;
   do pin = generatePin(); while (used.has(pin));
   used.add(pin);
-  sql.push(insertStaffSql({ name: c.name, phone: c.phone, pin, role: "sales" }));
+  sql.push(await insertStaffSql({ name: c.name, phone: c.phone, pin, role: "sales" }));
   pins.push(`${c.phone}\t${pin}\t${c.name}\tsales`);
 }
 
