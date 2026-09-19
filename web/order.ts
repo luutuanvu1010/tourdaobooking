@@ -1,7 +1,7 @@
 import { ApiError, api, type AuditEntry, type Order, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { METHOD_LABEL, actionLabel, STATUS_LABEL, dateTime, vnd } from "./format";
-import { initShell, showError } from "./shell";
+import { initShell, setBarTitle, showError } from "./shell";
 
 const id = new URLSearchParams(location.search).get("id");
 const errorEl = byId("error");
@@ -13,7 +13,8 @@ function kv(label: string, value: string | null, cls = ""): HTMLElement {
 }
 
 function render(order: Order, history: AuditEntry[], canModify: boolean): void {
-  document.title = `${order.orderCode} — Tour Đảo Sales`;
+  document.title = `${order.orderCode} — Tour Đảo Booking`;
+  setBarTitle(order.orderCode);
   replaceChildren(
     root,
     h(
@@ -35,7 +36,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
         { class: "table-wrap" },
         h(
           "table",
-          { class: "items" },
+          { class: "items order-lines" },
           h("thead", null, h("tr", null, h("th", null, "Dịch vụ"), h("th", { class: "num" }, "SL"), h("th", { class: "num" }, "Đơn giá"), h("th", { class: "num" }, "Thành tiền"))),
           h(
             "tbody",

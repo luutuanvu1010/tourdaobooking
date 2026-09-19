@@ -4,6 +4,8 @@
   "main": "src/index.ts",
   "compatibility_date": "2026-09-01",
   "observability": { "enabled": true },
+  // Tên miền chính thức (chủ dự án chốt 2026-09-19, thay trang fastbooking). Chỉ có hiệu lực khi DEPLOY. Thứ tự bắt buộc: chủ dự án gỡ fastbooking (Worker/Pages) và bản ghi DNS của booking.tourdao.vn khỏi Cloudflare TRƯỚC; deploy sẽ tự tạo bản ghi DNS và báo lỗi nếu hostname còn thuộc thứ khác. Địa chỉ workers.dev vẫn dùng được làm dự phòng.
+  "routes": [{ "pattern": "booking.tourdao.vn", "custom_domain": true }],
   // Tự đồng bộ danh mục dịch vụ từ Google Sheet mỗi 15 phút (ngoài nút "Đồng bộ ngay" của Admin).
   "triggers": { "crons": ["*/15 * * * *"] },
   // ID Google Sheet (không phải bí mật; Sheet chỉ được ĐỌC công khai). Xem spec §2.4-6.

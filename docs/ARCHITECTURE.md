@@ -48,3 +48,7 @@ File thuần (`rules.ts`, `sheet.ts`, mọi file trong `shared/`) import bằng 
 4. DTO trả cho giao diện → khai trong `src/shared/contracts.ts`; `web/` import từ đó.
 5. Thêm một dòng vào mảng `modules` trong `src/index.ts`.
 6. Luật thuần có test `node --test`; hành vi API có kịch bản trong `tests/e2e/`.
+
+## Ứng dụng iPhone (PWA)
+
+Giao diện tĩnh là PWA: `manifest` + icon + service worker (`web/sw/sw.ts` → `public/sw.js`). Quy tắc bất biến: `/api/*` không bao giờ qua cache của service worker (`src/shared/sw-policy.ts`, có test). Chi tiết, danh sách kiểm trên máy thật và cách tăng `CACHE_VERSION`: `docs/PWA-IPHONE.md`.

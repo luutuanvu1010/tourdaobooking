@@ -1,0 +1,94 @@
+{
+ "axe": [
+  {
+   "page": "/login (điện thoại)",
+   "violations": []
+  },
+  {
+   "page": "/ danh sách (điện thoại)",
+   "violations": []
+  },
+  {
+   "page": "/order chi tiết (điện thoại)",
+   "violations": []
+  },
+  {
+   "page": "/order-form (điện thoại)",
+   "violations": []
+  },
+  {
+   "page": "/account (nhân viên) (điện thoại)",
+   "violations": []
+  },
+  {
+   "page": "/account (admin) (điện thoại)",
+   "violations": []
+  },
+  {
+   "page": "/catalog (điện thoại)",
+   "violations": [
+    {
+     "id": "empty-table-header",
+     "impact": "minor",
+     "nodes": 1,
+     "help": "Table header text should not be empty",
+     "sample": "th:nth-child(8)"
+    }
+   ]
+  },
+  {
+   "page": "/staff (điện thoại)",
+   "violations": [
+    {
+     "id": "empty-table-header",
+     "impact": "minor",
+     "nodes": 1,
+     "help": "Table header text should not be empty",
+     "sample": "th:nth-child(5)"
+    }
+   ]
+  },
+  {
+   "page": "/audit (điện thoại)",
+   "violations": []
+  }
+ ],
+ "perf": {
+  "A_lan_dau_nguoi": {
+   "brand": 391,
+   "fcp": 428,
+   "data": 718,
+   "runsData": [
+    723,
+    710,
+    709,
+    718,
+    730
+   ]
+  },
+  "B_mo_lai_khong_SW": {
+   "brand": 341,
+   "fcp": 336,
+   "data": 655,
+   "runsData": [
+    655,
+    655,
+    669,
+    655,
+    654
+   ]
+  },
+  "C_mo_lai_co_SW": {
+   "brand": 35,
+   "fcp": 48,
+   "data": 354,
+   "runsData": [
+    354,
+    354,
+    353,
+    347,
+    355
+   ]
+  }
+ }
+}

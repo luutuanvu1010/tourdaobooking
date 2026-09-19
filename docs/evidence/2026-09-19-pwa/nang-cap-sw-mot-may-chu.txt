@@ -1,0 +1,9 @@
+  [console] error Failed to load resource: the server responded with a status of 401 (Unauthorized)
+trước: {"keys":["td-shell-20260919164414"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164414"}
+sau build: {"keys":["td-shell-20260919164414","td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activating","servedId":"20260919164622"}
+lần 1: update() xong {"keys":["td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164622"}
+lần 2: update() xong {"keys":["td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164622"}
+lần 3: update() xong {"keys":["td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164622"}
+lần 4: update() xong {"keys":["td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164622"}
+lần 5: update() xong {"keys":["td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164622"}
+lần 6: update() xong {"keys":["td-shell-20260919164622"],"installing":null,"waiting":null,"active":"activated","servedId":"20260919164622"}
