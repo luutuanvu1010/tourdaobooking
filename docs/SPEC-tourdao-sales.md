@@ -62,6 +62,21 @@
 | updated_at | TEXT (ISO) | |
 | confirmed_at | TEXT (ISO, nullable) | thời điểm chuyển sang `confirmed` |
 
+**`order_service`** — một dịch vụ trong đơn (migration 0008; spec `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md`): số khách theo loại + thông tin chuyến. Tiền ở `order_item`.
+| Trường | Kiểu | Ghi chú |
+|---|---|---|
+| id | TEXT (uuid) | khoá chính; đơn cũ được chuyển thành dịch vụ nhập tay dùng lại id của dòng tiền |
+| order_id | TEXT | FK → orders.id, `ON DELETE CASCADE` |
+| sort_order | INTEGER | thứ tự của dịch vụ trong đơn |
+| catalog_code | TEXT (nullable) | mã dịch vụ nguồn; NULL = nhập tay. Không FK |
+| name / unit | TEXT | tên và chuỗi đơn vị của Sheet (`perPax`, `per5Pax`…) chụp lúc lập đơn; `unit = 'manual'` = nhập tay |
+| pax_adult / pax_child / pax_senior / pax_infant | INTEGER | số khách theo loại, ≥ 0; tổng ≤ 50 kiểm ở code (`MAX_GUESTS_PER_SERVICE`). Dịch vụ chỉ một loại giá (giá chung/theo nhóm): số khách nằm ở `pax_adult` |
+| depart_date | TEXT (nullable) | `YYYY-MM-DD`, giờ Việt Nam, `CHECK` đúng lịch. Bắt buộc khi xác nhận (§2.3) |
+| depart_time / pickup_time / checkin_time | TEXT (nullable) | `HH:MM` 00:00–23:59 (`CHECK`) |
+| pickup_place / checkin_place | TEXT (nullable) | ≤ 200 ký tự, đã bỏ ký tự điều khiển — dữ liệu cá nhân, không ghi vào nhật ký |
+| checkin_date | TEXT (nullable) | NULL = cùng ngày khởi hành |
+| note | TEXT (nullable) | ghi chú riêng của dịch vụ, ≤ 1000 ký tự |
+
 **`order_item`** — dòng sản phẩm/dịch vụ trong đơn (1 đơn nhiều dòng)
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
@@ -69,11 +84,14 @@
 | order_id | TEXT | FK → order.id |
 | catalog_code | TEXT (nullable) | mã dịch vụ nguồn khi dòng sinh từ danh mục (chọn nhanh); NULL = nhập tay. Không FK — nhập tay luôn chạy được (migration 0007) |
 | description | TEXT | tên dịch vụ, ví dụ "Tour Hòn Mun 1 ngày" |
-| detail | TEXT | tuỳ chọn: ngày khởi hành, số khách, ghi chú dòng |
+| detail | TEXT | tuỳ chọn: ghi chú loại khách (sinh từ danh mục) hoặc ghi chú dòng nhập tay — ngày khởi hành và số khách nằm ở `order_service` |
 | quantity | INTEGER | mặc định 1 |
 | unit_price | INTEGER | đơn giá, VNĐ |
 | line_total | INTEGER | = quantity × unit_price, tính server |
 | sort_order | INTEGER | thứ tự hiển thị |
+| service_id | TEXT | FK → order_service.id; dòng tiền thuộc một dịch vụ (trigger bảo đảm cùng đơn) |
+| catalog_price | INTEGER (nullable) | giá danh mục hiệu lực lúc lập dòng; NULL = nhập tay. Lệch giá = `unit_price ≠ catalog_price` |
+| pax_code | TEXT (nullable) | loại khách của dòng: `adult` \| `child` \| `senior` \| `infant`; NULL = nhập tay |
 
 **`company_profile`** — thông tin doanh nghiệp hiển thị trên mẫu (singleton, đúng 1 dòng — P6: một nguồn sự thật)
 | Trường | Kiểu | Giá trị khởi tạo |
@@ -108,7 +126,7 @@
 
 ### 2.2 Quan hệ
 ```
-staff (1) ──< order (N) ──< order_item (N) ··· catalog_item (order_item.catalog_code, không FK)
+staff (1) ──< order (N) ──< order_service (N) ──< order_item (N) ··· catalog_item (catalog_code, không FK)
 staff (1) ──< audit_log (N) ──> order          (staff_id NULL = hệ thống)
 catalog_item (1) ──o catalog_override (0..1)   catalog_sync — singleton trạng thái đồng bộ
 company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi render
@@ -118,6 +136,8 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
 - `total`, `remaining_amount`, `line_total` **luôn tính lại ở server** khi ghi, không bao giờ tin giá trị client gửi lên. Vi phạm là lỗ hổng gian lận giá trực tiếp. Lưới thứ hai trong SQL (migration 0007): TRIGGER từ chối mọi INSERT/UPDATE có `line_total ≠ quantity × unit_price`, `total ≠ subtotal − discount`, `remaining_amount ≠ total − deposit_amount`, số âm, hoặc có cọc mà thiếu hình thức cọc.
 - Chuyển trạng thái đơn chỉ theo chiều: `draft → confirmed → cancelled` hoặc `draft → cancelled`. Không cho phép `confirmed → draft` (một đơn đã xác nhận và có thể đã gửi khách thì không được "biến mất" khỏi lịch sử — muốn sửa thì tạo bản ghi mới, đơn cũ chuyển `cancelled` và ghi `audit_log` tham chiếu).
 - `order_code` duy nhất toàn hệ thống, sinh tự động, không cho nhân viên tự đặt (tránh trùng/đụng độ khi nhiều người dùng cùng lúc).
+- **Xác nhận đòi đủ chuyến (migration 0008):** đơn chỉ chuyển `draft → confirmed` khi có ít nhất một dịch vụ và MỌI dịch vụ có `depart_date` trong khoảng [hôm nay, +365 ngày] (giờ Việt Nam) và ≥ 1 khách. Điều kiện nằm trong chính câu `UPDATE` xác nhận (không đọc-rồi-ghi ở route) và có trigger `orders_confirm_requires_trip` làm lưới thứ hai; xác nhận thất bại không ghi nhật ký. Nháp lưu được khi thiếu ngày.
+- **Sau khi xác nhận:** dịch vụ, số khách và tiền **khoá** (trigger `order_service_frozen_*`); chỉ **trường vận hành** (ngày giờ khởi hành, đón, check-in, ghi chú dịch vụ) sửa được qua `PUT /api/orders/:id/trip`, có nhật ký `trip_updated`. Ngày khởi hành không được xoá, và nếu ĐỔI thì ngày mới phải trong khoảng cho phép. Muốn đổi khách/dịch vụ/tiền thì huỷ và lập đơn mới.
 - Tiền tệ luôn là số nguyên VNĐ (không dùng float) — nguyên tắc chống sai số cộng dồn.
 - `company_profile` chỉ có đúng một dòng `id = "default"`; sửa là UPDATE, không bao giờ INSERT dòng thứ hai (một nguồn sự thật, P6/N7).
 
@@ -221,6 +241,7 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 |---|---|---|
 | Chọn Cloudflare Workers + D1 thay vì Google Apps Script | Một chiều (chi phí đổi sau cao) | Đã chốt trong hội thoại — cần 1 dòng ADR khi bắt đầu thực thi |
 | Schema `order`/`order_item`/`company_profile` | Một chiều (đổi schema sau khi có dữ liệu thật thì tốn kém) | Đây chính là spec này — cần phê chuẩn trước khi code |
+| Schema `order_service` (thông tin chuyến theo dịch vụ, migration 0008) | Một chiều (đổi schema sau khi có dữ liệu thật thì tốn kém) | Chủ dự án duyệt 2026-09-19 (spec thông tin chuyến, Q6). Phương án bị loại: thêm cột chuyến vào `order_item` (chép lặp, dễ lệch); bỏ `order_item` (viết lại chốt chặn tiền, xuất file, trang đơn) |
 | Danh mục dịch vụ: bản sao Google Sheet trong D1 + ghi đè Admin (thay cho "đọc trực tiếp") | Hai chiều (không phá dữ liệu `order` đã lưu, vì `order_item` luôn lưu giá đã chốt) | Đã chốt 2026-09-19 (§2.4-6) |
 | Màu sắc/token cụ thể trong CSS | Hai chiều | Thực thi tự quyết trong khuôn khổ token đã khai ở §4 |
 

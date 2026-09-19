@@ -185,3 +185,15 @@ Quyết định đã chốt:
 - Giá Guide = giá bán × (1 − %), **% chiết khấu theo từng dịch vụ**. Cột % **không** đặt trên Sheet dịch vụ đang chia sẻ "bất kỳ ai có link" (lộ biên lợi nhuận, và Sheet này cũng là Sheet của booking); dùng tab/Sheet riêng có quyền hạn chế.
 - Guide tự lập đơn, chỉ thấy/sửa đơn của mình, không vào trang quản trị. Đơn của Guide ghi **giá net**.
 - Hệ quả đã thấy trước: với đơn Guide, máy chủ **bỏ qua** `unitPrices` từ trình duyệt và tự tính từ danh mục theo giá Guide; **không** cho dịch vụ nhập tay; **ép `discount` = 0** (ô giảm giá cấp đơn, `orders/rules.ts:108`, là đường hạ giá thứ ba). Phần A dựng sẵn đường sinh dòng tiền phía máy chủ cho việc này.
+
+## 11. Ghi chú thi công A1 (sai khác so với bản 2)
+
+Phát sinh khi lập và chạy kế hoạch A1 (`docs/superpowers/plans/2026-09-19-thong-tin-chuyen-di-a1.md`); mã là nguồn sự thật:
+
+- **`order_item.pax_code`** (thêm vào §3): loại khách của dòng tiền, `CHECK` bốn mã, NULL = nhập tay. Cần để dựng "bản chụp" (Q11) và hiển thị mà không phải suy từ thứ tự dòng.
+- **Guard sau UPDATE (đổi §4.3):** khoá lạc quan vẫn là `UPDATE … AND updated_at = ?`, nhưng các câu ghi sau nó KHÔNG so lại mốc thời gian mà hỏi `EXISTS` dòng nhật ký có id riêng của request (`AuditInput.id`). Lý do: hai request cùng mili-giây tính ra cùng mốc mới, bên thua sẽ lọt qua và ghi đè bản của bên thắng.
+- **Không có `priceWarnings` trong phản hồi** (đã ghi ở §4.1): lệch giá = `unit_price ≠ catalog_price`, một hàm `priceDeviation` cho mọi nơi.
+- **`unitPrices` tuỳ chọn** khi tạo/sửa: vắng = giá danh mục; `catalogPriceSeen` bắt buộc cho mỗi loại có khách của dịch vụ mới/đổi thành phần.
+- **`PUT /api/orders/:id/trip` thay TOÀN BỘ** thông tin chuyến của các dịch vụ được liệt kê (trường vắng = xoá) — client gửi đủ.
+- **Trigger `orders_confirm_requires_trip` chỉ bắn lúc CHUYỂN sang xác nhận** (`OLD.status <> 'confirmed'`), để không chặn nhầm cập nhật sau đó và đơn cũ đã xác nhận trước migration.
+- **`GET /api/orders` (danh sách)** chưa có `nextDepartDate` / lọc `?depart=` — thuộc A3 như §9.
