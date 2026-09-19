@@ -39,6 +39,13 @@ Xếp theo rủi ro: mục 1 là thứ Chrome headless không kiểm được v�
 6. Tắt hẳn app rồi mở lại: màn hình hiện gần như tức thì (khung từ cache), dữ liệu tải sau.
 7. Tab Tôi → Đăng xuất về màn hình đăng nhập.
 
+## Thử trên iPhone thật (trước khi cắt tên miền)
+
+Chạy `node scripts/dev-iphone.mjs` từ thư mục gốc: dựng D1 **tạm** (mất khi thoát, không đụng dữ liệu thật), tạo hai tài khoản thử (admin, nhân viên) và in địa chỉ cùng SĐT/PIN.
+- **Cùng Wi-Fi, không cần gì thêm:** mở địa chỉ `http://<IP-LAN>:8787` bằng Safari trên iPhone. Chưa phải HTTPS nên **không có service worker**; đủ để thử mục 1–5 của danh sách kiểm bên dưới (bàn phím và nút Lưu, icon, thanh trạng thái, tai thỏ và thanh home, nút quay lại, bàn phím số). Đã kiểm trên máy: đăng nhập qua IP LAN chạy, cookie phiên không có cờ `Secure` nên dùng được trên `http`.
+- **Có service worker (HTTPS tạm):** `node scripts/dev-iphone.mjs --tunnel` rồi mở địa chỉ `trycloudflare.com` mà wrangler in ra (dùng `wrangler dev --tunnel`, theo tài liệu của wrangler; **tôi chưa tự chạy thử cờ này** vì nó mở địa chỉ công khai ra Internet cho tới khi bạn thoát). Thử thêm mục 6 (mở lại tức thì) và offline.
+- Thoát bằng Ctrl+C. Khi xong, ghi kết quả từng mục vào `docs/evidence/2026-09-19-pwa/` (ảnh chụp màn hình iPhone là bằng chứng E2).
+
 ## Sau khi deploy (xác nhận một lần trên môi trường thật; cấu trúc `no-store` đã chặn bẫy 304 nên đây chỉ là xác nhận)
 
 1. `curl -sI https://<địa-chỉ>/sw.js` phải có `Cache-Control: no-store`. Sau một lần deploy có đổi mã, mở app hai lần rồi chạy `caches.keys()`: tên cache phải đổi sang mã bản dựng mới. Nếu vẫn tên cũ thì trình duyệt không nhận service worker mới: dừng và báo.
