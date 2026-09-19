@@ -2,11 +2,31 @@
 
 Ngày 2026-09-19. Nhánh `worktree-pwa-iphone`. Yêu cầu của chủ dự án: rà xem nhánh có đúng triết lý và quy tắc quy định trong dự án `tourdaovn` không.
 
-> **Tình trạng của bản rà này: TỰ RÀ, CHƯA ĐỘC LẬP.** Người thi công cũng là người rà (kèm hai agent chỉ đọc tài liệu và trích quy tắc). `playbook/GOVERNANCE.md` §4.3–4.4 đòi QA1 (mockup) và QA2 (phát hành) do **agent QA độc lập, không phải agent đã soạn artifact**, và chủ dự án duyệt báo cáo; §5.3: bằng chứng tự khai (E3) đơn độc không bao giờ đủ. Vì vậy tài liệu này **không phải** báo cáo QA1/QA2; nó gom bằng chứng E1 (máy chạy, máy kiểm) và E2 (ảnh chụp, người kiểm) để phiên QA độc lập và chủ dự án dùng.
+> **Cập nhật sau QA độc lập lần 1 (`docs/evidence/2026-09-19-pwa/QA2-doc-lap-lan-1.md`, nguyên văn): KHÔNG ĐẠT, 1 mục CHẶN đã được sửa và chưa có QA lần 2.** Xem mục "Kết quả QA độc lập lần 1 và xử lý" bên dưới. Phần còn lại của tài liệu này vẫn là bản tự rà viết TRƯỚC QA; các phát hiện của QA mà bản tự rà bỏ sót chứng minh đúng điều nó cảnh báo: tự rà chỉ đi đường thuận.
+>
+> **Tình trạng của bản tự rà: TỰ RÀ, CHƯA ĐỘC LẬP.** Người thi công cũng là người rà (kèm hai agent chỉ đọc tài liệu và trích quy tắc). `playbook/GOVERNANCE.md` §4.3–4.4 đòi QA1 (mockup) và QA2 (phát hành) do **agent QA độc lập, không phải agent đã soạn artifact**, và chủ dự án duyệt báo cáo; §5.3: bằng chứng tự khai (E3) đơn độc không bao giờ đủ. Vì vậy tài liệu này **không phải** báo cáo QA1/QA2; nó gom bằng chứng E1 (máy chạy, máy kiểm) và E2 (ảnh chụp, người kiểm) để phiên QA độc lập và chủ dự án dùng.
 
 **Căn cứ đã đọc:** `tourdaovn/CLAUDE.md`; `playbook/CONSTITUTION.md` v2.2.0 (P1–P13, N1–N7, §5.8, §6, §7, §8); `playbook/GOVERNANCE.md` §4–5; `docs/core-specs/04-CONSTRAINTS.md` (§2, §3, §4); `docs/DECISIONS.md` (khuôn bản ghi, `QĐ-2026-08-22-01` về `theme-color`); `src/layouts/BaseLayout.astro` (favicon, apple-touch-icon). Phía `tourdao-sales`: `SPEC-tourdao-sales.md`, `ARCHITECTURE.md`, `AUDIT-BRIEF/FINDINGS.md`, `REFACTOR-PLAN.md`, `HANDOFF-M2/M4.md`. Không tài liệu nào của `tourdaovn` nhắc tới `tourdao-sales`, PWA, service worker hay manifest, nên áp dụng **khung chung**; các giá trị riêng của tourdaovn (ngưỡng Lighthouse, thang cỡ chữ) chỉ dùng để đối chiếu, không coi là luật của Desk.
 
 **Bằng chứng** (`docs/evidence/2026-09-19-pwa/`, ghi mã băm): `kiem-tra-may.txt` (typecheck, 55 test, e2e 6/6, gắn HEAD `37d5c71`), `ket-qua-do.json` (axe và thời gian mở), `nang-cap-sw.json` (service worker tự đổi cache qua hai lần deploy giả lập), `kiem-tra-giao-dien.txt`, `anh/`, `kich-ban/`.
+
+## Kết quả QA độc lập lần 1 và xử lý
+
+Agent QA độc lập (Opus 5, worktree riêng, bản `118be35`) chạy lại typecheck, 55 test, e2e 6/6, axe và các phép đo của bản tự rà: **mọi con số khớp** (thời gian mở lệch dưới 1,5%). Kết quả **KHÔNG ĐẠT** vì một phát hiện mà tự rà không thể thấy.
+
+| ID | Phát hiện | Mức | Xử lý |
+|---|---|---|---|
+| Q2-01 | Router của Worker khớp đường dẫn bằng `split("/").filter(Boolean)` nên `//api/auth/me` vẫn trả JSON phiên thật; bộ lọc theo tiền tố `/api` của service worker phân loại nó là "shell" và **cache phản hồi phiên, còn sống sau đăng xuất**. Đã tái hiện độc lập (`routeFor("//api/auth/me")` → `shell`) | **CHẶN** | **Đã sửa** (`d2bdd67`): `routeFor` đảo sang danh sách cho phép đóng theo mặc định (8 trang + tệp tĩnh đúng mẫu; mọi thứ khác là "pass"), thêm lớp chắn thứ hai theo `content-type` (JSON không bao giờ vào cache), test cho `//api`, `///api`, `%61pi`, `/API`, dấu chấm; test đối chiếu danh sách trang với `public/*.html`; e2e kiểm content-type thật của khung. **Chưa QA lần 2** |
+| Q2-02 | Đoạn mã tắt khẩn cấp trong tài liệu không biên dịch (thiếu `export {}`) | SỬA | Đã sửa đoạn mẫu và ghi rõ hai bài kiểm sẽ đỏ trong đường khẩn cấp (`docs/PWA-IPHONE.md`) |
+| Q2-03 | Phép quét "không viết cứng" lọt tên màu, `%`, `vw/vh/ch`, `color-mix()` | SỬA | Chọn thu hẹp lời khai cho đúng phạm vi thật thay vì mở rộng thêm (`docs/PWA-IPHONE.md`) |
+| Q2-04 | Mất mạng: `initShell()` dừng trước khi dựng thanh tab nên không còn điều hướng | SỬA | Đã sửa: dựng thanh tab cơ bản (3 tab) trước khi dừng; spec Q7 cập nhật. **Chưa chạy lại trên trình duyệt** (chỉ typecheck) |
+| Q2-05 | Mã bản dựng là giờ, không phải băm nội dung: build không đổi mã vẫn xoá cache của mọi người | GHI | **Không đổi**: chấp nhận đánh đổi vì đơn giản (P11); deploy hiếm, cái giá là một lần mở nguội |
+| Q2-06 | `wrangler dev` giữ ETag cũ của `/sw.js`; `no-store` chặn đúng bẫy | GHI | Đã khớp lời khai |
+| Q2-07 | Nút "‹" dùng `history.back()`; lịch sử "bẩn" có thể về sai nơi trong chế độ toàn màn hình | HỎI | Chờ chủ dự án. Đề xuất nhỏ: `location.replace` sau khi lưu đơn để form không nằm trong lịch sử |
+| Q2-08 | Nút "Lưu đơn nháp" `sticky` dưới bàn phím iOS | HỎI | Chờ thử trên iPhone thật |
+| Q2-09 | Tên "Tour Đảo Desk" chưa được duyệt | HỎI | Chờ chủ dự án |
+
+Vì mã đã đổi sau khi bằng chứng ở `docs/evidence/2026-09-19-pwa/` được ghi, phần bằng chứng đó gắn với mã `37d5c71` và **không còn là bằng chứng của mã hiện tại** cho những phần nó đo (thời gian mở, axe, ảnh chụp): các thay đổi sau đó (allowlist, thanh tab khi mất mạng) không đụng đường hiển thị bình thường nhưng chưa được đo lại. `kiem-tra-may.txt` được làm mới theo mã mới.
 
 ## Đã sửa trong lúc rà (bản rà này không chỉ báo cáo)
 

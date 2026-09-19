@@ -2,6 +2,8 @@
 
 Artifact của bước rà soát `docs/AUDIT-PWA-IPHONE.md` (Hiến pháp §8.2: bằng chứng thay cho lời khai). **Mã được đo: HEAD `37d5c71`** của nhánh `worktree-pwa-iphone`; từ đó đến khi ghi tài liệu này chỉ đổi tài liệu và bằng chứng, không đổi `public/`, `web/`, `src/`, `tests/`, `package.json`.
 
+**Cập nhật sau QA2 độc lập lần 1** (`QA2-doc-lap-lan-1.md`, nguyên văn, KHÔNG ĐẠT): `kiem-tra-may.txt` được chạy lại trên mã `9b66c63` (đã sửa lỗi CHẶN và các mục SỬA). Các file đo còn lại (`ket-qua-do.json`, `nang-cap-sw*.json/txt`, `kiem-tra-giao-dien.txt`, `anh/`) vẫn là kết quả trên mã `37d5c71`, chưa đo lại; những thay đổi sau đó không đụng đường hiển thị bình thường nhưng chưa được đo.
+
 Đo trên `wrangler dev` cục bộ với D1 tạm và hai tài khoản thử, bằng Chrome headless khổ iPhone 390×844. **Không phải** đo trên iPhone thật, mạng thật hay Workers Assets thật. Bản rà này là tự rà, chưa qua QA độc lập (xem đầu `AUDIT-PWA-IPHONE.md`).
 
 | File | Hạng (GOVERNANCE §5.2) | Là gì |

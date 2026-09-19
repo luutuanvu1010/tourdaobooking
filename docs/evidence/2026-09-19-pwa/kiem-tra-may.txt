@@ -1,6 +1,6 @@
 Bằng chứng E1 (máy chạy, máy kiểm) — nhánh worktree-pwa-iphone
-Ngày: 2026-09-19
-Mã (HEAD): 37d5c71 — public/, web/, src/, tests/, package.json không có thay đổi chưa commit (0 file)
+Ngày: 2026-09-19 (làm mới sau khi sửa các phát hiện của QA2 độc lập lần 1)
+Mã (HEAD): 9b66c63 — public/, web/, src/, tests/, package.json không có thay đổi chưa commit (0 file)
 
 == npm run typecheck
 
@@ -9,8 +9,8 @@ Mã (HEAD): 37d5c71 — public/, web/, src/, tests/, package.json không có tha
 
 
 == npm test
-# tests 55
-# pass 55
+# tests 58
+# pass 58
 # fail 0
 # cancelled 0
 # skipped 0
@@ -23,9 +23,9 @@ Mã (HEAD): 37d5c71 — public/, web/, src/, tests/, package.json không có tha
 ▶ orders
 ✔ orders (4.2s)
 ▶ admin
-✔ admin (2.9s)
+✔ admin (2.7s)
 ▶ catalog
-✔ catalog (14.1s)
+✔ catalog (14.8s)
 ▶ admin-race
 ✔ admin-race (0.1s)
 E2E: 6/6 kịch bản xanh
