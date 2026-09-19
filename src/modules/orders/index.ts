@@ -107,12 +107,12 @@ export const ordersModule: AppModule = {
       if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
 
       if (to === "cancelled") {
-        if (!(await cancelOrder(env.DB, id, staff.id, from))) return RACED();
+        if (!(await cancelOrder(env.DB, id, staff.id, from, meta.updatedAt))) return RACED();
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
-        if (!(await confirmOrder(env.DB, id, staff.id, today, detail))) {
+        if (!(await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, detail))) {
           // Thua vì đơn đã đổi trạng thái, hay vì chưa đủ chuyến? Đọc lại để trả đúng lý do (không ghi nhật ký cho lần xác nhận thất bại).
           const now = await getMeta(env.DB, id);
           if (!now || now.status !== "draft") return RACED();

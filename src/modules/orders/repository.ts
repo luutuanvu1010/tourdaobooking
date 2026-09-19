@@ -340,9 +340,11 @@ export async function updateDraftOrder(db: D1Database, id: string, staffId: stri
  * Xác nhận đơn: điều kiện "có dịch vụ, mọi dịch vụ có ngày khởi hành trong [hôm nay, +365 ngày] và ≥ 1 khách" nằm TRONG câu UPDATE
  * (không đọc-rồi-ghi ở route) nên người khác lưu nháp xoá ngày ngay trước đó cũng không thể tạo ra đơn xác nhận thiếu chuyến.
  * Trigger `orders_confirm_requires_trip` (0008) là lưới thứ hai cho phần không đổi của luật. Trả false nếu điều kiện không còn đúng.
+ * `prevUpdatedAt` là mốc `updated_at` route đọc lúc kiểm quyền: mốc mới đi qua `nextStamp` nên luôn lớn hơn nó (như `updateDraftOrder`/`updateTrip`),
+ * để client còn giữ mốc cũ không lọt qua khoá lạc quan của `PUT /trip` dù xác nhận rơi vào cùng mili-giây với một lần ghi khác.
  */
-export async function confirmOrder(db: D1Database, id: string, staffId: string, today: string, detail?: string): Promise<boolean> {
-  const at = new Date().toISOString();
+export async function confirmOrder(db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, detail?: string): Promise<boolean> {
+  const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   const results = await db.batch([
     db
@@ -360,9 +362,9 @@ export async function confirmOrder(db: D1Database, id: string, staffId: string, 
   return (results[0]!.meta.changes ?? 0) > 0;
 }
 
-/** Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. */
-export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus): Promise<boolean> {
-  const at = new Date().toISOString();
+/** Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). */
+export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string): Promise<boolean> {
+  const at = nextStamp(prevUpdatedAt);
   const results = await db.batch([
     db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ?`).bind(at, id, from),
     auditStatement(db, { orderId: id, staffId, action: "cancelled", at }, "changes() > 0"),
