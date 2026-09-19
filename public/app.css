@@ -119,6 +119,15 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .price-cell .sheet { display: block; font-size: .8rem; color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: 700; }
 
+/* trang "Tôi" */
+.profile { display: flex; align-items: center; gap: var(--s3); }
+.avatar { flex: none; display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; color: #fff; background: var(--c-primary); font-weight: 800; font-size: 1.1rem; }
+.profile-name { font-weight: 800; font-size: 1.1rem; }
+.list-card { padding-top: 0; padding-bottom: 0; }
+.row-link { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: 48px; padding: 0; font: inherit; color: var(--c-text); text-decoration: none; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
+.row-link:last-child { border-bottom: 0; }
+button.row-link.danger { color: var(--c-accent); font-weight: 700; }
+
 /* ---------- app iPhone (PWA) ---------- */
 html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
 body { -webkit-tap-highlight-color: transparent; }

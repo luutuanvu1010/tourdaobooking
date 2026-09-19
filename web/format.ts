@@ -22,3 +22,11 @@ export const METHOD_LABEL: Record<DepositMethod, string> = { cash: "Tiền mặt
 
 /** Nhãn hành động nhật ký — lấy từ nguồn duy nhất src/shared/audit-actions.ts. Hành động lạ (bản mới hơn giao diện) hiện mã thô. */
 export const actionLabel = (a: AuditAction): string => AUDIT_ACTIONS[a]?.label ?? a;
+
+/** "Hoàng Gia Huy" → "HH": chữ cái đầu của họ và tên (từ đầu + từ cuối); một từ thì lấy chữ đầu. */
+export function initials(name: string): string {
+  const words = name.trim().split(/\s+/).filter(Boolean);
+  const first = words[0]?.[0] ?? "?";
+  const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : "";
+  return (first + last).toLocaleUpperCase("vi-VN");
+}
