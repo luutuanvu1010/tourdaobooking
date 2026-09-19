@@ -8,6 +8,9 @@ export const PAX_LABEL: Record<PaxCode, string> = { adult: "Người lớn", chi
 
 export type Prices = Record<PaxCode, number | null>;
 
+/** Dạng hợp lệ của "Mã tour" trong danh mục (Sheet → catalog_item.code → order_item.catalog_code). */
+export const CATALOG_CODE_RE = /^[A-Za-z0-9._-]{1,40}$/;
+
 export interface CatalogService {
   code: string;
   name: string;
@@ -37,6 +40,8 @@ export function availableCodes(item: CatalogService): PaxCode[] {
 }
 
 export interface GeneratedLine {
+  /** Mã dịch vụ nguồn — lưu vào order_item.catalog_code để truy vết. */
+  catalogCode: string;
   description: string;
   detail: string;
   quantity: number;
@@ -61,7 +66,7 @@ export function buildLines(item: CatalogService, counts: Partial<Record<PaxCode,
     if (item.prices.adult === null) return { ok: false, message: "Dịch vụ này chưa có giá." };
     return {
       ok: true,
-      lines: [{ description: item.name, detail: `${guests} khách (giá mỗi nhóm tối đa ${unit.size} khách)`, quantity: Math.ceil(guests / unit.size), unitPrice: item.prices.adult }],
+      lines: [{ catalogCode: item.code, description: item.name, detail: `${guests} khách (giá mỗi nhóm tối đa ${unit.size} khách)`, quantity: Math.ceil(guests / unit.size), unitPrice: item.prices.adult }],
     };
   }
 
@@ -71,7 +76,7 @@ export function buildLines(item: CatalogService, counts: Partial<Record<PaxCode,
     if (n <= 0) continue;
     const price = item.prices[c];
     if (price === null) return { ok: false, message: `Dịch vụ này không có giá cho ${PAX_LABEL[c].toLowerCase()}.` };
-    lines.push({ description: `${item.name} — ${PAX_LABEL[c]}`, detail: c === "adult" ? "" : (item.notes[c] ?? ""), quantity: n, unitPrice: price });
+    lines.push({ catalogCode: item.code, description: `${item.name} — ${PAX_LABEL[c]}`, detail: c === "adult" ? "" : (item.notes[c] ?? ""), quantity: n, unitPrice: price });
   }
   return lines.length ? { ok: true, lines } : { ok: false, message: "Nhập số khách ít nhất một loại." };
 }

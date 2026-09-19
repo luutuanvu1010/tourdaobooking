@@ -38,11 +38,15 @@ export async function session(account) {
   return r.cookie;
 }
 
-/** Chạy SQL thẳng vào D1 local của server đang test (chỉ để giả lập Sheet đổi dữ liệu). */
+/** Chạy SQL thẳng vào D1 local của server đang test (giả lập Sheet đổi dữ liệu, thử chốt chặn SQL). Lỗi SQL → ném Error kèm stderr. */
 export function sql(q) {
   const args = ["wrangler", "d1", "execute", "tourdao-sales-db", "--local", "--command", q];
   if (PERSIST) args.push("--persist-to", PERSIST);
-  return execFileSync("npx", args, { encoding: "utf8", stdio: ["ignore", "pipe", "ignore"] });
+  try {
+    return execFileSync("npx", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+  } catch (e) {
+    throw new Error(`${e.stderr ?? ""}${e.stdout ?? ""}`);
+  }
 }
 
 export const randomPhone = () => "09" + String(Math.floor(Math.random() * 1e8)).padStart(8, "0");

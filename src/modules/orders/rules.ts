@@ -1,5 +1,6 @@
 // Luật nghiệp vụ thuần của đơn hàng (spec §2.3): kiểm tra đầu vào, tính tiền, chuyển trạng thái, mã đơn.
-// Không import gì và không chạm I/O để kiểm thử độc lập bằng `npm test`.
+// Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
+import { CATALOG_CODE_RE } from "../../shared/order-lines.ts";
 
 export type OrderStatus = "draft" | "confirmed" | "cancelled";
 export type DepositMethod = "cash" | "bank_transfer" | "other";
@@ -11,6 +12,8 @@ const MAX_QUANTITY = 100_000;
 const MAX_ITEMS = 50;
 
 export interface ValidItem {
+  /** Mã dịch vụ nguồn khi dòng sinh từ danh mục; null = nhập tay. Chỉ để truy vết, không ràng buộc giá. */
+  catalogCode: string | null;
   description: string;
   detail: string | null;
   quantity: number;
@@ -93,12 +96,14 @@ export function validateOrder(input: unknown): Validated {
     if (quantity.error) return fail(quantity.error);
     const unitPrice = int(it.unitPrice, `${at}: đơn giá`, 0, MAX_AMOUNT);
     if (unitPrice.error) return fail(unitPrice.error);
+    const code = it.catalogCode;
+    if (code !== undefined && code !== null && (typeof code !== "string" || !CATALOG_CODE_RE.test(code))) return fail(`${at}: mã dịch vụ không hợp lệ.`);
 
     const lineTotal = quantity.value * unitPrice.value;
     if (lineTotal > MAX_AMOUNT) return fail(`${at}: thành tiền vượt giới hạn.`);
     subtotal += lineTotal;
     if (subtotal > MAX_AMOUNT) return fail("Tổng tiền vượt giới hạn.");
-    items.push({ description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, lineTotal });
+    items.push({ catalogCode: typeof code === "string" ? code : null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, lineTotal });
   }
 
   const discount = int(b.discount, "Giảm giá", 0, MAX_AMOUNT, 0);

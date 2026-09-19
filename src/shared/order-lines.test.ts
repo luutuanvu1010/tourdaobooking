@@ -32,6 +32,7 @@ test("theo người: mỗi loại khách có số lượng là một dòng, đú
     ["Tour 3 đảo Hòn Mun — Em bé", 1, 0], // em bé miễn phí vẫn thành một dòng giá 0
   ]);
   assert.equal(r.lines[1]!.detail, "Trẻ em cao từ 1 m đến 1,4 mét");
+  assert.ok(r.lines.every((l) => l.catalogCode === "TD101"), "mọi dòng mang mã dịch vụ nguồn");
   assert.equal(r.lines[0]!.detail, "");
   assert.equal(buildLines(tour, { adult: 1, child: 1, senior: 1, infant: 1 }).ok && (buildLines(tour, { adult: 1, child: 1, senior: 1, infant: 1 }) as { lines: unknown[] }).lines.length, 4);
 });

@@ -10,6 +10,7 @@ export type DepositMethod = "cash" | "bank_transfer" | "other";
 
 export interface OrderItem {
   id: string;
+  catalogCode: string | null;
   description: string;
   detail: string | null;
   quantity: number;
@@ -86,7 +87,7 @@ export interface OrderInput {
   customerPhone: string;
   customerEmail: string;
   customerNote: string;
-  items: { description: string; detail: string; quantity: number; unitPrice: number }[];
+  items: { catalogCode: string | null; description: string; detail: string; quantity: number; unitPrice: number }[];
   discount: number;
   depositAmount: number;
   depositMethod: DepositMethod | null;

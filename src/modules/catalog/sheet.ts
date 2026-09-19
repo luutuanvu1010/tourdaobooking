@@ -1,7 +1,7 @@
 // Đọc CSV Google Sheet dịch vụ thành danh mục. Logic thuần, không I/O.
 // CHỈ đọc các cột cần cho đơn. Cố ý KHÔNG đọc `Khoá giá`, `Đường dẫn` (logic booking của website) và `Ghi chú nội bộ` (spec §2.5/N4).
 import { findColumn, parseCsv } from "../../shared/csv.ts";
-import { parseUnit, type Prices } from "../../shared/order-lines.ts";
+import { CATALOG_CODE_RE as CODE_RE, parseUnit, type Prices } from "../../shared/order-lines.ts";
 
 export interface CatalogInput {
   row: number;
@@ -17,7 +17,6 @@ export type CatalogParse =
   | { ok: false; reason: "missing_columns"; missing: string[]; headers: string[] };
 
 const MAX_PRICE = 100_000_000_000;
-const CODE_RE = /^[A-Za-z0-9._-]{1,40}$/;
 
 function price(raw: string): { value: number | null; bad?: boolean } {
   const t = raw.trim();

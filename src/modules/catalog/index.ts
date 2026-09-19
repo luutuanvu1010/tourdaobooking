@@ -3,12 +3,11 @@
 import type { AuditAction } from "../audit";
 import { requireAdmin, requireStaff } from "../auth";
 import { error, json, readJson, type AppModule } from "../../shared/http";
-import { PAX_LABEL, PAX_ORDER, parseUnit, type CatalogService, type PaxCode } from "../../shared/order-lines";
+import { CATALOG_CODE_RE as CODE_RE, PAX_LABEL, PAX_ORDER, parseUnit, type CatalogService, type PaxCode } from "../../shared/order-lines";
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
 import { acknowledge, applyOverride, patchOverride, type OverridePatch } from "./rules";
 import { bootstrapIfNeverSynced, syncCatalog } from "./service";
 
-const CODE_RE = /^[A-Za-z0-9._-]{1,40}$/;
 const MAX_PRICE = 100_000_000_000;
 const money = (n: number | null) => (n === null ? "(không có)" : `${n.toLocaleString("vi-VN")} ₫`);
 

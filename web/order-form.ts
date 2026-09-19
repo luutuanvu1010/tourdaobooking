@@ -12,6 +12,8 @@ const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
 
 interface ItemRow {
+  /** Dòng sinh từ danh mục giữ mã dịch vụ nguồn (truy vết); dòng nhập tay là null. */
+  catalogCode: string | null;
   root: HTMLElement;
   description: HTMLInputElement;
   detail: HTMLInputElement;
@@ -34,7 +36,7 @@ function moneyInput(id: string | null, placeholder: string): HTMLInputElement {
 
 const setMoney = (el: HTMLInputElement, n: number) => (el.value = n ? grouped(n) : "");
 
-function addRow(init?: { description: string; detail: string | null; quantity: number; unitPrice: number }): void {
+function addRow(init?: { catalogCode: string | null; description: string; detail: string | null; quantity: number; unitPrice: number }): void {
   const description = h("input", { type: "text", placeholder: "Tên dịch vụ, vd: Tour Hòn Mun 1 ngày", maxLength: 300, required: true });
   const detail = h("input", { type: "text", placeholder: "Chi tiết: ngày đi, số khách…", maxLength: 1000 });
   const quantity = h("input", { type: "number", min: 1, step: 1, value: "1", inputMode: "numeric" });
@@ -51,7 +53,7 @@ function addRow(init?: { description: string; detail: string | null; quantity: n
     h("div", { class: "item-total" }, h("span", { class: "muted" }, "Thành tiền"), lineTotal),
     remove,
   );
-  const row: ItemRow = { root, description, detail, quantity, unitPrice, lineTotal };
+  const row: ItemRow = { catalogCode: init?.catalogCode ?? null, root, description, detail, quantity, unitPrice, lineTotal };
   quantity.addEventListener("input", recompute);
   remove.addEventListener("click", () => {
     if (rows.length === 1) return; // luôn còn ít nhất một dòng
@@ -97,6 +99,7 @@ function collect(): OrderInput {
     customerEmail: field("customerEmail").value,
     customerNote: field("customerNote").value,
     items: rows.map((r) => ({
+      catalogCode: r.catalogCode,
       description: r.description.value,
       detail: r.detail.value,
       quantity: Math.trunc(Number(r.quantity.value) || 0),
@@ -200,7 +203,7 @@ function openPick(c: CatalogService): void {
       rows[0]!.root.remove(); // bỏ dòng trống mặc định
       rows.length = 0;
     }
-    for (const l of r.lines) addRow({ description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice });
+    for (const l of r.lines) addRow({ catalogCode: l.catalogCode, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice });
     catalogPick.hidden = true;
     catalogQ.value = "";
     itemsEl.scrollIntoView({ block: "nearest" });

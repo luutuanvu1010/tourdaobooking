@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, session } from "./lib.mjs";
+import { ACCOUNTS, call, session, sql } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
@@ -111,6 +111,28 @@ console.log("song song:", codes.sort().join(" "));
 // phân trang
 r = await call(A, "GET", "/api/orders?limit=3");
 assert.equal(r.body.orders.length, 3); assert.equal(r.body.hasMore, true);
+
+// DỊCH VỤ NGUỒN (0007): dòng chọn từ danh mục giữ catalog_code, dòng nhập tay là null; mã sai bị từ chối
+r = await call(A, "POST", "/api/orders", { ...input, items: [{ catalogCode: "TD101", description: "Tour 3 đảo — Người lớn", quantity: 2, unitPrice: 850000 }, { description: "Nhập tay", quantity: 1, unitPrice: 1 }], discount: 0, depositAmount: 0 });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.deepEqual(r.body.order.items.map((i) => i.catalogCode), ["TD101", null]);
+const traced = r.body.order;
+assert.equal((await call(A, "POST", "/api/orders", { ...input, items: [{ catalogCode: "x y", description: "d", quantity: 1, unitPrice: 1 }] })).status, 400);
+console.log("✓ order_item.catalog_code lưu và đọc lại");
+
+// BẤT BIẾN TIỀN TRONG SQL (0007): ghi thẳng số sai vào D1 bị TRIGGER chặn; sửa đúng luật qua API vẫn chạy
+for (const bad of [
+  `UPDATE orders SET total = total + 1 WHERE id = '${traced.id}'`,
+  `UPDATE orders SET remaining_amount = -1, deposit_amount = total + 1 WHERE id = '${traced.id}'`,
+  `UPDATE order_item SET line_total = line_total + 1 WHERE order_id = '${traced.id}'`,
+  `UPDATE orders SET deposit_amount = 1, remaining_amount = total - 1, deposit_method = NULL WHERE id = '${traced.id}'`,
+]) assert.throws(() => sql(bad), /money_invariant/, `TRIGGER phải chặn: ${bad}`);
+sql(`UPDATE orders SET customer_note = 'sửa hợp lệ' WHERE id = '${traced.id}'`); // cập nhật không đụng tiền vẫn qua
+r = await call(A, "GET", `/api/orders/${traced.id}`);
+assert.equal(r.body.order.total, 1700001); assert.deepEqual(r.body.order.items.map((i) => i.lineTotal), [1700000, 1]);
+r = await call(A, "PUT", `/api/orders/${traced.id}`, { ...input, discount: 1000, depositAmount: 200000 });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+console.log("✓ TRIGGER chặn số tiền sai ghi thẳng vào D1, API vẫn sửa được");
 
 // TRANH CHẤP: thao tác thua cuộc (điều kiện SQL không còn đúng) KHÔNG được để lại dòng nhật ký (idiom changes() > 0)
 for (let round = 0; round < 3; round++) {

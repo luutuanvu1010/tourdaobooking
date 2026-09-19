@@ -25,6 +25,7 @@ interface OrderRow {
 
 interface ItemRow {
   id: string;
+  catalog_code: string | null;
   description: string;
   detail: string | null;
   quantity: number;
@@ -34,6 +35,7 @@ interface ItemRow {
 
 export interface OrderItemDto {
   id: string;
+  catalogCode: string | null;
   description: string;
   detail: string | null;
   quantity: number;
@@ -97,12 +99,13 @@ function toDto(r: OrderRow): OrderDto {
 export async function findOrder(db: D1Database, id: string): Promise<(OrderDto & { items: OrderItemDto[] }) | null> {
   const [orderRes, itemsRes] = await db.batch([
     db.prepare(`${ORDER_SELECT} WHERE o.id = ?`).bind(id),
-    db.prepare(`SELECT id, description, detail, quantity, unit_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`).bind(id),
+    db.prepare(`SELECT id, catalog_code, description, detail, quantity, unit_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`).bind(id),
   ]);
   const row = (orderRes!.results as OrderRow[])[0];
   if (!row) return null;
   const items = (itemsRes!.results as ItemRow[]).map((i) => ({
     id: i.id,
+    catalogCode: i.catalog_code,
     description: i.description,
     detail: i.detail,
     quantity: i.quantity,
@@ -159,12 +162,12 @@ export async function listOrders(
 const isCodeCollision = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: orders\.order_code/.test(e.message);
 
 function itemInserts(db: D1Database, orderId: string, order: ValidOrder, guardDraft: boolean): D1PreparedStatement[] {
-  const cols = "id, order_id, description, detail, quantity, unit_price, line_total, sort_order";
+  const cols = "id, order_id, catalog_code, description, detail, quantity, unit_price, line_total, sort_order";
   return order.items.map((it, idx) => {
-    const values = [crypto.randomUUID(), orderId, it.description, it.detail, it.quantity, it.unitPrice, it.lineTotal, idx];
-    if (!guardDraft) return db.prepare(`INSERT INTO order_item (${cols}) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).bind(...values);
+    const values = [crypto.randomUUID(), orderId, it.catalogCode, it.description, it.detail, it.quantity, it.unitPrice, it.lineTotal, idx];
+    if (!guardDraft) return db.prepare(`INSERT INTO order_item (${cols}) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`).bind(...values);
     return db
-      .prepare(`INSERT INTO order_item (${cols}) SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM orders WHERE id = ? AND status = 'draft')`)
+      .prepare(`INSERT INTO order_item (${cols}) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE EXISTS (SELECT 1 FROM orders WHERE id = ? AND status = 'draft')`)
       .bind(...values, orderId);
   });
 }

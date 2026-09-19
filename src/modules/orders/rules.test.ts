@@ -69,6 +69,14 @@ test("bắt buộc có khách, SĐT hợp lệ, ít nhất một dòng", () => {
   assert.match(message(null), /không hợp lệ/);
 });
 
+test("mã dịch vụ nguồn: tuỳ chọn, giữ nguyên khi hợp lệ, nhập tay là null", () => {
+  const v = ok({ ...base, items: [{ ...base.items[0], catalogCode: "TD101" }, base.items[1]] });
+  assert.deepEqual(v.items.map((i) => i.catalogCode), ["TD101", null]);
+  assert.equal(ok({ ...base, items: [{ ...base.items[0], catalogCode: null }] }).items[0]!.catalogCode, null);
+  assert.match(message({ ...base, items: [{ ...base.items[0], catalogCode: "có dấu" }] }), /mã dịch vụ/);
+  assert.match(message({ ...base, items: [{ ...base.items[0], catalogCode: 101 }] }), /mã dịch vụ/);
+});
+
 test("chặn số vượt giới hạn", () => {
   assert.match(message({ ...base, items: [{ description: "X", quantity: 100000, unitPrice: 100000000000 }] }), /vượt giới hạn/);
 });
