@@ -1,0 +1,10 @@
+/* Tour Đảo Design System — điểm nạp duy nhất cho project tiêu thụ.
+   CHỈ chứa @import. Mọi giá trị sống trong tokens/. */
+@import url("tokens/fonts.css");
+@import url("tokens/colors.css");
+@import url("tokens/themes.css");
+@import url("tokens/typography.css");
+@import url("tokens/spacing.css");
+@import url("tokens/effects.css");
+@import url("tokens/layout.css");
+@import url("tokens/base.css");

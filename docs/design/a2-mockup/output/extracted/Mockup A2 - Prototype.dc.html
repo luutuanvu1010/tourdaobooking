@@ -1,0 +1,601 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+<script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+<style>
+:root{
+  --c-surface-alt:#EAF2F8; --c-border:#D3E1EC; --c-primary-soft:#DCEBF6;
+  --c-on-dark:#FFFFFF; --tap-min:44px; --bar-h:52px; --tabbar-h:56px; --tab-icon:36px; --fs-tab:12px;
+  --c-danger:#B01235; --c-danger-text:#8E0E2B; --c-danger-soft:#FDE9EE; --c-danger-border:#F1C3CF;
+  --counter-btn:44px; --counter-field:48px; --price-field:112px; --safe-top:20px; --safe-bottom:20px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:#dfe7ee;font-family:var(--font-ui);color:var(--c-text);}
+a{color:var(--c-primary);} a:hover{color:var(--c-primary-strong);}
+input,textarea,select,button{font-family:var(--font-ui);}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,a:focus-visible{outline:2px solid var(--c-primary);outline-offset:1px;}
+@media (prefers-reduced-motion: reduce){*{transition:none !important;animation:none !important;}}
+</style>
+</helmet>
+
+<div style="min-height:100vh;display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start;justify-content:center;padding:32px">
+  <div style="width:390px;height:844px;display:flex;flex-direction:column;position:relative;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:16px;overflow:hidden;box-shadow:var(--shadow-overlay)">
+    <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark);flex:none">
+      <button type="button" onClick="{{ goBack }}" aria-label="Quay lại" style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px;background:none;border:0;color:var(--c-on-dark);cursor:pointer"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></button>
+      <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ barTitle }}</span>
+    </div>
+
+    <div style="flex:1;min-height:0;overflow:auto">
+      <sc-if value="{{ isForm }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Khách hàng</h2>
+            <div style="display:flex;flex-direction:column;gap:var(--s3)">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tên khách *</span><input value="{{ customerName }}" onChange="{{ onCustomerName }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Số điện thoại *</span><input value="{{ customerPhone }}" onChange="{{ onCustomerPhone }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú / yêu cầu đặc biệt</span><textarea value="{{ customerNote }}" onChange="{{ onCustomerNote }}" style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical"></textarea></label>
+            </div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Dịch vụ</h2>
+            <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Chọn từ danh mục</span><input value="{{ catalogQuery }}" onChange="{{ onCatalogQuery }}" onFocus="{{ openCatalog }}" placeholder="Gõ tên hoặc mã dịch vụ…" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+            <sc-if value="{{ catalogOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="margin-top:var(--s2);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:hidden">
+                <sc-for list="{{ catalogResults }}" as="c" hint-placeholder-count="3">
+                  <button type="button" onClick="{{ c.add }}" style="display:flex;justify-content:space-between;gap:var(--s3);width:100%;min-height:var(--tap-min);padding:10px 12px;text-align:left;font:500 16px/1.4 var(--font-ui);color:var(--c-text);background:none;border:0;border-bottom:1px solid var(--c-border);cursor:pointer">
+                    <span><strong>{{ c.code }}</strong> {{ c.name }}</span>
+                    <span style="white-space:nowrap;color:var(--c-text-muted)">{{ c.priceLabel }}</span>
+                  </button>
+                </sc-for>
+              </div>
+            </sc-if>
+            <button type="button" onClick="{{ addManual }}" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:var(--s3);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">+ Dịch vụ nhập tay</button>
+
+            <div style="display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s4)">
+              <sc-for list="{{ services }}" as="s" hint-placeholder-count="3">
+                <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+                  <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+                    <div style="flex:1;min-width:0">
+                      <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text);text-wrap:pretty">{{ s.name }}</div>
+                      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                        <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">{{ s.unitLabel }}</span>
+                        <sc-if value="{{ s.code }}" hint-placeholder-val="{{ true }}"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">{{ s.code }}</span></sc-if>
+                      </div>
+                    </div>
+                    <button type="button" onClick="{{ s.remove }}" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+                  </div>
+                  <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+                  <div style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">{{ s.paxHeading }}</div>
+                  <sc-for list="{{ s.paxRows }}" as="row" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+                      <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">{{ row.label }}</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">{{ row.note }}</div></div>
+                      <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                        <button type="button" onClick="{{ row.dec }}" disabled="{{ row.atZero }}" aria-label="Giảm" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                        <input value="{{ row.countText }}" onChange="{{ row.onCount }}" inputMode="numeric" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                        <button type="button" onClick="{{ row.inc }}" aria-label="Tăng" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                      </div>
+                    </div>
+                  </sc-for>
+                  <sc-if value="{{ s.groupNote }}" hint-placeholder-val="{{ false }}">
+                    <div style="margin-top:var(--s2);font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">{{ s.groupNote }}</div>
+                  </sc-if>
+                  <sc-if value="{{ s.tooMany }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:var(--s2);margin-top:var(--s2);padding:var(--s3);background:var(--c-danger-soft);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm)"><span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-danger-text)">✕</span><span style="font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">Tối đa 50 khách.</span></div>
+                  </sc-if>
+                  <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm);display:flex;flex-direction:column;gap:var(--s2)">
+                    <sc-for list="{{ s.lines }}" as="ln" hint-placeholder-count="2">
+                      <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center">
+                        <div style="font:600 15px/1.4 var(--font-ui)">{{ ln.label }}</div>
+                        <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">{{ ln.totalText }}</div>
+                        <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+                          <span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">{{ ln.qtyText }}</span>
+                          <input value="{{ ln.priceText }}" onChange="{{ ln.onPrice }}" inputMode="numeric" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+                          <span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span>
+                          <sc-if value="{{ ln.offSheet }}" hint-placeholder-val="{{ false }}"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted);text-decoration:line-through">{{ ln.sheetText }}</span></sc-if>
+                        </div>
+                        <div></div>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ s.offSheet }}" hint-placeholder-val="{{ false }}">
+                      <span style="align-self:flex-start;padding:2px 8px;border-radius:var(--radius-sm);background:var(--c-accent-soft);color:var(--c-accent-strong);font:600 12px/1.5 var(--font-ui)">Khác giá danh mục</span>
+                    </sc-if>
+                  </div>
+                  <sc-if value="{{ s.isManual }}" hint-placeholder-val="{{ false }}">
+                    <button type="button" onClick="{{ s.addLine }}" style="min-height:var(--tap-min);margin-top:var(--s2);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-primary);text-decoration:underline;cursor:pointer">+ Thêm dòng</button>
+                  </sc-if>
+                  <button type="button" onClick="{{ s.toggle }}" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">
+                    <span style="flex:1;min-width:0"><span style="display:block;font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span><span style="display:block;font:500 14px/1.5 var(--font-ui);color:var(--c-text)">{{ s.tripSummary }}</span></span>
+                    <span style="flex:none;display:flex">{{ s.chevron }}</span>
+                  </button>
+                  <sc-if value="{{ s.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;flex-direction:column;gap:var(--s3);margin-top:-1px;padding:var(--s3);border:1px solid var(--c-border);border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+                      <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành *</span><input value="{{ s.trip.date }}" onChange="{{ s.onDate }}" placeholder="dd/mm/yyyy" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                        <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input value="{{ s.trip.time }}" onChange="{{ s.onTime }}" placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                        <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input value="{{ s.trip.pickupTime }}" onChange="{{ s.onPickupTime }}" placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                      </div>
+                      <sc-if value="{{ s.pickupWarn }}" hint-placeholder-val="{{ false }}">
+                        <div style="display:flex;gap:var(--s2);padding:var(--s3);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)"><span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-sand-text)">⚠</span><span style="font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Giờ đón sau giờ khởi hành — kiểm tra lại.</span></div>
+                      </sc-if>
+                      <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Điểm đón</span><input value="{{ s.trip.pickupPlace }}" onChange="{{ s.onPickupPlace }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                        <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày check-in</span><input value="{{ s.trip.ciDate }}" onChange="{{ s.onCiDate }}" placeholder="Cùng ngày" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                        <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ check-in</span><input value="{{ s.trip.ciTime }}" onChange="{{ s.onCiTime }}" placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                      </div>
+                      <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Nơi check-in</span><input value="{{ s.trip.ciPlace }}" onChange="{{ s.onCiPlace }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                      <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú dịch vụ</span><textarea value="{{ s.trip.note }}" onChange="{{ s.onNote }}" style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical"></textarea></label>
+                    </div>
+                  </sc-if>
+                  <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                    <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+                    <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">{{ s.totalText }}</span>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Thanh toán</h2>
+            <div style="display:flex;flex-direction:column;gap:var(--s3)">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giảm giá (₫)</span><input value="{{ discountText }}" onChange="{{ onDiscount }}" inputMode="numeric" style="display:block;width:100%;min-height:44px;padding:10px 12px;text-align:right;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Đã cọc (₫)</span><input value="{{ depositText }}" onChange="{{ onDeposit }}" inputMode="numeric" style="display:block;width:100%;min-height:44px;padding:10px 12px;text-align:right;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Hình thức cọc</span><select value="{{ depositMethod }}" onChange="{{ onDepositMethod }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><option value="Chuyển khoản">Chuyển khoản</option><option value="Tiền mặt">Tiền mặt</option><option value="Khác">Khác</option></select></label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <div style="display:flex;justify-content:space-between;gap:var(--s4)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Tạm tính</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">{{ subtotalText }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);align-items:baseline"><span style="font:700 16px/1.5 var(--font-ui)">Tổng cộng</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">{{ totalText }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);align-items:baseline"><span style="font:700 16px/1.5 var(--font-ui)">Còn lại</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">{{ remainingText }}</span></div>
+              <p style="margin:var(--s1) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
+            </div>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ isOrder }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <sc-if value="{{ confirmError }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:var(--s3) var(--s4);background:var(--c-danger-soft);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm)">
+              <div style="display:flex;gap:var(--s2)"><span style="flex:none;font:700 15px/1.6 var(--font-ui);color:var(--c-danger-text)">✕</span><span style="font:700 15px/1.6 var(--font-ui);color:var(--c-danger-text)">Chưa đủ thông tin chuyến để xác nhận đơn.</span></div>
+              <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s3)">
+                <sc-for list="{{ confirmProblems }}" as="p" hint-placeholder-count="2">
+                  <div style="display:flex;align-items:flex-start;gap:var(--s3);padding-top:var(--s2);border-top:1px solid var(--c-danger-border)">
+                    <span style="flex:1;font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">{{ p.text }}</span>
+                    <button type="button" onClick="{{ p.fix }}" style="flex:none;min-height:var(--tap-min);padding:0 4px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-primary);text-decoration:underline;cursor:pointer">Sửa</button>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ isDraft }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:var(--s2)">
+              <button type="button" onClick="{{ goEdit }}" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Sửa</button>
+              <button type="button" onClick="{{ confirmOrder }}" style="flex:1.5;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text-inverse);background:var(--c-accent);border:1px solid var(--c-accent);border-radius:var(--radius-sm);cursor:pointer">Xác nhận đơn</button>
+              <button type="button" onClick="{{ cancelOrder }}" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-danger);background:var(--c-surface);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm);cursor:pointer">Huỷ đơn</button>
+            </div>
+          </sc-if>
+          <sc-if value="{{ isConfirmed }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:var(--s2)">
+              <button type="button" onClick="{{ openSheet }}" style="flex:2;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Sửa thông tin chuyến</button>
+              <button type="button" onClick="{{ cancelOrder }}" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-danger);background:var(--c-surface);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm);cursor:pointer">Huỷ đơn</button>
+            </div>
+          </sc-if>
+
+          <div>
+            <span style="display:inline-block;padding:var(--s1) var(--s3);border-radius:var(--radius-pill);background:{{ statusBg }};color:{{ statusFg }};font:600 12px/1.5 var(--font-ui)">{{ statusLabel }}</span>
+            <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">{{ metaLine }}</p>
+          </div>
+
+          <sc-if value="{{ isConfirmed }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+              <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-primary)">Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến.</span>
+            </div>
+          </sc-if>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Khách hàng</h2>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Tên</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">{{ customerName }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Số điện thoại</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">{{ customerPhone }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Ghi chú</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right;overflow-wrap:anywhere">{{ customerNote }}</span></div>
+          </div>
+
+          <sc-for list="{{ services }}" as="s" hint-placeholder-count="3">
+            <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+              <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+                <div style="flex:1;min-width:0">
+                  <div style="font:700 17px/1.3 var(--font-display);color:var(--c-text)">{{ s.name }}</div>
+                  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">{{ s.unitLabel }}</span></div>
+                </div>
+                <sc-if value="{{ s.offSheet }}" hint-placeholder-val="{{ false }}"><span style="padding:2px 8px;border-radius:var(--radius-sm);background:var(--c-accent-soft);color:var(--c-accent-strong);font:600 12px/1.5 var(--font-ui)">Khác giá danh mục</span></sc-if>
+              </div>
+              <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Số khách</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">{{ s.paxText }}</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Khởi hành</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">{{ s.departText }}</span></div>
+              <sc-if value="{{ s.pickupText }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Đón</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right;overflow-wrap:anywhere">{{ s.pickupText }}</span></div>
+              </sc-if>
+              <sc-if value="{{ s.checkinText }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Check-in</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">{{ s.checkinText }}</span></div>
+              </sc-if>
+              <sc-if value="{{ s.trip.note }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Ghi chú</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">{{ s.trip.note }}</span></div>
+              </sc-if>
+              <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm);display:flex;flex-direction:column;gap:var(--s2)">
+                <sc-if value="{{ isConfirmed }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;align-items:center;gap:6px;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Tiền đã khoá</div>
+                </sc-if>
+                <sc-for list="{{ s.lines }}" as="ln" hint-placeholder-count="2">
+                  <div style="display:flex;justify-content:space-between;gap:var(--s3)">
+                    <span style="font:500 15px/1.6 var(--font-ui)">{{ ln.readLabel }}</span>
+                    <span style="font:700 15px/1.6 var(--font-ui);white-space:nowrap;font-variant-numeric:tabular-nums">{{ ln.totalText }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)"><span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span><span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">{{ s.totalText }}</span></div>
+            </div>
+          </sc-for>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Thanh toán</h2>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Tạm tính</span><span style="font:600 15px/1.6 var(--font-ui);font-variant-numeric:tabular-nums">{{ subtotalText }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Giảm giá</span><span style="font:600 15px/1.6 var(--font-ui);font-variant-numeric:tabular-nums">{{ discountMoney }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;align-items:baseline"><span style="font:700 16px/1.6 var(--font-ui)">Tổng cộng</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">{{ totalText }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Đã cọc</span><span style="font:600 15px/1.6 var(--font-ui);font-variant-numeric:tabular-nums">{{ depositLine }}</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;align-items:baseline"><span style="font:700 16px/1.6 var(--font-ui)">Còn lại</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">{{ remainingText }}</span></div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Lịch sử</h2>
+            <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:var(--s2);font:500 15px/1.6 var(--font-ui)">
+              <sc-for list="{{ history }}" as="h" hint-placeholder-count="2">
+                <li><span style="color:var(--c-text-muted)">{{ h.at }}</span> — {{ h.what }} · {{ h.who }}</li>
+              </sc-for>
+            </ul>
+          </div>
+        </div>
+      </sc-if>
+    </div>
+
+    <sc-if value="{{ isForm }}" hint-placeholder-val="{{ true }}">
+      <div style="flex:none;padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-bottom));background:var(--c-card);border-top:1px solid var(--c-border)">
+        <button type="button" onClick="{{ saveDraft }}" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">{{ saveLabel }}</button>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isOrder }}" hint-placeholder-val="{{ false }}">
+      <div style="flex:none;display:flex;padding:0 var(--s1) var(--safe-bottom);background:var(--c-card);border-top:1px solid var(--c-border)">
+        <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:800 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-primary)"><span style="display:flex;align-items:center;justify-content:center;height:var(--tab-icon)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg></span>Đơn hàng</span>
+        <button type="button" onClick="{{ goEdit }}" style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:600 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-text-muted);background:none;border:0;cursor:pointer"><span style="display:flex;align-items:center;justify-content:center;width:var(--tab-icon);height:var(--tab-icon);border-radius:50%;color:var(--c-on-dark);background:var(--c-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span>Đơn mới</button>
+        <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:600 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-text-muted)"><span style="display:flex;align-items:center;justify-content:center;height:var(--tab-icon)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg></span>Tôi</span>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;background:rgba(15,23,42,.45)">
+        <div style="background:var(--c-card);border-top:1px solid var(--c-border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow-overlay);display:flex;flex-direction:column;max-height:88%">
+          <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border)">
+            <span style="flex:1;font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Sửa thông tin chuyến</span>
+            <button type="button" onClick="{{ closeSheet }}" aria-label="Đóng" style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);background:none;border:0;cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div style="flex:1;min-height:0;overflow:auto;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+            <div style="display:flex;gap:var(--s2);padding:var(--s3);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)"><span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-sand-text)">⚠</span><span style="font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại.</span></div>
+            <sc-for list="{{ services }}" as="s" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">{{ s.name }}</div>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành * (không được xoá)</span><input value="{{ s.trip.date }}" onChange="{{ s.onDate }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input value="{{ s.trip.time }}" onChange="{{ s.onTime }}" placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input value="{{ s.trip.pickupTime }}" onChange="{{ s.onPickupTime }}" placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                </div>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Điểm đón</span><input value="{{ s.trip.pickupPlace }}" onChange="{{ s.onPickupPlace }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày check-in</span><input value="{{ s.trip.ciDate }}" onChange="{{ s.onCiDate }}" placeholder="Cùng ngày" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ check-in</span><input value="{{ s.trip.ciTime }}" onChange="{{ s.onCiTime }}" placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                </div>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Nơi check-in</span><input value="{{ s.trip.ciPlace }}" onChange="{{ s.onCiPlace }}" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú dịch vụ</span><textarea value="{{ s.trip.note }}" onChange="{{ s.onNote }}" style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical"></textarea></label>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-bottom));background:var(--c-card);border-top:1px solid var(--c-border)">
+            <button type="button" onClick="{{ saveTrip }}" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">Lưu thông tin chuyến</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="width:300px;display:flex;flex-direction:column;gap:12px;padding:20px;background:#fff;border:1px solid var(--c-border);border-radius:12px">
+    <div style="font:800 13px/1.5 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--c-primary)">Thử các luồng</div>
+    <p style="margin:0;font:500 14px/1.68 var(--font-ui);color:var(--c-text)">Bộ đếm, đơn giá, mở/thu gọn thông tin chuyến, chọn dịch vụ từ danh mục, lưu nháp, xác nhận và bảng sửa sau xác nhận đều bấm được. Các artboard trạng thái tĩnh nằm ở <a href="Mockup A2 — Canvas.dc.html">Mockup A2 — Canvas</a>.</p>
+    <ol style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font:500 14px/1.6 var(--font-ui);color:var(--c-text)">
+      <li>Đổi số khách bằng −/+ hoặc sửa đơn giá — tiền ở mọi nơi tự tính lại; sửa khác giá danh mục sẽ hiện nhãn “Khác giá danh mục”.</li>
+      <li>Gõ vào ô “Chọn từ danh mục” để thêm thẻ dịch vụ mới.</li>
+      <li>Bấm <strong>Lưu đơn nháp</strong> → trang đơn (B1).</li>
+      <li>Muốn thấy banner B2: quay lại form, mở Thông tin chuyến của một thẻ, xoá ngày khởi hành, lưu rồi bấm <strong>Xác nhận đơn</strong>.</li>
+      <li>Đủ thông tin thì <strong>Xác nhận đơn</strong> → trạng thái đã khoá (B3) → <strong>Sửa thông tin chuyến</strong> mở bảng dưới (B4).</li>
+    </ol>
+    <button type="button" onClick="{{ reset }}" style="display:flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;font:700 15px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Đặt lại dữ liệu mẫu</button>
+  </div>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:760,&quot;height&quot;:920}}">
+const PAX = [
+  { code: "adult", label: "Người lớn" },
+  { code: "child", label: "Trẻ em" },
+  { code: "senior", label: "Người cao tuổi" },
+  { code: "infant", label: "Em bé" },
+];
+const NOTES = { adult: "", child: "Trẻ 5–10 tuổi", senior: "Từ 60 tuổi", infant: "Dưới 5 tuổi, miễn phí" };
+const nf = new Intl.NumberFormat("vi-VN");
+const vnd = (n) => `${nf.format(n)} ₫`;
+const grouped = (n) => nf.format(n);
+const parseMoney = (t) => {
+  const d = String(t).replace(/\D/g, "");
+  return d ? Number(d) : 0;
+};
+
+const CATALOG = [
+  { code: "TD04", name: "Tour 4 đảo Nha Trang", unit: "perPax", sheet: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 } },
+  { code: "TTB05", name: "Lặn ngắm san hô", unit: "perPax", sheet: { adult: 1500000, child: 1100000, senior: null, infant: 0 } },
+  { code: "TTB03", name: "Phao chuối", unit: "group", groupSize: 5, sheet: { adult: 1500000 } },
+  { code: "TD07", name: "Tour Hòn Mun 1 ngày", unit: "perPax", sheet: { adult: 1250000, child: 900000, senior: null, infant: 0 } },
+];
+
+function seed() {
+  return [
+    {
+      id: 1, name: "Tour 4 đảo Nha Trang", code: "TD04", unit: "perPax",
+      sheet: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+      price: { adult: 1350000, child: 950000, senior: 1200000, infant: 0 },
+      counts: { adult: 2, child: 1, senior: 0, infant: 0 }, open: false,
+      trip: { date: "20/09/2026", time: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", ciDate: "", ciTime: "07:15", ciPlace: "Cảng Cầu Đá", note: "Bé dị ứng hải sản" },
+    },
+    {
+      id: 2, name: "Phao chuối", code: "TTB03", unit: "group", groupSize: 5,
+      sheet: { adult: 1500000 }, price: { adult: 1500000 }, pax: 7, open: false,
+      trip: { date: "20/09/2026", time: "", pickupTime: "", pickupPlace: "", ciDate: "", ciTime: "", ciPlace: "", note: "" },
+    },
+    {
+      id: 3, name: "Xe đưa đón riêng", code: "", unit: "manual",
+      lines: [{ desc: "Xe 7 chỗ 2 chiều", qty: 1, price: 800000 }], pax: 3, open: false,
+      trip: { date: "20/09/2026", time: "06:30", pickupTime: "", pickupPlace: "", ciDate: "", ciTime: "", ciPlace: "", note: "" },
+    },
+  ];
+}
+
+class Component extends DCLogic {
+  state = {
+    screen: "form", status: "draft", confirmError: false, sheetOpen: false,
+    customerName: "Trần Văn Bình", customerPhone: "0901 234 567", customerNote: "Đón tại khách sạn, có 1 bé 5 tuổi",
+    discount: 0, deposit: 1000000, depositMethod: "Chuyển khoản",
+    catalogQuery: "", catalogOpen: false, nextId: 4,
+    services: seed(),
+    history: [{ at: "16:45 19/09/2026", what: "Tạo đơn", who: "Nguyễn Thị Mai" }],
+  };
+
+  patch(id, fn) {
+    this.setState((s) => ({ services: s.services.map((sv) => (sv.id === id ? fn({ ...sv }) : sv)) }));
+  }
+  patchTrip(id, key, value) {
+    this.patch(id, (sv) => ({ ...sv, trip: { ...sv.trip, [key]: value } }));
+  }
+
+  linesOf(sv) {
+    if (sv.unit === "perPax") {
+      return PAX.filter((p) => sv.sheet[p.code] !== null && sv.sheet[p.code] !== undefined && (sv.counts[p.code] || 0) > 0).map((p) => ({
+        key: p.code, label: p.label, qty: sv.counts[p.code], price: sv.price[p.code] ?? 0, sheet: sv.sheet[p.code], suffix: "×",
+      }));
+    }
+    if (sv.unit === "group") {
+      const trips = Math.ceil(Math.max(0, sv.pax || 0) / sv.groupSize) || 0;
+      if (!trips) return [];
+      return [{ key: "group", label: sv.name, qty: trips, price: sv.price.adult ?? 0, sheet: sv.sheet.adult, suffix: "lượt ×" }];
+    }
+    return (sv.lines || []).map((l, i) => ({ key: `m${i}`, label: l.desc, qty: l.qty, price: l.price, sheet: null, suffix: "×", manualIndex: i }));
+  }
+  totalOf(sv) {
+    return this.linesOf(sv).reduce((sum, l) => sum + l.qty * l.price, 0);
+  }
+  paxCountOf(sv) {
+    if (sv.unit === "perPax") return PAX.reduce((n, p) => n + (sv.counts[p.code] || 0), 0);
+    return sv.pax || 0;
+  }
+  problems() {
+    const out = [];
+    for (const sv of this.state.services) {
+      if (!sv.trip.date.trim()) out.push({ id: sv.id, text: `${sv.name} — chưa có ngày khởi hành` });
+      else if (this.paxCountOf(sv) === 0) out.push({ id: sv.id, text: `${sv.name} — chưa có khách` });
+    }
+    return out;
+  }
+
+  renderVals() {
+    const st = this.state;
+    const isForm = st.screen === "form";
+    const isOrder = st.screen === "order";
+    const chev = (deg) =>
+      React.createElement(
+        "svg",
+        { width: 20, height: 20, viewBox: "0 0 24 24", fill: "none", stroke: "var(--c-primary)", strokeWidth: 1.8, strokeLinecap: "round", strokeLinejoin: "round", style: { transform: `rotate(${deg}deg)` } },
+        React.createElement("path", { d: "M9 5l7 7-7 7" }),
+      );
+
+    const services = st.services.map((sv) => {
+      const lines = this.linesOf(sv);
+      const total = this.totalOf(sv);
+      const paxRows =
+        sv.unit === "perPax"
+          ? PAX.filter((p) => sv.sheet[p.code] !== null && sv.sheet[p.code] !== undefined).map((p) => {
+              const count = sv.counts[p.code] || 0;
+              const priceNote = vnd(sv.sheet[p.code]);
+              return {
+                label: p.label,
+                note: NOTES[p.code] ? `${priceNote} · ${NOTES[p.code]}` : priceNote,
+                countText: String(count),
+                atZero: count === 0,
+                dec: () => this.patch(sv.id, (x) => ({ ...x, counts: { ...x.counts, [p.code]: Math.max(0, count - 1) } })),
+                inc: () => this.patch(sv.id, (x) => ({ ...x, counts: { ...x.counts, [p.code]: Math.min(50, count + 1) } })),
+                onCount: (e) => {
+                  const n = Math.min(99, Math.max(0, parseMoney(e.target.value)));
+                  this.patch(sv.id, (x) => ({ ...x, counts: { ...x.counts, [p.code]: n } }));
+                },
+              };
+            })
+          : [
+              {
+                label: "Số khách",
+                note: sv.unit === "group" ? `${vnd(sv.sheet.adult)} mỗi lượt, tối đa ${sv.groupSize} khách` : "chỉ để vận hành, không nhân với tiền",
+                countText: String(sv.pax || 0),
+                atZero: (sv.pax || 0) === 0,
+                dec: () => this.patch(sv.id, (x) => ({ ...x, pax: Math.max(0, (x.pax || 0) - 1) })),
+                inc: () => this.patch(sv.id, (x) => ({ ...x, pax: Math.min(99, (x.pax || 0) + 1) })),
+                onCount: (e) => this.patch(sv.id, (x) => ({ ...x, pax: Math.min(99, Math.max(0, parseMoney(e.target.value))) })),
+              },
+            ];
+      const trips = sv.unit === "group" ? Math.ceil(Math.max(0, sv.pax || 0) / sv.groupSize) : 0;
+      const paxText =
+        sv.unit === "perPax"
+          ? PAX.filter((p) => (sv.counts[p.code] || 0) > 0).map((p) => `${sv.counts[p.code]} ${p.label.toLowerCase()}`).join(" · ") || "chưa có khách"
+          : sv.unit === "group"
+            ? `${sv.pax || 0} khách → ${trips} lượt`
+            : `${sv.pax || 0} khách (vận hành)`;
+      const ci = [sv.trip.ciDate || (sv.trip.ciTime || sv.trip.ciPlace ? sv.trip.date : ""), sv.trip.ciTime, sv.trip.ciPlace].filter(Boolean).join(" · ");
+      const pickup = [sv.trip.pickupTime, sv.trip.pickupPlace].filter(Boolean).join(" · ");
+      const summary = [sv.trip.date ? sv.trip.date.slice(0, 5) : "chưa có ngày", sv.trip.time, sv.trip.pickupTime ? `đón ${sv.trip.pickupTime}` : "", sv.trip.pickupPlace ? sv.trip.pickupPlace.split(",")[0] : ""].filter(Boolean).join(" · ");
+      const paxTotal = this.paxCountOf(sv);
+
+      return {
+        id: sv.id, name: sv.name, code: sv.code, open: sv.open, trip: sv.trip,
+        isManual: sv.unit === "manual",
+        unitLabel: sv.unit === "perPax" ? "theo người" : sv.unit === "group" ? `theo nhóm ${sv.groupSize} khách/lượt` : "nhập tay",
+        paxHeading: "Số khách",
+        paxRows,
+        groupNote: sv.unit === "group" && (sv.pax || 0) > 0 ? `${sv.pax} khách → ${trips} lượt (⌈${sv.pax} / ${sv.groupSize}⌉)` : "",
+        tooMany: paxTotal > 50,
+        offSheet: lines.some((l) => l.sheet !== null && l.sheet !== undefined && l.price !== l.sheet),
+        lines: lines.map((l) => ({
+          label: l.label,
+          readLabel: `${l.label} · ${l.qty} ${l.suffix === "lượt ×" ? "lượt × " : "× "}${vnd(l.price)}`,
+          qtyText: `${l.qty} ${l.suffix}`,
+          priceText: grouped(l.price),
+          totalText: vnd(l.qty * l.price),
+          offSheet: l.sheet !== null && l.sheet !== undefined && l.price !== l.sheet,
+          sheetText: l.sheet ? vnd(l.sheet) : "",
+          onPrice: (e) => {
+            const n = parseMoney(e.target.value);
+            if (sv.unit === "manual") this.patch(sv.id, (x) => ({ ...x, lines: x.lines.map((ml, i) => (i === l.manualIndex ? { ...ml, price: n } : ml)) }));
+            else this.patch(sv.id, (x) => ({ ...x, price: { ...x.price, [l.key === "group" ? "adult" : l.key]: n } }));
+          },
+        })),
+        totalText: vnd(total),
+        paxText,
+        departText: sv.trip.date ? [sv.trip.date, sv.trip.time || "chưa có giờ"].join(" · ") : "chưa có ngày",
+        pickupText: pickup,
+        checkinText: ci,
+        tripSummary: summary,
+        chevron: chev(sv.open ? -90 : 90),
+        pickupWarn: Boolean(sv.trip.time && sv.trip.pickupTime && sv.trip.pickupTime > sv.trip.time),
+        toggle: () => this.patch(sv.id, (x) => ({ ...x, open: !x.open })),
+        remove: () => this.setState((s) => ({ services: s.services.filter((x) => x.id !== sv.id) })),
+        addLine: () => this.patch(sv.id, (x) => ({ ...x, lines: [...x.lines, { desc: "Dòng mới", qty: 1, price: 0 }] })),
+        onDate: (e) => this.patchTrip(sv.id, "date", e.target.value),
+        onTime: (e) => this.patchTrip(sv.id, "time", e.target.value),
+        onPickupTime: (e) => this.patchTrip(sv.id, "pickupTime", e.target.value),
+        onPickupPlace: (e) => this.patchTrip(sv.id, "pickupPlace", e.target.value),
+        onCiDate: (e) => this.patchTrip(sv.id, "ciDate", e.target.value),
+        onCiTime: (e) => this.patchTrip(sv.id, "ciTime", e.target.value),
+        onCiPlace: (e) => this.patchTrip(sv.id, "ciPlace", e.target.value),
+        onNote: (e) => this.patchTrip(sv.id, "note", e.target.value),
+      };
+    });
+
+    const subtotal = st.services.reduce((n, sv) => n + this.totalOf(sv), 0);
+    const total = subtotal - st.discount;
+    const q = st.catalogQuery.trim().toLowerCase();
+    const catalogResults = CATALOG.filter((c) => !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)).map((c) => ({
+      code: c.code, name: c.name,
+      priceLabel: c.sheet.adult ? vnd(c.sheet.adult) : "chưa có giá",
+      add: () =>
+        this.setState((s) => ({
+          catalogOpen: false, catalogQuery: "", nextId: s.nextId + 1,
+          services: [
+            ...s.services,
+            c.unit === "group"
+              ? { id: s.nextId, name: c.name, code: c.code, unit: "group", groupSize: c.groupSize, sheet: { ...c.sheet }, price: { ...c.sheet }, pax: 0, open: true, trip: { date: "", time: "", pickupTime: "", pickupPlace: "", ciDate: "", ciTime: "", ciPlace: "", note: "" } }
+              : { id: s.nextId, name: c.name, code: c.code, unit: "perPax", sheet: { ...c.sheet }, price: { ...c.sheet }, counts: { adult: 1, child: 0, senior: 0, infant: 0 }, open: true, trip: { date: "", time: "", pickupTime: "", pickupPlace: "", ciDate: "", ciTime: "", ciPlace: "", note: "" } },
+          ],
+        })),
+    }));
+
+    return {
+      isForm, isOrder,
+      isDraft: st.status === "draft",
+      isConfirmed: st.status === "confirmed",
+      sheetOpen: st.sheetOpen,
+      barTitle: isForm ? "Tạo đơn mới" : "TD-20260919-0001",
+      saveLabel: "Lưu đơn nháp",
+      services, catalogResults,
+      catalogOpen: st.catalogOpen, catalogQuery: st.catalogQuery,
+      customerName: st.customerName, customerPhone: st.customerPhone, customerNote: st.customerNote,
+      discountText: st.discount ? grouped(st.discount) : "",
+      depositText: st.deposit ? grouped(st.deposit) : "",
+      depositMethod: st.depositMethod,
+      discountMoney: vnd(st.discount),
+      depositLine: `${vnd(st.deposit)} (${st.depositMethod})`,
+      subtotalText: vnd(subtotal), totalText: vnd(total), remainingText: vnd(total - st.deposit),
+      statusLabel: st.status === "draft" ? "Nháp" : st.status === "confirmed" ? "Đã xác nhận" : "Đã huỷ",
+      statusBg: st.status === "draft" ? "var(--c-sand-soft)" : st.status === "confirmed" ? "var(--c-green-soft)" : "var(--c-surface-alt)",
+      statusFg: st.status === "draft" ? "var(--c-sand-text)" : st.status === "confirmed" ? "var(--c-green-text)" : "var(--c-text-muted)",
+      metaLine: st.status === "confirmed" ? "Lập 16:45 19/09/2026 bởi Nguyễn Thị Mai · Xác nhận 17:10 19/09/2026" : "Lập 16:45 19/09/2026 bởi Nguyễn Thị Mai",
+      history: st.history,
+      confirmError: st.confirmError,
+      confirmProblems: this.problems().map((p) => ({ text: p.text, fix: () => this.setState({ screen: "form", confirmError: false, services: this.state.services.map((sv) => (sv.id === p.id ? { ...sv, open: true } : sv)) }) })),
+      onCustomerName: (e) => this.setState({ customerName: e.target.value }),
+      onCustomerPhone: (e) => this.setState({ customerPhone: e.target.value }),
+      onCustomerNote: (e) => this.setState({ customerNote: e.target.value }),
+      onCatalogQuery: (e) => this.setState({ catalogQuery: e.target.value, catalogOpen: true }),
+      openCatalog: () => this.setState({ catalogOpen: true }),
+      addManual: () =>
+        this.setState((s) => ({
+          nextId: s.nextId + 1,
+          services: [...s.services, { id: s.nextId, name: "Dịch vụ nhập tay", code: "", unit: "manual", lines: [{ desc: "Dòng mới", qty: 1, price: 0 }], pax: 0, open: true, trip: { date: "", time: "", pickupTime: "", pickupPlace: "", ciDate: "", ciTime: "", ciPlace: "", note: "" } }],
+        })),
+      onDiscount: (e) => this.setState({ discount: parseMoney(e.target.value) }),
+      onDeposit: (e) => this.setState({ deposit: parseMoney(e.target.value) }),
+      onDepositMethod: (e) => this.setState({ depositMethod: e.target.value }),
+      saveDraft: () => this.setState((s) => ({ screen: "order", confirmError: false, catalogOpen: false, history: [...s.history, { at: "16:52 19/09/2026", what: "Sửa đơn", who: "Nguyễn Thị Mai" }] })),
+      goEdit: () => this.setState({ screen: "form", confirmError: false }),
+      goBack: () => this.setState((s) => ({ screen: s.screen === "order" ? "form" : "form", sheetOpen: false })),
+      confirmOrder: () => {
+        if (this.problems().length) this.setState({ confirmError: true });
+        else this.setState((s) => ({ status: "confirmed", confirmError: false, history: [...s.history, { at: "17:10 19/09/2026", what: "Xác nhận đơn", who: "Nguyễn Thị Mai" }] }));
+      },
+      cancelOrder: () => this.setState((s) => ({ status: "cancelled", confirmError: false, sheetOpen: false, history: [...s.history, { at: "17:20 19/09/2026", what: "Huỷ đơn", who: "Nguyễn Thị Mai" }] })),
+      openSheet: () => this.setState({ sheetOpen: true }),
+      closeSheet: () => this.setState({ sheetOpen: false }),
+      saveTrip: () => this.setState((s) => ({ sheetOpen: false, history: [...s.history, { at: "17:25 19/09/2026", what: "Sửa thông tin chuyến", who: "Nguyễn Thị Mai" }] })),
+      reset: () => this.setState({ screen: "form", status: "draft", confirmError: false, sheetOpen: false, services: seed(), discount: 0, deposit: 1000000, catalogQuery: "", catalogOpen: false, nextId: 4, history: [{ at: "16:45 19/09/2026", what: "Tạo đơn", who: "Nguyễn Thị Mai" }] }),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

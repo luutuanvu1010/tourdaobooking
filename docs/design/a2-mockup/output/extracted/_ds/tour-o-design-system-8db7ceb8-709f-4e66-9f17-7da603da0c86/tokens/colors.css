@@ -1,0 +1,42 @@
+/* §1 Màu — bảng màu BIỂN ĐẢO, bộ mặc định "bien-sau".
+   Nguyên văn src/styles/tokens.css@main. Không làm tròn, không thêm màu mới. */
+:root{
+  --c-primary:#0C4A6E;
+  --c-primary-strong:#082F49;
+  --c-primary-soft:#F0F7FC;
+  --c-accent:#C0392B;        /* san hô — CTA, nhãn giá. Chữ trắng 5.44 (AA) */
+  --c-accent-strong:#96271A;
+  --c-accent-soft:#FEF2F0;
+  --c-sand:#F5A623;
+  --c-sand-soft:#FBE3B3;
+  --c-surface:#FFFFFF;       /* nền trang — trắng thuần */
+  --c-surface-alt:#F8FAFC;   /* khối xen kẽ */
+  --c-card:#FFFFFF;
+  --c-text:#0F172A;
+  --c-text-muted:#475569;
+  --c-text-inverse:#F8FAFC;
+  --c-border:#E2E8F0;
+  --c-coral:#E8654E;
+  --c-sea:#0E7490;           /* ngọc lam vịnh nông */
+  --c-green:#0E7490;         /* bí danh cũ, giữ để không gãy component */
+  --c-green-soft:#DCFCE7;
+  --c-green-text:#166534;
+  --c-sand-border:#e9d3a4;
+  --c-sand-text:#5a4109;
+  --c-sand-text-strong:#3d2a05;
+  /* Dải màu đậm cho khối quan trọng — SPEC-2026-08-14 §3.3. Không phải màu mới:
+     tổ hợp trỏ về màu sẵn có, để thẻ trắng nổi lên khỏi mạch trắng liền. */
+  --c-band-bg:var(--c-primary);
+  --c-band-text:#FFFFFF;
+  --c-band-muted:#c5dcea;
+  --c-footer-bg:#0E1A23;
+  --c-footer-text:#9aa9b2;
+  --c-footer-border:#233642;
+  --c-footer-muted:#7d8b95;
+  /* Hero fallback + overlay */
+  --c-hero-fallback-top:#d4d9ce;
+  --c-hero-fallback-bottom:#b8c4b0;
+  --c-hero-fallback-top-teal:#ceddd9;
+  --c-hero-fallback-bottom-teal:#a8c8b8;
+  --c-hero-overlay-light:rgba(255,255,255,.18);
+}

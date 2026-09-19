@@ -1,0 +1,329 @@
+/* ═══════════════════════════════════════════════════════════════
+   DESIGN TOKENS — thi hành docs/core-specs/07-DESIGN_TOKENS.md
+   Nguồn token duy nhất cho mọi component. 0 hardcoded value bên ngoài file này.
+
+   v2 (2026-08-06) — hướng thị giác BIỂN ĐẢO, chủ dự án chốt:
+     • nền trang TRẮNG THUẦN (giải DR-003; 07-DESIGN_TOKENS thắng 08-QA_CHECKLIST)
+     • accent đổi sang san hô #C0392B — chữ trắng đạt 5.44, qua AA
+     • gỡ toàn bộ token và hoạ tiết ĐẤT LIỀN: ruộng lúa, đồi núi, đường bình độ.
+       Đó là nhận diện của một site du lịch nói chung, không phải công ty tour đảo.
+   Tham chiếu cũ "DESIGN.md" đã gỡ — file đó chưa bao giờ tồn tại (DR-008).
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* §1 Color — bảng màu biển đảo */
+  --c-primary:        #0C4A6E;
+  --c-primary-strong: #082F49;
+  --c-primary-soft:   #DCEBF6;
+  --c-accent:         #C0392B;   /* san hô — CTA, nhãn giá */
+  --c-accent-strong:  #96271A;
+  --c-accent-soft:    #FEF2F0;
+  --c-sand:           #F5A623;
+  --c-sand-soft:      #FBE3B3;
+  --c-surface:        #FFFFFF;   /* nền trang — trắng thuần */
+  --c-surface-alt:    #EAF2F8;   /* khối xen kẽ */
+  --c-card:           #FFFFFF;
+  --c-text:           #0F172A;
+  --c-text-muted:     #475569;
+  --c-text-inverse:   #F8FAFC;
+  --c-border:         #D3E1EC;
+  --c-coral:          #E8654E;
+  --c-sea:            #0E7490;   /* ngọc lam vịnh nông */
+  --c-green:          #0E7490;   /* bí danh cũ, giữ để không gãy component */
+  --c-green-soft:     #DCFCE7;
+  --c-green-text:     #166534;
+  --c-sand-border:    #e9d3a4;
+  --c-sand-text:      #5a4109;
+  --c-sand-text-strong: #3d2a05;
+  /* Dải màu đậm cho khối quan trọng (SPEC-2026-08-14-be-mat-vong-3 §3.3).
+     KHÔNG phải màu mới — ba token này chỉ là tổ hợp trỏ về màu sẵn có. Bệnh cần
+     chữa là thiếu DIỆN TÍCH màu, không phải thiếu màu: --c-surface #FFFFFF và
+     --c-surface-alt #F8FAFC lệch nhau ~4% độ sáng nên cả trang đọc thành một
+     mảng trắng liền. Khối nào lấy nền này thì thẻ trắng nổi hẳn lên trên nó. */
+  --c-band-bg:        var(--c-primary);
+  --c-band-text:      #FFFFFF;
+  --c-band-muted:     #c5dcea;
+  --c-footer-bg:      #0E1A23;
+  --c-footer-text:    #9aa9b2;
+  --c-footer-border:  #233642;
+  --c-footer-muted:   #7d8b95;
+  /* Hero fallback + overlay */
+  --c-hero-fallback-top:    #d4d9ce;
+  --c-hero-fallback-bottom: #b8c4b0;
+  --c-hero-fallback-top-teal:    #ceddd9;
+  --c-hero-fallback-bottom-teal: #a8c8b8;
+  --c-hero-overlay-light:   rgba(255,255,255,.18);
+
+  /* §2 Typography — Vietnamese-readable, token-first */
+  /* MỘT chữ cho cả trang: Nunito, duyệt 2026-08-06 (QĐ-2026-08-06-11).
+     Chữ tròn đầu nét nên mềm, và là một trong những chữ được dùng nhiều nhất
+     nên mắt người Việt đã quen — không thấy lạ. Đủ bộ dấu tiếng Việt.
+     Hai token vẫn tách làm hai vì chúng là hai VAI (tiêu đề và giao diện), dù
+     hôm nay cùng trỏ một font: đổi vai này không kéo theo vai kia.
+     Be Vietnam Pro là lớp dự phòng duy nhất — Nunito hỏng thì chữ rơi về một
+     font vẫn dựng dấu tiếng Việt tử tế, không rơi thẳng về system-ui. */
+  /* SPEC-2026-08-14-be-mat-vong-3 §3.1: đảo thứ tự ở --font-display. Trước đây
+     Nunito đứng đầu ở CẢ HAI biến, nên bốn file Be Vietnam Pro trong
+     public/fonts/ được tải mỗi lần khách vào site mà không bao giờ hiện ra.
+     Nay tiêu đề dùng Be Vietnam Pro (vuông vắn, dứt khoát), nội dung giữ Nunito.
+     Tương phản giữa hai bộ tạo phân cấp mà không phải tăng cỡ chữ.
+     KHÔNG tải thêm file nào — cả hai bộ đã nằm sẵn trong repo. */
+  --font-display: "Be Vietnam Pro", "Nunito", system-ui, sans-serif;
+  --font-ui:      "Nunito", "Be Vietnam Pro", system-ui, sans-serif;
+  /* Nunito biến thiên 400–800, nên --fw-800 CHẠY THẬT. Chỉ còn --fw-900 là bị
+     trình duyệt kẹp về 800 — không có cấp nào cao hơn để tổng hợp giả. Xem
+     DR-031.
+     Be Vietnam Pro chỉ tự lưu trữ cấp 700 và 800. Đã rà toàn bộ: mọi khối đặt
+     --font-display đều khai độ đậm, và đều là 700 hoặc 800 (riêng .hubs-title
+     đặt 900, trình duyệt chọn 800 — cấp có thật, không tổng hợp giả). */
+  --fw-500: 500; --fw-600: 600; --fw-700: 700; --fw-800: 800; --fw-900: 900;
+  --fs-badge: 0.6875rem;  /* 11px */
+  --fs-xs:   0.75rem;     /* 12px */
+  --fs-label: 0.875rem;   /* 14px */
+  --fs-sm:    0.9375rem;  /* 15px */
+  /* 19px — nâng từ 17px theo QĐ-2026-08-28-02.
+     ĐÃ ĐO trước khi đổi (Chrome, bản dựng, 2026-08-28), không phải ước lượng:
+     • Thanh dính KHÔNG nhúc nhích — 618→675 (h1 một dòng) và 674→731 (hai dòng)
+       y hệt ở 17 lẫn 19px. Dải breadcrumb, dải tiêu đề và hero đều không đọc
+       token này, nên Luật 3 "giá trước, chữ sau" không bị đụng.
+     • Số ký tự mỗi dòng KHÔNG đổi (83) vì cột chữ khai bằng `ch` — cột nở theo
+       chữ. Không tràn ngang ở 1366 lẫn 386px.
+     • Giá phải trả: trang dài thêm ~5,8% desktop, ~9,3% di động.
+     TRẦN CỦA THANG NÀY LÀ 19. Cột chữ 70ch ở 19px đo 764px, còn cột chính của
+     lưới `1fr 340px` trong khung 1200 rộng 812px — hở 48px. Ở 20px cột chữ
+     thành ~804px, tức chạm. Muốn lên nữa phải nới `--container` trước. */
+  --fs-base:  1.1875rem;  /* 19px */
+  /* 21px — đẩy lên từ 18px. Thang cũ dồn cục ở khoảng giữa: nội dung 17, tiêu đề
+     thẻ 18, chữ menu 18, tiêu đề nhỏ 20 — bốn bậc trong 3px nên mắt không phân
+     biệt được cấp. Đây là gốc của "chữ đều đều, không phân cấp". */
+  --fs-card-title: 1.3125rem; /* 21px — card title */
+  --fs-nav:   1.125rem;   /* 18px — nav link, footer heading */
+  --fs-h5:    1.25rem;    /* 20px — được đẩy lên từ 22px, khớp hub name */
+  /* ── Shared component tokens (trích từ DESIGN.md §5) ── */
+  --underline-width: 28px;
+  --underline-height: 3px;
+  --badge-py: 2px;
+  --badge-px: 10px;
+  --card-lift: -3px;
+  --fs-h4:    1.625rem;   /* 26px */
+  --fs-section: 2rem;     /* 32px — đẩy lên từ 28px, để tiêu đề mục tách hẳn
+                             khỏi tiêu đề thẻ (21px) và nội dung (19px, nâng từ
+                             17 theo QĐ-2026-08-28-02) */
+  --fs-h3:    2rem;       /* 32px */
+  --fs-h2:    2.5rem;     /* 40px */
+  --fs-h1:    2.625rem;   /* 42px */
+  --fs-hero:  2.875rem;   /* 46px — override hero homepage */
+  --fs-display: 3.75rem;  /* 60px — bậc trên --fs-hero, chỉ cho câu định vị ở
+                             hero trang chủ. Thang chữ trước dừng ở 46px, mà
+                             trên khung 1200px thì 46px là cỡ của một tiêu đề
+                             mục, không phải cỡ của câu định vị. */
+  --lh-heading: 1.16;
+  --lh-body:    1.68;
+  --lh-display: 1.22;     /* chỉ cho chữ hiển thị lớn: h1 và số của dải số liệu.
+                             Ở cỡ hero, 1.16 vẫn làm dấu ngã dòng dưới chạm dấu
+                             nặng dòng trên. Cấm dùng cho heading cỡ thường —
+                             1.22 ở cỡ nhỏ làm tiêu đề rời rạc. */
+  --ls-eyebrow: 0.08em;   /* nhãn chữ hoa. Chữ hoa tiếng Việt vẫn mang dấu nên
+                             phải giãn ngang, và giãn ngang thì phải kèm
+                             --lh-eyebrow, nếu không dấu bị dòng trên cắt.
+                             Ngoài eyebrow thì letter-spacing luôn là 0:
+                             tracking âm ép dấu của chữ này vào thân chữ bên. */
+  --lh-eyebrow: 1.5;      /* đi kèm --ls-eyebrow, không dùng rời */
+
+  /* §3 Spacing */
+  --s1: 4px;   --s2: 8px;   --s3: 12px;
+  --s4: 16px;  --s5: 24px;  --s6: 32px;
+  --s7: 48px;  --s8: 64px;  --s9: 96px;
+
+  /* §3.2 Radius */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  /* §3.3 Shadow */
+  --shadow-card:    0 1px 3px rgba(15,23,42,0.08);
+  --shadow-raised:  0 6px 24px -8px rgba(0,91,150,.15), 0 2px 6px rgba(26,32,44,.05);
+  --shadow-lg:      0 16px 48px -12px rgba(0,91,150,.22), 0 4px 12px rgba(26,32,44,.06);
+  --shadow-overlay: 0 12px 32px rgba(15,23,42,0.16);
+
+  /* §4 Layout */
+  --container: 1200px;
+  --container-editorial: 800px;
+  --container-padding: 24px;
+  --bp-sm: 640px;
+  --bp-md: 768px;
+  --bp-lg: 1024px;
+  --bp-xl: 1280px;
+
+  /* §6 Motion */
+  --m-fast:  180ms;
+  --m-base:  300ms;
+  --m-ease:  ease;
+
+  /* Component token */
+  --header-h: 68px;
+  --sticky-bar-h: 56px;   /* thanh dính dưới header ở trang chi tiết (DetailLayout).
+                             Cao cố định để Sidebar tính được chỗ dính: trước đây thanh
+                             cao theo nội dung (~62px) còn Sidebar dính ở top:16px nên
+                             hai dòng đầu của thẻ thông tin khuất sau thanh — DR-033. */
+  /* ── Chiều cao hero dùng chung của TRANG CHI TIẾT ENTITY + trang điểm đến ──
+     NGUỒN DUY NHẤT. `Hero.astro` không còn giữ con số nào; đổi ở đây là MỌI
+     loại trang đổi theo — attraction, tour, place, hotel, resort, experience,
+     restaurant, specialty, event, article, person, organization, và trang
+     điểm đến. Cả ba biến thể hero (mosaic, ảnh đơn, không-ảnh) cùng đọc một
+     biến nên không nhánh nào lệch được nhánh nào.
+     QĐ-2026-08-29-01 đưa ba con số này từ <style> của `Hero.astro` về đây: 07
+     mở đầu khai tokens.css là nguồn token duy nhất, và giá trị giao diện nằm
+     ngoài nó là vi phạm P6/N7 — hero là chỗ vi phạm còn sót.
+     ⚠ ĐỪNG NHẦM với `--hero-min-h` / `--hero-min-h-mobile` ngay bên dưới. Hai
+     token đó là của `HomeHero.astro` — hero TRANG CHỦ, một component khác, một
+     chiều cao khác. Tên gần giống nhau là bẫy có thật; đọc kỹ trước khi sửa. */
+  --hero-entity-h-min:    380px;
+  --hero-entity-h-max:    480px;
+  --hero-entity-h-tablet: 440px;
+  --hero-entity-h-mobile: 340px;
+  /* Số giữa phải là `calc(30vw + 100px)`, KHÔNG phải `30vw`: nâng riêng trần
+     480 lên cao hơn chỉ cho +4px ở 1280 và +30px ở 1366, vì ở dải ≥1267px thì
+     TRẦN mới là số đang trói (điểm giao: 30vw + 100 = 480 ⇒ vw = 1266,67).
+     Đã đo, xem QĐ-2026-08-31-03. */
+  --hero-entity-h: clamp(var(--hero-entity-h-min), calc(30vw + 100px), var(--hero-entity-h-max));
+
+  --hero-min-h: 480px;          /* HomeHero — hero TRANG CHỦ, không phải hero entity */
+  --hero-min-h-mobile: 360px;   /* HomeHero — nt */
+  --card-img-h: 200px;
+}
+
+/* ═══ BỘ GIAO DIỆN CHỌN ĐƯỢC — 07-DESIGN_TOKENS §1b ═══
+   Chủ dự án chọn trong Sanity Studio (siteSettings.theme); BaseLayout gắn
+   data-theme lên <html>. Không có bộ nào thì :root ở trên là "bien-sau".
+   Mỗi bộ CHỈ đổi bốn token màu gốc — chữ, khoảng cách, bo góc giữ nguyên.
+   Mọi bộ phải qua WCAG AA: npm --prefix scripts run check:theme */
+
+:root[data-theme='cat-bien'] {
+  --c-surface:        #FDFAF5;
+  --c-primary:        #155E75;
+  --c-accent:         #B45309;
+  --c-text:           #1C1917;
+  --c-text-muted:     #57534E;
+  --c-primary-strong: #0E4A5C;
+  --c-accent-strong:  #92400E;
+  /* QĐ-2026-08-25-04: ba nền phụ PHẢI khai riêng ở đây.
+     Trước đó bộ này chỉ đè 7 token gốc, nên --c-surface-alt thừa hưởng #F8FAFC
+     của :root — một nền xám LẠNH đứng cạnh nền kem ẤM #FDFAF5, và hai thứ đó
+     chỉ cách nhau 1,005 về độ tương phản. Tức khối xen kẽ ở bộ này gần như
+     KHÔNG TỒN TẠI về mặt thị giác, tệ hơn cả hai bộ kia (1,046).
+     Ba giá trị dưới đây nhuốm sắc cát cho khớp nền kem, đưa tách nền lên 1,116. */
+  --c-surface-alt:    #F5EDE0;
+  --c-primary-soft:   #E4EEF1;
+  --c-border:         #E7DCC9;
+}
+
+:root[data-theme='ngoc-lam'] {
+  --c-surface:        #FFFFFF;
+  --c-primary:        #0F766E;
+  --c-accent:         #BE123C;
+  --c-text:           #0F172A;
+  --c-text-muted:     #475569;
+  --c-primary-strong: #0B5A54;
+  --c-accent-strong:  #9F1239;
+  /* Cùng lý do như cat-bien, nhuốm sắc ngọc. R2 của spec vòng 5: sửa bộ nào
+     thì sửa cả ba — không bộ nào được bỏ. */
+  --c-surface-alt:    #E8F4F2;
+  --c-primary-soft:   #D6EBE8;
+  --c-border:         #CFE3E0;
+}
+
+/* ── Reset ── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* DR-034 (đóng 2026-08-22, QĐ-2026-08-22-01): trước đây `html { font-size: var(--fs-base) }`
+   trong khi --fs-base tính bằng rem, nên root thành 17px và MỌI token rem nhân thêm
+   17/16 — body đo 18,06px thay vì 17, tiêu đề mục 34 thay vì 32, h1 48,9 thay vì 46.
+   Root về 100% (16px, tôn trọng cỡ chữ người dùng đặt trong trình duyệt); cỡ chữ
+   nội dung đặt ở body. Từ đây con số trong 07-DESIGN_TOKENS §2 là con số render thật. */
+html {
+  font-size: 100%;
+  scroll-behavior: smooth;
+  /* Neo cuộn phải dừng DƯỚI header dính và thanh dính, không chui vào gầm chúng.
+     Thiếu dòng này thì mọi link nhảy mục ở thanh dính đưa tiêu đề khuất sau
+     đúng hai thanh vừa bấm — cuộn mượt nhưng dừng sai chỗ. Cộng --s3 cho thoáng. */
+  scroll-padding-top: calc(var(--header-h) + var(--sticky-bar-h) + var(--s3));
+}
+
+body {
+  font-family: var(--font-ui);
+  font-size: var(--fs-base);
+  font-weight: var(--fw-500);
+  line-height: var(--lh-body);
+  color: var(--c-text);
+  background: var(--c-surface);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+main {
+  position: relative;
+  isolation: isolate;
+}
+
+/* v2: đã gỡ lớp hoạ tiết phủ toàn trang (đường bình độ + vệt cát).
+   Nền trắng để ảnh biển đảo thật là thứ mang màu — 07-DESIGN_TOKENS §1. */
+img {
+  max-width: 100%;
+  display: block;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-700);
+  line-height: var(--lh-heading);
+  margin: 0;
+  letter-spacing: 0;
+}
+
+h4 {
+  font-family: var(--font-display);
+  font-weight: var(--fw-700);
+  line-height: 1.15;
+  margin: 0;
+}
+
+p {
+  margin: 0;
+}
+
+/* Chiều cao hero theo khổ màn. Đặt Ở ĐÂY chứ không trong `Hero.astro`, để mọi
+   thông số hero nằm chung một chỗ — đúng ý "đổi một chỗ thì mọi template đổi
+   theo". Hai khoảng loại trừ nhau nên thứ tự không quan trọng. */
+@media (min-width: 769px) and (max-width: 1023px) {
+  :root { --hero-entity-h: var(--hero-entity-h-tablet); }
+}
+
+@media (max-width: 768px) {
+  :root { --hero-entity-h: var(--hero-entity-h-mobile); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0ms !important;
+    transition-duration: 0ms !important;
+  }
+
+  /* Cuộn mượt cũng là chuyển động. 07 §5 khai reduced-motion tắt MỌI transition
+     và animation, nhưng scroll-behavior không nằm trong hai thứ đó nên khối
+     trên không chạm tới — phải tắt riêng. Với người đặt reduced-motion vì say
+     chuyển động, trang tự trượt là đúng thứ họ tắt. */
+  html {
+    scroll-behavior: auto;
+  }
+}

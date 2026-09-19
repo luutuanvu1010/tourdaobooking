@@ -1,0 +1,544 @@
+{
+  "plugins": [
+    "react",
+    "import"
+  ],
+  "rules": {
+    "react/forbid-elements": [
+      "warn",
+      {
+        "forbid": []
+      }
+    ],
+    "no-restricted-imports": [
+      "warn",
+      {
+        "patterns": [
+          {
+            "group": [
+              "components/action/**",
+              "components/chrome/**",
+              "components/content/**",
+              "components/feedback/**",
+              "components/home/**",
+              "components/layout/**",
+              "components/listing/**",
+              "components/map/**",
+              "components/templates/**",
+              "ui_kits/website/**"
+            ],
+            "message": "Import design-system components from 'index.js', not component internals."
+          }
+        ]
+      }
+    ],
+    "no-restricted-syntax": [
+      "warn",
+      {
+        "selector": "Literal[value=/#[0-9a-fA-F]{3,8}\\b/]",
+        "message": "Raw hex color — use a design-system color token via var()."
+      },
+      {
+        "selector": "Literal[value=/\\b\\d+px\\b/]",
+        "message": "Raw px value — use a design-system spacing token via var()."
+      },
+      {
+        "selector": "Literal[value=/font-family\\s*:\\s*(?!['\\\"]?(?:Nunito|Be Vietnam Pro))/i]",
+        "message": "Font not provided by the design system. Available: Nunito, Be Vietnam Pro."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ArticleData'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|summary|image|gallery|badges|crumbs|infoRows|blocks|faq|updatedAt|sameAsHref|sameAsLabel|author|approvedBy|contentProvenance|key|ref|className|style|children)$/]",
+        "message": "<ArticleData> doesn't accept that prop. Declared props: title, summary, image, gallery, badges, crumbs, infoRows, blocks, faq, updatedAt, sameAsHref, sameAsLabel, author, approvedBy, contentProvenance."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ArticleData'] > JSXAttribute[name.name='contentProvenance'] > Literal[value!=/^(?:human|ai-t1|mixed)$/]",
+        "message": "<ArticleData> contentProvenance must be one of 'human' | 'ai-t1' | 'mixed'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AttractionData'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|summary|image|gallery|badges|facts|crumbs|priceText|priceLabel|isFree|asOf|ctaHref|ctaLabel|overview|highlights|tips|faq|images|geo|updatedAt|sameAsHref|sameAsLabel|key|ref|className|style|children)$/]",
+        "message": "<AttractionData> doesn't accept that prop. Declared props: title, summary, image, gallery, badges, facts, crumbs, priceText, priceLabel, isFree, asOf, ctaHref, ctaLabel, overview, highlights, tips, faq, images, geo, updatedAt, sameAsHref, sameAsLabel."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AuthorityMeta'] > JSXAttribute > JSXIdentifier[name!=/^(?:approvedBy|contentProvenance|officialSource|sameAs|author|key|ref|className|style|children)$/]",
+        "message": "<AuthorityMeta> doesn't accept that prop. Declared props: approvedBy, contentProvenance, officialSource, sameAs, author."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='AuthorityMeta'] > JSXAttribute[name.name='contentProvenance'] > Literal[value!=/^(?:human|ai-t1|mixed)$/]",
+        "message": "<AuthorityMeta> contentProvenance must be one of 'human' | 'ai-t1' | 'mixed'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BodyBlock'] > JSXAttribute > JSXIdentifier[name!=/^(?:type|style|text|src|alt|key|ref|className|style|children)$/]",
+        "message": "<BodyBlock> doesn't accept that prop. Declared props: type, style, text, src, alt."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BodyBlock'] > JSXAttribute[name.name='type'] > Literal[value!=/^(?:block|image)$/]",
+        "message": "<BodyBlock> type must be one of 'block' | 'image'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BodyBlock'] > JSXAttribute[name.name='style'] > Literal[value!=/^(?:normal|h2|h3|h4)$/]",
+        "message": "<BodyBlock> style must be one of 'normal' | 'h2' | 'h3' | 'h4'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='BookingCTA'] > JSXAttribute > JSXIdentifier[name!=/^(?:priceText|ctaUrl|ctaLabel|asOf|key|ref|className|style|children)$/]",
+        "message": "<BookingCTA> doesn't accept that prop. Declared props: priceText, ctaUrl, ctaLabel, asOf."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Crumb'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|href|key|ref|className|style|children)$/]",
+        "message": "<Crumb> doesn't accept that prop. Declared props: label, href."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|summary|href|image|imageAlt|badge|badgeVariant|priceLabel|authorLabel|onClick|key|ref|className|style|children)$/]",
+        "message": "<Card> doesn't accept that prop. Declared props: title, summary, href, image, imageAlt, badge, badgeVariant, priceLabel, authorLabel, onClick."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Card'] > JSXAttribute[name.name='badgeVariant'] > Literal[value!=/^(?:default|author|free|past)$/]",
+        "message": "<Card> badgeVariant must be one of 'default' | 'author' | 'free' | 'past'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ContactChannels'] > JSXAttribute > JSXIdentifier[name!=/^(?:zaloUrl|hotline|whatsapp|labels|key|ref|className|style|children)$/]",
+        "message": "<ContactChannels> doesn't accept that prop. Declared props: zaloUrl, hotline, whatsapp, labels."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ContactCTA'] > JSXAttribute > JSXIdentifier[name!=/^(?:telephone|label|key|ref|className|style|children)$/]",
+        "message": "<ContactCTA> doesn't accept that prop. Declared props: telephone, label."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='DetailLayout'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|image|gallery|crumbs|badges|summary|speakable|facts|factsMax|jumpLinks|priceLabel|ctaHref|ctaLabel|sidebarCards|updatedAt|sameAsHref|sameAsLabel|nearbyTitle|nearby|children|key|ref|className|style|children)$/]",
+        "message": "<DetailLayout> doesn't accept that prop. Declared props: title, image, gallery, crumbs, badges, summary, speakable, facts, factsMax, jumpLinks, priceLabel, ctaHref, ctaLabel, sidebarCards, updatedAt, sameAsHref, sameAsLabel, nearbyTitle, nearby, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='EmptyLink'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|href|key|ref|className|style|children)$/]",
+        "message": "<EmptyLink> doesn't accept that prop. Declared props: label, href."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ListingEntity'] > JSXAttribute > JSXIdentifier[name!=/^(?:slug|title|summary|href|image|imageAlt|badge|badgeVariant|priceLabel|authorLabel|key|ref|className|style|children)$/]",
+        "message": "<ListingEntity> doesn't accept that prop. Declared props: slug, title, summary, href, image, imageAlt, badge, badgeVariant, priceLabel, authorLabel."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='ListingEntity'] > JSXAttribute[name.name='badgeVariant'] > Literal[value!=/^(?:default|author|free|past)$/]",
+        "message": "<ListingEntity> badgeVariant must be one of 'default' | 'author' | 'free' | 'past'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Fact'] > JSXAttribute > JSXIdentifier[name!=/^(?:field|icon|label|value|href|visible|key|ref|className|style|children)$/]",
+        "message": "<Fact> doesn't accept that prop. Declared props: field, icon, label, value, href, visible."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='FAQItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:question|answer|key|ref|className|style|children)$/]",
+        "message": "<FAQItem> doesn't accept that prop. Declared props: question, answer."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='FooterLink'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|href|key|ref|className|style|children)$/]",
+        "message": "<FooterLink> doesn't accept that prop. Declared props: label, href."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='FooterBadge'] > JSXAttribute > JSXIdentifier[name!=/^(?:src|kind|alt|url|key|ref|className|style|children)$/]",
+        "message": "<FooterBadge> doesn't accept that prop. Declared props: src, kind, alt, url."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='FooterBadge'] > JSXAttribute[name.name='kind'] > Literal[value!=/^(?:chung-nhan|thanh-toan|mang-xa-hoi)$/]",
+        "message": "<FooterBadge> kind must be one of 'chung-nhan' | 'thanh-toan' | 'mang-xa-hoi'."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='GalleryImage'] > JSXAttribute > JSXIdentifier[name!=/^(?:src|alt|key|ref|className|style|children)$/]",
+        "message": "<GalleryImage> doesn't accept that prop. Declared props: src, alt."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='NavChild'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|href|key|ref|className|style|children)$/]",
+        "message": "<NavChild> doesn't accept that prop. Declared props: label, href."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='HeroGalleryItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:src|alt|key|ref|className|style|children)$/]",
+        "message": "<HeroGalleryItem> doesn't accept that prop. Declared props: src, alt."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='HomeHero'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|summary|image|imageAlt|eyebrow|imageCredit|stampText|stampYear|ctaLabel|ctaHref|key|ref|className|style|children)$/]",
+        "message": "<HomeHero> doesn't accept that prop. Declared props: title, summary, image, imageAlt, eyebrow, imageCredit, stampText, stampYear, ctaLabel, ctaHref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Hub'] > JSXAttribute > JSXIdentifier[name!=/^(?:entity|href|label|desc|emoji|iconBg|key|ref|className|style|children)$/]",
+        "message": "<Hub> doesn't accept that prop. Declared props: entity, href, label, desc, emoji, iconBg."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SiteStat'] > JSXAttribute > JSXIdentifier[name!=/^(?:value|label|note|key|ref|className|style|children)$/]",
+        "message": "<SiteStat> doesn't accept that prop. Declared props: value, label, note."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='HomeTour'] > JSXAttribute > JSXIdentifier[name!=/^(?:slug|title|image|imageAlt|duration|key|ref|className|style|children)$/]",
+        "message": "<HomeTour> doesn't accept that prop. Declared props: slug, title, image, imageAlt, duration."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TrustItem'] > JSXAttribute > JSXIdentifier[name!=/^(?:icon|title|description|key|ref|className|style|children)$/]",
+        "message": "<TrustItem> doesn't accept that prop. Declared props: icon, title, description."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='InfoRow'] > JSXAttribute > JSXIdentifier[name!=/^(?:field|icon|label|value|href|visible|key|ref|className|style|children)$/]",
+        "message": "<InfoRow> doesn't accept that prop. Declared props: field, icon, label, value, href, visible."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='MapMarker'] > JSXAttribute > JSXIdentifier[name!=/^(?:lat|lng|title|key|ref|className|style|children)$/]",
+        "message": "<MapMarker> doesn't accept that prop. Declared props: lat, lng, title."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='NearbyEntity'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|href|image|imageAlt|categoryBadge|distance|key|ref|className|style|children)$/]",
+        "message": "<NearbyEntity> doesn't accept that prop. Declared props: title, href, image, imageAlt, categoryBadge, distance."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PriceDisplay'] > JSXAttribute > JSXIdentifier[name!=/^(?:label|isFree|ctaLabel|ctaHref|key|ref|className|style|children)$/]",
+        "message": "<PriceDisplay> doesn't accept that prop. Declared props: label, isFree, ctaLabel, ctaHref."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='PickupPoint'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|time|note|lat|lng|key|ref|className|style|children)$/]",
+        "message": "<PickupPoint> doesn't accept that prop. Declared props: name, time, note, lat, lng."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='Section'] > JSXAttribute > JSXIdentifier[name!=/^(?:heading|id|contained|children|key|ref|className|style|children)$/]",
+        "message": "<Section> doesn't accept that prop. Declared props: heading, id, contained, children."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SidebarCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:name|visible|content|key|ref|className|style|children)$/]",
+        "message": "<SidebarCard> doesn't accept that prop. Declared props: name, visible, content."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SiteLogo'] > JSXAttribute > JSXIdentifier[name!=/^(?:src|name|hideWordmark|key|ref|className|style|children)$/]",
+        "message": "<SiteLogo> doesn't accept that prop. Declared props: src, name, hideWordmark."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='SkeletonCard'] > JSXAttribute > JSXIdentifier[name!=/^(?:count|key|ref|className|style|children)$/]",
+        "message": "<SkeletonCard> doesn't accept that prop. Declared props: count."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='TourData'] > JSXAttribute > JSXIdentifier[name!=/^(?:title|summary|image|gallery|badges|facts|crumbs|priceText|priceLabel|asOf|ctaHref|ctaLabel|itinerary|included|notes|faq|pickupPoints|updatedAt|sameAsHref|sameAsLabel|key|ref|className|style|children)$/]",
+        "message": "<TourData> doesn't accept that prop. Declared props: title, summary, image, gallery, badges, facts, crumbs, priceText, priceLabel, asOf, ctaHref, ctaLabel, itinerary, included, notes, faq, pickupPoints, updatedAt, sameAsHref, sameAsLabel."
+      },
+      {
+        "selector": "JSXOpeningElement[name.name='WaveDivider'] > JSXAttribute > JSXIdentifier[name!=/^(?:fill|flip|opacity|noSecond|key|ref|className|style|children)$/]",
+        "message": "<WaveDivider> doesn't accept that prop. Declared props: fill, flip, opacity, noSecond."
+      }
+    ]
+  },
+  "overrides": [
+    {
+      "files": [
+        "**/index.js"
+      ],
+      "rules": {
+        "no-restricted-imports": "off"
+      }
+    }
+  ],
+  "x-omelette": {
+    "components": {
+      "ArticleData": {
+        "replaces": []
+      },
+      "AttractionData": {
+        "replaces": []
+      },
+      "AuthorityMeta": {
+        "replaces": []
+      },
+      "BodyBlock": {
+        "replaces": []
+      },
+      "BookingCTA": {
+        "replaces": []
+      },
+      "Crumb": {
+        "replaces": []
+      },
+      "Card": {
+        "replaces": []
+      },
+      "ContactChannels": {
+        "replaces": []
+      },
+      "ContactCTA": {
+        "replaces": []
+      },
+      "DetailLayout": {
+        "replaces": []
+      },
+      "EmptyLink": {
+        "replaces": []
+      },
+      "ListingEntity": {
+        "replaces": []
+      },
+      "Fact": {
+        "replaces": []
+      },
+      "FAQItem": {
+        "replaces": []
+      },
+      "FooterLink": {
+        "replaces": []
+      },
+      "FooterBadge": {
+        "replaces": []
+      },
+      "GalleryImage": {
+        "replaces": []
+      },
+      "NavChild": {
+        "replaces": []
+      },
+      "HeroGalleryItem": {
+        "replaces": []
+      },
+      "HomeHero": {
+        "replaces": []
+      },
+      "Hub": {
+        "replaces": []
+      },
+      "SiteStat": {
+        "replaces": []
+      },
+      "HomeTour": {
+        "replaces": []
+      },
+      "TrustItem": {
+        "replaces": []
+      },
+      "InfoRow": {
+        "replaces": []
+      },
+      "MapMarker": {
+        "replaces": []
+      },
+      "NearbyEntity": {
+        "replaces": []
+      },
+      "PriceDisplay": {
+        "replaces": []
+      },
+      "PickupPoint": {
+        "replaces": []
+      },
+      "Section": {
+        "replaces": []
+      },
+      "SidebarCard": {
+        "replaces": []
+      },
+      "SiteLogo": {
+        "replaces": []
+      },
+      "SkeletonCard": {
+        "replaces": []
+      },
+      "TourData": {
+        "replaces": []
+      },
+      "WaveDivider": {
+        "replaces": []
+      }
+    },
+    "tokens": [
+      "--badge-px",
+      "--badge-py",
+      "--bp-lg",
+      "--bp-md",
+      "--bp-sm",
+      "--bp-xl",
+      "--c-accent",
+      "--c-accent-soft",
+      "--c-accent-strong",
+      "--c-band-bg",
+      "--c-band-muted",
+      "--c-band-text",
+      "--c-border",
+      "--c-card",
+      "--c-coral",
+      "--c-footer-bg",
+      "--c-footer-border",
+      "--c-footer-muted",
+      "--c-footer-text",
+      "--c-green",
+      "--c-green-soft",
+      "--c-green-text",
+      "--c-hero-fallback-bottom",
+      "--c-hero-fallback-bottom-teal",
+      "--c-hero-fallback-top",
+      "--c-hero-fallback-top-teal",
+      "--c-hero-overlay-light",
+      "--c-primary",
+      "--c-primary-soft",
+      "--c-primary-strong",
+      "--c-sand",
+      "--c-sand-border",
+      "--c-sand-soft",
+      "--c-sand-text",
+      "--c-sand-text-strong",
+      "--c-sea",
+      "--c-surface",
+      "--c-surface-alt",
+      "--c-text",
+      "--c-text-inverse",
+      "--c-text-muted",
+      "--card-img-h",
+      "--card-lift",
+      "--container",
+      "--container-editorial",
+      "--container-padding",
+      "--font-display",
+      "--font-ui",
+      "--fs-badge",
+      "--fs-base",
+      "--fs-card-title",
+      "--fs-display",
+      "--fs-h1",
+      "--fs-h2",
+      "--fs-h3",
+      "--fs-h4",
+      "--fs-h5",
+      "--fs-hero",
+      "--fs-label",
+      "--fs-nav",
+      "--fs-section",
+      "--fs-sm",
+      "--fs-xs",
+      "--fw-500",
+      "--fw-600",
+      "--fw-700",
+      "--fw-800",
+      "--fw-900",
+      "--header-h",
+      "--hero-min-h",
+      "--hero-min-h-mobile",
+      "--lh-body",
+      "--lh-display",
+      "--lh-eyebrow",
+      "--lh-heading",
+      "--ls-eyebrow",
+      "--m-base",
+      "--m-ease",
+      "--m-fast",
+      "--radius-lg",
+      "--radius-md",
+      "--radius-pill",
+      "--radius-sm",
+      "--s1",
+      "--s2",
+      "--s3",
+      "--s4",
+      "--s5",
+      "--s6",
+      "--s7",
+      "--s8",
+      "--s9",
+      "--shadow-card",
+      "--shadow-lg",
+      "--shadow-overlay",
+      "--shadow-raised",
+      "--sticky-bar-h",
+      "--underline-height",
+      "--underline-width"
+    ],
+    "tokenKinds": {
+      "--c-primary": "color",
+      "--c-primary-strong": "color",
+      "--c-primary-soft": "color",
+      "--c-accent": "color",
+      "--c-accent-strong": "color",
+      "--c-accent-soft": "color",
+      "--c-sand": "color",
+      "--c-sand-soft": "color",
+      "--c-surface": "color",
+      "--c-surface-alt": "color",
+      "--c-card": "color",
+      "--c-text": "font",
+      "--c-text-muted": "font",
+      "--c-text-inverse": "font",
+      "--c-border": "color",
+      "--c-coral": "color",
+      "--c-sea": "color",
+      "--c-green": "color",
+      "--c-green-soft": "color",
+      "--c-green-text": "font",
+      "--c-sand-border": "color",
+      "--c-sand-text": "font",
+      "--c-sand-text-strong": "font",
+      "--c-band-bg": "color",
+      "--c-band-text": "font",
+      "--c-band-muted": "color",
+      "--c-footer-bg": "color",
+      "--c-footer-text": "font",
+      "--c-footer-border": "color",
+      "--c-footer-muted": "color",
+      "--c-hero-fallback-top": "color",
+      "--c-hero-fallback-bottom": "color",
+      "--c-hero-fallback-top-teal": "color",
+      "--c-hero-fallback-bottom-teal": "color",
+      "--c-hero-overlay-light": "color",
+      "--font-display": "font",
+      "--font-ui": "font",
+      "--fw-500": "font",
+      "--fw-600": "font",
+      "--fw-700": "font",
+      "--fw-800": "font",
+      "--fw-900": "font",
+      "--fs-badge": "spacing",
+      "--fs-xs": "spacing",
+      "--fs-label": "spacing",
+      "--fs-sm": "spacing",
+      "--fs-base": "spacing",
+      "--fs-card-title": "spacing",
+      "--fs-nav": "spacing",
+      "--fs-h5": "spacing",
+      "--fs-h4": "spacing",
+      "--fs-section": "spacing",
+      "--fs-h3": "spacing",
+      "--fs-h2": "spacing",
+      "--fs-h1": "spacing",
+      "--fs-hero": "spacing",
+      "--fs-display": "spacing",
+      "--lh-heading": "font",
+      "--lh-body": "font",
+      "--lh-display": "font",
+      "--ls-eyebrow": "font",
+      "--lh-eyebrow": "font",
+      "--s1": "spacing",
+      "--s2": "spacing",
+      "--s3": "spacing",
+      "--s4": "spacing",
+      "--s5": "spacing",
+      "--s6": "spacing",
+      "--s7": "spacing",
+      "--s8": "spacing",
+      "--s9": "spacing",
+      "--radius-sm": "radius",
+      "--radius-md": "radius",
+      "--radius-lg": "radius",
+      "--radius-pill": "radius",
+      "--shadow-card": "shadow",
+      "--shadow-raised": "shadow",
+      "--shadow-lg": "shadow",
+      "--shadow-overlay": "shadow",
+      "--m-fast": "other",
+      "--m-base": "other",
+      "--m-ease": "other",
+      "--underline-width": "spacing",
+      "--underline-height": "spacing",
+      "--badge-py": "spacing",
+      "--badge-px": "spacing",
+      "--card-lift": "spacing",
+      "--container": "spacing",
+      "--container-editorial": "spacing",
+      "--container-padding": "spacing",
+      "--bp-sm": "spacing",
+      "--bp-md": "spacing",
+      "--bp-lg": "spacing",
+      "--bp-xl": "spacing",
+      "--header-h": "spacing",
+      "--sticky-bar-h": "spacing",
+      "--hero-min-h": "spacing",
+      "--hero-min-h-mobile": "spacing",
+      "--card-img-h": "spacing"
+    },
+    "fontFamilies": [
+      "Be Vietnam Pro",
+      "Nunito"
+    ]
+  }
+}

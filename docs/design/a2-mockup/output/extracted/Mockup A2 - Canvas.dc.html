@@ -1,0 +1,1056 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+<link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+<script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+<style>
+:root{
+  /* Giá trị đã duyệt ở bản PWA (app.css) đè lên bản website: nền trang xanh nhạt để thẻ trắng nổi */
+  --c-surface-alt:#EAF2F8; --c-border:#D3E1EC; --c-primary-soft:#DCEBF6;
+  /* MỚI — vỏ PWA (đã có trong app.css của Booking) */
+  --c-on-dark:#FFFFFF; --tap-min:44px; --bar-h:52px; --tabbar-h:56px; --tab-icon:36px; --fs-tab:12px;
+  /* MỚI — token trạng thái cho app nội bộ (tourdaovn không có). Cảnh báo dùng nhóm sand sẵn có */
+  --c-danger:#B01235; --c-danger-text:#8E0E2B; --c-danger-soft:#FDE9EE; --c-danger-border:#F1C3CF;
+  --c-green-border:#A7E3BC;
+  /* MỚI — kích thước riêng của ngôn ngữ form */
+  --counter-btn:44px; --counter-field:48px; --price-field:112px; --safe-top:20px; --safe-bottom:20px;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:#dfe7ee;font-family:var(--font-ui);color:var(--c-text);}
+a{color:var(--c-primary);} a:hover{color:var(--c-primary-strong);}
+input,textarea,select,button{font-family:var(--font-ui);}
+</style>
+</helmet>
+
+<section style="padding:48px;display:flex;flex-direction:column;gap:32px">
+  <div style="max-width:760px;display:flex;flex-direction:column;gap:8px">
+    <div style="font:800 13px/1.5 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--c-primary)">Tour Đảo Booking · mockup A2</div>
+    <h1 style="margin:0;font:800 32px/1.16 var(--font-display);color:var(--c-primary)">Form lập đơn với thẻ dịch vụ, và trang đơn</h1>
+    <p style="margin:0;font:500 16px/1.68 var(--font-ui);color:var(--c-text)">12 artboard trong vỏ PWA đã duyệt (thanh đầu navy, nút “‹”, thanh tab, nút dính đáy). Bản bấm được nằm ở tệp <a href="Mockup A2 — Prototype.dc.html">Mockup A2 — Prototype</a>. Chữ và số liệu lấy nguyên từ <code>noi-dung-man-hinh.md</code>.</p>
+  </div>
+
+  <div style="display:flex;flex-wrap:wrap;gap:56px;align-items:flex-start">
+
+    <!-- ============ 1a · A1 toàn form ============ -->
+    <div id="1a" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1a</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A1 · Toàn form lập đơn · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tạo đơn mới</span>
+        </div>
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Khách hàng</h2>
+            <div style="display:flex;flex-direction:column;gap:var(--s3)">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tên khách *</span><input value="Trần Văn Bình" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Số điện thoại *</span><input value="0901 234 567" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Email</span><input placeholder="—" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú / yêu cầu đặc biệt</span><textarea style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical">Đón tại khách sạn, có 1 bé 5 tuổi</textarea></label>
+            </div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Dịch vụ</h2>
+            <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Chọn từ danh mục</span><input placeholder="Gõ tên hoặc mã dịch vụ…" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+            <button type="button" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:44px;margin-top:var(--s3);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">+ Dịch vụ nhập tay</button>
+            <div style="display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s4)">
+
+              <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+                <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text);text-wrap:pretty">Tour 4 đảo Nha Trang</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo người</span>
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TD04</span>
+                    </div>
+                  </div>
+                  <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+                </div>
+                <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+                <div style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Số khách</div>
+                <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+                  <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Người lớn</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.350.000 ₫</div></div>
+                  <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                    <input value="2" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                  </div>
+                </div>
+                <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+                  <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Trẻ em</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">950.000 ₫ · Trẻ 5–10 tuổi</div></div>
+                  <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                    <input value="1" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                  </div>
+                </div>
+                <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center;padding-bottom:var(--s2);border-bottom:1px solid var(--c-border)">
+                    <div style="font:600 15px/1.4 var(--font-ui)">Người lớn</div>
+                    <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">2.700.000 ₫</div>
+                    <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">2 ×</span><input value="1.350.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                    <div></div>
+                  </div>
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center;padding-top:var(--s2)">
+                    <div style="font:600 15px/1.4 var(--font-ui)">Trẻ em</div>
+                    <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">950.000 ₫</div>
+                    <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1 ×</span><input value="950.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                    <div></div>
+                  </div>
+                </div>
+                <button type="button" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">
+                  <span style="flex:1;min-width:0"><span style="display:block;font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span><span style="display:block;font:500 14px/1.5 var(--font-ui);color:var(--c-text)">20/09 · 07:30 · đón 07:00 · Khách sạn Sunrise</span></span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(90deg)"><path d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                  <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+                  <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">3.650.000 ₫</span>
+                </div>
+              </div>
+
+              <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+                <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Phao chuối</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo nhóm 5 khách/lượt</span>
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TTB03</span>
+                    </div>
+                  </div>
+                  <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+                </div>
+                <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+                <div style="display:flex;align-items:center;gap:var(--s3)">
+                  <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Số khách</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.500.000 ₫ mỗi lượt, tối đa 5 khách</div></div>
+                  <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                    <input value="7" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                  </div>
+                </div>
+                <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center">
+                    <div style="font:600 15px/1.4 var(--font-ui)">Phao chuối</div>
+                    <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">3.000.000 ₫</div>
+                    <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">2 lượt ×</span><input value="1.500.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                    <div></div>
+                  </div>
+                </div>
+                <button type="button" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">
+                  <span style="flex:1;min-width:0"><span style="display:block;font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span><span style="display:block;font:500 14px/1.5 var(--font-ui);color:var(--c-text)">20/09 · chưa có giờ</span></span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(90deg)"><path d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                  <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+                  <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">3.000.000 ₫</span>
+                </div>
+              </div>
+
+              <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+                <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Xe đưa đón riêng</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-sand-soft);color:var(--c-sand-text);font:600 12px/1.5 var(--font-ui)">nhập tay</span>
+                    </div>
+                  </div>
+                  <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+                </div>
+                <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+                <div style="display:flex;align-items:center;gap:var(--s3)">
+                  <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Số khách</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">chỉ để vận hành, không nhân với tiền</div></div>
+                  <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                    <input value="3" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                    <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                  </div>
+                </div>
+                <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+                  <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center">
+                    <div style="font:600 15px/1.4 var(--font-ui)">Xe 7 chỗ 2 chiều</div>
+                    <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">800.000 ₫</div>
+                    <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1 ×</span><input value="800.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                    <div></div>
+                  </div>
+                </div>
+                <button type="button" style="min-height:var(--tap-min);margin-top:var(--s2);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-primary);text-decoration:underline;cursor:pointer">+ Thêm dòng</button>
+                <button type="button" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">
+                  <span style="flex:1;min-width:0"><span style="display:block;font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span><span style="display:block;font:500 14px/1.5 var(--font-ui);color:var(--c-text)">20/09 · 06:30</span></span>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(90deg)"><path d="M9 5l7 7-7 7"></path></svg>
+                </button>
+                <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                  <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+                  <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">800.000 ₫</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Thanh toán</h2>
+            <div style="display:flex;flex-direction:column;gap:var(--s3)">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giảm giá (₫)</span><input value="0" style="display:block;width:100%;min-height:44px;padding:10px 12px;text-align:right;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Đã cọc (₫)</span><input value="1.000.000" style="display:block;width:100%;min-height:44px;padding:10px 12px;text-align:right;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Hình thức cọc</span><select style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><option>Chuyển khoản</option><option>Tiền mặt</option><option>Khác</option></select></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú thanh toán</span><textarea placeholder="vd: số tài khoản đã chuyển" style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical"></textarea></label>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <div style="display:flex;justify-content:space-between;gap:var(--s4)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Tạm tính</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">7.450.000 ₫</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Giảm giá</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">0 ₫</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);align-items:baseline"><span style="font:700 16px/1.5 var(--font-ui);color:var(--c-text)">Tổng cộng</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">7.450.000 ₫</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Đã cọc (Chuyển khoản)</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">1.000.000 ₫</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);align-items:baseline"><span style="font:700 16px/1.5 var(--font-ui);color:var(--c-text)">Còn lại</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">6.450.000 ₫</span></div>
+              <p style="margin:var(--s1) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
+            </div>
+          </div>
+        </div>
+        <div style="position:sticky;bottom:0;padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-bottom));background:var(--c-card);border-top:1px solid var(--c-border)">
+          <button type="button" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">Lưu đơn nháp</button>
+        </div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Thanh tab ẩn ở form (quyết định Q3 của vỏ PWA); nút Lưu dính đáy có nền và viền trên. Thứ tự trong thẻ: <em>ai đi → bao nhiêu tiền → đi khi nào</em> — số khách đứng trước vì nó sinh ra các dòng tiền.</p>
+    </div>
+
+
+    <!-- ============ 1b · A2 V1 accordion ============ -->
+    <div id="1b" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1b</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A2 · Thẻ dịch vụ theo người · V1 thu gọn kiểu accordion · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tạo đơn mới</span>
+        </div>
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+              <div style="flex:1;min-width:0">
+                <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text);text-wrap:pretty">Tour 4 đảo Nha Trang</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                  <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo người</span>
+                  <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TD04</span>
+                </div>
+              </div>
+              <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+            </div>
+            <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+            <div style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Số khách</div>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+              <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Người lớn</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.350.000 ₫</div></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                <input value="2" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+              <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Trẻ em</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">950.000 ₫ · Trẻ 5–10 tuổi</div></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                <input value="1" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+              <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Người cao tuổi</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.200.000 ₫ · Từ 60 tuổi</div></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                <button type="button" disabled style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-text-muted);opacity:.4;cursor:not-allowed">−</button>
+                <input value="0" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text-muted)">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+              <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Em bé</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">0 ₫ · Dưới 5 tuổi, miễn phí</div></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                <button type="button" disabled style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-text-muted);opacity:.4;cursor:not-allowed">−</button>
+                <input value="0" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text-muted)">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+              </div>
+            </div>
+            <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center;padding-bottom:var(--s2);border-bottom:1px solid var(--c-border)">
+                <div style="font:600 15px/1.4 var(--font-ui)">Người lớn</div>
+                <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">2.700.000 ₫</div>
+                <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">2 ×</span><input value="1.350.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                <div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center;padding-top:var(--s2)">
+                <div style="font:600 15px/1.4 var(--font-ui)">Trẻ em</div>
+                <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">950.000 ₫</div>
+                <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1 ×</span><input value="950.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                <div></div>
+              </div>
+            </div>
+            <button type="button" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">
+              <span style="flex:1;min-width:0"><span style="display:block;font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span><span style="display:block;font:500 14px/1.5 var(--font-ui);color:var(--c-text)">20/09 · 07:30 · đón 07:00 · Khách sạn Sunrise</span></span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(90deg)"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+              <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">3.650.000 ₫</span>
+            </div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+            <div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted);margin-top:4px">… khối Thông tin chuyến khi mở</div>
+            <button type="button" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-primary);border-radius:var(--radius-sm) var(--radius-sm) 0 0;cursor:pointer">
+              <span style="flex:1;min-width:0;font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(-90deg)"><path d="M9 5l7 7-7 7"></path></svg>
+            </button>
+            <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s3);border:1px solid var(--c-primary);border-top:0;border-radius:0 0 var(--radius-sm) var(--radius-sm)">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành *</span><input value="20/09/2026" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input value="07:30" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input value="07:00" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Điểm đón</span><input value="Khách sạn Sunrise, 12 Trần Phú" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày check-in</span><input placeholder="Để trống = cùng ngày khởi hành" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ check-in</span><input value="07:15" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Nơi check-in</span><input value="Cảng Cầu Đá" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú dịch vụ</span><textarea style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical">Bé dị ứng hải sản</textarea></label>
+            </div>
+          </div>
+        </div>
+        <div style="position:sticky;bottom:0;padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-bottom));background:var(--c-card);border-top:1px solid var(--c-border)">
+          <button type="button" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">Lưu đơn nháp</button>
+        </div>
+      </div>
+      <div style="max-width:390px;padding:var(--s3);background:#fff;border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+        <div style="font:800 13px/1.5 var(--font-ui);color:var(--c-primary)">V1 — thu gọn kiểu accordion</div>
+        <p style="margin:6px 0 0;font:500 13px/1.6 var(--font-ui);color:var(--c-text)"><strong>Ưu:</strong> thẻ ngắn, ba dịch vụ vẫn thấy hết trong 1–2 lần cuộn; dòng tóm tắt đọc được như một câu, dùng lại được ở trang đơn. <strong>Nhược:</strong> thêm một lần chạm mới nhập được; trường trống bị ẩn nên dễ quên giờ đón; khi mở, khối dài hơn nội dung còn lại của thẻ.</p>
+      </div>
+    </div>
+
+    <!-- ============ 1c · A2 V2 luôn mở ============ -->
+    <div id="1c" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1c</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A2 · Thẻ dịch vụ theo người · V2 luôn mở, lưới 2 cột · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Tạo đơn mới</span>
+        </div>
+        <div style="padding:var(--s4)">
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+              <div style="flex:1;min-width:0">
+                <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text);text-wrap:pretty">Tour 4 đảo Nha Trang</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                  <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo người</span>
+                  <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TD04</span>
+                </div>
+              </div>
+              <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+            </div>
+            <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+            <div style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Số khách</div>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+              <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Người lớn</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.350.000 ₫</div></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                <input value="2" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s2) 0">
+              <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Trẻ em</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">950.000 ₫ · Trẻ 5–10 tuổi</div></div>
+              <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                <input value="1" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+              </div>
+            </div>
+            <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+              <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center;padding-bottom:var(--s2);border-bottom:1px solid var(--c-border)">
+                <div style="font:600 15px/1.4 var(--font-ui)">Người lớn</div>
+                <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">2.700.000 ₫</div>
+                <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">2 ×</span><input value="1.350.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                <div></div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center;padding-top:var(--s2)">
+                <div style="font:600 15px/1.4 var(--font-ui)">Trẻ em</div>
+                <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">950.000 ₫</div>
+                <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1 ×</span><input value="950.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+                <div></div>
+              </div>
+            </div>
+            <div style="margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <div style="font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);margin-top:var(--s2)">
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành *</span><input value="20/09/2026" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input value="07:30" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input value="07:00" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ check-in</span><input value="07:15" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block;grid-column:1 / -1"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Điểm đón</span><input value="Khách sạn Sunrise, 12 Trần Phú" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày check-in</span><input placeholder="Cùng ngày khởi hành" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Nơi check-in</span><input value="Cảng Cầu Đá" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block;grid-column:1 / -1"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú dịch vụ</span><textarea style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical">Bé dị ứng hải sản</textarea></label>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+              <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">3.650.000 ₫</span>
+            </div>
+          </div>
+        </div>
+        <div style="position:sticky;bottom:0;padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-bottom));background:var(--c-card);border-top:1px solid var(--c-border)">
+          <button type="button" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">Lưu đơn nháp</button>
+        </div>
+      </div>
+      <div style="max-width:390px;padding:var(--s3);background:#fff;border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+        <div style="font:800 13px/1.5 var(--font-ui);color:var(--c-primary)">V2 — luôn mở, lưới 2 cột (ngày | giờ)</div>
+        <p style="margin:6px 0 0;font:500 13px/1.6 var(--font-ui);color:var(--c-text)"><strong>Ưu:</strong> không lần chạm phụ, mọi trường trống đều thấy nên khó bỏ sót; ngày và giờ đứng cạnh nhau đúng thứ tự tay nhập. <strong>Nhược:</strong> mỗi thẻ dài thêm ~360px, đơn ba dịch vụ phải cuộn nhiều; ở 390px ô ngày sát nhau nên nhãn phải rút ngắn.</p>
+        <p style="margin:8px 0 0;font:700 13px/1.6 var(--font-ui);color:var(--c-primary)">Đề nghị: V1 cho điện thoại (đơn nhiều dịch vụ), V2 cho bản máy tính ở <a href="#1g">1g</a> — cùng một khối, chỉ khác mặc định mở/đóng.</p>
+      </div>
+    </div>
+
+    <!-- ============ 1d · A3 ba biến thể thẻ ============ -->
+    <div id="1d" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1d</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A3 · Ba biến thể thẻ · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px">
+        <div style="font:800 12px/1.5 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--c-primary)">(a) theo nhóm — một ô “Số khách”</div>
+        <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+            <div style="flex:1;min-width:0">
+              <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Phao chuối</div>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo nhóm 5 khách/lượt</span>
+                <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TTB03</span>
+              </div>
+            </div>
+            <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+          </div>
+          <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+          <div style="display:flex;align-items:center;gap:var(--s3)">
+            <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Số khách</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.500.000 ₫ mỗi lượt, tối đa 5 khách</div></div>
+            <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+              <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+              <input value="7" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+              <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+            </div>
+          </div>
+          <div style="margin-top:var(--s2);font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">7 khách → 2 lượt (⌈7 / 5⌉)</div>
+          <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center">
+              <div style="font:600 15px/1.4 var(--font-ui)">Phao chuối</div>
+              <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">3.000.000 ₫</div>
+              <div style="display:flex;align-items:center;gap:6px"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">2 lượt ×</span><input value="1.500.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span></div>
+              <div></div>
+            </div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+            <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+            <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">3.000.000 ₫</span>
+          </div>
+        </div>
+
+        <div style="font:800 12px/1.5 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--c-primary);margin-top:var(--s2)">(b) nhập tay — dòng tiền tự nhập</div>
+        <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="display:flex;align-items:flex-start;gap:var(--s2)">
+            <div style="flex:1;min-width:0">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tên dịch vụ</span><input value="Xe đưa đón riêng" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:600 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <span style="display:inline-block;margin-top:6px;padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-sand-soft);color:var(--c-sand-text);font:600 12px/1.5 var(--font-ui)">nhập tay</span>
+            </div>
+            <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+          </div>
+          <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+          <div style="display:flex;align-items:center;gap:var(--s3)">
+            <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Số khách</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">chỉ để vận hành, không nhân với tiền</div></div>
+            <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+              <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+              <input value="3" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+              <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+            </div>
+          </div>
+          <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm);display:flex;flex-direction:column;gap:var(--s2)">
+            <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Mô tả dòng</span><input value="Xe 7 chỗ 2 chiều" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+            <div style="display:grid;grid-template-columns:72px 1fr;gap:var(--s2)">
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">SL</span><input value="1" style="display:block;width:100%;min-height:44px;padding:10px;text-align:center;font:600 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Đơn giá (₫)</span><input value="800.000" style="display:block;width:100%;min-height:44px;padding:10px 12px;text-align:right;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3)"><span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Thành tiền</span><span style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">800.000 ₫</span></div>
+          </div>
+          <button type="button" style="min-height:var(--tap-min);margin-top:var(--s2);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-primary);text-decoration:underline;cursor:pointer">+ Thêm dòng</button>
+          <button type="button" style="display:flex;align-items:center;gap:var(--s2);width:100%;min-height:var(--tap-min);margin-top:var(--s3);padding:var(--s2) var(--s3);text-align:left;background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">
+            <span style="flex:1;min-width:0"><span style="display:block;font:600 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</span><span style="display:block;font:500 14px/1.5 var(--font-ui);color:var(--c-text)">20/09 · 06:30</span></span>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;transform:rotate(90deg)"><path d="M9 5l7 7-7 7"></path></svg>
+          </button>
+          <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+            <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+            <span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">800.000 ₫</span>
+          </div>
+        </div>
+
+        <div style="font:800 12px/1.5 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--c-primary);margin-top:var(--s2)">(c) thẻ đang mở đầy đủ thông tin chuyến</div>
+        <p style="margin:0;font:500 14px/1.6 var(--font-ui);color:var(--c-text)">Biến thể (c) vẽ trong ngữ cảnh ở <a href="#1b">1b</a> (thẻ thứ hai, accordion đang mở) và <a href="#1c">1c</a> (luôn mở, lưới 2 cột) — cùng một khối trường, chỉ khác mặc định.</p>
+      </div>
+    </div>
+
+    <!-- ============ 1e · A4 trạng thái của thẻ ============ -->
+    <div id="1e" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1e</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A4 · Các trạng thái của thẻ · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px">
+
+        <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+            <div style="flex:1;min-width:0"><div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div></div>
+            <span style="padding:2px 8px;border-radius:var(--radius-sm);background:var(--c-accent-soft);color:var(--c-accent-strong);font:600 12px/1.5 var(--font-ui)">Khác giá danh mục</span>
+          </div>
+          <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+            <div style="display:grid;grid-template-columns:1fr auto;gap:var(--s1) var(--s2);align-items:center">
+              <div style="font:600 15px/1.4 var(--font-ui)">Người lớn</div>
+              <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap">2.400.000 ₫</div>
+              <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">2 ×</span><input value="1.200.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:600 16px/1 var(--font-ui);color:var(--c-accent-strong);background:var(--c-surface);border:1px solid var(--c-accent);border-radius:var(--radius-sm)"><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">₫</span><span style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted);text-decoration:line-through">1.350.000 ₫</span></div>
+              <div></div>
+            </div>
+          </div>
+          <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Cảnh báo, không chặn lưu. Giá danh mục giữ lại để đối chiếu.</p>
+        </div>
+
+        <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+            <div style="flex:1;min-width:0"><div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div></div>
+            <span style="padding:2px 8px;border-radius:var(--radius-sm);background:var(--c-sand-soft);color:var(--c-sand-text);font:600 12px/1.5 var(--font-ui)">Giá danh mục đã đổi</span>
+          </div>
+          <div style="margin-top:var(--s3);padding:var(--s3) var(--s4);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm);font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Danh mục nay là 1.400.000 ₫ cho Người lớn. Dòng tiền vẫn giữ giá đã lưu 1.350.000 ₫.</div>
+        </div>
+
+        <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+            <div style="flex:1;min-width:0"><div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Lặn ngắm san hô</div></div>
+            <span style="padding:2px 8px;border-radius:var(--radius-sm);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">Dịch vụ đã ẩn khỏi danh mục</span>
+          </div>
+          <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Vẫn sửa và xác nhận được. Đổi số khách hoặc đổi dịch vụ thì phải chọn lại từ danh mục.</p>
+        </div>
+
+        <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+          <label style="display:block;margin-top:var(--s3)"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành *</span><input value="12/09/2026" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-sand);border-radius:var(--radius-sm)"></label>
+          <div style="display:flex;gap:var(--s2);margin-top:var(--s2);padding:var(--s3);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)">
+            <span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-sand-text)">⚠</span>
+            <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Ngày khởi hành đã qua — lưu nháp được, nhưng chưa thể xác nhận.</span>
+          </div>
+          <div style="display:flex;gap:var(--s2);margin-top:var(--s2);padding:var(--s3);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)">
+            <span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-sand-text)">⚠</span>
+            <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Ngày khởi hành quá 365 ngày — lưu nháp được, nhưng chưa thể xác nhận.</span>
+          </div>
+          <div style="display:flex;gap:var(--s2);margin-top:var(--s2);padding:var(--s3);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)">
+            <span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-sand-text)">⚠</span>
+            <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Giờ đón sau giờ khởi hành — kiểm tra lại.</span>
+          </div>
+        </div>
+
+        <div style="background:var(--c-card);border:1px solid var(--c-danger-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+          <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Phao chuối</div>
+          <div style="display:flex;align-items:center;gap:var(--s3);margin-top:var(--s3)">
+            <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Số khách</div></div>
+            <div style="display:flex;align-items:center;border:2px solid var(--c-danger);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+              <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+              <input value="52" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-danger-text)">
+              <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:var(--s2);margin-top:var(--s2);padding:var(--s3);background:var(--c-danger-soft);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm)">
+            <span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-danger-text)">✕</span>
+            <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">Tối đa 50 khách.</span>
+          </div>
+          <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Cùng nhóm lỗi nhập: “Nhập số khách.” · “Số lượng trẻ em không hợp lệ.”</p>
+        </div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Trạng thái không chỉ dựa vào màu: mỗi cái có nhãn chữ, và cảnh báo/lỗi có thêm ký hiệu ⚠ / ✕. San hô chỉ xuất hiện ở nhãn giá; lỗi dùng token nguy hiểm MỚI (xem <a href="#1l">1l</a>).</p>
+    </div>
+
+    <!-- ============ 1f · A5 banner ============ -->
+    <div id="1f" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1f</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A5 · Ba banner lỗi/xung đột · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;gap:var(--s4);padding:var(--s4);background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px">
+        <div style="padding:var(--s3) var(--s4);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)">
+          <div style="font:700 15px/1.5 var(--font-ui);color:var(--c-sand-text)">Giá danh mục vừa đổi. Đã cập nhật giá mới — bạn xem lại rồi lưu.</div>
+          <ul style="margin:var(--s2) 0 0;padding-left:20px;font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">
+            <li>Tour 4 đảo Nha Trang · Người lớn: 1.350.000 → 1.400.000 ₫</li>
+          </ul>
+          <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Đơn giá đã thương lượng được giữ nguyên.</p>
+        </div>
+        <div style="padding:var(--s3) var(--s4);background:var(--c-danger-soft);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm)">
+          <div style="font:700 15px/1.5 var(--font-ui);color:var(--c-danger-text)">Đơn vừa được người khác sửa. Hãy tải lại để xem bản mới.</div>
+          <button type="button" style="display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);margin-top:var(--s3);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Tải lại đơn</button>
+        </div>
+        <div style="padding:var(--s3) var(--s4);background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm);font:600 15px/1.6 var(--font-ui);color:var(--c-primary)">Trang đã cũ. Hãy tải lại trang.</div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Ba mức khác nhau, ba token khác nhau: giá đổi là cảnh báo (sand, việc vẫn tiếp được), bị người khác sửa là nguy hiểm (mất dữ liệu nếu lưu tiếp), trang cũ chỉ là thông tin (primary-soft).</p>
+    </div>
+
+    <!-- ============ 1g · A6 bản máy tính ============ -->
+    <div id="1g" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1g</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">A6 · Form lập đơn · bản máy tính 1040</span>
+      </div>
+      <div style="width:1040px;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s3) var(--s5);padding:var(--s3) var(--s4);background:var(--c-primary);color:var(--c-on-dark)">
+          <a href="#1g" style="display:flex;align-items:center;gap:var(--s2);font:800 18px/1.3 var(--font-ui);color:var(--c-on-dark);text-decoration:none"><img src="assets/logo-96.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:var(--radius-sm);display:block">Tour Đảo <span style="font-weight:400;opacity:.8">Booking</span></a>
+          <nav style="display:flex;gap:var(--s4);flex:1;font:600 15px/1.5 var(--font-ui)">
+            <a href="#1g" style="color:var(--c-on-dark);text-decoration:none">Đơn hàng</a>
+            <a href="#1g" style="color:var(--c-on-dark);text-decoration:none">+ Đơn mới</a>
+          </nav>
+          <div style="display:flex;align-items:center;gap:var(--s3);font:500 15px/1.5 var(--font-ui)"><a href="#1g" style="color:var(--c-on-dark);text-decoration:none">Nguyễn Thị Mai</a><span style="text-decoration:underline;font-weight:600">Đăng xuất</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:var(--s5);align-items:start;padding:var(--s5)">
+          <div style="display:flex;flex-direction:column;gap:var(--s4);min-width:0">
+            <h1 style="margin:0;font:800 26px/1.16 var(--font-display);color:var(--c-primary)">Tạo đơn mới</h1>
+            <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s5);box-shadow:var(--shadow-card)">
+              <h2 style="margin:0 0 var(--s3);font:700 20px/1.16 var(--font-display);color:var(--c-primary)">Khách hàng</h2>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tên khách *</span><input value="Trần Văn Bình" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Số điện thoại *</span><input value="0901 234 567" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Email</span><input placeholder="—" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú / yêu cầu đặc biệt</span><input value="Đón tại khách sạn, có 1 bé 5 tuổi" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+              </div>
+            </div>
+            <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s5);box-shadow:var(--shadow-card)">
+              <h2 style="margin:0 0 var(--s3);font:700 20px/1.16 var(--font-display);color:var(--c-primary)">Dịch vụ</h2>
+              <div style="display:flex;gap:var(--s3);align-items:flex-end">
+                <label style="display:block;flex:1"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Chọn từ danh mục</span><input placeholder="Gõ tên hoặc mã dịch vụ…" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <button type="button" style="min-height:44px;padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer;white-space:nowrap">+ Dịch vụ nhập tay</button>
+              </div>
+              <div style="margin-top:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4)">
+                <div style="display:flex;align-items:flex-start;gap:var(--s3)">
+                  <div style="flex:1;min-width:0">
+                    <div style="font:700 18px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px">
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo người</span>
+                      <span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TD04</span>
+                    </div>
+                  </div>
+                  <button type="button" style="min-height:var(--tap-min);padding:0 8px;background:none;border:0;font:700 14px/1.5 var(--font-ui);color:var(--c-danger);text-decoration:underline;cursor:pointer">Xoá</button>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                  <div style="display:flex;align-items:center;gap:var(--s3)">
+                    <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Người lớn</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">1.350.000 ₫</div></div>
+                    <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                      <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                      <input value="2" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                      <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                    </div>
+                  </div>
+                  <div style="display:flex;align-items:center;gap:var(--s3)">
+                    <div style="flex:1;min-width:0"><div style="font:600 16px/1.4 var(--font-ui)">Trẻ em</div><div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted)">950.000 ₫ · Trẻ 5–10 tuổi</div></div>
+                    <div style="display:flex;align-items:center;border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);overflow:hidden">
+                      <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">−</button>
+                      <input value="1" style="width:var(--counter-field);height:var(--counter-btn);border:0;border-left:1px solid var(--c-border);border-right:1px solid var(--c-border);text-align:center;font:700 16px/1 var(--font-ui);color:var(--c-text)">
+                      <button type="button" style="width:var(--counter-btn);height:var(--counter-btn);background:none;border:0;font:700 20px/1 var(--font-ui);color:var(--c-primary);cursor:pointer">+</button>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm);display:grid;grid-template-columns:1fr auto auto auto;gap:var(--s2) var(--s3);align-items:center">
+                  <div style="font:600 15px/1.4 var(--font-ui)">Người lớn</div>
+                  <div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">2 ×</div>
+                  <input value="1.350.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+                  <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:120px;text-align:right">2.700.000 ₫</div>
+                  <div style="font:600 15px/1.4 var(--font-ui)">Trẻ em</div>
+                  <div style="font:500 14px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">1 ×</div>
+                  <input value="950.000" style="width:var(--price-field);height:40px;padding:0 8px;text-align:right;font:500 16px/1 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+                  <div style="font:800 16px/1.4 var(--font-ui);font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right">950.000 ₫</div>
+                </div>
+                <div style="margin-top:var(--s4);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                  <div style="font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Thông tin chuyến</div>
+                  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--s3);margin-top:var(--s2)">
+                    <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành *</span><input value="20/09/2026" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input value="07:30" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input value="07:00" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Điểm đón</span><input value="Khách sạn Sunrise" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày check-in</span><input placeholder="Cùng ngày" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ check-in</span><input value="07:15" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block;grid-column:span 2"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Nơi check-in</span><input value="Cảng Cầu Đá" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                    <label style="display:block;grid-column:1 / -1"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú dịch vụ</span><textarea style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical">Bé dị ứng hải sản</textarea></label>
+                  </div>
+                </div>
+                <div style="display:flex;justify-content:flex-end;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+                  <span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span>
+                  <span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums;white-space:nowrap">3.650.000 ₫</span>
+                </div>
+              </div>
+              <p style="margin:var(--s3) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Hai thẻ còn lại (Phao chuối, Xe đưa đón riêng) xếp tiếp bên dưới, cùng bố cục.</p>
+            </div>
+          </div>
+          <div style="position:sticky;top:var(--s5);display:flex;flex-direction:column;gap:var(--s3);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0;font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Tóm tắt tiền</h2>
+            <div style="display:flex;justify-content:space-between;gap:var(--s3)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Tạm tính</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums">7.450.000 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s3)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Giảm giá</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums">0 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s3);align-items:baseline"><span style="font:700 16px/1.5 var(--font-ui)">Tổng cộng</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">7.450.000 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s3)"><span style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted)">Đã cọc</span><span style="font:600 15px/1.5 var(--font-ui);font-variant-numeric:tabular-nums">1.000.000 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s3);align-items:baseline;padding-top:var(--s3);border-top:1px solid var(--c-border)"><span style="font:700 16px/1.5 var(--font-ui)">Còn lại</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">6.450.000 ₫</span></div>
+            <button type="button" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">Lưu đơn nháp</button>
+            <p style="margin:0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
+          </div>
+        </div>
+      </div>
+      <p style="max-width:700px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Trên máy tính thanh điều hướng hiện tại giữ nguyên (quyết định vỏ PWA: &gt;640px không đổi). Cột phải dính theo cuộn; thông tin chuyến mặc định mở, lưới 4 cột.</p>
+    </div>
+
+    <!-- ============ 1h · B1 trang đơn nháp ============ -->
+    <div id="1h" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1h</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">B1 · Trang đơn · Nháp · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">TD-20260919-0001</span>
+        </div>
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <div style="display:flex;gap:var(--s2)">
+            <button type="button" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Sửa</button>
+            <button type="button" style="flex:1.5;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text-inverse);background:var(--c-accent);border:1px solid var(--c-accent);border-radius:var(--radius-sm);cursor:pointer">Xác nhận đơn</button>
+            <button type="button" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-danger);background:var(--c-surface);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm);cursor:pointer">Huỷ đơn</button>
+          </div>
+          <div>
+            <span style="display:inline-block;padding:var(--s1) var(--s3);border-radius:var(--radius-pill);background:var(--c-sand-soft);color:var(--c-sand-text);font:600 12px/1.5 var(--font-ui)">Nháp</span>
+            <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Lập 16:45 19/09/2026 bởi Nguyễn Thị Mai</p>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Khách hàng</h2>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Tên</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">Trần Văn Bình</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Số điện thoại</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">0901 234 567</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Email</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">—</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Ghi chú</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right;overflow-wrap:anywhere">Đón tại khách sạn, có 1 bé 5 tuổi</span></div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+              <div style="flex:1;min-width:0"><div style="font:700 17px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo người</span><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TD04</span></div>
+              </div>
+            </div>
+            <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Số khách</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">2 người lớn · 1 trẻ em</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Khởi hành</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">20/09/2026 · 07:30</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Đón</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right;overflow-wrap:anywhere">07:00 · Khách sạn Sunrise, 12 Trần Phú</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Check-in</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">20/09/2026 · 07:15 · Cảng Cầu Đá</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Ghi chú</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">Bé dị ứng hải sản</span></div>
+            <div style="margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <div style="display:grid;grid-template-columns:auto auto 1fr auto;column-gap:var(--s2);padding:var(--s2) 0;border-bottom:1px solid var(--c-border)">
+                <div style="grid-column:1 / -1;font:700 15px/1.5 var(--font-ui)">Người lớn</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">2 ×</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">1.350.000 ₫</div>
+                <div></div>
+                <div style="font:700 15px/1.5 var(--font-ui);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">2.700.000 ₫</div>
+              </div>
+              <div style="display:grid;grid-template-columns:auto auto 1fr auto;column-gap:var(--s2);padding:var(--s2) 0">
+                <div style="grid-column:1 / -1;font:700 15px/1.5 var(--font-ui)">Trẻ em <span style="font-weight:400;color:var(--c-text-muted)">Trẻ 5–10 tuổi</span></div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">1 ×</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">950.000 ₫</div>
+                <div></div>
+                <div style="font:700 15px/1.5 var(--font-ui);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">950.000 ₫</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)"><span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span><span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">3.650.000 ₫</span></div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+              <div style="flex:1;min-width:0"><div style="font:700 17px/1.3 var(--font-display);color:var(--c-text)">Phao chuối</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo nhóm 5 khách/lượt</span><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);font:600 12px/1.5 var(--font-ui)">TTB03</span></div>
+              </div>
+            </div>
+            <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Số khách</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">7 khách → 2 lượt</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Khởi hành</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">20/09/2026 · chưa có giờ</span></div>
+            <div style="margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <div style="display:grid;grid-template-columns:auto auto 1fr auto;column-gap:var(--s2);padding:var(--s2) 0">
+                <div style="grid-column:1 / -1;font:700 15px/1.5 var(--font-ui)">Phao chuối</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">2 lượt ×</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">1.500.000 ₫</div>
+                <div></div>
+                <div style="font:700 15px/1.5 var(--font-ui);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">3.000.000 ₫</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)"><span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span><span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">3.000.000 ₫</span></div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="display:flex;align-items:flex-start;gap:var(--s2);flex-wrap:wrap">
+              <div style="flex:1;min-width:0"><div style="font:700 17px/1.3 var(--font-display);color:var(--c-text)">Xe đưa đón riêng</div>
+                <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-sand-soft);color:var(--c-sand-text);font:600 12px/1.5 var(--font-ui)">nhập tay</span></div>
+              </div>
+              <span style="padding:2px 8px;border-radius:var(--radius-sm);background:var(--c-accent-soft);color:var(--c-accent-strong);font:600 12px/1.5 var(--font-ui)">Khác giá danh mục</span>
+            </div>
+            <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Số khách</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">3 khách (vận hành)</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Khởi hành</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">20/09/2026 · 06:30</span></div>
+            <div style="margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)">
+              <div style="display:grid;grid-template-columns:auto auto 1fr auto;column-gap:var(--s2);padding:var(--s2) 0">
+                <div style="grid-column:1 / -1;font:700 15px/1.5 var(--font-ui)">Xe 7 chỗ 2 chiều</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">1 ×</div>
+                <div style="font:500 15px/1.5 var(--font-ui);color:var(--c-text-muted);white-space:nowrap">800.000 ₫</div>
+                <div></div>
+                <div style="font:700 15px/1.5 var(--font-ui);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums">800.000 ₫</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)"><span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span><span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">800.000 ₫</span></div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Thanh toán</h2>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Tạm tính</span><span style="font:600 15px/1.6 var(--font-ui);font-variant-numeric:tabular-nums">7.450.000 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Giảm giá</span><span style="font:600 15px/1.6 var(--font-ui);font-variant-numeric:tabular-nums">0 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;align-items:baseline"><span style="font:700 16px/1.6 var(--font-ui)">Tổng cộng</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">7.450.000 ₫</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Đã cọc</span><span style="font:600 15px/1.6 var(--font-ui);font-variant-numeric:tabular-nums">1.000.000 ₫ (Chuyển khoản)</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0;align-items:baseline"><span style="font:700 16px/1.6 var(--font-ui)">Còn lại</span><span style="font:800 20px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">6.450.000 ₫</span></div>
+          </div>
+
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Lịch sử</h2>
+            <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:var(--s2);font:500 15px/1.6 var(--font-ui)">
+              <li><span style="color:var(--c-text-muted)">16:45 19/09/2026</span> — Tạo đơn · Nguyễn Thị Mai</li>
+              <li><span style="color:var(--c-text-muted)">16:52 19/09/2026</span> — Sửa đơn · Nguyễn Thị Mai</li>
+            </ul>
+          </div>
+        </div>
+        <div style="display:flex;padding:0 var(--s1) var(--safe-bottom);background:var(--c-card);border-top:1px solid var(--c-border)">
+          <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:800 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-primary)"><span style="display:flex;align-items:center;justify-content:center;height:var(--tab-icon)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg></span>Đơn hàng</span>
+          <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:600 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-text-muted)"><span style="display:flex;align-items:center;justify-content:center;width:var(--tab-icon);height:var(--tab-icon);border-radius:50%;color:var(--c-on-dark);background:var(--c-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span>Đơn mới</span>
+          <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:600 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-text-muted)"><span style="display:flex;align-items:center;justify-content:center;height:var(--tab-icon)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg></span>Tôi</span>
+        </div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Mỗi dịch vụ một khối thay cho bảng cuộn ngang (Q6 của vỏ PWA). Ba nút chia đều, “Xác nhận đơn” rộng gấp 1,5 — đúng quy tắc <code>.actions .btn-accent</code> đang chạy.</p>
+    </div>
+
+    <!-- ============ 1i · B2 thiếu thông tin chuyến ============ -->
+    <div id="1i" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1i</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">B2 · Xác nhận đơn khi thiếu thông tin · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui)">TD-20260919-0001</span>
+        </div>
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <div style="padding:var(--s3) var(--s4);background:var(--c-danger-soft);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm)">
+            <div style="display:flex;gap:var(--s2)">
+              <span style="flex:none;font:700 15px/1.6 var(--font-ui);color:var(--c-danger-text)">✕</span>
+              <span style="font:700 15px/1.6 var(--font-ui);color:var(--c-danger-text)">Chưa đủ thông tin chuyến để xác nhận đơn.</span>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s3)">
+              <div style="display:flex;align-items:flex-start;gap:var(--s3);padding-top:var(--s2);border-top:1px solid var(--c-danger-border)"><span style="flex:1;font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">Tour 4 đảo Nha Trang — chưa có ngày khởi hành</span><a href="#1i" style="flex:none;min-height:var(--tap-min);display:flex;align-items:center;font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Sửa</a></div>
+              <div style="display:flex;align-items:flex-start;gap:var(--s3);padding-top:var(--s2);border-top:1px solid var(--c-danger-border)"><span style="flex:1;font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">Phao chuối — ngày khởi hành đã qua</span><a href="#1i" style="flex:none;min-height:var(--tap-min);display:flex;align-items:center;font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Sửa</a></div>
+              <div style="display:flex;align-items:flex-start;gap:var(--s3);padding-top:var(--s2);border-top:1px solid var(--c-danger-border)"><span style="flex:1;font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">Xe đưa đón riêng — ngày khởi hành quá xa (trên 365 ngày)</span><a href="#1i" style="flex:none;min-height:var(--tap-min);display:flex;align-items:center;font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Sửa</a></div>
+              <div style="display:flex;align-items:flex-start;gap:var(--s3);padding-top:var(--s2);border-top:1px solid var(--c-danger-border)"><span style="flex:1;font:500 14px/1.6 var(--font-ui);color:var(--c-danger-text)">Lặn ngắm san hô — chưa có khách</span><a href="#1i" style="flex:none;min-height:var(--tap-min);display:flex;align-items:center;font:700 14px/1.5 var(--font-ui);color:var(--c-primary)">Sửa</a></div>
+            </div>
+          </div>
+          <div style="display:flex;gap:var(--s2)">
+            <button type="button" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Sửa</button>
+            <button type="button" style="flex:1.5;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text-inverse);background:var(--c-accent);border:1px solid var(--c-accent);border-radius:var(--radius-sm);cursor:pointer">Xác nhận đơn</button>
+            <button type="button" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-danger);background:var(--c-surface);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm);cursor:pointer">Huỷ đơn</button>
+          </div>
+          <div>
+            <span style="display:inline-block;padding:var(--s1) var(--s3);border-radius:var(--radius-pill);background:var(--c-sand-soft);color:var(--c-sand-text);font:600 12px/1.5 var(--font-ui)">Nháp</span>
+            <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Lập 16:45 19/09/2026 bởi Nguyễn Thị Mai</p>
+          </div>
+          <div style="background:var(--c-card);border:1px solid var(--c-danger-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="font:700 17px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:var(--s2) 0 4px"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Khởi hành</span><span style="font:700 15px/1.6 var(--font-ui);color:var(--c-danger-text);text-align:right">chưa có ngày</span></div>
+          </div>
+        </div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Banner đứng trên nút hành động để câu trả lời ở ngay nơi tay vừa chạm; mỗi dòng có liên kết “Sửa” đến đúng dịch vụ, và khối dịch vụ thiếu được viền màu nguy hiểm.</p>
+    </div>
+
+    <!-- ============ 1j · B3 đã xác nhận ============ -->
+    <div id="1j" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1j</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">B3 · Trang đơn · Đã xác nhận · 390</span>
+      </div>
+      <div style="width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui)">TD-20260919-0001</span>
+        </div>
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)">
+          <div style="display:flex;gap:var(--s2)">
+            <button type="button" style="flex:2;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);cursor:pointer">Sửa thông tin chuyến</button>
+            <button type="button" style="flex:1;display:flex;align-items:center;justify-content:center;min-height:var(--tap-min);padding:10px var(--s2);font:700 16px/1.5 var(--font-ui);color:var(--c-danger);background:var(--c-surface);border:1px solid var(--c-danger-border);border-radius:var(--radius-sm);cursor:pointer">Huỷ đơn</button>
+          </div>
+          <div>
+            <span style="display:inline-block;padding:var(--s1) var(--s3);border-radius:var(--radius-pill);background:var(--c-green-soft);color:var(--c-green-text);font:600 12px/1.5 var(--font-ui)">Đã xác nhận</span>
+            <p style="margin:var(--s2) 0 0;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)">Lập 16:45 19/09/2026 bởi Nguyễn Thị Mai · Xác nhận 17:10 19/09/2026</p>
+          </div>
+          <div style="display:flex;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--c-primary-soft);border:1px solid var(--c-border);border-radius:var(--radius-sm)">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+            <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-primary)">Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến.</span>
+          </div>
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <div style="font:700 17px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"><span style="padding:2px 8px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);font:600 12px/1.5 var(--font-ui)">theo người</span></div>
+            <div style="margin:var(--s3) 0;height:1px;background:var(--c-border)"></div>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+              <span style="display:flex;align-items:center;gap:6px;font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Số khách</span>
+              <span style="font:700 15px/1.6 var(--font-ui);text-align:right">2 người lớn · 1 trẻ em</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:var(--s2) 0 4px"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Khởi hành</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">20/09/2026 · 07:30</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Đón</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right;overflow-wrap:anywhere">07:00 · Khách sạn Sunrise, 12 Trần Phú</span></div>
+            <div style="display:flex;justify-content:space-between;gap:var(--s4);padding:4px 0"><span style="font:500 15px/1.6 var(--font-ui);color:var(--c-text-muted)">Check-in</span><span style="font:600 15px/1.6 var(--font-ui);text-align:right">20/09/2026 · 07:15 · Cảng Cầu Đá</span></div>
+            <div style="margin-top:var(--s3);padding:var(--s3);background:var(--c-surface-alt);border-radius:var(--radius-sm)">
+              <div style="display:flex;align-items:center;gap:6px;font:500 14px/1.6 var(--font-ui);color:var(--c-text-muted)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>Tiền đã khoá</div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);margin-top:var(--s2)"><span style="font:500 15px/1.6 var(--font-ui)">Người lớn · 2 × 1.350.000 ₫</span><span style="font:700 15px/1.6 var(--font-ui);white-space:nowrap;font-variant-numeric:tabular-nums">2.700.000 ₫</span></div>
+              <div style="display:flex;justify-content:space-between;gap:var(--s4);margin-top:4px"><span style="font:500 15px/1.6 var(--font-ui)">Trẻ em · 1 × 950.000 ₫</span><span style="font:700 15px/1.6 var(--font-ui);white-space:nowrap;font-variant-numeric:tabular-nums">950.000 ₫</span></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:var(--s3);margin-top:var(--s3);padding-top:var(--s3);border-top:1px solid var(--c-border)"><span style="font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Tổng dịch vụ</span><span style="font:800 18px/1.3 var(--font-display);color:var(--c-primary-strong);font-variant-numeric:tabular-nums">3.650.000 ₫</span></div>
+          </div>
+          <div style="background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);box-shadow:var(--shadow-card)">
+            <h2 style="margin:0 0 var(--s3);font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Lịch sử</h2>
+            <ul style="margin:0;padding-left:20px;display:flex;flex-direction:column;gap:var(--s2);font:500 15px/1.6 var(--font-ui)">
+              <li><span style="color:var(--c-text-muted)">16:45 19/09/2026</span> — Tạo đơn · Nguyễn Thị Mai</li>
+              <li><span style="color:var(--c-text-muted)">17:10 19/09/2026</span> — Xác nhận đơn · Nguyễn Thị Mai</li>
+            </ul>
+          </div>
+        </div>
+        <div style="display:flex;padding:0 var(--s1) var(--safe-bottom);background:var(--c-card);border-top:1px solid var(--c-border)">
+          <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:800 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-primary)"><span style="display:flex;align-items:center;justify-content:center;height:var(--tab-icon)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg></span>Đơn hàng</span>
+          <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:600 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-text-muted)"><span style="display:flex;align-items:center;justify-content:center;width:var(--tab-icon);height:var(--tab-icon);border-radius:50%;color:var(--c-on-dark);background:var(--c-accent)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"></path></svg></span>Đơn mới</span>
+          <span style="flex:1;min-height:var(--tabbar-h);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--s1);font:600 var(--fs-tab)/1.5 var(--font-ui);color:var(--c-text-muted)"><span style="display:flex;align-items:center;justify-content:center;height:var(--tab-icon)"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg></span>Tôi</span>
+        </div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Sau xác nhận, số khách và tiền nằm trên nền <code>--c-surface-alt</code> kèm biểu tượng khoá — trạng thái đọc được cả khi không phân biệt màu. Huy hiệu xanh lá là token <code>--c-green-soft/-text</code> có sẵn.</p>
+    </div>
+
+    <!-- ============ 1k · B4 bottom sheet ============ -->
+    <div id="1k" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1k</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">B4 · Bảng “Sửa thông tin chuyến” · 390</span>
+      </div>
+      <div style="position:relative;width:390px;display:flex;flex-direction:column;background:var(--c-surface-alt);border:1px solid #c6d4df;border-radius:14px;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:var(--s2);min-height:calc(var(--bar-h) + var(--safe-top));padding:var(--safe-top) 12px 0;background:var(--c-primary);color:var(--c-on-dark)">
+          <span style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);margin-left:-4px"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"></path></svg></span>
+          <span style="flex:1;min-width:0;font:800 18px/1.3 var(--font-ui)">TD-20260919-0001</span>
+        </div>
+        <div style="height:120px;background:rgba(15,23,42,.45)"></div>
+        <div style="background:var(--c-card);border-top:1px solid var(--c-border);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow-overlay);display:flex;flex-direction:column">
+          <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border)">
+            <span style="flex:1;font:700 18px/1.16 var(--font-display);color:var(--c-primary)">Sửa thông tin chuyến</span>
+            <button type="button" aria-label="Đóng" style="display:flex;align-items:center;justify-content:center;width:var(--tap-min);height:var(--tap-min);background:none;border:0;cursor:pointer"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+          </div>
+          <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4);max-height:520px;overflow:auto">
+            <div style="display:flex;gap:var(--s2);padding:var(--s3);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);border-radius:var(--radius-sm)">
+              <span style="flex:none;font:700 14px/1.6 var(--font-ui);color:var(--c-sand-text)">⚠</span>
+              <span style="font:500 14px/1.6 var(--font-ui);color:var(--c-sand-text)">Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại.</span>
+            </div>
+            <div>
+              <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Tour 4 đảo Nha Trang</div>
+              <div style="display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s3)">
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành * <span style="font-weight:500">(không được xoá)</span></span><input value="20/09/2026" required style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input value="07:30" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input value="07:00" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                </div>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Điểm đón</span><input value="Khách sạn Sunrise, 12 Trần Phú" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày check-in</span><input placeholder="Cùng ngày" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ check-in</span><input value="07:15" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                </div>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Nơi check-in</span><input value="Cảng Cầu Đá" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ghi chú dịch vụ</span><textarea style="display:block;width:100%;min-height:72px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm);resize:vertical">Bé dị ứng hải sản</textarea></label>
+              </div>
+            </div>
+            <div style="padding-top:var(--s4);border-top:1px solid var(--c-border)">
+              <div style="font:700 16px/1.3 var(--font-display);color:var(--c-text)">Phao chuối</div>
+              <div style="display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s3)">
+                <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Ngày khởi hành * <span style="font-weight:500">(không được xoá)</span></span><input value="20/09/2026" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3)">
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ khởi hành</span><input placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                  <label style="display:block"><span style="display:block;margin-bottom:var(--s1);font:600 14px/1.5 var(--font-ui);color:var(--c-text-muted)">Giờ đón</span><input placeholder="--:--" style="display:block;width:100%;min-height:44px;padding:10px 12px;font:500 16px/1.5 var(--font-ui);color:var(--c-text);background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-sm)"></label>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div style="padding:var(--s3) var(--s4) calc(var(--s3) + var(--safe-bottom));background:var(--c-card);border-top:1px solid var(--c-border)">
+            <button type="button" style="display:flex;align-items:center;justify-content:center;width:100%;min-height:var(--tap-min);padding:10px 18px;font:700 16px/1.5 var(--font-ui);color:var(--c-on-dark);background:var(--c-primary);border:1px solid var(--c-primary);border-radius:var(--radius-sm);cursor:pointer">Lưu thông tin chuyến</button>
+          </div>
+        </div>
+      </div>
+      <p style="max-width:390px;margin:0;font:500 13px/1.6 var(--font-ui);color:var(--c-text-muted)">Bảng chỉ chứa trường còn sửa được, nên nó là câu trả lời cho câu “đơn đã khoá thì sửa ở đâu”. Lưu ý gửi lại bản xác nhận đặt trên đầu, trước các trường — đọc trước khi sửa mới kịp.</p>
+    </div>
+
+    <!-- ============ 1l · token đã dùng ============ -->
+    <div id="1l" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:22px;padding:0 6px;border-radius:var(--radius-pill);background:var(--c-primary);color:#fff;font:800 12px/1 var(--font-ui)">1l</span>
+        <span style="font:800 14px/1.5 var(--font-ui);color:var(--c-text)">Token đã dùng</span>
+      </div>
+      <div style="width:820px;padding:var(--s5);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card)">
+        <p style="margin:0 0 var(--s4);font:500 15px/1.68 var(--font-ui);color:var(--c-text);max-width:70ch">Không có giá trị cứng ngoài khối <code>:root</code>. Token kế thừa từ <code>tourdaovn/src/styles/tokens.css</code>; ba giá trị đã lệch sẵn ở bản PWA đã duyệt được giữ nguyên; token <strong>MỚI</strong> khai riêng cho app nội bộ kèm lý do.</p>
+        <table style="width:100%;border-collapse:collapse;font:500 14px/1.6 var(--font-ui)">
+          <thead><tr>
+            <th style="text-align:left;padding:var(--s2);border-bottom:1px solid var(--c-border);font:700 13px/1.5 var(--font-ui);color:var(--c-primary)">Token</th>
+            <th style="text-align:left;padding:var(--s2);border-bottom:1px solid var(--c-border);font:700 13px/1.5 var(--font-ui);color:var(--c-primary)">Giá trị</th>
+            <th style="text-align:left;padding:var(--s2);border-bottom:1px solid var(--c-border);font:700 13px/1.5 var(--font-ui);color:var(--c-primary)">Nơi dùng</th>
+            <th style="text-align:left;padding:var(--s2);border-bottom:1px solid var(--c-border);font:700 13px/1.5 var(--font-ui);color:var(--c-primary)">Nguồn</th>
+          </tr></thead>
+          <tbody>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-primary</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><span style="display:inline-block;width:14px;height:14px;background:#0C4A6E;border-radius:3px;vertical-align:-2px"></span> #0C4A6E</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Thanh đầu trang, tiêu đề mục, liên kết, viền focus, nút “Lưu đơn nháp”, tab đang mở</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-primary-strong</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><span style="display:inline-block;width:14px;height:14px;background:#082F49;border-radius:3px;vertical-align:-2px"></span> #082F49</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Số tiền lớn (tổng dịch vụ, tổng cộng, còn lại)</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-primary-soft</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><span style="display:inline-block;width:14px;height:14px;background:#DCEBF6;border-radius:3px;vertical-align:-2px;border:1px solid #D3E1EC"></span> #DCEBF6</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Nút “Thông tin chuyến”, chip đơn vị, banner thông tin, dòng nhắc đã khoá</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">bản PWA (khác #F0F7FC của website)</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-accent</code> / <code>-strong</code> / <code>-soft</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">#C0392B · #96271A · #FEF2F0</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">CHỈ hai vai: nút “Xác nhận đơn”, nhãn giá “Khác giá danh mục” (+ nền tab “Đơn mới” đã duyệt ở bản PWA)</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-sand-soft</code> / <code>-text</code> / <code>-border</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">#FBE3B3 · #5a4109 · #e9d3a4</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Huy hiệu “Nháp”, chip “nhập tay”, mọi cảnh báo vàng (ngày, giờ, giá danh mục đổi, gửi lại bản xác nhận)</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn · vai <strong>warning</strong> là MỚI</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-green-soft</code> / <code>-text</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">#DCFCE7 · #166534</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Huy hiệu “Đã xác nhận” (vai <strong>success</strong>)</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn · vai là MỚI</td></tr>
+            <tr style="background:var(--c-sand-soft)"><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-danger</code> · <code>-text</code> · <code>-soft</code> · <code>-border</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><span style="display:inline-block;width:14px;height:14px;background:#B01235;border-radius:3px;vertical-align:-2px"></span> #B01235 · #8E0E2B · #FDE9EE · #F1C3CF</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">“Huỷ đơn” (viền), “Xoá”, lỗi nhập, banner “Chưa đủ thông tin chuyến”, banner đơn bị người khác sửa</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-sand-text)"><strong>MỚI</strong> — hồng đào lạnh, tách rõ khỏi san hô để “ấm là có hành động”. #8E0E2B trên #FDE9EE = 8,6:1; #B01235 trên trắng = 6,9:1</td></tr>
+            <tr style="background:var(--c-sand-soft)"><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-green-border</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">#A7E3BC</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Viền khối trạng thái thành công (dự phòng cho alert “ok”)</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-sand-text)"><strong>MỚI</strong> — bộ green chưa có viền</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--c-surface-alt</code> / <code>--c-border</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">#EAF2F8 · #D3E1EC</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Nền trang, ô xem trước dòng tiền, kẻ trong thẻ</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">bản PWA (website dùng #F8FAFC / #E2E8F0)</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--font-display</code> / <code>--font-ui</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Be Vietnam Pro 700–800 · Nunito 400–800</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Tiêu đề mục, tên dịch vụ, số tiền lớn · toàn bộ nhãn, nút, ô nhập</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Thang chữ dùng trong app</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">12 · 14 · 15 · 16 · 18 · 20</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">huy hiệu 12 · nhãn 14 · dòng khoá–giá trị 15 · nội dung và MỌI ô nhập 16 · tiêu đề mục 18 · tổng 20</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">rút từ thang tourdaovn; 16px là sàn để iOS không tự phóng to</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--s1…--s7</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">4 · 8 · 12 · 16 · 24 · 32 · 48</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Đệm thẻ <code>--s4</code>, khe giữa thẻ <code>--s3</code>, khe giữa khối <code>--s4</code>, cột máy tính <code>--s5</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--radius-sm/md/lg/pill</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">8 · 12 · 18 · 999</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Nút và ô nhập 8 · thẻ 12 · bottom sheet 18 · huy hiệu và chip pill</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn; nút 8px theo bản PWA đã duyệt</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--shadow-card</code> / <code>--shadow-overlay</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">0 1px 3px rgba(15,23,42,.08) · 0 12px 32px rgba(15,23,42,.16)</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Thẻ · bottom sheet</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">tourdaovn</td></tr>
+            <tr><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--tap-min</code> · <code>--bar-h</code> · <code>--tabbar-h</code> · <code>--tab-icon</code> · <code>--fs-tab</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">44 · 52 · 56 · 36 · 12px</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Vỏ PWA: nút “‹”, thanh đầu, thanh tab, nhãn tab</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-text-muted)">đã có trong <code>app.css</code> của Booking</td></tr>
+            <tr style="background:var(--c-sand-soft)"><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)"><code>--counter-btn</code> · <code>--counter-field</code> · <code>--price-field</code></td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">44 · 48 · 112px</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border)">Nút −/+ (44 = <code>--tap-min</code>), ô số khách, ô đơn giá sửa được</td><td style="padding:var(--s2);border-bottom:1px solid var(--c-border);color:var(--c-sand-text)"><strong>MỚI</strong> — tourdaovn không có bộ đếm; 112px vừa “1.350.000” ở 16px</td></tr>
+            <tr style="background:var(--c-sand-soft)"><td style="padding:var(--s2)"><code>--safe-top</code> · <code>--safe-bottom</code></td><td style="padding:var(--s2)">20px (thế cho <code>env(safe-area-inset-*)</code>)</td><td style="padding:var(--s2)">Chỉ trong mockup, để artboard giống iPhone có tai thỏ</td><td style="padding:var(--s2);color:var(--c-sand-text)"><strong>MỚI</strong> — chỉ của bản vẽ, mã thật dùng <code>env()</code></td></tr>
+          </tbody>
+        </table>
+        <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s4);padding-top:var(--s4);border-top:1px solid var(--c-border)">
+          <div style="font:700 15px/1.5 var(--font-ui);color:var(--c-primary)">Bốn token trạng thái, ba trong số đó không phải màu mới</div>
+          <p style="margin:0;font:500 14px/1.68 var(--font-ui);color:var(--c-text);max-width:70ch"><strong>warning</strong> = nhóm <code>--c-sand-*</code> sẵn có · <strong>success</strong> = <code>--c-green-soft/-text</code> sẵn có (+ một viền MỚI) · <strong>info</strong> = <code>--c-primary-soft</code> + <code>--c-primary</code> · <strong>danger</strong> là màu duy nhất phải thêm, vì san hô đã nhận hai vai “CTA” và “nhãn giá”, và dùng lại nó cho lỗi sẽ xoá mất ý nghĩa “thấy ấm là có hành động thật”.</p>
+          <p style="margin:0;font:500 14px/1.68 var(--font-ui);color:var(--c-text);max-width:70ch">Ba quyết định không hiển nhiên: <strong>bộ đếm</strong> −/+ hai bên ô số (44px mỗi nút, ô giữa gõ được) vì ngón cái ở giữa màn không che số, và số khách thường sửa 1–2 đơn vị · <strong>thu gọn thông tin chuyến</strong> vì một đơn có tới 20 dịch vụ, mà ngày giờ chỉ nhập một lần rồi hiếm khi xem lại · <strong>bảng sửa sau xác nhận</strong> là bottom sheet chứ không mở lại form, để không tạo cảm giác đơn đã khoá vẫn “sửa được tất”.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+</x-dc>
+</body>
+</html>
