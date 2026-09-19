@@ -89,7 +89,7 @@
 | unit_price | INTEGER | đơn giá, VNĐ |
 | line_total | INTEGER | = quantity × unit_price, tính server |
 | sort_order | INTEGER | thứ tự hiển thị |
-| service_id | TEXT | FK → order_service.id; dòng tiền thuộc một dịch vụ (trigger bảo đảm cùng đơn) |
+| service_id | TEXT (nullable ở schema) | FK → order_service.id; dòng tiền thuộc một dịch vụ (trigger bảo đảm cùng đơn); mã luôn ghi, NULL chỉ còn ở schema vì `ADD COLUMN` của SQLite không thêm được NOT NULL |
 | catalog_price | INTEGER (nullable) | giá danh mục hiệu lực lúc lập dòng; NULL = nhập tay. Lệch giá = `unit_price ≠ catalog_price` |
 | pax_code | TEXT (nullable) | loại khách của dòng: `adult` \| `child` \| `senior` \| `infant`; NULL = nhập tay |
 
@@ -132,11 +132,13 @@ catalog_item (1) ──o catalog_override (0..1)   catalog_sync — singleton tr
 company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi render
 ```
 
+`order_item.order_id` vẫn còn (đơn → dòng tiền); trigger `order_item_service_scope_*` bảo đảm `service_id` thuộc cùng đơn.
+
 ### 2.3 Bất biến dữ liệu (N5 — không được phá ngầm)
 - `total`, `remaining_amount`, `line_total` **luôn tính lại ở server** khi ghi, không bao giờ tin giá trị client gửi lên. Vi phạm là lỗ hổng gian lận giá trực tiếp. Lưới thứ hai trong SQL (migration 0007): TRIGGER từ chối mọi INSERT/UPDATE có `line_total ≠ quantity × unit_price`, `total ≠ subtotal − discount`, `remaining_amount ≠ total − deposit_amount`, số âm, hoặc có cọc mà thiếu hình thức cọc.
 - Chuyển trạng thái đơn chỉ theo chiều: `draft → confirmed → cancelled` hoặc `draft → cancelled`. Không cho phép `confirmed → draft` (một đơn đã xác nhận và có thể đã gửi khách thì không được "biến mất" khỏi lịch sử — muốn sửa thì tạo bản ghi mới, đơn cũ chuyển `cancelled` và ghi `audit_log` tham chiếu).
 - `order_code` duy nhất toàn hệ thống, sinh tự động, không cho nhân viên tự đặt (tránh trùng/đụng độ khi nhiều người dùng cùng lúc).
-- **Xác nhận đòi đủ chuyến (migration 0008):** đơn chỉ chuyển `draft → confirmed` khi có ít nhất một dịch vụ và MỌI dịch vụ có `depart_date` trong khoảng [hôm nay, +365 ngày] (giờ Việt Nam) và ≥ 1 khách. Điều kiện nằm trong chính câu `UPDATE` xác nhận (không đọc-rồi-ghi ở route) và có trigger `orders_confirm_requires_trip` làm lưới thứ hai; xác nhận thất bại không ghi nhật ký. Nháp lưu được khi thiếu ngày.
+- **Xác nhận đòi đủ chuyến (migration 0008):** đơn chỉ chuyển `draft → confirmed` khi có ít nhất một dịch vụ và MỌI dịch vụ có `depart_date` trong khoảng [hôm nay, +365 ngày] (giờ Việt Nam) và ≥ 1 khách. Điều kiện nằm trong chính câu `UPDATE` xác nhận (không đọc-rồi-ghi ở route) và có trigger `orders_confirm_requires_trip` làm lưới thứ hai cho phần không đổi của điều kiện (có dịch vụ, có ngày, ≥ 1 khách) — khoảng [hôm nay, +365 ngày] chỉ nằm ở câu `UPDATE`; xác nhận thất bại không ghi nhật ký. Nháp lưu được khi thiếu ngày.
 - **Sau khi xác nhận:** dịch vụ và số khách **khoá ở SQL** (trigger `order_service_frozen_*`); tiền **khoá ở tầng ứng dụng** — `PUT /api/orders/:id` chỉ ghi được đơn nháp (điều kiện `status = 'draft'` nằm trong câu `UPDATE`; trigger 0007 chỉ kiểm số học, không chặn sửa tiền); chỉ **trường vận hành** (ngày giờ khởi hành, đón, check-in, ghi chú dịch vụ) sửa được qua `PUT /api/orders/:id/trip`, có nhật ký `trip_updated`. Ngày khởi hành không được xoá, và nếu ĐỔI thì ngày mới phải trong khoảng cho phép. Muốn đổi khách/dịch vụ/tiền thì huỷ và lập đơn mới.
 - Tiền tệ luôn là số nguyên VNĐ (không dùng float) — nguyên tắc chống sai số cộng dồn.
 - `company_profile` chỉ có đúng một dòng `id = "default"`; sửa là UPDATE, không bao giờ INSERT dòng thứ hai (một nguồn sự thật, P6/N7).
@@ -256,3 +258,4 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 - **2026-09-16** — Bản chốt đầu tiên (§2.4-1…4).
 - **2026-09-19** — §2.4-5 quyền sửa đơn; §2.4-6 đồng bộ Sheet có bảng Admin (migration 0005, 0006); M1–M3 xong.
 - **2026-09-19 (rà soát kiến trúc)** — Migration 0007: `audit_log` bỏ `CHECK` liệt kê (danh sách ở `src/shared/audit-actions.ts`), `order_item.catalog_code`, TRIGGER bất biến tiền. Hợp nhất §2.1/§2.2/§2.5/§5/§6/§7 về đúng hiện trạng. Kiến trúc mã: `docs/ARCHITECTURE.md`; phát hiện + kế hoạch: `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
+- **2026-09-19 (thông tin chuyến đi, A1)** — Migration 0008: bảng `order_service` (số khách theo loại + thông tin chuyến theo dịch vụ), `order_item.service_id/catalog_price/pax_code`, trigger khoá sau xác nhận và chốt chặn xác nhận đủ chuyến; đơn cũ được backfill thành dịch vụ nhập tay (A1). Spec: `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-19-thong-tin-chuyen-di-a1.md`. Chưa áp remote.

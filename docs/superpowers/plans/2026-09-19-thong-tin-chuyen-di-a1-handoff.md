@@ -1,5 +1,7 @@
 # HANDOFF — tiếp tục thi công A1 (thông tin chuyến đi theo dịch vụ) trong phiên mới
 
+> **CẬP NHẬT (cuối phiên thi công): A1 đã thi công xong toàn bộ (Task 1–10) và qua review toàn nhánh; không còn việc thi công A1.** Các mục §2, §4 bên dưới là lịch sử. Việc tiếp theo: A2 (giao diện — sửa đúng 4 lỗi `tsc -p web`), A3 (danh sách), phần B (vai Guide). Trước khi deploy: xem đoạn "Cập nhật A1" trong `docs/HANDOFF-M4.md` (thứ tự áp `0008` → deploy, gói Workers). Nhánh chưa merge, chưa push.
+
 Viết 2026-09-19 khi đang thi công bằng kỹ năng `superpowers:subagent-driven-development`. Đọc file này, rồi kế hoạch, rồi ledger — theo thứ tự đó.
 
 ## 1. Bắt đầu ở đâu
