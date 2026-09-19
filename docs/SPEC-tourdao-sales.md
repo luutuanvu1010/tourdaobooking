@@ -40,7 +40,7 @@
 | created_at | TEXT (ISO) | |
 | credentials_changed_at | INTEGER (ms, nullable) | thêm ở migration 0005: phiên phát hành trước mốc này bị từ chối (thu hồi phiên khi đổi/đặt lại PIN) |
 
-**`order`** — đơn xác nhận (thực thể trung tâm)
+**`order`** — đơn xác nhận (thực thể trung tâm). Bảng D1 tên `orders` (`ORDER` là từ khoá SQL).
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
 | id | TEXT (uuid) | khoá chính |
@@ -67,6 +67,7 @@
 |---|---|---|
 | id | TEXT (uuid) | khoá chính |
 | order_id | TEXT | FK → order.id |
+| catalog_code | TEXT (nullable) | mã dịch vụ nguồn khi dòng sinh từ danh mục (chọn nhanh); NULL = nhập tay. Không FK — nhập tay luôn chạy được (migration 0007) |
 | description | TEXT | tên dịch vụ, ví dụ "Tour Hòn Mun 1 ngày" |
 | detail | TEXT | tuỳ chọn: ngày khởi hành, số khách, ghi chú dòng |
 | quantity | INTEGER | mặc định 1 |
@@ -88,30 +89,33 @@
 | updated_at | TEXT (ISO) | |
 | updated_by | TEXT | FK → staff.id |
 
-**`catalog_item` / `catalog_override` / `catalog_sync`** (migration 0006, thay cho ý "không có bảng riêng" ở bản gốc — xem §2.4-6): `catalog_item` là bản sao phần lấy từ Sheet (mã, tên, đơn vị `perPax|perNPax`, giá 4 loại khách, ghi chú khách; `in_sheet=0` khi dịch vụ biến mất khỏi Sheet); `catalog_override` là ghi đè của Admin (giá từng loại khách + ẩn, kèm `base_json` = giá Sheet lúc ghi đè để cảnh báo xung đột); `catalog_sync` là trạng thái lần đồng bộ gần nhất. Bản gốc (đã lỗi thời): **`service_catalog`** — KHÔNG có bảng D1 riêng. Danh mục dịch vụ/tour sống ở một nguồn ngoài (Google Sheet công ty đang dùng làm tham chiếu cho chức năng booking) và được đọc trực tiếp qua Google Sheets API mỗi khi nhân viên mở form tạo đơn — xem §2.5. Cố ý không nhân bản dữ liệu này vào D1 để tránh có hai nguồn sự thật cho cùng một bảng giá (P6/N7): Sheet là nguồn, app chỉ đọc.
+**`catalog_item` / `catalog_override` / `catalog_sync`** (migration 0006, quyết định §2.4-6): `catalog_item` là **bản sao** phần lấy từ Google Sheet dịch vụ (mã, tên, đơn vị `perPax` \| `perNPax`, giá 4 loại khách, ghi chú khách; `in_sheet = 0` khi dịch vụ biến mất khỏi Sheet — chỉ ẩn, không xoá); `catalog_override` là ghi đè có chủ đích của Admin (giá từng loại khách + ẩn, kèm `base_json` = giá Sheet lúc ghi đè để cảnh báo xung đột); `catalog_sync` là trạng thái lần đồng bộ gần nhất (đúng một dòng). Sheet vẫn là nguồn chính của giá gốc, app không bao giờ ghi ngược — xem §2.5.
 
-**`audit_log`** — nhật ký thay đổi trạng thái đơn (P5 — mọi quyết định để lại dấu vết)
+**`audit_log`** — nhật ký mọi thao tác quan trọng (P5 — mọi quyết định để lại dấu vết). Chỉ ghi thêm, không sửa/xoá.
 | Trường | Kiểu | Ghi chú |
 |---|---|---|
 | id | TEXT (uuid) | |
-| order_id | TEXT (nullable) | FK → order.id; NULL khi hành động không thuộc một đơn (migration 0005) |
-| staff_id | TEXT | ai thao tác |
-| action | TEXT | đơn: `created` \| `updated` \| `confirmed` \| `cancelled` \| `exported_png` \| `exported_pdf`; tài khoản: `staff_created` \| `staff_updated` \| `staff_suspended` \| `staff_reactivated` \| `staff_role_changed` \| `pin_reset` \| `pin_changed` \| `login_unlocked` \| `staff_synced`; dịch vụ: `catalog_synced` \| `catalog_overridden` \| `catalog_override_cleared` \| `catalog_hidden` \| `catalog_unhidden` |
-| target_type / target_id | TEXT | đối tượng: `order` \| `staff` \| `catalog` và id/mã tương ứng |
+| order_id | TEXT (nullable) | FK → order.id; NULL khi hành động không thuộc một đơn |
+| staff_id | TEXT (nullable) | ai thao tác; NULL = hệ thống tự động (Cron đồng bộ Sheet) |
+| action | TEXT | danh sách hợp lệ có **một nguồn duy nhất** ở `src/shared/audit-actions.ts` (mã + nhãn + nhóm: đơn hàng, tài khoản, dịch vụ); SQL không còn `CHECK` liệt kê từ migration 0007 — thêm hành động mới không cần migration |
+| target_type / target_id | TEXT | đối tượng: `order` \| `staff` \| `catalog` (kiểm ở code) và id/mã tương ứng |
 | detail | TEXT (nullable) | mô tả ngắn; **không bao giờ chứa PIN hay bí mật** |
 | created_at | TEXT (ISO) | |
 
 **`login_attempt`** — bộ đếm chống dò PIN (migration 0005): `id`, `key` (`phone:0xxxxxxxxx` hoặc `ip:<địa chỉ>`), `at` (ms). Cửa sổ trượt 15 phút; 5 lần/SĐT, 30 lần/IP.
 
+**Quy ước thời gian:** `TEXT` ISO-8601 UTC cho mọi dấu thời gian người đọc; `INTEGER` mili-giây chỉ cho mốc máy so sánh số học (`staff.credentials_changed_at` so với thời điểm phát hành phiên, `login_attempt.at`).
+
 ### 2.2 Quan hệ
 ```
-staff (1) ──< order (N) ──< order_item (N)
-staff (1) ──< audit_log (N) ──> order
+staff (1) ──< order (N) ──< order_item (N) ··· catalog_item (order_item.catalog_code, không FK)
+staff (1) ──< audit_log (N) ──> order          (staff_id NULL = hệ thống)
+catalog_item (1) ──o catalog_override (0..1)   catalog_sync — singleton trạng thái đồng bộ
 company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi render
 ```
 
 ### 2.3 Bất biến dữ liệu (N5 — không được phá ngầm)
-- `total`, `remaining_amount`, `line_total` **luôn tính lại ở server** khi ghi, không bao giờ tin giá trị client gửi lên. Vi phạm là lỗ hổng gian lận giá trực tiếp.
+- `total`, `remaining_amount`, `line_total` **luôn tính lại ở server** khi ghi, không bao giờ tin giá trị client gửi lên. Vi phạm là lỗ hổng gian lận giá trực tiếp. Lưới thứ hai trong SQL (migration 0007): TRIGGER từ chối mọi INSERT/UPDATE có `line_total ≠ quantity × unit_price`, `total ≠ subtotal − discount`, `remaining_amount ≠ total − deposit_amount`, số âm, hoặc có cọc mà thiếu hình thức cọc.
 - Chuyển trạng thái đơn chỉ theo chiều: `draft → confirmed → cancelled` hoặc `draft → cancelled`. Không cho phép `confirmed → draft` (một đơn đã xác nhận và có thể đã gửi khách thì không được "biến mất" khỏi lịch sử — muốn sửa thì tạo bản ghi mới, đơn cũ chuyển `cancelled` và ghi `audit_log` tham chiếu).
 - `order_code` duy nhất toàn hệ thống, sinh tự động, không cho nhân viên tự đặt (tránh trùng/đụng độ khi nhiều người dùng cùng lúc).
 - Tiền tệ luôn là số nguyên VNĐ (không dùng float) — nguyên tắc chống sai số cộng dồn.
@@ -121,7 +125,7 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
 
 1. **Đăng nhập nhân viên:** xác nhận dùng số điện thoại + PIN 6 số như đề xuất.
 2. **Logo công ty:** công ty có logo, sẽ tải lên sau. v1 chạy với wordmark chữ; `company_profile.logo_url` đã có sẵn trường, màn hình cài đặt (admin) cho phép upload ảnh bất kỳ lúc nào sau đó mà không cần đổi schema hay thi công lại.
-3. **Đơn giá dịch vụ:** không nhập tay, không có bảng riêng trong D1. Lấy từ **Google Sheet** hiện có (cùng nguồn tham chiếu công ty đang dùng cho chức năng booking) — xem §2.5 để biết cách đọc.
+3. **Đơn giá dịch vụ:** lấy từ **Google Sheet** hiện có (cùng nguồn tham chiếu công ty đang dùng cho chức năng booking) — xem §2.5. *(Phần "không có bảng riêng trong D1" của bản 2026-09-16 đã được §2.4-6 thay bằng bản sao trong D1.)*
 4. **Phạm vi xem đơn:** mọi nhân viên (`sales` lẫn `admin`) xem được đơn của nhau, không giới hạn theo người tạo. Phân quyền `admin` chỉ khác biệt ở việc **sửa** `company_profile` và **quản lý tài khoản** `staff`, không phải phạm vi xem `order`.
 
 5. **Quyền sửa đơn (chốt 2026-09-19):** chỉ **người lập đơn** hoặc `admin` được sửa, xác nhận, huỷ một đơn (server trả 403 với người khác; UI ẩn nút). Điều chỉnh §2.4-4: phạm vi *xem* vẫn mở cho mọi nhân viên, nhưng `admin` còn khác `sales` ở quyền thay đổi đơn của người khác. `admin` có thêm màn hình **nhật ký hệ thống** (`/audit`, `GET /api/audit`) liệt kê mọi bản ghi `audit_log` toàn hệ thống; `sales` không truy cập được. Lịch sử theo từng đơn (trong trang chi tiết) vẫn hiển thị cho mọi nhân viên xem đơn đó.
@@ -133,13 +137,11 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
 
 ### 2.5 Nguồn danh mục dịch vụ — Google Sheet (điểm chạm ngoài duy nhất)
 
-> **Cập nhật 2026-09-19:** đoạn dưới là bản gốc "đọc trực tiếp, không cache". Quyết định §2.4-6 thay bằng bản sao trong D1 + ghi đè có chủ đích; các ràng buộc "chỉ đọc", "chỉ cột cần thiết" và "không chặn lập đơn khi Sheet lỗi" vẫn giữ nguyên.
-
-- **Nguồn sự thật cho bảng giá/tour:** Google Sheet do công ty vận hành, cùng sheet dùng làm tham chiếu cho chức năng booking hiện có (không phải sheet mới). App tourdao-sales chỉ **đọc**, không bao giờ ghi ngược vào Sheet — tránh xung đột với quy trình cập nhật giá hiện tại của công ty.
-- **Cách đọc:** app gọi Google Sheets API (đọc công khai bằng API key hoặc đọc riêng tư bằng service account, tuỳ quyền chia sẻ của Sheet — chốt cụ thể ở đầu phiên thực thi) **mỗi lần nhân viên mở form tạo đơn**, không cache dài hạn trong D1. Nhân viên luôn thấy giá mới nhất mà không cần ai bấm nút đồng bộ.
-- **Ràng buộc theo N4 (ranh giới dự án):** app chỉ đọc đúng những cột cần cho `order_item` (tên dịch vụ, đơn giá, có thể có ghi chú/khởi hành) — không đọc hay ghi bất kỳ cột nào phục vụ logic booking khác trên cùng Sheet, để không vô tình tạo phụ thuộc hai chiều giữa hai hệ thống độc lập.
-- **Xử lý khi Sheet không truy cập được:** vì đơn giá là bắt buộc để lập đơn, nếu gọi API lỗi (mất mạng, Sheet đổi quyền, quá hạn mức), app hiển thị cảnh báo rõ ràng và cho phép nhân viên **nhập tay tạm thời** dòng dịch vụ đó (không chặn hẳn việc lập đơn) — `order_item.description`/`unit_price` vẫn nhận giá trị tự do, catalog chỉ là một cách điền nhanh, không phải ràng buộc cứng ở tầng dữ liệu.
-- **Việc cần làm trước khi code chạm phần này:** xác nhận ID/link Sheet cụ thể, tên các cột, và cấp quyền đọc (chia sẻ Sheet với service account email, hoặc bật "Anyone with link – viewer" nếu chấp nhận đọc công khai).
+- **Nguồn:** Google Sheet dịch vụ công ty đang vận hành (cùng sheet tham chiếu cho booking website, ID ở `vars.SERVICES_SHEET_ID` trong `wrangler.jsonc`), chia sẻ "Bất kỳ ai có đường liên kết – Người xem", đọc dạng CSV. App chỉ **đọc**, không bao giờ ghi ngược.
+- **Bản sao trong D1 (§2.4-6):** đồng bộ về `catalog_item` mỗi 15 phút (Cron), khi Admin bấm "Đồng bộ ngay", và một lần ngay lần đầu có người mở danh mục (chỉ một request giành được quyền đồng bộ lần đầu). Admin ghi đè giá/ẩn dịch vụ ở `catalog_override`; đồng bộ không bao giờ đè ghi đè, chỉ cảnh báo khi Sheet đổi giá sau lúc ghi đè. Dịch vụ biến mất khỏi Sheet chỉ bị ẩn. Chốt chặn: lần đồng bộ sẽ ẩn quá nửa dịch vụ bị từ chối (Admin có thể ép).
+- **Chỉ đọc cột cần cho đơn** (N4): mã, tên, đơn vị, giá 4 loại khách, ghi chú khách. **Không đọc** `Khoá giá`, `Đường dẫn` (logic booking) và `Ghi chú nội bộ`.
+- **Không chặn lập đơn khi Sheet lỗi:** dùng bản sao đã lưu + cảnh báo; `order_item.description`/`unit_price` vẫn nhận giá trị tự do (nhập tay). `order_item` luôn lưu giá đã chốt lúc lập đơn, kèm `catalog_code` nếu dòng sinh từ danh mục.
+- **Sheet nhân viên** (`vars.STAFF_SHEET_ID`) chỉ là nguồn đề xuất tạo tài khoản ở bảng Admin (xem trước → xác nhận), không cấp quyền, không tự ngưng ai.
 
 ---
 
@@ -191,9 +193,9 @@ Token màu/chữ/khoảng cách sao chép giá trị (không import runtime) t�
 - [x] Chốt §2.4 (đăng nhập, logo, danh mục dịch vụ, phạm vi xem đơn) — 2026-09-16.
 - [ ] Cung cấp file logo khi có (không chặn thực thi v1 — wordmark chữ chạy trước, logo lắp vào sau qua màn hình cài đặt).
 - [ ] Xác nhận tên Cloudflare account/zone hiện có quyền tạo Worker + D1 + DNS cho `tourdao.vn`.
-- [ ] Xác nhận danh sách nhân viên ban đầu (tên + SĐT) để khởi tạo tài khoản `staff`, hoặc xác nhận sẽ tự tạo qua màn hình admin.
-- [ ] Cung cấp link/ID Google Sheet danh mục dịch vụ + xác nhận tên cột + cấp quyền đọc (service account hoặc link công khai) — xem §2.5.
-- [ ] Phê chuẩn bản ghi quyết định kiến trúc (ADR ngắn) cho: chọn D1 (không phải KV/R2) làm nguồn sự thật cho `order`, đọc Google Sheet trực tiếp (không cache) làm nguồn giá, và cơ chế PNG/PDF phía client vs server.
+- [x] Danh sách nhân viên ban đầu: Google Sheet nhân viên, nạp qua bảng Admin (2026-09-19).
+- [x] Google Sheet danh mục dịch vụ: ID, tên cột, quyền đọc công khai — xem §2.5 (2026-09-19).
+- [ ] Phê chuẩn bản ghi quyết định kiến trúc (ADR ngắn) cho: chọn D1 (không phải KV/R2) làm nguồn sự thật cho `order`, bản sao danh mục trong D1 (§2.4-6), và cơ chế PNG/PDF phía client vs server — viết ở đầu M4.
 
 ---
 
@@ -203,11 +205,11 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 
 | # | Module | Nội dung | Artifact kiểm tra |
 |---|---|---|---|
-| M1 | Khung + dữ liệu + đăng nhập | Khởi tạo Wrangler project, tạo D1 `tourdao-sales-db`, migration cho toàn bộ §2.1, API đăng nhập SĐT+PIN (§2.4-1) + session | Đăng nhập bằng 1 tài khoản thật, session giữ được qua reload |
-| M2 | CRUD đơn hàng (nhập tay) | Form tạo đơn, `order`/`order_item`, tính `total`/`remaining_amount` ở server theo §2.3, danh sách đơn, xem chi tiết. Chưa đụng Google Sheet, chưa xuất file | Tạo 1 đơn thật qua UI, số liệu đúng bất biến §2.3, mọi nhân viên xem được đơn của nhau (§2.4-4) |
-| M3 ✅ (2026-09-19) | Tích hợp Google Sheet | Đọc API theo §2.5, hiển thị chọn nhanh dịch vụ trong form tạo đơn, có lối nhập tay dự phòng khi Sheet lỗi | Tạo đơn bằng dịch vụ lấy từ Sheet thật; tắt mạng giả lập lỗi Sheet vẫn tạo đơn được bằng nhập tay |
+| M1 ✅ | Khung + dữ liệu + đăng nhập | Khởi tạo Wrangler project, tạo D1 `tourdao-sales-db`, migration cho toàn bộ §2.1, API đăng nhập SĐT+PIN (§2.4-1) + session | Đăng nhập bằng 1 tài khoản thật, session giữ được qua reload |
+| M2 ✅ (2026-09-19) | CRUD đơn hàng (nhập tay) | Form tạo đơn, `order`/`order_item`, tính `total`/`remaining_amount` ở server theo §2.3, danh sách đơn, xem chi tiết. Chưa đụng Google Sheet, chưa xuất file | Tạo 1 đơn thật qua UI, số liệu đúng bất biến §2.3, mọi nhân viên xem được đơn của nhau (§2.4-4) |
+| M3 ✅ (2026-09-19) | Tích hợp Google Sheet | Bản sao Sheet trong D1 theo §2.5, hiển thị chọn nhanh dịch vụ trong form tạo đơn, có lối nhập tay dự phòng khi Sheet lỗi | Tạo đơn bằng dịch vụ lấy từ Sheet thật; tắt mạng giả lập lỗi Sheet vẫn tạo đơn được bằng nhập tay |
 | M4 | Mẫu xác nhận + xuất PNG/PDF | Áp token §4, render mẫu từ `order` đã lưu, xuất PNG (ưu tiên Zalo) và PDF (A4) | Xuất 1 đơn thật ra cả PNG và PDF, đối chiếu đúng ngưỡng hiệu năng §3 (<3s) |
-| M5 | Cài đặt + triển khai | Màn hình sửa `company_profile` (kể cả upload logo), quản lý tài khoản `staff`, gắn domain `sales.tourdao.vn` | Truy cập được domain thật, đổi thử 1 trường company_profile và thấy phản ánh trên mẫu xuất |
+| M5 | Cài đặt + triển khai | Màn hình sửa `company_profile` (kể cả upload logo), gắn domain `sales.tourdao.vn`. (Quản lý tài khoản `staff` đã làm sớm, trước M3 — §2.4-6) | Truy cập được domain thật, đổi thử 1 trường company_profile và thấy phản ánh trên mẫu xuất |
 
 **Quy tắc khi mở mỗi module ở phiên Code:** giao đúng phạm vi một module, không để tác nhân thực thi tự ý làm thêm module sau "cho tiện" (đúng P3 — mỗi tầng làm xong mới sang tầng kế, không nhảy cóc rồi quay lại lấp).
 
@@ -219,9 +221,17 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 |---|---|---|
 | Chọn Cloudflare Workers + D1 thay vì Google Apps Script | Một chiều (chi phí đổi sau cao) | Đã chốt trong hội thoại — cần 1 dòng ADR khi bắt đầu thực thi |
 | Schema `order`/`order_item`/`company_profile` | Một chiều (đổi schema sau khi có dữ liệu thật thì tốn kém) | Đây chính là spec này — cần phê chuẩn trước khi code |
-| Đọc danh mục dịch vụ trực tiếp từ Google Sheet (không cache trong D1) | Hai chiều (đổi sang cache/D1 sau này không phá dữ liệu `order` đã lưu, vì `order_item` luôn lưu giá trị đã chốt tại thời điểm lập đơn) | Đã chốt 2026-09-16 — cần xác nhận link Sheet + quyền đọc trước khi code chạm phần này |
+| Danh mục dịch vụ: bản sao Google Sheet trong D1 + ghi đè Admin (thay cho "đọc trực tiếp") | Hai chiều (không phá dữ liệu `order` đã lưu, vì `order_item` luôn lưu giá đã chốt) | Đã chốt 2026-09-19 (§2.4-6) |
 | Màu sắc/token cụ thể trong CSS | Hai chiều | Thực thi tự quyết trong khuôn khổ token đã khai ở §4 |
 
 ---
 
 *Tài liệu này là artifact đặc tả (P12). Khi được duyệt, phiên thực thi kế tiếp đọc đúng tài liệu này (không đoán lại), và mọi sai lệch giữa spec và code phải được đồng bộ về theo P4.*
+
+---
+
+## Lịch sử thay đổi
+
+- **2026-09-16** — Bản chốt đầu tiên (§2.4-1…4).
+- **2026-09-19** — §2.4-5 quyền sửa đơn; §2.4-6 đồng bộ Sheet có bảng Admin (migration 0005, 0006); M1–M3 xong.
+- **2026-09-19 (rà soát kiến trúc)** — Migration 0007: `audit_log` bỏ `CHECK` liệt kê (danh sách ở `src/shared/audit-actions.ts`), `order_item.catalog_code`, TRIGGER bất biến tiền. Hợp nhất §2.1/§2.2/§2.5/§5/§6/§7 về đúng hiện trạng. Kiến trúc mã: `docs/ARCHITECTURE.md`; phát hiện + kế hoạch: `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.

@@ -1,4 +1,6 @@
-# Kế hoạch tái cấu trúc (đề xuất, chờ duyệt)
+# Kế hoạch tái cấu trúc — ĐÃ THI CÔNG bước 0–10 (2026-09-19)
+
+> Chủ dự án duyệt 2026-09-19. Trạng thái từng mục + commit: `docs/AUDIT-FINDINGS.md` → "Trạng thái thi công". Việc còn lại ngoài kế hoạch: áp `0007` lên D1 remote (cần chủ dự án cho phép), deploy.
 
 Nguồn: `docs/AUDIT-FINDINGS.md` (mã A1…A20), kiến trúc đích: `docs/ARCHITECTURE.md`.
 Nguyên tắc: mỗi bước **giữ hành vi** (trừ khi ghi rõ), nhỏ, kết thúc bằng `npm run typecheck` + `npm test` + `npm run test:e2e` xanh → commit. Không deploy, không chạm D1 remote nếu chưa hỏi chủ dự án. Migration mới từ `0007_`.

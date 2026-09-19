@@ -2,6 +2,25 @@
 
 Phiên chỉ **đánh giá và đề xuất** (theo `docs/AUDIT-BRIEF.md`); không sửa mã, không đổi hành vi. Kèm theo: `docs/ARCHITECTURE.md` (kiến trúc đích, 1 trang), `docs/REFACTOR-PLAN.md` (các bước nhỏ).
 
+## Trạng thái thi công (cập nhật 2026-09-19)
+
+Chủ dự án quyết mục C (2026-09-19): (1) cho `git init`; (2) `0007` gồm cả a+b+c; (3) không cần tạm giữ việc nạp nhân viên/tạo đơn (chưa ai dùng); (4) e2e gọi Google Sheet thật — quản lý nhân viên về sau làm ở bảng Admin; (5) làm router trước M4.
+
+| Mục | Trạng thái | Commit |
+|---|---|---|
+| A20 git | Xong | `2bd700b` |
+| A19 e2e tự động, A12 nhật ký khi tranh chấp | Xong (`npm run test:e2e`, 5 kịch bản) | `ffa631a` |
+| A1, A3, A4 migration `0007` | Xong ở local; **chưa áp remote** | `f21eb4c` |
+| A2 một nguồn hành động nhật ký | Xong | `b91b5cf` |
+| A9 hợp đồng kiểu | Xong | `fb93287` |
+| A7, A8, A13 router + lỗi toàn cục + CSRF | Xong | `a938c6e` |
+| A5, A6, A14 safeNext, SESSION_SECRET, `_headers` | Xong | `2f55265` |
+| A10, A11 đồng bộ lần đầu | Xong (e2e không tái hiện được tranh chấp gốc ở local — xem comment trong `catalog.mjs`) | `91eb305`, `622c819` |
+| A15 băm PIN dùng chung | Xong | `cfdc93a` |
+| A17 dọn nhỏ | Xong | `88cf076` |
+| A18 tài liệu | Xong (bước 10) | commit cuối |
+| A16 ghi đè đồng thời | Không sửa (đã chấp nhận) | — |
+
 ## Kết luận ngắn
 
 **Nền đã chắc — cần siết, không cần đập.** Đã tự kiểm lại (không chỉ tin brief):

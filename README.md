@@ -14,9 +14,11 @@ Dự án này **độc lập hoàn toàn** với repo `tourdaovn` (website công
 
 ## Kiến trúc: modular monolith
 
-Một Worker, nhiều module độc lập trong `src/modules/<tên>/`. Mỗi module sở hữu route + bảng dữ liệu + logic của mình và chỉ lộ ra ngoài qua `index.ts`. **Module khác chỉ import từ `index.ts` của module đó**, không chạm file nội bộ (`repository.ts`, ...). Module mới (đơn hàng, hướng dẫn viên, ...) = thêm thư mục + thêm một dòng vào `src/index.ts`. Code dùng chung nằm ở `src/shared/`.
+Một Worker, nhiều module độc lập trong `src/modules/<tên>/`. Mỗi module sở hữu route + bảng dữ liệu + logic của mình và chỉ lộ ra ngoài qua `index.ts`. **Module khác chỉ import từ `index.ts` của module đó**, không chạm file nội bộ (`repository.ts`, ...). Module khai route (phương thức + đường dẫn + mức truy cập `public`/`staff`/`admin`); router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site và bắt lỗi toàn cục. Module mới = thêm thư mục + thêm một dòng vào `src/index.ts`. Code dùng chung nằm ở `src/shared/` (kiểu API dùng chung với giao diện: `contracts.ts`; hành động nhật ký: `audit-actions.ts`). Luật phụ thuộc và cách thêm module: **`docs/ARCHITECTURE.md`**.
 
 ## Trạng thái hiện tại
+
+- **Rà soát kiến trúc (2026-09-19):** router + bắt lỗi toàn cục + chống CSRF, hợp đồng kiểu dùng chung, một nguồn danh sách nhật ký, migration `0007` (nhật ký mở, `order_item.catalog_code`, TRIGGER bất biến tiền), e2e tự động. `0007` **chưa áp remote**. Xem `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
 
 - **M1 xong:** Wrangler project, D1 `tourdao-sales-db` (đủ 5 bảng §2.1, bảng `order` đặt tên `orders` vì ORDER là từ khoá SQL), đăng nhập SĐT+PIN (`/api/auth/login|me|logout`, cookie session ký HMAC).
 - **M2 xong (2026-09-19):** module `orders` (`/api/orders`: tạo, sửa khi `draft`, chi tiết, danh sách + tìm kiếm/lọc/phân trang, đổi trạng thái), chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ (spec §2.4-5), module `audit` (nhật ký ghi cùng transaction; admin xem toàn hệ thống ở `/audit`), `requireStaff` dùng chung ở `auth`, UI thuần trong `public/` + `web/` (đăng nhập, danh sách, form, chi tiết). Chưa deploy.
@@ -25,7 +27,7 @@ Một Worker, nhiều module độc lập trong `src/modules/<tên>/`. Mỗi mod
 
 Chạy local: tạo `.dev.vars` từ `.dev.vars.example`, `npm run db:migrate:local`, tạo nhân viên bằng `scripts/create-staff.mjs`, `npm run dev` (tự build JS từ `web/` sang `public/js/`).
 
-Kiểm tra: `npm run typecheck`, `npm test` (luật nghiệp vụ thuần trong `src/modules/orders/rules.ts`).
+Kiểm tra: `npm run typecheck`, `npm test` (luật thuần: `src/**/*.test.ts`), `npm run test:e2e` (API thật trên D1 local tạm, cần mạng để đọc Google Sheet — xem `tests/e2e/README.md`).
 
 Cấu trúc UI: `web/*.ts` (TypeScript vanilla, esbuild bundle từng trang → `public/js/`, thư mục này gitignored) + `public/*.html`, `public/app.css`. Trang: `/` danh sách, `/login`, `/order-form[?id=]`, `/order?id=`.
 
@@ -40,6 +42,7 @@ npx wrangler d1 execute tourdao-sales-db --local|--remote --file staff.local.sql
 
 ## Tài liệu khác
 
+- `docs/ARCHITECTURE.md` — kiến trúc (1 trang): luật phụ thuộc, nơi đặt code, thêm module mới.
 - `docs/HANDOFF-M4.md` — trạng thái hiện tại, việc triển khai còn lại, việc tiếp theo (M4).
-- `docs/AUDIT-BRIEF.md` — giao việc cho phiên rà soát kiến trúc (làm trước M4).
+- `docs/AUDIT-BRIEF.md`, `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md` — rà soát kiến trúc 2026-09-19: giao việc, phát hiện, các bước đã làm.
 - `tests/e2e/README.md` — bộ kiểm thử end-to-end trên D1 local.

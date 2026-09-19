@@ -1,30 +1,30 @@
 # Kiến trúc đích — tourdao-sales (≤ 1 trang)
 
-> Đề xuất từ phiên rà soát 2026-09-19 (`docs/AUDIT-FINDINGS.md`). Mô tả trạng thái **đích** sau `docs/REFACTOR-PLAN.md`; chỗ nào khác hiện trạng có ghi *(đích)*. Chưa được chủ dự án duyệt.
+> Từ phiên rà soát 2026-09-19 (`docs/AUDIT-FINDINGS.md`), đã thi công theo `docs/REFACTOR-PLAN.md` (chủ dự án duyệt 2026-09-19). Mô tả **hiện trạng**; mã lệch khỏi đây là lỗi cần sửa.
 
 ## Các tầng và chiều phụ thuộc (chỉ đi xuống, không vòng)
 
 ```
-src/index.ts            gốc lắp ráp: danh sách module, router, bắt lỗi toàn cục, Cron
+src/index.ts            gốc lắp ráp: danh sách module, nối auth vào router, Cron
    │
 src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, (M4/M5: company…)
    │   ↳ chỉ import module khác qua index.ts của nó
-src/modules/auth, staff năng lực nền: phiên, đăng nhập, dữ liệu nhân viên
+src/modules/auth, staff năng lực nền: phiên, đăng nhập, dữ liệu nhân viên (accounts dùng trực tiếp)
    │
-src/shared/             thuần, không I/O nghiệp vụ, không import module nào; web/ được import
+src/shared/             router, http, contracts (kiểu API), audit-actions, order-lines… — không import module nào; web/ được import
 ```
 
 1. **Module khác chỉ import `index.ts`** của module đó. Không chạm `repository.ts`, `rules.ts`… của module khác.
-2. **Kiểm quyền không phải là phụ thuộc** *(đích)*: route khai `auth: "public" | "staff" | "admin"`; router ở gốc lắp ráp xác thực rồi đưa `ctx.staff` vào handler. Module không import `auth` chỉ để lấy `requireStaff/requireAdmin`. Nhờ vậy `audit` không còn phụ thuộc gì và `auth` sau này ghi nhật ký được mà không tạo vòng.
+2. **Kiểm quyền không phải là phụ thuộc**: route khai `auth: "public" | "staff" | "admin"`; router ở gốc lắp ráp xác thực rồi đưa `ctx.staff` vào handler. Module không import `auth` chỉ để lấy `requireStaff/requireAdmin`. Nhờ vậy `audit` không còn phụ thuộc gì và `auth` sau này ghi nhật ký được mà không tạo vòng.
 3. **Ghi dữ liệu**: chỉ module chủ ghi bảng của mình. Module khác muốn ghi cùng giao dịch thì nhận **câu lệnh D1 chưa chạy** từ `index.ts` của module chủ (`auditStatement`, `newStaffStatement`…) rồi gộp vào một `db.batch()`.
 4. **Đọc xuyên module**: được `JOIN` bảng của module khác **chỉ để lấy nhãn hiển thị** (tên nhân viên, mã đơn) trong truy vấn danh sách. Không bao giờ ghi, không dựa vào cột nội bộ khác ngoài khoá + nhãn.
-5. **`src/shared/`** không import từ `src/modules/`. Kiểu/hằng dùng chung giữa server và `web/` nằm ở `src/shared/contracts.ts` *(đích)* và `src/shared/audit-actions.ts` *(đích)* — một nguồn, không chép tay.
+5. **`src/shared/`** không import từ `src/modules/`. Kiểu/hằng dùng chung giữa server và `web/` nằm ở `src/shared/contracts.ts` và `src/shared/audit-actions.ts` — một nguồn, không chép tay.
 
 ## Nơi đặt code trong một module
 
 | File | Chứa | Được import |
 |---|---|---|
-| `index.ts` | route + API công khai của module | module khác, gốc lắp ráp |
+| `index.ts` | `routes` (khai bằng `route(method, path, access, handler)`) + API công khai của module | module khác, gốc lắp ráp |
 | `rules.ts` | luật thuần (không I/O), có `*.test.ts` bên cạnh | chỉ trong module |
 | `repository.ts` | SQL của các bảng module sở hữu | chỉ trong module |
 | `service.ts` | điều phối nhiều bước có I/O (vd đồng bộ Sheet) | chỉ trong module |
@@ -42,7 +42,7 @@ File thuần (`rules.ts`, `sheet.ts`, mọi file trong `shared/`) import bằng 
 
 ## Thêm một module mới (vd M4 `exports`, M5 `company`)
 
-1. Tạo `src/modules/<tên>/` với `index.ts` export `<tên>Module: AppModule`, khai route + mức `auth` từng route.
+1. Tạo `src/modules/<tên>/` với `index.ts` export `<tên>Module: AppModule = { name, routes: [route("GET", "/api/<tên>/:id", "staff", async (ctx) => …)] }`. Handler nhận `ctx.staff` (đã xác thực), `ctx.params`, `ctx.exec` (`waitUntil`).
 2. Bảng mới → migration mới; module mới là chủ duy nhất của bảng đó.
 3. Hành động nhật ký mới → thêm một dòng vào `src/shared/audit-actions.ts` (kèm nhãn tiếng Việt, nhóm). Không cần migration.
 4. DTO trả cho giao diện → khai trong `src/shared/contracts.ts`; `web/` import từ đó.
