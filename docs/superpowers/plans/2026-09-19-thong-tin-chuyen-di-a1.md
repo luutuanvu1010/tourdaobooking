@@ -2569,6 +2569,148 @@ git commit -m "e2e: kịch bản thông tin chuyến (viết trước; đỏ cho
 ```
 
 ---
+#### Vòng sửa 1 của Task 7 (từ review; đã chuẩn bị và kiểm chứng trước)
+
+Task reviewer (sonnet) kết luận **Needs fixes**: một Important (plan-mandated) + vài Minor. Bản sửa dưới đây đã được dựng và chạy trên mã Task 8 đã kiểm chứng: `npm run test:e2e -- platform orders trip` → 3/3 xanh. Ở HEAD Task 7 (chưa có repository mới) e2e vẫn đỏ đúng như cũ (`orders` và `trip` đỏ, `E2E: 2/3 kịch bản LỖI`). Chỉ sửa file e2e, **không sửa `src/`**.
+
+Phát hiện và cách xử lý:
+- **Important — bài đua "lưu xoá ngày" ↔ "xác nhận" chỉ kiểm trạng thái cuối.** Nếu điều kiện xác nhận không nằm trong câu `UPDATE` mà chỉ có trigger đỡ phía sau, bên thua trả 500 nhưng đơn vẫn `draft` → bài vẫn xanh. Sửa: mỗi bên chỉ được 200 hoặc 409 (không 500); nếu `confirmed` thì xác nhận 200 và lưu 409; nếu `draft` thì lưu 200 và xác nhận 409.
+- Minor đã áp dụng: bài đua khoá lạc quan lặp 3 vòng trên đơn mới (hai request tình cờ nối tiếp thì một vòng chưa thử được tranh chấp); thiếu `expectedUpdatedAt` phải bị từ chối đúng lý do (`invalid_input` + nhắc `expectedUpdatedAt`); quét PII trên **mọi** dòng nhật ký (địa điểm và nội dung ghi chú); khẳng định `PUT /trip` không đổi gì thì không đổi `updated_at`; `PUT /trip` với dịch vụ của đơn khác (IDOR) → 400 "không thuộc đơn này" và không ghi gì; `PUT /trip` khi chưa đăng nhập → 401; `orders.mjs`: mã dịch vụ sai dạng phải bị từ chối vì dạng (không lẫn với "không còn trong danh mục"); `finally` dọn `ZT*` không che AssertionError gốc.
+- Minor không áp dụng (ghi nhận): cuộc gọi thừa `q=Hòn` ở `orders.mjs` (có từ trước, vô hại); `tests/e2e/README.md` chưa liệt kê `trip.mjs` (Task 9 lo); cửa sổ nửa đêm giờ VN của `vnDate(0/365/366)` (chấp nhận); ca "ẩn bằng ghi đè của Admin" (khác `in_sheet = 0`), đổi `pax`/`name`/`unit` qua `/trip` (bị bỏ qua), sửa nhiều dịch vụ một lượt — hoãn.
+
+- [ ] **Áp dụng vòng sửa** (implementer sửa hai file e2e theo đúng diff; sau đó `npm run test:e2e -- platform orders trip` vẫn ĐỎ đúng như Task 7 vì chưa có repository mới; chỉ cần cú pháp đúng và lỗi vẫn là hai lỗi cũ)
+
+```diff
+--- a/tests/e2e/trip.mjs
++++ b/tests/e2e/trip.mjs
+@@ -140,8 +140,16 @@
+     const clear = put(d, [manualService(tourLine, { id: d.services[0].id, departDate: "" })]);
+     const [p, c] = await Promise.all([clear, confirm(ADMIN, d)]);
+     const now = (await get(A, d)).order;
+-    if (now.status === "confirmed") assert.ok(now.services.every((sv) => sv.departDate), `đơn xác nhận thiếu ngày (PUT ${p.status}, xác nhận ${c.status})`);
+-    else assert.equal(now.status, "draft");
++    // Mỗi bên chỉ được 200 hoặc 409 SẠCH — không 500. Nếu điều kiện xác nhận không nằm trong câu UPDATE mà chỉ có trigger đỡ phía sau,
++    // bên thua trả 500 (trigger ném lỗi) dù trạng thái cuối vẫn đúng: bài đua này là chốt duy nhất cho yêu cầu đó.
++    assert.ok([200, 409].includes(p.status) && [200, 409].includes(c.status), `PUT ${p.status} / xác nhận ${c.status}: ${JSON.stringify([p.body, c.body])}`);
++    if (now.status === "confirmed") {
++      assert.deepEqual([c.status, p.status], [200, 409], "xác nhận thắng thì lưu-xoá-ngày phải bị 409");
++      assert.ok(now.services.every((sv) => sv.departDate), "đơn xác nhận thiếu ngày");
++    } else {
++      assert.equal(now.status, "draft");
++      assert.deepEqual([p.status, c.status], [200, 409], "lưu-xoá-ngày thắng thì xác nhận phải bị 409");
++    }
+   }
+   console.log("✓ đua lưu-xoá-ngày với xác nhận: không có đơn xác nhận thiếu ngày");
+ 
+@@ -154,18 +162,23 @@
+   assert.equal(r.status, 409); assert.equal(r.body.error.code, "stale");
+   r = await call(A, "PUT", `/api/orders/${s0.id}`, orderInput());
+   assert.equal(r.status, 400);
+-  const cur = (await get(A, s0)).order;
++  assert.equal(r.body.error.code, "invalid_input");
++  assert.match(r.body.error.message, /expectedUpdatedAt/, "thiếu mốc phải bị từ chối ĐÚNG lý do, không phải lỗi khác");
+   // Hai bên ghi nội dung KHÁC NHAU: nếu bên thua lọt qua điều kiện, dòng tiền của nó sẽ đè lên bản của bên thắng và lệch với ghi chú đơn.
++  // Lặp trên đơn mới mỗi vòng: nếu hai request tình cờ chạy nối tiếp thì vòng đó chưa thử được tranh chấp thật.
+   const mine = (order, tag) => put(order, [manualService([{ description: tag.toUpperCase(), quantity: 1, unitPrice: 100000 }], { id: order.services[0].id })], { customerNote: tag });
+-  const [x, y] = await Promise.all([mine(cur, "x"), mine(cur, "y")]);
+-  assert.deepEqual([x.status, y.status].sort(), [200, 409], `${x.status}/${y.status}`);
+-  const winner = x.status === 200 ? "x" : "y";
+-  const after = await get(A, s0);
+-  assert.equal(after.order.services.length, 1);
+-  assert.equal(lines(after.order).length, 1, "bên thua không được nhân đôi dòng");
+-  assert.equal(after.order.customerNote, winner);
+-  assert.equal(lines(after.order)[0].description, winner.toUpperCase(), "dòng tiền phải là của bên thắng, không bị bên thua đè");
+-  assert.deepEqual(after.history.map((h) => h.action), ["created", "updated", "updated"]);
++  for (let round = 0; round < 3; round++) {
++    const fresh = (await post([manualService(tourLine)])).body.order;
++    const [x, y] = await Promise.all([mine(fresh, "x"), mine(fresh, "y")]);
++    assert.deepEqual([x.status, y.status].sort(), [200, 409], `${x.status}/${y.status}`);
++    const winner = x.status === 200 ? "x" : "y";
++    const after = await get(A, fresh);
++    assert.equal(after.order.services.length, 1);
++    assert.equal(lines(after.order).length, 1, "bên thua không được nhân đôi dòng");
++    assert.equal(after.order.customerNote, winner);
++    assert.equal(lines(after.order)[0].description, winner.toUpperCase(), "dòng tiền phải là của bên thắng, không bị bên thua đè");
++    assert.deepEqual(after.history.map((h) => h.action), ["created", "updated"]);
++  }
+   console.log("✓ khoá lạc quan: stale / thiếu mốc / hai PUT cùng mốc");
+ 
+   // 11) BẢN CHỤP CHO NHÁP CŨ (Q11): dịch vụ bị ẩn / đổi giá — nháp vẫn sửa và xác nhận được; đổi số khách thì phải chọn lại
+@@ -204,11 +217,13 @@
+   assert.equal(r.status, 200, JSON.stringify(r.body));
+   assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "06:30", "Sân bay Cam Ranh"]);
+   c = r.body.order;
+-  const last = (await get(A, c)).history.at(-1);
++  const history = (await get(A, c)).history;
++  const last = history.at(-1);
+   assert.equal(last.action, "trip_updated");
+   assert.match(last.detail, /giờ đón \(trống\) → 06:30/);
+   assert.match(last.detail, /đổi điểm đón/);
+-  assert.ok(!last.detail.includes("Cam Ranh") && !last.detail.includes("Novotel"), "nhật ký không chứa địa điểm (dữ liệu cá nhân)");
++  // Không dòng nhật ký nào (created/confirmed/trip_updated) được chứa giá trị địa điểm hay nội dung ghi chú (dữ liệu cá nhân)
++  for (const h of history) for (const secret of ["Cam Ranh", "Novotel", "đổi giờ đón"]) assert.ok(!(h.detail ?? "").includes(secret), `nhật ký ${h.action} chứa "${secret}": ${h.detail}`);
+   r = await trip(c, { departDate: vnDate(20) });
+   assert.equal(r.status, 200, JSON.stringify(r.body));
+   c = r.body.order;
+@@ -217,9 +232,17 @@
+   r = await trip(c, {}); // không đổi gì
+   assert.equal(r.status, 200);
+   assert.equal((await get(A, c)).history.length, n0, "không đổi gì thì không ghi nhật ký");
++  assert.equal((await get(A, c)).order.updatedAt, c.updatedAt, "PUT /trip không đổi gì thì không được đổi updated_at (các lần sửa sau dùng lại mốc này)");
+   r = await trip(c, { note: "x" }, A, cf.updatedAt); // mốc cũ
+   assert.equal(r.status, 409); assert.equal(r.body.error.code, "stale");
+   assert.equal((await trip(c, { note: "x" }, Bc)).status, 403);
++  assert.equal((await call(null, "PUT", `/api/orders/${c.id}/trip`, {})).status, 401);
++  // dịch vụ của đơn KHÁC không sửa được qua đơn này (IDOR)
++  const other = (await post([manualService(tourLine)])).body.order;
++  r = await call(A, "PUT", `/api/orders/${c.id}/trip`, { expectedUpdatedAt: c.updatedAt, services: [{ id: other.services[0].id, ...tripOf(other.services[0]), note: "chui" }] });
++  assert.equal(r.status, 400, JSON.stringify(r.body));
++  assert.match(r.body.error.message, /không thuộc đơn này/);
++  assert.equal((await get(A, other)).order.services[0].note, null, "dịch vụ của đơn khác không được đổi");
+   r = await trip(c, { note: "admin sửa" }, ADMIN);
+   assert.equal(r.status, 200, JSON.stringify(r.body));
+   c = r.body.order;
+@@ -260,7 +283,9 @@
+   assert.equal(orphan[0].n, 0, "mọi dòng tiền thuộc một dịch vụ");
+   console.log("✓ bất biến SQL: số lượng khớp số khách, đơn xác nhận đủ chuyến, không dòng tiền mồ côi");
+ } finally {
+-  await sql("DELETE FROM catalog_override WHERE code LIKE 'ZT%'");
+-  await sql("DELETE FROM catalog_item WHERE code LIKE 'ZT%'");
++  // Dọn mà không che lỗi gốc: nếu một câu dọn thất bại, chỉ ghi log — không thay thế AssertionError đang bay ra.
++  for (const q of ["DELETE FROM catalog_override WHERE code LIKE 'ZT%'", "DELETE FROM catalog_item WHERE code LIKE 'ZT%'"]) {
++    await sql(q).catch((e) => console.error("dọn danh mục giả ZT* thất bại:", String(e).slice(0, 200)));
++  }
+ }
+ console.log("E2E OK");
+```
+
+```diff
+--- a/tests/e2e/orders.mjs
++++ b/tests/e2e/orders.mjs
+@@ -124,7 +124,9 @@
+ assert.deepEqual(lines(r.body.order).map((i) => [i.catalogCode, i.paxCode, i.catalogPrice]), [[null, null, null], [null, null, null]]);
+ assert.equal(r.body.order.services[0].kind, "manual");
+ const traced = r.body.order;
+-assert.equal((await call(A, "POST", "/api/orders", { ...input, services: [{ kind: "catalog", catalogCode: "x y", pax: { adult: 1 }, catalogPriceSeen: {} }] })).status, 400);
++r = await call(A, "POST", "/api/orders", { ...input, services: [{ kind: "catalog", catalogCode: "x y", pax: { adult: 1 }, catalogPriceSeen: {} }] });
++assert.equal(r.status, 400);
++assert.match(r.body.error.message, /mã dịch vụ/, "mã sai DẠNG phải bị từ chối vì dạng, không lẫn với 'không còn trong danh mục'");
+ console.log("✓ dịch vụ nhập tay lưu và đọc lại");
+ 
+ // BẤT BIẾN TIỀN TRONG SQL (0007): ghi thẳng số sai vào D1 bị TRIGGER chặn; sửa đúng luật qua API vẫn chạy
+```
+
+- [ ] **Commit vòng sửa**
+
+```bash
+git add tests/e2e/trip.mjs tests/e2e/orders.mjs
+git commit -m "e2e: siết bài đua xác nhận và khoá lạc quan, kiểm PII trên toàn bộ nhật ký, IDOR/401 cho PUT /trip (sửa sau review Task 7)" -m "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+Sau vòng sửa này, e2e `trip.mjs`/`orders.mjs` trong worktree khớp `tmp/a1f/tests/e2e/*` (nếu còn thư mục tạm); ở Task 8 và Task 10 vẫn dùng đúng các kỳ vọng cũ (Task 8: `E2E: 6/6`; `trip` có 12 dòng `✓`).
+
+---
+
 ### Task 8: Ghi dữ liệu + điều phối + route (làm e2e XANH)
 
 **Files:**

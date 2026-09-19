@@ -15,7 +15,7 @@ Viết 2026-09-19 khi đang thi công bằng kỹ năng `superpowers:subagent-dr
 Việc đầu tiên trong phiên mới: `cd` vào worktree, gọi kỹ năng `superpowers:subagent-driven-development` với kế hoạch trên (nó sẽ tìm thấy ledger và tiếp tục), rồi:
 
 ```bash
-git log --oneline -12            # HEAD phải là commit Task 7 (8cc6206) hoặc mới hơn; xem ledger
+git log --oneline -12            # mã thi công dừng ở Task 7 (8cc6206); các commit sau đó chỉ là tài liệu (kế hoạch/handoff); xem ledger
 ls node_modules                  # phải có (symlink tới checkout gốc); nếu mất: ln -s /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/node_modules node_modules
 npm test                         # kỳ vọng ở HEAD Task 7: # tests 88, # pass 88
 npx tsc --noEmit && npx tsc --noEmit -p web   # cả hai sạch ở HEAD Task 7
@@ -31,7 +31,7 @@ npx tsc --noEmit && npx tsc --noEmit -p web   # cả hai sạch ở HEAD Task 7
 | 4 | catalog `toEffective` + `getEffectiveServices` | ✅ complete | `41434ae` |
 | 5 | luật một dịch vụ (`fields.ts`, `service-rules.ts`), contracts (thêm kiểu), audit `trip_updated` | ✅ complete (review bằng opus, có thử tấn công) | `ac7b4a6` |
 | 6 | `validateOrder(input, ctx)` + shim tạm ở `orders/index.ts` | ✅ complete | `31622f5` |
-| 7 | e2e viết trước (ĐỎ có chủ ý) | ⚠️ đã commit `8cc6206`, khớp chính xác bản đã kiểm chứng; **review đang chạy lúc viết handoff** — xem ledger có dòng `Task 7: complete` chưa. Chưa thì gửi lại task reviewer (sonnet) với `review-package 31622f5fc2953963a667fb637bbc0c53d25a738d 8cc6206` | `8cc6206` |
+| 7 | e2e viết trước (ĐỎ có chủ ý) | ⚠️ đã commit `8cc6206` (khớp chính xác bản đã kiểm chứng). Review (sonnet) = **Needs fixes**: 1 Important + Minor. **Vòng sửa 1 đã chuẩn bị và kiểm chứng trước, CHƯA áp dụng** — nằm ở cuối mục Task 7 của kế hoạch ("Vòng sửa 1 của Task 7", có diff). Chưa có `Task 7: complete` | `8cc6206` |
 | 8 | repository + service + route (làm e2e XANH) | ⏳ chưa làm | — |
 | 10 (= "8b") | bổ sung sau review: nhóm từ chối khách loại khác; ký tự điều khiển Unicode | ⏳ chưa làm, làm SAU Task 8, TRƯỚC Task 9 | — |
 | 9 | đồng bộ tài liệu + kiểm tra cuối | ⏳ chưa làm | — |
@@ -52,7 +52,7 @@ Kỳ vọng ở HEAD Task 7 nếu chạy e2e: `npm run test:e2e -- platform orde
 
 ## 4. Việc còn lại, đúng thứ tự
 
-1. **Chốt Task 7**: nhận/gửi lại review; nếu có Critical/Important → vòng sửa (tối đa 5, xem kỹ năng) — implementer sửa file e2e, KHÔNG sửa `src/`.
+1. **Chốt Task 7 — vòng sửa 1** (đã có sẵn diff kiểm chứng trong kế hoạch): trích lại brief `task-brief PLAN 7` (nó đã gồm mục "Vòng sửa 1"), dispatch một implementer **sonnet** mới (phiên mới không "resume" được agent cũ) với: đường dẫn brief, đường dẫn `task-7-report.md` (nối thêm báo cáo sửa), và **findings nguyên văn** = Important: "bài đua lưu-xoá-ngày ↔ xác nhận chỉ kiểm trạng thái cuối, không kiểm mã trả về → bên thua trả 500 vẫn xanh" + các Minor đã chọn (liệt kê trong mục "Vòng sửa 1"). Implementer chỉ sửa `tests/e2e/trip.mjs`, `tests/e2e/orders.mjs`, KHÔNG sửa `src/`. Sau đó `review-package PLAN 8cc6206 HEAD` → re-review phạm vi hẹp (`re-review-prompt.md`, model sonnet) → ghi `Task 7: complete`. Sau sửa, `python3 …/cmp_stage.py 7` (nếu còn) vẫn in OK vì chấp nhận bản đã sửa (`tmp/a1f`). Đây là vòng sửa 1/5.
 2. **Task 8** (`task-brief PLAN 8`, 692 dòng): implementer `sonnet`. Kết quả bắt buộc: `npx tsc --noEmit` sạch; `npm test` `# tests 88`; `npx tsc --noEmit -p web` **đúng 4 lỗi** (`web/order-form.ts` ×2, `web/order.ts` ×2 — thuộc A2, không sửa); `npm run test:e2e` → `E2E: 6/6 kịch bản xanh` (cần mạng: `admin`/`catalog` đọc Google Sheet thật); trong `trip` phải thấy đủ 12 dòng `✓`. Đối chiếu chính xác (§5) với `stage8`. Review bằng `opus`.
 3. **Task 10 (= 8b)** (`task-brief PLAN 10`, 152 dòng): bước ĐỎ đúng 3 test (`# pass 33`, `# fail 3`), sau đó `# tests 91`, `tsc` sạch, e2e `platform orders trip` 3/3 xanh.
 4. **Task 9** (`task-brief PLAN 9`): sửa 5 tài liệu; các bước 1–9 làm đúng thứ tự (anchor đã kiểm duy nhất theo từng trạng thái). Bước 10: `# tests 91`, e2e 6/6, `tsc -p web` vẫn đúng 4 lỗi.
