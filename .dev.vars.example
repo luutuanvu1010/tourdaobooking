@@ -1,1 +1,3 @@
-SESSION_SECRET=replace-with-long-random-string
+# Khoá ký phiên đăng nhập, TỐI THIỂU 32 ký tự (ngắn hơn → mọi API trả 500 server_misconfigured).
+# Tạo: openssl rand -base64 48 | tr -d '\n'   rồi dán vào sau dấu = (file .dev.vars không được commit).
+SESSION_SECRET=

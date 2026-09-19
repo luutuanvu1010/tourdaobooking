@@ -1,0 +1,9 @@
+# Header bảo mật cho trang tĩnh (Workers Assets). API /api/* đi qua Worker, không dùng file này.
+# script chỉ từ chính trang (không inline, không CDN). style cho phép inline vì các trang dùng thuộc tính style=.
+# img cho phép data:/blob: để M4 dựng ảnh xác nhận (PNG) ngay trong trình duyệt.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: same-origin
+  X-Frame-Options: DENY
+  Permissions-Policy: camera=(), microphone=(), geolocation=()

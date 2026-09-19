@@ -30,10 +30,8 @@ export class ApiError extends Error {
   }
 }
 
-/** Chỉ cho phép quay lại đường dẫn nội bộ (chặn open redirect). */
-export function safeNext(raw: string | null): string {
-  return raw && /^\/(?!\/)/.test(raw) ? raw : "/";
-}
+/** Chỉ cho phép quay lại đường dẫn nội bộ (chặn open redirect) — logic + test ở src/shared/safe-next.ts. */
+export { safeNext } from "../src/shared/safe-next";
 
 /** Chuyển về trang đăng nhập rồi giữ lời gọi treo (trang sắp bị thay), tránh chạy tiếp code giả định đã đăng nhập. */
 export function goLogin(): Promise<never> {
