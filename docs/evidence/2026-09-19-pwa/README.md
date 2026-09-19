@@ -16,6 +16,7 @@ Artifact của bước rà soát `docs/AUDIT-PWA-IPHONE.md` (Hiến pháp §8.2:
 | `nang-cap-sw-mot-may-chu.txt` | E1 | build lại rồi cập nhật trên MỘT máy chủ: với `/sw.js` là `no-store` trình duyệt tự nhận bản mới và xoá cache cũ (với `no-cache` kịch bản này không đạt vì 304, xem `AUDIT-PWA-IPHONE.md` RS13) |
 | `kiem-tra-giao-dien.txt` | E1 | đo phần tử: tab theo vai, nút "‹", bảng dịch vụ xếp dọc, nút Lưu dính đáy, service worker, cache không có `/api`, offline, đăng xuất, không lỗi console/CSP trên đủ 8 trang, bản máy tính |
 | `anh/` | E2 | ảnh chụp thu nhỏ 50% (390 px chiều ngang), cần người xem |
-| `kich-ban/` | — | bốn kịch bản tạo ra các file trên; cách chạy ở đầu mỗi file. Cần `puppeteer-core` và `axe-core` cài **tạm ngoài repo**, không thêm vào `package.json` (`CLAUDE.md` §8 của tourdaovn) |
+| `sau-deploy.txt` | E1 | kiểm trên `booking.tourdao.vn` sau lần deploy đầu (13:48 UTC): header manifest/`sw.js`/icon/API, service worker đã cài, cache 14 mục không có `/api`, `workers.dev` 404, CSP chặn beacon Cloudflare. Ghi rõ điều **chưa quan sát** (nhận service worker mới ở lần deploy thứ hai; kết quả từng mục iPhone thật) |
+| `kich-ban/` | — | các kịch bản tạo ra các file trên (bốn cho phần đo cục bộ, thêm `kiem-tra-san-xuat.mjs` cho `sau-deploy.txt`); cách chạy ở đầu mỗi file. Cần `puppeteer-core` và `axe-core` cài **tạm ngoài repo**, không thêm vào `package.json` (`CLAUDE.md` §8 của tourdaovn) |
 
 Tài khoản thử (chỉ có trong D1 local dựng bằng `scripts/create-staff.mjs`, không tồn tại ở nơi khác): admin `0901000001`, nhân viên `0901000002`.

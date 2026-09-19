@@ -25,7 +25,7 @@ Agent QA độc lập (Opus 5, worktree riêng, bản `118be35`) chạy lại ty
 | Q2-05 | Mã bản dựng là giờ, không phải băm nội dung: build không đổi mã vẫn xoá cache của mọi người | GHI | **Không đổi**: chấp nhận đánh đổi vì đơn giản (P11); deploy hiếm, cái giá là một lần mở nguội |
 | Q2-06 | `wrangler dev` giữ ETag cũ của `/sw.js`; `no-store` chặn đúng bẫy | GHI | Đã khớp lời khai |
 | Q2-07 | Nút "‹" dùng `history.back()`; lịch sử "bẩn" có thể về sai nơi trong chế độ toàn màn hình | HỎI | Chờ chủ dự án. Đề xuất nhỏ: `location.replace` sau khi lưu đơn để form không nằm trong lịch sử |
-| Q2-08 | Nút "Lưu đơn nháp" `sticky` dưới bàn phím iOS | HỎI | Chờ thử trên iPhone thật |
+| Q2-08 | Nút "Lưu đơn nháp" `sticky` dưới bàn phím iOS | HỎI | Chủ dự án đã thử iPhone thật 2026-09-19, nhận xét chung "nhìn ổn"; chưa có kết quả riêng cho thao tác bàn phím này, nên còn mở |
 | Q2-09 | Tên "Tour Đảo Booking" chưa được duyệt | HỎI | Chờ chủ dự án |
 
 Vì mã đã đổi sau khi bằng chứng ở `docs/evidence/2026-09-19-pwa/` được ghi, phần bằng chứng đó gắn với mã `37d5c71` và **không còn là bằng chứng của mã hiện tại** cho những phần nó đo (thời gian mở, axe, ảnh chụp): các thay đổi sau đó (allowlist, thanh tab khi mất mạng) không đụng đường hiển thị bình thường nhưng chưa được đo lại. `kiem-tra-may.txt` được làm mới theo mã mới.
@@ -82,14 +82,14 @@ Phần dữ liệu còn lại ở tình huống C (355 ms) gần như là hai l�
 
 ## Cần chủ dự án quyết
 
-1. ~~Tên hiển thị~~ **Đã quyết 2026-09-19: "Tour Đảo Booking"**, tên miền `booking.tourdao.vn` thay trang `fastbooking` (đã đổi trong mã và tài liệu). **Còn lại:** kế hoạch cắt tên miền và số phận của `fastbooking` (backend của nó dùng `booking.tourdao.vn` làm nguồn CORS), việc này chưa làm.
+1. ~~Tên hiển thị~~ **Đã quyết 2026-09-19: "Tour Đảo Booking"**, tên miền `booking.tourdao.vn` thay trang `fastbooking` (đã đổi trong mã và tài liệu). **Đã làm 2026-09-19:** gộp `main`, deploy lên `booking.tourdao.vn` (`docs/evidence/2026-09-19-pwa/sau-deploy.txt`). **Còn lại (chủ dự án):** gỡ hẳn `fastbooking` khỏi Cloudflare nếu chưa xong (backend của nó dùng `booking.tourdao.vn` làm nguồn CORS) và quyết định giữ hay bật lại địa chỉ `workers.dev` (đang tắt, xem SPEC §3).
 2. **Ai chạy QA độc lập** (RS14) trước khi gộp; và có cần báo cáo QA1 cho mockup không.
 3. **Ghi quyết định ở đâu.** tourdaovn dùng `DECISIONS.md` và ADR; `tourdao-sales` ghi ở SPEC §2.4/§7/lịch sử và hẹn ADR "viết ở đầu M4" (SPEC §5, chưa có tệp ADR nào). PWA là cửa hai chiều nên đang ghi ở SPEC §7; nếu chủ dự án muốn theo đúng khuôn tourdaovn ("cách phát hành", "vận hành lâu dài" cần ADR) thì phải mở thư mục ADR cho Booking.
 4. **Chạy `/api/auth/me` và `/api/orders` song song** để bớt thêm khoảng một vòng RTT khi mở danh sách (ngoài spec đã duyệt).
 
 ## Chưa kiểm được và nợ đã ghi
 
-- **Chưa kiểm trên iPhone thật:** thêm vào Màn hình chính, icon sau khi iOS bo góc, thanh trạng thái, tai thỏ và thanh home, và rủi ro lớn nhất là nút "Lưu đơn nháp" `sticky` bị bàn phím iOS che (`docs/PWA-IPHONE.md`). **Chưa kiểm việc nhận service worker mới trên Workers Assets thật** (mới kiểm trên `wrangler dev` với `no-store`, RS13).
+- **Thử iPhone thật (2026-09-19):** chủ dự án đã thử, nhận xét chung "nhìn ổn"; **chưa có kết quả từng mục** (thêm vào Màn hình chính, icon sau khi iOS bo góc, thanh trạng thái, tai thỏ và thanh home) và rủi ro lớn nhất, nút "Lưu đơn nháp" `sticky` bị bàn phím iOS che, chưa được xác nhận riêng (`docs/PWA-IPHONE.md`). **Chưa kiểm việc nhận service worker mới trên Workers Assets thật ở lần deploy thứ hai** (lần đầu đã kiểm: cài được, cache đúng, không có `/api`; mới kiểm nâng cấp trên `wrangler dev` với `no-store`, RS13).
 - **Nợ có sẵn từ trước, không thuộc nhánh này:** `empty-table-header` (nhỏ) ở `/catalog`, `/staff`; nhiều màu và cỡ chữ viết cứng ngoài khối PWA trong `app.css`; token sao chép từ tourdaovn theo ngày; `docs/HANDOFF-M4.md` dòng 7 và `README.md` dòng 21, 25 còn ghi "chưa deploy", "0007 chưa áp remote" trong khi đã deploy (bộ nhớ dự án ghi 2026-09-19), và `README.md` dòng 3 nói chạy tại `sales.tourdao.vn` trong khi tên miền thuộc M5. Tôi không sửa các dòng này vì phiên kia cũng sửa `HANDOFF-M4.md` và `README.md` trong kế hoạch của họ.
 - **Chênh so với mockup:** ở chi tiết đơn, các nút hành động nằm trên huy hiệu trạng thái (do thứ tự DOM hiện có), mockup đặt sau; mockup trên Claude Design vẫn ghi "Tour Đảo Sales" ở vài chỗ và chưa cập nhật theo nhánh.
 - **Rủi ro đã ghi:** phiên 7 ngày cố định; trang admin trên điện thoại vẫn là bảng cuộn ngang; chế độ offline thật chưa làm.

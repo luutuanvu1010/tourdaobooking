@@ -1,0 +1,43 @@
+# Kiểm tra sau deploy trên https://booking.tourdao.vn (E1, đo 2026-09-19 13:48 UTC)
+
+Bản deploy: version Worker 0b13b279 (13:18 UTC cùng ngày), mã gốc `main` = 95c23c7.
+Chỉ mở địa chỉ công khai, không đăng nhập, không ghi dữ liệu. Chỉ giữ các header liên quan; lệnh: `curl -s -o /dev/null -D - <địa chỉ>` và `node docs/evidence/2026-09-19-pwa/kich-ban/kiem-tra-san-xuat.mjs`.
+
+## Header (khớp mục "Sau khi deploy" của docs/PWA-IPHONE.md, điểm 1 và 3)
+
+GET /manifest.webmanifest   HTTP/2 200   content-type: application/manifest+json
+GET /sw.js                  HTTP/2 200   content-type: text/javascript   cache-control: no-store
+GET /icons/apple-touch-icon.png  HTTP/2 200   content-type: image/png
+GET /api/auth/me (chưa đăng nhập)  HTTP/2 401   content-type: application/json; charset=utf-8   cache-control: no-store
+        thân: {"error":{"code":"unauthenticated","message":"Chưa đăng nhập hoặc phiên đã hết hạn."}}
+
+Lưu ý: `/sw.js` có `cf-cache-status: HIT` nhưng `cache-control: no-store` là thứ trình duyệt thấy; đó là bộ nhớ của Workers Assets ở biên, theo từng bản deploy. Việc trình duyệt nhận service worker MỚI ở lần deploy thứ hai chưa được quan sát (xem cuối tệp).
+
+## Địa chỉ cũ
+
+GET https://tourdao-sales.l-u-tu-n-v.workers.dev/login   HTTP 404
+Nguyên nhân: khai `routes` mà không khai `workers_dev` thì wrangler tắt địa chỉ workers.dev (đã ghi ở chú thích `wrangler.jsonc` và SPEC §3).
+
+## Trình duyệt (Chrome headless 390×844, ngữ cảnh ẩn danh mới, mở /login, chờ nạp sẵn, tải lại)
+
+{
+ "registered": true,
+ "active": "activated",
+ "controlled": true,
+ "scope": "https://booking.tourdao.vn/",
+ "keys": ["td-shell-20260919201756"],
+ "count": 14,
+ "apiEntries": [],
+ "sample": ["/", "/account", "/order-form", "/order"],
+ "title": "Đăng nhập — Tour Đảo Booking",
+ "logo": true,
+ "loi": ["Loading the script 'https://static.cloudflareinsights.com/beacon.min.js/…' violates the following Content Security Policy directive…"]
+}
+
+Đọc kết quả: service worker đăng ký và điều khiển trang; đúng một cache `td-shell-<mã bản dựng>` với 14 mục và KHÔNG có mục nào của `/api`; tên và logo đúng.
+Lỗi duy nhất là CSP chặn script `beacon.min.js` của Cloudflare Web Analytics (Cloudflare tự chèn ở tầng biên). Vô hại: CSP làm đúng việc, không cần nới lỏng (`script-src 'self'`). Cách xử lý: chủ dự án tắt "Web Analytics — tự chèn" cho Worker trong bảng điều khiển Cloudflare.
+
+## Chưa quan sát
+
+- Trình duyệt nhận service worker mới ở lần deploy thứ hai trên Workers Assets thật (điểm 1 của mục "Sau khi deploy": tên cache phải đổi sang mã mới). Chỉ chứng minh được trên `wrangler dev` (`nang-cap-sw*.json/txt`).
+- Kết quả từng mục của danh sách kiểm iPhone thật: chủ dự án chỉ nhận xét chung "nhìn ổn" (2026-09-19), không có ảnh hay ghi chú theo mục.
