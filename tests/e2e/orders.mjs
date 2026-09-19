@@ -124,7 +124,9 @@ assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(lines(r.body.order).map((i) => [i.catalogCode, i.paxCode, i.catalogPrice]), [[null, null, null], [null, null, null]]);
 assert.equal(r.body.order.services[0].kind, "manual");
 const traced = r.body.order;
-assert.equal((await call(A, "POST", "/api/orders", { ...input, services: [{ kind: "catalog", catalogCode: "x y", pax: { adult: 1 }, catalogPriceSeen: {} }] })).status, 400);
+r = await call(A, "POST", "/api/orders", { ...input, services: [{ kind: "catalog", catalogCode: "x y", pax: { adult: 1 }, catalogPriceSeen: {} }] });
+assert.equal(r.status, 400);
+assert.match(r.body.error.message, /mã dịch vụ/, "mã sai DẠNG phải bị từ chối vì dạng, không lẫn với 'không còn trong danh mục'");
 console.log("✓ dịch vụ nhập tay lưu và đọc lại");
 
 // BẤT BIẾN TIỀN TRONG SQL (0007): ghi thẳng số sai vào D1 bị TRIGGER chặn; sửa đúng luật qua API vẫn chạy

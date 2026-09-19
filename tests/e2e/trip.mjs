@@ -140,8 +140,16 @@ try {
     const clear = put(d, [manualService(tourLine, { id: d.services[0].id, departDate: "" })]);
     const [p, c] = await Promise.all([clear, confirm(ADMIN, d)]);
     const now = (await get(A, d)).order;
-    if (now.status === "confirmed") assert.ok(now.services.every((sv) => sv.departDate), `đơn xác nhận thiếu ngày (PUT ${p.status}, xác nhận ${c.status})`);
-    else assert.equal(now.status, "draft");
+    // Mỗi bên chỉ được 200 hoặc 409 SẠCH — không 500. Nếu điều kiện xác nhận không nằm trong câu UPDATE mà chỉ có trigger đỡ phía sau,
+    // bên thua trả 500 (trigger ném lỗi) dù trạng thái cuối vẫn đúng: bài đua này là chốt duy nhất cho yêu cầu đó.
+    assert.ok([200, 409].includes(p.status) && [200, 409].includes(c.status), `PUT ${p.status} / xác nhận ${c.status}: ${JSON.stringify([p.body, c.body])}`);
+    if (now.status === "confirmed") {
+      assert.deepEqual([c.status, p.status], [200, 409], "xác nhận thắng thì lưu-xoá-ngày phải bị 409");
+      assert.ok(now.services.every((sv) => sv.departDate), "đơn xác nhận thiếu ngày");
+    } else {
+      assert.equal(now.status, "draft");
+      assert.deepEqual([p.status, c.status], [200, 409], "lưu-xoá-ngày thắng thì xác nhận phải bị 409");
+    }
   }
   console.log("✓ đua lưu-xoá-ngày với xác nhận: không có đơn xác nhận thiếu ngày");
 
@@ -154,18 +162,23 @@ try {
   assert.equal(r.status, 409); assert.equal(r.body.error.code, "stale");
   r = await call(A, "PUT", `/api/orders/${s0.id}`, orderInput());
   assert.equal(r.status, 400);
-  const cur = (await get(A, s0)).order;
+  assert.equal(r.body.error.code, "invalid_input");
+  assert.match(r.body.error.message, /expectedUpdatedAt/, "thiếu mốc phải bị từ chối ĐÚNG lý do, không phải lỗi khác");
   // Hai bên ghi nội dung KHÁC NHAU: nếu bên thua lọt qua điều kiện, dòng tiền của nó sẽ đè lên bản của bên thắng và lệch với ghi chú đơn.
+  // Lặp trên đơn mới mỗi vòng: nếu hai request tình cờ chạy nối tiếp thì vòng đó chưa thử được tranh chấp thật.
   const mine = (order, tag) => put(order, [manualService([{ description: tag.toUpperCase(), quantity: 1, unitPrice: 100000 }], { id: order.services[0].id })], { customerNote: tag });
-  const [x, y] = await Promise.all([mine(cur, "x"), mine(cur, "y")]);
-  assert.deepEqual([x.status, y.status].sort(), [200, 409], `${x.status}/${y.status}`);
-  const winner = x.status === 200 ? "x" : "y";
-  const after = await get(A, s0);
-  assert.equal(after.order.services.length, 1);
-  assert.equal(lines(after.order).length, 1, "bên thua không được nhân đôi dòng");
-  assert.equal(after.order.customerNote, winner);
-  assert.equal(lines(after.order)[0].description, winner.toUpperCase(), "dòng tiền phải là của bên thắng, không bị bên thua đè");
-  assert.deepEqual(after.history.map((h) => h.action), ["created", "updated", "updated"]);
+  for (let round = 0; round < 3; round++) {
+    const fresh = (await post([manualService(tourLine)])).body.order;
+    const [x, y] = await Promise.all([mine(fresh, "x"), mine(fresh, "y")]);
+    assert.deepEqual([x.status, y.status].sort(), [200, 409], `${x.status}/${y.status}`);
+    const winner = x.status === 200 ? "x" : "y";
+    const after = await get(A, fresh);
+    assert.equal(after.order.services.length, 1);
+    assert.equal(lines(after.order).length, 1, "bên thua không được nhân đôi dòng");
+    assert.equal(after.order.customerNote, winner);
+    assert.equal(lines(after.order)[0].description, winner.toUpperCase(), "dòng tiền phải là của bên thắng, không bị bên thua đè");
+    assert.deepEqual(after.history.map((h) => h.action), ["created", "updated"]);
+  }
   console.log("✓ khoá lạc quan: stale / thiếu mốc / hai PUT cùng mốc");
 
   // 11) BẢN CHỤP CHO NHÁP CŨ (Q11): dịch vụ bị ẩn / đổi giá — nháp vẫn sửa và xác nhận được; đổi số khách thì phải chọn lại
@@ -204,11 +217,13 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "06:30", "Sân bay Cam Ranh"]);
   c = r.body.order;
-  const last = (await get(A, c)).history.at(-1);
+  const history = (await get(A, c)).history;
+  const last = history.at(-1);
   assert.equal(last.action, "trip_updated");
   assert.match(last.detail, /giờ đón \(trống\) → 06:30/);
   assert.match(last.detail, /đổi điểm đón/);
-  assert.ok(!last.detail.includes("Cam Ranh") && !last.detail.includes("Novotel"), "nhật ký không chứa địa điểm (dữ liệu cá nhân)");
+  // Không dòng nhật ký nào (created/confirmed/trip_updated) được chứa giá trị địa điểm hay nội dung ghi chú (dữ liệu cá nhân)
+  for (const h of history) for (const secret of ["Cam Ranh", "Novotel", "đổi giờ đón"]) assert.ok(!(h.detail ?? "").includes(secret), `nhật ký ${h.action} chứa "${secret}": ${h.detail}`);
   r = await trip(c, { departDate: vnDate(20) });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   c = r.body.order;
@@ -217,9 +232,17 @@ try {
   r = await trip(c, {}); // không đổi gì
   assert.equal(r.status, 200);
   assert.equal((await get(A, c)).history.length, n0, "không đổi gì thì không ghi nhật ký");
+  assert.equal((await get(A, c)).order.updatedAt, c.updatedAt, "PUT /trip không đổi gì thì không được đổi updated_at (các lần sửa sau dùng lại mốc này)");
   r = await trip(c, { note: "x" }, A, cf.updatedAt); // mốc cũ
   assert.equal(r.status, 409); assert.equal(r.body.error.code, "stale");
   assert.equal((await trip(c, { note: "x" }, Bc)).status, 403);
+  assert.equal((await call(null, "PUT", `/api/orders/${c.id}/trip`, {})).status, 401);
+  // dịch vụ của đơn KHÁC không sửa được qua đơn này (IDOR)
+  const other = (await post([manualService(tourLine)])).body.order;
+  r = await call(A, "PUT", `/api/orders/${c.id}/trip`, { expectedUpdatedAt: c.updatedAt, services: [{ id: other.services[0].id, ...tripOf(other.services[0]), note: "chui" }] });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  assert.match(r.body.error.message, /không thuộc đơn này/);
+  assert.equal((await get(A, other)).order.services[0].note, null, "dịch vụ của đơn khác không được đổi");
   r = await trip(c, { note: "admin sửa" }, ADMIN);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   c = r.body.order;
@@ -260,7 +283,9 @@ try {
   assert.equal(orphan[0].n, 0, "mọi dòng tiền thuộc một dịch vụ");
   console.log("✓ bất biến SQL: số lượng khớp số khách, đơn xác nhận đủ chuyến, không dòng tiền mồ côi");
 } finally {
-  await sql("DELETE FROM catalog_override WHERE code LIKE 'ZT%'");
-  await sql("DELETE FROM catalog_item WHERE code LIKE 'ZT%'");
+  // Dọn mà không che lỗi gốc: nếu một câu dọn thất bại, chỉ ghi log — không thay thế AssertionError đang bay ra.
+  for (const q of ["DELETE FROM catalog_override WHERE code LIKE 'ZT%'", "DELETE FROM catalog_item WHERE code LIKE 'ZT%'"]) {
+    await sql(q).catch((e) => console.error("dọn danh mục giả ZT* thất bại:", String(e).slice(0, 200)));
+  }
 }
 console.log("E2E OK");
