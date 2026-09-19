@@ -2,7 +2,9 @@
 
 Ngày 2026-09-19. Nhánh `worktree-pwa-iphone`. Yêu cầu của chủ dự án: rà xem nhánh có đúng triết lý và quy tắc quy định trong dự án `tourdaovn` không.
 
-> **Cập nhật sau QA độc lập lần 1 (`docs/evidence/2026-09-19-pwa/QA2-doc-lap-lan-1.md`, nguyên văn): KHÔNG ĐẠT, 1 mục CHẶN đã được sửa và chưa có QA lần 2.** Xem mục "Kết quả QA độc lập lần 1 và xử lý" bên dưới. Phần còn lại của tài liệu này vẫn là bản tự rà viết TRƯỚC QA; các phát hiện của QA mà bản tự rà bỏ sót chứng minh đúng điều nó cảnh báo: tự rà chỉ đi đường thuận.
+> **Kết quả QA độc lập lần 2 (`docs/evidence/2026-09-19-pwa/QA2-doc-lap-lan-2.md`, nguyên văn, bản `84718a3`): ĐẠT — 7/7 tiêu chí PASS, "đủ điều kiện gộp về mặt QA". Chủ dự án chưa ký báo cáo.** Hai phát hiện SỬA của lần 2: (1) bài kiểm tên cũ chỉ chặn "Tour Đảo Sales", nay chặn cả "Tour Đảo Desk" (đã sửa, chỉ đổi một dòng test); (2) URL trần `/order` không kèm `?id=` không có `h1` (lỗi có sẵn từ trước nhánh, người dùng không bao giờ mở trực tiếp, `/order?id=…` thật không lỗi): ghi nhận, không sửa.
+>
+> **Cập nhật sau QA độc lập lần 1 (`docs/evidence/2026-09-19-pwa/QA2-doc-lap-lan-1.md`, nguyên văn): KHÔNG ĐẠT, 1 mục CHẶN đã được sửa (xác nhận đã đóng ở lần 2).** Xem mục "Kết quả QA độc lập lần 1 và xử lý" bên dưới. Phần còn lại của tài liệu này vẫn là bản tự rà viết TRƯỚC QA; các phát hiện của QA mà bản tự rà bỏ sót chứng minh đúng điều nó cảnh báo: tự rà chỉ đi đường thuận.
 >
 > **Tình trạng của bản tự rà: TỰ RÀ, CHƯA ĐỘC LẬP.** Người thi công cũng là người rà (kèm hai agent chỉ đọc tài liệu và trích quy tắc). `playbook/GOVERNANCE.md` §4.3–4.4 đòi QA1 (mockup) và QA2 (phát hành) do **agent QA độc lập, không phải agent đã soạn artifact**, và chủ dự án duyệt báo cáo; §5.3: bằng chứng tự khai (E3) đơn độc không bao giờ đủ. Vì vậy tài liệu này **không phải** báo cáo QA1/QA2; nó gom bằng chứng E1 (máy chạy, máy kiểm) và E2 (ảnh chụp, người kiểm) để phiên QA độc lập và chủ dự án dùng.
 

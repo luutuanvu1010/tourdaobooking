@@ -90,7 +90,7 @@ const NEEDLES = [
 for (const path of ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit"]) {
   const html = await (await get(path)).text();
   for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
-  assert.ok(!html.includes("Tour Đảo Sales"), `${path} còn tên cũ`);
+  for (const old of ["Tour Đảo Sales", "Tour Đảo Desk"]) assert.ok(!html.includes(old), `${path} còn tên cũ "${old}"`);
 }
 assert.ok((await (await get("/login")).text()).includes(`<h1>${NAME}</h1>`), "trang đăng nhập phải có h1 đúng tên trong manifest");
 // thanh đầu trang do web/shell.ts dựng: tên tách thành "Tour Đảo " + <span>phần còn lại</span>
