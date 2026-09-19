@@ -18,12 +18,13 @@
   --bar-h: 52px;            /* thanh đầu trang, chưa tính vùng an toàn */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --tab-icon: 36px;
-  --fs-tab: 11px;
+  --fs-tab: 12px;           /* = --fs-xs của tourdaovn; nhãn thanh tab */
   --row-h: 48px;            /* dòng liên kết trong trang Tôi */
   --avatar: 48px;
   --logo-bar: 30px;
   --logo-login: 72px;
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
+  --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -133,6 +134,7 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
 /* trang "Tôi" */
+.narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */
 .profile { display: flex; align-items: center; gap: var(--s3); }
 .avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-on-dark); background: var(--c-primary); font-weight: 800; font-size: 1.1rem; }
 .profile-name { font-weight: 800; font-size: 1.1rem; }

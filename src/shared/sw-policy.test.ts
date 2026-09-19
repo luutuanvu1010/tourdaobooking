@@ -50,6 +50,7 @@ test("danh sách nạp sẵn: không trùng và đều thuộc cache khung", () 
   for (const p of PRECACHE) assert.equal(routeFor("GET", ORIGIN + p, ORIGIN), "shell", p);
 });
 
-test("tên cache gắn với phiên bản", () => {
-  assert.ok(CACHE_NAME.endsWith(CACHE_VERSION));
+test("mã phiên bản do build chèn; ngoài bản build (như test này) là 'dev'; tên cache gắn với phiên bản", () => {
+  assert.equal(CACHE_VERSION, "dev");
+  assert.equal(CACHE_NAME, "td-shell-dev");
 });

@@ -1,7 +1,9 @@
 // Chính sách bộ nhớ đệm của service worker — hàm thuần để kiểm thử được; web/sw/sw.ts chỉ nối vào sự kiện.
 
-/** Tăng tay khi một lần deploy đổi API không tương thích: cache cũ bị xoá, khung phải tải lại. */
-export const CACHE_VERSION = "v1";
+declare const __BUILD_ID__: string | undefined;
+
+/** Mã bản dựng do esbuild chèn lúc `npm run build:web` (--define:__BUILD_ID__): mỗi lần build/deploy đổi mã → service worker mới xoá cache cũ, khung không bao giờ chạy lệch API sau deploy và không ai phải nhớ tăng tay. Ngoài bản build (test) là "dev". */
+export const CACHE_VERSION = typeof __BUILD_ID__ === "undefined" ? "dev" : __BUILD_ID__;
 export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 
 /** Nạp sẵn lúc cài (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Trang admin tự vào cache ở lần mở đầu. */

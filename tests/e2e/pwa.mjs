@@ -57,7 +57,10 @@ const sw = await get("/sw.js");
 assert.equal(sw.status, 200, "/sw.js phải có (npm run build:web)");
 assert.match(sw.headers.get("content-type") ?? "", /javascript/);
 assert.match(sw.headers.get("cache-control") ?? "", /no-cache/, "/sw.js phải Cache-Control: no-cache (public/_headers)");
-assert.match(await sw.text(), /td-shell-v/, "sw.js phải chứa tên cache");
+// Mã phiên bản do npm run build:web chèn (AAAAMMDDGGPPSS): mỗi lần build/deploy đổi thì cache cũ bị xoá, khung không lệch API sau deploy.
+const swText = await sw.text();
+assert.ok(swText.includes("td-shell-"), "sw.js phải chứa tiền tố tên cache");
+assert.match(swText, /"\d{14}"/, "sw.js phải mang mã bản dựng 14 chữ số (--define:__BUILD_ID__ trong build:web)");
 const me = await call(null, "GET", "/api/auth/me");
 assert.equal(me.headers.get("cache-control"), "no-store", "API phải no-store");
 console.log("✓ service worker + API no-store");
