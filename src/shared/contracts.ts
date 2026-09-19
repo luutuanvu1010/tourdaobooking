@@ -53,10 +53,14 @@ export interface OrderItemDto {
   id: string;
   /** Mã dịch vụ nguồn khi dòng sinh từ danh mục; null = nhập tay. */
   catalogCode: string | null;
+  /** Loại khách của dòng (dịch vụ tính theo nhóm: "adult" = số khách); null = nhập tay. */
+  paxCode: PaxCode | null;
   description: string;
   detail: string | null;
   quantity: number;
   unitPrice: number;
+  /** Giá danh mục hiệu lực lúc lập dòng; null = nhập tay. Lệch giá = `unitPrice ≠ catalogPrice` (hàm `priceDeviation` ở order-lines). */
+  catalogPrice: number | null;
   lineTotal: number;
 }
 
@@ -114,7 +118,7 @@ export interface OrderDto {
 }
 
 export interface OrderDetailDto extends OrderDto {
-  items: OrderItemDto[];
+  services: OrderServiceDto[];
 }
 
 export type OrderSummaryDto = Pick<
@@ -157,11 +161,13 @@ export interface OrderInput {
   customerPhone: string;
   customerEmail: string;
   customerNote: string;
-  items: { catalogCode: string | null; description: string; detail: string; quantity: number; unitPrice: number }[];
+  services: ServiceInput[];
   discount: number;
   depositAmount: number;
   depositMethod: DepositMethod | null;
   paymentNote: string;
+  /** Bắt buộc khi sửa (PUT): `updatedAt` của đơn mà form đã đọc — lệch → 409 `stale`. */
+  expectedUpdatedAt?: string;
 }
 
 /** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */

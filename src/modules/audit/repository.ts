@@ -5,6 +5,12 @@ import { escapeLike } from "../../shared/http";
 export { isAuditAction, type AuditAction, type AuditTargetType };
 
 export interface AuditInput {
+  /**
+   * id do người gọi chọn (UUID mới) để CÁC CÂU SAU trong cùng batch hỏi "dòng này đã được ghi chưa" (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`).
+   * Vì dòng chỉ được ghi khi `onlyIf` đúng (vd `changes() > 0`) và id là duy nhất cho request này, đó là cách chắc chắn để biết
+   * "UPDATE của chính tôi đã thắng" — khác với so mốc thời gian, có thể trùng khi hai request cùng mili-giây. Bỏ trống = tự sinh.
+   */
+  id?: string;
   /** Người thao tác; bỏ trống (null) = hệ thống tự làm (vd Cron đồng bộ Sheet). */
   staffId?: string | null;
   action: AuditAction;
@@ -29,7 +35,7 @@ export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string):
       `INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at)
        SELECT ?, ?, ?, ?, ?, ?, ?, ? ${onlyIf ? `WHERE ${onlyIf}` : ""}`,
     )
-    .bind(crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at);
+    .bind(e.id ?? crypto.randomUUID(), e.orderId ?? null, e.staffId ?? null, e.action, targetType, targetId, e.detail ?? null, e.at);
 }
 
 export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";
