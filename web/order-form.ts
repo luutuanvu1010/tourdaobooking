@@ -2,7 +2,7 @@ import { ApiError, api, type CatalogService, type DepositMethod, type Order, typ
 import { PAX_LABEL, availableCodes, buildLines, parseUnit, type PaxCode } from "../src/shared/order-lines";
 import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
-import { initShell, showError } from "./shell";
+import { initShell, setBarTitle, showError } from "./shell";
 
 const editId = new URLSearchParams(location.search).get("id");
 
@@ -236,6 +236,7 @@ try {
 }
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
+  setBarTitle("Sửa đơn");
   try {
     const { order, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`);
     if (!canModify) {
@@ -246,6 +247,7 @@ if (editId) {
       saveBtn.disabled = true;
     } else {
       byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
+      setBarTitle(`Sửa đơn ${order.orderCode}`);
       fill(order);
     }
   } catch (err) {

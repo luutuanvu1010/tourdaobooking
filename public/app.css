@@ -149,4 +149,34 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   #tabbar .tab-icon { display: flex; }
   #tabbar .tab-new .tab-icon { width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 50%; color: #fff; background: var(--c-accent); }
   body.has-tabbar main { padding-bottom: calc(56px + env(safe-area-inset-bottom) + var(--s4)); }
+
+  .btn:not(.btn-link) { min-height: 44px; }
+  .toolbar input { flex: 1 1 0; min-width: 0; }
+  .toolbar .btn-primary { display: none; } /* "+ Đơn mới" đã có ở thanh tab */
+
+  /* chi tiết đơn: ba nút hành động chia đều; mã đơn đã nằm trên thanh đầu trang */
+  .actions .btn { flex: 1 1 0; }
+  .detail-head h1 { display: none; }
+
+  /* bảng dịch vụ thành từng khối: tên + chi tiết / "SL × đơn giá … thành tiền" */
+  table.items.order-lines, table.items.order-lines tbody { display: block; }
+  table.items.order-lines thead { display: none; }
+  table.items.order-lines tr { display: grid; grid-template-columns: auto auto 1fr auto; column-gap: 6px; padding: var(--s2) 0; border-bottom: 1px solid var(--c-line); }
+  table.items.order-lines tr:last-child { border-bottom: 0; }
+  table.items.order-lines td { padding: 0; border: 0; text-align: left; }
+  table.items.order-lines td:first-child { grid-column: 1 / -1; font-weight: 700; }
+  table.items.order-lines td:first-child .muted { font-weight: 400; }
+  table.items.order-lines td:nth-child(2)::after { content: " ×"; }
+  table.items.order-lines td:nth-child(2), table.items.order-lines td:nth-child(3) { color: var(--c-muted); white-space: nowrap; }
+  table.items.order-lines td:nth-child(4) { grid-column: 4; text-align: right; font-weight: 700; white-space: nowrap; }
+
+  /* form lập đơn: màn hình tập trung, không thanh tab; nút Lưu dính đáy, chừa thanh home */
+  body[data-tabbar="off"] main { padding-bottom: 0; }
+  .form-actions { position: sticky; bottom: 0; margin: 0 calc(-1 * var(--s4)); padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid var(--c-line); }
+  .form-actions .btn-primary { flex: 1; }
+  .form-actions .btn:not(.btn-primary) { display: none; } /* "Quay lại" đã có nút ‹ */
 }
+
+/* đăng nhập */
+.login-logo { display: block; width: 72px; height: 72px; margin: 0 auto var(--s3); border-radius: 22.37%; }
+.login h1 { text-align: center; }
