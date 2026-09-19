@@ -13,7 +13,7 @@ Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế ho�
 
 ## Chưa làm (cố ý)
 
-- Hướng dẫn cài cho nhân viên: chờ cắt tên miền sang `booking.tourdao.vn` (chủ dự án chốt 2026-09-19, đang thuộc `fastbooking`; cần quyết định về `fastbooking` trước, xem `docs/SPEC-tourdao-sales.md` §3). App gắn với origin: cài trên `workers.dev` rồi đổi tên miền thì phải cài và đăng nhập lại, nên chỉ cho nhân viên cài sau khi cắt.
+- Hướng dẫn cài cho nhân viên: chưa viết. App đã chạy trên `booking.tourdao.vn` từ 2026-09-19 (xem `docs/SPEC-tourdao-sales.md` §3) nên nhân viên cài được ngay từ địa chỉ này. App gắn với origin: máy nào từng cài từ `workers.dev` (nay đã tắt) thì phải xoá icon cũ, cài lại và đăng nhập lại.
 - Chế độ offline thật (xem/lập đơn khi không có mạng).
 - Logo trong giao diện đọc từ `company_profile.logo_url` (SPEC §2.4-2, M5): hiện đầu trang và trang đăng nhập dùng ảnh tĩnh `public/icons/logo-96.png` và `icon-192.png` (tạm, đã ghi nợ ở `docs/AUDIT-PWA-IPHONE.md` RS12); icon PWA vẫn phải là file tĩnh.
 - Phiên vẫn 7 ngày cố định → nhân viên đăng nhập lại khoảng mỗi tuần; iOS còn tách cookie giữa Safari và app đã cài nên phải đăng nhập lại một lần khi cài.
@@ -25,7 +25,7 @@ Rà soát theo Hiến pháp/ràng buộc của tourdaovn: `docs/AUDIT-PWA-IPHONE
 
 Tự động: `npm run typecheck`, `npm test` (gồm `sw-policy`), `npm run test:e2e` (kịch bản `pwa.mjs`: manifest, icon không alpha, `/sw.js` không cache, meta iOS trên 8 trang, API `no-store`). Trên Chrome headless khổ 390×844 với `wrangler dev`: service worker đăng ký và điều khiển trang, cache không chứa mục nào của `/api`, khung mở được khi offline, tab và thanh đầu trang đúng cho nhân viên và admin, bản máy tính không đổi.
 
-**Chưa kiểm trên iPhone thật** (vùng an toàn `env(safe-area-inset-*)` luôn bằng 0 ngoài thiết bị có tai thỏ):
+**Thử trên iPhone thật (2026-09-19):** chủ dự án đã thử và nhận xét bằng lời "nhìn ổn". **Chưa có kết quả từng mục** (không ảnh, không ghi chú, không ghi thử qua địa chỉ nào), nên danh sách dưới đây chưa được đánh dấu mục nào. Riêng mục 1 (nút "Lưu đơn nháp" và bàn phím) là mục rủi ro nhất: nếu chưa thử đúng thao tác đó thì vẫn còn mở. Vùng an toàn `env(safe-area-inset-*)` luôn bằng 0 ngoài thiết bị có tai thỏ nên Chrome headless không kiểm được.
 
 ## Danh sách kiểm trên iPhone thật
 
@@ -39,14 +39,16 @@ Xếp theo rủi ro: mục 1 là thứ Chrome headless không kiểm được v�
 6. Tắt hẳn app rồi mở lại: màn hình hiện gần như tức thì (khung từ cache), dữ liệu tải sau.
 7. Tab Tôi → Đăng xuất về màn hình đăng nhập.
 
-## Thử trên iPhone thật (trước khi cắt tên miền)
+## Cách thử iPhone bằng D1 tạm (không đụng dữ liệu thật)
 
 Chạy `node scripts/dev-iphone.mjs` từ thư mục gốc: dựng D1 **tạm** (mất khi thoát, không đụng dữ liệu thật), tạo hai tài khoản thử (admin, nhân viên) và in địa chỉ cùng SĐT/PIN.
-- **Cùng Wi-Fi, không cần gì thêm:** mở địa chỉ `http://<IP-LAN>:8787` bằng Safari trên iPhone. Chưa phải HTTPS nên **không có service worker**; đủ để thử mục 1–5 của danh sách kiểm bên dưới (bàn phím và nút Lưu, icon, thanh trạng thái, tai thỏ và thanh home, nút quay lại, bàn phím số). Đã kiểm trên máy: đăng nhập qua IP LAN chạy, cookie phiên không có cờ `Secure` nên dùng được trên `http`.
+- **Cùng Wi-Fi, không cần gì thêm:** mở địa chỉ `http://<IP-LAN>:8787` bằng Safari trên iPhone. Chưa phải HTTPS nên **không có service worker**; đủ để thử mục 1–5 của danh sách kiểm ở trên (bàn phím và nút Lưu, icon, thanh trạng thái, tai thỏ và thanh home, nút quay lại, bàn phím số). Đã kiểm trên máy: đăng nhập qua IP LAN chạy, cookie phiên không có cờ `Secure` nên dùng được trên `http`.
 - **Có service worker (HTTPS tạm):** `node scripts/dev-iphone.mjs --tunnel` rồi mở địa chỉ `trycloudflare.com` mà wrangler in ra (dùng `wrangler dev --tunnel`, theo tài liệu của wrangler; **tôi chưa tự chạy thử cờ này** vì nó mở địa chỉ công khai ra Internet cho tới khi bạn thoát). Thử thêm mục 6 (mở lại tức thì) và offline.
 - Thoát bằng Ctrl+C. Khi xong, ghi kết quả từng mục vào `docs/evidence/2026-09-19-pwa/` (ảnh chụp màn hình iPhone là bằng chứng E2).
 
 ## Sau khi deploy (xác nhận một lần trên môi trường thật; cấu trúc `no-store` đã chặn bẫy 304 nên đây chỉ là xác nhận)
+
+**Đã làm lần deploy đầu (2026-09-19, `docs/evidence/2026-09-19-pwa/sau-deploy.txt`): điểm 2 và 3 đạt; điểm 1 đạt phần header (`/sw.js` là `no-store`), còn phần "tên cache đổi sau deploy có đổi mã" CHƯA quan sát** vì mới có một bản deploy: làm ở lần deploy tiếp theo. Mỗi lần deploy sau, chạy lại `kich-ban/kiem-tra-san-xuat.mjs`.
 
 1. `curl -sI https://<địa-chỉ>/sw.js` phải có `Cache-Control: no-store`. Sau một lần deploy có đổi mã, mở app hai lần rồi chạy `caches.keys()`: tên cache phải đổi sang mã bản dựng mới. Nếu vẫn tên cũ thì trình duyệt không nhận service worker mới: dừng và báo.
 2. Mở app, xem `Application → Service Workers` (Safari: Develop → Service Workers) hoặc chạy `caches.keys()`: chỉ một cache, tên `td-shell-<mã bản dựng>`, và không có mục nào của `/api`.

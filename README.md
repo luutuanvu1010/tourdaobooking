@@ -1,6 +1,6 @@
 # tourdao-sales
 
-Ứng dụng CRM nội bộ cho nhân viên Công ty TNHH Tour Đảo — tạo và xuất xác nhận đơn hàng để gửi khách qua Zalo. Tên miền đã chốt: `booking.tourdao.vn` (thay trang `fastbooking` hiện có; chưa cắt, chưa deploy — xem `docs/SPEC-tourdao-sales.md` §3).
+Ứng dụng CRM nội bộ cho nhân viên Công ty TNHH Tour Đảo — tạo và xuất xác nhận đơn hàng để gửi khách qua Zalo. Tên miền đã chốt: `booking.tourdao.vn` (thay trang `fastbooking`; đã deploy lên tên miền này 2026-09-19 — xem `docs/SPEC-tourdao-sales.md` §3).
 
 Dự án này **độc lập hoàn toàn** với repo `tourdaovn` (website công khai) — khác Worker, khác D1, khác domain. Điểm chạm duy nhất: kế thừa giá trị design token (màu/font) từ `tourdaovn/src/styles/tokens.css` để đồng nhất thương hiệu, sao chép giá trị tại một thời điểm, không phụ thuộc runtime lẫn nhau.
 
@@ -18,11 +18,11 @@ Một Worker, nhiều module độc lập trong `src/modules/<tên>/`. Mỗi mod
 
 ## Trạng thái hiện tại
 
-- **Rà soát kiến trúc (2026-09-19):** router + bắt lỗi toàn cục + chống CSRF, hợp đồng kiểu dùng chung, một nguồn danh sách nhật ký, migration `0007` (nhật ký mở, `order_item.catalog_code`, TRIGGER bất biến tiền), e2e tự động. `0007` **chưa áp remote**. Xem `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
+- **Rà soát kiến trúc (2026-09-19):** router + bắt lỗi toàn cục + chống CSRF, hợp đồng kiểu dùng chung, một nguồn danh sách nhật ký, migration `0007` (nhật ký mở, `order_item.catalog_code`, TRIGGER bất biến tiền), e2e tự động. `0007` đã áp remote (kiểm 2026-09-19). Xem `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
 
 - **M1 xong:** Wrangler project, D1 `tourdao-sales-db` (đủ 5 bảng §2.1, bảng `order` đặt tên `orders` vì ORDER là từ khoá SQL), đăng nhập SĐT+PIN (`/api/auth/login|me|logout`, cookie session ký HMAC).
 - **M2 xong (2026-09-19):** module `orders` (`/api/orders`: tạo, sửa khi `draft`, chi tiết, danh sách + tìm kiếm/lọc/phân trang, đổi trạng thái), chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ (spec §2.4-5), module `audit` (nhật ký ghi cùng transaction; admin xem toàn hệ thống ở `/audit`), `requireStaff` dùng chung ở `auth`, UI thuần trong `public/` + `web/` (đăng nhập, danh sách, form, chi tiết). Chưa deploy.
-- **M3 xong (2026-09-19):** danh mục dịch vụ đồng bộ từ Google Sheet về D1 (module `catalog`; Cron 15 phút + nút "Đồng bộ ngay" ở `/catalog`), Admin ghi đè giá/ẩn dịch vụ mà lần đồng bộ sau không đè mất (cảnh báo khi Sheet đổi giá sau ghi đè), chốt chặn khi Sheet trông như bị hỏng; form đơn có **chọn nhanh dịch vụ** — nhập số khách từng loại (người lớn/trẻ em/người cao tuổi/em bé) sinh tối đa 4 dòng, dịch vụ tính theo nhóm (`per5Pax`) nhập số khách và số lượng = `ceil(khách/5)` lượt (khớp `quote.ts` của booking tourdaovn). Sheet lỗi thì dùng bản đã lưu + cảnh báo, vẫn nhập tay được. Migration `0006` (đã áp lên D1 remote cùng 0005; **Worker chưa deploy**).
+- **M3 xong (2026-09-19):** danh mục dịch vụ đồng bộ từ Google Sheet về D1 (module `catalog`; Cron 15 phút + nút "Đồng bộ ngay" ở `/catalog`), Admin ghi đè giá/ẩn dịch vụ mà lần đồng bộ sau không đè mất (cảnh báo khi Sheet đổi giá sau ghi đè), chốt chặn khi Sheet trông như bị hỏng; form đơn có **chọn nhanh dịch vụ** — nhập số khách từng loại (người lớn/trẻ em/người cao tuổi/em bé) sinh tối đa 4 dòng, dịch vụ tính theo nhóm (`per5Pax`) nhập số khách và số lượng = `ceil(khách/5)` lượt (khớp `quote.ts` của booking tourdaovn). Sheet lỗi thì dùng bản đã lưu + cảnh báo, vẫn nhập tay được. Migration `0006` (đã áp lên D1 remote cùng 0005; Worker đã deploy 2026-09-19).
 - **Bảng Admin (2026-09-19, làm trước M3 theo spec §2.4-6):** module `accounts` — quản lý nhân viên tại `/staff` (tạo, sửa, ngưng/kích hoạt, đổi vai trò, đặt lại PIN, mở khoá, **đồng bộ từ Google Sheet có xem trước**), đổi PIN cá nhân tại `/account`; **chống dò PIN** (5 lần sai/15 phút theo SĐT, 30/IP; đặt chỗ trước khi kiểm nên bắn song song cũng chỉ được 5 lần); đặt lại/đổi PIN thu hồi mọi phiên cũ; `audit_log` mở rộng ghi cả hành động quản trị (migration `0005`, đã áp lên D1 remote). ID hai Google Sheet nằm ở `vars` trong `wrangler.jsonc`.
 
 Chạy local: tạo `.dev.vars` từ `.dev.vars.example`, `npm run db:migrate:local`, tạo nhân viên bằng `scripts/create-staff.mjs`, `npm run dev` (tự build JS từ `web/` sang `public/js/`).

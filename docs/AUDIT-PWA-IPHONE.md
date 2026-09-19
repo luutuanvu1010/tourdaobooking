@@ -18,15 +18,15 @@ Agent QA độc lập (Opus 5, worktree riêng, bản `118be35`) chạy lại ty
 
 | ID | Phát hiện | Mức | Xử lý |
 |---|---|---|---|
-| Q2-01 | Router của Worker khớp đường dẫn bằng `split("/").filter(Boolean)` nên `//api/auth/me` vẫn trả JSON phiên thật; bộ lọc theo tiền tố `/api` của service worker phân loại nó là "shell" và **cache phản hồi phiên, còn sống sau đăng xuất**. Đã tái hiện độc lập (`routeFor("//api/auth/me")` → `shell`) | **CHẶN** | **Đã sửa** (`d2bdd67`): `routeFor` đảo sang danh sách cho phép đóng theo mặc định (8 trang + tệp tĩnh đúng mẫu; mọi thứ khác là "pass"), thêm lớp chắn thứ hai theo `content-type` (JSON không bao giờ vào cache), test cho `//api`, `///api`, `%61pi`, `/API`, dấu chấm; test đối chiếu danh sách trang với `public/*.html`; e2e kiểm content-type thật của khung. **Chưa QA lần 2** |
+| Q2-01 | Router của Worker khớp đường dẫn bằng `split("/").filter(Boolean)` nên `//api/auth/me` vẫn trả JSON phiên thật; bộ lọc theo tiền tố `/api` của service worker phân loại nó là "shell" và **cache phản hồi phiên, còn sống sau đăng xuất**. Đã tái hiện độc lập (`routeFor("//api/auth/me")` → `shell`) | **CHẶN** | **Đã sửa** (`d2bdd67`): `routeFor` đảo sang danh sách cho phép đóng theo mặc định (8 trang + tệp tĩnh đúng mẫu; mọi thứ khác là "pass"), thêm lớp chắn thứ hai theo `content-type` (JSON không bao giờ vào cache), test cho `//api`, `///api`, `%61pi`, `/API`, dấu chấm; test đối chiếu danh sách trang với `public/*.html`; e2e kiểm content-type thật của khung. **QA lần 2 (bản `84718a3`) xác nhận đã đóng: ĐẠT** |
 | Q2-02 | Đoạn mã tắt khẩn cấp trong tài liệu không biên dịch (thiếu `export {}`) | SỬA | Đã sửa đoạn mẫu và ghi rõ hai bài kiểm sẽ đỏ trong đường khẩn cấp (`docs/PWA-IPHONE.md`) |
 | Q2-03 | Phép quét "không viết cứng" lọt tên màu, `%`, `vw/vh/ch`, `color-mix()` | SỬA | Chọn thu hẹp lời khai cho đúng phạm vi thật thay vì mở rộng thêm (`docs/PWA-IPHONE.md`) |
 | Q2-04 | Mất mạng: `initShell()` dừng trước khi dựng thanh tab nên không còn điều hướng | SỬA | Đã sửa: dựng thanh tab cơ bản (3 tab) trước khi dừng; spec Q7 cập nhật. **Chưa chạy lại trên trình duyệt** (chỉ typecheck) |
 | Q2-05 | Mã bản dựng là giờ, không phải băm nội dung: build không đổi mã vẫn xoá cache của mọi người | GHI | **Không đổi**: chấp nhận đánh đổi vì đơn giản (P11); deploy hiếm, cái giá là một lần mở nguội |
 | Q2-06 | `wrangler dev` giữ ETag cũ của `/sw.js`; `no-store` chặn đúng bẫy | GHI | Đã khớp lời khai |
 | Q2-07 | Nút "‹" dùng `history.back()`; lịch sử "bẩn" có thể về sai nơi trong chế độ toàn màn hình | HỎI | Chờ chủ dự án. Đề xuất nhỏ: `location.replace` sau khi lưu đơn để form không nằm trong lịch sử |
-| Q2-08 | Nút "Lưu đơn nháp" `sticky` dưới bàn phím iOS | HỎI | Chờ thử trên iPhone thật |
-| Q2-09 | Tên "Tour Đảo Booking" chưa được duyệt | HỎI | Chờ chủ dự án |
+| Q2-08 | Nút "Lưu đơn nháp" `sticky` dưới bàn phím iOS | HỎI | Chủ dự án đã thử iPhone thật 2026-09-19, nhận xét chung "nhìn ổn"; chưa có kết quả riêng cho thao tác bàn phím này, nên còn mở |
+| Q2-09 | Tên "Tour Đảo Booking" chưa được duyệt | HỎI | **Đã đóng:** chủ dự án chốt tên và tên miền 2026-09-19 (spec PWA Q5, Q10) |
 
 Vì mã đã đổi sau khi bằng chứng ở `docs/evidence/2026-09-19-pwa/` được ghi, phần bằng chứng đó gắn với mã `37d5c71` và **không còn là bằng chứng của mã hiện tại** cho những phần nó đo (thời gian mở, axe, ảnh chụp): các thay đổi sau đó (allowlist, thanh tab khi mất mạng) không đụng đường hiển thị bình thường nhưng chưa được đo lại. `kiem-tra-may.txt` được làm mới theo mã mới.
 
@@ -82,15 +82,15 @@ Phần dữ liệu còn lại ở tình huống C (355 ms) gần như là hai l�
 
 ## Cần chủ dự án quyết
 
-1. ~~Tên hiển thị~~ **Đã quyết 2026-09-19: "Tour Đảo Booking"**, tên miền `booking.tourdao.vn` thay trang `fastbooking` (đã đổi trong mã và tài liệu). **Còn lại:** kế hoạch cắt tên miền và số phận của `fastbooking` (backend của nó dùng `booking.tourdao.vn` làm nguồn CORS), việc này chưa làm.
+1. ~~Tên hiển thị~~ **Đã quyết 2026-09-19: "Tour Đảo Booking"**, tên miền `booking.tourdao.vn` thay trang `fastbooking` (đã đổi trong mã và tài liệu). **Đã làm 2026-09-19:** gộp `main`, deploy lên `booking.tourdao.vn` (`docs/evidence/2026-09-19-pwa/sau-deploy.txt`). **Còn lại (chủ dự án):** gỡ hẳn `fastbooking` khỏi Cloudflare nếu chưa xong (backend của nó dùng `booking.tourdao.vn` làm nguồn CORS) và quyết định giữ hay bật lại địa chỉ `workers.dev` (đang tắt, xem SPEC §3).
 2. **Ai chạy QA độc lập** (RS14) trước khi gộp; và có cần báo cáo QA1 cho mockup không.
 3. **Ghi quyết định ở đâu.** tourdaovn dùng `DECISIONS.md` và ADR; `tourdao-sales` ghi ở SPEC §2.4/§7/lịch sử và hẹn ADR "viết ở đầu M4" (SPEC §5, chưa có tệp ADR nào). PWA là cửa hai chiều nên đang ghi ở SPEC §7; nếu chủ dự án muốn theo đúng khuôn tourdaovn ("cách phát hành", "vận hành lâu dài" cần ADR) thì phải mở thư mục ADR cho Booking.
 4. **Chạy `/api/auth/me` và `/api/orders` song song** để bớt thêm khoảng một vòng RTT khi mở danh sách (ngoài spec đã duyệt).
 
 ## Chưa kiểm được và nợ đã ghi
 
-- **Chưa kiểm trên iPhone thật:** thêm vào Màn hình chính, icon sau khi iOS bo góc, thanh trạng thái, tai thỏ và thanh home, và rủi ro lớn nhất là nút "Lưu đơn nháp" `sticky` bị bàn phím iOS che (`docs/PWA-IPHONE.md`). **Chưa kiểm việc nhận service worker mới trên Workers Assets thật** (mới kiểm trên `wrangler dev` với `no-store`, RS13).
-- **Nợ có sẵn từ trước, không thuộc nhánh này:** `empty-table-header` (nhỏ) ở `/catalog`, `/staff`; nhiều màu và cỡ chữ viết cứng ngoài khối PWA trong `app.css`; token sao chép từ tourdaovn theo ngày; `docs/HANDOFF-M4.md` dòng 7 và `README.md` dòng 21, 25 còn ghi "chưa deploy", "0007 chưa áp remote" trong khi đã deploy (bộ nhớ dự án ghi 2026-09-19), và `README.md` dòng 3 nói chạy tại `sales.tourdao.vn` trong khi tên miền thuộc M5. Tôi không sửa các dòng này vì phiên kia cũng sửa `HANDOFF-M4.md` và `README.md` trong kế hoạch của họ.
+- **Thử iPhone thật (2026-09-19):** chủ dự án đã thử, nhận xét chung "nhìn ổn"; **chưa có kết quả từng mục** (thêm vào Màn hình chính, icon sau khi iOS bo góc, thanh trạng thái, tai thỏ và thanh home) và rủi ro lớn nhất, nút "Lưu đơn nháp" `sticky` bị bàn phím iOS che, chưa được xác nhận riêng (`docs/PWA-IPHONE.md`). **Chưa kiểm việc nhận service worker mới trên Workers Assets thật ở lần deploy thứ hai** (lần đầu đã kiểm: cài được, cache đúng, không có `/api`; mới kiểm nâng cấp trên `wrangler dev` với `no-store`, RS13).
+- **Nợ có sẵn từ trước, không thuộc nhánh này:** `empty-table-header` (nhỏ) ở `/catalog`, `/staff`; nhiều màu và cỡ chữ viết cứng ngoài khối PWA trong `app.css`; token sao chép từ tourdaovn theo ngày; `docs/HANDOFF-M4.md` dòng 7 và `README.md` dòng 3, 21, 25 từng ghi "chưa deploy", "0007 chưa áp remote" và tên miền `sales.tourdao.vn` trong khi đã deploy. **Đã sửa 2026-09-19** sau lần deploy (D1 remote kiểm bằng `wrangler d1 migrations list --remote`: không còn migration chờ áp); lần này chủ động sửa dù phiên `thong-tin-chuyen-di` cũng sửa hai tệp đó, và đã kiểm bằng `git merge-tree` rằng không thêm xung đột: vẫn chỉ `docs/SPEC-tourdao-sales.md` (1 vùng) và `tests/e2e/run.mjs`, như trước khi sửa.
 - **Chênh so với mockup:** ở chi tiết đơn, các nút hành động nằm trên huy hiệu trạng thái (do thứ tự DOM hiện có), mockup đặt sau; mockup trên Claude Design vẫn ghi "Tour Đảo Sales" ở vài chỗ và chưa cập nhật theo nhánh.
 - **Rủi ro đã ghi:** phiên 7 ngày cố định; trang admin trên điện thoại vẫn là bảng cuộn ngang; chế độ offline thật chưa làm.
 
