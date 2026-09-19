@@ -1,9 +1,9 @@
 // HỢP ĐỒNG API giữa Worker và giao diện (web/). Chỉ chứa kiểu — không có mã chạy.
 // Server khai kiểu trả về theo file này (và `satisfies` ở chỗ trả JSON); web/api.ts re-export. Đổi một bên mà quên bên kia → typecheck báo.
 import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
-import type { CatalogService, PaxCode, Prices } from "./order-lines.ts";
+import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
 
-export type { AuditAction, AuditTargetType, CatalogService, PaxCode, Prices };
+export type { AuditAction, AuditTargetType, CatalogService, PaxCode, PaxCounts, Prices };
 
 // ---- Nhân viên / phiên -------------------------------------------------------
 export type StaffRole = "sales" | "admin";
@@ -60,6 +60,37 @@ export interface OrderItemDto {
   lineTotal: number;
 }
 
+/** So với danh mục hiện tại — chỉ tính cho đơn nháp, dịch vụ từ danh mục. */
+export type CatalogStatus = "ok" | "price_changed" | "unavailable";
+export type MissingReason = "no_date" | "past_date" | "too_far" | "no_guests";
+export interface TripGapDto { serviceId: string; name: string; reasons: MissingReason[] }
+export interface CatalogChangeDto { serviceIndex: number; catalogCode: string; pax: PaxCode; seen: number; current: number }
+
+/** Thông tin chuyến của một dịch vụ (ngày YYYY-MM-DD, giờ HH:MM theo giờ Việt Nam). */
+export interface TripInfoDto {
+  departDate: string | null;
+  departTime: string | null;
+  pickupTime: string | null;
+  pickupPlace: string | null;
+  /** null = cùng ngày khởi hành. */
+  checkinDate: string | null;
+  checkinTime: string | null;
+  checkinPlace: string | null;
+  note: string | null;
+}
+
+export interface OrderServiceDto extends TripInfoDto {
+  id: string;
+  kind: "catalog" | "manual";
+  catalogCode: string | null;
+  name: string;
+  /** Chuỗi đơn vị của Sheet lúc lập đơn; "manual" = nhập tay. */
+  unit: string;
+  pax: PaxCounts;
+  items: OrderItemDto[];
+  catalogStatus: CatalogStatus | null;
+}
+
 export interface OrderDto {
   id: string;
   orderCode: string;
@@ -91,6 +122,35 @@ export type OrderSummaryDto = Pick<
   "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "total" | "remainingAmount" | "staffName" | "createdAt"
 >;
 
+/** Thông tin chuyến client gửi lên: "" = chưa có. */
+export interface TripInput {
+  departDate: string;
+  departTime: string;
+  pickupTime: string;
+  pickupPlace: string;
+  checkinDate: string;
+  checkinTime: string;
+  checkinPlace: string;
+  note: string;
+}
+
+/**
+ * Một dịch vụ trong đơn. `catalog`: chỉ gửi mã + số khách + đơn giá thực tế; dòng tiền do MÁY CHỦ sinh (không nhận số lượng từ client).
+ * `id` = dịch vụ đã lưu của chính đơn này (giữ bản chụp nếu mã và số khách không đổi).
+ */
+export type ServiceInput = { id?: string; pax: PaxCounts } & TripInput &
+  (
+    | {
+        kind: "catalog";
+        catalogCode: string;
+        /** Đơn giá thực tế từng loại có khách (mặc định giao diện = giá danh mục); vắng = giá danh mục. */
+        unitPrices: Partial<Record<PaxCode, number>>;
+        /** Giá danh mục mà form đang hiển thị; lệch giá hiện tại → 409 `catalog_changed`. */
+        catalogPriceSeen: Partial<Record<PaxCode, number>>;
+      }
+    | { kind: "manual"; name: string; items: { description: string; detail: string; quantity: number; unitPrice: number }[] }
+  );
+
 /** Dữ liệu client gửi lên khi tạo/sửa đơn: chỉ các trường nhập, KHÔNG có số dẫn xuất — server tự tính (§2.3). */
 export interface OrderInput {
   customerName: string;
@@ -103,6 +163,16 @@ export interface OrderInput {
   depositMethod: DepositMethod | null;
   paymentNote: string;
 }
+
+/** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */
+export interface TripUpdateInput {
+  expectedUpdatedAt: string;
+  services: ({ id: string } & TripInput)[];
+}
+
+/** Thân lỗi có thêm dữ liệu: 409 `incomplete_trip` (xác nhận thiếu chuyến) và 409 `catalog_changed` (giá danh mục vừa đổi). */
+export interface IncompleteTripBody { error: { code: "incomplete_trip"; message: string; missing: TripGapDto[] } }
+export interface CatalogChangedBody { error: { code: "catalog_changed"; message: string; changes: CatalogChangeDto[] } }
 
 export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean }
 export interface OrderResponse { order: OrderDetailDto }

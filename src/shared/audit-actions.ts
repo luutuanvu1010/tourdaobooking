@@ -13,6 +13,7 @@ export type AuditGroup = keyof typeof AUDIT_GROUPS;
 export const AUDIT_ACTIONS = {
   created: { label: "Tạo đơn", group: "order" },
   updated: { label: "Sửa đơn", group: "order" },
+  trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   exported_png: { label: "Xuất PNG", group: "order" },
