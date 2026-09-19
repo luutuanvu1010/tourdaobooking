@@ -66,7 +66,7 @@ export async function initShell(): Promise<Staff> {
   replaceChildren(
     byId("topbar"),
     backLink,
-    h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), "Tour Đảo ", h("span", null, "Desk")),
+    h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), "Tour Đảo ", h("span", null, "Booking")),
     title ? h("span", { class: "bar-title", id: "bar-title" }, title) : null,
     nav,
     who,

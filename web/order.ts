@@ -13,7 +13,7 @@ function kv(label: string, value: string | null, cls = ""): HTMLElement {
 }
 
 function render(order: Order, history: AuditEntry[], canModify: boolean): void {
-  document.title = `${order.orderCode} — Tour Đảo Desk`;
+  document.title = `${order.orderCode} — Tour Đảo Booking`;
   setBarTitle(order.orderCode);
   replaceChildren(
     root,
