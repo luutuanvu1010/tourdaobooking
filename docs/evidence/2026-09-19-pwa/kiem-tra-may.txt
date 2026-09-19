@@ -1,0 +1,31 @@
+Bằng chứng E1 (máy chạy, máy kiểm) — nhánh worktree-pwa-iphone
+Ngày: 2026-09-19
+Mã (HEAD): ec614f6 — public/, web/, src/, tests/, package.json không có thay đổi chưa commit (0 file)
+
+== npm run typecheck
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p web && tsc --noEmit -p web/sw
+
+
+== npm test
+# tests 55
+# pass 55
+# fail 0
+# cancelled 0
+# skipped 0
+
+== npm run test:e2e (cần mạng: admin và catalog đọc Google Sheet thật)
+▶ platform
+✔ platform (0.1s)
+▶ pwa
+✔ pwa (0.1s)
+▶ orders
+✔ orders (4.1s)
+▶ admin
+✔ admin (2.9s)
+▶ catalog
+✔ catalog (14.6s)
+▶ admin-race
+✔ admin-race (0.1s)
+E2E: 6/6 kịch bản xanh

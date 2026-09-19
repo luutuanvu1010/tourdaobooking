@@ -164,7 +164,7 @@ report.sw = await p.evaluate(async () => {
 note(report.sw.registered && report.sw.controlled, "service worker chưa đăng ký/điều khiển trang");
 note(report.sw.apiEntries.length === 0, `CACHE CHỨA API: ${JSON.stringify(report.sw.apiEntries)}`);
 note(report.sw.hasShell, "cache thiếu khung lõi");
-note(JSON.stringify(report.sw.keys) === JSON.stringify(["td-shell-v1"]), `tên cache: ${JSON.stringify(report.sw.keys)}`);
+note(report.sw.keys.length === 1 && /^td-shell-\d{14}$/.test(report.sw.keys[0]), `tên cache phải mang mã bản dựng: ${JSON.stringify(report.sw.keys)}`);
 
 // Offline: khung phải mở từ cache
 await p.setOfflineMode(true);
@@ -200,6 +200,11 @@ note(report.audit.back && report.audit.current === "Tôi", "audit: phải có �
 await shot(q, "09-admin-audit");
 await q.goto(BASE + "/catalog", { waitUntil: "networkidle0" });
 await shot(q, "10-admin-catalog");
+// mọi trang của app phải chạy không lỗi console/CSP (AUDIT-FINDINGS A14: thử tay mọi trang) — /staff chưa có ở trên
+await q.goto(BASE + "/staff", { waitUntil: "networkidle0" });
+await q.waitForSelector("#tabbar");
+report.staffPage = await q.evaluate(() => ({ title: document.title, tab: document.querySelector('#tabbar [aria-current="page"]')?.textContent }));
+note(report.staffPage.tab === "Nhân viên", `trang /staff phải sáng tab Nhân viên: ${JSON.stringify(report.staffPage)}`);
 await q.browserContext().close();
 
 // ===== 3. Máy tính (không được đổi) =====

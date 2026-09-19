@@ -1,7 +1,7 @@
 # SPEC — tourdao-sales (Cổng xác nhận đơn hàng nội bộ)
 
 > Trạng thái: **CHỐT — sẵn sàng thi công ở phiên riêng.** Bốn điểm mơ hồ cấu trúc ở §2.4 (bản gốc) đã được chủ dự án quyết định vào 2026-09-16, xem §2.4 đã cập nhật. Đây là artifact đặc tả (spec), không phải code. Theo P1/P2/N1 của `CONSTITUTION.md` (tourdaovn), bề mặt (giao diện) không được dựng trước khi bản ánh xạ dữ liệu này được duyệt — nay đã đủ điều kiện mở phiên thực thi.
-> Phạm vi: dự án **độc lập hoàn toàn** với `tourdaovn` (N4 — không xoá nhoà ranh giới hai dự án độc lập). Không chạm code, D1, hay Sanity của tourdaovn. Điểm chạm duy nhất được tuyên bố: kế thừa **giá trị token thị giác** (màu, font, spacing) để đồng nhất thương hiệu — sao chép giá trị tại một thời điểm, không import runtime, không phụ thuộc build.
+> Phạm vi: dự án **độc lập hoàn toàn** với `tourdaovn` (N4 — không xoá nhoà ranh giới hai dự án độc lập). Không chạm code, D1, hay Sanity của tourdaovn. Điểm chạm duy nhất được tuyên bố: kế thừa **giá trị token thị giác** (màu, font, spacing) để đồng nhất thương hiệu — sao chép giá trị tại một thời điểm, không import runtime, không phụ thuộc build. Từ 2026-09-19 có thêm một điểm chạm được tuyên bố: **tài sản logo** (ảnh) — chủ dự án chỉ định nguồn, sao chép một lần để dựng icon PWA và logo giao diện, không đọc Sanity lúc chạy (§2.4-7).
 
 ---
 
@@ -135,6 +135,8 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
    - **Nhân viên:** Sheet (ID `16K3b1CtqjJqXR_CkfSSdLyK0t6j0pYq_OuskF0VFaw4`, cột Tên người dùng + Số điện thoại) chỉ là nguồn *đề xuất*: Admin bấm "Đồng bộ từ Sheet", xem trước, xác nhận mới tạo tài khoản (PIN ngẫu nhiên hiện một lần). Sheet không bao giờ tự tạo/ngưng tài khoản hay cấp `admin`; D1 là nguồn sự thật.
    - **Thứ tự thi công:** bảng Admin (quản lý tài khoản + chống dò PIN) làm trước M3.
 
+7. **App iPhone (PWA) "Tour Đảo Desk" (chốt 2026-09-19; chủ dự án chọn hướng PWA và duyệt mockup):** giao diện web là PWA cài được từ Safari ("Thêm vào Màn hình chính"), không App Store: `manifest` + icon + service worker (khung stale-while-revalidate, **`/api/*` không bao giờ qua cache**, mã phiên bản cache do build chèn) + giao diện điện thoại ≤640px (thanh tab dưới đáy, nút quay lại). **Không thêm dữ liệu, bảng hay API.** Icon dựng từ logo do chủ dự án chỉ định (điểm chạm tài sản, xem đầu spec); logo hiện ở đầu trang và trang đăng nhập là **tạm** cho tới khi có `company_profile.logo_url` (M5, §2.4-2). Tên "Tour Đảo Desk" là **đề xuất của AI, chờ chủ dự án duyệt**. Thiết kế, phương án bị loại, ánh xạ màn hình–dữ liệu: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`; vận hành và danh sách kiểm trên iPhone thật: `docs/PWA-IPHONE.md`; rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`.
+
 ### 2.5 Nguồn danh mục dịch vụ — Google Sheet (điểm chạm ngoài duy nhất)
 
 - **Nguồn:** Google Sheet dịch vụ công ty đang vận hành (cùng sheet tham chiếu cho booking website, ID ở `vars.SERVICES_SHEET_ID` trong `wrangler.jsonc`), chia sẻ "Bất kỳ ai có đường liên kết – Người xem", đọc dạng CSV. App chỉ **đọc**, không bao giờ ghi ngược.
@@ -151,7 +153,7 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
 - **Ngôn ngữ:** TypeScript cho toàn bộ Worker logic (routing, API, tính toán server-side ở §2.3).
 - **Giao diện: KHÔNG dùng React / SPA framework.** HTML + CSS thuần + TypeScript vanilla (biên dịch bằng esbuild/Vite ở chế độ multi-page, không bundle framework runtime). Lý do gắn trực tiếp vào ngưỡng hiệu năng ngay dưới đây: một SPA framework buộc tải/parse/hydrate runtime trước khi form dùng được, chi phí đó không đáng với quy mô v1 (4-5 màn hình: đăng nhập, tạo đơn, danh sách đơn, xem chi tiết, cài đặt). Đúng tinh thần P11 CONSTITUTION — đơn giản dễ bảo trì hơn thông minh phức tạp. Nếu app phình to sau này (nhiều panel tương tác phức tạp), đổi sang framework là quyết định kiến trúc mới, cần ADR riêng, không tự động áp vào v1.
 - **Lưu trữ:** Cloudflare D1 (SQLite), database riêng — ví dụ `tourdao-sales-db`.
-- **Static assets:** HTML/CSS/JS build tối giản, phục vụ qua Workers Assets.
+- **Static assets:** HTML/CSS/JS build tối giản, phục vụ qua Workers Assets, kèm `manifest`, icon và service worker `sw.js` (PWA, §2.4-7).
 - **Xuất PNG/PDF:** render phía client bằng canvas/HTML-to-image (ví dụ `html-to-image` hoặc `satori`+`resvg` phía server nếu cần chất lượng cao và nhất quán font trên mọi thiết bị — quyết định kỹ thuật cụ thể để lại cho giai đoạn thực thi, không phải cửa một chiều).
 - **Domain:** `sales.tourdao.vn` — bản ghi DNS CNAME/A trỏ sang Worker qua Cloudflare, tách biệt route với `tourdaovn.com`.
 - **Bí mật (secrets):** `wrangler secret put` cho khoá ký session đăng nhập — không hardcode.
@@ -210,6 +212,7 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 | M3 ✅ (2026-09-19) | Tích hợp Google Sheet | Bản sao Sheet trong D1 theo §2.5, hiển thị chọn nhanh dịch vụ trong form tạo đơn, có lối nhập tay dự phòng khi Sheet lỗi | Tạo đơn bằng dịch vụ lấy từ Sheet thật; tắt mạng giả lập lỗi Sheet vẫn tạo đơn được bằng nhập tay |
 | M4 | Mẫu xác nhận + xuất PNG/PDF | Áp token §4, render mẫu từ `order` đã lưu, xuất PNG (ưu tiên Zalo) và PDF (A4) | Xuất 1 đơn thật ra cả PNG và PDF, đối chiếu đúng ngưỡng hiệu năng §3 (<3s) |
 | M5 | Cài đặt + triển khai | Màn hình sửa `company_profile` (kể cả upload logo), gắn domain `sales.tourdao.vn`. (Quản lý tài khoản `staff` đã làm sớm, trước M3 — §2.4-6) | Truy cập được domain thật, đổi thử 1 trường company_profile và thấy phản ánh trên mẫu xuất |
+| PWA ✅ (2026-09-19, nhánh `worktree-pwa-iphone` chờ gộp) | App iPhone (PWA), ngoài M1–M5 | Chủ dự án yêu cầu làm xen giữa M3 và M4 (§2.4-7): manifest, icon, service worker, giao diện điện thoại ≤640px. Không đụng dữ liệu | typecheck, 55 test, e2e 6/6, axe 0 lỗi critical/serious, đo thời gian mở màn hình trên 4G giả lập (`docs/evidence/2026-09-19-pwa/`); **chờ thử trên iPhone thật** |
 
 **Quy tắc khi mở mỗi module ở phiên Code:** giao đúng phạm vi một module, không để tác nhân thực thi tự ý làm thêm module sau "cho tiện" (đúng P3 — mỗi tầng làm xong mới sang tầng kế, không nhảy cóc rồi quay lại lấp).
 
@@ -223,6 +226,9 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 | Schema `order`/`order_item`/`company_profile` | Một chiều (đổi schema sau khi có dữ liệu thật thì tốn kém) | Đây chính là spec này — cần phê chuẩn trước khi code |
 | Danh mục dịch vụ: bản sao Google Sheet trong D1 + ghi đè Admin (thay cho "đọc trực tiếp") | Hai chiều (không phá dữ liệu `order` đã lưu, vì `order_item` luôn lưu giá đã chốt) | Đã chốt 2026-09-19 (§2.4-6) |
 | Màu sắc/token cụ thể trong CSS | Hai chiều | Thực thi tự quyết trong khuôn khổ token đã khai ở §4 |
+| Làm app iPhone bằng PWA (Thêm vào Màn hình chính), không Capacitor/SwiftUI | Hai chiều (gỡ manifest và service worker là về web thường; service worker đã cài trên máy tự gỡ nhờ cách tắt khẩn cấp ở `docs/PWA-IPHONE.md`) | Đã chốt 2026-09-19 (§2.4-7); phương án bị loại ở spec PWA, Q1 |
+| Service worker: khung stale-while-revalidate, `/api/*` không qua cache, mã cache do build chèn | Hai chiều | Đã chốt 2026-09-19 (§2.4-7) |
+| Tên hiển thị "Tour Đảo Desk" (nhãn dưới icon "Tour Đảo") | Hai chiều (5 chỗ, một commit) | **Đề xuất của AI, chờ chủ dự án duyệt** |
 
 ---
 
@@ -235,3 +241,4 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 - **2026-09-16** — Bản chốt đầu tiên (§2.4-1…4).
 - **2026-09-19** — §2.4-5 quyền sửa đơn; §2.4-6 đồng bộ Sheet có bảng Admin (migration 0005, 0006); M1–M3 xong.
 - **2026-09-19 (rà soát kiến trúc)** — Migration 0007: `audit_log` bỏ `CHECK` liệt kê (danh sách ở `src/shared/audit-actions.ts`), `order_item.catalog_code`, TRIGGER bất biến tiền. Hợp nhất §2.1/§2.2/§2.5/§5/§6/§7 về đúng hiện trạng. Kiến trúc mã: `docs/ARCHITECTURE.md`; phát hiện + kế hoạch: `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
+- **2026-09-19 (App iPhone PWA)** — §2.4-7 (quyết định), §3 (static assets kèm manifest/icon/service worker), §6 (dòng PWA), §7 (ba dòng, tên chờ duyệt), đầu spec (điểm chạm tài sản logo). Không đổi §2 (dữ liệu). Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`; rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`.

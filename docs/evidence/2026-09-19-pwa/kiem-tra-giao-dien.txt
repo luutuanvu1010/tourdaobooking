@@ -13,16 +13,16 @@
   ],
   "current": "Đơn hàng",
   "tabBottomGap": 0,
-  "tabHeight": 58,
+  "tabHeight": 59,
   "headerText": "Tour Đảo DeskĐơn hàng+ Đơn mớiNguyễn Thị MaiĐăng xuất",
   "brandVisible": true,
   "topnavVisible": false,
   "newBtnInToolbarHidden": true,
   "overflowX": false,
-  "lastRowClearOfTabBar": 18
+  "lastRowClearOfTabBar": 20
  },
  "detail": {
-  "barTitle": "TD-20260919-0018",
+  "barTitle": "TD-20260919-0020",
   "backVisible": true,
   "brandHidden": true,
   "rowDisplay": "grid",
@@ -47,8 +47,8 @@
   ]
  },
  "editTitle": {
-  "h1": "Sửa đơn TD-20260919-0017",
-  "bar": "Sửa đơn TD-20260919-0017"
+  "h1": "Sửa đơn TD-20260919-0019",
+  "bar": "Sửa đơn TD-20260919-0019"
  },
  "form": {
   "tabbarPresent": false,
@@ -75,7 +75,7 @@
   "active": "activated",
   "controlled": true,
   "keys": [
-   "td-shell-v1"
+   "td-shell-20260919163224"
   ],
   "count": 14,
   "apiEntries": [],
@@ -108,6 +108,10 @@
   "back": true,
   "title": "Nhật ký",
   "current": "Tôi"
+ },
+ "staffPage": {
+  "title": "Nhân viên — Tour Đảo Desk",
+  "tab": "Nhân viên"
  },
  "desktop": {
   "tabbarDisplay": "none",

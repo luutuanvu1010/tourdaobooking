@@ -6,7 +6,7 @@ Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế ho�
 
 - `public/manifest.webmanifest` + `public/icons/*` + thẻ meta iOS trong 8 trang HTML → Safari cho "Thêm vào Màn hình chính", app chạy toàn màn hình.
 - `public/sw.js` (sinh từ `web/sw/sw.ts` bởi `npm run build:web`, gitignored): khung app (HTML/CSS/JS/icon) mở từ cache rồi tải bản mới ngầm. **`/api/*` không bao giờ qua cache.** Chính sách ở `src/shared/sw-policy.ts` (có test). Đăng ký từ `web/pwa.ts` (gọi trong `initShell()` và `login.ts`).
-- Sau mỗi lần deploy, lần mở đầu vẫn chạy khung cũ, lần sau là khung mới. **Nếu một lần deploy đổi API không tương thích, tăng `CACHE_VERSION` trong `src/shared/sw-policy.ts` ngay trong lần deploy đó** (cache cũ bị xoá, khung phải tải lại). **Tắt khẩn cấp** nếu một khung hỏng bị cache trên máy nhân viên: thay toàn bộ `web/sw/sw.ts` bằng `declare const self: ServiceWorkerGlobalScope; void self.registration.unregister(); void caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k))));` rồi deploy (build sinh lại `public/sw.js`). Được vì `/sw.js` luôn `no-cache`: trình duyệt nhận bản này ở lần mở kế tiếp và tự gỡ service worker cùng cache.
+- **Mã phiên bản cache tự động:** `npm run build:web` chèn mã bản dựng (`--define:__BUILD_ID__`, dạng `AAAAMMDDGGPPSS`) vào `sw.js`, nên **mỗi lần build/deploy** service worker mới xoá cache cũ và khung không chạy lệch API sau deploy; không ai phải nhớ tăng tay (đã chứng minh qua hai lần "deploy" giả lập: `docs/evidence/2026-09-19-pwa/nang-cap-sw.json`). Khung stale-while-revalidate vẫn có thể chạy bản cũ ở đúng lần mở đầu tiên sau deploy, trước khi trình duyệt nhận service worker mới. **Lưu ý:** `wrangler dev` băm file một lần lúc khởi động nên phục vụ `sw.js` mới mà giữ ETag cũ, trình duyệt nhận `304` và không thấy bản mới; đó là hạn chế của máy chủ thử, Workers Assets thật băm lại theo từng deploy nên phải **kiểm ngay sau lần deploy đầu tiên** (mục 1 của danh sách "Sau khi deploy" bên dưới). **Tắt khẩn cấp** nếu một khung hỏng bị cache trên máy nhân viên: thay toàn bộ `web/sw/sw.ts` bằng `declare const self: ServiceWorkerGlobalScope; void self.registration.unregister(); void caches.keys().then((ks) => Promise.all(ks.map((k) => caches.delete(k))));` rồi deploy (build sinh lại `public/sw.js`). Được vì `/sw.js` luôn `no-cache`: trình duyệt nhận bản này ở lần mở kế tiếp và tự gỡ service worker cùng cache.
 - Giao diện ≤640px: thanh đầu trang (nút "‹" ở trang con) + thanh tab dưới đáy do `web/shell.ts` dựng; cấu hình theo trang bằng `<body data-title data-back data-tabbar>`; `setBarTitle()` đổi tiêu đề sau khi tải (mã đơn, "Sửa đơn …"). Nhân viên 3 tab, admin 5 tab; form lập đơn ẩn thanh tab. Máy tính (>640px) giữ nguyên thanh điều hướng cũ.
 - Mất mạng: khung vẫn mở từ cache nhưng không có dữ liệu; `initShell()` hiện "Không có kết nối mạng…" ở `#error` rồi dừng script trang (giữ lời gọi treo như `goLogin()`).
 
@@ -14,12 +14,13 @@ Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế ho�
 
 - Hướng dẫn cài cho nhân viên: chờ chốt tên miền (`sales.tourdao.vn`). App gắn với origin: đổi tên miền thì phải cài và đăng nhập lại.
 - Chế độ offline thật (xem/lập đơn khi không có mạng).
+- Logo trong giao diện đọc từ `company_profile.logo_url` (SPEC §2.4-2, M5): hiện đầu trang và trang đăng nhập dùng ảnh tĩnh `public/icons/logo-96.png` và `icon-192.png` (tạm, đã ghi nợ ở `docs/AUDIT-PWA-IPHONE.md` RS12); icon PWA vẫn phải là file tĩnh.
 - Phiên vẫn 7 ngày cố định → nhân viên đăng nhập lại khoảng mỗi tuần; iOS còn tách cookie giữa Safari và app đã cài nên phải đăng nhập lại một lần khi cài.
 - Trang admin (`/catalog`, `/staff`, `/audit`) trên điện thoại chỉ có khung chung mới; bảng bên trong vẫn cuộn ngang.
 
 ## Đã kiểm gì
 
-Rà soát theo Hiến pháp/ràng buộc của tourdaovn: `docs/AUDIT-PWA-IPHONE.md`; bằng chứng (số đo, axe, ảnh chụp, kịch bản): `docs/evidence/2026-09-19-pwa/`. Quy tắc giữ khi sửa tiếp: **giá trị giao diện mới đi vào token ở `:root` của `app.css`, không viết cứng trong luật** (`pwa.mjs` quét khối PWA); tên hiển thị và màu theme chỉ có một nguồn (manifest, token `--c-primary`), các bản sao phải khớp (`pwa.mjs` đối chiếu).
+Rà soát theo Hiến pháp/ràng buộc của tourdaovn: `docs/AUDIT-PWA-IPHONE.md`; bằng chứng (kết quả typecheck/test/e2e gắn mã băm, số đo, axe, nâng cấp service worker, ảnh chụp, kịch bản): `docs/evidence/2026-09-19-pwa/`. Quy tắc giữ khi sửa tiếp: **giá trị giao diện mới đi vào token ở `:root` của `app.css`, không viết cứng trong luật** (`pwa.mjs` quét khối PWA); tên hiển thị và màu theme chỉ có một nguồn (manifest, token `--c-primary`), các bản sao phải khớp (`pwa.mjs` đối chiếu).
 
 Tự động: `npm run typecheck`, `npm test` (gồm `sw-policy`), `npm run test:e2e` (kịch bản `pwa.mjs`: manifest, icon không alpha, `/sw.js` không cache, meta iOS trên 8 trang, API `no-store`). Trên Chrome headless khổ 390×844 với `wrangler dev`: service worker đăng ký và điều khiển trang, cache không chứa mục nào của `/api`, khung mở được khi offline, tab và thanh đầu trang đúng cho nhân viên và admin, bản máy tính không đổi.
 
@@ -36,6 +37,12 @@ Xếp theo rủi ro: mục 1 là thứ Chrome headless không kiểm được v�
 5. Ô SĐT và ô tiền hiện bàn phím số.
 6. Tắt hẳn app rồi mở lại: màn hình hiện gần như tức thì (khung từ cache), dữ liệu tải sau.
 7. Tab Tôi → Đăng xuất về màn hình đăng nhập.
+
+## Sau khi deploy (kiểm một lần, vì `wrangler dev` không mô phỏng được ETag của Workers Assets)
+
+1. `curl -sI https://<địa-chỉ>/sw.js` trước và sau một lần deploy có đổi mã: `ETag` phải khác nhau (và `Cache-Control: no-cache`). Nếu `ETag` không đổi thì trình duyệt sẽ không bao giờ nhận service worker mới: dừng và báo.
+2. Mở app, xem `Application → Service Workers` (Safari: Develop → Service Workers) hoặc chạy `caches.keys()`: chỉ một cache, tên `td-shell-<mã bản dựng>`, và không có mục nào của `/api`.
+3. Kiểm `/manifest.webmanifest` trả `application/manifest+json` và ba icon trả `image/png`.
 
 ## Dựng lại icon
 
