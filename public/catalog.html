@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="/app.css"><title>Dịch vụ — Tour Đảo Sales</title></head>
+<body>
+<header id="topbar"></header>
+<main style="max-width:1200px">
+  <h1>Danh mục dịch vụ &amp; giá</h1>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="notice" class="alert ok" hidden></div>
+  <section class="card">
+    <p style="margin-top:0">Nguồn chính là Google Sheet. Ở đây có thể <strong>ghi đè giá</strong> hoặc <strong>ẩn</strong> một dịch vụ; ghi đè chỉ có hiệu lực trong hệ thống này và không bị lần đồng bộ sau đè mất. Đơn đã lập luôn giữ giá lúc lập.</p>
+    <div id="status"></div>
+    <button id="pull" class="btn btn-primary" type="button">Đồng bộ ngay từ Google Sheet</button>
+  </section>
+  <section id="edit" class="card" hidden></section>
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="Tìm theo mã hoặc tên dịch vụ…" autocomplete="off">
+    <select id="filter" aria-label="Lọc">
+      <option value="">Tất cả</option><option value="overridden">Đang ghi đè giá</option><option value="conflict">Sheet đã đổi giá (cần xem)</option><option value="hidden">Đã ẩn</option><option value="missing">Không còn trong Sheet</option>
+    </select>
+  </div>
+  <section class="card table-wrap">
+    <table class="items">
+      <thead><tr><th>Mã</th><th>Dịch vụ</th><th>Đơn vị</th><th>Người lớn</th><th>Trẻ em</th><th>Người cao tuổi</th><th>Em bé</th><th></th></tr></thead>
+      <tbody id="list"></tbody>
+    </table>
+  </section>
+</main>
+<script type="module" src="/js/catalog.js"></script>
+</body></html>

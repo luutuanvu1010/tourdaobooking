@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="/app.css"><title>Nhân viên — Tour Đảo Sales</title></head>
+<body>
+<header id="topbar"></header>
+<main>
+  <h1>Quản lý nhân viên</h1>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <section id="secret" class="card secret" hidden></section>
+  <section id="sheet" class="card" hidden></section>
+  <section id="edit" class="card" hidden></section>
+  <section class="card">
+    <h2>Thêm nhân viên</h2>
+    <form id="add-form" class="grid three" autocomplete="off">
+      <label>Họ tên<input id="add-name" type="text" maxlength="200" required></label>
+      <label>Số điện thoại (tên đăng nhập)<input id="add-phone" type="tel" inputmode="tel" required></label>
+      <label>Vai trò<select id="add-role"><option value="sales">Nhân viên</option><option value="admin">Quản trị viên</option></select></label>
+      <div><button class="btn btn-primary" type="submit">Tạo tài khoản</button></div>
+    </form>
+    <p class="muted">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần. <button id="sheet-pull" class="btn btn-link" type="button">Đồng bộ danh sách từ Google Sheet…</button></p>
+  </section>
+  <section class="card table-wrap">
+    <table class="items">
+      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai trò</th><th>Tạo lúc</th><th></th></tr></thead>
+      <tbody id="list"></tbody>
+    </table>
+  </section>
+</main>
+<script type="module" src="/js/staff.js"></script>
+</body></html>

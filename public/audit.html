@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="/app.css"><title>Nhật ký — Tour Đảo Sales</title></head>
+<body>
+<header id="topbar"></header>
+<main>
+  <h1>Nhật ký hệ thống</h1>
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="Tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên…" autocomplete="off">
+    <select id="action" aria-label="Lọc hành động">
+      <option value="">Mọi hành động</option>
+      <optgroup label="Đơn hàng"><option value="created">Tạo đơn</option><option value="updated">Sửa đơn</option><option value="confirmed">Xác nhận đơn</option><option value="cancelled">Huỷ đơn</option><option value="exported_png">Xuất PNG</option><option value="exported_pdf">Xuất PDF</option></optgroup>
+      <optgroup label="Tài khoản"><option value="staff_created">Tạo tài khoản</option><option value="staff_updated">Sửa hồ sơ</option><option value="staff_suspended">Ngưng tài khoản</option><option value="staff_reactivated">Kích hoạt lại</option><option value="staff_role_changed">Đổi vai trò</option><option value="pin_reset">Đặt lại PIN</option><option value="pin_changed">Đổi PIN</option><option value="login_unlocked">Mở khoá đăng nhập</option><option value="staff_synced">Đồng bộ nhân viên từ Sheet</option></optgroup>
+      <optgroup label="Dịch vụ"><option value="catalog_synced">Đồng bộ dịch vụ từ Sheet</option><option value="catalog_overridden">Ghi đè giá</option><option value="catalog_override_cleared">Bỏ ghi đè</option><option value="catalog_hidden">Ẩn dịch vụ</option><option value="catalog_unhidden">Hiện lại dịch vụ</option></optgroup>
+    </select>
+  </div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div class="card table-wrap">
+    <table class="items">
+      <thead><tr><th>Thời gian</th><th>Người thao tác</th><th>Hành động</th><th>Đối tượng</th><th>Chi tiết</th></tr></thead>
+      <tbody id="list"></tbody>
+    </table>
+  </div>
+  <p id="empty" class="empty" hidden>Chưa có bản ghi nào khớp.</p>
+  <button id="more" class="btn" type="button" hidden>Tải thêm</button>
+</main>
+<script type="module" src="/js/audit.js"></script>
+</body></html>

@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><link rel="stylesheet" href="/app.css"><title>Đơn hàng — Tour Đảo Sales</title></head>
+<body>
+<header id="topbar"></header>
+<main>
+  <h1>Đơn hàng</h1>
+  <div class="toolbar">
+    <input id="q" type="search" placeholder="Tìm theo mã đơn, tên/SĐT khách, nhân viên…" autocomplete="off">
+    <select id="status" aria-label="Lọc trạng thái">
+      <option value="">Mọi trạng thái</option><option value="draft">Nháp</option><option value="confirmed">Đã xác nhận</option><option value="cancelled">Đã huỷ</option>
+    </select>
+    <a class="btn btn-primary" href="/order-form">+ Đơn mới</a>
+  </div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="list"></div>
+  <p id="empty" class="empty" hidden>Chưa có đơn nào khớp.</p>
+  <button id="more" class="btn" type="button" hidden>Tải thêm</button>
+</main>
+<script type="module" src="/js/orders.js"></script>
+</body></html>
