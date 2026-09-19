@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { availableCodes, buildLines, parseUnit, type CatalogService } from "./order-lines.ts";
+import { MAX_GUESTS_PER_SERVICE, availableCodes, buildLines, parseUnit, paxTotal, payingGuests, priceDeviation, type CatalogService } from "./order-lines.ts";
 
 const tour: CatalogService = {
   code: "TD101",
@@ -66,4 +66,41 @@ test("loại khách hiện bộ đếm", () => {
   assert.deepEqual(availableCodes(jetski), ["adult"]);
   assert.deepEqual(availableCodes(banana), ["adult"]);
   assert.deepEqual(availableCodes({ ...tour, unit: "perGroup" }), []);
+});
+
+test("đơn giá thực tế: ghi đè từng loại, vẫn giữ giá danh mục và loại khách trên dòng", () => {
+  const r = buildLines(tour, { adult: 2, child: 1 }, { adult: 800000 });
+  assert.ok(r.ok);
+  assert.deepEqual(r.lines.map((l) => [l.pax, l.unitPrice, l.catalogPrice]), [
+    ["adult", 800000, 850000],
+    ["child", 595000, 595000], // không ghi đè → giá danh mục
+  ]);
+  const g = buildLines(banana, { adult: 7 }, { adult: 900000 });
+  assert.ok(g.ok);
+  assert.deepEqual([g.lines[0]!.pax, g.lines[0]!.quantity, g.lines[0]!.unitPrice, g.lines[0]!.catalogPrice], ["adult", 2, 900000, 1000000]);
+});
+
+test("trần khách mỗi dịch vụ: từng loại và tổng ≤ MAX_GUESTS_PER_SERVICE", () => {
+  assert.equal(MAX_GUESTS_PER_SERVICE, 50);
+  assert.ok(buildLines(tour, { adult: 50 }).ok);
+  assert.ok(buildLines(tour, { adult: 25, child: 20, senior: 5 }).ok);
+  assert.ok(!buildLines(tour, { adult: 51 }).ok);
+  const over = buildLines(tour, { adult: 30, child: 21 });
+  assert.ok(!over.ok);
+  assert.match((over as { message: string }).message, /Tối đa 50 khách/);
+  assert.ok(!buildLines(banana, { adult: 51 }).ok);
+});
+
+test("đếm khách: tổng và khách tính tiền (trừ em bé)", () => {
+  assert.equal(paxTotal({ adult: 2, child: 1, senior: 0, infant: 3 }), 6);
+  assert.equal(paxTotal({}), 0);
+  assert.equal(payingGuests({ adult: 2, child: 1, senior: 1, infant: 3 }), 4);
+  assert.equal(payingGuests({ infant: 2 }), 0);
+});
+
+test("lệch giá so với danh mục: dương/âm, null khi khớp hoặc nhập tay", () => {
+  assert.equal(priceDeviation({ unitPrice: 800000, catalogPrice: 850000 }), -50000);
+  assert.equal(priceDeviation({ unitPrice: 900000, catalogPrice: 850000 }), 50000);
+  assert.equal(priceDeviation({ unitPrice: 850000, catalogPrice: 850000 }), null);
+  assert.equal(priceDeviation({ unitPrice: 123, catalogPrice: null }), null);
 });
