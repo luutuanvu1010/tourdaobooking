@@ -1,5 +1,5 @@
 // Luật thuần của danh mục: kế hoạch đồng bộ, ghi đè có chủ đích, chốt chặn Sheet hỏng. Không I/O.
-import { PAX_LABEL, PAX_ORDER, type PaxCode, type Prices } from "../../shared/order-lines.ts";
+import { PAX_LABEL, PAX_ORDER, type EffectiveService, type PaxCode, type Prices } from "../../shared/order-lines.ts";
 import type { CatalogInput } from "./sheet.ts";
 
 /** Bản ghi đang lưu trong D1 (phần lấy từ Sheet). */
@@ -124,4 +124,13 @@ export function acknowledge(sheet: Prices, ov: Override): Override {
   const base: Override["base"] = {};
   for (const c of Object.keys(ov.prices) as PaxCode[]) base[c] = sheet[c];
   return { ...ov, base };
+}
+
+/**
+ * Dịch vụ như bên bán hàng dùng: giá hiệu lực (đã áp ghi đè của Admin) + `visible` = còn trong Sheet và không bị Admin ẩn.
+ * MỘT nguồn cho "đang hiện / giá hiệu lực": danh mục công khai (`GET /api/catalog`) và luật đơn hàng cùng gọi hàm này.
+ */
+export function toEffective(s: CatalogRecord & { override: Override | null }): EffectiveService {
+  const eff = applyOverride(s.prices, s.override);
+  return { code: s.code, name: s.name, unit: s.unit, prices: eff.prices, notes: s.notes, visible: s.inSheet && !eff.hidden };
 }

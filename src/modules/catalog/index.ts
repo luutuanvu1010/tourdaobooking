@@ -4,15 +4,26 @@ import type { AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import type { CatalogAdminItemDto, CatalogAdminResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse } from "../../shared/contracts";
-import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type PaxCode } from "../../shared/order-lines";
+import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
 import { getSyncState, loadAll, loadOne, saveOverride, type StoredItem } from "./repository";
-import { acknowledge, applyOverride, money, patchOverride, type OverridePatch } from "./rules";
+import { acknowledge, applyOverride, money, patchOverride, toEffective, type OverridePatch } from "./rules";
 import { bootstrapIfNeverSynced, syncCatalog } from "./service";
 
+export type { EffectiveService };
+
+/**
+ * API công khai của module (module khác CHỈ import từ file này): dịch vụ theo mã (bỏ `codes` = tất cả), giá đã áp ghi đè,
+ * kèm cờ `visible`. Đơn hàng dùng để biết giá hiệu lực và dịch vụ nào đang bán được — không tự tính lại.
+ */
+export async function getEffectiveServices(db: D1Database, codes?: readonly string[]): Promise<Map<string, EffectiveService>> {
+  const want = codes ? new Set(codes) : null;
+  const all = await loadAll(db);
+  return new Map(all.filter((s) => !want || want.has(s.code)).map((s) => [s.code, toEffective(s)]));
+}
 
 /** Dịch vụ như nhân viên bán hàng thấy: giá hiệu lực (đã áp ghi đè), không lộ thông tin ghi đè hay Sheet. */
-function publicItem(s: StoredItem): CatalogServiceDto {
-  return { code: s.code, name: s.name, unit: s.unit, prices: applyOverride(s.prices, s.override).prices, notes: s.notes, supported: parseUnit(s.unit).kind !== "unknown" };
+function publicItem(e: EffectiveService): CatalogServiceDto {
+  return { code: e.code, name: e.name, unit: e.unit, prices: e.prices, notes: e.notes, supported: parseUnit(e.unit).kind !== "unknown" };
 }
 
 function adminItem(s: StoredItem): CatalogAdminItemDto {
@@ -70,7 +81,7 @@ export const catalogModule: AppModule = {
         /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới, cho phép nhập tay */
       }
       const [items, state] = await Promise.all([loadAll(env.DB), getSyncState(env.DB)]);
-      const visible = items.filter((s) => s.inSheet && !applyOverride(s.prices, s.override).hidden).map(publicItem);
+      const visible = items.map(toEffective).filter((e) => e.visible).map(publicItem);
       return json({ items: visible, sync: { lastSuccessAt: state.lastSuccessAt, error: state.lastError } } satisfies CatalogPublicResponse);
     }),
 

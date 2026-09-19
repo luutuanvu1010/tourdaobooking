@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { acknowledge, applyOverride, patchOverride, planSync, summarizePlan, syncGuard, type CatalogRecord } from "./rules.ts";
+import { acknowledge, applyOverride, patchOverride, planSync, summarizePlan, syncGuard, toEffective, type CatalogRecord } from "./rules.ts";
 import type { CatalogInput } from "./sheet.ts";
 
 const P = (adult: number, child: number | null = null) => ({ adult, child, senior: null, infant: null });
@@ -84,4 +84,18 @@ test("ẩn dịch vụ là một ghi đè; hiện lại thì bỏ", () => {
   ov = patchOverride(P(1), ov, { hidden: false });
   assert.equal(ov, null);
   assert.equal(applyOverride(P(1), null).hidden, false);
+});
+
+test("toEffective: giá hiệu lực (đã ghi đè) + visible = còn trong Sheet và không bị ẩn", () => {
+  const base = { ...rec("A", 850000), prices: P(850000, 595000), override: null };
+  assert.deepEqual(toEffective(base), { code: "A", name: "Tour A", unit: "perPax", prices: P(850000, 595000), notes: N, visible: true });
+  // ghi đè giá: giá hiệu lực đổi, vẫn hiện
+  const priced = toEffective({ ...base, override: patchOverride(base.prices, null, { prices: { adult: 800000 } }) });
+  assert.deepEqual([priced.prices.adult, priced.prices.child, priced.visible], [800000, 595000, true]);
+  // Admin ẩn → không hiện, nhưng vẫn có mặt (để đơn nháp cũ nhận ra "dịch vụ đã ẩn")
+  assert.equal(toEffective({ ...base, override: patchOverride(base.prices, null, { hidden: true }) }).visible, false);
+  // biến mất khỏi Sheet → không hiện
+  assert.equal(toEffective({ ...base, inSheet: false }).visible, false);
+  // vừa bị ẩn vừa rời Sheet
+  assert.equal(toEffective({ ...base, inSheet: false, override: patchOverride(base.prices, null, { hidden: true }) }).visible, false);
 });
