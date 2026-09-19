@@ -19,10 +19,10 @@
   "topnavVisible": false,
   "newBtnInToolbarHidden": true,
   "overflowX": false,
-  "lastRowClearOfTabBar": 20
+  "lastRowClearOfTabBar": 2
  },
  "detail": {
-  "barTitle": "TD-20260919-0020",
+  "barTitle": "TD-20260919-0002",
   "backVisible": true,
   "brandHidden": true,
   "rowDisplay": "grid",
@@ -47,8 +47,8 @@
   ]
  },
  "editTitle": {
-  "h1": "Sửa đơn TD-20260919-0019",
-  "bar": "Sửa đơn TD-20260919-0019"
+  "h1": "Sửa đơn TD-20260919-0001",
+  "bar": "Sửa đơn TD-20260919-0001"
  },
  "form": {
   "tabbarPresent": false,
@@ -75,7 +75,7 @@
   "active": "activated",
   "controlled": true,
   "keys": [
-   "td-shell-20260919163224"
+   "td-shell-20260919164414"
   ],
   "count": 14,
   "apiEntries": [],

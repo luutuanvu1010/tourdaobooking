@@ -6,13 +6,26 @@ Ngày 2026-09-19. Nhánh `worktree-pwa-iphone`. Yêu cầu của chủ dự án:
 
 **Căn cứ đã đọc:** `tourdaovn/CLAUDE.md`; `playbook/CONSTITUTION.md` v2.2.0 (P1–P13, N1–N7, §5.8, §6, §7, §8); `playbook/GOVERNANCE.md` §4–5; `docs/core-specs/04-CONSTRAINTS.md` (§2, §3, §4); `docs/DECISIONS.md` (khuôn bản ghi, `QĐ-2026-08-22-01` về `theme-color`); `src/layouts/BaseLayout.astro` (favicon, apple-touch-icon). Phía `tourdao-sales`: `SPEC-tourdao-sales.md`, `ARCHITECTURE.md`, `AUDIT-BRIEF/FINDINGS.md`, `REFACTOR-PLAN.md`, `HANDOFF-M2/M4.md`. Không tài liệu nào của `tourdaovn` nhắc tới `tourdao-sales`, PWA, service worker hay manifest, nên áp dụng **khung chung**; các giá trị riêng của tourdaovn (ngưỡng Lighthouse, thang cỡ chữ) chỉ dùng để đối chiếu, không coi là luật của Desk.
 
-**Bằng chứng** (`docs/evidence/2026-09-19-pwa/`, ghi mã băm): `kiem-tra-may.txt` (typecheck, 55 test, e2e 6/6, gắn HEAD `ec614f6`), `ket-qua-do.json` (axe và thời gian mở), `nang-cap-sw.json` (service worker tự đổi cache qua hai lần deploy giả lập), `kiem-tra-giao-dien.txt`, `anh/`, `kich-ban/`.
+**Bằng chứng** (`docs/evidence/2026-09-19-pwa/`, ghi mã băm): `kiem-tra-may.txt` (typecheck, 55 test, e2e 6/6, gắn HEAD `37d5c71`), `ket-qua-do.json` (axe và thời gian mở), `nang-cap-sw.json` (service worker tự đổi cache qua hai lần deploy giả lập), `kiem-tra-giao-dien.txt`, `anh/`, `kich-ban/`.
+
+## Đã sửa trong lúc rà (bản rà này không chỉ báo cáo)
+
+Người thi công sửa mã ngay khi tìm ra lỗi. Đó là quyết định phạm vi của người thi công (`CLAUDE.md` §8: giữ thay đổi nhỏ, đúng phạm vi), chủ dự án chưa duyệt từng mục. **Nói nếu muốn hoàn tác mục nào.** Toàn bộ thay đổi mã: `git diff aab077b..HEAD -- public web src tests package.json` (`aab077b` là commit cuối trước khi bắt đầu rà).
+
+| # | Việc đã sửa | Vì sao | Commit |
+|---|---|---|---|
+| 1 | `h1` ẩn khỏi mắt thay vì `display:none` | axe `page-has-heading-one` (RS4) | `06a1989` |
+| 2 | Giá trị giao diện của khối PWA đi vào token Desk; e2e quét màu, `px`, `rem/em`, `rgb()/hsl()` | RS1 | `ae374f1`, `37d5c71` |
+| 3 | Bỏ 2 `style=` nội tuyến ở `account.html`; nhãn tab 11px lên 12px | RS16, RS18 | `ec614f6` |
+| 4 | Mã phiên bản cache do build chèn (`package.json`: thêm `--define:__BUILD_ID__` vào lệnh build service worker), thay cho "tăng tay". **Đổi hành vi:** mỗi lần deploy xoá cache khung của mọi người dùng, nên lần mở đầu tiên sau mỗi deploy chậm hơn (cỡ lần đầu nguội, khoảng 718 ms trong phép đo) | RS13 | `ec614f6` |
+| 5 | `/sw.js` từ `no-cache` sang `no-store` | RS13 | `37d5c71` |
+| 6 | e2e đối chiếu tên với manifest và màu theme với token `--c-primary` | RS2 | `e801041` |
 
 ## Phát hiện và xử lý
 
 | Mã | Điều khoản | Phát hiện | Xử lý | Bằng chứng |
 |---|---|---|---|---|
-| RS1 | P6, N7; `CLAUDE.md` §8 luật cứng 1 (giá trị giao diện vào token) | Khối CSS PWA viết cứng 44/48/52/56/36/72px, cỡ chữ 11px, 22,37%, `#fff` | Chuyển thành token riêng của Desk ở `:root` (chú thích rõ là không kế thừa từ tourdaovn); `pwa.mjs` quét khối PWA, không được còn màu hex hay `px` (ngoại lệ có lý do: điểm gãy `@media`, viền 1px). Lưu ý: luật này là của tourdaovn, SPEC của Desk chỉ đòi token khai ở §4; áp dụng theo yêu cầu của chủ dự án. tourdaovn tự ghi chưa có token 44px (DR-094), Desk đặt `--tap-min` | `ae374f1`; phép quét đã thử làm đỏ bằng `10px, #abc` |
+| RS1 | P6, N7; `CLAUDE.md` §8 luật cứng 1 (giá trị giao diện vào token) | Khối CSS PWA viết cứng 44/48/52/56/36/72px, cỡ chữ 11px, 22,37%, `#fff` | Chuyển thành token riêng của Desk ở `:root` (chú thích rõ là không kế thừa từ tourdaovn); `pwa.mjs` quét khối PWA, không được còn màu hex, `rgb()/hsl()`, `px`, `rem/em` (ngoại lệ có lý do: điểm gãy `@media`, viền 1px). **Bản quét đầu chỉ bắt hex và `px` nên đã bỏ sót ba cỡ chữ `rem` viết cứng (`1.1rem` ×2, `1.125rem`) trong khối mà tài liệu này từng xác nhận là sạch**; mở rộng phép quét mới lộ ra, rồi đưa vào token. Lưu ý: luật này là của tourdaovn, SPEC của Desk chỉ đòi token khai ở §4; áp dụng theo yêu cầu của chủ dự án. tourdaovn tự ghi chưa có token 44px (DR-094), Desk đặt `--tap-min` | `ae374f1`, `37d5c71`; phép quét đã thử làm đỏ bằng `10px, #abc`, và bằng `1.1rem, 1.125rem` khi mở rộng |
 | RS2 | P6, N7 | Tên hiển thị nhân bản ở manifest, 8 `<title>`, `apple-mobile-web-app-title`, h1 đăng nhập, brand trong `web/shell.ts`; màu theme nhân bản ở manifest và 8 thẻ `theme-color` | Bản sao là tất yếu (HTML tĩnh và JSON không import được CSS) nên đặt cổng máy: `pwa.mjs` lấy `manifest.name/short_name` và token `--c-primary` làm gốc rồi đối chiếu mọi bản sao | `e801041`; đã thử làm lệch `#0c4a6e` → `#0c4a6f`, test đỏ |
 | RS3 | §6.2 (ngưỡng phải là số), §8.2 | Yêu cầu "nhanh nhất" chưa có con số; SPEC §3 đặt ngưỡng TTI di động 4G dưới 2 giây | Đo bằng Chrome headless trên 4G giả lập. Bảng dưới. Đạt | `ket-qua-do.json` |
 | RS4 | §6.1 (khả năng tiếp cận) | axe: 0 lỗi critical/serious. Nhánh gây ra 1 lỗi mức vừa: ẩn `h1` bằng `display:none` làm 6 trang mất tiêu đề cấp 1 (`page-has-heading-one`) | Đổi sang kiểu ẩn-khỏi-mắt, `h1` còn trong cây truy cập. Còn 2 lỗi nhỏ `empty-table-header` (cột thao tác `<th></th>` ở `/catalog`, `/staff`) có sẵn từ trước nhánh | `06a1989`; `ket-qua-do.json` |
@@ -24,7 +37,7 @@ Ngày 2026-09-19. Nhánh `worktree-pwa-iphone`. Yêu cầu của chủ dự án:
 | RS10 | 04-CONSTRAINTS §4 (bảo mật); SPEC/AUDIT-FINDINGS A14 | `/api/*` mang dữ liệu khách và phiên: không được vào cache | Ba lớp kiểm: hàm thuần `routeFor` có test; e2e xác nhận API `no-store`; đo trên trình duyệt thấy 0 mục `/api` trong cache. Không `innerHTML`, không `console.*`, không bí mật được theo dõi, CSP không đổi | `sw-policy.test.ts`, `pwa.mjs`, `ket-qua-do.json` |
 | RS11 | N2, N6 (cổng trước phát hành) | Nhánh chưa được gộp hay deploy | Giữ nguyên: chủ dự án quyết định gộp và deploy | — |
 | RS12 | P6, N7; SPEC §2.4-2 và §5: logo công ty đến sau qua màn hình cài đặt (`company_profile.logo_url`), v1 chạy wordmark chữ | Logo tĩnh ở đầu trang và đăng nhập, sau M5 sẽ có hai nguồn | Tách hai vai. **Icon PWA** buộc là file tĩnh (manifest không đọc được cấu hình động) nên giữ. **Logo ở đầu trang và đăng nhập** là tạm (chủ dự án duyệt qua mockup, Q6), ghi nợ: khi M5 có `company_profile.logo_url` hai chỗ này đọc từ đó | Q4, Q6 |
-| RS13 | §8.2 (ràng buộc thiếu cách máy kiểm là ràng buộc rỗng); rủi ro "khung cũ chạy với API mới" | Bản đầu cần người **nhớ tăng `CACHE_VERSION` bằng tay** khi deploy đổi API: chỉ là kỷ luật của con người | Mã phiên bản cache do `npm run build:web` chèn (`--define:__BUILD_ID__`), mỗi build/deploy tự xoá cache cũ; chứng minh bằng hai lần "deploy" giả lập trên trình duyệt (cache bản A bị xoá, bản B thay thế, app chạy bình thường). **Hạn chế đã đo:** `wrangler dev` giữ ETag cũ của `/sw.js` (trình duyệt nhận 304, không thấy bản mới); Workers Assets thật băm lại theo deploy nhưng **chưa kiểm được nếu không deploy**, nên có bước "Sau khi deploy" trong `docs/PWA-IPHONE.md` | `ec614f6`, `nang-cap-sw.json` |
+| RS13 | §8.2 (ràng buộc thiếu cách máy kiểm là ràng buộc rỗng); rủi ro "khung cũ chạy với API mới" | Bản đầu cần người **nhớ tăng `CACHE_VERSION` bằng tay** khi deploy đổi API: chỉ là kỷ luật của con người | Mã phiên bản cache do `npm run build:web` chèn (`--define:__BUILD_ID__`), mỗi build/deploy tự xoá cache cũ; chứng minh bằng hai lần "deploy" giả lập trên trình duyệt (cache bản A bị xoá, bản B thay thế, app chạy bình thường). **Bẫy đã đo rồi đã sửa:** với `/sw.js` là `Cache-Control: no-cache`, kịch bản build-rồi-cập-nhật trên một máy chủ KHÔNG đạt (`wrangler dev` giữ ETag cũ, trình duyệt gửi `If-None-Match` và nhận 304, không thấy bản mới). Đổi sang `no-store` (không còn bản lưu để gửi điều kiện) thì đạt. Điều này quan trọng vì cách tắt khẩn cấp cũng đi qua `/sw.js`. **Còn lại chưa kiểm được:** Workers Assets thật (chỉ kiểm được trên `wrangler dev`); có bước xác nhận "Sau khi deploy" trong `docs/PWA-IPHONE.md` | `ec614f6`, `37d5c71`, `nang-cap-sw.json`, `nang-cap-sw-mot-may-chu.txt` |
 | RS14 | GOVERNANCE §4.3–4.4, §5.3 | Chưa chạy QA1/QA2 độc lập; bằng chứng hiện có là E1 và E2 do chính người thi công tạo | Ghi rõ ở đầu tài liệu này. **Cần chủ dự án quyết** ai chạy QA độc lập | — |
 | RS15 | P4, SPEC §7 dòng cuối (spec–code phải đồng bộ), AUDIT-FINDINGS A18 | Quyết định PWA nằm ngoài chỗ ghi của dự án (§2.4, §6, §7, lịch sử), lộ trình M1–M5 không có PWA | Đã đồng bộ `SPEC-tourdao-sales.md`: §2.4-7, §3 (static assets), §6 (dòng PWA), §7 (ba dòng), lịch sử, dòng 4. Thứ tự P3 ("mỗi module gộp xong mới mở module sau"): PWA làm xen giữa M3 và M4 theo yêu cầu của chủ dự án, ghi ở §6 | `SPEC-tourdao-sales.md` |
 | RS16 | AUDIT-FINDINGS A14 (CSP `style-src 'unsafe-inline'` vì còn `style=`; muốn bỏ thì chuyển sang class) | Nhánh thêm 2 thuộc tính `style=` ở `account.html` | Thay bằng class `.narrow` + token `--w-narrow`, bỏ luôn `style=` có sẵn của form; CSP không đổi. Kiểm không có lỗi console/CSP trên đủ 8 trang (kịch bản duyệt, không bỏ qua CSP) | `ec614f6`, `kiem-tra-giao-dien.txt` |
@@ -37,11 +50,11 @@ Trung vị 5 lần, milli-giây từ lúc bắt đầu điều hướng, 4G gi�
 
 | Tình huống | Khung | FCP | Dữ liệu |
 |---|---|---|---|
-| A. Lần đầu, nguội (chưa cache, chưa service worker) | 397 | 428 | 726 |
-| B. Mở lại, KHÔNG service worker | 340 | 336 | 657 |
-| C. Mở lại, CÓ service worker | 38 | 52 | 355 |
+| A. Lần đầu, nguội (chưa cache, chưa service worker) | 391 | 428 | 718 |
+| B. Mở lại, KHÔNG service worker | 341 | 336 | 655 |
+| C. Mở lại, CÓ service worker | 35 | 48 | 354 |
 
-Mở lại nhanh hơn khoảng 9 lần ở phần khung và khoảng 1,8 lần ở phần dữ liệu. Cả ba dưới ngưỡng 2 giây của SPEC. **Hạn chế:** localhost với băng thông và độ trễ giả lập; chưa phải mạng thật đến Cloudflare, chưa phải iPhone thật.
+Mở lại nhanh hơn khoảng 10 lần ở phần khung và khoảng 1,8 lần ở phần dữ liệu. Cả ba dưới ngưỡng 2 giây của SPEC. **Hạn chế:** localhost với băng thông và độ trễ giả lập; chưa phải mạng thật đến Cloudflare, chưa phải iPhone thật.
 
 Phần dữ liệu còn lại ở tình huống C (355 ms) gần như là hai lời gọi API nối tiếp (`/api/auth/me` rồi `/api/orders`). Chạy song song sẽ bớt khoảng một vòng RTT. Việc này ngoài phạm vi spec đã duyệt nên **không làm**, chỉ ghi làm đề xuất chờ duyệt.
 
@@ -54,7 +67,7 @@ Phần dữ liệu còn lại ở tình huống C (355 ms) gần như là hai l�
 
 ## Chưa kiểm được và nợ đã ghi
 
-- **Chưa kiểm trên iPhone thật:** thêm vào Màn hình chính, icon sau khi iOS bo góc, thanh trạng thái, tai thỏ và thanh home, và rủi ro lớn nhất là nút "Lưu đơn nháp" `sticky` bị bàn phím iOS che (`docs/PWA-IPHONE.md`). **Chưa kiểm ETag của `/sw.js` trên Workers Assets thật** (RS13).
+- **Chưa kiểm trên iPhone thật:** thêm vào Màn hình chính, icon sau khi iOS bo góc, thanh trạng thái, tai thỏ và thanh home, và rủi ro lớn nhất là nút "Lưu đơn nháp" `sticky` bị bàn phím iOS che (`docs/PWA-IPHONE.md`). **Chưa kiểm việc nhận service worker mới trên Workers Assets thật** (mới kiểm trên `wrangler dev` với `no-store`, RS13).
 - **Nợ có sẵn từ trước, không thuộc nhánh này:** `empty-table-header` (nhỏ) ở `/catalog`, `/staff`; nhiều màu và cỡ chữ viết cứng ngoài khối PWA trong `app.css`; token sao chép từ tourdaovn theo ngày; `docs/HANDOFF-M4.md` dòng 7 và `README.md` dòng 21, 25 còn ghi "chưa deploy", "0007 chưa áp remote" trong khi đã deploy (bộ nhớ dự án ghi 2026-09-19), và `README.md` dòng 3 nói chạy tại `sales.tourdao.vn` trong khi tên miền thuộc M5. Tôi không sửa các dòng này vì phiên kia cũng sửa `HANDOFF-M4.md` và `README.md` trong kế hoạch của họ.
 - **Chênh so với mockup:** ở chi tiết đơn, các nút hành động nằm trên huy hiệu trạng thái (do thứ tự DOM hiện có), mockup đặt sau; mockup trên Claude Design vẫn ghi "Tour Đảo Sales" ở vài chỗ và chưa cập nhật theo nhánh.
 - **Rủi ro đã ghi:** phiên 7 ngày cố định; trang admin trên điện thoại vẫn là bảng cuộn ngang; chế độ offline thật chưa làm.

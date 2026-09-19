@@ -53,12 +53,12 @@ Mọi màn hình là màn hình đã chạy; nhánh này chỉ tổ chức lại
 - `public/manifest.webmanifest`: `name` "Tour Đảo Desk", `short_name` "Tour Đảo", `display: standalone`, `start_url: /`, `theme_color` và `background_color` navy/trắng, icon 192 và 512.
 - `public/icons/`: `apple-touch-icon.png` (180), `icon-192.png`, `icon-512.png`, `logo-96.png` (logo nhỏ cho thanh đầu trang).
 - Cả 8 trang HTML: `viewport-fit=cover`, `theme-color`, `apple-mobile-web-app-capable`, `apple-mobile-web-app-title`, `apple-mobile-web-app-status-bar-style`, `link rel=manifest`, `link rel=apple-touch-icon`, tiêu đề mới. CSP hiện tại (`default-src 'self'`) đã bao phủ worker và manifest cùng origin nên không sửa.
-- `public/_headers`: `/sw.js` không cache (`Cache-Control: no-cache`).
+- `public/_headers`: `/sw.js` là `Cache-Control: no-store` (không phải `no-cache`: `no-cache` vẫn cho trình duyệt giữ bản cũ và gửi `If-None-Match`, một ETag cũ làm nó nhận `304` và không thấy service worker mới, và cách tắt khẩn cấp cũng đi qua `/sw.js`).
 
 **Service worker**
 - `src/shared/sw-policy.ts`: hàm thuần, có test: `routeFor(method, url, origin)` trả `"pass"` (không đụng: khác origin, không phải GET, `/api/*`, `/sw.js`) hoặc `"shell"`; `cacheKey(url)` chuẩn hoá về `origin + pathname` (bỏ query để `/order?id=…` không sinh vô số mục cache); `isCacheable(response)` chỉ nhận 200, cùng origin, không chuyển hướng.
 - `web/sw/sw.ts` (+ `tsconfig.json` riêng, lib WebWorker) build bằng esbuild ra `public/sw.js` (gitignored như `public/js`). `install`: nạp sẵn các trang lõi, lỗi một mục không làm hỏng cả lần cài. `activate`: xoá cache có tên khác `CACHE_NAME`, `clients.claim()`. `fetch`: `pass` thì thoát sớm, không gọi `respondWith`; `shell` thì trả từ cache rồi tải bản mới ngầm phía sau; chưa có cache và mất mạng thì trả 503 dạng văn bản.
-- `CACHE_VERSION` = mã bản dựng do `npm run build:web` chèn (`--define:__BUILD_ID__`, `AAAAMMDDGGPPSS`; ngoài bản build là `dev`): mỗi lần build/deploy service worker mới xoá cache cũ. Sau deploy, chỉ lần mở đầu tiên (trước khi trình duyệt nhận service worker mới) còn chạy khung cũ. `wrangler dev` giữ ETag cũ của `/sw.js` nên không mô phỏng được bước nhận bản mới; phải kiểm ngay sau lần deploy đầu (`docs/PWA-IPHONE.md`, mục "Sau khi deploy").
+- `CACHE_VERSION` = mã bản dựng do `npm run build:web` chèn (`--define:__BUILD_ID__`, `AAAAMMDDGGPPSS`; ngoài bản build là `dev`): mỗi lần build/deploy service worker mới xoá cache cũ. Sau deploy, chỉ lần mở đầu tiên (trước khi trình duyệt nhận service worker mới) còn chạy khung cũ. Xác nhận trên môi trường thật ở `docs/PWA-IPHONE.md`, mục "Sau khi deploy".
 - `web/pwa.ts`: `registerServiceWorker()`, gọi từ `initShell()` và `login.ts` (không script inline vì CSP).
 
 **Giao diện điện thoại**
@@ -79,5 +79,5 @@ Mọi màn hình là màn hình đã chạy; nhánh này chỉ tổ chức lại
 ## Rủi ro đã biết
 
 - Phiên 7 ngày cố định và iOS tách cookie giữa Safari với app đã cài: nhân viên đăng nhập lại một lần khi cài, rồi khoảng mỗi tuần.
-- Khung stale-while-revalidate có thể chạy bản cũ ở đúng lần mở đầu tiên sau deploy (mã bản dựng tự đổi nên không cần nhớ tăng tay). Rủi ro còn lại: nếu Workers Assets thật giữ ETag cũ cho `/sw.js` thì trình duyệt không bao giờ nhận bản mới; kiểm ngay sau lần deploy đầu tiên.
+- Khung stale-while-revalidate có thể chạy bản cũ ở đúng lần mở đầu tiên sau deploy (mã bản dựng tự đổi nên không cần nhớ tăng tay). Rủi ro còn lại: chưa kiểm được trên Workers Assets thật (chỉ trên `wrangler dev`); kiểm ngay sau lần deploy đầu tiên.
 - Trang admin trên điện thoại vẫn là bảng cuộn ngang, chỉ được khung chung mới.

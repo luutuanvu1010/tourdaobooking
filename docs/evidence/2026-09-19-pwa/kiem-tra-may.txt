@@ -1,6 +1,6 @@
 Bằng chứng E1 (máy chạy, máy kiểm) — nhánh worktree-pwa-iphone
 Ngày: 2026-09-19
-Mã (HEAD): ec614f6 — public/, web/, src/, tests/, package.json không có thay đổi chưa commit (0 file)
+Mã (HEAD): 37d5c71 — public/, web/, src/, tests/, package.json không có thay đổi chưa commit (0 file)
 
 == npm run typecheck
 
@@ -21,11 +21,11 @@ Mã (HEAD): ec614f6 — public/, web/, src/, tests/, package.json không có tha
 ▶ pwa
 ✔ pwa (0.1s)
 ▶ orders
-✔ orders (4.1s)
+✔ orders (4.2s)
 ▶ admin
 ✔ admin (2.9s)
 ▶ catalog
-✔ catalog (14.6s)
+✔ catalog (14.1s)
 ▶ admin-race
 ✔ admin-race (0.1s)
 E2E: 6/6 kịch bản xanh
