@@ -11,9 +11,9 @@ interface Tab {
 }
 
 /** Thanh tab dưới đáy (điện thoại): nhân viên 3 tab, admin 5 tab. /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. */
-function tabsFor(staff: Staff): Tab[] {
+function tabsFor(admin: boolean): Tab[] {
   const adminTabs: Tab[] =
-    staff.role === "admin"
+    admin
       ? [
           { href: "/catalog", label: "Dịch vụ", icon: "services", active: (p) => p === "/catalog" },
           { href: "/staff", label: "Nhân viên", icon: "staff", active: (p) => p === "/staff" },
@@ -27,11 +27,11 @@ function tabsFor(staff: Staff): Tab[] {
   ];
 }
 
-function tabBar(staff: Staff, path: string): HTMLElement {
+function tabBar(admin: boolean, path: string): HTMLElement {
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
-    ...tabsFor(staff).map((t) =>
+    ...tabsFor(admin).map((t) =>
       h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon)), h("span", null, t.label)),
     ),
   );
@@ -72,6 +72,11 @@ export async function initShell(): Promise<Staff> {
     who,
   );
 
+  const addTabBar = (admin: boolean) => {
+    if (tabbar === "off") return;
+    document.body.append(tabBar(admin, path));
+    document.body.classList.add("has-tabbar");
+  };
   let me: Api.MeResponse;
   try {
     me = await api<Api.MeResponse>("/api/auth/me");
@@ -80,6 +85,7 @@ export async function initShell(): Promise<Staff> {
     // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
     const el = document.getElementById("error");
     if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.");
+    addTabBar(false); // không biết vai khi mất mạng: hiện 3 tab cơ bản để còn điều hướng (QA2 Q2-04)
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
@@ -95,10 +101,7 @@ export async function initShell(): Promise<Staff> {
     admin && h("a", { href: "/audit" }, "Nhật ký"),
   );
   replaceChildren(who, h("a", { href: "/account", title: "Tôi" }, staff.fullName), logoutBtn);
-  if (tabbar !== "off") {
-    document.body.append(tabBar(staff, path));
-    document.body.classList.add("has-tabbar");
-  }
+  addTabBar(admin);
   return staff;
 }
 
