@@ -27,7 +27,7 @@ export const ordersModule: AppModule = {
     }),
 
     route("POST", "/api/orders", "staff", async ({ env, request, staff }) => {
-      const parsed = validateOrder(await readJson(request));
+      const parsed = validateOrder(await readJson(request), { catalog: new Map(), stored: [] });
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const id = await createOrder(env.DB, staff.id, parsed.value);
       return json({ order: (await findOrder(env.DB, id))! } satisfies OrderResponse, 201);
@@ -47,7 +47,7 @@ export const ordersModule: AppModule = {
       if (!meta) return NOT_FOUND();
       if (!canModify(staff, meta)) return FORBIDDEN();
       if (meta.status !== "draft") return error(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
-      const parsed = validateOrder(await readJson(request));
+      const parsed = validateOrder(await readJson(request), { catalog: new Map(), stored: [] });
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (!(await updateDraftOrder(env.DB, id, staff.id, parsed.value))) {
         return error(409, "not_editable", "Đơn vừa được đổi trạng thái, không sửa được nữa.");

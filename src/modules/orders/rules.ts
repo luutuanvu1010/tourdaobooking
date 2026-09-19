@@ -1,24 +1,15 @@
 // Luật nghiệp vụ thuần của đơn hàng (spec §2.3): kiểm tra đầu vào, tính tiền, chuyển trạng thái, mã đơn.
+// Luật của TỪNG DỊCH VỤ (số khách, thông tin chuyến, dòng tiền sinh từ danh mục) nằm ở ./service-rules.ts.
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
-import { CATALOG_CODE_RE, MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
+import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
+import { vnToday } from "../../shared/vn-date.ts";
+import { int, text } from "./fields.ts";
+import { MAX_LINES_PER_ORDER, MAX_SERVICES, validateService, type ServiceContext, type ServiceFailure, type ValidItem, type ValidService } from "./service-rules.ts";
 
-export type { DepositMethod, OrderStatus };
+export type { DepositMethod, OrderStatus, ServiceContext, ValidItem, ValidService };
 
 export const DEPOSIT_METHODS: readonly DepositMethod[] = ["cash", "bank_transfer", "other"];
-
-const MAX_QUANTITY = 100_000;
-const MAX_ITEMS = 50;
-
-export interface ValidItem {
-  /** Mã dịch vụ nguồn khi dòng sinh từ danh mục; null = nhập tay. Chỉ để truy vết, không ràng buộc giá. */
-  catalogCode: string | null;
-  description: string;
-  detail: string | null;
-  quantity: number;
-  unitPrice: number;
-  lineTotal: number;
-}
 
 /** Đơn đã kiểm tra: mọi số tiền dẫn xuất đều do server tính, không lấy từ client. */
 export interface ValidOrder {
@@ -26,6 +17,8 @@ export interface ValidOrder {
   customerPhone: string;
   customerEmail: string | null;
   customerNote: string | null;
+  services: ValidService[];
+  /** Mọi dòng tiền của mọi dịch vụ (theo thứ tự dịch vụ rồi dòng). */
   items: ValidItem[];
   subtotal: number;
   discount: number;
@@ -34,35 +27,23 @@ export interface ValidOrder {
   depositMethod: DepositMethod | null;
   remainingAmount: number;
   paymentNote: string | null;
+  /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
+  expectedUpdatedAt: string | null;
 }
 
-export type Validated = { ok: true; value: ValidOrder } | { ok: false; message: string };
+export type Failure = { ok: false; message: string; code?: ServiceFailure["code"] | "client_outdated"; details?: unknown };
+export type Validated = { ok: true; value: ValidOrder } | Failure;
 
-const fail = (message: string): Validated => ({ ok: false, message });
-
-function text(v: unknown, label: string, max: number, required: boolean): { value: string | null; error?: string } {
-  if (v === undefined || v === null || v === "") return required ? { value: null, error: `${label} là bắt buộc.` } : { value: null };
-  if (typeof v !== "string") return { value: null, error: `${label} không hợp lệ.` };
-  const s = v.trim();
-  if (!s) return required ? { value: null, error: `${label} là bắt buộc.` } : { value: null };
-  if (s.length > max) return { value: null, error: `${label} tối đa ${max} ký tự.` };
-  return { value: s };
-}
-
-/** Số tiền/số lượng phải là số nguyên (kiểu number, không nhận chuỗi) trong khoảng cho phép. */
-function int(v: unknown, label: string, min: number, max: number, fallback?: number): { value: number; error?: string } {
-  if ((v === undefined || v === null) && fallback !== undefined) return { value: fallback };
-  if (typeof v !== "number" || !Number.isSafeInteger(v)) return { value: 0, error: `${label} phải là số nguyên.` };
-  if (v < min || v > max) return { value: 0, error: `${label} phải từ ${min} đến ${max}.` };
-  return { value: v };
-}
+const fail = (message: string): Failure => ({ ok: false, message });
 
 const PHONE_RE = /^\+?[0-9][0-9 .\-]{6,18}[0-9]$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function validateOrder(input: unknown): Validated {
+export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (!input || typeof input !== "object" || Array.isArray(input)) return fail("Dữ liệu đơn không hợp lệ.");
   const b = input as Record<string, unknown>;
+  // Tab mở từ trước khi triển khai vẫn gửi `items` phẳng kiểu cũ.
+  if (b.services === undefined && Array.isArray(b.items)) return { ok: false, code: "client_outdated", message: "Trang đã cũ, hãy tải lại trang rồi thử lại." };
 
   const name = text(b.customerName, "Tên khách hàng", 200, true);
   if (name.error) return fail(name.error);
@@ -78,31 +59,26 @@ export function validateOrder(input: unknown): Validated {
   const paymentNote = text(b.paymentNote, "Ghi chú thanh toán", 1000, false);
   if (paymentNote.error) return fail(paymentNote.error);
 
-  if (!Array.isArray(b.items) || b.items.length === 0) return fail("Đơn cần ít nhất một dòng dịch vụ.");
-  if (b.items.length > MAX_ITEMS) return fail(`Đơn tối đa ${MAX_ITEMS} dòng dịch vụ.`);
+  if (!Array.isArray(b.services) || b.services.length === 0) return fail("Đơn cần ít nhất một dịch vụ.");
+  if (b.services.length > MAX_SERVICES) return fail(`Đơn tối đa ${MAX_SERVICES} dịch vụ.`);
 
-  const items: ValidItem[] = [];
+  const services: ValidService[] = [];
+  const usedIds = new Set<string>();
+  for (const [i, raw] of b.services.entries()) {
+    const r = validateService(raw, i, ctx);
+    if (!r.ok) return r;
+    if (r.value.id !== null) {
+      if (usedIds.has(r.value.id)) return fail(`Dịch vụ ${i + 1}: trùng một dịch vụ đã lưu.`);
+      usedIds.add(r.value.id);
+    }
+    services.push(r.value);
+  }
+  const items = services.flatMap((s) => s.items);
+  if (items.length > MAX_LINES_PER_ORDER) return fail(`Đơn tối đa ${MAX_LINES_PER_ORDER} dòng tiền.`);
   let subtotal = 0;
-  for (const [i, raw] of b.items.entries()) {
-    const at = `Dòng ${i + 1}`;
-    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return fail(`${at} không hợp lệ.`);
-    const it = raw as Record<string, unknown>;
-    const description = text(it.description, `${at}: tên dịch vụ`, 300, true);
-    if (description.error) return fail(description.error);
-    const detail = text(it.detail, `${at}: chi tiết`, 1000, false);
-    if (detail.error) return fail(detail.error);
-    const quantity = int(it.quantity, `${at}: số lượng`, 1, MAX_QUANTITY, 1);
-    if (quantity.error) return fail(quantity.error);
-    const unitPrice = int(it.unitPrice, `${at}: đơn giá`, 0, MAX_AMOUNT);
-    if (unitPrice.error) return fail(unitPrice.error);
-    const code = it.catalogCode;
-    if (code !== undefined && code !== null && (typeof code !== "string" || !CATALOG_CODE_RE.test(code))) return fail(`${at}: mã dịch vụ không hợp lệ.`);
-
-    const lineTotal = quantity.value * unitPrice.value;
-    if (lineTotal > MAX_AMOUNT) return fail(`${at}: thành tiền vượt giới hạn.`);
-    subtotal += lineTotal;
+  for (const it of items) {
+    subtotal += it.lineTotal;
     if (subtotal > MAX_AMOUNT) return fail("Tổng tiền vượt giới hạn.");
-    items.push({ catalogCode: typeof code === "string" ? code : null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, lineTotal });
   }
 
   const discount = int(b.discount, "Giảm giá", 0, MAX_AMOUNT, 0);
@@ -127,6 +103,7 @@ export function validateOrder(input: unknown): Validated {
       customerPhone: phoneValue,
       customerEmail: email.value,
       customerNote: note.value,
+      services,
       items,
       subtotal,
       discount: discount.value,
@@ -135,6 +112,7 @@ export function validateOrder(input: unknown): Validated {
       depositMethod,
       remainingAmount: total - deposit.value,
       paymentNote: paymentNote.value,
+      expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
     },
   };
 }
@@ -159,10 +137,7 @@ export function isOrderStatus(v: unknown): v is OrderStatus {
   return v === "draft" || v === "confirmed" || v === "cancelled";
 }
 
-const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
-
 /** Tiền tố mã đơn `TD-YYYYMMDD-`; số thứ tự NNNN do repository sinh trong câu INSERT. Ngày tính theo giờ Việt Nam (UTC+7) để đơn cuối ngày không nhảy sang ngày UTC khác. */
 export function orderCodePrefix(now: Date): string {
-  const d = new Date(now.getTime() + VN_OFFSET_MS).toISOString().slice(0, 10).replaceAll("-", "");
-  return `TD-${d}-`;
+  return `TD-${vnToday(now).replaceAll("-", "")}-`;
 }
