@@ -92,6 +92,10 @@ export function buildLines(item: CatalogService, counts: Partial<Record<PaxCode,
   if (paxTotal(counts) > MAX_GUESTS_PER_SERVICE) return { ok: false, message: `Tối đa ${MAX_GUESTS_PER_SERVICE} khách mỗi dịch vụ.` };
 
   if (unit.kind === "group") {
+    // Dịch vụ tính theo nhóm chỉ có MỘT ô "số khách" (ở `adult`). Số khách loại khác sẽ được lưu mà không có dòng tiền nào → từ chối.
+    if (PAX_ORDER.some((c) => c !== "adult" && (counts[c] ?? 0) > 0)) {
+      return { ok: false, message: "Dịch vụ tính theo nhóm chỉ nhập một ô số khách, không tách trẻ em / người cao tuổi / em bé." };
+    }
     const guests = counts.adult ?? 0;
     if (guests <= 0) return { ok: false, message: "Nhập số khách." };
     if (item.prices.adult === null) return { ok: false, message: "Dịch vụ này chưa có giá." };

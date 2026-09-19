@@ -66,6 +66,7 @@ try {
   assert.equal(r.status, 400); assert.equal(r.body.error.code, "catalog_unavailable");
   const rejected = [
     [cat({ catalogCode: "ZT3", pax: { adult: 1, child: 1 }, catalogPriceSeen: { adult: 800000 } }), /không có giá cho trẻ em/],
+    [cat({ catalogCode: "ZT2", pax: { adult: 3, child: 1 }, catalogPriceSeen: { adult: 1000000 } }), /tính theo nhóm/],
     [cat({ pax: { adult: 51 }, catalogPriceSeen: { adult: 850000 } }), /số khách người lớn/],
     [cat({ pax: { adult: 30, child: 21 } }), /tối đa 50 khách/],
     [cat({ pax: { infant: 2 }, catalogPriceSeen: { infant: 0 } }), /không phải em bé/],

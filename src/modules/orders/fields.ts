@@ -21,8 +21,11 @@ export function int(v: unknown, label: string, min: number, max: number, fallbac
   return { value: v };
 }
 
-const CONTROL_KEEP_NEWLINE = /[\u0000-\u0009\u000b-\u001f\u007f]/g;
-const CONTROL_ALL = /[\u0000-\u001f\u007f]/g;
+// Ký tự điều khiển ASCII + dấu tách dòng/đoạn Unicode (U+2028/2029 — giả xuống dòng) + dấu điều hướng hai chiều (U+200E/F, 202A–202E, 2066–2069 — đảo chiều chữ).
+// Cố ý KHÔNG bỏ U+200B–200D (khoảng trắng/nối độ rộng 0): cần cho emoji ghép.
+const UNICODE_LAYOUT = "\\u2028\\u2029\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069";
+const CONTROL_KEEP_NEWLINE = new RegExp(`[\\u0000-\\u0009\\u000b-\\u001f\\u007f${UNICODE_LAYOUT}]`, "g");
+const CONTROL_ALL = new RegExp(`[\\u0000-\\u001f\\u007f${UNICODE_LAYOUT}]`, "g");
 
 /**
  * Chuỗi tự do đi vào PNG/PDF (điểm đón, nơi check-in, ghi chú): bỏ ký tự điều khiển như booking (`schema.ts` của tourdaovn),

@@ -61,6 +61,15 @@ test("báo lỗi rõ ràng", () => {
   assert.match((buildLines({ ...tour, unit: "perGroup" }, { adult: 1 }) as { message: string }).message, /chưa hỗ trợ/);
 });
 
+test("theo nhóm: số khách loại khác adult bị từ chối (không lưu khách mà không tính tiền)", () => {
+  for (const other of ["child", "senior", "infant"] as const) {
+    const r = buildLines(banana, { adult: 3, [other]: 1 });
+    assert.ok(!r.ok, other);
+    assert.match((r as { message: string }).message, /tính theo nhóm/);
+  }
+  assert.ok(buildLines(banana, { adult: 3, child: 0, senior: 0, infant: 0 }).ok); // 0 khách loại khác vẫn hợp lệ
+});
+
 test("loại khách hiện bộ đếm", () => {
   assert.deepEqual(availableCodes(tour), ["adult", "child", "senior", "infant"]);
   assert.deepEqual(availableCodes(jetski), ["adult"]);

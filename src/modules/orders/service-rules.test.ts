@@ -59,6 +59,12 @@ test("danh mục: loại khách không có giá → lỗi; đơn giá cho loại
   assert.match(bad(catalogInput({ unitPrices: { adult: -1 } })).message, /đơn giá/);
 });
 
+test("danh mục: dịch vụ tính theo nhóm không nhận số khách loại khác adult", () => {
+  const r = bad({ kind: "catalog", catalogCode: "TTB03", pax: P(3, 1), catalogPriceSeen: { adult: 1000000 } });
+  assert.match(r.message, /Dịch vụ 1: .*tính theo nhóm/);
+  ok({ kind: "catalog", catalogCode: "TTB03", pax: P(3), catalogPriceSeen: { adult: 1000000 } });
+});
+
 test("danh mục: cần ≥ 1 khách không phải em bé; trần 50 khách; số khách phải là số nguyên", () => {
   assert.match(bad(catalogInput({ pax: P(0, 0, 0, 2), catalogPriceSeen: { infant: 0 } })).message, /không phải em bé/);
   assert.match(bad(catalogInput({ pax: P(0) })).message, /không phải em bé/);
@@ -141,6 +147,14 @@ test("nhập tay: tiền nhập tự do, số khách chỉ là thông tin vận 
   assert.deepEqual([v.kind, v.catalogCode, v.unit, v.name], ["manual", null, "manual", "Thuê áo phao"]);
   assert.deepEqual(v.items.map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal, i.paxCode, i.catalogPrice, i.catalogCode]), [["Áo phao", 3, 50000, 150000, null, null, null]]);
   assert.equal(ok(manualInput({ pax: P(0) })).pax.adult, 0); // 0 khách lưu nháp được; chỉ chặn lúc xác nhận
+});
+
+test("chuyến: U+2028/2029 và ký tự điều hướng hai chiều bị bỏ (không giả xuống dòng, không đảo chiều chữ trong mẫu xuất); giữ nối độ rộng 0 của emoji", () => {
+  const r = validateTrip({ note: "a b c‮d⁦e", pickupPlace: "x‏y‎z", checkinPlace: "👨‍👩" }, "D");
+  assert.ok(r.ok);
+  assert.equal(r.value.note, "a b c d e");
+  assert.equal(r.value.pickupPlace, "x y z");
+  assert.equal(r.value.checkinPlace, "👨‍👩");
 });
 
 test("nhập tay: tên và dòng tiền bắt buộc, kiểm số nguyên/khoảng như dòng nhập tay cũ", () => {
