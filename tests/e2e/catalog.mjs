@@ -8,12 +8,14 @@ for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync
   assert.equal((await call(SALES, m, p, {})).status, 403, `${m} ${p} phải cấm với sales`);
 }
 
-// --- lần đọc đầu tiên tự kéo Sheet thật (bootstrap): 5 người mở form cùng lúc → chỉ MỘT lần gọi Sheet, một dòng nhật ký
+// --- lần đọc đầu tiên tự kéo Sheet thật (bootstrap), 5 người mở form cùng lúc. Kiểm hồi quy: không có dòng nhật ký trùng.
+// Lưu ý: chưa tái hiện được tranh chấp gốc trên wrangler dev local (D1 local tuần tự quá nhanh; lần đồng bộ thừa lại thấy
+// "0 thay đổi" nên không ghi nhật ký) → kiểm này KHÔNG chứng minh claimFirstSync; điều đó dựa vào UPDATE có điều kiện.
 const burst = await Promise.all(Array.from({ length: 5 }, () => call(SALES, "GET", "/api/catalog")));
 assert.ok(burst.every((b) => b.status === 200));
 const syncedLogs = (await call(ADMIN, "GET", "/api/audit?action=catalog_synced&limit=10")).body.entries;
-assert.equal(syncedLogs.length, 1, `bootstrap song song phải đồng bộ đúng một lần, thực tế ${syncedLogs.length}`);
-console.log("✓ 5 request đầu tiên song song → đồng bộ Sheet đúng một lần");
+assert.equal(syncedLogs.length, 1, `bootstrap song song ghi nhật ký đồng bộ ${syncedLogs.length} lần`);
+console.log("✓ 5 request đầu tiên song song → một dòng nhật ký đồng bộ");
 let r = await call(SALES, "GET", "/api/catalog");
 assert.equal(r.status, 200);
 const items = r.body.items;
