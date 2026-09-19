@@ -49,7 +49,7 @@ Thứ tự bắt buộc: **0 → 1 → 2** phải xong trước khi có dữ li�
 ### Bước 6 — Siết bảo mật nhỏ *(A5, A6, A14)*
 - `safeNext`: chặn `\` và `//` + test thuần với `"/\\evil.com"`, `"//evil.com"`, `"/order?id=…"`.
 - `SESSION_SECRET` thiếu hoặc < 32 ký tự → router trả 500 `server_misconfigured`, log rõ. Đồng thời sửa `.dev.vars.example`: chuỗi mẫu hiện tại (`replace-with-long-random-string`) chỉ 31 ký tự nên sẽ bị chốt chặn từ chối — thay bằng hướng dẫn `openssl rand -base64 48`.
-- `public/_headers` với CSP/`X-Content-Type-Options: nosniff`/`Referrer-Policy: same-origin`/`frame-ancestors 'none'`. Xác nhận Workers Assets áp dụng file này trên wrangler đang dùng.
+- `public/_headers` với CSP/`X-Content-Type-Options: nosniff`/`Referrer-Policy: same-origin`/`frame-ancestors 'none'`. Đã xác nhận (wrangler 4.135): header có trên trang tĩnh, CSS, JS.
 - **Kiểm chứng:** test thuần; `curl -I` các trang tĩnh thấy header; mở từng trang **và thao tác** (hộp Sửa ở `/staff`, `/catalog`; chọn nhanh dịch vụ ở `/order-form`) — console không có vi phạm CSP; e2e xanh.
 
 ### Bước 7 — Danh mục: đồng bộ lần đầu không trùng *(A10, A11)*

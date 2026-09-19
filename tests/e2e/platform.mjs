@@ -32,7 +32,9 @@ assert.equal(r.status, 201, "trình duyệt cùng trang không gửi Origin như
 r = await raw("POST", "/api/orders", { cookie: SALES, "content-type": "text/plain", origin: BASE }, JSON.stringify(input));
 assert.equal(r.status, 415); assert.equal(r.body.error.code, "unsupported_media_type");
 assert.equal((await call(SALES, "GET", "/api/orders?q=CSRF")).body.orders.length, before + 1, "chỉ đúng request hợp lệ tạo đơn");
-// POST không thân (vd mở khoá, đăng xuất) vẫn chạy khi đúng Origin
+// POST không thân, đúng hình dạng trình duyệt gửi (web/api.ts: không content-type, không body) — đăng xuất, mở khoá, đặt lại PIN…
+r = await raw("POST", "/api/auth/logout", { cookie: ADMIN, origin: BASE });
+assert.equal(r.status, 200, `POST không thân phải qua: ${r.status} ${JSON.stringify(r.body)}`);
 r = await call(ADMIN, "POST", "/api/auth/logout");
 assert.equal(r.status, 200);
 // GET không bị kiểm Origin
