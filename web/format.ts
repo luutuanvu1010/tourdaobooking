@@ -1,3 +1,4 @@
+import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
 import type { AuditAction, DepositMethod, OrderStatus } from "./api";
 
 const nf = new Intl.NumberFormat("vi-VN");
@@ -19,25 +20,5 @@ export const STATUS_LABEL: Record<OrderStatus, string> = { draft: "Nháp", confi
 
 export const METHOD_LABEL: Record<DepositMethod, string> = { cash: "Tiền mặt", bank_transfer: "Chuyển khoản", other: "Khác" };
 
-export const ACTION_LABEL: Record<AuditAction, string> = {
-  created: "Tạo đơn",
-  updated: "Sửa đơn",
-  confirmed: "Xác nhận đơn",
-  cancelled: "Huỷ đơn",
-  exported_png: "Xuất PNG",
-  exported_pdf: "Xuất PDF",
-  staff_created: "Tạo tài khoản",
-  staff_updated: "Sửa hồ sơ nhân viên",
-  staff_suspended: "Ngưng tài khoản",
-  staff_reactivated: "Kích hoạt lại tài khoản",
-  staff_role_changed: "Đổi vai trò",
-  pin_reset: "Đặt lại PIN",
-  pin_changed: "Đổi PIN",
-  login_unlocked: "Mở khoá đăng nhập",
-  staff_synced: "Đồng bộ nhân viên từ Sheet",
-  catalog_synced: "Đồng bộ dịch vụ từ Sheet",
-  catalog_overridden: "Ghi đè giá dịch vụ",
-  catalog_override_cleared: "Bỏ ghi đè dịch vụ",
-  catalog_hidden: "Ẩn dịch vụ",
-  catalog_unhidden: "Hiện lại dịch vụ",
-};
+/** Nhãn hành động nhật ký — lấy từ nguồn duy nhất src/shared/audit-actions.ts. Hành động lạ (bản mới hơn giao diện) hiện mã thô. */
+export const actionLabel = (a: AuditAction): string => AUDIT_ACTIONS[a]?.label ?? a;

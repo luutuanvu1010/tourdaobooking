@@ -1,18 +1,6 @@
-export type AuditAction =
-  | "created" | "updated" | "confirmed" | "cancelled" | "exported_png" | "exported_pdf"
-  | "staff_created" | "staff_updated" | "staff_suspended" | "staff_reactivated" | "staff_role_changed"
-  | "pin_reset" | "pin_changed" | "login_unlocked" | "staff_synced"
-  | "catalog_synced" | "catalog_overridden" | "catalog_override_cleared" | "catalog_hidden" | "catalog_unhidden";
+import { isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
 
-export type AuditTargetType = "order" | "staff" | "catalog";
-
-const AUDIT_ACTIONS: readonly AuditAction[] = [
-  "created", "updated", "confirmed", "cancelled", "exported_png", "exported_pdf",
-  "staff_created", "staff_updated", "staff_suspended", "staff_reactivated", "staff_role_changed",
-  "pin_reset", "pin_changed", "login_unlocked", "staff_synced",
-  "catalog_synced", "catalog_overridden", "catalog_override_cleared", "catalog_hidden", "catalog_unhidden",
-];
-export const isAuditAction = (v: unknown): v is AuditAction => AUDIT_ACTIONS.includes(v as AuditAction);
+export { isAuditAction, type AuditAction, type AuditTargetType };
 
 export interface AuditInput {
   /** Người thao tác; bỏ trống (null) = hệ thống tự làm (vd Cron đồng bộ Sheet). */
@@ -45,6 +33,8 @@ export interface AuditRecord extends AuditEntry {
 }
 
 export function insertStatement(db: D1Database, e: AuditInput, onlyIf?: string): D1PreparedStatement {
+  // SQL không còn CHECK liệt kê (0007) → chốt ở đây để giá trị lạ không bao giờ vào nhật ký.
+  if (!isAuditAction(e.action)) throw new Error(`Hành động nhật ký không hợp lệ: ${String(e.action)}`);
   const targetType = e.targetType ?? (e.orderId ? "order" : null);
   const targetId = e.targetId ?? e.orderId ?? null;
   return db

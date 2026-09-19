@@ -46,11 +46,8 @@ export type OrderSummary = Pick<
   "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "total" | "remainingAmount" | "staffName" | "createdAt"
 >;
 
-export type AuditAction =
-  | "created" | "updated" | "confirmed" | "cancelled" | "exported_png" | "exported_pdf"
-  | "staff_created" | "staff_updated" | "staff_suspended" | "staff_reactivated" | "staff_role_changed"
-  | "pin_reset" | "pin_changed" | "login_unlocked" | "staff_synced"
-  | "catalog_synced" | "catalog_overridden" | "catalog_override_cleared" | "catalog_hidden" | "catalog_unhidden";
+import type { AuditAction } from "../src/shared/audit-actions";
+export type { AuditAction };
 
 export interface AuditEntry {
   action: AuditAction;

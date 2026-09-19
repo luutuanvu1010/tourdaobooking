@@ -1,6 +1,6 @@
 import { ApiError, api, type AuditEntry, type Order } from "./api";
 import { byId, h, replaceChildren } from "./dom";
-import { ACTION_LABEL, METHOD_LABEL, STATUS_LABEL, dateTime, vnd } from "./format";
+import { METHOD_LABEL, actionLabel, STATUS_LABEL, dateTime, vnd } from "./format";
 import { initShell, showError } from "./shell";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -71,7 +71,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
       "section",
       { class: "card" },
       h("h2", null, "Lịch sử"),
-      h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${ACTION_LABEL[e.action]} · ${e.staffName}`))),
+      h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} ·${e.staffName}`))),
     ),
   );
 

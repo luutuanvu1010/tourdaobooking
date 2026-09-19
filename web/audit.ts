@@ -1,6 +1,7 @@
+import { AUDIT_ACTIONS, AUDIT_GROUPS, type AuditAction, type AuditGroup } from "../src/shared/audit-actions";
 import { ApiError, api, type AuditRecord } from "./api";
-import { byId, h, replaceChildren } from "./dom";
-import { ACTION_LABEL, dateTime } from "./format";
+import { append, byId, h, replaceChildren } from "./dom";
+import { actionLabel, dateTime } from "./format";
 import { initShell, showError } from "./shell";
 
 const PAGE = 50;
@@ -14,13 +15,22 @@ const errorEl = byId("error");
 let offset = 0;
 let loadSeq = 0;
 
+// Bộ lọc hành động sinh từ nguồn duy nhất, nhóm theo loại đối tượng.
+const actions = Object.entries(AUDIT_ACTIONS) as [AuditAction, { label: string; group: AuditGroup }][];
+append(
+  actionSel,
+  (Object.entries(AUDIT_GROUPS) as [AuditGroup, string][]).map(([group, label]) =>
+    h("optgroup", { label }, ...actions.filter(([, a]) => a.group === group).map(([code, a]) => h("option", { value: code }, a.label))),
+  ),
+);
+
 function row(e: AuditRecord): HTMLElement {
   return h(
     "tr",
     null,
     h("td", null, dateTime(e.at)),
     h("td", null, e.staffName),
-    h("td", null, ACTION_LABEL[e.action]),
+    h("td", null, actionLabel(e.action)),
     h("td", null, e.orderId ? h("a", { href: `/order?id=${encodeURIComponent(e.orderId)}` }, e.targetLabel) : e.targetLabel),
     h("td", { class: "muted" }, e.detail),
   );
