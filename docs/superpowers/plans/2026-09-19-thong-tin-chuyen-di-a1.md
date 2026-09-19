@@ -35,6 +35,7 @@
 | `src/modules/orders/rules.ts` (+ test), `orders/index.ts` (shim tạm) | sửa — `validateOrder(input, ctx)` | 6 |
 | `tests/e2e/lib.mjs`, `orders.mjs`, `platform.mjs`, `trip.mjs`, `run.mjs` | sửa/mới — e2e viết trước (ĐỎ) | 7 |
 | `shared/contracts.ts` (đổi kiểu cũ), `audit/repository.ts`, `orders/repository.ts`, `orders/service.ts`, `orders/index.ts` | sửa/mới — ghi dữ liệu + route (XANH) | 8 |
+| `order-lines.ts`, `fields.ts` (+ 3 file test) | sửa — dịch vụ nhóm từ chối khách loại khác; bỏ U+2028/2029 + ký tự điều hướng hai chiều | 8b |
 | `docs/SPEC-tourdao-sales.md`, `ARCHITECTURE.md`, `HANDOFF-M4.md`, `tests/e2e/README.md`, spec thông tin chuyến | sửa — đồng bộ tài liệu với mã | 9 |
 
 ## Chuẩn bị (một lần)
@@ -3260,6 +3261,158 @@ git commit -m "orders: ghi dịch vụ + dòng tiền, xác nhận có điều k
 ```
 
 ---
+### Task 10 (bổ sung, còn gọi Task 8b — làm SAU Task 8, TRƯỚC Task 9): dịch vụ nhóm bỏ qua khách loại khác; ký tự điều khiển Unicode
+
+> Đánh số 10 (không phải "8b") chỉ để script `task-brief` của kỹ năng SDD trích riêng được: `task-brief PLAN 8` khớp cả "Task 8b" và sẽ nuốt mục này vào brief Task 8. Thứ tự thi công: 8 → **10 (= 8b)** → 9. Trong ledger/handoff gọi là "Task 8b".
+
+**Nguồn (phán quyết của controller khi thi công, ghi trong ledger SDD):**
+1. Review Task 2 chỉ ra dịch vụ tính theo **nhóm** (`per5Pax`…) bỏ qua âm thầm số khách các loại khác `adult`: `{adult:3, child:2}` lưu `pax_child = 2` mà không có dòng tiền nào — khách được ghi nhận nhưng không tính tiền (trái spec §4.2 "loại khách không có giá thì phải bằng 0"; làm lệch bất biến "Σ số lượng = số khách").
+2. Review Task 5 chỉ ra `cleanText` chế độ nhiều dòng để lọt U+2028/U+2029 (giả xuống dòng) và ký tự điều hướng hai chiều U+200E/F, U+202A–202E, U+2066–2069 (đảo chiều chữ) vào PNG/PDF của M4. Cố ý KHÔNG bỏ U+200B–200D (cần cho emoji ghép).
+
+Làm **SAU Task 8** (không sửa sớm để giữ đối chiếu chính xác các Task 3–8). Đã dựng và chạy thử trước trên bản sao: bước ĐỎ đúng 3 test đỏ; sau khi cài đặt `# tests 91`, `tsc` gốc sạch, e2e `platform orders trip` 3/3 xanh.
+
+**Files:**
+- Modify: `src/shared/order-lines.ts`, `src/modules/orders/fields.ts`
+- Test: `src/shared/order-lines.test.ts`, `src/modules/orders/service-rules.test.ts`, `tests/e2e/trip.mjs`
+
+**Interfaces:**
+- Consumes: Task 2 (`buildLines`), Task 5 (`cleanText`, `validateTrip`), Task 7/8 (e2e `trip.mjs`, route `POST /api/orders`).
+- Produces: `buildLines` trả `{ ok: false, message: "Dịch vụ tính theo nhóm chỉ nhập một ô số khách, không tách trẻ em / người cao tuổi / em bé." }` khi dịch vụ là nhóm và một loại khác `adult` có số khách > 0 (đường máy chủ báo lỗi 400 với tiền tố "Dịch vụ N: "); `cleanText` bỏ thêm `U+2028 U+2029 U+200E U+200F U+202A–202E U+2066–2069`.
+
+- [ ] **Bước 1: Viết test (ĐỎ)** — sửa ba file test
+
+```diff
+--- a/src/shared/order-lines.test.ts
++++ b/src/shared/order-lines.test.ts
+@@ -61,6 +61,15 @@
+   assert.match((buildLines({ ...tour, unit: "perGroup" }, { adult: 1 }) as { message: string }).message, /chưa hỗ trợ/);
+ });
+ 
++test("theo nhóm: số khách loại khác adult bị từ chối (không lưu khách mà không tính tiền)", () => {
++  for (const other of ["child", "senior", "infant"] as const) {
++    const r = buildLines(banana, { adult: 3, [other]: 1 });
++    assert.ok(!r.ok, other);
++    assert.match((r as { message: string }).message, /tính theo nhóm/);
++  }
++  assert.ok(buildLines(banana, { adult: 3, child: 0, senior: 0, infant: 0 }).ok); // 0 khách loại khác vẫn hợp lệ
++});
++
+ test("loại khách hiện bộ đếm", () => {
+   assert.deepEqual(availableCodes(tour), ["adult", "child", "senior", "infant"]);
+   assert.deepEqual(availableCodes(jetski), ["adult"]);
+```
+
+```diff
+--- a/src/modules/orders/service-rules.test.ts
++++ b/src/modules/orders/service-rules.test.ts
+@@ -59,6 +59,12 @@
+   assert.match(bad(catalogInput({ unitPrices: { adult: -1 } })).message, /đơn giá/);
+ });
+ 
++test("danh mục: dịch vụ tính theo nhóm không nhận số khách loại khác adult", () => {
++  const r = bad({ kind: "catalog", catalogCode: "TTB03", pax: P(3, 1), catalogPriceSeen: { adult: 1000000 } });
++  assert.match(r.message, /Dịch vụ 1: .*tính theo nhóm/);
++  ok({ kind: "catalog", catalogCode: "TTB03", pax: P(3), catalogPriceSeen: { adult: 1000000 } });
++});
++
+ test("danh mục: cần ≥ 1 khách không phải em bé; trần 50 khách; số khách phải là số nguyên", () => {
+   assert.match(bad(catalogInput({ pax: P(0, 0, 0, 2), catalogPriceSeen: { infant: 0 } })).message, /không phải em bé/);
+   assert.match(bad(catalogInput({ pax: P(0) })).message, /không phải em bé/);
+@@ -141,6 +147,14 @@
+   assert.deepEqual([v.kind, v.catalogCode, v.unit, v.name], ["manual", null, "manual", "Thuê áo phao"]);
+   assert.deepEqual(v.items.map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal, i.paxCode, i.catalogPrice, i.catalogCode]), [["Áo phao", 3, 50000, 150000, null, null, null]]);
+   assert.equal(ok(manualInput({ pax: P(0) })).pax.adult, 0); // 0 khách lưu nháp được; chỉ chặn lúc xác nhận
++});
++
++test("chuyến: U+2028/2029 và ký tự điều hướng hai chiều bị bỏ (không giả xuống dòng, không đảo chiều chữ trong mẫu xuất); giữ nối độ rộng 0 của emoji", () => {
++  const r = validateTrip({ note: "a b c‮d⁦e", pickupPlace: "x‏y‎z", checkinPlace: "👨‍👩" }, "D");
++  assert.ok(r.ok);
++  assert.equal(r.value.note, "a b c d e");
++  assert.equal(r.value.pickupPlace, "x y z");
++  assert.equal(r.value.checkinPlace, "👨‍👩");
+ });
+ 
+ test("nhập tay: tên và dòng tiền bắt buộc, kiểm số nguyên/khoảng như dòng nhập tay cũ", () => {
+```
+
+```diff
+--- a/tests/e2e/trip.mjs
++++ b/tests/e2e/trip.mjs
+@@ -66,6 +66,7 @@
+   assert.equal(r.status, 400); assert.equal(r.body.error.code, "catalog_unavailable");
+   const rejected = [
+     [cat({ catalogCode: "ZT3", pax: { adult: 1, child: 1 }, catalogPriceSeen: { adult: 800000 } }), /không có giá cho trẻ em/],
++    [cat({ catalogCode: "ZT2", pax: { adult: 3, child: 1 }, catalogPriceSeen: { adult: 1000000 } }), /tính theo nhóm/],
+     [cat({ pax: { adult: 51 }, catalogPriceSeen: { adult: 850000 } }), /số khách người lớn/],
+     [cat({ pax: { adult: 30, child: 21 } }), /tối đa 50 khách/],
+     [cat({ pax: { infant: 2 }, catalogPriceSeen: { infant: 0 } }), /không phải em bé/],
+```
+
+- [ ] **Bước 2: Chạy, phải đỏ**
+
+```bash
+node --test src/shared/order-lines.test.ts src/modules/orders/service-rules.test.ts
+```
+
+Expected: FAIL đúng 3 test (`# pass 33`, `# fail 3`): `theo nhóm: số khách loại khác adult bị từ chối…`, `danh mục: dịch vụ tính theo nhóm không nhận số khách loại khác adult`, `chuyến: U+2028/2029 và ký tự điều hướng hai chiều bị bỏ…`.
+
+- [ ] **Bước 3: Cài đặt** — sửa hai file nguồn
+
+```diff
+--- a/src/shared/order-lines.ts
++++ b/src/shared/order-lines.ts
+@@ -92,6 +92,10 @@
+   if (paxTotal(counts) > MAX_GUESTS_PER_SERVICE) return { ok: false, message: `Tối đa ${MAX_GUESTS_PER_SERVICE} khách mỗi dịch vụ.` };
+ 
+   if (unit.kind === "group") {
++    // Dịch vụ tính theo nhóm chỉ có MỘT ô "số khách" (ở `adult`). Số khách loại khác sẽ được lưu mà không có dòng tiền nào → từ chối.
++    if (PAX_ORDER.some((c) => c !== "adult" && (counts[c] ?? 0) > 0)) {
++      return { ok: false, message: "Dịch vụ tính theo nhóm chỉ nhập một ô số khách, không tách trẻ em / người cao tuổi / em bé." };
++    }
+     const guests = counts.adult ?? 0;
+     if (guests <= 0) return { ok: false, message: "Nhập số khách." };
+     if (item.prices.adult === null) return { ok: false, message: "Dịch vụ này chưa có giá." };
+```
+
+```diff
+--- a/src/modules/orders/fields.ts
++++ b/src/modules/orders/fields.ts
+@@ -21,8 +21,11 @@
+   return { value: v };
+ }
+ 
+-const CONTROL_KEEP_NEWLINE = /[\u0000-\u0009\u000b-\u001f\u007f]/g;
+-const CONTROL_ALL = /[\u0000-\u001f\u007f]/g;
++// Ký tự điều khiển ASCII + dấu tách dòng/đoạn Unicode (U+2028/2029 — giả xuống dòng) + dấu điều hướng hai chiều (U+200E/F, 202A–202E, 2066–2069 — đảo chiều chữ).
++// Cố ý KHÔNG bỏ U+200B–200D (khoảng trắng/nối độ rộng 0): cần cho emoji ghép.
++const UNICODE_LAYOUT = "\\u2028\\u2029\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069";
++const CONTROL_KEEP_NEWLINE = new RegExp(`[\\u0000-\\u0009\\u000b-\\u001f\\u007f${UNICODE_LAYOUT}]`, "g");
++const CONTROL_ALL = new RegExp(`[\\u0000-\\u001f\\u007f${UNICODE_LAYOUT}]`, "g");
+ 
+ /**
+  * Chuỗi tự do đi vào PNG/PDF (điểm đón, nơi check-in, ghi chú): bỏ ký tự điều khiển như booking (`schema.ts` của tourdaovn),
+```
+
+- [ ] **Bước 4: Chạy, phải xanh**
+
+```bash
+npm test && npx tsc --noEmit
+npm run test:e2e -- platform orders trip
+```
+
+Expected: `# tests 91`, `# pass 91`; `tsc` gốc không lỗi; `E2E: 3/3 kịch bản xanh` (dòng `✓ đầu vào sai bị từ chối đúng lý do` trong `trip` đã gồm ca `ZT2 {adult:3, child:1}` → 400 "tính theo nhóm"). `tsc -p web` vẫn đúng 4 lỗi của A2.
+
+- [ ] **Bước 5: Commit**
+
+```bash
+git add src/shared/order-lines.ts src/shared/order-lines.test.ts src/modules/orders/fields.ts src/modules/orders/service-rules.test.ts tests/e2e/trip.mjs
+git commit -m "Gia cố: dịch vụ nhóm từ chối số khách loại khác adult; cleanText bỏ U+2028/2029 và ký tự điều hướng hai chiều" -m "Co-Authored-By: Claude Sonnet 5 <noreply@anthropic.com>"
+```
+
+Sau Task 8b, các số kỳ vọng ở Task 9 Bước 10 là `# tests 91`.
+
+---
+
 ### Task 9: Đồng bộ tài liệu với mã và kiểm tra cuối
 
 **Files:**
@@ -3392,7 +3545,7 @@ git diff --stat
 git log --oneline -12
 ```
 
-Expected: `npm test` `# tests 88`, `# pass 88`, `# fail 0`; `tsc` gốc không lỗi; `tsc -p web` **đúng 4 lỗi** (A2); `npm run test:e2e` → `E2E: 6/6 kịch bản xanh`; `git status` sạch (chỉ còn thay đổi tài liệu của bước này nếu chưa commit).
+Expected: `npm test` `# tests 91`, `# pass 91`, `# fail 0` (sau Task 8b); `tsc` gốc không lỗi; `tsc -p web` **đúng 4 lỗi** (A2); `npm run test:e2e` → `E2E: 6/6 kịch bản xanh`; `git status` sạch (chỉ còn thay đổi tài liệu của bước này nếu chưa commit).
 
 - [ ] **Bước 11: Commit**
 
