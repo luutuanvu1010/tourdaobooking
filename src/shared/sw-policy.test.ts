@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { readdirSync } from "node:fs";
 import { CACHE_NAME, CACHE_VERSION, PAGES, PRECACHE, cacheKey, isCacheable, routeFor } from "./sw-policy.ts";
 
-const ORIGIN = "https://sales.tourdao.vn";
+const ORIGIN = "https://booking.tourdao.vn";
 const shell = (p: string) => routeFor("GET", ORIGIN + p, ORIGIN);
 
 test("/api/* không bao giờ qua cache, kể cả có query", () => {

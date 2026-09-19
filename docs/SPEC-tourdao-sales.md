@@ -9,7 +9,7 @@
 
 **Vì sao tồn tại:** nhân viên bán hàng cần tạo và gửi một bản xác nhận đơn hàng cho khách qua Zalo, nhanh, đúng, đồng nhất thương hiệu, mà không cần biết Photoshop/Canva hay đợi ai đó dựng file cho họ.
 
-**Là gì:** một ứng dụng nội bộ (không phải trang công khai) tại `sales.tourdao.vn`, nơi nhân viên:
+**Là gì:** một ứng dụng nội bộ (không phải trang công khai) tại `booking.tourdao.vn` (§3), nơi nhân viên:
 1. Đăng nhập.
 2. Điền/chọn thông tin khách hàng + sản phẩm dịch vụ + thanh toán.
 3. Xem trước bản xác nhận đơn hàng theo mẫu chuẩn công ty.
@@ -135,7 +135,7 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
    - **Nhân viên:** Sheet (ID `16K3b1CtqjJqXR_CkfSSdLyK0t6j0pYq_OuskF0VFaw4`, cột Tên người dùng + Số điện thoại) chỉ là nguồn *đề xuất*: Admin bấm "Đồng bộ từ Sheet", xem trước, xác nhận mới tạo tài khoản (PIN ngẫu nhiên hiện một lần). Sheet không bao giờ tự tạo/ngưng tài khoản hay cấp `admin`; D1 là nguồn sự thật.
    - **Thứ tự thi công:** bảng Admin (quản lý tài khoản + chống dò PIN) làm trước M3.
 
-7. **App iPhone (PWA) "Tour Đảo Desk" (chốt 2026-09-19; chủ dự án chọn hướng PWA và duyệt mockup):** giao diện web là PWA cài được từ Safari ("Thêm vào Màn hình chính"), không App Store: `manifest` + icon + service worker (khung stale-while-revalidate, **`/api/*` không bao giờ qua cache**, mã phiên bản cache do build chèn) + giao diện điện thoại ≤640px (thanh tab dưới đáy, nút quay lại). **Không thêm dữ liệu, bảng hay API.** Icon dựng từ logo do chủ dự án chỉ định (điểm chạm tài sản, xem đầu spec); logo hiện ở đầu trang và trang đăng nhập là **tạm** cho tới khi có `company_profile.logo_url` (M5, §2.4-2). Tên "Tour Đảo Desk" là **đề xuất của AI, chờ chủ dự án duyệt**. Thiết kế, phương án bị loại, ánh xạ màn hình–dữ liệu: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`; vận hành và danh sách kiểm trên iPhone thật: `docs/PWA-IPHONE.md`; rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`.
+7. **App iPhone (PWA) "Tour Đảo Booking" (chốt 2026-09-19; chủ dự án chọn hướng PWA và duyệt mockup):** giao diện web là PWA cài được từ Safari ("Thêm vào Màn hình chính"), không App Store: `manifest` + icon + service worker (khung stale-while-revalidate, **`/api/*` không bao giờ qua cache**, mã phiên bản cache do build chèn) + giao diện điện thoại ≤640px (thanh tab dưới đáy, nút quay lại). **Không thêm dữ liệu, bảng hay API.** Icon dựng từ logo do chủ dự án chỉ định (điểm chạm tài sản, xem đầu spec); logo hiện ở đầu trang và trang đăng nhập là **tạm** cho tới khi có `company_profile.logo_url` (M5, §2.4-2). Tên hiển thị "Tour Đảo Booking" và tên miền `booking.tourdao.vn` (thay trang `fastbooking` hiện có; **chưa cắt, chưa deploy**) do chủ dự án chốt 2026-09-19. Thiết kế, phương án bị loại, ánh xạ màn hình–dữ liệu: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`; vận hành và danh sách kiểm trên iPhone thật: `docs/PWA-IPHONE.md`; rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`.
 
 ### 2.5 Nguồn danh mục dịch vụ — Google Sheet (điểm chạm ngoài duy nhất)
 
@@ -155,7 +155,7 @@ company_profile — singleton, không quan hệ FK, đọc bởi mọi order khi
 - **Lưu trữ:** Cloudflare D1 (SQLite), database riêng — ví dụ `tourdao-sales-db`.
 - **Static assets:** HTML/CSS/JS build tối giản, phục vụ qua Workers Assets, kèm `manifest`, icon và service worker `sw.js` (PWA, §2.4-7).
 - **Xuất PNG/PDF:** render phía client bằng canvas/HTML-to-image (ví dụ `html-to-image` hoặc `satori`+`resvg` phía server nếu cần chất lượng cao và nhất quán font trên mọi thiết bị — quyết định kỹ thuật cụ thể để lại cho giai đoạn thực thi, không phải cửa một chiều).
-- **Domain:** `sales.tourdao.vn` — bản ghi DNS CNAME/A trỏ sang Worker qua Cloudflare, tách biệt route với `tourdaovn.com`.
+- **Domain:** `booking.tourdao.vn` (chủ dự án chốt 2026-09-19, thay `sales.tourdao.vn` của bản đầu; §2.4-7) — bản ghi DNS CNAME/A trỏ sang Worker qua Cloudflare, tách biệt route với `tourdaovn.com`. **Địa chỉ này hiện đang phục vụ dự án `fastbooking`** (trang "Đặt Vé Nhanh Tại Quầy"; backend của nó dùng `FRONTEND_URL = https://booking.tourdao.vn` làm nguồn CORS): cắt sang app này là bước triển khai riêng, **chưa làm**, phải kèm quyết định về `fastbooking`.
 - **Bí mật (secrets):** `wrangler secret put` cho khoá ký session đăng nhập — không hardcode.
 - **Ngưỡng hiệu năng tối thiểu (P11/6.2 — ngưỡng phải đo được):**
   - Tải trang lần đầu trên di động (4G): dưới 2 giây tới có thể thao tác được (TTI).
@@ -211,7 +211,7 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 | M2 ✅ (2026-09-19) | CRUD đơn hàng (nhập tay) | Form tạo đơn, `order`/`order_item`, tính `total`/`remaining_amount` ở server theo §2.3, danh sách đơn, xem chi tiết. Chưa đụng Google Sheet, chưa xuất file | Tạo 1 đơn thật qua UI, số liệu đúng bất biến §2.3, mọi nhân viên xem được đơn của nhau (§2.4-4) |
 | M3 ✅ (2026-09-19) | Tích hợp Google Sheet | Bản sao Sheet trong D1 theo §2.5, hiển thị chọn nhanh dịch vụ trong form tạo đơn, có lối nhập tay dự phòng khi Sheet lỗi | Tạo đơn bằng dịch vụ lấy từ Sheet thật; tắt mạng giả lập lỗi Sheet vẫn tạo đơn được bằng nhập tay |
 | M4 | Mẫu xác nhận + xuất PNG/PDF | Áp token §4, render mẫu từ `order` đã lưu, xuất PNG (ưu tiên Zalo) và PDF (A4) | Xuất 1 đơn thật ra cả PNG và PDF, đối chiếu đúng ngưỡng hiệu năng §3 (<3s) |
-| M5 | Cài đặt + triển khai | Màn hình sửa `company_profile` (kể cả upload logo), gắn domain `sales.tourdao.vn`. (Quản lý tài khoản `staff` đã làm sớm, trước M3 — §2.4-6) | Truy cập được domain thật, đổi thử 1 trường company_profile và thấy phản ánh trên mẫu xuất |
+| M5 | Cài đặt + triển khai | Màn hình sửa `company_profile` (kể cả upload logo), gắn domain `booking.tourdao.vn` (§3: đang thuộc `fastbooking`). (Quản lý tài khoản `staff` đã làm sớm, trước M3 — §2.4-6) | Truy cập được domain thật, đổi thử 1 trường company_profile và thấy phản ánh trên mẫu xuất |
 | PWA ✅ (2026-09-19, nhánh `worktree-pwa-iphone` chờ gộp) | App iPhone (PWA), ngoài M1–M5 | Chủ dự án yêu cầu làm xen giữa M3 và M4 (§2.4-7): manifest, icon, service worker, giao diện điện thoại ≤640px. Không đụng dữ liệu | typecheck, 55 test, e2e 6/6, axe 0 lỗi critical/serious, đo thời gian mở màn hình trên 4G giả lập (`docs/evidence/2026-09-19-pwa/`); **chờ thử trên iPhone thật** |
 
 **Quy tắc khi mở mỗi module ở phiên Code:** giao đúng phạm vi một module, không để tác nhân thực thi tự ý làm thêm module sau "cho tiện" (đúng P3 — mỗi tầng làm xong mới sang tầng kế, không nhảy cóc rồi quay lại lấp).
@@ -228,7 +228,8 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 | Màu sắc/token cụ thể trong CSS | Hai chiều | Thực thi tự quyết trong khuôn khổ token đã khai ở §4 |
 | Làm app iPhone bằng PWA (Thêm vào Màn hình chính), không Capacitor/SwiftUI | Hai chiều (gỡ manifest và service worker là về web thường; service worker đã cài trên máy tự gỡ nhờ cách tắt khẩn cấp ở `docs/PWA-IPHONE.md`) | Đã chốt 2026-09-19 (§2.4-7); phương án bị loại ở spec PWA, Q1 |
 | Service worker: khung stale-while-revalidate, `/api/*` không qua cache, mã cache do build chèn | Hai chiều | Đã chốt 2026-09-19 (§2.4-7) |
-| Tên hiển thị "Tour Đảo Desk" (nhãn dưới icon "Tour Đảo") | Hai chiều (5 chỗ, một commit) | **Đề xuất của AI, chờ chủ dự án duyệt** |
+| Tên hiển thị "Tour Đảo Booking" (nhãn dưới icon "Tour Đảo") | Hai chiều (5 chỗ, một commit) | **Chủ dự án chốt 2026-09-19** |
+| Tên miền `booking.tourdao.vn` cho app này, thay trang `fastbooking` hiện có (thay cho `sales.tourdao.vn`) | Hai chiều nếu giữ nguyên `fastbooking` để khôi phục; thay một sản phẩm đang chạy nên cần kế hoạch cắt | **Chủ dự án chốt 2026-09-19; CHỈ ghi quyết định, chưa đổi DNS/route/deploy.** Hệ quả với `fastbooking`: xem §3 |
 
 ---
 

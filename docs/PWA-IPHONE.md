@@ -1,4 +1,4 @@
-# App iPhone (PWA) — "Tour Đảo Desk"
+# App iPhone (PWA) — "Tour Đảo Booking"
 
 Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế hoạch thi công: `docs/superpowers/plans/2026-09-19-iphone-pwa.md`. Mockup: https://claude.ai/artifact/UJhmHqivTKaGVZr3m98Aoc
 
@@ -13,7 +13,7 @@ Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế ho�
 
 ## Chưa làm (cố ý)
 
-- Hướng dẫn cài cho nhân viên: chờ chốt tên miền (`sales.tourdao.vn`). App gắn với origin: đổi tên miền thì phải cài và đăng nhập lại.
+- Hướng dẫn cài cho nhân viên: chờ cắt tên miền sang `booking.tourdao.vn` (chủ dự án chốt 2026-09-19, đang thuộc `fastbooking`; cần quyết định về `fastbooking` trước, xem `docs/SPEC-tourdao-sales.md` §3). App gắn với origin: cài trên `workers.dev` rồi đổi tên miền thì phải cài và đăng nhập lại, nên chỉ cho nhân viên cài sau khi cắt.
 - Chế độ offline thật (xem/lập đơn khi không có mạng).
 - Logo trong giao diện đọc từ `company_profile.logo_url` (SPEC §2.4-2, M5): hiện đầu trang và trang đăng nhập dùng ảnh tĩnh `public/icons/logo-96.png` và `icon-192.png` (tạm, đã ghi nợ ở `docs/AUDIT-PWA-IPHONE.md` RS12); icon PWA vẫn phải là file tĩnh.
 - Phiên vẫn 7 ngày cố định → nhân viên đăng nhập lại khoảng mỗi tuần; iOS còn tách cookie giữa Safari và app đã cài nên phải đăng nhập lại một lần khi cài.
