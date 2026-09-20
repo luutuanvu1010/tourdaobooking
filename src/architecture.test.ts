@@ -29,6 +29,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "locations", file: "modules/locations/repository.ts" },
+  { module: "parties", file: "modules/parties/repository.ts" },
 ];
 
 /**
@@ -36,7 +37,7 @@ const STRICT: readonly { module: string; file: string }[] = [
  * Hạn: `staff` chuyển sang STRICT ở kế hoạch N1-B (Task B1); `audit`/`orders` bỏ JOIN thẳng bảng khi chạm ở N1-B (Task B4) và còn wonGuard của orders tới N2;
  * `accounts`, `auth`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
  */
-const LEGACY = ["accounts", "audit", "auth", "catalog", "orders", "staff", "parties"] as const;
+const LEGACY = ["accounts", "audit", "auth", "catalog", "orders", "staff"] as const;
 
 const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", dsp_: "dispatch", bil_: "billing" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };

@@ -273,3 +273,73 @@ export interface LocationDto {
 
 export interface LocationListResponse { locations: LocationDto[]; types: LocationTypeDto[] }
 export interface LocationResponse { location: LocationDto }
+
+// ---- Hồ sơ (module parties) --------------------------------------------------
+export type PartyKind = "PERSON" | "ORGANIZATION";
+
+export interface ContactPointDto {
+  id: string;
+  kind: "PHONE" | "EMAIL";
+  value: string;
+  label: string | null;
+  isPrimary: boolean;
+  /** Ngày dân sự giờ Việt Nam (YYYY-MM-DD). `validTo` null = còn hiệu lực. */
+  validFrom: string;
+  validTo: string | null;
+}
+
+export interface PartyRoleDto {
+  id: string;
+  roleTypeCode: string;
+  roleName: string;
+  locationId: string | null;
+  locationName: string | null;
+  validFrom: string;
+  validTo: string | null;
+}
+
+export interface PartyRelationshipDto {
+  id: string;
+  typeCode: string;
+  typeName: string;
+  fromPartyId: string;
+  fromPartyName: string;
+  toPartyId: string;
+  toPartyName: string;
+  validFrom: string;
+  validTo: string | null;
+}
+
+export interface PartyListItemDto {
+  id: string;
+  kind: PartyKind;
+  displayName: string;
+  active: boolean;
+  primaryPhone: string | null;
+  /** Mã vai trò đang hiệu lực hôm nay (giờ VN). */
+  roleCodes: string[];
+}
+
+export interface PartyDto extends PartyListItemDto {
+  familyName: string | null;
+  middleName: string | null;
+  givenName: string | null;
+  legalName: string | null;
+  taxCode: string | null;
+  address: string | null;
+  invoiceEmail: string | null;
+  contacts: ContactPointDto[];
+  roles: PartyRoleDto[];
+  relationships: PartyRelationshipDto[];
+  createdAt: string;
+  /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
+  updatedAt: string;
+}
+
+export interface PartyListResponse { parties: PartyListItemDto[]; hasMore: boolean }
+export interface PartyLookupResponse { matches: PartyListItemDto[] }
+export interface PartyResponse { party: PartyDto }
+export interface PartyMetaResponse {
+  roleTypes: { code: string; name: string }[];
+  relationshipTypes: { code: string; name: string }[];
+}
