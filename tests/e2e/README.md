@@ -16,6 +16,7 @@ npm run test:e2e -- orders catalog  # chỉ vài kịch bản
 | Kịch bản | Kiểm gì |
 |---|---|
 | `platform.mjs` | router: 404/405 JSON, 401/403 trước handler, chặn ghi cross-site (thiếu/lạ `Origin`), chặn thân không phải JSON (415) |
+| `pwa.mjs` | manifest đúng content-type/nội dung, icon đúng kích thước và không alpha, `/sw.js` không cache, đủ thẻ meta iOS + tên mới trên cả 8 trang, `/api/*` là `no-store` |
 | `orders.mjs` | bất biến §2.3, phân quyền sửa/huỷ, chuyển trạng thái, 30 đơn song song ra mã khác nhau, phân trang, `/api/audit`; thao tác thua khi tranh chấp không ghi nhật ký |
 | `trip.mjs` | thông tin chuyến theo dịch vụ, dùng danh mục **giả** `ZT*` chèn thẳng vào D1 (không cần Sheet, dọn ở `finally`): dòng tiền do máy chủ sinh, lệch giá, `catalog_changed`, xác nhận đòi đủ chuyến (thiếu ngày/quá khứ/quá xa/0 khách), đua "lưu xoá ngày" với xác nhận, khoá lạc quan `stale`, bản chụp dịch vụ đã ẩn/đổi giá, sửa trường vận hành sau xác nhận, bất biến SQL |
 | `admin.mjs` | quản lý nhân viên, đặt lại/đổi PIN thu hồi phiên, chống dò PIN (kể cả bắn song song, theo IP), xem trước Sheet nhân viên |

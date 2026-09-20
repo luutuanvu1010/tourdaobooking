@@ -1,0 +1,17 @@
+{
+ "banA": "20260919164634",
+ "banB": "20260919164642",
+ "cacheTruoc": [
+  "td-shell-20260919164634"
+ ],
+ "cacheSau": [
+  "td-shell-20260919164642"
+ ],
+ "saukhiTaiLai": {
+  "brand": true,
+  "tabbar": true,
+  "controlled": true
+ },
+ "loi": [],
+ "KETLUAN": "ĐẠT: cache của bản A bị xoá, cache bản B thay thế, app chạy bình thường"
+}

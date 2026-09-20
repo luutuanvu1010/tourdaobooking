@@ -5,10 +5,10 @@
   "scripts": {
     "dev": "wrangler dev",
     "types": "wrangler types",
-    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web && tsc --noEmit -p web/sw",
     "db:migrate:local": "wrangler d1 migrations apply tourdao-sales-db --local",
     "db:migrate:remote": "wrangler d1 migrations apply tourdao-sales-db --remote",
-    "build:web": "esbuild web/login.ts web/orders.ts web/order-form.ts web/order.ts web/audit.ts web/staff.ts web/account.ts web/catalog.ts --bundle --format=esm --target=es2022 --minify --outdir=public/js",
+    "build:web": "esbuild web/login.ts web/orders.ts web/order-form.ts web/order.ts web/audit.ts web/staff.ts web/account.ts web/catalog.ts --bundle --format=esm --target=es2022 --minify --outdir=public/js && esbuild web/sw/sw.ts --bundle --format=iife --target=es2022 --minify --define:__BUILD_ID__=\\\"$(date +%Y%m%d%H%M%S)\\\" --outfile=public/sw.js",
     "test": "node --test \"src/**/*.test.ts\"",
     "test:e2e": "node tests/e2e/run.mjs"
   },

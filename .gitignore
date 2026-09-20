@@ -3,5 +3,6 @@ node_modules
 .dev.vars
 *.local.sql
 public/js
+public/sw.js
 *.local.txt
 .claude/
