@@ -35,7 +35,7 @@
 | full_name | TEXT | tên hiển thị trên đơn (ví dụ "NV tư vấn: Nguyễn Văn A") |
 | phone | TEXT | dùng làm định danh đăng nhập (số điện thoại + mã PIN) |
 | pin_hash | TEXT | PIN 6 số, hash bằng scrypt/PBKDF2, không lưu plaintext |
-| role | TEXT | `sales` \| `admin` — admin sửa được thông tin công ty, xem toàn bộ đơn |
+| role | TEXT | **CỘT CHẾT từ N1 (ADR-0005)** — không đường mã nào đọc; tài khoản mới ghi hằng `'sales'`. Quyền trong app nằm ở `stf_permission` (SALES/ACCOUNTING/ADMIN/FIELD, một tài khoản nhiều quyền). `full_name` cũng là cột chết (ghi `''`): tên người ở hồ sơ `pty_party` |
 | active | INTEGER (bool) | khoá tài khoản khi nghỉ việc, không xoá (giữ vết đơn cũ) |
 | created_at | TEXT (ISO) | |
 | credentials_changed_at | INTEGER (ms, nullable) | thêm ở migration 0005: phiên phát hành trước mốc này bị từ chối (thu hồi phiên khi đổi/đặt lại PIN) |
@@ -267,3 +267,5 @@ Chia thi công thành các module tuần tự, mỗi module merge xong mới m�
 - **2026-09-19 (rà soát kiến trúc)** — Migration 0007: `audit_log` bỏ `CHECK` liệt kê (danh sách ở `src/shared/audit-actions.ts`), `order_item.catalog_code`, TRIGGER bất biến tiền. Hợp nhất §2.1/§2.2/§2.5/§5/§6/§7 về đúng hiện trạng. Kiến trúc mã: `docs/ARCHITECTURE.md`; phát hiện + kế hoạch: `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
 - **2026-09-19 (thông tin chuyến đi, A1)** — Migration 0008: bảng `order_service` (số khách theo loại + thông tin chuyến theo dịch vụ), `order_item.service_id/catalog_price/pax_code`, trigger khoá sau xác nhận và chốt chặn xác nhận đủ chuyến; đơn cũ được backfill thành dịch vụ nhập tay (A1). Spec: `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-19-thong-tin-chuyen-di-a1.md`. Chưa áp remote.
 - **2026-09-19 (App iPhone PWA)** — §2.4-7 (quyết định), §3 (static assets kèm manifest/icon/service worker), §6 (dòng PWA), §7 (ba dòng, tên chờ duyệt), đầu spec (điểm chạm tài sản logo). Không đổi §2 (dữ liệu). Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`; rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`.
+
+- **2026-09-20 — N1 (nền danh tính), ADR-0001…0008 + đặc tả `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`:** thêm hồ sơ (Party–Role–Relationship: `pty_*`), địa điểm (`loc_*`), quyền app đa trị (`stf_permission`) thay cột `staff.role` đơn trị; API `/api/parties*`, `/api/locations*`, `PUT /api/staff/:id/permissions`. Bản đồ quyền → thao tác của ADR-0007 thi hành ở `src/shared/permissions.ts`: mọi phần §2.4-4/5 ("mọi nhân viên xem được đơn của nhau", "người lập hoặc admin mới sửa") nay đọc là "SALES/ACCOUNTING/ADMIN xem được đơn; SALES chỉ sửa đơn của mình và chỉ xem nhật ký đơn của mình; ADMIN mọi đơn; FIELD không dùng màn hình/API đơn". Khoá số khách/dịch vụ/tiền sau xác nhận (Q9 của A1) **giữ nguyên tới N3**.

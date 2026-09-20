@@ -16,7 +16,7 @@ Vận hành khi thử: `wrangler dev` không tự nạp lại `src/` đáng tin 
 - **Thông tin chuyến (2026-09-19, spec `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md`, phần A):** mẫu xác nhận đọc từ `order_service` — mỗi dịch vụ có ngày giờ khởi hành, giờ + điểm đón, check-in (ngày trống = ngày khởi hành), ghi chú và số khách theo loại; dòng tiền của dịch vụ nằm ở `items`. Điểm đón/ghi chú là dữ liệu cá nhân của khách: đưa lên mẫu được, **không** đưa vào nhật ký. Đơn đã xác nhận vẫn đổi được các trường này (`trip_updated`) — mẫu đã xuất trước đó có thể lỗi thời.
 - `company_profile` (đã có dòng `default`) là nguồn header mẫu; chưa có màn hình sửa (M5).
 - `audit_log` đã có action `exported_png` / `exported_pdf`: ghi mỗi lần xuất (`orderId`, `staffId`, `targetType:"order"`).
-- Chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ (`canModify`); xuất file dùng chung quyền xem (mọi nhân viên xem được đơn) — nên chốt với chủ dự án xuất đơn `draft`/`cancelled` có được không.
+- Chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ (từ N1: `can(staff, "order.modify", { ownerId })` ở `src/shared/permissions.ts`; FIELD không dùng route đơn); xuất file dùng chung quyền xem (mọi nhân viên xem được đơn) — nên chốt với chủ dự án xuất đơn `draft`/`cancelled` có được không.
 - Không bao giờ đưa `Ghi chú nội bộ` của Sheet lên mẫu (đã không được lưu vào D1).
 
 ## Quyết định M3 đã chốt (spec §2.4-6)

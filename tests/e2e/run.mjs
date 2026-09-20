@@ -75,6 +75,17 @@ try {
       console.log(`✘ ${name}\n`);
     }
   }
+  // Sau mọi kịch bản: bất biến dữ liệu N1 phải còn nguyên trên D1 tạm (chỉ khi chạy đủ bộ — chạy lẻ có thể để dữ liệu dở).
+  if (!picked.length) {
+    console.log("▶ audit-invariants");
+    try {
+      execFileSync("node", [join(ROOT, "scripts", "audit-invariants.mjs"), "--db", "local", "--persist-to", persist, "--strict"], { cwd: ROOT, stdio: "inherit" });
+      console.log("✔ audit-invariants\n");
+    } catch {
+      failed++;
+      console.log("✘ audit-invariants\n");
+    }
+  }
 } finally {
   if (server?.pid) {
     try {

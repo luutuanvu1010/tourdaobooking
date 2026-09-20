@@ -9,6 +9,8 @@ const DIR = new URL("../../../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const sqlOf = (f: string) => readFileSync(new URL(f, DIR), "utf8");
 const upTo = (last: string) => files.filter((f) => f <= last);
+/** Các test dưới đây kiểm chính migration 0008 nên dựng schema ĐẾN 0008: migration sau (vd 0013 bắt buộc party_id) không được làm đổi kết quả. */
+const SCHEMA_0008 = upTo("0008_order_service.sql");
 
 function open(list: string[]): DatabaseSync {
   const db = new DatabaseSync(":memory:");
@@ -53,7 +55,7 @@ test("backfill: mỗi dòng tiền cũ thành một dịch vụ nhập tay, dùn
 });
 
 test("CHECK: ngày/giờ đúng khuôn dạng, số khách không âm", () => {
-  const db = open(files);
+  const db = open(SCHEMA_0008);
   seedStaff(db);
   seedOrder(db, "o1");
   const ins = (cols: string, vals: string) => `INSERT INTO order_service (id, order_id, name, unit, ${cols}) VALUES ('${Math.random()}', 'o1', 'T', 'perPax', ${vals})`;
@@ -68,7 +70,7 @@ test("CHECK: ngày/giờ đúng khuôn dạng, số khách không âm", () => {
 });
 
 test("order_item.service_id phải thuộc cùng đơn", () => {
-  const db = open(files);
+  const db = open(SCHEMA_0008);
   seedStaff(db);
   seedOrder(db, "o1");
   seedOrder(db, "o2");
@@ -79,7 +81,7 @@ test("order_item.service_id phải thuộc cùng đơn", () => {
 });
 
 test("khoá ngoại: xoá dịch vụ khi còn dòng tiền trỏ vào bị chặn (thứ tự sửa nháp: xoá dòng tiền trước, dịch vụ sau)", () => {
-  const db = open(files);
+  const db = open(SCHEMA_0008);
   seedStaff(db);
   seedOrder(db, "o1");
   seedService(db, "sv1", "o1");
@@ -90,7 +92,7 @@ test("khoá ngoại: xoá dịch vụ khi còn dòng tiền trỏ vào bị ch�
 });
 
 test("đơn không còn nháp: không thêm/xoá dịch vụ, không đổi thành phần; trường vận hành vẫn sửa được", () => {
-  const db = open(files);
+  const db = open(SCHEMA_0008);
   seedStaff(db);
   seedOrder(db, "o1");
   seedService(db, "sv1", "o1", "depart_date='2026-09-20'");
@@ -106,7 +108,7 @@ test("đơn không còn nháp: không thêm/xoá dịch vụ, không đổi thà
 });
 
 test("chỉ khi CHUYỂN sang xác nhận mới đòi đủ ngày + khách + có dịch vụ", () => {
-  const db = open(files);
+  const db = open(SCHEMA_0008);
   seedStaff(db);
   seedOrder(db, "none");
   fails(db, `UPDATE orders SET status = 'confirmed' WHERE id = 'none'`, /incomplete_trip/); // không có dịch vụ
