@@ -65,6 +65,9 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `staff` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `stf_permission` | bảng |  |
+| `stf_permission_type` | bảng tra cứu |  |
+| `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

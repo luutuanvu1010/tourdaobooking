@@ -126,6 +126,16 @@
       "module": "staff",
       "kind": "table",
       "legacy": true
+    },
+    {
+      "name": "stf_permission",
+      "module": "staff",
+      "kind": "table"
+    },
+    {
+      "name": "stf_permission_type",
+      "module": "staff",
+      "kind": "lookup"
     }
   ],
   "views": [
@@ -157,6 +167,16 @@
         "party_kind",
         "active",
         "sort_key"
+      ]
+    },
+    {
+      "name": "v_stf_staff_label",
+      "module": "staff",
+      "columns": [
+        "id",
+        "label",
+        "active",
+        "party_id"
       ]
     }
   ],

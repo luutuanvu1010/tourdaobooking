@@ -162,3 +162,78 @@ test("0011: truy vấn 'ai giữ vai HDV ở Bến cảng Vinpearl hôm nay' (AD
   assert.deepEqual(rows(db, q, "2026-09-25", "2026-09-25"), [{ name: "Nguyễn Tuyên Phong" }]);
   assert.deepEqual(rows(db, q, "2026-08-31", "2026-08-31"), [], "trước ngày hiệu lực thì không có ai");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// 0012: staff permissions + party_id + backfill
+// ---------------------------------------------------------------------------------------------------------------------
+function seedStaff(db: DatabaseSync): void {
+  db.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at) VALUES
+    ('s-admin', 'Nguyễn Tuyên Phong', '0845256256', 'x', 'admin', 1, '2026-09-19T17:30:00.000Z'),
+    ('s-sales', ' Trần Văn Bình ', '0901000002', 'x', 'sales', 1, '2026-09-19T05:00:00.000Z'),
+    ('s-one', 'Hương', '0901000003', 'x', 'sales', 0, '2026-09-19T05:00:00.000Z')`);
+}
+
+test("0012: backfill — mỗi tài khoản có hồ sơ PERSON, tên tách đúng, vai STAFF, quyền, party_id", () => {
+  const db = open(upTo("0011"));
+  seedStaff(db);
+  db.exec(readFileSync(new URL(files.find((f) => f.startsWith("0012"))!, DIR), "utf8"));
+  assert.equal(one(db, "SELECT count(*) FROM staff WHERE party_id IS NULL"), 0);
+  assert.equal(one(db, "SELECT count(*) FROM pty_party WHERE party_kind = 'PERSON'"), 3);
+  const names = rows(db, "SELECT s.id, p.family_name AS family, p.middle_name AS middle, p.given_name AS given, y.display_name AS display FROM staff s JOIN pty_person p ON p.party_id = s.party_id JOIN pty_party y ON y.id = s.party_id ORDER BY s.id");
+  assert.deepEqual(names, [
+    { id: "s-admin", family: "Nguyễn", middle: "Tuyên", given: "Phong", display: "Nguyễn Tuyên Phong" },
+    { id: "s-one", family: null, middle: null, given: "Hương", display: "Hương" },
+    { id: "s-sales", family: "Trần", middle: "Văn", given: "Bình", display: "Trần Văn Bình" }, // khoảng trắng đầu/cuối được cắt
+  ]);
+});
+
+test("0012: backfill — vai STAFF theo NGÀY VIỆT NAM, quyền sales→SALES / admin→ADMIN, không sao chép SĐT đăng nhập", () => {
+  const db = open(upTo("0011"));
+  seedStaff(db);
+  db.exec(readFileSync(new URL(files.find((f) => f.startsWith("0012"))!, DIR), "utf8"));
+  assert.equal(one(db, "SELECT valid_from_date FROM pty_party_role WHERE party_id = 'pty-s-admin' AND role_type_code = 'STAFF'"), "2026-09-20", "17:30 UTC ngày 19 = 00:30 ngày 20 giờ VN");
+  assert.equal(one(db, "SELECT location_id FROM pty_party_role WHERE party_id = 'pty-s-admin'"), null);
+  assert.deepEqual(rows(db, "SELECT staff_id, permission_type_code FROM stf_permission WHERE valid_to_at IS NULL ORDER BY staff_id"), [
+    { staff_id: "s-admin", permission_type_code: "ADMIN" },
+    { staff_id: "s-one", permission_type_code: "SALES" },
+    { staff_id: "s-sales", permission_type_code: "SALES" },
+  ]);
+  assert.equal(one(db, "SELECT count(*) FROM pty_contact_point"), 0, "SĐT đăng nhập ≠ SĐT liên hệ (ADR-0001 mục 5)");
+});
+
+test("0012: ràng buộc tài khoản — một hồ sơ một tài khoản, quyền lạ/trùng, thu hồi trước hiệu lực, FK sạch", () => {
+  const db = open(upTo("0011"));
+  seedStaff(db);
+  db.exec(readFileSync(new URL(files.find((f) => f.startsWith("0012"))!, DIR), "utf8"));
+  fails(db, "UPDATE staff SET party_id = 'pty-s-admin' WHERE id = 's-sales'", /UNIQUE/);
+  fails(db, "UPDATE staff SET party_id = 'khong-co' WHERE id = 's-sales'", /FOREIGN KEY/);
+  const perm = (id: string, code: string, from: string, to: string | null = null) =>
+    `INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, valid_to_at, created_at, updated_at) VALUES ('${id}', 's-sales', '${code}', '${from}', ${to === null ? "NULL" : `'${to}'`}, '${NOW}', '${NOW}')`;
+  db.exec(perm("p1", "FIELD", "2026-09-20T00:00:00.000Z"));
+  fails(db, perm("p2", "FIELD", "2026-09-21T00:00:00.000Z"), /UNIQUE/);
+  fails(db, perm("p3", "KHONG_CO", "2026-09-20T00:00:00.000Z"), /FOREIGN KEY/);
+  fails(db, perm("p4", "ACCOUNTING", "2026-09-20T00:00:00.000Z", "2026-09-19T00:00:00.000Z"), /CHECK/);
+  db.exec("UPDATE stf_permission SET valid_to_at = '2026-10-01T00:00:00.000Z' WHERE id = 'p1'");
+  db.exec(perm("p5", "FIELD", "2026-10-01T00:00:00.000Z")); // thu hồi rồi cấp lại = dòng mới
+  assert.deepEqual(rows(db, "PRAGMA foreign_key_check"), []);
+  assert.deepEqual(rows(db, "SELECT code FROM stf_permission_type ORDER BY sort_order").map((r) => r.code), ["SALES", "ACCOUNTING", "ADMIN", "FIELD"]);
+});
+
+test("0012 (expand): mã CŨ vẫn chạy — INSERT staff không party_id, đổi role/full_name, ngưng tài khoản; tài khoản chưa có hồ sơ KHÔNG rơi khỏi view", () => {
+  const db = open(upTo("0012"));
+  db.exec(`INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at) VALUES ('s-old', 'Lê Thị Hoa', '0900000030', 'x', 'admin', 1, '${NOW}')`);
+  db.exec("UPDATE staff SET role = 'sales', full_name = 'Lê Hoa' WHERE id = 's-old'");
+  db.exec("UPDATE staff SET active = 0 WHERE id = 's-old'");
+  assert.equal(rows(db, "SELECT * FROM staff WHERE id = 's-old'").length, 1);
+  assert.deepEqual(rows(db, "SELECT id, label, party_id FROM v_stf_staff_label WHERE id = 's-old'"), [{ id: "s-old", label: "(chưa có hồ sơ)", party_id: null }]);
+  db.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES ('o1', 'TD-WIN', 's-old', 'draft', 'K', '0900000009', '${NOW}', '${NOW}')`);
+  assert.deepEqual(rows(db, "SELECT o.order_code, s.label FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id"), [{ order_code: "TD-WIN", label: "(chưa có hồ sơ)" }]);
+  assert.deepEqual(db.prepare("PRAGMA table_info(v_stf_staff_label)").all().map((c) => c.name), ["id", "label", "active", "party_id"]);
+});
+
+test("hai pha: các migration mở rộng KHÔNG chứa trigger siết (0013 mới có, ở lần phát hành 2)", () => {
+  const db = open();
+  const triggers = rows(db, "SELECT name FROM sqlite_master WHERE type = 'trigger' AND (name LIKE 'staff_%' OR name LIKE 'stf_%')").map((r) => r.name);
+  const hasContract = files.some((f) => f.startsWith("0013"));
+  if (!hasContract) assert.deepEqual(triggers, [], "trước 0013 không được có trigger siết");
+});
