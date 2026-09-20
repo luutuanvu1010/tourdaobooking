@@ -15,6 +15,9 @@ const SHAPES = {
   ],
   back: [["path", { d: "M15 5l-7 7 7 7" }]],
   next: [["path", { d: "M9 5l7 7-7 7" }]],
+  lock: [["rect", { x: 5, y: 11, width: 14, height: 9, rx: 2 }], ["path", { d: "M8 11V8a4 4 0 0 1 8 0v3" }]],
+  alert: [["path", { d: "M12 4l9 16H3L12 4z" }], ["path", { d: "M12 10v4M12 17v.01" }]],
+  close: [["path", { d: "M6 6l12 12M18 6L6 18" }]],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
