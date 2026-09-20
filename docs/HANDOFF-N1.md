@@ -10,7 +10,7 @@
 - Kiểm máy: `src/architecture.test.ts`, `docs/data-dictionary.json`, `scripts/audit-invariants.mjs` (xem `docs/ARCHITECTURE.md`).
 
 ## Điều kiện TRƯỚC khi triển khai
-- **Không triển khai khi A2 chưa xong.** Nhánh chứa A1 (đơn có `services[]`) — `tsc -p web` còn đúng 4 lỗi ở `web/order-form.ts`, `web/order.ts`; giao diện đơn sẽ hỏng trên production nếu chỉ triển khai N1.
+- **A2 (giao diện đơn) đã xong về mã (2026-09-20): `tsc -p web` = 0 lỗi; bằng chứng ở `docs/evidence/2026-09-20-a2/`.** Còn MỘT cổng: chủ dự án ký duyệt thị giác (mục "Ký duyệt thị giác" trong `docs/evidence/2026-09-20-a2/README.md`) — **chưa ký thì chưa triển khai**. Nhánh chứa A1 (đơn có `services[]`): triển khai chỉ N1 mà thiếu A2 thì giao diện đơn hỏng trên production, nên A1, N1 và A2 đi cùng một lần phát hành.
 - Chủ dự án chạy (chỉ đọc) và ghi lại kết quả: `npx wrangler d1 migrations list tourdao-sales-db --remote` (xem `0008` đã áp chưa) và `npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT count(*) AS orders FROM orders"`.
 - Ghi điểm khôi phục D1 Time Travel trước khi áp: `npx wrangler d1 time-travel info tourdao-sales-db`.
 
@@ -18,7 +18,7 @@
 `wrangler d1 migrations apply` áp MỌI migration chưa áp, nên migration siết `0013` KHÔNG được nằm trong `migrations/` ở lần 1.
 
 **Lần 1 (mở rộng):**
-1. Chạy BA lệnh riêng, ghi lại kết quả của từng lệnh (đừng nối bằng `&&`: `npm run typecheck` thoát khác 0 khi còn 4 lỗi A2 nên sẽ cắt chuỗi và `test:e2e` không được chạy): (a) `npm test` — kỳ vọng toàn bộ đạt; (b) `npm run typecheck` — **phải là 0 lỗi lúc triển khai**; hiện là 4 lỗi đã biết (`web/order-form.ts` hai lỗi, `web/order.ts` hai lỗi) vì A2 chưa xong, nghĩa là CHƯA được triển khai (xem điều kiện trên); (c) `npm run test:e2e` — kỳ vọng `E2E: 10/10 kịch bản xanh` và bước cuối `audit-invariants` xanh.
+1. Chạy BA lệnh riêng, ghi lại kết quả của từng lệnh (không nối bằng `&&`): (a) `npm test` — kỳ vọng toàn bộ đạt; (b) `npm run typecheck` — **phải là 0 lỗi lúc triển khai** (A2 đã đưa lỗi của `tsc -p web` về 0); (c) `npm run test:e2e` — kỳ vọng `E2E: 10/10 kịch bản xanh` và bước cuối `audit-invariants` xanh.
 2. `npm run db:migrate:remote` (áp `0008` nếu chưa, rồi `0009…0012`), **ngay sau đó** `npx wrangler deploy` trong cùng lượt làm việc (khoảng giữa chỉ tính bằng phút: tài khoản do mã cũ tạo lúc đó chưa có hồ sơ/quyền — hiện nhãn "(chưa có hồ sơ)", đơn của họ không biến mất, họ bị từ chối theo mặc định cho tới khi `0013` backfill). Trong khoảng giữa này — **và tiếp tục sau khi triển khai, cho tới khi chắc chắn không hoàn tác nữa** — KHÔNG tạo tài khoản, KHÔNG đổi tên / SĐT đăng nhập / ngưng / kích hoạt tài khoản, KHÔNG đổi quyền, KHÔNG tạo-sửa hồ sơ (lý do và hệ quả: mục "Hoàn tác" ngay dưới).
 3. `node scripts/audit-invariants.mjs --db remote` (không `--strict`: còn cảnh báo "chưa có hồ sơ" là đúng nếu có tài khoản khoảng giữa). Mọi dòng `✗` là vi phạm thật. Lệnh này chỉ chạy được SAU khi đã áp `0009…0012` (trước đó thiếu bảng `pty_*`/`stf_*` nên script thoát mã 2): dùng nó ở bước kiểm sau khi áp, không phải để kiểm "hiện trạng trước".
 4. Thử tay: đăng nhập bằng tài khoản admin; `/staff` hiện cột Quyền; `/parties`, `/locations` mở được; tạo thử một hồ sơ.

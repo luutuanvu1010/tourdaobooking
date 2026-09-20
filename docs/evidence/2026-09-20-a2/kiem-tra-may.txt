@@ -1,0 +1,43 @@
+b67f4bf
+Sun Sep 20 22:56:57 +07 2026
+# tests 230
+# pass 230
+# fail 0
+
+> typecheck
+> tsc --noEmit && tsc --noEmit -p web && tsc --noEmit -p web/sw
+
+typecheck: thoát mã 0
+▶ platform
+E2E PLATFORM OK
+✔ platform (0.4s)
+▶ pwa
+E2E PWA OK
+✔ pwa (0.2s)
+▶ orders
+E2E OK
+✔ orders (8.6s)
+▶ trip
+E2E OK
+✔ trip (27.3s)
+▶ admin
+E2E ADMIN OK
+✔ admin (4.2s)
+▶ catalog
+E2E CATALOG OK
+✔ catalog (18.2s)
+▶ admin-race
+✔ admin-race (0.2s)
+▶ locations
+E2E LOCATIONS OK
+✔ locations (0.2s)
+▶ parties
+E2E PARTIES OK
+✔ parties (0.4s)
+▶ permissions
+E2E PERMISSIONS OK
+✔ permissions (0.4s)
+▶ audit-invariants
+✔ audit-invariants
+E2E: 10/10 kịch bản xanh
+test:e2e: thoát mã 0

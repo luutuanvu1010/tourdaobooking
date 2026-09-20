@@ -26,3 +26,7 @@ npm run test:e2e -- orders catalog  # chỉ vài kịch bản
 ## Chạy lẻ trên server có sẵn
 
 Đặt `E2E_BASE_URL` (vd `http://localhost:8787`) và `E2E_PERSIST_TO` (thư mục D1 local của server đó, nếu không phải mặc định), rồi `node tests/e2e/<tên>.mjs`. D1 đó phải có 3 tài khoản trong `lib.mjs`; `catalog.mjs` cần D1 chưa từng đồng bộ danh mục.
+
+## Kiểm giao diện bằng Chrome thật (A2)
+
+Không nằm trong `npm run test:e2e` (cần Chrome và, cho axe, một bản `axe-core` lấy bằng `npm pack` NGOÀI repo). Các kịch bản ở `docs/evidence/2026-09-20-a2/kich-ban/`: `a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` kiểm hành vi form lập/sửa đơn, trang đơn và bảng "Sửa thông tin chuyến"; `a2-evidence.mjs` chụp ảnh, đo và chạy axe. Cùng dựng D1 tạm + `wrangler dev` + Chrome headless (Chrome Debugging Protocol, Node 22 có `WebSocket` gốc, không thêm dependency). Chạy từ GỐC repo sau `npm run build:web`; cách đặt `CHROME_BIN` và `AXE_JS` ở đầu mỗi tệp.

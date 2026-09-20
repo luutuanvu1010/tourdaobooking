@@ -1,0 +1,172 @@
+{
+  "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm); không phải iPhone thật.",
+  "axe": {
+    "form-trong": [],
+    "form-3-dich-vu": [],
+    "form-banner-kiem-tra": [],
+    "don-nhap": [],
+    "don-thieu-chuyen": [],
+    "don-da-xac-nhan": [],
+    "bang-sua-chuyen": [],
+    "don-da-huy": [],
+    "may-tinh-don": [],
+    "may-tinh-bang-sua": [],
+    "form-banner-gia-doi": [],
+    "form-sua-nhap": [],
+    "may-tinh-form": [],
+    "hq-dang-nhap": [],
+    "hq-danh-sach-don": [],
+    "hq-dich-vu": [
+      {
+        "id": "color-contrast",
+        "impact": "serious",
+        "nodes": 4,
+        "help": "Elements must meet minimum color contrast ratio thresholds",
+        "mau": [
+          ".badge",
+          ".row-off > .muted:nth-child(3)"
+        ]
+      },
+      {
+        "id": "empty-table-header",
+        "impact": "minor",
+        "nodes": 1,
+        "help": "Table header text should not be empty",
+        "mau": [
+          "th:nth-child(8)"
+        ]
+      }
+    ],
+    "hq-nhan-vien": [
+      {
+        "id": "empty-table-header",
+        "impact": "minor",
+        "nodes": 1,
+        "help": "Table header text should not be empty",
+        "mau": [
+          "th:nth-child(5)"
+        ]
+      }
+    ],
+    "hq-ho-so": [],
+    "hq-dia-diem": [
+      {
+        "id": "empty-table-header",
+        "impact": "minor",
+        "nodes": 1,
+        "help": "Table header text should not be empty",
+        "mau": [
+          "th:nth-child(6)"
+        ]
+      }
+    ],
+    "hq-toi": [],
+    "hq-nhat-ky": []
+  },
+  "do": {
+    "form-trong": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "form-3-dich-vu": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "don-nhap": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "don-thieu-chuyen": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "don-da-xac-nhan": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "bang-sua-chuyen": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "don-da-huy": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "form-sua-nhap": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    }
+  },
+  "font": {
+    "soKhaiBao": 6,
+    "fontDisplay": [
+      "swap"
+    ],
+    "daNap": 4,
+    "chuThan": "Nunito",
+    "tieuDe": "\"Be Vietnam Pro\"",
+    "datTruocTrongServiceWorker": true,
+    "khiBiChan": {
+      "chuHienRa": true,
+      "fontNap": 0
+    }
+  },
+  "hoiQuy": {
+    "dang-nhap": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "danh-sach-don": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "dich-vu": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "nhan-vien": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "ho-so": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "dia-diem": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "toi": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    },
+    "nhat-ky": {
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "loiConsole": 0
+    }
+  }
+}

@@ -60,6 +60,10 @@ File thuần (`rules.ts`, `sheet.ts`, mọi file trong `shared/`) import bằng 
 5. Thêm một dòng vào mảng `modules` trong `src/index.ts`.
 6. Luật thuần có test `node --test`; hành vi API có kịch bản trong `tests/e2e/`.
 
+## Giao diện đơn (A2)
+
+Logic của form/trang đơn là luật THUẦN ở `src/shared/` (kiểm bằng `node --test`, dùng chung với máy chủ khi có thể): `trip-rules.ts` (hằng trần và cửa sổ xác nhận — máy chủ `orders/service-rules.ts` import lại), `trip-form.ts`, `service-form.ts` (bản nháp dịch vụ, dòng tiền xem trước bằng đúng `buildLines`, lỗi chặn Lưu, `ServiceInput`), `order-errors.ts` (ma trận lỗi → banner), `order-view.ts` (mô hình hiển thị trang đơn, nút theo quyền). `web/` chỉ dựng DOM bằng `h()` (không `innerHTML`) và gọi API; `web/tsconfig.json` bật `allowImportingTsExtensions` vì các tệp thuần import nhau bằng đuôi `.ts`. Bằng chứng giao diện thật: `docs/evidence/2026-09-20-a2/`.
+
 ## Ứng dụng iPhone (PWA)
 
 Giao diện tĩnh là PWA: `manifest` + icon + service worker (`web/sw/sw.ts` → `public/sw.js`). Quy tắc bất biến: `/api/*` không bao giờ qua cache của service worker (`src/shared/sw-policy.ts`, có test). Chi tiết, danh sách kiểm trên máy thật và cách tăng `CACHE_VERSION`: `docs/PWA-IPHONE.md`.
