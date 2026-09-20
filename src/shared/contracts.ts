@@ -251,3 +251,25 @@ export interface CatalogSyncResponse {
   problems: { row: number; message: string }[];
   warnings: { row: number; message: string }[];
 }
+
+// ---- Địa điểm (module locations) ---------------------------------------------
+export interface LocationTypeDto {
+  code: string;
+  name: string;
+}
+
+export interface LocationDto {
+  id: string;
+  code: string;
+  name: string;
+  locationTypeCode: string;
+  locationTypeName: string;
+  address: string | null;
+  sortOrder: number;
+  active: boolean;
+  /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
+  updatedAt: string;
+}
+
+export interface LocationListResponse { locations: LocationDto[]; types: LocationTypeDto[] }
+export interface LocationResponse { location: LocationDto }

@@ -3,11 +3,12 @@ import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
+import { locationsModule } from "./modules/locations";
 import { ordersModule } from "./modules/orders";
 import { createApp } from "./shared/router";
 
 const app = createApp({
-  modules: [authModule, accountsModule, ordersModule, catalogModule, auditModule],
+  modules: [authModule, accountsModule, ordersModule, catalogModule, auditModule, locationsModule],
   currentStaff,
   checkConfig: checkAuthConfig,
 });

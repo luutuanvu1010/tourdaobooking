@@ -27,7 +27,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
-const STRICT: readonly { module: string; file: string }[] = [];
+const STRICT: readonly { module: string; file: string }[] = [
+  { module: "locations", file: "modules/locations/repository.ts" },
+];
 
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
