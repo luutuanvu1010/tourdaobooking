@@ -13,12 +13,12 @@ export const CACHE_VERSION = typeof __BUILD_ID__ === "undefined" ? "dev" : __BUI
 export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 
 /** Các trang của app (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Test đối chiếu với các file HTML trong public/ nên không lệch khi thêm/bớt trang. */
-export const PAGES: readonly string[] = ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit"];
+export const PAGES: readonly string[] = ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations"];
 
 /** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
 const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|icons\/[A-Za-z0-9_-]+\.png)$/;
 
-/** Nạp sẵn lúc cài. Trang admin (/catalog, /staff, /audit) tự vào cache ở lần mở đầu. */
+/** Nạp sẵn lúc cài. Các trang còn lại (/catalog, /staff, /audit, /parties, /locations) tự vào cache ở lần mở đầu. */
 export const PRECACHE: readonly string[] = [
   "/", "/login", "/order-form", "/order", "/account",
   "/app.css",
