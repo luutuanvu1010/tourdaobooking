@@ -149,6 +149,14 @@ print('\n[View công bố + truy vấn "ai giữ vai HDV ở Bến cảng Vinpea
 check('v_stf_staff_label trả tên từ hồ sơ', one("SELECT label FROM v_stf_staff_label WHERE id='s-admin'") == 'Nguyễn Tuyên Phong')
 cols = [c[1] for c in q("PRAGMA table_info(v_stf_staff_label)")]
 check('view chỉ chứa khoá + nhãn + cờ (không có pin_hash/role/phone)', cols == ['id', 'label', 'active', 'party_id'], cols)
+pcols = [c[1] for c in q("PRAGMA table_info(v_pty_party_label)")]
+check('v_pty_party_label: khoá + nhãn + loại + cờ + sort_key (không lộ cột nội bộ)', pcols == ['id', 'display_name', 'party_kind', 'active', 'sort_key'], pcols)
+order = [r[0] for r in q("""SELECT s.id FROM staff s LEFT JOIN v_pty_party_label pl ON pl.id = s.party_id
+                           ORDER BY s.active DESC, pl.sort_key COLLATE NOCASE, s.created_at""")]
+check('danh sách nhân sự theo sort_key (tên trước họ): Bình < Hương < Phong < X (s-ok thêm ở bước kiểm trigger)', order == ['s-sales', 's-one', 's-admin', 's-ok'], order)
+check('sort_key một từ (Hương) = chính tên; nhiều từ = tên họ đệm',
+      one("SELECT sort_key FROM v_pty_party_label WHERE id='pty-s-one'") == 'Hương'
+      and one("SELECT sort_key FROM v_pty_party_label WHERE id='pty-s-admin'") == 'Phong Nguyễn Tuyên')
 ocols = [c[1] for c in q("PRAGMA table_info(v_ord_order_label)")]
 check('v_ord_order_label chỉ có khoá + nhãn (id, order_code)', ocols == ['id', 'order_code'], ocols)
 check('v_ord_order_label trả mã đơn của đơn mẫu', len(q("SELECT id, order_code FROM v_ord_order_label")) == len(q("SELECT id FROM orders")) and len(q("SELECT id FROM orders")) >= 1)

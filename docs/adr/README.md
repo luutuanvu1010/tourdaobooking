@@ -11,7 +11,8 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0005](ADR-0005-quyen-app-da-tri.md) | Quyền app đa trị (`stf_permission`), **không dựng lại `staff`** (thêm cột + trigger, `role` thành cột chết) | một chiều | **accepted** |
 | [0006](ADR-0006-phan-cong-va-gio-dieu-xe.md) | Phân công: hạt của `dsp_assignment`, lịch sử người phụ trách, tách giờ hẹn khách và giờ điều xe, tiền đề id dịch vụ bền | một chiều | **accepted** |
 | [0007](ADR-0007-ban-do-quyen-thao-tac-va-sua-sau-xac-nhan.md) | Bản đồ quyền → thao tác, nơi thi hành "của mình/được giao", sửa sau xác nhận (thay một phần Q9 của A1) | một chiều | **accepted** (gồm dòng ◆) |
+| [0008](ADR-0008-bo-sung-canh-parties-locations.md) | Bổ sung cạnh phụ thuộc `parties → locations` (`pty_party_role.location_id → loc_location.id`, `NO ACTION`); bổ sung đồ thị ADR-0002, không thay thế | một chiều | **accepted** |
 
-Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt (2026-09-20).
+Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
 **Cổng bắt buộc trước khi áp migration N1 lên remote:** hai lệnh chỉ-đọc trên remote D1 (xem mục Bối cảnh của ADR-0001) do chủ dự án chạy. **Bằng chứng chỉ cần nếu sau này muốn gỡ cột `staff.role` (ADR-0005):** D1 hỗ trợ `PRAGMA defer_foreign_keys` và bọc một tệp migration trong một giao dịch.

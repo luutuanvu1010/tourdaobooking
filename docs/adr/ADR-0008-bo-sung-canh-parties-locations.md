@@ -1,7 +1,7 @@
 # ADR-0008 — Bổ sung cạnh phụ thuộc `parties → locations`
 
-- **Trạng thái:** proposed
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** (một khoá ngoại xuyên module khó gỡ sau khi có dữ liệu)
 - **Liên quan:** bổ sung (không thay thế) ADR-0001, ADR-0002. ADR-0002 đã accepted nên không sửa được: đồ thị của nó được bổ sung bằng ADR này.
 

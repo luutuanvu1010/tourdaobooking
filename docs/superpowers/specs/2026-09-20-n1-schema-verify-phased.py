@@ -100,6 +100,10 @@ db.execute("INSERT INTO orders (id, order_code, staff_id, status, customer_name,
 row = db.execute("SELECT o.order_code, s.label FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id WHERE o.id = 'o3'").fetchone()
 check("cửa sổ: đơn của tài khoản chưa có hồ sơ VẪN hiện qua v_stf_staff_label (LEFT JOIN), nhãn dự phòng rõ ràng", row == ("TD-WIN-1", "(chưa có hồ sơ)"), str(row))
 check("cửa sổ: tài khoản chưa có hồ sơ vẫn nằm trong danh sách nhân sự của view", db.execute("SELECT count(*) FROM v_stf_staff_label").fetchone()[0] == 3)
+# M1 của rà soát lại: đường SẮP XẾP danh sách nhân sự (staff → view công bố của parties, LEFT JOIN) cũng không được làm rơi họ.
+ordered = [r[0] for r in db.execute("SELECT s.id FROM staff s LEFT JOIN v_pty_party_label pl ON pl.id = s.party_id "
+                                     "ORDER BY s.active DESC, pl.sort_key COLLATE NOCASE, s.created_at").fetchall()]
+check("cửa sổ: truy vấn sắp xếp danh sách nhân sự vẫn trả đủ 3 tài khoản (kể cả chưa có hồ sơ)", sorted(ordered) == ["s1", "s2", "s3"], str(ordered))
 
 
 print("── Pha 2: siết (0013) ──")

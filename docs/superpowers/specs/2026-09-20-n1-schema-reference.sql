@@ -197,8 +197,15 @@ WHEN EXISTS (SELECT 1 FROM pty_party_relationship o
                AND NOT (COALESCE(NEW.valid_to_date, '9999-12-31') < o.valid_from_date OR NEW.valid_from_date > COALESCE(o.valid_to_date, '9999-12-31')))
 BEGIN SELECT RAISE(ABORT, 'party_relationship_overlap: quan hệ bị chồng lấn thời gian'); END;
 
+-- `sort_key` = nhãn dùng để SẮP XẾP (quy tắc thứ tự tên kiểu Việt Nam nằm ở MỘT chỗ, do module chủ `parties` giữ): PERSON → tên, họ, đệm;
+-- tổ chức → tên gọi. LEFT JOIN để một hồ sơ PERSON thiếu dòng pty_person (vi phạm R-N1-2) vẫn không làm rơi dòng.
 CREATE VIEW v_pty_party_label AS
-  SELECT id, display_name, party_kind, active FROM pty_party;
+  SELECT p.id, p.display_name, p.party_kind, p.active,
+         CASE p.party_kind
+           WHEN 'PERSON' THEN COALESCE(trim(pe.given_name || ' ' || COALESCE(pe.family_name || ' ', '') || COALESCE(pe.middle_name, '')), p.display_name)
+           ELSE p.display_name
+         END AS sort_key
+  FROM pty_party p LEFT JOIN pty_person pe ON pe.party_id = p.id;
 
 -- ------------------------------------------------------------------------------------------------------------
 -- 3. staff: quyền app đa trị + trỏ hồ sơ (module `staff`, phụ thuộc `parties`) — ADR-0005 (KHÔNG dựng lại `staff`)
