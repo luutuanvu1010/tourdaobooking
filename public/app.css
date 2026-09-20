@@ -1,18 +1,68 @@
-/* Token kế thừa từ tourdaovn/src/styles/tokens.css (bộ "biển sâu"), sao chép giá trị ngày 2026-09-19 — không import runtime.
-   M2 dùng font hệ thống; font Be Vietnam Pro / Nunito tự lưu trữ và giao diện hoàn chỉnh thuộc M4. */
+/* Token: tên và giá trị chuẩn của tourdaovn/src/styles/tokens.css (bản trên máy, đồng bộ 2026-09-20 — KHÔNG dùng bản GitHub cũ), sao chép, không import runtime.
+   Font Nunito / Be Vietnam Pro tự lưu trữ ở /fonts (service worker nạp sẵn). Tên cũ --c-bg / --c-alt / --c-line / --c-muted giữ làm BÍ DANH để trang chưa làm lại không gãy. */
+@font-face { font-family: "Nunito"; src: url("/fonts/nunito-latin-viet-var.woff2") format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Nunito"; src: url("/fonts/nunito-vietnamese-var.woff2") format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-latin-viet-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-vietnamese-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-latin-viet-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-vietnamese-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
 :root {
+  /* — tourdaovn (tên và giá trị chuẩn) — */
   --c-primary: #0c4a6e;
-  --c-accent: #c0392b;
-  --c-bg: #ffffff;
-  --c-alt: #eaf2f8;
-  --c-text: #1b2a35;
-  --c-muted: #5b6b78;
-  --c-line: #d3dee7;
-  --radius-md: 12px;
+  --c-primary-strong: #082f49;
+  --c-primary-soft: #dcebf6;
+  --c-accent: #c0392b;        /* san hô: CHỈ hành động chốt ("Xác nhận đơn") và nhãn giá — không dùng cho lỗi/xoá */
+  --c-accent-strong: #96271a;
+  --c-accent-soft: #fef2f0;
+  --c-sand: #f5a623;
+  --c-sand-soft: #fbe3b3;
+  --c-sand-text: #5a4109;
+  --c-sand-border: #e9d3a4;
+  --c-surface: #ffffff;
+  --c-surface-alt: #eaf2f8;
+  --c-card: #ffffff;
+  --c-text: #0f172a;
+  --c-text-muted: #475569;
+  --c-text-inverse: #f8fafc;
+  --c-border: #d3e1ec;
+  --c-green-soft: #dcfce7;
+  --c-green-text: #166534;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
   --radius-sm: 8px;
-  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
-  --font: "Nunito", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  /* Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. */
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.08);
+  --shadow-overlay: 0 12px 32px rgba(15, 23, 42, 0.16);
+  --m-fast: 180ms;
+  --m-base: 300ms;
+  --font-display: "Be Vietnam Pro", "Nunito", system-ui, sans-serif;
+  --font: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* — bí danh tên cũ (trỏ về token mới; giá trị đổi về chuẩn tourdaovn, màu chữ/viền các trang cũ nhích nhẹ — chấp nhận, đặc tả Q3) — */
+  --c-bg: var(--c-surface);
+  --c-alt: var(--c-surface-alt);
+  --c-line: var(--c-border);
+  --c-muted: var(--c-text-muted);
+  /* — MỚI: bộ màu nguy hiểm (tourdaovn không có; chủ dự án duyệt 2026-09-20). Lỗi, "Huỷ đơn", "Xoá". Chữ --c-danger-text trên --c-danger-soft = 8,6:1 — */
+  --c-danger: #b01235;
+  --c-danger-text: #8e0e2b;
+  --c-danger-soft: #fde9ee;
+  --c-danger-border: #f1c3cf;
+  --c-green-border: #a7e3bc;
+  /* — MỚI: ngôn ngữ form của app nội bộ (tourdaovn không có ô nhập/bộ đếm/bảng): kích thước và cỡ chữ. Nội dung 16px, nhãn 14px, huy hiệu 12px, ô gõ 16px (nhỏ hơn thì iOS tự phóng to). — */
+  --counter-btn: 44px;        /* nút − / + của bộ đếm = vùng chạm tối thiểu */
+  --counter-field: 48px;      /* ô số giữa hai nút */
+  --price-field: 112px;       /* ô đơn giá trong dòng tiền */
+  --focus-ring: 2px;          /* vòng :focus-visible */
+  --w-sheet: 520px;           /* bề rộng tối đa bảng trượt / hộp thoại ở màn hình rộng */
+  --c-scrim: rgba(15, 23, 42, 0.45); /* lớp phủ sau bảng trượt */
+  --fs-ui: 16px;
+  --fs-label: 14px;
+  --fs-badge: 12px;
+  --fs-title: 18px;
+  --fs-counter: 20px;
+  --lh-heading: 1.16;         /* giữ để dấu tiếng Việt của tiêu đề không bị cắt */
+  /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 52px;            /* thanh đầu trang, chưa tính vùng an toàn */
@@ -31,7 +81,7 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
 body { margin: 0; font: 16px/1.5 var(--font); color: var(--c-text); background: var(--c-alt); }
-h1, h2 { font-family: "Be Vietnam Pro", var(--font); color: var(--c-primary); margin: 0 0 var(--s3); }
+h1, h2 { font-family: var(--font-display); color: var(--c-primary); margin: 0 0 var(--s3); }
 h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; }
 a { color: var(--c-primary); }
 .muted { color: var(--c-muted); font-size: .9rem; }
@@ -50,7 +100,7 @@ main { max-width: 960px; margin: 0 auto; padding: var(--s4) max(var(--s4), env(s
 .card h2 { margin-bottom: var(--s3); }
 
 label { display: block; font-size: .85rem; color: var(--c-muted); }
-input, select, textarea { display: block; width: 100%; margin-top: var(--s1); padding: 10px 12px; font: inherit; color: var(--c-text); background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
+input, select, textarea { display: block; width: 100%; margin-top: var(--s1); padding: 10px 12px; font: inherit; font-size: var(--fs-ui); color: var(--c-text); background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--c-primary); outline-offset: 0; }
 textarea { min-height: 72px; resize: vertical; }
 .grid { display: grid; gap: var(--s3); grid-template-columns: 1fr; }
@@ -60,13 +110,13 @@ textarea { min-height: 72px; resize: vertical; }
 .btn:disabled { opacity: .5; cursor: not-allowed; }
 .btn-primary { color: #fff; background: var(--c-primary); }
 .btn-accent { color: #fff; background: var(--c-accent); border-color: var(--c-accent); }
-.btn-danger { color: var(--c-accent); border-color: var(--c-accent); }
+.btn-danger { color: var(--c-danger); border-color: var(--c-danger); }
 .btn-link { padding: 4px 8px; background: none; border: 0; text-decoration: underline; font-weight: 600; }
-.danger { color: var(--c-accent); }
+.danger { color: var(--c-danger); }
 .actions { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s4); }
 
-.alert { padding: var(--s3) var(--s4); margin-bottom: var(--s4); color: #7a1f16; background: #fdecea; border: 1px solid #f3b9b2; border-radius: var(--radius-sm); }
-.alert.warn { color: #6b4a00; background: #fff6df; border-color: #f0d48a; }
+.alert { padding: var(--s3) var(--s4); margin-bottom: var(--s4); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-sm); }
+.alert.warn { color: var(--c-sand-text); background: var(--c-sand-soft); border-color: var(--c-sand-border); }
 
 /* login */
 .login { max-width: 380px; margin: 12vh auto 0; padding: var(--s4); }
@@ -81,9 +131,9 @@ textarea { min-height: 72px; resize: vertical; }
 .order-row-main { display: flex; justify-content: space-between; align-items: center; }
 .order-row-money { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); }
 .badge { padding: 2px 10px; font-size: .8rem; font-weight: 700; border-radius: 999px; }
-.badge-draft { color: #6b4a00; background: #fff1c9; }
-.badge-confirmed { color: #0b5d2e; background: #d6f3e0; }
-.badge-cancelled { color: #7a1f16; background: #fdecea; }
+.badge-draft { color: var(--c-sand-text); background: var(--c-sand-soft); }
+.badge-confirmed { color: var(--c-green-text); background: var(--c-green-soft); }
+.badge-cancelled { color: var(--c-text-muted); background: var(--c-surface-alt); }
 .empty { padding: var(--s6) var(--s4); text-align: center; color: var(--c-muted); }
 
 /* form: dòng dịch vụ */
@@ -110,7 +160,7 @@ table.items th.num, table.items td.num { text-align: right; }
 .history { margin: 0; padding-left: var(--s5); }
 
 /* quản trị */
-.alert.ok { color: #0b5d2e; background: #d6f3e0; border-color: #a9dfbd; }
+.alert.ok { color: var(--c-green-text); background: var(--c-green-soft); border-color: var(--c-green-border); }
 .secret { border: 2px solid var(--c-accent); }
 .pin { font: 700 1.25rem/1 ui-monospace, Menlo, monospace; letter-spacing: .15em; color: var(--c-accent); }
 .row-off { opacity: .6; }
@@ -143,7 +193,7 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .list-card { padding-top: 0; padding-bottom: 0; }
 .row-link { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: var(--row-h); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
 .row-link:last-child { border-bottom: 0; }
-button.row-link.danger { color: var(--c-accent); font-weight: 700; }
+button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
 html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
 body { -webkit-tap-highlight-color: transparent; }

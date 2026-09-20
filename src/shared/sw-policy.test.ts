@@ -21,7 +21,7 @@ test("mọi biến thể đường dẫn tới API đều không vào cache (d�
 });
 
 test("đóng theo mặc định: đường dẫn lạ (kể cả giống /api) không vào cache", () => {
-  for (const p of ["/apiary", "/api-docs", "/x.json", "/js/../secret", "/js/a/b.js", "/icons/x.svg", "/random", "/order/", "/login/", "/login.html"]) {
+  for (const p of ["/apiary", "/api-docs", "/x.json", "/js/../secret", "/js/a/b.js", "/icons/x.svg", "/random", "/order/", "/login/", "/login.html", "/fonts/a/b.woff2", "/fonts/x.woff", "/fonts/x.ttf", "/fonts/../secret.woff2"]) {
     assert.equal(shell(p), "pass", p);
   }
 });
@@ -39,7 +39,7 @@ test("/sw.js không tự cache chính nó", () => {
 });
 
 test("trang và tài nguyên tĩnh đã biết vào cache khung (query của trang bị bỏ qua khi khớp)", () => {
-  for (const p of ["/", "/login", "/order?id=1", "/order-form?id=1", "/js/orders.js", "/js/order-form.js", "/app.css", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/manifest.webmanifest"]) {
+  for (const p of ["/", "/login", "/order?id=1", "/order-form?id=1", "/js/orders.js", "/js/order-form.js", "/app.css", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/manifest.webmanifest", "/fonts/nunito-latin-viet-var.woff2", "/fonts/be-vietnam-pro-latin-viet-800.woff2"]) {
     assert.equal(shell(p), "shell", p);
   }
 });
@@ -67,10 +67,10 @@ test("chỉ cache phản hồi 200 cùng origin, không chuyển hướng", () =
 
 // Lớp chắn thứ hai (Q2-01): dù đường dẫn có lọt qua bộ lọc, JSON/văn bản thường không bao giờ vào cache.
 test("chỉ cache đúng các loại nội dung của khung; JSON, văn bản thường và không rõ loại thì không", () => {
-  for (const t of ["text/html; charset=utf-8", "text/css; charset=utf-8", "text/javascript; charset=utf-8", "application/javascript", "image/png", "application/manifest+json"]) {
+  for (const t of ["text/html; charset=utf-8", "text/css; charset=utf-8", "text/javascript; charset=utf-8", "application/javascript", "image/png", "font/woff2", "application/manifest+json"]) {
     assert.equal(isCacheable({ ...ok, contentType: t }), true, t);
   }
-  for (const t of ["application/json", "application/json; charset=utf-8", "text/plain; charset=utf-8", "application/octet-stream", "image/svg+xml", "", null]) {
+  for (const t of ["application/json", "application/json; charset=utf-8", "text/plain; charset=utf-8", "application/octet-stream", "image/svg+xml", "font/woff", "font/ttf", "", null]) {
     assert.equal(isCacheable({ ...ok, contentType: t }), false, String(t));
   }
 });

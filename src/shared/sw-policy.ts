@@ -15,13 +15,16 @@ export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 /** Các trang của app (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Test đối chiếu với các file HTML trong public/ nên không lệch khi thêm/bớt trang. */
 export const PAGES: readonly string[] = ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations"];
 
-/** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
-const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|icons\/[A-Za-z0-9_-]+\.png)$/;
+/** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
+const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;
 
 /** Nạp sẵn lúc cài. Các trang còn lại (/catalog, /staff, /audit, /parties, /locations) tự vào cache ở lần mở đầu. */
 export const PRECACHE: readonly string[] = [
   "/", "/login", "/order-form", "/order", "/account",
   "/app.css",
+  "/fonts/nunito-latin-viet-var.woff2", "/fonts/nunito-vietnamese-var.woff2",
+  "/fonts/be-vietnam-pro-latin-viet-700.woff2", "/fonts/be-vietnam-pro-vietnamese-700.woff2",
+  "/fonts/be-vietnam-pro-latin-viet-800.woff2", "/fonts/be-vietnam-pro-vietnamese-800.woff2",
   "/js/login.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
   "/manifest.webmanifest",
   "/icons/logo-96.png", "/icons/icon-192.png",
@@ -43,7 +46,7 @@ export function cacheKey(url: string): string {
   return u.origin + u.pathname;
 }
 
-const CACHEABLE_TYPE = /^(?:text\/html|text\/css|(?:text|application)\/javascript|image\/png|application\/manifest\+json)\b/i;
+const CACHEABLE_TYPE = /^(?:text\/html|text\/css|(?:text|application)\/javascript|image\/png|font\/woff2|application\/manifest\+json)\b/i;
 
 /** Không lưu lỗi, phản hồi khác origin hay chuyển hướng, và không bao giờ lưu nội dung không thuộc khung (JSON, văn bản thường, loại lạ). */
 export function isCacheable(res: { status: number; type: string; redirected: boolean; contentType: string | null }): boolean {
