@@ -22,7 +22,9 @@ const params = new URLSearchParams(location.search);
 const editId = params.get("id");
 const focusId = params.get("focus");
 const today = vnToday(new Date());
-const isPhone = window.matchMedia("(max-width: 640px)").matches;
+const isPhone = window.matchMedia("(max-width: 640px)").matches; // chỉ để mở/thu gọn khối chuyến (accordion ≤ 640px)
+/** ≥ 960px: form hai cột, banner lỗi nằm ở cột phải dính (luôn thấy). Dưới 960px (điện thoại VÀ iPad dọc 641–959px) form một cột, banner nằm CUỐI form → lỗi phải cuộn tới banner. Đọc LÚC CẦN: xoay iPad đổi khổ. */
+const wide = (): boolean => window.matchMedia("(min-width: 960px)").matches;
 
 const errorEl = byId("error"); // lỗi tải trang / khoá form
 const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (nút dính đáy trên điện thoại)
@@ -105,7 +107,7 @@ function recompute(): void {
   emptyEl.hidden = entries.length > 0;
   const full = !canAddService(ds);
   addManualBtn.disabled = full || formLocked;
-  picker.setDisabled(formLocked ? "Form đang khoá." : full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ.` : null);
+  picker.setDisabled(formLocked ? "Đơn này đang khoá." : full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ.` : null);
   limitEl.hidden = !full;
   limitEl.textContent = full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ — không thêm được nữa.` : "";
   for (const e of entries) e.card.refreshLimits(); // trần 50 dòng tính trên CẢ ĐƠN: nút "+ Thêm dòng" của mọi thẻ nhập tay bật/khoá đúng ngay
@@ -213,7 +215,7 @@ async function onSaveError(err: unknown): Promise<void> {
   if (failure.action === "lock_form") lockForm(failure);
   renderBanner(saveErrorEl, failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
   const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
-  (isPhone ? saveErrorEl : (target ?? saveErrorEl)).scrollIntoView({ block: "center" }); // điện thoại: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; máy tính: cuộn tới thẻ (banner ở cột dính, luôn thấy)
+  (wide() ? (target ?? saveErrorEl) : saveErrorEl).scrollIntoView({ block: "center" }); // < 960px: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; ≥ 960px: cuộn tới thẻ (banner ở cột dính, luôn thấy)
 }
 
 // Ô tìm danh mục nằm TRONG form: Enter (hoặc phím "Tìm" của bàn phím iPhone) sẽ gửi ngầm cả đơn qua nút "Lưu" mặc định. Chỉ chặn ở ô tìm; các ô văn bản khác giữ hành vi form thường.
@@ -229,7 +231,12 @@ formEl.addEventListener("submit", async (e) => {
   const invalid = validate();
   if (invalid) {
     renderBanner(saveErrorEl, invalid.banner);
-    (isPhone ? saveErrorEl : invalid.focus).scrollIntoView({ block: "center" }); // điện thoại: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ; máy tính: banner ở cột dính, cuộn tới ô lỗi đầu tiên
+    if (wide()) {
+      invalid.focus.scrollIntoView({ block: "center" }); // ≥ 960px: banner ở cột dính (luôn thấy) → cuộn tới ô/thẻ lỗi đầu tiên và đặt focus vào đó
+      invalid.focus.focus({ preventScroll: true });
+    } else {
+      saveErrorEl.scrollIntoView({ block: "center" }); // < 960px: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ
+    }
     return;
   }
   setSaving(true);

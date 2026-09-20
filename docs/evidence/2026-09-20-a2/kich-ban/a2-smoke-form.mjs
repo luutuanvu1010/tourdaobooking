@@ -197,6 +197,35 @@ try {
   ok("catalog_changed: banner nêu 1.350.000 → 1.400.000, giá mới vào thẻ, lưu lại thành công");
   p.close();
 
+  // ---- 10e) ARIA của danh sách danh mục (I5): danh sách nút thường (không role listbox/option); mục không chọn được dùng aria-disabled (KHÔNG `disabled`) để còn trong cây truy cập ----
+  env.sql("INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('TDX01','Dịch vụ tính theo giờ','perHour',500000,NULL,NULL,NULL,NULL,NULL,NULL,5,1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')"); // đơn vị chưa hỗ trợ → mục "nhập tay", không chọn được
+  p = await env.as(ACCOUNTS.salesA, "/order-form");
+  await p.waitFor("document.getElementById('catalog-q')", "form mới (kiểm ARIA)");
+  await p.ev("document.getElementById('catalog-q').focus(); true");
+  await p.waitFor("document.querySelectorAll('#catalog-list button').length === 4", "4 mục danh mục (gồm mục không chọn được)");
+  const aria = await p.ev(`(() => {
+    const list = document.getElementById('catalog-list');
+    const btns = [...list.querySelectorAll('button')];
+    const x = btns.find((b) => b.textContent.includes('TDX01'));
+    x.focus();
+    const s = getComputedStyle(x);
+    return { listRole: list.getAttribute('role'), withRole: btns.filter((b) => b.hasAttribute('role')).length, options: list.querySelectorAll('[role=option], [role=listbox]').length,
+      xAriaDisabled: x.getAttribute('aria-disabled'), xDisabled: x.disabled, xFocusable: document.activeElement === x, xOpacity: s.opacity, xCursor: s.cursor,
+      othersAriaDisabled: btns.filter((b) => b !== x && (b.hasAttribute('aria-disabled') || b.disabled)).length, xText: x.textContent };
+  })()`);
+  assert.deepEqual([aria.listRole, aria.withRole, aria.options], [null, 0, 0], `danh sách là nút thường, không listbox/option: ${JSON.stringify(aria)}`);
+  assert.deepEqual([aria.xAriaDisabled, aria.xDisabled, aria.xFocusable, aria.othersAriaDisabled], ["true", false, true, 0], `mục không chọn được dùng aria-disabled (không disabled), vẫn focus được: ${JSON.stringify(aria)}`);
+  assert.ok(Number(aria.xOpacity) < 1 && aria.xCursor === "not-allowed", `mục không chọn được hiện mờ + con trỏ not-allowed: ${JSON.stringify(aria)}`);
+  assert.match(aria.xText, /nhập tay/, "mục không chọn được có gợi ý 'nhập tay'");
+  await p.ev("[...document.querySelectorAll('#catalog-list button')].find((b) => b.textContent.includes('TDX01')).click(); true");
+  await sleep(300);
+  assert.equal(await p.ev(`${cards}.length === 0 && !document.getElementById('catalog-list').hidden`), true, "bấm mục không chọn được: không thêm thẻ, danh sách vẫn mở");
+  await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
+  await p.waitFor("/Không tìm thấy dịch vụ/.test(document.getElementById('catalog-list').textContent)", "trạng thái rỗng (ARIA)");
+  assert.equal(await p.ev("document.querySelector('#catalog-list .catalog-empty').getAttribute('role')"), "status", "trạng thái rỗng là role=status");
+  p.close();
+  ok("danh sách danh mục: nút thường (không listbox/option); mục 'nhập tay' dùng aria-disabled, mờ, vẫn focus được, bấm không thêm thẻ; trạng thái rỗng role=status");
+
   // ---- 10c) trần 50 dòng tiền/đơn: nút "+ Thêm dòng" của MỌI thẻ nhập tay cập nhật ngay (tính trên cả đơn) ----
   p = await env.as(ACCOUNTS.salesA, "/order-form");
   await p.waitFor("document.getElementById('add-manual')", "form mới cho kiểm trần dòng");
@@ -239,6 +268,7 @@ try {
   // ---- 11) quyền: kế toán không lập đơn ----
   p = await env.as(ACCOUNTS.accounting, "/order-form");
   await p.waitFor("!document.getElementById('error').hidden", "banner khoá form");
+  assert.equal(await p.ev("document.querySelector('.catalog > p.muted').textContent"), "Đơn này đang khoá.", "lý do khoá ô chọn danh mục: tiếng Việt, không chữ 'Form'");
   assert.match(await p.ev("document.getElementById('error').textContent"), /Tài khoản này không được lập đơn\./);
   assert.equal(await p.ev("document.getElementById('save').disabled"), true);
   await p.ev("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); true"); // khôi phục từ bfcache: chỉ gỡ khoá "Đang lưu", KHÔNG gỡ nhầm khoá của form đã bị khoá
@@ -253,14 +283,24 @@ try {
     return { sideRightOfMain: b.left >= a.right - 1, saveInView: s.top >= 0 && s.bottom <= innerHeight, overflow: document.documentElement.scrollWidth - innerWidth }; })()`);
   assert.deepEqual([lay.sideRightOfMain, lay.saveInView], [true, true], "máy tính: cột tóm tắt bên phải cột form, nút Lưu trong khung nhìn");
   assert.ok(lay.overflow <= 0, "máy tính: không tràn ngang");
+  // I6: ≥ 960px banner nằm ở cột phải dính (luôn thấy) → lỗi cuộn tới ô lỗi đầu tiên VÀ đặt focus vào đó
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt (máy tính)");
+  await p.waitFor("document.activeElement === document.getElementById('customerName')", "máy tính: focus vào ô lỗi đầu tiên (Tên khách)");
+  assert.equal(await p.ev("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()"), true, "máy tính: banner ở cột dính nằm trong khung nhìn");
   assert.deepEqual(p.consoleErrors, []);
   p.close();
   p = await env.as(ACCOUNTS.salesA, "/order-form", { width: 800, height: 900, mobile: false });
   await p.waitFor("document.getElementById('services-empty')", "form (iPad dọc)");
   assert.notEqual(await p.ev("getComputedStyle(document.querySelector('.form-actions')).backgroundColor"), "rgba(0, 0, 0, 0)", "iPad dọc: thanh Lưu dính đáy có nền");
+  // I6: 641–959px (iPad dọc) là một cột như điện thoại: banner nằm CUỐI form → bấm Lưu khi form trống phải cuộn tới banner, không tới ô lỗi đầu tiên (banner sẽ ngoài khung nhìn)
+  assert.ok((await p.ev("document.documentElement.scrollHeight - innerHeight")) > 0, "điều kiện của phép kiểm: trang dài hơn khung nhìn (banner cuối form không tự nằm trong khung nhìn)");
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt (iPad dọc)");
+  await p.waitFor("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()", "iPad dọc (641–959px): banner lỗi nằm trong khung nhìn sau khi bấm Lưu");
   assert.deepEqual(p.consoleErrors, []);
   p.close();
-  ok("bố cục theo khổ: 1040 hai cột + nút Lưu trong khung nhìn; 800 thanh Lưu có nền; không tràn ngang");
+  ok("bố cục theo khổ: 1040 hai cột + nút Lưu trong khung nhìn, lỗi → focus ô lỗi đầu tiên; 800 thanh Lưu có nền, lỗi → banner trong khung nhìn; không tràn ngang");
 
   // ---- 12) đo: vùng chạm, cỡ chữ ô gõ, không tràn ngang, không lỗi console ----
   p = await env.as(ACCOUNTS.salesA, "/order-form");

@@ -177,7 +177,7 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .catalog-list { max-height: 260px; overflow: auto; margin-top: var(--s2); background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
 .catalog-list button { display: flex; justify-content: space-between; gap: var(--s3); width: 100%; padding: 10px 12px; font: inherit; text-align: left; color: var(--c-text); background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
 .catalog-list button:hover, .catalog-list button:focus { background: var(--c-alt); outline: none; }
-.catalog-list button:disabled { opacity: .5; cursor: not-allowed; }
+.catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
 .catalog-pick { margin-top: var(--s3); padding: var(--s3); background: var(--c-alt); border-radius: var(--radius-sm); }
 .catalog-pick .counters { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: var(--s3) 0; }

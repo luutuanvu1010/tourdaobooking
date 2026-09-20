@@ -1,5 +1,6 @@
 // Ô "Chọn từ danh mục": ô tìm + danh sách kết quả (tên, mã, đơn vị, giá người lớn). Chạm một kết quả = thêm thẻ (onPick).
-// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (gợi ý nhập tay). Dịch vụ đã ẩn không có trong /api/catalog nên không hiện.
+// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (gợi ý nhập tay): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog nên không hiện.
+// Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có).
 import type { CatalogServiceDto } from "../src/shared/contracts";
 import { unitLabel } from "../src/shared/service-form";
 import { h, replaceChildren } from "./dom";
@@ -21,7 +22,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   const notice = h("div", { class: "alert warn", role: "status", hidden: true });
   const q = h("input", { id: "catalog-q", type: "search", placeholder: "Gõ tên hoặc mã dịch vụ…", autocomplete: "off", "aria-controls": "catalog-list" });
   const reason = h("p", { class: "muted", hidden: true });
-  const list = h("div", { id: "catalog-list", class: "catalog-list", role: "listbox", hidden: true });
+  const list = h("div", { id: "catalog-list", class: "catalog-list", hidden: true });
   const root = h("div", { class: "catalog" }, notice, h("label", null, "Chọn từ danh mục", q), reason, list);
   let items: readonly CatalogServiceDto[] = [];
 
@@ -34,18 +35,19 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
         const usable = c.supported && c.prices.adult !== null;
         const b = h(
           "button",
-          { type: "button", role: "option", disabled: !usable },
+          { type: "button", "aria-disabled": usable ? false : "true" },
           h("span", { class: "catalog-name" }, h("strong", null, c.code), " ", c.name, c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null),
           h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : "nhập tay"),
         );
         b.addEventListener("click", () => {
+          if (!usable) return; // mục không chọn được: bỏ qua (danh sách vẫn mở)
           o.onPick(c);
           q.value = "";
           list.hidden = true;
         });
         return b;
       }),
-      found.length === 0 && h("div", { class: "catalog-empty" }, "Không tìm thấy dịch vụ."),
+      found.length === 0 && h("div", { class: "catalog-empty", role: "status" }, "Không tìm thấy dịch vụ."),
     );
     list.hidden = false;
   }
