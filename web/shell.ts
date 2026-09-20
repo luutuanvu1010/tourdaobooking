@@ -1,5 +1,5 @@
 import { ApiError, api, type Staff, type Api } from "./api";
-import { hasPermission, isOffice } from "../src/shared/permissions";
+import { can, hasPermission, isOffice } from "../src/shared/permissions";
 import { byId, h, replaceChildren } from "./dom";
 import { icon, type IconName } from "./icons";
 import { registerServiceWorker } from "./pwa";
@@ -12,10 +12,10 @@ interface Tab {
 }
 
 /**
- * Thanh tab dưới đáy (điện thoại): nhân sự văn phòng 3 tab, admin 5 tab; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
+ * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 3 tab, admin 5 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
  * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Hồ sơ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  */
-function tabsFor(admin: boolean, office: boolean): Tab[] {
+function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   const adminTabs: Tab[] =
     admin
       ? [
@@ -23,12 +23,9 @@ function tabsFor(admin: boolean, office: boolean): Tab[] {
           { href: "/staff", label: "Nhân viên", icon: "staff", active: (p) => p === "/staff" },
         ]
       : [];
-  const officeTabs: Tab[] = office
-    ? [
-        { href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" },
-        { href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" },
-      ]
-    : [];
+  const officeTabs: Tab[] = [];
+  if (office) officeTabs.push({ href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" });
+  if (canCreate) officeTabs.push({ href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" });
   return [
     ...officeTabs,
     ...adminTabs,
@@ -36,11 +33,11 @@ function tabsFor(admin: boolean, office: boolean): Tab[] {
   ];
 }
 
-function tabBar(admin: boolean, office: boolean, path: string): HTMLElement {
+function tabBar(admin: boolean, office: boolean, canCreate: boolean, path: string): HTMLElement {
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
-    ...tabsFor(admin, office).map((t) =>
+    ...tabsFor(admin, office, canCreate).map((t) =>
       h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon)), h("span", null, t.label)),
     ),
   );
@@ -81,9 +78,9 @@ export async function initShell(): Promise<Staff> {
     who,
   );
 
-  const addTabBar = (admin: boolean, office = true) => {
+  const addTabBar = (admin: boolean, office = true, canCreate = office) => {
     if (tabbar === "off") return;
-    document.body.append(tabBar(admin, office, path));
+    document.body.append(tabBar(admin, office, canCreate, path));
     document.body.classList.add("has-tabbar");
   };
   let me: Api.MeResponse;
@@ -100,12 +97,13 @@ export async function initShell(): Promise<Staff> {
   const { staff } = me;
   const admin = hasPermission(staff, "ADMIN");
   const office = isOffice(staff);
+  const canCreate = can(staff, "order.create"); // kế toán xem được đơn nhưng không lập đơn (ADR-0007): ẩn nút thay vì để bị 403 sau khi điền xong
   const logoutBtn = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
   logoutBtn.addEventListener("click", () => void logout());
   replaceChildren(
     nav,
     office && h("a", { href: "/" }, "Đơn hàng"),
-    office && h("a", { href: "/order-form" }, "+ Đơn mới"),
+    canCreate && h("a", { href: "/order-form" }, "+ Đơn mới"),
     office && h("a", { href: "/parties" }, "Hồ sơ"),
     admin && h("a", { href: "/catalog" }, "Dịch vụ"),
     admin && h("a", { href: "/staff" }, "Nhân viên"),
@@ -113,7 +111,7 @@ export async function initShell(): Promise<Staff> {
     admin && h("a", { href: "/audit" }, "Nhật ký"),
   );
   replaceChildren(who, h("a", { href: "/account", title: "Tôi" }, staff.fullName), logoutBtn);
-  addTabBar(admin, office);
+  addTabBar(admin, office, canCreate);
   return staff;
 }
 

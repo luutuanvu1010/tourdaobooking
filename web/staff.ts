@@ -15,7 +15,8 @@ const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.lengt
 let me: { id: string };
 let accounts: StaffAccount[] = [];
 
-const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+const reasonOf = (err: unknown): string => (err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+const fail = (err: unknown) => showError(errorEl, reasonOf(err));
 
 /** PIN chỉ hiện đúng một lần ở đây; không lưu vào bất kỳ đâu phía client. */
 function showSecrets(title: string, rows: { name: string; phone: string; pin: string }[]): void {
@@ -112,7 +113,13 @@ function openEdit(s: StaffAccount): void {
     if (!(await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { fullName: name.value, phone: phone.value } })))) return;
     if (!isMe && !sameSet(chosen, s.permissions)) {
       const body: Api.StaffPermissionsRequest = { permissions: chosen };
-      if (!(await act(() => api(`/api/staff/${s.id}/permissions`, { method: "PUT", body })))) return void (await load());
+      try {
+        await api(`/api/staff/${s.id}/permissions`, { method: "PUT", body });
+      } catch (err) {
+        // Tên/số điện thoại đã lưu ở lời gọi trên. load() xoá thông báo lỗi (act mở đầu bằng showError(null)), nên nạp lại TRƯỚC rồi mới hiện lý do.
+        await load();
+        return showError(errorEl, `Đã lưu tên/số điện thoại nhưng chưa đổi được quyền: ${reasonOf(err)}`);
+      }
     }
     editEl.hidden = true;
     await load();
