@@ -173,8 +173,8 @@
   },
   "hieuNang": {
     "soDichVu": 20,
-    "msMoiLanGo": 0.4,
-    "msMoiLanGoKemBoCuc": 0.6,
+    "msMoiLanGo": 0.9,
+    "msMoiLanGoKemBoCuc": 0.9,
     "ghiChu": "Chrome desktop, một lần đo mỗi số. msMoiLanGo = JS đồng bộ của sự kiện input; msMoiLanGoKemBoCuc = cộng cả ép tính bố cục. Không gồm vẽ. iPhone chậm hơn nhiều lần — cần đo trên máy thật."
   }
 }

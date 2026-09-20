@@ -1,7 +1,7 @@
-ad54b00 (+ các thay đổi của commit "A2 sửa cuối 4", chưa commit lúc đo)
-Sun Sep 20 23:44:12 +07 2026
-# tests 234
-# pass 234
+1809ffb
+Mon Sep 21 00:31:51 +07 2026
+# tests 236
+# pass 236
 # fail 0
 
 > typecheck
@@ -10,22 +10,22 @@ Sun Sep 20 23:44:12 +07 2026
 typecheck: thoát mã 0
 ▶ platform
 E2E PLATFORM OK
-✔ platform (0.2s)
+✔ platform (0.3s)
 ▶ pwa
 E2E PWA OK
-✔ pwa (0.2s)
+✔ pwa (0.4s)
 ▶ orders
 E2E OK
-✔ orders (7.4s)
+✔ orders (9.3s)
 ▶ trip
 E2E OK
-✔ trip (23.5s)
+✔ trip (28.9s)
 ▶ admin
 E2E ADMIN OK
-✔ admin (3.5s)
+✔ admin (4.3s)
 ▶ catalog
 E2E CATALOG OK
-✔ catalog (17.5s)
+✔ catalog (17.0s)
 ▶ admin-race
 ✔ admin-race (0.2s)
 ▶ locations
@@ -33,10 +33,10 @@ E2E LOCATIONS OK
 ✔ locations (0.2s)
 ▶ parties
 E2E PARTIES OK
-✔ parties (0.3s)
+✔ parties (0.4s)
 ▶ permissions
 E2E PERMISSIONS OK
-✔ permissions (0.3s)
+✔ permissions (0.4s)
 ▶ audit-invariants
 ✔ audit-invariants
 E2E: 10/10 kịch bản xanh
