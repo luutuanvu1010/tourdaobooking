@@ -344,7 +344,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 body.sheet-open { overflow: hidden; }
 @media (max-width: 640px) { .actions .btn-primary { flex-grow: 1.5; } } /* "Sửa thông tin chuyến" đủ rộng để không xuống hai dòng */
 .sheet-root { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
-.sheet-scrim { position: absolute; inset: 0; background: var(--c-scrim); opacity: 0; pointer-events: none; transition: opacity var(--m-base); } /* chưa .open (khung hình đầu) chưa nhận chạm: bấm đúp "Sửa thông tin chuyến" không đóng luôn bảng */
+.sheet-scrim { position: absolute; inset: 0; background: var(--c-scrim); opacity: 0; pointer-events: none; transition: opacity var(--m-base); } /* chưa .open (khung hình đầu) chưa nhận chạm; .open đến sau ~2 khung hình nên bấm đúp thật vẫn có thể đóng bảng (xem README bằng chứng, Tồn đọng nhỏ) */
 .sheet { position: relative; display: flex; flex-direction: column; width: 100%; max-height: calc(100vh - var(--s3)); max-height: calc(100dvh - var(--s3) - env(safe-area-inset-top)); background: var(--c-surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-overlay); transform: translateY(100%); transition: transform var(--m-base); outline: none; }
 .sheet-root.open .sheet-scrim { opacity: 1; pointer-events: auto; }
 .sheet-root.open .sheet { transform: none; }
