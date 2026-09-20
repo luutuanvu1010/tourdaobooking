@@ -110,3 +110,16 @@ test("mẫu id: UUID hoặc tiền tố do backfill", () => {
   assert.ok(PARTY_ID_RE.test(U1) && PARTY_ID_RE.test(`pty-${U1}`) && !PARTY_ID_RE.test("pty-x") && !PARTY_ID_RE.test(`ptr-${U1}`));
   assert.ok(ROW_ID_RE.test(U1) && ROW_ID_RE.test(`ptr-${U1}`) && !ROW_ID_RE.test(`pty-${U1}`));
 });
+
+test("tổ chức: legalName/address toàn khoảng trắng thành null (không vi phạm CHECK của 0011)", () => {
+  const r = validatePartyCreate({ kind: "ORGANIZATION", displayName: "A", legalName: "   ", address: "  " });
+  assert.ok(r.ok && r.value.kind === "ORGANIZATION");
+  assert.equal(r.value.org.legalName, null);
+  assert.equal(r.value.org.address, null);
+});
+
+test("liên hệ: nhãn toàn khoảng trắng thành null", () => {
+  const r = validateContact({ kind: "PHONE", value: "0901234567", label: "   " });
+  assert.ok(r.ok);
+  assert.equal(r.value.label, null);
+});

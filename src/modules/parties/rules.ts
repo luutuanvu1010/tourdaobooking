@@ -104,7 +104,7 @@ export function validateContact(v: unknown): Result<ContactInput> {
   let label: string | null = null;
   if (b.label !== undefined && b.label !== null && b.label !== "") {
     if (typeof b.label !== "string" || squash(b.label).length > 50) return fail("Ghi chú liên hệ tối đa 50 ký tự.");
-    label = squash(b.label);
+    label = squash(b.label) || null;
   }
   if (b.isPrimary !== undefined && typeof b.isPrimary !== "boolean") return fail("isPrimary phải là true/false.");
   return { ok: true, value: { kind: b.kind, value, valueNormalized, label, isPrimary: b.isPrimary === true } };
@@ -151,7 +151,7 @@ export type PartyUpdate =
 const optText = (v: unknown, label: string, max: number): Result<string | null> => {
   if (v === undefined || v === null || v === "") return { ok: true, value: null };
   if (typeof v !== "string" || squash(v).length > max) return fail(`${label} tối đa ${max} ký tự.`);
-  return { ok: true, value: squash(v) };
+  return { ok: true, value: squash(v) || null };
 };
 
 function orgFields(b: Record<string, unknown>): Result<OrgFields> {
