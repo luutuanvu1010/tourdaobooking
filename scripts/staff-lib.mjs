@@ -13,8 +13,20 @@ export { hashPin, PERMISSION_CODES, isPermissionCode };
 const q = (s) => `'${String(s).replaceAll("'", "''")}'`;
 const qn = (s) => (s === null || s === undefined ? "NULL" : q(s));
 
-/** Nhiều câu INSERT (ngăn cách bằng xuống dòng) tạo một tài khoản đầy đủ. `permissions` mặc định ["SALES"]. */
-export async function insertStaffSql({ name, phone, pin, permissions = ["SALES"], active = 1 }) {
+const ALLOWED_KEYS = ["name", "phone", "pin", "permissions", "active"];
+
+/**
+ * Nhiều câu INSERT (ngăn cách bằng xuống dòng) tạo một tài khoản đầy đủ. `permissions` mặc định ["SALES"].
+ * Khoá lạ bị NÉM LỖI (không bỏ qua im lặng): chỗ gọi cũ còn truyền khoá "role" phải hỏng ồn ào chứ không lặng lẽ tạo nhầm tài khoản chỉ có SALES.
+ */
+export async function insertStaffSql(input) {
+  const unknown = Object.keys(input ?? {}).filter((k) => !ALLOWED_KEYS.includes(k));
+  if (unknown.length) {
+    throw new Error(
+      `insertStaffSql: tham số không hợp lệ: ${unknown.join(", ")}. Quyền nay khai bằng "permissions" (vd ["SALES", "ADMIN"]); khoá "role" đã bỏ vì cột đó của bảng staff là cột chết (ADR-0005).`,
+    );
+  }
+  const { name, phone, pin, permissions = ["SALES"], active = 1 } = input;
   const n = splitPersonName(name);
   if (!n) throw new Error("Họ tên rỗng");
   if (!Array.isArray(permissions) || permissions.length === 0 || !permissions.every(isPermissionCode)) {

@@ -2,7 +2,7 @@
 // staff sở hữu bảng `staff`, `stf_*` và luật tài khoản; các hàm ghi trả về CÂU LỆNH D1 chưa chạy để module gọi (accounts) gộp cùng nhật ký
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
-import { newPersonStatements, renamePersonStatements, splitPersonName } from "../parties";
+import { newPersonStatements, renamePersonStatements, splitPersonName, validatePersonFullName } from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
@@ -10,13 +10,25 @@ import {
   setPinStatement as setPinRow, updateStaffStatement, type StaffRow,
 } from "./repository";
 import { checkAccountChange, generatePin, isWeakPin } from "./rules";
-import { parseStaffSheet, type StaffCandidate, type StaffSheetParse } from "./sheet";
+import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile } from "../../shared/contracts";
 import type { PermissionCode } from "../../shared/permissions";
 import { vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffCandidate, StaffProfile, StaffSheetParse };
-export { checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, parseStaffSheet, updateStaffStatement };
+export { checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, updateStaffStatement };
+
+/**
+ * Kiểm họ tên của tài khoản theo đúng giới hạn sẽ ghi vào hồ sơ (`pty_person`, CHECK của migration 0011) — trả thông báo lỗi hoặc null.
+ * Giới hạn do module parties giữ (một nguồn duy nhất); `accounts` gọi hàm này để trả 400 thay vì để `db.batch()` vỡ thành 500.
+ */
+export function checkStaffName(fullName: string): string | null {
+  const checked = validatePersonFullName(fullName);
+  return checked.ok ? null : checked.message;
+}
+
+/** Đọc Sheet nhân viên, dùng chính luật tên của hồ sơ để loại dòng tên không hợp lệ (thành "dòng có vấn đề"). */
+export const parseStaffSheet = (csv: string): StaffSheetParse => parseSheetRows(csv, checkStaffName);
 
 function toProfile(s: StaffRow): StaffProfile {
   return { id: s.id, fullName: s.label, phone: s.phone, partyId: s.party_id, permissions: parsePermissions(s.permissions) };

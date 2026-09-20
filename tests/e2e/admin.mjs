@@ -24,6 +24,10 @@ assert.match(r.body.pin, /^\d{6}$/);
 const A = { id: r.body.staff.id, pin: r.body.pin, phone: phoneA, partyId: r.body.staff.partyId };
 assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Trùng", phone: phoneA })).status, 409);
 assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Sai", phone: "123" })).status, 400);
+// Tên vượt giới hạn của hồ sơ (CHECK pty_person 60/100/60) phải bị chặn ở ĐẦU VÀO = 400, không để db.batch() vỡ = 500.
+assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: `${"A".repeat(65)} Văn Nam`, phone: rnd() })).status, 400, "từ đầu 65 ký tự → 400 chứ không 500");
+assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: Array(25).fill("Nguyen").join(" "), phone: rnd() })).status, 400, "nhiều từ dồn vào tên đệm → 400 chứ không 500");
+assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: `Nguyễn Văn ${"A".repeat(65)}` })).status, 400, "đổi tên quá dài → 400 chứ không 500");
 for (const bad of [["BOSS"], [], "SALES", ["SALES", "sales"], [1]]) assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Sai quyền", phone: rnd(), permissions: bad })).status, 400, JSON.stringify(bad));
 r = await login(A.phone, A.pin); assert.equal(r.status, 200);
 const A_COOKIE = cookieOf(r);

@@ -11,6 +11,7 @@
 // PIN sinh ngẫu nhiên, chỉ nằm trong file --pins (gitignored) — phát riêng cho từng người rồi xoá file.
 import { execFileSync } from "node:child_process";
 import { readFileSync, writeFileSync } from "node:fs";
+import { validatePersonFullName } from "../src/modules/parties/rules.ts";
 import { parseStaffSheet } from "../src/modules/staff/sheet.ts";
 import { generatePin } from "../src/modules/staff/rules.ts";
 import { insertStaffSql } from "./staff-lib.mjs";
@@ -37,7 +38,12 @@ if (/^https?:\/\//.test(source)) {
   csv = await res.text();
 } else csv = readFileSync(source, "utf8");
 
-const parsed = parseStaffSheet(csv);
+// Cùng luật tên với Worker: giới hạn độ dài thuộc hồ sơ (pty_person), chỉ có một nguồn ở module parties.
+const nameProblem = (full) => {
+  const r = validatePersonFullName(full);
+  return r.ok ? null : r.message;
+};
+const parsed = parseStaffSheet(csv, nameProblem);
 if (!parsed.ok) {
   console.error(`Không thấy cột bắt buộc. Tiêu đề đọc được: ${JSON.stringify(parsed.headers)}`);
   process.exit(1);

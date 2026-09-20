@@ -13,7 +13,12 @@ export type StaffSheetParse =
   | { ok: true; candidates: StaffCandidate[]; problems: { row: number; message: string }[] }
   | { ok: false; reason: "missing_columns"; headers: string[] };
 
-export function parseStaffSheet(csv: string): StaffSheetParse {
+/**
+ * `checkName` do người gọi tiêm vào (Worker: `staff/index.ts` tiêm hàm của module parties) — trả thông báo lỗi hoặc null.
+ * Giới hạn độ dài tên thuộc về hồ sơ (`pty_person`) nên KHÔNG được chép vào đây; dòng tên không hợp lệ thành "dòng có vấn đề"
+ * để một dòng Sheet xấu không làm hỏng cả đợt "Áp dụng" (chạy trong MỘT db.batch()).
+ */
+export function parseStaffSheet(csv: string, checkName: (full: string) => string | null): StaffSheetParse {
   const rows = parseCsv(csv);
   const header = rows[0] ?? [];
   const cName = findColumn(header, "tên người dùng", "họ tên", "họ và tên", "tên");
@@ -37,8 +42,9 @@ export function parseStaffSheet(csv: string): StaffSheetParse {
       problems.push({ row, message: `${rawPhone}: chưa có họ tên` });
       continue;
     }
-    if (name.length > 200) {
-      problems.push({ row, message: `"${name.slice(0, 30)}…": họ tên quá dài` });
+    const nameProblem = checkName(name);
+    if (nameProblem) {
+      problems.push({ row, message: `"${name.slice(0, 30)}…": ${nameProblem}` });
       continue;
     }
     const phone = normalizePhone(rawPhone);

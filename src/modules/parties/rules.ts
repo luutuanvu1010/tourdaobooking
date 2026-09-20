@@ -39,6 +39,26 @@ export function composePersonName(n: { family?: string | null; middle?: string |
   return [n.family, n.middle, n.given].filter((p): p is string => typeof p === "string" && p.length > 0).join(" ");
 }
 
+/**
+ * NGUỒN DUY NHẤT của các giới hạn độ dài tên (khớp CHECK của `pty_person` ở migration 0011: họ 1–60, đệm 1–100, tên 1–60)
+ * và của trần tên hiển thị `pty_party.display_name` (200). Module khác KHÔNG chép các con số này — dùng `validatePersonFullName`.
+ */
+function checkNameLimits(name: PersonName): Result<PersonName> {
+  if (name.given.length > 60 || (name.family?.length ?? 0) > 60 || (name.middle?.length ?? 0) > 100) return fail("Họ tối đa 60, tên đệm tối đa 100, tên tối đa 60 ký tự.");
+  if (composePersonName(name).length > 200) return fail("Họ tên tối đa 200 ký tự.");
+  return { ok: true, value: name };
+}
+
+/**
+ * Tách một chuỗi họ tên hiển thị rồi kiểm theo đúng giới hạn sẽ ghi vào `pty_person`. Trả tên đã tách, hoặc thông báo lỗi tiếng Việt.
+ * Dùng cho mọi đường tạo/đổi tên tài khoản (module staff) để tên quá dài bị chặn ở tầng nhận đầu vào (400) thay vì làm vỡ `db.batch()` (500).
+ */
+export function validatePersonFullName(full: string): Result<PersonName> {
+  const name = splitPersonName(full);
+  if (!name) return fail("Họ tên là bắt buộc.");
+  return checkNameLimits(name);
+}
+
 function personName(b: Record<string, unknown>): Result<PersonName> {
   let name: PersonName | null;
   if (typeof b.fullName === "string") name = splitPersonName(b.fullName);
@@ -48,9 +68,7 @@ function personName(b: Record<string, unknown>): Result<PersonName> {
     name = given ? { family: part(b.familyName), middle: part(b.middleName), given } : null;
   }
   if (!name) return fail("Họ tên là bắt buộc.");
-  if (name.given.length > 60 || (name.family?.length ?? 0) > 60 || (name.middle?.length ?? 0) > 100) return fail("Họ tối đa 60, tên đệm tối đa 100, tên tối đa 60 ký tự.");
-  if (composePersonName(name).length > 200) return fail("Họ tên tối đa 200 ký tự.");
-  return { ok: true, value: name };
+  return checkNameLimits(name);
 }
 
 // ---------------------------------------------------------------------------------------------------------------------

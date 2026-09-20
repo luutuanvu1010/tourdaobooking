@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   composePersonName, splitPersonName, validateContact, validateContactList, validateEndDate, validatePartyCreate, validatePartyUpdate,
-  validatePeriod, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE,
+  validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE,
 } from "./rules.ts";
 
 const TODAY = "2026-09-20";
@@ -122,4 +122,27 @@ test("liên hệ: nhãn toàn khoảng trắng thành null", () => {
   const r = validateContact({ kind: "PHONE", value: "0901234567", label: "   " });
   assert.ok(r.ok);
   assert.equal(r.value.label, null);
+});
+
+// Giới hạn độ dài tên phải chặn Ở ĐÂY (400) chứ không để CHECK của pty_person làm vỡ db.batch() (500) — xem vòng sửa 1 của Task B1.
+test("validatePersonFullName: chặn đúng giới hạn 60/100/60 của pty_person", () => {
+  const long = (n: number) => "A".repeat(n);
+  const tooLongFamily = validatePersonFullName(`${long(65)} Văn Nam`);
+  assert.ok(!tooLongFamily.ok && /Họ tối đa 60/.test(tooLongFamily.message), "từ đầu 65 ký tự = họ quá dài");
+  const tooLongGiven = validatePersonFullName(`Nguyễn Văn ${long(65)}`);
+  assert.ok(!tooLongGiven.ok && /tên tối đa 60/.test(tooLongGiven.message), "từ cuối 65 ký tự = tên quá dài");
+  const tooLongMiddle = validatePersonFullName(`Nguyễn ${long(101)} Nam`);
+  assert.ok(!tooLongMiddle.ok && /tên đệm tối đa 100/.test(tooLongMiddle.message), "tên đệm 101 ký tự");
+  // ca thật reviewer chạy được: 25 từ "Nguyen" (174 ký tự) lọt qua trần 200 cũ nhưng vỡ CHECK middle_name
+  const many = validatePersonFullName(Array(25).fill("Nguyen").join(" "));
+  assert.ok(!many.ok && /tên đệm tối đa 100/.test(many.message), "nhiều từ dồn vào tên đệm");
+
+  // biên hợp lệ vẫn phải qua
+  const okFamilyGiven = validatePersonFullName(`${long(60)} ${long(60)}`);
+  assert.ok(okFamilyGiven.ok, "họ 60 + tên 60 vẫn hợp lệ");
+  assert.deepEqual(okFamilyGiven.value, { family: long(60), middle: null, given: long(60) });
+  const okMiddle = validatePersonFullName(`Nguyễn ${long(100)} Nam`);
+  assert.ok(okMiddle.ok && okMiddle.value.middle === long(100), "tên đệm đúng 100 vẫn hợp lệ");
+  assert.ok(validatePersonFullName("Nam").ok, "một từ = chỉ có tên");
+  assert.ok(!validatePersonFullName("   ").ok, "tên rỗng");
 });

@@ -4,8 +4,8 @@
 import { auditStatement, type AuditAction } from "../audit";
 import { lockedPhones, newSessionCookie, unlockPhone, verifyPinThrottled } from "../auth";
 import {
-  checkAccountChange, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone,
-  parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount,
+  checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts,
+  normalizePhone, parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount,
 } from "../staff";
 import type { StaffAccountDto, StaffListResponse, StaffResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -24,10 +24,12 @@ function sheetError(e: unknown): Response {
   throw e;
 }
 
+// Giới hạn độ dài do module parties giữ (khớp CHECK của pty_person): kiểm Ở ĐÂY để tên quá dài thành 400, không làm vỡ db.batch() thành 500.
 function cleanName(v: unknown): { value?: string; error?: string } {
   if (typeof v !== "string" || !v.trim()) return { error: "Họ tên là bắt buộc." };
   const s = v.trim().replace(/\s+/g, " ");
-  return s.length > 200 ? { error: "Họ tên tối đa 200 ký tự." } : { value: s };
+  const problem = checkStaffName(s);
+  return problem ? { error: problem } : { value: s };
 }
 
 /** Tập quyền từ đầu vào: mảng mã hợp lệ, không trùng, ít nhất một (tài khoản không quyền không làm được gì). Trả tập theo thứ tự chuẩn hoặc lỗi. */

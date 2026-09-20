@@ -24,8 +24,8 @@ const pin = () => {
   }
 };
 const accounts = [
-  { name: "Admin Thử", phone: "0900000001", pin: pin(), role: "admin" },
-  { name: "Nhân viên Thử", phone: "0900000002", pin: pin(), role: "sales" },
+  { name: "Admin Thử", phone: "0900000001", pin: pin(), permissions: ["SALES", "ADMIN"] },
+  { name: "Nhân viên Thử", phone: "0900000002", pin: pin(), permissions: ["SALES"] },
 ];
 const lan = Object.values(networkInterfaces()).flat().find((i) => i && i.family === "IPv4" && !i.internal)?.address;
 
@@ -52,7 +52,7 @@ try {
   console.log("\n================ THỬ TRÊN iPHONE ================");
   console.log(lan ? `Mở bằng Safari trên iPhone (cùng Wi-Fi): http://${lan}:${PORT}` : `Không tìm thấy IP LAN; mở http://<IP-máy-này>:${PORT}`);
   if (tunnel) console.log("Địa chỉ HTTPS tạm sẽ hiện trong log của wrangler bên dưới (dòng có trycloudflare.com).");
-  for (const a of accounts) console.log(`  ${a.role.padEnd(5)}  SĐT ${a.phone}  PIN ${a.pin}`);
+  for (const a of accounts) console.log(`  ${a.permissions.join(",").padEnd(11)}  SĐT ${a.phone}  PIN ${a.pin}`);
   console.log("Thoát: Ctrl+C (D1 tạm bị xoá). Danh sách kiểm: docs/PWA-IPHONE.md, mục \"Danh sách kiểm trên iPhone thật\".");
   console.log("=================================================\n");
 

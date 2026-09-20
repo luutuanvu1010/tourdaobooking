@@ -15,10 +15,11 @@ import {
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
-  PARTY_ID_RE, ROW_ID_RE, composePersonName, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate, validateRelationship, validateRole,
+  PARTY_ID_RE, ROW_ID_RE, composePersonName, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate, validatePersonFullName,
+  validateRelationship, validateRole,
 } from "./rules";
 
-export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName };
+export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName, validatePersonFullName };
 export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hồ sơ.");
