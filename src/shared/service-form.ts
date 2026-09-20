@@ -191,7 +191,15 @@ export function setPax(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft 
   const s = d.saved;
   if (s && PAX_ORDER.every((c) => pax[c] === s.pax[c])) {
     if (d.source === "snapshot") return { ...d, pax }; // đang là bản chụp: giữ nguyên, kể cả đơn giá vừa sửa
-    return { ...d, pax, source: "snapshot", item: s.item, name: s.item.name, unit: s.item.unit, unitPrices: { ...s.unitPrices }, catalogStatus: s.catalogStatus };
+    // Đang ở giá hiện tại ("live"): đơn giá người dùng VỪA GÕ (khác giá danh mục hiện tại — cùng heuristic với refreshFromCatalog) phải được GIỮ khi quay về bản chụp;
+    // loại chưa gõ dùng đơn giá đã lưu. (Giá gõ ở chế độ bản chụp rồi đổi số khách thì mất theo thiết kế §5.1: khi đó thẻ đã chuyển sang giá hiện tại.)
+    const unitPrices = { ...s.unitPrices };
+    const current = defaultPrices(d.item);
+    for (const c of PAX_ORDER) {
+      const typed = d.unitPrices[c];
+      if (typed !== undefined && typed !== current[c]) unitPrices[c] = typed;
+    }
+    return { ...d, pax, source: "snapshot", item: s.item, name: s.item.name, unit: s.item.unit, unitPrices, catalogStatus: s.catalogStatus };
   }
   if (d.source === "snapshot" && d.live) return { ...d, pax, source: "live", item: d.live, name: d.live.name, unit: d.live.unit, unitPrices: defaultPrices(d.live), catalogStatus: null };
   return { ...d, pax };

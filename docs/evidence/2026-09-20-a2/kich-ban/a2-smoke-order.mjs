@@ -66,12 +66,13 @@ try {
   assert.equal(await p.ev("document.getElementById('error').getAttribute('role')"), "alert");
   assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-danger')"), true);
   assert.deepEqual(await p.ev("[...document.querySelectorAll('#error .banner-lines li')].map((li) => li.firstChild.textContent)"), ["Xe đưa đón riêng — chưa có ngày khởi hành"]);
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('#error button')].map((b) => b.textContent)"), [], "banner incomplete_trip chỉ có liên kết 'Sửa' — KHÔNG có nút 'Tải lại đơn' (ma trận đặc tả 5.2: cột Hành động '—'; 409 khác ở trang đơn mới có nút)");
   const editHref = await p.ev("document.querySelector('#error .banner-edit').getAttribute('href')");
   assert.equal(editHref, `/order-form?id=${order.id}&focus=${order.services[1].id}`);
   assert.ok((await p.ev("(() => { const r = document.querySelector('#error .banner-edit').getBoundingClientRect(); return Math.min(r.width, r.height); })()")) >= 43.5, "liên kết Sửa rộng và cao ≥ 44px");
   assert.equal(await p.ev("[...document.querySelectorAll('#actions button')].every((b) => !b.disabled)"), true, "nút bật lại sau lỗi");
   assert.equal((await call(ACCOUNTS.salesA, "GET", `/api/orders/${order.id}`)).json.order.status, "draft", "xác nhận thất bại không đổi trạng thái");
-  ok("xác nhận thiếu ngày: banner nguy hiểm, dòng 'Xe đưa đón riêng — chưa có ngày khởi hành' + liên kết Sửa đúng dịch vụ, đơn vẫn nháp");
+  ok("xác nhận thiếu ngày: banner nguy hiểm, dòng 'Xe đưa đón riêng — chưa có ngày khởi hành' + liên kết Sửa đúng dịch vụ (KHÔNG có nút 'Tải lại đơn'), đơn vẫn nháp");
 
   // ---- 3) liên kết "Sửa" mở form đúng thẻ (khối chuyến mở sẵn) ----
   await p.send("Page.navigate", { url: env.base + editHref });

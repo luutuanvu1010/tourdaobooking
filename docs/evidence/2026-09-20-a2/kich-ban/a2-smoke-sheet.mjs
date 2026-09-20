@@ -75,14 +75,15 @@ try {
   await p.waitFor(`${closed} && ${restored}`, "đóng bằng Esc");
   ok("đóng bằng ✕, chạm nền, Esc: bảng biến mất, hết inert/khoá cuộn, focus về nút 'Sửa thông tin chuyến'");
 
-  // ---- 2b) nền (scrim) chỉ nhận chạm SAU khi bảng đã bắt đầu trượt (có .open): bấm đúp "Sửa thông tin chuyến" không được đóng luôn bảng ----
+  // ---- 2b) nền (scrim): ở khung hình đầu khi mở (chưa có .open) CHƯA nhận chạm; sau .open thì nhận. Chỉ chứng minh trạng thái `pointer-events` (đọc cùng lượt chạy với lệnh mở); KHÔNG chứng minh
+  //      bấm đúp thật không đóng được bảng — `.open` được thêm sau hai khung hình và bảng trượt 300 ms, nên chỉ ~1–2 khung hình đầu được bảo vệ ----
   const opening = await p.ev(`(() => { [...document.querySelectorAll('#actions button')].find((b) => b.textContent === 'Sửa thông tin chuyến').click(); return { pointerEvents: getComputedStyle(document.querySelector('.sheet-scrim')).pointerEvents, opened: document.querySelector('.sheet-root.open') !== null }; })()`); // cùng một lượt chạy: trạng thái đầu, chưa tới khung hình thêm .open
   assert.deepEqual(opening, { pointerEvents: "none", opened: false }, "vừa bấm mở (chưa có .open): scrim không nhận chạm");
   await p.waitFor("document.querySelector('.sheet-root.open') !== null", "bảng mở (kiểm scrim)");
   assert.equal(await p.ev("getComputedStyle(document.querySelector('.sheet-scrim')).pointerEvents"), "auto", "đã .open: scrim nhận chạm (chạm nền đóng bảng)");
   await p.ev("document.querySelector('.sheet-close').click(); true");
   await p.waitFor(`${closed} && ${restored}`, "đóng (kiểm scrim)");
-  ok("scrim: pointer-events none ngay khi bấm mở (chưa .open), auto sau khi .open");
+  ok("scrim: chưa nhận chạm ở khung hình đầu khi mở (pointer-events none, chưa .open); sau .open thì nhận (auto)");
 
   // ---- 3) chặn Lưu phía trình duyệt: không gửi gì lên máy chủ ----
   await open(p);

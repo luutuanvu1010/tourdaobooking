@@ -222,6 +222,37 @@ test("setPax (I1): quay về số khách đã lưu qua nhiều loại (thêm tr�
   assert.deepEqual([same.source, same.catalogStatus, same.unitPrices.adult], ["snapshot", "price_changed", 1250000]);
 });
 
+// I1-bis: khi quay về số khách đã lưu, đơn giá người dùng VỪA GÕ ở chế độ giá hiện tại (khác giá danh mục hiện tại — cùng heuristic với refreshFromCatalog) không được bị đè bằng đơn giá đã lưu.
+test("setPax (I1-bis): live → gõ đơn giá 1.234.000 → quay về số đã lưu ⇒ bản chụp GIỮ 1.234.000; loại chưa gõ dùng đơn giá đã lưu; thân gửi lên khớp", () => {
+  const d = draftFromDto(savedTour, liveNewer, "k1") as CatalogDraft; // đã lưu 2 người lớn 1.300.000 + 1 trẻ em 950.000; danh mục hiện tại 1.400.000 / 1.000.000
+  const liveCard = setPax(d, "adult", 3);
+  assert.deepEqual([liveCard.source, liveCard.unitPrices.adult, liveCard.unitPrices.child], ["live", 1400000, 1000000]);
+  const typed = setUnitPrice(liveCard, "adult", 1234000);
+  const back = setPax(typed, "adult", 2);
+  assert.deepEqual([back.source, back.catalogStatus, back.unitPrices.adult, back.unitPrices.child], ["snapshot", "price_changed", 1234000, 950000]);
+  const input = toServiceInput(back);
+  assert.equal(input.kind, "catalog");
+  if (input.kind === "catalog") {
+    assert.deepEqual(input.unitPrices, { adult: 1234000, child: 950000 });
+    assert.deepEqual(input.catalogPriceSeen, { adult: 1350000, child: 950000 }); // giá danh mục của BẢN CHỤP (đúng nhánh kept của máy chủ)
+  }
+  const p = previewLines(back);
+  assert.ok(p.ok);
+  assert.deepEqual(p.lines.map((l) => [l.unitPrice, l.catalogPrice, l.deviation]), [[1234000, 1350000, -116000], [950000, 950000, null]]);
+});
+
+test("setPax (I1-bis): live không gõ gì (đơn giá = mặc định) rồi quay về ⇒ vẫn 1.300.000 / 950.000; đơn giá gõ ở loại KHÁC vẫn giữ; gõ trên bản chụp rồi đổi số khách và quay về là bỏ (đặc tả §5.1)", () => {
+  const d = draftFromDto(savedTour, liveNewer, "k1") as CatalogDraft;
+  const back = setPax(setPax(d, "adult", 3), "adult", 2);
+  assert.deepEqual([back.source, back.unitPrices.adult, back.unitPrices.child], ["snapshot", 1300000, 950000]);
+  const child = setPax(setUnitPrice(setPax(d, "adult", 3), "child", 990000), "adult", 2); // chỉ trẻ em được gõ
+  assert.deepEqual([child.source, child.unitPrices.adult, child.unitPrices.child], ["snapshot", 1300000, 990000]);
+  const snapTyped = setUnitPrice(d, "adult", 1250000); // gõ khi còn là bản chụp…
+  const away = setPax(snapTyped, "adult", 3); // …rồi ĐỔI số khách: chuyển sang giá hiện tại, giá đã gõ trên bản chụp mất theo thiết kế §5.1
+  assert.deepEqual([away.source, away.unitPrices.adult], ["live", 1400000]);
+  assert.equal(setPax(away, "adult", 2).unitPrices.adult, 1300000);
+});
+
 test("setPax (I1): ĐỔI số khách thật (khác đã lưu) vẫn chuyển sang giá hiện tại và bỏ nhãn cũ — cả khi đổi loại khác", () => {
   const d = draftFromDto(savedTour, liveNewer, "k1") as CatalogDraft;
   for (const moved of [setPax(d, "adult", 1), setPax(d, "child", 2), setPax(setPax(d, "adult", 3), "child", 0)]) {

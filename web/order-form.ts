@@ -244,7 +244,7 @@ formEl.addEventListener("submit", async (e) => {
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
-    location.assign(`/order?id=${encodeURIComponent(order.id)}`);
+    location.replace(`/order?id=${encodeURIComponent(order.id)}`); // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng)
   } catch (err) {
     setSaving(false);
     await onSaveError(err);
@@ -253,6 +253,7 @@ formEl.addEventListener("submit", async (e) => {
 
 // Sau khi lưu thành công `saving` không bao giờ về false (trang sắp bị thay). iOS đưa trang này vào bộ nhớ đệm (bfcache) và KHÔI PHỤC nguyên trạng khi người dùng vuốt Back từ /order
 // → form `inert` + "Đang lưu…" vĩnh viễn, mà PWA không có nút tải lại. `pageshow` với `persisted` báo đúng trường hợp đó: mở khoá lại form (dữ liệu đã gõ vẫn còn).
+// (Lưu xong nay dùng `location.replace` nên form không còn trong lịch sử và Back không tới được nó; listener này giữ lại làm đai an toàn.)
 // Chỉ khi đang kẹt `saving`: `setSaving(false)` gỡ `inert` của form, không được gỡ nhầm form đã bị `lockForm` (đơn không sửa được / không có quyền lập đơn).
 window.addEventListener("pageshow", (e) => {
   if (e.persisted && saving) setSaving(false);

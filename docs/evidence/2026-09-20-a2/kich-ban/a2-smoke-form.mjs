@@ -197,6 +197,66 @@ try {
   ok("catalog_changed: banner nêu 1.350.000 → 1.400.000, giá mới vào thẻ, lưu lại thành công");
   p.close();
 
+  // ---- 10f) I1 / I1-bis qua DOM: thẻ đã lưu (bản chụp, đơn giá thương lượng). Đổi số khách 2 → 3 → 2 phải QUAY LẠI đơn giá + nhãn đã lưu (giống nhánh `kept` của máy chủ);
+  //      đơn giá người dùng GÕ khi thẻ đang ở giá hiện tại (3 khách) không được bị đè khi quay về 2 khách; lưu xong máy chủ ghi đúng giá đó và giữ giá danh mục của BẢN CHỤP ----
+  const owner = await env.login(ACCOUNTS.salesA);
+  const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
+  const created = await fetch(`${env.base}/api/orders`, {
+    method: "POST", headers: { "content-type": "application/json", origin: env.base, cookie: `${owner.name}=${owner.value}` },
+    body: JSON.stringify({
+      customerName: "Khách Quay Về", customerPhone: "0904 444 555", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+      services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1, senior: 0, infant: 0 }, unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1400000, child: 950000 }, ...NO_TRIP, departDate: vnDate(9) }],
+    }),
+  });
+  assert.equal(created.status, 201, `dựng đơn đã lưu: ${created.status}`);
+  const backId = (await created.json()).order.id;
+  env.sql("UPDATE catalog_item SET price_adult = 1450000 WHERE code = 'TD101'"); // giá danh mục hiện tại 1.450.000 ≠ giá lúc lập 1.400.000
+  p = await env.as(ACCOUNTS.salesA, `/order-form?id=${backId}`);
+  await p.waitFor(`${cards}.length === 1`, "thẻ đã lưu (kiểm quay về)");
+  const priceOf = `${card(0)}.querySelector('.price-field[aria-label="Đơn giá người lớn"]')`;
+  const devTag = `${card(0)}.querySelector('.line:not([hidden]) .tag-price:not([hidden])') !== null`;
+  const view0 = () => p.ev(`({ adult: ${counter(0, "Người lớn")}.value, price: ${priceOf}.value, tag: ${devTag}, total: ${card(0)}.querySelector('.svc-total-amount').textContent })`);
+  assert.deepEqual(await view0(), { adult: "2", price: "1.300.000", tag: true, total: "3.550.000 ₫" }, "mở đơn đã lưu: đơn giá thương lượng + nhãn 'Khác giá danh mục'");
+  await p.ev(setInput(counter(0, "Người lớn"), "3"));
+  await p.waitFor(`${priceOf}.value === '1.450.000'`, "đổi số khách → giá danh mục hiện tại");
+  assert.equal((await view0()).tag, false, "giá hiện tại: hết nhãn");
+  await p.ev(setInput(counter(0, "Người lớn"), "2"));
+  await p.waitFor(`${priceOf}.value === '1.300.000'`, "quay về 2 khách → đơn giá đã lưu 1.300.000");
+  assert.deepEqual(await view0(), { adult: "2", price: "1.300.000", tag: true, total: "3.550.000 ₫" }, "quay về số đã lưu: giá + nhãn + tổng như lúc mở");
+  await p.ev(setInput(counter(0, "Người lớn"), "3"));
+  await p.waitFor(`${priceOf}.value === '1.450.000'`, "lại sang giá hiện tại");
+  await p.ev(setInput(priceOf, "1234000")); // người dùng gõ đơn giá ở giá hiện tại
+  await p.waitFor(`${priceOf}.value === '1.234.000'`, "đã gõ 1.234.000");
+  await p.ev(setInput(counter(0, "Người lớn"), "2"));
+  await p.waitFor(`${counter(0, "Người lớn")}.value === '2' && ${card(0)}.querySelector('.svc-total-amount').textContent === '3.418.000 ₫'`, "quay về 2 khách: đơn giá gõ tay 1.234.000 KHÔNG bị đè (tổng 2 × 1.234.000 + 950.000)");
+  assert.deepEqual(await view0(), { adult: "2", price: "1.234.000", tag: true, total: "3.418.000 ₫" });
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("location.pathname === '/order'", "lưu đơn đã sửa", 15000);
+  const savedBack = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(backId)}).then((r) => r.json())`);
+  assert.deepEqual(savedBack.order.services[0].items.map((i) => [i.paxCode, i.unitPrice, i.catalogPrice]), [["adult", 1234000, 1400000], ["child", 950000, 950000]], "máy chủ giữ bản chụp (giá danh mục 1.400.000, không phải 1.450.000) với đơn giá đã gõ");
+  p.close();
+  ok("I1 qua DOM: thẻ đã lưu 2 → 3 → 2 quay về 1.300.000 + nhãn + tổng; gõ 1.234.000 ở 3 khách rồi về 2 vẫn 1.234.000; máy chủ lưu đúng và giữ giá danh mục của bản chụp");
+
+  // ---- 10g) Minor 2: lưu thành công phải THAY mục lịch sử của form (location.replace), không thêm mục: Back/bfcache không đưa người dùng về form đã lưu (bấm Lưu lần hai = POST /api/orders lần hai = đơn trùng) ----
+  p = await env.as(ACCOUNTS.salesA, "/");
+  await p.send("Page.navigate", { url: `${env.base}/order-form` }); // đi từ một trang trước tới form: form có một mục lịch sử riêng
+  await p.waitFor("location.pathname === '/order-form' && document.getElementById('add-manual') !== null", "form (đi từ trang trước)");
+  await p.ev("document.getElementById('add-manual').click(); true");
+  await p.waitFor(`${cards}.length === 1`, "thẻ nhập tay (lịch sử)");
+  await p.ev(setInput("document.getElementById('customerName')", "Khách Lịch Sử"));
+  await p.ev(setInput("document.getElementById('customerPhone')", "0903 555 666"));
+  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
+  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
+  await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
+  await p.ev("document.getElementById('save').click(); true");
+  await p.waitFor("location.pathname === '/order'", "lưu thành công → trang đơn", 15000);
+  const nav = (await p.send("Page.getNavigationHistory")).result;
+  const navUrls = nav.entries.map((e) => e.url);
+  assert.ok(!navUrls.some((u) => u.includes("/order-form")), `lịch sử không còn mục /order-form: ${JSON.stringify(navUrls)}`);
+  assert.match(nav.entries[nav.currentIndex].url, /\/order\?id=/, "mục hiện tại là trang đơn vừa lưu");
+  p.close();
+  ok("lưu thành công thay mục lịch sử của form (location.replace): lịch sử không còn /order-form, mục hiện tại là /order?id=…");
+
   // ---- 10e) ARIA của danh sách danh mục (I5): danh sách nút thường (không role listbox/option); mục không chọn được dùng aria-disabled (KHÔNG `disabled`) để còn trong cây truy cập ----
   env.sql("INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('TDX01','Dịch vụ tính theo giờ','perHour',500000,NULL,NULL,NULL,NULL,NULL,NULL,5,1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')"); // đơn vị chưa hỗ trợ → mục "nhập tay", không chọn được
   p = await env.as(ACCOUNTS.salesA, "/order-form");

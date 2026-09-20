@@ -31,8 +31,9 @@ function errorBanner(err: unknown): Banner {
     { status: err.status, code: err.code, message: err.message, details: err.details },
     { serviceNames: current?.services.map((s) => s.name) ?? [], formatMoney: vnd },
   );
-  // Mọi 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
-  return b.action === "none" && err.status === 409 ? { ...b, action: "reload_order" } : b;
+  // 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
+  // Trừ incomplete_trip: banner đó đã có liên kết "Sửa" tới đúng dịch vụ và ma trận đặc tả 5.2 ghi cột Hành động là "—" (stale đã có reload_order sẵn).
+  return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" ? { ...b, action: "reload_order" } : b;
 }
 
 function kv(label: string, value: string | null, cls = ""): HTMLElement {
