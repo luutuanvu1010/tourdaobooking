@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Kiểm N1 theo pha expand–contract (đặc tả N1 §9): chứng minh
-  (1) sau 0009…0011 (mở rộng) MÃ CŨ vẫn chạy: INSERT staff không có party_id, đổi role, ngưng tài khoản;
-  (2) 0012 (siết) = backfill lặp lại CHỈ cho party_id IS NULL (idempotent) + ba nhóm trigger;
+  (1) sau 0009…0012 (mở rộng) MÃ CŨ vẫn chạy: INSERT staff không có party_id, đổi role, ngưng tài khoản;
+  (2) 0013 (siết) = backfill lặp lại CHỈ cho party_id IS NULL (idempotent) + ba nhóm trigger;
   (3) schema cuối của lộ trình hai pha GIỐNG HỆT schema của tệp tham chiếu gộp một lần (không mất/thừa gì).
 Chạy: python3 docs/superpowers/specs/2026-09-20-n1-schema-verify-phased.py   (từ gốc repo; thoát 1 nếu có ✗)
 """
@@ -46,7 +46,7 @@ contract_sql = "\n".join(trig_re.findall(ref))
 expand_sql = trig_re.sub("", ref)
 check("tách được đúng 4 trigger 'siết' từ tệp tham chiếu", len(contract_triggers) == 4, str(len(contract_triggers)))
 
-# 0012, phần backfill lặp lại: CHỈ dòng chưa có hồ sơ / chưa có quyền (idempotent).
+# 0013, phần backfill lặp lại: CHỈ dòng chưa có hồ sơ / chưa có quyền (idempotent).
 NOW = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')"
 BACKFILL_AGAIN = f"""
 INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at)
@@ -68,7 +68,7 @@ FROM staff s WHERE NOT EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id =
 UPDATE staff SET party_id = 'pty-' || id WHERE party_id IS NULL;
 """
 
-print("── Pha 1: mở rộng (0009…0011 = tệp tham chiếu trừ 4 trigger siết) ──")
+print("── Pha 1: mở rộng (0009…0012 = tệp tham chiếu trừ 4 trigger siết) ──")
 db = new_db()
 for sid, name, role in (("s1", "Trần Văn Bình", "sales"), ("s2", "Nguyễn Tuyên Phong", "admin")):
     db.execute("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at) VALUES (?, ?, ?, 'x', ?, 1, '2026-09-01T02:00:00Z')",
@@ -94,29 +94,36 @@ check("khoảng giữa: tài khoản do mã cũ tạo chưa có party_id/quyền
       db.execute("SELECT party_id FROM staff WHERE id='s3'").fetchone()[0] is None
       and db.execute("SELECT count(*) FROM stf_permission WHERE staff_id='s3'").fetchone()[0] == 0)
 check("FK sạch sau pha 1", db.execute("PRAGMA foreign_key_check").fetchall() == [])
+# Cửa sổ triển khai (C5 của rà soát): tài khoản chưa có party_id KHÔNG được biến mất khỏi view nhãn → đơn của họ vẫn hiện.
+db.execute("INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, discount, total, deposit_amount, remaining_amount, created_at, updated_at) "
+           "VALUES ('o3', 'TD-WIN-1', 's3', 'draft', 'K', '0900000099', 0, 0, 0, 0, 0, '2026-09-20T02:00:00Z', '2026-09-20T02:00:00Z')")
+row = db.execute("SELECT o.order_code, s.label FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id WHERE o.id = 'o3'").fetchone()
+check("cửa sổ: đơn của tài khoản chưa có hồ sơ VẪN hiện qua v_stf_staff_label (LEFT JOIN), nhãn dự phòng rõ ràng", row == ("TD-WIN-1", "(chưa có hồ sơ)"), str(row))
+check("cửa sổ: tài khoản chưa có hồ sơ vẫn nằm trong danh sách nhân sự của view", db.execute("SELECT count(*) FROM v_stf_staff_label").fetchone()[0] == 3)
 
-print("── Pha 2: siết (0012) ──")
+
+print("── Pha 2: siết (0013) ──")
 db.executescript(BACKFILL_AGAIN)
-check("0012: backfill lặp lại → 0 tài khoản thiếu party_id", db.execute("SELECT count(*) FROM staff WHERE party_id IS NULL").fetchone()[0] == 0)
+check("0013: backfill lặp lại → 0 tài khoản thiếu party_id", db.execute("SELECT count(*) FROM staff WHERE party_id IS NULL").fetchone()[0] == 0)
 # Mã cũ đã đổi full_name của s3 thành 'Lê Hoa' (2 từ: họ + tên, không có tên đệm) → backfill phải theo tên HIỆN TẠI.
-check("0012: tài khoản 'khoảng giữa' có hồ sơ, tên tách theo tên hiện tại (Lê / NULL / Hoa)",
+check("0013: tài khoản 'khoảng giữa' có hồ sơ, tên tách theo tên hiện tại (Lê / NULL / Hoa)",
       db.execute("SELECT family_name, middle_name, given_name FROM pty_person WHERE party_id='pty-s3'").fetchone() == ("Lê", None, "Hoa"))
-check("0012: display_name hồ sơ = tên hiện tại của tài khoản", db.execute("SELECT display_name FROM pty_party WHERE id='pty-s3'").fetchone() == ("Lê Hoa",))
-check("0012: quyền cấp từ role của dòng chưa có quyền (s3 admin → ADMIN)",
+check("0013: display_name hồ sơ = tên hiện tại của tài khoản", db.execute("SELECT display_name FROM pty_party WHERE id='pty-s3'").fetchone() == ("Lê Hoa",))
+check("0013: quyền cấp từ role của dòng chưa có quyền (s3 admin → ADMIN)",
       db.execute("SELECT permission_type_code FROM stf_permission WHERE staff_id='s3' AND valid_to_at IS NULL").fetchall() == [("ADMIN",)])
-check("0012: dòng đã backfill ở 0011 không bị nhân đôi (mỗi tài khoản đúng 1 quyền mở, 1 vai STAFF)",
+check("0013: dòng đã backfill ở 0012 không bị nhân đôi (mỗi tài khoản đúng 1 quyền mở, 1 vai STAFF)",
       db.execute("SELECT count(*) FROM (SELECT staff_id FROM stf_permission GROUP BY staff_id HAVING count(*) <> 1)").fetchone()[0] == 0
       and db.execute("SELECT count(*) FROM pty_party_role WHERE role_type_code='STAFF'").fetchone()[0] == 3)
 before = [db.execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in ("pty_party", "pty_person", "pty_party_role", "stf_permission")]
 db.executescript(BACKFILL_AGAIN)
 after = [db.execute(f"SELECT count(*) FROM {t}").fetchone()[0] for t in ("pty_party", "pty_person", "pty_party_role", "stf_permission")]
-check("0012: chạy lại lần hai không đổi gì (idempotent)", before == after, f"{before} → {after}")
+check("0013: chạy lại lần hai không đổi gì (idempotent)", before == after, f"{before} → {after}")
 db.executescript(contract_sql)
-check("0012: trigger chặn INSERT staff thiếu party_id", raises(db, old_insert.replace("'s3'", "'s4'").replace("0900000030", "0900000040"), "staff_party"))
-check("0012: trigger chặn UPDATE đặt party_id NULL", raises(db, "UPDATE staff SET party_id = NULL WHERE id = 's1'", "staff_party"))
-check("0012: ngưng admin thứ nhất được (còn s3)", not raises(db, "UPDATE staff SET active = 0 WHERE id = 's2'", ""))
-check("0012: ngưng admin cuối bị chặn (last_admin)", raises(db, "UPDATE staff SET active = 0 WHERE id = 's3'", "last_admin"))
-check("0012: thu hồi quyền ADMIN cuối bị chặn (last_admin)",
+check("0013: trigger chặn INSERT staff thiếu party_id", raises(db, old_insert.replace("'s3'", "'s4'").replace("0900000030", "0900000040"), "staff_party"))
+check("0013: trigger chặn UPDATE đặt party_id NULL", raises(db, "UPDATE staff SET party_id = NULL WHERE id = 's1'", "staff_party"))
+check("0013: ngưng admin thứ nhất được (còn s3)", not raises(db, "UPDATE staff SET active = 0 WHERE id = 's2'", ""))
+check("0013: ngưng admin cuối bị chặn (last_admin)", raises(db, "UPDATE staff SET active = 0 WHERE id = 's3'", "last_admin"))
+check("0013: thu hồi quyền ADMIN cuối bị chặn (last_admin)",
       raises(db, "UPDATE stf_permission SET valid_to_at = '2026-09-21T00:00:00Z' WHERE staff_id = 's3' AND permission_type_code = 'ADMIN'", "last_admin"))
 check("FK sạch sau pha 2", db.execute("PRAGMA foreign_key_check").fetchall() == [])
 

@@ -149,6 +149,9 @@ print('\n[View công bố + truy vấn "ai giữ vai HDV ở Bến cảng Vinpea
 check('v_stf_staff_label trả tên từ hồ sơ', one("SELECT label FROM v_stf_staff_label WHERE id='s-admin'") == 'Nguyễn Tuyên Phong')
 cols = [c[1] for c in q("PRAGMA table_info(v_stf_staff_label)")]
 check('view chỉ chứa khoá + nhãn + cờ (không có pin_hash/role/phone)', cols == ['id', 'label', 'active', 'party_id'], cols)
+ocols = [c[1] for c in q("PRAGMA table_info(v_ord_order_label)")]
+check('v_ord_order_label chỉ có khoá + nhãn (id, order_code)', ocols == ['id', 'order_code'], ocols)
+check('v_ord_order_label trả mã đơn của đơn mẫu', len(q("SELECT id, order_code FROM v_ord_order_label")) == len(q("SELECT id FROM orders")) and len(q("SELECT id FROM orders")) >= 1)
 today = '2026-09-25'
 who = q("""SELECT pl.display_name FROM pty_party_role pr
            JOIN pty_role_type rt ON rt.code = pr.role_type_code

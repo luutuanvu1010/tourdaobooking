@@ -2,10 +2,16 @@
 -- N1 — Nền danh tính: DDL THAM CHIẾU (không phải migration).
 -- Đặc tả: docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md. ADR: 0001, 0002, 0003, 0005, 0008.
 -- Đã chạy thử trên SQLite trên schema thật (migrations 0001–0008) bằng docs/superpowers/specs/2026-09-20-n1-schema-verify.py.
--- Khi thi công, tách thành migration đánh số (0009…); id của dòng gieo (seed) sinh MỘT lần và cố định trong tệp migration.
+-- Khi thi công, tách thành migration đánh số 0009…0013 (đặc tả N1 §9: 0009 = mục 0, 0010 = mục 1, 0011 = mục 2, 0012 = mục 3 + 4, 0013 = trigger 'siết'); id của dòng gieo (seed) sinh MỘT lần và cố định trong tệp migration.
 -- Quy ước (ADR-0003): tiền tố module; bảng tra cứu khoá mã TEXT; cột WHO (created_by, updated_by) TEXT NULL KHÔNG khoá ngoại;
 -- ngày dân sự *_date (YYYY-MM-DD giờ VN), thời điểm máy *_at (ISO-8601 UTC); không xoá cứng; NO ACTION mặc định; cấm CASCADE.
 -- ============================================================================================================
+
+-- ------------------------------------------------------------------------------------------------------------
+-- 0. orders: view công bố nhãn đơn (module `orders` chủ sở hữu) — để `audit` bỏ JOIN thẳng bảng `orders` (ADR-0002 điều 6, điều 3)
+-- ------------------------------------------------------------------------------------------------------------
+CREATE VIEW v_ord_order_label AS
+  SELECT id, order_code FROM orders;
 
 -- ------------------------------------------------------------------------------------------------------------
 -- 1. locations (module `locations`, lá của đồ thị) — ADR-0002, ADR-0008
@@ -241,9 +247,11 @@ BEGIN SELECT RAISE(ABORT, 'last_admin: phải còn ít nhất một quản trị
 ALTER TABLE staff ADD COLUMN party_id TEXT REFERENCES pty_party(id);
 CREATE UNIQUE INDEX staff_party_uq ON staff(party_id) WHERE party_id IS NOT NULL;                -- một hồ sơ tối đa một tài khoản
 
+-- LEFT JOIN có chủ ý: tài khoản do mã cũ tạo trong khoảng giữa hai lần triển khai chưa có party_id; INNER JOIN sẽ làm biến mất
+-- đơn của họ khỏi danh sách đơn và họ khỏi trang Nhân sự (đặc tả N1 §9). Nhãn dự phòng hiện rõ để quản trị viên thấy và xử lý.
 CREATE VIEW v_stf_staff_label AS
-  SELECT s.id, p.display_name AS label, s.active, s.party_id
-  FROM staff s JOIN pty_party p ON p.id = s.party_id;
+  SELECT s.id, COALESCE(p.display_name, '(chưa có hồ sơ)') AS label, s.active, s.party_id
+  FROM staff s LEFT JOIN pty_party p ON p.id = s.party_id;
 
 -- ------------------------------------------------------------------------------------------------------------
 -- 4. BACKFILL cho dữ liệu `staff` hiện có (chạy TRƯỚC khi tạo trigger bắt buộc party_id)
