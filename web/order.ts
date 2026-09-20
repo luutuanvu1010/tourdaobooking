@@ -5,6 +5,7 @@ import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, vnd } from "./format
 import { icon } from "./icons";
 import { renderServices } from "./order-services";
 import { initShell, setBarTitle } from "./shell";
+import { openTripSheet } from "./trip-sheet";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { orderActions } from "../src/shared/order-view";
 
@@ -83,8 +84,31 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
   if (a.noPermission) btns.push(h("p", { class: "muted" }, `Chỉ ${order.staffName} (người lập đơn) hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   if (a.confirm) btns.push(change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent"));
+  if (a.editTrip) btns.push(editTripButton(order));
   if (a.cancel) btns.push(change("Huỷ đơn", "cancelled", "Huỷ đơn này? Việc huỷ không thể hoàn tác.", "btn btn-danger"));
   replaceChildren(actions, ...btns);
+}
+
+const focusEditTrip = (): void => document.querySelector<HTMLElement>('[data-action="edit-trip"]')?.focus();
+
+/** Đơn đã xác nhận: mở bảng sửa chuyến. Sau khi lưu/tải lại, nút bị dựng lại → trả focus về nút mới; lưu xong báo bằng banner thông tin (bảng vừa biến mất). */
+function editTripButton(order: Order): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn btn-primary", "data-action": "edit-trip" }, "Sửa thông tin chuyến");
+  btn.addEventListener("click", () =>
+    openTripSheet(
+      {
+        order,
+        onSaved: () =>
+          void load().then(() => {
+            if (bannerEl.hidden) show(banner("info", "Đã lưu thông tin chuyến.")); // tải lại lỗi thì giữ banner lỗi, không đè
+            focusEditTrip();
+          }),
+        onReload: () => void load().then(focusEditTrip),
+      },
+      btn,
+    ),
+  );
+  return btn;
 }
 
 function change(label: string, to: "confirmed" | "cancelled", prompt: string, cls: string): HTMLButtonElement {

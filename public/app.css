@@ -350,3 +350,29 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .line-view .line-total { grid-column: 2; grid-row: 1; }
 .line-view .line-calc { grid-column: 1 / -1; white-space: nowrap; }
 .line-view .line-flag { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+
+/* ---------- A2: bảng trượt "Sửa thông tin chuyến" — chỉ token ---------- */
+body.sheet-open { overflow: hidden; }
+@media (max-width: 640px) { .actions .btn-primary { flex-grow: 1.5; } } /* "Sửa thông tin chuyến" đủ rộng để không xuống hai dòng */
+.sheet-root { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+.sheet-scrim { position: absolute; inset: 0; background: var(--c-scrim); opacity: 0; transition: opacity var(--m-base); }
+.sheet { position: relative; display: flex; flex-direction: column; width: 100%; max-height: calc(100vh - var(--s3)); max-height: calc(100dvh - var(--s3) - env(safe-area-inset-top)); background: var(--c-surface); border-radius: var(--radius-lg) var(--radius-lg) 0 0; box-shadow: var(--shadow-overlay); transform: translateY(100%); transition: transform var(--m-base); outline: none; }
+.sheet-root.open .sheet-scrim { opacity: 1; }
+.sheet-root.open .sheet { transform: none; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); padding: var(--s2) var(--s3) var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
+.sheet-title { margin: 0; font-size: var(--fs-title); }
+.sheet-close { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap-min); min-height: var(--tap-min); padding: 0; }
+.sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s4); }
+.sheet-warn { display: flex; align-items: flex-start; gap: var(--s2); margin: 0 0 var(--s4); padding: var(--s3); font-size: var(--fs-label); font-weight: 600; color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
+.sheet-svc { margin-bottom: var(--s5); }
+.sheet-svc .svc-name { margin-bottom: var(--s3); }
+.sheet-svc label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.sheet-svc .trip-body { padding: 0; border-top: 0; }
+.sheet-foot { padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); }
+.sheet-foot .btn-block { margin-top: 0; }
+.sheet-foot .field-errors { margin-bottom: var(--s3); max-height: 30vh; max-height: 30dvh; overflow-y: auto; } /* dải lỗi có khoảng cách với nút Lưu và không nuốt hết vùng nhập khi nhiều dịch vụ cùng lỗi */
+@media (min-width: 641px) {
+  .sheet-root { align-items: center; }
+  .sheet { width: var(--w-sheet); max-height: calc(100vh - var(--s7)); max-height: calc(100dvh - var(--s7)); border-radius: var(--radius-lg); opacity: 0; transform: translateY(var(--s4)); transition: transform var(--m-base), opacity var(--m-base); }
+  .sheet-root.open .sheet { opacity: 1; }
+}
