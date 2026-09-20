@@ -42,18 +42,31 @@ export function goLogin(): Promise<never> {
   return new Promise<never>(() => undefined);
 }
 
+/** Hạn chờ một lời gọi API. Máy chủ im lặng (mạng chập chờn) thì báo lỗi mạng thay vì để nút "Đang lưu…" kẹt vĩnh viễn — PWA không có nút tải lại của trình duyệt. */
+const REQUEST_TIMEOUT_MS = 45_000;
+
 export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
-  const res = await fetch(path, {
-    method: init?.method ?? "GET",
-    headers: init?.body === undefined ? undefined : { "content-type": "application/json" },
-    body: init?.body === undefined ? undefined : JSON.stringify(init.body),
-    credentials: "same-origin",
-  });
-  const data = (await res.json().catch(() => null)) as { error?: { code: string; message: string } } | null;
-  if (!res.ok) {
-    // Phiên hết hạn ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
-    if (res.status === 401 && path !== "/api/auth/login" && !location.pathname.startsWith("/login")) return goLogin();
-    throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS); // hết giờ: `fetch`/đọc thân ném AbortError (không phải ApiError) → nơi gọi xử lý như mất mạng
+  try {
+    const res = await fetch(path, {
+      method: init?.method ?? "GET",
+      headers: init?.body === undefined ? undefined : { "content-type": "application/json" },
+      body: init?.body === undefined ? undefined : JSON.stringify(init.body),
+      credentials: "same-origin",
+      signal: controller.signal,
+    });
+    const data = (await res.json().catch((e: unknown) => {
+      if (controller.signal.aborted) throw e; // hết giờ giữa lúc đọc thân: đừng nuốt thành "thân rỗng"
+      return null;
+    })) as { error?: { code: string; message: string } } | null;
+    if (!res.ok) {
+      // Phiên hết hạn ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
+      if (res.status === 401 && path !== "/api/auth/login" && !location.pathname.startsWith("/login")) return goLogin();
+      throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);
+    }
+    return data as T;
+  } finally {
+    clearTimeout(timer);
   }
-  return data as T;
 }

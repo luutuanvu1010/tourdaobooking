@@ -215,11 +215,34 @@ try {
   p.close();
   ok("trần 50 dòng/đơn: nút '+ Thêm dòng' của cả hai thẻ khoá ngay ở dòng thứ 50 và bật lại khi xoá bớt");
 
+  // ---- 10d) bfcache (I2): sau khi lưu thành công `saving` không bao giờ về false; iOS khôi phục trang từ bộ nhớ đệm khi vuốt Back từ /order → form `inert` + "Đang lưu…" vĩnh viễn (PWA không có nút tải lại) ----
+  p = await env.as(ACCOUNTS.salesA, "/order-form");
+  await p.waitFor("document.getElementById('add-manual')", "form mới cho kiểm bfcache");
+  await p.ev("document.getElementById('add-manual').click(); true");
+  await p.waitFor(`${cards}.length === 1`, "thẻ nhập tay (bfcache)");
+  await p.ev(setInput("document.getElementById('customerName')", "Khách Bfcache"));
+  await p.ev(setInput("document.getElementById('customerPhone')", "0903 333 444"));
+  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
+  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
+  await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
+  const stuck = "document.getElementById('save').textContent === 'Đang lưu…' && document.getElementById('save').disabled && document.getElementById('order-form').hasAttribute('inert')";
+  await p.ev("window.fetch = () => new Promise(() => {}); document.getElementById('save').click(); true"); // máy chủ không bao giờ trả lời = trạng thái ngay sau khi lưu thành công, trước khi trang bị thay
+  await p.waitFor(stuck, "đang lưu: nút 'Đang lưu…' và form inert");
+  await p.ev("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false })); true"); // tải trang thường: KHÔNG đụng tới trạng thái
+  assert.equal(await p.ev(stuck), true, "pageshow không persisted: giữ nguyên trạng thái đang lưu");
+  await p.ev("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); true"); // trang khôi phục từ bfcache
+  await p.waitFor("document.getElementById('save').textContent === 'Lưu đơn nháp' && !document.getElementById('save').disabled && !document.getElementById('order-form').hasAttribute('inert')", "pageshow persisted: nút về 'Lưu đơn nháp', bật, form hết inert");
+  assert.equal(await p.ev("document.getElementById('customerName').value"), "Khách Bfcache", "dữ liệu đã gõ còn nguyên");
+  p.close();
+  ok("bfcache: trang khôi phục (pageshow persisted) đang kẹt 'Đang lưu…' → nút về 'Lưu đơn nháp', form hết inert; pageshow thường không đụng tới");
+
   // ---- 11) quyền: kế toán không lập đơn ----
   p = await env.as(ACCOUNTS.accounting, "/order-form");
   await p.waitFor("!document.getElementById('error').hidden", "banner khoá form");
   assert.match(await p.ev("document.getElementById('error').textContent"), /Tài khoản này không được lập đơn\./);
   assert.equal(await p.ev("document.getElementById('save').disabled"), true);
+  await p.ev("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); true"); // khôi phục từ bfcache: chỉ gỡ khoá "Đang lưu", KHÔNG gỡ nhầm khoá của form đã bị khoá
+  assert.equal(await p.ev("document.getElementById('order-form').hasAttribute('inert') && document.getElementById('save').disabled"), true, "pageshow persisted không mở lại form đã bị khoá");
   ok("kế toán mở thẳng /order-form: banner 'không được lập đơn', nút Lưu khoá");
   p.close();
 

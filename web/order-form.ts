@@ -244,6 +244,13 @@ formEl.addEventListener("submit", async (e) => {
   }
 });
 
+// Sau khi lưu thành công `saving` không bao giờ về false (trang sắp bị thay). iOS đưa trang này vào bộ nhớ đệm (bfcache) và KHÔI PHỤC nguyên trạng khi người dùng vuốt Back từ /order
+// → form `inert` + "Đang lưu…" vĩnh viễn, mà PWA không có nút tải lại. `pageshow` với `persisted` báo đúng trường hợp đó: mở khoá lại form (dữ liệu đã gõ vẫn còn).
+// Chỉ khi đang kẹt `saving`: `setSaving(false)` gỡ `inert` của form, không được gỡ nhầm form đã bị `lockForm` (đơn không sửa được / không có quyền lập đơn).
+window.addEventListener("pageshow", (e) => {
+  if (e.persisted && saving) setSaving(false);
+});
+
 // ---- danh mục và đơn ----
 function setCatalog(items: CatalogServiceDto[]): void {
   live = new Map(items.filter((c) => c.supported).map((c) => [c.code, c]));

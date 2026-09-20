@@ -103,6 +103,9 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
       close(false);
       o.onSaved();
     } catch (err) {
+      saving = false; // đặt lại TRƯỚC khi vẽ banner: nếu bước vẽ/cuộn ném lỗi thì bảng vẫn không kẹt "Đang lưu…"
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Lưu thông tin chuyến";
       renderBanner(bannerEl, errorBanner(err), {
         reloadOrder: () => {
           close(false);
@@ -111,9 +114,6 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
         reloadPage: () => location.reload(),
       });
       bannerEl.scrollIntoView({ block: "nearest" });
-      saving = false;
-      saveBtn.disabled = false;
-      saveBtn.textContent = "Lưu thông tin chuyến";
     }
   }
 

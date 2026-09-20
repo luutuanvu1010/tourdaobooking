@@ -131,6 +131,39 @@ try {
   p.close();
   ok("nhãn 'Giá danh mục đã đổi' / 'Dịch vụ đã ẩn khỏi danh mục' chỉ ở đơn nháp; đơn huỷ: huy hiệu xám, không nút, không nhãn");
 
+  // ---- 5b) đổi trạng thái THÀNH CÔNG nhưng tải lại đơn lỗi (I4): banner "Không tải được đơn." PHẢI có nút "Tải lại đơn" (PWA standalone không có tải lại của trình duyệt) ----
+  const quick = { ...base, services: [{ kind: "manual", name: "Xe", pax: pax(1), items: [{ description: "Xe", detail: "", quantity: 1, unitPrice: 100000 }], ...NO_TRIP }] };
+  const third = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...quick, customerName: "Khách Tải Lại" });
+  assert.equal(third.status, 201, JSON.stringify(third.json));
+  p = await env.as(ACCOUNTS.salesA, `/order?id=${third.json.order.id}`);
+  await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp thứ ba");
+  // sau lời gọi POST /status đầu tiên, mọi GET /api/orders/<id> ném TypeError (mất mạng đúng lúc tải lại)
+  await p.ev(`(() => { window.confirm = () => true; window.__fetch = window.fetch; let afterStatus = false; window.fetch = (u, o) => { const method = o?.method ?? 'GET'; if (afterStatus && method === 'GET' && /^\\/api\\/orders\\/[^/]+$/.test(String(u))) return Promise.reject(new TypeError('offline')); if (method === 'POST' && /\\/status$/.test(String(u))) afterStatus = true; return window.__fetch(u, o); }; return true; })()`);
+  await p.ev(clickText("#actions", "Huỷ đơn"));
+  await p.waitFor("!document.getElementById('error').hidden && /Không tải được đơn\\./.test(document.getElementById('error').textContent)", "banner 'Không tải được đơn.'");
+  assert.equal(await p.ev("[...document.querySelectorAll('#error button')].some((b) => b.textContent === 'Tải lại đơn')"), true, "banner 'Không tải được đơn.' có nút 'Tải lại đơn'");
+  await p.ev("window.fetch = window.__fetch; true");
+  await p.ev(clickText("#error", "Tải lại đơn"));
+  await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã huỷ' && document.getElementById('error').hidden", "tải lại: huy hiệu 'Đã huỷ', banner ẩn");
+  assert.equal(await p.ev("document.querySelectorAll('#actions .btn').length"), 0, "đơn đã huỷ: hết nút");
+  p.close();
+  ok("đổi trạng thái xong mà tải lại lỗi: banner 'Không tải được đơn.' có nút 'Tải lại đơn'; bấm → huy hiệu 'Đã huỷ', banner ẩn");
+
+  // ---- 5c) 409 ở trang đơn (I4): đơn đã đổi trạng thái ở nơi khác → banner PHẢI có nút "Tải lại đơn", không chỉ chữ ----
+  const fourth = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...quick, customerName: "Khách Đổi Ở Nơi Khác" });
+  assert.equal(fourth.status, 201, JSON.stringify(fourth.json));
+  p = await env.as(ACCOUNTS.salesA, `/order?id=${fourth.json.order.id}`);
+  await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp thứ tư");
+  assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${fourth.json.order.id}/status`, { status: "cancelled" })).status, 200, "đơn bị huỷ ở nơi khác");
+  await p.ev("window.confirm = () => true; true");
+  await p.ev(clickText("#actions", "Huỷ đơn")); // trang cũ vẫn tưởng đơn còn nháp → 409 invalid_transition
+  await p.waitFor("!document.getElementById('error').hidden && /Không thể chuyển đơn từ/.test(document.getElementById('error').textContent)", "banner 409 invalid_transition");
+  assert.equal(await p.ev("[...document.querySelectorAll('#error button')].some((b) => b.textContent === 'Tải lại đơn')"), true, "409 ở trang đơn có nút 'Tải lại đơn'");
+  await p.ev(clickText("#error", "Tải lại đơn"));
+  await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã huỷ' && document.getElementById('error').hidden", "tải lại: thấy trạng thái mới");
+  p.close();
+  ok("409 ở trang đơn (đơn đã đổi ở nơi khác): banner có nút 'Tải lại đơn'; bấm → thấy trạng thái mới");
+
   // ---- 6) quyền: SALES khác không sửa được và không thấy lịch sử; kế toán thấy lịch sử, không nút ----
   p = await env.as(ACCOUNTS.salesB, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "salesB xem đơn của salesA");

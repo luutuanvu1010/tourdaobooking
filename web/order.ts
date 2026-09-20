@@ -27,10 +27,12 @@ function show(b: Banner | null): void {
 /** Lỗi của máy chủ → banner theo ma trận đặc tả 5.2 (incomplete_trip có danh sách thiếu); lỗi mạng → câu chung. */
 function errorBanner(err: unknown): Banner {
   if (!(err instanceof ApiError)) return banner("danger", "Không kết nối được máy chủ.");
-  return classifyOrderError(
+  const b = classifyOrderError(
     { status: err.status, code: err.code, message: err.message, details: err.details },
     { serviceNames: current?.services.map((s) => s.name) ?? [], formatMoney: vnd },
   );
+  // Mọi 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
+  return b.action === "none" && err.status === 409 ? { ...b, action: "reload_order" } : b;
 }
 
 function kv(label: string, value: string | null, cls = ""): HTMLElement {
@@ -134,7 +136,8 @@ async function load(): Promise<void> {
     show(null);
     render(order, history, canModify);
   } catch (err) {
-    show(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn."));
+    // Có nút "Tải lại đơn": PWA standalone không có tải lại của trình duyệt, và `load()` tự nuốt lỗi nên các nút vừa bấm (Xác nhận/Huỷ) có thể đang khoá.
+    show(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn.", { action: "reload_order" }));
   }
 }
 

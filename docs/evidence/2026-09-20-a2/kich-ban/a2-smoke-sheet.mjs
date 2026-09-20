@@ -75,6 +75,15 @@ try {
   await p.waitFor(`${closed} && ${restored}`, "đóng bằng Esc");
   ok("đóng bằng ✕, chạm nền, Esc: bảng biến mất, hết inert/khoá cuộn, focus về nút 'Sửa thông tin chuyến'");
 
+  // ---- 2b) nền (scrim) chỉ nhận chạm SAU khi bảng đã bắt đầu trượt (có .open): bấm đúp "Sửa thông tin chuyến" không được đóng luôn bảng ----
+  const opening = await p.ev(`(() => { [...document.querySelectorAll('#actions button')].find((b) => b.textContent === 'Sửa thông tin chuyến').click(); return { pointerEvents: getComputedStyle(document.querySelector('.sheet-scrim')).pointerEvents, opened: document.querySelector('.sheet-root.open') !== null }; })()`); // cùng một lượt chạy: trạng thái đầu, chưa tới khung hình thêm .open
+  assert.deepEqual(opening, { pointerEvents: "none", opened: false }, "vừa bấm mở (chưa có .open): scrim không nhận chạm");
+  await p.waitFor("document.querySelector('.sheet-root.open') !== null", "bảng mở (kiểm scrim)");
+  assert.equal(await p.ev("getComputedStyle(document.querySelector('.sheet-scrim')).pointerEvents"), "auto", "đã .open: scrim nhận chạm (chạm nền đóng bảng)");
+  await p.ev("document.querySelector('.sheet-close').click(); true");
+  await p.waitFor(`${closed} && ${restored}`, "đóng (kiểm scrim)");
+  ok("scrim: pointer-events none ngay khi bấm mở (chưa .open), auto sau khi .open");
+
   // ---- 3) chặn Lưu phía trình duyệt: không gửi gì lên máy chủ ----
   await open(p);
   await p.ev(setInput(field(1, "departDate"), ""));
@@ -96,6 +105,23 @@ try {
   assert.equal(await p.ev("document.querySelector('.sheet-foot .btn').disabled"), false, "nút Lưu bật lại");
   await p.ev("window.fetch = window.__fetch; true");
   ok("mất mạng: banner nguy hiểm, dữ liệu đã gõ còn nguyên, nút Lưu bật lại");
+
+  // ---- 4a) máy chủ KHÔNG trả lời (I3): api() có hạn 45 s (ở đây rút còn 200 ms) → hết giờ hiện banner mất mạng, nút Lưu bật lại, ✕/Esc đóng được bảng (không kẹt "Đang lưu…") ----
+  await p.ev("window.__st = window.setTimeout; window.setTimeout = (fn, ms, ...a) => window.__st(fn, ms === 45000 ? 200 : ms, ...a); window.fetch = (u, o) => new Promise((_, rej) => o?.signal?.addEventListener('abort', () => rej(new DOMException('hết giờ', 'AbortError')))); true");
+  const savingNow = await p.ev("(() => { const b = document.querySelector('.sheet-foot .btn'); b.click(); return [b.textContent, b.disabled, document.querySelector('.sheet .banner').hidden]; })()"); // cùng một lượt chạy: trước khi hết giờ
+  assert.deepEqual(savingNow, ["Đang lưu…", true, true], "vừa bấm Lưu: 'Đang lưu…', nút khoá, banner cũ đã ẩn");
+  await p.waitFor("!document.querySelector('.sheet .banner').hidden && /Không kết nối được máy chủ\\./.test(document.querySelector('.sheet .banner').textContent)", "hết giờ → banner mất mạng (bảng không kẹt 'Đang lưu…')");
+  assert.deepEqual(await p.ev("(() => { const b = document.querySelector('.sheet-foot .btn'); return [b.textContent, b.disabled]; })()"), ["Lưu thông tin chuyến", false], "nút Lưu bật lại, chữ về 'Lưu thông tin chuyến'");
+  assert.equal(await p.ev(`${field(1, "departDate")}.value`), vnDate(13), "dữ liệu đã gõ còn nguyên");
+  await p.ev("window.setTimeout = window.__st; window.fetch = window.__fetch; true");
+  await p.ev("document.querySelector('.sheet-close').click(); true");
+  await p.waitFor(`${closed} && ${restored}`, "sau hết giờ: đóng được bằng ✕");
+  await open(p);
+  await p.ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); true");
+  await p.waitFor(`${closed} && ${restored}`, "sau hết giờ: đóng được bằng Esc");
+  await open(p);
+  await p.ev(setInput(field(1, "departDate"), vnDate(13))); // mở lại là nạp lại từ đơn đã lưu: gõ lại ngày cho các nhóm sau
+  ok("hết giờ (máy chủ im lặng): banner 'Không kết nối được máy chủ.', nút Lưu bật lại, dữ liệu còn nguyên, ✕ và Esc đóng được bảng");
 
   // ---- 4b) đang lưu thì KHÔNG đóng được bảng (đóng sẽ nuốt lỗi của máy chủ): ✕, chạm nền, Esc bị bỏ qua; lỗi hiện ngay trong bảng ----
   await p.ev("window.fetch = () => new Promise((r) => setTimeout(() => r(new Response(JSON.stringify({ error: { code: 'boom', message: 'Lỗi thử từ máy chủ.' } }), { status: 500, headers: { 'content-type': 'application/json' } })), 1200)); true");
