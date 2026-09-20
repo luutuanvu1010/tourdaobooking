@@ -106,10 +106,14 @@ export async function createAccountStatements(
   };
 }
 
-/** Đổi tên hiển thị của tài khoản = đổi tên hồ sơ (parties). Trả null nếu tài khoản chưa có hồ sơ (khoảng giữa hai lần triển khai N1). */
-export function renameAccountStatements(db: D1Database, account: StaffAccount, fullName: string, actorId: string, at: string): D1PreparedStatement[] | null {
+/**
+ * Đổi tên hiển thị của tài khoản = đổi tên hồ sơ (parties). Trả null nếu tài khoản chưa có hồ sơ (khoảng giữa hai lần triển khai N1).
+ * `onlyIfPrevApplied` = true khi người gọi ghép các câu này vào một batch có CÂU CHỐT thắng/thua đứng trước: đổi tên chỉ áp dụng nếu
+ * câu ngay trước đã áp dụng (`changes() > 0`), để bên thua không đổi tên nửa vời mà không có nhật ký.
+ */
+export function renameAccountStatements(db: D1Database, account: StaffAccount, fullName: string, actorId: string, at: string, onlyIfPrevApplied = false): D1PreparedStatement[] | null {
   const name = splitPersonName(fullName);
-  return account.partyId && name ? renamePersonStatements(db, account.partyId, name, actorId, at) : null;
+  return account.partyId && name ? renamePersonStatements(db, account.partyId, name, actorId, at, onlyIfPrevApplied) : null;
 }
 
 /**

@@ -1,3 +1,4 @@
+import { can } from "../src/shared/permissions";
 import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { STATUS_LABEL, dateTime, vnd } from "./format";
@@ -54,5 +55,11 @@ qInput.addEventListener("input", () => {
 statusSel.addEventListener("change", () => void load(true));
 moreBtn.addEventListener("click", () => void load(false));
 
-await initShell();
+// Nút "+ Đơn mới" mặc định ẩn trong HTML tĩnh, chỉ hiện cho người được lập đơn (bản đồ quyền ADR-0007 — không chép ma trận ở đây):
+// tài khoản chỉ-ACCOUNTING bấm vào sẽ bị máy chủ từ chối 403 sau khi đã điền cả form.
+// Tra cứu chịu được phần tử VẮNG (như setBarTitle ở shell.ts): nếu một bản HTML cũ còn nằm trong cache mà JS đã mới thì thiếu nút
+// vẫn phải để trang đơn hàng chạy bình thường — mặc định ẩn nên không có nút cũng là phía an toàn.
+const staff = await initShell();
+const newOrderBtn = document.getElementById("new-order");
+if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
 await load(true);

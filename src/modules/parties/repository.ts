@@ -233,12 +233,20 @@ const UPDATE_ORG = defineSql(
    WHERE party_id = ?1 AND (SELECT updated_at FROM pty_party WHERE id = ?1) = ?8`,
 );
 // Đổi tên KHÔNG khoá lạc quan: dành cho quản trị viên đổi tên tài khoản (module staff gọi). Sửa hồ sơ từ giao diện dùng updatePartyStatements.
+// Cờ "chỉ đổi khi câu NGAY TRƯỚC trong cùng db.batch() đã áp dụng" (`changes() > 0`): để người gọi ghép hai câu này vào một batch có
+// câu CHỐT thắng/thua của mình (vị từ chốt nằm ở bảng module khác nên không viết được vào đây — ADR-0002 điều 8(b)). Chỉ đúng khi câu
+// ngay trước là câu chốt hoặc một câu đã mang cùng điều kiện; vì vậy hai câu dưới đây phải đứng LIỀN NHAU và pty_party đi TRƯỚC
+// (dòng pty_party chắc chắn có — khoá ngoại staff.party_id; dòng pty_person có thể thiếu ở dữ liệu di trú nửa chừng).
+const RENAME_PARTY = defineSql(
+  "parties",
+  "rename_party",
+  "UPDATE pty_party SET display_name = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND (?5 = 0 OR changes() > 0)",
+);
 const RENAME_PERSON = defineSql(
   "parties",
   "rename_person",
-  "UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, updated_at = ?5, updated_by = ?6 WHERE party_id = ?1",
+  "UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, updated_at = ?5, updated_by = ?6 WHERE party_id = ?1 AND (?7 = 0 OR changes() > 0)",
 );
-const RENAME_PARTY = defineSql("parties", "rename_party", "UPDATE pty_party SET display_name = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1");
 const UPDATE_PARTY = defineSql(
   "parties",
   "update_party",
@@ -309,10 +317,15 @@ export function updatePartyStatements(
   ];
 }
 
-export function renamePersonStatements(db: D1Database, partyId: string, name: PersonName, actorId: string, at: string): D1PreparedStatement[] {
+/**
+ * Đổi tên hồ sơ cá nhân (hai câu LIỀN NHAU, pty_party trước). `onlyIfPrevApplied` = true: chỉ đổi khi câu ngay trước trong cùng
+ * `db.batch()` đã áp dụng (`changes() > 0`) — dùng khi người gọi có câu chốt thắng/thua đứng trước, để một lần sửa không nửa vời.
+ */
+export function renamePersonStatements(db: D1Database, partyId: string, name: PersonName, actorId: string, at: string, onlyIfPrevApplied = false): D1PreparedStatement[] {
+  const guard = onlyIfPrevApplied ? 1 : 0;
   return [
-    db.prepare(RENAME_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId),
-    db.prepare(RENAME_PARTY).bind(partyId, composePersonName(name), at, actorId),
+    db.prepare(RENAME_PARTY).bind(partyId, composePersonName(name), at, actorId, guard),
+    db.prepare(RENAME_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId, guard),
   ];
 }
 

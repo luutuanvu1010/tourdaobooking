@@ -305,6 +305,40 @@ test("ADR-0002 điều 8(b): SQL đã đăng ký của module nghiêm chỉ ch�
   assert.deepEqual(problems, []);
 });
 
+// ---------------------------------------------------------------------------------------------------------------------
+// Lưới cho CƠ CHẾ của điều 8(b): bài kiểm EXPLAIN ở trên chỉ thấy SQL đã đăng ký qua `defineSql`. Một `db.prepare("SELECT …")`
+// viết thẳng trong `repository.ts` của module nghiêm sẽ đi vòng qua nó. Vì vậy: trong tệp SQL của module nghiêm, đối số đầu của
+// `.prepare(` phải là ĐỊNH DANH (hằng đã defineSql), không bao giờ là chuỗi hay template literal.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Vị trí (`tệp:dòng`) có `.prepare(` mà đối số đầu là chuỗi/template thô. Bỏ dòng chú thích và chú thích cuối dòng như R-N1-14. */
+function rawPrepareHits(rel: string, source: string): string[] {
+  const code = source.split("\n").map((line) => (/^\s*(?:\/\/|\/\*|\*)/.test(line) ? "" : line.replace(/\/\/.*$/, ""))).join("\n");
+  const out: string[] = [];
+  const re = /\.prepare\(\s*[`'"]/g;
+  for (let m = re.exec(code); m; m = re.exec(code)) out.push(`${rel}:${code.slice(0, m.index).split("\n").length}`);
+  return out;
+}
+
+test("bộ bắt `.prepare(<chuỗi thô>)`: bắt chuỗi/template, cho qua hằng đã defineSql", () => {
+  const cases: [string, boolean][] = [
+    ['db.prepare("SELECT * FROM staff")', true],
+    ["db.prepare('SELECT 1')", true],
+    ["db.prepare(`SELECT ${col} FROM staff`)", true], // template literal: SQL động, càng phải cấm
+    ["db.prepare(\n  `SELECT 1`,\n)", true], // xuống dòng vẫn bắt
+    ["db.prepare(FIND_BY_ID)", false],
+    ["db.prepare(SQL.list).bind(1)", false],
+    ['// db.prepare("SELECT 1") — ví dụ trong chú thích', false],
+    ["const x = 1; // db.prepare(`x`)", false],
+  ];
+  for (const [src, caught] of cases) assert.equal(rawPrepareHits("mau.ts", src).length > 0, caught, src);
+  assert.deepEqual(rawPrepareHits("mau.ts", 'const a = 1;\ndb.prepare("SELECT 1");'), ["mau.ts:2"], "báo đúng tệp:dòng");
+});
+
+test("ADR-0002 điều 8(b): tệp SQL của module nghiêm không được `.prepare(` với chuỗi/template thô", () => {
+  const problems = STRICT.flatMap((s) => rawPrepareHits(s.file, readFileSync(join(SRC, s.file), "utf8")));
+  assert.deepEqual(problems, [], "SQL viết thẳng vào .prepare(...) không qua defineSql nên bài kiểm ranh giới EXPLAIN không thấy — hãy khai bằng defineSql rồi .prepare(<hằng>)");
+});
+
 test("R-N1-12: vai trò hồ sơ không là điều kiện cho phép — chỉ module parties nhắc `pty_party_role`", () => {
   const problems: string[] = [];
   for (const file of [...walk(SRC), ...walk(WEB)]) {

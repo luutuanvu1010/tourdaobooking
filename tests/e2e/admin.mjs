@@ -73,7 +73,10 @@ assert.equal((await raw(ADMIN, "PUT", `/api/staff/${me.id}/permissions`, { permi
 assert.equal((await raw(ADMIN, "PUT", `/api/staff/${me.id}/permissions`, { permissions: ["ADMIN", "SALES"] })).status, 409, "cũng không tự thêm quyền cho mình");
 // ngưng → hiệu lực NGAY với phiên đang mở
 assert.equal((await raw(A_COOKIE, "GET", "/api/auth/me")).status, 200);
-assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { active: false })).status, 200);
+// đổi tên + ngưng trong CÙNG một PATCH: đường thắng phải đổi đủ (chuỗi điều kiện `changes() > 0` chạy trên D1 thật, không chỉ SQLite trong bộ nhớ)
+r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: "Nguyễn Test Ba", active: false });
+assert.equal(r.status, 200); assert.equal(r.body.staff.fullName, "Nguyễn Test Ba", "PATCH đổi tên + ngưng: tên phải đổi");
+assert.equal(r.body.staff.active, false);
 assert.equal((await raw(A_COOKIE, "GET", "/api/auth/me")).status, 401);
 assert.equal((await login(A.phone, A.pin)).status, 401);
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { active: true })).status, 200);

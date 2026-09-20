@@ -50,6 +50,47 @@ async function target(ctx: Ctx): Promise<StaffAccount | null> {
   return UUID_RE.test(id) ? getStaffAccount(ctx.env.DB, id) : null;
 }
 
+export interface StaffPatch {
+  fullName?: string;
+  phone?: string;
+  active?: boolean;
+}
+
+/**
+ * Các câu lệnh của MỘT `PATCH /api/staff/:id` (tách khỏi route để kiểm được bằng SQLite thật).
+ * Trả `null` khi phải đổi tên mà tài khoản chưa có hồ sơ (route trả 409 `no_party`).
+ * `guardIndex` là vị trí câu chốt thắng/thua trong batch, hoặc −1 nếu lần sửa này không có câu chốt (chỉ đổi tên).
+ *
+ * Thứ tự BẮT BUỘC khi có câu chốt (`updateStaffStatement`, mang vị từ OTHER_ADMIN): chốt → nhật ký (`changes() > 0`) → đổi tên
+ * (cũng `changes() > 0`). Mọi câu ghi của cùng một PATCH mang CÙNG điều kiện thắng, như `PUT /api/staff/:id/permissions` và
+ * `wonGuard` của orders: bên thua không ghi gì, không nhật ký; bên thắng đổi đủ. Hai điều làm chuỗi này đúng:
+ * (1) mỗi mắt xích đều đổi ≥ 1 dòng ở đường thắng (dòng nhật ký được chèn; dòng `pty_party` chắc chắn có — xem renamePersonStatements);
+ * (2) hễ có câu đổi tên thì CHẮC CHẮN có dòng nhật ký `staff_updated` đứng trước (cả hai cùng do `patch.fullName !== undefined` sinh ra).
+ * Sửa ở đây phải giữ hai điều đó.
+ */
+export function patchStaffStatements(
+  db: D1Database,
+  args: { target: StaffAccount; patch: StaffPatch; adminId: string; at: string; losesAdmin: boolean },
+): { statements: D1PreparedStatement[]; guardIndex: number } | null {
+  const { target: t, patch, adminId, at, losesAdmin } = args;
+  const needsUpdate = patch.phone !== undefined || patch.active !== undefined;
+  const rename = patch.fullName === undefined ? [] : renameAccountStatements(db, t, patch.fullName, adminId, at, needsUpdate);
+  if (rename === null) return null;
+  const stmts: D1PreparedStatement[] = [];
+  if (needsUpdate) stmts.push(updateStaffStatement(db, t.id, patch, losesAdmin));
+  // Chỉ ghi nhật ký nếu câu chốt thực sự áp dụng (changes() > 0), tránh ghi dấu vết cho thao tác bị chặn khi tranh chấp.
+  const onlyIf = needsUpdate ? "changes() > 0" : undefined;
+  const log = (action: AuditAction, detail?: string) => adminAudit(db, adminId, action, t.id, detail, onlyIf);
+  if (patch.fullName !== undefined || patch.phone !== undefined) {
+    const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && `SĐT ${t.phone} → ${patch.phone}`].filter(Boolean);
+    stmts.push(log("staff_updated", bits.join("; ")));
+  }
+  if (patch.active === false) stmts.push(log("staff_suspended"));
+  if (patch.active === true) stmts.push(log("staff_reactivated"));
+  stmts.push(...rename);
+  return { statements: stmts, guardIndex: needsUpdate ? 0 : -1 };
+}
+
 export const accountsModule: AppModule = {
   name: "accounts",
   routes: [
@@ -182,33 +223,16 @@ export const accountsModule: AppModule = {
       const losesAdmin = t.permissions.includes("ADMIN") && t.active && patch.active === false;
 
       const at = new Date().toISOString();
-      const stmts: D1PreparedStatement[] = [];
-      if (patch.fullName !== undefined) {
-        const rename = renameAccountStatements(db, t, patch.fullName, admin.id, at);
-        if (!rename) return error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
-        stmts.push(...rename);
-      }
-      // Câu UPDATE tài khoản đứng CUỐI nhóm ghi để `changes()` của các dòng nhật ký sau nó tham chiếu đúng câu này.
-      const needsUpdate = patch.phone !== undefined || patch.active !== undefined;
-      if (needsUpdate) stmts.push(updateStaffStatement(db, t.id, patch, losesAdmin));
-      const updateIndex = stmts.length - 1;
-      // Chỉ ghi nhật ký nếu UPDATE thực sự áp dụng (changes() > 0), tránh ghi dấu vết cho thao tác bị chặn khi tranh chấp.
-      const onlyIf = needsUpdate ? "changes() > 0" : undefined;
-      const log = (action: AuditAction, detail?: string) => adminAudit(db, admin.id, action, t.id, detail, onlyIf);
-      if (patch.fullName !== undefined || patch.phone !== undefined) {
-        const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && `SĐT ${t.phone} → ${patch.phone}`].filter(Boolean);
-        stmts.push(log("staff_updated", bits.join("; ")));
-      }
-      if (patch.active === false) stmts.push(log("staff_suspended"));
-      if (patch.active === true) stmts.push(log("staff_reactivated"));
+      const built = patchStaffStatements(db, { target: t, patch, adminId: admin.id, at, losesAdmin });
+      if (!built) return error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
       let results;
       try {
-        results = await db.batch(stmts);
+        results = await db.batch(built.statements);
       } catch (e) {
         if (isUniqueViolation(e)) return PHONE_TAKEN();
         throw e;
       }
-      if (needsUpdate && (results[updateIndex]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+      if (built.guardIndex >= 0 && (results[built.guardIndex]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
       return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db)) } satisfies StaffResponse);
     }),
 

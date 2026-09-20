@@ -115,6 +115,12 @@ addForm.addEventListener("submit", async (e) => {
   }, addForm.querySelector<HTMLButtonElement>('button[type="submit"]'));
 });
 
+// Form "Thêm địa điểm" mặc định ẩn trong HTML tĩnh: chỉ quản trị viên mới được thêm (máy chủ 403 với người khác), và danh sách
+// loại địa điểm của form cũng chỉ nạp được khi load() chạy.
 const staff = await initShell();
 if (!hasPermission(staff, "ADMIN")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
-else await load();
+else {
+  const addCard = document.getElementById("add-card"); // chịu được phần tử vắng: HTML cũ trong cache + JS mới không được làm hỏng cả trang
+  if (addCard) addCard.hidden = false;
+  await load();
+}

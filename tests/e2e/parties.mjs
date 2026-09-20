@@ -116,6 +116,24 @@ assert.equal((await call(SALES, "POST", `${P(A.id)}/contacts/${toEnd.id}/end`, {
 assert.equal((await call(SALES, "POST", `${P(A.id)}/contacts/khong-phai-id/end`, {})).status, 404);
 console.log("✓ liên hệ");
 
+// --- liên hệ chính tự đặt: liên hệ ĐẦU TIÊN của một loại, và liên hệ thêm sau khi liên hệ chính đã ĐÓNG (không để hồ sơ kẹt "không có liên hệ chính")
+r = await call(SALES, "POST", "/api/parties", { kind: "PERSON", fullName: `Phạm Chính ${tag}` });
+assert.equal(r.status, 201);
+const C = r.body.party;
+const cPhone1 = randomPhone(), cPhone2 = randomPhone(), cPhone3 = randomPhone();
+r = await call(SALES, "POST", `${P(C.id)}/contacts`, { kind: "PHONE", value: cPhone1 });
+assert.equal(r.status, 201); assert.equal(r.body.party.primaryPhone, cPhone1, "liên hệ đầu tiên của một loại tự thành chính");
+r = await call(SALES, "POST", `${P(C.id)}/contacts`, { kind: "PHONE", value: cPhone2 });
+assert.equal(r.body.party.primaryPhone, cPhone1, "còn liên hệ chính đang mở thì liên hệ thêm KHÔNG tự thành chính");
+const cPrimary = r.body.party.contacts.find((x) => x.kind === "PHONE" && x.isPrimary && !x.validTo);
+r = await call(SALES, "POST", `${P(C.id)}/contacts/${cPrimary.id}/end`, {});
+assert.equal(r.status, 200); assert.equal(r.body.party.primaryPhone, null, "đóng liên hệ chính: hồ sơ tạm thời không có liên hệ chính");
+r = await call(SALES, "POST", `${P(C.id)}/contacts`, { kind: "PHONE", value: cPhone3 });
+assert.equal(r.status, 201);
+assert.equal(r.body.party.primaryPhone, cPhone3, "sau khi đóng liên hệ chính, liên hệ mới lại tự thành chính dù còn dòng phụ đang mở");
+assert.equal(r.body.party.contacts.filter((x) => x.kind === "PHONE" && x.isPrimary && !x.validTo).length, 1);
+console.log("✓ liên hệ chính tự đặt sau khi đóng liên hệ chính");
+
 // --- vai trò theo nơi: chỉ quản trị viên; trùng đang mở → 409; nơi khác độc lập; đóng lại
 const role = { roleTypeCode: "GUIDE", locationId: vinpearl.id };
 assert.equal((await call(SALES, "POST", `${P(A.id)}/roles`, role)).status, 403);

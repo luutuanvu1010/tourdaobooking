@@ -33,6 +33,17 @@ test("thời hạn: mặc định hôm nay, ngày đúng lịch, to ≥ from", (
   assert.equal(validateEndDate({ validTo: "2026-13-01" }, TODAY).ok, false);
 });
 
+// `""` là "vắng" ở validatePeriod (ô ngày trống của giao diện gửi chuỗi rỗng) — validateEndDate phải hiểu giống hệt, không từ chối.
+test("ngày kết thúc: rỗng/vắng = hôm nay, ngày hợp lệ giữ nguyên, sai định dạng bị từ chối", () => {
+  for (const empty of [{}, { validTo: "" }, { validTo: null }, { validTo: undefined }]) {
+    assert.deepEqual(validateEndDate(empty, TODAY), { ok: true, value: TODAY }, JSON.stringify(empty));
+  }
+  assert.deepEqual(validateEndDate({ validTo: "2026-10-01" }, TODAY), { ok: true, value: "2026-10-01" });
+  for (const bad of [{ validTo: "01/10/2026" }, { validTo: "2026-02-30" }, { validTo: 5 }, { validTo: "   " }]) {
+    assert.equal(validateEndDate(bad, TODAY).ok, false, JSON.stringify(bad));
+  }
+});
+
 test("liên hệ: SĐT chuẩn hoá, email hạ chữ thường, từ chối sai", () => {
   const p = validateContact({ kind: "PHONE", value: " 0901 234 567 ", label: " Zalo " });
   assert.deepEqual(p, { ok: true, value: { kind: "PHONE", value: "0901 234 567", valueNormalized: "0901234567", label: "Zalo", isPrimary: false } });

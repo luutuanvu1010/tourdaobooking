@@ -192,9 +192,10 @@ export const partiesModule: AppModule = {
       const parsed = validateContact(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const c = parsed.value;
-      // Chưa có liên hệ đang mở cùng loại thì liên hệ này tự thành liên hệ chính.
-      const hasOpen = detail.contacts.some((x) => x.contact_kind_code === c.kind && x.valid_to_date === null);
-      if (!hasOpen) c.isPrimary = true;
+      // Chưa có liên hệ CHÍNH đang mở cùng loại thì liên hệ này tự thành liên hệ chính. Hỏi "chính đang mở" chứ không phải "còn dòng
+      // nào đang mở": sau khi đóng liên hệ chính mà vẫn còn dòng phụ, hồ sơ sẽ kẹt ở trạng thái không có liên hệ chính.
+      const hasOpenPrimary = detail.contacts.some((x) => x.contact_kind_code === c.kind && x.is_primary === 1 && x.valid_to_date === null);
+      if (!hasOpenPrimary) c.isPrimary = true;
       const now = new Date();
       const at = now.toISOString();
       await env.DB.batch([

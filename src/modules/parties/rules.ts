@@ -84,9 +84,13 @@ export function validatePeriod(fromRaw: unknown, toRaw: unknown, today: string):
   return { ok: true, value: { from, to: toRaw } };
 }
 
-/** Ngày kết thúc khi đóng một dòng (mặc định hôm nay). Việc "không trước ngày bắt đầu" do câu UPDATE kiểm (changes() = 0). */
+/**
+ * Ngày kết thúc khi đóng một dòng. Vắng — `undefined`, `null` hoặc `""` (ô ngày trống của giao diện) — = hôm nay, hiểu giống
+ * `validatePeriod`. Việc "không trước ngày bắt đầu" do câu UPDATE kiểm (changes() = 0).
+ */
 export function validateEndDate(body: Record<string, unknown> | null, today: string): Result<string> {
-  const to = body?.validTo ?? today;
+  const raw = body?.validTo;
+  const to = raw === undefined || raw === null || raw === "" ? today : raw;
   return typeof to === "string" && isISODate(to) ? { ok: true, value: to } : fail("Ngày kết thúc không hợp lệ (YYYY-MM-DD).");
 }
 
