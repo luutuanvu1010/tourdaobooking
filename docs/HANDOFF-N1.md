@@ -18,9 +18,9 @@
 `wrangler d1 migrations apply` áp MỌI migration chưa áp, nên migration siết `0013` KHÔNG được nằm trong `migrations/` ở lần 1.
 
 **Lần 1 (mở rộng):**
-1. `npm test && npm run typecheck && npm run test:e2e` xanh (typecheck: chỉ 4 lỗi A2 nếu A2 chưa gộp — nhưng xem điều kiện trên).
+1. Chạy BA lệnh riêng, ghi lại kết quả của từng lệnh (đừng nối bằng `&&`: `npm run typecheck` thoát khác 0 khi còn 4 lỗi A2 nên sẽ cắt chuỗi và `test:e2e` không được chạy): (a) `npm test` — kỳ vọng toàn bộ đạt; (b) `npm run typecheck` — kỳ vọng ĐÚNG 4 lỗi A2 (`web/order-form.ts` hai lỗi, `web/order.ts` hai lỗi) cho tới khi A2 xong, sau đó sạch (xem điều kiện trên); (c) `npm run test:e2e` — kỳ vọng `E2E: 10/10 kịch bản xanh` và bước cuối `audit-invariants` xanh.
 2. `npm run db:migrate:remote` (áp `0008` nếu chưa, rồi `0009…0012`), **ngay sau đó** `npx wrangler deploy` trong cùng lượt làm việc (khoảng giữa chỉ tính bằng phút: tài khoản do mã cũ tạo lúc đó chưa có hồ sơ/quyền — hiện nhãn "(chưa có hồ sơ)", đơn của họ không biến mất, họ bị từ chối theo mặc định cho tới khi `0013` backfill).
-3. `node scripts/audit-invariants.mjs --db remote` (không `--strict`: còn cảnh báo "chưa có hồ sơ" là đúng nếu có tài khoản khoảng giữa). Mọi dòng `✗` là vi phạm thật.
+3. `node scripts/audit-invariants.mjs --db remote` (không `--strict`: còn cảnh báo "chưa có hồ sơ" là đúng nếu có tài khoản khoảng giữa). Mọi dòng `✗` là vi phạm thật. Lệnh này chỉ chạy được SAU khi đã áp `0009…0012` (trước đó thiếu bảng `pty_*`/`stf_*` nên script thoát mã 2): dùng nó ở bước kiểm sau khi áp, không phải để kiểm "hiện trạng trước".
 4. Thử tay: đăng nhập bằng tài khoản admin; `/staff` hiện cột Quyền; `/parties`, `/locations` mở được; tạo thử một hồ sơ.
 
 **Lần 2 (siết) — chỉ sau khi lần 1 chạy ổn:** làm Task B5 của kế hoạch N1-B (thêm `0013_staff_party_required.sql` + test), rồi `npm run db:migrate:remote`, `node scripts/audit-invariants.mjs --db remote --strict`, và kiểm `SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'staff_party_required_%'` = 2.
@@ -39,17 +39,24 @@ npx wrangler d1 execute tourdao-sales-db --remote --command "<câu dưới>"
 ```
 
 ```sql
-SELECT id, length(trim(full_name)) AS len, instr(trim(full_name), '  ') AS double_space, date(created_at, '+7 hours') AS vn_date
-FROM staff
+SELECT id, length(trim(full_name)) AS len, instr(trim(full_name), '  ') AS double_space, date(created_at, '+7 hours') AS vn_date,
+       length(given) AS given_len,
+       CASE WHEN instr(head, ' ') > 0 THEN instr(head, ' ') - 1 ELSE length(head) END AS family_len,
+       CASE WHEN instr(head, ' ') > 0 THEN length(trim(substr(head, instr(head, ' ') + 1))) ELSE 0 END AS middle_len
+FROM (SELECT id, full_name, created_at,
+             trim(substr(trim(full_name), length(rtrim(trim(full_name), replace(trim(full_name), ' ', ''))) + 1)) AS given,
+             trim(rtrim(trim(full_name), replace(trim(full_name), ' ', ''))) AS head
+      FROM staff)
 WHERE trim(full_name) = '' OR length(trim(full_name)) > 200 OR date(created_at, '+7 hours') IS NULL
-   OR instr(trim(full_name), '  ') > 0 OR instr(full_name, char(9)) > 0 OR instr(full_name, char(10)) > 0 OR instr(full_name, char(13)) > 0 OR instr(full_name, char(160)) > 0;
+   OR instr(trim(full_name), '  ') > 0 OR instr(full_name, char(9)) > 0 OR instr(full_name, char(10)) > 0 OR instr(full_name, char(13)) > 0 OR instr(full_name, char(160)) > 0
+   OR given_len > 60 OR family_len > 60 OR middle_len > 100;
 ```
 
-Giải thích: mỗi dòng ra là một tài khoản mà bước backfill hồ sơ của `0012` sẽ (a) làm migration ABORT giữa chừng, hoặc (b) chạy xong nhưng vi phạm R-N1-3.
-- **(a) ABORT:** `full_name` rỗng/toàn khoảng trắng hoặc dài hơn 200 ký tự (vi phạm `CHECK` của `display_name`); hoặc `created_at` không phải ISO (`date(...)` trả NULL → cột `valid_from_date` NOT NULL bị vi phạm).
-- **(b) SAI R-N1-3:** khoảng trắng đôi / TAB / xuống dòng / NBSP bên trong `full_name`. Backfill bằng SQL chỉ tách tên theo dấu cách ASCII và giữ nguyên `display_name`, còn mã TS gộp khoảng trắng — nên `display_name` lệch "họ + tên đệm + tên" và `audit-invariants` (R-N1-3) sẽ đỏ.
+Giải thích: mỗi dòng ra là một tài khoản mà bước backfill hồ sơ của `0012` sẽ (a) làm migration ABORT giữa chừng, hoặc (b) chạy xong nhưng tách/ghép tên sai. Truy vấn con `given`/`head` sao chép ĐÚNG cách `0012` (mục 4.2) tách tên: tên (`given`) = từ cuối; `head` = phần còn lại; họ = từ đầu của `head` (nếu `head` có dấu cách, nếu không họ = cả `head`); đệm = phần sau từ đầu của `head`. Ba cột `given_len`, `family_len`, `middle_len` in độ dài từng phần để tự nhìn.
+- **(a) ABORT (vi phạm `CHECK`):** `full_name` rỗng/toàn khoảng trắng hoặc dài hơn 200 ký tự (`display_name`); họ dài hơn 60, tên đệm dài hơn 100, tên (từ cuối) dài hơn 60 ký tự (`CHECK` từng phần của `pty_person` — vd một từ 70 ký tự, hoặc họ 70 ký tự, dù tổng còn dưới 200); hoặc `created_at` không phải ISO (`date(...)` trả NULL → cột `valid_from_date` NOT NULL bị vi phạm).
+- **(b) SAI LẶNG LẼ:** khoảng trắng đôi, TAB, xuống dòng, NBSP bên trong `full_name`. Backfill bằng SQL chỉ tách theo dấu cách ASCII đơn. Chỉ khoảng trắng ĐÔI làm R-N1-3 của `audit-invariants` đỏ (`display_name` giữ nguyên còn ba phần đã gộp khoảng trắng). Với TAB / xuống dòng / NBSP, `display_name` vẫn khớp tên ghép nên R-N1-3 VẪN XANH, nhưng họ/đệm/tên bị tách sai lặng lẽ (vd `"Nguyễn<TAB>Văn An"` → họ `"Nguyễn<TAB>Văn"`, đệm NULL, tên `"An"`) và không công cụ nào bắt được sau khi áp — vì vậy cổng TRƯỚC KHI ÁP là cơ hội duy nhất.
 
-Cách xử lý dòng ra: sửa `staff.full_name` cho sạch TRƯỚC khi áp (chủ dự án quyết; đây là một `UPDATE` trên remote), hoặc — chỉ với nhóm (b) — chấp nhận và sửa hồ sơ sau ở trang Hồ sơ. Nhóm (a) không thể "chấp nhận": không sửa trước thì migration dừng giữa chừng (khi đó kiểm `npx wrangler d1 migrations list tourdao-sales-db --remote` và dữ liệu trước khi thử lại; khôi phục bằng điểm Time Travel đã ghi nếu cần).
+Cách xử lý dòng ra: sửa `staff.full_name` cho sạch TRƯỚC khi áp (chủ dự án quyết; đây là một `UPDATE` trên remote), hoặc — chỉ với nhóm (b) — chấp nhận và sửa tay hồ sơ ở trang Hồ sơ. Nhóm (a) không thể "chấp nhận": không sửa trước thì migration dừng giữa chừng (khi đó kiểm `npx wrangler d1 migrations list tourdao-sales-db --remote` và dữ liệu trước khi thử lại; khôi phục bằng điểm Time Travel đã ghi nếu cần).
 
 ### 2. Số câu trong một `db.batch()` — kiểm TRƯỚC lần nạp nhân viên đầu tiên qua Sheet
 - Tạo một tài khoản = **6 câu** trong một batch: hồ sơ (`pty_party`), cá nhân (`pty_person`), vai trò STAFF (`pty_party_role`), tài khoản (`staff`), quyền (`stf_permission`), nhật ký (`audit_log`) — với một quyền (SALES); mỗi quyền thêm là thêm một câu.
@@ -62,7 +69,7 @@ Các câu SQL của module `parties` dùng tham số đánh số `?NNN` và mớ
 2. `GET /api/locations` (8 địa điểm).
 3. `POST /api/parties` (tạo một hồ sơ thử, kèm một liên hệ), rồi `GET /api/parties` và `GET /api/parties/:id`.
 4. Đóng liên hệ thử vừa tạo: `POST /api/parties/:id/contacts/:cid/end`.
-5. `node scripts/audit-invariants.mjs --db remote` (không `--strict` ở lần 1). Nếu `PRAGMA foreign_key_check` lỗi trên remote thì script thoát mã 2: chạy riêng `npx wrangler d1 execute tourdao-sales-db --remote --command "PRAGMA foreign_key_check"`, tạm bỏ dòng kiểm `R-N1-10` khỏi mảng `CHECKS` (chỉ sửa cục bộ, không commit) rồi chạy lại các kiểm còn lại — như mục "Việc còn treo / nợ" bên dưới đã nêu.
+5. `node scripts/audit-invariants.mjs --db remote` (không `--strict` ở lần 1). Nếu `PRAGMA foreign_key_check` lỗi trên remote thì script thoát mã 2: chạy riêng `npx wrangler d1 execute tourdao-sales-db --remote --command "PRAGMA foreign_key_check"`, tạm bỏ dòng kiểm `R-N1-10` khỏi mảng `CHECKS` (chỉ sửa cục bộ, không commit) rồi chạy lại các kiểm còn lại — như mục "Việc còn treo / nợ" bên dưới đã nêu. Nếu remote từ chối cả lệnh NHIỀU CÂU trong một `--command` (thiết kế "một lần gọi wrangler cho mọi kiểm" hỏng theo cả hai cách), chạy từng câu bất biến một bằng `npx wrangler d1 execute tourdao-sales-db --remote --command "<một câu>"` và đọc kết quả bằng mắt (mỗi câu kỳ vọng 0 dòng / đếm 0).
 
 ### 4. Ba quyết định cần chủ dự án
 Ghi ngắn, kèm chi phí; chưa sửa gì (không sửa ADR/đặc tả đã duyệt trong bước này).
