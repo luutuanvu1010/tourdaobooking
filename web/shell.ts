@@ -1,4 +1,5 @@
 import { ApiError, api, type Staff, type Api } from "./api";
+import { hasPermission, isOffice } from "../src/shared/permissions";
 import { byId, h, replaceChildren } from "./dom";
 import { icon, type IconName } from "./icons";
 import { registerServiceWorker } from "./pwa";
@@ -10,8 +11,11 @@ interface Tab {
   active: (path: string) => boolean;
 }
 
-/** Thanh tab dưới đáy (điện thoại): nhân viên 3 tab, admin 5 tab. /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. */
-function tabsFor(admin: boolean): Tab[] {
+/**
+ * Thanh tab dưới đáy (điện thoại): nhân sự văn phòng 3 tab, admin 5 tab; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
+ * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Hồ sơ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
+ */
+function tabsFor(admin: boolean, office: boolean): Tab[] {
   const adminTabs: Tab[] =
     admin
       ? [
@@ -19,19 +23,24 @@ function tabsFor(admin: boolean): Tab[] {
           { href: "/staff", label: "Nhân viên", icon: "staff", active: (p) => p === "/staff" },
         ]
       : [];
+  const officeTabs: Tab[] = office
+    ? [
+        { href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" },
+        { href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" },
+      ]
+    : [];
   return [
-    { href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" },
-    { href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" },
+    ...officeTabs,
     ...adminTabs,
     { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" },
   ];
 }
 
-function tabBar(admin: boolean, path: string): HTMLElement {
+function tabBar(admin: boolean, office: boolean, path: string): HTMLElement {
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
-    ...tabsFor(admin).map((t) =>
+    ...tabsFor(admin, office).map((t) =>
       h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon)), h("span", null, t.label)),
     ),
   );
@@ -72,9 +81,9 @@ export async function initShell(): Promise<Staff> {
     who,
   );
 
-  const addTabBar = (admin: boolean) => {
+  const addTabBar = (admin: boolean, office = true) => {
     if (tabbar === "off") return;
-    document.body.append(tabBar(admin, path));
+    document.body.append(tabBar(admin, office, path));
     document.body.classList.add("has-tabbar");
   };
   let me: Api.MeResponse;
@@ -89,19 +98,22 @@ export async function initShell(): Promise<Staff> {
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
-  const admin = staff.role === "admin";
+  const admin = hasPermission(staff, "ADMIN");
+  const office = isOffice(staff);
   const logoutBtn = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
   logoutBtn.addEventListener("click", () => void logout());
   replaceChildren(
     nav,
-    h("a", { href: "/" }, "Đơn hàng"),
-    h("a", { href: "/order-form" }, "+ Đơn mới"),
+    office && h("a", { href: "/" }, "Đơn hàng"),
+    office && h("a", { href: "/order-form" }, "+ Đơn mới"),
+    office && h("a", { href: "/parties" }, "Hồ sơ"),
     admin && h("a", { href: "/catalog" }, "Dịch vụ"),
     admin && h("a", { href: "/staff" }, "Nhân viên"),
+    admin && h("a", { href: "/locations" }, "Địa điểm"),
     admin && h("a", { href: "/audit" }, "Nhật ký"),
   );
   replaceChildren(who, h("a", { href: "/account", title: "Tôi" }, staff.fullName), logoutBtn);
-  addTabBar(admin);
+  addTabBar(admin, office);
   return staff;
 }
 

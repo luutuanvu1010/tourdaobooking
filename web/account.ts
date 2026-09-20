@@ -1,4 +1,5 @@
 import { ApiError, api } from "./api";
+import { PERMISSION_LABEL, hasPermission, isOffice } from "../src/shared/permissions";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { icon } from "./icons";
@@ -15,12 +16,18 @@ replaceChildren(
     "div",
     { class: "profile" },
     h("span", { class: "avatar", "aria-hidden": "true" }, initials(staff.fullName)),
-    h("div", null, h("div", { class: "profile-name" }, staff.fullName), h("div", { class: "muted" }, `${staff.phone} · ${staff.role === "admin" ? "Quản trị viên" : "Nhân viên"}`)),
+    h("div", null, h("div", { class: "profile-name" }, staff.fullName), h("div", { class: "muted" }, `${staff.phone} · ${staff.permissions.map((p) => PERMISSION_LABEL[p]).join(", ") || "chưa có quyền"}`)),
   ),
 );
 const logoutBtn = h("button", { class: "row-link danger", type: "button" }, "Đăng xuất");
 logoutBtn.addEventListener("click", () => void logout());
-replaceChildren(byId("links"), staff.role === "admin" && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), logoutBtn);
+replaceChildren(
+  byId("links"),
+  isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Hồ sơ", icon("next", 20)),
+  hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
+  hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)),
+  logoutBtn,
+);
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   showError(errorEl, null);

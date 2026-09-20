@@ -1,3 +1,4 @@
+import { hasPermission } from "../src/shared/permissions";
 import { ApiError, api, type CatalogAdminItem, type CatalogSyncState, type PaxCode, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime, grouped, parseMoney, vnd } from "./format";
@@ -174,5 +175,5 @@ qEl.addEventListener("input", render);
 filterEl.addEventListener("change", render);
 
 const staff = await initShell();
-if (staff.role !== "admin") showError(errorEl, "Chỉ quản trị viên được vào trang này.");
+if (!hasPermission(staff, "ADMIN")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else await load();

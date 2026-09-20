@@ -13,14 +13,20 @@
     <form id="add-form" class="grid three" autocomplete="off">
       <label>Họ tên<input id="add-name" type="text" maxlength="200" required></label>
       <label>Số điện thoại (tên đăng nhập)<input id="add-phone" type="tel" inputmode="tel" required></label>
-      <label>Vai trò<select id="add-role"><option value="sales">Nhân viên</option><option value="admin">Quản trị viên</option></select></label>
+      <div>
+        <strong>Quyền trong app</strong>
+        <label class="check"><input id="add-perm-SALES" type="checkbox" checked style="width:auto;display:inline;margin:0 6px 0 0">Bán hàng</label>
+        <label class="check"><input id="add-perm-ACCOUNTING" type="checkbox" style="width:auto;display:inline;margin:0 6px 0 0">Kế toán</label>
+        <label class="check"><input id="add-perm-ADMIN" type="checkbox" style="width:auto;display:inline;margin:0 6px 0 0">Quản trị</label>
+        <label class="check"><input id="add-perm-FIELD" type="checkbox" style="width:auto;display:inline;margin:0 6px 0 0">Thực hiện</label>
+      </div>
       <div><button class="btn btn-primary" type="submit">Tạo tài khoản</button></div>
     </form>
     <p class="muted">Hệ thống tự sinh PIN 6 số và chỉ hiện một lần. <button id="sheet-pull" class="btn btn-link" type="button">Đồng bộ danh sách từ Google Sheet…</button></p>
   </section>
   <section class="card table-wrap">
     <table class="items">
-      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai trò</th><th>Tạo lúc</th><th></th></tr></thead>
+      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Quyền</th><th>Tạo lúc</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
   </section>

@@ -1,4 +1,5 @@
 import { ApiError, api, type SheetCandidate, type StaffAccount, type Api } from "./api";
+import { PERMISSION_CODES, PERMISSION_LABEL, hasPermission, type PermissionCode } from "../src/shared/permissions";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { initShell, showError } from "./shell";
@@ -8,7 +9,8 @@ const listEl = byId("list");
 const secretEl = byId("secret");
 const sheetEl = byId("sheet");
 const editEl = byId("edit");
-const ROLE_LABEL = { sales: "Nhân viên", admin: "Quản trị viên" } as const;
+const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "—");
+const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
 
 let me: { id: string };
 let accounts: StaffAccount[] = [];
@@ -61,7 +63,7 @@ function row(s: StaffAccount): HTMLElement {
     { class: s.active ? "" : "row-off" },
     h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("td", null, s.phone),
-    h("td", null, ROLE_LABEL[s.role]),
+    h("td", null, permissionsLabel(s.permissions)),
     h("td", { class: "muted" }, dateTime(s.createdAt)),
     h(
       "td",
@@ -94,24 +96,31 @@ function row(s: StaffAccount): HTMLElement {
 function openEdit(s: StaffAccount): void {
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
-  const role = h("select", null, h("option", { value: "sales" }, ROLE_LABEL.sales), h("option", { value: "admin" }, ROLE_LABEL.admin));
-  role.value = s.role;
-  if (s.id === me.id) role.disabled = true; // không tự đổi vai trò của mình
+  const isMe = s.id === me.id; // không tự đổi quyền của mình
+  const boxes = new Map<PermissionCode, HTMLInputElement>();
+  const permissionBoxes = PERMISSION_CODES.map((code) => {
+    const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
+    boxes.set(code, box);
+    return h("label", { class: "check" }, box, PERMISSION_LABEL[code]);
+  });
   const save = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");
   cancel.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {
-    const body: Record<string, string> = { fullName: name.value, phone: phone.value };
-    if (!role.disabled) body.role = role.value;
-    if (await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body }))) {
-      editEl.hidden = true;
-      await load();
+    const chosen = PERMISSION_CODES.filter((code) => boxes.get(code)!.checked);
+    if (!isMe && chosen.length === 0) return showError(errorEl, "Chọn ít nhất một quyền.");
+    if (!(await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { fullName: name.value, phone: phone.value } })))) return;
+    if (!isMe && !sameSet(chosen, s.permissions)) {
+      const body: Api.StaffPermissionsRequest = { permissions: chosen };
+      if (!(await act(() => api(`/api/staff/${s.id}/permissions`, { method: "PUT", body })))) return void (await load());
     }
+    editEl.hidden = true;
+    await load();
   });
   replaceChildren(
     editEl,
     h("h2", null, `Sửa: ${s.fullName}`),
-    h("div", { class: "grid three" }, h("label", null, "Họ tên", name), h("label", null, "Số điện thoại đăng nhập", phone), h("label", null, "Vai trò", role)),
+    h("div", { class: "grid three" }, h("label", null, "Họ tên", name), h("label", null, "Số điện thoại đăng nhập", phone), h("div", null, h("strong", null, "Quyền trong app"), ...permissionBoxes)),
     h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Phiên đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
   );
@@ -131,12 +140,13 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = byId<HTMLInputElement>("add-name");
   const phone = byId<HTMLInputElement>("add-phone");
-  const role = byId<HTMLSelectElement>("add-role");
-  const r = await act(() => api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body: { fullName: name.value, phone: phone.value, role: role.value } }));
+  const chosen = PERMISSION_CODES.filter((code) => byId<HTMLInputElement>(`add-perm-${code}`).checked);
+  if (chosen.length === 0) return showError(errorEl, "Chọn ít nhất một quyền.");
+  const r = await act(() => api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body: { fullName: name.value, phone: phone.value, permissions: chosen } }));
   if (r) {
     showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
     name.value = phone.value = "";
-    role.value = "sales";
+    for (const code of PERMISSION_CODES) byId<HTMLInputElement>(`add-perm-${code}`).checked = code === "SALES";
     await load();
   }
 });
@@ -174,7 +184,7 @@ byId("sheet-pull").addEventListener("click", async () => {
   replaceChildren(
     sheetEl,
     h("h2", null, "Xem trước dữ liệu từ Google Sheet"),
-    h("p", { class: "muted" }, "Sheet chỉ là nguồn đề xuất. Mọi tài khoản mới đều là vai trò Nhân viên (cấp quản trị viên ở bảng bên dưới). Sheet không tự ngưng hay xoá ai."),
+    h("p", { class: "muted" }, "Sheet chỉ là nguồn đề xuất. Mọi tài khoản mới chỉ có quyền Bán hàng (đổi quyền ở nút Sửa). Sheet không tự ngưng hay xoá ai."),
     fresh.length === 0
       ? h("p", { class: "alert warn" }, r.candidates.length === 0 && r.problems.length > 0
           ? "Sheet chưa có ai kèm số điện thoại hợp lệ. Hãy điền số điện thoại vào Sheet rồi đồng bộ lại."
@@ -193,5 +203,5 @@ byId("sheet-pull").addEventListener("click", async () => {
 
 const staff = await initShell();
 me = staff;
-if (staff.role !== "admin") showError(errorEl, "Chỉ quản trị viên được vào trang này.");
+if (!hasPermission(staff, "ADMIN")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else await load();
