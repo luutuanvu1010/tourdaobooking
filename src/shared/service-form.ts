@@ -1,0 +1,361 @@
+// Bản nháp dịch vụ của form lập/sửa đơn (A2, đặc tả §5.1): trạng thái một thẻ dịch vụ, dòng tiền xem trước, lỗi chặn Lưu, thân ServiceInput.
+// Logic thuần, không DOM. Tiền xem trước dùng ĐÚNG buildLines/priceDeviation của máy chủ (order-lines.ts); số chính thức do máy chủ tính khi lưu (spec A1 §2.3).
+import type { CatalogStatus, OrderServiceDto, ServiceInput, TripInput } from "./contracts.ts";
+import {
+  MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, availableCodes, buildLines, parseUnit, paxTotal, payingGuests, priceDeviation,
+  type CatalogService, type PaxCode, type PaxCounts, type Prices,
+} from "./order-lines.ts";
+import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "./trip-rules.ts";
+import { emptyTrip, tripFromDto } from "./trip-form.ts";
+
+export interface ManualLine {
+  description: string;
+  detail: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+interface DraftBase {
+  /** Khoá cục bộ của thẻ (ổn định để vẽ lại đúng thẻ, không mất focus); KHÔNG gửi lên máy chủ. */
+  key: string;
+  /** id dịch vụ đã lưu của CHÍNH đơn đang sửa; null = thẻ mới. */
+  id: string | null;
+  trip: TripInput;
+}
+
+export interface CatalogDraft extends DraftBase {
+  kind: "catalog";
+  code: string;
+  name: string;
+  unit: string;
+  /** Nguồn giá đang hiển thị: danh mục hiện tại ("live") hoặc bản chụp đã lưu ("snapshot" — giữ giá cũ của đơn nháp, đặc tả Q11). */
+  source: "live" | "snapshot";
+  item: CatalogService;
+  /** Danh mục hiện tại còn dịch vụ này (kể cả khi thẻ đang ở bản chụp); null = đã ẩn/rời danh mục. */
+  live: CatalogService | null;
+  pax: PaxCounts;
+  /** Đơn giá thực tế từng loại (mặc định = giá của `item`); chỉ loại có khách được gửi lên. */
+  unitPrices: Partial<Record<PaxCode, number>>;
+  catalogStatus: CatalogStatus | null;
+  /** Thẻ dựng từ đơn giá đã lưu (dòng thiếu giá danh mục) mà danh mục không còn dịch vụ: máy chủ sẽ 400 `catalog_unavailable` → phải chọn lại từ danh mục. */
+  repick: boolean;
+}
+
+export interface ManualDraft extends DraftBase {
+  kind: "manual";
+  name: string;
+  /** Số khách CHỈ để vận hành (không nhân với tiền); gửi lên ở `pax.adult`. */
+  guests: number;
+  lines: ManualLine[];
+}
+
+export type ServiceDraft = CatalogDraft | ManualDraft;
+
+const wholeCount = (n: number): number => (Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0);
+const wholeMoney = (n: number): number => (Number.isFinite(n) ? Math.min(MAX_AMOUNT_VND, Math.max(0, Math.trunc(n))) : 0);
+
+export const zeroPax = (): PaxCounts => ({ adult: 0, child: 0, senior: 0, infant: 0 });
+export const emptyLine = (): ManualLine => ({ description: "", detail: "", quantity: 1, unitPrice: 0 });
+
+function defaultPrices(item: CatalogService): Partial<Record<PaxCode, number>> {
+  const out: Partial<Record<PaxCode, number>> = {};
+  for (const c of PAX_ORDER) {
+    const p = item.prices[c];
+    if (p !== null) out[c] = p;
+  }
+  return out;
+}
+
+/** Chip đơn vị của thẻ: "theo người" / "theo nhóm 5 khách/lượt" / "nhập tay". */
+export function unitLabel(unit: string): string {
+  if (unit === "manual") return "nhập tay";
+  const u = parseUnit(unit);
+  if (u.kind === "perPax") return "theo người";
+  if (u.kind === "group") return `theo nhóm ${u.size} khách/lượt`;
+  return `đơn vị ${u.raw}`;
+}
+
+/**
+ * Loại khách có bộ đếm trên thẻ (thứ tự PAX_ORDER): loại có giá ở bảng giá của thẻ + loại có giá ở danh mục HIỆN TẠI + loại đang có khách.
+ * Thẻ bản chụp chỉ nhớ loại đã có dòng tiền (máy chủ chỉ sinh dòng cho loại có khách), nên phải cộng loại của danh mục hiện tại để thêm được
+ * vd một trẻ em vào đơn đã lưu 2 người lớn — chạm bộ đếm là chuyển sang giá hiện tại (`setPax`) và danh sách này không đổi khi đó
+ * (nhờ vậy thẻ không dựng lại bộ đếm đang gõ). Loại đang có khách luôn hiện để giảm được.
+ */
+export function cardCodes(d: CatalogDraft): PaxCode[] {
+  const fromItem = availableCodes(d.item);
+  const fromLive = d.live ? availableCodes(d.live) : [];
+  return PAX_ORDER.filter((c) => fromItem.includes(c) || fromLive.includes(c) || d.pax[c] > 0);
+}
+
+/**
+ * Dòng phụ dưới nhãn bộ đếm: "1.350.000 ₫ · Trẻ 5–10 tuổi" (theo người) hoặc "1.500.000 ₫ mỗi lượt, tối đa 5 khách" (theo nhóm).
+ * Loại chưa có ở bản chụp lấy giá/ghi chú của danh mục hiện tại (chạm bộ đếm loại đó là chuyển sang giá hiện tại).
+ */
+export function guestDetail(d: CatalogDraft, code: PaxCode, formatMoney: (n: number) => string): string {
+  const price = d.item.prices[code] ?? d.live?.prices[code] ?? null;
+  const g = groupInfo(d);
+  if (g && price !== null) return `${formatMoney(price)} mỗi lượt, tối đa ${g.size} khách`;
+  const note = code === "adult" ? null : (d.item.notes[code] ?? d.live?.notes[code] ?? null);
+  return [price === null ? null : formatMoney(price), note].filter(Boolean).join(" · ");
+}
+
+/** Số khách để hiển thị: theo người liệt kê từng loại ("2 người lớn · 1 trẻ em"); theo nhóm và nhập tay chỉ "N khách"; không khách → "Chưa có khách". */
+export function paxSummary(pax: PaxCounts, unit: string): string {
+  const total = paxTotal(pax);
+  if (total === 0) return "Chưa có khách";
+  if (unit === "manual" || parseUnit(unit).kind === "group") return `${total} khách`;
+  return PAX_ORDER.filter((c) => pax[c] > 0).map((c) => `${pax[c]} ${PAX_LABEL[c].toLowerCase()}`).join(" · ");
+}
+
+// ---- tạo thẻ -----------------------------------------------------------------------------------------------------
+
+/** Thêm dịch vụ từ danh mục: 1 người lớn (theo nhóm: "Số khách" = 1), đơn giá = giá danh mục, khối chuyến trống. */
+export function newCatalogDraft(item: CatalogService, key: string): CatalogDraft {
+  const pax = zeroPax();
+  pax.adult = 1;
+  return { kind: "catalog", key, id: null, trip: emptyTrip(), code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false };
+}
+
+export function newManualDraft(key: string): ManualDraft {
+  return { kind: "manual", key, id: null, trip: emptyTrip(), name: "", guests: 0, lines: [emptyLine()] };
+}
+
+/** Dựng lại bảng giá từ dòng đã lưu (giống `snapshotService` của máy chủ); thiếu loại khách/giá danh mục → null. */
+export function snapshotItem(dto: Pick<OrderServiceDto, "catalogCode" | "name" | "unit" | "items">): CatalogService | null {
+  if (dto.catalogCode === null || dto.items.length === 0) return null;
+  const prices: Prices = { adult: null, child: null, senior: null, infant: null };
+  const notes: CatalogService["notes"] = { child: null, senior: null, infant: null };
+  for (const it of dto.items) {
+    if (it.paxCode === null || it.catalogPrice === null) return null;
+    prices[it.paxCode] = it.catalogPrice;
+    if (it.paxCode !== "adult") notes[it.paxCode] = it.detail;
+  }
+  return { code: dto.catalogCode, name: dto.name, unit: dto.unit, prices, notes };
+}
+
+/**
+ * Thẻ của dịch vụ đã lưu (sửa nháp). `live` = danh mục hiện tại theo mã (chỉ dịch vụ đang hiện và được hỗ trợ).
+ * Có bản chụp → giữ giá đã lưu (nhãn theo `catalogStatus`); danh mục không còn → thẻ khoá (`isLocked`).
+ */
+export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, CatalogService>, key: string): ServiceDraft {
+  const base = { key, id: dto.id, trip: tripFromDto(dto) };
+  if (dto.kind === "manual" || dto.catalogCode === null) {
+    return {
+      ...base, kind: "manual", name: dto.name, guests: paxTotal(dto.pax),
+      lines: dto.items.map((it) => ({ description: it.description, detail: it.detail ?? "", quantity: it.quantity, unitPrice: it.unitPrice })),
+    };
+  }
+  const liveItem = live.get(dto.catalogCode) ?? null;
+  const saved: Partial<Record<PaxCode, number>> = {};
+  for (const it of dto.items) if (it.paxCode !== null) saved[it.paxCode] = it.unitPrice;
+  const pax = { ...dto.pax };
+  const snap = snapshotItem(dto);
+  if (snap) {
+    return { ...base, kind: "catalog", code: snap.code, name: snap.name, unit: snap.unit, source: "snapshot", item: snap, live: liveItem, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: false };
+  }
+  if (liveItem) {
+    return { ...base, kind: "catalog", code: liveItem.code, name: liveItem.name, unit: liveItem.unit, source: "live", item: liveItem, live: liveItem, pax, unitPrices: { ...defaultPrices(liveItem), ...saved }, catalogStatus: dto.catalogStatus, repick: false };
+  }
+  // Dòng đã lưu thiếu giá danh mục và danh mục không còn: dựng bảng giá tạm từ đơn giá đã lưu, thẻ khoá VÀ bắt buộc chọn lại (repick):
+  // máy chủ không có bản chụp đủ giá nên sẽ tra danh mục, không thấy và trả 400 catalog_unavailable.
+  const prices: Prices = { adult: null, child: null, senior: null, infant: null };
+  for (const c of PAX_ORDER) prices[c] = saved[c] ?? null;
+  const item: CatalogService = { code: dto.catalogCode, name: dto.name, unit: dto.unit, prices, notes: { child: null, senior: null, infant: null } };
+  return { ...base, kind: "catalog", code: item.code, name: item.name, unit: item.unit, source: "snapshot", item, live: null, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: true };
+}
+
+/** Thẻ bản chụp mà danh mục không còn dịch vụ: bộ đếm chỉ-đọc, chỉ còn "Chọn lại từ danh mục". */
+export const isLocked = (d: ServiceDraft): boolean => d.kind === "catalog" && d.source === "snapshot" && d.live === null;
+
+// ---- chỉnh sửa (bất biến: trả bản mới) -------------------------------------------------------------------------------
+
+/** Đổi số khách một loại. Thẻ bản chụp mà danh mục còn dịch vụ → chuyển sang giá danh mục hiện tại và bỏ nhãn cũ; thẻ khoá → không đổi. */
+export function setPax(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft {
+  if (isLocked(d)) return d;
+  const pax = { ...d.pax, [code]: wholeCount(n) };
+  if (d.source === "snapshot" && d.live) return { ...d, pax, source: "live", item: d.live, name: d.live.name, unit: d.live.unit, unitPrices: defaultPrices(d.live), catalogStatus: null };
+  return { ...d, pax };
+}
+
+export function setUnitPrice(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft {
+  return { ...d, unitPrices: { ...d.unitPrices, [code]: wholeMoney(n) } };
+}
+
+/**
+ * Sau 409 `catalog_changed`: dùng bảng giá danh mục MỚI cho thẻ đang theo danh mục hiện tại ("live"). Đơn giá ĐÃ THƯƠNG LƯỢNG (khác giá danh mục cũ) được giữ;
+ * đơn giá chưa thương lượng (bằng giá danh mục cũ) chuyển sang giá mới. Thẻ bản chụp không đổi (máy chủ không kiểm giá của bản chụp).
+ */
+export function refreshFromCatalog(d: CatalogDraft, item: CatalogService): CatalogDraft {
+  if (d.source !== "live") return d;
+  const unitPrices: Partial<Record<PaxCode, number>> = {};
+  for (const c of PAX_ORDER) {
+    const price = item.prices[c];
+    if (price === null) continue;
+    const old = d.item.prices[c];
+    const typed = d.unitPrices[c];
+    unitPrices[c] = typed !== undefined && old !== null && typed !== old ? typed : price;
+  }
+  return { ...d, item, live: item, name: item.name, unit: item.unit, unitPrices }; // tên/đơn vị theo danh mục mới: nhãn chip, bộ đếm "Số khách", dòng "N khách ÷ M = K lượt" đúng nếu Sheet đổi đơn vị
+}
+
+export const setGuests = (d: ManualDraft, n: number): ManualDraft => ({ ...d, guests: wholeCount(n) });
+
+export function setManualLine(d: ManualDraft, index: number, patch: Partial<ManualLine>): ManualDraft {
+  const lines = d.lines.map((l, i) =>
+    i !== index
+      ? l
+      : {
+          ...l,
+          ...patch,
+          quantity: patch.quantity === undefined ? l.quantity : wholeCount(patch.quantity),
+          unitPrice: patch.unitPrice === undefined ? l.unitPrice : wholeMoney(patch.unitPrice),
+        },
+  );
+  return { ...d, lines };
+}
+
+export const addManualLine = (d: ManualDraft): ManualDraft => ({ ...d, lines: [...d.lines, emptyLine()] });
+export const removeManualLine = (d: ManualDraft, index: number): ManualDraft => ({ ...d, lines: d.lines.filter((_, i) => i !== index) });
+
+// ---- dòng tiền xem trước ---------------------------------------------------------------------------------------------
+
+export interface PreviewLine {
+  /** Loại khách của dòng; null = dòng nhập tay. */
+  pax: PaxCode | null;
+  description: string;
+  detail: string;
+  quantity: number;
+  unitPrice: number;
+  /** Giá danh mục; null = nhập tay (KHÔNG BAO GIỜ có nhãn "Khác giá danh mục"). */
+  catalogPrice: number | null;
+  lineTotal: number;
+  /** Độ lệch đơn giá so với giá danh mục (dương = cao hơn); null = khớp hoặc nhập tay. */
+  deviation: number | null;
+}
+export type Preview = { ok: true; lines: PreviewLine[] } | { ok: false; message: string };
+
+export function previewLines(d: ServiceDraft): Preview {
+  if (d.kind === "manual") {
+    return {
+      ok: true,
+      lines: d.lines.map((l) => ({ pax: null, description: l.description, detail: l.detail, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: null, lineTotal: l.quantity * l.unitPrice, deviation: null })),
+    };
+  }
+  const built = buildLines(d.item, d.pax, d.unitPrices);
+  if (!built.ok) return { ok: false, message: built.message };
+  return {
+    ok: true,
+    lines: built.lines.map((l) => ({
+      pax: l.pax, description: l.description, detail: l.detail, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice,
+      lineTotal: l.quantity * l.unitPrice, deviation: priceDeviation({ unitPrice: l.unitPrice, catalogPrice: l.catalogPrice }),
+    })),
+  };
+}
+
+export function draftSubtotal(d: ServiceDraft): number {
+  const p = previewLines(d);
+  return p.ok ? p.lines.reduce((sum, l) => sum + l.lineTotal, 0) : 0;
+}
+
+/** Dịch vụ tính theo nhóm: "7 khách ÷ 5 = 2 lượt (làm tròn lên)". Không phải dịch vụ nhóm → null. */
+export function groupInfo(d: CatalogDraft): { size: number; guests: number; trips: number } | null {
+  const u = parseUnit(d.unit);
+  if (u.kind !== "group") return null;
+  const guests = d.pax.adult;
+  return { size: u.size, guests, trips: guests > 0 ? Math.ceil(guests / u.size) : 0 };
+}
+
+// ---- lỗi chặn Lưu (giảm vòng máy chủ; máy chủ vẫn là nơi quyết định) --------------------------------------------------
+
+export interface DraftIssue {
+  code: "repick" | "no_guests" | "no_paying_guests" | "too_many_guests" | "preview" | "amount" | "name" | "no_lines" | "line_description" | "line_quantity" | "too_many_lines";
+  message: string;
+}
+
+export function draftIssues(d: ServiceDraft): DraftIssue[] {
+  const out: DraftIssue[] = [];
+  if (d.kind === "catalog") {
+    if (d.repick) return [{ code: "repick", message: "Dịch vụ này không còn trong danh mục — chọn lại từ danh mục hoặc nhập tay." }];
+    const total = paxTotal(d.pax);
+    if (total > MAX_GUESTS_PER_SERVICE) out.push({ code: "too_many_guests", message: `Tối đa ${MAX_GUESTS_PER_SERVICE} khách.` });
+    else if (total === 0) out.push({ code: "no_guests", message: "Nhập số khách." });
+    else if (payingGuests(d.pax) < 1) out.push({ code: "no_paying_guests", message: "Cần ít nhất 1 khách không phải em bé." });
+    if (out.length === 0) {
+      const p = previewLines(d);
+      if (!p.ok) out.push({ code: "preview", message: p.message });
+      else if (p.lines.some((l) => l.lineTotal > MAX_AMOUNT_VND)) out.push({ code: "amount", message: "Thành tiền vượt giới hạn." });
+    }
+    return out;
+  }
+  if (d.name.trim() === "") out.push({ code: "name", message: "Nhập tên dịch vụ." });
+  if (d.guests > MAX_GUESTS_PER_SERVICE) out.push({ code: "too_many_guests", message: `Tối đa ${MAX_GUESTS_PER_SERVICE} khách.` });
+  if (d.lines.length === 0) out.push({ code: "no_lines", message: "Thêm ít nhất một dòng tiền." });
+  if (d.lines.length > MAX_LINES_PER_ORDER) out.push({ code: "too_many_lines", message: `Tối đa ${MAX_LINES_PER_ORDER} dòng tiền.` });
+  d.lines.forEach((l, i) => {
+    if (l.description.trim() === "") out.push({ code: "line_description", message: `Dòng ${i + 1}: nhập mô tả.` });
+    if (l.quantity < 1) out.push({ code: "line_quantity", message: `Dòng ${i + 1}: số lượng tối thiểu là 1.` });
+    if (l.quantity * l.unitPrice > MAX_AMOUNT_VND) out.push({ code: "amount", message: `Dòng ${i + 1}: thành tiền vượt giới hạn.` });
+  });
+  return out;
+}
+
+/** Số dòng tiền của cả đơn (dịch vụ danh mục: số dòng xem trước; nhập tay: số dòng đã nhập). */
+export function totalLines(drafts: readonly ServiceDraft[]): number {
+  return drafts.reduce((n, d) => {
+    const p = previewLines(d);
+    return n + (p.ok ? p.lines.length : 0);
+  }, 0);
+}
+
+export const canAddService = (drafts: readonly ServiceDraft[]): boolean => drafts.length < MAX_SERVICES;
+
+/** Lỗi cấp đơn: trần 20 dịch vụ và 50 dòng tiền. */
+export function orderIssues(drafts: readonly ServiceDraft[]): string[] {
+  const out: string[] = [];
+  if (drafts.length > MAX_SERVICES) out.push(`Đơn tối đa ${MAX_SERVICES} dịch vụ.`);
+  if (totalLines(drafts) > MAX_LINES_PER_ORDER) out.push(`Đơn tối đa ${MAX_LINES_PER_ORDER} dòng tiền.`);
+  return out;
+}
+
+// ---- thân gửi lên máy chủ ----------------------------------------------------------------------------------------------
+
+/** `ServiceInput`: KHÔNG gửi số lượng dòng của dịch vụ danh mục (máy chủ tự sinh); chỉ gửi đơn giá và giá danh mục ĐÃ XEM của loại có khách. */
+export function toServiceInput(d: ServiceDraft): ServiceInput {
+  const id = d.id === null ? {} : { id: d.id };
+  if (d.kind === "manual") {
+    return {
+      ...id, kind: "manual", name: d.name.trim(), pax: { ...zeroPax(), adult: d.guests },
+      items: d.lines.map((l) => ({ description: l.description.trim(), detail: l.detail.trim(), quantity: l.quantity, unitPrice: l.unitPrice })),
+      ...d.trip,
+    };
+  }
+  const unitPrices: Partial<Record<PaxCode, number>> = {};
+  const catalogPriceSeen: Partial<Record<PaxCode, number>> = {};
+  for (const c of PAX_ORDER) {
+    if (d.pax[c] <= 0) continue;
+    const seen = d.item.prices[c];
+    if (seen !== null) catalogPriceSeen[c] = seen;
+    unitPrices[c] = d.unitPrices[c] ?? seen ?? 0;
+  }
+  return { ...id, kind: "catalog", catalogCode: d.code, pax: { ...d.pax }, unitPrices, catalogPriceSeen, ...d.trip };
+}
+
+// ---- tóm tắt tiền ---------------------------------------------------------------------------------------------------------
+
+export interface OrderSummary {
+  subtotal: number;
+  discount: number;
+  total: number;
+  deposit: number;
+  remaining: number;
+  /** Cảnh báo (không chặn): giảm giá lớn hơn tạm tính / cọc lớn hơn tổng cộng. */
+  warning: string | null;
+}
+
+/** Chỉ để xem trước; số chính thức do máy chủ tính lại khi lưu. */
+export function orderSummary(drafts: readonly ServiceDraft[], discount: number, deposit: number): OrderSummary {
+  const subtotal = drafts.reduce((sum, d) => sum + draftSubtotal(d), 0);
+  const total = subtotal - discount;
+  const warning = discount > subtotal ? "Giảm giá đang lớn hơn tạm tính." : deposit > total ? "Tiền cọc đang lớn hơn tổng cộng." : null;
+  return { subtotal, discount, total, deposit, remaining: total - deposit, warning };
+}
