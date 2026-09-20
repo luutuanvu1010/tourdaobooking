@@ -45,6 +45,21 @@
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 
+## parties
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `pty_contact_kind` | bảng tra cứu |  |
+| `pty_contact_point` | bảng |  |
+| `pty_organization` | bảng |  |
+| `pty_party` | bảng |  |
+| `pty_party_relationship` | bảng |  |
+| `pty_party_role` | bảng |  |
+| `pty_person` | bảng |  |
+| `pty_relationship_type` | bảng tra cứu |  |
+| `pty_role_type` | bảng tra cứu |  |
+| `v_pty_party_label` | view công bố | cột: id, display_name, party_kind, active, sort_key |
+
 ## staff
 
 | Đối tượng | Loại | Ghi chú |

@@ -77,6 +77,51 @@
       "legacy": true
     },
     {
+      "name": "pty_contact_kind",
+      "module": "parties",
+      "kind": "lookup"
+    },
+    {
+      "name": "pty_contact_point",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_organization",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_party",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_party_relationship",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_party_role",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_person",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_relationship_type",
+      "module": "parties",
+      "kind": "lookup"
+    },
+    {
+      "name": "pty_role_type",
+      "module": "parties",
+      "kind": "lookup"
+    },
+    {
       "name": "staff",
       "module": "staff",
       "kind": "table",
@@ -101,6 +146,17 @@
       "columns": [
         "id",
         "order_code"
+      ]
+    },
+    {
+      "name": "v_pty_party_label",
+      "module": "parties",
+      "columns": [
+        "id",
+        "display_name",
+        "party_kind",
+        "active",
+        "sort_key"
       ]
     }
   ],
