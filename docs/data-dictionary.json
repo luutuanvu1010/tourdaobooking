@@ -1,0 +1,99 @@
+{
+  "version": 1,
+  "modules": [
+    "accounts",
+    "audit",
+    "auth",
+    "catalog",
+    "company",
+    "locations",
+    "orders",
+    "parties",
+    "staff"
+  ],
+  "tables": [
+    {
+      "name": "audit_log",
+      "module": "audit",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "catalog_item",
+      "module": "catalog",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "catalog_override",
+      "module": "catalog",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "catalog_sync",
+      "module": "catalog",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "company_profile",
+      "module": "company",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "login_attempt",
+      "module": "auth",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "order_item",
+      "module": "orders",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "order_service",
+      "module": "orders",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "orders",
+      "module": "orders",
+      "kind": "table",
+      "legacy": true
+    },
+    {
+      "name": "staff",
+      "module": "staff",
+      "kind": "table",
+      "legacy": true
+    }
+  ],
+  "views": [],
+  "integrityEdges": [
+    {
+      "fromTable": "audit_log",
+      "toTable": "staff",
+      "note": "audit_log.staff_id — ADR-0002 điều 6"
+    },
+    {
+      "fromTable": "audit_log",
+      "toTable": "orders",
+      "note": "audit_log.order_id — ADR-0002 điều 6"
+    },
+    {
+      "fromTable": "catalog_override",
+      "toTable": "staff",
+      "note": "catalog_override.updated_by — ADR-0002 điều 6"
+    },
+    {
+      "fromTable": "company_profile",
+      "toTable": "staff",
+      "note": "company_profile.updated_by — ADR-0002 điều 6"
+    }
+  ]
+}
