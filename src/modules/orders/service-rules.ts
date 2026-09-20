@@ -5,16 +5,13 @@ import {
   CATALOG_CODE_RE, MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, buildLines, paxTotal, payingGuests, priceDeviation,
   type CatalogService, type EffectiveService, type PaxCode, type PaxCounts, type Prices,
 } from "../../shared/order-lines.ts";
-import { addDays } from "../../shared/vn-date.ts";
+import { MAX_LINES_PER_ORDER, MAX_SERVICES, confirmWindow } from "../../shared/trip-rules.ts";
 import { cleanText, dateField, int, text, timeField } from "./fields.ts";
 
 export type { CatalogChangeDto as CatalogChange, CatalogStatus, MissingReason, TripGapDto as TripGap };
 
-export const MAX_SERVICES = 20;
-/** Tổng số dòng tiền của một đơn (cũng là trần số dòng nhập tay của một dịch vụ). */
-export const MAX_LINES_PER_ORDER = 50;
-/** Xác nhận đơn: ngày khởi hành không quá khứ và không xa hơn số ngày này (Q12). */
-export const MAX_DAYS_AHEAD = 365;
+// Trần và cửa sổ xác nhận nằm ở shared/trip-rules.ts (giao diện dùng chung một nguồn); xuất lại để orders/rules.ts, repository.ts và test không đổi.
+export { MAX_DAYS_AHEAD, MAX_LINES_PER_ORDER, MAX_SERVICES, confirmWindow } from "../../shared/trip-rules.ts";
 const MAX_QUANTITY = 100_000;
 
 /** Thông tin chuyến đã chuẩn hoá (rỗng → null). Cùng hình dạng với DTO trả ra. */
@@ -228,9 +225,6 @@ export function validateService(raw: unknown, index: number, ctx: ServiceContext
 }
 
 // ---- Xác nhận đơn (Q4 + Q12) -------------------------------------------------------------------------------------
-
-/** Khoảng ngày khởi hành cho phép khi xác nhận (bao gồm hai đầu). Repository bind hai giá trị này vào câu UPDATE xác nhận. */
-export const confirmWindow = (today: string): { from: string; to: string } => ({ from: today, to: addDays(today, MAX_DAYS_AHEAD) });
 
 /** Dịch vụ nào chưa đủ điều kiện xác nhận. Mảng rỗng = xác nhận được. */
 export function confirmGaps(services: readonly { id: string; name: string; departDate: string | null; pax: PaxCounts }[], today: string): TripGapDto[] {

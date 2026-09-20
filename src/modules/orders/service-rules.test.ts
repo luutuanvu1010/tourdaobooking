@@ -284,3 +284,13 @@ test("describeTripUpdates: gộp nhiều dịch vụ; không đổi gì → null
   assert.equal(describeTripUpdates(cur, [{ id: "a", trip: t }, { id: "b", trip: t }]), null);
   assert.equal(describeTripUpdates(cur, [{ id: "a", trip: { ...t, departTime: "07:00" } }, { id: "b", trip: { ...t, note: "x" } }, { id: "zzz", trip: t }]), "A: giờ khởi hành (trống) → 07:00 | B: đổi ghi chú");
 });
+
+// ---- hằng dùng chung với giao diện (A2 Task 1) ----
+test("hằng và confirmWindow xuất từ service-rules là CÙNG giá trị với shared/trip-rules (một nguồn với giao diện)", async () => {
+  const shared = await import("../../shared/trip-rules.ts");
+  const rules = await import("./service-rules.ts");
+  assert.equal(rules.MAX_SERVICES, shared.MAX_SERVICES);
+  assert.equal(rules.MAX_LINES_PER_ORDER, shared.MAX_LINES_PER_ORDER);
+  assert.equal(rules.MAX_DAYS_AHEAD, shared.MAX_DAYS_AHEAD);
+  assert.equal(rules.confirmWindow, shared.confirmWindow);
+});
