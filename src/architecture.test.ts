@@ -316,3 +316,8 @@ test("module không nghiêm phải nằm trong LEGACY (ngoại lệ có hạn) �
   for (const m of MODULES) assert.ok(strict.has(m) || (LEGACY as readonly string[]).includes(m), `module "${m}" không nghiêm và không có trong LEGACY: thêm vào STRICT (kèm repository dùng defineSql)`);
   for (const m of LEGACY) assert.ok(!strict.has(m), `module "${m}" đã nghiêm — bỏ khỏi LEGACY`);
 });
+
+test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu lực hoặc active = 0); UPDATE thì không", () => {
+  assert.ok(violations({ module: "locations", sql: "DELETE FROM loc_location WHERE id = ?" }).some((v) => /xoá cứng bảng loc_location/.test(v)));
+  assert.deepEqual(violations({ module: "locations", sql: "UPDATE loc_location SET active = 0 WHERE id = ?" }), [], "UPDATE không phải xoá cứng");
+});

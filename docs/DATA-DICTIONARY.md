@@ -28,6 +28,14 @@
 |---|---|---|
 | `company_profile` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 
+## locations
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `loc_location` | bảng |  |
+| `loc_location_type` | bảng tra cứu |  |
+| `v_loc_location_label` | view công bố | cột: id, code, name, location_type_code, active |
+
 ## orders
 
 | Đối tượng | Loại | Ghi chú |
@@ -35,6 +43,7 @@
 | `order_item` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `v_ord_order_label` | view công bố | cột: id, order_code |
 
 ## staff
 

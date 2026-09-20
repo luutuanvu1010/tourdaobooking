@@ -43,6 +43,16 @@
       "legacy": true
     },
     {
+      "name": "loc_location",
+      "module": "locations",
+      "kind": "table"
+    },
+    {
+      "name": "loc_location_type",
+      "module": "locations",
+      "kind": "lookup"
+    },
+    {
       "name": "login_attempt",
       "module": "auth",
       "kind": "table",
@@ -73,7 +83,27 @@
       "legacy": true
     }
   ],
-  "views": [],
+  "views": [
+    {
+      "name": "v_loc_location_label",
+      "module": "locations",
+      "columns": [
+        "id",
+        "code",
+        "name",
+        "location_type_code",
+        "active"
+      ]
+    },
+    {
+      "name": "v_ord_order_label",
+      "module": "orders",
+      "columns": [
+        "id",
+        "order_code"
+      ]
+    }
+  ],
   "integrityEdges": [
     {
       "fromTable": "audit_log",
