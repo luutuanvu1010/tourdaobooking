@@ -39,6 +39,11 @@ export interface CatalogDraft extends DraftBase {
   catalogStatus: CatalogStatus | null;
   /** Thẻ dựng từ đơn giá đã lưu (dòng thiếu giá danh mục) mà danh mục không còn dịch vụ: máy chủ sẽ 400 `catalog_unavailable` → phải chọn lại từ danh mục. */
   repick: boolean;
+  /**
+   * Trạng thái ĐÃ LƯU của thẻ có bản chụp (đặt bởi `draftFromDto`); null = thẻ mới hoặc thẻ "live" không có bản chụp.
+   * `setPax` dùng để QUAY LẠI bản chụp khi số khách cuối cùng y như đã lưu (đặc tả §5.1: chỉ chuyển giá khi ĐỔI số khách).
+   */
+  saved: { pax: PaxCounts; item: CatalogService; unitPrices: Partial<Record<PaxCode, number>>; catalogStatus: CatalogStatus | null } | null;
 }
 
 export interface ManualDraft extends DraftBase {
@@ -113,7 +118,7 @@ export function paxSummary(pax: PaxCounts, unit: string): string {
 export function newCatalogDraft(item: CatalogService, key: string): CatalogDraft {
   const pax = zeroPax();
   pax.adult = 1;
-  return { kind: "catalog", key, id: null, trip: emptyTrip(), code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false };
+  return { kind: "catalog", key, id: null, trip: emptyTrip(), code: item.code, name: item.name, unit: item.unit, source: "live", item, live: item, pax, unitPrices: defaultPrices(item), catalogStatus: null, repick: false, saved: null };
 }
 
 export function newManualDraft(key: string): ManualDraft {
@@ -151,17 +156,23 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
   const pax = { ...dto.pax };
   const snap = snapshotItem(dto);
   if (snap) {
-    return { ...base, kind: "catalog", code: snap.code, name: snap.name, unit: snap.unit, source: "snapshot", item: snap, live: liveItem, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: false };
+    return {
+      ...base, kind: "catalog", code: snap.code, name: snap.name, unit: snap.unit, source: "snapshot", item: snap, live: liveItem, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: false,
+      saved: { pax: { ...dto.pax }, item: snap, unitPrices: { ...saved }, catalogStatus: dto.catalogStatus },
+    };
   }
   if (liveItem) {
-    return { ...base, kind: "catalog", code: liveItem.code, name: liveItem.name, unit: liveItem.unit, source: "live", item: liveItem, live: liveItem, pax, unitPrices: { ...defaultPrices(liveItem), ...saved }, catalogStatus: dto.catalogStatus, repick: false };
+    return { ...base, kind: "catalog", code: liveItem.code, name: liveItem.name, unit: liveItem.unit, source: "live", item: liveItem, live: liveItem, pax, unitPrices: { ...defaultPrices(liveItem), ...saved }, catalogStatus: dto.catalogStatus, repick: false, saved: null };
   }
   // Dòng đã lưu thiếu giá danh mục và danh mục không còn: dựng bảng giá tạm từ đơn giá đã lưu, thẻ khoá VÀ bắt buộc chọn lại (repick):
   // máy chủ không có bản chụp đủ giá nên sẽ tra danh mục, không thấy và trả 400 catalog_unavailable.
   const prices: Prices = { adult: null, child: null, senior: null, infant: null };
   for (const c of PAX_ORDER) prices[c] = saved[c] ?? null;
   const item: CatalogService = { code: dto.catalogCode, name: dto.name, unit: dto.unit, prices, notes: { child: null, senior: null, infant: null } };
-  return { ...base, kind: "catalog", code: item.code, name: item.name, unit: item.unit, source: "snapshot", item, live: null, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: true };
+  return {
+    ...base, kind: "catalog", code: item.code, name: item.name, unit: item.unit, source: "snapshot", item, live: null, pax, unitPrices: saved, catalogStatus: dto.catalogStatus, repick: true,
+    saved: { pax: { ...dto.pax }, item, unitPrices: { ...saved }, catalogStatus: dto.catalogStatus },
+  };
 }
 
 /** Thẻ bản chụp mà danh mục không còn dịch vụ: bộ đếm chỉ-đọc, chỉ còn "Chọn lại từ danh mục". */
@@ -169,10 +180,19 @@ export const isLocked = (d: ServiceDraft): boolean => d.kind === "catalog" && d.
 
 // ---- chỉnh sửa (bất biến: trả bản mới) -------------------------------------------------------------------------------
 
-/** Đổi số khách một loại. Thẻ bản chụp mà danh mục còn dịch vụ → chuyển sang giá danh mục hiện tại và bỏ nhãn cũ; thẻ khoá → không đổi. */
+/**
+ * Đổi số khách một loại. Thẻ bản chụp mà danh mục còn dịch vụ → chuyển sang giá danh mục hiện tại và bỏ nhãn cũ; thẻ khoá → không đổi.
+ * Chỉ chuyển giá khi số khách THẬT SỰ khác đã lưu (đặc tả §5.1; máy chủ cũng chỉ giữ bản chụp khi số khách y như đã lưu — `service-rules.ts`, nhánh `kept`):
+ * số khách quay về đúng giá trị đã lưu (bấm "+" rồi "−") → QUAY LẠI bản chụp (đơn giá thương lượng + nhãn), không để thẻ lệch với những gì máy chủ sẽ làm.
+ */
 export function setPax(d: CatalogDraft, code: PaxCode, n: number): CatalogDraft {
   if (isLocked(d)) return d;
   const pax = { ...d.pax, [code]: wholeCount(n) };
+  const s = d.saved;
+  if (s && PAX_ORDER.every((c) => pax[c] === s.pax[c])) {
+    if (d.source === "snapshot") return { ...d, pax }; // đang là bản chụp: giữ nguyên, kể cả đơn giá vừa sửa
+    return { ...d, pax, source: "snapshot", item: s.item, name: s.item.name, unit: s.item.unit, unitPrices: { ...s.unitPrices }, catalogStatus: s.catalogStatus };
+  }
   if (d.source === "snapshot" && d.live) return { ...d, pax, source: "live", item: d.live, name: d.live.name, unit: d.live.unit, unitPrices: defaultPrices(d.live), catalogStatus: null };
   return { ...d, pax };
 }

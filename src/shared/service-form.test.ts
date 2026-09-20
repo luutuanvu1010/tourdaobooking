@@ -194,6 +194,52 @@ test("thẻ bản chụp: ĐỔI số khách khi danh mục còn dịch vụ →
   assert.deepEqual(moved.unitPrices, { adult: 1350000, child: 950000, senior: 1200000, infant: 0 });
 });
 
+// Đặc tả §5.1: chỉ chuyển sang giá hiện tại khi ĐỔI số khách; số khách cuối cùng y như đã lưu thì phải giữ nguyên bản chụp (đơn giá thương lượng + nhãn), khớp nhánh `kept` của máy chủ.
+const liveNewer = new Map([[tour.code, { ...tour, prices: { adult: 1400000, child: 1000000, senior: 1200000, infant: 0 } }]]);
+
+test("setPax (I1): bấm '+' rồi '−' về đúng số khách đã lưu → QUAY LẠI bản chụp: giữ đơn giá thương lượng 1.300.000, nhãn price_changed, thân gửi lên không đổi", () => {
+  const d = draftFromDto(savedTour, liveNewer, "k1") as CatalogDraft; // đã lưu 2 người lớn giá 1.300.000; danh mục hiện tại đã lên 1.400.000
+  const before = toServiceInput(d);
+  const plus = setPax(d, "adult", 3);
+  assert.deepEqual([plus.source, plus.catalogStatus, plus.unitPrices.adult], ["live", null, 1400000]); // đổi số khách thật → giá hiện tại (không đổi hành vi)
+  const back = setPax(plus, "adult", 2);
+  assert.deepEqual([back.source, back.catalogStatus, back.unitPrices.adult, back.item.prices.adult], ["snapshot", "price_changed", 1300000, 1350000]);
+  assert.deepEqual([back.name, back.unit, back.pax], [savedTour.name, savedTour.unit, savedTour.pax]);
+  assert.deepEqual(back.unitPrices, { adult: 1300000, child: 950000 });
+  assert.deepEqual(toServiceInput(back), before);
+  const p = previewLines(back);
+  assert.ok(p.ok);
+  assert.deepEqual(p.lines.map((l) => [l.unitPrice, l.catalogPrice, l.deviation]), [[1300000, 1350000, -50000], [950000, 950000, null]]); // nhãn lệch giá đúng như trang đơn
+});
+
+test("setPax (I1): quay về số khách đã lưu qua nhiều loại (thêm trẻ em rồi bớt) cũng về bản chụp; chạm cùng giá trị không mất đơn giá đã sửa", () => {
+  const d = draftFromDto(savedTour, liveNewer, "k1") as CatalogDraft;
+  const senior = setPax(d, "senior", 1);
+  assert.equal(senior.source, "live");
+  assert.equal(setPax(senior, "senior", 0).source, "snapshot");
+  const priced = setUnitPrice(d, "adult", 1250000); // vẫn là bản chụp
+  const same = setPax(priced, "adult", 2); // gõ lại đúng số cũ: không được chuyển sang giá hiện tại, không được mất đơn giá vừa sửa
+  assert.deepEqual([same.source, same.catalogStatus, same.unitPrices.adult], ["snapshot", "price_changed", 1250000]);
+});
+
+test("setPax (I1): ĐỔI số khách thật (khác đã lưu) vẫn chuyển sang giá hiện tại và bỏ nhãn cũ — cả khi đổi loại khác", () => {
+  const d = draftFromDto(savedTour, liveNewer, "k1") as CatalogDraft;
+  for (const moved of [setPax(d, "adult", 1), setPax(d, "child", 2), setPax(setPax(d, "adult", 3), "child", 0)]) {
+    assert.deepEqual([moved.source, moved.catalogStatus, moved.item === liveNewer.get("TD101")], ["live", null, true]);
+    assert.equal(moved.unitPrices.adult, 1400000);
+  }
+});
+
+test("setPax (I1): thẻ mới (không có bản chụp đã lưu) và thẻ live không bản chụp giữ nguyên hành vi cũ", () => {
+  const fresh = newCatalogDraft(tour, "k");
+  assert.equal(fresh.saved, null);
+  const there = setPax(setPax(fresh, "adult", 3), "adult", 1);
+  assert.deepEqual([there.source, there.unitPrices, there.pax], ["live", { adult: 1350000, child: 950000, senior: 1200000, infant: 0 }, { adult: 1, child: 0, senior: 0, infant: 0 }]);
+  const noSnap = draftFromDto({ ...savedTour, items: [{ ...savedTour.items[0]!, catalogPrice: null }] }, live, "k") as CatalogDraft; // thiếu giá danh mục → nhánh live không bản chụp
+  assert.deepEqual([noSnap.source, noSnap.saved], ["live", null]);
+  assert.equal(setPax(setPax(noSnap, "adult", 3), "adult", 2).source, "live");
+});
+
 test("thẻ bản chụp mà danh mục không còn dịch vụ → KHOÁ: đổi số khách không có tác dụng (nút 'Chọn lại từ danh mục')", () => {
   const d = draftFromDto(savedTour, new Map(), "k1") as CatalogDraft;
   assert.equal(isLocked(d), true);
