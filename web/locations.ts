@@ -8,16 +8,29 @@ const errorEl = byId("error");
 const listEl = byId("list");
 const editEl = byId("edit");
 let types: Api.LocationTypeDto[] = [];
+let current: Api.LocationDto[] = [];
 
+const STALE_NOTICE = "Địa điểm vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.";
 const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
-async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
+/**
+ * Chạy một thao tác. Thao tác GHI truyền `btn`: nút bị khoá từ lúc bấm đến khi xong cả phần nạp lại (bấm đúp không gửi hai lần), mở lại ở `finally`.
+ * `onStale` (chỉ cho PUT có khoá lạc quan): gặp 409 `stale` thì nạp lại dữ liệu rồi hiện thông báo. Thông báo phải đặt SAU khi nạp xong vì act() xoá lỗi ở đầu mỗi lần gọi.
+ */
+async function act<T>(fn: () => Promise<T>, btn?: HTMLButtonElement | null, onStale?: () => Promise<void>): Promise<T | undefined> {
+  if (btn?.disabled) return undefined;
   showError(errorEl, null);
+  if (btn) btn.disabled = true;
   try {
     return await fn();
   } catch (err) {
-    fail(err);
+    if (onStale && err instanceof ApiError && err.code === "stale") {
+      await onStale();
+      if (errorEl.hidden) showError(errorEl, STALE_NOTICE); // nạp lại thất bại thì giữ lỗi của lần nạp
+    } else fail(err);
     return undefined;
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -49,10 +62,21 @@ function openEdit(l: Api.LocationDto): void {
   close.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {
     const body = { name: name.value, locationTypeCode: type.value, address: address.value || null, sortOrder: Number(sort.value), active: active.checked, expectedUpdatedAt: l.updatedAt };
-    if (await act(() => api<Api.LocationResponse>(`/api/locations/${l.id}`, { method: "PUT", body }))) {
-      editEl.hidden = true;
-      await load();
-    }
+    await act(
+      async () => {
+        await api<Api.LocationResponse>(`/api/locations/${l.id}`, { method: "PUT", body });
+        editEl.hidden = true;
+        await load();
+      },
+      save,
+      async () => {
+        // 409 stale: `l.updatedAt` đã cũ. Nạp lại rồi mở lại form với bản mới để Lưu lần sau dùng đúng `updatedAt`.
+        await load();
+        const fresh = current.find((x) => x.id === l.id);
+        if (fresh) openEdit(fresh);
+        else editEl.hidden = true;
+      },
+    );
   });
   replaceChildren(
     editEl,
@@ -69,11 +93,13 @@ async function load(): Promise<void> {
   const r = await act(() => api<Api.LocationListResponse>("/api/locations"));
   if (!r) return;
   types = r.types;
+  current = r.locations;
   replaceChildren(byId("add-type"), ...typeOptions());
   replaceChildren(listEl, ...r.locations.map(row));
 }
 
-byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
+const addForm = byId<HTMLFormElement>("add-form");
+addForm.addEventListener("submit", async (e) => {
   e.preventDefault();
   const body = {
     code: byId<HTMLInputElement>("add-code").value.trim(),
@@ -82,10 +108,11 @@ byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
     address: byId<HTMLInputElement>("add-address").value || null,
     sortOrder: Number(byId<HTMLInputElement>("add-sort").value || 0),
   };
-  if (await act(() => api<Api.LocationResponse>("/api/locations", { method: "POST", body }))) {
+  await act(async () => {
+    await api<Api.LocationResponse>("/api/locations", { method: "POST", body });
     for (const id of ["add-code", "add-name", "add-address"]) byId<HTMLInputElement>(id).value = "";
     await load();
-  }
+  }, addForm.querySelector<HTMLButtonElement>('button[type="submit"]'));
 });
 
 const staff = await initShell();

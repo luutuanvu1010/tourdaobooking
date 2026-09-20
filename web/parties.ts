@@ -18,21 +18,35 @@ let locations: Api.LocationDto[] = [];
 let offset = 0;
 let openId: string | null = null;
 
+const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.";
 const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
-async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
+
+/**
+ * Chạy một thao tác. Thao tác GHI truyền `btn`: nút bị khoá từ lúc bấm đến khi xong cả phần nạp lại (bấm đúp không tạo trùng), mở lại ở `finally`.
+ * `onStale` (chỉ cho PUT có khoá lạc quan): gặp 409 `stale` thì nạp lại dữ liệu rồi hiện thông báo. Thông báo phải đặt SAU khi nạp xong vì act() xoá lỗi ở đầu mỗi lần gọi.
+ */
+async function act<T>(fn: () => Promise<T>, btn?: HTMLButtonElement | null, onStale?: () => Promise<void>): Promise<T | undefined> {
+  if (btn?.disabled) return undefined;
   showError(errorEl, null);
+  if (btn) btn.disabled = true;
   try {
     return await fn();
   } catch (err) {
-    fail(err);
+    if (onStale && err instanceof ApiError && err.code === "stale") {
+      await onStale();
+      if (errorEl.hidden) showError(errorEl, STALE_NOTICE); // nạp lại thất bại thì giữ lỗi của lần nạp
+    } else fail(err);
     return undefined;
+  } finally {
+    if (btn) btn.disabled = false;
   }
 }
 
 const KIND_LABEL = { PERSON: "Cá nhân", ORGANIZATION: "Tổ chức" } as const;
-const button = (label: string, onclick: () => void, cls = "btn btn-link"): HTMLButtonElement => {
+/** Nút chữ; `onclick` nhận chính nút để truyền cho act() khoá lúc gửi. */
+const button = (label: string, onclick: (b: HTMLButtonElement) => void, cls = "btn btn-link"): HTMLButtonElement => {
   const b = h("button", { type: "button", class: cls }, label);
-  b.addEventListener("click", onclick);
+  b.addEventListener("click", () => onclick(b));
   return b;
 };
 const field = (label: string, input: Child): HTMLElement => h("label", null, label, input);
@@ -121,12 +135,12 @@ function openCreate(): void {
       kind.value === "PERSON"
         ? { kind: "PERSON", fullName: fullName.value, contacts }
         : { kind: "ORGANIZATION", displayName: displayName.value, legalName: legalName.value, taxCode: taxCode.value, address: address.value, invoiceEmail: invoiceEmail.value, contacts };
-    const r = await act(() => api<Api.PartyResponse>("/api/parties", { method: "POST", body }));
-    if (r) {
+    await act(async () => {
+      const r = await api<Api.PartyResponse>("/api/parties", { method: "POST", body });
       createEl.hidden = true;
       await search();
       await openDetail(r.party.id);
-    }
+    }, save);
   });
   replaceChildren(
     createEl,
@@ -166,11 +180,15 @@ async function openDetail(id: string): Promise<void> {
   const active = checkbox(p.active);
   const saveInfo = button(
     "Lưu thông tin",
-    async () => {
+    async (b) => {
       const body = person
         ? { fullName: fullName.value, active: active.checked, expectedUpdatedAt: p.updatedAt }
         : { displayName: displayName.value, legalName: legalName.value, taxCode: taxCode.value, address: address.value, invoiceEmail: invoiceEmail.value, active: active.checked, expectedUpdatedAt: p.updatedAt };
-      if (await act(() => api<Api.PartyResponse>(`/api/parties/${id}`, { method: "PUT", body }))) await reload();
+      // 409 stale: `p.updatedAt` đã cũ → reload() nạp lại chi tiết (updatedAt mới) và danh sách, rồi hiện thông báo.
+      await act(async () => {
+        await api<Api.PartyResponse>(`/api/parties/${id}`, { method: "PUT", body });
+        await reload();
+      }, b, reload);
     },
     "btn btn-primary",
   );
@@ -183,32 +201,32 @@ async function openDetail(id: string): Promise<void> {
 
   // -- liên hệ
   const contactRows = p.contacts.map((c) =>
-    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, c.kind === "PHONE" ? "Điện thoại" : "Email"), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, !c.validTo && button("Đóng", async () => { if (await act(() => api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }))) await reload(); }))),
+    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, c.kind === "PHONE" ? "Điện thoại" : "Email"), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const cKind = select([{ value: "PHONE", label: "Điện thoại" }, { value: "EMAIL", label: "Email" }]);
   const cValue = input("", { maxLength: 200 });
   const cLabel = input("", { maxLength: 50, placeholder: "Zalo, hotline…" });
   const cPrimary = checkbox(false);
-  const addContact = button("Thêm liên hệ", async () => {
+  const addContact = button("Thêm liên hệ", (b) => {
     const body = { kind: cKind.value, value: cValue.value, label: cLabel.value || null, isPrimary: cPrimary.checked };
-    if (await act(() => api(`/api/parties/${id}/contacts`, { method: "POST", body }))) await reload();
+    void act(async () => { await api(`/api/parties/${id}/contacts`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && button("Kết thúc", async () => { if (await act(() => api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }))) await reload(); }))),
+    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const rType = select(meta.roleTypes.map((t) => ({ value: t.code, label: t.name })));
   const rLoc = select([{ value: "", label: "(mọi nơi)" }, ...locations.filter((l) => l.active).map((l) => ({ value: l.id, label: l.name }))]);
   const rFrom = input("", { type: "date" });
-  const addRole = button("Thêm vai trò", async () => {
+  const addRole = button("Thêm vai trò", (b) => {
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
-    if (await act(() => api(`/api/parties/${id}/roles`, { method: "POST", body }))) await reload();
+    void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
 
   // -- quan hệ
   const relRows = p.relationships.map((x) =>
-    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, admin && !x.validTo && button("Kết thúc", async () => { if (await act(() => api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }))) await reload(); }))),
+    h("tr", { class: x.validTo ? "row-off" : "" }, h("td", null, `${x.fromPartyName} — ${x.typeName} — ${x.toPartyName}`), h("td", { class: "muted" }, period(x.validFrom, x.validTo)), h("td", null, admin && !x.validTo && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/relationships/${x.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const relQ = input("", { placeholder: "Gõ tên hồ sơ cần liên kết…" });
   const relPick = h("select", null);
@@ -222,10 +240,10 @@ async function openDetail(id: string): Promise<void> {
       replaceChildren(relPick, ...(found?.parties.filter((x) => x.id !== id).map((x) => h("option", { value: x.id }, `${x.displayName} (${KIND_LABEL[x.kind]})`)) ?? []));
     }, 300);
   });
-  const addRel = button("Thêm quan hệ", async () => {
+  const addRel = button("Thêm quan hệ", (b) => {
     if (!relPick.value) return showError(errorEl, "Chọn hồ sơ cần liên kết.");
     const body = relDir.value === "from" ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: "CONTACT_OF" } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: "CONTACT_OF" };
-    if (await act(() => api(`/api/parties/${id}/relationships`, { method: "POST", body }))) await reload();
+    void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
 
   replaceChildren(
