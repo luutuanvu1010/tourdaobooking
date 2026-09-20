@@ -25,6 +25,8 @@ export class ApiError extends Error {
     public status: number,
     public code: string,
     message: string,
+    /** Thân `error` của phản hồi (vd `changes[]` của catalog_changed, `missing[]` của incomplete_trip) — để `classifyOrderError` dựng banner. */
+    public details?: unknown,
   ) {
     super(message);
   }
@@ -51,7 +53,7 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
   if (!res.ok) {
     // Phiên hết hạn ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
     if (res.status === 401 && path !== "/api/auth/login" && !location.pathname.startsWith("/login")) return goLogin();
-    throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.");
+    throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);
   }
   return data as T;
 }
