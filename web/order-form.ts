@@ -216,6 +216,11 @@ async function onSaveError(err: unknown): Promise<void> {
   (isPhone ? saveErrorEl : (target ?? saveErrorEl)).scrollIntoView({ block: "center" }); // điện thoại: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; máy tính: cuộn tới thẻ (banner ở cột dính, luôn thấy)
 }
 
+// Ô tìm danh mục nằm TRONG form: Enter (hoặc phím "Tìm" của bàn phím iPhone) sẽ gửi ngầm cả đơn qua nút "Lưu" mặc định. Chỉ chặn ở ô tìm; các ô văn bản khác giữ hành vi form thường.
+formEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type === "search") e.preventDefault();
+});
+
 formEl.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (formLocked || saving) return;
