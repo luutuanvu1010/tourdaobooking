@@ -56,7 +56,7 @@ console.log("✓ icon");
 // font tự lưu trữ (A2 Q4): mọi @font-face trỏ tới tệp CÓ THẬT, đúng content-type font/woff2 (Workers Assets), và nằm trong PRECACHE
 // (nếu không, mở ngoại tuyến rơi về system-ui mà không ai biết).
 const fontUrls = [...new Set([...css.matchAll(/url\(["']?(\/fonts\/[^"')]+)["']?\)/g)].map((m) => m[1]))];
-assert.ok(fontUrls.length >= 6, `app.css phải khai đủ 6 tệp font (đang ${fontUrls.length})`);
+assert.equal(fontUrls.length, 6, `app.css phải khai đủ 6 tệp font (đang ${fontUrls.length})`);
 for (const path of fontUrls) {
   const r = await get(path);
   assert.equal(r.status, 200, `${path} → ${r.status}`);

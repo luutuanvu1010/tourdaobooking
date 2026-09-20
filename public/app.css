@@ -43,7 +43,7 @@
   --c-alt: var(--c-surface-alt);
   --c-line: var(--c-border);
   --c-muted: var(--c-text-muted);
-  /* — MỚI: bộ màu nguy hiểm (tourdaovn không có; chủ dự án duyệt 2026-09-20). Lỗi, "Huỷ đơn", "Xoá". Chữ --c-danger-text trên --c-danger-soft = 8,6:1 — */
+  /* — MỚI: bộ màu nguy hiểm (tourdaovn không có; chủ dự án duyệt 2026-09-20). Lỗi, "Huỷ đơn", "Xoá". Chữ --c-danger-text trên --c-danger-soft = 8,0:1 — */
   --c-danger: #b01235;
   --c-danger-text: #8e0e2b;
   --c-danger-soft: #fde9ee;
@@ -138,15 +138,6 @@ textarea { min-height: 72px; resize: vertical; }
 .badge-cancelled { color: var(--c-text-muted); background: var(--c-surface-alt); }
 .empty { padding: var(--s6) var(--s4); text-align: center; color: var(--c-muted); }
 
-/* form: dòng dịch vụ */
-.item { display: grid; gap: var(--s2) var(--s3); grid-template-columns: 1fr 1fr; padding: var(--s3); margin-bottom: var(--s3); background: var(--c-alt); border-radius: var(--radius-sm); }
-.item-desc, .item-detail { grid-column: 1 / -1; }
-.item-total { display: flex; flex-direction: column; justify-content: center; font-weight: 700; }
-.item > .btn-link { justify-self: end; }
-@media (min-width: 720px) {
-  .item { grid-template-columns: 2fr 2fr 70px 130px 130px auto; align-items: end; }
-  .item-desc, .item-detail { grid-column: auto; }
-}
 .summary { display: grid; gap: var(--s2); margin-top: var(--s4); }
 .kv { display: flex; justify-content: space-between; gap: var(--s4); padding: 4px 0; }
 .kv > span:last-child { text-align: right; overflow-wrap: anywhere; }
@@ -179,9 +170,6 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .catalog-list button:hover, .catalog-list button:focus { background: var(--c-alt); outline: none; }
 .catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
-.catalog-pick { margin-top: var(--s3); padding: var(--s3); background: var(--c-alt); border-radius: var(--radius-sm); }
-.catalog-pick .counters { display: grid; gap: var(--s2); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); margin: var(--s3) 0; }
-.catalog-pick .preview { font-weight: 700; margin-bottom: var(--s3); }
 .price-cell { white-space: nowrap; }
 .price-cell .sheet { display: block; font-size: .8rem; color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: 700; }

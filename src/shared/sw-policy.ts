@@ -4,7 +4,7 @@
 //  1. routeFor: DANH SÁCH CHO PHÉP, đóng theo mặc định. Chỉ trang và tệp tĩnh đã biết mới vào cache; mọi đường dẫn khác đi thẳng ra mạng.
 //     Cố ý KHÔNG viết luật "bỏ qua /api": router của Worker khớp đường dẫn bằng split("/").filter(Boolean) nên "//api/auth/me" vẫn chạm API thật,
 //     và một bộ lọc theo tiền tố phải khớp ĐÚNG như router — hai luật khớp cho cùng một khái niệm sẽ lệch nhau (QA2 độc lập lần 1, Q2-01).
-//  2. isCacheable: chỉ lưu đúng các loại nội dung của khung (HTML/CSS/JS/PNG/manifest); JSON và văn bản thường không bao giờ được lưu.
+//  2. isCacheable: chỉ lưu đúng các loại nội dung của khung (HTML/CSS/JS/PNG/manifest/font woff2); JSON và văn bản thường không bao giờ được lưu.
 
 declare const __BUILD_ID__: string | undefined;
 

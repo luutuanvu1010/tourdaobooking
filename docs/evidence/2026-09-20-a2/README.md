@@ -1,12 +1,14 @@
 # Bằng chứng: A2 — giao diện thông tin chuyến theo dịch vụ (2026-09-20)
 
-Artifact của bước nghiệm thu A2 (đặc tả `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md` §7; Hiến pháp §8.2: bằng chứng thay cho lời khai). **Mã được đo: HEAD `b67f4bf`** của nhánh `worktree-thong-tin-chuyen-di` (từ đó đến khi ghi tài liệu này chỉ đổi tài liệu và bằng chứng).
+Artifact của bước nghiệm thu A2 (đặc tả `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md` §7; Hiến pháp §8.2: bằng chứng thay cho lời khai). **Mã được đo:** nhánh `worktree-thong-tin-chuyen-di` tại commit `ad54b00` cộng các thay đổi của commit "A2 sửa cuối 4" (dọn CSS chết, chú thích/tài liệu, kịch bản bằng chứng), đo trên cây làm việc ngay trước khi commit. Toàn bộ ảnh, số đo và ba kịch bản kiểm hành vi đã được **chạy lại sau đợt sửa cuối** (bốn commit sau rà soát toàn nhánh: `c49e547` số khách quay về giá đã lưu, `df696be` hết trạng thái kẹt, `ad54b00` ARIA danh sách danh mục + cuộn lỗi ở khổ 641–959 px, và "A2 sửa cuối 4").
 
-Đo trên `wrangler dev` cục bộ với D1 tạm và bốn tài khoản thử, bằng Chrome headless khổ iPhone 390×844 (ảnh 1x: toàn trang/khung nhìn rộng 390 px, ảnh từng thẻ rộng 326 px) và máy tính 1040×800. **Không phải** đo trên iPhone thật, mạng thật hay Workers Assets thật.
+Đo trên `wrangler dev` cục bộ với D1 tạm và bốn tài khoản thử, bằng Chrome headless khổ iPhone 390×844 (ảnh 1x: toàn trang/khung nhìn rộng 390 px; ảnh từng thẻ `1c-*`, `1d-*`, `1e-*` rộng 326 px; riêng `1b-khoi-chuyen-thu-gon.png` chỉ cắt hàng tóm tắt của khối chuyến, 292×46 px) và máy tính 1040×800. **Không phải** đo trên iPhone thật, mạng thật hay Workers Assets thật.
 
 ## Ký duyệt thị giác (đặc tả §7.5)
 
 **Chưa ký.** Chủ dự án xem `anh/` cạnh mockup (`docs/design/a2-mockup/output/`) theo bảng đối chiếu dưới đây rồi ghi tại đây: ngày, ai ký, và các điểm cần sửa (nếu có). Chưa ký = chưa triển khai (`docs/HANDOFF-N1.md`).
+
+**Lưu ý khi xem ảnh:** ô ngày/giờ và `<select>` trong ảnh là điều khiển kiểu Chrome (vd `1k-bang-sua-chuyen.png` có "dd/mm/yyyy" và biểu tượng lịch), KHÔNG phải điều khiển của iOS; căn cứ ký thị giác cần được đối chiếu lại trên iPhone thật.
 
 ## Đối chiếu ảnh ↔ artboard
 
@@ -26,16 +28,18 @@ Artifact của bước nghiệm thu A2 (đặc tả `docs/superpowers/specs/2026
 
 Tổng cộng 34 ảnh: 26 của A2 và 8 ảnh `hq-*`.
 
+**Ảnh nền để đối chiếu trước/sau (bằng chứng PWA, trước A2):** `docs/evidence/2026-09-19-pwa/anh/` có `01-dang-nhap` (↔ `hq-dang-nhap`), `02-danh-sach-don` (↔ `hq-danh-sach-don`), `06-toi-admin-5-tab` (↔ `hq-toi`, tài khoản admin; `05-toi-nhan-vien` là bản nhân viên), `03-chi-tiet-don-nhap` (↔ `1h-don-nhap`) và `04-lap-don` (↔ `1a-form-3-dich-vu`). Các trang `/catalog`, `/staff`, `/locations`, `/parties`, `/audit` (`hq-dich-vu`, `hq-nhan-vien`, `hq-dia-diem`, `hq-ho-so`, `hq-nhat-ky`) **không có ảnh nền** trước A2, nên không đối chiếu trước/sau bằng ảnh được. `hq-dich-vu.png` chụp trên dữ liệu đã bị kịch bản sửa (`TD101` = 1.400.000, `TTB03` `in_sheet` = 0), không phải dữ liệu gốc của Sheet.
+
 ## Các tệp
 
 | File | Hạng (GOVERNANCE §5.2) | Là gì |
 |---|---|---|
-| `kiem-tra-may.txt` | E1 | `npm test`, `npm run typecheck`, `npm run test:e2e`, gắn HEAD |
-| `ket-qua-do.json` | E1 | axe-core (13 màn hình/trạng thái của A2; 0 vi phạm ở cả 13 — không chỉ 0 critical/serious mà không có vi phạm mức nào), hồi quy 8 trang ngoài A2 (khoá `hoiQuy`: không tràn ngang, ô gõ ≥ 16px, 0 lỗi console; axe trên các trang đó chỉ ghi lại — xem mục "Vi phạm axe có sẵn ở trang cũ"), vùng chạm ≥ 44px, ô gõ ≥ 16px, không tràn ngang ở 390 px, 0 lỗi console (khoá `do`: 8 trạng thái khổ điện thoại; hành vi ở 1040 px do `a2-smoke-*.mjs` kiểm), font (6 `@font-face` đều `swap`, nạp thật, nằm trong cache service worker, chặn `woff2` vẫn hiện chữ) |
+| `kiem-tra-may.txt` | E1 | `npm test` (234 đạt), `npm run typecheck` (0 lỗi), `npm run test:e2e` (10/10 kịch bản xanh, gồm `audit-invariants`), gắn HEAD và ngày giờ |
+| `ket-qua-do.json` | E1 | axe-core (15 màn hình/trạng thái của A2 — gồm cả danh sách danh mục ĐANG MỞ có kết quả và ở trạng thái rỗng; 0 vi phạm ở cả 15 — không chỉ 0 critical/serious mà không có vi phạm mức nào), hồi quy 8 trang ngoài A2 (khoá `hoiQuy`: không tràn ngang, ô gõ ≥ 16px, 0 lỗi console; axe trên các trang đó chỉ ghi lại — xem mục "Vi phạm axe có sẵn ở trang cũ"), vùng chạm ≥ 44px, ô gõ ≥ 16px, không tràn ngang ở 390 px, 0 lỗi console (khoá `do`: 8 trạng thái khổ điện thoại; hành vi ở 1040 px do `a2-smoke-*.mjs` kiểm), font (khoá `font`: 6 `@font-face` đều `swap`; **4/6** tệp font nạp trên trang đo — các subset còn lại không dùng đến; 1 tệp được dò thấy trong cache service worker; đủ 6 nằm trong `PRECACHE` do e2e `pwa` kiểm; chặn `woff2` vẫn hiện chữ), hiệu năng (khoá `hieuNang`: đơn 20 dịch vụ nhập tay, một lần gõ vào ô đơn giá của thẻ đầu = **0,4 ms** JS đồng bộ, **0,6 ms** nếu ép tính bố cục; Chrome desktop, một lần đo mỗi số, không gồm vẽ. **iPhone chậm hơn nhiều lần — cần đo trên máy thật**, xem "Chưa kiểm") |
 | `anh/` | E2 | ảnh chụp 1x; cần người xem. **Đọc thế nào:** ảnh toàn trang (`1a`, `1h`, `1j`, `tt-…`) chụp bằng khung nhìn nới đúng chiều cao trang nên thanh tiêu đề ở đầu, thanh tab/thanh Lưu ở cuối ảnh — chúng KHÔNG chứng minh thanh Lưu dính đáy màn hình; hành vi đó thấy ở các ảnh khung nhìn (`tt-dang-luu`, `1f-*`). Khi bấm Lưu bị lỗi trên điện thoại, trang cuộn tới BANNER (cuối form), không tới thẻ |
-| `kich-ban/` | — | các kịch bản tạo ra các file trên: `a2-cdp.mjs` (môi trường D1 tạm + `wrangler dev` + Chrome qua CDP, không dependency), `a2-smoke-form.mjs` (17 dòng ✓) / `a2-smoke-order.mjs` (8 dòng ✓) / `a2-smoke-sheet.mjs` (11 dòng ✓) (kiểm hành vi), `a2-evidence.mjs` (ảnh + đo + axe; 6 dòng ✓ A–F); cách chạy ở đầu mỗi file. `axe-core` lấy bằng `npm pack` **ngoài repo**, không thêm vào `package.json` |
+| `kich-ban/` | — | các kịch bản tạo ra các file trên: `a2-cdp.mjs` (môi trường D1 tạm + `wrangler dev` + Chrome qua CDP, không dependency), `a2-smoke-form.mjs` (19 dòng ✓) / `a2-smoke-order.mjs` (10 dòng ✓) / `a2-smoke-sheet.mjs` (13 dòng ✓) (kiểm hành vi), `a2-evidence.mjs` (ảnh + đo + axe + hiệu năng; 7 dòng ✓ A–G); cách chạy ở đầu mỗi file. `axe-core` lấy bằng `npm pack` **ngoài repo**, không thêm vào `package.json` |
 
-Ghi chú về ba kịch bản `a2-smoke-*.mjs`: chúng đã chạy xanh ở Task 7–9 (theo báo cáo của từng task); ở lần đóng gói bằng chứng này (Task 10) chỉ chạy `a2-evidence.mjs` (kết quả `A2 EVIDENCE OK`, 34 ảnh), KHÔNG chạy lại ba kịch bản kiểm hành vi trên bản cuối `b67f4bf` — muốn chắc thì chạy tay theo dòng chú thích ở đầu mỗi tệp. Số dòng ✓ ở bảng trên là số lệnh `ok(…)` trong từng tệp.
+Ghi chú về các kịch bản: sau đợt sửa cuối, **cả bốn kịch bản đã được chạy lại trên bản cuối** — `a2-smoke-form.mjs` 19 dòng ✓ (`UI SMOKE FORM OK`), `a2-smoke-order.mjs` 10 (`UI SMOKE ORDER OK`), `a2-smoke-sheet.mjs` 13 (`UI SMOKE SHEET OK`), `a2-evidence.mjs` 7 (`A2 EVIDENCE OK`, ảnh và `ket-qua-do.json` ghi mới; byte ảnh có thể đổi giữa các lần chạy — bình thường). Số dòng ✓ ở bảng trên là số lệnh `ok(…)` trong từng tệp. Đợt sửa cuối thêm các nhóm kiểm: bfcache (`pageshow`) và ARIA danh sách danh mục (form), đổi trạng thái xong mà tải lại lỗi và 409 ở trang đơn (order), scrim chưa mở và hết giờ máy chủ (sheet); mỗi nhóm đã được chạy ĐỎ trên mã cũ trước khi sửa.
 
 ## Vi phạm axe có sẵn ở trang cũ (không chặn nghiệm thu A2)
 
@@ -60,6 +64,18 @@ Ngoài axe, ảnh `hq-dich-vu.png` cho thấy ô "Tìm theo mã…" ở hàng l�
 - Bàn phím iOS có che nút Lưu dính đáy không (form dài hơn nhiều so với bản cũ) — cần iPhone thật.
 - `<input type="date">` / `type="time"` trong PWA đã cài lên Màn hình chính — cần iPhone thật.
 - Bảng "Sửa thông tin chuyến" có chui dưới thanh trạng thái/Dynamic Island không (CSS đã trừ `env(safe-area-inset-top)`; Chrome headless có safe-area = 0 nên không tái hiện được) — cần iPhone thật.
-- Không có kiểm thử tự động cho `web/` chạy trong CI: kiểm hành vi nằm ở các kịch bản Chrome (`kich-ban/`), chạy tay khi cần; chỉ luật thuần ở `src/shared/` có `node --test`.
-- Hiệu năng ở đơn cỡ tối đa (20 dịch vụ × nhiều dòng) trên điện thoại thật; chỉ kiểm được trần 50 dòng/đơn ở tầng hành vi (`a2-smoke-form.mjs` nhóm 10c).
+- Không có kiểm thử tự động cho `web/` chạy trong CI: kiểm hành vi nằm ở các kịch bản Chrome (`kich-ban/`), chạy tay khi cần; chỉ luật thuần ở `src/shared/` có `node --test`. **`web/trip-sheet.ts`, `web/order-form.ts` và `web/order.ts` KHÔNG có kiểm tự động trong repo — sửa các tệp này thì PHẢI chạy lại ba kịch bản `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs`.**
+- Hiệu năng ở đơn cỡ tối đa (20 dịch vụ × nhiều dòng) trên iPhone thật: mới đo trên Chrome desktop (`ket-qua-do.json`, khoá `hieuNang`: một lần gõ ở đơn 20 dịch vụ nhập tay = 0,4 ms JS đồng bộ, 0,6 ms kèm ép bố cục; một lần đo mỗi số, không gồm vẽ). iPhone chậm hơn nhiều lần nên phải đo trên máy thật; trần 50 dòng/đơn kiểm ở tầng hành vi (`a2-smoke-form.mjs` nhóm 10c).
+- Thuộc tính `inert` (khoá nền khi bảng trượt mở, khoá form khi đang lưu) cần iOS Safari ≥ 15.5, và `100dvh` (chiều cao tối đa của bảng trượt, có `100vh` dự phòng) cần ≥ 15.4 — chưa thử trên iPhone thật.
+- Khoá cuộn nền bằng `body.sheet-open { overflow: hidden }` chưa thử trên iPhone thật.
+- Vuốt Back từ `/order` về form sau khi lưu (bộ nhớ đệm bfcache của iOS): mới có phép kiểm GIẢ LẬP sự kiện `pageshow` với `persisted: true` (`a2-smoke-form.mjs` nhóm bfcache), chưa thử trên iPhone thật.
+- IME tiếng Việt (Telex/VNI) và bàn phím số iOS trong ô tên, đơn giá, bộ đếm — kịch bản chỉ gán `el.value` rồi bắn sự kiện `input`/`change` (`setInput` trong `a2-cdp.mjs`); chỉ đúng một lần Enter (nhóm 2b của `a2-smoke-form.mjs`) là phím thật; chưa gõ phím thật/composition. Riêng bộ xử lý chặn Enter ở ô tìm danh mục không kiểm `isComposing`: chưa biết trên iPhone, lúc đang gõ tiếng Việt có dấu, nó có ảnh hưởng tới việc chốt chữ hay không.
 - Mockup vòng 2 (sửa 7 lỗi mockup) chưa làm: kế hoạch đã quy định đúng hành vi (nhãn lệch giá chỉ ở dịch vụ danh mục, chữ "7 khách ÷ 5 = 2 lượt (làm tròn lên)", địa điểm rộng hết hàng, chữ nhắc ô check-in) — ảnh ở đây là **bản dựng thật**, không phải mockup.
+
+## Tồn đọng nhỏ (đã hoãn, để đợt sau xử lý; không chặn nghiệm thu)
+
+- `ket-qua-do.json` chưa đóng dấu HEAD/ngày đo của chính nó (HEAD hiện chỉ ghi ở `kiem-tra-may.txt` và tài liệu này).
+- `startEnv()` trong `a2-cdp.mjs`: nếu lỗi ném ra GIỮA lúc khởi động (sau khi đã chạy `wrangler dev`/Chrome), `stop()` chưa tới được nên có thể mồ côi tiến trình.
+- Kịch bản chưa đếm các lỗi mạng `net::ERR_*` (tải tài nguyên hỏng) — chỉ đếm lỗi console và ngoại lệ.
+- Các ảnh `tt-*` là ảnh KHUNG NHÌN (trừ `tt-form-trong`, `tt-don-da-huy` chụp cả trang), không phải toàn trang.
+- `docs/PWA-IPHONE.md` còn ghi "8 trang" ở ba chỗ khác (mục cách hoạt động, danh sách kiểm tự động, mục tên hiển thị): `PAGES` và số file HTML đã là 10, còn `tests/e2e/pwa.mjs` chỉ kiểm thẻ meta iOS trên 8 trong 10 trang.

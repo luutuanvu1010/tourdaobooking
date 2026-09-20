@@ -10,7 +10,7 @@
 - Kiểm máy: `src/architecture.test.ts`, `docs/data-dictionary.json`, `scripts/audit-invariants.mjs` (xem `docs/ARCHITECTURE.md`).
 
 ## Điều kiện TRƯỚC khi triển khai
-- **A2 (giao diện đơn) đã xong về mã (2026-09-20): `tsc -p web` = 0 lỗi; bằng chứng ở `docs/evidence/2026-09-20-a2/`.** Còn MỘT cổng: chủ dự án ký duyệt thị giác (mục "Ký duyệt thị giác" trong `docs/evidence/2026-09-20-a2/README.md`) — **chưa ký thì chưa triển khai**. Nhánh chứa A1 (đơn có `services[]`): triển khai chỉ N1 mà thiếu A2 thì giao diện đơn hỏng trên production, nên A1, N1 và A2 đi cùng một lần phát hành.
+- **A2 (giao diện đơn) đã xong về mã (2026-09-20): `tsc -p web` = 0 lỗi; bằng chứng ở `docs/evidence/2026-09-20-a2/`.** Còn MỘT cổng: chủ dự án ký duyệt thị giác (mục "Ký duyệt thị giác" trong `docs/evidence/2026-09-20-a2/README.md`) — **chưa ký thì chưa triển khai**. Nhánh chứa A1 (đơn có `services[]`): triển khai chỉ N1 mà thiếu A2 thì giao diện đơn hỏng trên production, nên A1, N1 và A2 đi cùng một lần phát hành. `web/trip-sheet.ts`, `web/order-form.ts` và `web/order.ts` KHÔNG có kiểm tự động trong repo — sửa các tệp này thì PHẢI chạy lại ba kịch bản `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs`.
 - Chủ dự án chạy (chỉ đọc) và ghi lại kết quả: `npx wrangler d1 migrations list tourdao-sales-db --remote` (xem `0008` đã áp chưa) và `npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT count(*) AS orders FROM orders"`.
 - Ghi điểm khôi phục D1 Time Travel trước khi áp: `npx wrangler d1 time-travel info tourdao-sales-db`.
 

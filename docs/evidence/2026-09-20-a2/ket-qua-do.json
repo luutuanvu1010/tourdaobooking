@@ -2,6 +2,8 @@
   "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm); không phải iPhone thật.",
   "axe": {
     "form-trong": [],
+    "form-ket-qua-tim": [],
+    "form-ket-qua-rong": [],
     "form-3-dich-vu": [],
     "form-banner-kiem-tra": [],
     "don-nhap": [],
@@ -168,5 +170,11 @@
       "trànNgang": 0,
       "loiConsole": 0
     }
+  },
+  "hieuNang": {
+    "soDichVu": 20,
+    "msMoiLanGo": 0.4,
+    "msMoiLanGoKemBoCuc": 0.6,
+    "ghiChu": "Chrome desktop, một lần đo mỗi số. msMoiLanGo = JS đồng bộ của sự kiện input; msMoiLanGoKemBoCuc = cộng cả ép tính bố cục. Không gồm vẽ. iPhone chậm hơn nhiều lần — cần đo trên máy thật."
   }
 }

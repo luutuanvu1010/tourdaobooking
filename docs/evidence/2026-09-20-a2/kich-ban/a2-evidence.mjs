@@ -85,9 +85,11 @@ try {
   await p.ev("document.getElementById('catalog-q').focus(); true");
   await p.waitFor("document.querySelectorAll('#catalog-list button').length === 3", "danh sách danh mục");
   await view(p, "tt-ket-qua-tim.png");
+  await axe(p, "form-ket-qua-tim");
   await p.ev(setInput("document.getElementById('catalog-q')", "khong-co"));
   await p.waitFor("/Không tìm thấy dịch vụ/.test(document.getElementById('catalog-list').textContent)", "danh sách rỗng");
   await view(p, "tt-ket-qua-rong.png");
+  await axe(p, "form-ket-qua-rong");
 
   const cards = "document.querySelectorAll('#services .svc')";
   const counter = (i, label) => `${cards}[${i}].querySelector('.counter-field[aria-label=${JSON.stringify(label)}]')`;
@@ -291,7 +293,7 @@ try {
   assert.deepEqual(result.font.khiBiChan, { chuHienRa: true, fontNap: 0 });
   write("tt-font-bi-chan.png", await blocked.send("Page.captureScreenshot", { format: "png" }));
   blocked.close();
-  ok("E) font: 6 @font-face đều swap, nạp thật, nằm trong cache service worker; chặn woff2 vẫn hiện chữ");
+  ok(`E) font: ${result.font.soKhaiBao} @font-face đều swap; ${result.font.daNap}/${result.font.soKhaiBao} tệp nạp trên trang đo (subset còn lại không dùng đến); 1 tệp dò thấy trong cache service worker; chặn woff2 vẫn hiện chữ`);
 
   // ================= F) trang NGOÀI phạm vi A2 — kiểm hồi quy CSS dùng chung =================
   // Task 2 đổi cỡ chữ ô gõ TOÀN ứng dụng (13,6 → 16px); Task 8/9 thêm quy tắc `.kv`, `.actions` dùng chung. Chủ dự án ký thị giác cho cả nhánh nên các trang cũ phải có ảnh + đo:
@@ -319,6 +321,21 @@ try {
     p.close();
   }
   ok("F) 8 trang ngoài A2 (đăng nhập, danh sách đơn, dịch vụ, nhân viên, hồ sơ, địa điểm, tôi, nhật ký): không tràn ngang, ô gõ ≥ 16px, 0 lỗi console; axe đã ghi lại");
+
+  // ================= G) hiệu năng ở đơn cỡ tối đa (20 dịch vụ) =================
+  // Mỗi lần gõ vào một ô đơn giá, `recompute()` tính lại tóm tắt tiền và trần dòng của MỌI thẻ. Đo thời gian ĐỒNG BỘ của một sự kiện `input` khi đơn có 20 thẻ nhập tay
+  // (Chrome desktop, KHÔNG phải iPhone: iPhone chậm hơn nhiều lần, cần đo trên máy thật). Vượt 100 ms thì DỪNG và ghi số thật — không tự tối ưu trong đợt này.
+  p = await open(ACCOUNTS.salesA, "/order-form");
+  await p.waitFor("document.getElementById('add-manual')", "form mới (đo hiệu năng)");
+  await p.ev("for (let i = 0; i < 20; i++) document.getElementById('add-manual').click(); true");
+  await p.waitFor(`${cards}.length === 20`, "20 thẻ nhập tay");
+  const ms = await p.ev(`(() => { const el = document.querySelector('#services .svc .price-field'); const t = performance.now(); el.value = '123456'; el.dispatchEvent(new Event('input', { bubbles: true })); return performance.now() - t; })()`);
+  // Số trên chỉ gồm JS đồng bộ của sự kiện (không gồm bố cục/vẽ): đo thêm một lần gõ nữa CÓ ép tính bố cục (đọc offsetHeight) để người đọc không hiểu lầm là "nhanh tuyệt đối".
+  const msLayout = await p.ev(`(() => { const el = document.querySelector('#services .svc .price-field'); const t = performance.now(); el.value = '654321'; el.dispatchEvent(new Event('input', { bubbles: true })); void document.body.offsetHeight; return performance.now() - t; })()`);
+  result.hieuNang = { soDichVu: 20, msMoiLanGo: Math.round(ms * 10) / 10, msMoiLanGoKemBoCuc: Math.round(msLayout * 10) / 10, ghiChu: "Chrome desktop, một lần đo mỗi số. msMoiLanGo = JS đồng bộ của sự kiện input; msMoiLanGoKemBoCuc = cộng cả ép tính bố cục. Không gồm vẽ. iPhone chậm hơn nhiều lần — cần đo trên máy thật." };
+  p.close();
+  assert.ok(ms < 100, `hiệu năng: một lần gõ vào ô đơn giá ở đơn 20 dịch vụ mất ${ms} ms (ngưỡng 100 ms)`);
+  ok(`G) hiệu năng: đơn 20 dịch vụ, một lần gõ vào ô đơn giá = ${result.hieuNang.msMoiLanGo} ms JS đồng bộ (${result.hieuNang.msMoiLanGoKemBoCuc} ms kèm ép bố cục); Chrome desktop, iPhone chậm hơn nhiều lần — cần đo trên máy thật`);
 
   writeFileSync(join(OUT, "ket-qua-do.json"), JSON.stringify(result, null, 2) + "\n");
 } finally {
