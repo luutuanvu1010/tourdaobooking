@@ -1,7 +1,7 @@
 # ADR-0002 — Modular Monolith: ranh giới và quyền sở hữu dữ liệu
 
-- **Trạng thái:** proposed (bản 3, sau hai lượt rà soát độc lập 2026-09-20)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** — tiền tố tên bảng và quyền sở hữu khó đổi sau khi có dữ liệu (quy tắc hiện hành: không đổi tên bảng đã có)
 - **Liên quan:** ADR-0001, ADR-0003; `docs/ARCHITECTURE.md` mục *Các tầng và chiều phụ thuộc* (**năm** quy tắc hiện hành, đánh số 1–5 — ADR này **giữ nguyên cả năm và chỉ siết thêm**, Điều 9.7)
 

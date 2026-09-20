@@ -1,7 +1,7 @@
 # ADR-0004 — Mở rộng phạm vi: ghi nhận thu tiền, kế toán và yêu cầu hoá đơn (sửa SPEC §1)
 
-- **Trạng thái:** proposed (bản 3, sau hai lượt rà soát độc lập 2026-09-20)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa hai chiều về phạm vi tính năng** (có thể rút tính năng; dữ liệu thu tiền đã ghi là chỉ-thêm nên không mất). **Thay đổi schema `orders` (gỡ ba cột cọc) là cửa một chiều** và cần ADR riêng ở N3 (Điều 7.2).
 - **Liên quan:** ADR-0001, ADR-0005, ADR-0007; SPEC §1
 

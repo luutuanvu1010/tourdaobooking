@@ -1,7 +1,7 @@
 # ADR-0001 — Danh tính theo mô hình Party–Role–Relationship
 
-- **Trạng thái:** proposed (bản 3, sau hai lượt rà soát độc lập 2026-09-20)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Bằng chứng D1 ở mục Bối cảnh chưa được cung cấp khi duyệt: chuyển thành **cổng bắt buộc trước khi áp migration N1 lên remote** (đặc tả N1 §9); thiết kế không đổi dù kết quả thế nào. Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** (Điều 7.2) — cần phê chuẩn đầy đủ
 - **Liên quan:** ADR-0002 (sở hữu dữ liệu), ADR-0003 (chuẩn dữ liệu), ADR-0005 (quyền app), ADR-0006 (phân công)
 

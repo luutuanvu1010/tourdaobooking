@@ -1,7 +1,7 @@
 # ADR-0006 — Phân công (người phụ trách, nhiệm vụ) và tách giờ hẹn khách khỏi giờ điều xe
 
-- **Trạng thái:** proposed (bản 3, sau rà soát độc lập lần 2)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** — quyết định "hạt" (grain) và chiều khoá ngoại của bảng phân công; đổi sau khi có dữ liệu phải dựng lại
 - **Liên quan:** ADR-0001 (vai trò không chặn việc chọn người), ADR-0002 (`dispatch` → `orders`, `parties`, `locations`), ADR-0003 (hiệu lực, cột kiểm toán, bảng tra cứu mã), ADR-0007 (quyền)
 

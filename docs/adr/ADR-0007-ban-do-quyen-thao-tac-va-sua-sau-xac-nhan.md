@@ -1,7 +1,7 @@
 # ADR-0007 — Bản đồ quyền → thao tác và sửa sau xác nhận
 
-- **Trạng thái:** proposed (bản 3) — **các dòng có dấu ◆ cần chủ dự án xác nhận riêng** (chưa được chủ dự án nêu; là đề xuất của tác nhân điều phối)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Các dòng ◆ được chủ dự án duyệt cùng ADR. Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** cho các dòng liên quan tiền: đổi quyền về sau không hoàn tác được những khoản đã sửa/ghi theo quyền cũ
 - **Liên quan:** ADR-0004, ADR-0005 (cấu trúc quyền), ADR-0006 (phân công); **thay thế một phần** quyết định Q9 của `docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md` (khoá số khách/dịch vụ/tiền sau xác nhận)
 

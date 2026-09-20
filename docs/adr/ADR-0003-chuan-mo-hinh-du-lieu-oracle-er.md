@@ -1,7 +1,7 @@
 # ADR-0003 — Chuẩn mô hình dữ liệu (theo triết lý Oracle và chuẩn ER/CASE)
 
-- **Trạng thái:** proposed (bản 3, sau hai lượt rà soát độc lập 2026-09-20)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** — cột kiểm toán, khoá, hiệu lực có mặt trên mọi bảng mới
 - **Liên quan:** ADR-0001, ADR-0002; `docs/ARCHITECTURE.md` mục "Luật dữ liệu" (ADR này chỉ siết chặt thêm)
 

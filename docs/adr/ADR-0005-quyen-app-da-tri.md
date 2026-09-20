@@ -1,7 +1,7 @@
 # ADR-0005 — Quyền trong app đa trị, tách khỏi vai trò hồ sơ (cấu trúc)
 
-- **Trạng thái:** proposed (bản 3, sau hai lượt rà soát độc lập 2026-09-20)
-- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (chờ duyệt)
+- **Trạng thái:** **accepted** (chủ dự án duyệt 2026-09-20). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-20   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-20)
 - **Loại quyết định:** **cửa một chiều** — đụng vùng rủi ro cao nhất (đăng nhập, PIN, chống dò)
 - **Liên quan:** ADR-0001, ADR-0003, ADR-0007 (bản đồ quyền → thao tác nằm ở ADR-0007, không ở đây)
 
