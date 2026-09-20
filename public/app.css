@@ -62,6 +62,8 @@
   --fs-title: 18px;
   --fs-counter: 20px;
   --lh-heading: 1.16;         /* giữ để dấu tiếng Việt của tiêu đề không bị cắt */
+  --w-form: 1120px;           /* bề rộng tối đa của trang form ở máy tính (form + cột tóm tắt) */
+  --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
@@ -333,3 +335,16 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .catalog-name { min-width: 0; text-align: left; }
 .catalog-name .chip { margin-left: var(--s1); }
 .catalog-empty { padding: var(--s3); color: var(--c-text-muted); }
+
+/* ---------- A2: trang lập/sửa đơn — chỉ token ---------- */
+.pay-note { margin-top: var(--s3); }
+.summary-note { margin: 0; }
+.form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
+.form-actions { background: var(--c-bg); border-top: 1px solid var(--c-line); } /* khổ 641–959px (iPad dọc): thanh dính đáy phải có nền, không chồng chữ lên nội dung */
+@media (min-width: 960px) {
+  main.form-page { max-width: var(--w-form); }
+  #order-form { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; }
+  .form-side { display: block; position: sticky; top: var(--s4); }
+  .form-side .form-actions { position: static; padding: 0; background: none; border-top: 0; }
+  .form-side .form-actions .btn-primary { flex: 1; }
+}

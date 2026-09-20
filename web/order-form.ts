@@ -1,94 +1,156 @@
-import { ApiError, api, type CatalogService, type DepositMethod, type Order, type OrderInput, type Api } from "./api";
-import { PAX_LABEL, availableCodes, buildLines, parseUnit, type PaxCode } from "../src/shared/order-lines";
-import { byId, h, replaceChildren } from "./dom";
+// Form lập/sửa đơn (A2, đặc tả §5.1–5.2): thẻ dịch vụ + thông tin chuyến, tóm tắt tiền, banner lỗi/xung đột.
+// Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
+import type { CatalogServiceDto } from "../src/shared/contracts";
+import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
+import { can } from "../src/shared/permissions";
+import {
+  canAddService, draftFromDto, draftIssues, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
+  type ServiceDraft,
+} from "../src/shared/service-form";
+import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
+import { vnToday } from "../src/shared/vn-date";
+import { ApiError, api, type Api, type DepositMethod, type OrderInput } from "./api";
+import { renderBanner } from "./banner";
+import { createCatalogPicker } from "./catalog-picker";
+import { byId } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
-import { initShell, setBarTitle, showError } from "./shell";
+import { regroupMoney } from "./money-input";
+import { createServiceCard, type ServiceCard } from "./service-card";
+import { initShell, setBarTitle } from "./shell";
 
-const editId = new URLSearchParams(location.search).get("id");
+const params = new URLSearchParams(location.search);
+const editId = params.get("id");
+const focusId = params.get("focus");
+const today = vnToday(new Date());
+const isPhone = window.matchMedia("(max-width: 640px)").matches;
 
-const errorEl = byId("error");
-const itemsEl = byId("items");
+const errorEl = byId("error"); // lỗi tải trang / khoá form
+const saveErrorEl = byId("save-error"); // lỗi khi lưu, ngay trên nút Lưu (nút dính đáy trên điện thoại)
+const formEl = byId<HTMLFormElement>("order-form");
+const servicesEl = byId("services");
+const emptyEl = byId("services-empty");
+const limitEl = byId("services-limit");
+const addManualBtn = byId<HTMLButtonElement>("add-manual");
 const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
+const num = (id: string) => parseMoney(field(id).value);
 
-interface ItemRow {
-  /** Dòng sinh từ danh mục giữ mã dịch vụ nguồn (truy vết); dòng nhập tay là null. */
-  catalogCode: string | null;
-  root: HTMLElement;
-  description: HTMLInputElement;
-  detail: HTMLInputElement;
-  quantity: HTMLInputElement;
-  unitPrice: HTMLInputElement;
-  lineTotal: HTMLElement;
+interface Entry {
+  draft: ServiceDraft;
+  card: ServiceCard;
 }
-const rows: ItemRow[] = [];
+const entries: Entry[] = [];
+let seq = 0;
+let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG HIỆN và được hỗ trợ, theo mã
+let orderUpdatedAt: string | null = null;
+let formLocked = false;
+let saving = false;
 
-/** Ô nhập tiền: gõ tự nhóm hàng nghìn (1.350.000), giá trị thật lấy bằng parseMoney. */
-function moneyInput(id: string | null, placeholder: string): HTMLInputElement {
-  const el = h("input", { type: "text", inputMode: "numeric", autocomplete: "off", placeholder, id });
-  el.addEventListener("input", () => {
-    const n = parseMoney(el.value);
-    el.value = el.value.trim() === "" ? "" : grouped(n);
-    recompute();
+const drafts = () => entries.map((e) => e.draft);
+const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
+
+// ---- ô chọn danh mục và danh sách thẻ ----
+const picker = createCatalogPicker({
+  onPick: (item) => {
+    const entry = mount(newCatalogDraft(item, `k${++seq}`));
+    entry.card.root.scrollIntoView({ block: "nearest" });
+  },
+});
+byId("catalog-slot").append(picker.root);
+
+function mount(d: ServiceDraft, open?: boolean): Entry {
+  const entry = { draft: d } as Entry;
+  entry.card = createServiceCard({
+    draft: d,
+    today,
+    openTrip: open ?? !isPhone, // ≤ 640px thẻ mới thu gọn khối chuyến (Q2); máy tính mở sẵn
+    canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
+    onChange: (next) => {
+      entry.draft = next;
+      recompute();
+    },
+    onRemove: () => unmount(entry),
+    onRepick: () => {
+      unmount(entry);
+      picker.focus();
+    },
   });
-  return el;
+  entries.push(entry);
+  servicesEl.append(entry.card.root);
+  recompute();
+  return entry;
 }
 
-const setMoney = (el: HTMLInputElement, n: number) => (el.value = n ? grouped(n) : "");
-
-function addRow(init?: { catalogCode: string | null; description: string; detail: string | null; quantity: number; unitPrice: number }): void {
-  const description = h("input", { type: "text", placeholder: "Tên dịch vụ, vd: Tour Hòn Mun 1 ngày", maxLength: 300, required: true });
-  const detail = h("input", { type: "text", placeholder: "Chi tiết: ngày đi, số khách…", maxLength: 1000 });
-  const quantity = h("input", { type: "number", min: 1, step: 1, value: "1", inputMode: "numeric" });
-  const unitPrice = moneyInput(null, "Đơn giá (₫)");
-  const lineTotal = h("output", { class: "line-total" }, vnd(0));
-  const remove = h("button", { type: "button", class: "btn btn-link danger", title: "Xoá dòng" }, "Xoá");
-  const root = h(
-    "div",
-    { class: "item" },
-    h("label", { class: "item-desc" }, "Dịch vụ", description),
-    h("label", { class: "item-detail" }, "Chi tiết", detail),
-    h("label", { class: "item-qty" }, "SL", quantity),
-    h("label", { class: "item-price" }, "Đơn giá", unitPrice),
-    h("div", { class: "item-total" }, h("span", { class: "muted" }, "Thành tiền"), lineTotal),
-    remove,
-  );
-  const row: ItemRow = { catalogCode: init?.catalogCode ?? null, root, description, detail, quantity, unitPrice, lineTotal };
-  quantity.addEventListener("input", recompute);
-  remove.addEventListener("click", () => {
-    if (rows.length === 1) return; // luôn còn ít nhất một dòng
-    rows.splice(rows.indexOf(row), 1);
-    root.remove();
-    recompute();
-  });
-  if (init) {
-    description.value = init.description;
-    detail.value = init.detail ?? "";
-    quantity.value = String(init.quantity);
-    unitPrice.value = grouped(init.unitPrice); // giá 0 (vd em bé miễn phí) vẫn hiện "0", không để trống
-  }
-  rows.push(row);
-  itemsEl.append(root);
+function unmount(entry: Entry): void {
+  entries.splice(entries.indexOf(entry), 1);
+  entry.card.root.remove();
   recompute();
 }
 
-/** Chỉ để xem trước cho người nhập; con số chính thức do server tính lại khi lưu (spec §2.3). */
+addManualBtn.addEventListener("click", () => {
+  const entry = mount(newManualDraft(`k${++seq}`));
+  entry.card.root.scrollIntoView({ block: "nearest" });
+});
+
+// ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
-  let subtotal = 0;
-  for (const r of rows) {
-    const line = Math.max(0, Math.trunc(Number(r.quantity.value) || 0)) * parseMoney(r.unitPrice.value);
-    r.lineTotal.textContent = vnd(line);
-    subtotal += line;
+  const ds = drafts();
+  const s = orderSummary(ds, num("discount"), num("depositAmount"));
+  byId("sum-subtotal").textContent = vnd(s.subtotal);
+  byId("sum-total").textContent = vnd(s.total);
+  byId("sum-remaining").textContent = vnd(s.remaining);
+  const warn = byId("sum-warning");
+  warn.textContent = s.warning ?? "";
+  warn.hidden = !s.warning;
+  emptyEl.hidden = entries.length > 0;
+  const full = !canAddService(ds);
+  addManualBtn.disabled = full || formLocked;
+  picker.setDisabled(formLocked ? "Form đang khoá." : full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ.` : null);
+  limitEl.hidden = !full;
+  limitEl.textContent = full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ — không thêm được nữa.` : "";
+  for (const e of entries) e.card.refreshLimits(); // trần 50 dòng tính trên CẢ ĐƠN: nút "+ Thêm dòng" của mọi thẻ nhập tay bật/khoá đúng ngay
+  const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
+  saveBtn.disabled = formLocked || saving || tooMany;
+  saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu đơn nháp";
+}
+
+for (const id of ["discount", "depositAmount"]) {
+  const el = field(id) as HTMLInputElement;
+  el.addEventListener("input", () => {
+    regroupMoney(el); // gõ tự nhóm hàng nghìn, giữ con trỏ
+    recompute();
+  });
+}
+
+// ---- kiểm phía trình duyệt (máy chủ vẫn là nơi quyết định) ----
+function validate(): { banner: Banner; focus: HTMLElement } | null {
+  const lines: string[] = [];
+  const focusables: HTMLElement[] = [];
+  const need = (id: string, message: string) => {
+    if (!field(id).value.trim()) {
+      lines.push(message);
+      focusables.push(field(id));
+    }
+  };
+  need("customerName", "Nhập tên khách.");
+  need("customerPhone", "Nhập số điện thoại khách.");
+  if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
+  entries.forEach((e, i) => {
+    for (const issue of draftIssues(e.draft)) {
+      lines.push(`${nameOf(e.draft, i)}: ${issue.message}`);
+      focusables.push(e.card.root);
+    }
+  });
+  lines.push(...orderIssues(drafts()));
+  const s = orderSummary(drafts(), num("discount"), num("depositAmount"));
+  if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
+  else if (s.deposit > s.total) lines.push("Tiền cọc không được vượt quá tổng cộng.");
+  if (s.deposit > 0 && !field("depositMethod").value) {
+    lines.push("Chọn hình thức cọc.");
+    focusables.push(field("depositMethod"));
   }
-  const discount = parseMoney(field("discount").value);
-  const deposit = parseMoney(field("depositAmount").value);
-  const total = subtotal - discount;
-  byId("sum-subtotal").textContent = vnd(subtotal);
-  byId("sum-total").textContent = vnd(total);
-  byId("sum-remaining").textContent = vnd(total - deposit);
-  const bad = discount > subtotal ? "Giảm giá đang lớn hơn tạm tính." : deposit > total ? "Tiền cọc đang lớn hơn tổng cộng." : null;
-  byId("sum-warning").textContent = bad ?? "";
-  byId("sum-warning").hidden = !bad;
+  if (lines.length === 0) return null;
+  return { banner: banner("danger", "Chưa lưu được — kiểm tra lại:", { lines: lines.map((text) => ({ text })) }), focus: focusables[0] ?? saveErrorEl };
 }
 
 function collect(): OrderInput {
@@ -98,162 +160,145 @@ function collect(): OrderInput {
     customerPhone: field("customerPhone").value,
     customerEmail: field("customerEmail").value,
     customerNote: field("customerNote").value,
-    items: rows.map((r) => ({
-      catalogCode: r.catalogCode,
-      description: r.description.value,
-      detail: r.detail.value,
-      quantity: Math.trunc(Number(r.quantity.value) || 0),
-      unitPrice: parseMoney(r.unitPrice.value),
-    })),
-    discount: parseMoney(field("discount").value),
-    depositAmount: parseMoney(field("depositAmount").value),
+    services: entries.map((e) => toServiceInput(e.draft)),
+    discount: num("discount"),
+    depositAmount: num("depositAmount"),
     depositMethod: method || null,
     paymentNote: field("paymentNote").value,
+    ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
   };
 }
 
-function fill(o: Order): void {
-  field("customerName").value = o.customerName;
-  field("customerPhone").value = o.customerPhone;
-  field("customerEmail").value = o.customerEmail ?? "";
-  field("customerNote").value = o.customerNote ?? "";
-  setMoney(field("discount") as HTMLInputElement, o.discount);
-  setMoney(field("depositAmount") as HTMLInputElement, o.depositAmount);
-  field("depositMethod").value = o.depositMethod ?? "";
-  field("paymentNote").value = o.paymentNote ?? "";
-  for (const it of o.items) addRow(it);
+// ---- khoá form, banner lỗi ----
+function lockForm(b: Banner): void {
+  formLocked = true;
+  formEl.toggleAttribute("inert", true);
+  renderBanner(errorEl, b);
+  recompute();
 }
 
-byId<HTMLFormElement>("order-form").addEventListener("submit", async (e) => {
+function setSaving(value: boolean): void {
+  saving = value;
+  formEl.toggleAttribute("inert", value); // đang lưu: các ô nhập khoá (đặc tả 10)
+  recompute();
+}
+
+async function refreshCatalogAfterConflict(): Promise<void> {
+  try {
+    const res = await api<Api.CatalogPublicResponse>("/api/catalog");
+    setCatalog(res.items);
+    for (const en of entries) {
+      const d = en.draft;
+      if (d.kind !== "catalog") continue;
+      const item = live.get(d.code);
+      if (!item) continue;
+      const next = refreshFromCatalog(d, item); // giá mới cho thẻ đang theo danh mục hiện tại; GIỮ đơn giá đã thương lượng
+      if (next !== d) {
+        en.draft = next;
+        en.card.update(next);
+      }
+    }
+    recompute();
+  } catch {
+    /* banner "giá danh mục vừa đổi" vẫn hiện; lần Lưu tiếp theo sẽ báo lỗi rõ hơn */
+  }
+}
+
+async function onSaveError(err: unknown): Promise<void> {
+  const failure =
+    err instanceof ApiError
+      ? classifyOrderError({ status: err.status, code: err.code, message: err.message, details: err.details }, { serviceNames: entries.map((e, i) => nameOf(e.draft, i)), formatMoney: vnd })
+      : NETWORK_BANNER;
+  if (failure.refreshCatalog) await refreshCatalogAfterConflict();
+  if (failure.action === "lock_form") lockForm(failure);
+  renderBanner(saveErrorEl, failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
+  const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
+  (isPhone ? saveErrorEl : (target ?? saveErrorEl)).scrollIntoView({ block: "center" }); // điện thoại: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; máy tính: cuộn tới thẻ (banner ở cột dính, luôn thấy)
+}
+
+formEl.addEventListener("submit", async (e) => {
   e.preventDefault();
-  showError(errorEl, null);
-  saveBtn.disabled = true;
+  if (formLocked || saving) return;
+  renderBanner(saveErrorEl, null);
+  for (const en of entries) en.card.showIssues(true);
+  const invalid = validate();
+  if (invalid) {
+    renderBanner(saveErrorEl, invalid.banner);
+    (isPhone ? saveErrorEl : invalid.focus).scrollIntoView({ block: "center" }); // điện thoại: banner (liệt kê đủ lỗi) nằm cuối form nên phải cuộn tới ĐÓ; máy tính: banner ở cột dính, cuộn tới ô lỗi đầu tiên
+    return;
+  }
+  setSaving(true);
   try {
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
     location.assign(`/order?id=${encodeURIComponent(order.id)}`);
   } catch (err) {
-    showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
-    errorEl.scrollIntoView({ block: "nearest" });
-    saveBtn.disabled = false;
+    setSaving(false);
+    await onSaveError(err);
   }
 });
 
-byId("add-item").addEventListener("click", () => addRow());
-for (const id of ["discount", "depositAmount"]) {
-  const el = field(id) as HTMLInputElement;
-  el.addEventListener("input", () => {
-    el.value = el.value.trim() === "" ? "" : grouped(parseMoney(el.value));
-    recompute();
-  });
+// ---- danh mục và đơn ----
+function setCatalog(items: CatalogServiceDto[]): void {
+  live = new Map(items.filter((c) => c.supported).map((c) => [c.code, c]));
+  picker.setItems(items);
 }
 
-// ---- Chọn nhanh từ danh mục dịch vụ (M3): mỗi loại khách sinh một dòng; dịch vụ tính theo nhóm nhập theo số khách.
-let catalog: CatalogService[] = [];
-const catalogQ = byId<HTMLInputElement>("catalog-q");
-const catalogList = byId("catalog-list");
-const catalogPick = byId("catalog-pick");
-const catalogWarn = byId("catalog-warn");
-
-function showCatalogWarn(text: string | null): void {
-  catalogWarn.textContent = text ?? "";
-  catalogWarn.hidden = !text;
-}
-
-function renderCatalogList(): void {
-  const q = catalogQ.value.trim().toLowerCase();
-  const found = catalog.filter((c) => !q || c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q)).slice(0, 40);
-  replaceChildren(
-    catalogList,
-    ...found.map((c) => {
-      const b = h("button", { type: "button", disabled: !c.supported || c.prices.adult === null }, h("span", null, h("strong", null, c.code), " ", c.name), h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : "nhập tay"));
-      b.addEventListener("click", () => openPick(c));
-      return b;
-    }),
-    found.length === 0 && h("div", { class: "muted", style: "padding:12px" }, "Không có dịch vụ khớp — bạn có thể nhập tay ở các dòng bên dưới."),
-  );
-  catalogList.hidden = false;
-}
-
-function openPick(c: CatalogService): void {
-  catalogList.hidden = true;
-  const unit = parseUnit(c.unit);
-  const codes = availableCodes(c);
-  const inputs = new Map<PaxCode, HTMLInputElement>();
-  const preview = h("div", { class: "preview" });
-  const add = h("button", { type: "button", class: "btn btn-primary" }, "Thêm vào đơn");
-  const counts = () => Object.fromEntries([...inputs].map(([k, el]) => [k, Math.trunc(Number(el.value) || 0)])) as Partial<Record<PaxCode, number>>;
-  const refresh = () => {
-    const r = buildLines(c, counts());
-    add.disabled = !r.ok;
-    preview.textContent = r.ok ? `${r.lines.length} dòng · ${vnd(r.lines.reduce((sum, l) => sum + l.quantity * l.unitPrice, 0))}` : r.message;
-  };
-  for (const code of codes) {
-    const label = unit.kind === "group" ? "Số khách" : PAX_LABEL[code];
-    const input = h("input", { type: "number", min: 0, step: 1, value: code === "adult" ? "1" : "0", inputMode: "numeric" });
-    input.addEventListener("input", refresh);
-    inputs.set(code, input);
+async function loadCatalog(): Promise<void> {
+  try {
+    const res = await api<Api.CatalogPublicResponse>("/api/catalog");
+    setCatalog(res.items);
+    if (res.items.length === 0) picker.setNotice("Danh mục dịch vụ đang trống — hãy thêm dịch vụ nhập tay.");
+    else if (res.sync.error) picker.setNotice(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
+  } catch {
+    // Mất danh mục khi sửa nháp: thẻ đã lưu hiện ở dạng khoá (vẫn sửa được đơn giá/chuyến và lưu được; máy chủ giữ bản chụp).
+    picker.setNotice("Không tải được danh mục dịch vụ — hãy thêm dịch vụ nhập tay.");
   }
-  const counters = h("div", { class: "counters" }, ...codes.map((code) => h("label", null, unit.kind === "group" ? "Số khách" : `${PAX_LABEL[code]} · ${vnd(c.prices[code]!)}`, inputs.get(code)!)));
-  add.addEventListener("click", () => {
-    const r = buildLines(c, counts());
-    if (!r.ok) return;
-    if (rows.length === 1 && !rows[0]!.description.value.trim() && !rows[0]!.unitPrice.value.trim()) {
-      rows[0]!.root.remove(); // bỏ dòng trống mặc định
-      rows.length = 0;
-    }
-    for (const l of r.lines) addRow({ catalogCode: l.catalogCode, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice });
-    catalogPick.hidden = true;
-    catalogQ.value = "";
-    itemsEl.scrollIntoView({ block: "nearest" });
-  });
-  const cancel = h("button", { type: "button", class: "btn" }, "Bỏ qua");
-  cancel.addEventListener("click", () => (catalogPick.hidden = true));
-  const hint =
-    unit.kind === "group"
-      ? `Giá ${vnd(c.prices.adult!)} cho mỗi nhóm tối đa ${unit.size} khách — nhập số khách, hệ thống tự tính số lượt.`
-      : "Nhập số khách từng loại; mỗi loại có khách sẽ thành một dòng trong đơn.";
-  replaceChildren(catalogPick, h("strong", null, `${c.code} — ${c.name}`), h("p", { class: "muted", style: "margin:4px 0 0" }, hint), counters, preview, h("div", { class: "actions", style: "margin:0" }, add, cancel));
-  catalogPick.hidden = false;
-  refresh();
 }
 
-catalogQ.addEventListener("focus", renderCatalogList);
-catalogQ.addEventListener("input", renderCatalogList);
-document.addEventListener("click", (e) => {
-  if (!(e.target instanceof Node) || !(catalogQ.parentElement?.parentElement?.contains(e.target) ?? false)) catalogList.hidden = true;
-});
-
-await initShell();
-try {
-  const res = await api<Api.CatalogPublicResponse>("/api/catalog");
-  catalog = res.items;
-  if (catalog.length === 0) showCatalogWarn("Danh mục dịch vụ đang trống — hãy nhập tay các dòng bên dưới.");
-  else if (res.sync.error) showCatalogWarn(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
-} catch {
-  showCatalogWarn("Không tải được danh mục dịch vụ — hãy nhập tay các dòng bên dưới.");
+function fill(o: Api.OrderDetailDto): void {
+  field("customerName").value = o.customerName;
+  field("customerPhone").value = o.customerPhone;
+  field("customerEmail").value = o.customerEmail ?? "";
+  field("customerNote").value = o.customerNote ?? "";
+  (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
+  (field("depositAmount") as HTMLInputElement).value = o.depositAmount ? grouped(o.depositAmount) : "";
+  field("depositMethod").value = o.depositMethod ?? "";
+  field("paymentNote").value = o.paymentNote ?? "";
+  for (const en of [...entries]) unmount(en);
+  orderUpdatedAt = o.updatedAt;
+  for (const s of o.services) {
+    const entry = mount(draftFromDto(s, live, `k${++seq}`), s.id === focusId ? true : undefined);
+    if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
+  }
 }
+
+async function loadOrder(): Promise<void> {
+  if (!editId) return;
+  renderBanner(errorEl, null);
+  renderBanner(saveErrorEl, null);
+  try {
+    const { order, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`);
+    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn hoặc quản trị viên mới được sửa đơn này."));
+    if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn ở trạng thái nháp."));
+    byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
+    setBarTitle(`Sửa đơn ${order.orderCode}`);
+    fill(order);
+  } catch (err) {
+    lockForm(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn."));
+  }
+}
+
+// ---- khởi động ----
+const staff = await initShell();
+await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
   setBarTitle("Sửa đơn");
-  try {
-    const { order, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`);
-    if (!canModify) {
-      showError(errorEl, "Chỉ người lập đơn hoặc quản trị viên mới được sửa đơn này.");
-      saveBtn.disabled = true;
-    } else if (order.status !== "draft") {
-      showError(errorEl, "Chỉ sửa được đơn ở trạng thái nháp.");
-      saveBtn.disabled = true;
-    } else {
-      byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
-      setBarTitle(`Sửa đơn ${order.orderCode}`);
-      fill(order);
-    }
-  } catch (err) {
-    showError(errorEl, err instanceof ApiError ? err.message : "Không tải được đơn.");
-    saveBtn.disabled = true;
-  }
+  await loadOrder();
+} else if (!can(staff, "order.create")) {
+  // ADR-0007: kế toán xem được đơn nhưng không lập đơn; nút "Đơn mới" đã ẩn, đây là lớp chặn khi mở thẳng đường dẫn.
+  lockForm(banner("danger", "Tài khoản này không được lập đơn."));
 }
-if (rows.length === 0) addRow();
 recompute();

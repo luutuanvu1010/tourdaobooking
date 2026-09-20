@@ -2,50 +2,54 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tour Đảo"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Lập đơn — Tour Đảo Booking</title></head>
 <body data-title="Tạo đơn mới" data-back="/" data-tabbar="off">
 <header id="topbar"></header>
-<main>
+<main class="form-page">
   <h1 id="form-title">Tạo đơn mới</h1>
-  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="error" class="banner" role="alert" hidden></div>
   <form id="order-form" novalidate>
-    <section class="card">
-      <h2>Khách hàng</h2>
-      <div class="grid two">
-        <label>Tên khách *<input id="customerName" type="text" maxlength="200" autocomplete="off" required></label>
-        <label>Số điện thoại *<input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" required></label>
-        <label>Email<input id="customerEmail" type="email" maxlength="200" autocomplete="off"></label>
-        <label>Ghi chú / yêu cầu đặc biệt<textarea id="customerNote" maxlength="2000"></textarea></label>
+    <div class="form-main">
+      <section class="card">
+        <h2>Khách hàng</h2>
+        <div class="grid two">
+          <label>Tên khách *<input id="customerName" type="text" maxlength="200" autocomplete="off" required></label>
+          <label>Số điện thoại *<input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" required></label>
+          <label>Email<input id="customerEmail" type="email" maxlength="200" autocomplete="off"></label>
+          <label>Ghi chú / yêu cầu đặc biệt<textarea id="customerNote" maxlength="2000"></textarea></label>
+        </div>
+      </section>
+      <section class="card">
+        <h2>Dịch vụ</h2>
+        <div id="catalog-slot"></div>
+        <button id="add-manual" class="btn btn-block" type="button">+ Dịch vụ nhập tay</button>
+        <p id="services-limit" class="muted" hidden></p>
+        <div id="services" class="svc-list"></div>
+        <p id="services-empty" class="svc-empty">Chưa có dịch vụ. Chọn từ danh mục hoặc thêm dịch vụ nhập tay.</p>
+      </section>
+      <section class="card">
+        <h2>Thanh toán</h2>
+        <div class="grid three">
+          <label>Giảm giá (₫)<input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+          <label>Đã cọc (₫)<input id="depositAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+          <label>Hình thức cọc<select id="depositMethod"><option value="">—</option><option value="cash">Tiền mặt</option><option value="bank_transfer">Chuyển khoản</option><option value="other">Khác</option></select></label>
+        </div>
+        <label class="pay-note">Ghi chú thanh toán<textarea id="paymentNote" maxlength="1000" placeholder="vd: số tài khoản đã chuyển"></textarea></label>
+      </section>
+    </div>
+    <div class="form-side">
+      <section class="card summary-card">
+        <h2>Tóm tắt</h2>
+        <div class="summary">
+          <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
+          <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
+          <div class="kv strong"><span>Còn lại</span><span id="sum-remaining">0 ₫</span></div>
+          <div id="sum-warning" class="alert warn" hidden></div>
+          <p class="muted summary-note">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
+        </div>
+      </section>
+      <div id="save-error" class="banner" role="alert" hidden></div>
+      <div class="form-actions">
+        <button id="save" class="btn btn-primary" type="submit">Lưu đơn nháp</button>
+        <a class="btn" href="/">Quay lại</a>
       </div>
-    </section>
-    <section class="card">
-      <h2>Dịch vụ</h2>
-      <div class="catalog">
-        <div id="catalog-warn" class="alert warn" hidden></div>
-        <label>Chọn nhanh từ danh mục<input id="catalog-q" type="search" placeholder="Gõ tên hoặc mã dịch vụ…" autocomplete="off"></label>
-        <div id="catalog-list" class="catalog-list" hidden></div>
-        <div id="catalog-pick" class="catalog-pick" hidden></div>
-      </div>
-      <h3>Các dòng trong đơn</h3>
-      <div id="items"></div>
-      <button id="add-item" class="btn" type="button">+ Thêm dòng</button>
-    </section>
-    <section class="card">
-      <h2>Thanh toán</h2>
-      <div class="grid three">
-        <label>Giảm giá (₫)<input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-        <label>Đã cọc (₫)<input id="depositAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-        <label>Hình thức cọc<select id="depositMethod"><option value="">—</option><option value="cash">Tiền mặt</option><option value="bank_transfer">Chuyển khoản</option><option value="other">Khác</option></select></label>
-      </div>
-      <label style="margin-top:12px">Ghi chú thanh toán<textarea id="paymentNote" maxlength="1000" placeholder="vd: số tài khoản đã chuyển"></textarea></label>
-      <div class="summary">
-        <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
-        <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
-        <div class="kv strong"><span>Còn lại</span><span id="sum-remaining">0 ₫</span></div>
-        <div id="sum-warning" class="alert warn" hidden></div>
-        <p class="muted" style="margin:0">Số trên đây chỉ để xem trước; hệ thống tính lại chính thức khi lưu.</p>
-      </div>
-    </section>
-    <div class="form-actions">
-      <button id="save" class="btn btn-primary" type="submit">Lưu đơn nháp</button>
-      <a class="btn" href="/">Quay lại</a>
     </div>
   </form>
 </main>
