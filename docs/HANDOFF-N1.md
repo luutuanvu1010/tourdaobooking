@@ -2,6 +2,18 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## TRẠNG THÁI TRIỂN KHAI — lần phát hành 1 ĐÃ LÊN PRODUCTION (2026-09-21, theo lệnh của chủ dự án)
+A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện ở mục "Điều kiện TRƯỚC khi triển khai". Không còn việc "triển khai lần 1" nào phải làm; các mục bên dưới giữ lại để tra cứu và cho lần 2.
+- **Mã:** `main` @ `9b4ad33`. **Worker:** phiên bản `a625adc4-43df-4e67-ac8e-f619aa98732b` tại `booking.tourdao.vn` (phiên bản ngay trước đó: `0b13b279-b0c2-4032-8cb1-5a3c1c83b593`, 2026-09-19). **D1:** đã áp `0008…0012` (trước đó `0001…0007`); `migrations list --remote` báo "No migrations to apply".
+- **Cổng đã chạy TRƯỚC khi áp:** D1 có 3 đơn, 10 tài khoản, 8 dòng tiền; cổng chỉ-đọc `full_name`/`created_at` (mục "Cổng bổ sung" §1) trả **0 dòng**; điểm khôi phục Time Travel đã ghi: `000000ca-00000000-000050ec-d2515812ba718f70d7ec57f18973c50a` (lệnh khôi phục: `npx wrangler d1 time-travel restore tourdao-sales-db --bookmark=<điểm này>`); trên `9b4ad33`: `npm test` 236/236, `npm run typecheck` mã thoát 0, `npm run test:e2e` 10/10 + `audit-invariants` xanh.
+- **Kết quả SAU khi deploy (chỉ đọc):** `node scripts/audit-invariants.mjs --db remote` — mọi bất biến đạt (kể cả `PRAGMA foreign_key_check` chạy được trên remote); backfill: 8 địa điểm, 10 hồ sơ = 10 tài khoản (0 tài khoản thiếu `party_id`), 10 quyền đang hiệu lực (1 ADMIN), 3 đơn còn nguyên; `order_service` có 8 dòng vì `0008` chuyển MỖI dòng tiền cũ thành một dịch vụ "nhập tay" (đơn cũ vẫn hiển thị đúng); các trang `/`, `/order-form`, `/order`, `/parties`, `/locations`, `/staff`, `/catalog` trả 200; `/sw.js` là `no-store`; `/api/auth/me` chưa đăng nhập trả 401.
+- **CHƯA làm / còn mở:**
+  1. Bước "Thử tay" (mục Triển khai, bước 4) và §3 "gọi API thật" — cần đăng nhập ADMIN, việc của chủ dự án (kèm tạo một hồ sơ thử: đó là thao tác GHI, chỉ làm khi đã chắc không hoàn tác).
+  2. **Cửa sổ đóng băng thao tác tài khoản/quyền/hồ sơ VẪN HIỆU LỰC** cho tới khi chủ dự án chắc không hoàn tác (mục "Hoàn tác"). Hoàn tác Worker về `0b13b279-…` chỉ an toàn nếu chưa có tài khoản/quyền/hồ sơ nào được tạo hay sửa dưới mã mới.
+  3. Quyết định 4(a)/(b)/(c) chưa được chọn. Vì `0011` ĐÃ áp lên remote, phương án 4(a)(ii) (trigger) nay cần MỘT MIGRATION MỚI (không tái sinh `0011` được nữa); (i) và (iii) không đổi.
+  4. Chữ ký duyệt thị giác A2 chưa được ghi vào `docs/evidence/2026-09-20-a2/README.md` (chủ dự án ra lệnh triển khai nhưng chưa ghi ngày/người ký/điểm cần sửa).
+  5. Gói Workers: `MAX_SERVICES` 20 × `MAX_LINES_PER_ORDER` 50 cho phép một đơn ghi khoảng 77–80 câu D1; nếu tài khoản Cloudflare đang ở gói Free (giới hạn 50 truy vấn D1 mỗi lần gọi Worker) thì đơn cỡ lớn sẽ bị từ chối. Cần chủ dự án xem gói trong Cloudflare dashboard (đơn thường vài dịch vụ nằm xa giới hạn này).
+
 ## Đã có sau N1 (lần phát hành 1)
 - Migration `0009…0012` (chỉ thêm — mã cũ vẫn chạy): `v_ord_order_label`, `loc_*` (8 địa điểm), `pty_*` (hồ sơ, liên hệ, vai trò theo nơi, quan hệ), `stf_*` + `staff.party_id` + backfill hồ sơ/quyền cho tài khoản có sẵn.
 - API: `/api/parties*`, `/api/locations*`, `PUT /api/staff/:id/permissions`; `POST /api/staff` nhận `permissions[]` (thay `role`).

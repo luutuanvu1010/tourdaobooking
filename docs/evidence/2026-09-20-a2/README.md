@@ -8,6 +8,8 @@ Artifact của bước nghiệm thu A2 (đặc tả `docs/superpowers/specs/2026
 
 **Chưa ký.** Chủ dự án xem `anh/` cạnh mockup (`docs/design/a2-mockup/output/`) theo bảng đối chiếu dưới đây rồi ghi tại đây: ngày, ai ký, và các điểm cần sửa (nếu có). Chưa ký = chưa triển khai (`docs/HANDOFF-N1.md`).
 
+**Ghi chú 2026-09-21 (trung thực, không phải chữ ký):** chủ dự án đã ra lệnh triển khai và bản này ĐÃ chạy trên production (Worker `a625adc4-43df-4e67-ac8e-f619aa98732b`, `docs/HANDOFF-N1.md` mục "Trạng thái triển khai"), nhưng mục này chưa được chủ dự án ghi ngày, người ký hay điểm cần sửa nên vẫn là **Chưa ký**. Các điểm cần đối chiếu trên iPhone thật (mục "Chưa kiểm") vẫn còn nguyên.
+
 **Lưu ý khi xem ảnh:** ô ngày/giờ và `<select>` trong ảnh là điều khiển kiểu Chrome (vd `1k-bang-sua-chuyen.png` có "dd/mm/yyyy" và biểu tượng lịch), KHÔNG phải điều khiển của iOS; căn cứ ký thị giác cần được đối chiếu lại trên iPhone thật.
 
 ## Đối chiếu ảnh ↔ artboard
