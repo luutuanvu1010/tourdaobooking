@@ -3,14 +3,16 @@
 import { getAuditTrail } from "../audit";
 import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { cancelOrder, confirmOrder, createOrder, findOrder, getMeta, getStoredServices, listOrders, updateDraftOrder, updateTrip } from "./repository";
-import { canModify, canTransition, isOrderStatus, validateOrder, type Failure } from "./rules";
+import { canTransition, isOrderStatus, validateOrder, type Failure } from "./rules";
 import { loadOrderView, validationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn hoặc quản trị viên mới được thay đổi đơn này.");
+const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
@@ -29,7 +31,7 @@ function failure(f: Failure): Response {
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
-    route("GET", "/api/orders", "staff", async ({ env, url }) => {
+    route("GET", "/api/orders", "office", async ({ env, url }) => {
       const raw = url.searchParams.get("status");
       const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
       if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
@@ -42,26 +44,30 @@ export const ordersModule: AppModule = {
       return json(result satisfies OrderListResponse);
     }),
 
-    route("POST", "/api/orders", "staff", async ({ env, request, staff }) => {
+    route("POST", "/api/orders", "office", async ({ env, request, staff }) => {
+      if (!can(staff, "order.create")) return CANNOT_CREATE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, null));
       if (!parsed.ok) return failure(parsed);
       const id = await createOrder(env.DB, staff.id, parsed.value);
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
 
-    route("GET", "/api/orders/:id", "staff", async ({ env, params, staff }) => {
+    route("GET", "/api/orders/:id", "office", async ({ env, params, staff }) => {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       const order = await loadOrderView(env.DB, params.id!);
       if (!order) return NOT_FOUND();
-      return json({ order, history: await getAuditTrail(env.DB, order.id), canModify: canModify(staff, order) } satisfies OrderDetailResponse);
+      // ADR-0007: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình; ACCOUNTING và ADMIN mọi đơn.
+      const owner = { ownerId: order.staffId };
+      const history = can(staff, "order.history.view", owner) ? await getAuditTrail(env.DB, order.id) : [];
+      return json({ order, history, canModify: can(staff, "order.modify", owner) } satisfies OrderDetailResponse);
     }),
 
-    route("PUT", "/api/orders/:id", "staff", async ({ env, request, params, staff }) => {
+    route("PUT", "/api/orders/:id", "office", async ({ env, request, params, staff }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const meta = await getMeta(env.DB, id);
       if (!meta) return NOT_FOUND();
-      if (!canModify(staff, meta)) return FORBIDDEN();
+      if (!can(staff, "order.modify", { ownerId: meta.staffId })) return FORBIDDEN();
       if (meta.status !== "draft") return NOT_EDITABLE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, id));
       if (!parsed.ok) return failure(parsed);
@@ -75,12 +81,12 @@ export const ordersModule: AppModule = {
     }),
 
     // Sửa trường vận hành (ngày giờ khởi hành, đón, check-in, ghi chú) — kể cả đơn ĐÃ XÁC NHẬN (Q9). Không đổi khách/tiền.
-    route("PUT", "/api/orders/:id/trip", "staff", async ({ env, request, params, staff }) => {
+    route("PUT", "/api/orders/:id/trip", "office", async ({ env, request, params, staff }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const meta = await getMeta(env.DB, id);
       if (!meta) return NOT_FOUND();
-      if (!canModify(staff, meta)) return FORBIDDEN();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId })) return FORBIDDEN();
       if (meta.status === "cancelled") return CANCELLED();
       const stored = await getStoredServices(env.DB, id);
       const parsed = validateTripUpdate(await readJson(request), stored.map((s) => ({ id: s.id, departDate: s.trip.departDate })), meta.status, vnToday(new Date()));
@@ -94,7 +100,7 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/status", "staff", async ({ env, request, params, staff }) => {
+    route("POST", "/api/orders/:id/status", "office", async ({ env, request, params, staff }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const body = await readJson(request);
@@ -102,7 +108,7 @@ export const ordersModule: AppModule = {
       if (to !== "confirmed" && to !== "cancelled") return error(400, "invalid_input", "Trạng thái đích phải là confirmed hoặc cancelled.");
       const meta = await getMeta(env.DB, id);
       if (!meta) return NOT_FOUND();
-      if (!canModify(staff, meta)) return FORBIDDEN();
+      if (!can(staff, "order.modify", { ownerId: meta.staffId })) return FORBIDDEN();
       const from = meta.status;
       if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
 

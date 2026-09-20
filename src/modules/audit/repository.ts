@@ -43,8 +43,8 @@ export const SYSTEM_ACTOR_NAME = "Hệ thống (tự động)";
 export async function listByOrder(db: D1Database, orderId: string): Promise<AuditEntry[]> {
   const { results } = await db
     .prepare(
-      `SELECT a.action, a.staff_id, s.full_name AS staff_name, a.detail, a.created_at
-       FROM audit_log a LEFT JOIN staff s ON s.id = a.staff_id
+      `SELECT a.action, a.staff_id, s.label AS staff_name, a.detail, a.created_at
+       FROM audit_log a LEFT JOIN v_stf_staff_label s ON s.id = a.staff_id
        WHERE a.order_id = ? ORDER BY a.created_at, a.rowid`,
     )
     .bind(orderId)
@@ -66,26 +66,28 @@ export async function listAll(
   if (opts.q) {
     const like = `%${escapeLike(opts.q)}%`;
     where.push(
-      "(o.order_code LIKE ? ESCAPE '\\' OR s.full_name LIKE ? ESCAPE '\\' OR t.full_name LIKE ? ESCAPE '\\' OR (a.target_type = 'catalog' AND a.target_id LIKE ? ESCAPE '\\'))",
+      "(o.order_code LIKE ? ESCAPE '\\' OR s.label LIKE ? ESCAPE '\\' OR t.label LIKE ? ESCAPE '\\' OR pt.display_name LIKE ? ESCAPE '\\' OR (a.target_type = 'catalog' AND a.target_id LIKE ? ESCAPE '\\'))",
     );
-    binds.push(like, like, like, like);
+    binds.push(like, like, like, like, like);
   }
   // LEFT JOIN: hành động không gắn với đơn (order_id NULL) vẫn phải hiện ra.
   const { results } = await db
     .prepare(
-      `SELECT a.id, a.action, a.staff_id, s.full_name AS staff_name, a.order_id, o.order_code,
-              a.target_type, a.target_id, t.full_name AS target_staff_name, a.detail, a.created_at
+      `SELECT a.id, a.action, a.staff_id, s.label AS staff_name, a.order_id, o.order_code,
+              a.target_type, a.target_id, t.label AS target_staff_name, pt.display_name AS target_party_name, lt.name AS target_location_name, a.detail, a.created_at
        FROM audit_log a
-       LEFT JOIN staff s ON s.id = a.staff_id
-       LEFT JOIN orders o ON o.id = a.order_id
-       LEFT JOIN staff t ON a.target_type = 'staff' AND t.id = a.target_id
+       LEFT JOIN v_stf_staff_label s ON s.id = a.staff_id
+       LEFT JOIN v_ord_order_label o ON o.id = a.order_id
+       LEFT JOIN v_stf_staff_label t ON a.target_type = 'staff' AND t.id = a.target_id
+       LEFT JOIN v_pty_party_label pt ON a.target_type = 'party' AND pt.id = a.target_id
+       LEFT JOIN v_loc_location_label lt ON a.target_type = 'location' AND lt.id = a.target_id
        ${where.length ? `WHERE ${where.join(" AND ")}` : ""}
        ORDER BY a.created_at DESC, a.rowid DESC LIMIT ? OFFSET ?`,
     )
     .bind(...binds, opts.limit + 1, opts.offset)
     .all<{
       id: string; action: AuditAction; staff_id: string | null; staff_name: string | null; order_id: string | null; order_code: string | null;
-      target_type: AuditTargetType | null; target_id: string | null; target_staff_name: string | null; detail: string | null; created_at: string;
+      target_type: AuditTargetType | null; target_id: string | null; target_staff_name: string | null; target_party_name: string | null; target_location_name: string | null; detail: string | null; created_at: string;
     }>();
   const entries = results.slice(0, opts.limit).map((r) => ({
     id: r.id,
@@ -96,7 +98,7 @@ export async function listAll(
     detail: r.detail,
     targetType: r.target_type,
     targetId: r.target_id,
-    targetLabel: r.order_code ?? r.target_staff_name ?? (r.target_type === "catalog" ? r.target_id : null),
+    targetLabel: r.order_code ?? r.target_staff_name ?? r.target_party_name ?? r.target_location_name ?? (r.target_type === "catalog" ? r.target_id : null),
     orderId: r.order_id,
   }));
   return { entries, hasMore: results.length > opts.limit };

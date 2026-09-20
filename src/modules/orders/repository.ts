@@ -59,7 +59,7 @@ interface ItemRow {
   line_total: number;
 }
 
-const ORDER_SELECT = `SELECT o.*, s.full_name AS staff_name FROM orders o JOIN staff s ON s.id = o.staff_id`;
+const ORDER_SELECT = `SELECT o.*, s.label AS staff_name FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id`;
 const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time, pickup_time, pickup_place,
   checkin_date, checkin_time, checkin_place, note FROM order_service WHERE order_id = ? ORDER BY sort_order`;
 const ITEM_SELECT = `SELECT id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
@@ -186,7 +186,7 @@ export async function listOrders(
   }
   if (opts.q) {
     const like = `%${escapeLike(opts.q)}%`;
-    where.push(`(o.order_code LIKE ? ESCAPE '\\' OR o.customer_name LIKE ? ESCAPE '\\' OR o.customer_phone LIKE ? ESCAPE '\\' OR s.full_name LIKE ? ESCAPE '\\')`);
+    where.push(`(o.order_code LIKE ? ESCAPE '\\' OR o.customer_name LIKE ? ESCAPE '\\' OR o.customer_phone LIKE ? ESCAPE '\\' OR s.label LIKE ? ESCAPE '\\')`);
     binds.push(like, like, like, like);
   }
   const sql = `${ORDER_SELECT} ${where.length ? `WHERE ${where.join(" AND ")}` : ""} ORDER BY o.created_at DESC, o.rowid DESC LIMIT ? OFFSET ?`;

@@ -11,14 +11,14 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement, findParty, findPartiesByPhone,
-  getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePartyStatements,
+  getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, renamePersonStatements, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
   PARTY_ID_RE, ROW_ID_RE, composePersonName, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate, validateRelationship, validateRole,
 } from "./rules";
 
-export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, splitPersonName };
+export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName };
 export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hồ sơ.");
@@ -111,19 +111,19 @@ export const partiesModule: AppModule = {
   name: "parties",
   routes: [
     // ---- Tra cứu (khai TRƯỚC :id để "meta"/"lookup" không bị hiểu là id) ------------------------------------------------
-    route("GET", "/api/parties/meta", "staff", async ({ env }) => {
+    route("GET", "/api/parties/meta", "office", async ({ env }) => {
       const [roleTypes, relationshipTypes] = await Promise.all([listRoleTypes(env.DB), listRelationshipTypes(env.DB)]);
       return json({ roleTypes, relationshipTypes } satisfies PartyMetaResponse);
     }),
 
-    route("GET", "/api/parties/lookup", "staff", async ({ env, url }) => {
+    route("GET", "/api/parties/lookup", "office", async ({ env, url }) => {
       const phone = normalizePhone(url.searchParams.get("phone") ?? "");
       if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
       const rows = await findPartiesByPhone(env.DB, phone, vnToday(new Date()));
       return json({ matches: rows.map(toListItem) } satisfies PartyLookupResponse);
     }),
 
-    route("GET", "/api/parties", "staff", async ({ env, url }) => {
+    route("GET", "/api/parties", "office", async ({ env, url }) => {
       const kindRaw = url.searchParams.get("kind");
       if (kindRaw && kindRaw !== "PERSON" && kindRaw !== "ORGANIZATION") return error(400, "invalid_input", "Loại hồ sơ lọc không hợp lệ.");
       const role = url.searchParams.get("role") || null;
@@ -148,7 +148,7 @@ export const partiesModule: AppModule = {
     }),
 
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------
-    route("POST", "/api/parties", "staff", async ({ request, env, staff }) => {
+    route("POST", "/api/parties", "office", async ({ request, env, staff }) => {
       const parsed = validatePartyCreate(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
@@ -165,12 +165,12 @@ export const partiesModule: AppModule = {
       return respondParty(env.DB, made.partyId, 201);
     }),
 
-    route("GET", "/api/parties/:id", "staff", async ({ env, params }) => {
+    route("GET", "/api/parties/:id", "office", async ({ env, params }) => {
       const id = idParam(params, "id", PARTY_ID_RE);
       return id ? respondParty(env.DB, id) : NOT_FOUND();
     }),
 
-    route("PUT", "/api/parties/:id", "staff", async ({ request, env, params, staff }) => {
+    route("PUT", "/api/parties/:id", "office", async ({ request, env, params, staff }) => {
       const id = idParam(params, "id", PARTY_ID_RE);
       const current = id ? await findParty(env.DB, id) : null;
       if (!id || !current) return NOT_FOUND();
@@ -184,7 +184,7 @@ export const partiesModule: AppModule = {
     }),
 
     // ---- Liên hệ (SALES/ACCOUNTING/ADMIN: như sửa hồ sơ) ------------------------------------------------------------------
-    route("POST", "/api/parties/:id/contacts", "staff", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/contacts", "office", async ({ request, env, params, staff }) => {
       const id = idParam(params, "id", PARTY_ID_RE);
       const detail = id ? await getPartyDetail(env.DB, id) : null;
       if (!id || !detail) return NOT_FOUND();
@@ -203,7 +203,7 @@ export const partiesModule: AppModule = {
       return respondParty(env.DB, id, 201);
     }),
 
-    route("POST", "/api/parties/:id/contacts/:cid/end", "staff", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/contacts/:cid/end", "office", async ({ request, env, params, staff }) => {
       const id = idParam(params, "id", PARTY_ID_RE);
       const cid = idParam(params, "cid", ROW_ID_RE);
       if (!id || !cid || !(await findParty(env.DB, id))) return NOT_FOUND();

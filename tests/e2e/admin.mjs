@@ -11,23 +11,32 @@ const SALES = await session(ACCOUNTS.salesA);
 assert.equal((await raw(null, "GET", "/api/staff")).status, 401);
 assert.equal((await raw(SALES, "GET", "/api/staff")).status, 403);
 assert.equal((await raw(SALES, "POST", "/api/staff", { fullName: "X", phone: rnd() })).status, 403);
+assert.equal((await raw(SALES, "PUT", "/api/staff/00000000-0000-0000-0000-000000000000/permissions", { permissions: ["ADMIN"] })).status, 403, "sales không tự cấp quyền");
 assert.equal((await raw(SALES, "GET", "/api/staff/sheet")).status, 403);
 
 // --- tạo nhân viên
 const phoneA = rnd();
 let r = await raw(ADMIN, "POST", "/api/staff", { fullName: "  Nguyễn   Test Một ", phone: phoneA.replace(/^0/, "+84 ") });
 assert.equal(r.status, 201, JSON.stringify(r.body));
-assert.equal(r.body.staff.phone, phoneA); assert.equal(r.body.staff.fullName, "Nguyễn Test Một"); assert.equal(r.body.staff.role, "sales");
+assert.equal(r.body.staff.phone, phoneA); assert.equal(r.body.staff.fullName, "Nguyễn Test Một"); assert.deepEqual(r.body.staff.permissions, ["SALES"]);
+assert.ok(r.body.staff.partyId, "tài khoản mới phải có hồ sơ");
 assert.match(r.body.pin, /^\d{6}$/);
-const A = { id: r.body.staff.id, pin: r.body.pin, phone: phoneA };
+const A = { id: r.body.staff.id, pin: r.body.pin, phone: phoneA, partyId: r.body.staff.partyId };
 assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Trùng", phone: phoneA })).status, 409);
 assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Sai", phone: "123" })).status, 400);
-assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Sai vai", phone: rnd(), role: "boss" })).status, 400);
+for (const bad of [["BOSS"], [], "SALES", ["SALES", "sales"], [1]]) assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Sai quyền", phone: rnd(), permissions: bad })).status, 400, JSON.stringify(bad));
 r = await login(A.phone, A.pin); assert.equal(r.status, 200);
 const A_COOKIE = cookieOf(r);
 console.log("✓ tạo + đăng nhập bằng PIN sinh ra");
 
 // --- nhật ký: có dòng không gắn đơn (LEFT JOIN), KHÔNG chứa PIN
+// hồ sơ nhân sự: có hồ sơ PERSON với tên tách đúng, vai trò hồ sơ STAFF, KHÔNG có liên hệ (SĐT đăng nhập ≠ SĐT liên hệ — ADR-0001 mục 5)
+r = await raw(ADMIN, "GET", `/api/parties/${A.partyId}`);
+assert.equal(r.status, 200);
+assert.equal(r.body.party.kind, "PERSON"); assert.equal(r.body.party.displayName, "Nguyễn Test Một");
+assert.equal(r.body.party.familyName, "Nguyễn"); assert.equal(r.body.party.middleName, "Test"); assert.equal(r.body.party.givenName, "Một");
+assert.deepEqual(r.body.party.roleCodes, ["STAFF"]); assert.deepEqual(r.body.party.contacts, []);
+console.log("✓ tài khoản mới có hồ sơ + vai trò STAFF, không sao chép SĐT");
 r = await raw(ADMIN, "GET", "/api/audit?action=staff_created&limit=5");
 assert.equal(r.status, 200);
 const created = r.body.entries.find((e) => e.targetId === A.id);
@@ -36,17 +45,28 @@ assert.equal(created.orderId, null); assert.equal(created.targetLabel, "Nguyễn
 assert.ok(!JSON.stringify(r.body).includes(A.pin), "PIN không được xuất hiện trong nhật ký");
 console.log("✓ nhật ký hiển thị hành động không gắn đơn, không lộ PIN");
 
-// --- sửa: đổi tên/SĐT/vai trò/ngưng
-r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: "Nguyễn Test Hai", role: "admin" });
-assert.equal(r.status, 200); assert.equal(r.body.staff.role, "admin");
-r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { role: "sales" });
-assert.equal(r.body.staff.role, "sales");
+// --- sửa: đổi tên (= đổi tên hồ sơ), quyền, SĐT, ngưng
+r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: "Nguyễn Test Hai" });
+assert.equal(r.status, 200); assert.equal(r.body.staff.fullName, "Nguyễn Test Hai");
+assert.equal((await raw(ADMIN, "GET", `/api/parties/${r.body.staff.partyId}`)).body.party.displayName, "Nguyễn Test Hai", "đổi tên tài khoản = đổi tên hồ sơ");
+r = await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] });
+assert.equal(r.status, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.staff.permissions, ["SALES", "ADMIN"]);
+r = await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] });
+assert.deepEqual(r.body.staff.permissions, ["SALES"]);
+for (const bad of [[], ["BOSS"], "ADMIN", null]) assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: bad })).status, 400, JSON.stringify(bad));
+assert.equal((await raw(ADMIN, "PUT", "/api/staff/khong-phai-id/permissions", { permissions: ["SALES"] })).status, 404);
+// quyền có hiệu lực NGAY với phiên đang mở (getActiveStaff đọc quyền ở mỗi request)
+assert.deepEqual((await raw(A_COOKIE, "GET", "/api/auth/me")).body.staff.permissions, ["SALES"]);
+assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] })).status, 200);
+assert.deepEqual((await raw(A_COOKIE, "GET", "/api/auth/me")).body.staff.permissions, ["SALES", "ACCOUNTING"]);
+assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] })).status, 200);
 r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { phone: "0900000002" });
 assert.equal(r.status, 409); // trùng SĐT người khác
 // tự ngưng / tự hạ quyền bị chặn
 const me = (await raw(ADMIN, "GET", "/api/auth/me")).body.staff;
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${me.id}`, { active: false })).status, 409);
-assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${me.id}`, { role: "sales" })).status, 409);
+assert.equal((await raw(ADMIN, "PUT", `/api/staff/${me.id}/permissions`, { permissions: ["SALES"] })).status, 409);
+assert.equal((await raw(ADMIN, "PUT", `/api/staff/${me.id}/permissions`, { permissions: ["ADMIN", "SALES"] })).status, 409, "cũng không tự thêm quyền cho mình");
 // ngưng → hiệu lực NGAY với phiên đang mở
 assert.equal((await raw(A_COOKIE, "GET", "/api/auth/me")).status, 200);
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { active: false })).status, 200);
@@ -56,7 +76,8 @@ assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { active: true }))
 assert.equal((await login(A.phone, A.pin)).status, 200);
 r = await raw(ADMIN, "GET", "/api/audit?q=Nguyễn Test&limit=20");
 const actions = r.body.entries.filter((e) => e.targetId === A.id).map((e) => e.action);
-for (const a of ["staff_created", "staff_updated", "staff_role_changed", "staff_suspended", "staff_reactivated"]) assert.ok(actions.includes(a), `thiếu ${a}: ${actions}`);
+for (const a of ["staff_created", "staff_updated", "permission_changed", "staff_suspended", "staff_reactivated"]) assert.ok(actions.includes(a), `thiếu ${a}: ${actions}`);
+assert.ok(r.body.entries.some((e) => e.action === "permission_changed" && e.targetId === A.id && /Bán hàng/.test(e.detail)), "nhật ký đổi quyền có nhãn tiếng Việt");
 console.log("✓ sửa/ngưng/kích hoạt, tự khoá bị chặn, ngưng có hiệu lực ngay, đủ nhật ký");
 
 // --- đặt lại PIN thu hồi phiên cũ

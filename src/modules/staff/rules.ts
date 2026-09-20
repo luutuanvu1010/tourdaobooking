@@ -1,5 +1,5 @@
 // Luật thuần của quản lý tài khoản nhân viên. Chỉ import kiểu, không I/O.
-import type { StaffRole } from "../../shared/contracts.ts";
+import type { PermissionCode } from "../../shared/permissions.ts";
 
 /** PIN quá dễ đoán: cả 6 số giống nhau hoặc chạy liên tiếp tăng/giảm, kể cả cuộn vòng (000000, 123456, 654321, 890123…). */
 export function isWeakPin(pin: string): boolean {
@@ -23,22 +23,25 @@ function randomBelow(max: number): number {
   }
 }
 
+const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
+
 /**
  * Kiểm tra một thay đổi tài khoản do `actorId` thực hiện. Trả thông báo lỗi, hoặc null nếu hợp lệ.
- * - Không tự ngưng/hạ quyền chính mình (tránh tự khoá).
- * - Không để hệ thống hết quản trị viên hoạt động (không còn ai vào bảng Admin để sửa).
+ * - Không tự ngưng hoặc tự đổi quyền của chính mình (tránh tự khoá).
+ * - Không để hệ thống hết quản trị viên hoạt động (không còn ai vào bảng Admin để sửa) — quản trị viên = tài khoản đang hoạt động có quyền ADMIN.
  */
 export function checkAccountChange(
   actorId: string,
-  target: { id: string; role: StaffRole; active: boolean },
-  next: { role?: StaffRole; active?: boolean },
+  target: { id: string; permissions: readonly PermissionCode[]; active: boolean },
+  next: { permissions?: readonly PermissionCode[]; active?: boolean },
   activeAdminCount: number,
 ): string | null {
-  const nextRole = next.role ?? target.role;
+  const nextPermissions = next.permissions ?? target.permissions;
   const nextActive = next.active ?? target.active;
-  const losesAdmin = target.role === "admin" && target.active && (nextRole !== "admin" || !nextActive);
-  if (target.id === actorId && (nextActive === false || nextRole !== target.role)) {
-    return "Không thể tự ngưng hoặc đổi vai trò của chính mình. Hãy nhờ một quản trị viên khác.";
+  const permissionsChanged = next.permissions !== undefined && !sameSet(next.permissions, target.permissions);
+  const losesAdmin = target.permissions.includes("ADMIN") && target.active && (!nextPermissions.includes("ADMIN") || !nextActive);
+  if (target.id === actorId && (nextActive === false || permissionsChanged)) {
+    return "Không thể tự ngưng hoặc tự đổi quyền của chính mình. Hãy nhờ một quản trị viên khác.";
   }
   if (losesAdmin && activeAdminCount <= 1) return "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.";
   return null;

@@ -232,6 +232,13 @@ const UPDATE_ORG = defineSql(
   `UPDATE pty_organization SET legal_name = ?2, tax_code = ?3, address = ?4, invoice_email = ?5, updated_at = ?6, updated_by = ?7
    WHERE party_id = ?1 AND (SELECT updated_at FROM pty_party WHERE id = ?1) = ?8`,
 );
+// Đổi tên KHÔNG khoá lạc quan: dành cho quản trị viên đổi tên tài khoản (module staff gọi). Sửa hồ sơ từ giao diện dùng updatePartyStatements.
+const RENAME_PERSON = defineSql(
+  "parties",
+  "rename_person",
+  "UPDATE pty_person SET family_name = ?2, middle_name = ?3, given_name = ?4, updated_at = ?5, updated_by = ?6 WHERE party_id = ?1",
+);
+const RENAME_PARTY = defineSql("parties", "rename_party", "UPDATE pty_party SET display_name = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1");
 const UPDATE_PARTY = defineSql(
   "parties",
   "update_party",
@@ -299,6 +306,13 @@ export function updatePartyStatements(
   return [
     db.prepare(UPDATE_ORG).bind(id, v.org.legalName, v.org.taxCode, v.org.address, v.org.invoiceEmail, at, actorId, v.expectedUpdatedAt),
     db.prepare(UPDATE_PARTY).bind(id, v.org.displayName, v.active ? 1 : 0, at, actorId, v.expectedUpdatedAt),
+  ];
+}
+
+export function renamePersonStatements(db: D1Database, partyId: string, name: PersonName, actorId: string, at: string): D1PreparedStatement[] {
+  return [
+    db.prepare(RENAME_PERSON).bind(partyId, name.family, name.middle, name.given, at, actorId),
+    db.prepare(RENAME_PARTY).bind(partyId, composePersonName(name), at, actorId),
   ];
 }
 

@@ -30,14 +30,15 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
+  { module: "staff", file: "modules/staff/repository.ts" },
 ];
 
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
- * Hạn: `staff` chuyển sang STRICT ở kế hoạch N1-B (Task B1); `audit`/`orders` bỏ JOIN thẳng bảng khi chạm ở N1-B (Task B4) và còn wonGuard của orders tới N2;
- * `accounts`, `auth`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
+ * Hạn: `audit` và `orders` đã bỏ JOIN thẳng bảng (đọc qua view công bố) ở N1-B nhưng SQL của chúng chưa đăng ký — chuyển STRICT khi được chạm ở N2;
+ * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts`, `auth`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
  */
-const LEGACY = ["accounts", "audit", "auth", "catalog", "orders", "staff"] as const;
+const LEGACY = ["accounts", "audit", "auth", "catalog", "orders"] as const;
 
 const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", dsp_: "dispatch", bil_: "billing" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };
@@ -323,4 +324,32 @@ test("module không nghiêm phải nằm trong LEGACY (ngoại lệ có hạn) �
 test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu lực hoặc active = 0); UPDATE thì không", () => {
   assert.ok(violations({ module: "locations", sql: "DELETE FROM loc_location WHERE id = ?" }).some((v) => /xoá cứng bảng loc_location/.test(v)));
   assert.deepEqual(violations({ module: "locations", sql: "UPDATE loc_location SET active = 0 WHERE id = ?" }), [], "UPDATE không phải xoá cứng");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-N1-14 (đặc tả N1 §5): staff.role và staff.full_name là cột CHẾT (ADR-0005) — không SQL nào đọc chúng.
+// Kiểm hai lớp: (1) KIỂU — StaffRecord/StaffProfile không có hai trường, đọc thuộc tính là lỗi `tsc`; (2) bài kiểm này quét mã nguồn.
+// Quét chuỗi không phải cơ chế ranh giới (ADR-0002 điều 8) — chỉ là lưới thêm cho hai tên cột đã biết; SQL của staff còn được EXPLAIN kiểm ở trên.
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-N1-14: không đọc staff.role / staff.full_name; không SELECT * FROM staff", () => {
+  const WRITE_ONLY_FILES = new Set(["src/modules/staff/repository.ts", "scripts/staff-lib.mjs"]); // câu INSERT ghi hằng 'sales' và ''
+  const files = [...walk(SRC), ...readdirSync(join(ROOT, "scripts")).filter((f) => f.endsWith(".mjs")).map((f) => join(ROOT, "scripts", f))];
+  const problems: string[] = [];
+  for (const file of files) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    const lines = readFileSync(file, "utf8").split("\n");
+    lines.forEach((line, i) => {
+      if (/^\s*(?:\/\/|\/\*|\*)/.test(line)) return; // dòng chú thích (//, /* … */, * …)
+      const code = line.replace(/\/\/.*$/, ""); // bỏ chú thích cuối dòng
+      const where = `${rel}:${i + 1}`;
+      if (/\bfull_name\b/.test(code) && !WRITE_ONLY_FILES.has(rel)) problems.push(`${where}: đọc/ghi full_name`);
+      if (/SELECT\s+\*\s+FROM\s+staff\b/i.test(code) || /\bs\.\*/.test(code)) problems.push(`${where}: SELECT * trên staff`);
+      if (/\b(?:s|t|staff)\.role\b/.test(code) || /\brole\s*=\s*'(?:admin|sales)'/.test(code) || /\brole\s+IN\s*\(/i.test(code)) problems.push(`${where}: đọc staff.role`);
+    });
+  }
+  assert.deepEqual(problems, []);
+});
+
+test("sổ dữ liệu: cột đánh dấu chết (deprecatedColumns) có thật trong bảng", () => {
+  for (const t of dict.tables) for (const c of t.deprecatedColumns ?? []) assert.ok(columns(t.name).some((x) => x.name === c), `${t.name}.${c} không tồn tại`);
 });

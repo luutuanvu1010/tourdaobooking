@@ -12,7 +12,7 @@ test("băm rồi kiểm PIN: đúng thì qua, sai thì không", async () => {
 });
 
 test("hash do scripts/ tạo được Worker chấp nhận (cùng một định dạng)", async () => {
-  const sql: string = await insertStaffSql({ name: "A", phone: "0900000009", pin: "482915", role: "sales" });
+  const sql: string = await insertStaffSql({ name: "Nguyễn Văn A", phone: "0900000009", pin: "482915", permissions: ["SALES"] });
   const hash = /'(pbkdf2\$[^']+)'/.exec(sql)?.[1];
   assert.ok(hash, sql);
   assert.ok(await verifyPin("482915", hash));

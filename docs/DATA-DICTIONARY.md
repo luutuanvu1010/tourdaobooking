@@ -64,7 +64,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `staff` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `staff` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: role, full_name |
 | `stf_permission` | bảng |  |
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |

@@ -117,11 +117,6 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   };
 }
 
-/** Ai được sửa/xác nhận/huỷ đơn: người lập đơn hoặc admin. Xem đơn thì mọi nhân viên đều được (§2.4-4). */
-export function canModify(staff: { id: string; role: "sales" | "admin" }, order: { staffId: string }): boolean {
-  return staff.role === "admin" || staff.id === order.staffId;
-}
-
 // draft → confirmed → cancelled, hoặc draft → cancelled. Không có đường quay lại (§2.3).
 const TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
   draft: ["confirmed", "cancelled"],

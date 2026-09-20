@@ -10,9 +10,11 @@ const PERSIST = process.env.E2E_PERSIST_TO;
 
 /** Tài khoản test cố định — run.mjs nạp chúng vào D1 tạm. Chỉ có ý nghĩa ở local. */
 export const ACCOUNTS = {
-  salesA: { name: "NV Bán A (test)", phone: "0900000002", pin: "246810", role: "sales" },
-  salesB: { name: "NV Bán B (test)", phone: "0900000003", pin: "135790", role: "sales" },
-  admin: { name: "QTV Test", phone: "0900000004", pin: "112233", role: "admin" },
+  salesA: { name: "NV Bán A (test)", phone: "0900000002", pin: "246810", permissions: ["SALES"] },
+  salesB: { name: "NV Bán B (test)", phone: "0900000003", pin: "135790", permissions: ["SALES"] },
+  admin: { name: "QTV Test", phone: "0900000004", pin: "112233", permissions: ["ADMIN"] },
+  accountant: { name: "Kế Toán Test", phone: "0900000005", pin: "224466", permissions: ["ACCOUNTING"] },
+  field: { name: "Hiện Trường Test", phone: "0900000006", pin: "335577", permissions: ["FIELD"] },
 };
 
 let ipn = 0;

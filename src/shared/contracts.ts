@@ -2,17 +2,20 @@
 // Server khai kiểu trả về theo file này (và `satisfies` ở chỗ trả JSON); web/api.ts re-export. Đổi một bên mà quên bên kia → typecheck báo.
 import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
+import type { PermissionCode } from "./permissions.ts";
 
-export type { AuditAction, AuditTargetType, CatalogService, PaxCode, PaxCounts, Prices };
+export type { AuditAction, AuditTargetType, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices };
 
 // ---- Nhân viên / phiên -------------------------------------------------------
-export type StaffRole = "sales" | "admin";
-
 export interface StaffProfile {
   id: string;
+  /** Tên hiển thị lấy từ hồ sơ (pty_party.display_name), không phải cột staff.full_name (cột chết). */
   fullName: string;
   phone: string;
-  role: StaffRole;
+  /** Hồ sơ của tài khoản; null chỉ trong khoảng giữa hai lần triển khai N1 (đặc tả N1 §9). */
+  partyId: string | null;
+  /** Quyền trong app (ADR-0005), đọc từ stf_permission — KHÔNG phải vai trò hồ sơ (HDV, tài xế…). */
+  permissions: PermissionCode[];
 }
 
 /** Hồ sơ đầy đủ cho màn hình quản trị. */
@@ -25,6 +28,9 @@ export interface StaffAccountDto extends StaffAccount {
   /** Đang bị khoá đăng nhập do nhập sai PIN quá nhiều lần. */
   locked: boolean;
 }
+
+/** Thân yêu cầu PUT /api/staff/:id/permissions: TOÀN BỘ tập quyền mong muốn (không rỗng). */
+export interface StaffPermissionsRequest { permissions: PermissionCode[] }
 
 export interface StaffSheetCandidateDto {
   row: number;

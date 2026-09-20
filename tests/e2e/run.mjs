@@ -14,7 +14,7 @@ import { ACCOUNTS } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
-const ALL = ["platform", "pwa", "orders", "trip", "admin", "catalog", "admin-race", "locations", "parties"];
+const ALL = ["platform", "pwa", "orders", "trip", "admin", "catalog", "admin-race", "locations", "parties", "permissions"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -39,7 +39,7 @@ try {
   console.log(`D1 tạm: ${persist}`);
   wrangler(["d1", "migrations", "apply", "tourdao-sales-db", "--local", "--persist-to", persist]);
   const seed = join(persist, "seed.sql");
-  writeFileSync(seed, (await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql({ name: a.name, phone: a.phone, pin: a.pin, role: a.role })))).join("\n"));
+  writeFileSync(seed, (await Promise.all(Object.values(ACCOUNTS).map((a) => insertStaffSql({ name: a.name, phone: a.phone, pin: a.pin, permissions: a.permissions })))).join("\n"));
   wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", persist, "--file", seed]);
 
   const [port, inspector] = [await freePort(), await freePort()];

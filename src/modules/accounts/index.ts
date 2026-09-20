@@ -1,21 +1,23 @@
 // Module accounts — quản trị tài khoản nhân viên (chỉ admin) và đổi PIN cá nhân. Route: /api/staff*, /api/account/*.
-// Sheet nhân viên chỉ là nguồn ĐỀ XUẤT: admin xem trước rồi xác nhận; Sheet không bao giờ tự tạo/ngưng tài khoản hay cấp admin.
+// Sheet nhân viên chỉ là nguồn ĐỀ XUẤT: admin xem trước rồi xác nhận; Sheet không bao giờ tự tạo/ngưng tài khoản hay cấp quyền ngoài "Bán hàng".
+// Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
 import { auditStatement, type AuditAction } from "../audit";
 import { lockedPhones, newSessionCookie, unlockPhone, verifyPinThrottled } from "../auth";
 import {
-  checkAccountChange, countActiveAdmins, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts, newStaffStatement, normalizePhone,
-  parseStaffSheet, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount, type StaffRole,
+  checkAccountChange, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts, normalizePhone,
+  parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount,
 } from "../staff";
 import type { StaffAccountDto, StaffListResponse, StaffResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { PERMISSION_CODES, PERMISSION_LABEL, isPermissionCode, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
 
-const isRole = (v: unknown): v is StaffRole => v === "sales" || v === "admin";
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
-const ROLE_LABEL: Record<StaffRole, string> = { sales: "nhân viên", admin: "quản trị viên" };
 const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
+const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
+const labelOf = (list: readonly PermissionCode[]) => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "không có quyền");
 
 function sheetError(e: unknown): Response {
   if (e instanceof SheetError) return error(e.code === "sheet_unreachable" ? 502 : 424, e.code, e.message);
@@ -26,6 +28,12 @@ function cleanName(v: unknown): { value?: string; error?: string } {
   if (typeof v !== "string" || !v.trim()) return { error: "Họ tên là bắt buộc." };
   const s = v.trim().replace(/\s+/g, " ");
   return s.length > 200 ? { error: "Họ tên tối đa 200 ký tự." } : { value: s };
+}
+
+/** Tập quyền từ đầu vào: mảng mã hợp lệ, không trùng, ít nhất một (tài khoản không quyền không làm được gì). Trả tập theo thứ tự chuẩn hoặc lỗi. */
+function cleanPermissions(v: unknown): { value?: PermissionCode[]; error?: string } {
+  if (!Array.isArray(v) || v.length === 0 || !v.every(isPermissionCode)) return { error: `Quyền phải là một danh sách không rỗng gồm: ${PERMISSION_CODES.join(", ")}.` };
+  return { value: PERMISSION_CODES.filter((code) => v.includes(code)) };
 }
 
 const dto = (s: StaffAccount, locked: Set<string>): StaffAccountDto => ({ ...s, locked: locked.has(s.phone) });
@@ -75,12 +83,12 @@ export const accountsModule: AppModule = {
       if (name.error) return error(400, "invalid_input", name.error);
       const phone = typeof body?.phone === "string" ? normalizePhone(body.phone) : null;
       if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
-      const role = body?.role ?? "sales";
-      if (!isRole(role)) return error(400, "invalid_input", "Vai trò phải là sales hoặc admin.");
+      const perms = cleanPermissions(body?.permissions ?? ["SALES"]);
+      if (perms.error) return error(400, "invalid_input", perms.error);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
-      const created = await newStaffStatement(db, { fullName: name.value!, phone, role });
+      const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
       try {
-        await db.batch([created.statement, adminAudit(db, admin.id, "staff_created", created.id, `vai trò ${ROLE_LABEL[role]}`)]);
+        await db.batch([...created.statements, adminAudit(db, admin.id, "staff_created", created.id, `quyền: ${labelOf(perms.value!)}`)]);
       } catch (e) {
         if (isUniqueViolation(e)) return PHONE_TAKEN();
         throw e;
@@ -126,10 +134,10 @@ export const accountsModule: AppModule = {
       const todo = [];
       for (const c of parsed.candidates) if (pick.has(c.phone) && !(await findStaffByPhone(db, c.phone))) todo.push(c);
       if (todo.length === 0) return error(409, "nothing_to_add", "Không có ai để thêm (đã có tài khoản hoặc Sheet vừa thay đổi). Hãy đồng bộ lại.");
-      const made = await Promise.all(todo.map(async (c) => ({ c, ...(await newStaffStatement(db, { fullName: c.name, phone: c.phone, role: "sales" })) })));
+      const made = await Promise.all(todo.map(async (c) => ({ c, ...(await createAccountStatements(db, { fullName: c.name, phone: c.phone, permissions: ["SALES"] }, admin.id)) })));
       try {
         await db.batch([
-          ...made.flatMap((m) => [m.statement, adminAudit(db, admin.id, "staff_created", m.id, "nạp từ Google Sheet, vai trò nhân viên")]),
+          ...made.flatMap((m) => [...m.statements, adminAudit(db, admin.id, "staff_created", m.id, "nạp từ Google Sheet, quyền: Bán hàng")]),
           adminAudit(db, admin.id, "staff_synced", undefined, `thêm ${made.length} tài khoản từ Google Sheet`),
         ]);
       } catch (e) {
@@ -139,7 +147,7 @@ export const accountsModule: AppModule = {
       return json({ created: made.map((m) => ({ id: m.id, fullName: m.c.name, phone: m.c.phone, pin: m.pin })) } satisfies StaffSheetApplyResponse, 201);
     }),
 
-    // ---- Sửa một tài khoản -------------------------------------------------------
+    // ---- Sửa một tài khoản (tên, SĐT đăng nhập, ngưng/kích hoạt) --------------------------------
     route("PATCH", "/api/staff/:id", "admin", async (ctx) => {
       const { request, env, staff: admin } = ctx;
       const db = env.DB;
@@ -147,7 +155,7 @@ export const accountsModule: AppModule = {
       if (!t) return NOT_FOUND();
       const body = await readJson(request);
       if (!body) return error(400, "invalid_input", "Dữ liệu không hợp lệ.");
-      const patch: { fullName?: string; phone?: string; role?: StaffRole; active?: boolean } = {};
+      const patch: { fullName?: string; phone?: string; active?: boolean } = {};
       if (body.fullName !== undefined) {
         const n = cleanName(body.fullName);
         if (n.error) return error(400, "invalid_input", n.error);
@@ -161,28 +169,34 @@ export const accountsModule: AppModule = {
           patch.phone = phone;
         }
       }
-      if (body.role !== undefined) {
-        if (!isRole(body.role)) return error(400, "invalid_input", "Vai trò phải là sales hoặc admin.");
-        if (body.role !== t.role) patch.role = body.role;
-      }
       if (body.active !== undefined) {
         if (typeof body.active !== "boolean") return error(400, "invalid_input", "Trạng thái phải là true/false.");
         if (body.active !== t.active) patch.active = body.active;
       }
       if (Object.keys(patch).length === 0) return json({ staff: dto(t, await lockedPhones(db)) } satisfies StaffResponse);
 
-      const problem = checkAccountChange(admin.id, t, patch, await countActiveAdmins(db));
+      const problem = checkAccountChange(admin.id, t, { active: patch.active }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
-      const losesAdmin = t.role === "admin" && t.active && (patch.role === "sales" || patch.active === false);
+      const losesAdmin = t.permissions.includes("ADMIN") && t.active && patch.active === false;
 
-      const stmts: D1PreparedStatement[] = [updateStaffStatement(db, t.id, patch, losesAdmin)];
+      const at = new Date().toISOString();
+      const stmts: D1PreparedStatement[] = [];
+      if (patch.fullName !== undefined) {
+        const rename = renameAccountStatements(db, t, patch.fullName, admin.id, at);
+        if (!rename) return error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
+        stmts.push(...rename);
+      }
+      // Câu UPDATE tài khoản đứng CUỐI nhóm ghi để `changes()` của các dòng nhật ký sau nó tham chiếu đúng câu này.
+      const needsUpdate = patch.phone !== undefined || patch.active !== undefined;
+      if (needsUpdate) stmts.push(updateStaffStatement(db, t.id, patch, losesAdmin));
+      const updateIndex = stmts.length - 1;
       // Chỉ ghi nhật ký nếu UPDATE thực sự áp dụng (changes() > 0), tránh ghi dấu vết cho thao tác bị chặn khi tranh chấp.
-      const log = (action: AuditAction, detail?: string) => adminAudit(db, admin.id, action, t.id, detail, "changes() > 0");
+      const onlyIf = needsUpdate ? "changes() > 0" : undefined;
+      const log = (action: AuditAction, detail?: string) => adminAudit(db, admin.id, action, t.id, detail, onlyIf);
       if (patch.fullName !== undefined || patch.phone !== undefined) {
         const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && `SĐT ${t.phone} → ${patch.phone}`].filter(Boolean);
         stmts.push(log("staff_updated", bits.join("; ")));
       }
-      if (patch.role !== undefined) stmts.push(log("staff_role_changed", `${ROLE_LABEL[t.role]} → ${ROLE_LABEL[patch.role]}`));
       if (patch.active === false) stmts.push(log("staff_suspended"));
       if (patch.active === true) stmts.push(log("staff_reactivated"));
       let results;
@@ -192,7 +206,30 @@ export const accountsModule: AppModule = {
         if (isUniqueViolation(e)) return PHONE_TAKEN();
         throw e;
       }
-      if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
+      if (needsUpdate && (results[updateIndex]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+      return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db)) } satisfies StaffResponse);
+    }),
+
+    // ---- Đặt tập quyền của tài khoản (ADR-0005) ---------------------------------------------------------
+    route("PUT", "/api/staff/:id/permissions", "admin", async (ctx) => {
+      const { request, env, staff: admin } = ctx;
+      const db = env.DB;
+      const t = await target(ctx);
+      if (!t) return NOT_FOUND();
+      const perms = cleanPermissions((await readJson(request))?.permissions);
+      if (perms.error) return error(400, "invalid_input", perms.error);
+      const next = perms.value!;
+      const problem = checkAccountChange(admin.id, t, { permissions: next }, await countActiveAdmins(db));
+      if (problem) return error(409, "account_rule", problem);
+
+      const at = new Date().toISOString();
+      const plan = setPermissionStatements(db, { staffId: t.id, current: t.permissions, next, actorId: admin.id, at });
+      if (!plan.changed) return json({ staff: dto(t, await lockedPhones(db)) } satisfies StaffResponse);
+      const detail = `${labelOf(t.permissions)} → ${labelOf(next)}`;
+      // Khi bỏ ADMIN: câu đóng ADMIN có điều kiện đứng đầu; nhật ký chỉ ghi nếu nó thắng (changes() > 0); các câu còn lại mang cùng điều kiện.
+      const stmts = [...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest];
+      const results = await db.batch(stmts);
+      if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
       return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db)) } satisfies StaffResponse);
     }),
 

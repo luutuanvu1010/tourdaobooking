@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { EffectiveService } from "../../shared/order-lines.ts";
-import { canModify, canTransition, orderCodePrefix, validateOrder, type ServiceContext } from "./rules.ts";
+import { canTransition, orderCodePrefix, validateOrder, type ServiceContext } from "./rules.ts";
 
 const tour: EffectiveService = {
   code: "TD101", name: "Tour 3 đảo", unit: "perPax", visible: true,
@@ -138,11 +138,4 @@ test("mã đơn theo ngày giờ Việt Nam", () => {
   // 2026-09-16 18:30 UTC = 01:30 ngày 17 giờ VN
   assert.equal(orderCodePrefix(new Date("2026-09-16T18:30:00Z")), "TD-20260917-");
   assert.equal(orderCodePrefix(new Date("2026-09-16T16:59:00Z")), "TD-20260916-");
-});
-
-test("chỉ người lập đơn hoặc admin được sửa/đổi trạng thái", () => {
-  const order = { staffId: "a" };
-  assert.ok(canModify({ id: "a", role: "sales" }, order));
-  assert.ok(canModify({ id: "z", role: "admin" }, order));
-  assert.ok(!canModify({ id: "b", role: "sales" }, order));
 });

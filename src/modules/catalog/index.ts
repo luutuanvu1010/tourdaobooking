@@ -74,7 +74,7 @@ export const catalogModule: AppModule = {
   name: "catalog",
   routes: [
     // ---- Nhân viên: danh mục để chọn nhanh trong form tạo đơn ---------------------------
-    route("GET", "/api/catalog", "staff", async ({ env }) => {
+    route("GET", "/api/catalog", "office", async ({ env }) => {
       try {
         await bootstrapIfNeverSynced(env);
       } catch {

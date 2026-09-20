@@ -125,7 +125,11 @@
       "name": "staff",
       "module": "staff",
       "kind": "table",
-      "legacy": true
+      "legacy": true,
+      "deprecatedColumns": [
+        "role",
+        "full_name"
+      ]
     },
     {
       "name": "stf_permission",

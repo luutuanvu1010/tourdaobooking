@@ -29,7 +29,8 @@ assert.deepEqual(lines(o).map((i) => i.lineTotal), [1350000, 50000]);
 // nhân viên B xem được đơn của A
 r = await call(Bc, "GET", `/api/orders/${o.id}`);
 assert.equal(r.status, 200); assert.equal(r.body.order.staffName, "NV Bán A (test)");
-assert.equal(r.body.history.length, 1);
+assert.equal(r.body.history.length, 0, "SALES chỉ xem nhật ký đơn của mình (ADR-0007) — B không thấy nhật ký đơn của A");
+assert.equal((await call(A, "GET", `/api/orders/${o.id}`)).body.history.length, 1, "người lập đơn thấy nhật ký của mình");
 r = await call(Bc, "GET", "/api/orders?q=Hòn"); // tìm theo tên khách không khớp dịch vụ → 0
 r = await call(Bc, "GET", "/api/orders?q=" + encodeURIComponent("Nguyễn"));
 assert.ok(r.body.orders.some((x) => x.id === o.id));

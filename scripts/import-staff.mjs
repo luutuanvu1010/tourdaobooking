@@ -1,6 +1,6 @@
 // Nạp nhân viên từ Google Sheet (CSV) vào D1 bằng dòng lệnh (dự phòng khi chưa vào được bảng Admin).
 // Cùng logic phân tích với nút "Đồng bộ từ Sheet" trong bảng Admin (src/modules/staff/sheet.ts). Sheet chỉ là nguồn đề xuất:
-// mọi tài khoản mới đều là vai trò `sales`; cấp `admin` bằng scripts/create-staff.mjs hoặc bảng Admin.
+// mọi tài khoản mới chỉ có quyền Bán hàng (SALES); cấp Quản trị bằng scripts/create-staff.mjs (SALES,ADMIN) hoặc bảng Admin.
 //
 // Dùng:
 //   node scripts/import-staff.mjs <URL-CSV|file.csv> --db local|remote [--sql staff.local.sql] [--pins staff-pins.local.txt]
@@ -52,8 +52,8 @@ for (const c of parsed.candidates) {
   let pin;
   do pin = generatePin(); while (used.has(pin));
   used.add(pin);
-  sql.push(await insertStaffSql({ name: c.name, phone: c.phone, pin, role: "sales" }));
-  pins.push(`${c.phone}\t${pin}\t${c.name}\tsales`);
+  sql.push(await insertStaffSql({ name: c.name, phone: c.phone, pin, permissions: ["SALES"] }));
+  pins.push(`${c.phone}\t${pin}\t${c.name}\tSALES`);
 }
 
 console.log(`Nguồn: ${source}\nMôi trường D1: ${db}`);
@@ -62,6 +62,6 @@ for (const s of skipped) console.log(`  = đã có: ${s}`);
 for (const p of parsed.problems) console.log(`  ! Dòng ${p.row}: ${p.message}`);
 if (sql.length === 0) { console.log("Không có gì để thêm; không tạo file."); process.exit(0); }
 writeFileSync(sqlOut, sql.join("\n") + "\n");
-writeFileSync(pinsOut, `SĐT\tPIN\tHọ tên\tVai trò\n${pins.join("\n")}\n`, { mode: 0o600 });
+writeFileSync(pinsOut, `SĐT\tPIN\tHọ tên\tQuyền\n${pins.join("\n")}\n`, { mode: 0o600 });
 console.log(`\nĐã ghi ${sqlOut} và ${pinsOut} (PIN — giữ kín, phát riêng, xoá sau khi phát).`);
 console.log(`Kiểm tra rồi chạy:  npx wrangler d1 execute tourdao-sales-db --${db} --file ${sqlOut}`);
