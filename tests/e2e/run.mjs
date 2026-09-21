@@ -14,7 +14,7 @@ import { ACCOUNTS, TURNSTILE_TEST } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
-const ALL = ["platform", "pwa", "orders", "trip", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "permissions", "company"];
+const ALL = ["platform", "pwa", "orders", "trip", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "permissions", "company", "maintenance"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
