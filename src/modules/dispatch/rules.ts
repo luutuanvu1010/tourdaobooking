@@ -61,6 +61,20 @@ export function mayChangeHandler(who: PermissionHolder, order: { ownerId: string
 }
 
 /**
+ * Phán quyết của route `PUT /api/orders/:id/handler` (một nguồn: hỏi `mayChangeHandler`, không chép luật):
+ *  - `allow`     được phép (đổi người, hoặc nhận đơn chưa có người);
+ *  - `stale`     NHẬN PHỤ TRÁCH THUA ĐUA: `who` tự đặt CHÍNH MÌNH và có quyền nhận (`dispatch.claim`) nhưng đơn ĐÃ có người phụ trách (ai đó nhận/được giao trước). Đây không phải
+ *                vượt quyền mà là dữ liệu đã cũ ⇒ route trả 409 `stale` (giao diện tải lại). Trả 403 sẽ làm CÙNG một cuộc đua ra hai mã tuỳ thời điểm (409 nếu thua đúng lúc ghi, 403 nếu đến sau);
+ *  - `forbidden` còn lại (giao hộ người khác khi không phải người lập/người phụ trách/quản trị, hoặc không có quyền nhận như kế toán/FIELD) ⇒ 403.
+ */
+export type HandlerChangeVerdict = "allow" | "stale" | "forbidden";
+
+export function handlerChangeVerdict(who: PermissionHolder, order: { ownerId: string }, current: { staffId: string | null } | null, targetStaffId: string): HandlerChangeVerdict {
+  if (mayChangeHandler(who, order, current, targetStaffId)) return "allow";
+  return current !== null && targetStaffId === who.id && can(who, "dispatch.claim") ? "stale" : "forbidden";
+}
+
+/**
  * Lỗi "đã có người phụ trách đang mở" của chính CSDL (chỉ mục duy nhất `dsp_assignment_handler_open_uq`). Các câu của `service.ts` đã có điều kiện nên đường thường
  * KHÔNG đến được đây; đây là lưới cuối: route đổi nó thành 409 `stale` thay vì để thành 500.
  */

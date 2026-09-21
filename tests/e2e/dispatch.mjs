@@ -124,19 +124,26 @@ assert.equal((await setHandler(ADMIN, o1.id, a.id)).status, 200, "quản trị �
 const stableRows = (await rowsOf(o1.id)).length;
 for (const [label, cookie, target] of [
   ["SALES không liên quan → giao cho người khác", C.cookie, b.id],
-  ["SALES không liên quan → tự nhận khi đã có người phụ trách", C.cookie, C.id],
-  ["người phụ trách cũ (B) đã bị đổi", B, b.id],
   ["kế toán", ACC, acc.id],
 ]) {
   r = await setHandler(cookie, o1.id, target);
   assert.equal(r.status, 403, `${label} → ${r.status} ${JSON.stringify(r.body)}`);
   assert.equal(r.body.error.code, "forbidden");
 }
+// "Nhận" (tự đặt mình) một đơn ĐÃ có người phụ trách, bởi người CÓ quyền nhận: là thua đua chứ không phải vượt quyền → 409 stale (giao diện tải lại), không phải 403.
+for (const [label, cookie, target] of [
+  ["SALES không liên quan → tự nhận khi đã có người phụ trách", C.cookie, C.id],
+  ["người phụ trách cũ (B) đã bị đổi → tự nhận lại", B, b.id],
+]) {
+  r = await setHandler(cookie, o1.id, target);
+  assert.equal(r.status, 409, `${label} → ${r.status} ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "stale", label);
+}
 assert.equal((await setHandler(FIELD, o1.id, fld.id)).status, 403, "FIELD bị chặn từ router");
 assert.equal((await setHandler(null, o1.id, a.id)).status, 401);
 assert.deepEqual(await handlerOf(A, o1.id), asDto(a), "bị từ chối thì không đổi gì");
 assert.equal((await rowsOf(o1.id)).length, stableRows);
-console.log("✓ ai đổi được: người lập (kể cả đã giao lại), người phụ trách hiện tại, quản trị; người khác/kế toán/FIELD bị từ chối");
+console.log("✓ ai đổi được: người lập (kể cả đã giao lại), người phụ trách hiện tại, quản trị; người khác/kế toán/FIELD bị từ chối; tự nhận đơn đã có người → 409 stale");
 
 // --- 6) đổi sang chính người đang phụ trách = 409 no_change (không ghi gì)
 const nChanges = (await changes(A, o1)).length;
@@ -181,8 +188,9 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body, { handler: asDto(b) });
 assert.deepEqual((await changes(A, o2)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${b.fullName}`]);
 assert.equal((await openOf(o2.id)).length, 1);
-r = await setHandler(C.cookie, o2.id, C.id); // đã có người phụ trách: không còn "nhận" được
-assert.equal(r.status, 403, "chỉ nhận được đơn CHƯA có người phụ trách");
+r = await setHandler(C.cookie, o2.id, C.id); // đã có người phụ trách: không còn "nhận" được — thua đua, không phải vượt quyền
+assert.equal(r.status, 409, "chỉ nhận được đơn CHƯA có người phụ trách");
+assert.equal(r.body.error.code, "stale");
 // người lập / quản trị giao cho người khác khi chưa có người; đổi người thường
 const o3 = await newOrder(A);
 await dropHandler(o3.id);
@@ -237,9 +245,10 @@ for (let round = 0; round < 5; round++) {
   const results = await Promise.all([setHandler(B, o.id, b.id), setHandler(C.cookie, o.id, C.id), setHandler(E.cookie, o.id, E.id)]);
   assert.equal(results.filter((z) => z.status === 200).length, 1, `đúng một người nhận được: ${results.map((z) => z.status)}`);
   for (const loser of results.filter((z) => z.status !== 200)) {
-    // 409 stale = thua đúng lúc ghi; 403 = đến sau khi đã có người phụ trách (chỉ nhận được đơn chưa có người).
-    assert.ok((loser.status === 409 && loser.body.error.code === "stale") || loser.status === 403, `bên thua: ${loser.status} ${JSON.stringify(loser.body)}`);
-    sawStale += loser.status === 409 ? 1 : 0;
+    // ĐÚNG MỘT kết quả cho bên thua: 409 stale — dù thua lúc ghi (câu chốt không áp dụng) hay đến sau khi đã có người phụ trách (người có quyền nhận, đơn đã có người).
+    assert.equal(loser.status, 409, `bên thua: ${loser.status} ${JSON.stringify(loser.body)}`);
+    assert.equal(loser.body.error.code, "stale", `bên thua: ${JSON.stringify(loser.body)}`);
+    sawStale++;
   }
   assert.equal((await changes(A, o)).length, 1, "chỉ MỘT dòng nhật ký");
   assert.equal((await rowsOf(o.id)).length, 2, "dòng của người lập (đã đóng bằng SQL) + dòng của người nhận thắng — bên thua không để lại dòng nào");

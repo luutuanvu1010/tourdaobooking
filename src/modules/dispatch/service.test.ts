@@ -175,6 +175,49 @@ test("đổi người rồi đổi lại nhiều lần: mỗi lần đúng một
   assert.equal(audits(sqlite).length, 3);
 });
 
+/** Chèn một việc KHÁC HANDLE (đón khách…) hạt đơn đang mở — không có route nào tạo việc này ở bản v1.0, nên chèn thẳng như N2 sẽ làm. */
+function addOpenTask(sqlite: DatabaseSync, id: string, orderId: string, kind: string, partyId: string): void {
+  sqlite.exec(`INSERT INTO dsp_assignment (id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, updated_at)
+               VALUES ('${id}', '${orderId}', '${kind}', '${partyId}', 'PENDING', '${T1}', '${T1}', '${T1}')`);
+}
+const tasksOf = (sqlite: DatabaseSync, orderId: string) =>
+  rows(sqlite, `SELECT id, task_kind_code, party_id, valid_to_at FROM dsp_assignment WHERE order_id = '${orderId}' ORDER BY id`);
+
+test("đổi người CHỈ đóng dòng HANDLE: việc khác (PICKUP, BOAT…) hạt đơn đang mở — kể cả của CHÍNH người phụ trách cũ — vẫn mở", async () => {
+  const { sqlite, db } = await withHandlerA();
+  addOpenTask(sqlite, "pk-a", "o-1", "PICKUP", A.partyId); // cùng hồ sơ với người phụ trách cũ: nếu câu đóng bỏ điều kiện loại việc thì dòng này bị đóng theo
+  addOpenTask(sqlite, "pk-c", "o-1", "PICKUP", C.partyId);
+  addOpenTask(sqlite, "bo-a", "o-1", "BOAT", A.partyId);
+  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2 }));
+  assert.equal(results[0]!.meta.changes, 1, "câu chốt chỉ đóng ĐÚNG MỘT dòng (HANDLE)");
+  assert.deepEqual(
+    tasksOf(sqlite, "o-1").map((t) => [t.task_kind_code, t.party_id, t.valid_to_at]).sort(),
+    [
+      ["BOAT", "pty-s-a", null],
+      ["HANDLE", "pty-s-a", T2], // HANDLE cũ của An: đã đóng
+      ["HANDLE", "pty-s-b", null], // HANDLE mới của Bình: đang mở
+      ["PICKUP", "pty-s-a", null],
+      ["PICKUP", "pty-s-c", null],
+    ],
+    "chỉ HANDLE của An bị đóng; việc đón/lái cano giữ nguyên",
+  );
+  assert.equal(audits(sqlite).length, 1);
+});
+
+test("nhận đơn chưa có người phụ trách KHÔNG bị việc khác đang mở (PICKUP…) chặn: 'chưa có người phụ trách' chỉ xét dòng HANDLE", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  addOpenTask(sqlite, "pk-1", "o-2", "PICKUP", C.partyId);
+  addOpenTask(sqlite, "pk-2", "o-2", "PICKUP", B.partyId);
+  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2 }));
+  assert.equal(results[0]!.meta.changes, 1, "vẫn nhận được");
+  assert.deepEqual(tasksOf(sqlite, "o-2").map((t) => [t.task_kind_code, t.party_id, t.valid_to_at]).sort(), [
+    ["HANDLE", "pty-s-b", null],
+    ["PICKUP", "pty-s-b", null],
+    ["PICKUP", "pty-s-c", null],
+  ]);  assert.equal(audits(sqlite).length, 1);
+});
+
 test("đồng hồ hai máy chủ lệch: dòng cũ mở SAU thời điểm đổi thì valid_to_at = valid_from_at (không vi phạm CHECK, không 500)", async () => {
   const { sqlite, db } = await withHandlerA();
   sqlite.exec("UPDATE dsp_assignment SET valid_from_at = '2026-09-21T09:00:00.000Z'"); // dòng cũ "mở trong tương lai" so với T2

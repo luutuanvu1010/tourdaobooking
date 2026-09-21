@@ -65,7 +65,8 @@ console.log("✓ SALES nhật ký của mình, ADMIN mọi đơn");
 const meB = (await call(SALES_B, "GET", "/api/auth/me")).body.staff;
 const meAdmin = (await call(ADMIN, "GET", "/api/auth/me")).body.staff;
 r = await call(SALES_B, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id });
-assert.equal(r.status, 403, "B chưa phải người phụ trách và đơn đã có người phụ trách → không tự nhận được");
+assert.equal(r.status, 409, "B (SALES) chưa phải người phụ trách và đơn đã có người phụ trách → không tự nhận được: thua đua, 409 stale");
+assert.equal(r.body.error.code, "stale");
 assert.equal((await call(SALES, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id })).status, 200, "người lập giao cho B");
 const probe = async (cookie) => (await call(cookie, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id })).status;
 assert.deepEqual(
@@ -102,10 +103,11 @@ assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permi
 r = await call(MC, "POST", "/api/orders", orderInput());
 assert.equal(r.status, 201, "thêm SALES → lập đơn được ngay");
 const mOrder = r.body.order;
-assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: M.id })).status, 403, "SALES không liên quan không tự nhận đơn đã có người phụ trách");
+assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: M.id })).status, 409, "SALES không liên quan không tự nhận được đơn đã có người phụ trách (409 stale, không phải 403)");
+assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id })).status, 403, "còn GIAO HỘ người khác khi không phải người lập/người phụ trách thì vẫn là vượt quyền");
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}`, orderInput({ expectedUpdatedAt: order.updatedAt }))).status, 403, "và không sửa được đơn đó");
 assert.equal((await call(ADMIN, "PATCH", `/api/staff/${M.id}`, { active: false })).status, 200);
-// người phụ trách đã nghỉ: quản trị giao lại đơn của họ (R-DSP-2 chỉ cảnh báo khi còn người phụ trách đã nghỉ)
+// người phụ trách đã nghỉ: quản trị giao lại đơn của họ (nếu không giao lại thì R-DSP-2b cảnh báo ở cuối e2e — chỉ cảnh báo, không làm đỏ --strict)
 assert.equal((await call(ADMIN, "PUT", `/api/orders/${mOrder.id}/handler`, { staffId: meAdmin.id })).status, 200, "giao lại đơn của người đã nghỉ");
 assert.deepEqual((await call(ADMIN, "GET", `/api/dispatch/handlers?orderIds=${mOrder.id}`)).body.handlers[mOrder.id].staffId, meAdmin.id);
 console.log("✓ nhiều quyền + hiệu lực ngay");

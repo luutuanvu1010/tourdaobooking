@@ -38,6 +38,10 @@ const INSERT_HANDLER_IF_NONE = defineSql(
 );
 // ĐÓNG dòng cũ — câu chốt của đổi người: chỉ áp dụng nếu người phụ trách đang mở VẪN là ?2 (người route đã đọc). `max` giữ `valid_to_at >= valid_from_at`
 // (CHECK của bảng) dù đồng hồ hai máy chủ lệch nhau vài mili-giây.
+// KHOÁ LẠC QUAN THEO GIÁ TRỊ `party_id`, KHÔNG theo phiên bản dòng: không chặn ABA. Nếu giữa lúc route đọc (người A) và lúc ghi, người phụ trách đi A → B → A (dòng A thứ hai)
+// thì câu chốt vẫn thắng và đóng dòng A thứ hai. Đây là "lost update" LÀNH TÍNH và có chủ ý: khi ghi, trạng thái thật vẫn là "A phụ trách" đúng như người thao tác đã thấy,
+// mọi lần đổi trung gian đều còn nguyên trong lịch sử và nhật ký, và bất biến "mỗi đơn đúng một HANDLE đang mở" không bị vi phạm. Muốn chặn cả ABA thì phải so khớp id dòng
+// HANDLE (hoặc thêm số phiên bản) — chưa cần vì không mất dữ liệu nào; đừng "sửa" bằng cách bỏ điều kiện `party_id`, đó mới là điều làm bên thua đua ghi đè người thắng.
 const CLOSE_HANDLER = defineSql(
   "dispatch",
   "close_handler",

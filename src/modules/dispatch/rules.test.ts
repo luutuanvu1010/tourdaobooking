@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
-import { MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, isOpenHandlerCollision, mayChangeHandler, parseOrderIds, parseSetHandler } from "./rules.ts";
+import { MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler, parseOrderIds, parseSetHandler } from "./rules.ts";
 
 const ID = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
@@ -107,6 +107,32 @@ test("nhận đơn chưa có người phụ trách: SALES/ADMIN nhận CHO CHÍN
 test("người phụ trách chưa có tài khoản (staffId null) không làm ai thành người phụ trách", () => {
   assert.ok(!mayChangeHandler(who("other", ["SALES"]), ORDER, { staffId: null }, "other"));
   assert.ok(mayChangeHandler(who("creator", ["SALES"]), ORDER, { staffId: null }, "other"), "người lập vẫn đổi được");
+});
+
+// --- Phán quyết của route: được phép / dữ liệu đã cũ (409) / không được phép (403) --------------------------------------------
+test("nhận phụ trách THUA ĐUA: người có quyền nhận (SALES/ADMIN) tự nhận khi đơn ĐÃ có người phụ trách → 'stale' (giao diện tải lại), KHÔNG phải 'forbidden'", () => {
+  const current = { staffId: "handler" };
+  assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, current, "other"), "stale", "SALES khác vừa thấy đơn 'chưa có người' rồi bị người khác nhận trước");
+  assert.equal(handlerChangeVerdict(who("former", ["SALES"]), ORDER, { staffId: "someone-else" }, "former"), "stale", "người phụ trách cũ (đã bị đổi) tự nhận lại");
+  assert.equal(handlerChangeVerdict(who("multi", ["ACCOUNTING", "SALES"]), ORDER, current, "multi"), "stale", "nhiều quyền: có SALES nên có quyền nhận");
+  assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, { staffId: null }, "other"), "stale", "người phụ trách hiện tại chưa có tài khoản cũng là 'đã có người'");
+});
+
+test("phán quyết: vẫn 'forbidden' khi KHÔNG phải nhận cho chính mình hoặc không có quyền nhận; 'allow' khi được phép đổi", () => {
+  const current = { staffId: "handler" };
+  assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, current, "x"), "forbidden", "giao hộ người khác: không phải 'nhận', là vượt quyền");
+  assert.equal(handlerChangeVerdict(who("acc", ["ACCOUNTING"]), ORDER, current, "acc"), "forbidden", "kế toán không có dispatch.claim");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, current, "field"), "forbidden", "FIELD không có dispatch.claim");
+  assert.equal(handlerChangeVerdict(who("acc", ["ACCOUNTING"]), ORDER, null, "acc"), "forbidden", "chưa có người phụ trách nhưng kế toán vẫn không nhận được");
+  assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, null, "creator"), "forbidden", "chưa có người phụ trách: SALES giao hộ người khác");
+  // được phép: đúng như mayChangeHandler (một nguồn)
+  assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, null, "other"), "allow", "nhận đơn chưa có người");
+  assert.equal(handlerChangeVerdict(who("creator", ["SALES"]), ORDER, current, "x"), "allow", "người lập");
+  assert.equal(handlerChangeVerdict(who("handler", ["SALES"]), ORDER, current, "x"), "allow", "người phụ trách hiện tại");
+  assert.equal(handlerChangeVerdict(who("boss", ["ADMIN"]), ORDER, current, "boss"), "allow", "quản trị tự giao cho mình khi đã có người khác: đổi người, không phải thua đua");
+  for (const [w, cur, target] of [[who("other", ["SALES"]), current, "other"], [who("acc", ["ACCOUNTING"]), current, "acc"], [who("creator", ["SALES"]), null, "x"]] as const) {
+    assert.equal(handlerChangeVerdict(w, ORDER, cur, target) === "allow", mayChangeHandler(w, ORDER, cur, target), "allow ⇔ mayChangeHandler");
+  }
 });
 
 // --- Lưới cuối của chỉ mục duy nhất -------------------------------------------------------------------------------------------

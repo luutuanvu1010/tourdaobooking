@@ -19,8 +19,10 @@ export interface Ctx<A extends Access = Access> {
   staff: A extends "public" ? StaffProfile | null : StaffProfile;
   /**
    * Người đang đăng nhập có phải người phụ trách ĐANG MỞ của đơn `orderId` không — kết quả điền vào `can(staff, op, { ownerId, assigned })` cho các ô
-   * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`); tính khi gọi
-   * (một truy vấn D1 mỗi lần), chỉ route nào cần thì gọi. Chưa đăng nhập → false.
+   * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`). Là một HÀM (không phải giá trị
+   * tính sẵn): MỖI LẦN GỌI là một truy vấn D1. Route phải truyền kết quả vào MỌI lời gọi `can()` có ô như vậy (quên là lặng lẽ tụt về `own`).
+   * Bốn route của `orders` (GET/PUT đơn, PUT trip, POST status) gọi nó VÔ ĐIỀU KIỆN, song song với việc đọc đơn (`Promise.all`) — kể cả khi đơn không tồn tại hoặc
+   * người dùng đằng nào cũng là người lập — chứ KHÔNG gọi lười sau khi biết cần. Chưa đăng nhập → false.
    */
   isAssigned: (orderId: string) => Promise<boolean>;
   /**
