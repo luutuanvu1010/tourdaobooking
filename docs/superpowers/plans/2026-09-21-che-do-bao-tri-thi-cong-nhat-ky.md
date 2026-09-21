@@ -68,7 +68,7 @@ Các quyết định nhỏ khác (mã thắng, có test): cổng đứng TRƯỚ
 ## 6. Nợ và việc còn lại
 
 1. Chủ dự án xem/duyệt các ruling ở mục 3 (nhất là v — cạnh phụ thuộc và cổng router).
-2. Merge/push nhánh: chờ lệnh riêng của chủ. Deploy: chờ lệnh riêng; theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp (`0015` + `0016`)". Đường thoát khẩn (SQL) cũng ở đó.
+2. ĐÃ merge (push fast-forward lên `origin/main`) và ĐÃ deploy theo lệnh của chủ 2026-09-21: Worker `c72dd98f-cc47-4a94-b57d-294ebc820465`, migration `0015`+`0016` đã áp, kiểm sau deploy đạt — bản ghi đầy đủ ở `docs/HANDOFF-N1.md` (đầu tệp). Đường thoát khẩn (SQL) cũng ở đó.
 3. Bật chế độ bảo trì trên production chỉ SAU khi cột "Đăng nhập gần nhất" cho thấy mọi người cần dùng app đã đăng nhập bằng bản mới; nhắn nhân viên trước, bật giờ vắng.
 4. Chưa thử iPhone thật (lớp phủ toàn trang + đồng hồ đếm ngược trong PWA đã cài, nút bật/tắt trên WebKit).
 5. Danh sách `allowed_phones` chỉ sửa bằng SQL/migration — chưa có màn hình (chủ ý; nếu cần thì là việc mới).
