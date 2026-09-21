@@ -32,6 +32,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },
+  { module: "feedback", file: "modules/feedback/repository.ts" },
 ];
 
 /**
