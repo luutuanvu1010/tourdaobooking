@@ -13,12 +13,12 @@
 //   e  quyền: C (SALES khác) không thấy nút đổi/nhận (đơn đã có người) và không có Sửa/Xác nhận/Huỷ; kế toán không thấy nút nào; quản trị và người lập vẫn có nút đổi
 //   f  đơn CHƯA có người: chip "Chưa có người phụ trách" ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy "Nhận phụ trách"; người lập/quản trị thấy cả giao lẫn nhận; kế toán không có gì; C nhận được → sửa được đơn
 //   g  bảng chọn: role=dialog, aria-modal, tên, nền inert, focus trong bảng, Esc / chạm nền / ✕ đóng và trả focus; danh sách khớp GET assignees (không có kế toán), người đang phụ trách bị khoá + chip;
-//      "Lưu" chỉ mở khi có lựa chọn; KHOÁ khi đang lưu (nút, danh sách, ✕/Esc/chạm nền không đóng; bấm đúp chỉ gửi một PUT); lỗi tải danh sách → thông báo + Thử lại
-//   h  đổi song song → tải lại + thông báo tiếng Việt: 409 no_change (người khác đã giao đúng người đó), 409 stale (nhận đơn vừa có người), 403 (mất quyền); 400 invalid_assignee (người vừa nghỉ) giữ bảng mở.
+//      "Lưu" chỉ mở khi có lựa chọn; KHOÁ khi đang lưu (nút, danh sách, ✕/Esc/chạm nền không đóng; bấm đúp chỉ gửi một PUT); lỗi tải danh sách → thông báo + Thử lại; focus không rơi ra ngoài bảng (sau Thử lại, sau lỗi khi lưu)
+//   h  đổi song song → tải lại + thông báo tiếng Việt: 409 no_change (người khác đã giao đúng người đó), 409 stale (nhận đơn vừa có người), 403 (mất quyền); 400 invalid_assignee (người vừa nghỉ) giữ bảng mở, danh sách làm mới, focus còn trong bảng, axe 0 vi phạm
 //      (`stale` thật giữa hai máy chủ là điều kiện đua trong một câu lệnh — đã kiểm ở tests/e2e/dispatch.mjs, không dựng được từ giao diện)
 //   i  lỗi lời gọi handlers (chặn mạng / 500 / thiếu khoá): danh sách VẪN hiện, KHÔNG chip sai, không banner lỗi; trang đơn hiện đơn + nút Sửa, khối "chưa tải được" + Thử lại, KHÔNG nút nhận/đổi; Thử lại được
-//   j  axe 0 vi phạm (mọi mức) ở mọi trạng thái mới; vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040
-//   k  ảnh 390×844 và 1040×800 (danh sách, trang đơn, bảng chọn, chưa có người, thông báo tải lại, lỗi handlers)
+//   j  axe 0 vi phạm (mọi mức) ở mọi trạng thái mới (18: 9 × {390, 1040}, gồm bảng chọn đang tải / lỗi tải / lỗi khi lưu); vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040
+//   k  ảnh 390×844 và 1040×800 (danh sách, trang đơn, bảng chọn, chưa có người, thông báo tải lại, lỗi handlers, lỗi khi lưu)
 //   l  console/CSP sạch ở mọi trang đã theo dõi (trừ dòng mạng đã biết của các lỗi cố ý)
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -54,7 +54,7 @@ async function step(id, name, fn) {
     results.buoc.push({ id, name, dat: true });
   } catch (e) {
     failures++;
-    const msg = String(e?.message ?? e).split("\n").slice(0, 12).join("\n    ");
+    const msg = (String(e?.message ?? e) + (e?.cause ? ` [nguyên nhân: ${e.cause?.code ?? e.cause?.message ?? e.cause}]` : "")).split("\n").slice(0, 12).join("\n    ");
     console.log(`✗ ${id}) ${name}\n    ${msg}`);
     results.buoc.push({ id, name, dat: false, loi: msg.slice(0, 1200) });
   }
@@ -94,6 +94,7 @@ const HOOK = `(() => {
     r.hits = (r.hits ?? 0) + 1;
     if (r.mode === '500') return json(500, { error: { code: 'internal', message: 'giả lập' } });
     if (r.mode === 'empty') return json(200, { handlers: {} });
+    if (r.mode === '400') return json(400, { error: { code: 'invalid_assignee', message: 'Nhân viên này đã ngưng hoạt động, không thể giao phụ trách.' } });
     if (r.mode === 'gate') return new Promise((resolve) => { (r.pending ??= []).push(() => resolve(real(u, i))); });
     return real(u, i);
   };
@@ -108,12 +109,28 @@ const env = await startEnv();
 const openedPages = [];
 const tracked = []; // [nhãn, trang, danh sách regex dòng lỗi mạng ĐÃ BIẾT] — bước l đọc lại
 
+/**
+ * Lời gọi `fetch` của Node (dựng dữ liệu, đăng nhập) đôi khi nhận "fetch failed" khi tái dùng một kết nối keep-alive vừa bị máy chủ đóng (đua giữa hai lần gọi cách nhau lâu vì kịch bản bận thao tác trang);
+ * nó không phải lỗi của ứng dụng → thử lại tối đa 3 lần. Không dùng cho lời gọi của TRANG (trình duyệt tự xử lý).
+ */
+const retryFetch = async (fn) => {
+  for (let i = 0; ; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (i >= 2 || !(e instanceof TypeError)) throw e;
+      await sleep(300);
+    }
+  }
+};
+const login = (account) => retryFetch(() => env.login(account));
+
 /** Mở `path` với phiên của `account`; nạp bộ vẽ khi `lib`. `track`: theo dõi console/CSP ở bước l (`allow`: regex cho dòng lỗi mạng cố ý). */
 async function openAs(account, path, { viewport = M, lib = false, track = true, allow = [], blocked = [] } = {}) {
   const p = await env.openPage(viewport);
   openedPages.push(p);
   if (track) tracked.push([`${account.name} ${path}`, p, allow]);
-  const c = await env.login(account);
+  const c = await login(account);
   await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
   if (blocked.length) await p.send("Network.setBlockedURLs", { urls: blocked });
   await p.send("Page.addScriptToEvaluateOnNewDocument", { source: BLOB_COUNTERS });
@@ -135,8 +152,8 @@ const pressEsc = async (p) => {
 
 // ---- Dữ liệu dựng bằng API / SQL (KHÔNG dùng để kiểm giao diện) ----
 const call = async (account, method, path, body) => {
-  const c = await env.login(account);
-  const r = await fetch(env.base + path, { method, headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const c = await login(account);
+  const r = await retryFetch(() => fetch(env.base + path, { method, headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` }, body: body === undefined ? undefined : JSON.stringify(body) }));
   return { status: r.status, json: await r.json().catch(() => null) };
 };
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
@@ -477,9 +494,11 @@ try {
     assert.deepEqual(info.radios, []);
     assert.doesNotMatch(info.alert, /500|internal|giả lập/, "không lộ chữ kỹ thuật");
     await setRules(p, []);
-    await p.ev(clickText("[role=dialog]", "Thử lại"));
+    assert.equal(await p.ev("document.activeElement === document.querySelector('[role=dialog] .banner-actions button')"), true, "lỗi tải danh sách: focus nhảy vào nút Thử lại");
+    await p.ev(clickText("[role=dialog]", "Thử lại")); // (bấm bằng mã không đổi focus: nút Thử lại đang giữ focus và sắp bị gỡ khỏi DOM khi danh sách nạp lại)
     await sheetOpen(p, "Thử lại ra danh sách");
     assert.equal((await p.ev(SHEET_INFO)).alert, null, "thông báo lỗi biến mất");
+    assert.equal((await p.ev(SHEET_INFO)).focusIn, true, "sau Thử lại focus vẫn nằm trong bảng (nút Thử lại đã bị gỡ)");
     // KHOÁ khi đang lưu (PUT bị giữ lại để đo trạng thái "đang lưu")
     await setRules(p, [{ match: "/handler", method: "PUT", mode: "gate" }]);
     await p.ev(pick("Sales Hai"));
@@ -565,7 +584,11 @@ try {
     const info = await p4.ev(SHEET_INFO);
     assert.equal(info.alert.includes("Nhân viên này đã ngưng hoạt động, không thể giao phụ trách."), true, `chữ của máy chủ: ${info.alert}`);
     await p4.waitFor("![...document.querySelectorAll('.pick-name')].some((n) => n.textContent === 'Sales Tư') && document.querySelectorAll('.pick input').length > 0", "danh sách được làm mới, không còn Sales Tư", 8000);
-    assert.equal((await p4.ev(SHEET_INFO)).saveDisabled, true, "lựa chọn cũ đã bị bỏ");
+    const after = await p4.ev(SHEET_INFO);
+    assert.equal(after.saveDisabled, true, "lựa chọn cũ đã bị bỏ");
+    assert.equal(after.focusIn, true, "focus vẫn nằm trong bảng sau lỗi + làm mới danh sách (nút Lưu vừa bị khoá không được để focus rơi ra body)");
+    const va = await axeRun(p4, "bang-chon-loi-luu-that-390");
+    assert.deepEqual(va, [], `axe (lỗi khi lưu, thật): ${JSON.stringify(va)}`);
     assert.equal((await handlerOf(o4.id)).name, "Sales Một", "không đổi gì ở máy chủ");
     await pressEsc(p4);
     await waitSheetClosed(p4);
@@ -678,6 +701,18 @@ try {
       await p.waitFor("document.querySelector('[role=dialog] [role=status]') !== null", "trạng thái đang tải", 8000);
       assert.equal((await p.ev(SHEET_INFO)).status, "Đang tải danh sách nhân viên…");
       await check(`bang-chon-dang-tai-${label}`, p);
+      // bảng chọn: lỗi khi lưu (400 invalid_assignee giả lập) — bảng còn mở, banner trong bảng, danh sách làm mới, focus không rơi ra ngoài
+      p = await openAs(A, `/order?id=${main.id}`, { viewport: vp });
+      await openSheet(p);
+      await setRules(p, [{ match: "/handler", method: "PUT", mode: "400" }]);
+      await p.ev(pick("Sales Ba"));
+      await clickSave(p);
+      await p.waitFor("document.querySelector('[role=dialog] [role=alert]:not([hidden])') !== null", "thông báo lỗi khi lưu", 8000);
+      await p.waitFor("document.querySelectorAll('.pick input').length > 0 && document.querySelector('[role=dialog] [role=status]') === null", "danh sách được làm mới", 8000);
+      const saved = await p.ev(SHEET_INFO);
+      assert.equal(saved.focusIn, true, `focus phải còn trong bảng sau lỗi khi lưu (${label})`);
+      await shoot(p, `nguoi-phu-trach-bang-chon-loi-luu-${label}.png`);
+      await check(`bang-chon-loi-luu-${label}`, p);
       // trang đơn: chưa biết người phụ trách
       p = await openAs(A, `/order?id=${main.id}`, { viewport: vp, ...BLOCK });
       await p.waitFor("document.querySelector('.handler-card .handler-unknown') !== null", "khối chưa biết", 10000);

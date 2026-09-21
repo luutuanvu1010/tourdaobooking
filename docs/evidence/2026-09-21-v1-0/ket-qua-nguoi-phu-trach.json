@@ -63,12 +63,14 @@
     }
   ],
   "axe": {
+    "bang-chon-loi-luu-that-390": [],
     "danh-sach-390": [],
     "trang-don-390": [],
     "trang-don-chua-co-nguoi-390": [],
     "bang-chon-390": [],
     "bang-chon-loi-390": [],
     "bang-chon-dang-tai-390": [],
+    "bang-chon-loi-luu-390": [],
     "trang-don-chua-biet-390": [],
     "danh-sach-handlers-loi-390": [],
     "danh-sach-1040": [],
@@ -77,6 +79,7 @@
     "bang-chon-1040": [],
     "bang-chon-loi-1040": [],
     "bang-chon-dang-tai-1040": [],
+    "bang-chon-loi-luu-1040": [],
     "trang-don-chua-biet-1040": [],
     "danh-sach-handlers-loi-1040": []
   },
@@ -109,6 +112,11 @@
     "bang-chon-dang-tai-390": {
       "nho": [],
       "dieuKhien": 3,
+      "trànNgang": 0
+    },
+    "bang-chon-loi-luu-390": {
+      "nho": [],
+      "dieuKhien": 7,
       "trànNgang": 0
     },
     "trang-don-chua-biet-390": {
@@ -151,6 +159,11 @@
       "dieuKhien": 3,
       "trànNgang": 0
     },
+    "bang-chon-loi-luu-1040": {
+      "nho": [],
+      "dieuKhien": 7,
+      "trànNgang": 0
+    },
     "trang-don-chua-biet-1040": {
       "nho": [],
       "dieuKhien": 1,
@@ -165,6 +178,8 @@
   "anh": {
     "nguoi-phu-trach-tai-lai-390.png": "390×844",
     "nguoi-phu-trach-loi-handlers-390.png": "390×844",
+    "nguoi-phu-trach-bang-chon-loi-luu-390.png": "390×844",
+    "nguoi-phu-trach-bang-chon-loi-luu-1040.png": "1040×800",
     "nguoi-phu-trach-danh-sach-390.png": "390×844",
     "nguoi-phu-trach-trang-don-390.png": "390×844",
     "nguoi-phu-trach-bang-chon-390.png": "390×844",
@@ -188,6 +203,7 @@
       "bang-chon-390",
       "bang-chon-loi-390",
       "bang-chon-dang-tai-390",
+      "bang-chon-loi-luu-390",
       "trang-don-chua-biet-390",
       "danh-sach-handlers-loi-390",
       "danh-sach-1040",
@@ -196,10 +212,11 @@
       "bang-chon-1040",
       "bang-chon-loi-1040",
       "bang-chon-dang-tai-1040",
+      "bang-chon-loi-luu-1040",
       "trang-don-chua-biet-1040",
       "danh-sach-handlers-loi-1040"
     ],
-    "trang-theo-doi-console": 40
+    "trang-theo-doi-console": 42
   },
   "tongKet": {
     "dat": 12,

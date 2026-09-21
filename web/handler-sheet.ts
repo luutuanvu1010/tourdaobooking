@@ -125,8 +125,11 @@ export function openHandlerSheet(o: HandlerSheetOptions, opener: HTMLElement): v
   async function loadList(): Promise<void> {
     const mine = ++loadSeq;
     chosen = null;
+    // Focus đang ở nút Lưu (vd sau 400: `setSaving(false)` vừa trả focus cho nó) hoặc ở trong danh sách/nút "Thử lại" — cả hai sắp bị khoá/gỡ khỏi DOM → giữ focus trong bảng, không để rơi ra `body`.
+    const focusWasThere = document.activeElement === saveBtn || listSlot.contains(document.activeElement);
     saveBtn.disabled = true;
     replaceChildren(listSlot, h("p", { class: "pick-status", role: "status" }, "Đang tải danh sách nhân viên…"));
+    if (focusWasThere) dialog.focus();
     try {
       const { assignees } = await api<Api.AssigneesResponse>("/api/dispatch/assignees");
       if (closed || mine !== loadSeq) return;
