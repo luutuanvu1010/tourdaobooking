@@ -45,7 +45,10 @@ export async function startEnv() {
 
   const [port, inspector] = [await freePort(), await freePort()];
   const base = `http://127.0.0.1:${port}`;
-  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`],
+  // Turnstile TẮT có chủ đích cho môi trường này: `--var` rỗng ghi đè cả `.dev.vars` của máy (đã kiểm: --var thắng .dev.vars, giá trị rỗng = chưa cấu hình),
+  // nên kịch bản chạy offline (không gọi siteverify) và không vỡ dù .dev.vars có khoá Turnstile thật. Muốn kiểm widget ở trang đăng nhập thì thay bằng khoá thử của Cloudflare
+  // (`TURNSTILE_SITE_KEY:1x00000000000000000000AA`, `TURNSTILE_SECRET_KEY:1x0000000000000000000000000000000AA`; cần mạng) — login() bên dưới đã gửi sẵn token thử.
+  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", "TURNSTILE_SITE_KEY:", "--var", "TURNSTILE_SECRET_KEY:"],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } });
   server.stdout.on("data", (d) => logs.push(String(d)));
   server.stderr.on("data", (d) => logs.push(String(d)));
@@ -64,8 +67,9 @@ export async function startEnv() {
   }
 
   const sql = (query) => JSON.parse(wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", persist, "--json", "--command", query]))[0].results;
+  // Gửi luôn token thử của Cloudflare (`turnstileToken`): máy chủ không bật Turnstile thì bỏ qua, bật bằng khoá thử thì token này qua được.
   const login = async (account) => {
-    const r = await fetch(`${base}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json", origin: base, "cf-connecting-ip": `10.9.${Math.floor(Math.random() * 250)}.1` }, body: JSON.stringify({ phone: account.phone, pin: account.pin }) });
+    const r = await fetch(`${base}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json", origin: base, "cf-connecting-ip": `10.9.${Math.floor(Math.random() * 250)}.1` }, body: JSON.stringify({ phone: account.phone, pin: account.pin, turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" }) });
     assert.equal(r.status, 200, `đăng nhập ${account.phone}: ${r.status}`);
     const [pair] = r.headers.get("set-cookie").split(";");
     const i = pair.indexOf("=");

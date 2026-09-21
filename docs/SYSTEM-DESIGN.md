@@ -79,9 +79,11 @@ flowchart LR
 | `STAFF_SHEET_ID` | biến công khai (`vars`) | `wrangler.jsonc` | `accounts`: `GET /api/staff/sheet`, `POST /api/staff/sheet/apply` |
 | `SERVICES_SHEET_ID` | biến công khai (`vars`) | `wrangler.jsonc` | `catalog`: `syncCatalog` |
 | `SESSION_SECRET` | **bí mật** | `wrangler secret put SESSION_SECRET` (production), `.dev.vars` (local — xem `.dev.vars.example`) | ký/kiểm cookie phiên (`src/modules/auth/session.ts`) |
+| `TURNSTILE_SITE_KEY` | biến công khai, **tuỳ chọn** | `vars` của `wrangler.jsonc` khi có khoá thật (chưa thêm), `.dev.vars` (local) | `auth`: `GET /api/auth/config` trả cho trang đăng nhập dựng widget Turnstile |
+| `TURNSTILE_SECRET_KEY` | **bí mật, tuỳ chọn** | `wrangler secret put TURNSTILE_SECRET_KEY` (production, chỉ khi chủ dự án ra lệnh), `.dev.vars` (local) | `auth`: `verifyTurnstile` (`POST /api/auth/login`). Vắng ⇒ Turnstile TẮT (xem mục 4) |
 | `DB` / `ASSETS` | binding D1 / binding Workers Assets | `wrangler.jsonc` | `env.DB` ở mọi module; `ASSETS` do nền tảng dùng |
 
-`SESSION_SECRET` ngắn hơn `MIN_SECRET_LENGTH` = 32 ký tự → **mọi** route trả 500 `server_misconfigured` (`checkAuthConfig`). Kiểu của `Env` sinh bởi `npm run types` vào `worker-configuration.d.ts`.
+`SESSION_SECRET` ngắn hơn `MIN_SECRET_LENGTH` = 32 ký tự → **mọi** route trả 500 `server_misconfigured` (`checkAuthConfig`). Hai biến Turnstile KHÔNG đi qua `checkAuthConfig` (vắng là trạng thái hợp lệ "tắt"). Kiểu của `Env` ở `worker-configuration.d.ts` (sinh bởi `npm run types` khi `.dev.vars` có đủ bí mật; hai biến Turnstile đang khai tay dạng tuỳ chọn — xem `docs/CHANGE-GUIDE.md` công thức l).
 
 ---
 
@@ -129,6 +131,9 @@ sequenceDiagram
 **Cookie phiên** — `src/modules/auth/session.ts`: tên `td_session`; token `"<staffId>.<issuedAt ms>.<HMAC-SHA256 base64url>"` ký bằng `SESSION_SECRET`; `SESSION_TTL_SECONDS = 60*60*24*7` (7 ngày). Thuộc tính: `Path=/; Max-Age=604800; HttpOnly; SameSite=Lax` và `Secure` khi request là `https:`. Chữ ký đúng nhưng `issuedAt > now + 60_000` → từ chối (đồng hồ lạ).
 
 **Thu hồi phiên.** `currentStaff` → `getActiveStaff(db, id, issuedAt)`: tài khoản phải `active = 1`, và nếu `staff.credentials_changed_at` (mili-giây) **lớn hơn** thời điểm phát hành phiên thì phiên bị từ chối. Đổi PIN / đặt lại PIN cập nhật cột này ⇒ mọi thiết bị cũ bị đăng xuất; route đổi PIN cấp ngay cookie mới cho thiết bị hiện tại (`newSessionCookie`).
+
+**Cloudflare Turnstile (chỉ ở đăng nhập)** — `src/modules/auth/turnstile.ts` (thuần, có test). `POST /api/auth/login` nhận thêm `turnstileToken`; sau khi đầu vào hợp lệ (400 nếu thiếu SĐT/PIN) và **TRƯỚC** `verifyPinThrottled`, máy chủ gọi `https://challenges.cloudflare.com/turnstile/v0/siteverify` (POST form `secret`, `response`, `remoteip` — chỉ khi `cf-connecting-ip` đúng là IP), hạn chót `TURNSTILE_TIMEOUT_MS` = 5 giây, token dài tối đa 2048 ký tự. Kẻ tấn công không có token nhận **403 `turnstile_failed`** ("Chưa xác minh được bạn là người thật. Hãy thử lại.") mà **không tiêu hao lượt thử** của SĐT nạn nhân (cũng không của IP). **Đóng khi lỗi**: siteverify không trả lời/HTTP lỗi/hết giờ/thân lạ/secret sai (`invalid-input-secret`, trả HTTP 400) → **503 `turnstile_unavailable`** ("Chưa kết nối được dịch vụ xác minh. Hãy thử lại sau ít phút."), ghi log `turnstile_unavailable` kèm mã ngắn `detail`. `GET /api/auth/config` (public) → `{ turnstileSiteKey }`: khoá site khi có CẢ secret lẫn khoá site, ngược lại `null`.
+**Chưa đặt `TURNSTILE_SECRET_KEY` ⇒ TẮT**: bỏ qua kiểm (không khoá chết local/e2e/lần deploy đầu), `config` trả `null`, và mỗi lần đăng nhập máy chủ `console.warn` `turnstile_disabled` để mất secret không thành tắt lặng lẽ — sau deploy phải kiểm `GET /api/auth/config` khác `null`. Có secret mà thiếu khoá site ⇒ vẫn kiểm, trang không có widget nên không ai đăng nhập được (log `turnstile_misconfigured`). Widget ở trang đăng nhập và CSP cho `challenges.cloudflare.com` là task 3 của kế hoạch v1.0 (**chưa có**): đặt secret ở production trước đó sẽ làm đăng nhập bằng trình duyệt hỏng. Đổi PIN không đòi Turnstile.
 
 **Chống dò PIN** — `src/modules/auth/throttle.ts`, bảng `login_attempt`, cửa sổ trượt `LOGIN_WINDOW_MS = 15 * 60 * 1000`:
 
@@ -237,9 +242,12 @@ Migration siết B5 (`staff_party_required`: bắt buộc `staff.party_id`) **ch
 sequenceDiagram
   participant W as web/login.ts
   participant R as POST /api/auth/login
+  participant C as Cloudflare siteverify
   participant T as throttle
   participant S as staff.authenticate
-  W->>R: phone và pin
+  W->>R: phone, pin và turnstileToken
+  R->>C: turnstileGate (bỏ qua nếu chưa đặt TURNSTILE_SECRET_KEY)
+  C-->>R: đạt (không đạt thì R trả W ngay 403 turnstile_failed hoặc 503 turnstile_unavailable)
   R->>T: reserveAttempts theo ip và phone
   T-->>R: allowed hoặc 429 too_many_attempts
   R->>S: normalizePhone rồi verifyPin
@@ -247,7 +255,7 @@ sequenceDiagram
   R-->>W: 200 set-cookie td_session hoặc 401 invalid_credentials
 ```
 
-*SĐT không tồn tại vẫn chạy `verifyDummy` để không lộ tài khoản; thành công thì `clearAttempts` xoá bộ đếm của SĐT.*
+*Turnstile đứng TRƯỚC bộ chống dò: không có token thì không chạm bộ đếm. Trạng thái hiện tại của mã: máy chủ đã có bước này, `web/login.ts` CHƯA gửi `turnstileToken` (task 3). SĐT không tồn tại vẫn chạy `verifyDummy` để không lộ tài khoản; thành công thì `clearAttempts` xoá bộ đếm của SĐT.*
 
 ### (b) Lập đơn nháp
 
@@ -294,11 +302,12 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ## 7. Danh mục API
 
-Tất cả 41 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
+Tất cả 42 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
-| POST | `/api/auth/login` | public | auth | đăng nhập SĐT + PIN, đặt cookie phiên |
+| GET | `/api/auth/config` | public | auth | `{ turnstileSiteKey }` — khoá site để trang đăng nhập dựng widget; `null` = Turnstile tắt |
+| POST | `/api/auth/login` | public | auth | đăng nhập SĐT + PIN (+ `turnstileToken` khi Turnstile bật), đặt cookie phiên; 403 `turnstile_failed` / 503 `turnstile_unavailable` |
 | GET | `/api/auth/me` | staff | auth | hồ sơ nhân viên của phiên hiện tại |
 | POST | `/api/auth/logout` | public | auth | xoá cookie phiên |
 | POST | `/api/account/change-pin` | staff | accounts | tự đổi PIN (thu hồi phiên cũ, cấp phiên mới) |
@@ -438,7 +447,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 **Các lớp kiểm.**
 
 - **Unit** `src/**/*.test.ts` (`node --test`, chạy thẳng TypeScript nên tệp thuần import nhau bằng đuôi `.ts`). Nổi bật: `src/architecture.test.ts` — dựng schema thật từ `migrations/*.sql` bằng `node:sqlite`, kiểm ranh giới import theo `ALLOWED_EDGES`, đồ thị không vòng, `shared/` và `web/` không import module, sổ dữ liệu ↔ schema, tiền tố bảng, khoá ngoại xuyên module, view công bố đúng cột và không `INSTEAD OF`, cột kiểm toán của bảng mới, và **ranh giới SQL bằng `EXPLAIN`** cho module "nghiêm" (`company`, `locations`, `parties`, `staff` — SQL phải đi qua `defineSql` của `src/shared/sql-registry.ts`, và `.prepare(` không được nhận chuỗi/template thô).
-- **E2E** `tests/e2e/*.mjs` qua `tests/e2e/run.mjs`: dựng D1 local **tạm** trong `mktemp` (không đụng `.wrangler/state`), áp migration, seed tài khoản, chạy `wrangler dev` trên cổng tự do với `SESSION_SECRET` ngẫu nhiên, rồi chạy 11 kịch bản `platform, pwa, orders, trip, admin, catalog, admin-race, locations, parties, permissions, company`. **Cần mạng**: `admin.mjs` và `catalog.mjs` đọc Google Sheet thật. Chạy đủ bộ thì bước cuối là `scripts/audit-invariants.mjs --strict`.
+- **E2E** `tests/e2e/*.mjs` qua `tests/e2e/run.mjs`: dựng D1 local **tạm** trong `mktemp` (không đụng `.wrangler/state`), áp migration, seed tài khoản, chạy `wrangler dev` trên cổng tự do với `SESSION_SECRET` ngẫu nhiên và Turnstile BẬT bằng khoá thử của Cloudflare (`--var TURNSTILE_SITE_KEY/TURNSTILE_SECRET_KEY`; mọi đăng nhập trong kịch bản gửi token thử), rồi chạy 12 kịch bản `platform, pwa, orders, trip, admin, turnstile, catalog, admin-race, locations, parties, permissions, company`. **Cần mạng**: `admin.mjs` và `catalog.mjs` đọc Google Sheet thật; mọi đăng nhập gọi siteverify của Cloudflare, và `turnstile.mjs` kiểm thêm hợp đồng với siteverify thật. Chạy đủ bộ thì bước cuối là `scripts/audit-invariants.mjs --strict`.
 - **Bất biến dữ liệu**: `scripts/audit-invariants.mjs --db local|remote [--strict]` — **chỉ đọc** (`SELECT`/`PRAGMA`), mỗi kiểm `R-N1-*` là một câu SQL đếm dòng vi phạm, thoát mã 1 nếu có.
 - **Kịch bản Chrome thật**: `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `a2-cdp.mjs`, `a2-evidence.mjs`, `chrome-wrap.sh`) — **không nằm trong CI**; bắt buộc chạy lại khi sửa `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` (ba tệp này không có kiểm tự động trong repo).
 
@@ -452,6 +461,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 |---|---|---|
 | CSRF / ghi từ trang khác | Cookie `SameSite=Lax` + kiểm `Origin` (dự phòng `Sec-Fetch-Site`) cho mọi phương thức ghi → 403 `cross_origin`; thân bắt buộc `application/json` → chặn form `enctype="text/plain"` giả JSON | `src/shared/router.ts#checkWriteRequest`, `session.ts#sessionCookie` |
 | Dò PIN (1 triệu tổ hợp) | Giới hạn 5 lần/SĐT và 30 lần/IP trong 15 phút, đặt chỗ trước khi kiểm; PBKDF2 100k vòng; dùng chung bộ đếm cho đổi PIN | `src/modules/auth/throttle.ts`, `verifyPinThrottled`, `staff/password.ts` |
+| Bot dò PIN / khoá SĐT của người khác | Cloudflare Turnstile kiểm ở `POST /api/auth/login` TRƯỚC bộ chống dò: không có token thì 403 mà không tiêu hao lượt thử của SĐT; đóng khi Cloudflare lỗi (503). Chỉ có tác dụng khi `TURNSTILE_SECRET_KEY` được đặt (mục 4) | `src/modules/auth/turnstile.ts`, `auth/index.ts` |
 | Chiếm phiên / phiên cũ sống dai | Token ký HMAC-SHA256, so bằng `timingSafeEqual`, TTL 7 ngày, cookie `HttpOnly` + `Secure` trên https; đổi/đặt lại PIN đẩy `credentials_changed_at` ⇒ mọi phiên cũ bị từ chối | `auth/session.ts`, `staff/index.ts#getActiveStaff` |
 | Vượt quyền | Mặc định từ chối hai tầng: `access` của route (401/403) và `can()` theo phạm vi `own`/`any`; ô không khai = không được; giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại | `src/shared/router.ts`, `src/shared/permissions.ts` |
 | XSS | `web/dom.ts` chỉ dựng DOM qua `textContent`/`createTextNode`, repo không dùng `innerHTML`; CSP `script-src 'self'` (không inline, không CDN), `object-src 'none'`, `base-uri 'none'`, `frame-ancestors 'none'` | `web/dom.ts`, `web/icons.ts`, `public/_headers` |
@@ -492,7 +502,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 
 ## 13. Quan sát và vận hành
 
-- **Observability**: `wrangler.jsonc` bật `"observability": { "enabled": true }` ⇒ log của Worker xem trong Cloudflare dashboard (Workers → `tourdao-sales` → Logs) hoặc `npx wrangler tail`. Lỗi chưa bắt được ghi một dòng JSON `{level:"error", event:"unhandled", requestId, method, path, error}`; `requestId` cũng nằm trong thân 500 trả về người dùng, nên nhân viên đọc mã đó là tra được.
+- **Observability**: `wrangler.jsonc` bật `"observability": { "enabled": true }` ⇒ log của Worker xem trong Cloudflare dashboard (Workers → `tourdao-sales` → Logs) hoặc `npx wrangler tail`. Lỗi chưa bắt được ghi một dòng JSON `{level:"error", event:"unhandled", requestId, method, path, error}`; `requestId` cũng nằm trong thân 500 trả về người dùng, nên nhân viên đọc mã đó là tra được. Turnstile ghi thêm các dòng JSON (không bao giờ có secret/token): `turnstile_disabled` (cảnh báo, MỖI lần đăng nhập khi chưa đặt `TURNSTILE_SECRET_KEY`), `turnstile_misconfigured` (có secret thiếu khoá site), `turnstile_unavailable` (kèm `detail`: `network`, `timeout`, `http_<mã>`, `bad_response`, `invalid-input-secret`…) — sau deploy hãy kiểm `GET /api/auth/config` và tìm ba sự kiện này.
 - **`audit_log`** — nhật ký chỉ-thêm. **Ghi**: `action` (danh sách ở `src/shared/audit-actions.ts`, không còn `CHECK` trong SQL từ 0007), ai (`staff_id`, NULL = hệ thống/Cron), khi nào, đối tượng (`target_type` + `target_id`), đơn liên quan, và `detail` ngắn gọn — lệch giá danh mục (mã + loại khách + số tiền), thay đổi tên/SĐT, đổi quyền, tóm tắt lần đồng bộ. **KHÔNG ghi**: PIN, giá trị chuỗi tự do của khách (điểm đón, nơi check-in, ghi chú — chỉ ghi "đổi"), nội dung phiên, giá trị bí mật. Dòng nhật ký được gộp vào cùng `db.batch` với thay đổi dữ liệu và thường mang `changes() > 0` ⇒ không có dấu vết cho thao tác đã bị chặn.
 - **Xem nhật ký**: `GET /api/audit` (admin) hoặc trang `/audit`; lịch sử một đơn nằm trong `GET /api/orders/:id` (chỉ khi `can(staff, "order.history.view")`). Trạng thái đồng bộ danh mục nằm ở bảng `catalog_sync` (`last_attempt_at`, `last_success_at`, `last_error_code`, `last_error`, `item_count`, `problems_json`), hiện ở `/catalog`. Bất biến dữ liệu: `node scripts/audit-invariants.mjs --db remote` (chỉ đọc, an toàn trên production).
 - **D1 Time Travel**: `npx wrangler d1 time-travel info tourdao-sales-db` để ghi điểm khôi phục **trước** mỗi lần áp migration; khôi phục bằng `npx wrangler d1 time-travel restore tourdao-sales-db --bookmark=<điểm>`. Migration không có `down`; hoàn tác chỉ Worker **chỉ** an toàn khi chưa có thao tác tài khoản/quyền/hồ sơ nào dưới mã mới — đánh đổi và cửa sổ đóng băng mô tả đầy đủ ở `docs/HANDOFF-N1.md`.
@@ -513,7 +523,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 
 | Việc | Sẽ chạm |
 |---|---|
-| Cloudflare Turnstile ở màn hình đăng nhập | `public/login.html` (widget), `web/login.ts` (gửi token), `src/modules/auth/index.ts` (`POST /api/auth/login`: xác minh token trước `verifyPinThrottled`), biến bí mật mới (`TURNSTILE_SECRET`) + khoá site công khai trong `vars` của `wrangler.jsonc`, và **`public/_headers`**: CSP hiện là `script-src 'self'` không có `frame-src` — phải nới cho `challenges.cloudflare.com` thì widget mới chạy. Cân nhắc với `src/shared/sw-policy.ts` (script ngoài origin luôn `pass`, không cache). |
+| Cloudflare Turnstile ở màn hình đăng nhập | **Phía máy chủ ĐÃ XONG (task 2):** `src/modules/auth/turnstile.ts` + `POST /api/auth/login` kiểm token trước `verifyPinThrottled`, `GET /api/auth/config`, biến `TURNSTILE_SITE_KEY`/`TURNSTILE_SECRET_KEY` (mục 2 và mục 4). **Còn lại (task 3):** `public/login.html` + `web/login.ts` (gọi `GET /api/auth/config`, dựng widget, gửi `turnstileToken`, `reset()` sau lần thất bại) và **`public/_headers`**: CSP hiện là `script-src 'self'` không có `frame-src` — phải nới cho `challenges.cloudflare.com` thì widget mới chạy. Cân nhắc với `src/shared/sw-policy.ts` (script ngoài origin luôn `pass`, không cache). Khoá site thật thêm vào `vars` của `wrangler.jsonc` lúc deploy. |
 | Bản xác nhận đơn dạng PNG tải xuống | Trang `/order` (`public/order.html`, `web/order.ts`, `web/order-services.ts`) dựng ảnh ngay trong trình duyệt — CSP đã cho `img-src 'self' data: blob:` sẵn cho việc này; mô hình hiển thị lấy từ `src/shared/order-view.ts`; cần route ghi nhật ký cho hành động `exported_png` (đã có trong `AUDIT_ACTIONS` nhưng **không nơi nào dùng**) và có thể một module `exports` mới theo `docs/ARCHITECTURE.md` mục "Thêm một module mới"; thông tin công ty lấy từ `GET /api/company` (module `company`, đã có, chỉ đọc). |
 | Cột "Người phụ trách" ở danh sách đơn | `listOrders` trong `src/modules/orders/repository.ts`, DTO `OrderSummaryDto` trong `src/shared/contracts.ts`, `web/orders.ts`. Nguồn dữ liệu là `dsp_assignment` của N2 — **chưa tồn tại**; đọc tên người phải đi qua view công bố `v_pty_party_label` hoặc `v_stf_staff_label`, không JOIN thẳng bảng của module khác (`src/architecture.test.ts` sẽ đỏ). |
 

@@ -10,11 +10,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { insertStaffSql } from "../../scripts/staff-lib.mjs";
-import { ACCOUNTS } from "./lib.mjs";
+import { ACCOUNTS, TURNSTILE_TEST } from "./lib.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "..", "..");
-const ALL = ["platform", "pwa", "orders", "trip", "admin", "catalog", "admin-race", "locations", "parties", "permissions", "company"];
+const ALL = ["platform", "pwa", "orders", "trip", "admin", "turnstile", "catalog", "admin-race", "locations", "parties", "permissions", "company"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
@@ -47,7 +47,13 @@ try {
   const secret = randomBytes(48).toString("base64url"); // phiên chỉ sống trong lần chạy này
   server = spawn(
     "npx",
-    ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--test-scheduled", "--var", `SESSION_SECRET:${secret}`],
+    [
+      "wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--test-scheduled",
+      "--var", `SESSION_SECRET:${secret}`,
+      // Bật Turnstile bằng khoá THỬ của Cloudflare (luôn đạt) — lib.mjs login() gửi token thử; đặt tường minh để không phụ thuộc .dev.vars của máy.
+      "--var", `TURNSTILE_SITE_KEY:${TURNSTILE_TEST.siteKey}`,
+      "--var", `TURNSTILE_SECRET_KEY:${TURNSTILE_TEST.secret}`,
+    ],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } },
   );
   let log = "";

@@ -41,6 +41,8 @@ export interface StaffSheetCandidateDto {
 }
 
 export interface MeResponse { staff: StaffProfile }
+/** `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token). */
+export interface AuthConfigResponse { turnstileSiteKey: string | null }
 export interface StaffListResponse { staff: StaffAccountDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }

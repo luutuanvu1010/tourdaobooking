@@ -40,7 +40,7 @@ Thử nhanh trên **D1 tạm** (không đụng dữ liệu thật; mạng LAN, d
 ```
 npm run typecheck        # 0 lỗi (server, web/, web/sw/)
 npm test                 # luật thuần + kiểm kiến trúc (src/**/*.test.ts)
-npm run test:e2e         # API thật trên D1 local tạm; CẦN MẠNG (đọc Google Sheet thật) — tests/e2e/README.md
+npm run test:e2e         # API thật trên D1 local tạm; CẦN MẠNG (đọc Google Sheet thật + xác minh Turnstile của Cloudflare) — tests/e2e/README.md
 ```
 
 Kịch bản giao diện bằng Chrome thật nằm ở `docs/evidence/2026-09-20-a2/kich-ban/` (không trong CI).

@@ -37,7 +37,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Đổi thông báo lỗi do máy chủ trả | `src/modules/*/index.ts` (`error(...)`) | m |
 | Đổi màu / font / token | `public/app.css` (`:root`), `public/manifest.webmanifest` | i |
 | Thêm biểu tượng | `web/icons.ts` (`SHAPES`) | i |
-| Đổi luật đăng nhập / PIN / chống dò / phiên | `src/modules/auth/*`, `src/modules/staff/password.ts`, `src/modules/staff/rules.ts` | l |
+| Đổi luật đăng nhập / PIN / chống dò / phiên / Turnstile | `src/modules/auth/*` (`turnstile.ts` cho Turnstile), `src/modules/staff/password.ts`, `src/modules/staff/rules.ts` | l |
 | Thêm biến môi trường / bí mật | `wrangler.jsonc` (`vars`), `.dev.vars`, `worker-configuration.d.ts` | l |
 | Đổi cách đồng bộ Sheet / danh mục / ghi đè admin | `src/modules/catalog/*`, `src/shared/sheets.ts` | k |
 | Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
@@ -344,14 +344,20 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 **Biến/bí mật:**
 - Giá trị KHÔNG bí mật (ID Sheet) → `wrangler.jsonc` `vars`.
 - Bí mật → `.dev.vars` cho local (gitignored; mẫu `.dev.vars.example` khai tên) và `npx wrangler secret put <TÊN>` cho production (CHỈ khi chủ dự án ra lệnh; không commit khoá).
-- Sau khi thêm: `npm run types` (`wrangler types`) rồi commit `worker-configuration.d.ts` đã sinh lại.
-- Kiểm cấu hình lúc chạy theo mẫu `checkAuthConfig` (`auth/index.ts`, truyền vào `createApp({ checkConfig })`): thiếu → 500 `server_misconfigured` + log, không lộ giá trị. e2e đặt `SESSION_SECRET` qua `wrangler dev --var`.
+- Sau khi thêm: cập nhật `worker-configuration.d.ts`. **Bẫy: `wrangler types` chỉ thấy bí mật có trong `.dev.vars` (tệp này gitignored, không có trong worktree mới)** — chạy `npm run types` khi thiếu tệp đó thì `SESSION_SECRET`/`TURNSTILE_SECRET_KEY` biến mất khỏi kiểu `Env` và `tsc` đỏ. Hoặc tạo `.dev.vars` tạm đủ tên rồi xoá sau khi sinh, hoặc khai tay hai chỗ đầu tệp (`__BaseEnv_Env` và `Pick<…>` của `NodeJS.ProcessEnv`) — `TURNSTILE_SITE_KEY?`/`TURNSTILE_SECRET_KEY?` hiện được khai tay, tuỳ chọn vì có thể vắng.
+- Kiểm cấu hình lúc chạy theo mẫu `checkAuthConfig` (`auth/index.ts`, truyền vào `createApp({ checkConfig })`): thiếu → 500 `server_misconfigured` + log, không lộ giá trị. e2e đặt `SESSION_SECRET` qua `wrangler dev --var`. (Turnstile KHÔNG đi qua `checkAuthConfig`: chưa đặt secret là trạng thái hợp lệ "tắt", không phải lỗi cấu hình.)
 
-**Turnstile (việc chờ):** cần site key (`vars`) + secret key (secret); nới `script-src`/`frame-src` cho `challenges.cloudflare.com` ở `public/_headers`; kiểm phía máy chủ TRƯỚC `verifyPinThrottled` trong `POST /api/auth/login`; sửa `login()` ở `tests/e2e/lib.mjs` (dùng khoá thử của Cloudflare). Kế hoạch v1.0 chưa thi công (`docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`) đã vạch việc này; khi làm, cập nhật mục này.
+**Turnstile (phần máy chủ đã có; giao diện là task 3 của kế hoạch v1.0):**
+- `src/modules/auth/turnstile.ts` (thuần, có test): `verifyTurnstile({ secret, token, ip, timeoutMs? }, fetchImpl)` gọi siteverify (POST form `secret`/`response`/`remoteip`, `remoteip` chỉ khi đúng là IP), hạn chót `TURNSTILE_TIMEOUT_MS` = 5 giây; trả `ok` / `failed` (→ 403) / `unavailable` (→ 503). `turnstileGate(env, token, ip)` là quyết định của route; `turnstileSecret`/`turnstileSiteKey` đọc cấu hình.
+- `POST /api/auth/login` nhận `turnstileToken` và kiểm Turnstile SAU khi xác nhận đầu vào (400) nhưng TRƯỚC `verifyPinThrottled`: thiếu/sai/hết hạn/đã dùng token → **403 `turnstile_failed`** (không tiêu hao lượt PIN của SĐT lẫn IP), siteverify không trả lời/lỗi/hết giờ/secret sai → **503 `turnstile_unavailable`** (đóng khi lỗi, ghi nhật ký `turnstile_unavailable` kèm `detail`, không có secret/token). Đổi PIN (`/api/account/change-pin`) KHÔNG đòi Turnstile.
+- `GET /api/auth/config` (public, `AuthConfigResponse`): `{ turnstileSiteKey }` — khoá site khi có CẢ `TURNSTILE_SECRET_KEY` lẫn `TURNSTILE_SITE_KEY`, còn lại `null`.
+- **Chưa đặt `TURNSTILE_SECRET_KEY` ⇒ TẮT**: đăng nhập bỏ qua bước này, `config` trả `null`, máy chủ `console.warn` (`turnstile_disabled`) MỖI lần đăng nhập. Có secret mà thiếu khoá site ⇒ VẪN kiểm nhưng không ai đăng nhập được (trang không dựng được widget) và log `turnstile_misconfigured` — luôn đặt đủ cả hai. Sau deploy phải kiểm `GET /api/auth/config` không còn `null` (checklist triển khai ở mục "Triển khai" của đặc tả v1.0).
+- Cấu hình: `TURNSTILE_SITE_KEY` (công khai) → `vars` của `wrangler.jsonc` khi có khoá thật (CHƯA thêm — chưa có widget); `TURNSTILE_SECRET_KEY` (bí mật) → `wrangler secret put` (chỉ khi chủ dự án ra lệnh). Local/e2e dùng khoá thử của Cloudflare (`TURNSTILE_TEST` ở `tests/e2e/lib.mjs`: site `1x00000000000000000000AA`, secret luôn đạt `1x0000000000000000000000000000000AA`, luôn hỏng `2x…AA`, "token đã dùng" `3x…AA`; token thử `XXXX.DUMMY.TOKEN.XXXX`) — `.dev.vars.example` ghi cách.
+- **Việc còn lại (task 3):** widget ở `web/login.ts` (gọi `GET /api/auth/config`, `turnstile.render`, `reset()` sau mỗi lần thất bại, gửi `turnstileToken`), nới CSP ở `public/_headers` cho `challenges.cloudflare.com`. **Cho tới lúc đó, đặt secret ở production sẽ làm đăng nhập bằng trình duyệt hỏng** (trang chưa gửi token).
 
-**Kiểm:** `node --test src/modules/staff/password.test.ts src/modules/staff/rules.test.ts` → `npm test` → `npm run test:e2e -- admin platform`.
+**Kiểm:** `node --test src/modules/staff/password.test.ts src/modules/staff/rules.test.ts src/modules/auth/turnstile.test.ts` → `npm test` → `npm run test:e2e -- admin turnstile platform`.
 
-**Bẫy:** e2e dùng `freshIp()` (header `cf-connecting-ip` giả) để không tự dính giới hạn theo IP; đổi số lần thử phải sửa `admin.mjs` (chống dò kể cả bắn song song).
+**Bẫy:** e2e dùng `freshIp()` (header `cf-connecting-ip` giả) để không tự dính giới hạn theo IP; đổi số lần thử phải sửa `admin.mjs` (chống dò kể cả bắn song song). Server e2e BẬT Turnstile bằng khoá thử (`run.mjs`, `--var`) nên MỌI đăng nhập trong kịch bản phải đi qua `login()`/`session()` của `lib.mjs` (gửi token thử; đừng tự `call(… "/api/auth/login" …)`), và mỗi đăng nhập gọi siteverify thật (cần mạng). Kịch bản Chrome (`a2-cdp.mjs`) chạy máy chủ với Turnstile TẮT có chủ đích (`--var TURNSTILE_*:` rỗng ghi đè `.dev.vars`).
 
 ### m. Thông báo lỗi ở giao diện
 
@@ -380,7 +386,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### o. Thêm kịch bản e2e (API) / kịch bản Chrome (giao diện)
 
 **e2e API** — `tests/e2e/<tên>.mjs`, chạy bằng `node`:
-1. `import { ACCOUNTS, call, session, sql, sqlRows, orderInput, manualService, randomPhone, vnDate } from "./lib.mjs"`. `call(cookie, method, path, body)` đã gắn `Origin` + `cf-connecting-ip` ngẫu nhiên.
+1. `import { ACCOUNTS, call, login, session, sql, sqlRows, orderInput, manualService, randomPhone, vnDate } from "./lib.mjs"`. `call(cookie, method, path, body)` đã gắn `Origin` + `cf-connecting-ip` ngẫu nhiên. Đăng nhập luôn qua `login(phone, pin, ip?)`/`session(account)` (gửi token Turnstile thử — server e2e bật Turnstile).
 2. `assert` từ `node:assert/strict`; in `✓ …` từng nhóm; kết thúc bằng một dòng `E2E … OK`; lỗi = thoát khác 0.
 3. Thêm tên vào `ALL` ở `tests/e2e/run.mjs`. Thứ tự CÓ nghĩa: `admin-race` tạm ngưng admin khác nên chạy gần cuối; `catalog.mjs` cần D1 CHƯA từng đồng bộ danh mục (`tests/e2e/README.md`).
 4. Thêm dòng vào bảng của `tests/e2e/README.md`. Tài khoản thử mới → `ACCOUNTS` trong `lib.mjs` (`run.mjs` nạp bằng `insertStaffSql`).
@@ -395,7 +401,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 4. Chạy từ GỐC repo: `npm run build:web && node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs`. `CHROME_BIN` mặc định là Chrome macOS; `chrome-wrap.sh` cứng đường dẫn macOS; `AXE_JS` chỉ cho `a2-evidence.mjs`.
 5. Viết phép kiểm ĐỎ trên mã cũ trước khi sửa. Ghi kết quả vào `docs/evidence/…` nếu là bằng chứng nghiệm thu.
 
-**Bẫy:** `a2-cdp.mjs` có `ACCOUNTS` riêng (không dùng chung `lib.mjs`); `startEnv()` lỗi giữa lúc khởi động có thể để mồ côi `wrangler dev`/Chrome.
+**Bẫy:** `a2-cdp.mjs` có `ACCOUNTS` riêng (không dùng chung `lib.mjs`); `startEnv()` lỗi giữa lúc khởi động có thể để mồ côi `wrangler dev`/Chrome. `startEnv()` chạy máy chủ với Turnstile TẮT (`--var TURNSTILE_*:` rỗng) và `env.login` luôn gửi token thử — xem công thức l.
 
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
@@ -409,7 +415,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 | `web/*.ts` (trừ ba tệp dưới) | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → thử tay `npm run dev` |
 | `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | như trên + BA kịch bản Chrome `a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` (KHÔNG có kiểm tự động trong CI; nên chạy cả khi chạm thành phần dùng chung `service-card`, `trip-fields`, `order-services`, `catalog-picker`, `counter`, `money-input`, `banner`) |
 | `public/app.css`, `public/*.html`, `public/manifest.webmanifest`, `public/_headers`, `src/shared/sw-policy.ts`, `web/sw/sw.ts` | `npm run build:web` → `npm test` (`sw-policy.test.ts`) → `npm run typecheck` (gồm `-p web/sw`) → `npm run test:e2e -- pwa` |
-| `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật) → `npm run typecheck` → `npm run test:e2e` |
+| `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật; cần `.dev.vars` có đủ tên bí mật, xem công thức l) → `npm run typecheck` → `npm run test:e2e` |
 | `docs/data-dictionary.json` | `npm run dict` → `npm test` (bài kiểm bắt `DATA-DICTIONARY.md` lệch bản sinh) |
 | `scripts/*.mjs` | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |

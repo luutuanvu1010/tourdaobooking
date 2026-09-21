@@ -1,7 +1,7 @@
 // Bản đồ quyền ADR-0007 trên route thật: FIELD chỉ dùng việc được giao (không đơn/tiền/hồ sơ), ACCOUNTING xem nhưng không lập đơn,
 // SALES chỉ nhật ký đơn của mình, ADMIN mọi thứ; quyền đổi có hiệu lực ngay; tài khoản nhiều quyền hợp các ô.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, orderInput, randomPhone, session } from "./lib.mjs";
+import { ACCOUNTS, call, login, orderInput, randomPhone, session } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const SALES_B = await session(ACCOUNTS.salesB);
@@ -66,7 +66,7 @@ r = await call(ADMIN, "POST", "/api/staff", { fullName: "Nhiều Quyền Thử",
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["ACCOUNTING", "FIELD"], "thứ tự chuẩn hoá");
 const M = { id: r.body.staff.id };
-const MC = (await call(null, "POST", "/api/auth/login", { phone, pin: r.body.pin })).cookie;
+const MC = (await login(phone, r.body.pin)).cookie;
 assert.equal((await call(MC, "GET", "/api/orders")).status, 200, "FIELD + ACCOUNTING = văn phòng");
 assert.equal((await call(MC, "POST", "/api/orders", orderInput())).status, 403);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["FIELD"] })).status, 200);

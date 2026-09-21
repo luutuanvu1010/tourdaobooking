@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, randomPhone as rnd, session } from "./lib.mjs";
+import { ACCOUNTS, call, login, randomPhone as rnd, session } from "./lib.mjs";
 
 const Z = await session(ACCOUNTS.admin);
 const mk = async (name) => {
@@ -8,8 +8,8 @@ const mk = async (name) => {
   return { id: r.body.staff.id, phone: p, pin: r.body.pin };
 };
 const X = await mk("Race X"), Y = await mk("Race Y");
-const xc = (await call(null, "POST", "/api/auth/login", { phone: X.phone, pin: X.pin })).cookie;
-const yc = (await call(null, "POST", "/api/auth/login", { phone: Y.phone, pin: Y.pin })).cookie;
+const xc = (await login(X.phone, X.pin)).cookie;
+const yc = (await login(Y.phone, Y.pin)).cookie;
 const isAdmin = (s) => s.permissions.includes("ADMIN") && s.active;
 const list = (await call(xc, "GET", "/api/staff")).body.staff;
 const others = list.filter((s) => isAdmin(s) && s.id !== X.id && s.id !== Y.id);

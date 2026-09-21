@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call as raw, freshIp as fresh, randomPhone as rnd, session } from "./lib.mjs";
+import { ACCOUNTS, call as raw, freshIp as fresh, login, randomPhone as rnd, session } from "./lib.mjs";
 
-const login = (phone, pin, ip = fresh()) => raw(null, "POST", "/api/auth/login", { phone, pin }, ip);
 const cookieOf = (r) => r.cookie;
 
 const ADMIN = await session(ACCOUNTS.admin);

@@ -1,11 +1,12 @@
-// Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN. Route: /api/auth/*.
+// Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN + Cloudflare Turnstile ở đăng nhập (./turnstile.ts). Route: /api/auth/*.
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
 import { authenticate, getActiveStaff, isValidPin, normalizePhone, type StaffProfile } from "../staff";
-import type { MeResponse } from "../../shared/contracts";
+import type { AuthConfigResponse, MeResponse } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { SESSION_COOKIE, clearedSessionCookie, createSessionToken, sessionCookie, verifySessionToken } from "./session";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
+import { turnstileGate, turnstileSiteKey } from "./turnstile";
 
 export { lockedPhones, unlockPhone };
 
@@ -62,14 +63,33 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
   return { ok: true, profile };
 }
 
+/**
+ * Cổng Turnstile của đăng nhập: null = cho qua, hoặc Response lỗi (403 `turnstile_failed` / 503 `turnstile_unavailable`). Chạy TRƯỚC
+ * `verifyPinThrottled` — kẻ tấn công không có token thì không tiêu hao lượt thử PIN của SĐT nạn nhân (và không làm SĐT đó bị khoá).
+ * Quyết định thuần nằm ở `turnstileGate` (./turnstile.ts, có test); ở đây chỉ đổi thành Response và ghi nhật ký (không bao giờ ghi secret/token).
+ */
+async function turnstileGuard(request: Request, env: Env, token: unknown): Promise<Response | null> {
+  const gate = await turnstileGate(env, token, request.headers.get("cf-connecting-ip"));
+  if (gate.warn === "disabled") console.warn(JSON.stringify({ level: "warn", event: "turnstile_disabled", message: "Chưa đặt TURNSTILE_SECRET_KEY: đăng nhập KHÔNG được bảo vệ bằng Turnstile." }));
+  if (gate.warn === "no_site_key") console.error(JSON.stringify({ level: "error", event: "turnstile_misconfigured", message: "Có TURNSTILE_SECRET_KEY nhưng thiếu TURNSTILE_SITE_KEY: trang đăng nhập không dựng được widget nên không ai đăng nhập được." }));
+  if (gate.pass) return null;
+  if (gate.status === 503) console.error(JSON.stringify({ level: "error", event: "turnstile_unavailable", detail: gate.detail }));
+  return error(gate.status, gate.code, gate.message);
+}
+
 export const authModule: AppModule = {
   name: "auth",
   routes: [
+    // Công khai: trang đăng nhập hỏi trước khi dựng widget. Khoá site không nhúng cứng vào HTML (local dùng khoá thử của Cloudflare).
+    route("GET", "/api/auth/config", "public", async ({ env }) => json({ turnstileSiteKey: turnstileSiteKey(env) } satisfies AuthConfigResponse)),
+
     route("POST", "/api/auth/login", "public", async ({ request, env }) => {
       const body = await readJson(request);
       const phone = typeof body?.phone === "string" ? body.phone : "";
       const pin = body?.pin;
       if (!phone || !isValidPin(pin)) return error(400, "invalid_input", "Cần số điện thoại và mã PIN 6 số.");
+      const blocked = await turnstileGuard(request, env, body?.turnstileToken);
+      if (blocked) return blocked;
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
       return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, result.profile.id) });
