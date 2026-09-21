@@ -364,14 +364,15 @@ Hai tầng, cả hai **mặc định từ chối**:
 |---|---|---|---|---|---|
 | `order.view` | any | any | any | none | gián tiếp qua `isOffice` (router `office`) |
 | `money.view` | any | any | any | none | `web/` (hiển thị tiền, bảng giá) |
-| `order.history.view` | own | any | any | none | `GET /api/orders/:id` (rỗng nếu không được) |
+| `order.history.view` | ownOrAssigned | any | any | none | `GET /api/orders/:id` (rỗng nếu không được) |
 | `contact.view` | any | any | any | assigned | **chưa có route** dùng |
 | `order.create` | any | none | any | none | `POST /api/orders`; `web/shell.ts`, `web/orders.ts`, `web/order-form.ts` |
-| `order.modify` | own | none | any | none | `PUT /api/orders/:id`, `POST /api/orders/:id/status`, cờ `canModify` |
+| `order.modify` | ownOrAssigned | none | any | none | `PUT /api/orders/:id`, `POST /api/orders/:id/status`, cờ `canModify` |
 | `order.trip.edit` | ownOrAssigned | none | any | none | `PUT /api/orders/:id/trip` |
 | `task.progress` | none | none | any | assigned | **chưa có route** (N2) |
 | `order.money.edit` | own | any | any | none | **chưa có route** (N3) |
-| `dispatch.assign` | own | none | any | none | **chưa có route** (N2) |
+| `dispatch.assign` | ownOrAssigned | none | any | none | **chưa có route** (module `dispatch`, kế hoạch bản v1.0) |
+| `dispatch.claim` | any | none | any | none | **chưa có route** (như trên); nhận phụ trách đơn chưa có người — điều kiện "chưa có người" do dịch vụ của `dispatch` kiểm, không phải ô này |
 | `payment.receive` | own | any | any | none | **chưa có route** (N3) |
 | `payment.refund` | none | any | any | none | **chưa có route** (N3) |
 | `invoice.request` | own | any | any | none | **chưa có route** (N3) |
@@ -513,7 +514,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 ## 14. Lộ trình và điểm gắn tính năng tiếp theo
 
 > Mục này là **KẾ HOẠCH — chưa có trong mã**. Các ô tương ứng trong `MATRIX` và vài hành động nhật ký đã có sẵn để khoá bản đồ, nhưng **không route nào dùng**.
-> `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đã quyết đổi ba ô của `SALES` — `order.modify`, `order.history.view`, `dispatch.assign` — từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`; **mã chưa đổi**, nên §8 vẫn là hiện trạng. Đặc tả ba việc dưới đây: `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`.
+> `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đã quyết đổi ba ô của `SALES` — `order.modify`, `order.history.view`, `dispatch.assign` — từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`; **`MATRIX` ĐÃ đổi** (task 4 của bản v1.0; §8 là hiện trạng) nhưng chưa nơi nào tiêm `ctx.assigned` (việc của module `dispatch`, task 6–7) nên ba ô đó tạm chạy như `own`. Đặc tả ba việc dưới đây: `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`.
 
 - **N2 — phân công / người phụ trách** (ADR-0006): module mới `dispatch`, bảng `dsp_assignment` (+ `dsp_task_kind`, `dsp_assignment_status`, `dsp_call_log`, `dsp_service_progress`). Tiền tố `dsp_` đã được khai sẵn trong `TABLE_PREFIX`/`VIEW_PREFIX` của `src/architecture.test.ts`. Tiền đề bắt buộc: `updateDraftOrder` phải đổi từ "xoá hết rồi chèn lại" sang so khớp theo `id` để `order_service.id` bền. Khi có N2, `OperationContext.assigned` mới có nguồn dữ liệu thật ⇒ các ô `assigned`/`ownOrAssigned` mới có tác dụng.
 - **N3 — sổ thu tiền, hoá đơn, sửa sau xác nhận** (ADR-0004): tiền tố `bil_` đã khai sẵn; các thao tác `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue`, `order.money.edit` đã có trong `MATRIX`, chưa có route.

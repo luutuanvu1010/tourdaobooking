@@ -202,7 +202,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 **Bẫy:**
 - Hiện chỉ `order.create`, `order.history.view`, `order.modify`, `order.trip.edit` được `can()` dùng ở route; các thao tác N2/N3 và `admin.manage` có mặt để khoá bản đồ, chưa route nào dùng.
 - `access: "admin"` là `hasPermission(who, "ADMIN")`, không đi qua `MATRIX`.
-- ĐANG CHỜ THI CÔNG: `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đổi ba ô `SALES` (`order.modify`, `order.history.view`, `dispatch.assign`) từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`. `MATRIX` và bảng `ADR` trong `permissions.test.ts` HIỆN vẫn là `own` — khi thi công phải đổi CẢ HAI (kế hoạch: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`).
+- ADR-0009 (accepted 2026-09-21) ĐÃ thi hành ở `MATRIX` và bảng `ADR` của `permissions.test.ts` (task 4 bản v1.0): ba ô `SALES` (`order.modify`, `order.history.view`, `dispatch.assign`) là `ownOrAssigned`, thêm thao tác `dispatch.claim`; `order.money.edit` giữ `own`. **Nhưng chưa nơi nào tiêm `ctx.assigned`** (việc của module `dispatch`, task 6–7 — kế hoạch `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`): các route của `orders` gọi `can(staff, op, { ownerId })` không kèm `assigned`, nên cho tới lúc đó `ownOrAssigned` chạy như `own` và người phụ trách khác người lập CHƯA sửa được đơn.
 
 ### f. Thêm hành động nhật ký
 
