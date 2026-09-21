@@ -1,13 +1,15 @@
-# Kiến trúc đích — tourdao-sales (≤ 1 trang)
+# Kiến trúc đích — tourdao-sales
 
 > Từ phiên rà soát 2026-09-19 (`docs/AUDIT-FINDINGS.md`), đã thi công theo `docs/REFACTOR-PLAN.md` (chủ dự án duyệt 2026-09-19). Mô tả **hiện trạng**; mã lệch khỏi đây là lỗi cần sửa.
+>
+> **Bộ tài liệu nền (2026-09-21):** `CLAUDE.md` (cổng vào, quy tắc bắt buộc) · **tệp này = LUẬT kiến trúc** (ranh giới, dữ liệu, nơi đặt code) · `docs/SYSTEM-DESIGN.md` = thiết kế hệ thống (topology, luồng, API, quyền, dữ liệu, giao diện) · `docs/CHANGE-GUIDE.md` = cẩm nang "muốn đổi X thì sửa những đâu". Sửa cấu trúc → cập nhật cả bốn nơi liên quan trong cùng commit.
 
 ## Các tầng và chiều phụ thuộc (chỉ đi xuống, không vòng)
 
 ```
 src/index.ts            gốc lắp ráp: danh sách module, nối auth vào router, Cron
    │
-src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, (M4/M5: company…)
+src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, (chưa có: company — bảng `company_profile` đã tồn tại từ 0002, chưa module nào đọc)
    │   ↳ chỉ import module khác qua index.ts của nó
 src/modules/auth, staff năng lực nền: phiên, đăng nhập, tài khoản + quyền app (accounts dùng trực tiếp); staff không có route
    │
@@ -38,7 +40,7 @@ src/shared/             router, http, contracts (kiểu API), audit-actions, ord
 | `service.ts` | điều phối nhiều bước có I/O (vd đồng bộ Sheet) | chỉ trong module |
 | `sheet.ts`… | bộ đọc thuần cho nguồn ngoài | chỉ trong module (scripts được import) |
 
-File thuần (`rules.ts`, `sheet.ts`, mọi file trong `shared/`) import bằng đuôi `.ts` tường minh để `node --test` và `scripts/*.mjs` chạy trực tiếp.
+File thuần (`rules.ts`, `sheet.ts`, các file trong `shared/` mà `node --test` hoặc `scripts/*.mjs` nạp trực tiếp) import bằng đuôi `.ts` tường minh để chạy trực tiếp; `src/shared/router.ts` chỉ chạy trong Worker (esbuild/wrangler) nên import không đuôi.
 
 ## Luật dữ liệu
 
@@ -58,7 +60,8 @@ File thuần (`rules.ts`, `sheet.ts`, mọi file trong `shared/`) import bằng 
 3. Hành động nhật ký mới → thêm một dòng vào `src/shared/audit-actions.ts` (kèm nhãn tiếng Việt, nhóm). Không cần migration.
 4. DTO trả cho giao diện → khai trong `src/shared/contracts.ts`; `web/` import từ đó.
 5. Thêm một dòng vào mảng `modules` trong `src/index.ts`.
-6. Luật thuần có test `node --test`; hành vi API có kịch bản trong `tests/e2e/`.
+6. Luật thuần có test `node --test`; hành vi API có kịch bản trong `tests/e2e/` (khai kịch bản trong `run.mjs`).
+7. **Bài kiểm kiến trúc ÉP thêm** (`src/architecture.test.ts` đỏ nếu thiếu): khai cạnh phụ thuộc của module trong `ALLOWED_EDGES`; đưa module vào `STRICT` (SQL đi qua `defineSql`) hoặc `LEGACY` (kèm lý do); có bảng/view mới thì thêm vào `modules`/`tables` của `docs/data-dictionary.json` rồi `npm run dict`.
 
 ## Giao diện đơn (A2)
 

@@ -1,49 +1,59 @@
 # tourdao-sales
 
-Ứng dụng CRM nội bộ cho nhân viên Công ty TNHH Tour Đảo — tạo và xuất xác nhận đơn hàng để gửi khách qua Zalo. Tên miền đã chốt: `booking.tourdao.vn` (thay trang `fastbooking`; đã deploy lên tên miền này 2026-09-19 — xem `docs/SPEC-tourdao-sales.md` §3).
+Ứng dụng CRM nội bộ của Công ty TNHH Tour Đảo: nhân viên lập đơn dịch vụ tour, ghi thông tin chuyến, xác nhận đơn; admin quản lý nhân viên, quyền, danh mục dịch vụ (đồng bộ Google Sheet), hồ sơ khách/đại lý và địa điểm. Chạy thật tại **`https://booking.tourdao.vn`** (Cloudflare Worker + D1 + Workers Assets), cài lên iPhone như một PWA ("Tour Đảo Booking").
 
-Dự án này **độc lập hoàn toàn** với repo `tourdaovn` (website công khai) — khác Worker, khác D1, khác domain. Điểm chạm duy nhất: kế thừa giá trị design token (màu/font) từ `tourdaovn/src/styles/tokens.css` để đồng nhất thương hiệu, sao chép giá trị tại một thời điểm, không phụ thuộc runtime lẫn nhau.
+Dự án **độc lập hoàn toàn** với repo `tourdaovn` (website công khai): khác Worker, khác D1, khác domain. Điểm chạm duy nhất: sao chép giá trị design token (màu/font) để đồng nhất thương hiệu.
 
 ## Bắt đầu ở đây
 
-Đọc `docs/SPEC-tourdao-sales.md` trước khi viết bất kỳ dòng code nào. File đó là nguồn sự thật cho:
-- Kiến trúc dữ liệu (D1 schema, bất biến)
-- Kiến trúc hạ tầng (Cloudflare Workers + D1, TypeScript, không dùng React)
-- Design system kế thừa
-- Lộ trình module M1 → M5 (§6) — thi công tuần tự, mỗi module một artifact kiểm tra được, không nhảy cóc
+| Bạn muốn | Đọc |
+|---|---|
+| Làm việc trong repo này (quy tắc, lệnh, bản đồ mã) | [`CLAUDE.md`](CLAUDE.md) |
+| **Sửa/thêm gì đó nhanh** (công thức từng loại việc, bẫy) | [`docs/CHANGE-GUIDE.md`](docs/CHANGE-GUIDE.md) |
+| Hiểu cả hệ thống (topology, luồng, API, quyền, dữ liệu, giao diện) | [`docs/SYSTEM-DESIGN.md`](docs/SYSTEM-DESIGN.md) |
+| Luật kiến trúc (ranh giới module, dữ liệu, nơi đặt code) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/adr/`](docs/adr/README.md) |
+| Đặc tả nghiệp vụ và quyết định của chủ dự án | [`docs/SPEC-tourdao-sales.md`](docs/SPEC-tourdao-sales.md) |
+| Bảng/cột/view | [`docs/DATA-DICTIONARY.md`](docs/DATA-DICTIONARY.md) (sinh từ `docs/data-dictionary.json`) |
+| Triển khai production, áp migration, hoàn tác | [`docs/HANDOFF-N1.md`](docs/HANDOFF-N1.md) |
+| App iPhone (PWA) | [`docs/PWA-IPHONE.md`](docs/PWA-IPHONE.md) |
+| Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | [`docs/evidence/2026-09-20-a2/`](docs/evidence/2026-09-20-a2/README.md) |
 
-## Kiến trúc: modular monolith
+## Kiến trúc trong một đoạn
 
-Một Worker, nhiều module độc lập trong `src/modules/<tên>/`. Mỗi module sở hữu route + bảng dữ liệu + logic của mình và chỉ lộ ra ngoài qua `index.ts`. **Module khác chỉ import từ `index.ts` của module đó**, không chạm file nội bộ (`repository.ts`, ...). Module khai route (phương thức + đường dẫn + mức truy cập `public`/`staff`/`admin`); router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site và bắt lỗi toàn cục. Module mới = thêm thư mục + thêm một dòng vào `src/index.ts`. Code dùng chung nằm ở `src/shared/` (kiểu API dùng chung với giao diện: `contracts.ts`; hành động nhật ký: `audit-actions.ts`). Luật phụ thuộc và cách thêm module: **`docs/ARCHITECTURE.md`**.
+Một Worker, nhiều module độc lập trong `src/modules/<tên>/` (`accounts`, `audit`, `auth`, `catalog`, `locations`, `orders`, `parties`, `staff`). Mỗi module sở hữu route + bảng + logic của mình và chỉ lộ ra qua `index.ts`; module khác chỉ import `index.ts`. Router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site (kiểm `Origin`) và bắt lỗi toàn cục. Luật thuần dùng chung giữa máy chủ và giao diện nằm ở `src/shared/`. Giao diện là TypeScript thuần (`web/*.ts` → esbuild → `public/js/`) trên HTML tĩnh `public/*.html`. Chi tiết: `docs/ARCHITECTURE.md` và `docs/SYSTEM-DESIGN.md`.
 
-## Trạng thái hiện tại
+## Chạy local
 
-- **Rà soát kiến trúc (2026-09-19):** router + bắt lỗi toàn cục + chống CSRF, hợp đồng kiểu dùng chung, một nguồn danh sách nhật ký, migration `0007` (nhật ký mở, `order_item.catalog_code`, TRIGGER bất biến tiền), e2e tự động. `0007` đã áp remote (kiểm 2026-09-19). Xem `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md`.
+```
+cp .dev.vars.example .dev.vars        # điền SESSION_SECRET (≥ 32 ký tự)
+npm install
+npm run db:migrate:local
+node scripts/create-staff.mjs "Họ tên" 09xxxxxxxx 123456 SALES,ADMIN > staff.local.sql   # cửa khẩn cấp: in SQL tạo tài khoản
+npx wrangler d1 execute tourdao-sales-db --local --file staff.local.sql               # (staff.local.sql bị gitignore)
+npm run dev                           # wrangler dev, tự build web/ → public/js/
+```
 
-- **M1 xong:** Wrangler project, D1 `tourdao-sales-db` (đủ 5 bảng §2.1, bảng `order` đặt tên `orders` vì ORDER là từ khoá SQL), đăng nhập SĐT+PIN (`/api/auth/login|me|logout`, cookie session ký HMAC).
-- **M2 xong (2026-09-19):** module `orders` (`/api/orders`: tạo, sửa khi `draft`, chi tiết, danh sách + tìm kiếm/lọc/phân trang, đổi trạng thái), chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ (spec §2.4-5), module `audit` (nhật ký ghi cùng transaction; admin xem toàn hệ thống ở `/audit`), `requireStaff` dùng chung ở `auth`, UI thuần trong `public/` + `web/` (đăng nhập, danh sách, form, chi tiết). Chưa deploy.
-- **M3 xong (2026-09-19):** danh mục dịch vụ đồng bộ từ Google Sheet về D1 (module `catalog`; Cron 15 phút + nút "Đồng bộ ngay" ở `/catalog`), Admin ghi đè giá/ẩn dịch vụ mà lần đồng bộ sau không đè mất (cảnh báo khi Sheet đổi giá sau ghi đè), chốt chặn khi Sheet trông như bị hỏng; form đơn có **chọn nhanh dịch vụ** — nhập số khách từng loại (người lớn/trẻ em/người cao tuổi/em bé) sinh tối đa 4 dòng, dịch vụ tính theo nhóm (`per5Pax`) nhập số khách và số lượng = `ceil(khách/5)` lượt (khớp `quote.ts` của booking tourdaovn). Sheet lỗi thì dùng bản đã lưu + cảnh báo, vẫn nhập tay được. Migration `0006` (đã áp lên D1 remote cùng 0005; Worker đã deploy 2026-09-19).
-- **Bảng Admin (2026-09-19, làm trước M3 theo spec §2.4-6):** module `accounts` — quản lý nhân viên tại `/staff` (tạo, sửa, ngưng/kích hoạt, đổi vai trò, đặt lại PIN, mở khoá, **đồng bộ từ Google Sheet có xem trước**), đổi PIN cá nhân tại `/account`; **chống dò PIN** (5 lần sai/15 phút theo SĐT, 30/IP; đặt chỗ trước khi kiểm nên bắn song song cũng chỉ được 5 lần); đặt lại/đổi PIN thu hồi mọi phiên cũ; `audit_log` mở rộng ghi cả hành động quản trị (migration `0005`, đã áp lên D1 remote). ID hai Google Sheet nằm ở `vars` trong `wrangler.jsonc`.
+Thử nhanh trên **D1 tạm** (không đụng dữ liệu thật; mạng LAN, dùng cho iPhone thật): `node scripts/dev-iphone.mjs`.
 
-Chạy local: tạo `.dev.vars` từ `.dev.vars.example`, `npm run db:migrate:local`, tạo nhân viên bằng `scripts/create-staff.mjs`, `npm run dev` (tự build JS từ `web/` sang `public/js/`).
+## Kiểm tra
 
-Kiểm tra: `npm run typecheck`, `npm test` (luật thuần: `src/**/*.test.ts`), `npm run test:e2e` (API thật trên D1 local tạm, cần mạng để đọc Google Sheet — xem `tests/e2e/README.md`).
+```
+npm run typecheck        # 0 lỗi (server, web/, web/sw/)
+npm test                 # luật thuần + kiểm kiến trúc (src/**/*.test.ts)
+npm run test:e2e         # API thật trên D1 local tạm; CẦN MẠNG (đọc Google Sheet thật) — tests/e2e/README.md
+```
 
-Cấu trúc UI: `web/*.ts` (TypeScript vanilla, esbuild bundle từng trang → `public/js/`, thư mục này gitignored) + `public/*.html`, `public/app.css`. Trang: `/` danh sách, `/login`, `/order-form[?id=]`, `/order?id=`. Ứng dụng iPhone (PWA "Tour Đảo Booking"): `public/manifest.webmanifest`, `public/icons/`, service worker `web/sw/sw.ts` → `public/sw.js` (gitignored), thanh tab dưới đáy ở ≤640px; `/api/*` không bao giờ qua cache của service worker, mã phiên bản cache do build chèn — xem `docs/PWA-IPHONE.md` (rà soát theo Hiến pháp tourdaovn: `docs/AUDIT-PWA-IPHONE.md`).
+Kịch bản giao diện bằng Chrome thật nằm ở `docs/evidence/2026-09-20-a2/kich-ban/` (không trong CI).
 
 ## Nạp nhân viên từ Google Sheet
 
-Cách chính: nút "Đồng bộ danh sách từ Google Sheet…" ở `/staff`. Dự phòng bằng dòng lệnh (`scripts/import-staff.mjs`, dùng chung logic `src/modules/staff/sheet.ts`). Sheet chỉ là nguồn đề xuất — mọi tài khoản mới là `sales`, cấp `admin` ở bảng Admin; D1 là nguồn sự thật. Cột nhận: `Tên người dùng`, `Số điện thoại` (cột khác bị bỏ qua, kể cả `Vai trò`). SĐT đã có trong D1 thì bỏ qua; PIN sinh ngẫu nhiên, ghi vào file `*.local.txt` (gitignored).
+Cách chính: nút "Đồng bộ danh sách từ Google Sheet…" ở `/staff` (xem trước rồi áp dụng). Dự phòng bằng dòng lệnh (`scripts/import-staff.mjs`, dùng chung logic `src/modules/staff/sheet.ts`). Sheet chỉ là nguồn đề xuất — mọi tài khoản mới chỉ có quyền **Bán hàng (`SALES`)**; cấp thêm quyền ở `/staff`. D1 là nguồn sự thật. Cột nhận: `Tên người dùng`, `Số điện thoại`. SĐT đã có trong D1 thì bỏ qua; PIN sinh ngẫu nhiên, ghi vào tệp `*.local.txt` (gitignored).
 
 ```
 node scripts/import-staff.mjs "https://docs.google.com/spreadsheets/d/<ID>/export?format=csv" --db local|remote
 npx wrangler d1 execute tourdao-sales-db --local|--remote --file staff.local.sql
 ```
 
-## Tài liệu khác
+## Triển khai
 
-- `docs/ARCHITECTURE.md` — kiến trúc (1 trang): luật phụ thuộc, nơi đặt code, thêm module mới.
-- `docs/PWA-IPHONE.md` — app iPhone (PWA): cách hoạt động, danh sách kiểm trên máy thật, dựng lại icon, đổi tên hiển thị.
-- `docs/HANDOFF-M4.md` — trạng thái hiện tại, việc triển khai còn lại, việc tiếp theo (M4).
-- `docs/AUDIT-BRIEF.md`, `docs/AUDIT-FINDINGS.md`, `docs/REFACTOR-PLAN.md` — rà soát kiến trúc 2026-09-19: giao việc, phát hiện, các bước đã làm.
-- `tests/e2e/README.md` — bộ kiểm thử end-to-end trên D1 local.
+Chỉ khi chủ dự án ra lệnh, theo runbook [`docs/HANDOFF-N1.md`](docs/HANDOFF-N1.md) (cổng chỉ-đọc, điểm khôi phục Time Travel, áp migration rồi `wrangler deploy` ngay, kiểm sau khi deploy). Cloudflare không nối GitHub: `git push` không tự deploy.

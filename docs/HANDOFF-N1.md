@@ -12,7 +12,7 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
   2. **Cửa sổ đóng băng thao tác tài khoản/quyền/hồ sơ VẪN HIỆU LỰC** cho tới khi chủ dự án chắc không hoàn tác (mục "Hoàn tác"). Hoàn tác Worker về `0b13b279-…` chỉ an toàn nếu chưa có tài khoản/quyền/hồ sơ nào được tạo hay sửa dưới mã mới.
   3. Quyết định 4(a)/(b)/(c) chưa được chọn. Vì `0011` ĐÃ áp lên remote, phương án 4(a)(ii) (trigger) nay cần MỘT MIGRATION MỚI (không tái sinh `0011` được nữa); (i) và (iii) không đổi.
   4. Chữ ký duyệt thị giác A2 chưa được ghi vào `docs/evidence/2026-09-20-a2/README.md` (chủ dự án ra lệnh triển khai nhưng chưa ghi ngày/người ký/điểm cần sửa).
-  5. Gói Workers: `MAX_SERVICES` 20 × `MAX_LINES_PER_ORDER` 50 cho phép một đơn ghi khoảng 77–80 câu D1; nếu tài khoản Cloudflare đang ở gói Free (giới hạn 50 truy vấn D1 mỗi lần gọi Worker) thì đơn cỡ lớn sẽ bị từ chối. Cần chủ dự án xem gói trong Cloudflare dashboard (đơn thường vài dịch vụ nằm xa giới hạn này).
+  5. ~~Gói Workers~~ — **ĐÃ GIẢI QUYẾT 2026-09-21:** chủ dự án xác nhận Cloudflare Worker đang ở gói **trả phí**. Đơn cỡ tối đa (`MAX_SERVICES` 20 × `MAX_LINES_PER_ORDER` 50) cần khoảng 78 câu D1 trong một request tạo và khoảng 83 khi sửa (đếm cả request; xem `docs/SYSTEM-DESIGN.md` §12) — nằm xa giới hạn của gói trả phí, không cần hạ hằng nào.
 
 ## Đã có sau N1 (lần phát hành 1)
 - Migration `0009…0012` (chỉ thêm — mã cũ vẫn chạy): `v_ord_order_label`, `loc_*` (8 địa điểm), `pty_*` (hồ sơ, liên hệ, vai trò theo nơi, quan hệ), `stf_*` + `staff.party_id` + backfill hồ sơ/quyền cho tài khoản có sẵn.
