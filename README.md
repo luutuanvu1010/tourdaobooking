@@ -8,7 +8,7 @@ Dự án **độc lập hoàn toàn** với repo `tourdaovn` (website công khai
 
 | Bạn muốn | Đọc |
 |---|---|
-| Làm việc trong repo này (quy tắc, lệnh, bản đồ mã) | [`CLAUDE.md`](CLAUDE.md) |
+| Làm việc trong repo này (quy tắc, lệnh, chỉ đường tới tài liệu đọc đúng lúc) | [`CLAUDE.md`](CLAUDE.md) |
 | **Sửa/thêm gì đó nhanh** (công thức từng loại việc, bẫy) | [`docs/CHANGE-GUIDE.md`](docs/CHANGE-GUIDE.md) |
 | Hiểu cả hệ thống (topology, luồng, API, quyền, dữ liệu, giao diện) | [`docs/SYSTEM-DESIGN.md`](docs/SYSTEM-DESIGN.md) |
 | Luật kiến trúc (ranh giới module, dữ liệu, nơi đặt code) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md), [`docs/adr/`](docs/adr/README.md) |

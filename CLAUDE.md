@@ -1,111 +1,114 @@
 # CLAUDE.md — tourdao-sales
 
-Hướng dẫn cho mọi phiên Claude làm việc trong repo này. **Đọc hết trước khi sửa mã.** Ngắn có chủ đích: chi tiết nằm ở các tài liệu được trỏ tới; khi tài liệu và mã mâu thuẫn thì **mã thắng** — sửa tài liệu ngay trong cùng commit.
+> Đọc trước mỗi phiên. Đây là **lời khuyên cho AI, không phải cưỡng chế**; riêng các lệnh cấm ở §8 có thêm hàng rào máy. Chi tiết ở tài liệu được trỏ tới, không chép lại ở đây. Luật theo thư mục: `src/CLAUDE.md`, `web/CLAUDE.md` (chỉ tự nạp khi bạn ĐỌC tệp ở đó — làm việc bằng lệnh shell thì tự mở chúng).
 
-## 1. Dự án là gì
-CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lập đơn dịch vụ tour (chọn từ danh mục đồng bộ Google Sheet), ghi thông tin chuyến theo từng dịch vụ, xác nhận đơn; kế toán xem đơn; admin quản lý nhân viên, quyền, danh mục, hồ sơ khách/đại lý, địa điểm.
-- **Production:** `https://booking.tourdao.vn` — Cloudflare Worker `tourdao-sales` + D1 `tourdao-sales-db` + Workers Assets; là PWA cài lên iPhone ("Tour Đảo Booking").
-- **Độc lập** với repo `tourdaovn` (website công khai): khác Worker, khác D1, khác domain. Token màu/font chỉ sao chép giá trị.
-- Ngăn xếp: TypeScript, giao diện thuần (không React), esbuild, SQLite (D1). Node 22 (chạy `.ts` trực tiếp bằng `node --test`).
+## 1. Dự án
+- CRM nội bộ **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lập đơn dịch vụ tour (chọn từ danh mục đồng bộ Google Sheet), ghi thông tin chuyến theo từng dịch vụ, xác nhận đơn; kế toán xem đơn; admin quản lý nhân viên, quyền, danh mục, hồ sơ khách/đại lý, địa điểm; có kênh Góp ý/Báo lỗi.
+- Production `https://booking.tourdao.vn`: Cloudflare Worker `tourdao-sales` + D1 `tourdao-sales-db` + Workers Assets; PWA cài lên iPhone ("Tour Đảo Booking").
+- **Độc lập** với repo `tourdaovn` (website công khai): khác Worker, D1, domain. Điểm chạm hiện có: giá trị token màu/font (chỉ sao chép giá trị).
+- TypeScript, giao diện thuần (không React), esbuild, SQLite (D1), Node 22 (chạy `.ts` trực tiếp bằng `node --test`), **không có dependency runtime**.
+- Bốn quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`. Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 
-## 2. Đọc gì, khi nào
-| Việc | Đọc |
-|---|---|
-| **Sửa/thêm gì đó nhanh** (công thức từng loại việc, bẫy) | `docs/CHANGE-GUIDE.md` |
-| Hiểu cả hệ thống (topology, luồng, API, quyền, dữ liệu) | `docs/SYSTEM-DESIGN.md` |
-| Luật kiến trúc (ranh giới module, dữ liệu, nơi đặt code) | `docs/ARCHITECTURE.md`, `docs/adr/` (ADR-0001…0009) |
-| Đặc tả nghiệp vụ + quyết định của chủ dự án | `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
-| Bảng/cột/view | `docs/data-dictionary.json` (nguồn) → `docs/DATA-DICTIONARY.md` (sinh bằng `npm run dict`) |
-| Triển khai, áp migration, hoàn tác | `docs/HANDOFF-N1.md` (mục "Trạng thái triển khai" là hiện trạng production) |
-| Chế độ bảo trì (chỉ chủ dự án) + cột "Đăng nhập gần nhất": quyết định của chủ, trạng thái, việc còn lại | `docs/HANDOFF-CHE-DO-BAO-TRI.md`; công thức q ở `docs/CHANGE-GUIDE.md`; runbook + đường thoát khẩn ở `docs/HANDOFF-N1.md` |
-| Góp ý / Báo lỗi (module `feedback`, trang `/feedback`, migration `0016_feedback`): trạng thái, việc kiểm tay, runbook triển khai | `docs/HANDOFF-FEEDBACK.md`; thiết kế `docs/superpowers/specs/2026-09-21-gop-y-bao-loi-design.md`; nhật ký `docs/superpowers/plans/2026-09-21-gop-y-bao-loi.md` |
-| Lịch sử thi công, ruling, nợ kỹ thuật | `docs/superpowers/plans/*-thi-cong-nhat-ky.md` |
-| Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | `docs/evidence/2026-09-20-a2/`, `docs/evidence/2026-09-21-v1-0/` (v1.0: màn đăng nhập…) |
-| PWA/iPhone | `docs/PWA-IPHONE.md` |
+## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
+Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
+- Tài liệu **chuẩn tắc** (Hiến pháp, ADR đã duyệt, luật ở `docs/ARCHITECTURE.md`, `docs/SPEC-tourdao-sales.md` đã duyệt) **thắng mã**: mã lệch là lỗi, sửa mã.
+- Tài liệu **mô tả** (`docs/SYSTEM-DESIGN.md`, `docs/DATA-DICTIONARY.md`, `docs/CHANGE-GUIDE.md`) **thua mã**: sửa tài liệu trong cùng commit.
+- **Lệch có chủ ý** đã ghi ở `docs/SYSTEM-DESIGN.md` §16 (mã đúng, tài liệu chuẩn tắc lệch): không sửa mã; giữ ở §16 và trình chủ để ra ADR/dòng lịch sử mới.
+- Không tự hoà giải bằng suy đoán: dừng, nêu xung đột, hỏi chủ.
 
-## 3. Lệnh
+## 3. Vai của AI (quan trọng nhất)
+- **Chủ dự án là người quyết định cuối và duy nhất** (P7, P9); AI thực thi. Quyết định kiến trúc/chiến lược và cửa một chiều cần ADR + chủ duyệt: AI không tự quyết (N3, Điều 7.2).
+- **Khi mơ hồ** (P8):
+  - Chạm dữ liệu, logic, hợp đồng giữa các phần (module/API/schema) hoặc bất biến: **luôn DỪNG và hỏi**, dù nhỏ.
+  - Chỉ bề mặt và đảo ngược được: tự đưa giả định, ghi lại trong commit/báo cáo, đi tiếp.
+  - Không chắc thuộc loại nào thì coi là cấu trúc và dừng.
+- **Mỗi phiên một vai cho cùng một việc**: lập kế hoạch, thi công, hoặc kiểm (P15). **Người thi công KHÔNG tự nghiệm thu** (N8).
+- **Việc lớn** = đụng **dữ liệu** (schema, migration, dữ liệu thật), **quyền** (`permissions.ts`, tài khoản), **tiền** (tính/hiển thị tiền), **triển khai** (deploy, cấu hình Cloudflare) hoặc **luật** (tài liệu chuẩn tắc, hook, CLAUDE.md).
+  - Thi công xong phải có **subagent kiểm độc lập, chỉ đọc**: đọc mã thật, chạy lại lệnh, chỉ báo cáo, không sửa. Chỉ báo "đạt" dựa trên báo cáo đó + test, không tự khai.
+  - Việc còn lại (sửa chữ, tài liệu mô tả, CSS không đụng logic, thêm test): test xanh + tóm tắt, chủ duyệt.
+- **Không tự tay đổi luật chi phối chính mình** (N9): `CLAUDE.md`, `.claude/`, `playbook/`, ràng buộc dự án, ADR đã duyệt. Chỉ **đề xuất** bằng diff/tệp trên nhánh; chủ duyệt mới có hiệu lực (riêng `CLAUDE.md`: chỉ được tự sửa số đếm, số migration, tên tệp cho khớp mã, không đổi nghĩa quy tắc; `playbook/` và ADR đã duyệt thì không). Dựng thêm hàng rào chỉ **siết** chính mình (test, hook, deny) thì được, không nới (Điều 9.4).
+- Viết **tiêu chí nghiệm thu trước khi làm**, bằng hành vi kiểm được (P20). Cơ chế kiểm mới chỉ được coi là hoạt động khi **đã quan sát nó chặn thật một lần** (sửa cố ý → đỏ → hoàn nguyên) (P16); điều chưa cưỡng chế được ghi là "dựa vào kỷ luật".
+- Thấy dấu hiệu một nguyên tắc sắp/đang bị vi phạm: nói ngay **một lần**, bằng lời thường (số hiệu điều để trong ngoặc); chủ đã nghe và vẫn quyết thì thi hành, không nhắc lại (P18).
+
+## 4. Trả lời chủ dự án: ngắn, dễ hiểu, phi kỹ thuật
+Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu trả lời trò chuyện với chủ**. Tài liệu, commit, nhật ký và báo cáo giữa các AI (người kiểm ↔ điều phối) vẫn viết đủ (tệp:dòng, lệnh) để người sau kiểm được.
+- **Kết luận trước** (1–2 câu), rồi điều chủ cần làm hoặc quyết. Sau đó tối đa vài gạch ngắn. Không kể quy trình, không giải thích dài.
+- **Lời thường.** Tránh thuật ngữ, tên tệp, đường dẫn, mã commit, tên hàm, số hiệu điều luật (riêng cảnh báo P18 được để số hiệu trong ngoặc). Bắt buộc dùng thuật ngữ thì kèm giải nghĩa một câu (nói "bản sao Hiến pháp", không nói "pinned copy").
+- **Chi tiết chỉ khi chủ hỏi.** Số liệu, bằng chứng, lệnh đã chạy ghi vào tài liệu/nhật ký; trong câu trả lời chỉ nêu tên một tệp khi chủ cần xem.
+- **Cần chủ chọn:** nêu 2–3 phương án, mỗi phương án một dòng (làm gì, được/mất gì), kèm một khuyến nghị.
+- **Việc chủ phải làm:** từng bước đánh số, mỗi lệnh một khối riêng, nói rõ chạy ở thư mục nào, chép-dán chạy được.
+- **Không bịa.** Điều chưa kiểm nói rõ "chưa kiểm"; không trình bày suy đoán như sự thật.
+- **Báo cáo cuối việc: 4 mục có nhãn, mỗi mục một hai câu** (tổng kết nhiều việc thì gộp lại theo 4 mục): Đã làm — Đã kiểm (nói rõ đã có người kiểm độc lập chưa) — Chưa làm/chưa kiểm — Cần bạn quyết. Không nói "xong" khi test/typecheck chưa chạy hoặc đỏ.
+- Trả lời bằng **tiếng Việt CÓ DẤU**.
+
+## 5. Lệnh
 | Lệnh | Việc |
 |---|---|
 | `npm run dev` | `wrangler dev` (tự `build:web`); cần `.dev.vars` (mẫu `.dev.vars.example`) và `npm run db:migrate:local` |
-| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện 424 test (đếm lại khi thêm/bớt) |
-| `node --test src/shared/service-form.test.ts` | chạy một tệp test |
-| `npm run typecheck` | `tsc` cho server, `web/`, `web/sw/` — phải **0 lỗi** |
-| `npm run build:web` | esbuild `web/*.ts` → `public/js/`, `web/sw/sw.ts` → `public/sw.js` (cả hai **gitignored**; thêm trang mới phải khai trong script này) |
-| `npm run test:e2e [-- tên …]` | API thật trên D1 local tạm; **cần mạng** (đọc Google Sheet thật + gọi siteverify của Cloudflare Turnstile ở mọi đăng nhập); kết thúc bằng `audit-invariants` |
-| `node scripts/audit-invariants.mjs --db local\|remote` | bất biến dữ liệu, chỉ đọc; danh sách kiểm ở `scripts/audit-checks.mjs` (test: `src/audit-invariants.test.ts`); mã thoát 1 = vi phạm, **2 = không chạy được** (D1 chưa áp `0014`/thiếu bảng — không phải dữ liệu sạch) |
-| `npm run dict` | sinh lại `docs/DATA-DICTIONARY.md` từ `data-dictionary.json` |
-| `node scripts/dev-iphone.mjs` | chạy trên D1 **tạm** để thử iPhone thật (mạng LAN, không đụng dữ liệu thật) |
-| `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote chỉ theo runbook, xem §6** |
+| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`); một tệp: `node --test src/shared/service-form.test.ts` |
+| `npm run typecheck` | `tsc` cho server, `web/`, `web/sw/` — phải **0 lỗi**. **KHÔNG phủ** `src/**/*.test.ts`, `scripts/`, `tests/` (tự đọc lại tệp đó) |
+| `npm run build:web` | esbuild các trang `web/*.ts` (liệt kê trong script) → `public/js/`, `web/sw/sw.ts` → `public/sw.js` (cả hai **gitignored**) |
+| `npm run test:e2e [-- tên …]` | API thật trên D1 local tạm; **cần mạng** (đọc Sheet thật + siteverify Turnstile); đăng nhập luôn qua `login()`/`session()` của `tests/e2e/lib.mjs`; cuối cùng chạy `audit-invariants` |
+| `node scripts/audit-invariants.mjs --db local\|remote` | bất biến dữ liệu, **chỉ đọc**; thoát 1 = vi phạm, **2 = không chạy được** (không phải dữ liệu sạch) |
+| `npm run dict` | sinh lại `docs/DATA-DICTIONARY.md` từ `docs/data-dictionary.json` |
+| `node scripts/dev-iphone.mjs` | chạy trên D1 tạm để thử iPhone thật (LAN, không đụng dữ liệu thật) |
+| `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote do chủ tự chạy, theo runbook (§8)** |
 
-Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` không nằm trong CI: sửa `web/order-form.ts`, `web/order.ts` hoặc `web/trip-sheet.ts` thì **phải chạy lại** ba `a2-smoke-*.mjs` (cách chạy: `tests/e2e/README.md`); sửa `web/booker-picker.ts` (khối "Hồ sơ khách" ở form đơn) thì chạy lại `a2-smoke-form.mjs`; sửa `web/booker-sheet.ts` (bảng "Đổi khách" ở trang đơn) thì chạy lại `a2-smoke-order.mjs` + `v1-nguoi-phu-trach.mjs`; sửa `web/login.ts`, `public/login.html` hoặc CSP ở `public/_headers` thì chạy `docs/evidence/2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs` (cần mạng); sửa `web/confirmation-image.ts`, `web/confirmation-dialog.ts`, `src/shared/order-confirmation.ts`, `src/shared/text-wrap.ts` hoặc phần `moi=1`/nút "Xác nhận gửi khách" ở `web/order.ts`/`web/order-form.ts` thì chạy `v1-xac-nhan-png.mjs` cùng thư mục (không cần mạng ngoài); sửa `web/orders.ts`, `web/order.ts`, `web/handler-sheet.ts`, khối người phụ trách của `public/app.css` hoặc `src/shared/handler-view.ts` thì chạy `v1-nguoi-phu-trach.mjs` cùng thư mục. sửa `web/maintenance-screen.ts`, phần bảo trì của `web/api.ts`/`web/account.ts`/`web/shell.ts`/`web/login.ts` hoặc khối bảo trì của `public/app.css` thì chạy thêm `v1-bao-tri.mjs` cùng thư mục (không cần mạng ngoài). sửa `web/feedback.ts`, `public/feedback.html` hoặc dòng "Góp ý" ở `web/shell.ts`/`web/account.ts` thì CHƯA có kịch bản Chrome riêng — chạy `v1-bao-tri.mjs` (đụng cùng hai tệp khung) và làm danh sách thử tay ở `docs/HANDOFF-FEEDBACK.md`. `v1-dang-nhap.mjs` nay 15 bước (~9 phút, cần mạng). Các kịch bản này cần Chrome + axe-core NGOÀI repo.
+## 6. Đọc gì, khi nào (nạp đúng lúc, không nạp hết)
+- **Chỉ đọc khi việc cần, và chỉ đúng mục cần.** Tài liệu dài (Hiến pháp, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`) đừng đọc hết: liệt kê tiêu đề (`grep -n "^#" <tệp>`), rồi đọc đúng mục theo số dòng. Với Hiến pháp: `grep -n "^\*\*N9\." playbook/CONSTITUTION.md` (nguyên tắc), `grep -n "^## Điều" playbook/CONSTITUTION.md` (các Điều).
+- **Không dùng `@tệp` để nhập vào CLAUDE.md** (nhập bằng `@` nạp cả tệp ngay khi mở phiên). Chỉ chỉ đường bằng tên tệp như bảng dưới. Đọc xong dùng luôn, không chép lại vào câu trả lời.
 
-## 4. Bản đồ mã
-```
-src/index.ts            gốc lắp ráp: mảng modules, router, Cron
-src/modules/<tên>/      accounts · audit · auth · catalog · company · dispatch · feedback · locations · maintenance · orders · parties · staff
-                        (index.ts = API công khai của module; rules.ts thuần; repository.ts = SQL; service.ts điều phối)
-src/shared/             logic THUẦN dùng chung server ↔ web: router, http, contracts (DTO), permissions, trip-*, service-form,
-                        order-*, handler-view, text-wrap, app-info, audit-actions, maintenance, feedback-catalog, vn-date, sw-policy…  — KHÔNG import src/modules/
-web/                    giao diện TypeScript thuần: 1 tệp / trang + thành phần (counter, banner, service-card, trip-sheet, handler-sheet, confirmation-image/-dialog…)
-public/                 HTML tĩnh, app.css (token), fonts/, icons/, manifest; js/ và sw.js do build sinh
-migrations/             0001…0018 (chỉ thêm, không sửa tệp đã áp remote; 0013–0014 v1.0 và 0015 + 0016_maintenance chế độ bảo trì + đăng nhập gần nhất, cùng 2026-09-21;
-                        0017 trigger bảo vệ trạng thái đơn + nhật ký chỉ-thêm; 0018 người đặt trên đơn (N2 lát 1)).
-                        HAI tệp cùng tiền tố 0016: `0016_feedback.sql` (Góp ý) và `0016_maintenance.sql` — chấp nhận được vì wrangler theo dõi theo TÊN ĐẦY ĐỦ,
-                        không theo số; thứ tự áp là thứ tự TÊN nên `0016_feedback` đi trước `0016_maintenance` (hai tệp độc lập nhau). Migration kế tiếp lấy số `0019`.
-scripts/                công cụ dòng lệnh (audit-invariants, import-staff, dev-iphone…)
-tests/e2e/              kịch bản API (run.mjs điều phối)
-docs/                   tài liệu (xem §2)
-```
+| Việc | Đọc (đúng mục) |
+|---|---|
+| Không chắc nên hỏi chủ hay tự quyết; ai được quyết gì | Hiến pháp `playbook/CONSTITUTION.md`: P8, Điều 7.1 và 7.3 |
+| Việc lớn (dữ liệu, quyền, tiền, triển khai, luật, hook): ai kiểm, "xong" là gì | Hiến pháp: N3, N8, N9, P15, P16, Điều 6.1; điều cấm: Điều 5 |
+| Sửa luật, ADR, CLAUDE.md, `playbook/` | Hiến pháp Điều 9; `playbook/PIN-README.md`; `docs/adr/README.md` |
+| Hệ thống chạy thế nào (máy chủ, đăng nhập, một request) | `docs/SYSTEM-DESIGN.md` §2–§4 |
+| Luồng nghiệp vụ (lập đơn, xác nhận, phân công…) | `docs/SYSTEM-DESIGN.md` §6; nghiệp vụ và quyết định của chủ: `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
+| Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` (nguồn `docs/data-dictionary.json`) |
+| API, quyền, bảo mật | `docs/SYSTEM-DESIGN.md` §7, §8, §11 |
+| Kiến trúc: ranh giới module, nơi đặt mã | `docs/ARCHITECTURE.md`; quyết định đã duyệt: mục lục `docs/adr/README.md` rồi ADR liên quan |
+| Hồ sơ khách/đại lý/đối tác, danh tính | ADR-0001, ADR-0010; đối chiếu Oracle TCA (bản nháp): `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` |
+| Giao diện, hệ thống thiết kế (màu, chữ, khoảng cách, thành phần) | token ở đầu `public/app.css`; luật giao diện: `web/CLAUDE.md`; thiết kế màn hình: `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`, `docs/SYSTEM-DESIGN.md` §9; iPhone: `docs/PWA-IPHONE.md` |
+| Sửa/thêm nhanh: công thức từng loại việc, bẫy | `docs/CHANGE-GUIDE.md`: §1 bảng "muốn … → xem …", rồi đúng công thức ở §2; §3 ma trận "đổi gì → chạy kiểm nào" |
+| Triển khai, áp migration, hoàn tác, trạng thái production | `docs/HANDOFF-N1.md`: mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp = hiện trạng; runbook từng lần phát hành; "Việc còn treo / nợ" ở cuối tệp |
+| Lộ trình, việc tiếp theo | `docs/SYSTEM-DESIGN.md` §14; `docs/HANDOFF-N1.md` (Việc còn treo) |
+| Chế độ bảo trì; Góp ý / Báo lỗi | `docs/HANDOFF-CHE-DO-BAO-TRI.md`; `docs/HANDOFF-FEEDBACK.md` |
+| Lịch sử thi công, ruling, nợ kỹ thuật | `docs/superpowers/plans/*-thi-cong-nhat-ky.md` |
+| Bằng chứng giao diện | `docs/evidence/` |
 
-## 5. Quy tắc bắt buộc
-**Ngôn ngữ:** giao diện, thông báo lỗi, tài liệu, thông điệp commit đều **tiếng Việt CÓ DẤU đầy đủ**. Không chữ tiếng Anh nào lộ ra người dùng (kể cả mã trạng thái thô như `cancelled`).
+## 7. Quy tắc bắt buộc (chi tiết theo thư mục ở `src/CLAUDE.md`, `web/CLAUDE.md`)
+- **Ngôn ngữ**: giao diện, thông báo lỗi, tài liệu, commit đều **tiếng Việt CÓ DẤU** đầy đủ; không chữ Anh lộ ra người dùng, kể cả mã trạng thái thô như `cancelled`.
+- **Kiến trúc** (`src/architecture.test.ts` ép đầy đủ cho module "nghiêm"; module cũ còn ngoại lệ có hạn): module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view `v_<tiền tố>_*`; `src/shared/` và `web/` không import `src/modules/`.
+- **Dữ liệu**: tiền = `INTEGER` VNĐ, dẫn xuất chỉ tính ở **server** (`buildLines`), không tin số tiền từ trình duyệt; ngày/giờ dân sự theo **giờ Việt Nam** (`vnToday`), dấu thời gian ISO UTC; không xoá cứng (hiệu lực bằng `valid_from/to`).
+- **Migration**: chỉ thêm tệp mới, **không sửa tệp đã áp remote**; đổi phá vỡ theo expand–contract trong hai lần phát hành; bảng/cột mới → cập nhật `docs/data-dictionary.json` + `npm run dict`.
+- **Giao diện** (chi tiết `web/CLAUDE.md`): không `innerHTML` (dựng bằng `h()`); giá trị CSS đi vào token; ô gõ 16px; trang mới khai `PAGES` (`src/shared/sw-policy.ts`) và script `build:web`. Sửa giao diện thì chạy lại đúng kịch bản Chrome.
+- **Bảo mật**: mặc định từ chối (route khai `access`; ma trận ở `src/shared/permissions.ts`); POST/PUT/PATCH cần header `Origin` cùng site (thử bằng curl phải tự thêm); nhật ký **không ghi** SĐT/email/MST (`staff_updated` từng ghi SĐT, đã sửa 2026-09-21; **nhật ký cũ trên production vẫn còn số** vì nhật ký chỉ-thêm — đừng sao chép kiểu cũ); bí mật chỉ qua `wrangler secret put` / `.dev.vars` (gitignored), **không** commit khoá, không nạp bí mật vào ngữ cảnh khi không cần (N10).
+- **Kiểm thử**: sửa hành vi → viết test **đỏ trước, xanh sau**; luật thuần có `*.test.ts` cạnh tệp; hành vi API có kịch bản `tests/e2e`. Chạm API/migration thì chạy cả e2e.
 
-**Kiến trúc** (chi tiết `docs/ARCHITECTURE.md`; `src/architecture.test.ts` ép):
-- Module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view công bố `v_<tiền tố>_*`.
-- `src/shared/` và `web/` **không** import `src/modules/`. Trong `src/shared/` import nhau **kèm đuôi `.ts`**; `web/` import `shared` **không đuôi**.
-- Luật dùng ở cả server và giao diện = một tệp thuần trong `src/shared/` (một nguồn); không chép tay sang `web/`.
-- SQL của module "nghiêm" (`company`, `dispatch`, `feedback`, `locations`, `maintenance`, `parties`, `staff`) đi qua `defineSql`, câu tĩnh.
-- `orders` KHÔNG import `dispatch`: "đang là người phụ trách" và "đặt người phụ trách mặc định cho đơn mới" do gốc lắp ráp (`src/index.ts` → `injected`) tiêm vào `ctx` (`ctx.isAssigned(orderId)`, `ctx.defaultHandlerStatement(orderId, at)`); route nào dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
+## 8. Git, triển khai, an toàn
+- Sửa mã trong **git worktree riêng** (`.claude/worktrees/<tên>`), không sửa thẳng ở checkout gốc. Commit nhỏ, thông điệp tiếng Việt: tiêu đề nói việc, thân nói **vì sao**. Thêm dòng đồng tác giả nếu môi trường yêu cầu.
+- **CẤM AI tự chạy** (chủ quyết rồi tự chạy, bằng `!` hoặc trong Terminal): `git push`, merge vào `main` (kể cả `gh pr merge`), `wrangler deploy`/`rollback`/`secret …`, `wrangler d1 migrations apply --remote`, ghi hoặc `d1 execute` trên D1 remote, `wrangler dev --remote`, kịch bản hay `curl` ghi lên API production. Không `--force`. Hỏi "được chưa?" không phải là lệnh. Chủ ra lệnh thì AI làm hết bước chuẩn bị và kiểm, rồi đưa **nguyên lệnh** (kèm thư mục cần đứng).
+- **Hàng rào máy** (chỉ chặn nhầm/quên, không chống cố ý lách): hook `.claude/hooks/guard-remote.mjs` (lớp 1) + `permissions.deny` ở `.claude/settings.json` (lớp 2). **Hook không có công tắc tạm**, kể cả khi chủ ra lệnh.
+- Thấy một lệnh cấm chạy được là lỗi của hàng rào: **báo chủ, không coi là được phép**. Kiểm hàng rào: `node --test src/claude-guard.test.ts`.
+- **Đừng khẳng định trạng thái production từ tài liệu hay bộ nhớ** (từng lệch nhau khi nhiều phiên deploy song song): kiểm bằng GET công khai hoặc lệnh chỉ đọc (`wrangler d1 migrations list … --remote`, `wrangler deployments list`). Chỉ deploy từ `main` đã gộp, theo `docs/HANDOFF-N1.md`: cổng chỉ-đọc → điểm khôi phục Time Travel → test + typecheck + e2e xanh → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → ghi trạng thái. `CI=1` để wrangler không hỏi.
+- Không tạo/sửa tài khoản, quyền, hồ sơ trên production trong "cửa sổ đóng băng" (`docs/HANDOFF-N1.md`, phần Hoàn tác).
+- Không sửa ADR/đặc tả đã duyệt để hợp thức hoá mã; quyết định kiến trúc mới → ADR mới do chủ duyệt.
 
-**Dữ liệu:** tiền = `INTEGER` VNĐ, dẫn xuất chỉ tính ở **server** (`buildLines`); ngày/giờ dân sự theo **giờ Việt Nam** (`vnToday`, `YYYY-MM-DD`/`HH:MM`), dấu thời gian `TEXT` ISO UTC. Không xoá cứng; hiệu lực bằng `valid_from/to`. Danh sách giá trị mở kiểm ở code, không `CHECK`. Tên bảng số ít (trừ `orders`).
+## 9. Quy trình
+- **Việc nhỏ/rõ**: công thức ở `docs/CHANGE-GUIDE.md` → test → commit.
+- **Tính năng mới**: đặc tả ngắn ở `docs/superpowers/specs/` (ghi giả định và điều chưa chắc) → kế hoạch ở `docs/superpowers/plans/` → thi công theo task (mỗi task đỏ→xanh, việc lớn có người kiểm độc lập §3) → cập nhật `SYSTEM-DESIGN.md`/`CHANGE-GUIDE.md`/`data-dictionary.json` nếu đổi cấu trúc.
+- **Việc nhiều bước**: ghi sổ điều phối `docs/superpowers/plans/…-thi-cong-nhat-ky.md` (ruling, nợ). Mỗi việc một phiên; trạng thái sống trong tài liệu, không trong trí nhớ phiên (P19).
+- Yêu cầu chưa rõ: xử lý theo P8 ở §3 (cấu trúc → hỏi chủ; bề mặt đảo ngược được → giả định có ghi). Đừng nở phạm vi ra ngoài điều được giao.
 
-**Migration:** chỉ thêm file mới; **không sửa** file đã áp remote; đổi phá vỡ theo expand–contract trong hai lần phát hành. Bảng/cột mới → cập nhật `docs/data-dictionary.json` + `npm run dict`.
-
-**Giao diện:** không `innerHTML` (dựng bằng `h()` ở `web/dom.ts`). CSS: token ở `:root` của `public/app.css`; khối **sau** dấu mốc `/* ---------- app iPhone (PWA)` chỉ dùng token (không hex, `rgb()`, `hsl()`, `px` ngoài `1px`, `rem`, `em`) — `tests/e2e/pwa.mjs` quét. Ô gõ 16px (chống zoom iOS). Trang mới phải khai ở `PAGES` trong `src/shared/sw-policy.ts`.
-
-**Bảo mật:** mặc định từ chối (route khai `access`; ma trận ở `src/shared/permissions.ts`); POST/PUT/PATCH cần header `Origin` cùng site (thử bằng curl phải tự thêm); tiền không tin từ trình duyệt; nhật ký **không ghi** SĐT/email/MST; bí mật chỉ qua `wrangler secret put` / `.dev.vars` (gitignored) — **không** commit khoá.
-
-**Kiểm thử:** sửa hành vi → viết test **đỏ trước, xanh sau**; luật thuần có `*.test.ts` cạnh tệp; hành vi API có kịch bản `tests/e2e`. Không tuyên bố xong khi chưa chạy `npm test` + `npm run typecheck` (+ e2e nếu chạm API/migration).
-
-## 6. Git, triển khai, an toàn
-- Sửa mã trong **git worktree riêng** (`.claude/worktrees/<tên>`, đã gitignore), không sửa thẳng ở checkout gốc. Commit nhỏ, thông điệp tiếng Việt: tiêu đề nói việc, thân nói **vì sao**. Nếu môi trường yêu cầu dòng đồng tác giả thì thêm đúng theo đó.
-- **Không** `git push`, merge vào `main`, `wrangler deploy`, `wrangler d1 migrations apply --remote`, `wrangler secret …`, hay ghi lên D1 remote **trừ khi chủ dự án ra lệnh rõ trong phiên đó** — mỗi lần ra lệnh chỉ áp cho việc đó. Không `--force`.
-- Khi được lệnh deploy: theo `docs/HANDOFF-N1.md` — cổng chỉ-đọc trước, ghi điểm khôi phục Time Travel, `npm test` + `npm run typecheck` + `npm run test:e2e` xanh, áp migration rồi `wrangler deploy` ngay, `audit-invariants --db remote`, ghi trạng thái vào HANDOFF. `CI=1` để wrangler không hỏi.
-- Không tạo/sửa tài khoản, quyền, hồ sơ trên production trong "cửa sổ đóng băng" (HANDOFF-N1 mục Hoàn tác).
-- Không sửa ADR/đặc tả đã duyệt để hợp thức hoá mã; quyết định kiến trúc mới → ADR mới do chủ dự án duyệt.
-
-## 7. Quy trình
-- **Việc nhỏ/rõ:** theo công thức ở `docs/CHANGE-GUIDE.md` → test → commit.
-- **Tính năng mới:** đặc tả ngắn ở `docs/superpowers/specs/` (ghi giả định và điều chưa chắc) → kế hoạch ở `docs/superpowers/plans/` → thi công theo task, mỗi task test đỏ→xanh và rà soát độc lập → cập nhật `SYSTEM-DESIGN.md`/`CHANGE-GUIDE.md`/`data-dictionary.json` nếu đổi cấu trúc.
-- Việc lớn có nhiều bước: ghi sổ điều phối ở `docs/superpowers/plans/…-thi-cong-nhat-ky.md` (ruling, nợ) để phiên sau tiếp nối.
-
-## 8. Bẫy hay dính (danh sách đầy đủ: `docs/CHANGE-GUIDE.md`)
-- `public/js/` và `public/sw.js` không có trong git: quên `npm run build:web` thì trang hỏng/cũ (`wrangler dev` và `wrangler deploy` tự build).
+## 10. Bẫy hay dính (danh sách đầy đủ: `docs/CHANGE-GUIDE.md`)
+- `public/js/` và `public/sw.js` không có trong git: quên `npm run build:web` thì trang cũ/hỏng (`wrangler dev`/`deploy` tự build).
 - E2E cần mạng; nhiều `wrangler dev` mồ côi gây "database is locked" — tắt trước khi chạy.
-- Form: `location.replace` (không `assign`) sau khi lưu để Back/bfcache không đưa về form đã lưu (tránh đơn trùng).
-- Enter trong ô tìm danh mục bị chặn có chủ đích (ô nằm trong `<form>`).
-- `wrangler d1 migrations apply` áp **mọi** migration chưa áp — không để migration "siết" (B5 `staff_party_required`, xem HANDOFF-N1) lọt vào `migrations/` trước lần phát hành 2. `src/migrations-n1.test.ts` nhận biết migration siết theo TÊN tệp, không theo số.
-- Turnstile ở đăng nhập: bật khi có `TURNSTILE_SECRET_KEY`, **tắt** khi vắng (cảnh báo log mỗi lần); kiểm TRƯỚC bộ chống dò PIN; 403 cũng có một dòng log (`turnstile_failed`, chỉ mã lý do). Khi deploy: khoá site (`vars`) đi cùng mã, **`wrangler secret put TURNSTILE_SECRET_KEY` đặt SAU** khi nhân viên đã mở app một lần (service worker cache `login.js` cũ) — `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0". e2e đăng nhập luôn qua `login()`/`session()` của `tests/e2e/lib.mjs` (gửi token thử). `npm run types` khi thiếu `.dev.vars` làm mất `SESSION_SECRET` khỏi `Env` — xem `docs/CHANGE-GUIDE.md` công thức l. Widget ở `web/login.ts`: id khung KHÔNG được là `turnstile`, không gọi `turnstile.ready()` (công thức l, "Bẫy widget").
-- Turnstile (widget): `theme: "light"` (app chỉ có giao diện sáng), `siteKey` từng kẹt `null` khi `GET /api/auth/config` lỗi lúc mở trang nên `web/login.ts` HỎI LẠI cấu hình sau 403/503 — đừng bỏ.
-- Kịch bản Chrome: các trang dùng CHUNG kho cookie — trang của tài khoản nào phải mở SAU CÙNG thì thao tác chuột mới đi bằng phiên đó.
-- Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ, không từ hai cột này.
-- Chế độ bảo trì (`mnt_setting`): bật thì MÁY CHỦ chặn mọi SĐT ngoài `allowed_phones` (router + `POST /api/auth/login`), kể cả phiên đang mở; chủ bị khoá thì tắt bằng SQL `UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'` (lệnh đầy đủ ở `docs/HANDOFF-N1.md`); `last_login_at` chỉ ghi ở route đăng nhập, không trong `verifyPinThrottled` — công thức q của `docs/CHANGE-GUIDE.md`.
-
-## 9. Hiện trạng (cập nhật khi đổi)
-- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0017_order_status_audit_guards`** (trigger CSDL chặn đơn đổi trạng thái sai chiều + chặn sửa/xoá nhật ký, xem đối chiếu Oracle TCA; áp 2026-09-21, không deploy Worker vì mã không đổi — trạng thái ở `docs/HANDOFF-N1.md`). Trước đó `0016_maintenance` (chế độ bảo trì + cột "Đăng nhập gần nhất") và `0016_feedback` (cả hai đã áp — `migrations list --remote` ngày 2026-09-21 chỉ còn `0017` chờ). Trong bản v1.0: `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; module `dispatch` đã có: người phụ trách + `dispatch.claim`, API ở `docs/SYSTEM-DESIGN.md` §7); `0018_orders_booker_party` (cột người đặt trên đơn, N2 lát 1) có trong repo, CHƯA lên production; B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0018` (dự kiến `0019`; lưu ý có HAI tệp mang số 0016) — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp. e2e hiện 16 kịch bản (thêm `company`, `turnstile`, `dispatch`, `maintenance`, `feedback`, `booker`); runbook lần phát hành v1.0 (áp `0013`+`0014`, deploy, để nhân viên mở app, rồi mới đặt secret Turnstile) ở `docs/HANDOFF-N1.md`.
-- Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
-- **Chế độ bảo trì chỉ chủ dự án dùng được + cột "Đăng nhập gần nhất": ĐÃ LÊN PRODUCTION 2026-09-21 (Worker `c72dd98f-cc47-4a94-b57d-294ebc820465`, migration `0015` + `0016_maintenance` đã áp, đã merge vào `main`); chế độ bảo trì đang TẮT — chưa bật bao giờ trên production.** Chưa kiểm bằng tài khoản thật (cột "Đăng nhập gần nhất" trống cho tới khi mọi người đăng nhập lại; nút bật/tắt ở `/account` chưa bấm trên production) và chưa thử iPhone thật. Bật chế độ bảo trì chỉ khi chủ quyết, SAU khi cột "Đăng nhập gần nhất" cho thấy mọi người đã đăng nhập bằng bản mới (nhắn nhân viên trước, bật giờ vắng); đường thoát khẩn bằng SQL ở `docs/HANDOFF-N1.md`. Đọc `docs/HANDOFF-CHE-DO-BAO-TRI.md` (mục 0), nhật ký `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md` (ruling + nợ, nhất là ruling v/x: cạnh phụ thuộc và cổng router chờ chủ duyệt/ADR). Tất cả phiên đăng nhập đã bị đăng xuất 2026-09-21 (đổi `SESSION_SECRET`).
-- **Góp ý / Báo lỗi (module `feedback`, trang `/feedback`, migration `0016_feedback`):** mã đã xong trên nhánh `worktree-feedback-spec` và ĐÃ GỘP `origin/main` (v1.0 + chế độ bảo trì) vào nhánh đó. Chủ dự án cho biết `0016_feedback` ĐÃ ÁP TRÊN PRODUCTION (phiên gộp KHÔNG kiểm lại được điều này — không đụng D1 remote); `docs/HANDOFF-FEEDBACK.md` vẫn giữ runbook triển khai và danh sách việc kiểm tay còn lại (thử tay giao diện chưa làm). Email báo admin tắt khi thiếu binding `EMAIL` hoặc hai secret `FEEDBACK_NOTIFY_EMAIL` / `FEEDBACK_MAIL_FROM` — yêu cầu vẫn lưu.
-- **N2 lát 1 (người đặt/hồ sơ khách trên đơn, ADR-0011): ĐÃ THI CÔNG XONG trên nhánh, CHƯA lên production.** Migration `0018_orders_booker_party.sql` (cột `orders.booker_party_id` + chỉ mục, chỉ THÊM) có trong repo, chưa áp remote. Mã: `src/shared/booker.ts` + `party-id.ts` (luật thuần); `validateOrder` nhận `bookerPartyId`/`newBooker`, `validateBookerChange`; `resolveBooker` (service, tạo hồ sơ mới + vai `CUSTOMER` cùng batch khi lập/sửa đơn — ADR-0011 điều 1); route `PUT /api/orders/:id/booker` (đổi khách của đơn nháp hoặc đã xác nhận, quyền `order.trip.edit` — ADR-0011 điều 2); nhật ký `booker_changed`; giao diện `web/booker-picker.ts` (form đơn) + `web/booker-sheet.ts` (bảng "Đổi khách" ở trang đơn). e2e thêm kịch bản `booker` (16/16 xanh); kịch bản Chrome `a2-smoke-form`/`order`/`sheet` và `v1-nguoi-phu-trach` đã chạy lại, đạt. Runbook triển khai `0018` + mã (khác `0017`: lần này CÓ đổi mã nên phải `wrangler deploy` ngay sau khi áp migration) ở `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp: `0018`". Nhật ký thi công: `docs/superpowers/plans/2026-09-21-n2-lat-1-khach-tren-don.md`. Lát 2 (backfill đơn cũ, gộp hồ sơ, siết bắt buộc, `traveller_party_id`, ô "Đại lý") ngoài phạm vi lát 1, cần ADR riêng.
-- Lộ trình: N2 lát 2 (backfill/gộp hồ sơ/siết bắt buộc, xem trên), nhiệm vụ đón/lái cano (ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV).
-- **Bản v1.0 ĐÃ LÊN PRODUCTION 2026-09-21** (merge vào `main` @ `9594696` + deploy, Worker `21cbaca5-8229-43b8-bab8-928036c9e871`; **Turnstile ĐÃ BẬT cùng ngày**: chủ dự án đặt `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` bằng `wrangler secret put`; đã kiểm không cần đăng nhập — xem `docs/HANDOFF-N1.md` "TRẠNG THÁI TRIỂN KHAI — bản v1.0"; CHƯA có đăng nhập trọn vẹn bằng tài khoản thật qua widget thật): (1) màn đăng nhập — Turnstile (máy chủ + widget + CSP; hỏi lại cấu hình khi lỗi) + khối thông tin công ty + số phiên bản (khoá đặt bằng `secret put`, KHÔNG trong `vars`/tệp; ngưỡng `MAX_TOKEN_LENGTH` = 2048 ĐÃ đối chiếu 2026-09-21 với tài liệu Cloudflare); (3) người phụ trách đơn — module `dispatch`, người phụ trách sửa được đơn nhờ `ctx.isAssigned`, dòng "Phụ trách" ở danh sách + khối/bảng chọn ở trang đơn; (2) ảnh xác nhận đơn PNG (canvas ở trình duyệt; hộp thoại tự mở sau khi tạo đơn mới; nút "Xác nhận gửi khách" ở trang đơn; KHÔNG ghi nhật ký `exported_png`) — `docs/CHANGE-GUIDE.md` công thức p. Việc đang chờ: PDF/in A4; iPhone thật (canvas/chia sẻ/tải ảnh/WebKit); nhật ký thi công `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
+- `wrangler d1 migrations apply` áp **mọi** migration chưa áp: migration "siết" (B5 `staff_party_required`) không được lọt vào `migrations/` trước lần phát hành 2 (`src/migrations-n1.test.ts` nhận theo TÊN tệp).
+- **Số migration**: hiện có **hai** tệp `0016_*` (`0016_feedback`, `0016_maintenance`) — chấp nhận được vì wrangler theo dõi theo TÊN đầy đủ. Số kế tiếp = số lớn nhất trong `migrations/` + 1 (kiểm bằng `ls migrations`). Trước khi đặt số, liệt kê migration của **mọi nhánh/worktree chưa gộp** (`git ls-tree --name-only <nhánh> migrations/`); migration B5 đang chờ số kế tiếp (`docs/HANDOFF-N1.md`).
+- Turnstile ở đăng nhập: bật khi có `TURNSTILE_SECRET_KEY`, **tắt** khi vắng; kiểm TRƯỚC bộ chống dò PIN; 403 vẫn có một dòng log (`turnstile_failed`, chỉ mã lý do). Khi deploy: khoá site (`vars`) đi cùng mã, `wrangler secret put TURNSTILE_SECRET_KEY` đặt **SAU** khi nhân viên đã mở app một lần (service worker cache `login.js` cũ). `npm run types` khi thiếu `.dev.vars` làm mất `SESSION_SECRET` khỏi `Env`. Chi tiết: `docs/CHANGE-GUIDE.md` công thức l.
+- Chế độ bảo trì (`mnt_setting`): **chỉ chủ dùng được**; bật thì **máy chủ** chặn mọi SĐT ngoài `allowed_phones` (kể cả phiên đang mở); chỉ bật khi chủ quyết, sau khi cột "Đăng nhập gần nhất" cho thấy mọi người đã đăng nhập bằng bản mới; chủ bị khoá thì tắt bằng SQL ở `docs/HANDOFF-N1.md`; `last_login_at` chỉ ghi ở route đăng nhập (công thức q).
+- Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ.
+- `orders` KHÔNG import `dispatch`; "đang là người phụ trách" do gốc lắp ráp tiêm (`ctx.isAssigned`); route dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
+- Kịch bản Chrome: các trang dùng CHUNG kho cookie — trang của tài khoản nào phải mở SAU CÙNG.
+- Hiện trạng production, số test, id Worker **không** ghi ở đây (đổi liên tục): xem `docs/HANDOFF-N1.md` và kiểm bằng lệnh.

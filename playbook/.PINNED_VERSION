@@ -1,0 +1,53 @@
+Core sở hữu lớp luật này. Không còn là bản pin. (chủ dự án chốt 2026-08-21 — ADR-0027)
+
+Tệp vẫn mang tên `.PINNED_VERSION` vì hơn 20 chỗ trong repo trỏ vào nó theo tên và theo số
+dòng. Đổi tên sẽ đẻ ra ngần ấy tham chiếu chết, nên giữ tên và đổi nội dung.
+
+## Nguồn gốc
+
+  Master-Project-Framework  (khuôn quản trị, Constitution v2.2.0, HEAD b68a30b, 2026-06-10)
+       │
+       ├──> nhatrangtravel/playbook   — mọc thêm tại chỗ bộ máy cổng và cơ chế QA
+       │
+       └──> CoreSchemaProject/playbook  ← bản này, thừa hưởng CẢ HAI, và từ 2026-08-21 là bản duy nhất
+
+Trước 2026-08-21 tệp này khai nguồn là `nhatrangtravel/playbook` và tự nhận là bản pin chỉ đọc.
+Cả hai đều sai, và đo được:
+
+  - `nhatrangtravel` không phải thượng nguồn. Nó là một bản chép ra từ khuôn quản trị, y như
+    Core, và nó tự rẽ nhánh mà không khai — `.PINNED_VERSION` của nó tới nay vẫn ghi `v1.0.0`.
+  - Bản này không phải pin. Một bản pin không thể chứa thứ mà nguồn không có, mà nó chứa:
+    toàn bộ bảng cổng QA1/QA2 và §4.7 trong `GOVERNANCE.md`, cộng ba tệp `ai/WORKFLOW.md`,
+    `ai/PROMPT_FACTORY.md`, `ai/qa-reports/TEMPLATE.md` — khuôn quản trị **không có** cả ba.
+
+Nhãn sai đó là nguyên nhân trực tiếp khiến mọi đường trả nợ liên quan tới `playbook/` đều cụt:
+`EXC-2026-001` không đóng được, vế thiếu nhánh `LEO THANG` không vá được, `B14` không có đường
+hợp pháp. Xem `BACKLOG.md` B43.
+
+## Bản này gồm gì
+
+Giống khuôn quản trị **từng byte**: `CONSTITUTION.md` (v2.2.0), `PLAYBOOK.md`, `CHANGELOG.md`,
+`governance/` (7 tệp + policies), `templates/` (10 mẫu), `ai/agents/`, `ai/workflows/`,
+`archive/`, `init-project.sh`.
+
+Core thêm, và nay Core sở hữu:
+  - `GOVERNANCE.md` — thêm bảng cổng QA1 (§4.3), bảng cổng QA2 (§4.4), và §4.7 Prompt QA PQ1–PQ6.
+    **Đánh số vì thế lệch khuôn quản trị**: anti-bypass là §4.6 ở đây, §4.4 ở khuôn. Mọi trích
+    dẫn `§4.x` trong repo này theo đánh số của bản này.
+  - `ai/WORKFLOW.md`, `ai/PROMPT_FACTORY.md`, `ai/qa-reports/TEMPLATE.md` — cơ chế bằng chứng QA.
+    Ba tệp này ra đời ở `nhatrangtravel`, không có ở khuôn quản trị.
+
+KHÔNG mang sang: `ai/prompts/` của `nhatrangtravel` (107 tệp lệnh thi công theo đợt của site đó,
+39 tệp mang định danh) và `ai/B8.6-TRACKER.md`. Đó là lịch sử công việc của một site, không phải
+cơ chế — bỏ theo đúng nguyên tắc của `ADR-0026`.
+
+## Luật sửa đổi từ nay
+
+Sửa thẳng tại đây. Không đồng bộ ngược từ repo nào, vì không còn thượng nguồn nào để đồng bộ.
+
+Mọi sửa đổi phải ghi một dòng `CHANGELOG.md` đủ sáu vế theo `GOVERNANCE.md` §10.3 — đổi gì, vì
+sao, bằng chứng, rủi ro đã xử, **ai duyệt**, phiên bản và ngày hiệu lực. Bánh cóc §9.4 vẫn áp:
+nới lỏng một điều cấm phải vượt ngưỡng cẩn trọng cao hơn hẳn siết chặt.
+
+Điều này thay thế luật cũ ("CHỈ ĐỌC, không sửa tay, đồng bộ lại từ nguồn rồi tăng pin"). Lý do
+đầy đủ ở `ADR-0027`.

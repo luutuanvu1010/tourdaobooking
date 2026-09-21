@@ -3,7 +3,7 @@
 > Đối chiếu với mã tại `84a0de5` (2026-09-21, nhánh `worktree-tai-lieu-nen-tang`, đã gồm cả ba việc của bản v1.0; các commit sau chỉ đổi tài liệu và một dòng chú thích ở `src/shared/order-view.ts`). Bản dựng đầu của tài liệu này đối chiếu với `6226539`.
 > Tệp này KHÔNG giải thích kiến trúc (xem `docs/ARCHITECTURE.md`, `docs/SYSTEM-DESIGN.md`). Nó chỉ trả lời: **muốn đổi X thì sửa tệp nào, theo thứ tự nào, chạy kiểm gì, tránh bẫy nào.**
 > Ký hiệu ghi bằng TÊN, không ghi số dòng — tìm bằng `grep -rn "<ký hiệu>" src web`.
-> Mã thắng tài liệu: thấy lệch thì sửa tài liệu trong cùng commit (`CLAUDE.md` §6–7).
+> Mã thắng tài liệu: thấy lệch thì sửa tài liệu trong cùng commit (`CLAUDE.md` §2 và §9).
 
 ## 0. Cách dùng
 
@@ -59,7 +59,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma t
 
 ## 2. Các công thức
 
-Quy ước: **Kiểm** = lệnh chạy sau khi sửa. Phép kiểm mới viết ĐỎ trước, XANH sau (`CLAUDE.md` §5). Test nằm kề tệp: `src/**/X.test.ts`.
+Quy ước: **Kiểm** = lệnh chạy sau khi sửa. Phép kiểm mới viết ĐỎ trước, XANH sau (`CLAUDE.md` §7). Test nằm kề tệp: `src/**/X.test.ts`.
 
 ### a1. Thêm trường vào ĐƠN (cấp đơn)
 
@@ -523,7 +523,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 14. **e2e cần mạng** (`admin.mjs`, `catalog.mjs` đọc Google Sheet thật): mất mạng → hai kịch bản đỏ; Sheet đổi giá (`TD101`, `TD103`) → sửa assertion.
 15. **`wrangler dev` mồ côi** (Ctrl+C giữa chừng; `startEnv()` của `a2-cdp.mjs` lỗi giữa lúc khởi động) → "database is locked"/cổng bận: tắt tiến trình `workerd`/`wrangler` cũ trước khi chạy e2e.
 16. **Idiom khoá lạc quan trong `orders/repository.ts`:** `nextStamp` (mốc `updated_at` luôn LỚN hơn mốc cũ), `wonGuard` (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)` với `AuditInput.id` do request tự sinh) và chuỗi `changes() > 0` — đúng nhờ VỊ TRÍ câu trong batch. Không so mốc thời gian để suy ra "ai thắng"; đổi thứ tự câu là làm hỏng.
-17. **Nhật ký không ghi SĐT/email/MST/PIN.** Vi phạm đã biết: `patchStaffStatements` (`src/modules/accounts/index.ts`) ghi SĐT đăng nhập vào `staff_updated` (quyết định 4(b) của `docs/HANDOFF-N1.md` đang chờ chủ dự án).
+17. **Nhật ký không ghi SĐT/email/MST/PIN.** `patchStaffStatements` (`src/modules/accounts/index.ts`) từng ghi SĐT đăng nhập vào `staff_updated`; chủ dự án chốt SỬA (2026-09-21, quyết định 4(b) của `docs/HANDOFF-N1.md`) và đã sửa — nay chỉ ghi "đổi SĐT đăng nhập", có test ở `src/modules/accounts/patch-staff.test.ts`. Dòng nhật ký CŨ trên production vẫn còn số (nhật ký chỉ-thêm). Lưu ý: chữ người dùng gõ tự do (tiêu đề góp ý, tên hồ sơ, tên dịch vụ tự nhập ở `trip_updated`) được chép nguyên vào nhật ký nên vẫn có thể chứa PII nếu họ gõ vào.
 18. **Lộ mã tiếng Anh ra người dùng:** nhánh `!canTransition(from, to)` của `POST /api/orders/:id/status` chèn mã trạng thái thô (`"cancelled"`) vào câu 409 `invalid_transition` — trái quy tắc "tiếng Việt có dấu"; sửa ở đó hoặc ở `classifyOrderError`.
 19. **`POST /api/orders` không idempotent:** hết giờ 45 giây (`REQUEST_TIMEOUT_MS`) → người dùng bấm Lưu lại → có thể tạo đơn trùng (chưa có khoá idempotent).
 20. **Bản đồ quyền ≠ `access`:** `office` = `can(who, "order.view")`; `admin` = `hasPermission(who, "ADMIN")` (không đi qua `MATRIX["admin.manage"]`). Tài khoản chỉ-FIELD đăng nhập được nhưng mọi route `office`/đơn/hồ sơ trả 403 (màn "việc của tôi" thuộc N2).
@@ -552,12 +552,12 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 1. Cổng chỉ-đọc trên D1 remote (kỳ vọng 0 dòng) + ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".
-4. Sau deploy: `node scripts/audit-invariants.mjs --db remote` (chạy SAU khi đã áp `0014`; D1 chưa có `dsp_*` thì thoát mã 2 = không chạy được); `curl -sI https://booking.tourdao.vn/sw.js` (`no-store`); ghi trạng thái vào `docs/HANDOFF-N1.md` và `CLAUDE.md` §9.
+4. Sau deploy: `node scripts/audit-invariants.mjs --db remote` (chạy SAU khi đã áp `0014`; D1 chưa có `dsp_*` thì thoát mã 2 = không chạy được); `curl -sI https://booking.tourdao.vn/sw.js` (`no-store`); ghi trạng thái vào `docs/HANDOFF-N1.md` (không ghi hiện trạng vào `CLAUDE.md`).
 5. Lần phát hành có `0015`+`0016` (cột `last_login_at` + chế độ bảo trì; cả hai chỉ THÊM): theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp (0015 + 0016)" — áp rồi `wrangler deploy` NGAY; chế độ bảo trì KHÔNG tự bật (gieo TẮT), chỉ bật sau khi cột "Đăng nhập gần nhất" cho thấy mọi người đã đăng nhập bằng bản mới. `audit-invariants --db remote` chạy SAU khi đã áp `0016` (không có bất biến riêng cho `mnt_setting`).
 6. Lần phát hành v1.0 có thêm Turnstile: theo `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0" — khoá site vào `vars` trước, **deploy MÃ trước khi đặt `TURNSTILE_SECRET_KEY`** (service worker cache `login.js` cũ trên iPhone đã cài PWA), để nhân viên mở app một lần, rồi `wrangler secret put` và kiểm `GET /api/auth/config` khác `null`.
 
 ## 6. Sai lệch tài liệu ↔ mã (mã thắng)
 
 1. **`docs/evidence/2026-09-20-a2/README.md` "Tồn đọng nhỏ"** còn ghi "PWA-IPHONE.md ghi 8 trang" và "`pwa.mjs` chỉ kiểm meta trên 8/10 trang": đã lỗi thời khi các sửa chưa commit của đợt tài liệu nền được đưa vào (`pwa.mjs` duyệt `PAGES`, PWA-IPHONE ghi 10 trang). Tài liệu bằng chứng là bản ghi lịch sử nên không sửa.
-2. **`docs/HANDOFF-M2.md`, `docs/HANDOFF-M4.md`** là bàn giao đầu M2/M4 (2026-09-19): lịch sử, không phải hiện trạng (hiện trạng: `docs/HANDOFF-N1.md`, `CLAUDE.md` §9). `docs/HANDOFF-M4.md` còn ghi `exported_png`/`exported_pdf` "ghi mỗi lần xuất" — thực tế không nơi nào ghi (§4 mục 28); là bản ghi lịch sử nên không sửa.
+2. **`docs/HANDOFF-M2.md`, `docs/HANDOFF-M4.md`** là bàn giao đầu M2/M4 (2026-09-19): lịch sử, không phải hiện trạng (hiện trạng: `docs/HANDOFF-N1.md`; `CLAUDE.md` không còn ghi hiện trạng). `docs/HANDOFF-M4.md` còn ghi `exported_png`/`exported_pdf` "ghi mỗi lần xuất" — thực tế không nơi nào ghi (§4 mục 28); là bản ghi lịch sử nên không sửa.
 3. **Đặc tả NHÁP v1.0** (`docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`, chưa được chủ dự án duyệt, không sửa) ghi widget "chủ đề theo hệ thống" và dòng "Phụ trách" "ở bảng máy tính và thẻ điện thoại": mã có `theme: "light"` (lệch có chủ ý) và danh sách đơn chỉ có MỘT dạng thẻ ở mọi khổ (`docs/SYSTEM-DESIGN.md` §16).

@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phân bổ công cụ AI — Ai làm gì, vì sao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B2A4A;--paper:#F7F4EE;--sand:#E9E1D3;--terra:#C8643C;
+    --ink:#2A2622;--muted:#6B6357;--line:#D8CEBE;
+    --you:#8A5A2B;--cowork:#1B2A4A;--design:#C8643C;--code:#2E7D6B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(800px 480px at 90% -8%, rgba(46,125,107,.10), transparent 60%),
+      radial-gradient(700px 560px at -8% 105%, rgba(27,42,74,.12), transparent 55%),
+      var(--paper);
+    color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+    line-height:1.5;padding:46px 20px 60px;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1000px;margin:0 auto}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--terra);margin-bottom:13px}
+  h1{font-family:"Fraunces",serif;font-weight:600;color:var(--navy);
+    font-size:clamp(28px,4.6vw,44px);line-height:1.06;letter-spacing:-.01em;max-width:20ch}
+  h1 em{font-style:italic;color:var(--terra)}
+  .sub{margin-top:14px;max-width:64ch;color:var(--muted);font-size:15px}
+  .rule{height:1px;background:var(--line);margin:28px 0}
+
+  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
+  @media(max-width:780px){.grid{grid-template-columns:repeat(2,1fr)}}
+  @media(max-width:440px){.grid{grid-template-columns:1fr}}
+
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;
+    padding:0 0 16px;overflow:hidden;display:flex;flex-direction:column;
+    box-shadow:0 14px 30px -24px rgba(27,42,74,.45)}
+  .cap{padding:15px 16px 13px;color:#fff;background:var(--c)}
+  .cap .role{font-family:"Fraunces",serif;font-weight:700;font-size:20px;line-height:1}
+  .cap .verb{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;
+    text-transform:uppercase;opacity:.85;margin-top:6px;display:block}
+  .core{padding:13px 16px 4px;font-size:13px;color:var(--ink)}
+  .core b{color:var(--navy)}
+  .lbl{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--muted);margin:13px 16px 7px}
+  .steps{display:flex;flex-wrap:wrap;gap:6px;padding:0 16px}
+  .pill{font-size:11px;font-weight:600;background:var(--sand);color:var(--navy);
+    border-radius:6px;padding:3px 8px}
+  .pill.gate{background:#fff;border:1px dashed var(--terra);color:var(--terra)}
+  .no{margin:13px 16px 0;padding-top:11px;border-top:1px dashed var(--line);
+    font-size:11.5px;color:var(--muted)}
+  .no b{color:#A03A1E;font-weight:700}
+
+  .principle{margin-top:22px;background:var(--navy);color:#fff;border-radius:16px;
+    padding:20px 24px;display:flex;gap:18px;align-items:flex-start}
+  .principle .big{font-family:"Fraunces",serif;font-style:italic;font-weight:600;
+    font-size:26px;line-height:1.1;color:#fff;flex:none;max-width:7ch}
+  .principle .txt{font-size:13.5px;color:#D7DCE6}
+  .principle .txt b{color:#fff}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Phân bổ AI · ai làm gì</div>
+  <h1>Giao việc theo <em>năng lực lõi</em>, không theo tiện tay</h1>
+  <p class="sub">Mỗi tác nhân giỏi một kiểu việc. Giao sai vai là nguồn gốc của lỗi và làm lại. Các con số là bước trong quy trình 9 bước.</p>
+  <div class="rule"></div>
+
+  <div class="grid">
+
+    <div class="card" style="--c:var(--you)">
+      <div class="cap"><span class="role">Bạn</span><span class="verb">Decide</span></div>
+      <div class="core">Quyết định <b>định hướng</b> và <b>khẩu vị</b>. Duyệt mọi cổng. AI không thay được ở đây.</div>
+      <div class="lbl">Đậm nhất ở</div>
+      <div class="steps"><span class="pill">0</span><span class="pill">3</span><span class="pill gate">mọi cổng QA</span></div>
+      <div class="no"><b>Không:</b> giao phó việc chốt hướng cho AI; bỏ qua cổng để đi nhanh.</div>
+    </div>
+
+    <div class="card" style="--c:var(--cowork)">
+      <div class="cap"><span class="role">Cowork</span><span class="verb">Orchestrate</span></div>
+      <div class="core">Đọc tài liệu, viết <b>SPEC</b>, ra <b>prompt</b>, giám sát, chạy <b>QA</b>. Bộ não tổ chức.</div>
+      <div class="lbl">Đậm nhất ở</div>
+      <div class="steps"><span class="pill">1</span><span class="pill">2</span><span class="pill">3</span><span class="pill">4</span><span class="pill">5</span><span class="pill">6</span></div>
+      <div class="no"><b>Không:</b> viết code. Cowork ra lệnh, không thực thi.</div>
+    </div>
+
+    <div class="card" style="--c:var(--design)">
+      <div class="cap"><span class="role">Design</span><span class="verb">Surface</span></div>
+      <div class="core">Làm <b>bề mặt</b>: mockup và design token. Chỉ sau khi có binding map.</div>
+      <div class="lbl">Chỉ ở</div>
+      <div class="steps"><span class="pill">7</span><span class="pill gate">cần 6 trước</span></div>
+      <div class="no"><b>Không:</b> quyết kiến trúc; chạm dữ liệu; đi trước cấu trúc.</div>
+    </div>
+
+    <div class="card" style="--c:var(--code)">
+      <div class="cap"><span class="role">Claude Code</span><span class="verb">Execute</span></div>
+      <div class="core">Viết, sửa, commit, deploy <b>chính xác theo spec</b> đã qua QA1.</div>
+      <div class="lbl">Chỉ ở</div>
+      <div class="steps"><span class="pill">8</span><span class="pill gate">cần QA1 trước</span></div>
+      <div class="no"><b>Không:</b> ra quyết định kiến trúc. Gặp mơ hồ thì dừng và hỏi, không đoán.</div>
+    </div>
+
+  </div>
+
+  <div class="principle">
+    <div class="big">Ranh giới</div>
+    <div class="txt">Cowork không viết code. Code không tự đổi kiến trúc. Design không chạm dữ liệu. Bạn không bỏ cổng QA. <b>Nếu một vai bị buộc làm việc của vai khác, đó là dấu hiệu prompt sai hoặc thiếu artifact đầu vào</b> — sửa nguồn, đừng sửa triệu chứng.</div>
+  </div>
+
+</div>
+</body>
+</html>
