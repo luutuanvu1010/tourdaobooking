@@ -75,7 +75,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
         { description: "Tour 4 đảo Nha Trang — Người lớn", detail: null, quantity: "2", unitPrice: "1.350.000 ₫", lineTotal: "2.700.000 ₫" },
         { description: "Tour 4 đảo Nha Trang — Trẻ em", detail: "Trẻ 5–10 tuổi", quantity: "1", unitPrice: "900.000 ₫", lineTotal: "900.000 ₫" },
       ],
-      subtotal: "3.600.000 ₫",
+      subtotal: { label: "Cộng dịch vụ", value: "3.600.000 ₫" },
     },
     {
       kind: "summary",
@@ -129,7 +129,7 @@ test("nhiều dịch vụ: mỗi dịch vụ một khối đánh số từ 1; t�
   });
   const m = build(order({ services: [svc(), manual, svc({ id: "svc_INTERNAL_3", name: "Lặn biển", ...NO_TRIP })] }));
   const services = blocksOf(m, "service");
-  assert.deepEqual(services.map((s) => [s.index, s.name, s.lines.length, s.subtotal]), [
+  assert.deepEqual(services.map((s) => [s.index, s.name, s.lines.length, s.subtotal?.value ?? null]), [
     [1, "Tour 4 đảo Nha Trang", 2, "3.600.000 ₫"],
     [2, "Xe đưa đón riêng", 1, null],
     [3, "Lặn biển", 2, "3.600.000 ₫"],
@@ -162,7 +162,7 @@ test("dịch vụ nhập tay: số khách chỉ 'N khách' (0 khách → không 
     ["Xe 7 chỗ 2 chiều", "Cả đoàn", "1", "800.000 ₫", "800.000 ₫"],
     ["Nước suối", null, "6", "10.000 ₫", "60.000 ₫"],
   ]);
-  assert.equal(s.subtotal, "860.000 ₫");
+  assert.deepEqual(s.subtotal, { label: "Cộng dịch vụ", value: "860.000 ₫" });
   assert.equal(value(details(manual(0)), "Số khách"), undefined);
 });
 
@@ -245,4 +245,68 @@ test("thuần: không sửa dữ liệu vào; kết quả chỉ gồm chữ/số
   assert.deepEqual(input, before);
   assert.deepEqual(JSON.parse(JSON.stringify(m)), m);
   assert.deepEqual(build(order({ services: [] })).blocks.map((b) => b.kind), ["header", "title", "customer", "summary", "footer"]);
+});
+
+// ---- làm sạch chuỗi in ra ảnh (rà soát Task 9 → Task 10): mọi chuỗi trong mô hình đi qua clean(), nên đủ các ô người dùng nhập tay ----
+// Bộ vẽ đưa thẳng chuỗi vào canvas: ký tự điều khiển/NUL làm lệch phép đo, còn bidi (U+202A–202E, U+2066–2069) đảo chiều chữ ngay trong ảnh gửi khách.
+// Ký tự ẩn viết bằng MÃ SỐ (cp) chứ không chép vào tệp: chép vào thì mắt thường không thấy và công cụ soạn thảo dễ đổi mất.
+const cp = (...codes: number[]): string => String.fromCodePoint(...codes);
+const NUL = cp(0), BEL = cp(7), TAB = cp(9), VT = cp(0x0b), FF = cp(0x0c), CR = cp(0x0d), SOH = cp(1), DEL = cp(0x7f), NEL = cp(0x85);
+const LINE_SEP = cp(0x2028), PARA_SEP = cp(0x2029);
+const LRE = cp(0x202a), RLE = cp(0x202b), LRO = cp(0x202d), RLO = cp(0x202e), LRI = cp(0x2066), RLI = cp(0x2067), FSI = cp(0x2068), PDI = cp(0x2069);
+/** Có ký tự điều khiển (trừ "\n") hoặc bidi không? — dò từng mã, không dùng biểu thức chính quy có ký tự lạ. */
+const hasBanned = (s: string): boolean =>
+  [...s].some((ch) => {
+    const c = ch.codePointAt(0)!;
+    return (c <= 0x1f && c !== 0x0a) || (c >= 0x7f && c <= 0x9f) || c === 0x2028 || c === 0x2029 || (c >= 0x202a && c <= 0x202e) || (c >= 0x2066 && c <= 0x2069);
+  });
+/** Mọi chuỗi (giá trị và khoá) nằm sâu trong `v`. */
+function strings(v: unknown, out: string[] = []): string[] {
+  if (typeof v === "string") out.push(v);
+  else if (Array.isArray(v)) for (const x of v) strings(x, out);
+  else if (v !== null && typeof v === "object") for (const [k, x] of Object.entries(v)) (out.push(k), strings(x, out));
+  return out;
+}
+
+test("làm sạch: ký tự điều khiển, NUL và bidi bị bỏ ở MỌI ô nhập tay (tên/ghi chú khách, tên dịch vụ, mô tả/chi tiết dòng, nơi đón, tên phụ trách, công ty)", () => {
+  const dirty = order({
+    orderCode: `TD-20260921-0007${RLO}`,
+    customerName: `Trần${RLO} Văn${NUL} Bình${BEL}`,
+    customerNote: `${LRI}Ăn chay${PDI}\nĐón sớm${RLI}${DEL}`,
+    services: [
+      svc({
+        kind: "manual", catalogCode: null, name: `Xe${LRE} đưa đón${SOH}`, unit: "manual", pax: { adult: 3, child: 0, senior: 0, infant: 0 }, catalogStatus: null,
+        ...FULL_TRIP, pickupPlace: `Bến${LRO} Cầu Đá${NUL}`, note: "GHI-CHU-NOI-BO",
+        items: [item({ catalogCode: null, paxCode: null, description: `Xe 7 chỗ${NUL} 2 chiều${RLE}`, detail: `Cả${FSI} đoàn${PDI}`, catalogPrice: null })],
+      }),
+    ],
+  });
+  const m = buildConfirmation(dirty, { ...COMPANY, name: `CÔNG TY${RLO} TNHH TOUR ĐẢO`, address: `${COMPANY.address}${NUL}` }, `Lê${RLO} Minh Tuấn${NEL}`);
+  assert.deepEqual(strings(m).filter(hasBanned), [], "không chuỗi nào còn ký tự điều khiển/bidi");
+  assert.equal(m.orderCode, "TD-20260921-0007");
+  assert.equal(m.fileName, "xac-nhan-TD-20260921-0007.png");
+  assert.equal(value(one(m, "customer").rows, "Họ tên"), "Trần Văn Bình");
+  assert.equal(value(one(m, "customer").rows, "Ghi chú / yêu cầu"), "Ăn chay\nĐón sớm");
+  const s = one(m, "service");
+  assert.equal(s.name, "Xe đưa đón");
+  assert.equal(value(s.details, "Đón khách"), "07:00 · Bến Cầu Đá");
+  assert.deepEqual(s.lines.map((l) => [l.description, l.detail]), [["Xe 7 chỗ 2 chiều", "Cả đoàn"]]);
+  assert.equal(one(m, "header").companyName, "CÔNG TY TNHH TOUR ĐẢO");
+  assert.equal(value(one(m, "title").rows, "Nhân viên phụ trách"), "Lê Minh Tuấn");
+});
+
+test("làm sạch: tab thành dấu cách; các dấu ngắt dòng lạ (VT, FF, NEL, U+2028, U+2029, CRLF, CR) thành \\n — không dính chữ, dòng trống giữa giữ nguyên", () => {
+  const raw = `a${TAB}b${VT}c${FF}d${NEL}e${LINE_SEP}f${PARA_SEP}g${CR}\nh${CR}i\n\nj`;
+  const note = value(one(build(order({ customerNote: raw })), "customer").rows, "Ghi chú / yêu cầu");
+  assert.equal(note, "a b\nc\nd\ne\nf\ng\nh\ni\n\nj");
+});
+
+test("làm sạch: chuỗi chỉ toàn ký tự điều khiển/bidi coi như rỗng (dòng bị ẩn); dấu gõ rời được gộp về dạng dựng sẵn (NFC) để đo chữ đúng", () => {
+  const m = build(order({ customerEmail: `${RLO}${NUL}${LRI}`, customerNote: ` ${LINE_SEP}${PARA_SEP} ${BEL} ` }));
+  assert.deepEqual(one(m, "customer").rows.map((r) => r.label), ["Họ tên", "Số điện thoại"]);
+  // "Nguyễn" gõ rời: e + dấu mũ (U+0302) + dấu ngã (U+0303); "Thành": a + dấu huyền (U+0300)
+  const decomposed = `Nguye${cp(0x302, 0x303)}n Tha${cp(0x300)}nh`;
+  const composed = value(one(build(order({ customerName: decomposed })), "customer").rows, "Họ tên");
+  assert.equal(composed, `Nguy${cp(0x1ec5)}n Th${cp(0xe0)}nh`);
+  assert.equal(composed!.length, "Nguyễn Thành".length);
 });
