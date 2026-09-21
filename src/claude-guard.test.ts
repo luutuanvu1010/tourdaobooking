@@ -1,5 +1,6 @@
-// Bộ kiểm cho đường ray CLAUDE.md §6 (.claude/hooks/guard-remote-lib.mjs + .claude/settings.json). Hiến pháp P16: một cơ chế chỉ được coi là
-// đang hoạt động khi đã QUAN SÁT được nó chặn thật — nên bảng dưới có cả ca PHẢI CHẶN lẫn ca PHẢI CHO QUA (chặn nhầm cả phiên còn tệ hơn không chặn).
+// Bộ kiểm cho đường ray ở mục "Git, triển khai, an toàn" của CLAUDE.md (.claude/hooks/guard-remote-lib.mjs + .claude/settings.json).
+// Hiến pháp P16: một cơ chế chỉ được coi là đang hoạt động khi đã QUAN SÁT được nó chặn thật — nên có cả ca PHẢI CHẶN lẫn ca PHẢI CHO QUA
+// (chặn nhầm cả phiên còn tệ hơn không chặn: chủ sẽ tắt hook). Kho ca lớn ở src/claude-guard.cases.json (người kiểm độc lập D soạn).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -9,98 +10,101 @@ import { evaluateBash } from "../.claude/hooks/guard-remote-lib.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
+const CORPUS: { cmd: string; expect: "deny" | "allow"; group: "C" | "A" | "H" | "E" }[] = JSON.parse(read("src/claude-guard.cases.json")).cases;
 
 const MUST_DENY = [
   "git push",
   "git push origin main",
-  "git push --force origin HEAD",
   "git -C /tmp/x push",
-  "git -c user.name=x push",
-  "git --no-pager push",
   "/usr/bin/git push origin main",
-  "cd web && git push",
-  "echo xong; git push",
   'bash -c "git push"',
-  "sh -c 'git push origin main'",
-  'eval "git push"',
   'echo "$(git push)"',
-  "echo `git push`",
-  "ls | xargs -I{} git push {}",
   "wrangler deploy",
   "CI=1 npx wrangler deploy",
-  "npx wrangler versions deploy",
+  "npx wrangler@latest deploy",
   "wrangler --env prod deploy",
+  "npx wrangler versions deploy",
+  "wrangler versions upload",
   "wrangler secret put SESSION_SECRET",
   "npx wrangler secret list",
   "wrangler rollback",
+  "wrangler dev --remote",
   "wrangler d1 migrations apply tourdao-sales-db --remote",
   'wrangler d1 execute tourdao-sales-db --remote --command "SELECT 1"',
   'wrangler d1 execute tourdao-sales-db --command "SELECT 1"',
+  "wrangler d1 migrations apply x --remote && wrangler d1 migrations apply y --local", // --local của lệnh SAU không miễn cho lệnh TRƯỚC
   "npm run db:migrate:remote",
+  "npm run -s db:migrate:remote",
   "node scripts/import-staff.mjs sheet.csv --db remote",
   "curl -X POST https://booking.tourdao.vn/api/auth/login -d '{}'",
-  "curl -d x https://booking.tourdao.vn/api/x",
-  `curl --data-raw '{"a":1}' "https://booking.tourdao.vn/api/x"`,
-  "curl -X DELETE 'https://booking.tourdao.vn/api/orders/1'",
-  "wget --post-data=a https://booking.tourdao.vn/",
+  'curl -X "POST" https://booking.tourdao.vn/api/x',
+  "curl -sSX DELETE https://booking.tourdao.vn/api/orders/1",
+  "E2E_BASE_URL=https://booking.tourdao.vn node tests/e2e/orders.mjs",
   "gh pr merge 12",
 ];
 
 const MUST_ALLOW = [
   "git status",
-  "git add -A",
   "git commit -F msg.txt",
   'git commit -m "không dùng git push ở đây"',
-  "git log --oneline -3",
-  "git diff",
+  "git commit -m \"$(cat <<'EOF'\nTiêu đề\n\nThân có nhắc git push và wrangler deploy.\nEOF\n)\"",
+  "cat > docs/x.md <<'EOF'\nchạy wrangler deploy rồi git push\nEOF",
   "git worktree add -b nhanh-moi ../x origin/main",
-  "git branch --unset-upstream",
-  "git fetch",
   "git rebase main",
-  "git checkout -b nhanh-moi",
   "npm test",
-  "npm run typecheck",
   "npm run dict",
-  "npm run db:migrate:local",
-  "npm run build:web",
   "wrangler dev",
-  "npx wrangler types",
   "npx wrangler d1 migrations apply tourdao-sales-db --local",
   "wrangler d1 execute tourdao-sales-db --local --file seed.sql",
   "wrangler d1 migrations list tourdao-sales-db --remote",
-  "wrangler whoami",
-  "wrangler tail",
+  "wrangler versions list",
+  "wrangler deployments list",
   "node scripts/audit-invariants.mjs --db remote",
-  "node scripts/audit-invariants.mjs --db local",
-  "node scripts/import-staff.mjs sheet.csv --db local",
   "curl -s https://booking.tourdao.vn/api/auth/config",
-  "curl -s -o /dev/null -w '%{http_code}' https://booking.tourdao.vn/api/company",
-  "curl -I https://booking.tourdao.vn",
+  "curl -sG --data-urlencode q=abc https://booking.tourdao.vn/api/company",
   "curl -X POST https://example.com/hook -d x",
   "gh pr view 3",
-  'echo "wrangler deploy"',
   'grep -n "git push" CLAUDE.md',
-  "ls -la",
 ];
 
-test("guard-remote: mọi lệnh cấm đều bị chặn", () => {
+test("guard-remote: mọi lệnh cấm bị chặn, lý do trỏ về CLAUDE.md", () => {
   for (const cmd of MUST_DENY) {
     const v = evaluateBash(cmd, { branch: "worktree-x" });
     assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);
-    if (v.deny) assert.match(v.reason, /CLAUDE\.md §6/, `lý do phải trỏ CLAUDE.md §6: ${cmd}`);
+    if (v.deny) assert.match(v.reason, /CLAUDE\.md/, `lý do phải trỏ CLAUDE.md: ${cmd}`);
   }
 });
 
-test("guard-remote: lệnh thường ngày cho qua (chặn nhầm là lỗi)", () => {
+test("guard-remote: lệnh thường ngày và heredoc/thông điệp nhắc chuỗi cấm đều cho qua (chặn nhầm là lỗi)", () => {
   for (const cmd of MUST_ALLOW) assert.equal(evaluateBash(cmd, { branch: "worktree-x" }).deny, false, `phải CHO QUA: ${cmd}`);
 });
 
-test("guard-remote: git merge chỉ bị chặn ở main/master hoặc khi không rõ nhánh", () => {
+test("guard-remote: git merge chỉ bị chặn ở main/master, khi không rõ nhánh, hoặc khi đổi thư mục/nhánh ngay trước đó", () => {
   assert.equal(evaluateBash("git merge worktree-x", { branch: "main" }).deny, true);
-  assert.equal(evaluateBash("git merge worktree-x", { branch: "master" }).deny, true);
   assert.equal(evaluateBash("git merge worktree-x", { branch: null }).deny, true);
+  assert.equal(evaluateBash("git checkout main && git merge worktree-x", { branch: "worktree-x" }).deny, true);
+  assert.equal(evaluateBash("git -C /repo/goc merge worktree-x", { branch: "worktree-x" }).deny, true);
   assert.equal(evaluateBash("git merge main", { branch: "worktree-x" }).deny, false);
   assert.equal(evaluateBash("git merge --abort", { branch: "worktree-x" }).deny, false);
+});
+
+test("guard-remote: kho ca của người kiểm — nhóm C (quên/nhầm) phải chặn; nhóm A và H phải cho qua", () => {
+  const groups = (g: string) => CORPUS.filter((c) => c.group === g);
+  assert.ok(groups("C").length >= 100 && groups("A").length >= 50 && groups("H").length >= 5, "kho ca bị cắt bớt?");
+  const wrong: string[] = [];
+  for (const c of CORPUS) {
+    if (c.group === "E") continue; // cố ý lách: chấp nhận lọt (ghi ở đầu guard-remote-lib.mjs)
+    const denied = evaluateBash(c.cmd, { branch: "worktree-x" }).deny;
+    if (denied !== (c.expect === "deny")) wrong.push(`[${c.group}] ${denied ? "chặn nhầm" : "lọt"}: ${JSON.stringify(c.cmd)}`);
+  }
+  assert.deepEqual(wrong, [], `${wrong.length} ca sai:\n${wrong.slice(0, 15).join("\n")}`);
+});
+
+test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s của hook)", () => {
+  const started = Date.now();
+  evaluateBash("echo " + "$(".repeat(3000), { branch: "worktree-x" });
+  evaluateBash("x".repeat(500_000), { branch: "worktree-x" });
+  assert.ok(Date.now() - started < 1500, `quá chậm: ${Date.now() - started} ms`);
 });
 
 test("guard-remote: script móc trả deny khi cấm, im lặng khi cho qua hoặc đầu vào hỏng", () => {
@@ -117,7 +121,7 @@ test("guard-remote: script móc trả deny khi cấm, im lặng khi cho qua ho�
   }
 });
 
-test("settings.json: khai móc PreToolUse cho Bash và hai lớp chặn độc lập (P21)", () => {
+test("settings.json: khai móc PreToolUse cho Bash và luật deny (lớp hai, P21)", () => {
   const s = JSON.parse(read(".claude/settings.json"));
   const hooks = s.hooks?.PreToolUse?.filter((h: { matcher: string }) => h.matcher === "Bash").flatMap((h: { hooks: { command: string }[] }) => h.hooks) ?? [];
   assert.ok(hooks.some((h: { command: string }) => h.command.includes(".claude/hooks/guard-remote.mjs")), "thiếu móc guard-remote cho matcher Bash");
