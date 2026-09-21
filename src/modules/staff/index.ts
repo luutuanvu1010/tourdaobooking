@@ -7,7 +7,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   closePermissionStatement, countActiveAdmins, findById, findByPhone, insertPermissionStatement, insertStaffStatement, listAll, parsePermissions,
-  setPinStatement as setPinRow, updateStaffStatement, type StaffRow,
+  recordLoginRow, setPinStatement as setPinRow, updateStaffStatement, type StaffRow,
 } from "./repository";
 import { checkAccountChange, generatePin, isWeakPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
@@ -35,7 +35,7 @@ function toProfile(s: StaffRow): StaffProfile {
 }
 
 function toAccount(s: StaffRow): StaffAccount {
-  return { ...toProfile(s), active: s.active === 1, createdAt: s.created_at };
+  return { ...toProfile(s), active: s.active === 1, createdAt: s.created_at, lastLoginAt: s.last_login_at };
 }
 
 /** Trả hồ sơ nhân viên nếu SĐT+PIN đúng và tài khoản còn hoạt động; ngược lại null. */
@@ -49,6 +49,14 @@ export async function authenticate(db: D1Database, rawPhone: string, pin: string
   const ok = await verifyPin(pin, staff.pin_hash);
   if (!ok || !staff.active) return null;
   return toProfile(staff);
+}
+
+/**
+ * Ghi nhận một lần đăng nhập THÀNH CÔNG (`staff.last_login_at`, ISO UTC) — chỉ `POST /api/auth/login` gọi. KHÔNG đặt trong `verifyPinThrottled`: hàm đó dùng chung
+ * với đổi PIN, ghi ở đó thì mỗi lần đổi PIN thành "một lần đăng nhập". Chỉ ghi thời điểm, không ghi SĐT/PIN vào đâu cả.
+ */
+export async function recordLogin(db: D1Database, id: string, at: string): Promise<void> {
+  await recordLoginRow(db, id, at);
 }
 
 /**

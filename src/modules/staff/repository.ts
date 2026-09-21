@@ -14,6 +14,8 @@ export interface StaffRow {
   active: number;
   created_at: string;
   credentials_changed_at: number | null;
+  /** Lần đăng nhập thành công gần nhất (ISO UTC); null = chưa từng (kể từ migration 0015). */
+  last_login_at: string | null;
   party_id: string | null;
   label: string;
   /** group_concat mã quyền đang mở; null nếu không có quyền nào. */
@@ -27,7 +29,7 @@ export interface StaffAuthRow extends StaffRow {
 export const parsePermissions = (s: string | null): PermissionCode[] =>
   PERMISSION_CODES.filter((code) => (s ?? "").split(",").filter(isPermissionCode).includes(code));
 
-const COLUMNS = `s.id, s.phone, s.active, s.created_at, s.credentials_changed_at, s.party_id,
+const COLUMNS = `s.id, s.phone, s.active, s.created_at, s.credentials_changed_at, s.last_login_at, s.party_id,
   COALESCE(pl.display_name, '${NO_PARTY_LABEL}') AS label,
   (SELECT group_concat(p.permission_type_code) FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL) AS permissions`;
 const FROM = "FROM staff s LEFT JOIN v_pty_party_label pl ON pl.id = s.party_id";
@@ -60,6 +62,7 @@ const UPDATE_STAFF = defineSql(
   "update",
   `UPDATE staff SET phone = COALESCE(?2, phone), active = COALESCE(?3, active) WHERE id = ?1 AND (?4 = 0 OR ${OTHER_ADMIN(1)})`,
 );
+const RECORD_LOGIN = defineSql("staff", "record_login", "UPDATE staff SET last_login_at = ?2 WHERE id = ?1");
 const SET_PIN = defineSql("staff", "set_pin", "UPDATE staff SET pin_hash = ?2, credentials_changed_at = ?3 WHERE id = ?1");
 const INSERT_PERMISSION = defineSql(
   "staff",
@@ -90,6 +93,8 @@ export const insertStaffStatement = (db: D1Database, v: { id: string; phone: str
 
 export const updateStaffStatement = (db: D1Database, id: string, patch: { phone?: string; active?: boolean }, losesAdmin: boolean): D1PreparedStatement =>
   db.prepare(UPDATE_STAFF).bind(id, patch.phone ?? null, patch.active === undefined ? null : patch.active ? 1 : 0, losesAdmin ? 1 : 0);
+
+export const recordLoginRow = (db: D1Database, id: string, at: string): Promise<D1Result> => db.prepare(RECORD_LOGIN).bind(id, at).run();
 
 export const setPinStatement = (db: D1Database, id: string, pinHash: string, at: number): D1PreparedStatement => db.prepare(SET_PIN).bind(id, pinHash, at);
 

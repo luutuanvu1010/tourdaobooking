@@ -45,6 +45,12 @@
 | `loc_location_type` | bảng tra cứu |  |
 | `v_loc_location_label` | view công bố | cột: id, code, name, location_type_code, active |
 
+## maintenance
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `mnt_setting` | bảng |  |
+
 ## orders
 
 | Đối tượng | Loại | Ghi chú |

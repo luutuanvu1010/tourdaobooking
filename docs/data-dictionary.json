@@ -8,6 +8,7 @@
     "company",
     "dispatch",
     "locations",
+    "maintenance",
     "orders",
     "parties",
     "staff"
@@ -156,6 +157,11 @@
       "name": "stf_permission_type",
       "module": "staff",
       "kind": "lookup"
+    },
+    {
+      "name": "mnt_setting",
+      "module": "maintenance",
+      "kind": "table"
     }
   ],
   "views": [

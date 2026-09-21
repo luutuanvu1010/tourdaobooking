@@ -2,7 +2,7 @@
 // khớp đường dẫn, 401/403/404/405 thống nhất, chặn ghi cross-site (CSRF), bắt lỗi toàn cục → 500 JSON có requestId.
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
 import type { StaffProfile } from "./contracts";
-import { error, json } from "./http";
+import { error, json } from "./http.ts";
 import { hasPermission, isOffice } from "./permissions.ts";
 
 /** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); admin: quyền ADMIN. */
@@ -96,6 +96,12 @@ export interface AppOptions {
   injected: {
     isAssigned: (env: Env, staffId: string, orderId: string) => Promise<boolean>;
     defaultHandlerStatement: (env: Env, staff: StaffProfile, orderId: string, at: string) => D1PreparedStatement | null;
+    /**
+     * Cổng CHẾ ĐỘ BẢO TRÌ (module `maintenance`, gốc lắp ráp tiêm — router không biết module đó): Response 503 nếu tài khoản này bị chặn LÚC NÀY, hoặc null để cho qua.
+     * Chạy cho mọi route cần đăng nhập, ngay sau khi biết ai đang đăng nhập và TRƯỚC kiểm quyền admin/văn phòng (người bị chặn thấy "đang bảo trì", không phải "không đủ quyền").
+     * Route công khai (`/api/auth/*` trừ `/me`, `/api/company`) không qua cổng. BẮT BUỘC: thiếu là chế độ bảo trì lặng lẽ không còn hiệu lực với phiên đang mở.
+     */
+    maintenanceBlock: (env: Env, staff: StaffProfile) => Promise<Response | null>;
   };
 }
 
@@ -127,6 +133,8 @@ export function createApp(opts: AppOptions) {
     if (hit.r.access !== "public") {
       staff = await opts.currentStaff(request, env);
       if (!staff) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      const maintenance = await opts.injected.maintenanceBlock(env, staff);
+      if (maintenance) return maintenance;
       if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       if (hit.r.access === "office" && !isOffice(staff)) return error(403, "forbidden", "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.");
     }

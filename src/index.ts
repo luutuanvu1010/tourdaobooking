@@ -8,17 +8,19 @@ import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { defaultHandlerStatement, dispatchModule, isOrderHandler } from "./modules/dispatch";
 import { locationsModule } from "./modules/locations";
+import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { ordersModule } from "./modules/orders";
 import { createApp } from "./shared/router";
 
 const app = createApp({
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule],
   currentStaff,
   checkConfig: checkAuthConfig,
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
     defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
+    maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
   },
 });
 

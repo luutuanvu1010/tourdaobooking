@@ -8,6 +8,14 @@ export function vnToday(now: Date): string {
   return new Date(now.getTime() + VN_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+/** Mốc ISO UTC → "HH:MM DD/MM/YYYY" theo giờ Việt Nam (cho câu chữ ghi vào nhật ký, không phụ thuộc Intl/ngôn ngữ máy). Mốc không hợp lệ → chuỗi gốc. */
+export function vnDateTimeText(iso: string): string {
+  const ms = Date.parse(iso);
+  if (!Number.isFinite(ms)) return iso;
+  const [date, time] = new Date(ms + VN_OFFSET_MS).toISOString().split("T") as [string, string];
+  return `${time.slice(0, 5)} ${date.slice(8, 10)}/${date.slice(5, 7)}/${date.slice(0, 4)}`;
+}
+
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Đúng khuôn dạng YYYY-MM-DD và đúng lịch (30/02 → sai). */

@@ -18,7 +18,7 @@ const WEB = join(ROOT, "web");
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
   accounts: ["staff", "auth", "audit"],
   audit: [],
-  auth: ["staff"],
+  auth: ["staff", "maintenance"], // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc)
   catalog: ["audit"],
   company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
   // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*:
@@ -27,6 +27,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // View v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL (cạnh dispatch → parties, dispatch → staff).
   dispatch: ["orders", "parties", "locations", "staff", "audit"],
   locations: ["audit"],
+  maintenance: ["audit"], // ghi nhật ký `maintenance_changed`; là lá của cạnh auth → maintenance (không vòng)
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],
   staff: ["parties", "audit"],
@@ -37,6 +38,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "locations", file: "modules/locations/repository.ts" },
+  { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },
 ];
@@ -48,7 +50,7 @@ const STRICT: readonly { module: string; file: string }[] = [
  */
 const LEGACY = ["accounts", "audit", "auth", "catalog", "orders"] as const;
 
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", dsp_: "dispatch", bil_: "billing" };
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };
 
 // ---------------------------------------------------------------------------------------------------------------------

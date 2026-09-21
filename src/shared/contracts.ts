@@ -22,6 +22,8 @@ export interface StaffProfile {
 export interface StaffAccount extends StaffProfile {
   active: boolean;
   createdAt: string;
+  /** Lần đăng nhập thành công gần nhất (ISO UTC); null = chưa từng đăng nhập (kể từ khi có cột này). Chỉ `POST /api/auth/login` ghi — đổi PIN/làm mới phiên thì không. */
+  lastLoginAt: string | null;
 }
 
 export interface StaffAccountDto extends StaffAccount {
@@ -40,9 +42,26 @@ export interface StaffSheetCandidateDto {
   currentName: string | null;
 }
 
-export interface MeResponse { staff: StaffProfile }
-/** `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token). */
-export interface AuthConfigResponse { turnstileSiteKey: string | null }
+/** `maintenance` chỉ có ở `GET /api/auth/me` (không có ở phản hồi đăng nhập): chế độ bảo trì đang BẬT thì chỉ người được phép mới tới được đây, để giao diện hiện dải "Đang ở chế độ bảo trì". */
+export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto }
+/**
+ * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
+ * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.
+ */
+export interface AuthConfigResponse { turnstileSiteKey: string | null; maintenance: MaintenanceStatusDto }
+
+// ---- Chế độ bảo trì (src/shared/maintenance.ts; module `maintenance`) ----
+export interface MaintenanceStatusDto {
+  on: boolean;
+  /** Giờ dự kiến hoàn tất (ISO UTC); null khi tắt hoặc bật mà chưa có giờ. */
+  endsAt: string | null;
+}
+/** `GET`/`PUT /api/maintenance` (chỉ ADMIN): `canToggle` = chính người gọi có nằm trong danh sách được phép bật/tắt không (không lộ danh sách). */
+export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
+/** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
+export interface MaintenanceRequest { on: boolean; endsAt?: string }
+/** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
+export interface MaintenanceErrorBody { code: "maintenance"; message: string; endsAt: string | null }
 export interface StaffListResponse { staff: StaffAccountDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
