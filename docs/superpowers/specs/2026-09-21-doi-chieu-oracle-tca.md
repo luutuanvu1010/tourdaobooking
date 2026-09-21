@@ -1,8 +1,8 @@
 # Đối chiếu hệ thống `tourdao-sales` với hai tài liệu tham chiếu Oracle TCA
 
 - **Ngày:** 2026-09-21   **Loại:** báo cáo rà soát + đề xuất (KHÔNG phải ADR; không đổi mã, không đổi schema)
-- **Trạng thái:** NHÁP — chờ chủ dự án duyệt phần "Đề xuất" (mục 6). Quyết định kiến trúc nào rút ra từ đây phải thành ADR mới (CLAUDE.md §6).
-- **Tài liệu tham chiếu** (đặt ở `docs/Ref/`, hiện chưa được git theo dõi):
+- **Trạng thái:** NHÁP bản 2 (2026-09-21) — đã rà soát lại: sửa nhãn tổng hợp cho khớp thân bài, xếp lại ưu tiên đề xuất kèm lý do dễ hiểu (mục 6), sửa khoá bảng ở P-1, thêm điều kiện cho P-2/P-5, hạ P-3 (MST) xuống hoãn theo ý chủ dự án. Chờ chủ dự án duyệt phần "Đề xuất". Quyết định kiến trúc nào rút ra từ đây phải thành ADR mới (CLAUDE.md §6).
+- **Tài liệu tham chiếu** (đặt ở `docs/Ref/` của checkout gốc, **chưa được git theo dõi** — người đọc báo cáo từ git chưa đối chiếu lại được; xem mục 6.5):
   - `thiet-ke-party-relationship-tca.md` — sơ đồ + DDL mẫu Party/Relationship theo Oracle Trading Community Architecture (gọi tắt **TCA-1**).
   - `Oracle-crm-triet-ly-va-checklist.md` — sáu triết lý, cấu trúc CRM và checklist bốn nhóm (gọi tắt **ORA-2**).
 - **Đối tượng rà soát:** nhánh `main` @ `8c16767` (gồm v1.0, chế độ bảo trì, Góp ý), đọc mã và tài liệu tại checkout đó.
@@ -77,7 +77,7 @@ TCA-1 gộp **hai khái niệm** trong một bảng: `relationship_code` vừa l
 | # | Quy tắc tham chiếu | Hiện trạng | Kết luận |
 |---|---|---|---|
 | 1 | **Không mồ côi**: không tạo bản ghi con khi thiếu `party_id` | Mọi bảng `pty_*`, `dsp_assignment.party_id`, `staff.party_id` có khoá ngoại `NO ACTION`; `audit-invariants` có `R-N1-10` (`PRAGMA foreign_key_check`), `R-N1-2` (hồ sơ PERSON phải có `pty_person`). **Nhưng** `staff.party_id` còn nullable: `R-N1-1` chỉ là `warn-unless-strict` cho tới B5 (`staff_party_required`, số `0017`) | **KHỚP MỘT PHẦN** — chờ B5 |
-| 2 | **Không trùng định danh**: MST của ORGANIZATION kiểm trùng trước khi tạo | **Không có.** `pty_organization.tax_code` không có `UNIQUE`; `parties/rules.ts` không kiểm trùng; tra trùng dựa vào **số điện thoại chuẩn hoá** qua `GET /api/parties/lookup?phone=` (giao diện `web/parties.ts` gọi khi tạo hồ sơ), còn chỉ mục `pty_contact_lookup_ix` **cố ý không duy nhất** (ADR-0001 mục 8: số dùng chung là chuyện thật) | **LỆCH — CẦN QUYẾT** (xem P-3): ADR-0001 mục 8 quyết cách nhận dạng bằng SĐT, nhưng **không** nói gì về MST; đây là khoảng trống, không phải quyết định đã chốt |
+| 2 | **Không trùng định danh**: MST của ORGANIZATION kiểm trùng trước khi tạo | **Không có.** `pty_organization.tax_code` không có `UNIQUE`; `parties/rules.ts` không kiểm trùng; tra trùng dựa vào **số điện thoại chuẩn hoá** qua `GET /api/parties/lookup?phone=` (giao diện `web/parties.ts` gọi khi tạo hồ sơ), còn chỉ mục `pty_contact_lookup_ix` **cố ý không duy nhất** (ADR-0001 mục 8: số dùng chung là chuyện thật) | **LỆCH — HOÃN** (xem P-3): ADR-0001 mục 8 quyết cách nhận dạng bằng SĐT, **không** nói gì về MST. Chủ dự án (2026-09-21): hệ thống là CRM lập đơn, MST không phải khoá nhận dạng → không làm bây giờ |
 | 3 | **Hiệu lực theo thời gian** | `valid_from/to_date` (ngày dân sự VN) và `valid_from/to_at` (UTC) trên vai trò, quan hệ, liên hệ, quyền app (`stf_permission`), phân công (`dsp_assignment`); không xoá cứng (ADR-0003 điều 8) | **KHỚP** |
 
 ### 1.6 Ví dụ minh hoạ (Công ty A vừa là khách vừa là nhà cung cấp)
@@ -96,7 +96,7 @@ TCA-1 gộp **hai khái niệm** trong một bảng: `relationship_code` vừa l
 
 ### Triết lý 2 — Chuyển trạng thái hợp lệ là đơn vị hành vi — **KHỚP MỘT PHẦN**
 - **Có (mức ứng dụng):** `orders/rules.ts` khai `TRANSITIONS` (`draft→confirmed|cancelled`, `confirmed→cancelled`, `cancelled→∅`) và `canTransition`; route `POST /api/orders/:id/status` kiểm `canTransition` rồi mới ghi, câu ghi có điều kiện `WHERE status = ?` (chống đua) và ghi nhật ký cùng batch. Phân công có lệnh riêng (`dispatch.assign`, `dispatch.claim`). Ticket Góp ý có luật chuyển ở `src/shared/feedback-catalog.ts`. Giao diện chỉ phát lệnh, không sửa cột trạng thái.
-- **Thiếu (mức CSDL):** trong `migrations/` chỉ có trigger `orders_confirm_requires_trip` (khi chuyển sang `confirmed` phải đủ chuyến) và trigger đóng băng dịch vụ. **Không có trigger nào chặn** `cancelled→confirmed` hay `confirmed→draft`: điều kiện của `orders_confirm_requires_trip` là `NEW.status='confirmed' AND OLD.status<>'confirmed'`, tức đơn **đã huỷ** vẫn chuyển được về `confirmed` nếu chuyến còn đủ. Luật "không có đường quay lại" chỉ sống ở `canTransition` (mã). Tham chiếu ORA-2 triết lý 3 đòi luật này nằm gần dữ liệu. Xem P-2.
+- **Thiếu (mức CSDL):** trong `migrations/` chỉ có trigger `orders_confirm_requires_trip` (khi chuyển sang `confirmed` phải đủ chuyến) và trigger đóng băng dịch vụ. **Không có trigger nào chặn** `cancelled→confirmed` hay `confirmed→draft`: điều kiện của `orders_confirm_requires_trip` là `NEW.status='confirmed' AND OLD.status<>'confirmed'`, tức **ở tầng CSDL** đơn đã huỷ vẫn chuyển được về `confirmed` nếu chuyến còn đủ. **Ở tầng mã thì không**: câu xác nhận cứng `WHERE status = 'draft'` (`orders/repository.ts`), câu huỷ có `WHERE status = ?` — không đường mã nào đi ngược. Nguy cơ chỉ đến từ SQL chạy tay trên D1 hoặc mã viết sau (N3 thêm đường sửa đơn sau xác nhận). Luật "không có đường quay lại" chỉ sống ở mã. Tham chiếu ORA-2 triết lý 3 đòi luật này nằm gần dữ liệu. Xem P-2.
 
 ### Triết lý 3 — Đưa bất biến gần nơi lưu trữ — **KHỚP** (điểm mạnh của dự án)
 - Tiền: trigger `order_item_money_*`, `orders_money_*` (`0007`) giữ `line_total = quantity × unit_price`, `total = subtotal − discount`, `remaining = total − deposit`, không âm.
@@ -185,81 +185,106 @@ Không đếm tỷ lệ phần trăm: ranh giới giữa "khớp một phần" v
 | Danh tính (Party, Person/Organization, liên hệ) | **KHỚP** |
 | Vai trò và quan hệ có hiệu lực theo thời gian | **KHỚP**, chặt hơn tham chiếu |
 | Bất biến đặt ở CSDL (tiền, đóng băng, một-dòng-mở, chồng lấn) | **KHỚP** |
-| Phân quyền Who × Action | **KHỚP**; Data Scope theo tổ chức chưa có (chưa cần) |
+| Phân quyền Who × Action × Data Scope | **KHỚP MỘT PHẦN** — Who × Action đủ; Data Scope theo tổ chức chưa có (chưa cần, xem P-6) |
 | Khách hàng nằm trong lớp Party | **LỆCH CÓ CHỦ Ý** (N2) — lệch lớn nhất |
 | Tài khoản giao dịch/công nợ, `party_site` | **KHÔNG ÁP DỤNG** / lệch có chủ ý |
-| Luật chuyển trạng thái đơn ở CSDL | **THIẾU** (chỉ ở mã) |
+| Luật chuyển trạng thái đơn | **KHỚP MỘT PHẦN** — mã chặn đủ (không đường mã nào đi ngược); CSDL chưa chặn (chỉ lộ khi chạy SQL tay) |
 | Kiểm toán: lý do, trước→sau có cấu trúc, chỉ-thêm ở CSDL | **KHỚP MỘT PHẦN**; đã có ADR-0007 điều 2 nhưng chưa thi công |
-| Trùng MST | **CHƯA QUYẾT** |
+| Trùng MST | **HOÃN** — chủ dự án (2026-09-21): CRM lập đơn, không xuất hoá đơn, MST không phải khoá nhận dạng |
 | Flexfield, AI actor, Lead/Opportunity, `source_ref` | **KHÔNG ÁP DỤNG** hiện nay |
 
-**Tóm lại:** nền danh tính, hiệu lực thời gian, bất biến trong CSDL và ma trận quyền **tốt và chặt hơn tham chiếu**. Ba nhóm việc thật sự còn thiếu: (1) **khách chưa nằm trong lớp Party** (N2), (2) **vết kiểm toán chưa có lý do/trước→sau có cấu trúc và chưa chỉ-thêm ở CSDL**, (3) **luật chuyển trạng thái đơn chưa được CSDL bảo vệ**. Còn lại phần lớn là "chưa cần" hoặc đã có ADR.
+**Tóm lại:** nền danh tính, hiệu lực thời gian, bất biến trong CSDL và ma trận quyền **tốt và chặt hơn tham chiếu**. Ba nhóm việc thật sự còn thiếu: (1) **khách chưa nằm trong lớp Party** (N2) — việc duy nhất mà chi phí sửa **tăng theo từng đơn**; (2) **vết kiểm toán chưa có lý do/trước→sau có cấu trúc và chưa chỉ-thêm ở CSDL**; (3) **luật chuyển trạng thái đơn chưa được CSDL bảo vệ** — hôm nay không có lỗi (mã chặn đủ), đây là bảo hiểm trước SQL chạy tay và mã tương lai. Còn lại phần lớn là "chưa cần" hoặc đã có ADR.
 
 ---
 
-## 6. Đề xuất
+## 6. Đề xuất (bản 2 — xếp lại ưu tiên, kèm lý do)
 
-Nguyên tắc xếp hạng: ưu tiên việc (a) đóng nợ **rẻ** ngay bây giờ vì làm muộn là **cửa một chiều** (đơn thật đã nằm trong D1), (b) không phá nguyên tắc CLAUDE.md (chỉ thêm migration, expand–contract, không sửa ADR đã duyệt). Mọi đề xuất cần chủ dự án duyệt; đề xuất nào đổi kiến trúc → ADR mới. **Không đề xuất nào được thi công trong báo cáo này.**
+Mỗi đề xuất được giải thích theo cùng một khung: **vấn đề là gì → nếu không sửa thì hỏng ở đâu → vì sao làm lúc này (hoặc để sau) → tốn bao nhiêu**. Chỗ nào không thật sự cần thì nói thẳng. Mọi đề xuất cần chủ dự án duyệt; đề xuất nào đổi kiến trúc → ADR mới. **Không đề xuất nào được thi công trong báo cáo này.**
 
-### Nhóm A — Nên làm (giá trị cao, rủi ro thấp)
+### 6.0 Bảng cô đọng
 
-**P-1. Vết kiểm toán "lý do + trước→sau" có cấu trúc** *(thuộc N3, kéo nhẹ một phần về sớm)*
-- Vấn đề: mục 4.2 dòng 2.3. ADR-0007 điều 2 đã quyết hướng; thiếu là thi công.
-- Đề xuất: khi làm N3, làm **cùng đợt** một bảng chỉ-thêm `ord_change` (module `orders`, `id` = `audit_log.id`; cột `field`, `before_value`, `after_value`, `reason`) đúng mô hình "audit_log = mục lục, bản ghi trước→sau = nội dung". Trường nhạy cảm (SĐT/email/MST) **che** hoặc chỉ ghi "đã đổi" (giữ CLAUDE.md §5).
-- Cách kiểm: `audit-invariants` thêm `R-ORD-n` "mọi sửa sau xác nhận có dòng `ord_change` với `reason` không rỗng".
-- Cửa: thêm bảng = cửa hai chiều (chỉ thêm). ADR-0007 **đã duyệt** nên chỉ cần ADR của N3 như đã hứa.
+| Ưu tiên | Đề xuất | Một câu: vì sao | Hôm nay có lỗi không? | Chờ lâu thì sao? | Chi phí | Cửa |
+|---|---|---|---|---|---|---|
+| **1** | **P-4** Gắn hồ sơ khách vào đơn (lát 1 N2) | Không gắn thì không biết "khách này đặt mấy lần, đại lý nào mang nhiều đơn" — giá trị cốt lõi của CRM | Không lỗi, nhưng **mất dữ liệu quan hệ mỗi ngày** | **Đắt dần theo từng đơn** — gộp sau phải đoán từ chữ gõ tay | Thấp ở CSDL (thêm 1 cột); vừa ở giao diện (thêm bước chọn khách) | Lát 1 hai chiều; lát 2 một chiều (ADR) |
+| **2** | **P-2** CSDL chặn chuyển trạng thái sai | Bảo hiểm: SQL chạy tay / mã sau này làm "sống lại" đơn đã huỷ | **Không** (mã chặn đủ) | Rủi ro tăng khi N3 thêm đường sửa đơn | Rất thấp (1 trigger) | Hai chiều |
+| **2** | **P-5** CSDL chặn sửa/xoá nhật ký | Nhật ký là bằng chứng khi tranh chấp; sửa được lặng lẽ thì mất giá trị | **Không** (mã không sửa/xoá) | Không đắt thêm, nhưng mỗi ngày không có lưới là một ngày không chứng minh được | Rất thấp (2 trigger), gộp chung migration với P-2 | Hai chiều |
+| **3** | **P-1** Bảng "trước → sau + lý do" | Chủ dự án đã quyết (ADR-0007): sửa sau xác nhận **bắt buộc** có lý do và trước→sau | Không (chưa có tính năng sửa sau xác nhận) | Không đắt thêm — chỉ cần khi làm N3 | Vừa, làm cùng N3 | Hai chiều (chỉ thêm bảng) |
+| 4 | P-6, P-7, P-11 | Ghi rõ vào tài liệu "chưa làm, khi nào mới làm" | — | — | Chỉ sửa tài liệu | — |
+| Hoãn | P-3, P-8, P-9, P-10, P-12 | Chưa có nhu cầu thật; làm trước dễ đoán sai thiết kế | — | — | — | — |
 
-**P-2. Đưa luật chuyển trạng thái đơn xuống CSDL (trigger, chỉ thêm)**
-- Vấn đề: mục 2, triết lý 2 — `cancelled→confirmed`, `confirmed→draft` không bị trigger nào chặn.
-- Đề xuất: migration mới (số `0017` hoặc kế tiếp; **lưu ý B5 cũng dự kiến `0017`** — đánh số theo `docs/HANDOFF-N1.md` tại thời điểm làm) thêm `orders_status_transition` `BEFORE UPDATE OF status` chặn mọi cặp ngoài `{draft→confirmed, draft→cancelled, confirmed→cancelled}` bằng `RAISE(ABORT,'invalid_transition: …')`. Kiểm bằng test đỏ→xanh trên schema đầy đủ (mẫu `src/modules/orders/migration.test.ts`).
-- Trước khi làm: chạy `audit-invariants`/truy vấn chỉ-đọc xem dữ liệu thật có đơn nào đang ở trạng thái mà trigger sẽ coi là bất thường không (trigger `BEFORE UPDATE` không kiểm dòng cũ, nhưng nên biết).
-- Cửa: thêm trigger = hai chiều (gỡ được). Rủi ro: chặn một đường mã ngầm nào đó → e2e phải bắt.
+### 6.1 Ưu tiên 1 — P-4. Gắn hồ sơ khách vào đơn (lát 1 của N2) — **cần thiết nhất**
 
-**P-3. Chốt chính sách trùng MST (quyết định của chủ dự án)**
-- Vấn đề: mục 1.5 #2. TCA-1 đòi kiểm trùng; ADR-0001 mục 8 cố ý không ép duy nhất SĐT nhưng **im lặng về MST**.
-- Phương án (chọn một):
-  - **(a) Cảnh báo mềm** (khuyến nghị): khi tạo/sửa tổ chức, `GET /api/parties/lookup?taxCode=` báo "đã có hồ sơ dùng MST này" giống cơ chế SĐT; cho tạo tiếp có xác nhận. Không đổi schema.
-  - **(b) Duy nhất cứng:** chỉ mục `UNIQUE` một phần trên `pty_organization(tax_code) WHERE tax_code IS NOT NULL` (dữ liệu cũ phải sạch trước — cần kiểm chỉ-đọc). Chặt nhưng một pháp nhân có nhiều chi nhánh dùng chung MST 10 số + hậu tố sẽ vướng (mã 13 số `10-3 số` là khác nhau, nhưng 10 số gốc thì trùng).
-  - **(c) Giữ nguyên** và ghi vào ADR-0001 là quyết định có chủ ý.
-- Lý do khuyến nghị (a): khớp tinh thần ADR-0001 mục 8 ("không tự tạo hồ sơ thứ hai âm thầm") mà không chặn trường hợp thật.
+- **Vấn đề:** mỗi đơn chép tay tên/SĐT khách (`orders.customer_*`). Lớp hồ sơ đã có sẵn (hồ sơ gốc, vai trò `CUSTOMER`, `AGENT`) nhưng đơn chưa trỏ vào (mục 1.6).
+- **Nếu không sửa:**
+  - Không trả lời được các câu cơ bản của CRM: *khách này đã đặt mấy lần? đại lý nào mang về nhiều đơn nhất? khách quen gọi lại là ai?*
+  - **Chi phí sửa tăng theo từng đơn.** Gộp về sau phải đoán "đơn nào cùng một người" từ chữ gõ tay (`0905 123 456` / `0905123456`, "Anh Tuấn" / "Tuấn Nguyễn"). Đoán sai là gắn đơn của người này cho người khác; việc gộp ghi đè dữ liệu thật, **không hoàn tác được** — ADR-0001 mục 8 tự thừa nhận điều này.
+- **Vì sao làm bây giờ:** đây là việc **duy nhất** trong danh sách mà chờ càng lâu càng đắt.
+- **Cách làm:** hai lát.
+  - **Lát 1:** `ALTER TABLE orders ADD COLUMN booker_party_id` (nullable, khoá ngoại `pty_party`) + giao diện "tìm khách theo SĐT → chọn hoặc tạo mới" (ADR-0001 mục 8 bắt buộc hiện danh sách trùng số); **giữ** `customer_*` làm bản chụp lúc đặt. Không dựng lại bảng (ADR-0003 điều 10), gỡ được.
+  - **Lát 2 (sau):** backfill đơn cũ, gộp hồ sơ, siết bắt buộc — cửa một chiều, cần ADR.
+- **Chi phí thật** nằm ở giao diện: nhân viên thêm một bước khi lập đơn → nên hỏi ý nhân viên bán hàng.
+- **Cần chủ dự án duyệt** vì đổi thứ tự lộ trình N2 (N2 hiện gồm cả gộp hồ sơ, người đặt, nhiệm vụ đón/lái cano).
 
-**P-4. Đưa "người đặt/khách" vào đơn sớm — làm N2 phần tối thiểu**
-- Vấn đề: mục 1.6 — mỗi đơn mới nhân thêm bản sao tên/SĐT khách; càng để lâu, việc gộp về sau (`booker_party_id`) càng phải viết lại nhiều dữ liệu (ADR-0001 mục 8 tự nhận điều này).
-- Đề xuất: tách N2 thành hai lát: **lát 1** thêm `orders.booker_party_id` (nullable, khoá ngoại `pty_party`) + giao diện "tìm/tạo hồ sơ theo SĐT" **và** giữ `customer_*` làm bản chụp lúc đặt (expand); **lát 2** (sau) mới backfill/gộp/siết. Lát 1 chỉ là `ALTER TABLE … ADD COLUMN` (không dựng lại bảng — ADR-0003 điều 10).
-- Cửa: lát 1 hai chiều; lát 2 cần ADR (cửa một chiều). Cần chủ duyệt thứ tự, vì N2 hiện gồm cả gộp hồ sơ, người đặt, nhiệm vụ đón/lái cano.
+### 6.2 Ưu tiên 2 — P-2. CSDL chặn chuyển trạng thái sai — **nên làm, là bảo hiểm, không phải sửa lỗi**
 
-### Nhóm B — Nên làm khi chạm tới (chi phí thấp, gắn với việc đang có)
+- **Vấn đề:** luật "nháp → xác nhận → huỷ, không quay lại" chỉ nằm trong mã. CSDL cho phép đơn đã huỷ quay về "đã xác nhận".
+- **Nói thẳng: hôm nay không có lỗi.** Câu xác nhận cứng `WHERE status = 'draft'`, câu huỷ có `WHERE status = ?` → từ ứng dụng không đi ngược được.
+- **Vì sao vẫn cần:**
+  - **SQL chạy tay có thật trong dự án này**: đường thoát khẩn của chế độ bảo trì là SQL gõ tay trên D1 thật; sửa dữ liệu bằng `wrangler d1 execute` sẽ xảy ra. Gõ nhầm một `UPDATE` là đơn đã huỷ "sống lại".
+  - **N3 sẽ thêm đường sửa đơn sau xác nhận** → thêm chỗ cho lỗi lọt.
+  - **Hậu quả cụ thể:** đơn huỷ sống lại → hướng dẫn viên/tài xế thấy việc, đi đón khách đã huỷ; doanh thu cộng sai.
+- **Cách làm:** trigger `orders_status_transition` `BEFORE UPDATE OF status ON orders`, chặn mọi cặp ngoài `{draft→confirmed, draft→cancelled, confirmed→cancelled}` **và cho phép `NEW.status = OLD.status`** (bắt buộc: `UPDATE OF status` vẫn chạy khi cột có trong `SET` dù giá trị không đổi). `RAISE(ABORT,'invalid_transition: …')`. Test đỏ→xanh trên schema đầy đủ (mẫu `src/modules/orders/migration.test.ts`).
+- **Số migration:** B5 cũng dự kiến `0017` — đánh số theo `docs/HANDOFF-N1.md` tại thời điểm làm.
+- **Chi phí:** vài dòng, gỡ được. Rủi ro: chặn nhầm một đường mã ngầm → e2e phải bắt.
 
-**P-5. Bảo vệ `audit_log` chỉ-thêm ở CSDL**
-- Thêm hai trigger `BEFORE UPDATE`/`BEFORE DELETE` trên `audit_log` `RAISE(ABORT,'audit_append_only')`. Điều kiện: không có mã nào (kể cả migration/script bảo trì) cần sửa/xoá; đã grep không thấy trong `src/scripts/tests`, nhưng cần xác nhận với quy trình dọn dữ liệu (nếu có yêu cầu xoá dữ liệu cá nhân theo luật thì cần đường riêng có ghi). Đi kèm bài kiểm trong `src/architecture.test.ts`.
-- Cửa: hai chiều (gỡ trigger).
+### 6.3 Ưu tiên 2 — P-5. CSDL chặn sửa/xoá nhật ký — **nên làm, gộp chung migration với P-2**
 
-**P-6. Ghi nhận rõ "phạm vi dữ liệu theo tổ chức" là chưa làm, kèm ngưỡng kích hoạt**
-- Không đổi mã. Thêm đoạn vào ADR-0007/`SYSTEM-DESIGN.md` §8: chỉ mở rộng `Scope` thêm `location` khi (i) có chi nhánh/điểm bán thứ hai, hoặc (ii) đại lý được xem đơn của chính họ. Dữ liệu nền (`pty_party_role.location_id`) đã sẵn.
+- **Vấn đề:** `audit_log` là thứ duy nhất trả lời *"ai huỷ đơn này, ai sửa giá, lúc nào"*. Hiện nó chỉ-thêm nhờ **mã kỷ luật** (grep `src/scripts/tests` không có `UPDATE/DELETE audit_log`), không nhờ CSDL.
+- **Nếu không sửa:** khi tranh chấp (khách nói đã huỷ, nhân viên nói chưa), nhật ký là bằng chứng. Nhật ký sửa được lặng lẽ thì **mất giá trị bằng chứng** — kể cả khi chưa ai sửa, vì không chứng minh được là chưa ai sửa.
+- **Cách làm:** hai trigger `BEFORE UPDATE` / `BEFORE DELETE` trên `audit_log` → `RAISE(ABORT,'audit_append_only')`, kèm test trong `src/architecture.test.ts` kiểm hai trigger còn tồn tại.
+- **Giới hạn cần biết:**
+  - Trigger **chặn tai nạn, không chặn người cố ý** (người quản trị D1 vẫn gỡ được trigger).
+  - Dựng lại bảng `audit_log` (đã từng làm ở `0005`) thì trigger **mất theo bảng** → test "trigger còn tồn tại" bắt được.
+  - Nếu luật buộc xoá dữ liệu cá nhân thì cần đường riêng có ghi; nhật ký hiện không được ghi SĐT/email/MST nên khả năng vướng thấp — vẫn cần chủ dự án xác nhận.
+- **Chi phí:** rất thấp; đi cùng P-2 thì chỉ một lần triển khai.
 
-**P-7. `party_site` cho địa chỉ xuất hoá đơn — hoãn tới N3**
-- Hiện `pty_organization.address` + `invoice_email` là một bộ. Khi làm `bil_*`/yêu cầu hoá đơn (ADR-0004 đã dự kiến "tên đơn vị, MST, địa chỉ, email nhận" **trên yêu cầu xuất**, tức lưu bản chụp theo từng yêu cầu), quyết định đó **đã tránh** được nhu cầu `party_site`. → Đề xuất: **không làm `party_site`**; chỉ ghi vào ADR N3 rằng thông tin xuất hoá đơn là bản chụp theo yêu cầu.
+### 6.4 Ưu tiên 3 — P-1. Bảng "trước → sau + lý do" — **cần, nhưng đúng lúc là N3**
 
-**P-8. `SUPPLIER`/`PARTNER` trong `pty_role_type`** — chỉ khi có nghiệp vụ mua vào (N4, giá net HDV). Một dòng dữ liệu trong migration, không cần schema mới.
+- **Vấn đề:** sửa đơn hiện chỉ để lại chuỗi `detail` tự do; máy không truy vấn được "trước bao nhiêu, sau bao nhiêu, vì sao" (mục 4.2 dòng 2.3).
+- **Vì sao cần:** ADR-0007 điều 2 đã quyết — sau xác nhận vẫn cho sửa số khách/dịch vụ/tiền nhưng **bắt buộc lý do + bản ghi trước→sau chỉ-thêm**, `audit_log` làm mục lục. Không có bảng này thì tính năng đó không được phép làm.
+- **Vì sao không làm sớm hơn:** hiện đơn đã xác nhận bị khoá hoàn toàn; chưa có "sửa sau xác nhận" thì chưa có gì để ghi. Làm trước = bảng rỗng không ai dùng.
+- **Thiết kế (sửa so với bản 1):** bảng chỉ-thêm `ord_change` (module `orders`) với **khoá `(audit_id, field)`**, cột `audit_id` (= `audit_log.id`), `field`, `before_value`, `after_value`, `reason`. Bản 1 để khoá = `audit_log.id` là **sai**: một lần sửa thường đổi nhiều trường cùng lúc (đổi số người lớn kéo theo tổng tiền, số còn lại) — khoá đơn chỉ ghi được một trường, các trường khác mất. Trường nhạy cảm (SĐT/email/MST) che hoặc chỉ ghi "đã đổi" (CLAUDE.md §5).
+- **Cách kiểm:** `audit-invariants` thêm `R-ORD-n` "mọi sửa sau xác nhận có ít nhất một dòng `ord_change` với `reason` không rỗng".
+- **Chi phí:** vừa; nằm trong ADR của N3 như ADR-0007 đã hứa.
 
-### Nhóm C — Chỉ ghi nhận, không làm bây giờ
+### 6.5 Ưu tiên 4 — chỉ ghi tài liệu, không mã
 
-**P-9. `party_number` mã người-đọc-được** (ví dụ `KH-000123`): hữu ích khi nhân viên đọc/nhắn mã khách; chưa có nhu cầu. Nếu làm thì sinh trong câu `INSERT` (như `order_code`), `UNIQUE`, chỉ thêm cột.
+- **P-6. Phạm vi dữ liệu theo tổ chức:** ghi vào ADR-0007/`SYSTEM-DESIGN.md` §8 rằng chỉ mở rộng `Scope` thêm `location` khi (i) có chi nhánh/điểm bán thứ hai, hoặc (ii) đại lý được xem đơn của chính họ. Dữ liệu nền (`pty_party_role.location_id`) đã sẵn.
+- **P-7. Không làm `party_site`:** ADR-0004 đã dự kiến lưu thông tin xuất hoá đơn là **bản chụp trên từng yêu cầu** → tránh được nhu cầu nhiều địa chỉ xuất/tổ chức. Chỉ cần ghi điều này vào ADR N3.
+- **P-11. Quy tắc cho tác nhân AI:** một dòng trong ADR-0007/ARCHITECTURE: "mọi tác nhân tự động gọi qua API có phiên, có tài khoản `staff` riêng quyền tối thiểu, ghi `audit_log.staff_id` của chính nó; không ghi thẳng D1". Làm khi bắt đầu tích hợp AI.
+- **Tài liệu tham chiếu ngoài git:** hai tệp `docs/Ref/*.md` chỉ có ở checkout gốc; người đọc báo cáo từ git không kiểm lại được. Đề nghị commit chúng cùng báo cáo **sau khi** chủ dự án xem nội dung không có gì nhạy cảm (repo riêng tư nhưng đã chứa dữ liệu thật).
 
-**P-10. Làn mở rộng có kiểu (flexfield):** chờ nhu cầu thật; khi làm, bảng `..._attr(namespace, key, value_json)` có kiểm ở mã theo tệp khai báo `src/shared/`, tránh `ALTER` lõi. **Không** làm phòng xa (nguyên tắc P6/P11 của dự án).
+### 6.6 Hoãn — chưa có nhu cầu thật
 
-**P-11. Quy tắc cho tác nhân AI** (`ORA-2` triết lý 6): chưa có AI ghi dữ liệu → chỉ cần **một dòng trong ADR-0007/ARCHITECTURE**: "mọi tác nhân tự động gọi qua API có phiên, có tài khoản `staff` riêng với quyền tối thiểu, ghi `audit_log.staff_id` của chính nó; không có đường ghi thẳng D1". Làm khi bắt đầu kế hoạch tích hợp AI.
+Nguyên tắc: chưa có nhu cầu thật thì làm trước dễ đoán sai thiết kế và phải bảo trì thứ không ai dùng.
 
-**P-12. Lead/Opportunity/Interaction (lớp 4 TCA):** ngoài phạm vi "công cụ lập đơn". Chỉ mở ra nếu chủ dự án muốn mở rộng thành CRM theo dõi khách tiềm năng — lúc đó là hạng mục mới có đặc tả riêng, `source_ref` hai chiều đơn ↔ cơ hội được thiết kế cùng (gắn với N3 cho hoá đơn).
+| Đề xuất | Khi nào mới cần |
+|---|---|
+| **P-3.** Trùng MST | Chủ dự án (2026-09-21): hệ thống là CRM lập đơn, không xuất hoá đơn → MST không phải khoá nhận dạng. Xem lại nếu N3 xuất hoá đơn theo hồ sơ tổ chức |
+| **P-8.** `SUPPLIER`/`PARTNER` trong `pty_role_type` | Khi có nghiệp vụ mua vào (N4, giá net HDV) — một dòng dữ liệu |
+| **P-9.** Mã khách dễ đọc (`KH-000123`) | Khi nhân viên thật sự cần đọc/nhắn mã khách |
+| **P-10.** Thuộc tính mở rộng tuỳ ý (flexfield) | Khi có thuộc tính cụ thể mà cột hiện có không chứa được |
+| **P-12.** Khách tiềm năng, cơ hội, lịch sử chăm sóc | Khi chủ dự án muốn mở rộng thành CRM chăm sóc khách — hạng mục mới có đặc tả riêng |
 
-### Thứ tự đề nghị
+### 6.7 Thứ tự đề nghị
 
-1. **Quyết định của chủ dự án:** P-3 (MST), P-4 (tách N2 làm hai lát), P-1 (làm `ord_change` cùng N3).
-2. **Làm cùng đợt migration kế tiếp** (cần một số `0017` duy nhất — phải phối hợp với B5): P-2, P-5.
-3. **Ghi tài liệu, không mã:** P-6, P-7, P-11.
-4. **Hoãn, ghi nhận:** P-8, P-9, P-10, P-12.
+1. **Chủ dự án quyết:** P-4 (tách N2 làm hai lát, làm lát 1 trước).
+2. **Một migration kế tiếp** (phối hợp số với B5): P-2 + P-5.
+3. **Cùng N3:** P-1 (khoá `(audit_id, field)`), ghi P-7 vào ADR N3.
+4. **Ghi tài liệu:** P-6, P-11; commit tài liệu tham chiếu sau khi xem nội dung.
+5. **Hoãn:** P-3, P-8, P-9, P-10, P-12.
 
-### Điều cần kiểm thêm trước khi ra quyết định
-- Chạy `node scripts/audit-invariants.mjs --db remote` (chỉ đọc) để biết dữ liệu production hiện tại sạch tới đâu trước P-2/P-5 (theo `CLAUDE.md` §6 chỉ chạy khi chủ dự án cho phép nếu đụng remote).
-- Truy vấn chỉ-đọc: đếm số `tax_code` trùng trong `pty_organization` và số SĐT trùng trong `pty_contact_point` (đo mức độ vấn đề của P-3).
-- Xác nhận với chủ dự án: có bắt buộc/khuyến khích luật xoá dữ liệu cá nhân nào cản P-5 không.
+### 6.8 Điều cần kiểm thêm trước khi ra quyết định
+- `node scripts/audit-invariants.mjs --db remote` (chỉ đọc; theo CLAUDE.md §6 chỉ chạy khi chủ dự án cho phép) để biết dữ liệu production sạch tới đâu trước P-2/P-5.
+- Truy vấn chỉ-đọc: đếm số SĐT khách lặp lại trong `orders` — đo quy mô việc gộp của P-4 hôm nay.
+- Xác nhận với chủ dự án: có yêu cầu xoá dữ liệu cá nhân nào cản P-5 không.
