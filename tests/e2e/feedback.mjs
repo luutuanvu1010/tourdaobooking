@@ -115,6 +115,22 @@ assert.equal(r.body.ticket.status, "ACK", "người gửi trả lời khi đã D
 assert.equal((await call(SALES, "POST", `/api/feedback/${t.id}/messages`, { body: "  " })).status, 400);
 console.log("✓ tin nội bộ ẩn, người gửi trả lời mở lại yêu cầu");
 
+// --- Khoá lạc quan của PATCH: nhiều admin cùng đổi NEW → ACK song song. Đúng một bên thắng, các bên còn lại không được đổi.
+// Bên thua nhận 409 `stale` nếu đã đọc NEW trước khi bên thắng ghi (nhánh `changes() === 0` trong index.ts), hoặc 409 `bad_transition`
+// nếu D1 cục bộ chạy các request tuần tự hoàn toàn (đọc thấy ACK rồi). Đo thực tế trên môi trường cục bộ: luôn là `bad_transition`,
+// nên kịch bản này KHÔNG khoá được nhánh `stale` ở local (lỗ hổng còn lại, xem báo cáo); nó vẫn khoá bất biến "đúng một bên thắng".
+r = await call(SALES, "POST", "/api/feedback", input({ title: "Khoá lạc quan" }));
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const raceId = r.body.ticket.id;
+const race = await Promise.all(Array.from({ length: 6 }, () => call(ADMIN, "PATCH", `/api/feedback/${raceId}`, { status: "ACK" })));
+const winners = race.filter((x) => x.status === 200);
+const losers = race.filter((x) => x.status !== 200);
+assert.equal(winners.length, 1, `đúng một bên thắng: ${race.map((x) => x.status)}`);
+for (const l of losers) {
+  assert.ok(l.status === 409 && (l.body.error.code === "stale" || l.body.error.code === "bad_transition"), `bên thua: ${l.status} ${JSON.stringify(l.body)}`);
+}
+console.log(`✓ khoá lạc quan: 6 PATCH song song → 1 thắng, ${losers.length} thua (${[...new Set(losers.map((l) => l.body.error.code))]})`);
+
 // --- Nhật ký
 r = await call(ADMIN, "GET", "/api/audit?action=feedback_created");
 assert.equal(r.status, 200);

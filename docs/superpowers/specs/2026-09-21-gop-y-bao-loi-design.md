@@ -21,7 +21,7 @@ Người dùng đã đăng nhập gửi **báo lỗi / đề xuất / câu hỏi
 - `fbk_ticket`: `id`, `seq` (số thứ tự duy nhất; mã người đọc `YC-0007` tính từ `seq` ở code), `kind`, `status`, `title`, `context` (JSON), `submitter_id`, `assignee_id` (NULL được), `client_request_id` (UUID do client sinh; **duy nhất** theo `(submitter_id, client_request_id)`), `resolved_in` (NULL được, mã bản dựng khi chuyển `DONE`), `submitter_seen_at`, `admin_seen_at`, `last_activity_at`, `last_public_reply_at`, `notified_at` (NULL = chưa gửi email được), cột kiểm toán theo chuẩn N1, khoá lạc quan `updated_at`.
 - `fbk_message`: `id`, `ticket_id` (FK), `author_id`, `body`, `internal` (0/1: ghi chú nội bộ, chỉ admin thấy), `created_at`. Mô tả ban đầu là tin đầu tiên.
 - `fbk_kind` (`BUG`, `IDEA`, `QUESTION`), `fbk_status` (`NEW`, `ACK`, `IN_PROGRESS`, `DONE`, `DECLINED`): bảng tra cứu khoá `code`, không `CHECK` liệt kê.
-- Cột WHO (`submitter_id` và `author_id` là `TEXT NOT NULL` vì luôn có người; `assignee_id` là `TEXT NULL`), không khoá ngoại, không `CASCADE` (chuẩn ADR-0002/N1 cho bảng mới). Lưu ý `audit_log.staff_id` thì vẫn `REFERENCES staff(id)` (migration 0007): hai chuẩn khác nhau là có chủ ý, không đồng bộ lại. Tên hiển thị đọc qua `v_stf_staff_label`; mã đơn qua `v_ord_order_label`. Không JOIN thẳng bảng module khác.
+- Cột WHO (`submitter_id` và `author_id` là `TEXT NOT NULL` vì luôn có người; `assignee_id` là `TEXT NULL`), không khoá ngoại, không `CASCADE` (chuẩn ADR-0002/N1 cho bảng mới). Lưu ý `audit_log.staff_id` thì vẫn `REFERENCES staff(id)` (migration 0007): hai chuẩn khác nhau là có chủ ý, không đồng bộ lại. Tên hiển thị đọc qua `v_stf_staff_label`. Không JOIN thẳng bảng module khác.
 - Danh sách kind/status ở v1 là **cố định do hệ thống sở hữu** (không có màn hình admin sửa danh sách).
 - **Chuyển trạng thái là luật thuần** trong `rules.ts` (có bảng và test); `PATCH` không được đặt trạng thái tuỳ ý:
 
@@ -52,7 +52,7 @@ Người dùng đã đăng nhập gửi **báo lỗi / đề xuất / câu hỏi
 - `MATRIX` (`src/shared/permissions.ts`; cột quyền: SALES, ACCOUNTING, ADMIN, FIELD) thêm: `feedback.submit` (cả 4 quyền = `any`), `feedback.view` (SALES/ACCOUNTING/FIELD = `own`, ADMIN = `any`), `feedback.triage` (chỉ ADMIN). Test khoá bản đồ cập nhật theo.
 - Đầu vào: `title` ≤ 120, `body` ≤ 4000 ký tự; kiểm ở luật thuần.
 - **Chống spam**: một câu `INSERT … SELECT … WHERE (SELECT count(*) … trong 1 giờ) < trần` trên chính `fbk_ticket` / `fbk_message` — đếm và chèn cùng MỘT câu lệnh nên hai request song song không cùng qua trần (không tự viết `SELECT count` rồi `INSERT` ở hai bước). Không dùng `login_attempt`/`reserveAttempts`: đó là bảng của `auth`, và mẫu ấy có `DELETE` mà bài kiểm R-N1-9 cấm với bảng mới. Trần áp cho **cả** `POST /api/feedback` (5/giờ/tài khoản) **và** `POST /api/feedback/:id/messages` (30/giờ/tài khoản, tính cả tin mô tả ban đầu); chỉnh ở `rules.ts`.
-- **Phạm vi truy vấn**: mọi truy vấn của module đi qua MỘT hàm điều kiện phạm vi (`scopeWhere(staff)` trong `rules.ts`/`repository.ts`), không lặp `WHERE submitter_id = ?` ở từng route.
+- **Phạm vi truy vấn**: SQL của module phải tĩnh nên KHÔNG có hàm phạm vi dùng chung; phạm vi được quyết định ở một tập nhỏ, liệt kê đủ trong chú thích đầu nhóm câu lệnh của `repository.ts`: `LIST_MINE` (lọc `submitter_id`), `LIST_QUEUE` (không lọc chủ, dựa vào route `access: "admin"`), `BADGE` (đếm theo người xem), và các route đọc theo id (`GET`, `messages`) qua `canRead()` trong `index.ts`.
 - `context.appVersion` phải là **mã bản dựng thật**. Hiện `__BUILD_ID__` chỉ được esbuild nhúng vào service worker (`build:web`, `sw.ts`), chưa vào các bundle trang: thi công phải thêm `--define:__BUILD_ID__` cho bước bundle trang (hoặc lấy từ `CACHE_VERSION`); nếu chưa làm được thì bỏ khoá `appVersion` khỏi v1 chứ không ghi giá trị giả.
 - Không lưu nội dung đơn, **chỉ mã đơn** (`orderCode`, chuỗi thường; v1 giao diện chưa tự điền, chưa đọc `v_ord_order_label` nên không có cạnh `feedback → orders`).
 - `context`: **không đáng tin**. Server chỉ nhận bộ khoá cố định (`path`, `orderCode`, `device`, `standalone`, `appVersion`), cắt độ dài, bỏ khoá lạ. Giao diện dựng bằng `h()`, không `innerHTML`.
@@ -75,7 +75,7 @@ Người dùng đã đăng nhập gửi **báo lỗi / đề xuất / câu hỏi
 
 ## Kiểm thử
 
-- `rules.test.ts` (luật thuần): kiểm đầu vào, lọc `context`, **bảng chuyển trạng thái** (mọi cặp hợp lệ và không hợp lệ), mở lại khi trả lời, tính chấm đỏ, `scopeWhere`.
+- `rules.test.ts` (luật thuần): kiểm đầu vào, lọc `context`, **bảng chuyển trạng thái** (mọi cặp hợp lệ và không hợp lệ), mở lại khi trả lời, tính chấm đỏ.
 - e2e (`tests/e2e/`): trạng thái tuỳ ý bị `409`; trần tần suất giữ được khi gửi song song (cả tạo mới và trả lời); gửi lại cùng `client_request_id` không tạo ticket/email thứ hai; người A không đọc/trả lời được yêu cầu của B; người gửi không thấy `internal`; chỉ admin đổi trạng thái; email dùng bản giả (mock) và lỗi gửi không làm hỏng yêu cầu.
 - `npm test` phải xanh, gồm `architecture.test.ts` (tiền tố bảng, sổ dữ liệu `docs/data-dictionary.json` + `npm run dict`, ranh giới SQL, cột kiểm toán); `npm run typecheck`; `scripts/audit-invariants.mjs`.
 - Sổ dữ liệu cập nhật: bảng `fbk_*`, module chủ `feedback`, cạnh đọc tới `v_stf_staff_label`/`v_ord_order_label`.
@@ -89,5 +89,5 @@ Người dùng đã đăng nhập gửi **báo lỗi / đề xuất / câu hỏi
 - Email Service còn **beta**: chấp nhận vì email chỉ là thông báo phụ; nếu bị đổi/ngừng thì đổi nhà cung cấp mà không đụng dữ liệu.
 - Người dùng gõ nội dung nhạy cảm (SĐT khách…) vào yêu cầu: chỉ admin và chính họ thấy; email cắt đoạn đầu. Nếu chủ dự án muốn email không kèm nội dung, chỉ để tiêu đề + đường dẫn, đổi ở một chỗ.
 - Trần tần suất/giờ và độ dài chỉ là đề xuất, chốt lúc lập kế hoạch.
-- **Tenant**: repo chưa có khái niệm tenant nên **không** thêm `tenant_id` bây giờ. `fbk_*` sẽ nhận `tenant_id` cùng đợt với các module khác; nhờ mọi truy vấn đi qua một hàm phạm vi (`scopeWhere`) nên đợt đó chỉ sửa một chỗ.
+- **Tenant**: repo chưa có khái niệm tenant nên **không** thêm `tenant_id` bây giờ. `fbk_*` sẽ nhận `tenant_id` cùng đợt với các module khác; phạm vi được quyết định ở một tập nhỏ, đã liệt kê (`LIST_MINE`, `LIST_QUEUE` + route admin, `BADGE`, `canRead()` ở các route đọc theo id), nên đợt đó phải thêm điều kiện tenant vào từng chỗ ấy.
 - **Thời hạn lưu giữ** ticket đã đóng (và tin nhắn) chưa chốt: cần quyết định trước khi có dữ liệu nhiều (giữ vô hạn, hay ẩn/xoá sau N tháng). Vì dữ liệu có thể chứa thông tin khách do người dùng gõ vào, quyết định này cần chủ dự án.

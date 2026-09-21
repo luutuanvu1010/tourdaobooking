@@ -3,13 +3,14 @@
 import { FEEDBACK_KINDS, FEEDBACK_KIND_NAME, FEEDBACK_STATUSES, FEEDBACK_STATUS_NAME, FEEDBACK_TRANSITIONS, type FeedbackStatus } from "../src/shared/feedback-catalog";
 import { ApiError, api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { can } from "../src/shared/permissions";
 import { initShell, showError } from "./shell";
 
 declare const __BUILD_ID__: string | undefined;
 
 const errorEl = byId("error");
 const staff = await initShell();
-const isAdmin = staff.permissions.includes("ADMIN");
+const isAdmin = can(staff, "feedback.triage");
 const params = new URLSearchParams(location.search);
 
 let tab: "mine" | "queue" = "mine";
@@ -162,7 +163,7 @@ async function loadThread(id: string): Promise<void> {
     h("a", { href: "/feedback" }, "← Danh sách"),
     h("h2", null, `${t.code} · ${t.title}`),
     h("p", { class: "muted" }, `${t.kindName} · ${t.statusName}${t.resolvedIn ? ` · sửa ở bản ${t.resolvedIn}` : ""} · ${t.submitterName ?? ""} · ${when(t.createdAt)}`),
-    t.context.path || t.context.device || t.context.appVersion
+    t.context.path || t.context.device || t.context.appVersion || t.context.orderCode
       ? h("p", { class: "muted" }, [t.context.path && `Trang: ${t.context.path}`, t.context.orderCode && `Đơn: ${t.context.orderCode}`, t.context.device && `Thiết bị: ${t.context.device}`, t.context.appVersion && `Bản: ${t.context.appVersion}`].filter(Boolean).join(" · "))
       : null,
     ...controls,

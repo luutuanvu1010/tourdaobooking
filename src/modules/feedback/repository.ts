@@ -48,7 +48,13 @@ const GET = defineSql("feedback", "get", `SELECT ${COLS}, 0 AS unread ${FROM} WH
 const FIND_BY_REQUEST = defineSql("feedback", "find_by_request", `SELECT id FROM fbk_ticket WHERE submitter_id = ?1 AND client_request_id = ?2`);
 const MESSAGE_EXISTS = defineSql("feedback", "message_exists", `SELECT 1 AS ok FROM fbk_message WHERE id = ?1`);
 
-// PHẠM VI XEM Ở MỘT NƠI (spec "scopeWhere"): người thường chỉ thấy yêu cầu của mình (?1 = id người xem, cả hai danh sách).
+// PHẠM VI XEM (không có hàm dùng chung: SQL của module phải tĩnh, nên phạm vi được quyết định ở một tập nhỏ, LIỆT KÊ ĐỦ dưới đây).
+// Khi thêm tenant_id (đợt migration đa tenant) PHẢI thêm điều kiện tenant vào TỪNG chỗ sau:
+//  1. LIST_MINE: lọc `t.submitter_id = ?1` (người thường chỉ thấy yêu cầu của mình).
+//  2. LIST_QUEUE: KHÔNG lọc chủ; dựa vào route GET /api/feedback khai `access: "admin"` trong index.ts (kèm điều kiện tenant khi có).
+//  3. BADGE: đếm theo người xem (mine lọc `submitter_id = ?1`; queue chỉ đếm khi ?2 = 1, tức admin).
+//  4. GET / messages theo id (GET, FIND_BY_REQUEST, LIST_MESSAGES): không lọc trong SQL; index.ts gọi canRead() trước khi trả (và ẩn tin nội bộ với người không phải admin).
+//  5. Các câu ghi (TOUCH_AFTER_REPLY, PATCH_TICKET, markSeen): chỉ chạy sau canRead()/quyền admin ở route.
 const LIST_MINE = defineSql(
   "feedback",
   "list_mine",
@@ -142,7 +148,7 @@ const TOUCH_AFTER_REPLY = defineSql(
      submitter_seen_at = CASE WHEN submitter_id = ?5 THEN ?3 ELSE submitter_seen_at END,
      status_code = CASE WHEN submitter_id = ?5 AND status_code IN ('DONE', 'DECLINED') THEN 'ACK' ELSE status_code END,
      updated_at = ?3, updated_by = ?5
-   WHERE id = ?1 AND EXISTS (SELECT 1 FROM fbk_message WHERE id = ?2)`,
+   WHERE id = ?1 AND EXISTS (SELECT 1 FROM fbk_message WHERE id = ?2 AND ticket_id = ?1)`,
 );
 // Admin đổi trạng thái/người xử lý. ?1 id, ?2 trạng thái mới hoặc NULL, ?3 có đổi người xử lý (0/1), ?4 người xử lý mới, ?5 có đổi resolved_in (0/1),
 // ?6 resolved_in mới, ?7 bây giờ, ?8 admin, ?9 trạng thái CŨ (khoá lạc quan: đã khác → 0 dòng đổi). Người xử lý mới phải là tài khoản đang hoạt động.
