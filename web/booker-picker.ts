@@ -61,7 +61,8 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
     try {
       found = (await api<Api.PartyLookupResponse>(`/api/parties/lookup?phone=${encodeURIComponent(o.phone.value)}`)).matches;
     } catch {
-      if (mine === seq) replaceChildren(matches, h("p", { class: "muted" }, "Không tra được hồ sơ — vẫn lưu đơn được, chỉ chưa gắn khách."));
+      // Tra lỗi (mạng/máy chủ) vẫn cho tạo hồ sơ mới — không tra được không có nghĩa là không tạo được.
+      if (mine === seq) replaceChildren(matches, h("p", { class: "muted" }, "Không tra được hồ sơ — vẫn lưu đơn được, chỉ chưa gắn khách."), h("div", { class: "booker-match" }, newButton()));
       return;
     }
     if (mine !== seq) return;
@@ -85,6 +86,9 @@ export function createBookerPicker(o: { name: HTMLInputElement; phone: HTMLInput
   }
 
   o.phone.addEventListener("input", () => {
+    // SĐT vừa đổi không còn khớp hồ sơ MỚI đã chọn (hồ sơ mới lấy đúng SĐT đang gõ) — bỏ lựa chọn để tránh SĐT không hợp lệ chặn lưu đơn (400).
+    // Hồ sơ CÓ SẴN không bị ảnh hưởng: bản chụp tên/SĐT trên đơn vốn được sửa tự do.
+    if (choice.kind === "new") choose({ kind: "none" });
     window.clearTimeout(timer);
     timer = window.setTimeout(() => void lookup(), 400);
   });

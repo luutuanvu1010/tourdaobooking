@@ -107,6 +107,17 @@ assert.equal(after6b.bookerPartyId, withNew6b.bookerPartyId, "thua khoá lạc q
 assert.equal((await sqlRows(`SELECT count(*) AS n FROM pty_party WHERE display_name = 'Khách Mốc Cũ ${tag}'`))[0].n, 1, "giới hạn đã biết: hồ sơ thừa vẫn được tạo dù UPDATE đơn thua");
 console.log("✓ sửa nháp kèm tạo hồ sơ mới; mốc cũ + hồ sơ mới khác → 409 stale, không ghi đè người đặt");
 
+// 6c) sửa nháp mà thân yêu cầu KHÔNG có cả hai khoá bookerPartyId/newBooker (client cũ chưa biết trường người đặt) → GIỮ NGUYÊN người đặt, không bỏ gắn
+const before6c = after6b.bookerPartyId;
+const body6c = orderInput({ expectedUpdatedAt: after6b.updatedAt });
+assert.ok(!("bookerPartyId" in body6c) && !("newBooker" in body6c), "kịch bản phải không có cả hai khoá người đặt");
+r = await call(SALES, "PUT", `/api/orders/${draft6b.id}`, body6c);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.bookerPartyId, before6c, "vắng cả hai khoá phải GIỮ NGUYÊN người đặt (không bỏ gắn)");
+const upd6c = await sqlRows(`SELECT detail FROM audit_log WHERE order_id = '${draft6b.id}' AND action = 'updated' ORDER BY created_at DESC LIMIT 1`);
+assert.ok(!/bỏ gắn/.test(upd6c[0]?.detail ?? ""), JSON.stringify(upd6c));
+console.log("✓ PUT đơn vắng cả hai khoá người đặt: giữ nguyên (không bỏ gắn) — bảo vệ client cũ");
+
 // 7) đơn đã xác nhận: PUT đơn vẫn 409 not_editable (đổi khách đi đường riêng — Task 5)
 r = await call(SALES, "POST", `/api/orders/${withNew.id}/status`, { status: "confirmed" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
