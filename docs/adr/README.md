@@ -1,6 +1,6 @@
 # Bản ghi quyết định kiến trúc (ADR)
 
-Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (không quyết định kiến trúc nếu không có bản ghi do chủ dự án duyệt), Điều 7.2 (khai cửa một chiều hay hai chiều). Mỗi quyết định một tệp, đánh số tăng dần; **không sửa ADR đã accepted** — chỉ thay bằng ADR mới trỏ về ADR cũ. Mẫu: `playbook/templates/03-ADR-0001-template.md` (bản chép chỉ-đọc của Core, xem ADR-0011; ở đó ADR nằm ở `project/adr/`, dự án này đặt ở `docs/adr/`).
+Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (không quyết định kiến trúc nếu không có bản ghi do chủ dự án duyệt), Điều 7.2 (khai cửa một chiều hay hai chiều). Mỗi quyết định một tệp, đánh số tăng dần; **không sửa ADR đã accepted** — chỉ thay bằng ADR mới trỏ về ADR cũ. Mẫu: `playbook/templates/03-ADR-0001-template.md` (bản chép chỉ-đọc của Core, xem ADR-0012; ở đó ADR nằm ở `project/adr/`, dự án này đặt ở `docs/adr/`).
 
 | ADR | Quyết định | Cửa | Trạng thái |
 |---|---|---|---|

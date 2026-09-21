@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Vai (Hiến pháp P15, N8):** người thi công KHÔNG tự nghiệm thu; sau mỗi Task có cổng "Người kiểm" do một subagent KHÁC làm, chỉ đọc.
 
-**Goal:** Đặt vào repo một bản chép chỉ-đọc, nguyên byte, của `CoreSchemaProject/playbook` (Hiến pháp v2.3.0) kèm `PIN-README.md`, manifest băm và bài kiểm chống trôi; kèm ADR-0011 (đề xuất) ghi lại quyết định.
+**Goal:** Đặt vào repo một bản chép chỉ-đọc, nguyên byte, của `CoreSchemaProject/playbook` (Hiến pháp v2.3.0) kèm `PIN-README.md`, manifest băm và bài kiểm chống trôi; kèm ADR-0012 (đề xuất) ghi lại quyết định.
 
 **Architecture:** `playbook/` ở gốc repo (43 tệp chép từ Core + 2 tệp của repo này). Manifest `playbook/.PINNED_SHA256` sinh bởi một thư viện thuần (`scripts/playbook-manifest-lib.mjs`) — cùng mẫu với `scripts/data-dictionary-lib.mjs`; bài kiểm `src/standards.test.ts` so manifest với đĩa bằng cả thư viện lẫn `shasum -a 256 -c` độc lập.
 
@@ -15,7 +15,7 @@
 - Nguồn: `/Users/tuanbao/Documents/Projects/CoreSchemaProject/playbook/` — HEAD `65a3c2b25d9f01b4deaefe1bd81e559aa8fd50e8`, Hiến pháp **v2.3.0**, GOVERNANCE **v1.0.0**, CHANGELOG cao nhất **3.3.1 (2026-08-23)**. Chỉ **ĐỌC** từ Core: tuyệt đối không ghi, không chạy git ghi ở đó.
 - Chép **nguyên byte 43 tệp** (250.827 byte); **loại** `archive/` và `CLAUDE.md` của Core; `init-project.sh` chép nguyên nội dung nhưng **bỏ bit thực thi (0644)** (quyết định 32). Không sửa nội dung bất kỳ tệp Core nào được chép (kể cả `[NEEDS HUMAN DECISION]`).
 - **Cây làm việc của Core CHƯA xác nhận sạch** (quyết định 31): `PIN-README.md` phải ghi đúng câu này, không được viết "sạch".
-- Số ADR là **0011** (quyết định 30). Không đụng ADR-0010 (thuộc nhánh khác).
+- Số ADR là **0012** (quyết định 30, chủ chốt lần hai). 0010 và 0011 đã thuộc `main` (PR #5, #6): không đụng chúng, không tạo hàng 0010/0011 trong README của mình.
 - KHÔNG đụng: `migrations/`, `src/modules/**`, `src/architecture.test.ts`, `docs/data-dictionary.json`, `CLAUDE.md` gốc. **Không** `git push`, merge, `wrangler`, ghi D1/production. Không `git -C` sang repo khác (bộ chặn từ chối); đọc Core bằng đường dẫn tuyệt đối.
 - Tiếng Việt CÓ DẤU cho mọi văn bản, thông báo lỗi, commit. Tệp dài viết bằng công cụ Write (bộ chặn từ chối heredoc dài); thông điệp commit qua `git commit -F <tệp>`.
 - P16: mọi cơ chế kiểm mới phải được **quan sát đỏ** rồi hoàn nguyên (Task 2, Step 12); ghi kết quả thật vào nhật ký thi công.
@@ -26,8 +26,8 @@
 
 | Tệp | Việc | Task |
 |---|---|---|
-| `docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` | tạo: quyết định (proposed) | 1 |
-| `docs/adr/README.md` | sửa: dòng 3, thêm hàng 0011, dòng thứ tự tài liệu | 1 |
+| `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` | tạo: quyết định (proposed) | 1 |
+| `docs/adr/README.md` | sửa: dòng 3, thêm hàng 0012 (sau hàng 0011 của main), dòng thứ tự tài liệu | 1 |
 | `scripts/playbook-manifest-lib.mjs` | tạo: liệt kê tệp + sinh manifest (thuần) | 2 |
 | `scripts/pin-playbook-manifest.mjs` | tạo: ghi `playbook/.PINNED_SHA256` | 2 |
 | `src/standards.test.ts` | tạo: nhóm 1 (bản ghim) của bài kiểm chống trôi | 2 |
@@ -38,21 +38,21 @@
 
 ---
 
-### Task 1: ADR-0011 (đề xuất) và cập nhật `docs/adr/README.md`
+### Task 1: ADR-0012 (đề xuất) và cập nhật `docs/adr/README.md`
 
 **Files:**
-- Create: `docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md`
+- Create: `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md`
 - Modify: `docs/adr/README.md` (dòng 3; thêm một hàng sau hàng `0009`; dòng "Thứ tự tài liệu")
 - Modify: `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md` (thêm dòng kết quả)
 
 **Interfaces:**
 - Consumes: khuôn ADR của repo (`docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md`) và mẫu `/Users/tuanbao/Documents/Projects/CoreSchemaProject/playbook/templates/03-ADR-0001-template.md` (chỉ để đối chiếu mục: Trạng thái, Ngày/Người phê chuẩn, Loại quyết định, Liên quan, Bối cảnh, Quyết định, Lý do, Phương án bị loại, Hệ quả).
-- Produces: đường dẫn `docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (Task 2 và `PIN-README.md` trỏ tới nó bằng chuỗi `ADR-0011`).
+- Produces: đường dẫn `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (Task 2 và `PIN-README.md` trỏ tới nó bằng chuỗi `ADR-0012`).
 
-- [ ] **Step 1: Tạo ADR-0011** — ghi nguyên văn nội dung dưới vào `docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` bằng công cụ Write:
+- [ ] **Step 1: Tạo ADR-0012** — ghi nguyên văn nội dung dưới vào `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` bằng công cụ Write:
 
 ```markdown
-# ADR-0011 — Neo Hiến pháp bằng bản chép chỉ-đọc từ Core, và tầng ràng buộc dự án (Lớp 2)
+# ADR-0012 — Neo Hiến pháp bằng bản chép chỉ-đọc từ Core, và tầng ràng buộc dự án (Lớp 2)
 
 - **Trạng thái:** **proposed** — do AI soạn theo yêu cầu của chủ dự án ngày 2026-09-21; chỉ chủ dự án mới chuyển sang accepted (Hiến pháp N9). Sau khi accepted chỉ sửa trạng thái, thay đổi nội dung = ADR mới trỏ về ADR này.
 - **Ngày:** 2026-09-21   **Người phê chuẩn:** (chủ dự án — chưa phê chuẩn)
@@ -64,7 +64,7 @@
 - Dòng dõi Hiến pháp trên máy của chủ dự án (đối chiếu bằng băm và đọc tệp, 2026-09-21): `CoreSchemaProject/playbook` và `pt-hdv/playbook` là **v2.3.0** (P1–P21, N1–N10); `tourdaovn`, `nhatrangtravel`, `Aquanova`, `Master-Project-Framework` là v2.2.0 (P1–P13, N1–N7); `ketoanvn/CONSTITUTION.md` là v3.1.0, văn bản khác hẳn. `CoreSchemaProject/playbook/.PINNED_VERSION` ghi rằng từ 2026-08-21 **Core sở hữu lớp luật** (ADR-0027 của Core, chủ dự án chốt) và nhãn "bản pin của `nhatrangtravel`" là sai. Các điều mà repo này đã viện dẫn **giữ nguyên số hiệu** ở v2.3.0.
 - Đặc tả v1 của bộ tiêu chuẩn từng đề xuất chép từ `tourdaovn` (v2.2.0) theo nhãn nguồn cũ; đã đổi sang Core sau rà soát độc lập và sau khi chủ dự án chọn lại (ghi theo P5).
 - Ràng buộc từ Hiến pháp: 9.7 (tầng dự án chỉ được siết thêm, không định nghĩa lại hay nới); README của playbook ("đừng sửa Hiến pháp trong repo dự án"); N7 (không hai nguồn sự thật); N3 (AI không tự ra luật tối cao); N9 (AI không tự tay sửa luật chi phối chính mình; được chép nguyên văn văn bản chủ đã phê chuẩn theo đường mà ràng buộc cấp dự án quy định).
-- Chủ dự án chọn (2026-09-21): ghim **bản sao chỉ-đọc từ Core**, chép toàn bộ trừ `archive/` và `CLAUDE.md` của Core; **không viết Hiến pháp mới**; ghi nhận đường chép bằng câu trả lời "ghi nhận bằng câu trả lời này, AI chép sau"; đánh số ADR này là 0011 vì ADR-0010 đã thuộc nhánh `worktree-doi-chieu-oracle-tca`.
+- Chủ dự án chọn (2026-09-21): ghim **bản sao chỉ-đọc từ Core**, chép toàn bộ trừ `archive/` và `CLAUDE.md` của Core; **không viết Hiến pháp mới**; ghi nhận đường chép bằng câu trả lời "ghi nhận bằng câu trả lời này, AI chép sau"; đánh số ADR này là 0012 vì 0010 và 0011 đã thuộc `main` (PR #5, #6).
 
 ## Quyết định
 1. Ghim một **bản sao chỉ-đọc** `playbook/` ở gốc repo, chép nguyên byte từ `CoreSchemaProject/playbook` (Hiến pháp v2.3.0, Governance v1.0.0), **trừ** `archive/` và `CLAUDE.md` của Core; `init-project.sh` chép nguyên nội dung nhưng bỏ bit thực thi.
@@ -104,11 +104,11 @@
 
 bằng:
 
-`Mẫu: `playbook/templates/03-ADR-0001-template.md` (bản chép chỉ-đọc của Core, xem ADR-0011; ở đó ADR nằm ở `project/adr/`, dự án này đặt ở `docs/adr/`).`
+`Mẫu: `playbook/templates/03-ADR-0001-template.md` (bản chép chỉ-đọc của Core, xem ADR-0012; ở đó ADR nằm ở `project/adr/`, dự án này đặt ở `docs/adr/`).`
 
-- [ ] **Step 3: Thêm hàng 0011 vào bảng** — ngay SAU hàng bắt đầu bằng `| [0009](`, thêm đúng một hàng (giữ nguyên, không tạo hàng 0010 — số 0010 thuộc nhánh khác):
+- [ ] **Step 3: Thêm hàng 0012 vào bảng** — ngay SAU hàng bắt đầu bằng `| [0011](` (trên `main` đã có hàng 0010 và 0011 của PR #5/#6; giữ nguyên chúng), thêm đúng một hàng:
 
-`| [0011](ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md) | Neo Hiến pháp bằng bản chép chỉ-đọc từ Core (v2.3.0) vào `playbook/`, kèm băm và bài kiểm; không viết Hiến pháp mới; tầng ràng buộc dự án (Lớp 2) chỉ siết thêm | hai chiều (tệp) / bánh cóc (nghĩa vụ) | **proposed** (chờ chủ dự án) |`
+`| [0012](ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md) | Neo Hiến pháp bằng bản chép chỉ-đọc từ Core (v2.3.0) vào `playbook/`, kèm băm và bài kiểm; không viết Hiến pháp mới; tầng ràng buộc dự án (Lớp 2) chỉ siết thêm | hai chiều (tệp) / bánh cóc (nghĩa vụ) | **proposed** (chờ chủ dự án) |`
 
 - [ ] **Step 4: Sửa dòng "Thứ tự tài liệu"** — thay:
 
@@ -118,19 +118,19 @@ bằng:
 
 `Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã.`
 
-- [ ] **Step 5: Kiểm tra cơ học** — chạy: `grep -c "ADR-0011" docs/adr/README.md` (mong đợi ≥ 2) và `grep -n "0010" docs/adr/README.md` (mong đợi: không dòng nào).
+- [ ] **Step 5: Kiểm tra cơ học** — chạy: `grep -c "ADR-0012" docs/adr/README.md` (mong đợi ≥ 2) và `grep -c "^| \[001[012]\]" docs/adr/README.md` (mong đợi: 3 — hàng 0010, 0011 của main và hàng 0012 của mình, không trùng số).
 
-- [ ] **Step 6: Ghi nhật ký thi công** — thêm một dòng vào bảng của `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md`: `Task 1 | Thi công | <thời điểm ISO> | ADR-0011 + README ADR | tệp đã tạo/sửa | (chưa kiểm)`.
+- [ ] **Step 6: Ghi nhật ký thi công** — thêm một dòng vào bảng của `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md`: `Task 1 | Thi công | <thời điểm ISO> | ADR-0012 + README ADR | tệp đã tạo/sửa | (chưa kiểm)`.
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md docs/adr/README.md docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md
+git add docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md docs/adr/README.md docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md
 git commit -F /Users/tuanbao/.claude/jobs/80c8fdcd/tmp/commit-msg-t1-adr.txt
 ```
-Thông điệp (tạo tệp `commit-msg-t1-adr.txt` bằng Write trước): tiêu đề `ADR-0011 (đề xuất): neo Hiến pháp bằng bản chép chỉ-đọc từ Core`; thân nói **vì sao** (viện dẫn chéo không ghim; nguồn Core v2.3.0; số 0011 vì 0010 thuộc nhánh Oracle TCA); hai dòng đồng tác giả.
+Thông điệp (tạo tệp `commit-msg-t1-adr.txt` bằng Write trước): tiêu đề `ADR-0012 (đề xuất): neo Hiến pháp bằng bản chép chỉ-đọc từ Core`; thân nói **vì sao** (viện dẫn chéo không ghim; nguồn Core v2.3.0; số 0011 vì 0010 thuộc nhánh Oracle TCA); hai dòng đồng tác giả.
 
-**Cổng — Người kiểm Task 1 (subagent KHÁC, chỉ đọc):** đối chiếu ADR-0011 với đặc tả 4B (đủ mục; số 0011; không nhắc 0010 như của mình; khớp khuôn ADR-0009); kiểm mọi khẳng định sự thật trong "Bối cảnh" (số tệp viện dẫn Hiến pháp, dòng dõi, dòng `.PINNED_VERSION`, README dòng 28) bằng lệnh/đọc tệp; kiểm `docs/adr/README.md` chỉ đổi đúng ba chỗ; báo cáo không sửa.
+**Cổng — Người kiểm Task 1 (subagent KHÁC, chỉ đọc):** đối chiếu ADR-0012 với đặc tả 4B (đủ mục; số 0012; nêu 0010 và 0011 là của `main`, không như của mình; khớp khuôn ADR-0009); kiểm mọi khẳng định sự thật trong "Bối cảnh" (số tệp viện dẫn Hiến pháp, dòng dõi, dòng `.PINNED_VERSION`, README dòng 28) bằng lệnh/đọc tệp; kiểm `docs/adr/README.md` chỉ đổi đúng ba chỗ; báo cáo không sửa.
 
 ---
 
@@ -144,13 +144,13 @@ Thông điệp (tạo tệp `commit-msg-t1-adr.txt` bằng Write trước): tiê
 - Modify: `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md`
 
 **Interfaces:**
-- Consumes: ADR-0011 từ Task 1 (chuỗi `ADR-0011` xuất hiện trong `PIN-README.md`).
+- Consumes: ADR-0012 từ Task 1 (chuỗi `ADR-0012` xuất hiện trong `PIN-README.md`).
 - Produces: `MANIFEST_NAME` (`".PINNED_SHA256"`), `listPinnedFiles(dir): string[]`, `sha256Of(file): string`, `renderManifest(dir): string` từ `scripts/playbook-manifest-lib.mjs`; tệp `playbook/.PINNED_SHA256` theo định dạng `shasum -a 256 -c`; các nhóm kiểm sau (H(2)–H(5)) của `src/standards.test.ts` sẽ thêm vào tệp này ở các Task sau.
 
 - [ ] **Step 1: Tạo thư viện manifest** — ghi vào `scripts/playbook-manifest-lib.mjs`:
 
 ```js
-// Bản ghim playbook/ (ADR-0011): liệt kê tệp và sinh manifest băm. Hàm thuần — dùng cho scripts/pin-playbook-manifest.mjs (ghi)
+// Bản ghim playbook/ (ADR-0012): liệt kê tệp và sinh manifest băm. Hàm thuần — dùng cho scripts/pin-playbook-manifest.mjs (ghi)
 // và src/standards.test.ts (kiểm), cùng mẫu với scripts/data-dictionary-lib.mjs.
 import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
@@ -202,7 +202,7 @@ console.log(`Đã ghi playbook/${MANIFEST_NAME}: ${text.split("\n").length - 1} 
 
 ```ts
 // Bài kiểm chống trôi cho bộ tiêu chuẩn nền tảng (đặc tả docs/superpowers/specs/2026-09-21-bo-tieu-chuan-nen-tang-design.md, mục 4H).
-// Nhóm 1: bản ghim playbook/ (ADR-0011). Các nhóm 2–5 (overlay, sơ đồ sinh, mục lục, bộ sinh ER) thêm ở các Task sau.
+// Nhóm 1: bản ghim playbook/ (ADR-0012). Các nhóm 2–5 (overlay, sơ đồ sinh, mục lục, bộ sinh ER) thêm ở các Task sau.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
@@ -273,7 +273,7 @@ test("playbook/PIN-README.md: nêu nguồn, điều CẤM và điều không áp
   const t = read("PIN-README.md");
   for (const need of [
     /CoreSchemaProject\/playbook/, /65a3c2b25d9f01b4deaefe1bd81e559aa8fd50e8/, /CHƯA xác nhận cây sạch/, /archive\//, /CLAUDE\.md/,
-    /init-project\.sh/, /CẤM chạy/, /\.PINNED_VERSION/, /Sửa thẳng tại đây/, /04-CONSTRAINTS/, /ADR-0011/, /diff -r/, /pin-playbook-manifest/,
+    /init-project\.sh/, /CẤM chạy/, /\.PINNED_VERSION/, /Sửa thẳng tại đây/, /04-CONSTRAINTS/, /ADR-0012/, /diff -r/, /pin-playbook-manifest/,
   ]) assert.match(t, need, `PIN-README thiếu: ${need}`);
 });
 
@@ -311,7 +311,7 @@ Và `find playbook -type f | wc -l` phải là **43**. Nếu khác: DỪNG, khô
 ```markdown
 # PIN-README — bản chép chỉ-đọc của playbook (Lớp 1)
 
-> **CHỈ ĐỌC.** Thư mục này là bản CHÉP của `playbook/` do Core sở hữu, không phải nơi soạn luật. **Đừng sửa tay; AI không được sửa** (Hiến pháp N9). Quyết định và lý do: `docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (đề xuất, chờ chủ dự án duyệt).
+> **CHỈ ĐỌC.** Thư mục này là bản CHÉP của `playbook/` do Core sở hữu, không phải nơi soạn luật. **Đừng sửa tay; AI không được sửa** (Hiến pháp N9). Quyết định và lý do: `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (đề xuất, chờ chủ dự án duyệt).
 
 ## Nguồn
 | Mục | Giá trị |
@@ -331,7 +331,7 @@ Và `find playbook -type f | wc -l` phải là **43**. Nếu khác: DỪNG, khô
 ## CẤM
 - **CẤM chạy `init-project.sh`.** Nó sinh thư mục dự án MỚI cạnh thư mục cha của repo (`../<tên>`) và là công cụ của Core, không dùng ở đây.
 - Không điền nội dung dự án vào `templates/` (chỉ đọc); tài liệu dự án đặt ở `docs/`.
-- Không sửa tệp nào ở đây, kể cả `[NEEDS HUMAN DECISION]` ở GOVERNANCE mục 9.3 hay dấu vết tourdaovn ở GOVERNANCE 4.3/4.4. Việc cần sửa ở nguồn được ghi ở ADR-0011.
+- Không sửa tệp nào ở đây, kể cả `[NEEDS HUMAN DECISION]` ở GOVERNANCE mục 9.3 hay dấu vết tourdaovn ở GOVERNANCE 4.3/4.4. Việc cần sửa ở nguồn được ghi ở ADR-0012.
 
 ## Câu trong bản chép ĐÚNG ở Core nhưng KHÔNG áp dụng ở repo này
 - `.PINNED_VERSION` (của Core): dòng 46 "**Sửa thẳng tại đây**" và cả tệp nói Core "sở hữu" bản này — đúng ở Core, không áp dụng ở đây. Tệp còn ghi Hiến pháp **v2.2.0** ở dòng 8 và 29 (lỗi thời so với v2.3.0). Bản ghim của repo này được mô tả bằng PIN-README này và `.PINNED_SHA256`.
@@ -349,7 +349,7 @@ Và `find playbook -type f | wc -l` phải là **43**. Nếu khác: DỪNG, khô
 2. `rsync -a --delete --exclude=/archive/ --exclude=/CLAUDE.md --exclude=/PIN-README.md --exclude=/.PINNED_SHA256 --exclude=.DS_Store <Core>/playbook/ playbook/` rồi `chmod 644 playbook/init-project.sh`. (Các `--exclude` cũng bảo vệ hai tệp của repo này khỏi `--delete`.)
 3. `diff -r -x archive -x CLAUDE.md -x PIN-README.md -x .PINNED_SHA256 <Core>/playbook playbook` — kết quả phải trống.
 4. `node scripts/pin-playbook-manifest.mjs`; cập nhật bảng "Nguồn" ở trên (ngày, HEAD, phiên bản); chạy `npm test`.
-5. Ghi một dòng vào nhật ký thi công hiện hành; nếu đổi quyết định thì ADR mới trỏ về ADR-0011.
+5. Ghi một dòng vào nhật ký thi công hiện hành; nếu đổi quyết định thì ADR mới trỏ về ADR-0012.
 
 ## Đối chiếu độ trung thực lúc chép
 `diff -r` giữa Core và bản chép (loại `archive/`, `CLAUDE.md`, và hai tệp của repo này) cho kết quả trống lúc chép; log nằm ở nhật ký thi công `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md`. Người kiểm độc lập tái hiện lại.
@@ -395,7 +395,7 @@ Expected: mọi test xanh (số test = số trước + 9; trước khi thêm là
 | f | đổi một ký tự hex đầu tiên của dòng đầu trong `playbook/.PINNED_SHA256` (dùng công cụ Edit) | `git checkout -- playbook/.PINNED_SHA256` | băm khớp |
 | g | xoá dòng `playbook/** -text` khỏi `.gitattributes` (Edit) | `git checkout -- .gitattributes` | `.gitattributes` |
 
-Ghi cả ca **không bị bắt** nếu có (ví dụ: sửa cả tệp lẫn manifest cùng lúc — biết trước là không bị bắt, ghi nhận đúng như giới hạn đã nêu ở ADR-0011).
+Ghi cả ca **không bị bắt** nếu có (ví dụ: sửa cả tệp lẫn manifest cùng lúc — biết trước là không bị bắt, ghi nhận đúng như giới hạn đã nêu ở ADR-0012).
 
 - [ ] **Step 13: Ghi nhật ký và commit nhật ký** — điền kết quả thật của Step 4, 6, 10, 11, 12 vào nhật ký; `git add` nhật ký; commit `Nhật ký thi công T1: kết quả đỏ→xanh và đối chiếu Core` (kèm hai dòng đồng tác giả).
 
@@ -407,4 +407,4 @@ Ghi cả ca **không bị bắt** nếu có (ví dụ: sửa cả tệp lẫn ma
 
 1. **Phủ đặc tả:** 4A (bản chép, PIN-README, manifest, `.gitattributes` `playbook/** -text`) → Task 2 Step 5–9; 4B (ADR) → Task 1; 4H(1) (tệp trên đĩa = manifest ∪ manifest, băm, NFC, sắp byte, loại `.DS_Store`, độc lập `shasum`) → Step 3; S12 (quan sát đỏ) → Step 12; S13 (mỗi Task một commit, người kiểm khác) → cổng cuối mỗi Task; quyết định 31, 32 → Global Constraints + PIN-README + bài kiểm bit thực thi. **Cố ý chưa làm ở T1:** `migrations/** -text` (thuộc T2 của đặc tả), CODEOWNERS (T9), sửa `README.md`/`CLAUDE.md`/`SPEC` (T8).
 2. **Placeholder:** không có "TBD"; mọi tệp có nội dung đầy đủ; số dòng của Core (8, 24, 28, 29, 46, 98, 109) và số liệu (43, 250.827, HEAD) lấy từ đọc thật ngày 2026-09-21.
-3. **Nhất quán tên:** `MANIFEST_NAME`, `listPinnedFiles`, `sha256Of`, `renderManifest` dùng nhất quán giữa lib, script và test; chuỗi kiểm PIN-README trong Step 3 đều có mặt trong Step 7 (`CoreSchemaProject/playbook`, HEAD, `CHƯA xác nhận cây sạch`, `archive/`, `CLAUDE.md`, `init-project.sh`, `CẤM chạy`, `.PINNED_VERSION`, `Sửa thẳng tại đây`, `04-CONSTRAINTS`, `ADR-0011`, `diff -r`, `pin-playbook-manifest`).
+3. **Nhất quán tên:** `MANIFEST_NAME`, `listPinnedFiles`, `sha256Of`, `renderManifest` dùng nhất quán giữa lib, script và test; chuỗi kiểm PIN-README trong Step 3 đều có mặt trong Step 7 (`CoreSchemaProject/playbook`, HEAD, `CHƯA xác nhận cây sạch`, `archive/`, `CLAUDE.md`, `init-project.sh`, `CẤM chạy`, `.PINNED_VERSION`, `Sửa thẳng tại đây`, `04-CONSTRAINTS`, `ADR-0012`, `diff -r`, `pin-playbook-manifest`).
