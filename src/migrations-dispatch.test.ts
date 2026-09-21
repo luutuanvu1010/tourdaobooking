@@ -275,3 +275,23 @@ test("0014: v_dsp_order_handler — năm cột, chỉ HANDLE đang mở, nhãn/t
   ]);
   assert.equal(one(db, "SELECT count(*) FROM v_dsp_order_handler WHERE order_id = 'o-draft'"), 1, "mỗi đơn tối đa một dòng (không nhân đôi qua JOIN)");
 });
+
+/** Các quan hệ (bảng hoặc view) mà một câu SQL đọc: tên đứng ngay sau FROM hoặc JOIN. */
+const relationsRead = (sql: string): string[] => [...sql.matchAll(/\b(?:FROM|JOIN)\s+([A-Za-z_][A-Za-z0-9_]*)/gi)].map((m) => m[1]!);
+
+test("0014: NỘI DUNG câu tạo v_dsp_order_handler (sqlite_master.sql) — chỉ đọc bảng của mình và view công bố; không JOIN bảng thô staff/pty_party", () => {
+  // architecture.test.ts (EXPLAIN) không nhìn xuyên được view nên chỉ kiểm cột của view; ADR-0002 điều 3 (đọc xuyên module chỉ qua view v_<tiền tố>_*) phải khoá ở đây.
+  const db = applied();
+  const sql = one(db, "SELECT sql FROM sqlite_master WHERE type = 'view' AND name = 'v_dsp_order_handler'") as string;
+  assert.deepEqual([...new Set(relationsRead(sql))].sort(), ["dsp_assignment", "v_pty_party_label", "v_stf_staff_label"], "tên tài khoản qua v_stf_staff_label, tên hồ sơ qua v_pty_party_label");
+  assert.match(sql, /\bv_stf_staff_label\b/);
+  assert.doesNotMatch(sql, /\b(?:FROM|JOIN)\s+(?:staff|pty_party|stf_permission)\b/i, "cạnh dispatch → staff/parties chỉ được đi qua view công bố");
+
+  // Chính phép kiểm này phải bắt được lỗi nó nhắm tới (đột biến trên bản sao câu SQL): đổi view công bố bằng bảng thô của module khác.
+  for (const [view, raw] of [["v_stf_staff_label", "staff"], ["v_pty_party_label", "pty_party"]] as const) {
+    const mutated = sql.replace(view, raw);
+    assert.notEqual(mutated, sql, "đột biến phải thực sự đổi câu SQL");
+    assert.ok(relationsRead(mutated).includes(raw), `${view} → ${raw}: không được lọt lưới`);
+    assert.match(mutated, /\b(?:FROM|JOIN)\s+(?:staff|pty_party|stf_permission)\b/i);
+  }
+});
