@@ -13,6 +13,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0007](ADR-0007-ban-do-quyen-thao-tac-va-sua-sau-xac-nhan.md) | Bản đồ quyền → thao tác, nơi thi hành "của mình/được giao", sửa sau xác nhận (thay một phần Q9 của A1) | một chiều | **accepted** (gồm dòng ◆) |
 | [0008](ADR-0008-bo-sung-canh-parties-locations.md) | Bổ sung cạnh phụ thuộc `parties → locations` (`pty_party_role.location_id → loc_location.id`, `NO ACTION`); bổ sung đồ thị ADR-0002, không thay thế | một chiều | **accepted** |
 | [0009](ADR-0009-nguoi-phu-trach-duoc-sua-don.md) | Người phụ trách được sửa đơn: đổi ba ô `SALES` của `MATRIX` (`order.modify`, `order.history.view`, `dispatch.assign`: `own` → `ownOrAssigned`), thêm thao tác `dispatch.claim`; sửa một phần điều 1 của ADR-0007, giữ cơ chế tiêm `ctx.assigned` (điều 4(b)) | hai chiều | **accepted** (yêu cầu trực tiếp của chủ dự án 2026-09-21) |
+| [0010](ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md) | Ngưỡng mở rộng sau đối chiếu Oracle TCA: phạm vi theo nơi, hoá đơn là bản chụp, tác nhân tự động | hai chiều | **proposed** |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
