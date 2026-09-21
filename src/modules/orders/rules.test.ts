@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { EffectiveService } from "../../shared/order-lines.ts";
-import { canTransition, orderCodePrefix, validateOrder, type ServiceContext } from "./rules.ts";
+import { canTransition, orderCodePrefix, validateBookerChange, validateOrder, type ServiceContext } from "./rules.ts";
 
 const tour: EffectiveService = {
   code: "TD101", name: "Tour 3 đảo", unit: "perPax", visible: true,
@@ -138,4 +138,43 @@ test("mã đơn theo ngày giờ Việt Nam", () => {
   // 2026-09-16 18:30 UTC = 01:30 ngày 17 giờ VN
   assert.equal(orderCodePrefix(new Date("2026-09-16T18:30:00Z")), "TD-20260917-");
   assert.equal(orderCodePrefix(new Date("2026-09-16T16:59:00Z")), "TD-20260916-");
+});
+
+const PARTY = "0b1c2d3e-4f50-6172-8394-a5b6c7d8e9f0";
+
+test("người đặt: vắng = không gắn; id đúng dạng (UUID, pty-UUID) = hồ sơ có sẵn", () => {
+  assert.deepEqual(ok(base).booker, { kind: "none" });
+  assert.deepEqual(ok({ ...base, bookerPartyId: null }).booker, { kind: "none" });
+  assert.deepEqual(ok({ ...base, bookerPartyId: PARTY }).booker, { kind: "existing", partyId: PARTY });
+  assert.deepEqual(ok({ ...base, bookerPartyId: `pty-${PARTY}` }).booker, { kind: "existing", partyId: `pty-${PARTY}` });
+});
+
+test("người đặt: id sai dạng, gửi cả hai, hồ sơ mới thiếu tên / số không phải Việt Nam → lỗi", () => {
+  assert.equal(message({ ...base, bookerPartyId: "x" }), "Hồ sơ khách không hợp lệ.");
+  assert.equal(message({ ...base, bookerPartyId: PARTY, newBooker: { fullName: "A", phone: "0901234567" } }), "Chỉ chọn một: dùng hồ sơ có sẵn hoặc tạo hồ sơ mới.");
+  assert.equal(message({ ...base, newBooker: { fullName: " ", phone: "0901234567" } }), "Cần tên khách để tạo hồ sơ.");
+  assert.match(message({ ...base, newBooker: { fullName: "A", phone: "+1 415 555 0100" } }), /số điện thoại Việt Nam 10 số/);
+});
+
+test("người đặt: hồ sơ mới — tên gọn khoảng trắng, SĐT chuẩn hoá; SĐT trên đơn vẫn giữ nguyên bản gõ", () => {
+  const v = ok({ ...base, newBooker: { fullName: "  Trần   Thị B ", phone: "+84 901 234 567" } });
+  assert.deepEqual(v.booker, { kind: "new", fullName: "Trần Thị B", phone: "0901234567" });
+  assert.equal(v.customerPhone, "0901 234 567");
+});
+
+test("đổi khách: kiểm tên/SĐT như đơn, nhận người đặt, bắt buộc expectedUpdatedAt", () => {
+  const good = { customerName: " Trần B ", customerPhone: "0909 000 111", bookerPartyId: PARTY, expectedUpdatedAt: "2026-09-21T00:00:00.000Z" };
+  const r = validateBookerChange(good);
+  assert.ok(r.ok, r.ok ? "" : r.message);
+  assert.deepEqual(r.value, { customerName: "Trần B", customerPhone: "0909 000 111", booker: { kind: "existing", partyId: PARTY }, expectedUpdatedAt: "2026-09-21T00:00:00.000Z" });
+  const bad = (input: unknown) => {
+    const x = validateBookerChange(input);
+    assert.ok(!x.ok);
+    return x.message;
+  };
+  assert.equal(bad(null), "Dữ liệu đổi khách không hợp lệ.");
+  assert.match(bad({ ...good, customerName: "" }), /Tên khách hàng/);
+  assert.equal(bad({ ...good, customerPhone: "abc" }), "Số điện thoại khách không hợp lệ.");
+  assert.equal(bad({ ...good, bookerPartyId: "x" }), "Hồ sơ khách không hợp lệ.");
+  assert.equal(bad({ ...good, expectedUpdatedAt: "" }), "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc).");
 });

@@ -439,3 +439,8 @@ body.maint-open { overflow: hidden; }
 .maint-actions .btn { flex: 1 1 auto; min-height: var(--tap-min); }
 .maint-confirm { margin-top: var(--s3); padding: var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-sm); }
 .maint-confirm p { margin: 0 0 var(--s2); }
+
+/* ---------- hồ sơ khách trên đơn (N2 lát 1) ---------- */
+.booker { display: grid; gap: var(--s2); margin-top: var(--s3); }
+.booker-matches { display: grid; gap: var(--s2); }
+.booker-match { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }

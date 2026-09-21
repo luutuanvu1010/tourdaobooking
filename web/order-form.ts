@@ -11,6 +11,7 @@ import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
 import { ApiError, api, type Api, type DepositMethod, type OrderInput } from "./api";
 import { renderBanner } from "./banner";
+import { createBookerPicker } from "./booker-picker";
 import { createCatalogPicker } from "./catalog-picker";
 import { byId } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
@@ -36,6 +37,9 @@ const addManualBtn = byId<HTMLButtonElement>("add-manual");
 const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
 const num = (id: string) => parseMoney(field(id).value);
+// Hồ sơ khách (N2 lát 1): tra theo SĐT, dùng hồ sơ có sẵn hoặc tạo mới khi lưu; không chọn = lưu không gắn (ADR-0011).
+const bookerPicker = createBookerPicker({ name: field("customerName") as HTMLInputElement, phone: field("customerPhone") as HTMLInputElement });
+byId("booker-slot").append(bookerPicker.root);
 
 interface Entry {
   draft: ServiceDraft;
@@ -167,6 +171,7 @@ function collect(): OrderInput {
     depositAmount: num("depositAmount"),
     depositMethod: method || null,
     paymentNote: field("paymentNote").value,
+    ...bookerPicker.payload(),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
   };
 }
@@ -282,6 +287,7 @@ async function loadCatalog(): Promise<void> {
 function fill(o: Api.OrderDetailDto): void {
   field("customerName").value = o.customerName;
   field("customerPhone").value = o.customerPhone;
+  bookerPicker.set(o.bookerPartyId, o.bookerName);
   field("customerEmail").value = o.customerEmail ?? "";
   field("customerNote").value = o.customerNote ?? "";
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";

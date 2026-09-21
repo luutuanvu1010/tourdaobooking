@@ -14,7 +14,7 @@ Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CH
   4. Sau deploy: theo dõi cột "Đăng nhập gần nhất"; chỉ khi mọi người cần dùng app đã đăng nhập bằng bản mới mới quyết bật chế độ bảo trì (nhắn nhân viên trước, bật giờ vắng).
   5. Kịch bản Chrome: `v1-dang-nhap.mjs` (bắt buộc vì chạm `web/login.ts`/`public/login.html`, cần mạng) và `v1-bao-tri.mjs` (màn hình bảo trì/nút bật-tắt/dải/Đăng xuất/tự nhận ra mở lại) — CẢ HAI ĐÃ CHẠY ✓ (xem trên); chạy lại nếu sửa web bảo trì.
   6. Thử iPhone thật (lớp phủ + đếm ngược trong PWA đã cài): chưa kiểm.
-  7. B5 `staff_party_required` lấy số kế tiếp sau `0017` (dự kiến `0018`).
+  7. B5 `staff_party_required` lấy số kế tiếp sau `0018` (dự kiến `0019`; `0018` đã dùng cho người đặt trên đơn — N2 lát 1).
 
 ## 1. Trạng thái lúc kết thúc phiên (lịch sử — TRƯỚC khi thi công)
 - **Production = bản v1.0** (mã `main` @ `db0a774`; migration tới `0014`; Turnstile **ĐÃ BẬT**, chủ đã đăng nhập thử thành công). Chi tiết ở `docs/HANDOFF-N1.md` (mục "TRẠNG THÁI TRIỂN KHAI — bản v1.0").

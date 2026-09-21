@@ -1,5 +1,6 @@
 import { ApiError, api, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { renderBanner } from "./banner";
+import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
 import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, vnd } from "./format";
@@ -8,6 +9,7 @@ import { icon } from "./icons";
 import { renderServices } from "./order-services";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
+import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved } from "../src/shared/handler-view";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { orderActions } from "../src/shared/order-view";
@@ -166,7 +168,17 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
 
     handlerCard(order, handler),
 
-    h("section", { class: "card" }, h("h2", null, "Khách hàng"), kv("Tên", order.customerName), kv("Số điện thoại", order.customerPhone), kv("Email", order.customerEmail), kv("Ghi chú", order.customerNote)),
+    h(
+      "section",
+      { class: "card" },
+      h("h2", null, "Khách hàng"),
+      kv("Tên", order.customerName),
+      kv("Số điện thoại", order.customerPhone),
+      kv("Email", order.customerEmail),
+      kv("Ghi chú", order.customerNote),
+      kv("Hồ sơ khách", order.bookerName ?? NO_BOOKER_TEXT),
+      a.editTrip ? bookerButton(order) : null,
+    ),
 
     renderServices(order, a.locked),
 
@@ -205,6 +217,28 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xác nhận gửi khách");
   send.addEventListener("click", openConfirmation);
   replaceChildren(sendEl, send);
+}
+
+const focusChangeBooker = (): void => document.querySelector<HTMLElement>('[data-action="change-booker"]')?.focus();
+
+/** Đơn đã xác nhận: mở bảng "Đổi khách" (ADR-0011 điều 2 — cùng điều kiện hiện nút với "Sửa thông tin chuyến"). Đơn nháp đổi khách trong form. */
+function bookerButton(order: Order): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn", "data-action": "change-booker" }, "Đổi khách");
+  btn.addEventListener("click", () =>
+    openBookerSheet(
+      {
+        order,
+        onSaved: () =>
+          void load().then(() => {
+            if (bannerEl.hidden) show(banner("info", "Đã đổi khách."));
+            focusChangeBooker();
+          }),
+        onReload: () => void load().then(focusChangeBooker),
+      },
+      btn,
+    ),
+  );
+  return btn;
 }
 
 const focusEditTrip = (): void => document.querySelector<HTMLElement>('[data-action="edit-trip"]')?.focus();

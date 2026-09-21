@@ -33,5 +33,7 @@ Chạy `npm run build:web` trước. Cần Chrome + axe-core **ngoài repo**; c�
 | `web/login.ts`, `public/login.html`, CSP ở `public/_headers` | `v1-dang-nhap.mjs` ở `docs/evidence/2026-09-21-v1-0/kich-ban/` (15 bước, ước ~9 phút, cần mạng) |
 | `web/confirmation-image.ts`, `web/confirmation-dialog.ts`, `src/shared/order-confirmation.ts`, `src/shared/text-wrap.ts`, phần `moi=1`/nút "Xác nhận gửi khách" | `v1-xac-nhan-png.mjs` cùng thư mục (không cần mạng ngoài) |
 | `web/orders.ts`, `web/order.ts`, `web/handler-sheet.ts`, `src/shared/handler-view.ts`, khối người phụ trách của `public/app.css` | `v1-nguoi-phu-trach.mjs` |
+| `web/booker-picker.ts` (khối "Hồ sơ khách" ở form đơn, N2 lát 1) | `a2-smoke-form.mjs` ở `docs/evidence/2026-09-20-a2/kich-ban/` |
+| `web/booker-sheet.ts` (bảng "Đổi khách" ở trang đơn, N2 lát 1) | `a2-smoke-order.mjs` (cùng thư mục) + `v1-nguoi-phu-trach.mjs` |
 | `web/maintenance-screen.ts`, phần bảo trì của `web/api.ts`/`account.ts`/`shell.ts`/`login.ts`/`app.css` | `v1-bao-tri.mjs` (không cần mạng ngoài) |
 | `web/feedback.ts`, `public/feedback.html`, dòng "Góp ý" ở `web/shell.ts`/`web/account.ts` | **chưa có** kịch bản riêng: chạy `v1-bao-tri.mjs` (cùng hai tệp khung) và làm danh sách thử tay ở `docs/HANDOFF-FEEDBACK.md` |

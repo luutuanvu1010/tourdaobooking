@@ -21,6 +21,7 @@ export const AUDIT_ACTIONS = {
   confirmed: { label: "Xác nhận đơn", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
+  booker_changed: { label: "Đổi khách", group: "order" },
   exported_png: { label: "Xuất PNG", group: "order" },
   exported_pdf: { label: "Xuất PDF", group: "order" },
   staff_created: { label: "Tạo tài khoản", group: "staff" },
