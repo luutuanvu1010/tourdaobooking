@@ -14,7 +14,7 @@
 ## Chép gì, loại gì
 - Chép **43 tệp (250.827 byte) nguyên byte**, giữ nguyên đường dẫn.
 - **Loại**: `archive/` (lịch sử của Core) và `CLAUDE.md` của Core (mục 1 của nó ghi "Core sở hữu bản luật này", mục 2 dạy "Sửa thẳng tại chỗ" — sai ở nơi bản chép phải chỉ-đọc — và Claude Code tự nạp nó khi làm việc trong thư mục này).
-- **Khác nguồn duy nhất về quyền tệp**: `init-project.sh` bỏ bit thực thi (0644); đó cũng là tệp thực thi duy nhất của Core (`find <Core>/playbook -type f -perm +111`, loại `archive/`, chỉ ra tệp này). Băm chỉ phủ nội dung, không phủ quyền; bài kiểm đòi KHÔNG tệp nào dưới `playbook/` có bit thực thi.
+- **Khác nguồn duy nhất về quyền tệp**: `init-project.sh` bỏ bit thực thi (0644); đó cũng là tệp thực thi duy nhất của Core (`find <Core>/playbook -type f -perm -u+x`, loại `archive/`, chỉ ra tệp này). Băm chỉ phủ nội dung, không phủ quyền; bài kiểm đòi KHÔNG tệp nào dưới `playbook/` có bit thực thi.
 - `playbook/.gitignore` của Core (hai dòng: `.DS_Store`, `node_modules/`) được chép nguyên và nay có hiệu lực ở repo này: git bỏ qua hai mục đó dưới `playbook/`.
 - Thêm hai tệp của repo này (không có ở Core): `PIN-README.md` (tệp này) và `.PINNED_SHA256`.
 
@@ -29,7 +29,7 @@
 - `README.md` dòng 24 và `init-project.sh`: quy trình sinh dự án mới — xem mục CẤM.
 
 ## Tham chiếu treo (có chủ ý, không phải lỗi bản chép)
-Đo lại ngày 2026-09-21 bằng `grep -rn` trên đúng 43 tệp nguồn của Core (loại `archive/` và `CLAUDE.md`), theo từng loại. Bản chép nhắc tới thứ KHÔNG nằm trong nó:
+Đo lại ngày 2026-09-21 bằng `grep -rn` trên đúng 43 tệp nguồn của Core (loại `archive/` và `CLAUDE.md`), theo từng loại. **Đây là các loại chính, không phải danh sách đầy đủ mọi thứ Core nhắc mà bản chép không có** (xem đoạn "Còn có loại khác" ở cuối mục). Bản chép nhắc tới thứ KHÔNG nằm trong nó:
 - **`archive/`** (4 tệp): `.PINNED_VERSION`, `CHANGELOG.md`, `PLAYBOOK.md` (dòng 76 trỏ tới một prompt trong `archive/`), `docs/huong-dan-su-dung.md` (dòng 21).
 - **`CLAUDE.md` của Core** (1 tệp): `CHANGELOG.md` (dòng 21, 25 nêu đích danh `playbook/CLAUDE.md`). Ba tệp khác có chữ `CLAUDE.md` (`FRAMEWORK.md`, `docs/huong-dan-su-dung.md`, `ai/PROMPT_FACTORY.md` dòng 102) nói về `CLAUDE.md` của một dự án hay repo chủ nói chung, không phải tệp bị loại.
 - **`docs/core-specs/`** (2 tệp): `FRAMEWORK.md` (dòng 258–260), `CHANGELOG.md` (dòng 25).
@@ -42,8 +42,10 @@ Số tệp khác nhau theo loại; gộp bốn loại đầu (`archive/`, `CLAUD
 
 Ngoài ra `GOVERNANCE.md` (dòng 98, 109) nhắc `DESIGN.md` (dòng 98 còn nhắc `08-SCHEMA_PLAN`, cũng không có trong `templates/`) — tài liệu cấp dự án chưa có ở repo này.
 
+**Còn có loại khác** (đo ngày 2026-09-21, chưa đếm theo từng tệp và từng dòng): `.PINNED_VERSION`, `FRAMEWORK.md`, `ai/PROMPT_FACTORY.md` và `ai/WORKFLOW.md` còn nhắc `ai/prompts/`, `BACKLOG.md`, `SETUP-NEW-SITE.md` hoặc `.claude/…` (agents, rules, settings); những thứ đó cũng không có trong bản chép. Gặp đường dẫn hay tên tệp trong `playbook/` mà không thấy ở đây thì coi là tham chiếu treo, đừng tạo tệp đó.
+
 ## Kiểm bằng máy
-`npm test` chạy `src/standards.test.ts`: tệp trên đĩa = manifest, băm khớp (kể cả đối chiếu độc lập bằng `shasum -a 256 -c`), không có `CLAUDE.md`/`archive/`, không tệp nào dưới `playbook/` có bit thực thi, `.gitattributes` đặt `playbook/**` là `-text` và `git check-attr` xác nhận hiệu lực (`text: unset`), phiên bản Hiến pháp/Governance đúng. Băm chống sửa **nhầm**, không chống sửa cả tệp lẫn manifest; lớp thứ hai (CODEOWNERS `playbook/**` và bảo vệ nhánh) do chủ dự án bật trên GitHub.
+`npm test` chạy `src/standards.test.ts`: tệp trên đĩa = manifest, băm khớp (kể cả đối chiếu độc lập bằng `shasum -a 256 -c`), không có `CLAUDE.md`/`archive/`, không tệp nào dưới `playbook/` có bit thực thi, `.gitattributes` đặt `playbook/**` là `-text` và `git check-attr` xác nhận hiệu lực (`text: unset`; bài này cần `git` chạy được và gốc là một repo git, không bỏ qua âm thầm), phiên bản Hiến pháp/Governance đúng. Băm chống sửa **nhầm**, không chống sửa cả tệp lẫn manifest; lớp thứ hai (CODEOWNERS `playbook/**` và bảo vệ nhánh) do chủ dự án bật trên GitHub.
 
 ## Cách nâng ghim (chỉ khi Core đổi VÀ chủ dự án duyệt việc nâng)
 1. Chủ chạy `git -C <Core> status --short -- playbook` (trống = sạch) và ghi HEAD mới.
