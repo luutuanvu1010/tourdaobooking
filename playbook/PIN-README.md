@@ -13,14 +13,15 @@
 
 ## Chép gì, loại gì
 - Chép **43 tệp (250.827 byte) nguyên byte**, giữ nguyên đường dẫn.
-- **Loại**: `archive/` (lịch sử của Core) và `CLAUDE.md` của Core (dạy "sửa thẳng tại đây, Core sở hữu bản này" — sai ở nơi bản chép phải chỉ-đọc — và Claude Code tự nạp nó khi làm việc trong thư mục này).
-- **Khác nguồn duy nhất về quyền tệp**: `init-project.sh` bỏ bit thực thi (0644). Băm chỉ phủ nội dung, không phủ quyền; bài kiểm kiểm bit này.
+- **Loại**: `archive/` (lịch sử của Core) và `CLAUDE.md` của Core (mục 1 của nó ghi "Core sở hữu bản luật này", mục 2 dạy "Sửa thẳng tại chỗ" — sai ở nơi bản chép phải chỉ-đọc — và Claude Code tự nạp nó khi làm việc trong thư mục này).
+- **Khác nguồn duy nhất về quyền tệp**: `init-project.sh` bỏ bit thực thi (0644); đó cũng là tệp thực thi duy nhất của Core (`find <Core>/playbook -type f -perm +111`, loại `archive/`, chỉ ra tệp này). Băm chỉ phủ nội dung, không phủ quyền; bài kiểm đòi KHÔNG tệp nào dưới `playbook/` có bit thực thi.
+- `playbook/.gitignore` của Core (hai dòng: `.DS_Store`, `node_modules/`) được chép nguyên và nay có hiệu lực ở repo này: git bỏ qua hai mục đó dưới `playbook/`.
 - Thêm hai tệp của repo này (không có ở Core): `PIN-README.md` (tệp này) và `.PINNED_SHA256`.
 
 ## CẤM
-- **CẤM chạy `init-project.sh`.** Nó sinh thư mục dự án MỚI cạnh thư mục cha của repo (`../<tên>`) và là công cụ của Core, không dùng ở đây.
+- **CẤM chạy `init-project.sh`.** Nó là công cụ của Core, không dùng ở đây. Nó lấy thư mục chứa nó (`playbook/`) làm nguồn và tạo thư mục dự án MỚI `<tên>` ngay cạnh `playbook/`, tức ngay trong gốc repo này (dòng 7–8 của tệp), rồi dựng trong đó `project/adr`, `docs/architecture-diagrams`, `src/web`, `src/api`, `.github/workflows`, `.specify/…` và chép cả `playbook/` vào (dòng 13, 16). Chạy nhầm để lại thư mục rác trong gốc repo.
 - Không điền nội dung dự án vào `templates/` (chỉ đọc); tài liệu dự án đặt ở `docs/`.
-- Không sửa tệp nào ở đây, kể cả `[NEEDS HUMAN DECISION]` ở GOVERNANCE mục 9.3 hay dấu vết tourdaovn ở GOVERNANCE 4.3/4.4. Việc cần sửa ở nguồn được ghi ở ADR-0012.
+- Không sửa tệp nào ở đây, kể cả `[NEEDS HUMAN DECISION: …]` ở GOVERNANCE mục 9.3 (dòng 181) hay các chi tiết dành riêng cho một website ở GOVERNANCE mục 4.3 và 4.4 (dòng 98, 109: `DESIGN.md`, `08-SCHEMA_PLAN`, JSON-LD, Lighthouse, `prices.yaml`, hreflang/sitemap). Việc cần sửa ở nguồn được ghi ở ADR-0012.
 
 ## Câu trong bản chép ĐÚNG ở Core nhưng KHÔNG áp dụng ở repo này
 - `.PINNED_VERSION` (của Core): dòng 46 "**Sửa thẳng tại đây**" và cả tệp nói Core "sở hữu" bản này — đúng ở Core, không áp dụng ở đây. Tệp còn ghi Hiến pháp **v2.2.0** ở dòng 8 và 29 (lỗi thời so với v2.3.0). Bản ghim của repo này được mô tả bằng PIN-README này và `.PINNED_SHA256`.
@@ -28,10 +29,21 @@
 - `README.md` dòng 24 và `init-project.sh`: quy trình sinh dự án mới — xem mục CẤM.
 
 ## Tham chiếu treo (có chủ ý, không phải lỗi bản chép)
-11 tệp nhắc tới thứ KHÔNG nằm trong bản chép (`archive/`, `CLAUDE.md` của Core, `docs/core-specs/`, các ADR-00xx của Core): `.PINNED_VERSION`, `CHANGELOG.md`, `FRAMEWORK.md`, `PLAYBOOK.md`, `README.md`, `ai/PROMPT_FACTORY.md`, `ai/qa-reports/TEMPLATE.md`, `docs/architecture-diagrams/README.md`, `docs/architecture-diagrams/so-do-quy-trinh.html`, `docs/huong-dan-su-dung.md`, `init-project.sh`. Ngoài ra `GOVERNANCE.md` (dòng 98, 109) nhắc `DESIGN.md` — tài liệu cấp dự án chưa có ở repo này.
+Đo lại ngày 2026-09-21 bằng `grep -rn` trên đúng 43 tệp nguồn của Core (loại `archive/` và `CLAUDE.md`), theo từng loại. Bản chép nhắc tới thứ KHÔNG nằm trong nó:
+- **`archive/`** (4 tệp): `.PINNED_VERSION`, `CHANGELOG.md`, `PLAYBOOK.md` (dòng 76 trỏ tới một prompt trong `archive/`), `docs/huong-dan-su-dung.md` (dòng 21).
+- **`CLAUDE.md` của Core** (1 tệp): `CHANGELOG.md` (dòng 21, 25 nêu đích danh `playbook/CLAUDE.md`). Ba tệp khác có chữ `CLAUDE.md` (`FRAMEWORK.md`, `docs/huong-dan-su-dung.md`, `ai/PROMPT_FACTORY.md` dòng 102) nói về `CLAUDE.md` của một dự án hay repo chủ nói chung, không phải tệp bị loại.
+- **`docs/core-specs/`** (2 tệp): `FRAMEWORK.md` (dòng 258–260), `CHANGELOG.md` (dòng 25).
+- **ADR của Core** (ADR-0024, 0026, 0027, 0030; 6 tệp): `.PINNED_VERSION`, `CHANGELOG.md`, `README.md`, `FRAMEWORK.md`, `ai/PROMPT_FACTORY.md`, `ai/qa-reports/TEMPLATE.md`. Đó không phải ADR của repo này (ADR của repo này ở `docs/adr/`, đánh số riêng). Ba tệp `CHANGELOG.md`, `ai/PROMPT_FACTORY.md`, `ai/qa-reports/TEMPLATE.md` còn trỏ tới `docs/qa-reports/` (thư mục báo cáo QA của Core, không có ở đây).
+- **`project/`** (16 tệp) — thư mục của repo dự án hạ nguồn mà `init-project.sh` tạo, không có trong bản chép: `README.md` (dòng 24, 27), `PLAYBOOK.md` (dòng 86–90), `init-project.sh` (dòng 13, 25–27, 30, 35, 50, 54), `CHANGELOG.md` (dòng 16, 18), `docs/huong-dan-su-dung.md` (dòng 39, 45, 67), `ai/agents/cowork.prompt.md` và `ai/agents/design.prompt.md` (dòng 4), và chín template `templates/00` đến `templates/08` (dòng 3 mỗi tệp, nói phải điền hay đặt tài liệu trong `project/`, riêng template 03 là `project/adr/`). Ở repo này tài liệu dự án đặt ở `docs/`, không có `project/`.
+
+Số tệp khác nhau theo loại; gộp bốn loại đầu (`archive/`, `CLAUDE.md`, `docs/core-specs/`, ADR của Core) là **8 tệp**: `.PINNED_VERSION`, `CHANGELOG.md`, `FRAMEWORK.md`, `PLAYBOOK.md`, `README.md`, `ai/PROMPT_FACTORY.md`, `ai/qa-reports/TEMPLATE.md`, `docs/huong-dan-su-dung.md`; thêm `project/` là 20 tệp.
+
+**Không phải tham chiếu treo** — chỉ nhắc ADR-0001 của một dự án hạ nguồn (mẫu ở `templates/03-ADR-0001-template.md`, CÓ trong bản chép; hoặc ví dụ đã điền ở repo `nhatrangtravel`) hay ký hiệu `ADR-000x`: `templates/03-ADR-0001-template.md`, `init-project.sh` (dòng 26, tên tệp mẫu), `PLAYBOOK.md` (dòng 20, 93), `docs/huong-dan-su-dung.md` (dòng 49), `docs/architecture-diagrams/README.md` (dòng 3), `docs/architecture-diagrams/so-do-quy-trinh.html` (dòng 197), `CHANGELOG.md` (dòng 16, 18).
+
+Ngoài ra `GOVERNANCE.md` (dòng 98, 109) nhắc `DESIGN.md` (dòng 98 còn nhắc `08-SCHEMA_PLAN`, cũng không có trong `templates/`) — tài liệu cấp dự án chưa có ở repo này.
 
 ## Kiểm bằng máy
-`npm test` chạy `src/standards.test.ts`: tệp trên đĩa = manifest, băm khớp (kể cả đối chiếu độc lập bằng `shasum -a 256 -c`), không có `CLAUDE.md`/`archive/`, `init-project.sh` không thực thi, phiên bản Hiến pháp/Governance đúng. Băm chống sửa **nhầm**, không chống sửa cả tệp lẫn manifest; lớp thứ hai (CODEOWNERS `playbook/**` và bảo vệ nhánh) do chủ dự án bật trên GitHub.
+`npm test` chạy `src/standards.test.ts`: tệp trên đĩa = manifest, băm khớp (kể cả đối chiếu độc lập bằng `shasum -a 256 -c`), không có `CLAUDE.md`/`archive/`, không tệp nào dưới `playbook/` có bit thực thi, `.gitattributes` đặt `playbook/**` là `-text` và `git check-attr` xác nhận hiệu lực (`text: unset`), phiên bản Hiến pháp/Governance đúng. Băm chống sửa **nhầm**, không chống sửa cả tệp lẫn manifest; lớp thứ hai (CODEOWNERS `playbook/**` và bảo vệ nhánh) do chủ dự án bật trên GitHub.
 
 ## Cách nâng ghim (chỉ khi Core đổi VÀ chủ dự án duyệt việc nâng)
 1. Chủ chạy `git -C <Core> status --short -- playbook` (trống = sạch) và ghi HEAD mới.

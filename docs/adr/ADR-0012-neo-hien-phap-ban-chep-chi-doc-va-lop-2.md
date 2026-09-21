@@ -41,7 +41,7 @@
 ## Hệ quả
 - **Ai trả:** chủ dự án là DRI duy nhất. Nhịp rà: theo sự kiện (Core đổi) và rà tổng mỗi quý.
 - **Có hiệu lực ngay khi accepted:** N8–N10 và P14–P21 của v2.3.0 (không có ở v2.2.0). Overlay phải ánh xạ từng điều.
-- **Tham chiếu treo có chủ ý (11 tệp):** bản chép nhắc `archive/`, `CLAUDE.md` của Core, `docs/core-specs/`, các ADR-00xx của Core; GOVERNANCE dòng 98, 109 nhắc `DESIGN.md` (tài liệu cấp dự án chưa có ở đây). Liệt kê ở `playbook/PIN-README.md`.
+- **Tham chiếu treo có chủ ý (đo lại 2026-09-21):** bản chép nhắc `archive/`, `CLAUDE.md` của Core, `docs/core-specs/`, các ADR của Core (gộp 8 tệp) và `project/` của dự án hạ nguồn (16 tệp; gộp cả năm loại là 20 tệp); GOVERNANCE dòng 98, 109 nhắc `DESIGN.md` (tài liệu cấp dự án chưa có ở đây). Liệt kê theo loại ở `playbook/PIN-README.md`.
 - **Câu đúng ở Core nhưng sai ở đây:** `playbook/.PINNED_VERSION` ("Sửa thẳng tại đây", còn ghi Hiến pháp v2.2.0) và `playbook/README.md` dòng 28 (đường sửa qua `04-CONSTRAINTS.md` khoản 6 và ADR-0030 của Core). Không sửa tệp (để băm khớp Core); `PIN-README.md` vô hiệu hoá bằng lời.
 - **Cây làm việc của Core chưa xác nhận sạch lúc chép:** `PIN-README.md` ghi rõ; chủ dự án có thể đối chiếu bằng `diff -r`.
 - **Giới hạn của băm:** chống sửa nhầm, không chống sửa cả tệp lẫn manifest. Lớp thứ hai: CODEOWNERS `playbook/**` và bảo vệ nhánh trên GitHub (gói trả phí đã xác nhận) — việc riêng của chủ dự án sau khi CI chạy lần đầu.

@@ -62,8 +62,9 @@ test("playbook/: đã loại CLAUDE.md và archive/ của Core (dạy sai ở n�
   assert.ok(!existsSync(join(PIN, "archive")), "playbook/archive/ của Core không được chép");
 });
 
-test("playbook/init-project.sh: nội dung chép nguyên nhưng KHÔNG có bit thực thi (chạy nhầm tạo thư mục rác ngoài repo)", () => {
-  assert.equal(statSync(join(PIN, "init-project.sh")).mode & 0o111, 0);
+test("playbook/: KHÔNG tệp nào có bit thực thi (Core chỉ có init-project.sh thực thi; chạy nhầm nó tạo thư mục dự án rác ngay trong gốc repo)", () => {
+  const executable = filesOnDisk().filter((f) => (statSync(join(PIN, f)).mode & 0o111) !== 0);
+  assert.deepEqual(executable, [], `tệp có bit thực thi dưới playbook/: ${executable.join(", ")}`);
 });
 
 test("playbook/PIN-README.md: nêu nguồn, điều CẤM và điều không áp dụng", () => {
@@ -74,6 +75,11 @@ test("playbook/PIN-README.md: nêu nguồn, điều CẤM và điều không áp
   ]) assert.match(t, need, `PIN-README thiếu: ${need}`);
 });
 
-test(".gitattributes: playbook/** không bị đổi kiểu xuống dòng (băm phải bền trên mọi hệ)", () => {
+test(".gitattributes: playbook/** không bị đổi kiểu xuống dòng (băm phải bền trên mọi hệ) — kiểm dòng khai VÀ hiệu lực thật bằng git check-attr", () => {
   assert.match(readFileSync(join(ROOT, ".gitattributes"), "utf8"), /^playbook\/\*\* -text$/m);
+  // Hiệu lực thật: một dòng khác (ví dụ `* text=auto eol=crlf` nối sau) có thể đè dòng trên mà dòng trên vẫn còn nguyên trong tệp.
+  const r = spawnSync("git", ["check-attr", "text", "playbook/CONSTITUTION.md"], { cwd: ROOT, encoding: "utf8" });
+  assert.equal(r.error, undefined, `không chạy được git check-attr (bài này KHÔNG được âm thầm bỏ qua): ${r.error?.message}`);
+  assert.equal(r.status, 0, `git check-attr thoát ${r.status}:\n${r.stderr}`);
+  assert.match(r.stdout.trim(), /text: unset$/, `thuộc tính text của playbook/ không còn là unset: ${r.stdout.trim()}`);
 });
