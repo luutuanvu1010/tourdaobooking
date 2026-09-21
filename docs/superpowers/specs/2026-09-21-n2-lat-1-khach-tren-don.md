@@ -1,6 +1,6 @@
 # Gắn hồ sơ khách vào đơn — lát 1 của N2 (P-4)
 
-> Ngày 2026-09-21. Trạng thái: **bản thảo chờ chủ dự án duyệt** (ba câu hỏi ở §3), chưa có mã.
+> Ngày 2026-09-21. Trạng thái: **ba câu hỏi ở §3 ĐÃ ĐƯỢC CHỦ DỰ ÁN QUYẾT (2026-09-21)**, xem khung "Quyết định" đầu §3 và ADR-0011; chưa có mã. Việc kế: kế hoạch thi công lát 1.
 > Nguồn: báo cáo đối chiếu Oracle TCA bản 2 (`docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` §6.1, đề xuất P-4); kế hoạch hành động Task 5.
 > Nền đã duyệt: ADR-0001 mục 7–8 (các bên trên booking, nhận dạng theo SĐT), ADR-0002 (ranh giới module), ADR-0003 điều 10 (không dựng lại bảng), ADR-0007 (quyền, sửa sau xác nhận).
 
@@ -27,6 +27,13 @@ CREATE INDEX orders_booker_party_idx ON orders(booker_party_id);
 - **Sổ dữ liệu:** cạnh `orders → parties` **đã được phép** (`src/architecture.test.ts:32`, `ALLOWED_EDGES.orders` có `"parties"`), và bài kiểm khoá ngoại chỉ đòi khai `integrityEdges` khi cạnh KHÔNG có trong `ALLOWED_EDGES` (`src/architecture.test.ts` khoảng dòng 176-190). Mục `orders` trong `docs/data-dictionary.json` không có danh sách cột. **Chưa chắc:** có thể không cần sửa sổ; lúc thi công chạy `npm test` để xác nhận, nếu sổ có chỗ ghi chú cột thì thêm và chạy `npm run dict`.
 
 ## 3. Ba câu hỏi cho chủ dự án
+
+> **Quyết định của chủ dự án (2026-09-21):** "A có; B có; C có, vì cho phép khách đổi phút cuối trước khi tàu khởi hành."
+> - **A → (a):** được lập đơn không gắn hồ sơ khách; đơn hiện nhãn "Chưa gắn hồ sơ khách".
+> - **B → (a):** route lập/sửa đơn tạo hồ sơ cá nhân mới + mở vai `CUSTOMER` trong cùng `db.batch()`. Là ngoại lệ hẹp của ADR-0007, ghi ở **ADR-0011** điều 1.
+> - **C → (b), KHÁC khuyến nghị (a) bên dưới:** đổi được khách của đơn **đã xác nhận**, coi như thông tin vận hành — cùng quyền và kiểu đường đi với sửa chuyến (`order.trip.edit`), nhật ký "từ A sang B" bằng tên, không SĐT; đơn đã huỷ thì không. Ghi ở **ADR-0011** điều 2. Chọn (b) chứ không (c) vì lý do của chủ dự án là đổi gấp phút cuối, còn (c) phải chờ bản ghi trước → sau của N3.
+>
+> Các bảng và khuyến nghị bên dưới giữ nguyên làm hồ sơ lập luận.
 
 ### Câu hỏi A — Có được lập đơn **không gắn** hồ sơ khách không? (mục 2 của yêu cầu)
 
