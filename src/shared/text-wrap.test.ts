@@ -32,6 +32,13 @@ test("từ dài hơn cả dòng (không có dấu cách) bị ngắt cứng; ph�
   assert.deepEqual(wrapLines("abcdefghij yy", 60, measure), ["abcdef", "ghij", "yy"]);
 });
 
+test("từ dài có dấu gạch nối/chấm: ngắt cứng ưu tiên NGAY SAU dấu đó (nửa sau của dòng) thay vì giữa chữ; dấu quá gần đầu dòng thì bỏ qua; đoạn cuối không bị cắt thêm", () => {
+  assert.deepEqual(wrapLines("abc-def-ghi", 60, measure), ["abc-", "def-", "ghi"]);
+  assert.deepEqual(wrapLines("a-bcdefghij", 60, measure), ["a-bcde", "fghij"]);
+  assert.deepEqual(wrapLines("ten.dai.khong.dau.cach@mail", 100, measure), ["ten.dai.", "khong.dau.", "cach@mail"]);
+  assert.deepEqual(wrapLines("abcdefgh-ij", 60, measure), ["abcdef", "gh-ij"], "dấu nằm ngoài phần vừa một dòng thì không dùng được");
+});
+
 test("dấu NBSP không phải chỗ ngắt: 'số + NBSP + ₫' luôn ở cùng dòng (không mồ côi chữ ₫ ở dòng riêng); dấu cách thường thì ngắt được", () => {
   assert.deepEqual(wrapLines("aaaaa bbb c", 90, measure), ["aaaaa bbb", "c"]);
   assert.deepEqual(wrapLines(`aaaaa bbb${NBSP}c`, 90, measure), ["aaaaa", `bbb${NBSP}c`]);

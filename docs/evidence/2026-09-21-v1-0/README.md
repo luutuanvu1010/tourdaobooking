@@ -67,3 +67,71 @@ Hai máy chủ nối tiếp: **A** = Turnstile BẬT bằng khoá thử; **B** =
 - **Trình chặn quảng cáo/mạng chặn `challenges.cloudflare.com`** (tiện ích trình duyệt, DNS công ty): đường "Chưa tải được bước xác minh… Thử lại" được thử bằng chặn URL của CDP (bước k), không bằng tiện ích/DNS thật; nhánh `error-callback` của widget (lỗi giữa chừng khi widget đã dựng) chưa có cách giả lập với khoá thử nên chưa chạy.
 - **Production/Workers Assets:** header CSP chỉ xác nhận qua `wrangler dev`; sau deploy phải xem lại header của `/login` (checklist triển khai) — cùng với `GET /api/auth/config` khác `null`.
 - **Ký thị giác** của chủ dự án cho màn đăng nhập mới: chưa có.
+
+## Task 10 — Ảnh xác nhận đơn (PNG) + hộp thoại + nối vào luồng lập đơn
+
+**Mã được đo:** các tệp `web/confirmation-image.ts`, `web/confirmation-dialog.ts`, `web/order.ts`, `web/order-form.ts`, `public/order.html`, `public/app.css`, `src/shared/order-confirmation.ts`, `src/shared/text-wrap.ts` đúng như trong hai commit của Task 10 (phần thuần `7d9133b`, phần giao diện commit kế sau). Số liệu dưới đây và `ket-qua-xac-nhan-png.json` là của cùng MỘT lần chạy cuối (`xac-nhan-png-chay-cuoi.txt`). Kịch bản: `kich-ban/v1-xac-nhan-png.mjs` — chạy từ GỐC repo; **không cần mạng ngoài** (danh mục giả do `a2-cdp.mjs` chèn vào D1 tạm, phông tự lưu trữ; Turnstile tắt):
+
+```
+npm run build:web && AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-21-v1-0/kich-ban/v1-xac-nhan-png.mjs
+```
+
+(`ONLY=a,b` chạy vài bước — nhiều bước dùng chung đơn tạo ở bước a nên tự tạo lại khi cần; `OUT=…` đổi thư mục ghi. Kịch bản dùng `esbuild` (đã có ở devDependencies) để đóng gói bộ vẽ + mô hình thuần thành một script nạp vào trang qua CDP — chỉ là công cụ kiểm, không phải mã chạy thật. `Runtime.evaluate` không bị CSP chặn; ngược lại CSP `connect-src` KHÔNG cho `fetch("blob:…")` — đúng ý, app chỉ dùng `<img>`/`<a download>` — nên kịch bản lấy `Blob` thẳng từ nơi tạo `blob:` URL và thử "còn tải được không" bằng thẻ ảnh.)
+
+### Kết quả (**11 dòng ✓, 0 ✗**)
+
+| Bước | Chứng minh gì | Số liệu/quan sát |
+|---|---|---|
+| a | Tạo đơn BẰNG GIAO DIỆN (dịch vụ theo người có thông tin chuyến + dịch vụ nhập tay) → có lần điều hướng `/order?id=…&moi=1`, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ `moi` | ảnh tạo qua giao diện: 1440×2628, 68 khối chữ |
+| b | PNG: chữ ký `89504e47…`, giải mã được, rộng ≥ 1440, cao khớp bố cục; KHÔNG trống (3–60% điểm ảnh không trắng); dải đầu trang đúng `--c-primary`; MỌI khối chữ có mực đúng màu trong đúng vùng; lề trái/phải và đáy trắng; không hai khối chữ chồng nhau; Tổng cộng/Còn lại nổi bật bằng `--c-accent`; mực nằm trên đỉnh chữ hoa của tiêu đề (dấu Á, Ậ… được vẽ); hai họ phông tập con tiếng Việt đã nạp; ảnh của hộp thoại GIỐNG HỆT từng byte bản dựng từ mô hình kỳ vọng và KHÁC bản dựng với tên phụ trách khác (đối chứng) | |
+| c | `<a download="xac-nhan-<mã>.png">` đúng tên tệp, `blob:` URL nạp được như ảnh (≥ 1440) lúc mở; sau khi đóng MỌI `blob:` URL đã tạo đều bị thu hồi và không còn nạp được | |
+| d | Nút "Chia sẻ": không có khi `canShare` trả `false` hoặc không tồn tại; có khi `canShare({ files:[png] })` đúng; bấm → `navigator.share` nhận đúng một tệp `image/png` tên `xac-nhan-<mã>.png` (> 10 KB); `AbortError` (người dùng huỷ) im lặng; lỗi khác báo tiếng Việt chỉ sang "Tải ảnh PNG" | |
+| e | Tải lại trang không bật lại hộp thoại (URL `?id=…` sạch); mở đơn không kèm `moi` không tự bật; SỬA đơn nháp → trang đơn không có `moi`, không hộp thoại; nút "Xác nhận gửi khách" luôn có | |
+| f | Đơn nháp / đã xác nhận / đã huỷ mở lại bằng nút: chữ "Chờ xác nhận"/"Đã xác nhận"/"Đã huỷ", màu huy hiệu trên ảnh = token `--c-sand-soft`/`--c-green-soft`/`--c-surface-alt` (ba màu khác nhau), ảnh = bản dựng kỳ vọng; SALES khác và kế toán cũng có nút và mở được | |
+| g | Tên người phụ trách: API trả tên → in tên (ảnh khác ảnh dùng tên người lập); API 404/500/lỗi mạng/không có người/treo → tên người lập, ảnh vẫn ra | thời gian bấm → ảnh hiện: 102–107 ms; API treo: 3066 ms (hạn 3 giây, không chặn thêm) |
+| h | Đơn cỡ tối đa (20 dịch vụ, 50 dòng tiền, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú 12 dòng) và tiền rộng quá cột (9.000.000.000.000.000 ₫): không lỗi, 0 chữ tràn lề, 0 chữ chồng nhau, mọi chữ có mực, đúng giới hạn diện tích canvas | cỡ tối đa: cao 14.587 px CSS → độ phân giải hạ còn 1,25 → 900×18.234 (16,41 MP ≤ 16,78 MP), 4,1 MB, 854 khối chữ; tiền rộng: bảng chuyển hai hàng, 1440×7882 |
+| i | Vẽ lỗi: công ty lỗi 500, phông từ chối, phông treo (không bao giờ trả lời), `toBlob` trả `null`, `getContext` trả `null` → `role=alert` tiếng Việt có dấu, không lộ chữ kỹ thuật, có nút "Thử lại", không ảnh, nút Tải ẩn, không kẹt "Đang tạo"; Thử lại ra ảnh; Esc đóng được cả sau lỗi lẫn giữa lúc đang tạo | phông treo: lỗi sau hạn 10 giây |
+| j | Hộp thoại: `role=dialog`, `aria-modal`, tên = "Xác nhận đơn để gửi khách", 4 phần tử nền `inert` (hộp thoại không), `body.sheet-open`, focus trong hộp thoại; Esc / chạm nền / ✕ đóng, gỡ `inert`, trả focus về nút mở; axe-core **0 vi phạm (mọi mức)** ở 390, 1040 và trạng thái lỗi; vùng chạm ≥ 44 px; không tràn ngang; console/CSP sạch ở mọi trang đã theo dõi | |
+| k | Ba ảnh mẫu qua đúng đường giao diện + ba ảnh chụp; chiều cao tăng theo nội dung | 1 dịch vụ 1440×2268; 4 dịch vụ 1440×4046; 8 dịch vụ 1440×9226 (13,3 MP); dựng ≤ 106 ms sau khi bấm (độ phân giải đo 100 ms, phông đã nạp, Chrome headless trên máy dev) |
+
+### Đỏ trước, xanh sau
+
+- Phần thuần: `order-confirmation.test.ts` 20 test, **6 đỏ** trước khi sửa (3 vì nhãn `subtotal`, 3 vì làm sạch chuỗi) → 20/20; `text-wrap.test.ts` **9/10 đỏ** với bản nháp trả nguyên chuỗi → 11/11 (test thứ 11 — cắt sau dấu gạch nối — đỏ khi đặt `BREAK_AFTER` rỗng). Đột biến: bỏ U+202E khỏi dải bidi → 2 test làm sạch đỏ; đổi `<=` thành `<` ở phép vừa dòng → 2 test ngắt dòng đỏ.
+- Kịch bản Chrome trên mã cũ (không có `web/confirmation-*.ts`): `xac-nhan-png-do-truoc-khi-lam.txt` → **11 ✗ / 0 ✓**. Sau khi làm: **11 ✓** (`xac-nhan-png-chay-cuoi.txt`).
+- Đột biến trên mã mới (hoàn nguyên sau mỗi lần): bỏ `URL.revokeObjectURL` → c ✗; bỏ `history.replaceState` → a, e ✗; tô chữ nổi bật bằng màu thường → b ✗; bỏ hạn 3 giây của API phụ trách → g ✗ (treo); bỏ giới hạn diện tích canvas → h ✗ (42 MP); bỏ ngắt cứng từ dài → h, k ✗ (chữ tràn lề).
+- Hai lỗi thật tìm thấy nhờ kịch bản, đã sửa: (1) canvas ở độ phân giải LẺ (đơn dài → 1,75) cao hơn bố cục tới 1 điểm ảnh, hàng cuối chưa được tô nền nên phép dò "canvas trống" báo lỗi giả → nền nay phủ hết canvas; (2) axe bắt `scrollable-region-focusable` (vùng xem trước cuộn được mà không có phần tử nhận focus) → vùng cuộn nhận `tabindex=0` kèm `role=region` và nhãn.
+- Hồi quy: `npm test` 350/350 (gồm 14 test mới của Task 10: 3 ở `order-confirmation.test.ts`, 11 ở `text-wrap.test.ts`; ba test cũ của `order-confirmation` được sửa theo nhãn `subtotal`), `npm run typecheck` 0 lỗi, `npm run test:e2e -- pwa` 5 ✓, ba kịch bản A2 chạy lại (vì sửa `web/order-form.ts` và `web/order.ts`, KHÔNG sửa kịch bản nào): `a2-smoke-form` 21 ✓, `a2-smoke-order` 10 ✓, `a2-smoke-sheet` 13 ✓.
+
+### Ảnh (`anh/`)
+
+| Ảnh | Nội dung |
+|---|---|
+| `xac-nhan-mau-1-mot-dich-vu.png` | 1440×2268: một dịch vụ theo người (2 người lớn + 1 trẻ em, đủ thông tin chuyến), đặt cọc |
+| `xac-nhan-mau-2-nhieu-dich-vu.png` | 1440×4046: bốn dịch vụ (ba từ danh mục, một nhập tay nhiều dòng), giảm giá, ghi chú khách hai dòng |
+| `xac-nhan-mau-3-don-dai.png` | 1440×9226: tám dịch vụ, tên và nơi đón 90+ ký tự liền không dấu cách (ngắt sau dấu gạch nối), email dài ngắt cứng, ghi chú năm dòng |
+| `xac-nhan-hop-thoai-390.png`, `xac-nhan-hop-thoai-1040.png` | hộp thoại ở khổ iPhone 390×844 và máy tính 1040×800 (khung nhìn cố định) |
+| `xac-nhan-trang-don-390.png` | trang đơn đã xác nhận với nút "Xác nhận gửi khách" ở hàng riêng dưới ba nút hành động |
+
+**Đọc ảnh thế nào:** dữ liệu trong ảnh mẫu là dữ liệu THỬ (tên khách, SĐT 0903 111 222, danh mục giả); đầu ảnh là dữ liệu công ty thật của `company_profile`. "₫" trông như "đ" gạch chân — đó là hình chữ ₫ của phông Nunito. Ảnh xem trước trong hộp thoại thu nhỏ theo bề rộng khung (chữ nhỏ trên điện thoại); ảnh tải về vẫn 1440 px.
+
+### Điều học được khi làm
+
+1. **Phông chia hai tập con theo `unicode-range`** (`latin-viet` và `vietnamese`; `₫` U+20AB, `Đ` và mọi dấu U+1EA0–1EF9 chỉ nằm ở tập tiếng Việt): `document.fonts.load('16px "Nunito"')` không kèm chữ mẫu chỉ nạp tập latin, ảnh vẽ chữ Việt bằng phông dự phòng và đo sai. Bộ vẽ truyền chính chữ của mô hình làm mẫu, cho mọi họ × độ đậm, rồi mới đo. (Kịch bản không tái hiện được lỗi này vì trang đơn đã hiển thị chữ Việt nên tập con đã nạp sẵn — lưới bảo vệ nằm ở mã và ở kiểm "tập tiếng Việt đã nạp" của bước b.)
+2. **Canvas quá lớn không báo lỗi:** iOS Safari lặng lẽ trả ảnh trong suốt khi diện tích > 2²⁴ điểm ảnh. Bộ vẽ hạ độ phân giải theo bước 0,25 và dò hai góc ảnh sau khi vẽ (nền đã phủ kín nên phải đặc), báo lỗi thay vì đưa ảnh trống cho khách.
+3. **`document.fonts.load` kèm chữ mẫu + `fontBoundingBox`** (đường cơ sở tính từ số đo phông, không từ chuỗi) giữ dấu tiếng Việt không bị cắt và chữ không nhảy giữa các dòng có/không có dấu.
+4. **Ranh giới ngắt dòng:** chữ dài không dấu cách ngắt cứng theo CỤM ký tự (dấu gõ rời không tách khỏi chữ gốc), ưu tiên ngay sau dấu gạch nối/chấm; `NBSP` không phải chỗ ngắt. Tiền không đi qua bộ ngắt dòng: cột đo theo chuỗi dài nhất của mọi dịch vụ.
+5. `axe` chạy giữa lúc khung mở chạy hiệu ứng mờ (≥ 641 px) đo tương phản sai; kịch bản chờ hiệu ứng xong.
+
+### Lệch so với brief/spec (có chủ ý)
+
+- Nút "Xác nhận gửi khách" nằm ở `#send` (mới, trong `public/order.html`), **ngoài** `#actions`: giữ nguyên bộ nút theo trạng thái/quyền và các phép kiểm của ba kịch bản A2 (chúng khẳng định đúng danh sách nút trong `#actions`), đồng thời ở điện thoại nút có hàng riêng thay vì bốn nút chen một hàng. Nút hiện cho MỌI người xem được đơn (kể cả kế toán và SALES khác): ảnh chỉ in lại dữ liệu họ đã thấy.
+- Đơn quá cao (> ~5.800 px CSS) ra ảnh RỘNG DƯỚI 1440 (hạ độ phân giải để khỏi vượt giới hạn canvas iOS): đơn thử cỡ tối đa (20 dịch vụ, chữ rất dài) còn 900 px ngang. Ba ảnh mẫu đều ≥ 1440.
+- `ServiceBlock.subtotal` thành `{ label, value } | null` (Task 9 để `string | null`); thêm `src/shared/text-wrap.ts` (+ test) cho phần ngắt dòng thuần.
+- Đơn nháp chưa có ngày khởi hành → dịch vụ đó KHÔNG có dòng "Khởi hành" trên ảnh (chấp nhận theo ruling; trang đơn vẫn cảnh báo). Chân trang chỉ nêu hotline (không có số Zalo riêng, theo ruling Task 1). `exported_png` không được ghi vào nhật ký (ảnh không đi qua máy chủ).
+
+### Chưa kiểm
+
+- **iPhone thật / WebKit:** canvas 2D (giới hạn diện tích 2²⁴ chỉ dựa vào tài liệu, chưa thử vượt trên iOS), `TextMetrics.fontBoundingBoxAscent` và `Intl.Segmenter` (có dự phòng), `navigator.share({ files })` với bảng chia sẻ thật → Zalo, `<a download>` với `blob:` URL trong PWA đã cài lên màn hình chính (iOS có thể mở ảnh trong trình xem thay vì lưu tệp — khi đó "Chia sẻ" là đường chính).
+- **Phông tải chậm / ngoại tuyến:** bước i giả lập phông từ chối và phông treo (chạm hạn 10 giây → lỗi + Thử lại), không phải mạng chậm thật; phông vốn nằm trong `PRECACHE` của service worker nên trường hợp thật hiếm.
+- **Tên người phụ trách khi API `dispatch` có mặt trong bản deploy thật:** kịch bản dùng cả điểm cuối thật của mã máy chủ trong nhánh (`GET /api/dispatch/handlers`, tên mặc định = người lập) lẫn API giả lập trả tên khác; giao diện người phụ trách (đổi người) là Task 8 — Task 8 phải kiểm tên mới hiện lên ảnh.
+- Máy yếu bộ nhớ với ảnh rất cao (9000+ điểm ảnh, 2 MB); chủ đề tối/cỡ chữ hệ thống lớn (ảnh dựng độc lập với chủ đề); **ký thị giác** của chủ dự án cho ảnh mẫu và hộp thoại: chưa có.

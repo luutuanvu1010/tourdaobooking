@@ -80,6 +80,7 @@
   --fs-name: 1.1rem;        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
   --fs-bar-title: 1.125rem; /* tiêu đề trên thanh đầu trang (điện thoại) */
   --h-turnstile: 65px;      /* chiều cao cố định của widget Cloudflare Turnstile (cỡ "flexible"/"normal"): khung giữ chỗ để widget dựng xong không đẩy nút Đăng nhập */
+  --w-confirm: 640px;       /* bề rộng hộp thoại "Xác nhận đơn để gửi khách" ở màn hình rộng: ảnh xem trước (khổ 720) chỉ thu nhỏ nhẹ nên chữ còn đọc được */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -375,3 +376,18 @@ body.sheet-open { overflow: hidden; }
 .login-info p { margin: 0 0 var(--s1); overflow-wrap: anywhere; }
 .login-company { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--c-border); }
 .login-company .login-company-name { font-weight: 800; color: var(--c-text); }
+
+/* ---------- v1.0: hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG; web/confirmation-dialog.ts, dùng chung khuôn .sheet* ở trên) — chỉ token ---------- */
+#send:empty { display: none; } /* nút "Xác nhận gửi khách" nằm ngoài #actions: chưa tải được đơn thì không chừa khoảng trống */
+@media (min-width: 641px) { .sheet.sheet-wide { width: var(--w-confirm); max-width: calc(100vw - 2 * var(--s4)); } }
+.confirm-hint { margin: 0 0 var(--s3); font-size: var(--fs-label); color: var(--c-text-muted); }
+.confirm-status { display: flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: var(--s6) var(--s3); font-weight: 600; color: var(--c-text-muted); }
+.confirm-frame { overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); }
+.confirm-img { display: block; width: 100%; height: auto; }
+.confirm-error { margin-bottom: 0; }
+.confirm-error-text { margin: var(--s2) 0 0; }
+.confirm-foot { display: grid; gap: var(--s2); }
+.confirm-foot .btn-block { margin-top: 0; }
+.confirm-note-slot:empty, .confirm-share-slot:empty { display: none; }
+.confirm-note { display: flex; align-items: center; gap: var(--s1); margin: 0; font-size: var(--fs-label); font-weight: 600; color: var(--c-danger-text); }
+.confirm-note svg { flex: none; }

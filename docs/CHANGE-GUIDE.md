@@ -11,7 +11,7 @@
 2. Mỗi nhóm tệp bạn chạm có bộ kiểm riêng: §3. Trước commit và trước deploy: §5.
 3. Hành vi lạ → đọc §4 (bẫy) trước khi debug. Thấy tài liệu khác mã → §6.
 
-Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
+Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–p · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
 
 ## 1. Bảng tra nhanh "Muốn … → xem …"
 
@@ -36,6 +36,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Thêm loại đối tượng nhật ký (nhóm mới) | `src/shared/audit-actions.ts` (`AUDIT_GROUPS`), `src/modules/audit/repository.ts` (`listAll`) | f |
 | Đổi thông báo lỗi ở giao diện (banner) | `src/shared/order-errors.ts` (`classifyOrderError`), `web/banner.ts` | m |
 | Đổi thông báo lỗi do máy chủ trả | `src/modules/*/index.ts` (`error(...)`) | m |
+| Đổi mẫu ảnh xác nhận đơn gửi khách (PNG): nội dung, chữ, bố cục, màu, hộp thoại | `src/shared/order-confirmation.ts` (nội dung), `web/confirmation-image.ts` (bố cục/vẽ), `web/confirmation-dialog.ts` (hộp thoại), `src/shared/text-wrap.ts` | p |
 | Đổi màu / font / token | `public/app.css` (`:root`), `public/manifest.webmanifest` | i |
 | Thêm biểu tượng | `web/icons.ts` (`SHAPES`) | i |
 | Đổi luật đăng nhập / PIN / chống dò / phiên / Turnstile (máy chủ + widget ở màn đăng nhập) | `src/modules/auth/*` (`turnstile.ts` cho Turnstile), `src/modules/staff/password.ts`, `src/modules/staff/rules.ts`, `web/login.ts`, `public/login.html`, `public/_headers` (CSP) | l |
@@ -49,7 +50,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Đổi header bảo mật / CSP | `public/_headers` | i, l |
 | Đổi trạng thái đơn / hình thức cọc (có `CHECK` trong SQL) | `migrations/0003_orders.sql` → migration dựng lại bảng | d, g |
 | Thêm kịch bản e2e (API) | `tests/e2e/run.mjs` (`ALL`), `tests/e2e/lib.mjs` | o |
-| Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`), `docs/evidence/2026-09-21-v1-0/kich-ban/` (`v1-dang-nhap.mjs`) | o |
+| Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`), `docs/evidence/2026-09-21-v1-0/kich-ban/` (`v1-dang-nhap.mjs`, `v1-xac-nhan-png.mjs`) | o |
 | Cập nhật sổ dữ liệu | `docs/data-dictionary.json` → `npm run dict` | d |
 
 ## 2. Các công thức
@@ -292,7 +293,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Tên app "Tour Đảo Booking": nguồn khai là `public/manifest.webmanifest` (`name`; `short_name` = "Tour Đảo"; `pwa.mjs` coi là nguồn). Bản sao phải khớp:
   - 10 × `public/*.html` (`<title>… — Tour Đảo Booking` và `apple-mobile-web-app-title`);
   - `public/login.html` (`<h1>`); `web/shell.ts` (brand: `"Tour Đảo "` + `<span>Booking</span>`); `web/order.ts` (`document.title`).
-- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) dựng khối ở chân trang từ đó (`#company`): tên (đậm), "Địa chỉ: …", "Email: …" (ẩn khi `null`), "MST: …" — chữ đúng như dữ liệu (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Chưa dùng ở bản xác nhận đơn (task 9–10).
+- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) dựng khối ở chân trang từ đó (`#company`): tên (đậm), "Địa chỉ: …", "Email: …" (ẩn khi `null`), "MST: …" — chữ đúng như dữ liệu (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Cũng là nguồn của đầu ảnh xác nhận đơn (`headerBlock` trong `src/shared/order-confirmation.ts`: tên, MST, địa chỉ, hotline, email) — công thức p.
 - Số phiên bản: hằng ở `src/shared/app-info.ts` (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `formatReleaseLine()` → "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026"); phát hành mới chỉ sửa tệp này. `package.json` không có `version`. Mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`) là thứ khác, không hiển thị. Màn đăng nhập hiện `formatReleaseLine()` ở `#release` (luôn hiện, kể cả khi API công ty lỗi: là hằng trong mã, không đi qua API).
 
 **Đổi tên app hôm nay:** sửa tất cả nơi trên rồi chạy `npm run test:e2e -- pwa` (đối chiếu manifest ↔ HTML ↔ bundle `web/shell.ts`). Không đổi tên Worker/D1 `tourdao-sales`.
@@ -413,6 +414,27 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Bẫy:** `a2-cdp.mjs` có `ACCOUNTS` riêng (không dùng chung `lib.mjs`); `startEnv()` lỗi giữa lúc khởi động có thể để mồ côi `wrangler dev`/Chrome. `startEnv()` chạy máy chủ với Turnstile TẮT (`--var TURNSTILE_*:` rỗng), `startEnv({ turnstile: true })` BẬT bằng khoá thử; `env.login` luôn gửi token thử — xem công thức l. `openPage()` trả thêm `logEntries` (thông điệp do trình duyệt tự ghi, gồm vi phạm CSP), `requests`, `failed`.
 
+### p. Đổi mẫu ảnh xác nhận đơn gửi khách (PNG) / hộp thoại
+
+Ba lớp, đổi đúng lớp:
+1. **Nội dung** (chữ nào hiện, thứ tự, định dạng tiền/ngày, ẩn dòng rỗng, KHÔNG lộ dữ liệu nội bộ): `src/shared/order-confirmation.ts` (`buildConfirmation`) + `order-confirmation.test.ts`. Mọi chuỗi đi qua `clean()` (bỏ ký tự điều khiển/bidi, NFC). Thêm trường mới vào mô hình = thêm vào kiểu khối + test "đủ trường" + test "KHÔNG lộ nội bộ" + đọc nó ở bộ vẽ. Ghi chú vận hành của dịch vụ, nhãn khác giá, mã danh mục, id, ghi chú thanh toán, người lập KHÔNG bao giờ được in.
+2. **Bố cục/màu/phông** (canvas): `web/confirmation-image.ts`. Hằng bố cục (khổ 720, lề 40, cỡ chữ, khoảng cách) ở đầu tệp và trong từng hàm khối; màu và họ phông CHỈ lấy từ token `:root` qua `readTheme()` (`COLOR_TOKENS`; thiếu token = lỗi, không màu dự phòng) — đổi màu = đổi token ở `public/app.css`. Muốn thêm màu mới thì thêm token, không viết hex vào `.ts`. Bố cục là `layoutConfirmation` (danh sách lệnh vẽ theo px CSS, đo bằng `canvas.measureText`) rồi mới `paint` — đổi bố cục không đụng phần vẽ. Ngắt dòng ở `src/shared/text-wrap.ts` (thuần, có test).
+3. **Hộp thoại/luồng**: `web/confirmation-dialog.ts` (khuôn `trip-sheet.ts`, CSS `.confirm-*` + `.sheet-wide` ở cuối `public/app.css`, chỉ token), nút và `moi=1` ở `web/order.ts`, `web/order-form.ts`.
+
+**Luật cần nhớ:**
+- Tiền chỉ vẽ ở ô nguyên khối căn phải; không đưa chuỗi tiền vào bộ ngắt dòng. Cột số đo theo chuỗi dài nhất của MỌI dịch vụ; hết chỗ thì bảng chuyển hai hàng (`Cols.stacked`).
+- Chờ phông TRƯỚC khi đo: `document.fonts.load` cho mọi họ × độ đậm KÈM chữ của mô hình (mỗi họ có hai tập con theo `unicode-range`; thiếu chữ mẫu thì tập tiếng Việt chưa nạp). Đo bằng phông dự phòng rồi vẽ bằng phông thật làm chữ đè nhau.
+- Diện tích canvas ≤ 2²⁴ điểm ảnh (iOS Safari): `chooseScale` hạ độ phân giải cho đơn quá cao (> ~5.800 px CSS ở độ phân giải 2). Đơn cỡ tối đa (20 dịch vụ, 50 dòng, chữ rất dài) ra ảnh ~900 px ngang.
+- Đơn nháp chưa có ngày khởi hành: ảnh KHÔNG có dòng "Khởi hành" (cố ý — không in cảnh báo nội bộ; nếu muốn báo trước khi gửi thì làm ở hộp thoại).
+- CSP `connect-src` KHÔNG cho `blob:` nên không `fetch("blob:…")` (app không cần; kịch bản Chrome lấy Blob từ nơi tạo URL). `img-src blob:` đủ cho `<img>` và `<a download>`.
+- Blob URL phải được thu hồi khi đóng/thử lại (kịch bản bước c kiểm).
+- Nút "Xác nhận gửi khách" nằm ở `#send`, NGOÀI `#actions`, để bộ nút theo trạng thái/quyền (và ba kịch bản `a2-smoke-*`) không đổi; nút này luôn có cho mọi người xem được đơn.
+- Tên người phụ trách qua `loadHandlerName` (không bao giờ ném lỗi, tối đa 3 giây); người phụ trách API chưa có → tên người lập.
+
+**Kiểm:** `node --test src/shared/order-confirmation.test.ts src/shared/text-wrap.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `AXE_JS=… CHROME_BIN=… node docs/evidence/2026-09-21-v1-0/kich-ban/v1-xac-nhan-png.mjs` (11 dòng ✓; ghi ảnh mẫu vào `docs/evidence/2026-09-21-v1-0/anh/` — XEM ẢNH bằng mắt sau khi đổi bố cục) → ba `a2-smoke-*.mjs` nếu chạm `web/order.ts`/`web/order-form.ts` → `npm run test:e2e -- pwa` nếu chạm CSS.
+
+**Bẫy:** ảnh có "₫" trông như "đ" gạch chân — đó là chữ ₫ của phông Nunito, không phải lỗi. Test giả lập lỗi phải đặt SAU lần mở thành công đầu tiên nếu lỗi nằm ở dữ liệu đã được nhớ (hồ sơ công ty được nhớ trong trang). `Runtime.evaluate` của CDP không bị CSP chặn nên kịch bản đóng gói bộ vẽ bằng esbuild và nạp thẳng vào trang; đó là công cụ kiểm, không phải mã chạy thật.
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
@@ -422,8 +444,8 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 | `src/modules/*/index.ts`, `repository.ts`, `service.ts` (route, SQL) | `npm test` (kiến trúc) → `npm run typecheck` → `npm run test:e2e -- <module>` |
 | `migrations/*.sql` | `npm test` → `npm run db:migrate:local` → `npm run test:e2e` ĐỦ BỘ (đuôi `audit-invariants`) → `npm run dict` nếu đổi bảng/view |
 | `scripts/audit-invariants.mjs` | `node scripts/audit-invariants.mjs --db local [--persist-to <thư mục>] [--strict]` (chỉ đọc; D1 local phải đã áp migration) |
-| `web/*.ts` (trừ ba tệp dưới) | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → thử tay `npm run dev`; riêng `web/login.ts` thêm kịch bản Chrome `v1-dang-nhap.mjs` |
-| `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | như trên + BA kịch bản Chrome `a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` (KHÔNG có kiểm tự động trong CI; nên chạy cả khi chạm thành phần dùng chung `service-card`, `trip-fields`, `order-services`, `catalog-picker`, `counter`, `money-input`, `banner`) |
+| `web/*.ts` (trừ ba tệp dưới) | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → thử tay `npm run dev`; riêng `web/login.ts` thêm kịch bản Chrome `v1-dang-nhap.mjs`; riêng `web/confirmation-image.ts`, `web/confirmation-dialog.ts` (và `src/shared/order-confirmation.ts`, `src/shared/text-wrap.ts`) thêm `v1-xac-nhan-png.mjs` |
+| `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | như trên + BA kịch bản Chrome `a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` (KHÔNG có kiểm tự động trong CI; nên chạy cả khi chạm thành phần dùng chung `service-card`, `trip-fields`, `order-services`, `catalog-picker`, `counter`, `money-input`, `banner`); chạm phần `moi=1` hoặc nút "Xác nhận gửi khách" của `web/order.ts`/`web/order-form.ts` thì thêm `v1-xac-nhan-png.mjs` |
 | `public/app.css`, `public/*.html`, `public/manifest.webmanifest`, `public/_headers`, `src/shared/sw-policy.ts`, `web/sw/sw.ts` | `npm run build:web` → `npm test` (`sw-policy.test.ts`) → `npm run typecheck` (gồm `-p web/sw`) → `npm run test:e2e -- pwa`; chạm `public/login.html`, `public/_headers` hoặc CSS màn đăng nhập → thêm `v1-dang-nhap.mjs` |
 | `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật; cần `.dev.vars` có đủ tên bí mật, xem công thức l) → `npm run typecheck` → `npm run test:e2e` |
 | `docs/data-dictionary.json` | `npm run dict` → `npm test` (bài kiểm bắt `DATA-DICTIONARY.md` lệch bản sinh) |

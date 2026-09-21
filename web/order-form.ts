@@ -244,7 +244,9 @@ formEl.addEventListener("submit", async (e) => {
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
-    location.replace(`/order?id=${encodeURIComponent(order.id)}`); // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng)
+    // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng).
+    // Đơn MỚI kèm `moi=1`: trang đơn tự mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) một lần rồi bỏ tham số; đơn SỬA thì không.
+    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}`);
   } catch (err) {
     setSaving(false);
     await onSaveError(err);

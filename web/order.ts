@@ -1,5 +1,6 @@
 import { ApiError, api, type Api, type AuditEntry, type Order } from "./api";
 import { renderBanner } from "./banner";
+import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
 import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, vnd } from "./format";
 import { icon } from "./icons";
@@ -13,7 +14,23 @@ const id = new URLSearchParams(location.search).get("id");
 const bannerEl = byId("error");
 const root = byId("order");
 const actions = byId("actions");
+const sendEl = byId("send");
 let current: Order | null = null;
+
+// Form lập đơn MỚI chuyển tới `/order?id=…&moi=1`: mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) đúng một lần, sau lần tải đơn đầu tiên. Bỏ `moi` khỏi URL NGAY (trước mọi await), để dù
+// bước dựng trang sau đó ném lỗi thì tải lại trang cũng không bật lại hộp thoại.
+let autoOpenConfirmation = new URLSearchParams(location.search).get("moi") === "1";
+if (autoOpenConfirmation) {
+  const url = new URL(location.href);
+  url.searchParams.delete("moi");
+  history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+}
+
+const sendButton = (): HTMLButtonElement | null => sendEl.querySelector("button");
+/** Ảnh xác nhận gửi khách của đơn đang xem (mọi trạng thái, mọi người xem được đơn — ảnh chỉ in lại dữ liệu họ đã thấy). */
+function openConfirmation(): void {
+  if (current) openConfirmationDialog({ order: current, opener: sendButton });
+}
 
 /** `null` ẩn banner. Liên kết "Sửa" của banner incomplete_trip mở form ĐÚNG thẻ (`?focus=`, Task 7). */
 function show(b: Banner | null): void {
@@ -90,6 +107,10 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
   if (a.editTrip) btns.push(editTripButton(order));
   if (a.cancel) btns.push(change("Huỷ đơn", "cancelled", "Huỷ đơn này? Việc huỷ không thể hoàn tác.", "btn btn-danger"));
   replaceChildren(actions, ...btns);
+  // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).
+  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xác nhận gửi khách");
+  send.addEventListener("click", openConfirmation);
+  replaceChildren(sendEl, send);
 }
 
 const focusEditTrip = (): void => document.querySelector<HTMLElement>('[data-action="edit-trip"]')?.focus();
@@ -136,6 +157,10 @@ async function load(): Promise<void> {
     const { order, history, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`);
     show(null);
     render(order, history, canModify);
+    if (autoOpenConfirmation) {
+      autoOpenConfirmation = false;
+      openConfirmation();
+    }
   } catch (err) {
     // Có nút "Tải lại đơn": PWA standalone không có tải lại của trình duyệt, và `load()` tự nuốt lỗi nên các nút vừa bấm (Xác nhận/Huỷ) có thể đang khoá.
     show(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn.", { action: "reload_order" }));

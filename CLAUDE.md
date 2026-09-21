@@ -35,7 +35,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | `node scripts/dev-iphone.mjs` | chạy trên D1 **tạm** để thử iPhone thật (mạng LAN, không đụng dữ liệu thật) |
 | `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote chỉ theo runbook, xem §6** |
 
-Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` không nằm trong CI: sửa `web/order-form.ts`, `web/order.ts` hoặc `web/trip-sheet.ts` thì **phải chạy lại** ba `a2-smoke-*.mjs` (cách chạy: `tests/e2e/README.md`); sửa `web/login.ts`, `public/login.html` hoặc CSP ở `public/_headers` thì chạy `docs/evidence/2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs` (cần mạng).
+Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` không nằm trong CI: sửa `web/order-form.ts`, `web/order.ts` hoặc `web/trip-sheet.ts` thì **phải chạy lại** ba `a2-smoke-*.mjs` (cách chạy: `tests/e2e/README.md`); sửa `web/login.ts`, `public/login.html` hoặc CSP ở `public/_headers` thì chạy `docs/evidence/2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs` (cần mạng); sửa `web/confirmation-image.ts`, `web/confirmation-dialog.ts`, `src/shared/order-confirmation.ts`, `src/shared/text-wrap.ts` hoặc phần `moi=1`/nút "Xác nhận gửi khách" ở `web/order.ts`/`web/order-form.ts` thì chạy `v1-xac-nhan-png.mjs` cùng thư mục (không cần mạng ngoài).
 
 ## 4. Bản đồ mã
 ```
@@ -44,7 +44,7 @@ src/modules/<tên>/      accounts · audit · auth · catalog · company · disp
                         (index.ts = API công khai của module; rules.ts thuần; repository.ts = SQL; service.ts điều phối)
 src/shared/             logic THUẦN dùng chung server ↔ web: router, http, contracts (DTO), permissions, trip-*, service-form,
                         order-*, audit-actions, vn-date, sw-policy…  — KHÔNG import src/modules/
-web/                    giao diện TypeScript thuần: 1 tệp / trang + thành phần (counter, banner, service-card, trip-sheet…)
+web/                    giao diện TypeScript thuần: 1 tệp / trang + thành phần (counter, banner, service-card, trip-sheet, confirmation-image/-dialog…)
 public/                 HTML tĩnh, app.css (token), fonts/, icons/, manifest; js/ và sw.js do build sinh
 migrations/             0001…0014 (chỉ thêm, không sửa tệp đã áp remote; remote mới tới 0012)
 scripts/                công cụ dòng lệnh (audit-invariants, import-staff, dev-iphone…)
@@ -96,4 +96,4 @@ docs/                   tài liệu (xem §2)
 ## 9. Hiện trạng (cập nhật khi đổi)
 - Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; module `dispatch` đã có: người phụ trách + `dispatch.claim`, API ở `docs/SYSTEM-DESIGN.md` §7); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
 - Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
-- Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Màn đăng nhập v1.0 (Turnstile phía máy chủ + widget + CSP; khối công ty và số phiên bản) ĐÃ xong trong nhánh, chưa deploy (lúc deploy phải tạo widget + khoá Turnstile thật). Người phụ trách đơn: máy chủ ĐÃ xong (module `dispatch`; người phụ trách sửa được đơn nhờ `ctx.isAssigned`), giao diện chưa. Việc đang chờ làm: giao diện người phụ trách (cột ở danh sách đơn + khối ở trang đơn); xác nhận đơn dạng PNG (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).
+- Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Màn đăng nhập v1.0 (Turnstile phía máy chủ + widget + CSP; khối công ty và số phiên bản) ĐÃ xong trong nhánh, chưa deploy (lúc deploy phải tạo widget + khoá Turnstile thật). Người phụ trách đơn: máy chủ ĐÃ xong (module `dispatch`; người phụ trách sửa được đơn nhờ `ctx.isAssigned`), giao diện chưa. Ảnh xác nhận đơn (PNG gửi khách, dựng bằng canvas ở trình duyệt; hộp thoại tự mở sau khi tạo đơn mới, nút "Xác nhận gửi khách" ở trang đơn) ĐÃ xong trong nhánh, chưa deploy — `docs/CHANGE-GUIDE.md` công thức p. Việc đang chờ làm: giao diện người phụ trách (cột ở danh sách đơn + khối ở trang đơn); PDF/in A4 (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).
