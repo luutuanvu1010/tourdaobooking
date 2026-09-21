@@ -20,6 +20,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   audit: [],
   auth: ["staff"],
   catalog: ["audit"],
+  company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
   locations: ["audit"],
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],
@@ -28,6 +29,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
+  { module: "company", file: "modules/company/repository.ts" },
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },

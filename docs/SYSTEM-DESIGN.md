@@ -171,7 +171,7 @@ Module chủ sở hữu bảng của mình; bảng mới mang tiền tố module
 | `catalog_override` / `catalog_sync` | catalog | ghi đè của admin (`hidden`, `prices_json`, `base_json` = giá Sheet lúc ghi đè) / trạng thái lần kéo gần nhất (đúng một dòng `default`) |
 | `audit_log` | audit | nhật ký chỉ-thêm: `action`, `staff_id` (NULL = hệ thống), `order_id`, `target_type`, `target_id`, `detail` |
 | `login_attempt` | auth | lần thử PIN theo `key` (`phone:`/`ip:`) và `at` (mili-giây) |
-| `company_profile` | company | hồ sơ công ty (singleton `default`) — **chưa module nào đọc** |
+| `company_profile` | company | hồ sơ công ty (singleton `default`); module `company` đọc qua `GET /api/company` (chỉ đọc, không lộ `zalo_number`/`logo_url`/`updated_by`) |
 
 ### Quan hệ cốt lõi
 
@@ -223,8 +223,9 @@ erDiagram
 | 0010 | `0010_locations.sql` | `loc_location_type`, `loc_location` (8 dòng nạp sẵn), `v_loc_location_label` |
 | 0011 | `0011_parties.sql` | toàn bộ `pty_*` + trigger không chồng lấn + `v_pty_party_label` |
 | 0012 | `0012_staff_permissions_party.sql` | `stf_permission_type`, `stf_permission`, `staff.party_id`, `v_stf_staff_label`, backfill hồ sơ/vai trò `STAFF`/quyền cho tài khoản có sẵn |
+| 0013 | `0013_company_email.sql` | bản v1.0, CHƯA lên production: chỉ dữ liệu — điền `company_profile.email` (không đổi cấu trúc) |
 
-Migration `0013` (siết: bắt buộc `staff.party_id`) **chưa có trong `migrations/`** — cố ý, theo expand–contract (`docs/HANDOFF-N1.md`).
+Migration siết B5 (`staff_party_required`: bắt buộc `staff.party_id`) **chưa có trong `migrations/`** — cố ý, theo expand–contract (`docs/HANDOFF-N1.md`); số thứ tự của nó là số kế tiếp sau các migration của bản v1.0 (không còn là `0013`).
 
 ---
 
@@ -293,7 +294,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ## 7. Danh mục API
 
-Tất cả 40 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
+Tất cả 41 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
@@ -325,6 +326,7 @@ Tất cả 40 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 | GET | `/api/locations` | staff | locations | danh sách địa điểm + loại địa điểm |
 | POST | `/api/locations` | admin | locations | thêm địa điểm |
 | PUT | `/api/locations/:id` | admin | locations | sửa địa điểm (khoá lạc quan) |
+| GET | `/api/company` | public | company | hồ sơ công ty công khai `{ company }`: tên, MST, địa chỉ, hotline, email (không Zalo/logo/người sửa) |
 | GET | `/api/parties/meta` | office | parties | loại vai trò và loại quan hệ |
 | GET | `/api/parties/lookup` | office | parties | tra hồ sơ theo SĐT (cảnh báo trùng) |
 | GET | `/api/parties` | office | parties | danh sách hồ sơ, tìm/lọc, phân trang |
@@ -435,8 +437,8 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 
 **Các lớp kiểm.**
 
-- **Unit** `src/**/*.test.ts` (`node --test`, chạy thẳng TypeScript nên tệp thuần import nhau bằng đuôi `.ts`). Nổi bật: `src/architecture.test.ts` — dựng schema thật từ `migrations/*.sql` bằng `node:sqlite`, kiểm ranh giới import theo `ALLOWED_EDGES`, đồ thị không vòng, `shared/` và `web/` không import module, sổ dữ liệu ↔ schema, tiền tố bảng, khoá ngoại xuyên module, view công bố đúng cột và không `INSTEAD OF`, cột kiểm toán của bảng mới, và **ranh giới SQL bằng `EXPLAIN`** cho module "nghiêm" (`locations`, `parties`, `staff` — SQL phải đi qua `defineSql` của `src/shared/sql-registry.ts`, và `.prepare(` không được nhận chuỗi/template thô).
-- **E2E** `tests/e2e/*.mjs` qua `tests/e2e/run.mjs`: dựng D1 local **tạm** trong `mktemp` (không đụng `.wrangler/state`), áp migration, seed tài khoản, chạy `wrangler dev` trên cổng tự do với `SESSION_SECRET` ngẫu nhiên, rồi chạy 10 kịch bản `platform, pwa, orders, trip, admin, catalog, admin-race, locations, parties, permissions`. **Cần mạng**: `admin.mjs` và `catalog.mjs` đọc Google Sheet thật. Chạy đủ bộ thì bước cuối là `scripts/audit-invariants.mjs --strict`.
+- **Unit** `src/**/*.test.ts` (`node --test`, chạy thẳng TypeScript nên tệp thuần import nhau bằng đuôi `.ts`). Nổi bật: `src/architecture.test.ts` — dựng schema thật từ `migrations/*.sql` bằng `node:sqlite`, kiểm ranh giới import theo `ALLOWED_EDGES`, đồ thị không vòng, `shared/` và `web/` không import module, sổ dữ liệu ↔ schema, tiền tố bảng, khoá ngoại xuyên module, view công bố đúng cột và không `INSTEAD OF`, cột kiểm toán của bảng mới, và **ranh giới SQL bằng `EXPLAIN`** cho module "nghiêm" (`company`, `locations`, `parties`, `staff` — SQL phải đi qua `defineSql` của `src/shared/sql-registry.ts`, và `.prepare(` không được nhận chuỗi/template thô).
+- **E2E** `tests/e2e/*.mjs` qua `tests/e2e/run.mjs`: dựng D1 local **tạm** trong `mktemp` (không đụng `.wrangler/state`), áp migration, seed tài khoản, chạy `wrangler dev` trên cổng tự do với `SESSION_SECRET` ngẫu nhiên, rồi chạy 11 kịch bản `platform, pwa, orders, trip, admin, catalog, admin-race, locations, parties, permissions, company`. **Cần mạng**: `admin.mjs` và `catalog.mjs` đọc Google Sheet thật. Chạy đủ bộ thì bước cuối là `scripts/audit-invariants.mjs --strict`.
 - **Bất biến dữ liệu**: `scripts/audit-invariants.mjs --db local|remote [--strict]` — **chỉ đọc** (`SELECT`/`PRAGMA`), mỗi kiểm `R-N1-*` là một câu SQL đếm dòng vi phạm, thoát mã 1 nếu có.
 - **Kịch bản Chrome thật**: `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `a2-cdp.mjs`, `a2-evidence.mjs`, `chrome-wrap.sh`) — **không nằm trong CI**; bắt buộc chạy lại khi sửa `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` (ba tệp này không có kiểm tự động trong repo).
 
@@ -512,7 +514,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 | Việc | Sẽ chạm |
 |---|---|
 | Cloudflare Turnstile ở màn hình đăng nhập | `public/login.html` (widget), `web/login.ts` (gửi token), `src/modules/auth/index.ts` (`POST /api/auth/login`: xác minh token trước `verifyPinThrottled`), biến bí mật mới (`TURNSTILE_SECRET`) + khoá site công khai trong `vars` của `wrangler.jsonc`, và **`public/_headers`**: CSP hiện là `script-src 'self'` không có `frame-src` — phải nới cho `challenges.cloudflare.com` thì widget mới chạy. Cân nhắc với `src/shared/sw-policy.ts` (script ngoài origin luôn `pass`, không cache). |
-| Bản xác nhận đơn dạng PNG tải xuống | Trang `/order` (`public/order.html`, `web/order.ts`, `web/order-services.ts`) dựng ảnh ngay trong trình duyệt — CSP đã cho `img-src 'self' data: blob:` sẵn cho việc này; mô hình hiển thị lấy từ `src/shared/order-view.ts`; cần route ghi nhật ký cho hành động `exported_png` (đã có trong `AUDIT_ACTIONS` nhưng **không nơi nào dùng**) và có thể một module `exports` mới theo `docs/ARCHITECTURE.md` mục "Thêm một module mới"; thông tin công ty sẽ cần bảng `company_profile` (hiện chưa module nào đọc). |
+| Bản xác nhận đơn dạng PNG tải xuống | Trang `/order` (`public/order.html`, `web/order.ts`, `web/order-services.ts`) dựng ảnh ngay trong trình duyệt — CSP đã cho `img-src 'self' data: blob:` sẵn cho việc này; mô hình hiển thị lấy từ `src/shared/order-view.ts`; cần route ghi nhật ký cho hành động `exported_png` (đã có trong `AUDIT_ACTIONS` nhưng **không nơi nào dùng**) và có thể một module `exports` mới theo `docs/ARCHITECTURE.md` mục "Thêm một module mới"; thông tin công ty lấy từ `GET /api/company` (module `company`, đã có, chỉ đọc). |
 | Cột "Người phụ trách" ở danh sách đơn | `listOrders` trong `src/modules/orders/repository.ts`, DTO `OrderSummaryDto` trong `src/shared/contracts.ts`, `web/orders.ts`. Nguồn dữ liệu là `dsp_assignment` của N2 — **chưa tồn tại**; đọc tên người phải đi qua view công bố `v_pty_party_label` hoặc `v_stf_staff_label`, không JOIN thẳng bảng của module khác (`src/architecture.test.ts` sẽ đỏ). |
 
 ---
@@ -542,5 +544,5 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 
 | Tệp tài liệu | Câu sai | Sự thật trong mã |
 |---|---|---|
-| `docs/SPEC-tourdao-sales.md` §1 ("Là gì", bước 3–4) | "Xem trước bản xác nhận theo mẫu chuẩn công ty" và "Xuất PNG … và/hoặc PDF" như năng lực của ứng dụng | Chưa có trong mã: không route, không mô-đun, không mã dựng ảnh. Chỉ có hai **tên** hành động nhật ký `exported_png` / `exported_pdf` trong `src/shared/audit-actions.ts`, không nơi nào ghi. Bảng `company_profile` (0002) cũng chưa module nào đọc. |
+| `docs/SPEC-tourdao-sales.md` §1 ("Là gì", bước 3–4) | "Xem trước bản xác nhận theo mẫu chuẩn công ty" và "Xuất PNG … và/hoặc PDF" như năng lực của ứng dụng | Chưa có trong mã: không route, không mô-đun, không mã dựng ảnh. Chỉ có hai **tên** hành động nhật ký `exported_png` / `exported_pdf` trong `src/shared/audit-actions.ts`, không nơi nào ghi. Thông tin công ty đã có module `company` (`GET /api/company`, chỉ đọc) nhưng chưa hiện ở giao diện nào. |
 | `docs/SPEC-tourdao-sales.md` §2.1 (bảng `staff`) | mô tả `full_name` là "tên hiển thị trên đơn" trong dòng trường | Cùng bảng đã chú thích đúng ở dòng `role` rằng `full_name` là **cột chết**; mã đọc tên từ `v_stf_staff_label` (hồ sơ `pty_party`) và `src/architecture.test.ts` (R-N1-14) bắt mọi chỗ đọc `staff.full_name`. Mâu thuẫn nội bộ trong chính bảng đó. |

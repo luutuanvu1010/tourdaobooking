@@ -25,7 +25,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | Lệnh | Việc |
 |---|---|
 | `npm run dev` | `wrangler dev` (tự `build:web`); cần `.dev.vars` (mẫu `.dev.vars.example`) và `npm run db:migrate:local` |
-| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện 236 test |
+| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện 248 test |
 | `node --test src/shared/service-form.test.ts` | chạy một tệp test |
 | `npm run typecheck` | `tsc` cho server, `web/`, `web/sw/` — phải **0 lỗi** |
 | `npm run build:web` | esbuild `web/*.ts` → `public/js/`, `web/sw/sw.ts` → `public/sw.js` (cả hai **gitignored**; thêm trang mới phải khai trong script này) |
@@ -40,13 +40,13 @@ Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` kh
 ## 4. Bản đồ mã
 ```
 src/index.ts            gốc lắp ráp: mảng modules, router, Cron
-src/modules/<tên>/      accounts · audit · auth · catalog · locations · orders · parties · staff
+src/modules/<tên>/      accounts · audit · auth · catalog · company · locations · orders · parties · staff
                         (index.ts = API công khai của module; rules.ts thuần; repository.ts = SQL; service.ts điều phối)
 src/shared/             logic THUẦN dùng chung server ↔ web: router, http, contracts (DTO), permissions, trip-*, service-form,
                         order-*, audit-actions, vn-date, sw-policy…  — KHÔNG import src/modules/
 web/                    giao diện TypeScript thuần: 1 tệp / trang + thành phần (counter, banner, service-card, trip-sheet…)
 public/                 HTML tĩnh, app.css (token), fonts/, icons/, manifest; js/ và sw.js do build sinh
-migrations/             0001…0012 (chỉ thêm, không sửa tệp đã áp remote)
+migrations/             0001…0013 (chỉ thêm, không sửa tệp đã áp remote; remote mới tới 0012)
 scripts/                công cụ dòng lệnh (audit-invariants, import-staff, dev-iphone…)
 tests/e2e/              kịch bản API (run.mjs điều phối)
 docs/                   tài liệu (xem §2)
@@ -59,7 +59,7 @@ docs/                   tài liệu (xem §2)
 - Module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view công bố `v_<tiền tố>_*`.
 - `src/shared/` và `web/` **không** import `src/modules/`. Trong `src/shared/` import nhau **kèm đuôi `.ts`**; `web/` import `shared` **không đuôi**.
 - Luật dùng ở cả server và giao diện = một tệp thuần trong `src/shared/` (một nguồn); không chép tay sang `web/`.
-- SQL của module "nghiêm" (`locations`, `parties`, `staff`) đi qua `defineSql`, câu tĩnh.
+- SQL của module "nghiêm" (`company`, `locations`, `parties`, `staff`) đi qua `defineSql`, câu tĩnh.
 
 **Dữ liệu:** tiền = `INTEGER` VNĐ, dẫn xuất chỉ tính ở **server** (`buildLines`); ngày/giờ dân sự theo **giờ Việt Nam** (`vnToday`, `YYYY-MM-DD`/`HH:MM`), dấu thời gian `TEXT` ISO UTC. Không xoá cứng; hiệu lực bằng `valid_from/to`. Danh sách giá trị mở kiểm ở code, không `CHECK`. Tên bảng số ít (trừ `orders`).
 
@@ -88,10 +88,10 @@ docs/                   tài liệu (xem §2)
 - E2E cần mạng; nhiều `wrangler dev` mồ côi gây "database is locked" — tắt trước khi chạy.
 - Form: `location.replace` (không `assign`) sau khi lưu để Back/bfcache không đưa về form đã lưu (tránh đơn trùng).
 - Enter trong ô tìm danh mục bị chặn có chủ đích (ô nằm trong `<form>`).
-- `wrangler d1 migrations apply` áp **mọi** migration chưa áp — không để migration "siết" (`0013` của B5, xem HANDOFF-N1) lọt vào `migrations/` trước lần phát hành 2.
+- `wrangler d1 migrations apply` áp **mọi** migration chưa áp — không để migration "siết" (B5 `staff_party_required`, xem HANDOFF-N1) lọt vào `migrations/` trước lần phát hành 2. `src/migrations-n1.test.ts` nhận biết migration siết theo TÊN tệp, không theo số.
 - Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ, không từ hai cột này.
 
 ## 9. Hiện trạng (cập nhật khi đổi)
-- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối: **`0012`**; `0013` đang được dành cho B5 (siết `party_id` bắt buộc) — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và đánh số tiếp, ghi rõ nếu B5 phải dời số.
+- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (kế hoạch); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
 - Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
 - Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Việc đang chờ làm: Cloudflare Turnstile + thông tin công ty/phiên bản ở màn đăng nhập; xác nhận đơn dạng PNG; cột "Người phụ trách" ở danh sách đơn (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).

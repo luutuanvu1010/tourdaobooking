@@ -18,7 +18,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Muốn | Tệp chính | Công thức |
 |---|---|---|
 | Đổi chữ trên giao diện (nhãn, nút, tiêu đề) | `public/*.html`, `web/*.ts`, `web/format.ts` (`STATUS_LABEL`, `METHOD_LABEL`) | i (mục "Chữ"), m |
-| Đổi tên app / thông tin công ty / số phiên bản | `public/manifest.webmanifest`, `public/*.html`, `web/shell.ts`, `public/login.html` | j |
+| Đổi tên app / thông tin công ty / số phiên bản | `public/manifest.webmanifest`, `public/*.html`, `web/shell.ts`, `public/login.html`, `src/shared/app-info.ts` (phiên bản), `src/modules/company/` + `company_profile` (thông tin công ty) | j |
 | Thêm trường vào đơn (khách, thanh toán…) | `src/modules/orders/repository.ts`, `src/shared/contracts.ts`, `web/order-form.ts` | a1 |
 | Thêm trường chuyến vào dịch vụ trong đơn | `src/modules/orders/service-rules.ts`, `src/shared/trip-form.ts`, `web/trip-fields.ts` | a2 |
 | Đổi thành phần dịch vụ (loại khách, đơn vị tính) | `src/shared/order-lines.ts`, `migrations/0008_order_service.sql` (trigger) | a3, g |
@@ -163,8 +163,8 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### d. Migration (cột, bảng, view, trigger)
 
 **Số kế tiếp (hiện tại):**
-- Tệp cuối hiện là `0012_staff_permissions_party.sql`. **Số kế tiếp đã chốt (2026-09-21):** bản v1.0 dùng `0013_company_email.sql` và `0014_dispatch.sql` (kế hoạch `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`, CHƯA thi công tại thời điểm viết); B5 (`staff_party_required`: trigger bắt buộc `party_id` + giữ quản trị viên cuối) lấy số KẾ TIẾP sau `0014` khi được làm — không còn gắn với `0013`. Nếu tệp `0013_*`/`0014_*` chưa có trong `migrations/`, kiểm `docs/superpowers/plans/` xem kế hoạch nào đang giữ số.
-- **Bẫy:** `src/migrations-n1.test.ts` nhận biết "migration siết" bằng `files.some((f) => f.startsWith("0013"))` — thêm một `0013_*` khác làm TẮT LẶNG LẼ khẳng định "trước migration siết không có trigger siết". Task 1 của kế hoạch v1.0 đổi cách nhận biết sang TÊN tệp (`staff_party_required`); tới khi đó đừng thêm `0013_*` mà không sửa test này.
+- Tệp cuối hiện là `0013_company_email.sql` (bản v1.0, task 1: chỉ điền email công ty; đã có trong nhánh, CHƯA lên production — production mới tới `0012`). **Số kế tiếp đã chốt (2026-09-21):** `0014_dispatch.sql` (kế hoạch `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`, chưa thi công tại thời điểm viết); B5 (`staff_party_required`: trigger bắt buộc `party_id` + giữ quản trị viên cuối) lấy số KẾ TIẾP sau `0014` khi được làm — không còn gắn với `0013`. Nếu tệp `0014_*` chưa có trong `migrations/`, kiểm `docs/superpowers/plans/` xem kế hoạch nào đang giữ số.
+- **Bẫy (đã xử lý):** `src/migrations-n1.test.ts` nhận biết "migration siết" B5 theo TÊN tệp (`isContractMigration`: tên chứa `staff_party_required`), KHÔNG theo số thứ tự — nên B5 lấy số kế tiếp nào cũng được. Trước đây nhận biết bằng `startsWith("0013")`, và thêm một `0013_*` khác sẽ tắt lặng lẽ khẳng định "trước migration siết không có trigger siết". Nếu đổi tên tệp B5 thì phải sửa `isContractMigration`.
 
 **Sửa theo thứ tự:**
 1. Tên `NNNN_mô_tả_không_dấu.sql`; chỉ THÊM: `CREATE TABLE/INDEX/VIEW/TRIGGER`, `ALTER TABLE … ADD COLUMN` NULL hoặc `DEFAULT` hằng (`REFERENCES` chỉ được khi mặc định NULL).
@@ -280,23 +280,20 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 ### j. Đổi thông tin công ty / tên app / số phiên bản
 
-**Hiện trạng — CHƯA có nguồn duy nhất:**
+**Hiện trạng** (tên app còn nhiều bản sao phải khớp; thông tin công ty và số phiên bản mỗi thứ đã có MỘT nguồn):
 - Tên app "Tour Đảo Booking": nguồn khai là `public/manifest.webmanifest` (`name`; `short_name` = "Tour Đảo"; `pwa.mjs` coi là nguồn). Bản sao phải khớp:
   - 10 × `public/*.html` (`<title>… — Tour Đảo Booking` và `apple-mobile-web-app-title`);
   - `public/login.html` (`<h1>`); `web/shell.ts` (brand: `"Tour Đảo "` + `<span>Booking</span>`); `web/order.ts` (`document.title`).
-- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline): chỉ có ở bảng `company_profile` (migration `0002`, một dòng `'default'`) và KHÔNG có mã nào đọc nó (module `company` chỉ tồn tại trong `docs/data-dictionary.json`); giao diện không hiển thị.
-- Số phiên bản: KHÔNG tồn tại (`package.json` không có `version`; không chuỗi phiên bản ở `public/`, `web/`). Gần nhất là mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`), không hiển thị.
+- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Giao diện CHƯA hiển thị (màn đăng nhập dùng ở task 3 của kế hoạch v1.0).
+- Số phiên bản: hằng ở `src/shared/app-info.ts` (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `formatReleaseLine()` → "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026"); phát hành mới chỉ sửa tệp này. `package.json` không có `version`. Mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`) là thứ khác, không hiển thị. Giao diện CHƯA hiển thị số phiên bản (task 3).
 
 **Đổi tên app hôm nay:** sửa tất cả nơi trên rồi chạy `npm run test:e2e -- pwa` (đối chiếu manifest ↔ HTML ↔ bundle `web/shell.ts`). Không đổi tên Worker/D1 `tourdao-sales`.
 
-**Đề xuất nơi đặt (chưa làm; `CLAUDE.md` §9 ghi là việc chờ):**
-- Tên app + tên công ty ngắn = hằng ở `src/shared/app-info.ts` (thuần; `web/` và `pwa.mjs` cùng import).
-- Phiên bản = `--define:__APP_VERSION__` thêm vào lệnh esbuild của `build:web` (cùng cách `__BUILD_ID__`), hiện ở `web/login.ts` và tab "Tôi".
-- Thông tin pháp lý = module `company` mới đọc `company_profile` (route chỉ trả đúng trường được phép).
+**Đổi số phiên bản / ngày phát hành:** sửa `APP_VERSION`, `APP_RELEASE_DATE` ở `src/shared/app-info.ts` (và ô kỳ vọng ở `src/shared/app-info.test.ts`) — hằng trong mã, không đi qua esbuild `--define`. **Đổi thông tin công ty:** sửa dòng `company_profile` (migration dữ liệu như `0013_company_email.sql`; giao diện sửa hồ sơ là M5, chưa làm); `GET /api/company` chỉ trả năm trường của `CompanyDto`, muốn lộ thêm trường phải sửa `CompanyDto` + câu `SELECT` tường minh ở `src/modules/company/repository.ts` + `tests/e2e/company.mjs` (nó khoá đúng tập khoá).
 
-**Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa`.
+**Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa company`.
 
-**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. Kế hoạch v1.0 (chưa thi công, `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`) đã dự kiến `src/shared/app-info.ts` + module `company`; khi làm, cập nhật mục này.
+**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay. Kế hoạch v1.0 (`docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`): task 3 nối `/api/company` + `formatReleaseLine()` vào màn đăng nhập, task 11 hoàn thiện mục này.
 
 ### k. Đồng bộ danh mục / Sheet / Cron
 
@@ -418,13 +415,13 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |
 
 **Thời gian ước lượng** (máy dev, đo 2026-09-21):
-- `npm test` ≈ 1 giây (236 test; đo lại: 0,8 giây).
+- `npm test` ≈ 1 giây (248 test; đo lại: 0,8 giây).
 - `npm run test:e2e` ≈ 1–2 phút: tổng các kịch bản ≈ 62 giây (`platform` 0,3 · `pwa` 0,4 · `orders` 9,3 · `trip` 28,9 · `admin` 4,3 · `catalog` 17,0 · `admin-race` 0,2 · `locations` 0,2 · `parties` 0,4 · `permissions` 0,4 — theo `docs/evidence/2026-09-20-a2/kiem-tra-may.txt`) cộng thời gian áp migration và khởi động `wrangler dev` (chưa đo riêng).
 - `npm run typecheck` và mỗi kịch bản Chrome: chưa có số đo.
 
 ## 4. Bẫy đã biết
 
-1. **Đuôi import.** `src/shared/*`, các tệp thuần (`rules.ts`, `fields.ts`, `sheet.ts`, `password.ts`, `phone.ts`) và `repository.ts` của module nghiêm (`locations`, `parties`, `staff`) import nhau KÈM `.ts`; `index.ts`/`service.ts`/`repository.ts` cũ và MỌI tệp `web/` import KHÔNG đuôi. Thiếu `.ts` ở tệp mà `node --test`/`scripts/*.mjs` nạp → `ERR_MODULE_NOT_FOUND` chỉ ở test/script, `tsc` vẫn xanh.
+1. **Đuôi import.** `src/shared/*`, các tệp thuần (`rules.ts`, `fields.ts`, `sheet.ts`, `password.ts`, `phone.ts`) và `repository.ts` của module nghiêm (`company`, `locations`, `parties`, `staff`) import nhau KÈM `.ts`; `index.ts`/`service.ts`/`repository.ts` cũ và MỌI tệp `web/` import KHÔNG đuôi. Thiếu `.ts` ở tệp mà `node --test`/`scripts/*.mjs` nạp → `ERR_MODULE_NOT_FOUND` chỉ ở test/script, `tsc` vẫn xanh.
 2. **Cú pháp TS chạy trực tiếp bằng Node 22.** Tệp được `node --test`/script nạp chỉ được dùng cú pháp "xoá được" (không `enum`, `namespace`, tham số thuộc tính của constructor). Hiện chỉ `src/shared/sheets.ts` (`SheetError`) dùng tham số thuộc tính → không được import từ tệp thuần/test.
 3. **`web/` không import `src/modules/`** (bài kiểm kiến trúc đỏ); chỉ import `src/shared/*`, không đuôi.
 4. **`public/js/` và `public/sw.js` gitignored:** quên `npm run build:web` → trang hỏng/cũ khi thử bằng thứ khác `wrangler dev`/`deploy` (hai lệnh này tự build). `build:web` cần shell POSIX (`$(date …)` cho `__BUILD_ID__`).
@@ -434,8 +431,8 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 8. **`.counter { overflow: hidden }`** trong `public/app.css` xén vòng focus mặc định → vòng focus của bộ đếm phải LÙI VÀO TRONG bằng luật riêng (`.counter .counter-btn:focus-visible`); đừng dùng `outline-offset` dương.
 9. **Giờ Việt Nam ≠ UTC.** "Hôm nay" luôn là `vnToday(new Date())` (`src/shared/vn-date.ts`) truyền vào SQL làm tham số; không `date('now')` trong SQL, không `toISOString().slice(0, 10)` (sai ngày 00:00–07:00 giờ VN). e2e dùng `vnDate()` ở `lib.mjs`.
 10. **Tên bảng `orders`** (không `order`; `ORDER` là từ khoá SQL); bảng số ít trừ `orders`; bảng cũ không tiền tố phải có `"legacy": true` trong sổ dữ liệu.
-11. **Không sửa migration đã áp** (0001–0012 đều đã lên production 2026-09-21), kể cả chú thích; và không để migration "siết" (`0013`, B5) lọt vào `migrations/` trước lần phát hành 2.
-12. **SQL của module nghiêm qua `defineSql`** (`src/shared/sql-registry.ts`): câu TĨNH (tham số tuỳ chọn viết `?N IS NULL OR …`), tên `module.tên` duy nhất (đăng ký lại KHÁC nội dung → ném lỗi). `.prepare("…")`/template thô trong `locations|parties|staff/repository.ts` làm `architecture.test.ts` đỏ; câu chạm bảng module khác hoặc đọc thẳng bảng gốc cũng đỏ (EXPLAIN của chính SQLite).
+11. **Không sửa migration đã áp** (0001–0012 đều đã lên production 2026-09-21), kể cả chú thích; và không để migration "siết" (`staff_party_required`, B5) lọt vào `migrations/` trước lần phát hành 2.
+12. **SQL của module nghiêm qua `defineSql`** (`src/shared/sql-registry.ts`): câu TĨNH (tham số tuỳ chọn viết `?N IS NULL OR …`), tên `module.tên` duy nhất (đăng ký lại KHÁC nội dung → ném lỗi). `.prepare("…")`/template thô trong `company|locations|parties|staff/repository.ts` làm `architecture.test.ts` đỏ; câu chạm bảng module khác hoặc đọc thẳng bảng gốc cũng đỏ (EXPLAIN của chính SQLite).
 13. **Cột chết `staff.role` (`'sales'`) và `staff.full_name` (`''`):** bài kiểm R-N1-14 quét mọi mã (cả `scripts/*.mjs`) cấm chuỗi `full_name`, `SELECT * FROM staff`, `s.*` ngoài `staff/repository.ts` và `scripts/staff-lib.mjs`. Tên người lấy từ `v_stf_staff_label`/`v_pty_party_label`, quyền từ `stf_permission`.
 14. **e2e cần mạng** (`admin.mjs`, `catalog.mjs` đọc Google Sheet thật): mất mạng → hai kịch bản đỏ; Sheet đổi giá (`TD101`, `TD103`) → sửa assertion.
 15. **`wrangler dev` mồ côi** (Ctrl+C giữa chừng; `startEnv()` của `a2-cdp.mjs` lỗi giữa lúc khởi động) → "database is locked"/cổng bận: tắt tiến trình `workerd`/`wrangler` cũ trước khi chạy e2e.

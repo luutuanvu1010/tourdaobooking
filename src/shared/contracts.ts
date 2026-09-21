@@ -258,6 +258,20 @@ export interface CatalogSyncResponse {
   warnings: { row: number; message: string }[];
 }
 
+// ---- Thông tin công ty (module company) --------------------------------------
+/** Hồ sơ công ty hiển thị công khai (màn đăng nhập, xác nhận đơn). Cố ý KHÔNG có số Zalo, đường dẫn logo, người sửa. */
+export interface CompanyDto {
+  /** Tên pháp lý đúng như trong hồ sơ ("CÔNG TY TNHH TOUR ĐẢO"). */
+  name: string;
+  taxCode: string;
+  address: string;
+  hotline: string;
+  /** Có thể chưa khai → null. */
+  email: string | null;
+}
+
+export interface CompanyResponse { company: CompanyDto }
+
 // ---- Địa điểm (module locations) ---------------------------------------------
 export interface LocationTypeDto {
   code: string;

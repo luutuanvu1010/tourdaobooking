@@ -25,6 +25,7 @@ npm run test:e2e -- orders catalog  # chỉ vài kịch bản
 | `parties.mjs` | hồ sơ: tạo/sửa, liên hệ chính, vai trò theo nơi, quan hệ, tra cứu, nhật ký không lộ dữ liệu cá nhân |
 | `permissions.mjs` | quyền đa trị: `/me`, `FIELD` bị chặn mọi bề mặt đơn/tiền/hồ sơ, `ACCOUNTING` xem không sửa, `SALES` chỉ đơn của mình, `ADMIN` mọi đơn, nhiều quyền |
 | `admin-race.mjs` | hai admin cuối hạ quyền nhau cùng lúc: còn ≥ 1 admin, bên thua không ghi nhật ký (chạy cuối vì tạm ngưng các admin khác) |
+| `company.mjs` | `GET /api/company`: công khai (chưa đăng nhập vẫn 200), `no-store`, ĐÚNG năm trường (không lộ Zalo/logo/người sửa), email sau migration 0013, ghi bị 405, đọc từ D1 (đổi dữ liệu thì đổi theo, email trống → `null`, mất dòng → 404); tạm sửa/xoá dòng `company_profile` rồi khôi phục ở `finally` |
 
 ## Chạy lẻ trên server có sẵn
 
