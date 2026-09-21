@@ -17,6 +17,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | Đặc tả nghiệp vụ + quyết định của chủ dự án | `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
 | Bảng/cột/view | `docs/data-dictionary.json` (nguồn) → `docs/DATA-DICTIONARY.md` (sinh bằng `npm run dict`) |
 | Triển khai, áp migration, hoàn tác | `docs/HANDOFF-N1.md` (mục "Trạng thái triển khai" là hiện trạng production) |
+| Chế độ bảo trì (chỉ chủ dự án) + cột "Đăng nhập gần nhất": quyết định của chủ, trạng thái, việc còn lại | `docs/HANDOFF-CHE-DO-BAO-TRI.md`; công thức q ở `docs/CHANGE-GUIDE.md`; runbook + đường thoát khẩn ở `docs/HANDOFF-N1.md` |
 | Lịch sử thi công, ruling, nợ kỹ thuật | `docs/superpowers/plans/*-thi-cong-nhat-ky.md` |
 | Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | `docs/evidence/2026-09-20-a2/`, `docs/evidence/2026-09-21-v1-0/` (v1.0: màn đăng nhập…) |
 | PWA/iPhone | `docs/PWA-IPHONE.md` |
@@ -25,7 +26,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | Lệnh | Việc |
 |---|---|
 | `npm run dev` | `wrangler dev` (tự `build:web`); cần `.dev.vars` (mẫu `.dev.vars.example`) và `npm run db:migrate:local` |
-| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện 363 test (đếm lại khi thêm/bớt) |
+| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện {{SO_TEST}} test (đếm lại khi thêm/bớt) |
 | `node --test src/shared/service-form.test.ts` | chạy một tệp test |
 | `npm run typecheck` | `tsc` cho server, `web/`, `web/sw/` — phải **0 lỗi** |
 | `npm run build:web` | esbuild `web/*.ts` → `public/js/`, `web/sw/sw.ts` → `public/sw.js` (cả hai **gitignored**; thêm trang mới phải khai trong script này) |
@@ -40,13 +41,13 @@ Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` kh
 ## 4. Bản đồ mã
 ```
 src/index.ts            gốc lắp ráp: mảng modules, router, Cron
-src/modules/<tên>/      accounts · audit · auth · catalog · company · dispatch · locations · orders · parties · staff
+src/modules/<tên>/      accounts · audit · auth · catalog · company · dispatch · locations · maintenance · orders · parties · staff
                         (index.ts = API công khai của module; rules.ts thuần; repository.ts = SQL; service.ts điều phối)
 src/shared/             logic THUẦN dùng chung server ↔ web: router, http, contracts (DTO), permissions, trip-*, service-form,
-                        order-*, handler-view, text-wrap, app-info, audit-actions, vn-date, sw-policy…  — KHÔNG import src/modules/
+                        order-*, handler-view, text-wrap, app-info, audit-actions, maintenance, vn-date, sw-policy…  — KHÔNG import src/modules/
 web/                    giao diện TypeScript thuần: 1 tệp / trang + thành phần (counter, banner, service-card, trip-sheet, handler-sheet, confirmation-image/-dialog…)
 public/                 HTML tĩnh, app.css (token), fonts/, icons/, manifest; js/ và sw.js do build sinh
-migrations/             0001…0014 (chỉ thêm, không sửa tệp đã áp remote; remote tới 0014 kể từ v1.0 2026-09-21)
+migrations/             0001…0016 (chỉ thêm, không sửa tệp đã áp remote; remote tới 0014 kể từ v1.0 2026-09-21; 0015–0016 mới ở nhánh worktree-che-do-bao-tri, CHƯA áp remote)
 scripts/                công cụ dòng lệnh (audit-invariants, import-staff, dev-iphone…)
 tests/e2e/              kịch bản API (run.mjs điều phối)
 docs/                   tài liệu (xem §2)
@@ -94,10 +95,11 @@ docs/                   tài liệu (xem §2)
 - Turnstile (widget): `theme: "light"` (app chỉ có giao diện sáng), `siteKey` từng kẹt `null` khi `GET /api/auth/config` lỗi lúc mở trang nên `web/login.ts` HỎI LẠI cấu hình sau 403/503 — đừng bỏ.
 - Kịch bản Chrome: các trang dùng CHUNG kho cookie — trang của tài khoản nào phải mở SAU CÙNG thì thao tác chuột mới đi bằng phiên đó.
 - Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ, không từ hai cột này.
+- Chế độ bảo trì (`mnt_setting`): bật thì MÁY CHỦ chặn mọi SĐT ngoài `allowed_phones` (router + `POST /api/auth/login`), kể cả phiên đang mở; chủ bị khoá thì tắt bằng SQL `UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'` (lệnh đầy đủ ở `docs/HANDOFF-N1.md`); `last_login_at` chỉ ghi ở route đăng nhập, không trong `verifyPinThrottled` — công thức q của `docs/CHANGE-GUIDE.md`.
 
 ## 9. Hiện trạng (cập nhật khi đổi)
-- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0014`** (v1.0, 2026-09-21). Trong bản v1.0: `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; module `dispatch` đã có: người phụ trách + `dispatch.claim`, API ở `docs/SYSTEM-DESIGN.md` §7); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` (dự kiến `0015`) — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp. e2e hiện 13 kịch bản (thêm `company`, `turnstile`, `dispatch`); runbook lần phát hành v1.0 (áp `0013`+`0014`, deploy, để nhân viên mở app, rồi mới đặt secret Turnstile) ở `docs/HANDOFF-N1.md`.
+- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0014`** (v1.0, 2026-09-21). Trong bản v1.0: `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; module `dispatch` đã có: người phụ trách + `dispatch.claim`, API ở `docs/SYSTEM-DESIGN.md` §7); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0016` (dự kiến `0017`) — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp. e2e hiện {{SO_E2E}} kịch bản (thêm `company`, `turnstile`, `dispatch`, và `maintenance` ở nhánh chế độ bảo trì); runbook lần phát hành v1.0 (áp `0013`+`0014`, deploy, để nhân viên mở app, rồi mới đặt secret Turnstile) ở `docs/HANDOFF-N1.md`.
 - Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
-- **Việc kế tiếp (đã chốt, chưa làm): chế độ bảo trì chỉ chủ dự án dùng được + cột "Đăng nhập gần nhất"** — đọc `docs/HANDOFF-CHE-DO-BAO-TRI.md` (quyết định của chủ, thông điệp, thứ tự việc, đường thoát khẩn). Tất cả phiên đăng nhập đã bị đăng xuất 2026-09-21 (đổi `SESSION_SECRET`).
+- **Chế độ bảo trì chỉ chủ dự án dùng được + cột "Đăng nhập gần nhất": ĐÃ THI CÔNG ở nhánh `worktree-che-do-bao-tri` (mã, test, tài liệu, migration `0015`/`0016`) — CHỜ LỆNH TRIỂN KHAI.** Chưa merge vào `main`, chưa push, chưa deploy; `0015`/`0016` CHƯA áp lên D1 remote (production vẫn ở `0014`); chưa bật chế độ bảo trì nào trên production. Đọc `docs/HANDOFF-CHE-DO-BAO-TRI.md` (mục 0: trạng thái + việc còn lại), runbook "Lần phát hành kế tiếp" và đường thoát khẩn ở `docs/HANDOFF-N1.md`, nhật ký `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md`. Tất cả phiên đăng nhập đã bị đăng xuất 2026-09-21 (đổi `SESSION_SECRET`).
 - Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, nhiệm vụ đón/lái cano — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV).
 - **Bản v1.0 ĐÃ LÊN PRODUCTION 2026-09-21** (merge vào `main` @ `9594696` + deploy, Worker `21cbaca5-8229-43b8-bab8-928036c9e871`; **Turnstile ĐÃ BẬT cùng ngày**: chủ dự án đặt `TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY` bằng `wrangler secret put`; đã kiểm không cần đăng nhập — xem `docs/HANDOFF-N1.md` "TRẠNG THÁI TRIỂN KHAI — bản v1.0"; CHƯA có đăng nhập trọn vẹn bằng tài khoản thật qua widget thật): (1) màn đăng nhập — Turnstile (máy chủ + widget + CSP; hỏi lại cấu hình khi lỗi) + khối thông tin công ty + số phiên bản (khoá đặt bằng `secret put`, KHÔNG trong `vars`/tệp; ngưỡng `MAX_TOKEN_LENGTH` = 2048 ĐÃ đối chiếu 2026-09-21 với tài liệu Cloudflare); (3) người phụ trách đơn — module `dispatch`, người phụ trách sửa được đơn nhờ `ctx.isAssigned`, dòng "Phụ trách" ở danh sách + khối/bảng chọn ở trang đơn; (2) ảnh xác nhận đơn PNG (canvas ở trình duyệt; hộp thoại tự mở sau khi tạo đơn mới; nút "Xác nhận gửi khách" ở trang đơn; KHÔNG ghi nhật ký `exported_png`) — `docs/CHANGE-GUIDE.md` công thức p. Việc đang chờ: PDF/in A4; iPhone thật (canvas/chia sẻ/tải ảnh/WebKit); nhật ký thi công `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.

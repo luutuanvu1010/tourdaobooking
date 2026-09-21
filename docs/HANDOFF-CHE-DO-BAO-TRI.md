@@ -2,10 +2,24 @@
 
 Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CHANGE-GUIDE.md`, `docs/SYSTEM-DESIGN.md`, và phân tích ở `docs/superpowers/specs/2026-09-21-che-do-phat-trien-nghien-cuu.md` (đã có dữ kiện + phương án; tệp này chốt quyết định và việc phải làm).
 
-## 1. Trạng thái lúc kết thúc phiên
+## 0. TRẠNG THÁI — ĐÃ THI CÔNG trên nhánh `worktree-che-do-bao-tri` (chưa merge/push/deploy — chờ lệnh chủ)
+
+- **Đã làm (chỉ trên nhánh, cục bộ):** Việc 1 và Việc 2 của §3 — migration `0015_staff_last_login` + `0016_maintenance`; module `maintenance`; cổng bảo trì ở router (chặn cả phiên đang mở) và ở `POST /api/auth/login` (sau Turnstile, trước PIN); `GET`/`PUT /api/maintenance`; luật thuần và thông điệp đúng chữ ở `src/shared/maintenance.ts`; nhóm nhật ký "Hệ thống" (`maintenance_changed`); cột "Đăng nhập gần nhất" ở `/staff`; giao diện (màn hình toàn trang + đếm ngược sống, banner ở đăng nhập, dải "Đang ở chế độ bảo trì", nút bật/tắt ở `/account`); kịch bản e2e `maintenance`; tài liệu (`docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md` công thức q, `docs/HANDOFF-N1.md` runbook + đường thoát khẩn, nhật ký thi công `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md`). **Kết quả kiểm:** (điền khi có kết quả — số test, typecheck, e2e, kịch bản Chrome, lượt rà soát cuối; chi tiết ở nhật ký thi công).
+- **CHƯA làm (đúng ranh giới chủ đặt):** KHÔNG merge vào `main`, KHÔNG push, KHÔNG deploy, KHÔNG áp `0015`/`0016` lên D1 remote; production vẫn ở `0014` (bản v1.0). Chưa bật chế độ bảo trì nào trên production.
+- **Khác đề xuất ở §3 (mã thắng, lý do ở nhật ký thi công):** bảng `mnt_setting` (bảng mới bắt buộc mang tiền tố module — `src/architecture.test.ts`) với cột `enabled`, `ends_at`, `allowed_phones` + cột kiểm toán, thay cho `app_setting` khoá–giá trị `maintenance_on`/`maintenance_ends_at`; người/lúc bật nằm ở `updated_by`/`updated_at` và nhật ký `maintenance_changed`; `PUT /api/maintenance` cần ADMIN VÀ nằm trong `allowed_phones`, giờ dự kiến phải ở tương lai và tối đa 7 ngày; thông điệp có thêm hai biến thể (hết giờ dự kiến; chưa có giờ) chỉ dùng khi không có đếm ngược. Đường thoát khẩn đã ghi vào runbook (`docs/HANDOFF-N1.md`).
+- **Việc còn lại:**
+  1. Chủ dự án xem và duyệt các ruling ở nhật ký thi công (nhất là cạnh phụ thuộc `auth → maintenance` và cổng tiêm ở router).
+  2. Merge/push nhánh: chờ lệnh riêng của chủ.
+  3. Deploy: chờ lệnh riêng; theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp (`0015` + `0016`)" (cổng chỉ-đọc, điểm Time Travel, áp `0015`+`0016` rồi `wrangler deploy` NGAY, `audit-invariants --db remote`, ghi trạng thái).
+  4. Sau deploy: theo dõi cột "Đăng nhập gần nhất"; chỉ khi mọi người cần dùng app đã đăng nhập bằng bản mới mới quyết bật chế độ bảo trì (nhắn nhân viên trước, bật giờ vắng).
+  5. Kịch bản Chrome: `v1-dang-nhap.mjs` (bắt buộc vì chạm `web/login.ts`/`public/login.html`, cần mạng) và kịch bản màn hình bảo trì/nút bật-tắt/dải — (điền khi có kết quả).
+  6. Thử iPhone thật (lớp phủ + đếm ngược trong PWA đã cài): chưa kiểm.
+  7. B5 `staff_party_required` lấy số kế tiếp sau `0016` (dự kiến `0017`).
+
+## 1. Trạng thái lúc kết thúc phiên (lịch sử — TRƯỚC khi thi công)
 - **Production = bản v1.0** (mã `main` @ `db0a774`; migration tới `0014`; Turnstile **ĐÃ BẬT**, chủ đã đăng nhập thử thành công). Chi tiết ở `docs/HANDOFF-N1.md` (mục "TRẠNG THÁI TRIỂN KHAI — bản v1.0").
 - **Đã ĐĂNG XUẤT TẤT CẢ** (theo lệnh của chủ, 2026-09-21) bằng cách đổi `SESSION_SECRET` production sang giá trị ngẫu nhiên mới (không lưu ở đâu; `.dev.vars` là khoá riêng của máy phát triển). Mọi người, kể cả chủ, phải đăng nhập lại qua Turnstile. PIN không đổi, không ghi dữ liệu nào.
-- **Git:** `main` = `origin/main` = `db0a774`. Nhánh **`worktree-turnstile-khoa`** (4 commit: `.gitignore` chặn `.dev.vars.*`; ngưỡng token 2048 đã đối chiếu; ghi nhận Turnstile bật; nghiên cứu chế độ bảo trì; cộng tệp này) **CHƯA merge vào `main`** — chỉ tài liệu, `.gitignore`, một chú thích mã. Merge trước khi bắt đầu việc mới nếu muốn có đủ tài liệu ở `main`.
+- **Git:** `main` = `origin/main` = `db0a774`. Nhánh **`worktree-turnstile-khoa`** (4 commit: `.gitignore` chặn `.dev.vars.*`; ngưỡng token 2048 đã đối chiếu; ghi nhận Turnstile bật; nghiên cứu chế độ bảo trì; cộng tệp này) đã được fast-forward vào `main` và đẩy lên `origin/main` (= `f3a8225`) theo lệnh của chủ dự án lúc bắt đầu thi công — chỉ tài liệu, `.gitignore`, một chú thích mã (`main` cục bộ ở checkout gốc có thể còn ở `db0a774` cho tới khi được `git pull`).
 - **Lưu ý môi trường:** hệ thống auto-mode chặn Claude in/đọc giá trị trong `.dev.vars` (Credential Materialization) — muốn đặt/đổi khoá production thì chủ tự chạy `!` lệnh `wrangler secret put …`. Tên biến khoá Turnstile phải đúng `TURNSTILE_SITE_KEY` / `TURNSTILE_SECRET_KEY`.
 
 ## 2. Quyết định của chủ dự án (2026-09-21) — đã CHỐT
@@ -17,7 +31,7 @@ Viết 2026-09-21 khi kết thúc phiên. Đọc trước: `CLAUDE.md`, `docs/CH
 6. **Thêm cột "Đăng nhập gần nhất"** (`staff.last_login_at`) để biết khi nào mọi người đã đăng nhập bằng bản mới.
 7. Đăng xuất ngay — **ĐÃ LÀM** (mục 1).
 
-## 3. Việc phải làm (thứ tự) — CHƯA làm gì trong phiên này
+## 3. Việc phải làm (thứ tự) — ĐÃ THI CÔNG trên nhánh `worktree-che-do-bao-tri` (xem mục 0; đoạn dưới là kế hoạch gốc, giữ để đối chiếu)
 Theo `CLAUDE.md` (worktree riêng, test đỏ→xanh, không push/merge/deploy khi chưa có lệnh; **chủ đã phàn nàn "lâu" và "review quá nhiều": chạy song song các việc không chung tệp, gộp task nhỏ, CHỈ MỘT lượt rà soát toàn nhánh cuối**).
 
 **Việc 1 — `staff.last_login_at` (≈ 40 phút).** Migration `0015_staff_last_login.sql` (chỉ THÊM cột TEXT NULL; số `0015`: B5 `staff_party_required` khi làm lấy số sau, `migrations-n1.test.ts` nhận theo TÊN); cập nhật khi đăng nhập thành công (module `staff` cung cấp hàm, `auth` gọi — đúng ranh giới); thêm vào DTO của `GET /api/staff` và cột "Đăng nhập gần nhất" ở `/staff` (giờ VN, "chưa đăng nhập" khi NULL); sổ dữ liệu + `npm run dict`. KHÔNG ghi SĐT vào nhật ký.

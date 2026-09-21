@@ -2,6 +2,9 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## TRẠNG THÁI — nhánh `worktree-che-do-bao-tri` ĐÃ THI CÔNG, CHƯA TRIỂN KHAI (`0015` + `0016`)
+Cột "Đăng nhập gần nhất" + chế độ bảo trì chỉ chủ dự án dùng được: mã và tài liệu có ở nhánh `worktree-che-do-bao-tri` (chưa merge vào `main`, chưa push, chưa deploy); migration `0015`/`0016` CHƯA áp lên D1 remote — production vẫn ở `0014`. Runbook và đường thoát khẩn: mục "Lần phát hành kế tiếp" và "Chế độ bảo trì — đường thoát khẩn" bên dưới.
+
 ## TRẠNG THÁI TRIỂN KHAI — bản v1.0 ĐÃ LÊN PRODUCTION (2026-09-21, theo lệnh của chủ dự án) — Turnstile ĐÃ BẬT (xem mục "Turnstile ĐÃ BẬT")
 Đăng nhập Turnstile + thông tin công ty · người phụ trách · xác nhận đơn PNG. Mọi việc dưới đây làm theo runbook "Lần phát hành v1.0", NGOẠI TRỪ các bước Turnstile thật (chưa có widget/khoá) — mục B.1 (deploy MÃ trước, secret sau) được giữ nguyên.
 - **Mã:** `main` @ `9594696`. **Worker:** `21cbaca5-8229-43b8-bab8-928036c9e871` tại `booking.tourdao.vn` (phiên bản ngay trước: `a625adc4-43df-4e67-ac8e-f619aa98732b`, lần phát hành 1). **D1:** đã áp `0013` + `0014` (trước đó tới `0012`).
@@ -48,15 +51,15 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 - Ghi điểm khôi phục D1 Time Travel trước khi áp: `npx wrangler d1 time-travel info tourdao-sales-db`.
 
 ## Triển khai — HAI lần phát hành (expand–contract)
-`wrangler d1 migrations apply` áp MỌI migration chưa áp, nên migration siết B5 (`staff_party_required`) KHÔNG được nằm trong `migrations/` ở lần 1 — và chưa được có mặt ở lần phát hành v1.0 (mục "Lần phát hành v1.0" bên dưới). **Số của B5 là số KẾ TIẾP sau `0014` (dự kiến `0015`)**: `0013` = `company_email` và `0014` = `dispatch` đã có trong nhánh v1.0 (cả hai chỉ THÊM). Trước khi đặt tên migration mới, kiểm lại `migrations/` và `docs/superpowers/plans/`.
+`wrangler d1 migrations apply` áp MỌI migration chưa áp, nên migration siết B5 (`staff_party_required`) KHÔNG được nằm trong `migrations/` ở lần 1 — và chưa được có mặt ở lần phát hành v1.0 (mục "Lần phát hành v1.0" bên dưới). **Số của B5 là số KẾ TIẾP sau `0016` (dự kiến `0017`)**: `0013` = `company_email` và `0014` = `dispatch` đã lên production cùng bản v1.0 (2026-09-21); `0015` = `staff_last_login` và `0016` = `maintenance` (chế độ bảo trì + cột "Đăng nhập gần nhất") có trong nhánh `worktree-che-do-bao-tri`, CHƯA lên production (mục "Lần phát hành kế tiếp" bên dưới) — cả bốn chỉ THÊM. Trước khi đặt tên migration mới, kiểm lại `migrations/` và `docs/superpowers/plans/`.
 
 **Lần 1 (mở rộng):**
 1. Chạy BA lệnh riêng, ghi lại kết quả của từng lệnh (không nối bằng `&&`): (a) `npm test` — kỳ vọng toàn bộ đạt; (b) `npm run typecheck` — **phải là 0 lỗi lúc triển khai** (A2 đã đưa lỗi của `tsc -p web` về 0); (c) `npm run test:e2e` (cần mạng) — kỳ vọng `E2E: 13/13 kịch bản xanh` (số kịch bản THẬT của bản hiện tại: `platform`, `pwa`, `orders`, `trip`, `admin`, `turnstile`, `catalog`, `dispatch`, `admin-race`, `locations`, `parties`, `permissions`, `company`; ba kịch bản `turnstile`, `dispatch`, `company` là của bản v1.0 — lúc lần 1 lên production con số là 10/10, xem "TRẠNG THÁI TRIỂN KHAI") và bước cuối `audit-invariants --strict` xanh.
-2. `npm run db:migrate:remote` (áp `0008` nếu chưa, rồi `0009…0012`), **ngay sau đó** `npx wrangler deploy` trong cùng lượt làm việc (khoảng giữa chỉ tính bằng phút: tài khoản do mã cũ tạo lúc đó chưa có hồ sơ/quyền — hiện nhãn "(chưa có hồ sơ)", đơn của họ không biến mất, họ bị từ chối theo mặc định cho tới khi B5 `staff_party_required` — số kế tiếp SAU `0014`, dự kiến `0015` — backfill). Trong khoảng giữa này — **và tiếp tục sau khi triển khai, cho tới khi chắc chắn không hoàn tác nữa** — KHÔNG tạo tài khoản, KHÔNG đổi tên / SĐT đăng nhập / ngưng / kích hoạt tài khoản, KHÔNG đổi quyền, KHÔNG tạo-sửa hồ sơ (lý do và hệ quả: mục "Hoàn tác" ngay dưới).
+2. `npm run db:migrate:remote` (áp `0008` nếu chưa, rồi `0009…0012`), **ngay sau đó** `npx wrangler deploy` trong cùng lượt làm việc (khoảng giữa chỉ tính bằng phút: tài khoản do mã cũ tạo lúc đó chưa có hồ sơ/quyền — hiện nhãn "(chưa có hồ sơ)", đơn của họ không biến mất, họ bị từ chối theo mặc định cho tới khi B5 `staff_party_required` — số kế tiếp SAU `0016`, dự kiến `0017` — backfill). Trong khoảng giữa này — **và tiếp tục sau khi triển khai, cho tới khi chắc chắn không hoàn tác nữa** — KHÔNG tạo tài khoản, KHÔNG đổi tên / SĐT đăng nhập / ngưng / kích hoạt tài khoản, KHÔNG đổi quyền, KHÔNG tạo-sửa hồ sơ (lý do và hệ quả: mục "Hoàn tác" ngay dưới).
 3. `node scripts/audit-invariants.mjs --db remote` (không `--strict`: còn cảnh báo "chưa có hồ sơ" là đúng nếu có tài khoản khoảng giữa). Mọi dòng `✗` là vi phạm thật. Lệnh này chỉ chạy được SAU khi đã áp `0009…0014` (bản hiện tại của script kiểm cả `pty_*`/`stf_*` của `0009…0012` lẫn bảng `dsp_*` của `0014`): trên một D1 chưa có bảng nào trong số đó — vd production còn ở `0012` — script **thoát mã 2** ("Không chạy được truy vấn trên D1"), mã 2 nghĩa là KHÔNG chạy được chứ KHÔNG phải dữ liệu sạch (mã 1 = có bất biến bị vi phạm). Dùng nó ở bước kiểm SAU khi áp, không phải để kiểm "hiện trạng trước".
 4. Thử tay: đăng nhập bằng tài khoản admin; `/staff` hiện cột Quyền; `/parties`, `/locations` mở được; tạo thử một hồ sơ.
 
-**Lần 2 (siết) — chỉ sau khi lần 1 chạy ổn:** làm Task B5 của kế hoạch N1-B (thêm `staff_party_required` với số KẾ TIẾP sau `0014` — dự kiến `0015_staff_party_required.sql`, KHÔNG phải `0013`, số đó đã là `company_email` — + test), rồi `npm run db:migrate:remote`, `node scripts/audit-invariants.mjs --db remote --strict`, và kiểm `SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'staff_party_required_%'` = 2.
+**Lần 2 (siết) — chỉ sau khi lần 1 chạy ổn:** làm Task B5 của kế hoạch N1-B (thêm `staff_party_required` với số KẾ TIẾP sau `0016` — dự kiến `0017_staff_party_required.sql`, KHÔNG phải `0013`/`0015`, những số đó đã dùng — + test), rồi `npm run db:migrate:remote`, `node scripts/audit-invariants.mjs --db remote --strict`, và kiểm `SELECT count(*) FROM sqlite_master WHERE type='trigger' AND name LIKE 'staff_party_required_%'` = 2.
 
 **Hoàn tác:** migration không có `down`, và "triển khai lại Worker cũ" CHỈ an toàn trong một cửa sổ hẹp — đọc hết ba gạch đầu dòng trước khi dùng.
 - **Chưa tạo/sửa tài khoản, quyền hay hồ sơ nào dưới mã mới** → triển khai lại phiên bản Worker trước là đủ: `0009…0012` chỉ thêm nên mã cũ vẫn đọc/ghi bình thường (đã kiểm trên SQLite: mã cũ vẫn `INSERT staff` không `party_id`, vẫn `UPDATE role`/`full_name`, vẫn đếm quản trị viên theo `role`).
@@ -116,6 +119,43 @@ Chỉ khi chủ dự án ra lệnh trong phiên đó (`CLAUDE.md` §6). Đặc t
 3. Bấm "Xác nhận gửi khách": ảnh phải in ĐÚNG tên người mới ở dòng "Nhân viên phụ trách" (ảnh dựng ở trình duyệt, đọc tên lúc mở, không nhớ đệm).
 4. Nếu có thể, đăng nhập bằng người mới được giao: thấy đơn thử và sửa được (đơn nháp); một tài khoản Bán hàng thứ ba không liên quan không thấy nút đổi/nhận và không sửa được.
 5. Dọn: có thể đổi lại về người lập (thêm một dòng lịch sử — không có "hoàn tác", lịch sử và nhật ký luôn còn), rồi huỷ đơn thử. Ghi kết quả vào B.7.
+
+## Lần phát hành kế tiếp (`0015` + `0016`): cột "Đăng nhập gần nhất" + chế độ bảo trì — RUNBOOK (CHƯA thực hiện)
+
+Chỉ khi chủ dự án ra lệnh trong phiên đó (`CLAUDE.md` §6). Mã: nhánh `worktree-che-do-bao-tri` (CHƯA merge/push/deploy). Migration: `0015_staff_last_login` (thêm cột `staff.last_login_at`, TEXT NULL) và `0016_maintenance` (bảng singleton `mnt_setting`, gieo TẮT) — cả hai chỉ THÊM (expand-only), áp CÙNG một lệnh `npm run db:migrate:remote`. Mã CŨ (v1.0, Worker `21cbaca5-8229-43b8-bab8-928036c9e871`) không đọc cột/bảng mới nên vẫn chạy trên schema mới. Thiết kế: `docs/SYSTEM-DESIGN.md` mục 4 ("Chế độ bảo trì"), nhật ký thi công `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md`.
+
+**A. TRƯỚC khi deploy**
+1. Điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`. Chạy RIÊNG `npm test`, `npm run typecheck`, `npm run test:e2e` trên đúng mã sẽ deploy (số kỳ vọng: điền khi có kết quả). Chạm `web/login.ts`/`public/login.html` nên phải có kịch bản Chrome `v1-dang-nhap.mjs` (cần mạng) và kịch bản màn hình bảo trì (điền khi có kết quả).
+2. Cổng chỉ-đọc: `npx wrangler d1 migrations list tourdao-sales-db --remote` báo ĐÚNG hai migration chờ (`0015`, `0016`). Hai migration này không có backfill, không khoá ngoại, không siết gì — không có cổng dữ liệu riêng như `0014`.
+3. Nếu định bật chế độ bảo trì ngay sau đó: nhắn nhân viên trước (mục B.4).
+
+**B. THỨ TỰ**
+1. `npm run db:migrate:remote` (áp `0015` + `0016`), rồi **ngay sau đó** `CI=1 npx wrangler deploy` trong cùng lượt làm việc. Không có biến/bí mật mới phải đặt. Khoảng giữa hai lệnh vô hại (Worker cũ chạy trên schema mới).
+2. Kiểm sau deploy (chỉ đọc; KHÔNG in SĐT): `CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT enabled, ends_at FROM mnt_setting"` → `enabled = 0`, `ends_at` rỗng; `GET /api/auth/config` có `"maintenance":{"on":false,"endsAt":null}`; `GET /api/maintenance` chưa đăng nhập → 401; `node scripts/audit-invariants.mjs --db remote` xanh (KHÔNG có bất biến riêng cho `mnt_setting`); `/sw.js` `no-store`; 10 trang 200.
+3. **Cột "Đăng nhập gần nhất" (`/staff`, quản trị):** lúc mới deploy mọi tài khoản hiện "Chưa đăng nhập" — đúng, vì cột chỉ ghi từ lần đăng nhập đầu tiên SAU deploy. Nó ghi khi ĐĂNG NHẬP (không phải khi phiên còn sống được dùng tiếp), nên người còn phiên cũ chưa đăng nhập lại vẫn hiện "Chưa đăng nhập" dù đang dùng app. Cần buộc mọi người đăng nhập lại để có mốc = xoay `SESSION_SECRET` (việc riêng, cần lệnh của chủ dự án, đăng xuất TẤT CẢ). Chủ theo dõi cột này.
+4. **Bật chế độ bảo trì** — chỉ khi chủ quyết, và SAU khi cột "Đăng nhập gần nhất" cho thấy mọi người cần dùng app đã đăng nhập bằng bản mới. Nhắn nhân viên trước; bật vào giờ vắng. Dùng tài khoản chủ (`/account` → "Chế độ bảo trì" → chọn giờ dự kiến → Bật). Kiểm: đăng nhập bằng một tài khoản khác (hoặc cửa sổ ẩn danh) → thấy thông điệp bảo trì + đếm ngược, không vào được; chủ dùng app bình thường và thấy dải "Đang ở chế độ bảo trì"; `/audit` có dòng "Đổi chế độ bảo trì" (nhóm "Hệ thống"). Tắt bằng nút ở `/account` khi xong. Bị khoá ngoài → mục "Chế độ bảo trì — đường thoát khẩn" ngay dưới.
+5. Ghi trạng thái (mã, phiên bản Worker, điểm Time Travel, kết quả các kiểm trên) vào đầu tệp này và `CLAUDE.md` §9.
+
+**C. Hoàn tác**
+- **Chế độ bảo trì:** tắt bằng nút ở `/account` hoặc bằng SQL (mục dưới); không cần deploy.
+- **Worker về `21cbaca5-…` (v1.0):** an toàn, không mất dữ liệu (`0015`/`0016` chỉ thêm, mã cũ không đọc chúng). Mất: cột "Đăng nhập gần nhất", nút và **cổng** bảo trì. **Cẩn thận: lùi Worker khi chế độ bảo trì đang BẬT làm app MỞ LẠI cho mọi người** (mã cũ không có cổng) — tắt chế độ trước nếu muốn giữ đúng ý.
+- **Time Travel** không cần cho lần này (không có thay đổi dữ liệu nào phải gỡ); nếu dùng, mất mọi dữ liệu ghi sau điểm đã ghi.
+
+## Chế độ bảo trì — đường thoát khẩn
+
+Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §6 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
+
+Xem trạng thái (chỉ đọc, KHÔNG in SĐT):
+```
+CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT enabled, ends_at FROM mnt_setting"
+```
+Tắt khẩn:
+```
+CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'"
+```
+- Bảng cố ý không có CHECK chéo cột nên lệnh trên luôn chạy được dù `ends_at` còn giá trị (đã có test ở `src/migrations-maintenance.test.ts`).
+- Lệnh này KHÔNG ghi nhật ký `maintenance_changed` (đi vòng app): sau khi dùng, ghi lại vào đầu tệp này (ngày, lý do) để lịch sử không thiếu.
+- Sau đó kiểm `GET /api/auth/config` → `"maintenance":{"on":false,…}` và đăng nhập thử; rồi tìm nguyên nhân (vd `allowed_phones` sai — số nhập vào danh sách phải là dạng chuẩn hoá `0xxxxxxxxx`).
 
 ## Cổng bổ sung trước/sau khi áp lần phát hành 1 (rà soát độc lập, 2026-09-20)
 

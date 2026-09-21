@@ -11,7 +11,7 @@
 2. Mỗi nhóm tệp bạn chạm có bộ kiểm riêng: §3. Trước commit và trước deploy: §5.
 3. Hành vi lạ → đọc §4 (bẫy) trước khi debug. Thấy tài liệu khác mã → §6.
 
-Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–p · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
+Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
 
 ## 1. Bảng tra nhanh "Muốn … → xem …"
 
@@ -41,6 +41,8 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–p · §3 Ma t
 | Đổi màu / font / token | `public/app.css` (`:root`), `public/manifest.webmanifest` | i |
 | Thêm biểu tượng | `web/icons.ts` (`SHAPES`) | i |
 | Đổi luật đăng nhập / PIN / chống dò / phiên / Turnstile (máy chủ + widget ở màn đăng nhập) | `src/modules/auth/*` (`turnstile.ts` cho Turnstile), `src/modules/staff/password.ts`, `src/modules/staff/rules.ts`, `web/login.ts`, `public/login.html`, `public/_headers` (CSP) | l |
+| Chế độ bảo trì (ai được phép, giờ tối đa, thông điệp, cổng chặn, nút bật/tắt, màn hình + đếm ngược, banner ở đăng nhập, dải) | `src/shared/maintenance.ts` (+ test), `src/modules/maintenance/`, `src/shared/router.ts` (`injected.maintenanceBlock`), `src/index.ts`, `src/modules/auth/index.ts`, `web/api.ts`, `web/maintenance-screen.ts`, `web/login.ts`, `web/shell.ts`, `web/account.ts`, `tests/e2e/maintenance.mjs` | q |
+| Cột "Đăng nhập gần nhất" / ghi nhận đăng nhập thành công | `src/modules/staff/{repository,index}.ts` (`recordLogin`), `src/modules/auth/index.ts` (route login), `web/staff.ts`, `public/staff.html` | q, l |
 | Thêm biến môi trường / bí mật | `wrangler.jsonc` (`vars`), `.dev.vars`, `worker-configuration.d.ts` | l |
 | Đổi cách đồng bộ Sheet / danh mục / ghi đè admin | `src/modules/catalog/*`, `src/shared/sheets.ts` | k |
 | Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
@@ -167,14 +169,14 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### d. Migration (cột, bảng, view, trigger)
 
 **Số kế tiếp (hiện tại):**
-- Tệp cuối hiện là `0014_dispatch.sql` (bản v1.0, task 5: bảng/view phân công + backfill người phụ trách; trước đó `0013_company_email.sql`, task 1: chỉ điền email công ty). Cả hai đã có trong nhánh, CHƯA lên production — production mới tới `0012`. **Số kế tiếp:** `0015`; B5 (`staff_party_required`: trigger bắt buộc `party_id` + giữ quản trị viên cuối) lấy số KẾ TIẾP sau `0014` khi được làm (nay là `0015` nếu không có migration nào chen vào) — không còn gắn với `0013`. Trước khi thêm migration mới, kiểm `migrations/` và `docs/superpowers/plans/` xem số đã bị giữ chưa.
+- Tệp cuối hiện là `0016_maintenance.sql` (nhánh `worktree-che-do-bao-tri`: bảng singleton `mnt_setting`; trước đó `0015_staff_last_login.sql`: cột `staff.last_login_at`). Cả hai chỉ THÊM và CHƯA lên production. Production hiện tới `0014` (v1.0: `0013_company_email` + `0014_dispatch`, lên 2026-09-21). **Số kế tiếp:** `0017`; B5 (`staff_party_required`: trigger bắt buộc `party_id` + giữ quản trị viên cuối) lấy số KẾ TIẾP sau `0016` khi được làm (nay là `0017` nếu không có migration nào chen vào) — không còn gắn với `0013` hay `0015`. Trước khi thêm migration mới, kiểm `migrations/` và `docs/superpowers/plans/` xem số đã bị giữ chưa.
 - **Bẫy (đã xử lý):** `src/migrations-n1.test.ts` nhận biết "migration siết" B5 theo TÊN tệp (`isContractMigration`: tên chứa `staff_party_required`), KHÔNG theo số thứ tự — nên B5 lấy số kế tiếp nào cũng được. Trước đây nhận biết bằng `startsWith("0013")`, và thêm một `0013_*` khác sẽ tắt lặng lẽ khẳng định "trước migration siết không có trigger siết". Nếu đổi tên tệp B5 thì phải sửa `isContractMigration`.
 
 **Sửa theo thứ tự:**
 1. Tên `NNNN_mô_tả_không_dấu.sql`; chỉ THÊM: `CREATE TABLE/INDEX/VIEW/TRIGGER`, `ALTER TABLE … ADD COLUMN` NULL hoặc `DEFAULT` hằng (`REFERENCES` chỉ được khi mặc định NULL).
    - Không sửa tệp đã áp remote (0001–0012 đều đã áp), kể cả chú thích.
    - Đổi `CHECK`/`NOT NULL`, xoá cột, thêm giá trị vào `CHECK` (vd `orders.status`) = dựng lại bảng = expand–contract HAI lần phát hành (`docs/ARCHITECTURE.md` "Luật dữ liệu") + chủ dự án duyệt. Trigger không `ALTER` được: `DROP TRIGGER` rồi `CREATE TRIGGER`.
-2. Bảng mới: tiền tố module (`pty_`, `loc_`, `stf_`, `dsp_` — từ `0014`; sau này `bil_` — khai ở `TABLE_PREFIX`/`VIEW_PREFIX` trong `src/architecture.test.ts`); `created_at`/`updated_at` `TEXT NOT NULL` + `created_by`/`updated_by` `TEXT NULL` (không khoá ngoại); khoá ngoại `NO ACTION`; tra cứu khoá `code TEXT`; không xoá cứng (`valid_from/to` hoặc `active`). Mẫu: `migrations/0010_locations.sql`, `0011_parties.sql`.
+2. Bảng mới: tiền tố module (`pty_`, `loc_`, `stf_`, `dsp_` — từ `0014`; `mnt_` — từ `0016`; sau này `bil_` — khai ở `TABLE_PREFIX`/`VIEW_PREFIX` trong `src/architecture.test.ts`); `created_at`/`updated_at` `TEXT NOT NULL` + `created_by`/`updated_by` `TEXT NULL` (không khoá ngoại); khoá ngoại `NO ACTION`; tra cứu khoá `code TEXT`; không xoá cứng (`valid_from/to` hoặc `active`). Mẫu: `migrations/0010_locations.sql`, `0011_parties.sql`.
 3. `docs/data-dictionary.json` (bảng: `name`, `module`, `kind`, `legacy?`; view: `columns`; `integrityEdges`; `deprecatedColumns`) → `npm run dict` (sinh `docs/DATA-DICTIONARY.md`).
 4. `src/architecture.test.ts`: `ALLOWED_EDGES` nếu có cạnh mới; đọc xuyên module chỉ qua view công bố `v_<tiền tố>_*`.
 5. Bất biến mới → thêm một phần tử vào mảng `CHECKS` của **`scripts/audit-checks.mjs`** (tệp thuần; `scripts/audit-invariants.mjs` chỉ import nó): `{ code, what, sql: "SQL đếm dòng vi phạm (một câu, KHÔNG dấu ;)", level: "fail" | "warn-unless-strict" | "warn", mode?: "rows", note? }` (`warn-unless-strict` đỏ khi chạy `--strict`, mức của e2e — vd R-DSP-2a "người phụ trách không còn tài khoản/quyền"; `warn` là cảnh báo vĩnh viễn, không bao giờ đỏ — dùng cho tình trạng nghiệp vụ hợp lệ như R-DSP-2b "người phụ trách đã ngưng"). **Bắt buộc kèm test** trong `src/audit-invariants.test.ts` (chạy đúng câu SQL trên schema đầy đủ bằng `node:sqlite`: ca xanh, ca đỏ, và "dữ liệu khoẻ ⇒ 0 vi phạm ở mọi kiểm"); chỉ thử tay trên D1 tạm thì đột biến nào cũng lọt. Khoảng hiệu lực UTC (`valid_*_at`) so theo nửa mở `[từ, đến)` như `R-DSP-3` (đổi người = đóng và mở cùng một thời điểm nên đầu mút chạm nhau là hợp lệ). Script thoát mã 2 nếu D1 chưa có bảng mà một kiểm cần (vd `dsp_*` khi chưa áp `0014`) — chạy nó SAU khi áp migration.
@@ -214,7 +216,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 1. `src/shared/audit-actions.ts`: thêm `AUDIT_ACTIONS.<mã_snake_case> = { label: "<tiếng Việt, không trùng nhãn khác>", group }` (`group` ∈ `AUDIT_GROUPS`). KHÔNG cần migration (bỏ `CHECK` từ `0007`). `web/audit.ts` (bộ lọc) và `web/format.ts` (`actionLabel`) tự lấy từ đây.
 2. Ghi nhật ký: `auditStatement(db, { staffId, action, at, orderId?, targetType?, targetId?, detail?, id? }, onlyIf?)` từ `src/modules/audit/index.ts`, đặt TRONG cùng `db.batch()` với thay đổi dữ liệu. `onlyIf` (thường `"changes() > 0"`) chỉ ghi khi thao tác thắng tranh chấp.
 3. `detail`: KHÔNG ghi PIN/SĐT/email/MST/nội dung khách gõ tự do; chỉ mã, số tiền, nhãn ("đổi điểm đón").
-4. Nhóm/loại đối tượng MỚI: thêm khoá vào `AUDIT_GROUPS`, rồi một `LEFT JOIN` + nhánh `targetLabel` trong `listAll` (`src/modules/audit/repository.ts`) để hiện nhãn. Hiện có `order`, `staff`, `party`, `location`; riêng `catalog` nhãn là chính `target_id` (mã dịch vụ).
+4. Nhóm/loại đối tượng MỚI: thêm khoá vào `AUDIT_GROUPS`, rồi một `LEFT JOIN` + nhánh `targetLabel` trong `listAll` (`src/modules/audit/repository.ts`) để hiện nhãn. Hiện có `order`, `staff`, `party`, `location`, `system` ("Hệ thống": chỉ `maintenance_changed`, `targetId` = "maintenance", không có JOIN nhãn nên `targetLabel` rỗng); riêng `catalog` nhãn là chính `target_id` (mã dịch vụ).
 
 **Kiểm:** `node --test src/shared/audit-actions.test.ts` → `npm test` → `npm run typecheck` → `npm run test:e2e -- orders` (`orders.mjs` kiểm `/api/audit`).
 
@@ -343,6 +345,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - PIN 6 số: `isValidPin` (`src/modules/staff/phone.ts`); PIN yếu `isWeakPin`, `generatePin` (`staff/rules.ts`); PIN mới `validateNewPin` (`staff/index.ts`).
 - Băm PBKDF2: `PBKDF2_ITERATIONS` = 100_000 (trần của Workers) ở `staff/password.ts`; định dạng `pbkdf2$sha256$<vòng>$<salt>$<hash>` (hash cũ vẫn kiểm được vì lưu số vòng); `verifyDummy` cho SĐT lạ (chống lộ tồn tại).
 - Phiên: cookie `td_session`, hạn `SESSION_TTL_SECONDS` = 7 ngày, `HttpOnly; SameSite=Lax` (+`Secure` khi https) ở `src/modules/auth/session.ts`; `staff.credentials_changed_at` làm mọi phiên cũ hết hiệu lực (`getActiveStaff`).
+- Thứ tự ở `POST /api/auth/login` (`auth/index.ts`): 400 đầu vào → Turnstile (403/503 `turnstile_*`) → cổng bảo trì (503 `maintenance`, công thức q) → chống dò PIN (429) / kiểm PIN (401) → `recordLogin` (`staff.last_login_at`). Mỗi cổng đứng TRƯỚC bộ đếm để bị chặn không tiêu hao lượt thử PIN.
 - Chống dò (`auth/throttle.ts`): `PHONE_LIMIT` 5, `IP_LIMIT` 30, `LOGIN_WINDOW_MS` 15 phút; ĐẶT CHỖ trước khi kiểm PIN; IP lấy từ header `cf-connecting-ip`; đổi PIN dùng chung bộ đếm qua `verifyPinThrottled`.
 
 **Web:**
@@ -437,6 +440,42 @@ Ba lớp, đổi đúng lớp:
 
 **Bẫy:** ảnh có "₫" trông như "đ" gạch chân — đó là chữ ₫ của phông Nunito, không phải lỗi. Test giả lập lỗi phải đặt SAU lần mở thành công đầu tiên nếu lỗi nằm ở dữ liệu đã được nhớ (hồ sơ công ty được nhớ trong trang). `Runtime.evaluate` của CDP không bị CSP chặn nên kịch bản đóng gói bộ vẽ bằng esbuild và nạp thẳng vào trang; đó là công cụ kiểm, không phải mã chạy thật.
 
+### q. Chế độ bảo trì (chỉ chủ dự án dùng được) / cột "Đăng nhập gần nhất"
+
+Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` §2): bật thì chặn TẤT CẢ trừ SĐT được phép (hiện chỉ `0989929373`), kể cả phiên đang mở; thông điệp đúng chữ đã chốt; có nút bật/tắt trong app; có cột "Đăng nhập gần nhất". Ghi chú thi công và các ruling: `docs/superpowers/plans/2026-09-21-che-do-bao-tri-thi-cong-nhat-ky.md`.
+
+**Luật — MỘT nguồn `src/shared/maintenance.ts` (thuần, `maintenance.test.ts`):**
+- **Ai được phép:** cột `mnt_setting.allowed_phones` (SĐT đã chuẩn hoá, cách nhau dấu phẩy; `migrations/0016_maintenance.sql` gieo `0989929373`). Đổi danh sách = SQL `UPDATE mnt_setting SET allowed_phones = '…' WHERE id = 'default'` hoặc migration mới; app KHÔNG có màn hình sửa danh sách (chủ ý). Số gieo phải đi qua `normalizePhone` ra chính nó — `src/migrations-maintenance.test.ts` kiểm; sai số = tự khoá mình.
+- **Giờ dự kiến tối đa:** `MAX_MAINTENANCE_MS` (7 ngày) và "phải ở tương lai" — `checkMaintenanceInput` (đổi hằng thì sửa câu lỗi "quá 7 ngày" cùng chỗ + test).
+- **Thông điệp:** `maintenanceMessageParts` / `maintenanceMessage` — ba biến thể (còn giờ = câu chủ dự án đã chốt kèm đồng hồ; hết giờ = "…bảo trì và sắp hoàn tất, …"; chưa có giờ). Test khoá từng chữ. `MAINTENANCE_CONTACT_PHONE` (số in trong thông điệp) là hằng RIÊNG, không tự đồng bộ với `allowed_phones`: đổi số liên hệ thì sửa hằng + test + câu ở `docs/HANDOFF-CHE-DO-BAO-TRI.md`.
+
+**Nơi ÉP (máy chủ mới là nơi quyết định; giao diện chỉ hiển thị):**
+1. **Router** — `AppOptions.injected.maintenanceBlock` (`src/shared/router.ts`), nối ở `src/index.ts` (`maintenanceBlock(env.DB, staff.phone)` của module `maintenance`). Chạy cho mọi route KHÔNG public, sau `currentStaff` và TRƯỚC kiểm `admin`/`office` (người bị chặn thấy 503, không phải 403). Test `src/shared/router.test.ts` (module giả, không cần D1).
+2. **Đăng nhập** — `POST /api/auth/login` (`src/modules/auth/index.ts`), thứ tự: 400 đầu vào → Turnstile → cổng bảo trì → `verifyPinThrottled` → `recordLogin`. Đừng dời cổng xuống sau PIN: sẽ tiêu hao lượt thử PIN và lộ SĐT nào tồn tại.
+3. **Trạng thái công khai** — `GET /api/auth/config` (`maintenance: { on, endsAt }`, KHÔNG lộ danh sách) và `GET /api/auth/me` (cùng trường, chỉ người được phép tới được khi đang bảo trì).
+4. **Bật/tắt** — `PUT /api/maintenance` (`src/modules/maintenance/index.ts`): `access: "admin"` VÀ phải nằm trong `allowed_phones` (403 nếu không); `GET` trả thêm `canToggle`. Ghi nhật ký `maintenance_changed` (nhóm `system` "Hệ thống"; `detail` KHÔNG có SĐT) cùng một `db.batch()`.
+
+**Giao diện (đọc kỹ trước khi sửa):**
+- **Màn hình toàn trang + đếm ngược sống:** `web/api.ts` bắt `error.code === MAINTENANCE_CODE` TRƯỚC khi ném `ApiError` rồi gọi `showMaintenanceScreen` (`web/maintenance-screen.ts`; `endsAt` lấy từ thân `error`), giữ lời gọi treo như `goLogin()`. KHÔNG áp dụng ở `/login` (chủ vẫn cần đăng nhập được). Lớp phủ không xoá DOM bên dưới (dữ liệu đang gõ vẫn còn trong trang).
+- **Banner ở `/login`:** `web/login.ts` từ `GET /api/auth/config` và khi `POST /api/auth/login` trả 503 `maintenance` (khối HTML ở `public/login.html`) — phải phân biệt với 503 `turnstile_unavailable` bằng `error.code`.
+- **Dải "Đang ở chế độ bảo trì":** `web/shell.ts` (`setMaintenanceStrip`, từ `me.maintenance.on`); **nút bật/tắt** ở `/account` (`web/account.ts`, `public/account.html`; chỉ hiện khi `GET /api/maintenance` trả `canToggle`; nút nhanh 30/60/120 phút + chọn giờ, giờ nhập hiểu là GIỜ VIỆT NAM — `vnLocalToIso` ở `src/shared/vn-date.ts`).
+- Chữ thông điệp và đồng hồ đếm ngược dùng `maintenanceMessageParts`/`formatCountdown` của `src/shared/maintenance.ts` — KHÔNG chép chữ sang `web/`.
+- CSS mới nằm SAU dấu mốc PWA của `public/app.css` nên chỉ token (`tests/e2e/pwa.mjs` quét).
+
+**Cột "Đăng nhập gần nhất":** `staff.last_login_at` (migration `0015`, TEXT NULL) — `recordLogin` (`src/modules/staff/index.ts`, câu SQL `staff.record_login` ở `repository.ts`) → chỉ `POST /api/auth/login` gọi (sau `result.ok`); DTO `StaffAccount.lastLoginAt`; cột ở `public/staff.html` + `web/staff.ts` ("Chưa đăng nhập" khi `null`). Cột mới của `staff` KHÔNG cần sửa `docs/data-dictionary.json` (sổ chỉ liệt kê bảng/view, không liệt kê cột); bảng mới `mnt_setting` thì có.
+
+**Kiểm:** `node --test src/shared/maintenance.test.ts src/shared/router.test.ts src/shared/vn-date.test.ts src/migrations-maintenance.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- maintenance turnstile` (bật → nhân viên 503 ở đăng nhập VÀ ở API bằng phiên có sẵn; chủ dùng bình thường; tắt → trở lại) → `npm run test:e2e -- pwa` nếu chạm CSS → kịch bản Chrome `v1-dang-nhap.mjs` (vì chạm `web/login.ts`/`public/login.html`) và kịch bản cho màn hình bảo trì/nút bật-tắt/dải (điền khi có kết quả — xem nhật ký thi công).
+
+**Bẫy:**
+- **Đừng ghi `last_login_at` trong `verifyPinThrottled`:** hàm đó dùng chung với `POST /api/account/change-pin`; ghi ở đó thì mỗi lần đổi PIN thành "một lần đăng nhập".
+- **Cổng ở router tốn MỘT truy vấn D1 mỗi request cần đăng nhập** (`getMaintenanceState`) và cố ý KHÔNG đệm trong isolate — đệm là mất "hiệu lực ngay khi bật" (chủ đã chốt). Đừng thêm `maintenanceBlock` vào từng route: cổng ở `createApp` đã phủ hết; route `public` cố ý không qua cổng (trang đăng nhập cần `config`).
+- **`503 maintenance` ≠ `503 turnstile_unavailable`:** cùng mã HTTP, khác `error.code` và khác cách hiển thị. `web/login.ts` xử lý `turnstile_unavailable` bằng nút Thử lại/hỏi lại cấu hình; bảo trì thì hiện banner — đừng gộp.
+- **Nhóm nhật ký mới `system` ("Hệ thống"):** thêm ở `AUDIT_GROUPS`; `maintenance_changed` mang `targetType: "system"`, `targetId: "maintenance"`; `listAll` (`audit/repository.ts`) không có JOIN nhãn cho nhóm này nên `targetLabel` = null ở `/audit` — muốn hiện nhãn thì thêm nhánh (công thức f).
+- **`src/shared/router.ts` nay import `./http.ts` KÈM đuôi** (như bẫy 1) để `router.test.ts` chạy bằng Node; import runtime mới thêm vào router cũng phải có `.ts` (`import type` thì không cần).
+- **e2e `maintenance` bật chế độ trên server DÙNG CHUNG của `run.mjs`:** phải đặt `mnt_setting.allowed_phones` bằng SQL (`sql()` ở `lib.mjs`) cho tài khoản thử vì tài khoản test không có SĐT `0989929373`, và LUÔN khôi phục + tắt chế độ trong `finally` — bật mà quên tắt là mọi kịch bản chạy sau nhận 503.
+- **Đường thoát khẩn khi chủ bị khoá** là SQL trực tiếp trên D1 (`UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'`): lệnh đầy đủ ở `docs/HANDOFF-N1.md` mục "Chế độ bảo trì — đường thoát khẩn". Bảng cố ý KHÔNG có CHECK chéo cột (tắt mà còn `ends_at` vẫn hợp lệ) để lệnh đó không vướng ràng buộc lúc khẩn cấp.
+- **Người được phép nhập sai PIN nhận 401/429, người khác nhận 503:** về lý thuyết phân biệt được số của chủ (chấp nhận — thông điệp đã hiện chính số đó).
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
@@ -450,6 +489,8 @@ Ba lớp, đổi đúng lớp:
 | `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | như trên + BA kịch bản Chrome `a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` (KHÔNG có kiểm tự động trong CI; nên chạy cả khi chạm thành phần dùng chung `service-card`, `trip-fields`, `order-services`, `catalog-picker`, `counter`, `money-input`, `banner`); chạm phần `moi=1` hoặc nút "Xác nhận gửi khách" của `web/order.ts`/`web/order-form.ts` thì thêm `v1-xac-nhan-png.mjs`; chạm khối người phụ trách của `web/order.ts` thì thêm `v1-nguoi-phu-trach.mjs` (hàng dưới) |
 | `src/shared/handler-view.ts` (+ test), `web/orders.ts`, `web/order.ts` (khối người phụ trách), `web/handler-sheet.ts`, khối "người phụ trách" ở cuối `public/app.css` | `node --test src/shared/handler-view.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- pwa` nếu chạm CSS (khối sau dấu mốc PWA chỉ token) → KỊCH BẢN CHROME `v1-nguoi-phu-trach.mjs` (12 dòng ✓; không cần mạng ngoài, cần `AXE_JS` và `CHROME_BIN`; ≈ 5 phút) VÀ chạy lại ba `a2-smoke-*.mjs` (chúng khẳng định danh sách nút của `#actions` và câu giải thích quyền của trang đơn; `handler-sheet.ts` không có kiểm tự động nào khác trong repo); thêm `v1-xac-nhan-png.mjs` nếu đổi cách lấy tên người phụ trách cho ảnh xác nhận |
 | `public/app.css`, `public/*.html`, `public/manifest.webmanifest`, `public/_headers`, `src/shared/sw-policy.ts`, `web/sw/sw.ts` | `npm run build:web` → `npm test` (`sw-policy.test.ts`) → `npm run typecheck` (gồm `-p web/sw`) → `npm run test:e2e -- pwa`; chạm `public/login.html`, `public/_headers` hoặc CSS màn đăng nhập → thêm `v1-dang-nhap.mjs` |
+| `src/shared/maintenance.ts`, `src/shared/router.ts` (cổng bảo trì), `src/modules/maintenance/*`, `src/modules/auth/index.ts` (cổng ở đăng nhập, `config`, `me`, `recordLogin`), `migrations/0015…0016` | `node --test src/shared/maintenance.test.ts src/shared/router.test.ts src/migrations-maintenance.test.ts` → `npm test` (kiến trúc: cạnh `auth → maintenance`, `mnt_`, STRICT) → `npm run typecheck` → `npm run test:e2e -- maintenance turnstile` → `npm run test:e2e` đủ bộ nếu chạm migration/router (đuôi `audit-invariants --strict`) → `npm run dict` nếu đổi bảng |
+| `web/api.ts` (bắt 503 `maintenance`), `web/maintenance-screen.ts`, `web/login.ts` (banner), `web/shell.ts` (dải), `web/account.ts` (nút bật/tắt), `public/account.html`, `public/login.html` | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → `npm run test:e2e -- pwa` (CSS chỉ token) → Chrome `v1-dang-nhap.mjs` (chạm `web/login.ts`/`public/login.html`) + kịch bản màn hình bảo trì (điền khi có kết quả); `web/api.ts` dùng ở MỌI trang nên thử tay ít nhất `/` và `/account` khi đang bảo trì |
 | `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật; cần `.dev.vars` có đủ tên bí mật, xem công thức l) → `npm run typecheck` → `npm run test:e2e` |
 | `docs/data-dictionary.json` | `npm run dict` → `npm test` (bài kiểm bắt `DATA-DICTIONARY.md` lệch bản sinh) |
 | `scripts/*.mjs` | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
@@ -492,6 +533,8 @@ Ba lớp, đổi đúng lớp:
 27. **Nút bị khoá (`disabled`) hoặc gỡ khỏi DOM khi đang giữ focus làm focus rơi ra `body`** (Chrome tự bỏ focus của nút vừa `disabled`). Chỗ nào khoá/gỡ nút mà người dùng bàn phím/trình đọc màn hình còn đang ở đó (đang lưu, lỗi rồi nạp lại danh sách, "Thử lại" bị gỡ) phải chủ động trả focus về vùng còn tồn tại (`dialog.focus()` ở `web/handler-sheet.ts`, `focusHandlerControl` ở `web/order.ts`); kịch bản đọc `focusIn` ở mọi trạng thái đó. axe KHÔNG bắt lỗi này (không có quy tắc nào bị vi phạm; bảng chọn người phụ trách từng để lọt focus rơi ra `body` sau 400 `invalid_assignee` và sau "Thử lại", chỉ phép đo `focusIn` mới đỏ).
 28. **`exported_png` KHÔNG được ghi nhật ký:** tên hành động có trong `AUDIT_ACTIONS` (`src/shared/audit-actions.ts`) nhưng không nơi nào ghi — ảnh xác nhận dựng ở trình duyệt, không đi qua máy chủ, không có route. Cần dấu vết thì thêm route ghi nhật ký gọi từ hộp thoại; cho tới lúc đó đừng viết (tài liệu, chữ giao diện, kịch bản) như thể việc xuất/gửi ảnh đã được ghi lại. `exported_pdf` cũng vậy (chưa có PDF).
 
+29. **Chế độ bảo trì và `last_login_at` có bẫy riêng** — đọc phần **Bẫy** của công thức q (không ghi `last_login_at` trong `verifyPinThrottled`; cổng router tốn một truy vấn D1 mỗi request và không đệm; `503 maintenance` ≠ `503 turnstile_unavailable`; nhóm nhật ký `system`; `router.ts` import `./http.ts` kèm đuôi; e2e bật/tắt phải khôi phục trong `finally`; đường thoát khẩn bằng SQL).
+
 ## 5. Danh sách kiểm
 
 **Trước khi commit (mọi thay đổi):**
@@ -506,7 +549,8 @@ Ba lớp, đổi đúng lớp:
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".
 4. Sau deploy: `node scripts/audit-invariants.mjs --db remote` (chạy SAU khi đã áp `0014`; D1 chưa có `dsp_*` thì thoát mã 2 = không chạy được); `curl -sI https://booking.tourdao.vn/sw.js` (`no-store`); ghi trạng thái vào `docs/HANDOFF-N1.md` và `CLAUDE.md` §9.
-5. Lần phát hành v1.0 có thêm Turnstile: theo `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0" — khoá site vào `vars` trước, **deploy MÃ trước khi đặt `TURNSTILE_SECRET_KEY`** (service worker cache `login.js` cũ trên iPhone đã cài PWA), để nhân viên mở app một lần, rồi `wrangler secret put` và kiểm `GET /api/auth/config` khác `null`.
+5. Lần phát hành có `0015`+`0016` (cột `last_login_at` + chế độ bảo trì; cả hai chỉ THÊM): theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp (0015 + 0016)" — áp rồi `wrangler deploy` NGAY; chế độ bảo trì KHÔNG tự bật (gieo TẮT), chỉ bật sau khi cột "Đăng nhập gần nhất" cho thấy mọi người đã đăng nhập bằng bản mới. `audit-invariants --db remote` chạy SAU khi đã áp `0016` (không có bất biến riêng cho `mnt_setting`).
+6. Lần phát hành v1.0 có thêm Turnstile: theo `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0" — khoá site vào `vars` trước, **deploy MÃ trước khi đặt `TURNSTILE_SECRET_KEY`** (service worker cache `login.js` cũ trên iPhone đã cài PWA), để nhân viên mở app một lần, rồi `wrangler secret put` và kiểm `GET /api/auth/config` khác `null`.
 
 ## 6. Sai lệch tài liệu ↔ mã (mã thắng)
 
