@@ -61,7 +61,7 @@ export function bookerPayload(choice: BookerChoice, name: string, phone: string)
 /** Mẩu nhật ký khi người đặt đổi — CHỈ tên hiển thị, không SĐT (CLAUDE.md §5). null = không đổi. */
 export function describeBookerChange(before: { id: string | null; name: string | null }, after: { id: string | null; name: string | null }): string | null {
   if (before.id === after.id) return null;
-  const q = (n: string | null): string => `"${n ?? "?"}"`;
+  const q = (n: string | null): string => `“${n ?? "?"}”`;
   if (before.id === null) return `gắn hồ sơ khách ${q(after.name)}`;
   if (after.id === null) return `bỏ gắn hồ sơ khách ${q(before.name)}`;
   return `đổi hồ sơ khách ${q(before.name)} → ${q(after.name)}`;

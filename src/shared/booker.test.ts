@@ -55,7 +55,7 @@ test("describeBookerChange: chỉ tên, null khi không đổi", () => {
   const none = { id: null, name: null };
   assert.equal(describeBookerChange(a, a), null);
   assert.equal(describeBookerChange(none, none), null);
-  assert.equal(describeBookerChange(none, b), 'gắn hồ sơ khách "Trần B"');
-  assert.equal(describeBookerChange(a, none), 'bỏ gắn hồ sơ khách "Nguyễn A"');
-  assert.equal(describeBookerChange(a, b), 'đổi hồ sơ khách "Nguyễn A" → "Trần B"');
+  assert.equal(describeBookerChange(none, b), "gắn hồ sơ khách “Trần B”");
+  assert.equal(describeBookerChange(a, none), "bỏ gắn hồ sơ khách “Nguyễn A”");
+  assert.equal(describeBookerChange(a, b), "đổi hồ sơ khách “Nguyễn A” → “Trần B”");
 });
