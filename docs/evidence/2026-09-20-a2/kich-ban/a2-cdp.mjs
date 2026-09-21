@@ -1,5 +1,6 @@
 // Môi trường kiểm giao diện A2 (bằng chứng, nằm trong repo): D1 tạm + wrangler dev + Chrome headless điều khiển qua CDP (Node 22 có WebSocket gốc).
 // Chạy từ GỐC repo (cwd): node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs
+// `startEnv()` mặc định chạy máy chủ với Turnstile TẮT; `startEnv({ turnstile: true })` BẬT bằng khoá thử của Cloudflare (v1.0, kich-ban/v1-dang-nhap.mjs).
 import { execFileSync, spawn } from "node:child_process";
 import { randomBytes } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
@@ -32,7 +33,11 @@ const CATALOG_SQL = `INSERT INTO catalog_item (code,name,unit,price_adult,price_
   ('TTB06','Motor nước','perPax',800000,NULL,NULL,NULL,NULL,NULL,NULL,4,1,${T},${T});
 UPDATE catalog_sync SET last_attempt_at = ${T}, last_success_at = ${T} WHERE id = 'default';`;
 
-export async function startEnv() {
+/** Khoá thử CHÍNH THỨC của Cloudflare (luôn đạt; không phải khoá thật, không tạo tài nguyên nào trên Cloudflare). Cùng giá trị với `TURNSTILE_TEST` ở tests/e2e/lib.mjs. */
+export const TURNSTILE_TEST = { siteKey: "1x00000000000000000000AA", secret: "1x0000000000000000000000000000000AA" };
+
+/** `turnstile: true` → máy chủ BẬT Turnstile bằng khoá thử (cần mạng: widget tải script của Cloudflare, máy chủ gọi siteverify); mặc định TẮT (offline). */
+export async function startEnv({ turnstile = false } = {}) {
   const { insertStaffSql } = await import(pathToFileURL(join(ROOT, "scripts", "staff-lib.mjs")).href);
   const persist = mkdtempSync(join(tmpdir(), "tourdao-a2-"));
   const profile = mkdtempSync(join(tmpdir(), "tourdao-a2-chrome-"));
@@ -45,10 +50,11 @@ export async function startEnv() {
 
   const [port, inspector] = [await freePort(), await freePort()];
   const base = `http://127.0.0.1:${port}`;
-  // Turnstile TẮT có chủ đích cho môi trường này: `--var` rỗng ghi đè cả `.dev.vars` của máy (đã kiểm: --var thắng .dev.vars, giá trị rỗng = chưa cấu hình),
-  // nên kịch bản chạy offline (không gọi siteverify) và không vỡ dù .dev.vars có khoá Turnstile thật. Muốn kiểm widget ở trang đăng nhập thì thay bằng khoá thử của Cloudflare
-  // (`TURNSTILE_SITE_KEY:1x00000000000000000000AA`, `TURNSTILE_SECRET_KEY:1x0000000000000000000000000000000AA`; cần mạng) — login() bên dưới đã gửi sẵn token thử.
-  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", "TURNSTILE_SITE_KEY:", "--var", "TURNSTILE_SECRET_KEY:"],
+  // Turnstile mặc định TẮT có chủ đích: `--var` rỗng ghi đè cả `.dev.vars` của máy (đã kiểm: --var thắng .dev.vars, giá trị rỗng = chưa cấu hình),
+  // nên kịch bản chạy offline (không gọi siteverify) và không vỡ dù .dev.vars có khoá Turnstile thật. `startEnv({ turnstile: true })` thay bằng khoá thử của Cloudflare
+  // (cần mạng) để kiểm widget ở trang đăng nhập — login() bên dưới đã gửi sẵn token thử nên chạy được ở cả hai chế độ.
+  const turnstileVars = turnstile ? [TURNSTILE_TEST.siteKey, TURNSTILE_TEST.secret] : ["", ""];
+  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } });
   server.stdout.on("data", (d) => logs.push(String(d)));
   server.stderr.on("data", (d) => logs.push(String(d)));
@@ -84,14 +90,22 @@ export async function startEnv() {
     let id = 0;
     const pending = new Map();
     const consoleErrors = [];
+    // Thêm cho v1.0 (không đổi hành vi của `consoleErrors`): `logEntries` = thông điệp do TRÌNH DUYỆT tự ghi (vd "Refused to load the script … Content Security Policy" — vi phạm CSP
+    // KHÔNG đi qua Runtime.consoleAPICalled mà qua miền Log); `requests` = mọi yêu cầu mạng của trang (url, method, thân gửi đi); `failed` = yêu cầu hỏng/bị chặn.
+    const logEntries = [];
+    const requests = [];
+    const failed = [];
     ws.addEventListener("message", (ev) => {
       const m = JSON.parse(ev.data);
       if (m.id && pending.has(m.id)) { pending.get(m.id)(m); pending.delete(m.id); }
       if (m.method === "Runtime.exceptionThrown") consoleErrors.push(m.params.exceptionDetails.exception?.description ?? m.params.exceptionDetails.text);
       if (m.method === "Runtime.consoleAPICalled" && m.params.type === "error") consoleErrors.push(m.params.args.map((a) => a.value ?? a.description).join(" "));
+      if (m.method === "Log.entryAdded") logEntries.push({ level: m.params.entry.level, source: m.params.entry.source, text: m.params.entry.text, url: m.params.entry.url });
+      if (m.method === "Network.requestWillBeSent") requests.push({ url: m.params.request.url, method: m.params.request.method, postData: m.params.request.postData ?? null });
+      if (m.method === "Network.loadingFailed") failed.push({ requestId: m.params.requestId, error: m.params.errorText, blockedReason: m.params.blockedReason ?? null });
     });
     const send = (method, params = {}) => new Promise((res) => { const i = ++id; pending.set(i, res); ws.send(JSON.stringify({ id: i, method, params })); });
-    await send("Network.enable"); await send("Runtime.enable"); await send("Page.enable");
+    await send("Network.enable"); await send("Runtime.enable"); await send("Page.enable"); await send("Log.enable");
     await send("Emulation.setDeviceMetricsOverride", { width, height, deviceScaleFactor: mobile ? 2 : 1, mobile });
     if (mobile) await send("Emulation.setTouchEmulationEnabled", { enabled: true });
     await send("Emulation.setFocusEmulationEnabled", { enabled: true }); // Chrome headless không cấp tiêu điểm cho trang: thiếu dòng này `el.focus()` không bắn sự kiện focus (ô chọn danh mục không mở)
@@ -109,7 +123,7 @@ export async function startEnv() {
       }
     };
     const shot = async (path) => { const r = await send("Page.captureScreenshot", { format: "png", captureBeyondViewport: true }); writeFileSync(path, Buffer.from(r.result.data, "base64")); };
-    return { send, ev, waitFor, shot, consoleErrors, close: () => ws.close() };
+    return { send, ev, waitFor, shot, consoleErrors, logEntries, requests, failed, close: () => ws.close() };
   }
 
   /** Mở `path` với phiên đã đăng nhập của `account`. */

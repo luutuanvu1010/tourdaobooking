@@ -7,9 +7,17 @@
   <form id="login-form" class="card" autocomplete="on">
     <div id="error" class="alert" role="alert" hidden></div>
     <label>Số điện thoại<input id="phone" type="tel" inputmode="tel" autocomplete="username" required autofocus></label>
-    <label style="margin-top:12px">Mã PIN 6 số<input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="current-password" required></label>
+    <label>Mã PIN 6 số<input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="current-password" required></label>
+    <!-- Khung của widget Cloudflare Turnstile: web/login.ts chỉ hiện và dựng khi máy chủ báo có khoá (GET /api/auth/config). -->
+    <div id="turnstile-widget" class="login-turnstile" hidden></div>
+    <button id="turnstile-retry" class="btn" type="button" hidden>Thử lại</button>
     <button id="submit" class="btn btn-primary" type="submit">Đăng nhập</button>
   </form>
+  <!-- Chân trang: dòng phiên bản do web/login.ts điền từ src/shared/app-info.ts; khối công ty do web/login.ts dựng từ GET /api/company (lỗi/chậm thì ẩn). -->
+  <footer class="login-info">
+    <p id="release" class="login-release"></p>
+    <div id="company" class="login-company" hidden></div>
+  </footer>
 </main>
 <script type="module" src="/js/login.js"></script>
 </body></html>

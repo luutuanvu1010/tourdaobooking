@@ -16,7 +16,7 @@ Dự án **độc lập hoàn toàn** với repo `tourdaovn` (website công khai
 | Bảng/cột/view | [`docs/DATA-DICTIONARY.md`](docs/DATA-DICTIONARY.md) (sinh từ `docs/data-dictionary.json`) |
 | Triển khai production, áp migration, hoàn tác | [`docs/HANDOFF-N1.md`](docs/HANDOFF-N1.md) |
 | App iPhone (PWA) | [`docs/PWA-IPHONE.md`](docs/PWA-IPHONE.md) |
-| Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | [`docs/evidence/2026-09-20-a2/`](docs/evidence/2026-09-20-a2/README.md) |
+| Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | [`docs/evidence/2026-09-20-a2/`](docs/evidence/2026-09-20-a2/README.md), [`docs/evidence/2026-09-21-v1-0/`](docs/evidence/2026-09-21-v1-0/README.md) (v1.0: màn đăng nhập) |
 
 ## Kiến trúc trong một đoạn
 

@@ -1,0 +1,64 @@
+# Kịch bản Chrome màn đăng nhập v1.0 — nhật ký chạy (kich-ban/v1-dang-nhap.mjs), Task 3 của kế hoạch bản v1.0
+# Chạy trên wrangler dev cục bộ + D1 tạm + Chrome headless; widget Turnstile dùng khoá THỬ của Cloudflare. Không phải iPhone thật.
+
+## 1) ĐỎ trên mã cũ (web/login.ts, login.html, app.css, _headers của HEAD 03db793; kịch bản mới chạy nguyên bộ) — không có khối công ty, không có widget, CSP chưa nới
+✗ a) khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1
+    hết giờ chờ: khối công ty hiện
+    !document.getElementById('company').hidden
+✗ b) CSP cho phép Cloudflare; widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử; đăng nhập qua widget với đúng token của widget
+    CSP thiếu https://challenges.cloudflare.com ở script-src: "script-src 'self'"
+✗ c) sai PIN: lỗi của máy chủ; widget được reset (ô token trống rồi có token mới); nút khoá suốt lúc chờ rồi mở lại; đăng nhập lại được
+    hết giờ chờ: widget hiện và tự đạt (có token, nút mở)
+    document.querySelector('#turnstile iframe') !== null && (document.querySelector('#turnstile input[name="cf-turnstile-response"]')?.value ?? '') !== '' && !document.getElementById('submit').disabled
+✗ d) 403 turnstile_failed (thật) và 503 turnstile_unavailable (giả lập): chữ của máy chủ hiện nguyên văn ở #error, nút mở lại sau khi widget reset, thử lại được
+    hết giờ chờ: widget hiện và tự đạt (có token, nút mở)
+    document.querySelector('#turnstile iframe') !== null && (document.querySelector('#turnstile input[name="cf-turnstile-response"]')?.value ?? '') !== '' && !document.getElementById('submit').disabled
+✗ e) API công ty lỗi (chặn mạng, 500, 404) hoặc chậm; API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, khối công ty ẩn, không kẹt nút
+    hết giờ chờ: widget hiện và tự đạt (có token, nút mở)
+    document.querySelector('#turnstile iframe') !== null && (document.querySelector('#turnstile input[name="cf-turnstile-response"]')?.value ?? '') !== '' && !document.getElementById('submit').disabled
+✗ j) service worker thật không lưu gì của Cloudflare và không lưu /api/*; khung đăng nhập vẫn được lưu
+    hết giờ chờ: widget hiện và tự đạt (có token, nút mở)
+    document.querySelector('#turnstile iframe') !== null && (document.querySelector('#turnstile input[name="cf-turnstile-response"]')?.value ?? '') !== '' && !document.getElementById('submit').disabled
+✗ h) axe-core: 0 vi phạm (mọi mức) ở 390, 320, 1040 (widget đã đạt) và ở trạng thái lỗi
+    không dựng được trạng thái để đo: hết giờ chờ: khối công ty hiện
+    !document.getElementById('company').hidden
+    + actual - expected
+    
+    + "hết giờ chờ: khối công ty hiện\n!document.getElementById('company').hidden"
+    - undefined
+    
+✗ i) vùng chạm ≥ 44 px, ô gõ ≥ 16 px, không tràn ngang, widget nằm trọn trong thẻ (390, 320, 1040, trạng thái lỗi); ảnh 390×844 và 1040×800 đã lưu
+    không dựng được trạng thái để đo: hết giờ chờ: khối công ty hiện
+    !document.getElementById('company').hidden
+    + actual - expected
+    
+    + "hết giờ chờ: khối công ty hiện\n!document.getElementById('company').hidden"
+    - undefined
+    
+✗ g) không có lỗi CSP và console sạch ở mọi trang đã mở với máy chủ A (chỉ còn các dòng mạng đã biết: dò phiên 401, và các lỗi đăng nhập cố ý)
+    đã theo dõi 5 trang
+✗ f) máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)
+    hết giờ chờ: nút mở và khối công ty hiện
+    !document.getElementById('submit').disabled && !document.getElementById('company').hidden
+
+10 bước ✗ / 0 bước ✓
+
+## 2) Mã mới NHƯNG CSP CŨ (public/_headers của HEAD; chạy ONLY=a,b,f rồi ONLY=c): a và f xanh, b đỏ vì header CSP thiếu Cloudflare, c đỏ vì trình duyệt chặn script của widget
+✓ a) khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1
+✗ b) CSP cho phép Cloudflare; widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử; đăng nhập qua widget với đúng token của widget
+    CSP thiếu https://challenges.cloudflare.com ở script-src: "script-src 'self'"
+✓ f) máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)
+
+1 bước ✗ / 2 bước ✓
+
+(ONLY=c)
+✗ c) sai PIN: lỗi của máy chủ; widget được reset (ô token trống rồi có token mới); nút khoá suốt lúc chờ rồi mở lại; đăng nhập lại được
+    hết giờ chờ: widget hiện và tự đạt (có token, nút mở)
+    document.querySelector('#turnstile iframe') !== null && (document.querySelector('#turnstile input[name="cf-turnstile-response"]')?.value ?? '') !== '' && !document.getElementById('submit').disabled
+
+1 bước ✗ / 0 bước ✓
+
+## 3) Hai đột biến trên mã mới (web/login.ts tạm sửa rồi khôi phục; ONLY=b,c): bỏ `resetWidget()` ở nhánh lỗi và bỏ điều kiện "chưa có token thì khoá nút" — cả b và c phải đỏ
+b) đỏ: "và nút chỉ mở KHI ô token của widget đã có giá trị" — nút mở khi ô token còn trống ([false] thay vì [true])
+c) đỏ: "hết giờ chờ: turnstile.reset được gọi đúng 1 lần sau lần thất bại" (window.__resets === 1 không bao giờ đúng)
+2 bước ✗ / 0 bước ✓

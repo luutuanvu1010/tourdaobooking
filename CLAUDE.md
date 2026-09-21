@@ -18,7 +18,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | Bảng/cột/view | `docs/data-dictionary.json` (nguồn) → `docs/DATA-DICTIONARY.md` (sinh bằng `npm run dict`) |
 | Triển khai, áp migration, hoàn tác | `docs/HANDOFF-N1.md` (mục "Trạng thái triển khai" là hiện trạng production) |
 | Lịch sử thi công, ruling, nợ kỹ thuật | `docs/superpowers/plans/*-thi-cong-nhat-ky.md` |
-| Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | `docs/evidence/2026-09-20-a2/` |
+| Bằng chứng giao diện (ảnh, axe, kịch bản Chrome) | `docs/evidence/2026-09-20-a2/`, `docs/evidence/2026-09-21-v1-0/` (v1.0: màn đăng nhập…) |
 | PWA/iPhone | `docs/PWA-IPHONE.md` |
 
 ## 3. Lệnh
@@ -35,7 +35,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | `node scripts/dev-iphone.mjs` | chạy trên D1 **tạm** để thử iPhone thật (mạng LAN, không đụng dữ liệu thật) |
 | `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote chỉ theo runbook, xem §6** |
 
-Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` không nằm trong CI: sửa `web/order-form.ts`, `web/order.ts` hoặc `web/trip-sheet.ts` thì **phải chạy lại** ba `a2-smoke-*.mjs` (cách chạy: `tests/e2e/README.md`).
+Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` không nằm trong CI: sửa `web/order-form.ts`, `web/order.ts` hoặc `web/trip-sheet.ts` thì **phải chạy lại** ba `a2-smoke-*.mjs` (cách chạy: `tests/e2e/README.md`); sửa `web/login.ts`, `public/login.html` hoặc CSP ở `public/_headers` thì chạy `docs/evidence/2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs` (cần mạng).
 
 ## 4. Bản đồ mã
 ```
@@ -89,10 +89,10 @@ docs/                   tài liệu (xem §2)
 - Form: `location.replace` (không `assign`) sau khi lưu để Back/bfcache không đưa về form đã lưu (tránh đơn trùng).
 - Enter trong ô tìm danh mục bị chặn có chủ đích (ô nằm trong `<form>`).
 - `wrangler d1 migrations apply` áp **mọi** migration chưa áp — không để migration "siết" (B5 `staff_party_required`, xem HANDOFF-N1) lọt vào `migrations/` trước lần phát hành 2. `src/migrations-n1.test.ts` nhận biết migration siết theo TÊN tệp, không theo số.
-- Turnstile ở đăng nhập: bật khi có `TURNSTILE_SECRET_KEY`, **tắt** khi vắng (cảnh báo log mỗi lần); kiểm TRƯỚC bộ chống dò PIN. e2e đăng nhập luôn qua `login()`/`session()` của `tests/e2e/lib.mjs` (gửi token thử). `npm run types` khi thiếu `.dev.vars` làm mất `SESSION_SECRET` khỏi `Env` — xem `docs/CHANGE-GUIDE.md` công thức l.
+- Turnstile ở đăng nhập: bật khi có `TURNSTILE_SECRET_KEY`, **tắt** khi vắng (cảnh báo log mỗi lần); kiểm TRƯỚC bộ chống dò PIN. e2e đăng nhập luôn qua `login()`/`session()` của `tests/e2e/lib.mjs` (gửi token thử). `npm run types` khi thiếu `.dev.vars` làm mất `SESSION_SECRET` khỏi `Env` — xem `docs/CHANGE-GUIDE.md` công thức l. Widget ở `web/login.ts`: id khung KHÔNG được là `turnstile`, không gọi `turnstile.ready()` (công thức l, "Bẫy widget").
 - Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ, không từ hai cột này.
 
 ## 9. Hiện trạng (cập nhật khi đổi)
 - Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; chưa có module `dispatch`); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
 - Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
-- Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Việc đang chờ làm: màn đăng nhập v1.0 (Turnstile phía máy chủ + `GET /api/company` + `app-info` ĐÃ có trong nhánh, còn giao diện `web/login.ts` + CSP); xác nhận đơn dạng PNG; cột "Người phụ trách" ở danh sách đơn (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).
+- Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Màn đăng nhập v1.0 (Turnstile phía máy chủ + widget + CSP; khối công ty và số phiên bản) ĐÃ xong trong nhánh, chưa deploy (lúc deploy phải tạo widget + khoá Turnstile thật). Việc đang chờ làm: xác nhận đơn dạng PNG; cột "Người phụ trách" ở danh sách đơn (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).

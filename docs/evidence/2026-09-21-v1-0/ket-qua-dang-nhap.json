@@ -1,0 +1,226 @@
+{
+  "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm), widget Turnstile dùng khoá THỬ của Cloudflare; không phải iPhone thật, không phải khoá/widget thật.",
+  "buoc": [
+    {
+      "id": "a",
+      "name": "khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1",
+      "dat": true
+    },
+    {
+      "id": "b",
+      "name": "CSP cho phép Cloudflare; widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử; đăng nhập qua widget với đúng token của widget",
+      "dat": true
+    },
+    {
+      "id": "c",
+      "name": "sai PIN: lỗi của máy chủ; widget được reset (ô token trống rồi có token mới); nút khoá suốt lúc chờ rồi mở lại; đăng nhập lại được",
+      "dat": true
+    },
+    {
+      "id": "d",
+      "name": "403 turnstile_failed (thật) và 503 turnstile_unavailable (giả lập): chữ của máy chủ hiện nguyên văn ở #error, nút mở lại sau khi widget reset, thử lại được",
+      "dat": true
+    },
+    {
+      "id": "e",
+      "name": "API công ty lỗi (chặn mạng, 500, 404) hoặc chậm; API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, khối công ty ẩn, không kẹt nút",
+      "dat": true
+    },
+    {
+      "id": "j",
+      "name": "service worker thật không lưu gì của Cloudflare và không lưu /api/*; khung đăng nhập vẫn được lưu",
+      "dat": true
+    },
+    {
+      "id": "k",
+      "name": "widget không dựng được (script Cloudflare bị chặn; khoá site sai): thông báo tiếng Việt + nút Thử lại, nút Đăng nhập khoá; bỏ chặn rồi bấm Thử lại → widget dựng, lỗi biến mất, đăng nhập được",
+      "dat": true
+    },
+    {
+      "id": "h",
+      "name": "axe-core: 0 vi phạm (mọi mức) ở 390, 375, 320, 1040 (widget đã đạt) và ở trạng thái lỗi",
+      "dat": true
+    },
+    {
+      "id": "i",
+      "name": "vùng chạm ≥ 44 px, ô gõ ≥ 16 px, không tràn ngang, widget nằm trọn trong thẻ (390, 375, 320, 1040, trạng thái lỗi); ảnh 390×844 và 1040×800 đã lưu",
+      "dat": true
+    },
+    {
+      "id": "g",
+      "name": "không có lỗi CSP và console sạch ở mọi trang đã mở với máy chủ A (chỉ còn các dòng mạng đã biết: dò phiên 401, và các lỗi đăng nhập cố ý)",
+      "dat": true
+    },
+    {
+      "id": "f",
+      "name": "máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)",
+      "dat": true
+    }
+  ],
+  "csp": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
+  "axe": {
+    "may-A-390-widget-da-dat": [],
+    "may-A-390-loi-sai-pin": [],
+    "may-A-375-widget-da-dat": [],
+    "may-A-320-widget-da-dat": [],
+    "may-A-1040-widget-da-dat": [],
+    "may-B-390-khong-widget": []
+  },
+  "do": {
+    "cau-hinh-cham-ms-den-khi-nut-mo": 3075,
+    "may-A-390": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": {
+        "rong": 316,
+        "cao": 72,
+        "trongThe": true
+      }
+    },
+    "may-A-390-loi-sai-pin": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": {
+        "rong": 316,
+        "cao": 72,
+        "trongThe": true
+      }
+    },
+    "may-A-375": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": {
+        "rong": 311,
+        "cao": 72,
+        "trongThe": true
+      }
+    },
+    "may-A-320": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": {
+        "rong": 256,
+        "cao": 147,
+        "trongThe": true
+      }
+    },
+    "may-A-1040": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": {
+        "rong": 300,
+        "cao": 72,
+        "trongThe": true
+      }
+    },
+    "console-a": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-b": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-c": {
+      "logEntries": 2,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-d": {
+      "logEntries": 3,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-e-cau-hinh-chặn mạng": {
+      "logEntries": 2,
+      "csp": [],
+      "other": [
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:50500/api/auth/login"
+      ],
+      "consoleErrors": []
+    },
+    "console-e-cau-hinh-500": {
+      "logEntries": 2,
+      "csp": [],
+      "other": [
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:50500/api/auth/login"
+      ],
+      "consoleErrors": []
+    },
+    "console-e-cau-hinh-cham": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-j": {
+      "logEntries": 2,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-k": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-k-khoa-sai": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-hi-390": {
+      "logEntries": 2,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-hi-375": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-hi-320": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-hi-1040": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "may-B-390-khong-widget": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": null
+    }
+  },
+  "widget": {
+    "w": 316,
+    "h": 72,
+    "token": "XXXX.DUMMY.TOKEN.XXXX",
+    "cacheServiceWorker": 20
+  },
+  "tongKet": {
+    "dat": 11,
+    "hong": 0
+  }
+}

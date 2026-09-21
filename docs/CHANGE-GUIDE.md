@@ -37,7 +37,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Đổi thông báo lỗi do máy chủ trả | `src/modules/*/index.ts` (`error(...)`) | m |
 | Đổi màu / font / token | `public/app.css` (`:root`), `public/manifest.webmanifest` | i |
 | Thêm biểu tượng | `web/icons.ts` (`SHAPES`) | i |
-| Đổi luật đăng nhập / PIN / chống dò / phiên / Turnstile | `src/modules/auth/*` (`turnstile.ts` cho Turnstile), `src/modules/staff/password.ts`, `src/modules/staff/rules.ts` | l |
+| Đổi luật đăng nhập / PIN / chống dò / phiên / Turnstile (máy chủ + widget ở màn đăng nhập) | `src/modules/auth/*` (`turnstile.ts` cho Turnstile), `src/modules/staff/password.ts`, `src/modules/staff/rules.ts`, `web/login.ts`, `public/login.html`, `public/_headers` (CSP) | l |
 | Thêm biến môi trường / bí mật | `wrangler.jsonc` (`vars`), `.dev.vars`, `worker-configuration.d.ts` | l |
 | Đổi cách đồng bộ Sheet / danh mục / ghi đè admin | `src/modules/catalog/*`, `src/shared/sheets.ts` | k |
 | Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
@@ -48,7 +48,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Đổi header bảo mật / CSP | `public/_headers` | i, l |
 | Đổi trạng thái đơn / hình thức cọc (có `CHECK` trong SQL) | `migrations/0003_orders.sql` → migration dựng lại bảng | d, g |
 | Thêm kịch bản e2e (API) | `tests/e2e/run.mjs` (`ALL`), `tests/e2e/lib.mjs` | o |
-| Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`) | o |
+| Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`), `docs/evidence/2026-09-21-v1-0/kich-ban/` (`v1-dang-nhap.mjs`) | o |
 | Cập nhật sổ dữ liệu | `docs/data-dictionary.json` → `npm run dict` | d |
 
 ## 2. Các công thức
@@ -265,6 +265,11 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Đổi `--c-primary` phải đổi KHỚP `theme_color` của `public/manifest.webmanifest` và `<meta name="theme-color">` trong từng `public/*.html` (`pwa.mjs` bắt lệch ở mọi trang của `PAGES`).
 - Ô gõ 16px (chống zoom iOS). Không `innerHTML` (dựng bằng `h()` ở `web/dom.ts`).
 
+**CSP (`public/_headers`, một chính sách chung cho MỌI trang tĩnh):**
+- Mở nguồn ngoài chỉ khi có lý do, đúng directive tối thiểu. Hiện có DUY NHẤT `https://challenges.cloudflare.com` cho Turnstile ở màn đăng nhập: `script-src`, `frame-src`, `connect-src`. `style-src`/`img-src` KHÔNG cần nới (đã đo bằng Chrome thật; `style-src` vốn có `'unsafe-inline'`). Không có `frame-src` thì `default-src 'self'` chặn khung widget.
+- Vi phạm CSP KHÔNG hiện ở `console.error` mà ở miền `Log` của CDP: dùng `logEntries` của `openPage()` (`a2-cdp.mjs`). Kiểm bằng `v1-dang-nhap.mjs` (bước b khẳng định header, bước g khẳng định không có vi phạm ở trình duyệt) — CSP chỉ có khi trang được phục vụ qua Workers Assets (`wrangler dev`/production), không có ở `file://`.
+- Nguồn ngoài mới thì thêm test cạnh khối Cloudflare ở `src/shared/sw-policy.test.ts` (service worker chỉ cache cùng nguồn; bài đó là hàng rào).
+
 **Font (tự lưu trữ):**
 - Tệp `.woff2` ở `public/fonts/`, tên chỉ `[A-Za-z0-9_-]` (khớp `STATIC_FILE` trong `src/shared/sw-policy.ts`); `@font-face` ở `public/app.css`; thêm vào `PRECACHE`.
 - `pwa.mjs` khẳng định ĐÚNG 6 tệp (`fontUrls.length === 6`): đổi số font phải sửa số đó.
@@ -274,7 +279,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Chữ hiển thị:** nằm ở HTML tĩnh, chuỗi trong `web/*.ts`, nhãn liệt kê (`STATUS_LABEL`, `METHOD_LABEL` ở `web/format.ts`; `PERMISSION_LABEL`; `PAX_LABEL`; `AUDIT_ACTIONS.*.label`; `MISSING_LABEL`; `unitLabel`) và thông báo máy chủ (m). Luật: tiếng Việt CÓ DẤU, không mã thô tiếng Anh lộ ra.
 
-**Kiểm:** `npm run build:web` → `npm test` → `npm run typecheck` → `npm run test:e2e -- pwa`; chạm `web/order-form.ts|order.ts|trip-sheet.ts` → ba kịch bản Chrome.
+**Kiểm:** `npm run build:web` → `npm test` → `npm run typecheck` → `npm run test:e2e -- pwa`; chạm `web/order-form.ts|order.ts|trip-sheet.ts` → ba kịch bản Chrome; chạm `web/login.ts`, `public/login.html`, CSS của màn đăng nhập hoặc CSP → `v1-dang-nhap.mjs` (Chrome thật, cần mạng).
 
 **Bẫy:** `.counter { overflow: hidden }` xén vòng focus (§4 mục 8); `.row-off { opacity: .6 }` làm chữ dưới tương phản 4,5:1 ở `/catalog`, `/staff`, `/locations`, `/parties` (nợ có sẵn, xem README bằng chứng A2).
 
@@ -284,16 +289,16 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Tên app "Tour Đảo Booking": nguồn khai là `public/manifest.webmanifest` (`name`; `short_name` = "Tour Đảo"; `pwa.mjs` coi là nguồn). Bản sao phải khớp:
   - 10 × `public/*.html` (`<title>… — Tour Đảo Booking` và `apple-mobile-web-app-title`);
   - `public/login.html` (`<h1>`); `web/shell.ts` (brand: `"Tour Đảo "` + `<span>Booking</span>`); `web/order.ts` (`document.title`).
-- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Giao diện CHƯA hiển thị (màn đăng nhập dùng ở task 3 của kế hoạch v1.0).
-- Số phiên bản: hằng ở `src/shared/app-info.ts` (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `formatReleaseLine()` → "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026"); phát hành mới chỉ sửa tệp này. `package.json` không có `version`. Mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`) là thứ khác, không hiển thị. Giao diện CHƯA hiển thị số phiên bản (task 3).
+- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) dựng khối ở chân trang từ đó (`#company`): tên (đậm), "Địa chỉ: …", "Email: …" (ẩn khi `null`), "MST: …" — chữ đúng như dữ liệu (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Chưa dùng ở bản xác nhận đơn (task 9–10).
+- Số phiên bản: hằng ở `src/shared/app-info.ts` (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `formatReleaseLine()` → "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026"); phát hành mới chỉ sửa tệp này. `package.json` không có `version`. Mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`) là thứ khác, không hiển thị. Màn đăng nhập hiện `formatReleaseLine()` ở `#release` (luôn hiện, kể cả khi API công ty lỗi: là hằng trong mã, không đi qua API).
 
 **Đổi tên app hôm nay:** sửa tất cả nơi trên rồi chạy `npm run test:e2e -- pwa` (đối chiếu manifest ↔ HTML ↔ bundle `web/shell.ts`). Không đổi tên Worker/D1 `tourdao-sales`.
 
 **Đổi số phiên bản / ngày phát hành:** sửa `APP_VERSION`, `APP_RELEASE_DATE` ở `src/shared/app-info.ts` (và ô kỳ vọng ở `src/shared/app-info.test.ts`) — hằng trong mã, không đi qua esbuild `--define`. **Đổi thông tin công ty:** sửa dòng `company_profile` (migration dữ liệu như `0013_company_email.sql`; giao diện sửa hồ sơ là M5, chưa làm); `GET /api/company` chỉ trả năm trường của `CompanyDto`, muốn lộ thêm trường phải sửa `CompanyDto` + câu `SELECT` tường minh ở `src/modules/company/repository.ts` + `tests/e2e/company.mjs` (nó khoá đúng tập khoá).
 
-**Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa company`.
+**Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa company`; đổi chữ hiển thị ở màn đăng nhập → `v1-dang-nhap.mjs`.
 
-**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay. Kế hoạch v1.0 (`docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`): task 3 nối `/api/company` + `formatReleaseLine()` vào màn đăng nhập, task 11 hoàn thiện mục này.
+**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay (`web/login.ts` mới dùng `formatReleaseLine()`). Kịch bản Chrome `v1-dang-nhap.mjs` (bước a) ghi CỨNG chữ kỳ vọng (`EXPECT`: dòng phiên bản, tên/địa chỉ/email/MST của công ty): đổi số phiên bản hoặc dữ liệu công ty thì sửa `EXPECT` ở đó. Kế hoạch v1.0 (`docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`): task 11 hoàn thiện mục này.
 
 ### k. Đồng bộ danh mục / Sheet / Cron
 
@@ -337,9 +342,9 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Chống dò (`auth/throttle.ts`): `PHONE_LIMIT` 5, `IP_LIMIT` 30, `LOGIN_WINDOW_MS` 15 phút; ĐẶT CHỖ trước khi kiểm PIN; IP lấy từ header `cf-connecting-ip`; đổi PIN dùng chung bộ đếm qua `verifyPinThrottled`.
 
 **Web:**
-- `public/login.html` + `web/login.ts` (`safeNext` ở `src/shared/safe-next.ts` chặn open-redirect); `public/account.html` + `web/account.ts` (đổi PIN).
+- `public/login.html` + `web/login.ts` (`safeNext` ở `src/shared/safe-next.ts` chặn open-redirect; còn lo widget Turnstile — mục dưới — và chân trang công ty/phiên bản — công thức j); `public/account.html` + `web/account.ts` (đổi PIN).
 - `web/api.ts` `api()`: 401 ngoài `/api/auth/login` → `goLogin()` (giữ lời gọi treo).
-- Header bảo mật/CSP ở `public/_headers` (`script-src 'self'`, không inline).
+- Header bảo mật/CSP ở `public/_headers` (`script-src 'self'` + `https://challenges.cloudflare.com` cho Turnstile, không inline; xem công thức i).
 
 **Biến/bí mật:**
 - Giá trị KHÔNG bí mật (ID Sheet) → `wrangler.jsonc` `vars`.
@@ -347,17 +352,18 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Sau khi thêm: cập nhật `worker-configuration.d.ts`. **Bẫy: `wrangler types` chỉ thấy bí mật có trong `.dev.vars` (tệp này gitignored, không có trong worktree mới)** — chạy `npm run types` khi thiếu tệp đó thì `SESSION_SECRET`/`TURNSTILE_SECRET_KEY` biến mất khỏi kiểu `Env` và `tsc` đỏ. Hoặc tạo `.dev.vars` tạm đủ tên rồi xoá sau khi sinh, hoặc khai tay hai chỗ đầu tệp (`__BaseEnv_Env` và `Pick<…>` của `NodeJS.ProcessEnv`) — `TURNSTILE_SITE_KEY?`/`TURNSTILE_SECRET_KEY?` hiện được khai tay, tuỳ chọn vì có thể vắng.
 - Kiểm cấu hình lúc chạy theo mẫu `checkAuthConfig` (`auth/index.ts`, truyền vào `createApp({ checkConfig })`): thiếu → 500 `server_misconfigured` + log, không lộ giá trị. e2e đặt `SESSION_SECRET` qua `wrangler dev --var`. (Turnstile KHÔNG đi qua `checkAuthConfig`: chưa đặt secret là trạng thái hợp lệ "tắt", không phải lỗi cấu hình.)
 
-**Turnstile (phần máy chủ đã có; giao diện là task 3 của kế hoạch v1.0):**
+**Turnstile (máy chủ + giao diện đã có):**
 - `src/modules/auth/turnstile.ts` (thuần, có test): `verifyTurnstile({ secret, token, ip, timeoutMs? }, fetchImpl)` gọi siteverify (POST form `secret`/`response`/`remoteip`, `remoteip` chỉ khi đúng là IP), hạn chót `TURNSTILE_TIMEOUT_MS` = 5 giây; trả `ok` / `failed` (→ 403) / `unavailable` (→ 503). `turnstileGate(env, token, ip)` là quyết định của route; `turnstileSecret`/`turnstileSiteKey` đọc cấu hình.
 - `POST /api/auth/login` nhận `turnstileToken` và kiểm Turnstile SAU khi xác nhận đầu vào (400) nhưng TRƯỚC `verifyPinThrottled`: thiếu/sai/hết hạn/đã dùng token → **403 `turnstile_failed`** (không tiêu hao lượt PIN của SĐT lẫn IP), siteverify không trả lời/lỗi/hết giờ/secret sai → **503 `turnstile_unavailable`** (đóng khi lỗi, ghi nhật ký `turnstile_unavailable` kèm `detail`, không có secret/token). Đổi PIN (`/api/account/change-pin`) KHÔNG đòi Turnstile.
 - `GET /api/auth/config` (public, `AuthConfigResponse`): `{ turnstileSiteKey }` — khoá site khi có CẢ `TURNSTILE_SECRET_KEY` lẫn `TURNSTILE_SITE_KEY`, còn lại `null`.
 - **Chưa đặt `TURNSTILE_SECRET_KEY` ⇒ TẮT**: đăng nhập bỏ qua bước này, `config` trả `null`, máy chủ `console.warn` (`turnstile_disabled`) MỖI lần đăng nhập. Có secret mà thiếu khoá site ⇒ VẪN kiểm nhưng không ai đăng nhập được (trang không dựng được widget) và log `turnstile_misconfigured` — luôn đặt đủ cả hai. Sau deploy phải kiểm `GET /api/auth/config` không còn `null` (checklist triển khai ở mục "Triển khai" của đặc tả v1.0).
-- Cấu hình: `TURNSTILE_SITE_KEY` (công khai) → `vars` của `wrangler.jsonc` khi có khoá thật (CHƯA thêm — chưa có widget); `TURNSTILE_SECRET_KEY` (bí mật) → `wrangler secret put` (chỉ khi chủ dự án ra lệnh). Local/e2e dùng khoá thử của Cloudflare (`TURNSTILE_TEST` ở `tests/e2e/lib.mjs`: site `1x00000000000000000000AA`, secret luôn đạt `1x0000000000000000000000000000000AA`, luôn hỏng `2x…AA`, "token đã dùng" `3x…AA`; token thử `XXXX.DUMMY.TOKEN.XXXX`) — `.dev.vars.example` ghi cách.
-- **Việc còn lại (task 3):** widget ở `web/login.ts` (gọi `GET /api/auth/config`, `turnstile.render`, `reset()` sau mỗi lần thất bại, gửi `turnstileToken`), nới CSP ở `public/_headers` cho `challenges.cloudflare.com`. **Cho tới lúc đó, đặt secret ở production sẽ làm đăng nhập bằng trình duyệt hỏng** (trang chưa gửi token).
+- Cấu hình: `TURNSTILE_SITE_KEY` (công khai) → `vars` của `wrangler.jsonc` khi có khoá thật (CHƯA thêm — chờ khoá thật lúc deploy, xem checklist triển khai); `TURNSTILE_SECRET_KEY` (bí mật) → `wrangler secret put` (chỉ khi chủ dự án ra lệnh). Local/e2e dùng khoá thử của Cloudflare (`TURNSTILE_TEST` ở `tests/e2e/lib.mjs`: site `1x00000000000000000000AA`, secret luôn đạt `1x0000000000000000000000000000000AA`, luôn hỏng `2x…AA`, "token đã dùng" `3x…AA`; token thử `XXXX.DUMMY.TOKEN.XXXX`) — `.dev.vars.example` ghi cách.
+- **Giao diện (`web/login.ts`, `public/login.html`):** trang gọi `GET /api/auth/config`; có khoá thì hiện khung `#turnstile-widget`, tải `api.js?render=explicit` BẰNG SCRIPT ĐỘNG (không nhúng trong HTML: lúc Turnstile tắt trang không chạm Cloudflare) rồi `turnstile.render` (chủ đề `auto`, `language: "vi-vn"`, cỡ `flexible`, hoặc `compact` khi lòng thẻ < 300 px). Nút Đăng nhập khoá khi chưa biết cấu hình (tối đa 3 giây, rồi coi như không có widget), khi đang gửi, và tới khi widget có token; `turnstile.reset()` sau MỌI lần đăng nhập thất bại (kể cả sai PIN: cổng Turnstile chạy trước PIN nên token đã bị đốt); lỗi 403/503 của máy chủ hiện NGUYÊN VĂN ở `#error`; script không tải/`render` lỗi/`error-callback` ⇒ thông báo tiếng Việt + nút "Thử lại" (không có nút khoá mà không lời giải thích); `expired-callback` xoá token (widget tự lấy token mới). Không có khoá site ⇒ không dựng widget và không gửi `turnstileToken`. Đặt secret ở production BẮT BUỘC kèm khoá site (`vars`), lên CÙNG lượt với mã: thiếu khoá site thì widget không dựng được và không ai đăng nhập được.
+- **Bẫy widget (đã dính, đừng lặp lại):** (1) id của khung widget KHÔNG được là `turnstile` — phần tử có id thành `window.<id>` và che `window.turnstile` (khung dùng id `turnstile-widget`); (2) đừng gọi `turnstile.ready()` khi script nạp động/`async` — nó ném lỗi; gọi `render` sau sự kiện `load` của script; (3) khung iframe của widget nằm trong shadow root ĐÓNG: `querySelector('iframe')` không thấy — nhận biết widget bằng ô ẩn `cf-turnstile-response`; (4) khoá thử luôn phát token `XXXX.DUMMY.TOKEN.XXXX` nên "token mới" không so được bằng giá trị; (5) dải chữ đỏ trong khung widget là của khoá thử, không phải của app.
 
-**Kiểm:** `node --test src/modules/staff/password.test.ts src/modules/staff/rules.test.ts src/modules/auth/turnstile.test.ts` → `npm test` → `npm run test:e2e -- admin turnstile platform`.
+**Kiểm:** `node --test src/modules/staff/password.test.ts src/modules/staff/rules.test.ts src/modules/auth/turnstile.test.ts` → `npm test` → `npm run test:e2e -- admin turnstile platform`; chạm `web/login.ts`/`public/login.html`/CSP → `v1-dang-nhap.mjs` (Chrome thật, cần mạng; ghi rõ cách chạy ở đầu tệp).
 
-**Bẫy:** e2e dùng `freshIp()` (header `cf-connecting-ip` giả) để không tự dính giới hạn theo IP; đổi số lần thử phải sửa `admin.mjs` (chống dò kể cả bắn song song). Server e2e BẬT Turnstile bằng khoá thử (`run.mjs`, `--var`) nên MỌI đăng nhập trong kịch bản phải đi qua `login()`/`session()` của `lib.mjs` (gửi token thử; đừng tự `call(… "/api/auth/login" …)`), và mỗi đăng nhập gọi siteverify thật (cần mạng). Kịch bản Chrome (`a2-cdp.mjs`) chạy máy chủ với Turnstile TẮT có chủ đích (`--var TURNSTILE_*:` rỗng ghi đè `.dev.vars`).
+**Bẫy:** e2e dùng `freshIp()` (header `cf-connecting-ip` giả) để không tự dính giới hạn theo IP; đổi số lần thử phải sửa `admin.mjs` (chống dò kể cả bắn song song). Server e2e BẬT Turnstile bằng khoá thử (`run.mjs`, `--var`) nên MỌI đăng nhập trong kịch bản phải đi qua `login()`/`session()` của `lib.mjs` (gửi token thử; đừng tự `call(… "/api/auth/login" …)`), và mỗi đăng nhập gọi siteverify thật (cần mạng). Kịch bản Chrome: `startEnv()` (`a2-cdp.mjs`) mặc định chạy máy chủ với Turnstile TẮT có chủ đích (`--var TURNSTILE_*:` rỗng ghi đè `.dev.vars`); `startEnv({ turnstile: true })` BẬT bằng khoá thử (`v1-dang-nhap.mjs`, cần mạng).
 
 ### m. Thông báo lỗi ở giao diện
 
@@ -398,10 +404,11 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 1. `const env = await startEnv()` (D1 tạm + `wrangler dev` + Chrome headless qua CDP, không thêm dependency).
 2. `env.as(ACCOUNTS.x, "/đường-dẫn")` mở trang đã đăng nhập; `p.waitFor(biểu-thức, "mô tả")`, `p.ev(…)`, `setInput`, `clickText`, `ok("…")`.
 3. Dựng dữ liệu bằng API (`env.login` + `fetch`), không dùng API để kiểm giao diện.
-4. Chạy từ GỐC repo: `npm run build:web && node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs`. `CHROME_BIN` mặc định là Chrome macOS; `chrome-wrap.sh` cứng đường dẫn macOS; `AXE_JS` chỉ cho `a2-evidence.mjs`.
+4. Chạy từ GỐC repo: `npm run build:web && node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs`. `CHROME_BIN` mặc định là Chrome macOS; `chrome-wrap.sh` cứng đường dẫn macOS; `AXE_JS` cho `a2-evidence.mjs` và `v1-dang-nhap.mjs`.
 5. Viết phép kiểm ĐỎ trên mã cũ trước khi sửa. Ghi kết quả vào `docs/evidence/…` nếu là bằng chứng nghiệm thu.
+6. Mẫu cho trang có bên thứ ba hoặc nhiều trạng thái: `docs/evidence/2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs` — mỗi bước là `step()` in ✓/✗ (không dừng ở bước hỏng đầu tiên nên thấy đủ "đỏ"), hai máy chủ nối tiếp (Turnstile bật/tắt), ghi trạng thái nút bằng `MutationObserver` chèn qua `Page.addScriptToEvaluateOnNewDocument` (chạy trước mã trang), chặn URL bằng `Network.setBlockedURLs`, làm chậm/giả lỗi API bằng cách bọc `window.fetch` trước mã trang, và nhớ `Network.clearBrowserCookies` (Chrome dùng chung cookie giữa các tab: phiên cũ làm `/login` chuyển đi ngay).
 
-**Bẫy:** `a2-cdp.mjs` có `ACCOUNTS` riêng (không dùng chung `lib.mjs`); `startEnv()` lỗi giữa lúc khởi động có thể để mồ côi `wrangler dev`/Chrome. `startEnv()` chạy máy chủ với Turnstile TẮT (`--var TURNSTILE_*:` rỗng) và `env.login` luôn gửi token thử — xem công thức l.
+**Bẫy:** `a2-cdp.mjs` có `ACCOUNTS` riêng (không dùng chung `lib.mjs`); `startEnv()` lỗi giữa lúc khởi động có thể để mồ côi `wrangler dev`/Chrome. `startEnv()` chạy máy chủ với Turnstile TẮT (`--var TURNSTILE_*:` rỗng), `startEnv({ turnstile: true })` BẬT bằng khoá thử; `env.login` luôn gửi token thử — xem công thức l. `openPage()` trả thêm `logEntries` (thông điệp do trình duyệt tự ghi, gồm vi phạm CSP), `requests`, `failed`.
 
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
@@ -412,9 +419,9 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 | `src/modules/*/index.ts`, `repository.ts`, `service.ts` (route, SQL) | `npm test` (kiến trúc) → `npm run typecheck` → `npm run test:e2e -- <module>` |
 | `migrations/*.sql` | `npm test` → `npm run db:migrate:local` → `npm run test:e2e` ĐỦ BỘ (đuôi `audit-invariants`) → `npm run dict` nếu đổi bảng/view |
 | `scripts/audit-invariants.mjs` | `node scripts/audit-invariants.mjs --db local [--persist-to <thư mục>] [--strict]` (chỉ đọc; D1 local phải đã áp migration) |
-| `web/*.ts` (trừ ba tệp dưới) | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → thử tay `npm run dev` |
+| `web/*.ts` (trừ ba tệp dưới) | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → thử tay `npm run dev`; riêng `web/login.ts` thêm kịch bản Chrome `v1-dang-nhap.mjs` |
 | `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | như trên + BA kịch bản Chrome `a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` (KHÔNG có kiểm tự động trong CI; nên chạy cả khi chạm thành phần dùng chung `service-card`, `trip-fields`, `order-services`, `catalog-picker`, `counter`, `money-input`, `banner`) |
-| `public/app.css`, `public/*.html`, `public/manifest.webmanifest`, `public/_headers`, `src/shared/sw-policy.ts`, `web/sw/sw.ts` | `npm run build:web` → `npm test` (`sw-policy.test.ts`) → `npm run typecheck` (gồm `-p web/sw`) → `npm run test:e2e -- pwa` |
+| `public/app.css`, `public/*.html`, `public/manifest.webmanifest`, `public/_headers`, `src/shared/sw-policy.ts`, `web/sw/sw.ts` | `npm run build:web` → `npm test` (`sw-policy.test.ts`) → `npm run typecheck` (gồm `-p web/sw`) → `npm run test:e2e -- pwa`; chạm `public/login.html`, `public/_headers` hoặc CSS màn đăng nhập → thêm `v1-dang-nhap.mjs` |
 | `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật; cần `.dev.vars` có đủ tên bí mật, xem công thức l) → `npm run typecheck` → `npm run test:e2e` |
 | `docs/data-dictionary.json` | `npm run dict` → `npm test` (bài kiểm bắt `DATA-DICTIONARY.md` lệch bản sinh) |
 | `scripts/*.mjs` | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
