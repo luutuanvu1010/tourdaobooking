@@ -23,5 +23,7 @@
       "database_id": "bcd4c0ac-7c97-4129-886f-380daecd58fc",
       "migrations_dir": "migrations"
     }
-  ]
+  ],
+  // Email Service (beta, gói Workers Paid): binding EMAIL theo developers.cloudflare.com/email-service (khoá `send_email`, `remote: true`). Thiếu binding hoặc thiếu hai secret FEEDBACK_NOTIFY_EMAIL / FEEDBACK_MAIL_FROM thì email tự tắt; yêu cầu Góp ý vẫn lưu và hàng đợi báo "chưa gửi được email".
+  "send_email": [{ "name": "EMAIL", "remote": true }]
 }

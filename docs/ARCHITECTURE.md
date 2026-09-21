@@ -7,7 +7,7 @@
 ```
 src/index.ts            gốc lắp ráp: danh sách module, nối auth vào router, Cron
    │
-src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, (M4/M5: company…)
+src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, feedback, (M4/M5: company…)
    │   ↳ chỉ import module khác qua index.ts của nó
 src/modules/auth, staff năng lực nền: phiên, đăng nhập, tài khoản + quyền app (accounts dùng trực tiếp); staff không có route
    │
@@ -24,8 +24,8 @@ src/shared/             router, http, contracts (kiểu API), audit-actions, ord
 
 - **Sổ dữ liệu** `docs/data-dictionary.json` là nguồn sự thật: mọi bảng/view, module chủ, cột chết, cột của view, "cạnh toàn vẹn". `docs/DATA-DICTIONARY.md` được **sinh** (`npm run dict`); bài kiểm báo lỗi nếu lệch.
 - **`src/architecture.test.ts`** (chạy trong `npm test`) kiểm: import chỉ qua `index.ts` và đúng chiều `ALLOWED_EDGES`, không vòng; `shared/` và `web/` không import module; sổ ↔ schema; tiền tố bảng ↔ module; khoá ngoại xuyên module đúng chiều (hoặc là cạnh toàn vẹn khai báo); view công bố đúng cột, không `INSTEAD OF`; bảng mới có cột kiểm toán, cột WHO `TEXT NULL` không khoá ngoại, không `CASCADE`, bảng tra cứu khoá `code`; R-N1-14 (không đọc cột chết `staff.role`/`staff.full_name`).
-- **Ranh giới SQL của module nghiêm** (`locations`, `parties`, `staff`): mọi câu SQL của `repository.ts` đi qua `defineSql` (`src/shared/sql-registry.ts`) và **tĩnh** (tham số tuỳ chọn viết `?N IS NULL OR …`); bài kiểm hỏi CHÍNH SQLite (`EXPLAIN` trên schema "ranh giới", view công bố thay bằng bảng rỗng) câu đó đọc/ghi bảng nào — ghi bảng module khác, hay đọc thẳng bảng gốc module khác, đều đỏ. `repository.ts` của module nghiêm import bằng đuôi `.ts`. Module cũ (`accounts`, `audit`, `auth`, `catalog`, `orders`) còn ở `LEGACY` (ngoại lệ có hạn, gỡ khi được chạm).
-- **Bảng mới**: tiền tố module (`pty_`, `loc_`, `stf_`, sau này `dsp_`, `bil_`); tra cứu dùng khoá mã `TEXT code`; tập giá trị mở là bảng tra cứu, không `CHECK` liệt kê; hiệu lực `valid_from/to_date` (ngày dân sự VN) hoặc `valid_from/to_at` (UTC); không xoá cứng — đóng hiệu lực hoặc `active = 0`; khoá ngoại `NO ACTION`; khoá lạc quan bằng `updated_at`.
+- **Ranh giới SQL của module nghiêm** (`locations`, `parties`, `staff`, `feedback`): mọi câu SQL của `repository.ts` đi qua `defineSql` (`src/shared/sql-registry.ts`) và **tĩnh** (tham số tuỳ chọn viết `?N IS NULL OR …`); bài kiểm hỏi CHÍNH SQLite (`EXPLAIN` trên schema "ranh giới", view công bố thay bằng bảng rỗng) câu đó đọc/ghi bảng nào — ghi bảng module khác, hay đọc thẳng bảng gốc module khác, đều đỏ. `repository.ts` của module nghiêm import bằng đuôi `.ts`. Module cũ (`accounts`, `audit`, `auth`, `catalog`, `orders`) còn ở `LEGACY` (ngoại lệ có hạn, gỡ khi được chạm).
+- **Bảng mới**: tiền tố module (`pty_`, `loc_`, `stf_`, `fbk_`, sau này `dsp_`, `bil_`); tra cứu dùng khoá mã `TEXT code`; tập giá trị mở là bảng tra cứu, không `CHECK` liệt kê; hiệu lực `valid_from/to_date` (ngày dân sự VN) hoặc `valid_from/to_at` (UTC); không xoá cứng — đóng hiệu lực hoặc `active = 0`; khoá ngoại `NO ACTION`; khoá lạc quan bằng `updated_at`.
 - **`scripts/audit-invariants.mjs`** kiểm bất biến dữ liệu (R-N1-*) trên D1 local/remote, chỉ đọc; `npm run test:e2e` chạy nó cuối bộ (`--strict`).
 
 ## Nơi đặt code trong một module
@@ -67,3 +67,7 @@ Logic của form/trang đơn là luật THUẦN ở `src/shared/` (kiểm bằng
 ## Ứng dụng iPhone (PWA)
 
 Giao diện tĩnh là PWA: `manifest` + icon + service worker (`web/sw/sw.ts` → `public/sw.js`). Quy tắc bất biến: `/api/*` không bao giờ qua cache của service worker (`src/shared/sw-policy.ts`, có test). Chi tiết, danh sách kiểm trên máy thật và cách tăng `CACHE_VERSION`: `docs/PWA-IPHONE.md`.
+
+## Góp ý / Báo lỗi (module `feedback`)
+
+Ticket một chiều-thành-hai-chiều: `fbk_ticket` + `fbk_message`. Luật chuyển trạng thái ở `src/shared/feedback-catalog.ts` (dùng chung với `web/`). Chống spam bằng MỘT câu `INSERT … SELECT … WHERE (đếm) < trần` (không có bước đếm-rồi-chèn tách rời). Email báo admin đi qua `notifyAdmins()` trong `waitUntil`, lỗi không làm hỏng yêu cầu (`notified_at` NULL → hàng đợi hiện "chưa gửi được email"). Thiết kế: `docs/superpowers/specs/2026-09-21-gop-y-bao-loi-design.md`; triển khai: `docs/HANDOFF-FEEDBACK.md`.
