@@ -24,6 +24,6 @@
       "migrations_dir": "migrations"
     }
   ],
-  // Email Service (beta, gói Workers Paid): binding EMAIL theo developers.cloudflare.com/email-service (khoá `send_email`, `remote: true`). Thiếu binding hoặc thiếu hai secret FEEDBACK_NOTIFY_EMAIL / FEEDBACK_MAIL_FROM thì email tự tắt; yêu cầu Góp ý vẫn lưu và hàng đợi báo "chưa gửi được email".
-  "send_email": [{ "name": "EMAIL", "remote": true }]
+  // Email Service (beta, gói Workers Paid): binding EMAIL theo developers.cloudflare.com/email-service (khoá `send_email`). KHÔNG khai `remote`: tài liệu nói `wrangler dev` không dùng remote binding thì chạy bộ mô phỏng cục bộ (không cần đăng nhập/mạng), nên `npm run dev` và e2e chạy offline được. Muốn thử gửi thư thật khi dev thì tạm đổi thành { "name": "EMAIL", "remote": true } (cần đăng nhập Cloudflare), đừng commit. Thiếu binding hoặc thiếu hai secret FEEDBACK_NOTIFY_EMAIL / FEEDBACK_MAIL_FROM thì email tự tắt; yêu cầu Góp ý vẫn lưu và hàng đợi báo "chưa gửi được email". Nếu `wrangler deploy` báo lỗi vì binding này (chưa bật Email Service/chưa xác minh tên miền — CHƯA kiểm chứng), gỡ khối `send_email` rồi deploy lại.
+  "send_email": [{ "name": "EMAIL" }]
 }

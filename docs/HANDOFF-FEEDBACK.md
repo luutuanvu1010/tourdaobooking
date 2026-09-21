@@ -5,7 +5,7 @@ Spec: `docs/superpowers/specs/2026-09-21-gop-y-bao-loi-design.md` · Kế hoạc
 ## Trạng thái mã
 - Nhánh `worktree-feedback-spec`; Task 1–9 đã commit (từ `2cf5563` kế hoạch đến `c27eb4a`), Task 10 (binding email + tài liệu) là commit cuối.
 - `npm test`: 251/251 đạt. `npm run typecheck`: 0 lỗi. `npm run test:e2e`: 11/11 kịch bản xanh, gồm `feedback` và `audit-invariants` (D1 local, `--strict`). `npx wrangler deploy --dry-run`: hợp lệ, liệt kê `env.EMAIL` (Send Email).
-- `wrangler.jsonc` đã khai `"send_email": [{ "name": "EMAIL", "remote": true }]` đúng mẫu tài liệu Cloudflare Email Service. `remote: true` nghĩa là `wrangler dev` nối tới dịch vụ thật; e2e vẫn xanh vì kịch bản không gửi thư thật (chưa có hai secret nên email tự tắt).
+- `wrangler.jsonc` khai `"send_email": [{ "name": "EMAIL" }]` (mẫu tài liệu Email Service), CỐ Ý không có `remote`: tài liệu nói `wrangler dev` không dùng remote binding thì chạy bộ mô phỏng cục bộ, nên `npm run dev` và e2e chạy offline, không cần đăng nhập. (Mẫu get-started dùng `remote: true`, khi đó dev/e2e cần đăng nhập Cloudflare + mạng.) Muốn thử gửi thư thật khi dev: tạm thêm `"remote": true` (cần đăng nhập), không commit. Chưa kiểm chứng: `remote` có ảnh hưởng gì khi deploy (tài liệu không nói); bộ mô phỏng cục bộ chỉ được tài liệu nhắc gián tiếp, e2e xanh vì không gửi thư (chưa có secret nên email tự tắt).
 - Thử tay giao diện (Task 9 bước 6): CHƯA LÀM. Xem "Việc kiểm tay còn lại".
 
 ## Việc kiểm tay còn lại
@@ -29,7 +29,7 @@ Spec: `docs/superpowers/specs/2026-09-21-gop-y-bao-loi-design.md` · Kế hoạc
 1. `npm test`, `npm run typecheck`, `npm run test:e2e` đều xanh (chạy riêng từng lệnh, ghi kết quả).
 2. Ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 3. `npm run db:migrate:remote` — chỉ THÊM bảng `fbk_*` (mã cũ chạy nguyên vẹn nên áp migration TRƯỚC deploy là an toàn). Kiểm số migration chưa áp có ĐÚNG là `0016_feedback.sql` (không kéo theo file B5 nào).
-4. `npx wrangler deploy`.
+4. `npx wrangler deploy`. Nếu `wrangler deploy` báo lỗi vì binding `send_email`, gỡ khối `send_email` khỏi wrangler.jsonc rồi deploy lại; email tắt, yêu cầu vẫn lưu và hàng đợi báo "chưa gửi được email". CHƯA KIỂM CHỨNG (tài liệu không nói) việc deploy có thất bại khi tài khoản chưa bật Email Service / chưa xác minh tên miền hay không.
 5. Kiểm sau deploy: gửi một yêu cầu thật bằng tài khoản thường; kiểm email đến hộp thư admin và hàng đợi không báo "chưa gửi được email"; nếu email không đến: xem log Worker (`console.error "Gửi email báo admin thất bại"`), sửa cấu hình rồi thử lại — yêu cầu không mất.
 6. Chạy `node scripts/audit-invariants.mjs --remote` (chỉ đọc).
 
@@ -38,7 +38,6 @@ Bảng `fbk_*` mới, không ai khác đọc: gỡ bản triển khai bằng `wr
 
 ## Điểm mở
 - Thời hạn lưu giữ yêu cầu đã đóng (dữ liệu có thể chứa thông tin khách do người dùng gõ).
-- `admin_seen_at` dùng chung mọi admin (một admin xem là các admin khác hết chấm đỏ).
-- Mốc "đã xem" dùng chung mọi admin (cùng ý trên, áp cho chấm đỏ và cờ chưa đọc).
+- `admin_seen_at` (mốc "đã xem") dùng chung mọi admin: một admin xem là các admin khác hết chấm đỏ và cờ chưa đọc.
 - Thống kê theo tuần dùng `strftime('%Y-%W')`: tách sai ở ranh giới năm (tuần chung giữa hai năm bị chia đôi).
 - Việc sau v1: ảnh (R2), email cho người gửi, retry gửi thư bằng Cron, `duplicate_of`, ưu tiên/SLA, `tenant_id`.
