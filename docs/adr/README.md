@@ -1,6 +1,6 @@
 # Bản ghi quyết định kiến trúc (ADR)
 
-Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (không quyết định kiến trúc nếu không có bản ghi do chủ dự án duyệt), Điều 7.2 (khai cửa một chiều hay hai chiều). Mỗi quyết định một tệp, đánh số tăng dần; **không sửa ADR đã accepted** — chỉ thay bằng ADR mới trỏ về ADR cũ. Mẫu: `playbook/templates/03-ADR-0001-template.md` của tourdaovn (ở đó ADR nằm ở `project/adr/`; dự án này đặt ở `docs/adr/`).
+Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (không quyết định kiến trúc nếu không có bản ghi do chủ dự án duyệt), Điều 7.2 (khai cửa một chiều hay hai chiều). Mỗi quyết định một tệp, đánh số tăng dần; **không sửa ADR đã accepted** — chỉ thay bằng ADR mới trỏ về ADR cũ. Mẫu: `playbook/templates/03-ADR-0001-template.md` (bản chép chỉ-đọc của Core, xem ADR-0012; ở đó ADR nằm ở `project/adr/`, dự án này đặt ở `docs/adr/`).
 
 | ADR | Quyết định | Cửa | Trạng thái |
 |---|---|---|---|
@@ -15,7 +15,8 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0009](ADR-0009-nguoi-phu-trach-duoc-sua-don.md) | Người phụ trách được sửa đơn: đổi ba ô `SALES` của `MATRIX` (`order.modify`, `order.history.view`, `dispatch.assign`: `own` → `ownOrAssigned`), thêm thao tác `dispatch.claim`; sửa một phần điều 1 của ADR-0007, giữ cơ chế tiêm `ctx.assigned` (điều 4(b)) | hai chiều | **accepted** (yêu cầu trực tiếp của chủ dự án 2026-09-21) |
 | [0010](ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md) | Ngưỡng mở rộng sau đối chiếu Oracle TCA: phạm vi theo nơi, hoá đơn là bản chụp, tác nhân tự động | hai chiều | **accepted** (chủ dự án duyệt 2026-09-21) |
 | [0011](ADR-0011-khach-tren-don-ngoai-le-quyen.md) | Khách trên đơn (N2 lát 1): route lập/sửa đơn tạo hồ sơ cá nhân mới + vai `CUSTOMER` cùng batch; đổi người đặt của đơn đã xác nhận như thông tin vận hành (`order.trip.edit`, nhật ký bằng tên); hai ngoại lệ hẹp của ADR-0007 | hai chiều | **accepted** (quyết định của chủ dự án 2026-09-21) |
+| [0012](ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md) | Neo Hiến pháp bằng bản chép chỉ-đọc từ Core (v2.3.0) vào `playbook/`, kèm băm và bài kiểm; không viết Hiến pháp mới; tầng ràng buộc dự án (Lớp 2) chỉ siết thêm | hai chiều (tệp); nghĩa vụ đã duyệt là bánh cóc (9.4) | **accepted** (chủ dự án chuyển 2026-09-22) |
 
-Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
+Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
 **Cổng bắt buộc trước khi áp migration N1 lên remote:** hai lệnh chỉ-đọc trên remote D1 (xem mục Bối cảnh của ADR-0001) do chủ dự án chạy. **Bằng chứng chỉ cần nếu sau này muốn gỡ cột `staff.role` (ADR-0005):** D1 hỗ trợ `PRAGMA defer_foreign_keys` và bọc một tệp migration trong một giao dịch.

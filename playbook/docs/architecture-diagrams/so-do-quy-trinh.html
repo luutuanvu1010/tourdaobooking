@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Playbook thiết kế web cùng AI — Sơ đồ quy trình chuẩn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#1B2A4A;
+    --navy-2:#24365b;
+    --paper:#F7F4EE;
+    --sand:#E9E1D3;
+    --terra:#C8643C;
+    --terra-soft:#E8A07F;
+    --ink:#2A2622;
+    --muted:#6B6357;
+    --line:#D8CEBE;
+    /* phase colors */
+    --c-strat:#3E5C8A;
+    --c-arch:#1B2A4A;
+    --c-struct:#2E7D6B;
+    --c-surf:#C8643C;
+    --c-build:#8A5A2B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(900px 500px at 85% -5%, rgba(200,100,60,.10), transparent 60%),
+      radial-gradient(700px 600px at -10% 100%, rgba(62,92,138,.12), transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+    line-height:1.5;
+    padding:48px 20px 64px;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:980px;margin:0 auto}
+
+  /* ---- header ---- */
+  .eyebrow{
+    font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--terra);margin-bottom:14px;
+  }
+  h1{
+    font-family:"Fraunces",serif;font-weight:600;color:var(--navy);
+    font-size:clamp(30px,5vw,48px);line-height:1.05;letter-spacing:-.01em;
+    max-width:18ch;
+  }
+  h1 em{font-style:italic;color:var(--terra)}
+  .sub{margin-top:16px;max-width:62ch;color:var(--muted);font-size:15.5px}
+  .rule{height:1px;background:var(--line);margin:30px 0}
+
+  /* ---- legends ---- */
+  .legends{display:flex;flex-wrap:wrap;gap:26px 40px;margin-bottom:8px}
+  .leg-block{flex:1;min-width:240px}
+  .leg-title{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.2em;
+    text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+  .chips{display:flex;flex-wrap:wrap;gap:8px}
+  .chip{display:inline-flex;align-items:center;gap:7px;font-size:12.5px;font-weight:500;
+    background:#fff;border:1px solid var(--line);border-radius:20px;padding:5px 11px 5px 9px}
+  .dot{width:10px;height:10px;border-radius:50%;flex:none}
+  .role{display:inline-flex;align-items:center;gap:8px;font-size:13px;font-weight:600}
+  .role b{font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:500;
+    background:var(--navy);color:#fff;border-radius:5px;padding:2px 6px;letter-spacing:.05em}
+
+  /* ---- pipeline ---- */
+  .pipe{margin-top:34px;position:relative}
+  .step{
+    position:relative;background:#fff;border:1px solid var(--line);
+    border-radius:16px;padding:18px 20px 18px 22px;margin-bottom:14px;
+    display:grid;grid-template-columns:60px 1fr;gap:18px;align-items:start;
+    box-shadow:0 1px 0 rgba(27,42,74,.04),0 14px 30px -24px rgba(27,42,74,.4);
+    overflow:hidden;
+  }
+  .step::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--accent)}
+  .num{font-family:"Fraunces",serif;font-weight:700;font-size:34px;line-height:1;
+    color:var(--accent);width:60px;text-align:center;padding-top:2px}
+  .body h3{font-family:"Fraunces",serif;font-weight:600;font-size:19px;color:var(--navy);
+    line-height:1.2;margin-bottom:3px}
+  .meta{font-family:"JetBrains Mono",monospace;font-size:10.5px;letter-spacing:.04em;
+    color:var(--accent);font-weight:500;text-transform:uppercase;margin-bottom:9px}
+  .desc{font-size:13.5px;color:var(--muted);max-width:60ch}
+  .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:11px}
+  .tag{font-size:11.5px;font-weight:600;border-radius:7px;padding:3px 9px;
+    background:var(--sand);color:var(--navy-2)}
+  .tag.tool{background:var(--navy);color:#fff}
+  .tag.art{background:transparent;border:1px dashed var(--terra-soft);color:var(--terra)}
+
+  /* connectors + gates */
+  .flow{display:flex;justify-content:center;margin:-2px 0 12px}
+  .flow svg{display:block}
+  .gate{
+    position:relative;margin:6px auto 18px;max-width:640px;
+    background:linear-gradient(90deg,#fff,#FBF7F0);
+    border:1.5px solid var(--terra);border-radius:12px;
+    padding:11px 16px 11px 14px;display:flex;gap:12px;align-items:center;
+    box-shadow:0 10px 24px -20px rgba(200,100,60,.9);
+  }
+  .gate .ico{width:30px;height:30px;border-radius:8px;background:var(--terra);color:#fff;
+    display:grid;place-items:center;font-size:15px;flex:none}
+  .gate .g-txt b{display:block;font-size:13px;color:var(--navy);font-weight:700}
+  .gate .g-txt span{font-size:12px;color:var(--muted)}
+  .gate.soft{border-color:var(--c-struct);box-shadow:0 10px 24px -20px rgba(46,125,107,.9)}
+  .gate.soft .ico{background:var(--c-struct)}
+
+  /* ---- footer note ---- */
+  .footnote{margin-top:30px;border-top:1px solid var(--line);padding-top:18px;
+    font-size:12.5px;color:var(--muted);display:flex;gap:10px;align-items:flex-start}
+  .footnote .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.15em;
+    text-transform:uppercase;color:var(--terra);white-space:nowrap;padding-top:2px}
+
+  @media(max-width:560px){
+    .step{grid-template-columns:44px 1fr;gap:12px;padding:16px 15px 16px 16px}
+    .num{width:44px;font-size:27px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="eyebrow">Reusable Playbook · v1 draft</div>
+  <h1>Thiết kế web cùng AI: <em>quy trình chuẩn</em> 9 bước, tuần tự từ trừu tượng đến cụ thể</h1>
+  <p class="sub">Bản lý tưởng (prescriptive), không gắn cứng vào Nha Trang Travel. Mỗi bước phải đẻ ra một artifact: chưa có file thì coi như bước đó chưa hoàn thành. Khung gốc: 5 Planes (Garrett) + C4 + ADR + Spec-Driven.</p>
+
+  <div class="rule"></div>
+
+  <div class="legends">
+    <div class="leg-block">
+      <div class="leg-title">5 nhóm theo độ phân giải</div>
+      <div class="chips">
+        <span class="chip"><span class="dot" style="background:var(--c-strat)"></span>Định hướng</span>
+        <span class="chip"><span class="dot" style="background:var(--c-arch)"></span>Kiến trúc &amp; Luật</span>
+        <span class="chip"><span class="dot" style="background:var(--c-struct)"></span>Cấu trúc &amp; Khung</span>
+        <span class="chip"><span class="dot" style="background:var(--c-surf)"></span>Bề mặt</span>
+        <span class="chip"><span class="dot" style="background:var(--c-build)"></span>Thực thi</span>
+      </div>
+    </div>
+    <div class="leg-block">
+      <div class="leg-title">3 vai trong pipeline AI</div>
+      <div class="chips">
+        <span class="role"><b>BẠN</b>quyết định</span>
+        <span class="role"><b>COWORK</b>ra lệnh + giám sát</span>
+        <span class="role"><b>DESIGN</b>vẽ bề mặt</span>
+        <span class="role"><b>CODE</b>thực thi</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="pipe">
+
+    <!-- 0 -->
+    <div class="step" style="--accent:var(--c-strat)">
+      <div class="num">0</div>
+      <div class="body">
+        <h3>Định vị &amp; ràng buộc</h3>
+        <div class="meta">Strategy plane · vì sao tồn tại</div>
+        <p class="desc">Chốt đối tượng, lời hứa giá trị, mô hình kinh doanh, giới hạn ngân sách/thời gian. Đây là tầng quyết định mọi thứ phía sau, không được bỏ qua để nhảy vào kỹ thuật.</p>
+        <div class="tags"><span class="tag tool">Bạn + Cowork</span><span class="tag art">→ PROJECT_BRIEF.md</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- 1 -->
+    <div class="step" style="--accent:var(--c-strat)">
+      <div class="num">1</div>
+      <div class="body">
+        <h3>Phạm vi &amp; mô hình nội dung</h3>
+        <div class="meta">Scope plane · cái gì</div>
+        <p class="desc">Định nghĩa các loại thực thể (entity), thuộc tính, quan hệ; chốt SEO/GEO yêu cầu ở mức khái niệm. Đây là nguồn sự thật mà code và schema sẽ bám theo.</p>
+        <div class="tags"><span class="tag tool">Cowork</span><span class="tag art">→ CONTENT_MODEL.md</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- 2 -->
+    <div class="step" style="--accent:var(--c-arch)">
+      <div class="num">2</div>
+      <div class="body">
+        <h3>Kiến trúc hệ thống</h3>
+        <div class="meta">C4 · Context → Container</div>
+        <p class="desc">Vẽ hệ thống ở 4 độ phân giải: bối cảnh, các khối hạ tầng, thành phần, code. Mục tiêu là một bức tranh mà người mới nhìn vào hiểu được luồng dữ liệu.</p>
+        <div class="tags"><span class="tag tool">Cowork</span><span class="tag art">→ SAD + sơ đồ C4</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- 3 -->
+    <div class="step" style="--accent:var(--c-arch)">
+      <div class="num">3</div>
+      <div class="body">
+        <h3>Chốt Stack — bằng ADR</h3>
+        <div class="meta">Architecture Decision Record</div>
+        <p class="desc">Mỗi lựa chọn công nghệ phải ghi: bối cảnh, phương án xem xét, phương án bị loại, lý do. Đây là vắc-xin chống "đổi stack mất trí nhớ" — lỗ hổng số 1 của dự án hiện tại.</p>
+        <div class="tags"><span class="tag tool">Cowork</span><span class="tag art">→ ADR-0001…000n</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- 4 -->
+    <div class="step" style="--accent:var(--c-arch)">
+      <div class="num">4</div>
+      <div class="body">
+        <h3>Luật hệ thống bất biến</h3>
+        <div class="meta">Constraints R1…Rn</div>
+        <p class="desc">Các ràng buộc cứng mà Code không được phá: ví dụ chỉ chạy edge runtime, cấm Node built-in, mọi truy vấn DB phải prepared statement, ref_id luôn là slug thuần. Code đọc file này như luật.</p>
+        <div class="tags"><span class="tag tool">Cowork</span><span class="tag art">→ CONSTRAINTS.md</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- 5 -->
+    <div class="step" style="--accent:var(--c-struct)">
+      <div class="num">5</div>
+      <div class="body">
+        <h3>Cấu trúc IA &amp; schema dữ liệu</h3>
+        <div class="meta">Structure plane · tổ chức thông tin</div>
+        <p class="desc">Bản đồ URL, taxonomy, canonical, và schema D1 đầy đủ (cột, kiểu, index, junction table). Giải quyết trùng lặp/ăn thịt nội dung trước khi viết một dòng giao diện.</p>
+        <div class="tags"><span class="tag tool">Cowork + Code</span><span class="tag art">→ URL map + DB schema</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- 6 -->
+    <div class="step" style="--accent:var(--c-struct)">
+      <div class="num">6</div>
+      <div class="body">
+        <h3>Khung trang + Binding map</h3>
+        <div class="meta">Skeleton plane · khung trước, đẹp sau</div>
+        <p class="desc">Wireframe các trang lõi và ánh xạ mỗi vùng giao diện ↔ field dữ liệu nào. Đây là tài liệu khiến Design và Code không phải đoán.</p>
+        <div class="tags"><span class="tag tool">Cowork</span><span class="tag art">→ Component-to-Data map</span></div>
+      </div>
+    </div>
+
+    <!-- HARD GATE -->
+    <div class="gate soft">
+      <div class="ico">⛔</div>
+      <div class="g-txt"><b>Luật cứng: chưa có Binding map → cấm bước thiết kế</b><span>Đảo thứ tự ở đây là nguyên nhân làm lại nhiều ngày. Bề mặt không bao giờ đi trước cấu trúc.</span></div>
+    </div>
+
+    <!-- 7 -->
+    <div class="step" style="--accent:var(--c-surf)">
+      <div class="num">7</div>
+      <div class="body">
+        <h3>Bề mặt — thiết kế giao diện</h3>
+        <div class="meta">Surface plane · một nguồn token duy nhất</div>
+        <p class="desc">Vẽ mockup từ binding map, xuất HTML + một bộ design token DUY NHẤT (màu, font, radius, spacing). Không cho phép hai file design system song song tồn tại.</p>
+        <div class="tags"><span class="tag tool">Claude / Open Design</span><span class="tag art">→ mockup + DESIGN_TOKENS</span></div>
+      </div>
+    </div>
+    <div class="flow"><svg width="20" height="22"><path d="M10 0 V14" stroke="#C8643C" stroke-width="2"/><path d="M4 12 L10 20 L16 12" fill="none" stroke="#C8643C" stroke-width="2"/></svg></div>
+
+    <!-- QA1 GATE -->
+    <div class="gate">
+      <div class="ico">✓</div>
+      <div class="g-txt"><b>Cổng QA1: Cowork duyệt prompt trước khi Code chạy</b><span>Prompt phải đủ chặt: tham chiếu artifact nào, ràng buộc nào, tiêu chí done là gì.</span></div>
+    </div>
+
+    <!-- 8 -->
+    <div class="step" style="--accent:var(--c-build)">
+      <div class="num">8</div>
+      <div class="body">
+        <h3>Thực thi có cổng kiểm soát</h3>
+        <div class="meta">Spec-driven · build &amp; ship</div>
+        <p class="desc">Code thực thi theo prompt, commit, deploy. Sau khi xong qua Cổng QA2 (đối chiếu với SPEC + CONSTRAINTS) rồi mới merge. Bạn quyết định, Cowork giám sát, Code làm.</p>
+        <div class="tags"><span class="tag tool">Claude Code</span><span class="tag art">→ PR + QA2 checklist</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footnote">
+    <span class="k">Đọc sơ đồ</span>
+    <span>Trục dọc đi từ trừu tượng (vì sao) xuống cụ thể (code). Hai dấu cổng terracotta/xanh là điểm dừng bắt buộc. Lặp lại được cho mọi website sau: chỉ thay nội dung trong các artifact, giữ nguyên thứ tự và các cổng.</span>
+  </div>
+
+</div>
+</body>
+</html>

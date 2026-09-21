@@ -84,7 +84,7 @@ export function patchStaffStatements(
   const onlyIf = needsUpdate ? "changes() > 0" : undefined;
   const log = (action: AuditAction, detail?: string) => adminAudit(db, adminId, action, t.id, detail, onlyIf);
   if (patch.fullName !== undefined || patch.phone !== undefined) {
-    const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && `SĐT ${t.phone} → ${patch.phone}`].filter(Boolean);
+    const bits = [patch.fullName !== undefined && `tên "${t.fullName}" → "${patch.fullName}"`, patch.phone !== undefined && "đổi SĐT đăng nhập"].filter(Boolean); // KHÔNG ghi số: nhật ký không chứa SĐT/email/MST (chủ chốt 2026-09-21)
     stmts.push(log("staff_updated", bits.join("; ")));
   }
   if (patch.active === false) stmts.push(log("staff_suspended"));

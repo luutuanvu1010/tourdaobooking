@@ -1,0 +1,1540 @@
+{
+ "_nguon": "Bộ ca do người kiểm độc lập D soạn 2026-09-21 để tấn công .claude/hooks/guard-remote-lib.mjs. C = quên/nhầm thường gặp (PHẢI chặn); A = lệnh thường ngày (PHẢI cho qua); H = heredoc/thông điệp/ghi tài liệu nhắc chuỗi cấm (PHẢI cho qua); E = cố ý lách (CHẤP NHẬN lọt, ghi lại để biết giới hạn, test không kiểm nhóm này).",
+ "cases": [
+  {
+   "cmd": "FOO=1 git push",
+   "expect": "deny",
+   "group": "C",
+   "note": "biến môi trường đứng trước"
+  },
+  {
+   "cmd": "GIT_SSH_COMMAND=ssh git push origin main",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git\tpush",
+   "expect": "deny",
+   "group": "C",
+   "note": "tab"
+  },
+  {
+   "cmd": "git    push origin main",
+   "expect": "deny",
+   "group": "C",
+   "note": "nhiều khoảng trắng"
+  },
+  {
+   "cmd": "command git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "env git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "env FOO=1 git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "sudo git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "nohup git push &",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "time git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "(git push)",
+   "expect": "deny",
+   "group": "C",
+   "note": "subshell"
+  },
+  {
+   "cmd": "{ git push; }",
+   "expect": "deny",
+   "group": "C",
+   "note": "group"
+  },
+  {
+   "cmd": "git 'push'",
+   "expect": "deny",
+   "group": "E",
+   "note": "nháy quanh subcommand"
+  },
+  {
+   "cmd": "git \"push\"",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "g=git; $g push",
+   "expect": "deny",
+   "group": "E",
+   "note": "biến"
+  },
+  {
+   "cmd": "\\git push",
+   "expect": "deny",
+   "group": "C",
+   "note": "bỏ alias bằng \\"
+  },
+  {
+   "cmd": "true && git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "false || git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "true; git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "echo x | git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "echo hi\ngit push",
+   "expect": "deny",
+   "group": "C",
+   "note": "xuống dòng"
+  },
+  {
+   "cmd": "cat <<EOF | bash\ngit push\nEOF",
+   "expect": "deny",
+   "group": "E",
+   "note": "heredoc vào bash"
+  },
+  {
+   "cmd": "echo origin | xargs git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "find . -maxdepth 0 -exec git push {} \\;",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "git -C ../x push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git --git-dir=.git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git --git-dir .git push",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ có giá trị rời"
+  },
+  {
+   "cmd": "git --work-tree /tmp/x push",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ có giá trị rời"
+  },
+  {
+   "cmd": "git --no-pager -C x push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git -C '/path with space' push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git -C \"$PWD\" push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "if true; then git push; fi",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "for r in origin; do git push $r; done",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git push --force-with-lease",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git push -u origin HEAD",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git commit -m x && git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git \\\n  push origin main",
+   "expect": "deny",
+   "group": "C",
+   "note": "xuống dòng bằng \\ giữa git và push"
+  },
+  {
+   "cmd": "git push \\\n  origin main",
+   "expect": "deny",
+   "group": "C",
+   "note": "push ở dòng đầu"
+  },
+  {
+   "cmd": "bash -lc 'git push'",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "bash --login -c 'git push'",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "env bash -c 'git push'",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "echo 'git push' | bash",
+   "expect": "deny",
+   "group": "E",
+   "note": "ống vào shell"
+  },
+  {
+   "cmd": "bash <<< 'git push'",
+   "expect": "deny",
+   "group": "E",
+   "note": "here-string"
+  },
+  {
+   "cmd": "node -e \"require('child_process').execSync('git push')\"",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "python3 -c \"import subprocess; subprocess.run(['git','push'])\"",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "\"git\" push",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "git pu\"\"sh",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "git p\\ush",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "git send-pack origin main",
+   "expect": "deny",
+   "group": "E",
+   "note": "lệnh nền của push"
+  },
+  {
+   "cmd": "git push",
+   "expect": "deny",
+   "group": "C",
+   "note": "trần"
+  },
+  {
+   "cmd": "cd /tmp && git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "~/bin/git push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git -c http.extraheader=x push",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git  -c core.editor=true  push  origin",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git remote add x y && git push -u x main",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git push;",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git push origin :branch",
+   "expect": "deny",
+   "group": "C",
+   "note": "xoá nhánh từ xa"
+  },
+  {
+   "cmd": "git push --delete origin nhanh",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git push --tags",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "gh pr merge 3",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "gh pr merge --squash --delete-branch 3",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "gh pr merge",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "gh pr create --title x --body y && gh pr merge --auto",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "gh api repos/o/r/pulls/3/merge -X PUT",
+   "expect": "deny",
+   "group": "E",
+   "note": "API merge"
+  },
+  {
+   "cmd": "wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler publish",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler rollback",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler delete",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler secret put X",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler secret bulk x.json",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler versions upload",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler versions deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler triggers deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npx wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npx --yes wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npx wrangler@latest deploy",
+   "expect": "deny",
+   "group": "C",
+   "note": "phiên bản gắn @"
+  },
+  {
+   "cmd": "npx wrangler@4 deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "pnpm dlx wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "bunx wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "./node_modules/.bin/wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node_modules/.bin/wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node node_modules/wrangler/bin/wrangler.js deploy",
+   "expect": "deny",
+   "group": "E",
+   "note": "gọi thẳng .js"
+  },
+  {
+   "cmd": "npm exec wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm exec -- wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm exec wrangler -- deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler --env prod deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler --env prod --name x deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler --config wrangler.jsonc --env prod --name x --log-level debug deploy",
+   "expect": "deny",
+   "group": "E",
+   "note": "5 token trước"
+  },
+  {
+   "cmd": "CI=1 wrangler deploy",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "CI=1 npx wrangler deploy --minify",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler deploy --dry-run",
+   "expect": "deny",
+   "group": "C",
+   "note": "chặn (có chủ đích) cả dry-run"
+  },
+  {
+   "cmd": "wrangler pages deploy public",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 execute tourdao-sales-db --remote --command \"SELECT 1\"",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 execute tourdao-sales-db --remote --file x.sql",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 execute tourdao-sales-db --file x.sql",
+   "expect": "deny",
+   "group": "C",
+   "note": "không cờ = coi là remote"
+  },
+  {
+   "cmd": "wrangler d1 migrations apply tourdao-sales-db --remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 migrations apply tourdao-sales-db",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 time-travel restore tourdao-sales-db --timestamp x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 export tourdao-sales-db --remote --output x.sql",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 delete tourdao-sales-db",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 create x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wrangler d1 migrations apply tourdao-sales-db --remote && wrangler d1 migrations apply tourdao-sales-db --local",
+   "expect": "deny",
+   "group": "C",
+   "note": "--local ở đoạn khác miễn cho đoạn remote"
+  },
+  {
+   "cmd": "npx wrangler d1 execute tourdao-sales-db --remote --command 'UPDATE staff SET active=0' ; npm run db:migrate:local",
+   "expect": "deny",
+   "group": "C",
+   "note": "--local xuất hiện ở lệnh khác (chỉ trong tên script?)"
+  },
+  {
+   "cmd": "for f in --local --remote; do wrangler d1 migrations apply tourdao-sales-db $f; done",
+   "expect": "deny",
+   "group": "C",
+   "note": "vòng lặp cờ"
+  },
+  {
+   "cmd": "wrangler d1 execute tourdao-sales-db --remote --local=false --command \"x\"",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "wrangler dev --remote",
+   "expect": "deny",
+   "group": "C",
+   "note": "chạy Worker trên hạ tầng thật, D1 thật"
+  },
+  {
+   "cmd": "npm run dev -- --remote",
+   "expect": "deny",
+   "group": "C",
+   "note": "như trên qua npm"
+  },
+  {
+   "cmd": "wrangler tail",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm run --silent db:migrate:remote",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ giữa run và tên script"
+  },
+  {
+   "cmd": "npm run -s db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm --silent run db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm run-script db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm run db:migrate:remote -- --preview",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "pnpm db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "yarn db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "CI=1 npm run db:migrate:remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "npm run db:migrate:remote >/tmp/x 2>&1",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs sheet.csv --db remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs --db remote sheet.csv",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ trước"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs sheet.csv --db=remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs sheet.csv --db  remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs sheet.csv --db 'remote'",
+   "expect": "deny",
+   "group": "C",
+   "note": "giá trị trong nháy"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs sheet.csv \\\n  --db remote",
+   "expect": "deny",
+   "group": "C",
+   "note": "xuống dòng bằng \\"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs \"https://docs.google.com/spreadsheets/d/ID/export?format=csv\" --db remote",
+   "expect": "deny",
+   "group": "C",
+   "note": "URL trong nháy"
+  },
+  {
+   "cmd": "node ./scripts/import-staff.mjs sheet.csv --db remote",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -X POST https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -XPOST https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -X post https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -X \"POST\" https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "method trong nháy kép (rất hay gặp)"
+  },
+  {
+   "cmd": "curl -X 'POST' https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --request \"PUT\" https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --request POST https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --request=POST https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -X DELETE https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -X PATCH https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -d '{}' https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -d@body.json https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --data '{}' https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --data-raw '{}' https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --data-binary @f https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --data-urlencode a=b https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --data=@file https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -F a=b https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -Fa=@f https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "-F dính liền"
+  },
+  {
+   "cmd": "curl --form a=b https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --json '{}' https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -T f https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl --upload-file f https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -sSX POST https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ ngắn gộp"
+  },
+  {
+   "cmd": "curl -sd '{}' https://booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ ngắn gộp -sd"
+  },
+  {
+   "cmd": "curl -s https://booking.tourdao.vn/api/x -d '{}'",
+   "expect": "deny",
+   "group": "C",
+   "note": "cờ sau URL"
+  },
+  {
+   "cmd": "curl -H 'Content-Type: application/json' -X POST -d '{}' https://booking.tourdao.vn/api/auth/login",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -b c.txt -c c.txt -X POST https://booking.tourdao.vn/api/auth/login",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wget --post-data=a=b https://booking.tourdao.vn/",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wget --post-file=f https://booking.tourdao.vn/",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "wget --method=PUT https://booking.tourdao.vn/",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "http POST https://booking.tourdao.vn/api/x a=b",
+   "expect": "deny",
+   "group": "C",
+   "note": "httpie: method rời"
+  },
+  {
+   "cmd": "http PUT booking.tourdao.vn/api/x a=b",
+   "expect": "deny",
+   "group": "C",
+   "note": "httpie"
+  },
+  {
+   "cmd": "xh post https://booking.tourdao.vn/api/x a=b",
+   "expect": "deny",
+   "group": "C",
+   "note": "xh: method rời"
+  },
+  {
+   "cmd": "http --form POST https://booking.tourdao.vn a=b",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "node -e \"fetch('https://booking.tourdao.vn/api/x',{method:'POST'})\"",
+   "expect": "deny",
+   "group": "E",
+   "note": "script nội tuyến"
+  },
+  {
+   "cmd": "python3 -c \"import requests; requests.post('https://booking.tourdao.vn/api/x')\"",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "curl -X POST \"$PROD/api/x\"",
+   "expect": "deny",
+   "group": "E",
+   "note": "host trong biến"
+  },
+  {
+   "cmd": "H=booking.tourdao.vn; curl -X POST https://$H/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "host trong biến nhưng có literal"
+  },
+  {
+   "cmd": "curl -X POST https://BOOKING.TOURDAO.VN/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "hoa/thường"
+  },
+  {
+   "cmd": "curl -X POST https://booking.tourdao.vn./api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "dấu chấm cuối"
+  },
+  {
+   "cmd": "curl -X POST https://booking.tourdao.vn:443/api/x",
+   "expect": "deny",
+   "group": "C",
+   "note": "cổng"
+  },
+  {
+   "cmd": "curl -X POST https://user@booking.tourdao.vn/api/x",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "curl -X POST https://tourdao.vn/api/x",
+   "expect": "allow",
+   "group": "A",
+   "note": "host khác (site công khai, repo khác)"
+  },
+  {
+   "cmd": "git merge worktree-a",
+   "expect": "allow",
+   "group": "A",
+   "note": "ở nhánh worktree-x"
+  },
+  {
+   "cmd": "git checkout main && git merge worktree-a",
+   "expect": "deny",
+   "group": "C",
+   "note": "đổi sang main rồi merge (nhánh đo TRƯỚC lệnh)"
+  },
+  {
+   "cmd": "git switch main; git merge worktree-a",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales && git merge worktree-a",
+   "expect": "deny",
+   "group": "C",
+   "note": "vào checkout gốc (đang ở main) rồi merge"
+  },
+  {
+   "cmd": "git -C /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales merge worktree-a",
+   "expect": "deny",
+   "group": "C",
+   "note": "git -C tới checkout gốc"
+  },
+  {
+   "cmd": "git --git-dir=/x/.git --work-tree=/x merge worktree-a",
+   "expect": "deny",
+   "group": "C"
+  },
+  {
+   "cmd": "git fetch . worktree-a:main",
+   "expect": "deny",
+   "group": "E",
+   "note": "cập nhật main bằng fetch cục bộ"
+  },
+  {
+   "cmd": "git branch -f main worktree-a",
+   "expect": "deny",
+   "group": "E",
+   "note": "đẩy nhãn main"
+  },
+  {
+   "cmd": "git update-ref refs/heads/main HEAD",
+   "expect": "deny",
+   "group": "E"
+  },
+  {
+   "cmd": "git rebase worktree-a main",
+   "expect": "deny",
+   "group": "E",
+   "note": "rebase kiểu 2 đối số đứng ở main"
+  },
+  {
+   "cmd": "git cherry-pick abc123",
+   "expect": "allow",
+   "group": "A",
+   "note": "ở nhánh worktree"
+  },
+  {
+   "cmd": "git merge-base main HEAD",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git merge --abort",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git merge-tree main HEAD",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run dev",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm test",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run typecheck",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run build:web",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run test:e2e",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run test:e2e -- orders catalog",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run dict",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run types",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm run db:migrate:local",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm install",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npm ci",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node --test src/shared/service-form.test.ts",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node --test \"src/**/*.test.ts\"",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node scripts/audit-invariants.mjs --db local",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node scripts/audit-invariants.mjs --db remote",
+   "expect": "allow",
+   "group": "A",
+   "note": "chỉ đọc"
+  },
+  {
+   "cmd": "node scripts/dev-iphone.mjs",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node scripts/create-staff.mjs \"Họ tên\" 09xxxxxxxx 123456 SALES,ADMIN > staff.local.sql",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npx wrangler d1 execute tourdao-sales-db --local --file staff.local.sql",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node scripts/import-staff.mjs \"https://docs.google.com/spreadsheets/d/ID/export?format=csv\" --db local",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "cp .dev.vars.example .dev.vars",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-form.mjs",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git status",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git status --short",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git diff --stat main...HEAD",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git log --oneline -5",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git log --grep=push --oneline",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git log -S'git push' --oneline",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git add -A",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git add -A && git commit -m \"Sửa lỗi hiển thị\"",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git commit -F msg.txt",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git commit --amend --no-edit",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git checkout -b nhanh-moi",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git switch -c nhanh-moi",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git worktree add -b x .claude/worktrees/x origin/main",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git worktree list",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git branch -a",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git branch --set-upstream-to=origin/main",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git ls-tree --name-only worktree-x migrations/",
+   "expect": "allow",
+   "group": "A",
+   "note": "lệnh mới ở CLAUDE.md đề xuất §10"
+  },
+  {
+   "cmd": "git show HEAD:CLAUDE.md",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git stash push -m tam",
+   "expect": "allow",
+   "group": "A",
+   "note": "stash push không phải git push"
+  },
+  {
+   "cmd": "git stash list",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git config --get remote.origin.url",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git config push.default simple",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git remote -v",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git remote set-url --push origin x",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git fetch origin",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git pull --ff-only",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git rebase main",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git restore --staged x",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git reset --soft HEAD~1",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git blame -L1,5 CLAUDE.md",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git rev-parse --abbrev-ref HEAD",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git merge main",
+   "expect": "allow",
+   "group": "A",
+   "note": "ở nhánh worktree-x"
+  },
+  {
+   "cmd": "gh pr view 3",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "gh pr list",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "gh pr create --title x --body y",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "gh pr checks 3",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "gh api repos/o/r/pulls",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npx wrangler d1 migrations list tourdao-sales-db --remote",
+   "expect": "allow",
+   "group": "A",
+   "note": "lệnh chỉ đọc mà CLAUDE.md đề xuất §8 khuyên dùng"
+  },
+  {
+   "cmd": "npx wrangler d1 time-travel info tourdao-sales-db",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npx wrangler d1 info tourdao-sales-db",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npx wrangler d1 list",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "wrangler whoami",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "wrangler deployments list",
+   "expect": "allow",
+   "group": "A",
+   "note": "chỉ đọc"
+  },
+  {
+   "cmd": "wrangler versions list",
+   "expect": "allow",
+   "group": "A",
+   "note": "chỉ đọc"
+  },
+  {
+   "cmd": "wrangler secret list",
+   "expect": "deny",
+   "group": "A",
+   "note": "chỉ đọc (tên bí mật)"
+  },
+  {
+   "cmd": "wrangler types",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "npx wrangler d1 migrations create tourdao-sales-db them_cot_x",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -s https://booking.tourdao.vn/api/auth/config",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -sI https://booking.tourdao.vn/",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -s -o /dev/null -w '%{http_code}\\n' https://booking.tourdao.vn/api/company",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -sS -X GET https://booking.tourdao.vn/api/auth/config",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -s https://booking.tourdao.vn/api/auth/config | jq .",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -s -G --data-urlencode 'q=x' https://booking.tourdao.vn/api/company",
+   "expect": "allow",
+   "group": "A",
+   "note": "GET có tham số (-G)"
+  },
+  {
+   "cmd": "curl -s -X POST http://localhost:8787/api/auth/login -H 'Origin: http://localhost:8787' -H 'Content-Type: application/json' -d '{\"phone\":\"09\"}'",
+   "expect": "allow",
+   "group": "A",
+   "note": "POST tới máy cục bộ"
+  },
+  {
+   "cmd": "curl -s -X POST http://127.0.0.1:8787/api/orders -H 'Origin: http://127.0.0.1:8787' -d '{}'",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "curl -X POST https://example.com/hook -d x",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "echo \"wrangler deploy\"",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "echo 'git push'",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "grep -rn \"git push\" docs",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "grep -n 'wrangler secret put' docs/HANDOFF-N1.md",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "rg -n \"wrangler deploy\" docs/HANDOFF-N1.md",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "git commit -m \"Ghi chú: không được git push khi chưa có lệnh\"",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "sed -n 1,20p CLAUDE.md",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "cat docs/HANDOFF-N1.md | grep 'wrangler deploy'",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "grep -n git.push docs/x.md",
+   "expect": "allow",
+   "group": "A",
+   "note": "dấu . thay khoảng trắng"
+  },
+  {
+   "cmd": "ls -la && pwd",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "jq . .claude/settings.json",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "node --test src/claude-guard.test.ts",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "shasum -a 256 migrations/*.sql",
+   "expect": "allow",
+   "group": "A"
+  },
+  {
+   "cmd": "E2E_BASE_URL=https://booking.tourdao.vn node tests/e2e/orders.mjs",
+   "expect": "deny",
+   "group": "C",
+   "note": "e2e ghi đơn thật lên production qua biến môi trường"
+  },
+  {
+   "cmd": "BASE=https://booking.tourdao.vn node docs/evidence/2026-09-19-pwa/kich-ban/do-luong.mjs",
+   "expect": "deny",
+   "group": "C",
+   "note": "kịch bản Chrome trỏ vào production"
+  },
+  {
+   "cmd": "E2E_BASE_URL=http://localhost:8787 node tests/e2e/orders.mjs",
+   "expect": "allow",
+   "group": "A",
+   "note": "e2e cục bộ"
+  },
+  {
+   "cmd": "echo don't && git push && echo it's",
+   "expect": "deny",
+   "group": "E",
+   "note": "hai dấu nháy đơn lẻ che mất git push"
+  },
+  {
+   "cmd": "git commit -m \"$(cat <<EOF\nChặn wrangler deploy\nEOF\n)\"",
+   "expect": "allow",
+   "group": "H",
+   "note": "heredoc không nháy delimiter"
+  },
+  {
+   "cmd": "bash <<EOF\ngit push\nEOF",
+   "expect": "deny",
+   "group": "E",
+   "note": "heredoc nạp thẳng vào bash"
+  },
+  {
+   "cmd": "cat <<EOF | sh\nwrangler deploy\nEOF",
+   "expect": "deny",
+   "group": "E",
+   "note": "heredoc | sh"
+  },
+  {
+   "cmd": "git commit -m \"$(cat <<'EOF'\nHàng rào máy cho lệnh cấm\n\nChặn git push và wrangler deploy bằng hook.\nEOF\n)\"",
+   "expect": "allow",
+   "group": "H",
+   "note": "thông điệp commit dạng heredoc có chữ 'git push' trong văn xuôi"
+  },
+  {
+   "cmd": "git commit -m \"$(cat <<'EOF'\nSửa hàng rào\n\nChặn `git push` và `wrangler deploy`.\nEOF\n)\"",
+   "expect": "allow",
+   "group": "H",
+   "note": "như trên, có dấu huyền markdown"
+  },
+  {
+   "cmd": "git commit -m \"$(cat <<'EOF'\nSửa CLAUDE.md\nEOF\n)\"",
+   "expect": "allow",
+   "group": "H",
+   "note": "commit heredoc không nhắc từ cấm (đối chứng)"
+  },
+  {
+   "cmd": "cat > docs/x.md <<'EOF'\n## Triển khai\nwrangler deploy\nEOF",
+   "expect": "allow",
+   "group": "H",
+   "note": "ghi tài liệu bằng heredoc, dòng chỉ chứa lệnh"
+  },
+  {
+   "cmd": "cat > docs/x.md <<'EOF'\n- Cấm: git push, merge vào main\nEOF",
+   "expect": "allow",
+   "group": "H",
+   "note": "ghi tài liệu bằng heredoc, văn xuôi"
+  },
+  {
+   "cmd": "cat >> docs/HANDOFF-N1.md <<'EOF'\nChạy: CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote\nEOF",
+   "expect": "allow",
+   "group": "H",
+   "note": "ghi runbook"
+  },
+  {
+   "cmd": "python3 - <<'PY'\nprint('wrangler deploy')\nPY",
+   "expect": "allow",
+   "group": "H",
+   "note": "script python in chữ"
+  },
+  {
+   "cmd": "git commit -F - <<'EOF'\nKhông git push ở đây\nEOF",
+   "expect": "allow",
+   "group": "H",
+   "note": "commit -F - heredoc"
+  },
+  {
+   "cmd": "gh pr create --title x --body \"$(cat <<'EOF'\nSau khi duyệt chủ sẽ gh pr merge\nEOF\n)\"",
+   "expect": "allow",
+   "group": "H",
+   "note": "mô tả PR có nhắc gh pr merge"
+  }
+ ]
+}

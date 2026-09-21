@@ -7,4 +7,6 @@ node_modules
 public/js
 public/sw.js
 *.local.txt
-.claude/
+.claude/worktrees/
+.claude/settings.local.json
+.claude/scheduled_tasks.lock
