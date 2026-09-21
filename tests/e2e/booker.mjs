@@ -80,6 +80,33 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.bookerPartyId, null);
 console.log("✓ sửa nháp: đổi và bỏ gắn hồ sơ khách");
 
+// 6b) sửa nháp kèm TẠO hồ sơ mới trong CHÍNH lượt PUT (booker.before không rỗng — nhánh chỉ số trả về của updateDraftOrder)
+const draft6b = (await call(SALES, "POST", "/api/orders", orderInput())).body.order;
+const pN2 = randomPhone();
+r = await call(SALES, "PUT", `/api/orders/${draft6b.id}`, orderInput({ newBooker: { fullName: `Khách Sửa ${tag}`, phone: pN2 }, expectedUpdatedAt: draft6b.updatedAt }));
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const withNew6b = r.body.order;
+assert.ok(withNew6b.bookerPartyId, "đơn phải trỏ hồ sơ vừa tạo trong PUT");
+assert.equal(withNew6b.bookerName, `Khách Sửa ${tag}`);
+const made6b = (await call(SALES, "GET", `/api/parties/${withNew6b.bookerPartyId}`)).body.party;
+assert.deepEqual(made6b.roleCodes, ["CUSTOMER"]);
+assert.equal(made6b.primaryPhone, pN2);
+const upd6b = await sqlRows(`SELECT detail FROM audit_log WHERE order_id = '${draft6b.id}' AND action = 'updated'`);
+assert.ok(upd6b.some((a) => /gắn hồ sơ khách/.test(a.detail ?? "")), JSON.stringify(upd6b));
+const logs6b = await sqlRows(`SELECT detail FROM audit_log WHERE order_id = '${draft6b.id}' OR target_id = '${withNew6b.bookerPartyId}'`);
+assert.ok(logs6b.every((a) => !String(a.detail ?? "").includes(pN2)), "nhật ký không chứa SĐT");
+// Mốc cũ (đã bị lượt trên thay) + tạo hồ sơ mới KHÁC → phải thua khoá lạc quan (409 stale), KHÔNG được ghi đè.
+const pN3 = randomPhone();
+r = await call(SALES, "PUT", `/api/orders/${draft6b.id}`, orderInput({ newBooker: { fullName: `Khách Mốc Cũ ${tag}`, phone: pN3 }, expectedUpdatedAt: draft6b.updatedAt }));
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "stale");
+const after6b = (await call(SALES, "GET", `/api/orders/${draft6b.id}`)).body.order;
+assert.equal(after6b.bookerPartyId, withNew6b.bookerPartyId, "thua khoá lạc quan thì KHÔNG đổi người đặt trên đơn");
+// Giới hạn đã biết (ghi trong repository.ts): hồ sơ MỚI trong booker.before không mang điều kiện thắng của khoá lạc quan,
+// nên khi UPDATE đơn thua vẫn để lại MỘT hồ sơ thừa — không phải lỗi của lượt sửa này, chỉ ghi nhận.
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM pty_party WHERE display_name = 'Khách Mốc Cũ ${tag}'`))[0].n, 1, "giới hạn đã biết: hồ sơ thừa vẫn được tạo dù UPDATE đơn thua");
+console.log("✓ sửa nháp kèm tạo hồ sơ mới; mốc cũ + hồ sơ mới khác → 409 stale, không ghi đè người đặt");
+
 // 7) đơn đã xác nhận: PUT đơn vẫn 409 not_editable (đổi khách đi đường riêng — Task 5)
 r = await call(SALES, "POST", `/api/orders/${withNew.id}/status`, { status: "confirmed" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
