@@ -37,6 +37,15 @@ export function isAllowedPhone(state: MaintenanceState, rawPhone: string): boole
 }
 
 /**
+ * Danh sách được phép nhận diện tài khoản chủ theo SĐT, nên đổi SĐT của tài khoản đang trong danh sách làm mất (hoặc chuyển cho người khác nếu số cũ được dùng lại) quyền
+ * dùng/bật-tắt chế độ bảo trì — kể cả khi đang bật thì không ai tắt được từ giao diện. Trả thông báo lỗi để `PATCH /api/staff/:id` từ chối (409), hoặc null nếu được đổi.
+ */
+export function phoneChangeProblem(state: MaintenanceState, currentPhone: string, nextPhone: string): string | null {
+  if (!isAllowedPhone(state, currentPhone) || normalizePhone(nextPhone) === normalizePhone(currentPhone)) return null;
+  return "Số điện thoại này là của chủ dự án dùng chế độ bảo trì nên không đổi được ở đây.";
+}
+
+/**
  * Tài khoản có SĐT `rawPhone` có bị chặn lúc này không. TẮT → không chặn ai. BẬT → chặn mọi SĐT không nằm trong danh sách được phép, kể cả SĐT không
  * chuẩn hoá được hoặc không tồn tại (cùng một kết quả cho mọi người lạ — không lộ ai có tài khoản). Danh sách rỗng khi BẬT = chặn tất cả (không mở toang).
  */
@@ -46,12 +55,18 @@ export function isBlocked(state: MaintenanceState, rawPhone: string): boolean {
 
 export type MaintenanceInputResult = { ok: true; on: boolean; endsAt: string | null } | { ok: false; message: string };
 
+/** Mốc ISO UTC có "Z" (giao diện luôn gửi `toISOString()`) → mili giây, hoặc NaN. Không nhận chuỗi thiếu múi giờ (mơ hồ giờ VN/UTC — Date.parse hiểu theo giờ máy) và không nhận ngày không có thật (`Date.parse` cho 30/02 lăn sang 02/03). */
+function parseUtcIso(raw: unknown): number {
+  if (typeof raw !== "string" || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?Z$/.test(raw)) return NaN;
+  const at = Date.parse(raw);
+  return Number.isFinite(at) && new Date(at).toISOString().slice(0, 10) === raw.slice(0, 10) ? at : NaN;
+}
+
 /** Kiểm thân `PUT /api/maintenance`: `{ on: boolean, endsAt?: ISO }`. Bật cần giờ dự kiến hợp lệ, ở tương lai, không quá MAX_MAINTENANCE_MS; tắt bỏ qua giờ. */
 export function checkMaintenanceInput(body: Record<string, unknown> | null, nowMs: number): MaintenanceInputResult {
   if (!body || typeof body.on !== "boolean") return { ok: false, message: "Cần cho biết bật hay tắt chế độ bảo trì." };
   if (!body.on) return { ok: true, on: false, endsAt: null };
-  const raw = body.endsAt;
-  const at = typeof raw === "string" && /^\d{4}-\d{2}-\d{2}T/.test(raw) ? Date.parse(raw) : NaN;
+  const at = parseUtcIso(body.endsAt);
   if (!Number.isFinite(at)) return { ok: false, message: "Cần giờ dự kiến hoàn tất hợp lệ." };
   if (at <= nowMs) return { ok: false, message: "Giờ dự kiến hoàn tất phải ở tương lai." };
   if (at > nowMs + MAX_MAINTENANCE_MS) return { ok: false, message: "Giờ dự kiến hoàn tất không được quá 7 ngày kể từ bây giờ." };

@@ -54,16 +54,17 @@ const submit = byId<HTMLButtonElement>("submit");
 const widgetBox = byId("turnstile-widget");
 const retryBtn = byId<HTMLButtonElement>("turnstile-retry");
 const companyEl = byId("company");
-const maintenanceEl = byId("maintenance-banner");
-const maintenanceText = byId("maintenance-text");
+// Tuỳ chọn có chủ ý: service worker làm mới HTML và JS riêng rẽ, HTML cũ trong cache đi với login.js mới không được làm chết trang đăng nhập (byId ném lỗi khi thiếu).
+const maintenanceEl = document.getElementById("maintenance-banner");
+const maintenanceText = document.getElementById("maintenance-text");
 
 // ---- Banner chế độ bảo trì ----
 // Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
 let stopMaintenance: (() => void) | null = null;
 function setMaintenance(on: boolean, endsAt: string | null): void {
   stopMaintenance?.();
-  stopMaintenance = on ? renderMaintenanceMessage(maintenanceText, endsAt) : null;
-  maintenanceEl.hidden = !on;
+  stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt) : null;
+  if (maintenanceEl) maintenanceEl.hidden = !on;
 }
 
 // Đã có phiên hợp lệ thì vào thẳng, khỏi đăng nhập lại.
@@ -272,7 +273,7 @@ form.addEventListener("submit", async (e) => {
       // Đang bảo trì và SĐT này không được phép: cập nhật banner (không hiện lỗi chung). Mã này KHÁC `turnstile_unavailable` (cũng 503) nên không đi vào nhánh hỏi lại cấu hình bên dưới.
       showError(errorEl, null);
       setMaintenance(true, endsAtFrom(err.details));
-      maintenanceEl.scrollIntoView({ block: "nearest" });
+      maintenanceEl?.scrollIntoView({ block: "nearest" });
     } else showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
     busy = false;
     resetWidget(); // MỌI lần thất bại (kể cả sai PIN): máy chủ đã kiểm và đốt token ở bước Turnstile trước khi kiểm PIN, token cũ không dùng lại được

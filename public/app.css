@@ -426,6 +426,7 @@ body.maint-open { overflow: hidden; }
 .maint-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
 .maint-msg { margin: 0 0 var(--s4); overflow-wrap: anywhere; }
 .maint-card .btn { width: 100%; min-height: var(--tap-min); }
+.maint-card .btn + .btn { margin-top: var(--s2); }
 .maint-count { display: inline-block; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--c-primary); } /* số cùng bề rộng + không xuống dòng giữa chừng: đồng hồ chạy không nhảy chữ */
 .login-maintenance p { margin: 0; overflow-wrap: anywhere; }
 .maint-strip { display: flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-label); font-weight: 700; text-align: center; text-decoration: none; color: var(--c-sand-text); background: var(--c-sand-soft); border-bottom: 1px solid var(--c-sand-border); }

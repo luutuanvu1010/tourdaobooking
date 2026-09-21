@@ -16,7 +16,7 @@ const WEB = join(ROOT, "web");
 
 /** Chiều phụ thuộc cho phép (ADR-0002 + ADR-0008). Module mới PHẢI khai ở đây. Không được có vòng. */
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
-  accounts: ["staff", "auth", "audit"],
+  accounts: ["staff", "auth", "audit", "maintenance"], // maintenance: không cho đổi SĐT của tài khoản chủ dự án (PATCH /api/staff/:id)
   audit: [],
   auth: ["staff", "maintenance"], // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc)
   catalog: ["audit"],

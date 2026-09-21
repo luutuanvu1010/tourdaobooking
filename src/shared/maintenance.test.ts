@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MAINTENANCE_CONTACT_PHONE, MAX_MAINTENANCE_MS, checkMaintenanceInput, formatCountdown, isAllowedPhone, isBlocked, maintenanceMessage, maintenanceMessageParts, parseAllowedPhones,
+  MAINTENANCE_CONTACT_PHONE, MAX_MAINTENANCE_MS, checkMaintenanceInput, formatCountdown, isAllowedPhone, isBlocked, maintenanceMessage, maintenanceMessageParts, parseAllowedPhones, phoneChangeProblem,
   type MaintenanceState,
 } from "./maintenance.ts";
 
@@ -104,4 +104,29 @@ test("isAllowedPhone: ai được BẬT/TẮT — độc lập với việc đan
   assert.equal(isAllowedPhone(OFF, "0900000001"), false);
   assert.equal(isAllowedPhone(OFF, "hỏng"), false);
   assert.equal(isAllowedPhone({ ...OFF, allowedPhones: [] }, "0989929373"), false);
+});
+
+test("checkMaintenanceInput: chỉ nhận mốc ISO UTC có 'Z' (không múi giờ = mơ hồ giờ VN/UTC) và ngày phải có thật (không lăn sang tháng sau)", () => {
+  const bad = (endsAt: unknown) => {
+    const r = checkMaintenanceInput({ on: true, endsAt }, NOW);
+    assert.equal(r.ok, false, String(endsAt));
+    return r.ok ? "" : r.message;
+  };
+  assert.match(bad("2026-09-22T10:00"), /giờ dự kiến/); // không múi giờ: 10:00 giờ VN hay UTC?
+  assert.match(bad("2026-09-22T10:00:00"), /giờ dự kiến/);
+  assert.match(bad("2026-09-22T10:00:00+07:00"), /giờ dự kiến/); // giao diện luôn gửi toISOString() (Z); múi giờ khác không nhận
+  assert.match(bad("2026-02-30T10:00:00Z"), /giờ dự kiến/); // 30/02 không có
+  assert.match(bad("2026-09-31T10:00:00Z"), /giờ dự kiến/);
+  assert.match(bad("2026-09-22T24:00:00Z"), /giờ dự kiến/);
+  assert.deepEqual(checkMaintenanceInput({ on: true, endsAt: "2026-09-22T10:00:00Z" }, NOW), { ok: true, on: true, endsAt: "2026-09-22T10:00:00.000Z" });
+  assert.deepEqual(checkMaintenanceInput({ on: true, endsAt: "2026-09-22T10:00Z" }, NOW), { ok: true, on: true, endsAt: "2026-09-22T10:00:00.000Z" });
+  assert.deepEqual(checkMaintenanceInput({ on: true, endsAt: "2026-09-22T10:00:00.5Z" }, NOW), { ok: true, on: true, endsAt: "2026-09-22T10:00:00.500Z" });
+});
+
+test("phoneChangeProblem: không cho đổi SĐT của tài khoản đang là người được phép (danh sách nhận diện theo SĐT — đổi là mất/chuyển quyền dùng chế độ bảo trì)", () => {
+  assert.match(phoneChangeProblem(OFF, "0989929373", "0912345678") ?? "", /chủ dự án/);
+  assert.match(phoneChangeProblem(ON, "0989 929 373", "0912345678") ?? "", /chủ dự án/); // cả khi đang bật lẫn tắt
+  assert.equal(phoneChangeProblem(OFF, "0989929373", "0989929373"), null); // không đổi gì
+  assert.equal(phoneChangeProblem(OFF, "0989929373", "+84 989 929 373"), null); // cùng số, chỉ khác cách gõ
+  assert.equal(phoneChangeProblem(OFF, "0900000001", "0912345678"), null); // tài khoản thường đổi SĐT như cũ
 });

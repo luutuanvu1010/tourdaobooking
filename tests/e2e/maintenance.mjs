@@ -79,6 +79,8 @@ try {
     [{ on: true, endsAt: 1234567890 }, /giờ dự kiến/],
     [{ on: true, endsAt: past }, /tương lai/],
     [{ on: true, endsAt: far }, /7 ngày/],
+    [{ on: true, endsAt: "2030-09-22T10:00" }, /giờ dự kiến/], // thiếu múi giờ: mơ hồ giờ VN/UTC nên không nhận
+    [{ on: true, endsAt: "2030-02-30T10:00:00Z" }, /giờ dự kiến/], // ngày không có thật (Date.parse lăn sang tháng 3)
   ];
   for (const [body, re] of bad) {
     r = await call(ADMIN, "PUT", "/api/maintenance", body);
@@ -89,7 +91,18 @@ try {
   r = await call(ADMIN, "PUT", "/api/maintenance"); // không thân
   assert.equal(r.status, 400);
   assert.equal((await setting()).enabled, 0, "đầu vào sai thì KHÔNG được bật");
-  console.log("✓ kiểm đầu vào: thiếu/sai `on`, thiếu/rác/quá khứ/quá 7 ngày → 400 tiếng Việt, không bật");
+  console.log("✓ kiểm đầu vào: thiếu/sai `on`, thiếu/rác/quá khứ/quá 7 ngày/không múi giờ/ngày không có thật → 400 tiếng Việt, không bật");
+
+  // --- 2b) không cho đổi SĐT của tài khoản đang là người được phép (đổi là tự khoá hoặc chuyển quyền cho người khác)
+  const adminId = (await call(ADMIN, "GET", "/api/auth/me")).body.staff.id;
+  r = await call(ADMIN, "PATCH", `/api/staff/${adminId}`, { phone: "0900000098" });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "account_rule");
+  assert.match(r.body.error.message, /chủ dự án/);
+  assert.equal((await call(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === adminId).phone, ADMIN_PHONE, "SĐT của tài khoản chủ không được đổi");
+  r = await call(ADMIN, "PATCH", `/api/staff/${adminId}`, { phone: ADMIN_PHONE }); // gửi lại đúng số cũ = không đổi gì
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  console.log("✓ tài khoản chủ không đổi được SĐT (409); tài khoản khác đổi SĐT như cũ (admin.mjs)");
 
   // --- 3) BẬT (chủ)
   const ENDS = new Date(Date.now() + 30 * 60_000).toISOString();

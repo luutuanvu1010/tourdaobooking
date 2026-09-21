@@ -3,12 +3,14 @@
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
 import { auditStatement, type AuditAction } from "../audit";
 import { lockedPhones, newSessionCookie, unlockPhone, verifyPinThrottled } from "../auth";
+import { getMaintenanceState } from "../maintenance";
 import {
   checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts,
   normalizePhone, parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount,
 } from "../staff";
 import type { StaffAccountDto, StaffListResponse, StaffResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { phoneChangeProblem } from "../../shared/maintenance";
 import { PERMISSION_CODES, PERMISSION_LABEL, isPermissionCode, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
@@ -208,6 +210,9 @@ export const accountsModule: AppModule = {
         const phone = typeof body.phone === "string" ? normalizePhone(body.phone) : null;
         if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ.");
         if (phone !== t.phone) {
+          // Chế độ bảo trì nhận diện chủ dự án theo SĐT: đổi SĐT của tài khoản chủ sẽ khoá chính họ (đang bật thì không ai tắt được từ giao diện) hoặc để số cũ rơi vào tay người khác.
+          const locksOwner = phoneChangeProblem(await getMaintenanceState(db), t.phone, phone);
+          if (locksOwner) return error(409, "account_rule", locksOwner);
           if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
           patch.phone = phone;
         }

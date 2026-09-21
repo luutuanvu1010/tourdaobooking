@@ -66,7 +66,7 @@ function row(s: StaffAccount): HTMLElement {
     h("td", null, s.phone),
     h("td", null, permissionsLabel(s.permissions)),
     h("td", { class: "muted" }, dateTime(s.createdAt)),
-    h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa đăng nhập"),
+    h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
       "td",
       { class: "row-actions" },
