@@ -182,7 +182,7 @@ Module chủ sở hữu bảng của mình; bảng mới mang tiền tố module
 | `dsp_assignment_status` | dispatch | tra cứu trạng thái việc: chỉ `PENDING`, `DONE` (huỷ = đóng dòng, không có `CANCELLED`) |
 | `dsp_assignment` | dispatch | một dòng = một người được giao một việc, thuộc ĐÚNG MỘT hạt: cả đơn (`order_id`) hoặc một dịch vụ (`order_service_id`); hiệu lực `valid_from_at`/`valid_to_at` (UTC, NULL = đang mở). Người phụ trách = dòng `HANDLE` hạt đơn đang mở (ADR-0006/0009). Mã ghi hạt dịch vụ chưa có (chờ N2) |
 | `v_dsp_order_handler` | dispatch | view công bố: `order_id, party_id, staff_id, label, since` — người phụ trách ĐANG MỞ của đơn (`staff_id` NULL nếu hồ sơ không có tài khoản) |
-| `orders` | orders | đơn: `order_code`, `staff_id`, `status`, thông tin khách, các số tiền, `updated_at`, `confirmed_at` |
+| `orders` | orders | đơn: `order_code`, `staff_id`, `status`, thông tin khách (bản chụp `customer_*`), `booker_party_id` (0018, N2 lát 1 — NULL được, FK `pty_party` NO ACTION, chỉ mục `orders_booker_party_idx`; tên đọc qua `v_pty_party_label`, không đọc trực tiếp `pty_party`), các số tiền, `updated_at`, `confirmed_at` |
 | `order_service` | orders | một dịch vụ trong đơn: số khách 4 loại + thông tin chuyến (ngày giờ, đón, check-in, ghi chú) |
 | `order_item` | orders | dòng tiền: `description`, `quantity`, `unit_price`, `line_total`, `catalog_code`, `catalog_price`, `pax_code`, `service_id` |
 | `v_ord_order_label` | orders | view công bố: `id, order_code` |
@@ -252,7 +252,8 @@ erDiagram
 | 0015 | `0015_staff_last_login.sql` | ĐÃ lên production 2026-09-21: chỉ THÊM cột `staff.last_login_at` (TEXT NULL) |
 | 0016 | `0016_maintenance.sql` | ĐÃ lên production 2026-09-21: chỉ THÊM bảng singleton `mnt_setting` (gieo TẮT, `allowed_phones` = `0989929373`) |
 | 0016 | `0016_feedback.sql` | Góp ý / Báo lỗi: chỉ THÊM `fbk_kind`, `fbk_status` (bảng tra cứu), `fbk_ticket`, `fbk_message` |
-| 0017 | `0017_order_status_audit_guards.sql` | có trong repo, **CHƯA lên production**: chỉ THÊM trigger `orders_status_transition` (CSDL chặn đơn chuyển trạng thái sai chiều) và `audit_log_no_update`/`audit_log_no_delete` (nhật ký chỉ-thêm), đối chiếu Oracle TCA |
+| 0017 | `0017_order_status_audit_guards.sql` | ĐÃ lên production 2026-09-21: chỉ THÊM trigger `orders_status_transition` (CSDL chặn đơn chuyển trạng thái sai chiều) và `audit_log_no_update`/`audit_log_no_delete` (nhật ký chỉ-thêm), đối chiếu Oracle TCA |
+| 0018 | `0018_orders_booker_party.sql` | có trong repo, **CHƯA lên production**: chỉ THÊM cột `orders.booker_party_id` (TEXT, NULL được, FK `pty_party(id)` NO ACTION) + chỉ mục `orders_booker_party_idx` — người đặt trên đơn (N2 lát 1, ADR-0011) |
 
 **Hai tệp cùng tiền tố `0016`** (`0016_maintenance.sql` và `0016_feedback.sql`) — chấp nhận được: wrangler theo dõi migration theo **tên đầy đủ**, không theo số, và thứ tự áp là thứ tự tên (`0016_feedback` trước `0016_maintenance`). Hai tệp hoàn toàn độc lập (bảng `fbk_*` ↔ `mnt_setting`) nên thứ tự nào cũng dựng được schema. KHÔNG đổi tên `0016_feedback.sql` (đã áp production đúng tên đó).
 
@@ -360,10 +361,11 @@ Tất cả 54 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 | POST | `/api/staff/:id/reset-pin` | admin | accounts | đặt lại PIN và mở khoá đăng nhập |
 | POST | `/api/staff/:id/unlock` | admin | accounts | mở khoá đăng nhập (xoá bộ đếm theo SĐT) |
 | GET | `/api/orders` | office | orders | danh sách đơn, lọc `q` / `status`, phân trang `limit`/`offset` |
-| POST | `/api/orders` | office | orders | lập đơn nháp |
-| GET | `/api/orders/:id` | office | orders | chi tiết đơn + lịch sử + cờ `canModify` |
-| PUT | `/api/orders/:id` | office | orders | sửa đơn nháp (khoá lạc quan `expectedUpdatedAt`) |
+| POST | `/api/orders` | office | orders | lập đơn nháp; nhận thêm `bookerPartyId` (gắn hồ sơ có sẵn) **hoặc** `newBooker: { fullName, phone }` (tạo hồ sơ cá nhân mới + vai `CUSTOMER` cùng `db.batch()`, ADR-0011 điều 1) — không gửi cả hai, vắng cả hai = không gắn |
+| GET | `/api/orders/:id` | office | orders | chi tiết đơn + lịch sử + cờ `canModify`; `OrderDto` có `bookerPartyId`, `bookerName` (tên đọc qua `v_pty_party_label`, `null` = chưa gắn) |
+| PUT | `/api/orders/:id` | office | orders | sửa đơn nháp (khoá lạc quan `expectedUpdatedAt`); nhận `bookerPartyId`/`newBooker` như `POST` (đổi hoặc bỏ gắn hồ sơ khách của đơn nháp) |
 | PUT | `/api/orders/:id/trip` | office | orders | sửa thông tin chuyến (kể cả đơn đã xác nhận) |
+| PUT | `/api/orders/:id/booker` | office | orders | đổi khách (hồ sơ người đặt + tên/SĐT chụp trên đơn) của đơn **nháp hoặc đã xác nhận** — cùng quyền `order.trip.edit` với sửa chuyến (ADR-0011 điều 2); nhận `bookerPartyId`/`newBooker` (không gửi cả hai); 400 `invalid_input`, 403 `forbidden`, 404 `not_found`, 409 `stale` (khoá lạc quan) / `not_editable` (đơn đã huỷ); nhật ký `booker_changed` "từ A sang B" bằng tên, không SĐT |
 | POST | `/api/orders/:id/status` | office | orders | xác nhận hoặc huỷ đơn |
 | GET | `/api/dispatch/handlers` | office | dispatch | `?orderIds=a,b,c` (tối đa 100; thiếu/rỗng = rỗng; giá trị lạ 400) → `{ handlers: { [orderId]: { partyId, staffId, name } \| null } }` — người phụ trách đang mở của từng đơn (chỉ tên, không SĐT) |
 | GET | `/api/dispatch/assignees` | office | dispatch | `{ assignees: [{ staffId, partyId, name }] }` — nhân sự đang hoạt động, có hồ sơ, có quyền Bán hàng/Quản trị (có thể được giao phụ trách) |
@@ -447,7 +449,7 @@ Ba ô `feedback.*` là mở rộng của module Góp ý (spec 2026-09-21), KHÔN
 Các ô "chưa có route" có mặt để **khoá bản đồ bằng test** (`src/shared/permissions.test.ts`) trước khi N2/N3 tới.
 Nơi `can()` thực sự được gọi trong mã: `src/modules/orders/index.ts` (6 lời gọi: `order.create`, `order.history.view`, `order.modify` ở `canModify`/`PUT`/`status`, `order.trip.edit`; các route đó truyền `assigned` từ `ctx.isAssigned(id)`, `GET /api/orders/:id` tính MỘT lần cho cả nhật ký và `canModify` để cờ và máy chủ luôn khớp nhau), `src/modules/dispatch/rules.ts` (`dispatch.assign`, `dispatch.claim`, và `order.modify` với `assigned: true` để xét ai được giao phụ trách), `web/shell.ts`, `web/orders.ts`, `web/order-form.ts`, và `src/shared/handler-view.ts` (`handlerControls`: nút đổi/nhận người phụ trách của `web/order.ts`; Sửa/Xác nhận/Huỷ ở trang đơn KHÔNG gọi `can()` mà theo cờ `canModify` của máy chủ), `src/modules/feedback/index.ts` (`feedback.submit`, `feedback.view` với `ownerId` = người gửi, `feedback.triage`) và `web/feedback.ts` + `web/shell.ts`/`web/account.ts` (chấm đỏ, tab hàng đợi). Giao diện chỉ **ẩn/hiện**; máy chủ luôn kiểm lại.
 Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép — `src/architecture.test.ts` bắt mọi tệp ngoài `src/modules/parties/` nhắc tới `pty_party_role`.
-Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi theo nơi (chi nhánh, đại lý tự xem đơn) chỉ khi đạt ngưỡng của `docs/adr/ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md` điều 1** (accepted 2026-09-21); tác nhân tự động ghi dữ liệu thay người dùng theo điều 3 của ADR đó. Hai ngoại lệ đã quyết cho N2 lát 1 (chưa thi công): lập/sửa đơn được tạo hồ sơ khách + vai `CUSTOMER`, và đổi người đặt của đơn đã xác nhận theo `order.trip.edit` — `docs/adr/ADR-0011-khach-tren-don-ngoai-le-quyen.md`.
+Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi theo nơi (chi nhánh, đại lý tự xem đơn) chỉ khi đạt ngưỡng của `docs/adr/ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md` điều 1** (accepted 2026-09-21); tác nhân tự động ghi dữ liệu thay người dùng theo điều 3 của ADR đó. Hai ngoại lệ đã quyết cho N2 lát 1 (đã thi công trên nhánh, migration `0018` **chưa lên production**): lập/sửa đơn được tạo hồ sơ khách + vai `CUSTOMER` (`POST`/`PUT /api/orders`), và đổi người đặt của đơn đã xác nhận theo `order.trip.edit` (`PUT /api/orders/:id/booker`) — `docs/adr/ADR-0011-khach-tren-don-ngoai-le-quyen.md`.
 
 ---
 

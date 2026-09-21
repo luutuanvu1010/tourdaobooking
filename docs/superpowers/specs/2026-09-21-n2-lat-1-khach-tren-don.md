@@ -1,6 +1,6 @@
 # Gắn hồ sơ khách vào đơn — lát 1 của N2 (P-4)
 
-> Ngày 2026-09-21. Trạng thái: **ba câu hỏi ở §3 ĐÃ ĐƯỢC CHỦ DỰ ÁN QUYẾT (2026-09-21)**, xem khung "Quyết định" đầu §3 và ADR-0011; chưa có mã. Việc kế: kế hoạch thi công lát 1.
+> Ngày 2026-09-21. Trạng thái: **ba câu hỏi ở §3 ĐÃ ĐƯỢC CHỦ DỰ ÁN QUYẾT (2026-09-21)**, xem khung "Quyết định" đầu §3 và ADR-0011; **đã thi công, chưa lên production** (kế hoạch thi công: `docs/superpowers/plans/2026-09-21-n2-lat-1-khach-tren-don.md`, 8 task, tất cả đã xong; migration `0018_orders_booker_party.sql` có trong repo, chưa áp D1 remote — runbook triển khai ở `docs/HANDOFF-N1.md`). Hai lệch đặc tả có chủ ý ghi ở §13.
 > Nguồn: báo cáo đối chiếu Oracle TCA bản 2 (`docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` §6.1, đề xuất P-4); kế hoạch hành động Task 5.
 > Nền đã duyệt: ADR-0001 mục 7–8 (các bên trên booking, nhận dạng theo SĐT), ADR-0002 (ranh giới module), ADR-0003 điều 10 (không dựng lại bảng), ADR-0007 (quyền, sửa sau xác nhận).
 
@@ -149,3 +149,12 @@ Backfill đơn cũ từ `customer_phone` (đoán theo chữ → cần quy tắc 
 2. **Chủ dự án** hỏi ý một nhân viên bán hàng về bước thêm khi lập đơn (§4) và về đơn qua đại lý (§8 mục 2); ghi kết quả vào đây.
 3. **Chủ dự án** duyệt câu hỏi A, B, C (§3) và cho phép (hoặc không) chạy truy vấn thước đo §10.
 4. Sau khi duyệt: viết kế hoạch thi công `docs/superpowers/plans/<ngày>-n2-lat-1-khach-tren-don.md` bằng skill `superpowers:writing-plans` (task TDD, mã đầy đủ); migration lấy số kế tiếp **tại thời điểm đó**.
+5. ~~Viết kế hoạch thi công~~ — xong, `docs/superpowers/plans/2026-09-21-n2-lat-1-khach-tren-don.md` (8 task, migration `0018`).
+6. ~~Thi công 8 task~~ — xong 2026-09-21, **chưa lên production** (xem khung trạng thái đầu tệp). Việc còn lại: chủ dự án ra lệnh triển khai theo runbook `0018` ở `docs/HANDOFF-N1.md`.
+
+## 13. Lệch đặc tả có chủ ý so với thi công thật (ghi cho người rà soát)
+
+Hai điểm dưới đây được kế hoạch thi công (`docs/superpowers/plans/2026-09-21-n2-lat-1-khach-tren-don.md`, khung "Lệch đặc tả có chủ ý" đầu tệp) chốt CỐ Ý khác với đặc tả ở các mục trên; ghi lại đây để đặc tả và mã không lệch nhau mà không ai biết.
+
+1. **§5 mục 2 của đặc tả này đề nghị route báo riêng** "Hồ sơ vừa bị ngưng, đơn đã lưu nhưng chưa gắn khách" khi một hồ sơ bị admin ngưng đúng vào khoảng giữa lúc route kiểm hồ sơ còn hoạt động và lúc ghi đơn. **Kế hoạch thi công KHÔNG thêm thông báo đó**: form chuyển thẳng sang trang đơn như bình thường, và trang đơn hiện đúng sự thật — "Chưa gắn hồ sơ khách" — không cần thêm trường mới vào hợp đồng API. Lý do chấp nhận: cần một quản trị viên ngưng đúng hồ sơ đó trong khoảng vài mili-giây giữa hai lệnh SQL của cùng một request — gần như không xảy ra trong vận hành thật.
+2. **Giới hạn đã biết, có chủ ý chấp nhận (không phải lỗi):** khi sửa một đơn NHÁP kèm "tạo hồ sơ mới" mà đúng lúc đó người khác lưu xong đơn trước (khoá lạc quan thua, 409 `stale`), hồ sơ khách mới vẫn được TẠO — câu tạo hồ sơ (`booker.before`) đứng ở ĐẦU `db.batch()` vì ràng buộc khoá ngoại (hồ sơ phải tồn tại trước khi đơn trỏ tới), và `newPersonStatements` của module `parties` không mang điều kiện thắng của khoá lạc quan (`wonGuard`) như câu `UPDATE orders`. Hệ quả: một hồ sơ khách THỪA, có nhật ký `party_created` bình thường — quản trị viên ngưng được qua trang Hồ sơ (`active = 0`) như bất kỳ hồ sơ thừa nào khác; không mất dữ liệu, không sai lệch bất biến nào. **Tạo đơn MỚI (`POST /api/orders`) không dính giới hạn này**: cả batch tạo đơn thất bại thì huỷ toàn bộ (kể cả câu tạo hồ sơ), không để lại gì. Ghi ở `src/modules/orders/repository.ts` (chú thích trên `updateDraftOrder`).
