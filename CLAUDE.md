@@ -27,7 +27,7 @@ CRM nội bộ của **Công ty TNHH Tour Đảo** (Nha Trang): nhân viên lậ
 | Lệnh | Việc |
 |---|---|
 | `npm run dev` | `wrangler dev` (tự `build:web`); cần `.dev.vars` (mẫu `.dev.vars.example`) và `npm run db:migrate:local` |
-| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện 408 test (đếm lại khi thêm/bớt) |
+| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`) — hiện 418 test (đếm lại khi thêm/bớt) |
 | `node --test src/shared/service-form.test.ts` | chạy một tệp test |
 | `npm run typecheck` | `tsc` cho server, `web/`, `web/sw/` — phải **0 lỗi** |
 | `npm run build:web` | esbuild `web/*.ts` → `public/js/`, `web/sw/sw.ts` → `public/sw.js` (cả hai **gitignored**; thêm trang mới phải khai trong script này) |
