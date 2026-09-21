@@ -128,7 +128,7 @@ test("PATCH chỉ đổi tên (không có câu chốt): tên đổi, một dòng
   assert.deepEqual(auditActions(sqlite), ["staff_updated"]);
 });
 
-// Luật "nhật ký KHÔNG ghi SĐT/email/MST" (CLAUDE.md §5, đặc tả N1 §7.2; câu 4(b) ở docs/HANDOFF-N1.md — chủ chốt 2026-09-21: SỬA).
+// Luật "nhật ký KHÔNG ghi SĐT/email/MST" (CLAUDE.md §7, đặc tả N1 §7.2; câu 4(b) ở docs/HANDOFF-N1.md — chủ chốt 2026-09-21: SỬA).
 // Kiểm trên CHÍNH câu lệnh route dựng, nên nếu ai đưa số vào chi tiết nhật ký lần nữa thì bài này đỏ.
 const PHONE_LIKE = /(?:\+84|0)[3-9]\d{8}\b/;
 // Người kiểm độc lập (2026-09-21) chỉ ra regex trên bỏ lọt `84901000099`, `0901 000 099`, `0901.000.099`: nên so trên CHỮ SỐ thuần (bỏ mọi ký tự khác)
