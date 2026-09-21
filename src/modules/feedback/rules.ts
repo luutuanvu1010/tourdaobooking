@@ -1,0 +1,119 @@
+// Luật thuần của Góp ý / Báo lỗi (không I/O). Kiểm đầu vào, lọc `context` (không đáng tin), trần tần suất.
+// Import bằng đuôi .ts để node --test chạy trực tiếp.
+import { isFeedbackKind, isFeedbackStatus, type FeedbackKind, type FeedbackStatus } from "../../shared/feedback-catalog.ts";
+
+export const TITLE_MAX = 120;
+export const BODY_MAX = 4000;
+/** Trần theo tài khoản trong cửa sổ 1 giờ. Tin nhắn tính cả tin mô tả ban đầu của yêu cầu mới. */
+export const TICKET_LIMIT_PER_HOUR = 5;
+export const MESSAGE_LIMIT_PER_HOUR = 30;
+export const RATE_WINDOW_MS = 60 * 60 * 1000;
+/** Đầu cửa sổ tần suất (ISO UTC) — so chuỗi với created_at (cũng ISO UTC). */
+export const windowStart = (now: Date): string => new Date(now.getTime() - RATE_WINDOW_MS).toISOString();
+
+export const CLIENT_REQUEST_ID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+export type Checked<T> = { ok: true; value: T } | { ok: false; message: string };
+const bad = (message: string): { ok: false; message: string } => ({ ok: false, message });
+
+// eslint-disable-next-line no-control-regex
+const CONTROL = /[\u0000-\u001f\u007f]/g;
+// eslint-disable-next-line no-control-regex
+const CONTROL_KEEP_NEWLINE = /[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f]/g;
+
+const cleanTitle = (v: unknown): string => (typeof v === "string" ? v.replace(CONTROL, " ").replace(/\s+/g, " ").trim() : "");
+const cleanBody = (v: unknown): string => (typeof v === "string" ? v.replace(/\r\n?/g, "\n").replace(CONTROL_KEEP_NEWLINE, "").trim() : "");
+
+export interface FeedbackContextShape {
+  path?: string;
+  orderCode?: string;
+  device?: string;
+  standalone?: boolean;
+  appVersion?: string;
+}
+
+/** `context` do trình duyệt gửi → KHÔNG đáng tin: chỉ nhận bộ khoá cố định, cắt độ dài, bỏ ký tự điều khiển. Trả JSON đã lọc. */
+export function sanitizeContext(raw: unknown): string {
+  const out: FeedbackContextShape = {};
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const r = raw as Record<string, unknown>;
+    if (typeof r.path === "string") {
+      const p = r.path.replace(CONTROL, " ").slice(0, 200);
+      if (p.startsWith("/")) out.path = p;
+    }
+    if (typeof r.orderCode === "string" && /^[A-Za-z0-9._-]{1,40}$/.test(r.orderCode)) out.orderCode = r.orderCode;
+    if (typeof r.device === "string") {
+      const d = r.device.replace(CONTROL, " ").trim().slice(0, 120);
+      if (d) out.device = d;
+    }
+    if (typeof r.standalone === "boolean") out.standalone = r.standalone;
+    if (typeof r.appVersion === "string" && /^[A-Za-z0-9._-]{1,40}$/.test(r.appVersion)) out.appVersion = r.appVersion;
+  }
+  return JSON.stringify(out);
+}
+
+/** Đọc lại JSON đã lưu; hỏng thì {} (không bao giờ ném). */
+export function parseContext(json: string): FeedbackContextShape {
+  try {
+    const v = JSON.parse(json) as unknown;
+    return v && typeof v === "object" && !Array.isArray(v) ? (v as FeedbackContextShape) : {};
+  } catch {
+    return {};
+  }
+}
+
+export interface TicketInput {
+  kind: FeedbackKind;
+  title: string;
+  body: string;
+  clientRequestId: string;
+  /** JSON đã lọc. */
+  context: string;
+}
+
+export function validateTicketInput(raw: Record<string, unknown>): Checked<TicketInput> {
+  if (!isFeedbackKind(raw.kind)) return bad("Loại yêu cầu không hợp lệ.");
+  const title = cleanTitle(raw.title);
+  if (title.length < 1 || title.length > TITLE_MAX) return bad(`Tiêu đề phải từ 1 đến ${TITLE_MAX} ký tự.`);
+  const body = cleanBody(raw.body);
+  if (body.length < 1 || body.length > BODY_MAX) return bad(`Nội dung phải từ 1 đến ${BODY_MAX} ký tự.`);
+  if (typeof raw.clientRequestId !== "string" || !CLIENT_REQUEST_ID_RE.test(raw.clientRequestId)) return bad("Mã yêu cầu của thiết bị không hợp lệ.");
+  return { ok: true, value: { kind: raw.kind, title, body, clientRequestId: raw.clientRequestId, context: sanitizeContext(raw.context) } };
+}
+
+export interface MessageInput {
+  body: string;
+  internal: boolean;
+}
+
+export function validateMessageInput(raw: Record<string, unknown>): Checked<MessageInput> {
+  const body = cleanBody(raw.body);
+  if (body.length < 1 || body.length > BODY_MAX) return bad(`Nội dung phải từ 1 đến ${BODY_MAX} ký tự.`);
+  if (raw.internal !== undefined && typeof raw.internal !== "boolean") return bad("Cờ ghi chú nội bộ không hợp lệ.");
+  return { ok: true, value: { body, internal: raw.internal === true } };
+}
+
+export interface PatchInput {
+  status?: FeedbackStatus;
+  assignee?: { value: string | null };
+  resolvedIn?: { value: string | null };
+}
+
+export function validatePatchInput(raw: Record<string, unknown>): Checked<PatchInput> {
+  const out: PatchInput = {};
+  if (raw.status !== undefined) {
+    if (!isFeedbackStatus(raw.status)) return bad("Trạng thái không hợp lệ.");
+    out.status = raw.status;
+  }
+  if (raw.assigneeId !== undefined) {
+    if (raw.assigneeId !== null && (typeof raw.assigneeId !== "string" || !/^[0-9a-f-]{36}$/.test(raw.assigneeId))) return bad("Người xử lý không hợp lệ.");
+    out.assignee = { value: raw.assigneeId };
+  }
+  if (raw.resolvedIn !== undefined) {
+    if (out.status !== "DONE") return bad("Chỉ ghi bản sửa (resolvedIn) khi chuyển sang Đã xong.");
+    if (raw.resolvedIn !== null && (typeof raw.resolvedIn !== "string" || !/^[A-Za-z0-9._-]{1,40}$/.test(raw.resolvedIn))) return bad("Mã bản sửa không hợp lệ.");
+    out.resolvedIn = { value: raw.resolvedIn };
+  }
+  if (out.status === undefined && out.assignee === undefined) return bad("Không có thay đổi nào để lưu.");
+  return { ok: true, value: out };
+}

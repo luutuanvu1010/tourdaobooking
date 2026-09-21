@@ -20,6 +20,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   audit: [],
   auth: ["staff"],
   catalog: ["audit"],
+  feedback: ["staff", "audit"],
   locations: ["audit"],
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],
@@ -40,7 +41,7 @@ const STRICT: readonly { module: string; file: string }[] = [
  */
 const LEGACY = ["accounts", "audit", "auth", "catalog", "orders"] as const;
 
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", dsp_: "dispatch", bil_: "billing" };
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };
 
 // ---------------------------------------------------------------------------------------------------------------------
