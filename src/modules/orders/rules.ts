@@ -1,13 +1,14 @@
 // Luật nghiệp vụ thuần của đơn hàng (spec §2.3): kiểm tra đầu vào, tính tiền, chuyển trạng thái, mã đơn.
 // Luật của TỪNG DỊCH VỤ (số khách, thông tin chuyến, dòng tiền sinh từ danh mục) nằm ở ./service-rules.ts.
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
+import { parseBooker, type BookerInput } from "../../shared/booker.ts";
 import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
 import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { int, text } from "./fields.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, validateService, type ServiceContext, type ServiceFailure, type ValidItem, type ValidService } from "./service-rules.ts";
 
-export type { DepositMethod, OrderStatus, ServiceContext, ValidItem, ValidService };
+export type { BookerInput, DepositMethod, OrderStatus, ServiceContext, ValidItem, ValidService };
 
 export const DEPOSIT_METHODS: readonly DepositMethod[] = ["cash", "bank_transfer", "other"];
 
@@ -17,6 +18,8 @@ export interface ValidOrder {
   customerPhone: string;
   customerEmail: string | null;
   customerNote: string | null;
+  /** Người đặt (N2 lát 1): không gắn / hồ sơ có sẵn / hồ sơ mới. Service kiểm hồ sơ còn dùng được; repository ghi. */
+  booker: BookerInput;
   services: ValidService[];
   /** Mọi dòng tiền của mọi dịch vụ (theo thứ tự dịch vụ rồi dòng). */
   items: ValidItem[];
@@ -39,18 +42,25 @@ const fail = (message: string): Failure => ({ ok: false, message });
 const PHONE_RE = /^\+?[0-9][0-9 .\-]{6,18}[0-9]$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
-  if (!input || typeof input !== "object" || Array.isArray(input)) return fail("Dữ liệu đơn không hợp lệ.");
-  const b = input as Record<string, unknown>;
-  // Tab mở từ trước khi triển khai vẫn gửi `items` phẳng kiểu cũ.
-  if (b.services === undefined && Array.isArray(b.items)) return { ok: false, code: "client_outdated", message: "Trang đã cũ, hãy tải lại trang rồi thử lại." };
-
+/** Tên + SĐT khách (bản chụp trên đơn) — dùng chung cho tạo/sửa đơn và đổi khách. */
+function validateCustomer(b: Record<string, unknown>): { ok: true; name: string; phone: string } | Failure {
   const name = text(b.customerName, "Tên khách hàng", 200, true);
   if (name.error) return fail(name.error);
   const phone = text(b.customerPhone, "Số điện thoại khách", 30, true);
   if (phone.error) return fail(phone.error);
   const phoneValue = phone.value!.replace(/\s+/g, " ");
   if (!PHONE_RE.test(phoneValue)) return fail("Số điện thoại khách không hợp lệ.");
+  return { ok: true, name: name.value!, phone: phoneValue };
+}
+
+export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return fail("Dữ liệu đơn không hợp lệ.");
+  const b = input as Record<string, unknown>;
+  // Tab mở từ trước khi triển khai vẫn gửi `items` phẳng kiểu cũ.
+  if (b.services === undefined && Array.isArray(b.items)) return { ok: false, code: "client_outdated", message: "Trang đã cũ, hãy tải lại trang rồi thử lại." };
+
+  const customer = validateCustomer(b);
+  if (!customer.ok) return customer;
   const email = text(b.customerEmail, "Email khách", 200, false);
   if (email.error) return fail(email.error);
   if (email.value && !EMAIL_RE.test(email.value)) return fail("Email khách không hợp lệ.");
@@ -58,6 +68,8 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (note.error) return fail(note.error);
   const paymentNote = text(b.paymentNote, "Ghi chú thanh toán", 1000, false);
   if (paymentNote.error) return fail(paymentNote.error);
+  const booker = parseBooker(b.bookerPartyId, b.newBooker);
+  if (!booker.ok) return fail(booker.message);
 
   if (!Array.isArray(b.services) || b.services.length === 0) return fail("Đơn cần ít nhất một dịch vụ.");
   if (b.services.length > MAX_SERVICES) return fail(`Đơn tối đa ${MAX_SERVICES} dịch vụ.`);
@@ -99,10 +111,11 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   return {
     ok: true,
     value: {
-      customerName: name.value!,
-      customerPhone: phoneValue,
+      customerName: customer.name,
+      customerPhone: customer.phone,
       customerEmail: email.value,
       customerNote: note.value,
+      booker: booker.value,
       services,
       items,
       subtotal,
@@ -115,6 +128,25 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
     },
   };
+}
+
+export interface ValidBookerChange {
+  customerName: string;
+  customerPhone: string;
+  booker: BookerInput;
+  expectedUpdatedAt: string;
+}
+
+/** `PUT /api/orders/:id/booker` (ADR-0011 điều 2): tên/SĐT trên đơn + người đặt + mốc khoá lạc quan. */
+export function validateBookerChange(input: unknown): { ok: true; value: ValidBookerChange } | Failure {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return fail("Dữ liệu đổi khách không hợp lệ.");
+  const b = input as Record<string, unknown>;
+  const customer = validateCustomer(b);
+  if (!customer.ok) return customer;
+  const booker = parseBooker(b.bookerPartyId, b.newBooker);
+  if (!booker.ok) return fail(booker.message);
+  if (typeof b.expectedUpdatedAt !== "string" || !b.expectedUpdatedAt) return fail("Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc).");
+  return { ok: true, value: { customerName: customer.name, customerPhone: customer.phone, booker: booker.value, expectedUpdatedAt: b.expectedUpdatedAt } };
 }
 
 // draft → confirmed → cancelled, hoặc draft → cancelled. Không có đường quay lại (§2.3).

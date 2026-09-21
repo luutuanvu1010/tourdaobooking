@@ -194,6 +194,10 @@ export interface OrderInput {
   depositAmount: number;
   depositMethod: DepositMethod | null;
   paymentNote: string;
+  /** Gắn hồ sơ có sẵn (id `pty_party`, chỉ cá nhân đang hoạt động); null/vắng = không gắn. Không gửi kèm `newBooker`. */
+  bookerPartyId?: string | null;
+  /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */
+  newBooker?: { fullName: string; phone: string } | null;
   /** Bắt buộc khi sửa (PUT): `updatedAt` của đơn mà form đã đọc — lệch → 409 `stale`. */
   expectedUpdatedAt?: string;
 }
@@ -202,6 +206,15 @@ export interface OrderInput {
 export interface TripUpdateInput {
   expectedUpdatedAt: string;
   services: ({ id: string } & TripInput)[];
+}
+
+/** `PUT /api/orders/:id/booker` — đổi khách (hồ sơ người đặt + tên/SĐT chụp trên đơn) của đơn nháp hoặc đã xác nhận (ADR-0011 điều 2). */
+export interface BookerChangeInput {
+  customerName: string;
+  customerPhone: string;
+  bookerPartyId?: string | null;
+  newBooker?: { fullName: string; phone: string } | null;
+  expectedUpdatedAt: string;
 }
 
 /** Thân lỗi có thêm dữ liệu: 409 `incomplete_trip` (xác nhận thiếu chuyến) và 409 `catalog_changed` (giá danh mục vừa đổi). */
