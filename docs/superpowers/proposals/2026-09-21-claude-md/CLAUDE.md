@@ -10,7 +10,7 @@
 - Bốn quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`. Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
-Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp: v2.3.0, nguồn `~/Documents/Projects/CoreSchemaProject/playbook/CONSTITUTION.md` (bản chép vào `playbook/` đang chờ chủ duyệt: `docs/superpowers/specs/2026-09-21-bo-tieu-chuan-nen-tang-design.md`).
+Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
 - Tài liệu **chuẩn tắc** (Hiến pháp, ADR đã duyệt, luật ở `docs/ARCHITECTURE.md`, `docs/SPEC-tourdao-sales.md` đã duyệt) **thắng mã**: mã lệch là lỗi, sửa mã.
 - Tài liệu **mô tả** (`docs/SYSTEM-DESIGN.md`, `docs/DATA-DICTIONARY.md`, `docs/CHANGE-GUIDE.md`) **thua mã**: sửa tài liệu trong cùng commit.
 - **Lệch có chủ ý** đã ghi ở `docs/SYSTEM-DESIGN.md` §16 (mã đúng, tài liệu chuẩn tắc lệch): không sửa mã; giữ ở §16 và trình chủ để ra ADR/dòng lịch sử mới.
@@ -22,13 +22,17 @@ Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặ
 - **Việc lớn** = đụng **dữ liệu** (schema, migration, dữ liệu thật), **quyền** (`permissions.ts`, tài khoản), **tiền** (tính/hiển thị tiền), **triển khai** (deploy, cấu hình Cloudflare) hoặc **luật** (tài liệu chuẩn tắc, hook). Thi công xong phải có **subagent kiểm độc lập, chỉ đọc**: đọc mã thật, chạy lại lệnh, chỉ báo cáo, không sửa. Chỉ báo "đạt" dựa trên báo cáo đó + test, không tự khai. Việc còn lại (sửa chữ, tài liệu mô tả, CSS không đụng logic, thêm test): test xanh + tóm tắt, chủ duyệt.
 - **Không tự tay đổi luật chi phối chính mình** (N9): `CLAUDE.md`, `.claude/`, `playbook/`, ràng buộc dự án, ADR đã duyệt. Chỉ **đề xuất** bằng diff/tệp trên nhánh; chủ duyệt mới có hiệu lực (chỉ được tự sửa phần MÔ TẢ như số đếm). Dựng thêm hàng rào chỉ **siết** chính mình (test, hook, deny) thì được, không nới (Điều 9.4).
 - Viết **tiêu chí nghiệm thu trước khi làm**, bằng hành vi kiểm được (P20). Cơ chế kiểm mới chỉ được coi là hoạt động khi **đã quan sát nó chặn thật một lần** (sửa cố ý → đỏ → hoàn nguyên) (P16); điều chưa cưỡng chế được ghi là "dựa vào kỷ luật".
-- Thấy dấu hiệu một nguyên tắc sắp/đang bị vi phạm: nêu ngay, kèm số hiệu điều, **một lần**; chủ đã nghe và vẫn quyết thì thi hành, không nhắc lại (P18).
+- Thấy dấu hiệu một nguyên tắc sắp/đang bị vi phạm: nói ngay **một lần**, bằng lời thường (số hiệu điều để trong ngoặc); chủ đã nghe và vẫn quyết thì thi hành, không nhắc lại (P18).
 
-## 4. Giao tiếp với chủ dự án
-- **Tiếng Việt CÓ DẤU** đầy đủ (giao diện, thông báo lỗi, tài liệu, commit; không chữ Anh lộ ra người dùng, kể cả mã trạng thái thô như `cancelled`).
-- **Ngắn gọn.** Kết luận và điều cần chủ quyết đặt **đầu** câu trả lời; chi tiết sau. Lời thường trước, thuật ngữ kỹ thuật chỉ khi cần và kèm một câu giải nghĩa.
-- **Không bịa.** Điều chưa kiểm phải nói "chưa kiểm được", không trình bày suy đoán như sự thật. Khẳng định quan trọng kèm `tệp:dòng` hoặc kết quả lệnh.
-- **Báo cáo cuối việc**: (1) đã làm gì, ở đâu (nhánh/commit); (2) đã kiểm bằng lệnh nào, kết quả thật; (3) chưa làm/chưa kiểm; (4) cần chủ quyết gì. Không nói "xong" khi test/typecheck chưa chạy hoặc đỏ.
+## 4. Trả lời chủ dự án: ngắn, dễ hiểu, phi kỹ thuật
+Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu trả lời trò chuyện**; tài liệu, commit, nhật ký vẫn viết đủ để người sau kiểm được.
+- **Kết luận trước** (1–2 câu), rồi điều chủ cần làm hoặc quyết. Sau đó tối đa vài gạch ngắn. Không kể quy trình, không giải thích dài.
+- **Lời thường.** Tránh thuật ngữ, tên tệp, đường dẫn, mã commit, tên hàm, số hiệu điều luật. Bắt buộc dùng thì kèm giải nghĩa một câu (nói "bản sao Hiến pháp", không nói "pinned copy").
+- **Chi tiết chỉ khi chủ hỏi.** Số liệu, bằng chứng, lệnh đã chạy ghi vào tài liệu/nhật ký; trong câu trả lời chỉ nêu tên một tệp khi chủ cần xem.
+- **Việc chủ phải làm:** từng bước đánh số, mỗi lệnh một khối riêng, chép-dán chạy được.
+- **Không bịa.** Điều chưa kiểm nói rõ "chưa kiểm"; không trình bày suy đoán như sự thật.
+- **Báo cáo cuối việc, 4 dòng:** Đã làm — Đã kiểm — Chưa làm/chưa kiểm — Cần bạn quyết. Không nói "xong" khi test/typecheck chưa chạy hoặc đỏ.
+- **Tiếng Việt CÓ DẤU** đầy đủ (giao diện, thông báo lỗi, tài liệu, commit); không chữ Anh lộ ra người dùng, kể cả mã trạng thái thô như `cancelled`.
 
 ## 5. Lệnh
 | Lệnh | Việc |
@@ -43,19 +47,27 @@ Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặ
 | `node scripts/dev-iphone.mjs` | chạy trên D1 tạm để thử iPhone thật (LAN, không đụng dữ liệu thật) |
 | `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote chỉ khi chủ ra lệnh, theo runbook (§8)** |
 
-## 6. Đọc gì, khi nào
-| Việc | Đọc |
+## 6. Đọc gì, khi nào (nạp đúng lúc, không nạp hết)
+- **Chỉ đọc khi việc cần, và chỉ đúng mục cần.** Tài liệu dài (Hiến pháp, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`) đừng đọc hết: liệt kê tiêu đề (`grep -n "^#" <tệp>`), rồi đọc đúng mục theo số dòng. Với Hiến pháp: `grep -n "^\*\*N9\." playbook/CONSTITUTION.md` (nguyên tắc), `grep -n "^## Điều" playbook/CONSTITUTION.md` (các Điều).
+- **Không dùng `@tệp` để nhập vào CLAUDE.md** (nhập bằng `@` nạp cả tệp ngay khi mở phiên). Chỉ chỉ đường bằng tên tệp như bảng dưới. Đọc xong dùng luôn, không chép lại vào câu trả lời.
+
+| Việc | Đọc (đúng mục) |
 |---|---|
-| Sửa/thêm nhanh: công thức từng loại việc, bẫy | `docs/CHANGE-GUIDE.md` |
-| Hiểu hệ thống: topology, luồng, API, quyền, dữ liệu, giao diện | `docs/SYSTEM-DESIGN.md` |
-| Luật kiến trúc, quyết định đã duyệt | `docs/ARCHITECTURE.md`, `docs/adr/` |
-| Nghiệp vụ và quyết định của chủ | `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
-| Bảng/cột/view | `docs/data-dictionary.json` (nguồn) → `docs/DATA-DICTIONARY.md` (sinh) |
+| Không chắc nên hỏi chủ hay tự quyết; ai được quyết gì | Hiến pháp `playbook/CONSTITUTION.md`: P8, Điều 7.1 và 7.3 |
+| Việc lớn (dữ liệu, quyền, tiền, triển khai, luật, hook): ai kiểm, "xong" là gì | Hiến pháp: N3, N8, N9, P15, P16, Điều 6.1; điều cấm: Điều 5 |
+| Sửa luật, ADR, CLAUDE.md, `playbook/` | Hiến pháp Điều 9; `playbook/PIN-README.md`; `docs/adr/README.md` |
+| Hệ thống chạy thế nào (máy chủ, đăng nhập, một request) | `docs/SYSTEM-DESIGN.md` §2–§4 |
+| Luồng nghiệp vụ (lập đơn, xác nhận, phân công…) | `docs/SYSTEM-DESIGN.md` §6; nghiệp vụ và quyết định của chủ: `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
+| Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` (nguồn `docs/data-dictionary.json`) |
+| API, quyền | `docs/SYSTEM-DESIGN.md` §7, §8 |
+| Kiến trúc: ranh giới module, nơi đặt mã | `docs/ARCHITECTURE.md`; quyết định đã duyệt: mục lục `docs/adr/README.md` rồi ADR liên quan |
+| Hồ sơ khách/đại lý/đối tác, danh tính | ADR-0001, ADR-0010; đối chiếu Oracle TCA: `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` |
+| Giao diện, hệ thống thiết kế (màu, chữ, khoảng cách, thành phần) | token ở đầu `public/app.css`; luật giao diện: `web/CLAUDE.md`; thiết kế màn hình: `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`, `docs/SYSTEM-DESIGN.md` §9; iPhone: `docs/PWA-IPHONE.md` |
+| Sửa/thêm nhanh: công thức từng loại việc, bẫy | `docs/CHANGE-GUIDE.md` (tìm đúng công thức) |
 | Triển khai, áp migration, hoàn tác, trạng thái production | `docs/HANDOFF-N1.md` |
-| Chế độ bảo trì (chỉ chủ dùng được), cột "Đăng nhập gần nhất" | `docs/HANDOFF-CHE-DO-BAO-TRI.md` |
-| Góp ý / Báo lỗi (module `feedback`) | `docs/HANDOFF-FEEDBACK.md` |
+| Chế độ bảo trì; Góp ý / Báo lỗi | `docs/HANDOFF-CHE-DO-BAO-TRI.md`; `docs/HANDOFF-FEEDBACK.md` |
 | Lịch sử thi công, ruling, nợ kỹ thuật | `docs/superpowers/plans/*-thi-cong-nhat-ky.md` |
-| PWA/iPhone; bằng chứng giao diện | `docs/PWA-IPHONE.md`; `docs/evidence/` |
+| Bằng chứng giao diện | `docs/evidence/` |
 
 ## 7. Quy tắc bắt buộc (chi tiết theo thư mục ở `src/CLAUDE.md`, `web/CLAUDE.md`)
 - **Kiến trúc** (`src/architecture.test.ts` ép đầy đủ cho module "nghiêm"; module cũ còn ngoại lệ có hạn): module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view `v_<tiền tố>_*`; `src/shared/` và `web/` không import `src/modules/`.

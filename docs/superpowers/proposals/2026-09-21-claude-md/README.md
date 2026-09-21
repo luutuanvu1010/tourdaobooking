@@ -1,8 +1,10 @@
-# Đề xuất bộ CLAUDE.md mới (chưa có hiệu lực)
+# Bộ CLAUDE.md mới (đề xuất; cài trên nhánh `cai-claude-md`, có hiệu lực khi chủ merge)
 
-> **Trạng thái: ĐỀ XUẤT, chờ chủ dự án duyệt.** `CLAUDE.md` chi phối chính AI viết ra nó, nên theo Hiến pháp v2.3.0 **N9** AI chỉ đề xuất, không tự cài. Ba tệp ở đây **chưa** thay `CLAUDE.md` đang dùng. Soạn trên nền `main` @ `8c16767` (đã có module Góp ý). Căn cứ: tài liệu chính thức Anthropic (`code.claude.com/docs`: `memory`, `best-practices`, `large-codebases` — nhắm dưới 200 dòng mỗi tệp, không đặt thông tin hay đổi, tệp theo thư mục cho luật cục bộ, `CLAUDE.md` chỉ là lời khuyên nên điều cần chặn chắc dùng hook), `CLAUDE.md` của tourdaovn (thứ tự ưu tiên, điểm dừng cứng, hợp đồng báo cáo), bản cũ của repo, quyết định của chủ trong phiên 2026-09-21, và hai lượt kiểm độc lập (người kiểm chỉ đọc).
+> **Cập nhật 2026-09-22 (theo yêu cầu của chủ):** đã sửa bản đề xuất rồi cài lên nhánh `cai-claude-md`. Thêm: (a) §6 chỉ đường **nạp ngữ cảnh đúng lúc** (Hiến pháp, kiến trúc, hệ thống thiết kế; không nạp hết, không nhập `@`); (b) §4 **trả lời ngắn, dễ hiểu, phi kỹ thuật**; (c) `web/CLAUDE.md` có mục "Hệ thống thiết kế"; (d) sửa dòng trỏ Hiến pháp (đã ghim ở `playbook/`, ADR-0012 accepted). Ba tệp ở đây giữ làm **bản gốc để đối chiếu**; bản dùng thật là `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md` ở gốc và thư mục con. **Chỉ có hiệu lực khi chủ merge nhánh (N9: AI không tự có hiệu lực cho luật chi phối chính mình).**
+>
+> **Trạng thái trước đó: ĐỀ XUẤT, chờ chủ dự án duyệt.** `CLAUDE.md` chi phối chính AI viết ra nó, nên theo Hiến pháp v2.3.0 **N9** AI chỉ đề xuất, không tự cài. Soạn trên nền `main` @ `8c16767` (đã có module Góp ý). Căn cứ: tài liệu chính thức Anthropic (`code.claude.com/docs`: `memory`, `best-practices`, `large-codebases` — nhắm dưới 200 dòng mỗi tệp, không đặt thông tin hay đổi, tệp theo thư mục cho luật cục bộ, `CLAUDE.md` chỉ là lời khuyên nên điều cần chặn chắc dùng hook), `CLAUDE.md` của tourdaovn (thứ tự ưu tiên, điểm dừng cứng, hợp đồng báo cáo), bản cũ của repo, quyết định của chủ trong phiên 2026-09-21, và hai lượt kiểm độc lập (người kiểm chỉ đọc).
 
-## Cách cài (chỉ sau khi chủ duyệt)
+## Cách cài (nhánh `cai-claude-md` đã làm; ghi lại để tái hiện)
 ```
 cp docs/superpowers/proposals/2026-09-21-claude-md/CLAUDE.md CLAUDE.md
 cp docs/superpowers/proposals/2026-09-21-claude-md/src/CLAUDE.md src/CLAUDE.md
@@ -11,8 +13,8 @@ cp docs/superpowers/proposals/2026-09-21-claude-md/web/CLAUDE.md web/CLAUDE.md
 **Cảnh báo:** bản gốc soạn trên `main` tại `8c16767`; nếu `main` đã đổi tiếp thì đối chiếu `git diff 8c16767 main -- CLAUDE.md` trước khi `cp`, kẻo xoá phần mới của `main`. Sau khi cài: mở lại phiên để nạp; kiểm đường dẫn nhắc tới còn đúng.
 **Đối chiếu ngày 2026-09-22 (`main` @ `f01fa5c`):** `git diff 8c16767 main -- CLAUDE.md` chỉ đổi hai thứ: số test (403 → 408) và số migration (`0017` đã có, kế tiếp `0018`). Bản đề xuất đã sửa số migration (§10); bản đề xuất không ghi số test. Nếu `main` đi tiếp sau ngày này, đối chiếu lại bằng đúng lệnh trên.
 
-## Số đo (lúc soạn)
-Gốc 92 dòng (~15,7 KB), `src/` 33 dòng, `web/` 28 dòng. Bản cũ: 105 dòng nhưng ~18 KB vì mỗi dòng rất dài. Mục tiêu của chủ: gốc ≤ 200 dòng.
+## Số đo
+Sau sửa 2026-09-22: gốc 104 dòng, `src/` 33 dòng, `web/` 33 dòng (đều dưới 200). Lúc soạn đầu: gốc 92 dòng (~15,7 KB), `src/` 33 dòng, `web/` 28 dòng. Bản cũ: 105 dòng nhưng ~18 KB vì mỗi dòng rất dài. Mục tiêu của chủ: gốc ≤ 200 dòng.
 
 ## Điều MỚI so với bản cũ — chủ duyệt từng điều
 1. **§3 Vai của AI**: mỗi phiên một vai (P15), không tự nghiệm thu (N8), việc lớn cần subagent kiểm độc lập chỉ đọc (định nghĩa "việc lớn" theo ngưỡng chủ chọn), AI chỉ đề xuất luật chi phối mình (N9), cơ chế kiểm phải quan sát chặn thật một lần (P16), nghiệm thu đặt trước (P20), mơ hồ theo P8, cảnh báo một lần theo P18.
@@ -23,7 +25,9 @@ Gốc 92 dòng (~15,7 KB), `src/` 33 dòng, `web/` 28 dòng. Bản cũ: 105 dòn
 6. **§10** số migration hiện có hai `0016_*` (chấp nhận; `0017` đã có, kế tiếp `0018`) và "liệt kê mọi nhánh chưa gộp trước khi đặt số"; `typecheck` không phủ test/script.
 7. Tách luật theo thư mục: `src/CLAUDE.md`, `web/CLAUDE.md`; **giữ 4 dòng "Giao diện" ở gốc** vì tệp thư mục con chỉ nạp khi đọc tệp ở đó (Anthropic), còn sửa `public/`, `package.json` bằng lệnh shell thì không kích hoạt.
 8. **Hook mở rộng** (đề xuất mới, siết AI): chặn thêm `wrangler dev --remote` (Worker chạy trên D1 thật), chạy kịch bản trỏ vào production bằng `E2E_BASE_URL=…`, và merge "gián tiếp" (`cd`/`-C`/`checkout` rồi `merge`).
-
+9. **§6 nạp ngữ cảnh đúng lúc** (chủ yêu cầu 2026-09-22): bảng "việc → đọc đúng mục" trỏ tới Hiến pháp (`playbook/CONSTITUTION.md`), kiến trúc (`docs/SYSTEM-DESIGN.md`, `docs/ARCHITECTURE.md`, ADR), hệ thống thiết kế (token `public/app.css`, `web/CLAUDE.md`, đặc tả A2); dặn đọc theo tiêu đề rồi đúng mục, **không dùng `@tệp`** (tài liệu Anthropic: `@` nạp cả tệp ngay khi mở phiên; CLAUDE.md thư mục con thì chỉ nạp khi đọc tệp ở đó).
+10. **§4 trả lời chủ ngắn, dễ hiểu, phi kỹ thuật** (chủ yêu cầu 2026-09-22): kết luận trước, lời thường, không tên tệp/mã commit/số điều luật trong chat, chi tiết chỉ khi chủ hỏi, báo cáo cuối việc 4 dòng; tài liệu/commit/nhật ký vẫn viết đủ. **Điều khoản mới, chủ xác nhận khi merge.**
+11. `web/CLAUDE.md` thêm mục **"Hệ thống thiết kế"**: token là bản sao từ `tourdaovn`; cần giá trị mới thì hỏi chủ (**điều khoản do người soạn thêm, chủ xác nhận**).
 ## Điều BỎ khỏi bản cũ và nơi nó sống
 | Bản cũ | Nay |
 |---|---|

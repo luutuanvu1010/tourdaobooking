@@ -2,6 +2,11 @@
 
 > Chỉ thêm ràng buộc cho `web/` và `public/`, không nới `CLAUDE.md` gốc. Bằng chứng giao diện thật cần trình duyệt (kịch bản Chrome, không nằm trong CI). Công thức: `docs/CHANGE-GUIDE.md`; thiết kế: `docs/SYSTEM-DESIGN.md` §9.
 
+## Hệ thống thiết kế (đọc đúng mục, đừng đọc hết)
+- **Token** (màu, chữ, khoảng cách…): đầu `public/app.css` (`:root`). Đó là bản **sao chép** giá trị từ `tourdaovn` (không import, không tự đặt). Cần màu/chữ/khoảng cách mới: dùng token có sẵn; thiếu thì **hỏi chủ**, đừng tự thêm giá trị lẻ.
+- **Thiết kế màn hình** (bố cục, trạng thái, nội dung chữ): `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`; trang nào gọi API nào: `docs/SYSTEM-DESIGN.md` §9; iPhone/PWA: `docs/PWA-IPHONE.md`.
+- **Bản thiết kế gốc và ảnh tham chiếu:** `docs/design/a2-mockup/` (trong `refs/`: `tourdaovn-design-brief.md`, `tourdaovn-tokens.css`); ảnh giao diện thật: `docs/evidence/`.
+
 ## Luật
 - **Không `innerHTML`.** Dựng DOM bằng `h()` ở `web/dom.ts`.
 - `web/` import `src/shared` **không đuôi**; **không** import `src/modules/`. Luật dùng ở cả server và giao diện là tệp thuần ở `src/shared/`, không chép tay sang đây.
