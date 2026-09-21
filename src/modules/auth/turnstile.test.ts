@@ -1,7 +1,7 @@
 // Cloudflare Turnstile phía máy chủ: verifyTurnstile (fetch GIẢ tiêm vào — không gọi mạng thật) + quyết định bật/tắt theo cấu hình.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MAX_TOKEN_LENGTH, TURNSTILE_TIMEOUT_MS, TURNSTILE_VERIFY_URL, turnstileGate, turnstileSecret, turnstileSiteKey, verifyTurnstile } from "./turnstile.ts";
+import { MAX_TOKEN_LENGTH, TURNSTILE_TIMEOUT_MS, TURNSTILE_VERIFY_URL, turnstileGate, turnstileLog, turnstileSecret, turnstileSiteKey, verifyTurnstile } from "./turnstile.ts";
 
 interface Call { url: string; init: RequestInit }
 
@@ -133,6 +133,54 @@ test("hết giờ: fetch chỉ kết thúc khi bị huỷ → unavailable/timeou
   assert.equal(f.calls[0]!.init.signal!.aborted, true, "kết nối treo phải bị huỷ chứ không bỏ lửng");
 });
 
+/**
+ * Chạy `body` với `setTimeout`/`clearTimeout` toàn cục được bọc để ĐẾM: mỗi bộ đếm giờ tạo ra (kèm độ trễ) và số bộ còn sống. Chỉ để chứng minh hai điều mà
+ * kiểm hằng số (`TURNSTILE_TIMEOUT_MS === 5000`) không chứng minh được: hằng số ĐƯỢC NỐI vào dây mặc định, và bộ đếm giờ luôn được dọn.
+ */
+async function withTimerSpy(body: () => Promise<void>): Promise<{ delays: number[]; live: number }> {
+  const realSet = globalThis.setTimeout;
+  const realClear = globalThis.clearTimeout;
+  const delays: number[] = [];
+  const live = new Set<unknown>();
+  globalThis.setTimeout = ((fn: () => void, ms?: number, ...rest: unknown[]) => {
+    const id = realSet(fn, ms, ...rest);
+    delays.push(Number(ms));
+    live.add(id);
+    return id;
+  }) as unknown as typeof setTimeout;
+  globalThis.clearTimeout = ((id: Parameters<typeof clearTimeout>[0]) => {
+    live.delete(id);
+    realClear(id);
+  }) as typeof clearTimeout;
+  try {
+    await body();
+  } finally {
+    globalThis.setTimeout = realSet;
+    globalThis.clearTimeout = realClear;
+    for (const id of live) realClear(id as Parameters<typeof clearTimeout>[0]); // dù test đỏ cũng không để bộ đếm treo giữ tiến trình
+  }
+  return { delays, live: live.size };
+}
+
+test("hạn chót MẶC ĐỊNH đúng là TURNSTILE_TIMEOUT_MS (kể cả qua turnstileGate) và bộ đếm giờ luôn được dọn — đạt, bị bác hay lỗi mạng", async () => {
+  const ok = fakeFetch(() => jsonResponse({ success: true }));
+  const rejected = fakeFetch(() => jsonResponse({ success: false, "error-codes": ["invalid-input-response"] }));
+  const broken = fakeFetch(() => {
+    throw new TypeError("fetch failed");
+  });
+  const spy = await withTimerSpy(async () => {
+    assert.equal((await verifyTurnstile(base, ok.fn)).ok, true);
+    assert.equal((await verifyTurnstile(base, rejected.fn)).ok, false);
+    assert.equal((await verifyTurnstile(base, broken.fn)).ok, false);
+    assert.equal((await turnstileGate(ON, "tok-abc", null, ok.fn)).pass, true, "cổng không truyền hạn chót → cũng phải dùng mặc định");
+  });
+  assert.deepEqual(spy.delays, [TURNSTILE_TIMEOUT_MS, TURNSTILE_TIMEOUT_MS, TURNSTILE_TIMEOUT_MS, TURNSTILE_TIMEOUT_MS], "mỗi lần gọi đúng MỘT bộ đếm, đặt đúng hằng số mặc định");
+  assert.equal(spy.live, 0, "mọi bộ đếm giờ phải bị clearTimeout (không rò một bộ đếm 5 giây sau mỗi lần đăng nhập)");
+  // Khi thiếu token thì KHÔNG gọi mạng và cũng không tạo bộ đếm nào.
+  const idle = await withTimerSpy(async () => void (await verifyTurnstile({ ...base, token: "" }, ok.fn)));
+  assert.deepEqual(idle, { delays: [], live: 0 });
+});
+
 test("hết giờ: kể cả fetch phớt lờ tín hiệu huỷ và treo vĩnh viễn → vẫn unavailable/timeout", async () => {
   const f = fakeFetch(() => new Promise<Response>(() => {}));
   assert.deepEqual(await verifyTurnstile({ ...base, timeoutMs: 30 }, f.fn), { ok: false, reason: "unavailable", detail: "timeout" });
@@ -240,4 +288,37 @@ test("cổng: có secret mà thiếu khoá site → VẪN kiểm (đóng khi l�
   const f = fakeFetch(() => jsonResponse({ success: true }));
   assert.deepEqual(await turnstileGate(env, undefined, null, f.fn), { pass: false, warn: "no_site_key", status: 403, code: "turnstile_failed", message: FAILED_MESSAGE, detail: "missing_token" });
   assert.deepEqual(await turnstileGate(env, "tok-abc", null, f.fn), { pass: true, warn: "no_site_key" });
+});
+
+// ---- turnstileLog: dòng nhật ký vận hành của cổng (route chỉ việc in ra) -------------------------------------------------------
+
+test("nhật ký cổng: 403 turnstile_failed có MỘT dòng ngắn (warn) chỉ mang mã lý do đã lọc — để vận hành thấy 403 hàng loạt; không kèm token/secret/IP", async () => {
+  const secretLike = { TURNSTILE_SECRET_KEY: "s3cret-key-XYZ", TURNSTILE_SITE_KEY: "site-key" };
+  const cases: [string, unknown, typeof fetch | undefined, string][] = [
+    ["thiếu token", undefined, undefined, "missing_token"],
+    ["Cloudflare bác", "tok-SECRET-abc", fakeFetch(() => jsonResponse({ success: false, "error-codes": ["timeout-or-duplicate"] })).fn, "timeout-or-duplicate"],
+    ["bác không kèm mã", "tok-SECRET-abc", fakeFetch(() => jsonResponse({ success: false })).fn, "rejected"],
+  ];
+  for (const [what, token, fn, detail] of cases) {
+    const entries = turnstileLog(await turnstileGate(secretLike, token, "203.0.113.9", fn));
+    assert.deepEqual(entries, [{ level: "warn", event: "turnstile_failed", detail }], what);
+    assert.doesNotMatch(JSON.stringify(entries), /s3cret|tok-SECRET|203\.0\.113/i, `${what}: không được lộ secret, token hay IP`);
+  }
+});
+
+test("nhật ký cổng: 503 → error `turnstile_unavailable` kèm mã; tắt → warn `turnstile_disabled`; thiếu khoá site → error `turnstile_misconfigured`; đạt bình thường → không in gì", async () => {
+  const down = fakeFetch(() => new Response("bad gateway", { status: 502 })).fn;
+  assert.deepEqual(turnstileLog(await turnstileGate(ON, "tok-abc", null, down)), [{ level: "error", event: "turnstile_unavailable", detail: "http_502" }]);
+
+  const off = turnstileLog(await turnstileGate({}, "tok-abc", null));
+  assert.equal(off.length, 1);
+  assert.deepEqual([off[0]!.level, off[0]!.event], ["warn", "turnstile_disabled"]);
+  assert.match(off[0]!.message ?? "", /TURNSTILE_SECRET_KEY/);
+
+  const ok = fakeFetch(() => jsonResponse({ success: true })).fn;
+  const noSite = turnstileLog(await turnstileGate({ TURNSTILE_SECRET_KEY: "s3cret-key" }, undefined, null, ok));
+  assert.deepEqual(noSite.map((e) => [e.level, e.event, e.detail]), [["error", "turnstile_misconfigured", undefined], ["warn", "turnstile_failed", "missing_token"]], "cấu hình sai VÀ bị từ chối → cả hai dòng");
+  assert.match(noSite[0]!.message ?? "", /TURNSTILE_SITE_KEY/);
+
+  assert.deepEqual(turnstileLog(await turnstileGate(ON, "tok-abc", null, ok)), [], "đạt + cấu hình đủ: không nhiễu nhật ký");
 });

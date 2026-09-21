@@ -10,7 +10,13 @@
 export const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
 /** Hạn chót cho cả lời gọi siteverify (kể cả đọc thân trả về). */
 export const TURNSTILE_TIMEOUT_MS = 5000;
-/** Token Turnstile dài tối đa 2048 ký tự (tài liệu Cloudflare); dài hơn chắc chắn sai nên không tốn một lời gọi mạng. */
+/**
+ * Token Turnstile dài tối đa 2048 ký tự; dài hơn coi là sai nên không tốn một lời gọi mạng.
+ * ⚠ ĐÂY LÀ NGƯỠNG GIẢ ĐỊNH từ tài liệu Cloudflare, CHƯA đối chiếu được (lúc viết không có mạng). Phải đối chiếu với tài liệu hiện hành của
+ * Cloudflare và với token do widget THẬT của booking.tourdao.vn cấp TRƯỚC khi đặt khoá thật ở production: nếu token thật dài hơn ngưỡng này thì MỌI lần đăng nhập
+ * sẽ bị 403 `turnstile_failed` (chi tiết `missing_token`) mà không hề gọi Cloudflare. Khoá thử của Cloudflare (dùng ở dev/e2e) cấp token ngắn nên không bắt được lỗi này.
+ * Giá trị KHÔNG đổi ở đây; muốn đổi thì sửa hằng số này và kiểm `turnstile.test.ts` (ca 2048 / 2049 ký tự).
+ */
 export const MAX_TOKEN_LENGTH = 2048;
 
 /** Phần của `Env` mà Turnstile cần. Cả hai đều có thể VẮNG (chưa cấu hình) nên đều tuỳ chọn. */
@@ -121,6 +127,32 @@ export type TurnstileGate = { warn: "disabled" | "no_site_key" | null } & (
   | { pass: true }
   | { pass: false; status: 403 | 503; code: "turnstile_failed" | "turnstile_unavailable"; message: string; detail: string }
 );
+
+/** Một dòng nhật ký vận hành (route in ra dạng JSON một dòng). Chỉ chứa mã/thông điệp cố định — KHÔNG bao giờ có secret, token hay IP. */
+export interface TurnstileLogEntry {
+  level: "warn" | "error";
+  event: "turnstile_disabled" | "turnstile_misconfigured" | "turnstile_failed" | "turnstile_unavailable";
+  message?: string;
+  /** Mã lý do ngắn đã lọc (`errorCodes()` chỉ nhận `[a-z0-9-]{1,64}`) hoặc `missing_token` / `rejected` / `network` / `timeout` / `http_<mã>`. */
+  detail?: string;
+}
+
+/**
+ * Các dòng nhật ký ứng với một quyết định của cổng — thuần, để test được (route chỉ in ra). Để vận hành thấy sự cố qua `wrangler tail`/Logs:
+ *   `turnstile_failed` (403)      warn  — MỘT dòng ngắn mỗi lần bị từ chối: 403 hàng loạt = bot đang dò, hoặc widget/khoá site hỏng ở trình duyệt thật;
+ *   `turnstile_unavailable` (503) error — Cloudflare không trả lời được, hoặc secret sai;
+ *   `turnstile_disabled`          warn  — chưa đặt secret (mỗi lần đăng nhập, để mất secret không thành tắt lặng lẽ);
+ *   `turnstile_misconfigured`     error — có secret mà thiếu khoá site.
+ */
+export function turnstileLog(gate: TurnstileGate): TurnstileLogEntry[] {
+  const entries: TurnstileLogEntry[] = [];
+  if (gate.warn === "disabled") entries.push({ level: "warn", event: "turnstile_disabled", message: "Chưa đặt TURNSTILE_SECRET_KEY: đăng nhập KHÔNG được bảo vệ bằng Turnstile." });
+  if (gate.warn === "no_site_key") {
+    entries.push({ level: "error", event: "turnstile_misconfigured", message: "Có TURNSTILE_SECRET_KEY nhưng thiếu TURNSTILE_SITE_KEY: trang đăng nhập không dựng được widget nên không ai đăng nhập được." });
+  }
+  if (!gate.pass) entries.push(gate.status === 503 ? { level: "error", event: "turnstile_unavailable", detail: gate.detail } : { level: "warn", event: "turnstile_failed", detail: gate.detail });
+  return entries;
+}
 
 export async function turnstileGate(env: TurnstileEnv, token: unknown, ip: string | null, fetchImpl: typeof fetch = fetch, timeoutMs?: number): Promise<TurnstileGate> {
   const secret = turnstileSecret(env);

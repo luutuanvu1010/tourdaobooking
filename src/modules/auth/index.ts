@@ -6,7 +6,7 @@ import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { SESSION_COOKIE, clearedSessionCookie, createSessionToken, sessionCookie, verifySessionToken } from "./session";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
-import { turnstileGate, turnstileSiteKey } from "./turnstile";
+import { turnstileGate, turnstileLog, turnstileSiteKey } from "./turnstile";
 
 export { lockedPhones, unlockPhone };
 
@@ -64,17 +64,20 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
 }
 
 /**
- * Cổng Turnstile của đăng nhập: null = cho qua, hoặc Response lỗi (403 `turnstile_failed` / 503 `turnstile_unavailable`). Chạy TRƯỚC
+ * Phía route của cổng Turnstile ở đăng nhập: `null` = cho qua, hoặc Response chặn (403 `turnstile_failed` / 503 `turnstile_unavailable`). Chạy TRƯỚC
  * `verifyPinThrottled` — kẻ tấn công không có token thì không tiêu hao lượt thử PIN của SĐT nạn nhân (và không làm SĐT đó bị khoá).
- * Quyết định thuần nằm ở `turnstileGate` (./turnstile.ts, có test); ở đây chỉ đổi thành Response và ghi nhật ký (không bao giờ ghi secret/token).
+ * Quyết định thuần là `turnstileGate` và các dòng nhật ký là `turnstileLog` (cả hai ở ./turnstile.ts, có test; log KHÔNG bao giờ chứa secret/token/IP — kể cả
+ * 403 mỗi lần bị từ chối, để vận hành thấy 403 hàng loạt); hàm này chỉ đổi kết quả thành Response và in nhật ký.
+ * (Tên khác `turnstileGate` có chủ ý: đây là chỗ DUY NHẤT dựng Response; `turnstileGate` thuần, không biết HTTP.)
  */
-async function turnstileGuard(request: Request, env: Env, token: unknown): Promise<Response | null> {
+async function turnstileBlockResponse(request: Request, env: Env, token: unknown): Promise<Response | null> {
   const gate = await turnstileGate(env, token, request.headers.get("cf-connecting-ip"));
-  if (gate.warn === "disabled") console.warn(JSON.stringify({ level: "warn", event: "turnstile_disabled", message: "Chưa đặt TURNSTILE_SECRET_KEY: đăng nhập KHÔNG được bảo vệ bằng Turnstile." }));
-  if (gate.warn === "no_site_key") console.error(JSON.stringify({ level: "error", event: "turnstile_misconfigured", message: "Có TURNSTILE_SECRET_KEY nhưng thiếu TURNSTILE_SITE_KEY: trang đăng nhập không dựng được widget nên không ai đăng nhập được." }));
-  if (gate.pass) return null;
-  if (gate.status === 503) console.error(JSON.stringify({ level: "error", event: "turnstile_unavailable", detail: gate.detail }));
-  return error(gate.status, gate.code, gate.message);
+  for (const entry of turnstileLog(gate)) {
+    const line = JSON.stringify(entry);
+    if (entry.level === "error") console.error(line);
+    else console.warn(line);
+  }
+  return gate.pass ? null : error(gate.status, gate.code, gate.message);
 }
 
 export const authModule: AppModule = {
@@ -88,7 +91,7 @@ export const authModule: AppModule = {
       const phone = typeof body?.phone === "string" ? body.phone : "";
       const pin = body?.pin;
       if (!phone || !isValidPin(pin)) return error(400, "invalid_input", "Cần số điện thoại và mã PIN 6 số.");
-      const blocked = await turnstileGuard(request, env, body?.turnstileToken);
+      const blocked = await turnstileBlockResponse(request, env, body?.turnstileToken);
       if (blocked) return blocked;
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
