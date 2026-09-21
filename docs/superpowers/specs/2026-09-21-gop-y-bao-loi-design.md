@@ -18,10 +18,10 @@ Người dùng đã đăng nhập gửi **báo lỗi / đề xuất / câu hỏi
 
 ## Dữ liệu (module chủ `feedback`, tiền tố `fbk_`)
 
-- `fbk_ticket`: `id`, `code` (dạng `YC-0007`, người đọc được), `kind`, `status`, `title`, `context` (JSON), `submitter_id`, `assignee_id` (NULL được), `client_request_id` (UUID do client sinh; **duy nhất** theo `(submitter_id, client_request_id)`), `resolved_in` (NULL được, mã bản dựng khi chuyển `DONE`), `submitter_seen_at`, `admin_seen_at`, `last_activity_at`, `last_public_reply_at`, `notified_at` (NULL = chưa gửi email được), cột kiểm toán theo chuẩn N1, khoá lạc quan `updated_at`.
+- `fbk_ticket`: `id`, `seq` (số thứ tự duy nhất; mã người đọc `YC-0007` tính từ `seq` ở code), `kind`, `status`, `title`, `context` (JSON), `submitter_id`, `assignee_id` (NULL được), `client_request_id` (UUID do client sinh; **duy nhất** theo `(submitter_id, client_request_id)`), `resolved_in` (NULL được, mã bản dựng khi chuyển `DONE`), `submitter_seen_at`, `admin_seen_at`, `last_activity_at`, `last_public_reply_at`, `notified_at` (NULL = chưa gửi email được), cột kiểm toán theo chuẩn N1, khoá lạc quan `updated_at`.
 - `fbk_message`: `id`, `ticket_id` (FK), `author_id`, `body`, `internal` (0/1: ghi chú nội bộ, chỉ admin thấy), `created_at`. Mô tả ban đầu là tin đầu tiên.
 - `fbk_kind` (`BUG`, `IDEA`, `QUESTION`), `fbk_status` (`NEW`, `ACK`, `IN_PROGRESS`, `DONE`, `DECLINED`): bảng tra cứu khoá `code`, không `CHECK` liệt kê.
-- Cột WHO (`submitter_id`, `assignee_id`, `author_id`) là `TEXT NULL`, không khoá ngoại, không `CASCADE` (chuẩn ADR-0002/N1 cho bảng mới). Lưu ý `audit_log.staff_id` thì vẫn `REFERENCES staff(id)` (migration 0007): hai chuẩn khác nhau là có chủ ý, không đồng bộ lại. Tên hiển thị đọc qua `v_stf_staff_label`; mã đơn qua `v_ord_order_label`. Không JOIN thẳng bảng module khác.
+- Cột WHO (`submitter_id` và `author_id` là `TEXT NOT NULL` vì luôn có người; `assignee_id` là `TEXT NULL`), không khoá ngoại, không `CASCADE` (chuẩn ADR-0002/N1 cho bảng mới). Lưu ý `audit_log.staff_id` thì vẫn `REFERENCES staff(id)` (migration 0007): hai chuẩn khác nhau là có chủ ý, không đồng bộ lại. Tên hiển thị đọc qua `v_stf_staff_label`; mã đơn qua `v_ord_order_label`. Không JOIN thẳng bảng module khác.
 - Danh sách kind/status ở v1 là **cố định do hệ thống sở hữu** (không có màn hình admin sửa danh sách).
 - **Chuyển trạng thái là luật thuần** trong `rules.ts` (có bảng và test); `PATCH` không được đặt trạng thái tuỳ ý:
 
@@ -47,21 +47,21 @@ Người dùng đã đăng nhập gửi **báo lỗi / đề xuất / câu hỏi
 | `GET /api/feedback/:id` | chủ hoặc admin | xem luồng (ẩn `internal` với người gửi); đánh dấu đã xem |
 | `POST /api/feedback/:id/messages` | chủ hoặc admin | trả lời; `internal` chỉ admin đặt được |
 | `GET /api/feedback` | admin | hàng đợi, lọc trạng thái/loại; kèm số đếm theo kind × status × tuần (từ `created_at`, `last_activity_at`); ticket có `notified_at` NULL hiện nhãn "chưa gửi được mail" |
-| `PATCH /api/feedback/:id` | admin | đổi trạng thái, người xử lý (khoá lạc quan) |
+| `PATCH /api/feedback/:id` | admin | đổi trạng thái, người xử lý (khoá lạc quan theo trạng thái cũ: đổi từ trạng thái đã khác → 409) |
 
 - `MATRIX` (`src/shared/permissions.ts`; cột quyền: SALES, ACCOUNTING, ADMIN, FIELD) thêm: `feedback.submit` (cả 4 quyền = `any`), `feedback.view` (SALES/ACCOUNTING/FIELD = `own`, ADMIN = `any`), `feedback.triage` (chỉ ADMIN). Test khoá bản đồ cập nhật theo.
 - Đầu vào: `title` ≤ 120, `body` ≤ 4000 ký tự; kiểm ở luật thuần.
-- **Chống spam** tái dùng mẫu "đặt chỗ trước rồi đếm lại" của `src/modules/auth/throttle.ts` (`reserveAttempts`, bảng `login_attempt`), không tự viết `SELECT count` rồi `INSERT` (hai request song song sẽ cùng qua trần). Trần áp cho **cả** `POST /api/feedback` (đề xuất 5/giờ/tài khoản) **và** `POST /api/feedback/:id/messages` (đề xuất 30/giờ/tài khoản); chỉnh ở `rules.ts`. Khoá đếm dùng tiền tố riêng (`fbk:`) để không lẫn với khoá đăng nhập; nếu `throttle.ts` gắn cứng ngữ cảnh đăng nhập thì tách phần chung ra `shared/` khi thi công, không sao chép.
+- **Chống spam**: một câu `INSERT … SELECT … WHERE (SELECT count(*) … trong 1 giờ) < trần` trên chính `fbk_ticket` / `fbk_message` — đếm và chèn cùng MỘT câu lệnh nên hai request song song không cùng qua trần (không tự viết `SELECT count` rồi `INSERT` ở hai bước). Không dùng `login_attempt`/`reserveAttempts`: đó là bảng của `auth`, và mẫu ấy có `DELETE` mà bài kiểm R-N1-9 cấm với bảng mới. Trần áp cho **cả** `POST /api/feedback` (5/giờ/tài khoản) **và** `POST /api/feedback/:id/messages` (30/giờ/tài khoản, tính cả tin mô tả ban đầu); chỉnh ở `rules.ts`.
 - **Phạm vi truy vấn**: mọi truy vấn của module đi qua MỘT hàm điều kiện phạm vi (`scopeWhere(staff)` trong `rules.ts`/`repository.ts`), không lặp `WHERE submitter_id = ?` ở từng route.
 - `context.appVersion` phải là **mã bản dựng thật**. Hiện `__BUILD_ID__` chỉ được esbuild nhúng vào service worker (`build:web`, `sw.ts`), chưa vào các bundle trang: thi công phải thêm `--define:__BUILD_ID__` cho bước bundle trang (hoặc lấy từ `CACHE_VERSION`); nếu chưa làm được thì bỏ khoá `appVersion` khỏi v1 chứ không ghi giá trị giả.
-- Không lưu nội dung đơn, **chỉ mã đơn** (`orderCode`), hiển thị qua `v_ord_order_label`.
+- Không lưu nội dung đơn, **chỉ mã đơn** (`orderCode`, chuỗi thường; v1 giao diện chưa tự điền, chưa đọc `v_ord_order_label` nên không có cạnh `feedback → orders`).
 - `context`: **không đáng tin**. Server chỉ nhận bộ khoá cố định (`path`, `orderCode`, `device`, `standalone`, `appVersion`), cắt độ dài, bỏ khoá lạ. Giao diện dựng bằng `h()`, không `innerHTML`.
-- Nhật ký: dùng `audit_log` chung (`order_id` NULL, `target_type = 'feedback'`, `target_id` = id ticket). Thêm nhóm `feedback` và hành động `feedback_created`, `feedback_replied`, `feedback_status_changed` vào `src/shared/audit-actions.ts`; không cần migration.
+- Nhật ký: dùng `audit_log` chung (`order_id` NULL, `target_type = 'feedback'`, `target_id` = id ticket). Thêm nhóm `feedback` và hành động `feedback_created`, `feedback_replied`, `feedback_status_changed`, `feedback_assigned` vào `src/shared/audit-actions.ts`; không cần migration.
 - DTO khai ở `src/shared/contracts.ts`. Module đăng ký trong `src/index.ts`; ghi bảng chỉ qua module chủ; `repository.ts` đi qua `defineSql` (ranh giới SQL nghiêm, như `parties`).
 
 ## Giao diện
 
-- Mục "Góp ý / Báo lỗi" trong menu chung (`web/shell.ts`) mở bảng trượt dưới (kiểu `trip-sheet`): loại, tiêu đề, mô tả, cùng dòng liệt kê những gì sẽ được đính kèm tự động. Client sinh `client_request_id` một lần khi mở form và giữ nguyên khi bấm lại/thử lại (PWA, mạng đảo yếu), nút Gửi bị khoá khi đang gửi.
+- Mục "Góp ý" trong menu chung (`web/shell.ts`, kèm chấm đỏ) và ở tab Tôi mở trang `/feedback` (v1 dùng trang, bảng trượt dưới để sau): loại, tiêu đề, mô tả, cùng dòng liệt kê những gì sẽ được đính kèm tự động. Client sinh `client_request_id` một lần khi mở form và giữ nguyên khi bấm lại/thử lại (PWA, mạng đảo yếu), nút Gửi bị khoá khi đang gửi.
 - Trang `public/feedback.html` + `web/feedback.ts` (thêm vào `build:web`): "Yêu cầu của tôi" và luồng trả lời; ADMIN có tab "Hàng đợi" (lọc, đổi trạng thái, ghi chú nội bộ). Chấm đỏ trên menu.
 - Tiếng Việt có dấu đầy đủ; bám khuôn `web/parties.ts` cho danh sách/chi tiết.
 
