@@ -6,6 +6,7 @@
     "auth",
     "catalog",
     "company",
+    "feedback",
     "locations",
     "orders",
     "parties",
@@ -41,6 +42,26 @@
       "module": "company",
       "kind": "table",
       "legacy": true
+    },
+    {
+      "name": "fbk_kind",
+      "module": "feedback",
+      "kind": "lookup"
+    },
+    {
+      "name": "fbk_message",
+      "module": "feedback",
+      "kind": "table"
+    },
+    {
+      "name": "fbk_status",
+      "module": "feedback",
+      "kind": "lookup"
+    },
+    {
+      "name": "fbk_ticket",
+      "module": "feedback",
+      "kind": "table"
     },
     {
       "name": "loc_location",

@@ -28,6 +28,15 @@
 |---|---|---|
 | `company_profile` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 
+## feedback
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `fbk_kind` | bảng tra cứu |  |
+| `fbk_message` | bảng |  |
+| `fbk_status` | bảng tra cứu |  |
+| `fbk_ticket` | bảng |  |
+
 ## locations
 
 | Đối tượng | Loại | Ghi chú |
