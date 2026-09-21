@@ -2,6 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
+## TRẠNG THÁI TRIỂN KHAI — bản v1.0 ĐÃ LÊN PRODUCTION (2026-09-21, theo lệnh của chủ dự án) — Turnstile CÒN TẮT
+Đăng nhập Turnstile + thông tin công ty · người phụ trách · xác nhận đơn PNG. Mọi việc dưới đây làm theo runbook "Lần phát hành v1.0", NGOẠI TRỪ các bước Turnstile thật (chưa có widget/khoá) — mục B.1 (deploy MÃ trước, secret sau) được giữ nguyên.
+- **Mã:** `main` @ `9594696`. **Worker:** `21cbaca5-8229-43b8-bab8-928036c9e871` tại `booking.tourdao.vn` (phiên bản ngay trước: `a625adc4-43df-4e67-ac8e-f619aa98732b`, lần phát hành 1). **D1:** đã áp `0013` + `0014` (trước đó tới `0012`).
+- **Cổng đã chạy TRƯỚC khi áp (chỉ đọc):** `migrations list --remote` báo đúng hai migration chờ (`0013`, `0014`); điểm khôi phục Time Travel: `000000f8-00000000-000050ed-954f3f5eb124234ac4b645ef6335275a` (lệnh: `npx wrangler d1 time-travel restore tourdao-sales-db --bookmark=<điểm này>`); cổng `0014` (A.5): `mo_coi = 0`; dữ liệu trước: 8 đơn, 12 tài khoản, 15 dịch vụ, 13 hồ sơ. Trên `9594696`: `npm test` 363/363, `npm run typecheck` 0 lỗi, `npm run test:e2e` 13/13 + `audit-invariants --strict` (15 kiểm). Kịch bản Chrome KHÔNG chạy lại lúc deploy (đã chạy ở lúc thi công: `v1-dang-nhap` 15 ✓, `v1-xac-nhan-png` 11 ✓, `v1-nguoi-phu-trach` 12 ✓, `a2-smoke` 21/10/13).
+- **Kết quả SAU deploy (chỉ đọc):** 8 đơn = 8 dòng HANDLE đang mở (B.2); `order_service` 15 dòng nguyên; email công ty đã có; `node scripts/audit-invariants.mjs --db remote` 15/15 đạt (gồm R-DSP-1/2a/2b/3); `GET /api/company` 200 đủ 5 trường; `GET /api/auth/config` = `{"turnstileSiteKey":null}` (Turnstile TẮT — đúng); CSP của `/login` có `https://challenges.cloudflare.com`; 10 trang 200; `/sw.js` `no-store`; `GET /api/dispatch/handlers` chưa đăng nhập 401.
+- **CÒN MỞ:**
+  1. **Bật Turnstile** (B.5–B.6 + A.1–A.3, việc của chủ dự án): tạo widget cho `booking.tourdao.vn`; đối chiếu `MAX_TOKEN_LENGTH` (A.3); đặt khoá. Cách KHÔNG cần deploy lại: đặt CẢ HAI bằng `npx wrangler secret put TURNSTILE_SITE_KEY` và `npx wrangler secret put TURNSTILE_SECRET_KEY` (cùng binding `env.*` như `vars`). Nếu để khoá site trong `vars` của `wrangler.jsonc` thì cần MỘT lần deploy lại (chưa có secret nên vẫn tắt) rồi mới `secret put` khoá bí mật. Trước khi bật: để nhân viên mở app MỘT lần (service worker đã nạp `login.js` mới).
+  2. **Kiểm giao diện bằng tài khoản thật** (B.4, chỉ đọc): danh sách `/` mỗi thẻ có "Phụ trách: <tên>"; mở một đơn có khối "Người phụ trách"; "Xác nhận gửi khách" mở ảnh. `json_each` của `GET /api/dispatch/handlers` CHƯA từng chạy trên D1 production: thẻ KHÔNG có dòng và cũng không chip = lời gọi lỗi.
+  3. Thử iPhone thật (canvas/chia sẻ/tải ảnh/WebKit); chữ ký thị giác v1.0 và A2 chưa ghi; quyết định 4(a)/(b)/(c) (mục "Ba quyết định cần chủ dự án").
+- **Hoàn tác:** dữ liệu production cho thấy đã có tài khoản/hồ sơ tạo dưới mã N1 (12 tài khoản, 13 hồ sơ) ⇒ KHÔNG lùi Worker về `0b13b279-…`; đường lùi Worker an toàn duy nhất là về `a625adc4-…` (xem mục C của runbook v1.0 về những gì mất khi lùi).
+
 ## TRẠNG THÁI TRIỂN KHAI — lần phát hành 1 ĐÃ LÊN PRODUCTION (2026-09-21, theo lệnh của chủ dự án)
 A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện ở mục "Điều kiện TRƯỚC khi triển khai". Không còn việc "triển khai lần 1" nào phải làm; các mục bên dưới giữ lại để tra cứu và cho lần 2.
 - **Mã:** `main` @ `9b4ad33`. **Worker:** phiên bản `a625adc4-43df-4e67-ac8e-f619aa98732b` tại `booking.tourdao.vn` (phiên bản ngay trước đó: `0b13b279-b0c2-4032-8cb1-5a3c1c83b593`, 2026-09-19). **D1:** đã áp `0008…0012` (trước đó `0001…0007`); `migrations list --remote` báo "No migrations to apply".
@@ -21,7 +32,7 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 - Trang web: `/parties` (Hồ sơ), `/locations` (Địa điểm), `/staff` (chọn quyền thay vai trò). Vào được từ thanh điều hướng trên (máy tính) và từ mục liên kết của tab Tôi (điện thoại); chưa có thiết kế điện thoại riêng cho hai trang mới (thuộc A2/N2). Hai trang mới đã khai trong `PAGES` của `src/shared/sw-policy.ts` (service worker chỉ cache khung tĩnh, không bao giờ cache `/api`).
 - Kiểm máy: `src/architecture.test.ts`, `docs/data-dictionary.json`, `scripts/audit-invariants.mjs` (xem `docs/ARCHITECTURE.md`).
 
-## Đã có trong nhánh bản v1.0 (CHƯA lên production — đi sau lần phát hành 1)
+## Đã có trong bản v1.0 (ĐÃ lên production 2026-09-21; Turnstile còn tắt — xem trạng thái ở đầu tệp)
 - Migration `0013_company_email` (chỉ dữ liệu: điền email công ty) và `0014_dispatch` (`dsp_*`, view `v_dsp_order_handler`, backfill người phụ trách = người lập cho mọi đơn hiện có). Cả hai chỉ THÊM — mã cũ vẫn chạy (không đọc `dsp_*`).
 - Module `company` (`GET /api/company`, công khai, chỉ đọc); màn đăng nhập hiện khối thông tin công ty và dòng phiên bản (`src/shared/app-info.ts`).
 - Cloudflare Turnstile ở đăng nhập: máy chủ (`src/modules/auth/turnstile.ts`, `GET /api/auth/config`, 403 `turnstile_failed` / 503 `turnstile_unavailable`, kiểm TRƯỚC bộ chống dò PIN), widget ở `web/login.ts` (`theme: "light"`; tự hỏi lại cấu hình khi `GET /api/auth/config` lỗi), CSP cho Cloudflare ở `public/_headers`. BẬT khi có `TURNSTILE_SECRET_KEY`, TẮT khi vắng.
