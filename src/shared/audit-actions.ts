@@ -8,6 +8,7 @@ export const AUDIT_GROUPS = {
   catalog: "Dịch vụ",
   party: "Hồ sơ",
   location: "Địa điểm",
+  feedback: "Góp ý",
 } as const;
 
 export type AuditGroup = keyof typeof AUDIT_GROUPS;
@@ -43,6 +44,10 @@ export const AUDIT_ACTIONS = {
   catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },
   catalog_hidden: { label: "Ẩn dịch vụ", group: "catalog" },
   catalog_unhidden: { label: "Hiện lại dịch vụ", group: "catalog" },
+  feedback_created: { label: "Gửi yêu cầu góp ý", group: "feedback" },
+  feedback_replied: { label: "Trả lời yêu cầu góp ý", group: "feedback" },
+  feedback_status_changed: { label: "Đổi trạng thái yêu cầu góp ý", group: "feedback" },
+  feedback_assigned: { label: "Đổi người xử lý yêu cầu góp ý", group: "feedback" },
 } as const satisfies Record<string, { label: string; group: AuditGroup }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;

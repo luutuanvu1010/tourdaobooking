@@ -25,7 +25,7 @@ type Row = Record<PermissionCode, Scope>;
 const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope): Row => ({ SALES, ACCOUNTING, ADMIN, FIELD });
 
 /**
- * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác). "Của mình" = người lập đơn.
+ * Bản đồ ADR-0007 điều 1 + 3 thao tác Góp ý (feedback.*) (ADMIN làm được mọi thao tác). "Của mình" = người lập đơn.
  * Thao tác của N2/N3 (task.progress, order.money.edit, dispatch.assign, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
  */
 export const MATRIX = {
@@ -46,6 +46,9 @@ export const MATRIX = {
   "party.view": row("any", "any", "any", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none"), // tạo/sửa hồ sơ khách/đại lý
   "admin.manage": row("none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ
+  "feedback.submit": row("any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
+  "feedback.view": row("own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
+  "feedback.triage": row("none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

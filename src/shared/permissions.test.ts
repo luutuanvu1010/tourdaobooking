@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { MATRIX, PERMISSION_CODES, can, hasPermission, isOffice, isPermissionCode, type OperationCode, type PermissionCode, type Scope } from "./permissions.ts";
 
 // BẢN ĐỌC THỨ HAI của bảng ADR-0007 điều 1, viết lại độc lập từ tài liệu ADR — không suy ra từ MATRIX. Cột: SALES, ACCOUNTING, ADMIN, FIELD.
+// 3 dòng "feedback.*" là mở rộng của module Góp ý (spec 2026-09-21), không thuộc bảng ADR-0007 gốc.
 const ADR: Record<string, [Scope, Scope, Scope, Scope]> = {
   "order.view": ["any", "any", "any", "none"],
   "money.view": ["any", "any", "any", "none"],
@@ -21,11 +22,14 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope]> = {
   "party.view": ["any", "any", "any", "none"],
   "party.write": ["any", "any", "any", "none"],
   "admin.manage": ["none", "none", "any", "none"],
+  "feedback.submit": ["any", "any", "any", "any"],
+  "feedback.view": ["own", "own", "any", "own"],
+  "feedback.triage": ["none", "none", "any", "none"],
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD"];
 const OPS = Object.keys(ADR) as OperationCode[];
 
-test("bản đồ quyền khớp TỪNG Ô của ADR-0007 (17 thao tác × 4 quyền)", () => {
+test("bản đồ quyền khớp TỪNG Ô của ADR-0007 (20 thao tác × 4 quyền)", () => {
   assert.deepEqual([...PERMISSION_CODES], [...ORDER]);
   assert.deepEqual(Object.keys(MATRIX).sort(), Object.keys(ADR).sort(), "MATRIX và ADR phải có cùng danh sách thao tác");
   for (const op of OPS) ORDER.forEach((p, i) => assert.equal(MATRIX[op][p], ADR[op]![i], `${op} × ${p}`));
