@@ -10,7 +10,7 @@
 
 1. **Phạm vi dữ liệu theo tổ chức (P-6).** Oracle TCA cho phép phạm vi truy cập theo đơn vị tổ chức/site. `src/shared/permissions.ts` hiện chỉ có năm giá trị `Scope` (`none/own/assigned/ownOrAssigned/any`), không có phạm vi theo nơi (địa điểm/chi nhánh). Dữ liệu nền cho phạm vi này đã có sẵn: `pty_party_role.location_id` (ADR-0008).
 2. **Địa chỉ xuất hoá đơn nhiều bản, gắn hồ sơ tổ chức (P-7).** Oracle TCA có `HZ_PARTY_SITES` cho phép một tổ chức có nhiều địa chỉ dùng cho các mục đích khác nhau. ADR-0004 đã dự kiến N3 (sổ thu tiền, yêu cầu hoá đơn) nhưng chưa ghi rõ việc lưu địa chỉ xuất hoá đơn theo hồ sơ hay theo từng yêu cầu.
-3. **Tác nhân tự động ghi dữ liệu, kể cả AI (P-11).** Oracle TCA phân biệt người dùng và tiến trình hệ thống ghi dữ liệu qua API có định danh riêng. Dự án chưa có tác nhân tự động nào ghi dữ liệu nghiệp vụ, nhưng lộ trình có khả năng tích hợp trợ lý AI; cần chốt nguyên tắc trước khi việc đó xảy ra, để không phải vá an ninh sau khi đã có tác nhân ghi thẳng.
+3. **Tác nhân tự động ghi dữ liệu nghiệp vụ thay người dùng, kể cả AI (P-11).** Oracle TCA phân biệt người dùng và tiến trình hệ thống ghi dữ liệu qua API có định danh riêng. Dự án đã có MỘT tác nhân tự động ghi dữ liệu hệ thống — Cron đồng bộ danh mục (ghi `catalog_item`, nhật ký `catalog_synced` với `staff_id` NULL, xem Quyết định điều 3) — nhưng chưa có tác nhân nào ghi dữ liệu nghiệp vụ **thay mặt một người dùng** (đơn, hồ sơ, phân công…); lộ trình có khả năng tích hợp trợ lý AI làm việc đó; cần chốt nguyên tắc trước khi việc đó xảy ra, để không phải vá an ninh sau khi đã có tác nhân ghi thẳng.
 
 Đây là hạng mục "chỉ ghi tài liệu, không mã" (mục 6.5 của báo cáo đối chiếu): không có thay đổi hành vi hệ thống, chỉ ghi ngưỡng để tham chiếu về sau.
 
@@ -23,9 +23,10 @@ Chỉ thêm phạm vi theo nơi (`location`, dựa trên `pty_party_role.locatio
 **2. Thông tin xuất hoá đơn là bản chụp theo từng yêu cầu (P-7).** Không làm bảng địa chỉ hồ sơ kiểu `party_site`. Khi làm N3 (`bil_*`, ADR-0004),
 tên đơn vị, MST, địa chỉ, email nhận được CHÉP vào chính yêu cầu xuất hoá đơn tại thời điểm tạo; `pty_organization.address`/`invoice_email` chỉ là giá trị gợi ý điền sẵn.
 
-**3. Tác nhân tự động, kể cả AI (P-11).** Mọi tác nhân tự động ghi dữ liệu nghiệp vụ phải: gọi qua API có phiên như người dùng; có tài khoản `staff`
+**3. Tác nhân tự động, kể cả AI (P-11).** Áp dụng cho tác nhân ghi dữ liệu nghiệp vụ **thay mặt một người dùng** (đơn, hồ sơ, phân công… — ví dụ trợ lý AI). Tác nhân như vậy phải: gọi qua API có phiên như người dùng; có tài khoản `staff`
 riêng mang quyền tối thiểu; để lại `audit_log.staff_id` là chính tài khoản đó. Không có đường ghi thẳng D1 cho tác nhân tự động.
-Điều này áp dụng TRƯỚC khi tích hợp bất kỳ trợ lý nào có quyền ghi.
+Điều này áp dụng TRƯỚC khi tích hợp bất kỳ trợ lý nào có quyền ghi thay người dùng.
+**Ngoại lệ đã có, giữ nguyên:** Cron đồng bộ danh mục (`runScheduledSync` → `syncCatalog(env, null)`, `src/index.ts`) ghi `catalog_item` và nhật ký `catalog_synced` với `staff_id` NULL — đây KHÔNG phải tác nhân ghi thay người dùng (đồng bộ danh mục từ Google Sheet, không phải dữ liệu nghiệp vụ do người vận hành nhập), đã ghi từ trước ở `migrations/0006_catalog.sql` và `docs/SYSTEM-DESIGN.md` ("`staff_id` NULL = hệ thống/Cron"); quy tắc này không bắt Cron phải có tài khoản `staff` riêng.
 
 ## Lý do
 - **P-6:** thêm phạm vi `location` ngay bây giờ là làm trước khi có nhu cầu thật — hiện công ty chỉ có một điểm bán và chưa có đại lý đăng nhập; dữ liệu nền đã sẵn (`pty_party_role.location_id`, ADR-0008) nên khi cần, việc thêm giá trị `Scope` là nhỏ, không phải dựng lại mô hình dữ liệu.
@@ -39,6 +40,6 @@ riêng mang quyền tối thiểu; để lại `audit_log.staff_id` là chính t
 
 ## Hệ quả
 - Không đổi mã, không đổi cấu trúc dữ liệu ở ADR này.
-- `docs/ARCHITECTURE.md`/`docs/SYSTEM-DESIGN.md` §8 (nếu có nội dung về `Scope`) nên trỏ về ADR này khi có ai đề xuất thêm phạm vi theo nơi, để không phải suy luận lại từ đầu.
+- Khi ADR này được duyệt thì `docs/ARCHITECTURE.md`/`docs/SYSTEM-DESIGN.md` §8 (nếu có nội dung về `Scope`) thêm trỏ về ADR này khi có ai đề xuất thêm phạm vi theo nơi, để không phải suy luận lại từ đầu — chưa thêm trỏ bây giờ vì ADR còn `proposed`.
 - ADR N3 (thu tiền/hoá đơn, kế thừa ADR-0004) phải ghi rõ điều 2 (bản chụp) khi thiết kế bảng yêu cầu hoá đơn (`bil_*`).
-- Khi bắt đầu tích hợp trợ lý AI có quyền ghi dữ liệu, thiết kế đó phải tuân theo điều 3 ngay từ ADR/đặc tả đầu tiên, không phải vá sau.
+- Khi bắt đầu tích hợp trợ lý AI có quyền ghi dữ liệu thay người dùng, thiết kế đó phải tuân theo điều 3 ngay từ ADR/đặc tả đầu tiên, không phải vá sau. Hai điều còn chưa có đường giải quyết và phải chốt trong thiết kế tích hợp đầu tiên: (i) đăng nhập hiện đòi token Turnstile ở trình duyệt, tác nhân tự động chưa có đường đăng nhập không qua Turnstile; (ii) chế độ bảo trì (`mnt_setting`) khi bật chặn mọi số điện thoại ngoài `allowed_phones` ở máy chủ, kể cả phiên đang mở — phải quyết tác nhân tự động có bị chặn theo cùng danh sách hay cần một cơ chế riêng.
