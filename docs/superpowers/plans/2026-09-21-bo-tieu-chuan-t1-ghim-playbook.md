@@ -299,7 +299,7 @@ chmod 644 playbook/init-project.sh
 ```bash
 diff -r /Users/tuanbao/Documents/Projects/CoreSchemaProject/playbook playbook
 ```
-Expected (đúng hai dòng, không dòng nào khác):
+Expected (đúng hai dòng, không dòng nào khác; thứ tự hai dòng có thể đảo tuỳ locale của `diff`, điều đó không phải lỗi):
 ```
 Only in /Users/tuanbao/Documents/Projects/CoreSchemaProject/playbook: CLAUDE.md
 Only in /Users/tuanbao/Documents/Projects/CoreSchemaProject/playbook: archive
