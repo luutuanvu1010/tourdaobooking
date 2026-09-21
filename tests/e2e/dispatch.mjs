@@ -247,7 +247,20 @@ for (let round = 0; round < 5; round++) {
 }
 console.log(`✓ tranh chấp song song: đúng một bên thắng, bên thua không để lại dòng nào (409 stale thật gặp ${sawStale} lần / 10 vòng)`);
 
-// --- 11) nhật ký đơn: người phụ trách xem được (cả dòng đổi người); người không liên quan thì không
+// --- 11) canModify đi theo người phụ trách HIỆN TẠI (giao diện và máy chủ dùng cùng một giá trị): người lập giữ quyền qua mọi lần đổi
+const o6 = await newOrder(A);
+const canModifyOf = async (cookie) => (await call(cookie, "GET", `/api/orders/${o6.id}`)).body.canModify;
+const whoCan = async () => [await canModifyOf(A), await canModifyOf(B), await canModifyOf(C.cookie), await canModifyOf(ADMIN), await canModifyOf(ACC)]; // [A, B, C, ADMIN, kế toán]
+assert.deepEqual(await whoCan(), [true, false, false, true, false], "mới lập: người lập (cũng là người phụ trách) và quản trị");
+assert.equal((await setHandler(A, o6.id, b.id)).status, 200);
+assert.deepEqual(await whoCan(), [true, true, false, true, false], "giao B: B có quyền, người lập giữ quyền");
+assert.equal((await setHandler(B, o6.id, C.id)).status, 200, "B (người phụ trách) giao tiếp cho C");
+assert.deepEqual(await whoCan(), [true, false, true, true, false], "B mất quyền, C có quyền");
+assert.equal((await setHandler(ADMIN, o6.id, a.id)).status, 200);
+assert.deepEqual(await whoCan(), [true, false, false, true, false], "giao lại cho người lập: C mất quyền");
+console.log("✓ canModify đi theo người phụ trách hiện tại (người lập giữ quyền qua mọi lần đổi)");
+
+// --- 12) nhật ký đơn: người phụ trách xem được (cả dòng đổi người); người không liên quan thì không
 const histO1 = await history(A, o1);
 assert.ok(histO1.some((h) => h.action === "order_handler_changed"));
 assert.deepEqual(await history(C.cookie, o1), [], "SALES không liên quan không xem nhật ký đơn (ADR-0007)");
