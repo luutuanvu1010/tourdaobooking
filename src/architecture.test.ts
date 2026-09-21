@@ -21,10 +21,11 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   auth: ["staff"],
   catalog: ["audit"],
   company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
-  // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*.
-  // Mã của module (kế hoạch bản v1.0, task 6) sẽ khai thêm `audit` (auditStatement) và `staff` (danh sách người có thể được giao) khi có import thật.
-  // Lưu ý: view v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL, nên cạnh dispatch → staff đã có trong dữ liệu.
-  dispatch: ["orders", "parties", "locations"],
+  // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*:
+  // `orders` cần "người dùng có phải người phụ trách" và "câu đặt người phụ trách mặc định cho đơn mới" thì gốc lắp ráp (src/index.ts) tiêm vào ctx (ADR-0007 điều 4(b)).
+  // Import thật của mã: `orders` (findOrderOwner: đơn có không, ai lập), `staff` (tài khoản người được giao / danh sách người có thể được giao), `audit` (auditStatement).
+  // View v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL (cạnh dispatch → parties, dispatch → staff).
+  dispatch: ["orders", "parties", "locations", "staff", "audit"],
   locations: ["audit"],
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],
@@ -34,6 +35,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
   { module: "company", file: "modules/company/repository.ts" },
+  { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "locations", file: "modules/locations/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },

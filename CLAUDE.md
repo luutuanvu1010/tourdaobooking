@@ -40,7 +40,7 @@ Kịch bản Chrome (giao diện) ở `docs/evidence/2026-09-20-a2/kich-ban/` kh
 ## 4. Bản đồ mã
 ```
 src/index.ts            gốc lắp ráp: mảng modules, router, Cron
-src/modules/<tên>/      accounts · audit · auth · catalog · company · locations · orders · parties · staff
+src/modules/<tên>/      accounts · audit · auth · catalog · company · dispatch · locations · orders · parties · staff
                         (index.ts = API công khai của module; rules.ts thuần; repository.ts = SQL; service.ts điều phối)
 src/shared/             logic THUẦN dùng chung server ↔ web: router, http, contracts (DTO), permissions, trip-*, service-form,
                         order-*, audit-actions, vn-date, sw-policy…  — KHÔNG import src/modules/
@@ -59,7 +59,8 @@ docs/                   tài liệu (xem §2)
 - Module chỉ import module khác qua `index.ts`; chỉ module chủ ghi bảng của mình; đọc xuyên module chỉ qua view công bố `v_<tiền tố>_*`.
 - `src/shared/` và `web/` **không** import `src/modules/`. Trong `src/shared/` import nhau **kèm đuôi `.ts`**; `web/` import `shared` **không đuôi**.
 - Luật dùng ở cả server và giao diện = một tệp thuần trong `src/shared/` (một nguồn); không chép tay sang `web/`.
-- SQL của module "nghiêm" (`company`, `locations`, `parties`, `staff`) đi qua `defineSql`, câu tĩnh.
+- SQL của module "nghiêm" (`company`, `dispatch`, `locations`, `parties`, `staff`) đi qua `defineSql`, câu tĩnh.
+- `orders` KHÔNG import `dispatch`: "đang là người phụ trách" và "đặt người phụ trách mặc định cho đơn mới" do gốc lắp ráp (`src/index.ts` → `injected`) tiêm vào `ctx` (`ctx.isAssigned(orderId)`, `ctx.defaultHandlerStatement(orderId, at)`); route nào dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
 
 **Dữ liệu:** tiền = `INTEGER` VNĐ, dẫn xuất chỉ tính ở **server** (`buildLines`); ngày/giờ dân sự theo **giờ Việt Nam** (`vnToday`, `YYYY-MM-DD`/`HH:MM`), dấu thời gian `TEXT` ISO UTC. Không xoá cứng; hiệu lực bằng `valid_from/to`. Danh sách giá trị mở kiểm ở code, không `CHECK`. Tên bảng số ít (trừ `orders`).
 
@@ -93,6 +94,6 @@ docs/                   tài liệu (xem §2)
 - Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ, không từ hai cột này.
 
 ## 9. Hiện trạng (cập nhật khi đổi)
-- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; chưa có module `dispatch`); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
+- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; module `dispatch` đã có: người phụ trách + `dispatch.claim`, API ở `docs/SYSTEM-DESIGN.md` §7); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
 - Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
-- Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Màn đăng nhập v1.0 (Turnstile phía máy chủ + widget + CSP; khối công ty và số phiên bản) ĐÃ xong trong nhánh, chưa deploy (lúc deploy phải tạo widget + khoá Turnstile thật). Việc đang chờ làm: xác nhận đơn dạng PNG; cột "Người phụ trách" ở danh sách đơn (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).
+- Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Màn đăng nhập v1.0 (Turnstile phía máy chủ + widget + CSP; khối công ty và số phiên bản) ĐÃ xong trong nhánh, chưa deploy (lúc deploy phải tạo widget + khoá Turnstile thật). Người phụ trách đơn: máy chủ ĐÃ xong (module `dispatch`; người phụ trách sửa được đơn nhờ `ctx.isAssigned`), giao diện chưa. Việc đang chờ làm: giao diện người phụ trách (cột ở danh sách đơn + khối ở trang đơn); xác nhận đơn dạng PNG (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).

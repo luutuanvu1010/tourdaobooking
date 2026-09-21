@@ -274,6 +274,30 @@ export interface CompanyDto {
 
 export interface CompanyResponse { company: CompanyDto }
 
+// ---- Người phụ trách đơn (module dispatch; ADR-0006, ADR-0009) ---------------
+/** Người phụ trách đang mở của một đơn: người nhận trách nhiệm chăm sóc khách (gọi xác nhận, đón); sửa được đơn như người lập. Chỉ tên, KHÔNG có SĐT. */
+export interface HandlerDto {
+  partyId: string;
+  /** Tài khoản của người đó; null nếu hồ sơ chưa/không còn tài khoản. */
+  staffId: string | null;
+  name: string;
+}
+
+/** `GET /api/dispatch/handlers?orderIds=a,b,c` (tối đa 100 id): mọi id gửi lên đều có mặt; `null` = đơn chưa có người phụ trách (hoặc không có đơn đó). */
+export interface HandlersResponse { handlers: Record<string, HandlerDto | null> }
+
+/** Nhân sự có thể được giao phụ trách: đang hoạt động, có hồ sơ, có quyền Bán hàng hoặc Quản trị. Chỉ tên, KHÔNG có SĐT. */
+export interface AssigneeDto {
+  staffId: string;
+  partyId: string;
+  name: string;
+}
+export interface AssigneesResponse { assignees: AssigneeDto[] }
+
+/** `PUT /api/orders/:id/handler` — đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người: `staffId` = chính mình). */
+export interface SetHandlerInput { staffId: string }
+export interface SetHandlerResponse { handler: HandlerDto }
+
 // ---- Địa điểm (module locations) ---------------------------------------------
 export interface LocationTypeDto {
   code: string;

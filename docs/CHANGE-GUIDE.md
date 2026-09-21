@@ -31,6 +31,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–o · §3 Ma t
 | Biết số migration kế tiếp | `docs/HANDOFF-N1.md` ("Lần 2"), `src/migrations-n1.test.ts` | d |
 | Thêm mã quyền (vd `DISPATCH`) | `src/shared/permissions.ts`, `public/staff.html`, migration seed `stf_permission_type` | e |
 | Thêm thao tác / đổi một ô của bản đồ quyền | `src/shared/permissions.ts` (`MATRIX`), `src/shared/permissions.test.ts` | e |
+| Người phụ trách đơn (đặt/đổi, ai được làm gì, hàm tiêm vào `orders`) | `src/modules/dispatch/{rules,repository,service,index}.ts`, `src/index.ts` (`injected`), `src/shared/router.ts` (`Ctx`), `tests/e2e/dispatch.mjs` | b, e |
 | Thêm hành động nhật ký | `src/shared/audit-actions.ts` (`AUDIT_ACTIONS`) | f |
 | Thêm loại đối tượng nhật ký (nhóm mới) | `src/shared/audit-actions.ts` (`AUDIT_GROUPS`), `src/modules/audit/repository.ts` (`listAll`) | f |
 | Đổi thông báo lỗi ở giao diện (banner) | `src/shared/order-errors.ts` (`classifyOrderError`), `web/banner.ts` | m |
@@ -120,7 +121,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ```
 
 **Sửa theo thứ tự:**
-1. Mức `access`: `"public"` | `"staff"` (mọi tài khoản) | `"office"` (mọi quyền trừ chỉ-FIELD, tức `can(who, "order.view")`) | `"admin"` (quyền ADMIN). Phạm vi "của mình" → thêm `can(staff, "<thao tác>", { ownerId })` TRONG handler (mẫu `PUT /api/orders/:id`).
+1. Mức `access`: `"public"` | `"staff"` (mọi tài khoản) | `"office"` (mọi quyền trừ chỉ-FIELD, tức `can(who, "order.view")`) | `"admin"` (quyền ADMIN). Phạm vi "của mình" → thêm `can(staff, "<thao tác>", { ownerId })` TRONG handler; "của mình HOẶC đang được giao" (ô `ownOrAssigned`) → lấy thêm `assigned` từ `ctx.isAssigned(id)` (mẫu `PUT /api/orders/:id`: `const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)])` rồi `can(staff, op, { ownerId: meta.staffId, assigned })`) — QUÊN truyền `assigned` thì ô đó lặng lẽ chạy như `own`; nếu cùng một route vừa trả cờ (`canModify`) vừa kiểm quyền thì dùng CÙNG một giá trị `assigned`.
 2. Kiểu trả về khai ở `src/shared/contracts.ts`, trả bằng `json(x satisfies XResponse)`; web gọi `api<Api.XResponse>(…)` (`web/api.ts`).
 3. Đầu vào: `readJson(request)` + hàm kiểm thuần ở `rules.ts`; lỗi `error(400, "invalid_input", "<tiếng Việt>")`; `UUID_RE.test(params.id!)` sai → 404; khoá lạc quan → 409 `stale`.
 4. Ghi có nhật ký: `db.batch([câu ghi, auditStatement(env.DB, { staffId, action, at, targetType, targetId, detail }, "changes() > 0")])`, rồi đọc `results[0]!.meta.changes` để biết thắng/thua (mẫu `PUT /api/locations/:id`).
@@ -140,6 +141,8 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Router khớp theo THỨ TỰ khai (`createApp` gom mọi route cùng số đoạn rồi `find` theo phương thức): `/api/parties/meta` phải đứng trước `/api/parties/:id`.
 - POST/PUT/PATCH/DELETE thiếu `Origin` cùng site → 403 `cross_origin`; thân không phải JSON → 415 (router chặn trước handler).
 - `docs/ARCHITECTURE.md` mục "Thêm một module mới" thiếu bước 3 và sổ dữ liệu (§6).
+- Module ở tầng dưới có thể khai route dưới đường dẫn của module ở tầng trên (`dispatch` khai `PUT /api/orders/:id/handler`): router khớp theo đoạn nên chỉ cần đoạn cuối khác route của `orders`. Đặt route theo module CHỦ của hành vi (đổi người phụ trách là việc của `dispatch`), không theo tiền tố đường dẫn.
+- Cần gọi hàm của module ở tầng DƯỚI ngược chiều phụ thuộc (`orders` cần biết người phụ trách của `dispatch`): KHÔNG import (bài kiểm kiến trúc đỏ vì vòng) — thêm hàm vào `AppOptions.injected` (`src/shared/router.ts`), nối ở `src/index.ts`, và lấy từ `ctx` trong handler (mẫu `ctx.isAssigned`, `ctx.defaultHandlerStatement`). `injected` là BẮT BUỘC để thiếu là lỗi `tsc`, không phải lặng lẽ tụt quyền.
 
 ### c. Thêm trang web
 
@@ -197,12 +200,12 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 3. `public/staff.html`: checkbox `add-perm-<MÃ>` viết TAY, trong khi `web/staff.ts` lặp `PERMISSION_CODES` và gọi `byId("add-perm-<MÃ>")` — thiếu ô là NÉM LỖI khi mở `/staff`.
 4. `permissions.test.ts` (mảng `ORDER`, bảng `ADR`); `tests/e2e/lib.mjs` (`ACCOUNTS` nếu cần tài khoản thử). `cleanPermissions` ở `src/modules/accounts/index.ts` tự theo `PERMISSION_CODES`.
 
-**Kiểm:** `npm test` → `npm run typecheck` → `npm run test:e2e -- permissions admin`.
+**Kiểm:** `npm test` → `npm run typecheck` → `npm run test:e2e -- permissions admin dispatch`.
 
 **Bẫy:**
-- Hiện chỉ `order.create`, `order.history.view`, `order.modify`, `order.trip.edit` được `can()` dùng ở route; các thao tác N2/N3 và `admin.manage` có mặt để khoá bản đồ, chưa route nào dùng.
+- Hiện `order.create`, `order.history.view`, `order.modify`, `order.trip.edit` (module `orders`) và `dispatch.assign`, `dispatch.claim` (module `dispatch`, `mayChangeHandler`) được `can()` dùng ở route; `task.progress`, `contact.view`, `order.money.edit`, `payment.*`, `invoice.*` (N2/N3) và `admin.manage` có mặt để khoá bản đồ, chưa route nào dùng.
 - `access: "admin"` là `hasPermission(who, "ADMIN")`, không đi qua `MATRIX`.
-- ADR-0009 (accepted 2026-09-21) ĐÃ thi hành ở `MATRIX` và bảng `ADR` của `permissions.test.ts` (task 4 bản v1.0): ba ô `SALES` (`order.modify`, `order.history.view`, `dispatch.assign`) là `ownOrAssigned`, thêm thao tác `dispatch.claim`; `order.money.edit` giữ `own`. **Nhưng chưa nơi nào tiêm `ctx.assigned`** (việc của module `dispatch`, task 6–7 — kế hoạch `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`): các route của `orders` gọi `can(staff, op, { ownerId })` không kèm `assigned`, nên cho tới lúc đó `ownOrAssigned` chạy như `own` và người phụ trách khác người lập CHƯA sửa được đơn.
+- ADR-0009 (accepted 2026-09-21) ĐÃ thi hành: `MATRIX` và bảng `ADR` của `permissions.test.ts` (task 4 bản v1.0) có ba ô `SALES` (`order.modify`, `order.history.view`, `dispatch.assign`) là `ownOrAssigned`, thêm `dispatch.claim`; `order.money.edit` giữ `own`. Module `dispatch` (task 6) tiêm `ctx.isAssigned` cho các route của `orders` nên người phụ trách khác người lập sửa được đơn; người lập giữ quyền sau khi giao lại. Người được giao phải là SALES/ADMIN đang hoạt động có hồ sơ (`checkAssignee`, hỏi ô `order.modify` với `assigned: true`).
 
 ### f. Thêm hành động nhật ký
 
@@ -214,7 +217,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Kiểm:** `node --test src/shared/audit-actions.test.ts` → `npm test` → `npm run typecheck` → `npm run test:e2e -- orders` (`orders.mjs` kiểm `/api/audit`).
 
-**Bẫy:** chỉ số thứ tự câu trong batch quyết định `changes() > 0` áp cho câu nào — không chèn câu mới GIỮA câu chốt và câu nhật ký của nó. `audit_log.action` không còn `CHECK` nên gõ sai mã chỉ bị bắt ở `insertStatement` (ném `Hành động nhật ký không hợp lệ`), không ở SQL.
+**Bẫy:** chỉ số thứ tự câu trong batch quyết định `changes() > 0` áp cho câu nào — không chèn câu mới GIỮA câu chốt và câu nhật ký của nó. `changes()` luôn nói về câu ghi NGAY TRƯỚC, nên chuỗi "chốt → câu ghi kế `WHERE changes() > 0` → nhật ký `changes() > 0`" chỉ đi tiếp khi mắt xích trước thắng (mẫu `src/modules/dispatch/service.ts`, chạy trên SQLite thật ở `service.test.ts`); module "nghiêm" không được đọc `audit_log` nên không dùng `wonGuard` của `orders`. Câu `INSERT … SELECT … WHERE changes() > 0` chèn 0 dòng thì `changes()` = 0 cho câu sau. `audit_log.action` không còn `CHECK` nên gõ sai mã chỉ bị bắt ở `insertStatement` (ném `Hành động nhật ký không hợp lệ`), không ở SQL.
 
 ### g. Đổi luật tính tiền / dịch vụ theo nhóm / theo người
 
@@ -477,4 +480,3 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 1. **`docs/evidence/2026-09-20-a2/README.md` "Tồn đọng nhỏ"** còn ghi "PWA-IPHONE.md ghi 8 trang" và "`pwa.mjs` chỉ kiểm meta trên 8/10 trang": đã lỗi thời khi các sửa chưa commit của đợt tài liệu nền được đưa vào (`pwa.mjs` duyệt `PAGES`, PWA-IPHONE ghi 10 trang). Tài liệu bằng chứng là bản ghi lịch sử nên không sửa.
 2. **`docs/HANDOFF-M2.md`, `docs/HANDOFF-M4.md`** là bàn giao đầu M2/M4 (2026-09-19): lịch sử, không phải hiện trạng (hiện trạng: `docs/HANDOFF-N1.md`, `CLAUDE.md` §9).
-3. **`docs/adr/ADR-0009-…` (accepted) ↔ `src/shared/permissions.ts`:** ADR đổi ba ô `SALES` sang `ownOrAssigned` và thêm `dispatch.claim`, nhưng mã và `permissions.test.ts` còn nguyên `own` (chưa thi công). Hành vi hiện tại theo MÃ; đừng coi ADR là đã có hiệu lực trong mã cho tới khi kế hoạch v1.0 chạy.

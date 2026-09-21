@@ -107,10 +107,11 @@ sequenceDiagram
 
 *Tệp tĩnh không chạm Worker; `/api/*` đi qua `createApp` rồi mới tới handler của module.*
 
-**`src/shared/router.ts`** — router tối giản, không import module nào (gốc lắp ráp `src/index.ts` tiêm `currentStaff` và `checkConfig`):
+**`src/shared/router.ts`** — router tối giản, không import module nào (gốc lắp ráp `src/index.ts` tiêm `currentStaff`, `checkConfig` và `injected`):
 
 - `route(method, path, access, handler)`; `Access = "public" | "staff" | "office" | "admin"`.
 - Khớp đường dẫn bằng `split("/").filter(Boolean)`, tham số `:tên` giải mã bằng `decodeURIComponent`. Không khớp đường dẫn nào → **404** `not_found`; khớp đường dẫn nhưng sai phương thức → **405** `method_not_allowed` kèm header `allow`.
+- `injected` (BẮT BUỘC, ADR-0007 điều 4(b)): hai hàm nối chéo module do gốc lắp ráp cung cấp từ module `dispatch` — router đưa vào `ctx` thành `ctx.isAssigned(orderId)` (người đang đăng nhập có phải người phụ trách đang mở của đơn không; một truy vấn D1 mỗi lần gọi, chỉ route nào cần thì gọi) và `ctx.defaultHandlerStatement(orderId, at)` (câu lệnh chưa chạy đặt người lập làm người phụ trách mặc định của đơn mới; `null` nếu tài khoản chưa có hồ sơ). `orders` dùng chúng mà KHÔNG import `dispatch`.
 - `checkConfig` lỗi → **500** `server_misconfigured` (ghi log, không bao giờ in giá trị bí mật).
 - `checkWriteRequest` với `POST/PUT/PATCH/DELETE`: so `Origin` với `url.origin` (thiếu `Origin` thì xét `Sec-Fetch-Site === "same-origin"`) → sai thì **403** `cross_origin`; thân không phải `application/json` → **415** `unsupported_media_type`.
 - `access !== "public"` mà không có phiên → **401** `unauthenticated`; `admin` mà thiếu quyền `ADMIN` → **403** `forbidden`; `office` mà `isOffice(staff)` sai → **403** `forbidden`.
@@ -168,7 +169,7 @@ Module chủ sở hữu bảng của mình; bảng mới mang tiền tố module
 | `loc_location_type` | locations | tra cứu loại địa điểm (`OFFICE`, `TICKET_COUNTER`, `PIER`, `PORT`) |
 | `loc_location` | locations | địa điểm (`code`, `name`, `sort_order`, `active`); 0010 nạp sẵn 8 dòng |
 | `v_loc_location_label` | locations | view công bố: `id, code, name, location_type_code, active` |
-| `dsp_task_kind` | dispatch | tra cứu loại việc: `HANDLE` (phụ trách), `PICKUP`, `DROPOFF`, `BOAT`; **bản v1.0 chỉ dùng `HANDLE`** (migration 0014, chưa có module/mã) |
+| `dsp_task_kind` | dispatch | tra cứu loại việc: `HANDLE` (phụ trách), `PICKUP`, `DROPOFF`, `BOAT`; **bản v1.0 chỉ dùng `HANDLE`** (migration 0014; module `dispatch` ghi/đọc — `src/modules/dispatch/`) |
 | `dsp_assignment_status` | dispatch | tra cứu trạng thái việc: chỉ `PENDING`, `DONE` (huỷ = đóng dòng, không có `CANCELLED`) |
 | `dsp_assignment` | dispatch | một dòng = một người được giao một việc, thuộc ĐÚNG MỘT hạt: cả đơn (`order_id`) hoặc một dịch vụ (`order_service_id`); hiệu lực `valid_from_at`/`valid_to_at` (UTC, NULL = đang mở). Người phụ trách = dòng `HANDLE` hạt đơn đang mở (ADR-0006/0009). Mã ghi hạt dịch vụ chưa có (chờ N2) |
 | `v_dsp_order_handler` | dispatch | view công bố: `order_id, party_id, staff_id, label, since` — người phụ trách ĐANG MỞ của đơn (`staff_id` NULL nếu hồ sơ không có tài khoản) |
@@ -308,11 +309,20 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 `web/parties.ts` → `/api/parties*`: `GET /api/parties/meta` (loại vai trò + loại quan hệ), `GET /api/parties/lookup?phone=` cảnh báo trùng SĐT trước khi tạo, `GET/POST /api/parties`, `GET/PUT /api/parties/:id` (khoá lạc quan → 409 `stale`). Liên hệ: thêm và **đóng** (`/contacts`, `/contacts/:cid/end`) — nhân sự văn phòng làm được. Vai trò và quan hệ (`/roles`, `/relationships` và hai đường `…/end`) chỉ **admin**; đụng ràng buộc chồng lấn → 409 `role_overlap` / `relationship_overlap`.
 `web/locations.ts` → `/api/locations`: mọi tài khoản đăng nhập **đọc** được (nhãn không nhạy cảm, người làm hiện trường cũng cần), chỉ admin thêm/sửa; mã trùng → 409 `code_taken`. Không có đường xoá cứng — ngưng dùng bằng `active = 0`.
 
+### (j) Người phụ trách đơn (module `dispatch`, ADR-0006/0009)
+
+**Người phụ trách** = dòng `HANDLE` hạt đơn đang mở của `dsp_assignment`: người nhận trách nhiệm chăm sóc khách (gọi xác nhận, đón), một người mỗi đơn (chỉ mục duy nhất `dsp_assignment_handler_open_uq`), và **sửa được đơn như người lập** (`order.modify`, `order.history.view`, `order.trip.edit`, `dispatch.assign` là `ownOrAssigned`; `order.money.edit` KHÔNG mở).
+- **Đơn mới:** `POST /api/orders` gộp một câu INSERT `HANDLE` (người lập) vào CÙNG `db.batch()` tạo đơn — câu do `dispatch` cung cấp qua `ctx.defaultHandlerStatement`, `createOrder` nhận dưới dạng HÀM `(orderId, at)` (id đơn đổi mỗi lần thử lại khi trùng mã). Không ghi thêm dòng nhật ký. Tài khoản chưa có `party_id` thì không có dòng (đơn không có người phụ trách là trạng thái hợp lệ).
+- **Ai được đặt/đổi** (`mayChangeHandler`): `dispatch.assign` (người lập — kể cả đã giao lại —, người phụ trách hiện tại, quản trị) hoặc `dispatch.claim` (SALES/ADMIN nhận CHO CHÍNH MÌNH khi đơn chưa có người). Kế toán/FIELD không.
+- **Người được giao** (`checkAssignee`): đang hoạt động, có hồ sơ, và `can(người đó, "order.modify", { assigned: true })` (SALES hoặc ADMIN hôm nay). Không hợp lệ → 400 `invalid_assignee` kèm lý do.
+- **Đổi người = một `db.batch()`** (`handlerChangeStatements`): [đóng dòng cũ — câu chốt, chỉ áp dụng nếu người phụ trách đang mở VẪN là người route đã đọc; mở dòng mới `WHERE changes() > 0`; nhật ký `order_handler_changed` "từ A sang B" `WHERE changes() > 0`]; hoặc khi chưa có người: [mở dòng mới `WHERE NOT EXISTS (dòng đang mở)`; nhật ký]. `changes` của câu đầu = 0 → **409 `stale`** và KHÔNG dòng nào thay đổi, không nhật ký. Đổi sang chính người đang phụ trách → 409 `no_change`. Chỉ mục duy nhất là lưới cuối (lỗi của nó cũng ra 409 `stale`, không 500).
+- **Đọc:** `GET /api/dispatch/handlers?orderIds=…` (một lời gọi mỗi trang danh sách), `GET /api/dispatch/assignees`; `orders` hỏi "đang được giao" bằng `ctx.isAssigned(orderId)`.
+
 ---
 
 ## 7. Danh mục API
 
-Tất cả 42 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
+Tất cả 45 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
@@ -335,6 +345,9 @@ Tất cả 42 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 | PUT | `/api/orders/:id` | office | orders | sửa đơn nháp (khoá lạc quan `expectedUpdatedAt`) |
 | PUT | `/api/orders/:id/trip` | office | orders | sửa thông tin chuyến (kể cả đơn đã xác nhận) |
 | POST | `/api/orders/:id/status` | office | orders | xác nhận hoặc huỷ đơn |
+| GET | `/api/dispatch/handlers` | office | dispatch | `?orderIds=a,b,c` (tối đa 100; thiếu/rỗng = rỗng; giá trị lạ 400) → `{ handlers: { [orderId]: { partyId, staffId, name } \| null } }` — người phụ trách đang mở của từng đơn (chỉ tên, không SĐT) |
+| GET | `/api/dispatch/assignees` | office | dispatch | `{ assignees: [{ staffId, partyId, name }] }` — nhân sự đang hoạt động, có hồ sơ, có quyền Bán hàng/Quản trị (có thể được giao phụ trách) |
+| PUT | `/api/orders/:id/handler` | office | dispatch | `{ staffId }` đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người); trả `{ handler }`. 403 `forbidden`, 400 `invalid_assignee` (không phải SALES/ADMIN đang hoạt động có hồ sơ) / `invalid_input`, 404, 409 `no_change` / `stale` |
 | GET | `/api/catalog` | office | catalog | danh mục dịch vụ đang bán (giá hiệu lực) + trạng thái đồng bộ |
 | GET | `/api/catalog/admin` | admin | catalog | danh mục đầy đủ: giá Sheet, ghi đè, ẩn, xung đột |
 | POST | `/api/catalog/sync` | admin | catalog | "Đồng bộ ngay" (nhận `force` để vượt chốt chặn) |
@@ -368,7 +381,7 @@ Hai tầng, cả hai **mặc định từ chối**:
 1. **Router** (`access` của từng route) — lớp thô: `public` / `staff` (mọi tài khoản đăng nhập) / `office` (`isOffice(staff)` = `can(staff, "order.view")`, tức mọi quyền trừ chỉ-`FIELD`) / `admin` (`hasPermission(staff, "ADMIN")`).
 2. **`can(who, op, ctx)`** (`src/shared/permissions.ts`) — bản đồ ADR-0007, MỘT nguồn dùng chung server ↔ `web/`. Thao tác lạ hoặc ô không khai → `false`.
 
-**Phạm vi (`Scope`)**: `none` không được · `own` chỉ đơn của mình (`orders.staff_id`) · `assigned` chỉ việc đang được giao (N2, chưa có nguồn dữ liệu) · `ownOrAssigned` một trong hai · `any` tất cả. Quyền của một người là **hợp** các ô của mọi quyền họ có.
+**Phạm vi (`Scope`)**: `none` không được · `own` chỉ đơn của mình (`orders.staff_id`) · `assigned` chỉ việc đang được giao (nguồn hiện có: người phụ trách đang mở của `dispatch`, qua `ctx.isAssigned`; nhiệm vụ đón/lái cano là N2) · `ownOrAssigned` một trong hai · `any` tất cả. Quyền của một người là **hợp** các ô của mọi quyền họ có.
 
 | Thao tác | SALES | ACCOUNTING | ADMIN | FIELD | Thi hành ở đâu |
 |---|---|---|---|---|---|
@@ -381,8 +394,8 @@ Hai tầng, cả hai **mặc định từ chối**:
 | `order.trip.edit` | ownOrAssigned | none | any | none | `PUT /api/orders/:id/trip` |
 | `task.progress` | none | none | any | assigned | **chưa có route** (N2) |
 | `order.money.edit` | own | any | any | none | **chưa có route** (N3) |
-| `dispatch.assign` | ownOrAssigned | none | any | none | **chưa có route** (module `dispatch`, kế hoạch bản v1.0) |
-| `dispatch.claim` | any | none | any | none | **chưa có route** (như trên); nhận phụ trách đơn chưa có người — điều kiện "chưa có người" do dịch vụ của `dispatch` kiểm, không phải ô này |
+| `dispatch.assign` | ownOrAssigned | none | any | none | `PUT /api/orders/:id/handler` (module `dispatch`, `mayChangeHandler`) |
+| `dispatch.claim` | any | none | any | none | `PUT /api/orders/:id/handler` với `staffId` = chính mình khi đơn CHƯA có người phụ trách — điều kiện "chưa có người" do dịch vụ của `dispatch` kiểm (câu chốt trong batch), không phải ô này |
 | `payment.receive` | own | any | any | none | **chưa có route** (N3) |
 | `payment.refund` | none | any | any | none | **chưa có route** (N3) |
 | `invoice.request` | own | any | any | none | **chưa có route** (N3) |
@@ -392,7 +405,7 @@ Hai tầng, cả hai **mặc định từ chối**:
 | `admin.manage` | none | none | any | none | router `access: "admin"` |
 
 Các ô "chưa có route" có mặt để **khoá bản đồ bằng test** (`src/shared/permissions.test.ts`) trước khi N2/N3 tới.
-Nơi `can()` thực sự được gọi trong mã: `src/modules/orders/index.ts` (5 chỗ), `web/shell.ts`, `web/orders.ts`, `web/order-form.ts`. Giao diện chỉ **ẩn/hiện**; máy chủ luôn kiểm lại.
+Nơi `can()` thực sự được gọi trong mã: `src/modules/orders/index.ts` (6 lời gọi: `order.create`, `order.history.view`, `order.modify` ở `canModify`/`PUT`/`status`, `order.trip.edit`; các route đó truyền `assigned` từ `ctx.isAssigned(id)`, `GET /api/orders/:id` tính MỘT lần cho cả nhật ký và `canModify` để cờ và máy chủ luôn khớp nhau), `src/modules/dispatch/rules.ts` (`dispatch.assign`, `dispatch.claim`, và `order.modify` với `assigned: true` để xét ai được giao phụ trách), `web/shell.ts`, `web/orders.ts`, `web/order-form.ts`. Giao diện chỉ **ẩn/hiện**; máy chủ luôn kiểm lại.
 Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép — `src/architecture.test.ts` bắt mọi tệp ngoài `src/modules/parties/` nhắc tới `pty_party_role`.
 
 ---
@@ -457,7 +470,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 
 **Các lớp kiểm.**
 
-- **Unit** `src/**/*.test.ts` (`node --test`, chạy thẳng TypeScript nên tệp thuần import nhau bằng đuôi `.ts`). Nổi bật: `src/architecture.test.ts` — dựng schema thật từ `migrations/*.sql` bằng `node:sqlite`, kiểm ranh giới import theo `ALLOWED_EDGES`, đồ thị không vòng, `shared/` và `web/` không import module, sổ dữ liệu ↔ schema, tiền tố bảng, khoá ngoại xuyên module, view công bố đúng cột và không `INSTEAD OF`, cột kiểm toán của bảng mới, và **ranh giới SQL bằng `EXPLAIN`** cho module "nghiêm" (`company`, `locations`, `parties`, `staff` — SQL phải đi qua `defineSql` của `src/shared/sql-registry.ts`, và `.prepare(` không được nhận chuỗi/template thô).
+- **Unit** `src/**/*.test.ts` (`node --test`, chạy thẳng TypeScript nên tệp thuần import nhau bằng đuôi `.ts`). Nổi bật: `src/architecture.test.ts` — dựng schema thật từ `migrations/*.sql` bằng `node:sqlite`, kiểm ranh giới import theo `ALLOWED_EDGES`, đồ thị không vòng, `shared/` và `web/` không import module, sổ dữ liệu ↔ schema, tiền tố bảng, khoá ngoại xuyên module, view công bố đúng cột và không `INSTEAD OF`, cột kiểm toán của bảng mới, và **ranh giới SQL bằng `EXPLAIN`** cho module "nghiêm" (`company`, `dispatch`, `locations`, `parties`, `staff` — SQL phải đi qua `defineSql` của `src/shared/sql-registry.ts`, và `.prepare(` không được nhận chuỗi/template thô).
 - **E2E** `tests/e2e/*.mjs` qua `tests/e2e/run.mjs`: dựng D1 local **tạm** trong `mktemp` (không đụng `.wrangler/state`), áp migration, seed tài khoản, chạy `wrangler dev` trên cổng tự do với `SESSION_SECRET` ngẫu nhiên và Turnstile BẬT bằng khoá thử của Cloudflare (`--var TURNSTILE_SITE_KEY/TURNSTILE_SECRET_KEY`; mọi đăng nhập trong kịch bản gửi token thử), rồi chạy 12 kịch bản `platform, pwa, orders, trip, admin, turnstile, catalog, admin-race, locations, parties, permissions, company`. **Cần mạng**: `admin.mjs` và `catalog.mjs` đọc Google Sheet thật; mọi đăng nhập gọi siteverify của Cloudflare, và `turnstile.mjs` kiểm thêm hợp đồng với siteverify thật. Chạy đủ bộ thì bước cuối là `scripts/audit-invariants.mjs --strict`.
 - **Bất biến dữ liệu**: `scripts/audit-invariants.mjs --db local|remote [--strict]` — **chỉ đọc** (`SELECT`/`PRAGMA`), mỗi kiểm `R-N1-*` / `R-DSP-*` (người phụ trách đơn) là một câu SQL đếm dòng vi phạm, thoát mã 1 nếu có; mức `warn` (R-DSP-2) chỉ cảnh báo, không bao giờ đỏ.
 - **Kịch bản Chrome thật**: `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `a2-cdp.mjs`, `a2-evidence.mjs`, `chrome-wrap.sh`) — **không nằm trong CI**; bắt buộc chạy lại khi sửa `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` (ba tệp này không có kiểm tự động trong repo). Màn đăng nhập v1.0: `docs/evidence/2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs` (11 dòng ✓: khối công ty, widget Turnstile trên hai máy chủ bật/tắt, CSP, service worker, axe, ảnh; CẦN MẠNG) — chạy lại khi sửa `web/login.ts`, `public/login.html` hoặc CSP ở `public/_headers`.
@@ -524,9 +537,9 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 ## 14. Lộ trình và điểm gắn tính năng tiếp theo
 
 > Mục này là **KẾ HOẠCH — chưa có trong mã**. Các ô tương ứng trong `MATRIX` và vài hành động nhật ký đã có sẵn để khoá bản đồ, nhưng **không route nào dùng**.
-> `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đã quyết đổi ba ô của `SALES` — `order.modify`, `order.history.view`, `dispatch.assign` — từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`; **`MATRIX` ĐÃ đổi** (task 4 của bản v1.0; §8 là hiện trạng) nhưng chưa nơi nào tiêm `ctx.assigned` (việc của module `dispatch`, task 6–7) nên ba ô đó tạm chạy như `own`. Đặc tả ba việc dưới đây: `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`.
+> `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đã quyết đổi ba ô của `SALES` — `order.modify`, `order.history.view`, `dispatch.assign` — từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`; **`MATRIX` ĐÃ đổi** (task 4 của bản v1.0; §8 là hiện trạng) và module `dispatch` (task 6) ĐÃ tiêm `ctx.isAssigned` cho các route của `orders` nên người phụ trách sửa được đơn. Đặc tả ba việc dưới đây: `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`.
 
-- **N2 — phân công / người phụ trách** (ADR-0006): module mới `dispatch`, bảng `dsp_assignment` (+ `dsp_task_kind`, `dsp_assignment_status`, `dsp_call_log`, `dsp_service_progress`). Tiền tố `dsp_` đã được khai sẵn trong `TABLE_PREFIX`/`VIEW_PREFIX` của `src/architecture.test.ts`. **Đã có (migration 0014, bản v1.0):** `dsp_task_kind`, `dsp_assignment_status`, `dsp_assignment`, `v_dsp_order_handler` và backfill người phụ trách cho đơn hiện có; **chưa có:** mã module `dispatch`, `dsp_call_log`, `dsp_service_progress`. Tiền đề bắt buộc: `updateDraftOrder` phải đổi từ "xoá hết rồi chèn lại" sang so khớp theo `id` để `order_service.id` bền. Khi có N2, `OperationContext.assigned` mới có nguồn dữ liệu thật ⇒ các ô `assigned`/`ownOrAssigned` mới có tác dụng.
+- **N2 — phân công / người phụ trách** (ADR-0006): module mới `dispatch`, bảng `dsp_assignment` (+ `dsp_task_kind`, `dsp_assignment_status`, `dsp_call_log`, `dsp_service_progress`). Tiền tố `dsp_` đã được khai sẵn trong `TABLE_PREFIX`/`VIEW_PREFIX` của `src/architecture.test.ts`. **Đã có (migration 0014, bản v1.0):** `dsp_task_kind`, `dsp_assignment_status`, `dsp_assignment`, `v_dsp_order_handler` và backfill người phụ trách cho đơn hiện có; **mã module `dispatch` ĐÃ có (task 6: người phụ trách + `dispatch.claim`); chưa có:** `dsp_call_log`, `dsp_service_progress`, nhiệm vụ đón/lái cano (hạt dịch vụ). Tiền đề bắt buộc: `updateDraftOrder` phải đổi từ "xoá hết rồi chèn lại" sang so khớp theo `id` để `order_service.id` bền. `OperationContext.assigned` đã có nguồn dữ liệu thật cho người phụ trách (`ctx.isAssigned`); ô `assigned` của `FIELD` (việc đón, N2) vẫn chưa có nguồn.
 - **N3 — sổ thu tiền, hoá đơn, sửa sau xác nhận** (ADR-0004): tiền tố `bil_` đã khai sẵn; các thao tác `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue`, `order.money.edit` đã có trong `MATRIX`, chưa có route.
 - **N4 — giá net HDV/Guide**: cột `Ghi chú nội bộ` của Sheet dịch vụ hiện **cố ý không đọc** (`src/modules/catalog/sheet.ts`).
 
@@ -536,7 +549,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 |---|---|
 | Cloudflare Turnstile ở màn hình đăng nhập | **ĐÃ XONG (task 2 + 3):** máy chủ `src/modules/auth/turnstile.ts` + `POST /api/auth/login` (kiểm token trước `verifyPinThrottled`) + `GET /api/auth/config`; giao diện `web/login.ts` (widget, `reset()` sau lần thất bại, nút Thử lại) và CSP ở `public/_headers`; test `sw-policy` (script/khung Cloudflare không vào cache). **Còn lại lúc deploy:** tạo widget Turnstile cho `booking.tourdao.vn`, khoá site vào `vars` của `wrangler.jsonc` và `wrangler secret put TURNSTILE_SECRET_KEY` CÙNG lượt deploy (mã và khoá phải lên cùng lúc), rồi kiểm `GET /api/auth/config` khác `null` và header CSP của `/login`. Bằng chứng Chrome (khoá thử, không phải khoá thật): `docs/evidence/2026-09-21-v1-0/`. |
 | Bản xác nhận đơn dạng PNG tải xuống | Trang `/order` (`public/order.html`, `web/order.ts`, `web/order-services.ts`) dựng ảnh ngay trong trình duyệt — CSP đã cho `img-src 'self' data: blob:` sẵn cho việc này; mô hình hiển thị lấy từ `src/shared/order-view.ts`; cần route ghi nhật ký cho hành động `exported_png` (đã có trong `AUDIT_ACTIONS` nhưng **không nơi nào dùng**) và có thể một module `exports` mới theo `docs/ARCHITECTURE.md` mục "Thêm một module mới"; thông tin công ty lấy từ `GET /api/company` (module `company`, đã có, chỉ đọc). |
-| Cột "Người phụ trách" ở danh sách đơn | `listOrders` trong `src/modules/orders/repository.ts`, DTO `OrderSummaryDto` trong `src/shared/contracts.ts`, `web/orders.ts`. Nguồn dữ liệu là `dsp_assignment`/`v_dsp_order_handler` (migration 0014 đã có bảng, view và backfill; **chưa có module `dispatch` và API** — kế hoạch bản v1.0, task 6); đọc tên người phải đi qua view công bố `v_pty_party_label` hoặc `v_stf_staff_label`, không JOIN thẳng bảng của module khác (`src/architecture.test.ts` sẽ đỏ). |
+| Cột "Người phụ trách" ở danh sách đơn | `listOrders` trong `src/modules/orders/repository.ts`, DTO `OrderSummaryDto` trong `src/shared/contracts.ts`, `web/orders.ts`. Nguồn dữ liệu là `dsp_assignment`/`v_dsp_order_handler` (migration 0014 đã có bảng, view và backfill; module `dispatch` và API `GET /api/dispatch/handlers` ĐÃ có — task 6; **giao diện cột này còn chờ** — task 8); đọc tên người phải đi qua view công bố `v_dsp_order_handler` (đã ghép nhãn) hoặc `v_pty_party_label`/`v_stf_staff_label`, không JOIN thẳng bảng của module khác (`src/architecture.test.ts` sẽ đỏ). |
 
 ---
 

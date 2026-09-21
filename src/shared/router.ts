@@ -17,6 +17,17 @@ export interface Ctx<A extends Access = Access> {
   params: Record<string, string>;
   /** Nhân viên đang đăng nhập — luôn có với route "staff"/"admin". */
   staff: A extends "public" ? StaffProfile | null : StaffProfile;
+  /**
+   * Người đang đăng nhập có phải người phụ trách ĐANG MỞ của đơn `orderId` không — kết quả điền vào `can(staff, op, { ownerId, assigned })` cho các ô
+   * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`); tính khi gọi
+   * (một truy vấn D1 mỗi lần), chỉ route nào cần thì gọi. Chưa đăng nhập → false.
+   */
+  isAssigned: (orderId: string) => Promise<boolean>;
+  /**
+   * Câu lệnh D1 (CHƯA chạy) đặt người đang đăng nhập làm người phụ trách mặc định của đơn MỚI `orderId` (ADR-0009 điều 4) — gộp vào cùng `db.batch()`
+   * tạo đơn, sau câu INSERT đơn. `null` nếu không có (chưa đăng nhập, hoặc tài khoản chưa có hồ sơ). Do gốc lắp ráp tiêm.
+   */
+  defaultHandlerStatement: (orderId: string, at: string) => D1PreparedStatement | null;
 }
 
 export interface Route {
@@ -76,6 +87,14 @@ export interface AppOptions {
   currentStaff: (request: Request, env: Env) => Promise<StaffProfile | null>;
   /** Kiểm cấu hình bắt buộc trước khi xử lý; trả thông báo lỗi (→ 500) hoặc null. */
   checkConfig?: (env: Env) => string | null;
+  /**
+   * Hàm nối chéo module do gốc lắp ráp cung cấp, router chỉ đưa vào `ctx` (ADR-0007 điều 4(b)) — router không biết chúng đến từ module nào và module
+   * nhận (`orders`) không import module cung cấp (`dispatch`). BẮT BUỘC: thiếu là ô `ownOrAssigned` lặng lẽ tụt về `own`.
+   */
+  injected: {
+    isAssigned: (env: Env, staffId: string, orderId: string) => Promise<boolean>;
+    defaultHandlerStatement: (env: Env, staff: StaffProfile, orderId: string, at: string) => D1PreparedStatement | null;
+  };
 }
 
 export function createApp(opts: AppOptions) {
@@ -109,7 +128,12 @@ export function createApp(opts: AppOptions) {
       if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       if (hit.r.access === "office" && !isOffice(staff)) return error(403, "forbidden", "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.");
     }
-    return hit.r.handler({ request, env, exec, url, params: hit.params, staff } as Ctx);
+    const who = staff;
+    return hit.r.handler({
+      request, env, exec, url, params: hit.params, staff,
+      isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
+      defaultHandlerStatement: (orderId, at) => (who ? opts.injected.defaultHandlerStatement(env, who, orderId, at) : null),
+    } as Ctx);
   }
 
   return {

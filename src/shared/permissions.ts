@@ -26,8 +26,10 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope): Row =
 
 /**
  * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009. "Của mình" = người lập đơn; "được giao" = người phụ trách đang mở của đơn
- * (do `dispatch` cung cấp hàm, gốc lắp ráp tiêm vào `ctx.assigned` — ADR-0007 điều 4(b)). Chưa có nơi nào tiêm `assigned` thì ô `ownOrAssigned` chạy như `own`.
- * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
+ * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
+ * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
+ * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim (module dispatch). Thao tác của N2/N3 (task.progress,
+ * order.money.edit, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
  */
 export const MATRIX = {
   "order.view": row("any", "any", "any", "none"), // xem đơn
