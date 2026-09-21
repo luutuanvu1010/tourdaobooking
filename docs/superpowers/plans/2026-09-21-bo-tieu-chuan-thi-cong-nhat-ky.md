@@ -36,3 +36,4 @@
 | Thời điểm (ISO) | Việc | Vai | Kết quả / bằng chứng (lệnh, đầu ra thật) | Người kiểm |
 |---|---|---|---|---|
 | 2026-09-21 | Lập kế hoạch T1 | Người lập kế hoạch | `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-t1-ghim-playbook.md`; số liệu nguồn: 43 tệp, 250.827 byte, HEAD Core `65a3c2b25d9f01b4deaefe1bd81e559aa8fd50e8`, Hiến pháp v2.3.0, GOVERNANCE v1.0.0, CHANGELOG 3.3.1; chỉ `init-project.sh` có bit thực thi | — |
+| 2026-09-21T12:57:00Z | Task 1 — ADR-0011 + README ADR | Thi công | Tạo `docs/adr/ADR-0011-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (trạng thái **proposed**; `cmp` với văn bản trong brief: khớp từng byte); sửa `docs/adr/README.md` đúng ba chỗ (dòng 3 mẫu ADR, hàng 0011 sau hàng 0009, dòng "Thứ tự tài liệu"); thêm dòng này vào nhật ký. Kiểm cơ học: `grep -c "ADR-0011" docs/adr/README.md` = 2; `grep -n "0010" docs/adr/README.md` = không dòng nào. `npm test`: 413 test, 413 pass, 0 fail | (chưa kiểm) |
