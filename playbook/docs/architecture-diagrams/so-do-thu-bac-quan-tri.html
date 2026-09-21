@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thứ bậc quản trị — Hiến pháp đứng trên tất cả</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+  :root{--navy:#1B2A4A;--paper:#F7F4EE;--sand:#E9E1D3;--terra:#C8643C;
+    --ink:#2A2622;--muted:#6B6357;--line:#D8CEBE}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:
+      radial-gradient(800px 460px at 88% -8%, rgba(200,100,60,.10), transparent 60%),
+      radial-gradient(700px 540px at -8% 105%, rgba(62,92,138,.12), transparent 55%),
+      var(--paper);
+    color:var(--ink);font-family:"Plus Jakarta Sans",system-ui,sans-serif;
+    line-height:1.5;padding:46px 20px 60px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:760px;margin:0 auto}
+  .eyebrow{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.28em;
+    text-transform:uppercase;color:var(--terra);margin-bottom:13px}
+  h1{font-family:"Fraunces",serif;font-weight:600;color:var(--navy);
+    font-size:clamp(27px,4.6vw,42px);line-height:1.07;letter-spacing:-.01em;max-width:18ch}
+  h1 em{font-style:italic;color:var(--terra)}
+  .sub{margin-top:14px;max-width:60ch;color:var(--muted);font-size:15px}
+  .rule{height:1px;background:var(--line);margin:26px 0 30px}
+
+  .stack{display:flex;flex-direction:column;align-items:center;gap:0}
+  .tier{position:relative;background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:16px 22px;width:100%;margin-bottom:0;
+    box-shadow:0 12px 26px -22px rgba(27,42,74,.5);
+    display:flex;align-items:center;gap:16px}
+  .tier .badge{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.1em;
+    color:#fff;background:var(--c);border-radius:6px;padding:4px 8px;white-space:nowrap;flex:none}
+  .tier h3{font-family:"Fraunces",serif;font-weight:600;font-size:18px;color:var(--navy);line-height:1.15}
+  .tier p{font-size:12.5px;color:var(--muted);margin-top:2px}
+  .tier .left{border-left:5px solid var(--c);padding-left:14px;margin-left:-4px}
+  .arrow{color:var(--terra);font-size:18px;line-height:1;padding:7px 0}
+  .scope{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.12em;
+    text-transform:uppercase;color:var(--muted);margin-left:auto;white-space:nowrap;flex:none}
+
+  /* widths to evoke pyramid */
+  .w1{max-width:100%}
+  .w2{max-width:88%}
+  .w3{max-width:76%}
+  .w4{max-width:64%}
+  .w5{max-width:52%}
+
+  .note{margin-top:30px;border-top:1px solid var(--line);padding-top:18px;
+    font-size:12.5px;color:var(--muted);display:flex;gap:10px;align-items:flex-start}
+  .note .k{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.15em;
+    text-transform:uppercase;color:var(--terra);white-space:nowrap;padding-top:2px}
+  @media(max-width:520px){
+    .w2,.w3,.w4,.w5{max-width:100%}
+    .tier{flex-wrap:wrap;gap:10px}.scope{margin-left:0}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">Thứ bậc quản trị</div>
+  <h1>Càng lên cao càng <em>trừu tượng và bền</em>, càng xuống thấp càng cụ thể và hay đổi</h1>
+  <p class="sub">Tầng trên ràng buộc tầng dưới. Khi mâu thuẫn, tầng trên thắng. Hiến pháp độc lập công nghệ nên hầu như không đổi; code thay đổi mỗi ngày.</p>
+  <div class="rule"></div>
+
+  <div class="stack">
+
+    <div class="tier w1" style="--c:#1B2A4A">
+      <span class="badge">Tầng 1</span>
+      <div class="left">
+        <h3>Constitution — Hiến pháp</h3>
+        <p>Nguyên tắc, điều cấm, quyền quyết định. Độc lập công nghệ.</p>
+      </div>
+      <span class="scope">mọi dự án</span>
+    </div>
+    <div class="arrow">▼</div>
+
+    <div class="tier w2" style="--c:#3E5C8A">
+      <span class="badge">Tầng 2</span>
+      <div class="left">
+        <h3>Governance — Bộ máy</h3>
+        <p>Structure, RACI, quy trình ADR, chính sách, giám sát, cải tiến.</p>
+      </div>
+      <span class="scope">mọi dự án</span>
+    </div>
+    <div class="arrow">▼</div>
+
+    <div class="tier w3" style="--c:#2E7D6B">
+      <span class="badge">Tầng 3</span>
+      <div class="left">
+        <h3>Playbook — Quy trình 9 bước</h3>
+        <p>Cách hiện thực hóa nguyên tắc cho một loại dự án cụ thể.</p>
+      </div>
+      <span class="scope">theo loại dự án</span>
+    </div>
+    <div class="arrow">▼</div>
+
+    <div class="tier w4" style="--c:#C8643C">
+      <span class="badge">Tầng 4</span>
+      <div class="left">
+        <h3>Artifacts — Đặc tả dự án</h3>
+        <p>BRIEF, CONTENT_MODEL, ADR, CONSTRAINTS, BINDING, TOKENS, QA.</p>
+      </div>
+      <span class="scope">một dự án</span>
+    </div>
+    <div class="arrow">▼</div>
+
+    <div class="tier w5" style="--c:#8A5A2B">
+      <span class="badge">Tầng 5</span>
+      <div class="left">
+        <h3>Code — Thực thi</h3>
+        <p>Sản phẩm chạy được, phải phục tùng cả bốn tầng trên.</p>
+      </div>
+      <span class="scope">đổi mỗi ngày</span>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <span class="k">Đọc sơ đồ</span>
+    <span>Một quyết định ở Code không bao giờ được phép phủ định một điều ở Hiến pháp. Khi thấy mâu thuẫn, sửa ở tầng phù hợp rồi để nó chảy xuống, đừng vá ở tầng đáy.</span>
+  </div>
+
+</div>
+</body>
+</html>
