@@ -460,3 +460,29 @@ export async function updateTrip(
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }
+
+/**
+ * Đổi khách (ADR-0011 điều 2): hồ sơ người đặt + tên/SĐT chụp trên đơn, cho đơn NHÁP hoặc ĐÃ XÁC NHẬN, còn khớp mốc `updated_at`. Không đụng tiền, dịch vụ,
+ * số khách. `booker.before` (hồ sơ mới) đứng TRƯỚC câu UPDATE vì khoá ngoại. Trả false nếu đơn đã huỷ / đã bị người khác sửa.
+ */
+export async function changeBooker(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  change: { customerName: string; customerPhone: string; expectedUpdatedAt: string },
+  booker: BookerWrite,
+  detail: string,
+): Promise<boolean> {
+  const at = nextStamp(change.expectedUpdatedAt);
+  const results = await db.batch([
+    ...booker.before,
+    db
+      .prepare(
+        `UPDATE orders SET customer_name = ?, customer_phone = ?, booker_party_id = ${BOOKER_VALUE}, updated_at = ?
+         WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ?`,
+      )
+      .bind(change.customerName, change.customerPhone, booker.partyId, booker.partyId, at, orderId, change.expectedUpdatedAt),
+    auditStatement(db, { orderId, staffId, action: "booker_changed", at, detail }, "changes() > 0"),
+  ]);
+  return (results[booker.before.length]!.meta.changes ?? 0) > 0;
+}

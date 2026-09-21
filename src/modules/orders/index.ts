@@ -7,8 +7,8 @@ import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
-import { cancelOrder, confirmOrder, createOrder, findOrder, getMeta, getStoredServices, listOrders, updateDraftOrder, updateTrip } from "./repository";
-import { canTransition, isOrderStatus, validateOrder, type Failure, type OrderStatus } from "./rules";
+import { cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getMeta, getStoredServices, listOrders, updateDraftOrder, updateTrip } from "./repository";
+import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
 import { loadOrderView, resolveBooker, validationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
@@ -119,6 +119,29 @@ export const ordersModule: AppModule = {
       const detail = describeTripUpdates(stored, parsed.value.updates);
       if (detail === null) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
       if (!(await updateTrip(env.DB, id, staff.id, parsed.value.updates, parsed.value.expectedUpdatedAt, detail))) {
+        const now = await getMeta(env.DB, id);
+        return now?.status === "cancelled" ? CANCELLED() : STALE();
+      }
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).
+    route("PUT", "/api/orders/:id/booker", "office", async ({ env, request, params, staff, isAssigned }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "cancelled") return CANCELLED();
+      const parsed = validateBookerChange(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const booker = await resolveBooker(env.DB, v.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
+      if (!booker.ok) return error(400, "invalid_input", booker.message);
+      const snapshotChanged = v.customerName !== meta.customerName || v.customerPhone !== meta.customerPhone;
+      const detail = [booker.write.note, snapshotChanged ? "sửa tên/SĐT khách trên đơn" : null].filter(Boolean).join(" | ");
+      if (!detail) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
+      if (!(await changeBooker(env.DB, id, staff.id, v, booker.write, detail))) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }

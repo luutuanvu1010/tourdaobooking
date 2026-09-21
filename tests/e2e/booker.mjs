@@ -115,3 +115,62 @@ r = await call(SALES, "PUT", `/api/orders/${confirmed.id}`, orderInput({ bookerP
 assert.equal(r.status, 409);
 assert.equal(r.body.error.code, "not_editable");
 console.log("✓ đơn đã xác nhận không sửa qua PUT đơn");
+
+// ---- Đổi khách của đơn ĐÃ XÁC NHẬN (ADR-0011 điều 2: như thông tin vận hành, quyền order.trip.edit) ----
+const OTHER = await session(ACCOUNTS.salesB); // không phải người lập, không phụ trách
+const ACC = await session(ACCOUNTS.accountant);
+const ADMIN = await session(ACCOUNTS.admin);
+const B = (id) => `/api/orders/${id}/booker`;
+const now = async (id) => (await call(SALES, "GET", `/api/orders/${id}`)).body.order;
+
+let cur = await now(confirmed.id);
+const replacement = await person(`Người Thay ${tag}`);
+r = await call(SALES, "PUT", B(cur.id), { customerName: `Người Thay ${tag}`, customerPhone: "0909 000 111", bookerPartyId: replacement.id, expectedUpdatedAt: cur.updatedAt });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.status, "confirmed");
+assert.equal(r.body.order.bookerPartyId, replacement.id);
+assert.equal(r.body.order.customerName, `Người Thay ${tag}`);
+let changed = await sqlRows(`SELECT detail FROM audit_log WHERE order_id = '${cur.id}' AND action = 'booker_changed'`);
+assert.equal(changed.length, 1, JSON.stringify(changed));
+assert.match(changed[0].detail, /đổi hồ sơ khách “Khách Mới .+” → “Người Thay/);
+assert.ok(!changed[0].detail.includes("0909"), "nhật ký không chứa SĐT");
+console.log("✓ đổi khách của đơn đã xác nhận; nhật ký 'từ A sang B' bằng tên");
+
+// mốc cũ → 409 stale; không đổi gì → 200 và không thêm nhật ký
+r = await call(SALES, "PUT", B(cur.id), { customerName: "X", customerPhone: "0909000111", bookerPartyId: null, expectedUpdatedAt: cur.updatedAt });
+assert.equal(r.status, 409);
+assert.equal(r.body.error.code, "stale");
+cur = await now(cur.id);
+r = await call(SALES, "PUT", B(cur.id), { customerName: cur.customerName, customerPhone: cur.customerPhone, bookerPartyId: cur.bookerPartyId, expectedUpdatedAt: cur.updatedAt });
+assert.equal(r.status, 200);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE order_id = '${cur.id}' AND action = 'booker_changed'`))[0].n, 1);
+console.log("✓ khoá lạc quan; không đổi gì thì không ghi nhật ký");
+
+// tạo hồ sơ mới ngay khi đổi khách (có vai CUSTOMER)
+const phoneX = randomPhone();
+r = await call(SALES, "PUT", B(cur.id), { customerName: `Khách Phút Cuối ${tag}`, customerPhone: phoneX, newBooker: { fullName: `Khách Phút Cuối ${tag}`, phone: phoneX }, expectedUpdatedAt: cur.updatedAt });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual((await call(SALES, "GET", `/api/parties/${r.body.order.bookerPartyId}`)).body.party.roleCodes, ["CUSTOMER"]);
+console.log("✓ đổi khách kèm tạo hồ sơ mới");
+
+// quyền: SALES khác (không lập, không phụ trách) và kế toán → 403; quản trị → được
+cur = await now(cur.id);
+const body = { customerName: cur.customerName, customerPhone: cur.customerPhone, bookerPartyId: null, expectedUpdatedAt: cur.updatedAt };
+assert.equal((await call(OTHER, "PUT", B(cur.id), body)).status, 403);
+assert.equal((await call(ACC, "PUT", B(cur.id), body)).status, 403);
+r = await call(ADMIN, "PUT", B(cur.id), body);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.bookerPartyId, null);
+console.log("✓ quyền đổi khách = quyền sửa chuyến");
+
+// đơn đã huỷ → 409 not_editable; id lạ → 404; đầu vào sai → 400
+r = await call(SALES, "POST", `/api/orders/${cur.id}/status`, { status: "cancelled" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+cur = r.body.order;
+r = await call(SALES, "PUT", B(cur.id), { customerName: "Y", customerPhone: "0909000111", bookerPartyId: null, expectedUpdatedAt: cur.updatedAt });
+assert.equal(r.status, 409);
+assert.equal(r.body.error.code, "not_editable");
+assert.equal((await call(SALES, "PUT", B("00000000-0000-0000-0000-000000000000"), body)).status, 404);
+assert.equal((await call(ADMIN, "PUT", B(linked.id), { customerName: "", customerPhone: "0909000111", expectedUpdatedAt: "x" })).status, 400);
+console.log("✓ đơn đã huỷ không đổi khách được; 404; 400");
+console.log("E2E OK");
