@@ -8,6 +8,8 @@
   <div id="ok" class="alert ok" hidden>Đã đổi PIN. Các thiết bị khác đang đăng nhập bằng tài khoản này sẽ bị đăng xuất.</div>
   <section id="me" class="card narrow"></section>
   <section id="links" class="card list-card narrow"></section>
+  <!-- Chế độ bảo trì: web/account.ts chỉ hiện cho tài khoản được phép bật/tắt (GET /api/maintenance trả canToggle). -->
+  <section id="maintenance" class="card narrow" aria-labelledby="maintenance-heading" hidden></section>
   <form id="pin-form" class="card narrow" autocomplete="off">
     <h2>Đổi mã PIN</h2>
     <label>PIN hiện tại<input id="current" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>

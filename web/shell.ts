@@ -43,6 +43,16 @@ function tabBar(admin: boolean, office: boolean, canCreate: boolean, path: strin
   );
 }
 
+const MAINTENANCE_STRIP_ID = "maint-strip";
+/**
+ * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ bạn dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ người ĐƯỢC PHÉP tới được app lúc bảo trì nên chỉ họ thấy dải này;
+ * gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt, khỏi phải tải lại trang).
+ */
+export function setMaintenanceStrip(on: boolean): void {
+  document.getElementById(MAINTENANCE_STRIP_ID)?.remove();
+  if (on) document.getElementById("topbar")?.after(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ bạn dùng được"));
+}
+
 export async function logout(): Promise<void> {
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   location.assign("/login");
@@ -95,6 +105,7 @@ export async function initShell(): Promise<Staff> {
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
+  if (me.maintenance?.on) setMaintenanceStrip(true);
   const admin = hasPermission(staff, "ADMIN");
   const office = isOffice(staff);
   const canCreate = can(staff, "order.create"); // kế toán xem được đơn nhưng không lập đơn (ADR-0007): ẩn nút thay vì để bị 403 sau khi điền xong

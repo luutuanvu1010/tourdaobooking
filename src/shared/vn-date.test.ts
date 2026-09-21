@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDays, isHHMM, isISODate, vnDateTimeText, vnToday } from "./vn-date.ts";
+import { addDays, isHHMM, isISODate, vnDateTimeText, vnLocalToIso, vnToday } from "./vn-date.ts";
 
 test("vnToday: ngày theo giờ Việt Nam, không phải UTC", () => {
   assert.equal(vnToday(new Date("2026-09-16T18:30:00Z")), "2026-09-17"); // 01:30 ngày 17 giờ VN
@@ -29,4 +29,15 @@ test("vnDateTimeText: 'HH:MM DD/MM/YYYY' theo giờ Việt Nam từ mốc ISO UT
   assert.equal(vnDateTimeText("2026-09-22T03:05:00.000Z"), "10:05 22/09/2026");
   assert.equal(vnDateTimeText("2026-09-21T18:30:00Z"), "01:30 22/09/2026"); // qua ngày
   assert.equal(vnDateTimeText("2026-12-31T17:00:00Z"), "00:00 01/01/2027"); // qua năm
+});
+
+test("vnLocalToIso: giá trị ô datetime-local hiểu là GIỜ VIỆT NAM (không theo múi giờ thiết bị) → ISO UTC", () => {
+  assert.equal(vnLocalToIso("2026-09-22T10:05"), "2026-09-22T03:05:00.000Z");
+  assert.equal(vnLocalToIso("2026-09-22T00:30"), "2026-09-21T17:30:00.000Z"); // qua ngày (lùi 7 tiếng)
+  assert.equal(vnLocalToIso("2027-01-01T06:59"), "2026-12-31T23:59:00.000Z"); // qua năm
+  assert.equal(vnLocalToIso("2026-09-22T10:05:30"), "2026-09-22T03:05:30.000Z"); // trình duyệt có thể kèm giây
+});
+
+test("vnLocalToIso: sai khuôn dạng hoặc không đúng lịch/giờ → null", () => {
+  for (const bad of ["", "2026-09-22", "2026-09-22 10:05", "2026-02-30T10:00", "2026-09-22T24:00", "2026-09-22T10:60", "2026-13-01T10:00", "abc"]) assert.equal(vnLocalToIso(bad), null, bad);
 });

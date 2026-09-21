@@ -3,6 +3,8 @@ import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
 import { showError } from "./shell";
 import { formatReleaseLine } from "../src/shared/app-info";
+import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 
 registerServiceWorker();
 
@@ -52,6 +54,17 @@ const submit = byId<HTMLButtonElement>("submit");
 const widgetBox = byId("turnstile-widget");
 const retryBtn = byId<HTMLButtonElement>("turnstile-retry");
 const companyEl = byId("company");
+const maintenanceEl = byId("maintenance-banner");
+const maintenanceText = byId("maintenance-text");
+
+// ---- Banner chế độ bảo trì ----
+// Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
+let stopMaintenance: (() => void) | null = null;
+function setMaintenance(on: boolean, endsAt: string | null): void {
+  stopMaintenance?.();
+  stopMaintenance = on ? renderMaintenanceMessage(maintenanceText, endsAt) : null;
+  maintenanceEl.hidden = !on;
+}
 
 // Đã có phiên hợp lệ thì vào thẳng, khỏi đăng nhập lại.
 const next = safeNext(new URLSearchParams(location.search).get("next"));
@@ -177,7 +190,9 @@ const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout
 /** Hỏi cấu hình một lần: true = đã có câu trả lời của máy chủ (có khoá hoặc `null`); false = lỗi (mất mạng, 5xx…). */
 async function fetchConfig(): Promise<boolean> {
   try {
-    siteKey = (await api<Api.AuthConfigResponse>("/api/auth/config")).turnstileSiteKey;
+    const config = await api<Api.AuthConfigResponse>("/api/auth/config");
+    siteKey = config.turnstileSiteKey;
+    setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null); // (`?.`: bản máy chủ cũ hơn chưa có trường này)
     return true;
   } catch {
     return false; // `siteKey` giữ nguyên (null nếu chưa từng biết)
@@ -253,7 +268,12 @@ form.addEventListener("submit", async (e) => {
     });
     location.replace(next);
   } catch (err) {
-    showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+    if (err instanceof ApiError && err.code === MAINTENANCE_CODE) {
+      // Đang bảo trì và SĐT này không được phép: cập nhật banner (không hiện lỗi chung). Mã này KHÁC `turnstile_unavailable` (cũng 503) nên không đi vào nhánh hỏi lại cấu hình bên dưới.
+      showError(errorEl, null);
+      setMaintenance(true, endsAtFrom(err.details));
+      maintenanceEl.scrollIntoView({ block: "nearest" });
+    } else showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
     busy = false;
     resetWidget(); // MỌI lần thất bại (kể cả sai PIN): máy chủ đã kiểm và đốt token ở bước Turnstile trước khi kiểm PIN, token cũ không dùng lại được
     syncSubmit();

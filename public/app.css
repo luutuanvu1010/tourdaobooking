@@ -417,3 +417,24 @@ body.sheet-open { overflow: hidden; }
 .pick-status, .pick-empty { margin: 0; padding: var(--s5) var(--s3); font-weight: 600; text-align: center; color: var(--c-text-muted); }
 .pick-error-text { margin: var(--s2) 0 0; }
 .login-turnstile-wait { display: flex; align-items: center; justify-content: center; min-height: var(--h-turnstile); margin: 0; padding: 0 var(--s3); font-size: var(--fs-label); font-weight: 600; text-align: center; color: var(--c-text-muted); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); } /* khung giữ chỗ của widget lúc chờ nạp script Cloudflare: cùng chiều cao với widget để dựng xong không đẩy nút Đăng nhập */
+
+/* ---------- chế độ bảo trì (lớp phủ web/maintenance-screen.ts, banner ở đăng nhập, dải ở web/shell.ts, mục ở trang Tôi web/account.ts) — chỉ token ---------- */
+body.maint-open { overflow: hidden; }
+.maint-screen { position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center; overflow-y: auto; padding: max(var(--s4), env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) max(var(--s4), env(safe-area-inset-bottom)) max(var(--s4), env(safe-area-inset-left)); background: var(--c-primary-strong); } /* che kín trang bên dưới (nội dung đang gõ vẫn còn trong trang); z-index cao hơn bảng trượt (50) và thanh tab (30) */
+.maint-card { width: 100%; max-width: var(--w-narrow); margin: auto; padding: var(--s5); text-align: center; background: var(--c-surface); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+.maint-icon { display: flex; justify-content: center; margin-bottom: var(--s3); color: var(--c-sand-text); }
+.maint-title { margin: 0 0 var(--s3); font-size: var(--fs-title); }
+.maint-msg { margin: 0 0 var(--s4); overflow-wrap: anywhere; }
+.maint-card .btn { width: 100%; min-height: var(--tap-min); }
+.maint-count { display: inline-block; font-weight: 800; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--c-primary); } /* số cùng bề rộng + không xuống dòng giữa chừng: đồng hồ chạy không nhảy chữ */
+.login-maintenance p { margin: 0; overflow-wrap: anywhere; }
+.maint-strip { display: flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-label); font-weight: 700; text-align: center; text-decoration: none; color: var(--c-sand-text); background: var(--c-sand-soft); border-bottom: 1px solid var(--c-sand-border); }
+.maint-state { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin: 0 0 var(--s2); font-weight: 700; }
+.maint-quick { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s3) 0; }
+.maint-quick .btn { flex: 1 1 0; min-height: var(--tap-min); padding-left: var(--s2); padding-right: var(--s2); white-space: nowrap; } /* ba nút vừa một hàng ở 390: "120 phút" không xuống dòng */
+.maint-quick .btn[aria-pressed="true"] { color: var(--c-on-dark); background: var(--c-primary); }
+.maint-eta { margin-bottom: var(--s3); }
+.maint-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin-top: var(--s3); }
+.maint-actions .btn { flex: 1 1 auto; min-height: var(--tap-min); }
+.maint-confirm { margin-top: var(--s3); padding: var(--s3); color: var(--c-danger-text); background: var(--c-danger-soft); border: 1px solid var(--c-danger-border); border-radius: var(--radius-sm); }
+.maint-confirm p { margin: 0 0 var(--s2); }
