@@ -69,7 +69,7 @@ TCA-1 gộp **hai khái niệm** trong một bảng: `relationship_code` vừa l
 | Thành phần tham chiếu | Hiện trạng | Kết luận |
 |---|---|---|
 | Tách vị trí địa lý khỏi mục đích dùng (`locations` ↔ `party_sites`) | `loc_location` (module `locations`, có `loc_location_type`) là **danh mục nơi dịch vụ** (bến, điểm đón, khu…), không phải địa chỉ hồ sơ. Vai trò hồ sơ trỏ được `pty_party_role.location_id` (ADR-0008); phân công có `dsp_assignment.location_id` + `place_text` | **KHỚP MỘT PHẦN** — tách vị trí khỏi hồ sơ có, nhưng khác nghĩa với TCA |
-| `is_bill_to`, `is_ship_to` | Không có. Địa chỉ xuất hoá đơn là **cột chuỗi** `pty_organization.address` + `invoice_email` (một địa chỉ duy nhất/tổ chức); cá nhân không có địa chỉ | **KHỚP MỘT PHẦN / LỆCH CÓ CHỦ Ý** — tour không có "giao hàng"; "bill-to" gộp vào tổ chức. Sẽ đau khi một đại lý có nhiều pháp nhân xuất hoá đơn (xem P-7) |
+| `is_bill_to`, `is_ship_to` | Không có. Địa chỉ xuất hoá đơn là **cột chuỗi** `pty_organization.address` + `invoice_email` (một địa chỉ duy nhất/tổ chức); cá nhân không có địa chỉ | **KHỚP MỘT PHẦN / LỆCH CÓ CHỦ Ý** — tour không có "giao hàng"; "bill-to" gộp vào tổ chức. Có thể vướng khi một đại lý có nhiều pháp nhân xuất hoá đơn, nhưng ADR-0004 lưu thông tin xuất theo bản chụp trên từng yêu cầu nên nhu cầu này có thể không xuất hiện (xem P-7) |
 | Liên hệ (điện thoại, email) tách khỏi hồ sơ | `pty_contact_point` (`PHONE`/`EMAIL`, `is_primary`, hiệu lực ngày, chỉ mục duy nhất "một liên hệ chính đang mở"), `value_normalized` để tra | **KHỚP**; ORA-2 nhóm 1 cũng đòi tách `Contacts` |
 
 ### 1.5 Ba quy tắc bất biến của TCA-1
