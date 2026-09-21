@@ -168,6 +168,10 @@ Module chủ sở hữu bảng của mình; bảng mới mang tiền tố module
 | `loc_location_type` | locations | tra cứu loại địa điểm (`OFFICE`, `TICKET_COUNTER`, `PIER`, `PORT`) |
 | `loc_location` | locations | địa điểm (`code`, `name`, `sort_order`, `active`); 0010 nạp sẵn 8 dòng |
 | `v_loc_location_label` | locations | view công bố: `id, code, name, location_type_code, active` |
+| `dsp_task_kind` | dispatch | tra cứu loại việc: `HANDLE` (phụ trách), `PICKUP`, `DROPOFF`, `BOAT`; **bản v1.0 chỉ dùng `HANDLE`** (migration 0014, chưa có module/mã) |
+| `dsp_assignment_status` | dispatch | tra cứu trạng thái việc: chỉ `PENDING`, `DONE` (huỷ = đóng dòng, không có `CANCELLED`) |
+| `dsp_assignment` | dispatch | một dòng = một người được giao một việc, thuộc ĐÚNG MỘT hạt: cả đơn (`order_id`) hoặc một dịch vụ (`order_service_id`); hiệu lực `valid_from_at`/`valid_to_at` (UTC, NULL = đang mở). Người phụ trách = dòng `HANDLE` hạt đơn đang mở (ADR-0006/0009). Mã ghi hạt dịch vụ chưa có (chờ N2) |
+| `v_dsp_order_handler` | dispatch | view công bố: `order_id, party_id, staff_id, label, since` — người phụ trách ĐANG MỞ của đơn (`staff_id` NULL nếu hồ sơ không có tài khoản) |
 | `orders` | orders | đơn: `order_code`, `staff_id`, `status`, thông tin khách, các số tiền, `updated_at`, `confirmed_at` |
 | `order_service` | orders | một dịch vụ trong đơn: số khách 4 loại + thông tin chuyến (ngày giờ, đón, check-in, ghi chú) |
 | `order_item` | orders | dòng tiền: `description`, `quantity`, `unit_price`, `line_total`, `catalog_code`, `catalog_price`, `pax_code`, `service_id` |
@@ -194,6 +198,9 @@ erDiagram
   pty_party_role }o--o| loc_location : "tại"
   pty_party ||--o{ pty_party_relationship : "quan hệ"
   orders ||--o{ audit_log : "nhật ký"
+  orders ||--o{ dsp_assignment : "người phụ trách (HANDLE)"
+  order_service ||--o{ dsp_assignment : "nhiệm vụ (N2, chưa ghi)"
+  pty_party ||--o{ dsp_assignment : "được giao"
 ```
 
 *Ba nhánh chính: đơn → dịch vụ → dòng tiền; tài khoản → hồ sơ → vai trò/liên hệ/quan hệ; vai trò → địa điểm. `order_item.catalog_code` cố ý KHÔNG có khoá ngoại tới `catalog_item` (nhập tay luôn phải chạy được).*
@@ -210,6 +217,7 @@ erDiagram
 | `pty_party_role_no_overlap_ins` / `_upd`, `pty_relationship_no_overlap_ins` / `_upd`; `pty_contact_primary_uq` | 0011 | vai trò và quan hệ không chồng lấn khoảng hiệu lực; chỉ mục duy nhất **một phần**: mỗi hồ sơ tối đa một liên hệ chính cho mỗi loại (dòng còn mở) |
 | `pty_party_role_open_uq`, `pty_relationship_open_uq`, `stf_permission_open_uq` | 0011/0012 | mỗi bộ khoá tối đa **một dòng đang mở** (`valid_to… IS NULL`) |
 | `staff_party_uq` | 0012 | một hồ sơ tối đa một tài khoản (`WHERE party_id IS NOT NULL`) |
+| `dsp_assignment_handler_open_uq`, `dsp_assignment_grain_ck`, `dsp_assignment_handle_grain_ck` | 0014 | mỗi đơn tối đa **một `HANDLE` đang mở** (chỉ mục duy nhất một phần); đúng MỘT trong `order_id`/`order_service_id`; `HANDLE` chỉ ở hạt đơn (không thì `order_id` NULL lọt chỉ mục). Cố ý KHÔNG có trigger chống chồng lấn khoảng đã đóng: đổi người đóng dòng cũ và mở dòng mới cùng một thời điểm |
 | `CHECK` | 0003/0011… | tập ĐÓNG: `orders.status`, `deposit_method`, `party_kind`, khuôn dạng ngày `YYYY-MM-DD` / giờ `HH:MM` |
 
 ### Migration
@@ -229,8 +237,9 @@ erDiagram
 | 0011 | `0011_parties.sql` | toàn bộ `pty_*` + trigger không chồng lấn + `v_pty_party_label` |
 | 0012 | `0012_staff_permissions_party.sql` | `stf_permission_type`, `stf_permission`, `staff.party_id`, `v_stf_staff_label`, backfill hồ sơ/vai trò `STAFF`/quyền cho tài khoản có sẵn |
 | 0013 | `0013_company_email.sql` | bản v1.0, CHƯA lên production: chỉ dữ liệu — điền `company_profile.email` (không đổi cấu trúc) |
+| 0014 | `0014_dispatch.sql` | bản v1.0, CHƯA lên production: chỉ THÊM — `dsp_task_kind`, `dsp_assignment_status`, `dsp_assignment` (đủ cột cả hạt dịch vụ), `v_dsp_order_handler`; **backfill** mỗi đơn hiện có một dòng `HANDLE` đang mở = người lập đơn (qua `staff.party_id`; tài khoản chưa có hồ sơ thì đơn đó tạm chưa có người phụ trách) |
 
-Migration siết B5 (`staff_party_required`: bắt buộc `staff.party_id`) **chưa có trong `migrations/`** — cố ý, theo expand–contract (`docs/HANDOFF-N1.md`); số thứ tự của nó là số kế tiếp sau các migration của bản v1.0 (không còn là `0013`).
+Migration siết B5 (`staff_party_required`: bắt buộc `staff.party_id`) **chưa có trong `migrations/`** — cố ý, theo expand–contract (`docs/HANDOFF-N1.md`); số thứ tự của nó là số kế tiếp sau `0014` (không còn là `0013`).
 
 ---
 
@@ -449,7 +458,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 
 - **Unit** `src/**/*.test.ts` (`node --test`, chạy thẳng TypeScript nên tệp thuần import nhau bằng đuôi `.ts`). Nổi bật: `src/architecture.test.ts` — dựng schema thật từ `migrations/*.sql` bằng `node:sqlite`, kiểm ranh giới import theo `ALLOWED_EDGES`, đồ thị không vòng, `shared/` và `web/` không import module, sổ dữ liệu ↔ schema, tiền tố bảng, khoá ngoại xuyên module, view công bố đúng cột và không `INSTEAD OF`, cột kiểm toán của bảng mới, và **ranh giới SQL bằng `EXPLAIN`** cho module "nghiêm" (`company`, `locations`, `parties`, `staff` — SQL phải đi qua `defineSql` của `src/shared/sql-registry.ts`, và `.prepare(` không được nhận chuỗi/template thô).
 - **E2E** `tests/e2e/*.mjs` qua `tests/e2e/run.mjs`: dựng D1 local **tạm** trong `mktemp` (không đụng `.wrangler/state`), áp migration, seed tài khoản, chạy `wrangler dev` trên cổng tự do với `SESSION_SECRET` ngẫu nhiên và Turnstile BẬT bằng khoá thử của Cloudflare (`--var TURNSTILE_SITE_KEY/TURNSTILE_SECRET_KEY`; mọi đăng nhập trong kịch bản gửi token thử), rồi chạy 12 kịch bản `platform, pwa, orders, trip, admin, turnstile, catalog, admin-race, locations, parties, permissions, company`. **Cần mạng**: `admin.mjs` và `catalog.mjs` đọc Google Sheet thật; mọi đăng nhập gọi siteverify của Cloudflare, và `turnstile.mjs` kiểm thêm hợp đồng với siteverify thật. Chạy đủ bộ thì bước cuối là `scripts/audit-invariants.mjs --strict`.
-- **Bất biến dữ liệu**: `scripts/audit-invariants.mjs --db local|remote [--strict]` — **chỉ đọc** (`SELECT`/`PRAGMA`), mỗi kiểm `R-N1-*` là một câu SQL đếm dòng vi phạm, thoát mã 1 nếu có.
+- **Bất biến dữ liệu**: `scripts/audit-invariants.mjs --db local|remote [--strict]` — **chỉ đọc** (`SELECT`/`PRAGMA`), mỗi kiểm `R-N1-*` / `R-DSP-*` (người phụ trách đơn) là một câu SQL đếm dòng vi phạm, thoát mã 1 nếu có; mức `warn` (R-DSP-2) chỉ cảnh báo, không bao giờ đỏ.
 - **Kịch bản Chrome thật**: `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-smoke-form.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `a2-cdp.mjs`, `a2-evidence.mjs`, `chrome-wrap.sh`) — **không nằm trong CI**; bắt buộc chạy lại khi sửa `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` (ba tệp này không có kiểm tự động trong repo).
 
 **Môi trường.** Local: `cp .dev.vars.example .dev.vars` (điền `SESSION_SECRET` ≥ 32 ký tự) → `npm run db:migrate:local` → `scripts/create-staff.mjs` in SQL tạo tài khoản → `npm run dev`. Thử trên iPhone thật với D1 tạm: `node scripts/dev-iphone.mjs` (thêm `--tunnel` để có HTTPS tạm, mới có service worker). Production: Cloudflare **không nối GitHub** — `git push` không deploy; quy trình áp migration rồi `wrangler deploy` ngay trong cùng lượt, cổng chỉ-đọc trước khi áp, điểm khôi phục Time Travel, cửa sổ đóng băng thao tác tài khoản và cách hoàn tác: **xem `docs/HANDOFF-N1.md`** (không chép lại ở đây).
@@ -516,7 +525,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 > Mục này là **KẾ HOẠCH — chưa có trong mã**. Các ô tương ứng trong `MATRIX` và vài hành động nhật ký đã có sẵn để khoá bản đồ, nhưng **không route nào dùng**.
 > `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đã quyết đổi ba ô của `SALES` — `order.modify`, `order.history.view`, `dispatch.assign` — từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`; **`MATRIX` ĐÃ đổi** (task 4 của bản v1.0; §8 là hiện trạng) nhưng chưa nơi nào tiêm `ctx.assigned` (việc của module `dispatch`, task 6–7) nên ba ô đó tạm chạy như `own`. Đặc tả ba việc dưới đây: `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`.
 
-- **N2 — phân công / người phụ trách** (ADR-0006): module mới `dispatch`, bảng `dsp_assignment` (+ `dsp_task_kind`, `dsp_assignment_status`, `dsp_call_log`, `dsp_service_progress`). Tiền tố `dsp_` đã được khai sẵn trong `TABLE_PREFIX`/`VIEW_PREFIX` của `src/architecture.test.ts`. Tiền đề bắt buộc: `updateDraftOrder` phải đổi từ "xoá hết rồi chèn lại" sang so khớp theo `id` để `order_service.id` bền. Khi có N2, `OperationContext.assigned` mới có nguồn dữ liệu thật ⇒ các ô `assigned`/`ownOrAssigned` mới có tác dụng.
+- **N2 — phân công / người phụ trách** (ADR-0006): module mới `dispatch`, bảng `dsp_assignment` (+ `dsp_task_kind`, `dsp_assignment_status`, `dsp_call_log`, `dsp_service_progress`). Tiền tố `dsp_` đã được khai sẵn trong `TABLE_PREFIX`/`VIEW_PREFIX` của `src/architecture.test.ts`. **Đã có (migration 0014, bản v1.0):** `dsp_task_kind`, `dsp_assignment_status`, `dsp_assignment`, `v_dsp_order_handler` và backfill người phụ trách cho đơn hiện có; **chưa có:** mã module `dispatch`, `dsp_call_log`, `dsp_service_progress`. Tiền đề bắt buộc: `updateDraftOrder` phải đổi từ "xoá hết rồi chèn lại" sang so khớp theo `id` để `order_service.id` bền. Khi có N2, `OperationContext.assigned` mới có nguồn dữ liệu thật ⇒ các ô `assigned`/`ownOrAssigned` mới có tác dụng.
 - **N3 — sổ thu tiền, hoá đơn, sửa sau xác nhận** (ADR-0004): tiền tố `bil_` đã khai sẵn; các thao tác `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue`, `order.money.edit` đã có trong `MATRIX`, chưa có route.
 - **N4 — giá net HDV/Guide**: cột `Ghi chú nội bộ` của Sheet dịch vụ hiện **cố ý không đọc** (`src/modules/catalog/sheet.ts`).
 
@@ -526,7 +535,7 @@ Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện ch
 |---|---|
 | Cloudflare Turnstile ở màn hình đăng nhập | **Phía máy chủ ĐÃ XONG (task 2):** `src/modules/auth/turnstile.ts` + `POST /api/auth/login` kiểm token trước `verifyPinThrottled`, `GET /api/auth/config`, biến `TURNSTILE_SITE_KEY`/`TURNSTILE_SECRET_KEY` (mục 2 và mục 4). **Còn lại (task 3):** `public/login.html` + `web/login.ts` (gọi `GET /api/auth/config`, dựng widget, gửi `turnstileToken`, `reset()` sau lần thất bại) và **`public/_headers`**: CSP hiện là `script-src 'self'` không có `frame-src` — phải nới cho `challenges.cloudflare.com` thì widget mới chạy. Cân nhắc với `src/shared/sw-policy.ts` (script ngoài origin luôn `pass`, không cache). Khoá site thật thêm vào `vars` của `wrangler.jsonc` lúc deploy. |
 | Bản xác nhận đơn dạng PNG tải xuống | Trang `/order` (`public/order.html`, `web/order.ts`, `web/order-services.ts`) dựng ảnh ngay trong trình duyệt — CSP đã cho `img-src 'self' data: blob:` sẵn cho việc này; mô hình hiển thị lấy từ `src/shared/order-view.ts`; cần route ghi nhật ký cho hành động `exported_png` (đã có trong `AUDIT_ACTIONS` nhưng **không nơi nào dùng**) và có thể một module `exports` mới theo `docs/ARCHITECTURE.md` mục "Thêm một module mới"; thông tin công ty lấy từ `GET /api/company` (module `company`, đã có, chỉ đọc). |
-| Cột "Người phụ trách" ở danh sách đơn | `listOrders` trong `src/modules/orders/repository.ts`, DTO `OrderSummaryDto` trong `src/shared/contracts.ts`, `web/orders.ts`. Nguồn dữ liệu là `dsp_assignment` của N2 — **chưa tồn tại**; đọc tên người phải đi qua view công bố `v_pty_party_label` hoặc `v_stf_staff_label`, không JOIN thẳng bảng của module khác (`src/architecture.test.ts` sẽ đỏ). |
+| Cột "Người phụ trách" ở danh sách đơn | `listOrders` trong `src/modules/orders/repository.ts`, DTO `OrderSummaryDto` trong `src/shared/contracts.ts`, `web/orders.ts`. Nguồn dữ liệu là `dsp_assignment`/`v_dsp_order_handler` (migration 0014 đã có bảng, view và backfill; **chưa có module `dispatch` và API** — kế hoạch bản v1.0, task 6); đọc tên người phải đi qua view công bố `v_pty_party_label` hoặc `v_stf_staff_label`, không JOIN thẳng bảng của module khác (`src/architecture.test.ts` sẽ đỏ). |
 
 ---
 

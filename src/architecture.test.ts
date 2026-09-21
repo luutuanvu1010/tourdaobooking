@@ -21,6 +21,10 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   auth: ["staff"],
   catalog: ["audit"],
   company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
+  // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*.
+  // Mã của module (kế hoạch bản v1.0, task 6) sẽ khai thêm `audit` (auditStatement) và `staff` (danh sách người có thể được giao) khi có import thật.
+  // Lưu ý: view v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL, nên cạnh dispatch → staff đã có trong dữ liệu.
+  dispatch: ["orders", "parties", "locations"],
   locations: ["audit"],
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],

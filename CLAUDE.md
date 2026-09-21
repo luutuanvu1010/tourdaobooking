@@ -46,7 +46,7 @@ src/shared/             logic THUẦN dùng chung server ↔ web: router, http, 
                         order-*, audit-actions, vn-date, sw-policy…  — KHÔNG import src/modules/
 web/                    giao diện TypeScript thuần: 1 tệp / trang + thành phần (counter, banner, service-card, trip-sheet…)
 public/                 HTML tĩnh, app.css (token), fonts/, icons/, manifest; js/ và sw.js do build sinh
-migrations/             0001…0013 (chỉ thêm, không sửa tệp đã áp remote; remote mới tới 0012)
+migrations/             0001…0014 (chỉ thêm, không sửa tệp đã áp remote; remote mới tới 0012)
 scripts/                công cụ dòng lệnh (audit-invariants, import-staff, dev-iphone…)
 tests/e2e/              kịch bản API (run.mjs điều phối)
 docs/                   tài liệu (xem §2)
@@ -93,6 +93,6 @@ docs/                   tài liệu (xem §2)
 - Cột chết `staff.role` (hằng `'sales'`) và `staff.full_name` (hằng `''`): đọc quyền/tên từ `stf_permission`/hồ sơ, không từ hai cột này.
 
 ## 9. Hiện trạng (cập nhật khi đổi)
-- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (kế hoạch); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
+- Đã lên production 2026-09-21: A1 (thông tin chuyến theo dịch vụ, `0008`) + N1 lần 1 (hồ sơ/địa điểm/quyền đa trị, `0009…0012`) + A2 (giao diện). Migration cuối ĐÃ LÊN production: **`0012`**. Trong nhánh bản v1.0 (chưa deploy): `0013_company_email` (đã có), `0014_dispatch` (đã có: bảng/view phân công + backfill người phụ trách; chưa có module `dispatch`); B5 (siết `party_id` bắt buộc, `staff_party_required`) lấy số KẾ TIẾP sau `0014` — trước khi thêm migration mới kiểm `docs/HANDOFF-N1.md` và `docs/superpowers/plans/` rồi đánh số tiếp.
 - Còn mở (chủ dự án): thử tay bằng admin, ghi chữ ký thị giác A2, quyết định 4(a)/(b)/(c) ở HANDOFF-N1. (Gói Workers: **trả phí** — chủ dự án xác nhận 2026-09-21, đơn cỡ tối đa không vướng giới hạn D1.)
 - Lộ trình: N2 (người đặt/khách trên đơn, gộp hồ sơ, phân công/người phụ trách — ADR-0006), N3 (sổ thu tiền, hoá đơn, sửa sau xác nhận), N4 (giá net HDV). Việc đang chờ làm: màn đăng nhập v1.0 (Turnstile phía máy chủ + `GET /api/company` + `app-info` ĐÃ có trong nhánh, còn giao diện `web/login.ts` + CSP); xác nhận đơn dạng PNG; cột "Người phụ trách" ở danh sách đơn (đặc tả/kế hoạch mới nhất ở `docs/superpowers/`).

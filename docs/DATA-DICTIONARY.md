@@ -28,6 +28,15 @@
 |---|---|---|
 | `company_profile` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 
+## dispatch
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `dsp_assignment` | bảng |  |
+| `dsp_assignment_status` | bảng tra cứu |  |
+| `dsp_task_kind` | bảng tra cứu |  |
+| `v_dsp_order_handler` | view công bố | cột: order_id, party_id, staff_id, label, since |
+
 ## locations
 
 | Đối tượng | Loại | Ghi chú |
