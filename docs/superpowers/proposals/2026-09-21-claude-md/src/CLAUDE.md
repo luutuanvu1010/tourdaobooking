@@ -18,7 +18,7 @@
 ## Quyền và bảo mật
 - Mặc định từ chối. Route khai `access: "public" | "staff" | "office" | "admin"`; bản đồ quyền → thao tác ở **một** nơi: `src/shared/permissions.ts` (`can(staff, op, ctx)`). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại.
 - Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép (`architecture.test.ts` bắt mọi tệp ngoài `parties` nhắc `pty_party_role`).
-- Nhật ký (`audit_log`): hành động khai ở `src/shared/audit-actions.ts` (có nhãn tiếng Việt); **không ghi SĐT/email/MST**. Đã biết một vi phạm sống: `staff_updated` ở `src/modules/accounts/index.ts` (route `PATCH /api/staff/:id`) ghi SĐT — quyết định 4(b) chờ chủ (`docs/HANDOFF-N1.md`), đừng tự sửa và đừng lặp lại kiểu đó.
+- Nhật ký (`audit_log`): hành động khai ở `src/shared/audit-actions.ts` (có nhãn tiếng Việt); **không ghi SĐT/email/MST**. `staff_updated` (`src/modules/accounts/index.ts`, route `PATCH /api/staff/:id`) từng ghi SĐT; đã sửa 2026-09-21 (chỉ ghi "đổi SĐT đăng nhập"), test ở `patch-staff.test.ts`. Nhật ký cũ trên production vẫn còn số (chỉ-thêm) — đừng lặp lại kiểu cũ.
 
 ## Dữ liệu
 - Tiền `INTEGER` VNĐ; số dẫn xuất (`line_total`, `subtotal`, `total`, `remaining_amount`) chỉ tính ở server. Ngày/giờ dân sự theo giờ VN (`vnToday(new Date())` truyền vào SQL làm tham số, **không** `date('now')`); dấu thời gian `TEXT` ISO UTC.

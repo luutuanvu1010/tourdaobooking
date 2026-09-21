@@ -127,3 +127,37 @@ test("PATCH chỉ đổi tên (không có câu chốt): tên đổi, một dòng
   assert.equal(one(sqlite, "SELECT given_name FROM pty_person WHERE party_id = 'pty-s-two'"), "An");
   assert.deepEqual(auditActions(sqlite), ["staff_updated"]);
 });
+
+// Luật "nhật ký KHÔNG ghi SĐT/email/MST" (CLAUDE.md §5, đặc tả N1 §7.2; câu 4(b) ở docs/HANDOFF-N1.md — chủ chốt 2026-09-21: SỬA).
+// Kiểm trên CHÍNH câu lệnh route dựng, nên nếu ai đưa số vào chi tiết nhật ký lần nữa thì bài này đỏ.
+const PHONE_LIKE = /(?:\+84|0)[3-9]\d{8}\b/;
+// Người kiểm độc lập (2026-09-21) chỉ ra regex trên bỏ lọt `84901000099`, `0901 000 099`, `0901.000.099`: nên so trên CHỮ SỐ thuần (bỏ mọi ký tự khác)
+// và trên phần số quốc gia không có số 0 đầu ("901000099") — bắt được mọi dạng viết (0…, +84…, 84…, có dấu cách/chấm/gạch).
+const digitsOf = (s: string): string => s.replace(/\D/g, "");
+const assertNoPhoneDigits = (detail: string, ...phones: string[]): void => {
+  const d = digitsOf(detail);
+  for (const p of phones) assert.ok(!d.includes(digitsOf(p).replace(/^0/, "")), `nhật ký chứa chữ số của SĐT ${p}: ${detail}`);
+  assert.ok(!/\d{9,}/.test(d), `nhật ký chứa dãy từ 9 chữ số trở lên (có thể là SĐT/MST): ${detail}`);
+};
+const detailsOf = (sqlite: DatabaseSync, action: string): string[] =>
+  (sqlite.prepare("SELECT detail FROM audit_log WHERE action = ? ORDER BY rowid").all(action) as { detail: string | null }[]).map((r) => r.detail ?? "");
+
+test("PATCH đổi SĐT: nhật ký staff_updated KHÔNG chứa SĐT cũ lẫn mới (chỉ nói có đổi SĐT đăng nhập)", async () => {
+  const sqlite = seed();
+  await run(sqlite, account("s-two", "Trần Văn Bình", "0901000002"), { phone: "0901000099" }, false);
+  const details = detailsOf(sqlite, "staff_updated");
+  assert.equal(details.length, 1, "vẫn đúng một dòng nhật ký");
+  assert.doesNotMatch(details[0]!, PHONE_LIKE, `nhật ký không được chứa số điện thoại: ${details[0]}`);
+  assertNoPhoneDigits(details[0]!, "0901000002", "0901000099");
+  assert.match(details[0]!, /SĐT đăng nhập/, "vẫn phải nói rõ có đổi SĐT đăng nhập để admin đọc hiểu");
+});
+
+test("PATCH đổi tên + SĐT: nhật ký giữ 'tên cũ → tên mới' nhưng không ghi số", async () => {
+  const sqlite = seed();
+  await run(sqlite, account("s-two", "Trần Văn Bình", "0901000002"), { fullName: "Trần Bình An", phone: "0901000099" }, false);
+  const [detail] = detailsOf(sqlite, "staff_updated");
+  assert.match(detail!, /Trần Văn Bình.*→.*Trần Bình An/, "phần đổi tên vẫn được ghi");
+  assert.doesNotMatch(detail!, PHONE_LIKE);
+  assertNoPhoneDigits(detail!, "0901000002", "0901000099");
+  assert.match(detail!, /SĐT đăng nhập/);
+});
