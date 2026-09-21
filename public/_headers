@@ -1,6 +1,6 @@
 # Header bảo mật cho trang tĩnh (Workers Assets). API /api/* đi qua Worker, không dùng file này.
 # script chỉ từ chính trang (không inline, không CDN) + duy nhất https://challenges.cloudflare.com cho widget Turnstile ở màn đăng nhập (web/login.ts chỉ tải khi máy chủ báo có khoá).
-# Turnstile cần đúng ba chỗ: script-src (api.js), frame-src (khung widget), connect-src; style-src/img-src KHÔNG phải nới (đã thử bằng Chrome thật: kịch bản v1-dang-nhap.mjs bước g).
+# Turnstile cần đúng ba chỗ: script-src (api.js), frame-src (khung widget; chỉ Cloudflare nên khung cùng nguồn cũng bị chặn — app không có iframe nào), connect-src; style-src/img-src KHÔNG phải nới (đã thử bằng Chrome thật: kịch bản v1-dang-nhap.mjs bước g).
 # style cho phép inline vì các trang dùng thuộc tính style=.
 # img cho phép data:/blob: để dựng ảnh xác nhận (PNG) ngay trong trình duyệt.
 /*

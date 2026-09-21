@@ -266,7 +266,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Ô gõ 16px (chống zoom iOS). Không `innerHTML` (dựng bằng `h()` ở `web/dom.ts`).
 
 **CSP (`public/_headers`, một chính sách chung cho MỌI trang tĩnh):**
-- Mở nguồn ngoài chỉ khi có lý do, đúng directive tối thiểu. Hiện có DUY NHẤT `https://challenges.cloudflare.com` cho Turnstile ở màn đăng nhập: `script-src`, `frame-src`, `connect-src`. `style-src`/`img-src` KHÔNG cần nới (đã đo bằng Chrome thật; `style-src` vốn có `'unsafe-inline'`). Không có `frame-src` thì `default-src 'self'` chặn khung widget.
+- Mở nguồn ngoài chỉ khi có lý do, đúng directive tối thiểu. Hiện có DUY NHẤT `https://challenges.cloudflare.com` cho Turnstile ở màn đăng nhập: `script-src`, `frame-src`, `connect-src`. `style-src`/`img-src` KHÔNG cần nới (đã đo bằng Chrome thật; `style-src` vốn có `'unsafe-inline'`). Không có `frame-src` thì `default-src 'self'` chặn khung widget. Chú ý `frame-src` chỉ liệt kê Cloudflare nên khung cùng nguồn (`'self'`) cũng bị chặn — hiện app không dùng iframe nào (`grep -rn iframe public web`); cần khung cùng nguồn thì thêm `'self'` vào `frame-src`.
 - Vi phạm CSP KHÔNG hiện ở `console.error` mà ở miền `Log` của CDP: dùng `logEntries` của `openPage()` (`a2-cdp.mjs`). Kiểm bằng `v1-dang-nhap.mjs` (bước b khẳng định header, bước g khẳng định không có vi phạm ở trình duyệt) — CSP chỉ có khi trang được phục vụ qua Workers Assets (`wrangler dev`/production), không có ở `file://`.
 - Nguồn ngoài mới thì thêm test cạnh khối Cloudflare ở `src/shared/sw-policy.test.ts` (service worker chỉ cache cùng nguồn; bài đó là hàng rào).
 
