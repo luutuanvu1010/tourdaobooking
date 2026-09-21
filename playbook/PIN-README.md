@@ -1,6 +1,6 @@
 # PIN-README — bản chép chỉ-đọc của playbook (Lớp 1)
 
-> **CHỈ ĐỌC.** Thư mục này là bản CHÉP của `playbook/` do Core sở hữu, không phải nơi soạn luật. **Đừng sửa tay; AI không được sửa** (Hiến pháp N9). Quyết định và lý do: `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (đề xuất, chờ chủ dự án duyệt).
+> **CHỈ ĐỌC.** Thư mục này là bản CHÉP của `playbook/` do Core sở hữu, không phải nơi soạn luật. **Đừng sửa tay; AI không được sửa** (Hiến pháp N9). Quyết định và lý do: `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` (accepted, chủ dự án chuyển 2026-09-22).
 
 ## Nguồn
 | Mục | Giá trị |
