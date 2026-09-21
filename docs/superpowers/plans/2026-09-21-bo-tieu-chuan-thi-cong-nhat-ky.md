@@ -7,7 +7,7 @@
 |---|---|---|
 | 2026-09-21 | Duyệt đặc tả v3.1; bắt đầu chép `playbook/`; "không tự suy diễn, hỏi ngay khi mơ hồ hoặc cần thông tin" | chủ dự án (quyết định 29) |
 | 2026-09-21 | Số ADR ghim playbook = **0011** (ADR-0010 đã có ở nhánh `worktree-doi-chieu-oracle-tca`, chưa gộp; nhánh đó cũng có migration `0017` và dời B5 sang `0018`) | chủ dự án (quyết định 30, lần một — bị thay ngay dưới) |
-| 2026-09-21 | Số ADR ghim playbook đổi thành **0012**: nhánh Oracle TCA gộp vào `main` (PR #5, #6) và chiếm cả 0010 lẫn 0011 (`ADR-0011-khach-tren-don-ngoai-le-quyen`); chủ chọn "ADR-0012 (Khuyến nghị)" | chủ dự án (quyết định 30, lần hai) |
+| 2026-09-21 | Số ADR ghim playbook đổi thành **0012**: nhánh Oracle TCA gộp vào `main` (PR #5) và chiếm cả 0010 lẫn 0011 (`ADR-0011-khach-tren-don-ngoai-le-quyen`); chủ chọn "ADR-0012 (Khuyến nghị)" | chủ dự án (quyết định 30, lần hai) |
 | 2026-09-21 | Cây Core **chưa xác nhận sạch**: chép nguyên hiện trạng, `PIN-README` ghi "CHƯA xác nhận cây sạch" | chủ dự án (quyết định 31) |
 | 2026-09-21 | `init-project.sh` chép nguyên nội dung, **bỏ bit thực thi (0644)** | chủ dự án (quyết định 32) |
 | 2026-09-21 | Đường chép `playbook/` được chủ ghi nhận ("ghi nhận bằng câu trả lời này, AI chép sau") — N9 | chủ dự án (quyết định 25) |

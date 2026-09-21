@@ -15,7 +15,7 @@
 - Nguồn: `/Users/tuanbao/Documents/Projects/CoreSchemaProject/playbook/` — HEAD `65a3c2b25d9f01b4deaefe1bd81e559aa8fd50e8`, Hiến pháp **v2.3.0**, GOVERNANCE **v1.0.0**, CHANGELOG cao nhất **3.3.1 (2026-08-23)**. Chỉ **ĐỌC** từ Core: tuyệt đối không ghi, không chạy git ghi ở đó.
 - Chép **nguyên byte 43 tệp** (250.827 byte); **loại** `archive/` và `CLAUDE.md` của Core; `init-project.sh` chép nguyên nội dung nhưng **bỏ bit thực thi (0644)** (quyết định 32). Không sửa nội dung bất kỳ tệp Core nào được chép (kể cả `[NEEDS HUMAN DECISION]`).
 - **Cây làm việc của Core CHƯA xác nhận sạch** (quyết định 31): `PIN-README.md` phải ghi đúng câu này, không được viết "sạch".
-- Số ADR là **0012** (quyết định 30, chủ chốt lần hai). 0010 và 0011 đã thuộc `main` (PR #5, #6): không đụng chúng, không tạo hàng 0010/0011 trong README của mình.
+- Số ADR là **0012** (quyết định 30, chủ chốt lần hai). 0010 và 0011 đã thuộc `main` (PR #5): không đụng chúng, không tạo hàng 0010/0011 trong README của mình.
 - KHÔNG đụng: `migrations/`, `src/modules/**`, `src/architecture.test.ts`, `docs/data-dictionary.json`, `CLAUDE.md` gốc. **Không** `git push`, merge, `wrangler`, ghi D1/production. Không `git -C` sang repo khác (bộ chặn từ chối); đọc Core bằng đường dẫn tuyệt đối.
 - Tiếng Việt CÓ DẤU cho mọi văn bản, thông báo lỗi, commit. Tệp dài viết bằng công cụ Write (bộ chặn từ chối heredoc dài); thông điệp commit qua `git commit -F <tệp>`.
 - P16: mọi cơ chế kiểm mới phải được **quan sát đỏ** rồi hoàn nguyên (Task 2, Step 12); ghi kết quả thật vào nhật ký thi công.
@@ -64,7 +64,7 @@
 - Dòng dõi Hiến pháp trên máy của chủ dự án (đối chiếu bằng băm và đọc tệp, 2026-09-21): `CoreSchemaProject/playbook` và `pt-hdv/playbook` là **v2.3.0** (P1–P21, N1–N10); `tourdaovn`, `nhatrangtravel`, `Aquanova`, `Master-Project-Framework` là v2.2.0 (P1–P13, N1–N7); `ketoanvn/CONSTITUTION.md` là v3.1.0, văn bản khác hẳn. `CoreSchemaProject/playbook/.PINNED_VERSION` ghi rằng từ 2026-08-21 **Core sở hữu lớp luật** (ADR-0027 của Core, chủ dự án chốt) và nhãn "bản pin của `nhatrangtravel`" là sai. Các điều mà repo này đã viện dẫn **giữ nguyên số hiệu** ở v2.3.0.
 - Đặc tả v1 của bộ tiêu chuẩn từng đề xuất chép từ `tourdaovn` (v2.2.0) theo nhãn nguồn cũ; đã đổi sang Core sau rà soát độc lập và sau khi chủ dự án chọn lại (ghi theo P5).
 - Ràng buộc từ Hiến pháp: 9.7 (tầng dự án chỉ được siết thêm, không định nghĩa lại hay nới); README của playbook ("đừng sửa Hiến pháp trong repo dự án"); N7 (không hai nguồn sự thật); N3 (AI không tự ra luật tối cao); N9 (AI không tự tay sửa luật chi phối chính mình; được chép nguyên văn văn bản chủ đã phê chuẩn theo đường mà ràng buộc cấp dự án quy định).
-- Chủ dự án chọn (2026-09-21): ghim **bản sao chỉ-đọc từ Core**, chép toàn bộ trừ `archive/` và `CLAUDE.md` của Core; **không viết Hiến pháp mới**; ghi nhận đường chép bằng câu trả lời "ghi nhận bằng câu trả lời này, AI chép sau"; đánh số ADR này là 0012 vì 0010 và 0011 đã thuộc `main` (PR #5, #6).
+- Chủ dự án chọn (2026-09-21): ghim **bản sao chỉ-đọc từ Core**, chép toàn bộ trừ `archive/` và `CLAUDE.md` của Core; **không viết Hiến pháp mới**; ghi nhận đường chép bằng câu trả lời "ghi nhận bằng câu trả lời này, AI chép sau"; đánh số ADR này là 0012 vì 0010 và 0011 đã thuộc `main` (PR #5).
 
 ## Quyết định
 1. Ghim một **bản sao chỉ-đọc** `playbook/` ở gốc repo, chép nguyên byte từ `CoreSchemaProject/playbook` (Hiến pháp v2.3.0, Governance v1.0.0), **trừ** `archive/` và `CLAUDE.md` của Core; `init-project.sh` chép nguyên nội dung nhưng bỏ bit thực thi.
@@ -106,7 +106,7 @@ bằng:
 
 `Mẫu: `playbook/templates/03-ADR-0001-template.md` (bản chép chỉ-đọc của Core, xem ADR-0012; ở đó ADR nằm ở `project/adr/`, dự án này đặt ở `docs/adr/`).`
 
-- [ ] **Step 3: Thêm hàng 0012 vào bảng** — ngay SAU hàng bắt đầu bằng `| [0011](` (trên `main` đã có hàng 0010 và 0011 của PR #5/#6; giữ nguyên chúng), thêm đúng một hàng:
+- [ ] **Step 3: Thêm hàng 0012 vào bảng** — ngay SAU hàng bắt đầu bằng `| [0011](` (trên `main` đã có hàng 0010 và 0011 của PR #5; giữ nguyên chúng), thêm đúng một hàng:
 
 `| [0012](ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md) | Neo Hiến pháp bằng bản chép chỉ-đọc từ Core (v2.3.0) vào `playbook/`, kèm băm và bài kiểm; không viết Hiến pháp mới; tầng ràng buộc dự án (Lớp 2) chỉ siết thêm | hai chiều (tệp) / bánh cóc (nghĩa vụ) | **proposed** (chờ chủ dự án) |`
 
