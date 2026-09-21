@@ -138,6 +138,8 @@ Thông điệp (tạo tệp `commit-msg-t1-adr.txt` bằng Write trước): tiê
 
 ### Task 2: Chép `playbook/`, `PIN-README.md`, manifest và bài kiểm chống trôi
 
+> **Đã thi công, đã kiểm và đã sửa một vòng (2026-09-21).** Văn bản `PIN-README.md` (Step 7) và mã bài kiểm (Step 3) dưới đây là **bản soạn gốc**; sau kiểm độc lập chúng được sửa ở tệp thật: (a) PIN-README nói `init-project.sh` tạo thư mục "cạnh thư mục cha của repo" là SAI — nó tạo ngay trong gốc repo, cạnh `playbook/` (`init-project.sh` dòng 7–8); (b) con số "11 tệp treo" và cách mô tả được đo lại theo từng loại tham chiếu, kèm `project/`; (c) bỏ hai ngoặc kép giả trích dẫn; (d) bài bit thực thi nay đòi "không tệp nào dưới `playbook/` có bit thực thi"; (e) bài `.gitattributes` nay kiểm cả hiệu lực bằng `git check-attr`. **Bản có hiệu lực là các TỆP trong repo (`playbook/PIN-README.md`, `src/standards.test.ts`), không phải đoạn dưới.** Đừng chép lại đoạn dưới đè lên tệp.
+
 **Files:**
 - Create: `scripts/playbook-manifest-lib.mjs`, `scripts/pin-playbook-manifest.mjs`
 - Create: `src/standards.test.ts`
