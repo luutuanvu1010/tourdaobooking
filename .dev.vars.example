@@ -11,3 +11,4 @@ SESSION_SECRET=
 # Có secret mà thiếu khoá site thì đăng nhập bị chặn hẳn (trang không dựng được widget) — luôn đặt đủ cả hai.
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
+# TÊN BIẾN PHẢI ĐÚNG như hai dòng trên (TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY): mã chỉ đọc đúng hai tên này; tên khác (vd CLOUDFLARE_…) bị bỏ qua lặng lẽ.

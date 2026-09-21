@@ -12,9 +12,8 @@ export const TURNSTILE_VERIFY_URL = "https://challenges.cloudflare.com/turnstile
 export const TURNSTILE_TIMEOUT_MS = 5000;
 /**
  * Token Turnstile dài tối đa 2048 ký tự; dài hơn coi là sai nên không tốn một lời gọi mạng.
- * ⚠ ĐÂY LÀ NGƯỠNG GIẢ ĐỊNH từ tài liệu Cloudflare, CHƯA đối chiếu được (lúc viết không có mạng). Phải đối chiếu với tài liệu hiện hành của
- * Cloudflare và với token do widget THẬT của booking.tourdao.vn cấp TRƯỚC khi đặt khoá thật ở production: nếu token thật dài hơn ngưỡng này thì MỌI lần đăng nhập
- * sẽ bị 403 `turnstile_failed` (chi tiết `missing_token`) mà không hề gọi Cloudflare. Khoá thử của Cloudflare (dùng ở dev/e2e) cấp token ngắn nên không bắt được lỗi này.
+ * ĐÃ ĐỐI CHIẾU 2026-09-21 với tài liệu Cloudflare (https://developers.cloudflare.com/turnstile/get-started/server-side-validation/, mục đặc điểm của token: "Maximum length: 2048 characters"): khớp ngưỡng này. Vẫn nên xem log ngay sau khi bật khoá thật ở production
+ * (`turnstile_failed` kèm `missing_token` hàng loạt = ngưỡng hoặc máy khách sai); khoá thử của Cloudflare cấp token ngắn nên e2e không bắt được lỗi loại này.
  * Giá trị KHÔNG đổi ở đây; muốn đổi thì sửa hằng số này và kiểm `turnstile.test.ts` (ca 2048 / 2049 ký tự).
  */
 export const MAX_TOKEN_LENGTH = 2048;
