@@ -3,7 +3,7 @@
 > Đối chiếu với mã tại `84a0de5` (2026-09-21, nhánh `worktree-tai-lieu-nen-tang`, đã gồm cả ba việc của bản v1.0; các commit sau chỉ đổi tài liệu và một dòng chú thích ở `src/shared/order-view.ts`). Bản dựng đầu của tài liệu này đối chiếu với `6226539`.
 > Tệp này KHÔNG giải thích kiến trúc (xem `docs/ARCHITECTURE.md`, `docs/SYSTEM-DESIGN.md`). Nó chỉ trả lời: **muốn đổi X thì sửa tệp nào, theo thứ tự nào, chạy kiểm gì, tránh bẫy nào.**
 > Ký hiệu ghi bằng TÊN, không ghi số dòng — tìm bằng `grep -rn "<ký hiệu>" src web`.
-> Mã thắng tài liệu: thấy lệch thì sửa tài liệu trong cùng commit (`CLAUDE.md` §6–7).
+> Mã thắng tài liệu: thấy lệch thì sửa tài liệu trong cùng commit (`CLAUDE.md` §2 và §9).
 
 ## 0. Cách dùng
 
@@ -59,7 +59,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma t
 
 ## 2. Các công thức
 
-Quy ước: **Kiểm** = lệnh chạy sau khi sửa. Phép kiểm mới viết ĐỎ trước, XANH sau (`CLAUDE.md` §5). Test nằm kề tệp: `src/**/X.test.ts`.
+Quy ước: **Kiểm** = lệnh chạy sau khi sửa. Phép kiểm mới viết ĐỎ trước, XANH sau (`CLAUDE.md` §7). Test nằm kề tệp: `src/**/X.test.ts`.
 
 ### a1. Thêm trường vào ĐƠN (cấp đơn)
 
@@ -551,7 +551,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 1. Cổng chỉ-đọc trên D1 remote (kỳ vọng 0 dòng) + ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".
-4. Sau deploy: `node scripts/audit-invariants.mjs --db remote` (chạy SAU khi đã áp `0014`; D1 chưa có `dsp_*` thì thoát mã 2 = không chạy được); `curl -sI https://booking.tourdao.vn/sw.js` (`no-store`); ghi trạng thái vào `docs/HANDOFF-N1.md` và `CLAUDE.md` §9.
+4. Sau deploy: `node scripts/audit-invariants.mjs --db remote` (chạy SAU khi đã áp `0014`; D1 chưa có `dsp_*` thì thoát mã 2 = không chạy được); `curl -sI https://booking.tourdao.vn/sw.js` (`no-store`); ghi trạng thái vào `docs/HANDOFF-N1.md` (không ghi hiện trạng vào `CLAUDE.md`).
 5. Lần phát hành có `0015`+`0016` (cột `last_login_at` + chế độ bảo trì; cả hai chỉ THÊM): theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp (0015 + 0016)" — áp rồi `wrangler deploy` NGAY; chế độ bảo trì KHÔNG tự bật (gieo TẮT), chỉ bật sau khi cột "Đăng nhập gần nhất" cho thấy mọi người đã đăng nhập bằng bản mới. `audit-invariants --db remote` chạy SAU khi đã áp `0016` (không có bất biến riêng cho `mnt_setting`).
 6. Lần phát hành v1.0 có thêm Turnstile: theo `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0" — khoá site vào `vars` trước, **deploy MÃ trước khi đặt `TURNSTILE_SECRET_KEY`** (service worker cache `login.js` cũ trên iPhone đã cài PWA), để nhân viên mở app một lần, rồi `wrangler secret put` và kiểm `GET /api/auth/config` khác `null`.
 

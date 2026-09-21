@@ -30,4 +30,4 @@
 Chỉ thêm tệp mới, không sửa tệp đã áp remote; đổi phá vỡ theo expand–contract trong **hai** lần phát hành. Kiểm số migration ở mọi nhánh chưa gộp trước khi đặt số (xem `CLAUDE.md` §10).
 
 ## Kiểm thử
-Sửa hành vi → test đỏ trước, xanh sau. Luật thuần: `*.test.ts` cạnh tệp. Bất biến dữ liệu: `scripts/audit-checks.mjs` (mã `R-N1-*`, `R-DSP-*`; test ở `src/audit-invariants.test.ts`). `npm run typecheck` không phủ tệp test — tự đọc lại tệp test mới.
+Sửa hành vi → test đỏ trước, xanh sau. Luật thuần: `*.test.ts` cạnh tệp. Bất biến dữ liệu: `scripts/audit-checks.mjs` (mã `R-N1-*`, `R-DSP-*`; test ở `src/audit-invariants.test.ts`). `npm run typecheck` không phủ tệp test — tự đọc lại tệp test mới. Tệp thuần dùng cả ở giao diện (`src/shared/order-confirmation.ts`, `text-wrap.ts`, `handler-view.ts`…): sửa chúng thì cũng chạy lại kịch bản Chrome tương ứng ở bảng trong `web/CLAUDE.md`.
