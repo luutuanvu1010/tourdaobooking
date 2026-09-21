@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, manualService, session, sql } from "./lib.mjs";
+import { ACCOUNTS, call, login, manualService, randomPhone, session, sql } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
+const ACC = await session(ACCOUNTS.accountant);
+const FIELD = await session(ACCOUNTS.field);
 
 // chưa đăng nhập
 assert.equal((await call(null, "GET", "/api/orders")).status, 401);
@@ -159,4 +161,126 @@ for (let round = 0; round < 3; round++) {
   assert.equal(hist.length, 1 + wins, `nhật ký phải khớp số thao tác thắng: ${hist} / ${c1.status},${c2.status}`);
 }
 console.log("✓ thao tác thua khi tranh chấp không ghi nhật ký");
+
+// NGƯỜI PHỤ TRÁCH SỬA ĐƯỢC ĐƠN (ADR-0009): người phụ trách (khác người lập) làm được đúng những gì người lập làm được — sửa nháp ĐỦ (dịch vụ, số khách, tiền),
+// xác nhận, huỷ, sửa thông tin chuyến sau xác nhận, xem nhật ký; người lập KHÔNG mất quyền khi đã giao lại; SALES khác / kế toán / FIELD vẫn 403;
+// `order.money.edit` không mở (sau xác nhận số khách/dịch vụ/tiền vẫn khoá với người phụ trách). Hàm "được giao" do gốc lắp ráp tiêm vào ctx (không import dispatch).
+const me = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
+const bId = (await me(Bc)).id;
+const cPhone = randomPhone();
+r = await call(ADMIN, "POST", "/api/staff", { fullName: `Người Ngoài ${Date.now().toString(36)}`, phone: cPhone, permissions: ["SALES"] });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const Cx = (await login(cPhone, r.body.pin)).cookie; // SALES không liên quan tới đơn nào ở dưới (trừ ca đổi người phụ trách)
+const cId = r.body.staff.id;
+const mkOrder = async () => {
+  const x = await call(A, "POST", "/api/orders", input);
+  assert.equal(x.status, 201, JSON.stringify(x.body));
+  return x.body.order;
+};
+const assign = async (cookie, order, staffId) => {
+  const x = await call(cookie, "PUT", `/api/orders/${order.id}/handler`, { staffId });
+  assert.equal(x.status, 200, JSON.stringify(x.body));
+};
+const detail = async (cookie, order) => (await call(cookie, "GET", `/api/orders/${order.id}`)).body;
+const putOrder = (cookie, order, extra) => call(cookie, "PUT", `/api/orders/${order.id}`, { ...input, ...extra, expectedUpdatedAt: order.updatedAt });
+const setStatus = (cookie, order, status) => call(cookie, "POST", `/api/orders/${order.id}/status`, { status });
+const tripOf = (sv) => ({
+  departDate: sv.departDate ?? "", departTime: sv.departTime ?? "", pickupTime: sv.pickupTime ?? "", pickupPlace: sv.pickupPlace ?? "",
+  checkinDate: sv.checkinDate ?? "", checkinTime: sv.checkinTime ?? "", checkinPlace: sv.checkinPlace ?? "", note: sv.note ?? "",
+});
+const putTrip = (cookie, order, changes = {}, extra = {}) =>
+  call(cookie, "PUT", `/api/orders/${order.id}/trip`, { expectedUpdatedAt: order.updatedAt, services: [{ id: order.services[0].id, ...tripOf(order.services[0]), ...changes, ...extra }], ...extra });
+const lastAction = async (cookie, order) => (await detail(cookie, order)).history.at(-1);
+
+// --- trước khi được giao: B chỉ là người ngoài
+let h = await mkOrder();
+assert.equal((await detail(Bc, h)).canModify, false);
+assert.equal((await putOrder(Bc, h, {})).status, 403);
+await assign(A, h, bId); // người lập giao cho B
+// canModify + nhật ký đúng cho từng người (cờ ở giao diện và kiểm ở máy chủ dùng CÙNG một giá trị "được giao")
+for (const [label, cookie, canModify, sees] of [
+  ["người phụ trách (B)", Bc, true, true], ["người lập đã giao lại (A)", A, true, true], ["quản trị", ADMIN, true, true],
+  ["kế toán", ACC, false, true], ["SALES khác", Cx, false, false],
+]) {
+  const d = await detail(cookie, h);
+  assert.equal(d.canModify, canModify, `${label}: canModify`);
+  assert.equal(d.history.length > 0, sees, `${label}: thấy nhật ký`);
+}
+assert.equal((await call(FIELD, "GET", `/api/orders/${h.id}`)).status, 403, "FIELD không dùng màn hình đơn");
+assert.deepEqual((await detail(Bc, h)).history.map((x) => x.action), ["created", "order_handler_changed"], "người phụ trách xem cả dòng đổi người");
+
+// --- người phụ trách sửa đơn NHÁP đủ: đổi dịch vụ, số khách, giảm giá, cọc — máy chủ tính lại tiền
+const bigger = { services: [svc([{ description: "Tour Bãi Tranh", quantity: 4, unitPrice: 300000 }, { description: "Áo phao", quantity: 2, unitPrice: 50000 }], { pax: { adult: 4 } })], discount: 50000, depositAmount: 100000, depositMethod: "cash" };
+r = await putOrder(Bc, h, bigger);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.subtotal, r.body.order.total, r.body.order.remainingAmount], [4, 1300000, 1250000, 1150000], "dịch vụ, số khách và tiền do máy chủ tính lại");
+assert.equal(lines(r.body.order).length, 2);
+h = r.body.order;
+let last = await lastAction(Bc, h);
+assert.deepEqual([last.action, last.staffName], ["updated", "NV Bán B (test)"], "nhật ký ghi đúng người phụ trách đã sửa");
+// người lập (đã giao lại) VẪN sửa được
+r = await putOrder(A, h, { ...bigger, customerNote: "người lập vẫn sửa được" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+h = r.body.order;
+assert.equal(h.customerNote, "người lập vẫn sửa được");
+// người khác / kế toán / FIELD: 403 ở mọi thao tác sửa; không gì đổi
+for (const [label, cookie] of [["SALES khác", Cx], ["kế toán", ACC], ["FIELD", FIELD]]) {
+  for (const [what, res] of [
+    ["PUT đơn", await putOrder(cookie, h, bigger)], ["xác nhận", await setStatus(cookie, h, "confirmed")], ["huỷ", await setStatus(cookie, h, "cancelled")], ["PUT chuyến", await putTrip(cookie, h, { note: "chui" })],
+  ]) assert.equal(res.status, 403, `${label} ${what} → ${res.status}`);
+}
+assert.deepEqual((await detail(A, h)).order.updatedAt, h.updatedAt, "bị từ chối thì không đổi gì");
+
+// --- người phụ trách XÁC NHẬN đơn
+r = await setStatus(Bc, h, "confirmed");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.status, "confirmed");
+h = r.body.order;
+last = await lastAction(A, h);
+assert.deepEqual([last.action, last.staffName], ["confirmed", "NV Bán B (test)"]);
+
+// --- sau xác nhận: sửa THÔNG TIN CHUYẾN được (order.trip.edit); số khách/dịch vụ/tiền vẫn KHOÁ (order.money.edit không mở)
+assert.equal((await putOrder(Bc, h, bigger)).status, 409, "PUT cả đơn sau xác nhận vẫn 409 (như người lập)");
+assert.equal((await putOrder(Bc, h, bigger)).body.error.code, "not_editable");
+// cố lách qua PUT /trip bằng số khách, dịch vụ, tiền: các trường thừa bị bỏ qua, chỉ trường chuyến đổi
+r = await putTrip(Bc, h, { pickupPlace: "KS người phụ trách chỉnh" }, { pax: { adult: 9 }, items: [{ description: "lách", quantity: 1, unitPrice: 1 }], total: 1, discount: 999999, name: "Đổi tên" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.services[0].pickupPlace, "KS người phụ trách chỉnh");
+assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.total, r.body.order.discount, r.body.order.services[0].name], [4, h.total, h.discount, h.services[0].name], "số khách/tiền/tên dịch vụ không đổi");
+assert.deepEqual(lines(r.body.order).map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal]), lines(h).map((i) => [i.description, i.quantity, i.unitPrice, i.lineTotal]));
+h = r.body.order;
+last = await lastAction(Bc, h);
+assert.deepEqual([last.action, last.staffName], ["trip_updated", "NV Bán B (test)"]);
+r = await putTrip(A, h, { note: "người lập chỉnh sau khi đã giao lại" }); // người lập vẫn sửa được chuyến
+assert.equal(r.status, 200, JSON.stringify(r.body));
+h = r.body.order;
+for (const [label, cookie] of [["SALES khác", Cx], ["kế toán", ACC], ["FIELD", FIELD]]) assert.equal((await putTrip(cookie, h, { note: "chui" })).status, 403, `${label} PUT chuyến`);
+
+// --- người phụ trách HUỶ đơn đã xác nhận; sau huỷ không sửa được gì nữa
+r = await setStatus(Bc, h, "cancelled");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.order.status, "cancelled");
+assert.deepEqual((await lastAction(Bc, r.body.order)).staffName, "NV Bán B (test)");
+assert.equal((await putTrip(Bc, r.body.order, { note: "sau huỷ" })).status, 409);
+assert.equal((await setStatus(Bc, r.body.order, "confirmed")).status, 409);
+console.log("✓ người phụ trách (khác người lập) sửa nháp đủ, xác nhận, sửa chuyến, huỷ; người lập vẫn được; SALES khác/kế toán/FIELD 403; số khách/dịch vụ/tiền vẫn khoá sau xác nhận");
+
+// --- người phụ trách huỷ thẳng đơn NHÁP; và MẤT quyền ngay khi bị đổi người (quyền đi theo người phụ trách HIỆN TẠI, không theo người từng phụ trách)
+const h2 = await mkOrder();
+await assign(A, h2, bId);
+r = await setStatus(Bc, h2, "cancelled");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const h3 = await mkOrder();
+await assign(A, h3, bId);
+assert.equal((await putOrder(Bc, h3, { customerNote: "B còn là người phụ trách" })).status, 200);
+await assign(A, h3, cId); // A đổi sang Cx
+const h3now = (await detail(Cx, h3)).order;
+assert.equal((await detail(Bc, h3)).canModify, false, "B không còn là người phụ trách → hết quyền");
+assert.equal((await detail(Bc, h3)).history.length, 0, "và không xem được nhật ký");
+assert.equal((await putOrder(Bc, h3now, { customerNote: "B sửa lén" })).status, 403);
+assert.equal((await setStatus(Bc, h3now, "confirmed")).status, 403);
+assert.equal((await detail(Cx, h3)).canModify, true, "người phụ trách mới có quyền");
+assert.equal((await putOrder(Cx, h3now, { customerNote: "Cx sửa" })).status, 200);
+assert.equal((await putOrder(A, (await detail(A, h3)).order, { customerNote: "A vẫn sửa được" })).status, 200, "người lập vẫn sửa được");
+console.log("✓ người phụ trách huỷ đơn nháp; bị đổi người thì mất quyền ngay, người phụ trách mới có quyền");
 console.log("E2E OK");

@@ -1,0 +1,17 @@
+✓ a) khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1
+✓ b) CSP cho phép Cloudflare; widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử; đăng nhập qua widget với đúng token của widget
+✓ c) sai PIN: lỗi của máy chủ; widget được reset (ô token trống rồi có token mới); nút khoá suốt lúc chờ rồi mở lại; đăng nhập lại được
+✓ d) 403 turnstile_failed (thật) và 503 turnstile_unavailable (giả lập): chữ của máy chủ hiện nguyên văn ở #error, nút mở lại sau khi widget reset, thử lại được
+✓ e) API công ty lỗi (chặn mạng, 500, 404) hoặc chậm; API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, khối công ty ẩn, không kẹt nút
+✓ j) service worker thật không lưu gì của Cloudflare và không lưu /api/*; khung đăng nhập vẫn được lưu
+✓ k) widget không dựng được (script Cloudflare bị chặn; khoá site sai): thông báo tiếng Việt + nút Thử lại, nút Đăng nhập khoá; bỏ chặn rồi bấm Thử lại → widget dựng, lỗi biến mất, đăng nhập được
+✓ l) cấu hình lỗi lúc mở trang, máy chủ đang đòi token: đăng nhập 403 thì trang lấy lại cấu hình (có hạn, không giữ nút) rồi dựng widget — tự phục hồi, không kẹt 403 vĩnh viễn
+✓ o) cấu hình lỗi ở lần hỏi đầu rồi ổn lại: lần hỏi lại lúc mở trang (giãn cách, có hạn) dựng widget mà chưa ai bấm đăng nhập; nút không bị giữ trong lúc chờ và khoá tới khi có token
+✓ m) trong lúc chờ nạp script Turnstile: khung không trống — có chữ tiếng Việt “Đang tải xác minh…” (một đoạn <p role=status>), nút Đăng nhập khoá; chữ biến mất khi widget dựng xong; axe 0 vi phạm và vùng chạm ≥ 44 px ở trạng thái này
+✓ n) widget dựng với theme “light” (app chỉ có giao diện sáng); khi widget báo lỗi giữa chừng, mã lỗi của Cloudflare được ghi bằng console.warn (không bí mật) và người dùng thấy thông báo tiếng Việt + Thử lại
+✓ h) axe-core: 0 vi phạm (mọi mức) ở 390, 375, 320, 1040 (widget đã đạt) và ở trạng thái lỗi
+✓ i) vùng chạm ≥ 44 px, ô gõ ≥ 16 px, không tràn ngang, widget nằm trọn trong thẻ (390, 375, 320, 1040, trạng thái lỗi); ảnh 390×844 và 1040×800 đã lưu
+✓ g) không có lỗi CSP và console sạch ở mọi trang đã mở với máy chủ A (chỉ còn các dòng mạng đã biết: dò phiên 401, và các lỗi đăng nhập cố ý)
+✓ f) máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)
+
+V1 DANG NHAP OK — 15 bước ✓

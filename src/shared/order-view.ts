@@ -73,7 +73,7 @@ export interface OrderActions {
   editTrip: boolean;
   /** Nút "Huỷ đơn" — đơn nháp hoặc đã xác nhận. */
   cancel: boolean;
-  /** Dòng "Chỉ <người lập> hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." */
+  /** Dòng "Chỉ <người lập> (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này." (ADR-0009; chữ do web/order.ts dựng, quyền do máy chủ quyết qua `canModify`) */
   noPermission: boolean;
   /** Đơn đã xác nhận: dòng nhắc "dịch vụ, số khách và tiền đã khoá" và biểu tượng khoá. */
   locked: boolean;

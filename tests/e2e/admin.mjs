@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call as raw, freshIp as fresh, randomPhone as rnd, session } from "./lib.mjs";
+import { ACCOUNTS, call as raw, freshIp as fresh, login, randomPhone as rnd, session } from "./lib.mjs";
 
-const login = (phone, pin, ip = fresh()) => raw(null, "POST", "/api/auth/login", { phone, pin }, ip);
 const cookieOf = (r) => r.cookie;
 
 const ADMIN = await session(ACCOUNTS.admin);
@@ -29,8 +28,20 @@ assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: `${"A".repeat(6
 assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: Array(25).fill("Nguyen").join(" "), phone: rnd() })).status, 400, "nhiều từ dồn vào tên đệm → 400 chứ không 500");
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: `Nguyễn Văn ${"A".repeat(65)}` })).status, 400, "đổi tên quá dài → 400 chứ không 500");
 for (const bad of [["BOSS"], [], "SALES", ["SALES", "sales"], [1]]) assert.equal((await raw(ADMIN, "POST", "/api/staff", { fullName: "Sai quyền", phone: rnd(), permissions: bad })).status, 400, JSON.stringify(bad));
+// "Đăng nhập gần nhất" (staff.last_login_at, migration 0015): NULL cho tới lần đăng nhập THÀNH CÔNG đầu tiên
+const ISO = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/;
+const lastLoginOf = async (id) => (await raw(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === id).lastLoginAt;
+assert.equal(await lastLoginOf(A.id), null, "tài khoản mới chưa đăng nhập → lastLoginAt null");
 r = await login(A.phone, A.pin); assert.equal(r.status, 200);
 const A_COOKIE = cookieOf(r);
+const firstLogin = await lastLoginOf(A.id);
+assert.match(firstLogin, ISO, "sau đăng nhập đúng: chuỗi ISO UTC");
+assert.ok(Math.abs(Date.now() - Date.parse(firstLogin)) < 120_000, `mốc đăng nhập phải gần bây giờ: ${firstLogin}`);
+assert.equal((await login(A.phone, "000111")).status, 401);
+assert.equal(await lastLoginOf(A.id), firstLogin, "đăng nhập SAI PIN không đổi lastLoginAt");
+const adminId = (await raw(ADMIN, "GET", "/api/auth/me")).body.staff.id;
+assert.match(await lastLoginOf(adminId), ISO, "tài khoản đã đăng nhập ở đầu kịch bản cũng có lastLoginAt");
+console.log("✓ lastLoginAt: null khi chưa đăng nhập, ISO sau đăng nhập đúng, sai PIN không đổi");
 console.log("✓ tạo + đăng nhập bằng PIN sinh ra");
 
 // --- nhật ký: có dòng không gắn đơn (LEFT JOIN), KHÔNG chứa PIN
@@ -103,6 +114,7 @@ console.log("✓ đặt lại PIN thu hồi phiên cũ, nhật ký không lộ P
 // --- đổi PIN của chính mình
 let sess = cookieOf(await login(A.phone, A.pin));
 const other = cookieOf(await login(A.phone, A.pin)); // thiết bị khác
+const beforePinChange = await lastLoginOf(A.id);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: "000000", newPin: "482915" })).status, 403);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: A.pin, newPin: "123456" })).status, 400);
 assert.equal((await raw(sess, "POST", "/api/account/change-pin", { currentPin: A.pin, newPin: A.pin })).status, 400);
@@ -110,7 +122,9 @@ r = await raw(sess, "POST", "/api/account/change-pin", { currentPin: A.pin, newP
 assert.equal(r.status, 200);
 assert.equal((await raw(cookieOf(r), "GET", "/api/auth/me")).status, 200, "thiết bị đổi PIN giữ phiên mới");
 assert.equal((await raw(other, "GET", "/api/auth/me")).status, 401, "thiết bị khác bị đăng xuất");
+assert.equal(await lastLoginOf(A.id), beforePinChange, "ĐỔI PIN không phải đăng nhập: lastLoginAt giữ nguyên");
 assert.equal((await login(A.phone, "482915")).status, 200);
+assert.ok((await lastLoginOf(A.id)) > beforePinChange, "đăng nhập lại thì lastLoginAt không lùi (mới hơn)");
 A.pin = "482915";
 console.log("✓ đổi PIN cá nhân");
 

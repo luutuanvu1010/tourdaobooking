@@ -1,11 +1,13 @@
-// Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN. Route: /api/auth/*.
+// Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN + Cloudflare Turnstile ở đăng nhập (./turnstile.ts). Route: /api/auth/*.
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
-import { authenticate, getActiveStaff, isValidPin, normalizePhone, type StaffProfile } from "../staff";
-import type { MeResponse } from "../../shared/contracts";
+import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance";
+import { authenticate, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
+import type { AuthConfigResponse, MeResponse } from "../../shared/contracts";
 import { error, getCookie, json, readJson } from "../../shared/http";
 import { route, type AppModule } from "../../shared/router";
 import { SESSION_COOKIE, clearedSessionCookie, createSessionToken, sessionCookie, verifySessionToken } from "./session";
 import { IP_LIMIT, PHONE_LIMIT, clearAttempts, ipKey, lockedPhones, phoneKey, reserveAttempts, unlockPhone } from "./throttle";
+import { turnstileGate, turnstileLog, turnstileSiteKey } from "./turnstile";
 
 export { lockedPhones, unlockPhone };
 
@@ -62,20 +64,53 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
   return { ok: true, profile };
 }
 
+/**
+ * Phía route của cổng Turnstile ở đăng nhập: `null` = cho qua, hoặc Response chặn (403 `turnstile_failed` / 503 `turnstile_unavailable`). Chạy TRƯỚC
+ * `verifyPinThrottled` — kẻ tấn công không có token thì không tiêu hao lượt thử PIN của SĐT nạn nhân (và không làm SĐT đó bị khoá).
+ * Quyết định thuần là `turnstileGate` và các dòng nhật ký là `turnstileLog` (cả hai ở ./turnstile.ts, có test; log KHÔNG bao giờ chứa secret/token/IP — kể cả
+ * 403 mỗi lần bị từ chối, để vận hành thấy 403 hàng loạt); hàm này chỉ đổi kết quả thành Response và in nhật ký.
+ * (Tên khác `turnstileGate` có chủ ý: đây là chỗ DUY NHẤT dựng Response; `turnstileGate` thuần, không biết HTTP.)
+ */
+async function turnstileBlockResponse(request: Request, env: Env, token: unknown): Promise<Response | null> {
+  const gate = await turnstileGate(env, token, request.headers.get("cf-connecting-ip"));
+  for (const entry of turnstileLog(gate)) {
+    const line = JSON.stringify(entry);
+    if (entry.level === "error") console.error(line);
+    else console.warn(line);
+  }
+  return gate.pass ? null : error(gate.status, gate.code, gate.message);
+}
+
 export const authModule: AppModule = {
   name: "auth",
   routes: [
+    // Công khai: trang đăng nhập hỏi trước khi dựng widget. Khoá site không nhúng cứng vào HTML (local dùng khoá thử của Cloudflare).
+    // `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. Chỉ {on, endsAt} — KHÔNG lộ ai được phép.
+    route("GET", "/api/auth/config", "public", async ({ env }) =>
+      json({ turnstileSiteKey: turnstileSiteKey(env), maintenance: toStatus(await getMaintenanceState(env.DB)) } satisfies AuthConfigResponse),
+    ),
+
     route("POST", "/api/auth/login", "public", async ({ request, env }) => {
       const body = await readJson(request);
       const phone = typeof body?.phone === "string" ? body.phone : "";
       const pin = body?.pin;
       if (!phone || !isValidPin(pin)) return error(400, "invalid_input", "Cần số điện thoại và mã PIN 6 số.");
+      const blocked = await turnstileBlockResponse(request, env, body?.turnstileToken);
+      if (blocked) return blocked;
+      // Chế độ bảo trì: SĐT không được phép → 503 `maintenance`, cùng một thân cho MỌI SĐT (kể cả không tồn tại). Đặt sau Turnstile và TRƯỚC PIN: không tiêu hao lượt thử PIN.
+      const inMaintenance = await maintenanceBlock(env.DB, phone);
+      if (inMaintenance) return inMaintenance;
       const result = await verifyPinThrottled(request, env, phone, pin);
       if (!result.ok) return result.response;
+      // Ghi nhận đăng nhập thành công cho cột "Đăng nhập gần nhất". Lỗi ghi không được làm hỏng đăng nhập (chỉ là thống kê): ghi log rồi cho qua.
+      await recordLogin(env.DB, result.profile.id, new Date().toISOString()).catch((e: unknown) =>
+        console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
+      );
       return json({ staff: result.profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, result.profile.id) });
     }),
 
-    route("GET", "/api/auth/me", "staff", async ({ staff }) => json({ staff } satisfies MeResponse)),
+    // `maintenance` ở đây chỉ tới được người ĐƯỢC PHÉP khi đang bảo trì (router chặn người khác trước) — giao diện dùng để hiện dải "Đang ở chế độ bảo trì".
+    route("GET", "/api/auth/me", "staff", async ({ env, staff }) => json({ staff, maintenance: toStatus(await getMaintenanceState(env.DB)) } satisfies MeResponse)),
 
     route("POST", "/api/auth/logout", "public", async ({ request }) => json({ ok: true }, 200, { "set-cookie": clearedSessionCookie(isSecure(request)) })),
   ],

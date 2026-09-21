@@ -9,6 +9,7 @@ export const AUDIT_GROUPS = {
   party: "Hồ sơ",
   location: "Địa điểm",
   feedback: "Góp ý",
+  system: "Hệ thống",
 } as const;
 
 export type AuditGroup = keyof typeof AUDIT_GROUPS;
@@ -19,6 +20,7 @@ export const AUDIT_ACTIONS = {
   trip_updated: { label: "Sửa thông tin chuyến", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
+  order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
   exported_png: { label: "Xuất PNG", group: "order" },
   exported_pdf: { label: "Xuất PDF", group: "order" },
   staff_created: { label: "Tạo tài khoản", group: "staff" },
@@ -39,6 +41,7 @@ export const AUDIT_ACTIONS = {
   party_relationship_changed: { label: "Đổi quan hệ hồ sơ", group: "party" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
+  maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
   catalog_synced: { label: "Đồng bộ dịch vụ từ Sheet", group: "catalog" },
   catalog_overridden: { label: "Ghi đè giá dịch vụ", group: "catalog" },
   catalog_override_cleared: { label: "Bỏ ghi đè dịch vụ", group: "catalog" },

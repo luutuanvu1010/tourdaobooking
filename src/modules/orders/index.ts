@@ -1,5 +1,6 @@
 // Module orders — sổ đơn hàng (spec §2.1 order/order_service/order_item, §2.3 bất biến). Route: /api/orders*.
-// Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn hoặc admin được sửa/xác nhận/huỷ.
+// Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
+// "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { getAuditTrail } from "../audit";
 import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
@@ -7,11 +8,11 @@ import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { cancelOrder, confirmOrder, createOrder, findOrder, getMeta, getStoredServices, listOrders, updateDraftOrder, updateTrip } from "./repository";
-import { canTransition, isOrderStatus, validateOrder, type Failure } from "./rules";
+import { canTransition, isOrderStatus, validateOrder, type Failure, type OrderStatus } from "./rules";
 import { loadOrderView, validationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
-const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn hoặc quản trị viên mới được thay đổi đơn này.");
+const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
@@ -26,6 +27,15 @@ function failure(f: Failure): Response {
     return json({ error: { code: "catalog_changed", message: f.message, changes: f.details as CatalogChangeDto[] } } satisfies CatalogChangedBody, 409);
   }
   return error(400, f.code ?? "invalid_input", f.message);
+}
+
+/**
+ * API công khai cho module khác (`dispatch`, cạnh dispatch → orders — ADR-0006 điều 8): đơn có tồn tại không và AI LẬP (để `dispatch` xét "của mình" của
+ * `dispatch.assign`). Chỉ trả người lập và trạng thái, không lộ gì khác của đơn; null nếu không có đơn.
+ */
+export async function findOrderOwner(db: D1Database, id: string): Promise<{ staffId: string; status: OrderStatus } | null> {
+  const meta = await getMeta(db, id);
+  return meta ? { staffId: meta.staffId, status: meta.status } : null;
 }
 
 export const ordersModule: AppModule = {
@@ -44,30 +54,35 @@ export const ordersModule: AppModule = {
       return json(result satisfies OrderListResponse);
     }),
 
-    route("POST", "/api/orders", "office", async ({ env, request, staff }) => {
+    route("POST", "/api/orders", "office", async ({ env, request, staff, defaultHandlerStatement }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, null));
       if (!parsed.ok) return failure(parsed);
-      const id = await createOrder(env.DB, staff.id, parsed.value);
+      // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4).
+      const id = await createOrder(env.DB, staff.id, parsed.value, (orderId, at) => {
+        const handler = defaultHandlerStatement(orderId, at);
+        return handler ? [handler] : [];
+      });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
 
-    route("GET", "/api/orders/:id", "office", async ({ env, params, staff }) => {
+    route("GET", "/api/orders/:id", "office", async ({ env, params, staff, isAssigned }) => {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
-      const order = await loadOrderView(env.DB, params.id!);
+      const [order, assigned] = await Promise.all([loadOrderView(env.DB, params.id!), isAssigned(params.id!)]);
       if (!order) return NOT_FOUND();
-      // ADR-0007: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình; ACCOUNTING và ADMIN mọi đơn.
-      const owner = { ownerId: order.staffId };
-      const history = can(staff, "order.history.view", owner) ? await getAuditTrail(env.DB, order.id) : [];
-      return json({ order, history, canModify: can(staff, "order.modify", owner) } satisfies OrderDetailResponse);
+      // ADR-0007/0009: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn.
+      // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
+      const scope = { ownerId: order.staffId, assigned };
+      const history = can(staff, "order.history.view", scope) ? await getAuditTrail(env.DB, order.id) : [];
+      return json({ order, history, canModify: can(staff, "order.modify", scope) } satisfies OrderDetailResponse);
     }),
 
-    route("PUT", "/api/orders/:id", "office", async ({ env, request, params, staff }) => {
+    route("PUT", "/api/orders/:id", "office", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
-      const meta = await getMeta(env.DB, id);
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
-      if (!can(staff, "order.modify", { ownerId: meta.staffId })) return FORBIDDEN();
+      if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.status !== "draft") return NOT_EDITABLE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, id));
       if (!parsed.ok) return failure(parsed);
@@ -81,12 +96,12 @@ export const ordersModule: AppModule = {
     }),
 
     // Sửa trường vận hành (ngày giờ khởi hành, đón, check-in, ghi chú) — kể cả đơn ĐÃ XÁC NHẬN (Q9). Không đổi khách/tiền.
-    route("PUT", "/api/orders/:id/trip", "office", async ({ env, request, params, staff }) => {
+    route("PUT", "/api/orders/:id/trip", "office", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
-      const meta = await getMeta(env.DB, id);
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
-      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId })) return FORBIDDEN();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.status === "cancelled") return CANCELLED();
       const stored = await getStoredServices(env.DB, id);
       const parsed = validateTripUpdate(await readJson(request), stored.map((s) => ({ id: s.id, departDate: s.trip.departDate })), meta.status, vnToday(new Date()));
@@ -100,15 +115,15 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/status", "office", async ({ env, request, params, staff }) => {
+    route("POST", "/api/orders/:id/status", "office", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const body = await readJson(request);
       const to = body?.status;
       if (to !== "confirmed" && to !== "cancelled") return error(400, "invalid_input", "Trạng thái đích phải là confirmed hoặc cancelled.");
-      const meta = await getMeta(env.DB, id);
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
       if (!meta) return NOT_FOUND();
-      if (!can(staff, "order.modify", { ownerId: meta.staffId })) return FORBIDDEN();
+      if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       const from = meta.status;
       if (!canTransition(from, to)) return error(409, "invalid_transition", `Không thể chuyển đơn từ "${from}" sang "${to}".`);
 

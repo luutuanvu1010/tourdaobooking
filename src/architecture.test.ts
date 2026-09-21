@@ -16,12 +16,19 @@ const WEB = join(ROOT, "web");
 
 /** Chiều phụ thuộc cho phép (ADR-0002 + ADR-0008). Module mới PHẢI khai ở đây. Không được có vòng. */
 const ALLOWED_EDGES: Record<string, readonly string[]> = {
-  accounts: ["staff", "auth", "audit"],
+  accounts: ["staff", "auth", "audit", "maintenance"], // maintenance: không cho đổi SĐT của tài khoản chủ dự án (PATCH /api/staff/:id)
   audit: [],
-  auth: ["staff"],
+  auth: ["staff", "maintenance"], // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc)
   catalog: ["audit"],
-  feedback: ["staff", "audit"],
+  company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
+  // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*:
+  // `orders` cần "người dùng có phải người phụ trách" và "câu đặt người phụ trách mặc định cho đơn mới" thì gốc lắp ráp (src/index.ts) tiêm vào ctx (ADR-0007 điều 4(b)).
+  // Import thật của mã: `orders` (findOrderOwner: đơn có không, ai lập), `staff` (tài khoản người được giao / danh sách người có thể được giao), `audit` (auditStatement).
+  // View v_dsp_order_handler đọc view công bố v_pty_party_label và v_stf_staff_label ở tầng SQL (cạnh dispatch → parties, dispatch → staff).
+  dispatch: ["orders", "parties", "locations", "staff", "audit"],
+  feedback: ["staff", "audit"], // đọc nhãn nhân viên (v_stf_staff_label) + ghi nhật ký `feedback_*`; không module nào import feedback
   locations: ["audit"],
+  maintenance: ["audit"], // ghi nhật ký `maintenance_changed`; là lá của cạnh auth → maintenance (không vòng)
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],
   staff: ["parties", "audit"],
@@ -29,10 +36,13 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
+  { module: "company", file: "modules/company/repository.ts" },
+  { module: "dispatch", file: "modules/dispatch/repository.ts" },
+  { module: "feedback", file: "modules/feedback/repository.ts" },
   { module: "locations", file: "modules/locations/repository.ts" },
+  { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },
-  { module: "feedback", file: "modules/feedback/repository.ts" },
 ];
 
 /**
@@ -42,7 +52,7 @@ const STRICT: readonly { module: string; file: string }[] = [
  */
 const LEGACY = ["accounts", "audit", "auth", "catalog", "orders"] as const;
 
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing" };
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };
 
 // ---------------------------------------------------------------------------------------------------------------------

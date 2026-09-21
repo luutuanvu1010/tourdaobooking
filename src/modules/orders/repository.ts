@@ -280,8 +280,15 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
  * Tạo đơn + dịch vụ + dòng tiền + nhật ký trong một transaction. order_code được sinh NGAY TRONG câu INSERT
  * (mã lớn nhất của ngày + 1) nên việc đọc-rồi-ghi là một bước nguyên tử: D1 ghi tuần tự, nhiều người
  * tạo cùng lúc vẫn ra mã khác nhau. UNIQUE vẫn là lưới an toàn cuối; nếu đụng thì thử lại.
+ * `alsoCreate` = các câu (chưa chạy) module KHÁC cần chạy cùng giao dịch, dựng theo id đơn và thời điểm của TỪNG lần thử — id đơn đổi mỗi lần thử nên phải là hàm,
+ * không phải danh sách dựng sẵn. Dùng cho dòng người phụ trách mặc định của `dispatch` (ADR-0009 điều 4); `orders` không biết đó là gì, chỉ ghép sau câu INSERT đơn.
  */
-export async function createOrder(db: D1Database, staffId: string, order: ValidOrder): Promise<string> {
+export async function createOrder(
+  db: D1Database,
+  staffId: string,
+  order: ValidOrder,
+  alsoCreate?: (orderId: string, at: string) => D1PreparedStatement[],
+): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
     const now = new Date();
@@ -303,6 +310,7 @@ export async function createOrder(db: D1Database, staffId: string, order: ValidO
           ),
         ...serviceInserts(db, id, order.services),
         auditStatement(db, { orderId: id, staffId, action: "created", at, detail: summarizeDeviations(order.items) }),
+        ...(alsoCreate?.(id, at) ?? []),
       ]);
       return id;
     } catch (e) {

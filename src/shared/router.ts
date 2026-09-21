@@ -2,7 +2,7 @@
 // khớp đường dẫn, 401/403/404/405 thống nhất, chặn ghi cross-site (CSRF), bắt lỗi toàn cục → 500 JSON có requestId.
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
 import type { StaffProfile } from "./contracts";
-import { error, json } from "./http";
+import { error, json } from "./http.ts";
 import { hasPermission, isOffice } from "./permissions.ts";
 
 /** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); admin: quyền ADMIN. */
@@ -17,6 +17,19 @@ export interface Ctx<A extends Access = Access> {
   params: Record<string, string>;
   /** Nhân viên đang đăng nhập — luôn có với route "staff"/"admin". */
   staff: A extends "public" ? StaffProfile | null : StaffProfile;
+  /**
+   * Người đang đăng nhập có phải người phụ trách ĐANG MỞ của đơn `orderId` không — kết quả điền vào `can(staff, op, { ownerId, assigned })` cho các ô
+   * `ownOrAssigned`/`assigned` (ADR-0007 điều 4(b), ADR-0009 điều 3). Do gốc lắp ráp tiêm (module `orders` không import `dispatch`). Là một HÀM (không phải giá trị
+   * tính sẵn): MỖI LẦN GỌI là một truy vấn D1. Route phải truyền kết quả vào MỌI lời gọi `can()` có ô như vậy (quên là lặng lẽ tụt về `own`).
+   * Bốn route của `orders` (GET/PUT đơn, PUT trip, POST status) gọi nó VÔ ĐIỀU KIỆN, song song với việc đọc đơn (`Promise.all`) — kể cả khi đơn không tồn tại hoặc
+   * người dùng đằng nào cũng là người lập — chứ KHÔNG gọi lười sau khi biết cần. Chưa đăng nhập → false.
+   */
+  isAssigned: (orderId: string) => Promise<boolean>;
+  /**
+   * Câu lệnh D1 (CHƯA chạy) đặt người đang đăng nhập làm người phụ trách mặc định của đơn MỚI `orderId` (ADR-0009 điều 4) — gộp vào cùng `db.batch()`
+   * tạo đơn, sau câu INSERT đơn. `null` nếu không có (chưa đăng nhập, hoặc tài khoản chưa có hồ sơ). Do gốc lắp ráp tiêm.
+   */
+  defaultHandlerStatement: (orderId: string, at: string) => D1PreparedStatement | null;
 }
 
 export interface Route {
@@ -76,6 +89,20 @@ export interface AppOptions {
   currentStaff: (request: Request, env: Env) => Promise<StaffProfile | null>;
   /** Kiểm cấu hình bắt buộc trước khi xử lý; trả thông báo lỗi (→ 500) hoặc null. */
   checkConfig?: (env: Env) => string | null;
+  /**
+   * Hàm nối chéo module do gốc lắp ráp cung cấp, router chỉ đưa vào `ctx` (ADR-0007 điều 4(b)) — router không biết chúng đến từ module nào và module
+   * nhận (`orders`) không import module cung cấp (`dispatch`). BẮT BUỘC: thiếu là ô `ownOrAssigned` lặng lẽ tụt về `own`.
+   */
+  injected: {
+    isAssigned: (env: Env, staffId: string, orderId: string) => Promise<boolean>;
+    defaultHandlerStatement: (env: Env, staff: StaffProfile, orderId: string, at: string) => D1PreparedStatement | null;
+    /**
+     * Cổng CHẾ ĐỘ BẢO TRÌ (module `maintenance`, gốc lắp ráp tiêm — router không biết module đó): Response 503 nếu tài khoản này bị chặn LÚC NÀY, hoặc null để cho qua.
+     * Chạy cho mọi route cần đăng nhập, ngay sau khi biết ai đang đăng nhập và TRƯỚC kiểm quyền admin/văn phòng (người bị chặn thấy "đang bảo trì", không phải "không đủ quyền").
+     * Route công khai (`/api/auth/*` trừ `/me`, `/api/company`) không qua cổng. BẮT BUỘC: thiếu là chế độ bảo trì lặng lẽ không còn hiệu lực với phiên đang mở.
+     */
+    maintenanceBlock: (env: Env, staff: StaffProfile) => Promise<Response | null>;
+  };
 }
 
 export function createApp(opts: AppOptions) {
@@ -106,10 +133,17 @@ export function createApp(opts: AppOptions) {
     if (hit.r.access !== "public") {
       staff = await opts.currentStaff(request, env);
       if (!staff) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
+      const maintenance = await opts.injected.maintenanceBlock(env, staff);
+      if (maintenance) return maintenance;
       if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       if (hit.r.access === "office" && !isOffice(staff)) return error(403, "forbidden", "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.");
     }
-    return hit.r.handler({ request, env, exec, url, params: hit.params, staff } as Ctx);
+    const who = staff;
+    return hit.r.handler({
+      request, env, exec, url, params: hit.params, staff,
+      isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
+      defaultHandlerStatement: (orderId, at) => (who ? opts.injected.defaultHandlerStatement(env, who, orderId, at) : null),
+    } as Ctx);
   }
 
   return {

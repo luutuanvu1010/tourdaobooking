@@ -1,3 +1,6 @@
+import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
+
 // Kiểu dữ liệu API lấy từ hợp đồng dùng chung với Worker (src/shared/contracts.ts) — không chép tay ở đây.
 export type {
   AuditAction,
@@ -61,6 +64,8 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
       return null;
     })) as { error?: { code: string; message: string } } | null;
     if (!res.ok) {
+      // Chế độ bảo trì: máy chủ chặn tài khoản này (kể cả phiên đang mở) → lớp phủ toàn trang có đồng hồ đếm ngược, không hiện lỗi thô. Riêng trang đăng nhập tự xử lý (chủ vẫn cần đăng nhập được).
+      if (data?.error?.code === MAINTENANCE_CODE && !location.pathname.startsWith("/login")) return showMaintenanceScreen(endsAtFrom(data.error));
       // Phiên hết hạn ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
       if (res.status === 401 && path !== "/api/auth/login" && !location.pathname.startsWith("/login")) return goLogin();
       throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);

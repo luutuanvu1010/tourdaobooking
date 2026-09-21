@@ -88,7 +88,7 @@ for (const path of new Set([...PAGES, ...PRECACHE])) {
 assert.equal(isCacheable({ status: 200, type: "basic", redirected: false, contentType: me.headers.get("content-type") }), false, "phản hồi API không được phép thoả isCacheable");
 console.log("✓ service worker + API no-store + content-type của khung");
 
-// 8 trang: đủ thẻ meta iOS + tên mới, không còn tên cũ
+// Mọi trang của PAGES (nguồn duy nhất, sw-policy.ts): đủ thẻ meta iOS + tên mới, không còn tên cũ
 const NEEDLES = [
   "viewport-fit=cover",
   'rel="manifest"',
@@ -99,7 +99,7 @@ const NEEDLES = [
   `<meta name="theme-color" content="${PRIMARY}">`,
   `— ${NAME}</title>`,
 ];
-for (const path of ["/", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit"]) {
+for (const path of PAGES) {
   const html = await (await get(path)).text();
   for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
   for (const old of ["Tour Đảo Sales", "Tour Đảo Desk"]) assert.ok(!html.includes(old), `${path} còn tên cũ "${old}"`);
@@ -111,5 +111,5 @@ const REST = NAME.slice(SHORT.length).trim();
 // esbuild mặc định mã hoá ký tự không-ASCII thành \uXXXX (chữ HOA) trong bản build
 const esc = (s) => s.replace(/[^\x00-\x7f]/g, (c) => "\\u" + c.charCodeAt(0).toString(16).toUpperCase().padStart(4, "0"));
 assert.ok(shellBundle.includes(`"${esc(SHORT)} "`) && shellBundle.includes(`"${esc(REST)}"`), "web/shell.ts phải dựng brand đúng tên trong manifest");
-console.log("✓ thẻ meta iOS, tên và màu nhất quán trên 8 trang");
+console.log(`✓ thẻ meta iOS, tên và màu nhất quán trên ${PAGES.length} trang`);
 console.log("E2E PWA OK");

@@ -1,11 +1,14 @@
-import { ApiError, api, type Api, type AuditEntry, type Order } from "./api";
+import { ApiError, api, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { renderBanner } from "./banner";
+import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
 import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, vnd } from "./format";
+import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
 import { renderServices } from "./order-services";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
+import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved } from "../src/shared/handler-view";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { orderActions } from "../src/shared/order-view";
 
@@ -13,7 +16,24 @@ const id = new URLSearchParams(location.search).get("id");
 const bannerEl = byId("error");
 const root = byId("order");
 const actions = byId("actions");
+const sendEl = byId("send");
 let current: Order | null = null;
+let staff: Staff | null = null; // gán sau `initShell()`; các hàm dưới chỉ chạy sau đó
+
+// Form lập đơn MỚI chuyển tới `/order?id=…&moi=1`: mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) đúng một lần, sau lần tải đơn đầu tiên. Bỏ `moi` khỏi URL NGAY (trước mọi await), để dù
+// bước dựng trang sau đó ném lỗi thì tải lại trang cũng không bật lại hộp thoại.
+let autoOpenConfirmation = new URLSearchParams(location.search).get("moi") === "1";
+if (autoOpenConfirmation) {
+  const url = new URL(location.href);
+  url.searchParams.delete("moi");
+  history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+}
+
+const sendButton = (): HTMLButtonElement | null => sendEl.querySelector("button");
+/** Ảnh xác nhận gửi khách của đơn đang xem (mọi trạng thái, mọi người xem được đơn — ảnh chỉ in lại dữ liệu họ đã thấy). */
+function openConfirmation(): void {
+  if (current) openConfirmationDialog({ order: current, opener: sendButton });
+}
 
 /** `null` ẩn banner. Liên kết "Sửa" của banner incomplete_trip mở form ĐÚNG thẻ (`?focus=`, Task 7). */
 function show(b: Banner | null): void {
@@ -40,7 +60,95 @@ function kv(label: string, value: string | null, cls = ""): HTMLElement {
   return h("div", { class: `kv ${cls}` }, h("span", { class: "muted" }, label), h("span", null, value || "—"));
 }
 
-function render(order: Order, history: AuditEntry[], canModify: boolean): void {
+// ---- người phụ trách (v1.0, Task 8) ----
+type Handler = Api.HandlerDto | null | undefined; // null = chưa có người phụ trách; undefined = CHƯA BIẾT (lời gọi lỗi) — xem handlerControls
+
+/**
+ * Người phụ trách đang mở của đơn. KHÔNG bao giờ ném lỗi: lời gọi hỏng thì đơn vẫn hiển thị, khối người phụ trách báo "chưa tải được" (không đoán "chưa có người" rồi mời nhận).
+ * Phản hồi thiếu khoá hoặc sai dạng cũng coi là chưa biết (dữ liệu từ ngoài trang).
+ */
+async function loadHandler(orderId: string): Promise<Handler> {
+  try {
+    const found = (await api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${encodeURIComponent(orderId)}`)).handlers[orderId];
+    if (found === null) return null;
+    return found && typeof found.name === "string" && found.name.trim() !== "" ? found : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+const asErrorInput = (err: unknown) => (err instanceof ApiError ? { status: err.status, code: err.code, message: err.message } : null);
+/** Sau đổi/nhận người phụ trách hoặc khi màn hình đã lỗi thời: tải lại đơn, báo bằng `b` (tải lại lỗi thì giữ banner lỗi của `load()`, không đè), trả focus. */
+async function reloadWith(b: Banner): Promise<void> {
+  await load();
+  if (bannerEl.hidden) show(b);
+  focusHandlerControl();
+}
+/** Nút đổi đã bị dựng lại sau khi tải lại → trả focus về nút mới; người dùng không còn nút nào (vd vừa giao đơn đi) thì focus tiêu đề khối để không rơi ra `body`. */
+const focusHandlerControl = (): void => (document.querySelector<HTMLElement>('[data-action="change-handler"]') ?? document.getElementById("handler-title"))?.focus();
+
+function changeButton(order: Order, handler: Api.HandlerDto | null, label: string): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn", "data-action": "change-handler" }, label);
+  btn.addEventListener("click", () =>
+    openHandlerSheet(
+      {
+        order,
+        current: handler,
+        onSaved: (saved) => void reloadWith(banner("info", handlerSaved("assign", saved.name, handler !== null))),
+        onOutdated: (b) => void reloadWith(b),
+      },
+      btn,
+    ),
+  );
+  return btn;
+}
+
+/** "Nhận phụ trách": nhận cho CHÍNH MÌNH khi đơn chưa có người (máy chủ kiểm lại `dispatch.claim` và "chưa có người"). */
+function claimButton(order: Order): HTMLButtonElement {
+  const btn = h("button", { type: "button", class: "btn btn-primary", "data-action": "claim-handler" }, "Nhận phụ trách");
+  btn.addEventListener("click", async () => {
+    btn.disabled = true;
+    show(null);
+    try {
+      const { handler } = await api<Api.SetHandlerResponse>(`/api/orders/${encodeURIComponent(order.id)}/handler`, { method: "PUT", body: { staffId: staff!.id } });
+      await reloadWith(banner("info", handlerSaved("claim", handler.name, false)));
+    } catch (err) {
+      const failure = handlerFailure(asErrorInput(err), "claim");
+      if (failure.reload) await reloadWith(failure.banner);
+      else {
+        show(failure.banner);
+        btn.disabled = false;
+      }
+    }
+  });
+  return btn;
+}
+
+/** Khối "Người phụ trách": tên (hoặc chip "Chưa có người phụ trách") + nút đổi/nhận theo `can()` (src/shared/handler-view.ts). Chưa biết người phụ trách → chữ báo + "Thử lại", không nút nào khác. */
+function handlerCard(order: Order, handler: Handler): HTMLElement {
+  const controls = handlerControls(staff!, order, handler);
+  const buttons: HTMLElement[] = [];
+  let summary: HTMLElement;
+  if (handler === undefined) {
+    summary = h("p", { class: "handler-unknown" }, "Chưa tải được người phụ trách.");
+    const retry = h("button", { type: "button", class: "btn", "data-action": "retry-handler" }, "Thử lại");
+    retry.addEventListener("click", () => void load().then(focusHandlerControl));
+    buttons.push(retry);
+  } else {
+    summary = h("p", { class: "handler-name" }, handler === null ? h("span", { class: "chip chip-warn" }, NO_HANDLER_TEXT) : handler.name);
+    if (controls.assign) buttons.push(changeButton(order, handler, controls.assignLabel));
+    if (controls.claim) buttons.push(claimButton(order));
+  }
+  return h(
+    "section",
+    { class: "card handler-card", "aria-labelledby": "handler-title" },
+    h("h2", { id: "handler-title", tabindex: -1 }, "Người phụ trách"),
+    summary,
+    buttons.length ? h("div", { class: "handler-actions" }, ...buttons) : null,
+  );
+}
+
+function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   const a = orderActions(order.status, canModify);
   document.title = `${order.orderCode} — Tour Đảo Booking`;
@@ -55,6 +163,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
     ),
     h("p", { class: "muted" }, `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
     a.locked ? h("p", { class: "lock-note" }, icon("lock", 18), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến.") : null,
+
+    handlerCard(order, handler),
 
     h("section", { class: "card" }, h("h2", null, "Khách hàng"), kv("Tên", order.customerName), kv("Số điện thoại", order.customerPhone), kv("Email", order.customerEmail), kv("Ghi chú", order.customerNote)),
 
@@ -84,12 +194,17 @@ function render(order: Order, history: AuditEntry[], canModify: boolean): void {
   );
 
   const btns: HTMLElement[] = [];
-  if (a.noPermission) btns.push(h("p", { class: "muted" }, `Chỉ ${order.staffName} (người lập đơn) hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`));
+  // Quyền sửa/xác nhận/huỷ do MÁY CHỦ quyết (`canModify`, kể cả người phụ trách — ADR-0009); câu này chỉ giải thích cho người không có quyền.
+  if (a.noPermission) btns.push(h("p", { class: "muted" }, `Chỉ ${order.staffName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   if (a.confirm) btns.push(change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent"));
   if (a.editTrip) btns.push(editTripButton(order));
   if (a.cancel) btns.push(change("Huỷ đơn", "cancelled", "Huỷ đơn này? Việc huỷ không thể hoàn tác.", "btn btn-danger"));
   replaceChildren(actions, ...btns);
+  // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).
+  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xác nhận gửi khách");
+  send.addEventListener("click", openConfirmation);
+  replaceChildren(sendEl, send);
 }
 
 const focusEditTrip = (): void => document.querySelector<HTMLElement>('[data-action="edit-trip"]')?.focus();
@@ -133,15 +248,20 @@ function change(label: string, to: "confirmed" | "cancelled", prompt: string, cl
 
 async function load(): Promise<void> {
   try {
-    const { order, history, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`);
+    // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
+    const [{ order, history, canModify }, handler] = await Promise.all([api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`), loadHandler(id!)]);
     show(null);
-    render(order, history, canModify);
+    render(order, history, canModify, handler);
+    if (autoOpenConfirmation) {
+      autoOpenConfirmation = false;
+      openConfirmation();
+    }
   } catch (err) {
     // Có nút "Tải lại đơn": PWA standalone không có tải lại của trình duyệt, và `load()` tự nuốt lỗi nên các nút vừa bấm (Xác nhận/Huỷ) có thể đang khoá.
     show(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn.", { action: "reload_order" }));
   }
 }
 
-await initShell();
+staff = await initShell();
 if (!id) show(banner("danger", "Thiếu mã đơn."));
 else await load();

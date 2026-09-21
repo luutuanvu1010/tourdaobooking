@@ -247,6 +247,25 @@ try {
   r = await trip(c, { note: "admin sửa" }, ADMIN);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   c = r.body.order;
+  // NGƯỜI PHỤ TRÁCH (khác người lập) sửa được thông tin chuyến SAU xác nhận (ADR-0009, order.trip.edit); người lập vẫn sửa được sau khi đã giao lại;
+  // số khách/dịch vụ/tiền vẫn khoá với người phụ trách (order.money.edit không mở)
+  const bId = (await call(Bc, "GET", "/api/auth/me")).body.staff.id;
+  assert.equal((await trip(c, { note: "B chưa được giao" }, Bc)).status, 403, "chưa được giao → 403");
+  r = await call(A, "PUT", `/api/orders/${c.id}/handler`, { staffId: bId });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  r = await trip(c, { pickupTime: "05:45", pickupPlace: "Cảng Cầu Đá (người phụ trách)" }, Bc);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual([r.body.order.status, r.body.order.services[0].pickupTime, r.body.order.services[0].pickupPlace], ["confirmed", "05:45", "Cảng Cầu Đá (người phụ trách)"]);
+  c = r.body.order;
+  const byHandler = (await get(Bc, c)).history.at(-1); // người phụ trách xem được nhật ký
+  assert.deepEqual([byHandler.action, byHandler.staffName], ["trip_updated", "NV Bán B (test)"], "nhật ký ghi đúng người phụ trách");
+  assert.ok(!(byHandler.detail ?? "").includes("Cầu Đá"), "nhật ký không chứa nội dung điểm đón");
+  r = await trip(c, { note: "người lập sửa sau khi đã giao lại" }, A);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  c = r.body.order;
+  r = await call(Bc, "PUT", `/api/orders/${c.id}`, orderInput({ services: same(c), expectedUpdatedAt: c.updatedAt }));
+  assert.equal(r.status, 409, "người phụ trách cũng không sửa được số khách/dịch vụ/tiền sau xác nhận");
+  assert.equal(r.body.error.code, "not_editable");
   // đơn đã xác nhận: sửa toàn bộ đơn bị từ chối; số khách/dịch vụ/ngày bị trigger giữ ngay cả khi ghi thẳng D1
   assert.equal((await put(c, same(c))).status, 409);
   const svId = c.services[0].id;

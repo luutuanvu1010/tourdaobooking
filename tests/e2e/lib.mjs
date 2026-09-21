@@ -32,8 +32,22 @@ export async function call(cookie, method, path, body, ip = freshIp()) {
   return { status: r.status, body: await r.json().catch(() => null), cookie: setCookie?.split(";")[0] ?? null, headers: r.headers };
 }
 
+/**
+ * Khoá THỬ chính thức của Cloudflare Turnstile (https://developers.cloudflare.com/turnstile/troubleshooting/testing/). run.mjs bật
+ * Turnstile cho server e2e bằng cặp `siteKey` + `secret` (luôn đạt); token thử `dummyToken` chỉ được chấp nhận bởi các khoá thử.
+ * Kiểm thật cần mạng (máy chủ gọi siteverify của Cloudflare) — e2e vốn đã cần mạng.
+ */
+export const TURNSTILE_TEST = {
+  siteKey: "1x00000000000000000000AA",
+  secret: "1x0000000000000000000000000000000AA", // luôn đạt
+  alwaysFailSecret: "2x0000000000000000000000000000000AA", // luôn hỏng (invalid-input-response)
+  alreadySpentSecret: "3x0000000000000000000000000000000AA", // luôn báo "token đã dùng" (timeout-or-duplicate)
+  dummyToken: "XXXX.DUMMY.TOKEN.XXXX",
+};
+
+/** Đăng nhập kèm token thử để qua Turnstile (server e2e bật Turnstile); server không bật thì trường thừa này bị bỏ qua. */
 export function login(phone, pin, ip) {
-  return call(null, "POST", "/api/auth/login", { phone, pin }, ip);
+  return call(null, "POST", "/api/auth/login", { phone, pin, turnstileToken: TURNSTILE_TEST.dummyToken }, ip);
 }
 
 /** Đăng nhập tài khoản test, trả cookie phiên. */

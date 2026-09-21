@@ -23,6 +23,8 @@ export interface StaffProfile {
 export interface StaffAccount extends StaffProfile {
   active: boolean;
   createdAt: string;
+  /** Lần đăng nhập thành công gần nhất (ISO UTC); null = chưa từng đăng nhập (kể từ khi có cột này). Chỉ `POST /api/auth/login` ghi — đổi PIN/làm mới phiên thì không. */
+  lastLoginAt: string | null;
 }
 
 export interface StaffAccountDto extends StaffAccount {
@@ -41,7 +43,26 @@ export interface StaffSheetCandidateDto {
   currentName: string | null;
 }
 
-export interface MeResponse { staff: StaffProfile }
+/** `maintenance` chỉ có ở `GET /api/auth/me` (không có ở phản hồi đăng nhập): chế độ bảo trì đang BẬT thì chỉ người được phép mới tới được đây, để giao diện hiện dải "Đang ở chế độ bảo trì". */
+export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStatusDto }
+/**
+ * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
+ * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.
+ */
+export interface AuthConfigResponse { turnstileSiteKey: string | null; maintenance: MaintenanceStatusDto }
+
+// ---- Chế độ bảo trì (src/shared/maintenance.ts; module `maintenance`) ----
+export interface MaintenanceStatusDto {
+  on: boolean;
+  /** Giờ dự kiến hoàn tất (ISO UTC); null khi tắt hoặc bật mà chưa có giờ. */
+  endsAt: string | null;
+}
+/** `GET`/`PUT /api/maintenance` (chỉ ADMIN): `canToggle` = chính người gọi có nằm trong danh sách được phép bật/tắt không (không lộ danh sách). */
+export interface MaintenanceResponse extends MaintenanceStatusDto { canToggle: boolean }
+/** Thân `PUT /api/maintenance`. `endsAt` bắt buộc khi `on = true`. */
+export interface MaintenanceRequest { on: boolean; endsAt?: string }
+/** Thân `error` của phản hồi 503 `maintenance` (mọi `/api/*` cần đăng nhập với người bị chặn, và `POST /api/auth/login`): `endsAt` để giao diện dựng đồng hồ đếm ngược mà không cần gọi thêm. */
+export interface MaintenanceErrorBody { code: "maintenance"; message: string; endsAt: string | null }
 export interface StaffListResponse { staff: StaffAccountDto[] }
 export interface StaffResponse { staff: StaffAccountDto }
 export interface StaffWithPinResponse { staff: StaffAccountDto; pin: string }
@@ -258,6 +279,44 @@ export interface CatalogSyncResponse {
   problems: { row: number; message: string }[];
   warnings: { row: number; message: string }[];
 }
+
+// ---- Thông tin công ty (module company) --------------------------------------
+/** Hồ sơ công ty hiển thị công khai (màn đăng nhập, xác nhận đơn). Cố ý KHÔNG có số Zalo, đường dẫn logo, người sửa. */
+export interface CompanyDto {
+  /** Tên pháp lý đúng như trong hồ sơ ("CÔNG TY TNHH TOUR ĐẢO"). */
+  name: string;
+  taxCode: string;
+  address: string;
+  hotline: string;
+  /** Có thể chưa khai → null. */
+  email: string | null;
+}
+
+export interface CompanyResponse { company: CompanyDto }
+
+// ---- Người phụ trách đơn (module dispatch; ADR-0006, ADR-0009) ---------------
+/** Người phụ trách đang mở của một đơn: người nhận trách nhiệm chăm sóc khách (gọi xác nhận, đón); sửa được đơn như người lập. Chỉ tên, KHÔNG có SĐT. */
+export interface HandlerDto {
+  partyId: string;
+  /** Tài khoản của người đó; null nếu hồ sơ chưa/không còn tài khoản. */
+  staffId: string | null;
+  name: string;
+}
+
+/** `GET /api/dispatch/handlers?orderIds=a,b,c` (tối đa 100 id): mọi id gửi lên đều có mặt; `null` = đơn chưa có người phụ trách (hoặc không có đơn đó). */
+export interface HandlersResponse { handlers: Record<string, HandlerDto | null> }
+
+/** Nhân sự có thể được giao phụ trách: đang hoạt động, có hồ sơ, có quyền Bán hàng hoặc Quản trị. Chỉ tên, KHÔNG có SĐT. */
+export interface AssigneeDto {
+  staffId: string;
+  partyId: string;
+  name: string;
+}
+export interface AssigneesResponse { assignees: AssigneeDto[] }
+
+/** `PUT /api/orders/:id/handler` — đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người: `staffId` = chính mình). */
+export interface SetHandlerInput { staffId: string }
+export interface SetHandlerResponse { handler: HandlerDto }
 
 // ---- Địa điểm (module locations) ---------------------------------------------
 export interface LocationTypeDto {

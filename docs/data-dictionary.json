@@ -6,8 +6,10 @@
     "auth",
     "catalog",
     "company",
+    "dispatch",
     "feedback",
     "locations",
+    "maintenance",
     "orders",
     "parties",
     "staff"
@@ -42,6 +44,21 @@
       "module": "company",
       "kind": "table",
       "legacy": true
+    },
+    {
+      "name": "dsp_assignment",
+      "module": "dispatch",
+      "kind": "table"
+    },
+    {
+      "name": "dsp_assignment_status",
+      "module": "dispatch",
+      "kind": "lookup"
+    },
+    {
+      "name": "dsp_task_kind",
+      "module": "dispatch",
+      "kind": "lookup"
     },
     {
       "name": "fbk_kind",
@@ -161,9 +178,25 @@
       "name": "stf_permission_type",
       "module": "staff",
       "kind": "lookup"
+    },
+    {
+      "name": "mnt_setting",
+      "module": "maintenance",
+      "kind": "table"
     }
   ],
   "views": [
+    {
+      "name": "v_dsp_order_handler",
+      "module": "dispatch",
+      "columns": [
+        "order_id",
+        "party_id",
+        "staff_id",
+        "label",
+        "since"
+      ]
+    },
     {
       "name": "v_loc_location_label",
       "module": "locations",

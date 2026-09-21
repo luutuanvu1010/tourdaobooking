@@ -168,7 +168,8 @@ try {
   // ---- 6) quyền: SALES khác không sửa được và không thấy lịch sử; kế toán thấy lịch sử, không nút ----
   p = await env.as(ACCOUNTS.salesB, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "salesB xem đơn của salesA");
-  assert.match(await p.ev("document.getElementById('actions').textContent"), /Chỉ Sales Một \(người lập đơn\) hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này\./);
+  // (v1.0: người phụ trách đơn cũng sửa được — ADR-0009 — nên câu giải thích quyền phải kể cả người phụ trách; đổi cùng lúc với chữ ở web/order.ts.)
+  assert.match(await p.ev("document.getElementById('actions').textContent"), /Chỉ Sales Một \(người lập đơn\), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này\./);
   assert.equal(await p.ev("document.querySelectorAll('#actions .btn').length"), 0);
   assert.equal(await p.ev("!document.querySelector('.history')"), true, "history rỗng → ẩn khối Lịch sử, không lỗi");
   assert.deepEqual(p.consoleErrors, []);

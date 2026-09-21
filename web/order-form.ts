@@ -244,7 +244,9 @@ formEl.addEventListener("submit", async (e) => {
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
-    location.replace(`/order?id=${encodeURIComponent(order.id)}`); // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng)
+    // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng).
+    // Đơn MỚI kèm `moi=1`: trang đơn tự mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) một lần rồi bỏ tham số; đơn SỬA thì không.
+    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}`);
   } catch (err) {
     setSaving(false);
     await onSaveError(err);
@@ -300,7 +302,8 @@ async function loadOrder(): Promise<void> {
   renderBanner(saveErrorEl, null);
   try {
     const { order, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`);
-    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn hoặc quản trị viên mới được sửa đơn này."));
+    // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
+    if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được sửa đơn này."));
     if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn ở trạng thái nháp."));
     byId("form-title").textContent = `Sửa đơn ${order.orderCode}`;
     setBarTitle(`Sửa đơn ${order.orderCode}`);

@@ -1,3 +1,14 @@
 # Khoá ký phiên đăng nhập, TỐI THIỂU 32 ký tự (ngắn hơn → mọi API trả 500 server_misconfigured).
 # Tạo: openssl rand -base64 48 | tr -d '\n'   rồi dán vào sau dấu = (file .dev.vars không được commit).
 SESSION_SECRET=
+
+# Cloudflare Turnstile ở màn hình đăng nhập. ĐỂ TRỐNG = TẮT (đăng nhập không đòi token; máy chủ ghi cảnh báo mỗi lần đăng nhập) — local không cần bật.
+# Phía máy chủ (kiểm token) VÀ trang đăng nhập (widget dựng ở web/login.ts, khoá site lấy từ GET /api/auth/config) đều đã có: đặt CẶP dưới đây là widget hiện ra
+# ở /login khi chạy `npm run dev`. Muốn thử ở máy mình, dùng CẶP KHOÁ THỬ của Cloudflare (luôn đạt, dùng được với localhost, cần mạng):
+#   TURNSTILE_SITE_KEY=1x00000000000000000000AA
+#   TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA
+# Production: khoá site (công khai) đặt ở `vars` của wrangler.jsonc; khoá bí mật CHỈ bằng `wrangler secret put TURNSTILE_SECRET_KEY` (khi chủ dự án ra lệnh).
+# Có secret mà thiếu khoá site thì đăng nhập bị chặn hẳn (trang không dựng được widget) — luôn đặt đủ cả hai.
+TURNSTILE_SITE_KEY=
+TURNSTILE_SECRET_KEY=
+# TÊN BIẾN PHẢI ĐÚNG như hai dòng trên (TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY): mã chỉ đọc đúng hai tên này; tên khác (vd CLOUDFLARE_…) bị bỏ qua lặng lẽ.

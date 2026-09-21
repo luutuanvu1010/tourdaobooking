@@ -38,6 +38,43 @@ test("/sw.js không tự cache chính nó", () => {
   assert.equal(shell("/sw.js"), "pass");
 });
 
+// Màn đăng nhập v1.0 nạp script và khung của Cloudflare Turnstile (public/_headers cho phép challenges.cloudflare.com). Chúng KHÔNG bao giờ được nằm trong cache khung của app:
+// bản cũ của script/khung xác minh là bản không còn được Cloudflare chấp nhận, và cache là nơi tài nguyên của bên thứ ba âm thầm ở lại. Đây là bài kiểm mô tả hành vi: chốt cả hai lớp
+// (quyết định theo nguồn ở `routeFor`, quyết định theo nội dung ở `isCacheable`) — ai đó sửa `routeFor` sang khớp theo đường dẫn thay vì theo nguồn thì bài này đỏ.
+const CF = "https://challenges.cloudflare.com";
+test("script, khung và mọi yêu cầu của Cloudflare Turnstile không bao giờ vào cache của service worker", () => {
+  for (const u of [
+    `${CF}/turnstile/v0/api.js`,
+    `${CF}/turnstile/v0/api.js?render=explicit`,
+    `${CF}/turnstile/v0/g/330e41bb475c/api.js`, // đích của lần chuyển hướng 302 thật
+    `${CF}/cdn-cgi/challenge-platform/h/g/turnstile/if/ov2/av0/rcv/abcd/0x4AAAAAAA/auto/fbE/normal/auto/`, // khung (iframe) của widget
+    `${CF}/cdn-cgi/challenge-platform/h/g/orchestrate/chl_api/v1`,
+    `${CF}/turnstile/v0/siteverify`,
+  ]) assert.equal(routeFor("GET", u, ORIGIN), "pass", u);
+});
+
+test("khác nguồn thì 'pass' kể cả khi đường dẫn TRÔNG GIỐNG tệp của khung app (quyết định theo nguồn, không theo đường dẫn)", () => {
+  for (const p of ["/", "/login", "/app.css", "/js/login.js", "/fonts/nunito-latin-viet-var.woff2", "/icons/icon-192.png", "/manifest.webmanifest"]) {
+    assert.equal(routeFor("GET", CF + p, ORIGIN), "pass", CF + p);
+    assert.equal(routeFor("GET", "http://booking.tourdao.vn" + p, ORIGIN), "pass", "khác giao thức là khác nguồn: http://" + p);
+    assert.equal(routeFor("GET", "https://sub.booking.tourdao.vn" + p, ORIGIN), "pass", "tên miền con là khác nguồn: " + p);
+  }
+});
+
+test("lớp thứ hai: phản hồi khác nguồn hoặc không đọc được (script/khung của Cloudflare) không bao giờ qua isCacheable", () => {
+  for (const contentType of ["text/javascript; charset=utf-8", "application/javascript", "text/html; charset=utf-8", "text/css"]) {
+    assert.equal(isCacheable({ status: 200, type: "cors", redirected: false, contentType }), false, `cors ${contentType}`);
+    assert.equal(isCacheable({ status: 200, type: "opaque", redirected: false, contentType }), false, `opaque ${contentType}`);
+    assert.equal(isCacheable({ status: 0, type: "opaque", redirected: false, contentType }), false, `opaque status 0 ${contentType}`);
+  }
+  // api.js được phục vụ qua chuyển hướng 302 → phản hồi đã chuyển hướng cũng không được lưu
+  assert.equal(isCacheable({ status: 200, type: "basic", redirected: true, contentType: "text/javascript" }), false);
+});
+
+test("danh sách nạp sẵn và trang chỉ chứa đường dẫn tương đối của app (không có địa chỉ tuyệt đối, không có Cloudflare)", () => {
+  for (const p of [...PRECACHE, ...PAGES]) assert.ok(p.startsWith("/") && !p.startsWith("//") && !p.includes("://") && !/cloudflare/i.test(p), p);
+});
+
 test("trang và tài nguyên tĩnh đã biết vào cache khung (query của trang bị bỏ qua khi khớp)", () => {
   for (const p of ["/", "/login", "/order?id=1", "/order-form?id=1", "/js/orders.js", "/js/order-form.js", "/app.css", "/icons/icon-192.png", "/icons/apple-touch-icon.png", "/manifest.webmanifest", "/fonts/nunito-latin-viet-var.woff2", "/fonts/be-vietnam-pro-latin-viet-800.woff2"]) {
     assert.equal(shell(p), "shell", p);

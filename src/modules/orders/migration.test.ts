@@ -9,7 +9,7 @@ const DIR = new URL("../../../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const sqlOf = (f: string) => readFileSync(new URL(f, DIR), "utf8");
 const upTo = (last: string) => files.filter((f) => f <= last);
-/** Các test dưới đây kiểm chính migration 0008 nên dựng schema ĐẾN 0008: migration sau (vd 0013 bắt buộc party_id) không được làm đổi kết quả. */
+/** Các test dưới đây kiểm chính migration 0008 nên dựng schema ĐẾN 0008: migration sau (vd migration siết B5 `staff_party_required` bắt buộc party_id) không được làm đổi kết quả. */
 const SCHEMA_0008 = upTo("0008_order_service.sql");
 
 function open(list: string[]): DatabaseSync {

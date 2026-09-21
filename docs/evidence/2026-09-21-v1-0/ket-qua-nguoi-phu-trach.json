@@ -1,0 +1,225 @@
+{
+  "ghiChu": "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.",
+  "buoc": [
+    {
+      "id": "a",
+      "name": "danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
+      "dat": true
+    },
+    {
+      "id": "b",
+      "name": "A đổi người phụ trách sang B bằng bảng chọn: bảng đóng, trang đơn tải lại thấy B + báo, trả focus; danh sách và nhật ký thấy B",
+      "dat": true
+    },
+    {
+      "id": "c",
+      "name": "ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)",
+      "dat": true
+    },
+    {
+      "id": "d",
+      "name": "B (không phải người lập) sửa được đơn NHÁP bằng giao diện: nút Sửa, form mở được, lưu thành công; thấy “Đổi người phụ trách”, không thấy “Nhận phụ trách”",
+      "dat": true
+    },
+    {
+      "id": "e",
+      "name": "quyền: C không thấy nút đổi/nhận và không có Sửa/Xác nhận/Huỷ; kế toán không nút nào; quản trị và người lập có nút đổi",
+      "dat": true
+    },
+    {
+      "id": "f",
+      "name": "đơn CHƯA có người: chip ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy “Nhận phụ trách”; người lập/quản trị thấy cả giao và nhận; kế toán không gì; C nhận được rồi sửa được đơn",
+      "dat": true
+    },
+    {
+      "id": "g",
+      "name": "bảng chọn: dialog + aria-modal + tên + nền inert + focus; Esc/chạm nền/✕ đóng và trả focus; danh sách khớp API; KHOÁ khi đang lưu; lỗi tải danh sách → Thử lại",
+      "dat": true
+    },
+    {
+      "id": "h",
+      "name": "đổi song song → tải lại + thông báo: 409 no_change, 409 stale (nhận), 403 (mất quyền); 400 invalid_assignee giữ bảng mở",
+      "dat": true
+    },
+    {
+      "id": "i",
+      "name": "lỗi lời gọi handlers (chặn mạng / 500 / thiếu khoá): danh sách VẪN hiện, không chip sai, không banner; trang đơn hiện đơn + nút Sửa, khối “chưa tải được” + Thử lại, KHÔNG nút nhận/đổi",
+      "dat": true
+    },
+    {
+      "id": "j",
+      "name": "axe 0 vi phạm (mọi mức) ở mọi trạng thái mới; vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040",
+      "dat": true
+    },
+    {
+      "id": "k",
+      "name": "ảnh 390×844 và 1040×800: danh sách, trang đơn, bảng chọn, đơn chưa có người",
+      "dat": true
+    },
+    {
+      "id": "l",
+      "name": "console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)",
+      "dat": true
+    }
+  ],
+  "axe": {
+    "bang-chon-loi-luu-that-390": [],
+    "danh-sach-390": [],
+    "trang-don-390": [],
+    "trang-don-chua-co-nguoi-390": [],
+    "bang-chon-390": [],
+    "bang-chon-loi-390": [],
+    "bang-chon-dang-tai-390": [],
+    "bang-chon-loi-luu-390": [],
+    "trang-don-chua-biet-390": [],
+    "danh-sach-handlers-loi-390": [],
+    "danh-sach-1040": [],
+    "trang-don-1040": [],
+    "trang-don-chua-co-nguoi-1040": [],
+    "bang-chon-1040": [],
+    "bang-chon-loi-1040": [],
+    "bang-chon-dang-tai-1040": [],
+    "bang-chon-loi-luu-1040": [],
+    "trang-don-chua-biet-1040": [],
+    "danh-sach-handlers-loi-1040": []
+  },
+  "do": {
+    "danh-sach-390": {
+      "nho": [],
+      "dieuKhien": 11,
+      "trànNgang": 0
+    },
+    "trang-don-390": {
+      "nho": [],
+      "dieuKhien": 1,
+      "trànNgang": 0
+    },
+    "trang-don-chua-co-nguoi-390": {
+      "nho": [],
+      "dieuKhien": 2,
+      "trànNgang": 0
+    },
+    "bang-chon-390": {
+      "nho": [],
+      "dieuKhien": 7,
+      "trànNgang": 0
+    },
+    "bang-chon-loi-390": {
+      "nho": [],
+      "dieuKhien": 4,
+      "trànNgang": 0
+    },
+    "bang-chon-dang-tai-390": {
+      "nho": [],
+      "dieuKhien": 3,
+      "trànNgang": 0
+    },
+    "bang-chon-loi-luu-390": {
+      "nho": [],
+      "dieuKhien": 7,
+      "trànNgang": 0
+    },
+    "trang-don-chua-biet-390": {
+      "nho": [],
+      "dieuKhien": 1,
+      "trànNgang": 0
+    },
+    "danh-sach-handlers-loi-390": {
+      "nho": [],
+      "dieuKhien": 11,
+      "trànNgang": 0
+    },
+    "danh-sach-1040": {
+      "nho": [],
+      "dieuKhien": 12,
+      "trànNgang": 0
+    },
+    "trang-don-1040": {
+      "nho": [],
+      "dieuKhien": 1,
+      "trànNgang": 0
+    },
+    "trang-don-chua-co-nguoi-1040": {
+      "nho": [],
+      "dieuKhien": 2,
+      "trànNgang": 0
+    },
+    "bang-chon-1040": {
+      "nho": [],
+      "dieuKhien": 7,
+      "trànNgang": 0
+    },
+    "bang-chon-loi-1040": {
+      "nho": [],
+      "dieuKhien": 4,
+      "trànNgang": 0
+    },
+    "bang-chon-dang-tai-1040": {
+      "nho": [],
+      "dieuKhien": 3,
+      "trànNgang": 0
+    },
+    "bang-chon-loi-luu-1040": {
+      "nho": [],
+      "dieuKhien": 7,
+      "trànNgang": 0
+    },
+    "trang-don-chua-biet-1040": {
+      "nho": [],
+      "dieuKhien": 1,
+      "trànNgang": 0
+    },
+    "danh-sach-handlers-loi-1040": {
+      "nho": [],
+      "dieuKhien": 12,
+      "trànNgang": 0
+    }
+  },
+  "anh": {
+    "nguoi-phu-trach-tai-lai-390.png": "390×844",
+    "nguoi-phu-trach-loi-handlers-390.png": "390×844",
+    "nguoi-phu-trach-bang-chon-loi-luu-390.png": "390×844",
+    "nguoi-phu-trach-bang-chon-loi-luu-1040.png": "1040×800",
+    "nguoi-phu-trach-danh-sach-390.png": "390×844",
+    "nguoi-phu-trach-trang-don-390.png": "390×844",
+    "nguoi-phu-trach-bang-chon-390.png": "390×844",
+    "nguoi-phu-trach-danh-sach-1040.png": "1040×800",
+    "nguoi-phu-trach-trang-don-1040.png": "1040×800",
+    "nguoi-phu-trach-bang-chon-1040.png": "1040×800",
+    "nguoi-phu-trach-chua-co-nguoi-390.png": "390×844",
+    "nguoi-phu-trach-danh-sach-chip-390.png": "390×844",
+    "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800"
+  },
+  "dem": {
+    "handlers-goi-o-danh-sach-390": 1,
+    "handlers-goi-o-danh-sach-1040": 1,
+    "thong-bao-no-change": "Người này đang phụ trách đơn rồi. Đã tải lại đơn.",
+    "thong-bao-stale": "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn.",
+    "thong-bao-403": "Bạn không còn quyền đổi người phụ trách của đơn này. Đã tải lại đơn.",
+    "trang-thai-axe": [
+      "danh-sach-390",
+      "trang-don-390",
+      "trang-don-chua-co-nguoi-390",
+      "bang-chon-390",
+      "bang-chon-loi-390",
+      "bang-chon-dang-tai-390",
+      "bang-chon-loi-luu-390",
+      "trang-don-chua-biet-390",
+      "danh-sach-handlers-loi-390",
+      "danh-sach-1040",
+      "trang-don-1040",
+      "trang-don-chua-co-nguoi-1040",
+      "bang-chon-1040",
+      "bang-chon-loi-1040",
+      "bang-chon-dang-tai-1040",
+      "bang-chon-loi-luu-1040",
+      "trang-don-chua-biet-1040",
+      "danh-sach-handlers-loi-1040"
+    ],
+    "trang-theo-doi-console": 42
+  },
+  "tongKet": {
+    "dat": 12,
+    "hong": 0
+  }
+}

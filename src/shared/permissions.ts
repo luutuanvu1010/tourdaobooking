@@ -25,20 +25,25 @@ type Row = Record<PermissionCode, Scope>;
 const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope): Row => ({ SALES, ACCOUNTING, ADMIN, FIELD });
 
 /**
- * Bản đồ ADR-0007 điều 1 + 3 thao tác Góp ý (feedback.*) (ADMIN làm được mọi thao tác). "Của mình" = người lập đơn.
- * Thao tác của N2/N3 (task.progress, order.money.edit, dispatch.assign, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
+ * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, cộng 3 thao tác Góp ý (`feedback.*` — mở rộng của module Góp ý, không thuộc bảng ADR-0007 gốc).
+ * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
+ * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
+ * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
+ * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim (module dispatch), feedback.submit/view/triage (module feedback).
+ * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
  */
 export const MATRIX = {
   "order.view": row("any", "any", "any", "none"), // xem đơn
   "money.view": row("any", "any", "any", "none"), // xem tiền, bảng giá danh mục
-  "order.history.view": row("own", "any", "any", "none"), // nhật ký/lịch sử sửa đơn
+  "order.history.view": row("ownOrAssigned", "any", "any", "none"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách)
   "contact.view": row("any", "any", "any", "assigned"), // tên/SĐT khách, điểm đón, giờ
   "order.create": row("any", "none", "any", "none"), // lập đơn (đơn mới luôn là của người lập)
-  "order.modify": row("own", "none", "any", "none"), // sửa, xác nhận, huỷ đơn
+  "order.modify": row("ownOrAssigned", "none", "any", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách)
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none"), // thông tin vận hành sau xác nhận
   "task.progress": row("none", "none", "any", "assigned"), // cập nhật trạng thái việc được giao
-  "order.money.edit": row("own", "any", "any", "none"), // số khách, dịch vụ, tiền sau xác nhận
-  "dispatch.assign": row("own", "none", "any", "none"), // đặt/đổi người phụ trách và nhiệm vụ
+  "order.money.edit": row("own", "any", "any", "none"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0009 KHÔNG đổi (thuộc N3)
+  "dispatch.assign": row("ownOrAssigned", "none", "any", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
+  "dispatch.claim": row("any", "none", "any", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này)
   "payment.receive": row("own", "any", "any", "none"), // ghi thu tiền
   "payment.refund": row("none", "any", "any", "none"), // ghi hoàn tiền
   "invoice.request": row("own", "any", "any", "none"), // ghi yêu cầu hoá đơn + thông tin xuất

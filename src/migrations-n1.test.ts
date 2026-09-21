@@ -231,9 +231,19 @@ test("0012 (expand): mã CŨ vẫn chạy — INSERT staff không party_id, đ�
   assert.deepEqual(db.prepare("PRAGMA table_info(v_stf_staff_label)").all().map((c) => c.name), ["id", "label", "active", "party_id"]);
 });
 
-test("hai pha: các migration mở rộng KHÔNG chứa trigger siết (0013 mới có, ở lần phát hành 2)", () => {
+/** Migration "siết" B5 (`staff_party_required`: trigger bắt buộc `staff.party_id`) nhận biết theo TÊN, không theo số thứ tự: số của nó là số kế tiếp bất kỳ tại thời điểm làm (0013 đã thuộc `company_email`). */
+const isContractMigration = (f: string): boolean => f.includes("staff_party_required");
+
+test("hai pha: migration siết B5 nhận biết theo tên tệp (staff_party_required), không theo số", () => {
+  assert.equal(isContractMigration("0013_company_email.sql"), false, "0013_company_email KHÔNG phải migration siết");
+  assert.equal(isContractMigration("0014_dispatch.sql"), false);
+  assert.equal(isContractMigration("0015_staff_party_required.sql"), true, "B5 lấy số kế tiếp nào cũng được nhận ra");
+  assert.equal(isContractMigration("0013_staff_party_required.sql"), true);
+});
+
+test("hai pha: các migration mở rộng KHÔNG chứa trigger siết (migration siết B5 mới có, ở lần phát hành 2)", () => {
   const db = open();
   const triggers = rows(db, "SELECT name FROM sqlite_master WHERE type = 'trigger' AND (name LIKE 'staff_%' OR name LIKE 'stf_%')").map((r) => r.name);
-  const hasContract = files.some((f) => f.startsWith("0013"));
-  if (!hasContract) assert.deepEqual(triggers, [], "trước 0013 không được có trigger siết");
+  const hasContract = files.some(isContractMigration);
+  if (!hasContract) assert.deepEqual(triggers, [], "trước migration siết B5 (staff_party_required) không được có trigger siết");
 });
