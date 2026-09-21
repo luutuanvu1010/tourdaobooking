@@ -174,7 +174,7 @@ Expected: PASS 5/5.
 - [ ] **Step 5: Chạy toàn bộ test + typecheck**
 
 Run: `npm test && npm run typecheck`
-Expected: toàn bộ PASS (403 test cũ + 5 mới = 408; đếm lại theo kết quả thật), tsc 0 lỗi. Đặc biệt kiểm `src/migrations-n1.test.ts` phần "hai pha" vẫn xanh: tên trigger mới không khớp `staff_%`/`stf_%`.
+Expected: toàn bộ PASS, **408 test** (403 cũ + 5 mới), tsc 0 lỗi. Đã chạy thử lúc viết kế hoạch (2026-09-21, đặt tạm migration + test vào repo rồi gỡ): `# tests 408, # pass 408, # fail 0`. Nghĩa là `src/architecture.test.ts`, `src/migrations-n1.test.ts` (phần "hai pha": tên trigger mới không khớp `staff_%`/`stf_%`) và `src/audit-invariants.test.ts` đều không vỡ vì `0017`.
 
 - [ ] **Step 6: Commit**
 
@@ -190,7 +190,7 @@ nhật ký. Đối chiếu Oracle TCA bản 2, P-2 + P-5."
 ### Task 2: E2E trên D1 local, cập nhật tài liệu, đổi số B5
 
 **Files:**
-- Modify: `tests/e2e/orders.mjs` (quanh dòng 137–142, khối "SQL thô" đang kiểm trigger tiền)
+- Modify: `tests/e2e/orders.mjs` (chèn sau dòng 88, ngay sau khi đơn `o` bị huỷ)
 - Modify: `CLAUDE.md` (§3 số test, §4 dòng `migrations/`, §9 hiện trạng), `docs/HANDOFF-N1.md` (mọi chỗ "B5 … dự kiến `0017`"), `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md` (dòng "Tệp cuối hiện là"), `docs/HANDOFF-CHE-DO-BAO-TRI.md`, `docs/HANDOFF-FEEDBACK.md`, `docs/ARCHITECTURE.md` (mục "Luật dữ liệu")
 
 **Interfaces:**
@@ -199,16 +199,23 @@ nhật ký. Đối chiếu Oracle TCA bản 2, P-2 + P-5."
 
 - [ ] **Step 1: Thêm kiểm e2e (đỏ trên nhánh chưa có 0017, xanh sau)**
 
-Trong `tests/e2e/orders.mjs`, ngay sau dòng `await sql(\`UPDATE orders SET customer_note = 'sửa hợp lệ' …\`)` (dòng 142), thêm:
+Dùng đơn `o` (tạo ở dòng 25). Tới dòng 88 nó đã đi nháp → xác nhận → huỷ qua API (lịch sử `created, updated, updated, confirmed, cancelled`) nên có đủ thông tin chuyến và có 5 dòng nhật ký. **Không dùng `traced`**: đơn đó còn là nháp, câu `UPDATE` sẽ không trúng dòng nào và kiểm vẫn "qua" mà không chứng minh gì.
+
+Trong `tests/e2e/orders.mjs`, ngay sau dòng 88 (`assert.deepEqual(r.body.history.map((h) => h.action), [..., "confirmed", "cancelled"]);`), thêm:
 
 ```js
 // 0017 (P-2 + P-5): trên D1 thật, CSDL chặn đường quay lại của trạng thái đơn và chặn sửa/xoá nhật ký, kể cả SQL chạy tay.
-await assert.rejects(sql(`UPDATE orders SET status = 'draft' WHERE id = '${traced.id}' AND status <> 'draft'`), /invalid_transition/);
-await assert.rejects(sql(`UPDATE audit_log SET detail = 'sửa lén' WHERE order_id = '${traced.id}'`), /audit_append_only/);
-await assert.rejects(sql(`DELETE FROM audit_log WHERE order_id = '${traced.id}'`), /audit_append_only/);
+// Đơn `o` lúc này ĐÃ HUỶ (dòng 84) và có 5 dòng nhật ký (dòng 88), nên mỗi câu dưới đây chắc chắn trúng dòng.
+await assert.rejects(sql(`UPDATE orders SET status = 'confirmed' WHERE id = '${o.id}'`), /invalid_transition/, "đơn đã huỷ không được sống lại");
+await assert.rejects(sql(`UPDATE orders SET status = 'draft' WHERE id = '${o.id}'`), /invalid_transition/);
+await assert.rejects(sql(`UPDATE audit_log SET detail = 'sửa lén' WHERE order_id = '${o.id}'`), /audit_append_only/);
+await assert.rejects(sql(`DELETE FROM audit_log WHERE order_id = '${o.id}'`), /audit_append_only/);
+r = await call(A, "GET", `/api/orders/${o.id}`);
+assert.equal(r.body.order.status, "cancelled");
+console.log("✓ TRIGGER 0017 chặn trạng thái đi lùi và sửa/xoá nhật ký ghi thẳng vào D1");
 ```
 
-Trước khi thêm: đọc lại khối quanh dòng 130–145 để biết `traced` đang ở trạng thái nào. Nếu `traced` còn là nháp thì câu đầu không trúng dòng nào và không lỗi: khi đó xác nhận đơn qua API trước (theo mẫu có sẵn trong tệp), hoặc dùng một đơn đã xác nhận có sẵn trong kịch bản.
+Các dòng sau (từ dòng 90) đọc `/api/audit` và cần đủ 5 dòng nhật ký của `o`. Hai câu sửa/xoá nhật ký bị chặn nên số dòng không đổi, các assert đó vẫn đúng.
 
 - [ ] **Step 2: Chạy e2e**
 
@@ -248,7 +255,7 @@ E2E chứng minh trigger chạy trên D1 local, không chỉ node:sqlite. Tài l
 Không thi công task này nếu chủ dự án chưa ra lệnh rõ trong phiên. Trình tự theo `docs/HANDOFF-N1.md`:
 
 - [ ] **Step 1:** Cổng chỉ-đọc: `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` (nhìn TÊN, không nhìn số: có hai tệp `0016_*`). Chỉ được thấy `0017_order_status_audit_guards` là migration chưa áp. Nếu còn tệp khác chưa áp (ví dụ `0016_feedback`, xem ghi nhớ "lệch production") thì DỪNG và hỏi chủ dự án.
-- [ ] **Step 2:** Chỉ-đọc: `node scripts/audit-invariants.mjs --db remote` phải xanh. Ghi điểm khôi phục D1 Time Travel.
+- [ ] **Step 2:** Chỉ-đọc: `node scripts/audit-invariants.mjs --db remote` phải xanh. Bộ kiểm này KHÔNG xem trạng thái đơn, nên chạy thêm `CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT status, count(*) AS n FROM orders GROUP BY status"` và ghi kết quả: chỉ được có `draft`/`confirmed`/`cancelled`. Trigger không kiểm dòng cũ, nhưng giá trị lạ nghĩa là đã có đường ghi ngoài mã, phải hỏi chủ dự án trước khi áp. Ghi điểm khôi phục D1 Time Travel.
 - [ ] **Step 3:** `npm test` + `npm run typecheck` + `npm run test:e2e` xanh trên đúng commit sẽ áp.
 - [ ] **Step 4:** `CI=1 npm run db:migrate:remote`. Migration không đổi hành vi mã nên **không cần** `wrangler deploy` đi kèm.
 - [ ] **Step 5:** Kiểm sau áp (chỉ đọc): `CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('orders_status_transition','audit_log_no_update','audit_log_no_delete')"` → 3 dòng; `audit-invariants --db remote` xanh; thử tay một lần xác nhận + huỷ đơn thử trên app.
