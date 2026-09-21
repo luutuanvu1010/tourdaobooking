@@ -343,7 +343,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ## 7. Danh mục API
 
-Tất cả 54 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
+Tất cả 55 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`).
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
@@ -363,7 +363,7 @@ Tất cả 54 route khai bằng `route(...)` trong `src/modules/*/index.ts`.
 | GET | `/api/orders` | office | orders | danh sách đơn, lọc `q` / `status`, phân trang `limit`/`offset` |
 | POST | `/api/orders` | office | orders | lập đơn nháp; nhận thêm `bookerPartyId` (gắn hồ sơ có sẵn) **hoặc** `newBooker: { fullName, phone }` (tạo hồ sơ cá nhân mới + vai `CUSTOMER` cùng `db.batch()`, ADR-0011 điều 1) — không gửi cả hai, vắng cả hai = không gắn |
 | GET | `/api/orders/:id` | office | orders | chi tiết đơn + lịch sử + cờ `canModify`; `OrderDto` có `bookerPartyId`, `bookerName` (tên đọc qua `v_pty_party_label`, `null` = chưa gắn) |
-| PUT | `/api/orders/:id` | office | orders | sửa đơn nháp (khoá lạc quan `expectedUpdatedAt`); nhận `bookerPartyId`/`newBooker` như `POST` (đổi hoặc bỏ gắn hồ sơ khách của đơn nháp) |
+| PUT | `/api/orders/:id` | office | orders | sửa đơn nháp (khoá lạc quan `expectedUpdatedAt`); nhận `bookerPartyId`/`newBooker` như `POST` (đổi hoặc bỏ gắn hồ sơ khách của đơn nháp) — RIÊNG đường này: thân yêu cầu KHÔNG có cả hai khoá `bookerPartyId`/`newBooker` (client PWA cũ chưa biết trường người đặt) thì **giữ nguyên** người đặt đang lưu, không gọi lại `resolveBooker`; `bookerPartyId: null` tường minh vẫn bỏ gắn. `POST /api/orders` và `PUT /api/orders/:id/booker` không có ngoại lệ này — vắng cả hai khoá ở hai đường đó vẫn là "không gắn"/"không đổi" như đọc trực tiếp từ `parseBooker` |
 | PUT | `/api/orders/:id/trip` | office | orders | sửa thông tin chuyến (kể cả đơn đã xác nhận) |
 | PUT | `/api/orders/:id/booker` | office | orders | đổi khách (hồ sơ người đặt + tên/SĐT chụp trên đơn) của đơn **nháp hoặc đã xác nhận** — cùng quyền `order.trip.edit` với sửa chuyến (ADR-0011 điều 2); nhận `bookerPartyId`/`newBooker` (không gửi cả hai); 400 `invalid_input`, 403 `forbidden`, 404 `not_found`, 409 `stale` (khoá lạc quan) / `not_editable` (đơn đã huỷ); nhật ký `booker_changed` "từ A sang B" bằng tên, không SĐT |
 | POST | `/api/orders/:id/status` | office | orders | xác nhận hoặc huỷ đơn |
