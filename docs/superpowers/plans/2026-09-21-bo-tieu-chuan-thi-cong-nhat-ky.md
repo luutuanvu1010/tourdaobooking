@@ -14,12 +14,22 @@
 
 ## Khác biệt phải nhớ khi gộp với nhánh khác
 - Nhánh `worktree-doi-chieu-oracle-tca` ĐÃ GỘP vào `main` (PR #5, #6; `main` @ `f01fa5c`) và nhánh này ĐÃ REBASE lên đó (2026-09-21): xung đột `CLAUDE.md` (số test) và `docs/adr/README.md` (hàng ADR) đã giải; số ADR của bản ghim đổi 0011 → **0012**. Còn lại: số migration kế tiếp là `0018` (`0017` đã lên production); manifest băm migration (T2) phải gồm cả `0017`.
-- Mục "Số migration" trong bộ `CLAUDE.md` đề xuất chưa ghi cứng "0017": cập nhật khi cài (T8), theo `main` hiện tại (0017 đã có, kế tiếp 0018).
+- Mục "Số migration" trong bộ `CLAUDE.md` đề xuất: **đã sửa** ngày 2026-09-22 sau kiểm toàn nhánh (bản cũ ghi kế tiếp `0017`, sai) thành "`0017` đã có, kế tiếp `0018`" ở `docs/superpowers/proposals/2026-09-21-claude-md/CLAUDE.md` §10 và `README.md`. `git diff 8c16767 main -- CLAUDE.md` chỉ đổi số test và số migration, nên phần còn lại của bản đề xuất không bị `main` làm lỗi thời; vẫn đối chiếu lại trước khi `cp` nếu `main` đi tiếp.
+- Đặc tả 4A đòi `.gitattributes` có cả `migrations/** -text`; T1 chỉ làm `playbook/** -text`. Phần `migrations/` **hoãn có chủ ý sang T2 của đặc tả** (manifest băm migration), vì dòng đó chỉ có ích cùng manifest. Ghi ở đây để đọc `git log` không tưởng 4A đã đủ.
+
+## Nợ và việc để ý (kiểm toàn nhánh 2026-09-22, người kiểm opus chỉ đọc)
+- `permissions.deny` (lớp hai) chưa có dạng lệnh TRẦN (`wrangler deploy`, `wrangler secret`, `gh pr merge`, `wrangler rollback`): các luật hiện có đòi thêm ký tự sau dấu cách. Hook (lớp một) vẫn chặn các dạng trần (người kiểm đã chạy hook thật với `wrangler deploy` và `gh pr merge 12`). Thêm bốn luật là siết hàng rào (N9 cho phép) nhưng đụng `.claude/` và cần quan sát chặn thật (P16), nên để việc sau; `src/claude-guard.test.ts` hiện chỉ đòi 4 luật deny nên không bắt được thiếu sót này.
+- `.gitignore` chỉ bỏ qua ba mục dưới `.claude/` (`worktrees/`, `settings.local.json`, `scheduled_tasks.lock`); thư mục mới do Claude Code sinh sau này sẽ hiện ở `git status`. Cân nhắc mẫu `.claude/*` kèm ngoại lệ cho `settings.json` và `hooks/`.
+- `src/standards.test.ts` bài `.gitattributes` cần `git` chạy được và gốc là một repo git (chủ ý: không bỏ qua âm thầm): `npm test` sẽ đỏ trên bản giải nén không có `.git`. Lưu ý khi viết CI ở T9.
+- Hook chặn cả `wrangler d1 execute … --remote` chỉ-đọc (SELECT): câu khảo sát trên D1 thật do chủ tự chạy bằng `!`. `wrangler d1 migrations list … --remote`, `wrangler deployments list`, `audit-invariants --db remote` vẫn qua.
+- Nguyên mẫu quét PII (`docs/superpowers/proposals/2026-09-21-pii-quet-chung/`) gieo số `0845256256`, đã có sẵn ở `main` (không phải rò rỉ mới); khi T3 làm thành test thật thì dùng số rõ ràng là giả (ví dụ `0900000001`).
+- **Ngoài phạm vi nhánh, có sẵn ở `main`:** `src/modules/feedback/index.ts` (~dòng 192) ghi `detail` của nhật ký là `` `${feedbackCode(t.seq)}: ${from} → ${to}` `` với `from`/`to` là mã trạng thái (ví dụ `new`, `in_progress`). Nếu giao diện nhật ký hiển thị nguyên chuỗi thì đó là mã tiếng Anh thô lộ ra người dùng, trái luật ở `CLAUDE.md` §5. **Chưa kiểm** giao diện nhật ký có dịch không; chưa sửa (không thuộc nhánh này), chủ quyết.
+- Nhật ký cũ trên production vẫn còn SĐT ở các dòng `staff_updated` ghi trước khi sửa (nhật ký chỉ-thêm) — ngoài đợt này, chủ quyết.
 
 ## Sổ việc
 | Việc | Kế hoạch | Trạng thái | Người thi công | Người kiểm |
 |---|---|---|---|---|
-| Hàng rào máy (hook, deny, test, `.gitignore`) | — (làm sớm theo yêu cầu chủ) | Xong, commit `fb25815`/`cbe2b3a` (sau rebase lên `main` @ `f01fa5c`; trước rebase: `f7651a1`/`c91cb8d`); **chưa quan sát chặn trong phiên Claude Code thật** | phiên soạn | người kiểm D (357 ca) |
+| Hàng rào máy (hook, deny, test, `.gitignore`) | — (làm sớm theo yêu cầu chủ) | Xong, commit `fb25815`/`cbe2b3a` (sau rebase lên `main` @ `f01fa5c`; trước rebase: `f7651a1`/`c91cb8d`); **chưa quan sát chặn trong phiên Claude Code thật** | phiên soạn | người kiểm D: tấn công bằng 357 ca; **290 ca giữ làm kho hồi quy** trong `src/claude-guard.cases.json` (đếm lại 2026-09-22: nhóm `C` 154, `A` 98, `H` 10, `E` 28; nhóm `E` là kiểu lách cố ý chấp nhận lọt nên không khẳng định, còn 262 ca được khẳng định) |
 | Bộ CLAUDE.md đề xuất | — | Xong ở dạng ĐỀ XUẤT (`docs/superpowers/proposals/2026-09-21-claude-md/`); chờ chủ duyệt và cài | phiên soạn | người kiểm D |
 | `staff_updated` không ghi SĐT | — | Xong, commit `19af1c4` (trước rebase: `33eebed`) | phiên soạn | người kiểm E |
 | **T1 — ghim `playbook/`** | `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-t1-ghim-playbook.md` | **Task 1 (ADR-0012) và Task 2 (chép `playbook/`, manifest, bài kiểm) xong, mỗi Task đã qua người kiểm và kiểm lại**; còn kiểm toàn nhánh rồi trình chủ (ADR-0012 vẫn `proposed`) | subagent thi công (mỗi Task một lượt) | subagent kiểm độc lập, chỉ đọc (từng Task) |

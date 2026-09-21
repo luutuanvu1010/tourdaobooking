@@ -9,6 +9,7 @@ cp docs/superpowers/proposals/2026-09-21-claude-md/src/CLAUDE.md src/CLAUDE.md
 cp docs/superpowers/proposals/2026-09-21-claude-md/web/CLAUDE.md web/CLAUDE.md
 ```
 **Cảnh báo:** bản gốc soạn trên `main` tại `8c16767`; nếu `main` đã đổi tiếp thì đối chiếu `git diff 8c16767 main -- CLAUDE.md` trước khi `cp`, kẻo xoá phần mới của `main`. Sau khi cài: mở lại phiên để nạp; kiểm đường dẫn nhắc tới còn đúng.
+**Đối chiếu ngày 2026-09-22 (`main` @ `f01fa5c`):** `git diff 8c16767 main -- CLAUDE.md` chỉ đổi hai thứ: số test (403 → 408) và số migration (`0017` đã có, kế tiếp `0018`). Bản đề xuất đã sửa số migration (§10); bản đề xuất không ghi số test. Nếu `main` đi tiếp sau ngày này, đối chiếu lại bằng đúng lệnh trên.
 
 ## Số đo (lúc soạn)
 Gốc 92 dòng (~15,7 KB), `src/` 33 dòng, `web/` 28 dòng. Bản cũ: 105 dòng nhưng ~18 KB vì mỗi dòng rất dài. Mục tiêu của chủ: gốc ≤ 200 dòng.
@@ -19,7 +20,7 @@ Gốc 92 dòng (~15,7 KB), `src/` 33 dòng, `web/` 28 dòng. Bản cũ: 105 dòn
 3. **§2** chia tài liệu **chuẩn tắc** thắng mã / **mô tả** thua mã (quyết định #15 của chủ). **Kèm một điều khoản do người soạn thêm sau khi người kiểm chỉ ra mâu thuẫn:** "lệch có chủ ý" đã ghi ở `SYSTEM-DESIGN` §16 (mã đúng, tài liệu chuẩn tắc lệch) thì không sửa mã mà trình chủ ra ADR/lịch sử mới. **Cần chủ xác nhận.**
 4. **§8** hàng rào máy (hook + `permissions.deny`; **không có công tắc tạm**, nên chủ ra lệnh thì AI đưa nguyên lệnh cho chủ chạy bằng `!`); "không khẳng định production từ tài liệu"; "**chỉ deploy từ `main` đã gộp**" — **do người soạn đề xuất**, chủ cần xác nhận.
 5. **§7** ghi việc `staff_updated` từng ghi SĐT vào nhật ký (chủ chốt sửa 2026-09-21, **đã sửa**) và nhật ký cũ còn số, để AI không lặp lại kiểu cũ.
-6. **§10** số migration hiện có hai `0016_*` (chấp nhận, kế tiếp `0017`) và "liệt kê mọi nhánh chưa gộp trước khi đặt số"; `typecheck` không phủ test/script.
+6. **§10** số migration hiện có hai `0016_*` (chấp nhận; `0017` đã có, kế tiếp `0018`) và "liệt kê mọi nhánh chưa gộp trước khi đặt số"; `typecheck` không phủ test/script.
 7. Tách luật theo thư mục: `src/CLAUDE.md`, `web/CLAUDE.md`; **giữ 4 dòng "Giao diện" ở gốc** vì tệp thư mục con chỉ nạp khi đọc tệp ở đó (Anthropic), còn sửa `public/`, `package.json` bằng lệnh shell thì không kích hoạt.
 8. **Hook mở rộng** (đề xuất mới, siết AI): chặn thêm `wrangler dev --remote` (Worker chạy trên D1 thật), chạy kịch bản trỏ vào production bằng `E2E_BASE_URL=…`, và merge "gián tiếp" (`cd`/`-C`/`checkout` rồi `merge`).
 

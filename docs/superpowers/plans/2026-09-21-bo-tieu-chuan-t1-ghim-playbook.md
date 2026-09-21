@@ -1,5 +1,7 @@
 # Ghim `playbook/` (T1) Implementation Plan
 
+> **Trạng thái thật: T1 XONG trên nhánh `worktree-bo-tieu-chuan-nen-tang` (Task 1 và Task 2, đã qua người kiểm độc lập và kiểm lại).** Các ô `- [ ]` bên dưới là kế hoạch gốc và **không được tick**; bằng chứng thi công, kết quả kiểm và ruling nằm ở nhật ký `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md`. Văn bản ADR, `PIN-README.md` và mã bài kiểm chép trong kế hoạch này là bản soạn gốc; bản có hiệu lực là các tệp thật (xem ghi chú đầu Task 1 và Task 2).
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. **Vai (Hiến pháp P15, N8):** người thi công KHÔNG tự nghiệm thu; sau mỗi Task có cổng "Người kiểm" do một subagent KHÁC làm, chỉ đọc.
 
 **Goal:** Đặt vào repo một bản chép chỉ-đọc, nguyên byte, của `CoreSchemaProject/playbook` (Hiến pháp v2.3.0) kèm `PIN-README.md`, manifest băm và bài kiểm chống trôi; kèm ADR-0012 (đề xuất) ghi lại quyết định.

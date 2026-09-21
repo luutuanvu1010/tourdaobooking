@@ -17,3 +17,6 @@ Mọi ghi đều đi qua `src/modules/audit/repository.ts:35`. `auth`, `company`
 ## Điều chờ chủ quyết trước khi viết bài quét thật
 1. Chữ tự do người dùng gõ (tiêu đề góp ý, tên hồ sơ, tên dịch vụ tự nhập): **chấp nhận** vì chỉ admin xem nhật ký (đề xuất; bài quét chỉ kiểm phần có cấu trúc, ghi giới hạn vào overlay), hay phải cắt/che.
 2. Dòng `staff_updated` cũ còn số trên production: **giữ nguyên** (nhật ký chỉ-thêm; đề xuất) hay làm migration che số.
+
+## Lưu ý cho người làm T3
+Nguyên mẫu gieo số `0845256256`. Số này đã có sẵn ở `main` (`src/migrations-n1.test.ts`, `src/modules/accounts/patch-staff.test.ts`, `src/modules/parties/rules.test.ts`…) nên không phải rò rỉ mới, nhưng khi làm thành test thật hãy dùng số rõ ràng là giả (ví dụ `0900000001`) để khỏi lẫn với số thật của nhân viên đang nằm ở `migrations/0016_maintenance.sql`.
