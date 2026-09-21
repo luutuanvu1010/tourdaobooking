@@ -58,6 +58,16 @@ export async function logout(): Promise<void> {
   location.assign("/login");
 }
 
+/** Số mục chưa đọc của Góp ý (phản hồi mới cho tôi + yêu cầu chờ admin). Lỗi mạng → 0, không làm hỏng khung. */
+export async function feedbackBadge(): Promise<number> {
+  try {
+    const b = await api<Api.FeedbackBadgeResponse>("/api/feedback/badge");
+    return b.mine + b.queue;
+  } catch {
+    return 0;
+  }
+}
+
 /** Đổi tiêu đề trên thanh đầu trang (điện thoại) sau khi trang biết nội dung, vd mã đơn. */
 export function setBarTitle(text: string): void {
   const el = document.getElementById("bar-title");
@@ -121,6 +131,11 @@ export async function initShell(): Promise<Staff> {
     admin && h("a", { href: "/locations" }, "Địa điểm"),
     admin && h("a", { href: "/audit" }, "Nhật ký"),
   );
+  const feedbackLink = h("a", { href: `/feedback?new=1&from=${encodeURIComponent(path)}` }, "Góp ý");
+  nav.append(feedbackLink);
+  void feedbackBadge().then((n) => {
+    if (n > 0) feedbackLink.append(" ", h("span", { class: "badge badge-cancelled" }, String(n)));
+  });
   replaceChildren(who, h("a", { href: "/account", title: "Tôi" }, staff.fullName), logoutBtn);
   addTabBar(admin, office, canCreate);
   return staff;

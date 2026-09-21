@@ -8,13 +8,14 @@ import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { defaultHandlerStatement, dispatchModule, isOrderHandler } from "./modules/dispatch";
 import { locationsModule } from "./modules/locations";
+import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { ordersModule } from "./modules/orders";
 import { createApp } from "./shared/router";
 
 const app = createApp({
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule],
   currentStaff,
   checkConfig: checkAuthConfig,
   injected: {

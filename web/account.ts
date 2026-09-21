@@ -5,7 +5,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
-import { initShell, logout, setMaintenanceStrip, showError } from "./shell";
+import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -23,11 +23,19 @@ replaceChildren(
 );
 const logoutBtn = h("button", { class: "row-link danger", type: "button" }, "Đăng xuất");
 logoutBtn.addEventListener("click", () => void logout());
+const feedbackBadgeEl = h("span", { class: "badge badge-cancelled", hidden: true });
+void feedbackBadge().then((n) => {
+  if (n > 0) {
+    feedbackBadgeEl.textContent = String(n);
+    feedbackBadgeEl.hidden = false;
+  }
+});
 replaceChildren(
   byId("links"),
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Hồ sơ", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)),
+  h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
   logoutBtn,
 );
 form.addEventListener("submit", async (e) => {

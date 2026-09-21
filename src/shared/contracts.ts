@@ -2,9 +2,10 @@
 // Server khai kiểu trả về theo file này (và `satisfies` ở chỗ trả JSON); web/api.ts re-export. Đổi một bên mà quên bên kia → typecheck báo.
 import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
+import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
 import type { PermissionCode } from "./permissions.ts";
 
-export type { AuditAction, AuditTargetType, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices };
+export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices };
 
 // ---- Nhân viên / phiên -------------------------------------------------------
 export interface StaffProfile {
@@ -407,4 +408,82 @@ export interface PartyResponse { party: PartyDto }
 export interface PartyMetaResponse {
   roleTypes: { code: string; name: string }[];
   relationshipTypes: { code: string; name: string }[];
+}
+
+// ---- Góp ý / Báo lỗi (module feedback) ----
+export interface FeedbackContextDto {
+  path?: string;
+  orderCode?: string;
+  device?: string;
+  standalone?: boolean;
+  appVersion?: string;
+}
+
+export interface FeedbackCreateInput {
+  kind: FeedbackKind;
+  title: string;
+  body: string;
+  /** UUID sinh một lần khi mở form; gửi lại cùng mã thì trả yêu cầu cũ (chống trùng khi mạng yếu). */
+  clientRequestId: string;
+  context?: FeedbackContextDto;
+}
+
+export interface FeedbackTicketDto {
+  id: string;
+  /** Mã người đọc, vd YC-0007. */
+  code: string;
+  kind: FeedbackKind;
+  kindName: string;
+  status: FeedbackStatus;
+  statusName: string;
+  title: string;
+  context: FeedbackContextDto;
+  submitterId: string;
+  submitterName: string | null;
+  assigneeId: string | null;
+  assigneeName: string | null;
+  resolvedIn: string | null;
+  lastActivityAt: string;
+  lastPublicReplyAt: string | null;
+  createdAt: string;
+  /** Có gì mới người xem chưa đọc (chấm đỏ). */
+  unread: boolean;
+  /** Chỉ admin thấy: true = email báo admin chưa gửi được. */
+  mailPending: boolean;
+}
+
+export interface FeedbackMessageDto {
+  id: string;
+  authorId: string;
+  authorName: string | null;
+  body: string;
+  internal: boolean;
+  createdAt: string;
+  mine: boolean;
+}
+
+export interface FeedbackStatRow {
+  /** Tuần theo strftime('%Y-%W') của created_at. */
+  week: string;
+  kind: FeedbackKind;
+  status: FeedbackStatus;
+  count: number;
+}
+
+export interface FeedbackListResponse {
+  tickets: FeedbackTicketDto[];
+}
+export interface FeedbackQueueResponse extends FeedbackListResponse {
+  stats: FeedbackStatRow[];
+}
+export interface FeedbackDetailResponse {
+  ticket: FeedbackTicketDto;
+  messages: FeedbackMessageDto[];
+  canTriage: boolean;
+}
+export interface FeedbackBadgeResponse {
+  /** Số yêu cầu CỦA TÔI có phản hồi mới. */
+  mine: number;
+  /** Số yêu cầu chờ admin (0 với người không phải admin). */
+  queue: number;
 }

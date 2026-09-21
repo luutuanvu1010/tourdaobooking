@@ -33,6 +33,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma t
 | Thêm thao tác / đổi một ô của bản đồ quyền | `src/shared/permissions.ts` (`MATRIX`), `src/shared/permissions.test.ts` | e |
 | Người phụ trách đơn (đặt/đổi, ai được làm gì, hàm tiêm vào `orders`) | `src/modules/dispatch/{rules,repository,service,index}.ts`, `src/index.ts` (`injected`), `src/shared/router.ts` (`Ctx`), `tests/e2e/dispatch.mjs` | b, e |
 | Đổi hiển thị / nút người phụ trách (dòng "Phụ trách" ở thẻ đơn, khối "Người phụ trách" và bảng chọn ở trang đơn, ai thấy nút nào, câu báo lỗi) | `src/shared/handler-view.ts` (+ `handler-view.test.ts`), `web/orders.ts`, `web/order.ts`, `web/handler-sheet.ts`, khối cuối `public/app.css` (sau `.confirm-*`), kịch bản Chrome `docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs` | e (hiển thị theo `can()`), i, o |
+| Góp ý / Báo lỗi (loại, trạng thái, bảng chuyển trạng thái, trần chống spam, email báo admin, trang `/feedback`) | `src/shared/feedback-catalog.ts` (+ test), `src/modules/feedback/{rules,repository,notify,index}.ts`, `web/feedback.ts`, `public/feedback.html`, `migrations/0016_feedback.sql`, `tests/e2e/feedback.mjs`; tài liệu `docs/HANDOFF-FEEDBACK.md` | b, c, e, f |
 | Thêm hành động nhật ký | `src/shared/audit-actions.ts` (`AUDIT_ACTIONS`) | f |
 | Thêm loại đối tượng nhật ký (nhóm mới) | `src/shared/audit-actions.ts` (`AUDIT_GROUPS`), `src/modules/audit/repository.ts` (`listAll`) | f |
 | Đổi thông báo lỗi ở giao diện (banner) | `src/shared/order-errors.ts` (`classifyOrderError`), `web/banner.ts` | m |

@@ -25,11 +25,12 @@ type Row = Record<PermissionCode, Scope>;
 const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope): Row => ({ SALES, ACCOUNTING, ADMIN, FIELD });
 
 /**
- * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009. "Của mình" = người lập đơn; "được giao" = người phụ trách đang mở của đơn
+ * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, cộng 3 thao tác Góp ý (`feedback.*` — mở rộng của module Góp ý, không thuộc bảng ADR-0007 gốc).
+ * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
- * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim (module dispatch). Thao tác của N2/N3 (task.progress,
- * order.money.edit, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
+ * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim (module dispatch), feedback.submit/view/triage (module feedback).
+ * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
  */
 export const MATRIX = {
   "order.view": row("any", "any", "any", "none"), // xem đơn
@@ -50,6 +51,9 @@ export const MATRIX = {
   "party.view": row("any", "any", "any", "none"), // xem hồ sơ khách/đại lý
   "party.write": row("any", "any", "any", "none"), // tạo/sửa hồ sơ khách/đại lý
   "admin.manage": row("none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ
+  "feedback.submit": row("any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
+  "feedback.view": row("own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
+  "feedback.triage": row("none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

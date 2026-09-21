@@ -7,6 +7,7 @@
     "catalog",
     "company",
     "dispatch",
+    "feedback",
     "locations",
     "maintenance",
     "orders",
@@ -58,6 +59,26 @@
       "name": "dsp_task_kind",
       "module": "dispatch",
       "kind": "lookup"
+    },
+    {
+      "name": "fbk_kind",
+      "module": "feedback",
+      "kind": "lookup"
+    },
+    {
+      "name": "fbk_message",
+      "module": "feedback",
+      "kind": "table"
+    },
+    {
+      "name": "fbk_status",
+      "module": "feedback",
+      "kind": "lookup"
+    },
+    {
+      "name": "fbk_ticket",
+      "module": "feedback",
+      "kind": "table"
     },
     {
       "name": "loc_location",

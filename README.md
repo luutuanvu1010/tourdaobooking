@@ -20,7 +20,7 @@ Dự án **độc lập hoàn toàn** với repo `tourdaovn` (website công khai
 
 ## Kiến trúc trong một đoạn
 
-Một Worker, nhiều module độc lập trong `src/modules/<tên>/` (`accounts`, `audit`, `auth`, `catalog`, `company`, `dispatch`, `locations`, `orders`, `parties`, `staff`). Mỗi module sở hữu route + bảng + logic của mình và chỉ lộ ra qua `index.ts`; module khác chỉ import `index.ts`. Router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site (kiểm `Origin`) và bắt lỗi toàn cục. Luật thuần dùng chung giữa máy chủ và giao diện nằm ở `src/shared/`. Giao diện là TypeScript thuần (`web/*.ts` → esbuild → `public/js/`) trên HTML tĩnh `public/*.html`. Chi tiết: `docs/ARCHITECTURE.md` và `docs/SYSTEM-DESIGN.md`.
+Một Worker, nhiều module độc lập trong `src/modules/<tên>/` (`accounts`, `audit`, `auth`, `catalog`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `orders`, `parties`, `staff`). Mỗi module sở hữu route + bảng + logic của mình và chỉ lộ ra qua `index.ts`; module khác chỉ import `index.ts`. Router chung (`src/shared/router.ts`) lo 401/403/404/405, chặn ghi cross-site (kiểm `Origin`) và bắt lỗi toàn cục. Luật thuần dùng chung giữa máy chủ và giao diện nằm ở `src/shared/`. Giao diện là TypeScript thuần (`web/*.ts` → esbuild → `public/js/`) trên HTML tĩnh `public/*.html`. Chi tiết: `docs/ARCHITECTURE.md` và `docs/SYSTEM-DESIGN.md`.
 
 ## Chạy local
 

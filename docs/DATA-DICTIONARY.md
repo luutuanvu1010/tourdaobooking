@@ -37,6 +37,15 @@
 | `dsp_task_kind` | bảng tra cứu |  |
 | `v_dsp_order_handler` | view công bố | cột: order_id, party_id, staff_id, label, since |
 
+## feedback
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `fbk_kind` | bảng tra cứu |  |
+| `fbk_message` | bảng |  |
+| `fbk_status` | bảng tra cứu |  |
+| `fbk_ticket` | bảng |  |
+
 ## locations
 
 | Đối tượng | Loại | Ghi chú |

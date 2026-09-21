@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tour Đảo"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Góp ý — Tour Đảo Booking</title></head>
+<body data-title="Góp ý" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <h1>Góp ý / Báo lỗi</h1>
+  <p class="muted">Gửi báo lỗi, đề xuất hoặc câu hỏi cho quản trị viên. Chúng tôi phản hồi ngay tại đây.</p>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <section id="new-card" class="card" hidden>
+    <h2>Gửi yêu cầu mới</h2>
+    <form id="new-form" class="grid" autocomplete="off">
+      <label>Loại<select id="new-kind"></select></label>
+      <label>Tiêu đề<input id="new-title" type="text" maxlength="120" required></label>
+      <label>Mô tả<textarea id="new-body" rows="5" maxlength="4000" required></textarea></label>
+      <p id="new-context" class="muted"></p>
+      <div><button id="new-submit" class="btn btn-primary" type="submit">Gửi</button> <button id="new-cancel" class="btn btn-link" type="button">Huỷ</button></div>
+    </form>
+  </section>
+  <section id="list-card" class="card">
+    <div id="tabs"></div>
+    <div id="summary"></div>
+    <div id="list"></div>
+  </section>
+  <section id="thread" class="card" hidden></section>
+</main>
+<script type="module" src="/js/feedback.js"></script>
+</body></html>
