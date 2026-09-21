@@ -5,7 +5,7 @@
 // (`axe-core` lấy bằng `npm pack axe-core` NGOÀI repo; `ONLY=a,b` chỉ chạy vài bước; `OUT=…` đổi thư mục ghi.)
 // Ghi: <OUT>/anh/dang-nhap-*.png và <OUT>/ket-qua-dang-nhap.json. Mỗi bước in một dòng "✓"/"✗"; thoát mã 1 nếu có bước ✗ (không dừng ở bước hỏng đầu tiên: để thấy được toàn bộ "đỏ" trước khi sửa).
 //
-// Hai máy chủ nối tiếp: A = Turnstile BẬT bằng khoá thử `1x…AA` (luôn đạt) — các bước a–e, g–i, j; B = Turnstile TẮT — bước f (không dựng giả lập được: máy chủ đang đòi token thì
+// Hai máy chủ nối tiếp: A = Turnstile BẬT bằng khoá thử `1x…AA` (luôn đạt) — các bước a–e, g–o; B = Turnstile TẮT — bước f (không dựng giả lập được: máy chủ đang đòi token thì
 // đăng nhập không kèm token luôn 403, nên "không có khoá" chỉ chứng minh được trên máy chủ thật sự không có khoá).
 //   a  khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST) — so với chính dòng company_profile trong D1
 //   b  CSP phục vụ đúng (tiền đề của g) · widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử, đăng nhập qua widget, token gửi đi đúng là token của widget
@@ -17,7 +17,11 @@
 //   h  axe-core: 0 vi phạm (MỌI mức) ở 4 trạng thái của máy chủ A + trạng thái không widget
 //   i  vùng chạm ≥ 44 px, ô gõ ≥ 16 px, không tràn ngang, widget nằm trọn trong thẻ (390, 320, 1040) + ảnh 390×844 và 1040×800
 //   j  service worker không lưu gì của Cloudflare (và không lưu /api/*) khi trang chạy dưới service worker thật
-//   k  widget không dựng được (script bị chặn; khoá site sai) → thông báo + nút Thử lại, nút Đăng nhập khoá; bỏ chặn rồi Thử lại → dùng được
+//   k  widget không dựng được (script bị chặn; khoá site sai) → thông báo + nút Thử lại, nút Đăng nhập khoá; bỏ chặn rồi Thử lại → dùng được; khung giữ chỗ không còn chữ chờ
+//   l  (sửa sau rà soát) cấu hình lỗi lúc mở trang khi máy chủ ĐANG đòi token → đăng nhập 403 thì trang lấy lại cấu hình (có hạn, không lặp vô hạn, không giữ nút) rồi dựng widget: không kẹt 403 mãi
+//   m  (sửa sau rà soát) chờ nạp script: khung có chữ “Đang tải xác minh…” (không trống), thay bằng widget khi xong
+//   n  (sửa sau rà soát) theme “light”; error-callback của widget ghi mã lỗi Cloudflare bằng console.warn
+//   o  (sửa sau rà soát) cấu hình lỗi ở lần hỏi đầu rồi ổn lại → lần hỏi lại lúc mở trang tự dựng widget, chưa cần bấm đăng nhập
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -95,6 +99,14 @@ const errorFetch = (suffix, status, code) => `(() => { if (window.top !== window
 /** Trước mã của trang: `GET /api/auth/config` trả khoá site GIẢ `key` (thay cho khoá thật của máy chủ). */
 const fakeConfig = (key) => `(() => { if (window.top !== window) return; const of = window.fetch.bind(window); window.fetch = (u, i) => String(u).endsWith('/api/auth/config') ? Promise.resolve(new Response(JSON.stringify({ turnstileSiteKey: ${JSON.stringify(key)} }), { status: 200, headers: { 'content-type': 'application/json' } })) : of(u, i); })();`;
 
+/** Trước mã của trang: `GET /api/auth/config` trả 500 GIẢ trong lúc `window.__cfgFail` còn true (đặt false = "cấu hình đã ổn lại"); `window.__cfgCalls` đếm số lần trang hỏi (lời gọi giả không qua mạng nên không có trong `p.requests`). */
+const flagConfig = `(() => { if (window.top !== window) return; window.__cfgFail = true; window.__cfgCalls = 0; const of = window.fetch.bind(window); window.fetch = (u, i) => { if (!String(u).endsWith('/api/auth/config')) return of(u, i); window.__cfgCalls++; return window.__cfgFail ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'internal', message: 'giả lập' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : of(u, i); }; })();`;
+/** Trước mã của trang: script Cloudflare được nạp CHẬM `ms` mili giây (trễ việc gán `src` của thẻ script tới challenges.cloudflare.com) — giữ trang ở trạng thái "đang chờ tải script" một cách xác định. */
+const slowScript = (ms) => `(() => { if (window.top !== window) return; const d = Object.getOwnPropertyDescriptor(HTMLScriptElement.prototype, 'src'); Object.defineProperty(HTMLScriptElement.prototype, 'src', { configurable: true, get() { return d.get.call(this); }, set(v) { if (/challenges\\.cloudflare\\.com/.test(String(v))) setTimeout(() => d.set.call(this, v), ${ms}); else d.set.call(this, v); } }); })();`;
+/** Trước mã của trang: bắt `console.warn` (`window.__warns`) và các tuỳ chọn trang đưa cho `turnstile.render` (`window.__opts`, gồm cả các callback) — để giả lập một lỗi widget giữa chừng. */
+// (Không định nghĩa sẵn thuộc tính `window.turnstile`: api.js thấy nó tồn tại là báo "Turnstile already has been loaded". Móc bằng sự kiện `load` ở giai đoạn bắt trên `document` — nằm TRƯỚC thẻ script trong đường truyền sự kiện nên chạy trước trình nghe `load` của trang, tức trước lần `render` đầu.)
+const hookTurnstile = `(() => { if (window.top !== window) return; window.__warns = []; const w = console.warn.bind(console); console.warn = (...a) => { window.__warns.push(a.map((x) => (typeof x === 'string' ? x : (x && x.message) || String(x))).join(' ')); w(...a); };
+  document.addEventListener('load', (e) => { const t = window.turnstile; if (e.target && e.target.tagName === 'SCRIPT' && t && !t.__wrapped) { t.__wrapped = true; const r = t.render.bind(t); t.render = (el, o) => { window.__opts = o; return r(el, o); }; } }, true); })();`;
 const TOKEN = "(document.querySelector('#turnstile-widget input[name=\"cf-turnstile-response\"]')?.value ?? '')";
 const BTN_ENABLED = "!document.getElementById('submit').disabled";
 const ERR_TEXT = "(document.getElementById('error').hidden ? '' : document.getElementById('error').textContent)";
@@ -366,6 +378,7 @@ try {
     track(p, "k", [], true);
     await p.waitFor(`${ERR_TEXT} === ${JSON.stringify(LOAD_FAILED)}`, "thông báo không tải được bước xác minh");
     assert.deepEqual(await p.ev(`({ thuLai: !document.getElementById('turnstile-retry').hidden, nutKhoa: document.getElementById('submit').disabled, token: ${TOKEN} })`), { thuLai: true, nutKhoa: true, token: "" });
+    assert.deepEqual(await p.ev("({ khungAn: document.getElementById('turnstile-widget').hidden, chuCho: document.getElementById('turnstile-widget').textContent })"), { khungAn: true, chuCho: "" }, "script không tải được: khung giữ chỗ ẩn và KHÔNG còn chữ “Đang tải xác minh…”");
     assert.ok(p.failed.length >= 1, "yêu cầu tới Cloudflare thật sự bị chặn");
     await shoot(p, "dang-nhap-khong-tai-duoc-widget-390.png");
     await p.send("Network.setBlockedURLs", { urls: [] });
@@ -381,6 +394,106 @@ try {
     await bad.waitFor("!document.getElementById('error').hidden && !document.getElementById('turnstile-retry').hidden", "thông báo lỗi widget + nút Thử lại", 20000);
     assert.match(await bad.ev(ERR_TEXT), /^(Chưa tải được bước xác minh người thật|Bước xác minh người thật gặp sự cố)\./);
     assert.equal(await bad.ev("document.getElementById('submit').disabled"), true, "không có token thì nút vẫn khoá");
+  });
+
+  // ---- l) cấu hình lỗi lúc mở trang khi máy chủ ĐANG đòi token: tự phục hồi, không kẹt 403 mãi ----
+  await step("l", "cấu hình lỗi lúc mở trang, máy chủ đang đòi token: đăng nhập 403 thì trang lấy lại cấu hình (có hạn, không giữ nút) rồi dựng widget — tự phục hồi, không kẹt 403 vĩnh viễn", async () => {
+    // (1) cấu hình hỏng LIÊN TỤC: nút vẫn mở (không kẹt), không widget; trang hỏi lại vài lần rồi DỪNG
+    const p = await openLogin(envA, { label: "l", before: flagConfig });
+    track(p, "l", [{ url: "/api/auth/login", status: 403 }]); // các lần 403 của máy chủ ở đây là cố ý
+    await p.waitFor(BTN_ENABLED, "nút Đăng nhập mở dù cấu hình hỏng", 6000);
+    assert.equal(await p.ev("document.getElementById('turnstile-widget').hidden"), true, "chưa có widget");
+    await sleep(8000); // chờ vòng hỏi lại lúc mở trang (nếu có) chạy hết — để phần dưới đo RIÊNG đường "sau 403"
+    const calls1 = await p.ev("window.__cfgCalls");
+    await sleep(2500);
+    assert.equal(await p.ev("window.__cfgCalls"), calls1, `hết số lần thử thì dừng, không hỏi mãi (${calls1} lần)`);
+    assert.ok(calls1 >= 1 && calls1 <= 6, `số lần hỏi cấu hình lúc mở trang có giới hạn: ${calls1}`);
+    assert.equal(await p.ev(BTN_ENABLED), true, "và trong lúc hỏi lại nút không bị giữ");
+    // (2) đăng nhập khi cấu hình VẪN hỏng: máy chủ 403 → chữ của máy chủ + hỏi lại vài lần rồi dừng (không lặp vô hạn)
+    await typeCreds(p, ACCOUNTS.salesA);
+    await submit(p);
+    await p.waitFor(`${ERR_TEXT} === ${JSON.stringify(FAILED)}`, "403 thật của máy chủ: thiếu token");
+    await p.waitFor(`window.__cfgCalls > ${calls1}`, "sau 403 trang hỏi lại cấu hình", 6000);
+    await sleep(7500);
+    const calls2 = await p.ev("window.__cfgCalls");
+    await sleep(2500);
+    assert.equal(await p.ev("window.__cfgCalls"), calls2, "hết số lần thử sau 403 thì dừng");
+    assert.ok(calls2 > calls1 && calls2 - calls1 <= 6, `số lần hỏi lại sau 403 có giới hạn: ${calls2 - calls1}`);
+    assert.equal(await p.ev(BTN_ENABLED), true, "nút vẫn không kẹt");
+    // (3) cấu hình ổn lại (máy chủ vẫn đòi token): lần 403 kế tiếp → lấy lại cấu hình → widget được dựng, tự đạt, đăng nhập được
+    await p.ev("window.__cfgFail = false; true");
+    await submit(p);
+    await widgetReady(p);
+    assert.equal(await p.ev("document.getElementById('turnstile-widget').hidden"), false, "khung widget hiện");
+    const r = await rec(p);
+    // Đuôi dãy: 403 → nút mở lại (chưa có khoá nên chưa có widget) → có khoá: KHOÁ tới khi có token → MỞ khi token về (và lần MỞ cuối này ô token đã có giá trị).
+    assert.deepEqual(r.disabled.slice(-3), [false, true, false], `nút sau 403 cuối: mở → khoá (có widget, chờ token) → mở khi có token: ${JSON.stringify(r.disabled)}`);
+    assert.equal(r.enabledWithToken.at(-1), true, `lần MỞ cuối phải vì widget đã có token: ${JSON.stringify(r.enabledWithToken)}`);
+    await typeCreds(p, ACCOUNTS.salesA);
+    await submit(p);
+    await loggedIn(p);
+    const last = loginPosts(p).at(-1);
+    assert.equal(last.turnstileToken, DUMMY, "lần đăng nhập cuối kèm token của widget");
+  });
+
+  // ---- o) tự phục hồi ngay khi mở trang (không cần bấm gì) ----
+  await step("o", "cấu hình lỗi ở lần hỏi đầu rồi ổn lại: lần hỏi lại lúc mở trang (giãn cách, có hạn) dựng widget mà chưa ai bấm đăng nhập; nút không bị giữ trong lúc chờ và khoá tới khi có token", async () => {
+    const q = await openLogin(envA, { label: "o", before: flagConfig });
+    track(q, "o");
+    await q.waitFor("window.__cfgCalls >= 1", "lần hỏi cấu hình đầu (lỗi)");
+    await q.waitFor(BTN_ENABLED, "nút mở ngay sau lần lỗi đầu (không giữ tới hết hạn chờ)", 2500);
+    assert.equal(await q.ev("document.getElementById('turnstile-widget').hidden"), true, "chưa có widget");
+    await q.ev("window.__cfgFail = false; true");
+    await widgetReady(q);
+    assert.equal(loginPosts(q).length, 0, "widget tự dựng khi mở trang, chưa hề đăng nhập");
+    const calls = await q.ev("window.__cfgCalls");
+    assert.ok(calls >= 2 && calls <= 3, `đã hỏi lại ít lần (${calls})`);
+    assert.deepEqual((await rec(q)).disabled, [true, false, true, false], "nút: khoá → mở (cấu hình lỗi) → khoá (có khoá, chờ token) → mở khi có token");
+    await typeCreds(q, ACCOUNTS.salesA);
+    await submit(q);
+    await loggedIn(q);
+  });
+
+  // ---- m) chữ chờ trong khung widget ----
+  await step("m", "trong lúc chờ nạp script Turnstile: khung không trống — có chữ tiếng Việt “Đang tải xác minh…” (một đoạn <p role=status>), nút Đăng nhập khoá; chữ biến mất khi widget dựng xong; axe 0 vi phạm và vùng chạm ≥ 44 px ở trạng thái này", async () => {
+    const p = await openLogin(envA, { label: "m", before: slowScript(4000) });
+    track(p, "m");
+    await p.waitFor("!document.getElementById('turnstile-widget').hidden", "khung widget hiện (đang chờ script)", 6000);
+    const wait = await p.ev(`(() => { const box = document.getElementById('turnstile-widget'); const ps = [...box.querySelectorAll('p')]; return { chu: box.textContent.trim(), soDoan: ps.length, vaiTro: ps[0]?.getAttribute('role') ?? null, widget: ${WIDGET_UP}, cao: Math.round(box.getBoundingClientRect().height), nutKhoa: document.getElementById('submit').disabled }; })()`);
+    assert.deepEqual([wait.chu, wait.soDoan, wait.vaiTro, wait.widget, wait.nutKhoa], ["Đang tải xác minh…", 1, "status", false, true], `khung chờ: ${JSON.stringify(wait)}`);
+    assert.ok(wait.cao >= 60, `khung giữ chỗ vẫn cao ${wait.cao} px (widget dựng xong không đẩy nút)`);
+    results.widget.chuCho = wait;
+    const v = await axe(p, "may-A-390-dang-tai-xac-minh");
+    assert.deepEqual(v, [], `axe (đang tải): ${JSON.stringify(v)}`);
+    const m = await measure(p, "may-A-390-dang-tai-xac-minh");
+    assert.deepEqual([m.tapDuoi44, m.oGoDuoi16, m.trànNgang <= 0], [[], [], true]);
+    await shoot(p, "dang-nhap-dang-tai-xac-minh-390.png");
+    await widgetReady(p);
+    assert.deepEqual(await p.ev("({ chu: document.getElementById('turnstile-widget').textContent.trim(), doan: document.querySelectorAll('#turnstile-widget p').length })"), { chu: "", doan: 0 }, "widget dựng xong: chữ chờ biến mất");
+  });
+
+  // ---- n) theme sáng + mã lỗi của Cloudflare ----
+  await step("n", "widget dựng với theme “light” (app chỉ có giao diện sáng); khi widget báo lỗi giữa chừng, mã lỗi của Cloudflare được ghi bằng console.warn (không bí mật) và người dùng thấy thông báo tiếng Việt + Thử lại", async () => {
+    const p = await openLogin(envA, { label: "n", before: hookTurnstile });
+    track(p, "n");
+    try {
+      await widgetReady(p);
+    } catch (e) {
+      const d = await p.ev(`({ turnstile: typeof window.turnstile, opts: !!window.__opts, khung: document.getElementById('turnstile-widget').innerHTML.slice(0, 200), loi: ${ERR_TEXT}, canhBao: window.__warns })`);
+      throw new Error(`${e.message.split("\n")[0]} — chẩn đoán: ${JSON.stringify(d)}`);
+    }
+    const opts = await p.ev("({ theme: window.__opts.theme, language: window.__opts.language, sitekey: window.__opts.sitekey, size: window.__opts.size })");
+    assert.deepEqual(opts, { theme: "light", language: "vi-vn", sitekey: TURNSTILE_TEST.siteKey, size: "flexible" }, "tuỳ chọn đưa cho turnstile.render");
+    assert.deepEqual(await p.ev("window.__warns.filter((w) => /Turnstile/.test(w))"), [], "chưa có lỗi thì chưa có cảnh báo");
+    // giả lập đúng cách Cloudflare gọi khi widget hỏng: error-callback(mã)
+    const returned = await p.ev("window.__opts['error-callback']('300030')");
+    assert.equal(returned, true, "callback vẫn báo 'đã xử lý' (Cloudflare khỏi ghi lỗi ra console — nên trang tự ghi mã)");
+    await p.waitFor(`${ERR_TEXT} === "Bước xác minh người thật gặp sự cố. Bấm “Thử lại”; nếu vẫn lỗi, hãy tải lại trang."`, "thông báo lỗi widget");
+    assert.deepEqual(await p.ev(`({ thuLai: !document.getElementById('turnstile-retry').hidden, nutKhoa: document.getElementById('submit').disabled })`), { thuLai: true, nutKhoa: true });
+    const warns = await p.ev("window.__warns.filter((w) => /Turnstile/.test(w))");
+    assert.equal(warns.length, 1, `đúng một cảnh báo: ${JSON.stringify(warns)}`);
+    assert.match(warns[0], /300030/, "cảnh báo mang mã lỗi của Cloudflare");
+    assert.doesNotMatch(warns[0], new RegExp(`${TURNSTILE_TEST.siteKey}|${TURNSTILE_TEST.secret}|${DUMMY}`), "không lộ khoá hay token");
   });
 
   // ---- h, i) axe + đo + ảnh, ở các trạng thái ----

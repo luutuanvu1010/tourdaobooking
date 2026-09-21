@@ -37,6 +37,26 @@
       "dat": true
     },
     {
+      "id": "l",
+      "name": "cấu hình lỗi lúc mở trang, máy chủ đang đòi token: đăng nhập 403 thì trang lấy lại cấu hình (có hạn, không giữ nút) rồi dựng widget — tự phục hồi, không kẹt 403 vĩnh viễn",
+      "dat": true
+    },
+    {
+      "id": "o",
+      "name": "cấu hình lỗi ở lần hỏi đầu rồi ổn lại: lần hỏi lại lúc mở trang (giãn cách, có hạn) dựng widget mà chưa ai bấm đăng nhập; nút không bị giữ trong lúc chờ và khoá tới khi có token",
+      "dat": true
+    },
+    {
+      "id": "m",
+      "name": "trong lúc chờ nạp script Turnstile: khung không trống — có chữ tiếng Việt “Đang tải xác minh…” (một đoạn <p role=status>), nút Đăng nhập khoá; chữ biến mất khi widget dựng xong; axe 0 vi phạm và vùng chạm ≥ 44 px ở trạng thái này",
+      "dat": true
+    },
+    {
+      "id": "n",
+      "name": "widget dựng với theme “light” (app chỉ có giao diện sáng); khi widget báo lỗi giữa chừng, mã lỗi của Cloudflare được ghi bằng console.warn (không bí mật) và người dùng thấy thông báo tiếng Việt + Thử lại",
+      "dat": true
+    },
+    {
       "id": "h",
       "name": "axe-core: 0 vi phạm (mọi mức) ở 390, 375, 320, 1040 (widget đã đạt) và ở trạng thái lỗi",
       "dat": true
@@ -59,6 +79,7 @@
   ],
   "csp": "default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'",
   "axe": {
+    "may-A-390-dang-tai-xac-minh": [],
     "may-A-390-widget-da-dat": [],
     "may-A-390-loi-sai-pin": [],
     "may-A-375-widget-da-dat": [],
@@ -67,7 +88,13 @@
     "may-B-390-khong-widget": []
   },
   "do": {
-    "cau-hinh-cham-ms-den-khi-nut-mo": 3075,
+    "cau-hinh-cham-ms-den-khi-nut-mo": 3071,
+    "may-A-390-dang-tai-xac-minh": {
+      "tapDuoi44": [],
+      "oGoDuoi16": [],
+      "trànNgang": 0,
+      "widget": null
+    },
     "may-A-390": {
       "tapDuoi44": [],
       "oGoDuoi16": [],
@@ -131,13 +158,13 @@
       "consoleErrors": []
     },
     "console-c": {
-      "logEntries": 2,
+      "logEntries": 3,
       "csp": [],
       "other": [],
       "consoleErrors": []
     },
     "console-d": {
-      "logEntries": 3,
+      "logEntries": 2,
       "csp": [],
       "other": [],
       "consoleErrors": []
@@ -146,7 +173,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:50500/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:64126/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -154,7 +181,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:50500/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:64126/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -177,6 +204,30 @@
       "consoleErrors": []
     },
     "console-k-khoa-sai": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-l": {
+      "logEntries": 3,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-o": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-m": {
+      "logEntries": 1,
+      "csp": [],
+      "other": [],
+      "consoleErrors": []
+    },
+    "console-n": {
       "logEntries": 1,
       "csp": [],
       "other": [],
@@ -217,10 +268,18 @@
     "w": 316,
     "h": 72,
     "token": "XXXX.DUMMY.TOKEN.XXXX",
-    "cacheServiceWorker": 20
+    "cacheServiceWorker": 20,
+    "chuCho": {
+      "chu": "Đang tải xác minh…",
+      "soDoan": 1,
+      "vaiTro": "status",
+      "widget": false,
+      "cao": 65,
+      "nutKhoa": true
+    }
   },
   "tongKet": {
-    "dat": 11,
+    "dat": 15,
     "hong": 0
   }
 }

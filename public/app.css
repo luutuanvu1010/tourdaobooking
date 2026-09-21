@@ -416,3 +416,4 @@ body.sheet-open { overflow: hidden; }
 .pick.is-current .pick-mark { border-color: var(--c-border); }
 .pick-status, .pick-empty { margin: 0; padding: var(--s5) var(--s3); font-weight: 600; text-align: center; color: var(--c-text-muted); }
 .pick-error-text { margin: var(--s2) 0 0; }
+.login-turnstile-wait { display: flex; align-items: center; justify-content: center; min-height: var(--h-turnstile); margin: 0; padding: 0 var(--s3); font-size: var(--fs-label); font-weight: 600; text-align: center; color: var(--c-text-muted); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); } /* khung giữ chỗ của widget lúc chờ nạp script Cloudflare: cùng chiều cao với widget để dựng xong không đẩy nút Đăng nhập */

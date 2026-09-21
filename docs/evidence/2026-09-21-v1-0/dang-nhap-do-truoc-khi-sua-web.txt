@@ -1,0 +1,35 @@
+# Kịch bản Chrome màn đăng nhập v1.0 (kich-ban/v1-dang-nhap.mjs) — nhóm SỬA PHÍA WEB sau rà soát Task 3: lần chạy ĐỎ trên mã cũ (web/login.ts, public/app.css của HEAD cc13546) với các bước mới l, o, m, n.
+# `ONLY=k,l,o,m,n` (cần mạng; khoá thử của Cloudflare). Bước k (đã có) vẫn xanh vì hành vi cũ đã ẩn khung khi script không tải được; nó chỉ được thêm một khẳng định "không còn chữ chờ".
+# l: sau 403 trang KHÔNG hỏi lại cấu hình (siteKey kẹt null → 403 mãi). o: không hỏi lại lúc mở trang nên widget không bao giờ hiện. m: khung chờ nạp script trống (chữ ""). n: theme còn "auto".
+
+✓ k) widget không dựng được (script Cloudflare bị chặn; khoá site sai): thông báo tiếng Việt + nút Thử lại, nút Đăng nhập khoá; bỏ chặn rồi bấm Thử lại → widget dựng, lỗi biến mất, đăng nhập được
+✗ l) cấu hình lỗi lúc mở trang, máy chủ đang đòi token: đăng nhập 403 thì trang lấy lại cấu hình (có hạn, không giữ nút) rồi dựng widget — tự phục hồi, không kẹt 403 vĩnh viễn
+    hết giờ chờ: sau 403 trang hỏi lại cấu hình
+    window.__cfgCalls > 1
+✗ o) cấu hình lỗi ở lần hỏi đầu rồi ổn lại: lần hỏi lại lúc mở trang (giãn cách, có hạn) dựng widget mà chưa ai bấm đăng nhập; nút không bị giữ trong lúc chờ và khoá tới khi có token
+    hết giờ chờ: widget hiện và tự đạt (có token, nút mở)
+    (() => { const w = document.querySelector('#turnstile-widget > div'); return w !== null && w.getBoundingClientRect().height > 0 && document.querySelector('#turnstile-widget input[name="cf-turnstile-response"]') !== null; })() && (document.querySelector('#turnstile-widget input[name="cf-turnstile-response"]')?.value ?? '') !== '' && !document.getElementById('submit').disabled
+✗ m) trong lúc chờ nạp script Turnstile: khung không trống — có chữ tiếng Việt “Đang tải xác minh…” (một đoạn <p role=status>), nút Đăng nhập khoá; chữ biến mất khi widget dựng xong; axe 0 vi phạm và vùng chạm ≥ 44 px ở trạng thái này
+    khung chờ: {"chu":"","soDoan":0,"vaiTro":null,"widget":false,"cao":65,"nutKhoa":true}
+    + actual - expected
+    
+      [
+    +   '',
+    +   0,
+    +   null,
+    -   'Đang tải xác minh…',
+    -   1,
+    -   'status',
+✗ n) widget dựng với theme “light” (app chỉ có giao diện sáng); khi widget báo lỗi giữa chừng, mã lỗi của Cloudflare được ghi bằng console.warn (không bí mật) và người dùng thấy thông báo tiếng Việt + Thử lại
+    tuỳ chọn đưa cho turnstile.render
+    + actual - expected
+    
+      {
+        language: 'vi-vn',
+        sitekey: '1x00000000000000000000AA',
+        size: 'flexible',
+    +   theme: 'auto'
+    -   theme: 'light'
+      }
+
+4 bước ✗ / 1 bước ✓
