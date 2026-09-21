@@ -2,12 +2,13 @@
 // Import bằng đuôi .ts (node --test chạy trực tiếp). Giới hạn độ dài khớp CHECK của migration 0011.
 import { normalizePhone } from "../../shared/phone.ts";
 import { isISODate } from "../../shared/vn-date.ts";
+import { PARTY_ID_RE } from "../../shared/party-id.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
 const fail = (message: string): { ok: false; message: string } => ({ ok: false, message });
 
-/** id hồ sơ: UUID, hoặc 'pty-<uuid staff>' của hồ sơ nhân sự do migration 0012 tạo. */
-export const PARTY_ID_RE = /^(?:pty-)?[0-9a-f-]{36}$/;
+/** id hồ sơ: UUID, hoặc 'pty-<uuid staff>' của hồ sơ nhân sự do migration 0012 tạo. Nguồn ở src/shared/party-id.ts (dùng chung với `orders` và giao diện). */
+export { PARTY_ID_RE };
 /** id dòng con (liên hệ, vai trò, quan hệ): UUID, hoặc 'ptr-<uuid staff>' của vai STAFF do migration 0012 tạo. */
 export const ROW_ID_RE = /^(?:ptr-)?[0-9a-f-]{36}$/;
 const UUID_RE = /^[0-9a-f-]{36}$/;
