@@ -1,0 +1,41 @@
+# Kịch bản Chrome người phụ trách (kich-ban/v1-nguoi-phu-trach.mjs), Task 8 của kế hoạch bản v1.0 — lần chạy ĐỎ trên mã cũ (web/ chưa có giao diện người phụ trách; HEAD cc13546 + kịch bản mới).
+# Chạy trên wrangler dev cục bộ + D1 tạm + Chrome headless. Không phải iPhone thật. Bước c đỏ vì bước b (đổi người) chưa làm được nên tên trên ảnh còn là người lập.
+
+✗ a) danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện
+    hết giờ chờ: danh sách có 3 đơn, mỗi thẻ có dòng người phụ trách (390)
+    document.querySelectorAll('#list .order-row').length >= 3 && [...document.querySelectorAll('#list .order-row')].every((r) => { const s = r.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })
+✗ b) A đổi người phụ trách sang B bằng bảng chọn: bảng đóng, trang đơn tải lại thấy B + báo, trả focus; danh sách và nhật ký thấy B
+    hết giờ chờ: khối Người phụ trách
+    document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null
+✗ c) ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)
+    ảnh phải in tên người phụ trách hiện tại (Sales Hai)
+    
+    false !== true
+    
+✗ d) B (không phải người lập) sửa được đơn NHÁP bằng giao diện: nút Sửa, form mở được, lưu thành công; thấy “Đổi người phụ trách”, không thấy “Nhận phụ trách”
+    hết giờ chờ: khối Người phụ trách
+    document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null
+✗ e) quyền: C không thấy nút đổi/nhận và không có Sửa/Xác nhận/Huỷ; kế toán không nút nào; quản trị và người lập có nút đổi
+    hết giờ chờ: khối Người phụ trách (C)
+    document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null
+✗ f) đơn CHƯA có người: chip ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy “Nhận phụ trách”; người lập/quản trị thấy cả giao và nhận; kế toán không gì; C nhận được rồi sửa được đơn
+    hết giờ chờ: danh sách có 4 đơn (390)
+    document.querySelectorAll('#list .order-row').length >= 4 && [...document.querySelectorAll('#list .order-row')].every((r) => { const s = r.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })
+✗ g) bảng chọn: dialog + aria-modal + tên + nền inert + focus; Esc/chạm nền/✕ đóng và trả focus; danh sách khớp API; KHOÁ khi đang lưu; lỗi tải danh sách → Thử lại
+    hết giờ chờ: khối Người phụ trách
+    document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null
+✗ h) đổi song song → tải lại + thông báo: 409 no_change, 409 stale (nhận), 403 (mất quyền); 400 invalid_assignee giữ bảng mở
+    hết giờ chờ: trang đơn (A)
+    document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null
+✗ i) lỗi lời gọi handlers (chặn mạng / 500 / thiếu khoá): danh sách VẪN hiện, không chip sai, không banner; trang đơn hiện đơn + nút Sửa, khối “chưa tải được” + Thử lại, KHÔNG nút nhận/đổi
+    chặn mạng: không dòng người phụ trách, không chip: [[null,null],[null,null],[null,null],[null,null],[null,null],[null,null],[null,null]]
+✗ j) axe 0 vi phạm (mọi mức) ở mọi trạng thái mới; vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040
+    hết giờ chờ: danh sách
+    document.querySelectorAll('#list .order-row').length >= 4 && [...document.querySelectorAll('#list .order-row')].every((r) => { const s = r.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })
+✗ k) ảnh 390×844 và 1040×800: danh sách, trang đơn, bảng chọn, đơn chưa có người
+    hết giờ chờ: danh sách
+    document.querySelectorAll('#list .order-row').length >= 4 && [...document.querySelectorAll('#list .order-row')].every((r) => { const s = r.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })
+✗ l) console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)
+    đã theo dõi 10 trang
+
+12 bước ✗ / 0 bước ✓

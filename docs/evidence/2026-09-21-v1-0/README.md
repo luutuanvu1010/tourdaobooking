@@ -133,5 +133,80 @@ npm run build:web && AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/docs/ev
 
 - **iPhone thật / WebKit:** canvas 2D (giới hạn diện tích 2²⁴ chỉ dựa vào tài liệu, chưa thử vượt trên iOS), `TextMetrics.fontBoundingBoxAscent` và `Intl.Segmenter` (có dự phòng), `navigator.share({ files })` với bảng chia sẻ thật → Zalo, `<a download>` với `blob:` URL trong PWA đã cài lên màn hình chính (iOS có thể mở ảnh trong trình xem thay vì lưu tệp — khi đó "Chia sẻ" là đường chính).
 - **Phông tải chậm / ngoại tuyến:** bước i giả lập phông từ chối và phông treo (chạm hạn 10 giây → lỗi + Thử lại), không phải mạng chậm thật; phông vốn nằm trong `PRECACHE` của service worker nên trường hợp thật hiếm.
-- **Tên người phụ trách khi API `dispatch` có mặt trong bản deploy thật:** kịch bản dùng cả điểm cuối thật của mã máy chủ trong nhánh (`GET /api/dispatch/handlers`, tên mặc định = người lập) lẫn API giả lập trả tên khác; giao diện người phụ trách (đổi người) là Task 8 — Task 8 phải kiểm tên mới hiện lên ảnh.
+- **Tên người phụ trách khi API `dispatch` có mặt trong bản deploy thật:** kịch bản dùng cả điểm cuối thật của mã máy chủ trong nhánh (`GET /api/dispatch/handlers`, tên mặc định = người lập) lẫn API giả lập trả tên khác; giao diện người phụ trách (đổi người) là Task 8 — Task 8 phải kiểm tên mới hiện lên ảnh. **(Đã kiểm ở Task 8: bước c của `v1-nguoi-phu-trach.mjs`, ảnh sau khi đổi người giống từng byte bản dựng từ tên người mới.)**
 - Máy yếu bộ nhớ với ảnh rất cao (9000+ điểm ảnh, 2 MB); chủ đề tối/cỡ chữ hệ thống lớn (ảnh dựng độc lập với chủ đề); **ký thị giác** của chủ dự án cho ảnh mẫu và hộp thoại: chưa có.
+
+## Task 8 — Giao diện người phụ trách (danh sách + trang đơn + bảng chọn)
+
+**Mã được đo:** `web/orders.ts`, `web/order.ts`, `web/handler-sheet.ts` (mới), `web/order-form.ts` (một câu), `public/app.css` (khối cuối, sau `.confirm-*`), `src/shared/handler-view.ts` (+ test, mới) đúng như trong commit của Task 8. Số liệu dưới đây và `ket-qua-nguoi-phu-trach.json` là của cùng MỘT lần chạy cuối (`nguoi-phu-trach-chay-cuoi.txt`). Kịch bản: `kich-ban/v1-nguoi-phu-trach.mjs` — chạy từ GỐC repo; **không cần mạng ngoài** (danh mục giả, phông tự lưu trữ, Turnstile tắt):
+
+```
+npm run build:web && AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs
+```
+
+(`ONLY=a,b` chạy vài bước — các bước dùng chung đơn tạo ở bước a nên tự tạo lại khi cần; `OUT=…` đổi thư mục ghi. Kịch bản tự tạo thêm tài khoản SALES thứ ba "Sales Ba" (và "Sales Tư", cho ngưng giữa chừng) bằng `scripts/staff-lib.mjs`; đơn "chưa có người phụ trách" dựng bằng cách đóng dòng `HANDLE` bằng SQL trên D1 tạm. **Mọi trang Chrome dùng CHUNG một kho cookie**: trang của tài khoản nào phải là trang mở SAU CÙNG thì thao tác bằng chuột mới đi bằng phiên của tài khoản đó — kịch bản đã vấp đúng chỗ này ở bước f.)
+
+### Kết quả (**12 dòng ✓, 0 ✗**)
+
+| Bước | Chứng minh gì | Số liệu/quan sát |
+|---|---|---|
+| a | A lập đơn BẰNG GIAO DIỆN (form → `/order?id=…&moi=1`); danh sách hiện "Phụ trách: <tên>" ở mọi thẻ ở 390 VÀ 1040 (không chip ở đơn đã có người, dòng nằm gọn trong thẻ, không tràn); đúng **một** lời gọi `GET /api/dispatch/handlers` cho cả trang và `orderIds` = đúng các mã đơn đang hiện | 1 lời gọi ở mỗi khổ |
+| b | A mở bảng chọn (tên "Đổi người phụ trách"), chọn B → "Lưu" mở chỉ khi đã chọn; lưu xong bảng đóng, trang đơn tải lại thấy B, banner thông tin "Đã đổi người phụ trách sang Sales Hai.", A vẫn có nút đổi (người lập giữ quyền), focus về nút đổi mới dựng; danh sách và nhật ký ("Đổi người phụ trách") thấy B; đúng một PUT, thân chỉ có `staffId` | |
+| c | Ảnh PNG "Xác nhận gửi khách" mở SAU khi đổi: GIỐNG từng byte bản dựng từ tên "Sales Hai" và KHÁC bản dựng từ tên người lập cũ | `loadHandlerName` (Task 10) không nhớ đệm nên đúng ngay |
+| d | B (không phải người lập) mở đơn NHÁP: đủ ba nút Sửa/Xác nhận/Huỷ theo `canModify` của máy chủ, "Đổi người phụ trách" (không có "Nhận phụ trách"), xem được nhật ký; bấm Sửa → form mở được (không bị khoá), đổi ghi chú, lưu → PUT thành công, người lập không đổi | |
+| e | C (SALES khác, đơn đã có người): không nút đổi/nhận, không Sửa/Xác nhận/Huỷ, câu giải thích quyền kể cả người phụ trách; kế toán không nút nào; quản trị đổi được (không nhận); người lập giữ Sửa/Xác nhận/Huỷ và nút đổi sau khi đã giao lại; "Xác nhận gửi khách" vẫn có cho mọi người | |
+| f | Đơn CHƯA có người (đóng dòng `HANDLE` bằng SQL): chip "Chưa có người phụ trách" ở danh sách (390, 1040; chỉ đúng một chip) và ở trang đơn; C chỉ thấy "Nhận phụ trách"; người lập và quản trị thấy "Chọn người phụ trách" + "Nhận phụ trách"; kế toán không nút; C bấm nhận → khối hiện "Sales Ba", banner "Bạn đã nhận phụ trách đơn này.", hết nút nhận, có nút đổi và **Sửa/Xác nhận/Huỷ** (canModify), focus sang nút đổi; PUT gửi đúng `staffId` của C | |
+| g | Bảng chọn: `role=dialog`, `aria-modal`, tên từ `aria-labelledby`, MỌI phần tử nền `inert` (bảng thì không), `body.sheet-open`, focus trong bảng; danh sách = đúng thứ tự và đủ người của `GET /api/dispatch/assignees` (không có kế toán); người đang phụ trách bị khoá + chip "Đang phụ trách"; Esc / chạm nền / ✕ đều đóng, gỡ `inert`, trả focus về nút đổi. **Khoá khi đang lưu** (PUT bị giữ lại để đo): nút "Đang lưu…" bị khoá, cả danh sách bị khoá, focus không rơi ra ngoài, Esc/chạm nền/✕ KHÔNG đóng, bấm đúp chỉ gửi **một** PUT; thả ra → đóng, đơn tải lại. Lỗi tải danh sách (500 giả lập) → thông báo tiếng Việt (không lộ chữ kỹ thuật) + "Thử lại", Lưu khoá; Thử lại ra danh sách | |
+| h | Đổi song song: **409 `no_change`** (giữa lúc A mở bảng, quản trị đã giao đúng người A định chọn) → bảng đóng, đơn tải lại, banner "Người này đang phụ trách đơn rồi. Đã tải lại đơn."; **409 `stale`** (C mở đơn chưa có người, người lập giao cho B trước khi C bấm nhận) → "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn.", hết nút nhận; **403** (B đang phụ trách và mở bảng, quản trị giao cho C, B chọn người khác) → "Bạn không còn quyền đổi người phụ trách của đơn này. Đã tải lại đơn.", B mất nút đổi và quyền sửa; **400 `invalid_assignee`** (người được chọn vừa nghỉ) → bảng GIỮ MỞ, hiện chữ của máy chủ, danh sách làm mới (không còn người đó), lựa chọn cũ bị bỏ, máy chủ không đổi gì | 409 `stale` thật giữa hai máy chủ là điều kiện đua trong một câu lệnh — không dựng được từ giao diện (đã kiểm ở `tests/e2e/dispatch.mjs`) |
+| i | Lời gọi `handlers` lỗi — chặn mạng (`Network.setBlockedURLs`), 500, thiếu khoá (`{handlers:{}}`): danh sách VẪN hiện (≥ 3 đơn), dòng người phụ trách ẩn, **không chip, không chữ "Chưa có người phụ trách" ở bất kỳ đâu**, không banner lỗi. Trang đơn (A): đơn dựng đủ, nút Sửa/Xác nhận/Huỷ vẫn có, khối hiện "Chưa tải được người phụ trách." + "Thử lại" và KHÔNG nút đổi/nhận; bỏ chặn rồi Thử lại → ra tên và nút. Trang đơn (C, đơn thật sự chưa có người) khi lỗi: KHÔNG mời "Nhận phụ trách" | |
+| j | axe-core **0 vi phạm (mọi mức)** ở 16 trạng thái (8 trạng thái × 390 và 1040): danh sách (có chip), trang đơn (có nút đổi), trang đơn chưa có người (hai nút), bảng chọn mở đã chọn một người, bảng chọn lỗi tải, bảng chọn đang tải, trang đơn chưa biết người phụ trách, danh sách khi handlers lỗi; vùng chạm (nút, radio, thẻ đơn) ≥ 44 px; không tràn ngang (trang lẫn bảng) | |
+| k | Ảnh 390×844 và 1040×800 (11 ảnh, xem dưới) | |
+| l | Console/CSP sạch ở **40** trang đã theo dõi (chỉ trừ các dòng mạng cố ý: PUT 4xx của các cuộc đua, yêu cầu bị chặn) | |
+
+### Đỏ trước, xanh sau
+
+- Phần thuần `src/shared/handler-view.ts` (ai thấy nút nào, câu báo lỗi): `handler-view.test.ts` 9 test, **đỏ** trước khi có mô-đun (`ERR_MODULE_NOT_FOUND`) → 9/9; đột biến: bỏ `assigned:` khỏi `can()` → 1 test đỏ; bỏ điều kiện `handler === null` của nút nhận → 2 test đỏ.
+- Kịch bản Chrome trên mã cũ (chưa có giao diện người phụ trách): `nguoi-phu-trach-do-truoc-khi-lam.txt` → **12 ✗ / 0 ✓**. Sau khi làm: **12 ✓** (`nguoi-phu-trach-chay-cuoi.txt`).
+- Đột biến trên mã mới, hoàn nguyên sau mỗi lần: hiện chip khi lời gọi handlers lỗi → bước i ✗ ("Chưa có người phụ trách" xuất hiện); cho đóng bảng khi đang lưu → bước g ✗; không tải lại sau 409 khi nhận đơn → bước h ✗.
+- Ba phát hiện khi chạy lần đầu (hai lỗi của CHÍNH kịch bản, một lỗi thật của CSS), đã sửa: (1) chờ `[role=alert]` khớp cả banner đang ẩn → chờ `:not([hidden])`; (2) trang của tài khoản khác mở giữa chừng đè cookie của trang C (kho cookie chung) → 403 giả; (3) axe/đo bắt lỗi thật của CSS: ô radio phủ vùng đệm của hàng (không tính viền) chỉ cao 42 px → hàng cao `--row-h` (48 px).
+- Hồi quy: `npm test` 363/363 (gồm 9 test mới), `npm run typecheck` 0 lỗi, `npm run test:e2e -- pwa` 5 ✓ (khối CSS sau dấu mốc PWA chỉ token), ba kịch bản A2 chạy lại vì sửa `web/order.ts`/`web/order-form.ts`: `a2-smoke-form` 21 ✓, `a2-smoke-order` 10 ✓ (**đã đổi một khẳng định chữ**, xem "Lệch"), `a2-smoke-sheet` 13 ✓; `v1-xac-nhan-png.mjs` 11 ✓ (vì sửa `web/order.ts`).
+
+### Ảnh (`anh/`, 1x)
+
+| Ảnh | Nội dung |
+|---|---|
+| `nguoi-phu-trach-danh-sach-390.png`, `…-1040.png` | danh sách đơn: "Phụ trách: Sales Một" ở thẻ đã có người, chip "Chưa có người phụ trách" ở thẻ chưa có |
+| `nguoi-phu-trach-danh-sach-chip-390.png`, `…-1040.png` | danh sách xem bởi C (SALES khác): đơn chưa có người lên đầu |
+| `nguoi-phu-trach-trang-don-390.png`, `…-1040.png` | trang đơn nháp của A: khối "Người phụ trách" (Sales Hai) + nút "Đổi người phụ trách" |
+| `nguoi-phu-trach-bang-chon-390.png`, `…-1040.png` | bảng chọn: người đang phụ trách bị khoá + chip, một người đã chọn, "Lưu người phụ trách" |
+| `nguoi-phu-trach-chua-co-nguoi-390.png` | trang đơn của C: chip + nút "Nhận phụ trách", câu giải thích quyền |
+| `nguoi-phu-trach-tai-lai-390.png` | sau 409 `stale` khi nhận: banner cảnh báo "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn." (vòng focus ở tiêu đề khối vì không còn nút nào) |
+| `nguoi-phu-trach-loi-handlers-390.png` | lời gọi handlers lỗi: đơn vẫn dựng, khối "Chưa tải được người phụ trách." + "Thử lại" |
+| `xac-nhan-trang-don-390.png` (của Task 10, chụp lại) | trang đơn đã xác nhận nay có thêm khối "Người phụ trách" |
+
+Các ảnh trên đã được xem bằng mắt (danh sách, trang đơn, bảng chọn 390 và 1040, chưa có người, tải lại, lỗi handlers): chữ đủ dấu, không tràn, vùng chạm đủ lớn.
+
+### Điều học được khi làm
+
+1. **Đơn chưa có người phụ trách là trạng thái CÓ THẬT** (đơn của tài khoản chưa có hồ sơ lúc áp `0014`, hoặc đóng bằng SQL): giao diện phân biệt BA trạng thái — chưa biết (lời gọi lỗi → ẩn dòng, không nút) · `null` (chip + "Nhận phụ trách") · có tên. Nếu gộp "chưa biết" vào `null`, một lần mạng chập chờn làm mọi đơn hiện chip sai và mời nhận đơn đã có người.
+2. **Ô chọn dùng radio gốc** (không tự vẽ danh sách nút): bàn phím (mũi tên) và trình đọc màn hình miễn phí; ô radio thật phủ cả hàng bằng `position: absolute; inset: 0; opacity: 0` để cả hàng là vùng chạm, vòng focus vẽ trên dấu tròn (`input:focus-visible + .pick-mark`). Ô radio phủ vùng đệm chứ không phủ viền — hàng phải cao hơn vùng chạm tối thiểu một chút.
+3. **`stale` không đến được từ bảng chọn:** `PUT` đọc lại người phụ trách hiện tại NGAY trong yêu cầu và đóng dòng theo chính người vừa đọc, nên đổi sau lưng giao diện ra 200 (người khác), 409 `no_change` (cùng người) hoặc 403 (mất quyền) — chỉ "nhận đơn vừa có người" mới ra 409 `stale` xác định được từ giao diện. Ba đường đều xử lý cùng một cách: bảng đóng, tải lại đơn, một banner tiếng Việt.
+4. **Không tự tính lại quyền sửa đơn ở client:** Sửa/Xác nhận/Huỷ vẫn theo `canModify` của máy chủ (đã tính `assigned`); chỉ hai nút đổi/nhận dùng `can()` với `assigned: handler.staffId === staff.id`. Khối người phụ trách tải song song với đơn nhưng lỗi riêng: đơn luôn hiện.
+
+### Lệch so với brief/spec (có chủ ý)
+
+- **Danh sách không có "bảng máy tính" riêng:** trang danh sách vốn là một dòng thẻ (`.order-row`) ở mọi khổ; dòng "Phụ trách" nằm trong đúng thẻ đó nên có ở cả điện thoại lẫn máy tính (chứng minh ở 390 và 1040). Tài liệu ghi "bảng máy tính" — cần sửa thành "thẻ ở mọi khổ".
+- **Nút đổi/nhận nằm trong khối "Người phụ trách" (trong `#order`), NGOÀI `#actions`:** ba kịch bản A2 khẳng định đúng danh sách nút của `#actions`; cùng lý do như nút "Xác nhận gửi khách" của Task 10.
+- **Chưa biết người phụ trách → KHÔNG nút đổi/nhận, chỉ "Thử lại"** (brief chỉ nói ẩn nút theo `can()`): hiện "Nhận phụ trách" khi không biết đơn đã có người là khẳng định điều chưa biết; ẩn nút đổi chỉ tạm thiếu một đường. Ghi ở `handlerControls`.
+- **Nhãn nút giao là "Chọn người phụ trách" khi đơn chưa có người** (và "Đổi người phụ trách" khi đã có) — người lập/quản trị thấy cả hai nút "Chọn…" và "Nhận…" ở đơn chưa có người.
+- **Thêm `src/shared/handler-view.ts` (+ test)** ngoài danh sách tệp của brief: hàm thuần `handlerControls`/`handlerFailure`/`handlerSaved` (cùng khuôn `order-view.ts`/`order-errors.ts`) để "ai thấy nút nào" và câu báo lỗi có test đỏ→xanh, không chép luật vào `web/`.
+- **Đã đổi CÂU giải thích quyền ở `web/order.ts`** ("Chỉ <người lập> (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.") **và khẳng định chữ tương ứng trong `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs`** (một dòng, ngoài thư mục bằng chứng của v1.0): câu cũ nói sai (người phụ trách cũng sửa được) và hiện ngay cạnh khối "Người phụ trách" mới. Cùng sửa câu ở `web/order-form.ts` (~dòng 305; không script nào khẳng định chữ đó).
+- Bảng chọn đóng và tải lại ngay khi 409/403 (banner ở trang đơn), không giữ bảng mở kèm nút "Tải lại đơn" như `trip-sheet` — vì bảng này không có dữ liệu người dùng gõ để mất; riêng 400 `invalid_assignee` thì giữ bảng mở và làm mới danh sách.
+
+### Chưa kiểm
+
+- **iPhone thật / WebKit:** bảng trượt từ đáy với radio phủ `opacity: 0`, `:has()` (chỉ để tô hàng đã chọn, thiếu cũng không hỏng), cuộn trong bảng khi danh sách dài, bàn phím iOS; ký thị giác của chủ dự án cho khối và bảng: chưa có.
+- **Danh sách theo chiều dọc dài:** kịch bản chỉ có ≤ 15 đơn trong D1 tạm; chưa thử trang 30 đơn đầy đủ, nút "Tải thêm" (trang thứ hai gọi `handlers` riêng cho các thẻ mới), cuộn dài trên điện thoại, hay giới hạn 100 mã của máy chủ (mỗi trang chỉ 30).
+- **Người phụ trách đã nghỉ:** đơn mà người phụ trách đã bị ngưng tài khoản vẫn hiện tên họ (`staffId` còn, không đăng nhập được); giao diện chưa được thử với ca này, và với người phụ trách là hồ sơ CHƯA có tài khoản (`staffId: null` — hàm thuần đã có test, chưa có ca Chrome). Cảnh báo cho quản trị về đơn có người phụ trách đã nghỉ là việc của kiểm toán (`R-DSP-2`), không có ở giao diện.
+- **Đơn ĐÃ HUỶ và đơn đã xác nhận:** khối và nút hiển thị như đơn nháp (máy chủ cho đổi/nhận cả hai — ghi ở báo cáo Task 6+7); chỉ đơn đã xác nhận được chụp (`xac-nhan-trang-don-390.png`), chưa có kịch bản đổi người trên đơn đã xác nhận/huỷ.
+- Bàn phím thật (mũi tên đổi lựa chọn, Tab qua bảng) và trình đọc màn hình (VoiceOver): chỉ có axe, `role`/`aria` và thứ tự focus đo bằng mã, chưa nghe thử.

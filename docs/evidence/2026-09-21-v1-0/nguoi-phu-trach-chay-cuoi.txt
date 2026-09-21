@@ -1,0 +1,14 @@
+✓ a) danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện
+✓ b) A đổi người phụ trách sang B bằng bảng chọn: bảng đóng, trang đơn tải lại thấy B + báo, trả focus; danh sách và nhật ký thấy B
+✓ c) ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)
+✓ d) B (không phải người lập) sửa được đơn NHÁP bằng giao diện: nút Sửa, form mở được, lưu thành công; thấy “Đổi người phụ trách”, không thấy “Nhận phụ trách”
+✓ e) quyền: C không thấy nút đổi/nhận và không có Sửa/Xác nhận/Huỷ; kế toán không nút nào; quản trị và người lập có nút đổi
+✓ f) đơn CHƯA có người: chip ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy “Nhận phụ trách”; người lập/quản trị thấy cả giao và nhận; kế toán không gì; C nhận được rồi sửa được đơn
+✓ g) bảng chọn: dialog + aria-modal + tên + nền inert + focus; Esc/chạm nền/✕ đóng và trả focus; danh sách khớp API; KHOÁ khi đang lưu; lỗi tải danh sách → Thử lại
+✓ h) đổi song song → tải lại + thông báo: 409 no_change, 409 stale (nhận), 403 (mất quyền); 400 invalid_assignee giữ bảng mở
+✓ i) lỗi lời gọi handlers (chặn mạng / 500 / thiếu khoá): danh sách VẪN hiện, không chip sai, không banner; trang đơn hiện đơn + nút Sửa, khối “chưa tải được” + Thử lại, KHÔNG nút nhận/đổi
+✓ j) axe 0 vi phạm (mọi mức) ở mọi trạng thái mới; vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040
+✓ k) ảnh 390×844 và 1040×800: danh sách, trang đơn, bảng chọn, đơn chưa có người
+✓ l) console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)
+
+V1 NGUOI PHU TRACH OK — 12 bước ✓
