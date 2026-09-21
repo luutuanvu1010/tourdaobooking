@@ -160,7 +160,7 @@ Chỉ khi chủ dự án ra lệnh trong phiên đó (`CLAUDE.md` §8). Mã: `mi
 **B. THỨ TỰ**
 1. `CI=1 npm run db:migrate:remote`. Migration không đổi hành vi mã nên **không cần** `wrangler deploy` đi kèm — **chỉ đúng khi `0017` là migration DUY NHẤT chưa áp** (đã xác nhận ở A.1); `db:migrate:remote` áp MỌI migration đang chờ trong một lượt, nên nếu còn migration khác (ví dụ đổi hành vi mã) đi cùng thì phải quay về trình tự triển khai đầy đủ của HANDOFF-N1 (cổng chỉ-đọc, `npm test`/`typecheck`/e2e, áp migration rồi `wrangler deploy` NGAY, kiểm sau deploy) chứ không được bỏ qua `wrangler deploy`.
 2. Kiểm sau áp (chỉ đọc): `CI=1 npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT name FROM sqlite_master WHERE type='trigger' AND name IN ('orders_status_transition','audit_log_no_update','audit_log_no_delete')"` → 3 dòng — riêng câu này đã đủ chứng minh cả ba trigger tồn tại, không cần bước ghi nào khác. Thử tay một lần xác nhận + huỷ đơn thử trên app là **tuỳ chọn, chủ dự án quyết** (đây là thao tác GHI thật trên production: không có xoá cứng nên đơn thử này VĨNH VIỄN còn trong dữ liệu — chỉ trạng thái đổi `draft → confirmed → cancelled`; cần một dịch vụ có đủ thông tin chuyến để xác nhận được). `audit-invariants --db remote` xanh.
-3. Ghi trạng thái vào đầu tệp này (mã, điểm Time Travel, kết quả các kiểm trên) (không ghi vào `CLAUDE.md`).
+3. Ghi trạng thái vào đầu tệp này (mã, điểm Time Travel, kết quả các kiểm trên; không ghi vào `CLAUDE.md`).
 
 **C. Hoàn tác:** chỉ khi chủ dự án ra lệnh rõ trong phiên đó — đây là thao tác GHI lên D1 remote.
 1. Gỡ cả ba trigger bằng MỘT lệnh execute (ba câu `DROP TRIGGER`, chạy được trong cùng lời gọi):

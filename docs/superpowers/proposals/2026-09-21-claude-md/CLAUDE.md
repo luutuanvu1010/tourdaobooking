@@ -26,7 +26,7 @@ Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặ
 - **Việc lớn** = đụng **dữ liệu** (schema, migration, dữ liệu thật), **quyền** (`permissions.ts`, tài khoản), **tiền** (tính/hiển thị tiền), **triển khai** (deploy, cấu hình Cloudflare) hoặc **luật** (tài liệu chuẩn tắc, hook, CLAUDE.md).
   - Thi công xong phải có **subagent kiểm độc lập, chỉ đọc**: đọc mã thật, chạy lại lệnh, chỉ báo cáo, không sửa. Chỉ báo "đạt" dựa trên báo cáo đó + test, không tự khai.
   - Việc còn lại (sửa chữ, tài liệu mô tả, CSS không đụng logic, thêm test): test xanh + tóm tắt, chủ duyệt.
-- **Không tự tay đổi luật chi phối chính mình** (N9): `CLAUDE.md`, `.claude/`, `playbook/`, ràng buộc dự án, ADR đã duyệt. Chỉ **đề xuất** bằng diff/tệp trên nhánh; chủ duyệt mới có hiệu lực (chỉ được tự sửa số đếm, số migration, tên tệp cho khớp mã, không đổi nghĩa quy tắc). Dựng thêm hàng rào chỉ **siết** chính mình (test, hook, deny) thì được, không nới (Điều 9.4).
+- **Không tự tay đổi luật chi phối chính mình** (N9): `CLAUDE.md`, `.claude/`, `playbook/`, ràng buộc dự án, ADR đã duyệt. Chỉ **đề xuất** bằng diff/tệp trên nhánh; chủ duyệt mới có hiệu lực (riêng `CLAUDE.md`: chỉ được tự sửa số đếm, số migration, tên tệp cho khớp mã, không đổi nghĩa quy tắc; `playbook/` và ADR đã duyệt thì không). Dựng thêm hàng rào chỉ **siết** chính mình (test, hook, deny) thì được, không nới (Điều 9.4).
 - Viết **tiêu chí nghiệm thu trước khi làm**, bằng hành vi kiểm được (P20). Cơ chế kiểm mới chỉ được coi là hoạt động khi **đã quan sát nó chặn thật một lần** (sửa cố ý → đỏ → hoàn nguyên) (P16); điều chưa cưỡng chế được ghi là "dựa vào kỷ luật".
 - Thấy dấu hiệu một nguyên tắc sắp/đang bị vi phạm: nói ngay **một lần**, bằng lời thường (số hiệu điều để trong ngoặc); chủ đã nghe và vẫn quyết thì thi hành, không nhắc lại (P18).
 
@@ -38,7 +38,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 - **Cần chủ chọn:** nêu 2–3 phương án, mỗi phương án một dòng (làm gì, được/mất gì), kèm một khuyến nghị.
 - **Việc chủ phải làm:** từng bước đánh số, mỗi lệnh một khối riêng, nói rõ chạy ở thư mục nào, chép-dán chạy được.
 - **Không bịa.** Điều chưa kiểm nói rõ "chưa kiểm"; không trình bày suy đoán như sự thật.
-- **Báo cáo cuối việc: 4 mục có nhãn, mỗi mục một hai câu:** Đã làm — Đã kiểm (nói rõ đã có người kiểm độc lập chưa) — Chưa làm/chưa kiểm — Cần bạn quyết. Không nói "xong" khi test/typecheck chưa chạy hoặc đỏ.
+- **Báo cáo cuối việc: 4 mục có nhãn, mỗi mục một hai câu** (tổng kết nhiều việc thì gộp lại theo 4 mục): Đã làm — Đã kiểm (nói rõ đã có người kiểm độc lập chưa) — Chưa làm/chưa kiểm — Cần bạn quyết. Không nói "xong" khi test/typecheck chưa chạy hoặc đỏ.
 - Trả lời bằng **tiếng Việt CÓ DẤU**.
 
 ## 5. Lệnh
@@ -52,7 +52,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | `node scripts/audit-invariants.mjs --db local\|remote` | bất biến dữ liệu, **chỉ đọc**; thoát 1 = vi phạm, **2 = không chạy được** (không phải dữ liệu sạch) |
 | `npm run dict` | sinh lại `docs/DATA-DICTIONARY.md` từ `docs/data-dictionary.json` |
 | `node scripts/dev-iphone.mjs` | chạy trên D1 tạm để thử iPhone thật (LAN, không đụng dữ liệu thật) |
-| `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote chỉ khi chủ ra lệnh, theo runbook (§8)** |
+| `npm run db:migrate:local` / `db:migrate:remote` | áp migration; **remote do chủ tự chạy, theo runbook (§8)** |
 
 ## 6. Đọc gì, khi nào (nạp đúng lúc, không nạp hết)
 - **Chỉ đọc khi việc cần, và chỉ đúng mục cần.** Tài liệu dài (Hiến pháp, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`) đừng đọc hết: liệt kê tiêu đề (`grep -n "^#" <tệp>`), rồi đọc đúng mục theo số dòng. Với Hiến pháp: `grep -n "^\*\*N9\." playbook/CONSTITUTION.md` (nguyên tắc), `grep -n "^## Điều" playbook/CONSTITUTION.md` (các Điều).
@@ -88,8 +88,9 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 
 ## 8. Git, triển khai, an toàn
 - Sửa mã trong **git worktree riêng** (`.claude/worktrees/<tên>`), không sửa thẳng ở checkout gốc. Commit nhỏ, thông điệp tiếng Việt: tiêu đề nói việc, thân nói **vì sao**. Thêm dòng đồng tác giả nếu môi trường yêu cầu.
-- **CẤM, trừ khi chủ ra lệnh rõ trong phiên đó cho đúng việc đó: `git push`, merge vào `main` (kể cả `gh pr merge`), `wrangler deploy`/`rollback`/`secret …`, `wrangler d1 migrations apply --remote`, ghi hoặc `d1 execute` trên D1 remote, `wrangler dev --remote`, kịch bản hay `curl` ghi lên API production. Không `--force`. Hỏi "được chưa?" không phải là lệnh.**
-- **Hàng rào máy** (chỉ chặn nhầm/quên, không chống cố ý lách): hook `.claude/hooks/guard-remote.mjs` (lớp 1) + `permissions.deny` ở `.claude/settings.json` (lớp 2). **Hook không có công tắc tạm**: kể cả khi chủ ra lệnh, AI vẫn không tự chạy các lệnh cấm ở trên; AI làm hết bước chuẩn bị và kiểm, rồi đưa **nguyên lệnh** (kèm thư mục cần đứng) để chủ chạy bằng `! <lệnh>` hoặc trong Terminal. Thấy một lệnh cấm chạy được là lỗi của hàng rào: **báo chủ, không coi là được phép**. Kiểm hàng rào: `node --test src/claude-guard.test.ts`.
+- **CẤM AI tự chạy** (chủ quyết rồi tự chạy, bằng `!` hoặc trong Terminal): `git push`, merge vào `main` (kể cả `gh pr merge`), `wrangler deploy`/`rollback`/`secret …`, `wrangler d1 migrations apply --remote`, ghi hoặc `d1 execute` trên D1 remote, `wrangler dev --remote`, kịch bản hay `curl` ghi lên API production. Không `--force`. Hỏi "được chưa?" không phải là lệnh. Chủ ra lệnh thì AI làm hết bước chuẩn bị và kiểm, rồi đưa **nguyên lệnh** (kèm thư mục cần đứng).
+- **Hàng rào máy** (chỉ chặn nhầm/quên, không chống cố ý lách): hook `.claude/hooks/guard-remote.mjs` (lớp 1) + `permissions.deny` ở `.claude/settings.json` (lớp 2). **Hook không có công tắc tạm**, kể cả khi chủ ra lệnh.
+- Thấy một lệnh cấm chạy được là lỗi của hàng rào: **báo chủ, không coi là được phép**. Kiểm hàng rào: `node --test src/claude-guard.test.ts`.
 - **Đừng khẳng định trạng thái production từ tài liệu hay bộ nhớ** (từng lệch nhau khi nhiều phiên deploy song song): kiểm bằng GET công khai hoặc lệnh chỉ đọc (`wrangler d1 migrations list … --remote`, `wrangler deployments list`). Chỉ deploy từ `main` đã gộp, theo `docs/HANDOFF-N1.md`: cổng chỉ-đọc → điểm khôi phục Time Travel → test + typecheck + e2e xanh → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → ghi trạng thái. `CI=1` để wrangler không hỏi.
 - Không tạo/sửa tài khoản, quyền, hồ sơ trên production trong "cửa sổ đóng băng" (`docs/HANDOFF-N1.md`, phần Hoàn tác).
 - Không sửa ADR/đặc tả đã duyệt để hợp thức hoá mã; quyết định kiến trúc mới → ADR mới do chủ duyệt.
