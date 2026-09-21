@@ -40,6 +40,8 @@
 
 ### Task 1: ADR-0012 (đề xuất) và cập nhật `docs/adr/README.md`
 
+> **Đã thi công, đã kiểm và đã sửa một vòng (2026-09-21).** Văn bản ADR trong Step 1 dưới đây là **bản soạn gốc** (đã đổi số 0011 → 0012); sau kiểm độc lập, tệp `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md` được sửa thêm (trích dẫn đúng chữ, N3/N9/9.2, nhãn cửa, cách đếm). **Bản có hiệu lực là TỆP ADR, không phải đoạn dưới.** Đừng chép lại đoạn dưới đè lên tệp. Sổ: `docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md`.
+
 **Files:**
 - Create: `docs/adr/ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md`
 - Modify: `docs/adr/README.md` (dòng 3; thêm một hàng sau hàng `0009`; dòng "Thứ tự tài liệu")
@@ -61,7 +63,7 @@
 
 ## Bối cảnh
 - Repo này viện dẫn Hiến pháp (P1, P2, P4–P7, P11; N1, N3–N5, N7; Điều 3.1, 5.8, 6.2, 7, 8.2, 9.7) ở ít nhất 15 tệp tài liệu và 4 tệp mã, nhưng **không có bản Hiến pháp trong repo và không ghim phiên bản**; chỉ `docs/AUDIT-PWA-IPHONE.md` dòng 11 nêu phiên bản (v2.2.0).
-- Dòng dõi Hiến pháp trên máy của chủ dự án (đối chiếu bằng băm và đọc tệp, 2026-09-21): `CoreSchemaProject/playbook` và `pt-hdv/playbook` là **v2.3.0** (P1–P21, N1–N10); `tourdaovn`, `nhatrangtravel`, `Aquanova`, `Master-Project-Framework` là v2.2.0 (P1–P13, N1–N7); `ketoanvn/CONSTITUTION.md` là v3.1.0, văn bản khác hẳn. `CoreSchemaProject/playbook/.PINNED_VERSION` ghi rằng từ 2026-08-21 **Core sở hữu lớp luật** (ADR-0027 của Core, chủ dự án chốt) và nhãn "bản pin của `nhatrangtravel`" là sai. Các điều mà repo này đã viện dẫn **giữ nguyên số hiệu** ở v2.3.0.
+- Dòng dõi Hiến pháp trên máy của chủ dự án (đối chiếu bằng băm và đọc tệp, 2026-09-21): `CoreSchemaProject/playbook` và `pt-hdv/playbook` là **v2.3.0** (P1–P21, N1–N10); `tourdaovn`, `nhatrangtravel`, `Aquanova`, `Master-Project-Framework` là v2.2.0 (P1–P13, N1–N7); `ketoanvn/CONSTITUTION.md` là v3.1.0, văn bản khác hẳn. `CoreSchemaProject/playbook/.PINNED_VERSION` ghi rằng từ 2026-08-21 **Core sở hữu lớp luật** (ADR-0027 của Core, chủ dự án chốt) và nhãn nguồn cũ của tệp đó (khai nguồn là `nhatrangtravel/playbook`, tự nhận là bản pin chỉ đọc) là sai. Các điều mà repo này đã viện dẫn **giữ nguyên số hiệu** ở v2.3.0.
 - Đặc tả v1 của bộ tiêu chuẩn từng đề xuất chép từ `tourdaovn` (v2.2.0) theo nhãn nguồn cũ; đã đổi sang Core sau rà soát độc lập và sau khi chủ dự án chọn lại (ghi theo P5).
 - Ràng buộc từ Hiến pháp: 9.7 (tầng dự án chỉ được siết thêm, không định nghĩa lại hay nới); README của playbook ("đừng sửa Hiến pháp trong repo dự án"); N7 (không hai nguồn sự thật); N3 (AI không tự ra luật tối cao); N9 (AI không tự tay sửa luật chi phối chính mình; được chép nguyên văn văn bản chủ đã phê chuẩn theo đường mà ràng buộc cấp dự án quy định).
 - Chủ dự án chọn (2026-09-21): ghim **bản sao chỉ-đọc từ Core**, chép toàn bộ trừ `archive/` và `CLAUDE.md` của Core; **không viết Hiến pháp mới**; ghi nhận đường chép bằng câu trả lời "ghi nhận bằng câu trả lời này, AI chép sau"; đánh số ADR này là 0012 vì 0010 và 0011 đã thuộc `main` (PR #5).
@@ -381,7 +383,7 @@ git check-ignore -v playbook/CONSTITUTION.md playbook/.PINNED_SHA256 playbook/sp
 git add playbook scripts/playbook-manifest-lib.mjs scripts/pin-playbook-manifest.mjs src/standards.test.ts .gitattributes docs/superpowers/plans/2026-09-21-bo-tieu-chuan-thi-cong-nhat-ky.md
 git commit -F /Users/tuanbao/.claude/jobs/80c8fdcd/tmp/commit-msg-t1-pin.txt
 ```
-Expected: mọi test xanh (số test = số trước + 9; trước khi thêm là 413), `typecheck exit=0`, `git check-ignore` không in gì. Thông điệp (`commit-msg-t1-pin.txt`, tạo bằng Write): tiêu đề `Ghim playbook/ (Hiến pháp v2.3.0) từ Core: bản chép chỉ-đọc, băm và bài kiểm`; thân nói **vì sao** (viện dẫn chéo không ghim; nguồn Core; N9 chỉ chép sau khi chủ ghi nhận đường chép; cây Core CHƯA xác nhận sạch; `init-project.sh` 0644; loại `archive/` và `CLAUDE.md`); hai dòng đồng tác giả.
+Expected: mọi test xanh (số test = số trước + 9; trước khi thêm là 418 (đo sau khi rebase lên `main` @ `f01fa5c`), sau Task 2 phải là 427), `typecheck exit=0`, `git check-ignore` không in gì. Thông điệp (`commit-msg-t1-pin.txt`, tạo bằng Write): tiêu đề `Ghim playbook/ (Hiến pháp v2.3.0) từ Core: bản chép chỉ-đọc, băm và bài kiểm`; thân nói **vì sao** (viện dẫn chéo không ghim; nguồn Core; N9 chỉ chép sau khi chủ ghi nhận đường chép; cây Core CHƯA xác nhận sạch; `init-project.sh` 0644; loại `archive/` và `CLAUDE.md`); hai dòng đồng tác giả.
 
 - [ ] **Step 12: Quan sát ĐỎ trên từng cơ chế (P16)** — sau khi đã commit, với MỖI phá cố ý dưới đây: thực hiện, chạy `node --test src/standards.test.ts 2>&1 | grep -E "^# fail|^not ok"`, ghi kết quả thật vào nhật ký, rồi **hoàn nguyên** bằng lệnh ghi kèm và xác nhận `git status --short` trống:
 
