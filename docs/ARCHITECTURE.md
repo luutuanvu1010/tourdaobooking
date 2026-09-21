@@ -53,6 +53,8 @@ File thuần (`rules.ts`, `sheet.ts`, các file trong `shared/` mà `node --test
 - Danh sách giá trị mở rộng theo thời gian (hành động nhật ký, loại đối tượng) kiểm ở **code**, không `CHECK` trong SQL. `CHECK` dành cho bất biến không bao giờ đổi (trạng thái đơn, vai trò, tiền không âm).
 - Migration: chỉ thêm file mới, không sửa file đã áp remote. Thử local → e2e xanh → hỏi chủ dự án → remote. Thay đổi phá vỡ theo **expand–contract** trong HAI lần phát hành: migration "mở rộng" (chỉ thêm) trước, mã mới chạy, rồi migration "siết" (trigger bắt buộc…) ở lần sau — vì `wrangler d1 migrations apply` áp MỌI migration chưa áp nên migration siết KHÔNG được có mặt trong `migrations/` ở lần phát hành đầu (N1: B5 `staff_party_required`, xem `docs/HANDOFF-N1.md`; nhận biết theo tên tệp, không theo số thứ tự).
 - Mọi đường XOÁ đơn trong tương lai phải tự chặn đơn không còn nháp: `ON DELETE CASCADE` từ `orders` xoá cả dịch vụ mà trigger `order_service_frozen_delete` KHÔNG chặn được (đã kiểm trên SQLite: xoá thẳng dịch vụ của đơn đã xác nhận bị chặn, nhưng xoá chính đơn đó thì dịch vụ đi theo). Hiện mã không có đường xoá đơn.
+- **Trạng thái đơn chỉ đi tiến** (`draft → confirmed → cancelled`, không quay lại), kể cả SQL chạy tay: trigger `orders_status_transition` (`migrations/0017_order_status_audit_guards.sql`) chặn ở tầng CSDL, không chỉ ở `orders/rules.ts`.
+- **`audit_log` chỉ-thêm**: trigger `audit_log_no_update` và `audit_log_no_delete` (cùng `0017`) chặn mọi `UPDATE`/`DELETE` trên bảng này, kể cả SQL chạy tay. Dựng lại `audit_log` (vd đổi cấu trúc theo expand–contract) phải tạo lại cả hai trigger trong cùng migration, không được bỏ sót.
 
 ## Thêm một module mới (vd M4 `exports`, M5 `company`)
 

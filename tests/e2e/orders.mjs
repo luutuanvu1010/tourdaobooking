@@ -88,6 +88,16 @@ console.log("lịch sử:", r.body.history.map((h) => `${h.action}/${h.staffName
 assert.deepEqual(r.body.history.map((h) => h.action), ["created", "updated", "updated", "confirmed", "cancelled"]);
 assert.equal(r.body.history.at(-1).staffName, "QTV Test");
 
+// 0017 (P-2 + P-5): trên D1 thật, CSDL chặn đường quay lại của trạng thái đơn và chặn sửa/xoá nhật ký, kể cả SQL chạy tay.
+// Đơn `o` lúc này ĐÃ HUỶ (dòng 84) và có 5 dòng nhật ký (dòng 88), nên mỗi câu dưới đây chắc chắn trúng dòng.
+await assert.rejects(sql(`UPDATE orders SET status = 'confirmed' WHERE id = '${o.id}'`), /invalid_transition/, "đơn đã huỷ không được sống lại");
+await assert.rejects(sql(`UPDATE orders SET status = 'draft' WHERE id = '${o.id}'`), /invalid_transition/);
+await assert.rejects(sql(`UPDATE audit_log SET detail = 'sửa lén' WHERE order_id = '${o.id}'`), /audit_append_only/);
+await assert.rejects(sql(`DELETE FROM audit_log WHERE order_id = '${o.id}'`), /audit_append_only/);
+r = await call(A, "GET", `/api/orders/${o.id}`);
+assert.equal(r.body.order.status, "cancelled");
+console.log("✓ TRIGGER 0017 chặn trạng thái đi lùi và sửa/xoá nhật ký ghi thẳng vào D1");
+
 // NHẬT KÝ TOÀN HỆ THỐNG: chỉ admin
 assert.equal((await call(A, "GET", "/api/audit")).status, 403);
 assert.equal((await call(Bc, "GET", "/api/audit")).status, 403);
