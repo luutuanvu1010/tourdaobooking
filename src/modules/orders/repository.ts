@@ -10,6 +10,8 @@ interface OrderRow {
   order_code: string;
   staff_id: string;
   staff_name: string;
+  booker_party_id: string | null;
+  booker_name: string | null;
   status: OrderStatus;
   customer_name: string;
   customer_phone: string;
@@ -59,7 +61,8 @@ interface ItemRow {
   line_total: number;
 }
 
-const ORDER_SELECT = `SELECT o.*, s.label AS staff_name FROM orders o JOIN v_stf_staff_label s ON s.id = o.staff_id`;
+const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booker_name FROM orders o
+  JOIN v_stf_staff_label s ON s.id = o.staff_id LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id`;
 const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time, pickup_time, pickup_place,
   checkin_date, checkin_time, checkin_place, note FROM order_service WHERE order_id = ? ORDER BY sort_order`;
 const ITEM_SELECT = `SELECT id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
@@ -70,6 +73,8 @@ function toDto(r: OrderRow): OrderDto {
     orderCode: r.order_code,
     staffId: r.staff_id,
     staffName: r.staff_name,
+    bookerPartyId: r.booker_party_id,
+    bookerName: r.booker_name,
     status: r.status,
     customerName: r.customer_name,
     customerPhone: r.customer_phone,
@@ -166,12 +171,27 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
   }));
 }
 
-export async function getMeta(db: D1Database, id: string): Promise<{ status: OrderStatus; staffId: string; updatedAt: string } | null> {
+export interface OrderMeta {
+  status: OrderStatus;
+  staffId: string;
+  updatedAt: string;
+  bookerPartyId: string | null;
+  bookerName: string | null;
+  customerName: string;
+  customerPhone: string;
+}
+
+export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
-    .prepare("SELECT status, staff_id, updated_at FROM orders WHERE id = ?")
+    .prepare(
+      `SELECT o.status, o.staff_id, o.updated_at, o.booker_party_id, b.display_name AS booker_name, o.customer_name, o.customer_phone
+       FROM orders o LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id WHERE o.id = ?`,
+    )
     .bind(id)
-    .first<{ status: OrderStatus; staff_id: string; updated_at: string }>();
-  return row ? { status: row.status, staffId: row.staff_id, updatedAt: row.updated_at } : null;
+    .first<{ status: OrderStatus; staff_id: string; updated_at: string; booker_party_id: string | null; booker_name: string | null; customer_name: string; customer_phone: string }>();
+  return row
+    ? { status: row.status, staffId: row.staff_id, updatedAt: row.updated_at, bookerPartyId: row.booker_party_id, bookerName: row.booker_name, customerName: row.customer_name, customerPhone: row.customer_phone }
+    : null;
 }
 
 export async function listOrders(
@@ -231,6 +251,25 @@ interface Guard {
  */
 const wonGuard = (auditId: string): Guard => ({ sql: "EXISTS (SELECT 1 FROM audit_log WHERE id = ?)", binds: [auditId] });
 
+/**
+ * Người đặt đã được service kiểm, sẵn để ghi. `before` = câu tạo hồ sơ mới (+ nhật ký `party_created`) của `parties`, đứng TRƯỚC câu ghi đơn
+ * trong CÙNG batch vì khoá ngoại. `note` = mẩu nhật ký của đơn (chỉ tên).
+ */
+export interface BookerWrite {
+  partyId: string | null;
+  before: D1PreparedStatement[];
+  note: string | null;
+}
+export const NO_BOOKER: BookerWrite = { partyId: null, before: [], note: null };
+
+/**
+ * Giá trị ghi vào `orders.booker_party_id`: chỉ khi hồ sơ còn là CÁ NHÂN ĐANG HOẠT ĐỘNG (đọc qua view công bố của `parties`, ADR-0002 điều 3), không thì NULL —
+ * lưới cho khoảng giữa lúc service kiểm và lúc ghi; KHÔNG đặt EXISTS vào WHERE (đơn sẽ chèn 0 dòng lặng lẽ). Hai tham số: cùng id.
+ */
+const BOOKER_VALUE = `CASE WHEN EXISTS (SELECT 1 FROM v_pty_party_label WHERE id = ? AND active = 1 AND party_kind = 'PERSON') THEN ? END`;
+
+const joinDetail = (...parts: (string | null | undefined)[]): string | undefined => parts.filter((p): p is string => !!p).join(" | ") || undefined;
+
 /** Bảng được phép ghi bằng insertRow — union literal thay cho `string` động (ADR-0002 điều 8(b)): tên bảng không bao giờ đến từ đầu vào. */
 type WriteTable = "order_service" | "order_item";
 
@@ -282,12 +321,14 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
  * tạo cùng lúc vẫn ra mã khác nhau. UNIQUE vẫn là lưới an toàn cuối; nếu đụng thì thử lại.
  * `alsoCreate` = các câu (chưa chạy) module KHÁC cần chạy cùng giao dịch, dựng theo id đơn và thời điểm của TỪNG lần thử — id đơn đổi mỗi lần thử nên phải là hàm,
  * không phải danh sách dựng sẵn. Dùng cho dòng người phụ trách mặc định của `dispatch` (ADR-0009 điều 4); `orders` không biết đó là gì, chỉ ghép sau câu INSERT đơn.
+ * `booker.before` đứng đầu batch (hồ sơ mới, nếu có, phải tồn tại trước khi đơn trỏ khoá ngoại tới).
  */
 export async function createOrder(
   db: D1Database,
   staffId: string,
   order: ValidOrder,
   alsoCreate?: (orderId: string, at: string) => D1PreparedStatement[],
+  booker: BookerWrite = NO_BOOKER,
 ): Promise<string> {
   const MAX_ATTEMPTS = 3;
   for (let attempt = 1; ; attempt++) {
@@ -297,19 +338,21 @@ export async function createOrder(
     const at = now.toISOString();
     try {
       await db.batch([
+        ...booker.before,
         db
           .prepare(
             `INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, customer_email, customer_note,
-               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at)
+               subtotal, discount, total, deposit_amount, deposit_method, remaining_amount, payment_note, created_at, updated_at, booker_party_id)
              SELECT ?, ? || printf('%04d', COALESCE((SELECT MAX(CAST(substr(order_code, length(?) + 1) AS INTEGER)) FROM orders WHERE order_code LIKE ?), 0) + 1),
-               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?`,
+               ?, 'draft', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${BOOKER_VALUE}`,
           )
           .bind(
             id, prefix, prefix, `${prefix}%`, staffId, order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
             order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote, at, at,
+            booker.partyId, booker.partyId,
           ),
         ...serviceInserts(db, id, order.services),
-        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: summarizeDeviations(order.items) }),
+        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note) }),
         ...(alsoCreate?.(id, at) ?? []),
       ]);
       return id;
@@ -322,29 +365,34 @@ export async function createOrder(
 /**
  * Sửa đơn (chỉ khi còn `draft` VÀ `updated_at` còn khớp mốc client đã đọc). Trả false nếu UPDATE đầu không áp dụng (đơn đã đổi trạng thái
  * hoặc đã bị người khác sửa) — khi đó MỌI câu sau đều không chạy vì cùng mang `wonGuard`.
- * Thứ tự cố định vì khoá ngoại: xoá dòng tiền → xoá dịch vụ → thêm dịch vụ → thêm dòng tiền. Audit đứng ngay sau UPDATE (idiom `changes() > 0`).
+ * Thứ tự cố định vì khoá ngoại: (`booker.before` — hồ sơ mới, nếu có) → UPDATE đơn → xoá dòng tiền → xoá dịch vụ → thêm dịch vụ → thêm dòng tiền.
+ * Audit đứng ngay sau UPDATE (idiom `changes() > 0`). Giới hạn đã biết: hồ sơ mới trong `booker.before` không mang điều kiện thắng của khoá lạc quan,
+ * nên khi UPDATE đơn thua (đơn đã đổi/đã bị người khác sửa) thì hồ sơ vừa tạo vẫn còn lại — một hồ sơ thừa hiếm gặp, chấp nhận được ở lát này.
  */
-export async function updateDraftOrder(db: D1Database, id: string, staffId: string, order: ValidOrder & { expectedUpdatedAt: string }): Promise<boolean> {
+export async function updateDraftOrder(db: D1Database, id: string, staffId: string, order: ValidOrder & { expectedUpdatedAt: string }, booker: BookerWrite = NO_BOOKER): Promise<boolean> {
   const at = nextStamp(order.expectedUpdatedAt);
   const auditId = crypto.randomUUID();
   const guard = wonGuard(auditId);
   const results = await db.batch([
+    ...booker.before,
     db
       .prepare(
         `UPDATE orders SET customer_name = ?, customer_phone = ?, customer_email = ?, customer_note = ?,
-           subtotal = ?, discount = ?, total = ?, deposit_amount = ?, deposit_method = ?, remaining_amount = ?, payment_note = ?, updated_at = ?
+           subtotal = ?, discount = ?, total = ?, deposit_amount = ?, deposit_method = ?, remaining_amount = ?, payment_note = ?,
+           booker_party_id = ${BOOKER_VALUE}, updated_at = ?
          WHERE id = ? AND status = 'draft' AND updated_at = ?`,
       )
       .bind(
         order.customerName, order.customerPhone, order.customerEmail, order.customerNote,
-        order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote, at, id, order.expectedUpdatedAt,
+        order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote,
+        booker.partyId, booker.partyId, at, id, order.expectedUpdatedAt,
       ),
-    auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: summarizeDeviations(order.items) }, "changes() > 0"),
+    auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note) }, "changes() > 0"),
     db.prepare(`DELETE FROM order_item WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
     db.prepare(`DELETE FROM order_service WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
     ...serviceInserts(db, id, order.services, guard),
   ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  return (results[booker.before.length]!.meta.changes ?? 0) > 0;
 }
 
 /**

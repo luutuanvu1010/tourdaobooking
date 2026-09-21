@@ -9,7 +9,7 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import { cancelOrder, confirmOrder, createOrder, findOrder, getMeta, getStoredServices, listOrders, updateDraftOrder, updateTrip } from "./repository";
 import { canTransition, isOrderStatus, validateOrder, type Failure, type OrderStatus } from "./rules";
-import { loadOrderView, validationContext } from "./service";
+import { loadOrderView, resolveBooker, validationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -58,11 +58,19 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, null));
       if (!parsed.ok) return failure(parsed);
+      const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
+      if (!booker.ok) return error(400, "invalid_input", booker.message);
       // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4).
-      const id = await createOrder(env.DB, staff.id, parsed.value, (orderId, at) => {
-        const handler = defaultHandlerStatement(orderId, at);
-        return handler ? [handler] : [];
-      });
+      const id = await createOrder(
+        env.DB,
+        staff.id,
+        parsed.value,
+        (orderId, at) => {
+          const handler = defaultHandlerStatement(orderId, at);
+          return handler ? [handler] : [];
+        },
+        booker.write,
+      );
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
 
@@ -88,7 +96,9 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const expected = parsed.value.expectedUpdatedAt;
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");
-      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...parsed.value, expectedUpdatedAt: expected }))) {
+      const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
+      if (!booker.ok) return error(400, "invalid_input", booker.message);
+      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...parsed.value, expectedUpdatedAt: expected }, booker.write))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
       }

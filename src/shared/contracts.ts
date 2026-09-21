@@ -128,6 +128,10 @@ export interface OrderDto {
   orderCode: string;
   staffId: string;
   staffName: string;
+  /** Hồ sơ người đặt (N2 lát 1, ADR-0011); null = chưa gắn (đơn cũ hoặc bỏ qua). */
+  bookerPartyId: string | null;
+  /** Nhãn hồ sơ người đặt (view `v_pty_party_label`); null khi chưa gắn. */
+  bookerName: string | null;
   status: OrderStatus;
   customerName: string;
   customerPhone: string;
