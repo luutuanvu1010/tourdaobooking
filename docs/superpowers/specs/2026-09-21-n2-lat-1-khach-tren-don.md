@@ -10,7 +10,7 @@ Hôm nay mỗi đơn chép tay tên/SĐT khách vào bốn cột chữ `orders.c
 
 **Lát 1 (đặc tả này):** thêm một cột trỏ hồ sơ người đặt vào đơn + bước "tìm theo SĐT → dùng hồ sơ có sẵn hoặc tạo mới" ở form lập đơn. Chỉ THÊM, gỡ được, không đụng dữ liệu cũ.
 
-**Không làm ở lát 1:** `traveller_party_id` (khách đi tour khác người đặt), backfill đơn cũ, gộp hồ sơ, siết bắt buộc — xem §9.
+**Không làm ở lát 1:** `traveller_party_id` (khách đi tour khác người đặt), backfill đơn cũ, gộp hồ sơ, siết bắt buộc — xem §11.
 
 ## 2. Dữ liệu (mục 1 của yêu cầu)
 
@@ -36,7 +36,7 @@ CREATE INDEX orders_booker_party_idx ON orders(booker_party_id);
 | (b) Bắt buộc gắn (form chặn nút Lưu) | Mọi đơn mới đều gắn | Luật ở giao diện mà CSDL không giữ được (cột vẫn NULL được) → hai nguồn lệch; khách không có số Việt Nam thì kẹt; thêm thao tác mỗi đơn |
 | (c) Bắt buộc, trừ khi tích "Khách không có SĐT Việt Nam" | Gần (b) nhưng có lối thoát có tên | Thêm một ô và một luật; nhân viên dễ tích bừa để đi nhanh |
 
-**Khuyến nghị: (a).** Lý do quyết định: ở lát 1 "đơn không có hồ sơ" đã là trạng thái hợp lệ của dữ liệu (cột NULL được, đơn cũ không backfill). Ép ở giao diện tạo ra một luật mà CSDL không giữ. Việc siết thuộc lát 2 (expand–contract, cần ADR). Nếu muốn đo mức dùng: đếm `booker_party_id IS NULL` trên đơn mới sau vài tuần (§7 thước đo).
+**Khuyến nghị: (a).** Lý do quyết định: ở lát 1 "đơn không có hồ sơ" đã là trạng thái hợp lệ của dữ liệu (cột NULL được, đơn cũ không backfill). Ép ở giao diện tạo ra một luật mà CSDL không giữ. Việc siết thuộc lát 2 (expand–contract, cần ADR). Nếu muốn đo mức dùng: đếm `booker_party_id IS NULL` trên đơn mới sau vài tuần (cùng kiểu truy vấn thước đo ở §10).
 
 ### Câu hỏi B — Hồ sơ mới tạo từ form đơn có được gắn vai `CUSTOMER` không, và gắn thế nào? (mục 3)
 
@@ -44,11 +44,11 @@ Hiện trạng: nhân viên bán hàng tạo được hồ sơ (`POST /api/parti
 
 | Phương án | Được | Mất |
 |---|---|---|
-| **(a) Route tạo/sửa đơn tự tạo hồ sơ + mở vai `CUSTOMER` trong cùng `db.batch()`** | Một lần bấm Lưu, không để hồ sơ mồ côi khi lưu đơn lỗi; không đổi bảng quyền; có tiền lệ: `staff` đã gọi `newPersonStatements` của `parties` kèm vai `STAFF` (`src/modules/staff/index.ts:102`), và hàm đó ghi cả vai (`src/modules/parties/repository.ts:263-279`) | Vai được mở "ngầm" bởi route không phải của quản trị — đúng một mã `CUSTOMER`, chỉ cho hồ sơ MỚI, ghi nhật ký. Hồ sơ **có sẵn** được chọn thì lát 1 không thêm vai (tránh lỗi trùng khoảng hiệu lực `pty_party_role_open_uq`) |
+| **(a) Route tạo/sửa đơn tự tạo hồ sơ + mở vai `CUSTOMER` trong cùng `db.batch()`** | Một lần bấm Lưu, không để hồ sơ mồ côi khi lưu đơn lỗi; không đụng route vai trò. **Cơ chế đã có, nhưng chỉ dưới route admin:** `staff` gọi `newPersonStatements` của `parties` kèm vai `STAFF` (`src/modules/staff/index.ts:102`), hàm đó ghi cả vai (`src/modules/parties/repository.ts:263-280`), nhưng lời gọi ấy chạy trong `POST /api/staff` là route `"admin"` (`src/modules/accounts/index.ts:124`) | **Là ngoại lệ hẹp của ADR-0007** (bảng quyền dòng cuối: "vai trò hồ sơ" chỉ ADMIN): mọi nhân viên văn phòng lập đơn sẽ tạo được một dòng vai `CUSTOMER` — về thực chất cùng thẩm quyền với (b), chỉ khác đường đi. Giới hạn: chỉ hồ sơ cá nhân MỚI, chỉ mã `CUSTOMER`, chỉ trong cùng batch với đơn, có nhật ký. Hồ sơ **có sẵn** được chọn thì lát 1 không thêm vai (tránh lỗi trùng khoảng hiệu lực `pty_party_role_open_uq`) |
 | (b) Nới `POST /api/parties/:id/roles` cho `office` khi mã là `CUSTOMER` | Dùng lại route có sẵn | Sửa bảng quyền ADR-0007 đã duyệt → cần ADR mới; route có một nhánh quyền theo giá trị đầu vào, dễ sai |
 | (c) Không gắn vai ở lát 1 | Đơn giản nhất | Bộ lọc vai "Khách hàng" ở trang Hồ sơ không có ai; "là khách" phải suy từ đơn |
 
-**Khuyến nghị: (a).** Lý do quyết định: không đổi quyền đã duyệt, và tạo hồ sơ + đơn chung một batch là cách duy nhất tránh hồ sơ mồ côi. Giới hạn: `newOrganizationStatements` **không** nhận vai (`src/modules/parties/repository.ts:282-297`), nên ở lát 1 form đơn chỉ **tạo mới** hồ sơ **cá nhân**; đại lý (tổ chức) phải có sẵn trong danh bạ (chọn được, không tạo từ form đơn). Nếu chủ dự án thấy "vai mở ngầm" là không ổn thì (c) là phương án lùi an toàn — không phải (b).
+**Khuyến nghị: (a), kèm điều kiện.** Lý do: tạo hồ sơ + đơn chung một batch là cách duy nhất tránh hồ sơ mồ côi, và ngoại lệ bị khoanh hẹp hơn (b) (không mở route vai trò cho ai cả; không kết thúc/sửa vai được). Nhưng (a) **vẫn là nới ADR-0007**, không phải "giữ nguyên quyền": chủ dự án phải **ra ruling rõ** cho ngoại lệ này, ghi vào nhật ký thi công của lát 1 (`docs/superpowers/plans/…-thi-cong-nhat-ky.md`), hoặc — nếu chủ dự án muốn — viết ADR mới trỏ về ADR-0007 (ADR đã accepted không sửa nội dung). Giới hạn: `newOrganizationStatements` **không** nhận vai (`src/modules/parties/repository.ts:282-297`), và lát 1 chỉ gắn hồ sơ **cá nhân** của chính khách (đại lý để ngoài lát 1 — §8 mục 2), nên form đơn chỉ **tạo mới** hồ sơ cá nhân. Nếu chủ dự án không muốn nới ADR-0007 thì (c) là phương án lùi an toàn (không đổi quyền; admin gắn vai sau ở trang Hồ sơ) — không phải (b).
 
 ### Câu hỏi C — Đổi khách của đơn **đã xác nhận** được không? (mục 5)
 
@@ -67,7 +67,7 @@ Hiện trạng: `PUT /api/orders/:id` trả `NOT_EDITABLE` khi đơn không còn
 Ở khối "Khách hàng" của `public/order-form.html:13-16` / `web/order-form.ts` (hiện đọc/ghi 4 ô ở `collect()` dòng 161-164 và `fill()` dòng 283-286):
 
 1. Nhân viên gõ SĐT. Đủ 10 số → gọi `GET /api/parties/lookup?phone=…` (đã có, `"office"`, `src/modules/parties/index.ts:120-125`; chỉ liên hệ đang mở, tối đa 20, trả **cả cá nhân lẫn tổ chức** kèm cờ `active` — `src/modules/parties/repository.ts:72-78`). Chờ ~400 ms sau lần gõ cuối như trang Hồ sơ (`web/parties.ts:111-128`).
-2. **Luôn hiện danh sách hồ sơ trùng số** (ADR-0001 mục 8 bắt buộc): mỗi dòng = tên + loại ("cá nhân"/"tổ chức") + nút **"Dùng hồ sơ này"**. Hồ sơ đã ngưng hiện mờ, không chọn được. Kèm nút **"Tạo hồ sơ mới"** và dòng nhắc "cùng một số có thể thuộc nhiều người (người nhà, công ty)".
+2. **Luôn hiện danh sách hồ sơ trùng số** (ADR-0001 mục 8 bắt buộc): mỗi dòng = tên + loại ("cá nhân"/"tổ chức"); nút **"Dùng hồ sơ này"** chỉ ở hồ sơ **cá nhân** đang hoạt động (hồ sơ tổ chức hiện để biết, không chọn được ở lát 1 — §8 mục 2; máy chủ cũng từ chối `bookerPartyId` là tổ chức, đọc `party_kind` từ view). Hồ sơ đã ngưng hiện mờ, không chọn được. Kèm nút **"Tạo hồ sơ mới"** và dòng nhắc "cùng một số có thể thuộc nhiều người (người nhà, công ty)".
 3. **"Dùng hồ sơ này"**: điền sẵn Tên/SĐT từ hồ sơ; hai ô **vẫn sửa được** (bản chụp của đơn, không ghi ngược vào hồ sơ). Khối hiện "Đã gắn: <tên> · Bỏ gắn".
 4. **"Tạo hồ sơ mới"** (chỉ cá nhân — câu hỏi B): dùng Tên + SĐT đang gõ; hồ sơ được tạo **khi bấm Lưu đơn**, cùng batch với đơn.
 5. Không bấm gì → đơn lưu không gắn (nếu câu hỏi A chọn (a)).
@@ -78,7 +78,10 @@ Dữ liệu gửi lên (`OrderInput`, `src/shared/contracts.ts:187-199`) thêm *
 
 - `orders` **đọc** nhãn và cờ `active` qua view công bố `v_pty_party_label` (`migrations/0011_parties.sql:143-149`, cột `id, display_name, party_kind, active, sort_key`) — cùng kiểu `ORDER_SELECT` đang JOIN `v_stf_staff_label` (`src/modules/orders/repository.ts:62`). Không JOIN thẳng `pty_*` (ADR-0002 điều 3).
 - `orders` **ghi** hồ sơ mới chỉ qua hàm công khai của `parties`: `newPersonStatements` (đã export, `src/modules/parties/index.ts:22`) trả câu lệnh chưa chạy để gộp vào batch của `createOrder`/`updateDraftOrder`. Nếu chọn (a) ở câu hỏi B, truyền `roles: [{ roleTypeCode: "CUSTOMER", locationId: null, from: hôm nay, to: null }]`. SĐT của hồ sơ mới kiểm bằng `validateContact` của `parties` (chuẩn hoá qua `normalizePhone`, `src/shared/phone.ts:3-8`) — cần export thêm hàm kiểm hoặc một hàm dựng sẵn `newCustomerStatements`; quyết khi viết kế hoạch.
-- **Không tin `bookerPartyId` từ trình duyệt:** kiểm dạng id hồ sơ (`PARTY_ID_RE`, `src/modules/parties/rules.ts:10` — id có thể mang tiền tố `pty-` nên không dùng `UUID_RE`; cần export qua `parties/index.ts`), rồi chốt ngay trong câu ghi — `INSERT`/`UPDATE orders` chỉ nhận id khi `EXISTS (SELECT 1 FROM v_pty_party_label WHERE id = ? AND active = 1)`, để hồ sơ bị ngưng giữa lúc kiểm và lúc ghi cũng không lọt. Khoá ngoại là lưới cuối. Hồ sơ không tồn tại/đã ngưng → 400 "Hồ sơ khách không còn dùng được, hãy chọn lại."
+- **Kiểm dạng id — chuyển regex sang `src/shared/`:** id hồ sơ có thể mang tiền tố `pty-` (`PARTY_ID_RE`, `src/modules/parties/rules.ts:10`), nên không dùng `UUID_RE`. `validateOrder` ở `src/modules/orders/rules.ts` là luật thuần, chỉ import `shared/*.ts` kèm đuôi `.ts` (đầu tệp, dòng 3-8), và module chỉ được import module khác qua `index.ts` (kéo theo I/O) — nên **không** import `PARTY_ID_RE` từ `parties`. Chọn: **dời `PARTY_ID_RE` sang một tệp thuần ở `src/shared/`** (vd `src/shared/party-id.ts`); `parties/rules.ts` tái xuất từ đó để mã hiện có không đổi, `orders/rules.ts` import trực tiếp. Lý do chọn cách này thay vì kiểm ở route: một nguồn cho server và web (CLAUDE.md §5), và `validateOrder` giữ được toàn bộ kiểm dạng đầu vào nên test thuần phủ được. Tương tự, SĐT của `newBooker` kiểm bằng `normalizePhone` (`src/shared/phone.ts`, đã thuần). Kiểm tên người (`validatePersonFullName`, chỉ có qua `parties/index.ts`) thì làm ở route/service, không ở `validateOrder`.
+- **Không tin `bookerPartyId` từ trình duyệt — hai lớp:**
+  1. **Kiểm trước ở service, trả 400 rõ ràng:** đọc `SELECT active, party_kind FROM v_pty_party_label WHERE id = ?`; không có dòng hoặc `active = 0` → 400 "Hồ sơ khách không còn dùng được, hãy chọn lại."; `party_kind = 'ORGANIZATION'` → 400 "Chưa gắn được đại lý vào đơn ở bản này." (§8 mục 2).
+  2. **Lưới trong câu ghi, không để lỗi im lặng:** giá trị ghi vào cột là `CASE WHEN EXISTS (SELECT 1 FROM v_pty_party_label WHERE id = ?1 AND active = 1) THEN ?1 END` — **không** đặt `EXISTS` vào `WHERE` của `INSERT … SELECT` (khi đó đơn chèn 0 dòng lặng lẽ, các câu sau trong batch đụng khoá ngoại/tạo dòng mồ côi và người dùng chỉ thấy lỗi chung). Nếu hồ sơ bị ngưng đúng giữa bước 1 và bước 2 (hiếm), đơn vẫn lưu nhưng không gắn; route so `booker_party_id` đọc lại với id đã gửi và báo "Hồ sơ vừa bị ngưng, đơn đã lưu nhưng chưa gắn khách". Khoá ngoại là lưới cuối cho id không tồn tại.
 - Không thêm cạnh phụ thuộc mới; `orders` không import gì thêm ngoài `parties` (đã được phép).
 - `POST /api/orders` vẫn `order.create`; `PUT` vẫn `order.modify` + chỉ nháp. Không thêm thao tác vào `src/shared/permissions.ts`.
 
@@ -108,14 +111,14 @@ Chỉ đúng với đơn đã gắn (đơn cũ và đơn bỏ qua → lát 2 bac
 ## 8. Giả định và điều chưa chắc
 
 1. **Khách nước ngoài / số không phải Việt Nam:** form đơn nhận SĐT rộng (`PHONE_RE`, `src/modules/orders/rules.ts:39`) nhưng tra cứu và liên hệ hồ sơ chỉ nhận số Việt Nam 10 số (`normalizePhone`; lookup trả 400 — `src/modules/parties/index.ts:121-122`). Với số nước ngoài: giao diện không gọi lookup, không tạo được hồ sơ kèm số → đơn không gắn (hợp với câu hỏi A (a)). Mở rộng chuẩn hoá số quốc tế là việc riêng.
-2. **Đơn qua đại lý:** ADR-0001 mục 7 cho `booker_party_id` là tổ chức. Khi đó tên/SĐT trên đơn thường là của khách đi tour chứ không phải đại lý. Giả định lát 1: chọn hồ sơ đại lý thì **không** điền đè Tên/SĐT (nhân viên gõ khách đi tour như cũ); tên khách đi tour thành hồ sơ riêng là `traveller_party_id` — lát sau. **Cần chủ dự án xác nhận.**
+2. **Đơn qua đại lý — giả định: ĐỂ NGOÀI lát 1.** ADR-0001 mục 7 cho `booker_party_id` là tổ chức, nhưng luồng §4 chỉ tra theo **ô SĐT khách**; muốn chọn đại lý thì phải gõ SĐT đại lý vào ô đó, trái với việc tên/SĐT trên đơn là của khách đi tour. Nên lát 1 chỉ gắn **hồ sơ của chính khách** (danh sách trùng số vẫn hiện hồ sơ tổ chức để nhân viên biết, nhưng nút "Dùng hồ sơ này" chỉ có ở hồ sơ cá nhân). Gắn đại lý cần ô "Đại lý" riêng tìm theo tên (`GET /api/parties?kind=ORGANIZATION&q=…`, đã có, `src/modules/parties/index.ts:127-149`) cùng `traveller_party_id` — để lát sau. **Câu hỏi phụ cho chủ dự án:** đơn qua đại lý có đủ nhiều để cần ô "Đại lý" ngay trong lát 1 không? Nếu có, thêm ô đó (lưu vào `booker_party_id`, còn tên/SĐT vẫn là khách đi tour) và ghi rõ lại luồng.
 3. Giả định bán hàng gõ SĐT trước tên; nếu thói quen ngược lại, lookup vẫn chạy khi ô SĐT đủ số (thứ tự ô không đổi).
 4. Lookup trả tối đa 20 hồ sơ; số hotline chung có thể vượt — chấp nhận ở lát 1.
 5. Giả định bước thêm (tối đa một lần bấm) chấp nhận được với bán hàng — **chưa hỏi** (Việc tiếp theo, bước 2).
 
 ## 9. Kiểm thử (mục 7)
 
-- **Luật thuần** (`src/modules/orders/rules.test.ts`): `validateOrder` nhận `bookerPartyId` đúng dạng / sai dạng; `bookerPartyId` và `newBooker` cùng lúc → lỗi; `newBooker` thiếu tên, SĐT sai.
+- **Luật thuần** (`src/modules/orders/rules.test.ts`): `validateOrder` nhận `bookerPartyId` đúng dạng (UUID, `pty-<uuid>`) / sai dạng; `bookerPartyId` và `newBooker` cùng lúc → lỗi; `newBooker` SĐT sai. Test riêng cho tệp regex mới ở `src/shared/` (cạnh tệp); `parties/rules.test.ts` vẫn xanh sau khi tái xuất. Kiểm tên của `newBooker` và kiểm "hồ sơ còn hoạt động" test ở e2e.
 - **Migration** (`node:sqlite`, mẫu `src/modules/orders/migration.test.ts`, `src/migrations-0017.test.ts`): cột tồn tại, NULL được, khoá ngoại trỏ `pty_party(id)`, có chỉ mục; đơn cũ giữ nguyên; các trigger `orders_*` còn đủ; `PRAGMA foreign_key_check` 0 dòng.
 - **e2e** (`tests/e2e/orders.mjs` + `tests/e2e/parties.mjs`): tạo đơn gắn hồ sơ có sẵn; tạo đơn kèm hồ sơ mới (hồ sơ có vai `CUSTOMER` nếu B = (a); lỗi lưu đơn thì không có hồ sơ mồ côi); id hồ sơ lạ/đã ngưng → 400; đổi hồ sơ trên nháp; đơn đã xác nhận → 409 `not_editable`; nhật ký không chứa SĐT.
 - **Bẫy thi công:** `createOrder` bind tham số bằng tay theo vị trí (`src/modules/orders/repository.ts:299-311`, `docs/CHANGE-GUIDE.md` a1 bước 4) — thêm cột phải thêm đúng một `?` và một đối số.
