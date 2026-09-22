@@ -66,6 +66,7 @@
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --w-main: 1200px;         /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
+  --h-order-skeleton: 180px; /* ước lượng giữa thẻ đơn ít dòng nhất (~157px) và đầy đủ nhất (~240px) — chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
@@ -141,7 +142,7 @@ textarea { min-height: 72px; resize: vertical; }
 .money-ok { color: var(--c-green-text); }
 .money-due { color: var(--c-accent-strong); }
 .skeleton-list { display: grid; gap: var(--s2); margin-bottom: var(--s2); }
-.skeleton-row { height: 96px; border-radius: var(--radius-md); background: var(--c-surface-alt); animation: skeleton-pulse 1.2s ease-in-out infinite; }
+.skeleton-row { height: var(--h-order-skeleton); border-radius: var(--radius-md); background: var(--c-surface-alt); animation: skeleton-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .skeleton-row { animation: none; } }
 @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
 .badge { padding: 2px 10px; font-size: .8rem; font-weight: 700; border-radius: 999px; }

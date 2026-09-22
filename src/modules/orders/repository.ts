@@ -86,11 +86,16 @@ export interface ServiceSummary {
   trip: OrderSummaryTripDto;
 }
 
-export const EMPTY_SUMMARY: ServiceSummary = {
-  serviceNames: [],
-  pax: { adult: 0, child: 0, senior: 0, infant: 0 },
-  trip: { departDate: null, pickupTime: null, pickupPlace: null },
-};
+/** Đơn chưa có dòng order_service nào (không nên xảy ra do rules.ts chặn tạo đơn rỗng, nhưng vẫn cần giá trị mặc định an toàn).
+ * MỘT HÀM TẠO mới mỗi lần gọi — KHÔNG dùng hằng đối tượng cấp module: Worker isolate sống lâu qua nhiều request, một hằng dùng chung
+ * theo tham chiếu sẽ bị sửa "dính" nếu có chỗ nào lỡ tay đổi trường của nó (dù hiện tại không có, vẫn là bẫy khi sửa code sau này). */
+function emptySummary(): ServiceSummary {
+  return {
+    serviceNames: [],
+    pax: { adult: 0, child: 0, senior: 0, infant: 0 },
+    trip: { departDate: null, pickupTime: null, pickupPlace: null },
+  };
+}
 
 /**
  * Gộp các dòng order_service thành tóm tắt cho từng đơn, dùng cho thẻ ở danh sách đơn (đặc tả §7).
@@ -262,23 +267,23 @@ export async function listOrders(
   const page = results.slice(0, opts.limit).map(toDto);
 
   // Tóm tắt dịch vụ CHỈ cho các đơn thật sự trả về (page, KHÔNG PHẢI results — results có thêm 1 dòng để dò hasMore).
-  // page.length ≤ opts.limit ≤ 100 (chặn ở intParam của route GET /api/orders) nên IN (...) luôn có giới hạn.
+  // `json_each(?1)` nhận MẢNG JSON các id: câu SQL vẫn TĨNH dù số đơn trong trang đổi (mẫu ở dispatch/repository.ts).
   const summaries = page.length
     ? summarizeServices(
         (
           await db
             .prepare(
               `SELECT order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
-               FROM order_service WHERE order_id IN (${page.map(() => "?").join(",")}) ORDER BY order_id, sort_order`,
+               FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`,
             )
-            .bind(...page.map((d) => d.id))
+            .bind(JSON.stringify(page.map((d) => d.id)))
             .all<ServiceSummaryRow>()
         ).results,
       )
     : new Map<string, ServiceSummary>();
 
   const orders: OrderSummaryDto[] = page.map((d) => {
-    const s = summaries.get(d.id) ?? EMPTY_SUMMARY;
+    const s = summaries.get(d.id) ?? emptySummary();
     return {
       id: d.id,
       orderCode: d.orderCode,

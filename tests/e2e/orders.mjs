@@ -41,6 +41,30 @@ assert.equal(summary.trip.pickupPlace, null);
 assert.equal(summary.depositAmount, 500000);
 assert.equal(summary.customerNote, null, "input không gửi customerNote");
 
+// Đơn 2 dịch vụ: kiểm chỗ GHÉP giữa câu SQL (ORDER BY order_id, sort_order) và summarizeServices — pax cộng dồn, trip lấy dịch vụ ĐẦU
+const input2 = {
+  ...input,
+  discount: 0, depositAmount: 0,
+  services: [
+    manualService([{ description: "Tour Hòn Mun", quantity: 1, unitPrice: 200000 }], { name: "Dịch vụ một", pax: { adult: 2 }, departDate: vnDate(5), pickupTime: "07:00" }),
+    manualService([{ description: "Đưa đón sân bay", quantity: 1, unitPrice: 100000 }], { name: "Dịch vụ hai", pax: { adult: 1 }, departDate: vnDate(3), pickupTime: "09:00" }),
+  ],
+};
+r = await call(A, "POST", "/api/orders", input2);
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const o2 = r.body.order;
+r = await call(A, "GET", "/api/orders?limit=100");
+assert.equal(r.status, 200);
+const summary2 = r.body.orders.find((x) => x.id === o2.id);
+assert.ok(summary2, "đơn 2 dịch vụ vừa tạo phải có trong danh sách");
+assert.deepEqual(summary2.serviceNames, ["Dịch vụ một", "Dịch vụ hai"], "đúng thứ tự 2 dịch vụ (sort_order)");
+assert.deepEqual(summary2.pax, { adult: 3, child: 0, senior: 0, infant: 0 }, "pax là TỔNG hai dịch vụ, không phải của riêng dịch vụ nào");
+assert.equal(summary2.trip.departDate, vnDate(5), "trip lấy đúng của dịch vụ ĐẦU (Dịch vụ một)");
+assert.equal(summary2.trip.pickupTime, "07:00", "trip lấy đúng của dịch vụ ĐẦU, không phải Dịch vụ hai (09:00)");
+// Ca đơn KHÔNG có dịch vụ nào: đã thử — rules.ts:74 `if (!Array.isArray(b.services) || b.services.length === 0) return fail(...)` chặn tạo đơn rỗng
+// (test bất biến `{ services: [] }` ở trên đã xác nhận trả 400), nên KHÔNG tạo được qua API thật. `summarizeServices([])` đã có unit test riêng ở
+// repository.test.ts (Task 1) — coi đó là đủ phủ cho trường hợp không có dịch vụ, bỏ qua ca này ở e2e.
+
 // nhân viên B xem được đơn của A
 r = await call(Bc, "GET", `/api/orders/${o.id}`);
 assert.equal(r.status, 200); assert.equal(r.body.order.staffName, "NV Bán A (test)");
