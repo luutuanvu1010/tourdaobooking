@@ -3,7 +3,7 @@ import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
 import { byId, h, replaceChildren } from "./dom";
-import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, vnd } from "./format";
+import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, dayMonth, paxCounts, vnd } from "./format";
 import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
 import { renderServices } from "./order-services";
@@ -11,6 +11,7 @@ import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved } from "../src/shared/handler-view";
+import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { orderActions } from "../src/shared/order-view";
 
@@ -150,6 +151,44 @@ function handlerCard(order: Order, handler: Handler): HTMLElement {
   );
 }
 
+/**
+ * Dải tóm tắt đầu trang (Bước 2 Đợt B): mã đơn + trạng thái, chuyến (của DỊCH VỤ ĐẦU TIÊN — cùng quy ước
+ * "dịch vụ đầu quyết định trip" dùng ở trang Đơn hàng, `OrderSummaryTripDto`), khách, tổng số khách (cộng dồn
+ * mọi dịch vụ), còn lại phải thu. Phải chạy được khi đơn CHƯA có dịch vụ nào (đơn nháp mới tạo, `services` rỗng):
+ * mọi trường của dịch vụ đọc qua `?.`, không văng lỗi.
+ */
+function summaryBand(order: Order): HTMLElement {
+  const firstSvc = order.services[0];
+  const when = firstSvc?.departDate ? `${dayMonth(firstSvc.departDate)}${firstSvc.pickupTime ? ` · ${firstSvc.pickupTime}` : ""}` : "Chưa có ngày đón";
+  const totalPax = order.services.reduce<PaxCounts>(
+    (sum, s) => ({ adult: sum.adult + s.pax.adult, child: sum.child + s.pax.child, senior: sum.senior + s.pax.senior, infant: sum.infant + s.pax.infant }),
+    { adult: 0, child: 0, senior: 0, infant: 0 },
+  );
+  const pax = paxCounts(totalPax);
+  const firstName = firstSvc?.name ?? "—";
+  const stat = (label: string, value: string, sub?: string, due = false) =>
+    h("div", null, h("div", { class: "label" }, label), h("div", { class: due ? "value due" : "value" }, value), sub ? h("div", { class: "sub" }, sub) : null);
+  return h(
+    "div",
+    { class: "order-summary-band" },
+    h(
+      "div",
+      null,
+      h("div", { class: "label" }, "MÃ ĐƠN"),
+      h("div", { class: "value" }, order.orderCode, " ", h("span", { class: `badge badge-${order.status}` }, STATUS_LABEL[order.status])),
+    ),
+    h("div", { class: "sep" }),
+    h(
+      "div",
+      { class: "grid4" },
+      stat("ĐÓN", when, firstSvc?.pickupPlace ?? undefined),
+      stat("KHÁCH", order.customerName, order.customerPhone),
+      stat("SỐ KHÁCH", pax || "—", firstName),
+      stat("CÒN LẠI", vnd(order.remainingAmount), `Tổng ${vnd(order.total)} · đã cọc ${vnd(order.depositAmount)}`, order.remainingAmount > 0),
+    ),
+  );
+}
+
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   const a = orderActions(order.status, canModify);
@@ -157,52 +196,60 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   setBarTitle(order.orderCode);
   replaceChildren(
     root,
-    h(
-      "header",
-      { class: "detail-head" },
-      h("h1", null, order.orderCode),
-      h("span", { class: `badge badge-${order.status}` }, STATUS_LABEL[order.status]),
-    ),
+    // Mã đơn + trạng thái đã hiện nổi bật ở dải tóm tắt ngay dưới đây; h1 ở đây chỉ còn phục vụ trình đọc màn hình (axe page-has-heading-one), ẩn khỏi mắt (CSS `.detail-head h1`).
+    h("header", { class: "detail-head" }, h("h1", null, order.orderCode)),
+    summaryBand(order),
     h("p", { class: "muted" }, `Lập ${dateTime(order.createdAt)} bởi ${order.staffName}`, order.confirmedAt && ` · Xác nhận ${dateTime(order.confirmedAt)}`),
     a.locked ? h("p", { class: "lock-note" }, icon("lock", 18), "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến.") : null,
 
-    handlerCard(order, handler),
-
     h(
-      "section",
-      { class: "card" },
-      h("h2", null, "Khách hàng"),
-      kv("Tên", order.customerName),
-      kv("Số điện thoại", order.customerPhone),
-      kv("Email", order.customerEmail),
-      kv("Ghi chú", order.customerNote),
-      kv("Hồ sơ khách", order.bookerName ?? NO_BOOKER_TEXT),
-      a.editTrip ? bookerButton(order) : null,
-    ),
+      "div",
+      { class: "order-layout" },
+      h(
+        "div",
+        null,
+        handlerCard(order, handler),
 
-    renderServices(order, a.locked),
-
-    h(
-      "section",
-      { class: "card totals" },
-      h("h2", null, "Thanh toán"),
-      kv("Tạm tính", vnd(order.subtotal)),
-      kv("Giảm giá", vnd(order.discount)),
-      kv("Tổng cộng", vnd(order.total), "strong"),
-      kv("Đã cọc", order.depositAmount ? `${vnd(order.depositAmount)}${order.depositMethod ? ` (${METHOD_LABEL[order.depositMethod]})` : ""}` : vnd(0)),
-      kv("Còn lại", vnd(order.remainingAmount), "strong"),
-      kv("Ghi chú thanh toán", order.paymentNote),
-    ),
-
-    // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối.
-    history.length
-      ? h(
+        h(
           "section",
           { class: "card" },
-          h("h2", null, "Lịch sử"),
-          h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} · ${e.staffName}`))),
-        )
-      : null,
+          h("h2", null, "Khách hàng"),
+          kv("Tên", order.customerName),
+          kv("Số điện thoại", order.customerPhone),
+          kv("Email", order.customerEmail),
+          kv("Ghi chú", order.customerNote),
+          kv("Hồ sơ khách", order.bookerName ?? NO_BOOKER_TEXT),
+          a.editTrip ? bookerButton(order) : null,
+        ),
+
+        renderServices(order, a.locked),
+
+        // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối.
+        history.length
+          ? h(
+              "section",
+              { class: "card" },
+              h("h2", null, "Lịch sử"),
+              h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} · ${e.staffName}`))),
+            )
+          : null,
+      ),
+      h(
+        "div",
+        { class: "side" },
+        h(
+          "section",
+          { class: "card totals" },
+          h("h2", null, "Thanh toán"),
+          kv("Tạm tính", vnd(order.subtotal)),
+          kv("Giảm giá", vnd(order.discount)),
+          kv("Tổng cộng", vnd(order.total), "strong"),
+          kv("Đã cọc", order.depositAmount ? `${vnd(order.depositAmount)}${order.depositMethod ? ` (${METHOD_LABEL[order.depositMethod]})` : ""}` : vnd(0)),
+          kv("Còn lại", vnd(order.remainingAmount), "strong"),
+          kv("Ghi chú thanh toán", order.paymentNote),
+        ),
+      ),
+    ),
   );
 
   const btns: HTMLElement[] = [];
