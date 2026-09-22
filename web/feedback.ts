@@ -183,6 +183,13 @@ const id = params.get("id");
 if (id) {
   if (wide()) void loadList(); // ≥ 900px: danh sách hiện cùng luồng nên phải có nội dung, không chỉ khung rỗng (Đợt C Task 3)
   void loadThread(id);
+  // Đăng ký MỘT LẦN cho lần tải trang này (loadThread() có thể được gọi lại sau khi gửi trả lời/đổi trạng thái,
+  // nhưng listener chỉ cần gắn một lần ở đây): đổi khổ cửa sổ qua mốc 900px ngay trên trang đang mở luồng
+  // (không load lại trang) phải đồng bộ lại ẩn/hiện danh sách, không chỉ chụp giá trị lúc tải trang.
+  const mq = window.matchMedia("(min-width: 900px)");
+  mq.addEventListener("change", () => {
+    byId("list-card").hidden = !mq.matches;
+  });
 } else {
   void loadList();
   if (params.get("new") === "1") openForm();
