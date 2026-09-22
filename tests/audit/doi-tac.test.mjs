@@ -7,7 +7,7 @@ import { world, seedStaff } from "./harness.mjs";
 
 const A = "11111111-1111-4111-8111-111111111111"; // nhân viên bán hàng của công ty
 const ADM = "33333333-3333-4333-8333-333333333333"; // quản trị
-const F = "44444444-4444-4444-8444-444444444444"; // hướng dẫn viên (quyền Thực hiện)
+const F = "44444444-4444-4444-8444-444444444444"; // hướng dẫn viên (quyền Hướng dẫn viên / FIELD)
 
 function setup() {
   const w = world();
@@ -74,7 +74,7 @@ test("P3 FINDING tách dữ liệu: đối tác liệt kê + tra theo SĐT toàn
   assert.equal(put.status, 200, put.text);
 });
 
-test("P4 FINDING HDV: tài khoản chỉ quyền Thực hiện không mở được đơn nào (kể cả để xem việc), và không được giao phụ trách", async () => {
+test("P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào (kể cả để xem việc), và không được giao phụ trách", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
   assert.equal((await w.call("GET", "/api/orders", { as: F })).status, 403);

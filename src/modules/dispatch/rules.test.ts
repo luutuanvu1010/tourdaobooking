@@ -64,8 +64,8 @@ test("người được giao: FIELD đang hoạt động có hồ sơ cũng đ�
 
 test("người được giao: chỉ kế toán, không quyền nào, đã ngưng, chưa có hồ sơ, không tồn tại → từ chối kèm lý do tiếng Việt", () => {
   const cases: [ReturnType<typeof account> | null, RegExp][] = [
-    [account(["ACCOUNTING"]), /Bán hàng, Quản trị hoặc Thực hiện/],
-    [account([]), /Bán hàng, Quản trị hoặc Thực hiện/],
+    [account(["ACCOUNTING"]), /Bán hàng, Quản trị hoặc Hướng dẫn viên/],
+    [account([]), /Bán hàng, Quản trị hoặc Hướng dẫn viên/],
     [account(["SALES"], { active: false }), /ngưng hoạt động/],
     [account(["ADMIN"], { partyId: null }), /chưa có hồ sơ/],
     [null, /Không tìm thấy/],
