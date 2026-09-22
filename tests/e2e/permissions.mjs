@@ -85,7 +85,7 @@ assert.deepEqual(
 );
 assert.equal((await call(ACC, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id })).status, 403);
 assert.equal((await call(SALES_B, "PUT", `/api/orders/${order.id}/handler`, { staffId: (await call(ACC, "GET", "/api/auth/me")).body.staff.id })).status, 400, "không giao cho kế toán (không sửa được đơn)");
-assert.equal((await call(SALES_B, "PUT", `/api/orders/${order.id}/handler`, { staffId: (await call(FIELD, "GET", "/api/auth/me")).body.staff.id })).status, 400, "không giao cho FIELD");
+assert.equal((await call(SALES_B, "PUT", `/api/orders/${order.id}/handler`, { staffId: (await call(FIELD, "GET", "/api/auth/me")).body.staff.id })).status, 200, "FIELD nay giao được (ADR-0014 điều 6, cấp hẹp)");
 console.log("✓ người phụ trách: đủ sáu vai (canModify, nhật ký, đổi người phụ trách) trên route thật");
 
 // --- tài khoản nhiều quyền hợp các ô; quyền đổi có hiệu lực NGAY với phiên đang mở

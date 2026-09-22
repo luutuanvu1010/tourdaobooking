@@ -38,7 +38,8 @@ function violations(db: DatabaseSync, check: Check): number {
 }
 
 /**
- * Schema đầy đủ + dữ liệu KHOẺ: một quản trị, ba nhân viên (An còn quyền; Bình đã ngưng nhưng còn quyền SALES; Cửu còn hoạt động nhưng chỉ còn FIELD),
+ * Schema đầy đủ + dữ liệu KHOẺ: một quản trị, ba nhân viên (An còn quyền; Bình đã ngưng nhưng còn quyền SALES; Cửu còn hoạt động nhưng chỉ còn FIELD —
+ * cấp hẹp, ĐỦ điều kiện làm người phụ trách từ ADR-0014 điều 6/Phase B, không còn là ca vi phạm),
  * một hồ sơ không có tài khoản (Xa). Tài khoản được tạo trước 0012 để backfill sinh hồ sơ/quyền như production. Chưa đơn nào, chưa người phụ trách nào.
  */
 function build(): DatabaseSync {
@@ -51,7 +52,7 @@ function build(): DatabaseSync {
     ('s-binh', 'Trần Thị Bình', '0901000003', 'x', 'sales', 0, '2026-09-01T00:00:00.000Z'),
     ('s-cuu', 'Lê Cẩm Cửu', '0901000004', 'x', 'sales', 1, '2026-09-01T00:00:00.000Z')`);
   for (const f of FILES.filter((x) => x.slice(0, 4) > "0011")) db.exec(sqlText(f));
-  // Cửu mất quyền Bán hàng, chỉ còn Thực hiện (FIELD): vẫn có quyền nào đó nên các kiểm N1 không kêu.
+  // Cửu mất quyền Bán hàng, chỉ còn Thực hiện (FIELD): cấp hẹp, đủ điều kiện làm người phụ trách (ADR-0014 điều 6) — không còn là ca vi phạm R-DSP-2a.
   // (valid_from_at của quyền backfill là giờ chạy migration nên đóng bằng chính giá trị đó, không dùng ngày cố định.)
   db.exec(`UPDATE stf_permission SET valid_to_at = valid_from_at WHERE staff_id = 's-cuu'`);
   db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at)
@@ -132,13 +133,13 @@ test("R-DSP-1: hai HANDLE đang mở cùng một đơn là vi phạm (chỉ xả
 // ---------------------------------------------------------------------------------------------------------------------
 // R-DSP-2a / 2b (tách từ R-DSP-2 cũ)
 // ---------------------------------------------------------------------------------------------------------------------
-test("R-DSP-2a/2b: hồ sơ không tài khoản hoặc mất quyền Bán hàng/Quản trị = 2a (đỏ khi --strict); tài khoản đã ngưng = 2b (chỉ cảnh báo); mỗi dòng đúng MỘT bên", () => {
+test("R-DSP-2a/2b: hồ sơ không tài khoản hoặc mất hết quyền đủ điều kiện = 2a (đỏ khi --strict); tài khoản đã ngưng = 2b (chỉ cảnh báo); mỗi dòng đúng MỘT bên", () => {
   const cases: [string, string, number, number][] = [
     // [mô tả, hồ sơ người phụ trách, R-DSP-2a, R-DSP-2b]
     ["An: đang hoạt động, còn SALES", "pty-s-an", 0, 0],
     ["quản trị đang hoạt động", "pty-s-admin", 0, 0],
     ["Xa: hồ sơ không có tài khoản", "pty-xa", 1, 0],
-    ["Cửu: còn hoạt động nhưng chỉ còn FIELD (mất SALES)", "pty-s-cuu", 1, 0],
+    ["Cửu: còn hoạt động, chỉ còn FIELD — cấp hẹp vẫn đủ điều kiện (ADR-0014 điều 6)", "pty-s-cuu", 0, 0],
     ["Bình: tài khoản đã ngưng (quyền SALES còn mở)", "pty-s-binh", 0, 1],
   ];
   for (const [what, party, a, b] of cases) {
@@ -146,21 +147,27 @@ test("R-DSP-2a/2b: hồ sơ không tài khoản hoặc mất quyền Bán hàng/
     withHandler(db, party);
     assert.deepEqual([violations(db, one("R-DSP-2a")), violations(db, one("R-DSP-2b"))], [a, b], what);
   }
-  // Một tài khoản đã ngưng VÀ mất quyền → chỉ 2a (không đếm hai lần).
+  // Cửu đã ngưng (dù vẫn còn quyền FIELD) → 2b, không phải 2a (khác ca "mất hết quyền" ở dưới).
+  const suspendedButEligible = build();
+  suspendedButEligible.exec("UPDATE staff SET active = 0 WHERE id = 's-cuu'");
+  withHandler(suspendedButEligible, "pty-s-cuu");
+  assert.deepEqual([violations(suspendedButEligible, one("R-DSP-2a")), violations(suspendedButEligible, one("R-DSP-2b"))], [0, 1], "ngưng nhưng còn FIELD: chỉ 2b");
+  // Một tài khoản đã ngưng VÀ mất hết quyền đủ điều kiện → chỉ 2a (không đếm hai lần).
   const db = build();
   db.exec("UPDATE staff SET active = 0 WHERE id = 's-cuu'");
+  db.exec("UPDATE stf_permission SET valid_to_at = valid_from_at WHERE staff_id = 's-cuu' AND permission_type_code = 'FIELD'");
   withHandler(db, "pty-s-cuu");
-  assert.deepEqual([violations(db, one("R-DSP-2a")), violations(db, one("R-DSP-2b"))], [1, 0], "ngưng + mất quyền: chỉ 2a");
+  assert.deepEqual([violations(db, one("R-DSP-2a")), violations(db, one("R-DSP-2b"))], [1, 0], "ngưng + mất hết quyền: chỉ 2a");
   // Nhiều đơn: cộng dồn theo từng nhóm; dòng đã đóng và đơn không có người phụ trách không tính.
   const many = build();
   withHandler(many, "pty-xa", "o-1");
-  withHandler(many, "pty-s-cuu", "o-2");
+  withHandler(many, "pty-s-cuu", "o-2"); // FIELD, đang hoạt động: hợp lệ, không cộng vào 2a/2b nào
   withHandler(many, "pty-s-binh", "o-3");
   withHandler(many, "pty-s-an", "o-4");
   addOrder(many, "o-5"); // chưa có người phụ trách: hợp lệ
   addOrder(many, "o-6");
   addRow(many, { id: "closed", order: "o-6", party: "pty-xa", from: T1, to: T2 }); // đã đóng: lịch sử
-  assert.deepEqual([violations(many, one("R-DSP-2a")), violations(many, one("R-DSP-2b"))], [2, 1]);
+  assert.deepEqual([violations(many, one("R-DSP-2a")), violations(many, one("R-DSP-2b"))], [1, 1]);
 });
 
 // ---------------------------------------------------------------------------------------------------------------------

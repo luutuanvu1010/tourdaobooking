@@ -526,6 +526,12 @@ Expected: 0 lỗi.
 Run: `npm run test:e2e`
 Expected: 16/16 kịch bản (hoặc nhiều hơn nếu có kịch bản mới) xanh, kể cả `audit-invariants --strict` ở cuối.
 
+**Hai chỗ khác nữa cũng vỡ khi chạy `npm run test:e2e` ĐẦY ĐỦ (không có trong bản kế hoạch gốc — kế hoạch chỉ chạy `dispatch`, không đủ để bắt được, vì đây là những kịch bản/kiểm khác cũng giả định "FIELD không bao giờ là người phụ trách hợp lệ"):**
+- `tests/e2e/permissions.mjs` dòng ~88: `PUT /api/orders/:id/handler` gán FIELD làm người phụ trách → kỳ vọng cũ 400, nay phải là 200 (đổi thông điệp thành "FIELD nay giao được (ADR-0014 điều 6, cấp hẹp)").
+- `scripts/audit-checks.mjs` (`R-DSP-2a`/`R-DSP-2b`, hàm `handlerAccountWithSalesOrAdmin`): danh sách quyền hợp lệ để làm người phụ trách hard-code `('SALES', 'ADMIN')` — phải thêm `FIELD` (và nhân tiện `SUPER_ADMIN`, một lỗ tương tự sót lại từ Phase A: `SUPER_ADMIN` đã đủ điều kiện qua `checkAssignee`/`order.modify=any` từ Phase A nhưng kiểm này chưa từng thêm, chỉ chưa ai bắt được vì chưa có kịch bản dùng SUPER_ADMIN làm người phụ trách). Đổi tên hàm thành `handlerAccountEligible` cho đúng nghĩa. Kéo theo sửa `src/audit-invariants.test.ts`: ca cố định "Cửu chỉ còn FIELD" đổi từ vi phạm (`[1,0]`) thành hợp lệ (`[0,0]`), thêm ca "Cửu ngưng nhưng còn FIELD → chỉ 2b", và ca tổng hợp nhiều đơn đổi từ `[2,1]` xuống `[1,1]`.
+
+Chạy `npm run test:e2e` (đầy đủ, không chỉ `dispatch`) một lần ở cuối Task 3 để bắt hai chỗ này, thay vì chỉ chạy `-- dispatch` như bước 8 đã viết.
+
 - [ ] **Step 4: Commit**
 
 ```bash

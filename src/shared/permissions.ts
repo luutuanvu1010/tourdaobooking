@@ -32,10 +32,12 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNE
  * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
- * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim (module dispatch), feedback.submit/view/triage (module feedback).
+ * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim/cancel (module dispatch), feedback.submit/view/triage (module feedback).
  * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
- * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) và ADR-0014 Phase B/C (order.cancel, dispatch.guides.view,
- * dispatch.request) có mặt để test khoá bản đồ; CHƯA có route dùng (thi công ở phiên sau — xem "Ngoài phạm vi" của ADR-0014).
+ * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view, dispatch.request) có mặt để
+ * test khoá bản đồ; CHƯA có route dùng (thi công ở phiên sau). `order.cancel` (FIELD) đã có route thật (`POST /api/orders/:id/handler-cancel`, module
+ * dispatch — ADR-0014 điều 11, Phase B). `order.money.edit` (FIELD) CHƯA thi công: chặn bởi xung đột kiến trúc chưa chủ dự án quyết, xem
+ * `docs/superpowers/specs/2026-09-22-dong-dieu-chinh-sau-xac-nhan-cau-hoi.md`.
  */
 export const MATRIX = {
   "order.view": row("any", "any", "any", "none", "own", "any"), // xem đơn
@@ -47,7 +49,7 @@ export const MATRIX = {
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any"), // thông tin vận hành sau xác nhận
   "task.progress": row("none", "none", "any", "assigned", "assigned", "any"), // cập nhật trạng thái việc được giao — PARTNER chỉ có tác dụng khi đang phụ trách (ADR-0014 điều 10)
   "order.money.edit": row("own", "any", "any", "assigned", "none", "any"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0014 điều 6: FIELD đang phụ trách (dòng điều chỉnh, chưa có route)
-  "order.cancel": row("none", "none", "none", "assigned", "none", "any"), // huỷ đơn đang phụ trách, lý do bắt buộc — thao tác MỚI (ADR-0014 điều 11, chưa có route)
+  "order.cancel": row("none", "none", "none", "assigned", "none", "any"), // huỷ đơn đang phụ trách, lý do bắt buộc — ADR-0014 điều 11, route: POST /api/orders/:id/handler-cancel (module dispatch)
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "none", "none", "any"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này)
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)

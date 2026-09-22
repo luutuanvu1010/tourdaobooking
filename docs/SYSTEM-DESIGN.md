@@ -432,7 +432,7 @@ Hai tầng, cả hai **mặc định từ chối**:
 | `order.trip.edit` | ownOrAssigned | none | any | none | none | `PUT /api/orders/:id/trip` |
 | `task.progress` | none | none | any | assigned | assigned | **chưa có route** (N2; PARTNER chỉ có tác dụng sau khi được duyệt "xin nhận" — Phase C) |
 | `order.money.edit` | own | any | any | assigned | none | **chưa có route** (Phase B, ADR-0014 điều 6 — FIELD đang phụ trách, cơ chế dòng điều chỉnh) |
-| `order.cancel` | none | none | none | assigned | none | **chưa có route** (Phase B, ADR-0014 điều 11 — huỷ đơn đang phụ trách, lý do đóng) |
+| `order.cancel` | none | none | none | assigned | none | `POST /api/orders/:id/handler-cancel` (module `dispatch` — ADR-0014 điều 11, huỷ đơn đang phụ trách, lý do đóng hai lựa chọn) |
 | `dispatch.assign` | ownOrAssigned | none | any | none | none | `PUT /api/orders/:id/handler` (module `dispatch`, `mayChangeHandler`); hiện nút đổi: `handlerControls` (`src/shared/handler-view.ts`) |
 | `dispatch.claim` | any | none | any | none | none | `PUT /api/orders/:id/handler` với `staffId` = chính mình khi đơn CHƯA có người phụ trách — điều kiện "chưa có người" do dịch vụ của `dispatch` kiểm (câu chốt trong batch), không phải ô này; hiện nút nhận: `handlerControls` (`handler === null && can(…)`) |
 | `dispatch.guides.view` | none | none | none | none | any | **chưa có route** (Phase C, ADR-0014 điều 9 — danh sách hẹp hướng dẫn viên nội bộ) |
