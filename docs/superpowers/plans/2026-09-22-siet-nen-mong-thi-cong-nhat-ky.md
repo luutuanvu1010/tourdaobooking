@@ -20,11 +20,16 @@ Nhánh `siet-nen-mong`, tạo từ `origin/main` @ `da64558` (sau khi PR #9 — 
 ## Sổ việc
 | Việc | Trạng thái | Người thi công | Người kiểm |
 |---|---|---|---|
-| Task 1 — bài kiểm vá C-1, C-2, C-3 (chỉ thêm test, không đổi hành vi) | Đang thi công | subagent sonnet | chờ |
-| Task 2 — sửa hook chặn nhầm (nháy đơn quanh `$()`/dấu huyền) + 4 ca hồi quy | Đang thi công | subagent sonnet | chờ |
-| Task 3 — hàng rào `ask` cho CLAUDE.md/.claude//playbook//ADR, agent kiểm độc lập, xoá bản sao CLAUDE.md, bù luật `deny` lớp 2 | Chờ (điều phối tự làm) | điều phối | chờ |
-| Task 4 — sửa 6 chỗ tài liệu lệch (0017/Turnstile, 4 bảng Góp ý thiếu ở SYSTEM-DESIGN, ARCHITECTURE §router, `web/feedback.ts` location.assign→replace, số e2e cũ) | Chờ | điều phối | chờ (gộp vào kiểm toàn nhánh) |
+| Task 1 — bài kiểm vá C-1, C-2, C-3 (chỉ thêm test, không đổi hành vi) | Đang thi công (đã commit `7971446`, đang viết báo cáo) | subagent sonnet | chờ |
+| Task 2 — sửa hook chặn nhầm (nháy đơn quanh `$()`/dấu huyền) + 4 ca hồi quy | **Xong** (`98f4785`) | subagent sonnet | chờ dispatch |
+| Task 3 — agent kiểm độc lập, xoá bản sao CLAUDE.md, một luật `deny` an toàn | **Xong một phần** (`a2bdfbd`) — luật `ask` cho tự-sửa-luật DỜI sang bước cuối cùng (xem mục Ruling) | điều phối | chờ (gộp vào kiểm toàn nhánh) |
+| Task 4 — sửa 6 chỗ tài liệu lệch | **Xong** (`190e011`) | điều phối | chờ (gộp vào kiểm toàn nhánh) |
+| Kiểm lại Task 2 (phạm vi hẹp) | Chờ dispatch | — | — |
+| Kiểm độc lập Task 1 | Chờ Task 1 báo cáo | — | — |
+| Thêm luật `ask` cho tự-sửa-luật (bước cuối) | Chờ mọi việc trên xong | điều phối | — |
 | Kiểm toàn nhánh (opus, chỉ đọc) | Chờ | — | — |
+
+**Task 2 — kết quả (subagent, chưa kiểm độc lập):** `node --test src/claude-guard.test.ts` đỏ trước (7/8, đúng 3 ca F mới bị chặn nhầm) → xanh sau (8/8). Kho hồi quy 290→294 ca, 266/266 khẳng định đúng, 0 quy hồi. Người thi công TỰ PHÁT HIỆN THÊM một lỗi khi rà soát: cách vá theo gợi ý ban đầu trong brief (regex ghép cặp nháy đơn ngây thơ, `/'[^']*'/g`) có lỗi thật — nháy đơn NẰM TRONG nháy kép (`"a'b"`) bị ghép cặp nhầm, xoá trắng `$(...)` thật sự nằm trong nháy kép → LỌT lệnh cấm. Đã tự sửa bằng hàm đi từng ký tự theo trạng thái (đang trong nháy kép hay không), không dùng gợi ý ban đầu của điều phối trong brief. Đây là ví dụ cụ thể cho thấy brief của điều phối có thể sai và người thi công đã đúng khi không làm theo mù quáng.
 
 ## Ruling (điều phối tự quyết, ghi theo P5)
 - **Đã LÙI một bước:** điều phối thêm luật `permissions.ask` cho `.claude/**` ngay trong lúc Task 2 (subagent) còn đang chạy và cần sửa `.claude/hooks/guard-remote-lib.mjs` — rủi ro tự chặn Task 2 giữa chừng nếu `settings.json` nạp lại sống (chưa xác nhận được có nạp sống hay không). Đã hoàn tác NGAY (chỉ giữ lại luật `deny` cho `npm run db:migrate:remote`, không đụng quyền Edit). **Luật `ask` cho tự-sửa-luật dời sang bước CUỐI CÙNG của cả gói** (sau khi Task 1, Task 2 và các vòng kiểm/sửa của chúng xong hẳn), để không còn ai (kể cả điều phối) cần sửa thêm trong `.claude/**` sau đó. Chi phí nếu vẫn sai: không có, vì chưa commit lúc phát hiện.
