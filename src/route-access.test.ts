@@ -8,8 +8,13 @@
 // gõ nhầm "admin" thành "staff" (hay ngược lại) ở `route(method, path, access, handler)` không bị bất kỳ bài kiểm nào bắt.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
 import type { AppModule } from "./shared/router.ts";
+
+const SRC_DIR = fileURLToPath(new URL(".", import.meta.url));
 
 interface RouteSnapshot {
   method: string;
@@ -132,9 +137,23 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/staff/sheet/apply", access: "admin" },
 ]);
 
+// Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
+// đưa vào MODULES, route của nó không được canh mức truy cập gì cả — bài kiểm chính bên dưới vẫn xanh vì nó chỉ thấy 11 module đã liệt kê,
+// không tự phát hiện module thứ 12. Bài kiểm này quét THƯ MỤC thật (không hardcode số 11) để bắt đúng tình huống đó.
+test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppModule` (module mới có route không được lặng lẽ thoát khỏi bài kiểm)", () => {
+  const dirs = readdirSync(join(SRC_DIR, "modules"));
+  const routedDirs = dirs
+    .filter((d) => /export const \w+Module\s*:\s*AppModule/.test(readFileSync(join(SRC_DIR, "modules", d, "index.ts"), "utf8")))
+    .sort();
+  const listed = MODULES.map((m) => m.entry.split("/")[2]!).sort();
+  assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
+});
+
 test("mức truy cập của 55 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
+  // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 55 để đối chiếu nhanh bằng mắt.
+  assert.deepEqual(actual, SNAPSHOT);
   assert.equal(actual.length, 55, "số route thực tế lệch 55 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
   assert.equal(SNAPSHOT.length, 55, "SNAPSHOT phải có đúng 55 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
-  assert.deepEqual(actual, SNAPSHOT);
 });
