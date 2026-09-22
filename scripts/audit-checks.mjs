@@ -102,4 +102,16 @@ export const CHECKS = [
        AND a.valid_from_at < COALESCE(b.valid_to_at, '9999-12-31T23:59:59.999Z') AND b.valid_from_at < COALESCE(a.valid_to_at, '9999-12-31T23:59:59.999Z')`,
     level: "fail",
   },
+  // R-ORD-4: seq của order_money_adjustment liên tục từ 1, không trùng, không nhảy cóc theo từng đơn — lưới thứ hai cho khoá lạc quan ở
+  // insertMoneyAdjustment (P21: mọi kiểm soát trọng yếu có ≥ 2 lớp). Chỉ mục duy nhất idx_order_money_adjustment_seq là lưới thứ nhất (chặn ngay
+  // lúc ghi); kiểm này phát hiện nếu có lỗ trong logic ghi (vd một đường code khác lỡ chèn thẳng, bỏ qua insertMoneyAdjustment).
+  {
+    code: "R-ORD-4",
+    what: "seq của order_money_adjustment liên tục từ 1 theo từng đơn",
+    sql: `SELECT count(*) FROM (
+      SELECT order_id, seq, ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY seq) AS rn
+      FROM order_money_adjustment
+    ) WHERE seq <> rn`,
+    level: "fail",
+  },
 ];

@@ -229,3 +229,37 @@ test("R-DSP-3: dữ liệu do CHÍNH luồng đổi người sinh ra (đóng + m
   assert.equal(violations(db, one("R-DSP-3")), 0);
   assert.equal(violations(db, one("R-DSP-1")), 0);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-4 (ADR-0014 điều 6, Phase B — lưới thứ hai cho khoá lạc quan của insertMoneyAdjustment)
+// ---------------------------------------------------------------------------------------------------------------------
+function addAdjustment(db: DatabaseSync, id: string, order: string, seq: number): void {
+  db.prepare(
+    `INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', '[]', 0, 0)`,
+  ).run(id, order, seq);
+}
+
+test("R-ORD-4: seq liên tục từ 1 theo từng đơn là hợp lệ; nhiều đơn không ảnh hưởng nhau", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addOrder(db, "o-2");
+  addAdjustment(db, "a1", "o-1", 1);
+  addAdjustment(db, "a2", "o-1", 2);
+  addAdjustment(db, "a3", "o-1", 3);
+  addAdjustment(db, "a4", "o-2", 1); // đơn khác, seq lại bắt đầu từ 1 — không tính chung với o-1
+  assert.equal(violations(db, one("R-ORD-4")), 0);
+});
+
+test("R-ORD-4: nhảy cóc (thiếu một seq ở giữa) là vi phạm — mọi dòng SAU chỗ hụt đều bị tính (không chỉ dòng gây ra)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addAdjustment(db, "a1", "o-1", 1);
+  addAdjustment(db, "a2", "o-1", 3); // thiếu seq=2
+  assert.equal(violations(db, one("R-ORD-4")), 1, "chỉ một dòng (a2, seq=3 ≠ rn=2) lệch — a1 (seq=1=rn=1) vẫn đúng");
+});
+
+test("R-ORD-4: đơn chưa có điều chỉnh nào (không có dòng) không bị tính là vi phạm", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  assert.equal(violations(db, one("R-ORD-4")), 0);
+});
