@@ -1,8 +1,8 @@
 # Thiết kế lại giao diện Tour Đảo Booking — đặc tả
 
 - **Ngày:** 2026-09-22
-- **Chủ dự án đã duyệt:** hướng đi tổng thể (3 bước) và các quyết định trong tài liệu bàn giao đi kèm bản thiết kế — xem §3.
-- **Nguồn thiết kế:** `docs/design/mockup-by-ClaudeDesign/` (15 tệp `.dc.html`, sao chép từ dự án Claude Design của chủ dự án ngày 2026-09-21/22; xem §3 về mức độ tin cậy).
+- **Chủ dự án đã duyệt:** hướng đi tổng thể (3 bước) và các quyết định trong tài liệu bàn giao đi kèm bản thiết kế — xem §3; và 4 điểm phát sinh lúc kiểm đặc tả (dữ liệu danh sách đơn, thẻ/bảng, số đo khung trang, kiểu thẻ đơn) — xem §16.
+- **Nguồn thiết kế:** `docs/design/mockup-by-ClaudeDesign/` (16 tệp `.dc.html`, sao chép từ dự án Claude Design của chủ dự án ngày 2026-09-21/22; xem §3 về mức độ tin cậy). Gồm 11 trang restyle + 1 khuôn lớp phủ/trạng thái + 1 tài liệu bàn giao + 2 phương án Trang chủ (§10) + 1 tệp thăm dò kiểu thẻ đơn ("Order Card - 3 Phong Cach.dc.html", không nằm trong bảng ánh xạ §4 — xem quyết định ở §16 mục 4).
 - **Trạng thái:** đặc tả, CHƯA thi công. Bước tiếp theo sau khi chủ duyệt tài liệu này: lập kế hoạch thi công (`writing-plans`).
 
 ## 1. Bối cảnh
@@ -14,7 +14,7 @@ Việc của đặc tả này là: xác nhận lại những gì tài liệu bà
 ## 2. Mục tiêu / Không phải mục tiêu
 
 **Mục tiêu:**
-- 11 trang hiện có mang phong cách thị giác mới (nền xám rất nhạt, thẻ trắng viền mảnh, một dải màu đậm cho khối quan trọng, bảng cho máy tính/thẻ cho điện thoại) mà không đổi luồng nghiệp vụ, không đổi hợp đồng API, không đổi ma trận quyền.
+- 11 trang hiện có mang phong cách thị giác mới (nền xám rất nhạt, thẻ trắng viền mảnh, một dải màu đậm cho khối quan trọng, bảng cho máy tính/thẻ cho điện thoại — riêng Đơn hàng giữ dạng thẻ ở mọi khổ màn hình, xem §16 mục 2) mà không đổi luồng nghiệp vụ, không đổi ma trận quyền; hợp đồng API giữ nguyên trừ danh sách đơn (chủ đã duyệt đổi để đủ dữ liệu hiển thị, xem §16 mục 1).
 - Một trang "Trang chủ" mới dạng bảng điều khiển (sidebar + số liệu) — việc này có kèm một thay đổi hợp đồng API nhỏ (xem §10), tách hẳn khỏi 11 trang restyle.
 - Một khuôn lớp phủ/trạng thái dùng chung, áp cho cả 11 trang, giảm lặp mã.
 
@@ -90,14 +90,14 @@ Khối CSS sau mốc `/* ---------- app iPhone (PWA)` trong `app.css` tiếp t�
 
 Theo mục 3 tài liệu bàn giao, xác nhận không mâu thuẫn với `docs/SYSTEM-DESIGN.md` §9 hiện có:
 
-- Thanh đầu trang (`web/shell.ts`): cao 60px, nền trắng, viền dưới 1px. Thứ tự/điều kiện hiện link giữ nguyên đúng ma trận quyền hiện tại (không đổi ai thấy gì).
+- Thanh đầu trang (`web/shell.ts`): cao 60px (số hiện tại `--bar-h` đang là 52px — chủ đã duyệt đổi lên 60px theo bản thiết kế mới, xem §16 mục 3), nền trắng, viền dưới 1px. Thứ tự/điều kiện hiện link giữ nguyên đúng ma trận quyền hiện tại (không đổi ai thấy gì).
 - Tab bar điện thoại: giữ đúng số tab theo quyền đã có (3 SALES / 5 ADMIN / 2 kế toán / 1 FIELD-only), vùng chạm ≥44px, safe-area đáy.
-- Bề rộng nội dung tối đa 1200px; cột phụ (thanh toán/tóm tắt) 340px, dính khi cuộn.
-- Dưới 900px: mỗi hàng bảng chuyển thành một thẻ, nhãn cột chuyển thành nhãn trong thẻ, không cuộn ngang.
+- Bề rộng nội dung tối đa 1200px (hiện tại 960px — đổi theo §16 mục 3); cột phụ (thanh toán/tóm tắt) 340px (khớp số hiện tại, không đổi), dính khi cuộn.
+- Dưới 900px (hiện tại mốc 960px — đổi theo §16 mục 3): mỗi hàng bảng chuyển thành một thẻ, nhãn cột chuyển thành nhãn trong thẻ, không cuộn ngang. Áp dụng cho các trang thật sự có bảng (Nhân viên, Dịch vụ, Địa điểm, Hồ sơ, Nhật ký). Đơn hàng là NGOẠI LỆ: không có bảng, giữ dạng thẻ (`.order-row`) sẵn có ở mọi khổ màn hình — xem §16 mục 2.
 
 ## 7. Thông tin cốt lõi của đơn — thứ tự hiển thị mới
 
-Áp dụng cho thẻ đơn (danh sách, điện thoại) và dòng bảng (danh sách, máy tính) — **chỉ đổi thứ tự/cách hiển thị, không đổi nguồn dữ liệu hay logic**:
+Áp dụng cho thẻ đơn (danh sách, MỌI khổ màn hình — không có "dòng bảng" riêng cho máy tính, xem §16 mục 2). Danh sách các trường dưới đây rộng hơn dữ liệu `GET /api/orders` đang trả về hiện nay (DTO danh sách hiện chỉ có mã đơn/tên khách/SĐT/tổng/còn lại/trạng thái/tên nhân viên/ngày tạo) — **chủ đã duyệt đổi hợp đồng API danh sách đơn để trả đủ các trường dưới đây; hình dạng cụ thể chốt lúc lập kế hoạch bước 1** (xem §16 mục 1). Trừ điểm đó ra, **không đổi nguồn dữ liệu hay logic**, chỉ đổi thứ tự/cách hiển thị:
 
 1. Ngày + giờ đón (từ dịch vụ + trường chuyến)
 2. Tên khách + số điện thoại (bấm gọi được trên điện thoại)
@@ -156,14 +156,15 @@ Mỗi bước là việc lớn (đụng giao diện nhiều trang, bước 3 đ�
 
 ## 12. Việc còn mở — cần chốt thêm trước/trong khi thi công
 
-1. **Hình dạng API sắp xếp cho Trang chủ** (§10) — chốt với chủ trước khi viết mã bước 3.
-2. **Cách rút gọn khi đơn có nhiều dịch vụ** ("+N dịch vụ" hay liệt kê hết) — chốt lúc làm trang mẫu (bước 1), việc nhỏ, không cần dừng cả kế hoạch.
-3. **Trang Hồ sơ dùng panel bên phải** thay vì khối đẩy xuống — kiểm tương thích với luồng "+ Hồ sơ mới" hiện tại lúc thi công trang này (bước 2), việc kỹ thuật, không phải quyết định nghiệp vụ.
-4. **Ánh xạ số đo cụ thể** (bo góc, cỡ chữ không khớp token — §5) — làm lúc thi công từng trang, không hỏi chủ trừ khi cần thêm màu/chữ thương hiệu mới (không dự kiến có).
+1. **Hình dạng API sắp xếp cho Trang chủ** (§10) — chốt với chủ trước khi viết mã bước 3. Khác với việc đổi API danh sách đơn ở §16 mục 1 (việc đó đã chốt hướng, còn việc này thì chưa).
+2. **Hình dạng cụ thể của API danh sách đơn** (§16 mục 1) — đã chốt HƯỚNG (được đổi), còn chốt CHI TIẾT (thêm trường nào, cách gọi) lúc lập kế hoạch bước 1.
+3. **Cách rút gọn khi đơn có nhiều dịch vụ** ("+N dịch vụ" hay liệt kê hết) — chốt lúc làm trang mẫu (bước 1), việc nhỏ, không cần dừng cả kế hoạch.
+4. **Trang Hồ sơ dùng panel bên phải** thay vì khối đẩy xuống — kiểm tương thích với luồng "+ Hồ sơ mới" hiện tại lúc thi công trang này (bước 2), việc kỹ thuật, không phải quyết định nghiệp vụ.
+5. **Ánh xạ số đo cụ thể** (bo góc, cỡ chữ không khớp token — §5) — làm lúc thi công từng trang, không hỏi chủ trừ khi cần thêm màu/chữ thương hiệu mới (không dự kiến có).
 
 ## 13. Ngoài phạm vi
 
-- Đổi bảng dữ liệu, migration, quyền, hợp đồng API của 11 trang restyle.
+- Đổi bảng dữ liệu, migration, quyền của 11 trang restyle; hợp đồng API giữ nguyên trừ danh sách đơn (đổi có chủ đích, đã duyệt — xem §16 mục 1).
 - Đổi giá trị token màu nhóm "bản sao tourdaovn".
 - Sửa nợ kỹ thuật không liên quan đã biết từ trước (ví dụ tương phản `.row-off { opacity:.6 }` ở CHANGE-GUIDE — có thể tiện tay sửa nếu chạm đúng trang đó, không bắt buộc, không mở rộng phạm vi để đi sửa các trang khác).
 - Offline thật, đổi kiến trúc, thêm framework/dependency.
@@ -177,3 +178,19 @@ Theo `CLAUDE.md` §3: đây là việc lớn (giao diện + có API ở bước 
 - Luôn đối chiếu token thiết kế với `app.css` thật trước khi dùng — không tin số trong tệp thiết kế (đã áp dụng ở §5).
 - Kiểm nhãn/badge chỉ hiện đúng điều kiện nghiệp vụ (ví dụ ghi chú đặc biệt, "Chưa có người phụ trách") — không hiện tràn lan.
 - Cần artboard/kịch bản Chrome đủ MỌI trạng thái (rỗng, đang lưu, đã huỷ...) trước khi coi một trang là xong, không chỉ trạng thái "đẹp" có dữ liệu mẫu.
+
+## 16. Quyết định của chủ dự án — bổ sung sau vòng kiểm đặc tả (2026-09-22)
+
+Vòng kiểm độc lập (đối chiếu đặc tả với mã thật, không sửa mã) phát hiện 4 điểm chưa khớp hoặc chưa chốt; chủ dự án đã trả lời trực tiếp trong buổi trao đổi này. Ghi lại ở đây để không mất khi lập kế hoạch.
+
+1. **Dữ liệu danh sách đơn (mâu thuẫn giữa §7 và §2/§13 bản gốc).** §7 đòi thẻ đơn hiện giờ đón, gói dịch vụ, số khách, nơi đón, ghi chú, số tiền đã trả — các trường này KHÔNG có trong `GET /api/orders` hiện nay (`OrderSummaryDto` ở `src/shared/contracts.ts` chỉ có: mã đơn, tên khách, SĐT, tổng, còn lại, trạng thái, tên nhân viên, ngày tạo). Bản gốc đặc tả lại ghi "không đổi hợp đồng API của 11 trang restyle" — hai điều chỏi nhau.
+   **Chốt: được đổi hợp đồng API danh sách đơn để trả đủ các trường ở §7.** Hình dạng cụ thể (thêm trường nào, có cần đổi cách gọi hay không) chốt lúc lập kế hoạch bước 1, không tự quyết lúc thi công — đây vẫn là việc chạm hợp đồng giữa các phần (CLAUDE.md §3).
+
+2. **Thẻ hay bảng cho danh sách đơn trên máy tính.** Mã thật hiện chỉ có MỘT dạng thẻ (`.order-row`, `web/orders.ts`) ở mọi khổ màn hình, không có bảng riêng cho máy tính — sự thật này đã ghi ở `docs/SYSTEM-DESIGN.md` §16 ("Danh sách đơn chỉ có MỘT dạng thẻ... không có bảng máy tính riêng", có bằng chứng đo Chrome). Bản thiết kế mới (`02 Don hang.dc.html`) vẽ dạng bảng cho máy tính.
+   **Chốt: GIỮ dạng thẻ như hiện tại** cho danh sách đơn ở mọi khổ màn hình, chỉ đổi màu sắc/khoảng cách theo phong cách mới (§16 mục 4) — không chuyển sang bảng. Mốc "dưới 900px: bảng chuyển thành thẻ" ở §6 chỉ áp dụng cho các trang thật sự có bảng (Nhân viên, Dịch vụ, Địa điểm, Hồ sơ, Nhật ký); khối "Người phụ trách" trong thẻ đơn vẫn giữ đúng cách nạp không đồng bộ, có sẵn chỗ một dòng để không nhảy bố cục (§9 SYSTEM-DESIGN.md dòng 502) — áp dụng cả khi thẻ có thêm trường mới theo mục 1.
+
+3. **Số đo khung trang chung (§6).** Số trong bản thiết kế mới lớn hơn số đang chạy thật: thanh đầu trang 60px (thật: `--bar-h` 52px), nội dung rộng tối đa 1200px (thật: `main { max-width: 960px }`), mốc chuyển bố cục 900px (thật: `@media (min-width: 960px)`). Chỉ cột phụ 340px khớp sẵn (`--w-side`).
+   **Chốt: đổi theo số trong bản thiết kế mới (60px / 1200px / 900px).** Ba số này đã có token/hằng số riêng trong mã — lúc thi công sửa giá trị của đúng token/hằng số đó (`--bar-h`, `max-width` của `main`, mốc `@media`), không viết số cứng mới ở nơi khác.
+
+4. **Kiểu trình bày thẻ đơn.** Tệp mẫu "Order Card - 3 Phong Cach.dc.html" (không nằm trong bảng ánh xạ §4, thăm dò riêng) đưa ra 3 kiểu trình bày cùng một thẻ đơn để chủ chọn 1 kiểu áp dụng chung: **1a "Tiêu chuẩn"** (viền mảnh, nền trắng, không dải màu ở đầu thẻ, gần với phong cách app hiện có), 1b "Năng động" (dải màu xanh đậm ở đầu thẻ, số tiền còn nợ nổi khối riêng), 1c "Dễ thương" (bo góc rất lớn, dùng emoji làm icon).
+   **Chốt: chọn kiểu 1a "Tiêu chuẩn"**, áp dụng cho khuôn thẻ đơn dùng chung ở §7 (và mọi khuôn thẻ tương tự nếu có ở trang khác).
