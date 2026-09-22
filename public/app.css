@@ -164,7 +164,7 @@ table.items { width: 100%; border-collapse: collapse; }
 table.items th, table.items td { padding: var(--s2); border-bottom: 1px solid var(--c-line); text-align: left; vertical-align: top; }
 table.items th.num, table.items td.num { text-align: right; }
 .card-list { display: grid; gap: var(--s2); }
-.card-list > .card { display: flex; align-items: center; gap: var(--s3); }
+.card-list > .card { display: flex; align-items: center; gap: var(--s3); margin-bottom: 0; }
 .card-list > .card.card-col { flex-direction: column; align-items: stretch; }
 @media (max-width: 899px) {
   .table-wrap { display: none; }
@@ -172,7 +172,7 @@ table.items th.num, table.items td.num { text-align: right; }
 @media (min-width: 900px) {
   .card-list { display: none; }
 }
-.pill-btn { font-size: var(--fs-label); font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft); border: none; border-radius: var(--radius-sm); padding: 0 var(--s4); min-height: var(--tap-min); }
+.pill-btn { font-size: var(--fs-label); font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft); border: none; border-radius: var(--radius-sm); padding: 0 var(--s4); min-height: var(--tap-min); cursor: pointer; }
 .pill-btn.pill-btn-danger { color: var(--c-accent-strong); background: var(--c-accent-soft); }
 .history { margin: 0; padding-left: var(--s5); }
 

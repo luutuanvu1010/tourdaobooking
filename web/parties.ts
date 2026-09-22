@@ -78,13 +78,14 @@ function queryString(extra: Record<string, string>): string {
 function card(p: Api.PartyListItemDto): HTMLElement {
   const el = h(
     "div",
-    { class: "card", style: "cursor:pointer" },
+    { class: p.active ? "card" : "card row-off", style: "cursor:pointer" },
     h("div", { style: "width:40px;height:40px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none" }, initials(p.displayName)),
     h(
       "div",
       { style: "flex:1" },
       h("div", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, " Ngưng")),
       h("div", { class: "muted" }, p.primaryPhone ?? "—", " · ", p.roleCodes.map(roleLabel).join(", ") || "—"),
+      h("div", { class: "muted" }, KIND_LABEL[p.kind]),
     ),
     icon("next", 20),
   );

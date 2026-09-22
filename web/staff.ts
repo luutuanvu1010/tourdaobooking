@@ -105,7 +105,7 @@ function card(s: StaffAccount): HTMLElement {
   const isMe = s.id === me.id;
   return h(
     "div",
-    { class: "card card-col" },
+    { class: s.active ? "card card-col" : "card card-col row-off" },
     h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
     !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
@@ -113,7 +113,7 @@ function card(s: StaffAccount): HTMLElement {
     h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
       "div",
-      { style: "display:flex;gap:var(--s2);margin-top:var(--s1)" },
+      { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       btn("Sửa", () => openEdit(s)),
       btn("Đặt lại PIN", async () => {
         if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
