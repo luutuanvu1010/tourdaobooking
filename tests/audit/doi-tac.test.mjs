@@ -23,17 +23,22 @@ const orderBody = (extra = {}) => ({
   depositAmount: 200000, depositMethod: "cash", ...extra,
 });
 
-/** Quản trị tạo tài khoản cho một cộng tác viên như cách duy nhất hiện có (POST /api/staff). Trả { id, pin, perms }. */
+/**
+ * Quản trị tạo tài khoản cho một cộng tác viên, GÁN TƯỜNG MINH quyền Bán hàng (đúng cách màn quản trị luôn làm — đây là
+ * kịch bản "lỡ gán Bán hàng cho người ngoài", KHÔNG phải mặc định của API — mặc định đã sửa ở D-02, xem test riêng dưới).
+ * Trả { id, pin, perms }.
+ */
 async function createPartner(w, phone, body = {}) {
-  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Cộng Tác Viên", phone, ...body } });
+  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Cộng Tác Viên", phone, permissions: ["SALES"], ...body } });
   assert.equal(r.status, 201, r.text);
   return { id: r.json.staff.id, pin: r.json.pin, perms: r.json.staff.permissions };
 }
 
-test("P1 FINDING mặc định: tài khoản mới không ghi quyền → quyền Bán hàng (thấy mọi đơn, mọi khách)", async () => {
+test("D-02 (đã sửa, ADR-0014 điều 7): POST /api/staff không kèm permissions → tài khoản không quyền nào (không còn tự động Bán hàng)", async () => {
   const w = setup();
-  const p = await createPartner(w, "0977000001");
-  assert.deepEqual(p.perms, ["SALES"]);
+  const r = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Người Thử", phone: "0977000001" } }); // KHÔNG có trường permissions
+  assert.equal(r.status, 201, r.text);
+  assert.deepEqual(r.json.staff.permissions, []);
 });
 
 test("P2 FINDING tách dữ liệu: tài khoản đối tác (Bán hàng) liệt kê được đơn của nhân viên khác, kèm tên + SĐT khách", async () => {

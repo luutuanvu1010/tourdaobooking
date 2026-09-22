@@ -128,7 +128,9 @@ export const accountsModule: AppModule = {
       if (name.error) return error(400, "invalid_input", name.error);
       const phone = typeof body?.phone === "string" ? normalizePhone(body.phone) : null;
       if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
-      const perms = cleanPermissions(body?.permissions ?? ["SALES"]);
+      // D-02 (ADR-0014 điều 7): trường permissions HOÀN TOÀN VẮNG MẶT → không quyền nào (trước đây tự động Bán hàng — lỗ khi gọi thẳng API,
+      // bỏ qua màn quản trị vốn luôn gửi danh sách và bắt chọn ít nhất một). Gửi permissions: [] tường minh vẫn bị cleanPermissions từ chối.
+      const perms = body?.permissions === undefined ? { value: [] } : cleanPermissions(body.permissions);
       if (perms.error) return error(400, "invalid_input", perms.error);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
