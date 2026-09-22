@@ -153,6 +153,7 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 3. Nối vào đặc tả ADR-0013 đang chờ: ranh giới sửa hồ sơ phải tính cả hồ sơ khách theo phạm vi tổ chức (D-05), không chỉ hồ sơ có tài khoản.
 4. Các việc NOW/NEXT của vòng 1 (chống gửi trùng, lưới tiền, khôi phục) giữ nguyên thứ tự; D-04 (khoá theo SĐT/IP, huỷ phiên) chuyển lên trước khi mở cho đối tác.
 5. Hoa hồng / giá net (D-06) thiết kế cùng N3.
+6. **(2026-09-22, quyết định của chủ dự án, ngoài tài liệu này)** `ADR-0014` (accepted) cố ý CHƯA dựng một khung "vai trò → năng lực" tổng quát cho đối tác — mỗi năng lực mới (điều 9–12) vẫn là một dòng tường minh thêm vào bảng quyền hiện có (đúng nguyên tắc ADR-0007 P6). Chủ dự án chọn: **chạy thí điểm 5 CTV/2 tuần trước, sau đó mới tổng kết kinh nghiệm thí điểm thành một ADR luật chung** (nếu cần) cho vai trò/quyền của đối tác — không dựng khung tổng quát trước khi có kinh nghiệm thật. Việc tổng kết này làm sau khi thí điểm kết thúc, không chặn kế hoạch thi công ADR-0014.
 
 ---
 *Lưu ý quy trình: cùng một phiên vừa tìm vừa xếp mức D-01 thành "P0 có điều kiện", tức lật kết luận "không P0" của hai báo cáo trước. Lập luận dựa trên ngưỡng (ii) của ADR-0010 điều 1 và định nghĩa P0 của vòng 1 §1, nhưng chưa có người kiểm thứ hai đọc lại; nên cho một phiên khác soát lại cùng lúc với việc kiểm lại 4 đặc tả.*
