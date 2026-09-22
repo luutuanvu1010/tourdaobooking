@@ -337,6 +337,29 @@ export interface SetHandlerResponse { handler: HandlerDto }
 export interface HandlerCancelResponse { ok: true }
 export interface HandlerMoneyEditResponse { ok: true }
 
+/**
+ * Màn "việc của tôi" của FIELD (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ `OrderDto`/
+ * `OrderServiceDto`/`OrderItemDto` — để một lần đổi kiểu dữ liệu đơn sau này (thêm trường tiền) không vô tình lọt vào đây (ADR-0007 điều 3: FIELD
+ * không bao giờ thấy giá/tổng tiền).
+ */
+export interface MyAssignmentServiceDto extends TripInfoDto {
+  id: string;
+  name: string;
+  /** null = nhập tay — CHỈ ĐỌC ở màn này (route handler-money-edit chỉ nhận dịch vụ từ danh mục). */
+  catalogCode: string | null;
+  pax: PaxCounts;
+  /** Loại khách sửa được cho dịch vụ này (rỗng nếu nhập tay hoặc thiếu giá đã chụp) — KHÔNG lộ giá, chỉ nói được sửa loại nào. */
+  editablePaxCodes: PaxCode[];
+}
+export interface MyAssignmentDto {
+  orderId: string;
+  orderCode: string;
+  customerName: string;
+  customerPhone: string;
+  services: MyAssignmentServiceDto[];
+}
+export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }
+
 // ---- Địa điểm (module locations) ---------------------------------------------
 export interface LocationTypeDto {
   code: string;

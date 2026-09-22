@@ -2,7 +2,7 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { getAuditTrail } from "../audit";
-import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
+import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import type { PaxCounts } from "../../shared/order-lines";
 import { can } from "../../shared/permissions";
@@ -92,6 +92,38 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
 
   const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, before, after, subtotalBefore, subtotalAfter, input.reason);
   return ok ? { ok: true } : { ok: false, code: "stale" };
+}
+
+/**
+ * Dữ liệu cho màn "việc của tôi" của FIELD (`GET /api/dispatch/mine`, module dispatch) — tái dùng `loadOrderView` (đã có overlay điều chỉnh,
+ * ADR-0014 điều 6) rồi LỌC BỎ mọi trường tiền trước khi trả ra, đúng ADR-0007 điều 3 ("không tiền, không bảng giá" cho FIELD). `orderIds` do
+ * `dispatch` truyền vào (đơn mà staff gọi đang là người phụ trách — dispatch tự tra, orders không biết khái niệm "người phụ trách").
+ */
+export async function getMyAssignments(db: D1Database, orderIds: readonly string[]): Promise<MyAssignmentDto[]> {
+  const views = await Promise.all(orderIds.map((id) => loadOrderView(db, id)));
+  return views
+    .filter((o): o is OrderDetailDto => o !== null && o.status === "confirmed")
+    .map((o) => ({
+      orderId: o.id,
+      orderCode: o.orderCode,
+      customerName: o.customerName,
+      customerPhone: o.customerPhone,
+      services: o.services.map((s) => ({
+        id: s.id,
+        name: s.name,
+        catalogCode: s.catalogCode,
+        pax: s.pax,
+        editablePaxCodes: s.catalogCode === null ? [] : [...new Set(s.items.flatMap((i) => (i.paxCode ? [i.paxCode] : [])))],
+        departDate: s.departDate,
+        departTime: s.departTime,
+        pickupTime: s.pickupTime,
+        pickupPlace: s.pickupPlace,
+        checkinDate: s.checkinDate,
+        checkinTime: s.checkinTime,
+        checkinPlace: s.checkinPlace,
+        note: s.note,
+      })),
+    }));
 }
 
 export const ordersModule: AppModule = {
