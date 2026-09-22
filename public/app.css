@@ -214,6 +214,11 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
   #me, #myjobs, #links, #pin-form { grid-column: 1; }
   #maintenance { grid-column: 2; }
 }
+/* trang "Góp ý" */
+.feedback-layout { display: block; } /* Đợt C Task 3: bố cục 2 cột ở máy tính — mặc định xếp dọc, giữ đúng thứ tự DOM gốc (#list-card rồi #thread) ở điện thoại */
+@media (min-width: 900px) {
+  .feedback-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
+}
 .profile { display: flex; align-items: center; gap: var(--s3); }
 .avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-on-dark); background: var(--c-primary); font-weight: 800; font-size: var(--fs-name); }
 .profile-name { font-weight: 800; font-size: var(--fs-name); }

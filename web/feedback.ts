@@ -127,8 +127,11 @@ async function loadList(): Promise<void> {
 }
 
 // ---- Luồng một yêu cầu -------------------------------------------------------------------------------------------
+/** ≥ 900px: hiện đồng thời danh sách + luồng (2 cột). Dưới 900px: mở luồng thì ẩn danh sách như cũ (Đợt C Task 3). */
+const wide = (): boolean => window.matchMedia("(min-width: 900px)").matches;
+
 async function loadThread(id: string): Promise<void> {
-  byId("list-card").hidden = true;
+  byId("list-card").hidden = !wide();
   const box = byId("thread");
   box.hidden = false;
   let d: Api.FeedbackDetailResponse;
