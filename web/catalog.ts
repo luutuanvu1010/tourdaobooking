@@ -108,12 +108,14 @@ function card(it: CatalogAdminItem): HTMLElement {
     { class: it.hidden || !it.inSheet ? "card row-off" : "card" },
     h("div", { class: "muted" }, it.code, " · ", it.unit),
     h("div", null, h("strong", null, it.name), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
-    h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", title: "Có giá ghi đè" }, " ✎")),
+    h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:700", title: "Có giá ghi đè" }, " ✎")),
     it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
     h(
       "div",
-      { style: "display:flex;gap:var(--s2);margin-top:var(--s1)" },
+      { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       btn("Sửa giá", () => openEdit(it)),
+      it.conflicts.length > 0 && btn("Giữ ghi đè", () => update(`/api/catalog/${encodeURIComponent(it.code)}/ack`, { method: "POST" })),
+      it.overridden.length > 0 && btn("Bỏ ghi đè", () => confirm(`Quay ${it.code} về giá theo Sheet?`) && update(`/api/catalog/${encodeURIComponent(it.code)}/override`, { method: "DELETE" })),
       btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
     ),
   );
