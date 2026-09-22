@@ -165,7 +165,10 @@ function summaryBand(order: Order): HTMLElement {
     { adult: 0, child: 0, senior: 0, infant: 0 },
   );
   const pax = paxCounts(totalPax);
-  const firstName = firstSvc?.name ?? "—";
+  // Cùng công thức rút gọn tên dịch vụ dùng ở trang Đơn hàng (`web/orders.ts`, `serviceLine`): tổng số khách phía trên CỘNG DỒN mọi
+  // dịch vụ, nên dòng phụ này không được chỉ ghi tên dịch vụ đầu tiên (I2) — phải phản ánh đơn có bao nhiêu dịch vụ.
+  const serviceNames = order.services.map((s) => s.name);
+  const serviceLine = serviceNames.length === 0 ? "—" : serviceNames.length === 1 ? serviceNames[0] : `${serviceNames[0]} +${serviceNames.length - 1} dịch vụ`;
   const stat = (label: string, value: string, sub?: string, due = false) =>
     h("div", null, h("div", { class: "label" }, label), h("div", { class: due ? "value due" : "value" }, value), sub ? h("div", { class: "sub" }, sub) : null);
   return h(
@@ -183,7 +186,7 @@ function summaryBand(order: Order): HTMLElement {
       { class: "grid4" },
       stat("ĐÓN", when, firstSvc?.pickupPlace ?? undefined),
       stat("KHÁCH", order.customerName, order.customerPhone),
-      stat("SỐ KHÁCH", pax || "—", firstName),
+      stat("SỐ KHÁCH", pax || "—", serviceLine),
       stat("CÒN LẠI", vnd(order.remainingAmount), `Tổng ${vnd(order.total)} · đã cọc ${vnd(order.depositAmount)}`, order.remainingAmount > 0),
     ),
   );
@@ -223,16 +226,6 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
         ),
 
         renderServices(order, a.locked),
-
-        // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối.
-        history.length
-          ? h(
-              "section",
-              { class: "card" },
-              h("h2", null, "Lịch sử"),
-              h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} · ${e.staffName}`))),
-            )
-          : null,
       ),
       h(
         "div",
@@ -250,6 +243,18 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
         ),
       ),
     ),
+
+    // Ở NGOÀI `.order-layout` có chủ đích (điện thoại dưới 900px không có rule riêng cho lưới → các con xếp theo thứ tự DOM;
+    // đặt ở đây giữ đúng thứ tự cũ "Thanh toán trước Lịch sử". Máy tính ≥900px: khối này trải hết bề ngang, nằm dưới lưới 2 cột.
+    // D6: SALES không thấy nhật ký đơn của người khác → history rỗng: ẩn cả khối.
+    history.length
+      ? h(
+          "section",
+          { class: "card" },
+          h("h2", null, "Lịch sử"),
+          h("ul", { class: "history" }, ...history.map((e) => h("li", null, h("span", { class: "muted" }, dateTime(e.at)), ` — ${actionLabel(e.action)} · ${e.staffName}`))),
+        )
+      : null,
   );
 
   const btns: HTMLElement[] = [];
