@@ -37,7 +37,7 @@ function row(o: OrderSummary): Row {
       "div",
       { class: "order-row-main" },
       h("strong", null, o.orderCode),
-      h("span", null, o.customerName, " · ", h("span", { class: "order-row-phone", onclick: (e: Event) => { e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } }, o.customerPhone)),
+      h("span", null, o.customerName, " · ", h("span", { class: "order-row-phone", onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } }, o.customerPhone)),
     ),
     h("div", { class: "muted" }, serviceLine),
     ...(paxCounts(o.pax) ? [h("div", { class: "muted" }, paxCounts(o.pax))] : []),
