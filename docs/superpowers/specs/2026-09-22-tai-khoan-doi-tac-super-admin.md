@@ -14,7 +14,8 @@
   - Không tự nhận việc (không tự đặt mình làm người phụ trách của bất kỳ đơn nào).
   - Không xác nhận/huỷ đơn của người khác, không thấy màn quản trị, không ghi thu/hoàn tiền, không xuất hoá đơn.
   - Chỉ Quản trị viên hoặc Super Admin mở, khoá, đặt lại mã cho tài khoản Đối tác — không có ai của bên đối tác tự quản người của họ.
-- Tài khoản **Super Admin**: làm được mọi việc Quản trị viên làm được, cộng thêm việc chỉ Super Admin làm: cấp hoặc gỡ vai Super Admin của một tài khoản khác (Quản trị viên không tự nâng mình lên Super Admin được). Trước mắt chỉ có tài khoản của chủ dự án giữ vai này.
+- Tài khoản **Super Admin**: quyền cao nhất, làm được mọi việc — kể cả những việc Quản trị viên không được làm. Trước mắt chỉ có tài khoản của chủ dự án giữ vai này.
+- Tài khoản **Quản trị viên** (không đổi so với hôm nay về đơn: xem mọi đơn, tạo, duyệt, huỷ đơn). Về quản lý TÀI KHOẢN (mở, đình chỉ, sửa, khôi phục, lấy lại mật khẩu): **chỉ làm được với "cấp dưới"** — tài khoản không giữ Quản trị hay Super Admin (tức Bán hàng/Kế toán/Thực hiện/Đối tác). Quản trị viên **không** làm được các việc đó với một Quản trị viên khác hay với Super Admin — kể cả cấp hoặc gỡ vai Super Admin của một tài khoản (chỉ Super Admin tự làm được việc này).
 - Nhân viên nội bộ giữ quyền Thực hiện (hướng dẫn viên nội bộ) **nhận phụ trách được** đơn do Đối tác lập (trước đây chỉ Bán hàng/Quản trị mới nhận được). Khi đang phụ trách một đơn, họ **sửa được số khách, dịch vụ và tiền của đơn đã xác nhận** (việc trước đây hoàn toàn không ai làm được qua ứng dụng), nhưng vẫn **không tự xác nhận/huỷ đơn, không thấy tổng tiền hay bảng giá** ở bất kỳ màn nào — máy tự tính lại tiền, phần chênh do người lập đơn (Đối tác) và Kế toán/Quản trị nhìn thấy, không phải người sửa.
 - Mỗi lần sửa số khách/dịch vụ/tiền sau xác nhận: **không ghi đè** số cũ, mà thêm một **dòng điều chỉnh** ghi ai sửa, khi nào, vì sao, số trước và số sau. Người lập đơn (Đối tác) và Quản trị đều xem được các dòng điều chỉnh này khi mở lại đơn.
 
@@ -30,6 +31,7 @@
 2. Tài khoản Đối tác lập đơn mới → thành công, là người lập đơn. **Tiêu chí "ai là người phụ trách mặc định khi chưa ai nhận" chưa chốt được** (câu hỏi 4 ở mục 6 dưới) — viết cụ thể thành tiêu chí kiểm được ngay sau khi có câu trả lời, trước khi lập kế hoạch thi công.
 3. Tài khoản Đối tác gọi API "tự nhận đơn chưa có người phụ trách" → bị từ chối.
 4. Tài khoản chỉ có quyền Quản trị: gọi API cấp vai Super Admin cho một tài khoản khác → bị từ chối. Tài khoản có vai Super Admin: gọi cùng API → thành công.
+4b. Tài khoản chỉ có quyền Quản trị: gọi API mở/đình chỉ/khôi phục/lấy lại mật khẩu cho một tài khoản **Đối tác/Bán hàng/Kế toán/Thực hiện** → thành công; gọi cùng API cho một tài khoản **Quản trị khác hoặc Super Admin** → bị từ chối. Tài khoản Super Admin: gọi cùng API cho bất kỳ tài khoản nào (kể cả Quản trị/Super Admin khác) → thành công.
 5. Tài khoản chỉ có quyền Thực hiện, đang là người phụ trách một đơn đã xác nhận: sửa số khách/dịch vụ của đơn đó → thành công, có dòng điều chỉnh mới (ai, khi, vì sao, trước → sau); gọi API xem tổng tiền/bảng giá của đơn → vẫn bị từ chối như hôm nay.
 6. Tài khoản chỉ có quyền Thực hiện, KHÔNG phải người phụ trách của một đơn: sửa số khách/dịch vụ của đơn đó → bị từ chối.
 7. Tài khoản chỉ có quyền Thực hiện gọi API xác nhận/huỷ đơn, kể cả đơn mình đang phụ trách → vẫn bị từ chối (không đổi).
@@ -42,6 +44,7 @@
 1. "Của mình" cho Đối tác nghĩa là **người lập đơn**, không phải "mọi đơn của cùng một công ty đối tác" — đúng câu trả lời 1 của chủ dự án. Nếu sau này một công ty đối tác có nhiều tài khoản cùng cần xem chung một tập đơn, đó là ngưỡng mới, cần ADR khác (đã ghi ở ADR-0014 điều 5).
 2. Đối tác không thấy giá net/hoa hồng ở bản này — luôn giá bán lẻ, đúng câu trả lời 3 của chủ dự án; giá net/hoa hồng là việc riêng (D-06), chưa làm.
 3. Việc "gán hoặc xác nhận thủ công" cho hướng dẫn viên/lái xe bên ngoài (câu trả lời 8) **chưa được chốt cơ chế** — đặc tả này chỉ đảm bảo họ không tự nhận việc; cách nhân viên giao việc cho họ cụ thể (giao thẳng hay có bước xin/nhận) chốt ở một đặc tả sau, không chặn việc duyệt ADR-0014.
+4. Đính chính của chủ về "Quản trị viên quản lý tài khoản với cấp dưới" chỉ nói về quyền trên MỘT tài khoản (mở/đình chỉ/sửa/khôi phục/lấy lại mật khẩu) — **không** đụng tới việc Quản trị viên quản lý danh mục, địa điểm, vai trò hồ sơ, gộp hồ sơ (những việc này giữ nguyên như hôm nay). Nếu hiểu sai, xin chủ sửa lại ở câu hỏi 2 của mục 6.
 
 ## 5. Ngoài phạm vi
 
@@ -50,7 +53,8 @@ Phạm vi theo tổ chức/nhiều tài khoản dùng chung một tập đơn; "
 ## 6. Câu hỏi cho chủ dự án (trước khi lập kế hoạch thi công)
 
 1. **Bạn từng nói phạm vi xem đơn phải là nút bấm tuỳ chọn trong bảng điều khiển Super Admin** (câu 1, §4.1 tài liệu kiểm toán). Trước mắt chỉ có một lựa chọn thật sự cần ("chỉ đơn của mình"), nên đặc tả này **đề xuất chưa xây nút bấm**, chờ khi có lựa chọn thứ hai thật sự cần dùng. Bạn đồng ý hoãn, hay muốn có nút bấm ngay dù chỉ có một lựa chọn?
-2. Duyệt `ADR-0014` không? (mở hai quyền mới, mở sửa sau xác nhận cho Thực hiện qua dòng điều chỉnh, đổi mặc định quyền tài khoản mới sang "không quyền")
+2. Duyệt `ADR-0014` không? (mở hai quyền mới, mở sửa sau xác nhận cho Thực hiện qua dòng điều chỉnh, đổi mặc định quyền tài khoản mới sang "không quyền", giới hạn Quản trị viên chỉ quản lý tài khoản cấp dưới)
 3. ~~Mở thí điểm cho một nhóm nhỏ CTV trước, hay mở hết cùng lúc?~~ — **Đã trả lời 2026-09-22: thí điểm 5 CTV trước** (§4.4 tài liệu kiểm toán). Còn chốt: thời gian thí điểm, tiêu chí mở rộng.
 4. "Gán hoặc xác nhận thủ công" cho hướng dẫn viên/lái xe bên ngoài: nhân viên gán thẳng, hay họ xin nhận rồi nhân viên duyệt?
 5. Đơn do Đối tác lập mà chưa ai nhận: có tự động lấy người lập làm người phụ trách mặc định như hôm nay không, hay bắt buộc chờ một nhân viên/hướng dẫn viên nội bộ nhận trước khi xác nhận?
+6. **Rủi ro mới:** sau khi giới hạn Quản trị viên chỉ quản lý "cấp dưới" (đính chính của bạn), nếu tài khoản Super Admin của bạn bị khoá (quên mã, sai mã nhiều lần) thì không Quản trị viên nào trong ứng dụng mở lại được — chỉ còn cách chạy lệnh SQL trực tiếp. Bạn chấp nhận rủi ro này, hay muốn có thêm một tài khoản Super Admin dự phòng (giao cho người bạn tin)?
