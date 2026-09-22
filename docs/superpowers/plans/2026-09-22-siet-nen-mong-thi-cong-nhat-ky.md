@@ -27,9 +27,9 @@ Nhánh `siet-nen-mong`, tạo từ `origin/main` @ `da64558` (sau khi PR #9 — 
 | Kiểm độc lập Task 1 | **Xong — verdict: Có, sẵn sàng gộp** (0 Critical, 0 Important, 2 Minor không chặn) | — | — |
 | Sửa Minor của Task 1 (lọc thư mục trước khi đọc `index.ts`) | **Xong** (`26dc4f9`) | điều phối | gộp vào kiểm toàn nhánh |
 | Kiểm độc lập Task 2 | **Xong — verdict: Có SAU KHI SỬA** (1 Important: lỗi lọt mới do `blankSingleQuoted` thiếu nhánh thoát `\` ngoài nháy kép; 1 gần-Important: thiếu ngưỡng tối thiểu nhóm F trong test; 2 Minor không chặn) | — | — |
-| Vòng sửa Task 2 (vá lỗi lọt + ngưỡng nhóm F) | **Xong** (`9ecadb1`): thêm nhánh thoát `\` ngoài nháy kép, ca thứ 5 nhóm F, ngưỡng `groups("F") >= 4`. Kho hồi quy 295 ca, 267 khẳng định, 0 quy hồi. `npm test` 448/448 | subagent sonnet | Kiểm lại phạm vi hẹp đang chạy |
-| Thêm luật `ask` cho tự-sửa-luật (bước cuối) | Chờ mọi việc trên xong | điều phối | — |
-| Kiểm toàn nhánh (opus, chỉ đọc) | Chờ | — | — |
+| Vòng sửa Task 2 (vá lỗi lọt + ngưỡng nhóm F) | **Xong** (`9ecadb1`): thêm nhánh thoát `\` ngoài nháy kép, ca thứ 5 nhóm F, ngưỡng `groups("F") >= 4`. Kho hồi quy 295 ca, 267 khẳng định, 0 quy hồi. `npm test` 448/448 | subagent sonnet **Xong — verdict: Có, sẵn sàng gộp** (`9ecadb1`, tự tái hiện bằng `evaluateBash` thật, kiểm cả assert "bắt được khi kho bị cắt" bằng cách dựng RED trên bản sao ở `/tmp`) |
+| Thêm luật `ask` cho tự-sửa-luật (bước cuối) | **Xong** (`d9c4156`) | điều phối | gộp vào kiểm toàn nhánh |
+| Kiểm toàn nhánh (opus, chỉ đọc) | Đang chạy | — | — |
 
 **Task 1 — kết quả (subagent, chưa kiểm độc lập):** `npm test` 443→448 (18 trigger đủ, snapshot 55 route + lưới "module mới quên khai", quét SQL thô mở rộng sang mọi tệp của 7 module nghiêm + `db.exec`/`env.DB.exec`). Bốn chu trình đỏ→xanh tự làm và phục hồi sạch. Một sự cố git nhỏ tự phát hiện và tự sửa: lần commit đầu vô tình cuốn theo 3 tệp đang stage của phiên khác (Task 2/3/4 cùng lúc), phát hiện ngay bằng `git show --stat`, sửa bằng `git reset --soft` rồi commit lại đúng 3 tệp của mình.
 
