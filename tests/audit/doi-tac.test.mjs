@@ -101,3 +101,24 @@ test("P6 FINDING dùng chung IP: 30 lần sai trong 15 phút từ MỘT IP (vd w
   const good = await w.call("POST", "/api/auth/login", { body: { phone: "0977000006", pin: p.pin }, headers: ip });
   assert.equal(good.status, 429, good.text);
 });
+
+test("P7 ĐO quy mô: 1000 tài khoản Bán hàng → danh sách người-được-giao trả CẢ 1000 tên cho MỌI tài khoản văn phòng (không chia trang)", async () => {
+  const w = setup();
+  const me = "aaaaaaaa-aaaa-4aaa-8aaa-000000000007";
+  w.sqlite.exec("BEGIN");
+  for (let i = 0; i < 1000; i++) {
+    const id = `aaaaaaaa-aaaa-4aaa-8aaa-${String(i).padStart(12, "0")}`;
+    seedStaff(w.sqlite, { id, phone: `096${String(i).padStart(7, "0")}`, name: `Doi Tac ${i}`, perms: ["SALES"] });
+  }
+  w.sqlite.exec("COMMIT");
+  const t0 = performance.now();
+  const r = await w.call("GET", "/api/dispatch/assignees", { as: me });
+  const ms = performance.now() - t0;
+  assert.equal(r.status, 200, r.text);
+  console.log(`P7 assignees: ${r.json.assignees.length} người, ${r.text.length} byte, ${ms.toFixed(0)} ms (SQLite trong bộ nhớ, KHÔNG phải D1 thật)`);
+  assert.ok(r.json.assignees.length >= 1000, "một đối tác thấy tên của mọi đối tác khác");
+  const t1 = performance.now();
+  const who = await w.call("GET", "/api/auth/me", { as: me });
+  console.log(`P7 /api/auth/me với 1000 tài khoản: ${(performance.now() - t1).toFixed(0)} ms`);
+  assert.equal(who.status, 200);
+});

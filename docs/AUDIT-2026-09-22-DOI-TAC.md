@@ -9,7 +9,8 @@ Nhãn: **FACT** = đã chạy thử hoặc đọc mã trực tiếp; **INFERENCE
 
 ## 0. Bằng chứng đã chạy
 
-- `node --test "tests/audit/*.test.mjs"` (gốc worktree): **24/24 xanh** = 18 ca cũ của vòng 1 + 6 ca mới `tests/audit/doi-tac.test.mjs` (P1–P6). Các ca mới đều mang nhãn FINDING: test khẳng định hành vi yếu hiện tại, sẽ đỏ khi sửa.
+- `node --test "tests/audit/*.test.mjs"` (gốc worktree): **25/25 xanh** = 18 ca cũ của vòng 1 + 7 ca mới `tests/audit/doi-tac.test.mjs` (P1–P6 là FINDING: khẳng định hành vi yếu hiện tại, sẽ đỏ khi sửa; P7 là ĐO quy mô với 1000 tài khoản).
+- **GET công khai trên production** (`curl https://booking.tourdao.vn/api/auth/config`, 2026-09-22), kết quả là FACT tại thời điểm đó: `turnstileSiteKey` có giá trị. Máy chủ chỉ trả khoá này khi khoá bí mật đã đặt (`src/modules/auth/turnstile.ts:39`), nên **Turnstile đang bật**. Cùng phản hồi: `maintenance.on = true`, `endsAt = 2026-09-24T06:59:00Z`, tức **production đang ở chế độ bảo trì**.
 - Chưa chạy `npm test`/`npm run typecheck` ở phiên này vì không có thay đổi mã ứng dụng (vòng 2 đã ghi 443/443 và tsc 0 trên cùng mã).
 
 ## 1. Kết luận
@@ -32,7 +33,7 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 
 ### D-02 — P1 · Không có mô hình "tài khoản đối tác"
 - **FACT:** mọi tài khoản là một dòng `staff` với 4 quyền nội bộ (`SALES/ACCOUNTING/ADMIN/FIELD`, `permissions.ts:5`). Không có khái niệm tài khoản thuộc tổ chức nào; hồ sơ chỉ có đúng một loại quan hệ `CONTACT_OF` (`migrations/0011_parties.sql:112`), và chỉ ADMIN tạo được quan hệ.
-- **FACT (P1):** `POST /api/staff` không ghi quyền thì **mặc định Bán hàng** (`src/modules/accounts/index.ts:131`), tức quyền rộng nhất sau Quản trị. Quản trị quên chọn quyền là cấp luôn quyền xem hết.
+- **FACT (P1), mức thấp:** `POST /api/staff` không ghi quyền thì **mặc định Bán hàng** (`src/modules/accounts/index.ts:131`). Chỉ xảy ra khi gọi thẳng API: màn quản trị luôn gửi danh sách quyền và bắt chọn ít nhất một (`web/staff.ts:151-153`). Nên đổi mặc định sang "không quyền" khi làm D-01, nhưng tự nó không phải đường rò.
 - **FACT:** đơn do một **tổ chức** (đại lý, công ty du lịch) đứng tên bị máy chủ từ chối: "Chưa gắn được đại lý vào đơn ở bản này." (`src/modules/orders/service.ts:51`). Đã có từ N2 lát 1, cố ý hoãn.
 - **INFERENCE:** muốn "công ty du lịch X có 5 nhân viên đăng nhập, cùng thấy đơn của X" thì phải có: tài khoản ↔ tổ chức, đơn ↔ tổ chức nguồn, và phạm vi quyền dựa trên hai liên kết đó. Hiện chưa có cái nào. Dữ liệu nền có một phần (`pty_party_role.location_id`, `pty_party_relationship`), nên không phải dựng lại mô hình Party, nhưng là việc cấu trúc cần ADR.
 
@@ -43,8 +44,8 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 - **Hệ quả:** cấp tài khoản cho HDV hôm nay thì họ chỉ gửi được góp ý. Nếu để HDV làm việc được mà cấp tạm quyền Bán hàng thì rơi vào D-01.
 
 ### D-04 — P1 · Đăng nhập và phiên chưa hợp với người dùng ngoài
-- **FACT (P5):** ai biết SĐT của một đối tác, sai PIN 5 lần là **khoá người đó 15 phút**; PIN đúng cũng nhận 429 (`src/modules/auth/throttle.ts:4-6`, `PHONE_LIMIT = 5`). Với nội bộ 10 người, việc này hiếm; với 1000 đối tác mà SĐT là thông tin công khai trong ngành, đây là cách phá rẻ. Turnstile đang BẬT trên production (theo bộ nhớ dự án, NOT VERIFIED ở phiên này) làm mỗi lần thử tốn công hơn nhưng không chặn việc khoá có chủ đích.
-- **FACT (P6):** 30 lần sai trong 15 phút từ **một IP** chặn **mọi** tài khoản sau IP đó (`IP_LIMIT = 30`). Nhiều người dùng chung một IP (wifi văn phòng công ty du lịch, NAT nhà mạng di động) thì vài người gõ nhầm có thể khoá cả nhóm. INFERENCE: mức ảnh hưởng thật phụ thuộc cách nhà mạng Việt Nam chia IP. NOT MEASURED.
+- **FACT (P6), mới và nặng hơn:** 30 lần sai trong 15 phút từ **một IP** chặn **mọi** tài khoản sau IP đó, kể cả người gõ đúng PIN (`src/modules/auth/throttle.ts:6`, `IP_LIMIT = 30`). Nhiều người dùng chung một IP (wifi văn phòng công ty du lịch, NAT nhà mạng di động) thì vài chục lần gõ nhầm cộng dồn là khoá cả nhóm; Turnstile không giúp gì vì đây là người thật gõ nhầm. INFERENCE: mức ảnh hưởng thật phụ thuộc cách nhà mạng Việt Nam chia IP. NOT MEASURED.
+- **FACT (P5), đánh đổi đã ghi:** ai biết SĐT của một người, sai PIN 5 lần là khoá người đó 15 phút (`PHONE_LIMIT = 5`). Rủi ro này **đã được ghi** trong mô hình mối đe doạ (`docs/SYSTEM-DESIGN.md:548`, "khoá SĐT của người khác") và được giảm bằng Turnstile, đang bật (§0). Không phải phát hiện mới; chỉ lưu ý rằng với ~1000 đối tác, SĐT dễ biết hơn và số người có thể bị phá nhiều hơn. Quản trị mở khoá tay (`POST /api/staff/:id/unlock`).
 - **FACT (vòng 1 F-06, nặng thêm):** phiên sống 7 ngày (`session.ts:4`), đăng xuất không huỷ phiên; muốn cắt ngay một đối tác thì phải ngưng tài khoản hoặc đặt lại PIN. Với người ngoài, **"hết hợp tác → cắt quyền ngay"** là yêu cầu bắt buộc.
 - **FACT:** tạo tài khoản trả PIN cho Quản trị (`accounts/index.ts`, `POST /api/staff`), Quản trị tự chuyển PIN cho từng người. Với ~1000 tài khoản: một người làm tay, PIN đi qua kênh chat. INFERENCE: đây vừa là nút thắt vận hành, vừa là chỗ lộ PIN.
 
@@ -57,8 +58,9 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 - **INFERENCE:** CTV và công ty du lịch thường cần giá net, hoa hồng và bảng đối soát công nợ theo kỳ. Đây là module mới, cần thiết kế cùng N3 (thu tiền) vì dùng chung sổ tiền.
 
 ### D-07 — P2 · Các danh sách nạp hết một lần, và lộ danh sách người dùng
-- **FACT:** `listStaffAccounts` không chia trang (`src/modules/staff/index.ts:78`), dùng cho `GET /api/staff` (admin) và `GET /api/dispatch/assignees` (mọi tài khoản văn phòng, `dispatch/index.ts:53`). Danh sách người-được-giao gồm mọi tài khoản có quyền Bán hàng/Quản trị.
-- **INFERENCE:** nếu đối tác mang quyền Bán hàng thì (i) mỗi người mở màn đơn đều tải tên của cả ~1000 tài khoản, (ii) đối tác thấy danh sách đối tác khác (lộ quan hệ kinh doanh), (iii) ô chọn người phụ trách thành danh sách 1000 dòng. Về tải máy chủ, 1000 dòng không đáng kể (NOT MEASURED trên D1 thật).
+- **FACT:** câu liệt kê tài khoản không có `LIMIT` (`listAll`, `src/modules/staff/repository.ts:83`, qua `listStaffAccounts`, `src/modules/staff/index.ts:78`), dùng cho `GET /api/staff` (admin) và `GET /api/dispatch/assignees` (mọi tài khoản văn phòng, `dispatch/index.ts:53`). Danh sách người-được-giao gồm mọi tài khoản có quyền Bán hàng/Quản trị.
+- **FACT (P7, đo trên SQLite trong bộ nhớ, không phải D1 thật):** với 1000 tài khoản Bán hàng, `GET /api/dispatch/assignees` trả **1002 tên, ~125 KB mỗi lần**, 4 ms phía máy chủ; `GET /api/auth/me` (chạy `getActiveStaff` ở mọi request, tra theo khoá chính) 1 ms.
+- **Kết luận:** 1000 tài khoản **không** làm máy chủ quá tải (INFERENCE cho D1 thật: chênh vài chục ms mạng, NOT MEASURED). Vấn đề là (i) **lộ danh sách**: một đối tác thấy tên mọi đối tác khác (quan hệ kinh doanh), (ii) **khó dùng**: bảng chọn người phụ trách (`web/handler-sheet.ts`) thành 1000 ô radio, tải lại ~125 KB mỗi lần mở trên 4G.
 
 ### D-08 — P2 · Quy trình và băng thông duyệt (vòng 1 F-10, nặng lên)
 - **INFERENCE:** 1000 tài khoản ngoài kéo theo cấp, khoá, mở khoá, đặt lại PIN, góp ý/báo lỗi (`feedback.submit = any`, mỗi yêu cầu gửi email cho quản trị), đều dồn về một hay hai Quản trị. Chưa có tự phục vụ (quên PIN), chưa có phân cấp quản trị (ví dụ quản trị của công ty đối tác tự quản người của họ).
@@ -93,4 +95,6 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 5. Hoa hồng / giá net (D-06) thiết kế cùng N3.
 
 ---
-*Bằng chứng tái chạy: `node --test "tests/audit/*.test.mjs"` (24/24). Tài liệu không sửa mã, không đổi quyết định đã duyệt; mọi hướng sửa ở trên là đề xuất, cần ADR/chủ duyệt theo CLAUDE.md §3.*
+*Lưu ý quy trình: cùng một phiên vừa tìm vừa xếp mức D-01 thành "P0 có điều kiện", tức lật kết luận "không P0" của hai báo cáo trước. Lập luận dựa trên ngưỡng (ii) của ADR-0010 điều 1 và định nghĩa P0 của vòng 1 §1, nhưng chưa có người kiểm thứ hai đọc lại; nên cho một phiên khác soát lại cùng lúc với việc kiểm lại 4 đặc tả.*
+
+*Bằng chứng tái chạy: `node --test "tests/audit/*.test.mjs"` (25/25). Tài liệu không sửa mã, không đổi quyết định đã duyệt; mọi hướng sửa ở trên là đề xuất, cần ADR/chủ duyệt theo CLAUDE.md §3.*
