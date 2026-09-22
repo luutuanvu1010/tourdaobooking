@@ -2,6 +2,18 @@
 
 Viết 2026-09-22 khi khép Phase A (nền tảng quyền: D-01, D-02, điều 8). Kế hoạch: `docs/superpowers/plans/2026-09-22-adr-0014-phase-a-nen-tang-quyen.md`. Cùng phiên soạn ADR-0014 và lập kế hoạch, sau đó thi công luôn (không phải hai phiên khác vai như CLAUDE.md §3 khuyến nghị cho việc lớn — **cần kiểm độc lập bù lại**, chưa làm ở phiên này).
 
+## 0. Kiểm độc lập (subagent, chỉ đọc) — 2026-09-22, sau khi khép 10 task đầu
+
+**Kết luận của người kiểm: KHÔNG ĐẠT ban đầu.** Phát hiện **P0 nghiêm trọng**: `POST /api/staff` (tạo tài khoản MỚI) thiếu đúng cái guard mà `PUT /api/staff/:id/permissions` đã có — một tài khoản chỉ giữ `ADMIN` gọi `POST /api/staff` với `permissions: ["SUPER_ADMIN"]` tạo thẳng được một tài khoản Super Admin mới (201), phá bất biến cốt lõi "chỉ Super Admin cấp/gỡ Super Admin" (ADR-0014 điều 2/8). Người kiểm xác nhận bằng thực nghiệm qua `tests/audit/harness.mjs`, không sửa mã.
+
+**Đã vá ngay trong phiên** (commit `adce28f`): thêm đúng điều kiện `SUPER_ADMIN_ONLY()` vào `POST /api/staff`, viết test đỏ→xanh tái hiện đúng kịch bản người kiểm nêu. Chạy lại toàn bộ: `npm test` 451/451, `typecheck` 0 lỗi, `test:e2e` 16/16 + `audit-invariants --strict` xanh.
+
+Người kiểm cũng nêu hai việc mức thấp hơn, đã xử lý cùng lúc:
+- **P2** (tài liệu mô tả lệch mã, CLAUDE.md §2): `src/CLAUDE.md` (access `"orders"` chưa nhắc), `docs/SYSTEM-DESIGN.md` (bảng quyền §8, từ vựng, số lượng quyền app) — đã cập nhật (commit `adce28f`).
+- **P3** (ghi nhận, KHÔNG bắt buộc sửa ở Phase A): điểm thực thi `admin.manage.superadmin` ở `accounts/index.ts` tự viết điều kiện thay vì gọi `can(admin, "admin.manage.superadmin")` — lệch nguyên tắc "bản đồ quyền một nơi" (P6) và có thể là lý do lỗ P0 lọt qua (không có một điểm `can()` chung để rà). **Chưa sửa** — để lại cho phiên sau nếu chủ dự án đồng ý (đổi cách thực thi, không đổi hành vi).
+
+**Bài học:** khi thêm một guard "chỉ X mới được cấp/gỡ quyền Y" cho một thao tác đã có SẴN TỪ TRƯỚC (route sửa), phải rà TẤT CẢ các đường tạo ra cùng trạng thái đó — kể cả đường TẠO MỚI, không chỉ đường SỬA. Kế hoạch gốc (mục Task 9) chỉ liệt bốn route "quản lý MỘT tài khoản" (PATCH/PUT permissions/unlock/reset-pin) mà quên `POST /api/staff` cũng ghi được `SUPER_ADMIN` ngay từ đầu.
+
 ## 1. Trạng thái tại HEAD (nhánh `kiem-toan-doi-tac`)
 
 | Hạng mục | Kết quả |
@@ -11,7 +23,7 @@ Viết 2026-09-22 khi khép Phase A (nền tảng quyền: D-01, D-02, điều 8
 | `npm run typecheck` | 0 lỗi |
 | `npm run test:e2e` | 16/16 kịch bản, kèm `audit-invariants --strict` xanh |
 | `npx wrangler d1 migrations apply --local` | áp sạch (đã thử) |
-| Kiểm độc lập | **CHƯA** — việc lớn theo CLAUDE.md §3, không tự báo "đạt" |
+| Kiểm độc lập | Một lượt đã làm (mục 0): phát hiện P0, đã vá. **CHƯA có lượt kiểm lại xác nhận bản vá** — người thi công (AI) không tự báo "đạt" thay người kiểm (CLAUDE.md §3, N8) |
 | Đã merge `main` / đã push | **CHƯA** |
 
 ## 2. Việc đã làm, đúng 9 task của kế hoạch (1 commit/task, TDD đỏ→xanh)
@@ -37,7 +49,7 @@ Viết 2026-09-22 khi khép Phase A (nền tảng quyền: D-01, D-02, điều 8
 
 ## 4. Việc CHỦ DỰ ÁN quyết/làm
 
-1. **Kiểm độc lập trước** (CLAUDE.md §3, việc lớn) — chưa làm ở phiên này. Đọc mã thật + chạy lại `npm test`/`typecheck`/`test:e2e`, đối chiếu ADR-0014 điều 1–3, 7, 8; báo "đạt"/"không đạt", không tự AI khai.
+1. **Một lượt kiểm lại, xác nhận bản vá P0** (CLAUDE.md §3, việc lớn — người thi công không tự báo "đạt" thay). Trọng tâm: đúng chỗ vừa sửa (`POST /api/staff` + test mới) và rà lại xem còn đường nào khác ghi được `SUPER_ADMIN`/đổi cấp bậc tài khoản mà chưa có guard không (P3 người kiểm nêu — `admin.manage.superadmin` chưa gọi qua `can()` một chỗ duy nhất, dễ lọt lần sau).
 2. Sau kiểm độc lập đạt: chủ dự án quyết merge `main` (AI không tự `git push`/merge — `CLAUDE.md` §8).
 3. Triển khai (nếu chủ dự án quyết làm ngay): theo mục "CHỜ TRIỂN KHAI — ADR-0014 Phase A" mới thêm vào `docs/HANDOFF-N1.md` — áp `0020` (chỉ `INSERT`, không cần `wrangler deploy` đi kèm nếu tách hai bước như `0017`, NHƯNG mã Worker cũng đổi ở đợt này — quyền `PARTNER`/`SUPER_ADMIN`, route `access: "orders"` — nên vẫn cần deploy cùng lúc, khác `0017`; kiểm lại kỹ trước khi viết runbook chi tiết, đây chỉ là điểm cần lưu ý, chưa phải kết luận). Sau khi áp remote: chạy câu SQL gán `SUPER_ADMIN` một lần cho SĐT của chủ.
 4. **Chưa cấp tài khoản `PARTNER` thật nào** cho tới khi merge + (nếu chủ dự án chọn) triển khai xong — đúng thứ tự đề xuất §5 của `docs/AUDIT-2026-09-22-DOI-TAC.md`.
