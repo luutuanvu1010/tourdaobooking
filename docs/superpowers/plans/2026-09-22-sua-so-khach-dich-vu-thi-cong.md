@@ -827,3 +827,11 @@ Không phải một commit. Gọi Agent tool (subagent_type mặc định/genera
 - Trigger chỉ-thêm của `order_money_adjustment` có thật sự chặn UPDATE/DELETE không (chạy tay một câu SQL thử).
 
 Chỉ báo "đạt" với chủ dự án SAU KHI có báo cáo này. Có lỗ thì vá ngay, kiểm độc lập lại đúng chỗ vừa vá.
+
+## Kết quả thật (2026-09-22): KHÔNG ĐẠT ban đầu, đã vá, chờ kiểm lại
+
+Người kiểm độc lập phát hiện **P0**: route dùng `can(staff, "order.money.edit", { assigned })` trần — ô `order.money.edit` của `ACCOUNTING`/`ADMIN` trong `MATRIX` là `"any"` (dành cho một route N3 khác, chưa làm), `can()` hợp nhiều quyền nên cho `ACCOUNTING`/`ADMIN` qua route HẸP này dù KHÔNG phải người phụ trách — xác nhận bằng máy chủ thật (tự sửa số khách của đơn không liên quan, 200). **Cùng loại lỗi đã bắt và vá một lần ở `checkAssignee` (Task 1)** — bài học: mọi chỗ cần phân biệt "cấp hẹp" (một quyền cụ thể) khỏi "cấp rộng" (`any`, dành cho route khác cùng mã thao tác) PHẢI đọc thẳng ô `MATRIX` chính xác, không được dùng `can()` trần.
+
+**Đã vá trong phiên** (commit `06fd21c`): route giờ chỉ cho qua khi CHÍNH XÁC có quyền cấp hẹp (`MATRIX["order.money.edit"][p] === "assigned"`, tức `FIELD`) VÀ đang được giao, cộng `SUPER_ADMIN` (any ở mọi thao tác, ADR-0014 điều 2). Thêm ca e2e tái hiện đúng lỗ hổng (đỏ trước khi vá — `ACCOUNTING`/`ADMIN` gọi route trên đơn không liên quan → nay đúng 403) + ca `SUPER_ADMIN` dùng được route dù không phải người phụ trách + test đơn vị cho `pax` thiếu hẳn một trường (khoảng trống kiểm người kiểm độc lập nêu ở mục (d), không phải lỗi mã).
+
+Sau khi vá: `npm test` 478/478, `npm run typecheck` 0 lỗi, `npm run test:e2e` 16/16 (kể cả `audit-invariants --strict`). **Cần một lượt kiểm độc lập lại, chỉ đúng chỗ vừa vá** (route + test mới) trước khi báo "đạt" với chủ dự án.
