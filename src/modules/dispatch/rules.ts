@@ -53,7 +53,7 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
   if (!who.partyId) return { ok: false, message: "Nhân viên này chưa có hồ sơ, không thể giao phụ trách." };
   const narrowTier = who.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
   const eligible = can(who, "order.modify", { assigned: true }) || narrowTier;
-  if (!eligible) return { ok: false, message: "Chỉ giao phụ trách cho người có quyền Bán hàng, Quản trị hoặc Thực hiện." };
+  if (!eligible) return { ok: false, message: "Chỉ giao phụ trách cho người có quyền Bán hàng, Quản trị hoặc Hướng dẫn viên." };
   return { ok: true, partyId: who.partyId, name: who.fullName };
 }
 

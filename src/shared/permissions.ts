@@ -9,7 +9,7 @@ export const PERMISSION_LABEL: Record<PermissionCode, string> = {
   SALES: "Bán hàng",
   ACCOUNTING: "Kế toán",
   ADMIN: "Quản trị",
-  FIELD: "Thực hiện",
+  FIELD: "Hướng dẫn viên",
   PARTNER: "Đối tác",
   SUPER_ADMIN: "Super Admin",
 };

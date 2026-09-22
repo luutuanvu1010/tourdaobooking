@@ -87,7 +87,7 @@ test('access "admin": ADMIN dùng được; SUPER_ADMIN-chỉ (không giữ ADMI
   assert.equal((await sales.get("/api/adm")).status, 403);
 });
 
-test('access "orders": văn phòng và Đối tác dùng được; chỉ Thực hiện thì không; chưa đăng nhập 401', async () => {
+test('access "orders": văn phòng và Đối tác dùng được; chỉ Hướng dẫn viên thì không; chưa đăng nhập 401', async () => {
   const office = build(staffOf(["SALES"]), () => null);
   assert.equal((await office.get("/api/ord")).status, 200);
   const partner = build(staffOf(["PARTNER"]), () => null);
