@@ -1,14 +1,15 @@
 # Bộ CLAUDE.md mới (đề xuất; cài trên nhánh `cai-claude-md`, có hiệu lực khi chủ merge)
 
 > **Cập nhật 2026-09-22 (theo yêu cầu của chủ):** đã sửa bản đề xuất rồi cài lên nhánh `cai-claude-md`. Thêm: (a) §6 chỉ đường **nạp ngữ cảnh đúng lúc** (Hiến pháp, kiến trúc, hệ thống thiết kế; không nạp hết, không nhập `@`); (b) §4 **trả lời ngắn, dễ hiểu, phi kỹ thuật**; (c) `web/CLAUDE.md` có mục "Hệ thống thiết kế"; (d) sửa dòng trỏ Hiến pháp (đã ghim ở `playbook/`, ADR-0012 accepted). Ba tệp ở đây giữ làm **bản gốc để đối chiếu**; bản dùng thật là `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md` ở gốc và thư mục con. **Chỉ có hiệu lực khi chủ merge nhánh (N9: AI không tự có hiệu lực cho luật chi phối chính mình).**
+> **Đổi tên 2026-09-22 (theo kiểm toàn nhánh):** ba tệp đối chiếu KHÔNG còn tên `CLAUDE.md` (đổi thành `ban-doi-chieu-goc.md`, `src/ban-doi-chieu-src.md`, `web/ban-doi-chieu-web.md`) — Claude Code tự nạp mọi tệp tên đúng `CLAUDE.md`/`CLAUDE.local.md` khi đọc tệp trong thư mục đó (`code.claude.com/docs/en/memory`), nên ba bản sao này từng bị nạp thêm vào ngữ cảnh mỗi khi AI đọc thư mục này, dù nội dung đã giống hệt bản đang dùng.
 >
 > **Trạng thái trước đó: ĐỀ XUẤT, chờ chủ dự án duyệt.** `CLAUDE.md` chi phối chính AI viết ra nó, nên theo Hiến pháp v2.3.0 **N9** AI chỉ đề xuất, không tự cài. Soạn trên nền `main` @ `8c16767` (đã có module Góp ý). Căn cứ: tài liệu chính thức Anthropic (`code.claude.com/docs`: `memory`, `best-practices`, `large-codebases` — nhắm dưới 200 dòng mỗi tệp, không đặt thông tin hay đổi, tệp theo thư mục cho luật cục bộ, `CLAUDE.md` chỉ là lời khuyên nên điều cần chặn chắc dùng hook), `CLAUDE.md` của tourdaovn (thứ tự ưu tiên, điểm dừng cứng, hợp đồng báo cáo), bản cũ của repo, quyết định của chủ trong phiên 2026-09-21, và hai lượt kiểm độc lập (người kiểm chỉ đọc).
 
 ## Cách cài (nhánh `cai-claude-md` đã làm; ghi lại để tái hiện)
 ```
-cp docs/superpowers/proposals/2026-09-21-claude-md/CLAUDE.md CLAUDE.md
-cp docs/superpowers/proposals/2026-09-21-claude-md/src/CLAUDE.md src/CLAUDE.md
-cp docs/superpowers/proposals/2026-09-21-claude-md/web/CLAUDE.md web/CLAUDE.md
+cp docs/superpowers/proposals/2026-09-21-claude-md/ban-doi-chieu-goc.md CLAUDE.md
+cp docs/superpowers/proposals/2026-09-21-claude-md/src/ban-doi-chieu-src.md src/CLAUDE.md
+cp docs/superpowers/proposals/2026-09-21-claude-md/web/ban-doi-chieu-web.md web/CLAUDE.md
 ```
 **Cảnh báo:** bản gốc soạn trên `main` tại `8c16767`; nếu `main` đã đổi tiếp thì đối chiếu `git diff 8c16767 main -- CLAUDE.md` trước khi `cp`, kẻo xoá phần mới của `main`. Sau khi cài: mở lại phiên để nạp; kiểm đường dẫn nhắc tới còn đúng.
 **Đối chiếu ngày 2026-09-22 (`main` @ `f01fa5c`):** `git diff 8c16767 main -- CLAUDE.md` chỉ đổi hai thứ: số test (403 → 408) và số migration (`0017` đã có, kế tiếp `0018`). Bản đề xuất không còn ghi số migration kế tiếp (chỉ ghi cách tính) và không ghi số test. Nếu `main` đi tiếp sau ngày này, đối chiếu lại bằng đúng lệnh trên.

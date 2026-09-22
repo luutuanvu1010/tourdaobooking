@@ -9,7 +9,8 @@
       "Bash(wrangler secret *)",
       "Bash(npx wrangler secret *)",
       "Bash(wrangler rollback *)",
-      "Bash(npx wrangler rollback *)"
+      "Bash(npx wrangler rollback *)",
+      "Bash(npm run db:migrate:remote)"
     ]
   },
   "hooks": {
