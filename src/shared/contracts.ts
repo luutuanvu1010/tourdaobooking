@@ -153,6 +153,13 @@ export interface OrderDetailDto extends OrderDto {
   services: OrderServiceDto[];
 }
 
+/** Thông tin chuyến rút gọn cho thẻ trong danh sách đơn — lấy từ dịch vụ ĐẦU TIÊN theo sort_order của đơn (không gộp nhiều dịch vụ). */
+export interface OrderSummaryTripDto {
+  departDate: string | null;
+  pickupTime: string | null;
+  pickupPlace: string | null;
+}
+
 export type OrderSummaryDto = Pick<
   OrderDto,
   "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "total" | "remainingAmount" | "staffName" | "createdAt"

@@ -1,9 +1,9 @@
-import { auditStatement } from "../audit";
-import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto } from "../../shared/contracts";
-import { escapeLike } from "../../shared/http";
-import type { PaxCode, PaxCounts } from "../../shared/order-lines";
-import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
-import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
+import { auditStatement } from "../audit/index.ts";
+import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts.ts";
+import { escapeLike } from "../../shared/http.ts";
+import type { PaxCode, PaxCounts } from "../../shared/order-lines.ts";
+import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules.ts";
+import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules.ts";
 
 interface OrderRow {
   id: string;
@@ -66,6 +66,51 @@ const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booke
 const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time, pickup_time, pickup_place,
   checkin_date, checkin_time, checkin_place, note FROM order_service WHERE order_id = ? ORDER BY sort_order`;
 const ITEM_SELECT = `SELECT id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
+
+export interface ServiceSummaryRow {
+  order_id: string;
+  name: string;
+  sort_order: number;
+  pax_adult: number;
+  pax_child: number;
+  pax_senior: number;
+  pax_infant: number;
+  depart_date: string | null;
+  pickup_time: string | null;
+  pickup_place: string | null;
+}
+
+export interface ServiceSummary {
+  serviceNames: string[];
+  pax: PaxCounts;
+  trip: OrderSummaryTripDto;
+}
+
+export const EMPTY_SUMMARY: ServiceSummary = {
+  serviceNames: [],
+  pax: { adult: 0, child: 0, senior: 0, infant: 0 },
+  trip: { departDate: null, pickupTime: null, pickupPlace: null },
+};
+
+/**
+ * Gộp các dòng order_service thành tóm tắt cho từng đơn, dùng cho thẻ ở danh sách đơn (đặc tả §7).
+ * ĐÒI HỎI `rows` đã sắp theo (order_id, sort_order) — dòng đầu gặp của mỗi order_id quyết định `trip`
+ * (dịch vụ có sort_order nhỏ nhất, cùng quy ước với SERVICE_SELECT đã dùng ở tệp này). `pax` cộng dồn TẤT CẢ dịch vụ của đơn.
+ * Thuần, không đụng DB — test độc lập ở repository.test.ts.
+ */
+export function summarizeServices(rows: readonly ServiceSummaryRow[]): Map<string, ServiceSummary> {
+  const out = new Map<string, ServiceSummary>();
+  for (const r of rows) {
+    let s = out.get(r.order_id);
+    if (!s) {
+      s = { serviceNames: [], pax: { adult: 0, child: 0, senior: 0, infant: 0 }, trip: { departDate: r.depart_date, pickupTime: r.pickup_time, pickupPlace: r.pickup_place } };
+      out.set(r.order_id, s);
+    }
+    s.serviceNames.push(r.name);
+    s.pax = { adult: s.pax.adult + r.pax_adult, child: s.pax.child + r.pax_child, senior: s.pax.senior + r.pax_senior, infant: s.pax.infant + r.pax_infant };
+  }
+  return out;
+}
 
 function toDto(r: OrderRow): OrderDto {
   return {

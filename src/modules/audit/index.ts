@@ -2,12 +2,12 @@
 // Nhật ký chỉ ghi thêm (append-only). Hàm ghi trả về câu lệnh D1 chưa chạy để module gọi gộp vào
 // cùng một db.batch() với thay đổi dữ liệu → ghi nhật ký và đổi dữ liệu thành công/thất bại cùng nhau.
 // Route riêng: GET /api/audit (nhật ký toàn hệ thống) — chỉ admin. Module không phụ thuộc module nào.
-import { error, intParam, json } from "../../shared/http";
-import { route, type AppModule } from "../../shared/router";
+import { error, intParam, json } from "../../shared/http.ts";
+import { route, type AppModule } from "../../shared/router.ts";
 import {
   insertStatement, isAuditAction, listAll, listByOrder,
   type AuditAction, type AuditEntry, type AuditInput, type AuditRecord,
-} from "./repository";
+} from "./repository.ts";
 
 export type { AuditAction, AuditEntry, AuditInput, AuditRecord };
 
