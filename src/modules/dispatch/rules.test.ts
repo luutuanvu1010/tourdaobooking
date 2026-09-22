@@ -53,12 +53,16 @@ test("người được giao: SALES hoặc ADMIN đang hoạt động có hồ s
   }
 });
 
-test("người được giao: chỉ FIELD, chỉ kế toán, không quyền nào, đã ngưng, chưa có hồ sơ, không tồn tại → từ chối kèm lý do tiếng Việt", () => {
+test("người được giao: FIELD đang hoạt động có hồ sơ cũng đủ điều kiện — cấp hẹp (ADR-0014 điều 6, đoạn 3)", () => {
+  for (const perms of [["FIELD"], ["ACCOUNTING", "FIELD"]] as PermissionCode[][]) {
+    assert.deepEqual(checkAssignee(account(perms)), { ok: true, partyId: "pty-1", name: "Nguyễn Thị Hoa" }, perms.join("+"));
+  }
+});
+
+test("người được giao: chỉ kế toán, không quyền nào, đã ngưng, chưa có hồ sơ, không tồn tại → từ chối kèm lý do tiếng Việt", () => {
   const cases: [ReturnType<typeof account> | null, RegExp][] = [
-    [account(["FIELD"]), /Bán hàng hoặc Quản trị/],
-    [account(["ACCOUNTING"]), /Bán hàng hoặc Quản trị/],
-    [account(["ACCOUNTING", "FIELD"]), /Bán hàng hoặc Quản trị/],
-    [account([]), /Bán hàng hoặc Quản trị/],
+    [account(["ACCOUNTING"]), /Bán hàng, Quản trị hoặc Thực hiện/],
+    [account([]), /Bán hàng, Quản trị hoặc Thực hiện/],
     [account(["SALES"], { active: false }), /ngưng hoạt động/],
     [account(["ADMIN"], { partyId: null }), /chưa có hồ sơ/],
     [null, /Không tìm thấy/],
@@ -69,11 +73,11 @@ test("người được giao: chỉ FIELD, chỉ kế toán, không quyền nào
   }
 });
 
-test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify của bản đồ quyền)", () => {
+test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify/order.money.edit của bản đồ quyền)", () => {
   const eligible = PERMISSION_CODES.filter((p) => checkAssignee(account([p])).ok);
-  // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác, kể cả order.modify — nên đủ điều kiện làm người phụ trách như ADMIN, không cần quyết riêng.
-  // PARTNER (own) và FIELD (none, cho tới khi Phase B thêm order.money.edit=assigned) CHƯA đủ điều kiện — đúng ý (chưa mở ở Phase A).
-  assert.deepEqual(eligible, ["SALES", "ADMIN", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
+  // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).
+  // PARTNER (own, không phải assigned) CHƯA đủ điều kiện — cấp thứ ba của PARTNER (điều 10) là Phase C, không phải checkAssignee.
+  assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
 });
 
 // --- Ai được đặt/đổi người phụ trách (ADR-0009 điều 1–2) --------------------------------------------------------------

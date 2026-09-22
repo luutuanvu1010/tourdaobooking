@@ -85,7 +85,8 @@ r = await call(A, "GET", "/api/dispatch/assignees");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const ids = r.body.assignees.map((x) => x.staffId);
 for (const who of [a, b, adm, C]) assert.ok(ids.includes(who.id), `${who.id} phải có trong danh sách người có thể được giao`);
-for (const [label, who] of [["kế toán", acc], ["FIELD", fld], ["đã ngưng", D]]) assert.ok(!ids.includes(who.id), `${label} không được có trong danh sách`);
+for (const [label, who] of [["kế toán", acc], ["đã ngưng", D]]) assert.ok(!ids.includes(who.id), `${label} không được có trong danh sách`);
+assert.ok(ids.includes(fld.id), "FIELD nay đủ điều kiện làm người phụ trách cấp hẹp (ADR-0014 điều 6) nên phải có trong danh sách");
 assert.deepEqual(r.body.assignees.find((x) => x.staffId === b.id), asDto(b));
 assert.ok(r.body.assignees.every((x) => Object.keys(x).sort().join() === "name,partyId,staffId"));
 assert.doesNotMatch(JSON.stringify(r.body), /09\d{8}/, "không lộ SĐT");
@@ -154,12 +155,18 @@ assert.equal((await changes(A, o1)).length, nChanges, "no_change không ghi nh�
 assert.equal((await rowsOf(o1.id)).length, stableRows, "no_change không tạo dòng");
 console.log("✓ đổi sang chính người đang phụ trách → 409 no_change");
 
-// --- 7) người được giao phải là SALES/ADMIN đang hoạt động có hồ sơ → còn lại 400 invalid_assignee; thân/đơn sai
-for (const [label, target] of [["FIELD", fld.id], ["kế toán", acc.id], ["đã ngưng", D.id], ["không tồn tại", "00000000-0000-4000-8000-00000000abcd"]]) {
+// --- 7) người được giao phải là SALES/ADMIN/FIELD đang hoạt động có hồ sơ → còn lại 400 invalid_assignee; thân/đơn sai
+for (const [label, target] of [["kế toán", acc.id], ["đã ngưng", D.id], ["không tồn tại", "00000000-0000-4000-8000-00000000abcd"]]) {
   r = await setHandler(A, o1.id, target);
   assert.equal(r.status, 400, `${label}: ${JSON.stringify(r.body)}`);
   assert.equal(r.body.error.code, "invalid_assignee", label);
 }
+// FIELD nay đủ điều kiện cấp hẹp làm người phụ trách (ADR-0014 điều 6) — thử trên đơn RIÊNG để không đụng trạng thái o1 đang được theo dõi ở trên.
+const oFieldAssignee = await newOrder(A);
+r = await setHandler(A, oFieldAssignee.id, fld.id);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(await handlerOf(A, oFieldAssignee.id), asDto(fld));
+console.log("✓ FIELD nay gán được làm người phụ trách (ADR-0014 điều 6, cấp hẹp)");
 for (const body of [{}, { staffId: "" }, { staffId: 7 }, { staffId: "không phải id" }, null]) {
   r = await call(A, "PUT", `/api/orders/${o1.id}/handler`, body ?? undefined);
   assert.equal(r.status, 400, JSON.stringify(body));
@@ -169,7 +176,7 @@ assert.equal((await setHandler(A, "00000000-0000-4000-8000-000000000000", a.id))
 assert.equal((await setHandler(A, "abc", a.id)).status, 404);
 assert.deepEqual(await handlerOf(A, o1.id), asDto(a), "bị từ chối thì không đổi gì");
 assert.equal((await rowsOf(o1.id)).length, stableRows);
-console.log("✓ giao cho FIELD/kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404");
+console.log("✓ giao cho kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404");
 
 // --- 8) nhận đơn CHƯA có người phụ trách (dispatch.claim): SALES/ADMIN nhận cho CHÍNH MÌNH
 const o2 = await newOrder(A);
