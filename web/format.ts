@@ -1,4 +1,5 @@
 import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
+import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
 import type { AuditAction, DepositMethod, OrderStatus } from "./api";
 
 const nf = new Intl.NumberFormat("vi-VN");
@@ -29,4 +30,19 @@ export function initials(name: string): string {
   const first = words[0]?.[0] ?? "?";
   const last = words.length > 1 ? (words[words.length - 1]?.[0] ?? "") : "";
   return (first + last).toLocaleUpperCase("vi-VN");
+}
+
+/** "2026-10-01" → "01/10" — thao tác chuỗi thuần, KHÔNG dùng `new Date()` (tránh lệch múi giờ khi ngày không kèm giờ). */
+export function dayMonth(isoDate: string): string {
+  const [, m, d] = isoDate.split("-");
+  return `${d}/${m}`;
+}
+
+const PAX_ABBR: Record<(typeof PAX_ORDER)[number], string> = { adult: "NL", child: "TE", senior: "NCT", infant: "EB" };
+
+/** "05 NL · 02 TE · 01 EB" — đếm 2 chữ số, bỏ loại có 0 khách, đúng thứ tự PAX_ORDER (đặc tả §7 mục 4). */
+export function paxCounts(pax: PaxCounts): string {
+  return PAX_ORDER.filter((c) => pax[c] > 0)
+    .map((c) => `${String(pax[c]).padStart(2, "0")} ${PAX_ABBR[c]}`)
+    .join(" · ");
 }

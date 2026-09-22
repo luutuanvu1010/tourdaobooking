@@ -2,7 +2,7 @@ import { can } from "../src/shared/permissions";
 import { NO_HANDLER_TEXT, handlerText } from "../src/shared/handler-view";
 import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
-import { STATUS_LABEL, dateTime, vnd } from "./format";
+import { STATUS_LABEL, dayMonth, paxCounts, vnd } from "./format";
 import { initShell, showError } from "./shell";
 
 const PAGE = 30;
@@ -12,6 +12,7 @@ const listEl = byId("list");
 const moreBtn = byId<HTMLButtonElement>("more");
 const emptyEl = byId("empty");
 const errorEl = byId("error");
+const loadingEl = byId("loading");
 
 let offset = 0;
 let loadSeq = 0; // bỏ kết quả của lần tải cũ khi người dùng gõ tiếp
@@ -26,14 +27,19 @@ interface Row {
 function row(o: OrderSummary): Row {
   // Chỗ giữ sẵn một dòng chữ (không nhảy bố cục khi tên về); `is-pending` = chưa biết. Lời gọi lỗi → ẩn hẳn chỗ này, KHÔNG hiện "Chưa có người phụ trách" (đó là khẳng định về dữ liệu).
   const slot = h("div", { class: "order-row-handler is-pending" });
+  const when = o.trip.departDate ? `${dayMonth(o.trip.departDate)}${o.trip.pickupTime ? ` · ${o.trip.pickupTime}` : ""}` : "Chưa có ngày đón";
+  const serviceLine = o.serviceNames.length === 0 ? "—" : o.serviceNames.length === 1 ? o.serviceNames[0] : `${o.serviceNames[0]} +${o.serviceNames.length - 1} dịch vụ`;
   const el = h(
     "a",
     { class: "order-row", href: `/order?id=${encodeURIComponent(o.id)}` },
-    h("div", { class: "order-row-main" }, h("strong", null, o.orderCode), h("span", { class: `badge badge-${o.status}` }, STATUS_LABEL[o.status])),
-    h("div", null, o.customerName, " · ", o.customerPhone),
-    h("div", { class: "muted" }, dateTime(o.createdAt), " · ", o.staffName),
+    h("div", { class: "order-row-top" }, h("strong", null, when), h("span", { class: `badge badge-${o.status}` }, STATUS_LABEL[o.status])),
+    h("div", { class: "order-row-main" }, h("strong", null, o.orderCode), h("span", null, o.customerName, " · ", o.customerPhone)),
+    h("div", { class: "muted" }, serviceLine),
+    h("div", { class: "muted" }, paxCounts(o.pax)),
     slot,
-    h("div", { class: "order-row-money" }, h("span", null, "Tổng ", h("b", null, vnd(o.total))), h("span", null, "Còn lại ", h("b", null, vnd(o.remainingAmount)))),
+    h("div", { class: "order-row-money" }, h("span", null, "Tổng ", h("b", null, vnd(o.total))), h("span", null, "Đã trả ", h("b", null, vnd(o.depositAmount))), h("span", null, "Còn lại ", h("b", null, vnd(o.remainingAmount)))),
+    ...(o.trip.pickupPlace ? [h("div", { class: "muted" }, "Đón tại ", o.trip.pickupPlace)] : []),
+    ...(o.customerNote ? [h("div", { class: "order-row-note" }, o.customerNote)] : []),
   );
   return { id: o.id, el, slot };
 }
@@ -65,12 +71,14 @@ async function load(reset: boolean): Promise<void> {
   const seq = ++loadSeq;
   if (reset) offset = 0;
   showError(errorEl, null);
+  if (reset) loadingEl.hidden = false;
   const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
   if (qInput.value.trim()) params.set("q", qInput.value.trim());
   if (statusSel.value) params.set("status", statusSel.value as OrderStatus);
   try {
     const { orders, hasMore } = await api<Api.OrderListResponse>(`/api/orders?${params}`);
     if (seq !== loadSeq) return;
+    loadingEl.hidden = true;
     const rows = orders.map(row);
     if (reset) replaceChildren(listEl, ...rows.map((r) => r.el));
     else listEl.append(...rows.map((r) => r.el));
@@ -79,7 +87,10 @@ async function load(reset: boolean): Promise<void> {
     emptyEl.hidden = offset > 0;
     void fillHandlers(rows); // không chờ: danh sách hiện ngay, người phụ trách điền vào khi về
   } catch (err) {
-    if (seq === loadSeq) showError(errorEl, err instanceof ApiError ? err.message : "Không tải được danh sách.");
+    if (seq === loadSeq) {
+      loadingEl.hidden = true;
+      showError(errorEl, err instanceof ApiError ? err.message : "Không tải được danh sách.");
+    }
   }
 }
 
