@@ -51,6 +51,6 @@ Phạm vi theo tổ chức/nhiều tài khoản dùng chung một tập đơn; "
 
 1. **Bạn từng nói phạm vi xem đơn phải là nút bấm tuỳ chọn trong bảng điều khiển Super Admin** (câu 1, §4.1 tài liệu kiểm toán). Trước mắt chỉ có một lựa chọn thật sự cần ("chỉ đơn của mình"), nên đặc tả này **đề xuất chưa xây nút bấm**, chờ khi có lựa chọn thứ hai thật sự cần dùng. Bạn đồng ý hoãn, hay muốn có nút bấm ngay dù chỉ có một lựa chọn?
 2. Duyệt `ADR-0014` không? (mở hai quyền mới, mở sửa sau xác nhận cho Thực hiện qua dòng điều chỉnh, đổi mặc định quyền tài khoản mới sang "không quyền")
-3. Mở thí điểm cho một nhóm nhỏ CTV trước, hay mở hết cùng lúc? (câu 5, §4.1 tài liệu kiểm toán — vẫn chưa có câu trả lời)
+3. ~~Mở thí điểm cho một nhóm nhỏ CTV trước, hay mở hết cùng lúc?~~ — **Đã trả lời 2026-09-22: thí điểm 5 CTV trước** (§4.4 tài liệu kiểm toán). Còn chốt: thời gian thí điểm, tiêu chí mở rộng.
 4. "Gán hoặc xác nhận thủ công" cho hướng dẫn viên/lái xe bên ngoài: nhân viên gán thẳng, hay họ xin nhận rồi nhân viên duyệt?
 5. Đơn do Đối tác lập mà chưa ai nhận: có tự động lấy người lập làm người phụ trách mặc định như hôm nay không, hay bắt buộc chờ một nhân viên/hướng dẫn viên nội bộ nhận trước khi xác nhận?

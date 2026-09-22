@@ -23,7 +23,8 @@ Chủ dự án đã trả lời các câu hỏi mở (§4.1–§4.3 của tài l
 9. Làm rõ thêm (§4.3): sau khi CTV lập và đơn được xác nhận, **hướng dẫn viên có thể phải sửa** (khách đổi số lượng, phát sinh thực tế, đổi gói dịch vụ); nhật ký sửa đổi phải để **cả CTV và admin đều thấy**.
 10. Không cần hỏi luật sư (NĐ 13/2023).
 
-Chưa trả lời (ngoài phạm vi ADR này, xem "Ngoài phạm vi"): mở thí điểm cho một nhóm nhỏ CTV hay mở hết cùng lúc; nghĩa chính xác của "gán hoặc xác nhận thủ công" ở điều 8 trên.
+Đã trả lời sau khi soạn (2026-09-22): thí điểm **5 CTV** trước, không mở hết cùng lúc.
+Chưa trả lời (ngoài phạm vi ADR này, xem "Ngoài phạm vi"): nghĩa chính xác của "gán hoặc xác nhận thủ công" ở điều 8 trên.
 
 ## Quyết định
 
@@ -94,7 +95,7 @@ Chưa trả lời (ngoài phạm vi ADR này, xem "Ngoài phạm vi"): mở thí
 
 ## Ngoài phạm vi (cần chủ dự án quyết riêng, không chặn việc duyệt ADR này)
 0. **Chặn nhất — trái với chỉ thị của chủ, cần trả lời trước khi duyệt phần này:** bạn nói phạm vi xem đơn phải là nút bấm tuỳ chọn của Super Admin (câu 1, §4.1). Hiện chỉ có một lựa chọn thật sự cần ("chỉ đơn của mình"), nên ADR này **đề xuất hoãn** việc xây nút bấm, chờ khi có lựa chọn thứ hai thật sự cần dùng. Bạn đồng ý hoãn, hay muốn có nút bấm ngay dù chỉ có một lựa chọn?
-1. Mở thí điểm cho 5–10 CTV trước, hay mở hết ~1000 tài khoản cùng lúc (câu 5, §4.1 của tài liệu kiểm toán — chủ dự án chưa trả lời).
+1. ~~Mở thí điểm cho 5–10 CTV trước, hay mở hết ~1000 tài khoản cùng lúc~~ — **Chủ đã trả lời 2026-09-22: thí điểm 5 CTV trước** (§4.4 tài liệu kiểm toán). Thời gian thí điểm và tiêu chí mở rộng chưa chốt.
 2. Nghĩa chính xác của "gán hoặc xác nhận thủ công" cho hướng dẫn viên/lái xe bên ngoài (câu 8): (a) nhân viên gán thẳng việc cho họ, hay (b) họ bấm "xin nhận" rồi nhân viên xác nhận (quy trình hai bước mới). Cần chốt trước khi viết đặc tả thi công phần "gán việc" cho `PARTNER`.
 3. Đơn do CTV lập mà chưa ai nhận: có giữ luật "người lập là người phụ trách mặc định" (ADR-0009 điều 4) khi người lập là `PARTNER` không, hay bắt buộc một nhân viên/hướng dẫn viên nội bộ nhận trước khi xác nhận?
 4. Sau khi hướng dẫn viên sửa (điều 6), ảnh xác nhận có cần xuất lại bản mới không; CTV có được báo chủ động (không chỉ thấy khi mở lại đơn) không; có loại sửa nào hướng dẫn viên không được làm (ví dụ giảm giá) không.

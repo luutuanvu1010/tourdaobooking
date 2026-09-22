@@ -124,6 +124,12 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 - Hiển thị lịch sử: ô `order.history.view` hiện là `ownOrAssigned` cho Bán hàng (`permissions.ts:38`), nên người lập (CTV) và người phụ trách (HDV) thấy lịch sử; admin thấy hết. Hợp yêu cầu. Nhưng nhật ký hiện chỉ ghi chữ tự do, **không có giá trị trước/sau có cấu trúc** cho tiền (vòng 1 F-09), nên dòng điều chỉnh phải tự mang trước/sau.
 - Cần chốt trong đặc tả: sau khi HDV sửa, ảnh xác nhận (luôn giá bán lẻ, §4.1 câu 3) có được **xuất lại bản mới** không? CTV có được **báo** khi đơn của mình bị sửa không, hay chỉ thấy khi mở đơn? Có giới hạn loại sửa nào HDV không được làm (ví dụ giảm giá) không?
 
+### 4.4. Chủ dự án trả lời câu thí điểm (2026-09-22)
+
+> "okie vậy cho 5 cộng tác viên dùng trước"
+
+**Quyết định:** mở thí điểm cho **5 CTV** trước, không mở hết ~1000 tài khoản cùng lúc. Chưa chốt: thời gian thí điểm, tiêu chí để mở rộng, các đợt tiếp theo. Gợi ý đã nêu với chủ, chưa được duyệt: khoảng 2 tuần; mở tiếp khi không có sự cố lộ dữ liệu, không có đơn lệch tiền, và các lỗi người dùng báo đã sửa; rồi mở theo đợt (50 → 200 → tất cả). Điều kiện trước thí điểm vẫn giữ: D-01 đã sửa và kiểm độc lập đạt (ADR-0014, "Hệ quả").
+
 ## 5. Thứ tự đề xuất
 
 1. **Không cấp tài khoản cho bất kỳ người ngoài nào** trên hệ thống hiện tại cho tới khi D-01 được sửa (nói với chủ một lần — P18).
