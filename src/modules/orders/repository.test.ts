@@ -1,7 +1,26 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { summarizeServices, type ServiceSummaryRow } from "./repository.ts";
+import * as esbuild from "esbuild";
 
+const HERE = new URL("./", import.meta.url).pathname;
+
+type Mod = typeof import("./repository.ts");
+async function loadModule(): Promise<Mod> {
+  const built = await esbuild.build({
+    stdin: { contents: 'export * from "./repository";', resolveDir: HERE, loader: "ts" },
+    bundle: true,
+    format: "esm",
+    platform: "neutral",
+    target: "es2022",
+    write: false,
+  });
+  const code = Buffer.from(built.outputFiles[0]!.text).toString("base64");
+  return (await import(`data:text/javascript;base64,${code}`)) as Mod;
+}
+
+const { summarizeServices } = await loadModule();
+
+type ServiceSummaryRow = typeof import("./repository.ts").ServiceSummaryRow;
 const row = (o: Partial<ServiceSummaryRow> & { order_id: string; name: string; sort_order: number }): ServiceSummaryRow => ({
   pax_adult: 0, pax_child: 0, pax_senior: 0, pax_infant: 0, depart_date: null, pickup_time: null, pickup_place: null, ...o,
 });

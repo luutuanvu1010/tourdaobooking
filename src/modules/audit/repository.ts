@@ -1,6 +1,6 @@
-import { isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions.ts";
-import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts.ts";
-import { escapeLike } from "../../shared/http.ts";
+import { isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
+import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
+import { escapeLike } from "../../shared/http";
 
 export { isAuditAction, type AuditAction, type AuditTargetType };
 

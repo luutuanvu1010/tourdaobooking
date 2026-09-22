@@ -1,9 +1,9 @@
-import { auditStatement } from "../audit/index.ts";
-import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts.ts";
-import { escapeLike } from "../../shared/http.ts";
-import type { PaxCode, PaxCounts } from "../../shared/order-lines.ts";
-import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules.ts";
-import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules.ts";
+import { auditStatement } from "../audit";
+import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
+import { escapeLike } from "../../shared/http";
+import type { PaxCode, PaxCounts } from "../../shared/order-lines";
+import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
+import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
 interface OrderRow {
   id: string;
