@@ -65,9 +65,10 @@
   --w-form: 1120px;           /* bề rộng tối đa của trang form ở máy tính (form + cột tóm tắt) */
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
+  --w-main: 1200px;         /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
-  --bar-h: 52px;            /* thanh đầu trang, chưa tính vùng an toàn */
+  --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --tab-icon: 36px;
   --fs-tab: 12px;           /* = --fs-xs của tourdaovn; nhãn thanh tab */
@@ -99,7 +100,7 @@ a { color: var(--c-primary); }
 .who { display: flex; align-items: center; gap: var(--s3); font-size: .9rem; }
 .who .btn-link { color: #fff; }
 
-main { max-width: 960px; margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
+main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); }
 .card h2 { margin-bottom: var(--s3); }
 
