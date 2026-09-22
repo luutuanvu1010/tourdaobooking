@@ -37,3 +37,4 @@ Chạy `npm run build:web` trước. Cần Chrome + axe-core **ngoài repo**; c�
 | `web/booker-sheet.ts` (bảng "Đổi khách" ở trang đơn, N2 lát 1) | `a2-smoke-order.mjs` (cùng thư mục) + `v1-nguoi-phu-trach.mjs` |
 | `web/maintenance-screen.ts`, phần bảo trì của `web/api.ts`/`account.ts`/`shell.ts`/`login.ts`/`app.css` | `v1-bao-tri.mjs` (không cần mạng ngoài) |
 | `web/feedback.ts`, `public/feedback.html`, dòng "Góp ý" ở `web/shell.ts`/`web/account.ts` | **chưa có** kịch bản riêng: chạy `v1-bao-tri.mjs` (cùng hai tệp khung) và làm danh sách thử tay ở `docs/HANDOFF-FEEDBACK.md` |
+| `web/staff.ts`, `web/catalog.ts`, `web/locations.ts`, `web/parties.ts`, `web/audit.ts` (mốc bảng→thẻ dùng chung, Bước 2 Đợt A) | `dot-a-smoke.mjs` ở `docs/evidence/2026-09-22-buoc-2-dot-a/kich-ban/` |
