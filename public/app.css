@@ -205,6 +205,12 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
 /* trang "Tôi" */
 .narrow { max-width: var(--w-narrow); } /* thay cho style="max-width:420px" nội tuyến: mỗi style= nuôi thêm 'unsafe-inline' trong CSP (AUDIT-FINDINGS A14) */
+.account-layout { display: block; } /* Đợt C Task 2: bố cục 2 cột ở máy tính — mặc định xếp dọc, hẹp lại ở khổ điện thoại như .narrow trước đây */
+.account-main, .account-side { max-width: var(--w-narrow); }
+@media (min-width: 900px) {
+  .account-layout { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s5); align-items: start; }
+  .account-main, .account-side { max-width: none; }
+}
 .profile { display: flex; align-items: center; gap: var(--s3); }
 .avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--avatar); height: var(--avatar); border-radius: 50%; color: var(--c-on-dark); background: var(--c-primary); font-weight: 800; font-size: var(--fs-name); }
 .profile-name { font-weight: 800; font-size: var(--fs-name); }

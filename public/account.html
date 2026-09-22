@@ -6,20 +6,26 @@
   <h1>Tôi</h1>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="ok" class="alert ok" hidden>Đã đổi PIN. Các thiết bị khác đang đăng nhập bằng tài khoản này sẽ bị đăng xuất.</div>
-  <section id="me" class="card narrow"></section>
-  <!-- Việc của tôi (FIELD đang phụ trách — ADR-0014 điều 6/11): web/account.ts chỉ hiện cho tài khoản có quyền Thực hiện. -->
-  <section id="myjobs" hidden></section>
-  <section id="links" class="card list-card narrow"></section>
-  <!-- Chế độ bảo trì: web/account.ts chỉ hiện cho tài khoản được phép bật/tắt (GET /api/maintenance trả canToggle). -->
-  <section id="maintenance" class="card narrow" aria-labelledby="maintenance-heading" hidden></section>
-  <form id="pin-form" class="card narrow" autocomplete="off">
-    <h2>Đổi mã PIN</h2>
-    <label>PIN hiện tại<input id="current" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
-    <label style="margin-top:12px">PIN mới (6 số)<input id="new" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
-    <label style="margin-top:12px">Nhập lại PIN mới<input id="confirm" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
-    <p class="muted">Không dùng PIN dễ đoán như 123456 hoặc 111111.</p>
-    <button class="btn btn-primary" type="submit">Đổi PIN</button>
-  </form>
+  <div class="account-layout">
+    <div class="account-main">
+      <section id="me" class="card"></section>
+      <!-- Việc của tôi (FIELD đang phụ trách — ADR-0014 điều 6/11): web/account.ts chỉ hiện cho tài khoản có quyền Thực hiện. -->
+      <section id="myjobs" hidden></section>
+      <section id="links" class="card list-card"></section>
+      <form id="pin-form" class="card" autocomplete="off">
+        <h2>Đổi mã PIN</h2>
+        <label>PIN hiện tại<input id="current" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
+        <label style="margin-top:12px">PIN mới (6 số)<input id="new" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
+        <label style="margin-top:12px">Nhập lại PIN mới<input id="confirm" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>
+        <p class="muted">Không dùng PIN dễ đoán như 123456 hoặc 111111.</p>
+        <button class="btn btn-primary" type="submit">Đổi PIN</button>
+      </form>
+    </div>
+    <div class="account-side">
+      <!-- Chế độ bảo trì: web/account.ts chỉ hiện cho tài khoản được phép bật/tắt (GET /api/maintenance trả canToggle). -->
+      <section id="maintenance" class="card" aria-labelledby="maintenance-heading" hidden></section>
+    </div>
+  </div>
 </main>
 <script type="module" src="/js/account.js"></script>
 </body></html>
