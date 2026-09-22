@@ -41,7 +41,7 @@ src/shared/             router, http, contracts (kiểu API), audit-actions, ord
 | `service.ts` | điều phối nhiều bước có I/O (vd đồng bộ Sheet) | chỉ trong module |
 | `sheet.ts`… | bộ đọc thuần cho nguồn ngoài | chỉ trong module (scripts được import) |
 
-File thuần (`rules.ts`, `sheet.ts`, các file trong `shared/` mà `node --test` hoặc `scripts/*.mjs` nạp trực tiếp) import bằng đuôi `.ts` tường minh để chạy trực tiếp; `src/shared/router.ts` chỉ chạy trong Worker (esbuild/wrangler) nên import không đuôi.
+File thuần (`rules.ts`, `sheet.ts`, các file trong `shared/` mà `node --test` hoặc `scripts/*.mjs` nạp trực tiếp) import bằng đuôi `.ts` tường minh để chạy trực tiếp. Ngoại lệ duy nhất: `src/shared/router.ts` chỉ chạy trong Worker (esbuild/wrangler) nên MỘT dòng — `import type { StaffProfile } from "./contracts"` (chỉ nạp kiểu, không sinh mã) — không có đuôi; hai import còn lại của tệp này (`./http.ts`, `./permissions.ts`) vẫn có đuôi như bình thường.
 
 ## Luật dữ liệu
 

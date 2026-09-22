@@ -73,7 +73,7 @@ byId<HTMLFormElement>("new-form").addEventListener("submit", async (e) => {
   clientRequestId = crypto.randomUUID();
   byId<HTMLFormElement>("new-form").reset();
   newCard.hidden = true;
-  location.assign(`/feedback?id=${r.ticket.id}`);
+  location.replace(`/feedback?id=${r.ticket.id}`); // không assign: Back/bfcache không được đưa về form đã lưu (tránh gửi trùng yêu cầu)
 });
 
 // ---- Danh sách ---------------------------------------------------------------------------------------------------
