@@ -202,6 +202,19 @@ test("Điều 8 (admin.manage.superadmin): ADMIN không cấp được SUPER_ADM
   assert.equal(asSuper.status, 200, asSuper.text);
 });
 
+test("P0 (đã vá, phát hiện lúc kiểm độc lập): ADMIN không tự CẤP MỚI được tài khoản SUPER_ADMIN qua POST /api/staff; SUPER_ADMIN thì được", async () => {
+  const w = setup();
+  const asAdmin = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Tự Tạo Super", phone: "0977200001", permissions: ["SUPER_ADMIN"] } });
+  assert.equal(asAdmin.status, 403, asAdmin.text);
+  const asAdminMixed = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Tự Tạo Super 2", phone: "0977200002", permissions: ["SALES", "SUPER_ADMIN"] } });
+  assert.equal(asAdminMixed.status, 403, asAdminMixed.text);
+  const SUPER = "22222222-2222-4222-8222-222222222222";
+  seedStaff(w.sqlite, { id: SUPER, phone: "0900000009", name: "Super Admin", perms: ["SUPER_ADMIN"] });
+  const asSuper = await w.call("POST", "/api/staff", { as: SUPER, body: { fullName: "Tạo Bởi Super", phone: "0977200003", permissions: ["SUPER_ADMIN"] } });
+  assert.equal(asSuper.status, 201, asSuper.text);
+  assert.deepEqual(asSuper.json.staff.permissions, ["SUPER_ADMIN"]);
+});
+
 test("Điều 8: ADMIN không unlock/reset-pin được một ADMIN khác; SUPER_ADMIN thì được", async () => {
   const { w, OTHER_ADMIN, SUPER } = setupRank();
   assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/unlock`, { as: ADM })).status, 403);

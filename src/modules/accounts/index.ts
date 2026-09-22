@@ -141,6 +141,9 @@ export const accountsModule: AppModule = {
       // bỏ qua màn quản trị vốn luôn gửi danh sách và bắt chọn ít nhất một). Gửi permissions: [] tường minh vẫn bị cleanPermissions từ chối.
       const perms = body?.permissions === undefined ? { value: [] } : cleanPermissions(body.permissions);
       if (perms.error) return error(400, "invalid_input", perms.error);
+      // admin.manage.superadmin (điều 2/8): cấp SUPER_ADMIN cho một tài khoản MỚI chỉ Super Admin làm được — cùng luật với PUT .../permissions,
+      // áp riêng ở đây vì tạo mới không có "target" có sẵn để so cấp bậc qua canManageAccount.
+      if (perms.value!.includes("SUPER_ADMIN") && !admin.permissions.includes("SUPER_ADMIN")) return SUPER_ADMIN_ONLY();
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
       try {
