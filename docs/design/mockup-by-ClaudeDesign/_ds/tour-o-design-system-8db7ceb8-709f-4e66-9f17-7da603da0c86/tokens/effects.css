@@ -1,0 +1,22 @@
+/* §3.2 Bo góc · §3.3 Bóng · §6 Chuyển động · token component dùng chung */
+:root{
+  --radius-sm:8px;
+  --radius-md:12px;
+  --radius-lg:18px;
+  --radius-pill:999px;
+
+  --shadow-card:0 1px 3px rgba(15,23,42,0.08);
+  --shadow-raised:0 6px 24px -8px rgba(0,91,150,.15), 0 2px 6px rgba(26,32,44,.05);
+  --shadow-lg:0 16px 48px -12px rgba(0,91,150,.22), 0 4px 12px rgba(26,32,44,.06);
+  --shadow-overlay:0 12px 32px rgba(15,23,42,0.16);
+
+  --m-fast:180ms; /* @kind other */
+  --m-base:300ms; /* @kind other */
+  --m-ease:ease; /* @kind other */
+
+  --underline-width:28px;
+  --underline-height:3px;
+  --badge-py:2px;
+  --badge-px:10px;
+  --card-lift:-3px;
+}

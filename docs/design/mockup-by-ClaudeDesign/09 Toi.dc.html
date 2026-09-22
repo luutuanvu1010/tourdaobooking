@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);text-decoration:none;} a:hover{color:var(--c-primary-strong);}
+    input{font-family:var(--font-ui);font-size:16px;padding:12px 13px;border:1px solid var(--c-border);border-radius:8px;background:#fff;width:100%;box-sizing:border-box;}
+    label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:24px;">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">09 · Tôi — <code style="font-family:ui-monospace,monospace;font-size:18px;color:var(--c-primary);">/account</code></div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Hồ sơ của mình, các liên kết phụ (Hồ sơ, Địa điểm, Nhật ký, Góp ý), đổi PIN, và mục Chế độ bảo trì — chỉ hiện với tài khoản được phép bật. Bật bảo trì phải qua bước xác nhận thứ hai ngay trong trang.</p>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">DESKTOP · 1280</div>
+      <div style="width:1280px;background:var(--c-surface-alt);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:0 24px;height:60px;display:flex;align-items:center;gap:20px;">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c-primary);">
+            <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:999px;">
+            Tour Đảo <span style="font-weight:500;color:var(--c-text-muted);">Booking</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:15px;">
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Đơn hàng</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Hồ sơ</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Dịch vụ</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Nhân viên</a>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:15px;">
+            <span style="padding:7px 12px;border-radius:8px;background:var(--c-primary-soft);color:var(--c-primary);font-weight:700;">Hoàng Gia Huy</span>
+          </div>
+        </div>
+
+        <!-- dải bảo trì -->
+        <a href="#" style="display:block;background:var(--c-sand);color:#3d2a05;text-align:center;font-size:14px;font-weight:700;padding:8px;">Đang ở chế độ bảo trì — chỉ bạn dùng được</a>
+
+        <div style="padding:28px 32px 36px;display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start;max-width:1100px;">
+          <div style="display:flex;flex-direction:column;gap:20px;">
+            <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:32px;">Tôi</h1>
+
+            <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:24px;box-shadow:var(--shadow-card);display:flex;align-items:center;gap:16px;">
+              <div style="width:56px;height:56px;border-radius:999px;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:20px;">HH</div>
+              <div>
+                <div style="font-family:var(--font-display);font-weight:800;font-size:21px;">Hoàng Gia Huy</div>
+                <div style="font-size:15px;color:var(--c-text-muted);">0912 000 111 · Quản trị, Bán hàng</div>
+              </div>
+            </div>
+
+            <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-card);overflow:hidden;">
+              <a href="#" style="display:flex;align-items:center;gap:12px;padding:16px 20px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);">Hồ sơ
+                <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </a>
+              <a href="#" style="display:flex;align-items:center;gap:12px;padding:16px 20px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);">Địa điểm
+                <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </a>
+              <a href="#" style="display:flex;align-items:center;gap:12px;padding:16px 20px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);">Nhật ký
+                <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </a>
+              <a href="#" style="display:flex;align-items:center;gap:12px;padding:16px 20px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);">Góp ý / Báo lỗi
+                <span style="margin-left:auto;background:var(--c-accent);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;">2</span>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+              </a>
+              <button type="button" style="width:100%;text-align:left;font-family:var(--font-ui);font-size:16px;font-weight:600;color:var(--c-accent-strong);background:none;border:none;padding:16px 20px;cursor:pointer;">Đăng xuất</button>
+            </div>
+
+            <form style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:24px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:14px;">
+              <h2 style="margin:0;font-family:var(--font-display);font-weight:700;font-size:21px;">Đổi mã PIN</h2>
+              <label>PIN hiện tại<input type="password" value="******" style="letter-spacing:.3em;"></label>
+              <label>PIN mới (6 số)<input type="password" value="" style="letter-spacing:.3em;"></label>
+              <label>Nhập lại PIN mới<input type="password" value="" style="letter-spacing:.3em;"></label>
+              <p style="margin:0;font-size:14px;color:var(--c-text-muted);">Không dùng PIN dễ đoán như 123456 hoặc 111111.</p>
+              <button type="button" style="align-self:flex-start;font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:12px 22px;cursor:pointer;">Đổi PIN</button>
+            </form>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:20px;padding-top:66px;">
+            <div style="background:var(--c-green-soft);border:1px solid #bbf7d0;border-radius:12px;padding:14px 18px;font-size:15px;color:var(--c-green-text);line-height:1.6;">Đã đổi PIN. Các thiết bị khác đang đăng nhập bằng tài khoản này sẽ bị đăng xuất.</div>
+
+            <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:24px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:16px;">
+              <div>
+                <h2 style="margin:0;font-family:var(--font-display);font-weight:700;font-size:21px;">Chế độ bảo trì</h2>
+                <p style="margin:6px 0 0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Khi bật, mọi nhân viên khác bị chặn ngay (kể cả đang mở app); chỉ bạn dùng được.</p>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;font-size:15px;">
+                <span style="background:var(--c-sand-soft);color:var(--c-sand-text);font-size:12px;font-weight:700;padding:4px 12px;border-radius:999px;">Đang bật</span>
+                <span style="color:var(--c-text-muted);">Dự kiến hoàn tất lúc 21/09/2026 12:30</span>
+              </div>
+              <div style="font-size:14px;color:var(--c-text-muted);">Nhân viên đang thấy: <span style="color:var(--c-text);">Hệ thống đang bảo trì, dự kiến hoàn tất sau <span style="font-family:ui-monospace,monospace;font-weight:700;">24:13</span>.</span></div>
+              <div style="border-top:1px solid var(--c-border);padding-top:16px;display:flex;flex-direction:column;gap:12px;">
+                <div style="display:flex;gap:8px;">
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:11px 18px;cursor:pointer;">30 phút</button>
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:11px 18px;cursor:pointer;">60 phút</button>
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:11px 18px;cursor:pointer;">120 phút</button>
+                </div>
+                <label>Hoặc chọn giờ dự kiến hoàn tất (giờ Việt Nam)<input type="datetime-local" value="2026-09-21T12:30"></label>
+                <div style="display:flex;gap:10px;">
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:12px 18px;cursor:pointer;">Cập nhật giờ dự kiến</button>
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:12px 18px;cursor:pointer;">Tắt chế độ bảo trì</button>
+                </div>
+              </div>
+              <div style="background:var(--c-accent-soft);border:1px solid #f4cfc9;border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-accent-strong);">BƯỚC XÁC NHẬN KHI BẬT</div>
+                <p style="margin:0;font-size:15px;font-weight:700;color:var(--c-text);line-height:1.6;">Mọi nhân viên khác sẽ bị chặn ngay, kể cả người đang mở app. Chỉ bạn dùng được.</p>
+                <p style="margin:0;font-size:15px;color:var(--c-text-muted);">Dự kiến hoàn tất lúc 21/09/2026 12:30.</p>
+                <div style="display:flex;gap:10px;">
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-accent);border:none;border-radius:8px;padding:12px 18px;cursor:pointer;">Xác nhận bật</button>
+                  <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-text-muted);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:12px 18px;cursor:pointer;">Quay lại</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">IPHONE PWA · 390</div>
+      <div style="width:390px;height:844px;background:var(--c-surface-alt);border-radius:38px;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--c-border);display:flex;flex-direction:column;">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:34px 16px 10px;display:flex;align-items:center;">
+          <span style="font-family:var(--font-display);font-weight:800;font-size:16px;">Tôi</span>
+        </div>
+        <div style="background:var(--c-sand);color:#3d2a05;text-align:center;font-size:13px;font-weight:700;padding:8px;">Đang ở chế độ bảo trì — chỉ bạn dùng được</div>
+        <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:12px;overflow:hidden;">
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;">
+            <div style="width:48px;height:48px;border-radius:999px;background:var(--c-primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;">HH</div>
+            <div>
+              <div style="font-family:var(--font-display);font-weight:800;font-size:18px;">Hoàng Gia Huy</div>
+              <div style="font-size:14px;color:var(--c-text-muted);">0912 000 111 · Quản trị, Bán hàng</div>
+            </div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;overflow:hidden;">
+            <a href="#" style="display:flex;align-items:center;padding:16px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);min-height:52px;box-sizing:border-box;">Hồ sơ<svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></a>
+            <a href="#" style="display:flex;align-items:center;padding:16px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);min-height:52px;box-sizing:border-box;">Địa điểm<svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></a>
+            <a href="#" style="display:flex;align-items:center;padding:16px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);min-height:52px;box-sizing:border-box;">Nhật ký<svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></a>
+            <a href="#" style="display:flex;align-items:center;gap:8px;padding:16px;font-size:16px;font-weight:600;border-bottom:1px solid var(--c-border);min-height:52px;box-sizing:border-box;">Góp ý / Báo lỗi<span style="margin-left:auto;background:var(--c-accent);color:#fff;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;">2</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg></a>
+            <button type="button" style="width:100%;text-align:left;font-family:var(--font-ui);font-size:16px;font-weight:600;color:var(--c-accent-strong);background:none;border:none;padding:16px;min-height:52px;cursor:pointer;">Đăng xuất</button>
+          </div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-family:var(--font-display);font-weight:700;font-size:17px;">Đổi mã PIN</div>
+            <input type="password" value="******" style="letter-spacing:.3em;min-height:48px;">
+            <input type="password" placeholder="PIN mới (6 số)" style="min-height:48px;">
+            <button type="button" style="font-family:var(--font-ui);font-size:16px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:14px;min-height:50px;">Đổi PIN</button>
+          </div>
+        </div>
+        <div style="background:#fff;border-top:1px solid var(--c-border);padding:8px 0 26px;display:flex;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--c-text-muted);min-height:56px;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg>
+            <span style="font-size:11px;">Đơn hàng</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--c-text-muted);min-height:56px;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"></path><circle cx="7.5" cy="8.5" r="1.2"></circle></svg>
+            <span style="font-size:11px;">Dịch vụ</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--c-primary);min-height:56px;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg>
+            <span style="font-size:11px;font-weight:700;">Tôi</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

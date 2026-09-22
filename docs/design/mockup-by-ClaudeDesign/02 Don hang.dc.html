@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);text-decoration:none;} a:hover{color:var(--c-primary-strong);}
+    th{font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);text-transform:uppercase;text-align:left;padding:0 14px 10px;white-space:nowrap;}
+    td{font-size:15px;color:var(--c-text);padding:14px;border-top:1px solid var(--c-border);vertical-align:top;}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:24px;">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">02 · Đơn hàng — <code style="font-family:ui-monospace,monospace;font-size:18px;color:var(--c-primary);">/</code></div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Thông tin cốt lõi nằm trong một dòng: ngày giờ đón · khách + số điện thoại · gói tour · số khách · tiền còn lại · trạng thái · nơi đón. Desktop dạng bảng, điện thoại dạng thẻ. Tìm theo mã đơn/tên/SĐT, lọc trạng thái, tải thêm 30 đơn mỗi lần.</p>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+
+    <!-- Desktop -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">DESKTOP · 1280</div>
+      <div style="width:1280px;background:var(--c-surface-alt);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);">
+        <!-- topbar -->
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:0 24px;height:60px;display:flex;align-items:center;gap:24px;">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c-primary);">
+            <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:999px;">
+            Tour Đảo <span style="font-weight:500;color:var(--c-text-muted);">Booking</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:15px;">
+            <span style="padding:7px 12px;border-radius:8px;background:var(--c-primary-soft);color:var(--c-primary);font-weight:700;">Đơn hàng</span>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);">+ Đơn mới</a>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);">Hồ sơ</a>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);">Dịch vụ</a>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);">Nhân viên</a>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);">Địa điểm</a>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);">Nhật ký</a>
+            <a href="#" style="padding:7px 12px;border-radius:8px;color:var(--c-text-muted);display:flex;align-items:center;gap:6px;">Góp ý <span style="background:var(--c-accent);color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;">2</span></a>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:15px;">
+            <a href="#" style="font-weight:600;">Hoàng Gia Huy</a>
+            <button type="button" style="font-family:var(--font-ui);font-size:15px;color:var(--c-text-muted);background:none;border:none;cursor:pointer;">Đăng xuất</button>
+          </div>
+        </div>
+
+        <div style="padding:32px;display:flex;flex-direction:column;gap:24px;">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;">
+            <div>
+              <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:32px;">Đơn hàng</h1>
+              <p style="margin:6px 0 0;font-size:15px;color:var(--c-text-muted);">42 đơn · 8 đơn đón trong hôm nay</p>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <input type="search" value="" placeholder="Tìm mã đơn, tên, SĐT…" style="font-family:var(--font-ui);font-size:15px;padding:10px 14px;width:280px;border:1px solid var(--c-border);border-radius:8px;background:#fff;">
+              <select style="font-family:var(--font-ui);font-size:15px;padding:10px 14px;border:1px solid var(--c-border);border-radius:8px;background:#fff;color:var(--c-text);">
+                <option>Mọi trạng thái</option><option>Nháp</option><option>Đã xác nhận</option><option>Đã huỷ</option>
+              </select>
+              <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-accent);border:none;border-radius:8px;padding:11px 18px;cursor:pointer;">+ Đơn mới</button>
+            </div>
+          </div>
+
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-card);padding:20px 8px 8px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead>
+                <tr>
+                  <th>Đón</th><th>Khách</th><th>Gói tour</th><th>Số khách</th><th style="text-align:right;">Tổng</th><th style="text-align:right;">Đã trả</th><th style="text-align:right;">Còn lại</th><th>Trạng thái</th><th>Phụ trách</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><div style="font-weight:700;">21/09 · 07:45</div><div style="font-size:13px;color:var(--c-text-muted);">KS Havana</div></td>
+                  <td><div style="font-weight:700;">Anh Nam</div><div style="font-size:13px;color:var(--c-text-muted);">0912 345 678 · TD-2609-018</div></td>
+                  <td>Vinpearl 1 ngày<div style="font-size:13px;color:var(--c-accent-strong);">Ghi chú: dị ứng hải sản</div></td>
+                  <td>05 NL · 02 TE</td>
+                  <td style="text-align:right;">1.000.000 ₫</td>
+                  <td style="text-align:right;">100.000 ₫</td>
+                  <td style="text-align:right;font-weight:800;color:var(--c-accent);">900.000 ₫</td>
+                  <td><span style="background:var(--c-primary-soft);color:var(--c-primary);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;">Đã xác nhận</span></td>
+                  <td style="font-size:14px;">Trần Quốc Việt</td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:700;">21/09 · 08:00</div><div style="font-size:13px;color:var(--c-text-muted);">Bến tàu Cầu Đá</div></td>
+                  <td><div style="font-weight:700;">Chị Hạnh</div><div style="font-size:13px;color:var(--c-text-muted);">0903 111 222 · TD-2609-017</div></td>
+                  <td>Tour 4 đảo</td>
+                  <td>02 NL</td>
+                  <td style="text-align:right;">760.000 ₫</td>
+                  <td style="text-align:right;">760.000 ₫</td>
+                  <td style="text-align:right;font-weight:700;color:var(--c-green-text);">0 ₫</td>
+                  <td><span style="background:var(--c-primary-soft);color:var(--c-primary);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;">Đã xác nhận</span></td>
+                  <td style="font-size:14px;">Trần Quốc Việt</td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:700;">22/09 · 07:30</div><div style="font-size:13px;color:var(--c-text-muted);">KS Mường Thanh</div></td>
+                  <td><div style="font-weight:700;">Mr. Kim Min Ho</div><div style="font-size:13px;color:var(--c-text-muted);">0932 888 444 · TD-2609-021</div></td>
+                  <td>Đảo Bình Ba 2 ngày</td>
+                  <td>08 NL · 03 TE · 01 EB</td>
+                  <td style="text-align:right;">7.480.000 ₫</td>
+                  <td style="text-align:right;">2.000.000 ₫</td>
+                  <td style="text-align:right;font-weight:800;color:var(--c-accent);">5.480.000 ₫</td>
+                  <td><span style="background:var(--c-sand-soft);color:var(--c-sand-text);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;">Nháp</span></td>
+                  <td style="font-size:14px;"><span style="background:#FFFBEF;border:1px solid var(--c-sand-border);color:var(--c-sand-text);font-size:12px;font-weight:700;padding:3px 9px;border-radius:999px;">Chưa có người phụ trách</span></td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:700;">22/09 · 13:00</div><div style="font-size:13px;color:var(--c-text-muted);">Quầy vé 05</div></td>
+                  <td><div style="font-weight:700;">Anh Dũng (đại lý Sao Mai)</div><div style="font-size:13px;color:var(--c-text-muted);">0977 654 321 · TD-2609-022</div></td>
+                  <td>Lặn biển Hòn Mun</td>
+                  <td>04 NL</td>
+                  <td style="text-align:right;">2.400.000 ₫</td>
+                  <td style="text-align:right;">0 ₫</td>
+                  <td style="text-align:right;font-weight:800;color:var(--c-accent);">2.400.000 ₫</td>
+                  <td><span style="background:var(--c-sand-soft);color:var(--c-sand-text);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;">Nháp</span></td>
+                  <td style="font-size:14px;">Lê Thị Bình</td>
+                </tr>
+                <tr>
+                  <td><div style="font-weight:700;">19/09 · 07:45</div><div style="font-size:13px;color:var(--c-text-muted);">KS Liberty</div></td>
+                  <td><div style="font-weight:700;">Chị Thu</div><div style="font-size:13px;color:var(--c-text-muted);">0918 222 333 · TD-2609-009</div></td>
+                  <td>Vinpearl 1 ngày</td>
+                  <td>03 NL · 01 TE</td>
+                  <td style="text-align:right;color:var(--c-text-muted);">1.320.000 ₫</td>
+                  <td style="text-align:right;color:var(--c-text-muted);">0 ₫</td>
+                  <td style="text-align:right;color:var(--c-text-muted);">—</td>
+                  <td><span style="background:var(--c-accent-soft);color:var(--c-accent-strong);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;">Đã huỷ</span></td>
+                  <td style="font-size:14px;color:var(--c-text-muted);">Lê Thị Bình</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;justify-content:center;">
+            <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:11px 22px;cursor:pointer;">Tải thêm 30 đơn</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">IPHONE PWA · 390</div>
+      <div style="width:390px;height:844px;background:var(--c-surface-alt);border-radius:38px;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--c-border);display:flex;flex-direction:column;">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:34px 18px 10px;display:flex;align-items:center;gap:10px;">
+          <img src="public/icons/logo-96.png" alt="" width="28" height="28" style="width:28px;height:28px;border-radius:999px;">
+          <span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:var(--c-primary);">Đơn hàng</span>
+          <span style="margin-left:auto;font-size:13px;color:var(--c-text-muted);">Hoàng Gia Huy</span>
+        </div>
+        <div style="padding:14px 16px;display:flex;gap:8px;background:#fff;border-bottom:1px solid var(--c-border);">
+          <input type="search" placeholder="Tìm mã đơn, tên, SĐT…" style="flex:1;font-family:var(--font-ui);font-size:15px;padding:11px 12px;border:1px solid var(--c-border);border-radius:8px;min-height:44px;">
+          <button type="button" style="font-family:var(--font-ui);font-size:14px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:0 14px;min-height:44px;cursor:pointer;">Lọc</button>
+        </div>
+        <div style="flex:1;overflow:hidden;padding:16px;display:flex;flex-direction:column;gap:12px;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">HÔM NAY · 21/09</div>
+
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--c-text-muted);">21/9 · 07:45</span>
+              <span style="background:var(--c-primary-soft);color:var(--c-primary);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;">Đã xác nhận</span>
+            </div>
+            <div>
+              <div style="font-family:var(--font-display);font-weight:800;font-size:19px;">Anh Nam</div>
+              <div style="font-size:15px;color:var(--c-text-muted);margin-top:2px;">0912 345 678 · Vinpearl 1 ngày</div>
+            </div>
+            <div style="font-size:14px;">05 NL · 02 TE · Đón: KS Havana</div>
+            <div style="border-top:1px solid var(--c-border);padding-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <div><div style="font-size:11px;color:var(--c-text-muted);">Tổng</div><div style="font-weight:700;font-size:15px;">1.000.000 ₫</div></div>
+              <div><div style="font-size:11px;color:var(--c-text-muted);">Đã trả</div><div style="font-weight:700;font-size:15px;">100.000 ₫</div></div>
+              <div><div style="font-size:11px;color:var(--c-text-muted);">Còn</div><div style="font-weight:800;font-size:15px;color:var(--c-accent);">900.000 ₫</div></div>
+            </div>
+            <div style="font-size:13px;color:var(--c-text-muted);border-top:1px solid var(--c-border);padding-top:10px;">Ghi chú: dị ứng hải sản · Phụ trách: Trần Quốc Việt</div>
+          </div>
+
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:12px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--c-text-muted);">21/9 · 08:00</span>
+              <span style="background:var(--c-primary-soft);color:var(--c-primary);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;">Đã xác nhận</span>
+            </div>
+            <div>
+              <div style="font-family:var(--font-display);font-weight:800;font-size:19px;">Chị Hạnh</div>
+              <div style="font-size:15px;color:var(--c-text-muted);margin-top:2px;">0903 111 222 · Tour 4 đảo</div>
+            </div>
+            <div style="font-size:14px;">02 NL · Đón: Bến tàu Cầu Đá</div>
+            <div style="border-top:1px solid var(--c-border);padding-top:12px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+              <div><div style="font-size:11px;color:var(--c-text-muted);">Tổng</div><div style="font-weight:700;font-size:15px;">760.000 ₫</div></div>
+              <div><div style="font-size:11px;color:var(--c-text-muted);">Đã trả</div><div style="font-weight:700;font-size:15px;">760.000 ₫</div></div>
+              <div><div style="font-size:11px;color:var(--c-text-muted);">Còn</div><div style="font-weight:700;font-size:15px;color:var(--c-green-text);">0 ₫</div></div>
+            </div>
+          </div>
+
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);margin-top:4px;">MAI · 22/09</div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <span style="font-family:var(--font-display);font-weight:700;font-size:15px;color:var(--c-text-muted);">22/9 · 07:30</span>
+              <span style="background:var(--c-sand-soft);color:var(--c-sand-text);font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;">Nháp</span>
+            </div>
+            <div>
+              <div style="font-family:var(--font-display);font-weight:800;font-size:19px;">Mr. Kim Min Ho</div>
+              <div style="font-size:15px;color:var(--c-text-muted);margin-top:2px;">0932 888 444 · Đảo Bình Ba 2 ngày</div>
+            </div>
+            <div style="font-size:14px;">08 NL · 03 TE · 01 EB · Đón: KS Mường Thanh</div>
+          </div>
+        </div>
+        <div style="background:#fff;border-top:1px solid var(--c-border);padding:8px 0 26px;display:flex;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--c-primary);min-height:56px;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg>
+            <span style="font-size:11px;font-weight:700;">Đơn hàng</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--c-text-muted);min-height:56px;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            <span style="font-size:11px;">Đơn mới</span>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--c-text-muted);min-height:56px;justify-content:center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg>
+            <span style="font-size:11px;">Tôi</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);text-decoration:none;} a:hover{color:var(--c-primary-strong);}
+    input,select,textarea{font-family:var(--font-ui);font-size:15px;padding:11px 13px;border:1px solid var(--c-border);border-radius:8px;background:#fff;width:100%;box-sizing:border-box;}
+    label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;}
+    @keyframes sk{0%{opacity:.55}50%{opacity:1}100%{opacity:.55}}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:32px;">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">12 · Lớp phủ &amp; trạng thái</div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Mọi lớp phủ dùng chung một khuôn: <code style="font-family:ui-monospace,monospace;">role="dialog"</code> + <code style="font-family:ui-monospace,monospace;">aria-modal</code>, nền <code style="font-family:ui-monospace,monospace;">inert</code>, đóng bằng Esc / ✕ / chạm nền, trả focus về nút mở. ≤ 640px trượt từ đáy, &gt; 640px hộp giữa màn hình. Lỗi luôn có chữ + biểu tượng, không chỉ màu.</p>
+  </div>
+
+  <!-- A. Hộp thoại ảnh xác nhận -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">A · HỘP THOẠI “XÁC NHẬN ĐƠN ĐỂ GỬI KHÁCH” — BA TRẠNG THÁI</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;">
+
+      <div style="width:420px;background:rgba(8,47,73,.45);border-radius:14px;padding:24px;">
+        <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-overlay);">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;">
+            <span style="font-family:var(--font-display);font-weight:800;font-size:17px;">Xác nhận đơn để gửi khách</span>
+            <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </div>
+          <div style="padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+            <p style="margin:0;font-size:14px;color:var(--c-text-muted);">Ảnh xác nhận gửi cho khách: tải về máy hoặc chia sẻ qua Zalo.</p>
+            <div style="border:1px solid var(--c-border);border-radius:12px;background:var(--c-surface-alt);padding:18px;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:8px;"><img src="public/icons/logo-96.png" alt="" width="24" height="24" style="width:24px;height:24px;border-radius:999px;"><span style="font-family:var(--font-display);font-weight:800;font-size:14px;color:var(--c-primary);">Công ty TNHH Tour Đảo</span></div>
+              <div style="font-family:var(--font-display);font-weight:800;font-size:18px;">TD-2609-018</div>
+              <div style="font-size:13px;line-height:1.7;color:var(--c-text);">21/09/2026 · 07:45 · KS Havana<br>Anh Nam · 0912 345 678<br>Vinpearl 1 ngày · 05 NL, 02 TE<br>Tổng 1.000.000 ₫ · đã cọc 100.000 ₫ · còn 900.000 ₫<br>Phụ trách: Trần Quốc Việt · 0977 444 555</div>
+              <div style="font-size:11px;color:var(--c-text-muted);">Ảnh PNG 1080 × 1440, dựng bằng canvas trong máy — không gửi dữ liệu đi đâu.</div>
+            </div>
+          </div>
+          <div style="padding:16px 20px;border-top:1px solid var(--c-border);display:flex;flex-direction:column;gap:10px;">
+            <button type="button" style="font-family:var(--font-ui);font-size:16px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:14px;min-height:48px;cursor:pointer;">Tải ảnh PNG</button>
+            <button type="button" style="font-family:var(--font-ui);font-size:16px;font-weight:600;color:var(--c-primary);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:14px;min-height:48px;cursor:pointer;">Chia sẻ</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:420px;background:rgba(8,47,73,.45);border-radius:14px;padding:24px;">
+        <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-overlay);">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;">
+            <span style="font-family:var(--font-display);font-weight:800;font-size:17px;">Xác nhận đơn để gửi khách</span>
+            <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </div>
+          <div style="padding:40px 20px;display:flex;flex-direction:column;align-items:center;gap:14px;">
+            <div style="width:40px;height:40px;border-radius:999px;border:3px solid var(--c-primary-soft);border-top-color:var(--c-primary);"></div>
+            <div style="font-size:15px;color:var(--c-text-muted);">Đang tạo ảnh xác nhận…</div>
+            <div style="font-size:13px;color:var(--c-text-muted);text-align:center;max-width:280px;line-height:1.6;">Hạn chót 30 giây. Đóng được mọi lúc; kết quả đến muộn sẽ bị bỏ.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:420px;background:rgba(8,47,73,.45);border-radius:14px;padding:24px;">
+        <div style="background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-overlay);">
+          <div style="padding:16px 20px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;">
+            <span style="font-family:var(--font-display);font-weight:800;font-size:17px;">Xác nhận đơn để gửi khách</span>
+            <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </div>
+          <div style="padding:20px;">
+            <div style="background:var(--c-accent-soft);border:1px solid #f4cfc9;border-left:4px solid var(--c-accent);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+              <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:var(--c-accent-strong);">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+                Chưa tạo được ảnh xác nhận
+              </div>
+              <p style="margin:0;font-size:15px;line-height:1.68;">Chưa tải được phông chữ để vẽ ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.</p>
+              <button type="button" style="align-self:flex-start;font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:11px 20px;min-height:44px;cursor:pointer;">Thử lại</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- B. Sheet sửa chuyến + chọn dịch vụ -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">B · BẢNG TRƯỢT — SỬA THÔNG TIN CHUYẾN (390) VÀ CHỌN DỊCH VỤ TỪ DANH MỤC (420)</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+
+      <div style="width:390px;height:620px;background:rgba(8,47,73,.45);border-radius:32px;overflow:hidden;display:flex;flex-direction:column;justify-content:flex-end;">
+        <div style="background:#fff;border-radius:20px 20px 0 0;display:flex;flex-direction:column;max-height:560px;">
+          <div style="padding:16px;border-bottom:1px solid var(--c-border);display:flex;align-items:center;">
+            <span style="font-family:var(--font-display);font-weight:800;font-size:17px;">Sửa thông tin chuyến</span>
+            <svg style="margin-left:auto;" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-text-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+          </div>
+          <div style="padding:16px;display:flex;flex-direction:column;gap:14px;overflow:hidden;">
+            <div style="display:flex;gap:8px;align-items:flex-start;background:#FFFBEF;border:1px solid var(--c-sand-border);border-radius:12px;padding:12px;font-size:14px;color:var(--c-sand-text);line-height:1.6;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:2px;" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+              Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại.
+            </div>
+            <div style="font-family:var(--font-display);font-weight:700;font-size:16px;">Vinpearl 1 ngày (vé + cano)</div>
+            <label>Ngày khởi hành (không được xoá)<input type="date" value="2026-09-21" style="min-height:46px;"></label>
+            <label>Giờ đón<input type="time" value="07:45" style="min-height:46px;"></label>
+            <label>Nơi đón<input type="text" value="KS Havana, 38 Trần Phú" style="min-height:46px;"></label>
+          </div>
+          <div style="padding:16px;border-top:1px solid var(--c-border);display:flex;flex-direction:column;gap:10px;">
+            <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--c-accent-strong);">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+              Vinpearl 1 ngày: ngày khởi hành không được để trống.
+            </div>
+            <button type="button" style="font-family:var(--font-ui);font-size:16px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:14px;min-height:48px;cursor:pointer;">Lưu thông tin chuyến</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="width:420px;background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-overlay);padding:20px;display:flex;flex-direction:column;gap:12px;">
+        <label>Chọn từ danh mục<input type="search" value="cano" placeholder="Gõ tên hoặc mã dịch vụ…" style="min-height:46px;"></label>
+        <div style="border:1px solid var(--c-border);border-radius:8px;overflow:hidden;">
+          <button type="button" style="width:100%;text-align:left;font-family:var(--font-ui);background:#fff;border:none;border-bottom:1px solid var(--c-border);padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;min-height:52px;">
+            <span style="flex:1;font-size:15px;"><strong style="font-family:ui-monospace,monospace;font-size:13px;">CANO_RIENG</strong> Cano riêng 12 khách <span style="background:var(--c-primary-soft);color:var(--c-primary);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;">Theo chuyến</span></span>
+            <span style="font-weight:700;font-size:15px;color:var(--c-accent);">2.500.000 ₫</span>
+          </button>
+          <button type="button" style="width:100%;text-align:left;font-family:var(--font-ui);background:#fff;border:none;border-bottom:1px solid var(--c-border);padding:14px 16px;display:flex;align-items:center;gap:10px;cursor:pointer;min-height:52px;">
+            <span style="flex:1;font-size:15px;"><strong style="font-family:ui-monospace,monospace;font-size:13px;">CANO_GHEP</strong> Cano ghép 4 đảo <span style="background:var(--c-primary-soft);color:var(--c-primary);font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;">Theo khách</span></span>
+            <span style="font-weight:700;font-size:15px;color:var(--c-accent);">380.000 ₫</span>
+          </button>
+          <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;opacity:.5;min-height:52px;box-sizing:border-box;">
+            <span style="flex:1;font-size:15px;"><strong style="font-family:ui-monospace,monospace;font-size:13px;">CANO_VIP</strong> Cano VIP Hòn Tằm</span>
+            <span style="font-size:14px;color:var(--c-text-muted);">chưa có giá</span>
+          </div>
+          <div style="padding:14px 16px;display:flex;align-items:center;gap:10px;opacity:.5;min-height:52px;box-sizing:border-box;">
+            <span style="flex:1;font-size:15px;"><strong style="font-family:ui-monospace,monospace;font-size:13px;">XE_SAN_BAY</strong> Xe đưa sân bay Cam Ranh</span>
+            <span style="font-size:14px;color:var(--c-text-muted);">nhập tay</span>
+          </div>
+        </div>
+        <p style="margin:0;font-size:13px;color:var(--c-text-muted);line-height:1.6;">Dịch vụ mờ là chưa hỗ trợ đơn vị hoặc chưa có giá — chạm không được, hãy dùng dịch vụ nhập tay. Dịch vụ đã ẩn không xuất hiện ở đây.</p>
+        <div style="border-top:1px solid var(--c-border);padding-top:12px;font-size:15px;color:var(--c-text-muted);">Không tìm thấy dịch vụ.</div>
+        <div style="background:#FFFBEF;border:1px solid var(--c-sand-border);border-radius:8px;padding:10px 12px;font-size:14px;color:var(--c-sand-text);">Đơn đã đủ 20 dịch vụ.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- C. Trạng thái rỗng, đang tải, lỗi -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">C · RỖNG · ĐANG TẢI · LỖI &amp; VALIDATION</div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start;">
+
+      <div style="width:420px;background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-card);padding:44px 24px;display:flex;flex-direction:column;align-items:center;gap:12px;">
+        <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M14.5 9.5l-1.6 4-4 1.6 1.6-4 4-1.6z"></path></svg>
+        <div style="font-family:var(--font-display);font-weight:700;font-size:19px;">Chưa có đơn nào khớp</div>
+        <p style="margin:0;font-size:15px;color:var(--c-text-muted);text-align:center;line-height:1.6;max-width:280px;">Thử bỏ bộ lọc trạng thái, hoặc tìm bằng số điện thoại của khách.</p>
+        <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-accent);border:none;border-radius:8px;padding:12px 20px;min-height:44px;cursor:pointer;">+ Đơn mới</button>
+      </div>
+
+      <div style="width:420px;background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-card);padding:20px;display:flex;flex-direction:column;gap:14px;">
+        <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">ĐANG TẢI — KHUNG XƯƠNG</div>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          <div style="border:1px solid var(--c-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;animation:sk 1.4s ease infinite;">
+            <div style="display:flex;justify-content:space-between;"><div style="width:110px;height:14px;background:var(--c-border);border-radius:4px;"></div><div style="width:86px;height:20px;background:var(--c-primary-soft);border-radius:999px;"></div></div>
+            <div style="width:160px;height:20px;background:var(--c-border);border-radius:4px;"></div>
+            <div style="width:220px;height:14px;background:var(--c-border);border-radius:4px;"></div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;border-top:1px solid var(--c-border);padding-top:12px;">
+              <div style="height:32px;background:var(--c-surface-alt);border-radius:6px;"></div>
+              <div style="height:32px;background:var(--c-surface-alt);border-radius:6px;"></div>
+              <div style="height:32px;background:var(--c-surface-alt);border-radius:6px;"></div>
+            </div>
+          </div>
+          <div style="border:1px solid var(--c-border);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px;animation:sk 1.4s ease .2s infinite;">
+            <div style="display:flex;justify-content:space-between;"><div style="width:110px;height:14px;background:var(--c-border);border-radius:4px;"></div><div style="width:70px;height:20px;background:var(--c-sand-soft);border-radius:999px;"></div></div>
+            <div style="width:190px;height:20px;background:var(--c-border);border-radius:4px;"></div>
+            <div style="width:150px;height:14px;background:var(--c-border);border-radius:4px;"></div>
+          </div>
+        </div>
+        <p style="margin:0;font-size:13px;color:var(--c-text-muted);line-height:1.6;">Dòng người phụ trách có chỗ giữ sẵn nên danh sách không nhảy bố cục khi tên về sau.</p>
+      </div>
+
+      <div style="width:420px;display:flex;flex-direction:column;gap:12px;">
+        <div style="background:var(--c-accent-soft);border:1px solid #f4cfc9;border-left:4px solid var(--c-accent);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+          <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:16px;color:var(--c-accent-strong);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+            Đơn vừa đổi trạng thái ở nơi khác
+          </div>
+          <p style="margin:0;font-size:15px;line-height:1.68;">Đơn này đã được xác nhận bởi người khác, nên không huỷ được từ màn hình đang mở.</p>
+          <button type="button" style="align-self:flex-start;font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:11px 18px;min-height:44px;cursor:pointer;">Tải lại đơn</button>
+        </div>
+
+        <div style="background:#FFFBEF;border:1px solid var(--c-sand-border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:8px;font-size:15px;color:var(--c-sand-text);line-height:1.68;">
+          <strong>Thiếu thông tin chuyến</strong>
+          Vinpearl 1 ngày: chưa có ngày khởi hành. <a href="#" style="font-weight:700;color:var(--c-sand-text-strong);">Sửa</a>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;">
+          <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">LỖI TRÊN Ô ĐIỀN</div>
+          <label>Số khách<input type="text" value="52" style="border-color:var(--c-accent);border-width:2px;"></label>
+          <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;color:var(--c-accent-strong);">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+            Tối đa 50 khách.
+          </div>
+        </div>
+
+        <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:16px 18px;font-size:15px;color:var(--c-text);line-height:1.68;">
+          Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- D. Chế độ bảo trì -->
+  <div style="display:flex;flex-direction:column;gap:14px;">
+    <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">D · LỚP PHỦ CHẾ ĐỘ BẢO TRÌ (503 maintenance) — TRANG BÊN DƯỚI ĐƯỢC GIỮ NGUYÊN VÀ ĐẶT INERT</div>
+    <div style="width:390px;height:620px;background:rgba(8,47,73,.72);border-radius:32px;display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div style="background:#fff;border-radius:18px;padding:28px 24px;display:flex;flex-direction:column;align-items:center;gap:14px;box-shadow:var(--shadow-overlay);">
+        <div style="width:64px;height:64px;border-radius:999px;background:#FFFBEF;color:var(--c-sand-text);display:flex;align-items:center;justify-content:center;">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+        </div>
+        <div style="font-family:var(--font-display);font-weight:800;font-size:21px;">Đang bảo trì</div>
+        <p style="margin:0;font-size:15px;color:var(--c-text);text-align:center;line-height:1.68;">Hệ thống đang bảo trì, dự kiến hoàn tất sau <span style="font-family:ui-monospace,monospace;font-weight:700;">24:13</span>. Phần chưa lưu trên trang này sẽ mất khi tải lại.</p>
+        <button type="button" style="width:100%;font-family:var(--font-ui);font-size:16px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:14px;min-height:48px;cursor:pointer;">Thử lại</button>
+        <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-text-muted);background:none;border:none;padding:10px;min-height:44px;cursor:pointer;">Đăng xuất</button>
+      </div>
+    </div>
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

@@ -1,0 +1,30 @@
+/* §1b Ba bộ giao diện chọn được trong Sanity Studio (siteSettings.theme);
+   BaseLayout gắn data-theme lên <html>. Mỗi bộ CHỈ đổi màu gốc — chữ, khoảng
+   cách, bo góc giữ nguyên. Mọi bộ phải qua WCAG AA. */
+:root[data-theme='bien-sau']{
+  --c-surface:#FFFFFF;
+  --c-primary:#0C4A6E;
+  --c-accent:#C0392B;
+  --c-text:#0F172A;
+  --c-text-muted:#475569;
+  --c-primary-strong:#082F49;
+  --c-accent-strong:#96271A;
+}
+:root[data-theme='cat-bien']{
+  --c-surface:#FDFAF5;
+  --c-primary:#155E75;
+  --c-accent:#B45309;
+  --c-text:#1C1917;
+  --c-text-muted:#57534E;
+  --c-primary-strong:#0E4A5C;
+  --c-accent-strong:#92400E;
+}
+:root[data-theme='ngoc-lam']{
+  --c-surface:#FFFFFF;
+  --c-primary:#0F766E;
+  --c-accent:#BE123C;
+  --c-text:#0F172A;
+  --c-text-muted:#475569;
+  --c-primary-strong:#0B5A54;
+  --c-accent-strong:#9F1239;
+}

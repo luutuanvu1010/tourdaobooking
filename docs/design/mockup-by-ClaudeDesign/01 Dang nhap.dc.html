@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);} a:hover{color:var(--c-primary-strong);}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:24px;">
+  <div style="max-width:720px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">01 · Đăng nhập — <code style="font-family:ui-monospace,monospace;font-size:18px;color:var(--c-primary);">/login</code></div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Số điện thoại + PIN 6 số. Turnstile chỉ hiện khi máy chủ báo có khoá. Banner bảo trì không che form — chủ dự án vẫn phải đăng nhập được.</p>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+
+    <!-- Desktop -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">DESKTOP · 1280 × 820</div>
+      <div style="width:1280px;height:820px;background:#fff;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);display:flex;">
+        <!-- cột thương hiệu -->
+        <div style="width:520px;background:linear-gradient(160deg,var(--c-primary),var(--c-primary-strong));padding:56px 48px;display:flex;flex-direction:column;justify-content:space-between;">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <img src="public/icons/logo-96.png" alt="" width="40" height="40" style="width:40px;height:40px;border-radius:999px;">
+            <div style="color:#fff;font-family:var(--font-display);font-weight:800;font-size:20px;">Tour Đảo <span style="font-weight:500;color:var(--c-band-muted);">Booking</span></div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:24px;">
+            <div style="color:#fff;font-family:var(--font-display);font-weight:800;font-size:40px;line-height:1.22;">Lập đơn, chốt chỗ, theo chuyến trong một app.</div>
+            <div style="display:flex;flex-direction:column;gap:12px;color:var(--c-band-muted);font-size:17px;line-height:1.68;">
+              <div>Đơn hàng hiện đủ giờ đón, khách, tiền còn lại.</div>
+              <div>Ảnh xác nhận gửi khách qua Zalo ngay từ đơn.</div>
+              <div>Cài lên iPhone như một app, dùng được ngoài hiện trường.</div>
+            </div>
+          </div>
+          <div style="color:var(--c-band-muted);font-size:14px;">Công ty TNHH Tour Đảo · Nha Trang, Khánh Hoà</div>
+        </div>
+        <!-- cột form -->
+        <div style="flex:1;padding:56px;display:flex;flex-direction:column;justify-content:center;align-items:center;">
+          <div style="width:400px;display:flex;flex-direction:column;gap:24px;">
+            <div style="display:flex;flex-direction:column;gap:8px;">
+              <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:32px;color:var(--c-text);">Đăng nhập</h1>
+              <p style="margin:0;font-size:15px;color:var(--c-text-muted);">Dùng số điện thoại đã đăng ký với quản trị viên.</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:16px;">
+              <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--c-text);">Số điện thoại
+                <input type="tel" value="0912 345 678" style="font-family:var(--font-ui);font-size:17px;padding:12px 14px;border:1px solid var(--c-border);border-radius:8px;color:var(--c-text);background:#fff;">
+              </label>
+              <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;color:var(--c-text);">Mã PIN 6 số
+                <input type="password" value="******" style="font-family:var(--font-ui);font-size:17px;letter-spacing:.3em;padding:12px 14px;border:1px solid var(--c-border);border-radius:8px;color:var(--c-text);background:#fff;">
+              </label>
+              <div style="border:1px dashed var(--c-border);border-radius:8px;padding:14px;background:var(--c-surface-alt);display:flex;align-items:center;gap:10px;font-size:14px;color:var(--c-text-muted);">
+                <span style="width:18px;height:18px;border-radius:4px;background:var(--c-green-soft);display:inline-block;"></span>
+                Cloudflare Turnstile — chỉ hiện khi máy chủ báo có khoá
+              </div>
+              <button type="button" style="font-family:var(--font-ui);font-size:17px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:14px;cursor:pointer;">Đăng nhập</button>
+            </div>
+            <div style="border-top:1px solid var(--c-border);padding-top:16px;display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--c-text-muted);">
+              <div>Bản v1.0 · booking.tourdao.vn</div>
+              <div>Quên PIN thì nhờ quản trị viên đặt lại. PIN mới chỉ hiện một lần.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile PWA -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">IPHONE PWA · 390 × 820</div>
+      <div style="width:390px;height:820px;background:#fff;border-radius:38px;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--c-border);display:flex;flex-direction:column;">
+        <div style="height:54px;background:var(--c-primary);display:flex;align-items:flex-end;justify-content:space-between;padding:0 22px 8px;color:#fff;font-size:13px;font-weight:700;">
+          <span>9:41</span><span>PWA · standalone</span>
+        </div>
+        <div style="flex:1;padding:40px 24px 28px;display:flex;flex-direction:column;gap:24px;">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:12px;">
+            <img src="public/icons/icon-192.png" alt="" width="72" height="72" style="width:72px;height:72px;border-radius:999px;">
+            <div style="font-family:var(--font-display);font-weight:800;font-size:21px;color:var(--c-text);">Tour Đảo Booking</div>
+          </div>
+          <div style="background:#FFFBEF;border:1px solid var(--c-sand-border);border-radius:12px;padding:12px 14px;font-size:14px;color:var(--c-sand-text);line-height:1.6;">Hệ thống đang bảo trì, dự kiến hoàn tất sau 24:13. Chỉ chủ dự án đăng nhập được.</div>
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;">Số điện thoại
+              <input type="tel" value="0912 345 678" style="font-family:var(--font-ui);font-size:17px;padding:14px;border:1px solid var(--c-border);border-radius:8px;">
+            </label>
+            <label style="display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;">Mã PIN 6 số
+              <input type="password" value="******" style="font-family:var(--font-ui);font-size:17px;letter-spacing:.3em;padding:14px;border:1px solid var(--c-border);border-radius:8px;">
+            </label>
+            <button type="button" style="font-family:var(--font-ui);font-size:17px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:16px;min-height:52px;cursor:pointer;">Đăng nhập</button>
+          </div>
+          <div style="margin-top:auto;display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--c-text-muted);text-align:center;">
+            <div>Bản v1.0</div>
+            <div>Công ty TNHH Tour Đảo · 0258 xxx xxx</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

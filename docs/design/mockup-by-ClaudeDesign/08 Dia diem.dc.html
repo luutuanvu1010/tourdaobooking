@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);text-decoration:none;} a:hover{color:var(--c-primary-strong);}
+    th{font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);text-transform:uppercase;text-align:left;padding:0 14px 10px;white-space:nowrap;}
+    td{font-size:15px;color:var(--c-text);padding:14px;border-top:1px solid var(--c-border);vertical-align:top;}
+    input,select{font-family:var(--font-ui);font-size:15px;padding:11px 13px;border:1px solid var(--c-border);border-radius:8px;background:#fff;width:100%;box-sizing:border-box;}
+    label{display:flex;flex-direction:column;gap:6px;font-size:14px;font-weight:600;}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:24px;">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">08 · Địa điểm — <code style="font-family:ui-monospace,monospace;font-size:18px;color:var(--c-primary);">/locations</code></div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Nơi phát sinh nghiệp vụ: văn phòng, quầy vé, bến tàu, bến cảng. Địa điểm không xoá được — chỉ ngưng dùng. Mã là định danh, không đổi. Sửa dùng khoá lạc quan: người khác vừa đổi thì hệ thống nạp bản mới và nói rõ.</p>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">DESKTOP · 1280</div>
+      <div style="width:1280px;background:var(--c-surface-alt);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:0 24px;height:60px;display:flex;align-items:center;gap:20px;">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c-primary);">
+            <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:999px;">
+            Tour Đảo <span style="font-weight:500;color:var(--c-text-muted);">Booking</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:15px;">
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Đơn hàng</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Hồ sơ</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Dịch vụ</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Nhân viên</a>
+            <span style="padding:7px 12px;border-radius:8px;background:var(--c-primary-soft);color:var(--c-primary);font-weight:700;">Địa điểm</span>
+          </div>
+          <div style="margin-left:auto;font-size:15px;"><a href="#">Hoàng Gia Huy</a></div>
+        </div>
+
+        <div style="padding:28px 32px 36px;display:flex;flex-direction:column;gap:20px;">
+          <div>
+            <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:32px;">Địa điểm</h1>
+            <p style="margin:6px 0 0;font-size:15px;color:var(--c-text-muted);">Nơi phát sinh nghiệp vụ: văn phòng, quầy vé, bến tàu, bến cảng. Địa điểm không xoá được — chỉ ngưng dùng.</p>
+          </div>
+
+          <div style="background:#FFFBEF;border:1px solid var(--c-sand-border);border-radius:12px;padding:14px 18px;font-size:15px;color:var(--c-sand-text);line-height:1.6;">Địa điểm vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.</div>
+
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:24px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:16px;">
+            <h2 style="margin:0;font-family:var(--font-display);font-weight:700;font-size:21px;">Thêm địa điểm</h2>
+            <div style="display:grid;grid-template-columns:1fr 1.4fr 1fr 1.6fr .6fr auto;gap:16px;align-items:end;">
+              <label>Mã (chữ HOA, số, gạch dưới)<input type="text" placeholder="QUAY_VE_05"></label>
+              <label>Tên<input type="text" value=""></label>
+              <label>Loại<select><option>Văn phòng</option><option>Quầy vé</option><option>Bến tàu</option><option>Bến cảng</option></select></label>
+              <label>Địa chỉ<input type="text" value=""></label>
+              <label>Thứ tự<input type="number" value="0"></label>
+              <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:12px 22px;cursor:pointer;">Thêm</button>
+            </div>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;">
+            <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-card);padding:20px 8px 8px;">
+              <table style="width:100%;border-collapse:collapse;">
+                <thead><tr><th>Mã</th><th>Tên</th><th>Loại</th><th>Địa chỉ</th><th>Thứ tự</th><th></th></tr></thead>
+                <tbody>
+                  <tr><td style="font-family:ui-monospace,monospace;font-size:14px;">VP_TRAN_PHU</td><td style="font-weight:600;">Văn phòng Trần Phú</td><td>Văn phòng</td><td style="color:var(--c-text-muted);">54 Trần Phú, Nha Trang</td><td>0</td><td style="text-align:right;"><a href="#" style="font-size:14px;font-weight:600;">Sửa</a></td></tr>
+                  <tr style="background:var(--c-primary-soft);"><td style="font-family:ui-monospace,monospace;font-size:14px;">BEN_CAU_DA</td><td style="font-weight:600;">Bến tàu Cầu Đá</td><td>Bến tàu</td><td style="color:var(--c-text-muted);">Số 1 Trần Phú, Vĩnh Nguyên</td><td>1</td><td style="text-align:right;"><a href="#" style="font-size:14px;font-weight:600;">Sửa</a></td></tr>
+                  <tr><td style="font-family:ui-monospace,monospace;font-size:14px;">QUAY_VE_05</td><td style="font-weight:600;">Quầy vé 05</td><td>Quầy vé</td><td style="color:var(--c-text-muted);">Cảng Vinpearl</td><td>2</td><td style="text-align:right;"><a href="#" style="font-size:14px;font-weight:600;">Sửa</a></td></tr>
+                  <tr style="opacity:.6;"><td style="font-family:ui-monospace,monospace;font-size:14px;">BEN_VINH_LUONG</td><td style="font-weight:600;">Bến Vĩnh Lương <span style="background:var(--c-accent-soft);color:var(--c-accent-strong);font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;margin-left:6px;">Ngưng dùng</span></td><td>Bến cảng</td><td style="color:var(--c-text-muted);">Quốc lộ 1A, Vĩnh Lương</td><td>9</td><td style="text-align:right;"><a href="#" style="font-size:14px;font-weight:600;">Sửa</a></td></tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:24px;box-shadow:var(--shadow-card);display:flex;flex-direction:column;gap:16px;">
+              <h2 style="margin:0;font-family:var(--font-display);font-weight:700;font-size:21px;">Sửa: BEN_CAU_DA</h2>
+              <label>Tên<input type="text" value="Bến tàu Cầu Đá"></label>
+              <label>Loại<select><option>Bến tàu</option><option>Văn phòng</option><option>Quầy vé</option><option>Bến cảng</option></select></label>
+              <label>Địa chỉ<input type="text" value="Số 1 Trần Phú, Vĩnh Nguyên"></label>
+              <label>Thứ tự<input type="number" value="1"></label>
+              <label style="flex-direction:row;align-items:center;gap:8px;font-weight:400;font-size:15px;"><input type="checkbox" checked style="width:auto;">Đang dùng</label>
+              <p style="margin:0;font-size:14px;color:var(--c-text-muted);line-height:1.6;">Mã là định danh, không đổi được. Địa điểm đã dùng ở vai trò hồ sơ không xoá được — chỉ ngưng dùng.</p>
+              <div style="display:flex;gap:10px;">
+                <button type="button" style="flex:1;font-family:var(--font-ui);font-size:15px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:12px;cursor:pointer;">Lưu</button>
+                <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-text-muted);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:12px 18px;cursor:pointer;">Đóng</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">IPHONE PWA · 390</div>
+      <div style="width:390px;height:844px;background:var(--c-surface-alt);border-radius:38px;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--c-border);display:flex;flex-direction:column;">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:34px 16px 10px;display:flex;align-items:center;">
+          <span style="font-family:var(--font-display);font-weight:800;font-size:16px;">Địa điểm</span>
+          <button type="button" style="margin-left:auto;font-family:var(--font-ui);font-size:14px;font-weight:700;color:#fff;background:var(--c-primary);border:none;border-radius:8px;padding:0 14px;min-height:44px;">+ Thêm</button>
+        </div>
+        <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;">
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:16px;">Văn phòng Trần Phú</div>
+              <div style="font-family:ui-monospace,monospace;font-size:12px;color:var(--c-text-muted);">VP_TRAN_PHU · Văn phòng</div>
+              <div style="font-size:14px;color:var(--c-text-muted);">54 Trần Phú, Nha Trang</div>
+            </div>
+            <button type="button" style="font-family:var(--font-ui);font-size:14px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:0 14px;min-height:44px;">Sửa</button>
+          </div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;">
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:16px;">Bến tàu Cầu Đá</div>
+              <div style="font-family:ui-monospace,monospace;font-size:12px;color:var(--c-text-muted);">BEN_CAU_DA · Bến tàu</div>
+              <div style="font-size:14px;color:var(--c-text-muted);">Số 1 Trần Phú, Vĩnh Nguyên</div>
+            </div>
+            <button type="button" style="font-family:var(--font-ui);font-size:14px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:0 14px;min-height:44px;">Sửa</button>
+          </div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;display:flex;align-items:center;gap:12px;opacity:.65;">
+            <div style="flex:1;">
+              <div style="font-weight:700;font-size:16px;">Bến Vĩnh Lương</div>
+              <div><span style="background:var(--c-accent-soft);color:var(--c-accent-strong);font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;">Ngưng dùng</span></div>
+            </div>
+            <button type="button" style="font-family:var(--font-ui);font-size:14px;font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border:none;border-radius:8px;padding:0 14px;min-height:44px;">Sửa</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

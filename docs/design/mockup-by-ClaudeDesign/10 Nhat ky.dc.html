@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);text-decoration:none;} a:hover{color:var(--c-primary-strong);}
+    th{font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);text-transform:uppercase;text-align:left;padding:0 14px 10px;white-space:nowrap;}
+    td{font-size:15px;color:var(--c-text);padding:13px 14px;border-top:1px solid var(--c-border);vertical-align:top;}
+    input,select{font-family:var(--font-ui);font-size:15px;padding:11px 13px;border:1px solid var(--c-border);border-radius:8px;background:#fff;box-sizing:border-box;}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:24px;">
+  <div style="max-width:860px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">10 · Nhật ký hệ thống — <code style="font-family:ui-monospace,monospace;font-size:18px;color:var(--c-primary);">/audit</code></div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Chỉ quản trị viên. Tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên; lọc hành động theo nhóm đối tượng. 50 bản ghi mỗi lần tải. Đối tượng là đơn thì bấm được sang chi tiết đơn.</p>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">DESKTOP · 1280</div>
+      <div style="width:1280px;background:var(--c-surface-alt);border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:0 24px;height:60px;display:flex;align-items:center;gap:20px;">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:17px;color:var(--c-primary);">
+            <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:999px;">
+            Tour Đảo <span style="font-weight:500;color:var(--c-text-muted);">Booking</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;font-size:15px;">
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Đơn hàng</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Hồ sơ</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Dịch vụ</a>
+            <a href="#" style="padding:7px 12px;color:var(--c-text-muted);">Nhân viên</a>
+            <span style="padding:7px 12px;border-radius:8px;background:var(--c-primary-soft);color:var(--c-primary);font-weight:700;">Nhật ký</span>
+          </div>
+          <div style="margin-left:auto;font-size:15px;"><a href="#">Hoàng Gia Huy</a></div>
+        </div>
+
+        <div style="padding:28px 32px 36px;display:flex;flex-direction:column;gap:20px;">
+          <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:32px;">Nhật ký hệ thống</h1>
+
+          <div style="display:flex;gap:12px;align-items:center;">
+            <input type="search" placeholder="Tìm theo mã đơn, mã dịch vụ hoặc tên nhân viên…" style="width:420px;">
+            <select><option>Mọi hành động</option><option>Đơn hàng — Lập đơn</option><option>Đơn hàng — Xác nhận đơn</option><option>Danh mục — Ghi đè giá</option><option>Nhân viên — Đặt lại PIN</option></select>
+            <span style="margin-left:auto;font-size:14px;color:var(--c-text-muted);">50 bản ghi gần nhất</span>
+          </div>
+
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:var(--shadow-card);padding:20px 8px 8px;">
+            <table style="width:100%;border-collapse:collapse;">
+              <thead><tr><th style="width:170px;">Thời gian</th><th style="width:180px;">Người thao tác</th><th style="width:210px;">Hành động</th><th style="width:180px;">Đối tượng</th><th>Chi tiết</th></tr></thead>
+              <tbody>
+                <tr><td style="color:var(--c-text-muted);">21/09/2026 08:31</td><td>Hoàng Gia Huy</td><td style="font-weight:600;">Đồng bộ danh mục</td><td>Google Sheet</td><td style="color:var(--c-text-muted);">thêm 2, đổi 5, ẩn 0, giữ nguyên 31</td></tr>
+                <tr><td style="color:var(--c-text-muted);">21/09/2026 08:05</td><td>Trần Quốc Việt</td><td style="font-weight:600;">Sửa thông tin chuyến</td><td><a href="#" style="font-weight:600;">TD-2609-018</a></td><td style="color:var(--c-text-muted);">giờ đón 07:30 → 07:45</td></tr>
+                <tr><td style="color:var(--c-text-muted);">20/09/2026 18:40</td><td>Lê Thị Bình</td><td style="font-weight:600;">Xác nhận đơn</td><td><a href="#" style="font-weight:600;">TD-2609-018</a></td><td style="color:var(--c-text-muted);">tổng 1.000.000 ₫ · cọc 100.000 ₫</td></tr>
+                <tr><td style="color:var(--c-text-muted);">20/09/2026 18:33</td><td>Trần Quốc Việt</td><td style="font-weight:600;">Nhận phụ trách</td><td><a href="#" style="font-weight:600;">TD-2609-018</a></td><td style="color:var(--c-text-muted);">chưa có người → Trần Quốc Việt</td></tr>
+                <tr><td style="color:var(--c-text-muted);">20/09/2026 18:12</td><td>Lê Thị Bình</td><td style="font-weight:600;">Lập đơn</td><td><a href="#" style="font-weight:600;">TD-2609-018</a></td><td style="color:var(--c-text-muted);">1 dịch vụ · 7 khách</td></tr>
+                <tr><td style="color:var(--c-text-muted);">20/09/2026 16:02</td><td>Hoàng Gia Huy</td><td style="font-weight:600;">Ghi đè giá dịch vụ</td><td>CANO_RIENG</td><td style="color:var(--c-text-muted);">người lớn 2.400.000 → 2.500.000 ₫</td></tr>
+                <tr><td style="color:var(--c-text-muted);">20/09/2026 09:44</td><td>Hoàng Gia Huy</td><td style="font-weight:600;">Đặt lại PIN</td><td>Trần Quốc Việt</td><td style="color:var(--c-text-muted);">mọi phiên đang đăng nhập bị thu hồi</td></tr>
+                <tr><td style="color:var(--c-text-muted);">19/09/2026 07:12</td><td>Lê Thị Bình</td><td style="font-weight:600;">Huỷ đơn</td><td><a href="#" style="font-weight:600;">TD-2609-009</a></td><td style="color:var(--c-text-muted);">khách đổi ngày, cảng cấm ra khơi</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="display:flex;justify-content:center;">
+            <button type="button" style="font-family:var(--font-ui);font-size:15px;font-weight:600;color:var(--c-primary);background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:11px 22px;cursor:pointer;">Tải thêm</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">IPHONE PWA · 390 — bảng đổi thành dòng thời gian</div>
+      <div style="width:390px;height:844px;background:var(--c-surface-alt);border-radius:38px;overflow:hidden;box-shadow:var(--shadow-lg);border:1px solid var(--c-border);display:flex;flex-direction:column;">
+        <div style="background:#fff;border-bottom:1px solid var(--c-border);padding:34px 16px 10px;display:flex;align-items:center;gap:10px;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l-7 7 7 7"></path></svg>
+          <span style="font-family:var(--font-display);font-weight:800;font-size:16px;">Nhật ký</span>
+        </div>
+        <div style="padding:14px 16px;background:#fff;border-bottom:1px solid var(--c-border);">
+          <input type="search" placeholder="Mã đơn, dịch vụ, nhân viên" style="width:100%;min-height:44px;">
+        </div>
+        <div style="flex:1;padding:16px;display:flex;flex-direction:column;gap:10px;overflow:hidden;">
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">21/09/2026</div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--c-text-muted);"><span>08:31</span><span>Hoàng Gia Huy</span></div>
+            <div style="font-weight:700;font-size:16px;">Đồng bộ danh mục</div>
+            <div style="font-size:14px;color:var(--c-text-muted);">Google Sheet · thêm 2, đổi 5, giữ nguyên 31</div>
+          </div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--c-text-muted);"><span>08:05</span><span>Trần Quốc Việt</span></div>
+            <div style="font-weight:700;font-size:16px;">Sửa thông tin chuyến</div>
+            <div style="font-size:14px;"><a href="#" style="font-weight:600;">TD-2609-018</a> <span style="color:var(--c-text-muted);">· giờ đón 07:30 → 07:45</span></div>
+          </div>
+          <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);margin-top:4px;">20/09/2026</div>
+          <div style="background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--c-text-muted);"><span>18:40</span><span>Lê Thị Bình</span></div>
+            <div style="font-weight:700;font-size:16px;">Xác nhận đơn</div>
+            <div style="font-size:14px;"><a href="#" style="font-weight:600;">TD-2609-018</a> <span style="color:var(--c-text-muted);">· tổng 1.000.000 ₫</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

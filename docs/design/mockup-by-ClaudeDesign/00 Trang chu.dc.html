@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <meta name="design_doc_mode" content="canvas">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <style>
+    body{background:#EDF1F4;margin:0;}
+    a{color:var(--c-primary);text-decoration:none;} a:hover{color:var(--c-primary-strong);}
+  </style>
+</helmet>
+
+<div style="padding:40px;font-family:var(--font-ui);color:var(--c-text);display:flex;flex-direction:column;gap:24px;">
+  <div style="max-width:880px;display:flex;flex-direction:column;gap:6px;">
+    <div style="font-family:var(--font-display);font-weight:800;font-size:var(--fs-h4);">00 · Trang chủ — <code style="font-family:ui-monospace,monospace;font-size:18px;color:var(--c-primary);">/home</code></div>
+    <p style="margin:0;font-size:15px;color:var(--c-text-muted);line-height:1.6;">Kiểu Launchpad của macOS: một lưới biểu tượng lớn, tiêu đề nằm dưới biểu tượng, chia ba nhóm rõ ràng — Bán hàng · Quản trị · Tôi. Chỉ hiện mục mà tài khoản có quyền vào; số trên góc biểu tượng là việc đang chờ. Biểu tượng lấy từ <code style="font-family:ui-monospace,monospace;">web/icons.ts</code>; bốn ô có khung gạch là chỗ cần thêm hình mới vào file đó (xem ghi chú cuối trang).</p>
+  </div>
+
+  <div style="display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;">
+
+    <!-- Desktop -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">DESKTOP · 1280 × 860</div>
+      <div style="width:1280px;height:860px;border-radius:14px;overflow:hidden;box-shadow:var(--shadow-lg);background:linear-gradient(165deg,var(--c-primary),var(--c-primary-strong));display:flex;flex-direction:column;">
+
+        <div style="padding:0 32px;height:60px;display:flex;align-items:center;gap:20px;border-bottom:1px solid rgba(255,255,255,.14);">
+          <div style="display:flex;align-items:center;gap:10px;font-family:var(--font-display);font-weight:800;font-size:17px;color:#fff;">
+            <img src="public/icons/logo-96.png" alt="" width="30" height="30" style="width:30px;height:30px;border-radius:999px;">
+            Tour Đảo <span style="font-weight:500;color:var(--c-band-muted);">Booking</span>
+          </div>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:16px;font-size:15px;color:var(--c-band-muted);">
+            <span>Chủ nhật, 21/09/2026</span>
+            <span style="color:#fff;font-weight:600;">Hoàng Gia Huy</span>
+            <button type="button" style="font-family:var(--font-ui);font-size:15px;color:var(--c-band-muted);background:none;border:none;cursor:pointer;">Đăng xuất</button>
+          </div>
+        </div>
+
+        <div style="flex:1;padding:36px 48px;display:flex;flex-direction:column;gap:32px;overflow:hidden;">
+          <div style="display:flex;align-items:flex-end;gap:32px;">
+            <div>
+              <div style="font-family:var(--font-display);font-weight:800;font-size:32px;color:#fff;">Chào Huy</div>
+              <div style="font-size:17px;color:var(--c-band-muted);margin-top:4px;">Hôm nay có 8 chuyến đón, 3 đơn còn thiếu tiền.</div>
+            </div>
+            <div style="margin-left:auto;display:flex;gap:12px;">
+              <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;min-width:120px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">ĐÓN HÔM NAY</div>
+                <div style="font-family:var(--font-display);font-weight:800;font-size:26px;color:#fff;">8</div>
+              </div>
+              <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;min-width:120px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">ĐƠN NHÁP</div>
+                <div style="font-family:var(--font-display);font-weight:800;font-size:26px;color:#fff;">5</div>
+              </div>
+              <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px 20px;min-width:120px;">
+                <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">CÒN THIẾU</div>
+                <div style="font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-sand);">8,7tr ₫</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Nhóm bán hàng -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">BÁN HÀNG</div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:28px 20px;">
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="position:relative;width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg>
+                  <span style="position:absolute;top:-6px;right:-6px;background:var(--c-accent);color:#fff;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow-card);">8</span>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Đơn hàng</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">8 chuyến hôm nay</span>
+              </a>
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:var(--c-accent);box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Đơn mới</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Lập đơn cho khách</span>
+              </a>
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M17.5 14.5c2.5.3 4 2 4 4.5"></path></svg>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Hồ sơ</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Khách, đại lý, HDV</span>
+              </a>
+
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--c-band-muted);text-align:center;line-height:1.4;">cần icon<br>“calendar”</span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Lịch đón</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Chuyến theo ngày</span>
+              </div>
+
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--c-band-muted);text-align:center;line-height:1.4;">cần icon<br>“pin”</span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Địa điểm</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Bến, quầy, văn phòng</span>
+              </div>
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"></rect><path d="M8 11V8a4 4 0 0 1 8 0v3"></path></svg>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Đơn đã khoá</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Đã xác nhận, chỉ sửa chuyến</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Nhóm quản trị -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">QUẢN TRỊ · CHỈ ADMIN</div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:28px 20px;">
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="position:relative;width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"></path><circle cx="7.5" cy="8.5" r="1.2"></circle></svg>
+                  <span style="position:absolute;top:-6px;right:-6px;background:var(--c-sand);color:#3d2a05;font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;box-shadow:var(--shadow-card);">1</span>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Dịch vụ &amp; giá</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">1 giá cần xem lại</span>
+              </a>
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M17.5 14.5c2.5.3 4 2 4 4.5"></path></svg>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Nhân viên</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">12 tài khoản</span>
+              </a>
+
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--c-band-muted);text-align:center;line-height:1.4;">cần icon<br>“history”</span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Nhật ký</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Ai làm gì, lúc nào</span>
+              </div>
+
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-sand-text)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4l9 16H3L12 4z"></path><path d="M12 10v4M12 17v.01"></path></svg>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Chế độ bảo trì</span>
+                <span style="font-size:13px;color:var(--c-sand);margin-top:-6px;">Đang bật</span>
+              </a>
+            </div>
+          </div>
+
+          <!-- Nhóm tôi -->
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">TÔI</div>
+            <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:28px 20px;">
+              <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="width:96px;height:96px;border-radius:24px;background:#fff;box-shadow:var(--shadow-lg);display:flex;align-items:center;justify-content:center;">
+                  <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Tôi</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">Đổi PIN, quyền</span>
+              </a>
+              <div style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+                <span style="position:relative;width:96px;height:96px;border-radius:24px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--c-band-muted);text-align:center;line-height:1.4;">cần icon<br>“chat”
+                  <span style="position:absolute;top:-6px;right:-6px;background:var(--c-accent);color:#fff;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;">2</span>
+                </span>
+                <span style="font-size:15px;font-weight:600;color:#fff;">Góp ý / Báo lỗi</span>
+                <span style="font-size:13px;color:var(--c-band-muted);margin-top:-6px;">2 phản hồi mới</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Mobile -->
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">IPHONE PWA · 390 — lưới 4 cột</div>
+      <div style="width:390px;height:844px;border-radius:38px;overflow:hidden;box-shadow:var(--shadow-lg);background:linear-gradient(170deg,var(--c-primary),var(--c-primary-strong));display:flex;flex-direction:column;">
+        <div style="padding:40px 20px 0;display:flex;align-items:center;gap:10px;">
+          <img src="public/icons/logo-96.png" alt="" width="28" height="28" style="width:28px;height:28px;border-radius:999px;">
+          <span style="font-family:var(--font-display);font-weight:800;font-size:16px;color:#fff;">Tour Đảo Booking</span>
+          <span style="margin-left:auto;font-size:13px;color:var(--c-band-muted);">21/09</span>
+        </div>
+        <div style="padding:20px;display:flex;flex-direction:column;gap:6px;">
+          <div style="font-family:var(--font-display);font-weight:800;font-size:24px;color:#fff;">Chào Huy</div>
+          <div style="font-size:15px;color:var(--c-band-muted);">8 chuyến đón hôm nay · 3 đơn còn thiếu tiền</div>
+        </div>
+        <div style="flex:1;padding:8px 20px;display:flex;flex-direction:column;gap:24px;">
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px 12px;">
+            <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="position:relative;width:64px;height:64px;border-radius:18px;background:#fff;box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg>
+                <span style="position:absolute;top:-5px;right:-5px;background:var(--c-accent);color:#fff;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;">8</span>
+              </span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Đơn hàng</span>
+            </a>
+            <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="width:64px;height:64px;border-radius:18px;background:var(--c-accent);box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+              </span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Đơn mới</span>
+            </a>
+            <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="width:64px;height:64px;border-radius:18px;background:#fff;box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M17.5 14.5c2.5.3 4 2 4 4.5"></path></svg>
+              </span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Hồ sơ</span>
+            </a>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="width:64px;height:64px;border-radius:18px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--c-band-muted);text-align:center;line-height:1.3;">cần<br>icon</span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Lịch đón</span>
+            </div>
+            <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="position:relative;width:64px;height:64px;border-radius:18px;background:#fff;box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12V4h8l10 10-8 8L3 12z"></path><circle cx="7.5" cy="8.5" r="1.2"></circle></svg>
+                <span style="position:absolute;top:-5px;right:-5px;background:var(--c-sand);color:#3d2a05;font-size:11px;font-weight:800;padding:1px 7px;border-radius:999px;">1</span>
+              </span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Dịch vụ</span>
+            </a>
+            <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="width:64px;height:64px;border-radius:18px;background:#fff;box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3.5"></circle><path d="M2.5 20c0-3.5 3-5.5 6.5-5.5s6.5 2 6.5 5.5"></path><circle cx="17" cy="9" r="2.5"></circle><path d="M17.5 14.5c2.5.3 4 2 4 4.5"></path></svg>
+              </span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Nhân viên</span>
+            </a>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="width:64px;height:64px;border-radius:18px;background:rgba(255,255,255,.08);border:1.5px dashed rgba(255,255,255,.45);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--c-band-muted);text-align:center;line-height:1.3;">cần<br>icon</span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Nhật ký</span>
+            </div>
+            <a href="#" style="display:flex;flex-direction:column;align-items:center;gap:8px;">
+              <span style="width:64px;height:64px;border-radius:18px;background:#fff;box-shadow:var(--shadow-card);display:flex;align-items:center;justify-content:center;">
+                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="var(--c-primary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg>
+              </span>
+              <span style="font-size:12px;font-weight:600;color:#fff;text-align:center;">Tôi</span>
+            </a>
+          </div>
+
+          <div style="background:rgba(255,255,255,.1);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+            <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-band-muted);">CHUYẾN GẦN NHẤT</div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="font-family:var(--font-display);font-weight:800;font-size:19px;color:#fff;">07:45</div>
+              <div style="flex:1;">
+                <div style="font-size:15px;font-weight:600;color:#fff;">Anh Nam · 05 NL, 02 TE</div>
+                <div style="font-size:13px;color:var(--c-band-muted);">KS Havana · còn 900.000 ₫</div>
+              </div>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--c-band-muted)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5l7 7-7 7"></path></svg>
+            </div>
+          </div>
+        </div>
+        <div style="padding:10px 20px 28px;display:flex;justify-content:center;">
+          <div style="background:rgba(255,255,255,.14);border-radius:999px;padding:10px 18px;display:flex;gap:22px;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="4" width="14" height="17" rx="2"></rect><path d="M9 9h6M9 13h6M9 17h3"></path></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg>
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"></circle><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"></path></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="max-width:880px;background:#fff;border:1px solid var(--c-border);border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:10px;">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.08em;line-height:1.5;color:var(--c-text-muted);">GHI CHÚ BÀN GIAO</div>
+    <p style="margin:0;font-size:15px;line-height:1.68;">Trang chủ là màn mới, chưa có trong <code style="font-family:ui-monospace,monospace;">public/</code> — cần thêm <code style="font-family:ui-monospace,monospace;">home.html</code> + <code style="font-family:ui-monospace,monospace;">web/home.ts</code>, dùng lại <code style="font-family:ui-monospace,monospace;">initShell()</code> và bản đồ quyền hiện tại để quyết định ô nào hiện.</p>
+    <p style="margin:0;font-size:15px;line-height:1.68;"><code style="font-family:ui-monospace,monospace;">web/icons.ts</code> hiện có 10 hình. Bốn ô trong lưới còn khung gạch vì cần thêm bốn hình mới cùng phong cách (nét 1.8px, <code style="font-family:ui-monospace,monospace;">stroke-linecap: round</code>, 24×24): <strong>calendar</strong> (Lịch đón), <strong>pin</strong> (Địa điểm), <strong>history</strong> (Nhật ký), <strong>chat</strong> (Góp ý). Tôi không tự vẽ để không lệch khỏi bộ đang chạy — nói một câu là tôi bổ sung, hoặc dev thêm vào file đó.</p>
+    <p style="margin:0;font-size:15px;line-height:1.68;">Số trên góc biểu tượng: Đơn hàng = số chuyến đón hôm nay, Dịch vụ = số giá cần xem lại (<code style="font-family:ui-monospace,monospace;">conflicts</code>), Góp ý = <code style="font-family:ui-monospace,monospace;">/api/feedback/badge</code> (mine + queue). “Lịch đón” cần API sắp theo <code style="font-family:ui-monospace,monospace;">departDate</code> — vẫn là việc còn mở.</p>
+  </div>
+</div>]]>
+</x-dc>
+</body>
+</html>

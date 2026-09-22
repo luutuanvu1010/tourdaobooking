@@ -1,0 +1,38 @@
+/* §2 Chữ — hai VAI, hai bộ. Tiêu đề Be Vietnam Pro (vuông vắn, dứt khoát),
+   nội dung Nunito (tròn đầu nét, mắt người Việt đã quen). Đủ bộ dấu tiếng Việt.
+   Đổi vai này KHÔNG kéo theo vai kia — đó là lý do hai token tách rời. */
+:root{
+  --font-display:"Be Vietnam Pro","Nunito",system-ui,sans-serif;
+  --font-ui:"Nunito","Be Vietnam Pro",system-ui,sans-serif;
+
+  --fw-500:500; /* @kind font */
+  --fw-600:600; /* @kind font */
+  --fw-700:700; /* @kind font */
+  --fw-800:800; /* @kind font */
+  --fw-900:900; /* @kind font */
+
+  --fs-badge:0.6875rem;      /* 11px */
+  --fs-xs:0.75rem;           /* 12px */
+  --fs-label:0.875rem;       /* 14px */
+  --fs-sm:0.9375rem;         /* 15px */
+  --fs-base:1.0625rem;       /* 17px — cỡ nội dung */
+  --fs-card-title:1.3125rem; /* 21px */
+  --fs-nav:1.125rem;         /* 18px — nav link, footer heading */
+  --fs-h5:1.25rem;           /* 20px */
+  --fs-h4:1.625rem;          /* 26px */
+  --fs-section:2rem;         /* 32px — tiêu đề mục */
+  --fs-h3:2rem;              /* 32px */
+  --fs-h2:2.5rem;            /* 40px */
+  --fs-h1:2.625rem;          /* 42px */
+  --fs-hero:2.875rem;        /* 46px */
+  --fs-display:3.75rem;      /* 60px — chỉ cho câu định vị hero trang chủ */
+
+  --lh-heading:1.16; /* @kind font */
+  --lh-body:1.68; /* @kind font */
+  --lh-display:1.22; /* @kind font */         /* chỉ cho chữ hiển thị lớn — ở cỡ hero, 1.16 làm
+                                dấu ngã dòng dưới chạm dấu nặng dòng trên */
+  --ls-eyebrow:0.08em; /* @kind font */       /* nhãn CHỮ HOA. Chữ hoa tiếng Việt vẫn mang dấu nên
+                                phải giãn ngang, và phải kèm --lh-eyebrow.
+                                Ngoài eyebrow, letter-spacing luôn 0. */
+  --lh-eyebrow:1.5; /* @kind font */
+}

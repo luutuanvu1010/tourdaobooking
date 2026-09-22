@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<![CDATA[<helmet>
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/fonts.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/colors.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/themes.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/typography.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/spacing.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/effects.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/layout.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/tokens/base.css">
+  <link rel="stylesheet" href="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/styles.css">
+  <script src="_ds/tour-o-design-system-8db7ceb8-709f-4e66-9f17-7da603da0c86/_ds_bundle.js"></script>
+  <script src="./doc-page.js"></script>
+  <style>
+    doc-page:not(:defined){visibility:hidden}
+    body{margin:0;}
+    h1,h2,h3{font-family:var(--font-display);color:var(--c-text);text-wrap:balance;}
+    p,li,td,th{font-family:var(--font-ui);color:var(--c-text);}
+    a{color:var(--c-primary);}
+    table{width:100%;border-collapse:collapse;margin:12px 0 0;}
+    th{text-align:left;font-size:12px;font-weight:700;letter-spacing:.08em;line-height:1.5;text-transform:uppercase;color:var(--c-text-muted);border-bottom:1px solid var(--c-border);padding:0 10px 8px 0;}
+    td{font-size:13px;line-height:1.6;border-bottom:1px solid var(--c-border);padding:8px 10px 8px 0;vertical-align:top;}
+    code{font-family:ui-monospace,monospace;font-size:12.5px;color:var(--c-primary);}
+  </style>
+</helmet>
+
+<doc-page margin="0.8in">
+  <div slot="header" style="display:flex;align-items:center;gap:10px;padding-bottom:8px;border-bottom:1px solid var(--c-border);font-family:var(--font-ui);font-size:11px;color:var(--c-text-muted);">
+    <img src="public/icons/logo-96.png" alt="" width="18" height="18" style="width:18px;height:18px;border-radius:999px;">
+    <span style="font-weight:700;color:var(--c-primary);">Tour Đảo Booking</span>
+    <span>Thiết kế lại giao diện — tài liệu bàn giao dev</span>
+    <span style="margin-left:auto;">21/09/2026</span>
+  </div>
+
+  <h1 style="font-size:32px;font-weight:800;margin:0 0 8px;">Thiết kế lại giao diện Tour Đảo Booking</h1>
+  <p style="font-size:15px;line-height:1.68;color:var(--c-text-muted);margin:0 0 24px;">Tài liệu này đi kèm 12 mockup (11 trang + một bảng lớp phủ/trạng thái). Nó ghi: phong cách đã chọn, token dùng, quy tắc bố cục, ánh xạ dữ liệu, ràng buộc kỹ thuật phải giữ, và bản đồ mockup ↔ file nguồn trong repo <code>luutuanvu1010/tourdaobooking</code> (nhánh <code>main</code>).</p>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">1. Phạm vi và phong cách</h2>
+  <p style="font-size:14px;line-height:1.68;margin:0;">11 trang HTML tĩnh trong <code>public/</code> được thiết kế lại: <code>login</code>, <code>index</code> (đơn hàng), <code>order</code>, <code>order-form</code>, <code>staff</code>, <code>parties</code>, <code>catalog</code>, <code>locations</code>, <code>account</code>, <code>audit</code>, <code>feedback</code>. Phong cách chốt là <strong>Tiêu chuẩn</strong>: nền app xám rất nhạt, thẻ trắng viền 1px, một dải màu đậm cho khối quan trọng, không gradient trang trí, không đổi opacity khi hover. Desktop dùng bảng; điện thoại dùng thẻ. Không trang nào thay đổi luồng nghiệp vụ hay hợp đồng API.</p>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">2. Token — không có giá trị ngoài danh sách này</h2>
+  <table>
+    <thead><tr><th>Vai</th><th>Giá trị</th><th>Dùng ở đâu</th></tr></thead>
+    <tbody>
+      <tr><td>Xanh biển sâu <code>--c-primary</code></td><td>#0C4A6E</td><td>Thanh đầu trang, dải tóm tắt, nút chính, tab đang chọn</td></tr>
+      <tr><td><code>--c-primary-strong</code></td><td>#082F49</td><td>Dải thương hiệu trang đăng nhập</td></tr>
+      <tr><td><code>--c-primary-soft</code></td><td>#F0F7FC</td><td>Nền viên lọc, nút phụ, hàng đang chọn, huy hiệu “Đã xác nhận”</td></tr>
+      <tr><td>San hô <code>--c-accent</code> / <code>-strong</code></td><td>#C0392B / #96271A</td><td>Số tiền còn thiếu, nút “+ Đơn mới”, “Xác nhận gửi khách”, hành động huỷ</td></tr>
+      <tr><td>Cát <code>--c-sand</code> / <code>-soft</code></td><td>#F5A623 / #FBE3B3</td><td>Trạng thái Nháp, dải bảo trì, cảnh báo khoá/PIN (chữ luôn dùng <code>--c-sand-text</code> #5a4109)</td></tr>
+      <tr><td>Xanh lá <code>--c-green-soft/-text</code></td><td>#DCFCE7 / #166534</td><td>Chỉ cho “đã thanh toán đủ” và thông báo thành công</td></tr>
+      <tr><td>Nền / thẻ / viền</td><td>#F8FAFC · #FFFFFF · #E2E8F0</td><td>Nền app dùng <code>--c-surface-alt</code>; thẻ trắng; viền 1px</td></tr>
+      <tr><td>Chữ</td><td>#0F172A · #475569</td><td><code>--c-text</code> cho nội dung, <code>--c-text-muted</code> cho nhãn phụ</td></tr>
+      <tr><td>Bộ chữ</td><td>Be Vietnam Pro 700/800 · Nunito 400–800</td><td>Tiêu đề dùng <code>--font-display</code>, còn lại <code>--font-ui</code>. <code>letter-spacing: 0</code> ở mọi nơi trừ nhãn CHỮ HOA (0.08em + line-height 1.5)</td></tr>
+      <tr><td>Cỡ chữ</td><td>11 · 12 · 13 · 14 · 15 · 17 · 19 · 21 · 26 · 32</td><td>Nội dung 15–17px; nhãn eyebrow 11px; tiêu đề trang 32px</td></tr>
+      <tr><td>Khoảng cách</td><td>4 · 8 · 12 · 16 · 24 · 32 · 48</td><td>Đệm thẻ 16–24; khoảng giữa khối 20–24; đệm ô bảng 14</td></tr>
+      <tr><td>Bo góc</td><td>8 (nút, ô điền) · 12 (thẻ) · 14 (khung app) · 999 (huy hiệu)</td><td>Không dùng giá trị khác</td></tr>
+      <tr><td>Bóng</td><td><code>--shadow-card</code> · <code>--shadow-raised</code> (hover) · <code>--shadow-overlay</code> (lớp phủ)</td><td>Bóng có tông xanh, không phải xám trung tính</td></tr>
+      <tr><td>Chuyển động</td><td>180ms ease (màu, viền, bóng) · 300ms ease (trượt bảng)</td><td>Một hàm easing; <code>prefers-reduced-motion</code> tắt sạch</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">3. Khung trang</h2>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;">
+    <li><strong>Thanh đầu trang</strong> (<code>web/shell.ts</code>): cao 60px, nền trắng, viền dưới 1px. Thứ tự và điều kiện hiện của link giữ đúng bản đồ quyền hiện tại — Đơn hàng và Hồ sơ cho vai văn phòng, + Đơn mới theo <code>order.create</code>, Dịch vụ/Nhân viên/Địa điểm/Nhật ký cho ADMIN, Góp ý cho mọi người kèm huy hiệu số chưa đọc.</li>
+    <li><strong>Tab bar điện thoại</strong>: 3 tab cho nhân sự bán hàng, 5 tab cho admin, không có tab “Đơn mới” với tài khoản chỉ kế toán, chỉ tab “Tôi” với tài khoản chỉ FIELD. Vùng chạm tối thiểu 44px, đệm dưới cho safe-area.</li>
+    <li><strong>Bề rộng</strong>: nội dung tối đa 1200px; cột phụ (thanh toán, tóm tắt) 340px cố định và dính khi cuộn; trang bảng rộng dùng hết khung.</li>
+    <li><strong>Bảng → thẻ</strong>: dưới 900px mỗi hàng bảng thành một thẻ; nhãn cột thành nhãn trong thẻ. Không dùng cuộn ngang cho bảng trên điện thoại.</li>
+  </ul>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">4. Thông tin cốt lõi của đơn — thứ tự không đổi</h2>
+  <p style="font-size:14px;line-height:1.68;margin:0 0 4px;">Đây là thay đổi quan trọng nhất: hướng dẫn viên nhìn một dòng là biết đủ. Thứ tự trong thẻ và trong dòng bảng phải như nhau.</p>
+  <table>
+    <thead><tr><th>#</th><th>Trường</th><th>Nguồn dữ liệu</th><th>Định dạng</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td>Ngày + giờ đón</td><td><code>services[].departDate</code>, <code>pickupTime</code> (trip fields)</td><td>21/09 · 07:45 — đậm, đứng đầu</td></tr>
+      <tr><td>2</td><td>Tên khách + số điện thoại</td><td><code>customerName</code>, <code>customerPhone</code></td><td>Tên 19px đậm; số điện thoại ngay dưới, bấm gọi được trên điện thoại</td></tr>
+      <tr><td>3</td><td>Gói tour / dịch vụ</td><td><code>services[].name</code></td><td>Nhiều dịch vụ: hiện dịch vụ đầu + “+N dịch vụ”</td></tr>
+      <tr><td>4</td><td>Số khách</td><td><code>services[].pax</code> theo <code>PAX_ORDER</code></td><td>05 NL · 02 TE · 01 EB (bỏ loại có 0 khách)</td></tr>
+      <tr><td>5</td><td>Tổng · Đã trả · Còn lại</td><td><code>total</code>, <code>depositAmount</code>, <code>remainingAmount</code></td><td>Ba ô cạnh nhau; “Còn lại” đậm màu san hô, bằng 0 thì màu xanh lá</td></tr>
+      <tr><td>6</td><td>Trạng thái</td><td><code>status</code> + <code>STATUS_LABEL</code></td><td>Nháp (cát) · Đã xác nhận (xanh) · Đã huỷ (san hô nhạt)</td></tr>
+      <tr><td>7</td><td>Nơi đón</td><td>trip <code>pickupLocation</code></td><td>Dòng phụ của cột “Đón”</td></tr>
+      <tr><td>8</td><td>Ghi chú đặc biệt</td><td><code>customerNote</code></td><td>Có ghi chú thì hiện chữ màu san hô đậm; không có thì ẩn hẳn dòng</td></tr>
+      <tr><td>9</td><td>Người phụ trách</td><td><code>GET /api/dispatch/handlers</code></td><td>Ba trạng thái: chưa biết (ẩn dòng) · <code>null</code> → chip “Chưa có người phụ trách” · có tên</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">5. Lớp phủ — một khuôn dùng lại</h2>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;">
+    <li><code>role="dialog"</code> + <code>aria-modal="true"</code> + <code>aria-labelledby</code>; mọi con trực tiếp của <code>body</code> nhận <code>inert</code> khi mở và được gỡ khi đóng.</li>
+    <li>Đóng bằng Esc, ✕, hoặc chạm nền; trả focus về đúng nút đã mở (nút được dựng lại thì nơi gọi tự trả focus).</li>
+    <li>Hộp thoại ảnh xác nhận <strong>không đóng khi đang lưu</strong> ở bảng sửa chuyến — lỗi máy chủ cần chỗ để hiện.</li>
+    <li>≤ 640px: trượt từ đáy, bo góc trên 20px. &gt; 640px: hộp giữa màn hình, tối đa 560px (ảnh xác nhận: 720px).</li>
+    <li>Vùng cuộn trong lớp phủ phải nhận được focus (<code>tabindex="0"</code> + <code>role="region"</code>) khi bên trong không có phần tử focus được.</li>
+    <li>Hai khung hình <code>requestAnimationFrame</code> trước khi thêm class <code>open</code> — trạng thái đầu phải được vẽ trước khi chuyển động chạy.</li>
+  </ul>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">6. Trạng thái và thông báo</h2>
+  <table>
+    <thead><tr><th>Trạng thái</th><th>Thể hiện</th><th>Ràng buộc</th></tr></thead>
+    <tbody>
+      <tr><td>Đang tải danh sách</td><td>Khung xương 2–3 thẻ, giữ sẵn chỗ dòng người phụ trách</td><td>Không được nhảy bố cục khi dữ liệu về sau</td></tr>
+      <tr><td>Rỗng</td><td>Biểu tượng la bàn + câu giải thích + hành động chính</td><td>Chữ giữ nguyên bản hiện tại: “Chưa có đơn nào khớp.”, “Không có hồ sơ nào khớp.”, “Bạn chưa gửi yêu cầu nào.”</td></tr>
+      <tr><td>Lỗi máy chủ</td><td>Banner san hô có tiêu đề, câu giải thích, và nút theo ma trận đặc tả 5.2</td><td>Bốn hành động: <code>none</code> · <code>reload_order</code> · <code>reload_page</code> · <code>lock_form</code>. 409 ở trang đơn luôn có “Tải lại đơn” (PWA standalone không có nút tải lại của trình duyệt)</td></tr>
+      <tr><td>Thiếu thông tin chuyến</td><td>Banner cát kèm liên kết “Sửa” tới đúng thẻ dịch vụ (<code>?focus=</code>)</td><td>Không kèm nút tải lại</td></tr>
+      <tr><td>Xung đột khoá lạc quan</td><td>Nạp bản mới rồi hiện câu “…đã cũ. Đã nạp bản mới…”</td><td>Thông báo phải đặt sau khi nạp xong</td></tr>
+      <tr><td>Lỗi ô điền</td><td>Viền 2px san hô + dòng lỗi có biểu tượng</td><td>Không bao giờ chỉ dùng màu; “Tối đa 50 khách.” hiện ngay cả trước lần bấm Lưu đầu</td></tr>
+      <tr><td>Mất mạng</td><td>Một câu trong banner, khung app vẫn dùng được</td><td>Không biết vai thì hiện 3 tab cơ bản</td></tr>
+      <tr><td>Bảo trì</td><td>Lớp phủ toàn trang + đồng hồ đếm ngược sống; dải mảnh cho người được phép</td><td>Không xoá nội dung trang bên dưới; hỏi lại <code>/api/auth/config</code> mỗi 20 giây; hết giờ thì đổi câu và dừng đếm</td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">7. Ràng buộc kỹ thuật phải giữ</h2>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;">
+    <li><strong>Không đổi kiến trúc</strong>: HTML tĩnh trong <code>public/*.html</code> + TypeScript thuần <code>web/*.ts</code> → esbuild → <code>public/js/</code>. Không thêm framework, không thêm bundler.</li>
+    <li><strong>Không <code>innerHTML</code></strong>: mọi DOM dựng bằng <code>h()</code> của <code>web/dom.ts</code>; SVG bằng <code>createElementNS</code>.</li>
+    <li><strong>Biểu tượng</strong>: chỉ 10 hình trong <code>web/icons.ts</code> (orders, plus, me, services, staff, back, next, lock, alert, close). Không thêm bộ icon, không icon font. Thiết kế này không dùng hình nào ngoài danh sách đó; nhãn nghiệp vụ dùng chữ, không dùng emoji.</li>
+    <li><strong>Tiền và ngày</strong>: <code>Intl.NumberFormat("vi-VN")</code> + hậu tố ₫; ngày giờ theo <code>Asia/Ho_Chi_Minh</code>, dạng dd/mm/yyyy hh:mm. Không tự định dạng lại trong component.</li>
+    <li><strong>Quyền</strong>: máy chủ quyết. Giao diện chỉ ẩn nút để người không có quyền không điền xong rồi bị 403 (ADR-0007, ADR-0009).</li>
+    <li><strong>Trần dữ liệu</strong>: 30 đơn/lần tải · 50 bản ghi nhật ký/lần · 20 dịch vụ và 50 dòng tiền mỗi đơn · 50 khách mỗi dịch vụ · 40 kết quả trong ô chọn danh mục · PIN đúng 6 số · ≤ 100 mã đơn mỗi lần hỏi người phụ trách.</li>
+    <li><strong>Không dựng lại ô đang gõ</strong>: thẻ dịch vụ chỉ dựng lại thân khi <code>structKey</code> đổi; không ghi đè ô đang có focus (gõ Telex/VNI không bị ngắt).</li>
+    <li><strong>PWA</strong>: <code>viewport-fit=cover</code>, safe-area cho thanh trên và tab bar, <code>theme-color #0c4a6e</code>. Mọi màn phải dùng được khi cài standalone, không có thanh địa chỉ.</li>
+    <li><strong>Tiếp cận</strong>: chữ thường ≥ 4.5:1 (chữ trắng trên san hô đạt 5.44:1; nền cát luôn đi với chữ #5a4109, không bao giờ chữ trắng). Vùng chạm ≥ 44px. Thông báo dùng <code>role="alert"</code> / <code>aria-live</code>; đồng hồ đếm ngược đặt <code>aria-live="off"</code>.</li>
+    <li><strong>PIN</strong>: hiện đúng một lần, không lưu ở client, khối hiện PIN nằm trên nền cảnh báo và có nút “Đã ghi lại, ẩn đi”.</li>
+  </ul>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">8. Bản đồ mockup ↔ file nguồn</h2>
+  <table>
+    <thead><tr><th>Mockup</th><th>Trang</th><th>File nguồn đã đọc</th></tr></thead>
+    <tbody>
+      <tr><td>01 Dang nhap</td><td><code>/login</code></td><td><code>public/login.html</code>, <code>web/login.ts</code>, <code>web/maintenance-screen.ts</code></td></tr>
+      <tr><td>02 Don hang</td><td><code>/</code></td><td><code>public/index.html</code>, <code>web/orders.ts</code>, <code>web/format.ts</code>, <code>web/shell.ts</code></td></tr>
+      <tr><td>03 Chi tiet don</td><td><code>/order</code></td><td><code>public/order.html</code>, <code>web/order.ts</code>, <code>web/order-services.ts</code></td></tr>
+      <tr><td>04 Lap don</td><td><code>/order-form</code></td><td><code>public/order-form.html</code>, <code>web/order-form.ts</code>, <code>web/service-card.ts</code>, <code>web/counter.ts</code>, <code>web/money-input.ts</code></td></tr>
+      <tr><td>05 Nhan vien</td><td><code>/staff</code></td><td><code>public/staff.html</code>, <code>web/staff.ts</code>, <code>web/handler-sheet.ts</code></td></tr>
+      <tr><td>06 Ho so</td><td><code>/parties</code></td><td><code>public/parties.html</code>, <code>web/parties.ts</code></td></tr>
+      <tr><td>07 Dich vu va gia</td><td><code>/catalog</code></td><td><code>public/catalog.html</code>, <code>web/catalog.ts</code></td></tr>
+      <tr><td>08 Dia diem</td><td><code>/locations</code></td><td><code>public/locations.html</code>, <code>web/locations.ts</code></td></tr>
+      <tr><td>09 Toi</td><td><code>/account</code></td><td><code>public/account.html</code>, <code>web/account.ts</code>, <code>web/maintenance-screen.ts</code></td></tr>
+      <tr><td>10 Nhat ky</td><td><code>/audit</code></td><td><code>public/audit.html</code>, <code>web/audit.ts</code></td></tr>
+      <tr><td>11 Gop y</td><td><code>/feedback</code></td><td><code>public/feedback.html</code>, <code>web/feedback.ts</code></td></tr>
+      <tr><td>12 Lop phu va trang thai</td><td>dùng chung</td><td><code>web/confirmation-dialog.ts</code>, <code>web/trip-sheet.ts</code>, <code>web/catalog-picker.ts</code>, <code>web/banner.ts</code>, <code>web/maintenance-screen.ts</code></td></tr>
+    </tbody>
+  </table>
+
+  <h2 style="font-size:21px;font-weight:700;margin:24px 0 8px;">9. Việc còn mở</h2>
+  <ul style="font-size:14px;line-height:1.7;margin:0;padding-left:20px;">
+    <li>Nhóm đơn theo ngày đón (“Hôm nay / Mai”) cần một tham số sắp xếp theo <code>departDate</code>; API hiện sắp theo <code>createdAt</code>. Cần xác nhận trước khi làm.</li>
+    <li>Thẻ đơn hiện gói tour đầu tiên; đơn nhiều dịch vụ cần chốt cách rút gọn (“+2 dịch vụ” hay liệt kê hết).</li>
+    <li>Trang Hồ sơ dùng panel chi tiết bên phải thay vì khối đẩy xuống dưới — cần kiểm lại với luồng “+ Hồ sơ mới” hiện tại.</li>
+    <li>Mockup dùng dữ liệu mẫu; mọi con số trong ảnh không phải dữ liệu thật.</li>
+  </ul>
+</doc-page>]]>
+</x-dc>
+</body>
+</html>
