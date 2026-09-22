@@ -2,7 +2,7 @@
 // Mặc định từ chối (Điều 8.5): thao tác lạ hoặc ô không khai = không được. Quyền app KHÔNG phải vai trò hồ sơ (ADR-0005): vai trò
 // hồ sơ (HDV, tài xế…) không bao giờ là điều kiện ở đây (R-N1-12).
 
-export const PERMISSION_CODES = ["SALES", "ACCOUNTING", "ADMIN", "FIELD"] as const;
+export const PERMISSION_CODES = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN"] as const;
 export type PermissionCode = (typeof PERMISSION_CODES)[number];
 
 export const PERMISSION_LABEL: Record<PermissionCode, string> = {
@@ -10,6 +10,8 @@ export const PERMISSION_LABEL: Record<PermissionCode, string> = {
   ACCOUNTING: "Kế toán",
   ADMIN: "Quản trị",
   FIELD: "Thực hiện",
+  PARTNER: "Đối tác",
+  SUPER_ADMIN: "Super Admin",
 };
 
 export const isPermissionCode = (v: unknown): v is PermissionCode => typeof v === "string" && (PERMISSION_CODES as readonly string[]).includes(v);
@@ -22,38 +24,45 @@ export type Scope = "none" | "own" | "assigned" | "ownOrAssigned" | "any";
 
 /** Thứ tự cột của mỗi hàng ở MATRIX. */
 type Row = Record<PermissionCode, Scope>;
-const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope): Row => ({ SALES, ACCOUNTING, ADMIN, FIELD });
+const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNER: Scope, SUPER_ADMIN: Scope): Row => ({ SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN });
 
 /**
- * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, cộng 3 thao tác Góp ý (`feedback.*` — mở rộng của module Góp ý, không thuộc bảng ADR-0007 gốc).
+ * Bản đồ ADR-0007 điều 1 (ADMIN làm được mọi thao tác) đã đổi theo ADR-0009, ADR-0014 (thêm PARTNER/SUPER_ADMIN, bốn thao tác mới), cộng 3 thao tác
+ * Góp ý (`feedback.*` — mở rộng của module Góp ý, không thuộc bảng ADR-0007 gốc).
  * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
  * Có route dùng: order.create/history.view/modify/trip.edit (module orders), dispatch.assign/claim (module dispatch), feedback.submit/view/triage (module feedback).
- * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) có mặt để test khoá bản đồ; chưa có route dùng.
+ * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
+ * Thao tác của N2/N3 (task.progress, order.money.edit, payment.*, invoice.*) và ADR-0014 Phase B/C (order.cancel, dispatch.guides.view,
+ * dispatch.request) có mặt để test khoá bản đồ; CHƯA có route dùng (thi công ở phiên sau — xem "Ngoài phạm vi" của ADR-0014).
  */
 export const MATRIX = {
-  "order.view": row("any", "any", "any", "none"), // xem đơn
-  "money.view": row("any", "any", "any", "none"), // xem tiền, bảng giá danh mục
-  "order.history.view": row("ownOrAssigned", "any", "any", "none"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách)
-  "contact.view": row("any", "any", "any", "assigned"), // tên/SĐT khách, điểm đón, giờ
-  "order.create": row("any", "none", "any", "none"), // lập đơn (đơn mới luôn là của người lập)
-  "order.modify": row("ownOrAssigned", "none", "any", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách)
-  "order.trip.edit": row("ownOrAssigned", "none", "any", "none"), // thông tin vận hành sau xác nhận
-  "task.progress": row("none", "none", "any", "assigned"), // cập nhật trạng thái việc được giao
-  "order.money.edit": row("own", "any", "any", "none"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0009 KHÔNG đổi (thuộc N3)
-  "dispatch.assign": row("ownOrAssigned", "none", "any", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
-  "dispatch.claim": row("any", "none", "any", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này)
-  "payment.receive": row("own", "any", "any", "none"), // ghi thu tiền
-  "payment.refund": row("none", "any", "any", "none"), // ghi hoàn tiền
-  "invoice.request": row("own", "any", "any", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
-  "invoice.issue": row("none", "any", "any", "none"), // đánh dấu hoá đơn đã xuất
-  "party.view": row("any", "any", "any", "none"), // xem hồ sơ khách/đại lý
-  "party.write": row("any", "any", "any", "none"), // tạo/sửa hồ sơ khách/đại lý
-  "admin.manage": row("none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ
-  "feedback.submit": row("any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
-  "feedback.view": row("own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
-  "feedback.triage": row("none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
+  "order.view": row("any", "any", "any", "none", "own", "any"), // xem đơn
+  "money.view": row("any", "any", "any", "none", "own", "any"), // xem tiền, bảng giá danh mục
+  "order.history.view": row("ownOrAssigned", "any", "any", "none", "own", "any"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách)
+  "contact.view": row("any", "any", "any", "assigned", "ownOrAssigned", "any"), // tên/SĐT khách, điểm đón, giờ — PARTNER: own (đơn tự lập) + assigned (đơn được duyệt "xin nhận", ADR-0014 điều 10)
+  "order.create": row("any", "none", "any", "none", "any", "any"), // lập đơn (đơn mới luôn là của người lập)
+  "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
+  "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any"), // thông tin vận hành sau xác nhận
+  "task.progress": row("none", "none", "any", "assigned", "assigned", "any"), // cập nhật trạng thái việc được giao — PARTNER chỉ có tác dụng khi đang phụ trách (ADR-0014 điều 10)
+  "order.money.edit": row("own", "any", "any", "assigned", "none", "any"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0014 điều 6: FIELD đang phụ trách (dòng điều chỉnh, chưa có route)
+  "order.cancel": row("none", "none", "none", "assigned", "none", "any"), // huỷ đơn đang phụ trách, lý do bắt buộc — thao tác MỚI (ADR-0014 điều 11, chưa có route)
+  "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
+  "dispatch.claim": row("any", "none", "any", "none", "none", "any"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này)
+  "dispatch.guides.view": row("none", "none", "none", "none", "any", "any"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
+  "dispatch.request": row("none", "none", "none", "none", "any", "any"), // xin nhận việc (chưa đổi người phụ trách) — thao tác MỚI (ADR-0014 điều 10, chưa có route)
+  "payment.receive": row("own", "any", "any", "none", "none", "any"), // ghi thu tiền
+  "payment.refund": row("none", "any", "any", "none", "none", "any"), // ghi hoàn tiền
+  "invoice.request": row("own", "any", "any", "none", "none", "any"), // ghi yêu cầu hoá đơn + thông tin xuất
+  "invoice.issue": row("none", "any", "any", "none", "none", "any"), // đánh dấu hoá đơn đã xuất
+  "party.view": row("any", "any", "any", "none", "none", "any"), // xem hồ sơ khách/đại lý
+  "party.write": row("any", "any", "any", "none", "none", "any"), // tạo/sửa hồ sơ khách/đại lý
+  "admin.manage": row("none", "none", "any", "none", "none", "any"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
+  "admin.manage.superadmin": row("none", "none", "none", "none", "none", "any"), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
+  "feedback.submit": row("any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
+  "feedback.view": row("own", "own", "any", "own", "own", "any"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
+  "feedback.triage": row("none", "none", "any", "none", "none", "any"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
@@ -96,3 +105,9 @@ export function can(who: PermissionHolder, op: OperationCode, ctx: OperationCont
 
 /** Nhân sự "văn phòng": dùng được màn hình/API đơn (mọi quyền trừ chỉ-FIELD). Router dùng cho access "office". */
 export const isOffice = (who: PermissionHolder): boolean => can(who, "order.view");
+
+/**
+ * Tài khoản dùng được route đơn (`/api/orders*`): nhân sự văn phòng (ADR-0007) HOẶC tài khoản Đối tác (ADR-0014 điều 2/3) — mỗi route đơn vẫn tự
+ * gọi `can()` để kiểm phạm vi "của mình". Router dùng cho access "orders". KHÔNG dùng để hiện/ẩn mục giao diện của nhân sự văn phòng (dùng `isOffice`).
+ */
+export const canAccessOrders = (who: PermissionHolder): boolean => isOffice(who) || hasPermission(who, "PARTNER");
