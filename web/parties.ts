@@ -3,10 +3,13 @@
 import { hasPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
+import { initials } from "./format";
+import { icon } from "./icons";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
 const listEl = byId("list");
+const listCardsEl = byId("list-cards");
 const detailEl = byId("detail");
 const createEl = byId("create");
 const PAGE = 30;
@@ -72,6 +75,23 @@ function queryString(extra: Record<string, string>): string {
   return p.toString();
 }
 
+function card(p: Api.PartyListItemDto): HTMLElement {
+  const el = h(
+    "div",
+    { class: "card", style: "cursor:pointer" },
+    h("div", { style: "width:40px;height:40px;border-radius:var(--radius-pill);background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-weight:800;flex:none" }, initials(p.displayName)),
+    h(
+      "div",
+      { style: "flex:1" },
+      h("div", null, p.displayName, !p.active && h("span", { class: "badge badge-cancelled" }, " Ngưng")),
+      h("div", { class: "muted" }, p.primaryPhone ?? "—", " · ", p.roleCodes.map(roleLabel).join(", ") || "—"),
+    ),
+    icon("next", 20),
+  );
+  el.addEventListener("click", () => void openDetail(p.id));
+  return el;
+}
+
 async function search(reset = true): Promise<void> {
   if (reset) offset = 0;
   const r = await act(() => api<Api.PartyListResponse>(`/api/parties?${queryString({ offset: String(offset) })}`));
@@ -81,8 +101,13 @@ async function search(reset = true): Promise<void> {
     tr.addEventListener("click", () => void openDetail(p.id));
     return tr;
   });
-  if (reset) replaceChildren(listEl, ...rows);
-  else listEl.append(...rows);
+  if (reset) {
+    replaceChildren(listEl, ...rows);
+    replaceChildren(listCardsEl, ...r.parties.map(card));
+  } else {
+    listEl.append(...rows);
+    listCardsEl.append(...r.parties.map(card));
+  }
   byId("empty").hidden = listEl.children.length > 0;
   byId("more").hidden = !r.hasMore;
   offset += r.parties.length;
