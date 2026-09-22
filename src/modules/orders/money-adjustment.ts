@@ -1,0 +1,100 @@
+// Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
+// đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
+import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
+import { buildLines, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
+import { snapshotService, type StoredService } from "./service-rules.ts";
+
+const PAX_CODES: readonly PaxCode[] = ["adult", "child", "senior", "infant"];
+
+export type Parsed<T> = ({ ok: true } & T) | { ok: false; message: string };
+
+/** Tính lại số khách/dòng tiền của MỘT dịch vụ từ danh mục theo số khách mới, dùng giá đã chụp lúc lập đơn — không tra danh mục hiện tại. */
+export function recomputeService(stored: StoredService, newPax: PaxCounts): Parsed<{ pax: PaxCounts; lines: GeneratedLine[]; subtotal: number }> {
+  const snap = snapshotService(stored);
+  if (!snap) return { ok: false, message: `Dịch vụ "${stored.name}" không sửa được qua đường này (nhập tay hoặc thiếu giá đã lưu).` };
+  const built = buildLines(snap, newPax);
+  if (!built.ok) return { ok: false, message: `${stored.name}: ${built.message}` };
+  return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + l.quantity * l.unitPrice, 0) };
+}
+
+function isPaxCounts(v: unknown): v is PaxCounts {
+  if (!v || typeof v !== "object" || Array.isArray(v)) return false;
+  const o = v as Record<string, unknown>;
+  return PAX_CODES.every((c) => typeof o[c] === "number" && Number.isInteger(o[c]) && (o[c] as number) >= 0);
+}
+
+/**
+ * Thân `POST /api/orders/:id/handler-money-edit`: `{ reason, services: [{ id, pax }] }`. `storedCatalogServiceIds` = id của mọi dịch vụ TỪ DANH MỤC
+ * (không phải nhập tay) hiện có của đơn — thân yêu cầu PHẢI liệt kê ĐÚNG tập này, không thiếu không thừa (mục 6 đặc tả — để `after_json` luôn đủ
+ * cho mọi dịch vụ từ danh mục, "trạng thái hiện tại" chỉ cần đọc dòng điều chỉnh gần nhất, không phải gộp nhiều dòng).
+ */
+export function parseMoneyEditInput(
+  body: Record<string, unknown> | null,
+  storedCatalogServiceIds: readonly string[],
+): Parsed<{ reason: string; services: { id: string; pax: PaxCounts }[] }> {
+  const reason = typeof body?.reason === "string" ? body.reason.trim() : "";
+  if (!reason) return { ok: false, message: "Cần nhập lý do sửa." };
+  if (!Array.isArray(body?.services)) return { ok: false, message: "Thiếu danh sách dịch vụ." };
+  const services: { id: string; pax: PaxCounts }[] = [];
+  for (const raw of body.services) {
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return { ok: false, message: "Danh sách dịch vụ không hợp lệ." };
+    const r = raw as Record<string, unknown>;
+    if (typeof r.id !== "string" || !storedCatalogServiceIds.includes(r.id)) return { ok: false, message: "Có dịch vụ không thuộc đơn này." };
+    if (!isPaxCounts(r.pax)) return { ok: false, message: "Số khách không hợp lệ." };
+    services.push({ id: r.id, pax: r.pax });
+  }
+  const ids = new Set(services.map((s) => s.id));
+  if (ids.size !== services.length) return { ok: false, message: "Một dịch vụ bị liệt kê hai lần." };
+  if (ids.size !== storedCatalogServiceIds.length || !storedCatalogServiceIds.every((id) => ids.has(id))) {
+    return { ok: false, message: "Cần liệt kê đủ mọi dịch vụ từ danh mục của đơn, không thiếu không thừa." };
+  }
+  return { ok: true, reason, services };
+}
+
+const toStoredService = (s: OrderServiceDto): StoredService => ({
+  id: s.id,
+  catalogCode: s.catalogCode,
+  name: s.name,
+  unit: s.unit,
+  pax: s.pax,
+  items: s.items.map((i) => ({ paxCode: i.paxCode, detail: i.detail, catalogPrice: i.catalogPrice })),
+});
+
+const toItemDto = (l: GeneratedLine): OrderItemDto => ({
+  id: `${l.catalogCode}:${l.pax}`,
+  catalogCode: l.catalogCode,
+  paxCode: l.pax,
+  description: l.description,
+  detail: l.detail || null,
+  quantity: l.quantity,
+  unitPrice: l.unitPrice,
+  catalogPrice: l.catalogPrice,
+  lineTotal: l.quantity * l.unitPrice,
+});
+
+/**
+ * Áp dòng điều chỉnh GẦN NHẤT (nếu có) lên đơn để hiển thị SỐ HIỆN HÀNH — KHÔNG đổi gì trong CSDL, chỉ dựng lại DTO trả về. Dịch vụ có mặt trong
+ * `after` được tính lại bằng `recomputeService`; dịch vụ vắng mặt (nhập tay, hoặc đơn CHƯA có điều chỉnh — `after = []`) giữ nguyên như đã lưu.
+ * An toàn: nếu tính lại lỗi (không nên xảy ra — đã kiểm lúc ghi), giữ dịch vụ đó như đã lưu thay vì làm hỏng cả trang.
+ */
+export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { serviceId: string; pax: PaxCounts }[]): OrderDetailDto {
+  const byService = new Map(after.map((a) => [a.serviceId, a.pax]));
+  let subtotal = 0;
+  const services: OrderServiceDto[] = order.services.map((s) => {
+    const own = s.items.reduce((n, i) => n + i.lineTotal, 0);
+    const newPax = byService.get(s.id);
+    if (!newPax) {
+      subtotal += own;
+      return s;
+    }
+    const recomputed = recomputeService(toStoredService(s), newPax);
+    if (!recomputed.ok) {
+      subtotal += own;
+      return s;
+    }
+    subtotal += recomputed.subtotal;
+    return { ...s, pax: recomputed.pax, items: recomputed.lines.map(toItemDto) };
+  });
+  const total = subtotal - order.discount;
+  return { ...order, subtotal, total, remainingAmount: total - order.depositAmount, services };
+}
