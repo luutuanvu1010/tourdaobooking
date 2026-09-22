@@ -103,6 +103,12 @@
       "legacy": true
     },
     {
+      "name": "order_money_adjustment",
+      "module": "orders",
+      "kind": "table",
+      "legacy": true
+    },
+    {
       "name": "order_service",
       "module": "orders",
       "kind": "table",

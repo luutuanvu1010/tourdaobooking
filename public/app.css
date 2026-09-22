@@ -209,6 +209,13 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .list-card { padding-top: 0; padding-bottom: 0; }
 .row-link { display: flex; justify-content: space-between; align-items: center; width: 100%; min-height: var(--row-h); padding: 0; font: inherit; color: var(--c-text); text-decoration: none; text-align: left; background: none; border: 0; border-bottom: 1px solid var(--c-line); cursor: pointer; }
 .row-link:last-child { border-bottom: 0; }
+/* Việc của tôi (FIELD, trang Tôi — ADR-0014 điều 6/11): mỗi đơn một .card, mỗi dịch vụ một khối con phân cách bằng viền trên. */
+.myjob-card h3 { margin: 0 0 var(--s2); }
+.myjob-service { padding: var(--s3) 0; border-top: 1px solid var(--c-border); }
+.myjob-service:first-of-type { border-top: 0; padding-top: 0; }
+.myjob-service-name { font-weight: 700; }
+.myjob-counters { display: flex; flex-wrap: wrap; gap: var(--s3); margin: var(--s3) 0; }
+.myjob-service input[type="text"] { margin: var(--s2) 0; }
 button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
 html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }

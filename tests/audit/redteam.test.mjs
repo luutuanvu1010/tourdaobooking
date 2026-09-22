@@ -1,0 +1,221 @@
+// Thử phá (red team) tầng API + CSDL — kiểm toán kiến trúc 2026-09-22 (docs/AUDIT-2026-09-22-KIEN-TRUC.md). TEST ĐẶC TẢ HIỆN TRẠNG, KHÔNG phải test hồi quy:
+//   "PASS"    = hệ thống giữ được bất biến (test khẳng định hành vi đúng);
+//   "FINDING" = hệ thống KHÔNG giữ được (test khẳng định hành vi YẾU hiện tại — khi sửa phát hiện thì test này ĐỎ; lúc đó đổi nó thành test hồi quy ở src/ hoặc tests/e2e/).
+// Cố ý nằm NGOÀI glob `src/**/*.test.ts` của `npm test`. Chạy: node --test "tests/audit/*.test.mjs"
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { world, seedStaff } from "./harness.mjs";
+
+const A = "11111111-1111-4111-8111-111111111111"; // SALES
+const B = "22222222-2222-4222-8222-222222222222"; // SALES khác
+const ADM = "33333333-3333-4333-8333-333333333333"; // ADMIN
+const F = "44444444-4444-4444-8444-444444444444"; // FIELD
+const K = "55555555-5555-4555-8555-555555555555"; // ACCOUNTING
+
+function setup() {
+  const w = world();
+  seedStaff(w.sqlite, { id: A, phone: "0900000001", name: "An", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: B, phone: "0900000002", name: "Bình", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: F, phone: "0900000004", name: "Thực địa", perms: ["FIELD"] });
+  seedStaff(w.sqlite, { id: K, phone: "0900000005", name: "Kế toán", perms: ["ACCOUNTING"] });
+  return w;
+}
+const inDays = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+const orderBody = (extra = {}) => ({
+  customerName: "Khách Một", customerPhone: "0912345678",
+  services: [{ kind: "manual", name: "Tour đảo", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, departDate: inDays(3), items: [{ description: "Vé", quantity: 2, unitPrice: 500000 }] }],
+  depositAmount: 200000, depositMethod: "cash", ...extra,
+});
+
+test("R1 FINDING idempotency: gửi lại cùng POST /api/orders (bấm 2 lần / mạng chập) tạo 2 đơn", async () => {
+  const w = setup();
+  const r1 = await w.call("POST", "/api/orders", { as: A, body: orderBody() });
+  const r2 = await w.call("POST", "/api/orders", { as: A, body: orderBody() });
+  assert.equal(r1.status, 201, r1.text);
+  assert.equal(r2.status, 201);
+  assert.equal(w.q("SELECT count(*) n FROM orders")[0].n, 2);
+});
+
+// SĐT dùng chung giữa nhiều hồ sơ là HỢP LỆ theo thiết kế (ADR-0001 mục 8, chỉ mục KHÔNG duy nhất). Phát hiện ở đây là: chống trùng chỉ là GỢI Ý ở giao diện
+// (/api/parties/lookup); máy chủ tạo hồ sơ mới vô điều kiện, nên cùng một lần bấm gửi lặp sinh hai hồ sơ cho cùng một người.
+test("R2 FINDING identity: gửi lại POST có newBooker tạo 2 hồ sơ khách cùng SĐT", async () => {
+  const w = setup();
+  const body = orderBody({ newBooker: { fullName: "Trần Khách", phone: "0912345678" } });
+  await w.call("POST", "/api/orders", { as: A, body });
+  await w.call("POST", "/api/orders", { as: A, body });
+  const n = w.q("SELECT count(DISTINCT party_id) n FROM pty_contact_point WHERE value_normalized = '0912345678'")[0].n;
+  assert.equal(n, 2);
+});
+
+test("R3 FINDING authz: nhân viên SALES đổi tên + NGƯNG hồ sơ của quản trị viên qua PUT /api/parties/:id", async () => {
+  const w = setup();
+  const cur = await w.call("GET", `/api/parties/pty-${ADM}`, { as: B });
+  assert.equal(cur.status, 200, cur.text);
+  const p = cur.json.party;
+  const r = await w.call("PUT", `/api/parties/pty-${ADM}`, { as: B, body: { name: { family: null, middle: null, given: "Kẻ Mạo Danh" }, familyName: null, middleName: null, givenName: "Kẻ Mạo Danh", active: false, expectedUpdatedAt: p.updatedAt } });
+  const label = w.q(`SELECT label FROM v_stf_staff_label WHERE id = ?`, ADM)[0].label;
+  const active = w.q(`SELECT active FROM pty_party WHERE id = ?`, `pty-${ADM}`)[0].active;
+  console.log("R3 status", r.status, "label=", label, "party.active=", active, r.status !== 200 ? r.text : "");
+  assert.equal(r.status, 200);
+  assert.equal(label, "Kẻ Mạo Danh");
+});
+
+test("R3b FINDING authz: tên do đồng nghiệp đổi hiện ở 'người phụ trách' của đơn (in lên ảnh xác nhận gửi khách) và ở người lập đơn", async () => {
+  const w = setup();
+  const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  const p = (await w.call("GET", `/api/parties/pty-${A}`, { as: B })).json.party;
+  const r = await w.call("PUT", `/api/parties/pty-${A}`, { as: B, body: { familyName: null, middleName: null, givenName: "Tên Giả", active: true, expectedUpdatedAt: p.updatedAt } });
+  assert.equal(r.status, 200, r.text);
+  const h = await w.call("GET", `/api/dispatch/handlers?orderIds=${o.id}`, { as: B });
+  assert.equal(h.json.handlers[o.id].name, "Tên Giả");
+  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).json.order.staffName, "Tên Giả");
+});
+
+test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: order.view any), mọi đường SỬA → 403, đơn không đổi", async () => {
+  const w = setup();
+  const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).status, 200);
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}`, { as: B, body: { ...orderBody(), expectedUpdatedAt: o.updatedAt } })).status, 403);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: B, body: { status: "cancelled" } })).status, 403);
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/trip`, { as: B, body: { updates: [], expectedUpdatedAt: o.updatedAt } })).status, 403);
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/booker`, { as: B, body: { customerName: "X", customerPhone: "0912345679", expectedUpdatedAt: o.updatedAt } })).status, 403);
+  // Tự "nhận" đơn ĐÃ có người phụ trách: 409 stale theo thiết kế (dispatch/index.ts, handlerChangeVerdict), không ghi gì.
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/handler`, { as: B, body: { staffId: B } })).status, 409);
+  const after = w.q("SELECT status, customer_name FROM orders WHERE id = ?", o.id)[0];
+  assert.deepEqual({ ...after }, { status: "draft", customer_name: "Khách Một" });
+  assert.equal(w.q("SELECT count(*) n FROM dsp_assignment WHERE order_id = ? AND valid_to_at IS NULL", o.id)[0].n, 1);
+});
+
+test("R5 PASS vertical: FIELD không vào API văn phòng; SALES không vào API admin; ACCOUNTING không lập đơn", async () => {
+  const w = setup();
+  assert.equal((await w.call("GET", "/api/orders", { as: F })).status, 403);
+  assert.equal((await w.call("GET", "/api/parties", { as: F })).status, 403);
+  assert.equal((await w.call("GET", "/api/staff", { as: A })).status, 403);
+  assert.equal((await w.call("PUT", `/api/staff/${A}/permissions`, { as: A, body: { permissions: ["ADMIN"] } })).status, 403);
+  assert.equal((await w.call("GET", "/api/audit", { as: K })).status, 403);
+  assert.equal((await w.call("POST", "/api/orders", { as: K, body: orderBody() })).status, 403);
+  assert.equal((await w.call("GET", "/api/orders")).status, 401);
+});
+
+test("R6 PASS CSRF: POST không có Origin cùng trang → 403; text/plain → 415", async () => {
+  const w = setup();
+  assert.equal((await w.call("POST", "/api/orders", { as: A, body: orderBody(), headers: { origin: "https://evil.tourdao.vn" } })).status, 403);
+  assert.equal((await w.call("POST", "/api/orders", { as: A, body: orderBody(), headers: { origin: null } })).status, 403);
+  assert.equal((await w.call("POST", "/api/orders", { as: A, body: orderBody(), headers: { "content-type": "text/plain" } })).status, 415);
+  assert.equal(w.q("SELECT count(*) n FROM orders")[0].n, 0);
+});
+
+test("R7 PASS retry xác nhận/huỷ: lần 2 không đổi kết quả nghiệp vụ (409), nhật ký chỉ 1 dòng", async () => {
+  const w = setup();
+  const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 409);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } })).status, 409);
+  const acts = w.q("SELECT action FROM audit_log WHERE order_id = ? ORDER BY created_at", o.id).map((r) => r.action);
+  assert.deepEqual(acts.filter((a) => a === "confirmed").length, 1);
+  assert.deepEqual(acts.filter((a) => a === "cancelled").length, 1);
+});
+
+// Nợ ĐÃ GHI: ADR-0004 "Hai nguồn 'đã trả'" — ba cột cọc của `orders` sẽ thay bằng sổ thu tiền `bil_*` ở N3. Test chỉ minh hoạ hệ quả hiện tại.
+test("R8 FINDING (nợ đã ghi, ADR-0004) money: đơn đã HUỶ vẫn giữ tiền cọc + 'còn lại' như đơn sống; không có bản ghi hoàn/giữ cọc", async () => {
+  const w = setup();
+  const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } });
+  await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "cancelled" } });
+  const r = w.q("SELECT status, deposit_amount, remaining_amount FROM orders WHERE id = ?", o.id)[0];
+  assert.deepEqual({ ...r }, { status: "cancelled", deposit_amount: 200000, remaining_amount: 800000 });
+});
+
+test("R9 FINDING session: đăng xuất không thu hồi token; cookie cũ còn dùng được 7 ngày", async () => {
+  const w = setup();
+  const { app, SECRET } = await import("./harness.mjs");
+  const token = await app.createSessionToken(SECRET, A);
+  await w.call("POST", "/api/auth/logout", { headers: { cookie: `td_session=${token}` }, body: {} });
+  const me = await app.default.fetch(new Request("https://booking.tourdao.vn/api/auth/me", { headers: { cookie: `td_session=${token}` } }), w.env, { waitUntil() {} });
+  assert.equal(me.status, 200);
+});
+
+test("R10 PASS session: tài khoản bị ngưng → phiên đang mở bị từ chối ngay", async () => {
+  const w = setup();
+  w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${A}'`);
+  assert.equal((await w.call("GET", "/api/orders", { as: A })).status, 401);
+});
+
+test("R11 PASS feedback: người khác không đọc/trả lời được yêu cầu của mình (404), không vào hàng đợi admin; ghi chú nội bộ ẩn với người gửi; gửi lại cùng clientRequestId → cùng một yêu cầu", async () => {
+  const w = setup();
+  const req = { kind: "BUG", title: "Lỗi in ảnh", body: "Chi tiết riêng tư", clientRequestId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" };
+  const t1 = await w.call("POST", "/api/feedback", { as: A, body: req });
+  assert.equal(t1.status, 201, t1.text);
+  const id = t1.json.ticket.id;
+  const t2 = await w.call("POST", "/api/feedback", { as: A, body: req });
+  assert.equal(t2.status, 200);
+  assert.equal(t2.json.ticket.id, id);
+  assert.equal(w.q("SELECT count(*) n FROM fbk_ticket")[0].n, 1);
+  for (const who of [B, F, K]) {
+    assert.equal((await w.call("GET", `/api/feedback/${id}`, { as: who })).status, 404);
+    assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: who, body: { body: "chen vao" } })).status, 404);
+    assert.equal((await w.call("GET", "/api/feedback", { as: who })).status, 403);
+    assert.equal((await w.call("PATCH", `/api/feedback/${id}`, { as: who, body: { status: "DONE" } })).status, 403);
+  }
+  assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: A, body: { body: "x", internal: true } })).status, 403);
+  assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: ADM, body: { body: "ghi chu noi bo", internal: true } })).status, 201);
+  const mine = await w.call("GET", `/api/feedback/${id}`, { as: A });
+  assert.equal(mine.json.messages.some((m) => m.body === "ghi chu noi bo"), false);
+  assert.equal((await w.call("GET", "/api/feedback/mine", { as: B })).json.tickets.length, 0);
+});
+
+// ---------------- Tầng CSDL: lưới cuối có giữ được khi mã (hoặc SQL tay) sai? ----------------
+function confirmedOrder(w) {
+  return (async () => {
+    const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+    assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: A, body: { status: "confirmed" } })).status, 200);
+    return o;
+  })();
+}
+
+test("D1 FINDING: thêm dòng tiền vào đơn ĐÃ XÁC NHẬN bằng SQL — CSDL cho qua (chỉ order_service bị đóng băng)", async () => {
+  const w = setup();
+  const o = await confirmedOrder(w);
+  const svc = w.q("SELECT id FROM order_service WHERE order_id = ?", o.id)[0].id;
+  w.sqlite.exec(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total, sort_order) VALUES ('x', '${o.id}', '${svc}', 'phụ thu', 1, 999, 999, 9)`);
+  const sum = w.q("SELECT sum(line_total) s FROM order_item WHERE order_id = ?", o.id)[0].s;
+  const sub = w.q("SELECT subtotal FROM orders WHERE id = ?", o.id)[0].subtotal;
+  assert.notEqual(sum, sub); // tổng dòng ≠ tạm tính đơn, CSDL không phát hiện
+});
+
+test("D2 FINDING: sửa tổng tiền của đơn ĐÃ XÁC NHẬN (giữ đúng số học) — CSDL cho qua", async () => {
+  const w = setup();
+  const o = await confirmedOrder(w);
+  w.sqlite.exec(`UPDATE orders SET subtotal = 1, discount = 0, total = 1, deposit_amount = 0, deposit_method = NULL, remaining_amount = 1 WHERE id = '${o.id}'`);
+  assert.equal(w.q("SELECT total FROM orders WHERE id = ?", o.id)[0].total, 1);
+});
+
+test("D3 PASS: nhật ký không sửa/xoá được; trạng thái đơn không quay lui; xoá đơn có nhật ký bị khoá ngoại chặn", async () => {
+  const w = setup();
+  const o = await confirmedOrder(w);
+  assert.throws(() => w.sqlite.exec("UPDATE audit_log SET detail = 'x'"), /audit_append_only/);
+  assert.throws(() => w.sqlite.exec("DELETE FROM audit_log"), /audit_append_only/);
+  assert.throws(() => w.sqlite.exec(`UPDATE orders SET status = 'draft' WHERE id = '${o.id}'`), /invalid_transition/);
+  assert.throws(() => w.sqlite.exec(`DELETE FROM orders WHERE id = '${o.id}'`), /FOREIGN KEY/);
+});
+
+// Đề xuất kiểm bất biến chạy trên DỮ LIỆU (bổ sung scripts/audit-checks.mjs): điều trigger không diễn đạt được vì dòng tiền chèn SAU đơn trong cùng batch.
+export const MONEY_SUM_CHECK = `SELECT count(*) FROM orders o WHERE o.subtotal IS NOT (SELECT COALESCE(sum(line_total), 0) FROM order_item i WHERE i.order_id = o.id)`;
+
+test("D5 đề xuất: câu kiểm 'tạm tính = Σ dòng tiền' bằng 0 trên dữ liệu do API tạo, và BẮT được hỏng hóc kiểu D1", async () => {
+  const w = setup();
+  const o = await confirmedOrder(w);
+  await w.call("POST", "/api/orders", { as: B, body: orderBody() });
+  assert.equal(Object.values(w.q(MONEY_SUM_CHECK)[0])[0], 0);
+  const svc = w.q("SELECT id FROM order_service WHERE order_id = ?", o.id)[0].id;
+  w.sqlite.exec(`INSERT INTO order_item (id, order_id, service_id, description, quantity, unit_price, line_total, sort_order) VALUES ('x', '${o.id}', '${svc}', 'phụ thu', 1, 999, 999, 9)`);
+  assert.equal(Object.values(w.q(MONEY_SUM_CHECK)[0])[0], 1);
+});
+
+test("D4 FINDING: tài khoản nhân viên trỏ hồ sơ ĐÃ NGƯNG vẫn đăng nhập/hoạt động (hai cờ 'active' độc lập)", async () => {
+  const w = setup();
+  w.sqlite.exec(`UPDATE pty_party SET active = 0 WHERE id = 'pty-${A}'`);
+  assert.equal((await w.call("GET", "/api/orders", { as: A })).status, 200);
+});

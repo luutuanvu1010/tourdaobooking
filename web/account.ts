@@ -1,6 +1,8 @@
 import { ApiError, api, type Api } from "./api";
 import { PERMISSION_LABEL, hasPermission, isOffice } from "../src/shared/permissions";
+import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
+import { counter } from "./counter";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { icon } from "./icons";
@@ -188,3 +190,107 @@ async function initMaintenance(): Promise<void> {
   }
 }
 void initMaintenance();
+
+// ---- Việc của tôi (FIELD đang phụ trách — ADR-0014 điều 6/11) ------------------------------------------------------
+// Route hẹp, đã có: POST /api/orders/:id/handler-money-edit (sửa số khách), POST /api/orders/:id/handler-cancel (huỷ, lý do đóng hai lựa chọn).
+// KHÔNG hiện giá/tổng tiền ở bất kỳ đâu trong khối này (ADR-0007 điều 3) — GET /api/dispatch/mine vốn đã không trả trường tiền nào.
+const CANCEL_REASONS: { code: string; label: string }[] = [
+  { code: "not_reachable", label: "Không liên hệ được với khách" },
+  { code: "customer_requested", label: "Khách yêu cầu huỷ" },
+];
+
+function myServiceCard(orderId: string, s: Api.MyAssignmentServiceDto, onSaved: () => void): HTMLElement {
+  const trip = [s.departDate, s.departTime].filter(Boolean).join(" ");
+  const pickup = [s.pickupTime, s.pickupPlace].filter(Boolean).join(" — ");
+  const editable = s.editablePaxCodes.length > 0;
+  const draft = new Map<PaxCode, number>(s.editablePaxCodes.map((code) => [code, s.pax[code]]));
+  const counters = s.editablePaxCodes.map((code) => counter({ label: PAX_LABEL[code], value: s.pax[code], onChange: (n) => draft.set(code, n) }));
+  const reasonInput = h("input", { type: "text", placeholder: "Lý do sửa (bắt buộc)", maxlength: 300 });
+  const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
+  const saveBtn = h("button", { class: "btn btn-primary", type: "button" }, "Lưu số khách mới");
+  saveBtn.addEventListener("click", async () => {
+    showError(errorBox, null);
+    const reason = reasonInput.value.trim();
+    if (!reason) return showError(errorBox, "Cần nhập lý do sửa.");
+    saveBtn.disabled = true;
+    try {
+      const pax = { adult: 0, child: 0, senior: 0, infant: 0, ...Object.fromEntries(draft) };
+      await api(`/api/orders/${orderId}/handler-money-edit`, { method: "POST", body: { reason, services: [{ id: s.id, pax }] } });
+      onSaved();
+    } catch (err) {
+      showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+      saveBtn.disabled = false;
+    }
+  });
+  return h(
+    "div",
+    { class: "myjob-service" },
+    h("div", { class: "myjob-service-name" }, s.name, !editable && h("span", { class: "muted" }, " (nhập tay — không sửa được ở đây)")),
+    trip && h("div", { class: "muted" }, `Khởi hành: ${trip}`),
+    pickup && h("div", { class: "muted" }, `Đón: ${pickup}`),
+    s.note && h("div", { class: "muted" }, s.note),
+    editable && h("div", { class: "myjob-counters" }, ...counters.map((c) => c.root)),
+    editable && reasonInput,
+    editable && errorBox,
+    editable && saveBtn,
+  );
+}
+
+function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLElement {
+  const cancelBtn = h("button", { class: "btn btn-danger", type: "button" }, "Huỷ đơn này");
+  const cancelBox = h("div", { hidden: true });
+  cancelBtn.addEventListener("click", () => {
+    cancelBtn.hidden = true;
+    const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
+    let sending = false;
+    const doCancel = async (reasonCode: string) => {
+      if (sending) return;
+      sending = true;
+      showError(errorBox, null);
+      try {
+        await api(`/api/orders/${a.orderId}/handler-cancel`, { method: "POST", body: { reason: reasonCode } });
+        onChanged();
+      } catch (err) {
+        showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+        sending = false;
+      }
+    };
+    replaceChildren(
+      cancelBox,
+      h("p", null, "Chọn lý do huỷ:"),
+      ...CANCEL_REASONS.map((r) => {
+        const b = h("button", { class: "btn", type: "button" }, r.label);
+        b.addEventListener("click", () => void doCancel(r.code));
+        return b;
+      }),
+      errorBox,
+    );
+    cancelBox.hidden = false;
+  });
+  return h(
+    "section",
+    { class: "card myjob-card" },
+    h("h3", null, a.customerName, h("span", { class: "muted" }, ` · ${a.customerPhone}`)),
+    h("div", { class: "muted" }, `Mã đơn: ${a.orderCode}`),
+    ...a.services.map((s) => myServiceCard(a.orderId, s, onChanged)),
+    cancelBtn,
+    cancelBox,
+  );
+}
+
+async function initMyAssignments(): Promise<void> {
+  if (!hasPermission(staff, "FIELD")) return;
+  const el = byId("myjobs");
+  const load = async (): Promise<void> => {
+    try {
+      const { assignments } = await api<Api.MyAssignmentsResponse>("/api/dispatch/mine");
+      if (assignments.length === 0) replaceChildren(el, h("h2", null, "Việc của tôi"), h("p", { class: "muted" }, "Bạn chưa được giao phụ trách đơn nào."));
+      else replaceChildren(el, h("h2", null, "Việc của tôi"), ...assignments.map((a) => myAssignmentCard(a, () => void load())));
+      el.hidden = false;
+    } catch {
+      // lỗi mạng: khối ẩn, không ảnh hưởng phần còn lại trang (cùng khuôn initMaintenance)
+    }
+  };
+  await load();
+}
+void initMyAssignments();

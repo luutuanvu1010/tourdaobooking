@@ -3,10 +3,10 @@
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
 import type { StaffProfile } from "./contracts";
 import { error, json } from "./http.ts";
-import { hasPermission, isOffice } from "./permissions.ts";
+import { canAccessOrders, hasPermission, isOffice } from "./permissions.ts";
 
-/** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); admin: quyền ADMIN. */
-export type Access = "public" | "staff" | "office" | "admin";
+/** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014); admin: quyền ADMIN. */
+export type Access = "public" | "staff" | "office" | "orders" | "admin";
 
 export interface Ctx<A extends Access = Access> {
   request: Request;
@@ -135,8 +135,11 @@ export function createApp(opts: AppOptions) {
       if (!staff) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
       const maintenance = await opts.injected.maintenanceBlock(env, staff);
       if (maintenance) return maintenance;
-      if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+      // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
+      // vẫn phải dùng được route access "admin" (bản đồ quyền — MATRIX — đã cho phép; cổng thô này chỉ đi theo, không siết chặt hơn).
+      if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN") && !hasPermission(staff, "SUPER_ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       if (hit.r.access === "office" && !isOffice(staff)) return error(403, "forbidden", "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.");
+      if (hit.r.access === "orders" && !canAccessOrders(staff)) return error(403, "forbidden", "Tài khoản này không dùng được màn hình đơn.");
     }
     const who = staff;
     return hit.r.handler({

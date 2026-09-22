@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
-import { MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler, parseOrderIds, parseSetHandler } from "./rules.ts";
+import {
+  MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
+  parseCancelReason, parseOrderIds, parseSetHandler,
+} from "./rules.ts";
 
 const ID = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
@@ -53,12 +56,16 @@ test("người được giao: SALES hoặc ADMIN đang hoạt động có hồ s
   }
 });
 
-test("người được giao: chỉ FIELD, chỉ kế toán, không quyền nào, đã ngưng, chưa có hồ sơ, không tồn tại → từ chối kèm lý do tiếng Việt", () => {
+test("người được giao: FIELD đang hoạt động có hồ sơ cũng đủ điều kiện — cấp hẹp (ADR-0014 điều 6, đoạn 3)", () => {
+  for (const perms of [["FIELD"], ["ACCOUNTING", "FIELD"]] as PermissionCode[][]) {
+    assert.deepEqual(checkAssignee(account(perms)), { ok: true, partyId: "pty-1", name: "Nguyễn Thị Hoa" }, perms.join("+"));
+  }
+});
+
+test("người được giao: chỉ kế toán, không quyền nào, đã ngưng, chưa có hồ sơ, không tồn tại → từ chối kèm lý do tiếng Việt", () => {
   const cases: [ReturnType<typeof account> | null, RegExp][] = [
-    [account(["FIELD"]), /Bán hàng hoặc Quản trị/],
-    [account(["ACCOUNTING"]), /Bán hàng hoặc Quản trị/],
-    [account(["ACCOUNTING", "FIELD"]), /Bán hàng hoặc Quản trị/],
-    [account([]), /Bán hàng hoặc Quản trị/],
+    [account(["ACCOUNTING"]), /Bán hàng, Quản trị hoặc Hướng dẫn viên/],
+    [account([]), /Bán hàng, Quản trị hoặc Hướng dẫn viên/],
     [account(["SALES"], { active: false }), /ngưng hoạt động/],
     [account(["ADMIN"], { partyId: null }), /chưa có hồ sơ/],
     [null, /Không tìm thấy/],
@@ -69,9 +76,24 @@ test("người được giao: chỉ FIELD, chỉ kế toán, không quyền nào
   }
 });
 
-test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify của bản đồ quyền)", () => {
+test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify/order.money.edit của bản đồ quyền)", () => {
   const eligible = PERMISSION_CODES.filter((p) => checkAssignee(account([p])).ok);
-  assert.deepEqual(eligible, ["SALES", "ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
+  // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).
+  // PARTNER (own, không phải assigned) CHƯA đủ điều kiện — cấp thứ ba của PARTNER (điều 10) là Phase C, không phải checkAssignee.
+  assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
+});
+
+// --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11) -------------------------------------------------------------------------
+test("lý do huỷ: đúng một trong hai mã đóng", () => {
+  assert.deepEqual(parseCancelReason({ reason: "not_reachable" }), { ok: true, reason: "not_reachable" });
+  assert.deepEqual(parseCancelReason({ reason: "customer_requested" }), { ok: true, reason: "customer_requested" });
+});
+
+test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đóng → từ chối, thông điệp nêu cả hai lựa chọn hợp lệ", () => {
+  for (const body of [null, {}, { reason: "" }, { reason: "khác" }, { reason: 1 }, { reason: "Không liên hệ được với khách" }, { reason: "NOT_REACHABLE" }]) {
+    const r = parseCancelReason(body as Record<string, unknown> | null);
+    assert.ok(!r.ok && /Không liên hệ được với khách/.test(r.message) && /Khách yêu cầu huỷ/.test(r.message), JSON.stringify(body));
+  }
 });
 
 // --- Ai được đặt/đổi người phụ trách (ADR-0009 điều 1–2) --------------------------------------------------------------

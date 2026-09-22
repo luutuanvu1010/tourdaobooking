@@ -9,14 +9,14 @@ import {
   closePermissionStatement, countActiveAdmins, findById, findByPhone, insertPermissionStatement, insertStaffStatement, listAll, parsePermissions,
   recordLoginRow, setPinStatement as setPinRow, updateStaffStatement, type StaffRow,
 } from "./repository";
-import { checkAccountChange, generatePin, isWeakPin } from "./rules";
+import { canManageAccount, checkAccountChange, generatePin, isWeakPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile } from "../../shared/contracts";
 import type { PermissionCode } from "../../shared/permissions";
 import { vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffCandidate, StaffProfile, StaffSheetParse };
-export { checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, updateStaffStatement };
+export { canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, updateStaffStatement };
 
 /**
  * Kiểm họ tên của tài khoản theo đúng giới hạn sẽ ghi vào hồ sơ (`pty_person`, CHECK của migration 0011) — trả thông báo lỗi hoặc null.
