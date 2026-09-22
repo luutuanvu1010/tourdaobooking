@@ -144,17 +144,29 @@ async function load(): Promise<void> {
 }
 
 // ---- Thêm thủ công
+// Ô tick dựng ĐỘNG theo PERMISSION_CODES (giống openEdit) — HTML tĩnh trước đây chỉ có 4 ô (SALES/ACCOUNTING/ADMIN/FIELD), thiếu PARTNER/
+// SUPER_ADMIN (ADR-0014): byId(`add-perm-PARTNER`) ném lỗi "Thiếu phần tử" ngay khi bấm Tạo tài khoản, chặn đứng cả nút cho MỌI quyền, không
+// riêng PARTNER/SUPER_ADMIN — lỗi thật, chủ dự án báo trực tiếp (2026-09-22).
+const addPermBoxes = new Map<PermissionCode, HTMLInputElement>();
+replaceChildren(
+  byId("add-perms"),
+  ...PERMISSION_CODES.map((code) => {
+    const box = h("input", { type: "checkbox", checked: code === "SALES", style: "width:auto;display:inline;margin:0 6px 0 0" });
+    addPermBoxes.set(code, box);
+    return h("label", { class: "check" }, box, PERMISSION_LABEL[code]);
+  }),
+);
 byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   e.preventDefault();
   const name = byId<HTMLInputElement>("add-name");
   const phone = byId<HTMLInputElement>("add-phone");
-  const chosen = PERMISSION_CODES.filter((code) => byId<HTMLInputElement>(`add-perm-${code}`).checked);
+  const chosen = PERMISSION_CODES.filter((code) => addPermBoxes.get(code)!.checked);
   if (chosen.length === 0) return showError(errorEl, "Chọn ít nhất một quyền.");
   const r = await act(() => api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body: { fullName: name.value, phone: phone.value, permissions: chosen } }));
   if (r) {
     showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
     name.value = phone.value = "";
-    for (const code of PERMISSION_CODES) byId<HTMLInputElement>(`add-perm-${code}`).checked = code === "SALES";
+    for (const code of PERMISSION_CODES) addPermBoxes.get(code)!.checked = code === "SALES";
     await load();
   }
 });
