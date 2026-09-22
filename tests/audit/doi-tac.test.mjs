@@ -167,3 +167,45 @@ test("P7 ĐO quy mô: 1000 tài khoản Bán hàng → danh sách người-đư�
   console.log(`P7 /api/auth/me với 1000 tài khoản: ${(performance.now() - t1).toFixed(0)} ms`);
   assert.equal(who.status, 200);
 });
+
+// --- Điều 8 (ADR-0014): Admin chỉ quản lý tài khoản cấp dưới, không đụng Admin/Super Admin khác ------------------------
+function setupRank() {
+  const w = setup();
+  const OTHER_ADMIN = "aaaaaaaa-0000-4000-8000-000000000001";
+  const SUPER = "aaaaaaaa-0000-4000-8000-000000000002";
+  const TARGET_SALES = "aaaaaaaa-0000-4000-8000-000000000003";
+  seedStaff(w.sqlite, { id: OTHER_ADMIN, phone: "0966000001", name: "Admin Khác", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: SUPER, phone: "0966000002", name: "Super Admin", perms: ["SUPER_ADMIN"] });
+  seedStaff(w.sqlite, { id: TARGET_SALES, phone: "0966000003", name: "Nhân Viên", perms: ["SALES"] });
+  return { w, OTHER_ADMIN, SUPER, TARGET_SALES };
+}
+
+test("Điều 8: ADMIN không đình chỉ được một ADMIN khác; SUPER_ADMIN thì được", async () => {
+  const { w, OTHER_ADMIN, SUPER } = setupRank();
+  const asAdmin = await w.call("PATCH", `/api/staff/${OTHER_ADMIN}`, { as: ADM, body: { active: false } });
+  assert.equal(asAdmin.status, 403, asAdmin.text);
+  const asSuper = await w.call("PATCH", `/api/staff/${OTHER_ADMIN}`, { as: SUPER, body: { active: false } });
+  assert.equal(asSuper.status, 200, asSuper.text);
+});
+
+test("Điều 8: ADMIN đình chỉ được tài khoản cấp dưới (Bán hàng)", async () => {
+  const { w, TARGET_SALES } = setupRank();
+  const res = await w.call("PATCH", `/api/staff/${TARGET_SALES}`, { as: ADM, body: { active: false } });
+  assert.equal(res.status, 200, res.text);
+});
+
+test("Điều 8 (admin.manage.superadmin): ADMIN không cấp được SUPER_ADMIN cho ai; SUPER_ADMIN thì được", async () => {
+  const { w, SUPER, TARGET_SALES } = setupRank();
+  const asAdmin = await w.call("PUT", `/api/staff/${TARGET_SALES}/permissions`, { as: ADM, body: { permissions: ["SALES", "SUPER_ADMIN"] } });
+  assert.equal(asAdmin.status, 403, asAdmin.text);
+  const asSuper = await w.call("PUT", `/api/staff/${TARGET_SALES}/permissions`, { as: SUPER, body: { permissions: ["SALES", "SUPER_ADMIN"] } });
+  assert.equal(asSuper.status, 200, asSuper.text);
+});
+
+test("Điều 8: ADMIN không unlock/reset-pin được một ADMIN khác; SUPER_ADMIN thì được", async () => {
+  const { w, OTHER_ADMIN, SUPER } = setupRank();
+  assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/unlock`, { as: ADM })).status, 403);
+  assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/unlock`, { as: SUPER })).status, 200);
+  assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/reset-pin`, { as: ADM })).status, 403);
+  assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/reset-pin`, { as: SUPER })).status, 200);
+});

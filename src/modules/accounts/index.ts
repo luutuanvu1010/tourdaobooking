@@ -5,8 +5,9 @@ import { auditStatement, type AuditAction } from "../audit";
 import { lockedPhones, newSessionCookie, unlockPhone, verifyPinThrottled } from "../auth";
 import { getMaintenanceState } from "../maintenance";
 import {
-  checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin, listStaffAccounts,
-  normalizePhone, parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin, type StaffAccount,
+  canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin,
+  listStaffAccounts, normalizePhone, parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin,
+  type StaffAccount,
 } from "../staff";
 import type { StaffAccountDto, StaffListResponse, StaffResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
@@ -19,6 +20,14 @@ const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constrai
 const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
+const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới; tài khoản này do Super Admin quản lý.");
+const SUPER_ADMIN_ONLY = () => error(403, "forbidden", "Chỉ Super Admin mới cấp hoặc gỡ quyền Super Admin.");
+/**
+ * ADR-0014 điều 8 áp cho tài khoản NGƯỜI KHÁC ("Admin không làm được các việc đó với một Admin/Super Admin KHÁC") — tự sửa chính
+ * mình đi theo luật riêng đã có từ trước (`checkAccountChange`: không tự ngưng/tự đổi quyền), không bị chặn thêm ở đây, kẻo che mất
+ * thông báo cụ thể hơn của luật đó (và khoá luôn cả việc tự đặt lại mã/mở khoá của chính mình — chưa từng bị cấm).
+ */
+const mayManage = (actor: { id: string; permissions: readonly PermissionCode[] }, target: StaffAccount): boolean => actor.id === target.id || canManageAccount(actor.permissions, target.permissions);
 const labelOf = (list: readonly PermissionCode[]) => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "không có quyền");
 
 function sheetError(e: unknown): Response {
@@ -200,6 +209,8 @@ export const accountsModule: AppModule = {
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
+      // ADR-0014 điều 8: Quản trị viên chỉ quản lý được tài khoản cấp dưới (không giữ ADMIN/SUPER_ADMIN); Super Admin quản lý được mọi tài khoản.
+      if (!mayManage(admin, t)) return NOT_MANAGER();
       const body = await readJson(request);
       if (!body) return error(400, "invalid_input", "Dữ liệu không hợp lệ.");
       const patch: { fullName?: string; phone?: string; active?: boolean } = {};
@@ -249,9 +260,13 @@ export const accountsModule: AppModule = {
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
+      // ADR-0014 điều 8: Quản trị viên chỉ quản lý được tài khoản cấp dưới; Super Admin quản lý được mọi tài khoản.
+      if (!mayManage(admin, t)) return NOT_MANAGER();
       const perms = cleanPermissions((await readJson(request))?.permissions);
       if (perms.error) return error(400, "invalid_input", perms.error);
       const next = perms.value!;
+      // admin.manage.superadmin (điều 2/8): cấp hoặc gỡ SUPER_ADMIN chỉ Super Admin làm được, kể cả với tài khoản "cấp dưới" vừa qua được kiểm ở trên.
+      if (t.permissions.includes("SUPER_ADMIN") !== next.includes("SUPER_ADMIN") && !admin.permissions.includes("SUPER_ADMIN")) return SUPER_ADMIN_ONLY();
       const problem = checkAccountChange(admin.id, t, { permissions: next }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
 
@@ -270,6 +285,7 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
+      if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       const pin = generatePin();
       await db.batch([await setPinStatement(db, t.id, pin), adminAudit(db, ctx.staff.id, "pin_reset", t.id)]); // nhật ký KHÔNG chứa PIN
       await unlockPhone(db, t.phone);
@@ -280,6 +296,7 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
+      if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       await unlockPhone(db, t.phone);
       await adminAudit(db, ctx.staff.id, "login_unlocked", t.id).run();
       return json({ ok: true });

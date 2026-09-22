@@ -5,6 +5,7 @@ const cookieOf = (r) => r.cookie;
 
 const ADMIN = await session(ACCOUNTS.admin);
 const SALES = await session(ACCOUNTS.salesA);
+const SUPER_ADMIN = await session(ACCOUNTS.superAdmin);
 
 // --- phân quyền API
 assert.equal((await raw(null, "GET", "/api/staff")).status, 401);
@@ -14,8 +15,16 @@ assert.equal((await raw(SALES, "PUT", "/api/staff/00000000-0000-0000-0000-000000
 assert.equal((await raw(SALES, "GET", "/api/staff/sheet")).status, 403);
 
 // --- tạo nhân viên
+// D-02 (ADR-0014 điều 7): trường permissions HOÀN TOÀN VẮNG MẶT → không quyền nào (trước đây tự động Bán hàng).
+const noPermsPhone = rnd();
+const noPerms = await raw(ADMIN, "POST", "/api/staff", { fullName: "Không Quyền", phone: noPermsPhone });
+assert.equal(noPerms.status, 201, JSON.stringify(noPerms.body));
+assert.deepEqual(noPerms.body.staff.permissions, []);
+// Không để tài khoản không quyền nằm lại "đang hoạt động" cho hết bài kiểm (audit-invariants --strict coi đó là điều cần rà soát, đúng ý — không phải lỗi ở đây, chỉ là dữ liệu thử).
+assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${noPerms.body.staff.id}`, { active: false })).status, 200);
+
 const phoneA = rnd();
-let r = await raw(ADMIN, "POST", "/api/staff", { fullName: "  Nguyễn   Test Một ", phone: phoneA.replace(/^0/, "+84 ") });
+let r = await raw(ADMIN, "POST", "/api/staff", { fullName: "  Nguyễn   Test Một ", phone: phoneA.replace(/^0/, "+84 "), permissions: ["SALES"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(r.body.staff.phone, phoneA); assert.equal(r.body.staff.fullName, "Nguyễn Test Một"); assert.deepEqual(r.body.staff.permissions, ["SALES"]);
 assert.ok(r.body.staff.partyId, "tài khoản mới phải có hồ sơ");
@@ -64,10 +73,13 @@ console.log("✓ nhật ký hiển thị hành động không gắn đơn, khôn
 r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: "Nguyễn Test Hai" });
 assert.equal(r.status, 200); assert.equal(r.body.staff.fullName, "Nguyễn Test Hai");
 assert.equal((await raw(ADMIN, "GET", `/api/parties/${r.body.staff.partyId}`)).body.party.displayName, "Nguyễn Test Hai", "đổi tên tài khoản = đổi tên hồ sơ");
+// ADR-0014 điều 8: cấp ADMIN cho A vẫn do Admin thường làm được (A trước đó chỉ giữ SALES, là "cấp dưới"); nhưng SAU KHI A giữ ADMIN,
+// chính Admin đó KHÔNG còn quản lý được A nữa — chỉ Super Admin mới gỡ lại được (đúng đính chính trực tiếp của chủ dự án).
 r = await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] });
 assert.equal(r.status, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.staff.permissions, ["SALES", "ADMIN"]);
-r = await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] });
-assert.deepEqual(r.body.staff.permissions, ["SALES"]);
+assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] })).status, 403, "Admin không còn quản lý được A sau khi A thành Admin");
+r = await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] });
+assert.equal(r.status, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.staff.permissions, ["SALES"]);
 for (const bad of [[], ["BOSS"], "ADMIN", null]) assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: bad })).status, 400, JSON.stringify(bad));
 assert.equal((await raw(ADMIN, "PUT", "/api/staff/khong-phai-id/permissions", { permissions: ["SALES"] })).status, 404);
 // quyền có hiệu lực NGAY với phiên đang mở (getActiveStaff đọc quyền ở mỗi request)
@@ -146,7 +158,7 @@ console.log("✓ khoá sau 5 lần sai, admin mở khoá được");
 
 // bắn song song 40 lần dò vào một SĐT: tối đa 5 lần được kiểm PIN
 const victim2 = rnd();
-await raw(ADMIN, "POST", "/api/staff", { fullName: "Nạn nhân 2", phone: victim2 });
+await raw(ADMIN, "POST", "/api/staff", { fullName: "Nạn nhân 2", phone: victim2, permissions: ["SALES"] });
 const burst = await Promise.all(Array.from({ length: 40 }, (_, i) => login(victim2, String(100000 + i * 7), fresh())));
 const checked = burst.filter((b) => b.status === 401).length, blocked = burst.filter((b) => b.status === 429).length;
 console.log(`  song song 40: ${checked} lần được kiểm, ${blocked} bị chặn`);
@@ -154,7 +166,7 @@ assert.ok(checked <= 5, `chỉ được kiểm tối đa 5 lần, thực tế ${
 assert.equal(checked + blocked, 40);
 // đăng nhập đúng xoá bộ đếm
 const okPhone = rnd();
-r = await raw(ADMIN, "POST", "/api/staff", { fullName: "Đúng sai", phone: okPhone });
+r = await raw(ADMIN, "POST", "/api/staff", { fullName: "Đúng sai", phone: okPhone, permissions: ["SALES"] });
 const okPin = r.body.pin;
 for (let i = 0; i < 4; i++) await login(okPhone, "999888", fresh());
 assert.equal((await login(okPhone, okPin, fresh())).status, 200);

@@ -78,6 +78,15 @@ test("người bị chặn thấy 503 bảo trì, KHÔNG phải 403 quyền: c�
   assert.equal((await open.get("/api/off")).status, 403);
 });
 
+test('access "admin": ADMIN dùng được; SUPER_ADMIN-chỉ (không giữ ADMIN) cũng dùng được (ADR-0014 điều 2: any ở mọi thao tác); SALES thì không', async () => {
+  const admin = build(staffOf(["ADMIN"]), () => null);
+  assert.equal((await admin.get("/api/adm")).status, 200);
+  const superOnly = build(staffOf(["SUPER_ADMIN"]), () => null);
+  assert.equal((await superOnly.get("/api/adm")).status, 200);
+  const sales = build(staffOf(["SALES"]), () => null);
+  assert.equal((await sales.get("/api/adm")).status, 403);
+});
+
 test('access "orders": văn phòng và Đối tác dùng được; chỉ Thực hiện thì không; chưa đăng nhập 401', async () => {
   const office = build(staffOf(["SALES"]), () => null);
   assert.equal((await office.get("/api/ord")).status, 200);

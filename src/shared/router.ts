@@ -135,7 +135,9 @@ export function createApp(opts: AppOptions) {
       if (!staff) return error(401, "unauthenticated", "Chưa đăng nhập hoặc phiên đã hết hạn.");
       const maintenance = await opts.injected.maintenanceBlock(env, staff);
       if (maintenance) return maintenance;
-      if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+      // ADR-0014 điều 2: SUPER_ADMIN = any ở mọi thao tác, kể cả admin.manage — không thay thế ADMIN, nên tài khoản chỉ giữ SUPER_ADMIN (không giữ ADMIN)
+      // vẫn phải dùng được route access "admin" (bản đồ quyền — MATRIX — đã cho phép; cổng thô này chỉ đi theo, không siết chặt hơn).
+      if (hit.r.access === "admin" && !hasPermission(staff, "ADMIN") && !hasPermission(staff, "SUPER_ADMIN")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       if (hit.r.access === "office" && !isOffice(staff)) return error(403, "forbidden", "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.");
       if (hit.r.access === "orders" && !canAccessOrders(staff)) return error(403, "forbidden", "Tài khoản này không dùng được màn hình đơn.");
     }

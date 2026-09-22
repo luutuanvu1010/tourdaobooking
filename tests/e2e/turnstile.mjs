@@ -20,7 +20,7 @@ const ADMIN = await session(ACCOUNTS.admin);
 /** Tài khoản dùng một lần (SĐT ngẫu nhiên) — KHÔNG đụng ACCOUNTS.*: kịch bản khác dùng chung D1 và các tài khoản đó. */
 async function mk(name) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { fullName: name, phone });
+  const r = await call(ADMIN, "POST", "/api/staff", { fullName: name, phone, permissions: ["SALES"] });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   return { id: r.body.staff.id, phone: r.body.staff.phone, pin: r.body.pin };
 }
