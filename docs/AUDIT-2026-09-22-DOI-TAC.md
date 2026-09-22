@@ -86,6 +86,21 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 5. Thứ tự mở: HDV trước (việc được giao, phạm vi hẹp nhất), hay công ty du lịch trước?
 6. Có cần tư vấn pháp lý về chia sẻ dữ liệu khách với đối tác (NĐ 13/2023) không?
 
+### 4.1. Trả lời của chủ dự án (2026-09-22, ghi gần nguyên văn)
+
+1. **Phạm vi thấy đơn:** các lựa chọn kiểu này phải thành **nút bấm tuỳ chọn trong bảng điều khiển của Super Admin**. Super Admin là vai **cao nhất, trên Admin**, hiện **chưa tồn tại**: cần mở thêm và gắn cho SĐT của chủ dự án (0989929373). Trước mắt: **Cộng tác viên (nói chung) chỉ thấy đơn của họ**; **nhân viên công ty thấy hết đơn** của hệ thống, kể cả SĐT khách.
+2. **Đối tác được tự lập đơn.**
+3. **Đối tác thấy giá bán lẻ.** Hoá đơn/ảnh xác nhận dịch vụ **luôn luôn là giá bán lẻ**.
+4. **Mỗi đối tác (CTV, HDV bên ngoài, lễ tân khách sạn, lái cano…) có đúng 1 tài khoản.** Admin và Super Admin có quyền với tài khoản đó (ngưng, đặt lại mã…).
+5. Chủ chưa hiểu câu hỏi. Diễn đạt lại: *mở cho mọi loại đối tác cùng lúc, hay thử trước với một nhóm nhỏ (ví dụ 5–10 CTV), chạy ổn rồi mới mở rộng?* Chưa có câu trả lời.
+6. **Không cần hỏi luật sư.**
+
+**Ghi chú của người kiểm cho phiên soạn ADR/đặc tả (không phải quyết định):**
+- "Nút bấm tuỳ chọn" nghĩa là quyền **đổi được lúc chạy**, lưu trong CSDL. Hiện ma trận quyền là hằng số trong mã, "một nơi duy nhất" (`src/shared/permissions.ts`, ADR-0007), đổi quyền = sửa mã + deploy. Chuyển sang quyền đổi được lúc chạy là quyết định kiến trúc, cần ADR. Phương án nhẹ hơn nên cân nhắc: vài **công tắc định sẵn** (ví dụ "CTV thấy: chỉ đơn của mình / …") thay vì một bảng quyền sửa tự do.
+- Super Admin: hiện đã có quyền riêng của chủ, gắn theo SĐT trong `mnt_setting.allowed_phones` (bật/tắt bảo trì). Nên gộp về một khái niệm. Không nên gieo SĐT vào migration mới (vòng 1 F-12); dùng SQL theo runbook.
+- Câu 1 khớp phạm vi `own` đã có trong `Scope`. Nhưng danh sách đơn, tìm theo SĐT và danh bạ hồ sơ hiện **không lọc theo người xem ở máy chủ** (D-01), nên phải thêm lọc ở cả ba nơi đó.
+- Còn phải chốt trong đặc tả: CTV có tra được hồ sơ khách theo SĐT không (tra được = dò được khách của người khác)? CTV có tự sửa, xác nhận, huỷ đơn của mình không? Ai là người phụ trách đơn do CTV lập? HDV/lái cano bên ngoài vừa lập đơn (như CTV) vừa nhận việc được giao (D-03)? Hai vai này có tách nhau không?
+
 ## 5. Thứ tự đề xuất
 
 1. **Không cấp tài khoản cho bất kỳ người ngoài nào** trên hệ thống hiện tại cho tới khi D-01 được sửa (nói với chủ một lần — P18).
