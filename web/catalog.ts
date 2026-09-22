@@ -9,6 +9,7 @@ const errorEl = byId("error");
 const noticeEl = byId("notice");
 const statusEl = byId("status");
 const listEl = byId("list");
+const listCardsEl = byId("list-cards");
 const editEl = byId("edit");
 const qEl = byId<HTMLInputElement>("q");
 const filterEl = byId<HTMLSelectElement>("filter");
@@ -81,6 +82,43 @@ function row(it: CatalogAdminItem): HTMLElement {
   );
 }
 
+function priceLine(it: CatalogAdminItem): string {
+  const PAX_ABBR: Record<PaxCode, string> = { adult: "NL", child: "TE", senior: "NCT", infant: "EB" };
+  return PAX_ORDER.filter((c) => it.supported && it.prices[c] !== null)
+    .map((c) => `${PAX_ABBR[c]} ${grouped(it.prices[c]!)}`)
+    .join(" · ") || "—";
+}
+
+function card(it: CatalogAdminItem): HTMLElement {
+  const btn = (label: string, onclick: () => void, danger = false) => {
+    const b = h("button", { type: "button", class: danger ? "pill-btn pill-btn-danger" : "pill-btn" }, label);
+    b.addEventListener("click", onclick);
+    return b;
+  };
+  const update = async (path: string, init: { method: string; body?: unknown }) => {
+    const r = await act(() => api<Api.CatalogItemResponse>(path, init));
+    if (r) {
+      items = items.map((x) => (x.code === r.item.code ? r.item : x));
+      render();
+    }
+  };
+  const conflicts = it.conflicts.map((c) => `${PAX_LABEL[c.code].toLowerCase()}: Sheet ${c.base === null ? "—" : vnd(c.base)} → ${c.current === null ? "—" : vnd(c.current)}`).join("; ");
+  return h(
+    "div",
+    { class: it.hidden || !it.inSheet ? "card row-off" : "card" },
+    h("div", { class: "muted" }, it.code, " · ", it.unit),
+    h("div", null, h("strong", null, it.name), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
+    h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", title: "Có giá ghi đè" }, " ✎")),
+    it.conflicts.length > 0 && h("div", { class: "alert warn" }, `Sheet đã đổi giá kể từ khi ghi đè — ${conflicts}. Giá đang bán vẫn là giá ghi đè.`),
+    h(
+      "div",
+      { style: "display:flex;gap:var(--s2);margin-top:var(--s1)" },
+      btn("Sửa giá", () => openEdit(it)),
+      btn(it.hidden ? "Hiện lại" : "Ẩn", () => update(`/api/catalog/${encodeURIComponent(it.code)}`, { method: "PATCH", body: { hidden: !it.hidden } }), !it.hidden),
+    ),
+  );
+}
+
 function render(): void {
   const q = qEl.value.trim().toLowerCase();
   const f = filterEl.value;
@@ -93,6 +131,7 @@ function render(): void {
     return true;
   });
   replaceChildren(listEl, ...shown.map(row), shown.length === 0 && h("tr", null, h("td", { colspan: 8, class: "empty" }, "Không có dịch vụ nào khớp.")));
+  replaceChildren(listCardsEl, ...shown.map(card), shown.length === 0 && h("p", { class: "empty" }, "Không có dịch vụ nào khớp."));
 }
 
 function openEdit(it: CatalogAdminItem): void {
