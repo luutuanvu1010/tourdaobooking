@@ -440,6 +440,54 @@ export async function cancelOrder(db: D1Database, id: string, staffId: string, f
   return (results[0]!.meta.changes ?? 0) > 0;
 }
 
+interface LatestAdjustment {
+  id: string;
+  seq: number;
+  after: { serviceId: string; pax: PaxCounts }[];
+}
+
+/** Dòng điều chỉnh gần nhất của đơn (seq lớn nhất) — null nếu chưa có lần sửa nào (ADR-0014 điều 6, Phase B). */
+export async function getLatestAdjustment(db: D1Database, orderId: string): Promise<LatestAdjustment | null> {
+  const row = await db
+    .prepare("SELECT id, seq, after_json FROM order_money_adjustment WHERE order_id = ? ORDER BY seq DESC LIMIT 1")
+    .bind(orderId)
+    .first<{ id: string; seq: number; after_json: string }>();
+  return row ? { id: row.id, seq: row.seq, after: JSON.parse(row.after_json) } : null;
+}
+
+/**
+ * Ghi một dòng điều chỉnh MỚI, có khoá lạc quan: chỉ ghi nếu dòng gần nhất của đơn vẫn đúng `expectedLatestId` đã đọc lúc đầu route (NULL = đơn
+ * chưa có điều chỉnh nào). Nếu ai đó vừa ghi một dòng khác sau khi route đọc xong, câu SELECT con không khớp `expectedLatestId` → 0 dòng được ghi
+ * (đúng idiom guard đã dùng ở nơi khác trong tệp này) → route trả 409 stale, KHÔNG âm thầm ghi đè dựa trên trạng thái đã cũ.
+ * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Audit đứng SAU, chỉ ghi khi INSERT phía
+ * trên thắng khoá lạc quan (`changes() > 0`) — ngược thứ tự với `cancelOrder`/`updateDraftOrder` vì ở đây câu ghi CHÍNH là INSERT, không phải UPDATE.
+ */
+export async function insertMoneyAdjustment(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  expectedLatestId: string | null,
+  before: { serviceId: string; pax: PaxCounts }[],
+  after: { serviceId: string; pax: PaxCounts }[],
+  subtotalBefore: number,
+  subtotalAfter: number,
+  reason: string,
+): Promise<boolean> {
+  const id = crypto.randomUUID();
+  const at = new Date().toISOString();
+  const results = await db.batch([
+    db
+      .prepare(
+        `INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after)
+         SELECT ?, ?, COALESCE((SELECT MAX(seq) FROM order_money_adjustment WHERE order_id = ?), 0) + 1, ?, ?, ?, ?
+         WHERE (SELECT id FROM order_money_adjustment WHERE order_id = ? ORDER BY seq DESC LIMIT 1) IS ?`,
+      )
+      .bind(id, orderId, orderId, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter, orderId, expectedLatestId),
+    auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }, "changes() > 0"),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
 /**
  * Sửa trường vận hành của các dịch vụ (Q9): đơn nháp HOẶC đã xác nhận, còn khớp mốc `updated_at`. Số khách, dịch vụ, tiền không đổi ở đây
  * (trigger 0008 chặn nếu một đường code quên). Trả false nếu đơn đã huỷ / đã bị người khác sửa.

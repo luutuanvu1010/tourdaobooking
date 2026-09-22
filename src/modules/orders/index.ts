@@ -4,10 +4,14 @@
 import { getAuditTrail } from "../audit";
 import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
+import type { PaxCounts } from "../../shared/order-lines";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
-import { cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getMeta, getStoredServices, listOrders, updateDraftOrder, updateTrip } from "./repository";
+import { parseMoneyEditInput, recomputeService } from "./money-adjustment";
+import {
+  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getLatestAdjustment, getMeta, getStoredServices, insertMoneyAdjustment, listOrders, updateDraftOrder, updateTrip,
+} from "./repository";
 import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
 import { loadOrderView, resolveBooker, validationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
@@ -45,6 +49,49 @@ export async function findOrderOwner(db: D1Database, id: string): Promise<{ staf
  */
 export async function cancelOrderByHandler(db: D1Database, id: string, staffId: string, prevUpdatedAt: string, reasonLabel: string): Promise<boolean> {
   return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
+}
+
+export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
+
+/**
+ * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
+ * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm) — hàm này tự kiểm dạng bằng
+ * `parseMoneyEditInput` VÀ tính lại tiền bằng `recomputeService`, nên route gọi hàm này là đủ, không cần lặp lại kiểm ở dispatch/index.ts.
+ */
+export async function editMoneyAsHandler(db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null): Promise<MoneyEditResult> {
+  const meta = await getMeta(db, orderId);
+  if (!meta) return { ok: false, code: "not_found" };
+  if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
+
+  const stored = await getStoredServices(db, orderId);
+  const catalogServices = stored.filter((s) => s.catalogCode !== null);
+  const catalogIds = catalogServices.map((s) => s.id);
+  const input = parseMoneyEditInput(body, catalogIds);
+  if (!input.ok) return { ok: false, code: "invalid_input", message: input.message };
+
+  const latest = await getLatestAdjustment(db, orderId);
+  const currentPaxOf = (id: string): PaxCounts => latest?.after.find((a) => a.serviceId === id)?.pax ?? stored.find((s) => s.id === id)!.pax;
+
+  const before: { serviceId: string; pax: PaxCounts }[] = [];
+  const after: { serviceId: string; pax: PaxCounts }[] = [];
+  let subtotalBefore = 0;
+  let subtotalAfter = 0;
+  for (const s of catalogServices) {
+    const beforePax = currentPaxOf(s.id);
+    const beforeCalc = recomputeService(s, beforePax);
+    if (!beforeCalc.ok) return { ok: false, code: "invalid_input", message: beforeCalc.message };
+    before.push({ serviceId: s.id, pax: beforePax });
+    subtotalBefore += beforeCalc.subtotal;
+
+    const newPax = input.services.find((x) => x.id === s.id)!.pax;
+    const afterCalc = recomputeService(s, newPax);
+    if (!afterCalc.ok) return { ok: false, code: "invalid_input", message: afterCalc.message };
+    after.push({ serviceId: s.id, pax: newPax });
+    subtotalAfter += afterCalc.subtotal;
+  }
+
+  const ok = await insertMoneyAdjustment(db, orderId, staffId, latest?.id ?? null, before, after, subtotalBefore, subtotalAfter, input.reason);
+  return ok ? { ok: true } : { ok: false, code: "stale" };
 }
 
 export const ordersModule: AppModule = {
