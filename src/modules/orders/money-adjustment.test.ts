@@ -74,6 +74,13 @@ test("parseMoneyEditInput: số khách âm, không nguyên, hoặc không phải
   }
 });
 
+test("parseMoneyEditInput: pax thiếu hẳn một trong bốn trường (adult/child/senior/infant) → từ chối", () => {
+  const { child, ...missingChild } = PAX;
+  void child;
+  const r = parseMoneyEditInput({ reason: "x", services: [{ id: "svc-1", pax: missingChild }] }, ["svc-1"]);
+  assert.ok(!r.ok, JSON.stringify(missingChild));
+});
+
 test("parseMoneyEditInput: thân không phải object, services không phải mảng/dòng sai dạng → từ chối", () => {
   for (const body of [null, {}, { reason: "x" }, { reason: "x", services: "x" }, { reason: "x", services: [{}] }, { reason: "x", services: [{ id: "svc-1" }] }]) {
     const r = parseMoneyEditInput(body as Record<string, unknown> | null, ["svc-1"]);

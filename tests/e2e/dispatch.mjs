@@ -10,6 +10,7 @@ const B = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
 const ACC = await session(ACCOUNTS.accountant);
 const FIELD = await session(ACCOUNTS.field);
+const SUPER = await session(ACCOUNTS.superAdmin);
 const me = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
 const [a, b, adm, acc, fld] = [await me(A), await me(B), await me(ADMIN), await me(ACC), await me(FIELD)];
 
@@ -376,6 +377,14 @@ try {
   assert.equal(r.status, 403, JSON.stringify(r.body));
   console.log("✓ SALES (không dùng route này) → 403");
 
+  // Kế toán/quản trị KHÔNG phải người phụ trách đơn này — route hẹp CHỈ dành cho FIELD đang phụ trách, không phải "ai có order.money.edit=any"
+  // (ACCOUNTING/ADMIN có order.money.edit=any nhưng đó là cho một route KHÁC, chưa làm — không phải route hẹp này).
+  r = await moneyEdit(ACC, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  r = await moneyEdit(ADMIN, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  console.log("✓ ACCOUNTING/ADMIN không phải người phụ trách đơn này → 403 (route hẹp chỉ dành cho FIELD đang phụ trách)");
+
   const beforePax = await storedPax(o14.id);
   r = await moneyEdit(FIELD, o14.id, { reason: "Khách báo thêm 1 người", services: [{ id: svcId, pax: pax(3) }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
@@ -390,6 +399,13 @@ try {
   const h14 = await history(A, o14);
   assert.ok(h14.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"));
   console.log("✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký");
+
+  // SUPER_ADMIN: any ở MỌI thao tác (ADR-0014 điều 2), kể cả route hẹp này — dùng được dù KHÔNG phải người phụ trách (đơn RIÊNG, không đụng o14).
+  const o15 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o15.id}/status`, { status: "confirmed" })).status, 200);
+  r = await moneyEdit(SUPER, o15.id, { reason: "SUPER_ADMIN test", services: [{ id: o15.services[0].id, pax: pax(3) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  console.log("✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)");
 
   // Tranh chấp: N yêu cầu gửi gần như đồng thời, MỖI yêu cầu tự đọc "trạng thái gần nhất" tại thời điểm nó chạy — vì wrangler dev xử lý các
   // request bằng một luồng sự kiện xen kẽ (không phải song song thật), NHIỀU yêu cầu có thể đọc-rồi-ghi kế tiếp nhau hợp lệ (không phải lúc nào
