@@ -410,3 +410,17 @@ Không phải một commit. Gọi Agent tool (subagent_type mặc định/genera
 - Nút "Huỷ đơn" có chặn đúng gọi hai lần liên tiếp (đơn đã huỷ rồi bấm lại) không gây lỗi khó hiểu cho người dùng không.
 
 Chỉ báo "đạt" với chủ dự án SAU KHI có báo cáo này. Có lỗ thì vá ngay, kiểm độc lập lại đúng chỗ vừa vá.
+
+### Kết quả kiểm độc lập (2026-09-22)
+
+An toàn dữ liệu cá nhân khách + không lộ tiền: **ĐẠT** (đã tự dựng D1 tạm, tự gọi API thật kiểm cả hai, không chỉ đọc mã). Giao diện đọc tĩnh: không thấy lỗi. Chrome thật: vẫn KHÔNG xem được (môi trường không tiêm được mã vào trang do CSP chặt — khác lý do lần trước là không kết nối được máy chủ thử; khoảng trống Step 5/6 ở trên VẪN CHƯA LẤP, chủ dự án/phiên sau cần tự mở bằng Chrome thường, không qua công cụ tự động).
+
+**Phát hiện một lỗi chức năng thật (không phải bảo mật/tiền):** `editablePaxCodes` (trả bởi `GET /api/dispatch/mine`) trước đây tính từ `s.items` của bản đơn ĐÃ overlay điều chỉnh (`orders/index.ts:getMyAssignments` gọi `loadOrderView`). Với dịch vụ tính theo người có từ hai loại khách trở lên, nếu một lần sửa trước đưa một loại về 0, `buildLines` bỏ hẳn dòng loại khách đó → loại khách "biến mất" khỏi ô nhập trên màn "Việc của tôi" VĨNH VIỄN, dù giá gốc (`order_item` thật) vẫn còn và máy chủ (`handler-money-edit`, dùng `getStoredServices` — không qua overlay) vẫn chấp nhận đặt lại > 0. Hệ quả: hướng dẫn viên không còn cách nào tăng lại loại khách đó qua giao diện một khi đã lỡ đưa về 0 (vd khách báo trẻ em không đi rồi đổi ý đi lại).
+
+**Đã vá ngay** (đúng tiền lệ xử lý P0 của Phase A/route `handler-money-edit`, không chờ hỏi lại chủ dự án — lỗi chức năng, không phải quyết định kiến trúc):
+- Thêm `editablePaxCodesOf(original: OrderServiceDto)` ở `src/modules/orders/money-adjustment.ts` — tính từ **bản chụp gốc** (`snapshotService` + `availableCodes` đã có sẵn, không viết logic tính giá mới) thay vì từ số khách hiện hành.
+- `getMyAssignments` (`src/modules/orders/index.ts`) nay gọi thêm `findOrder` (đơn GỐC, trước overlay) song song với `loadOrderView`, dùng đơn gốc để tính `editablePaxCodes`, giữ nguyên `loadOrderView` cho các trường khác (số khách hiện hành, giờ giấc…).
+- Test đỏ→xanh: 3 test thuần cho `editablePaxCodesOf` (`money-adjustment.test.ts`) + 1 kịch bản e2e tái hiện đúng lỗi (`tests/e2e/dispatch.mjs`, dịch vụ giả `ZH2` có cả giá người lớn lẫn trẻ em — sửa trẻ em về 0 rồi kiểm `editablePaxCodes` vẫn còn "child", rồi đặt lại `child:1` để chắc máy chủ vẫn nhận).
+- `npm test` 488/488 xanh, `npm run typecheck` 0 lỗi, `npm run test:e2e -- dispatch` 1/1 xanh (gồm test mới).
+
+Chưa kiểm lại bằng một người kiểm độc lập THỨ HAI cho riêng bản vá này — việc còn treo, xem mục "Cần bạn quyết" trong báo cáo gửi chủ dự án.

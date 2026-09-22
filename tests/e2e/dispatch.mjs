@@ -450,6 +450,36 @@ try {
   assert.deepEqual(await mine(ACC), [], "kế toán gọi được (access staff), chỉ không có đơn nào của họ — không lỗi");
   console.log("✓ GET /api/dispatch/mine: chỉ đơn CHÍNH MÌNH đang phụ trách, đã xác nhận, không có trường tiền nào");
 
+  // editablePaxCodes không được "mất" loại khách sau khi bị sửa về 0 (lỗi thật tìm được lúc kiểm độc lập 2026-09-22): dịch vụ theo người có HAI
+  // loại khách (adult+child) — sửa trẻ em về 0 rồi gọi lại /api/dispatch/mine phải VẪN thấy "child" trong editablePaxCodes (server vẫn chấp nhận
+  // đặt lại > 0 sau đó), không phải chỉ còn "adult".
+  await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
+    ('ZH2','Tour thử (nhiều loại khách)','perPax',300000,150000,NULL,NULL,NULL,NULL,NULL,98,1,${T14},${T14})`);
+  try {
+    const o17 = (await call(A, "POST", "/api/orders", orderInput({
+      services: [{ kind: "catalog", catalogCode: "ZH2", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 300000, child: 150000 }, departDate: vnDate(7) }],
+    }))).body.order;
+    const svc17 = o17.services[0].id;
+    assert.equal((await call(A, "POST", `/api/orders/${o17.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, o17.id, fld.id)).status, 200);
+
+    let mine17 = (await mine(FIELD)).find((x) => x.orderId === o17.id);
+    assert.deepEqual(mine17.services[0].editablePaxCodes.slice().sort(), ["adult", "child"], "lúc đầu có cả hai loại khách");
+
+    r = await moneyEdit(FIELD, o17.id, { reason: "Khách báo bé không đi nữa", services: [{ id: svc17, pax: pax(2) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+
+    mine17 = (await mine(FIELD)).find((x) => x.orderId === o17.id);
+    assert.equal(mine17.services[0].pax.child, 0, "số khách hiện hành đúng là 0");
+    assert.deepEqual(mine17.services[0].editablePaxCodes.slice().sort(), ["adult", "child"], "sửa trẻ em về 0 KHÔNG được làm ô nhập trẻ em biến mất");
+
+    r = await moneyEdit(FIELD, o17.id, { reason: "Khách đổi ý, bé đi lại", services: [{ id: svc17, pax: { adult: 2, child: 1, senior: 0, infant: 0 } }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body), "máy chủ vẫn phải cho đặt lại > 0 sau khi đã về 0");
+    console.log("✓ editablePaxCodes không mất loại khách sau khi bị sửa về 0 (bug tìm được lúc kiểm độc lập, đã vá)");
+  } finally {
+    await sql("DELETE FROM catalog_item WHERE code = 'ZH2'").catch((e) => console.error("dọn danh mục giả ZH2 thất bại:", String(e).slice(0, 200)));
+  }
+
   // Tranh chấp: N yêu cầu gửi gần như đồng thời, MỖI yêu cầu tự đọc "trạng thái gần nhất" tại thời điểm nó chạy — vì wrangler dev xử lý các
   // request bằng một luồng sự kiện xen kẽ (không phải song song thật), NHIỀU yêu cầu có thể đọc-rồi-ghi kế tiếp nhau hợp lệ (không phải lúc nào
   // cũng đúng MỘT yêu cầu thắng); bất biến CẦN kiểm không phải "đúng 1 thắng" mà là KHÔNG BAO GIỜ có hai yêu cầu cùng ghi trùng một `seq` (chỉ

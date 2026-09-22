@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderDetailDto } from "../../shared/contracts.ts";
-import { applyAdjustmentToOrder, effectiveMoney, isAdjustmentSeqCollision, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
+import { applyAdjustmentToOrder, editablePaxCodesOf, effectiveMoney, isAdjustmentSeqCollision, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
 import type { StoredService } from "./service-rules.ts";
 
 const ZERO = { adult: 0, child: 0, senior: 0, infant: 0 };
@@ -133,6 +133,26 @@ test("applyAdjustmentToOrder: áp được cho đơn ĐÃ HUỶ (không chỉ đ
   const out = applyAdjustmentToOrder(cancelled, [{ serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
   assert.equal(out.subtotal, 900000, "đơn đã huỷ vẫn phải hiện SỐ ĐÃ SỬA gần nhất, không lùi về số gốc");
   assert.equal(out.status, "cancelled", "không đổi trạng thái");
+});
+
+// --- editablePaxCodesOf ----------------------------------------------------------------------------------------------
+// Lỗi tìm được lúc kiểm độc lập màn "Việc của tôi" (2026-09-22): trước đây `editablePaxCodes` tính từ `s.items` SAU KHI overlay điều chỉnh —
+// dịch vụ theo người có NHIỀU loại khách, một lần sửa trước đưa một loại về 0 khiến buildLines bỏ hẳn dòng đó, loại khách "biến mất" khỏi ô nhập
+// VĨNH VIỄN dù giá gốc (order_item thật) vẫn còn và máy chủ vẫn chấp nhận đặt lại > 0. Sửa: tính từ BẢN CHỤP GỐC (mọi loại khách từng có giá lúc
+// xác nhận đơn — `snapshotService`/`availableCodes`), không phải từ số khách hiện hành.
+test("editablePaxCodesOf: dịch vụ theo người, đủ giá adult+child ở bản chụp → cả hai loại, kể cả khi số khách HIỆN HÀNH của loại đó = 0", () => {
+  const svc = { ...baseOrder().services[0]!, items: [...baseOrder().services[0]!.items, { id: "it-2", catalogCode: "TOUR-1", paxCode: "child" as const, description: "Tour đảo — Trẻ em", detail: "", quantity: 1, unitPrice: 150000, catalogPrice: 150000, lineTotal: 150000 }] };
+  assert.deepEqual(editablePaxCodesOf(svc).slice().sort(), ["adult", "child"]);
+});
+
+test("editablePaxCodesOf: dịch vụ tính theo NHÓM (per5Pax) → chỉ 'adult' (ô số khách chung)", () => {
+  const svc = { ...baseOrder().services[0]!, unit: "per5Pax" };
+  assert.deepEqual(editablePaxCodesOf(svc), ["adult"]);
+});
+
+test("editablePaxCodesOf: dịch vụ nhập tay (catalogCode null) → rỗng", () => {
+  const svc = { ...baseOrder().services[0]!, catalogCode: null };
+  assert.deepEqual(editablePaxCodesOf(svc), []);
 });
 
 // --- effectiveMoney -------------------------------------------------------------------------------------------------

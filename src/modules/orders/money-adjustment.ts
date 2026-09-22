@@ -1,7 +1,7 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
-import { buildLines, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
+import { availableCodes, buildLines, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, type StoredService } from "./service-rules.ts";
 
 const PAX_CODES: readonly PaxCode[] = ["adult", "child", "senior", "infant"];
@@ -80,6 +80,19 @@ const toItemDto = (l: GeneratedLine): OrderItemDto => ({
   catalogPrice: l.catalogPrice,
   lineTotal: l.quantity * l.unitPrice,
 });
+
+/**
+ * Loại khách SỬA ĐƯỢC của một dịch vụ (dùng cho "Việc của tôi" — `orders/index.ts:getMyAssignments`) — tính từ BẢN CHỤP GỐC (mọi loại khách từng
+ * có giá đã lưu ở `order_item` lúc xác nhận đơn), KHÔNG phải từ số khách/dòng HIỆN HÀNH. Lý do (lỗi thật tìm được lúc kiểm độc lập 2026-09-22):
+ * dịch vụ theo người có nhiều loại khách, một lần sửa trước đưa một loại về 0 khiến `buildLines` bỏ hẳn dòng đó — nếu tính từ items sau overlay,
+ * loại khách đó "biến mất" khỏi ô nhập vĩnh viễn dù giá gốc vẫn còn và máy chủ vẫn chấp nhận đặt lại > 0 (`recomputeService` dùng bản chụp, không
+ * tra danh mục hiện tại). Gọi hàm này với dịch vụ GỐC (`findOrder`, trước overlay), không phải dịch vụ đã overlay của `loadOrderView`.
+ */
+export function editablePaxCodesOf(original: OrderServiceDto): readonly PaxCode[] {
+  if (original.catalogCode === null) return [];
+  const snap = snapshotService(toStoredService(original));
+  return snap ? availableCodes(snap) : [];
+}
 
 /**
  * Áp dòng điều chỉnh GẦN NHẤT (nếu có) lên đơn để hiển thị SỐ HIỆN HÀNH — KHÔNG đổi gì trong CSDL, chỉ dựng lại DTO trả về. Dịch vụ có mặt trong
