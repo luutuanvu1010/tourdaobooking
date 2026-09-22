@@ -10,7 +10,9 @@
 const GIT = "(?<![\\w-])git(?:\\s+(?:-C\\s+\\S+|-c\\s+\\S+|--(?:git-dir|work-tree|namespace|exec-path)\\s+\\S+|--[a-z][a-z-]*(?:=\\S+)?|-[a-zA-Z]))*";
 const WRANGLER = "(?<![\\w-])wrangler(?:@\\S+|\\.m?js)?";
 
-/** Quy tắc khớp trên lệnh đã bỏ nội dung trong dấu nháy (vd `git commit -m "… git push …"` không bị chặn). */
+/** Quy tắc khớp trên lệnh đã bỏ nội dung trong dấu nháy (vd `git commit -m "… git push …"` không bị chặn). Việc tách lệnh
+ * lồng trong `$(...)`/dấu huyền (xem `substitutions()`, `backticks()`) cũng chỉ tính phần NGOÀI nháy đơn — bên trong nháy
+ * đơn, `$(...)`/dấu huyền không phải lệnh lồng vì shell không giải nghĩa chúng ở đó (khác nháy kép, nơi có giải nghĩa). */
 const RULES = [
   { id: "git-push", re: new RegExp(`${GIT}\\s+push(?![\\w-])`), reason: "git push" },
   { id: "gh-pr-merge", re: /(?<![\w-])gh\s+pr\s+merge(?![\w-])/, reason: "gh pr merge" },
@@ -74,23 +76,71 @@ function stripHeredocs(s) {
   );
 }
 
-function substitutions(s) {
-  const out = [];
-  for (let i = 0; i < s.length - 1 && out.length < MAX_SUBSTITUTIONS; i++) {
-    if (s[i] !== "$" || s[i + 1] !== "(") continue;
-    let depth = 1;
-    let j = i + 2;
-    while (j < s.length && depth > 0) {
-      if (s[j] === "(") depth++;
-      else if (s[j] === ")") depth--;
-      j++;
+/** Thay nội dung trong dấu nháy đơn THẬT (không nằm trong nháy kép bao ngoài) bằng khoảng trắng, giữ nguyên độ dài: trong
+ * nháy đơn, shell KHÔNG bao giờ giải nghĩa `$(...)` hay dấu huyền, nên nội dung đó không phải lệnh lồng khi tách — phần bị
+ * thay trắng sẽ không khớp RULES nào (đúng, vì nó chưa từng thật sự chạy). Phải đi từng ký tự theo trạng thái (đang trong
+ * nháy kép hay không) vì một dấu nháy đơn NẰM TRONG nháy kép (vd `"a'b"`) chỉ là chữ, không phải mốc mở/đóng nháy đơn —
+ * ghép cặp nháy đơn kiểu regex ngây thơ (không biết ngữ cảnh) sẽ vô tình xoá trắng luôn `$(...)` thật sự NẰM TRONG nháy
+ * kép (chỗ shell CÓ giải nghĩa), gây lọt lệnh cấm. Trong nháy kép, `\"` là nháy kép chữ (không đóng chuỗi) nên phải nhảy
+ * qua cặp ký tự thoát. Gặp nháy đơn không đóng (cú pháp hỏng) thì GIỮ NGUYÊN phần còn lại, không thay trắng — thà quét dư
+ * (chặn hụt an toàn hơn) còn hơn xoá oan một lệnh thật. */
+function blankSingleQuoted(s) {
+  let out = "";
+  let i = 0;
+  let inDouble = false;
+  while (i < s.length) {
+    const c = s[i];
+    if (inDouble) {
+      if (c === "\\" && i + 1 < s.length) {
+        out += s.slice(i, i + 2);
+        i += 2;
+        continue;
+      }
+      if (c === '"') inDouble = false;
+      out += c;
+      i++;
+      continue;
     }
-    out.push(s.slice(i + 2, depth === 0 ? j - 1 : j));
+    if (c === '"') {
+      inDouble = true;
+      out += c;
+      i++;
+      continue;
+    }
+    if (c === "'") {
+      const end = s.indexOf("'", i + 1);
+      if (end === -1) {
+        out += s.slice(i); // nháy đơn không đóng: giữ nguyên, không thay trắng
+        break;
+      }
+      out += `'${" ".repeat(end - i - 1)}'`;
+      i = end + 1;
+      continue;
+    }
+    out += c;
+    i++;
   }
   return out;
 }
 
-const backticks = (s) => [...s.matchAll(/`([^`]*)`/g)].slice(0, MAX_SUBSTITUTIONS).map((m) => m[1]);
+function substitutions(s) {
+  const scan = blankSingleQuoted(s);
+  const out = [];
+  for (let i = 0; i < scan.length - 1 && out.length < MAX_SUBSTITUTIONS; i++) {
+    if (scan[i] !== "$" || scan[i + 1] !== "(") continue;
+    let depth = 1;
+    let j = i + 2;
+    while (j < scan.length && depth > 0) {
+      if (scan[j] === "(") depth++;
+      else if (scan[j] === ")") depth--;
+      j++;
+    }
+    out.push(scan.slice(i + 2, depth === 0 ? j - 1 : j));
+  }
+  return out;
+}
+
+const backticks = (s) => [...blankSingleQuoted(s).matchAll(/`([^`]*)`/g)].slice(0, MAX_SUBSTITUTIONS).map((m) => m[1]);
 
 function shellStrings(s) {
   const out = [];

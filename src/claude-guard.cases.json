@@ -1,5 +1,5 @@
 {
- "_nguon": "Bộ ca do người kiểm độc lập D soạn 2026-09-21 để tấn công .claude/hooks/guard-remote-lib.mjs. C = quên/nhầm thường gặp (PHẢI chặn); A = lệnh thường ngày (PHẢI cho qua); H = heredoc/thông điệp/ghi tài liệu nhắc chuỗi cấm (PHẢI cho qua); E = cố ý lách (CHẤP NHẬN lọt, ghi lại để biết giới hạn, test không kiểm nhóm này).",
+ "_nguon": "Bộ ca do người kiểm độc lập D soạn 2026-09-21 để tấn công .claude/hooks/guard-remote-lib.mjs. C = quên/nhầm thường gặp (PHẢI chặn); A = lệnh thường ngày (PHẢI cho qua); H = heredoc/thông điệp/ghi tài liệu nhắc chuỗi cấm (PHẢI cho qua); E = cố ý lách (CHẤP NHẬN lọt, ghi lại để biết giới hạn, test không kiểm nhóm này); F = chặn nhầm đã tìm và sửa (audit độc lập 2026-09-22): $()/dấu huyền NẰM TRONG nháy đơn không phải lệnh lồng vì shell không giải nghĩa chúng trong nháy đơn — PHẢI cho qua, trừ ca đối chứng dùng nháy kép (PHẢI vẫn chặn).",
  "cases": [
   {
    "cmd": "FOO=1 git push",
@@ -1535,6 +1535,30 @@
    "expect": "allow",
    "group": "H",
    "note": "mô tả PR có nhắc gh pr merge"
+  },
+  {
+   "cmd": "echo 'ví dụ: $(git push origin main)' > /tmp/x.md",
+   "expect": "allow",
+   "group": "F",
+   "note": "$(...) trong nháy đơn không được shell giải nghĩa — chỉ in chữ"
+  },
+  {
+   "cmd": "echo 'chạy `git push` là sai' > /tmp/x.md",
+   "expect": "allow",
+   "group": "F",
+   "note": "dấu huyền trong nháy đơn không được shell giải nghĩa — chỉ in chữ"
+  },
+  {
+   "cmd": "sed -i '' 's|cũ|- CẤM: `git push`, `wrangler deploy`|' CLAUDE.md",
+   "expect": "allow",
+   "group": "F",
+   "note": "kịch bản sed nằm trong nháy đơn; chữ trong dấu huyền là văn bản thay thế, không phải lệnh"
+  },
+  {
+   "cmd": "echo \"chạy $(git push origin main) thật\" > /tmp/x.md",
+   "expect": "deny",
+   "group": "F",
+   "note": "đối chứng: $(...) trong NHÁY KÉP thật sự được shell giải nghĩa — vẫn phải chặn"
   }
  ]
 }

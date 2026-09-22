@@ -10,7 +10,7 @@ import { evaluateBash } from "../.claude/hooks/guard-remote-lib.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-const CORPUS: { cmd: string; expect: "deny" | "allow"; group: "C" | "A" | "H" | "E" }[] = JSON.parse(read("src/claude-guard.cases.json")).cases;
+const CORPUS: { cmd: string; expect: "deny" | "allow"; group: "C" | "A" | "H" | "E" | "F" }[] = JSON.parse(read("src/claude-guard.cases.json")).cases;
 
 const MUST_DENY = [
   "git push",
