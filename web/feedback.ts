@@ -189,6 +189,10 @@ if (id) {
   const mq = window.matchMedia("(min-width: 900px)");
   mq.addEventListener("change", () => {
     byId("list-card").hidden = !mq.matches;
+    // Hẹp → rộng: danh sách vừa hiện lại phải có nội dung ngay, không chỉ khung rỗng
+    // (như đường tải trang khi mở ?id= ở khổ rộng, phía trên).
+    // loadList() tự dựng lại toàn bộ tabs/summary/list từ đầu mỗi lần gọi nên gọi lại nhiều lần (resize qua lại mốc) an toàn.
+    if (mq.matches) void loadList();
   });
 } else {
   void loadList();
