@@ -6,6 +6,7 @@ import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
 const listEl = byId("list");
+const listCardsEl = byId("list-cards");
 const secretEl = byId("secret");
 const sheetEl = byId("sheet");
 const editEl = byId("edit");
@@ -95,6 +96,49 @@ function row(s: StaffAccount): HTMLElement {
   );
 }
 
+function card(s: StaffAccount): HTMLElement {
+  const btn = (label: string, onclick: () => void, danger = false) => {
+    const b = h("button", { type: "button", class: danger ? "pill-btn pill-btn-danger" : "pill-btn" }, label);
+    b.addEventListener("click", onclick);
+    return b;
+  };
+  const isMe = s.id === me.id;
+  return h(
+    "div",
+    { class: "card" },
+    h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
+    !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
+    s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
+    h("div", { class: "muted" }, s.phone, " · ", permissionsLabel(s.permissions)),
+    h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
+    h(
+      "div",
+      { style: "display:flex;gap:var(--s2);margin-top:var(--s1)" },
+      btn("Sửa", () => openEdit(s)),
+      btn("Đặt lại PIN", async () => {
+        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+        const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
+        if (r) {
+          showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
+          await load();
+        }
+      }),
+      s.locked && btn("Mở khoá", async () => {
+        if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
+      }),
+      !isMe &&
+        btn(
+          s.active ? "Ngưng" : "Kích hoạt lại",
+          async () => {
+            if (s.active && !confirm(`Ngưng tài khoản ${s.fullName}? Họ sẽ bị đăng xuất ngay.`)) return;
+            if (await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { active: !s.active } }))) await load();
+          },
+          s.active,
+        ),
+    ),
+  );
+}
+
 function openEdit(s: StaffAccount): void {
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
@@ -141,6 +185,7 @@ async function load(): Promise<void> {
   if (!r) return;
   accounts = r.staff;
   replaceChildren(listEl, ...accounts.map(row));
+  replaceChildren(listCardsEl, ...accounts.map(card));
 }
 
 // ---- Thêm thủ công
