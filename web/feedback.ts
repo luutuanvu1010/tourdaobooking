@@ -180,8 +180,10 @@ async function loadThread(id: string): Promise<void> {
 }
 
 const id = params.get("id");
-if (id) void loadThread(id);
-else {
+if (id) {
+  if (wide()) void loadList(); // ≥ 900px: danh sách hiện cùng luồng nên phải có nội dung, không chỉ khung rỗng (Đợt C Task 3)
+  void loadThread(id);
+} else {
   void loadList();
   if (params.get("new") === "1") openForm();
 }
