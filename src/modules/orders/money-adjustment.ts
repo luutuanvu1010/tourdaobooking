@@ -104,6 +104,15 @@ export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { 
     subtotal += recomputed.subtotal;
     return { ...s, pax: recomputed.pax, items: recomputed.lines.map(toItemDto) };
   });
-  const total = subtotal - order.discount;
-  return { ...order, subtotal, total, remainingAmount: total - order.depositAmount, services };
+  return { ...order, subtotal, ...effectiveMoney(subtotal, order.discount, order.depositAmount), services };
+}
+
+/**
+ * `total`/`remainingAmount` từ `subtotal` hiệu lực (gốc hoặc đã cộng điều chỉnh) — `discount`/`depositAmount` KHÔNG đổi qua route sửa số khách
+ * (chỉ FIELD sửa số khách/dịch vụ, không đụng cọc/giảm giá). Dùng chung cho overlay CHI TIẾT một đơn (`applyAdjustmentToOrder`) và DANH SÁCH
+ * nhiều đơn (`orders/repository.ts:listOrders`) — hai nơi trước đây tính lệch nhau (danh sách hiện số gốc, chi tiết hiện số mới).
+ */
+export function effectiveMoney(subtotal: number, discount: number, depositAmount: number): { total: number; remainingAmount: number } {
+  const total = subtotal - discount;
+  return { total, remainingAmount: total - depositAmount };
 }

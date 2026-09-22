@@ -20,9 +20,13 @@ export async function validationContext(db: D1Database, orderId: string | null):
 }
 
 /**
- * Đơn đầy đủ; với đơn NHÁP điền thêm `catalogStatus` (giá danh mục đã đổi / dịch vụ đã ẩn) để người sửa biết; với đơn ĐÃ XÁC NHẬN có dòng điều
- * chỉnh (ADR-0014 điều 6, Phase B), overlay SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất) — chủ dự án đã chọn: màn hình chính hiện số mới, số gốc xem
- * qua lịch sử đơn (`order.history.view`, đã có). KHÔNG đổi gì trong CSDL ở đây, chỉ dựng lại DTO trả về.
+ * Đơn đầy đủ; với đơn NHÁP điền thêm `catalogStatus` (giá danh mục đã đổi / dịch vụ đã ẩn) để người sửa biết; với đơn ĐÃ XÁC NHẬN HOẶC ĐÃ HUỶ có
+ * dòng điều chỉnh (ADR-0014 điều 6, Phase B), overlay SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất) — chủ dự án đã chọn: màn hình chính hiện số mới, số
+ * gốc xem qua lịch sử đơn (`order.history.view`, đã có). KHÔNG đổi gì trong CSDL ở đây, chỉ dựng lại DTO trả về.
+ * CỐ Ý áp cho CẢ đơn đã huỷ (không chỉ đã xác nhận): huỷ đơn (điều 11) không đổi cột tiền, chỉ đổi `status`, nên một đơn từng được sửa số khách
+ * rồi bị huỷ sau đó VẪN phải hiện đúng số đã sửa gần nhất — không được "quên" điều chỉnh và lùi lại số gốc chỉ vì đổi trạng thái (bản đầu có lỗi
+ * này: chỉ overlay khi `status === "confirmed"`, khiến đơn đã huỷ hiện sai). `draft` không cần xét: không đường nào ghi được điều chỉnh cho đơn
+ * nháp (route sửa số khách bắt buộc `status === "confirmed"`), và đơn không có đường quay lại `draft` sau khi đã `confirmed` (`rules.ts` TRANSITIONS).
  */
 export async function loadOrderView(db: D1Database, id: string): Promise<OrderDetailDto | null> {
   const order = await findOrder(db, id);
@@ -32,11 +36,8 @@ export async function loadOrderView(db: D1Database, id: string): Promise<OrderDe
     const catalog = await getEffectiveServices(db, codes);
     return { ...order, services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })) };
   }
-  if (order.status === "confirmed") {
-    const latest = await getLatestAdjustment(db, id);
-    if (latest) return applyAdjustmentToOrder(order, latest.after);
-  }
-  return order;
+  const latest = await getLatestAdjustment(db, id);
+  return latest ? applyAdjustmentToOrder(order, latest.after) : order;
 }
 
 export type ResolvedBooker = { ok: true; write: BookerWrite } | { ok: false; message: string };

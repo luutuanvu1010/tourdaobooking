@@ -400,6 +400,28 @@ try {
   assert.ok(h14.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"));
   console.log("✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký");
 
+  // Trang DANH SÁCH đơn phải hiện ĐÚNG số như trang chi tiết (bản đầu chỉ sửa trang chi tiết, quên trang danh sách vẫn hiện số gốc — lỗi thật đã bắt).
+  const listed = (await call(A, "GET", `/api/orders?q=${o14.orderCode}`)).body.orders.find((x) => x.id === o14.id);
+  assert.ok(listed, "không tìm thấy đơn trong danh sách");
+  assert.equal(listed.total, 900000, "danh sách đơn phải hiện SỐ MỚI (đã cộng điều chỉnh), khớp trang chi tiết");
+  assert.equal(listed.remainingAmount, viewed.remainingAmount, "remainingAmount của danh sách phải khớp trang chi tiết");
+  console.log("✓ trang danh sách đơn hiện đúng số đã sửa, khớp trang chi tiết");
+
+  // Đơn ĐÃ CÓ điều chỉnh rồi bị HUỶ (qua đường thường của SALES, không phải handler-cancel) vẫn phải hiện đúng số đã sửa gần nhất — không được
+  // "quên" điều chỉnh và lùi lại số gốc chỉ vì đổi trạng thái sang cancelled (lỗi thật đã bắt: bản đầu chỉ overlay khi status === "confirmed").
+  const o16 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o16.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await setHandler(A, o16.id, fld.id)).status, 200);
+  r = await moneyEdit(FIELD, o16.id, { reason: "Trước khi huỷ", services: [{ id: o16.services[0].id, pax: pax(4) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await call(A, "POST", `/api/orders/${o16.id}/status`, { status: "cancelled" })).status, 200);
+  const viewedCancelled = await orderView(A, o16.id);
+  assert.equal(viewedCancelled.status, "cancelled");
+  assert.equal(viewedCancelled.subtotal, 1200000, "đơn đã huỷ vẫn phải hiện SỐ ĐÃ SỬA gần nhất (4 khách × 300,000), không lùi về số gốc (2 khách)");
+  const listedCancelled = (await call(A, "GET", `/api/orders?q=${o16.orderCode}`)).body.orders.find((x) => x.id === o16.id);
+  assert.equal(listedCancelled.total, 1200000, "danh sách đơn cũng phải khớp, kể cả đơn đã huỷ");
+  console.log("✓ đơn có điều chỉnh rồi bị huỷ: chi tiết lẫn danh sách vẫn hiện đúng số đã sửa gần nhất, không lùi về số gốc");
+
   // SUPER_ADMIN: any ở MỌI thao tác (ADR-0014 điều 2), kể cả route hẹp này — dùng được dù KHÔNG phải người phụ trách (đơn RIÊNG, không đụng o14).
   const o15 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
   assert.equal((await call(A, "POST", `/api/orders/${o15.id}/status`, { status: "confirmed" })).status, 200);

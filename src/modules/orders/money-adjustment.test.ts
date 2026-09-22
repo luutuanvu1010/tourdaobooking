@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderDetailDto } from "../../shared/contracts.ts";
-import { applyAdjustmentToOrder, isAdjustmentSeqCollision, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
+import { applyAdjustmentToOrder, effectiveMoney, isAdjustmentSeqCollision, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
 import type { StoredService } from "./service-rules.ts";
 
 const ZERO = { adult: 0, child: 0, senior: 0, infant: 0 };
@@ -126,6 +126,19 @@ test("applyAdjustmentToOrder: dịch vụ KHÔNG có trong after (đơn chưa c�
   const out = applyAdjustmentToOrder(baseOrder(), []);
   assert.deepEqual(out.services[0]!.pax, { adult: 2, child: 0, senior: 0, infant: 0 });
   assert.equal(out.subtotal, 600000);
+});
+
+test("applyAdjustmentToOrder: áp được cho đơn ĐÃ HUỶ (không chỉ đơn đã xác nhận) — đơn huỷ sau khi có điều chỉnh vẫn phải hiện đúng số đã sửa, không lùi lại số gốc", () => {
+  const cancelled = { ...baseOrder(), status: "cancelled" as const };
+  const out = applyAdjustmentToOrder(cancelled, [{ serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
+  assert.equal(out.subtotal, 900000, "đơn đã huỷ vẫn phải hiện SỐ ĐÃ SỬA gần nhất, không lùi về số gốc");
+  assert.equal(out.status, "cancelled", "không đổi trạng thái");
+});
+
+// --- effectiveMoney -------------------------------------------------------------------------------------------------
+test("effectiveMoney: total = subtotal - discount; remainingAmount = total - depositAmount", () => {
+  assert.deepEqual(effectiveMoney(900000, 0, 100000), { total: 900000, remainingAmount: 800000 });
+  assert.deepEqual(effectiveMoney(900000, 50000, 100000), { total: 850000, remainingAmount: 750000 });
 });
 
 // --- isAdjustmentSeqCollision --------------------------------------------------------------------------------------
