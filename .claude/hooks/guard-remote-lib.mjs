@@ -82,8 +82,12 @@ function stripHeredocs(s) {
  * nháy kép hay không) vì một dấu nháy đơn NẰM TRONG nháy kép (vd `"a'b"`) chỉ là chữ, không phải mốc mở/đóng nháy đơn —
  * ghép cặp nháy đơn kiểu regex ngây thơ (không biết ngữ cảnh) sẽ vô tình xoá trắng luôn `$(...)` thật sự NẰM TRONG nháy
  * kép (chỗ shell CÓ giải nghĩa), gây lọt lệnh cấm. Trong nháy kép, `\"` là nháy kép chữ (không đóng chuỗi) nên phải nhảy
- * qua cặp ký tự thoát. Gặp nháy đơn không đóng (cú pháp hỏng) thì GIỮ NGUYÊN phần còn lại, không thay trắng — thà quét dư
- * (chặn hụt an toàn hơn) còn hơn xoá oan một lệnh thật. */
+ * qua cặp ký tự thoát. NGOÀI nháy kép cũng phải nhảy qua `\<ký tự bất kỳ>` (đối xứng với nhánh trong nháy kép) — nếu
+ * không, một dấu `\'` (nháy đơn có `\` đứng trước — cú pháp không hợp lệ trong bash thật, nhưng đầu vào tuỳ ý vẫn phải xử
+ * lý an toàn) sẽ bị hiểu NHẦM là mốc mở/đóng nháy đơn thật, ghép cặp sai và xoá trắng nhầm `$(...)` THẬT SỰ nằm giữa hai
+ * dấu `\'` đó (người kiểm độc lập tái hiện: `echo it\'s $(git push origin main) \'x` từng lọt sau bản vá đầu). Gặp nháy
+ * đơn không đóng (cú pháp hỏng) thì GIỮ NGUYÊN phần còn lại, không thay trắng — thà quét dư (chặn hụt an toàn hơn) còn
+ * hơn xoá oan một lệnh thật. */
 function blankSingleQuoted(s) {
   let out = "";
   let i = 0;
@@ -99,6 +103,11 @@ function blankSingleQuoted(s) {
       if (c === '"') inDouble = false;
       out += c;
       i++;
+      continue;
+    }
+    if (c === "\\" && i + 1 < s.length) {
+      out += s.slice(i, i + 2);
+      i += 2;
       continue;
     }
     if (c === '"') {
