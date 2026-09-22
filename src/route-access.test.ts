@@ -78,8 +78,8 @@ async function collectRealRoutes(): Promise<RouteSnapshot[]> {
 }
 
 // Ảnh chụp ĐÃ DUYỆT — lấy bằng `grep -n 'route(' src/modules/*/index.ts` ngày 2026-09-22, đọc từng dòng để chắc đúng (không đoán).
-// 57 route trên 11 module (55 gốc + 2 route mới của ADR-0014 Phase B: handler-cancel, handler-money-edit) — đếm lại bằng
-// `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
+// 58 route trên 11 module (55 gốc + 2 route ADR-0014 Phase B: handler-cancel, handler-money-edit + 1 route "việc của tôi": dispatch/mine) — đếm
+// lại bằng `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
 const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/account/change-pin", access: "staff" },
   { method: "GET", path: "/api/audit", access: "admin" },
@@ -96,6 +96,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/company", access: "public" },
   { method: "GET", path: "/api/dispatch/assignees", access: "office" },
   { method: "GET", path: "/api/dispatch/handlers", access: "office" },
+  { method: "GET", path: "/api/dispatch/mine", access: "staff" }, // "việc của tôi" (FIELD) — ADR-0014 điều 6/11, tự khoanh phạm vi bằng staff.id
   { method: "GET", path: "/api/feedback", access: "admin" },
   { method: "POST", path: "/api/feedback", access: "staff" },
   { method: "GET", path: "/api/feedback/:id", access: "staff" },
@@ -152,12 +153,12 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 57 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 58 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
-  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 57 để đối chiếu nhanh bằng mắt.
-  // (Cập nhật 2026-09-22, ADR-0014 Phase B: +2 route module dispatch — handler-cancel, handler-money-edit — từ 55 lên 57.)
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 58 để đối chiếu nhanh bằng mắt.
+  // (Cập nhật 2026-09-22: 55 gốc + 2 route ADR-0014 Phase B (handler-cancel, handler-money-edit) + 1 route "việc của tôi" (dispatch/mine) = 58.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 57, "số route thực tế lệch 57 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 57, "SNAPSHOT phải có đúng 57 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 58, "số route thực tế lệch 58 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 58, "SNAPSHOT phải có đúng 58 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

@@ -21,6 +21,7 @@ const COLUMNS = "order_id, party_id, staff_id, label";
 const HANDLERS_OF_ORDERS = defineSql("dispatch", "handlers_of_orders", `SELECT ${COLUMNS} FROM v_dsp_order_handler WHERE order_id IN (SELECT value FROM json_each(?1))`);
 const HANDLER_OF_ORDER = defineSql("dispatch", "handler_of_order", `SELECT ${COLUMNS} FROM v_dsp_order_handler WHERE order_id = ?1`);
 const IS_HANDLER = defineSql("dispatch", "is_handler", "SELECT 1 AS ok FROM v_dsp_order_handler WHERE order_id = ?1 AND staff_id = ?2");
+const HANDLED_ORDER_IDS = defineSql("dispatch", "handled_order_ids", "SELECT order_id FROM v_dsp_order_handler WHERE staff_id = ?1");
 
 // Dòng HANDLE mới: ?1 id, ?2 đơn, ?3 hồ sơ người nhận, ?4 thời điểm (UTC), ?5 người thao tác (cột WHO: TEXT NULL, không khoá ngoại — ADR-0003).
 const INSERT_COLUMNS = "id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by";
@@ -58,6 +59,12 @@ export const findHandlerOf = (db: D1Database, orderId: string): Promise<HandlerR
 /** `staffId` có phải người phụ trách đang mở của đơn không. */
 export async function isHandler(db: D1Database, staffId: string, orderId: string): Promise<boolean> {
   return (await db.prepare(IS_HANDLER).bind(orderId, staffId).first()) !== null;
+}
+
+/** Mọi đơn mà `staffId` ĐANG là người phụ trách (HANDLE đang mở) — dùng cho GET /api/dispatch/mine (màn "việc của tôi"). */
+export async function findHandledOrderIds(db: D1Database, staffId: string): Promise<string[]> {
+  const { results } = await db.prepare(HANDLED_ORDER_IDS).bind(staffId).all<{ order_id: string }>();
+  return results.map((r) => r.order_id);
 }
 
 /** Dòng HANDLE mới. `at` (UTC) = lúc có hiệu lực; `actorId` = người thao tác (cột WHO). */

@@ -4,13 +4,13 @@
 // router khớp theo đoạn nên không đụng route của `orders`).
 // Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch`: gốc lắp ráp (src/index.ts) tiêm `isOrderHandler` và
 // `defaultHandlerStatement` vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
-import { cancelOrderByHandler, editMoneyAsHandler, findOrderOwner } from "../orders";
+import { cancelOrderByHandler, editMoneyAsHandler, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
-import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, SetHandlerResponse } from "../../shared/contracts";
+import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, MATRIX } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { findHandlerOf, findHandlersOf, insertHandlerStatement, isHandler, type HandlerRow } from "./repository";
+import { findHandledOrderIds, findHandlerOf, findHandlersOf, insertHandlerStatement, isHandler, type HandlerRow } from "./repository";
 import { CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler } from "./rules";
 import { handlerChangeStatements } from "./service";
 
@@ -63,6 +63,14 @@ export const dispatchModule: AppModule = {
         return checked.ok ? [{ staffId: account.id, partyId: checked.partyId, name: checked.name }] : [];
       });
       return json({ assignees } satisfies AssigneesResponse);
+    }),
+
+    // "Việc của tôi": đơn mà CHÍNH staff gọi đang phụ trách — không tham số (staff.id lấy từ phiên đăng nhập), an toàn với MỌI quyền vì tự khoanh
+    // phạm vi bằng chính người gọi, không cần can() riêng. Dùng cho khối "Việc của tôi" ở trang Tôi (FIELD — ADR-0014 điều 6/11).
+    route("GET", "/api/dispatch/mine", "staff", async ({ env, staff }) => {
+      const orderIds = await findHandledOrderIds(env.DB, staff.id);
+      const assignments = await getMyAssignments(env.DB, orderIds);
+      return json({ assignments } satisfies MyAssignmentsResponse);
     }),
 
     // Đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người). Thứ tự: 404 → 400 (thân) → 403 (vượt quyền) hoặc 409 stale (nhận đơn ĐÃ có người) → 400 (người được giao)
