@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
+import type { OrderDetailDto } from "../../shared/contracts.ts";
+import { applyAdjustmentToOrder, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
 import type { StoredService } from "./service-rules.ts";
 
 const ZERO = { adult: 0, child: 0, senior: 0, infant: 0 };
@@ -78,4 +79,44 @@ test("parseMoneyEditInput: thân không phải object, services không phải m�
     const r = parseMoneyEditInput(body as Record<string, unknown> | null, ["svc-1"]);
     assert.ok(!r.ok, JSON.stringify(body));
   }
+});
+
+// --- applyAdjustmentToOrder ----------------------------------------------------------------------------------------
+const baseOrder = (): OrderDetailDto => ({
+  id: "o1", orderCode: "TD-1", staffId: "s1", staffName: "A", bookerPartyId: null, bookerName: null,
+  status: "confirmed", customerName: "K", customerPhone: "090", customerEmail: null, customerNote: null,
+  subtotal: 600000, discount: 0, total: 600000, depositAmount: 100000, depositMethod: "cash", remainingAmount: 500000,
+  paymentNote: null, createdAt: "t", updatedAt: "t", confirmedAt: "t",
+  services: [
+    {
+      id: "svc-1", kind: "catalog", catalogCode: "TOUR-1", name: "Tour đảo", unit: "perPax",
+      pax: { adult: 2, child: 0, senior: 0, infant: 0 },
+      departDate: "2026-10-01", departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null,
+      items: [{ id: "it-1", catalogCode: "TOUR-1", paxCode: "adult", description: "Tour đảo — Người lớn", detail: "", quantity: 2, unitPrice: 300000, catalogPrice: 300000, lineTotal: 600000 }],
+      catalogStatus: null,
+    },
+  ],
+});
+
+test("applyAdjustmentToOrder: cộng dồn điều chỉnh — subtotal/total/remainingAmount và pax/items của dịch vụ đổi theo", () => {
+  const out = applyAdjustmentToOrder(baseOrder(), [{ serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
+  assert.equal(out.subtotal, 900000);
+  assert.equal(out.total, 900000, "discount = 0 nên total = subtotal");
+  assert.equal(out.remainingAmount, 800000, "900000 - 100000 cọc (không đổi)");
+  assert.deepEqual(out.services[0]!.pax, { adult: 3, child: 0, senior: 0, infant: 0 });
+  assert.equal(out.services[0]!.items[0]!.quantity, 3);
+});
+
+test("applyAdjustmentToOrder: không đổi discount/depositAmount/depositMethod/status", () => {
+  const out = applyAdjustmentToOrder(baseOrder(), [{ serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]);
+  assert.equal(out.discount, 0);
+  assert.equal(out.depositAmount, 100000);
+  assert.equal(out.depositMethod, "cash");
+  assert.equal(out.status, "confirmed");
+});
+
+test("applyAdjustmentToOrder: dịch vụ KHÔNG có trong after (đơn chưa có điều chỉnh nào, after=[]) → giữ nguyên như lưu", () => {
+  const out = applyAdjustmentToOrder(baseOrder(), []);
+  assert.deepEqual(out.services[0]!.pax, { adult: 2, child: 0, senior: 0, infant: 0 });
+  assert.equal(out.subtotal, 600000);
 });

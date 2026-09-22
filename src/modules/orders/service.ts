@@ -6,7 +6,8 @@ import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
-import { findOrder, getStoredServices, type BookerWrite } from "./repository";
+import { applyAdjustmentToOrder } from "./money-adjustment";
+import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite } from "./repository";
 import { catalogStatusOf, type ServiceContext } from "./service-rules";
 
 /**
@@ -18,13 +19,24 @@ export async function validationContext(db: D1Database, orderId: string | null):
   return { catalog, stored };
 }
 
-/** Đơn đầy đủ; với đơn NHÁP điền thêm `catalogStatus` (giá danh mục đã đổi / dịch vụ đã ẩn) để người sửa biết. */
+/**
+ * Đơn đầy đủ; với đơn NHÁP điền thêm `catalogStatus` (giá danh mục đã đổi / dịch vụ đã ẩn) để người sửa biết; với đơn ĐÃ XÁC NHẬN có dòng điều
+ * chỉnh (ADR-0014 điều 6, Phase B), overlay SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất) — chủ dự án đã chọn: màn hình chính hiện số mới, số gốc xem
+ * qua lịch sử đơn (`order.history.view`, đã có). KHÔNG đổi gì trong CSDL ở đây, chỉ dựng lại DTO trả về.
+ */
 export async function loadOrderView(db: D1Database, id: string): Promise<OrderDetailDto | null> {
   const order = await findOrder(db, id);
-  if (!order || order.status !== "draft") return order;
-  const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
-  const catalog = await getEffectiveServices(db, codes);
-  return { ...order, services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })) };
+  if (!order) return null;
+  if (order.status === "draft") {
+    const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
+    const catalog = await getEffectiveServices(db, codes);
+    return { ...order, services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })) };
+  }
+  if (order.status === "confirmed") {
+    const latest = await getLatestAdjustment(db, id);
+    if (latest) return applyAdjustmentToOrder(order, latest.after);
+  }
+  return order;
 }
 
 export type ResolvedBooker = { ok: true; write: BookerWrite } | { ok: false; message: string };
