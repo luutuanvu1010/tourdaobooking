@@ -65,3 +65,20 @@ Câu ghi chú web/CLAUDE.md về .table-wrap/.card-list: CHƯA thêm lại (ch�
 6. Trả lời chủ dự án: tiếng Việt có dấu, kết luận trước, lời thường không thuật ngữ, ngắn gọn — chủ dự án không phải lập trình viên (xem CLAUDE.md §4). Không dừng lại hỏi chủ giữa chừng trừ phát hiện thật đụng dữ liệu/cấu trúc/an toàn (như mục 3 ở trên) — chủ đã yêu cầu làm liên tục qua nhiều đợt.
 
 **Sau khi Đợt B xong:** còn Đợt C (Đăng nhập, Tôi, Góp ý — 3 trang đơn lẻ, ít điểm chung, rủi ro thấp nhất, làm sau cùng trong 11 trang) và Trang chủ mới (việc riêng, cần chốt với chủ dự án hình dạng chính xác của thay đổi API sắp xếp đơn theo ngày đón TRƯỚC khi viết mã — xem đặc tả §10, §12 mục 1).
+
+## Bước 2 Đợt B — chốt xong (2026-09-22)
+
+Thi công theo đúng `subagent-driven-development`: 2 task (Chi tiết đơn, Lập đơn), mỗi task một trợ lý thi công riêng + một trợ lý kiểm độc lập riêng, sau đó một lượt kiểm toàn cục cho riêng Đợt B (model mạnh nhất). Sổ điều phối đầy đủ: `.superpowers/sdd/2026-09-22-thiet-ke-lai-giao-dien-buoc-2-dot-b/progress.md` (chưa xoá — giữ lại làm bằng chứng, có thể xoá ở phiên sau nếu chủ dự án không cần).
+
+**Task 1 (Chi tiết đơn, `web/order.ts` + `public/app.css`, commit `14374ad`):** thêm dải tóm tắt đầu trang (mã đơn/badge, ngày đón, khách, số khách, còn lại) + bọc phần thân vào lưới 2 cột (Thanh toán dính cột phải ở máy tính). Kiểm độc lập: sạch ngay lần đầu, Approved, chỉ 2 gợi ý Minor không cần sửa (đã hoãn).
+
+**Task 2 (Lập đơn, `public/order-form.html` + `web/order-form.ts` + `public/app.css`, commit gốc `bf7530b`):** dời nút Lưu/Quay lại vào cột phải, thêm khối tóm tắt số tiền vào thanh dính đáy điện thoại. Kiểm độc lập lần đầu phát hiện lỗi Critical thật: khối tóm tắt số tiền KHÔNG BAO GIỜ hiện ở bất kỳ khổ màn hình nào (lỗi thứ tự CSS — một rule "ẩn mặc định" vô tình đặt sau khối `@media` nên luôn thắng) + thiếu kịch bản kiểm hiển thị (nên lỗi lọt qua toàn bộ test/kịch bản cũ). Sửa 1 vòng (commit `d7f90f3`): dời rule mặc định lên đúng vị trí, thêm bước kiểm mới vào `a2-smoke-form.mjs` (đã tự dựng lại lỗi cũ để xác nhận bước kiểm mới bắt được trước khi phục hồi). Kiểm lại: cả 2 phát hiện ADDRESSED, sạch.
+
+**Kiểm toàn cục Đợt B (`f076a1e..d7f90f3`):** phát hiện 2 vấn đề Important chỉ lộ ra khi nhìn toàn cục (không phải lỗi từng task riêng):
+- Khối "Thanh toán" bị tụt xuống DƯỚI "Lịch sử" trên điện thoại (Task 1 bọc Thanh toán vào cột phải khiến thứ tự DOM bị đảo dưới mốc 900px) — lệch thứ tự cũ, không ai quyết. Ruling (điều phối viên tự quyết, việc bề mặt/đảo ngược được, không cần hỏi chủ): dời khối Lịch sử ra ngoài lưới 2 cột để khôi phục đúng thứ tự cũ trên điện thoại.
+- Dải tóm tắt (Task 1) gộp "tổng số khách mọi dịch vụ" với "tên dịch vụ đầu tiên" khi đơn có nhiều dịch vụ — dễ đọc nhầm. Ruling: dùng lại đúng công thức rút gọn "tên đầu +N dịch vụ" đã có sẵn ở trang Đơn hàng (`web/orders.ts`), cho nhất quán.
+Sửa 1 đợt duy nhất (commit `700dd62`, có bằng chứng ảnh thật khổ điện thoại xác nhận cả 2 điểm). Kiểm lại: cả 2 ADDRESSED, không lỗi mới — Đợt B sạch.
+
+Các phát hiện Minor còn hoãn (không chặn, ghi cho phiên sau nếu muốn dọn): cấu trúc mã đơn+badge trong dải tóm tắt hơi khác 4 ô còn lại; 1 rule CSS thừa vô hại; dải tóm tắt không phải phần tử đầu trang (hiện trạng có từ trước, chưa đụng); vài nhãn viết hoa cứng trong DOM thay vì CSS; thanh dính đáy điện thoại lặp nhãn cho trình đọc màn hình (nên thêm aria-hidden); biên tương phản màu "Còn lại" trong dải tóm tắt không còn dư (4,67:1 so với sàn 4,5:1, nên ghi số vào comment). Chi tiết đầy đủ ở sổ điều phối.
+
+**Kết quả cuối:** `npm test` 450/450 xanh, `npm run typecheck` 0 lỗi, tất cả bước trong kế hoạch đã đánh dấu xong. Nhánh `thiet-ke-lai-giao-dien`, HEAD `700dd62`, CHƯA gộp main, CHƯA đẩy remote (theo đúng luật CLAUDE.md §8 — chỉ chủ dự án tự chạy).

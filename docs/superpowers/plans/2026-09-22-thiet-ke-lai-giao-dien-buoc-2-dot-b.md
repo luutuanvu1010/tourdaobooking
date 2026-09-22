@@ -38,7 +38,7 @@ Mockup dùng token riêng của nó (`--c-band-muted`, `--shadow-lg`...) không 
 - Produces: hàm `summaryBand(order, trip): HTMLElement` mới trong `web/order.ts`.
 - Consumes: `order.status`, `order.customerName`, `order.customerPhone`, `order.total/depositAmount/remainingAmount`, thông tin chuyến của DỊCH VỤ ĐẦU TIÊN (`order.services[0]`, giống quy ước "dịch vụ đầu quyết định trip" đã dùng ở Bước 1 cho trang Đơn hàng — áp dụng lại đúng quy ước đó ở đây cho nhất quán), `PAX_ORDER`/`paxCounts()` đã có ở `web/format.ts` (Bước 1) để tính số khách TỔNG các dịch vụ.
 
-- [ ] **Step 1: Thêm CSS dải tóm tắt + lưới 2 cột**
+- [x] **Step 1: Thêm CSS dải tóm tắt + lưới 2 cột**
 
 Thêm vào `public/app.css`, cạnh khối CSS trang đơn hiện có (tìm bằng nội dung, ví dụ gần `.lock-note`):
 
@@ -62,7 +62,7 @@ Thêm vào `public/app.css`, cạnh khối CSS trang đơn hiện có (tìm bằ
 
 (Mốc 900px nhất quán với mốc bảng→thẻ Đợt A — trang này không có bảng, nhưng dùng lại đúng mốc chuyển 1-cột đã thống nhất cho toàn app, tránh thêm mốc thứ ba.)
 
-- [ ] **Step 2: Thêm hàm `summaryBand()` trong `web/order.ts`**
+- [x] **Step 2: Thêm hàm `summaryBand()` trong `web/order.ts`**
 
 Thêm hàm mới, TRƯỚC hàm `render()`:
 
@@ -98,25 +98,25 @@ function summaryBand(order: Order): HTMLElement {
 
 *Ghi chú cho người thi công:* kiểu `Order`/`OrderServiceDto` thật có thể đặt tên trường khác chút so với đoạn mã trên (đây là suy đoán từ đọc `render()` hiện có, CHƯA đối chiếu type chính xác — bước đầu tiên khi cài đặt là đọc lại đúng interface `OrderDetailDto`/`OrderServiceDto` ở `src/shared/contracts.ts` qua `./api`, sửa tên trường cho khớp thật, đặc biệt `pickupPlace`/`departDate`/`pickupTime` nằm ở `TripInfoDto` — kiểm xem đó là field cấp `service` hay cần gọi hàm phụ). Import `dayMonth`, `paxCounts` từ `./format` (đã có sẵn từ Bước 1), `type PaxCounts` từ `./api` hoặc `../src/shared/order-lines` (kiểm đường nào đã dùng sẵn trong tệp).
 
-- [ ] **Step 3: Nối `summaryBand()` vào `render()` + bọc lưới 2 cột**
+- [x] **Step 3: Nối `summaryBand()` vào `render()` + bọc lưới 2 cột**
 
 Trong hàm `render()`, thêm `summaryBand(order)` vào đầu danh sách children (ngay sau header mã đơn/badge hiện có, hoặc thay thế header đó nếu trùng lặp thông tin — TỰ QUYẾT khi đọc lại `render()` thật, tránh hiện trùng mã đơn 2 lần). Bọc phần thân còn lại (Người phụ trách → Khách hàng → Dịch vụ → Lịch sử) vào `h("div", { class: "order-layout" }, h("div", null, ...cácKhốiHiệnCó), h("div", { class: "side" }, khốiThanhToán))` — tách khối Thanh toán ra khỏi luồng chính, đặt vào `div.side`.
 
-- [ ] **Step 4: Build + kiểm kiểu**
+- [x] **Step 4: Build + kiểm kiểu**
 
 Run: `npm run build:web && npm run typecheck`
 Expected: 0 lỗi — sửa tên trường nếu Step 2 đoán sai kiểu.
 
-- [ ] **Step 5: Chạy đủ kịch bản Chrome**
+- [x] **Step 5: Chạy đủ kịch bản Chrome**
 
 Run 4 kịch bản (mẫu lệnh như Bước 1 Task 5 Step 8, `AXE_JS`/`CHROME_BIN`): `a2-smoke-order.mjs`, `a2-smoke-form.mjs`, `a2-smoke-sheet.mjs` (`docs/evidence/2026-09-20-a2/kich-ban/`), `v1-nguoi-phu-trach.mjs` (`docs/evidence/2026-09-21-v1-0/kich-ban/`).
 Expected: cả 4 thoát mã 0. Sửa CSS/DOM nếu bố cục mới làm hỏng vị trí "Phụ trách: <tên>" mà kịch bản kiểm — không sửa kịch bản.
 
-- [ ] **Step 6: `npm test && npm run test:e2e -- pwa`**
+- [x] **Step 6: `npm test && npm run test:e2e -- pwa`**
 
 Expected: xanh.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add web/order.ts public/app.css
@@ -131,11 +131,11 @@ git commit -m "Bước 2 Đợt B: thêm dải tóm tắt + bố cục 2 cột c
 **Interfaces:**
 - Không đổi interface nào — chỉ di chuyển vị trí DOM của `.form-actions` và thêm hiển thị số tiền vào thanh dính đáy.
 
-- [ ] **Step 1: Di chuyển `.form-actions` vào `.form-side` (nếu chưa đúng vị trí)**
+- [x] **Step 1: Di chuyển `.form-actions` vào `.form-side` (nếu chưa đúng vị trí)**
 
 Đọc `public/order-form.html` thật: nếu `.form-actions` (nút Lưu + Quay lại) đã là con của `.form-side` (cùng cấp với `.summary-card`), KHÔNG cần sửa HTML — chỉ cần CSS đổi từ thanh ngang thành 2 nút xếp dọc full-width ở khổ ≥900px. Nếu `.form-actions` đang là con TRỰC TIẾP của `<form>` (ngoài `.form-side`), di chuyển thẻ trong HTML vào bên trong `.form-side`, ngay sau `.summary-card`.
 
-- [ ] **Step 2: CSS — 2 nút xếp dọc ở máy tính, giữ nguyên thanh dính đáy ở điện thoại**
+- [x] **Step 2: CSS — 2 nút xếp dọc ở máy tính, giữ nguyên thanh dính đáy ở điện thoại**
 
 Tìm khối `@media (min-width: 960px)` hiện có (đã xác nhận: `.form-side .form-actions { position: static; padding: 0; background: none; border-top: 0; }` — CSS này đã sẵn sàng cho việc xếp dọc một phần). Thêm vào CÙNG khối:
 
@@ -146,7 +146,7 @@ Tìm khối `@media (min-width: 960px)` hiện có (đã xác nhận: `.form-sid
 
 (Xác nhận `.form-actions` mặc định `display:flex` theo chiều ngang — nếu đúng vậy, `flex-direction: column` xếp 2 nút thành cột. Nếu `.form-actions` không phải flex container, tự điều chỉnh cho đúng ý mockup: 2 nút full-width xếp dọc.)
 
-- [ ] **Step 3: Thêm số tiền vào thanh dính đáy điện thoại**
+- [x] **Step 3: Thêm số tiền vào thanh dính đáy điện thoại**
 
 Trong `public/order-form.html`, tìm phần tử tổng tiền hiện có trong `.summary-card` (Tổng cộng/Còn lại). Tìm khối `@media (max-width: 640px)` của `.form-actions` (đã biết: nền/viền trên/ẩn nút Quay lại). Thêm 2 dòng số tiền vào TRƯỚC nút Lưu trong `.form-actions`, dùng `web/order-form.ts` để đồng bộ giá trị (tái dùng biến tổng/còn lại đã tính trong `recompute()` — KHÔNG tính lại, chỉ hiển thị thêm ở một nơi khác):
 
@@ -162,18 +162,18 @@ Thêm 2 phần tử `<span id="mobile-total"></span>`/`<span id="mobile-due"></s
 
 *Lưu ý:* đây là chi tiết cần đọc đúng tên biến thật trong `recompute()` (brief đoán tên `total`/`remainingAmount`, có thể lệch — người thi công tự đối chiếu mã thật trước khi cài).
 
-- [ ] **Step 4: Build + kiểm kiểu**
+- [x] **Step 4: Build + kiểm kiểu**
 
 Run: `npm run build:web && npm run typecheck`
 
-- [ ] **Step 5: Chạy đủ kịch bản Chrome (giống Task 1 Step 5)**
+- [x] **Step 5: Chạy đủ kịch bản Chrome (giống Task 1 Step 5)**
 
 Run 4 kịch bản: `a2-smoke-order.mjs`, `a2-smoke-form.mjs`, `a2-smoke-sheet.mjs`, `v1-nguoi-phu-trach.mjs`.
 Expected: thoát mã 0 — đặc biệt xác nhận `wide()`/cuộn-tới-lỗi (đặc thù `order-form.ts` đã ghi trong recon) vẫn hoạt động đúng sau khi di chuyển `.form-actions`.
 
-- [ ] **Step 6: `npm test && npm run test:e2e -- pwa`**
+- [x] **Step 6: `npm test && npm run test:e2e -- pwa`**
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add public/order-form.html web/order-form.ts public/app.css
