@@ -71,7 +71,9 @@ test("người được giao: chỉ FIELD, chỉ kế toán, không quyền nào
 
 test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify của bản đồ quyền)", () => {
   const eligible = PERMISSION_CODES.filter((p) => checkAssignee(account([p])).ok);
-  assert.deepEqual(eligible, ["SALES", "ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
+  // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác, kể cả order.modify — nên đủ điều kiện làm người phụ trách như ADMIN, không cần quyết riêng.
+  // PARTNER (own) và FIELD (none, cho tới khi Phase B thêm order.money.edit=assigned) CHƯA đủ điều kiện — đúng ý (chưa mở ở Phase A).
+  assert.deepEqual(eligible, ["SALES", "ADMIN", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
 });
 
 // --- Ai được đặt/đổi người phụ trách (ADR-0009 điều 1–2) --------------------------------------------------------------

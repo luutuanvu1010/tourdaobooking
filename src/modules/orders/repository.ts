@@ -196,10 +196,15 @@ export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | n
 
 export async function listOrders(
   db: D1Database,
-  opts: { q: string; status: OrderStatus | null; limit: number; offset: number },
+  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null },
 ): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean }> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
+  // ADR-0014 điều 3 (D-01): tài khoản Đối tác chỉ thấy đơn của chính mình — ownerId khác null là phạm vi "own" thực thi ở máy chủ, không chỉ ở tầng một bản ghi.
+  if (opts.ownerId) {
+    where.push("o.staff_id = ?");
+    binds.push(opts.ownerId);
+  }
   if (opts.status) {
     where.push("o.status = ?");
     binds.push(opts.status);

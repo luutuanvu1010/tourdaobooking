@@ -102,6 +102,46 @@ test("P6 FINDING dùng chung IP: 30 lần sai trong 15 phút từ MỘT IP (vd w
   assert.equal(good.status, 429, good.text);
 });
 
+test("D-01 (đã sửa, ADR-0014): tài khoản Đối tác liệt kê đơn chỉ thấy đơn của chính mình", async () => {
+  const w = setup();
+  const P1 = "55555555-5555-4555-8555-555555555555";
+  const P2 = "66666666-6666-4666-8666-666666666666";
+  seedStaff(w.sqlite, { id: P1, phone: "0977100001", name: "Đối Tác Một", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: P2, phone: "0977100002", name: "Đối Tác Hai", perms: ["PARTNER"] });
+  const o1 = (await w.call("POST", "/api/orders", { as: P1, body: orderBody() })).json.order;
+  const o2 = (await w.call("POST", "/api/orders", { as: P2, body: orderBody() })).json.order;
+  const list = await w.call("GET", "/api/orders?limit=100", { as: P1 });
+  assert.equal(list.status, 200, list.text);
+  const ids = list.json.orders.map((x) => x.id);
+  assert.ok(ids.includes(o1.id), "thấy đơn của chính mình");
+  assert.ok(!ids.includes(o2.id), "KHÔNG thấy đơn của đối tác khác");
+  // Tìm theo SĐT của đơn người khác cũng không ra.
+  const byPhone = await w.call("GET", "/api/orders?q=0912345678", { as: P1 });
+  assert.equal(byPhone.json.orders.length, 1, "chỉ thấy đúng đơn của mình dù trùng SĐT khách");
+});
+
+test("D-01 (đã sửa, ADR-0014): tài khoản Đối tác xem chi tiết đơn của người khác bị từ chối", async () => {
+  const w = setup();
+  const P1 = "77777777-7777-4777-8777-777777777777";
+  const P2 = "88888888-8888-4888-8888-888888888888";
+  seedStaff(w.sqlite, { id: P1, phone: "0977100003", name: "Đối Tác Ba", perms: ["PARTNER"] });
+  seedStaff(w.sqlite, { id: P2, phone: "0977100004", name: "Đối Tác Bốn", perms: ["PARTNER"] });
+  const o2 = (await w.call("POST", "/api/orders", { as: P2, body: orderBody() })).json.order;
+  const res = await w.call("GET", `/api/orders/${o2.id}`, { as: P1 });
+  assert.equal(res.status, 403, res.text);
+  // Chính chủ vẫn xem được bình thường.
+  const own = await w.call("GET", `/api/orders/${o2.id}`, { as: P2 });
+  assert.equal(own.status, 200, own.text);
+});
+
+test("D-01 (đã sửa, ADR-0014): tài khoản Đối tác vẫn KHÔNG vào được /api/parties (party.view/party.write = none)", async () => {
+  const w = setup();
+  const P1 = "99999999-9999-4999-8999-999999999999";
+  seedStaff(w.sqlite, { id: P1, phone: "0977100005", name: "Đối Tác Năm", perms: ["PARTNER"] });
+  assert.equal((await w.call("GET", "/api/parties?limit=100", { as: P1 })).status, 403);
+  assert.equal((await w.call("GET", "/api/parties/lookup?phone=0912345678", { as: P1 })).status, 403);
+});
+
 test("P7 ĐO quy mô: 1000 tài khoản Bán hàng → danh sách người-được-giao trả CẢ 1000 tên cho MỌI tài khoản văn phòng (không chia trang)", async () => {
   const w = setup();
   const me = "aaaaaaaa-aaaa-4aaa-8aaa-000000000007";

@@ -41,20 +41,24 @@ export async function findOrderOwner(db: D1Database, id: string): Promise<{ staf
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
-    route("GET", "/api/orders", "office", async ({ env, url }) => {
+    route("GET", "/api/orders", "orders", async ({ env, url, staff }) => {
       const raw = url.searchParams.get("status");
       const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
       if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
+      // can(staff, "order.view") KHÔNG ngữ cảnh: "any" (SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → true → không lọc; "own" (PARTNER) → false → lọc theo chính mình.
+      // An toàn CHỈ đúng vì access "orders" đã loại trước những quyền order.view = "none" (FIELD) ở router — đừng gọi listOrders ở access khác mà không tự lọc.
+      const ownerId = can(staff, "order.view") ? null : staff.id;
       const result = await listOrders(env.DB, {
         q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
         status,
         limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
+        ownerId,
       });
       return json(result satisfies OrderListResponse);
     }),
 
-    route("POST", "/api/orders", "office", async ({ env, request, staff, defaultHandlerStatement }) => {
+    route("POST", "/api/orders", "orders", async ({ env, request, staff, defaultHandlerStatement }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, null));
       if (!parsed.ok) return failure(parsed);
@@ -74,18 +78,20 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
 
-    route("GET", "/api/orders/:id", "office", async ({ env, params, staff, isAssigned }) => {
+    route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned }) => {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([loadOrderView(env.DB, params.id!), isAssigned(params.id!)]);
       if (!order) return NOT_FOUND();
       // ADR-0007/0009: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn.
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
       const scope = { ownerId: order.staffId, assigned };
+      // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
+      if (!can(staff, "order.view", scope)) return FORBIDDEN();
       const history = can(staff, "order.history.view", scope) ? await getAuditTrail(env.DB, order.id) : [];
       return json({ order, history, canModify: can(staff, "order.modify", scope) } satisfies OrderDetailResponse);
     }),
 
-    route("PUT", "/api/orders/:id", "office", async ({ env, request, params, staff, isAssigned }) => {
+    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -113,7 +119,7 @@ export const ordersModule: AppModule = {
     }),
 
     // Sửa trường vận hành (ngày giờ khởi hành, đón, check-in, ghi chú) — kể cả đơn ĐÃ XÁC NHẬN (Q9). Không đổi khách/tiền.
-    route("PUT", "/api/orders/:id/trip", "office", async ({ env, request, params, staff, isAssigned }) => {
+    route("PUT", "/api/orders/:id/trip", "orders", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -133,7 +139,7 @@ export const ordersModule: AppModule = {
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).
-    route("PUT", "/api/orders/:id/booker", "office", async ({ env, request, params, staff, isAssigned }) => {
+    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -155,7 +161,7 @@ export const ordersModule: AppModule = {
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/status", "office", async ({ env, request, params, staff, isAssigned }) => {
+    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const body = await readJson(request);
