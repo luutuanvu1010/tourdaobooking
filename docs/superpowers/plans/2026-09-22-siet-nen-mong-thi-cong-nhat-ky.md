@@ -20,14 +20,16 @@ Nhánh `siet-nen-mong`, tạo từ `origin/main` @ `da64558` (sau khi PR #9 — 
 ## Sổ việc
 | Việc | Trạng thái | Người thi công | Người kiểm |
 |---|---|---|---|
-| Task 1 — bài kiểm vá C-1, C-2, C-3 (chỉ thêm test, không đổi hành vi) | Đang thi công (đã commit `7971446`, đang viết báo cáo) | subagent sonnet | chờ |
+| Task 1 — bài kiểm vá C-1, C-2, C-3 (chỉ thêm test, không đổi hành vi) | **Xong** (`7971446` + `e890de9`, thêm cả lưới "module mới quên đưa vào canh") | subagent sonnet | chờ dispatch |
 | Task 2 — sửa hook chặn nhầm (nháy đơn quanh `$()`/dấu huyền) + 4 ca hồi quy | **Xong** (`98f4785`) | subagent sonnet | chờ dispatch |
 | Task 3 — agent kiểm độc lập, xoá bản sao CLAUDE.md, một luật `deny` an toàn | **Xong một phần** (`a2bdfbd`) — luật `ask` cho tự-sửa-luật DỜI sang bước cuối cùng (xem mục Ruling) | điều phối | chờ (gộp vào kiểm toàn nhánh) |
 | Task 4 — sửa 6 chỗ tài liệu lệch | **Xong** (`190e011`) | điều phối | chờ (gộp vào kiểm toàn nhánh) |
-| Kiểm lại Task 2 (phạm vi hẹp) | Chờ dispatch | — | — |
-| Kiểm độc lập Task 1 | Chờ Task 1 báo cáo | — | — |
+| Kiểm độc lập Task 2 | Đang chạy | — | — |
+| Kiểm độc lập Task 1 | Đang chạy | — | — |
 | Thêm luật `ask` cho tự-sửa-luật (bước cuối) | Chờ mọi việc trên xong | điều phối | — |
 | Kiểm toàn nhánh (opus, chỉ đọc) | Chờ | — | — |
+
+**Task 1 — kết quả (subagent, chưa kiểm độc lập):** `npm test` 443→448 (18 trigger đủ, snapshot 55 route + lưới "module mới quên khai", quét SQL thô mở rộng sang mọi tệp của 7 module nghiêm + `db.exec`/`env.DB.exec`). Bốn chu trình đỏ→xanh tự làm và phục hồi sạch. Một sự cố git nhỏ tự phát hiện và tự sửa: lần commit đầu vô tình cuốn theo 3 tệp đang stage của phiên khác (Task 2/3/4 cùng lúc), phát hiện ngay bằng `git show --stat`, sửa bằng `git reset --soft` rồi commit lại đúng 3 tệp của mình.
 
 **Task 2 — kết quả (subagent, chưa kiểm độc lập):** `node --test src/claude-guard.test.ts` đỏ trước (7/8, đúng 3 ca F mới bị chặn nhầm) → xanh sau (8/8). Kho hồi quy 290→294 ca, 266/266 khẳng định đúng, 0 quy hồi. Người thi công TỰ PHÁT HIỆN THÊM một lỗi khi rà soát: cách vá theo gợi ý ban đầu trong brief (regex ghép cặp nháy đơn ngây thơ, `/'[^']*'/g`) có lỗi thật — nháy đơn NẰM TRONG nháy kép (`"a'b"`) bị ghép cặp nhầm, xoá trắng `$(...)` thật sự nằm trong nháy kép → LỌT lệnh cấm. Đã tự sửa bằng hàm đi từng ký tự theo trạng thái (đang trong nháy kép hay không), không dùng gợi ý ban đầu của điều phối trong brief. Đây là ví dụ cụ thể cho thấy brief của điều phối có thể sai và người thi công đã đúng khi không làm theo mù quáng.
 
