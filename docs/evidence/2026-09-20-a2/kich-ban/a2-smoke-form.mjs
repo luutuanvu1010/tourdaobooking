@@ -362,6 +362,25 @@ try {
   p.close();
   ok("bố cục theo khổ: 1040 hai cột + nút Lưu trong khung nhìn, lỗi → focus ô lỗi đầu tiên; 800 thanh Lưu có nền, lỗi → banner trong khung nhìn; không tràn ngang");
 
+  // ---- 12c) khối tóm tắt số tiền ở thanh dính đáy (Bước 2 Đợt B, Fix round 1 — lỗi thứ tự CSS từng làm nó KHÔNG BAO GIỜ hiện):
+  //       390px (điện thoại) phải hiện với đúng số tiền; 800px (khổ giữa, vd iPad dọc) và 1040px (máy tính) phải ẩn ----
+  p = await env.as(ACCOUNTS.salesA, "/order-form"); // mặc định 390×844 (điện thoại)
+  await p.waitFor("document.getElementById('add-manual')", "form mới (khối tóm tắt điện thoại)");
+  await p.ev("document.getElementById('add-manual').click(); true");
+  await p.waitFor(`${cards}.length === 1`, "thẻ nhập tay (khối tóm tắt)");
+  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
+  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
+  await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
+  await p.waitFor("document.getElementById('mobile-total').textContent.includes('500.000')", "khối tóm tắt điện thoại cập nhật số tiền");
+  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, due: document.getElementById('mobile-due').textContent }; })()`);
+  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", due: "500.000 ₫" }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền");
+  await p.send("Emulation.setDeviceMetricsOverride", { width: 800, height: 900, deviceScaleFactor: 1, mobile: false });
+  assert.equal((await readMobileSummary()).display, "none", "800px (khổ giữa, vd iPad dọc): khối tóm tắt PHẢI ẩn");
+  await p.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 800, deviceScaleFactor: 1, mobile: false });
+  assert.equal((await readMobileSummary()).display, "none", "1040px (máy tính): khối tóm tắt PHẢI ẩn");
+  p.close();
+  ok("khối tóm tắt số tiền thanh dính đáy: 390px hiện + đúng số tiền, 800px và 1040px ẩn (cascade CSS đúng cả 3 dải khổ)");
+
   // ---- 12) đo: vùng chạm, cỡ chữ ô gõ, không tràn ngang, không lỗi console ----
   p = await env.as(ACCOUNTS.salesA, "/order-form");
   await p.waitFor("document.getElementById('catalog-q')", "form");
