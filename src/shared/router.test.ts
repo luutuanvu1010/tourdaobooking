@@ -14,7 +14,13 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
   };
   const mod: AppModule = {
     name: "giả",
-    routes: [route("GET", "/api/open", "public", ok), route("GET", "/api/mine", "staff", ok), route("GET", "/api/adm", "admin", ok), route("GET", "/api/off", "office", ok)],
+    routes: [
+      route("GET", "/api/open", "public", ok),
+      route("GET", "/api/mine", "staff", ok),
+      route("GET", "/api/adm", "admin", ok),
+      route("GET", "/api/off", "office", ok),
+      route("GET", "/api/ord", "orders", ok),
+    ],
   };
   const app = createApp({
     modules: [mod],
@@ -70,4 +76,15 @@ test("người bị chặn thấy 503 bảo trì, KHÔNG phải 403 quyền: c�
   const open = build(staffOf(["FIELD"]), () => null);
   assert.equal((await open.get("/api/adm")).status, 403);
   assert.equal((await open.get("/api/off")).status, 403);
+});
+
+test('access "orders": văn phòng và Đối tác dùng được; chỉ Thực hiện thì không; chưa đăng nhập 401', async () => {
+  const office = build(staffOf(["SALES"]), () => null);
+  assert.equal((await office.get("/api/ord")).status, 200);
+  const partner = build(staffOf(["PARTNER"]), () => null);
+  assert.equal((await partner.get("/api/ord")).status, 200);
+  const fieldOnly = build(staffOf(["FIELD"]), () => null);
+  assert.equal((await fieldOnly.get("/api/ord")).status, 403);
+  const anon = build(null, () => null);
+  assert.equal((await anon.get("/api/ord")).status, 401);
 });
