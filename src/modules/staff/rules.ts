@@ -1,6 +1,17 @@
 // Luật thuần của quản lý tài khoản nhân viên. Chỉ import kiểu, không I/O.
 import type { PermissionCode } from "../../shared/permissions.ts";
 
+/**
+ * ADR-0014 điều 8 (đính chính trực tiếp của chủ dự án): `ADMIN` chỉ quản lý được tài khoản "cấp dưới" — KHÔNG giữ `ADMIN` hay `SUPER_ADMIN`.
+ * `SUPER_ADMIN` quản lý được mọi tài khoản, kể cả `ADMIN`/`SUPER_ADMIN` khác. Không phải một ô của MATRIX (Scope không diễn đạt được
+ * "so cấp bậc mục tiêu"). Dùng cho: mở/đình chỉ/sửa/khôi phục tài khoản, đặt lại mã/mở khoá, đổi tập quyền (`accounts/index.ts`).
+ */
+export function canManageAccount(actor: readonly PermissionCode[], target: readonly PermissionCode[]): boolean {
+  if (actor.includes("SUPER_ADMIN")) return true;
+  if (!actor.includes("ADMIN")) return false;
+  return !target.includes("ADMIN") && !target.includes("SUPER_ADMIN");
+}
+
 /** PIN quá dễ đoán: cả 6 số giống nhau hoặc chạy liên tiếp tăng/giảm, kể cả cuộn vòng (000000, 123456, 654321, 890123…). */
 export function isWeakPin(pin: string): boolean {
   return /^(\d)\1{5}$/.test(pin) || "01234567890123456789".includes(pin) || "98765432109876543210".includes(pin);

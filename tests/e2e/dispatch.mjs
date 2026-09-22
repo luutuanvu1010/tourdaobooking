@@ -3,13 +3,14 @@
 // người phụ trách (khác người lập) sửa được đơn (bộ kiểm hành vi đầy đủ ở các mục cuối và ở orders/trip/permissions.mjs).
 // Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng"; đóng dòng HANDLE bằng SQL để có đơn "chưa có người phụ trách".
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, call, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA);
 const B = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
 const ACC = await session(ACCOUNTS.accountant);
 const FIELD = await session(ACCOUNTS.field);
+const SUPER = await session(ACCOUNTS.superAdmin);
 const me = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
 const [a, b, adm, acc, fld] = [await me(A), await me(B), await me(ADMIN), await me(ACC), await me(FIELD)];
 
@@ -85,7 +86,8 @@ r = await call(A, "GET", "/api/dispatch/assignees");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const ids = r.body.assignees.map((x) => x.staffId);
 for (const who of [a, b, adm, C]) assert.ok(ids.includes(who.id), `${who.id} phải có trong danh sách người có thể được giao`);
-for (const [label, who] of [["kế toán", acc], ["FIELD", fld], ["đã ngưng", D]]) assert.ok(!ids.includes(who.id), `${label} không được có trong danh sách`);
+for (const [label, who] of [["kế toán", acc], ["đã ngưng", D]]) assert.ok(!ids.includes(who.id), `${label} không được có trong danh sách`);
+assert.ok(ids.includes(fld.id), "FIELD nay đủ điều kiện làm người phụ trách cấp hẹp (ADR-0014 điều 6) nên phải có trong danh sách");
 assert.deepEqual(r.body.assignees.find((x) => x.staffId === b.id), asDto(b));
 assert.ok(r.body.assignees.every((x) => Object.keys(x).sort().join() === "name,partyId,staffId"));
 assert.doesNotMatch(JSON.stringify(r.body), /09\d{8}/, "không lộ SĐT");
@@ -154,12 +156,18 @@ assert.equal((await changes(A, o1)).length, nChanges, "no_change không ghi nh�
 assert.equal((await rowsOf(o1.id)).length, stableRows, "no_change không tạo dòng");
 console.log("✓ đổi sang chính người đang phụ trách → 409 no_change");
 
-// --- 7) người được giao phải là SALES/ADMIN đang hoạt động có hồ sơ → còn lại 400 invalid_assignee; thân/đơn sai
-for (const [label, target] of [["FIELD", fld.id], ["kế toán", acc.id], ["đã ngưng", D.id], ["không tồn tại", "00000000-0000-4000-8000-00000000abcd"]]) {
+// --- 7) người được giao phải là SALES/ADMIN/FIELD đang hoạt động có hồ sơ → còn lại 400 invalid_assignee; thân/đơn sai
+for (const [label, target] of [["kế toán", acc.id], ["đã ngưng", D.id], ["không tồn tại", "00000000-0000-4000-8000-00000000abcd"]]) {
   r = await setHandler(A, o1.id, target);
   assert.equal(r.status, 400, `${label}: ${JSON.stringify(r.body)}`);
   assert.equal(r.body.error.code, "invalid_assignee", label);
 }
+// FIELD nay đủ điều kiện cấp hẹp làm người phụ trách (ADR-0014 điều 6) — thử trên đơn RIÊNG để không đụng trạng thái o1 đang được theo dõi ở trên.
+const oFieldAssignee = await newOrder(A);
+r = await setHandler(A, oFieldAssignee.id, fld.id);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(await handlerOf(A, oFieldAssignee.id), asDto(fld));
+console.log("✓ FIELD nay gán được làm người phụ trách (ADR-0014 điều 6, cấp hẹp)");
 for (const body of [{}, { staffId: "" }, { staffId: 7 }, { staffId: "không phải id" }, null]) {
   r = await call(A, "PUT", `/api/orders/${o1.id}/handler`, body ?? undefined);
   assert.equal(r.status, 400, JSON.stringify(body));
@@ -169,7 +177,7 @@ assert.equal((await setHandler(A, "00000000-0000-4000-8000-000000000000", a.id))
 assert.equal((await setHandler(A, "abc", a.id)).status, 404);
 assert.deepEqual(await handlerOf(A, o1.id), asDto(a), "bị từ chối thì không đổi gì");
 assert.equal((await rowsOf(o1.id)).length, stableRows);
-console.log("✓ giao cho FIELD/kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404");
+console.log("✓ giao cho kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404");
 
 // --- 8) nhận đơn CHƯA có người phụ trách (dispatch.claim): SALES/ADMIN nhận cho CHÍNH MÌNH
 const o2 = await newOrder(A);
@@ -273,4 +281,148 @@ console.log("✓ canModify đi theo người phụ trách hiện tại (người
 const histO1 = await history(A, o1);
 assert.ok(histO1.some((h) => h.action === "order_handler_changed"));
 assert.deepEqual(await history(C.cookie, o1), [], "SALES không liên quan không xem nhật ký đơn (ADR-0007)");
+console.log("✓ nhật ký đơn: người phụ trách xem được, người không liên quan thì không");
+
+// --- 13) POST /api/orders/:id/handler-cancel: FIELD huỷ đơn đang phụ trách, lý do đóng, không đổi cột tiền (ADR-0014 điều 11)
+const handlerCancel = (cookie, orderId, body) => call(cookie, "POST", `/api/orders/${orderId}/handler-cancel`, body);
+const orderMoney = async (orderId) => (await sqlRows(`SELECT status, subtotal, total, deposit_amount FROM orders WHERE id = '${orderId}'`))[0];
+
+// Đơn nháp: FIELD chưa là người phụ trách (mặc định là A, người lập) → 403; gán rồi thử huỷ khi CÒN NHÁP → 409 (route chỉ nhận đơn đã xác nhận).
+const o10 = await newOrder(A);
+r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+console.log("✓ FIELD không phải người phụ trách → 403");
+
+assert.equal((await setHandler(A, o10.id, fld.id)).status, 200);
+r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "not_editable");
+console.log("✓ đơn nháp (chưa xác nhận) → 409, chưa huỷ được qua đường này");
+
+// Đơn xác nhận được (orderInput() mặc định đã có departDate/pax hợp lệ — xác nhận thẳng): xác nhận, gán FIELD, thử lý do sai rồi lý do đúng.
+const o11 = await newOrder(A);
+assert.equal((await call(A, "POST", `/api/orders/${o11.id}/status`, { status: "confirmed" })).status, 200);
+assert.equal((await setHandler(A, o11.id, fld.id)).status, 200);
+
+r = await handlerCancel(FIELD, o11.id, {});
+assert.equal(r.status, 400, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "invalid_input");
+console.log("✓ thiếu lý do → 400");
+
+r = await handlerCancel(FIELD, o11.id, { reason: "vì tôi thích vậy" });
+assert.equal(r.status, 400);
+console.log("✓ lý do ngoài danh sách đóng → 400");
+
+r = await handlerCancel(A, o11.id, { reason: "customer_requested" });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+console.log("✓ SALES (không dùng route này, dù là người lập) → 403");
+
+const beforeMoney = await orderMoney(o11.id);
+r = await handlerCancel(FIELD, o11.id, { reason: "customer_requested" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body, { ok: true });
+const afterMoney = await orderMoney(o11.id);
+assert.equal(afterMoney.status, "cancelled");
+assert.deepEqual([afterMoney.subtotal, afterMoney.total, afterMoney.deposit_amount], [beforeMoney.subtotal, beforeMoney.total, beforeMoney.deposit_amount], "huỷ không đổi cột tiền");
+const h11 = await history(A, o11);
+const entry = h11.find((x) => x.action === "order_cancelled_by_field");
+assert.ok(entry, "phải có dòng nhật ký riêng cho huỷ qua đường FIELD");
+assert.match(entry.detail ?? "", /Khách yêu cầu huỷ/);
+console.log("✓ FIELD đang phụ trách huỷ đơn đã xác nhận, đúng lý do → 200, không đổi tiền, có dòng nhật ký riêng cho kế toán");
+
+r = await handlerCancel(FIELD, o11.id, { reason: "customer_requested" });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "not_editable", "đơn đã huỷ rồi, không huỷ lại được");
+console.log("✓ huỷ đơn đã huỷ rồi → 409");
+
+r = await handlerCancel(FIELD, "00000000-0000-4000-8000-000000000000", { reason: "customer_requested" });
+assert.equal(r.status, 404);
+console.log("✓ đơn không tồn tại → 404");
+
+// --- 14) POST /api/orders/:id/handler-money-edit: FIELD sửa số khách của đơn đang phụ trách, giá theo giá lúc lập đơn, ghi dòng điều chỉnh
+const T14 = "'2026-01-01T00:00:00.000Z'";
+await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
+  ('ZH1','Tour thử (handler-money-edit)','perPax',300000,NULL,NULL,NULL,NULL,NULL,NULL,99,1,${T14},${T14})`);
+try {
+  const catSvc = (extra = {}) => ({ kind: "catalog", catalogCode: "ZH1", pax: { adult: 2 }, catalogPriceSeen: { adult: 300000 }, departDate: vnDate(7), ...extra });
+  const moneyEdit = (cookie, orderId, body) => call(cookie, "POST", `/api/orders/${orderId}/handler-money-edit`, body);
+  const orderView = async (cookie, orderId) => (await call(cookie, "GET", `/api/orders/${orderId}`)).body.order;
+  const storedPax = async (orderId) => (await sqlRows(`SELECT pax_adult FROM order_service WHERE order_id = '${orderId}'`))[0].pax_adult;
+
+  const o14 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
+  const svcId = o14.services[0].id;
+  const pax = (adult) => ({ adult, child: 0, senior: 0, infant: 0 });
+
+  r = await moneyEdit(FIELD, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  console.log("✓ FIELD không phải người phụ trách → 403");
+
+  assert.equal((await setHandler(A, o14.id, fld.id)).status, 200);
+  r = await moneyEdit(FIELD, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "not_editable");
+  console.log("✓ đơn nháp (chưa xác nhận) → 409");
+
+  assert.equal((await call(A, "POST", `/api/orders/${o14.id}/status`, { status: "confirmed" })).status, 200, JSON.stringify(await call(A, "GET", `/api/orders/${o14.id}`)));
+
+  r = await moneyEdit(FIELD, o14.id, { reason: "", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  console.log("✓ thiếu lý do → 400");
+
+  r = await moneyEdit(FIELD, o14.id, { reason: "x", services: [] });
+  assert.equal(r.status, 400, JSON.stringify(r.body));
+  console.log("✓ thiếu dịch vụ (đơn có 1 dịch vụ từ danh mục, gửi rỗng) → 400");
+
+  r = await moneyEdit(A, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  console.log("✓ SALES (không dùng route này) → 403");
+
+  // Kế toán/quản trị KHÔNG phải người phụ trách đơn này — route hẹp CHỈ dành cho FIELD đang phụ trách, không phải "ai có order.money.edit=any"
+  // (ACCOUNTING/ADMIN có order.money.edit=any nhưng đó là cho một route KHÁC, chưa làm — không phải route hẹp này).
+  r = await moneyEdit(ACC, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  r = await moneyEdit(ADMIN, o14.id, { reason: "x", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 403, JSON.stringify(r.body));
+  console.log("✓ ACCOUNTING/ADMIN không phải người phụ trách đơn này → 403 (route hẹp chỉ dành cho FIELD đang phụ trách)");
+
+  const beforePax = await storedPax(o14.id);
+  r = await moneyEdit(FIELD, o14.id, { reason: "Khách báo thêm 1 người", services: [{ id: svcId, pax: pax(3) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual(r.body, { ok: true }, "không lộ giá cho FIELD");
+  assert.equal(await storedPax(o14.id), beforePax, "order_service GỐC không đổi (chỉ ghi dòng điều chỉnh)");
+
+  const viewed = await orderView(A, o14.id);
+  assert.equal(viewed.subtotal, 900000, "hiển thị SỐ MỚI: 3 khách × 300,000");
+  assert.equal(viewed.services[0].pax.adult, 3);
+  const adjRows = await sqlRows(`SELECT seq, subtotal_before, subtotal_after FROM order_money_adjustment WHERE order_id = '${o14.id}' ORDER BY seq`);
+  assert.deepEqual(adjRows.map((x) => [Number(x.seq), Number(x.subtotal_before), Number(x.subtotal_after)]), [[1, 600000, 900000]]);
+  const h14 = await history(A, o14);
+  assert.ok(h14.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"));
+  console.log("✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký");
+
+  // SUPER_ADMIN: any ở MỌI thao tác (ADR-0014 điều 2), kể cả route hẹp này — dùng được dù KHÔNG phải người phụ trách (đơn RIÊNG, không đụng o14).
+  const o15 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o15.id}/status`, { status: "confirmed" })).status, 200);
+  r = await moneyEdit(SUPER, o15.id, { reason: "SUPER_ADMIN test", services: [{ id: o15.services[0].id, pax: pax(3) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  console.log("✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)");
+
+  // Tranh chấp: N yêu cầu gửi gần như đồng thời, MỖI yêu cầu tự đọc "trạng thái gần nhất" tại thời điểm nó chạy — vì wrangler dev xử lý các
+  // request bằng một luồng sự kiện xen kẽ (không phải song song thật), NHIỀU yêu cầu có thể đọc-rồi-ghi kế tiếp nhau hợp lệ (không phải lúc nào
+  // cũng đúng MỘT yêu cầu thắng); bất biến CẦN kiểm không phải "đúng 1 thắng" mà là KHÔNG BAO GIỜ có hai yêu cầu cùng ghi trùng một `seq` (chỉ
+  // mục duy nhất `idx_order_money_adjustment_seq` phải chặn thật mọi lần đụng nhau) — seq của mọi dòng mới phải LIÊN TỤC, không trùng, không nhảy cóc.
+  const N = 8;
+  const race = await Promise.all(Array.from({ length: N }, (_, i) => moneyEdit(FIELD, o14.id, { reason: `đua ${i}`, services: [{ id: svcId, pax: pax(4 + i) }] })));
+  for (const x of race) assert.ok(x.status === 200 || (x.status === 409 && x.body.error?.code === "stale"), JSON.stringify(x));
+  const wins = race.filter((x) => x.status === 200).length;
+  assert.ok(wins >= 1, "ít nhất một yêu cầu phải thành công");
+  const seqRows = await sqlRows(`SELECT seq FROM order_money_adjustment WHERE order_id = '${o14.id}' ORDER BY seq`);
+  const seqs = seqRows.map((x) => Number(x.seq));
+  assert.deepEqual(seqs, Array.from({ length: seqs.length }, (_, i) => i + 1), "seq của mọi dòng liên tục từ 1, không trùng, không nhảy cóc");
+  assert.equal(seqs.length, 1 + wins, "số dòng MỚI (sau lần sửa đầu tiên ở trên) đúng bằng số yêu cầu thành công trong đợt tranh chấp này");
+  console.log(`✓ ${N} yêu cầu sửa gần như đồng thời: ${wins} thành công, seq liên tục không trùng (chỉ mục duy nhất chặn thật mọi lần đụng nhau), còn lại 409 stale`);
+} finally {
+  await sql("DELETE FROM catalog_item WHERE code = 'ZH1'").catch((e) => console.error("dọn danh mục giả ZH1 thất bại:", String(e).slice(0, 200)));
+}
+
 console.log("E2E DISPATCH OK");

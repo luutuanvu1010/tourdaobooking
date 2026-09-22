@@ -78,7 +78,8 @@ async function collectRealRoutes(): Promise<RouteSnapshot[]> {
 }
 
 // Ảnh chụp ĐÃ DUYỆT — lấy bằng `grep -n 'route(' src/modules/*/index.ts` ngày 2026-09-22, đọc từng dòng để chắc đúng (không đoán).
-// 55 route trên 11 module — đếm lại bằng `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
+// 57 route trên 11 module (55 gốc + 2 route mới của ADR-0014 Phase B: handler-cancel, handler-money-edit) — đếm lại bằng
+// `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
 const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/account/change-pin", access: "staff" },
   { method: "GET", path: "/api/audit", access: "admin" },
@@ -107,14 +108,16 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "PUT", path: "/api/locations/:id", access: "admin" },
   { method: "GET", path: "/api/maintenance", access: "admin" },
   { method: "PUT", path: "/api/maintenance", access: "admin" },
-  { method: "GET", path: "/api/orders", access: "office" },
-  { method: "POST", path: "/api/orders", access: "office" },
-  { method: "GET", path: "/api/orders/:id", access: "office" },
-  { method: "PUT", path: "/api/orders/:id", access: "office" },
-  { method: "PUT", path: "/api/orders/:id/booker", access: "office" },
+  { method: "GET", path: "/api/orders", access: "orders" },
+  { method: "POST", path: "/api/orders", access: "orders" },
+  { method: "GET", path: "/api/orders/:id", access: "orders" },
+  { method: "PUT", path: "/api/orders/:id", access: "orders" },
+  { method: "PUT", path: "/api/orders/:id/booker", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/handler", access: "office" }, // module dispatch, không phải orders
-  { method: "POST", path: "/api/orders/:id/status", access: "office" },
-  { method: "PUT", path: "/api/orders/:id/trip", access: "office" },
+  { method: "POST", path: "/api/orders/:id/handler-cancel", access: "staff" }, // module dispatch, ADR-0014 điều 11 — FIELD đang phụ trách, tự kiểm can() bên trong
+  { method: "POST", path: "/api/orders/:id/handler-money-edit", access: "staff" }, // module dispatch, ADR-0014 điều 6 — FIELD đang phụ trách, tự kiểm can() bên trong
+  { method: "POST", path: "/api/orders/:id/status", access: "orders" },
+  { method: "PUT", path: "/api/orders/:id/trip", access: "orders" },
   { method: "GET", path: "/api/parties", access: "office" },
   { method: "POST", path: "/api/parties", access: "office" },
   { method: "GET", path: "/api/parties/:id", access: "office" },
@@ -149,11 +152,12 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 55 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 57 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
-  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 55 để đối chiếu nhanh bằng mắt.
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 57 để đối chiếu nhanh bằng mắt.
+  // (Cập nhật 2026-09-22, ADR-0014 Phase B: +2 route module dispatch — handler-cancel, handler-money-edit — từ 55 lên 57.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 55, "số route thực tế lệch 55 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 55, "SNAPSHOT phải có đúng 55 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 57, "số route thực tế lệch 57 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 57, "SNAPSHOT phải có đúng 57 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

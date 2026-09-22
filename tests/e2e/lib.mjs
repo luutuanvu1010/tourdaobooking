@@ -15,6 +15,7 @@ export const ACCOUNTS = {
   admin: { name: "QTV Test", phone: "0900000004", pin: "112233", permissions: ["ADMIN"] },
   accountant: { name: "Kế Toán Test", phone: "0900000005", pin: "224466", permissions: ["ACCOUNTING"] },
   field: { name: "Hiện Trường Test", phone: "0900000006", pin: "335577", permissions: ["FIELD"] },
+  superAdmin: { name: "Super Admin Test", phone: "0900000007", pin: "446688", permissions: ["SUPER_ADMIN"] },
 };
 
 let ipn = 0;

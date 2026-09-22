@@ -1,7 +1,8 @@
-import { auditStatement } from "../audit";
+import { auditStatement, type AuditAction } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
+import { isAdjustmentSeqCollision } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -196,10 +197,15 @@ export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | n
 
 export async function listOrders(
   db: D1Database,
-  opts: { q: string; status: OrderStatus | null; limit: number; offset: number },
+  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null },
 ): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean }> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
+  // ADR-0014 điều 3 (D-01): tài khoản Đối tác chỉ thấy đơn của chính mình — ownerId khác null là phạm vi "own" thực thi ở máy chủ, không chỉ ở tầng một bản ghi.
+  if (opts.ownerId) {
+    where.push("o.staff_id = ?");
+    binds.push(opts.ownerId);
+  }
   if (opts.status) {
     where.push("o.status = ?");
     binds.push(opts.status);
@@ -421,15 +427,70 @@ export async function confirmOrder(db: D1Database, id: string, staffId: string, 
   return (results[0]!.meta.changes ?? 0) > 0;
 }
 
-/** Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). */
-export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string): Promise<boolean> {
+/**
+ * Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)`
+ * (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không
+ * detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
+ */
+export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, opts?: { action?: AuditAction; detail?: string }): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const results = await db.batch([
     db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ?`).bind(at, id, from),
-    auditStatement(db, { orderId: id, staffId, action: "cancelled", at }, "changes() > 0"),
+    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail }, "changes() > 0"),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }
+
+interface LatestAdjustment {
+  id: string;
+  seq: number;
+  after: { serviceId: string; pax: PaxCounts }[];
+}
+
+/** Dòng điều chỉnh gần nhất của đơn (seq lớn nhất) — null nếu chưa có lần sửa nào (ADR-0014 điều 6, Phase B). */
+export async function getLatestAdjustment(db: D1Database, orderId: string): Promise<LatestAdjustment | null> {
+  const row = await db
+    .prepare("SELECT id, seq, after_json FROM order_money_adjustment WHERE order_id = ? ORDER BY seq DESC LIMIT 1")
+    .bind(orderId)
+    .first<{ id: string; seq: number; after_json: string }>();
+  return row ? { id: row.id, seq: row.seq, after: JSON.parse(row.after_json) } : null;
+}
+
+/**
+ * Ghi một dòng điều chỉnh MỚI tại đúng `expectedSeq` (= `(dòng gần nhất.seq ?? 0) + 1`, route tính lúc đọc). KHÔNG dùng WHERE-guard so sánh
+ * "dòng gần nhất còn đúng không" (không đáng tin cậy giữa hai lời gọi `db.batch()` RIÊNG BIỆT của hai request khác nhau — đã thử, quan sát được
+ * hai request cùng thắng khi chạy thật). Thay vào đó dựa thẳng vào chỉ mục duy nhất `idx_order_money_adjustment_seq`: hai request cùng nhắm
+ * `expectedSeq` giống nhau, chỉ MỘT lần INSERT thắng, lần kia bị CSDL tự chặn (`isAdjustmentSeqCollision`) → 409 stale, không cần đoán trước ai thắng.
+ * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Batch thất bại thì cả hai câu đều không
+ * được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
+ */
+export async function insertMoneyAdjustment(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  expectedSeq: number,
+  before: { serviceId: string; pax: PaxCounts }[],
+  after: { serviceId: string; pax: PaxCounts }[],
+  subtotalBefore: number,
+  subtotalAfter: number,
+  reason: string,
+): Promise<boolean> {
+  const id = crypto.randomUUID();
+  const at = new Date().toISOString();
+  try {
+    await db.batch([
+      db
+        .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
+      auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }),
+    ]);
+    return true;
+  } catch (e) {
+    if (isAdjustmentSeqCollision(e)) return false;
+    throw e;
+  }
+}
+
 
 /**
  * Sửa trường vận hành của các dịch vụ (Q9): đơn nháp HOẶC đã xác nhận, còn khớp mốc `updated_at`. Số khách, dịch vụ, tiền không đổi ở đây

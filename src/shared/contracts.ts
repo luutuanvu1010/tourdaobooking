@@ -334,6 +334,8 @@ export interface AssigneesResponse { assignees: AssigneeDto[] }
 /** `PUT /api/orders/:id/handler` — đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người: `staffId` = chính mình). */
 export interface SetHandlerInput { staffId: string }
 export interface SetHandlerResponse { handler: HandlerDto }
+export interface HandlerCancelResponse { ok: true }
+export interface HandlerMoneyEditResponse { ok: true }
 
 // ---- Địa điểm (module locations) ---------------------------------------------
 export interface LocationTypeDto {

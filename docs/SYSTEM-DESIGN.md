@@ -29,7 +29,7 @@
 
 **Mục đích.** Sổ đơn hàng nội bộ của Công ty TNHH Tour Đảo: nhân viên lập đơn dịch vụ tour, ghi thông tin chuyến (ngày giờ khởi hành, đón, check-in), xác nhận hoặc huỷ đơn; quản trị viên quản lý tài khoản + quyền, danh mục dịch vụ (đồng bộ từ Google Sheet), hồ sơ khách/đại lý và địa điểm.
 
-**Người dùng** = nhân viên có tài khoản trong D1 (không có đăng ký công khai). Bốn quyền app (`src/shared/permissions.ts`): `SALES` (Bán hàng), `ACCOUNTING` (Kế toán), `ADMIN` (Quản trị), `FIELD` (Thực hiện). Một tài khoản mang **nhiều** quyền (ADR-0005).
+**Người dùng** = nhân viên có tài khoản trong D1 (không có đăng ký công khai). Sáu quyền app (`src/shared/permissions.ts`): `SALES` (Bán hàng), `ACCOUNTING` (Kế toán), `ADMIN` (Quản trị), `FIELD` (Thực hiện), `PARTNER` (Đối tác — ADR-0014), `SUPER_ADMIN` (Super Admin, vai trên Quản trị — ADR-0014). Một tài khoản mang **nhiều** quyền (ADR-0005).
 
 **Trong phạm vi hiện tại:** đăng nhập (kèm Cloudflare Turnstile khi được bật, khối thông tin công ty và số phiên bản ở màn đăng nhập), sổ đơn (nháp → xác nhận/huỷ), sửa thông tin chuyến sau xác nhận, **người phụ trách đơn** (đặt/đổi/nhận; người phụ trách sửa được đơn như người lập — §6(j), §9), danh mục dịch vụ + ghi đè giá, tài khoản/quyền, hồ sơ (party) và địa điểm, nhật ký.
 **Ảnh xác nhận đơn (PNG) gửi khách:** ĐÃ có (v1.0), dựng ở trình duyệt (§9). **Chưa có trong mã:** xuất PDF/in A4 bản xác nhận, thu tiền/hoá đơn, phân công NHIỆM VỤ (đón khách, lái cano — N2; riêng "người phụ trách" đã có), màn hình cho tài khoản chỉ-`FIELD` (xem §14).
@@ -165,7 +165,7 @@ Module chủ sở hữu bảng của mình; bảng mới mang tiền tố module
 | Bảng / view | Module | Mục đích |
 |---|---|---|
 | `staff` | staff | tài khoản đăng nhập (SĐT, `pin_hash`, `active`, `credentials_changed_at`, `last_login_at`, `party_id`); `role` và `full_name` là **cột chết** |
-| `stf_permission_type` | staff | tra cứu 4 quyền app: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD` |
+| `stf_permission_type` | staff | tra cứu 6 quyền app: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN` (hai mã sau: ADR-0014) |
 | `stf_permission` | staff | quyền của một tài khoản, có hiệu lực `valid_from_at` / `valid_to_at` |
 | `v_stf_staff_label` | staff | view công bố: `id, label, active, party_id` (`label` = tên hồ sơ, dự phòng `(chưa có hồ sơ)`) |
 | `pty_party` | parties | hồ sơ: `party_kind` `PERSON` hoặc `ORGANIZATION`, `display_name`, `active` |
@@ -334,7 +334,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ### (j) Người phụ trách đơn (module `dispatch`, ADR-0006/0009)
 
-**Người phụ trách** = dòng `HANDLE` hạt đơn đang mở của `dsp_assignment`: người nhận trách nhiệm chăm sóc khách (gọi xác nhận, đón), một người mỗi đơn (chỉ mục duy nhất `dsp_assignment_handler_open_uq`), và **sửa được đơn như người lập** (`order.modify`, `order.history.view`, `order.trip.edit`, `dispatch.assign` là `ownOrAssigned`; `order.money.edit` KHÔNG mở).
+**Người phụ trách** = dòng `HANDLE` hạt đơn đang mở của `dsp_assignment`: người nhận trách nhiệm chăm sóc khách (gọi xác nhận, đón), một người mỗi đơn (chỉ mục duy nhất `dsp_assignment_handler_open_uq`), và **sửa được đơn như người lập** (`order.modify`, `order.history.view`, `order.trip.edit`, `dispatch.assign` là `ownOrAssigned`; `order.money.edit` KHÔNG mở qua cơ chế này). Riêng `FIELD` đang phụ trách có một cơ chế RIÊNG, hẹp hơn (`order.money.edit` phạm vi `assigned`, ADR-0014 điều 6): sửa số khách qua route `POST /api/orders/:id/handler-money-edit`, không qua `ownOrAssigned`.
 - **Đơn mới:** `POST /api/orders` gộp một câu INSERT `HANDLE` (người lập) vào CÙNG `db.batch()` tạo đơn — câu do `dispatch` cung cấp qua `ctx.defaultHandlerStatement`, `createOrder` nhận dưới dạng HÀM `(orderId, at)` (id đơn đổi mỗi lần thử lại khi trùng mã). Không ghi thêm dòng nhật ký. Tài khoản chưa có `party_id` thì không có dòng (đơn không có người phụ trách là trạng thái hợp lệ).
 - **Ai được đặt/đổi** (`mayChangeHandler`, và `handlerChangeVerdict` cho route): `dispatch.assign` (người lập — kể cả đã giao lại —, người phụ trách hiện tại, quản trị) hoặc `dispatch.claim` (SALES/ADMIN nhận CHO CHÍNH MÌNH khi đơn chưa có người). Kế toán/FIELD không. Người có quyền nhận mà đơn ĐÃ có người phụ trách → 409 `stale`, không phải 403 (ghi chú dưới bảng API, §7).
 - **Người được giao** (`checkAssignee`): đang hoạt động, có hồ sơ, và `can(người đó, "order.modify", { assigned: true })` (SALES hoặc ADMIN hôm nay). Không hợp lệ → 400 `invalid_assignee` kèm lý do.
@@ -419,37 +419,41 @@ Tất cả 55 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 
 Hai tầng, cả hai **mặc định từ chối**:
 
-1. **Router** (`access` của từng route) — lớp thô: `public` / `staff` (mọi tài khoản đăng nhập) / `office` (`isOffice(staff)` = `can(staff, "order.view")`, tức mọi quyền trừ chỉ-`FIELD`) / `admin` (`hasPermission(staff, "ADMIN")`).
-2. **`can(who, op, ctx)`** (`src/shared/permissions.ts`) — bản đồ ADR-0007, MỘT nguồn dùng chung server ↔ `web/`. Thao tác lạ hoặc ô không khai → `false`.
+1. **Router** (`access` của từng route) — lớp thô: `public` / `staff` (mọi tài khoản đăng nhập) / `office` (`isOffice(staff)` = `can(staff, "order.view")`, tức mọi quyền trừ chỉ-`FIELD`, KHÔNG gồm `PARTNER`) / `orders` (`canAccessOrders(staff)` = `isOffice(staff)` HOẶC giữ `PARTNER` — ADR-0014, dùng cho `/api/orders*`) / `admin` (`hasPermission(staff, "ADMIN")` HOẶC `hasPermission(staff, "SUPER_ADMIN")` — ADR-0014 điều 2).
+2. **`can(who, op, ctx)`** (`src/shared/permissions.ts`) — bản đồ ADR-0007 + ADR-0014, MỘT nguồn dùng chung server ↔ `web/`. Thao tác lạ hoặc ô không khai → `false`.
 
-**Phạm vi (`Scope`)**: `none` không được · `own` chỉ đơn của mình (`orders.staff_id`) · `assigned` chỉ việc đang được giao (nguồn hiện có: người phụ trách đang mở của `dispatch`, qua `ctx.isAssigned`; nhiệm vụ đón/lái cano là N2) · `ownOrAssigned` một trong hai · `any` tất cả. Quyền của một người là **hợp** các ô của mọi quyền họ có.
+**Phạm vi (`Scope`)**: `none` không được · `own` chỉ đơn của mình (`orders.staff_id`) · `assigned` chỉ việc đang được giao (nguồn hiện có: người phụ trách đang mở của `dispatch`, qua `ctx.isAssigned`; nhiệm vụ đón/lái cano là N2) · `ownOrAssigned` một trong hai · `any` tất cả. Quyền của một người là **hợp** các ô của mọi quyền họ có. `SUPER_ADMIN` = `any` ở **mọi** thao tác dưới đây, không ngoại lệ (ADR-0014 điều 2) — không lặp lại ở cột riêng.
 
-| Thao tác | SALES | ACCOUNTING | ADMIN | FIELD | Thi hành ở đâu |
-|---|---|---|---|---|---|
-| `order.view` | any | any | any | none | gián tiếp qua `isOffice` (router `office`) |
-| `money.view` | any | any | any | none | `web/` (hiển thị tiền, bảng giá) |
-| `order.history.view` | ownOrAssigned | any | any | none | `GET /api/orders/:id` (rỗng nếu không được) |
-| `contact.view` | any | any | any | assigned | **chưa có route** dùng |
-| `order.create` | any | none | any | none | `POST /api/orders`; `web/shell.ts`, `web/orders.ts`, `web/order-form.ts` |
-| `order.modify` | ownOrAssigned | none | any | none | `PUT /api/orders/:id`, `POST /api/orders/:id/status`, cờ `canModify` |
-| `order.trip.edit` | ownOrAssigned | none | any | none | `PUT /api/orders/:id/trip` |
-| `task.progress` | none | none | any | assigned | **chưa có route** (N2) |
-| `order.money.edit` | own | any | any | none | **chưa có route** (N3) |
-| `dispatch.assign` | ownOrAssigned | none | any | none | `PUT /api/orders/:id/handler` (module `dispatch`, `mayChangeHandler`); hiện nút đổi: `handlerControls` (`src/shared/handler-view.ts`) |
-| `dispatch.claim` | any | none | any | none | `PUT /api/orders/:id/handler` với `staffId` = chính mình khi đơn CHƯA có người phụ trách — điều kiện "chưa có người" do dịch vụ của `dispatch` kiểm (câu chốt trong batch), không phải ô này; hiện nút nhận: `handlerControls` (`handler === null && can(…)`) |
-| `payment.receive` | own | any | any | none | **chưa có route** (N3) |
-| `payment.refund` | none | any | any | none | **chưa có route** (N3) |
-| `invoice.request` | own | any | any | none | **chưa có route** (N3) |
-| `invoice.issue` | none | any | any | none | **chưa có route** (N3) |
-| `party.view` | any | any | any | none | router `office` trên `/api/parties*` |
-| `party.write` | any | any | any | none | router `office` trên `/api/parties*` |
-| `admin.manage` | none | none | any | none | router `access: "admin"` |
-| `feedback.submit` | any | any | any | any | `POST /api/feedback`, `POST /api/feedback/:id/messages` (mọi tài khoản đăng nhập đều gửi được) |
-| `feedback.view` | own | own | any | own | `GET /api/feedback/mine`, `GET /api/feedback/:id` — "của mình" ở đây là NGƯỜI GỬI yêu cầu (không phải người lập đơn) |
-| `feedback.triage` | none | none | any | none | `GET /api/feedback` (hàng đợi), `PATCH /api/feedback/:id`; router `access: "admin"` là lớp thô, `can()` là lớp trong |
+| Thao tác | SALES | ACCOUNTING | ADMIN | FIELD | PARTNER | Thi hành ở đâu |
+|---|---|---|---|---|---|---|
+| `order.view` | any | any | any | none | own | router `orders`, lọc `ownerId` ở `listOrders`/`GET /api/orders/:id` (D-01, ADR-0014 điều 3) |
+| `money.view` | any | any | any | none | own | `web/` (hiển thị tiền, bảng giá) |
+| `order.history.view` | ownOrAssigned | any | any | none | own | `GET /api/orders/:id` (rỗng nếu không được) |
+| `contact.view` | any | any | any | assigned | ownOrAssigned | **chưa có route** dùng (PARTNER: own + assigned sau khi được duyệt "xin nhận" — Phase C, chưa thi công) |
+| `order.create` | any | none | any | none | any | `POST /api/orders`; `web/shell.ts`, `web/orders.ts`, `web/order-form.ts` |
+| `order.modify` | ownOrAssigned | none | any | none | own | `PUT /api/orders/:id`, `POST /api/orders/:id/status`, cờ `canModify` |
+| `order.trip.edit` | ownOrAssigned | none | any | none | none | `PUT /api/orders/:id/trip` |
+| `task.progress` | none | none | any | assigned | assigned | **chưa có route** (N2; PARTNER chỉ có tác dụng sau khi được duyệt "xin nhận" — Phase C) |
+| `order.money.edit` | own | any | any | assigned | none | `POST /api/orders/:id/handler-money-edit` (module `dispatch` — ADR-0014 điều 6, FIELD đang phụ trách sửa số khách; ghi qua bảng `order_money_adjustment`, không sửa đè `order_service`/`order_item`/cột tiền) |
+| `order.cancel` | none | none | none | assigned | none | `POST /api/orders/:id/handler-cancel` (module `dispatch` — ADR-0014 điều 11, huỷ đơn đang phụ trách, lý do đóng hai lựa chọn) |
+| `dispatch.assign` | ownOrAssigned | none | any | none | none | `PUT /api/orders/:id/handler` (module `dispatch`, `mayChangeHandler`); hiện nút đổi: `handlerControls` (`src/shared/handler-view.ts`) |
+| `dispatch.claim` | any | none | any | none | none | `PUT /api/orders/:id/handler` với `staffId` = chính mình khi đơn CHƯA có người phụ trách — điều kiện "chưa có người" do dịch vụ của `dispatch` kiểm (câu chốt trong batch), không phải ô này; hiện nút nhận: `handlerControls` (`handler === null && can(…)`) |
+| `dispatch.guides.view` | none | none | none | none | any | **chưa có route** (Phase C, ADR-0014 điều 9 — danh sách hẹp hướng dẫn viên nội bộ) |
+| `dispatch.request` | none | none | none | none | any | **chưa có route** (Phase C, ADR-0014 điều 10 — "xin nhận", chưa đổi người phụ trách) |
+| `payment.receive` | own | any | any | none | none | **chưa có route** (N3) |
+| `payment.refund` | none | any | any | none | none | **chưa có route** (N3) |
+| `invoice.request` | own | any | any | none | none | **chưa có route** (N3) |
+| `invoice.issue` | none | any | any | none | none | **chưa có route** (N3) |
+| `party.view` | any | any | any | none | none | router `office` trên `/api/parties*` (PARTNER không đạt `isOffice` → 403 ở cổng, D-01) |
+| `party.write` | any | any | any | none | none | router `office` trên `/api/parties*` |
+| `admin.manage` | none | none | any | none | none | router `access: "admin"`; với ADMIN còn giới hạn "cấp dưới" ở tầng `canManageAccount` (ADR-0014 điều 8, NGOÀI bản đồ quyền — xem `src/modules/staff/rules.ts`) |
+| `admin.manage.superadmin` | none | none | none | none | none | `PUT /api/staff/:id/permissions` (đổi thành/khỏi `SUPER_ADMIN`), `POST /api/staff` (tạo mới với `SUPER_ADMIN`) — chỉ `SUPER_ADMIN` gọi được, ADR-0014 điều 2/8 |
+| `feedback.submit` | any | any | any | any | any | `POST /api/feedback`, `POST /api/feedback/:id/messages` (mọi tài khoản đăng nhập đều gửi được) |
+| `feedback.view` | own | own | any | own | own | `GET /api/feedback/mine`, `GET /api/feedback/:id` — "của mình" ở đây là NGƯỜI GỬI yêu cầu (không phải người lập đơn) |
+| `feedback.triage` | none | none | any | none | none | `GET /api/feedback` (hàng đợi), `PATCH /api/feedback/:id`; router `access: "admin"` là lớp thô, `can()` là lớp trong |
 
-Ba ô `feedback.*` là mở rộng của module Góp ý (spec 2026-09-21), KHÔNG thuộc bảng ADR-0007 gốc.
-Các ô "chưa có route" có mặt để **khoá bản đồ bằng test** (`src/shared/permissions.test.ts`) trước khi N2/N3 tới.
+Ba ô `feedback.*` là mở rộng của module Góp ý (spec 2026-09-21), KHÔNG thuộc bảng ADR-0007 gốc. Bốn thao tác `order.cancel`, `dispatch.guides.view`, `dispatch.request`, `admin.manage.superadmin` là ADR-0014 (điều 2/8/9/10/11).
+Các ô "chưa có route" có mặt để **khoá bản đồ bằng test** (`src/shared/permissions.test.ts`) trước khi N2/N3/Phase B/C tới.
 Nơi `can()` thực sự được gọi trong mã: `src/modules/orders/index.ts` (6 lời gọi: `order.create`, `order.history.view`, `order.modify` ở `canModify`/`PUT`/`status`, `order.trip.edit`; các route đó truyền `assigned` từ `ctx.isAssigned(id)`, `GET /api/orders/:id` tính MỘT lần cho cả nhật ký và `canModify` để cờ và máy chủ luôn khớp nhau), `src/modules/dispatch/rules.ts` (`dispatch.assign`, `dispatch.claim`, và `order.modify` với `assigned: true` để xét ai được giao phụ trách), `web/shell.ts`, `web/orders.ts`, `web/order-form.ts`, và `src/shared/handler-view.ts` (`handlerControls`: nút đổi/nhận người phụ trách của `web/order.ts`; Sửa/Xác nhận/Huỷ ở trang đơn KHÔNG gọi `can()` mà theo cờ `canModify` của máy chủ), `src/modules/feedback/index.ts` (`feedback.submit`, `feedback.view` với `ownerId` = người gửi, `feedback.triage`) và `web/feedback.ts` + `web/shell.ts`/`web/account.ts` (chấm đỏ, tab hàng đợi). Giao diện chỉ **ẩn/hiện**; máy chủ luôn kiểm lại.
 Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép — `src/architecture.test.ts` bắt mọi tệp ngoài `src/modules/parties/` nhắc tới `pty_party_role`.
 Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi theo nơi (chi nhánh, đại lý tự xem đơn) chỉ khi đạt ngưỡng của `docs/adr/ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md` điều 1** (accepted 2026-09-21); tác nhân tự động ghi dữ liệu thay người dùng theo điều 3 của ADR đó. Hai ngoại lệ đã quyết cho N2 lát 1 (đã thi công trên nhánh, migration `0018` **chưa lên production**): lập/sửa đơn được tạo hồ sơ khách + vai `CUSTOMER` (`POST`/`PUT /api/orders`), và đổi người đặt của đơn đã xác nhận theo `order.trip.edit` (`PUT /api/orders/:id/booker`) — `docs/adr/ADR-0011-khach-tren-don-ngoai-le-quyen.md`.
@@ -602,11 +606,11 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 
 ## 14. Lộ trình và điểm gắn tính năng tiếp theo
 
-> Các mục N2 (phần nhiệm vụ đón/lái cano), N3 và N4 dưới đây là **KẾ HOẠCH — chưa có trong mã**: các ô `MATRIX` của `contact.view`, `task.progress`, `order.money.edit`, `payment.*`, `invoice.*` và hai tên hành động nhật ký `exported_png`/`exported_pdf` đã có sẵn để khoá bản đồ, nhưng **không route/mã nào dùng**.
+> Các mục N2 (phần nhiệm vụ đón/lái cano), N3 và N4 dưới đây là **KẾ HOẠCH — chưa có trong mã**: các ô `MATRIX` của `contact.view`, `task.progress`, `payment.*`, `invoice.*` và hai tên hành động nhật ký `exported_png`/`exported_pdf` đã có sẵn để khoá bản đồ, nhưng **không route/mã nào dùng**. (`order.money.edit` từng nằm trong nhóm này nhưng ĐÃ có route — xem "Đã lên production" dưới; phần "sửa sau xác nhận" của N3 nay chỉ còn phạm vi cho `SALES`/`ACCOUNTING`/`ADMIN`, chưa làm.)
 > **Bản v1.0 (ba việc: màn đăng nhập, người phụ trách, ảnh xác nhận PNG) ĐÃ LÊN PRODUCTION 2026-09-21 (merge vào `main` @ `9594696` + deploy, Worker `21cbaca5-8229-43b8-bab8-928036c9e871`)** — trạng thái Turnstile đổi theo thời gian (bật/tắt bằng `wrangler secret`), xem hiện trạng thật ở `docs/HANDOFF-N1.md` mục "TRẠNG THÁI TRIỂN KHAI — bản v1.0" (đừng tin số này ở đây, tài liệu mô tả không cập nhật theo). Runbook: `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0". `docs/adr/ADR-0009-nguoi-phu-trach-duoc-sua-don.md` (accepted 2026-09-21) đã quyết đổi ba ô của `SALES` — `order.modify`, `order.history.view`, `dispatch.assign` — từ `own` sang `ownOrAssigned` và thêm thao tác `dispatch.claim`; **`MATRIX` ĐÃ đổi** (task 4; §8 là hiện trạng), module `dispatch` (task 6) ĐÃ tiêm `ctx.isAssigned` cho các route của `orders` nên người phụ trách sửa được đơn, và giao diện người phụ trách ĐÃ có (task 8; §9). Đặc tả (NHÁP, chưa duyệt): `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`; nhật ký thi công: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
 
 - **N2 — phân công / người phụ trách** (ADR-0006): module mới `dispatch`, bảng `dsp_assignment` (+ `dsp_task_kind`, `dsp_assignment_status`, `dsp_call_log`, `dsp_service_progress`). Tiền tố `dsp_` đã được khai sẵn trong `TABLE_PREFIX`/`VIEW_PREFIX` của `src/architecture.test.ts`. **Đã có (migration 0014, bản v1.0):** `dsp_task_kind`, `dsp_assignment_status`, `dsp_assignment`, `v_dsp_order_handler` và backfill người phụ trách cho đơn hiện có; **mã module `dispatch` ĐÃ có (task 6: người phụ trách + `dispatch.claim`) và giao diện người phụ trách ĐÃ có (task 8, §9); chưa có:** `dsp_call_log`, `dsp_service_progress`, nhiệm vụ đón/lái cano (hạt dịch vụ). Tiền đề bắt buộc: `updateDraftOrder` phải đổi từ "xoá hết rồi chèn lại" sang so khớp theo `id` để `order_service.id` bền. `OperationContext.assigned` đã có nguồn dữ liệu thật cho người phụ trách (`ctx.isAssigned`); ô `assigned` của `FIELD` (việc đón, N2) vẫn chưa có nguồn.
-- **N3 — sổ thu tiền, hoá đơn, sửa sau xác nhận** (ADR-0004): tiền tố `bil_` đã khai sẵn; các thao tác `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue`, `order.money.edit` đã có trong `MATRIX`, chưa có route.
+- **N3 — sổ thu tiền, hoá đơn, sửa sau xác nhận (`SALES`/`ACCOUNTING`/`ADMIN`)** (ADR-0004): tiền tố `bil_` đã khai sẵn; các thao tác `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue` đã có trong `MATRIX`, chưa có route. Riêng `order.money.edit` cho `FIELD` (cấp hẹp — ADR-0014 điều 6, Phase B) đã có route (`POST /api/orders/:id/handler-money-edit`, bảng `order_money_adjustment`); `SALES`/`ACCOUNTING`/`ADMIN` (`order.money.edit` phạm vi `own`/`any`) vẫn chưa có route, vẫn thuộc N3.
 - **N4 — giá net HDV/Guide**: cột `Ghi chú nội bộ` của Sheet dịch vụ hiện **cố ý không đọc** (`src/modules/catalog/sheet.ts`).
 
 **Ba việc của bản v1.0 — ĐÃ LÊN PRODUCTION 2026-09-21 (trạng thái Turnstile: xem `docs/HANDOFF-N1.md`); đã chạm những chỗ nào và còn gì:**
@@ -633,9 +637,9 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 | danh mục dịch vụ, ghi đè | `catalog_item`, `catalog_override`, `applyOverride` | "giá hiệu lực" = giá Sheet đã áp ghi đè; ghi đè không bị đồng bộ sau đè mất |
 | hồ sơ | bảng `pty_party` ("party") | cá nhân `PERSON` hoặc tổ chức `ORGANIZATION` |
 | vai trò hồ sơ | `pty_party_role`, `pty_role_type` | HDV, tài xế, `STAFF`… — **không** dùng để cho/chặn thao tác |
-| quyền app | `stf_permission`, `PermissionCode` | `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD` |
-| thao tác | `OperationCode`, `MATRIX`, `can()` | ô của bản đồ ADR-0007 |
-| nhân sự văn phòng; nhật ký | `isOffice` / `access: "office"`; `audit_log`, `AUDIT_ACTIONS` | mọi quyền trừ chỉ-`FIELD`; nhật ký chỉ-thêm |
+| quyền app | `stf_permission`, `PermissionCode` | `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN` (hai mã sau: ADR-0014) |
+| thao tác | `OperationCode`, `MATRIX`, `can()` | ô của bản đồ ADR-0007 + ADR-0014 |
+| nhân sự văn phòng; đơn (văn phòng hoặc Đối tác); nhật ký | `isOffice` / `access: "office"`; `canAccessOrders` / `access: "orders"` (ADR-0014); `audit_log`, `AUDIT_ACTIONS` | mọi quyền trừ chỉ-`FIELD`; văn phòng hoặc `PARTNER`; nhật ký chỉ-thêm |
 | chế độ bảo trì | module `maintenance`, bảng `mnt_setting`, mã lỗi 503 `maintenance` | bật thì chặn mọi tài khoản trừ SĐT trong `allowed_phones` (hiện chỉ chủ dự án), kể cả phiên đang mở; khác "Development Mode" của Cloudflare (chỉ tắt cache) |
 | khoá lạc quan; view công bố | `expectedUpdatedAt` / `updated_at`; `v_<tiền tố>_<tên>` | lệch → 409 `stale`; view là cách duy nhất đọc nhãn của module khác |
 

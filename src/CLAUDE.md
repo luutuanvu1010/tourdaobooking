@@ -16,7 +16,7 @@
 - Thêm module: khai cạnh ở `ALLOWED_EDGES`, đưa vào `STRICT` hoặc `LEGACY` (kèm lý do), thêm bảng/view vào `docs/data-dictionary.json` rồi `npm run dict`, thêm dòng vào mảng `modules`. Công thức: `docs/ARCHITECTURE.md` mục "Thêm một module mới" và `docs/CHANGE-GUIDE.md` công thức b.
 
 ## Quyền và bảo mật
-- Mặc định từ chối. Route khai `access: "public" | "staff" | "office" | "admin"`; bản đồ quyền → thao tác ở **một** nơi: `src/shared/permissions.ts` (`can(staff, op, ctx)`). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại.
+- Mặc định từ chối. Route khai `access: "public" | "staff" | "office" | "orders" | "admin"` (`"orders"` — ADR-0014: văn phòng HOẶC tài khoản Đối tác, dùng cho route `/api/orders*`); bản đồ quyền → thao tác ở **một** nơi: `src/shared/permissions.ts` (`can(staff, op, ctx)`). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại.
 - Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép (`architecture.test.ts` bắt mọi tệp ngoài `parties` nhắc `pty_party_role`).
 - Nhật ký (`audit_log`): hành động khai ở `src/shared/audit-actions.ts` (có nhãn tiếng Việt); **không ghi SĐT/email/MST**. `staff_updated` (`src/modules/accounts/index.ts`, route `PATCH /api/staff/:id`) từng ghi SĐT; đã sửa 2026-09-21 (chỉ ghi "đổi SĐT đăng nhập"), test ở `patch-staff.test.ts`. Nhật ký cũ trên production vẫn còn số (chỉ-thêm) — đừng lặp lại kiểu cũ.
 

@@ -1,40 +1,87 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MATRIX, PERMISSION_CODES, can, hasPermission, isOffice, isPermissionCode, type OperationCode, type PermissionCode, type Scope } from "./permissions.ts";
+import { MATRIX, PERMISSION_CODES, can, canAccessOrders, hasPermission, isOffice, isPermissionCode, type OperationCode, type PermissionCode, type Scope } from "./permissions.ts";
 
 // BẢN ĐỌC THỨ HAI của bảng ADR-0007 điều 1 SAU khi ADR-0009 đổi ba ô của SALES (order.modify, order.history.view, dispatch.assign: own → ownOrAssigned)
-// và thêm thao tác dispatch.claim — viết lại độc lập từ tài liệu ADR, không suy ra từ MATRIX. Cột: SALES, ACCOUNTING, ADMIN, FIELD.
+// và ADR-0014 thêm PARTNER/SUPER_ADMIN + bốn thao tác mới — viết lại độc lập từ tài liệu ADR, không suy ra từ MATRIX. Cột: SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_ADMIN.
 // 3 dòng "feedback.*" là mở rộng của module Góp ý (spec 2026-09-21), không thuộc bảng ADR-0007 gốc.
-const ADR: Record<string, [Scope, Scope, Scope, Scope]> = {
-  "order.view": ["any", "any", "any", "none"],
-  "money.view": ["any", "any", "any", "none"],
-  "order.history.view": ["ownOrAssigned", "any", "any", "none"],
-  "contact.view": ["any", "any", "any", "assigned"],
-  "order.create": ["any", "none", "any", "none"],
-  "order.modify": ["ownOrAssigned", "none", "any", "none"],
-  "order.trip.edit": ["ownOrAssigned", "none", "any", "none"],
-  "task.progress": ["none", "none", "any", "assigned"],
-  "order.money.edit": ["own", "any", "any", "none"], // ADR-0009 điều 1: KHÔNG đổi (sửa tiền/số khách/dịch vụ sau xác nhận thuộc N3)
-  "dispatch.assign": ["ownOrAssigned", "none", "any", "none"],
-  "dispatch.claim": ["any", "none", "any", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận)
-  "payment.receive": ["own", "any", "any", "none"],
-  "payment.refund": ["none", "any", "any", "none"],
-  "invoice.request": ["own", "any", "any", "none"],
-  "invoice.issue": ["none", "any", "any", "none"],
-  "party.view": ["any", "any", "any", "none"],
-  "party.write": ["any", "any", "any", "none"],
-  "admin.manage": ["none", "none", "any", "none"],
-  "feedback.submit": ["any", "any", "any", "any"],
-  "feedback.view": ["own", "own", "any", "own"],
-  "feedback.triage": ["none", "none", "any", "none"],
+const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope]> = {
+  "order.view": ["any", "any", "any", "none", "own", "any"],
+  "money.view": ["any", "any", "any", "none", "own", "any"],
+  "order.history.view": ["ownOrAssigned", "any", "any", "none", "own", "any"],
+  "contact.view": ["any", "any", "any", "assigned", "ownOrAssigned", "any"],
+  "order.create": ["any", "none", "any", "none", "any", "any"],
+  "order.modify": ["ownOrAssigned", "none", "any", "none", "own", "any"],
+  "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any"],
+  "task.progress": ["none", "none", "any", "assigned", "assigned", "any"],
+  "order.money.edit": ["own", "any", "any", "assigned", "none", "any"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
+  "order.cancel": ["none", "none", "none", "assigned", "none", "any"], // ADR-0014 điều 11: thao tác MỚI
+  "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any"],
+  "dispatch.claim": ["any", "none", "any", "none", "none", "any"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận)
+  "dispatch.guides.view": ["none", "none", "none", "none", "any", "any"], // ADR-0014 điều 9: thao tác MỚI
+  "dispatch.request": ["none", "none", "none", "none", "any", "any"], // ADR-0014 điều 10: thao tác MỚI
+  "payment.receive": ["own", "any", "any", "none", "none", "any"],
+  "payment.refund": ["none", "any", "any", "none", "none", "any"],
+  "invoice.request": ["own", "any", "any", "none", "none", "any"],
+  "invoice.issue": ["none", "any", "any", "none", "none", "any"],
+  "party.view": ["any", "any", "any", "none", "none", "any"],
+  "party.write": ["any", "any", "any", "none", "none", "any"],
+  "admin.manage": ["none", "none", "any", "none", "none", "any"],
+  "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any"], // ADR-0014 điều 2/8: thao tác MỚI
+  "feedback.submit": ["any", "any", "any", "any", "any", "any"],
+  "feedback.view": ["own", "own", "any", "own", "own", "any"],
+  "feedback.triage": ["none", "none", "any", "none", "none", "any"],
 };
-const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD"];
+const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN"];
 const OPS = Object.keys(ADR) as OperationCode[];
 
-test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + Góp ý (21 thao tác × 4 quyền)", () => {
+test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0014 + Góp ý (25 thao tác × 6 quyền)", () => {
   assert.deepEqual([...PERMISSION_CODES], [...ORDER]);
   assert.deepEqual(Object.keys(MATRIX).sort(), Object.keys(ADR).sort(), "MATRIX và ADR phải có cùng danh sách thao tác");
   for (const op of OPS) ORDER.forEach((p, i) => assert.equal(MATRIX[op][p], ADR[op]![i], `${op} × ${p}`));
+});
+
+test("ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác, không ngoại lệ", () => {
+  const who = { id: "sa", permissions: ["SUPER_ADMIN"] as const };
+  for (const op of Object.keys(MATRIX) as OperationCode[]) assert.equal(can(who, op, { ownerId: "x" }), true, `SUPER_ADMIN × ${op}`);
+});
+
+test("ADR-0014: PARTNER chỉ thấy/sửa đơn của mình, không tự nhận việc, không đụng danh bạ/quản trị", () => {
+  const partner = { id: "p1", permissions: ["PARTNER"] as const };
+  assert.equal(can(partner, "order.view", { ownerId: "p1" }), true);
+  assert.equal(can(partner, "order.view", { ownerId: "other" }), false);
+  assert.equal(can(partner, "order.view"), false, "không ngữ cảnh = không có gì để xem là của mình");
+  assert.equal(can(partner, "order.create"), true);
+  assert.equal(can(partner, "order.modify", { ownerId: "p1" }), true);
+  assert.equal(can(partner, "order.modify", { ownerId: "other" }), false);
+  assert.equal(can(partner, "dispatch.assign"), false);
+  assert.equal(can(partner, "dispatch.claim"), false);
+  assert.equal(can(partner, "order.money.edit", { ownerId: "p1" }), false);
+  assert.equal(can(partner, "order.cancel", { ownerId: "p1", assigned: true }), false);
+  assert.equal(can(partner, "party.view"), false);
+  assert.equal(can(partner, "party.write"), false);
+  assert.equal(can(partner, "admin.manage"), false);
+  assert.equal(can(partner, "contact.view", { ownerId: "other", assigned: true }), true, "đơn đang phụ trách sau khi được duyệt xin nhận (điều 10)");
+  assert.equal(can(partner, "task.progress", { assigned: true }), true);
+  assert.equal(can(partner, "task.progress"), false);
+});
+
+test("ADR-0014 điều 6/11: FIELD được sửa tiền và huỷ đơn ĐANG PHỤ TRÁCH, không được lập/sửa/xác nhận đơn", () => {
+  const field = { id: "f1", permissions: ["FIELD"] as const };
+  assert.equal(can(field, "order.money.edit", { ownerId: "x", assigned: true }), true);
+  assert.equal(can(field, "order.money.edit", { ownerId: "x", assigned: false }), false);
+  assert.equal(can(field, "order.cancel", { ownerId: "x", assigned: true }), true);
+  assert.equal(can(field, "order.cancel", { ownerId: "x", assigned: false }), false);
+  assert.equal(can(field, "order.modify", { ownerId: "x", assigned: true }), false, "vẫn không tự xác nhận/sửa nháp — chỉ order.money.edit/order.cancel mở");
+});
+
+test("canAccessOrders: văn phòng và PARTNER dùng được route đơn; FIELD một mình thì không", () => {
+  assert.equal(canAccessOrders({ id: "a", permissions: ["SALES"] }), true);
+  assert.equal(canAccessOrders({ id: "a", permissions: ["ADMIN"] }), true);
+  assert.equal(canAccessOrders({ id: "a", permissions: ["SUPER_ADMIN"] }), true);
+  assert.equal(canAccessOrders({ id: "a", permissions: ["PARTNER"] }), true);
+  assert.equal(canAccessOrders({ id: "a", permissions: ["FIELD"] }), false);
+  assert.equal(canAccessOrders({ id: "a", permissions: [] }), false);
 });
 
 // Kết quả mong đợi của can() cho MỘT quyền, theo phạm vi và ngữ cảnh — bảng chân lý viết tay, không dùng lại logic của file nguồn.
@@ -108,11 +155,15 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
   assert.equal(can({ id: "", permissions: ["SALES"] }, "order.modify", { ownerId: "" }), true, "so sánh id nguyên văn (id rỗng không tồn tại thật)");
 });
 
-test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ", () => {
+// Bốn thao tác hẹp, cố ý KHÔNG mở cho ADMIN (ADR-0014): admin.manage.superadmin/order.cancel/dispatch.guides.view/dispatch.request
+// chỉ dành cho SUPER_ADMIN hoặc PARTNER/FIELD theo đúng bảng — ADMIN vẫn làm được việc tương ứng qua đường khác (permissions route, order.modify, dispatch.assign).
+const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "dispatch.request"];
+
+test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ bốn thao tác hẹp cố ý không mở", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };
   for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
   const admin = { id: "a", permissions: ["ADMIN"] as const };
-  for (const op of OPS) assert.equal(can(admin, op, { ownerId: "x" }), true, `ADMIN × ${op}`);
+  for (const op of OPS) assert.equal(can(admin, op, { ownerId: "x" }), !ADMIN_NONE_OPS.includes(op), `ADMIN × ${op}`);
 });
 
 test("isOffice / hasPermission / isPermissionCode", () => {

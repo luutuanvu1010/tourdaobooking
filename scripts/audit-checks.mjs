@@ -13,11 +13,12 @@ const overlap = (table, keyCols, from) =>
    AND NOT (COALESCE(a.valid_to_date, '9999-12-31') < b.${from} OR a.${from} > COALESCE(b.valid_to_date, '9999-12-31'))`;
 
 /**
- * Điều kiện "hồ sơ của dòng phân công `a` có tài khoản còn quyền Bán hàng/Quản trị đang hiệu lực" (dùng chung cho R-DSP-2a/2b); `extra` thu hẹp thêm
- * (vd ` AND s.active = 1`). Alias `a` là dòng `dsp_assignment` của câu ngoài.
+ * Điều kiện "hồ sơ của dòng phân công `a` có tài khoản còn quyền để làm người phụ trách đang hiệu lực" (dùng chung cho R-DSP-2a/2b) — đúng tập quyền
+ * `dispatch/rules.ts:checkAssignee` chấp nhận: `SALES`/`ADMIN`/`SUPER_ADMIN` (cấp đầy đủ, `order.modify`) hoặc `FIELD` (cấp hẹp, `order.money.edit` phạm vi
+ * `assigned` — ADR-0014 điều 6, Phase B). `extra` thu hẹp thêm (vd ` AND s.active = 1`). Alias `a` là dòng `dsp_assignment` của câu ngoài.
  */
-const handlerAccountWithSalesOrAdmin = (extra = "") =>
-  `EXISTS (SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code IN ('SALES', 'ADMIN') AND p.valid_to_at IS NULL WHERE s.party_id = a.party_id${extra})`;
+const handlerAccountEligible = (extra = "") =>
+  `EXISTS (SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code IN ('SALES', 'ADMIN', 'FIELD', 'SUPER_ADMIN') AND p.valid_to_at IS NULL WHERE s.party_id = a.party_id${extra})`;
 
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
 export const CHECKS = [
@@ -70,21 +71,22 @@ export const CHECKS = [
     sql: "SELECT count(*) FROM (SELECT order_id FROM dsp_assignment WHERE task_kind_code = 'HANDLE' AND valid_to_at IS NULL GROUP BY order_id HAVING count(*) > 1)",
     level: "fail",
   },
-  // R-DSP-2a: HANDLE đang mở mà hồ sơ KHÔNG có tài khoản, hoặc không tài khoản nào còn quyền Bán hàng/Quản trị đang hiệu lực (kể cả đã ngưng hay chưa). Người đó không sửa
-  // được đơn (ADR-0009 điều 5) và không ai nhìn thấy đơn "mồ côi" trên màn hình của mình: phải giao lại. Đỏ khi --strict (mức của e2e và của lần phát hành 2).
+  // R-DSP-2a: HANDLE đang mở mà hồ sơ KHÔNG có tài khoản, hoặc không tài khoản nào còn quyền đủ điều kiện làm người phụ trách đang hiệu lực (kể cả đã ngưng
+  // hay chưa — xem handlerAccountEligible). Người đó không sửa/huỷ được đơn (ADR-0009 điều 5, ADR-0014 điều 6/11) và không ai nhìn thấy đơn "mồ côi" trên
+  // màn hình của mình: phải giao lại. Đỏ khi --strict (mức của e2e và của lần phát hành 2).
   {
     code: "R-DSP-2a",
-    what: "người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị",
-    sql: `SELECT count(*) FROM dsp_assignment a WHERE a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL AND NOT ${handlerAccountWithSalesOrAdmin()}`,
+    what: "người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Thực hiện",
+    sql: `SELECT count(*) FROM dsp_assignment a WHERE a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL AND NOT ${handlerAccountEligible()}`,
     level: "warn-unless-strict",
-    note: "cảnh báo: người phụ trách không còn tài khoản/quyền Bán hàng hoặc Quản trị — cần giao lại đơn; đỏ khi --strict",
+    note: "cảnh báo: người phụ trách không còn tài khoản/quyền đủ điều kiện — cần giao lại đơn; đỏ khi --strict",
   },
   // R-DSP-2b: (rời R-DSP-2a: có tài khoản CÒN quyền nhưng mọi tài khoản như vậy đã ngưng) — lịch sử hợp lệ lâu dài (người nghỉ việc vẫn đứng tên đơn cũ), chỉ cần rà soát.
   {
     code: "R-DSP-2b",
     what: "người phụ trách đang mở có tài khoản đã ngưng hoạt động",
     sql: `SELECT count(*) FROM dsp_assignment a WHERE a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL
-       AND ${handlerAccountWithSalesOrAdmin()} AND NOT ${handlerAccountWithSalesOrAdmin(" AND s.active = 1")}`,
+       AND ${handlerAccountEligible()} AND NOT ${handlerAccountEligible(" AND s.active = 1")}`,
     level: "warn",
     note: "cảnh báo, không làm hỏng kiểm: người phụ trách đã ngưng — nên giao lại các đơn còn mở",
   },
@@ -98,6 +100,18 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM dsp_assignment a JOIN dsp_assignment b ON a.id < b.id AND a.order_id = b.order_id
      WHERE a.task_kind_code = 'HANDLE' AND b.task_kind_code = 'HANDLE'
        AND a.valid_from_at < COALESCE(b.valid_to_at, '9999-12-31T23:59:59.999Z') AND b.valid_from_at < COALESCE(a.valid_to_at, '9999-12-31T23:59:59.999Z')`,
+    level: "fail",
+  },
+  // R-ORD-4: seq của order_money_adjustment liên tục từ 1, không trùng, không nhảy cóc theo từng đơn — lưới thứ hai cho khoá lạc quan ở
+  // insertMoneyAdjustment (P21: mọi kiểm soát trọng yếu có ≥ 2 lớp). Chỉ mục duy nhất idx_order_money_adjustment_seq là lưới thứ nhất (chặn ngay
+  // lúc ghi); kiểm này phát hiện nếu có lỗ trong logic ghi (vd một đường code khác lỡ chèn thẳng, bỏ qua insertMoneyAdjustment).
+  {
+    code: "R-ORD-4",
+    what: "seq của order_money_adjustment liên tục từ 1 theo từng đơn",
+    sql: `SELECT count(*) FROM (
+      SELECT order_id, seq, ROW_NUMBER() OVER (PARTITION BY order_id ORDER BY seq) AS rn
+      FROM order_money_adjustment
+    ) WHERE seq <> rn`,
     level: "fail",
   },
 ];
