@@ -48,6 +48,16 @@ export function addDays(iso: string, days: number): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * Đầu tuần (thứ Hai) và cuối tuần (Chủ nhật) theo giờ Việt Nam của tuần CHỨA `today` — cả hai đều là ngày dân sự "YYYY-MM-DD", HAI ĐẦU ĐỀU BAO GỒM
+ * (giống quy ước `confirmWindow`). Dùng cho Trang chủ mới (doanh thu tuần). `today` phải là chuỗi ngày hợp lệ (vd. từ `vnToday`).
+ */
+export function vnWeekRange(today: string): { from: string; to: string } {
+  const dow = new Date(`${today}T00:00:00Z`).getUTCDay(); // 0 = Chủ nhật … 6 = Thứ Bảy (chỉ tính lịch, không liên quan múi giờ thiết bị — cùng cách addDays dùng)
+  const from = addDays(today, dow === 0 ? -6 : 1 - dow);
+  return { from, to: addDays(from, 6) };
+}
+
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** HH:MM từ 00:00 đến 23:59 (24:00 không hợp lệ). */

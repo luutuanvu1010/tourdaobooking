@@ -2,6 +2,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
+import { addDays, vnLocalToIso } from "../../shared/vn-date";
 import { effectiveMoney, isAdjustmentSeqCollision } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
@@ -245,6 +246,58 @@ export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | n
     : null;
 }
 
+/**
+ * Áp SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất, nếu có — bài học Đợt B: danh sách và chi tiết đơn từng lệch nhau vì chỉ trang chi tiết áp điều
+ * chỉnh) rồi gộp tóm tắt dịch vụ (`summarizeServices`) cho ĐÚNG các đơn trong `rows` — dùng chung cho `listOrders` (một trang) và `getDashboard`
+ * (các tập đơn rời rạc: hôm nay, còn thiếu tiền…), để tránh viết lại/viết lệch logic tính tiền ở hai nơi.
+ */
+async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise<OrderSummaryDto[]> {
+  // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc status = confirmed) — bỏ qua để đỡ một điều kiện IN() thừa.
+  const idsMayHaveAdjustment = rows.filter((r) => r.status !== "draft").map((r) => r.id);
+  const latestSubtotals = await getLatestAdjustmentSubtotals(db, idsMayHaveAdjustment);
+  const page = rows.map((r) => {
+    const d = toDto(r);
+    const subtotalAfter = latestSubtotals.get(d.id);
+    const money = subtotalAfter === undefined ? { total: d.total, remainingAmount: d.remainingAmount } : effectiveMoney(subtotalAfter, d.discount, d.depositAmount);
+    return { ...d, total: money.total, remainingAmount: money.remainingAmount };
+  });
+
+  // Tóm tắt dịch vụ CHỈ cho các đơn thật sự cần (page). `json_each(?1)` nhận MẢNG JSON các id: câu SQL vẫn TĨNH dù số đơn đổi (mẫu ở dispatch/repository.ts).
+  const summaries = page.length
+    ? summarizeServices(
+        (
+          await db
+            .prepare(
+              `SELECT order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
+               FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`,
+            )
+            .bind(JSON.stringify(page.map((d) => d.id)))
+            .all<ServiceSummaryRow>()
+        ).results,
+      )
+    : new Map<string, ServiceSummary>();
+
+  return page.map((d) => {
+    const s = summaries.get(d.id) ?? emptySummary();
+    return {
+      id: d.id,
+      orderCode: d.orderCode,
+      status: d.status,
+      customerName: d.customerName,
+      customerPhone: d.customerPhone,
+      customerNote: d.customerNote,
+      total: d.total,
+      depositAmount: d.depositAmount,
+      remainingAmount: d.remainingAmount,
+      staffName: d.staffName,
+      createdAt: d.createdAt,
+      serviceNames: s.serviceNames,
+      pax: s.pax,
+      trip: s.trip,
+    };
+  });
+}
+
 export async function listOrders(
   db: D1Database,
   opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null },
@@ -271,54 +324,118 @@ export async function listOrders(
     .bind(...binds, opts.limit + 1, opts.offset)
     .all<OrderRow>();
   const rows = results.slice(0, opts.limit);
-  // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc status = confirmed) — bỏ qua để đỡ một điều kiện IN() thừa.
-  const idsMayHaveAdjustment = rows.filter((r) => r.status !== "draft").map((r) => r.id);
-  const latestSubtotals = await getLatestAdjustmentSubtotals(db, idsMayHaveAdjustment);
-  const page = rows.map((r) => {
-    const d = toDto(r);
-    const subtotalAfter = latestSubtotals.get(d.id);
-    // SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất, nếu có) — cùng ý với trang chi tiết đơn (`loadOrderView`/`applyAdjustmentToOrder`), tránh lệch
-    // giữa danh sách và chi tiết (bản đầu chỉ sửa trang chi tiết, quên trang danh sách vẫn hiện số gốc).
-    const money = subtotalAfter === undefined ? { total: d.total, remainingAmount: d.remainingAmount } : effectiveMoney(subtotalAfter, d.discount, d.depositAmount);
-    return { ...d, total: money.total, remainingAmount: money.remainingAmount };
-  });
-
-  // Tóm tắt dịch vụ CHỈ cho các đơn thật sự trả về (page, KHÔNG PHẢI results — results có thêm 1 dòng để dò hasMore).
-  // `json_each(?1)` nhận MẢNG JSON các id: câu SQL vẫn TĨNH dù số đơn trong trang đổi (mẫu ở dispatch/repository.ts).
-  const summaries = page.length
-    ? summarizeServices(
-        (
-          await db
-            .prepare(
-              `SELECT order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
-               FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`,
-            )
-            .bind(JSON.stringify(page.map((d) => d.id)))
-            .all<ServiceSummaryRow>()
-        ).results,
-      )
-    : new Map<string, ServiceSummary>();
-
-  const orders: OrderSummaryDto[] = page.map((d) => {
-    const s = summaries.get(d.id) ?? emptySummary();
-    return {
-      id: d.id,
-      orderCode: d.orderCode,
-      status: d.status,
-      customerName: d.customerName,
-      customerPhone: d.customerPhone,
-      customerNote: d.customerNote,
-      total: d.total,
-      depositAmount: d.depositAmount,
-      remainingAmount: d.remainingAmount,
-      staffName: d.staffName,
-      createdAt: d.createdAt,
-      serviceNames: s.serviceNames,
-      pax: s.pax,
-      trip: s.trip,
-    };
-  });
+  const orders = await toSummaryDtos(db, rows);
   return { orders, hasMore: results.length > opts.limit };
+}
+
+export interface DashboardData {
+  /** "Chuyến đón hôm nay": đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay — sắp theo giờ đón. */
+  today: OrderSummaryDto[];
+  /** Đơn confirmed còn thiếu tiền (remainingAmount HIỆN HÀNH > 0, không phải cột gốc). */
+  unpaid: { total: number; count: number; earliestDate: string | null };
+  /** Đơn nháp chưa xác nhận — ĐIỂM DUY NHẤT của trang chủ đếm cả đơn nháp. */
+  draftCount: number;
+  /** Đơn confirmed chưa có người phụ trách (view công bố v_dsp_order_handler — orders KHÔNG import module dispatch). */
+  unassignedCount: number;
+  /** Đơn confirmed CỦA CHÍNH `staffId` được lập trong tuần [weekFrom, weekTo] (giờ VN, hai đầu bao gồm) — "doanh thu của tôi tuần này". */
+  revenueWeek: { total: number; count: number };
+}
+
+/**
+ * Dữ liệu Trang chủ mới (`GET /api/orders/dashboard`, route `index.ts`). `today` = ngày dân sự VN (`vnToday`). `weekFrom`/`weekTo` = ngày dân sự VN
+ * (thứ Hai/Chủ nhật, `vnWeekRange`), hai đầu bao gồm — hàm này tự đổi sang mốc ISO UTC nửa-mở khi lọc `created_at` (đúng quy ước `vnLocalToIso` đã
+ * dùng nơi khác, KHÔNG tự chế cách đổi múi giờ mới).
+ * BÀI HỌC ĐỢT B: `unpaid`/`revenueWeek` không lọc/tổng hợp thẳng trên cột `remaining_amount`/`total` GỐC của bảng `orders` — phải áp
+ * `getLatestAdjustmentSubtotals` + `effectiveMoney` cho TỪNG đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
+ */
+export async function getDashboard(db: D1Database, staffId: string, today: string, weekFrom: string, weekTo: string): Promise<DashboardData> {
+  // 1) "Chuyến đón hôm nay": id các đơn confirmed mà dịch vụ CÓ NGÀY sớm nhất của đơn (os.id = kết quả subquery) đúng bằng `today`.
+  //    Đơn không có dịch vụ nào có ngày đón → subquery không ra dòng nào → không đơn nào khớp `os.id = NULL` → đơn đó không lọt vào (đúng ý §7).
+  //    Sắp theo giờ đón của CHÍNH dịch vụ quyết định "hôm nay" (khác quy ước `summarizeServices` sắp theo sort_order — ở đây cần thứ tự lịch trình trong ngày).
+  const { results: todayOrder } = await db
+    .prepare(
+      `SELECT o.id FROM orders o
+       JOIN order_service os ON os.order_id = o.id
+       WHERE o.status = 'confirmed'
+         AND os.depart_date = ?1
+         AND os.id = (
+           SELECT id FROM order_service os2
+           WHERE os2.order_id = o.id AND os2.depart_date IS NOT NULL
+           ORDER BY os2.depart_date, os2.pickup_time, os2.sort_order
+           LIMIT 1
+         )
+       ORDER BY os.pickup_time, os.sort_order`,
+    )
+    .bind(today)
+    .all<{ id: string }>();
+  const todayIds = todayOrder.map((r) => r.id);
+  const todayRowsById = new Map(
+    todayIds.length
+      ? (await db.prepare(`${ORDER_SELECT} WHERE o.id IN (SELECT value FROM json_each(?1))`).bind(JSON.stringify(todayIds)).all<OrderRow>()).results.map((r) => [r.id, r] as const)
+      : [],
+  );
+  // json_each() không giữ thứ tự — sắp lại theo ĐÚNG thứ tự `todayIds` (đã sắp theo giờ đón ở câu trên).
+  const todaySummaries = await toSummaryDtos(
+    db,
+    todayIds.flatMap((id) => (todayRowsById.has(id) ? [todayRowsById.get(id)!] : [])),
+  );
+
+  // 2) "Còn thiếu tiền": MỌI đơn confirmed (không lọc trước theo cột gốc — điều chỉnh có thể đưa remainingAmount từ 0 lên dương hoặc ngược lại),
+  //    áp effective money từng đơn RỒI mới lọc/tổng hợp trong JS.
+  const { results: confirmedRows } = await db
+    .prepare(`SELECT id, subtotal, discount, total, deposit_amount, remaining_amount FROM orders WHERE status = 'confirmed'`)
+    .all<{ id: string; subtotal: number; discount: number; total: number; deposit_amount: number; remaining_amount: number }>();
+  const latestConfirmed = await getLatestAdjustmentSubtotals(db, confirmedRows.map((r) => r.id));
+  const unpaidIds: string[] = [];
+  let unpaidTotal = 0;
+  for (const r of confirmedRows) {
+    const subtotalAfter = latestConfirmed.get(r.id);
+    const money = subtotalAfter === undefined ? { remainingAmount: r.remaining_amount } : effectiveMoney(subtotalAfter, r.discount, r.deposit_amount);
+    if (money.remainingAmount > 0) {
+      unpaidIds.push(r.id);
+      unpaidTotal += money.remainingAmount;
+    }
+  }
+  // Ngày đón SỚM NHẤT trong số các đơn còn thiếu tiền (giúp biết chuyến gần nhất đang chưa thu đủ) — null nếu không đơn nào có dịch vụ có ngày.
+  const earliestUnpaid = unpaidIds.length
+    ? await db
+        .prepare(`SELECT MIN(depart_date) AS d FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) AND depart_date IS NOT NULL`)
+        .bind(JSON.stringify(unpaidIds))
+        .first<{ d: string | null }>()
+    : null;
+
+  // 3) Đơn nháp chưa xác nhận.
+  const draftCountRow = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
+
+  // 4) Đơn confirmed chưa có người phụ trách — CHỈ qua view công bố v_dsp_order_handler (orders không import dispatch — src/CLAUDE.md).
+  const unassignedRow = await db
+    .prepare(`SELECT COUNT(*) AS n FROM orders o WHERE o.status = 'confirmed' AND NOT EXISTS (SELECT 1 FROM v_dsp_order_handler h WHERE h.order_id = o.id)`)
+    .first<{ n: number }>();
+
+  // 5) "Doanh thu của tôi tuần này": đơn confirmed do CHÍNH staffId lập, trong [weekFrom, weekTo] giờ VN (hai đầu bao gồm) — đổi sang mốc ISO UTC
+  //    nửa-mở [đầu thứ Hai, đầu thứ Hai TUẦN SAU) bằng `vnLocalToIso` (đúng quy ước "00:00 giờ VN" đã dùng ở nơi khác, không tự chế).
+  //    Doanh thu = `total` HIỆN HÀNH (subtotal đã trừ giảm giá) — không phải remainingAmount (đây là giá trị đơn, không phải số còn phải thu).
+  const weekFromIso = vnLocalToIso(`${weekFrom}T00:00`)!;
+  const weekToIsoExclusive = vnLocalToIso(`${addDays(weekTo, 1)}T00:00`)!;
+  const { results: weekRows } = await db
+    .prepare(`SELECT id, subtotal, discount, total, deposit_amount, remaining_amount FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
+    .bind(staffId, weekFromIso, weekToIsoExclusive)
+    .all<{ id: string; subtotal: number; discount: number; total: number; deposit_amount: number; remaining_amount: number }>();
+  const latestWeek = await getLatestAdjustmentSubtotals(db, weekRows.map((r) => r.id));
+  let revenueTotal = 0;
+  for (const r of weekRows) {
+    const subtotalAfter = latestWeek.get(r.id);
+    const money = subtotalAfter === undefined ? { total: r.total } : effectiveMoney(subtotalAfter, r.discount, r.deposit_amount);
+    revenueTotal += money.total;
+  }
+
+  return {
+    today: todaySummaries,
+    unpaid: { total: unpaidTotal, count: unpaidIds.length, earliestDate: earliestUnpaid?.d ?? null },
+    draftCount: draftCountRow?.n ?? 0,
+    unassignedCount: unassignedRow?.n ?? 0,
+    revenueWeek: { total: revenueTotal, count: weekRows.length },
+  };
 }
 
 const isCodeCollision = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: orders\.order_code/.test(e.message);
@@ -547,13 +664,15 @@ export async function getLatestAdjustment(db: D1Database, orderId: string): Prom
  */
 export async function getLatestAdjustmentSubtotals(db: D1Database, orderIds: readonly string[]): Promise<Map<string, number>> {
   if (orderIds.length === 0) return new Map();
-  const placeholders = orderIds.map(() => "?").join(", ");
+  // `json_each(?1)` (mẫu đã dùng ở `toSummaryDtos`/dispatch/repository.ts) thay vì một `?` cho mỗi id: D1 giới hạn số tham số ràng buộc mỗi câu
+  // (tài liệu Cloudflare) — `listOrders` trước đây an toàn vì trang tối đa 100 đơn, nhưng `getDashboard` gọi hàm này với TOÀN BỘ đơn confirmed/tuần,
+  // số lượng không có trần cố định, nên câu SQL phải TĨNH (một tham số) dù số id đổi.
   const { results } = await db
     .prepare(
       `SELECT a.order_id, a.subtotal_after FROM order_money_adjustment a
-       WHERE a.order_id IN (${placeholders}) AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = a.order_id)`,
+       WHERE a.order_id IN (SELECT value FROM json_each(?1)) AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = a.order_id)`,
     )
-    .bind(...orderIds)
+    .bind(JSON.stringify(orderIds))
     .all<{ order_id: string; subtotal_after: number }>();
   return new Map(results.map((r) => [r.order_id, r.subtotal_after]));
 }

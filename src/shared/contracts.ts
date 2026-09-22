@@ -243,6 +243,22 @@ export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean
 export interface OrderResponse { order: OrderDetailDto }
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean }
 
+/**
+ * `GET /api/orders/dashboard` (Trang chủ mới, `access: "office"`) — tổng quan cho nhân viên văn phòng.
+ * `today`: đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay.
+ * `unpaid`: đơn confirmed còn thiếu tiền theo số HIỆN HÀNH (đã áp điều chỉnh, nếu có) — `earliestDate` = ngày đón sớm nhất trong số đó, null nếu không đơn nào có ngày.
+ * `draftCount`: đơn nháp chưa xác nhận (điểm duy nhất của trang này đếm đơn nháp).
+ * `unassignedCount`: đơn confirmed chưa có người phụ trách.
+ * `revenueWeek`: doanh thu (tổng `total` hiện hành) của CHÍNH người xem trong tuần `from`..`to` (thứ Hai–Chủ nhật, giờ Việt Nam, hai đầu bao gồm).
+ */
+export interface DashboardResponse {
+  today: OrderSummaryDto[];
+  unpaid: { total: number; count: number; earliestDate: string | null };
+  draftCount: number;
+  unassignedCount: number;
+  revenueWeek: { total: number; count: number; from: string; to: string };
+}
+
 // ---- Nhật ký -----------------------------------------------------------------
 export interface AuditEntryDto {
   action: AuditAction;
