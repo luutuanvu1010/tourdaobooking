@@ -30,11 +30,13 @@ Chạy `npm run build:web` trước. Cần Chrome + axe-core **ngoài repo**; c�
 | Sửa | Chạy |
 |---|---|
 | `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | ba `a2-smoke-*.mjs` ở `docs/evidence/2026-09-20-a2/kich-ban/` |
-| `web/login.ts`, `public/login.html`, CSP ở `public/_headers` | `v1-dang-nhap.mjs` ở `docs/evidence/2026-09-21-v1-0/kich-ban/` (15 bước, ước ~9 phút, cần mạng) |
+| `web/login.ts`, `public/login.html`, CSP ở `public/_headers` | `v1-dang-nhap.mjs` ở `docs/evidence/2026-09-21-v1-0/kich-ban/` (15 bước, ước ~9 phút, cần mạng) + `dot-c-smoke.mjs` (cột thương hiệu máy tính, xem hàng cuối bảng) |
 | `web/confirmation-image.ts`, `web/confirmation-dialog.ts`, `src/shared/order-confirmation.ts`, `src/shared/text-wrap.ts`, phần `moi=1`/nút "Xác nhận gửi khách" | `v1-xac-nhan-png.mjs` cùng thư mục (không cần mạng ngoài) |
 | `web/orders.ts`, `web/order.ts`, `web/handler-sheet.ts`, `src/shared/handler-view.ts`, khối người phụ trách của `public/app.css` | `v1-nguoi-phu-trach.mjs` |
 | `web/booker-picker.ts` (khối "Hồ sơ khách" ở form đơn, N2 lát 1) | `a2-smoke-form.mjs` ở `docs/evidence/2026-09-20-a2/kich-ban/` |
 | `web/booker-sheet.ts` (bảng "Đổi khách" ở trang đơn, N2 lát 1) | `a2-smoke-order.mjs` (cùng thư mục) + `v1-nguoi-phu-trach.mjs` |
 | `web/maintenance-screen.ts`, phần bảo trì của `web/api.ts`/`account.ts`/`shell.ts`/`login.ts`/`app.css` | `v1-bao-tri.mjs` (không cần mạng ngoài) |
-| `web/feedback.ts`, `public/feedback.html`, dòng "Góp ý" ở `web/shell.ts`/`web/account.ts` | **chưa có** kịch bản riêng: chạy `v1-bao-tri.mjs` (cùng hai tệp khung) và làm danh sách thử tay ở `docs/HANDOFF-FEEDBACK.md` |
+| `web/feedback.ts`, `public/feedback.html`, dòng "Góp ý" ở `web/shell.ts`/`web/account.ts` | `dot-c-smoke.mjs` (bố cục 2 cột + hiện đồng thời danh sách/luồng máy tính, xem hàng cuối bảng) + `v1-bao-tri.mjs` (khung chung) và làm danh sách thử tay ở `docs/HANDOFF-FEEDBACK.md` |
+| `web/account.ts`, `public/account.html` (hồ sơ, "Việc của tôi", liên kết, đổi PIN, bố cục 2 cột máy tính — bảo trì đọc dòng riêng ở trên) | `dot-c-smoke.mjs` (xem hàng cuối bảng) + `v1-bao-tri.mjs` nếu đụng phần bảo trì |
 | `web/staff.ts`, `web/catalog.ts`, `web/locations.ts`, `web/parties.ts`, `web/audit.ts` (mốc bảng→thẻ dùng chung, Bước 2 Đợt A) | `dot-a-smoke.mjs` ở `docs/evidence/2026-09-22-buoc-2-dot-a/kich-ban/` |
+| Đợt C — cột thương hiệu Đăng nhập, bố cục 2 cột Tôi/Góp ý (`web/login.ts`, `web/account.ts`, `web/feedback.ts`, 3 tệp `.html` tương ứng) | `dot-c-smoke.mjs` ở `docs/evidence/2026-09-22-thiet-ke-lai-giao-dien-dot-c/kich-ban/` (3 trang × 2 khổ) |
