@@ -90,7 +90,7 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
     subtotalAfter += afterCalc.subtotal;
   }
 
-  const ok = await insertMoneyAdjustment(db, orderId, staffId, latest?.id ?? null, before, after, subtotalBefore, subtotalAfter, input.reason);
+  const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, before, after, subtotalBefore, subtotalAfter, input.reason);
   return ok ? { ok: true } : { ok: false, code: "stale" };
 }
 

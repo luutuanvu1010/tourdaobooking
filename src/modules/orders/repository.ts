@@ -2,6 +2,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
+import { isAdjustmentSeqCollision } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -456,17 +457,18 @@ export async function getLatestAdjustment(db: D1Database, orderId: string): Prom
 }
 
 /**
- * Ghi một dòng điều chỉnh MỚI, có khoá lạc quan: chỉ ghi nếu dòng gần nhất của đơn vẫn đúng `expectedLatestId` đã đọc lúc đầu route (NULL = đơn
- * chưa có điều chỉnh nào). Nếu ai đó vừa ghi một dòng khác sau khi route đọc xong, câu SELECT con không khớp `expectedLatestId` → 0 dòng được ghi
- * (đúng idiom guard đã dùng ở nơi khác trong tệp này) → route trả 409 stale, KHÔNG âm thầm ghi đè dựa trên trạng thái đã cũ.
- * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Audit đứng SAU, chỉ ghi khi INSERT phía
- * trên thắng khoá lạc quan (`changes() > 0`) — ngược thứ tự với `cancelOrder`/`updateDraftOrder` vì ở đây câu ghi CHÍNH là INSERT, không phải UPDATE.
+ * Ghi một dòng điều chỉnh MỚI tại đúng `expectedSeq` (= `(dòng gần nhất.seq ?? 0) + 1`, route tính lúc đọc). KHÔNG dùng WHERE-guard so sánh
+ * "dòng gần nhất còn đúng không" (không đáng tin cậy giữa hai lời gọi `db.batch()` RIÊNG BIỆT của hai request khác nhau — đã thử, quan sát được
+ * hai request cùng thắng khi chạy thật). Thay vào đó dựa thẳng vào chỉ mục duy nhất `idx_order_money_adjustment_seq`: hai request cùng nhắm
+ * `expectedSeq` giống nhau, chỉ MỘT lần INSERT thắng, lần kia bị CSDL tự chặn (`isAdjustmentSeqCollision`) → 409 stale, không cần đoán trước ai thắng.
+ * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Batch thất bại thì cả hai câu đều không
+ * được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
  */
 export async function insertMoneyAdjustment(
   db: D1Database,
   orderId: string,
   staffId: string,
-  expectedLatestId: string | null,
+  expectedSeq: number,
   before: { serviceId: string; pax: PaxCounts }[],
   after: { serviceId: string; pax: PaxCounts }[],
   subtotalBefore: number,
@@ -475,18 +477,20 @@ export async function insertMoneyAdjustment(
 ): Promise<boolean> {
   const id = crypto.randomUUID();
   const at = new Date().toISOString();
-  const results = await db.batch([
-    db
-      .prepare(
-        `INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after)
-         SELECT ?, ?, COALESCE((SELECT MAX(seq) FROM order_money_adjustment WHERE order_id = ?), 0) + 1, ?, ?, ?, ?
-         WHERE (SELECT id FROM order_money_adjustment WHERE order_id = ? ORDER BY seq DESC LIMIT 1) IS ?`,
-      )
-      .bind(id, orderId, orderId, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter, orderId, expectedLatestId),
-    auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }, "changes() > 0"),
-  ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  try {
+    await db.batch([
+      db
+        .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, ?, ?, ?, ?)`)
+        .bind(id, orderId, expectedSeq, JSON.stringify(before), JSON.stringify(after), subtotalBefore, subtotalAfter),
+      auditStatement(db, { id, orderId, staffId, action: "order_money_adjusted_by_field", at, detail: reason }),
+    ]);
+    return true;
+  } catch (e) {
+    if (isAdjustmentSeqCollision(e)) return false;
+    throw e;
+  }
 }
+
 
 /**
  * Sửa trường vận hành của các dịch vụ (Q9): đơn nháp HOẶC đã xác nhận, còn khớp mốc `updated_at`. Số khách, dịch vụ, tiền không đổi ở đây

@@ -8,6 +8,15 @@ const PAX_CODES: readonly PaxCode[] = ["adult", "child", "senior", "infant"];
 
 export type Parsed<T> = ({ ok: true } & T) | { ok: false; message: string };
 
+/**
+ * Đụng "đã có dòng điều chỉnh với `seq` này" (chỉ mục duy nhất `idx_order_money_adjustment_seq`, migration `0021`) — nghĩa là ai đó vừa ghi
+ * trước, KHÔNG phải lỗi hệ thống. Cùng khuôn `isOpenHandlerCollision` (`dispatch/rules.ts`). Dạng lỗi thật (node:sqlite, chỉ mục nhiều cột):
+ * "UNIQUE constraint failed: order_money_adjustment.order_id, order_money_adjustment.seq" — D1 có thể thêm tiền tố "D1_ERROR: "/hậu tố
+ * ": SQLITE_CONSTRAINT", nên chỉ so khớp một phần chuỗi (không neo đầu/cuối).
+ */
+export const isAdjustmentSeqCollision = (e: unknown): boolean =>
+  e instanceof Error && /UNIQUE constraint failed: order_money_adjustment\.order_id, order_money_adjustment\.seq/.test(e.message);
+
 /** Tính lại số khách/dòng tiền của MỘT dịch vụ từ danh mục theo số khách mới, dùng giá đã chụp lúc lập đơn — không tra danh mục hiện tại. */
 export function recomputeService(stored: StoredService, newPax: PaxCounts): Parsed<{ pax: PaxCounts; lines: GeneratedLine[]; subtotal: number }> {
   const snap = snapshotService(stored);

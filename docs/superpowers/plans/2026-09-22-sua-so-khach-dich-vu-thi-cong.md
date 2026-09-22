@@ -390,7 +390,7 @@ export async function insertMoneyAdjustment(
 
 Thêm `import type { PaxCounts } from "../../shared/order-lines";` vào đầu tệp nếu chưa có (kiểm bằng `grep -n "^import" src/modules/orders/repository.ts` trước khi sửa — tệp đã import `type { PaxCode, PaxCounts }` từ dòng 4, chỉ cần dùng lại).
 
-**Chú ý thứ tự batch:** câu `INSERT order_money_adjustment` đứng TRƯỚC câu `auditStatement` (ngược lại thứ tự của `cancelOrder`/`updateDraftOrder` nơi audit đứng SAU câu ghi chính) — vì ở đây `auditStatement` dùng `onlyIf: "changes() > 0"` để chỉ ghi log khi câu INSERT phía trên THẬT SỰ chèn được dòng (khoá lạc quan thắng), đúng idiom `changes() > 0` đã dùng cho `confirmOrder`/`cancelOrder`.
+**SỬA SO VỚI BẢN DỰ THẢO GỐC (phát hiện lúc chạy e2e thật, không phải suy đoán):** bản đầu dùng WHERE-guard so sánh "id dòng gần nhất có còn đúng như lúc route đọc không" (`SELECT id ... ORDER BY seq DESC LIMIT 1) IS ?`), tưởng là đủ (đúng idiom `wonGuard`/`guard` đã dùng ở nơi khác trong tệp). Chạy e2e với 8 yêu cầu gửi đồng thời cho THẤY 2 yêu cầu cùng "thắng" (không phải đúng 1) — nhưng khi soi kỹ, hai yêu cầu đó ghi hai `seq` KHÁC NHAU (2 và 3), không hề trùng/đè nhau: vì `wrangler dev` xử lý request bằng một luồng sự kiện xen kẽ (không song song thật), READ của một request có thể xen giữa READ và WRITE của request khác — WHERE-guard dựa trên "so khớp trạng thái đã đọc" không bắt được kiểu xen kẽ này (nó chỉ chặn khi đúng cùng thời điểm ghi, không chặn được khi có nhiều "cửa sổ" ghi hợp lệ nối tiếp nhau). **Cách đúng: bỏ WHERE-guard, ghi thẳng `seq` = `(seq gần nhất đã đọc ?? 0) + 1`, để CHÍNH ràng buộc `UNIQUE(order_id, seq)` của CSDL làm trọng tài — hai request cùng nhắm một `seq` thì chỉ một ghi được, request kia bị D1 tự chặn (bắt lỗi bằng `isAdjustmentSeqCollision`, cùng khuôn `isOpenHandlerCollision` đã có ở `dispatch/rules.ts`), không cần đoán trước "ai thắng".** Điều này cũng đổi tiêu chí nghiệm thu #6 (mục 7 đặc tả): không phải "đúng MỘT yêu cầu thành công" mà là "`seq` của mọi dòng mới liên tục, không trùng, không nhảy cóc" — nhiều yêu cầu CÓ THỂ cùng thành công nếu chúng đọc trạng thái ở các thời điểm khác nhau, miễn là không ghi đè/trùng nhau; bất biến cần giữ là KHÔNG BAO GIỜ mất một lần sửa hay ghi trùng, không phải "chặn hết trừ một". Đã cập nhật `insertMoneyAdjustment` (bỏ WHERE-guard, dùng `INSERT ... VALUES` thẳng, bọc try/catch quanh `db.batch()`), thêm `isAdjustmentSeqCollision` ở `money-adjustment.ts` (luật thuần, có test), và `editMoneyAsHandler` giờ truyền `(latest?.seq ?? 0) + 1` thay vì `latest?.id ?? null`. Vì cả hai câu trong `db.batch()` giờ đứng trong MỘT giao dịch chỉ thành công/thất bại CÙNG NHAU (không còn `onlyIf`), thứ tự INSERT trước/audit sau không còn cần `changes() > 0` như `cancelOrder`/`updateDraftOrder` nữa — batch thất bại thì cả hai câu đều không ghi.
 
 - [ ] **Step 3: Thêm hàm xuất `editMoneyAsHandler` ở `orders/index.ts`**
 
@@ -704,22 +704,25 @@ try {
   assert.ok(h14.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"));
   console.log("✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký");
 
-  // Tranh chấp: N yêu cầu cùng dựa trên trạng thái hiện tại (subtotal=900000, chưa ai thắng) gửi gần như đồng thời → đúng MỘT thành công.
+  // Tranh chấp: N yêu cầu gửi gần như đồng thời. wrangler dev xử lý request bằng một luồng sự kiện xen kẽ (không song song thật) nên KHÔNG PHẢI
+  // lúc nào cũng đúng MỘT yêu cầu thắng — nhiều yêu cầu có thể đọc-rồi-ghi hợp lệ nối tiếp nhau (đã quan sát thật: 8 yêu cầu → 2 thành công, seq
+  // 2 và 3, không trùng). Bất biến CẦN giữ không phải "đúng 1 thắng" mà là KHÔNG BAO GIỜ ghi trùng seq — chỉ mục duy nhất phải chặn thật mọi lần đụng.
   const N = 8;
   const race = await Promise.all(Array.from({ length: N }, (_, i) => moneyEdit(FIELD, o14.id, { reason: `đua ${i}`, services: [{ id: svcId, pax: pax(4 + i) }] })));
+  for (const x of race) assert.ok(x.status === 200 || (x.status === 409 && x.body.error?.code === "stale"), JSON.stringify(x));
   const wins = race.filter((x) => x.status === 200).length;
-  const losses = race.filter((x) => x.status === 409 && x.body.error.code === "stale").length;
-  assert.equal(wins, 1, JSON.stringify(race.map((x) => x.status)));
-  assert.equal(losses, N - 1, JSON.stringify(race.map((x) => [x.status, x.body.error?.code])));
+  assert.ok(wins >= 1, "ít nhất một yêu cầu phải thành công");
   const seqRows = await sqlRows(`SELECT seq FROM order_money_adjustment WHERE order_id = '${o14.id}' ORDER BY seq`);
-  assert.deepEqual(seqRows.map((x) => Number(x.seq)), [1, 2], "seq liên tục, không trùng, không nhảy cóc");
-  console.log(`✓ ${N} yêu cầu sửa gần như đồng thời: đúng một thành công (seq liên tục), còn lại 409 stale`);
+  const seqs = seqRows.map((x) => Number(x.seq));
+  assert.deepEqual(seqs, Array.from({ length: seqs.length }, (_, i) => i + 1), "seq của mọi dòng liên tục từ 1, không trùng, không nhảy cóc");
+  assert.equal(seqs.length, 1 + wins, "số dòng MỚI đúng bằng số yêu cầu thành công trong đợt tranh chấp này");
+  console.log(`✓ ${N} yêu cầu sửa gần như đồng thời: ${wins} thành công, seq liên tục không trùng, còn lại 409 stale`);
 } finally {
   await sql("DELETE FROM catalog_item WHERE code = 'ZH1'").catch((e) => console.error("dọn danh mục giả ZH1 thất bại:", String(e).slice(0, 200)));
 }
 ```
 
-**Lưu ý khi cài đặt thật (điều chỉnh nếu kịch bản trên sai so với hành vi thật — đây là bản dự thảo tốt nhất viết được trước khi chạy, không phải đặc tả cứng):** chạy `npm run test:e2e -- dispatch` ngay sau khi viết xong route (Task 5 Step 2) để xem đỏ ở đâu, rồi sửa cả code lẫn kịch bản cho khớp — đúng tinh thần TDD, không cố ép test khớp một giả định chưa kiểm chứng. Đặc biệt để ý: định dạng `sqlRows` trả số dạng chuỗi hay số (đã có `Number(...)` phòng hờ); thứ tự các bước 404→403→409→400 của route có đúng như Task 5 Step 2 mô tả không.
+**Kết quả thật lúc thi công (khác bản dự thảo gốc ở trên — xem ghi chú "SỬA SO VỚI BẢN DỰ THẢO GỐC" ở Task 3 Step 2):** bản dự thảo ban đầu của cả cơ chế ghi (WHERE-guard) LẪN kịch bản e2e (kỳ vọng đúng 1 thắng) đều sai — sửa cả hai theo phát hiện thật lúc chạy `npm run test:e2e -- dispatch`, không phải đoán trước. Đây đúng tinh thần TDD: viết dự thảo tốt nhất có thể, CHẠY THẬT để lộ chỗ sai, sửa theo bằng chứng.
 
 - [ ] **Step 5: Chạy `npm run test:e2e -- dispatch`, sửa tới khi xanh**
 

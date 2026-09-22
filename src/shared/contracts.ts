@@ -335,6 +335,7 @@ export interface AssigneesResponse { assignees: AssigneeDto[] }
 export interface SetHandlerInput { staffId: string }
 export interface SetHandlerResponse { handler: HandlerDto }
 export interface HandlerCancelResponse { ok: true }
+export interface HandlerMoneyEditResponse { ok: true }
 
 // ---- Địa điểm (module locations) ---------------------------------------------
 export interface LocationTypeDto {

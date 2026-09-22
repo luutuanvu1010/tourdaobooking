@@ -4,9 +4,9 @@
 // router khớp theo đoạn nên không đụng route của `orders`).
 // Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch`: gốc lắp ráp (src/index.ts) tiêm `isOrderHandler` và
 // `defaultHandlerStatement` vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
-import { cancelOrderByHandler, findOrderOwner } from "../orders";
+import { cancelOrderByHandler, editMoneyAsHandler, findOrderOwner } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
-import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlersResponse, SetHandlerResponse } from "../../shared/contracts";
+import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, SetHandlerResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -24,6 +24,9 @@ const STALE = () => error(409, "stale", "Người phụ trách đơn vừa đư�
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
 const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn nháp hoặc đã huỷ không dùng được.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
+const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này.");
+const MONEY_EDIT_NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ sửa được số khách của đơn đã xác nhận qua đường này.");
+const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa bởi người khác, hãy tải lại rồi thử lại.");
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
@@ -119,6 +122,25 @@ export const dispatchModule: AppModule = {
         return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();
       }
       return json({ ok: true } satisfies HandlerCancelResponse);
+    }),
+
+    // Sửa số khách của đơn đang phụ trách CẤP HẸP (FIELD — ADR-0014 điều 6). Ghi thêm dòng điều chỉnh, KHÔNG sửa đè order_service/order_item/cột
+    // tiền. Không lộ giá cho FIELD: phản hồi chỉ { ok: true }. Thứ tự: 404 → 403 (không phải người phụ trách/không có order.money.edit) → 409/400
+    // do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu cầu sai/thiếu/thừa dịch vụ) → 409 stale nếu thua khoá lạc quan.
+    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned }) => {
+      const orderId = params.id!;
+      if (!UUID_RE.test(orderId)) return NOT_FOUND();
+      const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
+      if (!order) return NOT_FOUND();
+      if (!can(staff, "order.money.edit", { assigned })) return MONEY_EDIT_FORBIDDEN();
+      const result = await editMoneyAsHandler(env.DB, orderId, staff.id, await readJson(request));
+      if (!result.ok) {
+        if (result.code === "not_found") return NOT_FOUND();
+        if (result.code === "not_confirmed") return MONEY_EDIT_NOT_CONFIRMED();
+        if (result.code === "stale") return MONEY_EDIT_STALE();
+        return error(400, "invalid_input", result.message ?? "Dữ liệu không hợp lệ.");
+      }
+      return json({ ok: true } satisfies HandlerMoneyEditResponse);
     }),
   ],
 };

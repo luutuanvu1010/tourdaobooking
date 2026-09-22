@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderDetailDto } from "../../shared/contracts.ts";
-import { applyAdjustmentToOrder, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
+import { applyAdjustmentToOrder, isAdjustmentSeqCollision, parseMoneyEditInput, recomputeService } from "./money-adjustment.ts";
 import type { StoredService } from "./service-rules.ts";
 
 const ZERO = { adult: 0, child: 0, senior: 0, infant: 0 };
@@ -119,4 +119,13 @@ test("applyAdjustmentToOrder: dịch vụ KHÔNG có trong after (đơn chưa c�
   const out = applyAdjustmentToOrder(baseOrder(), []);
   assert.deepEqual(out.services[0]!.pax, { adult: 2, child: 0, senior: 0, infant: 0 });
   assert.equal(out.subtotal, 600000);
+});
+
+// --- isAdjustmentSeqCollision --------------------------------------------------------------------------------------
+test("isAdjustmentSeqCollision: nhận đúng lỗi UNIQUE order_id+seq (kể cả tiền tố D1_ERROR); lỗi khác thì không", () => {
+  assert.ok(isAdjustmentSeqCollision(new Error("UNIQUE constraint failed: order_money_adjustment.order_id, order_money_adjustment.seq")));
+  assert.ok(isAdjustmentSeqCollision(new Error("D1_ERROR: UNIQUE constraint failed: order_money_adjustment.order_id, order_money_adjustment.seq: SQLITE_CONSTRAINT")));
+  assert.ok(!isAdjustmentSeqCollision(new Error("UNIQUE constraint failed: orders.order_code")));
+  assert.ok(!isAdjustmentSeqCollision(new Error("FOREIGN KEY constraint failed")));
+  assert.ok(!isAdjustmentSeqCollision("UNIQUE constraint failed: order_money_adjustment.order_id, order_money_adjustment.seq"), "chỉ nhận Error");
 });
