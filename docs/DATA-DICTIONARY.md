@@ -65,6 +65,7 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `order_item` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `order_money_adjustment` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
