@@ -7,6 +7,7 @@ Bằng chứng thực nghiệm cho `docs/AUDIT-2026-09-22-KIEN-TRUC.md`. **Khôn
 - `redteam.test.mjs` — 17 ca, mỗi ca ghi nhãn:
   - **PASS**: hệ thống giữ được bất biến.
   - **FINDING**: test khẳng định hành vi **yếu** hiện tại. Khi sửa phát hiện đó, test sẽ **đỏ** — lúc ấy chuyển nó thành test hồi quy thật (`src/**` hoặc `tests/e2e/`) với khẳng định đảo ngược, rồi xoá ca ở đây.
+- `doi-tac.test.mjs` — 6 ca (P1–P6) cho kịch bản đối tác ngoài đăng nhập (~1000 tài khoản), bằng chứng của `docs/AUDIT-2026-09-22-DOI-TAC.md`. Cùng quy ước PASS/FINDING.
 
 Chạy (từ gốc repo, cần `esbuild` — dùng `node_modules` của bản checkout gốc):
 
