@@ -114,6 +114,16 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 - Đơn do CTV lập mà chưa ai nhận thì vẫn cần một người phụ trách mặc định. Hiện người lập đơn là người phụ trách mặc định (ADR-0009 điều 4); với CTV có giữ luật đó không?
 - Câu hỏi "mở thí điểm cho 5–10 CTV hay mở hết" (§4.1 câu 5) **vẫn chưa được trả lời**.
 
+### 4.3. Chủ dự án làm rõ câu 3 (2026-09-22)
+
+> CTV lên đơn và được xác nhận, nhưng **sau khi tiếp nhận thì HDV có thể phải sửa**, vì khách có thể **đổi số lượng**, hoặc **phát sinh thực tế**, **đổi gói dịch vụ**… Và audit trail nên để **cả CTV hoặc admin đều thấy sự thay đổi** (ví dụ: "Được sửa").
+
+**Ghi chú của người kiểm cho phiên soạn (không phải quyết định):**
+- Đây là **sửa số khách, dịch vụ và TIỀN sau khi đơn đã xác nhận**. Hiện nay việc này bị chặn: dịch vụ của đơn đã xác nhận bị khoá ở CSDL (`migrations/0008`); ô `order.money.edit` có trong ma trận nhưng chưa có route (thuộc N3, `permissions.ts:44`); người phụ trách chỉ sửa được thông tin chuyến (`order.trip.edit`). Tiền là vùng rủi ro cao nhất (vòng 1 F-03).
+- **Đụng đặc tả đang chờ duyệt** `docs/superpowers/specs/2026-09-22-khoa-tien-don-da-xac-nhan.md` (Việc 2: trigger đóng băng tiền của đơn đã xác nhận). Không mâu thuẫn nếu làm theo khuyến nghị đã nêu ở `docs/HANDOFF-KIEM-TOAN-2026-09-22.md` §4 câu 3: tiền đơn đã xác nhận **không sửa đè**, mỗi lần HDV đổi là thêm một **dòng điều chỉnh chỉ-thêm** (ai, khi nào, vì sao, trước → sau). Cách này cũng đáp ứng đúng yêu cầu "CTV và admin thấy sự thay đổi". Nếu chọn sửa đè thì Việc 2 phải viết lại. **Hai đặc tả này phải soạn cùng nhau.**
+- Hiển thị lịch sử: ô `order.history.view` hiện là `ownOrAssigned` cho Bán hàng (`permissions.ts:38`), nên người lập (CTV) và người phụ trách (HDV) thấy lịch sử; admin thấy hết. Hợp yêu cầu. Nhưng nhật ký hiện chỉ ghi chữ tự do, **không có giá trị trước/sau có cấu trúc** cho tiền (vòng 1 F-09), nên dòng điều chỉnh phải tự mang trước/sau.
+- Cần chốt trong đặc tả: sau khi HDV sửa, ảnh xác nhận (luôn giá bán lẻ, §4.1 câu 3) có được **xuất lại bản mới** không? CTV có được **báo** khi đơn của mình bị sửa không, hay chỉ thấy khi mở đơn? Có giới hạn loại sửa nào HDV không được làm (ví dụ giảm giá) không?
+
 ## 5. Thứ tự đề xuất
 
 1. **Không cấp tài khoản cho bất kỳ người ngoài nào** trên hệ thống hiện tại cho tới khi D-01 được sửa (nói với chủ một lần — P18).
