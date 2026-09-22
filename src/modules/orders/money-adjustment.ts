@@ -1,7 +1,7 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
-import { buildLines, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
+import { availableCodes, buildLines, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
 import { snapshotService, type StoredService } from "./service-rules.ts";
 
 const PAX_CODES: readonly PaxCode[] = ["adult", "child", "senior", "infant"];
@@ -82,6 +82,19 @@ const toItemDto = (l: GeneratedLine): OrderItemDto => ({
 });
 
 /**
+ * Loại khách SỬA ĐƯỢC của một dịch vụ (dùng cho "Việc của tôi" — `orders/index.ts:getMyAssignments`) — tính từ BẢN CHỤP GỐC (mọi loại khách từng
+ * có giá đã lưu ở `order_item` lúc xác nhận đơn), KHÔNG phải từ số khách/dòng HIỆN HÀNH. Lý do (lỗi thật tìm được lúc kiểm độc lập 2026-09-22):
+ * dịch vụ theo người có nhiều loại khách, một lần sửa trước đưa một loại về 0 khiến `buildLines` bỏ hẳn dòng đó — nếu tính từ items sau overlay,
+ * loại khách đó "biến mất" khỏi ô nhập vĩnh viễn dù giá gốc vẫn còn và máy chủ vẫn chấp nhận đặt lại > 0 (`recomputeService` dùng bản chụp, không
+ * tra danh mục hiện tại). Gọi hàm này với dịch vụ GỐC (`findOrder`, trước overlay), không phải dịch vụ đã overlay của `loadOrderView`.
+ */
+export function editablePaxCodesOf(original: OrderServiceDto): readonly PaxCode[] {
+  if (original.catalogCode === null) return [];
+  const snap = snapshotService(toStoredService(original));
+  return snap ? availableCodes(snap) : [];
+}
+
+/**
  * Áp dòng điều chỉnh GẦN NHẤT (nếu có) lên đơn để hiển thị SỐ HIỆN HÀNH — KHÔNG đổi gì trong CSDL, chỉ dựng lại DTO trả về. Dịch vụ có mặt trong
  * `after` được tính lại bằng `recomputeService`; dịch vụ vắng mặt (nhập tay, hoặc đơn CHƯA có điều chỉnh — `after = []`) giữ nguyên như đã lưu.
  * An toàn: nếu tính lại lỗi (không nên xảy ra — đã kiểm lúc ghi), giữ dịch vụ đó như đã lưu thay vì làm hỏng cả trang.
@@ -104,6 +117,15 @@ export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { 
     subtotal += recomputed.subtotal;
     return { ...s, pax: recomputed.pax, items: recomputed.lines.map(toItemDto) };
   });
-  const total = subtotal - order.discount;
-  return { ...order, subtotal, total, remainingAmount: total - order.depositAmount, services };
+  return { ...order, subtotal, ...effectiveMoney(subtotal, order.discount, order.depositAmount), services };
+}
+
+/**
+ * `total`/`remainingAmount` từ `subtotal` hiệu lực (gốc hoặc đã cộng điều chỉnh) — `discount`/`depositAmount` KHÔNG đổi qua route sửa số khách
+ * (chỉ FIELD sửa số khách/dịch vụ, không đụng cọc/giảm giá). Dùng chung cho overlay CHI TIẾT một đơn (`applyAdjustmentToOrder`) và DANH SÁCH
+ * nhiều đơn (`orders/repository.ts:listOrders`) — hai nơi trước đây tính lệch nhau (danh sách hiện số gốc, chi tiết hiện số mới).
+ */
+export function effectiveMoney(subtotal: number, discount: number, depositAmount: number): { total: number; remainingAmount: number } {
+  const total = subtotal - discount;
+  return { total, remainingAmount: total - depositAmount };
 }

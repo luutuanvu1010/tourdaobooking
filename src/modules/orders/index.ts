@@ -2,13 +2,13 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { getAuditTrail } from "../audit";
-import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
+import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import type { PaxCounts } from "../../shared/order-lines";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
-import { parseMoneyEditInput, recomputeService } from "./money-adjustment";
+import { editablePaxCodesOf, parseMoneyEditInput, recomputeService } from "./money-adjustment";
 import {
   cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getLatestAdjustment, getMeta, getStoredServices, insertMoneyAdjustment, listOrders, updateDraftOrder, updateTrip,
 } from "./repository";
@@ -92,6 +92,48 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
 
   const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, before, after, subtotalBefore, subtotalAfter, input.reason);
   return ok ? { ok: true } : { ok: false, code: "stale" };
+}
+
+/**
+ * Dữ liệu cho màn "việc của tôi" của FIELD (`GET /api/dispatch/mine`, module dispatch) — tái dùng `loadOrderView` (đã có overlay điều chỉnh,
+ * ADR-0014 điều 6) rồi LỌC BỎ mọi trường tiền trước khi trả ra, đúng ADR-0007 điều 3 ("không tiền, không bảng giá" cho FIELD). `orderIds` do
+ * `dispatch` truyền vào (đơn mà staff gọi đang là người phụ trách — dispatch tự tra, orders không biết khái niệm "người phụ trách").
+ * `editablePaxCodes` tính từ đơn GỐC (`findOrder`, trước overlay) qua `editablePaxCodesOf` — KHÔNG tính từ `items` của bản đã overlay
+ * (`loadOrderView`), vì overlay có thể bỏ hẳn dòng của một loại khách đã bị sửa về 0, làm loại đó biến mất khỏi ô nhập (lỗi thật, kiểm độc lập
+ * 2026-09-22).
+ */
+export async function getMyAssignments(db: D1Database, orderIds: readonly string[]): Promise<MyAssignmentDto[]> {
+  const [views, originals] = await Promise.all([
+    Promise.all(orderIds.map((id) => loadOrderView(db, id))),
+    Promise.all(orderIds.map((id) => findOrder(db, id))),
+  ]);
+  const originalById = new Map(originals.flatMap((o) => (o ? [[o.id, o] as const] : [])));
+  return views
+    .filter((o): o is OrderDetailDto => o !== null && o.status === "confirmed")
+    .map((o) => {
+      const editableById = new Map(originalById.get(o.id)!.services.map((s) => [s.id, editablePaxCodesOf(s)]));
+      return {
+        orderId: o.id,
+        orderCode: o.orderCode,
+        customerName: o.customerName,
+        customerPhone: o.customerPhone,
+        services: o.services.map((s) => ({
+          id: s.id,
+          name: s.name,
+          catalogCode: s.catalogCode,
+          pax: s.pax,
+          editablePaxCodes: [...(editableById.get(s.id) ?? [])],
+          departDate: s.departDate,
+          departTime: s.departTime,
+          pickupTime: s.pickupTime,
+          pickupPlace: s.pickupPlace,
+          checkinDate: s.checkinDate,
+          checkinTime: s.checkinTime,
+          checkinPlace: s.checkinPlace,
+          note: s.note,
+        })),
+      };
+    });
 }
 
 export const ordersModule: AppModule = {

@@ -2,7 +2,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
-import { isAdjustmentSeqCollision } from "./money-adjustment";
+import { effectiveMoney, isAdjustmentSeqCollision } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -220,16 +220,24 @@ export async function listOrders(
     .prepare(sql)
     .bind(...binds, opts.limit + 1, opts.offset)
     .all<OrderRow>();
-  const page = results.slice(0, opts.limit).map((r) => {
+  const rows = results.slice(0, opts.limit);
+  // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc status = confirmed) — bỏ qua để đỡ một điều kiện IN() thừa.
+  const idsMayHaveAdjustment = rows.filter((r) => r.status !== "draft").map((r) => r.id);
+  const latestSubtotals = await getLatestAdjustmentSubtotals(db, idsMayHaveAdjustment);
+  const page = rows.map((r) => {
     const d = toDto(r);
+    const subtotalAfter = latestSubtotals.get(d.id);
+    // SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất, nếu có) — cùng ý với trang chi tiết đơn (`loadOrderView`/`applyAdjustmentToOrder`), tránh lệch
+    // giữa danh sách và chi tiết (bản đầu chỉ sửa trang chi tiết, quên trang danh sách vẫn hiện số gốc).
+    const money = subtotalAfter === undefined ? { total: d.total, remainingAmount: d.remainingAmount } : effectiveMoney(subtotalAfter, d.discount, d.depositAmount);
     return {
       id: d.id,
       orderCode: d.orderCode,
       status: d.status,
       customerName: d.customerName,
       customerPhone: d.customerPhone,
-      total: d.total,
-      remainingAmount: d.remainingAmount,
+      total: money.total,
+      remainingAmount: money.remainingAmount,
       staffName: d.staffName,
       createdAt: d.createdAt,
     };
@@ -454,6 +462,24 @@ export async function getLatestAdjustment(db: D1Database, orderId: string): Prom
     .bind(orderId)
     .first<{ id: string; seq: number; after_json: string }>();
   return row ? { id: row.id, seq: row.seq, after: JSON.parse(row.after_json) } : null;
+}
+
+/**
+ * `subtotal_after` của dòng điều chỉnh GẦN NHẤT cho MỖI đơn trong `orderIds` (một lời gọi, không phải N truy vấn) — dùng cho `listOrders` overlay
+ * SỐ HIỆN HÀNH ở trang danh sách, cùng ý với `getLatestAdjustment` (dùng cho trang chi tiết MỘT đơn) nhưng không cần `after_json` đầy đủ (danh
+ * sách không hiện dịch vụ/số khách, chỉ tổng tiền). Đơn không có trong kết quả trả về = chưa có điều chỉnh nào.
+ */
+export async function getLatestAdjustmentSubtotals(db: D1Database, orderIds: readonly string[]): Promise<Map<string, number>> {
+  if (orderIds.length === 0) return new Map();
+  const placeholders = orderIds.map(() => "?").join(", ");
+  const { results } = await db
+    .prepare(
+      `SELECT a.order_id, a.subtotal_after FROM order_money_adjustment a
+       WHERE a.order_id IN (${placeholders}) AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = a.order_id)`,
+    )
+    .bind(...orderIds)
+    .all<{ order_id: string; subtotal_after: number }>();
+  return new Map(results.map((r) => [r.order_id, r.subtotal_after]));
 }
 
 /**

@@ -400,12 +400,85 @@ try {
   assert.ok(h14.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"));
   console.log("✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký");
 
+  // Trang DANH SÁCH đơn phải hiện ĐÚNG số như trang chi tiết (bản đầu chỉ sửa trang chi tiết, quên trang danh sách vẫn hiện số gốc — lỗi thật đã bắt).
+  const listed = (await call(A, "GET", `/api/orders?q=${o14.orderCode}`)).body.orders.find((x) => x.id === o14.id);
+  assert.ok(listed, "không tìm thấy đơn trong danh sách");
+  assert.equal(listed.total, 900000, "danh sách đơn phải hiện SỐ MỚI (đã cộng điều chỉnh), khớp trang chi tiết");
+  assert.equal(listed.remainingAmount, viewed.remainingAmount, "remainingAmount của danh sách phải khớp trang chi tiết");
+  console.log("✓ trang danh sách đơn hiện đúng số đã sửa, khớp trang chi tiết");
+
+  // Đơn ĐÃ CÓ điều chỉnh rồi bị HUỶ (qua đường thường của SALES, không phải handler-cancel) vẫn phải hiện đúng số đã sửa gần nhất — không được
+  // "quên" điều chỉnh và lùi lại số gốc chỉ vì đổi trạng thái sang cancelled (lỗi thật đã bắt: bản đầu chỉ overlay khi status === "confirmed").
+  const o16 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o16.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await setHandler(A, o16.id, fld.id)).status, 200);
+  r = await moneyEdit(FIELD, o16.id, { reason: "Trước khi huỷ", services: [{ id: o16.services[0].id, pax: pax(4) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await call(A, "POST", `/api/orders/${o16.id}/status`, { status: "cancelled" })).status, 200);
+  const viewedCancelled = await orderView(A, o16.id);
+  assert.equal(viewedCancelled.status, "cancelled");
+  assert.equal(viewedCancelled.subtotal, 1200000, "đơn đã huỷ vẫn phải hiện SỐ ĐÃ SỬA gần nhất (4 khách × 300,000), không lùi về số gốc (2 khách)");
+  const listedCancelled = (await call(A, "GET", `/api/orders?q=${o16.orderCode}`)).body.orders.find((x) => x.id === o16.id);
+  assert.equal(listedCancelled.total, 1200000, "danh sách đơn cũng phải khớp, kể cả đơn đã huỷ");
+  console.log("✓ đơn có điều chỉnh rồi bị huỷ: chi tiết lẫn danh sách vẫn hiện đúng số đã sửa gần nhất, không lùi về số gốc");
+
   // SUPER_ADMIN: any ở MỌI thao tác (ADR-0014 điều 2), kể cả route hẹp này — dùng được dù KHÔNG phải người phụ trách (đơn RIÊNG, không đụng o14).
   const o15 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
   assert.equal((await call(A, "POST", `/api/orders/${o15.id}/status`, { status: "confirmed" })).status, 200);
   r = await moneyEdit(SUPER, o15.id, { reason: "SUPER_ADMIN test", services: [{ id: o15.services[0].id, pax: pax(3) }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   console.log("✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)");
+
+  // "Việc của tôi": FIELD chỉ thấy đơn CHÍNH MÌNH đang phụ trách VÀ đã xác nhận — không thấy o10 (nháp), o11/o16 (đã huỷ), o15 (người khác phụ
+  // trách). Tuyệt đối không có trường tiền nào trong phản hồi.
+  const mine = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
+  const mineList = await mine(FIELD);
+  const mineIds = mineList.map((x) => x.orderId);
+  assert.ok(mineIds.includes(o14.id), "FIELD đang phụ trách o14 (đã xác nhận) phải thấy trong danh sách");
+  for (const [label, id] of [["o10 (nháp)", o10.id], ["o11 (đã huỷ)", o11.id], ["o16 (đã huỷ)", o16.id], ["o15 (người khác phụ trách)", o15.id]]) {
+    assert.ok(!mineIds.includes(id), `${label} không được có trong danh sách của FIELD`);
+  }
+  const mine14 = mineList.find((x) => x.orderId === o14.id);
+  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services"]);
+  assert.deepEqual(
+    Object.keys(mine14.services[0]).sort(),
+    ["catalogCode", "checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "editablePaxCodes", "id", "name", "note", "pax", "pickupPlace", "pickupTime"].sort(),
+  );
+  assert.doesNotMatch(JSON.stringify(mine14), /subtotal|discount|total|price|amount/i, "tuyệt đối không lộ trường tiền nào");
+  assert.deepEqual(mine14.services[0].editablePaxCodes, ["adult"]);
+  assert.equal((await mine(A)).some((x) => x.orderId === o14.id), false, "SALES (đã đổi người phụ trách o14 sang FIELD từ đầu mục 14) không còn thấy o14 trong DANH SÁCH CỦA CHÍNH HỌ");
+  assert.deepEqual(await mine(ACC), [], "kế toán gọi được (access staff), chỉ không có đơn nào của họ — không lỗi");
+  console.log("✓ GET /api/dispatch/mine: chỉ đơn CHÍNH MÌNH đang phụ trách, đã xác nhận, không có trường tiền nào");
+
+  // editablePaxCodes không được "mất" loại khách sau khi bị sửa về 0 (lỗi thật tìm được lúc kiểm độc lập 2026-09-22): dịch vụ theo người có HAI
+  // loại khách (adult+child) — sửa trẻ em về 0 rồi gọi lại /api/dispatch/mine phải VẪN thấy "child" trong editablePaxCodes (server vẫn chấp nhận
+  // đặt lại > 0 sau đó), không phải chỉ còn "adult".
+  await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES
+    ('ZH2','Tour thử (nhiều loại khách)','perPax',300000,150000,NULL,NULL,NULL,NULL,NULL,98,1,${T14},${T14})`);
+  try {
+    const o17 = (await call(A, "POST", "/api/orders", orderInput({
+      services: [{ kind: "catalog", catalogCode: "ZH2", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 300000, child: 150000 }, departDate: vnDate(7) }],
+    }))).body.order;
+    const svc17 = o17.services[0].id;
+    assert.equal((await call(A, "POST", `/api/orders/${o17.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, o17.id, fld.id)).status, 200);
+
+    let mine17 = (await mine(FIELD)).find((x) => x.orderId === o17.id);
+    assert.deepEqual(mine17.services[0].editablePaxCodes.slice().sort(), ["adult", "child"], "lúc đầu có cả hai loại khách");
+
+    r = await moneyEdit(FIELD, o17.id, { reason: "Khách báo bé không đi nữa", services: [{ id: svc17, pax: pax(2) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+
+    mine17 = (await mine(FIELD)).find((x) => x.orderId === o17.id);
+    assert.equal(mine17.services[0].pax.child, 0, "số khách hiện hành đúng là 0");
+    assert.deepEqual(mine17.services[0].editablePaxCodes.slice().sort(), ["adult", "child"], "sửa trẻ em về 0 KHÔNG được làm ô nhập trẻ em biến mất");
+
+    r = await moneyEdit(FIELD, o17.id, { reason: "Khách đổi ý, bé đi lại", services: [{ id: svc17, pax: { adult: 2, child: 1, senior: 0, infant: 0 } }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body), "máy chủ vẫn phải cho đặt lại > 0 sau khi đã về 0");
+    console.log("✓ editablePaxCodes không mất loại khách sau khi bị sửa về 0 (bug tìm được lúc kiểm độc lập, đã vá)");
+  } finally {
+    await sql("DELETE FROM catalog_item WHERE code = 'ZH2'").catch((e) => console.error("dọn danh mục giả ZH2 thất bại:", String(e).slice(0, 200)));
+  }
 
   // Tranh chấp: N yêu cầu gửi gần như đồng thời, MỖI yêu cầu tự đọc "trạng thái gần nhất" tại thời điểm nó chạy — vì wrangler dev xử lý các
   // request bằng một luồng sự kiện xen kẽ (không phải song song thật), NHIỀU yêu cầu có thể đọc-rồi-ghi kế tiếp nhau hợp lệ (không phải lúc nào
