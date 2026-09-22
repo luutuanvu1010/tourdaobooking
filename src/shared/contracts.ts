@@ -162,8 +162,15 @@ export interface OrderSummaryTripDto {
 
 export type OrderSummaryDto = Pick<
   OrderDto,
-  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "total" | "remainingAmount" | "staffName" | "createdAt"
->;
+  "id" | "orderCode" | "status" | "customerName" | "customerPhone" | "customerNote" | "total" | "depositAmount" | "remainingAmount" | "staffName" | "createdAt"
+> & {
+  /** Tên các dịch vụ theo đúng thứ tự trong đơn (sort_order) — client tự quyết hiện đầu + "+N dịch vụ" hay liệt kê hết (§7 mục 3). */
+  serviceNames: string[];
+  /** Tổng số khách theo loại, CỘNG DỒN mọi dịch vụ của đơn. */
+  pax: PaxCounts;
+  /** Của dịch vụ ĐẦU TIÊN (sort_order nhỏ nhất); mọi trường null nếu đơn chưa có dịch vụ nào. */
+  trip: OrderSummaryTripDto;
+};
 
 /** Thông tin chuyến client gửi lên: "" = chưa có. */
 export interface TripInput {

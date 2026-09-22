@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, manualService, randomPhone, session, sql } from "./lib.mjs";
+import { ACCOUNTS, call, login, manualService, randomPhone, session, sql, vnDate } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
@@ -27,6 +27,19 @@ console.log("tạo:", o.orderCode, o.subtotal, o.total, o.remainingAmount, o.sta
 assert.match(o.orderCode, /^TD-\d{8}-\d{4}$/);
 assert.equal(o.subtotal, 1400000); assert.equal(o.total, 1300000); assert.equal(o.remainingAmount, 800000);
 assert.deepEqual(lines(o).map((i) => i.lineTotal), [1350000, 50000]);
+
+// Danh sách đơn trả đủ trường cho thẻ mới (đặc tả thiết kế lại giao diện §7, §16 mục 1)
+r = await call(A, "GET", "/api/orders?limit=100");
+assert.equal(r.status, 200);
+const summary = r.body.orders.find((x) => x.id === o.id);
+assert.ok(summary, "đơn vừa tạo phải có trong danh sách");
+assert.deepEqual(summary.serviceNames, ["Dịch vụ thử"], "tên dịch vụ mặc định của manualService");
+assert.deepEqual(summary.pax, { adult: 3, child: 0, senior: 0, infant: 0 });
+assert.equal(summary.trip.departDate, vnDate(7), "departDate mặc định của manualService");
+assert.equal(summary.trip.pickupTime, null, "không gửi pickupTime trong input này");
+assert.equal(summary.trip.pickupPlace, null);
+assert.equal(summary.depositAmount, 500000);
+assert.equal(summary.customerNote, null, "input không gửi customerNote");
 
 // nhân viên B xem được đơn của A
 r = await call(Bc, "GET", `/api/orders/${o.id}`);

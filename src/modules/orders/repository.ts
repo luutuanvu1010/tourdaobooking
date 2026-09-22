@@ -259,21 +259,44 @@ export async function listOrders(
     .prepare(sql)
     .bind(...binds, opts.limit + 1, opts.offset)
     .all<OrderRow>();
-  const page = results.slice(0, opts.limit).map((r) => {
-    const d = toDto(r);
+  const page = results.slice(0, opts.limit).map(toDto);
+
+  // Tóm tắt dịch vụ CHỈ cho các đơn thật sự trả về (page, KHÔNG PHẢI results — results có thêm 1 dòng để dò hasMore).
+  // page.length ≤ opts.limit ≤ 100 (chặn ở intParam của route GET /api/orders) nên IN (...) luôn có giới hạn.
+  const summaries = page.length
+    ? summarizeServices(
+        (
+          await db
+            .prepare(
+              `SELECT order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
+               FROM order_service WHERE order_id IN (${page.map(() => "?").join(",")}) ORDER BY order_id, sort_order`,
+            )
+            .bind(...page.map((d) => d.id))
+            .all<ServiceSummaryRow>()
+        ).results,
+      )
+    : new Map<string, ServiceSummary>();
+
+  const orders: OrderSummaryDto[] = page.map((d) => {
+    const s = summaries.get(d.id) ?? EMPTY_SUMMARY;
     return {
       id: d.id,
       orderCode: d.orderCode,
       status: d.status,
       customerName: d.customerName,
       customerPhone: d.customerPhone,
+      customerNote: d.customerNote,
       total: d.total,
+      depositAmount: d.depositAmount,
       remainingAmount: d.remainingAmount,
       staffName: d.staffName,
       createdAt: d.createdAt,
+      serviceNames: s.serviceNames,
+      pax: s.pax,
+      trip: s.trip,
     };
   });
-  return { orders: page, hasMore: results.length > opts.limit };
+  return { orders, hasMore: results.length > opts.limit };
 }
 
 const isCodeCollision = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: orders\.order_code/.test(e.message);
