@@ -1,0 +1,101 @@
+# ADR-0014 — Tài khoản đối tác (PARTNER), phạm vi "của mình" được thực thi ở máy chủ, vai Super Admin, và mở sửa số khách/dịch vụ/tiền sau xác nhận cho người phụ trách qua dòng điều chỉnh
+
+- **Trạng thái:** **proposed** (AI soạn 2026-09-22, chờ chủ dự án duyệt). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-22   **Người phê chuẩn:** chủ dự án (chưa duyệt)
+- **Loại quyết định:** **hỗn hợp**. Thêm mã quyền `PARTNER`/`SUPER_ADMIN` và thực thi phạm vi ở tầng liệt kê là **cửa hai chiều** (dữ liệu thêm mới bằng `INSERT` vào `stf_permission_type`, không đổi cấu trúc, gỡ được bằng một commit). Mở `order.money.edit` cho `FIELD` (điều 6) là **cửa một chiều cho các dòng liên quan tiền**, kế thừa đúng nguyên tắc đã ghi ở ADR-0007 điều 5 loại quyết định: dữ liệu ghi theo quyền mới (dòng điều chỉnh tiền của người phụ trách FIELD) không rút lại được sau khi đã có bản ghi thật.
+- **Liên quan:** thay **ADR-0010 điều 1** (ngưỡng mở rộng phạm vi dữ liệu); sửa một phần **ADR-0007** (bảng quyền → thao tác điều 1: thêm hai cột, đổi ô `order.money.edit` của `FIELD`); mở rộng **ADR-0009** (định nghĩa "người phụ trách" ra một loại thứ hai); không đổi ADR-0001, ADR-0005 (cơ chế `stf_permission_type` đa trị dùng lại nguyên vẹn), ADR-0011 (ngoại lệ tạo hồ sơ khách khi lập đơn), ADR-0013 (hồ sơ gắn tài khoản chỉ ADMIN sửa — `PARTNER` không có `party.write` nên tự động nằm trong diện chặn). Nguồn: `docs/AUDIT-2026-09-22-DOI-TAC.md` (D-01, D-02, D-03, D-05 một phần), trả lời của chủ dự án ở §4.1–§4.3 của tài liệu đó. Soạn cùng đặc tả `docs/superpowers/specs/2026-09-22-khoa-tien-don-da-xac-nhan.md` (câu hỏi 1 của §6 tài liệu đó được trả lời ở điều 6 dưới đây) và đặc tả ngắn đi kèm `docs/superpowers/specs/2026-09-22-tai-khoan-doi-tac-super-admin.md`.
+
+## Bối cảnh
+
+Chủ dự án xác nhận quy mô thật (2026-09-22): ~30 nhân viên nội bộ và tới ~1000 tài khoản đối tác ngoài (cộng tác viên/CTV, hướng dẫn viên và lái xe/cano bên ngoài, lễ tân khách sạn, công ty du lịch). Toàn bộ mô hình quyền hiện có giả định "mọi người đăng nhập đều là nhân viên cùng công ty, tin nhau về dữ liệu" (`src/modules/orders/index.ts:2`), đúng với ADR-0005/0007/0009 lúc soạn nhưng sai với tiền đề mới. `ADR-0010` điều 1 đã đặt sẵn ngưỡng: khi "(ii) đại lý được đăng nhập để xem đơn của chính họ" thì phải viết ADR mới thay điều đó — kịch bản chủ vừa nêu chạm đúng ngưỡng này.
+
+Kiểm toán `docs/AUDIT-2026-09-22-DOI-TAC.md` xác nhận bằng đọc mã và chạy thử (`tests/audit/doi-tac.test.mjs`, 25/25 xanh): cấp tài khoản Bán hàng cho người ngoài hôm nay = họ liệt kê được **mọi** đơn của mọi người (tên, SĐT khách, tiền), tra được **mọi** hồ sơ khách/đại lý theo SĐT, và sửa được hồ sơ do người khác tạo (D-01). Không có khái niệm "tài khoản thuộc tổ chức/loại đối tác" (D-02). Hướng dẫn viên nội bộ (quyền `FIELD`) chưa dùng được màn hình đơn nào và không được đặt làm người phụ trách (D-03).
+
+Chủ dự án đã trả lời các câu hỏi mở (§4.1–§4.3 của tài liệu kiểm toán, ghi gần nguyên văn):
+1. Trước mắt: **CTV (nói chung) chỉ thấy đơn của họ**; **nhân viên công ty thấy hết đơn**, kể cả SĐT khách. Về sau các lựa chọn phạm vi này phải thành **nút bấm tuỳ chọn trong bảng điều khiển của một vai mới, Super Admin** — vai cao nhất, trên Admin, hiện chưa tồn tại, gắn cho SĐT của chủ dự án.
+2. Đối tác được **tự lập đơn**.
+3. Đối tác thấy **giá bán lẻ**; ảnh xác nhận/hoá đơn luôn là giá bán lẻ.
+4. Mỗi đối tác có **đúng một tài khoản**; chỉ Admin và Super Admin quản lý tài khoản đó (không có "quản trị của đối tác tự quản người của họ").
+5. CTV **không** tra được hồ sơ khách theo SĐT.
+6. CTV **được** sửa, xác nhận, huỷ đơn của chính mình.
+7. Đơn do CTV lập: **bất kỳ nhân viên hoặc hướng dẫn viên nội bộ nào** cũng nhận phụ trách được (trước đây chỉ `SALES`/`ADMIN`).
+8. Hướng dẫn viên/lái cano **bên ngoài**: được lập đơn như CTV, **không** được tự nhận việc — việc phải do nhân viên công ty gán hoặc xác nhận thủ công.
+9. Làm rõ thêm (§4.3): sau khi CTV lập và đơn được xác nhận, **hướng dẫn viên có thể phải sửa** (khách đổi số lượng, phát sinh thực tế, đổi gói dịch vụ); nhật ký sửa đổi phải để **cả CTV và admin đều thấy**.
+10. Không cần hỏi luật sư (NĐ 13/2023).
+
+Chưa trả lời (ngoài phạm vi ADR này, xem "Ngoài phạm vi"): mở thí điểm cho một nhóm nhỏ CTV hay mở hết cùng lúc; nghĩa chính xác của "gán hoặc xác nhận thủ công" ở điều 8 trên.
+
+## Quyết định
+
+**1. Thêm hai mã quyền mới, dùng lại nguyên cơ chế đa trị đã có (ADR-0005, `stf_permission_type`/`stf_permission`), không đổi cấu trúc dữ liệu:**
+   - `PARTNER` ("Đối tác"): tài khoản của người ngoài công ty — CTV, hướng dẫn viên/lái xe/lái cano bên ngoài, lễ tân khách sạn, công ty du lịch. Một mã dùng chung cho mọi loại đối tác (đúng câu trả lời 4 và 8 ở trên: tất cả đều "một tài khoản, không tự nhận việc, không tự quản người của tổ chức mình").
+   - `SUPER_ADMIN` ("Super Admin"): vai trên `ADMIN`. Không thay thế `ADMIN` — một tài khoản Super Admin vẫn có thể cần giữ cả `ADMIN` cho các thao tác thường ngày.
+
+**2. Bản đồ quyền → thao tác (thay bảng điều 1 của ADR-0007, thêm hai cột `PARTNER`/`SUPER_ADMIN`; các ô của `SALES`/`ACCOUNTING`/`ADMIN`/`FIELD` giữ nguyên như ADR-0007/0009, trừ đúng một ô nêu ở điều 6):**
+
+**Quy tắc một câu cho `SUPER_ADMIN` (không có ngoại lệ ngầm):** `SUPER_ADMIN` = **`any`** ở **mọi** thao tác đang có trong `MATRIX` — kể cả những thao tác không liệt kê trong bảng dưới (`order.trip.edit`, `task.progress`, `dispatch.assign`, `dispatch.claim`, `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue`, `feedback.triage`…) — **duy nhất một ngoại lệ**: thao tác mới `admin.manage.superadmin`, nơi `ADMIN` = `none`. Quy tắc này tự nó là tiêu chí kiểm (một test duyệt toàn bộ cột `SUPER_ADMIN`), không cần liệt kê tay từng ô. Vì `can()` hợp (union) các quyền một tài khoản đang giữ, một tài khoản có cả `SUPER_ADMIN` lẫn `ADMIN` không đổi hành vi so với chỉ giữ `SUPER_ADMIN`; ADR này không bắt tài khoản Super Admin phải giữ thêm `ADMIN`, chỉ nói rằng giữ thêm không hại gì.
+
+| Thao tác | PARTNER | Ghi chú |
+|---|---|---|
+| `order.view`, `money.view`, `order.history.view`, `contact.view` | **own** | Của CTV/đối tác đó, thực thi ở máy chủ — xem điều 3 |
+| `order.create` | any | được tự lập đơn (câu 2) |
+| `order.modify` (lập/sửa/xác nhận/huỷ đơn nháp) | **own** | câu 6 |
+| `order.trip.edit`, `task.progress`, `dispatch.assign`, `dispatch.claim` | none | đối tác không tự nhận việc, không đổi người phụ trách (câu 8) |
+| `order.money.edit` (số khách/dịch vụ/tiền **sau xác nhận**) | none | đối tác không sửa tiền sau xác nhận; xem điều 6 cho `FIELD` |
+| `payment.receive`, `payment.refund`, `invoice.request`, `invoice.issue` | none | tiền vẫn nội bộ, ngoài phạm vi ADR này (D-06) |
+| `party.view`, `party.write` | **none** | câu 5: không tra/sửa danh bạ; lập đơn vẫn tạo hồ sơ khách mới trong cùng batch qua ngoại lệ ADR-0011, không đi qua `party.write` |
+| `admin.manage`, `admin.manage.superadmin` | none | không quản lý tài khoản/quyền, kể cả của chính mình |
+| `feedback.submit` | any | không đổi (mọi tài khoản đăng nhập) |
+| `feedback.view` | own | |
+| `feedback.triage` | none | |
+
+`admin.manage.superadmin` **(thao tác mới)**: gán/gỡ quyền `SUPER_ADMIN` của một tài khoản. `ADMIN` = **none**, `SUPER_ADMIN` = `any` (theo quy tắc một câu ở trên) — để `ADMIN` không tự leo lên `SUPER_ADMIN`.
+
+**3. "own"/"none" ở các thao tác liệt kê/tra cứu (`order.view`, `party.view`, `contact.view`…) phải được thực thi bằng lọc SQL ở máy chủ, không chỉ dùng để kiểm một bản ghi như cách `Scope` đang được dùng cho `order.modify` hôm nay.** Cụ thể: `listOrders` (`src/modules/orders/repository.ts:197`) nhận thêm điều kiện lọc theo người gọi khi phạm vi là `own` (`WHERE o.staff_id = ?`); route `GET /api/orders` (`src/modules/orders/index.ts:48`) truyền phạm vi đó dựa trên `can(staff, "order.view")`. Vì `PARTNER` có `party.view = none`, route `/api/parties*` chặn thẳng ở mức route (như `admin.manage` đang chặn `SALES` hôm nay), không cần lọc theo tổ chức.
+
+**4. Super Admin.** Gieo **đúng một** dòng `stf_permission` gắn `SUPER_ADMIN` cho tài khoản của chủ dự án (SĐT 0989929373) bằng **SQL theo runbook lúc thi công, không migration** — cùng bài học đã rút ra ở chế độ bảo trì (CLAUDE.md §10, "đừng gieo SĐT vào migration"). Cơ chế bảo trì (`mnt_setting.allowed_phones`) **giữ nguyên, không gộp vào `SUPER_ADMIN` trong ADR này** (xem "Phương án bị loại").
+
+**5. Phạm vi theo tổ chức (ADR-0010 điều 1, vế (ii)) — ngưỡng đã chạm nhưng CHƯA làm ngay.** Chủ dự án xác nhận (câu 1) rằng nhu cầu trước mắt là phạm vi **cá nhân** ("own", đã có sẵn trong `Scope`, không phải phạm vi "theo nơi/tổ chức" mà ADR-0010 dự tính cho một đại lý nhiều người cùng xem chung một tập đơn). **ADR này thay ADR-0010 điều 1**: ngưỡng để thêm phạm vi `location`/theo tổ chức chuyển thành "khi có ≥ 2 tài khoản cùng một tổ chức đối tác cần thấy chung một tập đơn của tổ chức đó" (chưa xảy ra — mỗi đối tác hôm nay là một cá nhân, một tài khoản).
+
+**Điểm CHƯA tự quyết — cần chủ dự án trả lời trực tiếp, không suy đoán:** câu 1 của chủ dự án nói nguyên văn "các lựa chọn kiểu này **phải** thành nút bấm tuỳ chọn trong bảng điều khiển của Super Admin" — đây là một chỉ thị, không phải gợi ý. Người soạn **đề xuất hoãn** việc xây nút bấm đó (lý do: hiện chỉ có đúng một giá trị phạm vi thật sự cần dùng — "chỉ đơn của mình" — chưa có giá trị thứ hai để bật/tắt giữa chúng, nên chưa có ca dùng thật để kiểm, đúng tinh thần ADR-0010). Nhưng đây là **đề xuất trái với chỉ thị trực tiếp của chủ**, không phải điều ADR này tự quyết được — xem câu hỏi 1 ở đặc tả ngắn đi kèm (`docs/superpowers/specs/2026-09-22-tai-khoan-doi-tac-super-admin.md` §6). Nếu chủ dự án không đồng ý hoãn, mục này của ADR phải viết lại trước khi duyệt: thêm bảng `stf_setting`/cấu hình đọc lúc chạy cho ô `order.view`/`money.view`/`contact.view`/`order.history.view` của `PARTNER`, chỉ `SUPER_ADMIN` sửa được, mặc định giá trị hôm nay là "own".
+
+**6. Người phụ trách (mở rộng ADR-0009) có hai cấp, không còn là một loại duy nhất:**
+   - **Cấp đầy đủ** (`SALES`/`ADMIN`, không đổi): sửa/xác nhận/huỷ đơn (`order.modify`), sửa thông tin vận hành (`order.trip.edit`), sửa số khách/dịch vụ/tiền sau xác nhận (`order.money.edit`).
+   - **Cấp mới, hẹp** (`FIELD` — nhân viên nội bộ đóng vai hướng dẫn viên/thực hiện): khi **đang được giao phụ trách** một đơn, được sửa **số khách, dịch vụ và tiền sau xác nhận** (`order.money.edit`, ô `FIELD` đổi từ `none` sang **`assigned`**) theo đúng ba bất biến đã duyệt ở ADR-0007 điều 2 (lý do bắt buộc; bản ghi trước→sau chỉ-thêm; tiền tự tính lại ở máy chủ, chênh lệch với tiền đã thu được đánh dấu cho `ACCOUNTING`) — **không** đổi thêm `order.modify` hay `order.trip.edit` của `FIELD` (vẫn `none`): hướng dẫn viên không tự xác nhận/huỷ đơn, không sửa giờ/điểm đón (việc đó vẫn qua `task.progress`, đã có).
+   - `dispatch/rules.ts:checkAssignee` (điều kiện "có quyền để người phụ trách luôn sửa được đơn") đổi từ chỉ hỏi `order.modify` sang chấp nhận **một trong hai**: `order.modify` phạm vi `assigned` (cấp đầy đủ) **hoặc** `order.money.edit` phạm vi `assigned` (cấp hẹp) — phản ánh đúng hai cấp trên; thông điệp từ chối đổi theo.
+   - **Bất biến giữ nguyên (ADR-0007 điều 3):** `FIELD` vẫn không xem tổng tiền, bảng giá hay lịch sử đơn ở bất kỳ bề mặt nào. Route riêng cho `FIELD` (nguyên tắc điều 4(c) của ADR-0007, không dùng `/api/orders*` chung) mở rộng thêm một thao tác: đổi số khách/dịch vụ của đơn được giao mà **không hiển thị đơn giá hay tổng tiền** cho `FIELD` — máy chủ tính lại, chỉ người lập đơn (CTV) và `ACCOUNTING`/`ADMIN` thấy số tiền đổi qua `order.history.view`.
+   - Đây chính là câu trả lời cho **câu hỏi 1 của §6**, tài liệu `docs/superpowers/specs/2026-09-22-khoa-tien-don-da-xac-nhan.md`: chọn **phương án (a)** — không sửa đè, ghi dòng điều chỉnh chỉ-thêm (ai, khi nào, vì sao, trước→sau) — đúng khuyến nghị đã ghi ở đó và đáp ứng đúng yêu cầu câu 9 ở trên ("CTV và admin đều thấy sự thay đổi", ví dụ nhãn "Được sửa"). Thiết kế bảng "dòng điều chỉnh" cụ thể thuộc N3 (ADR riêng khi làm sổ thu tiền, theo đúng ADR-0007 điều 5 đã hẹn).
+
+**7. Đóng lỗ liên quan (D-02):** `POST /api/staff` khi không kèm danh sách quyền, đổi mặc định từ tự động `SALES` sang **không quyền nào** (đóng cùng lúc vì đang sửa vùng này; không đổi hành vi màn quản trị vốn đã bắt buộc chọn quyền).
+
+## Lý do
+- Dùng lại nguyên cơ chế `stf_permission_type` đa trị (ADR-0005) cho `PARTNER`/`SUPER_ADMIN`: thêm quyền mới = một dòng dữ liệu, không phải thiết kế lại bảng hay quan hệ Party (đúng nhận định D-02 của kiểm toán: "không phải dựng lại mô hình Party").
+- Giữ nguyên `Scope` năm giá trị hiện có (`own` đã đủ cho yêu cầu trước mắt của chủ) thay vì thêm phạm vi theo tổ chức ngay: đúng tinh thần "không làm trước khi có nhu cầu thật" mà chính ADR-0010 đã lập luận, và khớp câu trả lời 1 của chủ (đối tác là cá nhân, không phải "một tổ chức nhiều người dùng chung một tập đơn").
+- Tách hai cấp "người phụ trách" thay vì mở `order.modify` cho `FIELD`: giữ đúng bất biến "FIELD không thấy tiền/giá" (ADR-0007 điều 3) trong khi vẫn đáp ứng đúng yêu cầu cụ thể của chủ (hướng dẫn viên sửa số khách/dịch vụ sau khi tiếp nhận) — mở ít nhất có thể, không mở toang cả bốn thao tác sửa đơn cho một quyền vốn được thiết kế để không thấy tiền.
+- Dòng điều chỉnh chỉ-thêm (không sửa đè) là cơ chế **đã được duyệt** ở ADR-0007 điều 2 cho mọi thao tác `order.money.edit`; áp cùng cơ chế cho `FIELD` không tạo ngoại lệ mới, chỉ mở rộng ai được gọi tới nó — và giải quyết đúng yêu cầu "CTV, admin đều thấy sự thay đổi" bằng đúng một cơ chế, không cần hai.
+- Không gộp `mnt_setting.allowed_phones` vào `SUPER_ADMIN` ngay: cơ chế bảo trì đang chạy trên production, đổi cơ chế đó là việc lớn (triển khai) rủi ro tự khoá chủ dự án — tách ra một đặc tả riêng khi thật sự cần, không bó vào ADR đang giải quyết việc khác.
+
+## Phương án bị loại
+- **Cấp tạm quyền `SALES` cho đối tác** (cách làm ngầm định trước khi có ADR này): đây chính là lỗ D-01 — lộ toàn bộ sổ khách và sổ đơn cho ~1000 tài khoản ngoài; bị loại vì đúng là điều ADR này phải chặn.
+- **Thêm phạm vi `location`/theo tổ chức ngay bây giờ** (đúng như ADR-0010 điều 1 đã dự tính khi ngưỡng chạm): bị loại vì chủ dự án xác nhận nhu cầu trước mắt là phạm vi cá nhân; thêm phạm vi tổ chức bây giờ là thiết kế trước nhu cầu thật, không có ca dùng để kiểm (không có tài khoản đối tác thứ hai của cùng một tổ chức để thử).
+- **Xây "bảng điều khiển Super Admin" đổi phạm vi lúc chạy ngay trong ADR/đặc tả này:** bị loại cùng lý do trên — hiện chỉ có một giá trị phạm vi thật sự cần (`own`), chưa có giá trị thứ hai để "bật/tắt" giữa chúng; xây cơ chế cấu hình cho một lựa chọn duy nhất là phí công, dựng khi có nhu cầu thứ hai.
+- **Mở `order.modify` (cả bốn: lập/sửa/xác nhận/huỷ) cho `FIELD` khi được giao:** bị loại vì vượt quá điều chủ yêu cầu (chỉ cần sửa số khách/dịch vụ/tiền, không cần tự xác nhận/huỷ đơn) và phá vỡ bất biến "FIELD không thấy tiền" trên diện rộng hơn mức cần thiết.
+- **Gộp `mnt_setting.allowed_phones` vào khái niệm `SUPER_ADMIN` ngay** (gợi ý của người kiểm toán): bị loại cho ADR này — đổi cơ chế bảo trì đang chạy thật trên production là việc triển khai riêng, rủi ro cao hơn lợi ích "gộp một khái niệm" mang lại ngay bây giờ; để lại thành một đặc tả sau, không bắt buộc.
+- **Cho phép "quản trị của công ty đối tác" tự quản tài khoản người của họ** (một hướng D-08 gợi ý): chủ dự án đã bác trực tiếp (câu 4: chỉ Admin/Super Admin quản lý tài khoản đối tác).
+- **Diễn giải sẵn "gán hoặc xác nhận thủ công" (câu 8) thành một trong hai cơ chế cụ thể** (nhân viên gán thẳng, hay đối tác "xin nhận" rồi nhân viên duyệt): bị loại — đây là hành vi/quy trình mới (không phải cửa quyền), thuộc phạm vi đặc tả thi công, cần chủ dự án chọn trước (xem "Ngoài phạm vi").
+
+## Hệ quả
+- **Mã cần sửa khi thi công (không nằm trong ADR, để đặc tả/kế hoạch):** `src/shared/permissions.ts` (`PERMISSION_CODES` + hai cột mới + ô `FIELD`/`order.money.edit`, thêm thao tác `admin.manage.superadmin`), `src/modules/orders/repository.ts:listOrders` (tham số lọc theo `own`), `src/modules/orders/index.ts:48` (route `GET /api/orders` truyền phạm vi), route đơn/`GET /api/orders/:id` (từ chối khi không phải đơn của `PARTNER` gọi), `/api/parties*` (chặn `PARTNER` ở mức route), `src/modules/dispatch/rules.ts:checkAssignee` (điều kiện hai cấp), route riêng cho `FIELD` sửa số khách/dịch vụ (module `dispatch`, không phải `orders` — giữ nguyên ADR-0007 điều 4(c)), `src/modules/accounts/index.ts:131` (mặc định không quyền), migration mới (data-only: `INSERT INTO stf_permission_type` hai dòng `PARTNER`/`SUPER_ADMIN`, số lấy lúc thi công theo `CLAUDE.md` §10), test khoá bản đồ quyền (`src/shared/permissions.test.ts` hay tương đương) cập nhật theo bảng điều 2.
+- **Việc lớn** theo CLAUDE.md §3 (đụng quyền + tiền + dữ liệu): thi công xong bắt buộc có subagent kiểm độc lập, chỉ đọc, trước khi báo "đạt".
+- `docs/adr/README.md` thêm dòng ADR-0014; ADR-0010 điều 1 trong tài liệu đó đổi trạng thái tham chiếu thành "một phần bị thay bởi ADR-0014" khi ADR này được duyệt (không sửa nội dung ADR-0010, chỉ ghi chú theo đúng luật "không sửa ADR đã accepted").
+- `docs/SYSTEM-DESIGN.md` §7/§8/§15 (từ vựng bốn quyền) cần thêm `PARTNER`/`SUPER_ADMIN` khi ADR này được duyệt — mô tả, thua mã, sửa cùng commit thi công theo CLAUDE.md §2.
+- Nợ để lại, chưa giải quyết ở ADR này (xem "Ngoài phạm vi"): D-04 (khoá theo SĐT/IP, phiên 7 ngày) nặng hơn với ~1000 đối tác; D-06 (hoa hồng/giá net); D-07 (danh sách đối tác nạp hết một lần — ảnh hưởng trực tiếp màn hình `dispatch.assign` khi có hàng trăm `FIELD`+`SALES`); D-08 (băng thông duyệt của một/hai Admin cho ~1000 tài khoản); cơ chế gộp bảo trì vào Super Admin.
+- Trước khi cấp bất kỳ tài khoản `PARTNER` thật nào: D-01 phải đã sửa và kiểm độc lập đạt (đúng thứ tự đề xuất §5 của tài liệu kiểm toán) — không cấp tài khoản đối tác song song với lúc mã còn ở trạng thái "proposed" của ADR này.
+
+## Ngoài phạm vi (cần chủ dự án quyết riêng, không chặn việc duyệt ADR này)
+0. **Chặn nhất — trái với chỉ thị của chủ, cần trả lời trước khi duyệt phần này:** bạn nói phạm vi xem đơn phải là nút bấm tuỳ chọn của Super Admin (câu 1, §4.1). Hiện chỉ có một lựa chọn thật sự cần ("chỉ đơn của mình"), nên ADR này **đề xuất hoãn** việc xây nút bấm, chờ khi có lựa chọn thứ hai thật sự cần dùng. Bạn đồng ý hoãn, hay muốn có nút bấm ngay dù chỉ có một lựa chọn?
+1. Mở thí điểm cho 5–10 CTV trước, hay mở hết ~1000 tài khoản cùng lúc (câu 5, §4.1 của tài liệu kiểm toán — chủ dự án chưa trả lời).
+2. Nghĩa chính xác của "gán hoặc xác nhận thủ công" cho hướng dẫn viên/lái xe bên ngoài (câu 8): (a) nhân viên gán thẳng việc cho họ, hay (b) họ bấm "xin nhận" rồi nhân viên xác nhận (quy trình hai bước mới). Cần chốt trước khi viết đặc tả thi công phần "gán việc" cho `PARTNER`.
+3. Đơn do CTV lập mà chưa ai nhận: có giữ luật "người lập là người phụ trách mặc định" (ADR-0009 điều 4) khi người lập là `PARTNER` không, hay bắt buộc một nhân viên/hướng dẫn viên nội bộ nhận trước khi xác nhận?
+4. Sau khi hướng dẫn viên sửa (điều 6), ảnh xác nhận có cần xuất lại bản mới không; CTV có được báo chủ động (không chỉ thấy khi mở lại đơn) không; có loại sửa nào hướng dẫn viên không được làm (ví dụ giảm giá) không.
+5. D-04, D-06, D-07, D-08 của tài liệu kiểm toán: giữ nguyên mức ưu tiên đã đề xuất ở đó, xử lý bằng ADR/đặc tả riêng.

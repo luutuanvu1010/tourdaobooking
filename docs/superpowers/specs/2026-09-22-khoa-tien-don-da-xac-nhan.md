@@ -102,6 +102,8 @@ BEGIN SELECT RAISE(ABORT, 'order_frozen: tiền của đơn không còn nháp');
 1. **Sau này (N3), khi kế toán cần sửa tiền của đơn đã xác nhận thì làm thế nào?** Đây là quyết định kiến trúc, cần ghi thành ADR lúc làm N3; hỏi bây giờ để khỏi phải gỡ khoá sau này.
    (a) **Không sửa đè; ghi một dòng "điều chỉnh" riêng**, kèm lý do, người làm, số trước và sau. Tổng đúng của đơn = tổng gốc + các điều chỉnh. **Khuyến nghị**: giữ được lịch sử, đúng cách ngành kế toán làm, và khoá này giữ nguyên mãi.
    (b) Cho sửa đè, kèm nhật ký trước và sau: đơn giản hơn, nhưng N3 phải gỡ hoặc nới khoá này.
+
+   **Cập nhật 2026-09-22 (nhánh `kiem-toan-doi-tac`, vai soạn):** câu hỏi này đã có một quyết định **proposed**, chưa accepted — `docs/adr/ADR-0014-tai-khoan-doi-tac-super-admin-va-sua-sau-xac-nhan.md` điều 6, chọn **phương án (a)**, do nhu cầu cụ thể xuất hiện sớm hơn dự tính: hướng dẫn viên nội bộ cần sửa số khách/dịch vụ/tiền của đơn do cộng tác viên lập, sau khi đã xác nhận (`docs/AUDIT-2026-09-22-DOI-TAC.md` §4.3). Trước khi chủ dự án duyệt ADR-0014, khoá ở tài liệu này **giữ nguyên as-is**, không đổi thiết kế bước B.
 2. **Hiện có lúc nào nhân viên cần sửa tiền cọc sau khi đã xác nhận đơn không?** Ví dụ khách chuyển khoản cọc sau. Nếu **có**, hôm nay họ làm bằng cách nào (huỷ rồi lập lại, hay ghi ngoài hệ thống)? Câu trả lời không đổi việc này (mã hiện tại vốn không cho sửa), nhưng quyết định N3 cần làm gấp đến đâu.
 3. **Đồng ý bạn tự chạy lệnh kiểm chỉ-đọc ở bước A trên production không?** Hướng dẫn từng bước sẽ có trong kế hoạch thi công.
 
