@@ -79,6 +79,8 @@
   --logo-login: 72px;
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
+  --fs-hero: 28px;          /* cỡ chữ khẩu hiệu ở cột thương hiệu trang Đăng nhập (máy tính) */
+  --w-login-wide: calc(var(--w-main) - var(--s4)); /* bề rộng khối 2 cột trang Đăng nhập ở máy tính, không vượt --w-main */
   --fs-name: 1.1rem;        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
   --fs-bar-title: 1.125rem; /* tiêu đề trên thanh đầu trang (điện thoại) */
   --h-turnstile: 65px;      /* chiều cao cố định của widget Cloudflare Turnstile (cỡ "flexible"/"normal"): khung giữ chỗ để widget dựng xong không đẩy nút Đăng nhập */
@@ -503,3 +505,16 @@ body.maint-open { overflow: hidden; }
 .booker { display: grid; gap: var(--s2); margin-top: var(--s3); }
 .booker-matches { display: grid; gap: var(--s2); }
 .booker-match { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
+
+/* ---------- cột thương hiệu trang Đăng nhập (Đợt C, chỉ máy tính) ---------- */
+@media (max-width: 899px) { .login-brand { display: none; } } /* dưới 900px: main.login không phải grid, cột thương hiệu không có chỗ đứng gọn — ẩn để giữ nguyên trạng ở điện thoại */
+@media (min-width: 900px) {
+  body.login-page main.login { display: grid; grid-template-columns: 1fr 1fr; align-items: stretch; max-width: var(--w-login-wide); margin: 6vh auto 0; gap: 0; padding: 0; background: var(--c-on-dark); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); overflow: hidden; }
+  .login-brand { display: flex; flex-direction: column; justify-content: space-between; gap: var(--s6); padding: var(--s7); color: var(--c-on-dark); background: linear-gradient(160deg, var(--c-primary), var(--c-primary-strong)); }
+  .login-brand-head { display: flex; align-items: center; gap: var(--s3); }
+  .login-brand-tagline { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-hero); line-height: 1.25; }
+  .login-brand-points { display: flex; flex-direction: column; gap: var(--s3); font-size: var(--fs-ui); line-height: 1.6; opacity: .9; }
+  .login-brand-foot { font-size: var(--fs-label); opacity: .8; }
+  .login-form-col { display: flex; flex-direction: column; justify-content: center; padding: var(--s7); }
+  .login-form-col .card { box-shadow: none; padding: 0; margin: 0; }
+}

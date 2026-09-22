@@ -2,24 +2,37 @@
 <html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tour Đảo"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Đăng nhập — Tour Đảo Booking</title></head>
 <body class="login-page">
 <main class="login">
-  <img class="login-logo" src="/icons/icon-192.png" alt="" width="72" height="72">
-  <h1>Tour Đảo Booking</h1>
-  <!-- Banner chế độ bảo trì: web/login.ts hiện khi GET /api/auth/config báo đang bảo trì (hoặc đăng nhập bị 503 `maintenance`). KHÔNG che form: chủ dự án vẫn phải đăng nhập được. -->
-  <div id="maintenance-banner" class="alert warn login-maintenance" role="status" hidden><p id="maintenance-text"></p></div>
-  <form id="login-form" class="card" autocomplete="on">
-    <div id="error" class="alert" role="alert" hidden></div>
-    <label>Số điện thoại<input id="phone" type="tel" inputmode="tel" autocomplete="username" required autofocus></label>
-    <label>Mã PIN 6 số<input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="current-password" required></label>
-    <!-- Khung của widget Cloudflare Turnstile: web/login.ts chỉ hiện và dựng khi máy chủ báo có khoá (GET /api/auth/config). -->
-    <div id="turnstile-widget" class="login-turnstile" hidden></div>
-    <button id="turnstile-retry" class="btn" type="button" hidden>Thử lại</button>
-    <button id="submit" class="btn btn-primary" type="submit">Đăng nhập</button>
-  </form>
-  <!-- Chân trang: dòng phiên bản do web/login.ts điền từ src/shared/app-info.ts; khối công ty do web/login.ts dựng từ GET /api/company (lỗi/chậm thì ẩn). -->
-  <footer class="login-info">
-    <p id="release" class="login-release"></p>
-    <div id="company" class="login-company" hidden></div>
-  </footer>
+  <!-- Cột thương hiệu: chỉ hiện ở máy tính (≥900px, xem public/app.css); chữ tĩnh, không gọi thêm API. -->
+  <div class="login-brand">
+    <div class="login-brand-head"><img src="/icons/icon-192.png" alt="" width="40" height="40"><span>Tour Đảo Booking</span></div>
+    <div class="login-brand-tagline">Lập đơn, chốt chỗ, theo chuyến trong một app.</div>
+    <div class="login-brand-points">
+      <div>Đơn hàng hiện đủ giờ đón, khách, tiền còn lại.</div>
+      <div>Ảnh xác nhận gửi khách qua Zalo ngay từ đơn.</div>
+      <div>Cài lên iPhone như một app, dùng được ngoài hiện trường.</div>
+    </div>
+    <div class="login-brand-foot">Công ty TNHH Tour Đảo · Nha Trang, Khánh Hoà</div>
+  </div>
+  <div class="login-form-col">
+    <img class="login-logo" src="/icons/icon-192.png" alt="" width="72" height="72">
+    <h1>Tour Đảo Booking</h1>
+    <!-- Banner chế độ bảo trì: web/login.ts hiện khi GET /api/auth/config báo đang bảo trì (hoặc đăng nhập bị 503 `maintenance`). KHÔNG che form: chủ dự án vẫn phải đăng nhập được. -->
+    <div id="maintenance-banner" class="alert warn login-maintenance" role="status" hidden><p id="maintenance-text"></p></div>
+    <form id="login-form" class="card" autocomplete="on">
+      <div id="error" class="alert" role="alert" hidden></div>
+      <label>Số điện thoại<input id="phone" type="tel" inputmode="tel" autocomplete="username" required autofocus></label>
+      <label>Mã PIN 6 số<input id="pin" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="current-password" required></label>
+      <!-- Khung của widget Cloudflare Turnstile: web/login.ts chỉ hiện và dựng khi máy chủ báo có khoá (GET /api/auth/config). -->
+      <div id="turnstile-widget" class="login-turnstile" hidden></div>
+      <button id="turnstile-retry" class="btn" type="button" hidden>Thử lại</button>
+      <button id="submit" class="btn btn-primary" type="submit">Đăng nhập</button>
+    </form>
+    <!-- Chân trang: dòng phiên bản do web/login.ts điền từ src/shared/app-info.ts; khối công ty do web/login.ts dựng từ GET /api/company (lỗi/chậm thì ẩn). -->
+    <footer class="login-info">
+      <p id="release" class="login-release"></p>
+      <div id="company" class="login-company" hidden></div>
+    </footer>
+  </div>
 </main>
 <script type="module" src="/js/login.js"></script>
 </body></html>
