@@ -1,4 +1,4 @@
-import { auditStatement } from "../audit";
+import { auditStatement, type AuditAction } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
@@ -426,12 +426,16 @@ export async function confirmOrder(db: D1Database, id: string, staffId: string, 
   return (results[0]!.meta.changes ?? 0) > 0;
 }
 
-/** Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). */
-export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string): Promise<boolean> {
+/**
+ * Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)`
+ * (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không
+ * detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
+ */
+export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, opts?: { action?: AuditAction; detail?: string }): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const results = await db.batch([
     db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ?`).bind(at, id, from),
-    auditStatement(db, { orderId: id, staffId, action: "cancelled", at }, "changes() > 0"),
+    auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail }, "changes() > 0"),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }

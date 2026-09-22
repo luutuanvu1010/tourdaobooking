@@ -280,4 +280,62 @@ console.log("✓ canModify đi theo người phụ trách hiện tại (người
 const histO1 = await history(A, o1);
 assert.ok(histO1.some((h) => h.action === "order_handler_changed"));
 assert.deepEqual(await history(C.cookie, o1), [], "SALES không liên quan không xem nhật ký đơn (ADR-0007)");
+console.log("✓ nhật ký đơn: người phụ trách xem được, người không liên quan thì không");
+
+// --- 13) POST /api/orders/:id/handler-cancel: FIELD huỷ đơn đang phụ trách, lý do đóng, không đổi cột tiền (ADR-0014 điều 11)
+const handlerCancel = (cookie, orderId, body) => call(cookie, "POST", `/api/orders/${orderId}/handler-cancel`, body);
+const orderMoney = async (orderId) => (await sqlRows(`SELECT status, subtotal, total, deposit_amount FROM orders WHERE id = '${orderId}'`))[0];
+
+// Đơn nháp: FIELD chưa là người phụ trách (mặc định là A, người lập) → 403; gán rồi thử huỷ khi CÒN NHÁP → 409 (route chỉ nhận đơn đã xác nhận).
+const o10 = await newOrder(A);
+r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+console.log("✓ FIELD không phải người phụ trách → 403");
+
+assert.equal((await setHandler(A, o10.id, fld.id)).status, 200);
+r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "not_editable");
+console.log("✓ đơn nháp (chưa xác nhận) → 409, chưa huỷ được qua đường này");
+
+// Đơn xác nhận được (orderInput() mặc định đã có departDate/pax hợp lệ — xác nhận thẳng): xác nhận, gán FIELD, thử lý do sai rồi lý do đúng.
+const o11 = await newOrder(A);
+assert.equal((await call(A, "POST", `/api/orders/${o11.id}/status`, { status: "confirmed" })).status, 200);
+assert.equal((await setHandler(A, o11.id, fld.id)).status, 200);
+
+r = await handlerCancel(FIELD, o11.id, {});
+assert.equal(r.status, 400, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "invalid_input");
+console.log("✓ thiếu lý do → 400");
+
+r = await handlerCancel(FIELD, o11.id, { reason: "vì tôi thích vậy" });
+assert.equal(r.status, 400);
+console.log("✓ lý do ngoài danh sách đóng → 400");
+
+r = await handlerCancel(A, o11.id, { reason: "customer_requested" });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+console.log("✓ SALES (không dùng route này, dù là người lập) → 403");
+
+const beforeMoney = await orderMoney(o11.id);
+r = await handlerCancel(FIELD, o11.id, { reason: "customer_requested" });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body, { ok: true });
+const afterMoney = await orderMoney(o11.id);
+assert.equal(afterMoney.status, "cancelled");
+assert.deepEqual([afterMoney.subtotal, afterMoney.total, afterMoney.deposit_amount], [beforeMoney.subtotal, beforeMoney.total, beforeMoney.deposit_amount], "huỷ không đổi cột tiền");
+const h11 = await history(A, o11);
+const entry = h11.find((x) => x.action === "order_cancelled_by_field");
+assert.ok(entry, "phải có dòng nhật ký riêng cho huỷ qua đường FIELD");
+assert.match(entry.detail ?? "", /Khách yêu cầu huỷ/);
+console.log("✓ FIELD đang phụ trách huỷ đơn đã xác nhận, đúng lý do → 200, không đổi tiền, có dòng nhật ký riêng cho kế toán");
+
+r = await handlerCancel(FIELD, o11.id, { reason: "customer_requested" });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "not_editable", "đơn đã huỷ rồi, không huỷ lại được");
+console.log("✓ huỷ đơn đã huỷ rồi → 409");
+
+r = await handlerCancel(FIELD, "00000000-0000-4000-8000-000000000000", { reason: "customer_requested" });
+assert.equal(r.status, 404);
+console.log("✓ đơn không tồn tại → 404");
+
 console.log("E2E DISPATCH OK");

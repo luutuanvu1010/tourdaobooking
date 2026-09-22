@@ -4,13 +4,14 @@
 // router khớp theo đoạn nên không đụng route của `orders`).
 // Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch`: gốc lắp ráp (src/index.ts) tiêm `isOrderHandler` và
 // `defaultHandlerStatement` vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
-import { findOrderOwner } from "../orders";
+import { cancelOrderByHandler, findOrderOwner } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
-import type { AssigneeDto, AssigneesResponse, HandlerDto, HandlersResponse, SetHandlerResponse } from "../../shared/contracts";
+import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlersResponse, SetHandlerResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { findHandlerOf, findHandlersOf, insertHandlerStatement, isHandler, type HandlerRow } from "./repository";
-import { checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseOrderIds, parseSetHandler } from "./rules";
+import { CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler } from "./rules";
 import { handlerChangeStatements } from "./service";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
@@ -20,6 +21,9 @@ const FORBIDDEN = () =>
   error(403, "forbidden", "Chỉ người lập đơn, người phụ trách hiện tại hoặc quản trị viên mới được đổi người phụ trách. Đơn chưa có người phụ trách thì nhân viên bán hàng nhận cho chính mình được.");
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
 const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
+const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
+const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn nháp hoặc đã huỷ không dùng được.");
+const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
@@ -95,6 +99,26 @@ export const dispatchModule: AppModule = {
       if ((results[0]!.meta.changes ?? 0) === 0) return STALE();
       const now = await findHandlerOf(env.DB, orderId);
       return json({ handler: toDto(now!) } satisfies SetHandlerResponse);
+    }),
+
+    // Huỷ đơn qua đường hẹp của người phụ trách CẤP HẸP (FIELD đang phụ trách — ADR-0014 điều 11). Không dùng cho SALES/ADMIN/PARTNER (họ huỷ qua
+    // POST /api/orders/:id/status như hôm nay — order.cancel của họ vẫn "none"). Thứ tự: 404 → 403 (không phải người phụ trách/không có order.cancel) →
+    // 409 (không phải đơn đã xác nhận, hoặc đã bị đổi trạng thái) → 400 (lý do) → ghi.
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned }) => {
+      const orderId = params.id!;
+      if (!UUID_RE.test(orderId)) return NOT_FOUND();
+      const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
+      if (!order) return NOT_FOUND();
+      if (!can(staff, "order.cancel", { assigned })) return CANCEL_FORBIDDEN();
+      if (order.status !== "confirmed") return NOT_CONFIRMED();
+      const input = parseCancelReason(await readJson(request));
+      if (!input.ok) return error(400, "invalid_input", input.message);
+      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, CANCEL_REASON_LABEL[input.reason]);
+      if (!ok) {
+        const now = await findOrderOwner(env.DB, orderId);
+        return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();
+      }
+      return json({ ok: true } satisfies HandlerCancelResponse);
     }),
   ],
 };
