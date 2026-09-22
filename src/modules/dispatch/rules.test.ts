@@ -1,7 +1,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
-import { MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler, parseOrderIds, parseSetHandler } from "./rules.ts";
+import {
+  MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
+  parseCancelReason, parseOrderIds, parseSetHandler,
+} from "./rules.ts";
 
 const ID = (n: number): string => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
 
@@ -78,6 +81,19 @@ test("mọi quyền hiện có được xếp vào đúng nhóm được giao / 
   // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).
   // PARTNER (own, không phải assigned) CHƯA đủ điều kiện — cấp thứ ba của PARTNER (điều 10) là Phase C, không phải checkAssignee.
   assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
+});
+
+// --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11) -------------------------------------------------------------------------
+test("lý do huỷ: đúng một trong hai mã đóng", () => {
+  assert.deepEqual(parseCancelReason({ reason: "not_reachable" }), { ok: true, reason: "not_reachable" });
+  assert.deepEqual(parseCancelReason({ reason: "customer_requested" }), { ok: true, reason: "customer_requested" });
+});
+
+test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đóng → từ chối, thông điệp nêu cả hai lựa chọn hợp lệ", () => {
+  for (const body of [null, {}, { reason: "" }, { reason: "khác" }, { reason: 1 }, { reason: "Không liên hệ được với khách" }, { reason: "NOT_REACHABLE" }]) {
+    const r = parseCancelReason(body as Record<string, unknown> | null);
+    assert.ok(!r.ok && /Không liên hệ được với khách/.test(r.message) && /Khách yêu cầu huỷ/.test(r.message), JSON.stringify(body));
+  }
 });
 
 // --- Ai được đặt/đổi người phụ trách (ADR-0009 điều 1–2) --------------------------------------------------------------

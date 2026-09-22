@@ -57,6 +57,22 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
   return { ok: true, partyId: who.partyId, name: who.fullName };
 }
 
+/** Lý do huỷ đơn của FIELD qua route hẹp (ADR-0014 điều 11) — danh sách ĐÓNG, đúng nguyên văn câu trả lời của chủ dự án, không thêm/bớt. */
+export const CANCEL_REASONS = ["not_reachable", "customer_requested"] as const;
+export type CancelReason = (typeof CANCEL_REASONS)[number];
+export const CANCEL_REASON_LABEL: Record<CancelReason, string> = {
+  not_reachable: "Không liên hệ được với khách",
+  customer_requested: "Khách yêu cầu huỷ",
+};
+const isCancelReason = (v: unknown): v is CancelReason => typeof v === "string" && (CANCEL_REASONS as readonly string[]).includes(v);
+
+/** Thân `POST /api/orders/:id/handler-cancel`: `{ reason }`. */
+export function parseCancelReason(body: Record<string, unknown> | null): Parsed<{ reason: CancelReason }> {
+  const reason = body?.reason;
+  if (!isCancelReason(reason)) return { ok: false, message: `Lý do huỷ phải là một trong: "${CANCEL_REASON_LABEL.not_reachable}", "${CANCEL_REASON_LABEL.customer_requested}".` };
+  return { ok: true, reason };
+}
+
 /**
  * Người dùng `who` được đặt/đổi người phụ trách của đơn không (ADR-0009):
  *  - `dispatch.assign` (người lập HOẶC người phụ trách hiện tại; quản trị mọi đơn) — người lập giữ quyền cả khi đã giao lại;
