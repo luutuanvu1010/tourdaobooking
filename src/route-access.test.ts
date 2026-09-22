@@ -8,7 +8,7 @@
 // gõ nhầm "admin" thành "staff" (hay ngược lại) ở `route(method, path, access, handler)` không bị bất kỳ bài kiểm nào bắt.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import * as esbuild from "esbuild";
@@ -141,7 +141,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
 // đưa vào MODULES, route của nó không được canh mức truy cập gì cả — bài kiểm chính bên dưới vẫn xanh vì nó chỉ thấy 11 module đã liệt kê,
 // không tự phát hiện module thứ 12. Bài kiểm này quét THƯ MỤC thật (không hardcode số 11) để bắt đúng tình huống đó.
 test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppModule` (module mới có route không được lặng lẽ thoát khỏi bài kiểm)", () => {
-  const dirs = readdirSync(join(SRC_DIR, "modules"));
+  const dirs = readdirSync(join(SRC_DIR, "modules")).filter((d) => statSync(join(SRC_DIR, "modules", d)).isDirectory());
   const routedDirs = dirs
     .filter((d) => /export const \w+Module\s*:\s*AppModule/.test(readFileSync(join(SRC_DIR, "modules", d, "index.ts"), "utf8")))
     .sort();
