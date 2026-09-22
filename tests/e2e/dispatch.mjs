@@ -429,6 +429,27 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   console.log("✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)");
 
+  // "Việc của tôi": FIELD chỉ thấy đơn CHÍNH MÌNH đang phụ trách VÀ đã xác nhận — không thấy o10 (nháp), o11/o16 (đã huỷ), o15 (người khác phụ
+  // trách). Tuyệt đối không có trường tiền nào trong phản hồi.
+  const mine = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
+  const mineList = await mine(FIELD);
+  const mineIds = mineList.map((x) => x.orderId);
+  assert.ok(mineIds.includes(o14.id), "FIELD đang phụ trách o14 (đã xác nhận) phải thấy trong danh sách");
+  for (const [label, id] of [["o10 (nháp)", o10.id], ["o11 (đã huỷ)", o11.id], ["o16 (đã huỷ)", o16.id], ["o15 (người khác phụ trách)", o15.id]]) {
+    assert.ok(!mineIds.includes(id), `${label} không được có trong danh sách của FIELD`);
+  }
+  const mine14 = mineList.find((x) => x.orderId === o14.id);
+  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services"]);
+  assert.deepEqual(
+    Object.keys(mine14.services[0]).sort(),
+    ["catalogCode", "checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "editablePaxCodes", "id", "name", "note", "pax", "pickupPlace", "pickupTime"].sort(),
+  );
+  assert.doesNotMatch(JSON.stringify(mine14), /subtotal|discount|total|price|amount/i, "tuyệt đối không lộ trường tiền nào");
+  assert.deepEqual(mine14.services[0].editablePaxCodes, ["adult"]);
+  assert.equal((await mine(A)).some((x) => x.orderId === o14.id), false, "SALES (đã đổi người phụ trách o14 sang FIELD từ đầu mục 14) không còn thấy o14 trong DANH SÁCH CỦA CHÍNH HỌ");
+  assert.deepEqual(await mine(ACC), [], "kế toán gọi được (access staff), chỉ không có đơn nào của họ — không lỗi");
+  console.log("✓ GET /api/dispatch/mine: chỉ đơn CHÍNH MÌNH đang phụ trách, đã xác nhận, không có trường tiền nào");
+
   // Tranh chấp: N yêu cầu gửi gần như đồng thời, MỖI yêu cầu tự đọc "trạng thái gần nhất" tại thời điểm nó chạy — vì wrangler dev xử lý các
   // request bằng một luồng sự kiện xen kẽ (không phải song song thật), NHIỀU yêu cầu có thể đọc-rồi-ghi kế tiếp nhau hợp lệ (không phải lúc nào
   // cũng đúng MỘT yêu cầu thắng); bất biến CẦN kiểm không phải "đúng 1 thắng" mà là KHÔNG BAO GIỜ có hai yêu cầu cùng ghi trùng một `seq` (chỉ
