@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { checkAccountChange, generatePin, isWeakPin } from "./rules.ts";
+import { canManageAccount, checkAccountChange, generatePin, isWeakPin } from "./rules.ts";
 
 const admin = { id: "a1", permissions: ["ADMIN"] as const, active: true };
 const sales = { id: "s1", permissions: ["SALES"] as const, active: true };
@@ -26,6 +26,19 @@ test("sửa nhân viên thường luôn được (không phải admin cuối)", 
   assert.equal(checkAccountChange("a1", sales, { active: false }, 1), null);
   assert.equal(checkAccountChange("a1", sales, { permissions: ["SALES", "ADMIN"] }, 1), null);
   assert.equal(checkAccountChange("a1", { id: "z", permissions: ["ADMIN"] as const, active: false }, { active: true }, 1), null, "admin đã ngưng không tính là mất admin");
+});
+
+test("canManageAccount (ADR-0014 điều 8): ADMIN quản lý được cấp dưới, không quản lý được ADMIN/SUPER_ADMIN khác; SUPER_ADMIN quản lý được mọi tài khoản", () => {
+  assert.equal(canManageAccount(["ADMIN"], ["SALES"]), true);
+  assert.equal(canManageAccount(["ADMIN"], ["PARTNER"]), true);
+  assert.equal(canManageAccount(["ADMIN"], []), true);
+  assert.equal(canManageAccount(["ADMIN"], ["ADMIN"]), false);
+  assert.equal(canManageAccount(["ADMIN"], ["SUPER_ADMIN"]), false);
+  assert.equal(canManageAccount(["ADMIN"], ["SUPER_ADMIN", "ADMIN"]), false);
+  assert.equal(canManageAccount(["SUPER_ADMIN"], ["ADMIN"]), true);
+  assert.equal(canManageAccount(["SUPER_ADMIN"], ["SUPER_ADMIN"]), true);
+  assert.equal(canManageAccount(["SUPER_ADMIN", "ADMIN"], ["ADMIN"]), true, "giữ cả hai quyền vẫn quản lý được nhờ SUPER_ADMIN");
+  assert.equal(canManageAccount(["SALES"], ["SALES"]), false, "không giữ ADMIN/SUPER_ADMIN thì không quản lý ai");
 });
 
 test("PIN yếu bị loại; PIN sinh ra luôn 6 số và không yếu", () => {
