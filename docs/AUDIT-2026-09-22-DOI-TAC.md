@@ -130,6 +130,22 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 
 **Quyết định:** mở thí điểm cho **5 CTV** trước, không mở hết ~1000 tài khoản cùng lúc. Chưa chốt: thời gian thí điểm, tiêu chí để mở rộng, các đợt tiếp theo. Gợi ý đã nêu với chủ, chưa được duyệt: khoảng 2 tuần; mở tiếp khi không có sự cố lộ dữ liệu, không có đơn lệch tiền, và các lỗi người dùng báo đã sửa; rồi mở theo đợt (50 → 200 → tất cả). Điều kiện trước thí điểm vẫn giữ: D-01 đã sửa và kiểm độc lập đạt (ADR-0014, "Hệ quả").
 
+### 4.5. Chủ dự án trả lời 6 câu mở của ADR-0014 / đặc tả tài khoản đối tác (2026-09-22, ghi gần nguyên văn)
+
+1. **Nút bấm tuỳ chọn cho Super Admin: đồng ý hoãn.**
+2. **Giao việc cho HDV/lái cano bên ngoài: họ bấm "xin nhận", rồi nhân viên duyệt** (quy trình hai bước).
+3. **Người phụ trách khi CTV lập đơn:** cho phép CTV **chọn một HDV nội bộ trong danh sách**; không chọn thì hệ thống **để trống** (đơn chưa có người phụ trách).
+4. **Sau khi HDV sửa đơn:** xuất lại ảnh xác nhận mới là **tuỳ chọn**, nhưng nút **luôn hiện sẵn**; hệ thống **báo sự thay đổi đến CTV**. **HDV nội bộ được cập nhật tên dịch vụ, số lượng, hoặc HUỶ đơn**, huỷ thì **phải nêu rõ lý do**: "Không liên hệ được với khách" hoặc "Khách yêu cầu huỷ".
+5. **Thời gian thí điểm: 2 tuần** (5 CTV, §4.4).
+6. **Duyệt ADR-0014.**
+
+**Ghi chú của người kiểm (không phải quyết định). Ba chỗ ADR-0014 hiện viết KHÁC câu trả lời trên, phải sửa trong ADR trước khi chuyển sang accepted:**
+- **Câu 4, HDV huỷ đơn:** ADR-0014 điều 6 (dòng 72) ghi `order.modify` của `FIELD` vẫn `none`, "hướng dẫn viên không tự xác nhận/huỷ đơn", và "Phương án bị loại" (dòng 97) loại đúng việc mở huỷ cho `FIELD`. Chủ nay cho **HDV nội bộ huỷ đơn đang phụ trách, kèm lý do bắt buộc từ danh sách đóng (2 lý do)**. Cần một thao tác huỷ riêng cho người phụ trách `FIELD`, tách khỏi `order.modify` (không mở luôn sửa nháp/xác nhận). Việc này chạm tiền (đơn huỷ còn tiền cọc: vòng 1 F-08).
+- **Câu 3, người phụ trách mặc định:** hiện người lập đơn là người phụ trách mặc định (ADR-0009 điều 4). Với CTV thì đổi thành: CTV chọn một HDV nội bộ, hoặc để trống. Hệ quả: CTV cần thấy **danh sách HDV nội bộ** (chỉ tên nội bộ, không phải danh sách mọi tài khoản như `GET /api/dispatch/assignees` hôm nay, D-07). Đơn trống người phụ trách thì nhân viên/HDV nội bộ tự nhận (§4.2 câu 3).
+- **Câu 2, "xin nhận rồi duyệt":** quy trình mới hai bước (trạng thái "đang xin nhận" → nhân viên duyệt/từ chối). ADR-0014 để việc này "ngoài phạm vi"; nay đã có câu trả lời, nên đưa vào ADR hoặc đặc tả riêng.
+- **Câu 4, "báo sự thay đổi đến CTV":** hiện **không có kênh báo tin cho người dùng**. Chỉ có email cho quản trị (`src/modules/feedback/notify.ts`) và chấm đếm trong ứng dụng cho Góp ý (`GET /api/feedback/badge`). Cách rẻ nhất, cùng khuôn đã có: chấm đếm "đơn của bạn vừa được sửa" trong ứng dụng. Thông báo đẩy về điện thoại là việc lớn hơn nhiều (PWA push trên iPhone). Cần chốt trong đặc tả.
+- **Câu 6 (duyệt):** ghi nhận chủ đã duyệt. Vì văn bản ADR còn trái câu 4 (và thiếu câu 2, câu 3), **phiên soạn phải sửa ADR theo §4.5 rồi mới đổi trạng thái sang accepted**, không đổi trạng thái trên văn bản đang mâu thuẫn.
+
 ## 5. Thứ tự đề xuất
 
 1. **Không cấp tài khoản cho bất kỳ người ngoài nào** trên hệ thống hiện tại cho tới khi D-01 được sửa (nói với chủ một lần — P18).
