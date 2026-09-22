@@ -143,6 +143,29 @@ test("R10 PASS session: tài khoản bị ngưng → phiên đang mở bị từ
   assert.equal((await w.call("GET", "/api/orders", { as: A })).status, 401);
 });
 
+test("R11 PASS feedback: người khác không đọc/trả lời được yêu cầu của mình (404), không vào hàng đợi admin; ghi chú nội bộ ẩn với người gửi; gửi lại cùng clientRequestId → cùng một yêu cầu", async () => {
+  const w = setup();
+  const req = { kind: "BUG", title: "Lỗi in ảnh", body: "Chi tiết riêng tư", clientRequestId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" };
+  const t1 = await w.call("POST", "/api/feedback", { as: A, body: req });
+  assert.equal(t1.status, 201, t1.text);
+  const id = t1.json.ticket.id;
+  const t2 = await w.call("POST", "/api/feedback", { as: A, body: req });
+  assert.equal(t2.status, 200);
+  assert.equal(t2.json.ticket.id, id);
+  assert.equal(w.q("SELECT count(*) n FROM fbk_ticket")[0].n, 1);
+  for (const who of [B, F, K]) {
+    assert.equal((await w.call("GET", `/api/feedback/${id}`, { as: who })).status, 404);
+    assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: who, body: { body: "chen vao" } })).status, 404);
+    assert.equal((await w.call("GET", "/api/feedback", { as: who })).status, 403);
+    assert.equal((await w.call("PATCH", `/api/feedback/${id}`, { as: who, body: { status: "DONE" } })).status, 403);
+  }
+  assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: A, body: { body: "x", internal: true } })).status, 403);
+  assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: ADM, body: { body: "ghi chu noi bo", internal: true } })).status, 201);
+  const mine = await w.call("GET", `/api/feedback/${id}`, { as: A });
+  assert.equal(mine.json.messages.some((m) => m.body === "ghi chu noi bo"), false);
+  assert.equal((await w.call("GET", "/api/feedback/mine", { as: B })).json.tickets.length, 0);
+});
+
 // ---------------- Tầng CSDL: lưới cuối có giữ được khi mã (hoặc SQL tay) sai? ----------------
 function confirmedOrder(w) {
   return (async () => {

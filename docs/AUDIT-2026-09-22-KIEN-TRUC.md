@@ -1,11 +1,13 @@
 # Kiểm toán kiến trúc độc lập — tourdao-sales (2026-09-22)
 
 > Vai: người kiểm độc lập, **chỉ đọc + thử phá**; không sửa mã, không đổi hành vi (REPORT FIRST). Nền: `origin/main` @ `f8d18a3` (mã giống hệt nhánh `canh-bao-don-trung` @ `d90ceed`, nhánh đó chỉ thêm một đặc tả).
-> Bằng chứng thực nghiệm: `tests/audit/` (bộ thử phá nạp **cả ứng dụng** lên SQLite thật, 16 ca + kế hoạch truy vấn). Chạy: `node --test "tests/audit/*.test.mjs"`.
+> Bằng chứng thực nghiệm: `tests/audit/` (bộ thử phá nạp **cả ứng dụng** lên SQLite thật, 17 ca thử phá + 1 kế hoạch truy vấn = 18 test). Chạy: `node --test "tests/audit/*.test.mjs"`.
 > Nhãn: **FACT** (quan sát/chạy trực tiếp) · **INFERENCE** (suy luận có căn cứ) · **RISK** · **REC** (khuyến nghị). Độ tin: HIGH/MEDIUM/LOW; chưa đủ bằng chứng = **NEEDS VERIFICATION**.
 > Kế thừa: `docs/AUDIT-FINDINGS.md` (2026-09-19, 20 mục, đã thi công). Không lặp lại các mục đã đóng ở đó.
 
-Lệnh đã chạy (2026-09-22): `npm test` → **443/443 pass**; `npm run typecheck` → **thoát 0** (dùng `node_modules` của bản checkout gốc); `node --test "tests/audit/*.test.mjs"` → **16/16** ca đúng như mô tả + kế hoạch truy vấn. **Không chạy** e2e (cần mạng + `wrangler dev`), không chạm D1 local/remote, không chạm production.
+Lệnh đã chạy (2026-09-22, trong worktree `kiem-toan-kien-truc` trên `f8d18a3`): `npm test` → **443/443 pass**; `npm run typecheck` → **thoát 0** (dùng `node_modules` của bản checkout gốc); `npm audit --omit=optional` → **0 vulnerabilities**; `node --test "tests/audit/*.test.mjs"` → **18/18** (17 ca thử phá đúng như mô tả + kế hoạch truy vấn). **Không chạy** e2e (cần mạng + `wrangler dev`), không chạm D1 local/remote, không chạm production.
+
+**Phạm vi thử phá:** thử bằng yêu cầu HTTP thật: `orders`, `parties`, `accounts`/`staff`, `auth`, `dispatch`, `feedback` (mọi module có phạm vi đọc/ghi theo người). **Chỉ đọc mã, không thử:** `catalog` (chỉ admin ghi), `locations` (chỉ admin ghi), `maintenance` (chỉ admin, chặn theo SĐT), `company` (chỉ đọc), `audit` (chỉ admin đọc).
 
 ---
 
@@ -127,7 +129,8 @@ Ngoài: Google Sheet (CSV công khai: danh mục dịch vụ mỗi 15' qua Cron,
 - **Evidence (FACT):** R1 — gửi cùng thân hai lần → 2 đơn (201, 201). R2 — kèm `newBooker` → 2 hồ sơ khách cùng SĐT. Chỉ mục SĐT **cố ý không duy nhất** (ADR-0001 mục 8) — đúng; phát hiện là máy chủ không có bất kỳ lớp chống trùng nào.
 - **Đang có:** đặc tả `docs/superpowers/specs/2026-09-22-canh-bao-don-trung.md` (nhánh `canh-bao-don-trung`, chờ chủ trả lời §6) — cảnh báo đơn của cùng khách trong 7 ngày, bắt được phần lớn ca bấm hai lần có cùng SĐT. **Không phủ:** (i) gửi lặp do mạng khi client không thấy phản hồi (PWA trên 4G — thực tế ở Nha Trang/trên tàu), vì client sẽ nhận `possible_duplicate` và người dùng dễ bấm "Vẫn lưu"; (ii) hồ sơ khách bị tạo trước khi so trùng.
 - **Why it matters:** hôm nay: đơn thừa + hồ sơ thừa (dọn tay được). Ở N3 (thu tiền/hoàn tiền/hoá đơn): cùng khuôn "POST ghi vô điều kiện" = **ghi nhận thu tiền hai lần** → sai số tiền đã thu, sai công nợ — lỗi tài chính.
-- **Recommended fix:** khoá idempotency do client sinh (`Idempotency-Key` UUID, lưu một bảng `idem_key(key, staff_id, route, response_hash, created_at)` hoặc cột `client_request_id UNIQUE` trên bảng gốc) — `INSERT … ON CONFLICT DO NOTHING` + trả lại kết quả lần đầu. Làm **một lần ở router/`shared`** để N3 dùng lại; bắt buộc cho mọi lệnh tạo tiền.
+- **Khuôn đã có trong chính repo (FACT, R11):** module `feedback` đã idempotent theo `clientRequestId` do thiết bị sinh — gửi lại trả đúng yêu cầu cũ, không gửi email lần hai (`feedback/index.ts` `POST /api/feedback`, `findByRequest`). Tức là hai module dùng hai khuôn khác nhau cho cùng một vấn đề.
+- **Recommended fix:** tổng quát hoá khuôn của `feedback` — khoá idempotency do client sinh (`Idempotency-Key` UUID, lưu một bảng `idem_key(key, staff_id, route, response_hash, created_at)` hoặc cột `client_request_id UNIQUE` trên bảng gốc) — `INSERT … ON CONFLICT DO NOTHING` + trả lại kết quả lần đầu. Làm **một lần ở router/`shared`** để N3 dùng lại; bắt buộc cho mọi lệnh tạo tiền.
 - **Effort:** M. **Regression risk:** thấp (thêm cột/bảng mới, client cũ không gửi khoá vẫn chạy như nay).
 
 ### F-03 — P1 · HIGH · Lưới CSDL cho tiền không phủ đơn đã xác nhận; không ai kiểm `subtotal = Σ line_total`
@@ -216,7 +219,8 @@ Ngoài: Google Sheet (CSV công khai: danh mục dịch vụ mỗi 15' qua Cron,
 | Secrets | chỉ qua `wrangler secret`; kiểm độ dài `SESSION_SECRET` ≥ 32 | `auth/index.ts` `checkAuthConfig` |
 | PII trong log | log mới không ghi SĐT; nhật ký cũ production còn (đã biết) | CLAUDE.md §7 |
 | SSRF/path traversal/upload/command injection | không áp dụng (không có upload, không fetch URL do người dùng đưa — Sheet ID là cấu hình) | |
-| Dependency vulns | không có dependency runtime; dev: esbuild/typescript/wrangler — **NOT VERIFIED** (`npm audit` chưa chạy vì worktree không có `node_modules`) | `package.json` |
+| Dependency vulns | không có dependency runtime; dev (esbuild/typescript/wrangler): `npm audit --omit=optional` → 0 | `package.json` |
+| Đọc chéo "chỉ của mình" (Góp ý) | PASS: người khác 404 khi đọc/trả lời, 403 hàng đợi/đổi trạng thái; ghi chú nội bộ ẩn với người gửi | R11 |
 | Admin takeover | admin đặt lại PIN của admin khác được (thiết kế, có nhật ký) | `accounts/index.ts` reset-pin |
 
 **Điểm yếu nhất:** F-01 (một nhân viên bình thường sửa được danh tính hiển thị của người khác, đi ra ngoài qua ảnh gửi khách).
@@ -225,7 +229,7 @@ Ngoài: Google Sheet (CSV công khai: danh mục dịch vụ mỗi 15' qua Cron,
 
 - **Mô hình (FACT):** D1 tuần tự hoá mỗi `batch()` như một giao dịch; mọi thao tác ghi quan trọng là MỘT batch với điều kiện thắng/thua trong chính câu SQL (`status = from`, `updated_at = expected`, `OTHER_ADMIN`, `insertHandlerIfNone`), nhật ký chỉ chèn khi `changes() > 0`. Đây là cách đúng trên D1 (không có khoá hàng, không giao dịch tương tác).
 - **Các ca ERP chuẩn:** slot cuối/overselling — **không áp dụng** (không có tồn chỗ). Payment webhook/refund/invoice/journal — **không tồn tại**. Hai admin cùng hạ quyền admin cuối — chặn trong câu SQL (có test). Hai người cùng đổi người phụ trách — 409 (test `dispatch/service.test.ts` + e2e).
-- **Idempotency test (§IX):** Create order ×2 → **FAIL** (R1). Confirm ×2, Cancel ×2 → **PASS** về kết quả nghiệp vụ (lần 2 trả 409, nhật ký 1 dòng — R7); lưu ý client nhận 409 chứ không phải "đã xong", giao diện phải tải lại. Capture payment/refund/invoice/journal/webhook — **không tồn tại**; F-02 là điều kiện tiên quyết trước khi chúng tồn tại.
+- **Idempotency test (§IX):** Create order ×2 → **FAIL** (R1). Create feedback ×2 cùng `clientRequestId` → **PASS** (R11). Confirm ×2, Cancel ×2 → **PASS** về kết quả nghiệp vụ (lần 2 trả 409, nhật ký 1 dòng — R7); lưu ý client nhận 409 chứ không phải "đã xong", giao diện phải tải lại. Capture payment/refund/invoice/journal/webhook — **không tồn tại**; F-02 là điều kiện tiên quyết trước khi chúng tồn tại.
 - **Race còn lại (đã biết, chấp nhận):** hồ sơ mới trong `booker.before` không mang điều kiện thắng — nếu sửa đơn thua tranh chấp, hồ sơ vừa tạo vẫn còn (ghi trong `updateDraftOrder`); ghi đè giá danh mục đồng thời (A16 cũ).
 - **Nguy hiểm nhất hiện nay:** gửi lặp tạo đơn/hồ sơ (F-02) — không phải race giữa hai người mà là retry của một người.
 
@@ -319,7 +323,7 @@ F-09 nhật ký thiếu request_id/trước-sau ─► sổ N3 chỉ-thêm giả
 | D Transaction | ✅ thắng/thua trong batch (dispatch, accounts) | |
 | E Concurrency | ✅ e2e `admin-race`, `dispatch` | |
 | E | ⬜ cùng `Idempotency-Key` ×10 → 1 đơn, 10 phản hồi giống nhau | F-02 |
-| F Security | 🆕 R4 IDOR, R5 dọc, R6 CSRF, R10 ngưng tài khoản | |
+| F Security | 🆕 R4 IDOR, R5 dọc, R6 CSRF, R10 ngưng tài khoản, R11 Góp ý | |
 | F | ⬜ "đăng xuất mọi thiết bị" làm token cũ 401 | F-06 |
 | G Performance | 🆕 kế hoạch truy vấn câu nóng (`query-plan.test.mjs`) | ⬜ ngưỡng p95 theo route từ số đo thật |
 | H Failure | ✅ Sheet lỗi/`syncGuard`; ⬜ D1 lỗi giữa batch (không dòng nào đổi) | |
@@ -343,6 +347,7 @@ Tất cả chạy thật trên cả ứng dụng (`tests/audit/redteam.test.mjs`
 | R8 | đơn huỷ còn "còn lại phải thu" | có (nợ ADR-0004) |
 | R9 | dùng lại cookie sau đăng xuất | **dùng được** |
 | R10 | phiên của tài khoản vừa bị ngưng | chặn ngay |
+| R11 | đọc/chen trả lời/đổi trạng thái Góp ý của người khác; ghi chú nội bộ; gửi lặp | chặn (404/403); nội bộ ẩn; gửi lặp → cùng một yêu cầu |
 | D1/D2 | SQL tay sửa tiền đơn đã xác nhận | **CSDL cho qua** |
 | D3 | sửa/xoá nhật ký, lùi trạng thái, xoá đơn | chặn |
 | D4 | hồ sơ nhân viên bị ngưng | tài khoản vẫn chạy (hai nguồn) |

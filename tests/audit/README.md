@@ -3,7 +3,8 @@
 Bằng chứng thực nghiệm cho `docs/AUDIT-2026-09-22-KIEN-TRUC.md`. **Không phải bộ test hồi quy** và cố ý không nằm trong `npm test`.
 
 - `harness.mjs` — nạp **cả ứng dụng** (`src/index.ts`: router + mọi module) bằng esbuild, chạy trên D1 giả = SQLite thật (`node:sqlite`) với schema dựng từ `migrations/*.sql`; đăng nhập bằng cookie ký thật (`createSessionToken`). Không mạng, không Turnstile (thiếu khoá = tắt), không đụng D1 local/remote.
-- `redteam.test.mjs` — mỗi ca ghi nhãn:
+- `query-plan.test.mjs` — in kế hoạch truy vấn (EXPLAIN QUERY PLAN) của các câu nóng.
+- `redteam.test.mjs` — 17 ca, mỗi ca ghi nhãn:
   - **PASS**: hệ thống giữ được bất biến.
   - **FINDING**: test khẳng định hành vi **yếu** hiện tại. Khi sửa phát hiện đó, test sẽ **đỏ** — lúc ấy chuyển nó thành test hồi quy thật (`src/**` hoặc `tests/e2e/`) với khẳng định đảo ngược, rồi xoá ca ở đây.
 
