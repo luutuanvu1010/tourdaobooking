@@ -163,6 +163,15 @@ textarea { min-height: 72px; resize: vertical; }
 table.items { width: 100%; border-collapse: collapse; }
 table.items th, table.items td { padding: var(--s2); border-bottom: 1px solid var(--c-line); text-align: left; vertical-align: top; }
 table.items th.num, table.items td.num { text-align: right; }
+.card-list { display: grid; gap: var(--s2); }
+@media (max-width: 899px) {
+  .table-wrap { display: none; }
+}
+@media (min-width: 900px) {
+  .card-list { display: none; }
+}
+.pill-btn { font-size: var(--fs-label); font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft); border: none; border-radius: var(--radius-sm); padding: 0 var(--s4); min-height: var(--tap-min); }
+.pill-btn.pill-btn-danger { color: var(--c-accent-strong); background: var(--c-accent-soft); }
 .history { margin: 0; padding-left: var(--s5); }
 
 /* quản trị */
