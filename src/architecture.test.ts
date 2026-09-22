@@ -351,6 +351,53 @@ test("ADR-0002 điều 8(b): tệp SQL của module nghiêm không được `.pr
   assert.deepEqual(problems, [], "SQL viết thẳng vào .prepare(...) không qua defineSql nên bài kiểm ranh giới EXPLAIN không thấy — hãy khai bằng defineSql rồi .prepare(<hằng>)");
 });
 
+/**
+ * Vị trí (`tệp:dòng`) có `db.exec(`/`env.DB.exec(` mà đối số đầu là chuỗi/template thô — cùng cơ chế với `rawPrepareHits` ở trên, quét thêm
+ * hai lối ghi thẳng SQL này (D1 và `node:sqlite` đều có `.exec(chuỗi)` chạy nhiều câu, đi vòng qua `defineSql` y như `.prepare(chuỗi)`).
+ * CHỈ khớp đúng hai tiền tố `db.exec(` / `env.DB.exec(`, KHÔNG bắt `.exec(` trần: `RegExp.prototype.exec()` (vd. `src/shared/vn-date.ts`,
+ * `src/shared/order-lines.ts`, `src/shared/order-errors.ts`) là cách dùng hợp lệ, không phải SQL, và nằm ngoài 7 thư mục module nghiêm.
+ */
+function rawExecHits(rel: string, source: string): string[] {
+  const code = source.split("\n").map((line) => (/^\s*(?:\/\/|\/\*|\*)/.test(line) ? "" : line.replace(/\/\/.*$/, ""))).join("\n");
+  const out: string[] = [];
+  const re = /\b(?:db|env\.DB)\.exec\(\s*[`'"]/g;
+  for (let m = re.exec(code); m; m = re.exec(code)) out.push(`${rel}:${code.slice(0, m.index).split("\n").length}`);
+  return out;
+}
+
+test("bộ bắt `db.exec(<chuỗi thô>)`/`env.DB.exec(<chuỗi thô>)`: bắt chuỗi/template, cho qua hằng, không đụng RegExp.exec()", () => {
+  const cases: [string, boolean][] = [
+    ['db.exec("DELETE FROM staff")', true],
+    ["env.DB.exec('DELETE FROM staff')", true],
+    ["db.exec(`UPDATE staff SET active = ${v}`)", true], // template literal: càng phải cấm
+    ["db.exec(SQL_BATCH)", false], // hằng đã defineSql
+    ["re.exec(text)", false], // RegExp.exec() — không phải đối tượng tên "db"/"env.DB", không được bắt
+    ['// db.exec("DELETE FROM staff") — ví dụ trong chú thích', false],
+  ];
+  for (const [src, caught] of cases) assert.equal(rawExecHits("mau.ts", src).length > 0, caught, src);
+});
+
+// Lưới cho GAP đã tìm thấy (C-3, người kiểm độc lập 2026-09-22): hai bài kiểm trên chỉ quét `repository.ts` của module nghiêm. Một
+// `service.ts`/`index.ts`/`rules.ts` cùng thư mục viết thẳng `.prepare("...")` hay `db.exec("...")` thì đi vòng qua ranh giới EXPLAIN mà
+// KHÔNG bài kiểm nào bắt được — `npm test` vẫn xanh 100%. Bài kiểm dưới quét MỌI tệp `.ts` (trừ `*.test.ts`, dùng lại `walk()` ở trên) trong
+// cả 7 thư mục module nghiêm, không chỉ `repository.ts`. Cố tình KHÔNG quét 5 module LEGACY (`accounts`, `audit`, `auth`, `catalog`, `orders`):
+// đó là phong cách chấp nhận được của SQL cũ, một cuộc di trú khác, lớn hơn, không thuộc phạm vi việc này.
+test("ADR-0002 điều 8(b) mở rộng: MỌI tệp trong thư mục module nghiêm (không chỉ repository.ts) không được `.prepare(`/`db.exec(`/`env.DB.exec(` với chuỗi/template thô", () => {
+  const problems: string[] = [];
+  for (const s of STRICT) {
+    for (const file of walk(join(SRC, "modules", s.module))) {
+      const rel = relative(SRC, file).split(sep).join("/");
+      const code = readFileSync(file, "utf8");
+      problems.push(...rawPrepareHits(rel, code), ...rawExecHits(rel, code));
+    }
+  }
+  assert.deepEqual(
+    problems,
+    [],
+    "SQL viết thẳng (không qua defineSql) ở BẤT KỲ tệp nào trong thư mục module nghiêm — không chỉ repository.ts — đi vòng qua ranh giới EXPLAIN; hãy khai bằng defineSql rồi .prepare(<hằng>)",
+  );
+});
+
 test("R-N1-12: vai trò hồ sơ không là điều kiện cho phép — chỉ module parties nhắc `pty_party_role`", () => {
   const problems: string[] = [];
   for (const file of [...walk(SRC), ...walk(WEB)]) {
