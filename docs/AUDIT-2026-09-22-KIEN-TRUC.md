@@ -142,7 +142,8 @@ Ngoài: Google Sheet (CSV công khai: danh mục dịch vụ mỗi 15' qua Cron,
 
 ### F-04 — P1 · MEDIUM · Phục hồi thảm hoạ chưa được chứng minh
 - **Evidence:** FACT — `docs/HANDOFF-N1.md` ghi bookmark Time Travel trước mỗi migration và lệnh `time-travel restore`, **không có dòng nào ghi đã khôi phục thử** (grep `restore|khôi phục` chỉ ra lệnh). FACT — không có `wrangler d1 export` định kỳ, không có bản sao ngoài Cloudflare. INFERENCE — Time Travel giữ 30 ngày (gói trả phí); hỏng dữ liệu phát hiện muộn hơn 30 ngày, hoặc mất tài khoản Cloudflare, là không phục hồi được. **NEEDS VERIFICATION:** gói D1 hiện tại và thời hạn giữ thực tế.
-- **Why it matters:** "một bản sao lưu chưa từng khôi phục thử không phải bản sao lưu". Khi có tiền thật (N3), đây là rủi ro tồn tại.
+- **Bổ sung sau kiểm toán (FACT, thử trên D1 local 2026-09-22 khi soạn `docs/superpowers/specs/2026-09-22-dien-tap-khoi-phuc.md`):** tệp của `wrangler d1 export` (nguyên khối) **không nạp lại được** vào D1 trống: `no such table: main.pty_party` và cả lần nạp bị huỷ. Nguyên nhân: bảng xuất theo thứ tự lịch sử, dữ liệu `staff` chèn trước khi bảng `pty_party` (được `staff.party_id` trỏ tới) tồn tại. Cách chạy được: xuất `--no-data` và `--no-schema` riêng, rồi nạp cấu trúc → dữ liệu → trigger (`scripts/tach-ban-xuat-d1.mjs`); `audit-invariants` cho kết quả giống hệt bản gốc. Chưa kiểm với bản xuất từ production.
+- **Why it matters:** "một bản sao lưu chưa từng khôi phục thử không phải bản sao lưu". Phần bổ sung ở trên cho thấy điều đó không chỉ là lý thuyết. Khi có tiền thật (N3), đây là rủi ro tồn tại.
 - **Recommended fix:** (1) diễn tập khôi phục một lần: `d1 export` production → nạp vào D1 tạm → chạy `audit-invariants --db` trên bản đó → ghi thời gian (RTO) vào `HANDOFF-N1.md`; (2) xuất định kỳ (hằng ngày/tuần) ra nơi ngoài Cloudflare (Google Drive của công ty) — việc của chủ vì cần quyền; (3) ghi RPO/RTO mục tiêu.
 - **Effort:** S. **Regression risk:** không (chỉ đọc).
 

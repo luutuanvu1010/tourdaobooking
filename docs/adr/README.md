@@ -16,6 +16,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0010](ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md) | Ngưỡng mở rộng sau đối chiếu Oracle TCA: phạm vi theo nơi, hoá đơn là bản chụp, tác nhân tự động | hai chiều | **accepted** (chủ dự án duyệt 2026-09-21) |
 | [0011](ADR-0011-khach-tren-don-ngoai-le-quyen.md) | Khách trên đơn (N2 lát 1): route lập/sửa đơn tạo hồ sơ cá nhân mới + vai `CUSTOMER` cùng batch; đổi người đặt của đơn đã xác nhận như thông tin vận hành (`order.trip.edit`, nhật ký bằng tên); hai ngoại lệ hẹp của ADR-0007 | hai chiều | **accepted** (quyết định của chủ dự án 2026-09-21) |
 | [0012](ADR-0012-neo-hien-phap-ban-chep-chi-doc-va-lop-2.md) | Neo Hiến pháp bằng bản chép chỉ-đọc từ Core (v2.3.0) vào `playbook/`, kèm băm và bài kiểm; không viết Hiến pháp mới; tầng ràng buộc dự án (Lớp 2) chỉ siết thêm | hai chiều (tệp); nghĩa vụ đã duyệt là bánh cóc (9.4) | **accepted** (chủ dự án chuyển 2026-09-22) |
+| [0013](ADR-0013-ho-so-nhan-vien-chi-quan-tri-sua.md) | Hồ sơ gắn tài khoản nhân viên chỉ quản trị viên sửa (thao tác mới `party.staff.write`, tiêm `ctx.partyHasAccount`); `staff.active` là nguồn "đang hoạt động", `pty_party.active` ghi theo | hai chiều | **proposed** (chờ chủ dự án duyệt) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
