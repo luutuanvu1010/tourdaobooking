@@ -246,6 +246,10 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   .form-actions { position: sticky; bottom: 0; margin: 0 calc(-1 * var(--s4)); padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom)); background: var(--c-bg); border-top: 1px solid var(--c-line); }
   .form-actions .btn-primary { flex: 1; }
   .form-actions .btn:not(.btn-primary) { display: none; } /* "Quay lại" đã có nút ‹ */
+
+  /* Bước 2 Đợt B: số tiền cạnh nút Lưu ở thanh dính đáy — chỉ điện thoại, máy tính đã có card Tóm tắt riêng */
+  .form-actions { flex-direction: column; }
+  .mobile-actions-summary { display: block; margin-bottom: var(--s2); }
 }
 
 /* đăng nhập */
@@ -344,12 +348,15 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .summary-note { margin: 0; }
 .form-side { display: contents; } /* điện thoại: các khối của cột phải nằm xen kẽ trong luồng; thanh Lưu vẫn là con trực tiếp của form để dính đáy */
 .form-actions { background: var(--c-bg); border-top: 1px solid var(--c-line); } /* khổ 641–959px (iPad dọc): thanh dính đáy phải có nền, không chồng chữ lên nội dung */
+.mobile-actions-summary { display: none; } /* Bước 2 Đợt B: chỉ hiện ở thanh dính đáy điện thoại (≤640px, xem khối @media (max-width: 640px)) */
 @media (min-width: 960px) {
   main.form-page { max-width: var(--w-form); }
   #order-form { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s4); align-items: start; }
   .form-side { display: block; position: sticky; top: var(--s4); }
   .form-side .form-actions { position: static; padding: 0; background: none; border-top: 0; }
   .form-side .form-actions .btn-primary { flex: 1; }
+  .form-side .form-actions { flex-direction: column; gap: var(--s3); }
+  .form-side .form-actions .btn { width: 100%; }
 }
 
 /* ---------- A2: trang đơn (khối dịch vụ chỉ-đọc, nhắc khoá) — chỉ token ---------- */
@@ -382,6 +389,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 @media (min-width: 900px) {
   .order-layout { display: grid; grid-template-columns: minmax(0, 1fr) var(--w-side); gap: var(--s5); align-items: start; }
   .order-layout .side { position: sticky; top: var(--s4); }
+  .mobile-actions-summary { display: none; } /* Bước 2 Đợt B: tường minh — trang Lập đơn đã ẩn mặc định, dòng này chỉ để chắc chắn không hiện lại ở mốc chuyển bố cục chung của app */
 }
 
 /* ---------- A2: bảng trượt "Sửa thông tin chuyến" — chỉ token ---------- */

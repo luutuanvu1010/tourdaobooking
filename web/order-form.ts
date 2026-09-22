@@ -105,6 +105,8 @@ function recompute(): void {
   byId("sum-subtotal").textContent = vnd(s.subtotal);
   byId("sum-total").textContent = vnd(s.total);
   byId("sum-remaining").textContent = vnd(s.remaining);
+  byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
+  byId("mobile-due").textContent = vnd(s.remaining);
   const warn = byId("sum-warning");
   warn.textContent = s.warning ?? "";
   warn.hidden = !s.warning;
