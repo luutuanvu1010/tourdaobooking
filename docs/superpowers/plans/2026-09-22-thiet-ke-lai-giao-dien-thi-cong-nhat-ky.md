@@ -36,3 +36,10 @@ Kết luận: **Task 4 không có thay đổi mã.**
   - Lưu ý kỹ thuật: `v1-dang-nhap.mjs` tự ghi đè 5 tệp bằng chứng (`docs/evidence/2026-09-21-v1-0/anh/dang-nhap-*.png` + `ket-qua-dang-nhap.json`) — đã `git checkout --` khôi phục nguyên trạng sau khi xác nhận kết quả (giống cách Task 5 xử lý với `v1-nguoi-phu-trach.mjs`); không có bằng chứng ảnh mới nào cho giao diện đã restyle được đưa vào repo ở Task 6.
 - Xem tay trên điện thoại thật: **CHƯA làm** — cần chủ dự án tự làm (không có điện thoại thật trong sandbox này để thực hiện; đây không phải kết quả suy đoán).
 - CHƯA có người kiểm độc lập đọc lại mã (việc lớn theo CLAUDE.md §3 — cần trước khi báo "đạt" với chủ dự án).
+
+## Bước 2 Đợt A — chốt xong (2026-09-22)
+
+Chủ dự án quyết: giữ nguyên chữ viết tắt NL/TE/NCT/EB trên thẻ Dịch vụ & giá (không cần viết đủ nhãn) — không cần sửa mã, đã đúng vậy sẵn.
+Câu ghi chú web/CLAUDE.md về .table-wrap/.card-list: CHƯA thêm lại (chủ dự án chưa trả lời câu hỏi này) — nếu muốn thêm, đây là nội dung đề xuất: "Trang nào dùng .table-wrap (bảng) mà quên dựng .card-list (thẻ) song song thì dưới 900px nội dung biến mất hoàn toàn, không có cảnh báo nào khác — tự soát bằng mắt ở khổ điện thoại mỗi khi thêm bảng mới."
+
+Đợt A (5 trang bảng→thẻ) hoàn tất, đã qua đủ kiểm từng việc + kiểm toàn cục + 1 vòng sửa. Nhánh `thiet-ke-lai-giao-dien`, chưa gộp main, chưa đẩy.
