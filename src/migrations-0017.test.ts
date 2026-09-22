@@ -78,3 +78,39 @@ test("0017: ba trigger bảo vệ còn tồn tại trên schema đầy đủ (b�
   const names = (db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN ('orders_status_transition', 'audit_log_no_update', 'audit_log_no_delete') ORDER BY name").all() as { name: string }[]).map((r) => r.name);
   assert.deepEqual(names, ["audit_log_no_delete", "audit_log_no_update", "orders_status_transition"]);
 });
+
+// Người kiểm độc lập (C-1): bài kiểm trên chỉ khai 3/18 trigger — 15 trigger còn lại (0007, 0008, 0011) không có bài kiểm "còn tồn tại trên
+// schema đầy đủ" nào, nên một migration sau dựng lại bảng (CREATE TABLE mới thay bảng cũ) mà quên tạo lại trigger vẫn để `npm test` xanh 100%.
+// Bài kiểm dưới liệt kê ĐỦ 18 trigger của cả 4 tệp migration định nghĩa trigger (0007, 0008, 0011, 0017), cùng cách hỏi SQLite như trên.
+test("0017: đủ 18 trigger bảo vệ (0007 + 0008 + 0011 + 0017) còn tồn tại trên schema đầy đủ", () => {
+  const db = open();
+  const ALL_TRIGGERS = [
+    // 0007_audit_open_actions_catalog_code_money_guards.sql — khoá tiền dẫn xuất không được ghi khác 0 phía trình duyệt.
+    "order_item_money_insert",
+    "order_item_money_update",
+    "orders_money_insert",
+    "orders_money_update",
+    // 0008_order_service.sql — phạm vi dịch vụ, đóng băng thông tin chuyến sau xác nhận, bắt buộc có thông tin chuyến khi xác nhận.
+    "order_item_service_scope_insert",
+    "order_item_service_scope_update",
+    "order_service_frozen_insert",
+    "order_service_frozen_delete",
+    "order_service_frozen_update",
+    "order_service_confirmed_keeps_date",
+    "orders_confirm_requires_trip",
+    // 0011_parties.sql — vai trò/quan hệ hồ sơ không chồng hiệu lực.
+    "pty_party_role_no_overlap_ins",
+    "pty_party_role_no_overlap_upd",
+    "pty_relationship_no_overlap_ins",
+    "pty_relationship_no_overlap_upd",
+    // 0017_order_status_audit_guards.sql — chuyển trạng thái đơn đúng chiều, nhật ký chỉ-thêm.
+    "orders_status_transition",
+    "audit_log_no_update",
+    "audit_log_no_delete",
+  ].sort();
+  const inList = ALL_TRIGGERS.map((n) => `'${n}'`).join(", ");
+  const names = (
+    db.prepare(`SELECT name FROM sqlite_master WHERE type = 'trigger' AND name IN (${inList}) ORDER BY name`).all() as { name: string }[]
+  ).map((r) => r.name);
+  assert.deepEqual(names, ALL_TRIGGERS, "thiếu trigger nghĩa là một migration sau đã dựng lại bảng mà quên tạo lại trigger bảo vệ");
+});

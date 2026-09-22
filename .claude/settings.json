@@ -9,7 +9,16 @@
       "Bash(wrangler secret *)",
       "Bash(npx wrangler secret *)",
       "Bash(wrangler rollback *)",
-      "Bash(npx wrangler rollback *)"
+      "Bash(npx wrangler rollback *)",
+      "Bash(npm run db:migrate:remote)"
+    ],
+    "ask": [
+      "Edit(CLAUDE.md)",
+      "Edit(src/CLAUDE.md)",
+      "Edit(web/CLAUDE.md)",
+      "Edit(.claude/**)",
+      "Edit(playbook/**)",
+      "Edit(docs/adr/**)"
     ]
   },
   "hooks": {

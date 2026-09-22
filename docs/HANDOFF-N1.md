@@ -50,7 +50,7 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 - Trang web: `/parties` (Hồ sơ), `/locations` (Địa điểm), `/staff` (chọn quyền thay vai trò). Vào được từ thanh điều hướng trên (máy tính) và từ mục liên kết của tab Tôi (điện thoại); chưa có thiết kế điện thoại riêng cho hai trang mới (thuộc A2/N2). Hai trang mới đã khai trong `PAGES` của `src/shared/sw-policy.ts` (service worker chỉ cache khung tĩnh, không bao giờ cache `/api`).
 - Kiểm máy: `src/architecture.test.ts`, `docs/data-dictionary.json`, `scripts/audit-invariants.mjs` (xem `docs/ARCHITECTURE.md`).
 
-## Đã có trong bản v1.0 (ĐÃ lên production 2026-09-21; Turnstile còn tắt — xem trạng thái ở đầu tệp)
+## Đã có trong bản v1.0 (ĐÃ lên production 2026-09-21; lúc deploy mã Turnstile còn tắt, đã bật cùng ngày sau đó — xem mục "TRẠNG THÁI TRIỂN KHAI — bản v1.0" và "Turnstile ĐÃ BẬT" ở trên)
 - Migration `0013_company_email` (chỉ dữ liệu: điền email công ty) và `0014_dispatch` (`dsp_*`, view `v_dsp_order_handler`, backfill người phụ trách = người lập cho mọi đơn hiện có). Cả hai chỉ THÊM — mã cũ vẫn chạy (không đọc `dsp_*`).
 - Module `company` (`GET /api/company`, công khai, chỉ đọc); màn đăng nhập hiện khối thông tin công ty và dòng phiên bản (`src/shared/app-info.ts`).
 - Cloudflare Turnstile ở đăng nhập: máy chủ (`src/modules/auth/turnstile.ts`, `GET /api/auth/config`, 403 `turnstile_failed` / 503 `turnstile_unavailable`, kiểm TRƯỚC bộ chống dò PIN), widget ở `web/login.ts` (`theme: "light"`; tự hỏi lại cấu hình khi `GET /api/auth/config` lỗi), CSP cho Cloudflare ở `public/_headers`. BẬT khi có `TURNSTILE_SECRET_KEY`, TẮT khi vắng.

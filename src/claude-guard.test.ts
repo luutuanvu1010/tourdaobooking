@@ -10,7 +10,7 @@ import { evaluateBash } from "../.claude/hooks/guard-remote-lib.mjs";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const read = (p: string) => readFileSync(new URL(`../${p}`, import.meta.url), "utf8");
-const CORPUS: { cmd: string; expect: "deny" | "allow"; group: "C" | "A" | "H" | "E" }[] = JSON.parse(read("src/claude-guard.cases.json")).cases;
+const CORPUS: { cmd: string; expect: "deny" | "allow"; group: "C" | "A" | "H" | "E" | "F" }[] = JSON.parse(read("src/claude-guard.cases.json")).cases;
 
 const MUST_DENY = [
   "git push",
@@ -90,7 +90,7 @@ test("guard-remote: git merge chỉ bị chặn ở main/master, khi không rõ 
 
 test("guard-remote: kho ca của người kiểm — nhóm C (quên/nhầm) phải chặn; nhóm A và H phải cho qua", () => {
   const groups = (g: string) => CORPUS.filter((c) => c.group === g);
-  assert.ok(groups("C").length >= 100 && groups("A").length >= 50 && groups("H").length >= 5, "kho ca bị cắt bớt?");
+  assert.ok(groups("C").length >= 100 && groups("A").length >= 50 && groups("H").length >= 5 && groups("F").length >= 4, "kho ca bị cắt bớt?");
   const wrong: string[] = [];
   for (const c of CORPUS) {
     if (c.group === "E") continue; // cố ý lách: chấp nhận lọt (ghi ở đầu guard-remote-lib.mjs)
