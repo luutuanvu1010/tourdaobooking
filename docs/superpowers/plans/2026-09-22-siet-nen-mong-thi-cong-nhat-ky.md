@@ -27,7 +27,7 @@ Nhánh `siet-nen-mong`, tạo từ `origin/main` @ `da64558` (sau khi PR #9 — 
 | Kiểm độc lập Task 1 | **Xong — verdict: Có, sẵn sàng gộp** (0 Critical, 0 Important, 2 Minor không chặn) | — | — |
 | Sửa Minor của Task 1 (lọc thư mục trước khi đọc `index.ts`) | **Xong** (`26dc4f9`) | điều phối | gộp vào kiểm toàn nhánh |
 | Kiểm độc lập Task 2 | **Xong — verdict: Có SAU KHI SỬA** (1 Important: lỗi lọt mới do `blankSingleQuoted` thiếu nhánh thoát `\` ngoài nháy kép; 1 gần-Important: thiếu ngưỡng tối thiểu nhóm F trong test; 2 Minor không chặn) | — | — |
-| Vòng sửa Task 2 (vá lỗi lọt + ngưỡng nhóm F) | Đang thi công (resume người thi công cũ) | subagent sonnet | chờ kiểm lại phạm vi hẹp |
+| Vòng sửa Task 2 (vá lỗi lọt + ngưỡng nhóm F) | **Xong** (`9ecadb1`): thêm nhánh thoát `\` ngoài nháy kép, ca thứ 5 nhóm F, ngưỡng `groups("F") >= 4`. Kho hồi quy 295 ca, 267 khẳng định, 0 quy hồi. `npm test` 448/448 | subagent sonnet | Kiểm lại phạm vi hẹp đang chạy |
 | Thêm luật `ask` cho tự-sửa-luật (bước cuối) | Chờ mọi việc trên xong | điều phối | — |
 | Kiểm toàn nhánh (opus, chỉ đọc) | Chờ | — | — |
 
