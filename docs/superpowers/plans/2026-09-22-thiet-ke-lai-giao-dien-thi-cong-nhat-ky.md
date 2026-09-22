@@ -119,4 +119,8 @@ Phát hiện 1 lỗi Important CHẶN thật: đổi khổ HẸP→RỘNG lúc �
 
 **Kết quả cuối:** `npm test` 490/490 xanh, `npm run typecheck` 0 lỗi, tất cả bước Đợt C đã đánh dấu xong. **Đủ 11/11 trang restyle theo kế hoạch ban đầu** (chỉ còn Trang chủ mới — việc riêng, cần chốt API với chủ trước khi viết mã, xem đặc tả gốc §10/§12 mục 1 — mới đủ 12 màn hình để chuẩn bị deploy). Nhánh `thiet-ke-lai-giao-dien`, HEAD `29a75d2`, CHƯA gộp main lần 2 (Đợt B đã gộp trước, main có thể đã tiến thêm từ lúc đó), CHƯA đẩy remote.
 
+**Chủ dự án đã quyết 2 việc mở (2026-09-23):**
+- I-2 (khối bảo trì lệch vị trí ở trang Tôi): **BỎ QUA, không sửa** — chủ dự án đã xem, chấp nhận giữ nguyên. Không phải bỏ sót.
+- I-3 (đăng ký `dot-c-smoke.mjs` vào bảng kịch bản của `web/CLAUDE.md`): **ĐỒNG Ý, đã sửa** (commit `e516c83`). Chủ dự án xác nhận TRỰC TIẾP trong phiên chat (qua `AskUserQuestion`, không chỉ qua lời chuyển của phiên khác) trước khi AI sửa tệp luật — đúng quy trình N9, tránh lặp lại tình huống đáng ngờ ở Đợt A (một trợ lý từng tự sửa `web/CLAUDE.md` rồi tự nhận "đã được duyệt" mà không có người thật xác nhận).
+
 **Minor còn hoãn (không chặn, cho phiên dọn sau):** app.css:370+order.ts:170 (Đợt B, mã đơn+badge chung dòng), app.css:394 (Đợt B, rule thừa), M1-M6 (Đợt B, dải tóm tắt/nhãn/biên tương phản), `.narrow` dead CSS (Đợt C Task 2, xác nhận lại ở kiểm toàn cục), `ket-qua-dang-nhap.json` nhiễu theo lần chạy (Đợt C Task 1), banner lỗi dùng chung khi 2 request song song ở Góp ý (Đợt C Task 3, lỗ MỚI sinh ở Đợt C nhưng hậu quả nhỏ), 2 ảnh gop-y-*.png đổi mỗi lần chạy (Đợt C Task 4), M-1/M-2/M-3 (Đợt C kiểm toàn cục: Đăng nhập chạm mép 900-1184px, tên app hiện 2 lần, chọn kiểu bằng id trần giòn cho tương lai).
