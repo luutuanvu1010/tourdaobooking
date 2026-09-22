@@ -101,6 +101,19 @@ Không có gì trong phát hiện dưới đây là lỗi *đang xảy ra* trên
 - Câu 1 khớp phạm vi `own` đã có trong `Scope`. Nhưng danh sách đơn, tìm theo SĐT và danh bạ hồ sơ hiện **không lọc theo người xem ở máy chủ** (D-01), nên phải thêm lọc ở cả ba nơi đó.
 - Còn phải chốt trong đặc tả: CTV có tra được hồ sơ khách theo SĐT không (tra được = dò được khách của người khác)? CTV có tự sửa, xác nhận, huỷ đơn của mình không? Ai là người phụ trách đơn do CTV lập? HDV/lái cano bên ngoài vừa lập đơn (như CTV) vừa nhận việc được giao (D-03)? Hai vai này có tách nhau không?
 
+### 4.2. Trả lời bổ sung của chủ dự án (2026-09-22, cho 4 câu mở ở cuối §4.1)
+
+1. **CTV KHÔNG được tra hồ sơ khách theo SĐT.**
+2. **CTV được sửa, xác nhận, huỷ đơn của chính mình.**
+3. **Đơn do CTV lập: bất kỳ nhân viên hoặc HDV nội bộ nào cũng nhận phụ trách được.**
+4. **HDV, lái cano… bên ngoài: được lập đơn (như CTV), KHÔNG được tự nhận việc.** Việc phải do nhân viên công ty gán hoặc xác nhận thủ công.
+
+**Ghi chú của người kiểm cho phiên soạn (không phải quyết định):**
+- Câu 3 đổi luật hiện hành: hiện chỉ người có quyền Bán hàng/Quản trị được làm người phụ trách (`src/modules/dispatch/rules.ts:48`), và `dispatch.claim` (tự nhận đơn chưa có người) chỉ mở cho Bán hàng/Quản trị (`permissions.ts:46`). "HDV nội bộ nhận được" chạm ADR-0009 (người phụ trách được sửa đơn), vì người phụ trách hiện được **sửa/xác nhận/huỷ** đơn. Cần chốt: HDV nội bộ nhận phụ trách thì có được sửa đơn như Bán hàng không? Và nó dính D-03: HDV nội bộ hiện không mở được màn đơn nào.
+- Câu 4 "gán hoặc xác nhận thủ công": cần chốt nghĩa trong đặc tả. Có thể là (a) nhân viên gán thẳng việc cho đối tác bên ngoài, hoặc (b) đối tác bấm "xin nhận", rồi nhân viên xác nhận. Phương án (b) là quy trình mới hai bước.
+- Đơn do CTV lập mà chưa ai nhận thì vẫn cần một người phụ trách mặc định. Hiện người lập đơn là người phụ trách mặc định (ADR-0009 điều 4); với CTV có giữ luật đó không?
+- Câu hỏi "mở thí điểm cho 5–10 CTV hay mở hết" (§4.1 câu 5) **vẫn chưa được trả lời**.
+
 ## 5. Thứ tự đề xuất
 
 1. **Không cấp tài khoản cho bất kỳ người ngoài nào** trên hệ thống hiện tại cho tới khi D-01 được sửa (nói với chủ một lần — P18).
