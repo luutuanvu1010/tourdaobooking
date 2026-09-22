@@ -137,6 +137,9 @@ textarea { min-height: 72px; resize: vertical; }
 .order-row-money { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); }
 .order-row-top { display: flex; justify-content: space-between; align-items: baseline; }
 .order-row-note { color: var(--c-accent-strong); font-weight: 600; }
+.order-row-phone { text-decoration: underline; cursor: pointer; }
+.money-ok { color: var(--c-green-text); }
+.money-due { color: var(--c-accent-strong); }
 .skeleton-list { display: grid; gap: var(--s2); margin-bottom: var(--s2); }
 .skeleton-row { height: 96px; border-radius: var(--radius-md); background: var(--c-surface-alt); animation: skeleton-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .skeleton-row { animation: none; } }
