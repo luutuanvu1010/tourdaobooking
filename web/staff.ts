@@ -105,7 +105,7 @@ function card(s: StaffAccount): HTMLElement {
   const isMe = s.id === me.id;
   return h(
     "div",
-    { class: "card" },
+    { class: "card card-col" },
     h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
     !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),

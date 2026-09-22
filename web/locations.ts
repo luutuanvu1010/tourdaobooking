@@ -6,6 +6,7 @@ import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
 const listEl = byId("list");
+const listCardsEl = byId("list-cards");
 const editEl = byId("edit");
 let types: Api.LocationTypeDto[] = [];
 let current: Api.LocationDto[] = [];
@@ -48,6 +49,25 @@ function row(l: Api.LocationDto): HTMLElement {
     h("td", { class: "muted" }, l.address ?? ""),
     h("td", null, String(l.sortOrder)),
     h("td", { class: "row-actions" }, edit),
+  );
+}
+
+function card(l: Api.LocationDto): HTMLElement {
+  const edit = h("button", { type: "button", class: "pill-btn" }, "Sửa");
+  edit.addEventListener("click", () => openEdit(l));
+  return h(
+    "div",
+    { class: l.active ? "card" : "card row-off", "data-testid": "location-card" },
+    h(
+      "div",
+      { style: "flex:1" },
+      h("strong", null, l.name),
+      !l.active
+        ? h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng dùng"))
+        : h("div", { class: "muted" }, l.code, " · ", l.locationTypeName),
+      l.active && l.address && h("div", { class: "muted" }, l.address),
+    ),
+    edit,
   );
 }
 
@@ -96,6 +116,7 @@ async function load(): Promise<void> {
   current = r.locations;
   replaceChildren(byId("add-type"), ...typeOptions());
   replaceChildren(listEl, ...r.locations.map(row));
+  replaceChildren(listCardsEl, ...r.locations.map(card));
 }
 
 const addForm = byId<HTMLFormElement>("add-form");

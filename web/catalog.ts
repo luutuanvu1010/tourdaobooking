@@ -105,7 +105,7 @@ function card(it: CatalogAdminItem): HTMLElement {
   const conflicts = it.conflicts.map((c) => `${PAX_LABEL[c.code].toLowerCase()}: Sheet ${c.base === null ? "—" : vnd(c.base)} → ${c.current === null ? "—" : vnd(c.current)}`).join("; ");
   return h(
     "div",
-    { class: it.hidden || !it.inSheet ? "card row-off" : "card" },
+    { class: it.hidden || !it.inSheet ? "card card-col row-off" : "card card-col" },
     h("div", { class: "muted" }, it.code, " · ", it.unit),
     h("div", null, h("strong", null, it.name), it.hidden && h("span", { class: "badge badge-cancelled" }, " Đã ẩn"), !it.inSheet && h("span", { class: "badge badge-draft" }, " Không còn trong Sheet"), !it.supported && h("span", { class: "badge badge-draft", title: "Chỉ nhập tay được" }, ` Đơn vị ${it.unit} chưa hỗ trợ`)),
     h("div", null, priceLine(it), it.overridden.length > 0 && h("span", { class: "mark", style: "color:var(--c-accent);font-weight:700", title: "Có giá ghi đè" }, " ✎")),
