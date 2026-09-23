@@ -116,7 +116,7 @@ function todayRow(o: OrderSummary): HTMLElement {
     h("span", { class: "lbl-short" }, mobileSubText),
   ];
   const when: Child[] = [h("span", { class: "dash-today-time" }, time)];
-  if (o.trip.pickupPlace) when.push(h("span", { class: "dash-today-place" }, o.trip.pickupPlace));
+  if (o.trip.pickupPlace) when.push(h("span", { class: "dash-today-place icon-label" }, icon("pin", 14), o.trip.pickupPlace));
   return h(
     "a",
     { class: "dash-today-row", href: `/order?id=${encodeURIComponent(o.id)}` },
@@ -134,7 +134,7 @@ function todayRow(o: OrderSummary): HTMLElement {
       h("span", { class: "muted lbl-full" }, o.remainingAmount === 0 ? "đã trả đủ" : "còn lại"),
       h(
         "span",
-        { class: "dash-today-call lbl-short icon-label", "aria-label": `Gọi ${o.customerPhone}`, onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } },
+        { class: "dash-today-call lbl-short", "aria-label": `Gọi ${o.customerPhone}`, onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } },
         icon("handset", 16),
         "Gọi",
       ),

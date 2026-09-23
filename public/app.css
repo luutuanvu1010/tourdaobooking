@@ -740,7 +740,7 @@ body.maint-open { overflow: hidden; }
      giữ nút gọi dù lệch bản mẫu. `.dash-today-call` chỉ hiện ở khổ này (cùng cơ chế `.lbl-short`, luật kế thừa ở trên thắng
      `display:none` mặc định của `.lbl-short` vì hai lớp cùng chọn một phần tử và quy tắc này đứng sau trong tệp); nút đặt
      dưới số tiền còn lại trong cụm bên phải, không đổi bề rộng ba cụm khi/tên/tiền hiện có. */
-  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
+  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
   /* Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): khối chỉ tồn tại
      trong DOM khi ADMIN có cảnh báo (web/home.ts) — khi có, phải chiếm trọn bề rộng lưới 2×2 như .dash-today, không
      rơi vào MỘT nửa cột bên cạnh ô trống. */
