@@ -33,6 +33,14 @@ const PK_MARK_USED = defineSql(
 );
 const PK_REVOKE_ONE = defineSql("auth", "passkey_revoke_one", "UPDATE aut_passkey SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL");
 const PK_REVOKE_ALL = defineSql("auth", "passkey_revoke_all", "UPDATE aut_passkey SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND valid_to_at IS NULL");
+// 8b (ADR-0016 điều 6): gỡ mọi passkey CHỈ KHI tài khoản đã thật sự ngưng. Nối CUỐI batch của `PATCH /api/staff/:id` (active:false): nếu câu chốt
+// "còn quản trị viên khác" thua thì tài khoản vẫn active = 1, EXISTS sai, không gỡ gì. Đọc `staff` qua view công bố v_stf_staff_label (cạnh auth → staff).
+const PK_REVOKE_ALL_IF_SUSPENDED = defineSql(
+  "auth",
+  "passkey_revoke_all_if_suspended",
+  "UPDATE aut_passkey SET valid_to_at = ?2, updated_at = ?2, updated_by = ?3 WHERE staff_id = ?1 AND valid_to_at IS NULL " +
+    "AND EXISTS (SELECT 1 FROM v_stf_staff_label WHERE id = ?1 AND active = 0)",
+);
 
 export const findActivePasskey = (db: D1Database, credentialId: string): Promise<PasskeyRow | null> => db.prepare(PK_FIND_ACTIVE).bind(credentialId).first<PasskeyRow>();
 export async function listActivePasskeys(db: D1Database, staffId: string): Promise<PasskeyRow[]> {
@@ -56,6 +64,9 @@ export const revokePasskeyStatement = (db: D1Database, id: string, staffId: stri
   db.prepare(PK_REVOKE_ONE).bind(id, staffId, at, by);
 export const revokeAllPasskeysStatement = (db: D1Database, staffId: string, at: string, by: string): D1PreparedStatement =>
   db.prepare(PK_REVOKE_ALL).bind(staffId, at, by);
+/** Câu gỡ mọi passkey của `staffId`, chỉ có hiệu lực khi tài khoản ĐANG ngưng lúc câu chạy (xem PK_REVOKE_ALL_IF_SUSPENDED). Chưa chạy. */
+export const revokeAllPasskeysIfSuspendedStatement = (db: D1Database, staffId: string, at: string, by: string): D1PreparedStatement =>
+  db.prepare(PK_REVOKE_ALL_IF_SUSPENDED).bind(staffId, at, by);
 
 const ATTEMPT_COUNT = defineSql("auth", "attempt_count", "SELECT count(*) AS n, min(at) AS oldest FROM login_attempt WHERE key = ?1 AND at > ?2");
 const ATTEMPT_INSERT = defineSql("auth", "attempt_insert", "INSERT INTO login_attempt (id, key, at) VALUES (?1, ?2, ?3)");

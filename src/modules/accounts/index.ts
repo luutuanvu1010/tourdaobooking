@@ -4,8 +4,8 @@
 import { auditStatement, type AuditAction } from "../audit";
 import {
   PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge,
-  limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, newSessionCookie, passkeyRp, readPasskeyChallenge, revokeAllPasskeysStatement,
-  revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
+  limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, newSessionCookie, passkeyRp, readPasskeyChallenge, revokeAllPasskeysIfSuspendedStatement,
+  revokeAllPasskeysStatement, revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
 } from "../auth";
 import { getMaintenanceState } from "../maintenance";
 import {
@@ -88,6 +88,12 @@ export interface StaffPatch {
  * (1) mỗi mắt xích đều đổi ≥ 1 dòng ở đường thắng (dòng nhật ký được chèn; dòng `pty_party` chắc chắn có — xem renamePersonStatements);
  * (2) hễ có câu đổi tên thì CHẮC CHẮN có dòng nhật ký `staff_updated` đứng trước (cả hai cùng do `patch.fullName !== undefined` sinh ra).
  * Sửa ở đây phải giữ hai điều đó.
+ *
+ * Ngưng tài khoản (`active: false`) gỡ mọi Face ID trong CÙNG lô (ADR-0016 điều 6; chủ chọn A-4 phương án 1). Câu gỡ có thể đổi 0 dòng
+ * (không có khoá) nên KHÔNG được chen vào chuỗi trên — nó đứng CUỐI, sau mọi mắt xích cũ, và mang điều kiện riêng "tài khoản đang ngưng"
+ * (câu chốt thua ⇒ vẫn active = 1 ⇒ không gỡ gì). Thứ tự: gỡ → touch `credentials_changed_at` (`changes() > 0`, phải NGAY SAU câu gỡ — A-3)
+ * → nhật ký `passkey_removed` (`changes() > 0`, đọc câu touch: touch đổi đúng 1 dòng khi và chỉ khi câu gỡ đổi ≥ 1 dòng).
+ * Mốc `credentials_changed_at` = `Date.parse(at)`: một mốc duy nhất cho cả lần sửa.
  */
 export function patchStaffStatements(
   db: D1Database,
@@ -109,6 +115,13 @@ export function patchStaffStatements(
   if (patch.active === false) stmts.push(log("staff_suspended"));
   if (patch.active === true) stmts.push(log("staff_reactivated"));
   stmts.push(...rename);
+  if (patch.active === false) {
+    stmts.push(
+      revokeAllPasskeysIfSuspendedStatement(db, t.id, at, adminId),
+      touchCredentialsStatement(db, t.id, Date.parse(at), true),
+      adminAudit(db, adminId, "passkey_removed", t.id, "gỡ khi ngưng tài khoản", "changes() > 0"),
+    );
+  }
   return { statements: stmts, guardIndex: needsUpdate ? 0 : -1 };
 }
 
@@ -386,7 +399,8 @@ export const accountsModule: AppModule = {
       if (problem) return error(409, "account_rule", problem);
       const losesAdmin = t.permissions.includes("ADMIN") && t.active && patch.active === false;
 
-      const at = new Date().toISOString();
+      const now = Date.now(); // MỘT mốc cho cả lần sửa: `at` (ISO) và, khi ngưng tài khoản, `credentials_changed_at` = Date.parse(at) = now
+      const at = new Date(now).toISOString();
       const built = patchStaffStatements(db, { target: t, patch, adminId: admin.id, at, losesAdmin });
       if (!built) return error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
       let results;

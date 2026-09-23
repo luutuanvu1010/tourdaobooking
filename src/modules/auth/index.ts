@@ -13,7 +13,10 @@ import { passkeyRelyingParty } from "./webauthn";
 
 export { lockedPhones, unlockPhone };
 // Xuất cho module `accounts` (bật/gỡ/đặt PIN bằng Face ID, danh sách passkey của tài khoản — ADR-0016).
-export { countActivePasskeys, firstUserHandle, insertPasskeyStatement, listActivePasskeys, revokeAllPasskeysStatement, revokePasskeyStatement, type PasskeyRow } from "./repository";
+export {
+  countActivePasskeys, firstUserHandle, insertPasskeyStatement, listActivePasskeys, revokeAllPasskeysIfSuspendedStatement, revokeAllPasskeysStatement, revokePasskeyStatement,
+  type PasskeyRow,
+} from "./repository";
 export { logPasskeyRejected, toPasskeyDto } from "./passkey";
 export { PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, issuePasskeyChallenge, limitChallenge, passkeyRp, readPasskeyChallenge };
 export { verifyRegistration } from "./webauthn";

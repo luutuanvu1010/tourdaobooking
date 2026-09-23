@@ -192,22 +192,37 @@ console.log("✓ tự gỡ hết Face ID (còn ≥1 khoá): đăng xuất máy k
 // 13. Admin: ngưng tài khoản giữa lúc lấy thách thức và gửi → từ chối; nút admin gỡ
 const ADMIN = await session(ACCOUNTS.admin);
 const fieldId = (await call(SO, "GET", "/api/auth/me")).body.staff.id;
+const activeKeysOf = async (id) => (await sqlRows(`SELECT count(*) AS n FROM aut_passkey WHERE staff_id = '${id}' AND valid_to_at IS NULL`))[0].n;
+assert.equal(await activeKeysOf(fieldId), 1, "trước khi ngưng: field còn đúng khoá `other` từ bước 11");
 const optMid = await call(null, "POST", "/api/auth/passkey/options", {}, freshIp());
-assert.equal((await call(ADMIN, "PATCH", `/api/staff/${fieldId}`, { active: false })).status, 200);
+r = await call(ADMIN, "PATCH", `/api/staff/${fieldId}`, { active: false });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+// 8b (ADR-0016 điều 6; chủ chọn A-4 phương án 1): ngưng tài khoản gỡ mọi Face ID trong CÙNG lô ghi, kèm đúng một dòng nhật ký
+assert.equal(r.body.staff.passkeyCount, 0, JSON.stringify(r.body));
+assert.equal(await activeKeysOf(fieldId), 0, "ngưng tài khoản phải gỡ mọi Face ID còn hiệu lực");
+const suspendLog = await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE action = 'passkey_removed' AND target_id = '${fieldId}' AND detail = 'gỡ khi ngưng tài khoản'`);
+assert.equal(suspendLog[0].n, 1);
 r = await call(challengeCookie(optMid), "POST", "/api/auth/passkey/login", { credential: await other.sign(optMid.body.publicKey.challenge) }, freshIp());
 assert.equal(r.status, 401);
 assert.equal(r.body.error.code, "passkey_unknown");
-// 8b: thêm assert gỡ passkey khi ngưng (PATCH /api/staff/:id với active:false CHƯA gỡ passkey — chờ chủ quyết A-4; xem task-8-report.md)
-assert.equal((await call(ADMIN, "PATCH", `/api/staff/${fieldId}`, { active: true })).status, 200);
-console.log("✓ ngưng tài khoản chặn đăng nhập Face ID ngay (kể cả khi thách thức đã lấy trước)");
+r = await call(ADMIN, "PATCH", `/api/staff/${fieldId}`, { active: true });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(r.body.staff.passkeyCount, 0, "kích hoạt lại KHÔNG làm khoá cũ sống lại");
+r = (await passkeyLogin(other)).r;
+assert.equal(r.status, 401);
+assert.equal(r.body.error.code, "passkey_unknown");
+// Gỡ khoá đẩy credentials_changed_at (A-3) nên phiên cũ SO của field đã bị thu hồi, kể cả sau khi kích hoạt lại.
+assert.equal((await call(SO, "GET", "/api/auth/me")).status, 401);
+const SOr = await session(ACCOUNTS.field);
+console.log("✓ ngưng tài khoản chặn đăng nhập Face ID ngay (kể cả khi thách thức đã lấy trước), gỡ mọi Face ID + một dòng nhật ký; kích hoạt lại không làm khoá cũ sống lại");
 
 // 13b. Bật lại Face ID cho field; đặt lại PIN (admin) và gỡ-tất-cả (admin) đều làm khoá cũ mất hiệu lực; passkeyCount đúng trước/sau
-// (field đã có 1 khoá `other` còn hiệu lực từ bước 11 — Bước 4 của Task 8 CHƯA gỡ passkey khi ngưng tài khoản, xem "8b" ở trên — nên sau khi bật thêm `other2` tổng là 2)
+// (khoá `other` đã bị gỡ khi ngưng tài khoản ở bước 13 — 8b — nên sau khi bật `other2` tổng là 1)
 const other2 = await createFakeAuthenticator(RP);
-r = await enable(SO, ACCOUNTS.field.pin, other2);
+r = await enable(SOr, ACCOUNTS.field.pin, other2);
 assert.equal(r.status, 201, JSON.stringify(r.body));
 let staffRow = (await call(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === fieldId);
-assert.equal(staffRow.passkeyCount, 2, JSON.stringify(staffRow));
+assert.equal(staffRow.passkeyCount, 1, JSON.stringify(staffRow));
 r = await call(ADMIN, "POST", `/api/staff/${fieldId}/reset-pin`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.staff.passkeyCount, 0);
