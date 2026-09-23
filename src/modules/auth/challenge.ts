@@ -16,6 +16,13 @@ async function hmac(key: Uint8Array, data: string): Promise<Uint8Array> {
 }
 const signingKey = (secret: string) => hmac(enc.encode(secret), KEY_LABEL);
 
+/** `-` là placeholder cho "vắng mặt" trong token; dấu `.` là ký tự phân cách phần. staffId/extra chứa một trong hai thứ
+ * này sẽ làm hỏng ngầm việc tách token (Task 7 phải tự tránh, không được để lọt qua rồi đọc lại sai lặng lẽ). */
+function assertSafeField(name: string, value: string | null): void {
+  if (value === null) return;
+  if (value.includes(".") || value === "-") throw new Error(`${name} không hợp lệ cho token thách thức (không được chứa "." hoặc đúng bằng "-").`);
+}
+
 export async function issueChallenge(
   secret: string,
   purpose: ChallengePurpose,
@@ -24,6 +31,8 @@ export async function issueChallenge(
   now = Date.now(),
   random: Uint8Array = crypto.getRandomValues(new Uint8Array(32)),
 ): Promise<{ token: string; challenge: string; issuedAt: number }> {
+  assertSafeField("staffId", staffId);
+  assertSafeField("extra", extra);
   const challenge = toBase64Url(random);
   const payload = ["w1", purpose, staffId ?? "-", String(now), challenge, extra ?? "-"].join(".");
   return { token: `${payload}.${toBase64Url(await hmac(await signingKey(secret), payload))}`, challenge, issuedAt: now };
@@ -47,7 +56,11 @@ export async function readChallenge(
   } catch {
     return null;
   }
-  if (!timingSafeEqual(await hmac(await signingKey(secret), parts.slice(0, 6).join(".")), given)) return null;
+  const expected = await hmac(await signingKey(secret), parts.slice(0, 6).join("."));
+  if (!timingSafeEqual(expected, given)) return null;
+  // Không chỉ so byte: base64url không phải song ánh (2 bit đệm cuối của khối 32-byte có thể mang giá trị khác 0 mà vẫn
+  // giải mã ra cùng byte — xem test). Ép chữ ký phải đúng CHUỖI canonical, không chỉ đúng byte sau khi giải mã.
+  if (toBase64Url(given) !== sig) return null;
   const issuedAt = Number(iat);
   if (!Number.isSafeInteger(issuedAt) || issuedAt > now + 60_000 || now >= issuedAt + CHALLENGE_TTL_SECONDS * 1000) return null;
   return { challenge, issuedAt, extra: extra === "-" ? null : extra };
