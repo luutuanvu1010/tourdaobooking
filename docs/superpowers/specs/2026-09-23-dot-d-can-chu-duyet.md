@@ -96,8 +96,10 @@ này có thể lại chỉ chạy một trang, tái phát đúng lỗ hổng v�
 1. `public/home.html` sai — Đợt D Task 5 đổi tên tệp tĩnh: Trang chủ nay là `public/index.html` (`home.html` chỉ
    còn là trang chuyển hướng meta refresh về `/`). **7/8 hướng kiểm độc lập Task 5 phát hiện lỗi này** (F-6 mục 4
    của brief). Người thi công Task 5 **đúng khi không tự sửa** (tệp luật, N9).
-2. "12 bước" lỗi thời — kịch bản đã lớn hơn nhiều qua các vòng sửa/Task 6 (đếm được **33 điểm `ok(...)` đã ghi
-   nhật ký** ở bản hiện tại — `grep -noE '(^|[^a-zA-Z_.])ok\(' trang-chu-smoke.mjs | wc -l`), không còn đúng con số cũ.
+2. "12 bước" lỗi thời — kịch bản đã lớn hơn nhiều qua các vòng sửa/Task 6. **Đừng chép một con số cứng vào tệp luật**
+   (bản nháp trước của mục này ghi 33, đã lỗi thời ngay trong cùng đợt vì các vòng sửa sau thêm khẳng định mới).
+   Đề xuất viết là "nhiều bước, đếm bằng lệnh" và để người đọc tự đếm:
+   `grep -c "^\s*ok(" docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs`.
 
 **Đề xuất — diff thay thế dòng 43:**
 ```markdown
@@ -172,8 +174,9 @@ dòng 102 khi thi công Đợt D Task 4:
 ```css
 --ls-eyebrow: .08em; /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
 ```
-Dùng ở `.sidebar-group-title` (`public/app.css:314`) — khoảng giãn chữ (`letter-spacing`) cho ba nhãn nhóm viết hoa
-trên thanh bên.
+Dùng ở luật `.sidebar-group-title` trong `public/app.css` (tìm bằng `grep -n "sidebar-group-title" public/app.css`;
+**đừng trích theo số dòng** — các số dòng trong đợt này đã lệch một lần khi thêm chú thích phía trên) — khoảng giãn
+chữ (`letter-spacing`) cho ba nhãn nhóm viết hoa trên thanh bên.
 
 **Vì sao đang ở đây:** `web/CLAUDE.md` mục "Hệ thống thiết kế" ghi: *"Màu/chữ mới (thương hiệu hay chức năng), hoặc
 đổi giá trị nhóm đầu: hỏi chủ."* `--ls-eyebrow` là một giá trị chữ MỚI, nằm ở ranh giới "được tự thêm" (kích thước

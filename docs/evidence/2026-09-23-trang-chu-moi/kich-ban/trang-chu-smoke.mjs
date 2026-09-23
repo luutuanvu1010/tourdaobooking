@@ -37,9 +37,12 @@ ok(`A-3: đọc token trần bề rộng THẲNG từ văn bản public/app.css 
 // đổi theo nhau, lưới không bắt được (người kiểm độc lập đã đột biến chứng minh: đổi --w-sidebar thành 300px, chạy
 // lại TOÀN BỘ lưới, không khẳng định nào đỏ). Hằng số dưới đây viết THẲNG trong kịch bản — không đọc từ CSS bằng
 // bất kỳ cách nào — lấy từ bản mẫu 00 Trang chu v2.dc.html + chủ dự án đã duyệt (đặc tả §16 mục 3, ADR-0015).
-const SIDEBAR_WIDTH_MOCKUP_PX = 236; // bản mẫu/chủ dự án duyệt — KHÔNG đọc từ public/app.css
-const TOPBAR_HEIGHT_MOCKUP_PX = 60; // bản mẫu/chủ dự án duyệt — KHÔNG đọc từ public/app.css
-ok(`C-1: hằng số ĐỘC LẬP viết thẳng trong kịch bản (không đọc từ CSS) — bề rộng thanh bên = ${SIDEBAR_WIDTH_MOCKUP_PX}px, chiều cao thanh công việc = ${TOPBAR_HEIGHT_MOCKUP_PX}px`);
+const SIDEBAR_WIDTH_MOCKUP_PX = 236; // BẢN MẪU (00 Trang chu v2.dc.html) — KHÔNG đọc từ public/app.css
+const TOPBAR_HEIGHT_MOCKUP_PX = 60; // CHỦ DỰ ÁN duyệt tăng từ 52px của bản mẫu (đặc tả thiết kế §16 mục 3) — KHÔNG đọc từ public/app.css
+// GHI CHÚ, KHÔNG PHẢI PHÉP KIỂM: chỉ công bố hai hằng số trên. Phép kiểm thật nằm ở hai khẳng định C-1 phía dưới
+// (so bề rộng #sidebar và chiều cao #topbar ĐO ĐƯỢC với hai hằng số này). Trước đây dòng này dùng `ok(...)` nên
+// luôn hiện dấu đạt bất kể mã viết gì — người kiểm độc lập nêu đúng là dễ đọc nhầm thành một phép kiểm.
+console.log(`· hằng số ĐỘC LẬP viết thẳng trong kịch bản (không đọc từ CSS): thanh bên ${SIDEBAR_WIDTH_MOCKUP_PX}px, thanh công việc ${TOPBAR_HEIGHT_MOCKUP_PX}px`);
 
 const TODAY = vnDate(0);
 const TOMORROW = vnDate(1);
