@@ -146,7 +146,7 @@ async function renderPasskeys(opts?: { afterPinChange?: boolean }): Promise<void
     });
     return h(
       "div",
-      { class: "card card-col" },
+      { class: "passkey-row" },
       h("strong", null, p.label),
       h("div", { class: "muted" }, `Bật ngày ${vnDateTimeText(p.createdAt)}`),
       h("div", { class: "muted" }, p.lastUsedAt ? `Dùng gần nhất ${vnDateTimeText(p.lastUsedAt)}` : "Chưa dùng"),
@@ -158,7 +158,7 @@ async function renderPasskeys(opts?: { afterPinChange?: boolean }): Promise<void
     if (list.length === 0) return null;
     const b = h("button", { class: "btn btn-link danger", type: "button" }, "Gỡ tất cả");
     b.addEventListener("click", async () => {
-      if (!confirm("Gỡ Face ID trên mọi máy? Bạn sẽ phải đăng nhập lại bằng số điện thoại và PIN.")) return;
+      if (!confirm("Gỡ Face ID trên mọi máy? Máy này vẫn giữ đăng nhập; các máy khác sẽ bị đăng xuất. Lần sau đăng nhập bằng số điện thoại và PIN.")) return;
       showError(errorBox, null);
       try {
         await api("/api/account/passkeys/remove-all", { method: "POST" });
@@ -177,7 +177,7 @@ async function renderPasskeys(opts?: { afterPinChange?: boolean }): Promise<void
       ? h("p", { class: "alert warn" }, "Face ID vẫn còn bật trên các máy dưới đây. Nếu nghi lộ PIN, bấm Gỡ tất cả.")
       : null,
     errorBox,
-    list.length === 0 ? h("p", { class: "muted" }, "Chưa bật trên máy nào.") : h("div", { class: "grid" }, ...rows),
+    list.length === 0 ? h("p", { class: "muted" }, "Chưa bật trên máy nào.") : h("div", { class: "passkey-list" }, ...rows),
     removeAllBtn,
     platformAvailable ? h("div", null, h("h3", null, "Bật trên máy này"), enableFlow({ onDone: () => void renderPasskeys() })) : null,
     list.length > 0 ? pinByPasskeySection() : null,

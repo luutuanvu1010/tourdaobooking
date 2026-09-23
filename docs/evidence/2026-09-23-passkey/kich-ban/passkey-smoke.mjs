@@ -166,8 +166,8 @@ try {
   // ---- e) trang Tôi: 1 dòng Face ID; đổi PIN xong hiện cảnh báo + Gỡ tất cả ----
   await step("e", "/account: mục Face ID có 1 dòng \"Máy …\"; đổi PIN xong hiện câu \"Face ID vẫn còn bật…\" + nút \"Gỡ tất cả\"", async () => {
     await goto(page, "/account");
-    await page.waitFor(`!!${q("#passkeys")} && !${q("#passkeys")}.hidden && document.querySelectorAll('#passkeys .card-col').length === 1`, "mục Face ID hiện với đúng 1 dòng", 10000);
-    const label = await text(page, "#passkeys .card-col strong");
+    await page.waitFor(`!!${q("#passkeys")} && !${q("#passkeys")}.hidden && document.querySelectorAll('#passkeys .passkey-row').length === 1`, "mục Face ID hiện với đúng 1 dòng", 10000);
+    const label = await text(page, "#passkeys .passkey-row strong");
     assert.match(label ?? "", /^Máy /, `nhãn dòng Face ID phải bắt đầu bằng "Máy ": ${label}`);
     await page.shot(join(OUT, "anh/e-toi-mot-passkey-390.png"));
 
@@ -188,7 +188,7 @@ try {
   await step("f", "bấm \"Gỡ\" (dòng còn lại) → danh sách rỗng; đăng nhập Face ID sau đó báo đúng câu passkey_unknown", async () => {
     await page.ev(clickText("#passkeys", "Gỡ"));
     await page.waitFor(`${q("#passkeys")}.textContent.includes("Chưa bật trên máy nào.")`, "danh sách rỗng", 10000);
-    assert.equal(await page.ev(`document.querySelectorAll('#passkeys .card-col').length`), 0);
+    assert.equal(await page.ev(`document.querySelectorAll('#passkeys .passkey-row').length`), 0);
 
     await doLogout(page);
     await goto(page, "/login");

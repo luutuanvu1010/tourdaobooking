@@ -217,6 +217,11 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
   #me, #myjobs, #links, #passkeys, #pin-form { grid-column: 1; } /* Task 10: #passkeys thiếu ở đây thì #maintenance ẩn (đa số tài khoản không phải chủ) làm #passkeys tự trôi sang cột 2 giữa chừng (đo bằng CDP: left ~532px, không thẳng hàng cột nào) */
   #maintenance { grid-column: 2; }
 }
+/* mục Face ID ở trang "Tôi": mỗi máy một dòng, ngăn bằng đường kẻ như danh sách dòng của app (.line-view/.mline) — trước đây là .card lồng trong #passkeys.card, cùng nền nên không thấy khung */
+.passkey-list { margin-bottom: var(--s3); border-top: 1px solid var(--c-border); border-bottom: 1px solid var(--c-border); }
+.passkey-row { display: grid; gap: var(--s1); padding: var(--s3) 0; border-bottom: 1px solid var(--c-border); }
+.passkey-row:last-child { border-bottom: 0; }
+.passkey-row .btn-link { justify-self: start; min-height: var(--tap-min); }
 /* trang "Góp ý" */
 .feedback-layout { display: block; } /* Đợt C Task 3: bố cục 2 cột ở máy tính — mặc định xếp dọc, giữ đúng thứ tự DOM gốc (#list-card rồi #thread) ở điện thoại */
 @media (min-width: 900px) {
