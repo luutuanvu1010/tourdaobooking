@@ -577,6 +577,7 @@ body.maint-open { overflow: hidden; }
 
 /* Trang Trợ giúp + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
 .new-dot { display: inline-block; width: var(--dot-size); height: var(--dot-size); margin-left: var(--s1); vertical-align: middle; border-radius: var(--radius-pill); background: var(--c-danger); }
+.row-link .new-dot { margin-right: auto; } /* .row-link dàn space-between: không có dòng này chấm trôi ra giữa hàng; auto đẩy mũi tên về sát phải, chấm đứng ngay sau chữ */
 #tabbar .tab-icon { position: relative; }
 #tabbar .tab-icon .new-dot { position: absolute; top: 0; right: calc(var(--dot-size) * -1); margin-left: 0; }
 .badge-new { margin-left: var(--s1); color: var(--c-danger-text); background: var(--c-danger-soft); }

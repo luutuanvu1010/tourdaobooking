@@ -2,8 +2,9 @@
 // Chạy từ GỐC repo: npm run build:web && CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-23-nhat-ky-thay-doi/kich-ban/help-smoke.mjs
 //   a  mỗi quyền (SALES, ACCOUNTING, ADMIN, FIELD) mở /help: đúng dòng phiên bản, đủ số bản, bản đầu là bản mới nhất, nút Góp ý đúng đích
 //   b  máy tính 1040: menu trên có "Trợ giúp"; điện thoại 390: trang Tôi có dòng "Trợ giúp"; thanh tab của SALES không thêm tab
-//   c  chấm đỏ: chưa xem ⇒ có ở tab Tôi + dòng Trợ giúp; mở /help ⇒ tắt; lưu bản cũ ⇒ hiện lại; lưu rác ⇒ hiện; localStorage ném lỗi ⇒ không chấm, không lỗi
+//   c  chấm đỏ: chưa xem ⇒ có ở tab Tôi + dòng Trợ giúp (chấm đứng ngay sau chữ, ≤ 16px); mở /help ⇒ tắt; lưu bản cũ ⇒ hiện lại; lưu rác ⇒ hiện; localStorage ném lỗi ⇒ không chấm, không lỗi
 //   d  console sạch, không lỗi CSP; vùng chạm ≥ 44px, không tràn ngang ở 390 và 320 trên /help
+//   e  mất mạng (CDP giả lập offline, sau khi service worker đã lưu trang): tải lại /help vẫn đủ nhật ký + đúng dòng phiên bản (nhật ký vẽ TRƯỚC initShell)
 import assert from "node:assert/strict";
 import { mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -38,6 +39,15 @@ const goto = async (p, path) => {
   await p.waitFor("document.readyState === 'complete'", `trang ${path} tải xong`);
 };
 const dots = (p) => p.ev(`({ tab: !!${q("#tabbar a[href='/account'] .new-dot")}, link: !!${q("#links a[href='/help'] .new-dot")}, nav: !!${q(".topnav a[href='/help'] .new-dot")} })`);
+// Khoảng cách ngang (px) từ cuối chữ "Trợ giúp" tới chấm đỏ trong dòng ở trang Tôi (đo chữ bằng Range, không đo cả thẻ a).
+const dotGap = (p) =>
+  p.ev(`(() => {
+    const a = ${q("#links a[href='/help']")};
+    const t = [...a.childNodes].find((n) => n.nodeType === 3 && n.textContent.trim() === 'Trợ giúp');
+    const r = document.createRange();
+    r.selectNodeContents(t);
+    return Math.round(a.querySelector('.new-dot').getBoundingClientRect().left - r.getBoundingClientRect().right);
+  })()`);
 const measure = (p) =>
   p.ev(`(() => {
     const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[hidden]'); };
@@ -89,6 +99,8 @@ try {
       await reload(p);
       await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Trợ giúp hiện", 10000);
       assert.deepEqual(await dots(p), { tab: true, link: true, nav: true }, "chưa xem ⇒ có chấm");
+      const gap = await dotGap(p);
+      assert.ok(gap >= 0 && gap <= 16, `chấm đỏ phải đứng ngay sau chữ "Trợ giúp" (khoảng cách ${gap}px, cho phép 0–16px)`);
       await p.shot(join(OUT, "anh/c-cham-do-390.png"));
       await goto(p, "/help");
       assert.equal(await p.ev("localStorage.getItem('td_help_seen')"), CHANGELOG[0].version);
@@ -134,6 +146,31 @@ try {
       } finally {
         p.close();
       }
+    }
+  });
+
+  await step("e", "mất mạng: mở /help từ bộ nhớ đệm vẫn đọc được nhật ký (vẽ trước initShell)", async () => {
+    const p = await env.as(ACCOUNTS.salesA, "/help", M);
+    try {
+      await p.waitFor(`${q("#changelog")}?.children.length > 0`, "nhật ký hiện (có mạng)", 10000);
+      // Lần nạp đầu service worker mới cài: chờ nó điều khiển trang, nạp lại có mạng để /help + /js/help.js vào bộ nhớ đệm.
+      await p.waitFor("!!navigator.serviceWorker?.controller", "service worker điều khiển trang", 20000);
+      await reload(p);
+      await p.waitFor(`${q("#changelog")}?.children.length > 0`, "nhật ký hiện (có mạng, lần 2)", 10000);
+      await p.waitFor(`(async () => !!(await caches.match(location.origin + '/help')) && !!(await caches.match(location.origin + '/js/help.js')) && !!(await caches.match(location.origin + '/app.css')))()`, "trang /help, help.js, app.css đã vào bộ nhớ đệm", 15000);
+      await p.send("Network.emulateNetworkConditions", { offline: true, latency: 0, downloadThroughput: -1, uploadThroughput: -1 });
+      assert.equal(await p.ev("fetch('/api/auth/me').then(() => 'có mạng', () => 'mất mạng')"), "mất mạng", "giả lập mất mạng phải cắt được yêu cầu tới máy chủ");
+      await p.ev("(window.__trangCu = true)");
+      await p.send("Page.reload", {});
+      await p.waitFor(`!window.__trangCu && ${q("#changelog")}?.children.length > 0`, "nhật ký hiện khi mất mạng", 10000);
+      assert.equal(await p.ev("window.__trangCu === undefined"), true, "đã là trang mới nạp lại");
+      assert.equal(await p.ev(`document.querySelectorAll('.release-note').length`), CHANGELOG.length, "đủ số bản khi mất mạng");
+      assert.equal(await p.ev(`${q("#release")}.textContent`), `${APP_NAME} · ${formatReleaseLine()}`, "dòng phiên bản khi mất mạng");
+      assert.equal(await p.ev("fetch('/api/auth/me').then(() => 'có mạng', () => 'mất mạng')"), "mất mạng", "vẫn đang mất mạng lúc kiểm");
+      await p.shot(join(OUT, "anh/e-mat-mang-390.png"));
+    } finally {
+      await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }).catch(() => undefined);
+      p.close();
     }
   });
 } finally {
