@@ -13,7 +13,7 @@ export const CACHE_VERSION = typeof __BUILD_ID__ === "undefined" ? "dev" : __BUI
 export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 
 /** Các trang của app (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Test đối chiếu với các file HTML trong public/ nên không lệch khi thêm/bớt trang. */
-export const PAGES: readonly string[] = ["/", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback"];
+export const PAGES: readonly string[] = ["/", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help"];
 
 /** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
 const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;

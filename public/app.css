@@ -59,6 +59,7 @@
   --fs-ui: 16px;
   --fs-label: 14px;
   --fs-badge: 12px;
+  --dot-size: 8px;
   --fs-title: 18px;
   --fs-counter: 20px;
   --lh-heading: 1.16;         /* giữ để dấu tiếng Việt của tiêu đề không bị cắt */
@@ -573,3 +574,13 @@ body.maint-open { overflow: hidden; }
 .dash-revenue-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
 .dash-revenue-total { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
 .dash-revenue-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat); }
+
+/* Trang Trợ giúp + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
+.new-dot { display: inline-block; width: var(--dot-size); height: var(--dot-size); margin-left: var(--s1); vertical-align: middle; border-radius: var(--radius-pill); background: var(--c-danger); }
+#tabbar .tab-icon { position: relative; }
+#tabbar .tab-icon .new-dot { position: absolute; top: 0; right: calc(var(--dot-size) * -1); margin-left: 0; }
+.badge-new { margin-left: var(--s1); color: var(--c-danger-text); background: var(--c-danger-soft); }
+.release-note + .release-note { margin-top: var(--s3); padding-top: var(--s3); border-top: 1px solid var(--c-line); }
+.release-note h3 { margin: 0 0 var(--s2); }
+.release-items { margin: 0; padding-left: var(--s4); }
+.release-items li + li { margin-top: var(--s1); }
