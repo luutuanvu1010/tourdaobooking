@@ -26,7 +26,12 @@
       <div id="turnstile-widget" class="login-turnstile" hidden></div>
       <button id="turnstile-retry" class="btn" type="button" hidden>Thử lại</button>
       <button id="submit" class="btn btn-primary" type="submit">Đăng nhập</button>
+      <!-- Đăng nhập bằng Face ID (ADR-0016): web/login.ts chỉ hiện khi GET /api/auth/config báo passkey = true và trình duyệt hỗ trợ. -->
+      <button id="passkey-login" class="btn" type="button" hidden>Đăng nhập bằng Face ID / vân tay</button>
+      <p id="passkey-hint" class="muted" role="status" hidden></p>
     </form>
+    <!-- Lời mời bật Face ID sau khi đăng nhập bằng PIN thành công (A-2: đặt NGOÀI form vì showInvite ẩn chính form login-form). -->
+    <section id="passkey-invite" class="card" hidden></section>
     <!-- Chân trang: dòng phiên bản do web/login.ts điền từ src/shared/app-info.ts; khối công ty do web/login.ts dựng từ GET /api/company (lỗi/chậm thì ẩn). -->
     <footer class="login-info">
       <p id="release" class="login-release"></p>

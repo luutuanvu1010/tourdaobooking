@@ -13,6 +13,8 @@
     <section id="links" class="card list-card"></section>
     <!-- Chế độ bảo trì: web/account.ts chỉ hiện cho tài khoản được phép bật/tắt (GET /api/maintenance trả canToggle). -->
     <section id="maintenance" class="card" aria-labelledby="maintenance-heading" hidden></section>
+    <!-- Đăng nhập bằng Face ID (ADR-0016): web/account.ts chỉ hiện khi máy chủ bật (GET /api/auth/config → passkey). -->
+    <section id="passkeys" class="card" aria-labelledby="passkeys-heading" hidden></section>
     <form id="pin-form" class="card" autocomplete="off">
       <h2>Đổi mã PIN</h2>
       <label>PIN hiện tại<input id="current" type="password" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required></label>

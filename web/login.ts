@@ -5,6 +5,7 @@ import { showError } from "./shell";
 import { formatReleaseLine } from "../src/shared/app-info";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
+import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
 registerServiceWorker();
 
@@ -57,6 +58,9 @@ const companyEl = byId("company");
 // Tuỳ chọn có chủ ý: service worker làm mới HTML và JS riêng rẽ, HTML cũ trong cache đi với login.js mới không được làm chết trang đăng nhập (byId ném lỗi khi thiếu).
 const maintenanceEl = document.getElementById("maintenance-banner");
 const maintenanceText = document.getElementById("maintenance-text");
+// Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
+const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
+const hintEl = document.getElementById("passkey-hint");
 
 // ---- Banner chế độ bảo trì ----
 // Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
@@ -65,6 +69,12 @@ function setMaintenance(on: boolean, endsAt: string | null): void {
   stopMaintenance?.();
   stopMaintenance = on && maintenanceText ? renderMaintenanceMessage(maintenanceText, endsAt) : null;
   if (maintenanceEl) maintenanceEl.hidden = !on;
+}
+/** Dùng CHUNG cho lỗi bảo trì của cả nút Đăng nhập (PIN) và nút Face ID: cập nhật banner, không hiện lỗi chung ở #error. */
+function showMaintenanceBanner(err: ApiError): void {
+  showError(errorEl, null);
+  setMaintenance(true, endsAtFrom(err.details));
+  maintenanceEl?.scrollIntoView({ block: "nearest" });
 }
 
 // Đã có phiên hợp lệ thì vào thẳng, khỏi đăng nhập lại.
@@ -81,6 +91,84 @@ let siteKey: string | null = null; // khác null ⇔ máy chủ bật Turnstile
 let widgetId: string | null = null;
 let token: string | null = null; // token của widget; dùng MỘT lần (mỗi lần đăng nhập thất bại phải reset để lấy token mới)
 let widgetProblem = false; // #error đang hiện lỗi CỦA WIDGET (không phải lỗi đăng nhập của máy chủ)
+
+// ---- Đăng nhập bằng Face ID (ADR-0016) ----
+let passkeyEnabled = false; // true ⇔ máy chủ báo passkey = true (đọc trong fetchConfig, chỉ bật một lần — B-15)
+let prefetched: { opts: Api.PasskeyRequestOptionsResponse["publicKey"]; at: number } | null = null;
+const PREFETCH_TTL_MS = 4 * 60_000; // thách thức có hạn ở máy chủ; lấy lại nếu để quá lâu không chạm nút
+
+/** Lấy sẵn thách thức Face ID để chạm nút là gọi navigator.credentials.get NGAY (đặc tả §2.7), không phải chờ một lượt fetch trước. */
+async function prefetchPasskey(): Promise<void> {
+  try {
+    const r = await api<Api.PasskeyRequestOptionsResponse>("/api/auth/passkey/options", { method: "POST", body: {} });
+    prefetched = { opts: r.publicKey, at: Date.now() };
+  } catch {
+    prefetched = null;
+  }
+}
+
+passkeyBtn?.addEventListener("click", async () => {
+  showError(errorEl, null);
+  if (hintEl) hintEl.hidden = true;
+  const p = prefetched;
+  if (!p || Date.now() - p.at > PREFETCH_TTL_MS) {
+    await prefetchPasskey();
+    if (hintEl) {
+      hintEl.textContent = "Bấm lại nút Face ID.";
+      hintEl.hidden = false;
+    }
+    return;
+  }
+  prefetched = null;
+  try {
+    const credential = await getAssertion(p.opts); // KHÔNG có await nào trước dòng này trong lần chạm
+    const me = await api<Api.MeResponse>("/api/auth/passkey/login", { method: "POST", body: { credential } });
+    if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
+    location.replace(next);
+  } catch (err) {
+    if (err instanceof ApiError) {
+      if (err.code === MAINTENANCE_CODE) showMaintenanceBanner(err);
+      else showError(errorEl, err.message);
+    } else {
+      const msg = passkeyErrorMessage(err);
+      if (msg) showError(errorEl, msg);
+    }
+    void prefetchPasskey();
+  }
+});
+
+// ---- Lời mời bật Face ID sau khi đăng nhập bằng PIN thành công ----
+const INVITE_OFF = (id: string) => `td_passkey_invite_off:${id}`;
+async function shouldInvite(staffId: string): Promise<boolean> {
+  if (!passkeyEnabled || !(await platformAuthenticatorAvailable())) return false;
+  try {
+    if (localStorage.getItem(INVITE_OFF(staffId))) return false;
+  } catch {
+    // không có bộ nhớ (chế độ riêng tư…): vẫn mời, không chặn vì thiếu tiện ích này
+  }
+  try {
+    return (await api<Api.PasskeyListResponse>("/api/account/passkeys")).passkeys.length === 0;
+  } catch {
+    return false;
+  }
+}
+function showInvite(staffId: string): void {
+  const later = h("button", { class: "btn", type: "button" }, "Để sau");
+  later.addEventListener("click", () => {
+    try {
+      localStorage.setItem(INVITE_OFF(staffId), "1");
+    } catch {
+      // bỏ qua: chỉ là tiện ích nhớ lựa chọn, không chặn tiếp tục
+    }
+    location.replace(next);
+  });
+  const flow = enableFlow({ onDone: () => location.replace(next), extra: [later] });
+  const box = document.getElementById("passkey-invite");
+  if (!box) return location.replace(next); // HTML cũ trong cache chưa có khối này (Tuỳ chọn có chủ ý, xem khai báo passkeyBtn ở trên)
+  form.hidden = true;
+  replaceChildren(box, h("h2", null, "Bật đăng nhập bằng Face ID?"), h("p", null, "Lần sau chỉ cần nhìn vào máy là vào được app, không phải gõ PIN."), flow);
+  box.hidden = false;
+}
 
 function syncSubmit(): void {
   submit.disabled = busy || !ready || (siteKey !== null && token === null);
@@ -194,6 +282,14 @@ async function fetchConfig(): Promise<boolean> {
     const config = await api<Api.AuthConfigResponse>("/api/auth/config");
     siteKey = config.turnstileSiteKey;
     setMaintenance(config.maintenance?.on === true, config.maintenance?.endsAt ?? null); // (`?.`: bản máy chủ cũ hơn chưa có trường này)
+    // B-15: fetchConfig chạy NHIỀU LẦN (start, recoverConfig) — chỉ bật nút/prefetch một lần duy nhất bằng cờ passkeyEnabled.
+    if (config.passkey === true && !passkeyEnabled) {
+      passkeyEnabled = true;
+      if (passkeyBtn && passkeySupported()) {
+        passkeyBtn.hidden = false;
+        void prefetchPasskey();
+      }
+    }
     return true;
   } catch {
     return false; // `siteKey` giữ nguyên (null nếu chưa từng biết)
@@ -263,18 +359,16 @@ form.addEventListener("submit", async (e) => {
   busy = true;
   syncSubmit();
   try {
-    await api("/api/auth/login", {
+    const me = await api<Api.MeResponse>("/api/auth/login", {
       method: "POST",
       body: { phone: byId<HTMLInputElement>("phone").value.trim(), pin: byId<HTMLInputElement>("pin").value, turnstileToken: token ?? undefined },
     });
+    if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
     location.replace(next);
   } catch (err) {
-    if (err instanceof ApiError && err.code === MAINTENANCE_CODE) {
-      // Đang bảo trì và SĐT này không được phép: cập nhật banner (không hiện lỗi chung). Mã này KHÁC `turnstile_unavailable` (cũng 503) nên không đi vào nhánh hỏi lại cấu hình bên dưới.
-      showError(errorEl, null);
-      setMaintenance(true, endsAtFrom(err.details));
-      maintenanceEl?.scrollIntoView({ block: "nearest" });
-    } else showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+    // Đang bảo trì và SĐT này không được phép: cập nhật banner (không hiện lỗi chung). Mã này KHÁC `turnstile_unavailable` (cũng 503) nên không đi vào nhánh hỏi lại cấu hình bên dưới.
+    if (err instanceof ApiError && err.code === MAINTENANCE_CODE) showMaintenanceBanner(err);
+    else showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
     busy = false;
     resetWidget(); // MỌI lần thất bại (kể cả sai PIN): máy chủ đã kiểm và đốt token ở bước Turnstile trước khi kiểm PIN, token cũ không dùng lại được
     syncSubmit();

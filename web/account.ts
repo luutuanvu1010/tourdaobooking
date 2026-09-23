@@ -7,6 +7,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
+import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -51,10 +52,150 @@ form.addEventListener("submit", async (e) => {
     await api("/api/account/change-pin", { method: "POST", body: { currentPin, newPin } });
     form.reset();
     okEl.hidden = false;
+    void renderPasskeys({ afterPinChange: true });
   } catch (err) {
     showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
   }
 });
+
+// ---- Đăng nhập bằng Face ID (ADR-0016) --------------------------------------------------------------------------
+const passkeysEl = byId("passkeys");
+let passkeyEnabled = false; // đọc từ GET /api/auth/config trong initPasskeys()
+let platformAvailable: boolean | null = null; // isUserVerifyingPlatformAuthenticatorAvailable() — hỏi một lần, cache lại
+
+/** Ô PIN mới + nhập lại + nút "Xác nhận bằng Face ID": đặt PIN mới khi quên PIN cũ, dùng chính passkey đang có. */
+function pinByPasskeySection(): HTMLElement {
+  const newPin = h("input", { type: "password", inputmode: "numeric", pattern: "[0-9]{6}", maxlength: "6", autocomplete: "new-password" });
+  const confirmPin = h("input", { type: "password", inputmode: "numeric", pattern: "[0-9]{6}", maxlength: "6", autocomplete: "new-password" });
+  const msg = h("p", { class: "muted", role: "status" });
+  const go = h("button", { class: "btn btn-primary", type: "button" }, "Xác nhận bằng Face ID");
+  let challenge: { opts: Api.PasskeyRequestOptionsResponse["publicKey"]; at: number } | null = null;
+  const CHALLENGE_TTL_MS = 4 * 60_000;
+  async function fetchChallenge(): Promise<void> {
+    try {
+      const r = await api<Api.PasskeyRequestOptionsResponse>("/api/account/pin-by-passkey/options", { method: "POST", body: {} });
+      challenge = { opts: r.publicKey, at: Date.now() };
+    } catch (err) {
+      challenge = null;
+      msg.textContent = err instanceof ApiError ? err.message : "Không kết nối được máy chủ.";
+    }
+  }
+  const details = h(
+    "details",
+    null,
+    h("summary", null, "Quên PIN? Đặt PIN mới bằng Face ID"),
+    h("label", null, "PIN mới (6 số)", newPin),
+    h("label", { style: "margin-top:var(--s2)" }, "Nhập lại PIN mới", confirmPin),
+    msg,
+    h("div", { class: "actions" }, go),
+  );
+  details.addEventListener("toggle", () => {
+    if ((details as HTMLDetailsElement).open) {
+      msg.textContent = "";
+      void fetchChallenge();
+    }
+  });
+  go.addEventListener("click", async () => {
+    if (newPin.value !== confirmPin.value) {
+      msg.textContent = "Hai lần nhập PIN mới không khớp.";
+      return;
+    }
+    const c = challenge;
+    if (!c || Date.now() - c.at > CHALLENGE_TTL_MS) {
+      await fetchChallenge();
+      if (challenge) msg.textContent = "Bấm lại nút Xác nhận bằng Face ID.";
+      return;
+    }
+    challenge = null;
+    try {
+      const credential = await getAssertion(c.opts); // KHÔNG có await nào trước dòng này trong lần chạm
+      await api("/api/account/pin-by-passkey", { method: "POST", body: { credential, newPin: newPin.value } });
+      msg.textContent = "Đã đặt PIN mới. Các thiết bị khác sẽ bị đăng xuất.";
+      newPin.value = "";
+      confirmPin.value = "";
+    } catch (err) {
+      const text = err instanceof ApiError ? err.message : passkeyErrorMessage(err);
+      if (text) msg.textContent = text;
+      void fetchChallenge(); // MỌI lần thất bại: thách thức cũ không dùng lại được, lấy sẵn cái mới cho lần bấm sau
+    }
+  });
+  return details;
+}
+
+async function renderPasskeys(opts?: { afterPinChange?: boolean }): Promise<void> {
+  if (!passkeyEnabled) return;
+  let list: Api.PasskeyDto[];
+  try {
+    list = (await api<Api.PasskeyListResponse>("/api/account/passkeys")).passkeys;
+  } catch {
+    return; // lỗi mạng: giữ mục như cũ, không ảnh hưởng phần còn lại của trang (cùng khuôn initMaintenance)
+  }
+  if (platformAvailable === null) platformAvailable = await platformAuthenticatorAvailable();
+  const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
+
+  const rows = list.map((p) => {
+    const removeBtn = h("button", { class: "btn btn-link danger", type: "button" }, "Gỡ");
+    removeBtn.addEventListener("click", async () => {
+      showError(errorBox, null);
+      try {
+        await api(`/api/account/passkeys/${p.id}`, { method: "DELETE" });
+        await renderPasskeys();
+      } catch (err) {
+        showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+      }
+    });
+    return h(
+      "div",
+      { class: "card card-col" },
+      h("strong", null, p.label),
+      h("div", { class: "muted" }, `Bật ngày ${vnDateTimeText(p.createdAt)}`),
+      h("div", { class: "muted" }, p.lastUsedAt ? `Dùng gần nhất ${vnDateTimeText(p.lastUsedAt)}` : "Chưa dùng"),
+      removeBtn,
+    );
+  });
+
+  const removeAllBtn = ((): HTMLElement | null => {
+    if (list.length === 0) return null;
+    const b = h("button", { class: "btn btn-link danger", type: "button" }, "Gỡ tất cả");
+    b.addEventListener("click", async () => {
+      if (!confirm("Gỡ Face ID trên mọi máy? Bạn sẽ phải đăng nhập lại bằng số điện thoại và PIN.")) return;
+      showError(errorBox, null);
+      try {
+        await api("/api/account/passkeys/remove-all", { method: "POST" });
+        await renderPasskeys();
+      } catch (err) {
+        showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+      }
+    });
+    return b;
+  })();
+
+  replaceChildren(
+    passkeysEl,
+    h("h2", { id: "passkeys-heading" }, "Đăng nhập bằng Face ID"),
+    opts?.afterPinChange && list.length > 0
+      ? h("p", { class: "alert warn" }, "Face ID vẫn còn bật trên các máy dưới đây. Nếu nghi lộ PIN, bấm Gỡ tất cả.")
+      : null,
+    errorBox,
+    list.length === 0 ? h("p", { class: "muted" }, "Chưa bật trên máy nào.") : h("div", { class: "grid" }, ...rows),
+    removeAllBtn,
+    platformAvailable ? h("div", null, h("h3", null, "Bật trên máy này"), enableFlow({ onDone: () => void renderPasskeys() })) : null,
+    list.length > 0 ? pinByPasskeySection() : null,
+  );
+  passkeysEl.hidden = false;
+  if (opts?.afterPinChange && list.length > 0) passkeysEl.scrollIntoView({ block: "nearest" });
+}
+
+async function initPasskeys(): Promise<void> {
+  try {
+    const config = await api<Api.AuthConfigResponse>("/api/auth/config");
+    passkeyEnabled = config.passkey === true;
+  } catch {
+    passkeyEnabled = false;
+  }
+  if (passkeyEnabled) await renderPasskeys();
+}
+void initPasskeys();
 
 // ---- Chế độ bảo trì (chỉ chủ dự án: GET /api/maintenance trả canToggle = true) ----
 // Bật = mọi tài khoản khác bị chặn NGAY (kể cả phiên đang mở) — nên bật phải qua bước xác nhận thứ hai ngay trong trang (không dùng confirm() của trình duyệt). Máy chủ mới là nơi kiểm quyền và giờ hợp lệ.

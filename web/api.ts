@@ -66,8 +66,9 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
     if (!res.ok) {
       // Chế độ bảo trì: máy chủ chặn tài khoản này (kể cả phiên đang mở) → lớp phủ toàn trang có đồng hồ đếm ngược, không hiện lỗi thô. Riêng trang đăng nhập tự xử lý (chủ vẫn cần đăng nhập được).
       if (data?.error?.code === MAINTENANCE_CODE && !location.pathname.startsWith("/login")) return showMaintenanceScreen(endsAtFrom(data.error));
-      // Phiên hết hạn ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
-      if (res.status === 401 && path !== "/api/auth/login" && !location.pathname.startsWith("/login")) return goLogin();
+      // Phiên hết hạn (mã "unauthenticated" của router) ở màn hình khác /login → đưa về đăng nhập; riêng chính /login thì để hiện lỗi.
+      // B-3 (giả định bề mặt, đảo ngược được): thu hẹp còn đúng mã "unauthenticated" — các route Face ID ở trang "Tôi" (vd pin-by-passkey) trả 401 với mã khác (passkey_invalid/passkey_unknown) và phải hiện lỗi tại chỗ, không được đưa thẳng về /login.
+      if (res.status === 401 && path !== "/api/auth/login" && data?.error?.code === "unauthenticated" && !location.pathname.startsWith("/login")) return goLogin();
       throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);
     }
     return data as T;

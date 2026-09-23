@@ -73,7 +73,7 @@ function row(s: StaffAccount): HTMLElement {
       { class: "row-actions" },
       btn("Sửa", () => openEdit(s)),
       btn("Đặt lại PIN", async () => {
-        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
         const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
         if (r) {
           showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -83,6 +83,13 @@ function row(s: StaffAccount): HTMLElement {
       s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
+      // Không hiện trên hàng của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
+      !isMe &&
+        s.passkeyCount > 0 &&
+        btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
+          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
+        }),
       !isMe &&
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
@@ -116,7 +123,7 @@ function card(s: StaffAccount): HTMLElement {
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       btn("Sửa", () => openEdit(s)),
       btn("Đặt lại PIN", async () => {
-        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
         const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
         if (r) {
           showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
@@ -126,6 +133,13 @@ function card(s: StaffAccount): HTMLElement {
       s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
+      // Không hiện trên thẻ của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
+      !isMe &&
+        s.passkeyCount > 0 &&
+        btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
+          if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
+          if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
+        }),
       !isMe &&
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
