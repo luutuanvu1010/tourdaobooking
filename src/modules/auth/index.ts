@@ -140,6 +140,10 @@ export const authModule: AppModule = {
       const ch = await readPasskeyChallenge(request, env, "login", null);
       if (!ch) return PASSKEY_ERRORS.expired();
       // Thứ tự đặc tả §2.6: kiểm chữ ký/bộ đếm (trong checkPasskeyAssertion) → cổng bảo trì theo SĐT (gate, TRƯỚC dùng một lần) → dùng một lần → recordLogin → td_session.
+      // Mốc phiên lấy TRƯỚC khi kiểm (rà soát cuối M-1): khoá bị gỡ trước lúc đánh dấu dùng thì markPasskeyUsed thua (valid_to_at IS NULL); bị gỡ
+      // SAU mốc này thì credentials_changed_at > issuedAt nên getActiveStaff thu hồi phiên — phiên không thể "mới hơn" lần gỡ khoá đã sinh ra nó.
+      // Còn lại đúng một ca biên: lần gỡ rơi vào CÙNG mili-giây với mốc này (phép so là `>`), cửa sổ 1 ms.
+      const issuedAt = Date.now();
       const checked = await checkPasskeyAssertion(env, rp, ch, credential, null, async (pk) => {
         const owner = await getActiveStaff(env.DB, pk.staff_id);
         if (!owner) return PASSKEY_ERRORS.unknown();
@@ -152,7 +156,7 @@ export const authModule: AppModule = {
       await recordLogin(env.DB, profile.id, new Date().toISOString()).catch((e: unknown) =>
         console.error(JSON.stringify({ level: "error", event: "record_login_failed", message: e instanceof Error ? e.message : String(e) })),
       );
-      const res = json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, profile.id) });
+      const res = json({ staff: profile } satisfies MeResponse, 200, { "set-cookie": await newSessionCookie(request, env, profile.id, issuedAt) });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
     }),

@@ -195,12 +195,15 @@ export const accountsModule: AppModule = {
       return res;
     }),
 
-    route("GET", "/api/account/passkeys", "staff", async ({ env, staff }) =>
-      json({ passkeys: (await listActivePasskeys(env.DB, staff.id)).map(toPasskeyDto) } satisfies PasskeyListResponse),
-    ),
+    // Đặc tả §2.3: Face ID TẮT ⇒ MỌI route passkey trả 503, kể cả xem danh sách và gỡ (đặt lại PIN do quản trị viên vẫn gỡ hết Face ID).
+    route("GET", "/api/account/passkeys", "staff", async ({ env, staff }) => {
+      if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
+      return json({ passkeys: (await listActivePasskeys(env.DB, staff.id)).map(toPasskeyDto) } satisfies PasskeyListResponse);
+    }),
 
     // Gỡ = đóng hiệu lực + đăng xuất mọi máy khác (điều 6); máy đang thao tác nhận phiên mới cùng mốc `now`.
     route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff }) => {
+      if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
       const now = Date.now();
       const at = new Date(now).toISOString();
       const [revoked] = await env.DB.batch([
@@ -213,6 +216,7 @@ export const accountsModule: AppModule = {
     }),
 
     route("DELETE", "/api/account/passkeys/:id", "staff", async ({ request, env, staff, params }) => {
+      if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
       const id = params.id!;
       if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy Face ID này.");
       const now = Date.now();
@@ -443,6 +447,7 @@ export const accountsModule: AppModule = {
 
     // ADR-0016 điều 6/8: quản trị viên gỡ mọi Face ID của một tài khoản (vd. mất máy, nghi lộ khoá) mà không cần đặt lại PIN.
     route("POST", "/api/staff/:id/passkeys/remove-all", "admin", async (ctx) => {
+      if (!passkeyRp(ctx.env)) return PASSKEY_ERRORS.off();
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
