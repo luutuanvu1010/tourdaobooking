@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ACCOUNTS, ok, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-23-trang-chu-moi";
 const AXE = readFileSync(process.env.AXE_JS, "utf8");
@@ -1311,6 +1311,68 @@ try {
     await pRedirect.waitFor("!document.querySelector('#dash-grid').hidden", "sau khi chuyển hướng, Trang chủ tải xong");
     pRedirect.close();
     ok("H-3) Địa chỉ /home tự chuyển hướng về / rồi tải đúng Trang chủ");
+  }
+
+  // ==================================================================================================
+  // I) SỬA SAU PHÁT HÀNH (2026-09-24, cách sửa A do chủ dự án chốt): tài khoản CHỈ Đối tác (PARTNER) tới "/" phải
+  //    sang thẳng "/orders" (src/shared/start-page.ts → web/home.ts), KHÔNG gọi dashboard (route "office" → 403,
+  //    câu lỗi viết cho FIELD). Trước Đợt D "/" chính là Đơn hàng nên họ vào thẳng danh sách đơn của mình.
+  //    ĐẶT CUỐI KỊCH BẢN có chủ đích: (1) đơn do Đối tác lập là đơn nháp/chưa phụ trách/còn thiếu tiền — đặt sớm hơn
+  //    sẽ làm lệch các khẳng định đếm toàn công ty ở trên; (2) kho cookie dùng chung — trang của tài khoản này mở sau cùng.
+  //    Hai đường vào: I-1 đăng nhập PIN THẬT qua form /login (đích mặc định "/"); I-2 mở thẳng "/" khi đã có phiên
+  //    (gõ địa chỉ / mở app PWA từ màn hình chính). Chỉ-FIELD vẫn giữ banner lỗi (bước C ở trên, không đổi).
+  // ==================================================================================================
+  {
+    const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+    const partnerOnly = { name: "Đối Tác Thử", phone: "0900000398", pin: "135790", permissions: ["PARTNER"] };
+    for (const stmt of (await insertStaffSql(partnerOnly)).split("\n")) env.sql(stmt);
+    const created = await call(partnerOnly, "POST", "/api/orders", orderInput("Khách Của Đối Tác", "0900000302", [
+      manualService("Tour 4 đảo (đơn Đối tác tự lập)", { departDate: TOMORROW, pickupTime: "07:00", pickupPlace: "Khách sạn Đối tác", unitPrice: 200_000 }),
+    ]));
+    assert.equal(created.status, 201, `Đối tác lập đơn: ${JSON.stringify(created.json)}`);
+
+    const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
+    /** Kết thúc ở /orders, thấy đơn của mình, không banner lỗi, console sạch, KHÔNG từng gọi dashboard. */
+    const assertLandedOnOrders = async (p, label) => {
+      await p.waitFor("location.pathname === '/orders' && document.readyState === 'complete'", `${label}: kết thúc ở /orders`, 15000);
+      await p.waitFor(`${q("#list")} && ${q("#list")}.querySelectorAll('.order-row').length > 0`, `${label}: danh sách đơn hiện`, 10000);
+      const m = await p.ev(`(() => ({
+        path: location.pathname,
+        rows: [...document.querySelectorAll('#list .order-row')].map((a) => a.textContent.includes('Khách Của Đối Tác')),
+        errorHidden: document.querySelector('#error').hidden,
+        errorText: document.querySelector('#error').textContent.trim(),
+        dashGrid: !!document.querySelector('#dash-grid'),
+      }))()`);
+      assert.equal(m.path, "/orders", `${label}: phải kết thúc ở /orders — ${JSON.stringify(m)}`);
+      assert.ok(m.rows.includes(true), `${label}: danh sách phải có đơn "Khách Của Đối Tác" — ${JSON.stringify(m)}`);
+      assert.equal(m.errorHidden, true, `${label}: KHÔNG được có banner lỗi — ${JSON.stringify(m)}`);
+      assert.equal(m.dashGrid, false, `${label}: trang cuối không được là Trang chủ — ${JSON.stringify(m)}`);
+      const dashCalls = p.requests.filter((r) => r.url.includes("/api/orders/dashboard")).map((r) => r.url);
+      assert.deepEqual(dashCalls, [], `${label}: KHÔNG được gọi /api/orders/dashboard (route văn phòng → 403) — đã gọi ${JSON.stringify(dashCalls)}`);
+      assert.deepEqual(p.consoleErrors, [], `lỗi console (${label}): ${p.consoleErrors}`);
+      return m;
+    };
+
+    // I-1: đăng nhập PIN thật qua form (không tiêm cookie) — đích mặc định sau đăng nhập là "/".
+    const pLogin = await env.openPage(MOB);
+    await pLogin.send("Network.clearBrowserCookies");
+    await pLogin.send("Page.navigate", { url: env.base + "/login" });
+    await pLogin.waitFor(`document.readyState === 'complete' && ${q("#submit")} && !${q("#submit")}.disabled`, "trang đăng nhập sẵn sàng", 15000);
+    await pLogin.ev(setInput(q("#phone"), partnerOnly.phone));
+    await pLogin.ev(setInput(q("#pin"), partnerOnly.pin));
+    await pLogin.ev(`${q("#submit")}.click(); true`);
+    await assertLandedOnOrders(pLogin, "I-1 Đối tác đăng nhập PIN");
+    assert.ok(pLogin.requests.some((r) => new URL(r.url).pathname === "/"), "I-1: phải thật sự đi qua \"/\" (đích mặc định sau đăng nhập) rồi mới sang /orders");
+    await shot(pLogin, "sua-doi-tac-dang-nhap-vao-don-hang-dien-thoai.png");
+    pLogin.close();
+    ok("I-1) Tài khoản CHỈ Đối tác đăng nhập PIN thật (390px): đi qua \"/\" rồi kết thúc ở /orders, thấy đơn của mình, không banner lỗi, không gọi dashboard, console sạch");
+
+    // I-2: đã có phiên, mở thẳng "/" (gõ địa chỉ / mở app PWA) ở khổ máy tính.
+    const pDirect = await env.as(partnerOnly, "/", DESK);
+    await assertLandedOnOrders(pDirect, "I-2 Đối tác mở thẳng /");
+    await shot(pDirect, "sua-doi-tac-mo-thang-vao-don-hang-may-tinh.png");
+    pDirect.close();
+    ok("I-2) Tài khoản CHỈ Đối tác mở thẳng \"/\" (1040px): kết thúc ở /orders, thấy đơn của mình, không banner lỗi, không gọi dashboard, console sạch");
   }
 } finally {
   await env.stop();
