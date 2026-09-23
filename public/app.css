@@ -319,22 +319,32 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .sidebar-role { font-size: var(--fs-badge); color: var(--c-sidebar-item); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sidebar-logout { flex: none; padding: var(--s1); font: inherit; font-size: var(--fs-badge); font-weight: 600; color: var(--c-sidebar-item); background: none; border: 0; text-decoration: underline; cursor: pointer; }
 
-/* Thanh công việc trên (máy tính): ô tìm kiếm + nút "Lập đơn mới" — mockup không vẽ ở khổ điện thoại, và ở khổ
-   641–899px (không sidebar, không tab bar — dải hẹp giữa hai ngưỡng cũ 640/mới 900, xem báo cáo Task 4) vẫn hiện
-   để KHÔNG mất hẳn lối vào "Tìm đơn"/"Lập đơn mới" tại dải đó (quyết định tự quyết, bề mặt đảo ngược được — P8). */
+/* Thanh công việc trên: mockup không vẽ ở khổ điện thoại. Nút "Lập đơn mới" hiện từ 641px — CÙNG mốc với thanh bên,
+   vì đó là lối tắt chính. Ô tìm kiếm chỉ từ 900px: ở 641px cột nội dung chỉ còn ~405px nên thanh công việc gãy hai
+   dòng (người kiểm độc lập đo thật: cao 128px ở đúng 641px). */
 .topbar-search, .topbar-new { display: none; }
 @media (min-width: 641px) {
-  .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
-  .topbar-new { display: inline-block; }
+  .topbar-new { display: inline-block; margin-left: auto; } /* chưa có ô tìm kiếm thì chính nút tự đẩy mình sang phải */
 }
 @media (min-width: 900px) {
+  .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
+  .topbar-new { margin-left: 0; } /* ô tìm kiếm đã nhận margin-left:auto — để cả hai cùng auto thì chỗ trống bị chia đôi, ô tìm rơi ra giữa */
+}
+/* Ngưỡng 641px (không phải 900px như bản Task 4 đầu tiên — quyết định 9 của chủ dự án): ở dải 641–899px bản cũ còn
+   thanh ngang đủ 9 mục, nếu thanh bên chỉ hiện từ 900px thì dải đó MẤT hết lối điều hướng lẫn nút Đăng xuất.
+   CHỈ khối lưới thanh bên hạ ngưỡng; sáu khối @media (min-width: 900px) khác (bố cục 2 cột của các trang) GIỮ 900px
+   vì ở 641px cột nội dung chỉ còn ~405px, không đủ cho hai cột. */
+@media (min-width: 641px) {
   /* BA HÀNG TƯỜNG MINH (không dùng `grid-row: 1 / -1` mơ hồ khi grid không khai `grid-template-rows`: đã đo
      thật bằng kịch bản a2-smoke-form.mjs — trình duyệt co dòng 1 (topbar) cao bằng CẢ NỘI DUNG sidebar (461px
      ở khổ 1040×800), đẩy nút Lưu tràn khung nhìn). Hàng 1 = #topbar, hàng 2 = .maint-strip (rỗng, cao 0, khi
      không bật bảo trì), hàng 3 = main. #sidebar trải đúng CẢ BA hàng bằng chỉ số tường minh `1 / 4`. */
   body.has-sidebar { display: grid; grid-template-columns: var(--w-sidebar) minmax(0, 1fr); grid-template-rows: auto auto 1fr; min-height: 100vh; }
   #sidebar { grid-row: 1 / 4; display: flex; background: var(--c-primary-strong); }
-  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+  /* Chiều cao ĐÚNG token --bar-h (60px, chủ dự án đã duyệt): thanh từng cao 71px vì nút "Lập đơn mới" (46px) cộng
+     đệm dọc 12+12 cộng viền 1px tự quyết chiều cao — giảm đệm không đủ, phải đặt thẳng chiều cao (box-sizing:
+     border-box nên viền nằm trong 60px). Vẫn chừa vùng an toàn trên (iPad cài PWA) như thanh đầu trang điện thoại. */
+  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
   body.has-sidebar #topbar .brand { display: none; } /* logo/tên app đã có ở đầu sidebar — không lặp lại */
   body.has-sidebar #topbar .bar-title { display: block; flex: none; font-size: var(--fs-label); font-weight: 600; }
   /* :where() giữ đặc trưng (specificity) bằng 0 — main.form-page (0,1,1, @media 960px) vẫn PHẢI thắng max-width
