@@ -30,7 +30,10 @@ async function login(page, phone, pin) {
   await page.type("#pin", pin);
   await page.click("#submit");
   await page.waitForFunction(() => location.pathname === "/", { timeout: 15000 });
-  await page.waitForSelector("#topbar .who a", { timeout: 15000 });
+  // Đợt D Task 4 (ADR-0015): thanh ngang cũ (`.who`, chỉ dựng ở máy tính) đổi thành thanh điều hướng dọc
+  // (`#sidebar`, cũng chỉ máy tính) + thanh tab dưới đáy (điện thoại, không đổi). Kịch bản này CHỈ chạy ở khổ
+  // điện thoại (MOBILE viewport) — đổi mốc "khung đã tải xong" sang `#tabbar .tab`, luôn có ở khổ này.
+  await page.waitForSelector("#tabbar .tab", { timeout: 15000 });
 }
 const api = (page, path, method = "GET", body) =>
   page.evaluate(async (path, method, body) => {

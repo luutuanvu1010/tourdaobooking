@@ -460,21 +460,25 @@ try {
   await shot(p, "trang-chu-may-tinh.png");
   await axe(p, "Trang chủ máy tính");
 
-  // Đo thanh điều hướng trên máy tính (1040px): ADMIN nay có 9 mục ở nav — không tràn ngang, không vỡ thanh đầu trang.
+  // Đợt D Task 4 (ADR-0015): thanh ngang (`.topnav`, 9 mục) đổi thành thanh điều hướng dọc (`#sidebar`) — ĐỔI
+  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 10 mục: 9 mục cũ + "Tài khoản" (trước là `.who` hiện tên nhân
+  // viên riêng, không tính vào danh sách link; nay là MỘT MỤC CÓ NHÃN trong nhóm TÔI, đúng bản mẫu). Đo cả
+  // #sidebar (không tràn) lẫn #topbar (thanh công việc mới: breadcrumb + tìm kiếm + nút, không tràn).
   const navMeasure = await p.ev(`(() => {
-    const nav = document.querySelector('.topnav');
-    const links = [...nav.querySelectorAll('a')];
+    const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
     return {
       linkCount: links.length,
-      labels: links.map((a) => a.textContent.trim()),
+      labels: links.map((a) => a.querySelector('.sidebar-item-label').textContent.trim()),
       scrollOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       topbarOverflow: document.querySelector('#topbar').scrollWidth - document.querySelector('#topbar').clientWidth,
+      sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.equal(navMeasure.linkCount, 9, `Thanh điều hướng máy tính (ADMIN) phải có 9 mục — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 10, `Thanh điều hướng dọc (ADMIN) phải có 10 mục (9 mục cũ + "Tài khoản") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
-  ok(`D) Thanh điều hướng máy tính (1040px): ${navMeasure.linkCount} mục (${navMeasure.labels.join(", ")}), không tràn ngang (lệch ${navMeasure.scrollOverflow}px), #topbar tự nó không tràn (lệch ${navMeasure.topbarOverflow}px)`);
+  assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
+  ok(`D) Thanh điều hướng dọc (1040px): ${navMeasure.linkCount} mục (${navMeasure.labels.join(", ")}), không tràn ngang (lệch ${navMeasure.scrollOverflow}px), #topbar/#sidebar tự chúng không tràn`);
   p.close();
   ok("Trang chủ (máy tính, 1040×800): 3 ô số liệu + danh sách + doanh thu đúng số, bố cục grid, thứ tự DOM đúng, không tái phát bug giờ/nơi đón, axe không vi phạm critical/serious");
 

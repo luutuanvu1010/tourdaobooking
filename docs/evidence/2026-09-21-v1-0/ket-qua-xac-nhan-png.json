@@ -68,7 +68,7 @@
       "title": "Xác nhận đơn để gửi khách",
       "inertAll": true,
       "rootInert": false,
-      "inertCount": 4,
+      "inertCount": 5,
       "focusIn": true,
       "bodyOpen": true,
       "small": [],
@@ -86,7 +86,7 @@
       "title": "Xác nhận đơn để gửi khách",
       "inertAll": true,
       "rootInert": false,
-      "inertCount": 4,
+      "inertCount": 5,
       "focusIn": true,
       "bodyOpen": true,
       "small": [],
@@ -104,7 +104,7 @@
     "taoBangGiaoDien": {
       "w": 1440,
       "h": 2628,
-      "bytes": 456671,
+      "bytes": 457262,
       "scale": 2,
       "chu": 68
     },
@@ -112,25 +112,25 @@
       "w": 1440,
       "h": 2268,
       "cssH": 1134,
-      "bytes": 414077,
+      "bytes": 414872,
       "chu": 57,
-      "dungMs": 104,
+      "dungMs": 106,
       "phuTrach": "Sales Một"
     },
     "xac-nhan-mau-2-nhieu-dich-vu.png": {
       "w": 1440,
       "h": 4046,
       "cssH": 2023,
-      "bytes": 695009,
+      "bytes": 694018,
       "chu": 117,
-      "dungMs": 106,
+      "dungMs": 105,
       "phuTrach": "Sales Một"
     },
     "xac-nhan-mau-3-don-dai.png": {
       "w": 1440,
       "h": 9226,
       "cssH": 4613,
-      "bytes": 2100547,
+      "bytes": 2099325,
       "chu": 281,
       "dungMs": 104,
       "phuTrach": "Sales Một"
@@ -142,14 +142,14 @@
   "thoiGian": {
     "tenPhuTrachMs": {
       "404": 104,
-      "500": 102,
-      "name": 104,
-      "none": 103,
-      "network": 107,
-      "slow": 3066
+      "500": 103,
+      "name": 106,
+      "none": 105,
+      "network": 108,
+      "slow": 3086
     },
-    "xac-nhan-mau-1-mot-dich-vu.png": 104,
-    "xac-nhan-mau-2-nhieu-dich-vu.png": 106,
+    "xac-nhan-mau-1-mot-dich-vu.png": 106,
+    "xac-nhan-mau-2-nhieu-dich-vu.png": 105,
     "xac-nhan-mau-3-don-dai.png": 104
   },
   "lon": {
