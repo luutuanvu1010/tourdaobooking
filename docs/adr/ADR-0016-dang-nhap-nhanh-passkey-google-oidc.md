@@ -1,9 +1,9 @@
 # ADR-0016 — Thêm cách đăng nhập nhanh song song PIN: passkey (Face ID/Touch ID) và Google (OIDC); Zalo để sau
 
-- **Trạng thái:** **proposed** (AI soạn 2026-09-23, chờ chủ dự án duyệt). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** (AI soạn 2026-09-23; chủ dự án duyệt 2026-09-23). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
   - Bản nháp đầu mang số 0015. Chủ dự án chốt số 0015 cho ADR "khung điều hướng dọc" (nhánh Trang chủ mới), nên ADR này đổi sang 0016 (2026-09-23).
   - Bản sửa 2026-09-23 (chiều) đã áp 5 câu trả lời của chủ ở **vòng nhận xét ADR**, khác với 5 câu trả lời vòng nghiên cứu ghi ở Bối cảnh. Chi tiết kỹ thuật đi kèm (bộ chống dò, "lần ký passkey mới", mục lưu ý ở điều 8) là AI suy ra cho khớp mã hiện có; chủ xác nhận khi duyệt: nhập lại PIN trước khi thêm chìa khoá (điều 2a); gỡ chìa khoá thì đăng xuất mọi máy (điều 6); lời mời có cảnh báo máy riêng (điều 2); đặt PIN mới bằng Face ID (điều 2b); số ADR.
-- **Ngày:** 2026-09-23   **Người phê chuẩn:** chủ dự án (chưa duyệt)
+- **Ngày:** 2026-09-23   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-23)
 - **Loại quyết định:** **cửa hai chiều** cho hành vi: tắt nút là quay về chỉ PIN; bảng mới chỉ thêm, không đổi bảng cũ. **Một chiều nhẹ** cho dữ liệu: migration thêm bảng đã áp remote thì không gỡ tệp (quy tắc migration), nhưng bảng có thể bỏ không dùng.
 - **Liên quan:**
   - ADR-0001: danh tính là hồ sơ; tài khoản `staff` là nơi đăng nhập; số đăng nhập ≠ số liên hệ.
