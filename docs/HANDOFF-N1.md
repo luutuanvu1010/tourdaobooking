@@ -144,10 +144,14 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 
 ## Mọi lần phát hành: bước A.0 — nhật ký thay đổi (từ 2026-09-23)
 
-Trước bước "A. Trước khi deploy" của MỌI runbook:
+Trước bước "A. Trước khi deploy" của MỌI runbook, và TRƯỚC khi gõ `npm run trien-khai`:
 1. AI thêm mục mới vào đầu `CHANGELOG` (`src/shared/changelog.ts`) theo công thức t "Ghi nhật ký thay đổi" ở `docs/CHANGE-GUIDE.md`, commit cùng nhánh sẽ deploy. Chủ đọc lướt mục này khi duyệt phát hành.
-2. `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0).
-Sau `CI=1 npx wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. Mục "TRẠNG THÁI TRIỂN KHAI" ghi thêm "Phiên bản X".
+2. `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt).
+3. Sau khi deploy xong (sau bước 6 của `npm run trien-khai`, hoặc sau `CI=1 npx wrangler deploy` nếu làm tay): `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. Mục "TRẠNG THÁI TRIỂN KHAI" ghi thêm "Phiên bản X".
+
+**`npm run trien-khai` CHƯA tự chạy `scripts/kiem-phien-ban.mjs`** (nối vào hay không là việc chủ quyết — câu hỏi ở `docs/superpowers/specs/2026-09-23-de-xuat-claude-md-nhat-ky-thay-doi.md`): bước 2 và bước 3 ở trên phải chạy TAY, trước và sau lệnh đó.
+
+**Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
 
 ## Điều kiện TRƯỚC khi triển khai
 - **A2 (giao diện đơn) đã xong về mã (2026-09-20): `tsc -p web` = 0 lỗi; bằng chứng ở `docs/evidence/2026-09-20-a2/`.** Còn MỘT cổng: chủ dự án ký duyệt thị giác (mục "Ký duyệt thị giác" trong `docs/evidence/2026-09-20-a2/README.md`) — **chưa ký thì chưa triển khai**. Nhánh chứa A1 (đơn có `services[]`): triển khai chỉ N1 mà thiếu A2 thì giao diện đơn hỏng trên production, nên A1, N1 và A2 đi cùng một lần phát hành. `web/trip-sheet.ts`, `web/order-form.ts` và `web/order.ts` KHÔNG có kiểm tự động trong repo — sửa các tệp này thì PHẢI chạy lại ba kịch bản `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs`.
@@ -407,3 +411,4 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 - Trang chủ mới: biên an toàn thanh tab dưới cùng ở khổ điện thoại 390px chỉ còn 13px (đo bằng Chrome headless, `env(safe-area-inset-bottom)` = 0 trên môi trường đo — trên iPhone thật biên này NHỎ HƠN vì vùng an toàn thật > 0). Nếu sau này thêm mục điều hướng nữa ở thanh tab thì phải đo lại (kịch bản `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs`, mục D).
 - **Face ID lát 2 (đăng nhập bằng Google) chưa lập kế hoạch:** mô phỏng chuyển hướng qua tên miền khác ở lát 0 chưa có kết quả (`docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md`) — chưa rõ cửa sổ app cài (PWA) có giữ cookie và quay về đúng cửa sổ sau khi rời tên miền hay không. Phải thử lại bước đó trước khi lập kế hoạch lát 2. Zalo (lát 3, nếu chủ muốn) để sau.
 - **Route đăng nhập bằng Face ID chưa có hạn mức riêng theo SĐT/tài khoản** (`POST /api/auth/passkey/login`) — chỉ có hạn mức xin thách thức theo IP ở `POST /api/auth/passkey/options` (`CHALLENGE_IP_LIMIT`, 120 lần/15 phút); route `login` không tự giới hạn số lần thử assertion. Rủi ro thấp (một khoá sai gần như không đoán được — không phải PIN 6 số) nhưng ghi nhận là giới hạn đã biết, chưa có test/route chặn riêng.
+- **Kịch bản e2e `passkey` không trả lại mã PIN của tài khoản FIELD** (`tests/e2e/passkey.mjs`, quanh dòng 229–237: admin đặt lại PIN, kịch bản dùng mã mới rồi không đặt về `ACCOUNTS.field.pin`) — chạy `passkey` TRƯỚC `maintenance` (vd `npm run test:e2e -- passkey maintenance`) thì `maintenance` đỏ vì đăng nhập FIELD sai PIN. Thứ tự đủ bộ hiện tại (`maintenance` trước `passkey`) không dính. Có từ `d808c36`; chưa sửa (ghi nhận khi kiểm nhánh Trợ giúp, 2026-09-23).

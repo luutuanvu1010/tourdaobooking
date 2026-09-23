@@ -14,7 +14,7 @@
 
 **Đặc tả:** `docs/superpowers/specs/2026-09-23-nhat-ky-thay-doi-tro-giup-design.md` (ĐÃ DUYỆT 2026-09-23).
 
-**Trạng thái:** CHỜ CHỦ DUYỆT. Thi công ở **phiên mới**, không phải phiên đã lập kế hoạch này (P15).
+**Trạng thái:** Chủ ra lệnh thi công theo kế hoạch này ngày 2026-09-23 (gọi là đã duyệt); ĐÃ THI CÔNG trên nhánh worktree-changelog-tro-giup, chờ chủ gộp/phát hành. Thi công ở **phiên mới**, không phải phiên đã lập kế hoạch này (P15).
 
 ## Ràng buộc chung (áp cho mọi task)
 

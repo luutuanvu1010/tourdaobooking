@@ -537,13 +537,15 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Khi nào:** MỖI lần deploy mã mới lên production (bước A.0 của runbook ở `docs/HANDOFF-N1.md`). Không ghi khi chỉ deploy lại đúng bản đang chạy hoặc lùi về bản cũ.
 
-**Làm:** thêm MỘT mục vào ĐẦU `CHANGELOG` ở `src/shared/changelog.ts`: `version` = số của mục đầu hiện tại + 0.1 theo số (1.9 → 1.10), `date` = ngày deploy dự kiến (giờ Việt Nam), `items` = vài gạch loại `moi` (Mới) / `sua` (Đã sửa) / `doi` (Thay đổi). Deploy không có gì người dùng thấy: một gạch `doi` "Cải thiện độ ổn định và an toàn bên trong, không đổi cách dùng."
+**Làm:** thêm MỘT mục vào ĐẦU `CHANGELOG` ở `src/shared/changelog.ts`: `version` = số của mục đầu hiện tại, tăng phần sau dấu chấm thêm 1 (1.3 → 1.4, 1.9 → 1.10), `date` = ngày deploy dự kiến (giờ Việt Nam), `items` = vài gạch loại `moi` (Mới) / `sua` (Đã sửa) / `doi` (Thay đổi). Deploy không có gì người dùng thấy: một gạch `doi` "Cải thiện độ ổn định và an toàn bên trong, không đổi cách dùng."
 
 **Cách viết:** cho nhân viên bán hàng/kế toán/hướng dẫn viên; nói điều họ THẤY hoặc LÀM ĐƯỢC khác đi; mỗi gạch một câu ≤ 160 ký tự; không tên tệp, không mã, không chữ kỹ thuật (test chặn `task`, `commit`, `api`, `route`, `migration`, `worker`, `deploy`, `e2e`, `d1`, `null`, `undefined`, dấu `` ` ``, `snake_case`). Bị chặn nhầm thì sửa câu, không nới danh sách (trừ khi chủ đồng ý).
 
-**Kiểm:** `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt). Sau `wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT.
+**Kiểm:** `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt). Sau `wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. **`npm run trien-khai` (công thức s) CHƯA tự chạy `kiem-phien-ban.mjs`**: chạy tay `node scripts/kiem-phien-ban.mjs` TRƯỚC khi gõ lệnh đó và `node scripts/kiem-phien-ban.mjs --sau-deploy` SAU khi nó deploy xong (nối vào hay không: chủ quyết, xem `docs/superpowers/specs/2026-09-23-de-xuat-claude-md-nhat-ky-thay-doi.md`).
 
-**Bẫy:** trang Trợ giúp và chấm đỏ cập nhật sau deploy + một lần mở lại app (service worker stale-while-revalidate). "Đã xem" lưu theo từng máy (`localStorage` `td_help_seen`).
+**Bẫy:**
+- **Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
+- Trang Trợ giúp và chấm đỏ cập nhật sau deploy + một lần mở lại app (service worker stale-while-revalidate). "Đã xem" lưu theo từng máy (`localStorage` `td_help_seen`).
 
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
@@ -620,6 +622,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 5. Thông điệp commit tiếng Việt: tiêu đề nói việc, thân nói VÌ SAO; thêm dòng đồng tác giả theo yêu cầu của môi trường.
 
 **Trước khi deploy** (CHỈ khi chủ dự án ra lệnh trong phiên đó; chi tiết `docs/HANDOFF-N1.md`). Từ 2026-09-23 các bước 1, 3 (áp + deploy) và `audit-invariants` của bước 4 do lệnh `npm run trien-khai` làm, kể cả `npm run test:e2e` đủ bộ của bước 2 — chủ tự gõ trong ứng dụng Terminal của macOS, AI không chạy (công thức s); kịch bản Chrome và kiểm riêng của từng lần phát hành vẫn làm tay:
+0. Bước A.0 (công thức t): mục nhật ký thay đổi mới + `node scripts/kiem-phien-ban.mjs` ĐẠT trước; `--sau-deploy` ĐẠT sau — `npm run trien-khai` chưa làm bước này.
 1. Cổng chỉ-đọc trên D1 remote (kỳ vọng 0 dòng) + ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".
