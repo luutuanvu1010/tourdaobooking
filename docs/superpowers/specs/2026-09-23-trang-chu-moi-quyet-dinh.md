@@ -25,3 +25,19 @@ Bối cảnh: 11/12 trang thiết kế lại giao diện đã xong, đã gộp `
 ## Việc lớn — bắt buộc theo CLAUDE.md §3
 
 Đụng dữ liệu (API mới), có thể đụng cấu trúc module (`dispatch`). Bắt buộc: kiểm độc lập sau khi thi công, không tự nghiệm thu. Điểm mơ hồ MỚI phát sinh lúc đọc mã (ảnh hưởng dữ liệu/hành vi rõ rệt, chưa được liệt kê ở trên) → hỏi thẳng chủ dự án, không tự đoán.
+
+## Quyết định BỔ SUNG sau khi chủ dự án xem kết quả thật (2026-09-23, chiều)
+
+Chủ dự án xem ảnh trang thật, so với bản mẫu và nói "khác quá nhiều". Một lượt đối chiếu từng khối (chỉ đọc) xác nhận: trong 6 khối nhìn thấy của mockup, 3 khối biến mất hoàn toàn (thanh bên dọc, biểu đồ cột, "Cần xem lại"); **chỉ 1 khối bị bỏ do chủ chốt** (biểu đồ, mục 4 ở trên) — phần còn lại do AI tự quyết hoặc làm lệch không ai ghi nhận, trong đó có **2 chỗ làm SAI chính đặc tả dự án**:
+- Bố cục điện thoại: đặc tả `…-design.md` §3 ghi rõ "mockup mobile gộp cả Doanh thu vào lưới 2×2 — dùng đúng cách này, không tách riêng"; mã làm khác (3 ô + 1 ô mồ côi, doanh thu tách thẻ riêng xuống dưới).
+- Nhãn ô số liệu không rút gọn ở 390px → ô cao gấp đôi, 3 ô chiếm ~550/844px.
+
+**Chủ dự án chốt lại (đảo 2 quyết định cũ):**
+
+A. **LÀM ĐÚNG BẢN MẪU, KỂ CẢ THANH MENU DỌC** — đảo lại quyết định trước đó ("giữ khung điều hướng hiện tại, đổi menu toàn app làm sau", chốt qua AskUserQuestion sáng 2026-09-23). Nay chủ muốn dựng thanh bên dọc đúng mockup: logo, 3 nhóm BÁN HÀNG / QUẢN TRỊ / TÔI, huy hiệu số đếm, avatar + tên + vai ở chân. Kèm theo: ô tìm kiếm + nút "Lập đơn mới" trên thanh trên, khối "Cần xem lại", biểu đồ cột 7 ngày (đảo mục 4 ở trên), chip bảo trì đúng vị trí, liên kết "Xem tất cả".
+   → Đây là **quyết định kiến trúc** (đổi khung điều hướng của CẢ 12 trang + PWA). Theo `CLAUDE.md` §3 (N3), việc này cần **ADR + chủ duyệt**, không phải việc nhét vào một trang.
+
+B. **TRANG CHỦ THÀNH TRANG MẶC ĐỊNH** — đảo mục 2 ở trên ("thêm trang mới riêng, KHÔNG thay route `/`"). Nay `/` phải ra Trang chủ; trang Đơn hàng dời sang địa chỉ khác.
+   → Ảnh hưởng đã tra: `/` do Workers Assets ánh xạ thẳng `public/index.html` (không có mã router) nên phải đổi tên tệp hoặc chuyển hướng ở Worker; `PRECACHE` trong `sw-policy.ts` hiện có `/` + `/js/orders.js`, chưa có `/home`; ~10 kịch bản Chrome đang mở `/` để vào trang Đơn hàng; `manifest.webmanifest` có `start_url: "/"` và `scope: "/"` — máy đã cài biểu tượng vẫn mở được vì `/` vẫn phục vụ, nhưng service worker đang cache `/` nên người dùng có thể thấy bản cũ tới khi `CACHE_VERSION` đổi (build tự chèn).
+
+**Ghi nhận trung thực về quy trình (bài học):** việc AI tự xếp các khối nhìn thấy được (thanh bên, "Cần xem lại", ô tìm kiếm, nút Lập đơn mới) vào loại "tự quyết được, không cần hỏi" là SAI. Thứ chủ dự án nhìn thấy trên màn hình thì không phải "bề mặt đảo ngược được" theo nghĩa P8 — phải hỏi. Ghi vào đây để phiên sau không lặp lại.
