@@ -12,5 +12,5 @@
     "noEmit": true
   },
   "include": ["."],
-  "exclude": ["sw", "**/*.test.ts"]
+  "exclude": ["sw"]
 }

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { vndShort } from "./format.ts";
+import { vndShort } from "./money.ts";
 
 test("vndShort — tiền rút gọn cho khổ điện thoại", () => {
   assert.equal(vndShort(0), "0");

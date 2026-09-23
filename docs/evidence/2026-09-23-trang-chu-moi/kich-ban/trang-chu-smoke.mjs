@@ -161,10 +161,25 @@ try {
   // SỬA (Đợt D Task 1 — đổi có chủ đích): #dash-layout đổi tên/gộp thành #dash-grid (nay chứa CẢ #dash-stats, không chỉ
   // #dash-today/#dash-revenue — lưới 2×2 gộp doanh thu ở khổ điện thoại, đặc tả §3). Nhãn/giá trị/dòng phụ của ô số liệu
   // và của "Doanh thu"/dòng chuyến nay có HAI bản trong DOM cùng lúc (`.lbl-full` máy tính, `.lbl-short` điện thoại, CSS
-  // ẩn/hiện — Đợt D Task 1): `.textContent` trên phần tử cha sẽ NỐI CẢ HAI bản, nên phải trỏ đích danh `.lbl-full` để đo
-  // đúng bản đầy đủ (không đổi Ý NGHĨA phép đo, chỉ đổi selector cho khớp cấu trúc DOM mới).
+  // ẩn/hiện — Đợt D Task 1).
+  // SỬA (kiểm độc lập, Fix round 1 — phát hiện Important): trỏ thẳng vào `.lbl-full` như trước đo NHẦM ở khổ điện thoại
+  // (390px), vì `.lbl-full { display:none }` chỉ ẩn thị giác — `.textContent` trên phần tử `display:none` VẪN trả về
+  // chữ. Kết quả là kịch bản từng khẳng định "đúng" trên bản chữ ĐẦY ĐỦ (không hiển thị thật) thay vì bản RÚT GỌN
+  // (đang hiển thị thật), nên toàn bộ tính năng chữ/tiền rút gọn của Task 1 chưa từng được kịch bản này bắt lỗi.
+  // Sửa bằng `shown()`: chọn `.lbl-full`/`.lbl-short` nào đang thật sự CHIẾM CHỖ (`offsetParent !== null`) — đúng bản
+  // đang hiển thị theo khổ màn hình hiện tại, không đổi Ý NGHĨA phép đo, chỉ đổi cách chọn phần tử.
   const measureHome = (p) =>
     p.ev(`(() => {
+      const shown = (el) => {
+        if (!el) return null;
+        const full = el.querySelector('.lbl-full');
+        const short = el.querySelector('.lbl-short');
+        if (full && short) return (full.offsetParent !== null ? full : short).textContent.trim();
+        return el.textContent.trim();
+      };
+      // Phần tử TỰ MANG lớp .lbl-full (không có bản .lbl-short song song, vd dòng "đã trả đủ"/"còn lại" của tiền
+      // trong danh sách hôm nay) — ẩn HẲN ở khổ hẹp (không có chữ thay thế), nên đo bằng offsetParent trực tiếp.
+      const visibleText = (el) => (el && el.offsetParent !== null ? el.textContent.trim() : null);
       const grid = document.querySelector('#dash-grid');
       const stats = [...document.querySelectorAll('#dash-stats .dash-stat')].map((el) => {
         const valueEl = el.querySelector('.dash-stat-value');
@@ -172,9 +187,9 @@ try {
         const oneLineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
         const actualHeight = valueEl.getBoundingClientRect().height;
         return {
-          label: el.querySelector('.dash-stat-label .lbl-full').textContent.trim(),
-          value: valueEl.querySelector('.lbl-full').textContent.trim(),
-          sub: el.querySelector('.dash-stat-sub .lbl-full').textContent.trim(),
+          label: shown(el.querySelector('.dash-stat-label')),
+          value: shown(valueEl),
+          sub: shown(el.querySelector('.dash-stat-sub')),
           // Kiểm gộp I-3: "500.000 ₫" từng xuống 2 dòng (ký hiệu tiền tệ rơi khỏi dòng số) ở lưới 2 cột khổ hẹp — đo CHIỀU CAO THẬT so với một dòng.
           // Đo trên valueEl (khối cha) chứ không phải .lbl-full: ở mỗi khổ chỉ MỘT trong hai bản thật sự chiếm chỗ (bản kia display:none), nên chiều cao khối cha phản ánh đúng bản đang hiện.
           valueOneLineHeight: oneLineHeight,
@@ -186,9 +201,9 @@ try {
         time: row.querySelector('.dash-today-time')?.textContent.trim() ?? null,
         place: row.querySelector('.dash-today-place')?.textContent.trim() ?? null,
         name: row.querySelector('.dash-today-name')?.textContent.trim() ?? null,
-        sub: row.querySelector('.dash-today-main .muted .lbl-full')?.textContent.trim() ?? null,
-        money: row.querySelector('.dash-today-money b .lbl-full')?.textContent.trim() ?? null,
-        moneySub: row.querySelector('.dash-today-money .muted.lbl-full')?.textContent.trim() ?? null,
+        sub: shown(row.querySelector('.dash-today-main .muted')),
+        money: shown(row.querySelector('.dash-today-money b')),
+        moneySub: visibleText(row.querySelector('.dash-today-money .muted.lbl-full')),
       }));
       return {
         gridHidden: grid.hidden,
@@ -201,15 +216,17 @@ try {
         todayEmptyHidden: document.querySelector('#dash-today-empty').hidden,
         stats,
         revenueRange: document.querySelector('#dash-revenue-range').textContent.trim(),
-        revenueValue: document.querySelector('.dash-revenue-value .lbl-full').textContent.trim(),
-        revenueSub: document.querySelector('#dash-revenue-total .muted .lbl-full').textContent.trim(),
+        revenueValue: shown(document.querySelector('.dash-revenue-value')),
+        revenueSub: shown(document.querySelector('#dash-revenue-total .muted')),
         errorHidden: document.querySelector('#error').hidden,
         loadingHidden: document.querySelector('#loading').hidden,
         scrollOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
       };
     })()`);
 
-  const assertHome = (m, label) => {
+  // `mode`: "desktop" (chữ ĐẦY ĐỦ đang hiển thị thật ở ≥900px) hay "mobile" (chữ RÚT GỌN đang hiển thị thật ở ≤639px) —
+  // hai bản chữ khác nhau nên khẳng định riêng, không dùng chung một kỳ vọng (kiểm độc lập, Fix round 1).
+  const assertHome = (m, label, mode) => {
     assert.equal(m.gridHidden, false, `${label}: #dash-grid phải HIỆN sau khi tải xong — ${JSON.stringify(m)}`);
     assert.equal(m.errorHidden, true, `${label}: #error phải ẨN (không lỗi) — ${JSON.stringify(m)}`);
     assert.equal(m.loadingHidden, true, `${label}: #loading (khung xương) phải ẨN sau khi tải xong — ${JSON.stringify(m)}`);
@@ -217,22 +234,35 @@ try {
 
     // 3 ô số liệu — đối chiếu với API (nguồn sự thật vừa đọc), theo ĐÚNG thứ tự renderStats() dựng (money → draft → unassigned).
     assert.equal(m.stats.length, 3, `${label}: phải có đúng 3 ô số liệu — ${JSON.stringify(m.stats)}`);
-    assert.equal(m.stats[0].label, "Còn thiếu tiền");
-    assert.equal(m.stats[0].value, "12.345.000 ₫", `${label}: ô "Còn thiếu tiền" phải hiện 12.345.000 ₫ — ${JSON.stringify(m.stats[0])}`);
-    assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
-    assert.equal(m.stats[1].label, "Đơn nháp chưa xác nhận");
-    assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
-    assert.equal(m.stats[2].label, "Chưa có người phụ trách");
-    assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
+    if (mode === "desktop") {
+      assert.equal(m.stats[0].label, "Còn thiếu tiền", `${label}: nhãn ĐẦY ĐỦ ô "Còn thiếu tiền" — ${JSON.stringify(m.stats[0])}`);
+      assert.equal(m.stats[0].value, "12.345.000 ₫", `${label}: giá trị ĐẦY ĐỦ ô "Còn thiếu tiền" phải hiện 12.345.000 ₫ — ${JSON.stringify(m.stats[0])}`);
+      assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
+      assert.equal(m.stats[1].label, "Đơn nháp chưa xác nhận", `${label}: nhãn ĐẦY ĐỦ ô đơn nháp — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[2].label, "Chưa có người phụ trách", `${label}: nhãn ĐẦY ĐỦ ô chưa phụ trách — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].sub, "Cần gán trước giờ đón", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải khớp mockup "Cần gán trước giờ đón" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu ĐẦY ĐỦ phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
+      assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
+    } else {
+      // Bản RÚT GỌN (đang hiển thị THẬT ở 390px — đây là phép đo mà kịch bản CŨ chưa từng thật sự làm, xem lịch sử sửa ở trên).
+      assert.equal(m.stats[0].label, "Còn thiếu", `${label}: nhãn RÚT GỌN ô "Còn thiếu tiền" phải là "Còn thiếu" (bản đang thật sự hiển thị ở khổ hẹp) — ${JSON.stringify(m.stats[0])}`);
+      assert.equal(m.stats[0].value, "12,34tr ₫", `${label}: giá trị RÚT GỌN ô "Còn thiếu tiền" phải là "12,34tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.345.000 ₫") — ${JSON.stringify(m.stats[0])}`);
+      assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
+      assert.equal(m.stats[1].label, "Đơn nháp", `${label}: nhãn RÚT GỌN ô đơn nháp phải là "Đơn nháp" — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[2].label, "Chưa phụ trách", `${label}: nhãn RÚT GỌN ô chưa phụ trách phải là "Chưa phụ trách" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].sub, "Cần gán", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Cần gán" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.revenueValue, "12,64tr ₫", `${label}: giá trị RÚT GỌN doanh thu phải là "12,64tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.645.000 ₫") — ${JSON.stringify(m)}`);
+      assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
+    }
 
     // Kiểm gộp I-3: số liệu ô ("dash-stat-value", vd "500.000 ₫") KHÔNG được xuống dòng — ký hiệu tiền tệ từng rơi xuống dòng riêng
     // ở lưới 2 cột khổ điện thoại hẹp (≤639px). So chiều cao thật với chiều cao MỘT dòng (line-height tính được).
     const wrappedStats = m.stats.filter((s) => s.valueWrapped);
     assert.deepEqual(wrappedStats, [], `${label}: số liệu ô (.dash-stat-value) bị xuống dòng (chiều cao thật vượt một dòng) — ${JSON.stringify(m.stats)}`);
-
-    // Doanh thu
-    assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
-    assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
 
     // Danh sách "Chuyến đón hôm nay": đúng 1 dòng (R1), R2 (nháp) và R3 (ngày khác) KHÔNG được lộ ra.
     assert.equal(m.todayBadgeHidden, false, `${label}: huy hiệu số chuyến hôm nay phải HIỆN sau khi có dữ liệu thật — ${JSON.stringify(m)}`);
@@ -248,13 +278,21 @@ try {
     assert.notEqual(row.time, "19:30", `${label}: giờ đón KHÔNG được là giờ của dịch vụ ngày mai`);
     assert.notEqual(row.place, "Sân bay Cam Ranh", `${label}: nơi đón KHÔNG được là nơi đón của dịch vụ ngày mai`);
     assert.equal(row.money, "0 ₫", `${label}: dòng R1 phải hiện đúng số CÒN LẠI hiện hành (remainingAmount) = 0 ₫ (đã trả đủ 300.000) — ${JSON.stringify(row)}`);
-    assert.equal(row.moneySub, "đã trả đủ", `${label}: R1 đã trả đủ (remainingAmount=0) phải hiện "đã trả đủ" — ${JSON.stringify(row)}`);
+    if (mode === "desktop") {
+      assert.equal(row.moneySub, "đã trả đủ", `${label}: R1 đã trả đủ (remainingAmount=0) phải hiện "đã trả đủ" — ${JSON.stringify(row)}`);
+      assert.ok(row.sub && row.sub.includes("0900000301"), `${label}: dòng phụ ĐẦY ĐỦ phải chứa SĐT khách — ${JSON.stringify(row)}`);
+    } else {
+      // "đã trả đủ"/"còn lại" CHỈ có bản đầy đủ (không có .lbl-short song song) → phải ẨN HẲN ở khổ hẹp, không lộ chữ.
+      assert.equal(row.moneySub, null, `${label}: dòng "đã trả đủ/còn lại" không có bản rút gọn, phải ẨN HẲN ở khổ hẹp — ${JSON.stringify(row)}`);
+      // Item 7 của Task 1: dòng phụ rút gọn phải là "nơi đón · tên dịch vụ" — NƠI ĐÓN ĐỨNG TRƯỚC tên dịch vụ.
+      assert.ok(row.sub && row.sub.startsWith(`${row.place} ·`), `${label}: dòng phụ RÚT GỌN phải bắt đầu bằng "${row.place} ·" (nơi đón đứng TRƯỚC tên dịch vụ) — ${JSON.stringify(row)}`);
+    }
   };
 
   let p = await env.as(ACCOUNTS.admin, "/home", DESK);
   await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (máy tính)");
   let m = await measureHome(p);
-  assertHome(m, "Trang chủ (máy tính, 1040×800)");
+  assertHome(m, "Trang chủ (máy tính, 1040×800)", "desktop");
   assert.equal(m.gridDisplay, "grid", `Trang chủ (máy tính): #dash-grid phải display:grid ở ≥900px — ${JSON.stringify(m)}`);
   // Đợt D Task 1: DOM giữ nguyên thứ tự #dash-stats → #dash-revenue → #dash-today (khớp thứ tự đọc tự nhiên trên điện
   // thoại — bài học Đợt C); ở máy tính CSS grid-column/grid-row đặt #dash-today bên trái, #dash-revenue bên phải
@@ -285,7 +323,7 @@ try {
   p = await env.as(ACCOUNTS.admin, "/home", MOB);
   await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (điện thoại)");
   m = await measureHome(p);
-  assertHome(m, "Trang chủ (điện thoại, 390×844)");
+  assertHome(m, "Trang chủ (điện thoại, 390×844)", "mobile");
   // Đợt D Task 1 (sửa lỗi lệch đặc tả §3): ở ≤639px #dash-grid nay display:grid (lưới 2×2 gộp cả doanh thu — KHÔNG
   // còn là display:block như trước sửa). #dash-stats chuyển display:contents để 3 ô của nó tham gia thẳng lưới ngoài.
   assert.equal(m.gridDisplay, "grid", `Trang chủ (điện thoại): #dash-grid phải display:grid ở ≤639px (lưới 2×2 gộp doanh thu) — ${JSON.stringify(m)}`);

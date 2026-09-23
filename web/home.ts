@@ -26,7 +26,7 @@ function renderStats(data: Api.DashboardResponse): void {
     byId("dash-stats"),
     statTile("Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due"),
     statTile("Đơn nháp chưa xác nhận", "Đơn nháp", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
-    statTile("Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Cần gán người phụ trách", "Cần gán"),
+    statTile("Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Cần gán trước giờ đón", "Cần gán"),
   );
 }
 
@@ -73,7 +73,7 @@ function todayRow(o: OrderSummary): HTMLElement {
     h(
       "span",
       { class: "dash-today-money" },
-      h("b", { class: o.remainingAmount === 0 ? "money-ok" : "money-due" }, h("span", { class: "lbl-full" }, vnd(o.remainingAmount)), h("span", { class: "lbl-short" }, o.remainingAmount === 0 ? vnd(0) : vndShort(o.remainingAmount))),
+      h("b", { class: o.remainingAmount === 0 ? "money-ok" : "money-due" }, h("span", { class: "lbl-full" }, vnd(o.remainingAmount)), h("span", { class: "lbl-short" }, `${vndShort(o.remainingAmount)} ₫`)),
       h("span", { class: "muted lbl-full" }, o.remainingAmount === 0 ? "đã trả đủ" : "còn lại"),
     ),
   );
