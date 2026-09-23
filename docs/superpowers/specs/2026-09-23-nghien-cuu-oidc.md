@@ -144,3 +144,35 @@ sequenceDiagram
 - Điểm cuối OAuth của Zalo: https://logto.io/oauth-providers-explorer/zalo ; https://developers.zalo.me/docs/social-api/tham-khao/user-access-token-v4
 - OAuth trong PWA iOS: https://developer.apple.com/forums/thread/100407 ; https://developer.apple.com/forums/thread/649699 ; https://intercom.help/progressier/en/articles/9519381-google-oauth2-is-not-working-in-my-pwa-on-ios-why
 - Mã đã đọc: `src/modules/auth/index.ts`, `src/modules/auth/session.ts`, `public/_headers`, `migrations/0001_staff.sql`, `docs/SYSTEM-DESIGN.md` §4/§6(a)/§11, ADR-0014, `docs/AUDIT-2026-09-22-KIEN-TRUC.md` §14.
+
+## 10. Trả lời của chủ dự án (2026-09-23) và khuyến nghị cập nhật
+
+Trả lời (gần nguyên văn):
+1. Giải cả ba, **đặc biệt đăng nhập phải cực nhanh**; iPhone phổ biến, người dùng thích **đăng nhập nhanh bằng khuôn mặt**.
+2. **Thêm lựa chọn** (không thay PIN).
+3. Hầu hết dùng **Gmail**.
+4. Gmail phổ biến nhưng **mở rộng lựa chọn** cho người dùng.
+5. **Zalo là tuỳ chọn**, ý tưởng hay.
+
+**Khuyến nghị cập nhật:** yêu cầu "nhanh bằng khuôn mặt" thuộc về **passkey (WebAuthn)**, không phải OIDC.
+- Google/OIDC trên iPhone vẫn phải chuyển trang, chọn tài khoản rồi quay lại app.
+- Passkey là một chạm + Face ID, và app cài trên màn hình chính iPhone hỗ trợ (passkeys.dev, progressier.com; **chưa thử trên iPhone của công ty**).
+
+Do đó:
+- **Passkey là đường nhanh chính.**
+- **Google OIDC là lựa chọn phụ** (máy mới, Android, máy tính).
+- **PIN giữ nguyên** (đường dự phòng, và là cách duy nhất chắc chắn cho Super Admin).
+- **Zalo để lát sau**, ADR riêng.
+
+Đã soạn thành `docs/adr/ADR-0015-dang-nhap-nhanh-passkey-google-oidc.md` (**proposed**, chờ chủ duyệt).
+
+Bẫy kỹ thuật riêng của passkey (bổ sung §5.3):
+- Đăng ký phải lấy khoá công khai. `getPublicKey()` của trình duyệt có báo cáo không đồng nhất giữa các trình duyệt, nên an toàn hơn là tự giải mã `attestationObject`: một bộ giải CBOR tối thiểu, có test.
+- Đăng nhập chỉ cần `authenticatorData` (nhị phân cố định), `clientDataJSON` và chữ ký. Chữ ký ES256 ở dạng DER phải đổi sang `r||s` trước khi đưa vào `crypto.subtle.verify`.
+- WebAuthn chỉ chạy ở ngữ cảnh an toàn (https) và đúng tên miền `rpId`. Không thử được qua IP LAN của `dev-iphone.mjs`; cần một địa chỉ https tạm.
+
+Nguồn bổ sung:
+- https://passkeys.dev/docs/reference/ios/
+- https://progressier.com/pwa-capabilities/biometric-authentication-with-passkeys
+- https://developer.mozilla.org/en-US/docs/Web/API/AuthenticatorAttestationResponse/getPublicKey
+- https://github.com/Ortham/passkeys-relying-party/
