@@ -166,7 +166,7 @@ try {
 
   await step("nhân viên mở trang MỚI khi đang bật: /api/auth/me 503 → lớp phủ (không lỗi thô, không về /login)", async () => {
     const p = await asCookie(salesCookie, "/");
-    await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ ở trang danh sách");
+    await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ ở trang chủ");
     assert.equal(await p.ev(`location.pathname`), "/");
     p.close();
   });
@@ -235,7 +235,7 @@ try {
     await o2.waitFor(`/Đang tắt/.test(${q("#maintenance .maint-state")}?.textContent ?? '')`, "chuyển sang Đang tắt");
     assert.equal(await o2.ev(`!!${q("#maint-strip")}`), false, "dải biến mất ngay, không cần tải lại");
     const p = await asCookie(salesCookie, "/");
-    await p.waitFor(`document.readyState === 'complete' && !!${q("main")}`, "trang danh sách");
+    await p.waitFor(`document.readyState === 'complete' && !!${q("main")}`, "trang chủ");
     await sleep(800);
     assert.equal(await p.ev(`!!${q("#maintenance-screen")}`), false);
     p.close();

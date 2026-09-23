@@ -307,7 +307,7 @@ try {
     p.vp = vp;
     return p;
   };
-  const OTHERS = [["dang-nhap", "/login", null], ["danh-sach-don", "/", ACCOUNTS.admin], ["dich-vu", "/catalog", ACCOUNTS.admin], ["nhan-vien", "/staff", ACCOUNTS.admin], ["ho-so", "/parties", ACCOUNTS.admin], ["dia-diem", "/locations", ACCOUNTS.admin], ["toi", "/account", ACCOUNTS.admin], ["nhat-ky", "/audit", ACCOUNTS.admin]];
+  const OTHERS = [["dang-nhap", "/login", null], ["danh-sach-don", "/orders", ACCOUNTS.admin], ["dich-vu", "/catalog", ACCOUNTS.admin], ["nhan-vien", "/staff", ACCOUNTS.admin], ["ho-so", "/parties", ACCOUNTS.admin], ["dia-diem", "/locations", ACCOUNTS.admin], ["toi", "/account", ACCOUNTS.admin], ["nhat-ky", "/audit", ACCOUNTS.admin]];
   for (const [label, path, account] of OTHERS) {
     p = account ? await open(account, path) : await openAnon(path);
     await sleep(1500); // trang nạp dữ liệu bằng JS sau khi tải xong

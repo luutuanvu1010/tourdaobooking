@@ -61,7 +61,7 @@ note(a.status === 201 && b.status === 201, `tạo đơn mẫu lỗi: ${a.status}
 await api(p, `/api/orders/${b.json.order.id}/status`, "POST", { status: "confirmed" });
 const orderId = a.json.order.id;
 
-await p.goto(BASE + "/", { waitUntil: "networkidle0" });
+await p.goto(BASE + "/orders", { waitUntil: "networkidle0" });
 await p.waitForSelector(".order-row");
 await shot(p, "02-orders");
 report.orders = await p.evaluate(() => {
@@ -107,7 +107,7 @@ note(report.detail.current === "Đơn hàng", "chi tiết đơn thuộc tab Đơ
 note(!report.detail.overflowX, "chi tiết: tràn ngang");
 // nút ‹ quay lại danh sách
 await p.click(".bar-back");
-await p.waitForFunction(() => location.pathname === "/", { timeout: 10000 });
+await p.waitForFunction(() => location.pathname === "/orders", { timeout: 10000 });
 report.backWorks = true;
 
 // Đơn nháp: đủ ba nút; sửa đơn: tiêu đề thanh đầu trang đổi theo mã đơn
@@ -164,7 +164,7 @@ report.sw = await p.evaluate(async () => {
   const keys = await caches.keys();
   const urls = [];
   for (const k of keys) for (const req of await (await caches.open(k)).keys()) urls.push(new URL(req.url).pathname);
-  return { registered: !!reg, active: reg?.active?.state, controlled: !!navigator.serviceWorker.controller, keys, count: urls.length, apiEntries: urls.filter((u) => u.startsWith("/api")), hasShell: ["/", "/login", "/order-form", "/app.css", "/js/orders.js"].every((u) => urls.includes(u)), urls };
+  return { registered: !!reg, active: reg?.active?.state, controlled: !!navigator.serviceWorker.controller, keys, count: urls.length, apiEntries: urls.filter((u) => u.startsWith("/api")), hasShell: ["/", "/orders", "/login", "/order-form", "/app.css", "/js/home.js", "/js/orders.js"].every((u) => urls.includes(u)), urls };
 });
 note(report.sw.registered && report.sw.controlled, "service worker chưa đăng ký/điều khiển trang");
 note(report.sw.apiEntries.length === 0, `CACHE CHỨA API: ${JSON.stringify(report.sw.apiEntries)}`);

@@ -1,5 +1,5 @@
 // Kịch bản Chrome cho Task 3 ("Trang chủ mới", docs/superpowers/sdd/2026-09-23-trang-chu-moi/task-3-brief.md) — BẰNG CHỨNG HÀNH VI TRÌNH DUYỆT DUY NHẤT
-// cho /home (`npm test`/`test:e2e -- pwa` KHÔNG phủ DOM của web/home.ts, chỉ phủ luật thuần + manifest/service worker). Dùng lại NGUYÊN cơ chế CDP của A2
+// cho Trang chủ (nay ở "/"; `npm test`/`test:e2e -- pwa` KHÔNG phủ DOM của web/home.ts, chỉ phủ luật thuần + manifest/service worker). Dùng lại NGUYÊN cơ chế CDP của A2
 // (startEnv()/ACCOUNTS/ok/vnDate từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) theo mẫu cấu trúc của ../../2026-09-22-thiet-ke-lai-giao-dien-dot-c/kich-ban/dot-c-smoke.mjs.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs
@@ -35,7 +35,7 @@ const write = (name, r) => writeFileSync(join(OUT, "anh", name), Buffer.from(r.r
 const shot = async (p, name) => write(name, await p.send("Page.captureScreenshot", { format: "png" }));
 
 // ==================================================================================================
-// 0) KIỂM TĨNH (không cần trình duyệt): public/home.html PHẢI có sẵn `hidden` trên #dash-today-count/#dash-grid
+// 0) KIỂM TĨNH (không cần trình duyệt): public/index.html (Trang chủ, Đợt D Task 5 đổi từ public/home.html) PHẢI có sẵn `hidden` trên #dash-today-count/#dash-grid
 //    NGAY TRONG MARKUP (trước khi JS chạy) — đây là lỗi Task 2 đã sửa (huy hiệu rỗng/khối rỗng lúc tải).
 //    Phương án thay cho việc chặn mạng bằng CDP Fetch domain (brief mục C cho phép dùng cách này nếu chặn mạng phức tạp).
 //    SỬA (Đợt D Task 1 — đổi có chủ đích): #dash-stats + #dash-layout gộp thành MỘT khối #dash-grid duy nhất (lưới
@@ -43,11 +43,11 @@ const shot = async (p, name) => write(name, await p.send("Page.captureScreenshot
 //    chung; #dash-stats không còn tự mang `hidden` riêng (ẩn/hiện theo khối cha).
 // ==================================================================================================
 {
-  const html = readFileSync("public/home.html", "utf8");
+  const html = readFileSync("public/index.html", "utf8");
   const hasHiddenAttr = (idAttr) => new RegExp(`id="${idAttr}"[^>]*\\bhidden\\b`).test(html) || new RegExp(`\\bhidden\\b[^>]*id="${idAttr}"`).test(html);
-  assert.ok(hasHiddenAttr("dash-today-count"), "public/home.html: #dash-today-count phải có sẵn `hidden` trong markup tĩnh (không hiện viên thuốc xanh rỗng lúc tải)");
-  assert.ok(hasHiddenAttr("dash-grid"), "public/home.html: #dash-grid phải có sẵn `hidden` trong markup tĩnh");
-  ok("Kiểm tĩnh: public/home.html có sẵn `hidden` trên #dash-today-count, #dash-grid trong markup gốc (trước khi JS chạy)");
+  assert.ok(hasHiddenAttr("dash-today-count"), "public/index.html: #dash-today-count phải có sẵn `hidden` trong markup tĩnh (không hiện viên thuốc xanh rỗng lúc tải)");
+  assert.ok(hasHiddenAttr("dash-grid"), "public/index.html: #dash-grid phải có sẵn `hidden` trong markup tĩnh");
+  ok("Kiểm tĩnh: public/index.html có sẵn `hidden` trên #dash-today-count, #dash-grid trong markup gốc (trước khi JS chạy)");
 }
 
 const env = await startEnv();
@@ -101,7 +101,7 @@ try {
   };
 
   // ==================================================================================================
-  // 1) Tạo dữ liệu thật qua API (ADMIN) — TRƯỚC khi mở /home.
+  // 1) Tạo dữ liệu thật qua API (ADMIN) — TRƯỚC khi mở "/".
   //    R1 (mục B — bẫy bug Task 1 đã sửa): 2 dịch vụ NGÀY KHÁC NHAU, sort_order NGƯỢC chiều ngày:
   //      sort_order=0 → NGÀY MAI (giờ/nơi đón rõ ràng khác), sort_order=1 → HÔM NAY (dịch vụ QUYẾT ĐỊNH "hôm nay").
   //    Trả đủ tiền (remainingAmount=0) để không lẫn vào ô "Còn thiếu tiền" (tách bạch với R3 bên dưới).
@@ -198,7 +198,7 @@ try {
   ok(`revenueWeek.daily: đúng 7 phần tử, toàn bộ 12.645.000 dồn vào hôm nay (${TODAY}, vị trí ${todayIdx}/7), 6 ngày còn lại = 0`);
 
   // ==================================================================================================
-  // 3) Mở /home ở khổ máy tính (1040) và điện thoại (390) — bằng ADMIN. Đối chiếu MỖI SỐ trên màn hình THẬT
+  // 3) Mở "/" ở khổ máy tính (1040) và điện thoại (390) — bằng ADMIN. Đối chiếu MỖI SỐ trên màn hình THẬT
   //    với `data` (API vừa đọc) VÀ với giá trị literal đã tạo (mục B — không tái phát bug Task 1).
   // ==================================================================================================
   // SỬA (Đợt D Task 1 — đổi có chủ đích): #dash-layout đổi tên/gộp thành #dash-grid (nay chứa CẢ #dash-stats, không chỉ
@@ -445,7 +445,7 @@ try {
     }
   };
 
-  let p = await env.as(ACCOUNTS.admin, "/home", DESK);
+  let p = await env.as(ACCOUNTS.admin, "/", DESK);
   await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (máy tính)");
   let m = await measureHome(p);
   assertHome(m, "Trang chủ (máy tính, 1040×800)", "desktop");
@@ -453,7 +453,7 @@ try {
   // Đợt D Task 1: DOM giữ nguyên thứ tự #dash-stats → #dash-revenue → #dash-today (khớp thứ tự đọc tự nhiên trên điện
   // thoại — bài học Đợt C); ở máy tính CSS grid-column/grid-row đặt #dash-today bên trái, #dash-revenue bên phải
   // (khác thứ tự DOM một cách CÓ CHỦ Ý, không phải lỗi) — kiểm DOM order KHÔNG đổi theo khổ màn hình.
-  // Đợt D Task 3: #dash-review LUÔN có mặt trong DOM (tĩnh ở public/home.html, chỉ ẩn/hiện bằng `hidden`) nên luôn
+  // Đợt D Task 3: #dash-review LUÔN có mặt trong DOM (tĩnh ở public/index.html, chỉ ẩn/hiện bằng `hidden`) nên luôn
   // là phần tử CUỐI CÙNG của #dash-grid — CSS grid-column/grid-row (≥900px) mới đặt nó dưới "Doanh thu của tôi".
   assert.deepEqual(m.gridOrder, ["dash-stats", "dash-revenue", "dash-today", "dash-review"], `Trang chủ (máy tính): thứ tự DOM phải là dash-stats, dash-revenue, dash-today, dash-review — ${JSON.stringify(m.gridOrder)}`);
   assert.deepEqual(p.consoleErrors, [], `lỗi console (Trang chủ máy tính): ${p.consoleErrors}`);
@@ -482,7 +482,7 @@ try {
   p.close();
   ok("Trang chủ (máy tính, 1040×800): 3 ô số liệu + danh sách + doanh thu đúng số, bố cục grid, thứ tự DOM đúng, không tái phát bug giờ/nơi đón, axe không vi phạm critical/serious");
 
-  p = await env.as(ACCOUNTS.admin, "/home", MOB);
+  p = await env.as(ACCOUNTS.admin, "/", MOB);
   await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (điện thoại)");
   m = await measureHome(p);
   assertHome(m, "Trang chủ (điện thoại, 390×844)", "mobile");
@@ -588,7 +588,7 @@ try {
     const emptyWeekStaff = { name: "Sales Tuần Trắng", phone: "0900000397", pin: "998855", permissions: ["SALES"] };
     for (const stmt of (await insertStaffSql(emptyWeekStaff)).split("\n")) env.sql(stmt);
 
-    const pEmpty = await env.as(emptyWeekStaff, "/home", MOB);
+    const pEmpty = await env.as(emptyWeekStaff, "/", MOB);
     await pEmpty.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (tài khoản tuần trắng, điện thoại)");
     const mEmpty = await measureHome(pEmpty);
     assert.equal(mEmpty.gridHidden, false, `Tuần trắng: #dash-grid phải HIỆN sau khi tải xong — ${JSON.stringify(mEmpty)}`);
@@ -663,7 +663,7 @@ try {
   }
 
   // ==================================================================================================
-  // C) Trạng thái LỖI thật — tài khoản KHÔNG có quyền văn phòng (chỉ FIELD) gọi /home: route "office" của
+  // C) Trạng thái LỖI thật — tài khoản KHÔNG có quyền văn phòng (chỉ FIELD) gọi "/": route "office" của
   //    GET /api/orders/dashboard trả 403 THẬT (src/shared/router.ts), không phải mô phỏng bằng cách chặn mạng.
   //    Khẳng định: CHỈ còn banner lỗi hiện; #dash-grid ẨN (gộp #dash-stats — Đợt D Task 1); #loading đã ẩn (không kẹt ở khung xương).
   // ==================================================================================================
@@ -672,7 +672,7 @@ try {
     const fieldOnly = { name: "Hướng Dẫn Viên Thử", phone: "0900000399", pin: "998877", permissions: ["FIELD"] };
     for (const stmt of (await insertStaffSql(fieldOnly)).split("\n")) env.sql(stmt);
 
-    const pErr = await env.as(fieldOnly, "/home", MOB);
+    const pErr = await env.as(fieldOnly, "/", MOB);
     await pErr.waitFor("!document.querySelector('#error').hidden", "banner lỗi hiện (tài khoản không có quyền văn phòng)");
     const mErr = await pErr.ev(`(() => ({
       errorHidden: document.querySelector('#error').hidden,
@@ -727,7 +727,7 @@ try {
   //    mà ở PHẠM VI TRANG: chỉ quét /staff, nơi breadcrumb ngắn ("Nhân viên", 49px) và không có ô chọn nào, nên hai
   //    hồi quy do chính vòng 1 gây ra không bao giờ chạm tới lưới. Ba trang từ nay:
   //      · /staff              — trang danh sách thường + DUY NHẤT chạy nhánh ≤640px (bằng chứng bề mặt điện thoại);
-  //                              KHÔNG phải /home vì /home tự gọi dashboard nên không đo được lời gọi huy hiệu (G-4);
+  //                              KHÔNG phải "/" vì nó tự gọi dashboard nên không đo được lời gọi huy hiệu (G-4);
   //      · /order-form?id=…    — breadcrumb DÀI "Sửa đơn <mã đơn>" (188px): trang bộc lộ lỗi nút "Lập đơn mới" đè
   //                              lên tiêu đề ở dải 900–928px. Phải CHỜ setBarTitle() chạy xong, nếu không chỉ đo
   //                              được chữ tĩnh "Tạo đơn mới" (ngắn) và lưới lại không chạm tới lỗi;
@@ -952,7 +952,7 @@ try {
 
     // ================================================================================================
     // G-4 (C-5): huy hiệu chỉ được nạp khi thanh bên THẬT SỰ hiện. Đo LỜI GỌI MẠNG THẬT trên /staff (trang
-    // này không tự gọi ba route đó — /home tự gọi dashboard nên không dùng được để đo).
+    // này không tự gọi ba route đó — "/" tự gọi dashboard nên không dùng được để đo).
     // ================================================================================================
     const BADGE_ROUTES = ["/api/catalog/admin", "/api/orders/dashboard", "/api/feedback/badge"];
     const badgeCalls = (page) => BADGE_ROUTES.filter((r) => page.requests.some((q) => q.url.includes(r)));
@@ -970,7 +970,7 @@ try {
     const deskBadgeCalls = badgeCalls(pDeskBadge);
     assert.deepEqual(deskBadgeCalls, BADGE_ROUTES, `G-4 (1040px): phải gọi ĐỦ ba route huy hiệu khi thanh bên đang hiện — chỉ thấy ${JSON.stringify(deskBadgeCalls)}`);
     pDeskBadge.close();
-    ok(`G-4) Lời gọi huy hiệu theo khổ màn hình (/staff, ADMIN): 390px = ${JSON.stringify(mobBadgeCalls)} (không lời gọi nào), 1040px = ${JSON.stringify(deskBadgeCalls)}. Lưu ý: riêng trang /home tự gọi /api/orders/dashboard nên ở máy tính trang đó có 2 lần gọi — chấp nhận được, giống /catalog.`);
+    ok(`G-4) Lời gọi huy hiệu theo khổ màn hình (/staff, ADMIN): 390px = ${JSON.stringify(mobBadgeCalls)} (không lời gọi nào), 1040px = ${JSON.stringify(deskBadgeCalls)}. Lưu ý: riêng trang "/" tự gọi /api/orders/dashboard nên ở máy tính trang đó có 2 lần gọi — chấp nhận được, giống /catalog.`);
 
     // ================================================================================================
     // G-5 (A-1): ô tìm kiếm trên thanh công việc phải LỌC THẬT. Gõ SĐT của R1, Enter, rồi khẳng định
@@ -1030,13 +1030,13 @@ try {
     ok(`G-6) Trang Lập đơn ở 641px (cột nội dung hẹp nhất có thanh bên): không tràn ngang (scrollWidth ${formNarrow.scrollWidth} ≤ ${formNarrow.innerWidth}), main rộng ${formNarrow.mainWidth}px bám mép trái ${formNarrow.mainLeft}px; lưới trong form: ${JSON.stringify(formNarrow.gridCols)}`);
 
     // ================================================================================================
-    // G-7 (C-1): breadcrumb trên hai trang KHÔNG khai `data-title` (/ và /home — chủ dự án đã duyệt giao diện
+    // G-7 (C-1): breadcrumb trên hai trang KHÔNG khai `data-title` (/ và /orders — chủ dự án đã duyệt giao diện
     // ĐIỆN THOẠI của chúng, nên tuyệt đối không được thêm thuộc tính đó). Hai vế phải cùng đúng:
     //   · 390px: vẫn hiện LOGO, KHÔNG hiện breadcrumb — y như trước, không đổi một chút nào;
     //   · 1040px: hiện breadcrumb với nhãn của mục điều hướng đang mở ("Trang chủ" / "Đơn hàng"), không còn ô trống.
     // ================================================================================================
     const crumbs = [];
-    for (const [path, expected] of [["/home", "Trang chủ"], ["/", "Đơn hàng"]]) {
+    for (const [path, expected] of [["/", "Trang chủ"], ["/orders", "Đơn hàng"]]) {
       const pCrumb = await env.as(ACCOUNTS.admin, path, MOB);
       await pCrumb.waitFor("document.querySelector('#sidebar') !== null", `khung dựng xong (${path})`);
       const readCrumb = () =>
@@ -1064,7 +1064,7 @@ try {
       // máy tính, nên trên bản chưa vá nó chụp được một thanh bên KHÔNG có huy hiệu nào — người xem tưởng huy hiệu
       // hỏng. Huy hiệu nay nạp qua người nghe `resize` nên là việc BẤT ĐỒNG BỘ: thiếu chờ thì ảnh vẫn trắng huy hiệu.
       await pCrumb.waitFor("document.querySelector('#sidebar .sidebar-item-badge') !== null", `huy hiệu nạp xong sau khi đổi khổ (${path})`);
-      await shot(pCrumb, `task-4-breadcrumb-${path === "/" ? "don-hang" : "trang-chu"}-may-tinh.png`);
+      await shot(pCrumb, `task-4-breadcrumb-${path === "/orders" ? "don-hang" : "trang-chu"}-may-tinh.png`);
       pCrumb.close();
     }
     ok(`G-7) Breadcrumb hai trang không khai data-title — ${crumbs.join(" · ")}`);
