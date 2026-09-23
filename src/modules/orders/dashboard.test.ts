@@ -283,3 +283,30 @@ test("revenueWeek: đúng người (staff_id), đúng khoảng [đầu thứ Hai
   assert.equal(data.revenueWeek.count, 3, "r1, r3, r7 (đúng người, đúng khoảng, đã xác nhận)");
   assert.equal(data.revenueWeek.total, 100_000 + 200_000 + 900_000);
 });
+
+// ---- Kiểm độc lập (fix round 1): `trip` của mảng `today` phải lấy từ dịch vụ QUYẾT ĐỊNH "hôm nay" (ngày sớm nhất có ngày đón),
+// KHÔNG phải dịch vụ sort_order nhỏ nhất (đó là quy ước của summarizeServices(), dùng cho danh sách Đơn hàng — khác mục đích).
+test("today: trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (ngày sớm nhất có ngày), không phải theo sort_order nhỏ nhất", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+
+  // o7: sort_order=0 là NGÀY MAI (giờ 20:00), sort_order=1 là HÔM NAY (giờ 09:00) — dịch vụ quyết định "hôm nay" là sort_order=1,
+  // nhưng summarizeServices() (dùng cho listOrders) sẽ chọn sort_order=0 nếu bị dùng nhầm ở đây.
+  insertDraftOrder(sqlite, { id: "o7", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "sv7a", orderId: "o7", sortOrder: 0, departDate: TOMORROW, pickupTime: "20:00" });
+  insertService(sqlite, { id: "sv7b", orderId: "o7", sortOrder: 1, departDate: TODAY, pickupTime: "09:00" });
+  confirm(sqlite, "o7");
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  assert.deepEqual(
+    data.today.map((o) => o.id),
+    ["o7"],
+    "o7 phải có trong today (dịch vụ có ngày sớm nhất = sv7b = hôm nay)",
+  );
+  const o7 = data.today.find((o) => o.id === "o7")!;
+  assert.deepEqual(
+    o7.trip,
+    { departDate: TODAY, pickupTime: "09:00", pickupPlace: null },
+    "trip phải là của sv7b (dịch vụ quyết định hôm nay), KHÔNG phải sv7a (sort_order nhỏ nhất, ngày mai lúc 20:00)",
+  );
+});

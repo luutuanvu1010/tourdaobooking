@@ -352,9 +352,12 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   // 1) "Chuyến đón hôm nay": id các đơn confirmed mà dịch vụ CÓ NGÀY sớm nhất của đơn (os.id = kết quả subquery) đúng bằng `today`.
   //    Đơn không có dịch vụ nào có ngày đón → subquery không ra dòng nào → không đơn nào khớp `os.id = NULL` → đơn đó không lọt vào (đúng ý §7).
   //    Sắp theo giờ đón của CHÍNH dịch vụ quyết định "hôm nay" (khác quy ước `summarizeServices` sắp theo sort_order — ở đây cần thứ tự lịch trình trong ngày).
+  //    `os` trong câu này ĐÃ bị ép bằng đúng dòng subquery chọn ra (os.id = subquery) — tức chính là dịch vụ QUYẾT ĐỊNH "hôm nay".
+  //    Lấy luôn 3 cột chuyến của DÒNG NÀY để override `trip` bên dưới — KHÔNG dùng `trip` do `toSummaryDtos`/`summarizeServices` điền
+  //    (hàm đó lấy theo sort_order nhỏ nhất, có thể là MỘT dịch vụ KHÁC — bài học kiểm độc lập vòng 1, xem dashboard.test.ts).
   const { results: todayOrder } = await db
     .prepare(
-      `SELECT o.id FROM orders o
+      `SELECT o.id, os.depart_date, os.pickup_time, os.pickup_place FROM orders o
        JOIN order_service os ON os.order_id = o.id
        WHERE o.status = 'confirmed'
          AND os.depart_date = ?1
@@ -367,18 +370,22 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
        ORDER BY os.pickup_time, os.sort_order`,
     )
     .bind(today)
-    .all<{ id: string }>();
+    .all<{ id: string; depart_date: string; pickup_time: string | null; pickup_place: string | null }>();
   const todayIds = todayOrder.map((r) => r.id);
+  // trip của CHÍNH dịch vụ quyết định "hôm nay" — dùng để ghi đè trường `trip` do toSummaryDtos() điền, CHỈ cho mảng `today` (không đụng listOrders()).
+  const todayTripById = new Map(todayOrder.map((r) => [r.id, { departDate: r.depart_date, pickupTime: r.pickup_time, pickupPlace: r.pickup_place } satisfies OrderSummaryTripDto] as const));
   const todayRowsById = new Map(
     todayIds.length
       ? (await db.prepare(`${ORDER_SELECT} WHERE o.id IN (SELECT value FROM json_each(?1))`).bind(JSON.stringify(todayIds)).all<OrderRow>()).results.map((r) => [r.id, r] as const)
       : [],
   );
   // json_each() không giữ thứ tự — sắp lại theo ĐÚNG thứ tự `todayIds` (đã sắp theo giờ đón ở câu trên).
-  const todaySummaries = await toSummaryDtos(
-    db,
-    todayIds.flatMap((id) => (todayRowsById.has(id) ? [todayRowsById.get(id)!] : [])),
-  );
+  const todaySummaries = (
+    await toSummaryDtos(
+      db,
+      todayIds.flatMap((id) => (todayRowsById.has(id) ? [todayRowsById.get(id)!] : [])),
+    )
+  ).map((s) => ({ ...s, trip: todayTripById.get(s.id) ?? s.trip }));
 
   // 2) "Còn thiếu tiền": MỌI đơn confirmed (không lọc trước theo cột gốc — điều chỉnh có thể đưa remainingAmount từ 0 lên dương hoặc ngược lại),
   //    áp effective money từng đơn RỒI mới lọc/tổng hợp trong JS.
