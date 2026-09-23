@@ -3,25 +3,29 @@
 <body>
 <header id="topbar"></header>
 <main>
-  <h1>Trang chủ</h1>
+  <!-- Bản mẫu không có H1 to trên trang (khung có sẵn của trang này chưa có thanh tiêu đề như bản mẫu sidebar — đó là việc của Đợt D khác) — h1 chỉ còn phục vụ trình đọc màn hình, ẩn khỏi mắt ở MỌI khổ (cùng kỹ thuật với .detail-head h1). -->
+  <h1 class="visually-hidden">Trang chủ</h1>
   <div class="dash-hello">
     <span id="dash-name" class="dash-name"></span>
     <span id="dash-date" class="dash-date"></span>
     <span id="dash-maint" class="badge badge-draft" hidden>Đang ở chế độ bảo trì</span>
   </div>
-  <p class="dash-stats-label muted" id="dash-stats-label" hidden>Số liệu toàn công ty</p>
-  <div id="dash-stats" class="dash-stats" hidden></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="loading" class="skeleton-list" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
-  <div id="dash-layout" class="dash-layout" hidden>
+  <div id="dash-grid" class="dash-grid" hidden>
+    <div id="dash-stats" class="dash-stats"></div>
+    <section id="dash-revenue" class="card dash-revenue">
+      <div class="dash-revenue-head"><span class="dash-revenue-title">Doanh thu của tôi</span><span id="dash-revenue-range" class="muted"></span></div>
+      <div id="dash-revenue-total" class="dash-revenue-total"></div>
+    </section>
     <section id="dash-today" class="card dash-today">
-      <div class="dash-today-head"><span>Chuyến đón hôm nay <span class="muted">· toàn công ty</span></span><span id="dash-today-count" class="badge badge-confirmed" hidden></span></div>
+      <div class="dash-today-head">
+        <span>Chuyến đón hôm nay</span>
+        <span id="dash-today-count" class="badge badge-confirmed" hidden></span>
+        <a class="dash-today-all" href="/"><span class="lbl-full">Xem tất cả</span><span class="lbl-short">Tất cả</span></a>
+      </div>
       <div id="dash-today-list"></div>
       <p id="dash-today-empty" class="empty" hidden>Không có chuyến nào hôm nay.</p>
-    </section>
-    <section id="dash-revenue" class="card">
-      <div class="dash-revenue-head"><span>Doanh thu của tôi</span><span id="dash-revenue-range" class="muted"></span></div>
-      <div id="dash-revenue-total" class="dash-revenue-total"></div>
     </section>
   </div>
 </main>

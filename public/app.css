@@ -537,25 +537,29 @@ body.maint-open { overflow: hidden; }
 }
 
 /* ---------- Trang chủ mới (/home, web/home.ts) — chỉ token ---------- */
+/* Ẩn khỏi mắt ở MỌI khổ màn hình nhưng vẫn còn cho trình đọc màn hình — cùng kỹ thuật với .detail-head h1 và
+   body[data-title] main > h1 đã dùng ở các trang khác (đặt tên chung để dùng lại, không phải kỹ thuật mới). */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .dash-hello { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
 .dash-name { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-title); }
 .dash-date { color: var(--c-text-muted); font-size: var(--fs-label); }
-.dash-stats-label { margin: 0 0 var(--s2); }
+#dash-maint { margin-left: auto; } /* chip bảo trì đẩy sang phải cùng dòng chào (bản mẫu), không nối tiếp sau ngày */
+/* Nhãn/ô đầy đủ (máy tính) — .lbl-short ẩn theo mặc định; đảo ngược ở khổ ≤639px. Dùng lại ở nhiều chỗ của Trang chủ
+   (nhãn ô số liệu, "Xem tất cả", tiền rút gọn…) — hai bản luôn cùng có mặt trong DOM, CSS chỉ ẩn/hiện, không đổi bằng JS. */
+.lbl-short { display: none; }
+@media (max-width: 639px) {
+  .lbl-full { display: none; }
+  .lbl-short { display: inline; }
+}
+.dash-grid { display: block; }
 .dash-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
 .dash-stat { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
 .dash-stat-label { font-size: var(--fs-badge); font-weight: 700; color: var(--c-text-muted); text-transform: uppercase; }
 .dash-stat-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat); }
 .dash-stat-sub { font-size: var(--fs-label); color: var(--c-text-muted); }
-.dash-layout { display: block; }
-@media (min-width: 900px) {
-  .dash-layout { display: grid; grid-template-columns: 1.35fr 1fr; gap: var(--s5); align-items: start; }
-}
-@media (max-width: 639px) {
-  .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dash-stat-value { font-size: var(--fs-stat-sm); } /* kiểm gộp I-3: lưới 2 cột ở khổ hẹp không đủ chỗ cho --fs-stat (26px) — "₫" rơi xuống dòng riêng với số tiền lớn */
-}
 .dash-today { padding: 0; } /* .card cho padding mặc định; đầu mục + từng dòng tự chia lề (khuôn .list-card) */
 .dash-today-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dash-today-all { margin-left: auto; font-size: var(--fs-label); font-weight: 600; } /* liên kết tới trang Đơn hàng (bản mẫu) — chữ rút gọn "Tất cả" ở khổ điện thoại qua .lbl-full/.lbl-short */
 #dash-today-list { display: flex; flex-direction: column; } /* kiểm gộp (minor): public/home.html không có class "dash-today-list" trên phần tử này (chỉ id) — selector cũ .dash-today-list chết */
 .dash-today-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
 .dash-today-row:last-child { border-bottom: 0; }
@@ -565,6 +569,32 @@ body.maint-open { overflow: hidden; }
 .dash-today-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
 .dash-today-name { font-weight: 700; }
 .dash-today-money { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); text-align: right; }
+.dash-revenue { display: flex; flex-direction: column; border: 1px solid var(--c-border); box-shadow: var(--shadow-card); } /* .card không sẵn viền/bóng như các thẻ khác của Trang chủ mới (lệch bản mẫu nhỏ, tiện sửa cùng lúc — Đợt D Task 1) */
+.dash-revenue-title { font-family: var(--font-display); font-weight: 700; }
 .dash-revenue-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
 .dash-revenue-total { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
 .dash-revenue-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat); }
+
+@media (max-width: 639px) {
+  /* Lưới 2×2 gộp cả "Doanh thu của tôi" (đặc tả §3: mockup mobile gộp doanh thu vào lưới, không tách riêng).
+     .dash-stats chuyển display:contents để 3 ô của nó "thoát" ra tham gia thẳng lưới ngoài (.dash-grid) cùng
+     .dash-revenue — không lồng div bọc mới, DOM vẫn đúng thứ tự đọc: 3 ô số liệu, doanh thu, rồi chuyến đón hôm nay. */
+  .dash-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
+  .dash-stats { display: contents; }
+  .dash-stat-value { font-size: var(--fs-stat-sm); } /* kiểm gộp I-3: lưới 2 cột ở khổ hẹp không đủ chỗ cho --fs-stat (26px) — "₫" rơi xuống dòng riêng với số tiền lớn */
+  .dash-today { grid-column: 1 / -1; margin-bottom: 0; }
+  .dash-revenue { margin-bottom: 0; padding: var(--s3) var(--s4); } /* cùng đệm với .dash-stat để trông như ô thứ tư cùng hàng */
+  .dash-revenue-head { flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 0; }
+  .dash-revenue-title { font-size: var(--fs-badge); font-weight: 700; color: var(--c-text-muted); text-transform: uppercase; } /* cùng kiểu nhãn với .dash-stat-label */
+  #dash-revenue-range { display: none; } /* thay bằng dòng phụ rút gọn "Tuần này · N đơn" trong .dash-revenue-total */
+  .dash-revenue-total { flex-direction: column; align-items: flex-start; gap: var(--s1); }
+  .dash-revenue-value { font-size: var(--fs-stat-sm); }
+  .dash-today-place { display: none; } /* nơi đón chuyển sang đứng cạnh tên dịch vụ trong .dash-today-sub (không phải kỹ thuật ẩn-cho-mắt: display:none để trình đọc màn hình không đọc trùng hai lần) */
+}
+
+@media (min-width: 900px) {
+  .dash-grid { display: grid; grid-template-columns: 1.35fr 1fr; column-gap: var(--s5); row-gap: var(--s4); align-items: start; }
+  .dash-stats { grid-column: 1 / -1; margin-bottom: 0; } /* khoảng cách hàng đã do row-gap của .dash-grid lo, tránh cộng dồn với margin-bottom mặc định */
+  .dash-today { grid-column: 1; grid-row: 2; }
+  .dash-revenue { grid-column: 2; grid-row: 2; }
+}

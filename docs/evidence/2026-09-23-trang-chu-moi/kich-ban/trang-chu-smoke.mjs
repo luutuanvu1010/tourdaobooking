@@ -35,17 +35,19 @@ const write = (name, r) => writeFileSync(join(OUT, "anh", name), Buffer.from(r.r
 const shot = async (p, name) => write(name, await p.send("Page.captureScreenshot", { format: "png" }));
 
 // ==================================================================================================
-// 0) KIỂM TĨNH (không cần trình duyệt): public/home.html PHẢI có sẵn `hidden` trên #dash-today-count/#dash-stats/
-//    #dash-layout NGAY TRONG MARKUP (trước khi JS chạy) — đây là lỗi Task 2 đã sửa (huy hiệu rỗng/khối rỗng lúc tải).
+// 0) KIỂM TĨNH (không cần trình duyệt): public/home.html PHẢI có sẵn `hidden` trên #dash-today-count/#dash-grid
+//    NGAY TRONG MARKUP (trước khi JS chạy) — đây là lỗi Task 2 đã sửa (huy hiệu rỗng/khối rỗng lúc tải).
 //    Phương án thay cho việc chặn mạng bằng CDP Fetch domain (brief mục C cho phép dùng cách này nếu chặn mạng phức tạp).
+//    SỬA (Đợt D Task 1 — đổi có chủ đích): #dash-stats + #dash-layout gộp thành MỘT khối #dash-grid duy nhất (lưới
+//    2×2 gộp cả "Doanh thu của tôi" ở khổ điện thoại — đúng đặc tả §3, khớp bản mẫu). #dash-grid mang `hidden`
+//    chung; #dash-stats không còn tự mang `hidden` riêng (ẩn/hiện theo khối cha).
 // ==================================================================================================
 {
   const html = readFileSync("public/home.html", "utf8");
   const hasHiddenAttr = (idAttr) => new RegExp(`id="${idAttr}"[^>]*\\bhidden\\b`).test(html) || new RegExp(`\\bhidden\\b[^>]*id="${idAttr}"`).test(html);
   assert.ok(hasHiddenAttr("dash-today-count"), "public/home.html: #dash-today-count phải có sẵn `hidden` trong markup tĩnh (không hiện viên thuốc xanh rỗng lúc tải)");
-  assert.ok(hasHiddenAttr("dash-stats"), "public/home.html: #dash-stats phải có sẵn `hidden` trong markup tĩnh");
-  assert.ok(hasHiddenAttr("dash-layout"), "public/home.html: #dash-layout phải có sẵn `hidden` trong markup tĩnh");
-  ok("Kiểm tĩnh: public/home.html có sẵn `hidden` trên #dash-today-count, #dash-stats, #dash-layout trong markup gốc (trước khi JS chạy)");
+  assert.ok(hasHiddenAttr("dash-grid"), "public/home.html: #dash-grid phải có sẵn `hidden` trong markup tĩnh");
+  ok("Kiểm tĩnh: public/home.html có sẵn `hidden` trên #dash-today-count, #dash-grid trong markup gốc (trước khi JS chạy)");
 }
 
 const env = await startEnv();
@@ -156,19 +158,25 @@ try {
   // 3) Mở /home ở khổ máy tính (1040) và điện thoại (390) — bằng ADMIN. Đối chiếu MỖI SỐ trên màn hình THẬT
   //    với `data` (API vừa đọc) VÀ với giá trị literal đã tạo (mục B — không tái phát bug Task 1).
   // ==================================================================================================
+  // SỬA (Đợt D Task 1 — đổi có chủ đích): #dash-layout đổi tên/gộp thành #dash-grid (nay chứa CẢ #dash-stats, không chỉ
+  // #dash-today/#dash-revenue — lưới 2×2 gộp doanh thu ở khổ điện thoại, đặc tả §3). Nhãn/giá trị/dòng phụ của ô số liệu
+  // và của "Doanh thu"/dòng chuyến nay có HAI bản trong DOM cùng lúc (`.lbl-full` máy tính, `.lbl-short` điện thoại, CSS
+  // ẩn/hiện — Đợt D Task 1): `.textContent` trên phần tử cha sẽ NỐI CẢ HAI bản, nên phải trỏ đích danh `.lbl-full` để đo
+  // đúng bản đầy đủ (không đổi Ý NGHĨA phép đo, chỉ đổi selector cho khớp cấu trúc DOM mới).
   const measureHome = (p) =>
     p.ev(`(() => {
-      const layout = document.querySelector('#dash-layout');
+      const grid = document.querySelector('#dash-grid');
       const stats = [...document.querySelectorAll('#dash-stats .dash-stat')].map((el) => {
         const valueEl = el.querySelector('.dash-stat-value');
         const cs = getComputedStyle(valueEl);
         const oneLineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
         const actualHeight = valueEl.getBoundingClientRect().height;
         return {
-          label: el.querySelector('.dash-stat-label').textContent.trim(),
-          value: valueEl.textContent.trim(),
-          sub: el.querySelector('.dash-stat-sub').textContent.trim(),
+          label: el.querySelector('.dash-stat-label .lbl-full').textContent.trim(),
+          value: valueEl.querySelector('.lbl-full').textContent.trim(),
+          sub: el.querySelector('.dash-stat-sub .lbl-full').textContent.trim(),
           // Kiểm gộp I-3: "500.000 ₫" từng xuống 2 dòng (ký hiệu tiền tệ rơi khỏi dòng số) ở lưới 2 cột khổ hẹp — đo CHIỀU CAO THẬT so với một dòng.
+          // Đo trên valueEl (khối cha) chứ không phải .lbl-full: ở mỗi khổ chỉ MỘT trong hai bản thật sự chiếm chỗ (bản kia display:none), nên chiều cao khối cha phản ánh đúng bản đang hiện.
           valueOneLineHeight: oneLineHeight,
           valueActualHeight: actualHeight,
           valueWrapped: actualHeight > oneLineHeight + 1,
@@ -178,14 +186,14 @@ try {
         time: row.querySelector('.dash-today-time')?.textContent.trim() ?? null,
         place: row.querySelector('.dash-today-place')?.textContent.trim() ?? null,
         name: row.querySelector('.dash-today-name')?.textContent.trim() ?? null,
-        sub: row.querySelector('.dash-today-main .muted')?.textContent.trim() ?? null,
-        money: row.querySelector('.dash-today-money b')?.textContent.trim() ?? null,
-        moneySub: row.querySelector('.dash-today-money .muted')?.textContent.trim() ?? null,
+        sub: row.querySelector('.dash-today-main .muted .lbl-full')?.textContent.trim() ?? null,
+        money: row.querySelector('.dash-today-money b .lbl-full')?.textContent.trim() ?? null,
+        moneySub: row.querySelector('.dash-today-money .muted.lbl-full')?.textContent.trim() ?? null,
       }));
       return {
-        layoutHidden: layout.hidden,
-        layoutDisplay: getComputedStyle(layout).display,
-        layoutOrder: [...layout.children].map((el) => el.id),
+        gridHidden: grid.hidden,
+        gridDisplay: getComputedStyle(grid).display,
+        gridOrder: [...grid.children].map((el) => el.id),
         todayBadge: document.querySelector('#dash-today-count').textContent.trim(),
         todayBadgeHidden: document.querySelector('#dash-today-count').hidden,
         todayRowCount: todayRows.length,
@@ -193,8 +201,8 @@ try {
         todayEmptyHidden: document.querySelector('#dash-today-empty').hidden,
         stats,
         revenueRange: document.querySelector('#dash-revenue-range').textContent.trim(),
-        revenueValue: document.querySelector('.dash-revenue-value').textContent.trim(),
-        revenueSub: document.querySelector('#dash-revenue-total .muted').textContent.trim(),
+        revenueValue: document.querySelector('.dash-revenue-value .lbl-full').textContent.trim(),
+        revenueSub: document.querySelector('#dash-revenue-total .muted .lbl-full').textContent.trim(),
         errorHidden: document.querySelector('#error').hidden,
         loadingHidden: document.querySelector('#loading').hidden,
         scrollOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -202,7 +210,7 @@ try {
     })()`);
 
   const assertHome = (m, label) => {
-    assert.equal(m.layoutHidden, false, `${label}: #dash-layout phải HIỆN sau khi tải xong — ${JSON.stringify(m)}`);
+    assert.equal(m.gridHidden, false, `${label}: #dash-grid phải HIỆN sau khi tải xong — ${JSON.stringify(m)}`);
     assert.equal(m.errorHidden, true, `${label}: #error phải ẨN (không lỗi) — ${JSON.stringify(m)}`);
     assert.equal(m.loadingHidden, true, `${label}: #loading (khung xương) phải ẨN sau khi tải xong — ${JSON.stringify(m)}`);
     assert.ok(m.scrollOverflow <= 1, `${label}: không được tràn ngang — lệch ${m.scrollOverflow}px`);
@@ -244,11 +252,14 @@ try {
   };
 
   let p = await env.as(ACCOUNTS.admin, "/home", DESK);
-  await p.waitFor("!document.querySelector('#dash-layout').hidden", "Trang chủ tải xong (máy tính)");
+  await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (máy tính)");
   let m = await measureHome(p);
   assertHome(m, "Trang chủ (máy tính, 1040×800)");
-  assert.equal(m.layoutDisplay, "grid", `Trang chủ (máy tính): #dash-layout phải display:grid ở ≥900px — ${JSON.stringify(m)}`);
-  assert.deepEqual(m.layoutOrder, ["dash-today", "dash-revenue"], `Trang chủ (máy tính): thứ tự DOM #dash-today trước #dash-revenue — ${JSON.stringify(m.layoutOrder)}`);
+  assert.equal(m.gridDisplay, "grid", `Trang chủ (máy tính): #dash-grid phải display:grid ở ≥900px — ${JSON.stringify(m)}`);
+  // Đợt D Task 1: DOM giữ nguyên thứ tự #dash-stats → #dash-revenue → #dash-today (khớp thứ tự đọc tự nhiên trên điện
+  // thoại — bài học Đợt C); ở máy tính CSS grid-column/grid-row đặt #dash-today bên trái, #dash-revenue bên phải
+  // (khác thứ tự DOM một cách CÓ CHỦ Ý, không phải lỗi) — kiểm DOM order KHÔNG đổi theo khổ màn hình.
+  assert.deepEqual(m.gridOrder, ["dash-stats", "dash-revenue", "dash-today"], `Trang chủ (máy tính): thứ tự DOM phải là dash-stats, dash-revenue, dash-today — ${JSON.stringify(m.gridOrder)}`);
   assert.deepEqual(p.consoleErrors, [], `lỗi console (Trang chủ máy tính): ${p.consoleErrors}`);
   await shot(p, "trang-chu-may-tinh.png");
   await axe(p, "Trang chủ máy tính");
@@ -272,11 +283,34 @@ try {
   ok("Trang chủ (máy tính, 1040×800): 3 ô số liệu + danh sách + doanh thu đúng số, bố cục grid, thứ tự DOM đúng, không tái phát bug giờ/nơi đón, axe không vi phạm critical/serious");
 
   p = await env.as(ACCOUNTS.admin, "/home", MOB);
-  await p.waitFor("!document.querySelector('#dash-layout').hidden", "Trang chủ tải xong (điện thoại)");
+  await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (điện thoại)");
   m = await measureHome(p);
   assertHome(m, "Trang chủ (điện thoại, 390×844)");
-  assert.equal(m.layoutDisplay, "block", `Trang chủ (điện thoại): #dash-layout phải display:block ở <900px — ${JSON.stringify(m)}`);
-  assert.deepEqual(m.layoutOrder, ["dash-today", "dash-revenue"], `Trang chủ (điện thoại): thứ tự DOM #dash-today trước #dash-revenue KHÔNG được đảo — ${JSON.stringify(m.layoutOrder)}`);
+  // Đợt D Task 1 (sửa lỗi lệch đặc tả §3): ở ≤639px #dash-grid nay display:grid (lưới 2×2 gộp cả doanh thu — KHÔNG
+  // còn là display:block như trước sửa). #dash-stats chuyển display:contents để 3 ô của nó tham gia thẳng lưới ngoài.
+  assert.equal(m.gridDisplay, "grid", `Trang chủ (điện thoại): #dash-grid phải display:grid ở ≤639px (lưới 2×2 gộp doanh thu) — ${JSON.stringify(m)}`);
+  assert.deepEqual(m.gridOrder, ["dash-stats", "dash-revenue", "dash-today"], `Trang chủ (điện thoại): thứ tự DOM phải là dash-stats, dash-revenue, dash-today (đúng thứ tự đọc: 3 ô + doanh thu rồi mới đến chuyến đón hôm nay) — ${JSON.stringify(m.gridOrder)}`);
+  {
+    // Đợt D Task 1: đo THẬT rằng doanh thu là Ô THỨ TƯ của lưới 2×2 (không còn là thẻ mồ côi rơi khỏi màn đầu) —
+    // 4 ô (3 số liệu + doanh thu) phải cùng nằm trong 2 hàng đầu, .dash-today phải nằm DƯỚI cả 4 ô đó.
+    const gridMeasure = await p.ev(`(() => {
+      const rectOf = (sel) => document.querySelector(sel).getBoundingClientRect();
+      const stat = [...document.querySelectorAll('#dash-stats .dash-stat')].map((el) => el.getBoundingClientRect());
+      const revenue = rectOf('#dash-revenue');
+      const today = rectOf('#dash-today');
+      return {
+        statTops: stat.map((r) => Math.round(r.top)),
+        revenueTop: Math.round(revenue.top),
+        revenueBottom: Math.round(revenue.bottom),
+        todayTop: Math.round(today.top),
+      };
+    })()`);
+    assert.ok(gridMeasure.revenueTop < gridMeasure.todayTop, `Trang chủ (điện thoại): "Doanh thu của tôi" phải nằm TRÊN "Chuyến đón hôm nay" (ô thứ tư của lưới 2×2, không phải thẻ mồ côi rơi xuống dưới) — ${JSON.stringify(gridMeasure)}`);
+    // Ô thứ 3 (statTops[2]) đứng hàng 2 cột 1 của lưới 2×2; doanh thu (ô thứ 4) phải đứng CÙNG HÀNG đó (cột 2) — so lệch top với sai số nhỏ (bo góc/viền).
+    const lastStatTop = gridMeasure.statTops[gridMeasure.statTops.length - 1];
+    assert.ok(Math.abs(gridMeasure.revenueTop - lastStatTop) <= 2, `Trang chủ (điện thoại): "Doanh thu của tôi" phải cùng HÀNG với ô số liệu thứ ba trong lưới 2×2 (ô thứ tư, không phải hàng riêng) — ${JSON.stringify(gridMeasure)}`);
+    ok(`Đợt D Task 1: đo THẬT vị trí — doanh thu (top=${gridMeasure.revenueTop}) nằm trong cụm 2×2 cùng 3 ô số liệu (top=${JSON.stringify(gridMeasure.statTops)}) và TRÊN "Chuyến đón hôm nay" (top=${gridMeasure.todayTop})`);
+  }
   assert.deepEqual(p.consoleErrors, [], `lỗi console (Trang chủ điện thoại): ${p.consoleErrors}`);
   await shot(p, "trang-chu-dien-thoai.png");
   await axe(p, "Trang chủ điện thoại");
@@ -330,12 +364,12 @@ try {
     `Tab bar điện thoại: chiều cao thật (${tabbarMeasure.barHeight}px) VƯỢT đệm đáy của <main> (${tabbarMeasure.mainPaddingBottom}px, dựa trên token --tabbar-h=${tabbarMeasure.tokenPx}px cố định) → nội dung cuối trang (danh sách "Doanh thu của tôi") có thể bị tab bar ĐÈ LÊN. Cần sửa CSS (đệm đáy theo chiều cao thật, hoặc giảm nguy cơ xuống dòng của nhãn) — KHÔNG sửa kịch bản cho qua.`,
   );
   p.close();
-  ok("Trang chủ (điện thoại, 390×844): 3 ô số liệu + danh sách + doanh thu đúng số, bố cục block, thứ tự DOM đúng, không tái phát bug giờ/nơi đón, không tràn ngang, axe không vi phạm critical/serious");
+  ok("Trang chủ (điện thoại, 390×844): 3 ô số liệu + danh sách + doanh thu đúng số, bố cục lưới 2×2 gộp doanh thu (Đợt D Task 1), thứ tự DOM đúng, không tái phát bug giờ/nơi đón, không tràn ngang, axe không vi phạm critical/serious");
 
   // ==================================================================================================
   // C) Trạng thái LỖI thật — tài khoản KHÔNG có quyền văn phòng (chỉ FIELD) gọi /home: route "office" của
   //    GET /api/orders/dashboard trả 403 THẬT (src/shared/router.ts), không phải mô phỏng bằng cách chặn mạng.
-  //    Khẳng định: CHỈ còn banner lỗi hiện; #dash-stats và #dash-layout đều ẨN; #loading đã ẩn (không kẹt ở khung xương).
+  //    Khẳng định: CHỈ còn banner lỗi hiện; #dash-grid ẨN (gộp #dash-stats — Đợt D Task 1); #loading đã ẩn (không kẹt ở khung xương).
   // ==================================================================================================
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
@@ -347,19 +381,17 @@ try {
     const mErr = await pErr.ev(`(() => ({
       errorHidden: document.querySelector('#error').hidden,
       errorText: document.querySelector('#error').textContent.trim(),
-      statsHidden: document.querySelector('#dash-stats').hidden,
-      layoutHidden: document.querySelector('#dash-layout').hidden,
+      gridHidden: document.querySelector('#dash-grid').hidden,
       loadingHidden: document.querySelector('#loading').hidden,
       todayBadgeHidden: document.querySelector('#dash-today-count').hidden,
     }))()`);
     assert.equal(mErr.errorHidden, false, `Trạng thái lỗi: #error phải HIỆN — ${JSON.stringify(mErr)}`);
     assert.ok(mErr.errorText.length > 0, "Trạng thái lỗi: #error phải có nội dung tiếng Việt");
-    assert.equal(mErr.statsHidden, true, `Trạng thái lỗi: #dash-stats phải ẨN (không có số liệu) — ${JSON.stringify(mErr)}`);
-    assert.equal(mErr.layoutHidden, true, `Trạng thái lỗi: #dash-layout phải ẨN (không có danh sách/doanh thu) — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.gridHidden, true, `Trạng thái lỗi: #dash-grid phải ẨN (không có số liệu/danh sách/doanh thu) — ${JSON.stringify(mErr)}`);
     assert.equal(mErr.loadingHidden, true, `Trạng thái lỗi: #loading (khung xương) phải ẨN, không kẹt lại — ${JSON.stringify(mErr)}`);
     assert.equal(mErr.todayBadgeHidden, true, `Trạng thái lỗi: huy hiệu số chuyến hôm nay phải ẨN (chưa từng có số thật) — ${JSON.stringify(mErr)}`);
     await shot(pErr, "trang-chu-loi-khong-co-quyen.png");
-    ok(`C) Trạng thái lỗi thật (tài khoản chỉ FIELD, không có quyền văn phòng, điện thoại 390×844): CHỈ banner lỗi hiện ("${mErr.errorText}"), #dash-stats và #dash-layout đều ẨN, #loading đã ẩn`);
+    ok(`C) Trạng thái lỗi thật (tài khoản chỉ FIELD, không có quyền văn phòng, điện thoại 390×844): CHỈ banner lỗi hiện ("${mErr.errorText}"), #dash-grid ẨN, #loading đã ẩn`);
     pErr.close();
   }
 } finally {

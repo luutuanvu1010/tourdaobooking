@@ -1,5 +1,5 @@
-import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
-import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
+import { AUDIT_ACTIONS } from "../src/shared/audit-actions.ts";
+import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines.ts";
 import type { AuditAction, DepositMethod, OrderStatus } from "./api";
 
 const nf = new Intl.NumberFormat("vi-VN");
@@ -7,6 +7,23 @@ const nf = new Intl.NumberFormat("vi-VN");
 /** 1350000 → "1.350.000 ₫" */
 export const vnd = (n: number): string => `${nf.format(n)} ₫`;
 export const grouped = (n: number): string => nf.format(n);
+
+/**
+ * Tiền rút gọn cho khổ điện thoại hẹp (Trang chủ mới, Đợt D): 0 → "0", 900.000 → "900k", 1.200.000 → "1,2tr",
+ * 8.780.000 → "8,78tr", 24.150.000 → "24,15tr". KHÔNG bao giờ làm tròn LÊN (luôn cắt bớt phần dư) — số hiển thị không
+ * bao giờ lớn hơn số thật. Không tự thêm " ₫", gọi nơi dùng tự nối nếu cần (giống bản mẫu: có chỗ có "₫", có chỗ không).
+ */
+export function vndShort(n: number): string {
+  const sign = n < 0 ? "-" : "";
+  const abs = Math.abs(n);
+  if (abs < 1000) return `${sign}${abs}`;
+  if (abs < 1_000_000) return `${sign}${Math.floor(abs / 1000)}k`;
+  const hundredths = Math.floor(abs / 10_000); // 1 triệu = 100 đơn vị "phần trăm triệu"; cắt bớt, không làm tròn lên
+  const trieu = Math.floor(hundredths / 100);
+  const le = hundredths % 100;
+  const decimal = le === 0 ? "" : le % 10 === 0 ? `,${le / 10}` : `,${String(le).padStart(2, "0")}`;
+  return `${sign}${trieu}${decimal}tr`;
+}
 
 /** "1.350.000 đ" / "1350000" → 1350000; rỗng → 0. */
 export function parseMoney(text: string): number {
