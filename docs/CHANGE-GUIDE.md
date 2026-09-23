@@ -11,7 +11,7 @@
 2. Mỗi nhóm tệp bạn chạm có bộ kiểm riêng: §3. Trước commit và trước deploy: §5.
 3. Hành vi lạ → đọc §4 (bẫy) trước khi debug. Thấy tài liệu khác mã → §6.
 
-Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
+Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–s · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
 
 ## 1. Bảng tra nhanh "Muốn … → xem …"
 
