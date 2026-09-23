@@ -6,7 +6,7 @@
 - **Cách làm:** mỗi task giao cho một trợ lý thi công riêng. Sau mỗi task có một trợ lý rà soát (đặc tả + chất lượng); nếu có lỗi thì sửa rồi rà lại phần sửa. Hết các task thì rà cả nhánh, làm một đợt sửa, và cuối cùng mời người kiểm độc lập chỉ đọc (vai `nguoi-kiem-doc-lap`).
 - **Trạng thái 2026-09-23:**
   - Task 0–12 xong.
-  - **8b CHƯA LÀM**: ngưng tài khoản chưa gỡ Face ID. Việc này chờ chủ quyết A-4 và **CHẶN phát hành**.
+  - **8b ĐÃ LÀM** (a1be8c1): chủ chọn A-4 phương án 1, ngưng tài khoản gỡ Face ID trong cùng lô ghi. **Chờ kiểm độc lập riêng cho 8b** trước khi gộp.
 
 ## Mốc
 
@@ -27,6 +27,7 @@
 | Task 11: kịch bản Chrome, authenticator ảo | ..a5ce1c2 | đạt |
 | Task 12: tài liệu, bất biến R-AUT-1, runbook | ..3c41f99 | đạt sau 1 vòng sửa (8b thành điều kiện chặn, sửa thứ tự runbook) |
 | Rà toàn nhánh + đợt sửa cuối | ..227b74d | đạt |
+| 8b: ngưng tài khoản gỡ Face ID cùng lô (A-4 phương án 1) | a1be8c1 (mã + test) + commit tài liệu kế tiếp | chờ kiểm độc lập |
 
 Đợt sửa cuối gồm:
 - mọi route passkey trả 503 khi tính năng tắt, theo đặc tả §2.3;
@@ -65,7 +66,13 @@ Phán quyết thắng chữ kế hoạch khi hai bên mâu thuẫn. Lý do chi t
 15. **Task 8 tách 8a/8b; Task 9 bỏ assert "ngưng → khoá bị gỡ"** (để lại chú thích `// 8b`).
 12. **I-1 (rà toàn nhánh):** 4 route (xem danh sách, gỡ một, gỡ hết, admin gỡ hết) nay trả 503 khi tắt, đúng đặc tả. Khi tắt, chỉ còn cách "đặt lại PIN" để gỡ khoá.
 
-## 8b: việc còn lại, CHẶN phát hành
+## 8b: ĐÃ LÀM (a1be8c1) — chủ chọn A-4 phương án 1 ngày 2026-09-23
+
+Đã làm đúng phương án 1 dưới đây: câu SQL `passkey_revoke_all_if_suspended` (module `auth`, đọc view `v_stf_staff_label`), xuất `revokeAllPasskeysIfSuspendedStatement`; `patchStaffStatements` nối gỡ → touch(…, true) → nhật ký `passkey_removed` "gỡ khi ngưng tài khoản" vào CUỐI batch khi `active: false`. Test đơn vị 4 ca (a–d) ở `src/modules/accounts/patch-staff.test.ts` đỏ trước; đã cố ý thử hai cách sai (bỏ điều kiện → ca c đỏ; chen giữa chuỗi → ca b và một ca cũ đỏ). e2e `passkey.mjs` bước 13: ngưng → 0 khoá, `passkeyCount` 0, một dòng nhật ký; kích hoạt lại → khoá cũ `passkey_unknown`, phiên cũ bị thu hồi (tắt mã 8b thì e2e đỏ). Chi tiết: báo cáo thi công `task-8b-report.md` (tệp nháp của điều phối).
+
+Phát hiện khi làm: bài kiểm EXPLAIN của `src/architecture.test.ts` KHÔNG bắt được nếu câu này đọc thẳng bảng `staff` thay cho view — `staff` là bảng cha khoá ngoại của `aut_passkey` và cạnh `auth → staff` được phép, nên nhánh "khoá ngoại" của `violations()` cho qua. Việc đọc qua view hiện **dựa vào kỷ luật**; siết bài kiểm là việc riêng (sửa tệp kiểm kiến trúc), chưa làm.
+
+Phần dưới là bối cảnh lúc chờ chủ quyết (giữ làm lịch sử).
 
 Chủ chọn A-4:
 - **Phương án 1 (khuyến nghị):** gỡ Face ID trong cùng lô ghi với việc ngưng.
@@ -88,8 +95,8 @@ Làm 8b theo mục "Khuyến nghị cho 8b" của bản rà toàn nhánh. Tóm t
 
 - Pin-by-passkey có nên gỡ khoá "sai PIN quá nhiều" (`unlockPhone`) như admin reset-pin không? Đặc tả không nói, **chủ quyết**.
 - Khi Face ID tắt, nút admin "Gỡ Face ID (n)" vẫn hiện; bấm vào nhận 503 kèm lời giải thích. Có thể ẩn theo `config.passkey`.
-- Chưa có hàng rào máy nào chặn triển khai trước khi 8b xong; việc này **dựa vào kỷ luật** (P16). Lý do phải cẩn thận: `wrangler.jsonc` đã khai giá trị production cho `PASSKEY_*`, nên gộp rồi deploy là Face ID bật ngay.
-- `docs/HANDOFF-N1.md` (khoảng dòng 241) ghi "2 công khai, 6 tự phục vụ, 1 admin", cộng lại chỉ ra 9. Đúng là 2 + 7 + 1 = 10.
+- `wrangler.jsonc` đã khai giá trị production cho `PASSKEY_*`, nên gộp rồi deploy là Face ID bật ngay: chỉ gộp sau khi 8b qua kiểm độc lập (**dựa vào kỷ luật**, P16).
+- ~~`docs/HANDOFF-N1.md` ghi "2 công khai, 6 tự phục vụ, 1 admin"~~: đã sửa thành 2 + 7 + 1 = 10 cùng đợt 8b.
 - `verifyAssertion` chưa so `userHandle`. Phòng thủ thêm thì tốt, nhưng không khai thác được, vì khoá được tra theo `credential_id` UNIQUE và chữ ký được kiểm bằng khoá công khai đã lưu.
 - e2e `catalog.mjs:29` đỏ vì giá thật trên Google Sheet đã đổi (TTB03: 1.300.000 so với 1.000.000 ghi cứng). Không liên quan Face ID.
 - Các điểm nhỏ khác đều đã phân loại "để sau": thiếu vài ca test âm, JSDoc, kiểu `satisfies`, dọn CSS inline, v.v.

@@ -266,7 +266,7 @@ test("R-ORD-4: đơn chưa có điều chỉnh nào (không có dòng) không b�
 
 // ---------------------------------------------------------------------------------------------------------------------
 // R-AUT-1 (ADR-0016 điều 6/8 — lưới dữ liệu cho "tài khoản đã ngưng không còn Face ID hiệu lực"). Đỏ trên D1 thật là LỖI THẬT, không nới kiểm.
-// 8b (ngưng tài khoản gỡ passkey) là điều kiện CHẶN phát hành: Face ID không lên production trước khi 8b gộp — xem docs/HANDOFF-N1.md.
+// Đường API ngưng tài khoản gỡ passkey trong cùng lô ghi (8b — test ở src/modules/accounts/patch-staff.test.ts), nên chỉ dữ liệu lọt lưới mới đỏ.
 // ---------------------------------------------------------------------------------------------------------------------
 function addPasskey(db: DatabaseSync, o: { id: string; staffId: string; from?: string; to?: string | null }): void {
   const from = o.from ?? T1;
