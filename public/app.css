@@ -89,6 +89,7 @@
   --fs-stat-sm: 20px;       /* Trang chủ mới (kiểm gộp I-3): cỡ chữ số liệu ở khổ điện thoại hẹp (lưới 2 cột ≤639px) — 26px làm "₫" rơi xuống dòng riêng với số tiền lớn */
   --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
   --h-chart: 56px;          /* Đợt D Task 2: chiều cao vùng 7 cột biểu đồ "Doanh thu của tôi" */
+  --icon-badge: 30px;       /* Đợt D Task 3: ô vuông bo góc quanh icon cảnh báo của khối "Cần xem lại" */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -583,6 +584,19 @@ body.maint-open { overflow: hidden; }
 .dash-chart-labels { display: flex; justify-content: space-between; font-size: var(--fs-badge); color: var(--c-text-muted); }
 .dash-chart-empty { margin: var(--s2) 0 0; }
 
+/* Khối "Cần xem lại" (Đợt D Task 3, CHỈ ADMIN — web/home.ts chỉ dựng khối này khi reviewAlerts() trả khác null).
+   Cùng khuôn viền/bóng với .dash-revenue (đúng ảnh bản mẫu: nền trắng, viền, bóng, KHÔNG chỉ dựa vào .card mặc định). */
+.dash-review { padding: 0; display: flex; flex-direction: column; border: 1px solid var(--c-border); box-shadow: var(--shadow-card); }
+.dash-review-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dash-review-heading { font-family: var(--font-display); font-weight: 700; }
+.dash-review-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
+.dash-review-row:last-child { border-bottom: 0; }
+.dash-review-icon { flex: none; width: var(--icon-badge); height: var(--icon-badge); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.dash-review-icon-sand { background: var(--c-sand-soft); color: var(--c-sand-text); } /* cảnh báo Sheet đổi giá */
+.dash-review-icon-accent { background: var(--c-accent-soft); color: var(--c-accent-strong); } /* cảnh báo góp ý chưa trả lời */
+.dash-review-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
+.dash-review-title { font-size: var(--fs-label); font-weight: 700; }
+
 @media (max-width: 639px) {
   /* Lưới 2×2 gộp cả "Doanh thu của tôi" (đặc tả §3: mockup mobile gộp doanh thu vào lưới, không tách riêng).
      .dash-stats chuyển display:contents để 3 ô của nó "thoát" ra tham gia thẳng lưới ngoài (.dash-grid) cùng
@@ -606,6 +620,10 @@ body.maint-open { overflow: hidden; }
      `display:none` mặc định của `.lbl-short` vì hai lớp cùng chọn một phần tử và quy tắc này đứng sau trong tệp); nút đặt
      dưới số tiền còn lại trong cụm bên phải, không đổi bề rộng ba cụm khi/tên/tiền hiện có. */
   .dash-today-call { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
+  /* Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): khối chỉ tồn tại
+     trong DOM khi ADMIN có cảnh báo (web/home.ts) — khi có, phải chiếm trọn bề rộng lưới 2×2 như .dash-today, không
+     rơi vào MỘT nửa cột bên cạnh ô trống. */
+  .dash-review { grid-column: 1 / -1; margin-bottom: 0; }
 }
 
 @media (min-width: 900px) {
@@ -613,4 +631,8 @@ body.maint-open { overflow: hidden; }
   .dash-stats { grid-column: 1 / -1; margin-bottom: 0; } /* khoảng cách hàng đã do row-gap của .dash-grid lo, tránh cộng dồn với margin-bottom mặc định */
   .dash-today { grid-column: 1; grid-row: 2; }
   .dash-revenue { grid-column: 2; grid-row: 2; }
+  /* Đợt D Task 3: "Cần xem lại" nằm ở cột phải, DƯỚI "Doanh thu của tôi" (đúng ảnh bản mẫu và yêu cầu Task 3) —
+     không đặt tự động (grid-auto-flow sẽ đẩy nó xuống HÀNG 3 CỘT 1, dưới "Chuyến đón hôm nay", vì .dash-review
+     đứng sau .dash-today trong DOM — xem lý do thứ tự DOM ở public/home.html). */
+  .dash-review { grid-column: 2; grid-row: 3; margin-bottom: 0; }
 }

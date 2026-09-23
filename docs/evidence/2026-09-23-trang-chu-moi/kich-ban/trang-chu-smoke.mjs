@@ -130,6 +130,38 @@ try {
   ok(`R3 tạo + xác nhận (id ${r3.id}): dịch vụ ngày ${OTHER_DATE} (khác hôm nay), chưa trả đồng nào → còn thiếu 12.345.000`);
 
   // ==================================================================================================
+  // T3) Đợt D Task 3 ("Cần xem lại", CHỈ ADMIN) — dữ liệu cho cả hai dòng cảnh báo.
+  //   a) Cảnh báo Sheet đổi giá: chèn THẲNG một dòng catalog_override lệch Sheet bằng SQL (env.sql) thay vì đi qua
+  //      luồng PATCH override + đồng bộ lại Sheet thật (cần mạng, không phù hợp kịch bản offline này) — vẫn đúng
+  //      HÌNH DẠNG dữ liệu catalog_override thật (cùng cột `saveOverride()` ghi), chỉ khác đường tạo ra nó.
+  //      TD101 đã có sẵn trong CATALOG_SQL (a2-cdp.mjs) với price_adult=1.350.000 — đặt base_json khác giá trị đó
+  //      (1.200.000) để applyOverride() tính ra đúng MỘT xung đột (adult), khớp công thức catalog/rules.ts.
+  //   b) Cảnh báo góp ý chưa trả lời: 2 yêu cầu THẬT qua POST /api/feedback (trạng thái mặc định NEW) — tạo bởi HAI
+  //      nhân viên khác nhau (không phải admin) để giống tình huống thật; tạo salesA TRƯỚC, salesB SAU nên
+  //      last_activity_at của salesB mới hơn → GET /api/feedback (ORDER BY last_activity_at DESC) trả salesB trước.
+  // ==================================================================================================
+  env.sql(
+    `INSERT INTO catalog_override (code, hidden, prices_json, base_json, updated_by, updated_at) VALUES ('TD101', 0, '{"adult":1300000}', '{"adult":1200000}', NULL, '2026-01-02T00:00:00.000Z')`,
+  );
+  const fb1 = await call(ACCOUNTS.salesA, "POST", "/api/feedback", {
+    kind: "BUG",
+    title: "Lỗi tính tiền khi đổi số khách (kịch bản Task 3)",
+    body: "Khi đổi số khách người lớn sau xác nhận, tổng tiền không cập nhật lại đúng.",
+    clientRequestId: crypto.randomUUID(),
+    context: {},
+  });
+  assert.equal(fb1.status, 201, `tạo góp ý 1 (Task 3): ${JSON.stringify(fb1.json)}`);
+  const fb2 = await call(ACCOUNTS.salesB, "POST", "/api/feedback", {
+    kind: "IDEA",
+    title: "Đề xuất thêm bộ lọc theo ngày đón (kịch bản Task 3)",
+    body: "Xin thêm bộ lọc theo khoảng ngày đón ở trang Đơn hàng.",
+    clientRequestId: crypto.randomUUID(),
+    context: {},
+  });
+  assert.equal(fb2.status, 201, `tạo góp ý 2 (Task 3): ${JSON.stringify(fb2.json)}`);
+  ok(`T3) Đã tạo dữ liệu "Cần xem lại": TD101 lệch Sheet (1.200.000 → 1.350.000), 2 góp ý MỚI (${fb1.json.ticket.code} báo lỗi của Sales Một, ${fb2.json.ticket.code} đề xuất của Sales Hai)`);
+
+  // ==================================================================================================
   // F) Ghim thứ tự khai route: GET /api/orders/dashboard PHẢI trả dữ liệu thật (không phải 404 do bị route
   //    "GET /api/orders/:id" ở dưới nuốt mất nếu ai đó lỡ dời thứ tự khai route trong orders/index.ts).
   // ==================================================================================================
@@ -226,6 +258,19 @@ try {
       }));
       // Đợt D Task 2: biểu đồ cột 7 ngày — trong CÙNG thẻ #dash-revenue (đúng ảnh bản mẫu). Ẩn bằng CSS ở khổ điện
       // thoại (mockup mobile không có biểu đồ) nên đo CẢ tồn tại trong DOM lẫn có đang hiển thị thật (offsetParent).
+      // Đợt D Task 3 ("Cần xem lại", CHỈ ADMIN): đo bằng offsetParent như mọi khối khác của trang này —
+      // "đang hiển thị thật", không chỉ tồn tại trong DOM (bài học Fix round 1 ở trên).
+      const reviewEl = document.querySelector('#dash-review');
+      const review = {
+        exists: !!reviewEl,
+        hiddenAttr: reviewEl ? reviewEl.hidden : null,
+        shown: reviewEl ? reviewEl.offsetParent !== null : null,
+        rows: [...document.querySelectorAll('#dash-review-list .dash-review-row')].map((row) => ({
+          title: row.querySelector('.dash-review-title')?.textContent.trim() ?? null,
+          sub: row.querySelector('.dash-review-sub')?.textContent.trim() ?? null,
+          href: row.getAttribute('href'),
+        })),
+      };
       const chartEl = document.querySelector('#dash-revenue .dash-revenue-chart');
       const chart = chartEl ? {
         shown: chartEl.offsetParent !== null,
@@ -251,6 +296,7 @@ try {
         revenueValue: shown(document.querySelector('.dash-revenue-value')),
         revenueSub: shown(document.querySelector('#dash-revenue-total .muted')),
         chart,
+        review,
         errorHidden: document.querySelector('#error').hidden,
         loadingHidden: document.querySelector('#loading').hidden,
         scrollOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -335,6 +381,31 @@ try {
       assert.equal(m.chart.shown, false, `${label}: biểu đồ KHÔNG được hiển thị thật ở khổ điện thoại (mockup mobile không có biểu đồ) — ${JSON.stringify(m.chart)}`);
     }
 
+    // ================================================================================================
+    // Đợt D Task 3 — "Cần xem lại" (CHỈ ADMIN, cùng nội dung ở CẢ HAI khổ màn hình — không có bản .lbl-full/.lbl-
+    // short riêng cho khối này, khác các ô số liệu/doanh thu). Dữ liệu seed ở mục T3 phía trên: TD101 lệch Sheet
+    // (1.200.000 → 1.350.000) + 2 góp ý MỚI (fb2 của Sales Hai tạo SAU nên đứng TRƯỚC — ORDER BY last_activity_at
+    // DESC ở GET /api/feedback).
+    // ================================================================================================
+    assert.ok(m.review.exists, `${label}: #dash-review phải có trong DOM — ${JSON.stringify(m)}`);
+    assert.equal(m.review.hiddenAttr, false, `${label}: #dash-review phải HIỆN (ADMIN, có 2 cảnh báo thật) — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.shown, true, `${label}: #dash-review phải đang hiển thị THẬT (offsetParent), không chỉ bỏ thuộc tính hidden — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.rows.length, 2, `${label}: phải có đúng 2 dòng cảnh báo (Sheet đổi giá + góp ý) — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.rows[0].title, "Sheet đã đổi giá TD101", `${label}: dòng 1 phải là cảnh báo Sheet đổi giá đúng mã TD101 — ${JSON.stringify(m.review)}`);
+    assert.equal(
+      m.review.rows[0].sub,
+      "1.200.000 ₫ → 1.350.000 ₫ · giá ghi đè vẫn đang bán",
+      `${label}: dòng phụ dòng 1 phải đúng base → current (khớp công thức catalog/rules.ts applyOverride) — ${JSON.stringify(m.review)}`,
+    );
+    assert.equal(m.review.rows[0].href, "/catalog", `${label}: dòng Sheet đổi giá phải liên kết tới /catalog — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.rows[1].title, "2 góp ý mới chưa trả lời", `${label}: dòng 2 phải nói đúng số góp ý MỚI (2) — ${JSON.stringify(m.review)}`);
+    assert.equal(
+      m.review.rows[1].sub,
+      `${fb2.json.ticket.code} đề xuất · ${fb1.json.ticket.code} báo lỗi`,
+      `${label}: dòng phụ dòng 2 phải đúng mã + loại, MỚI NHẤT (fb2, Sales Hai) đứng TRƯỚC — ${JSON.stringify(m.review)}`,
+    );
+    assert.equal(m.review.rows[1].href, "/feedback", `${label}: dòng góp ý phải liên kết tới /feedback — ${JSON.stringify(m.review)}`);
+
     // Kiểm gộp I-3: số liệu ô ("dash-stat-value", vd "500.000 ₫") KHÔNG được xuống dòng — ký hiệu tiền tệ từng rơi xuống dòng riêng
     // ở lưới 2 cột khổ điện thoại hẹp (≤639px). So chiều cao thật với chiều cao MỘT dòng (line-height tính được).
     const wrappedStats = m.stats.filter((s) => s.valueWrapped);
@@ -382,7 +453,9 @@ try {
   // Đợt D Task 1: DOM giữ nguyên thứ tự #dash-stats → #dash-revenue → #dash-today (khớp thứ tự đọc tự nhiên trên điện
   // thoại — bài học Đợt C); ở máy tính CSS grid-column/grid-row đặt #dash-today bên trái, #dash-revenue bên phải
   // (khác thứ tự DOM một cách CÓ CHỦ Ý, không phải lỗi) — kiểm DOM order KHÔNG đổi theo khổ màn hình.
-  assert.deepEqual(m.gridOrder, ["dash-stats", "dash-revenue", "dash-today"], `Trang chủ (máy tính): thứ tự DOM phải là dash-stats, dash-revenue, dash-today — ${JSON.stringify(m.gridOrder)}`);
+  // Đợt D Task 3: #dash-review LUÔN có mặt trong DOM (tĩnh ở public/home.html, chỉ ẩn/hiện bằng `hidden`) nên luôn
+  // là phần tử CUỐI CÙNG của #dash-grid — CSS grid-column/grid-row (≥900px) mới đặt nó dưới "Doanh thu của tôi".
+  assert.deepEqual(m.gridOrder, ["dash-stats", "dash-revenue", "dash-today", "dash-review"], `Trang chủ (máy tính): thứ tự DOM phải là dash-stats, dash-revenue, dash-today, dash-review — ${JSON.stringify(m.gridOrder)}`);
   assert.deepEqual(p.consoleErrors, [], `lỗi console (Trang chủ máy tính): ${p.consoleErrors}`);
   await shot(p, "trang-chu-may-tinh.png");
   await axe(p, "Trang chủ máy tính");
@@ -412,7 +485,13 @@ try {
   // Đợt D Task 1 (sửa lỗi lệch đặc tả §3): ở ≤639px #dash-grid nay display:grid (lưới 2×2 gộp cả doanh thu — KHÔNG
   // còn là display:block như trước sửa). #dash-stats chuyển display:contents để 3 ô của nó tham gia thẳng lưới ngoài.
   assert.equal(m.gridDisplay, "grid", `Trang chủ (điện thoại): #dash-grid phải display:grid ở ≤639px (lưới 2×2 gộp doanh thu) — ${JSON.stringify(m)}`);
-  assert.deepEqual(m.gridOrder, ["dash-stats", "dash-revenue", "dash-today"], `Trang chủ (điện thoại): thứ tự DOM phải là dash-stats, dash-revenue, dash-today (đúng thứ tự đọc: 3 ô + doanh thu rồi mới đến chuyến đón hôm nay) — ${JSON.stringify(m.gridOrder)}`);
+  // Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): #dash-review đứng
+  // CUỐI, sau #dash-today — đúng thứ tự đọc tự nhiên ở điện thoại (bài học Đợt C: DOM phẳng, không dùng CSS order).
+  assert.deepEqual(
+    m.gridOrder,
+    ["dash-stats", "dash-revenue", "dash-today", "dash-review"],
+    `Trang chủ (điện thoại): thứ tự DOM phải là dash-stats, dash-revenue, dash-today, dash-review (đúng thứ tự đọc: 3 ô + doanh thu, chuyến đón hôm nay, rồi Cần xem lại) — ${JSON.stringify(m.gridOrder)}`,
+  );
   {
     // Đợt D Task 1: đo THẬT rằng doanh thu là Ô THỨ TƯ của lưới 2×2 (không còn là thẻ mồ côi rơi khỏi màn đầu) —
     // 4 ô (3 số liệu + doanh thu) phải cùng nằm trong 2 hàng đầu, .dash-today phải nằm DƯỚI cả 4 ô đó.
@@ -513,6 +592,14 @@ try {
     assert.equal(mEmpty.revenueValue, "0 ₫", `Tuần trắng: giá trị RÚT GỌN doanh thu phải là "0 ₫" (tài khoản mới, chưa lập đơn nào) — ${JSON.stringify(mEmpty)}`);
     assert.ok(mEmpty.revenueSub.includes("0 đơn"), `Tuần trắng: dòng phụ doanh thu phải nói "0 đơn" — ${mEmpty.revenueSub}`);
 
+    // Đợt D Task 3 ("Cần xem lại", CHỈ ADMIN): tài khoản này chỉ giữ SALES — DÙ dữ liệu cảnh báo thật đã có (TD101
+    // lệch Sheet + 2 góp ý MỚI, seed ở mục T3, cùng một D1 với tài khoản ADMIN) — khối này TUYỆT ĐỐI KHÔNG được lộ
+    // ra (quyết định chủ dự án, docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md mục 3). Đo ở khổ điện
+    // thoại tại đây; vế máy tính đo lại bên dưới (cùng tài khoản, đổi viewport).
+    assert.equal(mEmpty.review.hiddenAttr, true, `Tuần trắng (SALES, điện thoại): #dash-review PHẢI ẨN (không phải quản trị) — ${JSON.stringify(mEmpty.review)}`);
+    assert.equal(mEmpty.review.shown, false, `Tuần trắng (SALES, điện thoại): #dash-review KHÔNG được hiển thị thật — ${JSON.stringify(mEmpty.review)}`);
+    assert.equal(mEmpty.review.rows.length, 0, `Tuần trắng (SALES, điện thoại): không được dựng dòng cảnh báo nào — ${JSON.stringify(mEmpty.review)}`);
+
     // LƯỚI CHÍNH (đặt TRƯỚC mọi assert khác đụng tới `.dash-revenue-chart`/`.dash-chart-empty`, để lưới này là điểm ĐỎ
     // ĐẦU TIÊN khi lỗi tái phát — không bị một assert khác "tự khớp với cách sửa đã chọn" chặn trước, che mất lưới
     // thật): đo TRỰC TIẾP phần tử ".dash-chart-empty" (dòng "Chưa có đơn nào tuần này") — nếu nó tồn tại trong DOM
@@ -554,13 +641,21 @@ try {
     await pEmpty.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
     const emptyDesktop = await readEmpty();
     assert.equal(emptyDesktop.emptyShown, true, `Tuần trắng (máy tính, vế bổ trợ): dòng "Chưa có đơn nào tuần này" PHẢI hiển thị thật ở khổ máy tính (luật ẩn chỉ áp dụng ≤639px, không phải ẩn mọi khổ) — ${JSON.stringify(emptyDesktop)}`);
+
+    // Đợt D Task 3 — vế máy tính: cùng tài khoản SALES, cùng dữ liệu cảnh báo thật, đổi khổ màn hình KHÔNG được làm
+    // lộ khối "Cần xem lại" (quyền không phụ thuộc khổ màn hình).
+    const mEmptyDesktop = await measureHome(pEmpty);
+    assert.equal(mEmptyDesktop.review.hiddenAttr, true, `Tuần trắng (SALES, máy tính): #dash-review PHẢI ẨN — ${JSON.stringify(mEmptyDesktop.review)}`);
+    assert.equal(mEmptyDesktop.review.shown, false, `Tuần trắng (SALES, máy tính): #dash-review KHÔNG được hiển thị thật — ${JSON.stringify(mEmptyDesktop.review)}`);
+    assert.equal(mEmptyDesktop.review.rows.length, 0, `Tuần trắng (SALES, máy tính): không được dựng dòng cảnh báo nào — ${JSON.stringify(mEmptyDesktop.review)}`);
+
     // Fix round 2 — kiểm nghi ngờ: <p class="dash-chart-empty dash-revenue-chart"> ở khổ máy tính nhận CSS
     // `.dash-revenue-chart { display: flex; flex-direction: column; }` (một <p> chứa text trở thành flex container).
     // Chụp ảnh để XEM THẬT dòng chữ có căn sai/giãn chữ/mất khoảng cách hay không (không chỉ đo DOM).
     await shot(pEmpty, "trang-chu-may-tinh-tuan-trang.png");
 
     pEmpty.close();
-    ok(`E) Tuần trắng (tài khoản SALES mới, chưa lập đơn): doanh thu = "0 ₫" · "${mEmpty.revenueSub}"; dòng chữ rỗng tồn tại trong DOM, KHÔNG hiển thị thật ở 390px (ô "Doanh thu của tôi" chỉ còn tổng tiền + dòng phụ, đúng bản mẫu), CÓ hiển thị thật ở khổ máy tính (vế bổ trợ)`);
+    ok(`E) Tuần trắng (tài khoản SALES mới, chưa lập đơn): doanh thu = "0 ₫" · "${mEmpty.revenueSub}"; dòng chữ rỗng tồn tại trong DOM, KHÔNG hiển thị thật ở 390px (ô "Doanh thu của tôi" chỉ còn tổng tiền + dòng phụ, đúng bản mẫu), CÓ hiển thị thật ở khổ máy tính (vế bổ trợ); Đợt D Task 3: #dash-review ẨN ở CẢ HAI khổ dù dữ liệu cảnh báo thật đã có (không phải quản trị)`);
   }
 
   // ==================================================================================================

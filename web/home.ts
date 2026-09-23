@@ -1,7 +1,9 @@
-import { ApiError, api, type Api, type OrderSummary } from "./api";
+import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
+import { icon } from "./icons";
 import { initShell, showError } from "./shell";
+import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { vnToday } from "../src/shared/vn-date";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
@@ -153,6 +155,66 @@ function renderRevenue(rev: Api.DashboardResponse["revenueWeek"]): void {
   byId("dash-revenue").append(revenueChart(rev.daily));
 }
 
+/**
+ * Khối "Cần xem lại" (Đợt D Task 3) — CHỈ ADMIN thấy (quyết định chủ dự án, `docs/superpowers/specs/2026-09-23-
+ * trang-chu-moi-quyet-dinh.md` mục 3): giữ đúng quyền hiện có của dữ liệu cảnh báo giá (`/api/catalog/admin`,
+ * chỉ admin), TUYỆT ĐỐI KHÔNG mở quyền đọc cho nhân viên bán hàng. `reviewAlerts()` (src/shared/dashboard-review.ts)
+ * tự kiểm lại quyền — ở đây CHỈ gọi hai API admin-only khi `canSeeReviewAlerts()` đã xác nhận, để KHÔNG gọi (và
+ * không nhận 403) cho phần lớn tài khoản (SALES/ACCOUNTING/FIELD) mở Trang chủ mỗi ngày.
+ *
+ * KHÔNG import module `catalog`/`feedback` ở máy chủ (luật ranh giới module, `src/CLAUDE.md`: `orders` không được
+ * import chúng): dữ liệu lấy bằng cách gọi thẳng HAI ROUTE ĐÃ CÓ SẴN, không đổi, từ TRÌNH DUYỆT — `web/` không phải
+ * `src/modules/*` nên không vướng luật đó. `/api/catalog/admin` chỉ đọc (`loadAll` + `getSyncState`, không đồng bộ
+ * Sheet — khác `/api/catalog` của nhân viên bán hàng, có `bootstrapIfNeverSynced`); `/api/feedback` cũng chỉ đọc.
+ * Không lỗi phụ nào cả hai lời gọi này có thể gây ra.
+ *
+ * Dùng `allSettled`: MỘT trong hai API lỗi (mạng chập chờn) không được kéo API còn lại xuống theo — coi phần lỗi là
+ * "không có cảnh báo nào" (mảng rỗng) thay vì ẩn HẲN khối chỉ vì một nửa dữ liệu chưa tải được.
+ */
+async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
+  if (!canSeeReviewAlerts(staff)) return null;
+  const [catalogRes, feedbackRes] = await Promise.allSettled([
+    api<Api.CatalogAdminResponse>("/api/catalog/admin"),
+    api<Api.FeedbackQueueResponse>("/api/feedback"),
+  ]);
+  return reviewAlerts(staff, {
+    catalogItems: catalogRes.status === "fulfilled" ? catalogRes.value.items : [],
+    tickets: feedbackRes.status === "fulfilled" ? feedbackRes.value.tickets : [],
+  });
+}
+
+/** Một dòng của khối "Cần xem lại": icon cảnh báo (màu theo loại) + tiêu đề đậm + dòng phụ nhạt, cả dòng là liên kết (đúng bản mẫu). */
+function reviewRow(iconClass: string, href: string, title: string, sub: string): HTMLElement {
+  return h(
+    "a",
+    { class: "dash-review-row", href },
+    h("span", { class: `dash-review-icon ${iconClass}` }, icon("alert", 17)),
+    h("span", { class: "dash-review-body" }, h("span", { class: "dash-review-title" }, title), h("span", { class: "muted dash-review-sub" }, sub)),
+  );
+}
+
+/** `alerts === null` (không phải admin, HOẶC không có gì cần xem lại) → ẨN CẢ KHỐI, không hiện thẻ trống (bài học Đợt C). */
+function renderReview(alerts: ReviewAlerts | null): void {
+  const section = byId("dash-review");
+  if (!alerts) {
+    section.hidden = true;
+    return;
+  }
+  const rows: HTMLElement[] = [];
+  if (alerts.catalogConflict) {
+    const c = alerts.catalogConflict;
+    const range = `${c.base === null ? "—" : vnd(c.base)} → ${c.current === null ? "—" : vnd(c.current)} · giá ghi đè vẫn đang bán`;
+    rows.push(reviewRow("dash-review-icon-sand", "/catalog", `Sheet đã đổi giá ${c.code}`, c.moreCount > 0 ? `${range} · +${c.moreCount} dịch vụ khác` : range));
+  }
+  if (alerts.feedbackQueue) {
+    const f = alerts.feedbackQueue;
+    const sub = f.items.map((i) => `${i.code} ${i.kindName.toLocaleLowerCase("vi-VN")}`).join(" · ");
+    rows.push(reviewRow("dash-review-icon-accent", "/feedback", `${f.count} góp ý mới chưa trả lời`, sub));
+  }
+  replaceChildren(byId("dash-review-list"), ...rows);
+  section.hidden = false;
+}
+
 async function main(): Promise<void> {
   const staff = await initShell();
   const words = staff.fullName.trim().split(/\s+/).filter(Boolean);
@@ -164,12 +226,15 @@ async function main(): Promise<void> {
   const dateStr = now.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric" });
   const loadingEl = byId("loading");
   try {
-    const data = await api<Api.DashboardResponse>("/api/orders/dashboard");
+    // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
+    // dashboard chính, không làm chậm phần còn lại của trang.
+    const [data, review] = await Promise.all([api<Api.DashboardResponse>("/api/orders/dashboard"), loadReview(staff)]);
     loadingEl.hidden = true;
     byId("dash-date").textContent = `${weekday}, ${dateStr} · ${data.today.length} chuyến đón hôm nay`;
     renderStats(data);
     renderToday(data.today);
     renderRevenue(data.revenueWeek);
+    renderReview(review);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
     byId("dash-grid").hidden = false;
   } catch (err) {
