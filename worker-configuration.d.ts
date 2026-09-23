@@ -9,6 +9,8 @@ interface __BaseEnv_Env {
 	SESSION_SECRET: string;
 	TURNSTILE_SITE_KEY?: string;
 	TURNSTILE_SECRET_KEY?: string;
+	PASSKEY_RP_ID?: string;
+	PASSKEY_ORIGIN?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
@@ -21,7 +23,7 @@ type StringifyValues<EnvType extends Record<string, unknown>> = {
 	[Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
 declare namespace NodeJS {
-	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "STAFF_SHEET_ID" | "SERVICES_SHEET_ID" | "SESSION_SECRET" | "TURNSTILE_SITE_KEY" | "TURNSTILE_SECRET_KEY">> {}
+	interface ProcessEnv extends StringifyValues<Pick<Cloudflare.Env, "STAFF_SHEET_ID" | "SERVICES_SHEET_ID" | "SESSION_SECRET" | "TURNSTILE_SITE_KEY" | "TURNSTILE_SECRET_KEY" | "PASSKEY_RP_ID" | "PASSKEY_ORIGIN">> {}
 }
 
 // Begin runtime types

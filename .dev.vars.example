@@ -12,3 +12,8 @@ SESSION_SECRET=
 TURNSTILE_SITE_KEY=
 TURNSTILE_SECRET_KEY=
 # TÊN BIẾN PHẢI ĐÚNG như hai dòng trên (TURNSTILE_SITE_KEY, TURNSTILE_SECRET_KEY): mã chỉ đọc đúng hai tên này; tên khác (vd CLOUDFLARE_…) bị bỏ qua lặng lẽ.
+
+# Đăng nhập bằng Face ID (passkey, ADR-0016). wrangler.jsonc đặt giá trị production (booking.tourdao.vn); ở máy mình PHẢI ghi đè bằng localhost,
+# nếu không mọi lần bật/đăng nhập Face ID bị từ chối (sai origin). Để trống cả hai = TẮT (nút Face ID không hiện).
+PASSKEY_RP_ID=localhost
+PASSKEY_ORIGIN=http://localhost:8787

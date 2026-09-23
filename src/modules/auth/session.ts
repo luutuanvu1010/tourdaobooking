@@ -3,6 +3,9 @@ import { fromBase64Url, timingSafeEqual, toBase64Url } from "../../shared/encodi
 export const SESSION_COOKIE = "td_session";
 export const SESSION_TTL_SECONDS = 60 * 60 * 24 * 7;
 
+/** Cookie phiên/thách thức chỉ thêm `Secure` khi kết nối thật là https (local http vẫn nhận cookie được). Dùng chung cho mọi cookie ký HMAC của module auth (session.ts, passkey.ts) — chỉ xuất MỘT lần ở đây, tránh trùng logic. */
+export const isSecure = (request: Request): boolean => new URL(request.url).protocol === "https:";
+
 async function hmac(secret: string, data: string): Promise<Uint8Array> {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   return new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)));

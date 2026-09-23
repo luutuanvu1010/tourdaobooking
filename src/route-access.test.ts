@@ -78,8 +78,9 @@ async function collectRealRoutes(): Promise<RouteSnapshot[]> {
 }
 
 // Ảnh chụp ĐÃ DUYỆT — lấy bằng `grep -n 'route(' src/modules/*/index.ts` ngày 2026-09-22, đọc từng dòng để chắc đúng (không đoán).
-// 59 route trên 11 module (55 gốc + 2 route ADR-0014 Phase B: handler-cancel, handler-money-edit + 1 route "việc của tôi": dispatch/mine
-// + 1 route Trang chủ mới 2026-09-23: GET /api/orders/dashboard) — đếm lại bằng `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
+// 61 route trên 11 module (55 gốc + 2 route ADR-0014 Phase B: handler-cancel, handler-money-edit + 1 route "việc của tôi": dispatch/mine
+// + 1 route Trang chủ mới 2026-09-23: GET /api/orders/dashboard + 2 route passkey công khai 2026-09-23 (ADR-0016): đăng nhập bằng Face ID)
+// — đếm lại bằng `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
 const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/account/change-pin", access: "staff" },
   { method: "GET", path: "/api/audit", access: "admin" },
@@ -87,6 +88,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/auth/login", access: "public" },
   { method: "POST", path: "/api/auth/logout", access: "public" },
   { method: "GET", path: "/api/auth/me", access: "staff" },
+  { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
+  { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
   { method: "GET", path: "/api/catalog", access: "office" },
   { method: "PATCH", path: "/api/catalog/:code", access: "admin" },
   { method: "POST", path: "/api/catalog/:code/ack", access: "admin" },
@@ -154,13 +157,13 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 59 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 61 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
-  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 59 để đối chiếu nhanh bằng mắt.
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 61 để đối chiếu nhanh bằng mắt.
   // (Cập nhật 2026-09-22: 55 gốc + 2 route ADR-0014 Phase B (handler-cancel, handler-money-edit) + 1 route "việc của tôi" (dispatch/mine) = 58;
-  // 2026-09-23: + 1 route Trang chủ mới (GET /api/orders/dashboard) = 59.)
+  // 2026-09-23: + 1 route Trang chủ mới (GET /api/orders/dashboard) = 59; + 2 route passkey công khai (đăng nhập bằng Face ID, ADR-0016) = 61.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 59, "số route thực tế lệch 59 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 59, "SNAPSHOT phải có đúng 59 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 61, "số route thực tế lệch 61 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 61, "SNAPSHOT phải có đúng 61 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

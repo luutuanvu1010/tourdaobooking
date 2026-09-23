@@ -56,7 +56,13 @@ try {
   console.log("Thoát: Ctrl+C (D1 tạm bị xoá). Danh sách kiểm: docs/PWA-IPHONE.md, mục \"Danh sách kiểm trên iPhone thật\".");
   console.log("=================================================\n");
 
-  const args = ["wrangler", "dev", "--port", String(PORT), "--ip", "0.0.0.0", "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`];
+  // PASSKEY_RP_ID/PASSKEY_ORIGIN để trống = TẮT Face ID: trên IP LAN (http, không đúng tên miền), WebAuthn không chạy được, nên để nút hiện
+  // ra rồi bấm là lỗi chắc chắn. Muốn thử Face ID thật trên iPhone: xem docs/evidence/2026-09-23-passkey/thu-iphone/HUONG-DAN.md (lát 0).
+  const args = [
+    "wrangler", "dev", "--port", String(PORT), "--ip", "0.0.0.0", "--persist-to", persist,
+    "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`,
+    "--var", "PASSKEY_RP_ID:", "--var", "PASSKEY_ORIGIN:",
+  ];
   if (tunnel) args.push("--tunnel");
   server = spawn("npx", args, { cwd: ROOT, detached: true, stdio: "inherit", env: { ...process.env, CI: "1" } });
   await new Promise((res) => server.on("exit", res));
