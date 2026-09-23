@@ -55,3 +55,15 @@ B. **TRANG CHỦ THÀNH TRANG MẶC ĐỊNH** — đảo mục 2 ở trên ("th�
    → Người thi công phải tìm cách giữ nút gọi mà vẫn gần bản mẫu (ví dụ dòng phụ vẫn "nơi đón · tên dịch vụ" theo mẫu, nhưng thêm biểu tượng/nút gọi riêng, hoặc cho cả dòng thành liên kết `tel:`). KHÔNG được để mất thao tác gọi.
 
 6. **Nhãn "Số liệu toàn công ty" và "· toàn công ty": BỎ HẲN** — chủ dự án xác nhận bỏ cho giống bản mẫu, chấp nhận rủi ro nhỏ là nhân viên Bán hàng có thể tưởng 3 ô số và danh sách chuyến là của riêng mình. Không cần khôi phục.
+
+## Trả lời câu hỏi từ vòng kiểm Task 2 Đợt D (2026-09-23, chủ dự án chốt trực tiếp)
+
+7. **Quy tắc tô đậm cột biểu đồ 7 ngày: TÔ ĐẬM NGÀY ĐÃ QUA + HÔM NAY**, ngày chưa tới để nhạt.
+
+   Bối cảnh (người kiểm độc lập đo pixel trên ảnh mẫu, không suy đoán): trong ảnh mẫu, cột T5 (nhạt) CAO HƠN cột CN (đậm) — nên quy tắc của mẫu KHÔNG phải "tô cột cao nhất", mà là theo vị trí 2 cột cuối. NHƯNG ảnh mẫu vẽ vào đúng **Chủ nhật 21/09/2026**, nghĩa là 2 cột cuối (T7, CN) đồng thời CHÍNH LÀ "hôm qua + hôm nay" — ảnh mẫu không đủ dữ kiện để phân biệt "luôn 2 cột cuối" với "ngày gần đây".
+
+   Bằng chứng thực tế: ảnh kết quả thật chụp hôm Thứ Tư cho thấy 2 cột đậm (T7, CN) là 2 cột SÀN 0đ (ngày chưa tới), còn cột cao thật (T4 = hôm nay, 12.645.000đ) lại nhạt — nhìn sai rõ ràng.
+
+   → Quy tắc "ngày đã qua + hôm nay" vừa đúng tinh thần ảnh mẫu (trong mẫu chính là 2 ngày gần nhất), vừa luôn hợp lý ở mọi ngày trong tuần.
+
+   **Ghi nhận quy trình:** điều phối viên ban đầu tự quyết đổi sang "tô theo giá trị" dựa trên tiền đề "ảnh mẫu không phân biệt được hai quy tắc" — người kiểm độc lập đo pixel và CHỨNG MINH tiền đề đó SAI, đồng thời chỉ ra đây đúng loại việc mà tài liệu dự án vừa ghi là phải hỏi chủ chứ không tự quyết. Đã hỏi và chủ chốt như trên. Bài học: khi tự quyết dựa trên "đọc ảnh bằng mắt", phải kiểm chứng bằng đo thật trước khi coi là căn cứ.
