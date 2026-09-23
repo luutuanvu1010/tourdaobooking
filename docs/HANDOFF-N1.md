@@ -2,9 +2,26 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## CHỜ TRIỂN KHAI — Đăng nhập nhanh bằng Face ID / passkey (ADR-0016, accepted 2026-09-23)
+## TRẠNG THÁI TRIỂN KHAI — Đăng nhập bằng Face ID (ADR-0016 lát 1) ĐÃ LÊN PRODUCTION (2026-09-23 19:48 giờ VN, chủ dự án tự chạy `npm run trien-khai`)
 
-**CHƯA merge vào `main`, CHƯA triển khai.** Đang ở nhánh thi công (`worktree-thi-cong-passkey`), migration `migrations/0023_auth_passkey.sql` (chỉ THÊM bảng `aut_passkey`) + mã module `auth`/`accounts` (10 route mới, xem `docs/SYSTEM-DESIGN.md` §7) + giao diện (`web/passkey.ts`, `web/login.ts`, `web/account.ts`, `web/staff.ts`). Đặc tả: `docs/superpowers/specs/2026-09-23-passkey-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-23-passkey.md`. Đối chiếu 2026-09-23 (chỉ đọc, `wrangler d1 migrations list tourdao-sales-db --remote`): `0023_auth_passkey.sql` là migration DUY NHẤT chưa áp — mọi migration khác (`0015`…`0022`, KHÔNG có `0019`) đều đã lên production.
+Chủ chạy lệnh ở ứng dụng Terminal. Khối tóm tắt lệnh in ra không hiện trên màn hình của chủ, nên các dòng dưới đây do AI **kiểm lại bằng lệnh chỉ đọc** lúc 2026-09-23, khoảng 20:00 giờ VN.
+
+- **Mã trên `main` / GitHub:** `origin/main` = 854187f (Face ID + hai lệnh `day-len`/`trien-khai`), đẩy bằng `npm run day-len`.
+- **Migration:** `wrangler d1 migrations list tourdao-sales-db --remote` báo "No migrations to apply", tức `0023_auth_passkey.sql` đã áp.
+- **Worker:** `wrangler deployments list` cho bản mới nhất là **e86521ba-9d8d-43ef-acf5-a95df037cd6f**, tạo 2026-09-23T12:48:33Z. Bản ngay trước (mốc lùi): **0dbc79f0-8cdb-4955-b46f-6c38de598355**.
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` cho kết quả "Mọi bất biến đạt (D1 remote)", 17 mục, gồm R-AUT-1.
+- **e2e trước khi deploy:** 16/17. Kịch bản `catalog` đỏ vì giá TTB03 trên Google Sheet đã đổi thành 1.300.000; chủ chọn tiếp tục. Test đó cần sửa số kỳ vọng.
+- **GET công khai:**
+  - `GET /api/auth/config` trả `passkey: true`;
+  - `/login` trả 200 và có nút `#passkey-login` (ẩn sẵn, chỉ hiện trên máy hỗ trợ).
+- **Chế độ bảo trì đang BẬT:** `GET /api/auth/config` trả `maintenance.on = true`, hết hạn 2026-09-24T06:59Z (13:59 giờ VN). Việc bật do chủ làm, không do lệnh triển khai. Lệnh `trien-khai` không đụng tới chế độ bảo trì.
+- **Điểm khôi phục Time Travel:** lệnh đã in nhưng chủ không thấy. Lấy lại bằng `wrangler d1 time-travel info tourdao-sales-db --timestamp=2026-09-23T12:45:00Z` (chỉ đọc).
+- **Lỗi hiển thị của `npm run trien-khai` (cần điều tra):** sau câu hỏi e2e, chủ không thấy thêm dòng nào, nhưng lệnh vẫn chạy hết (áp migration, deploy, kiểm dữ liệu). Nghi vấn: bộ e2e chạy `wrangler dev` với stdin kế thừa, nên để terminal ở trạng thái lạ. Chưa kiểm. Tạm thời, sau khi chạy luôn kiểm lại bằng các lệnh chỉ đọc ở trên.
+- **Chưa kiểm:** đăng nhập bằng Face ID trên iPhone thật ở production. Đây là việc của chủ, khi bảo trì tắt hoặc với SĐT được phép.
+
+### Lịch sử: CHỜ TRIỂN KHAI (trước 2026-09-23 19:48)
+
+**(Lúc viết đoạn này:) CHƯA merge vào `main`, CHƯA triển khai.** Đang ở nhánh thi công (`worktree-thi-cong-passkey`), migration `migrations/0023_auth_passkey.sql` (chỉ THÊM bảng `aut_passkey`) + mã module `auth`/`accounts` (10 route mới, xem `docs/SYSTEM-DESIGN.md` §7) + giao diện (`web/passkey.ts`, `web/login.ts`, `web/account.ts`, `web/staff.ts`). Đặc tả: `docs/superpowers/specs/2026-09-23-passkey-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-23-passkey.md`. Đối chiếu 2026-09-23 (chỉ đọc, `wrangler d1 migrations list tourdao-sales-db --remote`): `0023_auth_passkey.sql` là migration DUY NHẤT chưa áp — mọi migration khác (`0015`…`0022`, KHÔNG có `0019`) đều đã lên production.
 
 - **"8b" (ngưng tài khoản thì gỡ Face ID) ĐÃ LÀM trên nhánh này (2026-09-23, chủ chọn A-4 phương án 1: gỡ trong CÙNG lô ghi).** `PATCH /api/staff/:id` với `active: false` gỡ mọi Face ID của tài khoản bị ngưng trong CÙNG `db.batch()` với câu ngưng: ba câu nối CUỐI batch — gỡ CÓ ĐIỀU KIỆN (chỉ khi tài khoản đang ngưng, đọc qua view `v_stf_staff_label`; câu chốt "còn quản trị viên khác" thua thì không gỡ gì), đẩy `credentials_changed_at` (thu hồi phiên cũ), nhật ký `passkey_removed` "gỡ khi ngưng tài khoản". Kích hoạt lại tài khoản KHÔNG làm Face ID cũ sống lại (e2e `passkey.mjs` bước 13 khẳng định). Bất biến `R-AUT-1` ("không có Face ID còn hiệu lực của tài khoản đã ngưng") vì thế luôn giữ trên đường API; sau khi triển khai, `audit-invariants --db remote` phải XANH HOÀN TOÀN, kể cả `R-AUT-1` — đỏ là lỗi thật, không có ngoại lệ. **Vẫn CHƯA triển khai:** 8b cần kiểm độc lập và gộp cùng nhánh này trước khi đi runbook `0023` bên dưới.
 - **Lát 2 (đăng nhập bằng Google) CHƯA lập kế hoạch:** mô phỏng chuyển hướng qua tên miền khác ở lát 0 chưa có kết quả (`docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md` mục "Mô phỏng Google") — phải thử lại trước khi lập kế hoạch lát 2.
