@@ -470,6 +470,76 @@ try {
   ok("Trang chủ (điện thoại, 390×844): 3 ô số liệu + danh sách + doanh thu đúng số, bố cục lưới 2×2 gộp doanh thu (Đợt D Task 1), thứ tự DOM đúng, không tái phát bug giờ/nơi đón, không tràn ngang, axe không vi phạm critical/serious");
 
   // ==================================================================================================
+  // E) TRẠNG THÁI "TUẦN TRẮNG" (Fix round 1 — phát hiện Important của người kiểm độc lập Task 2, LƯỚI BẮT BUỘC thêm
+  //    theo yêu cầu sửa): revenueWeek lọc THEO `staff_id` (repository.ts §5, dòng `AND staff_id = ?1`) nên một tài
+  //    khoản MỚI, CHƯA từng lập đơn, LUÔN thấy doanh thu tuần = 0 — kể cả khi R1/R3 (do ADMIN lập) đã có doanh thu
+  //    thật ở trên. Đây là cách RẺ để dựng tình huống "tuần chưa có đơn nào" (không cần xoá/chờ dữ liệu), đúng gợi ý
+  //    ở yêu cầu sửa. `revenueChart()` khi max===0 trả `<p class="empty dash-chart-empty">` — TRƯỚC fix round 1 thẻ
+  //    này KHÔNG mang class `dash-revenue-chart` nên luật ẩn ở khổ điện thoại (`public/app.css`, `@media (max-width:
+  //    639px) { .dash-revenue-chart { display: none; } }`) không khớp, dòng chữ lộ ra thành một dòng thừa trong ô
+  //    "Doanh thu của tôi" của lưới 2×2 (sáng thứ Hai mỗi tuần hoặc nhân viên mới, trên chính điện thoại nhân viên
+  //    dùng hàng ngày) — kịch bản (bản trước fix) không bắt được vì dữ liệu thử luôn có doanh thu.
+  // ==================================================================================================
+  {
+    const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+    const emptyWeekStaff = { name: "Sales Tuần Trắng", phone: "0900000397", pin: "998855", permissions: ["SALES"] };
+    for (const stmt of (await insertStaffSql(emptyWeekStaff)).split("\n")) env.sql(stmt);
+
+    const pEmpty = await env.as(emptyWeekStaff, "/home", MOB);
+    await pEmpty.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (tài khoản tuần trắng, điện thoại)");
+    const mEmpty = await measureHome(pEmpty);
+    assert.equal(mEmpty.gridHidden, false, `Tuần trắng: #dash-grid phải HIỆN sau khi tải xong — ${JSON.stringify(mEmpty)}`);
+    assert.equal(mEmpty.errorHidden, true, `Tuần trắng: #error phải ẨN (không lỗi) — ${JSON.stringify(mEmpty)}`);
+    assert.equal(mEmpty.revenueValue, "0 ₫", `Tuần trắng: giá trị RÚT GỌN doanh thu phải là "0 ₫" (tài khoản mới, chưa lập đơn nào) — ${JSON.stringify(mEmpty)}`);
+    assert.ok(mEmpty.revenueSub.includes("0 đơn"), `Tuần trắng: dòng phụ doanh thu phải nói "0 đơn" — ${mEmpty.revenueSub}`);
+
+    // LƯỚI CHÍNH (đặt TRƯỚC mọi assert khác đụng tới `.dash-revenue-chart`/`.dash-chart-empty`, để lưới này là điểm ĐỎ
+    // ĐẦU TIÊN khi lỗi tái phát — không bị một assert khác "tự khớp với cách sửa đã chọn" chặn trước, che mất lưới
+    // thật): đo TRỰC TIẾP phần tử ".dash-chart-empty" (dòng "Chưa có đơn nào tuần này") — nếu nó tồn tại trong DOM
+    // thì PHẢI không hiển thị thật ở khổ điện thoại. Cố ý bỏ class `dash-revenue-chart` khỏi <p> rỗng (hoàn nguyên
+    // tạm) sẽ làm assert `emptyShown` này ĐỎ (xem báo cáo P16) — không phụ thuộc CÁCH sửa (class trên <p> hay mở
+    // rộng luật CSS), chỉ đo đúng HÀNH VI hiển thị mà yêu cầu sửa đòi hỏi.
+    const readEmpty = () =>
+      pEmpty.ev(`(() => {
+        const emptyEl = document.querySelector('#dash-revenue .dash-chart-empty');
+        return {
+          emptyExists: !!emptyEl,
+          emptyShown: emptyEl ? emptyEl.offsetParent !== null : null,
+          emptyText: emptyEl ? emptyEl.textContent.trim() : null,
+        };
+      })()`);
+    const emptyMobile = await readEmpty();
+    assert.equal(emptyMobile.emptyExists, true, `Tuần trắng: dòng "Chưa có đơn nào tuần này" (.dash-chart-empty) phải tồn tại trong DOM — ${JSON.stringify(emptyMobile)}`);
+    assert.equal(
+      emptyMobile.emptyShown,
+      false,
+      `LƯỚI CHÍNH (Fix round 1): dòng "${emptyMobile.emptyText}" KHÔNG được hiển thị thật (offsetParent) ở khổ điện thoại 390px — nếu true thì lỗi Important của người kiểm độc lập Task 2 ĐÃ TÁI PHÁT (thiếu class dash-revenue-chart trên <p> rỗng nên luật ẩn ở public/app.css không khớp) — ${JSON.stringify(emptyMobile)}`,
+    );
+
+    // Đo bổ trợ (pin cách sửa đã CHỌN — gắn class lên chính <p> rỗng, không đổi CSS): nếu ai đổi sang cách khác
+    // (mở rộng luật CSS sang `.dash-chart-empty`) mà KHÔNG còn gắn class `dash-revenue-chart` cho <p>, khối này báo
+    // đỏ nhưng KHÔNG phải lỗi hiển thị thật (lưới chính ở trên mới là lưới bắt buộc) — chỉ bỏ khối này nếu đổi cách sửa.
+    if (mEmpty.chart) {
+      assert.equal(mEmpty.chart.shown, false, `Tuần trắng: .dash-revenue-chart (dòng chữ rỗng) KHÔNG được hiển thị thật ở khổ điện thoại — ${JSON.stringify(mEmpty.chart)}`);
+      assert.equal(mEmpty.chart.barCount, 0, `Tuần trắng: không được vẽ cột nào (max===0, nhánh dòng chữ rỗng) — ${JSON.stringify(mEmpty.chart)}`);
+    }
+
+    assert.deepEqual(pEmpty.consoleErrors, [], `lỗi console (Tuần trắng, điện thoại): ${pEmpty.consoleErrors}`);
+    await shot(pEmpty, "trang-chu-dien-thoai-tuan-trang.png");
+    await axe(pEmpty, "Trang chủ điện thoại (tuần trắng)");
+
+    // Vế còn lại của lưới (không để lưới "ẩn ở MỌI khổ" cũng lọt qua): luật ẩn chỉ áp dụng ≤639px — ở khổ máy tính
+    // dòng chữ rỗng PHẢI hiển thị thật. Đổi khổ NGAY trên trang đang mở (không điều hướng lại) — CSS phản hồi theo
+    // khổ ngay lập tức, không cần tải lại.
+    await pEmpty.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+    const emptyDesktop = await readEmpty();
+    assert.equal(emptyDesktop.emptyShown, true, `Tuần trắng (máy tính, vế bổ trợ): dòng "Chưa có đơn nào tuần này" PHẢI hiển thị thật ở khổ máy tính (luật ẩn chỉ áp dụng ≤639px, không phải ẩn mọi khổ) — ${JSON.stringify(emptyDesktop)}`);
+
+    pEmpty.close();
+    ok(`E) Tuần trắng (tài khoản SALES mới, chưa lập đơn): doanh thu = "0 ₫" · "${mEmpty.revenueSub}"; dòng chữ rỗng tồn tại trong DOM, KHÔNG hiển thị thật ở 390px (ô "Doanh thu của tôi" chỉ còn tổng tiền + dòng phụ, đúng bản mẫu), CÓ hiển thị thật ở khổ máy tính (vế bổ trợ)`);
+  }
+
+  // ==================================================================================================
   // C) Trạng thái LỖI thật — tài khoản KHÔNG có quyền văn phòng (chỉ FIELD) gọi /home: route "office" của
   //    GET /api/orders/dashboard trả 403 THẬT (src/shared/router.ts), không phải mô phỏng bằng cách chặn mạng.
   //    Khẳng định: CHỈ còn banner lỗi hiện; #dash-grid ẨN (gộp #dash-stats — Đợt D Task 1); #loading đã ẩn (không kẹt ở khung xương).

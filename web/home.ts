@@ -15,10 +15,15 @@ const weekdayOf = (isoDate: string): number => new Date(`${isoDate}T00:00:00Z`).
  * đặc tả viết "cột cao nhất" nhưng ảnh mẫu — nguồn thẩm quyền về hình dáng — tô đậm hai cột cuối).
  * Máy đọc màn hình: các cột (`aria-hidden`) không mang nghĩa; thay bằng MỘT bảng `.visually-hidden` liệt kê đủ 7 ngày.
  * Mọi ngày đều 0 đ → không vẽ 7 cột rỗng, hiện dòng "Chưa có đơn nào tuần này" (đúng kế hoạch bước 4).
+ * Fix round 1 (phát hiện của người kiểm độc lập Task 2): dòng chữ rỗng này CŨNG phải mang class `dash-revenue-chart`
+ * — luật ẩn ở khổ điện thoại (`public/app.css`, `@media (max-width: 639px)`) chỉ nhắm class đó; thiếu là dòng chữ lộ
+ * ra thành một dòng thừa trong ô "Doanh thu của tôi" ở lưới 2×2 (sáng thứ Hai hay nhân viên mới, chưa có đơn tuần
+ * này). Gắn thêm class cũng khớp với `querySelector(".dash-revenue-chart")?.remove()` ở `renderRevenue()` bên dưới
+ * — nếu không, dòng chữ rỗng cũ sẽ không bị dọn khi vẽ lại, dồn thành nhiều dòng lặp.
  */
 function revenueChart(daily: readonly { date: string; total: number }[]): HTMLElement {
   const max = Math.max(0, ...daily.map((d) => d.total));
-  if (max === 0) return h("p", { class: "empty dash-chart-empty" }, "Chưa có đơn nào tuần này");
+  if (max === 0) return h("p", { class: "empty dash-chart-empty dash-revenue-chart" }, "Chưa có đơn nào tuần này");
   const bars = daily.map((d, i) => {
     const pct = Math.max(Math.round((d.total / max) * 100), 4);
     const isDark = i >= 5; // vị trí T7 (index 5) và CN (index 6) — hai cột cuối
