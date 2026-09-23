@@ -87,3 +87,36 @@ biểu tượng nào đứng một mình mang nghĩa. Màu và kích thước đ
 `trang-chu-smoke.mjs` (Trang chủ + biểu tượng), `v1-nguoi-phu-trach.mjs` (thẻ đơn ở `/orders`),
 `dot-c-smoke.mjs` ("Việc của tôi" trong `/account`). Mỗi tiêu chí trên phải có một khẳng định **chứng minh được là đỏ**
 (P16) — khẳng định không chứng minh được thì xoá, đừng để lưới giả.
+
+---
+
+## Sửa đặc tả sau khi chủ dự án xem kết quả lượt 1 (2026-09-24)
+
+Lượt thi công đầu làm đúng danh sách trường liệt kê ở §A, nhưng **hệ quả ngoài ý muốn**: thẻ mất luôn **tên khách**
+và **mã đơn**, nên nhìn danh sách chỉ còn số điện thoại để nhận ra đơn. Chủ dự án làm rõ: *"Đúng là **thêm** những
+thứ này"* — các trường mới là **bổ sung**, không phải thay thế.
+
+### Quyết định 3 — bố cục hai dòng (chủ dự án xem bản vẽ rồi chọn)
+```
+ĐIỆN THOẠI (390px)
+┌──────────────────────────────────────┐
+│ 24/09 · 07:30  Nguyễn Văn A…  [Đã XN]│
+│ ☎ 0912345678  ⛇2NL 1TE   còn 2.0tr ⌄ │
+└──────────────────────────────────────┘
+```
+- **Dòng 1:** ngày · giờ đón · **tên khách** (cắt chữ khi dài) · huy hiệu trạng thái (dồn phải).
+- **Dòng 2:** số điện thoại (bấm gọi) · số khách · **chỉ "còn thu"** · nút xổ (dồn phải).
+- **Phần xổ:** Mã đơn · **Đã trả** · **Tổng** · Tên gói · Nơi đón · Người lập · Ngày giờ lập · Ghi chú · Người phụ trách.
+- **ĐÚNG 2 DÒNG kể cả trên điện thoại.** Chuyển "đã trả" và "tổng" xuống phần xổ chính là để giải phóng chỗ.
+  Không vừa thì rút ngắn cách viết / giảm khoảng cách / cho tên khách co lại — **không được cắt mất số điện thoại
+  hay số tiền**, không tự bỏ thêm trường nào.
+  *(Thay tiêu chí nghiệm thu 1 cũ, vốn mâu thuẫn với chính câu "cho phép xuống dòng ở khổ hẹp" trong §A.)*
+
+### Quyết định 4 — hướng dẫn viên được xem tiền
+Chủ dự án: *"HDV (nội bộ) phải xem được tiền để còn thu tiền mặt khi đón khách."*
+Điều này **đi ngược ADR-0007 điều 3 và ADR-0014 điều 6** (`FIELD` không xem tiền ở bất kỳ bề mặt nào), nên **không
+thi công theo đặc tả này** — đã tách thành **ADR-0017** (`docs/adr/ADR-0017-huong-dan-vien-xem-tien-can-thu.md`),
+trạng thái **proposed, chờ chủ dự án duyệt**.
+
+Chủ đã chọn phạm vi: **"còn thu" + "đã trả"** (KHÔNG tổng tiền, KHÔNG giá từng gói).
+Màn "Việc của tôi" **chưa được đụng tới** cho tới khi ADR-0017 được duyệt.
