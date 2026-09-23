@@ -204,6 +204,13 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult>; answers
   { name: "chủ trả lời 'có' (không đúng c)", answers: ["có"], reason: /Không đẩy/ },
   { name: "chủ trả lời 'C' hoa", answers: ["C"], reason: /Không đẩy/ },
   { name: "chủ bấm Enter", answers: [""], reason: /Không đẩy/ },
+  // Sửa vòng 2: mọi lệnh git đọc trạng thái mà lỗi thì DỪNG, không bao giờ đoán (không bỏ sót).
+  { name: "git rev-parse main lỗi (trước khi gộp)", over: { "git rev-parse main": FAIL }, reason: /không đọc được mã hiện tại của `main`/, lastCall: "git rev-parse main" },
+  { name: "git rev-parse main trả rỗng", over: { "git rev-parse main": out("") }, reason: /không đọc được mã hiện tại của `main`/, lastCall: "git rev-parse main" },
+  { name: "git rev-list --count lỗi", over: { "git rev-list --count origin/main..main": FAIL }, reason: /không đếm được số commit/, lastCall: "git rev-list --count origin/main..main" },
+  { name: "git rev-list --count trả chữ lạ", over: { "git rev-list --count origin/main..main": out("abc\n") }, reason: /không đếm được số commit/, lastCall: "git rev-list --count origin/main..main" },
+  { name: "git log danh sách commit lỗi", over: { "git log --oneline --no-decorate origin/main..main": FAIL }, reason: /không đọc được danh sách commit/, lastCall: "git log --oneline --no-decorate origin/main..main" },
+  { name: "git diff migration lỗi", over: { "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": FAIL }, reason: /không liệt kê được migration mới/, lastCall: "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/" },
 ];
 
 for (const c of DAYLEN_REFUSALS) {

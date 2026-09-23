@@ -103,9 +103,9 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 | 1 | kiểm TTY | không phải terminal thật |
 | 2 | `git rev-parse --abbrev-ref HEAD`, `git status --porcelain` | không ở `main`; còn thay đổi chưa commit |
 | 3 | `git fetch origin`, `git merge-base --is-ancestor origin/main main` | GitHub có commit mà `main` cục bộ chưa có (có người đẩy thứ khác) |
-| 4 | (nếu có nhánh) `git merge-base --is-ancestor main <nhánh>`, `git merge --ff-only <nhánh>` | nhánh không tiến thẳng được — KHÔNG bao giờ tạo merge commit, KHÔNG `--force` |
+| 4 | (nếu có nhánh) `git merge-base --is-ancestor main <nhánh>`, `git rev-parse main` (ghi mã cũ), `git merge --ff-only <nhánh>` | nhánh không tiến thẳng được — KHÔNG bao giờ tạo merge commit, KHÔNG `--force`; không đọc được mã cũ của `main` (để luôn in được lệnh quay lại) |
 | 5 | `npm test`, `npm run typecheck` | đỏ — nếu đã gộp ở bước 4 thì in `git reset --hard <mã cũ>` để chủ TỰ chạy nếu muốn (lệnh không tự chạy) |
-| 6 | in số commit + danh sách `origin/main..main` + **migration mới** so với `origin/main` | — (có migration mới thì in cảnh báo: lần triển khai tới PHẢI áp chúng trước, dùng `npm run trien-khai`) |
+| 6 | in số commit + danh sách `origin/main..main` + **migration mới** so với `origin/main` | một trong ba lệnh git đọc (`rev-list --count`, `log`, `diff … migrations/`) lỗi hoặc trả kết quả lạ — không bao giờ đoán "không có gì để đẩy"/"không có migration mới" (có migration mới thì in cảnh báo: lần triển khai tới PHẢI áp chúng trước, dùng `npm run trien-khai`) |
 | 7 | hỏi "Đẩy lên GitHub? (c/k)" | trả lời khác đúng `c` |
 | 8 | `git push origin main`, rồi in `git log -1 origin/main` | push lỗi |
 
@@ -121,7 +121,7 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 | 5 | hỏi "Triển khai Worker lên production? (c/k)" (vừa áp migration thì câu hỏi ghi "PHẢI deploy ngay") | trả lời khác `c` — nếu đã áp migration thì in cảnh báo ĐỎ kèm lệnh deploy để tự chạy ngay |
 | 6 | `CI=1 npx wrangler deploy` | deploy lỗi (không chạy bước 7) |
 | 7 | `node scripts/audit-invariants.mjs --db remote` | báo ĐẠT / KHÔNG ĐẠT (mã 1) / KHÔNG CHẠY ĐƯỢC (mã 2 — không phải dữ liệu sạch); khác ĐẠT thì thoát khác 0 |
-| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp |
+| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, dòng `e2e: xanh` hoặc `e2e: ĐỎ (chủ chọn tiếp tục): <tên kịch bản>`, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp |
 
 **Lệnh này KHÔNG làm thay** (vẫn làm tay TRƯỚC khi gõ `npm run trien-khai`, theo runbook của từng lần phát hành): các kịch bản Chrome khi chạm giao diện (e2e API thì lệnh ĐÃ chạy ở bước 3b), và các kiểm riêng của từng lần phát hành (ví dụ `GET /api/auth/config` sau deploy Face ID). **Giả định về wrangler:** đầu ra của `migrations list` được đọc theo định dạng của wrangler 4.135.0 (dòng "No migrations to apply" hoặc "Migrations to be applied:" + bảng tên tệp); nâng wrangler mà định dạng đổi thì lệnh DỪNG (an toàn), cần sửa `parsePendingMigrations` + mẫu ở `src/release-lib.fixtures/`. `migrations list --remote` của wrangler gọi `CREATE TABLE IF NOT EXISTS d1_migrations` trước khi đọc — trên production bảng đã có nên thực tế không ghi gì.
 

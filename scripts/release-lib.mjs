@@ -129,7 +129,10 @@ export async function dayLen({ run, ask, isTTY, log, target }) {
     if (ff.code !== 0) {
       return stop(`nhánh \`${target}\` không tiến thẳng được từ \`main\` (không có sẵn \`main\` trong lịch sử, hoặc không tồn tại). Không tạo merge commit tự động.`, `Cập nhật nhánh đó lên \`main\` mới nhất rồi chạy lại.`);
     }
-    oldMain = trimOut(await run("git", ["rev-parse", "main"]));
+    const head = await run("git", ["rev-parse", "main"]);
+    oldMain = head.code === 0 ? trimOut(head) : "";
+    // Phải biết mã cũ TRƯỚC khi gộp, để lệnh quay lại luôn in được; không biết thì không gộp.
+    if (!/^[0-9a-f]{7,64}$/i.test(oldMain)) return stop("không đọc được mã hiện tại của `main` (`git rev-parse main` lỗi) — không gộp, không đẩy.", String(head.stderr ?? "").trim());
     const merge = await run("git", ["merge", "--ff-only", target]);
     if (merge.code !== 0) return stop(`gộp tiến thẳng \`${target}\` vào \`main\` lỗi.`, String(merge.stderr ?? "").trim());
     log(`Đã gộp tiến thẳng \`${target}\` vào \`main\`.`);
@@ -142,13 +145,23 @@ export async function dayLen({ run, ask, isTTY, log, target }) {
     if (r.code !== 0) return stop(`\`${label}\` đỏ — không đẩy.`, ...undo());
   }
 
-  const count = Number(trimOut(await run("git", ["rev-list", "--count", "origin/main..main"])));
-  if (!Number.isFinite(count) || count <= 0) {
+  // Mọi lệnh đọc dưới đây mà lỗi thì DỪNG — không bao giờ đoán "không có gì để đẩy" hay "không có migration mới".
+  const countRun = await run("git", ["rev-list", "--count", "origin/main..main"]);
+  const countText = trimOut(countRun);
+  if (countRun.code !== 0 || !/^\d+$/.test(countText)) {
+    return stop("không đếm được số commit sắp đẩy (`git rev-list --count origin/main..main` lỗi hoặc trả kết quả lạ) — không đẩy.", String(countRun.stderr ?? "").trim(), ...undo());
+  }
+  const count = Number(countText);
+  if (count === 0) {
     log("Không có commit mới nào so với `origin/main` — không có gì để đẩy.");
     return 0;
   }
-  const commits = trimOut(await run("git", ["log", "--oneline", "--no-decorate", "origin/main..main"]));
-  const added = trimOut(await run("git", ["diff", "--name-only", "--no-renames", "--diff-filter=A", "origin/main", "main", "--", "migrations/"]))
+  const logRun = await run("git", ["log", "--oneline", "--no-decorate", "origin/main..main"]);
+  if (logRun.code !== 0) return stop("không đọc được danh sách commit sắp đẩy (`git log origin/main..main` lỗi) — không đẩy.", String(logRun.stderr ?? "").trim(), ...undo());
+  const commits = trimOut(logRun);
+  const diffRun = await run("git", ["diff", "--name-only", "--no-renames", "--diff-filter=A", "origin/main", "main", "--", "migrations/"]);
+  if (diffRun.code !== 0) return stop("không liệt kê được migration mới (`git diff … migrations/` lỗi) — không đẩy khi chưa biết có migration mới hay không.", String(diffRun.stderr ?? "").trim(), ...undo());
+  const added = trimOut(diffRun)
     .split("\n")
     .map((s) => s.trim())
     .filter((s) => s.endsWith(".sql"));
