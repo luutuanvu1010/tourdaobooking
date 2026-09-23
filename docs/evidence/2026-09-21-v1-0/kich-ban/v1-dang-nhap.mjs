@@ -26,6 +26,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, TURNSTILE_TEST, ok, setInput, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { formatReleaseLine } from "../../../../src/shared/app-info.ts";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-21-v1-0";
 const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;
@@ -33,9 +34,10 @@ const AXE = readFileSync(process.env.AXE_JS ?? "", "utf8");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 
 // Chữ đúng theo đặc tả (docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md, việc 1) — bước a còn đối chiếu với chính D1.
+// Riêng dòng phiên bản đọc từ nhật ký thay đổi (src/shared/changelog.ts qua formatReleaseLine): số phiên bản đổi mỗi lần phát hành, ghi cứng sẽ đỏ giả.
 const EXPECT = {
   app: "Tour Đảo Booking",
-  release: "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026",
+  release: formatReleaseLine(),
   company: "CÔNG TY TNHH TOUR ĐẢO",
   address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",
   email: "Tourdaotravel@gmail.com",
