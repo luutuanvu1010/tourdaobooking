@@ -184,3 +184,32 @@ Ba lỗi quan trọng người kiểm ĐO ĐƯỢC (đều là thứ người d�
 3. `web/CLAUDE.md:43` ghi kịch bản Trang chủ "12 bước", nay đã hơn — số đếm lỗi thời trong tệp luật.
 
 **Chưa kiểm:** iPad/iPhone thật (mọi số đo là Chrome giả lập); `height: 100vh` của thanh bên trên Safari iOS có thể làm chân thanh tụt dưới mép nhìn thấy.
+
+### Đợt D — chốt xong (2026-09-23): 43 commit, 88 tệp
+
+**Kết quả cuối:** `npm test` 517/517 · `npm run typecheck` 0 lỗi · `npm run test:e2e` **17/17** · `audit-invariants --db local` 16/16 · 7/7 kịch bản Chrome bắt buộc xanh. Nhánh `worktree-trang-chu-moi`, **CHƯA gộp, CHƯA đẩy, CHƯA deploy**.
+
+**Sáu việc đã làm:** Trang chủ mới đúng bản mẫu (nội dung + khổ điện thoại) · biểu đồ doanh thu 7 ngày dùng tiền HIỆN HÀNH sau điều chỉnh · khối "Cần xem lại" chỉ quản trị · **thanh điều hướng dọc thay thanh ngang cho cả 12 trang** (ADR-0015) · **`/` nay ra Trang chủ, Đơn hàng dời sang `/orders`, `/home` chuyển hướng** · dọn nợ lưới kiểm + sửa tài liệu lệch mã + vá cổng e2e đang hỏng.
+
+**Quy trình đã dùng:** mỗi task một người thi công + người kiểm độc lập chỉ đọc. Tổng cộng **6 vòng kiểm độc lập**, trong đó 3 vòng chạy **song song 5–8 hướng** (mỗi hướng một bản sao riêng, tự đo bằng Chrome thật). 5 vòng sửa.
+
+**Những gì vòng kiểm độc lập bắt được mà người thi công bỏ sót** (ghi lại vì đây là giá trị thật của quy trình):
+- Ô tìm kiếm trên thanh công việc là **nút chết** — gõ + Enter đổi địa chỉ nhưng danh sách không lọc.
+- **Mất sạch điều hướng ở dải 641–899px** (iPad dựng đứng), kể cả nút Đăng xuất — hồi quy do chính Đợt D.
+- `main` chỉ rộng 886px trên màn 1920 (trống 399px mỗi bên) vì `margin: 0 auto` không bị đặt lại trong ô lưới.
+- Vòng sửa 1 **đẻ ra lỗi mới**: ghim cứng chiều cao thanh làm nút "Lập đơn mới" **đè lên mã đơn** ở 900–929px.
+- **Lưới kiểm có lỗ hổng**: đổi `--w-sidebar` 236→300px mà toàn bộ lưới vẫn xanh; đổi `--bar-h` cũng vậy.
+- Kết luận "không kịch bản nào phân biệt `min-height` và `height`" là **sai** — người kiểm tìm ra kịch bản phân biệt được (phóng cỡ chữ nút lên 40px, mô phỏng trợ năng) và chứng minh thiếu van thì nút đè nội dung 11px.
+- Hai tài liệu tra cứu ghi **ngược tên tệp** Trang chủ/Đơn hàng sau khi đổi trang mặc định.
+- `docs/SYSTEM-DESIGN.md` §16 trích **nhầm số dòng** làm bằng chứng cho chính cơ chế bảo vệ mã khỏi bị "sửa cho khớp ADR".
+- Một dòng `ok(...)` **luôn hiện dấu đạt** bất kể mã viết gì.
+
+**Nguyên nhân hệ thống đã sửa:** mọi kịch bản Chrome của dự án xưa nay **chỉ chạy ở 1040px và 390px** — đúng hai khổ không bộc lộ ba lỗi quan trọng đầu tiên. Nay `trang-chu-smoke.mjs` quét 3 trang × nhiều khổ (640…1920).
+
+**Cổng phát hành đã thông:** `tests/e2e/catalog.mjs` ghim cứng giá 1.000.000₫ trong khi Sheet thật đã đổi thành 1.300.000₫ → đỏ, **và lỗi đó giết `wrangler dev` dùng chung nên che khuất 8 kịch bản phía sau**. Nay so với giá đọc từ Sheet thật, và `tests/e2e/run.mjs` in danh sách từng bộ thay vì dừng giữa chừng.
+
+**Sự cố quy trình (đã khắc phục, không mất dữ liệu):** công thức sandbox cho người kiểm dùng `cp -a` một git worktree — mà `.git` ở worktree là **TỆP con trỏ**, nên mọi bản sao dùng chung sổ git với bản gốc; một lệnh `git checkout` trong bản sao đã làm worktree gốc tuột sang HEAD tách rời. 4/8 hướng kiểm tự phát hiện. Công thức mới: `cp -a` rồi `rm -f <bản sao>/.git`, và cấm mọi lệnh git ghi.
+
+**Chưa kiểm:** chưa ai thử trên iPhone/iPad **thật** — mọi số đo là Chrome giả lập. `height: 100vh` của thanh bên trên Safari iOS có thể làm chân thanh tụt dưới mép nhìn thấy.
+
+**Chờ chủ dự án duyệt:** `docs/superpowers/specs/2026-09-23-dot-d-can-chu-duyet.md` — 6 mục (ưu tiên cao nhất: mục lục ADR thiếu hàng ADR-0015) + phần "Nợ đã ghi".
