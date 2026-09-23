@@ -11,7 +11,7 @@
 2. Mỗi nhóm tệp bạn chạm có bộ kiểm riêng: §3. Trước commit và trước deploy: §5.
 3. Hành vi lạ → đọc §4 (bẫy) trước khi debug. Thấy tài liệu khác mã → §6.
 
-Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
+Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–s · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
 
 ## 1. Bảng tra nhanh "Muốn … → xem …"
 
@@ -57,6 +57,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma t
 | Thêm kịch bản e2e (API) | `tests/e2e/run.mjs` (`ALL`), `tests/e2e/lib.mjs` | o |
 | Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`), `docs/evidence/2026-09-21-v1-0/kich-ban/` (`v1-dang-nhap.mjs`, `v1-xac-nhan-png.mjs`, `v1-nguoi-phu-trach.mjs`) | o |
 | Cập nhật sổ dữ liệu | `docs/data-dictionary.json` → `npm run dict` | d |
+| Đổi bước của lệnh đẩy (`npm run day-len`) / triển khai (`npm run trien-khai`) chủ dự án tự gõ | `scripts/release-lib.mjs` (+ `src/release-lib.test.ts`), `scripts/day-len.mjs`, `scripts/trien-khai.mjs`, `scripts/release-shell.mjs` | s |
 
 ## 2. Các công thức
 
@@ -513,6 +514,24 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Kiểm:** `node --test src/modules/auth/webauthn.test.ts src/modules/auth/cbor.test.ts src/modules/auth/challenge.test.ts src/shared/passkey-error.test.ts` (nếu có) → `npm test` → `npm run typecheck` → `npm run test:e2e -- passkey platform admin turnstile maintenance` (đủ bộ kịch bản chạm tới) → kịch bản Chrome `docs/evidence/2026-09-23-passkey/kich-ban/passkey-smoke.mjs` (authenticator ảo qua CDP, miền WebAuthn — không cần thiết bị thật) → thử tay trên iPhone thật trước khi coi là xong (lát 0 đã ĐI, `docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md`).
 
+### s. Lệnh đẩy / triển khai chủ dự án tự gõ (`npm run day-len`, `npm run trien-khai`)
+
+Đặc tả: `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`; bảng từng bước: `docs/HANDOFF-N1.md` mục "Đẩy lên GitHub và triển khai: HAI LỆNH".
+
+**Chỗ mã:**
+1. **Logic thuần** `scripts/release-lib.mjs`: `dayLen`, `trienKhai` (trả mã thoát), `parsePendingMigrations` (đọc `migrations list --remote`), `parseBookmark` (Time Travel `--json`), `parseVersionId` (`Current Version ID:` của deploy), `isSafeBranchName`. Nhận `run(cmd, args, { env, stream, tee })`, `ask`, `isTTY`, `log` tiêm vào — KHÔNG tự import `child_process`.
+2. **Vỏ mỏng** `scripts/release-shell.mjs` (bộ chạy thật: `spawnSync`, riêng `tee` dùng `spawn` để vừa hiện vừa bắt đầu ra; `isTTY` = stdin VÀ stdout là terminal; mỗi câu hỏi một `readline` riêng) + `scripts/day-len.mjs`, `scripts/trien-khai.mjs` (chỉ đọc tham số rồi gọi lib). `package.json` khai `day-len`, `trien-khai`.
+3. **Hàng rào**: luật `release-owner-only` ở `.claude/hooks/guard-remote-lib.mjs` + 8 mục `deny` ở `.claude/settings.json` (đổi hai tệp này là đổi luật: chỉ được siết, chủ duyệt — `CLAUDE.md` §3).
+
+**Bẫy:**
+- **Đổi thứ tự/thêm lệnh thì sửa test TRƯỚC:** test so khớp NGUYÊN danh sách lệnh theo thứ tự, và bộ chạy giả ném lỗi khi gặp lệnh lạ. Mọi đường từ chối phải khẳng định không có `git push` / `migrations apply` / `wrangler deploy` / `--force` (`assertNothingDangerous`).
+- **Không test nào được chạy `scripts/day-len.mjs`/`trien-khai.mjs` thật:** `day-len` gọi `npm test` bên trong — test gọi lồng lệnh đẩy sẽ đẩy thật.
+- **Nâng wrangler:** `parsePendingMigrations` dựa vào hai câu "No migrations to apply" / "Migrations to be applied:" + tên `NNNN_*.sql`. Đổi định dạng thì lệnh DỪNG (không đoán) — chụp lại đầu ra thật bằng `CI=1 npx wrangler d1 migrations list tourdao-sales-db --local --persist-to <thư mục tạm>` vào `src/release-lib.fixtures/` rồi sửa hàm.
+- **Không thêm bước tự hoàn tác** (`git reset`, `wrangler rollback`, `time-travel restore`): lệnh chỉ IN lệnh hoàn tác để chủ tự quyết.
+- Hook chỉ chặn nhầm/quên: đường dẫn trong dấu nháy (`node "scripts/day-len.mjs"`) không bị bắt, như mọi luật khác của hook. Lớp hai là tự từ chối ngoài TTY.
+
+**Kiểm:** `node --test src/release-lib.test.ts` → `node --test src/claude-guard.test.ts` (nếu đổi hàng rào) → `npm test` → `npm run typecheck`. Thử thật chỉ được dạng tự từ chối: `node scripts/day-len.mjs` ngoài TTY (TRƯỚC khi có hook; nay hook chặn cả dạng này) phải thoát 1 và không gọi git (`GIT_TRACE=1` rỗng).
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
@@ -531,7 +550,9 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 | `web/api.ts` (bắt 503 `maintenance`), `web/maintenance-screen.ts`, `web/login.ts` (banner), `web/shell.ts` (dải), `web/account.ts` (nút bật/tắt), `public/account.html`, `public/login.html` | `npm run typecheck` (`tsc -p web`) → `npm run build:web` → `npm run test:e2e -- pwa` (CSS chỉ token) → Chrome `v1-dang-nhap.mjs` (chạm `web/login.ts`/`public/login.html`) + `v1-bao-tri.mjs`; `web/api.ts` dùng ở MỌI trang nên thử tay ít nhất `/` và `/account` khi đang bảo trì |
 | `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật; cần `.dev.vars` có đủ tên bí mật, xem công thức l) → `npm run typecheck` → `npm run test:e2e` |
 | `docs/data-dictionary.json` | `npm run dict` → `npm test` (bài kiểm bắt `DATA-DICTIONARY.md` lệch bản sinh) |
-| `scripts/*.mjs` | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
+| `scripts/release-lib.mjs`, `scripts/release-shell.mjs`, `scripts/day-len.mjs`, `scripts/trien-khai.mjs` | `node --test src/release-lib.test.ts` → `npm test` → `npm run typecheck`; KHÔNG chạy thử hai lệnh thật (chúng đẩy/deploy thật; hook chặn AI) — xem công thức s |
+| `.claude/hooks/guard-remote-lib.mjs`, `.claude/settings.json` | `node --test src/claude-guard.test.ts` (gồm kho ca `src/claude-guard.cases.json`); hàng rào mới phải được quan sát chặn thật một lần (sửa cố ý → đỏ → hoàn nguyên) |
+| `scripts/*.mjs` (còn lại) | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |
 
 **Thời gian ước lượng** (máy dev, đo 2026-09-21):
@@ -584,7 +605,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 4. `git status`: không có `public/js/`, `public/sw.js`, `.dev.vars`, `*.local.sql`, `*.local.txt`; không khoá/bí mật; chuỗi hiển thị tiếng Việt có dấu; không `innerHTML`.
 5. Thông điệp commit tiếng Việt: tiêu đề nói việc, thân nói VÌ SAO; thêm dòng đồng tác giả theo yêu cầu của môi trường.
 
-**Trước khi deploy** (CHỈ khi chủ dự án ra lệnh trong phiên đó; chi tiết `docs/HANDOFF-N1.md`):
+**Trước khi deploy** (CHỈ khi chủ dự án ra lệnh trong phiên đó; chi tiết `docs/HANDOFF-N1.md`). Từ 2026-09-23 các bước 1, 3 (áp + deploy) và `audit-invariants` của bước 4 do lệnh `npm run trien-khai` làm — chủ tự gõ trong Terminal, AI không chạy (công thức s); e2e và kiểm riêng của từng lần phát hành vẫn làm tay:
 1. Cổng chỉ-đọc trên D1 remote (kỳ vọng 0 dòng) + ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".
