@@ -11,7 +11,9 @@
     "build:web": "BUILD_ID=$(date +%Y%m%d%H%M%S); esbuild web/login.ts web/orders.ts web/order-form.ts web/order.ts web/audit.ts web/staff.ts web/account.ts web/catalog.ts web/parties.ts web/locations.ts web/feedback.ts web/home.ts web/help.ts --bundle --format=esm --target=es2022 --minify --define:__BUILD_ID__=\\\"$BUILD_ID\\\" --outdir=public/js && esbuild web/sw/sw.ts --bundle --format=iife --target=es2022 --minify --define:__BUILD_ID__=\\\"$BUILD_ID\\\" --outfile=public/sw.js",
     "test": "node --test \"src/**/*.test.ts\"",
     "test:e2e": "node tests/e2e/run.mjs",
-    "dict": "node scripts/gen-data-dictionary.mjs"
+    "dict": "node scripts/gen-data-dictionary.mjs",
+    "day-len": "node scripts/day-len.mjs",
+    "trien-khai": "node scripts/trien-khai.mjs"
   },
   "devDependencies": {
     "esbuild": "^0.28.2",

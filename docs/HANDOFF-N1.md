@@ -2,9 +2,26 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## CHỜ TRIỂN KHAI — Đăng nhập nhanh bằng Face ID / passkey (ADR-0016, accepted 2026-09-23)
+## TRẠNG THÁI TRIỂN KHAI — Đăng nhập bằng Face ID (ADR-0016 lát 1) ĐÃ LÊN PRODUCTION (2026-09-23 19:48 giờ VN, chủ dự án tự chạy `npm run trien-khai`)
 
-**CHƯA merge vào `main`, CHƯA triển khai.** Đang ở nhánh thi công (`worktree-thi-cong-passkey`), migration `migrations/0023_auth_passkey.sql` (chỉ THÊM bảng `aut_passkey`) + mã module `auth`/`accounts` (10 route mới, xem `docs/SYSTEM-DESIGN.md` §7) + giao diện (`web/passkey.ts`, `web/login.ts`, `web/account.ts`, `web/staff.ts`). Đặc tả: `docs/superpowers/specs/2026-09-23-passkey-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-23-passkey.md`. Đối chiếu 2026-09-23 (chỉ đọc, `wrangler d1 migrations list tourdao-sales-db --remote`): `0023_auth_passkey.sql` là migration DUY NHẤT chưa áp — mọi migration khác (`0015`…`0022`, KHÔNG có `0019`) đều đã lên production.
+Chủ chạy lệnh ở ứng dụng Terminal. Khối tóm tắt lệnh in ra không hiện trên màn hình của chủ, nên các dòng dưới đây do AI **kiểm lại bằng lệnh chỉ đọc** lúc 2026-09-23, khoảng 20:00 giờ VN.
+
+- **Mã trên `main` / GitHub:** `origin/main` = 854187f (Face ID + hai lệnh `day-len`/`trien-khai`), đẩy bằng `npm run day-len`.
+- **Migration:** `wrangler d1 migrations list tourdao-sales-db --remote` báo "No migrations to apply", tức `0023_auth_passkey.sql` đã áp.
+- **Worker:** `wrangler deployments list` cho bản mới nhất là **e86521ba-9d8d-43ef-acf5-a95df037cd6f**, tạo 2026-09-23T12:48:33Z. Bản ngay trước (mốc lùi): **0dbc79f0-8cdb-4955-b46f-6c38de598355**.
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` cho kết quả "Mọi bất biến đạt (D1 remote)", 17 mục, gồm R-AUT-1.
+- **e2e trước khi deploy:** 16/17. Kịch bản `catalog` đỏ vì giá TTB03 trên Google Sheet đã đổi thành 1.300.000; chủ chọn tiếp tục. Test đó cần sửa số kỳ vọng.
+- **GET công khai:**
+  - `GET /api/auth/config` trả `passkey: true`;
+  - `/login` trả 200 và có nút `#passkey-login` (ẩn sẵn, chỉ hiện trên máy hỗ trợ).
+- **Chế độ bảo trì đang BẬT:** `GET /api/auth/config` trả `maintenance.on = true`, hết hạn 2026-09-24T06:59Z (13:59 giờ VN). Việc bật do chủ làm, không do lệnh triển khai. Lệnh `trien-khai` không đụng tới chế độ bảo trì.
+- **Điểm khôi phục Time Travel:** lệnh đã in nhưng chủ không thấy. Lấy lại bằng `wrangler d1 time-travel info tourdao-sales-db --timestamp=2026-09-23T12:45:00Z` (chỉ đọc).
+- **Lỗi hiển thị của `npm run trien-khai` (cần điều tra):** sau câu hỏi e2e, chủ không thấy thêm dòng nào, nhưng lệnh vẫn chạy hết (áp migration, deploy, kiểm dữ liệu). Nghi vấn: bộ e2e chạy `wrangler dev` với stdin kế thừa, nên để terminal ở trạng thái lạ. Chưa kiểm. Tạm thời, sau khi chạy luôn kiểm lại bằng các lệnh chỉ đọc ở trên.
+- **Chưa kiểm:** đăng nhập bằng Face ID trên iPhone thật ở production. Đây là việc của chủ, khi bảo trì tắt hoặc với SĐT được phép.
+
+### Lịch sử: CHỜ TRIỂN KHAI (trước 2026-09-23 19:48)
+
+**(Lúc viết đoạn này:) CHƯA merge vào `main`, CHƯA triển khai.** Đang ở nhánh thi công (`worktree-thi-cong-passkey`), migration `migrations/0023_auth_passkey.sql` (chỉ THÊM bảng `aut_passkey`) + mã module `auth`/`accounts` (10 route mới, xem `docs/SYSTEM-DESIGN.md` §7) + giao diện (`web/passkey.ts`, `web/login.ts`, `web/account.ts`, `web/staff.ts`). Đặc tả: `docs/superpowers/specs/2026-09-23-passkey-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-23-passkey.md`. Đối chiếu 2026-09-23 (chỉ đọc, `wrangler d1 migrations list tourdao-sales-db --remote`): `0023_auth_passkey.sql` là migration DUY NHẤT chưa áp — mọi migration khác (`0015`…`0022`, KHÔNG có `0019`) đều đã lên production.
 
 - **"8b" (ngưng tài khoản thì gỡ Face ID) ĐÃ LÀM trên nhánh này (2026-09-23, chủ chọn A-4 phương án 1: gỡ trong CÙNG lô ghi).** `PATCH /api/staff/:id` với `active: false` gỡ mọi Face ID của tài khoản bị ngưng trong CÙNG `db.batch()` với câu ngưng: ba câu nối CUỐI batch — gỡ CÓ ĐIỀU KIỆN (chỉ khi tài khoản đang ngưng, đọc qua view `v_stf_staff_label`; câu chốt "còn quản trị viên khác" thua thì không gỡ gì), đẩy `credentials_changed_at` (thu hồi phiên cũ), nhật ký `passkey_removed` "gỡ khi ngưng tài khoản". Kích hoạt lại tài khoản KHÔNG làm Face ID cũ sống lại (e2e `passkey.mjs` bước 13 khẳng định). Bất biến `R-AUT-1` ("không có Face ID còn hiệu lực của tài khoản đã ngưng") vì thế luôn giữ trên đường API; sau khi triển khai, `audit-invariants --db remote` phải XANH HOÀN TOÀN, kể cả `R-AUT-1` — đỏ là lỗi thật, không có ngoại lệ. **Vẫn CHƯA triển khai:** 8b cần kiểm độc lập và gộp cùng nhánh này trước khi đi runbook `0023` bên dưới.
 - **Lát 2 (đăng nhập bằng Google) CHƯA lập kế hoạch:** mô phỏng chuyển hướng qua tên miền khác ở lát 0 chưa có kết quả (`docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md` mục "Mô phỏng Google") — phải thử lại trước khi lập kế hoạch lát 2.
@@ -92,10 +109,43 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 - e2e 13 kịch bản (thêm `company`, `turnstile`, `dispatch` so với 10 của lần phát hành 1); đo lại 2026-09-21 tại `84a0de5`: 13/13 xanh + `audit-invariants --strict` 15 kiểm, `npm test` 363/363, `npm run typecheck` 0 lỗi.
 - Kịch bản Chrome v1.0 (ngoài CI, bằng chứng ở `docs/evidence/2026-09-21-v1-0/`): `v1-dang-nhap.mjs` 15 ✓, `v1-xac-nhan-png.mjs` 11 ✓, `v1-nguoi-phu-trach.mjs` 12 ✓ — đo bằng Chrome headless và khoá Turnstile THỬ, không phải iPhone thật, không phải khoá thật; chữ ký thị giác của chủ dự án CHƯA có.
 
+## Đẩy lên GitHub và triển khai: HAI LỆNH chủ dự án tự gõ (từ 2026-09-23)
+
+Đặc tả: `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`. Logic + test: `scripts/release-lib.mjs`, `src/release-lib.test.ts`. **AI không được chạy hai lệnh này** (`CLAUDE.md` §8; hook `guard-remote` và `permissions.deny` chặn); chính hai kịch bản cũng **tự từ chối khi không có terminal thật (TTY)**. **Chủ PHẢI chạy cả hai lệnh trong ứng dụng Terminal của macOS** (terminal thật, có TTY; không qua AI, kể cả dạng gõ `! …` trong phiên Claude Code — lời báo chặn của hook cũng nói vậy), đứng ở **thư mục gốc repo, checkout `main`**.
+
+**Đẩy — `npm run day-len -- <nhánh>`** (bỏ `-- <nhánh>` nếu `main` đã chứa sẵn thứ cần đẩy). Bước nào hỏng thì in lý do tiếng Việt, thoát khác 0 và KHÔNG đẩy:
+
+| Bước | Lệnh làm | Dừng khi |
+|---|---|---|
+| 1 | kiểm TTY | không phải terminal thật |
+| 2 | `git rev-parse --abbrev-ref HEAD`, `git status --porcelain` | không ở `main`; còn thay đổi chưa commit |
+| 3 | `git fetch origin`, `git merge-base --is-ancestor origin/main main` | GitHub có commit mà `main` cục bộ chưa có (có người đẩy thứ khác) |
+| 4 | (nếu có nhánh) `git merge-base --is-ancestor main <nhánh>`, `git rev-parse main` (ghi mã cũ), `git merge --ff-only <nhánh>` | nhánh không tiến thẳng được — KHÔNG bao giờ tạo merge commit, KHÔNG `--force`; không đọc được mã cũ của `main` (để luôn in được lệnh quay lại) |
+| 5 | `npm test`, `npm run typecheck` | đỏ — nếu đã gộp ở bước 4 thì in `git reset --hard <mã cũ>` để chủ TỰ chạy nếu muốn (lệnh không tự chạy) |
+| 6 | in số commit + danh sách `origin/main..main` + **migration mới** so với `origin/main` | một trong ba lệnh git đọc (`rev-list --count`, `log`, `diff … migrations/`) lỗi hoặc trả kết quả lạ — không bao giờ đoán "không có gì để đẩy"/"không có migration mới" (có migration mới thì in cảnh báo: lần triển khai tới PHẢI áp chúng trước, dùng `npm run trien-khai`) |
+| 7 | hỏi "Đẩy lên GitHub? (c/k)" | trả lời khác đúng `c` |
+| 8 | `git push origin main`, rồi in `git log -1 origin/main` | push lỗi |
+
+**Triển khai — `npm run trien-khai`** (thay các bước tay "cổng chỉ-đọc → Time Travel → test/typecheck → áp migration → deploy NGAY → audit → ghi trạng thái" của các runbook bên dưới). Bước nào hỏng thì dừng, thoát khác 0; không đụng `wrangler secret`, không rollback tự động:
+
+| Bước | Lệnh làm | Dừng khi |
+|---|---|---|
+| 1 | kiểm TTY, `main`, cây sạch, `git fetch origin`, `main` == `origin/main` | chỉ triển khai mã ĐÃ đẩy lên GitHub |
+| 2 | cổng chỉ-đọc `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` | lệnh lỗi, hoặc đầu ra không đọc được (không đoán) |
+| 3 | `npm test`, `npm run typecheck`, `npm run build:web` | đỏ |
+| 3b | `npm run test:e2e` ĐỦ BỘ (cần mạng, vài phút; đuôi `audit-invariants --strict` trên D1 tạm) | e2e đỏ → in tên kịch bản đỏ và hỏi "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)"; khác đúng `c` → dừng, không ghi gì lên remote. Dùng khi kịch bản đỏ vì lý do ngoài mã (vd `catalog` đỏ vì giá trên Google Sheet thật vừa đổi) — chủ phán; khối tóm tắt ghi rõ "e2e: ĐỎ (chủ chọn tiếp tục)" |
+| 4 | (nếu còn migration chưa áp) in danh sách; `wrangler d1 time-travel info tourdao-sales-db --json` → in điểm khôi phục + lệnh khôi phục; hỏi "Áp N migration này lên production? (c/k)"; `c` → `CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote` | không lấy được điểm khôi phục; trả lời khác `c` (không áp, không deploy); áp lỗi (KHÔNG deploy) |
+| 5 | hỏi "Triển khai Worker lên production? (c/k)" (vừa áp migration thì câu hỏi ghi "PHẢI deploy ngay") | trả lời khác `c` — nếu đã áp migration thì in cảnh báo ĐỎ kèm lệnh deploy để tự chạy ngay |
+| 6 | `CI=1 npx wrangler deploy` | deploy lỗi (không chạy bước 7) |
+| 7 | `node scripts/audit-invariants.mjs --db remote` | báo ĐẠT / KHÔNG ĐẠT (mã 1) / KHÔNG CHẠY ĐƯỢC (mã 2 — không phải dữ liệu sạch); khác ĐẠT thì thoát khác 0 |
+| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, dòng `e2e: xanh` hoặc `e2e: ĐỎ (chủ chọn tiếp tục): <tên kịch bản>`, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp |
+
+**Lệnh này KHÔNG làm thay** (vẫn làm tay TRƯỚC khi gõ `npm run trien-khai`, theo runbook của từng lần phát hành): các kịch bản Chrome khi chạm giao diện (e2e API thì lệnh ĐÃ chạy ở bước 3b), và các kiểm riêng của từng lần phát hành (ví dụ `GET /api/auth/config` sau deploy Face ID). **Giả định về wrangler:** đầu ra của `migrations list` được đọc theo định dạng của wrangler 4.135.0 (dòng "No migrations to apply" hoặc "Migrations to be applied:" + bảng tên tệp); nâng wrangler mà định dạng đổi thì lệnh DỪNG (an toàn), cần sửa `parsePendingMigrations` + mẫu ở `src/release-lib.fixtures/`. `migrations list --remote` của wrangler gọi `CREATE TABLE IF NOT EXISTS d1_migrations` trước khi đọc — trên production bảng đã có nên thực tế không ghi gì.
+
 ## Mọi lần phát hành: bước A.0 — nhật ký thay đổi (từ 2026-09-23)
 
 Trước bước "A. Trước khi deploy" của MỌI runbook:
-1. AI thêm mục mới vào đầu `CHANGELOG` (`src/shared/changelog.ts`) theo công thức "Ghi nhật ký thay đổi" ở `docs/CHANGE-GUIDE.md`, commit cùng nhánh sẽ deploy. Chủ đọc lướt mục này khi duyệt phát hành.
+1. AI thêm mục mới vào đầu `CHANGELOG` (`src/shared/changelog.ts`) theo công thức t "Ghi nhật ký thay đổi" ở `docs/CHANGE-GUIDE.md`, commit cùng nhánh sẽ deploy. Chủ đọc lướt mục này khi duyệt phát hành.
 2. `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0).
 Sau `CI=1 npx wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. Mục "TRẠNG THÁI TRIỂN KHAI" ghi thêm "Phiên bản X".
 
@@ -251,6 +301,8 @@ Chủ dự án quyết và TỰ CHẠY các lệnh ghi lên remote (`wrangler d1
 **Cấu hình mới, KHÔNG có bí mật mới:** `PASSKEY_RP_ID` = `booking.tourdao.vn`, `PASSKEY_ORIGIN` = `https://booking.tourdao.vn` — cả hai đã có sẵn trong `wrangler.jsonc` (`vars`, đi CÙNG mã khi deploy, không cần `wrangler secret put` riêng, khác Turnstile). Thiếu tính năng nào phía nhân viên trước khi deploy hoàn tất: nút Face ID không hiện (an toàn, không lỗi).
 
 **Điều kiện tiên quyết:** commit sẽ deploy là `main` ĐÃ GỘP nhánh này, gồm cả "8b" (ngưng tài khoản gỡ Face ID trong cùng lô ghi, chủ chọn A-4 phương án 1 — đã làm trên nhánh, cần qua kiểm độc lập trước khi gộp).
+
+**Cách chạy (từ 2026-09-23, trong ứng dụng Terminal của macOS):** sau khi làm tay kịch bản Chrome ở A.3 (e2e đủ bộ thì `npm run trien-khai` tự chạy), gộp và đẩy bằng `npm run day-len -- worktree-thi-cong-passkey` (bảng tóm tắt sẽ liệt kê `0023_auth_passkey.sql` là migration mới), rồi triển khai bằng `npm run trien-khai` — lệnh làm thay A.1, A.2, B.1, phần `audit-invariants` của B.2 và in khối cho B.4 (xem mục "Đẩy lên GitHub và triển khai: HAI LỆNH" ở trên). **Lệnh tự chặn nếu `0023` chưa áp:** nó đọc `migrations list --remote`, thấy `0023` còn chờ thì hỏi áp TRƯỚC khi hỏi deploy; trả lời `k` là không deploy; áp lỗi là không deploy. Chỉ trường hợp đã áp rồi mà trả lời `k` ở câu deploy thì lệnh in cảnh báo đỏ kèm lệnh deploy — khi đó phải deploy NGAY. Các bước A/B dưới đây giữ làm bảng giải thích.
 
 **A. TRƯỚC khi áp (chỉ đọc)**
 1. Cổng chỉ-đọc: `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` (nhìn TÊN). Kỳ vọng CHỈ thấy `0023_auth_passkey.sql` là migration chưa áp (đối chiếu 2026-09-23: đúng như vậy — mọi migration khác đã lên production, `0019` cố ý bỏ trống chờ B5). **B5 (`staff_party_required`) KHÔNG được có mặt trong `migrations/` ở lần phát hành này.**

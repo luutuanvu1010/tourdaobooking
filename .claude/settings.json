@@ -10,7 +10,15 @@
       "Bash(npx wrangler secret *)",
       "Bash(wrangler rollback *)",
       "Bash(npx wrangler rollback *)",
-      "Bash(npm run db:migrate:remote)"
+      "Bash(npm run db:migrate:remote)",
+      "Bash(npm run day-len)",
+      "Bash(npm run day-len *)",
+      "Bash(npm run trien-khai)",
+      "Bash(npm run trien-khai *)",
+      "Bash(node scripts/day-len.mjs)",
+      "Bash(node scripts/day-len.mjs *)",
+      "Bash(node scripts/trien-khai.mjs)",
+      "Bash(node scripts/trien-khai.mjs *)"
     ],
     "ask": [
       "Edit(CLAUDE.md)",

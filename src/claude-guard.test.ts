@@ -79,6 +79,65 @@ test("guard-remote: lệnh thường ngày và heredoc/thông điệp nhắc chu
   for (const cmd of MUST_ALLOW) assert.equal(evaluateBash(cmd, { branch: "worktree-x" }).deny, false, `phải CHO QUA: ${cmd}`);
 });
 
+// Hai lệnh chủ dự án tự gõ (đặc tả docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md, tiêu chí 6): AI không được chạy dưới mọi dạng hook nhận diện.
+const RELEASE_MUST_DENY = [
+  "npm run day-len",
+  "npm run day-len -- worktree-thi-cong-passkey",
+  "npm run trien-khai",
+  "npm run -s trien-khai",
+  "npm run-script day-len",
+  "npm --prefix /repo run trien-khai",
+  "CI=1 npm run trien-khai",
+  "pnpm day-len",
+  "yarn trien-khai",
+  "bun run day-len",
+  "node scripts/day-len.mjs",
+  "node scripts/trien-khai.mjs",
+  "node ./scripts/day-len.mjs worktree-x",
+  "node --no-warnings scripts/trien-khai.mjs",
+  "node /Users/x/tourdao-sales/scripts/trien-khai.mjs",
+  "./scripts/day-len.mjs",
+  "cd /repo && ./scripts/trien-khai.mjs",
+  "npm test && npm run day-len",
+  "cd /repo && npm run trien-khai",
+  'bash -c "npm run day-len"',
+  "echo $(node scripts/trien-khai.mjs)",
+  "echo `npm run trien-khai`",
+];
+const RELEASE_MUST_ALLOW = [
+  "git add scripts/day-len.mjs scripts/trien-khai.mjs scripts/release-lib.mjs",
+  "cat scripts/day-len.mjs",
+  "ls -la scripts/trien-khai.mjs",
+  "sed -n 1,40p scripts/release-lib.mjs",
+  'grep -n "npm run day-len" docs/HANDOFF-N1.md',
+  'git commit -m "thêm npm run trien-khai và node scripts/day-len.mjs"',
+  "cat > docs/x.md <<'EOF'\nChủ chạy npm run trien-khai rồi node scripts/day-len.mjs\nEOF",
+  "node --test src/release-lib.test.ts",
+  "npm test",
+  "npm run typecheck",
+  "npm run build:web",
+  "node scripts/audit-invariants.mjs --db local",
+  "git log --oneline -- scripts/day-len.mjs",
+];
+
+test("guard-remote: chặn AI chạy `npm run day-len`/`trien-khai` và `node scripts/day-len.mjs`/`trien-khai.mjs` (tiêu chí 6)", () => {
+  for (const cmd of RELEASE_MUST_DENY) {
+    const v = evaluateBash(cmd, { branch: "worktree-x" });
+    assert.equal(v.deny, true, `phải CHẶN: ${cmd}`);
+    if (v.deny) {
+      assert.equal(v.rule, "release-owner-only", `sai luật: ${cmd}`);
+      assert.match(v.reason, /CLAUDE\.md/);
+      // Hai lệnh cần TTY thật: lý do phải chỉ chủ sang ứng dụng Terminal của macOS, KHÔNG gợi ý `! <lệnh>` như các luật khác.
+      assert.match(v.reason, /ứng dụng Terminal/, `lý do phải chỉ sang Terminal: ${cmd}`);
+      assert.doesNotMatch(v.reason, /`! <lệnh>`/, `lý do không được gợi ý \`! <lệnh>\`: ${cmd}`);
+    }
+  }
+});
+
+test("guard-remote: đọc/sửa/commit/test hai kịch bản đẩy/triển khai vẫn cho qua (chặn nhầm là lỗi)", () => {
+  for (const cmd of RELEASE_MUST_ALLOW) assert.equal(evaluateBash(cmd, { branch: "worktree-x" }).deny, false, `phải CHO QUA: ${cmd}`);
+});
+
 test("guard-remote: git merge chỉ bị chặn ở main/master, khi không rõ nhánh, hoặc khi đổi thư mục/nhánh ngay trước đó", () => {
   assert.equal(evaluateBash("git merge worktree-x", { branch: "main" }).deny, true);
   assert.equal(evaluateBash("git merge worktree-x", { branch: null }).deny, true);
@@ -127,6 +186,17 @@ test("settings.json: khai móc PreToolUse cho Bash và luật deny (lớp hai, P
   assert.ok(hooks.some((h: { command: string }) => h.command.includes(".claude/hooks/guard-remote.mjs")), "thiếu móc guard-remote cho matcher Bash");
   const deny: string[] = s.permissions?.deny ?? [];
   for (const rule of ["Bash(git push)", "Bash(git push *)", "Bash(wrangler deploy *)", "Bash(wrangler secret *)"]) assert.ok(deny.includes(rule), `thiếu luật deny: ${rule}`);
+  for (const cmd of ["npm run day-len", "npm run trien-khai", "node scripts/day-len.mjs", "node scripts/trien-khai.mjs"]) {
+    for (const rule of [`Bash(${cmd})`, `Bash(${cmd} *)`]) assert.ok(deny.includes(rule), `thiếu luật deny: ${rule}`);
+  }
+});
+
+test("guard-remote: script móc thật trả deny cho `npm run day-len` và `node scripts/trien-khai.mjs`", () => {
+  for (const command of ["npm run day-len", "node scripts/trien-khai.mjs"]) {
+    const r = spawnSync("node", [".claude/hooks/guard-remote.mjs"], { cwd: ROOT, input: JSON.stringify({ tool_name: "Bash", tool_input: { command }, cwd: ROOT }), encoding: "utf8" });
+    assert.equal(r.status, 0);
+    assert.equal(JSON.parse(r.stdout || "{}").hookSpecificOutput?.permissionDecision, "deny", `móc phải chặn: ${command}`);
+  }
 });
 
 test(".gitignore: settings và móc phải được commit (không còn bỏ qua cả thư mục .claude/)", () => {

@@ -1,0 +1,8 @@
+
+ ⛅️ wrangler 4.135.0 (update available [32m4.136.3[39m)
+[38;2;255;136;0m───────────────────────────────────────────────[39m
+[38;2;189;91;8m[1mResource location:[22m[39m local 
+
+Use --remote if you want to access the remote instance.
+
+✅ No migrations to apply!
