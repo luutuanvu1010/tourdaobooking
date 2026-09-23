@@ -1,6 +1,6 @@
 # Trang Trợ giúp + Nhật ký thay đổi (Changelog): đặc tả
 
-**Trạng thái:** CHỜ CHỦ DUYỆT bản viết. Thiết kế tóm tắt đã được chủ đồng ý trong trò chuyện ngày 2026-09-23.
+**Trạng thái:** **ĐÃ DUYỆT** (chủ dự án 2026-09-23, "duyệt" bản viết). Dòng đề xuất cho `CLAUDE.md` ở §5 vẫn chỉ là đề xuất: chủ duyệt bản sửa cụ thể mới có hiệu lực (N9).
 
 **Việc lớn?** Có, vì chạm **triển khai** (thêm bước vào quy trình phát hành) và **luật** (đề xuất thêm một dòng vào `CLAUDE.md`). Không chạm dữ liệu, quyền hay tiền. Thi công xong phải có người kiểm độc lập, chỉ đọc (CLAUDE.md §3).
 
