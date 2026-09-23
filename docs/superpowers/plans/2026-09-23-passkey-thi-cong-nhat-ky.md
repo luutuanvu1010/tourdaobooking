@@ -132,3 +132,16 @@ Lưu ý: `audit-invariants` xanh trên D1 tạm của e2e **không** có nghĩa 
 Chưa kiểm:
 - trạng thái production (người kiểm không chạy lệnh remote);
 - iPhone thật với bản đầy đủ, vì lát 0 mới chỉ thử trang thử riêng.
+
+## Kiểm độc lập vòng 2 (vai `nguoi-kiem-doc-lap`, HEAD e2b0398): ĐẠT
+
+Phạm vi: 8b (a1be8c1, 58ef2e0), áp đề xuất CLAUDE.md (3bd870e), đặt PIN bằng Face ID gỡ khoá sai PIN (a31622a), test/nhật ký (27a1db6, e2b0398).
+
+- Tự chạy: `npm test` 545/545; typecheck sạch; `claude-guard` 8/8; `test:e2e` đủ bộ 16/17 (chỉ `catalog` đỏ vì giá Google Sheet đổi); đuôi audit-invariants xanh, kể cả R-AUT-1.
+- Tự phá trên bản sao: bỏ điều kiện EXISTS → ca 8b(c) đỏ; bỏ `unlockPhone` → e2e bước 16 đỏ (429). Đổi view thành đọc thẳng `staff` → architecture test VẪN xanh (lỗ hổng miễn trừ khoá ngoại cha, đã ghi ở CHANGE-GUIDE r; dựa vào kỷ luật).
+- Nội dung áp vào CLAUDE.md/src/CLAUDE.md khớp nguyên văn 4 ý đã duyệt.
+
+Việc cần chủ quyết (không chặn gộp):
+1. **Hàng rào tự-sửa-luật có lỗ:** `ask Edit(CLAUDE.md)` chỉ bắt công cụ Edit; ghi tệp luật qua Bash (python/sed/redirect) không bị hỏi. Lần áp 3bd870e đã đi qua lỗ này (nội dung đúng cái chủ duyệt). Đề xuất: hook `guard-remote-lib.mjs` trả "ask"/"deny" khi Bash ghi vào CLAUDE.md, src/CLAUDE.md, web/CLAUDE.md, .claude/**, playbook/**, docs/adr/**; thêm ca vào `src/claude-guard.test.ts`; quan sát chặn thật một lần (P16).
+2. **ARCHITECTURE.md quy tắc 4** ("đọc xuyên module chỉ để lấy nhãn hiển thị") lệch với tiền lệ đã có (feedback/repository.ts:167, orders/repository.ts:488) và câu SQL 8b (dùng cờ `active` làm điều kiện ghi). Đề xuất câu chữ: "chỉ để lấy nhãn hiển thị **hoặc làm điều kiện ghi trên bảng của chính module** (vd. cờ `active`), và chỉ qua view công bố …".
+3. (Nhỏ) Siết bài kiểm EXPLAIN để bắt đọc thẳng bảng cha khoá ngoại khi câu không ghi cột khoá ngoại.
