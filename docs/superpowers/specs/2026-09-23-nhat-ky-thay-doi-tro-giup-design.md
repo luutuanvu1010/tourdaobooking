@@ -137,3 +137,11 @@ Lời từng gạch do AI soạn, chủ duyệt khi duyệt kế hoạch (danh s
 - **Ranh giới bản 1.1/1.2 trong lịch sử** dựa trên sổ HANDOFF và thời điểm deploy; có thể xếp lệch một tính năng sang ngày bên cạnh. Chấp nhận được vì là lịch sử cho người dùng đọc, chủ sửa khi duyệt kế hoạch.
 - Việc Hướng dẫn viên sửa/huỷ đơn (ADR-0014 Phase A+B) đã lên production theo bộ nhớ phiên trước và việc production không còn migration chờ (0020–0022 đã áp); sổ HANDOFF còn ghi "CHỜ TRIỂN KHAI" cho Phase A. Lúc thi công kiểm lại bằng GET/lệnh chỉ đọc trước khi ghi vào 1.1.
 - Danh sách từ cấm có thể chặn nhầm một câu hợp lý; khi đó sửa câu, không nới danh sách trừ khi chủ đồng ý.
+
+## Phụ lục 2026-09-23: cổng số phiên bản trong lệnh triển khai (chủ quyết)
+
+Chủ quyết "Gắn lệnh kiểm phiên bản vào trien-khai". Thân đặc tả ở trên giữ nguyên. Từ nay `npm run trien-khai` tự chạy hai cổng:
+- **Cổng trước**, ngay sau bước đọc migration chưa áp: `node scripts/kiem-phien-ban.mjs`. Mã 1 thì hỏi (c/k), chỉ đúng `c` mới đi tiếp. Mã khác 0 và 1 thì dừng.
+- **Cổng sau**, sau bước kiểm dữ liệu: `node scripts/kiem-phien-ban.mjs --sau-deploy`. Hỏng thì chờ rồi thử lại một lần, kết quả ghi vào khối tóm tắt.
+
+Deploy tay ngoài lệnh này thì việc chạy hai cổng vẫn **dựa vào kỷ luật**. Chi tiết: phụ lục cuối `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`.

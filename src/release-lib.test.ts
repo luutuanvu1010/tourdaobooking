@@ -557,3 +557,34 @@ test("trien-khai (cổng sau): audit KHÔNG ĐẠT mà cổng sau ĐẠT → v�
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: fakeSleep().sleep }), 1);
   assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST]);
 });
+
+test("trien-khai (cổng sau): bộ chạy NÉM LỖI ở cổng sau → vẫn in đủ tóm tắt, ghi KHÔNG CHẠY ĐƯỢC, thoát 1", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+  const run = h.deps.run;
+  h.deps.run = (cmd, args, opts) => {
+    if (key(cmd, args, opts) === GATE_POST) throw new Error("bộ chạy hỏng giả");
+    return run(cmd, args, opts);
+  };
+  const s = fakeSleep();
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: s.sleep, version: "1.4" }), 1);
+  assert.equal(s.waits.length, 1, "vẫn chờ rồi thử lại một lần");
+  const t = h.text();
+  assert.ok(t.includes("- Cổng phiên bản sau deploy: KHÔNG CHẠY ĐƯỢC"), t);
+  assert.match(t, /- Phiên bản: 1\.4/);
+  assert.match(t, /- Kiểm dữ liệu \(audit-invariants --db remote\): ĐẠT/);
+  assert.match(t, /node scripts\/kiem-phien-ban\.mjs --sau-deploy/);
+});
+
+test("trien-khai (cổng sau): sleep NÉM LỖI → vẫn thử lại, vẫn in đủ tóm tắt, thoát 1 khi cả hai lần hỏng", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+  withPostSeq(h, [FAIL, FAIL]);
+  const sleep = async () => {
+    throw new Error("chờ hỏng giả");
+  };
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep, version: "1.4" }), 1);
+  assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST, GATE_POST]);
+  const t = h.text();
+  assert.ok(t.includes("- Cổng phiên bản sau deploy: KHÔNG ĐẠT"), t);
+  assert.match(t, /- Phiên bản: 1\.4/);
+  assert.match(t, /- Kiểm dữ liệu \(audit-invariants --db remote\): ĐẠT/);
+});
