@@ -2,14 +2,22 @@
 // Sheet nhân viên chỉ là nguồn ĐỀ XUẤT: admin xem trước rồi xác nhận; Sheet không bao giờ tự tạo/ngưng tài khoản hay cấp quyền ngoài "Bán hàng".
 // Quyền trong app (ADR-0005) là tập SALES/ACCOUNTING/ADMIN/FIELD của tài khoản; KHÔNG phải vai trò hồ sơ (HDV, tài xế… — module parties).
 import { auditStatement, type AuditAction } from "../audit";
-import { lockedPhones, newSessionCookie, unlockPhone, verifyPinThrottled } from "../auth";
+import {
+  PASSKEY_ERRORS, checkPasskeyAssertion, clearChallengeCookie, countActivePasskeys, deviceLabel, firstUserHandle, insertPasskeyStatement, issuePasskeyChallenge,
+  limitChallenge, listActivePasskeys, lockedPhones, logPasskeyRejected, newSessionCookie, passkeyRp, readPasskeyChallenge, revokeAllPasskeysStatement,
+  revokePasskeyStatement, toPasskeyDto, unlockPhone, verifyPinThrottled, verifyRegistration,
+} from "../auth";
 import { getMaintenanceState } from "../maintenance";
 import {
   canManageAccount, checkAccountChange, checkStaffName, countActiveAdmins, createAccountStatements, findStaffByPhone, generatePin, getStaffAccount, isValidPin,
-  listStaffAccounts, normalizePhone, parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, updateStaffStatement, validateNewPin,
-  type StaffAccount,
+  listStaffAccounts, normalizePhone, parseStaffSheet, renameAccountStatements, setPermissionStatements, setPinStatement, touchCredentialsStatement, updateStaffStatement,
+  validateFreshPin, validateNewPin, type StaffAccount,
 } from "../staff";
-import type { StaffAccountDto, StaffListResponse, StaffResponse, StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse } from "../../shared/contracts";
+import type {
+  PasskeyCreationOptionsResponse, PasskeyListResponse, PasskeyResponse, PasskeyRequestOptionsResponse, StaffAccountDto, StaffListResponse, StaffResponse,
+  StaffSheetApplyResponse, StaffSheetPreviewResponse, StaffWithPinResponse,
+} from "../../shared/contracts";
+import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { phoneChangeProblem } from "../../shared/maintenance";
 import { PERMISSION_CODES, PERMISSION_LABEL, isPermissionCode, type PermissionCode } from "../../shared/permissions";
@@ -17,6 +25,8 @@ import { route, type AppModule, type Ctx } from "../../shared/router";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
 
 const isUniqueViolation = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: staff\.phone/.test(e.message);
+// A-1: trùng khoá passkey là một ràng buộc UNIQUE KHÁC (aut_passkey.credential_id) — isUniqueViolation ở trên KHÔNG khớp, nên phải kiểm riêng.
+const isPasskeyTaken = (e: unknown) => e instanceof Error && /UNIQUE constraint failed: aut_passkey\.credential_id/.test(e.message);
 const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
@@ -49,8 +59,7 @@ function cleanPermissions(v: unknown): { value?: PermissionCode[]; error?: strin
   return { value: PERMISSION_CODES.filter((code) => v.includes(code)) };
 }
 
-// passkeyCount: 0 tạm thời — Task 8 thay bằng số passkey còn hiệu lực thật.
-const dto = (s: StaffAccount, locked: Set<string>): StaffAccountDto => ({ ...s, locked: locked.has(s.phone), passkeyCount: 0 });
+const dto = (s: StaffAccount, locked: Set<string>, passkeys: Map<string, number>): StaffAccountDto => ({ ...s, locked: locked.has(s.phone), passkeyCount: passkeys.get(s.id) ?? 0 });
 
 /** Câu lệnh nhật ký cho thao tác quản trị trên một tài khoản. */
 const adminAudit = (db: D1Database, adminId: string, action: AuditAction, targetId: string | undefined, detail?: string, onlyIf?: string) =>
@@ -125,10 +134,139 @@ export const accountsModule: AppModule = {
       return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id) });
     }),
 
+    // ---- Đăng nhập bằng Face ID (passkey, ADR-0016) — của chính mình ------------------------------------------
+    // Bật: nhập lại PIN (điều 2a, cùng bộ chống dò của đăng nhập) → thách thức "register" → trình duyệt tạo khoá → kiểm → lưu + nhật ký.
+    route("POST", "/api/account/passkeys/options", "staff", async ({ request, env, staff }) => {
+      const rp = passkeyRp(env);
+      if (!rp) return PASSKEY_ERRORS.off();
+      const pin = (await readJson(request))?.pin;
+      if (!isValidPin(pin)) return error(400, "invalid_input", "Cần nhập PIN hiện tại (6 số).");
+      const check = await verifyPinThrottled(request, env, staff.phone, pin);
+      if (!check.ok) return check.response.status === 401 ? error(403, "invalid_credentials", "PIN không đúng.") : check.response;
+      const [keys, handle] = await Promise.all([listActivePasskeys(env.DB, staff.id), firstUserHandle(env.DB, staff.id)]);
+      const userHandle = handle ?? toBase64Url(crypto.getRandomValues(new Uint8Array(16)));
+      const { challenge, cookie } = await issuePasskeyChallenge(request, env, "register", staff.id, userHandle);
+      const name = staff.fullName.trim() || "Tài khoản Tour Đảo"; // KHÔNG dùng SĐT (ADR-0016 điều 8)
+      return json(
+        {
+          publicKey: {
+            challenge,
+            rp: { id: rp.rpId, name: "Tour Đảo Booking" },
+            user: { id: userHandle, name, displayName: name },
+            pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
+            timeout: 120_000,
+            attestation: "none",
+            authenticatorSelection: { residentKey: "required", requireResidentKey: true, userVerification: "required" },
+            excludeCredentials: keys.map((k) => ({ type: "public-key" as const, id: k.credential_id })),
+          },
+        } satisfies PasskeyCreationOptionsResponse,
+        200,
+        { "set-cookie": cookie },
+      );
+    }),
+
+    route("POST", "/api/account/passkeys", "staff", async ({ request, env, staff }) => {
+      const rp = passkeyRp(env);
+      if (!rp) return PASSKEY_ERRORS.off();
+      const credential = (await readJson(request))?.credential;
+      const ch = await readPasskeyChallenge(request, env, "register", staff.id);
+      if (!ch?.extra) return PASSKEY_ERRORS.expired();
+      let reg;
+      try {
+        reg = await verifyRegistration(rp, ch.challenge, credential);
+      } catch (e) {
+        logPasskeyRejected(e);
+        return PASSKEY_ERRORS.registerInvalid();
+      }
+      const at = new Date().toISOString();
+      const id = crypto.randomUUID();
+      const label = deviceLabel(request.headers.get("user-agent"));
+      try {
+        await env.DB.batch([
+          insertPasskeyStatement(env.DB, { id, staffId: staff.id, ...reg, userHandle: ch.extra, label, at }),
+          auditStatement(env.DB, { staffId: staff.id, action: "passkey_added", at, targetType: "staff", targetId: staff.id }),
+        ]);
+      } catch (e) {
+        if (isPasskeyTaken(e)) return PASSKEY_ERRORS.exists();
+        throw e;
+      }
+      const res = json({ passkey: { id, label, createdAt: at, lastUsedAt: null } } satisfies PasskeyResponse, 201);
+      res.headers.append("set-cookie", clearChallengeCookie(request));
+      return res;
+    }),
+
+    route("GET", "/api/account/passkeys", "staff", async ({ env, staff }) =>
+      json({ passkeys: (await listActivePasskeys(env.DB, staff.id)).map(toPasskeyDto) } satisfies PasskeyListResponse),
+    ),
+
+    // Gỡ = đóng hiệu lực + đăng xuất mọi máy khác (điều 6); máy đang thao tác nhận phiên mới cùng mốc `now`.
+    route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff }) => {
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const [revoked] = await env.DB.batch([
+        revokeAllPasskeysStatement(env.DB, staff.id, at, staff.id),
+        touchCredentialsStatement(env.DB, staff.id, now, true),
+        auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id, detail: "gỡ tất cả" }, "changes() > 0"),
+      ]);
+      const removed = revoked!.meta.changes ?? 0;
+      return json({ removed }, 200, removed > 0 ? { "set-cookie": await newSessionCookie(request, env, staff.id, now) } : {});
+    }),
+
+    route("DELETE", "/api/account/passkeys/:id", "staff", async ({ request, env, staff, params }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy Face ID này.");
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      const [revoked] = await env.DB.batch([
+        revokePasskeyStatement(env.DB, id, staff.id, at, staff.id),
+        touchCredentialsStatement(env.DB, staff.id, now, true),
+        auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id }, "changes() > 0"),
+      ]);
+      if ((revoked!.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy Face ID này.");
+      return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
+    }),
+
+    // Đặt PIN mới bằng Face ID, không cần PIN cũ (điều 2b): bắt buộc MỘT lần ký passkey mới với thách thức "pin" riêng — phiên đang mở là không đủ.
+    route("POST", "/api/account/pin-by-passkey/options", "staff", async ({ request, env, staff }) => {
+      const rp = passkeyRp(env);
+      if (!rp) return PASSKEY_ERRORS.off();
+      const limited = await limitChallenge(request, env);
+      if (limited) return limited;
+      const keys = await listActivePasskeys(env.DB, staff.id);
+      if (keys.length === 0) return PASSKEY_ERRORS.none();
+      const { challenge, cookie } = await issuePasskeyChallenge(request, env, "pin", staff.id);
+      return json(
+        { publicKey: { challenge, rpId: rp.rpId, timeout: 120_000, userVerification: "required", allowCredentials: keys.map((k) => ({ type: "public-key" as const, id: k.credential_id })) } } satisfies PasskeyRequestOptionsResponse,
+        200,
+        { "set-cookie": cookie },
+      );
+    }),
+
+    route("POST", "/api/account/pin-by-passkey", "staff", async ({ request, env, staff }) => {
+      const rp = passkeyRp(env);
+      if (!rp) return PASSKEY_ERRORS.off();
+      const body = await readJson(request);
+      const problem = validateFreshPin(body?.newPin);
+      if (problem) return error(400, "invalid_input", problem);
+      const ch = await readPasskeyChallenge(request, env, "pin", staff.id);
+      if (!ch) return PASSKEY_ERRORS.expired();
+      const checked = await checkPasskeyAssertion(env, rp, ch, body?.credential, staff.id);
+      if (!checked.ok) return checked.response;
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      await env.DB.batch([
+        await setPinStatement(env.DB, staff.id, body!.newPin as string, now),
+        auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
+      ]);
+      const res = json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
+      res.headers.append("set-cookie", clearChallengeCookie(request));
+      return res;
+    }),
+
     // ---- Danh sách / tạo thủ công ------------------------------------------------
     route("GET", "/api/staff", "admin", async ({ env }) => {
-      const [staff, locked] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB)]);
-      return json({ staff: staff.map((s) => dto(s, locked)) } satisfies StaffListResponse);
+      const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
+      return json({ staff: staff.map((s) => dto(s, locked, passkeys)) } satisfies StaffListResponse);
     }),
 
     route("POST", "/api/staff", "admin", async ({ request, env, staff: admin }) => {
@@ -153,7 +291,7 @@ export const accountsModule: AppModule = {
         if (isUniqueViolation(e)) return PHONE_TAKEN();
         throw e;
       }
-      return json({ staff: dto((await getStaffAccount(db, created.id))!, new Set()), pin: created.pin } satisfies StaffWithPinResponse, 201);
+      return json({ staff: dto((await getStaffAccount(db, created.id))!, new Set(), new Map()), pin: created.pin } satisfies StaffWithPinResponse, 201);
     }),
 
     // ---- Đồng bộ từ Google Sheet: xem trước rồi áp dụng --------------------------
@@ -238,7 +376,7 @@ export const accountsModule: AppModule = {
         if (typeof body.active !== "boolean") return error(400, "invalid_input", "Trạng thái phải là true/false.");
         if (body.active !== t.active) patch.active = body.active;
       }
-      if (Object.keys(patch).length === 0) return json({ staff: dto(t, await lockedPhones(db)) } satisfies StaffResponse);
+      if (Object.keys(patch).length === 0) return json({ staff: dto(t, await lockedPhones(db), await countActivePasskeys(db)) } satisfies StaffResponse);
 
       const problem = checkAccountChange(admin.id, t, { active: patch.active }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
@@ -255,7 +393,7 @@ export const accountsModule: AppModule = {
         throw e;
       }
       if (built.guardIndex >= 0 && (results[built.guardIndex]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-      return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db)) } satisfies StaffResponse);
+      return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db), await countActivePasskeys(db)) } satisfies StaffResponse);
     }),
 
     // ---- Đặt tập quyền của tài khoản (ADR-0005) ---------------------------------------------------------
@@ -276,13 +414,13 @@ export const accountsModule: AppModule = {
 
       const at = new Date().toISOString();
       const plan = setPermissionStatements(db, { staffId: t.id, current: t.permissions, next, actorId: admin.id, at });
-      if (!plan.changed) return json({ staff: dto(t, await lockedPhones(db)) } satisfies StaffResponse);
+      if (!plan.changed) return json({ staff: dto(t, await lockedPhones(db), await countActivePasskeys(db)) } satisfies StaffResponse);
       const detail = `${labelOf(t.permissions)} → ${labelOf(next)}`;
       // Khi bỏ ADMIN: câu đóng ADMIN có điều kiện đứng đầu; nhật ký chỉ ghi nếu nó thắng (changes() > 0); các câu còn lại mang cùng điều kiện.
       const stmts = [...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest];
       const results = await db.batch(stmts);
       if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-      return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db)) } satisfies StaffResponse);
+      return json({ staff: dto((await getStaffAccount(db, t.id))!, await lockedPhones(db), await countActivePasskeys(db)) } satisfies StaffResponse);
     }),
 
     route("POST", "/api/staff/:id/reset-pin", "admin", async (ctx) => {
@@ -291,9 +429,33 @@ export const accountsModule: AppModule = {
       if (!t) return NOT_FOUND();
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       const pin = generatePin();
-      await db.batch([await setPinStatement(db, t.id, pin), adminAudit(db, ctx.staff.id, "pin_reset", t.id)]); // nhật ký KHÔNG chứa PIN
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      await db.batch([
+        await setPinStatement(db, t.id, pin, now),
+        adminAudit(db, ctx.staff.id, "pin_reset", t.id), // nhật ký KHÔNG chứa PIN
+        revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id), // ADR-0016 điều 6: đặt lại PIN gỡ mọi Face ID
+        adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "gỡ khi đặt lại PIN", "changes() > 0"),
+      ]);
       await unlockPhone(db, t.phone);
-      return json({ staff: dto((await getStaffAccount(db, t.id))!, new Set()), pin } satisfies StaffWithPinResponse);
+      return json({ staff: dto((await getStaffAccount(db, t.id))!, new Set(), new Map()), pin } satisfies StaffWithPinResponse);
+    }),
+
+    // ADR-0016 điều 6/8: quản trị viên gỡ mọi Face ID của một tài khoản (vd. mất máy, nghi lộ khoá) mà không cần đặt lại PIN.
+    route("POST", "/api/staff/:id/passkeys/remove-all", "admin", async (ctx) => {
+      const db = ctx.env.DB;
+      const t = await target(ctx);
+      if (!t) return NOT_FOUND();
+      if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
+      const now = Date.now();
+      const at = new Date(now).toISOString();
+      await db.batch([
+        revokeAllPasskeysStatement(db, t.id, at, ctx.staff.id),
+        touchCredentialsStatement(db, t.id, now, true),
+        adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "quản trị viên gỡ", "changes() > 0"),
+      ]);
+      const [locked, passkeys] = await Promise.all([lockedPhones(db), countActivePasskeys(db)]);
+      return json({ staff: dto((await getStaffAccount(db, t.id))!, locked, passkeys) } satisfies StaffResponse);
     }),
 
     route("POST", "/api/staff/:id/unlock", "admin", async (ctx) => {
