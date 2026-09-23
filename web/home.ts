@@ -203,7 +203,7 @@ function renderReview(alerts: ReviewAlerts | null): void {
   const rows: HTMLElement[] = [];
   if (alerts.catalogConflict) {
     const c = alerts.catalogConflict;
-    const range = `${c.base === null ? "—" : vnd(c.base)} → ${c.current === null ? "—" : vnd(c.current)} · giá ghi đè vẫn đang bán`;
+    const range = `${c.base === null ? "—" : vnd(c.base)} → ${c.current === null ? "—" : vnd(c.current)} · ${c.hidden ? "đã ẩn, không bán" : "giá ghi đè vẫn đang bán"}`;
     rows.push(reviewRow("dash-review-icon-sand", "/catalog", `Sheet đã đổi giá ${c.code}`, c.moreCount > 0 ? `${range} · +${c.moreCount} dịch vụ khác` : range));
   }
   if (alerts.feedbackQueue) {

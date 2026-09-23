@@ -11,7 +11,7 @@ const SALES = who("SALES");
 const ACCOUNTING = who("ACCOUNTING");
 
 const PRICES = { adult: 0, child: null, senior: null, infant: null };
-function catalogItem(code: string, conflicts: CatalogAdminItemDto["conflicts"] = []): CatalogAdminItemDto {
+function catalogItem(code: string, conflicts: CatalogAdminItemDto["conflicts"] = [], hidden = false): CatalogAdminItemDto {
   return {
     code,
     name: `Dịch vụ ${code}`,
@@ -21,7 +21,7 @@ function catalogItem(code: string, conflicts: CatalogAdminItemDto["conflicts"] =
     notes: { child: null, senior: null, infant: null },
     sheetPrices: PRICES,
     prices: PRICES,
-    hidden: false,
+    hidden,
     overridden: [],
     conflicts,
     overrideUpdatedAt: null,
@@ -56,7 +56,7 @@ test("reviewAlerts: ADMIN + dữ liệu có cả hai cảnh báo → trả đủ
   const tickets = [ticket("YC-0042", "NEW", "Báo lỗi"), ticket("YC-0041", "NEW", "Đề xuất"), ticket("YC-0040", "ACK")];
   const r = reviewAlerts(ADMIN, { catalogItems: items, tickets });
   assert.deepEqual(r, {
-    catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0 },
+    catalogConflict: { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: false },
     feedbackQueue: { count: 2, items: [{ code: "YC-0042", kindName: "Báo lỗi" }, { code: "YC-0041", kindName: "Đề xuất" }] },
   });
 });
@@ -91,7 +91,7 @@ test("reviewAlerts: nhiều dịch vụ lệch Sheet → lấy dịch vụ ĐẦ
     catalogItem("C", [{ code: "adult", base: 5, current: 6, override: 5 }]),
   ];
   const r = reviewAlerts(ADMIN, { catalogItems: items, tickets: [] });
-  assert.deepEqual(r?.catalogConflict, { code: "A", base: 1, current: 2, moreCount: 2 });
+  assert.deepEqual(r?.catalogConflict, { code: "A", base: 1, current: 2, moreCount: 2, hidden: false });
 });
 
 test("reviewAlerts: góp ý ĐÃ ĐỌC (unread=false) nhưng còn trạng thái NEW vẫn tính là 'chưa trả lời' — không dùng cờ unread (admin mở xem nhưng chưa trả lời)", () => {
@@ -111,4 +111,10 @@ test("reviewAlerts: chỉ có cảnh báo góp ý (không có cảnh báo giá) 
   const r = reviewAlerts(ADMIN, { catalogItems: [catalogItem("A")], tickets: [ticket("YC-0001", "NEW")] });
   assert.equal(r?.catalogConflict, null);
   assert.ok(r?.feedbackQueue);
+});
+
+test("reviewAlerts: dịch vụ ĐÃ ẨN (không bán) mà vẫn có cảnh báo lệch Sheet → catalogConflict.hidden = true (Important fix: KHÔNG được báo 'vẫn đang bán' cho dịch vụ đã ẩn)", () => {
+  const items = [catalogItem("CANO_RIENG", [{ code: "adult", base: 2_400_000, current: 2_600_000, override: 2_500_000 }], true)];
+  const r = reviewAlerts(ADMIN, { catalogItems: items, tickets: [] });
+  assert.deepEqual(r?.catalogConflict, { code: "CANO_RIENG", base: 2_400_000, current: 2_600_000, moreCount: 0, hidden: true });
 });

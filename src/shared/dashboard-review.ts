@@ -21,6 +21,10 @@ export interface ReviewCatalogAlert {
   current: number | null;
   /** Số dịch vụ KHÁC cũng đang lệch Sheet (0 = chỉ một). */
   moreCount: number;
+  /** Dịch vụ `code` (ĐẦU) hiện có đang bị ẩn (không bán, `CatalogAdminItemDto.hidden`) hay không — ẩn và có cảnh báo
+   * lệch giá KHÔNG loại trừ nhau (rules.ts `applyOverride`: `conflicts` tính độc lập với `hidden`). web/home.ts phải
+   * đọc trường này để chọn đúng câu chữ, KHÔNG được mặc định "vẫn đang bán" cho dịch vụ đã ẩn. */
+  hidden: boolean;
 }
 
 export interface ReviewFeedbackAlert {
@@ -44,7 +48,7 @@ function summarizeCatalogConflicts(items: readonly CatalogAdminItemDto[]): Revie
   if (withConflicts.length === 0) return null;
   const first = withConflicts[0]!;
   const c = first.conflicts[0]!;
-  return { code: first.code, base: c.base, current: c.current, moreCount: withConflicts.length - 1 };
+  return { code: first.code, base: c.base, current: c.current, moreCount: withConflicts.length - 1, hidden: first.hidden };
 }
 
 /**
