@@ -1,6 +1,6 @@
 # ADR-0015 — Khung điều hướng dọc (thanh bên) thay thanh ngang; Trang chủ thành trang mặc định
 
-- **Trạng thái:** **proposed** (AI soạn 2026-09-23, chờ chủ dự án duyệt). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Trạng thái:** **accepted** — chủ dự án duyệt trực tiếp trong phiên chat 2026-09-23 (qua `AskUserQuestion`: "Duyệt việc đổi thanh menu ngang → thanh menu dọc cho CẢ APP không?" → "Duyệt, làm đi"). AI soạn 2026-09-23, chỉ đổi dòng trạng thái này sau khi có câu trả lời thật của chủ, không tự duyệt. Thay đổi nội dung = ADR mới trỏ về ADR này.
 - **Ngày:** 2026-09-23   **Người phê chuẩn:** chủ dự án (chưa duyệt)
 - **Loại quyết định:** **cửa hai chiều** về mã (gỡ được bằng một commit, không đụng dữ liệu/schema/quyền), nhưng **một chiều về thói quen người dùng và địa chỉ đã lưu** (đổi `/` đổi cả biểu tượng PWA đã cài trên iPhone của nhân viên)
 - **Liên quan:** đặc tả thiết kế lại giao diện `docs/superpowers/specs/2026-09-22-thiet-ke-lai-giao-dien-design.md` §6 (khung trang dùng chung), §16 mục 3 (số đo khung đã chốt: thanh đầu 60px, nội dung 1200px, mốc 900px); quyết định chủ dự án `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md` mục A và B (2026-09-23 chiều); mockup `docs/design/mockup-by-ClaudeDesign/00 Trang chu v2.dc.html`; ADR-0007/0009/0014 (bản đồ quyền quyết định mục nào hiện cho ai)

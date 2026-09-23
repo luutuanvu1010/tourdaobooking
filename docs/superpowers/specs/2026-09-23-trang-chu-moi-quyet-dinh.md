@@ -41,3 +41,10 @@ B. **TRANG CHỦ THÀNH TRANG MẶC ĐỊNH** — đảo mục 2 ở trên ("th�
    → Ảnh hưởng đã tra: `/` do Workers Assets ánh xạ thẳng `public/index.html` (không có mã router) nên phải đổi tên tệp hoặc chuyển hướng ở Worker; `PRECACHE` trong `sw-policy.ts` hiện có `/` + `/js/orders.js`, chưa có `/home`; ~10 kịch bản Chrome đang mở `/` để vào trang Đơn hàng; `manifest.webmanifest` có `start_url: "/"` và `scope: "/"` — máy đã cài biểu tượng vẫn mở được vì `/` vẫn phục vụ, nhưng service worker đang cache `/` nên người dùng có thể thấy bản cũ tới khi `CACHE_VERSION` đổi (build tự chèn).
 
 **Ghi nhận trung thực về quy trình (bài học):** việc AI tự xếp các khối nhìn thấy được (thanh bên, "Cần xem lại", ô tìm kiếm, nút Lập đơn mới) vào loại "tự quyết được, không cần hỏi" là SAI. Thứ chủ dự án nhìn thấy trên màn hình thì không phải "bề mặt đảo ngược được" theo nghĩa P8 — phải hỏi. Ghi vào đây để phiên sau không lặp lại.
+
+## Trả lời 4 câu hỏi chặn của Đợt D (2026-09-23, chủ dự án chốt trực tiếp qua AskUserQuestion)
+
+1. **ADR-0015 (thanh menu dọc cho cả app): DUYỆT** — "Duyệt, làm đi". ADR đổi trạng thái `proposed` → `accepted` (AI chỉ đổi dòng trạng thái sau khi có câu trả lời thật, không tự duyệt). Task 4 + Task 5 của Đợt D được mở khoá.
+2. **Huy hiệu số đếm trên menu: LÀM ĐỦ CẢ 3 SỐ** (Đơn hàng / Dịch vụ & giá / Góp ý). Nghĩa là phải THÊM chỗ đếm tổng đơn — hiện chưa có API nào trả số này. Task tương ứng phải bổ sung, không được lặng lẽ bỏ.
+3. **Khối "Cần xem lại": CHỈ QUẢN TRỊ THẤY** — giữ đúng quyền hiện có của dữ liệu cảnh báo giá (`/api/catalog/admin`, chỉ admin). KHÔNG mở quyền đọc cảnh báo giá cho mọi nhân viên. Nhân viên bán hàng không thấy khối này (không phải lỗi).
+4. **Thời điểm đưa lên production: ĐỢI XONG HẾT 6 PHẦN rồi đưa 1 lần** trong cửa sổ bảo trì, sau khi chủ dự án xem ảnh và duyệt. KHÔNG deploy từng phần.
