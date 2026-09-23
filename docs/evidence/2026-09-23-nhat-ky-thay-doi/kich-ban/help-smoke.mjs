@@ -114,6 +114,15 @@ try {
         await p.waitFor(`!!${q("#links a[href='/help']")}`, "dòng Trợ giúp hiện", 10000);
         assert.deepEqual(await dots(p), { tab: true, link: true, nav: true }, `lưu "${stored}" ⇒ có chấm`);
       }
+      // Nút lùi: Tôi (có chấm) → bấm dòng Trợ giúp → /help → bấm nút lùi ở thanh đầu (history.back) ⇒ trang Tôi phục hồi từ bộ đệm lùi/tiến, chấm phải tắt.
+      await p.ev("(window.__trangCu = true)");
+      await p.ev(`${q("#links a[href='/help']")}.click(), true`);
+      await p.waitFor(`location.pathname === '/help' && ${q("#changelog")}?.children.length > 0 && !!${q(".bar-back")}`, "đã sang /help qua dòng Trợ giúp", 10000);
+      assert.equal(await p.ev("localStorage.getItem('td_help_seen')"), CHANGELOG[0].version, "mở /help ⇒ đã đánh dấu xem");
+      await p.ev(`${q(".bar-back")}.click(), true`);
+      await p.waitFor(`location.pathname === '/account' && document.readyState === 'complete' && !!${q("#links a[href='/help']")}`, "nút lùi về trang Tôi", 10000);
+      assert.equal(await p.ev("window.__trangCu === true"), true, "trang Tôi phải được phục hồi từ bộ đệm lùi/tiến (đúng tình huống cần kiểm), không phải tải mới");
+      assert.deepEqual(await dots(p), { tab: false, link: false, nav: false }, "quay lại bằng nút lùi sau khi xem ⇒ chấm tắt");
     } finally {
       p.close();
     }

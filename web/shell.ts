@@ -79,6 +79,11 @@ export function setBarTitle(text: string): void {
 /** Khung chung các trang sau đăng nhập: vẽ ngay phần không cần biết người dùng (khỏi nháy trắng), rồi xác thực phiên và điền phần còn lại. Trả nhân viên hiện tại. */
 export async function initShell(): Promise<Staff> {
   registerServiceWorker();
+  // Nút lùi (history.back) phục hồi trang từ bộ đệm lùi/tiến NGUYÊN TRẠNG, kể cả chấm đỏ vẽ lúc chưa xem /help (tiền lệ: pageshow ở order-form.ts).
+  // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Trợ giúp (tab Tôi, dòng ở trang Tôi, menu máy tính).
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted && !helpHasNews()) for (const dot of document.querySelectorAll(".new-dot")) dot.remove();
+  });
   const { title, back, tabbar } = document.body.dataset;
   const path = location.pathname.replace(/\/+$/, "") || "/";
 
