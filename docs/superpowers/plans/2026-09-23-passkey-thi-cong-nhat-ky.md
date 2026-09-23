@@ -94,7 +94,7 @@ Làm 8b theo mục "Khuyến nghị cho 8b" của bản rà toàn nhánh. Tóm t
 
 ## Việc còn nợ, không chặn (đã phân loại "để sau")
 
-- Pin-by-passkey có nên gỡ khoá "sai PIN quá nhiều" (`unlockPhone`) như admin reset-pin không? Đặc tả không nói, **chủ quyết**.
+- ~~Pin-by-passkey có nên gỡ khoá "sai PIN quá nhiều" (`unlockPhone`) như admin reset-pin không?~~ **Chủ quyết 2026-09-23: CÓ** — đã làm ở đợt bổ sung: route gọi `unlockPhone(env.DB, staff.phone)` sau khi đặt PIN, e2e `passkey.mjs` bước 16 (đỏ trước: 429, xanh sau: 200).
 - **Chủ quyết 2026-09-23: GIỮ nguyên ngưỡng khoá đăng nhập** — 5 lần sai PIN / 15 phút cho mỗi SĐT (+30 lần / IP). Không đổi mã.
 - Khi Face ID tắt, nút admin "Gỡ Face ID (n)" vẫn hiện; bấm vào nhận 503 kèm lời giải thích. Có thể ẩn theo `config.passkey`.
 - `wrangler.jsonc` đã khai giá trị production cho `PASSKEY_*`, nên gộp rồi deploy là Face ID bật ngay: chỉ gộp sau khi 8b qua kiểm độc lập (**dựa vào kỷ luật**, P16).

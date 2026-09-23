@@ -272,10 +272,27 @@ assert.deepEqual(r.body, { removed: 0 });
 assert.equal(r.cookie, null);
 console.log("✓ gỡ hết khi không có passkey nào → removed: 0, không cấp phiên mới");
 
+// 16. (chủ quyết 2026-09-23) Đặt PIN mới bằng Face ID gỡ khoá "sai PIN quá nhiều" của SĐT — như admin reset-pin (`unlockPhone`).
+// salesB: phiên S3d còn hiệu lực (bước 12d), PIN hiện tại 583920, chưa còn Face ID nào → bật khoá mới, khoá SĐT bằng 5 lần sai, đặt PIN bằng Face ID.
+const authB3 = await createFakeAuthenticator(RP);
+r = await enable(S3d, "583920", authB3);
+assert.equal(r.status, 201, JSON.stringify(r.body));
+for (let i = 1; i <= 5; i++) assert.equal((await login(A.phone, "000000", freshIp())).status, 401, `lần sai ${i}`);
+r = await login(A.phone, "583920", freshIp());
+assert.equal(r.status, 429, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "too_many_attempts");
+pOpt = await call(S3d, "POST", "/api/account/pin-by-passkey/options", {});
+assert.equal(pOpt.status, 200, JSON.stringify(pOpt.body));
+r = await call(cookieJar(S3d, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "590284", credential: await authB3.sign(pOpt.body.publicKey.challenge) });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await login(A.phone, "590284", freshIp());
+assert.equal(r.status, 200, `đặt PIN bằng Face ID phải gỡ khoá đăng nhập: ${JSON.stringify(r.body)}`);
+console.log("✓ đặt PIN mới bằng Face ID gỡ khoá sai PIN quá nhiều; đăng nhập bằng PIN mới được ngay");
+
 // Nhật ký ba hành động mới (passkey_added, passkey_removed, pin_set_by_passkey) không lộ id khoá (đặc tả §2, tiêu chí 6)
 const allLogs = await sqlRows("SELECT action, coalesce(detail, '') AS detail FROM audit_log WHERE action IN ('passkey_added', 'passkey_removed', 'pin_set_by_passkey')");
 assert.ok(allLogs.length > 0);
-const knownCredentialIds = [auth.id, other.id, other2.id, other3.id, authB2.id];
+const knownCredentialIds = [auth.id, other.id, other2.id, other3.id, authB2.id, authB3.id];
 for (const l of allLogs) for (const cid of knownCredentialIds) assert.ok(!l.detail.includes(cid), `${l.action}: "${l.detail}" chứa id khoá ${cid}`);
 console.log("✓ nhật ký passkey_added/passkey_removed/pin_set_by_passkey không chứa id khoá nào");
 

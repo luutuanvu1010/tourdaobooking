@@ -275,6 +275,7 @@ export const accountsModule: AppModule = {
         await setPinStatement(env.DB, staff.id, body!.newPin as string, now),
         auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
       ]);
+      await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
       const res = json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
