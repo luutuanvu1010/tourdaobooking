@@ -31,6 +31,22 @@ const RULES = [
   { id: "npm-migrate-remote", re: /(?<![\w-])(?:npm|pnpm|yarn|bun)(?:\s+\S+){0,3}?\s+db:migrate:remote(?![\w-])/, reason: "npm run db:migrate:remote" },
   { id: "npm-dev-remote", re: /(?<![\w-])(?:npm|pnpm|yarn|bun)\s+(?:run\s+)?dev\s+--\s+.*--remote(?![\w-])/, reason: "npm run dev -- --remote (D1 thật)" },
   { id: "import-staff-remote", re: /import-staff\.mjs[^\n;&|]*--db[ =]+remote/, reason: "import-staff.mjs --db remote (ghi tài khoản lên production)" },
+  {
+    // Hai lệnh CHỦ DỰ ÁN tự gõ (docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md): `npm run day-len` (git push) và
+    // `npm run trien-khai` (áp migration remote + wrangler deploy). Chặn dạng npm/pnpm/yarn/bun, dạng `node … scripts/<tên>.mjs`, và dạng
+    // chạy thẳng tệp ở ĐẦU một đoạn lệnh (`./scripts/day-len.mjs`). Đọc/sửa/commit tệp (cat, git add, grep…) KHÔNG bị chặn.
+    // Lớp thứ hai: chính hai kịch bản tự từ chối khi không có TTY.
+    id: "release-owner-only",
+    re: new RegExp(
+      [
+        "(?<![\\w-])(?:npm|pnpm|yarn|bun)(?:\\s+\\S+){0,3}?\\s+run(?:-script)?(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai)(?![\\w-])",
+        "(?<![\\w-])(?:pnpm|yarn|bun)(?:\\s+-\\S+)*\\s+(?:day-len|trien-khai)(?![\\w-])",
+        "(?<![\\w-])(?:node|nodejs|bun|deno)(?:\\s+\\S+){0,4}?\\s+\\S*scripts\\/(?:day-len|trien-khai)\\.mjs(?![\\w-])",
+        "(?:^|[;&|(\\n])\\s*(?:\\w+=\\S*\\s+)*(?:exec\\s+)?\\S*scripts\\/(?:day-len|trien-khai)\\.mjs(?![\\w-])",
+      ].join("|"),
+    ),
+    reason: "npm run day-len / npm run trien-khai (lệnh chủ dự án tự gõ: git push, áp migration remote, wrangler deploy)",
+  },
 ];
 
 /** Ghi lên production bằng curl/wget/httpie: cần host trong lệnh GỐC (có thể nằm trong nháy) và cờ ghi. */
