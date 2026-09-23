@@ -1,7 +1,7 @@
 # ADR-0017 — Hướng dẫn viên nội bộ (`FIELD`) xem được mọi đơn, kể cả tiền; đối tác ngoài (`PARTNER`) giữ nguyên phạm vi hẹp
 
-- **Trạng thái:** **proposed** — chờ chủ dự án duyệt. AI soạn 2026-09-24 theo yêu cầu trực tiếp của chủ dự án; **AI không tự duyệt** (N3, Điều 7.2). Chủ đã chọn phạm vi trong phiên chat qua `AskUserQuestion` (xem "Quyết định"), nhưng dòng trạng thái này chỉ đổi sang `accepted` sau khi chủ duyệt chính văn bản này.
-- **Ngày:** 2026-09-24   **Người phê chuẩn:** chủ dự án (chưa duyệt)
+- **Trạng thái:** **accepted** — **chủ dự án duyệt trực tiếp trong phiên chat 2026-09-24**: AI trình toàn văn bản ghi này kèm mục "Rủi ro đã nêu", chủ trả lời **"duyệt"**. AI soạn theo yêu cầu trực tiếp của chủ và **không tự duyệt** (N3, Điều 7.2); dòng trạng thái này chỉ đổi sau khi có câu trả lời thật. Thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-24   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-24)
 - **Loại quyết định:** **cửa một chiều**. Đã cho một vai nhìn thấy danh sách khách và số tiền thì **không thu lại được** những gì họ đã thấy; gỡ mã chỉ chặn từ thời điểm gỡ. Phần mã thì gỡ được bằng một commit.
 - **Liên quan:** **đảo ngược** ADR-0007 **điều 3** (bảng quyền: `FIELD` = "◆ không" ở dòng *"Xem tiền, bảng giá danh mục, nhật ký/lịch sử sửa đơn"*) và **điều 4(c)** (`FIELD` dùng route riêng, không dùng `/api/orders*` chung); **đảo ngược** phần tái khẳng định ở **ADR-0014 điều 6**; **không đụng** ADR-0014 điều 10 (`PARTNER`). Đặc tả giao diện: `docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md`.
 
@@ -63,6 +63,6 @@ Giảm nhẹ khả dĩ (**không** thuộc quyết định này, ghi để cân 
 - **`web/shell.ts`:** mục "Đơn hàng" hiện cho `FIELD` (thanh bên và thanh tab). Các mục quản trị **vẫn không** hiện.
 - **Bài kiểm ghim phạm vi** phải đổi theo, và phải có bài kiểm mới ghim đúng ranh giới mới: `FIELD` **có** thấy đơn người khác; `PARTNER` **vẫn không**. Đây là chỗ dễ trượt nhất — một thay đổi sau này rất dễ vô tình nới luôn cho `PARTNER`.
 - **`MyAssignmentDto` / `GET /api/dispatch/mine`:** màn "Việc của tôi" giữ nguyên vai trò (việc được giao). Nếu muốn hiện tiền ở đó thì thêm `remainingAmount`/`depositAmount`; **chú thích "không Pick/Omit từ `OrderDto`" trong `src/shared/contracts.ts` phải sửa lại cho đúng sự thật mới** — nó đang nói tiền không bao giờ được lọt vào đây.
-- **Trang chủ (`/home`, access `office`):** mở `office` cho `FIELD` thì `FIELD` cũng vào được Trang chủ. Ô "Doanh thu của tôi" tính theo người xem nên vẫn đúng; ba ô số liệu là **toàn công ty**. **Cần chủ dự án xác nhận** đây là ý muốn, hoặc tách `FIELD` khỏi Trang chủ.
+- **Trang chủ (`/home`, access `office`):** mở `office` cho `FIELD` thì `FIELD` cũng vào được Trang chủ. Ô "Doanh thu của tôi" tính theo người xem nên vẫn đúng; ba ô số liệu là **toàn công ty**. **Chủ dự án đã được nêu điểm này và đồng ý** (2026-09-24, cùng lượt duyệt): mọi con số trên Trang chủ đều suy ra được từ danh sách đơn mà `FIELD` nay xem được, nên không lộ thêm gì.
 - **Không migration, không đổi schema.**
 - **Không hoàn tác được phần đã lộ.**
