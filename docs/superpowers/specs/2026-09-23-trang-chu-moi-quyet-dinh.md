@@ -48,3 +48,10 @@ B. **TRANG CHỦ THÀNH TRANG MẶC ĐỊNH** — đảo mục 2 ở trên ("th�
 2. **Huy hiệu số đếm trên menu: LÀM ĐỦ CẢ 3 SỐ** (Đơn hàng / Dịch vụ & giá / Góp ý). Nghĩa là phải THÊM chỗ đếm tổng đơn — hiện chưa có API nào trả số này. Task tương ứng phải bổ sung, không được lặng lẽ bỏ.
 3. **Khối "Cần xem lại": CHỈ QUẢN TRỊ THẤY** — giữ đúng quyền hiện có của dữ liệu cảnh báo giá (`/api/catalog/admin`, chỉ admin). KHÔNG mở quyền đọc cảnh báo giá cho mọi nhân viên. Nhân viên bán hàng không thấy khối này (không phải lỗi).
 4. **Thời điểm đưa lên production: ĐỢI XONG HẾT 6 PHẦN rồi đưa 1 lần** trong cửa sổ bảo trì, sau khi chủ dự án xem ảnh và duyệt. KHÔNG deploy từng phần.
+
+## Trả lời 2 câu hỏi từ vòng kiểm Task 1 Đợt D (2026-09-23, chủ dự án chốt trực tiếp)
+
+5. **Nút bấm gọi khách ở khổ điện thoại: GIỮ LẠI** — chấp nhận lệch bản mẫu ở điểm này. Lý do chủ dự án: nhân viên dùng app chủ yếu trên iPhone, bấm gọi khách ngay từ danh sách "Chuyến đón hôm nay" là thao tác hàng ngày; bắt mở đơn ra mới gọi được là bớt việc của người dùng thật. Bản mẫu không có SĐT ở khổ điện thoại nhưng bản mẫu là tài liệu THIẾT KẾ, không phải đặc tả chức năng.
+   → Người thi công phải tìm cách giữ nút gọi mà vẫn gần bản mẫu (ví dụ dòng phụ vẫn "nơi đón · tên dịch vụ" theo mẫu, nhưng thêm biểu tượng/nút gọi riêng, hoặc cho cả dòng thành liên kết `tel:`). KHÔNG được để mất thao tác gọi.
+
+6. **Nhãn "Số liệu toàn công ty" và "· toàn công ty": BỎ HẲN** — chủ dự án xác nhận bỏ cho giống bản mẫu, chấp nhận rủi ro nhỏ là nhân viên Bán hàng có thể tưởng 3 ô số và danh sách chuyến là của riêng mình. Không cần khôi phục.
