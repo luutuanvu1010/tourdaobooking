@@ -157,11 +157,21 @@ try {
   const measureHome = (p) =>
     p.ev(`(() => {
       const layout = document.querySelector('#dash-layout');
-      const stats = [...document.querySelectorAll('#dash-stats .dash-stat')].map((el) => ({
-        label: el.querySelector('.dash-stat-label').textContent.trim(),
-        value: el.querySelector('.dash-stat-value').textContent.trim(),
-        sub: el.querySelector('.dash-stat-sub').textContent.trim(),
-      }));
+      const stats = [...document.querySelectorAll('#dash-stats .dash-stat')].map((el) => {
+        const valueEl = el.querySelector('.dash-stat-value');
+        const cs = getComputedStyle(valueEl);
+        const oneLineHeight = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.2;
+        const actualHeight = valueEl.getBoundingClientRect().height;
+        return {
+          label: el.querySelector('.dash-stat-label').textContent.trim(),
+          value: valueEl.textContent.trim(),
+          sub: el.querySelector('.dash-stat-sub').textContent.trim(),
+          // Kiểm gộp I-3: "500.000 ₫" từng xuống 2 dòng (ký hiệu tiền tệ rơi khỏi dòng số) ở lưới 2 cột khổ hẹp — đo CHIỀU CAO THẬT so với một dòng.
+          valueOneLineHeight: oneLineHeight,
+          valueActualHeight: actualHeight,
+          valueWrapped: actualHeight > oneLineHeight + 1,
+        };
+      });
       const todayRows = [...document.querySelectorAll('#dash-today-list .dash-today-row')].map((row) => ({
         time: row.querySelector('.dash-today-time')?.textContent.trim() ?? null,
         place: row.querySelector('.dash-today-place')?.textContent.trim() ?? null,
@@ -204,6 +214,11 @@ try {
     assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
     assert.equal(m.stats[2].label, "Chưa có người phụ trách");
     assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
+
+    // Kiểm gộp I-3: số liệu ô ("dash-stat-value", vd "500.000 ₫") KHÔNG được xuống dòng — ký hiệu tiền tệ từng rơi xuống dòng riêng
+    // ở lưới 2 cột khổ điện thoại hẹp (≤639px). So chiều cao thật với chiều cao MỘT dòng (line-height tính được).
+    const wrappedStats = m.stats.filter((s) => s.valueWrapped);
+    assert.deepEqual(wrappedStats, [], `${label}: số liệu ô (.dash-stat-value) bị xuống dòng (chiều cao thật vượt một dòng) — ${JSON.stringify(m.stats)}`);
 
     // Doanh thu
     assert.equal(m.revenueValue, "800.000 ₫", `${label}: doanh thu phải = 800.000 ₫ (R1 300.000 + R3 500.000) — ${JSON.stringify(m)}`);

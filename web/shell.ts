@@ -112,7 +112,7 @@ export async function initShell(): Promise<Staff> {
     // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
     const el = document.getElementById("error");
     if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.");
-    addTabBar(false); // không biết vai khi mất mạng: hiện 3 tab cơ bản để còn điều hướng (QA2 Q2-04)
+    addTabBar(false); // không biết vai khi mất mạng: hiện 4 tab cơ bản để còn điều hướng (QA2 Q2-04)
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;

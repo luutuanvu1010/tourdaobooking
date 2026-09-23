@@ -74,11 +74,12 @@ function insertDraftOrder(sqlite: DatabaseSync, o: { id: string; staffId: string
     .run(o.id, `TD-${o.id}`, o.staffId, m.subtotal, m.discount, m.total, m.depositAmount, m.remainingAmount, o.createdAt, o.createdAt);
 }
 
-/** Dịch vụ của một đơn còn nháp (chèn trước khi xác nhận). */
-function insertService(sqlite: DatabaseSync, s: { id: string; orderId: string; sortOrder?: number; departDate?: string | null; pickupTime?: string | null; name?: string }): void {
+/** Dịch vụ của một đơn còn nháp (chèn trước khi xác nhận). `pickupPlace` có tham số riêng — trước đây hàm này KHÔNG gán được cột này nên
+ * mọi ca test có `pickupPlace: null` "pass hờ" (không phân biệt được "đọc đúng dòng" với "luôn null", kiểm độc lập vòng gộp phát hiện). */
+function insertService(sqlite: DatabaseSync, s: { id: string; orderId: string; sortOrder?: number; departDate?: string | null; pickupTime?: string | null; pickupPlace?: string | null; name?: string }): void {
   sqlite
-    .prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date, pickup_time) VALUES (?, ?, ?, NULL, ?, 'manual', 1, ?, ?)`)
-    .run(s.id, s.orderId, s.sortOrder ?? 0, s.name ?? "Dịch vụ", s.departDate ?? null, s.pickupTime ?? null);
+    .prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date, pickup_time, pickup_place) VALUES (?, ?, ?, NULL, ?, 'manual', 1, ?, ?, ?)`)
+    .run(s.id, s.orderId, s.sortOrder ?? 0, s.name ?? "Dịch vụ", s.departDate ?? null, s.pickupTime ?? null, s.pickupPlace ?? null);
 }
 
 /** Chuyển đơn (đã có đủ dịch vụ hợp lệ — mọi dịch vụ có ngày + >=1 khách) sang xác nhận, đúng luồng trigger 0008/0017 cho phép. */
@@ -157,7 +158,7 @@ test("today: chỉ đơn confirmed có dịch vụ SỚM NHẤT (trong các dị
   );
   const o4 = data.today.find((o) => o.id === "o4")!;
   assert.deepEqual(o4.pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "pax cộng dồn CẢ HAI dịch vụ của đơn");
-  assert.deepEqual(o4.trip, { departDate: TODAY, pickupTime: "06:00", pickupPlace: null }, "trip lấy theo dịch vụ sort_order nhỏ nhất (sv4a)");
+  assert.deepEqual(o4.trip, { departDate: TODAY, pickupTime: "06:00", pickupPlace: null }, "trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (sv4a — ngày sớm nhất có ngày đón; ở đây trùng với sort_order nhỏ nhất, KHÔNG phải quy tắc chung, xem test 'trip lấy theo dịch vụ QUYẾT ĐỊNH…' bên dưới)");
 });
 
 test("today: đơn có điều chỉnh tiền → total/remainingAmount trong danh sách hôm nay là số HIỆN HÀNH, không phải cột gốc (bài học Đợt B)", async () => {
@@ -308,5 +309,54 @@ test("today: trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (ngày sớm n
     o7.trip,
     { departDate: TODAY, pickupTime: "09:00", pickupPlace: null },
     "trip phải là của sv7b (dịch vụ quyết định hôm nay), KHÔNG phải sv7a (sort_order nhỏ nhất, ngày mai lúc 20:00)",
+  );
+});
+
+// ---- Kiểm độc lập (lượt gộp I-1): khoá phá hoà "dịch vụ nào quyết định hôm nay" khi 2 dịch vụ CÙNG ngày sớm nhất mà MỘT dịch vụ
+// không nhập giờ đón (pickup_time IS NULL — trường TUỲ CHỌN, trigger xác nhận đơn không đòi, rất hay gặp thật). SQLite xếp NULL TRƯỚC:
+// nếu khoá phá hoà chỉ là `pickup_time` thì dòng KHÔNG-CÓ-GIỜ thắng → trip mất cả giờ lẫn nơi đón. Đây là PROBE tái hiện đúng lỗi
+// người kiểm đã báo (trip = {departDate, pickupTime: null, pickupPlace: null} dù có dịch vụ 06:15 thật cùng ngày).
+test("today: 2 dịch vụ CÙNG ngày sớm nhất, một cái KHÔNG có giờ đón — dịch vụ CÓ giờ đón phải thắng khoá phá hoà (không phải NULL thắng)", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+
+  insertDraftOrder(sqlite, { id: "o8", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  // sv8a: KHÔNG nhập giờ đón (tuỳ chọn, hợp lệ) — nếu là dòng thắng khoá phá hoà thì trip sẽ mất giờ/nơi đón.
+  insertService(sqlite, { id: "sv8a", orderId: "o8", sortOrder: 0, departDate: TODAY, pickupTime: null, pickupPlace: null });
+  // sv8b: CÓ giờ đón + nơi đón, CÙNG ngày hôm nay — phải là dịch vụ quyết định.
+  insertService(sqlite, { id: "sv8b", orderId: "o8", sortOrder: 1, departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" });
+  confirm(sqlite, "o8");
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  assert.equal(data.today.length, 1, `o8 phải có trong today — ${JSON.stringify(data.today.map((o) => o.id))}`);
+  const o8 = data.today.find((o) => o.id === "o8")!;
+  assert.equal(o8.trip.pickupTime, "06:15", `trip.pickupTime PHẢI là 06:15 (sv8b, có giờ đón) — thấy ${JSON.stringify(o8.trip)}. Nếu null thì dịch vụ KHÔNG-CÓ-GIỜ đã thắng khoá phá hoà (bug I-1).`);
+  assert.equal(o8.trip.pickupPlace, "Bến Cầu Đá", `trip.pickupPlace PHẢI là "Bến Cầu Đá" (sv8b) — thấy ${JSON.stringify(o8.trip)}`);
+  assert.deepEqual(
+    data.today.map((o) => o.id),
+    ["o8"],
+  );
+});
+
+// Danh sách hiển thị (ORDER BY ngoài): dòng KHÔNG có giờ đón không được nổi lên đầu danh sách "Chuyến đón hôm nay" — phải xuống CUỐI.
+test("today: sắp xếp danh sách — đơn KHÔNG có giờ đón (trip.pickupTime null) phải đứng SAU đơn có giờ đón, không nổi lên đầu", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+
+  // o9: có giờ đón 07:00.
+  insertDraftOrder(sqlite, { id: "o9", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "sv9", orderId: "o9", departDate: TODAY, pickupTime: "07:00" });
+  confirm(sqlite, "o9");
+
+  // o10: KHÔNG có giờ đón (dịch vụ quyết định duy nhất của đơn không nhập giờ).
+  insertDraftOrder(sqlite, { id: "o10", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "sv10", orderId: "o10", departDate: TODAY, pickupTime: null });
+  confirm(sqlite, "o10");
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  assert.deepEqual(
+    data.today.map((o) => o.id),
+    ["o9", "o10"],
+    `o9 (có giờ đón) phải đứng TRƯỚC o10 (không có giờ đón) — dòng "—" không được nổi lên đầu danh sách. Thấy thứ tự ${JSON.stringify(data.today.map((o) => o.id))}`,
   );
 });

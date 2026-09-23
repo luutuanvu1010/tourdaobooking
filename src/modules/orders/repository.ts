@@ -355,6 +355,11 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   //    `os` trong câu này ĐÃ bị ép bằng đúng dòng subquery chọn ra (os.id = subquery) — tức chính là dịch vụ QUYẾT ĐỊNH "hôm nay".
   //    Lấy luôn 3 cột chuyến của DÒNG NÀY để override `trip` bên dưới — KHÔNG dùng `trip` do `toSummaryDtos`/`summarizeServices` điền
   //    (hàm đó lấy theo sort_order nhỏ nhất, có thể là MỘT dịch vụ KHÁC — bài học kiểm độc lập vòng 1, xem dashboard.test.ts).
+  // Khoá phá hoà (kiểm gộp I-1): SQLite xếp NULL TRƯỚC giá trị thật ở ORDER BY mặc định. `pickup_time` là trường TUỲ CHỌN (trigger xác
+  // nhận đơn không đòi) — khi hai dịch vụ CÙNG là "ngày sớm nhất" của đơn mà một dịch vụ không nhập giờ đón, khoá phá hoà PHẢI ưu tiên
+  // dòng CÓ giờ đón trước (`os2.pickup_time IS NULL` = 0 cho dòng có giờ, = 1 cho dòng NULL → ASC đẩy NULL xuống sau), rồi mới tới
+  // chính giờ đón, rồi `sort_order`, rồi `id` (khoá tất định cuối cùng khi mọi khoá trên bằng nhau). Same lý do cho ORDER BY ngoài
+  // (thứ tự hiển thị danh sách) — dòng không có giờ đón không được nổi lên đầu "Chuyến đón hôm nay".
   const { results: todayOrder } = await db
     .prepare(
       `SELECT o.id, os.depart_date, os.pickup_time, os.pickup_place FROM orders o
@@ -364,10 +369,10 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
          AND os.id = (
            SELECT id FROM order_service os2
            WHERE os2.order_id = o.id AND os2.depart_date IS NOT NULL
-           ORDER BY os2.depart_date, os2.pickup_time, os2.sort_order
+           ORDER BY os2.depart_date, (os2.pickup_time IS NULL), os2.pickup_time, os2.sort_order, os2.id
            LIMIT 1
          )
-       ORDER BY os.pickup_time, os.sort_order`,
+       ORDER BY (os.pickup_time IS NULL), os.pickup_time, os.sort_order, os.id`,
     )
     .bind(today)
     .all<{ id: string; depart_date: string; pickup_time: string | null; pickup_place: string | null }>();
