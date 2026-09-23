@@ -204,6 +204,14 @@ try {
         sub: shown(row.querySelector('.dash-today-main .muted')),
         money: shown(row.querySelector('.dash-today-money b')),
         moneySub: visibleText(row.querySelector('.dash-today-money .muted.lbl-full')),
+        // Fix round 2 (quyết định chủ dự án 2026-09-23): lưới ngăn MẤT thao tác gọi khách ở khổ điện thoại — đo phần tử
+        // gọi (span onclick tel:, giống .order-row-phone) có tồn tại, có ĐANG HIỂN THỊ thật (offsetParent) ở khổ này
+        // hay không, và nhãn máy đọc có đúng SĐT không.
+        call: (() => {
+          const el = row.querySelector('.dash-today-call');
+          if (!el) return null;
+          return { shown: el.offsetParent !== null, ariaLabel: el.getAttribute('aria-label'), text: el.textContent.trim() };
+        })(),
       }));
       return {
         gridHidden: grid.hidden,
@@ -281,11 +289,20 @@ try {
     if (mode === "desktop") {
       assert.equal(row.moneySub, "đã trả đủ", `${label}: R1 đã trả đủ (remainingAmount=0) phải hiện "đã trả đủ" — ${JSON.stringify(row)}`);
       assert.ok(row.sub && row.sub.includes("0900000301"), `${label}: dòng phụ ĐẦY ĐỦ phải chứa SĐT khách — ${JSON.stringify(row)}`);
+      // Fix round 2: ở máy tính, thao tác gọi đã có sẵn trong dòng phụ (SĐT gạch chân) — nút gọi riêng (`.dash-today-call`,
+      // chỉ dành cho khổ hẹp) TỒN TẠI trong DOM (dùng chung cho mọi khổ) nhưng KHÔNG được hiển thị ở đây (tránh trùng lặp/lệch mockup).
+      assert.ok(row.call, `${label}: phải có phần tử .dash-today-call trong DOM (dùng chung cho cả hai khổ) — ${JSON.stringify(row)}`);
+      assert.equal(row.call.shown, false, `${label}: nút gọi riêng (.dash-today-call) KHÔNG được hiển thị ở máy tính (đã có SĐT trong dòng phụ) — ${JSON.stringify(row)}`);
     } else {
       // "đã trả đủ"/"còn lại" CHỈ có bản đầy đủ (không có .lbl-short song song) → phải ẨN HẲN ở khổ hẹp, không lộ chữ.
       assert.equal(row.moneySub, null, `${label}: dòng "đã trả đủ/còn lại" không có bản rút gọn, phải ẨN HẲN ở khổ hẹp — ${JSON.stringify(row)}`);
       // Item 7 của Task 1: dòng phụ rút gọn phải là "nơi đón · tên dịch vụ" — NƠI ĐÓN ĐỨNG TRƯỚC tên dịch vụ.
       assert.ok(row.sub && row.sub.startsWith(`${row.place} ·`), `${label}: dòng phụ RÚT GỌN phải bắt đầu bằng "${row.place} ·" (nơi đón đứng TRƯỚC tên dịch vụ) — ${JSON.stringify(row)}`);
+      // Fix round 2 (LƯỚI CHÍNH của việc này — quyết định chủ dự án 2026-09-23): dòng phụ rút gọn không còn SĐT,
+      // nên PHẢI có một phần tử gọi khách RIÊNG đang thực sự hiển thị ở khổ 390px, với đúng SĐT của đơn thử trong nhãn máy đọc.
+      assert.ok(row.call, `${label}: phải có phần tử .dash-today-call (nút gọi khách) trong DOM ở khổ điện thoại — ${JSON.stringify(row)}`);
+      assert.equal(row.call.shown, true, `${label}: nút gọi khách (.dash-today-call) PHẢI đang hiển thị thật (offsetParent) ở khổ điện thoại — mất thao tác gọi là lỗi Đợt D Task 1 vòng 1 — ${JSON.stringify(row)}`);
+      assert.ok(row.call.ariaLabel && row.call.ariaLabel.includes("0900000301"), `${label}: nhãn máy đọc của nút gọi phải chứa đúng SĐT của đơn thử (0900000301) — ${JSON.stringify(row)}`);
     }
   };
 
