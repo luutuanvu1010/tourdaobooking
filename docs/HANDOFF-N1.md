@@ -132,13 +132,15 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 |---|---|---|
 | 1 | kiểm TTY, `main`, cây sạch, `git fetch origin`, `main` == `origin/main` | chỉ triển khai mã ĐÃ đẩy lên GitHub |
 | 2 | cổng chỉ-đọc `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` | lệnh lỗi, hoặc đầu ra không đọc được (không đoán) |
+| 2b | cổng số phiên bản TRƯỚC deploy (chỉ đọc): `node scripts/kiem-phien-ban.mjs` — bản ở máy phải MỚI HƠN production | mã 1 (không mới hơn: quên thêm mục nhật ký?) → in đỏ và hỏi "… Chỉ chọn c nếu đang deploy lại ĐÚNG bản đang chạy. Vẫn tiếp tục? (c/k)"; khác đúng `c` → dừng, không ghi gì lên remote; chọn `c` thì khối tóm tắt ghi "Cổng phiên bản trước deploy: KHÔNG ĐẠT (chủ chọn tiếp tục)". Mã 2 hay mã lạ (không đọc được production) → DỪNG, không bao giờ coi là đạt |
 | 3 | `npm test`, `npm run typecheck`, `npm run build:web` | đỏ |
 | 3b | `npm run test:e2e` ĐỦ BỘ (cần mạng, vài phút; đuôi `audit-invariants --strict` trên D1 tạm) | e2e đỏ → in tên kịch bản đỏ và hỏi "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)"; khác đúng `c` → dừng, không ghi gì lên remote. Dùng khi kịch bản đỏ vì lý do ngoài mã (vd `catalog` đỏ vì giá trên Google Sheet thật vừa đổi) — chủ phán; khối tóm tắt ghi rõ "e2e: ĐỎ (chủ chọn tiếp tục)" |
 | 4 | (nếu còn migration chưa áp) in danh sách; `wrangler d1 time-travel info tourdao-sales-db --json` → in điểm khôi phục + lệnh khôi phục; hỏi "Áp N migration này lên production? (c/k)"; `c` → `CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote` | không lấy được điểm khôi phục; trả lời khác `c` (không áp, không deploy); áp lỗi (KHÔNG deploy) |
 | 5 | hỏi "Triển khai Worker lên production? (c/k)" (vừa áp migration thì câu hỏi ghi "PHẢI deploy ngay") | trả lời khác `c` — nếu đã áp migration thì in cảnh báo ĐỎ kèm lệnh deploy để tự chạy ngay |
 | 6 | `CI=1 npx wrangler deploy` | deploy lỗi (không chạy bước 7) |
 | 7 | `node scripts/audit-invariants.mjs --db remote` | báo ĐẠT / KHÔNG ĐẠT (mã 1) / KHÔNG CHẠY ĐƯỢC (mã 2 — không phải dữ liệu sạch); khác ĐẠT thì thoát khác 0 |
-| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, dòng `e2e: xanh` hoặc `e2e: ĐỎ (chủ chọn tiếp tục): <tên kịch bản>`, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp |
+| 7b | cổng số phiên bản SAU deploy (chỉ đọc, chạy SAU bước 7 để không xen giữa deploy và kiểm dữ liệu): `node scripts/kiem-phien-ban.mjs --sau-deploy` — production phải BẰNG bản ở máy; hỏng thì chờ ~20 giây rồi thử lại MỘT lần | không dừng (đã deploy rồi): ghi ĐẠT / KHÔNG ĐẠT / KHÔNG CHẠY ĐƯỢC (mã N) vào tóm tắt; khác ĐẠT thì in lệnh kiểm lại tay `node scripts/kiem-phien-ban.mjs --sau-deploy` và thoát khác 0 |
+| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, dòng `e2e: xanh` hoặc `e2e: ĐỎ (chủ chọn tiếp tục): <tên kịch bản>`, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu, `Phiên bản: X`, kết quả hai cổng số phiên bản | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp. Lệnh thoát 0 CHỈ KHI kiểm dữ liệu ĐẠT VÀ cổng sau ĐẠT |
 
 **Lệnh này KHÔNG làm thay** (vẫn làm tay TRƯỚC khi gõ `npm run trien-khai`, theo runbook của từng lần phát hành): các kịch bản Chrome khi chạm giao diện (e2e API thì lệnh ĐÃ chạy ở bước 3b), và các kiểm riêng của từng lần phát hành (ví dụ `GET /api/auth/config` sau deploy Face ID). **Giả định về wrangler:** đầu ra của `migrations list` được đọc theo định dạng của wrangler 4.135.0 (dòng "No migrations to apply" hoặc "Migrations to be applied:" + bảng tên tệp); nâng wrangler mà định dạng đổi thì lệnh DỪNG (an toàn), cần sửa `parsePendingMigrations` + mẫu ở `src/release-lib.fixtures/`. `migrations list --remote` của wrangler gọi `CREATE TABLE IF NOT EXISTS d1_migrations` trước khi đọc — trên production bảng đã có nên thực tế không ghi gì.
 
@@ -146,10 +148,8 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 
 Trước bước "A. Trước khi deploy" của MỌI runbook, và TRƯỚC khi gõ `npm run trien-khai`:
 1. AI thêm mục mới vào đầu `CHANGELOG` (`src/shared/changelog.ts`) theo công thức t "Ghi nhật ký thay đổi" ở `docs/CHANGE-GUIDE.md`, commit cùng nhánh sẽ deploy. Chủ đọc lướt mục này khi duyệt phát hành.
-2. `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt).
-3. Sau khi deploy xong (sau bước 6 của `npm run trien-khai`, hoặc sau `CI=1 npx wrangler deploy` nếu làm tay): `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. Mục "TRẠNG THÁI TRIỂN KHAI" ghi thêm "Phiên bản X".
-
-**`npm run trien-khai` CHƯA tự chạy `scripts/kiem-phien-ban.mjs`** (nối vào hay không là việc chủ quyết — câu hỏi ở `docs/superpowers/specs/2026-09-23-de-xuat-claude-md-nhat-ky-thay-doi.md`): bước 2 và bước 3 ở trên phải chạy TAY, trước và sau lệnh đó.
+2. Cổng số phiên bản: `npm run trien-khai` TỰ chạy `node scripts/kiem-phien-ban.mjs` trước (bước 2b, sau bước đọc migration) và `--sau-deploy` sau (bước 7b, sau kiểm dữ liệu) — chủ quyết 2026-09-23. Mã thoát của cổng: 0 ĐẠT; 1 = quên tăng số (trước) / production chưa bằng bản ở máy (sau); 2 = không đọc được production, KHÔNG phải đạt. Khối tóm tắt đã có dòng "Phiên bản: X" để dán vào mục "TRẠNG THÁI TRIỂN KHAI".
+3. Chỉ khi deploy TAY (không qua `npm run trien-khai`): chạy `node scripts/kiem-phien-ban.mjs` trước và `node scripts/kiem-phien-ban.mjs --sau-deploy` sau `CI=1 npx wrangler deploy`; cả hai phải ĐẠT.
 
 **Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
 

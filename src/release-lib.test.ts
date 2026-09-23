@@ -20,7 +20,7 @@ type Lib = {
   parseBookmark: (out: string) => string | null;
   parseVersionId: (out: string) => string | null;
   dayLen: (deps: Deps & { target?: string }) => Promise<number>;
-  trienKhai: (deps: Deps & { now?: () => Date }) => Promise<number>;
+  trienKhai: (deps: Deps & { now?: () => Date; sleep?: (ms: number) => Promise<void>; version?: string }) => Promise<number>;
 };
 const lib = (await import(new URL("../scripts/release-lib.mjs", import.meta.url).href)) as Lib;
 
@@ -258,6 +258,8 @@ const APPLY = "CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote";
 const DEPLOY = "CI=1 npx wrangler deploy";
 const AUDIT = "node scripts/audit-invariants.mjs --db remote";
 const E2E = "npm run test:e2e";
+const GATE_PRE = "node scripts/kiem-phien-ban.mjs";
+const GATE_POST = "node scripts/kiem-phien-ban.mjs --sau-deploy";
 function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResult> {
   return {
     "git rev-parse --abbrev-ref HEAD": out("main\n"),
@@ -267,6 +269,7 @@ function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResul
     "git rev-parse origin/main": out(`${HEAD}\n`),
     "git log -1 --oneline --no-decorate main": out("ccccccc Thêm Face ID\n"),
     [LIST]: out(LIST_0023),
+    [GATE_PRE]: out("ĐẠT: bản ở máy 1.4 mới hơn production 1.3.\n"),
     "npm test": OK,
     "npm run typecheck": OK,
     "npm run build:web": OK,
@@ -275,16 +278,17 @@ function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResul
     [APPLY]: OK,
     [DEPLOY]: out("Uploaded tourdao-sales\nCurrent Version ID: 3245256e-1111-2222-3333-444455556666\n"),
     [AUDIT]: OK,
+    [GATE_POST]: out("ĐẠT: production đã là 1.4.\n"),
     ...over,
   };
 }
-const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", LIST, "npm test", "npm run typecheck", "npm run build:web", E2E];
+const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", LIST, GATE_PRE, "npm test", "npm run typecheck", "npm run build:web", E2E];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
 
 test("trien-khai (tiêu chí 4): còn migration + trả lời c, c → áp migration → deploy → kiểm dữ liệu, đúng thứ tự", async () => {
   const h = harness(tkScript(), ["c", "c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-  assert.deepEqual(h.calls, [...TK_PREFIX, TT, APPLY, DEPLOY, AUDIT]);
+  assert.deepEqual(h.calls, [...TK_PREFIX, TT, APPLY, DEPLOY, AUDIT, GATE_POST]);
   assert.equal(h.questions.length, 2);
   assert.match(h.questions[0] ?? "", /Áp 1 migration này lên production\? \(c\/k\)/);
   assert.match(h.questions[1] ?? "", /PHẢI deploy ngay/);
@@ -299,6 +303,15 @@ test("trien-khai (tiêu chí 4): còn migration + trả lời c, c → áp migra
   assert.match(t, /Kiểm dữ liệu: ĐẠT/);
 });
 
+test("trien-khai (cổng phiên bản): tóm tắt ghi số phiên bản ở máy và kết quả hai cổng", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, version: "1.4" }), 0);
+  const t = h.text();
+  assert.match(t, /- Phiên bản: 1\.4/);
+  assert.match(t, /- Cổng phiên bản trước deploy: ĐẠT/);
+  assert.match(t, /- Cổng phiên bản sau deploy: ĐẠT/);
+});
+
 test("trien-khai (tiêu chí 4): còn migration mà trả lời k → KHÔNG áp, KHÔNG deploy, thoát khác 0", async () => {
   for (const ans of ["k", "", "có", "C"]) {
     const h = harness(tkScript(), [ans]);
@@ -311,7 +324,7 @@ test("trien-khai (tiêu chí 4): còn migration mà trả lời k → KHÔNG áp
 test("trien-khai (tiêu chí 5): không còn migration chờ → bỏ bước áp và Time Travel, vẫn hỏi deploy, rồi kiểm dữ liệu", async () => {
   const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-  assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT]);
+  assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST]);
   assert.deepEqual(h.questions, ["Triển khai Worker lên production? (c/k) "]);
   assert.match(h.text(), /Migration đã áp: không có/);
 });
@@ -375,7 +388,7 @@ test("trien-khai (bước 7): kiểm dữ liệu thoát 1 = KHÔNG ĐẠT, thoá
   for (const [code, label] of [[1, /Kiểm dữ liệu: KHÔNG ĐẠT/], [2, /KHÔNG CHẠY ĐƯỢC.*không phải dữ liệu sạch/]] as const) {
     const h = harness(tkScript({ [LIST]: out(LIST_NONE), [AUDIT]: { code, stdout: "", stderr: "" } }), ["c"]);
     assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-    assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT]);
+    assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST]);
     assert.match(h.text(), label);
   }
 });
@@ -395,7 +408,7 @@ test("trien-khai: lệnh dài chạy dạng hiện trực tiếp cho chủ xem (
     return run(cmd, args, opts);
   };
   await lib.trienKhai({ ...h.deps, now: NOW });
-  for (const k of ["npm test", "npm run typecheck", "npm run build:web", APPLY, AUDIT]) assert.equal(seen[k]?.stream, true, `${k} phải stream`);
+  for (const k of ["npm test", "npm run typecheck", "npm run build:web", APPLY, AUDIT, GATE_PRE, GATE_POST]) assert.equal(seen[k]?.stream, true, `${k} phải stream`);
   assert.equal(seen[DEPLOY]?.tee, true, "deploy phải vừa hiện vừa bắt đầu ra (để lấy Version ID)");
   assert.equal(seen[E2E]?.tee, true, "e2e phải vừa hiện vừa bắt đầu ra (để nêu kịch bản đỏ)");
   assert.ok(!seen[LIST]?.stream && !seen[TT]?.stream, "lệnh đọc phải bắt đầu ra để phân tích");
@@ -419,7 +432,7 @@ test("trien-khai (e2e): e2e đỏ + trả lời k (hoặc khác đúng c) → d�
 test("trien-khai (e2e): e2e đỏ + trả lời c → đi tiếp đúng thứ tự: Time Travel → áp → deploy → kiểm dữ liệu", async () => {
   const h = harness(tkScript({ [E2E]: E2E_RED }), ["c", "c", "c"]);
   assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
-  assert.deepEqual(h.calls, [...TK_PREFIX, TT, APPLY, DEPLOY, AUDIT]);
+  assert.deepEqual(h.calls, [...TK_PREFIX, TT, APPLY, DEPLOY, AUDIT, GATE_POST]);
   assert.equal(h.questions[0], E2E_Q);
   assert.match(h.questions[1] ?? "", /Áp 1 migration/);
   assert.match(h.text(), /e2e: ĐỎ \(chủ chọn tiếp tục\): catalog, orders/, "khối tóm tắt ghi rõ e2e đỏ mà vẫn triển khai");
@@ -437,4 +450,110 @@ test("trien-khai (e2e): e2e đỏ mà không đọc được tên kịch bản �
   assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
   assert.deepEqual(h.questions, [E2E_Q]);
   assert.match(h.text(), /không đọc được tên/);
+});
+
+// ─────────────── cổng số phiên bản trong trien-khai (chủ quyết 2026-09-23) ───────────────
+const GATE_PRE_Q = "Bản ở máy không mới hơn production (quên thêm mục nhật ký thay đổi?). Chỉ chọn c nếu đang deploy lại ĐÚNG bản đang chạy. Vẫn tiếp tục? (c/k) ";
+const PRE_1: RunResult = { code: 1, stdout: "CHƯA ĐẠT: bản ở máy 1.3 không mới hơn production 1.3.\n", stderr: "" };
+/** Danh sách lệnh khi dừng NGAY ở cổng trước. */
+const UNTIL_PRE = TK_PREFIX.slice(0, TK_PREFIX.indexOf(GATE_PRE) + 1);
+
+/** sleep giả: tức thì, ghi lại thời lượng mỗi lần chờ. */
+function fakeSleep() {
+  const waits: number[] = [];
+  return { waits, sleep: async (ms: number) => void waits.push(ms) };
+}
+/** Cổng sau trả lần lượt các kết quả trong `seq` (lần 1, lần 2); lệnh khác đi qua kịch bản như cũ. */
+function withPostSeq(h: ReturnType<typeof harness>, seq: RunResult[]) {
+  const run = h.deps.run;
+  h.deps.run = (cmd, args, opts) => {
+    const r = run(cmd, args, opts);
+    if (key(cmd, args, opts) !== GATE_POST) return r;
+    const next = seq.shift();
+    if (!next) throw new Error("cổng sau bị gọi quá số lần trong kịch bản");
+    return next;
+  };
+}
+
+test("trien-khai (cổng trước): chạy NGAY sau bước đọc migration, TRƯỚC npm test", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+  await lib.trienKhai({ ...h.deps, now: NOW });
+  assert.equal(h.calls.indexOf(GATE_PRE), h.calls.indexOf(LIST) + 1);
+  assert.ok(h.calls.indexOf(GATE_PRE) < h.calls.indexOf("npm test"));
+});
+
+test("trien-khai (cổng trước): mã 1 + trả lời k (hoặc khác đúng c) → dừng, KHÔNG áp, KHÔNG deploy", async () => {
+  for (const ans of ["k", "", "C", "có"]) {
+    const h = harness(tkScript({ [GATE_PRE]: PRE_1 }), [ans]);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+    assert.deepEqual(h.calls, UNTIL_PRE, "dừng ngay ở cổng trước");
+    assertNothingDangerous(h.calls);
+    assert.deepEqual(h.questions, [GATE_PRE_Q]);
+    assert.match(h.text(), /\x1b\[31m/, "thông báo phải có màu đỏ");
+    assert.match(h.text(), /không áp migration, không deploy/);
+  }
+});
+
+test("trien-khai (cổng trước): mã 1 + trả lời c → đi tiếp đủ bước; tóm tắt ghi 'KHÔNG ĐẠT (chủ chọn tiếp tục)'", async () => {
+  const h = harness(tkScript({ [GATE_PRE]: PRE_1 }), ["c", "c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.deepEqual(h.calls, [...TK_PREFIX, TT, APPLY, DEPLOY, AUDIT, GATE_POST]);
+  assert.equal(h.questions[0], GATE_PRE_Q);
+  assert.match(h.text(), /- Cổng phiên bản trước deploy: KHÔNG ĐẠT \(chủ chọn tiếp tục\)/);
+});
+
+test("trien-khai (cổng trước): mã 2 (hay mã lạ) → dừng, không hỏi, KHÔNG áp, KHÔNG deploy — không bao giờ coi là đạt", async () => {
+  for (const code of [2, 3, 127]) {
+    const h = harness(tkScript({ [GATE_PRE]: { code, stdout: "", stderr: "" } }), []);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+    assert.deepEqual(h.calls, UNTIL_PRE);
+    assertNothingDangerous(h.calls);
+    assert.deepEqual(h.questions, []);
+    assert.ok(h.text().includes(`KHÔNG CHẠY ĐƯỢC (mã ${code})`), h.text());
+  }
+});
+
+test("trien-khai (cổng sau): đạt ngay → không chờ, không thử lại, thoát 0", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+  const s = fakeSleep();
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: s.sleep }), 0);
+  assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST]);
+  assert.deepEqual(s.waits, []);
+  assert.match(h.text(), /- Cổng phiên bản sau deploy: ĐẠT/);
+});
+
+test("trien-khai (cổng sau): hỏng lần đầu, đạt ở lần thử lại → sleep đúng 1 lần, thoát 0", async () => {
+  for (const first of [1, 2]) {
+    const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+    withPostSeq(h, [{ code: first, stdout: "", stderr: "" }, OK]);
+    const s = fakeSleep();
+    assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: s.sleep }), 0);
+    assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST, GATE_POST]);
+    assert.equal(s.waits.length, 1);
+    assert.ok((s.waits[0] ?? 0) > 0, "phải chờ một khoảng dương");
+    assert.match(h.text(), /- Cổng phiên bản sau deploy: ĐẠT/);
+  }
+});
+
+test("trien-khai (cổng sau): hỏng cả hai lần → audit vẫn chạy trước, tóm tắt vẫn in đủ, in lệnh chạy lại tay, thoát 1", async () => {
+  for (const [code, label] of [[1, "- Cổng phiên bản sau deploy: KHÔNG ĐẠT"], [2, "- Cổng phiên bản sau deploy: KHÔNG CHẠY ĐƯỢC (mã 2)"]] as const) {
+    const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+    withPostSeq(h, [{ code, stdout: "", stderr: "" }, { code, stdout: "", stderr: "" }]);
+    const s = fakeSleep();
+    assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: s.sleep, version: "1.4" }), 1);
+    assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST, GATE_POST]);
+    assert.equal(s.waits.length, 1);
+    const t = h.text();
+    assert.ok(t.includes(label), t);
+    assert.match(t, /node scripts\/kiem-phien-ban\.mjs --sau-deploy/);
+    for (const line of [/- Ngày giờ:/, /- Commit:/, /- e2e:/, /- Migration đã áp:/, /- Worker Version ID:/, /- Kiểm dữ liệu \(audit-invariants --db remote\): ĐẠT/, /- Phiên bản: 1\.4/, /- Cổng phiên bản trước deploy: ĐẠT/]) {
+      assert.match(t, line);
+    }
+  }
+});
+
+test("trien-khai (cổng sau): audit KHÔNG ĐẠT mà cổng sau ĐẠT → vẫn thoát 1 (0 chỉ khi cả hai đạt)", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE), [AUDIT]: FAIL }), ["c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW, sleep: fakeSleep().sleep }), 1);
+  assert.deepEqual(h.calls, [...TK_PREFIX, DEPLOY, AUDIT, GATE_POST]);
 });

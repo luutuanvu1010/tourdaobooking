@@ -84,3 +84,13 @@ Không đụng bí mật (`wrangler secret`), không rollback tự động.
 - Tên lệnh là `day-len` và `trien-khai`.
 - Câu hỏi nhận `c`/`k`.
 - Chỉ đẩy nhánh `main`.
+
+## Phụ lục 2026-09-23: cổng số phiên bản (chủ quyết)
+
+Chủ quyết "Gắn lệnh kiểm phiên bản vào trien-khai". Thân đặc tả ở trên giữ nguyên; phụ lục này thêm hai bước vào Lệnh 2 (chi tiết thiết kế do điều phối chọn, đảo ngược được):
+
+- **Cổng trước** — ngay sau bước đọc `migrations list --remote`, trước `npm test`: `node scripts/kiem-phien-ban.mjs` (chỉ đọc; bản ở máy phải MỚI HƠN production). Mã 0 → đi tiếp. Mã 1 → in đỏ và hỏi "Bản ở máy không mới hơn production (quên thêm mục nhật ký thay đổi?). Chỉ chọn c nếu đang deploy lại ĐÚNG bản đang chạy. Vẫn tiếp tục? (c/k)"; chỉ đúng `c` mới đi tiếp (tóm tắt ghi "Cổng phiên bản trước deploy: KHÔNG ĐẠT (chủ chọn tiếp tục)"), khác thì dừng, không áp migration, không deploy. Mã 2 hay mã lạ → dừng, không bao giờ coi là đạt.
+- **Cổng sau** — sau `audit-invariants --db remote` (không xen giữa deploy và kiểm dữ liệu): `node scripts/kiem-phien-ban.mjs --sau-deploy` (production phải BẰNG bản ở máy). Hỏng thì chờ khoảng 20 giây rồi thử lại MỘT lần. Kết quả vào khối tóm tắt ("ĐẠT" / "KHÔNG ĐẠT" / "KHÔNG CHẠY ĐƯỢC (mã N)"); khác ĐẠT thì in lệnh kiểm lại tay. Đã deploy rồi thì không đường nào bỏ qua kiểm dữ liệu hay khối tóm tắt.
+- **Khối tóm tắt** thêm "Phiên bản: X" (mục đầu nhật ký thay đổi, vỏ `scripts/trien-khai.mjs` truyền vào) và kết quả hai cổng.
+- **Mã thoát** của lệnh: 0 chỉ khi kiểm dữ liệu ĐẠT VÀ cổng sau ĐẠT.
+- **Test** (`src/release-lib.test.ts`, bộ chạy giả): hai lệnh mới đúng thứ tự trên mọi đường thành công; cổng trước 1 + `k` / 1 + `c` / 2; cổng sau đạt ngay / đạt ở lần thử lại (chờ đúng một lần) / hỏng cả hai lần (thoát 1, kiểm dữ liệu vẫn chạy, tóm tắt vẫn đủ). Không đổi hợp đồng mã thoát 0/1/2 của `kiem-phien-ban.mjs`.

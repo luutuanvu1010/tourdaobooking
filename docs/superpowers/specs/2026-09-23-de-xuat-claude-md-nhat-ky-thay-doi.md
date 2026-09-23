@@ -14,23 +14,20 @@ AI không tự sửa `CLAUDE.md` (luật chi phối chính AI — CLAUDE.md §3,
 
 ```diff
 -Chỉ deploy từ `main` đã gộp **và đã đẩy**, theo `docs/HANDOFF-N1.md`: chủ gõ `npm run day-len` (đẩy) rồi `npm run trien-khai`, lệnh này làm cổng chỉ-đọc → test + typecheck + build → e2e đủ bộ (đỏ thì nêu kịch bản và hỏi chủ) → điểm khôi phục Time Travel → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → in khối trạng thái để ghi. Hai lệnh chỉ chạy trong ứng dụng Terminal của macOS (TTY thật).
-+Chỉ deploy từ `main` đã gộp **và đã đẩy**, theo `docs/HANDOFF-N1.md`: **trước khi gộp, AI thêm mục nhật ký thay đổi mới (bước A.0) và `node scripts/kiem-phien-ban.mjs` phải ĐẠT**; chủ gõ `npm run day-len` (đẩy) rồi `npm run trien-khai`, lệnh này làm cổng chỉ-đọc → test + typecheck + build → e2e đủ bộ (đỏ thì nêu kịch bản và hỏi chủ) → điểm khôi phục Time Travel → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → in khối trạng thái để ghi; **sau đó chạy `node scripts/kiem-phien-ban.mjs --sau-deploy` (phải ĐẠT) và ghi số phiên bản vào trạng thái**. Hai lệnh chỉ chạy trong ứng dụng Terminal của macOS (TTY thật).
++Chỉ deploy từ `main` đã gộp **và đã đẩy**, theo `docs/HANDOFF-N1.md`: **trước khi gộp, AI thêm mục nhật ký thay đổi mới (bước A.0)**; chủ gõ `npm run day-len` (đẩy) rồi `npm run trien-khai`, lệnh này làm cổng chỉ-đọc → **cổng số phiên bản** → test + typecheck + build → e2e đủ bộ (đỏ thì nêu kịch bản và hỏi chủ) → điểm khôi phục Time Travel → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → **cổng số phiên bản sau deploy** → in khối trạng thái để ghi (kèm số phiên bản). Hai lệnh chỉ chạy trong ứng dụng Terminal của macOS (TTY thật).
 ```
 
 **Đề xuất B — nếu chủ CHƯA duyệt đề xuất kia** (sửa thẳng câu "Hiện tại" ở trên):
 
 ```diff
 -Chỉ deploy từ `main` đã gộp, theo `docs/HANDOFF-N1.md`: cổng chỉ-đọc → điểm khôi phục Time Travel → test + typecheck + e2e xanh → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → ghi trạng thái. `CI=1` để wrangler không hỏi.
-+Chỉ deploy từ `main` đã gộp, theo `docs/HANDOFF-N1.md`: **mục nhật ký thay đổi mới + `node scripts/kiem-phien-ban.mjs` ĐẠT (bước A.0)** → cổng chỉ-đọc → điểm khôi phục Time Travel → test + typecheck + e2e xanh → migration → `wrangler deploy` ngay → **`kiem-phien-ban.mjs --sau-deploy`** + `audit-invariants --db remote` → ghi trạng thái (kèm số phiên bản). Từ 2026-09-23 phần giữa chuỗi do `npm run trien-khai` làm, nhưng lệnh đó CHƯA chạy `kiem-phien-ban.mjs`: hai lần chạy cổng phiên bản vẫn làm tay. `CI=1` để wrangler không hỏi.
++Chỉ deploy từ `main` đã gộp, theo `docs/HANDOFF-N1.md`: **mục nhật ký thay đổi mới (bước A.0)** → cổng chỉ-đọc → **`kiem-phien-ban.mjs` ĐẠT** → điểm khôi phục Time Travel → test + typecheck + e2e xanh → migration → `wrangler deploy` ngay → `audit-invariants --db remote` → **`kiem-phien-ban.mjs --sau-deploy`** → ghi trạng thái (kèm số phiên bản). Từ 2026-09-23 mọi bước sau A.0 do `npm run trien-khai` làm, kể cả hai cổng phiên bản. `CI=1` để wrangler không hỏi.
 ```
 
-**Vì sao:** số phiên bản từng đứng ở 1.0 qua 9 lần deploy vì bước tăng số không nằm trong chuỗi deploy. Dòng này đưa bước ghi nhật ký vào đúng chỗ AI đọc trước mỗi lần phát hành. Việc chạy `kiem-phien-ban.mjs` trước và sau deploy vẫn **dựa vào kỷ luật**: không có hook chặn, và `npm run trien-khai` hiện không gọi nó (xem câu hỏi dưới).
+**Vì sao:** số phiên bản từng đứng ở 1.0 qua 9 lần deploy vì bước tăng số không nằm trong chuỗi deploy. Dòng này đưa bước ghi nhật ký vào đúng chỗ AI đọc trước mỗi lần phát hành. Hai cổng phiên bản nay do `npm run trien-khai` tự chạy (xem dưới); chỉ việc **thêm mục nhật ký** (A.0) và việc **dùng `trien-khai` thay vì deploy tay** vẫn dựa vào kỷ luật.
 
-## Câu hỏi cho chủ: có nối `kiem-phien-ban.mjs` vào `trien-khai` không?
+## Câu hỏi "có nối `kiem-phien-ban.mjs` vào `trien-khai` không?" — ĐÃ TRẢ LỜI: CÓ (chủ quyết 2026-09-23)
 
-Hiện `npm run trien-khai` (`scripts/release-lib.mjs`, hàm `trienKhai`) KHÔNG chạy `scripts/kiem-phien-ban.mjs`; bước A.0 ở `docs/HANDOFF-N1.md` bảo chạy tay trước và sau lệnh đó. Hai lựa chọn:
-
-1. **Nối vào** (khuyến nghị): `trien-khai` chạy `kiem-phien-ban.mjs` trước câu hỏi áp/deploy (thoát khác 0 thì dừng) và `--sau-deploy` sau bước deploy, in kết quả vào khối tóm tắt. Được: không quên được nữa. Mất: phải sửa `release-lib.mjs` + test so khớp danh sách lệnh (việc lớn: chạm triển khai, cần người kiểm độc lập); một lần sửa riêng sau khi gộp nhánh này.
-2. **Giữ tay như hiện nay**: không sửa công cụ; dựa vào kỷ luật và bước A.0 trong runbook.
+Chủ chọn "Gắn lệnh kiểm phiên bản vào trien-khai". Đã làm trên nhánh này (`scripts/release-lib.mjs`, hàm `trienKhai`; test `src/release-lib.test.ts`): cổng trước chạy ngay sau bước đọc `migrations list` và trước `npm test` (1 = hỏi, chỉ đúng `c` mới đi tiếp; 2 = dừng); cổng sau chạy sau `audit-invariants`, hỏng thì chờ rồi thử lại một lần, kết quả vào khối tóm tắt; lệnh thoát 0 chỉ khi kiểm dữ liệu và cổng sau cùng ĐẠT. Chi tiết: phụ lục cuối `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`, bảng bước ở `docs/HANDOFF-N1.md`. Hai khối đề xuất ở trên đã rút gọn cho khớp; `CLAUDE.md` vẫn chưa sửa (chờ chủ duyệt đề xuất này).
 
 Lưu ý riêng lần đầu: lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4 — cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
