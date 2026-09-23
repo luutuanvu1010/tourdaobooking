@@ -86,11 +86,26 @@ async function catalogConflictBadge(): Promise<number> {
   }
 }
 
+/**
+ * Huy hiệu "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN, không phải tổng số đơn (quyết định 8 của chủ dự án,
+ * `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`). Số này ĐÃ CÓ SẴN ở `GET /api/orders/dashboard`
+ * (`draftCount` — cùng số ô "Đơn nháp chưa xác nhận" của Trang chủ), không thêm route mới. Lỗi mạng → 0, giống
+ * feedbackBadge(). Route khai `access: "office"` nên chỉ gọi khi mục "Đơn hàng" có mặt (điều kiện `office`).
+ */
+async function draftOrderBadge(): Promise<number> {
+  try {
+    const { draftCount } = await api<Api.DashboardResponse>("/api/orders/dashboard");
+    return draftCount;
+  } catch {
+    return 0;
+  }
+}
+
 interface NavItem {
   href: string;
   label: string;
   icon: IconName;
-  /** Chỉ gắn khi có NGUỒN THẬT — mục nào chưa có số (Đơn hàng, xem BLOCKED ở báo cáo Task 4) thì không gắn, không vẽ số giả. */
+  /** Chỉ gắn khi có NGUỒN THẬT (route đã có sẵn số đó) — không mục nào được vẽ số giả. */
   badge?: () => Promise<number>;
   /** Màu huy hiệu khác màu mặc định (đúng bản mẫu: "Dịch vụ & giá" màu cát, "Góp ý" màu san hô). */
   badgeClass?: string;
@@ -109,8 +124,8 @@ interface NavGroup {
 function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: string): NavGroup[] {
   const sales: NavItem[] = [];
   if (office) sales.push({ href: "/home", label: "Trang chủ", icon: "home", active: (p) => p === "/home" });
-  // Huy hiệu tổng đơn CỐ Ý không có (BLOCKED — xem báo cáo Task 4): chưa chốt "tổng" nghĩa là đếm những đơn nào.
-  if (office) sales.push({ href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" });
+  // Huy hiệu "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án đã chốt nghĩa của con số này), màu mặc định như bản mẫu.
+  if (office) sales.push({ href: "/", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/" || p === "/order" });
   if (canCreate) sales.push({ href: "/order-form", label: "Lập đơn mới", icon: "plus", active: (p) => p === "/order-form" });
   if (office) sales.push({ href: "/parties", label: "Hồ sơ", icon: "contact-card", active: (p) => p === "/parties" });
 
@@ -135,29 +150,36 @@ function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: st
   ];
 }
 
-function sidebarItem(item: NavItem, path: string): HTMLElement {
+/**
+ * `loaders` gom lại lời gọi huy hiệu thay vì bắn ngay: chỉ chạy khi thanh bên THẬT SỰ hiển thị (xem addNav()) —
+ * ở khổ điện thoại thanh bên bị CSS ẩn nên ba lời gọi kia chỉ tốn mạng trên chính thiết bị yếu nhất.
+ */
+function sidebarItem(item: NavItem, path: string, loaders: (() => void)[]): HTMLElement {
   const a = h(
     "a",
     { class: "sidebar-item", href: item.href, "aria-current": item.active(path) ? "page" : false },
     h("span", { class: "sidebar-item-icon" }, icon(item.icon, 18)),
     h("span", { class: "sidebar-item-label" }, item.label),
   );
-  if (item.badge) {
-    void item.badge().then((n) => {
-      if (n > 0) a.append(h("span", { class: item.badgeClass ? `sidebar-item-badge ${item.badgeClass}` : "sidebar-item-badge" }, String(n)));
+  const badge = item.badge;
+  if (badge) {
+    loaders.push(() => {
+      void badge().then((n) => {
+        if (n > 0) a.append(h("span", { class: item.badgeClass ? `sidebar-item-badge ${item.badgeClass}` : "sidebar-item-badge" }, String(n)));
+      });
     });
   }
   return a;
 }
 
 /** Nhóm rỗng ẩn CẢ tiêu đề (đặc tả §3.1) — trả `null` để sidebar() lọc bỏ, không hiện tiêu đề mồ côi. */
-function sidebarGroup(group: NavGroup, path: string): HTMLElement | null {
+function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): HTMLElement | null {
   if (group.items.length === 0) return null;
   return h(
     "div",
     { class: "sidebar-group" },
     h("div", { class: "sidebar-group-title" }, group.title),
-    h("div", { class: "sidebar-group-items" }, ...group.items.map((it) => sidebarItem(it, path))),
+    h("div", { class: "sidebar-group-items" }, ...group.items.map((it) => sidebarItem(it, path, loaders))),
   );
 }
 
@@ -167,9 +189,9 @@ function sidebarGroup(group: NavGroup, path: string): HTMLElement | null {
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff): HTMLElement {
+function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff, loaders: (() => void)[]): HTMLElement {
   const groups = navGroups(admin, office, canCreate, path)
-    .map((g) => sidebarGroup(g, path))
+    .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   const roleLabel = staff.permissions.map((p) => PERMISSION_LABEL[p]).join(" · ") || "Chưa có quyền";
   const logoutBtn = h("button", { class: "sidebar-logout", type: "button" }, "Đăng xuất");
@@ -191,6 +213,24 @@ function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: stri
       logoutBtn,
     ),
   );
+}
+
+const APP_NAME = "Tour Đảo Booking";
+
+/**
+ * Chữ breadcrumb trên thanh công việc: `data-title` của trang → nhãn mục điều hướng đang mở → tên app.
+ * Trang chủ và Đơn hàng cố ý KHÔNG khai `data-title` (thuộc tính đó còn đổi cả giao diện điện thoại — ẩn logo và
+ * ẩn `h1` — mà hai màn đó chủ dự án đã duyệt), nên trước đây ô breadcrumb của chúng bỏ trống ở máy tính. Tra nhãn
+ * từ `navGroups` với đủ quyền: đây chỉ là tra NHÃN THEO ĐƯỜNG DẪN (nhãn không phụ thuộc quyền); việc mục nào được
+ * hiện vẫn do `navGroups(admin, office, canCreate)` quyết ở sidebar(), không nới quyền của ai.
+ */
+function barTitleFor(path: string, dataTitle: string | undefined): string {
+  if (dataTitle) return dataTitle;
+  for (const group of navGroups(true, true, true, path)) {
+    const item = group.items.find((it) => it.active(path));
+    if (item) return item.label;
+  }
+  return APP_NAME;
 }
 
 /** Đổi tiêu đề trên thanh đầu trang (điện thoại) sau khi trang biết nội dung, vd mã đơn. */
@@ -225,7 +265,9 @@ export async function initShell(): Promise<Staff> {
     byId("topbar"),
     backLink,
     h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), "Tour Đảo ", h("span", null, "Booking")),
-    title ? h("span", { class: "bar-title", id: "bar-title" }, title) : null,
+    // LUÔN dựng (C-1): ở máy tính đây là breadcrumb của mọi trang. Giao diện điện thoại KHÔNG đổi — luật hiển thị ở
+    // khổ ≤640px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
+    h("span", { class: "bar-title", id: "bar-title" }, barTitleFor(path, title)),
   );
 
   // Sidebar CẦN biết staff (chân thanh: avatar/tên/vai) nên chỉ dựng được SAU KHI đăng nhập xác nhận — khác tab
@@ -233,8 +275,13 @@ export async function initShell(): Promise<Staff> {
   // mất mạng lúc mở trang — nhánh addNav(false) dưới đây không có staff).
   const addNav = (admin: boolean, office = true, canCreate = office, staff: Staff | null = null) => {
     if (staff) {
-      document.body.prepend(sidebar(admin, office, canCreate, path, staff));
+      const badgeLoaders: (() => void)[] = [];
+      const nav = sidebar(admin, office, canCreate, path, staff, badgeLoaders);
+      document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
+      // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
+      // trình duyệt thay vì chép mốc 641px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.
+      if (nav.offsetParent !== null) for (const load of badgeLoaders) load();
     }
     if (tabbar === "off") return;
     document.body.append(tabBar(admin, office, canCreate, path));

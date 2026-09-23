@@ -257,7 +257,9 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 @media (max-width: 640px) {
   #topbar { position: sticky; top: 0; z-index: 20; flex-wrap: nowrap; gap: var(--s2); min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; }
   body[data-title] #topbar .brand { display: none; }
-  .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* `body[data-title]` (C-1): từ nay `.bar-title` LUÔN được dựng để máy tính có breadcrumb trên mọi trang — ở khổ
+     điện thoại chỉ trang tự khai `data-title` mới hiện nó (và mới ẩn logo), đúng như trước, không đổi một chút nào. */
+  body[data-title] .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-back { display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); margin-left: calc(-1 * var(--s3)); color: var(--c-on-dark); }
   /* Tiêu đề đã nằm trên thanh đầu trang nên h1 của trang chỉ ẩn khỏi mắt, KHÔNG display:none: trình đọc màn hình vẫn cần một h1 mỗi trang (axe page-has-heading-one). (.detail-head h1 ẩn ở MỌI khổ — quy tắc riêng cạnh .detail-head, không lặp ở đây.) */
   body[data-title] main > h1 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
