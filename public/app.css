@@ -661,6 +661,10 @@ body.maint-open { overflow: hidden; }
   .lbl-full { display: none; }
   .lbl-short { display: inline; }
 }
+/* Đợt E Phần B: biểu tượng trang trí đi kèm chữ (nhãn ô số liệu, tiêu đề khối, dòng SĐT…) — luôn `aria-hidden`,
+   không đứng một mình. `svg` không co nhỏ hơn kích thước thật đã đặt ở lời gọi `icon()` khi nằm trong hàng flex hẹp. */
+.icon-label { display: inline-flex; align-items: center; gap: var(--s1); }
+.icon-label svg { flex: none; }
 .dash-grid { display: block; }
 .dash-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
 .dash-stat { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }

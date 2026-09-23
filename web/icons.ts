@@ -39,6 +39,23 @@ const SHAPES = {
     ["path", { d: "M4.5 5.5h15v10.5H9.5l-5 4V5.5z" }],
     ["path", { d: "M8.5 9.5h7M8.5 12.5h4.5" }],
   ],
+  // Đợt E (thẻ đơn rút gọn + biểu tượng Trang chủ): 7 hình mới, cùng khuôn 24×24, cùng phong cách nét mảnh không tô đặc.
+  "doc-check": [["rect", { x: 6, y: 3, width: 12, height: 18, rx: 2 }], ["path", { d: "M9 12.6l2 2 4-5.4" }]],
+  money: [["rect", { x: 3, y: 7, width: 18, height: 11, rx: 2 }], ["circle", { cx: 12, cy: 12.5, r: 2.6 }]],
+  assign: [
+    ["circle", { cx: 9, cy: 8, r: 3.2 }],
+    ["path", { d: "M3 20c0-3.6 2.8-5.6 6-5.6s6 2 6 5.6" }],
+    ["circle", { cx: 18, cy: 7, r: 3.4 }],
+    ["path", { d: "M18 5.4v3.2M16.4 7h3.2" }],
+  ],
+  clock: [["circle", { cx: 12, cy: 12.5, r: 8.5 }], ["path", { d: "M12 7.5v5l3.5 2" }]],
+  chart: [["path", { d: "M4 20V13" }], ["path", { d: "M9.5 20V6" }], ["path", { d: "M15 20V15.5" }], ["path", { d: "M20 20V10" }]],
+  handset: [
+    ["path", {
+      d: "M5.5 4.5c-1 0-1.8.9-1.6 1.9.6 3.3 2.2 6.3 4.4 8.5s5.2 3.8 8.5 4.4c1 .2 1.9-.6 1.9-1.6v-1.9a1.2 1.2 0 0 0-.9-1.2l-3-.8a1.2 1.2 0 0 0-1.2.3l-1 1.1a10.7 10.7 0 0 1-4.6-4.6l1.1-1a1.2 1.2 0 0 0 .3-1.2l-.8-3a1.2 1.2 0 0 0-1.2-.9H5.5z",
+    }],
+  ],
+  guests: [["circle", { cx: 12, cy: 8, r: 3.6 }], ["path", { d: "M4.5 20c0-4 3-6 7.5-6s7.5 2 7.5 6" }]],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
