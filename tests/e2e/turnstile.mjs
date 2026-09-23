@@ -30,7 +30,7 @@ let r = await call(null, "GET", "/api/auth/config");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.match(r.headers.get("content-type"), /^application\/json/);
 assert.equal(r.headers.get("cache-control"), "no-store");
-// passkey: true — giá trị THẬT (Task 7: passkeyRelyingParty(env) !== null); run.mjs chưa ghi đè PASSKEY_RP_ID/PASSKEY_ORIGIN nên wrangler dev dùng `vars` (production) của wrangler.jsonc — T9 sẽ đặt giá trị e2e riêng.
+// passkey: true — giá trị THẬT (Task 7: passkeyRelyingParty(env) !== null); run.mjs đặt PASSKEY_RP_ID=127.0.0.1 / PASSKEY_ORIGIN=<base> riêng cho e2e (Task 9), không lệ thuộc `vars` production của wrangler.jsonc.
 assert.deepEqual(r.body, { turnstileSiteKey: TURNSTILE_TEST.siteKey, maintenance: { on: false, endsAt: null }, passkey: true }, "server e2e phải được bật Turnstile bằng khoá thử (run.mjs truyền --var TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY); chế độ bảo trì TẮT (chi tiết ở maintenance.mjs)");
 assert.doesNotMatch(JSON.stringify(r.body), /secret|1x0000000000000000000000000000000AA/i, "tuyệt đối không lộ khoá bí mật");
 assert.deepEqual((await call(ADMIN, "GET", "/api/auth/config")).body, r.body, "đã đăng nhập cũng thấy như nhau");
