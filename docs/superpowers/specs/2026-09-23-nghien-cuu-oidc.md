@@ -164,7 +164,7 @@ Do đó:
 - **PIN giữ nguyên** (đường dự phòng, và là cách duy nhất chắc chắn cho Super Admin).
 - **Zalo để lát sau**, ADR riêng.
 
-Đã soạn thành `docs/adr/ADR-0015-dang-nhap-nhanh-passkey-google-oidc.md` (**proposed**, chờ chủ duyệt).
+Đã soạn thành `docs/adr/ADR-0016-dang-nhap-nhanh-passkey-google-oidc.md` (nháp đầu mang số 0015, đổi số 2026-09-23 vì 0015 dành cho ADR khung điều hướng dọc) (**proposed**, chờ chủ duyệt).
 
 Bẫy kỹ thuật riêng của passkey (bổ sung §5.3):
 - Đăng ký phải lấy khoá công khai. `getPublicKey()` của trình duyệt có báo cáo không đồng nhất giữa các trình duyệt, nên an toàn hơn là tự giải mã `attestationObject`: một bộ giải CBOR tối thiểu, có test.
