@@ -60,6 +60,9 @@ Phán quyết thắng chữ kế hoạch khi hai bên mâu thuẫn. Lý do chi t
 9. **Kịch bản Chrome cũ chạy với Face ID TẮT** (`PASSKEY_*` rỗng). Chỉ `passkey-smoke.mjs` bật.
 10. **Dòng đồng tác giả:** vài commit (b73418d, 9708383, 10a1c0b, a5ce1c2, 6db332c) ghi đúng tên mô hình thật đã viết commit đó. Không viết lại lịch sử; chủ muốn thì amend trước khi push.
 11. **Kịch bản e2e `web/CLAUDE.md`:** Task 11 thêm một dòng vào bảng kịch bản Chrome để đăng ký `passkey-smoke.mjs` (commit a5ce1c2). Dòng này do điều phối cho phép. Nó không đổi nghĩa quy tắc, nhưng vẫn là sửa tệp luật, nên **chủ xem lại** (`git show a5ce1c2 -- web/CLAUDE.md`).
+13. **Task 0:** không sửa mã trang thử cho lỗi bấm quá sớm; chỉ dặn chủ "chờ 1–2 giây, nút 1/2 báo lỗi ngay thì bấm lại". Kết quả thật không có dòng lỗi giả nào.
+14. **Task 5, siết thêm ngoài kế hoạch:** `issueChallenge` ném lỗi khi staffId/extra chứa `.` hoặc bằng `-`; `readChallenge` đòi chữ ký base64url dạng chuẩn; có test chứng minh token ký bằng khoá phiên thô bị từ chối.
+15. **Task 8 tách 8a/8b; Task 9 bỏ assert "ngưng → khoá bị gỡ"** (để lại chú thích `// 8b`).
 12. **I-1 (rà toàn nhánh):** 4 route (xem danh sách, gỡ một, gỡ hết, admin gỡ hết) nay trả 503 khi tắt, đúng đặc tả. Khi tắt, chỉ còn cách "đặt lại PIN" để gỡ khoá.
 
 ## 8b: việc còn lại, CHẶN phát hành
