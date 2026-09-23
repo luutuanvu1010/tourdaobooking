@@ -17,6 +17,20 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 
+// A-3 (Đợt D Task 6, F cũ = A-3 của brief): trần bề rộng kỳ vọng của <main> phải đến từ một NGUỒN ĐỘC LẬP với
+// trang đang kiểm — đọc THẲNG văn bản public/app.css bằng regex, không đọc getComputedStyle(main).maxWidth của
+// chính trang (nếu ai gõ sai giá trị --w-main/--w-form NGAY TRONG CSS thì cả "giá trị đo" lẫn "giá trị kỳ vọng" cũ
+// đều sai giống nhau, lưới không bắt được — người kiểm độc lập chỉ ra khẳng định cũ tự so với chính mình).
+const APP_CSS = readFileSync("public/app.css", "utf8");
+const cssTokenPx = (name) => {
+  const m = new RegExp(`${name}:\\s*([\\d.]+)px`).exec(APP_CSS);
+  assert.ok(m, `A-3: không đọc được token ${name} từ public/app.css bằng regex — CSS đã đổi cú pháp?`);
+  return Number(m[1]);
+};
+const CSS_W_MAIN = cssTokenPx("--w-main");
+const CSS_W_FORM = cssTokenPx("--w-form");
+ok(`A-3: đọc token trần bề rộng THẲNG từ văn bản public/app.css (độc lập với trang đang kiểm) — --w-main=${CSS_W_MAIN}px, --w-form=${CSS_W_FORM}px`);
+
 const TODAY = vnDate(0);
 const TOMORROW = vnDate(1);
 const OTHER_DATE = vnDate(5); // xa hôm nay, cùng tuần hiện tại (revenueWeek tính theo createdAt, không theo ngày đón)
@@ -738,7 +752,7 @@ try {
   // ==================================================================================================
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null },
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN },
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -749,6 +763,10 @@ try {
         // lỗi 900–928px không tái hiện được và lưới xanh giả.
         ready: `/^Sửa đơn TD-/.test(document.querySelector('.bar-title').textContent.trim())`,
         expectTitlePrefix: "Sửa đơn TD-",
+        // `main.form-page { max-width: var(--w-form) }` (public/app.css) chỉ nằm TRONG `@media (min-width: 960px)`
+        // (cùng khối bật bố cục 2 cột form+tóm tắt) — dưới 960px trang Lập đơn vẫn dùng trần chung --w-main
+        // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
+        mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
       },
       {
         path: "/audit",
@@ -756,6 +774,7 @@ try {
         widths: [641, 645, 650, 700, 768, 900, 1040, 1920],
         // Ô chọn chỉ đạt bề rộng thật sau khi web/audit.ts sinh đủ optgroup/option từ src/shared/audit-actions.ts.
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
+        mainCap: () => CSS_W_MAIN,
       },
     ];
 
@@ -776,10 +795,14 @@ try {
         let rows = kids.length === 0 ? 0 : 1;
         for (let i = 1; i < kids.length; i++) if (kids[i].top >= kids[i - 1].bottom - 1) rows++;
         const navLinks = [...document.querySelectorAll('#sidebar .sidebar-item, #tabbar .tab')].filter(vis);
-        // Vòng sửa 2: chiều cao đã ghim + KHÔNG gãy dòng nữa, nên topbarRows/topbarContentOverflow từ nay
-        // KHÔNG THỂ đổi giá trị — chúng chỉ còn là chứng nhân lịch sử. Phép đo THẬT SỰ chặn hồi quy "nút đè lên
-        // tiêu đề trang" là bộ ba dưới đây: đáy nút so với đáy thanh, đỉnh main so với đáy thanh, và chiều cao
-        // thanh so với token (nút gãy chữ hai dòng sẽ đẩy chiều cao vượt 60px vì nay dùng min-height).
+        // SỬA (Đợt D Task 6, A-2 — chú thích cũ dưới đây SAI, người kiểm độc lập chỉ ra): vòng sửa 2 từng ghi
+        // "topbarRows/topbarContentOverflow từ nay KHÔNG THỂ đổi giá trị — chỉ còn là chứng nhân lịch sử". SAI: BA
+        // hướng kiểm độc lập hoàn nguyên flex-wrap: nowrap (public/app.css) rồi chạy lại lưới THẬT và đều thấy
+        // CHÍNH topbarRows đỏ ĐẦU TIÊN (đo được giá trị 2, tức gãy 2 dòng) — hai khẳng định này vẫn đang canh việc,
+        // và là phép đo BẮT ĐƯỢC lỗi gốc "gãy dòng vì thừa flex-wrap: wrap" sớm nhất. Bộ ba dưới đây (đáy nút so với
+        // đáy thanh, đỉnh main so với đáy thanh, chiều cao thanh so với token) là phép đo BỔ SUNG, chặn đúng dạng hồi
+        // quy cụ thể "nút đè lên tiêu đề trang" mà topbarRows/topbarContentOverflow không tự phân biệt được — cả hai
+        // bộ khẳng định đều cần giữ, không cái nào là "chứng nhân lịch sử" chết cả.
         const btn = document.querySelector('.topbar-new');
         const title = document.querySelector('.bar-title');
         const btnR = btn && vis(btn) ? btn.getBoundingClientRect() : null;
@@ -792,6 +815,10 @@ try {
           newBtnHeight: btnR ? Math.round(btnR.height) : null,
           // >0 nghĩa là breadcrumb đang bị CẮT CHỮ (hành vi mong muốn khi thanh chật) chứ không đẩy nút xuống dòng.
           barTitleClipped: title && vis(title) ? title.scrollWidth - title.clientWidth : null,
+          // A-1.1 (Đợt D Task 6, siết lưới): đo THẬT hai thuộc tính làm chữ CẮT chứ không gãy dòng — đo cùng lúc với
+          // barTitleClipped để khẳng định dưới đây kiểm cả giá trị số (scrollWidth>clientWidth) LẪN cơ chế CSS gây ra nó.
+          barTitleOverflow: title && vis(title) ? getComputedStyle(title).overflow : null,
+          barTitleTextOverflow: title && vis(title) ? getComputedStyle(title).textOverflow : null,
           mainMaxWidth: parseFloat(getComputedStyle(main).maxWidth),
           sidebarShown: vis(sb),
           sidebarWidth: vis(sb) ? Math.round(sbr.width) : 0,
@@ -820,6 +847,7 @@ try {
       })()`);
 
     let pFrame = null; // trang /staff được GIỮ MỞ để G-2/G-3 dùng tiếp; hai trang kia đóng ngay sau khi quét xong.
+    let sawRealClip = false; // A-1.1: phải THẬT SỰ đo được ít nhất một lần breadcrumb bị cắt trong lượt quét dưới đây, không thì khẳng định trên chỉ là lưới giả (không bao giờ chạy tới).
     for (const spec of FRAME_PAGES) {
     const page = await env.as(ACCOUNTS.admin, spec.path, DESK);
     await page.waitFor("document.querySelector('#sidebar') !== null", `thanh bên dựng xong (${spec.label})`);
@@ -867,10 +895,14 @@ try {
         );
         // A-2: ô tìm kiếm chỉ từ 900px (ở 641px cột nội dung còn ~405px, thanh gãy 2 dòng cao 128px).
         assert.equal(f.searchShown, width >= 900, `${at}: ô tìm kiếm phải ${width >= 900 ? "HIỆN" : "ẨN"} ở khổ này — ${JSON.stringify(f)}`);
-        // A-3: main lấp hết cột nội dung tới trần của CHÍNH TRANG ĐÓ — đọc max-width đã tính, không đọc token
-        // --w-main: trang Lập đơn dùng trần riêng --w-form (1120px), lấy token chung sẽ báo đỏ oan.
-        const expectMain = Math.min(f.contentColumn, f.mainMaxWidth);
-        assert.ok(Math.abs(f.mainWidth - expectMain) <= 1, `${at}: <main> rộng ${f.mainWidth}px, phải là min(cột nội dung ${f.contentColumn}, trần ${f.mainMaxWidth}) = ${expectMain}px — ${JSON.stringify(f)}`);
+        // A-3 (Đợt D Task 6 — siết thêm, người kiểm độc lập tìm ra): trần bề rộng kỳ vọng đọc từ `spec.mainCap(width)`
+        // (token đọc THẲNG từ văn bản public/app.css, độc lập với trang đang kiểm — xem đầu tệp), KHÔNG còn đọc
+        // `f.mainMaxWidth` (getComputedStyle của CHÍNH trang) làm "giá trị kỳ vọng": nếu ai gõ sai --w-main/--w-form
+        // ngay trong CSS thì cả hai vế cũ đều sai giống nhau, lưới không bắt được.
+        const mainCap = spec.mainCap(width);
+        assert.equal(f.mainMaxWidth, mainCap, `${at}: max-width thật của <main> (${f.mainMaxWidth}px) phải khớp token đọc từ public/app.css (${mainCap}px) — CSS cascade đang ghi đè bằng thứ khác?`);
+        const expectMain = Math.min(f.contentColumn, mainCap);
+        assert.ok(Math.abs(f.mainWidth - expectMain) <= 1, `${at}: <main> rộng ${f.mainWidth}px, phải là min(cột nội dung ${f.contentColumn}, trần ${mainCap}) = ${expectMain}px — ${JSON.stringify(f)}`);
         assert.equal(f.mainLeft, f.sidebarWidth, `${at}: <main> phải BÁM MÉP TRÁI ngay sau thanh bên (lề trái = ${f.sidebarWidth}px), không tự căn giữa — ${JSON.stringify(f)}`);
         // C-1: breadcrumb ở máy tính (cả ba trang đều khai data-title).
         assert.equal(f.barTitleShown, true, `${at}: breadcrumb phải hiện ở máy tính — ${JSON.stringify(f)}`);
@@ -881,6 +913,16 @@ try {
             f.barTitleText.startsWith(spec.expectTitlePrefix),
             `${at}: breadcrumb phải là "${spec.expectTitlePrefix}…" (đo sớm hơn setBarTitle() thì lưới xanh giả vì chữ tĩnh ngắn hơn) — ${JSON.stringify(f)}`,
           );
+        }
+        // A-1.1 (Đợt D Task 6, người kiểm độc lập tìm ra): "biện pháp 2" (breadcrumb co-cắt-chữ, public/app.css ~372)
+        // không có ai canh — gỡ RIÊNG nó (overflow/text-overflow/white-space của .bar-title) vẫn xanh hoàn toàn vì
+        // KHÔNG khổ/trang nào trong lưới cũ đo breadcrumb THẬT SỰ bị cắt. Đo giá trị thật (scrollWidth > clientWidth,
+        // không chỉ kiểm thuộc tính CSS có tồn tại) + cơ chế CSS gây ra nó, CHỈ khi khổ này THẬT SỰ cắt (barTitleClipped
+        // > 0 — đo được ở /order-form?id=… 900px cắt 14px, 910px cắt 4px, các khổ khác = 0 nên không cần giả định trước).
+        if (f.barTitleClipped > 0) {
+          assert.equal(f.barTitleOverflow, "hidden", `${at}: breadcrumb đang bị cắt thật (${f.barTitleClipped}px, scrollWidth>clientWidth) nhưng overflow không phải "hidden" — ${JSON.stringify(f)}`);
+          assert.equal(f.barTitleTextOverflow, "ellipsis", `${at}: breadcrumb đang bị cắt thật nhưng text-overflow không phải "ellipsis" (không hiện dấu …) — ${JSON.stringify(f)}`);
+          sawRealClip = true;
         }
       }
     }
@@ -901,6 +943,11 @@ try {
     else page.close();
     }
     assert.ok(pFrame, "G-1: phải giữ được trang /staff đang mở cho G-2/G-3");
+    // A-1.1: nếu lượt quét này KHÔNG hề gặp một khổ/trang nào có breadcrumb thật sự bị cắt thì khẳng định overflow/
+    // text-overflow ở trên chưa từng chạy — lưới giả. Phải nổ ra ở đây để không lặng lẽ mất tác dụng nếu sau này ai
+    // đổi widths/breadcrumb làm hết trường hợp bị cắt.
+    assert.ok(sawRealClip, "A-1.1: không đo được lần nào breadcrumb THẬT SỰ bị cắt chữ (scrollWidth>clientWidth) trong toàn bộ lượt quét — khẳng định overflow/text-overflow chưa từng chạy, cần khổ hoặc trang khác");
+    ok(`A-1.1: đã đo được ít nhất một lần breadcrumb thật sự bị cắt (scrollWidth>clientWidth) và xác nhận overflow:hidden + text-overflow:ellipsis đang có tác dụng`);
 
     // ================================================================================================
     // G-2 (B — quyết định 8 của chủ dự án): huy hiệu cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN (draftCount = 1,
