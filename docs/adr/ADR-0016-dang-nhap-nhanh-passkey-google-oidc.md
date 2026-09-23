@@ -2,7 +2,7 @@
 
 - **Trạng thái:** **proposed** (AI soạn 2026-09-23, chờ chủ dự án duyệt). Sau khi accepted chỉ sửa trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
   - Bản nháp đầu mang số 0015. Chủ dự án chốt số 0015 cho ADR "khung điều hướng dọc" (nhánh Trang chủ mới), nên ADR này đổi sang 0016 (2026-09-23).
-  - Bản sửa 2026-09-23 đã áp 5 câu trả lời của chủ sau vòng nhận xét: nhập lại PIN trước khi thêm chìa khoá (điều 2a); gỡ chìa khoá thì đăng xuất mọi máy (điều 6); lời mời có cảnh báo máy riêng (điều 2); đặt PIN mới bằng Face ID (điều 2b); số ADR.
+  - Bản sửa 2026-09-23 (chiều) đã áp 5 câu trả lời của chủ ở **vòng nhận xét ADR**, khác với 5 câu trả lời vòng nghiên cứu ghi ở Bối cảnh. Chi tiết kỹ thuật đi kèm (bộ chống dò, "lần ký passkey mới", mục lưu ý ở điều 8) là AI suy ra cho khớp mã hiện có; chủ xác nhận khi duyệt: nhập lại PIN trước khi thêm chìa khoá (điều 2a); gỡ chìa khoá thì đăng xuất mọi máy (điều 6); lời mời có cảnh báo máy riêng (điều 2); đặt PIN mới bằng Face ID (điều 2b); số ADR.
 - **Ngày:** 2026-09-23   **Người phê chuẩn:** chủ dự án (chưa duyệt)
 - **Loại quyết định:** **cửa hai chiều** cho hành vi: tắt nút là quay về chỉ PIN; bảng mới chỉ thêm, không đổi bảng cũ. **Một chiều nhẹ** cho dữ liệu: migration thêm bảng đã áp remote thì không gỡ tệp (quy tắc migration), nhưng bảng có thể bỏ không dùng.
 - **Liên quan:**
@@ -100,7 +100,8 @@
 - **Bộ đếm chữ ký.** Passkey đồng bộ iCloud thường luôn báo 0. Không từ chối khi bộ đếm là 0; chỉ coi là bất thường khi cả hai giá trị khác 0 mà giá trị mới không tăng.
 - **`rpId` cố ý là `booking.tourdao.vn`, không phải `tourdao.vn`.** Website công khai là repo và Worker khác (CLAUDE.md §1); dùng tên miền gốc thì trang đó cũng xin ký passkey được.
 - **Tên hiển thị của passkey không chứa SĐT** (hiện trong danh sách passkey của máy). `user.id` là giá trị ngẫu nhiên, không lộ thông tin cá nhân.
-- **"Đăng nhập gần nhất" không còn chỉ ghi ở route đăng nhập PIN.** Khi thi công phải sửa cùng lúc `docs/SYSTEM-DESIGN.md` §4 và `docs/CHANGE-GUIDE.md` công thức q. Câu tương ứng ở `CLAUDE.md` §10 chỉ được **đề xuất** sửa, chủ duyệt (N9).
+- **"Đăng nhập gần nhất" không còn chỉ ghi ở route đăng nhập PIN.** Khi thi công phải sửa cùng lúc `docs/SYSTEM-DESIGN.md` §4, `docs/CHANGE-GUIDE.md` công thức q và các chú thích trong mã nói điều tương tự (hiện ở `src/modules/staff/index.ts`, `src/modules/accounts/index.ts`).
+- **Đẩy `credentials_changed_at` khi gỡ chìa khoá (điều 6)** cần một câu lệnh ghi mới trên bảng `staff`. Câu lệnh đó thuộc module `staff` (chỉ module chủ ghi bảng của mình, ADR-0002); module `auth` gọi qua `index.ts`. Câu tương ứng ở `CLAUDE.md` §10 chỉ được **đề xuất** sửa, chủ duyệt (N9).
 
 **9. Thứ tự giao hàng:**
 - **Lát 0**, cổng đi/không đi: thử trên iPhone thật ở chế độ app cài. Passkey tạo và đăng nhập được. Google quay lại được app và giữ phiên.
@@ -126,6 +127,12 @@
   - Passkey trên iPhone lưu và đồng bộ qua tài khoản Apple của **chủ máy**, và mở được bằng Face ID **hoặc mật mã máy**. Nhân viên khác bật passkey trên máy dùng chung thì ai biết mật mã máy cũng vào được tài khoản đó.
     - Giảm nhẹ: cảnh báo "chỉ bật trên điện thoại riêng" cộng nhập lại PIN (điều 2, 2a).
     - Không chặn được bằng mã, nên phần còn lại **dựa vào kỷ luật**. Người dùng máy chung vẫn đăng nhập bằng PIN như cũ.
+    - **Chuỗi rủi ro nặng hơn "vào được" (người kiểm độc lập nêu 2026-09-23):** passkey đã lỡ bật trên máy dùng chung thì người biết mật mã máy có thể:
+      1. đặt PIN mới qua điều 2b mà không cần PIN cũ;
+      2. dùng chính PIN mới đó để vượt bước nhập lại PIN ở điều 2a;
+      3. gắn passkey hoặc Google của mình, tức **chiếm hẳn tài khoản**.
+    - Điều 2a không chặn được chuỗi này vì kẻ đó biết PIN hợp lệ. Dấu hiệu duy nhất với nạn nhân là PIN của họ không còn đúng. Khi đó admin "Đặt lại PIN" gỡ hết chìa khoá và đăng xuất mọi máy (điều 6).
+    - Chủ đã chấp nhận hai điều 2a và 2b; ghi ở đây để duyệt khi biết đủ. Muốn siết thêm thì cần quyết định mới, ví dụ báo cho người dùng khi PIN bị đặt lại qua Face ID.
   - Thêm một bước nhập PIN khi bật Face ID hoặc gắn Google (một lần mỗi chìa khoá).
 - **Rủi ro còn mở:**
   - Hành vi thật trên iPhone chưa thử (lát 0).
@@ -141,6 +148,8 @@
 6. Nhật ký không chứa email, `sub`, id khoá, token.
 7. Thêm passkey hoặc liên kết Google khi không nhập lại PIN, hoặc nhập sai PIN → bị từ chối. Nhập sai tính vào cùng bộ đếm chống dò của đăng nhập.
 8. Gỡ passkey hoặc liên kết Google (người dùng hoặc admin) → phiên trên các máy khác của tài khoản đó bị từ chối ở request kế tiếp. Người dùng tự gỡ thì máy đang thao tác vẫn đăng nhập.
-9. Đặt PIN mới không cần PIN cũ: thành công với một lần xác nhận passkey mới, đúng thách thức "đặt PIN". Bị từ chối nếu chỉ có phiên mà không có lần xác nhận đó, hoặc nếu dùng lại thách thức của lần đăng nhập.
+9. Đặt PIN mới không cần PIN cũ: thành công với một lần xác nhận passkey mới, đúng thách thức "đặt PIN". Sau đó các máy khác bị đăng xuất, máy hiện tại vẫn đăng nhập. Bị từ chối nếu chỉ có phiên mà không có lần xác nhận đó, hoặc nếu dùng lại thách thức của lần đăng nhập.
+   - Người dùng tự đổi PIN: passkey và liên kết Google **vẫn còn hiệu lực**; màn hình hiện danh sách kèm "Gỡ tất cả", bấm thì gỡ hết và áp tiêu chí 8.
+   - Lời mời "Bật đăng nhập bằng Face ID?" có câu "Chỉ bật trên điện thoại riêng của bạn" (kịch bản Chrome kiểm chữ).
 10. Cookie tạm (thách thức, `state`) đặt vào chỗ `td_session` → không được coi là phiên đăng nhập.
 11. Passkey báo bộ đếm 0 ở mọi lần ký vẫn đăng nhập được.
