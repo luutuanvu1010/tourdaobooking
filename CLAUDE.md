@@ -22,6 +22,7 @@ Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặ
   - Chạm dữ liệu, logic, hợp đồng giữa các phần (module/API/schema) hoặc bất biến: **luôn DỪNG và hỏi**, dù nhỏ.
   - Chỉ bề mặt và đảo ngược được: tự đưa giả định, ghi lại trong commit/báo cáo, đi tiếp.
   - Không chắc thuộc loại nào thì coi là cấu trúc và dừng.
+  - "Dừng" chỉ áp cho **phần việc phụ thuộc câu trả lời**. Trước khi hỏi: gom mọi câu đang có vào **một lần hỏi**, và giao chạy nền phần việc không phụ thuộc câu trả lời (câu hỏi chặn cả phiên đến khi chủ trả lời). **Không hỏi lại điều đặc tả/kế hoạch đã chốt**: tự áp dụng, ghi lại. (Bài học Trang chủ mới 2026-09-23: một câu hỏi lúc đêm treo ~5 giờ, kéo theo cả phần API vốn không phụ thuộc.)
 - **Mỗi phiên một vai cho cùng một việc**: lập kế hoạch, thi công, hoặc kiểm (P15). **Người thi công KHÔNG tự nghiệm thu** (N8).
 - **Việc lớn** = đụng **dữ liệu** (schema, migration, dữ liệu thật), **quyền** (`permissions.ts`, tài khoản), **tiền** (tính/hiển thị tiền), **triển khai** (deploy, cấu hình Cloudflare) hoặc **luật** (tài liệu chuẩn tắc, hook, CLAUDE.md).
   - Thi công xong phải có **subagent kiểm độc lập, chỉ đọc**: đọc mã thật, chạy lại lệnh, chỉ báo cáo, không sửa. Chỉ báo "đạt" dựa trên báo cáo đó + test, không tự khai.
