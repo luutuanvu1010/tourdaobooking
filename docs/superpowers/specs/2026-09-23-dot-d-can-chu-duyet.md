@@ -8,6 +8,26 @@ hướng đi) ở cuối.
 
 ---
 
+## 0. ƯU TIÊN CAO NHẤT — Mục lục ADR (`docs/adr/README.md`) thiếu hàng ADR-0015
+
+**Đề xuất gì:** thêm một hàng cho ADR-0015 vào bảng mục lục `docs/adr/README.md`, ngay sau hàng ADR-0014 (dòng 20).
+
+**Bằng chứng:** `docs/adr/ADR-0015-khung-dieu-huong-doc.md` tồn tại, `Trạng thái: accepted` (chủ dự án duyệt trực tiếp trong phiên chat 2026-09-23), nhưng bảng mục lục ở `docs/adr/README.md` dừng ở ADR-0014 — không có hàng ADR-0015. Kiểm toàn cục xác nhận (Đợt D Task 7).
+
+**Vì sao ưu tiên cao nhất:** `CLAUDE.md` §6 chỉ dẫn: việc kiến trúc thì **đọc mục lục rồi mới đọc ADR liên quan**. Người/AI phiên sau làm đúng chỉ dẫn đó sẽ không bao giờ thấy ADR-0015 trong mục lục, dễ tưởng khung điều hướng dọc (thanh bên, `/` là Trang chủ) chưa được duyệt chính thức và sửa lại — xoá đúng phần vừa được chủ dự án chốt.
+
+**Đề xuất — diff chính xác** (thêm một hàng, không đổi hàng nào khác):
+```diff
+ | [0014](ADR-0014-tai-khoan-doi-tac-super-admin-va-sua-sau-xac-nhan.md) | Mã quyền mới `PARTNER`/`SUPER_ADMIN`, ba cấp "người phụ trách"; phạm vi "của mình" thực thi ở máy chủ (thay ADR-0010 điều 1); `FIELD` được sửa số khách/dịch vụ/tiền và huỷ đơn (kèm lý do) sau xác nhận qua dòng điều chỉnh chỉ-thêm; đối tác ngoài "xin nhận rồi nhân viên duyệt"; Admin chỉ quản lý tài khoản cấp dưới (sửa một phần ADR-0007/0009/0010, tinh chỉnh ADR-0013) | hỗn hợp (một chiều cho phần tiền/huỷ đơn) | **accepted** (chủ dự án duyệt 2026-09-22) |
++| [0015](ADR-0015-khung-dieu-huong-doc.md) | Khung điều hướng dọc (thanh bên) thay thanh ngang ở máy tính (≥900px theo ADR, mã chạy từ 641px — xem mục 5 dưới đây), giữ thanh tab dưới đáy ở điện thoại; `/` đổi thành Trang chủ, Đơn hàng dời sang `/orders`; huy hiệu số đếm trên thanh bên chỉ hiện khi có nguồn dữ liệu thật | hai chiều (mã); một chiều (thói quen người dùng/địa chỉ PWA đã lưu) | **accepted** (chủ dự án duyệt trực tiếp trong phiên chat 2026-09-23) |
+```
+
+**Vì sao AI không tự thêm dù chỉ là một hàng còn thiếu:** `docs/adr/` thuộc vùng N9 (`CLAUDE.md` §3, §6) — tệp luật, chỉ chủ dự án duyệt mới có hiệu lực, kể cả khi việc thêm chỉ là khôi phục một mục lục cho khớp thực tế đã accepted.
+
+**Nếu không làm:** mục lục tiếp tục im lặng về ADR-0015 — rủi ro đã nêu ở trên.
+
+---
+
 ## 1. Bốn token màu `--c-sidebar-*` — AI tự quyết trước khi hỏi, xin duyệt hồi tố
 
 **Đề xuất gì:** chủ dự án duyệt (hoặc yêu cầu đổi) bốn giá trị màu đã thêm vào `public/app.css` khi thi công Đợt D
@@ -124,6 +144,51 @@ chưa được duyệt thật, dẫn tới hỏi lại chủ một việc đã c
 
 ---
 
+## 5. Dòng lịch sử / ADR mới cho ngưỡng 641px (Task 7, phần B)
+
+**Đề xuất gì:** chủ dự án ra một dòng lịch sử/ADR mới ghi nhận chính thức: ngưỡng hiện thanh bên dọc là **641px**
+(không phải 900px như ADR-0015 điều 1 ghi), theo quyết định 9 mà chủ đã chốt ngày 2026-09-23 sau khi ADR-0015
+accepted (`docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md` dòng 76).
+
+**Vì sao:** mã đã chạy đúng 641px và được đo lại xác nhận nhiều vòng độc lập — đây là **mã đúng, ADR-0015 là tài
+liệu chuẩn tắc lỗi thời** (`CLAUDE.md` §2). Đã ghi ở `docs/SYSTEM-DESIGN.md` §16 (lệch có chủ ý), nhưng đó chỉ là
+tài liệu MÔ TẢ; ADR-0015 (tài liệu CHUẨN TẮC) không được AI tự sửa (N9) nên cần chủ ra quyết định chính thức.
+
+**Việc chủ cần làm — chọn một:**
+1. **ADR mới nhỏ** trỏ về ADR-0015, chỉ sửa điều 1 (900px → 641px), ghi lý do khoảng hở 641–899px.
+2. **Tự sửa** dòng ngưỡng trong ADR-0015 (chủ dự án được quyền sửa tài liệu do mình duyệt; AI thì không).
+3. **Để nguyên**, chỉ dựa vào dòng ghi ở `docs/SYSTEM-DESIGN.md` §16 làm nguồn sự thật — rủi ro: người đọc ADR-0015
+   trực tiếp (không qua §16) vẫn thấy 900px.
+
+**Nếu không làm:** rủi ro đã nêu ở phần B — người/AI phiên sau đọc ADR rồi "sửa mã cho khớp tài liệu", đổi lại
+900px, tái tạo đúng lỗ hổng mất lối điều hướng ở dải 641–899px mà hai vòng sửa trước đã trả giá để vá.
+
+---
+
+## 6. Token `--ls-eyebrow` — chưa hỏi chủ trước khi thêm, xin duyệt hồi tố
+
+**Đề xuất gì:** chủ dự án duyệt (hoặc yêu cầu đổi) giá trị token màu/chữ mới sau đây, đã thêm vào `public/app.css`
+dòng 102 khi thi công Đợt D Task 4:
+```css
+--ls-eyebrow: .08em; /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
+```
+Dùng ở `.sidebar-group-title` (`public/app.css:314`) — khoảng giãn chữ (`letter-spacing`) cho ba nhãn nhóm viết hoa
+trên thanh bên.
+
+**Vì sao đang ở đây:** `web/CLAUDE.md` mục "Hệ thống thiết kế" ghi: *"Màu/chữ mới (thương hiệu hay chức năng), hoặc
+đổi giá trị nhóm đầu: hỏi chủ."* `--ls-eyebrow` là một giá trị chữ MỚI, nằm ở ranh giới "được tự thêm" (kích thước
+giao diện điện thoại/PWA, nhóm "Riêng của Tour Đảo Booking") và "phải hỏi chủ" (chữ mới). Người thi công Task 4 tự
+quyết trước, không hỏi trước khi làm.
+
+**Vì sao rủi ro thấp:** chỉ là khoảng giãn chữ nhỏ (0.08em ≈ gần như không nhận ra bằng mắt thường ở cỡ chữ 12px),
+lấy theo bản mẫu `00 Trang chu v2.dc.html`, không phải màu thương hiệu mới.
+
+**Việc chủ cần làm — chọn một:**
+1. **Duyệt hồi tố**, giữ nguyên `.08em`.
+2. **Yêu cầu đổi** giá trị khác hoặc bỏ hẳn giãn chữ — việc lớn về giao diện, cần chạy lại `trang-chu-smoke.mjs`.
+
+---
+
 ## Nợ đã ghi, chờ chủ chọn (không phải tệp luật — chỉ cần chủ quyết hướng)
 
 ### `/audit` tràn ngang ở khổ điện thoại — lỗi CŨ, có từ trước Đợt D
@@ -166,7 +231,21 @@ vụ đã ẩn (ít khẩn cấp hơn) và **che mất** cảnh báo về dịch
 giá). `moreCount` có báo "còn N dịch vụ khác" nhưng không nói RÕ dịch vụ nào quan trọng hơn. Ghi nợ, không phải
 việc lớn nhưng cần chủ quyết có ưu tiên sửa (vd ưu tiên dịch vụ CHƯA ẩn khi chọn "dịch vụ đầu tiên").
 
+### (Ngoài phạm vi Đợt D, chỉ báo để chủ biết) `GET /api/locations` mở cho MỌI tài khoản đã đăng nhập
+
+Route `GET /api/locations` (`src/modules/locations/index.ts` dòng 30) khai `access: "staff"` — mức truy cập lỏng
+nhất, nghĩa là **bất kỳ tài khoản đã đăng nhập nào** (kể cả `FIELD`/`PARTNER`) gọi được, trong khi mục "Địa điểm"
+trên thanh điều hướng chỉ hiện cho quản trị (`isOffice`/quyền ADMIN). Không phải bí mật nhạy cảm (chỉ là danh sách
+địa điểm đón/trả), nhưng lệch giữa "ai thấy mục trên giao diện" và "ai gọi được API".
+
+**Xác nhận có từ TRƯỚC Đợt D:** `git log --oneline 4e7fcfd..109d05f -- src/modules/locations/` rỗng — không commit
+nào trong 38 commit của Đợt D đụng tới thư mục này. **Không phải lỗi của đợt này, KHÔNG sửa ở đây.**
+
+**Câu hỏi cho chủ:** đây là chủ ý (mọi nhân viên/đối tác cần đọc được danh sách địa điểm, chỉ ai có quyền mới sửa)
+hay cần siết lại `access` xuống `"office"`? Nếu cần siết, đây là việc lớn (đụng quyền, `CLAUDE.md` §3), cần một
+phiên riêng có kiểm độc lập.
+
 ---
 
-*Soạn bởi AI thi công Task 6 (Đợt D), 2026-09-23. Đây là tệp ĐỀ XUẤT — không tự có hiệu lực cho tới khi chủ dự án
-duyệt từng mục.*
+*Soạn bởi AI thi công Task 6 (Đợt D), 2026-09-23; bổ sung mục 0, 5, 6 và mục này bởi AI thi công Task 7 (vòng sửa
+sau kiểm toàn cục), 2026-09-23. Đây là tệp ĐỀ XUẤT — không tự có hiệu lực cho tới khi chủ dự án duyệt từng mục.*
