@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ACCOUNTS, ok, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { ACCOUNTS, ok, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-23-trang-chu-moi";
 const AXE = readFileSync(process.env.AXE_JS, "utf8");
@@ -688,7 +688,308 @@ try {
     assert.equal(mErr.todayBadgeHidden, true, `Trạng thái lỗi: huy hiệu số chuyến hôm nay phải ẨN (chưa từng có số thật) — ${JSON.stringify(mErr)}`);
     await shot(pErr, "trang-chu-loi-khong-co-quyen.png");
     ok(`C) Trạng thái lỗi thật (tài khoản chỉ FIELD, không có quyền văn phòng, điện thoại 390×844): CHỈ banner lỗi hiện ("${mErr.errorText}"), #dash-grid ẨN, #loading đã ẩn`);
+
+    // ================================================================================================
+    // D-1 (Fix round 1 — bằng chứng còn thiếu): THANH BÊN của tài khoản chỉ có quyền FIELD. Bản đồ quyền của
+    // sidebar phải giữ ĐÚNG luật cũ (office/admin/canCreate): FIELD không có quyền văn phòng nên nhóm BÁN HÀNG
+    // và QUẢN TRỊ phải RỖNG, và nhóm rỗng ẩn CẢ TIÊU ĐỀ (đặc tả §3.1) — chỉ còn nhóm "TÔI". "Đăng xuất" vẫn
+    // phải có (đây là lối đăng xuất duy nhất trong khung). Đổi khổ ngay trên trang đang mở, không tải lại.
+    // ================================================================================================
+    await pErr.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+    const fieldNav = await pErr.ev(`(() => {
+      const vis = (el) => !!el && el.offsetParent !== null;
+      const sb = document.querySelector('#sidebar');
+      return {
+        sidebarShown: vis(sb),
+        groupTitles: [...document.querySelectorAll('#sidebar .sidebar-group-title')].map((e) => e.textContent.trim()),
+        labels: [...document.querySelectorAll('#sidebar .sidebar-item-label')].map((e) => e.textContent.trim()),
+        logoutShown: vis(document.querySelector('.sidebar-logout')),
+        badgeCount: document.querySelectorAll('#sidebar .sidebar-item-badge').length,
+      };
+    })()`);
+    assert.equal(fieldNav.sidebarShown, true, `D-1 (FIELD, 1040px): thanh bên phải hiển thị thật — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.groupTitles, ["TÔI"], `D-1 (FIELD): thanh bên chỉ được có nhóm "TÔI" — nhóm BÁN HÀNG/QUẢN TRỊ rỗng phải ẩn CẢ tiêu đề — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.labels, ["Tài khoản", "Góp ý / Báo lỗi"], `D-1 (FIELD): thanh bên chỉ được có 2 mục của nhóm TÔI — ${JSON.stringify(fieldNav)}`);
+    assert.equal(fieldNav.logoutShown, true, `D-1 (FIELD): "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(fieldNav)}`);
+    await shot(pErr, "task-4-sidebar-field-may-tinh.png");
+    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): đúng 1 nhóm ${JSON.stringify(fieldNav.groupTitles)}, đúng 2 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
     pErr.close();
+  }
+
+  // ==================================================================================================
+  // G) ĐỢT D TASK 4 — VÒNG SỬA 1: khung dùng chung (thanh bên + thanh công việc + <main>) của CẢ 12 TRANG.
+  //    Kịch bản cũ chỉ chạy ở 1040px và 390px — đúng hai khổ KHÔNG bộc lộ ba lỗi mà người kiểm độc lập tìm ra.
+  //    Từ nay quét cả dải: 640 (mốc cũ, tab bar) · 641 (mốc mới của thanh bên) · 700 · 768 (iPad dựng đứng) ·
+  //    899 · 900 (mốc bố cục 2 cột của các trang + ô tìm kiếm) · 1040 · 1440 · 1920.
+  //    Đo trên /staff (trang danh sách thường, KHÔNG phải /home — /home tự gọi dashboard nên không đo được
+  //    lời gọi huy hiệu ở mục G-4).
+  // ==================================================================================================
+  {
+    const WIDTHS = [640, 641, 700, 768, 899, 900, 1040, 1440, 1920];
+    const pFrame = await env.as(ACCOUNTS.admin, "/staff", DESK);
+    await pFrame.waitFor("document.querySelector('#sidebar') !== null", "thanh bên dựng xong (/staff)");
+
+    const measureFrame = () =>
+      pFrame.ev(`(() => {
+        const vis = (el) => !!el && el.offsetParent !== null;
+        const root = getComputedStyle(document.documentElement);
+        const sb = document.querySelector('#sidebar');
+        const topbar = document.querySelector('#topbar');
+        const main = document.querySelector('main');
+        const sbr = sb.getBoundingClientRect();
+        const mr = main.getBoundingClientRect();
+        const tbr = topbar.getBoundingClientRect();
+        // Thanh công việc nay có chiều cao GHIM theo token, nên "gãy 2 dòng" KHÔNG còn đo được bằng chiều cao
+        // (gãy thì tràn ra ngoài chứ không làm thanh cao lên). Đo hai cách: nội dung có tràn khỏi ô không, và
+        // có phần tử nào bắt đầu BÊN DƯỚI đáy của phần tử trước nó không (đúng định nghĩa "xuống dòng mới").
+        const kids = [...topbar.children].filter(vis).map((k) => k.getBoundingClientRect());
+        let rows = kids.length === 0 ? 0 : 1;
+        for (let i = 1; i < kids.length; i++) if (kids[i].top >= kids[i - 1].bottom - 1) rows++;
+        const navLinks = [...document.querySelectorAll('#sidebar .sidebar-item, #tabbar .tab')].filter(vis);
+        return {
+          innerWidth,
+          sidebarShown: vis(sb),
+          sidebarWidth: vis(sb) ? Math.round(sbr.width) : 0,
+          sidebarLinks: [...document.querySelectorAll('#sidebar .sidebar-item')].filter(vis).length,
+          tabbarLinks: [...document.querySelectorAll('#tabbar .tab')].filter(vis).length,
+          navLinkCount: navLinks.length,
+          navLabels: navLinks.map((a) => a.textContent.trim()),
+          logoutShown: vis(document.querySelector('.sidebar-logout')),
+          accountLinkShown: [...document.querySelectorAll('#sidebar a, #tabbar a')].some((a) => vis(a) && new URL(a.getAttribute('href'), location.origin).pathname === '/account'),
+          topbarHeight: Math.round(tbr.height * 100) / 100,
+          topbarRows: rows,
+          topbarContentOverflow: topbar.scrollHeight - topbar.clientHeight,
+          barTitleShown: vis(document.querySelector('.bar-title')),
+          barTitleText: document.querySelector('.bar-title')?.textContent.trim() ?? null,
+          brandShown: vis(document.querySelector('#topbar .brand')),
+          searchShown: vis(document.querySelector('.topbar-search')),
+          newBtnShown: vis(document.querySelector('.topbar-new')),
+          mainWidth: Math.round(mr.width),
+          mainLeft: Math.round(mr.left),
+          contentColumn: Math.round(innerWidth - (vis(sb) ? sbr.width : 0)),
+          scrollWidth: document.scrollingElement.scrollWidth,
+          barToken: parseFloat(root.getPropertyValue('--bar-h')),
+          mainToken: parseFloat(root.getPropertyValue('--w-main')),
+          sidebarToken: parseFloat(root.getPropertyValue('--w-sidebar')),
+        };
+      })()`);
+
+    const frameRows = [];
+    for (const width of WIDTHS) {
+      await pFrame.send("Emulation.setDeviceMetricsOverride", { width, height: 800, deviceScaleFactor: 1, mobile: false });
+      const f = await measureFrame();
+      frameRows.push(f);
+      const at = `/staff @ ${width}px`;
+
+      // (d) không tràn ngang — ở MỌI khổ.
+      assert.ok(f.scrollWidth <= f.innerWidth + 1, `${at}: tràn ngang — scrollWidth ${f.scrollWidth} > innerWidth ${f.innerWidth}`);
+      // (a) luôn còn lối điều hướng nhìn thấy được (đây là chính lỗi A-2: ở 641–899px trước sửa, cả hai đều = 0).
+      assert.ok(f.navLinkCount > 0, `${at}: KHÔNG còn lối điều hướng nào nhìn thấy được (sidebar ${f.sidebarLinks}, tabbar ${f.tabbarLinks}) — ${JSON.stringify(f)}`);
+      // (b) luôn còn đường tới "Đăng xuất": ≥641px là nút ngay trong thanh bên; ≤640px là tab "Tôi" → trang /account (thiết kế điện thoại đã duyệt).
+      assert.ok(f.logoutShown || f.accountLinkShown, `${at}: mất cả nút "Đăng xuất" lẫn đường tới trang Tài khoản — ${JSON.stringify(f)}`);
+
+      if (width <= 640) {
+        assert.equal(f.sidebarShown, false, `${at}: thanh bên KHÔNG được hiện ở khổ điện thoại — ${JSON.stringify(f)}`);
+        assert.ok(f.tabbarLinks > 0, `${at}: phải còn thanh tab dưới đáy — ${JSON.stringify(f)}`);
+        assert.equal(f.newBtnShown, false, `${at}: nút "Lập đơn mới" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Đơn mới") — ${JSON.stringify(f)}`);
+      } else {
+        assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, 10, `${at}: thanh bên của ADMIN phải đủ 10 mục — ${JSON.stringify(f)}`);
+        assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
+        assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
+        assert.equal(f.newBtnShown, true, `${at}: nút "Lập đơn mới" phải hiện từ 641px — ${JSON.stringify(f)}`);
+        // C-2: chiều cao thanh công việc đúng token --bar-h (từng là 71px vì nút cao 46px + đệm dọc quyết định chiều cao).
+        assert.ok(Math.abs(f.topbarHeight - f.barToken) <= 1, `${at}: thanh công việc cao ${f.topbarHeight}px, token --bar-h = ${f.barToken}px — ${JSON.stringify(f)}`);
+        // (c) không gãy 2 dòng. Chiều cao đã ghim nên đo bằng SỐ DÒNG thật + nội dung có tràn khỏi ô hay không.
+        assert.equal(f.topbarRows, 1, `${at}: thanh công việc gãy ${f.topbarRows} dòng — ${JSON.stringify(f)}`);
+        assert.ok(f.topbarContentOverflow <= 1, `${at}: nội dung thanh công việc tràn khỏi chiều cao ghim (${f.topbarContentOverflow}px) — ${JSON.stringify(f)}`);
+        // A-2: ô tìm kiếm chỉ từ 900px (ở 641px cột nội dung còn ~405px, thanh gãy 2 dòng cao 128px).
+        assert.equal(f.searchShown, width >= 900, `${at}: ô tìm kiếm phải ${width >= 900 ? "HIỆN" : "ẨN"} ở khổ này — ${JSON.stringify(f)}`);
+        // A-3: main lấp hết cột nội dung tới trần --w-main (1200px), bám mép trái ngay sau thanh bên.
+        const expectMain = Math.min(f.contentColumn, f.mainToken);
+        assert.ok(Math.abs(f.mainWidth - expectMain) <= 1, `${at}: <main> rộng ${f.mainWidth}px, phải là min(cột nội dung ${f.contentColumn}, trần ${f.mainToken}) = ${expectMain}px — ${JSON.stringify(f)}`);
+        assert.equal(f.mainLeft, f.sidebarWidth, `${at}: <main> phải BÁM MÉP TRÁI ngay sau thanh bên (lề trái = ${f.sidebarWidth}px), không tự căn giữa — ${JSON.stringify(f)}`);
+        // C-1: breadcrumb ở máy tính (trang /staff có data-title "Nhân viên").
+        assert.equal(f.barTitleShown, true, `${at}: breadcrumb phải hiện ở máy tính — ${JSON.stringify(f)}`);
+        assert.equal(f.brandShown, false, `${at}: logo/tên app không được lặp lại ở thanh công việc (đã có ở đầu thanh bên) — ${JSON.stringify(f)}`);
+      }
+    }
+    ok(
+      `G-1) Quét 9 khổ màn hình trên /staff (ADMIN) — mốc thanh bên MỚI là 641px:\n` +
+        frameRows
+          .map(
+            (f) =>
+              `      ${String(f.innerWidth).padStart(4)}px: ${f.sidebarShown ? `thanh bên ${f.sidebarLinks} mục` : `thanh tab ${f.tabbarLinks} mục`}` +
+              `, Đăng xuất ${f.logoutShown ? "trong thanh bên" : "qua trang Tài khoản"}` +
+              `, #topbar ${f.topbarHeight}px/${f.topbarRows} dòng, ô tìm ${f.searchShown ? "hiện" : "ẩn"}` +
+              `, main ${f.mainWidth}px (cột ${f.contentColumn}px, lề trái ${f.mainLeft}px), scrollWidth ${f.scrollWidth}`,
+          )
+          .join("\n"),
+    );
+
+    // ================================================================================================
+    // G-2 (B — quyết định 8 của chủ dự án): huy hiệu cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN (draftCount = 1,
+    // chỉ R2), KHÔNG phải tổng số đơn (3). Đo trên chính thanh bên, không đọc lại API.
+    // ================================================================================================
+    await pFrame.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+    await pFrame.waitFor(
+      `[...document.querySelectorAll('#sidebar .sidebar-item')].some((a) => a.querySelector('.sidebar-item-label').textContent.trim() === 'Đơn hàng' && a.querySelector('.sidebar-item-badge'))`,
+      "huy hiệu 'Đơn hàng' xuất hiện trên thanh bên",
+    );
+    const badges = await pFrame.ev(`(() => Object.fromEntries([...document.querySelectorAll('#sidebar .sidebar-item')]
+      .map((a) => [a.querySelector('.sidebar-item-label').textContent.trim(), a.querySelector('.sidebar-item-badge')?.textContent.trim() ?? null])))()`);
+    assert.equal(badges["Đơn hàng"], String(data.draftCount), `G-2: huy hiệu "Đơn hàng" phải = draftCount (${data.draftCount}, số đơn CHƯA XÁC NHẬN), KHÔNG phải tổng số đơn — ${JSON.stringify(badges)}`);
+    assert.equal(badges["Đơn hàng"], "1", `G-2: dữ liệu thử có đúng 1 đơn nháp (R2) nên huy hiệu phải là "1" — ${JSON.stringify(badges)}`);
+    await shot(pFrame, "task-4-thanh-ben-huy-hieu.png");
+    ok(`G-2) Huy hiệu trên thanh bên (ADMIN, 1040px): ${JSON.stringify(badges)} — "Đơn hàng" = ${badges["Đơn hàng"]} đúng bằng draftCount của API (đơn chưa xác nhận), không phải tổng 3 đơn`);
+
+    // ================================================================================================
+    // G-3 (C-3): chân thanh bên (avatar/tên/vai/ĐĂNG XUẤT) phải ở lại trong khung nhìn khi cuộn hết trang dài.
+    // Trước sửa `#sidebar` là position:static nên chân thanh tụt xuống đáy TÀI LIỆU (trang Nhân viên/Nhật ký).
+    // ================================================================================================
+    await pFrame.ev("window.scrollTo(0, document.scrollingElement.scrollHeight); true");
+    await sleep(150);
+    const sticky = await pFrame.ev(`(() => {
+      const r = document.querySelector('.sidebar-logout').getBoundingClientRect();
+      const sb = document.querySelector('#sidebar').getBoundingClientRect();
+      return { scrollY: Math.round(scrollY), docHeight: document.scrollingElement.scrollHeight, viewH: innerHeight, logoutTop: Math.round(r.top), logoutBottom: Math.round(r.bottom), sidebarTop: Math.round(sb.top), sidebarHeight: Math.round(sb.height) };
+    })()`);
+    assert.ok(sticky.scrollY > 0, `G-3: trang /staff ở 1040×800 phải THẬT SỰ cuộn được thì phép đo mới có nghĩa (docHeight ${sticky.docHeight}, viewH ${sticky.viewH}) — ${JSON.stringify(sticky)}`);
+    assert.ok(sticky.logoutBottom <= sticky.viewH + 1 && sticky.logoutTop >= -1, `G-3: sau khi cuộn xuống đáy, nút "Đăng xuất" phải CÒN trong khung nhìn (0…${sticky.viewH}px) — ${JSON.stringify(sticky)}`);
+    await shot(pFrame, "task-4-chan-thanh-ben-sau-khi-cuon.png");
+    ok(`G-3) Cuộn hết /staff ở 1040×800 (cuộn ${sticky.scrollY}px trên tài liệu cao ${sticky.docHeight}px): nút "Đăng xuất" vẫn ở ${sticky.logoutTop}…${sticky.logoutBottom}px, trong khung nhìn cao ${sticky.viewH}px`);
+
+    // Vế hai: khi danh sách mục CAO HƠN khung nhìn, phần mục phải tự cuộn và chân thanh vẫn thấy được.
+    let scrollCase = null;
+    for (const height of [600, 480, 400]) {
+      await pFrame.send("Emulation.setDeviceMetricsOverride", { width: 1040, height, deviceScaleFactor: 1, mobile: false });
+      const s = await pFrame.ev(`(() => {
+        const g = document.querySelector('.sidebar-groups');
+        const f = document.querySelector('.sidebar-foot').getBoundingClientRect();
+        return { groupsScrollHeight: g.scrollHeight, groupsClientHeight: g.clientHeight, canScroll: g.scrollHeight > g.clientHeight + 1, footBottom: Math.round(f.bottom), viewH: innerHeight };
+      })()`);
+      assert.ok(s.footBottom <= s.viewH + 1, `G-3 (1040×${height}): chân thanh bên phải nằm trong khung nhìn — ${JSON.stringify(s)}`);
+      if (s.canScroll) { scrollCase = { height, ...s }; break; }
+    }
+    assert.ok(scrollCase, "G-3: không dựng được tình huống danh sách mục cao hơn khung nhìn (đã thử 1040×600/480/400) — không chứng minh được thanh bên tự cuộn");
+    ok(`G-3b) Thanh bên tự cuộn khi mục dài hơn khung nhìn (1040×${scrollCase.height}): danh sách mục cao ${scrollCase.groupsScrollHeight}px trong ô ${scrollCase.groupsClientHeight}px (cuộn riêng), chân thanh vẫn kết thúc ở ${scrollCase.footBottom}px ≤ ${scrollCase.viewH}px`);
+    pFrame.close();
+
+    // ================================================================================================
+    // G-4 (C-5): huy hiệu chỉ được nạp khi thanh bên THẬT SỰ hiện. Đo LỜI GỌI MẠNG THẬT trên /staff (trang
+    // này không tự gọi ba route đó — /home tự gọi dashboard nên không dùng được để đo).
+    // ================================================================================================
+    const BADGE_ROUTES = ["/api/catalog/admin", "/api/orders/dashboard", "/api/feedback/badge"];
+    const badgeCalls = (page) => BADGE_ROUTES.filter((r) => page.requests.some((q) => q.url.includes(r)));
+
+    const pMobBadge = await env.as(ACCOUNTS.admin, "/staff", MOB);
+    await pMobBadge.waitFor("document.querySelector('#sidebar') !== null", "thanh bên dựng xong (/staff, 390px)");
+    await sleep(2000); // chờ đủ lâu để lời gọi (nếu có) chắc chắn đã bắn — vắng mặt phải là vắng THẬT, không phải đo sớm
+    const mobBadgeCalls = badgeCalls(pMobBadge);
+    assert.deepEqual(mobBadgeCalls, [], `G-4 (390px): KHÔNG được gọi route huy hiệu nào khi thanh bên bị CSS ẩn — đã gọi ${JSON.stringify(mobBadgeCalls)}`);
+    assert.equal(await pMobBadge.ev("document.querySelector('#sidebar').offsetParent !== null"), false, "G-4 (390px): thanh bên phải đang bị ẩn thật");
+    pMobBadge.close();
+
+    const pDeskBadge = await env.as(ACCOUNTS.admin, "/staff", DESK);
+    await pDeskBadge.waitFor("document.querySelector('#sidebar .sidebar-item-badge') !== null", "huy hiệu dựng xong (/staff, 1040px)");
+    const deskBadgeCalls = badgeCalls(pDeskBadge);
+    assert.deepEqual(deskBadgeCalls, BADGE_ROUTES, `G-4 (1040px): phải gọi ĐỦ ba route huy hiệu khi thanh bên đang hiện — chỉ thấy ${JSON.stringify(deskBadgeCalls)}`);
+    pDeskBadge.close();
+    ok(`G-4) Lời gọi huy hiệu theo khổ màn hình (/staff, ADMIN): 390px = ${JSON.stringify(mobBadgeCalls)} (không lời gọi nào), 1040px = ${JSON.stringify(deskBadgeCalls)}. Lưu ý: riêng trang /home tự gọi /api/orders/dashboard nên ở máy tính trang đó có 2 lần gọi — chấp nhận được, giống /catalog.`);
+
+    // ================================================================================================
+    // G-5 (A-1): ô tìm kiếm trên thanh công việc phải LỌC THẬT. Gõ SĐT của R1, Enter, rồi khẳng định
+    // (a) có lời gọi THẬT tới /api/orders kèm q=…, (b) ô tìm của trang (#q) mang đúng chuỗi đó, (c) danh sách
+    // rút lại đúng 1 đơn. Trước sửa: trang tải lại và hiện TOÀN BỘ danh sách (ô tìm là nút chết).
+    // ================================================================================================
+    const NEEDLE = "0900000301"; // SĐT khách của R1
+    const pSearch = await env.as(ACCOUNTS.admin, "/", DESK);
+    await pSearch.waitFor("document.querySelector('.topbar-search') !== null", "ô tìm kiếm trên thanh công việc dựng xong");
+    const before = pSearch.requests.length;
+    // Enter là sự kiện `keydown` thật (setInput() chỉ bắn input/change nên không kích hoạt được nhánh này).
+    await pSearch.ev(`(() => { const el = document.querySelector('.topbar-search'); el.value = ${JSON.stringify(NEEDLE)}; el.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true })); return true; })()`);
+    let hit = null;
+    for (const end = Date.now() + 10000; ; ) {
+      hit = pSearch.requests.slice(before).find((r) => r.url.includes("/api/orders?") && r.url.includes(`q=${NEEDLE}`));
+      if (hit) break;
+      assert.ok(Date.now() < end, `G-5: không thấy lời gọi THẬT nào tới /api/orders kèm q=${NEEDLE} sau khi gõ + Enter — ô tìm kiếm vẫn là nút chết. Các lời gọi đã thấy: ${JSON.stringify(pSearch.requests.slice(before).map((r) => r.url))}`);
+      await sleep(100);
+    }
+    await pSearch.waitFor("document.querySelectorAll('#list .order-row').length > 0", "danh sách đơn đã lọc hiện ra");
+    const searchState = await pSearch.ev(`(() => ({
+      locationSearch: location.search,
+      qValue: document.querySelector('#q').value,
+      rowCount: document.querySelectorAll('#list .order-row').length,
+      rowsText: [...document.querySelectorAll('#list .order-row')].map((r) => r.textContent.replace(/\\s+/g, ' ').trim().slice(0, 80)),
+      emptyHidden: document.querySelector('#empty').hidden,
+    }))()`);
+    assert.equal(searchState.qValue, NEEDLE, `G-5: ô tìm của trang (#q) phải mang đúng chuỗi đã gõ để người dùng thấy mình đang lọc theo gì — ${JSON.stringify(searchState)}`);
+    assert.equal(searchState.rowCount, 1, `G-5: danh sách phải RÚT LẠI đúng 1 đơn (R1) — nếu là 3 thì ô tìm kiếm không lọc gì cả — ${JSON.stringify(searchState)}`);
+    assert.ok(searchState.rowsText[0].includes(NEEDLE), `G-5: đơn còn lại phải đúng là đơn mang SĐT đã tìm — ${JSON.stringify(searchState)}`);
+    await shot(pSearch, "task-4-tim-kiem-da-loc.png");
+    assert.deepEqual(pSearch.consoleErrors, [], `lỗi console (tìm kiếm): ${pSearch.consoleErrors}`);
+    pSearch.close();
+    ok(`G-5) Ô tìm kiếm thanh công việc lọc THẬT: gõ "${NEEDLE}" + Enter → lời gọi ${hit.url.replace(/^https?:\/\/[^/]+/, "")} → #q = "${searchState.qValue}", danh sách còn ${searchState.rowCount}/3 đơn`);
+
+    // ================================================================================================
+    // G-6 (lo ngại riêng, đo để BÁO CÁO): mốc @media (min-width: 640px) của .grid.two/.grid.three (public/app.css
+    // ~dòng 130) nay bắn TRONG cột nội dung chỉ rộng ~405px ở 641px. Trang Lập đơn là nơi dùng .grid nhiều nhất.
+    // ================================================================================================
+    const pForm = await env.as(ACCOUNTS.admin, "/order-form", { width: 641, height: 800, mobile: false });
+    await pForm.waitFor("document.querySelector('#sidebar') !== null", "thanh bên dựng xong (/order-form, 641px)");
+    const formNarrow = await pForm.ev(`(() => {
+      const main = document.querySelector('main');
+      const mr = main.getBoundingClientRect();
+      const worst = [...document.querySelectorAll('main *')].map((el) => Math.round(el.getBoundingClientRect().right - mr.right)).sort((a, b) => b - a)[0];
+      return {
+        innerWidth, scrollWidth: document.scrollingElement.scrollWidth,
+        mainWidth: Math.round(mr.width), mainLeft: Math.round(mr.left),
+        widestOverhangPx: worst,
+        gridCols: [...document.querySelectorAll('main .grid')].map((g) => getComputedStyle(g).gridTemplateColumns),
+      };
+    })()`);
+    assert.ok(formNarrow.scrollWidth <= formNarrow.innerWidth + 1, `G-6: trang Lập đơn ở 641px tràn ngang — scrollWidth ${formNarrow.scrollWidth} > ${formNarrow.innerWidth} — ${JSON.stringify(formNarrow)}`);
+    assert.deepEqual(pForm.consoleErrors, [], `lỗi console (Lập đơn 641px): ${pForm.consoleErrors}`);
+    await shot(pForm, "task-4-lap-don-641.png");
+    pForm.close();
+    ok(`G-6) Trang Lập đơn ở 641px (cột nội dung hẹp nhất có thanh bên): không tràn ngang (scrollWidth ${formNarrow.scrollWidth} ≤ ${formNarrow.innerWidth}), main rộng ${formNarrow.mainWidth}px bám mép trái ${formNarrow.mainLeft}px; lưới trong form: ${JSON.stringify(formNarrow.gridCols)}`);
+
+    // ================================================================================================
+    // G-7 (C-1): breadcrumb trên hai trang KHÔNG khai `data-title` (/ và /home — chủ dự án đã duyệt giao diện
+    // ĐIỆN THOẠI của chúng, nên tuyệt đối không được thêm thuộc tính đó). Hai vế phải cùng đúng:
+    //   · 390px: vẫn hiện LOGO, KHÔNG hiện breadcrumb — y như trước, không đổi một chút nào;
+    //   · 1040px: hiện breadcrumb với nhãn của mục điều hướng đang mở ("Trang chủ" / "Đơn hàng"), không còn ô trống.
+    // ================================================================================================
+    const crumbs = [];
+    for (const [path, expected] of [["/home", "Trang chủ"], ["/", "Đơn hàng"]]) {
+      const pCrumb = await env.as(ACCOUNTS.admin, path, MOB);
+      await pCrumb.waitFor("document.querySelector('#sidebar') !== null", `khung dựng xong (${path})`);
+      const readCrumb = () =>
+        pCrumb.ev(`(() => {
+          const vis = (el) => !!el && el.offsetParent !== null;
+          const t = document.querySelector('.bar-title');
+          return {
+            hasDataTitle: document.body.dataset.title !== undefined,
+            titleInDom: !!t,
+            titleShown: vis(t),
+            titleText: t ? t.textContent.trim() : null,
+            brandShown: vis(document.querySelector('#topbar .brand')),
+          };
+        })()`);
+      const mob = await readCrumb();
+      assert.equal(mob.hasDataTitle, false, `C-1 (${path}): trang này KHÔNG được khai data-title (nó đổi cả giao diện điện thoại đã duyệt) — ${JSON.stringify(mob)}`);
+      assert.equal(mob.titleShown, false, `C-1 (${path}, 390px): breadcrumb KHÔNG được hiện ở điện thoại — giao diện điện thoại phải giữ nguyên — ${JSON.stringify(mob)}`);
+      assert.equal(mob.brandShown, true, `C-1 (${path}, 390px): logo/tên app vẫn phải hiện ở điện thoại — ${JSON.stringify(mob)}`);
+      await pCrumb.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+      const desk = await readCrumb();
+      assert.equal(desk.titleShown, true, `C-1 (${path}, 1040px): breadcrumb PHẢI hiện ở máy tính (trước sửa ô này bỏ trống) — ${JSON.stringify(desk)}`);
+      assert.equal(desk.titleText, expected, `C-1 (${path}, 1040px): breadcrumb phải là nhãn mục điều hướng đang mở ("${expected}") — ${JSON.stringify(desk)}`);
+      crumbs.push(`${path} → điện thoại: logo hiện, breadcrumb ẩn; máy tính: "${desk.titleText}"`);
+      await shot(pCrumb, `task-4-breadcrumb-${path === "/" ? "don-hang" : "trang-chu"}-may-tinh.png`);
+      pCrumb.close();
+    }
+    ok(`G-7) Breadcrumb hai trang không khai data-title — ${crumbs.join(" · ")}`);
   }
 } finally {
   await env.stop();
