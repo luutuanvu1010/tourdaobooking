@@ -66,6 +66,11 @@ export function parseVersionId(output) {
   return m ? m[1] : null;
 }
 
+/** Tên kịch bản e2e đỏ từ đầu ra tests/e2e/run.mjs (dòng "✘ <tên>"; gồm cả "✘ audit-invariants"). Không đọc được → []. */
+export function parseE2eFailures(output) {
+  return [...String(output ?? "").replace(ANSI, "").matchAll(/^✘ (\S+)/gm)].map((m) => m[1]);
+}
+
 /** Tên nhánh an toàn để đưa vào git: không bắt đầu bằng '-' (tránh bị hiểu là tuỳ chọn như --force), chỉ ký tự thường gặp. */
 export const isSafeBranchName = (name) => typeof name === "string" && /^[A-Za-z0-9][A-Za-z0-9._\/-]*$/.test(name) && !name.includes("..");
 
@@ -210,6 +215,19 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date() }
     if (r.code !== 0) return stop(`\`${label}\` đỏ — không áp migration, không deploy.`);
   }
 
+  // 3b. e2e ĐỦ BỘ (như runbook cũ). Đỏ thì KHÔNG tự chặn cũng KHÔNG tự cho qua: nêu kịch bản đỏ và để chủ phán (vd kịch bản
+  // catalog đỏ vì giá trên Google Sheet thật vừa đổi, không phải lỗi mã). Chỉ trả lời đúng `c` mới đi tiếp.
+  log("\n▶ npm run test:e2e (đủ bộ, cần mạng, vài phút)");
+  const e2e = await run("npm", ["run", "test:e2e"], { tee: true });
+  let e2eText = "xanh";
+  if (e2e.code !== 0) {
+    const red = parseE2eFailures(e2e.stdout);
+    const which = red.length ? red.join(", ") : "không đọc được tên kịch bản (xem đầu ra ở trên)";
+    log(`${RED}${BOLD}e2e ĐỎ:${RESET} ${which}`);
+    if (!yes(await ask("Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k) "))) return stop("e2e đỏ — không áp migration, không deploy.");
+    e2eText = `ĐỎ (chủ chọn tiếp tục): ${which}`;
+  }
+
   // 4. migration
   let applied = [];
   let bookmark = null;
@@ -260,6 +278,7 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date() }
   log("\n══════════ DÁN VÀO docs/HANDOFF-N1.md (TRẠNG THÁI TRIỂN KHAI) ══════════");
   log(`- Ngày giờ: ${vnDateTime(now())}`);
   log(`- Commit: ${commit}`);
+  log(`- e2e: ${e2eText}`);
   log(`- Migration đã áp: ${applied.length ? applied.join(", ") : "không có"}`);
   if (bookmark) log(`- Điểm khôi phục Time Travel trước khi áp: ${bookmark}`);
   log(`- Worker Version ID: ${versionId ?? "chưa lấy được (xem đầu ra deploy ở trên hoặc `npx wrangler deployments list`)"}`);

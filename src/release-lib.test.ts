@@ -250,6 +250,7 @@ const TT = "CI=1 npx wrangler d1 time-travel info tourdao-sales-db --json";
 const APPLY = "CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote";
 const DEPLOY = "CI=1 npx wrangler deploy";
 const AUDIT = "node scripts/audit-invariants.mjs --db remote";
+const E2E = "npm run test:e2e";
 function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResult> {
   return {
     "git rev-parse --abbrev-ref HEAD": out("main\n"),
@@ -262,6 +263,7 @@ function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResul
     "npm test": OK,
     "npm run typecheck": OK,
     "npm run build:web": OK,
+    [E2E]: out("▶ platform\n✔ platform (1.0s)\n\nE2E: 17/17 kịch bản xanh\n"),
     [TT]: out('{\n  "bookmark": "00000085-0000024c-00004e3f-abc"\n}\n'),
     [APPLY]: OK,
     [DEPLOY]: out("Uploaded tourdao-sales\nCurrent Version ID: 3245256e-1111-2222-3333-444455556666\n"),
@@ -269,7 +271,7 @@ function tkScript(over: Record<string, RunResult> = {}): Record<string, RunResul
     ...over,
   };
 }
-const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", LIST, "npm test", "npm run typecheck", "npm run build:web"];
+const TK_PREFIX = ["git rev-parse --abbrev-ref HEAD", "git status --porcelain", "git fetch origin", "git rev-parse main", "git rev-parse origin/main", "git log -1 --oneline --no-decorate main", LIST, "npm test", "npm run typecheck", "npm run build:web", E2E];
 const NOW = () => new Date("2026-09-23T03:04:05.000Z");
 
 test("trien-khai (tiêu chí 4): còn migration + trả lời c, c → áp migration → deploy → kiểm dữ liệu, đúng thứ tự", async () => {
@@ -388,5 +390,44 @@ test("trien-khai: lệnh dài chạy dạng hiện trực tiếp cho chủ xem (
   await lib.trienKhai({ ...h.deps, now: NOW });
   for (const k of ["npm test", "npm run typecheck", "npm run build:web", APPLY, AUDIT]) assert.equal(seen[k]?.stream, true, `${k} phải stream`);
   assert.equal(seen[DEPLOY]?.tee, true, "deploy phải vừa hiện vừa bắt đầu ra (để lấy Version ID)");
+  assert.equal(seen[E2E]?.tee, true, "e2e phải vừa hiện vừa bắt đầu ra (để nêu kịch bản đỏ)");
   assert.ok(!seen[LIST]?.stream && !seen[TT]?.stream, "lệnh đọc phải bắt đầu ra để phân tích");
+});
+
+// ─────────────── e2e ĐỦ BỘ trong trien-khai (sửa vòng 1, ruling của điều phối) ───────────────
+const E2E_RED: RunResult = { code: 1, stdout: "▶ platform\n✔ platform (1.0s)\n\n▶ catalog\n✘ catalog\n\n▶ orders\n✘ orders\n\nE2E: 2/17 kịch bản LỖI\n", stderr: "" };
+const E2E_Q = "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k) ";
+
+test("trien-khai (e2e): e2e đỏ + trả lời k (hoặc khác đúng c) → dừng, KHÔNG áp, KHÔNG deploy, nêu kịch bản đỏ", async () => {
+  for (const ans of ["k", "", "C", "có"]) {
+    const h = harness(tkScript({ [E2E]: E2E_RED }), [ans]);
+    assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+    assert.deepEqual(h.calls, TK_PREFIX);
+    assertNothingDangerous(h.calls);
+    assert.deepEqual(h.questions, [E2E_Q]);
+    assert.match(h.text(), /catalog, orders/);
+  }
+});
+
+test("trien-khai (e2e): e2e đỏ + trả lời c → đi tiếp đúng thứ tự: Time Travel → áp → deploy → kiểm dữ liệu", async () => {
+  const h = harness(tkScript({ [E2E]: E2E_RED }), ["c", "c", "c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.deepEqual(h.calls, [...TK_PREFIX, TT, APPLY, DEPLOY, AUDIT]);
+  assert.equal(h.questions[0], E2E_Q);
+  assert.match(h.questions[1] ?? "", /Áp 1 migration/);
+  assert.match(h.text(), /e2e: ĐỎ \(chủ chọn tiếp tục\): catalog, orders/, "khối tóm tắt ghi rõ e2e đỏ mà vẫn triển khai");
+});
+
+test("trien-khai (e2e): e2e xanh → không có câu hỏi thêm", async () => {
+  const h = harness(tkScript({ [LIST]: out(LIST_NONE) }), ["c"]);
+  assert.equal(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.deepEqual(h.questions, ["Triển khai Worker lên production? (c/k) "]);
+  assert.match(h.text(), /e2e: xanh/);
+});
+
+test("trien-khai (e2e): e2e đỏ mà không đọc được tên kịch bản → vẫn hỏi, nói rõ 'không đọc được tên'", async () => {
+  const h = harness(tkScript({ [E2E]: { code: 1, stdout: "lỗi lạ\n", stderr: "" } }), ["k"]);
+  assert.notEqual(await lib.trienKhai({ ...h.deps, now: NOW }), 0);
+  assert.deepEqual(h.questions, [E2E_Q]);
+  assert.match(h.text(), /không đọc được tên/);
 });

@@ -127,6 +127,9 @@ test("guard-remote: chặn AI chạy `npm run day-len`/`trien-khai` và `node sc
     if (v.deny) {
       assert.equal(v.rule, "release-owner-only", `sai luật: ${cmd}`);
       assert.match(v.reason, /CLAUDE\.md/);
+      // Hai lệnh cần TTY thật: lý do phải chỉ chủ sang ứng dụng Terminal của macOS, KHÔNG gợi ý `! <lệnh>` như các luật khác.
+      assert.match(v.reason, /ứng dụng Terminal/, `lý do phải chỉ sang Terminal: ${cmd}`);
+      assert.doesNotMatch(v.reason, /`! <lệnh>`/, `lý do không được gợi ý \`! <lệnh>\`: ${cmd}`);
     }
   }
 });

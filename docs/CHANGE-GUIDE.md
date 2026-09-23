@@ -516,7 +516,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 ### s. Lệnh đẩy / triển khai chủ dự án tự gõ (`npm run day-len`, `npm run trien-khai`)
 
-Đặc tả: `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`; bảng từng bước: `docs/HANDOFF-N1.md` mục "Đẩy lên GitHub và triển khai: HAI LỆNH".
+Đặc tả: `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`; bảng từng bước: `docs/HANDOFF-N1.md` mục "Đẩy lên GitHub và triển khai: HAI LỆNH". **Cả hai lệnh chỉ chạy trong ứng dụng Terminal của macOS** (cần TTY thật; không qua AI, không qua `!` trong phiên Claude Code — lời chặn của hook, luật `release-owner-only`, dùng đuôi riêng nói đúng điều này). `trien-khai` chạy cả `npm run test:e2e` ĐỦ BỘ sau test/typecheck/build và TRƯỚC mọi câu hỏi áp/deploy; e2e đỏ thì nêu tên kịch bản đỏ (`parseE2eFailures`, đọc dòng `✘ <tên>`) và hỏi "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)" — chỉ đúng `c` mới đi tiếp.
 
 **Chỗ mã:**
 1. **Logic thuần** `scripts/release-lib.mjs`: `dayLen`, `trienKhai` (trả mã thoát), `parsePendingMigrations` (đọc `migrations list --remote`), `parseBookmark` (Time Travel `--json`), `parseVersionId` (`Current Version ID:` của deploy), `isSafeBranchName`. Nhận `run(cmd, args, { env, stream, tee })`, `ask`, `isTTY`, `log` tiêm vào — KHÔNG tự import `child_process`.
@@ -605,7 +605,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 4. `git status`: không có `public/js/`, `public/sw.js`, `.dev.vars`, `*.local.sql`, `*.local.txt`; không khoá/bí mật; chuỗi hiển thị tiếng Việt có dấu; không `innerHTML`.
 5. Thông điệp commit tiếng Việt: tiêu đề nói việc, thân nói VÌ SAO; thêm dòng đồng tác giả theo yêu cầu của môi trường.
 
-**Trước khi deploy** (CHỈ khi chủ dự án ra lệnh trong phiên đó; chi tiết `docs/HANDOFF-N1.md`). Từ 2026-09-23 các bước 1, 3 (áp + deploy) và `audit-invariants` của bước 4 do lệnh `npm run trien-khai` làm — chủ tự gõ trong Terminal, AI không chạy (công thức s); e2e và kiểm riêng của từng lần phát hành vẫn làm tay:
+**Trước khi deploy** (CHỈ khi chủ dự án ra lệnh trong phiên đó; chi tiết `docs/HANDOFF-N1.md`). Từ 2026-09-23 các bước 1, 3 (áp + deploy) và `audit-invariants` của bước 4 do lệnh `npm run trien-khai` làm, kể cả `npm run test:e2e` đủ bộ của bước 2 — chủ tự gõ trong ứng dụng Terminal của macOS, AI không chạy (công thức s); kịch bản Chrome và kiểm riêng của từng lần phát hành vẫn làm tay:
 1. Cổng chỉ-đọc trên D1 remote (kỳ vọng 0 dòng) + ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".
