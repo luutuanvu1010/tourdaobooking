@@ -119,7 +119,20 @@ async function coseToSpki(cose: Map<number | string, CborValue>): Promise<{ spki
   }
   if (kty === 3 && alg === -257) {
     const n = cose.get(-1), e = cose.get(-2);
-    if (!(n instanceof Uint8Array) || !(e instanceof Uint8Array) || n.length < 256 || n.length > 513 || e.length === 0 || e.length > 8) throw new WebAuthnError("bad_public_key");
+    if (!(n instanceof Uint8Array) || !(e instanceof Uint8Array) || n.length > 513) throw new WebAuthnError("bad_public_key");
+    // Bỏ byte 0x00 đệm đầu (thường gặp khi mã hoá số nguyên không dấu) rồi mới đo độ dài thật —
+    // tránh việc đệm 0 để giả một modulus yếu (vd. 1024 bit) thành đủ 256 byte.
+    let ni = 0;
+    while (ni < n.length - 1 && n[ni] === 0) ni++;
+    const nBits = n.length - ni;
+    if (!(nBits > 256 || (nBits === 256 && (n[ni]! & 0x80) !== 0))) throw new WebAuthnError("bad_public_key"); // đòi modulus ≥ 2048 bit
+    let ei = 0;
+    while (ei < e.length - 1 && e[ei] === 0) ei++;
+    const eBytes = e.subarray(ei);
+    if (eBytes.length === 0 || eBytes.length > 8) throw new WebAuthnError("bad_public_key");
+    const eOdd = (eBytes[eBytes.length - 1]! & 1) === 1;
+    const eAtLeast3 = eBytes.length > 1 || eBytes[0]! >= 3;
+    if (!eOdd || !eAtLeast3) throw new WebAuthnError("bad_public_key"); // số mũ công khai phải lẻ và ≥ 3 (không ép cứng 65537)
     let key: CryptoKey;
     try {
       key = await crypto.subtle.importKey("jwk", { kty: "RSA", n: toBase64Url(n), e: toBase64Url(e), alg: "RS256", ext: true }, { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" }, true, ["verify"]);
