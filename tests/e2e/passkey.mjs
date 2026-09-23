@@ -113,7 +113,8 @@ assert.equal(pOpt.status, 200);
 r = await call(cookieJar(S3, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "123456", credential: await auth.sign(pOpt.body.publicKey.challenge) });
 assert.equal(r.status, 400);
 pOpt = await call(S3, "POST", "/api/account/pin-by-passkey/options", {});
-r = await call(cookieJar(S3, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "583920", credential: await auth.sign(pOpt.body.publicKey.challenge) });
+const pinCred = await auth.sign(pOpt.body.publicKey.challenge);
+r = await call(cookieJar(S3, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "583920", credential: pinCred });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const S3b = sessionCookie(r);
 assert.equal((await call(S3b, "GET", "/api/auth/me")).status, 200);
@@ -121,6 +122,15 @@ assert.equal((await call(S2, "GET", "/api/auth/me")).status, 401);
 assert.equal((await login(A.phone, A.pin, freshIp())).status, 401);
 assert.equal((await login(A.phone, "583920", freshIp())).status, 200);
 console.log("✓ đặt PIN bằng Face ID");
+
+// 10b. Dùng lại đúng cookie thách thức "pin" + chữ ký đã dùng ở trên (dùng một lần) → bị từ chối; PIN không đổi thêm lần nữa
+// (phiên S3 đã hết hiệu lực vì lần đổi PIN trước đã cấp phiên mới S3b — dùng S3b để lời gọi tới được đúng chỗ kiểm thách thức, không bị chặn sớm ở tầng phiên)
+r = await call(cookieJar(S3b, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "246813", credential: pinCred });
+assert.equal(r.status, 400, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "passkey_expired");
+assert.equal((await login(A.phone, "583920", freshIp())).status, 200, "PIN vẫn là PIN đã đặt ở lần đầu");
+assert.equal((await login(A.phone, "246813", freshIp())).status, 401, "PIN KHÔNG bị đổi thêm lần nữa qua thách thức dùng lại");
+console.log("✓ dùng lại thách thức PIN cũ (cookie + chữ ký) → bị từ chối, PIN không đổi lần hai");
 
 // 11. Passkey của người khác không đặt được PIN cho mình
 const other = await createFakeAuthenticator(RP);
@@ -131,6 +141,7 @@ const otherPkId = enabledOther.body.passkey.id;
 pOpt = await call(S3b, "POST", "/api/account/pin-by-passkey/options", {});
 r = await call(cookieJar(S3b, challengeCookie(pOpt)), "POST", "/api/account/pin-by-passkey", { newPin: "583921", credential: await other.sign(pOpt.body.publicKey.challenge) });
 assert.equal(r.status, 403);
+assert.equal(r.body.error.code, "passkey_not_yours");
 console.log("✓ không dùng Face ID của người khác");
 
 // 12. Gỡ một passkey: máy khác 401, máy đang thao tác nhận phiên mới 200; đăng nhập bằng khoá đã gỡ → 401 passkey_unknown
@@ -166,6 +177,18 @@ assert.equal(r.body.error.code, "passkey_unknown");
 await sql(`UPDATE staff SET active = 1 WHERE phone = '${A.phone}'`);
 console.log("✓ tài khoản ngưng bằng SQL (passkey chưa gỡ) → Face ID vẫn bị từ chối");
 
+// 12d. Tự gỡ hết Face ID của CHÍNH MÌNH (không phải admin) khi đang có ≥1 khoá còn hiệu lực (authB2): đăng xuất máy khác, máy hiện tại nhận phiên mới
+const S5 = sessionCookie((await passkeyLogin(authB2)).r); // "máy khác" đăng nhập bằng khoá còn hiệu lực
+assert.ok(S5);
+r = await call(S3c, "POST", "/api/account/passkeys/remove-all", {});
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.ok(r.body.removed >= 1, JSON.stringify(r.body));
+const S3d = sessionCookie(r);
+assert.ok(S3d);
+assert.equal((await call(S5, "GET", "/api/auth/me")).status, 401);
+assert.equal((await call(S3d, "GET", "/api/auth/me")).status, 200);
+console.log("✓ tự gỡ hết Face ID (còn ≥1 khoá): đăng xuất máy khác, máy hiện tại nhận phiên mới");
+
 // 13. Admin: ngưng tài khoản giữa lúc lấy thách thức và gửi → từ chối; nút admin gỡ
 const ADMIN = await session(ACCOUNTS.admin);
 const fieldId = (await call(SO, "GET", "/api/auth/me")).body.staff.id;
@@ -173,6 +196,7 @@ const optMid = await call(null, "POST", "/api/auth/passkey/options", {}, freshIp
 assert.equal((await call(ADMIN, "PATCH", `/api/staff/${fieldId}`, { active: false })).status, 200);
 r = await call(challengeCookie(optMid), "POST", "/api/auth/passkey/login", { credential: await other.sign(optMid.body.publicKey.challenge) }, freshIp());
 assert.equal(r.status, 401);
+assert.equal(r.body.error.code, "passkey_unknown");
 // 8b: thêm assert gỡ passkey khi ngưng (PATCH /api/staff/:id với active:false CHƯA gỡ passkey — chờ chủ quyết A-4; xem task-8-report.md)
 assert.equal((await call(ADMIN, "PATCH", `/api/staff/${fieldId}`, { active: true })).status, 200);
 console.log("✓ ngưng tài khoản chặn đăng nhập Face ID ngay (kể cả khi thách thức đã lấy trước)");
