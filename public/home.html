@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Tour Đảo"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Trang chủ — Tour Đảo Booking</title></head>
+<body>
+<header id="topbar"></header>
+<main>
+  <h1>Trang chủ</h1>
+  <div class="dash-hello">
+    <span id="dash-name" class="dash-name"></span>
+    <span id="dash-date" class="dash-date"></span>
+    <span id="dash-maint" class="badge badge-draft" hidden>Đang ở chế độ bảo trì</span>
+  </div>
+  <p class="dash-stats-label muted">Số liệu toàn công ty</p>
+  <div id="dash-stats" class="dash-stats"></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="loading" class="skeleton-list" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
+  <div class="dash-layout">
+    <section id="dash-today" class="card dash-today">
+      <div class="dash-today-head"><span>Chuyến đón hôm nay</span><span id="dash-today-count" class="badge badge-confirmed"></span></div>
+      <div id="dash-today-list"></div>
+      <p id="dash-today-empty" class="empty" hidden>Không có chuyến nào hôm nay.</p>
+    </section>
+    <section id="dash-revenue" class="card">
+      <div class="dash-revenue-head"><span>Doanh thu của tôi</span><span id="dash-revenue-range" class="muted"></span></div>
+      <div id="dash-revenue-total" class="dash-revenue-total"></div>
+    </section>
+  </div>
+</main>
+<script type="module" src="/js/home.js"></script>
+</body></html>

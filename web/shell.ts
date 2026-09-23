@@ -12,7 +12,7 @@ interface Tab {
 }
 
 /**
- * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 3 tab, admin 5 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
+ * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 4 tab, admin 6 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
  * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Hồ sơ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  */
 function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
@@ -24,6 +24,7 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
         ]
       : [];
   const officeTabs: Tab[] = [];
+  if (office) officeTabs.push({ href: "/home", label: "Trang chủ", icon: "home", active: (p) => p === "/home" });
   if (office) officeTabs.push({ href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" });
   if (canCreate) officeTabs.push({ href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" });
   return [
@@ -123,6 +124,7 @@ export async function initShell(): Promise<Staff> {
   logoutBtn.addEventListener("click", () => void logout());
   replaceChildren(
     nav,
+    office && h("a", { href: "/home" }, "Trang chủ"),
     office && h("a", { href: "/" }, "Đơn hàng"),
     canCreate && h("a", { href: "/order-form" }, "+ Đơn mới"),
     office && h("a", { href: "/parties" }, "Hồ sơ"),
