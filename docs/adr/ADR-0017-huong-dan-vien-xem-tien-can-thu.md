@@ -1,47 +1,68 @@
-# ADR-0017 — Hướng dẫn viên nội bộ được xem "còn thu" và "đã trả" của đơn mình phụ trách
+# ADR-0017 — Hướng dẫn viên nội bộ (`FIELD`) xem được mọi đơn, kể cả tiền; đối tác ngoài (`PARTNER`) giữ nguyên phạm vi hẹp
 
-- **Trạng thái:** **proposed** — chờ chủ dự án duyệt. AI soạn 2026-09-24 theo yêu cầu trực tiếp của chủ dự án; **AI không tự duyệt** (N3, Điều 7.2). Chủ đã chọn phạm vi số tiền trong phiên chat (qua `AskUserQuestion`: "Hướng dẫn viên sẽ thấy những con số tiền nào?" → **"Còn thu + đã trả"**), nhưng dòng trạng thái này chỉ được đổi sang `accepted` sau khi chủ duyệt chính văn bản này.
+- **Trạng thái:** **proposed** — chờ chủ dự án duyệt. AI soạn 2026-09-24 theo yêu cầu trực tiếp của chủ dự án; **AI không tự duyệt** (N3, Điều 7.2). Chủ đã chọn phạm vi trong phiên chat qua `AskUserQuestion` (xem "Quyết định"), nhưng dòng trạng thái này chỉ đổi sang `accepted` sau khi chủ duyệt chính văn bản này.
 - **Ngày:** 2026-09-24   **Người phê chuẩn:** chủ dự án (chưa duyệt)
-- **Loại quyết định:** **cửa một chiều** cho các dòng liên quan tiền — đúng cách ADR-0007 tự phân loại: đã cho một vai nhìn thấy số tiền thì những gì họ đã thấy không thu lại được. Phần mã thì gỡ được bằng một commit.
-- **Liên quan:** **sửa một phần ADR-0007 điều 3** (bảng quyền: `FIELD` = "◆ không" ở dòng "Xem tiền, bảng giá danh mục, nhật ký/lịch sử sửa đơn") và **ADR-0014 điều 6** (dòng tái khẳng định bất biến đó); giữ nguyên ADR-0007 điều 4(c) (route riêng cho `FIELD`, không dùng `/api/orders*` chung). Đặc tả giao diện: `docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md`.
+- **Loại quyết định:** **cửa một chiều**. Đã cho một vai nhìn thấy danh sách khách và số tiền thì **không thu lại được** những gì họ đã thấy; gỡ mã chỉ chặn từ thời điểm gỡ. Phần mã thì gỡ được bằng một commit.
+- **Liên quan:** **đảo ngược** ADR-0007 **điều 3** (bảng quyền: `FIELD` = "◆ không" ở dòng *"Xem tiền, bảng giá danh mục, nhật ký/lịch sử sửa đơn"*) và **điều 4(c)** (`FIELD` dùng route riêng, không dùng `/api/orders*` chung); **đảo ngược** phần tái khẳng định ở **ADR-0014 điều 6**; **không đụng** ADR-0014 điều 10 (`PARTNER`). Đặc tả giao diện: `docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md`.
 
 ## Bối cảnh
 
-Hai ADR đã duyệt cấm hướng dẫn viên (`FIELD`) nhìn thấy tiền:
+Luật hiện hành, đã hiện thực hoá trong mã (`src/shared/permissions.ts`):
 
-- **ADR-0007 điều 3**, bảng quyền, dòng *"Xem **tiền**, bảng giá danh mục, nhật ký/lịch sử sửa đơn"*: `FIELD` = **◆ không**.
-- **ADR-0014 điều 6** (accepted 2026-09-22) **tái khẳng định**: *"**Bất biến giữ nguyên (ADR-0007 điều 3):** `FIELD` vẫn không xem tổng tiền, bảng giá hay lịch sử đơn ở **bất kỳ bề mặt nào**."* — ngay cả khi ADR-0014 mở `order.money.edit` cho `FIELD`: hướng dẫn viên **sửa được** số khách/dịch vụ (máy chủ tự tính lại tiền) nhưng **không được thấy** đơn giá hay tổng tiền.
+| Thao tác | `FIELD` hôm nay | `PARTNER` hôm nay |
+|---|---|---|
+| `contact.view` (tên/SĐT khách, điểm đón, giờ) | `assigned` | `ownOrAssigned` |
+| `task.progress` | `assigned` | `assigned` |
+| `order.money.edit` | `assigned` | `none` |
+| Vào được màn hình/API đơn (`canAccessOrders`) | **không** | có |
 
-Mã hiện thực hoá đúng như vậy: `MyAssignmentDto` (`src/shared/contracts.ts`) được viết **độc lập**, không `Pick`/`Omit` từ `OrderDto`, kèm chú thích nói rõ mục đích là để *"một lần đổi kiểu dữ liệu đơn sau này (thêm trường tiền) không vô tình lọt vào đây"*. `GET /api/dispatch/mine` hiện **không gửi một trường tiền nào**.
+Và hai ADR đã duyệt cấm `FIELD` thấy tiền:
+- **ADR-0007 điều 3:** `FIELD` = **◆ không** xem tiền, bảng giá, nhật ký/lịch sử đơn.
+- **ADR-0014 điều 6** (accepted 2026-09-22) **tái khẳng định**: *"`FIELD` vẫn không xem tổng tiền, bảng giá hay lịch sử đơn ở **bất kỳ bề mặt nào**."*
 
-**Sự thật nghiệp vụ mới, do chủ dự án nêu 2026-09-24:** *"HDV (nội bộ) phải xem được tiền để còn thu tiền mặt khi đón khách."* Đây là thông tin vận hành mà các ADR trước **không có**: hướng dẫn viên là người trực tiếp nhận tiền mặt của khách tại điểm đón. Không biết phải thu bao nhiêu thì hoặc họ phải gọi về văn phòng mỗi chuyến, hoặc thu sai.
+Mã làm đúng thế: `MyAssignmentDto` viết độc lập, kèm chú thích nói rõ mục đích là để tiền *"không vô tình lọt vào đây"*; `GET /api/dispatch/mine` không gửi một trường tiền nào.
+
+**Hai sự thật nghiệp vụ mới, do chủ dự án nêu 2026-09-24** — cả hai đều là thông tin các ADR trước **không có**:
+1. *"HDV (nội bộ) phải xem được tiền để còn thu tiền mặt khi đón khách."* Hướng dẫn viên là người **trực tiếp nhận tiền mặt của khách tại điểm đón**.
+2. *"HDV nội bộ thấy được tất cả đơn, HDV bên ngoài chỉ thấy được đơn của họ."* Tức chủ dự án phân biệt rõ **nhân sự nội bộ** (tin cậy, hợp đồng lao động) với **đối tác ngoài** — ranh giới mà ADR-0014 chưa tách theo hướng này (ADR-0014 siết cả hai vì lúc đó phát hiện tài khoản cấp cho **người ngoài** xem được mọi đơn, khiếm khuyết D-01).
 
 ## Quyết định
 
-1. **Hướng dẫn viên (`FIELD`) được xem ĐÚNG HAI số tiền** của đơn **mình đang được giao phụ trách**, trên **màn "Việc của tôi"**: **"còn thu"** (`remainingAmount`) và **"đã trả"** (`depositAmount`).
-2. **Vẫn KHÔNG được xem:** **tổng tiền đơn**, **đơn giá từng dịch vụ**, **bảng giá danh mục**, **lịch sử sửa đơn**. Bất biến của ADR-0007 điều 3 chỉ bị thu hẹp đúng hai trường trên, không bị bỏ.
-3. **Phạm vi là "đang được giao"**, không phải "mọi đơn": thực thi ở **máy chủ**, trong chính route riêng của `FIELD` (`GET /api/dispatch/mine`) — giữ nguyên nguyên tắc ADR-0007 điều 4(c): `FIELD` **không** dùng `/api/orders*` chung.
-4. **Số tiền là số HIỆN HÀNH sau điều chỉnh** (`getLatestAdjustmentSubtotals()` + `effectiveMoney()`), tính ở máy chủ. Không tính lại ở trình duyệt.
-5. **`PARTNER` (đối tác ngoài) KHÔNG được hưởng thay đổi này** — ADR-0014 điều 10 đã tách rõ năng lực đối tác hẹp hơn `FIELD`; ADR này không đụng tới.
+Chủ dự án được trình bốn mức phạm vi và hai lựa chọn màn hình, đã chọn:
+
+1. **`FIELD` xem được MỌI đơn, kể cả tiền của mọi đơn** (chọn "Thấy mọi đơn, kể cả tiền của mọi đơn", bác các mức hẹp hơn: "tiền chỉ ở đơn mình dẫn", "chỉ đơn hôm nay/sắp tới", "giữ như cũ").
+2. **Mở trang Đơn hàng (`/orders`) cho `FIELD`** (chọn "Mở trang Đơn hàng cho HDV", bác "mở rộng màn Việc của tôi"). Mục "Đơn hàng" xuất hiện trong thanh điều hướng của `FIELD`.
+3. **`PARTNER` KHÔNG đổi một ô nào.** Đối tác ngoài giữ nguyên `own`/`ownOrAssigned` — đúng yêu cầu *"HDV bên ngoài chỉ thấy được đơn của họ"*, vốn đã là luật hiện hành.
+4. **Chỉ mở quyền XEM.** `FIELD` **không** được thêm `order.create`, `order.modify` (sửa/xác nhận/huỷ đơn nháp), `order.trip.edit`, hay bất kỳ quyền quản trị nào. Các quyền sửa của `FIELD` giữ nguyên đúng ADR-0014 điều 6/11 (`order.money.edit` và `order.cancel`, phạm vi `assigned`).
+5. **Số tiền là số HIỆN HÀNH sau điều chỉnh** (`getLatestAdjustmentSubtotals()` + `effectiveMoney()`), tính ở **máy chủ**.
+6. **Không đổi phạm vi của các vai khác** (`SALES`, `ACCOUNTING`, `ADMIN`, `SUPER_ADMIN`).
 
 ## Lý do
 
-- Nhu cầu là **vận hành thật và cụ thể**: người thu tiền phải biết số phải thu. Đây là loại thông tin ADR-0007 chưa cân nhắc vì khi đó `FIELD` chưa dùng màn hình đơn nào (ADR-0014 ghi rõ: *"Hướng dẫn viên nội bộ (quyền `FIELD`) chưa dùng được màn hình đơn nào"*).
-- **Hai trường, không phải mở toang.** "Còn thu" là con số cần để làm việc; "đã trả" để đối chiếu khi khách nói đã đặt cọc. Giữ **tổng tiền** và **giá từng gói** trong vòng cấm nghĩa là hướng dẫn viên vẫn **không bàn giá với khách được** — đó là lý do gốc của bất biến cũ, và nó được giữ.
-- Chủ dự án đã được trình ba mức (chỉ "còn thu" / "còn thu + đã trả" / xem đủ như văn phòng) và **chọn mức giữa**.
+- Nhu cầu vận hành là thật và cụ thể: người thu tiền phải biết số phải thu; người dẫn tour phải xem được lịch cả công ty để đổi ca, dẫn thay đồng nghiệp.
+- **Ranh giới "nội bộ vs ngoài" là ranh giới đúng để phân quyền ở đây.** Khiếm khuyết D-01 mà ADR-0014 bịt là *"cấp tài khoản Bán hàng cho **người ngoài**"*. `FIELD` là nhân sự nội bộ; chủ dự án — người chịu trách nhiệm về nhân sự — đánh giá mức tin cậy đó là đủ.
+- Dùng lại `/orders` thay vì dựng màn mới: ít mã mới nhất, và màn đó đã có tìm kiếm, lọc, phân trang, thẻ đơn rút gọn 2 dòng vừa làm ở Đợt E.
+
+## Rủi ro đã nêu cho chủ dự án, chủ vẫn quyết (ghi để sau này không ai nói "không biết")
+
+**Một hướng dẫn viên nghỉ việc sẽ đã kịp xem toàn bộ danh sách khách hàng (tên, số điện thoại) và toàn bộ số tiền từng đơn của công ty.** Câu này được nêu nguyên văn trong lựa chọn mà chủ dự án đã chọn. Đây là **cửa một chiều**: sau khi phát hành, dữ liệu đã xem không thu lại được.
+
+Giảm nhẹ khả dĩ (**không** thuộc quyết định này, ghi để cân nhắc sau): tắt tài khoản ngay khi nhân sự nghỉ (`staff.active` đã có); nhật ký truy cập; giới hạn theo thời gian nếu sau này thấy cần.
 
 ## Phương án bị loại
 
-- **Giữ nguyên bất biến cũ, hướng dẫn viên gọi về văn phòng hỏi số tiền.** Đúng luật cũ nhưng đẩy chi phí sang vận hành mỗi chuyến; chủ dự án bác.
-- **Chỉ hiện dấu "đã thanh toán đủ" / "còn nợ", không hiện số.** Nới hẹp hơn, nhưng không đủ để thu tiền mặt — vẫn phải hỏi số.
-- **Cho `FIELD` xem đủ như nhân viên văn phòng.** Nới rộng nhất, không thu lại được, và làm mất lý do gốc của bất biến (không để hướng dẫn viên bàn giá với khách).
-- **Dùng `/api/orders*` chung cho `FIELD`.** Phá nguyên tắc ADR-0007 điều 4(c) và mở ra bề mặt rộng hơn nhiều so với nhu cầu.
+- **Giữ nguyên bất biến cũ.** Đúng luật cũ nhưng đẩy chi phí sang vận hành mỗi chuyến (gọi về văn phòng hỏi số tiền); chủ dự án bác.
+- **Thấy mọi đơn nhưng tiền chỉ ở đơn mình dẫn.** Giữ được lý do gốc của bất biến (hướng dẫn viên không bàn giá với khách) — **AI khuyến nghị mức này**; chủ dự án bác, chọn mức rộng hơn.
+- **Chỉ hiện dấu "đã thanh toán đủ / còn nợ", không hiện số.** Không đủ để thu tiền mặt.
+- **Giới hạn theo thời gian (chỉ đơn hôm nay/sắp tới).** Hẹp hơn, nhưng chủ dự án chọn không giới hạn.
+- **Mở rộng màn "Việc của tôi" thay vì mở `/orders`.** Phải làm lại tìm kiếm/lọc/phân trang từ đầu.
 
 ## Hệ quả
 
-- **`MyAssignmentDto` thêm đúng hai trường** (`remainingAmount`, `depositAmount`). **Chú thích "không Pick/Omit từ `OrderDto`" ở `src/shared/contracts.ts` phải được sửa lại cho đúng sự thật mới** — nó đang nói tiền không bao giờ được lọt vào đây.
-- **`GET /api/dispatch/mine`** phải tính hai số đó bằng **số hiện hành sau điều chỉnh**, không phải số gốc.
-- **Cần một bài kiểm ghim bất biến CÒN LẠI**: phản hồi của `/api/dispatch/mine` **không được chứa** tổng tiền hay đơn giá dịch vụ. Đây là chỗ dễ trượt nhất khi sau này ai đó "tiện tay" thêm trường.
-- **Giao diện**: màn "Việc của tôi" dùng lại thành phần thẻ đơn của Đợt E, bật phần tiền ở chế độ **chỉ "còn thu" + "đã trả"** (không có "tổng").
-- **Không đổi bản đồ quyền `MATRIX`** (`src/shared/permissions.ts`): đây là mở rộng dữ liệu trả về của một route `FIELD` đã có, không phải thao tác mới.
-- **Không hoàn tác được phần đã lộ**: sau khi phát hành, những số tiền hướng dẫn viên đã nhìn thấy là đã thấy. Gỡ mã thì chỉ chặn từ thời điểm gỡ.
+- **`src/shared/permissions.ts`:** `isOffice`/`canAccessOrders` phải cho `FIELD` vào màn hình và API đơn; ô `contact.view` của `FIELD` đổi `assigned` → `any`. **Đây là tệp "việc lớn" theo `CLAUDE.md` §3 — bắt buộc có người kiểm độc lập.**
+- **`web/shell.ts`:** mục "Đơn hàng" hiện cho `FIELD` (thanh bên và thanh tab). Các mục quản trị **vẫn không** hiện.
+- **Bài kiểm ghim phạm vi** phải đổi theo, và phải có bài kiểm mới ghim đúng ranh giới mới: `FIELD` **có** thấy đơn người khác; `PARTNER` **vẫn không**. Đây là chỗ dễ trượt nhất — một thay đổi sau này rất dễ vô tình nới luôn cho `PARTNER`.
+- **`MyAssignmentDto` / `GET /api/dispatch/mine`:** màn "Việc của tôi" giữ nguyên vai trò (việc được giao). Nếu muốn hiện tiền ở đó thì thêm `remainingAmount`/`depositAmount`; **chú thích "không Pick/Omit từ `OrderDto`" trong `src/shared/contracts.ts` phải sửa lại cho đúng sự thật mới** — nó đang nói tiền không bao giờ được lọt vào đây.
+- **Trang chủ (`/home`, access `office`):** mở `office` cho `FIELD` thì `FIELD` cũng vào được Trang chủ. Ô "Doanh thu của tôi" tính theo người xem nên vẫn đúng; ba ô số liệu là **toàn công ty**. **Cần chủ dự án xác nhận** đây là ý muốn, hoặc tách `FIELD` khỏi Trang chủ.
+- **Không migration, không đổi schema.**
+- **Không hoàn tác được phần đã lộ.**
