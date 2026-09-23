@@ -31,6 +31,16 @@ const CSS_W_MAIN = cssTokenPx("--w-main");
 const CSS_W_FORM = cssTokenPx("--w-form");
 ok(`A-3: đọc token trần bề rộng THẲNG từ văn bản public/app.css (độc lập với trang đang kiểm) — --w-main=${CSS_W_MAIN}px, --w-form=${CSS_W_FORM}px`);
 
+// C-1 (Đợt D Task 7, kiểm toàn cục): --w-sidebar/--bar-h đọc từ getComputedStyle(document.documentElement) (xem
+// f.sidebarToken/f.barToken bên dưới) KHÔNG phải nguồn độc lập — bộ đọc và trình duyệt đọc CÙNG một khai báo trong
+// public/app.css, nên nếu ai gõ SAI giá trị --w-sidebar/--bar-h ngay trong CSS, "giá trị đo" lẫn "giá trị kỳ vọng"
+// đổi theo nhau, lưới không bắt được (người kiểm độc lập đã đột biến chứng minh: đổi --w-sidebar thành 300px, chạy
+// lại TOÀN BỘ lưới, không khẳng định nào đỏ). Hằng số dưới đây viết THẲNG trong kịch bản — không đọc từ CSS bằng
+// bất kỳ cách nào — lấy từ bản mẫu 00 Trang chu v2.dc.html + chủ dự án đã duyệt (đặc tả §16 mục 3, ADR-0015).
+const SIDEBAR_WIDTH_MOCKUP_PX = 236; // bản mẫu/chủ dự án duyệt — KHÔNG đọc từ public/app.css
+const TOPBAR_HEIGHT_MOCKUP_PX = 60; // bản mẫu/chủ dự án duyệt — KHÔNG đọc từ public/app.css
+ok(`C-1: hằng số ĐỘC LẬP viết thẳng trong kịch bản (không đọc từ CSS) — bề rộng thanh bên = ${SIDEBAR_WIDTH_MOCKUP_PX}px, chiều cao thanh công việc = ${TOPBAR_HEIGHT_MOCKUP_PX}px`);
+
 const TODAY = vnDate(0);
 const TOMORROW = vnDate(1);
 const OTHER_DATE = vnDate(5); // xa hôm nay, cùng tuần hiện tại (revenueWeek tính theo createdAt, không theo ngày đón)
@@ -531,6 +541,28 @@ try {
     assert.ok(Math.abs(gridMeasure.revenueTop - lastStatTop) <= 2, `Trang chủ (điện thoại): "Doanh thu của tôi" phải cùng HÀNG với ô số liệu thứ ba trong lưới 2×2 (ô thứ tư, không phải hàng riêng) — ${JSON.stringify(gridMeasure)}`);
     ok(`Đợt D Task 1: đo THẬT vị trí — doanh thu (top=${gridMeasure.revenueTop}) nằm trong cụm 2×2 cùng 3 ô số liệu (top=${JSON.stringify(gridMeasure.statTops)}) và TRÊN "Chuyến đón hôm nay" (top=${gridMeasure.todayTop})`);
   }
+  {
+    // Task 7 phần A (kiểm toàn cục Đợt D): bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280) vẽ logo thanh đầu trang
+    // TRÒN HẾT CỠ ở cả thanh bên máy tính lẫn thanh đầu trang điện thoại. `.brand-logo` gốc (public/app.css:116)
+    // trước đây chỉ bo góc nhẹ (--radius-sm) — chỉ thanh bên máy tính được sửa tròn riêng (`.sidebar-head
+    // .brand-logo`, :310), bỏ sót thanh đầu trang điện thoại (xác nhận trên ≥5 ảnh cũ). Đo border-radius THẬT đã
+    // tính toán bởi trình duyệt (không đọc token) + vị trí/kích thước để chứng minh CHỈ độ bo góc đổi, không gì khác
+    // di chuyển. Đặt SAU mọi khẳng định bố cục Trang chủ điện thoại ở trên (đã xanh hết tới đây) — nếu mutation
+    // (hoàn nguyên về --radius-sm) làm khẳng định NÀY đỏ mà mọi khẳng định TRƯỚC nó vẫn xanh, đó là bằng chứng "đúng
+    // một khác biệt duy nhất" trên bề mặt điện thoại.
+    const logoMeasure = await p.ev(`(() => {
+      const logo = document.querySelector('#topbar .brand-logo');
+      const r = logo.getBoundingClientRect();
+      const cs = getComputedStyle(logo);
+      return { borderRadius: cs.borderRadius, width: Math.round(r.width), height: Math.round(r.height), top: Math.round(r.top), left: Math.round(r.left) };
+    })()`);
+    assert.equal(
+      logoMeasure.borderRadius,
+      "999px",
+      `Trang chủ (điện thoại): logo thanh đầu trang phải bo tròn hết cỡ (border-radius: 999px, đúng bản mẫu 00 Trang chu v2.dc.html dòng 44/280) — đo được "${logoMeasure.borderRadius}" — ${JSON.stringify(logoMeasure)}`,
+    );
+    ok(`Task 7 phần A: logo thanh đầu trang điện thoại bo tròn hết cỡ (border-radius=${logoMeasure.borderRadius}), vị trí/kích thước ${JSON.stringify(logoMeasure)}`);
+  }
   assert.deepEqual(p.consoleErrors, [], `lỗi console (Trang chủ điện thoại): ${p.consoleErrors}`);
   await shot(p, "trang-chu-dien-thoai.png");
   await axe(p, "Trang chủ điện thoại");
@@ -797,12 +829,25 @@ try {
         const navLinks = [...document.querySelectorAll('#sidebar .sidebar-item, #tabbar .tab')].filter(vis);
         // SỬA (Đợt D Task 6, A-2 — chú thích cũ dưới đây SAI, người kiểm độc lập chỉ ra): vòng sửa 2 từng ghi
         // "topbarRows/topbarContentOverflow từ nay KHÔNG THỂ đổi giá trị — chỉ còn là chứng nhân lịch sử". SAI: BA
-        // hướng kiểm độc lập hoàn nguyên flex-wrap: nowrap (public/app.css) rồi chạy lại lưới THẬT và đều thấy
-        // CHÍNH topbarRows đỏ ĐẦU TIÊN (đo được giá trị 2, tức gãy 2 dòng) — hai khẳng định này vẫn đang canh việc,
-        // và là phép đo BẮT ĐƯỢC lỗi gốc "gãy dòng vì thừa flex-wrap: wrap" sớm nhất. Bộ ba dưới đây (đáy nút so với
-        // đáy thanh, đỉnh main so với đáy thanh, chiều cao thanh so với token) là phép đo BỔ SUNG, chặn đúng dạng hồi
-        // quy cụ thể "nút đè lên tiêu đề trang" mà topbarRows/topbarContentOverflow không tự phân biệt được — cả hai
-        // bộ khẳng định đều cần giữ, không cái nào là "chứng nhân lịch sử" chết cả.
+        // hướng kiểm độc lập hoàn nguyên flex-wrap: nowrap (public/app.css) rồi chạy lại lưới THẬT và đều thấy MỘT
+        // TRONG HAI khẳng định này đỏ — hai khẳng định này vẫn đang canh việc, và là phép đo BẮT ĐƯỢC lỗi gốc "gãy
+        // dòng vì thừa flex-wrap: wrap" sớm nhất. Bộ ba dưới đây (đáy nút so với đáy thanh, đỉnh main so với đáy
+        // thanh, chiều cao thanh so với token) là phép đo BỔ SUNG, chặn đúng dạng hồi quy cụ thể "nút đè lên tiêu đề
+        // trang" mà topbarRows/topbarContentOverflow không tự phân biệt được — cả hai bộ khẳng định đều cần giữ,
+        // không cái nào là "chứng nhân lịch sử" chết cả.
+        // ĐÍNH CHÍNH (Đợt D Task 7, kiểm toàn cục — chú thích TRÊN cũng SAI một chi tiết): khẳng định đỏ ĐẦU TIÊN
+        // khi hoàn nguyên flex-wrap: nowrap KHÔNG PHẢI topbarRows — mà là khẳng định "chiều cao thanh công việc
+        // đúng token --bar-h" (đứng TRƯỚC topbarRows trong mã, dòng ~913). Đã tự đo lại thật (2026-09-23): gỡ
+        // flex-wrap: nowrap ở 'body.has-sidebar #topbar' (CSS) khiến topbarHeight=105px (token 60px), khẳng định
+        // chiều cao đỏ TRƯỚC, script dừng ở đó — không bao giờ chạy tới dòng topbarRows dù giá trị đo được của nó
+        // cũng sẽ là 2 (gãy 2 dòng) nếu chạy tới. assert.* (Node) chạy TUẦN TỰ theo thứ tự viết trong mã và dừng ở
+        // lần đỏ ĐẦU TIÊN — dòng nào đứng trước trong mã sẽ đỏ trước nếu cả hai cùng sai, không liên quan tới
+        // "khẳng định nào có ý nghĩa hơn". Xem đính chính đầy đủ ở task-6-report.md và task-7-report.md.
+        // (LƯU Ý CHO NGƯỜI SỬA SAU: đoạn chú thích này nằm TRONG chuỗi mẫu pFrame.ev(...) bao ngoài (template
+        // literal) — KHÔNG được dùng dấu huyền ngược (backtick) trong bất kỳ chú thích nào ở đây, kể cả trong
+        // dòng // comment, vì nó sẽ đóng sớm chuỗi mẫu bao ngoài và làm hỏng cú pháp toàn bộ tệp — đúng lỗi
+        // Task 7 tự mắc phải khi sửa đoạn A-2 này lần đầu (dùng dấu huyền ngược trong chú thích), rồi tự phát
+        // hiện qua node --check + acorn và sửa lại bằng dấu nháy đơn/chữ thường ở trên.)
         const btn = document.querySelector('.topbar-new');
         const title = document.querySelector('.bar-title');
         const btnR = btn && vis(btn) ? btn.getBoundingClientRect() : null;
@@ -876,9 +921,17 @@ try {
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
+        // C-1 (Đợt D Task 7, kiểm toàn cục): khẳng định TRÊN chỉ so f.sidebarWidth với f.sidebarToken (đọc từ CHÍNH
+        // CSS đang chạy) — nếu ai gõ sai --w-sidebar trong public/app.css, cả hai vế đổi theo nhau, khẳng định đó
+        // KHÔNG bắt được (người kiểm độc lập đột biến --w-sidebar → 300px, chạy lại toàn lưới: không đỏ). Khẳng
+        // định dưới đây so với HẰNG SỐ ĐỘC LẬP viết thẳng trong kịch bản (đầu tệp) — đây mới là "nguồn độc lập" thật.
+        assert.equal(f.sidebarWidth, SIDEBAR_WIDTH_MOCKUP_PX, `${at}: thanh bên phải rộng đúng ${SIDEBAR_WIDTH_MOCKUP_PX}px (bản mẫu/chủ dự án duyệt, hằng số ĐỘC LẬP trong kịch bản — không đọc từ CSS) — ${JSON.stringify(f)}`);
         assert.equal(f.newBtnShown, true, `${at}: nút "Lập đơn mới" phải hiện từ 641px — ${JSON.stringify(f)}`);
-        // C-2: chiều cao thanh công việc đúng token --bar-h (từng là 71px vì nút cao 46px + đệm dọc quyết định chiều cao).
+        // (lịch sử, không đổi tên) chiều cao thanh công việc đúng token --bar-h (từng là 71px vì nút cao 46px + đệm dọc quyết định chiều cao).
         assert.ok(Math.abs(f.topbarHeight - f.barToken) <= 1, `${at}: thanh công việc cao ${f.topbarHeight}px, token --bar-h = ${f.barToken}px — ${JSON.stringify(f)}`);
+        // C-1 (Đợt D Task 7): cùng lỗ hổng — khẳng định trên tự so với chính CSS. So với hằng số ĐỘC LẬP viết thẳng
+        // trong kịch bản (đầu tệp), KHÔNG đọc từ public/app.css bằng bất kỳ cách nào.
+        assert.ok(Math.abs(f.topbarHeight - TOPBAR_HEIGHT_MOCKUP_PX) <= 1, `${at}: thanh công việc phải cao ${TOPBAR_HEIGHT_MOCKUP_PX}px (bản mẫu/chủ dự án duyệt, hằng số ĐỘC LẬP trong kịch bản — không đọc từ CSS) — ${JSON.stringify(f)}`);
         // (c) không gãy 2 dòng. Chiều cao đã ghim nên đo bằng SỐ DÒNG thật + nội dung có tràn khỏi ô hay không.
         assert.equal(f.topbarRows, 1, `${at}: thanh công việc gãy ${f.topbarRows} dòng — ${JSON.stringify(f)}`);
         assert.ok(f.topbarContentOverflow <= 1, `${at}: nội dung thanh công việc tràn khỏi chiều cao ghim (${f.topbarContentOverflow}px) — ${JSON.stringify(f)}`);
@@ -995,6 +1048,40 @@ try {
     }
     assert.ok(scrollCase, "G-3: không dựng được tình huống danh sách mục cao hơn khung nhìn (đã thử 1040×600/480/400) — không chứng minh được thanh bên tự cuộn");
     ok(`G-3b) Thanh bên tự cuộn khi mục dài hơn khung nhìn (1040×${scrollCase.height}): danh sách mục cao ${scrollCase.groupsScrollHeight}px trong ô ${scrollCase.groupsClientHeight}px (cuộn riêng), chân thanh vẫn kết thúc ở ${scrollCase.footBottom}px ≤ ${scrollCase.viewH}px`);
+
+    // ================================================================================================
+    // C-2 (Đợt D Task 7, kiểm toàn cục): van an toàn `min-height` (thay vì `height` cố định) trên
+    // `body.has-sidebar #topbar` (public/app.css, khối "Đợt D Task 4… ADR-0015"). Task 6 kết luận "không kịch bản
+    // nào phân biệt được min-height và height" rồi XOÁ khẳng định — SAI: kịch bản Task 6 thử (breadcrumb rất dài)
+    // không đủ vì `.bar-title` luôn co về một dòng (nowrap+ellipsis) TRƯỚC KHI min-height có cơ hội phát huy tác
+    // dụng. Kịch bản PHÂN BIỆT ĐƯỢC (người kiểm toàn cục tìm ra): phóng cỡ chữ CỦA NÚT "Lập đơn mới" lên 40px (mô
+    // phỏng cài đặt trợ năng "cỡ chữ tối thiểu" của trình duyệt — `.btn` có `font: inherit`, phóng cỡ chữ làm nút
+    // cần nhiều chiều cao hơn token --bar-h=60px). Dưới CSS hiện tại (`min-height`): #topbar ĐƯỢC PHÉP cao hơn
+    // 60px để chứa trọn nút, `main` tự lùi theo — không đè. Nếu min-height đổi thành `height` (cố định), #topbar
+    // KHÔNG được phép cao hơn 60px nữa: nút tràn ra ngoài hộp, đè lên `main` (main vẫn bắt đầu ở 60px).
+    // ================================================================================================
+    await pFrame.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+    await pFrame.waitFor("document.querySelector('.topbar-new') !== null", "nút 'Lập đơn mới' có trên /staff (C-2)");
+    // G-3 ở trên đã cuộn trang xuống đáy rồi đổi khổ nhiều lần — cuộn lại lên đầu để #topbar (position: sticky)
+    // đứng đúng chỗ, tránh toạ độ âm vô nghĩa (đã đo được -164px trước khi thêm dòng này, đúng lệch nội bộ nhưng
+    // không phải toạ độ THẬT khi người dùng mở trang bình thường).
+    await pFrame.ev("window.scrollTo(0, 0); true");
+    const safetyValve = await pFrame.ev(`(() => {
+      const btn = document.querySelector('.topbar-new');
+      btn.style.fontSize = '40px';
+      const topbar = document.querySelector('#topbar');
+      const main = document.querySelector('main');
+      const btnR = btn.getBoundingClientRect();
+      const topbarR = topbar.getBoundingClientRect();
+      const mainR = main.getBoundingClientRect();
+      return { topbarHeight: Math.round(topbarR.height), topbarBottom: Math.round(topbarR.bottom), btnBottom: Math.round(btnR.bottom), mainTop: Math.round(mainR.top) };
+    })()`);
+    assert.ok(
+      safetyValve.btnBottom <= safetyValve.mainTop + 1,
+      `C-2: van an toàn min-height — khi cỡ chữ nút "Lập đơn mới" phóng lên 40px, đáy nút (${safetyValve.btnBottom}px) không được ĐÈ lên đỉnh main (${safetyValve.mainTop}px) — ${JSON.stringify(safetyValve)}`,
+    );
+    ok(`C-2: van an toàn min-height giữ đúng — cỡ chữ nút phóng lên 40px, #topbar cao ${safetyValve.topbarHeight}px (được phép vượt token 60px nhờ min-height), đáy nút ${safetyValve.btnBottom}px ≤ đỉnh main ${safetyValve.mainTop}px — ${JSON.stringify(safetyValve)}`);
+
     pFrame.close();
 
     // ================================================================================================

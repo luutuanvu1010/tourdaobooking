@@ -61,7 +61,13 @@
   --fs-badge: 12px;
   --fs-title: 18px;
   --fs-counter: 20px;
-  --lh-heading: 1.16;         /* giữ để dấu tiếng Việt của tiêu đề không bị cắt */
+  --lh-heading: 1.16;         /* Đợt D Task 7: KHÔNG dùng ở đâu (grep --lh-heading = 0). Chú thích cũ ("giữ để dấu
+     tiếng Việt của tiêu đề không bị cắt") không đúng: `h1`/`h2` và các tiêu đề một dòng của Trang chủ mới
+     (.dash-revenue-title, .dash-review-heading, "Chuyến đón hôm nay") đều dùng line-height MẶC ĐỊNH của body
+     (1.5) — đã đo lại bằng ảnh chụp thật ở cả điện thoại lẫn máy tính (docs/evidence/2026-09-23-trang-chu-moi/anh/),
+     dấu tiếng Việt không bị cắt ở tiêu đề dài nào ("Chuyến đón hôm nay", "Cần xem lại", "Doanh thu của tôi"
+     kể cả khi xuống 2 dòng). Giữ token cho tiêu đề MỘT DÒNG nào sau này cần line-height CHẶT hơn mặc định — chưa
+     có nơi nào cần. */
   --w-form: 1120px;           /* bề rộng tối đa của trang form ở máy tính (form + cột tóm tắt) */
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
@@ -113,7 +119,7 @@ a { color: var(--c-primary); }
 #topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-primary); color: #fff; }
 #topbar a { color: #fff; text-decoration: none; }
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: 1.1rem; } .brand span { font-weight: 400; opacity: .8; }
-.brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-sm); display: block; }
+.brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); display: block; } /* Đợt D Task 7: sửa cho khớp bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280 đều vẽ logo tròn hết cỡ) — luật gốc trước đây bo góc nhẹ (--radius-sm), chỉ thanh bên máy tính được sửa tròn riêng (:310), bỏ sót thanh đầu trang điện thoại */
 
 main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); }
@@ -307,7 +313,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
    như cũ — thứ tự đọc điện thoại KHÔNG đổi. body.has-sidebar chỉ được gắn khi JS (initShell()) đã thật sự dựng #sidebar. */
 #sidebar { display: none; flex-direction: column; }
 .sidebar-head { display: flex; align-items: center; padding: var(--s4); color: var(--c-on-dark); text-decoration: none; border-bottom: 1px solid var(--c-sidebar-border); }
-.sidebar-head .brand-logo { border-radius: var(--radius-pill); } /* bản mẫu: logo sidebar bo tròn hết cỡ, khác .brand-logo thường (bo góc nhẹ) */
+.sidebar-head .brand-logo { border-radius: var(--radius-pill); } /* từ Đợt D Task 7, `.brand-logo` gốc (:116) CŨNG đã bo tròn hết cỡ — luật riêng này thành thừa số nhưng giữ lại để ý định tường minh (logo sidebar PHẢI tròn theo bản mẫu, không phụ thuộc luật gốc đổi lại) */
 /* `min-height: 0`: trong cột flex cao đúng một khung nhìn, phần danh sách mục phải CO ĐƯỢC thì `overflow-y: auto`
    mới cuộn (mặc định `min-height: auto` giữ nguyên chiều cao nội dung và đẩy chân thanh ra khỏi khung nhìn). */
 .sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; min-height: 0; }
