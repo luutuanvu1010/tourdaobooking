@@ -560,7 +560,7 @@ const envB = await startEnv();
 try {
   await step("f", "máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)", async () => {
     const cfg = await (await fetch(envB.base + "/api/auth/config")).json();
-    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null } }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016
+    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng)
     const p = await openLogin(envB, { label: "f" });
     await p.waitFor(`${BTN_ENABLED} && !document.getElementById('company').hidden`, "nút mở và khối công ty hiện", 10000);
     const st = await p.ev(`({ khungAn: document.getElementById('turnstile-widget').hidden, widget: ${WIDGET_UP}, script: [...document.scripts].some((s) => s.src.includes('cloudflare')), thuLai: document.getElementById('turnstile-retry').hidden })`);

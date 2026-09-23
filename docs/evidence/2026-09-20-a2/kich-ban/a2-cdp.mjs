@@ -36,8 +36,13 @@ UPDATE catalog_sync SET last_attempt_at = ${T}, last_success_at = ${T} WHERE id 
 /** Khoá thử CHÍNH THỨC của Cloudflare (luôn đạt; không phải khoá thật, không tạo tài nguyên nào trên Cloudflare). Cùng giá trị với `TURNSTILE_TEST` ở tests/e2e/lib.mjs. */
 export const TURNSTILE_TEST = { siteKey: "1x00000000000000000000AA", secret: "1x0000000000000000000000000000000AA" };
 
-/** `turnstile: true` → máy chủ BẬT Turnstile bằng khoá thử (cần mạng: widget tải script của Cloudflare, máy chủ gọi siteverify); mặc định TẮT (offline). */
-export async function startEnv({ turnstile = false } = {}) {
+/**
+ * `turnstile: true` → máy chủ BẬT Turnstile bằng khoá thử (cần mạng: widget tải script của Cloudflare, máy chủ gọi siteverify); mặc định TẮT (offline).
+ * `passkey: true` → máy chủ BẬT Face ID (`PASSKEY_RP_ID=localhost`, `PASSKEY_ORIGIN=http://localhost:<port>`); mặc định TẮT (rỗng), để `vars` production của
+ * `wrangler.jsonc` (`booking.tourdao.vn`) KHÔNG lọt vào các kịch bản Chrome cũ không chủ đích kiểm Face ID (B-22) — nút Face ID và lời mời sau đăng nhập PIN sẽ hiện
+ * ở MỌI môi trường cục bộ nếu không ghi đè rỗng ở đây. Trình duyệt không cho tạo passkey trên địa chỉ IP nên khi bật phải dùng `localhost`, không phải `127.0.0.1`.
+ */
+export async function startEnv({ turnstile = false, passkey = false } = {}) {
   const { insertStaffSql } = await import(pathToFileURL(join(ROOT, "scripts", "staff-lib.mjs")).href);
   const persist = mkdtempSync(join(tmpdir(), "tourdao-a2-"));
   const profile = mkdtempSync(join(tmpdir(), "tourdao-a2-chrome-"));
@@ -50,11 +55,15 @@ export async function startEnv({ turnstile = false } = {}) {
 
   const [port, inspector] = [await freePort(), await freePort()];
   const base = `http://127.0.0.1:${port}`;
+  const localBase = `http://localhost:${port}`;
   // Turnstile mặc định TẮT có chủ đích: `--var` rỗng ghi đè cả `.dev.vars` của máy (đã kiểm: --var thắng .dev.vars, giá trị rỗng = chưa cấu hình),
   // nên kịch bản chạy offline (không gọi siteverify) và không vỡ dù .dev.vars có khoá Turnstile thật. `startEnv({ turnstile: true })` thay bằng khoá thử của Cloudflare
   // (cần mạng) để kiểm widget ở trang đăng nhập — login() bên dưới đã gửi sẵn token thử nên chạy được ở cả hai chế độ.
   const turnstileVars = turnstile ? [TURNSTILE_TEST.siteKey, TURNSTILE_TEST.secret] : ["", ""];
-  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`],
+  // Face ID (ADR-0016) mặc định TẮT cùng lý do trên (B-22): rỗng ghi đè `vars` production của wrangler.jsonc. `startEnv({ passkey: true })` bật bằng `localhost`
+  // (Chrome cấm tạo passkey trên địa chỉ IP) — kịch bản dùng `env.localBase` để điều hướng, KHÔNG dùng `env.base` (127.0.0.1) cho các bước cần WebAuthn.
+  const passkeyVars = passkey ? ["localhost", localBase] : ["", ""];
+  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } });
   server.stdout.on("data", (d) => logs.push(String(d)));
   server.stderr.on("data", (d) => logs.push(String(d)));
@@ -147,7 +156,7 @@ export async function startEnv({ turnstile = false } = {}) {
       try { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch { /* còn tiến trình ghi vào thư mục: bỏ qua, không làm hỏng kết quả kiểm */ }
     }
   };
-  return { base, persist, sql, login, openPage, as, stop, logs };
+  return { base, localBase, persist, sql, login, openPage, as, stop, logs };
 }
 
 /** Biểu thức JS: gõ `value` vào phần tử `el` (biểu thức trả phần tử) và bắn sự kiện input/change. */
