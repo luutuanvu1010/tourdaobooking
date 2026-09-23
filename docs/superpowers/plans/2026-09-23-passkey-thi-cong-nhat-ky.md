@@ -14,8 +14,8 @@
 |---|---|---|
 | Task 0: trang thử iPhone | 8abb882 | đạt |
 | Lát 0: kết luận | 1e0e7c8 | **ĐI**. Mô phỏng chuyển hướng kiểu Google chưa có kết quả, phải thử lại trước lát 2 |
-| Task 1: `auth` sang STRICT | d0fae5a..74c2860 | đạt; `docs/ARCHITECTURE.md` sửa ở commit riêng, **chờ chủ duyệt** |
-| Task 2: migration 0023 `aut_passkey` | ..9708383 | đạt; `ARCHITECTURE.md` (tiền tố `aut_`) **chờ chủ duyệt** |
+| Task 1: `auth` sang STRICT | d0fae5a..74c2860 | đạt; `docs/ARCHITECTURE.md` sửa ở commit riêng (0109cf4), **chủ đã duyệt 2026-09-23** |
+| Task 2: migration 0023 `aut_passkey` | ..9708383 | đạt; `ARCHITECTURE.md` (tiền tố `aut_`, 9708383) **chủ đã duyệt 2026-09-23** |
 | Task 3: CBOR | ..fb8b30c | đạt |
 | Task 4: kiểm WebAuthn | ..4e781f2 | đạt sau 1 vòng sửa (RSA ≥ 2048 bit, e lẻ ≥ 3) |
 | Task 5: token thách thức | ..d4956f1 | đạt sau 1 vòng sửa (test không còn chập chờn, chữ ký dạng chuẩn, chặn `.`/`-`) |
@@ -54,13 +54,14 @@ Phán quyết thắng chữ kế hoạch khi hai bên mâu thuẫn. Lý do chi t
    - D-1: luồng bật Face ID hai bước viết một lần trong `web/passkey.ts`.
    - Cùng các neo dòng/tên đã lệch do `main` đổi.
 4. **`docs/ARCHITECTURE.md` là tài liệu chuẩn tắc,** nên được sửa bằng hai commit riêng ghi "(chờ chủ duyệt)" (0109cf4, 9708383). `src/CLAUDE.md` và `CLAUDE.md` chỉ được **đề xuất**, ở `docs/superpowers/plans/2026-09-23-passkey-de-xuat-claude-md.md`.
+   - **Cập nhật 2026-09-23:** chủ duyệt cả hai commit `ARCHITECTURE.md` (0109cf4, 9708383) — không viết lại lịch sử, tiêu đề commit vẫn ghi "(chờ chủ duyệt)"; và duyệt đề xuất `CLAUDE.md`/`src/CLAUDE.md` (bốn mục, đã áp trong commit "chủ duyệt 2026-09-23" của đợt bổ sung).
 5. **A-4 KHÔNG tự quyết** (CLAUDE.md §2, §3 P8), vì đặc tả và kế hoạch đã duyệt lệch nhau. Task 8 tách làm hai: 8a làm ngay, 8b chờ chủ.
 6. **Khoá RSA theo đặc tả §2.5:** n ≥ 2048 bit tính theo bit, e lẻ và ≥ 3. Kế hoạch chỉ đếm byte.
 7. **Test chữ ký trong Task 5:** kế hoạch viết dạng chập chờn (khoảng 1/1024 lần chạy). Đã sửa bằng giá trị ngẫu nhiên cố định.
 8. **Ẩn nút admin "Gỡ Face ID" trên dòng của chính admin.** Route admin không cấp lại cookie; tự gỡ thì làm ở trang "Tôi".
 9. **Kịch bản Chrome cũ chạy với Face ID TẮT** (`PASSKEY_*` rỗng). Chỉ `passkey-smoke.mjs` bật.
 10. **Dòng đồng tác giả:** vài commit (b73418d, 9708383, 10a1c0b, a5ce1c2, 6db332c) ghi đúng tên mô hình thật đã viết commit đó. Không viết lại lịch sử; chủ muốn thì amend trước khi push.
-11. **Kịch bản e2e `web/CLAUDE.md`:** Task 11 thêm một dòng vào bảng kịch bản Chrome để đăng ký `passkey-smoke.mjs` (commit a5ce1c2). Dòng này do điều phối cho phép. Nó không đổi nghĩa quy tắc, nhưng vẫn là sửa tệp luật, nên **chủ xem lại** (`git show a5ce1c2 -- web/CLAUDE.md`).
+11. **Kịch bản e2e `web/CLAUDE.md`:** Task 11 thêm một dòng vào bảng kịch bản Chrome để đăng ký `passkey-smoke.mjs` (commit a5ce1c2). Dòng này do điều phối cho phép. Nó không đổi nghĩa quy tắc, nhưng vẫn là sửa tệp luật, nên **chủ xem lại** (`git show a5ce1c2 -- web/CLAUDE.md`). **Chủ đã duyệt 2026-09-23.**
 13. **Task 0:** không sửa mã trang thử cho lỗi bấm quá sớm; chỉ dặn chủ "chờ 1–2 giây, nút 1/2 báo lỗi ngay thì bấm lại". Kết quả thật không có dòng lỗi giả nào.
 14. **Task 5, siết thêm ngoài kế hoạch:** `issueChallenge` ném lỗi khi staffId/extra chứa `.` hoặc bằng `-`; `readChallenge` đòi chữ ký base64url dạng chuẩn; có test chứng minh token ký bằng khoá phiên thô bị từ chối.
 15. **Task 8 tách 8a/8b; Task 9 bỏ assert "ngưng → khoá bị gỡ"** (để lại chú thích `// 8b`).
@@ -94,6 +95,7 @@ Làm 8b theo mục "Khuyến nghị cho 8b" của bản rà toàn nhánh. Tóm t
 ## Việc còn nợ, không chặn (đã phân loại "để sau")
 
 - Pin-by-passkey có nên gỡ khoá "sai PIN quá nhiều" (`unlockPhone`) như admin reset-pin không? Đặc tả không nói, **chủ quyết**.
+- **Chủ quyết 2026-09-23: GIỮ nguyên ngưỡng khoá đăng nhập** — 5 lần sai PIN / 15 phút cho mỗi SĐT (+30 lần / IP). Không đổi mã.
 - Khi Face ID tắt, nút admin "Gỡ Face ID (n)" vẫn hiện; bấm vào nhận 503 kèm lời giải thích. Có thể ẩn theo `config.passkey`.
 - `wrangler.jsonc` đã khai giá trị production cho `PASSKEY_*`, nên gộp rồi deploy là Face ID bật ngay: chỉ gộp sau khi 8b qua kiểm độc lập (**dựa vào kỷ luật**, P16).
 - ~~`docs/HANDOFF-N1.md` ghi "2 công khai, 6 tự phục vụ, 1 admin"~~: đã sửa thành 2 + 7 + 1 = 10 cùng đợt 8b.
@@ -123,7 +125,7 @@ Người kiểm cố ý phá 3 chỗ trên một bản sao để xác nhận cá
 
 Tiêu chí đặc tả §4:
 - Tiêu chí 1–3 và 5–11: có bằng chứng.
-- Tiêu chí 4 **chưa đủ**, đúng khoảng hở 8b.
+- Tiêu chí 4 **chưa đủ** (trước 8b), đúng khoảng hở 8b.
 
 Lưu ý: `audit-invariants` xanh trên D1 tạm của e2e **không** có nghĩa 8b đã xong. Nó xanh vì kịch bản đã kích hoạt lại tài khoản trước khi kết thúc.
 

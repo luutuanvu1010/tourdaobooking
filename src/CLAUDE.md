@@ -11,7 +11,7 @@
 ## Ranh giới module (N7: một nguồn sự thật)
 - Module khác chỉ import qua `index.ts`; **chỉ module chủ ghi bảng của mình**; muốn ghi cùng giao dịch thì nhận **câu lệnh D1 chưa chạy** từ `index.ts` của module chủ rồi gộp vào một `db.batch()`.
 - Đọc xuyên module **chỉ qua view công bố** `v_<tiền tố>_*` (chỉ đọc, chỉ khoá + nhãn). Không JOIN thẳng bảng của module khác.
-- **Module "nghiêm"** (`company`, `dispatch`, `feedback`, `locations`, `maintenance`, `parties`, `staff`): SQL đi qua `defineSql`, câu tĩnh (`src/shared/sql-registry.ts`), `architecture.test.ts` ép đầy đủ. Module cũ (`accounts`, `audit`, `auth`, `catalog`, `orders`) ở `LEGACY`: ngoại lệ có hạn, đừng coi là mẫu.
+- **Module "nghiêm"** (`auth`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `parties`, `staff`): SQL đi qua `defineSql`, câu tĩnh (`src/shared/sql-registry.ts`), `architecture.test.ts` ép đầy đủ. Module cũ (`accounts`, `audit`, `catalog`, `orders`) ở `LEGACY`: ngoại lệ có hạn, đừng coi là mẫu.
 - `orders` **KHÔNG** import `dispatch`: "đang là người phụ trách" và "đặt người phụ trách mặc định cho đơn mới" do gốc lắp ráp tiêm vào `ctx` (`ctx.isAssigned`, `ctx.defaultHandlerStatement`); route dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
 - Thêm module: khai cạnh ở `ALLOWED_EDGES`, đưa vào `STRICT` hoặc `LEGACY` (kèm lý do), thêm bảng/view vào `docs/data-dictionary.json` rồi `npm run dict`, thêm dòng vào mảng `modules`. Công thức: `docs/ARCHITECTURE.md` mục "Thêm một module mới" và `docs/CHANGE-GUIDE.md` công thức b.
 
@@ -22,7 +22,7 @@
 
 ## Dữ liệu
 - Tiền `INTEGER` VNĐ; số dẫn xuất (`line_total`, `subtotal`, `total`, `remaining_amount`) chỉ tính ở server. Ngày/giờ dân sự theo giờ VN (`vnToday(new Date())` truyền vào SQL làm tham số, **không** `date('now')`); dấu thời gian `TEXT` ISO UTC.
-- Tên bảng số ít (trừ `orders`); bảng mới có tiền tố module (`pty_`, `loc_`, `stf_`, `dsp_`, `mnt_`, `fbk_`, sau này `bil_`); tra cứu dùng khoá mã `TEXT code`. Danh sách giá trị mở kiểm ở **code**, không `CHECK` liệt kê. Không xoá cứng: `valid_from/to` hoặc `active = 0`; khoá ngoại `NO ACTION`.
+- Tên bảng số ít (trừ `orders`); bảng mới có tiền tố module (`pty_`, `loc_`, `stf_`, `dsp_`, `mnt_`, `fbk_`, `aut_`, sau này `bil_`); tra cứu dùng khoá mã `TEXT code`. Danh sách giá trị mở kiểm ở **code**, không `CHECK` liệt kê. Không xoá cứng: `valid_from/to` hoặc `active = 0`; khoá ngoại `NO ACTION`.
 - Ghi nhiều bảng sau một `UPDATE` điều kiện: dùng khoá lạc quan `updated_at` + `wonGuard` (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`), không so mốc thời gian để suy ra ai thắng.
 - Cột chết `staff.role` và `staff.full_name`: đọc quyền/tên từ `stf_permission`/hồ sơ (`v_stf_staff_label`).
 

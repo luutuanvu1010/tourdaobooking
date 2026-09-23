@@ -1,5 +1,7 @@
 # Đề xuất sửa CLAUDE.md / src/CLAUDE.md — đăng nhập nhanh bằng Face ID (ADR-0016)
 
+**Trạng thái: ĐÃ ÁP (chủ duyệt 2026-09-23).** Bốn mục dưới đây đã được áp nguyên văn vào `CLAUDE.md` §10 và `src/CLAUDE.md` theo lệnh của chủ dự án ("ok theo đề xuất"); phần còn lại của tệp giữ làm lịch sử.
+
 > Theo Hiến pháp Điều 9 và `CLAUDE.md` §3 (N9): AI **không tự sửa** các tệp luật này (trừ số đếm/số migration/tên tệp cho khớp mã — hai đề xuất dưới đây đều đổi **nghĩa** quy tắc nên không thuộc ngoại lệ đó). Đây là **đề xuất dạng diff**, chủ dự án đọc rồi tự áp bằng tay (hoặc yêu cầu một phiên khác áp sau khi duyệt). Không tệp nào trong `CLAUDE.md`/`src/CLAUDE.md` bị sửa trực tiếp bởi việc thi công Task 12.
 
 ## 1. `CLAUDE.md` §10 (Bẫy hay dính) — `last_login_at` nay ghi ở cả hai đường đăng nhập
