@@ -92,6 +92,13 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 - e2e 13 kịch bản (thêm `company`, `turnstile`, `dispatch` so với 10 của lần phát hành 1); đo lại 2026-09-21 tại `84a0de5`: 13/13 xanh + `audit-invariants --strict` 15 kiểm, `npm test` 363/363, `npm run typecheck` 0 lỗi.
 - Kịch bản Chrome v1.0 (ngoài CI, bằng chứng ở `docs/evidence/2026-09-21-v1-0/`): `v1-dang-nhap.mjs` 15 ✓, `v1-xac-nhan-png.mjs` 11 ✓, `v1-nguoi-phu-trach.mjs` 12 ✓ — đo bằng Chrome headless và khoá Turnstile THỬ, không phải iPhone thật, không phải khoá thật; chữ ký thị giác của chủ dự án CHƯA có.
 
+## Mọi lần phát hành: bước A.0 — nhật ký thay đổi (từ 2026-09-23)
+
+Trước bước "A. Trước khi deploy" của MỌI runbook:
+1. AI thêm mục mới vào đầu `CHANGELOG` (`src/shared/changelog.ts`) theo công thức "Ghi nhật ký thay đổi" ở `docs/CHANGE-GUIDE.md`, commit cùng nhánh sẽ deploy. Chủ đọc lướt mục này khi duyệt phát hành.
+2. `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0).
+Sau `CI=1 npx wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. Mục "TRẠNG THÁI TRIỂN KHAI" ghi thêm "Phiên bản X".
+
 ## Điều kiện TRƯỚC khi triển khai
 - **A2 (giao diện đơn) đã xong về mã (2026-09-20): `tsc -p web` = 0 lỗi; bằng chứng ở `docs/evidence/2026-09-20-a2/`.** Còn MỘT cổng: chủ dự án ký duyệt thị giác (mục "Ký duyệt thị giác" trong `docs/evidence/2026-09-20-a2/README.md`) — **chưa ký thì chưa triển khai**. Nhánh chứa A1 (đơn có `services[]`): triển khai chỉ N1 mà thiếu A2 thì giao diện đơn hỏng trên production, nên A1, N1 và A2 đi cùng một lần phát hành. `web/trip-sheet.ts`, `web/order-form.ts` và `web/order.ts` KHÔNG có kiểm tự động trong repo — sửa các tệp này thì PHẢI chạy lại ba kịch bản `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs`.
 - Chủ dự án chạy (chỉ đọc) và ghi lại kết quả: `npx wrangler d1 migrations list tourdao-sales-db --remote` (xem `0008` đã áp chưa) và `npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT count(*) AS orders FROM orders"`.

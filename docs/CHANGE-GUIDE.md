@@ -57,6 +57,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma t
 | Thêm kịch bản e2e (API) | `tests/e2e/run.mjs` (`ALL`), `tests/e2e/lib.mjs` | o |
 | Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`), `docs/evidence/2026-09-21-v1-0/kich-ban/` (`v1-dang-nhap.mjs`, `v1-xac-nhan-png.mjs`, `v1-nguoi-phu-trach.mjs`) | o |
 | Cập nhật sổ dữ liệu | `docs/data-dictionary.json` → `npm run dict` | d |
+| Phát hành bản mới / ghi có gì mới | `src/shared/changelog.ts`, `scripts/kiem-phien-ban.mjs` | s |
 
 ## 2. Các công thức
 
@@ -298,15 +299,15 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
   - 10 × `public/*.html` (`<title>… — Tour Đảo Booking` và `apple-mobile-web-app-title`);
   - `public/login.html` (`<h1>`); `web/shell.ts` (brand: `"Tour Đảo "` + `<span>Booking</span>`); `web/order.ts` (`document.title`).
 - Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) dựng khối ở chân trang từ đó (`#company`): tên (đậm), "Địa chỉ: …", "Email: …" (ẩn khi `null`), "MST: …" — chữ đúng như dữ liệu (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Cũng là nguồn của đầu ảnh xác nhận đơn (`headerBlock` trong `src/shared/order-confirmation.ts`: tên, MST, địa chỉ, hotline, email) — công thức p.
-- Số phiên bản: hằng ở `src/shared/app-info.ts` (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `formatReleaseLine()` → "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026"); phát hành mới chỉ sửa tệp này. `package.json` không có `version`. Mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`) là thứ khác, không hiển thị. Màn đăng nhập hiện `formatReleaseLine()` ở `#release` (luôn hiện, kể cả khi API công ty lỗi: là hằng trong mã, không đi qua API).
+- Số phiên bản: KHÔNG viết tay. `APP_VERSION`/`APP_RELEASE_DATE` ở `src/shared/app-info.ts` dẫn xuất từ mục đầu của `CHANGELOG` (`src/shared/changelog.ts`) — xem công thức "Ghi nhật ký thay đổi". Màn đăng nhập (`#release`), trang Trợ giúp (`/help`) và `GET /api/auth/config` (`version`) cùng đọc nguồn này.
 
 **Đổi tên app hôm nay:** sửa tất cả nơi trên rồi chạy `npm run test:e2e -- pwa` (đối chiếu manifest ↔ HTML ↔ bundle `web/shell.ts`). Không đổi tên Worker/D1 `tourdao-sales`.
 
-**Đổi số phiên bản / ngày phát hành:** sửa `APP_VERSION`, `APP_RELEASE_DATE` ở `src/shared/app-info.ts` (và ô kỳ vọng ở `src/shared/app-info.test.ts`) — hằng trong mã, không đi qua esbuild `--define`. **Đổi thông tin công ty:** sửa dòng `company_profile` (migration dữ liệu như `0013_company_email.sql`; giao diện sửa hồ sơ là M5, chưa làm); `GET /api/company` chỉ trả năm trường của `CompanyDto`, muốn lộ thêm trường phải sửa `CompanyDto` + câu `SELECT` tường minh ở `src/modules/company/repository.ts` + `tests/e2e/company.mjs` (nó khoá đúng tập khoá).
+**Đổi số phiên bản / ngày phát hành:** thêm mục mới vào đầu `CHANGELOG` (công thức "Ghi nhật ký thay đổi"); không sửa `app-info.ts`. **Đổi thông tin công ty:** sửa dòng `company_profile` (migration dữ liệu như `0013_company_email.sql`; giao diện sửa hồ sơ là M5, chưa làm); `GET /api/company` chỉ trả năm trường của `CompanyDto`, muốn lộ thêm trường phải sửa `CompanyDto` + câu `SELECT` tường minh ở `src/modules/company/repository.ts` + `tests/e2e/company.mjs` (nó khoá đúng tập khoá).
 
 **Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa company`; đổi chữ hiển thị ở màn đăng nhập → `v1-dang-nhap.mjs`.
 
-**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay (`web/login.ts` mới dùng `formatReleaseLine()`). Kịch bản Chrome `v1-dang-nhap.mjs` (bước a) ghi CỨNG chữ kỳ vọng (`EXPECT`: dòng phiên bản, tên/địa chỉ/email/MST của công ty): đổi số phiên bản hoặc dữ liệu công ty thì sửa `EXPECT` ở đó. Kế hoạch v1.0: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`; nhật ký thi công (ruling, chỗ mã lệch kế hoạch, việc của chủ dự án): `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
+**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay (`web/login.ts` mới dùng `formatReleaseLine()`). `v1-dang-nhap.mjs` đọc dòng phiên bản từ `formatReleaseLine()`; dữ liệu công ty trong `EXPECT` vẫn ghi cứng. Kế hoạch v1.0: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`; nhật ký thi công (ruling, chỗ mã lệch kế hoạch, việc của chủ dự án): `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
 
 ### k. Đồng bộ danh mục / Sheet / Cron
 
@@ -513,6 +514,18 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Kiểm:** `node --test src/modules/auth/webauthn.test.ts src/modules/auth/cbor.test.ts src/modules/auth/challenge.test.ts src/shared/passkey-error.test.ts` (nếu có) → `npm test` → `npm run typecheck` → `npm run test:e2e -- passkey platform admin turnstile maintenance` (đủ bộ kịch bản chạm tới) → kịch bản Chrome `docs/evidence/2026-09-23-passkey/kich-ban/passkey-smoke.mjs` (authenticator ảo qua CDP, miền WebAuthn — không cần thiết bị thật) → thử tay trên iPhone thật trước khi coi là xong (lát 0 đã ĐI, `docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md`).
 
+### s. Ghi nhật ký thay đổi khi phát hành (mỗi lần deploy mã mới)
+
+**Khi nào:** MỖI lần deploy mã mới lên production (bước A.0 của runbook ở `docs/HANDOFF-N1.md`). Không ghi khi chỉ deploy lại đúng bản đang chạy hoặc lùi về bản cũ.
+
+**Làm:** thêm MỘT mục vào ĐẦU `CHANGELOG` ở `src/shared/changelog.ts`: `version` = số của mục đầu hiện tại + 0.1 theo số (1.9 → 1.10), `date` = ngày deploy dự kiến (giờ Việt Nam), `items` = vài gạch loại `moi` (Mới) / `sua` (Đã sửa) / `doi` (Thay đổi). Deploy không có gì người dùng thấy: một gạch `doi` "Cải thiện độ ổn định và an toàn bên trong, không đổi cách dùng."
+
+**Cách viết:** cho nhân viên bán hàng/kế toán/hướng dẫn viên; nói điều họ THẤY hoặc LÀM ĐƯỢC khác đi; mỗi gạch một câu ≤ 160 ký tự; không tên tệp, không mã, không chữ kỹ thuật (test chặn `task`, `commit`, `api`, `route`, `migration`, `worker`, `deploy`, `e2e`, `d1`, `null`, `undefined`, dấu `` ` ``, `snake_case`). Bị chặn nhầm thì sửa câu, không nới danh sách (trừ khi chủ đồng ý).
+
+**Kiểm:** `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt). Sau `wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT.
+
+**Bẫy:** trang Trợ giúp và chấm đỏ cập nhật sau deploy + một lần mở lại app (service worker stale-while-revalidate). "Đã xem" lưu theo từng máy (`localStorage` `td_help_seen`).
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
@@ -532,6 +545,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 | `wrangler.jsonc`, `package.json` | `npm run types` (nếu đổi `vars`/bí mật; cần `.dev.vars` có đủ tên bí mật, xem công thức l) → `npm run typecheck` → `npm run test:e2e` |
 | `docs/data-dictionary.json` | `npm run dict` → `npm test` (bài kiểm bắt `DATA-DICTIONARY.md` lệch bản sinh) |
 | `scripts/*.mjs` | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
+| `src/shared/changelog.ts` | `node --test src/shared/changelog.test.ts` + `help-smoke.mjs` nếu đổi cách hiển thị |
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |
 
 **Thời gian ước lượng** (máy dev, đo 2026-09-21):
