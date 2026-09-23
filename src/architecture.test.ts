@@ -36,6 +36,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
 const STRICT: readonly { module: string; file: string }[] = [
+  { module: "auth", file: "modules/auth/repository.ts" },
   { module: "company", file: "modules/company/repository.ts" },
   { module: "dispatch", file: "modules/dispatch/repository.ts" },
   { module: "feedback", file: "modules/feedback/repository.ts" },
@@ -48,11 +49,11 @@ const STRICT: readonly { module: string; file: string }[] = [
 /**
  * NGOẠI LỆ CÓ HẠN (ADR-0002 điều 8(b)): SQL của module cũ chưa đăng ký — còn JOIN thẳng bảng module khác.
  * Hạn: `audit` và `orders` đã bỏ JOIN thẳng bảng (đọc qua view công bố) ở N1-B nhưng SQL của chúng chưa đăng ký — chuyển STRICT khi được chạm ở N2;
- * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts`, `auth`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
+ * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
  */
-const LEGACY = ["accounts", "audit", "auth", "catalog", "orders"] as const;
+const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
 
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance" };
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -355,7 +356,7 @@ test("ADR-0002 điều 8(b): tệp SQL của module nghiêm không được `.pr
  * Vị trí (`tệp:dòng`) có `db.exec(`/`env.DB.exec(` mà đối số đầu là chuỗi/template thô — cùng cơ chế với `rawPrepareHits` ở trên, quét thêm
  * hai lối ghi thẳng SQL này (D1 và `node:sqlite` đều có `.exec(chuỗi)` chạy nhiều câu, đi vòng qua `defineSql` y như `.prepare(chuỗi)`).
  * CHỈ khớp đúng hai tiền tố `db.exec(` / `env.DB.exec(`, KHÔNG bắt `.exec(` trần: `RegExp.prototype.exec()` (vd. `src/shared/vn-date.ts`,
- * `src/shared/order-lines.ts`, `src/shared/order-errors.ts`) là cách dùng hợp lệ, không phải SQL, và nằm ngoài 7 thư mục module nghiêm.
+ * `src/shared/order-lines.ts`, `src/shared/order-errors.ts`) là cách dùng hợp lệ, không phải SQL, và nằm ngoài 8 thư mục module nghiêm.
  */
 function rawExecHits(rel: string, source: string): string[] {
   const code = source.split("\n").map((line) => (/^\s*(?:\/\/|\/\*|\*)/.test(line) ? "" : line.replace(/\/\/.*$/, ""))).join("\n");
@@ -380,7 +381,7 @@ test("bộ bắt `db.exec(<chuỗi thô>)`/`env.DB.exec(<chuỗi thô>)`: bắt 
 // Lưới cho GAP đã tìm thấy (C-3, người kiểm độc lập 2026-09-22): hai bài kiểm trên chỉ quét `repository.ts` của module nghiêm. Một
 // `service.ts`/`index.ts`/`rules.ts` cùng thư mục viết thẳng `.prepare("...")` hay `db.exec("...")` thì đi vòng qua ranh giới EXPLAIN mà
 // KHÔNG bài kiểm nào bắt được — `npm test` vẫn xanh 100%. Bài kiểm dưới quét MỌI tệp `.ts` (trừ `*.test.ts`, dùng lại `walk()` ở trên) trong
-// cả 7 thư mục module nghiêm, không chỉ `repository.ts`. Cố tình KHÔNG quét 5 module LEGACY (`accounts`, `audit`, `auth`, `catalog`, `orders`):
+// cả 8 thư mục module nghiêm, không chỉ `repository.ts`. Cố tình KHÔNG quét 4 module LEGACY (`accounts`, `audit`, `catalog`, `orders`):
 // đó là phong cách chấp nhận được của SQL cũ, một cuộc di trú khác, lớn hơn, không thuộc phạm vi việc này.
 test("ADR-0002 điều 8(b) mở rộng: MỌI tệp trong thư mục module nghiêm (không chỉ repository.ts) không được `.prepare(`/`db.exec(`/`env.DB.exec(` với chuỗi/template thô", () => {
   const problems: string[] = [];
