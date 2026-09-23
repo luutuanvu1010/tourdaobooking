@@ -2,6 +2,7 @@ import { ApiError, api, type Api, type OrderSummary } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
 import { initShell, showError } from "./shell";
+import { vnToday } from "../src/shared/vn-date";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
 const FULL_WEEKDAY = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
@@ -10,9 +11,13 @@ const weekdayOf = (isoDate: string): number => new Date(`${isoDate}T00:00:00Z`).
 
 /**
  * Biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2) — 7 cột T2…CN, dựng bằng `h()` (không thư viện ngoài).
- * Chiều cao theo % so với ngày cao nhất; sàn 4% cho ngày 0 đ để cột vẫn thấy được (không biến mất). Hai cột CUỐI
- * (T7, CN) tô đậm `--c-primary` — đúng ẢNH BẢN MẪU (không phải "cột cao nhất"; xem mục "Lo ngại" trong báo cáo Task 2,
- * đặc tả viết "cột cao nhất" nhưng ảnh mẫu — nguồn thẩm quyền về hình dáng — tô đậm hai cột cuối).
+ * Chiều cao theo % so với ngày cao nhất; sàn 4% cho ngày 0 đ để cột vẫn thấy được (không biến mất).
+ * Tô đậm `--c-primary`: NGÀY ĐÃ QUA + HÔM NAY (`d.date <= today`), ngày CHƯA TỚI để nhạt — quyết định chốt của chủ dự
+ * án sau vòng kiểm Task 2 (`docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md` mục 7, câu 7). LƯU Ý LỊCH
+ * SỬ: bản trước tô đậm theo VỊ TRÍ (hai cột cuối T7/CN, đúng pixel ảnh mẫu — người kiểm độc lập đã đo xác nhận), vì
+ * ảnh mẫu tình cờ vẽ vào đúng Chủ nhật nên hai cột cuối trong mẫu ĐỒNG THỜI là "hôm qua + hôm nay". Ảnh chụp thật hôm
+ * Thứ Tư lộ sai: quy tắc vị trí tô đậm 2 ngày CHƯA TỚI (0 đ) trong khi ngày có tiền thật (hôm nay) lại nhạt. Đừng
+ * quay lại `i >= 5`.
  * Máy đọc màn hình: các cột (`aria-hidden`) không mang nghĩa; thay bằng MỘT bảng `.visually-hidden` liệt kê đủ 7 ngày.
  * Mọi ngày đều 0 đ → không vẽ 7 cột rỗng, hiện dòng "Chưa có đơn nào tuần này" (đúng kế hoạch bước 4).
  * Fix round 1 (phát hiện của người kiểm độc lập Task 2): dòng chữ rỗng này CŨNG phải mang class `dash-revenue-chart`
@@ -24,9 +29,10 @@ const weekdayOf = (isoDate: string): number => new Date(`${isoDate}T00:00:00Z`).
 function revenueChart(daily: readonly { date: string; total: number }[]): HTMLElement {
   const max = Math.max(0, ...daily.map((d) => d.total));
   if (max === 0) return h("p", { class: "empty dash-chart-empty dash-revenue-chart" }, "Chưa có đơn nào tuần này");
-  const bars = daily.map((d, i) => {
+  const today = vnToday(new Date()); // giờ Việt Nam — cùng hàm/quy ước server dùng, tránh lệch ngày 00:00–07:00 giờ VN
+  const bars = daily.map((d) => {
     const pct = Math.max(Math.round((d.total / max) * 100), 4);
-    const isDark = i >= 5; // vị trí T7 (index 5) và CN (index 6) — hai cột cuối
+    const isDark = d.date <= today; // ngày ĐÃ QUA hoặc HÔM NAY — so sánh chuỗi "YYYY-MM-DD" đúng thứ tự thời gian
     return h("span", { class: isDark ? "dash-chart-bar dash-chart-bar-dark" : "dash-chart-bar", style: `height:${pct}%`, "aria-hidden": "true" });
   });
   const labels = daily.map((d) => h("span", null, SHORT_WEEKDAY[weekdayOf(d.date)]));

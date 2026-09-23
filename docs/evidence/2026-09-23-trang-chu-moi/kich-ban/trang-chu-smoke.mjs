@@ -231,6 +231,8 @@ try {
         shown: chartEl.offsetParent !== null,
         barCount: chartEl.querySelectorAll('.dash-chart-bar').length,
         barHeights: [...chartEl.querySelectorAll('.dash-chart-bar')].map((b) => parseFloat(b.style.height)),
+        // Fix round 2 (quyết định chủ dự án 2026-09-23, mục 7): tô đậm = ngày ĐÃ QUA + HÔM NAY, ngày CHƯA TỚI để nhạt.
+        barDark: [...chartEl.querySelectorAll('.dash-chart-bar')].map((b) => b.classList.contains('dash-chart-bar-dark')),
         labels: [...chartEl.querySelectorAll('.dash-chart-labels > *')].map((s) => s.textContent.trim()),
         tableRowCount: chartEl.querySelectorAll('table tbody tr').length,
         tableRows: [...chartEl.querySelectorAll('table tbody tr')].map((tr) => [...tr.children].map((c) => c.textContent.trim())),
@@ -292,6 +294,24 @@ try {
         );
         assert.equal(m.chart.barHeights[todayIdx], 100, `${label}: cột hôm nay (ngày cao nhất) phải cao 100% — ${JSON.stringify(m.chart)}`);
         assert.ok(m.chart.barHeights[otherIdx] > 0 && m.chart.barHeights[otherIdx] < 100, `${label}: cột ngày 0 đ vẫn phải có chiều cao > 0 (sàn hiển thị, không biến mất) — ${JSON.stringify(m.chart)}`);
+      }
+      // Fix round 2 (quyết định chủ dự án 2026-09-23, mục 7 — LƯỚI CHÍNH của việc này): tô đậm = ngày ĐÃ QUA + HÔM NAY,
+      // ngày CHƯA TỚI để nhạt. Kỳ vọng tính ĐỘNG theo ngày chạy thật (không hard-code T7/CN — kịch bản chạy vào ngày
+      // bất kỳ trong tuần). Cố ý quay lại quy tắc VỊ TRÍ cũ (`i >= 5`, tô đậm hai cột cuối T7/CN bất kể ngày) sẽ làm
+      // lưới này ĐỎ vào mọi ngày giữa tuần (xem báo cáo P16).
+      {
+        const expectedDark = data.revenueWeek.daily.map((d) => d.date <= TODAY);
+        assert.deepEqual(
+          m.chart.barDark,
+          expectedDark,
+          `${label}: tô đậm cột phải đúng "ngày đã qua + hôm nay" (ngày > hôm nay phải NHẠT) — ngày: ${JSON.stringify(data.revenueWeek.daily.map((d) => d.date))}, đo được: ${JSON.stringify(m.chart.barDark)}, kỳ vọng: ${JSON.stringify(expectedDark)}`,
+        );
+        assert.equal(m.chart.barDark[todayIdx], true, `${label}: cột HÔM NAY (${TODAY}) phải ĐẬM — ${JSON.stringify(m.chart.barDark)}`);
+        const futureIdx = data.revenueWeek.daily.findIndex((d) => d.date > TODAY);
+        if (futureIdx >= 0) {
+          assert.equal(m.chart.barDark[futureIdx], false, `${label}: cột ngày CHƯA TỚI (${data.revenueWeek.daily[futureIdx].date}, vị trí ${futureIdx}) phải NHẠT — ${JSON.stringify(m.chart.barDark)}`);
+        }
+        ok(`Fix round 2: tô đậm cột khớp "ngày đã qua + hôm nay" — hôm nay (${TODAY}) đậm${futureIdx >= 0 ? `, ngày chưa tới (${data.revenueWeek.daily[futureIdx].date}) nhạt` : " (hôm nay là Chủ nhật cuối tuần, không có cột ngày chưa tới trong tuần để đối chiếu)"}`);
       }
       // Bảng ẩn cho máy đọc màn hình: đủ 7 dòng, dòng của hôm nay phải có đúng số tiền hiện hành.
       assert.equal(m.chart.tableRowCount, 7, `${label}: bảng máy đọc màn hình (.visually-hidden) phải có đúng 7 dòng — ${JSON.stringify(m.chart)}`);
@@ -534,6 +554,10 @@ try {
     await pEmpty.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
     const emptyDesktop = await readEmpty();
     assert.equal(emptyDesktop.emptyShown, true, `Tuần trắng (máy tính, vế bổ trợ): dòng "Chưa có đơn nào tuần này" PHẢI hiển thị thật ở khổ máy tính (luật ẩn chỉ áp dụng ≤639px, không phải ẩn mọi khổ) — ${JSON.stringify(emptyDesktop)}`);
+    // Fix round 2 — kiểm nghi ngờ: <p class="dash-chart-empty dash-revenue-chart"> ở khổ máy tính nhận CSS
+    // `.dash-revenue-chart { display: flex; flex-direction: column; }` (một <p> chứa text trở thành flex container).
+    // Chụp ảnh để XEM THẬT dòng chữ có căn sai/giãn chữ/mất khoảng cách hay không (không chỉ đo DOM).
+    await shot(pEmpty, "trang-chu-may-tinh-tuan-trang.png");
 
     pEmpty.close();
     ok(`E) Tuần trắng (tài khoản SALES mới, chưa lập đơn): doanh thu = "0 ₫" · "${mEmpty.revenueSub}"; dòng chữ rỗng tồn tại trong DOM, KHÔNG hiển thị thật ở 390px (ô "Doanh thu của tôi" chỉ còn tổng tiền + dòng phụ, đúng bản mẫu), CÓ hiển thị thật ở khổ máy tính (vế bổ trợ)`);
