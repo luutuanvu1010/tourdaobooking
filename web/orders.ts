@@ -2,7 +2,7 @@ import { can } from "../src/shared/permissions";
 import { NO_HANDLER_TEXT, handlerText } from "../src/shared/handler-view";
 import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
-import { STATUS_LABEL, dayMonth, paxCounts, vnd } from "./format";
+import { orderCard } from "./order-card";
 import { initShell, showError } from "./shell";
 
 const PAGE = 30;
@@ -25,34 +25,26 @@ interface Row {
 }
 
 function row(o: OrderSummary): Row {
-  // Chỗ giữ sẵn một dòng chữ (không nhảy bố cục khi tên về); `is-pending` = chưa biết. Lời gọi lỗi → ẩn hẳn chỗ này, KHÔNG hiện "Chưa có người phụ trách" (đó là khẳng định về dữ liệu).
-  const slot = h("div", { class: "order-row-handler is-pending" });
-  const when = o.trip.departDate ? `${dayMonth(o.trip.departDate)}${o.trip.pickupTime ? ` · ${o.trip.pickupTime}` : ""}` : "Chưa có ngày đón";
-  const serviceLine = o.serviceNames.length === 0 ? "—" : o.serviceNames.length === 1 ? o.serviceNames[0] : `${o.serviceNames[0]} +${o.serviceNames.length - 1} dịch vụ`;
-  const el = h(
-    "a",
-    { class: "order-row", href: `/order?id=${encodeURIComponent(o.id)}` },
-    h("div", { class: "order-row-top" }, h("strong", null, when), h("span", { class: `badge badge-${o.status}` }, STATUS_LABEL[o.status])),
-    h(
-      "div",
-      { class: "order-row-main" },
-      h("strong", null, o.orderCode),
-      h("span", null, o.customerName, " · ", h("span", { class: "order-row-phone", onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } }, o.customerPhone)),
-    ),
-    h("div", { class: "muted" }, serviceLine),
-    ...(paxCounts(o.pax) ? [h("div", { class: "muted" }, paxCounts(o.pax))] : []),
-    slot,
-    h(
-      "div",
-      { class: "order-row-money" },
-      h("span", null, "Tổng ", h("b", null, vnd(o.total))),
-      h("span", null, "Đã trả ", h("b", null, vnd(o.depositAmount))),
-      h("span", null, "Còn lại ", h("b", { class: o.remainingAmount === 0 ? "money-ok" : "money-due" }, vnd(o.remainingAmount))),
-    ),
-    ...(o.trip.pickupPlace ? [h("div", { class: "muted" }, "Đón tại ", o.trip.pickupPlace)] : []),
-    ...(o.customerNote ? [h("div", { class: "order-row-note" }, o.customerNote)] : []),
-  );
-  return { id: o.id, el, slot };
+  // Đợt E Phần A: thẻ rút gọn 2 dòng + nút xổ xuống, dựng bằng thành phần dùng chung web/order-card.ts (chỉ áp cho
+  // /orders ở đợt này — xem đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md). `handlerSlot` thay cho `slot` cũ:
+  // vẫn cùng class `order-row-handler`/`is-pending`, chỉ đổi CHỖ ĐỨNG (nay trong phần xổ xuống thay vì luôn hiện).
+  const { el, handlerSlot } = orderCard({
+    id: o.id,
+    href: `/order?id=${encodeURIComponent(o.id)}`,
+    status: o.status,
+    departDate: o.trip.departDate,
+    pickupTime: o.trip.pickupTime,
+    customerPhone: o.customerPhone,
+    pax: o.pax,
+    depositAmount: o.depositAmount,
+    remainingAmount: o.remainingAmount,
+    serviceNames: o.serviceNames,
+    staffName: o.staffName,
+    createdAt: o.createdAt,
+    customerNote: o.customerNote,
+    pickupPlace: o.trip.pickupPlace,
+  });
+  return { id: o.id, el, slot: handlerSlot };
 }
 
 /**

@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
+      "name": "danh sách đơn: đóng đúng 2 dòng (không lộ người phụ trách); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
       "dat": true
     },
     {
@@ -86,7 +86,7 @@
   "do": {
     "danh-sach-390": {
       "nho": [],
-      "dieuKhien": 11,
+      "dieuKhien": 22,
       "trànNgang": 0
     },
     "trang-don-390": {
@@ -126,12 +126,12 @@
     },
     "danh-sach-handlers-loi-390": {
       "nho": [],
-      "dieuKhien": 11,
+      "dieuKhien": 22,
       "trànNgang": 0
     },
     "danh-sach-1040": {
       "nho": [],
-      "dieuKhien": 12,
+      "dieuKhien": 24,
       "trànNgang": 0
     },
     "trang-don-1040": {
@@ -171,7 +171,7 @@
     },
     "danh-sach-handlers-loi-1040": {
       "nho": [],
-      "dieuKhien": 12,
+      "dieuKhien": 24,
       "trànNgang": 0
     }
   },
@@ -191,7 +191,41 @@
     "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800"
   },
   "dem": {
+    "the-dong-390": [
+      {
+        "l2Rows": 2,
+        "cardH": 145,
+        "clipped": false
+      },
+      {
+        "l2Rows": 2,
+        "cardH": 145,
+        "clipped": false
+      },
+      {
+        "l2Rows": 2,
+        "cardH": 145,
+        "clipped": false
+      }
+    ],
     "handlers-goi-o-danh-sach-390": 1,
+    "the-dong-1040": [
+      {
+        "l2Rows": 1,
+        "cardH": 120,
+        "clipped": false
+      },
+      {
+        "l2Rows": 1,
+        "cardH": 120,
+        "clipped": false
+      },
+      {
+        "l2Rows": 1,
+        "cardH": 120,
+        "clipped": false
+      }
+    ],
     "handlers-goi-o-danh-sach-1040": 1,
     "thong-bao-no-change": "Người này đang phụ trách đơn rồi. Đã tải lại đơn.",
     "thong-bao-stale": "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn.",

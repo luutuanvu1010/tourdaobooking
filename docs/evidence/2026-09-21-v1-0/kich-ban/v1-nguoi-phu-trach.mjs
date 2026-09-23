@@ -179,8 +179,15 @@ const assignVia = async (account, orderId, who) => {
 };
 
 // ---- Biểu thức đọc trang ----
-const LIST_ROWS = "[...document.querySelectorAll('#list .order-row')].map((r) => ({ id: new URL(r.href).searchParams.get('id'), code: r.querySelector('strong').textContent, handler: r.querySelector('.order-row-handler')?.textContent ?? null, hidden: r.querySelector('.order-row-handler')?.hidden ?? null, chip: !!r.querySelector('.order-row-handler .chip') }))";
-const listReady = (n) => `document.querySelectorAll('#list .order-row').length >= ${n} && [...document.querySelectorAll('#list .order-row')].every((r) => { const s = r.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })`;
+// Đợt E: dòng người phụ trách (`.order-row-handler`) nay nằm trong PHẦN XỔ XUỐNG (`.order-card-details`), anh em —
+// không còn là con — của `.order-row` (thẻ `<a>` chỉ còn 2 dòng hiện ngay). Gốc đọc đổi sang `.order-card` (khung
+// ngoài); `textContent`/`querySelector` vẫn xuyên qua được phần tử đang ẩn bởi tổ tiên `[hidden]` (không như
+// `getBoundingClientRect`) nên các bước b/f/i/j/k đọc TÊN người phụ trách qua `LIST_ROWS` không cần mở thẻ trước.
+const LIST_ROWS =
+  "[...document.querySelectorAll('#list .order-card')].map((c) => { const a = c.querySelector('.order-row'); const s = c.querySelector('.order-row-handler'); return { id: new URL(a.href).searchParams.get('id'), code: a.querySelector('strong').textContent, handler: s?.textContent ?? null, hidden: s?.hidden ?? null, chip: !!s?.querySelector('.chip') }; })";
+const listReady = (n) => `document.querySelectorAll('#list .order-card').length >= ${n} && [...document.querySelectorAll('#list .order-card')].every((c) => { const s = c.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })`;
+/** Bấm mọi nút xổ đang đóng trong `#list`; trả về số nút đã bấm. */
+const expandAllCards = (p) => p.ev("(() => { const btns = [...document.querySelectorAll('#list .order-card-toggle[aria-expanded=false]')]; for (const b of btns) b.click(); return btns.length; })()");
 const CARD_NAME = "(document.querySelector('.handler-card .handler-name')?.textContent ?? null)";
 const CARD_READY = "document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null";
 const CARD_BUTTONS = "[...document.querySelectorAll('.handler-card button')].map((b) => b.textContent)";
@@ -267,7 +274,7 @@ const axeRun = async (p, label) => {
 const measure = async (p, label) => {
   const m = await p.ev(`(() => {
     const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[hidden]'); };
-    const ctl = [...document.querySelectorAll('.handler-card button, .handler-card a[href], .sheet button, .sheet input, .sheet a[href], #list .order-row')].filter(shown);
+    const ctl = [...document.querySelectorAll('.handler-card button, .handler-card a[href], .sheet button, .sheet input, .sheet a[href], #list .order-row, #list .order-card-toggle')].filter(shown);
     return { nho: ctl.filter((el) => { const r = el.getBoundingClientRect(); return r.height < 43.5 || r.width < 43.5; }).map((el) => (el.className || el.tagName) + ':' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height)), dieuKhien: ctl.length, trànNgang: document.documentElement.scrollWidth - innerWidth };
   })()`);
   results.do[label] = m;
@@ -282,7 +289,9 @@ try {
   await seedAccount(C);
 
   // ================= a) danh sách đơn =================
-  await step("a", "danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện", async () => {
+  // Đợt E: dòng người phụ trách nay nằm trong phần xổ xuống (mặc định ĐÓNG) — bước này kiểm CẢ hai trạng thái:
+  // đóng (đúng 2 dòng, KHÔNG lộ người phụ trách) và mở (bấm nút xổ → hiện đúng tên, nằm gọn trong thẻ).
+  await step("a", "danh sách đơn: đóng đúng 2 dòng (không lộ người phụ trách); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện", async () => {
     const main = await getMain();
     const { a2, b1 } = await getExtra();
     const expected = new Map([[main.id, "Phụ trách: Sales Một"], [a2.id, "Phụ trách: Sales Một"], [b1.id, "Phụ trách: Sales Hai"]]);
@@ -293,11 +302,48 @@ try {
       assert.equal(rows.length, 3, `${label}: số đơn`);
       for (const r of rows) {
         assert.equal(r.handler, expected.get(r.id), `${label}: đơn ${r.code}`);
-        assert.equal(r.hidden, false, `${label}: dòng người phụ trách của ${r.code} phải hiện`);
         assert.equal(r.chip, false, `${label}: đơn đã có người phụ trách KHÔNG có chip`);
       }
-      const layout = await p.ev(`(() => ({ tran: document.documentElement.scrollWidth - innerWidth, cao: [...document.querySelectorAll('#list .order-row-handler')].map((e) => Math.round(e.getBoundingClientRect().height)), trongThe: [...document.querySelectorAll('#list .order-row')].every((r) => { const a = r.getBoundingClientRect(), b = r.querySelector('.order-row-handler').getBoundingClientRect(); return b.left >= a.left - 0.5 && b.right <= a.right + 0.5 && b.top >= a.top && b.bottom <= a.bottom + 0.5; }) }))()`);
-      assert.ok(layout.tran <= 0 && layout.trongThe && layout.cao.every((h) => h >= 18), `${label}: bố cục ${JSON.stringify(layout)}`);
+      // ĐÓNG (mặc định): nút xổ đóng + vùng chạm ≥44px, dòng người phụ trách KHÔNG lộ (cao 0), không tràn ngang.
+      const closed = await p.ev(`(() => {
+        const cards = [...document.querySelectorAll('#list .order-card')];
+        return {
+          tran: document.documentElement.scrollWidth - innerWidth,
+          the: cards.map((c) => {
+            const t = c.querySelector('.order-card-toggle'), tr = t.getBoundingClientRect(), h = c.querySelector('.order-row-handler').getBoundingClientRect();
+            return { expanded: t.getAttribute('aria-expanded'), toggleTapMin: tr.width >= 43.5 && tr.height >= 43.5, handlerAn: h.height === 0 };
+          }),
+        };
+      })()`);
+      assert.ok(closed.tran <= 0, `${label}: đóng — tràn ngang ${closed.tran}px`);
+      assert.ok(closed.the.every((x) => x.expanded === "false"), `${label}: đóng — nút xổ phải aria-expanded=false: ${JSON.stringify(closed.the)}`);
+      assert.ok(closed.the.every((x) => x.toggleTapMin), `${label}: đóng — nút xổ phải ≥44px: ${JSON.stringify(closed.the)}`);
+      assert.ok(closed.the.every((x) => x.handlerAn), `${label}: đóng — dòng người phụ trách KHÔNG được lộ: ${JSON.stringify(closed.the)}`);
+      // "Đúng 2 dòng" (tiêu chí 1 đặc tả Đợt E) đo bằng CHIỀU CAO THẬT + số hàng thật của dòng 2 (không đếm phần tử).
+      // Đo thật (390px): nội dung dòng 2 (SĐT + số khách + đã trả + còn lại) KHÔNG vừa một hàng trong ~326px nội dung
+      // còn lại — §A cho phép xuống hàng ở khổ hẹp CÓ CHỦ ĐÍCH ("không phải ràng buộc cứng làm chữ bị cắt"), nên ở
+      // 390px chỉ đòi KHÔNG cắt số tiền/SĐT + thẻ vẫn thấp hẳn so với khung 7 dòng cũ (từng ~180–240px). Ở ≥1040px
+      // đủ chỗ nên đòi đúng nghĩa đen: dòng 2 không xuống hàng, thẻ đóng thật thấp (2 dòng).
+      const wrap = await p.ev(`(() => [...document.querySelectorAll('#list .order-card')].map((c) => {
+        const l2 = c.querySelector('.order-card-line2');
+        const tops = new Set([...l2.children].map((x) => Math.round(x.getBoundingClientRect().top)));
+        const clipped = [...l2.querySelectorAll('span, b')].some((x) => x.scrollWidth > x.clientWidth + 1);
+        return { l2Rows: tops.size, cardH: Math.round(c.getBoundingClientRect().height), clipped };
+      }))()`);
+      if (label === "1040") {
+        assert.ok(wrap.every((x) => x.l2Rows === 1), `${label}: đúng 2 dòng — dòng 2 không được xuống hàng ở khổ thường: ${JSON.stringify(wrap)}`);
+        assert.ok(wrap.every((x) => x.cardH <= 140), `${label}: thẻ đóng phải thấp (≤140px, đúng 2 dòng thật): ${JSON.stringify(wrap)}`);
+      } else {
+        assert.ok(wrap.every((x) => !x.clipped), `${label}: dòng 2 KHÔNG được cắt mất số tiền hay số điện thoại: ${JSON.stringify(wrap)}`);
+        assert.ok(wrap.every((x) => x.cardH <= 170), `${label}: thẻ đóng vẫn phải thấp hẳn so với khung 7 dòng cũ (≤170px): ${JSON.stringify(wrap)}`);
+      }
+      results.dem[`the-dong-${label}`] = wrap;
+      // MỞ: bấm hết nút xổ → dòng người phụ trách hiện thật (đo chiều cao), nằm gọn trong khung thẻ.
+      const n = await expandAllCards(p);
+      assert.equal(n, 3, `${label}: mở đủ 3 nút xổ (thấy ${n})`);
+      await p.waitFor("[...document.querySelectorAll('#list .order-card-toggle')].every((b) => b.getAttribute('aria-expanded') === 'true')", `mọi thẻ đã mở (${label})`, 4000);
+      const layout = await p.ev(`(() => ({ tran: document.documentElement.scrollWidth - innerWidth, cao: [...document.querySelectorAll('#list .order-row-handler')].map((e) => Math.round(e.getBoundingClientRect().height)), trongThe: [...document.querySelectorAll('#list .order-card')].every((c) => { const a = c.getBoundingClientRect(), b = c.querySelector('.order-row-handler').getBoundingClientRect(); return b.left >= a.left - 0.5 && b.right <= a.right + 0.5 && b.top >= a.top - 0.5 && b.bottom <= a.bottom + 0.5; }) }))()`);
+      assert.ok(layout.tran <= 0 && layout.trongThe && layout.cao.every((h) => h >= 18), `${label}: bố cục sau khi mở ${JSON.stringify(layout)}`);
       const gets = p.requests.filter((r) => r.url.includes("/api/dispatch/handlers"));
       assert.equal(gets.length, 1, `${label}: đúng một lời gọi handlers cho cả trang (thấy ${gets.length})`);
       assert.deepEqual(new URL(gets[0].url).searchParams.get("orderIds").split(",").sort(), rows.map((r) => r.id).sort(), `${label}: gửi đúng các mã đơn đang hiện`);
