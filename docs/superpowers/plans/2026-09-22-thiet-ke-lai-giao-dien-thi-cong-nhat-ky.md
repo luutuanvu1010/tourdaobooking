@@ -150,3 +150,66 @@ Trang thứ 12 và cuối cùng. Làm ở worktree RIÊNG `.claude/worktrees/tra
 **Cần chủ dự án biết (hệ quả của quyết định đã chốt, KHÔNG phải lỗi):** đơn có dịch vụ HÔM QUA và dịch vụ HÔM NAY sẽ KHÔNG xuất hiện trong "Chuyến đón hôm nay", vì ngày quyết định của đơn là ngày SỚM NHẤT. Test cố ý ghim hành vi này. Nếu chủ muốn khác, đó là đổi quyết định, cần lập kế hoạch riêng.
 
 **Việc còn treo:** chủ tự gộp/đẩy/deploy khi muốn (AI không được tự chạy); chưa ai xem trang chủ trên iPhone thật; nợ kỹ thuật đã ghi ở `docs/HANDOFF-N1.md` (phần "còn thiếu tiền" quét toàn bảng `orders`; biên an toàn tab bar chỉ còn 13px đo trên Chrome headless, iPhone thật nhỏ hơn).
+
+## Đợt D — thanh điều hướng dọc + Trang chủ thành trang mặc định (2026-09-23, ĐANG THI CÔNG)
+
+**Vì sao có Đợt D.** Sau khi xem Trang chủ mới trên production, chủ dự án kết luận *"nó khác quá nhiều so với bản Mockup"* và Trang chủ chưa phải trang mặc định. Nguyên nhân gốc là **lỗi phân loại của AI**: khi thi công Trang chủ, AI đã xếp các khối NHÌN THẤY ĐƯỢC (thanh bên dọc, khối "Cần xem lại", ô tìm kiếm, nút "Lập đơn mới") vào loại "bề mặt, đảo ngược được" và tự quyết bỏ qua. **Bài học ghi lại để đời sau đừng lặp: thứ chủ dự án NHÌN THẤY TRÊN MÀN HÌNH không phải "bề mặt đảo ngược được" theo P8 — phải hỏi.** Kết quả: ADR-0015 (chủ duyệt trực tiếp 2026-09-23) và 6 task.
+
+**Quyết định của chủ dự án trong đợt này** (nguyên văn ở `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`, mục 8 và 9):
+- Huy hiệu số cạnh "Đơn hàng" = **số đơn CHƯA XÁC NHẬN**, không phải tổng số đơn. Số này đã có sẵn (`draftCount` trong `GET /api/orders/dashboard`) — không thêm API.
+- Thanh menu dọc hiện **từ ~641px**, không chỉ ≥900px, vì iPad dựng đứng (768px) rơi đúng khoảng hở.
+
+**Task 1–3 xong** (nội dung Trang chủ đúng mẫu, biểu đồ 7 ngày dùng tiền hiện hành sau điều chỉnh, khối "Cần xem lại" chỉ quản trị). Mỗi task có người kiểm độc lập; 3 vòng sửa.
+
+**Task 4 (thanh điều hướng dọc) — việc lớn nhất, chạm khung dùng chung của cả 12 trang.**
+Thi công `bbc2e7b`+`acc415d`; kiểm độc lập vòng 1 → **Cần sửa** (0 nghiêm trọng, 3 quan trọng, 8 nhỏ). Bản đồ quyền **không lệch một ô nào** — người kiểm dò từng mục so với bản cũ.
+
+Ba lỗi quan trọng người kiểm ĐO ĐƯỢC (đều là thứ người dùng gặp hằng ngày):
+1. Ô tìm kiếm trên thanh công việc là **nút chết** — gõ + Enter đổi địa chỉ nhưng `web/orders.ts` không đọc `location.search`, danh sách vẫn hiện đủ. Trái đặc tả §47.
+2. Dải **641–899px mất sạch điều hướng** (cả `#sidebar` lẫn `#tabbar` đều rỗng), kể cả đường **Đăng xuất** — iPad dựng đứng không có cách đăng xuất. Là **hồi quy** do Đợt D: `.topnav` cũ vốn là quy tắc mặc định, phủ đủ dải này.
+3. `main` **không lấp cột nội dung**: ở 1920px chỉ rộng 886px, trống 399px mỗi bên, vì `margin: 0 auto` không bị đặt lại trong ô lưới; và `max-width: none` đã gỡ mất con số **1200px chủ dự án đã duyệt**.
+
+**Phán quyết của điều phối viên cho vòng sửa** (ghi để người sau hiểu vì sao, không phải để hỏi lại):
+- Ô tìm kiếm: **nối vào bộ lọc** (đặc tả đã chốt), không ẩn đi.
+- Hạ ngưỡng thanh bên xuống 641px **chỉ cho khối lưới thanh bên**; sáu khối `@media (min-width: 900px)` khác (bố cục 2 cột các trang) giữ nguyên 900px vì ở 641px cột nội dung chỉ còn ~405px. Ô tìm kiếm lùi lên chỉ hiện từ 900px (ở 641px thanh công việc gãy 2 dòng).
+- `main`: **giữ trần 1200px đã duyệt** nhưng bám mép trái ngay sau thanh bên — ADR-0015 chỉ nói main "không còn CĂN GIỮA theo `--w-main`", không nói bỏ trần.
+- Breadcrumb trống ở `/` và `/home`: **không** thêm `data-title` vào hai tệp HTML (thuộc tính đó còn đổi cả giao diện điện thoại mà chủ đã duyệt); thay bằng lấy nhãn mục điều hướng đang mở, và siết quy tắc ≤640px để hành vi điện thoại không đổi.
+- Ghim chân thanh bên vào đáy khung nhìn: **làm ngay**, vì chính ảnh bằng chứng cho thấy nút "Đăng xuất" nằm ngoài khung nhìn ở trang dài.
+
+**Nguyên nhân hệ thống của cả ba lỗi** (quan trọng hơn từng lỗi): **mọi kịch bản Chrome của dự án xưa nay chỉ chạy ở 1040px và 390px** — đúng hai khổ không bộc lộ chúng. Vòng sửa đã thêm phép quét 9 khổ (640…1920) vào `trang-chu-smoke.mjs`.
+
+**Chờ chủ dự án duyệt (AI không tự sửa — N9, và luật màu ở `web/CLAUDE.md`):**
+1. Bốn token màu `--c-sidebar-*` (trắng mờ chồng lên nền navy, lấy từ bản mẫu) do AI tự quyết trong khi `web/CLAUDE.md` ghi "màu mới: hỏi chủ".
+2. Thêm một dòng vào bảng "sửa tệp nào → chạy kịch bản nào" ở `web/CLAUDE.md` cho `web/shell.ts` + khối CSS thanh bên (dòng đề xuất đã soạn sẵn).
+3. `web/CLAUDE.md:43` ghi kịch bản Trang chủ "12 bước", nay đã hơn — số đếm lỗi thời trong tệp luật.
+
+**Chưa kiểm:** iPad/iPhone thật (mọi số đo là Chrome giả lập); `height: 100vh` của thanh bên trên Safari iOS có thể làm chân thanh tụt dưới mép nhìn thấy.
+
+### Đợt D — chốt xong (2026-09-23): 43 commit, 88 tệp
+
+**Kết quả cuối:** `npm test` 517/517 · `npm run typecheck` 0 lỗi · `npm run test:e2e` **17/17** · `audit-invariants --db local` 16/16 · 7/7 kịch bản Chrome bắt buộc xanh. Nhánh `worktree-trang-chu-moi`, **CHƯA gộp, CHƯA đẩy, CHƯA deploy**.
+
+**Sáu việc đã làm:** Trang chủ mới đúng bản mẫu (nội dung + khổ điện thoại) · biểu đồ doanh thu 7 ngày dùng tiền HIỆN HÀNH sau điều chỉnh · khối "Cần xem lại" chỉ quản trị · **thanh điều hướng dọc thay thanh ngang cho cả 12 trang** (ADR-0015) · **`/` nay ra Trang chủ, Đơn hàng dời sang `/orders`, `/home` chuyển hướng** · dọn nợ lưới kiểm + sửa tài liệu lệch mã + vá cổng e2e đang hỏng.
+
+**Quy trình đã dùng:** mỗi task một người thi công + người kiểm độc lập chỉ đọc. Tổng cộng **6 vòng kiểm độc lập**, trong đó 3 vòng chạy **song song 5–8 hướng** (mỗi hướng một bản sao riêng, tự đo bằng Chrome thật). 5 vòng sửa.
+
+**Những gì vòng kiểm độc lập bắt được mà người thi công bỏ sót** (ghi lại vì đây là giá trị thật của quy trình):
+- Ô tìm kiếm trên thanh công việc là **nút chết** — gõ + Enter đổi địa chỉ nhưng danh sách không lọc.
+- **Mất sạch điều hướng ở dải 641–899px** (iPad dựng đứng), kể cả nút Đăng xuất — hồi quy do chính Đợt D.
+- `main` chỉ rộng 886px trên màn 1920 (trống 399px mỗi bên) vì `margin: 0 auto` không bị đặt lại trong ô lưới.
+- Vòng sửa 1 **đẻ ra lỗi mới**: ghim cứng chiều cao thanh làm nút "Lập đơn mới" **đè lên mã đơn** ở 900–929px.
+- **Lưới kiểm có lỗ hổng**: đổi `--w-sidebar` 236→300px mà toàn bộ lưới vẫn xanh; đổi `--bar-h` cũng vậy.
+- Kết luận "không kịch bản nào phân biệt `min-height` và `height`" là **sai** — người kiểm tìm ra kịch bản phân biệt được (phóng cỡ chữ nút lên 40px, mô phỏng trợ năng) và chứng minh thiếu van thì nút đè nội dung 11px.
+- Hai tài liệu tra cứu ghi **ngược tên tệp** Trang chủ/Đơn hàng sau khi đổi trang mặc định.
+- `docs/SYSTEM-DESIGN.md` §16 trích **nhầm số dòng** làm bằng chứng cho chính cơ chế bảo vệ mã khỏi bị "sửa cho khớp ADR".
+- Một dòng `ok(...)` **luôn hiện dấu đạt** bất kể mã viết gì.
+
+**Nguyên nhân hệ thống đã sửa:** mọi kịch bản Chrome của dự án xưa nay **chỉ chạy ở 1040px và 390px** — đúng hai khổ không bộc lộ ba lỗi quan trọng đầu tiên. Nay `trang-chu-smoke.mjs` quét 3 trang × nhiều khổ (640…1920).
+
+**Cổng phát hành đã thông:** `tests/e2e/catalog.mjs` ghim cứng giá 1.000.000₫ trong khi Sheet thật đã đổi thành 1.300.000₫ → đỏ, **và lỗi đó giết `wrangler dev` dùng chung nên che khuất 8 kịch bản phía sau**. Nay so với giá đọc từ Sheet thật, và `tests/e2e/run.mjs` in danh sách từng bộ thay vì dừng giữa chừng.
+
+**Sự cố quy trình (đã khắc phục, không mất dữ liệu):** công thức sandbox cho người kiểm dùng `cp -a` một git worktree — mà `.git` ở worktree là **TỆP con trỏ**, nên mọi bản sao dùng chung sổ git với bản gốc; một lệnh `git checkout` trong bản sao đã làm worktree gốc tuột sang HEAD tách rời. 4/8 hướng kiểm tự phát hiện. Công thức mới: `cp -a` rồi `rm -f <bản sao>/.git`, và cấm mọi lệnh git ghi.
+
+**Chưa kiểm:** chưa ai thử trên iPhone/iPad **thật** — mọi số đo là Chrome giả lập. `height: 100vh` của thanh bên trên Safari iOS có thể làm chân thanh tụt dưới mép nhìn thấy.
+
+**Chờ chủ dự án duyệt:** `docs/superpowers/specs/2026-09-23-dot-d-can-chu-duyet.md` — 6 mục (ưu tiên cao nhất: mục lục ADR thiếu hàng ADR-0015) + phần "Nợ đã ghi".

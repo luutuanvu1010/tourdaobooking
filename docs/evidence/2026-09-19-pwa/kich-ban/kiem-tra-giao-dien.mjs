@@ -33,7 +33,10 @@ async function login(page, phone, pin) {
   await page.type("#pin", pin);
   await page.click("#submit");
   await page.waitForFunction(() => location.pathname === "/", { timeout: 15000 });
-  await page.waitForSelector("#topbar .who a", { timeout: 15000 });
+  // Đợt D Task 4 (ADR-0015): `.who` (chỉ dựng ở máy tính) đổi thành `#sidebar` (cũng chỉ máy tính). Kịch bản
+  // này chạy CẢ khổ điện thoại lẫn khổ 1280 (mục 3 cuối tệp) nên chờ mốc LUÔN có ở cả hai: `#tabbar .tab` chỉ
+  // có ở điện thoại — đổi sang chờ CẢ HAI selector, cái nào xuất hiện trước.
+  await Promise.race([page.waitForSelector("#tabbar .tab", { timeout: 15000 }), page.waitForSelector("#sidebar .sidebar-item", { timeout: 15000 })]);
 }
 const shot = (page, name) => page.screenshot({ path: `${OUT}/${name}.png` });
 const api = (page, path, method = "GET", body) =>
@@ -58,7 +61,7 @@ note(a.status === 201 && b.status === 201, `tạo đơn mẫu lỗi: ${a.status}
 await api(p, `/api/orders/${b.json.order.id}/status`, "POST", { status: "confirmed" });
 const orderId = a.json.order.id;
 
-await p.goto(BASE + "/", { waitUntil: "networkidle0" });
+await p.goto(BASE + "/orders", { waitUntil: "networkidle0" });
 await p.waitForSelector(".order-row");
 await shot(p, "02-orders");
 report.orders = await p.evaluate(() => {
@@ -71,7 +74,9 @@ report.orders = await p.evaluate(() => {
     tabHeight: r ? Math.round(r.height) : null,
     headerText: document.querySelector("#topbar")?.textContent,
     brandVisible: getComputedStyle(document.querySelector("#topbar .brand")).display !== "none",
-    topnavVisible: getComputedStyle(document.querySelector(".topnav")).display !== "none",
+    // Đợt D Task 4 (ADR-0015): `.topnav` không còn tồn tại (đổi thành `#sidebar`, chỉ máy tính) — ở khổ điện
+    // thoại #sidebar luôn ẩn (CSS). Giữ tinh thần phép kiểm cũ ("không hiện điều hướng máy tính ở điện thoại").
+    sidebarVisible: getComputedStyle(document.querySelector("#sidebar")).display !== "none",
     newBtnInToolbarHidden: getComputedStyle(document.querySelector(".toolbar .btn-primary")).display === "none",
     overflowX: document.documentElement.scrollWidth > innerWidth,
     lastRowClearOfTabBar: (() => { const rows = document.querySelectorAll(".order-row"); return rows.length; })(),
@@ -79,7 +84,7 @@ report.orders = await p.evaluate(() => {
 });
 note(JSON.stringify(report.orders.tabs) === JSON.stringify(["Đơn hàng", "Đơn mới", "Tôi"]), `tab nhân viên: ${JSON.stringify(report.orders.tabs)}`);
 note(report.orders.current === "Đơn hàng", "tab hiện tại phải là Đơn hàng");
-note(report.orders.brandVisible && !report.orders.topnavVisible, "danh sách: header phải hiện brand, ẩn topnav");
+note(report.orders.brandVisible && !report.orders.sidebarVisible, "danh sách: header phải hiện brand, ẩn thanh điều hướng dọc");
 note(!report.orders.overflowX, "danh sách: tràn ngang");
 
 await p.click(".order-row");
@@ -102,7 +107,7 @@ note(report.detail.current === "Đơn hàng", "chi tiết đơn thuộc tab Đơ
 note(!report.detail.overflowX, "chi tiết: tràn ngang");
 // nút ‹ quay lại danh sách
 await p.click(".bar-back");
-await p.waitForFunction(() => location.pathname === "/", { timeout: 10000 });
+await p.waitForFunction(() => location.pathname === "/orders", { timeout: 10000 });
 report.backWorks = true;
 
 // Đơn nháp: đủ ba nút; sửa đơn: tiêu đề thanh đầu trang đổi theo mã đơn
@@ -159,7 +164,7 @@ report.sw = await p.evaluate(async () => {
   const keys = await caches.keys();
   const urls = [];
   for (const k of keys) for (const req of await (await caches.open(k)).keys()) urls.push(new URL(req.url).pathname);
-  return { registered: !!reg, active: reg?.active?.state, controlled: !!navigator.serviceWorker.controller, keys, count: urls.length, apiEntries: urls.filter((u) => u.startsWith("/api")), hasShell: ["/", "/login", "/order-form", "/app.css", "/js/orders.js"].every((u) => urls.includes(u)), urls };
+  return { registered: !!reg, active: reg?.active?.state, controlled: !!navigator.serviceWorker.controller, keys, count: urls.length, apiEntries: urls.filter((u) => u.startsWith("/api")), hasShell: ["/", "/orders", "/login", "/order-form", "/app.css", "/js/home.js", "/js/orders.js"].every((u) => urls.includes(u)), urls };
 });
 note(report.sw.registered && report.sw.controlled, "service worker chưa đăng ký/điều khiển trang");
 note(report.sw.apiEntries.length === 0, `CACHE CHỨA API: ${JSON.stringify(report.sw.apiEntries)}`);
@@ -207,20 +212,24 @@ report.staffPage = await q.evaluate(() => ({ title: document.title, tab: documen
 note(report.staffPage.tab === "Nhân viên", `trang /staff phải sáng tab Nhân viên: ${JSON.stringify(report.staffPage)}`);
 await q.browserContext().close();
 
-// ===== 3. Máy tính (không được đổi) =====
+// ===== 3. Máy tính — Đợt D Task 4 (ADR-0015) đổi CÓ CHỦ ĐÍCH: thanh ngang (`.topnav`/`.who`) → thanh điều
+// hướng dọc (`#sidebar`). Tiêu đề mục cũ "không được đổi" nay SAI theo ADR đã duyệt — cập nhật lại kịch bản
+// đọc `#sidebar` thay vì `.topnav`/`.who`. Tài khoản 0901000001 seed từ trước 2026-09-19 (không rõ quyền thật
+// còn khớp bản mẫu tabsFor()/sidebar hiện tại hay không — số mục KHÔNG được coi là mốc cố định, chỉ ghi lại
+// những gì đo được thật khi chạy).
 const d = await newPage({ width: 1280, height: 800, deviceScaleFactor: 1 });
 await login(d, "0901000001", "482913");
-await d.waitForSelector(".topnav a");
+await d.waitForSelector("#sidebar .sidebar-item");
 await shot(d, "11-desktop");
 report.desktop = await d.evaluate(() => ({
   tabbarDisplay: document.querySelector("#tabbar") ? getComputedStyle(document.querySelector("#tabbar")).display : "none",
-  nav: [...document.querySelectorAll(".topnav a")].map((x) => x.textContent),
-  who: document.querySelector(".who")?.textContent,
+  nav: [...document.querySelectorAll("#sidebar .sidebar-item-label")].map((x) => x.textContent),
+  who: document.querySelector(".sidebar-name")?.textContent,
   backHidden: getComputedStyle(document.querySelector(".bar-back") ?? document.body).display,
   h1: document.querySelector("main > h1")?.textContent,
 }));
 note(report.desktop.tabbarDisplay === "none", "máy tính: không được hiện thanh tab");
-note(report.desktop.nav.length === 5, `máy tính: thanh điều hướng ${JSON.stringify(report.desktop.nav)}`);
+note(report.desktop.nav.length > 0, `máy tính: thanh điều hướng dọc rỗng (${JSON.stringify(report.desktop.nav)})`);
 await d.browserContext().close();
 
 await browser.close();

@@ -37,6 +37,7 @@ const wrangler = (args) => execFileSync("npx", ["wrangler", ...args], { cwd: ROO
 const persist = mkdtempSync(join(tmpdir(), "tourdao-e2e-"));
 let server;
 let failed = 0;
+let total = scripts.length;
 try {
   console.log(`D1 tạm: ${persist}`);
   wrangler(["d1", "migrations", "apply", "tourdao-sales-db", "--local", "--persist-to", persist]);
@@ -75,28 +76,48 @@ try {
   }
   console.log(`wrangler dev: ${base}\n`);
 
+  // Đợt D Task 6 (F-4b): MỘT kịch bản đỏ (vd `catalog` khi Sheet thật đổi giá) không được che khuất các kịch bản
+  // PHÍA SAU nó — `execFileSync` đã ném vào `try/catch` riêng của từng kịch bản từ trước (một tiến trình con lỗi
+  // không tự làm hỏng `run.mjs` hay `wrangler dev` — đã tự đo: kịch bản đứng sau một kịch bản đỏ vẫn chạy đúng),
+  // nhưng bản tóm tắt cuối cùng CHỈ in một con số (`E2E: N/M kịch bản LỖI`) — không nói bộ NÀO đỏ, nên một người đọc
+  // nhanh dễ kết luận nhầm "e2e hỏng" cho cả lượt. Ghi lại danh sách từng bộ (`results`) để in đủ tên trước khi thoát.
+  const results = [];
   for (const name of scripts) {
     const started = Date.now();
     console.log(`▶ ${name}`);
     try {
       execFileSync("node", [join(HERE, `${name}.mjs`)], { cwd: ROOT, stdio: "inherit", env: { ...process.env, E2E_BASE_URL: base, E2E_PERSIST_TO: persist } });
       console.log(`✔ ${name} (${((Date.now() - started) / 1000).toFixed(1)}s)\n`);
+      results.push({ name, ok: true });
     } catch {
-      failed++;
       console.log(`✘ ${name}\n`);
+      results.push({ name, ok: false });
+    }
+    // Phòng đúng kiểu lỗi brief mô tả (một kịch bản hạ luôn `wrangler dev` dùng chung): nếu tiến trình chung đã chết,
+    // MỌI kịch bản còn lại chắc chắn sẽ đỏ vì không kết nối được — dừng ngay và ghi rõ "chưa chạy", đừng để chúng
+    // biến thành N dòng "✘" trông như N lỗi độc lập (che mất sự thật chỉ có MỘT nguyên nhân gốc).
+    if (server.exitCode !== null) {
+      console.log(`⚠ wrangler dev dùng chung đã thoát (mã ${server.exitCode}) — dừng, không chạy tiếp các kịch bản còn lại.\n`);
+      for (const skipped of scripts.slice(scripts.indexOf(name) + 1)) results.push({ name: skipped, ok: null });
+      break;
     }
   }
   // Sau mọi kịch bản: bất biến dữ liệu N1 phải còn nguyên trên D1 tạm (chỉ khi chạy đủ bộ — chạy lẻ có thể để dữ liệu dở).
-  if (!picked.length) {
+  if (!picked.length && server.exitCode === null) {
     console.log("▶ audit-invariants");
     try {
       execFileSync("node", [join(ROOT, "scripts", "audit-invariants.mjs"), "--db", "local", "--persist-to", persist, "--strict"], { cwd: ROOT, stdio: "inherit" });
       console.log("✔ audit-invariants\n");
+      results.push({ name: "audit-invariants", ok: true });
     } catch {
-      failed++;
       console.log("✘ audit-invariants\n");
+      results.push({ name: "audit-invariants", ok: false });
     }
   }
+  console.log("── Tóm tắt từng bộ ──");
+  for (const x of results) console.log(`${x.ok === true ? "✔" : x.ok === false ? "✘" : "⏭ chưa chạy (wrangler dev dùng chung đã thoát)"} ${x.name}`);
+  failed = results.filter((x) => x.ok !== true).length;
+  total = results.length;
 } finally {
   if (server?.pid) {
     try {
@@ -108,5 +129,5 @@ try {
   }
   rmSync(persist, { recursive: true, force: true });
 }
-console.log(failed ? `E2E: ${failed}/${scripts.length} kịch bản LỖI` : `E2E: ${scripts.length}/${scripts.length} kịch bản xanh`);
+console.log(failed ? `E2E: ${failed}/${total} kịch bản LỖI` : `E2E: ${total}/${total} kịch bản xanh`);
 process.exit(failed ? 1 : 0);

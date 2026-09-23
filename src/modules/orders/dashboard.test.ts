@@ -285,6 +285,66 @@ test("revenueWeek: đúng người (staff_id), đúng khoảng [đầu thứ Hai
   assert.equal(data.revenueWeek.total, 100_000 + 200_000 + 900_000);
 });
 
+// ---- 6) Doanh thu 7 ngày (Đợt D Task 2 — biểu đồ cột) -------------------------------------------------------------
+// Ngày dùng giờ TRƯA (05:00 UTC = 12:00 giờ VN) để tránh mọi tranh cãi biên ngày — không phải mốc 00:00 VN đang thử ở test trên.
+const WEEK_DATES = ["2026-09-21", "2026-09-22", "2026-09-23", "2026-09-24", "2026-09-25", "2026-09-26", "2026-09-27"]; // T2..CN của WEEK
+
+test("revenueWeek.daily: đơn rải ở NHIỀU NGÀY khác nhau trong tuần → đúng 7 phần tử T2..CN, đúng ngày, đúng số, tổng = revenueWeek.total", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+
+  // da1: thứ Hai (21/09), của s-a.
+  insertConfirmedOrderNoServices(sqlite, { id: "da1", staffId: "s-a", createdAt: "2026-09-21T05:00:00.000Z", m: { subtotal: 100_000, total: 100_000, depositAmount: 0, remainingAmount: 100_000 } });
+  // da2: thứ Tư (23/09), của s-a.
+  insertConfirmedOrderNoServices(sqlite, { id: "da2", staffId: "s-a", createdAt: "2026-09-23T05:00:00.000Z", m: { subtotal: 250_000, total: 250_000, depositAmount: 0, remainingAmount: 250_000 } });
+  // da3: thứ Ba (22/09), NHƯNG của s-b (nhân viên khác) → KHÔNG được cộng vào daily của s-a.
+  insertConfirmedOrderNoServices(sqlite, { id: "da3", staffId: "s-b", createdAt: "2026-09-22T05:00:00.000Z", m: { subtotal: 999_999, total: 999_999, depositAmount: 0, remainingAmount: 999_999 } });
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  assert.equal(data.revenueWeek.daily.length, 7, `daily phải đúng 7 phần tử — thấy ${data.revenueWeek.daily.length}`);
+  assert.deepEqual(data.revenueWeek.daily.map((d) => d.date), WEEK_DATES, "daily phải đúng thứ tự ngày T2..CN");
+  assert.deepEqual(
+    data.revenueWeek.daily.map((d) => d.total),
+    [100_000, 0, 250_000, 0, 0, 0, 0],
+    `daily phải đúng số theo ngày (21/09=100.000, 23/09=250.000, các ngày khác 0, KHÔNG cộng da3 của s-b) — ${JSON.stringify(data.revenueWeek.daily)}`,
+  );
+  assert.equal(
+    data.revenueWeek.daily.reduce((sum, d) => sum + d.total, 0),
+    data.revenueWeek.total,
+    "tổng daily phải khớp revenueWeek.total (cùng tập đơn, cùng số hiện hành)",
+  );
+});
+
+test("revenueWeek.daily: đơn có ĐIỀU CHỈNH tiền → daily dùng số HIỆN HÀNH, không phải subtotal gốc (bài học Đợt B)", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+
+  // db1: thứ Ba (22/09), gốc 500.000 nhưng điều chỉnh lên 900.000.
+  insertConfirmedOrderNoServices(sqlite, { id: "db1", staffId: "s-a", createdAt: "2026-09-22T05:00:00.000Z", m: { subtotal: 500_000, total: 500_000, depositAmount: 0, remainingAmount: 500_000 } });
+  insertAdjustment(sqlite, { id: "adjdb1", orderId: "db1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 900_000 });
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const tuesday = data.revenueWeek.daily.find((d) => d.date === "2026-09-22");
+  assert.ok(tuesday, `phải có phần tử ngày 2026-09-22 — ${JSON.stringify(data.revenueWeek.daily)}`);
+  assert.equal(tuesday!.total, 900_000, `ngày 22/09 phải = 900.000 (số hiện hành sau điều chỉnh), không phải 500.000 gốc — ${JSON.stringify(data.revenueWeek.daily)}`);
+  assert.equal(
+    data.revenueWeek.daily.reduce((sum, d) => sum + d.total, 0),
+    data.revenueWeek.total,
+  );
+});
+
+test("revenueWeek.daily: tuần KHÔNG có đơn nào → vẫn đúng 7 phần tử T2..CN, mỗi phần tử total = 0 (không bỏ trống)", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  assert.equal(data.revenueWeek.daily.length, 7);
+  assert.deepEqual(data.revenueWeek.daily.map((d) => d.date), WEEK_DATES);
+  assert.deepEqual(
+    data.revenueWeek.daily.map((d) => d.total),
+    [0, 0, 0, 0, 0, 0, 0],
+  );
+});
+
 // ---- Kiểm độc lập (fix round 1): `trip` của mảng `today` phải lấy từ dịch vụ QUYẾT ĐỊNH "hôm nay" (ngày sớm nhất có ngày đón),
 // KHÔNG phải dịch vụ sort_order nhỏ nhất (đó là quy ước của summarizeServices(), dùng cho danh sách Đơn hàng — khác mục đích).
 test("today: trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (ngày sớm nhất có ngày), không phải theo sort_order nhỏ nhất", async () => {

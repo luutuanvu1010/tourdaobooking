@@ -1,4 +1,5 @@
 import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
+import { vndShort } from "../src/shared/money";
 import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
 import type { AuditAction, DepositMethod, OrderStatus } from "./api";
 
@@ -7,6 +8,8 @@ const nf = new Intl.NumberFormat("vi-VN");
 /** 1350000 → "1.350.000 ₫" */
 export const vnd = (n: number): string => `${nf.format(n)} ₫`;
 export const grouped = (n: number): string => nf.format(n);
+
+export { vndShort };
 
 /** "1.350.000 đ" / "1350000" → 1350000; rỗng → 0. */
 export function parseMoney(text: string): number {

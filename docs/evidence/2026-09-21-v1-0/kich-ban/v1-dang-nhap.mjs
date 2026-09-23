@@ -137,7 +137,7 @@ const widgetReady = (p) => p.waitFor(`${WIDGET_UP} && ${TOKEN} !== '' && ${BTN_E
 const hookReset = (p) => p.ev("(() => { const t = window.turnstile; window.__resets = 0; const r = t.reset.bind(t); t.reset = (...a) => { window.__resets++; return r(...a); }; return typeof t.reset === 'function'; })()");
 const typeCreds = async (p, account, pin = account.pin) => { await p.ev(setInput("document.getElementById('phone')", account.phone)); await p.ev(setInput("document.getElementById('pin')", pin)); };
 const submit = (p) => p.ev("document.getElementById('submit').click(); true");
-const loggedIn = (p) => p.waitFor("location.pathname === '/' && document.readyState === 'complete'", "vào trang danh sách đơn sau khi đăng nhập", 15000);
+const loggedIn = (p) => p.waitFor("location.pathname === '/' && document.readyState === 'complete'", "vào Trang chủ sau khi đăng nhập", 15000);
 const rec = async (p) => JSON.parse(await p.ev(REC));
 const loginPosts = (p) => p.requests.filter((r) => r.method === "POST" && r.url.endsWith("/api/auth/login")).map((r) => JSON.parse(r.postData ?? "{}"));
 
