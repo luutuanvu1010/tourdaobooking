@@ -16,7 +16,8 @@ const BOLD = "\x1b[1m";
 const RESET = "\x1b[0m";
 
 const ANSI = /\x1b\[[0-9;]*m/g;
-const MIGRATION_NAME = /\b\d{4}_[A-Za-z0-9_.-]*?\.sql\b/g;
+// KHÔNG có cờ /g: regex /g mang lastIndex giữa các lần gọi (test() rồi matchAll() có thể bỏ sót tên). Cần tìm tất cả thì dựng regex /g mới tại chỗ.
+const MIGRATION_NAME = /\b\d{4}_[A-Za-z0-9_.-]*?\.sql\b/;
 
 /**
  * Đọc đầu ra của `wrangler d1 migrations list <db> --remote` (wrangler 4.x). GIẢ ĐỊNH (đã đối chiếu mã nguồn wrangler 4.135.0 và đầu ra thật
@@ -35,7 +36,7 @@ export function parsePendingMigrations(output) {
   }
   if (some) {
     const after = text.slice(text.indexOf("Migrations to be applied:"));
-    const names = [...after.matchAll(MIGRATION_NAME)].map((m) => m[0]);
+    const names = [...after.matchAll(new RegExp(MIGRATION_NAME.source, "g"))].map((m) => m[0]);
     if (!names.length) return { ok: false, reason: "báo còn migration chờ áp nhưng không đọc ra tên nào — không đọc được" };
     return { ok: true, names };
   }
@@ -142,7 +143,7 @@ export async function dayLen({ run, ask, isTTY, log, target }) {
     return 0;
   }
   const commits = trimOut(await run("git", ["log", "--oneline", "--no-decorate", "origin/main..main"]));
-  const added = trimOut(await run("git", ["diff", "--name-only", "--diff-filter=A", "origin/main", "main", "--", "migrations/"]))
+  const added = trimOut(await run("git", ["diff", "--name-only", "--no-renames", "--diff-filter=A", "origin/main", "main", "--", "migrations/"]))
     .split("\n")
     .map((s) => s.trim())
     .filter((s) => s.endsWith(".sql"));

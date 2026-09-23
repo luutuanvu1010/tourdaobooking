@@ -103,6 +103,15 @@ test("parsePendingMigrations: đầu ra lạ, mâu thuẫn hoặc có dấu mà 
   }
 });
 
+test("parsePendingMigrations: gọi nhiều lần liên tiếp cho kết quả như nhau (không mang trạng thái regex /g giữa các lần gọi)", () => {
+  const trap = "✅ No migrations to apply!" + " ".repeat(500) + "0023_auth_passkey.sql";
+  assert.equal(lib.parsePendingMigrations(trap).ok, false, "'không còn' mà có tên migration → không đọc được");
+  const r = lib.parsePendingMigrations(LIST_ALL_PENDING);
+  assert.equal(r.ok && r.names.length, 23, "lần gọi sau phải đọc đủ 23 tên");
+  assert.equal(lib.parsePendingMigrations(trap).ok, false);
+  assert.deepEqual(lib.parsePendingMigrations(LIST_NONE), { ok: true, names: [] });
+});
+
 test("parseBookmark / parseVersionId: đọc được JSON của time-travel info và dòng 'Current Version ID' của deploy", () => {
   assert.equal(lib.parseBookmark('{\n  "bookmark": "00000085-0000024c-00004e3f-abc"\n}'), "00000085-0000024c-00004e3f-abc");
   assert.equal(lib.parseBookmark("⚠️ The current bookmark is '00000085-0000024c-00004e3f-abc'"), "00000085-0000024c-00004e3f-abc");
@@ -128,7 +137,7 @@ function dayLenScript(over: Record<string, RunResult> = {}): Record<string, RunR
     "npm run typecheck": OK,
     "git rev-list --count origin/main..main": out("2\n"),
     "git log --oneline --no-decorate origin/main..main": out("b1 Thêm Face ID\nb2 Nhật ký\n"),
-    "git diff --name-only --diff-filter=A origin/main main -- migrations/": out("migrations/0023_auth_passkey.sql\n"),
+    "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": out("migrations/0023_auth_passkey.sql\n"),
     "git push origin main": OK,
     "git log -1 --oneline --no-decorate origin/main": out("b1 Thêm Face ID\n"),
     ...over,
@@ -146,7 +155,7 @@ const DAYLEN_HAPPY = [
   "npm run typecheck",
   "git rev-list --count origin/main..main",
   "git log --oneline --no-decorate origin/main..main",
-  "git diff --name-only --diff-filter=A origin/main main -- migrations/",
+  "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/",
   "git push origin main",
   "git log -1 --oneline --no-decorate origin/main",
 ];
@@ -164,7 +173,7 @@ test("day-len (tiêu chí 2): mọi thứ đạt + trả lời c → ff-only r�
 });
 
 test("day-len: không có tên nhánh → bỏ bước gộp; không có migration mới → nói rõ 'không có'", async () => {
-  const script = dayLenScript({ "git diff --name-only --diff-filter=A origin/main main -- migrations/": out("") });
+  const script = dayLenScript({ "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/": out("") });
   const h = harness(script, ["c"]);
   assert.equal(await lib.dayLen(h.deps), 0);
   assert.deepEqual(
@@ -191,7 +200,7 @@ const DAYLEN_REFUSALS: { name: string; over?: Record<string, RunResult>; answers
   { name: "ff-only lỗi", over: { "git merge --ff-only worktree-x": FAIL }, reason: /gộp/, lastCall: "git merge --ff-only worktree-x" },
   { name: "test đỏ", over: { "npm test": FAIL }, reason: /npm test/, lastCall: "npm test" },
   { name: "typecheck đỏ", over: { "npm run typecheck": FAIL }, reason: /typecheck/, lastCall: "npm run typecheck" },
-  { name: "chủ trả lời k", answers: ["k"], reason: /Không đẩy/, lastCall: "git diff --name-only --diff-filter=A origin/main main -- migrations/" },
+  { name: "chủ trả lời k", answers: ["k"], reason: /Không đẩy/, lastCall: "git diff --name-only --no-renames --diff-filter=A origin/main main -- migrations/" },
   { name: "chủ trả lời 'có' (không đúng c)", answers: ["có"], reason: /Không đẩy/ },
   { name: "chủ trả lời 'C' hoa", answers: ["C"], reason: /Không đẩy/ },
   { name: "chủ bấm Enter", answers: [""], reason: /Không đẩy/ },
