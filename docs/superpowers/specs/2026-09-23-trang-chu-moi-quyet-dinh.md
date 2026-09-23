@@ -67,3 +67,11 @@ B. **TRANG CHỦ THÀNH TRANG MẶC ĐỊNH** — đảo mục 2 ở trên ("th�
    → Quy tắc "ngày đã qua + hôm nay" vừa đúng tinh thần ảnh mẫu (trong mẫu chính là 2 ngày gần nhất), vừa luôn hợp lý ở mọi ngày trong tuần.
 
    **Ghi nhận quy trình:** điều phối viên ban đầu tự quyết đổi sang "tô theo giá trị" dựa trên tiền đề "ảnh mẫu không phân biệt được hai quy tắc" — người kiểm độc lập đo pixel và CHỨNG MINH tiền đề đó SAI, đồng thời chỉ ra đây đúng loại việc mà tài liệu dự án vừa ghi là phải hỏi chủ chứ không tự quyết. Đã hỏi và chủ chốt như trên. Bài học: khi tự quyết dựa trên "đọc ảnh bằng mắt", phải kiểm chứng bằng đo thật trước khi coi là căn cứ.
+
+## Trả lời 2 câu hỏi từ Task 4 Đợt D — thanh menu dọc (2026-09-23, chủ dự án chốt trực tiếp)
+
+8. **Huy hiệu số cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN** (không phải tổng số đơn). Lý do chủ chọn: đó là số VIỆC CẦN LÀM, hữu ích hàng ngày, cùng ý nghĩa với hai huy hiệu kia (cảnh báo giá, góp ý chưa trả lời) — trong khi "tổng số đơn" chỉ lớn dần theo thời gian và không nhắc việc gì.
+   → Thuận lợi: số này ĐÃ CÓ SẴN trong `GET /api/orders/dashboard` (`draftCount`), KHÔNG cần thêm route/API mới như lo ngại ban đầu.
+
+9. **Thanh menu dọc hiện SỚM HƠN, từ ~641px** (thay vì chỉ ≥900px). Lý do: vòng thi công phát hiện khoảng hở 641–899px không có trong ADR-0015 — dải đó không có sidebar (chỉ ≥900px) lẫn tab bar (chỉ ≤640px), nên KHÔNG vào được Nhân viên / Địa điểm / Nhật ký / Hồ sơ. iPad dựng đứng = 768px rơi đúng vào dải này. Bản cũ có `.topnav` ở dải đó nên đây là HỒI QUY chức năng do Đợt D gây ra, phải sửa.
+   → Cho phép thu hẹp thanh menu ở dải này nếu cần để vừa màn hình (tự quyết cách trình bày, miễn vào được đủ các trang).
