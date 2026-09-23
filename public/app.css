@@ -90,6 +90,16 @@
   --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
   --h-chart: 56px;          /* Đợt D Task 2: chiều cao vùng 7 cột biểu đồ "Doanh thu của tôi" */
   --icon-badge: 30px;       /* Đợt D Task 3: ô vuông bo góc quanh icon cảnh báo của khối "Cần xem lại" */
+  /* Đợt D Task 4 (ADR-0015): thanh điều hướng dọc ở máy tính + thanh công việc trên. --c-sidebar-* xấp xỉ token
+     --c-band-muted/rgba trắng mờ của bản mẫu (hệ thống thiết kế ngoài, app không có) — GIÁ TRỊ TỰ QUYẾT (P8, bề
+     mặt đảo ngược được), ghi lại ở đây thay vì chép tay rgba() rải rác trong luật. */
+  --w-sidebar: 236px;          /* bề rộng thanh điều hướng dọc */
+  --w-search: 280px;           /* bề rộng tối đa ô tìm kiếm trên thanh công việc */
+  --c-sidebar-item: rgba(255, 255, 255, .72);   /* chữ mục sidebar CHƯA chọn */
+  --c-sidebar-active: rgba(255, 255, 255, .14); /* nền mục sidebar ĐANG chọn */
+  --c-sidebar-border: rgba(255, 255, 255, .12); /* viền mảnh trong sidebar (đầu/chân, không phải giữa các mục) */
+  --c-sidebar-badge: rgba(255, 255, 255, .18);  /* nền mặc định huy hiệu số đếm trên sidebar */
+  --ls-eyebrow: .08em;         /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -241,7 +251,7 @@ button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
 html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
 body { -webkit-tap-highlight-color: transparent; }
-.bar-back, .bar-title, #tabbar { display: none; }
+.bar-back, .bar-title, .bar-avatar, #tabbar { display: none; }
 /* Trang không có thanh đầu trang (đăng nhập): dải navy để chữ trắng của thanh trạng thái iOS đọc được. */
 body.login-page::before { content: ""; display: block; height: env(safe-area-inset-top); background: var(--c-primary); }
 
@@ -280,6 +290,59 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   /* Bước 2 Đợt B: số tiền cạnh nút Lưu ở thanh dính đáy — chỉ điện thoại, máy tính đã có card Tóm tắt riêng */
   .form-actions { flex-direction: column; }
   .mobile-actions-summary { display: block; margin-bottom: var(--s2); }
+
+  /* Đợt D Task 4 (ADR-0015 điều 3): thanh đầu trang điện thoại giữ NGUYÊN kiểu cũ (logo/back/tiêu đề), chỉ thêm
+     avatar chữ cái đầu bên phải (bản mẫu điện thoại có) — thanh bên (sidebar) không hiện ở khổ này. */
+  .bar-avatar { display: flex; align-items: center; justify-content: center; flex: none; margin-left: auto; width: var(--logo-bar); height: var(--logo-bar); font-weight: 800; font-size: var(--fs-badge); color: var(--c-sand-text); background: var(--c-sand); border-radius: var(--radius-pill); }
+}
+
+/* ---------- Đợt D Task 4: thanh điều hướng dọc (sidebar máy tính) + thanh công việc trên (ADR-0015) — chỉ token ----------
+   #sidebar/#topbar/main là BA CON TRỰC TIẾP của body (DOM phẳng, bài học Đợt C): ở <900px #sidebar ẩn, hai cái kia xếp dọc
+   như cũ — thứ tự đọc điện thoại KHÔNG đổi. body.has-sidebar chỉ được gắn khi JS (initShell()) đã thật sự dựng #sidebar. */
+#sidebar { display: none; flex-direction: column; }
+.sidebar-head { display: flex; align-items: center; padding: var(--s4); color: var(--c-on-dark); text-decoration: none; border-bottom: 1px solid var(--c-sidebar-border); }
+.sidebar-head .brand-logo { border-radius: var(--radius-pill); } /* bản mẫu: logo sidebar bo tròn hết cỡ, khác .brand-logo thường (bo góc nhẹ) */
+.sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; }
+.sidebar-group-title { padding: 0 var(--s3) var(--s1); font-size: var(--fs-badge); font-weight: 700; letter-spacing: var(--ls-eyebrow); color: var(--c-sidebar-item); text-transform: uppercase; }
+.sidebar-group-items { display: flex; flex-direction: column; gap: 1px; }
+.sidebar-item { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); font-size: var(--fs-label); color: var(--c-sidebar-item); text-decoration: none; border-radius: var(--radius-sm); }
+.sidebar-item[aria-current="page"] { color: var(--c-on-dark); font-weight: 700; background: var(--c-sidebar-active); }
+.sidebar-item-icon { flex: none; display: flex; }
+.sidebar-item-label { flex: 1; min-width: 0; }
+.sidebar-item-badge { flex: none; padding: 1px var(--s2); font-size: var(--fs-badge); font-weight: 700; color: var(--c-on-dark); background: var(--c-sidebar-badge); border-radius: var(--radius-pill); }
+.sidebar-item-badge-sand { color: var(--c-sand-text); background: var(--c-sand); font-weight: 800; } /* huy hiệu "Dịch vụ & giá" — đúng màu bản mẫu */
+.sidebar-item-badge-accent { color: var(--c-on-dark); background: var(--c-accent); } /* huy hiệu "Góp ý / Báo lỗi" — đúng màu bản mẫu */
+.sidebar-foot { margin-top: auto; display: flex; align-items: center; gap: var(--s3); padding: var(--s4); border-top: 1px solid var(--c-sidebar-border); }
+.sidebar-avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--logo-bar); height: var(--logo-bar); font-weight: 800; font-size: var(--fs-badge); color: var(--c-sand-text); background: var(--c-sand); border-radius: var(--radius-pill); }
+.sidebar-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sidebar-name { font-size: var(--fs-label); font-weight: 700; color: var(--c-on-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-role { font-size: var(--fs-badge); color: var(--c-sidebar-item); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-logout { flex: none; padding: var(--s1); font: inherit; font-size: var(--fs-badge); font-weight: 600; color: var(--c-sidebar-item); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+
+/* Thanh công việc trên (máy tính): ô tìm kiếm + nút "Lập đơn mới" — mockup không vẽ ở khổ điện thoại, và ở khổ
+   641–899px (không sidebar, không tab bar — dải hẹp giữa hai ngưỡng cũ 640/mới 900, xem báo cáo Task 4) vẫn hiện
+   để KHÔNG mất hẳn lối vào "Tìm đơn"/"Lập đơn mới" tại dải đó (quyết định tự quyết, bề mặt đảo ngược được — P8). */
+.topbar-search, .topbar-new { display: none; }
+@media (min-width: 641px) {
+  .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
+  .topbar-new { display: inline-block; }
+}
+@media (min-width: 900px) {
+  /* BA HÀNG TƯỜNG MINH (không dùng `grid-row: 1 / -1` mơ hồ khi grid không khai `grid-template-rows`: đã đo
+     thật bằng kịch bản a2-smoke-form.mjs — trình duyệt co dòng 1 (topbar) cao bằng CẢ NỘI DUNG sidebar (461px
+     ở khổ 1040×800), đẩy nút Lưu tràn khung nhìn). Hàng 1 = #topbar, hàng 2 = .maint-strip (rỗng, cao 0, khi
+     không bật bảo trì), hàng 3 = main. #sidebar trải đúng CẢ BA hàng bằng chỉ số tường minh `1 / 4`. */
+  body.has-sidebar { display: grid; grid-template-columns: var(--w-sidebar) minmax(0, 1fr); grid-template-rows: auto auto 1fr; min-height: 100vh; }
+  #sidebar { grid-row: 1 / 4; display: flex; background: var(--c-primary-strong); }
+  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+  body.has-sidebar #topbar .brand { display: none; } /* logo/tên app đã có ở đầu sidebar — không lặp lại */
+  body.has-sidebar #topbar .bar-title { display: block; flex: none; font-size: var(--fs-label); font-weight: 600; }
+  /* :where() giữ đặc trưng (specificity) bằng 0 — main.form-page (0,1,1, @media 960px) vẫn PHẢI thắng max-width
+     riêng của trang Lập đơn (1120px, bài học Task 4: sidebar từng đè mất giới hạn đó, làm nút Lưu tràn khung
+     nhìn ở kịch bản a2-smoke-form.mjs). Trang khác không có max-width riêng thì dùng hết bề rộng cột nội dung. */
+  body.has-sidebar main { grid-column: 2; grid-row: 3; align-self: start; }
+  :where(body.has-sidebar) main { max-width: none; }
+  body.has-sidebar .maint-strip { grid-column: 2; grid-row: 2; align-self: start; }
 }
 
 /* đăng nhập */
