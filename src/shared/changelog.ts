@@ -32,7 +32,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     items: [
       { kind: "doi", text: "Giao diện mới cho các trang: dễ đọc hơn trên điện thoại, bố cục hai cột trên máy tính." },
       { kind: "moi", text: "Ghi được người đặt tour trên từng đơn." },
-      { kind: "moi", text: "Hướng dẫn viên có mục \"Việc của tôi\" ở trang Tôi và ghi được điều chỉnh số khách, số tiền cho đơn đã xác nhận mà mình phụ trách." },
+      { kind: "moi", text: "Hướng dẫn viên có mục \"Việc của tôi\" ở trang Tôi: sửa số khách hoặc huỷ đơn kèm lý do cho đơn đã xác nhận mà mình phụ trách." },
       { kind: "doi", text: "Quyền \"Thực hiện\" đổi tên thành \"Hướng dẫn viên\"." },
       { kind: "sua", text: "Sửa lỗi không tạo được tài khoản nhân viên mới." },
     ],
