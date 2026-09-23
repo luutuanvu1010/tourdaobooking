@@ -146,6 +146,14 @@ textarea { min-height: 72px; resize: vertical; }
 /* danh sách */
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s4); }
 .toolbar input { flex: 1 1 220px; margin: 0; } .toolbar select { flex: 0 0 auto; width: auto; margin: 0; }
+/* Đợt D Task 4 vòng sửa 2 (mục 2): ô chọn `width: auto` tự rộng theo TUỲ CHỌN DÀI NHẤT (394px ở trang Nhật ký),
+   nhưng từ khi thanh bên hạ ngưỡng xuống 641px thì hộp nội dung của `main` ở 641px chỉ còn 373px → tràn ngang 5px
+   (đo thật: /audit 641px scrollWidth 646; 645px → 646; 650/768px → không tràn). `max-width: 100%` chỉ chặn tràn,
+   KHÔNG đổi bề rộng ở khổ rộng (ở đó 394px < 100%).
+   CHỈ từ 641px — có chủ đích: ở khổ ≤640px ô này đã tràn từ TRƯỚC Đợt D (đo thật trên bản chưa vá: /audit 390px,
+   ô rộng 394px, trang nở ra 410px). Đó là lỗi CŨ, không do Task 4 gây ra; sửa ở đây sẽ đổi bề mặt điện thoại vốn
+   phải giữ nguyên từng chỉ số trong đợt này. Đã báo riêng cho điều phối viên quyết. */
+@media (min-width: 641px) { .toolbar select { max-width: 100%; } }
 .order-row { display: grid; gap: var(--s1); padding: var(--s3) var(--s4); margin-bottom: var(--s2); color: inherit; text-decoration: none; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
 .order-row:hover { outline: 2px solid var(--c-primary); }
 .order-row-main { display: flex; justify-content: space-between; align-items: center; }
@@ -324,7 +332,10 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
    dòng (người kiểm độc lập đo thật: cao 128px ở đúng 641px). */
 .topbar-search, .topbar-new { display: none; }
 @media (min-width: 641px) {
-  .topbar-new { display: inline-block; margin-left: auto; } /* chưa có ô tìm kiếm thì chính nút tự đẩy mình sang phải */
+  /* `flex: none` + `white-space: nowrap` (vòng sửa 2, mục 1 biện pháp 2): khi thanh chật, phần co lại phải là
+     BREADCRUMB, không phải nút. Mặc định phần tử flex là `flex: 0 1 auto` nên nút cũng co theo tỉ lệ bề rộng
+     (ở 900px nó mất ~3px) — đủ để chữ "Lập đơn mới" gãy hai dòng, nút cao 70px và thanh lại tràn. */
+  .topbar-new { display: inline-block; margin-left: auto; flex: none; white-space: nowrap; } /* chưa có ô tìm kiếm thì chính nút tự đẩy mình sang phải */
 }
 @media (min-width: 900px) {
   .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
@@ -346,9 +357,19 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   /* Chiều cao ĐÚNG token --bar-h (60px, chủ dự án đã duyệt): thanh từng cao 71px vì nút "Lập đơn mới" (46px) cộng
      đệm dọc 12+12 cộng viền 1px tự quyết chiều cao — giảm đệm không đủ, phải đặt thẳng chiều cao (box-sizing:
      border-box nên viền nằm trong 60px). Vẫn chừa vùng an toàn trên (iPad cài PWA) như thanh đầu trang điện thoại. */
-  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+  /* `flex-wrap: nowrap` (vòng sửa 2, mục 1 biện pháp 1): `#topbar` thừa `flex-wrap: wrap` từ thời thanh điều hướng
+     NGANG (9 mục, gãy dòng là hành vi mong muốn). Thanh công việc máy tính chỉ có 3 phần tử nên gãy dòng ở đây LUÔN
+     là lỗi — và từ khi chiều cao bị ghim, dòng thứ hai không làm thanh cao lên mà TRÀN RA NGOÀI, đè lên `main`
+     (đo thật trên bản chưa vá: /order-form?id=… ở 900px, nút "Lập đơn mới" nằm ở 58…104px trong khi `main` bắt đầu
+     ở 60px — nút đỏ chồng lên chữ "Sửa đơn TD-20260923-0001").
+     `min-height` thay cho `height` (biện pháp 3) là VAN AN TOÀN: nếu sau này có thứ gì vẫn không vừa thì thanh cao
+     lên chứ không đè lên nội dung. Với hai biện pháp trên, chiều cao thực tế vẫn đúng --bar-h = 60px ở mọi khổ. */
+  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; flex-wrap: nowrap; min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
   body.has-sidebar #topbar .brand { display: none; } /* logo/tên app đã có ở đầu sidebar — không lặp lại */
-  body.has-sidebar #topbar .bar-title { display: block; flex: none; font-size: var(--fs-label); font-weight: 600; }
+  /* Biện pháp 2: breadcrumb CO LẠI VÀ CẮT CHỮ thay vì đẩy nút xuống dòng dưới. `min-width: 0` là bắt buộc — thiếu nó
+     phần tử flex không co được dưới bề rộng nội dung. Cùng cách khổ điện thoại đã cắt chữ từ lâu (dòng `body[data-title]
+     .bar-title` trong khối @media (max-width: 640px)), không phát minh gì mới. */
+  body.has-sidebar #topbar .bar-title { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-label); font-weight: 600; }
   /* GIỮ trần bề rộng đã duyệt (--w-main 1200px, và --w-form 1120px riêng của trang Lập đơn), chỉ BỎ CĂN GIỮA:
      `main` bám mép trái ngay sau thanh bên, đúng dáng bản mẫu. `margin-inline: 0` triệt tiêu `margin: 0 auto` của
      `main` — thiếu nó thì trong ô lưới `main` co về bề rộng nội dung rồi tự căn giữa (đo thật ở 1920px: cột nội

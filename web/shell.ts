@@ -281,7 +281,21 @@ export async function initShell(): Promise<Staff> {
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
       // trình duyệt thay vì chép mốc 641px sang JS: chép số thì lần sửa CSS sau sẽ làm hai nơi lệch nhau mà không ai biết.
-      if (nav.offsetParent !== null) for (const load of badgeLoaders) load();
+      const loadBadges = () => {
+        for (const load of badgeLoaders) load();
+      };
+      if (nav.offsetParent !== null) loadBadges();
+      else {
+        // Thanh bên chưa hiện lúc dựng khung (điện thoại, hoặc iPad đang dựng đứng): chờ khổ màn hình đổi. Không nạp
+        // sẵn thì XOAY iPad 768→1024 sẽ ra thanh bên KHÔNG có huy hiệu nào cho tới khi tải lại trang (hồi quy so với
+        // bản trước, bản đó nạp vô điều kiện). Người nghe TỰ GỠ ngay lần nạp đầu nên huy hiệu không bao giờ gọi hai lần.
+        const onResize = () => {
+          if (nav.offsetParent === null) return; // vẫn đang bị CSS ẩn: chưa tốn lời gọi mạng nào
+          window.removeEventListener("resize", onResize);
+          loadBadges();
+        };
+        window.addEventListener("resize", onResize);
+      }
     }
     if (tabbar === "off") return;
     document.body.append(tabBar(admin, office, canCreate, path));

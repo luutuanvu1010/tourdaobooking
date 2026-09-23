@@ -717,19 +717,49 @@ try {
   }
 
   // ==================================================================================================
-  // G) ĐỢT D TASK 4 — VÒNG SỬA 1: khung dùng chung (thanh bên + thanh công việc + <main>) của CẢ 12 TRANG.
+  // G) ĐỢT D TASK 4 — VÒNG SỬA 1+2: khung dùng chung (thanh bên + thanh công việc + <main>) của CẢ 12 TRANG.
   //    Kịch bản cũ chỉ chạy ở 1040px và 390px — đúng hai khổ KHÔNG bộc lộ ba lỗi mà người kiểm độc lập tìm ra.
-  //    Từ nay quét cả dải: 640 (mốc cũ, tab bar) · 641 (mốc mới của thanh bên) · 700 · 768 (iPad dựng đứng) ·
-  //    899 · 900 (mốc bố cục 2 cột của các trang + ô tìm kiếm) · 1040 · 1440 · 1920.
-  //    Đo trên /staff (trang danh sách thường, KHÔNG phải /home — /home tự gọi dashboard nên không đo được
-  //    lời gọi huy hiệu ở mục G-4).
+  //    Từ nay quét cả dải: 640 (mốc cũ, tab bar) · 641 (mốc mới của thanh bên) · 645/650 (dải ô chọn "Lọc hành
+  //    động" của Nhật ký tràn ngang) · 700 · 768 (iPad dựng đứng) · 899 · 900 (mốc bố cục 2 cột + ô tìm kiếm) ·
+  //    910/929/930 (dải thanh công việc gãy dòng khi breadcrumb DÀI) · 1040 · 1440 · 1920.
+  //
+  //    VÒNG SỬA 2 — quét BA TRANG, không phải một. Khuyết tật của lưới vòng 1 KHÔNG nằm ở khẳng định (nó viết đúng)
+  //    mà ở PHẠM VI TRANG: chỉ quét /staff, nơi breadcrumb ngắn ("Nhân viên", 49px) và không có ô chọn nào, nên hai
+  //    hồi quy do chính vòng 1 gây ra không bao giờ chạm tới lưới. Ba trang từ nay:
+  //      · /staff              — trang danh sách thường + DUY NHẤT chạy nhánh ≤640px (bằng chứng bề mặt điện thoại);
+  //                              KHÔNG phải /home vì /home tự gọi dashboard nên không đo được lời gọi huy hiệu (G-4);
+  //      · /order-form?id=…    — breadcrumb DÀI "Sửa đơn <mã đơn>" (188px): trang bộc lộ lỗi nút "Lập đơn mới" đè
+  //                              lên tiêu đề ở dải 900–928px. Phải CHỜ setBarTitle() chạy xong, nếu không chỉ đo
+  //                              được chữ tĩnh "Tạo đơn mới" (ngắn) và lưới lại không chạm tới lỗi;
+  //      · /audit              — ô chọn "Lọc hành động" tự rộng 394px (theo tuỳ chọn dài nhất), bộc lộ tràn ngang
+  //                              ở dải 641–645px.
+  //    Hai trang sau CHỈ quét từ 641px: /order-form khai data-tabbar="off" nên ở ≤640px không có thanh tab —
+  //    nhánh ≤640px là bằng chứng của riêng /staff, không đem áp cho trang có thiết kế điện thoại khác.
   // ==================================================================================================
   {
-    const WIDTHS = [640, 641, 700, 768, 899, 900, 1040, 1440, 1920];
-    const pFrame = await env.as(ACCOUNTS.admin, "/staff", DESK);
-    await pFrame.waitFor("document.querySelector('#sidebar') !== null", "thanh bên dựng xong (/staff)");
+    const FRAME_PAGES = [
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null },
+      {
+        // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
+        // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
+        path: `/order-form?id=${r2.id}`,
+        label: "/order-form?id=… (breadcrumb DÀI)",
+        widths: [641, 700, 899, 900, 910, 929, 930, 1040, 1920],
+        // setBarTitle() ở web/order-form.ts chạy SAU khi đơn tải xong. Đo sớm = đo chữ tĩnh "Tạo đơn mới" (ngắn):
+        // lỗi 900–928px không tái hiện được và lưới xanh giả.
+        ready: `/^Sửa đơn TD-/.test(document.querySelector('.bar-title').textContent.trim())`,
+        expectTitlePrefix: "Sửa đơn TD-",
+      },
+      {
+        path: "/audit",
+        label: "/audit",
+        widths: [641, 645, 650, 700, 768, 900, 1040, 1920],
+        // Ô chọn chỉ đạt bề rộng thật sau khi web/audit.ts sinh đủ optgroup/option từ src/shared/audit-actions.ts.
+        ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
+      },
+    ];
 
-    const measureFrame = () =>
+    const measureFrameOn = (pFrame) =>
       pFrame.ev(`(() => {
         const vis = (el) => !!el && el.offsetParent !== null;
         const root = getComputedStyle(document.documentElement);
@@ -746,8 +776,23 @@ try {
         let rows = kids.length === 0 ? 0 : 1;
         for (let i = 1; i < kids.length; i++) if (kids[i].top >= kids[i - 1].bottom - 1) rows++;
         const navLinks = [...document.querySelectorAll('#sidebar .sidebar-item, #tabbar .tab')].filter(vis);
+        // Vòng sửa 2: chiều cao đã ghim + KHÔNG gãy dòng nữa, nên topbarRows/topbarContentOverflow từ nay
+        // KHÔNG THỂ đổi giá trị — chúng chỉ còn là chứng nhân lịch sử. Phép đo THẬT SỰ chặn hồi quy "nút đè lên
+        // tiêu đề trang" là bộ ba dưới đây: đáy nút so với đáy thanh, đỉnh main so với đáy thanh, và chiều cao
+        // thanh so với token (nút gãy chữ hai dòng sẽ đẩy chiều cao vượt 60px vì nay dùng min-height).
+        const btn = document.querySelector('.topbar-new');
+        const title = document.querySelector('.bar-title');
+        const btnR = btn && vis(btn) ? btn.getBoundingClientRect() : null;
         return {
           innerWidth,
+          topbarBottom: Math.round(tbr.bottom),
+          mainTop: Math.round(mr.top),
+          newBtnTop: btnR ? Math.round(btnR.top) : null,
+          newBtnBottom: btnR ? Math.round(btnR.bottom) : null,
+          newBtnHeight: btnR ? Math.round(btnR.height) : null,
+          // >0 nghĩa là breadcrumb đang bị CẮT CHỮ (hành vi mong muốn khi thanh chật) chứ không đẩy nút xuống dòng.
+          barTitleClipped: title && vis(title) ? title.scrollWidth - title.clientWidth : null,
+          mainMaxWidth: parseFloat(getComputedStyle(main).maxWidth),
           sidebarShown: vis(sb),
           sidebarWidth: vis(sb) ? Math.round(sbr.width) : 0,
           sidebarLinks: [...document.querySelectorAll('#sidebar .sidebar-item')].filter(vis).length,
@@ -774,12 +819,17 @@ try {
         };
       })()`);
 
+    let pFrame = null; // trang /staff được GIỮ MỞ để G-2/G-3 dùng tiếp; hai trang kia đóng ngay sau khi quét xong.
+    for (const spec of FRAME_PAGES) {
+    const page = await env.as(ACCOUNTS.admin, spec.path, DESK);
+    await page.waitFor("document.querySelector('#sidebar') !== null", `thanh bên dựng xong (${spec.label})`);
+    if (spec.ready) await page.waitFor(spec.ready, `nội dung quyết định bề rộng đã sẵn sàng (${spec.label})`);
     const frameRows = [];
-    for (const width of WIDTHS) {
-      await pFrame.send("Emulation.setDeviceMetricsOverride", { width, height: 800, deviceScaleFactor: 1, mobile: false });
-      const f = await measureFrame();
+    for (const width of spec.widths) {
+      await page.send("Emulation.setDeviceMetricsOverride", { width, height: 800, deviceScaleFactor: 1, mobile: false });
+      const f = await measureFrameOn(page);
       frameRows.push(f);
-      const at = `/staff @ ${width}px`;
+      const at = `${spec.label} @ ${width}px`;
 
       // (d) không tràn ngang — ở MỌI khổ.
       assert.ok(f.scrollWidth <= f.innerWidth + 1, `${at}: tràn ngang — scrollWidth ${f.scrollWidth} > innerWidth ${f.innerWidth}`);
@@ -804,29 +854,53 @@ try {
         // (c) không gãy 2 dòng. Chiều cao đã ghim nên đo bằng SỐ DÒNG thật + nội dung có tràn khỏi ô hay không.
         assert.equal(f.topbarRows, 1, `${at}: thanh công việc gãy ${f.topbarRows} dòng — ${JSON.stringify(f)}`);
         assert.ok(f.topbarContentOverflow <= 1, `${at}: nội dung thanh công việc tràn khỏi chiều cao ghim (${f.topbarContentOverflow}px) — ${JSON.stringify(f)}`);
+        // VÒNG SỬA 2 (mục 1) — khẳng định thay thế, và là khẳng định DUY NHẤT còn đổi giá trị được: nút "Lập đơn mới"
+        // phải NẰM TRỌN trong thanh công việc, và `main` phải bắt đầu TỪ đáy thanh trở xuống. Trên bản chưa vá,
+        // /order-form?id=… ở 900px cho nút 58…104px trong khi main bắt đầu ở 60px — nút đỏ đè lên chữ tiêu đề.
+        assert.ok(
+          f.newBtnBottom !== null && f.newBtnBottom <= f.topbarBottom + 1,
+          `${at}: nút "Lập đơn mới" thò RA NGOÀI thanh công việc (đáy nút ${f.newBtnBottom}px > đáy thanh ${f.topbarBottom}px) — nó sẽ đè lên nội dung trang — ${JSON.stringify(f)}`,
+        );
+        assert.ok(
+          f.mainTop >= f.topbarBottom - 1,
+          `${at}: <main> bắt đầu ở ${f.mainTop}px, CHỒNG LÊN thanh công việc (đáy ${f.topbarBottom}px) — ${JSON.stringify(f)}`,
+        );
         // A-2: ô tìm kiếm chỉ từ 900px (ở 641px cột nội dung còn ~405px, thanh gãy 2 dòng cao 128px).
         assert.equal(f.searchShown, width >= 900, `${at}: ô tìm kiếm phải ${width >= 900 ? "HIỆN" : "ẨN"} ở khổ này — ${JSON.stringify(f)}`);
-        // A-3: main lấp hết cột nội dung tới trần --w-main (1200px), bám mép trái ngay sau thanh bên.
-        const expectMain = Math.min(f.contentColumn, f.mainToken);
-        assert.ok(Math.abs(f.mainWidth - expectMain) <= 1, `${at}: <main> rộng ${f.mainWidth}px, phải là min(cột nội dung ${f.contentColumn}, trần ${f.mainToken}) = ${expectMain}px — ${JSON.stringify(f)}`);
+        // A-3: main lấp hết cột nội dung tới trần của CHÍNH TRANG ĐÓ — đọc max-width đã tính, không đọc token
+        // --w-main: trang Lập đơn dùng trần riêng --w-form (1120px), lấy token chung sẽ báo đỏ oan.
+        const expectMain = Math.min(f.contentColumn, f.mainMaxWidth);
+        assert.ok(Math.abs(f.mainWidth - expectMain) <= 1, `${at}: <main> rộng ${f.mainWidth}px, phải là min(cột nội dung ${f.contentColumn}, trần ${f.mainMaxWidth}) = ${expectMain}px — ${JSON.stringify(f)}`);
         assert.equal(f.mainLeft, f.sidebarWidth, `${at}: <main> phải BÁM MÉP TRÁI ngay sau thanh bên (lề trái = ${f.sidebarWidth}px), không tự căn giữa — ${JSON.stringify(f)}`);
-        // C-1: breadcrumb ở máy tính (trang /staff có data-title "Nhân viên").
+        // C-1: breadcrumb ở máy tính (cả ba trang đều khai data-title).
         assert.equal(f.barTitleShown, true, `${at}: breadcrumb phải hiện ở máy tính — ${JSON.stringify(f)}`);
         assert.equal(f.brandShown, false, `${at}: logo/tên app không được lặp lại ở thanh công việc (đã có ở đầu thanh bên) — ${JSON.stringify(f)}`);
+        // Trang có breadcrumb DÀI: chữ phải giữ nguyên (chỉ CẮT bằng "…" khi chật), không bị đổi thành chữ tĩnh.
+        if (spec.expectTitlePrefix) {
+          assert.ok(
+            f.barTitleText.startsWith(spec.expectTitlePrefix),
+            `${at}: breadcrumb phải là "${spec.expectTitlePrefix}…" (đo sớm hơn setBarTitle() thì lưới xanh giả vì chữ tĩnh ngắn hơn) — ${JSON.stringify(f)}`,
+          );
+        }
       }
     }
     ok(
-      `G-1) Quét 9 khổ màn hình trên /staff (ADMIN) — mốc thanh bên MỚI là 641px:\n` +
+      `G-1) Quét ${spec.widths.length} khổ màn hình trên ${spec.label} (ADMIN) — mốc thanh bên MỚI là 641px:\n` +
         frameRows
           .map(
             (f) =>
               `      ${String(f.innerWidth).padStart(4)}px: ${f.sidebarShown ? `thanh bên ${f.sidebarLinks} mục` : `thanh tab ${f.tabbarLinks} mục`}` +
               `, Đăng xuất ${f.logoutShown ? "trong thanh bên" : "qua trang Tài khoản"}` +
-              `, #topbar ${f.topbarHeight}px/${f.topbarRows} dòng, ô tìm ${f.searchShown ? "hiện" : "ẩn"}` +
+              `, #topbar ${f.topbarHeight}px/${f.topbarRows} dòng (nút ${f.newBtnTop}…${f.newBtnBottom}px, main từ ${f.mainTop}px, breadcrumb cắt ${f.barTitleClipped}px)` +
+              `, ô tìm ${f.searchShown ? "hiện" : "ẩn"}` +
               `, main ${f.mainWidth}px (cột ${f.contentColumn}px, lề trái ${f.mainLeft}px), scrollWidth ${f.scrollWidth}`,
           )
           .join("\n"),
     );
+    if (spec.path === "/staff") pFrame = page;
+    else page.close();
+    }
+    assert.ok(pFrame, "G-1: phải giữ được trang /staff đang mở cho G-2/G-3");
 
     // ================================================================================================
     // G-2 (B — quyết định 8 của chủ dự án): huy hiệu cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN (draftCount = 1,
@@ -986,10 +1060,85 @@ try {
       assert.equal(desk.titleShown, true, `C-1 (${path}, 1040px): breadcrumb PHẢI hiện ở máy tính (trước sửa ô này bỏ trống) — ${JSON.stringify(desk)}`);
       assert.equal(desk.titleText, expected, `C-1 (${path}, 1040px): breadcrumb phải là nhãn mục điều hướng đang mở ("${expected}") — ${JSON.stringify(desk)}`);
       crumbs.push(`${path} → điện thoại: logo hiện, breadcrumb ẩn; máy tính: "${desk.titleText}"`);
+      // VÒNG SỬA 2 (mục 3): chờ huy hiệu nạp xong TRƯỚC khi chụp. Ảnh này mở ở khổ điện thoại rồi mới đổi sang khổ
+      // máy tính, nên trên bản chưa vá nó chụp được một thanh bên KHÔNG có huy hiệu nào — người xem tưởng huy hiệu
+      // hỏng. Huy hiệu nay nạp qua người nghe `resize` nên là việc BẤT ĐỒNG BỘ: thiếu chờ thì ảnh vẫn trắng huy hiệu.
+      await pCrumb.waitFor("document.querySelector('#sidebar .sidebar-item-badge') !== null", `huy hiệu nạp xong sau khi đổi khổ (${path})`);
       await shot(pCrumb, `task-4-breadcrumb-${path === "/" ? "don-hang" : "trang-chu"}-may-tinh.png`);
       pCrumb.close();
     }
     ok(`G-7) Breadcrumb hai trang không khai data-title — ${crumbs.join(" · ")}`);
+
+    // ================================================================================================
+    // G-8 (VÒNG SỬA 2, mục 2): /audit ở dải hẹp, đo trên LẦN TẢI MỚI — không phải đổi khổ trên trang đã mở.
+    // Người kiểm vòng 1 chỉ đo được đường "đổi khổ" và tự nêu đây là lỗ hổng: ô chọn `width: auto` lấy bề rộng
+    // theo tuỳ chọn dài nhất, và bề rộng đó hoàn toàn có thể tính khác nhau giữa hai đường. G-1 ở trên đã quét
+    // đường "đổi khổ"; khối này quét đường "tải mới" để hai đường cùng được chứng minh.
+    // ================================================================================================
+    const auditFresh = [];
+    for (const width of [641, 645, 650, 768]) {
+      const pAudit = await env.as(ACCOUNTS.admin, "/audit", { width, height: 800, mobile: false });
+      await pAudit.waitFor("document.querySelector('#sidebar') !== null", `thanh bên dựng xong (/audit ${width}px, tải mới)`);
+      await pAudit.waitFor(`document.querySelector('.toolbar select option[value]:not([value=""])') !== null`, `ô chọn "Lọc hành động" đủ tuỳ chọn (/audit ${width}px)`);
+      const a = await pAudit.ev(`(() => {
+        const sel = document.querySelector('.toolbar select');
+        const main = document.querySelector('main');
+        const mr = main.getBoundingClientRect();
+        const sr = sel.getBoundingClientRect();
+        return {
+          innerWidth, scrollWidth: document.scrollingElement.scrollWidth,
+          selectWidth: Math.round(sr.width),
+          // Khoảng thò ra khỏi HỘP NỘI DUNG của main (đã trừ đệm phải) — số dương là đang tràn.
+          selectOverhang: Math.round(sr.right - (mr.right - parseFloat(getComputedStyle(main).paddingRight))),
+        };
+      })()`);
+      assert.ok(a.scrollWidth <= a.innerWidth + 1, `G-8 (/audit @ ${width}px, TẢI MỚI): tràn ngang — scrollWidth ${a.scrollWidth} > innerWidth ${a.innerWidth} — ${JSON.stringify(a)}`);
+      assert.ok(a.selectOverhang <= 1, `G-8 (/audit @ ${width}px, TẢI MỚI): ô chọn "Lọc hành động" thò ra khỏi hộp nội dung ${a.selectOverhang}px — ${JSON.stringify(a)}`);
+      assert.deepEqual(pAudit.consoleErrors, [], `lỗi console (/audit ${width}px): ${pAudit.consoleErrors}`);
+      auditFresh.push(a);
+      pAudit.close();
+    }
+    ok(`G-8) /audit LẦN TẢI MỚI ở 4 khổ hẹp: ${auditFresh.map((a) => `${a.innerWidth}px → ô chọn ${a.selectWidth}px (thò ${a.selectOverhang}px), scrollWidth ${a.scrollWidth}`).join(" · ")}`);
+
+    // ================================================================================================
+    // G-9 (VÒNG SỬA 2, mục 3): mở ở khổ ĐIỆN THOẠI rồi ĐỔI sang khổ MÁY TÍNH — huy hiệu phải hiện ra.
+    // Đây là tình huống thật của iPad: xoay ngang 768→1024. Trước sửa, lời gọi huy hiệu chỉ chạy MỘT LẦN lúc dựng
+    // khung (`nav.offsetParent !== null`), nên xoay xong ra thanh bên rỗng huy hiệu cho tới khi tải lại trang.
+    // Lỗi "thiếu người nghe sự kiện đổi khổ" đã cắn dự án ba lần — từ nay có khẳng định riêng cho nó.
+    // ================================================================================================
+    {
+      const BADGE_ROUTES_R = ["/api/catalog/admin", "/api/orders/dashboard", "/api/feedback/badge"];
+      const pRot = await env.as(ACCOUNTS.admin, "/parties", MOB);
+      await pRot.waitFor("document.querySelector('#sidebar') !== null", "thanh bên dựng xong (/parties, 390px)");
+      await sleep(1500); // để lời gọi (nếu có) chắc chắn đã bắn — vắng mặt phải là vắng THẬT
+      const beforeCalls = BADGE_ROUTES_R.filter((r) => pRot.requests.some((q) => q.url.includes(r)));
+      assert.deepEqual(beforeCalls, [], `G-9: ở 390px chưa được gọi route huy hiệu nào — đã gọi ${JSON.stringify(beforeCalls)}`);
+      await pRot.send("Emulation.setDeviceMetricsOverride", { width: DESK.width, height: DESK.height, deviceScaleFactor: 1, mobile: false });
+      await pRot.waitFor(
+        `[...document.querySelectorAll('#sidebar .sidebar-item')].some((a) => a.querySelector('.sidebar-item-label').textContent.trim() === 'Đơn hàng' && a.querySelector('.sidebar-item-badge'))`,
+        "huy hiệu 'Đơn hàng' xuất hiện SAU KHI đổi khổ (không tải lại trang)",
+      );
+      const rot = await pRot.ev(`(() => ({
+        sidebarShown: document.querySelector('#sidebar').offsetParent !== null,
+        badges: Object.fromEntries([...document.querySelectorAll('#sidebar .sidebar-item')].map((a) => [a.querySelector('.sidebar-item-label').textContent.trim(), a.querySelector('.sidebar-item-badge')?.textContent.trim() ?? null])),
+      }))()`);
+      assert.equal(rot.sidebarShown, true, `G-9: thanh bên phải hiện sau khi đổi khổ — ${JSON.stringify(rot)}`);
+      assert.equal(rot.badges["Đơn hàng"], String(data.draftCount), `G-9: huy hiệu "Đơn hàng" sau khi đổi khổ phải = draftCount (${data.draftCount}) — ${JSON.stringify(rot)}`);
+      const afterCalls = BADGE_ROUTES_R.filter((r) => pRot.requests.some((q) => q.url.includes(r)));
+      assert.deepEqual(afterCalls, BADGE_ROUTES_R, `G-9: sau khi đổi khổ phải gọi ĐỦ ba route huy hiệu — chỉ thấy ${JSON.stringify(afterCalls)}`);
+      // Không được gọi lại lần hai: người nghe `resize` phải TỰ GỠ ngay lần nạp đầu.
+      await pRot.send("Emulation.setDeviceMetricsOverride", { width: 1440, height: 800, deviceScaleFactor: 1, mobile: false });
+      await sleep(400);
+      await pRot.send("Emulation.setDeviceMetricsOverride", { width: 1920, height: 800, deviceScaleFactor: 1, mobile: false });
+      await sleep(1200);
+      const perRoute = Object.fromEntries(BADGE_ROUTES_R.map((r) => [r, pRot.requests.filter((q) => q.url.includes(r)).length]));
+      for (const [route, n] of Object.entries(perRoute)) {
+        assert.equal(n, 1, `G-9: route huy hiệu ${route} bị gọi ${n} lần — người nghe 'resize' phải tự gỡ sau lần nạp đầu, không gọi lại mỗi lần đổi khổ — ${JSON.stringify(perRoute)}`);
+      }
+      assert.deepEqual(pRot.consoleErrors, [], `lỗi console (/parties đổi khổ): ${pRot.consoleErrors}`);
+      pRot.close();
+      ok(`G-9) Mở /parties ở 390px rồi đổi sang 1040px (không tải lại): huy hiệu hiện ra — ${JSON.stringify(rot.badges)}; ba route huy hiệu gọi đúng ${JSON.stringify(perRoute)} lần dù sau đó còn đổi khổ thêm hai lần nữa`);
+    }
   }
 } finally {
   await env.stop();
