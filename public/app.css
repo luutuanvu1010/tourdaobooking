@@ -557,9 +557,9 @@ body.maint-open { overflow: hidden; }
 .dash-today-list { display: flex; flex-direction: column; }
 .dash-today-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
 .dash-today-row:last-child { border-bottom: 0; }
-.dash-today-when { flex: none; width: var(--w-time-col); display: flex; flex-direction: column; gap: var(--s1); } /* giờ + nơi đón: cùng cụm vì cùng đến từ dịch vụ quyết định, KHÔNG gộp với tên dịch vụ ở .dash-today-main */
+.dash-today-when { flex: none; width: var(--w-time-col); display: flex; flex-direction: column; gap: var(--s1); overflow-wrap: anywhere; } /* giờ + nơi đón: cùng cụm vì cùng đến từ dịch vụ quyết định, KHÔNG gộp với tên dịch vụ ở .dash-today-main; overflow-wrap phòng nơi đón dài không có khoảng trắng tràn cột */
 .dash-today-time { font-family: var(--font-display); font-weight: 800; color: var(--c-primary); }
-.dash-today-place { font-size: var(--fs-badge); color: var(--c-text-muted); line-height: var(--lh-heading); }
+.dash-today-place { font-size: var(--fs-badge); color: var(--c-text-muted); } /* line-height mặc định của body (1.5) — --lh-heading dành riêng cho tiêu đề một dòng, không dùng cho chữ nhiều dòng ở đây */
 .dash-today-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
 .dash-today-name { font-weight: 700; }
 .dash-today-money { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); text-align: right; }
