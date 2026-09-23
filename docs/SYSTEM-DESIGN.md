@@ -464,8 +464,8 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 
 | Trang | HTML | Bundle | API gọi | Ai vào được |
 |---|---|---|---|---|
-| Trang chủ | `public/home.html` | `web/home.ts` | `/api/auth/me`, `GET /api/orders/dashboard` (ba ô số liệu toàn công ty, "Chuyến đón hôm nay", "Doanh thu của tôi" — riêng người xem) | office |
-| Đơn hàng (danh sách) | `public/index.html` | `web/orders.ts` | `/api/auth/me`, `/api/orders`, `/api/dispatch/handlers` (MỘT lời gọi mỗi lần tải một trang; lỗi thì ẩn dòng "Phụ trách", danh sách vẫn hiện) | office |
+| Trang chủ | `public/index.html` | `web/home.ts` | `/api/auth/me`, `GET /api/orders/dashboard` (ba ô số liệu toàn công ty, "Chuyến đón hôm nay", "Doanh thu của tôi" — riêng người xem); ADMIN thêm `/api/catalog/admin` + `/api/feedback` cho khối "Cần xem lại" (Đợt D Task 3, chỉ gọi khi `canSeeReviewAlerts()` xác nhận) | office |
+| Đơn hàng (danh sách) | `public/orders.html` | `web/orders.ts` | `/api/auth/me`, `/api/orders`, `/api/dispatch/handlers` (MỘT lời gọi mỗi lần tải một trang; lỗi thì ẩn dòng "Phụ trách", danh sách vẫn hiện) | office |
 | Đăng nhập | `public/login.html` | `web/login.ts` | `/api/auth/login`, `/api/auth/me`, `/api/auth/config` (widget Turnstile; lỗi thì hỏi lại — mục 4; và banner + đếm ngược khi đang bảo trì), `/api/company` (chân trang; lỗi thì ẩn) | công khai |
 | Lập/sửa đơn | `public/order-form.html` | `web/order-form.ts` | `/api/catalog`, `/api/orders` | có `order.create` |
 | Chi tiết đơn | `public/order.html` | `web/order.ts` | `/api/orders/:id`, `/api/orders/:id/status`, `/api/orders/:id/trip`; khối "Người phụ trách": `/api/dispatch/handlers?orderIds=<id>` (song song với đơn; lỗi riêng), bảng chọn (`web/handler-sheet.ts`): `/api/dispatch/assignees`, `PUT /api/orders/:id/handler` (đổi) và cùng route đó với `staffId` của chính mình (nhận); hộp thoại ảnh xác nhận: `/api/company`, `/api/dispatch/handlers` (tên người phụ trách; lỗi thì dùng tên người lập) | office |
@@ -534,7 +534,7 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 | `npm run db:migrate:local` / `:remote` | `wrangler d1 migrations apply tourdao-sales-db --local` / `--remote` |
 
 **Thêm một trang mới phải khai ở 4 nơi** (không có nơi nào tự suy ra):
-`public/<tên>.html` → mục `esbuild` của `build:web` trong `package.json` → `PAGES` (và nếu cần, `PRECACHE`) trong `src/shared/sw-policy.ts` → điều hướng trong `web/shell.ts`. Hai bài kiểm bắt lỗi nếu quên: `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với các tệp HTML trong `public/`, và `tests/e2e/pwa.mjs` yêu cầu mọi đường dẫn trong `PAGES ∪ PRECACHE` trả 200 với content-type qua được `isCacheable`, đồng thời kiểm thẻ meta iOS và tên/màu trên MỌI trang của `PAGES` (12 trang: e2e in "nhất quán trên 12 trang").
+`public/<tên>.html` → mục `esbuild` của `build:web` trong `package.json` → `PAGES` (và nếu cần, `PRECACHE`) trong `src/shared/sw-policy.ts` → điều hướng trong `web/shell.ts`. Hai bài kiểm bắt lỗi nếu quên: `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với các tệp HTML trong `public/`, và `tests/e2e/pwa.mjs` yêu cầu mọi đường dẫn trong `PAGES ∪ PRECACHE` trả 200 với content-type qua được `isCacheable`, đồng thời kiểm thẻ meta iOS và tên/màu trên MỌI trang của `PAGES` (13 trang, thêm `/orders` từ Đợt D Task 5: e2e in "nhất quán trên 13 trang").
 
 **Các lớp kiểm.**
 

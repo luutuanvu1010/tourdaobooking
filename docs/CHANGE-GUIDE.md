@@ -49,7 +49,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–q · §3 Ma t
 | Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
 | Thêm bước vào Cron | `src/index.ts` (`scheduled`), `wrangler.jsonc` (`triggers.crons`) | k |
 | Thêm cột vào danh sách đơn | `src/modules/orders/repository.ts` (`listOrders`), `src/shared/contracts.ts`, `web/orders.ts` | n |
-| Thêm ô lọc / tìm ở danh sách đơn | `src/modules/orders/index.ts`, `public/index.html`, `web/orders.ts` | n |
+| Thêm ô lọc / tìm ở danh sách đơn | `src/modules/orders/index.ts`, `public/orders.html`, `web/orders.ts` | n |
 | Đổi service worker / cache / danh sách nạp sẵn | `src/shared/sw-policy.ts`, `web/sw/sw.ts`, `public/_headers` | c, i |
 | Đổi header bảo mật / CSP | `public/_headers` | i, l |
 | Đổi trạng thái đơn / hình thức cọc (có `CHECK` trong SQL) | `migrations/0003_orders.sql` → migration dựng lại bảng | d, g |
@@ -391,7 +391,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 1. Cột từ chính `orders`: `OrderSummaryDto` (thêm khoá vào `Pick<OrderDto, …>`) ở `contracts.ts`; ánh xạ trong `listOrders` (`src/modules/orders/repository.ts`, trả object tường minh từ `toDto(r)`); hiển thị ở `row()` của `web/orders.ts`; CSS `.order-row*` ở `public/app.css`.
 2. Cột từ module khác: chỉ qua VIEW công bố `v_<tiền tố>_*` của module chủ + `docs/data-dictionary.json` (`views`) + `ALLOWED_EDGES` (d); không JOIN thẳng bảng gốc. **"Người phụ trách" ở danh sách KHÔNG làm theo cách này:** nó không phải cột của `OrderSummaryDto`/`listOrders` — `web/orders.ts` gọi RIÊNG `GET /api/dispatch/handlers` cho các mã đang hiện (một lời gọi mỗi trang, không chờ, lỗi thì ẩn dòng; xem hàng "người phụ trách" ở §1). Mẫu này hợp khi dữ liệu thuộc module tầng dưới mà `orders` không được import và một lời gọi lỗi không được làm hỏng danh sách; cần sắp xếp/lọc theo cột đó thì mới phải đọc qua view công bố.
 3. Cột gộp từ bảng con CÙNG module (vd nhiều dịch vụ của một đơn → tên/số khách/thông tin chuyến gộp lại, `order_service` cũng thuộc module `orders`, không phải module khác): một hàm THUẦN gộp theo `order_id` (có test riêng cạnh tệp, vd `summarizeServices` ở `repository.ts`), rồi một câu SQL PHỤ lấy các dòng liên quan CHO ĐÚNG các bản ghi đã cắt trang (`page`, KHÔNG PHẢI toàn bộ kết quả dò `hasMore`); dùng `WHERE order_id IN (SELECT value FROM json_each(?1))` + `.bind(JSON.stringify(ids))` để câu SQL vẫn TĨNH dù số id trong trang đổi, không dựng chuỗi `IN (?,?,…)` động (mẫu ở `dispatch/repository.ts`).
-4. Ô lọc/tìm: đọc tham số ở `GET /api/orders` (`src/modules/orders/index.ts`; giá trị sai → 400 `invalid_input`, mẫu `status`), truyền vào `listOrders(db, { q, status, limit, offset })`, thêm `where.push(…)` + `binds.push(…)` (dùng `escapeLike` và `ESCAPE '\'` cho `LIKE`); UI ở `public/index.html` (`.toolbar`) + `params.set(…)` trong `load()` của `web/orders.ts`.
+4. Ô lọc/tìm: đọc tham số ở `GET /api/orders` (`src/modules/orders/index.ts`; giá trị sai → 400 `invalid_input`, mẫu `status`), truyền vào `listOrders(db, { q, status, limit, offset })`, thêm `where.push(…)` + `binds.push(…)` (dùng `escapeLike` và `ESCAPE '\'` cho `LIKE`); UI ở `public/orders.html` (`.toolbar`) + `params.set(…)` trong `load()` của `web/orders.ts`.
 5. Test: `tests/e2e/orders.mjs` (phân trang, lọc, `hasMore`; cột gộp từ bảng con thì thêm ca đơn nhiều dịch vụ để phủ đúng thứ tự/tổng).
 
 **Kiểm:** `npm test` → `npm run typecheck` → `npm run test:e2e -- orders` → `npm run build:web`.
