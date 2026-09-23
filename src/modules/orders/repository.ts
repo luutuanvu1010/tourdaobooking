@@ -2,7 +2,7 @@ import { auditStatement, type AuditAction } from "../audit";
 import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
-import { addDays, vnLocalToIso } from "../../shared/vn-date";
+import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, isAdjustmentSeqCollision } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
@@ -337,8 +337,12 @@ export interface DashboardData {
   draftCount: number;
   /** Đơn confirmed chưa có người phụ trách (view công bố v_dsp_order_handler — orders KHÔNG import module dispatch). */
   unassignedCount: number;
-  /** Đơn confirmed CỦA CHÍNH `staffId` được lập trong tuần [weekFrom, weekTo] (giờ VN, hai đầu bao gồm) — "doanh thu của tôi tuần này". */
-  revenueWeek: { total: number; count: number };
+  /**
+   * Đơn confirmed CỦA CHÍNH `staffId` được lập trong tuần [weekFrom, weekTo] (giờ VN, hai đầu bao gồm) — "doanh thu của tôi tuần này".
+   * `daily`: ĐÚNG 7 phần tử, thứ tự `weekFrom`→`weekTo` (thứ Hai→Chủ nhật), mỗi phần tử là TỔNG số hiện hành của các đơn có `created_at`
+   * rơi vào ĐÚNG ngày dân sự VN đó (Đợt D Task 2, biểu đồ cột Trang chủ) — ngày không có đơn vẫn có phần tử, `total: 0`.
+   */
+  revenueWeek: { total: number; count: number; daily: { date: string; total: number }[] };
 }
 
 /**
@@ -430,23 +434,33 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   const weekFromIso = vnLocalToIso(`${weekFrom}T00:00`)!;
   const weekToIsoExclusive = vnLocalToIso(`${addDays(weekTo, 1)}T00:00`)!;
   const { results: weekRows } = await db
-    .prepare(`SELECT id, subtotal, discount, total, deposit_amount, remaining_amount FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
+    .prepare(`SELECT id, subtotal, discount, total, deposit_amount, remaining_amount, created_at FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
     .bind(staffId, weekFromIso, weekToIsoExclusive)
-    .all<{ id: string; subtotal: number; discount: number; total: number; deposit_amount: number; remaining_amount: number }>();
+    .all<{ id: string; subtotal: number; discount: number; total: number; deposit_amount: number; remaining_amount: number; created_at: string }>();
   const latestWeek = await getLatestAdjustmentSubtotals(db, weekRows.map((r) => r.id));
   let revenueTotal = 0;
+  // Đợt D Task 2: gộp doanh thu HIỆN HÀNH theo ngày dân sự VN của `created_at` — CÙNG tập đơn/CÙNG số tiền đang cộng
+  // vào `revenueTotal` ở trên, không tính lại từ nguồn khác (tránh lệch giữa `daily` và `total`, xem test tổng invariant).
+  const dailyTotals = new Map<string, number>();
   for (const r of weekRows) {
     const subtotalAfter = latestWeek.get(r.id);
     const money = subtotalAfter === undefined ? { total: r.total } : effectiveMoney(subtotalAfter, r.discount, r.deposit_amount);
     revenueTotal += money.total;
+    const day = vnToday(new Date(r.created_at));
+    dailyTotals.set(day, (dailyTotals.get(day) ?? 0) + money.total);
   }
+  // Luôn ĐÚNG 7 phần tử (weekFrom là thứ Hai — vnWeekRange đảm bảo) dù ngày đó không có đơn nào (total: 0) — biểu đồ cột cần đủ 7 cột.
+  const daily = Array.from({ length: 7 }, (_, i) => {
+    const date = addDays(weekFrom, i);
+    return { date, total: dailyTotals.get(date) ?? 0 };
+  });
 
   return {
     today: todaySummaries,
     unpaid: { total: unpaidTotal, count: unpaidIds.length, earliestDate: earliestUnpaid?.d ?? null },
     draftCount: draftCountRow?.n ?? 0,
     unassignedCount: unassignedRow?.n ?? 0,
-    revenueWeek: { total: revenueTotal, count: weekRows.length },
+    revenueWeek: { total: revenueTotal, count: weekRows.length, daily },
   };
 }
 

@@ -88,6 +88,7 @@
   --fs-stat: 26px;          /* Trang chủ mới: cỡ chữ số liệu lớn (ô số liệu, doanh thu) */
   --fs-stat-sm: 20px;       /* Trang chủ mới (kiểm gộp I-3): cỡ chữ số liệu ở khổ điện thoại hẹp (lưới 2 cột ≤639px) — 26px làm "₫" rơi xuống dòng riêng với số tiền lớn */
   --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
+  --h-chart: 56px;          /* Đợt D Task 2: chiều cao vùng 7 cột biểu đồ "Doanh thu của tôi" */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -574,6 +575,13 @@ body.maint-open { overflow: hidden; }
 .dash-revenue-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
 .dash-revenue-total { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
 .dash-revenue-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat); }
+/* Biểu đồ cột 7 ngày (Đợt D Task 2) — trong CÙNG thẻ "Doanh thu của tôi" (đúng ảnh bản mẫu: header + tổng tiền + biểu đồ chung một thẻ). */
+.dash-revenue-chart { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); }
+.dash-chart-bars { display: flex; align-items: flex-end; gap: var(--s2); height: var(--h-chart); }
+.dash-chart-bar { flex: 1; background: var(--c-primary-soft); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.dash-chart-bar-dark { background: var(--c-primary); }
+.dash-chart-labels { display: flex; justify-content: space-between; font-size: var(--fs-badge); color: var(--c-text-muted); }
+.dash-chart-empty { margin: var(--s2) 0 0; }
 
 @media (max-width: 639px) {
   /* Lưới 2×2 gộp cả "Doanh thu của tôi" (đặc tả §3: mockup mobile gộp doanh thu vào lưới, không tách riêng).
@@ -589,6 +597,9 @@ body.maint-open { overflow: hidden; }
   #dash-revenue-range { display: none; } /* thay bằng dòng phụ rút gọn "Tuần này · N đơn" trong .dash-revenue-total */
   .dash-revenue-total { flex-direction: column; align-items: flex-start; gap: var(--s1); }
   .dash-revenue-value { font-size: var(--fs-stat-sm); }
+  /* Mockup mobile (390px) không có biểu đồ trong ô "Doanh thu của tôi" (ô đó là 1 trong 4 ô rút gọn của lưới 2×2, chỉ
+     có tổng tiền + dòng phụ) — ẩn ở khổ hẹp, không xoá khỏi DOM (bảng máy đọc màn hình cũng ẩn theo cha, không đọc trùng). */
+  .dash-revenue-chart { display: none; }
   .dash-today-place { display: none; } /* nơi đón chuyển sang đứng cạnh tên dịch vụ trong .dash-today-sub (không phải kỹ thuật ẩn-cho-mắt: display:none để trình đọc màn hình không đọc trùng hai lần) */
   /* Fix round 2 (quyết định chủ dự án 2026-09-23): dòng phụ rút gọn bỏ SĐT nên khổ điện thoại mất thao tác gọi khách — chủ chốt
      giữ nút gọi dù lệch bản mẫu. `.dash-today-call` chỉ hiện ở khổ này (cùng cơ chế `.lbl-short`, luật kế thừa ở trên thắng

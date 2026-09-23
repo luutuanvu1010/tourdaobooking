@@ -155,6 +155,17 @@ try {
   ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} (cross-check DOM bên dưới, không tự đoán trước — phụ thuộc quy tắc gán người phụ trách mặc định của module dispatch, ngoài phạm vi Task 3)`);
 
   // ==================================================================================================
+  // Đợt D Task 2 (biểu đồ cột 7 ngày): R1 + R3 đều tạo "bây giờ" (createAndConfirm không truyền created_at riêng) nên
+  // TOÀN BỘ doanh thu tuần phải dồn vào ĐÚNG 1/7 ngày (hôm nay) — 6 ngày còn lại phải = 0, không phải thiếu phần tử.
+  // ==================================================================================================
+  assert.equal(data.revenueWeek.daily.length, 7, `revenueWeek.daily phải đúng 7 phần tử — ${JSON.stringify(data.revenueWeek.daily)}`);
+  const todayIdx = data.revenueWeek.daily.findIndex((d) => d.date === TODAY);
+  assert.ok(todayIdx >= 0, `revenueWeek.daily phải có phần tử đúng ngày hôm nay (${TODAY}) — ${JSON.stringify(data.revenueWeek.daily)}`);
+  assert.equal(data.revenueWeek.daily[todayIdx].total, data.revenueWeek.total, `Cả R1 lẫn R3 đều tạo hôm nay nên ngày hôm nay trong daily phải = revenueWeek.total (12.645.000) — ${JSON.stringify(data.revenueWeek.daily)}`);
+  assert.equal(data.revenueWeek.daily.filter((d) => d.total > 0).length, 1, `chỉ đúng 1/7 ngày (hôm nay) có doanh thu, 6 ngày còn lại phải = 0 — ${JSON.stringify(data.revenueWeek.daily)}`);
+  ok(`revenueWeek.daily: đúng 7 phần tử, toàn bộ 12.645.000 dồn vào hôm nay (${TODAY}, vị trí ${todayIdx}/7), 6 ngày còn lại = 0`);
+
+  // ==================================================================================================
   // 3) Mở /home ở khổ máy tính (1040) và điện thoại (390) — bằng ADMIN. Đối chiếu MỖI SỐ trên màn hình THẬT
   //    với `data` (API vừa đọc) VÀ với giá trị literal đã tạo (mục B — không tái phát bug Task 1).
   // ==================================================================================================
@@ -213,6 +224,17 @@ try {
           return { shown: el.offsetParent !== null, ariaLabel: el.getAttribute('aria-label'), text: el.textContent.trim() };
         })(),
       }));
+      // Đợt D Task 2: biểu đồ cột 7 ngày — trong CÙNG thẻ #dash-revenue (đúng ảnh bản mẫu). Ẩn bằng CSS ở khổ điện
+      // thoại (mockup mobile không có biểu đồ) nên đo CẢ tồn tại trong DOM lẫn có đang hiển thị thật (offsetParent).
+      const chartEl = document.querySelector('#dash-revenue .dash-revenue-chart');
+      const chart = chartEl ? {
+        shown: chartEl.offsetParent !== null,
+        barCount: chartEl.querySelectorAll('.dash-chart-bar').length,
+        barHeights: [...chartEl.querySelectorAll('.dash-chart-bar')].map((b) => parseFloat(b.style.height)),
+        labels: [...chartEl.querySelectorAll('.dash-chart-labels > *')].map((s) => s.textContent.trim()),
+        tableRowCount: chartEl.querySelectorAll('table tbody tr').length,
+        tableRows: [...chartEl.querySelectorAll('table tbody tr')].map((tr) => [...tr.children].map((c) => c.textContent.trim())),
+      } : null;
       return {
         gridHidden: grid.hidden,
         gridDisplay: getComputedStyle(grid).display,
@@ -226,6 +248,7 @@ try {
         revenueRange: document.querySelector('#dash-revenue-range').textContent.trim(),
         revenueValue: shown(document.querySelector('.dash-revenue-value')),
         revenueSub: shown(document.querySelector('#dash-revenue-total .muted')),
+        chart,
         errorHidden: document.querySelector('#error').hidden,
         loadingHidden: document.querySelector('#loading').hidden,
         scrollOverflow: document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -253,6 +276,26 @@ try {
       assert.equal(m.stats[2].sub, "Cần gán trước giờ đón", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải khớp mockup "Cần gán trước giờ đón" — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu ĐẦY ĐỦ phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
       assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
+
+      // Đợt D Task 2 — biểu đồ cột 7 ngày: PHẢI hiển thị thật ở máy tính (cùng thẻ "Doanh thu của tôi").
+      assert.ok(m.chart, `${label}: phải có .dash-revenue-chart trong DOM — ${JSON.stringify(m)}`);
+      assert.equal(m.chart.shown, true, `${label}: biểu đồ phải đang HIỂN THỊ thật (offsetParent) ở máy tính — ${JSON.stringify(m.chart)}`);
+      assert.equal(m.chart.barCount, 7, `${label}: biểu đồ phải có đúng 7 cột — ${JSON.stringify(m.chart)}`);
+      assert.deepEqual(m.chart.labels, ["T2", "T3", "T4", "T5", "T6", "T7", "CN"], `${label}: nhãn trục phải đúng T2..CN theo thứ tự — ${JSON.stringify(m.chart)}`);
+      assert.equal(m.chart.barHeights.length, 7, `${label}: phải đo được chiều cao cả 7 cột — ${JSON.stringify(m.chart)}`);
+      {
+        // Cột hôm nay (duy nhất có doanh thu, 12.645.000) phải CAO HƠN mọi cột khác (0 đ, chỉ còn sàn hiển thị).
+        const otherIdx = (todayIdx + 1) % 7;
+        assert.ok(
+          m.chart.barHeights[todayIdx] > m.chart.barHeights[otherIdx],
+          `${label}: cột ngày CÓ doanh thu (hôm nay, vị trí ${todayIdx}, cao ${m.chart.barHeights[todayIdx]}%) phải CAO HƠN cột ngày KHÔNG có doanh thu (vị trí ${otherIdx}, cao ${m.chart.barHeights[otherIdx]}%) — ${JSON.stringify(m.chart)}`,
+        );
+        assert.equal(m.chart.barHeights[todayIdx], 100, `${label}: cột hôm nay (ngày cao nhất) phải cao 100% — ${JSON.stringify(m.chart)}`);
+        assert.ok(m.chart.barHeights[otherIdx] > 0 && m.chart.barHeights[otherIdx] < 100, `${label}: cột ngày 0 đ vẫn phải có chiều cao > 0 (sàn hiển thị, không biến mất) — ${JSON.stringify(m.chart)}`);
+      }
+      // Bảng ẩn cho máy đọc màn hình: đủ 7 dòng, dòng của hôm nay phải có đúng số tiền hiện hành.
+      assert.equal(m.chart.tableRowCount, 7, `${label}: bảng máy đọc màn hình (.visually-hidden) phải có đúng 7 dòng — ${JSON.stringify(m.chart)}`);
+      assert.ok(m.chart.tableRows[todayIdx][1].includes("12.645.000"), `${label}: dòng bảng máy đọc của hôm nay phải có đúng số tiền hiện hành 12.645.000 — ${JSON.stringify(m.chart)}`);
     } else {
       // Bản RÚT GỌN (đang hiển thị THẬT ở 390px — đây là phép đo mà kịch bản CŨ chưa từng thật sự làm, xem lịch sử sửa ở trên).
       assert.equal(m.stats[0].label, "Còn thiếu", `${label}: nhãn RÚT GỌN ô "Còn thiếu tiền" phải là "Còn thiếu" (bản đang thật sự hiển thị ở khổ hẹp) — ${JSON.stringify(m.stats[0])}`);
@@ -265,6 +308,11 @@ try {
       assert.equal(m.stats[2].sub, "Cần gán", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Cần gán" — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.revenueValue, "12,64tr ₫", `${label}: giá trị RÚT GỌN doanh thu phải là "12,64tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.645.000 ₫") — ${JSON.stringify(m)}`);
       assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
+
+      // Đợt D Task 2 — mockup mobile (390px) KHÔNG có biểu đồ trong ô "Doanh thu của tôi" (chỉ 1 trong 4 ô rút gọn của
+      // lưới 2×2): biểu đồ vẫn còn trong DOM (không xoá — giữ đơn giản, không dựng hai bản) nhưng PHẢI ẩn bằng CSS.
+      assert.ok(m.chart, `${label}: .dash-revenue-chart vẫn phải có trong DOM ở điện thoại (chỉ ẩn bằng CSS) — ${JSON.stringify(m)}`);
+      assert.equal(m.chart.shown, false, `${label}: biểu đồ KHÔNG được hiển thị thật ở khổ điện thoại (mockup mobile không có biểu đồ) — ${JSON.stringify(m.chart)}`);
     }
 
     // Kiểm gộp I-3: số liệu ô ("dash-stat-value", vd "500.000 ₫") KHÔNG được xuống dòng — ký hiệu tiền tệ từng rơi xuống dòng riêng

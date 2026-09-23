@@ -250,13 +250,15 @@ export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntr
  * `draftCount`: đơn nháp chưa xác nhận (điểm duy nhất của trang này đếm đơn nháp).
  * `unassignedCount`: đơn confirmed chưa có người phụ trách.
  * `revenueWeek`: doanh thu (tổng `total` hiện hành) của CHÍNH người xem trong tuần `from`..`to` (thứ Hai–Chủ nhật, giờ Việt Nam, hai đầu bao gồm).
+ * `revenueWeek.daily`: ĐÚNG 7 phần tử (thứ Hai→Chủ nhật, cùng số hiện hành), ngày không có đơn vẫn có phần tử `total: 0` — dữ liệu cho
+ * biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2).
  */
 export interface DashboardResponse {
   today: OrderSummaryDto[];
   unpaid: { total: number; count: number; earliestDate: string | null };
   draftCount: number;
   unassignedCount: number;
-  revenueWeek: { total: number; count: number; from: string; to: string };
+  revenueWeek: { total: number; count: number; from: string; to: string; daily: { date: string; total: number }[] };
 }
 
 // ---- Nhật ký -----------------------------------------------------------------

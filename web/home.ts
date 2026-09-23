@@ -3,6 +3,38 @@ import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
 import { initShell, showError } from "./shell";
 
+const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
+const FULL_WEEKDAY = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"];
+/** "2026-09-24" → chỉ số thứ trong tuần (0 = Chủ nhật). Chuỗi ngày thuần (không giờ) nên đọc bằng UTC, không lệch múi giờ thiết bị — cùng cách `addDays`/`isISODate` đang dùng. */
+const weekdayOf = (isoDate: string): number => new Date(`${isoDate}T00:00:00Z`).getUTCDay();
+
+/**
+ * Biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2) — 7 cột T2…CN, dựng bằng `h()` (không thư viện ngoài).
+ * Chiều cao theo % so với ngày cao nhất; sàn 4% cho ngày 0 đ để cột vẫn thấy được (không biến mất). Hai cột CUỐI
+ * (T7, CN) tô đậm `--c-primary` — đúng ẢNH BẢN MẪU (không phải "cột cao nhất"; xem mục "Lo ngại" trong báo cáo Task 2,
+ * đặc tả viết "cột cao nhất" nhưng ảnh mẫu — nguồn thẩm quyền về hình dáng — tô đậm hai cột cuối).
+ * Máy đọc màn hình: các cột (`aria-hidden`) không mang nghĩa; thay bằng MỘT bảng `.visually-hidden` liệt kê đủ 7 ngày.
+ * Mọi ngày đều 0 đ → không vẽ 7 cột rỗng, hiện dòng "Chưa có đơn nào tuần này" (đúng kế hoạch bước 4).
+ */
+function revenueChart(daily: readonly { date: string; total: number }[]): HTMLElement {
+  const max = Math.max(0, ...daily.map((d) => d.total));
+  if (max === 0) return h("p", { class: "empty dash-chart-empty" }, "Chưa có đơn nào tuần này");
+  const bars = daily.map((d, i) => {
+    const pct = Math.max(Math.round((d.total / max) * 100), 4);
+    const isDark = i >= 5; // vị trí T7 (index 5) và CN (index 6) — hai cột cuối
+    return h("span", { class: isDark ? "dash-chart-bar dash-chart-bar-dark" : "dash-chart-bar", style: `height:${pct}%`, "aria-hidden": "true" });
+  });
+  const labels = daily.map((d) => h("span", null, SHORT_WEEKDAY[weekdayOf(d.date)]));
+  const rows = daily.map((d) => h("tr", null, h("th", { scope: "row" }, FULL_WEEKDAY[weekdayOf(d.date)]), h("td", null, vnd(d.total))));
+  return h(
+    "div",
+    { class: "dash-revenue-chart" },
+    h("div", { class: "dash-chart-bars" }, ...bars),
+    h("div", { class: "dash-chart-labels" }, ...labels),
+    h("table", { class: "visually-hidden" }, h("caption", null, "Doanh thu từng ngày trong tuần"), h("tbody", null, ...rows)),
+  );
+}
+
 /**
  * Một ô số liệu (dạng liên kết về "/", như bản thiết kế) — ba ô đầu là số liệu TOÀN CÔNG TY.
  * Mỗi phần (nhãn/giá trị/dòng phụ) có hai bản: đầy đủ (`.lbl-full`, máy tính) và rút gọn (`.lbl-short`, khổ điện
@@ -104,6 +136,10 @@ function renderRevenue(rev: Api.DashboardResponse["revenueWeek"]): void {
     h("span", { class: "dash-revenue-value" }, h("span", { class: "lbl-full" }, vnd(rev.total)), h("span", { class: "lbl-short" }, `${vndShort(rev.total)} ₫`)),
     h("span", { class: "muted" }, h("span", { class: "lbl-full" }, `${rev.count} đơn đã xác nhận`), h("span", { class: "lbl-short" }, `Tuần này · ${rev.count} đơn`)),
   );
+  // Mockup mobile (390px) KHÔNG có biểu đồ trong ô "Doanh thu của tôi" (ô đó chỉ là một trong 4 ô số liệu rút gọn của
+  // lưới 2×2) — biểu đồ chỉ ẩn ở khổ hẹp qua CSS (`.dash-revenue-chart` trong `public/app.css`), không đổi bằng JS ở đây.
+  byId("dash-revenue").querySelector(".dash-revenue-chart")?.remove();
+  byId("dash-revenue").append(revenueChart(rev.daily));
 }
 
 async function main(): Promise<void> {
