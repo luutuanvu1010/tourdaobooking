@@ -3,11 +3,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { APP_NAME, APP_RELEASE_DATE, APP_VERSION, formatLongDate, formatReleaseLine } from "./app-info.ts";
 import { isISODate } from "./vn-date.ts";
+import { CHANGELOG } from "./changelog.ts";
 
-test("hằng của bản phát hành: tên, số phiên bản, ngày phát hành đúng lịch", () => {
+test("số phiên bản và ngày phát hành DẪN XUẤT từ mục đầu của nhật ký (một nguồn)", () => {
   assert.equal(APP_NAME, "Tour Đảo Booking");
-  assert.equal(APP_VERSION, "1.0");
-  assert.equal(APP_RELEASE_DATE, "2026-09-21");
+  assert.equal(APP_VERSION, CHANGELOG[0]?.version);
+  assert.equal(APP_RELEASE_DATE, CHANGELOG[0]?.date);
   assert.ok(isISODate(APP_RELEASE_DATE));
 });
 
@@ -16,8 +17,8 @@ test("APP_NAME trùng tên ứng dụng khai ở manifest (nguồn khai của t�
   assert.equal(APP_NAME, manifest.name);
 });
 
-test("formatReleaseLine: đúng dòng số hiệu phiên bản của bản v1.0", () => {
-  assert.equal(formatReleaseLine(), "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026");
+test("formatReleaseLine: dòng phiên bản của bản mới nhất", () => {
+  assert.equal(formatReleaseLine(), "Phiên bản 1.3 · ngày 23 tháng 9 năm 2026");
 });
 
 test("formatReleaseLine: nhận số phiên bản và ngày khác (kể cả số 1 chữ số và 2 chữ số)", () => {
