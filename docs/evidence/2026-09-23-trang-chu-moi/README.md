@@ -90,11 +90,22 @@ hoàn nguyên lại. Chi tiết đầy đủ: `.superpowers/sdd/2026-09-23-dot-d
 mục 7. Tóm tắt:
 
 ```
-(1) Hoàn nguyên biện pháp CSS (Task 4 mục 1) → đỏ tại trang-chu-smoke.mjs:855 — "thanh công việc gãy 2 dòng"
-    {"topbarRows":2,"topbarContentOverflow":45,...} — 2 !== 1
-(2) Hoàn nguyên bộ ba khẳng định thay thế → đỏ đúng dòng đo "nút đè tiêu đề"
-(3) Hoàn nguyên biện pháp huy hiệu (Task 4 mục 3) → đỏ tại khẳng định lời gọi huy hiệu sau khi đổi khổ
+(1) Hoàn nguyên mục 1 (chỉ CSS) → đỏ tại trang-chu-smoke.mjs:855:
+AssertionError [ERR_ASSERTION]: /order-form?id=… (breadcrumb DÀI) @ 900px: thanh công việc gãy 2 dòng —
+{"innerWidth":900,"topbarBottom":60,"mainTop":60,"newBtnTop":58,"newBtnBottom":104,"newBtnHeight":46,
+"barTitleClipped":0,…,"topbarHeight":60,"topbarRows":2,"topbarContentOverflow":45,
+"barTitleText":"Sửa đơn TD-20260923-0002",…}
+2 !== 1
+
+(2) Hoàn nguyên mục 2 → đỏ tại :835:
+AssertionError [ERR_ASSERTION]: /audit @ 641px: tràn ngang — scrollWidth 646 > innerWidth 641
+
+(3) Hoàn nguyên mục 3 → đỏ tại :1066 (bước chờ huy hiệu trước khi chụp ảnh, G-7):
+Error: hết giờ chờ: huy hiệu nạp xong sau khi đổi khổ (/home)
+document.querySelector('#sidebar .sidebar-item-badge') !== null
 ```
+(Dán rút gọn — nguyên văn đầy đủ, gồm cả biến thể "1b"/"3b" tạm tắt khẳng định trước để cô lập đúng khẳng định
+MỚI, nằm ở `task-4-fix-2-report.md` mục 7.)
 
 ### Task 6 — vá ba lỗ hổng của chính lưới kiểm (A-1, A-2, A-3 của brief Task 6)
 
@@ -107,10 +118,18 @@ public/app.css (1200px) — CSS cascade đang ghi đè bằng thứ khác?
 1300 !== 1200
     at .../trang-chu-smoke.mjs:894:16
 ```
-Hoàn nguyên (`cp` lại bản gốc, `diff` xác nhận giống hệt) → chạy lại: xanh. **Lưu ý:** đổi CHỈ giá trị của
-`--w-main` (cả hai vế cùng đổi theo) KHÔNG tạo ra đỏ — đúng dự đoán, vì khẳng định này kiểm "CSS có đúng dùng
-token hay bị ghi đè bằng số cứng", không kiểm "token có đúng con số chủ dự án chốt hay không" (con số đó không
-đo được tự động, chỉ đo được bằng mắt/tài liệu).
+Hoàn nguyên (`cp` lại bản gốc, `diff` xác nhận giống hệt) → chạy lại: xanh.
+
+**Lệch so với chữ P16 của bản giao việc, ghi rõ ra đây thay vì im lặng:** bản giao việc viết "đổi `--w-main`
+trong CSS sang một con số sai → lưới phải đỏ". Đã THỬ đúng câu chữ đó trước (đổi `--w-main: 1200px` →
+`--w-main: 1234px`, không đụng gì khác): kết quả **XANH**, không đỏ. Đây không phải lỗi khẳng định — đây là điều
+KHÔNG THỂ TỰ ĐỘNG HOÁ ĐƯỢC theo đúng thiết kế: cả bộ đọc token (đọc `:root` bằng regex) lẫn trình duyệt (đọc CSS
+đã build) đều đọc CÙNG một khai báo `--w-main` trong `public/app.css`, nên đổi giá trị của nó luôn làm cả hai vế
+đổi theo nhau — không có cách nào tạo lệch giữa "giá trị đúng" (do chủ dự án chốt bằng mắt/tài liệu, không đo
+được tự động) và "giá trị CSS đang dùng". Điều khẳng định A-3 THẬT SỰ bắt được là một lỗ hổng LÂN CẬN: quy tắc
+CSS ngừng dùng token (bị ghi đè bằng số cứng hoặc cascade khác) — đó là mutation đã chứng minh đỏ ở trên
+(`main { max-width: 1300px }` thay vì `var(--w-main)`). Giữ khẳng định vì nó có giá trị thật (đã tự lộ ra phát
+hiện 960px bên dưới), nhưng không tự nhận đã làm đúng y hệt câu P16 gốc.
 
 Việc siết này tự lộ ra một sự thật trước đó không ai đo: `main.form-page { max-width: var(--w-form) }` (Lập đơn)
 chỉ nằm TRONG `@media (min-width: 960px)` — dưới 960px trang Lập đơn vẫn dùng `--w-main` chung, không phải
@@ -131,6 +150,12 @@ nào breadcrumb THẬT SỰ bị cắt") — vì thiếu `white-space: nowrap` l
 `barTitleClipped` không còn > 0 ở khổ nào; đây cũng là một RED hợp lệ, chỉ khác cơ chế bắt lỗi (lưới sanity thay
 vì khẳng định overflow/text-overflow trực tiếp). Hoàn nguyên cả hai lần → xanh; `git diff --stat public/app.css`
 rỗng sau mỗi lần.
+
+**Rủi ro đã biết của `sawRealClip`:** lưới an toàn này dựa vào việc breadcrumb "Sửa đơn TD-…" ở khổ 900px đo
+được đúng 14px cắt — con số đó phụ thuộc ĐỘ DÀI mã đơn sinh ra lúc chạy (`TD-20260923-NNNN`, số thứ tự tăng theo
+ngày) và phông chữ đang tải. Nếu một lần chạy sau này mã đơn ngắn hơn hoặc rộng cột đổi khiến KHÔNG khổ/trang nào
+còn thật sự cắt breadcrumb, lưới sẽ đỏ TO (đúng thiết kế — không lặng lẽ mất tác dụng) nhưng người đọc log lần
+đầu có thể tưởng nhầm là hồi quy thật; ghi lại đây để không mất công tra lại.
 
 **A-1.2 (van an toàn `min-height`) — KHÔNG thêm khẳng định, đã thử và không chứng minh được đỏ:** làm đúng kịch
 bản brief mô tả (ẩn `.topbar-search` bằng `ev(...)`, gán `textContent` của `.bar-title` một chuỗi rất dài), đo
