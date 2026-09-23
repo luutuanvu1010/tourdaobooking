@@ -88,7 +88,7 @@
     "may-B-390-khong-widget": []
   },
   "do": {
-    "cau-hinh-cham-ms-den-khi-nut-mo": 3088,
+    "cau-hinh-cham-ms-den-khi-nut-mo": 3058,
     "may-A-390-dang-tai-xac-minh": {
       "tapDuoi44": [],
       "oGoDuoi16": [],
@@ -164,7 +164,7 @@
       "consoleErrors": []
     },
     "console-d": {
-      "logEntries": 3,
+      "logEntries": 2,
       "csp": [],
       "other": [],
       "consoleErrors": []
@@ -173,7 +173,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:49927/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:53703/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -181,7 +181,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:49927/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:53703/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -268,7 +268,7 @@
     "w": 316,
     "h": 72,
     "token": "XXXX.DUMMY.TOKEN.XXXX",
-    "cacheServiceWorker": 20,
+    "cacheServiceWorker": 22,
     "chuCho": {
       "chu": "Đang tải xác minh…",
       "soDoan": 1,
