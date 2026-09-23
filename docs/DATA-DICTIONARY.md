@@ -13,6 +13,7 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `login_attempt` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `aut_passkey` | bảng |  |
 
 ## catalog
 

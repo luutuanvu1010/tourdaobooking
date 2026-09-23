@@ -97,6 +97,11 @@
       "legacy": true
     },
     {
+      "name": "aut_passkey",
+      "module": "auth",
+      "kind": "table"
+    },
+    {
       "name": "order_item",
       "module": "orders",
       "kind": "table",
