@@ -12,7 +12,7 @@ interface Tab {
 }
 
 /**
- * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 3 tab, admin 5 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
+ * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 4 tab, admin 6 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
  * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Hồ sơ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  */
 function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
@@ -24,6 +24,7 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
         ]
       : [];
   const officeTabs: Tab[] = [];
+  if (office) officeTabs.push({ href: "/home", label: "Trang chủ", icon: "home", active: (p) => p === "/home" });
   if (office) officeTabs.push({ href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" });
   if (canCreate) officeTabs.push({ href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" });
   return [
@@ -111,7 +112,7 @@ export async function initShell(): Promise<Staff> {
     // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
     const el = document.getElementById("error");
     if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.");
-    addTabBar(false); // không biết vai khi mất mạng: hiện 3 tab cơ bản để còn điều hướng (QA2 Q2-04)
+    addTabBar(false); // không biết vai khi mất mạng: hiện 4 tab cơ bản để còn điều hướng (QA2 Q2-04)
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
@@ -123,6 +124,7 @@ export async function initShell(): Promise<Staff> {
   logoutBtn.addEventListener("click", () => void logout());
   replaceChildren(
     nav,
+    office && h("a", { href: "/home" }, "Trang chủ"),
     office && h("a", { href: "/" }, "Đơn hàng"),
     canCreate && h("a", { href: "/order-form" }, "+ Đơn mới"),
     office && h("a", { href: "/parties" }, "Hồ sơ"),

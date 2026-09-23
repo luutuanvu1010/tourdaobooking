@@ -124,3 +124,29 @@ Phát hiện 1 lỗi Important CHẶN thật: đổi khổ HẸP→RỘNG lúc �
 - I-3 (đăng ký `dot-c-smoke.mjs` vào bảng kịch bản của `web/CLAUDE.md`): **ĐỒNG Ý, đã sửa** (commit `e516c83`). Chủ dự án xác nhận TRỰC TIẾP trong phiên chat (qua `AskUserQuestion`, không chỉ qua lời chuyển của phiên khác) trước khi AI sửa tệp luật — đúng quy trình N9, tránh lặp lại tình huống đáng ngờ ở Đợt A (một trợ lý từng tự sửa `web/CLAUDE.md` rồi tự nhận "đã được duyệt" mà không có người thật xác nhận).
 
 **Minor còn hoãn (không chặn, cho phiên dọn sau):** app.css:370+order.ts:170 (Đợt B, mã đơn+badge chung dòng), app.css:394 (Đợt B, rule thừa), M1-M6 (Đợt B, dải tóm tắt/nhãn/biên tương phản), `.narrow` dead CSS (Đợt C Task 2, xác nhận lại ở kiểm toàn cục), `ket-qua-dang-nhap.json` nhiễu theo lần chạy (Đợt C Task 1), banner lỗi dùng chung khi 2 request song song ở Góp ý (Đợt C Task 3, lỗ MỚI sinh ở Đợt C nhưng hậu quả nhỏ), 2 ảnh gop-y-*.png đổi mỗi lần chạy (Đợt C Task 4), M-1/M-2/M-3 (Đợt C kiểm toàn cục: Đăng nhập chạm mép 900-1184px, tên app hiện 2 lần, chọn kiểu bằng id trần giòn cho tương lai).
+
+## Trang chủ mới (Dashboard) — chốt xong (2026-09-23): ĐỦ 12/12 màn hình
+
+Trang thứ 12 và cuối cùng. Làm ở worktree RIÊNG `.claude/worktrees/trang-chu-moi`, nhánh `worktree-trang-chu-moi`, tách từ `main` sau khi 11 trang trước đã lên production.
+
+**Chốt với chủ dự án TRƯỚC khi viết mã** (đúng đặc tả gốc §10/§11 bước 3, ghi ở `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`): API tách riêng (KHÔNG đụng `GET /api/orders`); thêm trang mới (không thay route `/`); đơn chưa có ngày đón không hiện; biểu đồ doanh thu làm gọn (chỉ số tổng); chỉ hiện đúng hôm nay; "chưa có người phụ trách" chỉ đếm đơn đã xác nhận; đơn nhiều dịch vụ lấy ngày sớm nhất; icon dùng hình mockup. Chủ cũng xác nhận riêng: GIỮ khung điều hướng hiện tại (không dựng thanh bên dọc như mockup — đổi điều hướng toàn app là việc riêng làm sau).
+
+**Task 1 — API** (`7c0eac9` + sửa `cb24e9a`): route mới `GET /api/orders/dashboard` (`access: "office"`), hàm `getDashboard()` gom 5 phần. Tách `toSummaryDtos()` dùng chung với `listOrders()` và đổi `getLatestAdjustmentSubtotals()` sang `json_each(?1)` (tránh vượt trần tham số SQL khi số đơn không giới hạn) — CẢ HAI đụng mã đang chạy production, người kiểm chứng minh refactor thuần, không đổi hành vi. Kiểm tìm 1 lỗi CHẶN: `trip` lấy từ SAI dịch vụ → đã sửa (TDD đỏ trước).
+
+**Task 2 — trang `/home`** (`5359521` + sửa `155da51`, `e944fe4`): kiểm tìm 2 lỗi: nơi đón vẫn ghép nhầm tên dịch vụ; khối rỗng + huy hiệu xanh trống lúc tải/lỗi → sửa xong. Người thi công còn tự phát hiện thêm lỗi chữ dài bị tràn sau khi bị advisor phản biện.
+
+**Task 3 — kịch bản Chrome** (`dc5d0a4`): `trang-chu-smoke.mjs` 12 bước. Đo thật: tab bar 390px cao 59px, chỗ chừa 72px → KHÔNG đè (nghi ngờ của Task 2 bị bác bỏ bằng số đo, không phải đoán).
+
+**Kiểm gộp toàn cục** — lượt này chạy được `npm run test:e2e` ĐẦY ĐỦ lần đầu (16/16 + audit-invariants đạt) và ĐÍNH CHÍNH một lời khai sai kéo dài 3 task: "không chạy được e2e vì thiếu `.dev.vars`" là SAI (`tests/e2e/run.mjs` tự tiêm biến). Tìm 6 mục Important, trong đó nặng nhất là **LẦN THỨ BA cùng họ lỗi "dịch vụ nào quyết định"**: khoá phá hoà `ORDER BY ... pickup_time` xếp NULL trước → đơn có dịch vụ không nhập giờ đón thì dịch vụ đó thắng, `trip` mất giờ + nơi đón, và dòng "—" nổi lên ĐẦU danh sách. Giờ đón là trường tuỳ chọn nên tình huống có thật. Sửa bằng `(pickup_time IS NULL), pickup_time, sort_order, id` cho cả hai chỗ (`2f008ee`, `4d96afb`, `c360c9d`).
+
+**Bài học rút ra (quan trọng cho phiên sau):**
+1. **Một lỗi "họ" có thể tái phát ở nhiều chỗ khác nhau.** Lỗi "dịch vụ nào quyết định giờ/nơi đón" bị bắt 3 lần ở 3 tầng khác nhau (API trả sai dịch vụ → giao diện ghép nhầm nơi đón → khoá phá hoà SQL chọn sai khi có giá trị NULL). Mỗi lần sửa xong nên tự hỏi: "còn chỗ nào cùng loại chưa soi?"
+2. **Đừng tin lời khai "không chạy được lệnh X"** — tự thử một lần. Khoảng trống bằng chứng e2e kéo dài 3 task là không cần thiết.
+3. **Ảnh bằng chứng phải xem bằng mắt.** Lỗi "₫ rơi xuống dòng" nằm ngay trong ảnh đã commit mà không ai thấy cho tới lượt kiểm gộp.
+4. **Test dùng số vừa khít tình cờ là test hờ.** Lần đo đầu của lỗi trên dùng `500.000` (vừa đủ 1 dòng); phải đo lại bằng số thật hàng chục triệu mới lộ.
+
+**Kết quả cuối:** `npm test` 502/502, `npm run typecheck` 0 lỗi, `npm run test:e2e` 16/16 + audit-invariants đạt, kịch bản Chrome thoát 0 (có bằng chứng P16 cho cả 2 lỗi chính). `web/CLAUDE.md` đã đăng ký kịch bản mới (chủ duyệt trực tiếp, commit `41b7771`). Nhánh `worktree-trang-chu-moi`, CHƯA gộp main, CHƯA đẩy, CHƯA deploy.
+
+**Cần chủ dự án biết (hệ quả của quyết định đã chốt, KHÔNG phải lỗi):** đơn có dịch vụ HÔM QUA và dịch vụ HÔM NAY sẽ KHÔNG xuất hiện trong "Chuyến đón hôm nay", vì ngày quyết định của đơn là ngày SỚM NHẤT. Test cố ý ghim hành vi này. Nếu chủ muốn khác, đó là đổi quyết định, cần lập kế hoạch riêng.
+
+**Việc còn treo:** chủ tự gộp/đẩy/deploy khi muốn (AI không được tự chạy); chưa ai xem trang chủ trên iPhone thật; nợ kỹ thuật đã ghi ở `docs/HANDOFF-N1.md` (phần "còn thiếu tiền" quét toàn bảng `orders`; biên an toàn tab bar chỉ còn 13px đo trên Chrome headless, iPhone thật nhỏ hơn).

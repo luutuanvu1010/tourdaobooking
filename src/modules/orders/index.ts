@@ -2,15 +2,17 @@
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
 import { getAuditTrail } from "../audit";
-import type { CatalogChangeDto, CatalogChangedBody, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse } from "../../shared/contracts";
+import type {
+  CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
+} from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import type { PaxCounts } from "../../shared/order-lines";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
-import { vnToday } from "../../shared/vn-date";
+import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, parseMoneyEditInput, recomputeService } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getLatestAdjustment, getMeta, getStoredServices, insertMoneyAdjustment, listOrders, updateDraftOrder, updateTrip,
+  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getStoredServices, insertMoneyAdjustment, listOrders, updateDraftOrder, updateTrip,
 } from "./repository";
 import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
 import { loadOrderView, resolveBooker, validationContext } from "./service";
@@ -139,6 +141,16 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
+    // Trang chủ mới (docs/superpowers/sdd/2026-09-23-trang-chu-moi): tổng quan cho nhân viên văn phòng — "office" (không phải "orders"), PARTNER không dùng màn hình này.
+    // PHẢI đứng TRƯỚC route "GET /api/orders/:id" ở dưới: router (`match()`) khớp path theo VỊ TRÍ đoạn, nên ":id" cũng khớp chuỗi "dashboard" —
+    // `createApp` lấy candidate ĐẦU TIÊN cùng method trong mảng `routes` (thứ tự khai ở đây), route này đứng trước nên thắng.
+    route("GET", "/api/orders/dashboard", "office", async ({ env, staff }) => {
+      const today = vnToday(new Date());
+      const { from, to } = vnWeekRange(today);
+      const data = await getDashboard(env.DB, staff.id, today, from, to);
+      return json({ ...data, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
+    }),
+
     route("GET", "/api/orders", "orders", async ({ env, url, staff }) => {
       const raw = url.searchParams.get("status");
       const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;

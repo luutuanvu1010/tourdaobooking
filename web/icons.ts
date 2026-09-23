@@ -3,6 +3,7 @@ const NS = "http://www.w3.org/2000/svg";
 type Shape = readonly [tag: string, attrs: Record<string, string | number>];
 
 const SHAPES = {
+  home: [["path", { d: "M4 11l8-6 8 6v8a1 1 0 0 1-1 1h-4v-6H9v6H5a1 1 0 0 1-1-1z" }]],
   orders: [["rect", { x: 5, y: 4, width: 14, height: 17, rx: 2 }], ["path", { d: "M9 9h6M9 13h6M9 17h3" }]],
   plus: [["path", { d: "M12 5v14M5 12h14" }]],
   me: [["circle", { cx: 12, cy: 8, r: 4 }], ["path", { d: "M4 21c0-4 3.5-6 8-6s8 2 8 6" }]],
