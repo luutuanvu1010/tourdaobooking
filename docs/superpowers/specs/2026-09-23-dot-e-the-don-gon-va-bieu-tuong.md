@@ -88,6 +88,15 @@ biểu tượng nào đứng một mình mang nghĩa. Màu và kích thước đ
 `dot-c-smoke.mjs` ("Việc của tôi" trong `/account`). Mỗi tiêu chí trên phải có một khẳng định **chứng minh được là đỏ**
 (P16) — khẳng định không chứng minh được thì xoá, đừng để lưới giả.
 
+## Ghi chú thi công vòng 2026-09-24 (task-2, `.claude/worktrees/trang-chu-moi`)
+
+Áp dụng đúng "Quyết định 3" ở mục "Sửa đặc tả…" phía dưới: `web/order-card.ts` + `public/app.css` đã sửa lại bố
+cục (tên khách dòng 1 co bằng "…", mã đơn đầu phần xổ, dòng 2 chỉ "Còn thu", đúng 2 dòng THẬT ở mọi khổ — đo thật
+76px ở cả 390px và 1040px). Tham số `money: "full" | "no-total" | "none"` ở `orderCard()` đã có sẵn đúng phạm vi
+"Quyết định 4" ("còn thu" + "đã trả", không tổng, không giá từng gói) để nối cho "Việc của tôi" khi ADR-0017 được
+duyệt — **CHƯA nối ở đợt này**, `web/account.ts` không đổi gì. Bằng chứng: `docs/evidence/2026-09-24-dot-e/`
+(ảnh + `ket-qua-nguoi-phu-trach.json`); nhật ký thi công đầy đủ ở `.superpowers/sdd/dot-e/task-2-report.md`.
+
 ---
 
 ## Sửa đặc tả sau khi chủ dự án xem kết quả lượt 1 (2026-09-24)

@@ -25,19 +25,23 @@ interface Row {
 }
 
 function row(o: OrderSummary): Row {
-  // Đợt E Phần A: thẻ rút gọn 2 dòng + nút xổ xuống, dựng bằng thành phần dùng chung web/order-card.ts (chỉ áp cho
-  // /orders ở đợt này — xem đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md). `handlerSlot` thay cho `slot` cũ:
-  // vẫn cùng class `order-row-handler`/`is-pending`, chỉ đổi CHỖ ĐỨNG (nay trong phần xổ xuống thay vì luôn hiện).
+  // Đợt E Phần A (bố cục sửa lại 2026-09-24): thẻ rút gọn 2 dòng + nút xổ xuống, dựng bằng thành phần dùng chung
+  // web/order-card.ts (chỉ áp cho /orders ở đợt này — xem đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md,
+  // mục "Vòng sửa 2026-09-24"). `handlerSlot` thay cho `slot` cũ: vẫn cùng class `order-row-handler`/`is-pending`,
+  // chỉ đổi CHỖ ĐỨNG (nay trong phần xổ xuống thay vì luôn hiện).
   const { el, handlerSlot } = orderCard({
     id: o.id,
     href: `/order?id=${encodeURIComponent(o.id)}`,
+    orderCode: o.orderCode,
     status: o.status,
     departDate: o.trip.departDate,
     pickupTime: o.trip.pickupTime,
+    customerName: o.customerName,
     customerPhone: o.customerPhone,
     pax: o.pax,
     depositAmount: o.depositAmount,
     remainingAmount: o.remainingAmount,
+    total: o.total,
     serviceNames: o.serviceNames,
     staffName: o.staffName,
     createdAt: o.createdAt,

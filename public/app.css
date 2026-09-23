@@ -72,7 +72,7 @@
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --w-main: 1200px;         /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
-  --h-order-skeleton: 92px; /* Đợt E: thẻ đơn nay chỉ 2 dòng + nút xổ khi đóng (trước là 180px, ước lượng cho khung 7 dòng cũ) — chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
+  --h-order-skeleton: 76px; /* Đợt E (vòng sửa 2026-09-24): thẻ đơn đóng đo THẬT 76px ở cả 390px và 1040px (docs/evidence/2026-09-24-dot-e/) — trước là 180-240px cho khung 7 dòng cũ; chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
@@ -160,21 +160,37 @@ textarea { min-height: 72px; resize: vertical; }
    ô rộng 394px, trang nở ra 410px). Đó là lỗi CŨ, không do Task 4 gây ra; sửa ở đây sẽ đổi bề mặt điện thoại vốn
    phải giữ nguyên từng chỉ số trong đợt này. Đã báo riêng cho điều phối viên quyết. */
 @media (min-width: 641px) { .toolbar select { max-width: 100%; } }
-/* Đợt E Phần A: thẻ đơn rút gọn 2 dòng + nút xổ xuống (web/order-card.ts) — thay cho khung 7 dòng cũ. `.order-card`
-   giữ khung viền/nền/đệm mà `.order-row` từng có một mình; `.order-row` (thẻ `<a>`) nay chỉ còn hai dòng hiện ngay.
-   Nút xổ và phần chi tiết là ANH EM của `.order-row`, không lồng bên trong nó — chắc chắn không điều hướng ở mọi
-   engine, không phụ thuộc hành vi ngầm của trình duyệt (lý do đầy đủ: chú thích đầu web/order-card.ts). */
+/* Đợt E Phần A (bố cục sửa lại 2026-09-24, xem "Vòng sửa 2026-09-24" ở đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md):
+   thẻ đơn rút gọn ĐÚNG 2 dòng + nút xổ xuống (web/order-card.ts) — thay cho khung 7 dòng cũ. `.order-card` giữ
+   khung viền/nền/đệm mà `.order-row` từng có một mình.
+   `.order-card-head` xếp `.order-row` (thẻ <a>, hai dòng hiện ngay) cạnh `.order-card-toggle` bằng flexbox — ANH EM
+   trong DOM, KHÔNG lồng nút vào trong <a> (lý do đầy đủ: chú thích đầu web/order-card.ts) — nhưng vẫn nằm gọn
+   TRONG PHẦN NHÌN THẤY của thẻ (không phải hàng riêng như bản trước, vốn là lý do thẻ cũ cao 145px thay vì đúng
+   2 dòng). `.order-row` chiếm hết chỗ còn lại (`flex: 1 1 auto; min-width: 0`) để tên khách co lại + "…" đúng chỗ;
+   `.order-card-toggle` giữ bề rộng cố định `--tap-min` không co. */
 .order-card { display: flex; flex-direction: column; padding: var(--s3) var(--s4); margin-bottom: var(--s2); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
 .order-card:hover { outline: 2px solid var(--c-primary); }
-.order-row { display: grid; gap: var(--s1); color: inherit; text-decoration: none; }
-.order-row-top { display: flex; justify-content: space-between; align-items: baseline; }
-.order-card-line2 { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s4); font-size: var(--fs-label); color: var(--c-text-muted); }
+.order-card-head { display: flex; align-items: center; gap: var(--s2); }
+.order-row { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); color: inherit; text-decoration: none; }
+.order-row-top { display: flex; align-items: baseline; gap: var(--s2); }
+.order-row-when { flex: none; font-weight: 600; white-space: nowrap; }
+.order-row-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-row-top .badge { flex: none; }
+/* Dòng 2 KHÔNG được xuống hàng (đúng 2 dòng là ràng buộc cứng theo chủ dự án, khác quyết định "cho phép xuống
+   hàng ở khổ hẹp" của đặc tả gốc 2026-09-23 — đã bị thay ở vòng sửa này). SĐT và "Còn thu" không được co (giữ đủ
+   số/chữ); số khách (`.order-row-pax`) là phần được phép co/cắt bằng "…" trước, vì đã có trong dòng 2 lẫn không có
+   dòng nào khác thay thế được — trường hợp thực tế (1-2 loại khách) không bao giờ chạm ngưỡng này. */
+.order-card-line2 { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s1) var(--s3); min-width: 0; overflow: hidden; font-size: var(--fs-label); color: var(--c-text-muted); }
+/* `.order-row-phone` dùng CHUNG ở cả thẻ đơn (đây) và "Chuyến đón hôm nay" của Trang chủ (web/home.ts,
+   `.dash-today-sub .order-row-phone`) — giữ nguyên `text-decoration`/`cursor` cho cả hai chỗ; `flex: none` không
+   ảnh hưởng gì ở chỗ KHÔNG phải flex container (Trang chủ). */
+.order-row-phone { flex: none; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.order-row-remaining { flex: none; white-space: nowrap; }
+.order-row-pax { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-row-note { color: var(--c-accent-strong); font-weight: 600; }
-.order-row-phone { text-decoration: underline; cursor: pointer; }
 .money-ok { color: var(--c-green-text); }
 .money-due { color: var(--c-accent-strong); }
-.order-card-foot { display: flex; justify-content: flex-end; margin-right: calc(-1 * var(--s2)); }
-.order-card-toggle { display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0; padding: 0; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.order-card-toggle { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0; padding: 0; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
 .order-card-toggle::after { content: "▾"; font-size: var(--fs-ui); line-height: 1; transition: transform var(--m-fast); }
 .order-card-toggle[aria-expanded="true"]::after { transform: rotate(180deg); }
 .order-card-details { display: grid; gap: var(--s1); margin-top: var(--s2); padding-top: var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); border-top: 1px solid var(--c-border); }
