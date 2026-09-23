@@ -9,13 +9,13 @@
     <span id="dash-date" class="dash-date"></span>
     <span id="dash-maint" class="badge badge-draft" hidden>Đang ở chế độ bảo trì</span>
   </div>
-  <p class="dash-stats-label muted">Số liệu toàn công ty</p>
-  <div id="dash-stats" class="dash-stats"></div>
+  <p class="dash-stats-label muted" id="dash-stats-label" hidden>Số liệu toàn công ty</p>
+  <div id="dash-stats" class="dash-stats" hidden></div>
   <div id="error" class="alert" role="alert" hidden></div>
   <div id="loading" class="skeleton-list" aria-hidden="true"><div class="skeleton-row"></div><div class="skeleton-row"></div></div>
-  <div class="dash-layout">
+  <div id="dash-layout" class="dash-layout" hidden>
     <section id="dash-today" class="card dash-today">
-      <div class="dash-today-head"><span>Chuyến đón hôm nay</span><span id="dash-today-count" class="badge badge-confirmed"></span></div>
+      <div class="dash-today-head"><span>Chuyến đón hôm nay</span><span id="dash-today-count" class="badge badge-confirmed" hidden></span></div>
       <div id="dash-today-list"></div>
       <p id="dash-today-empty" class="empty" hidden>Không có chuyến nào hôm nay.</p>
     </section>

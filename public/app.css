@@ -86,7 +86,7 @@
   --h-turnstile: 65px;      /* chiều cao cố định của widget Cloudflare Turnstile (cỡ "flexible"/"normal"): khung giữ chỗ để widget dựng xong không đẩy nút Đăng nhập */
   --w-confirm: 640px;       /* bề rộng hộp thoại "Xác nhận đơn để gửi khách" ở màn hình rộng: ảnh xem trước (khổ 720) chỉ thu nhỏ nhẹ nên chữ còn đọc được */
   --fs-stat: 26px;          /* Trang chủ mới: cỡ chữ số liệu lớn (ô số liệu, doanh thu) */
-  --w-time-col: 52px;       /* Trang chủ mới: bề rộng cột giờ đón trong danh sách "Chuyến đón hôm nay" */
+  --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -557,7 +557,9 @@ body.maint-open { overflow: hidden; }
 .dash-today-list { display: flex; flex-direction: column; }
 .dash-today-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
 .dash-today-row:last-child { border-bottom: 0; }
-.dash-today-time { flex: none; width: var(--w-time-col); font-family: var(--font-display); font-weight: 800; color: var(--c-primary); }
+.dash-today-when { flex: none; width: var(--w-time-col); display: flex; flex-direction: column; gap: var(--s1); } /* giờ + nơi đón: cùng cụm vì cùng đến từ dịch vụ quyết định, KHÔNG gộp với tên dịch vụ ở .dash-today-main */
+.dash-today-time { font-family: var(--font-display); font-weight: 800; color: var(--c-primary); }
+.dash-today-place { font-size: var(--fs-badge); color: var(--c-text-muted); line-height: var(--lh-heading); }
 .dash-today-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
 .dash-today-name { font-weight: 700; }
 .dash-today-money { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); text-align: right; }

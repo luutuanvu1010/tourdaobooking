@@ -27,12 +27,17 @@ function renderStats(data: Api.DashboardResponse): void {
     statTile("Đơn nháp chưa xác nhận", String(draftCount), "Cần xác nhận đơn"),
     statTile("Chưa có người phụ trách", String(unassignedCount), "Cần gán người phụ trách"),
   );
+  // Chỉ hiện sau khi có số thật — tránh khối rỗng đọng lại lúc đang tải/lỗi.
+  byId("dash-stats-label").hidden = false;
+  byId("dash-stats").hidden = false;
 }
 
 /**
  * Một dòng "Chuyến đón hôm nay". CẢNH BÁO (kiểm độc lập Task 1): `serviceNames[0]` là dịch vụ có sort_order NHỎ NHẤT của đơn, còn `trip`
- * (giờ/nơi đón) lấy theo dịch vụ QUYẾT ĐỊNH đơn thuộc "hôm nay" (ngày đón sớm nhất) — CÓ THỂ LÀ HAI DỊCH VỤ KHÁC NHAU. Vì vậy giờ đón đứng
- * RIÊNG một cột bên trái (không ghép cụm "tên dịch vụ — giờ"); tên dịch vụ nằm ở dòng phụ cùng SĐT/nơi đón, không gắn với giờ đón.
+ * (giờ + nơi đón) lấy theo dịch vụ QUYẾT ĐỊNH đơn thuộc "hôm nay" (ngày đón sớm nhất) — CÓ THỂ LÀ HAI DỊCH VỤ KHÁC NHAU.
+ * Vì vậy giờ đón VÀ nơi đón (cùng đến từ dịch vụ quyết định) LUÔN đứng CHUNG một cụm bên trái (`.dash-today-when`); tên dịch vụ
+ * (`serviceNames[0]`, có thể là dịch vụ khác) chỉ xuất hiện ở dòng phụ bên phải cùng SĐT, KHÔNG bao giờ đứng cạnh nơi đón — tránh gợi ý
+ * sai rằng nơi đón đó thuộc về dịch vụ được nêu tên. Đừng gộp lại "cho gọn": hai cụm cố ý tách theo hai nguồn dữ liệu khác nhau.
  */
 function todayRow(o: OrderSummary): HTMLElement {
   const time = o.trip.pickupTime ?? "—";
@@ -43,11 +48,12 @@ function todayRow(o: OrderSummary): HTMLElement {
     " · ",
     serviceLine,
   ];
-  if (o.trip.pickupPlace) sub.push(" · ", o.trip.pickupPlace);
+  const when: Child[] = [h("span", { class: "dash-today-time" }, time)];
+  if (o.trip.pickupPlace) when.push(h("span", { class: "dash-today-place" }, o.trip.pickupPlace));
   return h(
     "a",
     { class: "dash-today-row", href: `/order?id=${encodeURIComponent(o.id)}` },
-    h("span", { class: "dash-today-time" }, time),
+    h("span", { class: "dash-today-when" }, ...when),
     h(
       "span",
       { class: "dash-today-main" },
@@ -64,7 +70,9 @@ function todayRow(o: OrderSummary): HTMLElement {
 }
 
 function renderToday(today: readonly OrderSummary[]): void {
-  byId("dash-today-count").textContent = String(today.length);
+  const badge = byId("dash-today-count");
+  badge.textContent = String(today.length);
+  badge.hidden = false; // chỉ hiện huy hiệu SAU khi đã có số thật — trước đó không để lộ viên thuốc xanh rỗng
   replaceChildren(byId("dash-today-list"), ...today.map(todayRow));
   byId("dash-today-empty").hidden = today.length > 0;
 }
@@ -95,6 +103,8 @@ async function main(): Promise<void> {
     renderStats(data);
     renderToday(data.today);
     renderRevenue(data.revenueWeek);
+    // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
+    byId("dash-layout").hidden = false;
   } catch (err) {
     loadingEl.hidden = true;
     byId("dash-date").textContent = `${weekday}, ${dateStr}`;
