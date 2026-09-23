@@ -3,8 +3,13 @@
 **Cập nhật Task 6 (2026-09-23):** README này ĐÃ VIẾT LẠI TOÀN BỘ — bản trước mô tả trạng thái sau Task 3 (trang ở
 `/home`, chưa có thanh bên dọc, chỉ 3 ảnh, "12 bước"). Từ Task 4 (ADR-0015) và Task 5, trang đã đổi rất nhiều:
 thanh điều hướng dọc thay thanh ngang ở máy tính, `/` là Trang chủ (không còn `/home`), `/orders` là Đơn hàng.
-Mã được đo: cây làm việc **sạch** trên nhánh `worktree-trang-chu-moi`, đứng sau Task 1–5 và Task 6 (Phần A, F-1…
-F-5) — xem `git log` để biết mã băm chính xác lúc đọc README này.
+
+**Cập nhật Task 7 (2026-09-23, vòng sửa sau kiểm toàn cục 8 hướng — 0 Critical, 4 Important, 6 Minor):** sửa logo
+thanh đầu trang điện thoại cho tròn đúng bản mẫu (phần A), vá 2 lỗ hổng của chính lưới kiểm mà người kiểm toàn cục
+đột biến chứng minh — bề rộng thanh bên/chiều cao thanh công việc tự so với chính CSS (C-1) và van an toàn
+`min-height` bị kết luận sai là "không kịch bản nào phân biệt được" (C-2) — xem mục "Task 7" của P16 bên dưới.
+Mã được đo: cây làm việc **sạch** trên nhánh `worktree-trang-chu-moi`, đứng sau Task 1–6 và Task 7 — xem `git log`
+để biết mã băm chính xác lúc đọc README này.
 
 Artifact bằng chứng cho toàn bộ kế hoạch "Đợt D — khung điều hướng dọc" (`docs/superpowers/plans/2026-09-23-dot-
 d-khung-dieu-huong-doc.md`) và kế hoạch gốc "Trang chủ mới" (`docs/superpowers/sdd/2026-09-23-trang-chu-moi/`).
@@ -173,6 +178,71 @@ chữ) hấp thụ hết phần thiếu trước khi biện pháp 3 (`min-height
 canh) tạo ra tình huống mà `min-height` thật sự khác `height`. Theo đúng chỉ dẫn brief ("Khẳng định không chứng
 minh được là đỏ thì xoá đi, đừng để lại lưới giả"): **không thêm khẳng định A-1.2 vào kịch bản.**
 
+**ĐÍNH CHÍNH (Đợt D Task 7, kiểm toàn cục, C-2) — kết luận trên SAI:** kịch bản "breadcrumb rất dài" ở trên không
+tạo ra khác biệt vì lý do đúng như mô tả (`.bar-title` luôn co về một dòng trước khi `min-height` kịp phát huy tác
+dụng) — nhưng đó chỉ là MỘT kịch bản đã thử, không phải bằng chứng "không kịch bản nào phân biệt được". Kịch bản
+khác (đổi biến "cỡ chữ nút" thay vì "độ dài breadcrumb") có phân biệt được — xem mục "Task 7" của P16 bên dưới.
+Khẳng định đã được THÊM lại vào kịch bản.
+
+### Task 7 — vòng sửa sau kiểm toàn cục (0 Critical, 4 Important, 6 Minor)
+
+Ba khẳng định MỚI, mỗi khẳng định đột biến thật trên `public/app.css` (không mô phỏng bằng inline style), rebuild
+không cần thiết (thay đổi thuần CSS, không qua esbuild), chạy lại TOÀN BỘ `trang-chu-smoke.mjs`, chép nguyên văn
+dòng đỏ, rồi `cp` lại bản gốc + `diff` xác nhận giống hệt trước khi chạy lại lần cuối (xanh).
+
+**Phần A (logo thanh đầu trang điện thoại chưa tròn như bản mẫu):** hoàn nguyên `.brand-logo` (`public/app.css:116`)
+từ `border-radius: var(--radius-pill)` về `var(--radius-sm)` (đúng trạng thái TRƯỚC khi sửa) →
+
+```
+AssertionError [ERR_ASSERTION]: Trang chủ (điện thoại): logo thanh đầu trang phải bo tròn hết cỡ (border-radius:
+999px, đúng bản mẫu 00 Trang chu v2.dc.html dòng 44/280) — đo được "8px" —
+{"borderRadius":"8px","width":30,"height":30,"top":15,"left":16}
+'8px' !== '999px'
+```
+Mọi khẳng định TRƯỚC dòng này trong kịch bản (toàn bộ bố cục Trang chủ máy tính + phần lớn bố cục Trang chủ điện
+thoại — lưới 2×2, thứ tự DOM, vị trí "Doanh thu của tôi") vẫn XANH ở lần chạy này — script chỉ dừng đúng tại khẳng
+định logo. So `width/height/top/left` giữa bản ĐÚNG (`{"width":30,"height":30,"top":15,"left":16}`, đo ở lần chạy
+xanh ngay trước đó) và bản ĐỘT BIẾN (giống hệt 4 số, chỉ `borderRadius` đổi "999px"→"8px") — **đúng một khác biệt
+duy nhất** trên bề mặt điện thoại đo được, đúng yêu cầu bản giao việc Task 7 phần A.
+
+**C-1 (bề rộng thanh bên/chiều cao thanh công việc so với hằng số ĐỘC LẬP, không đọc từ CSS):** đổi
+`--w-sidebar: 236px` → `300px` (`public/app.css`) → chạy lại toàn lưới:
+
+```
+AssertionError [ERR_ASSERTION]: /staff @ 641px: thanh bên phải rộng đúng 236px (bản mẫu/chủ dự án duyệt, hằng số
+ĐỘC LẬP trong kịch bản — không đọc từ CSS) — {…,"sidebarWidth":300,…,"sidebarToken":300}
+300 !== 236
+```
+Xác nhận ĐÚNG lỗ hổng người kiểm toàn cục chỉ ra: khẳng định CŨ đứng ngay TRƯỚC dòng này trong mã
+(`f.sidebarWidth === f.sidebarToken`, cả hai đều đọc từ CSS đang chạy) đã chạy và **XANH** ở cùng lần này
+(300 === 300, không throw) — chỉ khẳng định MỚI (so với hằng số `236` viết thẳng trong kịch bản) mới bắt được.
+
+**C-2 (van an toàn `min-height` — khôi phục khẳng định với kịch bản phân biệt được: phóng cỡ chữ nút 40px):** đổi
+`min-height: calc(var(--bar-h) + env(safe-area-inset-top))` → `height: calc(...)` ở `body.has-sidebar #topbar`
+(`public/app.css`, khối "Đợt D Task 4… ADR-0015") → chạy lại toàn lưới:
+
+```
+AssertionError [ERR_ASSERTION]: C-2: van an toàn min-height — khi cỡ chữ nút "Lập đơn mới" phóng lên 40px, đáy nút
+(71px) không được ĐÈ lên đỉnh main (60px) —
+{"topbarHeight":60,"topbarBottom":60,"btnBottom":71,"mainTop":60}
+```
+Đúng cơ chế đã phân tích: dưới `height` cố định, `#topbar` bị ép đúng 60px dù nút cần nhiều chỗ hơn — nút tràn ra
+ngoài, đè lên `main` 11px. Dưới CSS hiện tại (`min-height`, lần chạy xanh trước đó): `#topbar` cao lên **83px** để
+chứa trọn nút, không đè (`btnBottom:82 ≤ mainTop:83`).
+
+**C-3 (đính chính: dòng nào đỏ trước khi hoàn nguyên `flex-wrap: nowrap`):** gỡ `flex-wrap: nowrap` khỏi
+`body.has-sidebar #topbar` → chạy lại toàn lưới:
+```
+AssertionError [ERR_ASSERTION]: /order-form?id=… (breadcrumb DÀI) @ 900px: thanh công việc cao 105px, token
+--bar-h = 60px — {…,"topbarHeight":105,"topbarRows":2,…}
+```
+Khẳng định đỏ ĐẦU TIÊN là khẳng định **chiều cao** (`topbarHeight` so với `--bar-h`, đứng TRƯỚC trong mã), KHÔNG
+PHẢI `topbarRows` như Task 6 từng ghi (dù `topbarRows` đo được cũng là 2, script chưa chạy tới dòng đó vì đã dừng
+ở dòng chiều cao). Đã sửa lại chú thích sai trong `trang-chu-smoke.mjs` và đính chính `task-6-report.md`.
+
+Sau MỖI mutation ở trên: `cp` lại bản gốc từ bản sao lưu tạm, `diff` xác nhận giống hệt (0 khác biệt), chạy lại
+toàn bộ kịch bản lần nữa → xanh (`TRANG CHU SMOKE OK`) trước khi sang mutation kế tiếp.
+
 ## Chưa kiểm
 
 - iPhone thật (bàn phím, an toàn màn hình…) — chưa đo, giống mọi bằng chứng Chrome headless khác trong repo.
@@ -183,9 +253,10 @@ minh được là đỏ thì xoá đi, đừng để lại lưới giả"): **kh
 - `/audit` tràn ngang khổ điện thoại — lỗi CŨ có từ trước Đợt D, ghi nợ ở
   `docs/superpowers/specs/2026-09-23-dot-d-can-chu-duyet.md`, không thuộc phạm vi bằng chứng này (mục G chỉ quét
   `/audit` từ 641px, không quét ≤640px cho trang này — `/staff` là trang DUY NHẤT chạy nhánh đó).
-- Chưa có ai NGOÀI người thi công Task 6 xem qua `anh/` hay chạy lại kịch bản (kiểm độc lập việc lớn theo
-  `CLAUDE.md` §3 — Task 4/5 đã có kiểm độc lập riêng; Task 6 Phần A/F là việc "vá lưới kiểm + sửa tài liệu", cần
-  điều phối viên tự xác định có cần thêm một vòng kiểm độc lập nữa hay không).
+- Chưa có ai NGOÀI người thi công Task 6/Task 7 xem qua `anh/` hay chạy lại kịch bản (kiểm độc lập việc lớn theo
+  `CLAUDE.md` §3 — Task 4/5 đã có kiểm độc lập riêng; Task 6 Phần A/F và Task 7 là việc "sửa CSS bề mặt điện thoại
+  đã duyệt + vá lưới kiểm + sửa tài liệu", theo bản giao việc Task 7 đây được coi là việc lớn — CẦN một vòng kiểm
+  độc lập, chỉ đọc, trước khi báo "đạt").
 
 `npm test` (517/517) và `npm run typecheck` (0 lỗi) đã chạy xanh trên cây làm việc ghi bằng chứng này. Không có
 thay đổi mã nguồn ứng dụng nào đi kèm README này ngoài `docs/evidence/2026-09-23-trang-chu-moi/` — mọi mutation
