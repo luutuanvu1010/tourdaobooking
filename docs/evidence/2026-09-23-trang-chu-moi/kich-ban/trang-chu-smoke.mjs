@@ -1140,6 +1140,40 @@ try {
       ok(`G-9) Mở /parties ở 390px rồi đổi sang 1040px (không tải lại): huy hiệu hiện ra — ${JSON.stringify(rot.badges)}; ba route huy hiệu gọi đúng ${JSON.stringify(perRoute)} lần dù sau đó còn đổi khổ thêm hai lần nữa`);
     }
   }
+
+  // ==================================================================================================
+  // H) ĐỢT D TASK 5 — ba địa chỉ sau khi đổi trang mặc định (ADR-0015 điều 4): "/" → Trang chủ,
+  //    "/orders" → Đơn hàng, "/home" → tự chuyển hướng về "/". Kiểm THẬT bằng trình duyệt (không chỉ đổi tên tệp).
+  // ==================================================================================================
+  {
+    // Tĩnh trước: public/home.html (nay là trang chuyển hướng, KHÔNG còn là Trang chủ) phải dùng thẻ
+    // <meta http-equiv="refresh">, KHÔNG dùng <script> nội tuyến — CSP script-src 'self' (public/_headers) chặn.
+    const redirectHtml = readFileSync("public/home.html", "utf8");
+    assert.match(redirectHtml, /<meta\s+http-equiv="refresh"\s+content="0;\s*url=\/"\s*>/, `public/home.html phải chuyển hướng bằng thẻ meta refresh về / — nội dung: ${redirectHtml.slice(0, 400)}`);
+    assert.doesNotMatch(redirectHtml, /<script[\s>]/, "public/home.html không được có thẻ <script> (CSP script-src 'self' chặn script nội tuyến)");
+    ok("H-0) Kiểm tĩnh: public/home.html chuyển hướng bằng meta refresh, không có script nội tuyến");
+
+    // "/" → Trang chủ (khối #dash-grid), KHÔNG phải Đơn hàng (không có #list).
+    const pHome = await env.as(ACCOUNTS.admin, "/", MOB);
+    await pHome.waitFor("!document.querySelector('#dash-grid').hidden", "địa chỉ / tải Trang chủ xong");
+    assert.equal(await pHome.ev("!!document.querySelector('#list')"), false, "địa chỉ / không được là trang Đơn hàng (không có #list)");
+    pHome.close();
+    ok("H-1) Địa chỉ / mở ra Trang chủ, không phải Đơn hàng");
+
+    // "/orders" → Đơn hàng (ô tìm #q + #list), KHÔNG phải Trang chủ (không có #dash-grid).
+    const pOrders = await env.as(ACCOUNTS.admin, "/orders", MOB);
+    await pOrders.waitFor("document.querySelector('#list') !== null && document.querySelector('.toolbar #q') !== null", "địa chỉ /orders tải Đơn hàng xong");
+    assert.equal(await pOrders.ev("!!document.querySelector('#dash-grid')"), false, "địa chỉ /orders không được là Trang chủ (không có #dash-grid)");
+    pOrders.close();
+    ok("H-2) Địa chỉ /orders mở ra Đơn hàng, không phải Trang chủ");
+
+    // "/home" → chuyển hướng THẬT (điều hướng trình duyệt, không đứng yên) về / rồi tải đúng Trang chủ.
+    const pRedirect = await env.as(ACCOUNTS.admin, "/home", MOB);
+    await pRedirect.waitFor("location.pathname === '/' && document.readyState === 'complete'", "địa chỉ /home tự chuyển hướng về /", 8000);
+    await pRedirect.waitFor("!document.querySelector('#dash-grid').hidden", "sau khi chuyển hướng, Trang chủ tải xong");
+    pRedirect.close();
+    ok("H-3) Địa chỉ /home tự chuyển hướng về / rồi tải đúng Trang chủ");
+  }
 } finally {
   await env.stop();
 }
