@@ -40,7 +40,7 @@ xong, xem mục "Kịch bản" bên dưới).
 |---|---|---|---|
 | R1 | confirmed | sort_order 0 = **NGÀY MAI**, 19:30, Sân bay Cam Ranh, "Đưa đón sân bay…"; sort_order 1 = **HÔM NAY**, 06:15, Bến Cầu Đá, "Tour 4 đảo…" | subtotal 300.000, cọc 300.000 → còn lại 0 (đã trả đủ) |
 | R2 | **nháp** (không xác nhận) | 1 dịch vụ HÔM NAY | subtotal 100.000 |
-| R3 | confirmed | 1 dịch vụ ngày khác hôm nay (+5 ngày) | subtotal 500.000, cọc 0 → còn lại 500.000 |
+| R3 | confirmed | 1 dịch vụ ngày khác hôm nay (+5 ngày) | subtotal 12.345.000, cọc 0 → còn lại 12.345.000 (kiểm gộp I-3: số hàng chục triệu, không phải vài trăm nghìn — đo đúng cỡ số thật cho lưới tràn dòng ₫) |
 
 R1 dựng đúng hình dạng bẫy đã gây lỗi thật ở Task 1 (kiểm độc lập vòng 1): `sort_order` NGƯỢC chiều ngày, giờ
 và nơi đón của hai dịch vụ khác hẳn nhau, để phép đo "giờ/nơi đón hiển thị đúng dịch vụ hôm nay" không thể
@@ -55,9 +55,9 @@ tình cờ đúng.
   hình dạng `DashboardResponse`, không phải 404 do bị route `GET /api/orders/:id` nuốt mất nếu ai đó lỡ dời
   thứ tự khai route trong `src/modules/orders/index.ts`.
 - **Đối chiếu API với số tự tay tính** (lưới thứ hai ngoài `dashboard.test.ts` của Task 1, qua đường HTTP
-  thật): `draftCount=1` (R2), `unpaid` = 1 đơn/500.000/ngày của R3, `today` = đúng `[R1]` với
+  thật): `draftCount=1` (R2), `unpaid` = 1 đơn/12.345.000/ngày của R3, `today` = đúng `[R1]` với
   `trip = { departDate: HÔM NAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" }` (dịch vụ QUYẾT ĐỊNH,
-  sort_order=1 — KHÔNG phải sort_order=0), `revenueWeek` = 2 đơn/800.000.
+  sort_order=1 — KHÔNG phải sort_order=0), `revenueWeek` = 2 đơn/12.645.000.
 - **Mở `/home` ở 1040×800 và 390×844 (ADMIN):** đối chiếu MỖI SỐ trên màn hình thật với dữ liệu trên —
   3 ô số liệu, huy hiệu + danh sách "Chuyến đón hôm nay" (đúng 1 dòng, R2/R3 không lộ ra), khối "Doanh thu
   của tôi"; `#dash-layout` là `display: grid` ở 1040 và `display: block` ở 390; thứ tự DOM gốc

@@ -120,10 +120,12 @@ try {
   ok(`R2 tạo NHÁP, không xác nhận (id ${r2.id}): có dịch vụ hôm nay nhưng phải không lộ ra danh sách`);
 
   // R3: confirmed, dịch vụ ngày KHÁC hôm nay, CÒN THIẾU TIỀN (test ô "Còn thiếu tiền" + earliestDate).
+  // Số tiền CỐ Ý ở hàng chục triệu (không phải vài trăm nghìn) — kiểm gộp I-3 nêu rõ "số thật của công ty
+  // (hàng chục triệu) sẽ tệ hơn": lưới guard đo tràn dòng phải đo đúng cỡ số THẬT, không phải số nhỏ nhất tình cờ vừa khít.
   const r3 = await createAndConfirm(orderInput("Khách Còn Thiếu Tiền", "0900000303", [
-    manualService("Dịch vụ ngày khác (kiểm ô Còn thiếu tiền)", { departDate: OTHER_DATE, pickupTime: "08:00", pickupPlace: "Bến khác", unitPrice: 500_000 }),
+    manualService("Dịch vụ ngày khác (kiểm ô Còn thiếu tiền)", { departDate: OTHER_DATE, pickupTime: "08:00", pickupPlace: "Bến khác", unitPrice: 12_345_000 }),
   ]));
-  ok(`R3 tạo + xác nhận (id ${r3.id}): dịch vụ ngày ${OTHER_DATE} (khác hôm nay), chưa trả đồng nào → còn thiếu 500.000`);
+  ok(`R3 tạo + xác nhận (id ${r3.id}): dịch vụ ngày ${OTHER_DATE} (khác hôm nay), chưa trả đồng nào → còn thiếu 12.345.000`);
 
   // ==================================================================================================
   // F) Ghim thứ tự khai route: GET /api/orders/dashboard PHẢI trả dữ liệu thật (không phải 404 do bị route
@@ -141,14 +143,14 @@ try {
   // ==================================================================================================
   assert.equal(data.draftCount, 1, `draftCount phải = 1 (chỉ R2) — API trả ${JSON.stringify(data)}`);
   assert.equal(data.unpaid.count, 1, `unpaid.count phải = 1 (chỉ R3, R1 đã trả đủ) — ${JSON.stringify(data.unpaid)}`);
-  assert.equal(data.unpaid.total, 500_000, `unpaid.total phải = 500.000 (R3) — ${JSON.stringify(data.unpaid)}`);
+  assert.equal(data.unpaid.total, 12_345_000, `unpaid.total phải = 12.345.000 (R3) — ${JSON.stringify(data.unpaid)}`);
   assert.equal(data.unpaid.earliestDate, OTHER_DATE, `unpaid.earliestDate phải là ngày đón của R3 — ${JSON.stringify(data.unpaid)}`);
   assert.equal(data.today.length, 1, `today phải chỉ có R1 (R2 nháp, R3 không phải hôm nay) — ${JSON.stringify(data.today.map((o) => o.id))}`);
   assert.equal(data.today[0].id, r1.id, "today[0] phải là R1");
   assert.deepEqual(data.today[0].trip, { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" }, `trip của R1 trong API phải là dịch vụ QUYẾT ĐỊNH (sort_order=1, hôm nay), KHÔNG phải sort_order=0 (mai) — ${JSON.stringify(data.today[0].trip)}`);
   assert.equal(data.revenueWeek.count, 2, `revenueWeek.count phải = 2 (R1 + R3, cùng người lập, cùng tuần) — ${JSON.stringify(data.revenueWeek)}`);
-  assert.equal(data.revenueWeek.total, 300_000 + 500_000, `revenueWeek.total phải = 800.000 — ${JSON.stringify(data.revenueWeek)}`);
-  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/500.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/800.000; unassignedCount=${data.unassignedCount} (cross-check DOM bên dưới, không tự đoán trước — phụ thuộc quy tắc gán người phụ trách mặc định của module dispatch, ngoài phạm vi Task 3)`);
+  assert.equal(data.revenueWeek.total, 300_000 + 12_345_000, `revenueWeek.total phải = 12.645.000 — ${JSON.stringify(data.revenueWeek)}`);
+  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} (cross-check DOM bên dưới, không tự đoán trước — phụ thuộc quy tắc gán người phụ trách mặc định của module dispatch, ngoài phạm vi Task 3)`);
 
   // ==================================================================================================
   // 3) Mở /home ở khổ máy tính (1040) và điện thoại (390) — bằng ADMIN. Đối chiếu MỖI SỐ trên màn hình THẬT
@@ -208,7 +210,7 @@ try {
     // 3 ô số liệu — đối chiếu với API (nguồn sự thật vừa đọc), theo ĐÚNG thứ tự renderStats() dựng (money → draft → unassigned).
     assert.equal(m.stats.length, 3, `${label}: phải có đúng 3 ô số liệu — ${JSON.stringify(m.stats)}`);
     assert.equal(m.stats[0].label, "Còn thiếu tiền");
-    assert.equal(m.stats[0].value, "500.000 ₫", `${label}: ô "Còn thiếu tiền" phải hiện 500.000 ₫ — ${JSON.stringify(m.stats[0])}`);
+    assert.equal(m.stats[0].value, "12.345.000 ₫", `${label}: ô "Còn thiếu tiền" phải hiện 12.345.000 ₫ — ${JSON.stringify(m.stats[0])}`);
     assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
     assert.equal(m.stats[1].label, "Đơn nháp chưa xác nhận");
     assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
@@ -221,7 +223,7 @@ try {
     assert.deepEqual(wrappedStats, [], `${label}: số liệu ô (.dash-stat-value) bị xuống dòng (chiều cao thật vượt một dòng) — ${JSON.stringify(m.stats)}`);
 
     // Doanh thu
-    assert.equal(m.revenueValue, "800.000 ₫", `${label}: doanh thu phải = 800.000 ₫ (R1 300.000 + R3 500.000) — ${JSON.stringify(m)}`);
+    assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
     assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
 
     // Danh sách "Chuyến đón hôm nay": đúng 1 dòng (R1), R2 (nháp) và R3 (ngày khác) KHÔNG được lộ ra.
