@@ -44,6 +44,22 @@
 
 **Chưa kiểm:** thử tay trên điện thoại thật (chủ dự án tự làm khi tiện, dùng số điện thoại được phép vào lúc bảo trì); ảnh bằng chứng Chrome mới nhất của Đợt C/B chưa đối chiếu lại với production (chỉ đối chiếu lúc thi công, trên môi trường tạm).
 
+## Lần phát hành kế tiếp: Đợt D — khung điều hướng dọc + Trang chủ mặc định (ADR-0015)
+
+**Thêm 2026-09-23 (Task 6, F-5):** ADR-0015 mục "Hệ quả" (dòng 48) đã ghi "Người dùng thấy trang khác khi mở app.
+Cần báo trước cho nhân viên; nên deploy trong cửa sổ bảo trì." nhưng chưa có chỗ nào biến việc đó thành một BƯỚC
+PHẢI LÀM trong runbook. Chưa merge vào `main`, chưa deploy (nhánh `worktree-trang-chu-moi`) — mục này CHỈ ghi thêm
+bước còn thiếu, không phải toàn bộ runbook (đi theo trình tự chung của `CLAUDE.md` §8: cổng chỉ-đọc → điểm khôi
+phục Time Travel → test + typecheck + e2e xanh → `wrangler deploy` ngay → `audit-invariants --db remote` → ghi
+trạng thái).
+
+**Bước bắt buộc, đặt TRƯỚC `wrangler deploy`:**
+0. **Báo trước cho nhân viên** rằng giao diện sẽ đổi hẳn dáng (thanh điều hướng ngang → thanh bên dọc ở máy tính,
+   Trang chủ thay vì Đơn hàng là trang mở ra đầu tiên khi mở app) TRƯỚC khi deploy, và **cân nhắc deploy trong cửa
+   sổ bảo trì** (như hai lần deploy giao diện trước đó). Lý do: service worker cập nhật ngầm (stale-while-
+   revalidate), nên lần mở app ĐẦU TIÊN sau deploy trên một máy có thể vẫn thấy bản khung cũ trong vài giây — báo
+   trước để nhân viên không hoang mang tưởng app lỗi.
+
 ## TRẠNG THÁI TRIỂN KHAI — N2 lát 1 (người đặt trên đơn: `0018_orders_booker_party` + mã) ĐÃ LÊN PRODUCTION (2026-09-22, chủ dự án tự chạy lệnh ghi)
 Theo runbook "Lần phát hành kế tiếp: `0018`" bên dưới. **Mã:** `main` @ `da64558` (PR #9; cây giống hệt `fd3ad50` đã kiểm). **Worker mới:** `3245256e-68df-457f-8555-ecd57a4963f4` (tạo 2026-09-22T02:25:09Z). **Worker trước (để lùi về, an toàn — mục C):** `3e648e49-b2dc-4a06-827d-f46555f03383`. Quyết định: ADR-0011; đặc tả `docs/superpowers/specs/2026-09-21-n2-lat-1-khach-tren-don.md` (§13 các chỗ lệch có chủ ý). B5 `staff_party_required` nay lấy số `0019`.
 - **Cổng trước khi áp (chỉ đọc, AI chạy):** `migrations list --remote` → chỉ `0018_orders_booker_party` chờ; `audit-invariants --db remote` mọi bất biến đạt; điểm khôi phục Time Travel `00000168-00000000-000050ed-d33ebdc1d16b4404fceecb1d115332b2`; trên `main` @ `da64558`: `npm test` 443/443 (có thêm test của bộ tiêu chuẩn), `typecheck` 0 lỗi; e2e 16/16 + audit `--strict` xanh và Chrome (a2-smoke-form 21/21, a2-smoke-order 10/10, a2-smoke-sheet 13/13, v1-nguoi-phu-trach 12/12) chạy trên cây giống hệt. Không chạy truy vấn đếm trạng thái đơn (`CLAUDE.md` §8 cấm AI `d1 execute` remote).
