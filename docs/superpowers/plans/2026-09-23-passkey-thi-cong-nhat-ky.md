@@ -103,7 +103,7 @@ Làm 8b theo mục "Khuyến nghị cho 8b" của bản rà toàn nhánh. Tóm t
 - e2e `catalog.mjs:29` đỏ vì giá thật trên Google Sheet đã đổi (TTB03: 1.300.000 so với 1.000.000 ghi cứng). Không liên quan Face ID.
 - Các điểm nhỏ khác đều đã phân loại "để sau": thiếu vài ca test âm, JSDoc, kiểu `satisfies`, dọn CSS inline, v.v.
 
-## Kiểm độc lập (vai `nguoi-kiem-doc-lap`, HEAD 227b74d): ĐẠT CÓ ĐIỀU KIỆN
+## Kiểm độc lập (vai `nguoi-kiem-doc-lap`, HEAD 227b74d): ĐẠT CÓ ĐIỀU KIỆN (trước 8b)
 
 Kết quả người kiểm tự chạy:
 
