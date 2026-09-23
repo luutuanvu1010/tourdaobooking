@@ -30,6 +30,8 @@ export interface StaffAccount extends StaffProfile {
 export interface StaffAccountDto extends StaffAccount {
   /** Đang bị khoá đăng nhập do nhập sai PIN quá nhiều lần. */
   locked: boolean;
+  /** Số passkey (Face ID) còn hiệu lực. */
+  passkeyCount: number;
 }
 
 /** Thân yêu cầu PUT /api/staff/:id/permissions: TOÀN BỘ tập quyền mong muốn (không rỗng). */
@@ -49,7 +51,42 @@ export interface MeResponse { staff: StaffProfile; maintenance?: MaintenanceStat
  * `GET /api/auth/config` (công khai): khoá site để trang đăng nhập dựng widget Turnstile; null = máy chủ không bật Turnstile (đừng dựng widget, đăng nhập không cần token).
  * `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. KHÔNG lộ ai được phép.
  */
-export interface AuthConfigResponse { turnstileSiteKey: string | null; maintenance: MaintenanceStatusDto }
+export interface AuthConfigResponse {
+  turnstileSiteKey: string | null;
+  maintenance: MaintenanceStatusDto;
+  /** Máy chủ bật đăng nhập bằng Face ID — PASSKEY_RP_ID/PASSKEY_ORIGIN hợp lệ. */
+  passkey: boolean;
+}
+
+// ---- Đăng nhập bằng Face ID (passkey, ADR-0016; đặc tả 2026-09-23-passkey-design.md) ----
+export interface PasskeyDto { id: string; label: string; createdAt: string; lastUsedAt: string | null }
+export interface PasskeyListResponse { passkeys: PasskeyDto[] }
+export interface PasskeyResponse { passkey: PasskeyDto }
+export interface PasskeyDescriptorJson { type: "public-key"; id: string }
+/** Cho navigator.credentials.get — mọi trường nhị phân là base64url. */
+export interface PasskeyRequestOptionsResponse {
+  publicKey: { challenge: string; rpId: string; timeout: number; userVerification: "required"; allowCredentials: PasskeyDescriptorJson[] };
+}
+/** Cho navigator.credentials.create — mọi trường nhị phân là base64url. */
+export interface PasskeyCreationOptionsResponse {
+  publicKey: {
+    challenge: string;
+    rp: { id: string; name: string };
+    user: { id: string; name: string; displayName: string };
+    pubKeyCredParams: { type: "public-key"; alg: number }[];
+    timeout: number;
+    attestation: "none";
+    authenticatorSelection: { residentKey: "required"; requireResidentKey: true; userVerification: "required" };
+    excludeCredentials: PasskeyDescriptorJson[];
+  };
+}
+/** Dạng JSON của PublicKeyCredential gửi lên máy chủ (base64url). */
+export interface PasskeyCredentialJson {
+  id: string;
+  rawId: string;
+  type: "public-key";
+  response: { clientDataJSON: string; attestationObject?: string; authenticatorData?: string; signature?: string; userHandle?: string | null };
+}
 
 // ---- Chế độ bảo trì (src/shared/maintenance.ts; module `maintenance`) ----
 export interface MaintenanceStatusDto {

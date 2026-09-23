@@ -49,7 +49,8 @@ function cleanPermissions(v: unknown): { value?: PermissionCode[]; error?: strin
   return { value: PERMISSION_CODES.filter((code) => v.includes(code)) };
 }
 
-const dto = (s: StaffAccount, locked: Set<string>): StaffAccountDto => ({ ...s, locked: locked.has(s.phone) });
+// passkeyCount: 0 tạm thời — Task 8 thay bằng số passkey còn hiệu lực thật.
+const dto = (s: StaffAccount, locked: Set<string>): StaffAccountDto => ({ ...s, locked: locked.has(s.phone), passkeyCount: 0 });
 
 /** Câu lệnh nhật ký cho thao tác quản trị trên một tài khoản. */
 const adminAudit = (db: D1Database, adminId: string, action: AuditAction, targetId: string | undefined, detail?: string, onlyIf?: string) =>

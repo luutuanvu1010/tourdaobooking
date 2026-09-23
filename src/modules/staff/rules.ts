@@ -1,5 +1,6 @@
-// Luật thuần của quản lý tài khoản nhân viên. Chỉ import kiểu, không I/O.
+// Luật thuần của quản lý tài khoản nhân viên, không I/O.
 import type { PermissionCode } from "../../shared/permissions.ts";
+import { isValidPin } from "./phone.ts";
 
 /**
  * ADR-0014 điều 8 (đính chính trực tiếp của chủ dự án): `ADMIN` chỉ quản lý được tài khoản "cấp dưới" — KHÔNG giữ `ADMIN` hay `SUPER_ADMIN`.
@@ -15,6 +16,13 @@ export function canManageAccount(actor: readonly PermissionCode[], target: reado
 /** PIN quá dễ đoán: cả 6 số giống nhau hoặc chạy liên tiếp tăng/giảm, kể cả cuộn vòng (000000, 123456, 654321, 890123…). */
 export function isWeakPin(pin: string): boolean {
   return /^(\d)\1{5}$/.test(pin) || "01234567890123456789".includes(pin) || "98765432109876543210".includes(pin);
+}
+
+/** PIN mới khi KHÔNG có PIN cũ để so (đặt PIN bằng Face ID, ADR-0016 điều 2b): vẫn chặn PIN sai dạng và PIN dễ đoán. */
+export function validateFreshPin(pin: unknown): string | null {
+  if (!isValidPin(pin)) return "PIN mới phải gồm đúng 6 chữ số.";
+  if (isWeakPin(pin)) return "PIN mới quá dễ đoán (ví dụ 123456, 111111). Hãy chọn PIN khác.";
+  return null;
 }
 
 /** Sinh PIN 6 chữ số ngẫu nhiên có kiểm soát (rejection sampling, không thiên lệch), bỏ PIN yếu. `random` để test được. */

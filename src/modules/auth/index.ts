@@ -31,9 +31,13 @@ export async function currentStaff(request: Request, env: Env): Promise<StaffPro
   return session ? getActiveStaff(env.DB, session.staffId, session.issuedAt) : null;
 }
 
-/** Header Set-Cookie cho một phiên mới của nhân viên (dùng sau khi đổi PIN để giữ thiết bị hiện tại đăng nhập). */
-export async function newSessionCookie(request: Request, env: Env, staffId: string): Promise<string> {
-  return sessionCookie(await createSessionToken(env.SESSION_SECRET, staffId), isSecure(request));
+/**
+ * Header Set-Cookie cho một phiên mới của nhân viên (dùng sau khi đổi PIN để giữ thiết bị hiện tại đăng nhập, hoặc sau khi
+ * đăng nhập bằng Face ID). `issuedAt` (mili-giây): truyền đúng mốc vừa ghi vào `credentials_changed_at` để phiên mới không
+ * tự bị thu hồi (`getActiveStaff` từ chối khi `credentials_changed_at > sessionIssuedAt`).
+ */
+export async function newSessionCookie(request: Request, env: Env, staffId: string, issuedAt = Date.now()): Promise<string> {
+  return sessionCookie(await createSessionToken(env.SESSION_SECRET, staffId, issuedAt), isSecure(request));
 }
 
 export type PinAttemptResult =
@@ -87,7 +91,8 @@ export const authModule: AppModule = {
     // Công khai: trang đăng nhập hỏi trước khi dựng widget. Khoá site không nhúng cứng vào HTML (local dùng khoá thử của Cloudflare).
     // `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. Chỉ {on, endsAt} — KHÔNG lộ ai được phép.
     route("GET", "/api/auth/config", "public", async ({ env }) =>
-      json({ turnstileSiteKey: turnstileSiteKey(env), maintenance: toStatus(await getMaintenanceState(env.DB)) } satisfies AuthConfigResponse),
+      // passkey: false tạm thời — Task 7 thay bằng kiểm PASSKEY_RP_ID/PASSKEY_ORIGIN.
+      json({ turnstileSiteKey: turnstileSiteKey(env), maintenance: toStatus(await getMaintenanceState(env.DB)), passkey: false } satisfies AuthConfigResponse),
     ),
 
     route("POST", "/api/auth/login", "public", async ({ request, env }) => {

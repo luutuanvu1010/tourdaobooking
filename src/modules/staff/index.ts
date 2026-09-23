@@ -7,16 +7,19 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   closePermissionStatement, countActiveAdmins, findById, findByPhone, insertPermissionStatement, insertStaffStatement, listAll, parsePermissions,
-  recordLoginRow, setPinStatement as setPinRow, updateStaffStatement, type StaffRow,
+  recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement, type StaffRow,
 } from "./repository";
-import { canManageAccount, checkAccountChange, generatePin, isWeakPin } from "./rules";
+import { canManageAccount, checkAccountChange, generatePin, isWeakPin, validateFreshPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile } from "../../shared/contracts";
 import type { PermissionCode } from "../../shared/permissions";
 import { vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffCandidate, StaffProfile, StaffSheetParse };
-export { canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone, updateStaffStatement };
+export {
+  canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone,
+  touchCredentialsStatement, updateStaffStatement, validateFreshPin,
+};
 
 /**
  * Kiểm họ tên của tài khoản theo đúng giới hạn sẽ ghi vào hồ sơ (`pty_person`, CHECK của migration 0011) — trả thông báo lỗi hoặc null.
@@ -148,9 +151,12 @@ export function setPermissionStatements(
   };
 }
 
-/** Đặt PIN mới (hash) và thu hồi mọi phiên cũ. Trả PIN thô để hiện một lần cho người có thẩm quyền. */
-export async function setPinStatement(db: D1Database, id: string, pin: string): Promise<D1PreparedStatement> {
-  return setPinRow(db, id, await hashPin(pin), Date.now());
+/**
+ * Đặt PIN mới (hash) và thu hồi mọi phiên cũ. `at` (mili-giây) = mốc `credentials_changed_at`; phiên mới cấp ngay sau phải dùng
+ * CÙNG mốc (so sánh là `>`, xem `getActiveStaff`). Trả câu lệnh D1 chưa chạy (PIN thô do người gọi tự giữ để hiện một lần).
+ */
+export async function setPinStatement(db: D1Database, id: string, pin: string, at = Date.now()): Promise<D1PreparedStatement> {
+  return setPinRow(db, id, await hashPin(pin), at);
 }
 
 /** Đổi PIN mới: kiểm tra độ mạnh. Trả thông báo lỗi hoặc null. */

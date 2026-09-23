@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canManageAccount, checkAccountChange, generatePin, isWeakPin } from "./rules.ts";
+import { canManageAccount, checkAccountChange, generatePin, isWeakPin, validateFreshPin } from "./rules.ts";
 
 const admin = { id: "a1", permissions: ["ADMIN"] as const, active: true };
 const sales = { id: "s1", permissions: ["SALES"] as const, active: true };
@@ -52,4 +52,10 @@ test("PIN yếu bị loại; PIN sinh ra luôn 6 số và không yếu", () => {
   // random giả trả PIN yếu trước rồi PIN tốt → phải bỏ qua PIN yếu
   const seq = [111111, 123456, 482915];
   assert.equal(generatePin(() => seq.shift()!), "482915");
+});
+
+test("validateFreshPin (đặt PIN mới không cần PIN cũ, đăng nhập bằng Face ID)", () => {
+  assert.match(validateFreshPin("12345")!, /đúng 6 chữ số/);
+  assert.match(validateFreshPin("123456")!, /dễ đoán/);
+  assert.equal(validateFreshPin("583920"), null);
 });

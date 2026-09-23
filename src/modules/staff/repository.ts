@@ -64,6 +64,9 @@ const UPDATE_STAFF = defineSql(
 );
 const RECORD_LOGIN = defineSql("staff", "record_login", "UPDATE staff SET last_login_at = ?2 WHERE id = ?1");
 const SET_PIN = defineSql("staff", "set_pin", "UPDATE staff SET pin_hash = ?2, credentials_changed_at = ?3 WHERE id = ?1");
+const TOUCH_CREDENTIALS = defineSql("staff", "touch_credentials", "UPDATE staff SET credentials_changed_at = ?2 WHERE id = ?1");
+// Chỉ đẩy khi câu NGAY TRƯỚC trong cùng batch có đổi dòng (gỡ passkey): changes() trong WHERE nhìn thấy câu đã hoàn tất trước đó — cùng cơ chế với nhật ký `onlyIf`.
+const TOUCH_CREDENTIALS_IF_CHANGED = defineSql("staff", "touch_credentials_if_changed", "UPDATE staff SET credentials_changed_at = ?2 WHERE id = ?1 AND changes() > 0");
 const INSERT_PERMISSION = defineSql(
   "staff",
   "insert_permission",
@@ -97,6 +100,9 @@ export const updateStaffStatement = (db: D1Database, id: string, patch: { phone?
 export const recordLoginRow = (db: D1Database, id: string, at: string): Promise<D1Result> => db.prepare(RECORD_LOGIN).bind(id, at).run();
 
 export const setPinStatement = (db: D1Database, id: string, pinHash: string, at: number): D1PreparedStatement => db.prepare(SET_PIN).bind(id, pinHash, at);
+
+export const touchCredentialsStatement = (db: D1Database, id: string, at: number, onlyIfPreviousChanged: boolean): D1PreparedStatement =>
+  db.prepare(onlyIfPreviousChanged ? TOUCH_CREDENTIALS_IF_CHANGED : TOUCH_CREDENTIALS).bind(id, at);
 
 export const insertPermissionStatement = (db: D1Database, staffId: string, code: PermissionCode, actorId: string | null, at: string, guarded: boolean): D1PreparedStatement =>
   db.prepare(INSERT_PERMISSION).bind(crypto.randomUUID(), staffId, code, at, actorId, guarded ? 1 : 0);
