@@ -1,6 +1,11 @@
 # Đặc tả: đăng nhập nhanh bằng Face ID (passkey), lát 0 + lát 1 của ADR-0016
 
-- **Ngày:** 2026-09-23 · **Trạng thái:** NHÁP chờ chủ dự án duyệt (AI soạn; chưa có mã).
+- **Ngày:** 2026-09-23 · **Trạng thái:** **ĐÃ DUYỆT** (chủ dự án duyệt 2026-09-23, cùng kế hoạch). Chủ trả lời (gần nguyên văn):
+  1. duyệt;
+  2. chủ tự chạy bước thử iPhone (Task 0, đường hầm cloudflared);
+  3. đồng ý phần Google ở lát 0 chỉ **mô phỏng** chuyển hướng, và kết quả **không chặn** lát 1. Đây là cách hiểu ADR-0016 điều 9 đã được chủ chấp nhận;
+  4. chữ trên nút: "Giữ theo đúng thông lệ để mang đến sự quen thuộc", tức giữ nguyên các chữ ở §3;
+  5. thi công ở phiên mới.
 - **Căn cứ:** `docs/adr/ADR-0016-dang-nhap-nhanh-passkey-google-oidc.md` (**accepted** 2026-09-23). Đặc tả này chỉ chốt những gì ADR để lại cho đặc tả (tên bảng, route, hợp đồng, chữ trên màn hình). Chỗ nào lệch ADR là lỗi của đặc tả.
 - **Phạm vi:**
   - **Lát 0:** thử trên iPhone thật: passkey, cộng mô phỏng chuyển hướng kiểu Google.
