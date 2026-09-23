@@ -2,6 +2,8 @@
 
 Bằng chứng nghiệm thu của các việc trong kế hoạch `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md` (đặc tả `docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md`). Mỗi task ghi thêm một mục vào tệp này. Đo trên `wrangler dev` cục bộ với D1 tạm, bằng Chrome headless — **không phải** iPhone thật, không phải khoá/widget Turnstile thật, không phải Workers Assets thật.
 
+**Cập nhật 2026-09-23 (Đợt D Task 7):** các ảnh của kịch bản `v1-nguoi-phu-trach.mjs` trong `anh/` đã CHỤP LẠI khi chạy lại kịch bản để kiểm hồi quy sau khi sửa `.brand-logo` (`public/app.css`, khung dùng chung cho mọi trang — logo thanh đầu trang nay bo tròn hết cỡ thay vì bo góc nhẹ, xem `docs/evidence/2026-09-23-trang-chu-moi/README.md` mục "Task 7"). Không kịch bản/khẳng định nào của tệp này bị sửa; chỉ logo trong ảnh đổi hình dạng, đã xem lại bằng mắt một ảnh mẫu, không lệch bố cục nào khác.
+
 ## Task 3 — Màn đăng nhập: thông tin công ty, số phiên bản, widget Turnstile
 
 > **Cập nhật 2026-09-21 (sau rà soát Task 3, nhóm sửa phía web — commit của Task 8 kế tiếp):** `web/login.ts` và `public/app.css` đã đổi (tự phục hồi khi cấu hình lỗi, chữ chờ nạp script, `theme: "light"`, ghi mã lỗi widget); kịch bản `v1-dang-nhap.mjs` thêm bốn bước **l, o, m, n** và một khẳng định ở bước k; số liệu, ảnh và `ket-qua-dang-nhap.json` bên dưới là của lần chạy cuối SAU các sửa này (`dang-nhap-chay-cuoi.txt`, **15 dòng ✓**). Bằng chứng đỏ của các sửa: `dang-nhap-do-truoc-khi-sua-web.txt`. Phần "Mã được đo" ngay dưới là của lần đo đầu (HEAD `fbb2b26`).

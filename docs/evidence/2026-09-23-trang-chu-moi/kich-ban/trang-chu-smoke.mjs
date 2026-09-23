@@ -837,7 +837,8 @@ try {
         // không cái nào là "chứng nhân lịch sử" chết cả.
         // ĐÍNH CHÍNH (Đợt D Task 7, kiểm toàn cục — chú thích TRÊN cũng SAI một chi tiết): khẳng định đỏ ĐẦU TIÊN
         // khi hoàn nguyên flex-wrap: nowrap KHÔNG PHẢI topbarRows — mà là khẳng định "chiều cao thanh công việc
-        // đúng token --bar-h" (đứng TRƯỚC topbarRows trong mã, dòng ~913). Đã tự đo lại thật (2026-09-23): gỡ
+        // đúng token --bar-h" (đứng TRƯỚC topbarRows trong mã — xem assert ngay dưới đây, không ghi số dòng cố
+        // định vì số dòng đã lỗi thời một lần rồi). Đã tự đo lại thật (2026-09-23): gỡ
         // flex-wrap: nowrap ở 'body.has-sidebar #topbar' (CSS) khiến topbarHeight=105px (token 60px), khẳng định
         // chiều cao đỏ TRƯỚC, script dừng ở đó — không bao giờ chạy tới dòng topbarRows dù giá trị đo được của nó
         // cũng sẽ là 2 (gãy 2 dòng) nếu chạy tới. assert.* (Node) chạy TUẦN TỰ theo thứ tự viết trong mã và dừng ở
