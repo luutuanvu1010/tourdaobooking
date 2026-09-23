@@ -59,6 +59,10 @@ test("changelogProblems chặn chữ kỹ thuật lộ ra nhân viên", () => {
   }
 });
 
+test("changelogProblems chặn riêng dấu backtick, kể cả khi không kèm chữ kỹ thuật", () => {
+  assert.match(changelogProblems([note("1.0", "2026-09-21", "Bấm `Lưu` để ghi.")]).join(), /dấu `/);
+});
+
 test("releaseGate trước deploy: chỉ ĐẠT khi bản ở máy mới hơn production", () => {
   assert.equal(releaseGate("1.4", "1.3", "truoc").ok, true);
   assert.equal(releaseGate("1.3", "1.3", "truoc").ok, false);
