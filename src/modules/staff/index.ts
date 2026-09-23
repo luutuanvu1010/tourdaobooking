@@ -55,8 +55,9 @@ export async function authenticate(db: D1Database, rawPhone: string, pin: string
 }
 
 /**
- * Ghi nhận một lần đăng nhập THÀNH CÔNG (`staff.last_login_at`, ISO UTC) — chỉ `POST /api/auth/login` gọi. KHÔNG đặt trong `verifyPinThrottled`: hàm đó dùng chung
- * với đổi PIN, ghi ở đó thì mỗi lần đổi PIN thành "một lần đăng nhập". Chỉ ghi thời điểm, không ghi SĐT/PIN vào đâu cả.
+ * Ghi nhận một lần đăng nhập THÀNH CÔNG (`staff.last_login_at`, ISO UTC) — `POST /api/auth/login` (PIN) VÀ `POST /api/auth/passkey/login` (Face ID, ADR-0016)
+ * đều gọi. KHÔNG đặt trong `verifyPinThrottled`: hàm đó dùng chung với đổi PIN, ghi ở đó thì mỗi lần đổi PIN thành "một lần đăng nhập". Chỉ ghi thời điểm,
+ * không ghi SĐT/PIN vào đâu cả.
  */
 export async function recordLogin(db: D1Database, id: string, at: string): Promise<void> {
   await recordLoginRow(db, id, at);

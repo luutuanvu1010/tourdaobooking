@@ -114,4 +114,16 @@ export const CHECKS = [
     ) WHERE seq <> rn`,
     level: "fail",
   },
+  // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
+  // Face ID đã bị `getActiveStaff` chặn ở tầng ứng dụng dù passkey chưa gỡ, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng
+  // nhập. `PATCH /api/staff/:id` với `active: false` (ngưng tài khoản) CHƯA gỡ passkey ở lần phát hành này (8b hoãn theo A-4 — chủ dự án chưa chọn
+  // gỡ cùng lô hay lô riêng); vì vậy kiểm này CÓ THỂ đỏ trên D1 thật cho tới khi 8b lên production — xem mục "Việc còn treo / nợ" và runbook phát
+  // hành Face ID của `docs/HANDOFF-N1.md`. `POST /api/staff/:id/reset-pin` và
+  // `POST /api/staff/:id/passkeys/remove-all` đều gỡ hết passkey nên KHÔNG tự gây vi phạm.
+  {
+    code: "R-AUT-1",
+    what: "không có Face ID còn hiệu lực của tài khoản đã ngưng",
+    sql: "SELECT count(*) AS n FROM aut_passkey p JOIN staff s ON s.id = p.staff_id WHERE p.valid_to_at IS NULL AND s.active = 0",
+    level: "fail",
+  },
 ];

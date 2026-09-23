@@ -23,7 +23,7 @@ export interface StaffProfile {
 export interface StaffAccount extends StaffProfile {
   active: boolean;
   createdAt: string;
-  /** Lần đăng nhập thành công gần nhất (ISO UTC); null = chưa từng đăng nhập (kể từ khi có cột này). Chỉ `POST /api/auth/login` ghi — đổi PIN/làm mới phiên thì không. */
+  /** Lần đăng nhập thành công gần nhất (ISO UTC); null = chưa từng đăng nhập (kể từ khi có cột này). Đăng nhập PIN (`POST /api/auth/login`) và đăng nhập Face ID (`POST /api/auth/passkey/login`) đều ghi — đổi PIN/làm mới phiên thì không (ADR-0016). */
   lastLoginAt: string | null;
 }
 

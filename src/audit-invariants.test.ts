@@ -263,3 +263,37 @@ test("R-ORD-4: đơn chưa có điều chỉnh nào (không có dòng) không b�
   addOrder(db, "o-1");
   assert.equal(violations(db, one("R-ORD-4")), 0);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-AUT-1 (ADR-0016 điều 6/8 — lưới dữ liệu cho "tài khoản đã ngưng không còn Face ID hiệu lực"; 8b — gỡ passkey khi ngưng tài khoản — chưa lên
+// production, xem docs/HANDOFF-N1.md, nên kiểm này có thể đỏ trên D1 thật tới lúc đó)
+// ---------------------------------------------------------------------------------------------------------------------
+function addPasskey(db: DatabaseSync, o: { id: string; staffId: string; from?: string; to?: string | null }): void {
+  const from = o.from ?? T1;
+  db.prepare(
+    `INSERT INTO aut_passkey (id, staff_id, credential_id, public_key, algorithm, user_handle, sign_count, label, last_used_at, valid_from_at, valid_to_at, created_at, updated_at)
+     VALUES (?, ?, ?, 'pubkey-spki-der-base64url', -7, ?, 0, 'Máy thử', NULL, ?, ?, ?, ?)`,
+  ).run(o.id, o.staffId, `${o.id}-credential-0000000000`, `${o.id}-userhandle-00000000`, from, o.to ?? null, from, from);
+}
+
+test("R-AUT-1: đúng một kiểm, mức fail (dữ liệu KHÔNG được gỡ passkey khi ngưng tài khoản — lưới, không phải đường chặn đăng nhập)", () => {
+  assert.equal(one("R-AUT-1").level, "fail");
+});
+
+test("R-AUT-1: Face ID còn hiệu lực (valid_to_at NULL) của tài khoản đã ngưng (active = 0) là vi phạm", () => {
+  const db = build();
+  addPasskey(db, { id: "pk-binh", staffId: "s-binh" }); // s-binh: active = 0 trong build()
+  assert.equal(violations(db, one("R-AUT-1")), 1);
+});
+
+test("R-AUT-1: Face ID đã gỡ (valid_to_at có giá trị) của tài khoản đã ngưng KHÔNG tính là vi phạm", () => {
+  const db = build();
+  addPasskey(db, { id: "pk-binh", staffId: "s-binh", to: T2 });
+  assert.equal(violations(db, one("R-AUT-1")), 0);
+});
+
+test("R-AUT-1: Face ID còn hiệu lực của tài khoản ĐANG hoạt động KHÔNG tính là vi phạm", () => {
+  const db = build();
+  addPasskey(db, { id: "pk-an", staffId: "s-an" }); // s-an: active = 1 trong build()
+  assert.equal(violations(db, one("R-AUT-1")), 0);
+});
