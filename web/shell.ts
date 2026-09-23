@@ -1,6 +1,7 @@
 import { ApiError, api, type Staff, type Api } from "./api";
 import { can, hasPermission, isOffice } from "../src/shared/permissions";
 import { byId, h, replaceChildren } from "./dom";
+import { helpHasNews, newDot } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { registerServiceWorker } from "./pwa";
 
@@ -30,7 +31,7 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" },
   ];
 }
 
@@ -39,7 +40,7 @@ function tabBar(admin: boolean, office: boolean, canCreate: boolean, path: strin
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
     ...tabsFor(admin, office, canCreate).map((t) =>
-      h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon)), h("span", null, t.label)),
+      h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon), t.href === "/account" && helpHasNews() && newDot()), h("span", null, t.label)),
     ),
   );
 }
@@ -135,6 +136,7 @@ export async function initShell(): Promise<Staff> {
   );
   const feedbackLink = h("a", { href: `/feedback?new=1&from=${encodeURIComponent(path)}` }, "Góp ý");
   nav.append(feedbackLink);
+  nav.append(h("a", { href: "/help" }, "Trợ giúp", helpHasNews() && newDot()));
   void feedbackBadge().then((n) => {
     if (n > 0) feedbackLink.append(" ", h("span", { class: "badge badge-cancelled" }, String(n)));
   });
