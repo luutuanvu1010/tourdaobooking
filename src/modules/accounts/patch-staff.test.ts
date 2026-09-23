@@ -238,3 +238,17 @@ test("8b (d) PATCH không đụng active, hoặc active: true: không gỡ Face 
   assert.equal(credentialsChangedAt(sqlite, "s-two"), null);
   assert.deepEqual(auditActions(sqlite), ["staff_updated", "staff_reactivated"]);
 });
+
+test("8b (e) ngưng + đổi tên tài khoản CÓ Face ID: đổi tên chạy, rồi cả ba câu mới (gỡ, đẩy mốc, nhật ký) vẫn chạy sau câu đổi tên", async () => {
+  const sqlite = seed();
+  addPasskey(sqlite, "pk-1", "s-adm");
+  addPasskey(sqlite, "pk-2", "s-adm");
+  const changes = await run(sqlite, account("s-adm", "Nguyễn Tuyên Phong", "0845256256"), { fullName: "Nguyễn Đổi Tên", active: false }, true);
+  assert.equal(changes, 1, "câu chốt thắng");
+  assert.equal(one(sqlite, "SELECT active FROM staff WHERE id = 's-adm'"), 0);
+  assert.equal(one(sqlite, "SELECT display_name FROM pty_party WHERE id = 'pty-s-adm'"), "Nguyễn Đổi Tên", "đổi tên vẫn chạy");
+  assert.equal(activeKeys(sqlite, "s-adm"), 0, "mọi Face ID bị gỡ dù các câu gỡ đứng sau câu đổi tên");
+  assert.equal(credentialsChangedAt(sqlite, "s-adm"), Date.parse(NOW), "đẩy credentials_changed_at");
+  assert.deepEqual(auditActions(sqlite), ["staff_updated", "staff_suspended", "passkey_removed"]);
+  assert.deepEqual(detailsOf(sqlite, "passkey_removed"), ["gỡ khi ngưng tài khoản"], "đúng một dòng nhật ký passkey_removed");
+});
