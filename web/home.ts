@@ -49,14 +49,15 @@ function revenueChart(daily: readonly { date: string; total: number }[]): HTMLEl
 }
 
 /**
- * Một ô số liệu (dạng liên kết về "/", như bản thiết kế) — ba ô đầu là số liệu TOÀN CÔNG TY.
+ * Một ô số liệu (dạng liên kết về Đơn hàng, như bản thiết kế) — ba ô đầu là số liệu TOÀN CÔNG TY. Đợt D Task 5:
+ * trang Đơn hàng dời sang "/orders" ("/" nay là chính Trang chủ này).
  * Mỗi phần (nhãn/giá trị/dòng phụ) có hai bản: đầy đủ (`.lbl-full`, máy tính) và rút gọn (`.lbl-short`, khổ điện
  * thoại ≤639px) — CSS ẩn/hiện theo khổ màn hình (`public/app.css`), không đổi DOM bằng JS.
  */
 function statTile(labelFull: string, labelShort: string, valueFull: string, valueShort: string, subFull: string, subShort: string, valueClass?: string): HTMLElement {
   return h(
     "a",
-    { class: "dash-stat", href: "/" },
+    { class: "dash-stat", href: "/orders" },
     h("span", { class: "dash-stat-label" }, h("span", { class: "lbl-full" }, labelFull), h("span", { class: "lbl-short" }, labelShort)),
     h("span", { class: valueClass ? `dash-stat-value ${valueClass}` : "dash-stat-value" }, h("span", { class: "lbl-full" }, valueFull), h("span", { class: "lbl-short" }, valueShort)),
     h("span", { class: "dash-stat-sub" }, h("span", { class: "lbl-full" }, subFull), h("span", { class: "lbl-short" }, subShort)),

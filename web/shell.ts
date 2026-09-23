@@ -25,8 +25,10 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
         ]
       : [];
   const officeTabs: Tab[] = [];
-  if (office) officeTabs.push({ href: "/home", label: "Trang chủ", icon: "home", active: (p) => p === "/home" });
-  if (office) officeTabs.push({ href: "/", label: "Đơn hàng", icon: "orders", active: (p) => p === "/" || p === "/order" });
+  // Đợt D Task 5 (ADR-0015 điều 4): trang mặc định đổi chỗ — "/" nay là Trang chủ, "/orders" là Đơn hàng.
+  // active() của "/" phải khớp CHÍNH XÁC "/" (không dùng startsWith/prefix) để không lỡ sáng đèn cho mọi đường dẫn.
+  if (office) officeTabs.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
+  if (office) officeTabs.push({ href: "/orders", label: "Đơn hàng", icon: "orders", active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) officeTabs.push({ href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" });
   return [
     ...officeTabs,
@@ -123,9 +125,11 @@ interface NavGroup {
  */
 function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: string): NavGroup[] {
   const sales: NavItem[] = [];
-  if (office) sales.push({ href: "/home", label: "Trang chủ", icon: "home", active: (p) => p === "/home" });
+  // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
+  // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
+  if (office) sales.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
   // Huy hiệu "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án đã chốt nghĩa của con số này), màu mặc định như bản mẫu.
-  if (office) sales.push({ href: "/", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/" || p === "/order" });
+  if (office) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) sales.push({ href: "/order-form", label: "Lập đơn mới", icon: "plus", active: (p) => p === "/order-form" });
   if (office) sales.push({ href: "/parties", label: "Hồ sơ", icon: "contact-card", active: (p) => p === "/parties" });
 
@@ -201,7 +205,7 @@ function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: stri
     { id: "sidebar", "aria-label": "Điều hướng chính" },
     h(
       "a",
-      { class: "sidebar-head", href: "/home" },
+      { class: "sidebar-head", href: "/" },
       h("span", { class: "brand" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), "Tour Đảo ", h("span", null, "Booking")),
     ),
     h("div", { class: "sidebar-groups" }, ...groups),
@@ -326,8 +330,9 @@ export async function initShell(): Promise<Staff> {
     : null;
   search?.addEventListener("keydown", (e: KeyboardEvent) => {
     if (e.key !== "Enter") return;
-    // Task 5 (Đợt D) đổi đích sang /orders?q=… khi trang Đơn hàng dời địa chỉ — chưa đổi ở đây (ngoài phạm vi Task 4).
-    location.assign(`/?q=${encodeURIComponent((e.target as HTMLInputElement).value.trim())}`);
+    // Đợt D Task 5: Đơn hàng dời sang /orders — ô tìm kiếm trên thanh công việc (có ở mọi trang office, kể cả
+    // Trang chủ) luôn đưa người dùng về đó kèm bộ lọc, dùng lại tham số `q` mà GET /api/orders đã hỗ trợ.
+    location.assign(`/orders?q=${encodeURIComponent((e.target as HTMLInputElement).value.trim())}`);
   });
   const newOrderBtn = canCreate ? h("a", { class: "btn btn-accent topbar-new", href: "/order-form" }, "Lập đơn mới") : null;
   append(byId("topbar"), [avatarEl, search, newOrderBtn]);
