@@ -6,7 +6,7 @@ import { isISODate } from "./vn-date.ts";
 import { CHANGELOG } from "./changelog.ts";
 
 test("số phiên bản và ngày phát hành DẪN XUẤT từ mục đầu của nhật ký (một nguồn)", () => {
-  assert.equal(APP_NAME, "Tour Đảo Booking");
+  assert.equal(APP_NAME, "Island Booking System");
   assert.equal(APP_VERSION, CHANGELOG[0]?.version);
   assert.equal(APP_RELEASE_DATE, CHANGELOG[0]?.date);
   assert.ok(isISODate(APP_RELEASE_DATE));

@@ -36,7 +36,7 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 // Chữ đúng theo đặc tả (docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md, việc 1) — bước a còn đối chiếu với chính D1.
 // Riêng dòng phiên bản đọc từ nhật ký thay đổi (src/shared/changelog.ts qua formatReleaseLine): số phiên bản đổi mỗi lần phát hành, ghi cứng sẽ đỏ giả.
 const EXPECT = {
-  app: "Tour Đảo Booking",
+  app: "Island Booking System", // đổi tên app 2026-09-24 (chủ dự án)
   release: formatReleaseLine(),
   company: "CÔNG TY TNHH TOUR ĐẢO",
   address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",

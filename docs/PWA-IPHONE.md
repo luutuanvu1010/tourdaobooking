@@ -1,4 +1,6 @@
-# App iPhone (PWA) — "Tour Đảo Booking"
+# App iPhone (PWA) — "Island Booking System"
+
+> Tên app đổi từ "Tour Đảo Booking" (tên ngắn "Tour Đảo") sang "Island Booking System" (tên ngắn "Island Booking") theo chủ dự án 2026-09-24. App đã cài trên iPhone giữ tên cũ dưới biểu tượng tới khi gỡ và cài lại.
 
 Thiết kế: `docs/superpowers/specs/2026-09-19-iphone-pwa-design.md`. Kế hoạch thi công: `docs/superpowers/plans/2026-09-19-iphone-pwa.md`. Mockup: https://claude.ai/artifact/UJhmHqivTKaGVZr3m98Aoc
 
