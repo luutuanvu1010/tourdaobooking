@@ -1,7 +1,7 @@
 // E2E vai & quyền (ADR-0018 giai đoạn 1) trên API THẬT: gán vai sinh quyền, chỉnh tay có lý do, luật cứng LC-1/LC-3/LC-4, route cũ bị khoá với tài khoản
 // đã gán vai, tạo tài khoản trên hồ sơ có sẵn, Thực tập sinh chỉ thấy đơn của mình, nhật ký có dòng đổi vai (không chứa SĐT). Chạy qua tests/e2e/run.mjs.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, orderInput, randomPhone as rnd, session, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, call, login, orderInput, randomPhone as rnd, session, sql, sqlRows } from "./lib.mjs";
 
 const ADMIN = await session(ACCOUNTS.admin);
 const SUPER = await session(ACCOUNTS.superAdmin);
@@ -88,6 +88,23 @@ assert.equal(r.body.staff.fullName, "Lễ Tân Có Sẵn");
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"]);
 assert.equal((await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["HOTEL_RECEPTION"], partyId: kh.body.party.id })).status, 409, "hồ sơ đã có tài khoản");
 console.log("✓ tạo tài khoản trên hồ sơ có sẵn, không tạo hồ sơ trùng");
+
+// ---- 6b (Ruling R26): hồ sơ có sẵn đang giữ vai tài khoản (dữ liệu cũ — trang Hồ sơ nay không gán được) → phải chọn cả vai đó; quyền = hợp các vai.
+const kt = await call(ADMIN, "POST", "/api/parties", { kind: "PERSON", fullName: "Kế Toán Có Sẵn", contacts: [] });
+assert.equal(kt.status, 201, JSON.stringify(kt.body));
+const ktId = kt.body.party.id;
+await sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('e2e-r26-${ktId}', '${ktId}', 'ACCOUNTANT', NULL, '2026-09-01', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')`);
+r = await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF"], partyId: ktId });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "account_rule");
+assert.equal(r.body.error.message, "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).");
+r = await call(ADMIN, "POST", "/api/staff", { phone: rnd(), roles: ["SALES_STAFF", "ACCOUNTANT"], partyId: ktId });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.deepEqual(r.body.staff.permissions, ["SALES", "ACCOUNTING"]);
+assert.deepEqual(r.body.staff.roles, ["SALES_STAFF", "ACCOUNTANT"]);
+const [{ n: ktRows }] = await sqlRows(`SELECT count(*) AS n FROM pty_party_role WHERE party_id = '${ktId}' AND role_type_code = 'ACCOUNTANT'`);
+assert.equal(ktRows, 1, "không chèn trùng vai Kế toán");
+console.log("✓ hồ sơ có sẵn giữ vai tài khoản: thiếu vai → 409 account_rule; chọn đủ → quyền = hợp, không trùng vai");
 
 // ---- 7. Thực tập sinh: lập đơn, chỉ thấy đơn của mình
 const ttsPhone = rnd();

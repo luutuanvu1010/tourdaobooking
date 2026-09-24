@@ -17,7 +17,7 @@ import { canManageAccount, checkAccountChange, generatePin, isWeakPin, validateF
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile } from "../../shared/contracts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
-import { ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
+import { ROLES, ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
 import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffCandidate, StaffProfile, StaffSheetParse };
@@ -258,7 +258,7 @@ export type CreateWithRoles =
 
 /**
  * Tạo tài khoản THEO VAI (ADR-0018): hồ sơ mới mang đúng các vai đã chọn (không thêm vai STAFF cũ), HOẶC dùng lại hồ sơ cá nhân có sẵn (chưa có tài khoản,
- * không va chạm nhóm vai). Quyền = quyền hiệu lực của vai + chỉnh tay. Thứ tự câu: vai → tài khoản → quyền → chỉnh tay (khoá ngoại + trigger LC-1).
+ * không va chạm nhóm vai, và chọn ĐỦ các vai tài khoản hồ sơ đang giữ — Ruling R26). Quyền = quyền hiệu lực của vai + chỉnh tay. Thứ tự câu: vai → tài khoản → quyền → chỉnh tay (khoá ngoại + trigger LC-1).
  */
 export async function createAccountWithRolesStatements(
   db: D1Database,
@@ -280,6 +280,9 @@ export async function createAccountWithRolesStatements(
     if (await accountIdOfParty(db, input.existingPartyId)) return { ok: false, message: "Hồ sơ này đã có tài khoản." };
     const open = (await accountRolesOf(db, input.existingPartyId, today)).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter(isRoleCode);
     if (groupOf([...open, ...assignment.roles]) === "MIXED") return { ok: false, message: "Hồ sơ này đang giữ vai khác nhóm (nội bộ/bên ngoài) — đóng vai đó trước." };
+    // Ruling R26: quyền chỉ tính từ vai được chọn — hồ sơ còn giữ vai tài khoản nào KHÔNG được chọn thì quyền sẽ lệch vai. Chặn (an toàn), bắt chọn cả vai đó.
+    const kept = ROLE_CODES.filter((c) => open.includes(c) && !assignment.roles.includes(c));
+    if (kept.length) return { ok: false, message: `Hồ sơ này đang giữ vai ${kept.map((c) => ROLES[c].name).join(", ")}: chọn cả vai này (hoặc đổi vai sau khi tạo).` };
     partyId = input.existingPartyId;
     statements.push(...assignment.roles.filter((c) => !open.includes(c)).map((c) => openAccountRoleStatement(db, partyId, c, today, actorId, at)));
   } else {

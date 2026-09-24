@@ -1,6 +1,6 @@
 import { ApiError, api, type SheetCandidate, type StaffAccount, type Api } from "./api";
 import { PERMISSION_CODES, PERMISSION_LABEL, can, hasPermission, type PermissionCode } from "../src/shared/permissions";
-import { rolesLabel } from "../src/shared/roles";
+import { ROLE_CODES, rolesLabel } from "../src/shared/roles";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
 import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
@@ -242,7 +242,10 @@ function setupAddForm(): void {
 }
 
 function clearExisting(): void {
-  if (existingPartyId) addName.value = "";
+  if (existingPartyId) {
+    addName.value = "";
+    addPicker?.reset(EMPTY); // bỏ các vai đã chọn sẵn theo hồ sơ vừa bỏ chọn
+  }
   existingPartyId = null;
   addName.readOnly = false;
   existingNote.hidden = true;
@@ -266,10 +269,28 @@ addPhone.addEventListener("change", async () => {
     addName.value = person.displayName;
     addName.readOnly = true;
     replaceChildren(existingNote, `Sẽ tạo tài khoản cho hồ sơ có sẵn "${person.displayName}" (không tạo hồ sơ mới). Đổi số điện thoại để bỏ chọn.`);
+    void preselectRoles(person.id);
   });
   replaceChildren(existingNote, use);
   existingNote.hidden = false;
 });
+
+/**
+ * Ruling R26: hồ sơ có sẵn đang giữ vai tài khoản (không gắn nơi, chưa đóng — cùng định nghĩa "đang mở" với máy chủ) thì máy chủ bắt chọn cả vai đó.
+ * Chọn sẵn các vai này (hợp với vai người dùng đã tích, giữ chỉnh tay + lý do). Không đọc được thì im lặng — máy chủ vẫn kiểm.
+ */
+async function preselectRoles(partyId: string): Promise<void> {
+  let party: Api.PartyDto;
+  try {
+    party = (await api<Api.PartyResponse>(`/api/parties/${encodeURIComponent(partyId)}`)).party;
+  } catch {
+    return;
+  }
+  if (existingPartyId !== partyId || !addPicker) return; // người dùng đã đổi số/bỏ chọn trong lúc chờ
+  const open = party.roles.filter((r) => r.locationId === null && r.validTo === null).map((r) => r.roleTypeCode);
+  const v = addPicker.value();
+  addPicker.reset({ ...v, roles: ROLE_CODES.filter((c) => v.roles.includes(c) || open.includes(c)) });
+}
 
 byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   e.preventDefault();

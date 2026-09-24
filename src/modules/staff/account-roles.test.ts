@@ -216,6 +216,29 @@ test("tạo tài khoản trên hồ sơ có sẵn: dùng lại hồ sơ, thêm v
   assert.equal((await staff.createAccountWithRolesStatements(db, input("p-org", ["TRAVEL_AGENCY"]), "s-adm")).ok, false, "tài khoản công ty: giai đoạn 4");
 });
 
+// Ruling R26 (kiểm toàn nhánh 2026-09-24): hồ sơ có sẵn đang giữ vai tài khoản (nhóm nội bộ/bên ngoài, không gắn nơi, chưa đóng) mà người tạo
+// KHÔNG chọn → quyền sẽ chỉ tính từ vai được chọn trong khi hồ sơ vẫn giữ vai kia (quyền lệch vai). Chặn theo lối an toàn: báo lỗi, bắt chọn cả vai đó.
+test("Ruling R26: hồ sơ có sẵn đang giữ vai Kế toán — chỉ chọn Nhân viên kinh doanh → từ chối; chọn cả hai → quyền = hợp, không chèn trùng vai", async () => {
+  const { sqlite, db } = seed();
+  sqlite.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-kt', 'PERSON', 'Kế Toán Cũ', 1, ?, ?)").run(AT, AT);
+  sqlite.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('p-kt', 'Kế', ?, ?)").run(AT, AT);
+  sqlite.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-kt', 'p-kt', 'ACCOUNTANT', NULL, '2026-09-01', ?, ?)").run(AT, AT);
+  const input = (roles: string[]) => ({ fullName: null, phone: "0933333333", existingPartyId: "p-kt", assignment: { roles: roles as never, adds: [], removes: [], reason: null } });
+  assert.deepEqual(await staff.createAccountWithRolesStatements(db, input(["SALES_STAFF"]), "s-adm"), {
+    ok: false,
+    message: "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).",
+  });
+  const made = await staff.createAccountWithRolesStatements(db, input(["SALES_STAFF", "ACCOUNTANT"]), "s-adm");
+  assert.ok(made.ok);
+  if (!made.ok) return;
+  await db.batch(made.statements as never);
+  assert.deepEqual(made.permissions, ["SALES", "ACCOUNTING"]);
+  assert.deepEqual(openPerms(sqlite, made.id), ["ACCOUNTING", "SALES"]);
+  assert.deepEqual(openRoles(sqlite, "p-kt"), ["ACCOUNTANT", "SALES_STAFF"]);
+  const kt = (sqlite.prepare("SELECT count(*) AS n FROM pty_party_role WHERE party_id = 'p-kt' AND role_type_code = 'ACCOUNTANT'").get() as { n: number }).n;
+  assert.equal(kt, 1, "vai Kế toán đã có: không chèn dòng thứ hai");
+});
+
 test("accountRoleCodes: vai mô hình mới đang mở của từng tài khoản (vai cũ STAFF không tính)", async () => {
   const { db } = seed();
   await change(db, "s-old", { roles: ["ACCOUNTANT"] });
