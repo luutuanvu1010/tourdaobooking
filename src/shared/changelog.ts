@@ -11,6 +11,18 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.4",
+    date: "2026-09-24",
+    items: [
+      { kind: "moi", text: "Trang Trợ giúp mới (ở trang Tôi và menu bên trái): xem app vừa đổi gì qua từng bản. Chấm đỏ nhỏ báo khi có bản mới mà bạn chưa xem." },
+      { kind: "doi", text: "Mở app là vào thẳng Trang chủ. Danh sách đơn nay nằm ở mục Đơn hàng." },
+      { kind: "doi", text: "Trên máy tính và iPad, menu chuyển sang cột dọc bên trái; cạnh mục Đơn hàng có số đơn chưa xác nhận." },
+      { kind: "moi", text: "Ô tìm kiếm trên đầu trang (máy tính): gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter để lọc danh sách đơn." },
+      { kind: "moi", text: "Trang chủ có biểu đồ doanh thu 7 ngày của bạn (máy tính). Quản trị viên thấy thêm khối \"Cần xem lại\": Sheet đổi giá, góp ý chưa trả lời." },
+      { kind: "sua", text: "Tài khoản Đối tác mở app được đưa thẳng tới danh sách đơn, không còn gặp báo lỗi ở Trang chủ." },
+    ],
+  },
+  {
     version: "1.3",
     date: "2026-09-23",
     items: [
