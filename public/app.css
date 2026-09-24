@@ -62,7 +62,13 @@
   --dot-size: 8px;
   --fs-title: 18px;
   --fs-counter: 20px;
-  --lh-heading: 1.16;         /* giữ để dấu tiếng Việt của tiêu đề không bị cắt */
+  --lh-heading: 1.16;         /* Đợt D Task 7: KHÔNG dùng ở đâu (grep --lh-heading = 0). Chú thích cũ ("giữ để dấu
+     tiếng Việt của tiêu đề không bị cắt") không đúng: `h1`/`h2` và các tiêu đề một dòng của Trang chủ mới
+     (.dash-revenue-title, .dash-review-heading, "Chuyến đón hôm nay") đều dùng line-height MẶC ĐỊNH của body
+     (1.5) — đã đo lại bằng ảnh chụp thật ở cả điện thoại lẫn máy tính (docs/evidence/2026-09-23-trang-chu-moi/anh/),
+     dấu tiếng Việt không bị cắt ở tiêu đề dài nào ("Chuyến đón hôm nay", "Cần xem lại", "Doanh thu của tôi"
+     kể cả khi xuống 2 dòng). Giữ token cho tiêu đề MỘT DÒNG nào sau này cần line-height CHẶT hơn mặc định — chưa
+     có nơi nào cần. */
   --w-form: 1120px;           /* bề rộng tối đa của trang form ở máy tính (form + cột tóm tắt) */
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Tour Đảo Booking (KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
@@ -89,6 +95,18 @@
   --fs-stat: 26px;          /* Trang chủ mới: cỡ chữ số liệu lớn (ô số liệu, doanh thu) */
   --fs-stat-sm: 20px;       /* Trang chủ mới (kiểm gộp I-3): cỡ chữ số liệu ở khổ điện thoại hẹp (lưới 2 cột ≤639px) — 26px làm "₫" rơi xuống dòng riêng với số tiền lớn */
   --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
+  --h-chart: 56px;          /* Đợt D Task 2: chiều cao vùng 7 cột biểu đồ "Doanh thu của tôi" */
+  --icon-badge: 30px;       /* Đợt D Task 3: ô vuông bo góc quanh icon cảnh báo của khối "Cần xem lại" */
+  /* Đợt D Task 4 (ADR-0015): thanh điều hướng dọc ở máy tính + thanh công việc trên. --c-sidebar-* xấp xỉ token
+     --c-band-muted/rgba trắng mờ của bản mẫu (hệ thống thiết kế ngoài, app không có) — GIÁ TRỊ TỰ QUYẾT (P8, bề
+     mặt đảo ngược được), ghi lại ở đây thay vì chép tay rgba() rải rác trong luật. */
+  --w-sidebar: 236px;          /* bề rộng thanh điều hướng dọc */
+  --w-search: 280px;           /* bề rộng tối đa ô tìm kiếm trên thanh công việc */
+  --c-sidebar-item: rgba(255, 255, 255, .72);   /* chữ mục sidebar CHƯA chọn */
+  --c-sidebar-active: rgba(255, 255, 255, .14); /* nền mục sidebar ĐANG chọn */
+  --c-sidebar-border: rgba(255, 255, 255, .12); /* viền mảnh trong sidebar (đầu/chân, không phải giữa các mục) */
+  --c-sidebar-badge: rgba(255, 255, 255, .18);  /* nền mặc định huy hiệu số đếm trên sidebar */
+  --ls-eyebrow: .08em;         /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -102,10 +120,7 @@ a { color: var(--c-primary); }
 #topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-primary); color: #fff; }
 #topbar a { color: #fff; text-decoration: none; }
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: 1.1rem; } .brand span { font-weight: 400; opacity: .8; }
-.brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-sm); display: block; }
-.topnav { display: flex; gap: var(--s4); flex: 1; }
-.who { display: flex; align-items: center; gap: var(--s3); font-size: .9rem; }
-.who .btn-link { color: #fff; }
+.brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); display: block; } /* Đợt D Task 7: sửa cho khớp bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280 đều vẽ logo tròn hết cỡ) — luật gốc trước đây bo góc nhẹ (--radius-sm), chỉ thanh bên máy tính được sửa tròn riêng (:310), bỏ sót thanh đầu trang điện thoại */
 
 main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); }
@@ -138,6 +153,14 @@ textarea { min-height: 72px; resize: vertical; }
 /* danh sách */
 .toolbar { display: flex; flex-wrap: wrap; gap: var(--s3); margin-bottom: var(--s4); }
 .toolbar input { flex: 1 1 220px; margin: 0; } .toolbar select { flex: 0 0 auto; width: auto; margin: 0; }
+/* Đợt D Task 4 vòng sửa 2 (mục 2): ô chọn `width: auto` tự rộng theo TUỲ CHỌN DÀI NHẤT (394px ở trang Nhật ký),
+   nhưng từ khi thanh bên hạ ngưỡng xuống 641px thì hộp nội dung của `main` ở 641px chỉ còn 373px → tràn ngang 5px
+   (đo thật: /audit 641px scrollWidth 646; 645px → 646; 650/768px → không tràn). `max-width: 100%` chỉ chặn tràn,
+   KHÔNG đổi bề rộng ở khổ rộng (ở đó 394px < 100%).
+   CHỈ từ 641px — có chủ đích: ở khổ ≤640px ô này đã tràn từ TRƯỚC Đợt D (đo thật trên bản chưa vá: /audit 390px,
+   ô rộng 394px, trang nở ra 410px). Đó là lỗi CŨ, không do Task 4 gây ra; sửa ở đây sẽ đổi bề mặt điện thoại vốn
+   phải giữ nguyên từng chỉ số trong đợt này. Đã báo riêng cho điều phối viên quyết. */
+@media (min-width: 641px) { .toolbar select { max-width: 100%; } }
 .order-row { display: grid; gap: var(--s1); padding: var(--s3) var(--s4); margin-bottom: var(--s2); color: inherit; text-decoration: none; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
 .order-row:hover { outline: 2px solid var(--c-primary); }
 .order-row-main { display: flex; justify-content: space-between; align-items: center; }
@@ -245,7 +268,7 @@ button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
 html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
 body { -webkit-tap-highlight-color: transparent; }
-.bar-back, .bar-title, #tabbar { display: none; }
+.bar-back, .bar-title, .bar-avatar, #tabbar { display: none; }
 /* Trang không có thanh đầu trang (đăng nhập): dải navy để chữ trắng của thanh trạng thái iOS đọc được. */
 body.login-page::before { content: ""; display: block; height: env(safe-area-inset-top); background: var(--c-primary); }
 
@@ -253,9 +276,10 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 
 @media (max-width: 640px) {
   #topbar { position: sticky; top: 0; z-index: 20; flex-wrap: nowrap; gap: var(--s2); min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; }
-  #topbar .topnav, #topbar .who { display: none; }
   body[data-title] #topbar .brand { display: none; }
-  .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  /* `body[data-title]` (C-1): từ nay `.bar-title` LUÔN được dựng để máy tính có breadcrumb trên mọi trang — ở khổ
+     điện thoại chỉ trang tự khai `data-title` mới hiện nó (và mới ẩn logo), đúng như trước, không đổi một chút nào. */
+  body[data-title] .bar-title { display: block; flex: 1; min-width: 0; margin: 0; font-size: var(--fs-bar-title); font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .bar-back { display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); margin-left: calc(-1 * var(--s3)); color: var(--c-on-dark); }
   /* Tiêu đề đã nằm trên thanh đầu trang nên h1 của trang chỉ ẩn khỏi mắt, KHÔNG display:none: trình đọc màn hình vẫn cần một h1 mỗi trang (axe page-has-heading-one). (.detail-head h1 ẩn ở MỌI khổ — quy tắc riêng cạnh .detail-head, không lặp ở đây.) */
   body[data-title] main > h1 { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
@@ -284,6 +308,87 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   /* Bước 2 Đợt B: số tiền cạnh nút Lưu ở thanh dính đáy — chỉ điện thoại, máy tính đã có card Tóm tắt riêng */
   .form-actions { flex-direction: column; }
   .mobile-actions-summary { display: block; margin-bottom: var(--s2); }
+
+  /* Đợt D Task 4 (ADR-0015 điều 3): thanh đầu trang điện thoại giữ NGUYÊN kiểu cũ (logo/back/tiêu đề), chỉ thêm
+     avatar chữ cái đầu bên phải (bản mẫu điện thoại có) — thanh bên (sidebar) không hiện ở khổ này. */
+  .bar-avatar { display: flex; align-items: center; justify-content: center; flex: none; margin-left: auto; width: var(--logo-bar); height: var(--logo-bar); font-weight: 800; font-size: var(--fs-badge); color: var(--c-sand-text); background: var(--c-sand); border-radius: var(--radius-pill); }
+}
+
+/* ---------- Đợt D Task 4: thanh điều hướng dọc (sidebar máy tính) + thanh công việc trên (ADR-0015) — chỉ token ----------
+   #sidebar/#topbar/main là BA CON TRỰC TIẾP của body (DOM phẳng, bài học Đợt C): ở <900px #sidebar ẩn, hai cái kia xếp dọc
+   như cũ — thứ tự đọc điện thoại KHÔNG đổi. body.has-sidebar chỉ được gắn khi JS (initShell()) đã thật sự dựng #sidebar. */
+#sidebar { display: none; flex-direction: column; }
+.sidebar-head { display: flex; align-items: center; padding: var(--s4); color: var(--c-on-dark); text-decoration: none; border-bottom: 1px solid var(--c-sidebar-border); }
+.sidebar-head .brand-logo { border-radius: var(--radius-pill); } /* từ Đợt D Task 7, `.brand-logo` gốc (:116) CŨNG đã bo tròn hết cỡ — luật riêng này thành thừa số nhưng giữ lại để ý định tường minh (logo sidebar PHẢI tròn theo bản mẫu, không phụ thuộc luật gốc đổi lại) */
+/* `min-height: 0`: trong cột flex cao đúng một khung nhìn, phần danh sách mục phải CO ĐƯỢC thì `overflow-y: auto`
+   mới cuộn (mặc định `min-height: auto` giữ nguyên chiều cao nội dung và đẩy chân thanh ra khỏi khung nhìn). */
+.sidebar-groups { display: flex; flex-direction: column; gap: var(--s5); padding: var(--s4) var(--s3); overflow-y: auto; min-height: 0; }
+.sidebar-group-title { padding: 0 var(--s3) var(--s1); font-size: var(--fs-badge); font-weight: 700; letter-spacing: var(--ls-eyebrow); color: var(--c-sidebar-item); text-transform: uppercase; }
+.sidebar-group-items { display: flex; flex-direction: column; gap: 1px; }
+.sidebar-item { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) var(--s3); font-size: var(--fs-label); color: var(--c-sidebar-item); text-decoration: none; border-radius: var(--radius-sm); }
+.sidebar-item[aria-current="page"] { color: var(--c-on-dark); font-weight: 700; background: var(--c-sidebar-active); }
+.sidebar-item-icon { flex: none; display: flex; }
+.sidebar-item-label { flex: 1; min-width: 0; }
+.sidebar-item-badge { flex: none; padding: 1px var(--s2); font-size: var(--fs-badge); font-weight: 700; color: var(--c-on-dark); background: var(--c-sidebar-badge); border-radius: var(--radius-pill); }
+.sidebar-item-badge-sand { color: var(--c-sand-text); background: var(--c-sand); font-weight: 800; } /* huy hiệu "Dịch vụ & giá" — đúng màu bản mẫu */
+.sidebar-item-badge-accent { color: var(--c-on-dark); background: var(--c-accent); } /* huy hiệu "Góp ý / Báo lỗi" — đúng màu bản mẫu */
+.sidebar-foot { margin-top: auto; display: flex; align-items: center; gap: var(--s3); padding: var(--s4); border-top: 1px solid var(--c-sidebar-border); }
+.sidebar-avatar { flex: none; display: flex; align-items: center; justify-content: center; width: var(--logo-bar); height: var(--logo-bar); font-weight: 800; font-size: var(--fs-badge); color: var(--c-sand-text); background: var(--c-sand); border-radius: var(--radius-pill); }
+.sidebar-who { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.sidebar-name { font-size: var(--fs-label); font-weight: 700; color: var(--c-on-dark); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-role { font-size: var(--fs-badge); color: var(--c-sidebar-item); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sidebar-logout { flex: none; padding: var(--s1); font: inherit; font-size: var(--fs-badge); font-weight: 600; color: var(--c-sidebar-item); background: none; border: 0; text-decoration: underline; cursor: pointer; }
+
+/* Thanh công việc trên: mockup không vẽ ở khổ điện thoại. Nút "Lập đơn mới" hiện từ 641px — CÙNG mốc với thanh bên,
+   vì đó là lối tắt chính. Ô tìm kiếm chỉ từ 900px: ở 641px cột nội dung chỉ còn ~405px nên thanh công việc gãy hai
+   dòng (người kiểm độc lập đo thật: cao 128px ở đúng 641px). */
+.topbar-search, .topbar-new { display: none; }
+@media (min-width: 641px) {
+  /* `flex: none` + `white-space: nowrap` (vòng sửa 2, mục 1 biện pháp 2): khi thanh chật, phần co lại phải là
+     BREADCRUMB, không phải nút. Mặc định phần tử flex là `flex: 0 1 auto` nên nút cũng co theo tỉ lệ bề rộng
+     (ở 900px nó mất ~3px) — đủ để chữ "Lập đơn mới" gãy hai dòng, nút cao 70px và thanh lại tràn. */
+  .topbar-new { display: inline-block; margin-left: auto; flex: none; white-space: nowrap; } /* chưa có ô tìm kiếm thì chính nút tự đẩy mình sang phải */
+}
+@media (min-width: 900px) {
+  .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
+  .topbar-new { margin-left: 0; } /* ô tìm kiếm đã nhận margin-left:auto — để cả hai cùng auto thì chỗ trống bị chia đôi, ô tìm rơi ra giữa */
+}
+/* Ngưỡng 641px (không phải 900px như bản Task 4 đầu tiên — quyết định 9 của chủ dự án): ở dải 641–899px bản cũ còn
+   thanh ngang đủ 9 mục, nếu thanh bên chỉ hiện từ 900px thì dải đó MẤT hết lối điều hướng lẫn nút Đăng xuất.
+   CHỈ khối lưới thanh bên hạ ngưỡng; sáu khối @media (min-width: 900px) khác (bố cục 2 cột của các trang) GIỮ 900px
+   vì ở 641px cột nội dung chỉ còn ~405px, không đủ cho hai cột. */
+@media (min-width: 641px) {
+  /* BA HÀNG TƯỜNG MINH (không dùng `grid-row: 1 / -1` mơ hồ khi grid không khai `grid-template-rows`: đã đo
+     thật bằng kịch bản a2-smoke-form.mjs — trình duyệt co dòng 1 (topbar) cao bằng CẢ NỘI DUNG sidebar (461px
+     ở khổ 1040×800), đẩy nút Lưu tràn khung nhìn). Hàng 1 = #topbar, hàng 2 = .maint-strip (rỗng, cao 0, khi
+     không bật bảo trì), hàng 3 = main. #sidebar trải đúng CẢ BA hàng bằng chỉ số tường minh `1 / 4`. */
+  body.has-sidebar { display: grid; grid-template-columns: var(--w-sidebar) minmax(0, 1fr); grid-template-rows: auto auto 1fr; min-height: 100vh; }
+  /* Ghim theo khung nhìn: trước đây `#sidebar` trôi theo tài liệu, nên ở trang dài (Nhân viên, Tôi, Nhật ký) chân
+     thanh — avatar, tên, vai và nút ĐĂNG XUẤT — tụt xuống tận đáy TÀI LIỆU, người dùng không bao giờ thấy. */
+  #sidebar { grid-row: 1 / 4; display: flex; position: sticky; top: 0; height: 100vh; background: var(--c-primary-strong); }
+  /* Chiều cao ĐÚNG token --bar-h (60px, chủ dự án đã duyệt): thanh từng cao 71px vì nút "Lập đơn mới" (46px) cộng
+     đệm dọc 12+12 cộng viền 1px tự quyết chiều cao — giảm đệm không đủ, phải đặt thẳng chiều cao (box-sizing:
+     border-box nên viền nằm trong 60px). Vẫn chừa vùng an toàn trên (iPad cài PWA) như thanh đầu trang điện thoại. */
+  /* `flex-wrap: nowrap` (vòng sửa 2, mục 1 biện pháp 1): `#topbar` thừa `flex-wrap: wrap` từ thời thanh điều hướng
+     NGANG (9 mục, gãy dòng là hành vi mong muốn). Thanh công việc máy tính chỉ có 3 phần tử nên gãy dòng ở đây LUÔN
+     là lỗi — và từ khi chiều cao bị ghim, dòng thứ hai không làm thanh cao lên mà TRÀN RA NGOÀI, đè lên `main`
+     (đo thật trên bản chưa vá: /order-form?id=… ở 900px, nút "Lập đơn mới" nằm ở 58…104px trong khi `main` bắt đầu
+     ở 60px — nút đỏ chồng lên chữ "Sửa đơn TD-20260923-0001").
+     `min-height` thay cho `height` (biện pháp 3) là VAN AN TOÀN: nếu sau này có thứ gì vẫn không vừa thì thanh cao
+     lên chứ không đè lên nội dung. Với hai biện pháp trên, chiều cao thực tế vẫn đúng --bar-h = 60px ở mọi khổ. */
+  body.has-sidebar #topbar { grid-column: 2; grid-row: 1; align-self: start; flex-wrap: nowrap; min-height: calc(var(--bar-h) + env(safe-area-inset-top)); padding-top: env(safe-area-inset-top); padding-bottom: 0; background: var(--c-surface); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }
+  body.has-sidebar #topbar .brand { display: none; } /* logo/tên app đã có ở đầu sidebar — không lặp lại */
+  /* Biện pháp 2: breadcrumb CO LẠI VÀ CẮT CHỮ thay vì đẩy nút xuống dòng dưới. `min-width: 0` là bắt buộc — thiếu nó
+     phần tử flex không co được dưới bề rộng nội dung. Cùng cách khổ điện thoại đã cắt chữ từ lâu (dòng `body[data-title]
+     .bar-title` trong khối @media (max-width: 640px)), không phát minh gì mới. */
+  body.has-sidebar #topbar .bar-title { display: block; flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: var(--fs-label); font-weight: 600; }
+  /* GIỮ trần bề rộng đã duyệt (--w-main 1200px, và --w-form 1120px riêng của trang Lập đơn), chỉ BỎ CĂN GIỮA:
+     `main` bám mép trái ngay sau thanh bên, đúng dáng bản mẫu. `margin-inline: 0` triệt tiêu `margin: 0 auto` của
+     `main` — thiếu nó thì trong ô lưới `main` co về bề rộng nội dung rồi tự căn giữa (đo thật ở 1920px: cột nội
+     dung 1684px nhưng main chỉ 886px, trống 399px mỗi bên). KHÔNG đặt lại max-width ở đây: bản trước gỡ hẳn trần
+     1200px bằng `:where(...) { max-width: none }`, tức bỏ mất con số chủ dự án đã duyệt. */
+  body.has-sidebar main { grid-column: 2; grid-row: 3; align-self: start; margin-inline: 0; }
+  body.has-sidebar .maint-strip { grid-column: 2; grid-row: 2; align-self: start; }
 }
 
 /* đăng nhập */
@@ -543,25 +648,29 @@ body.maint-open { overflow: hidden; }
 }
 
 /* ---------- Trang chủ mới (/home, web/home.ts) — chỉ token ---------- */
+/* Ẩn khỏi mắt ở MỌI khổ màn hình nhưng vẫn còn cho trình đọc màn hình — cùng kỹ thuật với .detail-head h1 và
+   body[data-title] main > h1 đã dùng ở các trang khác (đặt tên chung để dùng lại, không phải kỹ thuật mới). */
+.visually-hidden { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .dash-hello { display: flex; align-items: baseline; gap: var(--s3); flex-wrap: wrap; }
 .dash-name { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-title); }
 .dash-date { color: var(--c-text-muted); font-size: var(--fs-label); }
-.dash-stats-label { margin: 0 0 var(--s2); }
+#dash-maint { margin-left: auto; } /* chip bảo trì đẩy sang phải cùng dòng chào (bản mẫu), không nối tiếp sau ngày */
+/* Nhãn/ô đầy đủ (máy tính) — .lbl-short ẩn theo mặc định; đảo ngược ở khổ ≤639px. Dùng lại ở nhiều chỗ của Trang chủ
+   (nhãn ô số liệu, "Xem tất cả", tiền rút gọn…) — hai bản luôn cùng có mặt trong DOM, CSS chỉ ẩn/hiện, không đổi bằng JS. */
+.lbl-short { display: none; }
+@media (max-width: 639px) {
+  .lbl-full { display: none; }
+  .lbl-short { display: inline; }
+}
+.dash-grid { display: block; }
 .dash-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
 .dash-stat { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
 .dash-stat-label { font-size: var(--fs-badge); font-weight: 700; color: var(--c-text-muted); text-transform: uppercase; }
 .dash-stat-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat); }
 .dash-stat-sub { font-size: var(--fs-label); color: var(--c-text-muted); }
-.dash-layout { display: block; }
-@media (min-width: 900px) {
-  .dash-layout { display: grid; grid-template-columns: 1.35fr 1fr; gap: var(--s5); align-items: start; }
-}
-@media (max-width: 639px) {
-  .dash-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .dash-stat-value { font-size: var(--fs-stat-sm); } /* kiểm gộp I-3: lưới 2 cột ở khổ hẹp không đủ chỗ cho --fs-stat (26px) — "₫" rơi xuống dòng riêng với số tiền lớn */
-}
 .dash-today { padding: 0; } /* .card cho padding mặc định; đầu mục + từng dòng tự chia lề (khuôn .list-card) */
 .dash-today-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dash-today-all { margin-left: auto; font-size: var(--fs-label); font-weight: 600; } /* liên kết tới trang Đơn hàng (bản mẫu) — chữ rút gọn "Tất cả" ở khổ điện thoại qua .lbl-full/.lbl-short */
 #dash-today-list { display: flex; flex-direction: column; } /* kiểm gộp (minor): public/home.html không có class "dash-today-list" trên phần tử này (chỉ id) — selector cũ .dash-today-list chết */
 .dash-today-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
 .dash-today-row:last-child { border-bottom: 0; }
@@ -571,9 +680,71 @@ body.maint-open { overflow: hidden; }
 .dash-today-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
 .dash-today-name { font-weight: 700; }
 .dash-today-money { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: var(--s1); text-align: right; }
+.dash-revenue { display: flex; flex-direction: column; border: 1px solid var(--c-border); box-shadow: var(--shadow-card); } /* .card không sẵn viền/bóng như các thẻ khác của Trang chủ mới (lệch bản mẫu nhỏ, tiện sửa cùng lúc — Đợt D Task 1) */
+.dash-revenue-title { font-family: var(--font-display); font-weight: 700; }
 .dash-revenue-head { display: flex; align-items: center; gap: var(--s2); margin-bottom: var(--s3); }
 .dash-revenue-total { display: flex; align-items: baseline; gap: var(--s2); flex-wrap: wrap; }
 .dash-revenue-value { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-stat); }
+/* Biểu đồ cột 7 ngày (Đợt D Task 2) — trong CÙNG thẻ "Doanh thu của tôi" (đúng ảnh bản mẫu: header + tổng tiền + biểu đồ chung một thẻ). */
+.dash-revenue-chart { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); }
+.dash-chart-bars { display: flex; align-items: flex-end; gap: var(--s2); height: var(--h-chart); }
+.dash-chart-bar { flex: 1; background: var(--c-primary-soft); border-radius: var(--radius-sm) var(--radius-sm) 0 0; }
+.dash-chart-bar-dark { background: var(--c-primary); }
+.dash-chart-labels { display: flex; justify-content: space-between; font-size: var(--fs-badge); color: var(--c-text-muted); }
+.dash-chart-empty { margin: var(--s2) 0 0; }
+
+/* Khối "Cần xem lại" (Đợt D Task 3, CHỈ ADMIN — web/home.ts chỉ dựng khối này khi reviewAlerts() trả khác null).
+   Cùng khuôn viền/bóng với .dash-revenue (đúng ảnh bản mẫu: nền trắng, viền, bóng, KHÔNG chỉ dựa vào .card mặc định). */
+.dash-review { padding: 0; display: flex; flex-direction: column; border: 1px solid var(--c-border); box-shadow: var(--shadow-card); }
+.dash-review-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dash-review-heading { font-family: var(--font-display); font-weight: 700; }
+.dash-review-row { display: flex; align-items: center; gap: var(--s3); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; border-bottom: 1px solid var(--c-border); }
+.dash-review-row:last-child { border-bottom: 0; }
+.dash-review-icon { flex: none; width: var(--icon-badge); height: var(--icon-badge); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; }
+.dash-review-icon-sand { background: var(--c-sand-soft); color: var(--c-sand-text); } /* cảnh báo Sheet đổi giá */
+.dash-review-icon-accent { background: var(--c-accent-soft); color: var(--c-accent-strong); } /* cảnh báo góp ý chưa trả lời */
+.dash-review-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); }
+.dash-review-title { font-size: var(--fs-label); font-weight: 700; }
+
+@media (max-width: 639px) {
+  /* Lưới 2×2 gộp cả "Doanh thu của tôi" (đặc tả §3: mockup mobile gộp doanh thu vào lưới, không tách riêng).
+     .dash-stats chuyển display:contents để 3 ô của nó "thoát" ra tham gia thẳng lưới ngoài (.dash-grid) cùng
+     .dash-revenue — không lồng div bọc mới, DOM vẫn đúng thứ tự đọc: 3 ô số liệu, doanh thu, rồi chuyến đón hôm nay. */
+  .dash-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s3); }
+  .dash-stats { display: contents; }
+  .dash-stat-value { font-size: var(--fs-stat-sm); } /* kiểm gộp I-3: lưới 2 cột ở khổ hẹp không đủ chỗ cho --fs-stat (26px) — "₫" rơi xuống dòng riêng với số tiền lớn */
+  .dash-today { grid-column: 1 / -1; margin-bottom: 0; }
+  .dash-revenue { margin-bottom: 0; padding: var(--s3) var(--s4); } /* cùng đệm với .dash-stat để trông như ô thứ tư cùng hàng */
+  .dash-revenue-head { flex-direction: column; align-items: flex-start; gap: 0; margin-bottom: 0; }
+  .dash-revenue-title { font-size: var(--fs-badge); font-weight: 700; color: var(--c-text-muted); text-transform: uppercase; } /* cùng kiểu nhãn với .dash-stat-label */
+  #dash-revenue-range { display: none; } /* thay bằng dòng phụ rút gọn "Tuần này · N đơn" trong .dash-revenue-total */
+  .dash-revenue-total { flex-direction: column; align-items: flex-start; gap: var(--s1); }
+  .dash-revenue-value { font-size: var(--fs-stat-sm); }
+  /* Mockup mobile (390px) không có biểu đồ trong ô "Doanh thu của tôi" (ô đó là 1 trong 4 ô rút gọn của lưới 2×2, chỉ
+     có tổng tiền + dòng phụ) — ẩn ở khổ hẹp, không xoá khỏi DOM (bảng máy đọc màn hình cũng ẩn theo cha, không đọc trùng). */
+  .dash-revenue-chart { display: none; }
+  .dash-today-place { display: none; } /* nơi đón chuyển sang đứng cạnh tên dịch vụ trong .dash-today-sub (không phải kỹ thuật ẩn-cho-mắt: display:none để trình đọc màn hình không đọc trùng hai lần) */
+  /* Fix round 2 (quyết định chủ dự án 2026-09-23): dòng phụ rút gọn bỏ SĐT nên khổ điện thoại mất thao tác gọi khách — chủ chốt
+     giữ nút gọi dù lệch bản mẫu. `.dash-today-call` chỉ hiện ở khổ này (cùng cơ chế `.lbl-short`, luật kế thừa ở trên thắng
+     `display:none` mặc định của `.lbl-short` vì hai lớp cùng chọn một phần tử và quy tắc này đứng sau trong tệp); nút đặt
+     dưới số tiền còn lại trong cụm bên phải, không đổi bề rộng ba cụm khi/tên/tiền hiện có. */
+  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
+  /* Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): khối chỉ tồn tại
+     trong DOM khi ADMIN có cảnh báo (web/home.ts) — khi có, phải chiếm trọn bề rộng lưới 2×2 như .dash-today, không
+     rơi vào MỘT nửa cột bên cạnh ô trống. */
+  .dash-review { grid-column: 1 / -1; margin-bottom: 0; }
+}
+
+@media (min-width: 900px) {
+  .dash-grid { display: grid; grid-template-columns: 1.35fr 1fr; column-gap: var(--s5); row-gap: var(--s4); align-items: start; }
+  .dash-stats { grid-column: 1 / -1; margin-bottom: 0; } /* khoảng cách hàng đã do row-gap của .dash-grid lo, tránh cộng dồn với margin-bottom mặc định */
+  .dash-today { grid-column: 1; grid-row: 2; }
+  .dash-revenue { grid-column: 2; grid-row: 2; }
+  /* Đợt D Task 3: "Cần xem lại" nằm ở cột phải, DƯỚI "Doanh thu của tôi" (đúng ảnh bản mẫu và yêu cầu Task 3) —
+     không đặt tự động (grid-auto-flow sẽ đẩy nó xuống HÀNG 3 CỘT 1, dưới "Chuyến đón hôm nay", vì .dash-review
+     đứng sau .dash-today trong DOM — xem lý do thứ tự DOM ở public/home.html). */
+  .dash-review { grid-column: 2; grid-row: 3; margin-bottom: 0; }
+}
 
 /* Trang Trợ giúp + chấm đỏ "có bản mới" (đặc tả nhật ký thay đổi 2026-09-23) */
 .new-dot { display: inline-block; width: var(--dot-size); height: var(--dot-size); margin-left: var(--s1); vertical-align: middle; border-radius: var(--radius-pill); background: var(--c-danger); }

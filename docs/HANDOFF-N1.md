@@ -38,6 +38,23 @@ Chủ chạy lệnh ở ứng dụng Terminal. Khối tóm tắt lệnh in ra kh
   Kiểm sau (chỉ đọc): `npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT count(*) AS n FROM stf_permission WHERE permission_type_code = 'SUPER_ADMIN' AND valid_to_at IS NULL"` → `n = 1`.
 - **Trạng thái kiểm tại nhánh (2026-09-22, phiên soạn kiêm thi công — CHƯA có người kiểm độc lập):** `npm test` 451/451, `npm run typecheck` 0 lỗi, `npm run test:e2e` 16/16 kèm `audit-invariants --strict` xanh. Việc lớn (CLAUDE.md §3) — không tự báo "đạt", chờ subagent kiểm độc lập chỉ đọc.
 
+## TRẠNG THÁI TRIỂN KHAI — Trang chủ mới (`/home`, trang 12/12) ĐÃ LÊN PRODUCTION (2026-09-23, chủ dự án tự chạy lệnh) — ⚠️ CHƯA `git push`
+
+**Mã:** `main` @ `4e7fcfd` (gộp fast-forward từ nhánh `worktree-trang-chu-moi`, không xung đột). Commit này bao gồm CẢ `f4d9cbd` (sửa `CLAUDE.md` §3: khi hỏi chủ chỉ dừng phần việc phụ thuộc câu trả lời) đã gộp trước đó.
+**Worker mới:** version `5c582a74-ac7e-480a-99cb-0d4fd24f5ad6` (tạo 2026-09-23T02:38:47Z). **Version trước (để lùi nếu cần):** `65f96d96-8a51-44c0-a9e4-1209995aedcf` (bản 11/12 trang).
+
+**⚠️ VIỆC CÒN THIẾU NGAY:** `origin/main` vẫn ở `3b5fc5b` — **mã đang chạy production CHƯA được đẩy lên GitHub**. Chủ dự án cần chạy `git push origin main` ở checkout gốc. Cho tới lúc đó, bản production chỉ tồn tại trên máy chủ dự án + Cloudflare, không có bản sao trên GitHub.
+
+**Phạm vi:** trang mới `/home` (3 ô số liệu toàn công ty: còn thiếu tiền / đơn nháp chưa xác nhận / chưa có người phụ trách; danh sách "Chuyến đón hôm nay"; doanh thu tuần của riêng người đăng nhập). Route API mới `GET /api/orders/dashboard` (`access: "office"`) — **KHÔNG** đụng `GET /api/orders` hay `listOrders()`. Thêm 1 mục điều hướng "Trang chủ" + 1 icon. Quyết định chủ dự án ghi ở `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`; nhật ký thi công + 4 bài học ở `docs/superpowers/plans/2026-09-22-thiet-ke-lai-giao-dien-thi-cong-nhat-ky.md` (mục cuối).
+
+**Không có migration nào áp lần này** (`migrations list --remote` báo "No migrations to apply" cả trước lẫn sau — chỉ đổi mã, không đổi schema). Điểm khôi phục Time Travel ghi TRƯỚC deploy (không cần dùng): `00000204-00000000-000050ef-3f1630d6138c928f7eb89f4aa14f95e0`.
+
+**Cổng trước khi deploy:** `npm test` 502/502, `npm run typecheck` 0 lỗi, `npm run test:e2e` 16/16 + `audit-invariants --strict` đạt, kịch bản Chrome `trang-chu-smoke.mjs` 12/12 thoát mã 0 (có bằng chứng P16 cho 2 lỗi chính). Ba task đều có kiểm độc lập riêng + một lượt kiểm gộp toàn cục; 4 lỗi hành vi thật đã tìm và sửa trước khi deploy.
+
+**Kiểm SAU deploy (chỉ đọc, đã chạy 2026-09-23):** `GET /home` → 200; `GET /api/orders/dashboard` chưa đăng nhập → 401 (đúng, route cần quyền văn phòng); `GET /api/company` → 200; `node scripts/audit-invariants.mjs --db remote` → **mọi bất biến đạt** (16 kiểm). Chế độ bảo trì vẫn BẬT (dự kiến hết 2026-09-24T06:59Z) — deploy trong cửa sổ bảo trì, không ảnh hưởng người dùng thật.
+
+**Chưa kiểm:** chưa ai mở `/home` bằng tài khoản thật trên production; chưa xem trên iPhone thật; chưa có chữ ký duyệt thị giác của chủ dự án.
+
 ## TRẠNG THÁI TRIỂN KHAI — Thiết kế lại giao diện, 11/12 trang (Bước 1 + Bước 2 Đợt A/B/C) ĐÃ LÊN PRODUCTION (2026-09-22, chủ dự án tự chạy lệnh; deploy trong lúc CHẾ ĐỘ BẢO TRÌ đang bật có chủ đích — không ảnh hưởng người dùng thật)
 
 **Mã:** `main` @ `40026a7` (gộp fast-forward từ nhánh `thiet-ke-lai-giao-dien`, không có xung đột — `main` là tổ tiên trực tiếp của nhánh này). **Worker mới:** version `65f96d96-8a51-44c0-a9e4-1209995aedcf` (tạo 2026-09-22T17:23:06Z). **Worker/version trước (để lùi về nếu cần):** `b6907583-ab65-45a5-a010-bb46c728d6b6` (2026-09-22T14:13:40Z — bản này đã có sẵn việc ADR-0014 Phase A, xem ghi chú ở mục trên).
@@ -51,6 +68,22 @@ Chủ chạy lệnh ở ứng dụng Terminal. Khối tóm tắt lệnh in ra kh
 **Sau triển khai (chỉ đọc, AI xác nhận):** cả 11 trang (`/`, `/login`, `/order`, `/order-form`, `/staff`, `/catalog`, `/locations`, `/parties`, `/audit`, `/account`, `/feedback`) → 200; `/sw.js` `cache-control: no-store`; `/app.css` có token mới của bản thiết kế (`--w-main: 1200px`, `--h-order-skeleton: 180px` — xác nhận đúng bản mới đang chạy, không phải bản cache cũ); `GET /api/auth/config` xác nhận bảo trì vẫn bật đúng ý chủ (`endsAt` không đổi); `audit-invariants --db remote` chạy lại sau deploy vẫn mọi bất biến đạt.
 
 **Chưa kiểm:** thử tay trên điện thoại thật (chủ dự án tự làm khi tiện, dùng số điện thoại được phép vào lúc bảo trì); ảnh bằng chứng Chrome mới nhất của Đợt C/B chưa đối chiếu lại với production (chỉ đối chiếu lúc thi công, trên môi trường tạm).
+
+## Lần phát hành kế tiếp: Đợt D — khung điều hướng dọc + Trang chủ mặc định (ADR-0015)
+
+**Thêm 2026-09-23 (Task 6, F-5):** ADR-0015 mục "Hệ quả" (dòng 48) đã ghi "Người dùng thấy trang khác khi mở app.
+Cần báo trước cho nhân viên; nên deploy trong cửa sổ bảo trì." nhưng chưa có chỗ nào biến việc đó thành một BƯỚC
+PHẢI LÀM trong runbook. Chưa merge vào `main`, chưa deploy (nhánh `worktree-trang-chu-moi`) — mục này CHỈ ghi thêm
+bước còn thiếu, không phải toàn bộ runbook (đi theo trình tự chung của `CLAUDE.md` §8: cổng chỉ-đọc → điểm khôi
+phục Time Travel → test + typecheck + e2e xanh → `wrangler deploy` ngay → `audit-invariants --db remote` → ghi
+trạng thái).
+
+**Bước bắt buộc, đặt TRƯỚC `wrangler deploy`:**
+0. **Báo trước cho nhân viên** rằng giao diện sẽ đổi hẳn dáng (thanh điều hướng ngang → thanh bên dọc ở máy tính,
+   Trang chủ thay vì Đơn hàng là trang mở ra đầu tiên khi mở app) TRƯỚC khi deploy, và **cân nhắc deploy trong cửa
+   sổ bảo trì** (như hai lần deploy giao diện trước đó). Lý do: service worker cập nhật ngầm (stale-while-
+   revalidate), nên lần mở app ĐẦU TIÊN sau deploy trên một máy có thể vẫn thấy bản khung cũ trong vài giây — báo
+   trước để nhân viên không hoang mang tưởng app lỗi.
 
 ## TRẠNG THÁI TRIỂN KHAI — N2 lát 1 (người đặt trên đơn: `0018_orders_booker_party` + mã) ĐÃ LÊN PRODUCTION (2026-09-22, chủ dự án tự chạy lệnh ghi)
 Theo runbook "Lần phát hành kế tiếp: `0018`" bên dưới. **Mã:** `main` @ `da64558` (PR #9; cây giống hệt `fd3ad50` đã kiểm). **Worker mới:** `3245256e-68df-457f-8555-ecd57a4963f4` (tạo 2026-09-22T02:25:09Z). **Worker trước (để lùi về, an toàn — mục C):** `3e648e49-b2dc-4a06-827d-f46555f03383`. Quyết định: ADR-0011; đặc tả `docs/superpowers/specs/2026-09-21-n2-lat-1-khach-tren-don.md` (§13 các chỗ lệch có chủ ý). B5 `staff_party_required` nay lấy số `0019`.

@@ -25,3 +25,53 @@ Bối cảnh: 11/12 trang thiết kế lại giao diện đã xong, đã gộp `
 ## Việc lớn — bắt buộc theo CLAUDE.md §3
 
 Đụng dữ liệu (API mới), có thể đụng cấu trúc module (`dispatch`). Bắt buộc: kiểm độc lập sau khi thi công, không tự nghiệm thu. Điểm mơ hồ MỚI phát sinh lúc đọc mã (ảnh hưởng dữ liệu/hành vi rõ rệt, chưa được liệt kê ở trên) → hỏi thẳng chủ dự án, không tự đoán.
+
+## Quyết định BỔ SUNG sau khi chủ dự án xem kết quả thật (2026-09-23, chiều)
+
+Chủ dự án xem ảnh trang thật, so với bản mẫu và nói "khác quá nhiều". Một lượt đối chiếu từng khối (chỉ đọc) xác nhận: trong 6 khối nhìn thấy của mockup, 3 khối biến mất hoàn toàn (thanh bên dọc, biểu đồ cột, "Cần xem lại"); **chỉ 1 khối bị bỏ do chủ chốt** (biểu đồ, mục 4 ở trên) — phần còn lại do AI tự quyết hoặc làm lệch không ai ghi nhận, trong đó có **2 chỗ làm SAI chính đặc tả dự án**:
+- Bố cục điện thoại: đặc tả `…-design.md` §3 ghi rõ "mockup mobile gộp cả Doanh thu vào lưới 2×2 — dùng đúng cách này, không tách riêng"; mã làm khác (3 ô + 1 ô mồ côi, doanh thu tách thẻ riêng xuống dưới).
+- Nhãn ô số liệu không rút gọn ở 390px → ô cao gấp đôi, 3 ô chiếm ~550/844px.
+
+**Chủ dự án chốt lại (đảo 2 quyết định cũ):**
+
+A. **LÀM ĐÚNG BẢN MẪU, KỂ CẢ THANH MENU DỌC** — đảo lại quyết định trước đó ("giữ khung điều hướng hiện tại, đổi menu toàn app làm sau", chốt qua AskUserQuestion sáng 2026-09-23). Nay chủ muốn dựng thanh bên dọc đúng mockup: logo, 3 nhóm BÁN HÀNG / QUẢN TRỊ / TÔI, huy hiệu số đếm, avatar + tên + vai ở chân. Kèm theo: ô tìm kiếm + nút "Lập đơn mới" trên thanh trên, khối "Cần xem lại", biểu đồ cột 7 ngày (đảo mục 4 ở trên), chip bảo trì đúng vị trí, liên kết "Xem tất cả".
+   → Đây là **quyết định kiến trúc** (đổi khung điều hướng của CẢ 12 trang + PWA). Theo `CLAUDE.md` §3 (N3), việc này cần **ADR + chủ duyệt**, không phải việc nhét vào một trang.
+
+B. **TRANG CHỦ THÀNH TRANG MẶC ĐỊNH** — đảo mục 2 ở trên ("thêm trang mới riêng, KHÔNG thay route `/`"). Nay `/` phải ra Trang chủ; trang Đơn hàng dời sang địa chỉ khác.
+   → Ảnh hưởng đã tra: `/` do Workers Assets ánh xạ thẳng `public/index.html` (không có mã router) nên phải đổi tên tệp hoặc chuyển hướng ở Worker; `PRECACHE` trong `sw-policy.ts` hiện có `/` + `/js/orders.js`, chưa có `/home`; ~10 kịch bản Chrome đang mở `/` để vào trang Đơn hàng; `manifest.webmanifest` có `start_url: "/"` và `scope: "/"` — máy đã cài biểu tượng vẫn mở được vì `/` vẫn phục vụ, nhưng service worker đang cache `/` nên người dùng có thể thấy bản cũ tới khi `CACHE_VERSION` đổi (build tự chèn).
+
+**Ghi nhận trung thực về quy trình (bài học):** việc AI tự xếp các khối nhìn thấy được (thanh bên, "Cần xem lại", ô tìm kiếm, nút Lập đơn mới) vào loại "tự quyết được, không cần hỏi" là SAI. Thứ chủ dự án nhìn thấy trên màn hình thì không phải "bề mặt đảo ngược được" theo nghĩa P8 — phải hỏi. Ghi vào đây để phiên sau không lặp lại.
+
+## Trả lời 4 câu hỏi chặn của Đợt D (2026-09-23, chủ dự án chốt trực tiếp qua AskUserQuestion)
+
+1. **ADR-0015 (thanh menu dọc cho cả app): DUYỆT** — "Duyệt, làm đi". ADR đổi trạng thái `proposed` → `accepted` (AI chỉ đổi dòng trạng thái sau khi có câu trả lời thật, không tự duyệt). Task 4 + Task 5 của Đợt D được mở khoá.
+2. **Huy hiệu số đếm trên menu: LÀM ĐỦ CẢ 3 SỐ** (Đơn hàng / Dịch vụ & giá / Góp ý). Nghĩa là phải THÊM chỗ đếm tổng đơn — hiện chưa có API nào trả số này. Task tương ứng phải bổ sung, không được lặng lẽ bỏ.
+3. **Khối "Cần xem lại": CHỈ QUẢN TRỊ THẤY** — giữ đúng quyền hiện có của dữ liệu cảnh báo giá (`/api/catalog/admin`, chỉ admin). KHÔNG mở quyền đọc cảnh báo giá cho mọi nhân viên. Nhân viên bán hàng không thấy khối này (không phải lỗi).
+4. **Thời điểm đưa lên production: ĐỢI XONG HẾT 6 PHẦN rồi đưa 1 lần** trong cửa sổ bảo trì, sau khi chủ dự án xem ảnh và duyệt. KHÔNG deploy từng phần.
+
+## Trả lời 2 câu hỏi từ vòng kiểm Task 1 Đợt D (2026-09-23, chủ dự án chốt trực tiếp)
+
+5. **Nút bấm gọi khách ở khổ điện thoại: GIỮ LẠI** — chấp nhận lệch bản mẫu ở điểm này. Lý do chủ dự án: nhân viên dùng app chủ yếu trên iPhone, bấm gọi khách ngay từ danh sách "Chuyến đón hôm nay" là thao tác hàng ngày; bắt mở đơn ra mới gọi được là bớt việc của người dùng thật. Bản mẫu không có SĐT ở khổ điện thoại nhưng bản mẫu là tài liệu THIẾT KẾ, không phải đặc tả chức năng.
+   → Người thi công phải tìm cách giữ nút gọi mà vẫn gần bản mẫu (ví dụ dòng phụ vẫn "nơi đón · tên dịch vụ" theo mẫu, nhưng thêm biểu tượng/nút gọi riêng, hoặc cho cả dòng thành liên kết `tel:`). KHÔNG được để mất thao tác gọi.
+
+6. **Nhãn "Số liệu toàn công ty" và "· toàn công ty": BỎ HẲN** — chủ dự án xác nhận bỏ cho giống bản mẫu, chấp nhận rủi ro nhỏ là nhân viên Bán hàng có thể tưởng 3 ô số và danh sách chuyến là của riêng mình. Không cần khôi phục.
+
+## Trả lời câu hỏi từ vòng kiểm Task 2 Đợt D (2026-09-23, chủ dự án chốt trực tiếp)
+
+7. **Quy tắc tô đậm cột biểu đồ 7 ngày: TÔ ĐẬM NGÀY ĐÃ QUA + HÔM NAY**, ngày chưa tới để nhạt.
+
+   Bối cảnh (người kiểm độc lập đo pixel trên ảnh mẫu, không suy đoán): trong ảnh mẫu, cột T5 (nhạt) CAO HƠN cột CN (đậm) — nên quy tắc của mẫu KHÔNG phải "tô cột cao nhất", mà là theo vị trí 2 cột cuối. NHƯNG ảnh mẫu vẽ vào đúng **Chủ nhật 21/09/2026**, nghĩa là 2 cột cuối (T7, CN) đồng thời CHÍNH LÀ "hôm qua + hôm nay" — ảnh mẫu không đủ dữ kiện để phân biệt "luôn 2 cột cuối" với "ngày gần đây".
+
+   Bằng chứng thực tế: ảnh kết quả thật chụp hôm Thứ Tư cho thấy 2 cột đậm (T7, CN) là 2 cột SÀN 0đ (ngày chưa tới), còn cột cao thật (T4 = hôm nay, 12.645.000đ) lại nhạt — nhìn sai rõ ràng.
+
+   → Quy tắc "ngày đã qua + hôm nay" vừa đúng tinh thần ảnh mẫu (trong mẫu chính là 2 ngày gần nhất), vừa luôn hợp lý ở mọi ngày trong tuần.
+
+   **Ghi nhận quy trình:** điều phối viên ban đầu tự quyết đổi sang "tô theo giá trị" dựa trên tiền đề "ảnh mẫu không phân biệt được hai quy tắc" — người kiểm độc lập đo pixel và CHỨNG MINH tiền đề đó SAI, đồng thời chỉ ra đây đúng loại việc mà tài liệu dự án vừa ghi là phải hỏi chủ chứ không tự quyết. Đã hỏi và chủ chốt như trên. Bài học: khi tự quyết dựa trên "đọc ảnh bằng mắt", phải kiểm chứng bằng đo thật trước khi coi là căn cứ.
+
+## Trả lời 2 câu hỏi từ Task 4 Đợt D — thanh menu dọc (2026-09-23, chủ dự án chốt trực tiếp)
+
+8. **Huy hiệu số cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN** (không phải tổng số đơn). Lý do chủ chọn: đó là số VIỆC CẦN LÀM, hữu ích hàng ngày, cùng ý nghĩa với hai huy hiệu kia (cảnh báo giá, góp ý chưa trả lời) — trong khi "tổng số đơn" chỉ lớn dần theo thời gian và không nhắc việc gì.
+   → Thuận lợi: số này ĐÃ CÓ SẴN trong `GET /api/orders/dashboard` (`draftCount`), KHÔNG cần thêm route/API mới như lo ngại ban đầu.
+
+9. **Thanh menu dọc hiện SỚM HƠN, từ ~641px** (thay vì chỉ ≥900px). Lý do: vòng thi công phát hiện khoảng hở 641–899px không có trong ADR-0015 — dải đó không có sidebar (chỉ ≥900px) lẫn tab bar (chỉ ≤640px), nên KHÔNG vào được Nhân viên / Địa điểm / Nhật ký / Hồ sơ. iPad dựng đứng = 768px rơi đúng vào dải này. Bản cũ có `.topnav` ở dải đó nên đây là HỒI QUY chức năng do Đợt D gây ra, phải sửa.
+   → Cho phép thu hẹp thanh menu ở dải này nếu cần để vừa màn hình (tự quyết cách trình bày, miễn vào được đủ các trang).

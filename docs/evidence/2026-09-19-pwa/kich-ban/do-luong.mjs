@@ -30,7 +30,10 @@ async function login(page, phone, pin) {
   await page.type("#pin", pin);
   await page.click("#submit");
   await page.waitForFunction(() => location.pathname === "/", { timeout: 15000 });
-  await page.waitForSelector("#topbar .who a", { timeout: 15000 });
+  // Đợt D Task 4 (ADR-0015): thanh ngang cũ (`.who`, chỉ dựng ở máy tính) đổi thành thanh điều hướng dọc
+  // (`#sidebar`, cũng chỉ máy tính) + thanh tab dưới đáy (điện thoại, không đổi). Kịch bản này CHỈ chạy ở khổ
+  // điện thoại (MOBILE viewport) — đổi mốc "khung đã tải xong" sang `#tabbar .tab`, luôn có ở khổ này.
+  await page.waitForSelector("#tabbar .tab", { timeout: 15000 });
 }
 const api = (page, path, method = "GET", body) =>
   page.evaluate(async (path, method, body) => {
@@ -55,7 +58,7 @@ const report = { axe: [], perf: {} };
   await api(p, "/api/orders", "POST", order("Lê Minh Châu", "0912345678"));
   await api(p, "/api/orders", "POST", order("Phạm Quốc Đạt", "0933456789"));
   const id = a.json.order.id;
-  for (const [path, label] of [["/", "/ danh sách"], [`/order?id=${id}`, "/order chi tiết"], ["/order-form", "/order-form"], ["/account", "/account (nhân viên)"]]) {
+  for (const [path, label] of [["/orders", "/orders danh sách"], [`/order?id=${id}`, "/order chi tiết"], ["/order-form", "/order-form"], ["/account", "/account (nhân viên)"]]) {
     await p.goto(BASE + path, { waitUntil: "networkidle0" });
     await p.waitForSelector("#tabbar, .form-actions");
     report.axe.push(await axe(p, label + " (điện thoại)"));
@@ -95,7 +98,7 @@ async function measure(page, clearHttpCache = false) {
     });
     mo.observe(document, { childList: true, subtree: true });
   });
-  await page.goto(BASE + "/", { waitUntil: "domcontentloaded" });
+  await page.goto(BASE + "/orders", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.__t?.row, { timeout: 60000 });
   return page.evaluate(() => ({ brand: Math.round(__t.brand), data: Math.round(__t.row), fcp: Math.round(performance.getEntriesByName("first-contentful-paint")[0]?.startTime ?? -1) }));
 }
@@ -107,7 +110,7 @@ async function scenario(name, prepare) {
 async function warmContext() {
   const page = await newPage();
   await login(page, "0901000002", "736154");
-  await page.goto(BASE + "/", { waitUntil: "networkidle0" });
+  await page.goto(BASE + "/orders", { waitUntil: "networkidle0" });
   await page.evaluate(() => navigator.serviceWorker.ready);
   await page.reload({ waitUntil: "networkidle0" });
   return page;

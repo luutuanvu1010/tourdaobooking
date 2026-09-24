@@ -13,19 +13,21 @@ export const CACHE_VERSION = typeof __BUILD_ID__ === "undefined" ? "dev" : __BUI
 export const CACHE_NAME = `td-shell-${CACHE_VERSION}`;
 
 /** Các trang của app (đường dẫn đúng như trình duyệt yêu cầu, không có .html). Test đối chiếu với các file HTML trong public/ nên không lệch khi thêm/bớt trang. */
-export const PAGES: readonly string[] = ["/", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help"];
+export const PAGES: readonly string[] = ["/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help"];
 
 /** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
 const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;
 
-/** Nạp sẵn lúc cài. Các trang còn lại (/catalog, /staff, /audit, /parties, /locations) tự vào cache ở lần mở đầu. */
+/** Nạp sẵn lúc cài. Các trang còn lại (/catalog, /staff, /audit, /parties, /locations) tự vào cache ở lần mở đầu.
+ *  Đợt D Task 5 (đổi trang mặc định): "/" (Trang chủ) và "/orders" (Đơn hàng, trang nhân viên mở nhiều nhất) đều
+ *  phải chạy được ngoại tuyến ngay từ lần cài đầu — thêm cả hai script `home.js`/`orders.js`. */
 export const PRECACHE: readonly string[] = [
-  "/", "/login", "/order-form", "/order", "/account",
+  "/", "/orders", "/login", "/order-form", "/order", "/account",
   "/app.css",
   "/fonts/nunito-latin-viet-var.woff2", "/fonts/nunito-vietnamese-var.woff2",
   "/fonts/be-vietnam-pro-latin-viet-700.woff2", "/fonts/be-vietnam-pro-vietnamese-700.woff2",
   "/fonts/be-vietnam-pro-latin-viet-800.woff2", "/fonts/be-vietnam-pro-vietnamese-800.woff2",
-  "/js/login.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
+  "/js/login.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
   "/manifest.webmanifest",
   "/icons/logo-96.png", "/icons/icon-192.png",
 ];

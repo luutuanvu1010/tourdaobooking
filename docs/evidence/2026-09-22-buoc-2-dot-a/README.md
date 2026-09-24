@@ -8,6 +8,12 @@ cho lời khai. **Mã được đo: commit `65dd4ec`** (thêm chính kịch bả
 — ảnh 2x, kích thước tệp gấp đôi khổ CSS, khác với ảnh 1x của `2026-09-20-a2`) và máy tính 1040×800 (`deviceScaleFactor: 1`). **Không phải**
 đo trên iPhone thật, mạng thật hay Workers Assets thật.
 
+**Cập nhật 2026-09-23 (Đợt D Task 7):** ba ảnh trong `anh/` (`nhan-vien-may-tinh.png`, `nhat-ky-dien-thoai.png`,
+`nhat-ky-may-tinh.png`) đã CHỤP LẠI khi chạy lại `dot-a-smoke.mjs` để kiểm hồi quy sau khi sửa `.brand-logo`
+(`public/app.css`, khung dùng chung cho mọi trang — logo thanh đầu trang nay bo tròn hết cỡ, xem
+`docs/evidence/2026-09-23-trang-chu-moi/README.md` mục "Task 7"). Không kịch bản/khẳng định nào của tệp này bị
+sửa; chỉ logo trong ảnh đổi hình dạng.
+
 ## Ký duyệt thị giác
 
 **Chưa ký.** Chủ dự án xem `anh/` rồi ghi tại đây: ngày, ai ký, điểm cần sửa (nếu có).

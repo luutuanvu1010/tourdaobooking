@@ -120,4 +120,12 @@ moreBtn.addEventListener("click", () => void load(false));
 const staff = await initShell();
 const newOrderBtn = document.getElementById("new-order");
 if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
+
+// Ô tìm kiếm trên thanh công việc (`web/shell.ts`) đưa người dùng về đây kèm `?q=…` (đặc tả Đợt D §47: dùng lại
+// tham số `q` mà `GET /api/orders` đã hỗ trợ). ĐỔ VÀO Ô TÌM CỦA TRANG trước lần tải đầu, vì ba lý do: `load()` chỉ
+// đọc `qInput.value` nên đây là chỗ duy nhất nối được; người dùng THẤY mình đang lọc theo gì; và sửa/xoá được ngay
+// trên ô đó. Trước sửa này, gõ rồi Enter chỉ tải lại trang và hiện TOÀN BỘ danh sách (ô tìm là nút chết).
+const qFromUrl = new URLSearchParams(location.search).get("q")?.trim();
+if (qFromUrl) qInput.value = qFromUrl;
+
 await load(true);

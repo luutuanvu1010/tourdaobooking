@@ -238,7 +238,7 @@ try {
   ok("I1 qua DOM: thẻ đã lưu 2 → 3 → 2 quay về 1.300.000 + nhãn + tổng; gõ 1.234.000 ở 3 khách rồi về 2 vẫn 1.234.000; máy chủ lưu đúng và giữ giá danh mục của bản chụp");
 
   // ---- 10g) Minor 2: lưu thành công phải THAY mục lịch sử của form (location.replace), không thêm mục: Back/bfcache không đưa người dùng về form đã lưu (bấm Lưu lần hai = POST /api/orders lần hai = đơn trùng) ----
-  p = await env.as(ACCOUNTS.salesA, "/");
+  p = await env.as(ACCOUNTS.salesA, "/orders");
   await p.send("Page.navigate", { url: `${env.base}/order-form` }); // đi từ một trang trước tới form: form có một mục lịch sử riêng
   await p.waitFor("location.pathname === '/order-form' && document.getElementById('add-manual') !== null", "form (đi từ trang trước)");
   await p.ev("document.getElementById('add-manual').click(); true");

@@ -287,7 +287,7 @@ try {
     const { a2, b1 } = await getExtra();
     const expected = new Map([[main.id, "Phụ trách: Sales Một"], [a2.id, "Phụ trách: Sales Một"], [b1.id, "Phụ trách: Sales Hai"]]);
     for (const [label, vp] of [["390", M], ["1040", DESK]]) {
-      const p = await openAs(A, "/", { viewport: vp });
+      const p = await openAs(A, "/orders", { viewport: vp });
       await p.waitFor(listReady(3), `danh sách có 3 đơn, mỗi thẻ có dòng người phụ trách (${label})`, 10000);
       const rows = await p.ev(LIST_ROWS);
       assert.equal(rows.length, 3, `${label}: số đơn`);
@@ -335,7 +335,7 @@ try {
     assert.deepEqual(Object.keys(JSON.parse(puts[0].postData)), ["staffId"], "chỉ gửi staffId");
     p.close();
     // danh sách sau khi đổi
-    const list = await openAs(A, "/", { viewport: DESK });
+    const list = await openAs(A, "/orders", { viewport: DESK });
     await list.waitFor(listReady(3), "danh sách");
     assert.equal((await list.ev(LIST_ROWS)).find((r) => r.id === main.id).handler, "Phụ trách: Sales Hai");
     list.close();
@@ -414,7 +414,7 @@ try {
     unassign(unassigned.id);
     assert.equal(await handlerOf(unassigned.id), null, "tiền đề: đơn chưa có người phụ trách");
     for (const [label, vp] of [["390", M], ["1040", DESK]]) {
-      const p = await openAs(C, "/", { viewport: vp });
+      const p = await openAs(C, "/orders", { viewport: vp });
       await p.waitFor(listReady(4), `danh sách có 4 đơn (${label})`, 10000);
       const rows = await p.ev(LIST_ROWS);
       const un = rows.find((r) => r.id === unassigned.id);
@@ -610,14 +610,14 @@ try {
       assert.equal(await p.ev("document.getElementById('empty').hidden"), true);
     };
     // chặn mạng
-    let p = await openAs(A, "/", { blocked: ["*/api/dispatch/handlers*"], allow: [/ERR_BLOCKED_BY_CLIENT/, /dispatch\/handlers/] });
+    let p = await openAs(A, "/orders", { blocked: ["*/api/dispatch/handlers*"], allow: [/ERR_BLOCKED_BY_CLIENT/, /dispatch\/handlers/] });
     await p.waitFor("document.querySelectorAll('#list .order-row').length >= 3 && !document.querySelector('#list .order-row-handler.is-pending')", "danh sách hiện, dòng chờ được gỡ", 10000);
     await noChip(p, "chặn mạng");
     assert.ok(p.failed.length >= 1, "lời gọi thật sự bị chặn");
     p.close();
     // 500 và thiếu khoá (handlers: {})
     for (const [mode, label] of [["500", "500"], ["empty", "thiếu khoá"]]) {
-      p = await openAs(A, "/", { track: false });
+      p = await openAs(A, "/orders", { track: false });
       await p.waitFor(listReady(3), "danh sách xong lần tải đầu");
       await setRules(p, [{ match: "/api/dispatch/handlers", mode }]);
       await p.ev("document.getElementById('q').value = 'Khách'; document.getElementById('q').dispatchEvent(new Event('input', { bubbles: true })); true");
@@ -669,7 +669,7 @@ try {
       const un = await createOrder(A, `Khách Chip ${label}`);
       unassign(un.id);
       // danh sách: có tên và có chip (đơn chưa có người)
-      let p = await openAs(A, "/", { viewport: vp });
+      let p = await openAs(A, "/orders", { viewport: vp });
       await p.waitFor(listReady(4), "danh sách", 10000);
       assert.equal((await p.ev(LIST_ROWS)).some((r) => r.chip), true, "trạng thái có chip");
       await check(`danh-sach-${label}`, p);
@@ -718,7 +718,7 @@ try {
       await p.waitFor("document.querySelector('.handler-card .handler-unknown') !== null", "khối chưa biết", 10000);
       await check(`trang-don-chua-biet-${label}`, p);
       // danh sách: lời gọi handlers lỗi
-      p = await openAs(A, "/", { viewport: vp, ...BLOCK });
+      p = await openAs(A, "/orders", { viewport: vp, ...BLOCK });
       await p.waitFor("document.querySelectorAll('#list .order-row').length >= 3 && !document.querySelector('#list .order-row-handler.is-pending')", "danh sách khi handlers lỗi", 10000);
       await check(`danh-sach-handlers-loi-${label}`, p);
       await assignVia(A, un.id, A); // trả đơn về cho A: các bước sau (ảnh chụp danh sách) không bị ngập trong chip
@@ -731,7 +731,7 @@ try {
     const main = await getMain();
     await getExtra();
     for (const [suffix, vp] of [["390", M], ["1040", DESK]]) {
-      let p = await openAs(A, "/", { viewport: vp, track: false });
+      let p = await openAs(A, "/orders", { viewport: vp, track: false });
       await p.waitFor(listReady(4), "danh sách", 10000);
       await shoot(p, `nguoi-phu-trach-danh-sach-${suffix}.png`);
       p.close();
@@ -752,7 +752,7 @@ try {
     await shoot(c, "nguoi-phu-trach-chua-co-nguoi-390.png");
     c.close();
     for (const [suffix, vp] of [["390", M], ["1040", DESK]]) {
-      const l = await openAs(C, "/", { viewport: vp, track: false });
+      const l = await openAs(C, "/orders", { viewport: vp, track: false });
       await l.waitFor(listReady(4), "danh sách (chip)", 10000);
       await shoot(l, `nguoi-phu-trach-danh-sach-chip-${suffix}.png`);
       l.close();

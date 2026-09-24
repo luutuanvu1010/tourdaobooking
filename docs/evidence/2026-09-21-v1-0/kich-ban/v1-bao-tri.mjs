@@ -117,6 +117,25 @@ try {
     await owner.shot(join(OUT, "anh/bt-03-dang-bat.png"));
   });
 
+  // Đợt D Task 4 (ADR-0015): ở máy tính body là LƯỚI ba hàng (thanh bên | thanh công việc / dải bảo trì / main) và
+  // dải bảo trì được đặt tường minh vào hàng 2 cột 2. Mọi bước khác của kịch bản này chạy ở khổ điện thoại 390px
+  // (openPage() mặc định), tức là chỗ ĐẶT MỚI của dải chưa từng được tái hiện — đo ở đây, rồi trả lại khổ cũ.
+  await step("dải bảo trì ở khổ máy tính: đúng hàng 2 của lưới, dưới thanh công việc và trên nội dung, không đè lên nhau", async () => {
+    await owner.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 800, deviceScaleFactor: 1, mobile: false });
+    const m = await owner.ev(`(() => {
+      const r = (sel) => { const e = document.querySelector(sel); if (!e) return null; const b = e.getBoundingClientRect(); return { top: Math.round(b.top), bottom: Math.round(b.bottom), left: Math.round(b.left), right: Math.round(b.right), height: Math.round(b.height) }; };
+      return { strip: r('#maint-strip'), topbar: r('#topbar'), main: r('main'), sidebar: r('#sidebar'), innerWidth, scrollWidth: document.scrollingElement.scrollWidth };
+    })()`);
+    assert.ok(m.strip, `dải bảo trì phải có mặt ở khổ máy tính — ${JSON.stringify(m)}`);
+    assert.ok(m.strip.top >= m.topbar.bottom - 1, `dải phải nằm DƯỚI thanh công việc, không đè lên — ${JSON.stringify(m)}`);
+    assert.ok(m.main.top >= m.strip.bottom - 1, `nội dung trang phải bắt đầu DƯỚI dải, không bị dải đè — ${JSON.stringify(m)}`);
+    assert.equal(m.strip.left, m.sidebar.right, `dải phải bắt đầu ngay sau thanh bên (cột 2 của lưới) — ${JSON.stringify(m)}`);
+    assert.equal(m.strip.right, m.innerWidth, `dải phải chạy hết bề rộng cột nội dung — ${JSON.stringify(m)}`);
+    assert.ok(m.scrollWidth <= m.innerWidth + 1, `không được tràn ngang — ${JSON.stringify(m)}`);
+    await owner.shot(join(OUT, "anh/bt-03b-dai-bao-tri-may-tinh.png"));
+    await owner.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+  });
+
   await step("chủ vẫn dùng app bình thường khi đang bật (điều hướng sang / và /staff không bị chặn)", async () => {
     const r = await owner.ev(`fetch('/api/auth/me').then((x) => x.status)`);
     assert.equal(r, 200);
@@ -147,7 +166,7 @@ try {
 
   await step("nhân viên mở trang MỚI khi đang bật: /api/auth/me 503 → lớp phủ (không lỗi thô, không về /login)", async () => {
     const p = await asCookie(salesCookie, "/");
-    await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ ở trang danh sách");
+    await p.waitFor(`!!${q("#maintenance-screen")}`, "lớp phủ ở trang chủ");
     assert.equal(await p.ev(`location.pathname`), "/");
     p.close();
   });
@@ -216,7 +235,7 @@ try {
     await o2.waitFor(`/Đang tắt/.test(${q("#maintenance .maint-state")}?.textContent ?? '')`, "chuyển sang Đang tắt");
     assert.equal(await o2.ev(`!!${q("#maint-strip")}`), false, "dải biến mất ngay, không cần tải lại");
     const p = await asCookie(salesCookie, "/");
-    await p.waitFor(`document.readyState === 'complete' && !!${q("main")}`, "trang danh sách");
+    await p.waitFor(`document.readyState === 'complete' && !!${q("main")}`, "trang chủ");
     await sleep(800);
     assert.equal(await p.ev(`!!${q("#maintenance-screen")}`), false);
     p.close();
