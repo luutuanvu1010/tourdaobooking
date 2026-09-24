@@ -1,0 +1,45 @@
+# Nhật ký thi công GĐ1 — vá lỗ "nhân viên sửa hồ sơ nhân viên" (ADR-0013)
+
+- **Kế hoạch:** `docs/superpowers/plans/2026-09-24-gd1-adr-0013-thi-cong.md`.
+- **Nhánh:** `va-lo-ho-so-gd1`, worktree `hang-rao-quyen`, base `a659eb8` (ADR-0013 bản sửa 2 chuyển sang accepted — chủ dự án duyệt trong trò chuyện 2026-09-24).
+- **Cách thi công:** superpowers:subagent-driven-development — mỗi task một subagent thi công, phần lớn có một vòng người kiểm (opus) trước khi coi "complete"; Task 9 (chỉ đọc, kiểm toàn nhánh) làm ở phiên riêng sau Task 8.
+- **Người viết nhật ký này (Task 8):** không tự thi công Task 1–7, chỉ tổng hợp từ báo cáo từng task (`task-{1..7}-report.md`) và sổ điều phối (`progress.md`) của người điều phối.
+
+## Bảng từng task
+
+| Task | Việc | Commit | Lệnh kiểm chính | Đỏ trước | Xanh sau |
+|---|---|---|---|---|---|
+| 1 | Module `staff`: `partyAccountVerdict(actor, target)` (thuần) + `accountOfParty(db, actor, partyId)` — kết luận hồ sơ gắn tài khoản nào, người gọi quản được không | `a713e1c` | `node --test src/modules/staff/rules.test.ts` | `SyntaxError: … does not provide an export named 'partyAccountVerdict'` | 7/7 test; `src/architecture.test.ts` 21/21; `typecheck` 0 lỗi |
+| 2 | Tiêm `ctx.partyAccount` qua `router.ts` + gốc lắp ráp `index.ts`; route công khai/chưa đăng nhập mặc định **từ chối** (`{ linked: true, manageable: false }`) | `32b27b1` | `node --test src/shared/router.test.ts` | 8 test, 1 fail (test mới, trước khi sửa `router.ts`/`index.ts`) | `src/shared/router.test.ts` + `src/architecture.test.ts` 29/29; `npm test` toàn bộ 658/658 |
+| 3 | Route `GET`/`POST` tạo mới của Hồ sơ hỏi `party.view`/`party.write` trong thân handler (gỡ 3 mục hoãn trong `docs/quyen-hoan.json` cho các route này) | `96246a0` | `node --test src/permission-enforcement.test.ts src/route-write-guard.test.ts` | 2 fail / 8 test (hàng rào 1 đòi mục hoãn còn tồn tại; hàng rào 2 đòi lời gọi `can()`) | 8/8; `npm test` 657/658 (1 fail: `guard-remote` đo CPU, tải máy cao, không liên quan — xem "Sự cố/lưu ý máy" dưới) |
+| 4 | Vá lỗ chính: `PUT /api/parties/:id`, `POST …/contacts`, `POST …/contacts/:cid/end` hỏi `party.staff.write` (+ `acc.manageable`) khi hồ sơ gắn tài khoản, `party.write` khi không; ô `party.staff.write` mới vào `MATRIX`; test hồi quy `src/modules/parties/ho-so-co-tai-khoan.test.ts` | `5f2a508` (+ vòng sửa 1 sau review: `3a2532d`) | `node --test src/modules/parties/ho-so-co-tai-khoan.test.ts` | 8/9 fail (trước khi sửa `index.ts`/`permissions.ts`/`contracts.ts`) | 10/10 sau vòng sửa 1; `npm test` 667/668 (1 fail CPU-timing, không liên quan) |
+| 5 | Red team `tests/audit/redteam.test.mjs` R3/R3b/R3c: FINDING → PASS (khẳng định 403); thêm ca vào `tests/e2e/parties.mjs` | `9c6f323` | `node --test "tests/audit/*.test.mjs"` | 4 fail trước sửa: R3/R3b/R3c (mong 200 vì lỗ hổng, nay server trả 403 nên đỏ) + P4 (`doi-tac.test.mjs`, có sẵn trên `origin/main`, ngoài phạm vi) | 34/35 (chỉ còn P4, xác nhận không do Task 5); `npm run test:e2e` đủ bộ (15 kịch bản) xanh, kết thúc bằng `audit-invariants` |
+| 6 | Màn Hồ sơ (`web/parties.ts`): ẩn nút sửa/thêm/đóng liên hệ khi không `editable`; khoá "Đang dùng" + chữ chỉ sang màn Nhân viên khi hồ sơ gắn tài khoản | `ea08895` | `npm run typecheck`, `npm run build:web` | — (giao diện, không có test đơn vị cho tệp này) | `typecheck` 0 lỗi; `npm test` 667/668 (1 fail CPU-timing) |
+| 7 | Bất biến `R-ADR13-1`: tài khoản hoạt động ⇒ hồ sơ hoạt động, mức `fail`, vào `scripts/audit-checks.mjs` + `src/audit-invariants.test.ts` | `e52ba31` | `node --test src/audit-invariants.test.ts` | `not ok 16 … phải có đúng một kiểm R-ADR13-1 (expected 1 found 0)` | `ok 16`; `npm test` toàn bộ 669/669 |
+| 8 | Tài liệu, sổ hàng rào, bằng chứng thêm, nhật ký này | (commit theo sau, tệp `docs/`) | — | — | — |
+
+Số test tăng dần theo task khớp với báo cáo từng task: 656 (mốc trước Task 1, nhánh kế hoạch) → 658 (sau Task 2) → 667–669 (sau Task 4, 6, 7; chênh lệch giữa các lần đo do một số lần chạy dưới tải máy khác nhau khiến ca `guard-remote` CPU-timing lúc đỏ lúc xanh — xem dưới).
+
+## Sự cố / lưu ý trong lúc thi công
+
+- **Ca `guard-remote: lệnh dị dạng không làm hook quá giờ` (`src/claude-guard.test.ts`) không ổn định dưới tải máy cao** — xuất hiện đỏ ở Task 3, 4, 6 (một mình, không kèm ca nào khác); mỗi lần đều xác nhận lại bằng `uptime` (load average cao, 8–20+) và chạy lại riêng tệp đó vẫn đỏ đúng ca này dưới tải, không liên quan tới thay đổi của task. Không sửa tệp hàng rào này (đúng chỉ dẫn N9/Điều 9.4 — chỉ được siết, không được nới, và đây không phải việc của GĐ1). Đã ghi vào §8 của kế hoạch tổng từ GĐ0, GĐ1 chỉ xác nhận lại hiện tượng.
+- **`git checkout` xoá mất thay đổi chưa commit ở Task 4:** lúc thực hiện bước "quan sát hàng rào chặn thật" (đột biến ô sai để xem test đỏ), người thi công dùng `git checkout src/modules/parties/index.ts` để hoàn nguyên — nhưng thay đổi thật của Task 4 trong tệp đó CHƯA được commit lúc đó, nên lệnh này xoá luôn cả phần vá thật, đưa tệp về bản trước Task 4. Phát hiện ngay (test quay về 8/9 fail giống RED ban đầu), dựng lại từ nội dung còn trong ngữ cảnh phiên, xác nhận lại bằng `typecheck` (0 lỗi) và chạy lại 4 tệp test liên quan (29/29 xanh). Không có sai lệch dữ liệu vĩnh viễn, nhưng tốn công làm lại. **Ruling của người điều phối:** từ Task 7/Task 9 trở đi, brief phải dặn "commit trước rồi mới đột biến; hoàn nguyên bằng bản sao (không dùng `git checkout` khi còn thay đổi chưa commit)".
+- **`tests/audit/doi-tac.test.mjs` ca P4 đỏ sẵn trên `origin/main`** trước khi GĐ1 chạm vào bất kỳ tệp nào (người điều phối tự xác nhận bằng cách chạy trên bản xuất `origin/main` 2026-09-24) — không thuộc phạm vi GĐ1, không sửa, ghi nợ để phiên khác xử lý.
+- **Vòng review Task 4 (opus, đọc toàn tệp):** phát hiện Important — ca `POST …/contacts/:cid/end` thiếu phép thử xoá điều kiện `&& acc.manageable`, khiến một ADMIN có thể đóng liên hệ của một ADMIN khác/SUPER_ADMIN mà không test nào bắt được. Vòng sửa 1 (chỉ tệp test, không đụng mã sản xuất) thêm ca đó — RED xác nhận đúng lỗ (9/9 → mất 1 khi gỡ điều kiện thật), rồi GREEN. Đã gộp vào commit `3a2532d`.
+
+## Quyết định nhỏ đã tự đưa ra (P8: bề mặt, đảo ngược được — có ghi lại)
+
+- Task 4: bỏ dòng `// @ts-expect-error` trước import `.mjs` trong test mới, thay bằng chú thích thường (Node type-stripping không cần khai kiểu; theo đúng phương án dự phòng đã ghi sẵn trong brief khi việc này "gây vấn đề").
+- Task 4: chữ ký `respondParty` đổi thành generic `<A extends office|admin>` thay vì chữ ký cụ thể trong brief — lệch nhỏ, không đổi hành vi, người kiểm (opus) xác nhận mã đạt.
+- Task 5: dòng `Co-Authored-By` dùng đúng dòng do môi trường phiên chỉ định (`Claude Opus 5.5 (1M context)`), khác dòng mẫu ghi tay trong mô tả task — coi là điều hiển nhiên tuân theo (chỉ dẫn môi trường thắng chỉ dẫn cũ chép tay trong tài liệu kế hoạch), không phải sai lệch cần hỏi chủ. Người kiểm từng nêu nghi vấn ở đây; điều phối xác nhận không có gì sai.
+- Task 6: kịch bản Chrome không chạy được (công cụ lỗi "Script injection timed out" ×4 lần liên tiếp) — hoãn, không giả ảnh chụp, báo rõ tiêu chí nghiệm thu 10 CHƯA ĐẠT thay vì tự nhận đã kiểm.
+
+## Nợ còn lại (chuyển cho Task 9 / chủ dự án / GĐ2)
+
+- **Tiêu chí nghiệm thu 10 (kịch bản Chrome màn Hồ sơ) CHƯA ĐẠT** — chưa có ảnh chụp xác nhận SALES không thấy nút sửa/liên hệ trên hồ sơ nhân viên, ADMIN thấy nút nhưng "Đang dùng" bị khoá kèm chữ chỉ dẫn, hồ sơ khách vẫn như cũ. Mã đã sửa đúng brief (`web/parties.ts`, commit `ea08895`), `typecheck`/`build:web` xanh; chỉ thiếu bước xác nhận bằng mắt. Cần chạy lại khi công cụ Chrome hoạt động bình thường.
+- **R3d** (`tests/audit/redteam.test.mjs`) giữ nguyên là FINDING, không thuộc phạm vi GĐ1 (liên quan H7 — hồ sơ khách bị ngưng ảnh hưởng đơn của đồng nghiệp khác, không phải hồ sơ gắn tài khoản) — để GĐ2/GĐ3.
+- **Vai trò hồ sơ của một ADMIN khác** (ai được sửa hồ sơ của ADMIN không phải cấp trên/cấp dưới trực tiếp, các sắc thái cấp bậc rộng hơn ADR-0014 điều 8) — nằm trong phạm vi mô hình 11 vai, để GĐ2.
+- `tests/audit/doi-tac.test.mjs` ca P4 đỏ sẵn trên `origin/main`, không do GĐ1 — cần một phiên riêng xử lý, không chặn GĐ1.
+- Ca CPU-timing của `src/claude-guard.test.ts` vẫn nhạy tải máy (đã biết từ GĐ0, §8 kế hoạch tổng) — chưa có phiên nào sửa ngưỡng đo.
+- **`npm run test:e2e` đủ bộ + `audit-invariants --db local --strict`** đã chạy xanh ở Task 5 (trước khi có `R-ADR13-1` — Task 7 làm sau); Task 9 cần chạy lại đủ bộ e2e một lần cuối SAU khi có `R-ADR13-1` (Task 7) để quan sát bất biến này trên D1 local thật ít nhất một lần trước khi coi là "đã chặn thật" trên D1 (khác SQLite trong bộ nhớ của `src/audit-invariants.test.ts`) — ruling của người điều phối đã ghi việc này dời sang Task 9.
+- Chưa lên production — theo `docs/QUY-TRINH-PHAT-HANH.md`, sau khi Task 9 đạt và chủ dự án quyết gộp `main`.

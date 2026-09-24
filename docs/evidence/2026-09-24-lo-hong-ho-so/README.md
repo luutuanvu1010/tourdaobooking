@@ -36,3 +36,38 @@ Các ca R3c (H2) và R3d (H7) được đưa vào `tests/audit/redteam.test.mjs`
 | (B) tài khoản đang hoạt động mà hồ sơ đã ngưng | **0 dòng** | Bất biến một chiều đang đúng; GĐ1 thêm vào `audit-invariants` mức `fail`. |
 
 Bẫy khi chạy: `--file` với `--remote` đi cổng `/import`, bị "Authentication error [code: 10000]" với đăng nhập OAuth — dùng `--command` từng câu (xem đầu tệp SQL).
+
+## Sau GĐ1 (2026-09-24)
+
+**Bản kiểm:** nhánh `va-lo-ho-so-gd1` (worktree `hang-rao-quyen`, sau Task 1–7 của `docs/superpowers/plans/2026-09-24-gd1-adr-0013-thi-cong-nhat-ky.md`, commit `e52ba31`).
+
+**Cách chạy — hai lượt, cùng kịch bản `kich-ban/lo-hong.mjs`, không sửa cây làm việc thật:**
+
+1. Mã hiện tại trên nhánh (không `AUDIT_ROOT`) — chạy thẳng từ gốc worktree:
+   ```bash
+   node docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/lo-hong.mjs
+   ```
+2. Bản sao đổi ĐÚNG MỘT Ô (`order.view` của FIELD: `none` → `any`, đúng điều ADR-0017 điều 4 sẽ cần) — lấy bằng `git archive` (không phải `cp -a`, tránh bẫy đã ghi ở bài học Đợt D) rồi sửa bản sao, KHÔNG commit, KHÔNG đụng cây thật:
+   ```bash
+   mkdir -p /tmp/l2-copy && git archive --format=tar -o /tmp/l2-copy.tar HEAD && tar -xf /tmp/l2-copy.tar -C /tmp/l2-copy
+   ln -s "$PWD/node_modules" /tmp/l2-copy/node_modules
+   sed -i '' 's|"order.view": row("any", "any", "any", "none", "own", "any"), // xem đơn|"order.view": row("any", "any", "any", "any", "own", "any"), // xem đơn|' /tmp/l2-copy/src/shared/permissions.ts
+   AUDIT_ROOT=/tmp/l2-copy node /tmp/l2-copy/docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/lo-hong.mjs
+   rm -rf /tmp/l2-copy /tmp/l2-copy.tar   # dọn ngay sau khi đọc kết quả
+   ```
+
+**Kết quả đã quan sát (2026-09-24, sau GĐ1):**
+
+| Ca | Mã GĐ1 (nhánh) | Bản sao: FIELD có `order.view = any` |
+|---|---|---|
+| H2 SALES thêm SĐT vào hồ sơ ADMIN | **403** `forbidden` — "Tài khoản này không được sửa hồ sơ này." (trước GĐ1: 201) | 403 (giống bên trái) |
+| H3a FIELD xem hồ sơ ADMIN (`GET /api/parties/:id`) | 403 (chặn ở cổng office — FIELD không qua `isOffice`) | **403** — chặn ở `can(staff, "party.view")` trong thân handler (`party.view` vẫn `none` cho FIELD trong `MATRIX`), KHÔNG còn phụ thuộc cổng `office`/`order.view` nữa |
+| H3b FIELD đổi tên ADMIN (`PUT /api/parties/:id`) | không tới được (bị chặn ở H3a) | không tới được — cùng lý do H3a |
+| H3c FIELD thêm SĐT vào hồ sơ ADMIN | không tới được | không tới được |
+| H7 (ngoài phạm vi GĐ1 — GĐ2) | 200 / 400 / như cũ | như cũ |
+
+**Nhận định:**
+- Đạt đúng kỳ vọng của tiêu chí nghiệm thu 11: FIELD nhận 403 ở `PUT /api/parties/:id` và `POST …/contacts` kể cả khi bị đổi `order.view` thành `any` trong bản sao — vì Task 3 đã đổi các route Hồ sơ từ chỉ dựa cổng `office` sang hỏi thẳng `can(staff, "party.view"/"party.write"/"party.staff.write")` trong thân handler; ba ô này KHÔNG đổi theo `order.view`.
+- Bằng chứng còn cho thấy nhiều hơn kỳ vọng: ngay cả **H3a (GET, chỉ xem)** — vốn trước GĐ1 sẽ thành 200 khi `order.view = any` (xem bảng "Sau GĐ1" so với bảng gốc phía trên: trước GĐ1, H3a từ 403 chuyển 200 khi đổi ô) — nay vẫn 403, vì `GET /api/parties/:id` cũng đã có `can(staff, "party.view")` riêng (Task 3), không còn chỉ dựa cổng.
+- Đây **chỉ là bằng chứng thêm cho GĐ1**, KHÔNG thay việc của GĐ2: cổng `office` (hàm `isOffice`) vẫn được **suy ra** từ `order.view` (`src/shared/permissions.ts:111`) — khi ADR-0017 thật sự mở `order.view` cho FIELD, FIELD sẽ qua được cổng `office` và tới được các route Hồ sơ (không còn bị chặn ở cổng như H3a hôm nay), nhưng dừng đúng ở `can(staff, "party.view"/"party.staff.write")` bên trong — vẫn đúng theo thiết kế. Việc tách cổng `office` ra khỏi `order.view` (Q3 trong bài học mô hình 11 vai) là việc khác, chưa làm ở đây.
+- Không sửa `src/shared/permissions.ts` của cây làm việc thật; bản sao `/tmp/l2-copy` đã xoá sau khi đọc kết quả (không commit).
