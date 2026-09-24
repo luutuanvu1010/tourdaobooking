@@ -13,8 +13,8 @@
     <form id="add-form" class="grid three" autocomplete="off">
       <label>Họ tên<input id="add-name" type="text" maxlength="200" required></label>
       <label>Số điện thoại (tên đăng nhập)<input id="add-phone" type="tel" inputmode="tel" required></label>
-      <div>
-        <strong>Quyền trong app</strong>
+      <div class="span-2">
+        <strong>Vai và quyền</strong>
         <div id="add-perms"></div>
       </div>
       <div><button class="btn btn-primary" type="submit">Tạo tài khoản</button></div>
@@ -23,7 +23,7 @@
   </section>
   <section class="card table-wrap">
     <table class="items">
-      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Quyền</th><th>Tạo lúc</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
+      <thead><tr><th>Họ tên</th><th>Số điện thoại</th><th>Vai / quyền</th><th>Tạo lúc</th><th>Đăng nhập gần nhất</th><th></th></tr></thead>
       <tbody id="list"></tbody>
     </table>
   </section>

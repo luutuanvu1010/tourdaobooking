@@ -1,7 +1,9 @@
 import { ApiError, api, type SheetCandidate, type StaffAccount, type Api } from "./api";
-import { PERMISSION_CODES, PERMISSION_LABEL, hasPermission, type PermissionCode } from "../src/shared/permissions";
+import { PERMISSION_CODES, PERMISSION_LABEL, can, hasPermission, type PermissionCode } from "../src/shared/permissions";
+import { rolesLabel } from "../src/shared/roles";
 import { byId, h, replaceChildren } from "./dom";
 import { dateTime } from "./format";
+import { rolePicker, type RolePicker, type RolePickerValue } from "./role-picker";
 import { initShell, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -12,6 +14,12 @@ const sheetEl = byId("sheet");
 const editEl = byId("edit");
 const permissionsLabel = (list: readonly PermissionCode[]): string => (list.length ? list.map((p) => PERMISSION_LABEL[p]).join(", ") : "—");
 const sameSet = (a: readonly string[], b: readonly string[]): boolean => a.length === b.length && a.every((x) => b.includes(x));
+
+/** Tài khoản đã gán vai → tên vai; chưa gán → quyền cũ kèm ghi chú (chờ chuyển sang cách mới, đặc tả §14). */
+const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.roles) : `${permissionsLabel(s.permissions)} (chưa gán vai)`);
+const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
+const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
+let meSuper = false;
 
 let me: { id: string };
 let accounts: StaffAccount[] = [];
@@ -65,13 +73,13 @@ function row(s: StaffAccount): HTMLElement {
     { class: s.active ? "" : "row-off" },
     h("td", null, s.fullName, isMe && h("span", { class: "muted" }, " (bạn)"), !s.active && h("span", { class: "badge badge-cancelled" }, "Ngưng"), s.locked && h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
     h("td", null, s.phone),
-    h("td", null, permissionsLabel(s.permissions)),
+    h("td", null, accessLabel(s)),
     h("td", { class: "muted" }, dateTime(s.createdAt)),
     h("td", { class: "muted" }, s.lastLoginAt ? dateTime(s.lastLoginAt) : "Chưa ghi nhận"),
     h(
       "td",
       { class: "row-actions" },
-      btn("Sửa", () => openEdit(s)),
+      btn("Sửa", () => void openEdit(s)),
       btn("Đặt lại PIN", async () => {
         if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
         const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -116,12 +124,12 @@ function card(s: StaffAccount): HTMLElement {
     h("div", null, h("strong", null, s.fullName), isMe && h("span", { class: "muted" }, " (bạn)")),
     !s.active && h("div", null, h("span", { class: "badge badge-cancelled" }, "Ngưng")),
     s.locked && h("div", null, h("span", { class: "badge badge-draft" }, "Bị khoá đăng nhập")),
-    h("div", { class: "muted" }, s.phone, " · ", permissionsLabel(s.permissions)),
+    h("div", { class: "muted" }, s.phone, " · ", accessLabel(s)),
     h("div", { class: "muted" }, s.lastLoginAt ? `Đăng nhập gần nhất ${dateTime(s.lastLoginAt)}` : "Chưa ghi nhận đăng nhập"),
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
-      btn("Sửa", () => openEdit(s)),
+      btn("Sửa", () => void openEdit(s)),
       btn("Đặt lại PIN", async () => {
         if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
         const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -153,10 +161,18 @@ function card(s: StaffAccount): HTMLElement {
   );
 }
 
-function openEdit(s: StaffAccount): void {
+async function openEdit(s: StaffAccount): Promise<void> {
+  const legacy = s.roles.length === 0; // chưa gán vai: còn sửa được quyền cũ
+  let saved = EMPTY;
+  if (!legacy) {
+    const r = await act(() => api<Api.StaffRolesResponse>(`/api/staff/${s.id}/roles`));
+    if (!r) return; // lỗi đã hiện ở errorEl
+    saved = { roles: r.roles, adds: r.adds, removes: r.removes, reason: r.reason ?? "" };
+  }
   const name = h("input", { type: "text", value: s.fullName, maxLength: 200 });
   const phone = h("input", { type: "tel", value: s.phone });
-  const isMe = s.id === me.id; // không tự đổi quyền của mình
+  const isMe = s.id === me.id;
+  const picker = rolePicker({ initial: saved, actorIsSuperAdmin: meSuper, current: s.permissions });
   const boxes = new Map<PermissionCode, HTMLInputElement>();
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
@@ -167,18 +183,23 @@ function openEdit(s: StaffAccount): void {
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");
   cancel.addEventListener("click", () => (editEl.hidden = true));
   save.addEventListener("click", async () => {
-    const chosen = PERMISSION_CODES.filter((code) => boxes.get(code)!.checked);
-    if (!isMe && chosen.length === 0) return showError(errorEl, "Chọn ít nhất một quyền.");
+    const chosen = picker.value();
+    const legacyPerms = PERMISSION_CODES.filter((code) => boxes.get(code)!.checked);
+    if (!legacy && chosen.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai.");
+    if (legacy && chosen.roles.length === 0 && !isMe && legacyPerms.length === 0) return showError(errorEl, "Chọn ít nhất một vai (hoặc một quyền cũ).");
     if (!(await act(() => api(`/api/staff/${s.id}`, { method: "PATCH", body: { fullName: name.value, phone: phone.value } })))) return;
-    if (!isMe && !sameSet(chosen, s.permissions)) {
-      const body: Api.StaffPermissionsRequest = { permissions: chosen };
-      try {
+    try {
+      if (chosen.roles.length > 0 && !sameAssignment(chosen, saved)) {
+        const body: Api.StaffRolesRequest = { roles: chosen.roles, adds: chosen.adds, removes: chosen.removes, reason: chosen.reason };
+        await api(`/api/staff/${s.id}/roles`, { method: "PUT", body });
+      } else if (legacy && chosen.roles.length === 0 && !isMe && !sameSet(legacyPerms, s.permissions)) {
+        const body: Api.StaffPermissionsRequest = { permissions: legacyPerms };
         await api(`/api/staff/${s.id}/permissions`, { method: "PUT", body });
-      } catch (err) {
-        // Tên/số điện thoại đã lưu ở lời gọi trên. load() xoá thông báo lỗi (act mở đầu bằng showError(null)), nên nạp lại TRƯỚC rồi mới hiện lý do.
-        await load();
-        return showError(errorEl, `Đã lưu tên/số điện thoại nhưng chưa đổi được quyền: ${reasonOf(err)}`);
       }
+    } catch (err) {
+      // Tên/số điện thoại đã lưu ở lời gọi trên. load() xoá thông báo lỗi (act mở đầu bằng showError(null)), nên nạp lại TRƯỚC rồi mới hiện lý do.
+      await load();
+      return showError(errorEl, `Đã lưu tên/số điện thoại nhưng chưa đổi được vai/quyền: ${reasonOf(err)}`);
     }
     editEl.hidden = true;
     await load();
@@ -186,7 +207,12 @@ function openEdit(s: StaffAccount): void {
   replaceChildren(
     editEl,
     h("h2", null, `Sửa: ${s.fullName}`),
-    h("div", { class: "grid three" }, h("label", null, "Họ tên", name), h("label", null, "Số điện thoại đăng nhập", phone), h("div", null, h("strong", null, "Quyền trong app"), ...permissionBoxes)),
+    h("div", { class: "grid two" }, h("label", null, "Họ tên", name), h("label", null, "Số điện thoại đăng nhập", phone)),
+    h("h3", null, "Vai và quyền"),
+    legacy && h("p", { class: "alert warn" }, `Tài khoản này chưa gán vai, đang dùng quyền cũ: ${permissionsLabel(s.permissions)}. Chọn vai để chuyển sang cách mới — xem dòng "Sẽ mất" trước khi lưu.`),
+    isMe && h("p", { class: "muted" }, "Bạn chỉ đổi được vai của chính mình khi quyền không đổi (xem dòng xem trước)."),
+    picker.el,
+    legacy && h("details", null, h("summary", null, "Quyền cũ (chỉ dùng khi chưa gán vai)"), ...permissionBoxes),
     h("p", { class: "muted" }, "Đổi số điện thoại sẽ đổi tên đăng nhập của người này. Phiên đang đăng nhập vẫn giữ nguyên."),
     h("div", { class: "actions" }, save, cancel),
   );
@@ -202,30 +228,62 @@ async function load(): Promise<void> {
   replaceChildren(listCardsEl, ...accounts.map(card));
 }
 
-// ---- Thêm thủ công
-// Ô tick dựng ĐỘNG theo PERMISSION_CODES (giống openEdit) — HTML tĩnh trước đây chỉ có 4 ô (SALES/ACCOUNTING/ADMIN/FIELD), thiếu PARTNER/
-// SUPER_ADMIN (ADR-0014): byId(`add-perm-PARTNER`) ném lỗi "Thiếu phần tử" ngay khi bấm Tạo tài khoản, chặn đứng cả nút cho MỌI quyền, không
-// riêng PARTNER/SUPER_ADMIN — lỗi thật, chủ dự án báo trực tiếp (2026-09-22).
-const addPermBoxes = new Map<PermissionCode, HTMLInputElement>();
-replaceChildren(
-  byId("add-perms"),
-  ...PERMISSION_CODES.map((code) => {
-    const box = h("input", { type: "checkbox", checked: code === "SALES", style: "width:auto;display:inline;margin:0 6px 0 0" });
-    addPermBoxes.set(code, box);
-    return h("label", { class: "check" }, box, PERMISSION_LABEL[code]);
-  }),
-);
+// ---- Thêm thủ công (ADR-0018): chọn vai + xem trước; tuỳ chọn dùng hồ sơ cá nhân có sẵn (tra theo SĐT) để không tạo hồ sơ trùng.
+// Khối vai dựng SAU khi biết người dùng có phải Toàn quyền không (setupAddForm) — ô Giám đốc/Điều hành chỉ mở cho Toàn quyền.
+let addPicker: RolePicker | null = null;
+let existingPartyId: string | null = null;
+const addName = byId<HTMLInputElement>("add-name");
+const addPhone = byId<HTMLInputElement>("add-phone");
+const existingNote = h("div", { class: "muted", hidden: true });
+
+function setupAddForm(): void {
+  addPicker = rolePicker({ initial: EMPTY, actorIsSuperAdmin: meSuper, current: null });
+  replaceChildren(byId("add-perms"), addPicker.el, existingNote);
+}
+
+function clearExisting(): void {
+  if (existingPartyId) addName.value = "";
+  existingPartyId = null;
+  addName.readOnly = false;
+  existingNote.hidden = true;
+}
+
+addPhone.addEventListener("change", async () => {
+  clearExisting();
+  const raw = addPhone.value.trim();
+  if (!raw) return;
+  let found: Api.PartyLookupResponse | null = null;
+  try {
+    found = await api<Api.PartyLookupResponse>(`/api/parties/lookup?phone=${encodeURIComponent(raw)}`);
+  } catch {
+    return; // SĐT chưa đúng dạng hay mất mạng: không gợi ý gì, không báo lỗi giữa lúc gõ
+  }
+  const person = found.matches.find((m) => m.kind === "PERSON" && m.active);
+  if (!person) return;
+  const use = h("button", { type: "button", class: "btn btn-link" }, `Dùng hồ sơ có sẵn: ${person.displayName}`);
+  use.addEventListener("click", () => {
+    existingPartyId = person.id;
+    addName.value = person.displayName;
+    addName.readOnly = true;
+    replaceChildren(existingNote, `Sẽ tạo tài khoản cho hồ sơ có sẵn "${person.displayName}" (không tạo hồ sơ mới). Đổi số điện thoại để bỏ chọn.`);
+  });
+  replaceChildren(existingNote, use);
+  existingNote.hidden = false;
+});
+
 byId<HTMLFormElement>("add-form").addEventListener("submit", async (e) => {
   e.preventDefault();
-  const name = byId<HTMLInputElement>("add-name");
-  const phone = byId<HTMLInputElement>("add-phone");
-  const chosen = PERMISSION_CODES.filter((code) => addPermBoxes.get(code)!.checked);
-  if (chosen.length === 0) return showError(errorEl, "Chọn ít nhất một quyền.");
-  const r = await act(() => api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body: { fullName: name.value, phone: phone.value, permissions: chosen } }));
+  if (!addPicker) return;
+  const v = addPicker.value();
+  if (v.roles.length === 0) return showError(errorEl, "Chọn ít nhất một vai.");
+  const who = existingPartyId ? { partyId: existingPartyId } : { fullName: addName.value };
+  const body = { phone: addPhone.value, roles: v.roles, adds: v.adds, removes: v.removes, reason: v.reason, ...who };
+  const r = await act(() => api<Api.StaffWithPinResponse>("/api/staff", { method: "POST", body }));
   if (r) {
     showSecrets("Tài khoản mới", [{ name: r.staff.fullName, phone: r.staff.phone, pin: r.pin }]);
-    name.value = phone.value = "";
-    for (const code of PERMISSION_CODES) addPermBoxes.get(code)!.checked = code === "SALES";
+    clearExisting();
+    addName.value = addPhone.value = "";
+    addPicker.reset(EMPTY);
     await load();
   }
 });
@@ -263,7 +321,7 @@ byId("sheet-pull").addEventListener("click", async () => {
   replaceChildren(
     sheetEl,
     h("h2", null, "Xem trước dữ liệu từ Google Sheet"),
-    h("p", { class: "muted" }, "Sheet chỉ là nguồn đề xuất. Mọi tài khoản mới chỉ có quyền Bán hàng (đổi quyền ở nút Sửa). Sheet không tự ngưng hay xoá ai."),
+    h("p", { class: "muted" }, "Sheet chỉ là nguồn đề xuất. Mọi tài khoản mới mang vai Nhân viên kinh doanh (đổi vai ở nút Sửa). Sheet không tự ngưng hay xoá ai."),
     fresh.length === 0
       ? h("p", { class: "alert warn" }, r.candidates.length === 0 && r.problems.length > 0
           ? "Sheet chưa có ai kèm số điện thoại hợp lệ. Hãy điền số điện thoại vào Sheet rồi đồng bộ lại."
@@ -282,5 +340,10 @@ byId("sheet-pull").addEventListener("click", async () => {
 
 const staff = await initShell();
 me = staff;
-if (!hasPermission(staff, "ADMIN")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
-else await load();
+meSuper = hasPermission(staff, "SUPER_ADMIN");
+// Cổng trang theo ô admin.manage (Quản trị HOẶC Toàn quyền — cùng đối tượng với access "admin" của API), không riêng quyền ADMIN.
+if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
+else {
+  setupAddForm();
+  await load();
+}
