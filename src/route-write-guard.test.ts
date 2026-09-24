@@ -16,9 +16,12 @@
 //       bản đầu né được hạn vĩnh viễn).
 //   (2) Mục cho route ĐÃ có kiểm → đỏ ("hoãn thừa"); mục cho route không còn tồn tại → đỏ.
 //   (3) Số route bóc được phải bằng số lời gọi `route(` trong tệp: route viết khác khuôn làm bài kiểm đỏ, không im lặng bỏ qua.
-// GIỚI HẠN (ghi ở docs/SO-HANG-RAO.md): canh QUÊN, không canh CỐ Ý — không kiểm ô có đúng không, không kiểm `if (can(…)) {}` rỗng, không đi
-// vào hàm được gọi (hàm kiểm dùng chung phải có tên trong GUARDS; thêm tên = sửa hàng rào), chỉ đọc src/modules/*/index.ts (route khai ở
-// tệp khác sẽ không được thấy — `grep -rn 'route("' src` để chắc). Kiểm "đúng ô" là việc của hàng rào 1 và của người kiểm đọc mã.
+// GIỚI HẠN (ghi ở docs/SO-HANG-RAO.md): canh QUÊN, không canh CỐ Ý — chỉ phân biệt "lời gọi đứng trơ thành câu lệnh" với "lời gọi ở vị trí
+// biểu thức"; KHÔNG biết kết quả có ảnh hưởng luồng điều khiển (return/throw) hay không, KHÔNG kiểm ô có đúng không. Mọi vị trí biểu thức
+// đều được coi là "đã dùng": `void can(…)`, `const u = can(…)` không dùng, `if (can(…)) {}` rỗng, đối số của hàm khác, toán tử phẩy, ngoặc thừa
+// (người kiểm độc lập 24/9 chứng minh 8 biến thể). Không đi vào hàm được gọi (hàm kiểm dùng chung phải có tên trong GUARDS; thêm tên = sửa
+// hàng rào), chỉ đọc src/modules/*/index.ts (route khai ở tệp khác sẽ không được thấy — `grep -rn 'route("' src` để chắc). Kiểm "đúng ô" và
+// "có từ chối thật" là việc của hàng rào 1 và của người kiểm ĐỌC MÃ; "npm test xanh" không phải bằng chứng một lỗ đã vá.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, existsSync } from "node:fs";
