@@ -11,7 +11,7 @@
 2. Mỗi nhóm tệp bạn chạm có bộ kiểm riêng: §3. Trước commit và trước deploy: §5.
 3. Hành vi lạ → đọc §4 (bẫy) trước khi debug. Thấy tài liệu khác mã → §6.
 
-Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–s · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
+Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–t · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
 
 ## 1. Bảng tra nhanh "Muốn … → xem …"
 
@@ -58,6 +58,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–s · §3 Ma t
 | Thêm kịch bản Chrome (giao diện) | `docs/evidence/2026-09-20-a2/kich-ban/` (`a2-cdp.mjs`, `a2-smoke-*.mjs`), `docs/evidence/2026-09-21-v1-0/kich-ban/` (`v1-dang-nhap.mjs`, `v1-xac-nhan-png.mjs`, `v1-nguoi-phu-trach.mjs`) | o |
 | Cập nhật sổ dữ liệu | `docs/data-dictionary.json` → `npm run dict` | d |
 | Đổi bước của lệnh đẩy (`npm run day-len`) / triển khai (`npm run trien-khai`) chủ dự án tự gõ | `scripts/release-lib.mjs` (+ `src/release-lib.test.ts`), `scripts/day-len.mjs`, `scripts/trien-khai.mjs`, `scripts/release-shell.mjs` | s |
+| Phát hành bản mới / ghi có gì mới | `src/shared/changelog.ts`, `scripts/kiem-phien-ban.mjs` | t |
 
 ## 2. Các công thức
 
@@ -299,15 +300,15 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
   - 10 × `public/*.html` (`<title>… — Tour Đảo Booking` và `apple-mobile-web-app-title`);
   - `public/login.html` (`<h1>`); `web/shell.ts` (brand: `"Tour Đảo "` + `<span>Booking</span>`); `web/order.ts` (`document.title`).
 - Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) dựng khối ở chân trang từ đó (`#company`): tên (đậm), "Địa chỉ: …", "Email: …" (ẩn khi `null`), "MST: …" — chữ đúng như dữ liệu (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Cũng là nguồn của đầu ảnh xác nhận đơn (`headerBlock` trong `src/shared/order-confirmation.ts`: tên, MST, địa chỉ, hotline, email) — công thức p.
-- Số phiên bản: hằng ở `src/shared/app-info.ts` (`APP_NAME`, `APP_VERSION`, `APP_RELEASE_DATE`, `formatReleaseLine()` → "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026"); phát hành mới chỉ sửa tệp này. `package.json` không có `version`. Mã bản dựng `__BUILD_ID__` (`build:web` chèn vào `public/sw.js` → tên cache `td-shell-<mã>`) là thứ khác, không hiển thị. Màn đăng nhập hiện `formatReleaseLine()` ở `#release` (luôn hiện, kể cả khi API công ty lỗi: là hằng trong mã, không đi qua API).
+- Số phiên bản: KHÔNG viết tay. `APP_VERSION`/`APP_RELEASE_DATE` ở `src/shared/app-info.ts` dẫn xuất từ mục đầu của `CHANGELOG` (`src/shared/changelog.ts`) — xem công thức t "Ghi nhật ký thay đổi". Màn đăng nhập (`#release`), trang Trợ giúp (`/help`) và `GET /api/auth/config` (`version`) cùng đọc nguồn này.
 
 **Đổi tên app hôm nay:** sửa tất cả nơi trên rồi chạy `npm run test:e2e -- pwa` (đối chiếu manifest ↔ HTML ↔ bundle `web/shell.ts`). Không đổi tên Worker/D1 `tourdao-sales`.
 
-**Đổi số phiên bản / ngày phát hành:** sửa `APP_VERSION`, `APP_RELEASE_DATE` ở `src/shared/app-info.ts` (và ô kỳ vọng ở `src/shared/app-info.test.ts`) — hằng trong mã, không đi qua esbuild `--define`. **Đổi thông tin công ty:** sửa dòng `company_profile` (migration dữ liệu như `0013_company_email.sql`; giao diện sửa hồ sơ là M5, chưa làm); `GET /api/company` chỉ trả năm trường của `CompanyDto`, muốn lộ thêm trường phải sửa `CompanyDto` + câu `SELECT` tường minh ở `src/modules/company/repository.ts` + `tests/e2e/company.mjs` (nó khoá đúng tập khoá).
+**Đổi số phiên bản / ngày phát hành:** thêm mục mới vào đầu `CHANGELOG` (công thức t "Ghi nhật ký thay đổi"); không sửa `app-info.ts`. **Đổi thông tin công ty:** sửa dòng `company_profile` (migration dữ liệu như `0013_company_email.sql`; giao diện sửa hồ sơ là M5, chưa làm); `GET /api/company` chỉ trả năm trường của `CompanyDto`, muốn lộ thêm trường phải sửa `CompanyDto` + câu `SELECT` tường minh ở `src/modules/company/repository.ts` + `tests/e2e/company.mjs` (nó khoá đúng tập khoá).
 
 **Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa company`; đổi chữ hiển thị ở màn đăng nhập → `v1-dang-nhap.mjs`.
 
-**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay (`web/login.ts` mới dùng `formatReleaseLine()`). Kịch bản Chrome `v1-dang-nhap.mjs` (bước a) ghi CỨNG chữ kỳ vọng (`EXPECT`: dòng phiên bản, tên/địa chỉ/email/MST của công ty): đổi số phiên bản hoặc dữ liệu công ty thì sửa `EXPECT` ở đó. Kế hoạch v1.0: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`; nhật ký thi công (ruling, chỗ mã lệch kế hoạch, việc của chủ dự án): `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
+**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay (`web/login.ts` mới dùng `formatReleaseLine()`). `v1-dang-nhap.mjs` đọc dòng phiên bản từ `formatReleaseLine()`; dữ liệu công ty trong `EXPECT` vẫn ghi cứng. Kế hoạch v1.0: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`; nhật ký thi công (ruling, chỗ mã lệch kế hoạch, việc của chủ dự án): `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
 
 ### k. Đồng bộ danh mục / Sheet / Cron
 
@@ -519,8 +520,8 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 Đặc tả: `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`; bảng từng bước: `docs/HANDOFF-N1.md` mục "Đẩy lên GitHub và triển khai: HAI LỆNH". **Cả hai lệnh chỉ chạy trong ứng dụng Terminal của macOS** (cần TTY thật; không qua AI, không qua `!` trong phiên Claude Code — lời chặn của hook, luật `release-owner-only`, dùng đuôi riêng nói đúng điều này). `trien-khai` chạy cả `npm run test:e2e` ĐỦ BỘ sau test/typecheck/build và TRƯỚC mọi câu hỏi áp/deploy; e2e đỏ thì nêu tên kịch bản đỏ (`parseE2eFailures`, đọc dòng `✘ <tên>`) và hỏi "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)" — chỉ đúng `c` mới đi tiếp.
 
 **Chỗ mã:**
-1. **Logic thuần** `scripts/release-lib.mjs`: `dayLen`, `trienKhai` (trả mã thoát), `parsePendingMigrations` (đọc `migrations list --remote`), `parseBookmark` (Time Travel `--json`), `parseVersionId` (`Current Version ID:` của deploy), `isSafeBranchName`. Nhận `run(cmd, args, { env, stream, tee })`, `ask`, `isTTY`, `log` tiêm vào — KHÔNG tự import `child_process`.
-2. **Vỏ mỏng** `scripts/release-shell.mjs` (bộ chạy thật: `spawnSync`, riêng `tee` dùng `spawn` để vừa hiện vừa bắt đầu ra; `isTTY` = stdin VÀ stdout là terminal; mỗi câu hỏi một `readline` riêng) + `scripts/day-len.mjs`, `scripts/trien-khai.mjs` (chỉ đọc tham số rồi gọi lib). `package.json` khai `day-len`, `trien-khai`.
+1. **Logic thuần** `scripts/release-lib.mjs`: `dayLen`, `trienKhai` (trả mã thoát), `parsePendingMigrations` (đọc `migrations list --remote`), `parseBookmark` (Time Travel `--json`), `parseVersionId` (`Current Version ID:` của deploy), `isSafeBranchName`. Nhận `run(cmd, args, { env, stream, tee })`, `ask`, `isTTY`, `log` tiêm vào — KHÔNG tự import `child_process`. `trienKhai` nhận thêm `sleep` (chờ trước khi thử lại cổng sau; mặc định thật 20 giây) và `version` (số phiên bản ở máy, in vào tóm tắt). **Cổng số phiên bản** (công thức t; chủ quyết 2026-09-23): cổng TRƯỚC `node scripts/kiem-phien-ban.mjs` chạy ngay sau bước đọc `migrations list` và trước `npm test` (0 đi tiếp; 1 hỏi "… Vẫn tiếp tục? (c/k)", chỉ đúng `c` mới đi; 2 hay mã lạ dừng); cổng SAU `node scripts/kiem-phien-ban.mjs --sau-deploy` chạy sau `audit-invariants` (không xen giữa deploy và kiểm dữ liệu), hỏng thì `sleep` rồi thử lại một lần; lệnh thoát 0 chỉ khi kiểm dữ liệu VÀ cổng sau đều ĐẠT.
+2. **Vỏ mỏng** `scripts/release-shell.mjs` (bộ chạy thật: `spawnSync`, riêng `tee` dùng `spawn` để vừa hiện vừa bắt đầu ra; `isTTY` = stdin VÀ stdout là terminal; mỗi câu hỏi một `readline` riêng) + `scripts/day-len.mjs`, `scripts/trien-khai.mjs` (chỉ đọc tham số rồi gọi lib; `trien-khai.mjs` truyền `version: APP_VERSION` đọc từ `src/shared/app-info.ts`, như `kiem-phien-ban.mjs` đọc `changelog.ts`). `package.json` khai `day-len`, `trien-khai`.
 3. **Hàng rào**: luật `release-owner-only` ở `.claude/hooks/guard-remote-lib.mjs` + 8 mục `deny` ở `.claude/settings.json` (đổi hai tệp này là đổi luật: chỉ được siết, chủ duyệt — `CLAUDE.md` §3).
 
 **Bẫy:**
@@ -528,9 +529,24 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 - **Không test nào được chạy `scripts/day-len.mjs`/`trien-khai.mjs` thật:** `day-len` gọi `npm test` bên trong — test gọi lồng lệnh đẩy sẽ đẩy thật.
 - **Nâng wrangler:** `parsePendingMigrations` dựa vào hai câu "No migrations to apply" / "Migrations to be applied:" + tên `NNNN_*.sql`. Đổi định dạng thì lệnh DỪNG (không đoán) — chụp lại đầu ra thật bằng `CI=1 npx wrangler d1 migrations list tourdao-sales-db --local --persist-to <thư mục tạm>` vào `src/release-lib.fixtures/` rồi sửa hàm.
 - **Không thêm bước tự hoàn tác** (`git reset`, `wrangler rollback`, `time-travel restore`): lệnh chỉ IN lệnh hoàn tác để chủ tự quyết.
+- **Cổng số phiên bản:** mã 2 của cổng TRƯỚC (không đọc được production) KHÔNG BAO GIỜ được coi là đạt hay được hỏi cho qua — chỉ mã 1 mới hỏi. Cổng SAU đặt SAU `audit-invariants`: đừng dời nó lên giữa deploy và kiểm dữ liệu, và đừng thêm đường nào sau khi deploy xong mà bỏ qua kiểm dữ liệu hay khối tóm tắt. Thời gian chờ đi qua `sleep` tiêm vào — test truyền hàm tức thì; đừng gọi `setTimeout` thẳng trong luồng. Không đổi hợp đồng mã thoát 0/1/2 của `kiem-phien-ban.mjs`.
 - Hook chỉ chặn nhầm/quên: đường dẫn trong dấu nháy (`node "scripts/day-len.mjs"`) không bị bắt, như mọi luật khác của hook. Lớp hai là tự từ chối ngoài TTY.
 
 **Kiểm:** `node --test src/release-lib.test.ts` → `node --test src/claude-guard.test.ts` (nếu đổi hàng rào) → `npm test` → `npm run typecheck`. Thử thật chỉ được dạng tự từ chối: `node scripts/day-len.mjs` ngoài TTY (TRƯỚC khi có hook; nay hook chặn cả dạng này) phải thoát 1 và không gọi git (`GIT_TRACE=1` rỗng).
+
+### t. Ghi nhật ký thay đổi khi phát hành (mỗi lần deploy mã mới)
+
+**Khi nào:** MỖI lần deploy mã mới lên production (bước A.0 của runbook ở `docs/HANDOFF-N1.md`). Không ghi khi chỉ deploy lại đúng bản đang chạy hoặc lùi về bản cũ.
+
+**Làm:** thêm MỘT mục vào ĐẦU `CHANGELOG` ở `src/shared/changelog.ts`: `version` = số của mục đầu hiện tại, tăng phần sau dấu chấm thêm 1 (1.3 → 1.4, 1.9 → 1.10), `date` = ngày deploy dự kiến (giờ Việt Nam), `items` = vài gạch loại `moi` (Mới) / `sua` (Đã sửa) / `doi` (Thay đổi). Deploy không có gì người dùng thấy: một gạch `doi` "Cải thiện độ ổn định và an toàn bên trong, không đổi cách dùng."
+
+**Cách viết:** cho nhân viên bán hàng/kế toán/hướng dẫn viên; nói điều họ THẤY hoặc LÀM ĐƯỢC khác đi; mỗi gạch một câu ≤ 160 ký tự; không tên tệp, không mã, không chữ kỹ thuật (test chặn `task`, `commit`, `api`, `route`, `migration`, `worker`, `deploy`, `e2e`, `d1`, `null`, `undefined`, dấu `` ` ``, `snake_case`). Bị chặn nhầm thì sửa câu, không nới danh sách (trừ khi chủ đồng ý).
+
+**Kiểm:** `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` (test `formatReleaseLine` ở `app-info.test.ts` ghim dòng phiên bản của mục đầu: thêm mục mới thì sửa chuỗi kỳ vọng cho khớp, cùng commit) → `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt). Sau `wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. `npm run trien-khai` (công thức s) tự chạy cổng trước (sau bước đọc migration) và sau (sau kiểm dữ liệu) — chủ quyết 2026-09-23; chỉ khi deploy TAY mới phải chạy hai lệnh trên bằng tay.
+
+**Bẫy:**
+- **Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
+- Trang Trợ giúp và chấm đỏ cập nhật sau deploy + một lần mở lại app (service worker stale-while-revalidate). "Đã xem" lưu theo từng máy (`localStorage` `td_help_seen`).
 
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
@@ -553,6 +569,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 | `scripts/release-lib.mjs`, `scripts/release-shell.mjs`, `scripts/day-len.mjs`, `scripts/trien-khai.mjs` | `node --test src/release-lib.test.ts` → `npm test` → `npm run typecheck`; KHÔNG chạy thử hai lệnh thật (chúng đẩy/deploy thật; hook chặn AI) — xem công thức s |
 | `.claude/hooks/guard-remote-lib.mjs`, `.claude/settings.json` | `node --test src/claude-guard.test.ts` (gồm kho ca `src/claude-guard.cases.json`); hàng rào mới phải được quan sát chặn thật một lần (sửa cố ý → đỏ → hoàn nguyên) |
 | `scripts/*.mjs` (còn lại) | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
+| `src/shared/changelog.ts` | `node --test src/shared/changelog.test.ts` + `help-smoke.mjs` nếu đổi cách hiển thị |
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |
 
 **Thời gian ước lượng** (máy dev, đo 2026-09-21):
@@ -606,6 +623,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 5. Thông điệp commit tiếng Việt: tiêu đề nói việc, thân nói VÌ SAO; thêm dòng đồng tác giả theo yêu cầu của môi trường.
 
 **Trước khi deploy** (CHỈ khi chủ dự án ra lệnh trong phiên đó; chi tiết `docs/HANDOFF-N1.md`). Từ 2026-09-23 các bước 1, 3 (áp + deploy) và `audit-invariants` của bước 4 do lệnh `npm run trien-khai` làm, kể cả `npm run test:e2e` đủ bộ của bước 2 — chủ tự gõ trong ứng dụng Terminal của macOS, AI không chạy (công thức s); kịch bản Chrome và kiểm riêng của từng lần phát hành vẫn làm tay:
+0. Bước A.0 (công thức t): thêm mục nhật ký thay đổi mới (commit cùng nhánh sẽ deploy). Cổng số phiên bản trước/sau do `npm run trien-khai` tự chạy; deploy tay thì chạy `node scripts/kiem-phien-ban.mjs` trước và `--sau-deploy` sau, cả hai phải ĐẠT.
 1. Cổng chỉ-đọc trên D1 remote (kỳ vọng 0 dòng) + ghi điểm khôi phục: `npx wrangler d1 time-travel info tourdao-sales-db`.
 2. Ba lệnh xanh trên đúng mã sẽ deploy: `npm test`, `npm run typecheck`, `npm run test:e2e`.
 3. Có migration mới: `npm run db:migrate:remote` rồi `npx wrangler deploy` NGAY trong cùng lượt (`CI=1` để wrangler không hỏi). Không tạo/sửa tài khoản, quyền, hồ sơ trong "cửa sổ đóng băng".

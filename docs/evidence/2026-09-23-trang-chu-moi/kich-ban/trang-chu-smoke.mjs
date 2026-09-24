@@ -488,9 +488,10 @@ try {
   await axe(p, "Trang chủ máy tính");
 
   // Đợt D Task 4 (ADR-0015): thanh ngang (`.topnav`, 9 mục) đổi thành thanh điều hướng dọc (`#sidebar`) — ĐỔI
-  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 10 mục: 9 mục cũ + "Tài khoản" (trước là `.who` hiện tên nhân
+  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 11 mục: 9 mục cũ + "Tài khoản" + "Trợ giúp" (từ 1.4) (trước là `.who` hiện tên nhân
   // viên riêng, không tính vào danh sách link; nay là MỘT MỤC CÓ NHÃN trong nhóm TÔI, đúng bản mẫu). Đo cả
   // #sidebar (không tràn) lẫn #topbar (thanh công việc mới: breadcrumb + tìm kiếm + nút, không tràn).
+  // Phát hành 1.4 (gộp nhánh Trợ giúp): nhóm TÔI thêm mục "Trợ giúp" (mọi tài khoản) ⇒ ADMIN 11 mục, FIELD 3 mục.
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
     return {
@@ -501,7 +502,7 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.equal(navMeasure.linkCount, 10, `Thanh điều hướng dọc (ADMIN) phải có 10 mục (9 mục cũ + "Tài khoản") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 11, `Thanh điều hướng dọc (ADMIN) phải có 11 mục (9 mục cũ + "Tài khoản" + "Trợ giúp") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -758,10 +759,10 @@ try {
     })()`);
     assert.equal(fieldNav.sidebarShown, true, `D-1 (FIELD, 1040px): thanh bên phải hiển thị thật — ${JSON.stringify(fieldNav)}`);
     assert.deepEqual(fieldNav.groupTitles, ["TÔI"], `D-1 (FIELD): thanh bên chỉ được có nhóm "TÔI" — nhóm BÁN HÀNG/QUẢN TRỊ rỗng phải ẩn CẢ tiêu đề — ${JSON.stringify(fieldNav)}`);
-    assert.deepEqual(fieldNav.labels, ["Tài khoản", "Góp ý / Báo lỗi"], `D-1 (FIELD): thanh bên chỉ được có 2 mục của nhóm TÔI — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.labels, ["Tài khoản", "Góp ý / Báo lỗi", "Trợ giúp"], `D-1 (FIELD): thanh bên chỉ được có 3 mục của nhóm TÔI — ${JSON.stringify(fieldNav)}`);
     assert.equal(fieldNav.logoutShown, true, `D-1 (FIELD): "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(fieldNav)}`);
     await shot(pErr, "task-4-sidebar-field-may-tinh.png");
-    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): đúng 1 nhóm ${JSON.stringify(fieldNav.groupTitles)}, đúng 2 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
+    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): đúng 1 nhóm ${JSON.stringify(fieldNav.groupTitles)}, đúng 3 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
     pErr.close();
   }
 
@@ -921,7 +922,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Lập đơn mới" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Đơn mới") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, 10, `${at}: thanh bên của ADMIN phải đủ 10 mục — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, 11, `${at}: thanh bên của ADMIN phải đủ 11 mục (gồm "Trợ giúp") — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);

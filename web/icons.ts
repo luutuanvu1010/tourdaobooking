@@ -39,6 +39,12 @@ const SHAPES = {
     ["path", { d: "M4.5 5.5h15v10.5H9.5l-5 4V5.5z" }],
     ["path", { d: "M8.5 9.5h7M8.5 12.5h4.5" }],
   ],
+  // Mục "Trợ giúp" của thanh điều hướng dọc: vòng tròn + dấu hỏi.
+  help: [
+    ["circle", { cx: 12, cy: 12, r: 8.5 }],
+    ["path", { d: "M9.6 9.6a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6" }],
+    ["path", { d: "M12 17v.01" }],
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;

@@ -5,6 +5,7 @@ import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { counter } from "./counter";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
+import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
@@ -39,6 +40,7 @@ replaceChildren(
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
+  h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
   logoutBtn,
 );
 form.addEventListener("submit", async (e) => {

@@ -26,6 +26,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, TURNSTILE_TEST, ok, setInput, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { APP_VERSION, formatReleaseLine } from "../../../../src/shared/app-info.ts";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-21-v1-0";
 const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;
@@ -33,9 +34,10 @@ const AXE = readFileSync(process.env.AXE_JS ?? "", "utf8");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 
 // Chữ đúng theo đặc tả (docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md, việc 1) — bước a còn đối chiếu với chính D1.
+// Riêng dòng phiên bản đọc từ nhật ký thay đổi (src/shared/changelog.ts qua formatReleaseLine): số phiên bản đổi mỗi lần phát hành, ghi cứng sẽ đỏ giả.
 const EXPECT = {
   app: "Tour Đảo Booking",
-  release: "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026",
+  release: formatReleaseLine(),
   company: "CÔNG TY TNHH TOUR ĐẢO",
   address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",
   email: "Tourdaotravel@gmail.com",
@@ -560,7 +562,7 @@ const envB = await startEnv();
 try {
   await step("f", "máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)", async () => {
     const cfg = await (await fetch(envB.base + "/api/auth/config")).json();
-    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng)
+    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false, version: APP_VERSION }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng); + số phiên bản (trang Trợ giúp, dẫn xuất từ nhật ký thay đổi)
     const p = await openLogin(envB, { label: "f" });
     await p.waitFor(`${BTN_ENABLED} && !document.getElementById('company').hidden`, "nút mở và khối công ty hiện", 10000);
     const st = await p.ev(`({ khungAn: document.getElementById('turnstile-widget').hidden, widget: ${WIDGET_UP}, script: [...document.scripts].some((s) => s.src.includes('cloudflare')), thuLai: document.getElementById('turnstile-retry').hidden })`);
