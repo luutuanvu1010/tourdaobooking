@@ -375,6 +375,116 @@ test("R-ORD-5: dòng KHÁC của MỘT đơn khác (khoẻ) vẫn kiểm ĐÚNG 
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-6a/6b (Đợt E task 9 — kiểm độc lập chỉ ra "còn cửa cho lần thứ NĂM": mọi khẳng định e2e D1–D6 cũ đo BỀ MẶT ĐỌC, đã ngừng tin cột
+// subtotal_before/subtotal_after từ Task 7, nên một đột biến làm NƠI GHI hồi quy về đúng lỗi cũ không còn cổng dữ liệu nào bắt được). Hai kiểm
+// này CHỦ Ý chỉ so hai con số ĐÃ LƯU với nhau (orders.subtotal, và chuỗi subtotal_after→subtotal_before giữa hai dòng liên tiếp) — KHÔNG tính lại
+// effectiveSubtotal bằng SQL (tránh tạo bản sao thứ hai của chính hàm đó — xem chú thích đầy đủ ở scripts/audit-checks.mjs). Mức "warn" — không
+// "fail" — vì tính năng sửa tiền đã sống trên production TỪ TRƯỚC bản vá Task 7 (xem lý do đầy đủ ở audit-checks.mjs): các test dưới đây kiểm
+// ĐÚNG câu SQL, không kiểm mức (đã có test riêng "danh sách kiểm" ở đầu tệp này quét mọi mã bắt đầu bằng R-ORD nếu cần mở rộng).
+// ---------------------------------------------------------------------------------------------------------------------
+/** Đơn có `subtotal` (và `total`/`remaining_amount` khớp — trigger `orders_money_insert` ép) tự chọn, KHÔNG cọc/giảm giá (để subtotal = total = remaining_amount, đơn giản cho test). */
+function addOrderWithSubtotal(db: DatabaseSync, id: string, subtotal: number, staffId = "s-an"): void {
+  db.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
+           VALUES ('${id}', 'TD-${id}', '${staffId}', 'draft', 'K', '0900000009', ${subtotal}, ${subtotal}, ${subtotal}, '${T1}', '${T1}')`);
+}
+function addAdjustmentMoney(db: DatabaseSync, o: { id: string; orderId: string; seq: number; before: number; after: number }): void {
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', '[]', ?, ?)`).run(
+    o.id, o.orderId, o.seq, o.before, o.after,
+  );
+}
+
+test("R-ORD-6a/6b: đúng hai kiểm, mức warn (lý do đầy đủ ở scripts/audit-checks.mjs: tính năng đã sống trên production trước bản vá Task 7, bảng chỉ-thêm — không tự nâng lên fail được)", () => {
+  assert.equal(one("R-ORD-6a").level, "warn");
+  assert.equal(one("R-ORD-6b").level, "warn");
+});
+
+test("R-ORD-6a: dòng ĐẦU TIÊN (seq=1) có subtotal_before khớp orders.subtotal → hợp lệ", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  assert.equal(violations(db, one("R-ORD-6a")), 0);
+});
+
+test("R-ORD-6a: dòng ĐẦU TIÊN có subtotal_before LỆCH orders.subtotal → vi phạm — ĐÚNG ca lỗi Task 7 (nơi ghi hồi quy, bỏ sót dịch vụ nhập tay: orders.subtotal=800.000 nhưng subtotal_before lưu thiếu 600.000)", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 600000, after: 900000 }); // đúng số nơi ghi cũ (lỗi) sẽ lưu cho D3 (Task 7)
+  assert.equal(violations(db, one("R-ORD-6a")), 1);
+});
+
+test("R-ORD-6a: chỉ xét dòng seq=1 — dòng seq=2 lệch orders.subtotal KHÔNG bị 6a tính (đó là việc của 6b, so với dòng trước, không so với orders.subtotal)", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 999999, after: 1200000 }); // before của seq=2 KHÁC orders.subtotal — không phải việc của 6a
+  assert.equal(violations(db, one("R-ORD-6a")), 0, "6a chỉ xét seq=1; seq=2 sai (999999 ≠ subtotal_after của seq=1 = 1100000) là việc của 6b");
+});
+
+test("R-ORD-6a: đơn CHƯA có điều chỉnh nào (không có dòng seq=1) không bị tính là vi phạm", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  assert.equal(violations(db, one("R-ORD-6a")), 0);
+});
+
+test("R-ORD-6a: nhiều đơn — một đơn lệch, một đơn khoẻ → đúng 1 vi phạm, đơn khoẻ không bị cuốn theo", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-broken", 800000);
+  addAdjustmentMoney(db, { id: "a-broken", orderId: "o-broken", seq: 1, before: 600000, after: 900000 });
+  addOrderWithSubtotal(db, "o-healthy", 200000);
+  addAdjustmentMoney(db, { id: "a-healthy", orderId: "o-healthy", seq: 1, before: 200000, after: 200000 });
+  assert.equal(violations(db, one("R-ORD-6a")), 1);
+});
+
+test("R-ORD-6a: đơn ĐÃ HUỶ (status cancelled) vẫn kiểm bình thường — orders.subtotal đứng yên, không phải trường hợp đặc biệt", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 200000);
+  db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = 'o-1'`); // draft → cancelled là chuyển hợp lệ (0017), không cần qua 'confirmed'
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 200000, after: 200000 });
+  assert.equal(violations(db, one("R-ORD-6a")), 0, "huỷ đơn không đụng orders.subtotal — vẫn khớp bình thường");
+});
+
+test("R-ORD-6b: dòng SAU (seq=2) có subtotal_before khớp subtotal_after của dòng NGAY TRƯỚC (seq=1) → hợp lệ", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 1100000, after: 1400000 });
+  assert.equal(violations(db, one("R-ORD-6b")), 0);
+});
+
+test("R-ORD-6b: dòng SAU có subtotal_before LỆCH subtotal_after của dòng trước → vi phạm — chuỗi tiền đứt quãng", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 900000, after: 1400000 }); // 900.000 ≠ 1.100.000 (subtotal_after của seq=1)
+  assert.equal(violations(db, one("R-ORD-6b")), 1);
+});
+
+test("R-ORD-6b: chuỗi BA dòng, chỉ MỘT mắt xích đứt (seq2→seq3) → đúng 1 vi phạm, mắt xích đúng (seq1→seq2) không bị tính", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 1100000, after: 1400000 }); // khớp seq=1 — mắt xích lành
+  addAdjustmentMoney(db, { id: "a3", orderId: "o-1", seq: 3, before: 1500000, after: 1600000 }); // 1.500.000 ≠ 1.400.000 (subtotal_after của seq=2) — đứt
+  assert.equal(violations(db, one("R-ORD-6b")), 1);
+});
+
+test("R-ORD-6b: đơn chỉ có MỘT dòng (seq=1, không có dòng trước) không bị tính là vi phạm", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  assert.equal(violations(db, one("R-ORD-6b")), 0);
+});
+
+test("R-ORD-6b: nhiều đơn — seq đánh số lại từ 1 ở mỗi đơn, KHÔNG bắt cặp nhầm giữa hai đơn khác nhau", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addOrderWithSubtotal(db, "o-2", 500000);
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-2", seq: 1, before: 500000, after: 700000 }); // seq=1 của o-2, KHÔNG được ghép với seq=1 của o-1 (prev.seq = a.seq - 1 CÙNG order_id)
+  assert.equal(violations(db, one("R-ORD-6b")), 0, "hai đơn khác nhau, mỗi đơn tự seq=1 riêng — không có 'dòng trước' nào để so, không phải vi phạm");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // R-AUT-1 (ADR-0016 điều 6/8 — lưới dữ liệu cho "tài khoản đã ngưng không còn Face ID hiệu lực"). Đỏ trên D1 thật là LỖI THẬT, không nới kiểm.
 // Đường API ngưng tài khoản gỡ passkey trong cùng lô ghi (8b — test ở src/modules/accounts/patch-staff.test.ts), nên chỉ dữ liệu lọt lưới mới đỏ.
 // ---------------------------------------------------------------------------------------------------------------------
