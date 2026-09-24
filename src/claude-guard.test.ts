@@ -165,12 +165,19 @@ test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s
   // đồng bộ, không chờ I/O, nên chậm thật của hook = tốn CPU và vẫn bị bắt. Ngưỡng giữ 1500 ms (chủ chọn 2026-09-24).
   // TIỀN ĐỀ: guard-remote-lib.mjs thuần, không import, không đọc tệp/execSync/Atomics.wait. Thêm chờ đồng bộ vào đó thì test
   // này BỎ LỌT (kiểm độc lập đã chứng minh bằng Atomics.wait 1 s) — khi ấy phải đo lại bằng đồng hồ hoặc thêm test riêng.
-  const cpu = process.cpuUsage();
-  evaluateBash("echo " + "$(".repeat(3000), { branch: "worktree-x" });
-  evaluateBash("x".repeat(500_000), { branch: "worktree-x" });
-  const used = process.cpuUsage(cpu);
-  const ms = Math.round((used.user + used.system) / 1000);
-  assert.ok(ms < 1500, `quá chậm: ${ms} ms CPU`);
+  // ĐO 3 LẦN, LẤY LẦN NHANH NHẤT (chủ dự án duyệt 2026-09-24): trên MacBook Air, chip tự hạ xung khi nóng/bận nên CÙNG một
+  // việc có lúc tốn 1,2 s, có lúc 1,77 s CPU — một lần đo đơn lẻ từng chặn nhầm `day-len` hai lần liền. Hook chậm THẬT thì
+  // cả ba lần đều chậm → vẫn đỏ; ngưỡng giữ nguyên 1500 ms.
+  const runs: number[] = [];
+  for (let i = 0; i < 3; i++) {
+    const cpu = process.cpuUsage();
+    evaluateBash("echo " + "$(".repeat(3000), { branch: "worktree-x" });
+    evaluateBash("x".repeat(500_000), { branch: "worktree-x" });
+    const used = process.cpuUsage(cpu);
+    runs.push(Math.round((used.user + used.system) / 1000));
+  }
+  const ms = Math.min(...runs);
+  assert.ok(ms < 1500, `quá chậm: lần nhanh nhất ${ms} ms CPU (3 lần: ${runs.join(", ")} ms)`);
 });
 
 test("guard-remote: script móc trả deny khi cấm, im lặng khi cho qua hoặc đầu vào hỏng", () => {
