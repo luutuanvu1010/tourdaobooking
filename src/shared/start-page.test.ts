@@ -34,3 +34,7 @@ test("homeRedirect: FIELD + PARTNER → \"/orders\" (không phải văn phòng n
 test("homeRedirect: không có quyền nào → không chuyển", () => {
   assert.equal(homeRedirect(who()), null);
 });
+
+test("homeRedirect: chỉ INTERN (Thực tập) → \"/orders\" (không có Trang chủ văn phòng)", () => {
+  assert.equal(homeRedirect(who("INTERN")), "/orders");
+});
