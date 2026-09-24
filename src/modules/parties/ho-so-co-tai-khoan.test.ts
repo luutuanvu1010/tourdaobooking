@@ -63,9 +63,13 @@ test("ADR-0014 điều 8: ADMIN sửa hồ sơ cấp dưới và của chính m�
   assert.equal(label(w, SALES), "An Mới");
   assert.equal((await addPhone(w, ADM, pty(PARTNER))).status, 201);
   assert.equal((await rename(w, ADM, pty(ADM), "Quản trị Mới")).status, 200, "tự sửa hồ sơ của chính mình");
+  const beforeAdm2 = logCount(w, pty(ADM2));
   assert.equal((await rename(w, ADM, pty(ADM2), "Giả")).status, 403);
   assert.equal((await addPhone(w, ADM, pty(ADM2))).status, 403);
+  assert.equal(logCount(w, pty(ADM2)), beforeAdm2, "403 không ghi thêm nhật ký (ADM → ADM2)");
+  const beforeSup = logCount(w, pty(SUP));
   assert.equal((await rename(w, ADM, pty(SUP), "Giả")).status, 403);
+  assert.equal(logCount(w, pty(SUP)), beforeSup, "403 không ghi thêm nhật ký (ADM → SUP)");
   assert.equal((await rename(w, SUP, pty(ADM2), "Hai Mới")).status, 200);
 });
 
@@ -102,11 +106,28 @@ test("hành vi cũ giữ nguyên: SALES tạo, sửa, ngưng, thêm/đóng liên
   assert.equal((await rename(w, SALES2, id, "Khách Mới", false)).status, 200, "ngưng hồ sơ khách vẫn được (R3d ngoài phạm vi)");
 });
 
-test("đóng liên hệ của hồ sơ có tài khoản: SALES 403, ADMIN (cấp dưới) 200", async () => {
+test("đóng liên hệ của hồ sơ có tài khoản: SALES 403, ADMIN (cấp dưới) 200; ADMIN không đóng được liên hệ của ADMIN khác/SUPER_ADMIN", async () => {
   const w = setup();
   const cid = (await addPhone(w, ADM, pty(SALES))).json.party.contacts[0].id;
   assert.equal((await w.call("POST", `/api/parties/${pty(SALES)}/contacts/${cid}/end`, { as: SALES2, body: {} })).status, 403);
   assert.equal((await w.call("POST", `/api/parties/${pty(SALES)}/contacts/${cid}/end`, { as: ADM, body: {} })).status, 200);
+
+  // ADR-0014 điều 8: ADMIN không đóng được liên hệ của một ADMIN khác (hàng ngang, không phải cấp dưới).
+  const added = await w.call("POST", `/api/parties/${pty(ADM2)}/contacts`, { as: SUP, body: { kind: "PHONE", value: "0922333444" } });
+  assert.equal(added.status, 201, added.text);
+  const cid2 = added.json.party.contacts[0].id;
+  const beforeLog = logCount(w, pty(ADM2));
+  const forbidden = await w.call("POST", `/api/parties/${pty(ADM2)}/contacts/${cid2}/end`, { as: ADM, body: {} });
+  assert.equal(forbidden.status, 403);
+  assert.equal(logCount(w, pty(ADM2)), beforeLog, "403 không ghi thêm nhật ký");
+  assert.equal(w.q("SELECT valid_to_date v FROM pty_contact_point WHERE id = ?", cid2)[0].v, null, "liên hệ vẫn còn mở");
+});
+
+test("403 đứng TRƯỚC 400 ở /end: SALES gửi thân yêu cầu sai với hồ sơ không được sửa vẫn là 403", async () => {
+  const w = setup();
+  const cidOnAdm = (await addPhone(w, ADM, pty(ADM))).json.party.contacts[0].id;
+  const r = await w.call("POST", `/api/parties/${pty(ADM)}/contacts/${cidOnAdm}/end`, { as: SALES, body: { validTo: "rác" } });
+  assert.equal(r.status, 403);
 });
 
 test("GET /api/parties/:id trả accountLinked/editable theo người xem, không lộ tài khoản", async () => {
