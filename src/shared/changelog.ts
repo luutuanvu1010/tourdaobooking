@@ -18,7 +18,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Mở app là vào thẳng Trang chủ. Danh sách đơn nay nằm ở mục Đơn hàng." },
       { kind: "doi", text: "Trên máy tính và iPad, menu chuyển sang cột dọc bên trái; cạnh mục Đơn hàng có số đơn chưa xác nhận." },
       { kind: "moi", text: "Ô tìm kiếm trên đầu trang (máy tính): gõ mã đơn, tên khách hoặc số điện thoại rồi bấm Enter để lọc danh sách đơn." },
-      { kind: "moi", text: "Trang chủ có biểu đồ doanh thu 7 ngày của bạn (máy tính). Quản trị viên thấy thêm khối \"Cần xem lại\": Sheet đổi giá, góp ý chưa trả lời." },
+      { kind: "moi", text: "Trang chủ có biểu đồ doanh thu từng ngày trong tuần của bạn (máy tính, iPad). Quản trị viên thấy thêm khối \"Cần xem lại\": Sheet đổi giá, góp ý chưa trả lời." },
       { kind: "sua", text: "Tài khoản Đối tác mở app được đưa thẳng tới danh sách đơn, không còn gặp báo lỗi ở Trang chủ." },
     ],
   },
