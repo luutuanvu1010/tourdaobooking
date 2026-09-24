@@ -1,4 +1,6 @@
-# Đề xuất sửa CLAUDE.md §8: thêm nhật ký thay đổi vào chuỗi deploy (CHỜ CHỦ DUYỆT, N9)
+# Đề xuất sửa CLAUDE.md §8: thêm nhật ký thay đổi vào chuỗi deploy (ĐÃ DUYỆT 2026-09-24, ĐÃ ÁP ĐỀ XUẤT B)
+
+> **2026-09-24:** chủ duyệt đề xuất này ("2- duyệt"). Lúc đó đề xuất `day-len`/`trien-khai` của `main` (`docs/superpowers/plans/2026-09-23-lenh-day-de-xuat-claude-md.md`) vẫn ghi "CHỜ CHỦ DUYỆT, CHƯA ÁP", nên áp **Đề xuất B** nguyên văn vào `CLAUDE.md` §8. Nếu sau này duyệt đề xuất kia, khi áp nó phải giữ các phần in đậm của B (A.0, hai cổng phiên bản, "kèm số phiên bản") — xem Đề xuất A.
 
 AI không tự sửa `CLAUDE.md` (luật chi phối chính AI — CLAUDE.md §3, Hiến pháp N9). Tệp này chỉ là đề xuất; chủ duyệt thì áp nguyên văn (hoặc bảo AI áp trong một phiên có lệnh rõ).
 
