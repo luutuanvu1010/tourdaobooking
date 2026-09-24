@@ -1,0 +1,18 @@
+tạo tài khoản theo vai SALES_STAFF: 201 ["SALES"] ["SALES_STAFF"]
+AUDIT [0. nền sạch (chỉ API)] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+T1 quyền hiện tại của K (GET /api/staff): ["SALES","ACCOUNTING"] vai: {"roles":["SALES_STAFF"],"adds":[],"removes":[],"reason":null}
+AUDIT [T1 quyền ≠ vai + chỉnh tay] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+AUDIT [T2 điều chỉnh trên đơn nháp] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+T3 đơn huỷ hiện (chi tiết): {"status":"cancelled","subtotal":1350000,"total":1350000,"remainingAmount":850000}
+AUDIT [T3 điều chỉnh trên đơn đã huỷ] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+AUDIT [T4 confirmed mà confirmed_at NULL] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+AUDIT [T6 hồ sơ ngưng, tài khoản hoạt động (F-07)] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+AUDIT [T7 dòng tiền chèn vào đơn đã xác nhận (F-03)] {"thuong":{"code":0,"flagged":[]},"strict":{"code":0,"flagged":[]}}
+T8 Trang chủ sau khi 'một năm trôi qua': {"total":2200000,"count":1,"earliestDate":"2025-10-01"}
+PLAN dashboard: mọi đơn confirmed: SCAN orders
+PLAN dashboard: chuyến hôm nay: SEARCH os USING INDEX idx_order_service_depart (depart_date=?) | SEARCH o USING INDEX sqlite_autoindex_orders_1 (id=?) | CORRELATED SCALAR SUBQUERY 1 | SEARCH os2 USING INDEX idx_order_service_order (order_id=?) | USE TEMP B-TREE FOR ORDER BY
+PLAN dashboard: chưa có người phụ trách: SCAN o | CORRELATED SCALAR SUBQUERY 1 | MATERIALIZE v_stf_staff_label | SCAN s | SEARCH p USING INDEX sqlite_autoindex_pty_party_1 (id=?) LEFT-JOIN | SEARCH a USING INDEX dsp_assignment_handler_open_uq (order_id=?) | SEARCH p USING COVERING INDEX sqlite_autoindex_pty_party_1 (id=?) | SEARCH s USING AUTOMATIC COVERING INDEX (party_id=?) LEFT-JOIN
+PLAN dashboard: doanh thu tuần: SEARCH orders USING INDEX idx_orders_staff (staff_id=?)
+PLAN getLatestAdjustments: SEARCH a USING INDEX idx_order_money_adjustment_seq (order_id=?) | LIST SUBQUERY 1 | SCAN json_each VIRTUAL TABLE INDEX 1: | CORRELATED SCALAR SUBQUERY 2 | SEARCH b USING COVERING INDEX idx_order_money_adjustment_seq (order_id=?)
+PLAN getServicesForSubtotal items: SEARCH order_item USING INDEX idx_order_item_order (order_id=?) | LIST SUBQUERY 1 | SCAN json_each VIRTUAL TABLE INDEX 1:
+PLAN session: quyền của tài khoản: SEARCH stf_permission USING INDEX stf_permission_staff_ix (staff_id=?)

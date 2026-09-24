@@ -1,0 +1,77 @@
+tạo FIELD: 201
+DASH trước: {"unpaid":{"total":0,"count":0,"earliestDate":null},"revenue":0}
+C1 trước sửa (chi tiết): {"subtotal":2000000,"discount":0,"total":2000000,"deposit":1000000,"remaining":1000000,"lines":["adult:2x1000000"]}
+C1 HDV gửi lại ĐÚNG 2 người lớn: 200 {"ok":true}
+C1 sau (chi tiết): {"subtotal":2700000,"discount":0,"total":2700000,"deposit":1000000,"remaining":1700000,"lines":["adult:2x1350000"]}
+C1 sau (danh sách /api/orders): {"total":2700000,"remaining":1700000}
+C1 hàng điều chỉnh: [{"seq":1,"subtotal_before":2700000,"subtotal_after":2700000,"before_json":"[{\"serviceId\":\"baa7fa0c-3333-402b-a340-c75018bfe89b\",\"pax\":{\"adult\":2,\"child\":0,\"senior\":0,\"infant\":0}}]","after_json":"[{\"serviceId\":\"baa7fa0c-3333-402b-a340-c75018bfe89b\",\"pax\":{\"adult\":2,\"child\":0,\"senior\":0,\"infant\":0}}]"}]
+C1 orders cột gốc: [{"subtotal":2000000,"total":2000000,"deposit_amount":1000000,"remaining_amount":1000000}]
+C2 trước sửa: {"subtotal":3200000,"discount":0,"total":3200000,"deposit":3200000,"remaining":0,"lines":["adult:2x1600000"]}
+C2 HDV 2→3 người lớn: 200
+C2 sau: {"subtotal":4050000,"discount":0,"total":4050000,"deposit":3200000,"remaining":850000,"lines":["adult:3x1350000"]} (kỳ vọng theo giá thoả thuận: 3×1.600.000 = 4.800.000, còn 1.600.000)
+C3 trước sửa: {"subtotal":4050000,"discount":0,"total":4050000,"deposit":4050000,"remaining":0,"lines":["adult:3x1350000"]}
+C3 HDV 3→1: 200
+C3 sau (chi tiết): {"subtotal":1350000,"discount":0,"total":1350000,"deposit":4050000,"remaining":-2700000,"lines":["adult:1x1350000"]}
+C3 sau (danh sách): {"total":1350000,"remaining":-2700000}
+C4 trước sửa: {"subtotal":2700000,"discount":1500000,"total":1200000,"deposit":0,"remaining":1200000,"lines":["adult:2x1350000"]}
+C4 HDV 2→1: 200
+C4 sau: {"subtotal":1350000,"discount":1500000,"total":-150000,"deposit":0,"remaining":-150000,"lines":["adult:1x1350000"]} (luật nháp: 'Giảm giá không được vượt quá tạm tính')
+C5 HDV → chỉ 1 em bé: 200 {"ok":true}
+C5 sau: {"subtotal":0,"discount":0,"total":0,"deposit":0,"remaining":0,"lines":["infant:1x0"]}
+C5' đường NHÁP với chỉ 1 em bé: 400 Dịch vụ 1: cần ít nhất 1 khách không phải em bé.
+DASH sau: {"unpaid":{"total":2550000,"count":2,"earliestDate":"2026-09-27"},"revenue":{"total":7950000,"count":5,"daily":[{"date":"2026-09-21","total":0},{"date":"2026-09-22","total":0},{"date":"2026-09-23","total":0},{"date":"2026-09-24","total":7950000},{"date":"2026-09-25","total":0},{"date":"2026-09-26","total":0},{"date":"2026-09-27","total":0}],"from":"2026-09-21","to":"2026-09-27"}}
+TEXT c1-don-gia-thoa-thuan-mat: Island Booking System BÁN HÀNG Trang chủ Đơn hàng Lập đơn mới Hồ sơ TÔI Tài khoản Góp ý / Báo lỗi Trợ giúp SM Sales Một Bán hàng Đăng xuất TD-20260924-0001 Lập đơn mới Sửa thông tin chuyến Huỷ đơn Xác nhận gửi khách TD-20260924-0001 MÃ ĐƠN TD-20260924-0001 Đã xác nhận ĐÓN 27/09 KHÁCH Khách C1-giam 0901234567 SỐ KHÁCH 02 NL Tour 4 đảo Nha Trang CÒN LẠI 1.700.000 ₫ Tổng 2.700.000 ₫ · đã cọc 1.000.000 ₫ Lập 23:36 24/09/2026 bởi Sales Một · Xác nhận 23:36 24/09/2026 Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến. Người phụ trách Hướng Dẫn Viên Thử Đổi người phụ trách Khách hàng Tên Khách C1-giam Số điện thoại 0901234567 Email — Ghi chú — Hồ sơ khách Chưa gắn hồ sơ khách Đổi khách Dịch vụ Tour 4 đảo Nha Trang theo người TD101 Số khách 2 người lớn Khởi hành 27/09/2026 Tour 4 đảo Nha Trang — Người lớn 2.700.000 ₫ 2 × 1.350.000 ₫ Tổng dịch vụ 2.700.000 ₫ Thanh toán Tạm tính 2.700.000 ₫ Giảm giá 0 ₫ Tổng cộng 2.700.000 ₫ Đã cọc 1.000.000 ₫ (Tiền mặt) Còn lại 1.700.000 ₫ Ghi chú thanh toán — Lịch sử 23:36 24/09/2026 — Tạo đơn · Sales Một lệch giá danh mục: TD101 người lớn 1.350.000 ₫ → 1.000.000 ₫ 23:36 24/09/2026 — Xác nhận đơn · Sales Một lệch giá danh mục: TD101 người lớn 1.350.000 ₫ → 1.000.000 ₫ 23:36 24/09/2026 — Đổi người phụ trách · Sales Một từ Sales Một sang Hướng Dẫn Viên Thử 23:36 24/09/2026 — Sửa số khách (hướng dẫn viên đang phụ trách) · Hướng Dẫn Viên Thử Kiểm lại danh sách khách, không đổi
+TEXT c3-con-lai-am: Island Booking System BÁN HÀNG Trang chủ Đơn hàng Lập đơn mới Hồ sơ TÔI Tài khoản Góp ý / Báo lỗi Trợ giúp SM Sales Một Bán hàng Đăng xuất TD-20260924-0003 Lập đơn mới Sửa thông tin chuyến Huỷ đơn Xác nhận gửi khách TD-20260924-0003 MÃ ĐƠN TD-20260924-0003 Đã xác nhận ĐÓN 27/09 KHÁCH Khách C3-coc 0901234567 SỐ KHÁCH 01 NL Tour 4 đảo Nha Trang CÒN LẠI -2.700.000 ₫ Tổng 1.350.000 ₫ · đã cọc 4.050.000 ₫ Lập 23:36 24/09/2026 bởi Sales Một · Xác nhận 23:36 24/09/2026 Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến. Người phụ trách Hướng Dẫn Viên Thử Đổi người phụ trách Khách hàng Tên Khách C3-coc Số điện thoại 0901234567 Email — Ghi chú — Hồ sơ khách Chưa gắn hồ sơ khách Đổi khách Dịch vụ Tour 4 đảo Nha Trang theo người TD101 Số khách 1 người lớn Khởi hành 27/09/2026 Tour 4 đảo Nha Trang — Người lớn 1.350.000 ₫ 1 × 1.350.000 ₫ Tổng dịch vụ 1.350.000 ₫ Thanh toán Tạm tính 1.350.000 ₫ Giảm giá 0 ₫ Tổng cộng 1.350.000 ₫ Đã cọc 4.050.000 ₫ (Tiền mặt) Còn lại -2.700.000 ₫ Ghi chú thanh toán — Lịch sử 23:36 24/09/2026 — Tạo đơn · Sales Một 23:36 24/09/2026 — Xác nhận đơn · Sales Một 23:36 24/09/2026 — Đổi người phụ trách · Sales Một từ Sales Một sang Hướng Dẫn Viên Thử 23:36 24/09/2026 — Sửa số khách (hướng dẫn viên đang phụ trách) · Hướng Dẫn Viên Thử Hai khách huỷ
+TEXT c4-tong-am: Island Booking System BÁN HÀNG Trang chủ Đơn hàng Lập đơn mới Hồ sơ TÔI Tài khoản Góp ý / Báo lỗi Trợ giúp SM Sales Một Bán hàng Đăng xuất TD-20260924-0004 Lập đơn mới Sửa thông tin chuyến Huỷ đơn Xác nhận gửi khách TD-20260924-0004 MÃ ĐƠN TD-20260924-0004 Đã xác nhận ĐÓN 27/09 KHÁCH Khách C4-giam-gia 0901234567 SỐ KHÁCH 01 NL Tour 4 đảo Nha Trang CÒN LẠI -150.000 ₫ Tổng -150.000 ₫ · đã cọc 0 ₫ Lập 23:36 24/09/2026 bởi Sales Một · Xác nhận 23:36 24/09/2026 Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá. Chỉ sửa được thông tin chuyến. Người phụ trách Hướng Dẫn Viên Thử Đổi người phụ trách Khách hàng Tên Khách C4-giam-gia Số điện thoại 0901234567 Email — Ghi chú — Hồ sơ khách Chưa gắn hồ sơ khách Đổi khách Dịch vụ Tour 4 đảo Nha Trang theo người TD101 Số khách 1 người lớn Khởi hành 27/09/2026 Tour 4 đảo Nha Trang — Người lớn 1.350.000 ₫ 1 × 1.350.000 ₫ Tổng dịch vụ 1.350.000 ₫ Thanh toán Tạm tính 1.350.000 ₫ Giảm giá 1.500.000 ₫ Tổng cộng -150.000 ₫ Đã cọc 0 ₫ Còn lại -150.000 ₫ Ghi chú thanh toán — Lịch sử 23:36 24/09/2026 — Tạo đơn · Sales Một 23:36 24/09/2026 — Xác nhận đơn · Sales Một 23:36 24/09/2026 — Đổi người phụ trách · Sales Một từ Sales Một sang Hướng Dẫn Viên Thử 23:36 24/09/2026 — Sửa số khách (hướng dẫn viên đang phụ trách) · Hướng Dẫn Viên Thử Một khách không đi
+TEXT trang-chu-sau-dieu-chinh: Island Booking System BÁN HÀNG Trang chủ Đơn hàng Lập đơn mới Hồ sơ TÔI Tài khoản Góp ý / Báo lỗi Trợ giúp SM Sales Một Bán hàng Đăng xuất Trang chủ Lập đơn mới Trang chủ Chào Một Thứ Năm, 24/09/2026 · 0 chuyến đón hôm nay CÒN THIẾU TIỀN 2.550.000 ₫ 2 đơn · sớm nhất đón 27/09 ĐƠN NHÁP CHƯA XÁC NHẬN 0 Cần xác nhận đơn CHƯA CÓ NGƯỜI PHỤ TRÁCH 0 Cần gán trước giờ đón Doanh thu của tôi Tuần này · 21/09–27/09 7.950.000 ₫ 5 đơn đã xác nhận T2 T3 T4 T5 T6 T7 CN Doanh thu từng ngày trong tuần Thứ Hai 0 ₫ Thứ Ba 0 ₫ Thứ Tư 0 ₫ Thứ Năm 7.950.000 ₫ Thứ Sáu 0 ₫ Thứ Bảy 0 ₫ Chủ nhật 0 ₫ Chuyến đón hôm nay 0 Xem tất cả Không có chuyến nào hôm nay.
+AUDIT thường: mã thoát 0
+✓ R-N1-1   mọi tài khoản có party_id
+✓ R-N1-1   một hồ sơ tối đa một tài khoản
+✓ R-N1-2   cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại
+✓ R-N1-3   display_name của cá nhân = họ + tên đệm + tên
+✓ R-N1-4   vai trò hồ sơ không chồng lấn (cùng hồ sơ, vai trò, nơi)
+✓ R-N1-4   quan hệ hồ sơ không chồng lấn
+✓ R-N1-5   còn ít nhất một quản trị viên đang hoạt động
+✓ R-N1-10  khoá ngoại toàn vẹn (PRAGMA foreign_key_check)
+✓ R-N1-13  SĐT đăng nhập không được sao chép thành liên hệ do hệ thống tạo
+✓ thông tin nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)
+✓ thông tin tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)
+✓ R-LC-1   tài khoản có vai bên ngoài đang mở chỉ giữ quyền Đối tác
+✓ R-LC-3   một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+✓ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-4  seq của order_money_adjustment liên tục từ 1 theo từng đơn
+✓ R-ORD-5  after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn (không thiếu, không thừa, không trùng) — CHỈ đếm số lượng + đối chiếu serviceId, KHÔNG kiểm bên trong pax
+⚠ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì) — 2 vi phạm (cảnh báo (KHÔNG chặn phát hành — xem chú thích trong scripts/audit-checks.mjs): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7 (bảng chỉ-thêm, không sửa lại được), cần rà soát tay theo order_id; nếu KHÔNG đúng lý do đó (đơn mới, sau khi bản vá đã triển khai) thì là lỗi thật ở nơi ghi)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)
+✓ R-AUT-1  không có Face ID còn hiệu lực của tài khoản đã ngưng
+
+Mọi bất biến đạt, 1 cảnh báo (D1 local).
+
+AUDIT --strict: mã thoát 0
+✓ R-N1-1   mọi tài khoản có party_id
+✓ R-N1-1   một hồ sơ tối đa một tài khoản
+✓ R-N1-2   cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại
+✓ R-N1-3   display_name của cá nhân = họ + tên đệm + tên
+✓ R-N1-4   vai trò hồ sơ không chồng lấn (cùng hồ sơ, vai trò, nơi)
+✓ R-N1-4   quan hệ hồ sơ không chồng lấn
+✓ R-N1-5   còn ít nhất một quản trị viên đang hoạt động
+✓ R-N1-10  khoá ngoại toàn vẹn (PRAGMA foreign_key_check)
+✓ R-N1-13  SĐT đăng nhập không được sao chép thành liên hệ do hệ thống tạo
+✓ thông tin nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)
+✓ thông tin tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)
+✓ R-LC-1   tài khoản có vai bên ngoài đang mở chỉ giữ quyền Đối tác
+✓ R-LC-3   một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở
+✓ R-DSP-1  mỗi đơn tối đa một người phụ trách (HANDLE) đang mở
+✓ R-DSP-2a người phụ trách đang mở là hồ sơ có tài khoản còn quyền Bán hàng/Quản trị/Hướng dẫn viên
+✓ R-DSP-2b người phụ trách đang mở có tài khoản đã ngưng hoạt động
+✓ R-DSP-3  các dòng người phụ trách (HANDLE) của một đơn không chồng lấn theo khoảng nửa mở [từ, đến)
+✓ R-ORD-4  seq của order_money_adjustment liên tục từ 1 theo từng đơn
+✓ R-ORD-5  after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn (không thiếu, không thừa, không trùng) — CHỈ đếm số lượng + đối chiếu serviceId, KHÔNG kiểm bên trong pax
+⚠ R-ORD-6a dòng điều chỉnh ĐẦU TIÊN (seq=1) của một đơn: subtotal_before phải khớp orders.subtotal đã lưu (trước khi có điều chỉnh nào, tiền chưa đổi gì) — 2 vi phạm (cảnh báo (KHÔNG chặn phát hành — xem chú thích trong scripts/audit-checks.mjs): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7 (bảng chỉ-thêm, không sửa lại được), cần rà soát tay theo order_id; nếu KHÔNG đúng lý do đó (đơn mới, sau khi bản vá đã triển khai) thì là lỗi thật ở nơi ghi)
+✓ R-ORD-6b chuỗi tiền của một đơn liên tục: subtotal_before của dòng SAU phải khớp subtotal_after của dòng NGAY TRƯỚC (không có gì xen giữa)
+✓ R-AUT-1  không có Face ID còn hiệu lực của tài khoản đã ngưng
+
+Mọi bất biến đạt, 1 cảnh báo (D1 local, --strict).

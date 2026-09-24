@@ -1,0 +1,8 @@
+confirmedAll → SCAN orders
+todayOrder → SEARCH os USING INDEX idx_order_service_depart (depart_date=?) | SEARCH o USING INDEX sqlite_autoindex_orders_1 (id=?) | CORRELATED SCALAR SUBQUERY 1 | SEARCH os2 USING INDEX idx_order_service_order (order_id=?) | USE TEMP B-TREE FOR ORDER BY | USE TEMP B-TREE FOR ORDER BY
+draftCount → SCAN orders
+unassigned → SCAN o | CORRELATED SCALAR SUBQUERY 1 | MATERIALIZE v_stf_staff_label | SCAN s | SEARCH p USING INDEX sqlite_autoindex_pty_party_1 (id=?) LEFT-JOIN | SEARCH a USING INDEX dsp_assignment_handler_open_uq (order_id=?) | SEARCH p USING COVERING INDEX sqlite_autoindex_pty_party_1 (id=?) | SEARCH s USING AUTOMATIC COVERING INDEX (party_id=?) LEFT-JOIN
+weekRows → SEARCH orders USING INDEX idx_orders_staff (staff_id=?)
+latestAdj → SEARCH a USING INDEX idx_order_money_adjustment_seq (order_id=?) | LIST SUBQUERY 1 | SCAN json_each VIRTUAL TABLE INDEX 1: | CREATE BLOOM FILTER | CORRELATED SCALAR SUBQUERY 2 | SEARCH b USING COVERING INDEX idx_order_money_adjustment_seq (order_id=?)
+listPage → SCAN o USING INDEX idx_orders_created | USE TEMP B-TREE FOR LAST TERM OF ORDER BY
+indexes on orders: sqlite_autoindex_orders_1: auto ; sqlite_autoindex_orders_2: auto ; idx_orders_staff: CREATE INDEX idx_orders_staff ON orders(staff_id) ; idx_orders_created: CREATE INDEX idx_orders_created ON orders(created_at DESC) ; orders_booker_party_idx: CREATE INDEX orders_booker_party_idx ON orders(booker_party_id)

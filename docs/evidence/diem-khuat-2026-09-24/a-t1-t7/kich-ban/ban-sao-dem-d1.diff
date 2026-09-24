@@ -1,0 +1,48 @@
+27a28,60
+> // ĐO ĐẾM (CHỈ TRONG BẢN SAO NHÁP của kiểm toán viên, không phải mã thật): bọc env.DB để đếm số lần đi D1 mỗi request.
+> // rt = số lượt khứ hồi D1 (first/all/run/raw = 1, batch = 1), stmts = số câu SQL, serial = số "đợt" nối đuôi (lượt bắt đầu khi không lượt nào đang chạy).
+> function instrumentDb(db: any, c: any): any {
+>   const real = new WeakMap<object, any>();
+>   const track = <T>(label: string, n: number, p: Promise<T>): Promise<T> => {
+>     if (c.inflight === 0) c.serial++;
+>     c.inflight++; c.rt++; c.stmts += n; c.maxPar = Math.max(c.maxPar, c.inflight);
+>     c.seq.push(label);
+>     return p.finally(() => { c.inflight--; });
+>   };
+>   const wrapStmt = (st: any, sql: string): any => {
+>     const px = new Proxy(st, {
+>       get(t, prop) {
+>         const v = Reflect.get(t, prop);
+>         if (prop === "bind") return (...a: any[]) => wrapStmt(v.apply(t, a), sql);
+>         if (prop === "first" || prop === "all" || prop === "run" || prop === "raw") return (...a: any[]) => track(sql.replace(/\s+/g, " ").slice(0, 60), 1, v.apply(t, a));
+>         return typeof v === "function" ? v.bind(t) : v;
+>       },
+>     });
+>     real.set(px, st);
+>     return px;
+>   };
+>   return new Proxy(db, {
+>     get(t, prop) {
+>       const v = Reflect.get(t, prop);
+>       if (prop === "prepare") return (sql: string) => wrapStmt(v.call(t, sql), sql);
+>       if (prop === "batch") return (stmts: any[]) => track(`batch(${stmts.length})`, stmts.length, v.call(t, stmts.map((x) => real.get(x) ?? x)));
+>       if (prop === "exec") return (sql: string) => track("exec", 1, v.call(t, sql));
+>       return typeof v === "function" ? v.bind(t) : v;
+>     },
+>   });
+> }
+> 
+29c62,72
+<   fetch: app.fetch,
+---
+>   async fetch(request: Request, env: Env, exec: ExecutionContext): Promise<Response> {
+>     const c = { rt: 0, stmts: 0, serial: 0, inflight: 0, maxPar: 0, seq: [] as string[] };
+>     const env2 = { ...env, DB: instrumentDb(env.DB, c) } as Env;
+>     const t0 = Date.now();
+>     const res = await app.fetch(request, env2, exec);
+>     const u = new URL(request.url);
+>     let bytes = -1;
+>     try { bytes = (await res.clone().arrayBuffer()).byteLength; } catch { /* */ }
+>     console.log("D1COUNT " + JSON.stringify({ m: request.method, p: u.pathname + (u.search ? "?" + [...u.searchParams.keys()].join("&") : ""), s: res.status, rt: c.rt, stmts: c.stmts, serial: c.serial, maxPar: c.maxPar, bytes, ms: Date.now() - t0, seq: c.seq }));
+>     return res;
+>   },

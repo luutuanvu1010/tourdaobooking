@@ -1,0 +1,10 @@
+quản trị đang đăng nhập: {"quyen":["ADMIN"]}
+trang Nhân viên: hàng '(bạn)' có nút 'Đặt lại PIN': [["Sửa","Đặt lại PIN"]]
+POST /api/staff/<chính mình>/reset-pin, không gửi PIN cũ: {"status":200,"pinMoi6So":true}
+phiên cũ của quản trị sau đó GET /api/auth/me: 401
+đăng nhập bằng PIN vừa tự cấp: 200
+bật Face ID bước nhập lại PIN (ADR-0016 điều 2a) bằng PIN vừa tự cấp: {"status":200,"coChallenge":true}
+đối chiếu: Bán hàng đổi PIN của mình mà KHÔNG biết PIN cũ: {"status":403,"code":"invalid_credentials"}
+đối chiếu: Bán hàng bật Face ID mà KHÔNG biết PIN: {"status":403,"code":"invalid_credentials"}
+đối chiếu: Bán hàng gọi reset-pin cho chính mình: 403
+nhật ký: [{"action":"pin_reset","tu_minh":1,"detail":null}]

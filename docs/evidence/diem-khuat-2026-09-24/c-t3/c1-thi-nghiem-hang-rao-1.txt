@@ -1,0 +1,35 @@
+# Thí nghiệm P16 (bản sao nháp, KHÔNG phải cây dùng chung) — 2026-09-24
+## Phép sửa 1: chỉ GET /api/parties/meta hỏi can(party.view)
+--- /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/src/modules/parties/index.ts	2026-09-24 23:20:07
++++ /private/tmp/claude-501/-Users-tuanbao-Documents-Projects-ctytnhhtourdao-tourdao-sales--claude-worktrees-tourdao-sales-audit-62ea81/c964efb5-7bf2-4e78-8214-a3e41d4568f4/scratchpad/c-t3/copy/src/modules/parties/index.ts	2026-09-24 23:42:25
+@@ -8,6 +8,7 @@
+ import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
+ import { normalizePhone } from "../../shared/phone";
+ import { route, type AppModule } from "../../shared/router";
++import { can } from "../../shared/permissions";
+ import { vnToday } from "../../shared/vn-date";
+ import {
+   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
+@@ -143,7 +144,8 @@
+   name: "parties",
+   routes: [
+     // ---- Tra cứu (khai TRƯỚC :id để "meta"/"lookup" không bị hiểu là id) ------------------------------------------------
+-    route("GET", "/api/parties/meta", "office", async ({ env }) => {
++    route("GET", "/api/parties/meta", "office", async ({ env, staff }) => {
++      if (!can(staff, "party.view")) return error(403, "forbidden", "Không có quyền xem hồ sơ.");
+       const [roleTypes, relationshipTypes] = await Promise.all([listRoleTypes(env.DB), listRelationshipTypes(env.DB)]);
+       return json({
+         roleTypes: roleTypes.map((t) => ({ code: t.code, name: t.name, group: t.role_group as "INTERNAL" | "EXTERNAL" | "OTHER", active: t.active === 1 })),
+
+## Phép sửa 2: gỡ mục hoãn party.view (khác biệt ngữ nghĩa: đúng 1 mục bị bỏ)
+trước: party.view,party.write,admin.manage,admin.manage.superadmin,money.view,contact.view,task.progress,dispatch.guides.view,dispatch.request,payment.receive,payment.refund,invoice.request,invoice.issue
+sau:   party.write,admin.manage,admin.manage.superadmin,money.view,contact.view,task.progress,dispatch.guides.view,dispatch.request,payment.receive,payment.refund,invoice.request,invoice.issue
+
+## Kết quả
+- Chỉ phép 1: node --test src/permission-enforcement.test.ts src/route-write-guard.test.ts → # pass 7 # fail 1: 'thao_tac "party.view": HOÃN THỪA — ô đã được hỏi ở src/modules/parties/index.ts:148; gỡ mục để danh sách co lại'
+- Phép 1 + 2: npm test → 1..757, # pass 757, # fail 0 (máy bận: load 6.40 7.87 6.55)
+- Trong khi đó GET /api/parties, GET /api/parties/lookup, GET /api/parties/:id vẫn chỉ dựa cổng thô office:
+147:    route("GET", "/api/parties/meta", "office", async ({ env, staff }) => {
+156:    route("GET", "/api/parties/lookup", "office", async ({ env, url }) => {
+163:    route("GET", "/api/parties", "office", async ({ env, url }) => {
+205:    route("GET", "/api/parties/:id", "office", async ({ env, params }) => {

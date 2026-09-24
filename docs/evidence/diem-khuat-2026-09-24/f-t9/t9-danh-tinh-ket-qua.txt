@@ -1,0 +1,19 @@
+A1 admin tạo tài khoản Tài xế taxi (P1): {"status":201,"roles":["TAXI_DRIVER"],"permissions":["PARTNER"],"partyId":"6baf0307-9ec3-48d8-aeec-9509626ce675"}
+A2 salesA tra hồ sơ theo SĐT P1 (như form lập đơn): {"status":200,"matches":0}
+A3 salesA lập đơn, tạo người đặt mới cùng SĐT P1: {"status":201,"bookerPartyId":"38bce889-782b-4b81-a4a4-4df9d6ec57d9"}
+A4 hai hồ sơ cho cùng SĐT P1 (SQL chỉ đọc): [{"id":"38bce889-782b-4b81-a4a4-4df9d6ec57d9","display_name":"Trần Văn Bình","vai":"CUSTOMER","co_tai_khoan":0},{"id":"6baf0307-9ec3-48d8-aeec-9509626ce675","display_name":"Trần Văn Bình","vai":"TAXI_DRIVER","co_tai_khoan":1}]
+A5 tra lại P1: chỉ thấy hồ sơ khách, không thấy hồ sơ đối tác: [{"id":"HỒ SƠ KHÁCH MỚI","roleCodes":["CUSTOMER"]}]
+A6 tra SĐT đăng nhập của chính salesA: {"matches":0}
+B1 salesA tạo hồ sơ khách Lê Thị Hoa (P2): {"status":201}
+B2 admin tạo tài khoản Lễ tân khách sạn cùng P2, không kèm partyId: {"status":201,"partyIdKhacHoSoKhach":true}
+B3 số hồ sơ mang tên 'Lê Thị Hoa': [{"n":2}]
+C1 tạo hồ sơ tổ chức công ty lữ hành: {"status":201}
+C2 admin gán vai Công ty lữ hành cho hồ sơ tổ chức: {"status":409,"code":{"code":"role_via_account","message":"Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở trang Nhân viên."}}
+C3 admin gán vai Lễ tân khách sạn cho hồ sơ người KHÔNG tài khoản: {"status":409,"code":{"code":"role_via_account","message":"Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở trang Nhân viên."}}
+C4 tạo tài khoản công ty lữ hành trên hồ sơ tổ chức: {"status":409}
+C5 gắn hồ sơ tổ chức làm bên đặt: {"status":400}
+C6 loại vai còn chọn được ở trang Hồ sơ (active && OTHER): ["Lái cano","Tài xế","Khách hàng"]
+D1 admin gán vai ĐÃ NGƯNG 'AGENT' qua API: {"status":201,"roles":["AGENT"]}
+E0 ảnh danh sách: /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/diem-khuat-2026-09-24/f-t9/t9-danh-sach-ho-so-trung.png
+E1 các ô chọn trên trang Hồ sơ: [["Tất cả","Cá nhân","Tổ chức"],["Tất cả","Nhân sự","Bán hàng","Hướng dẫn viên","Lái cano","Tài xế","Đại lý","Khách hàng","Giám đốc","Điều hành chung","Hướng dẫn viên nội bộ","Nhân viên kinh doanh","Thực tập sinh","Kế toán","Công ty lữ hành","Hướng dẫn viên độc lập","Lễ tân khách sạn","Tài xế taxi","Cộng tác viên"],["Tất cả","Văn phòng Trần Phú","Văn phòng 2 tháng 4","Quầy vé 01","Quầy vé 02","Quầy vé 03","Quầy vé 04","Bến tàu du lịch Nha Trang","Bến cảng Vinpearl"],["Điện thoại","Email"],["Lái cano","Tài xế","Khách hàng"],["(mọi nơi)","Văn phòng Trần Phú","Văn phòng 2 tháng 4","Quầy vé 01","Quầy vé 02","Quầy vé 03","Quầy vé 04","Bến tàu du lịch Nha Trang","Bến cảng Vinpearl"],["Hồ sơ này LÀ người liên hệ của…","Hồ sơ này CÓ người liên hệ là…"],[]]
+E2 ảnh: /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/tourdao-sales-audit-62ea81/docs/evidence/diem-khuat-2026-09-24/f-t9/t9-ho-so-to-chuc-o-vai.png
