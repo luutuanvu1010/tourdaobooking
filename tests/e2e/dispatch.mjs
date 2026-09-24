@@ -400,6 +400,18 @@ try {
   assert.ok(h14.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"));
   console.log("✓ FIELD sửa số khách đơn đã xác nhận → 200, order_service gốc không đổi, màn hình hiện số mới, có dòng điều chỉnh + nhật ký");
 
+  // Task 8 Đợt E (hiện lý do trong "Lịch sử" ở trang chi tiết đơn): sửa ở GIAO DIỆN (web/order.ts), KHÔNG đổi API — hai khẳng định dưới đây
+  // GHIM LẠI hành vi API đã đúng từ trước (đột biến `web/order.ts` không làm chúng đỏ; bằng chứng giao diện THẬT ở kịch bản Chrome
+  // v1-nguoi-phu-trach.mjs bước b, nơi xoá dòng dựng `e.detail` mới làm đỏ được). Case 1 (chủ đề/brief): ADMIN (order.history.view = any) đọc
+  // đúng lý do qua API, y hệt A (người lập, ownOrAssigned).
+  const h14Admin = await history(ADMIN, o14);
+  assert.ok(h14Admin.some((x) => x.action === "order_money_adjusted_by_field" && x.detail === "Khách báo thêm 1 người"), "ADMIN cũng đọc đúng lý do (order.history.view = any)");
+  // Case 4 — ca hồi quy quyền quan trọng nhất: C (SALES không liên quan, không lập/không phụ trách o14) vẫn KHÔNG thấy GÌ, dù o14 giờ có một
+  // dòng mang lý do — hành vi KHÔNG đổi so với trước (gần giống dispatch.mjs dòng ~283 với o1, lặp lại có chủ đích ở ĐÂY vì o14 là đơn CÓ
+  // detail thật, không phải đơn trống — đây mới là ca có nguy cơ rò nếu ô quyền hoặc mã bị sửa sai).
+  assert.deepEqual(await history(C.cookie, o14), [], "SALES không liên quan vẫn KHÔNG thấy nhật ký đơn có lý do — order.history.view giữ nguyên");
+  console.log("✓ order.history.view không đổi: ADMIN thấy lý do (any), SALES không liên quan vẫn không thấy gì (ownOrAssigned)");
+
   // Trang DANH SÁCH đơn phải hiện ĐÚNG số như trang chi tiết (bản đầu chỉ sửa trang chi tiết, quên trang danh sách vẫn hiện số gốc — lỗi thật đã bắt).
   const listed = (await call(A, "GET", `/api/orders?q=${o14.orderCode}`)).body.orders.find((x) => x.id === o14.id);
   assert.ok(listed, "không tìm thấy đơn trong danh sách");

@@ -414,6 +414,12 @@ try {
     assert.deepEqual(await p.ev(CARD_BUTTONS), ["Đổi người phụ trách"], "người lập vẫn đổi lại được (ADR-0009: giữ quyền)");
     assert.equal(await p.ev("document.activeElement === document.querySelector('[data-action=change-handler]')"), true, "focus trở về nút đổi (đã dựng lại)");
     assert.deepEqual(await p.ev("[...document.querySelectorAll('.history li')].map((li) => li.textContent).filter((t) => /Đổi người phụ trách/.test(t)).length"), 1, "nhật ký đơn có một dòng “Đổi người phụ trách”");
+    // Task 8 Đợt E: mục "Lịch sử" nay dựng thêm `detail` của audit_log (trước bản sửa: API đã trả đúng nhưng trang không dựng ra) — đo bằng
+    // chính dòng "Đổi người phụ trách" vừa tạo ở bước này (KHÔNG dựng thêm đơn/điều chỉnh tiền riêng, tái dùng đúng thao tác đã có).
+    assert.ok(
+      await p.ev("[...document.querySelectorAll('.history li')].some((li) => li.textContent.includes('từ Sales Một sang Sales Hai'))"),
+      "Task 8 Đợt E: dòng “Đổi người phụ trách” hiện đúng chi tiết (ai → ai), không chỉ tên hành động",
+    );
     assert.equal((await handlerOf(main.id)).name, "Sales Hai", "máy chủ ghi B");
     const puts = p.requests.filter((r) => r.method === "PUT" && r.url.endsWith("/handler"));
     assert.equal(puts.length, 1);
