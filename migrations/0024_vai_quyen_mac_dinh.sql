@@ -4,8 +4,8 @@
 -- (đặc tả §14). Không gieo SĐT/tên thật ở đây.
 
 -- ---- Danh mục vai (module parties) ----------------------------------------------------------------------------------------
--- Nhóm vai: INTERNAL / EXTERNAL / OTHER (danh sách kiểm ở mã — src/shared/roles.ts; không CHECK liệt kê).
-ALTER TABLE pty_role_type ADD COLUMN role_group TEXT NOT NULL DEFAULT 'OTHER';
+-- Nhóm vai: INTERNAL / EXTERNAL / OTHER — tập đóng, ép bằng CHECK ở cột (ADR-0003 điều 3); mã (src/shared/roles.ts) dùng lại đúng ba giá trị này.
+ALTER TABLE pty_role_type ADD COLUMN role_group TEXT NOT NULL DEFAULT 'OTHER' CHECK (role_group IN ('INTERNAL', 'EXTERNAL', 'OTHER'));
 UPDATE pty_role_type SET role_group = 'INTERNAL', sort_order = 15 WHERE code = 'ACCOUNTANT';
 -- Mã cũ mơ hồ (không nói nội bộ hay độc lập): ngưng dùng cho gán MỚI; dòng đang có giữ nguyên, đóng khi tài khoản được gán vai mới.
 UPDATE pty_role_type SET active = 0 WHERE code IN ('STAFF', 'SALES', 'GUIDE', 'AGENT');
@@ -51,12 +51,12 @@ INSERT INTO stf_permission_type (code, name, description, sort_order) VALUES
 UPDATE stf_permission_type SET name = 'Toàn quyền' WHERE code = 'SUPER_ADMIN';
 
 -- Chỉnh quyền tay so với bộ mặc định của vai (ADR-0018 điều 3): cộng (ADD) hoặc bớt (REMOVE) một mã quyền, bắt buộc lý do, có hiệu lực.
--- direction kiểm ở mã (roles.ts); mỗi (tài khoản, mã quyền) tối đa một dòng đang mở.
+-- direction là tập đóng ('ADD'/'REMOVE'), ép bằng CHECK ở cột (ADR-0003 điều 3); mỗi (tài khoản, mã quyền) tối đa một dòng đang mở.
 CREATE TABLE stf_permission_adjustment (
   id                   TEXT PRIMARY KEY,
   staff_id             TEXT NOT NULL REFERENCES staff(id),
   permission_type_code TEXT NOT NULL REFERENCES stf_permission_type(code),
-  direction            TEXT NOT NULL,
+  direction            TEXT NOT NULL CHECK (direction IN ('ADD', 'REMOVE')),
   reason               TEXT NOT NULL CHECK (length(reason) BETWEEN 1 AND 200),
   valid_from_at        TEXT NOT NULL,
   valid_to_at          TEXT CHECK (valid_to_at IS NULL OR valid_to_at >= valid_from_at),

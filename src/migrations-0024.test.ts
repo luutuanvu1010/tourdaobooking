@@ -63,6 +63,14 @@ test("0024: 11 vai có nhóm đúng; vai cũ mơ hồ ngưng gán mới; vai kh�
   }
 });
 
+test("pty_role_type.role_group: tập đóng, ép bằng CHECK (ADR-0003 điều 3) — sai chữ hoa bị chặn ở CSDL", () => {
+  const db = schema();
+  assert.throws(
+    () => db.prepare("INSERT INTO pty_role_type (code, name, sort_order, role_group) VALUES ('TEST_ROLE', 'Vai thử', 99, 'External')").run(),
+    /CHECK/,
+  );
+});
+
 test("0024: có mã quyền INTERN ('Thực tập'); SUPER_ADMIN mang nhãn 'Toàn quyền'", () => {
   const db = schema();
   const name = (c: string) => (db.prepare("SELECT name FROM stf_permission_type WHERE code = ?").get(c) as { name: string } | undefined)?.name;
@@ -135,4 +143,15 @@ test("stf_permission_adjustment: tối đa một dòng MỞ cho mỗi (tài kho�
   db.prepare("UPDATE stf_permission_adjustment SET valid_to_at = ?, updated_at = ? WHERE id = 'adj-1'").run(AT, AT);
   add("adj-3", "ACCOUNTING", "mở lại");
   assert.throws(() => add("adj-4", "SALES", ""), /CHECK/, "mã khác để UNIQUE không che lỗi CHECK");
+});
+
+test("stf_permission_adjustment.direction: tập đóng, ép bằng CHECK (ADR-0003 điều 3) — sai chữ hoa bị chặn ở CSDL", () => {
+  const db = schema();
+  const a = person(db); // (tài khoản, mã quyền) chưa từng ghi trong test này: lỗi chỉ có thể do CHECK, không phải UNIQUE.
+  assert.throws(
+    () =>
+      db.prepare(`INSERT INTO stf_permission_adjustment (id, staff_id, permission_type_code, direction, reason, valid_from_at, created_at, updated_at)
+                  VALUES ('adj-check', ?, 'FIELD', 'add', 'thử CHECK', ?, ?, ?)`).run(a.staff, AT, AT, AT),
+    /CHECK/,
+  );
 });
