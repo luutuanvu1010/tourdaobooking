@@ -2,7 +2,7 @@ import { ApiError, api, safeNext, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
 import { showError } from "./shell";
-import { formatReleaseLine } from "../src/shared/app-info";
+import { APP_VERSION } from "../src/shared/app-info";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
@@ -62,15 +62,14 @@ const maintenanceText = document.getElementById("maintenance-text");
 // Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
 const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
 const hintEl = document.getElementById("passkey-hint");
-// Bản thiết kế "Đăng nhập v2": khối Face ID (tự hiện/ẩn bằng CSS `:has` theo `hidden` của #passkey-login), dòng "Quên PIN?", nút Hiện/Ẩn PIN — đều tuỳ chọn cùng lý do trên.
+// Bản "Đăng nhập v2": dòng "Quên PIN?", nút Hiện/Ẩn PIN, ô email ở chân trang — đều tuỳ chọn cùng lý do trên. `passkey-block` chỉ có ở HTML v2 đời đầu (nút Face ID đứng riêng trên form): còn trong cache thì vẫn phải ẩn khi hiện lời mời.
 const passkeyBlock = document.getElementById("passkey-block");
 const forgotEl = document.getElementById("forgot");
-const forgotCall = document.getElementById("forgot-call");
 const pinToggle = document.getElementById("pin-toggle") as HTMLButtonElement | null;
+const companyEmail = document.getElementById("company-email");
 
-// Biểu tượng (aria-hidden trong icon()): khuôn mặt là nội dung DUY NHẤT của nút Face ID (tên nút ở aria-label trong HTML), ổ khoá ở dòng nhắc an toàn chân trang.
-passkeyBtn?.prepend(icon("face", 32));
-document.querySelector(".login-safety")?.prepend(icon("lock", 12));
+// Biểu tượng (aria-hidden trong icon()): khuôn mặt là nội dung DUY NHẤT của nút Face ID đặt cạnh nút Đăng nhập (tên nút ở aria-label trong HTML).
+passkeyBtn?.prepend(icon("face", 24));
 
 // ---- Nút Hiện/Ẩn mã PIN (chỉ đổi kiểu ô gõ; không đụng giá trị) ----
 pinToggle?.addEventListener("click", () => {
@@ -186,7 +185,7 @@ function showInvite(staffId: string): void {
   const box = document.getElementById("passkey-invite");
   if (!box) return location.replace(next); // HTML cũ trong cache chưa có khối này (Tuỳ chọn có chủ ý, xem khai báo passkeyBtn ở trên)
   form.hidden = true;
-  if (passkeyBlock) passkeyBlock.hidden = true; // (bản HTML mới: nút Face ID nằm NGOÀI form, không được đứng trên lời mời)
+  if (passkeyBlock) passkeyBlock.hidden = true; // (HTML v2 đời đầu trong cache: nút Face ID nằm NGOÀI form, không được đứng trên lời mời)
   if (forgotEl) forgotEl.hidden = true;
   replaceChildren(box, h("h2", null, "Bật đăng nhập bằng Face ID?"), h("p", null, "Lần sau chỉ cần nhìn vào máy là vào được app, không phải gõ PIN."), flow);
   box.hidden = false;
@@ -354,17 +353,17 @@ async function start(): Promise<void> {
 void start();
 
 // ---- Chân trang: dòng phiên bản (hằng trong mã) và thông tin công ty (GET /api/company; lỗi/chậm thì khối ẩn, KHÔNG chặn đăng nhập) ----
-byId("release").textContent = formatReleaseLine();
+// Chân trang gọn (chủ dự án chốt 2026-09-24): "Tên · Địa chỉ · MST" rồi dòng "email · Phiên bản x" và điện thoại hỗ trợ (chữ tĩnh trong HTML).
+byId("release").textContent = `Phiên bản ${APP_VERSION}`;
 async function showCompany(): Promise<void> {
   try {
     const { company } = await api<Api.CompanyResponse>("/api/company");
-    const tel = company.hotline.replace(/[^\d+]/g, "");
-    if (forgotCall && tel) replaceChildren(forgotCall, ", hoặc gọi ", h("a", { href: `tel:${tel}` }, company.hotline));
     if (!company.name) return;
-    // Bản thiết kế v2: một dòng "Tên · MST · Địa chỉ", dòng sau là email (liên kết thư).
-    const line = [company.name, company.taxCode && `MST ${company.taxCode}`, company.address].filter(Boolean).join(" · ");
-    replaceChildren(companyEl, h("p", null, line), company.email && h("p", null, h("a", { href: `mailto:${company.email}` }, company.email)));
+    const line = [company.name, company.address, company.taxCode && `MST ${company.taxCode}`].filter(Boolean).join(" · ");
+    replaceChildren(companyEl, h("p", null, line));
     companyEl.hidden = false;
+    // Email là chữ thường (chọn/chép được), KHÔNG phải liên kết: liên kết phải cao đủ 44px vùng chạm, làm chân trang cao thêm — trái yêu cầu "vừa một màn hình".
+    if (companyEmail && company.email) companyEmail.textContent = company.email;
   } catch {
     // giữ khối ẩn
   }

@@ -7,7 +7,7 @@
 //
 // Hai máy chủ nối tiếp: A = Turnstile BẬT bằng khoá thử `1x…AA` (luôn đạt) — các bước a–e, g–o; B = Turnstile TẮT — bước f (không dựng giả lập được: máy chủ đang đòi token thì
 // đăng nhập không kèm token luôn 403, nên "không có khoá" chỉ chứng minh được trên máy chủ thật sự không có khoá).
-//   a  khối công ty hiện đúng chữ (tiêu đề "Đăng nhập", dòng phiên bản, "tên · MST · địa chỉ", email, hotline ở "Quên PIN?" — bản thiết kế v2 2026-09-24) — so với chính dòng company_profile trong D1
+//   a  khối công ty hiện đúng chữ (tiêu đề "Tour Đảo Booking", "tên · địa chỉ · MST", "email · Phiên bản x", điện thoại hỗ trợ — chủ dự án chốt 2026-09-24) — so với chính dòng company_profile trong D1
 //   b  CSP phục vụ đúng (tiền đề của g) · widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử, đăng nhập qua widget, token gửi đi đúng là token của widget
 //   c  sai PIN → lỗi của máy chủ, widget được reset (ô token trống rồi có token mới), nút khoá suốt lúc chờ rồi mở lại, đăng nhập lại được
 //   d  máy chủ trả 403 `turnstile_failed` (THẬT: gỡ token khỏi yêu cầu) và 503 `turnstile_unavailable` (giả lập) → chữ của máy chủ hiện nguyên văn ở #error; nút mở lại; thử lại được
@@ -26,7 +26,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, TURNSTILE_TEST, ok, setInput, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
-import { APP_VERSION, formatReleaseLine } from "../../../../src/shared/app-info.ts";
+import { APP_VERSION } from "../../../../src/shared/app-info.ts";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-21-v1-0";
 const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;
@@ -37,7 +37,7 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 // Riêng dòng phiên bản đọc từ nhật ký thay đổi (src/shared/changelog.ts qua formatReleaseLine): số phiên bản đổi mỗi lần phát hành, ghi cứng sẽ đỏ giả.
 const EXPECT = {
   app: "Island Booking System", // đổi tên app 2026-09-24 (chủ dự án)
-  release: formatReleaseLine(),
+  release: `Phiên bản ${APP_VERSION}`, // chân trang gọn (chủ dự án 2026-09-24): chỉ số phiên bản
   company: "CÔNG TY TNHH TOUR ĐẢO",
   address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",
   email: "Tourdaotravel@gmail.com",
@@ -207,18 +207,17 @@ try {
   const row = envA.sql("SELECT company_name, tax_code, address, email, hotline FROM company_profile WHERE id = 'default'")[0];
 
   // ---- a) khối công ty ----
-  await step("a", "khối công ty hiện đúng chữ (tiêu đề, dòng phiên bản, dòng “tên · MST · địa chỉ”, email, hotline ở “Quên PIN?”), khớp dòng company_profile trong D1", async () => {
+  await step("a", "khối công ty hiện đúng chữ (tiêu đề “Tour Đảo Booking”, “tên · địa chỉ · MST”, “email · Phiên bản”, điện thoại hỗ trợ), khớp dòng company_profile trong D1", async () => {
     assert.deepEqual(row, { company_name: EXPECT.company, tax_code: EXPECT.taxCode, address: EXPECT.address, email: EXPECT.email, hotline: EXPECT.hotline }, "D1 tạm phải có đúng dữ liệu công ty của đặc tả (0002 + 0013)");
     const p = await openLogin(envA, { label: "a" });
     track(p, "a");
     await p.waitFor("!document.getElementById('company').hidden", "khối công ty hiện", 10000);
-    // Bản thiết kế "Đăng nhập v2" (2026-09-24): tiêu đề trang là "Đăng nhập"; công ty một dòng "Tên · MST · Địa chỉ" + dòng email; hotline ở dòng "Quên PIN?".
-    await p.waitFor("document.getElementById('forgot-call').textContent !== ''", "hotline ở dòng Quên PIN", 10000);
-    const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, lines: [...document.querySelectorAll('#company p')].map((e) => e.textContent), quenPin: document.getElementById('forgot').textContent, tel: document.querySelector('#forgot a')?.getAttribute('href') ?? null })`);
+    // Chỉnh của chủ dự án 2026-09-24: tiêu đề trang "Tour Đảo Booking"; chân trang gọn "Tên · Địa chỉ · MST", "email · Phiên bản x", "Điện thoại hỗ trợ: 0989 929 373 (07:00 – 21:00)"; dòng Quên PIN không còn số điện thoại.
+    const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, lines: [...document.querySelectorAll('#company p')].map((e) => e.textContent), email: document.getElementById('company-email').textContent, quenPin: document.getElementById('forgot').textContent, hoTro: document.querySelector('.login-support').textContent, tel: document.querySelector('.login-support a')?.getAttribute('href') ?? null })`);
     assert.deepEqual(ui, {
-      app: "Đăng nhập", tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
-      lines: [`${EXPECT.company} · MST ${EXPECT.taxCode} · ${EXPECT.address}`, EXPECT.email],
-      quenPin: `Quên PIN? Báo quản trị viên để đặt lại, hoặc gọi ${EXPECT.hotline}.`, tel: `tel:${EXPECT.hotline.replace(/[^\d+]/g, "")}`,
+      app: "Tour Đảo Booking", tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
+      lines: [`${EXPECT.company} · ${EXPECT.address} · MST ${EXPECT.taxCode}`], email: EXPECT.email,
+      quenPin: "Quên PIN? Báo quản trị viên để đặt lại.", hoTro: "Điện thoại hỗ trợ: 0989 929 373 (07:00 – 21:00)", tel: "tel:0989929373",
     });
   });
 
@@ -328,7 +327,7 @@ try {
     await widgetReady(slow);
     assert.equal(await slow.ev("document.getElementById('company').hidden"), true, "trong lúc chờ: khối ẩn");
     assert.equal(await slow.ev(BTN_ENABLED), true, "và nút không bị công ty chặn");
-    await slow.waitFor("!document.getElementById('company').hidden && document.querySelectorAll('#company p').length === 2", "khối công ty hiện khi API về (bản v2: dòng tên · MST · địa chỉ + dòng email)", 10000);
+    await slow.waitFor("!document.getElementById('company').hidden && document.querySelectorAll('#company p').length === 1", "khối công ty hiện khi API về (một dòng tên · địa chỉ · MST)", 10000);
     await typeCreds(slow, ACCOUNTS.salesA);
     await submit(slow);
     await loggedIn(slow);

@@ -102,12 +102,13 @@ const NEEDLES = [
 for (const path of PAGES) {
   const html = await (await get(path)).text();
   for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
-  for (const old of ["Tour Đảo Sales", "Tour Đảo Desk", "Tour Đảo Booking"]) assert.ok(!html.includes(old), `${path} còn tên cũ "${old}"`);
+  for (const old of ["Tour Đảo Sales", "Tour Đảo Desk"]) assert.ok(!html.includes(old), `${path} còn tên cũ "${old}"`);
+  // "Tour Đảo Booking" nay là tên THƯƠNG HIỆU ở tiêu đề trang Đăng nhập (chủ dự án 2026-09-24) — chỉ cấm làm TÊN APP (tiêu đề tab).
+  assert.ok(!html.includes("— Tour Đảo Booking</title>"), `${path}: tiêu đề tab còn tên app cũ "Tour Đảo Booking"`);
 }
-// Bản thiết kế "Đăng nhập v2" (2026-09-24): h1 là "Đăng nhập", tên app (đúng tên trong manifest) nằm ở dòng giới thiệu ngay dưới.
+// Trang Đăng nhập (chủ dự án chốt 2026-09-24): h1 là tên thương hiệu "Tour Đảo Booking"; tên app (đúng manifest) vẫn ở tiêu đề tab (NEEDLES ở trên).
 const loginHtml = await (await get("/login")).text();
-assert.ok(loginHtml.includes("<h1>Đăng nhập</h1>"), "trang đăng nhập phải có h1 \"Đăng nhập\"");
-assert.ok(loginHtml.includes(`<p class="login-sub">${NAME} dành cho nhân viên và đối tác.</p>`), "trang đăng nhập phải có dòng giới thiệu đúng tên trong manifest");
+assert.ok(loginHtml.includes("<h1>Tour Đảo Booking</h1>"), "trang đăng nhập phải có h1 \"Tour Đảo Booking\"");
 // thanh đầu trang do web/shell.ts dựng: tên tách thành "<tên ngắn> " + <span>phần còn lại</span> (vd "Island Booking " + "System")
 const shellBundle = await (await get("/js/orders.js")).text();
 const REST = NAME.slice(SHORT.length).trim();

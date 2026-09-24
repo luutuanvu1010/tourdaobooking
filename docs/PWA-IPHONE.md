@@ -69,4 +69,4 @@ iOS tô đen vùng trong suốt và tự bo góc nên icon là hình vuông đ�
 
 ## Đổi tên hiển thị
 
-Tên nằm trong: `public/manifest.webmanifest` (`name`, `short_name`), `<title>` và `apple-mobile-web-app-title` của MỌI trang trong `PAGES` (14 trang, gồm `/orders`, `/parties`, `/locations`, `/feedback`, `/home`, `/help`), `web/shell.ts` (brand), `public/login.html` (dòng giới thiệu `.login-sub`; `<h1>` là chữ tĩnh "Đăng nhập" từ bản "Đăng nhập v2"), `tests/e2e/pwa.mjs`. Không đổi tên Worker/D1 `tourdao-sales`.
+Tên nằm trong: `public/manifest.webmanifest` (`name`, `short_name`), `<title>` và `apple-mobile-web-app-title` của MỌI trang trong `PAGES` (14 trang, gồm `/orders`, `/parties`, `/locations`, `/feedback`, `/home`, `/help`), `web/shell.ts` (brand), `public/login.html` (chỉ tiêu đề tab; `<h1>` là tên thương hiệu tĩnh "Tour Đảo Booking"), `tests/e2e/pwa.mjs`. Không đổi tên Worker/D1 `tourdao-sales`.

@@ -83,15 +83,12 @@
   --row-h: 48px;            /* dòng liên kết trong trang Tôi */
   --avatar: 48px;
   --logo-bar: 30px;
-  --logo-login: 64px;       /* Đăng nhập v2: biểu tượng app trên tiêu đề (bản thiết kế 64px; trước 72px) */
+  --logo-login: 56px;       /* Đăng nhập: biểu tượng app trên tiêu đề (bản thiết kế 64px, thu 56px để vừa một màn hình — chủ dự án 2026-09-24) */
   --w-login: 360px;         /* Đăng nhập v2: bề rộng cột giữa — đủ cho widget Turnstile cỡ "flexible" (tối thiểu 300px) ở khổ 375 */
   --w-login-foot: 560px;    /* Đăng nhập v2: bề rộng tối đa dòng thông tin công ty ở chân trang */
-  --fs-login-title: clamp(32px, 7vw, 40px); /* Đăng nhập v2: cỡ tiêu đề "Đăng nhập" */
-  --fs-login-sub: 17px;     /* Đăng nhập v2: dòng giới thiệu dưới tiêu đề và chữ nút lớn */
-  --h-login-btn: 52px;      /* Đăng nhập v2: chiều cao nút Đăng nhập bằng PIN */
-  --passkey-btn: 64px;      /* Đăng nhập v2: nút tròn Face ID chỉ có biểu tượng (chủ dự án chốt 2026-09-24) */
-  --login-pad-top: clamp(48px, 10vh, 96px);    /* Đăng nhập v2: khoảng trên cột giữa */
-  --login-pad-bottom: clamp(32px, 6vh, 64px);  /* Đăng nhập v2: khoảng dưới cột giữa */
+  --fs-login-title: 28px;   /* Đăng nhập: cỡ tiêu đề "Tour Đảo Booking" */
+  --fs-login-sub: 17px;     /* Đăng nhập v2: chữ nút lớn (Đăng nhập) */
+  --h-login-btn: 52px;      /* Đăng nhập: chiều cao nút Đăng nhập, và cạnh của nút tròn sinh trắc học đặt cạnh nó */
   --shadow-logo: 0 4px 16px rgba(12, 74, 110, 0.14); /* Đăng nhập v2: bóng mềm dưới biểu tượng app — màu = --c-primary (#0c4a6e) với độ mờ 0,14; bản thiết kế dùng #005b96, quy về màu có sẵn */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
@@ -628,35 +625,30 @@ body.maint-open { overflow: hidden; }
 .booker-matches { display: grid; gap: var(--s2); }
 .booker-match { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 
-/* ---------- Đăng nhập v2 (bản thiết kế "Đăng nhập v2.dc.html", Claude Design 2026-09-24): một cột giữa nền trắng ở MỌI khổ — chỉ token ----------
-   Thay cột thương hiệu máy tính của Đợt C. Màu xám của bản thiết kế không có trong token (#64748b, #e2e8f0, #f0f7fc) quy về
-   token gần nhất (--c-text-muted, --c-border, --c-surface-alt) thay vì thêm màu mới; ô gõ giữ --fs-ui (16px) thay cho 17px. */
-body.login-page { display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; background: var(--c-surface); }
-body.login-page main.login { flex: 1; display: flex; align-items: center; justify-content: center; width: 100%; max-width: none; margin: 0; padding: var(--login-pad-top) max(var(--s5), env(safe-area-inset-right)) var(--login-pad-bottom) max(var(--s5), env(safe-area-inset-left)); }
-.login-col { display: flex; flex-direction: column; align-items: center; gap: var(--s6); width: 100%; max-width: var(--w-login); min-width: 0; }
+/* ---------- Đăng nhập v2 (bản thiết kế "Đăng nhập v2.dc.html", Claude Design 2026-09-24, cộng các chỉnh của chủ dự án cùng ngày): một cột giữa nền trắng ở MỌI khổ — chỉ token ----------
+   Màu xám của bản thiết kế không có trong token quy về token gần nhất (không thêm màu); ô gõ giữ --fs-ui (16px).
+   VỪA MỘT MÀN HÌNH, KHÔNG KÉO ĐƯỢC (chủ dự án 2026-09-24): body cao đúng 100dvh và không cuộn; chỉ `main` được phép cuộn khi màn hình
+   quá thấp (vd iPhone SE mở bằng Safari có thanh công cụ) — khi nội dung vừa (điện thoại thường, máy tính) thì không có gì để kéo. */
+html:has(body.login-page) { height: 100%; overflow: hidden; }
+body.login-page { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); }
+body.login-page main.login { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; width: 100%; max-width: none; margin: 0; padding: var(--s5) max(var(--s5), env(safe-area-inset-right)) var(--s4) max(var(--s5), env(safe-area-inset-left)); }
+/* margin:auto (không phải align/justify center) để khi phải cuộn, phần đầu không bị cắt mất phía trên. */
+.login-col { display: flex; flex-direction: column; align-items: stretch; gap: var(--s5); width: 100%; max-width: var(--w-login); min-width: 0; margin: auto; }
 .login-head { display: flex; flex-direction: column; align-items: center; gap: var(--s2); text-align: center; }
-.login-logo { display: block; width: var(--logo-login); height: var(--logo-login); margin-bottom: var(--s2); border-radius: var(--radius-icon); box-shadow: var(--shadow-logo); }
-.login-head h1 { margin: 0; font-size: var(--fs-login-title); font-weight: 700; line-height: 1.22; color: var(--c-text); }
-.login-sub { margin: 0; font-size: var(--fs-login-sub); color: var(--c-text-muted); text-wrap: pretty; }
+.login-logo { display: block; width: var(--logo-login); height: var(--logo-login); border-radius: var(--radius-icon); box-shadow: var(--shadow-logo); }
+.login-head h1 { margin: 0; font-size: var(--fs-login-title); font-weight: 700; line-height: 1.25; color: var(--c-text); }
 .login-maintenance { width: 100%; margin: 0; text-align: center; border-radius: var(--radius-md); }
-.login-body { display: flex; flex-direction: column; gap: var(--s5); width: 100%; min-width: 0; }
 .login-btn { display: flex; align-items: center; justify-content: center; gap: var(--s2); width: 100%; min-height: var(--h-login-btn); margin: 0; padding: var(--s3) var(--s5); font-size: var(--fs-login-sub); line-height: 1.3; border-radius: var(--radius-pill); transition: background var(--m-fast) ease; }
 .login-btn.btn-primary { border-color: var(--c-primary); }
 .login-btn.btn-primary:not(:disabled):hover { background: var(--c-primary-strong); border-color: var(--c-primary-strong); }
-.login-btn svg { flex: none; }
-/* Khối Face ID: ẩn khi nút bên trong ẩn (máy chủ tắt passkey / trình duyệt không hỗ trợ) — không cần JS riêng, HTML/JS cũ trong cache vẫn đúng. */
-.login-passkey { display: flex; flex-direction: column; gap: var(--s5); }
-/* Nút Face ID chỉ có biểu tượng (chủ dự án chốt 2026-09-24): tròn, giữa cột; tên nút ở aria-label/title. */
-.login-passkey-btn { display: flex; align-items: center; justify-content: center; align-self: center; width: var(--passkey-btn); height: var(--passkey-btn); margin: 0; padding: 0; border-color: var(--c-primary); border-radius: 50%; transition: background var(--m-fast) ease; }
-.login-passkey-btn:not(:disabled):hover { background: var(--c-primary-strong); border-color: var(--c-primary-strong); }
-.login-passkey:has(> #passkey-login[hidden]) { display: none; }
-.login-hint { margin: calc(-1 * var(--s3)) 0 0; text-align: center; }
-.login-or { display: flex; align-items: center; gap: var(--s4); font-size: var(--fs-label); color: var(--c-text-muted); }
-.login-or::before, .login-or::after { content: ""; flex: 1; height: 1px; background: var(--c-border); }
-/* Có Face ID thì nút PIN lùi về kiểu phụ (nền xanh nhạt, chữ navy) như bản thiết kế. */
-.login-body:has(#passkey-login:not([hidden])) #submit { color: var(--c-primary); background: var(--c-surface-alt); border-color: var(--c-surface-alt); }
-.login-body:has(#passkey-login:not([hidden])) #submit:not(:disabled):hover { background: var(--c-primary-soft); border-color: var(--c-primary-soft); }
-.login-form { display: flex; flex-direction: column; gap: var(--s4); min-width: 0; margin: 0; }
+/* Nút Đăng nhập chiếm phần còn lại của hàng; nút sinh trắc học CHỈ có biểu tượng đứng ngay cạnh (chủ dự án 2026-09-24), tròn, cùng chiều cao. */
+.login-actions { display: flex; align-items: center; gap: var(--s3); }
+.login-actions .login-btn { flex: 1; min-width: 0; min-height: var(--h-login-btn); } /* nhắc lại min-height: `.btn:not(.btn-link)` ở khổ ≤640px (0,2,0) ép 44px, làm nút Đăng nhập thấp hơn nút tròn bên cạnh */
+.login-passkey-btn { display: flex; flex: none; align-items: center; justify-content: center; width: var(--h-login-btn); height: var(--h-login-btn); margin: 0; padding: 0; color: var(--c-primary); background: var(--c-surface-alt); border-color: var(--c-surface-alt); border-radius: 50%; transition: background var(--m-fast) ease; }
+.login-passkey-btn:not(:disabled):hover { background: var(--c-primary-soft); border-color: var(--c-primary-soft); }
+.login-passkey-btn svg { flex: none; }
+.login-hint { margin: 0; text-align: center; }
+.login-form { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; margin: 0; }
 .login-form .alert { margin: 0; }
 /* Hai ô gộp một khung: nhãn nhỏ ở trên, vạch mảnh ngăn giữa; viền khung đổi màu khi đang gõ (thay cho vòng focus từng ô). */
 .login-fields { display: flex; flex-direction: column; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); overflow: hidden; transition: border-color var(--m-fast) ease; }
@@ -673,19 +665,17 @@ body.login-page main.login { flex: 1; display: flex; align-items: center; justif
 .login-pin-toggle:hover { background: var(--c-surface-alt); }
 .login-turnstile { min-height: var(--h-turnstile); }
 .login-forgot { margin: 0; font-size: var(--fs-label); text-align: center; color: var(--c-text-muted); text-wrap: pretty; }
-.login-forgot a { font-weight: 700; white-space: nowrap; text-decoration: none; } /* số hotline không ngắt giữa chừng */
-.login-forgot a, .login-info a { display: inline-flex; align-items: center; min-height: var(--tap-min); vertical-align: middle; } /* vùng chạm 44px (passkey-smoke bước h đo) */
-.login-info a { text-decoration: none; }
-.login-forgot a:hover, .login-info a:hover { color: var(--c-primary-strong); text-decoration: underline; }
 .login-invite { width: 100%; margin: 0; border: 1px solid var(--c-border); }
 .login-invite .btn { width: 100%; margin-top: var(--s3); min-height: var(--tap-min); }
-/* Chân trang: nhắc an toàn, một dòng công ty, email, phiên bản. Chừa vùng an toàn đáy (PWA iPhone). */
-.login-info { display: flex; flex-direction: column; align-items: center; gap: var(--s2); padding: var(--s5) max(var(--s5), env(safe-area-inset-right)) calc(var(--s6) + env(safe-area-inset-bottom)) max(var(--s5), env(safe-area-inset-left)); font-size: var(--fs-badge); line-height: 1.6; text-align: center; color: var(--c-text-muted); }
+/* Chân trang gọn (chủ dự án 2026-09-24): "Tên · Địa chỉ · MST", "email · Phiên bản", điện thoại hỗ trợ. Chừa vùng an toàn đáy (PWA iPhone). */
+.login-info { flex: none; display: flex; flex-direction: column; align-items: center; gap: var(--s1); padding: var(--s3) max(var(--s5), env(safe-area-inset-right)) calc(var(--s3) + env(safe-area-inset-bottom)) max(var(--s5), env(safe-area-inset-left)); font-size: var(--fs-badge); line-height: 1.5; text-align: center; color: var(--c-text-muted); }
 .login-info p { margin: 0; max-width: var(--w-login-foot); overflow-wrap: anywhere; text-wrap: pretty; }
-.login-info a { color: var(--c-text-muted); }
-
-.login-safety svg { display: inline-block; margin-right: var(--s1); vertical-align: -1px; } /* ổ khoá đi liền chữ, không tách cột khi câu xuống dòng */
-.login-company { display: flex; flex-direction: column; align-items: center; gap: var(--s2); }
+.login-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; }
+.login-meta span:empty { display: none; }
+.login-meta span:not(:empty) + span:not(:empty)::before { content: "·"; margin: 0 var(--s2); } /* "email · Phiên bản x"; email trống (API lỗi) thì không có dấu thừa */
+.login-support a { display: inline-flex; align-items: center; min-height: var(--tap-min); font-weight: 700; white-space: nowrap; color: var(--c-primary); text-decoration: none; vertical-align: middle; } /* vùng chạm 44px (passkey-smoke bước h, v1-dang-nhap bước i đo) */
+.login-support a:hover { color: var(--c-primary-strong); text-decoration: underline; }
+.login-support { line-height: 1; }
 
 /* ---------- Trang chủ mới (/home, web/home.ts) — chỉ token ---------- */
 /* Ẩn khỏi mắt ở MỌI khổ màn hình nhưng vẫn còn cho trình đọc màn hình — cùng kỹ thuật với .detail-head h1 và
