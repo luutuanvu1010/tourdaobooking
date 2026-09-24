@@ -22,6 +22,7 @@
 //   l  console/CSP sạch ở mọi trang đã theo dõi (trừ dòng mạng đã biết của các lỗi cố ý)
 //   m  (vòng sửa sau kiểm độc lập Đợt E, 2026-09-24, mục A) tên khách DÀI bị cắt bằng "…" ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng "Khách: <tên đầy đủ>", ngay trước "Mã đơn"
 //   n  (vòng sửa sau kiểm độc lập Đợt E, mục B) bàn phím THẬT qua CDP: Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết
+//   o  (Đợt E task 9, việc nhỏ) lý do nhiều dòng ở "Lịch sử" (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — CSS .history-detail thêm white-space: pre-line; đo bằng Range.getClientRects thật
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -43,6 +44,7 @@ const ADMIN = ACCOUNTS.admin;
 const ACC = ACCOUNTS.accounting;
 const C = { name: "Sales Ba", phone: "0900000205", pin: "246813", permissions: ["SALES"] };
 const D = { name: "Sales Tư", phone: "0900000206", pin: "246814", permissions: ["SALES"] };
+const FIELD_ACC = { name: "HDV Đo Dòng", phone: "0900000207", pin: "246815", permissions: ["FIELD"] }; // Task 9 Đợt E (bước o): đo CSS .history-detail
 
 const results = { ghiChu: "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.", buoc: [], axe: {}, do: {}, anh: {}, dem: {} };
 let failures = 0;
@@ -900,6 +902,41 @@ try {
     await pressKey(p, KEY_SPACE);
     s = await p.ev(TOGGLE_STATE);
     assert.deepEqual([s.expanded, s.hidden], ["false", true], `Space lần hai phải ĐÓNG lại (khôi phục trạng thái đóng cho gọn): ${JSON.stringify(s)}`);
+    p.close();
+  });
+
+  // ================= o) lý do nhiều dòng ở "Lịch sử" =================
+  // Task 9 Đợt E (việc nhỏ — sửa CSS `.history-detail` thiếu `white-space: pre-line`, public/app.css): dữ liệu vẫn lưu ĐÚNG (audit_log.detail
+  // là TEXT, giữ nguyên ký tự xuống dòng; `web/order.ts` dựng `e.detail` bằng h() — MỘT text node, không innerHTML — nên DOM vẫn giữ \n); chỉ
+  // CSS mặc định (white-space: normal) collapse mọi \n thành MỘT dòng lúc hiển thị. Dựng một dòng lịch sử "order_money_adjusted_by_field" có lý
+  // do 3 dòng (qua route handler-money-edit thật — KHÔNG lọc/chặn nội dung ô lý do, đúng chỉ đạo) rồi ĐO THẬT số dòng hiển thị bằng
+  // Range.getClientRects trên CHÍNH text node đó (đúng số HÀNG THỊ GIÁC trình duyệt vẽ ra — không suy luận từ chiều cao/line-height).
+  await step("o", "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao", async () => {
+    for (const stmt of (await insertStaffSql(FIELD_ACC)).split("\n")) env.sql(stmt);
+    const fieldStaffId = env.sql(`SELECT id FROM staff WHERE phone = '${FIELD_ACC.phone}'`)[0].id;
+    const o = await createOrder(A, "Khách Lý Do Nhiều Dòng");
+    assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn (đủ chuyến: departDate + pax của dịch vụ nhập tay createOrder() đã đặt sẵn)");
+    assert.equal((await call(A, "PUT", `/api/orders/${o.id}/handler`, { staffId: fieldStaffId })).status, 200, "giao cho HDV (FIELD)");
+    const reason = "Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00";
+    const edited = await call(FIELD_ACC, "POST", `/api/orders/${o.id}/handler-money-edit`, { reason, services: [] });
+    assert.equal(edited.status, 200, `handler-money-edit: ${edited.status} ${JSON.stringify(edited.json)}`);
+
+    const p = await openAs(A, `/order?id=${o.id}`, { viewport: M });
+    await p.waitFor("[...document.querySelectorAll('.history li')].some((li) => li.textContent.includes('Khách gọi lại xin đổi'))", "trang đơn thấy dòng lịch sử sửa tiền", 10000);
+    const m = await p.ev(`(() => {
+      const li = [...document.querySelectorAll('.history li')].find((x) => x.textContent.includes('Khách gọi lại xin đổi'));
+      const div = li.querySelector('.history-detail');
+      const range = document.createRange();
+      range.selectNodeContents(div.firstChild);
+      const tops = [...range.getClientRects()].map((rc) => Math.round(rc.top));
+      return { soDong: new Set(tops).size, caoDiv: Math.round(div.getBoundingClientRect().height), whiteSpace: getComputedStyle(div).whiteSpace, text: div.textContent };
+    })()`);
+    assert.equal(m.whiteSpace, "pre-line", `CSS .history-detail phải là white-space: pre-line: ${JSON.stringify(m)}`);
+    assert.equal(m.text, reason, "textContent (DOM) giữ NGUYÊN lý do kể cả ký tự xuống dòng — dữ liệu không đổi, chỉ đổi cách hiển thị");
+    assert.equal(m.soDong, 3, `phải hiện ĐÚNG 3 dòng thị giác (đúng số dòng của reason, đo bằng Range.getClientRects) — trước bản sửa CSS, white-space mặc định collapse còn 1 dòng: ${JSON.stringify(m)}`);
+    assert.ok(m.caoDiv > 0, `chiều cao thật của khối lý do (đối chứng, không phải khẳng định chính): ${JSON.stringify(m)}`);
+    results.do["history-detail-nhieu-dong"] = m;
+    await shoot(p, "nguoi-phu-trach-lich-su-nhieu-dong.png");
     p.close();
   });
 

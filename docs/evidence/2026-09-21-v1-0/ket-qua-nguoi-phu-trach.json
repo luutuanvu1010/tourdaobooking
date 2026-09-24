@@ -67,6 +67,11 @@
       "dat": true
     },
     {
+      "id": "o",
+      "name": "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao",
+      "dat": true
+    },
+    {
       "id": "l",
       "name": "console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)",
       "dat": true
@@ -183,6 +188,12 @@
       "nho": [],
       "dieuKhien": 24,
       "trànNgang": 0
+    },
+    "history-detail-nhieu-dong": {
+      "soDong": 3,
+      "caoDiv": 65,
+      "whiteSpace": "pre-line",
+      "text": "Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00"
     }
   },
   "anh": {
@@ -202,7 +213,8 @@
     "nguoi-phu-trach-bang-chon-1040.png": "1040×800",
     "nguoi-phu-trach-chua-co-nguoi-390.png": "390×844",
     "nguoi-phu-trach-danh-sach-chip-390.png": "390×844",
-    "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800"
+    "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800",
+    "nguoi-phu-trach-lich-su-nhieu-dong.png": "390×844"
   },
   "dem": {
     "the-dong-390": [
@@ -264,10 +276,10 @@
       "trang-don-chua-biet-1040",
       "danh-sach-handlers-loi-1040"
     ],
-    "trang-theo-doi-console": 44
+    "trang-theo-doi-console": 45
   },
   "tongKet": {
-    "dat": 14,
+    "dat": 15,
     "hong": 0
   }
 }
