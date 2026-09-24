@@ -297,3 +297,19 @@ test("R-AUT-1: Face ID còn hiệu lực của tài khoản ĐANG hoạt động
   addPasskey(db, { id: "pk-an", staffId: "s-an" }); // s-an: active = 1 trong build()
   assert.equal(violations(db, one("R-AUT-1")), 0);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-ADR13-1 (ADR-0013 điều 5, chủ dự án chọn B 2026-09-24): tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động. Chiều ngược lại hợp lệ ("tạm khoá").
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-ADR13-1: tài khoản đang hoạt động mà hồ sơ bị ngưng là vi phạm (fail); tài khoản ngưng + hồ sơ hoạt động thì không", () => {
+  const c = one("R-ADR13-1");
+  assert.equal(c.level, "fail");
+  const db = build();
+  assert.equal(violations(db, c), 0);
+  db.exec("UPDATE staff SET active = 0 WHERE id = 's-an'");
+  assert.equal(violations(db, c), 0, "tạm khoá: tài khoản ngưng, hồ sơ vẫn hoạt động — hợp lệ");
+  db.exec("UPDATE pty_party SET active = 0 WHERE id = 'pty-s-admin'");
+  assert.equal(violations(db, c), 1);
+  db.exec("UPDATE pty_party SET active = 0 WHERE id = 'pty-s-binh'");
+  assert.equal(violations(db, c), 1, "Bình đã ngưng tài khoản nên hồ sơ ngưng không tính");
+});

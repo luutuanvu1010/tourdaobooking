@@ -25,6 +25,12 @@ export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
   { code: "R-N1-1", what: "một hồ sơ tối đa một tài khoản", sql: "SELECT count(*) FROM (SELECT party_id FROM staff WHERE party_id IS NOT NULL GROUP BY party_id HAVING count(*) > 1)", level: "fail" },
   {
+    code: "R-ADR13-1",
+    what: "tài khoản đang hoạt động ⇒ hồ sơ của nó đang hoạt động (ADR-0013 điều 5; chiều ngược lại là 'tạm khoá', hợp lệ)",
+    sql: "SELECT count(*) FROM staff s JOIN pty_party p ON p.id = s.party_id WHERE s.active = 1 AND p.active = 0",
+    level: "fail",
+  },
+  {
     code: "R-N1-2",
     what: "cá nhân ⇔ có pty_person (không có pty_organization); tổ chức ngược lại",
     sql: `SELECT count(*) FROM pty_party p WHERE
