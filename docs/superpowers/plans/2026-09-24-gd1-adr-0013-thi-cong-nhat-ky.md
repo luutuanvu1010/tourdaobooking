@@ -54,3 +54,18 @@ Người kiểm độc lập, chỉ đọc, đọc lại toàn bộ nhánh `va-l
 - **Minor — ĐÃ SỬA (phiên sửa này):** `docs/SO-HANG-RAO.md` (dòng `redteam.test.mjs`/`doi-tac.test.mjs`) còn trỏ tới mục hoãn `party.write`/4 route Hồ sơ trong `docs/quyen-hoan.json` — mục đó đã bị gỡ từ Task 3 (route hỏi thẳng ô), câu trỏ tới đã sửa lại cho khớp. `docs/evidence/2026-09-24-lo-hong-ho-so/README.md` (bảng "Sau GĐ1"): cột bản sao cho H3b/H3c từng ghi "không tới được" — người kiểm đã đo được 403 thật (route tới được vì cổng `office` mở, nhưng `can()` trong thân handler vẫn chặn) — đã sửa lại bảng cho khớp giá trị đã đo (khớp với phần "Nhận định" ngay dưới bảng đó, vốn đã nói đúng). Đã thêm một ca hồi quy: SALES thêm liên hệ vào hồ sơ của ADMIN2 đang **ngưng tài khoản** → 403 (`POST /api/parties/:id/contacts`), vào cạnh ca đổi tên đã có sẵn.
 
 Lệnh kiểm sau khi sửa: `node --test src/modules/parties/ho-so-co-tai-khoan.test.ts`, `npm test`, `npm run typecheck` — xem báo cáo `/Users/tuanbao/.claude/jobs/4d07f1ed/tmp/sdd-gd1/fix-wave-report.md` cho kết quả đầy đủ. Chỉ sửa tệp test + tài liệu; không đụng mã sản xuất (`src/modules/**/index.ts`, `src/shared/*.ts` ngoài test).
+
+## Gộp mô hình vai GĐ1 → 1.9 (2026-09-24)
+
+Nhánh `va-lo-ho-so-1-9` (từ `va-lo-ho-so-gd1` @ `3f2370d`) gộp `main` cục bộ `4620e61` (mô hình người–vai–quyền GĐ1, ADR-0018: quyền INTERN, vai tài khoản, migration 0024, nhật ký 1.8) bằng `git merge --no-ff main` → commit gộp `a1cb722`. Không push, không đụng `main`.
+
+| Mục | Kết quả |
+|---|---|
+| MATRIX 7 cột | `party.staff.write` = none/none/any/none/none/any/**none** (INTERN none). `party.view`/`party.write`: lấy giá trị INTERN = `none` do `main` đã khai sẵn. Test đổi thành "26 thao tác × 7 quyền". |
+| Route ghi mới trong `parties/index.ts` từ `main` | Không có route ghi mới chạm tên/liên hệ/"đang dùng" của hồ sơ. `main` chỉ thêm chặn 409 `role_via_account` ở `POST …/roles` và `POST …/roles/:rid/end` (cổng admin, vẫn nằm trong `quyen-hoan.json` hạn 2026-10-15) và đổi dạng trả của `GET /api/parties/meta` (vẫn giữ `can(staff, "party.view")`). |
+| `accountOfParty` | Dùng lại `accountIdOfParty` của `main` (cùng câu `SELECT id FROM staff WHERE party_id = ?1`, không lọc `active` → trả cả tài khoản đang tạm khoá); bỏ bản trùng `findStaffIdByParty`. |
+| Tạo tài khoản trên hồ sơ có sẵn (`main`) | Đã đọc `createAccountWithRolesStatements` (`src/modules/staff/index.ts`): từ chối hồ sơ đang ngưng (`if (!party.active) … "Hồ sơ đã chọn đang ngưng hoạt động."`) — khớp tiền điều kiện ADR-0013 điều 5 (tài khoản đang hoạt động ⇒ hồ sơ đang hoạt động). Lưu ý: kiểm-rồi-ghi, không có chốt trong lô ghi; nếu hồ sơ bị ngưng xen giữa thì `R-ADR13-1` (audit sau triển khai) bắt. |
+| `docs/quyen-hoan.json` | 6 mục đã gỡ của nhánh vá vẫn gỡ; `main` không đổi tệp này. |
+| Nhật ký thay đổi | 1.8 của `main` giữ nguyên; bản vá thành **1.9** (ngày tạm 2026-10-01); `app-info.test.ts` khớp 1.9. |
+| Kiểm | `npm test` 771/771; `npm run typecheck` 0 lỗi; `tests/audit/*.test.mjs` 34/35 (đỏ duy nhất P4 `doi-tac.test.mjs` — đã đỏ sẵn trên `origin/main`, cả `main` lẫn nhánh này không đổi `src/modules/dispatch` hay tệp test đó; R3/R3b/R3c PASS); `npm run test:e2e` 19/19 xanh, `audit-invariants` có `R-ADR13-1` ✓. Đột biến PUT `party.staff.write` → `party.write`: `ho-so-co-tai-khoan.test.ts` đỏ (ca 5), hoàn nguyên → 11/11. |
+| Chưa làm | Chưa có người kiểm độc lập cho lần gộp này. |
