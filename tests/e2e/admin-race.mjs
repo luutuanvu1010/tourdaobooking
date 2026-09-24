@@ -4,11 +4,10 @@
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, login, randomPhone as rnd, session } from "./lib.mjs";
 
-const Z = await session(ACCOUNTS.admin);
 const SUPER = await session(ACCOUNTS.superAdmin);
 const mk = async (name) => {
   const p = rnd();
-  const r = await call(Z, "POST", "/api/staff", { fullName: name, phone: p, permissions: ["ADMIN"] });
+  const r = await call(SUPER, "POST", "/api/staff", { fullName: name, phone: p, permissions: ["ADMIN"] });
   return { id: r.body.staff.id, phone: p, pin: r.body.pin };
 };
 const X = await mk("Race X"), Y = await mk("Race Y");
@@ -31,7 +30,7 @@ const permLogs = (await call(SUPER, "GET", "/api/audit?action=permission_changed
 
 // khôi phục TRƯỚC khi kiểm, để kịch bản sau vẫn có admin test: mở lại các admin cũ, ngưng X/Y
 for (const o of others) await call(SUPER, "PATCH", `/api/staff/${o.id}`, { active: true });
-for (const s of [X, Y]) await call(SUPER, "PATCH", `/api/staff/${s.id}`, { active: false }); // SUPER: người thắng cuộc vẫn giữ ADMIN, Z (chỉ ADMIN) không còn quản lý được nữa
+for (const s of [X, Y]) await call(SUPER, "PATCH", `/api/staff/${s.id}`, { active: false }); // SUPER: người thắng cuộc vẫn giữ ADMIN, một Quản trị thường cũng không quản lý được nữa
 
 // Bên thua nhận 409 (chốt chặn "còn admin khác" trong luật hoặc trong SQL).
 assert.equal([a, b].filter((x) => x.status === 200).length, 1, "đúng một bên thắng");

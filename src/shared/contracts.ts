@@ -4,8 +4,9 @@ import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
 import type { PermissionCode } from "./permissions.ts";
+import type { RoleCode } from "./roles.ts";
 
-export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices };
+export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
 // ---- Nhân viên / phiên -------------------------------------------------------
 export interface StaffProfile {
@@ -32,10 +33,16 @@ export interface StaffAccountDto extends StaffAccount {
   locked: boolean;
   /** Số passkey (Face ID) còn hiệu lực. */
   passkeyCount: number;
+  /** Vai với Tour Đảo đang mở (ADR-0018). Rỗng = tài khoản chưa chuyển sang cách mới (đang dùng quyền cũ). */
+  roles: RoleCode[];
 }
 
 /** Thân yêu cầu PUT /api/staff/:id/permissions: TOÀN BỘ tập quyền mong muốn (không rỗng). */
 export interface StaffPermissionsRequest { permissions: PermissionCode[] }
+/** Thân PUT /api/staff/:id/roles: TOÀN BỘ tập vai mong muốn (không rỗng) + chỉnh tay (lý do bắt buộc khi có). */
+export interface StaffRolesRequest { roles: RoleCode[]; adds?: PermissionCode[]; removes?: PermissionCode[]; reason?: string }
+/** Vai + chỉnh tay đang có; `reason` = lý do của lần chỉnh tay gần nhất (giao diện điền sẵn), null khi không chỉnh tay. */
+export interface StaffRolesResponse { roles: RoleCode[]; adds: PermissionCode[]; removes: PermissionCode[]; reason: string | null }
 
 export interface StaffSheetCandidateDto {
   row: number;

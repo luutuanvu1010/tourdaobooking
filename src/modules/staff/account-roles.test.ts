@@ -79,9 +79,16 @@ const account = async (db: D1Database, id: string): Promise<StaffAccount> => (aw
 /**
  * Chạy một lần đổi vai theo ĐÚNG thứ tự route (Task 7): có câu chốt gỡ ADMIN → hai batch; không → một batch. Lô 1 (khi có chốt) THUA
  * (câu đầu changes = 0) thì DỪNG, không chạy lô vai — một lần đổi là MỘT khối, không áp nửa vời (I-1: kiểm độc lập vòng 1). Trả kèm
- * `batch1` (kết quả lô đầu — `[]` khi không có chốt, tức đã gộp vào một batch duy nhất) để test tự kiểm từng câu đã áp dụng hay chưa.
+ * `batch1` (kết quả lô đầu — khi KHÔNG có chốt, đó chính là kết quả của batch MỘT-LẦN-DUY-NHẤT gồm cả vai/chỉnh tay/quyền, không phải
+ * mảng rỗng) để test tự kiểm từng câu đã áp dụng hay chưa. `midRace` (nếu có) chạy NGAY SAU khi câu lệnh đã dựng xong nhưng TRƯỚC khi
+ * batch đầu chạy — chỗ để giả lập "chen giữa" (Ruling R21: quản trị viên khác vừa mất quyền ngay sau khi route đọc trạng thái).
  */
-async function change(db: D1Database, id: string, next: { roles: string[]; adds?: string[]; removes?: string[]; reason?: string | null }) {
+async function change(
+  db: D1Database,
+  id: string,
+  next: { roles: string[]; adds?: string[]; removes?: string[]; reason?: string | null },
+  midRace?: () => void,
+) {
   const acc = await account(db, id);
   const state = (await staff.getAccountRoleState(db, acc, TODAY))!;
   const c = staff.roleChangeStatements(db, {
@@ -89,6 +96,7 @@ async function change(db: D1Database, id: string, next: { roles: string[]; adds?
     next: { roles: next.roles as never, adds: (next.adds ?? []) as never, removes: (next.removes ?? []) as never, reason: next.reason ?? null },
     actorId: "s-adm", at: AT, today: TODAY,
   });
+  midRace?.();
   const batch1 = c.permissions.guarded
     ? await db.batch([c.permissions.guarded, ...c.permissions.rest, ...c.adjustmentStatements])
     : await db.batch([...c.roleStatements, ...c.adjustmentStatements, ...c.permissions.rest]);
@@ -214,4 +222,24 @@ test("accountRoleCodes: vai mô hình mới đang mở của từng tài khoản
   const map = await staff.accountRoleCodes(db, [await account(db, "s-old"), await account(db, "s-adm")]);
   assert.deepEqual(map.get("s-old"), ["ACCOUNTANT"]);
   assert.deepEqual(map.get("s-adm"), []);
+});
+
+// Ruling R21(a) (điều phối viên 2026-09-24): I-1 Case B chỉ thử một lần ĐỔI VAI GIẢ (roles không đổi, chỉ chỉnh tay) — roleStatements
+// khi đó luôn rỗng nên "vai không đổi" đúng một cách tầm thường. Ca dưới đây là một lần ĐỔI VAI THẬT (đóng SALES_STAFF, mở Kế toán)
+// kèm gỡ chỉnh tay Quản trị "ngủ" — route (Task 7, accounts/index.ts) chỉ chạy lô vai SAU KHI lô có chốt đã THẮNG; khi quản trị viên
+// khác vừa mất quyền NGAY SAU khi câu lệnh được dựng (chen giữa), lô có chốt thua thì lô vai không được chạy — vai, quyền, chỉnh tay
+// phải giữ NGUYÊN, không áp nửa vời.
+test("Ruling R21(a): đổi vai THẬT gỡ Quản trị (SALES_STAFF + chỉnh tay Quản trị → Kế toán) — hết quản trị viên khác GIỮA CHỪNG: vai/quyền/chỉnh tay đều không đổi", async () => {
+  const { sqlite, db } = seed();
+  await change(db, "s-old", { roles: ["SALES_STAFF"], adds: ["ADMIN"], reason: "thử" });
+  const c = await change(db, "s-old", { roles: ["ACCOUNTANT"] }, () => {
+    // Giả lập chạy đua: s-adm (quản trị viên khác) vừa bị ngưng hoạt động NGAY SAU khi câu lệnh được dựng, TRƯỚC khi lô có chốt chạy.
+    sqlite.prepare("UPDATE staff SET active = 0 WHERE id = 's-adm'").run();
+  });
+  assert.notEqual(c.permissions.guarded, null, "gỡ ADMIN (chỉnh tay) nên phải có câu chốt");
+  assert.ok(c.roleStatements.length > 0, "đây là một lần ĐỔI VAI THẬT (đóng SALES_STAFF, mở Kế toán), không chỉ chỉnh tay");
+  assert.deepEqual(c.batch1.map((r) => r.meta.changes ?? 0), [0, 0, 0, 0], "hết quản trị viên khác giữa chừng: không câu nào trong lô 1 áp dụng");
+  assert.deepEqual(openPerms(sqlite, "s-old"), ["ADMIN", "SALES"], "quyền không đổi");
+  assert.deepEqual(openAdj(sqlite, "s-old"), ["ADMIN:ADD"], "dòng chỉnh tay không đổi");
+  assert.deepEqual(openRoles(sqlite, "pty-s-old"), ["SALES_STAFF"], "vai KHÔNG đổi dù đã dựng sẵn câu đóng SALES_STAFF/mở Kế toán — route chỉ chạy lô vai khi lô có chốt THẮNG");
 });

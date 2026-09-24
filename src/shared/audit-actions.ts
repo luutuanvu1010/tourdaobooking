@@ -39,6 +39,7 @@ export const AUDIT_ACTIONS = {
   login_unlocked: { label: "Mở khoá đăng nhập", group: "staff" },
   staff_synced: { label: "Đồng bộ nhân viên từ Sheet", group: "staff" },
   permission_changed: { label: "Đổi quyền tài khoản", group: "staff" },
+  account_roles_changed: { label: "Đổi vai và quyền tài khoản", group: "staff" },
   party_created: { label: "Tạo hồ sơ", group: "party" },
   party_updated: { label: "Sửa hồ sơ", group: "party" },
   party_contact_changed: { label: "Đổi thông tin liên hệ", group: "party" },
