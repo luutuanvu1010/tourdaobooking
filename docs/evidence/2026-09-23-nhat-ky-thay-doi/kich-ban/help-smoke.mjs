@@ -1,7 +1,7 @@
 // Kiểm trang Trợ giúp + chấm đỏ bằng Chrome thật (môi trường A2: D1 tạm + wrangler dev + Chrome headless qua CDP). KHÔNG cần mạng ngoài.
 // Chạy từ GỐC repo: npm run build:web && CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh node docs/evidence/2026-09-23-nhat-ky-thay-doi/kich-ban/help-smoke.mjs
 //   a  mỗi quyền (SALES, ACCOUNTING, ADMIN, FIELD) mở /help: đúng dòng phiên bản, đủ số bản, bản đầu là bản mới nhất, nút Góp ý đúng đích
-//   b  máy tính 1040: menu trên có "Trợ giúp"; điện thoại 390: trang Tôi có dòng "Trợ giúp"; thanh tab của SALES không thêm tab
+//   b  máy tính 1040: thanh điều hướng dọc (#sidebar, nhóm TÔI) có "Trợ giúp"; điện thoại 390: trang Tôi có dòng "Trợ giúp"; thanh tab của SALES không thêm tab
 //   c  chấm đỏ: chưa xem ⇒ có ở tab Tôi + dòng Trợ giúp (chấm đứng ngay sau chữ, ≤ 16px); mở /help ⇒ tắt; lưu bản cũ ⇒ hiện lại; lưu rác ⇒ hiện; localStorage ném lỗi ⇒ không chấm, không lỗi
 //   d  console sạch, không lỗi CSP; vùng chạm ≥ 44px, không tràn ngang ở 390 và 320 trên /help
 //   e  mất mạng (CDP giả lập offline, sau khi service worker đã lưu trang): tải lại /help vẫn đủ nhật ký + đúng dòng phiên bản (nhật ký vẽ TRƯỚC initShell)
@@ -38,7 +38,7 @@ const goto = async (p, path) => {
   await p.send("Page.navigate", { url: env.base + path });
   await p.waitFor("document.readyState === 'complete'", `trang ${path} tải xong`);
 };
-const dots = (p) => p.ev(`({ tab: !!${q("#tabbar a[href='/account'] .new-dot")}, link: !!${q("#links a[href='/help'] .new-dot")}, nav: !!${q(".topnav a[href='/help'] .new-dot")} })`);
+const dots = (p) => p.ev(`({ tab: !!${q("#tabbar a[href='/account'] .new-dot")}, link: !!${q("#links a[href='/help'] .new-dot")}, nav: !!${q("#sidebar a[href='/help'] .new-dot")} })`);
 // Khoảng cách ngang (px) từ cuối chữ "Trợ giúp" tới chấm đỏ trong dòng ở trang Tôi (đo chữ bằng Range, không đo cả thẻ a).
 const dotGap = (p) =>
   p.ev(`(() => {
@@ -51,7 +51,7 @@ const dotGap = (p) =>
 const measure = (p) =>
   p.ev(`(() => {
     const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[hidden]'); };
-    const ctl = [...document.querySelectorAll('button, a[href]')].filter(shown).filter((el) => !el.closest('.topnav'));
+    const ctl = [...document.querySelectorAll('button, a[href]')].filter(shown).filter((el) => !el.closest('#sidebar'));
     return { tapDuoi44: ctl.filter((el) => el.getBoundingClientRect().height < 43.5).map((el) => (el.id || el.className || el.tagName) + ':' + Math.round(el.getBoundingClientRect().height)), tranNgang: document.documentElement.scrollWidth - innerWidth };
   })()`);
 
@@ -77,8 +77,8 @@ try {
   await step("b", "đường vào: menu máy tính, dòng ở trang Tôi, thanh tab không thêm tab", async () => {
     const d = await env.as(ACCOUNTS.salesA, "/", DESK);
     try {
-      await d.waitFor(`!!${q(".topnav a[href='/help']")}`, "menu có Trợ giúp", 10000);
-      assert.equal((await d.ev(`${q(".topnav a[href='/help']")}.textContent`)).trim().startsWith("Trợ giúp"), true);
+      await d.waitFor(`!!${q("#sidebar a[href='/help']")}`, "menu có Trợ giúp", 10000);
+      assert.equal((await d.ev(`${q("#sidebar a[href='/help']")}.textContent`)).trim().startsWith("Trợ giúp"), true);
       await d.shot(join(OUT, "anh/b-menu-may-tinh-1040.png"));
     } finally {
       d.close();

@@ -542,7 +542,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 
 **Cách viết:** cho nhân viên bán hàng/kế toán/hướng dẫn viên; nói điều họ THẤY hoặc LÀM ĐƯỢC khác đi; mỗi gạch một câu ≤ 160 ký tự; không tên tệp, không mã, không chữ kỹ thuật (test chặn `task`, `commit`, `api`, `route`, `migration`, `worker`, `deploy`, `e2e`, `d1`, `null`, `undefined`, dấu `` ` ``, `snake_case`). Bị chặn nhầm thì sửa câu, không nới danh sách (trừ khi chủ đồng ý).
 
-**Kiểm:** `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt). Sau `wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. `npm run trien-khai` (công thức s) tự chạy cổng trước (sau bước đọc migration) và sau (sau kiểm dữ liệu) — chủ quyết 2026-09-23; chỉ khi deploy TAY mới phải chạy hai lệnh trên bằng tay.
+**Kiểm:** `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` (test `formatReleaseLine` ở `app-info.test.ts` ghim dòng phiên bản của mục đầu: thêm mục mới thì sửa chuỗi kỳ vọng cho khớp, cùng commit) → `node scripts/kiem-phien-ban.mjs` phải ĐẠT (thoát 0; 1 = quên tăng số; 2 = không đọc được production, KHÔNG phải đạt). Sau `wrangler deploy`: `node scripts/kiem-phien-ban.mjs --sau-deploy` phải ĐẠT. `npm run trien-khai` (công thức s) tự chạy cổng trước (sau bước đọc migration) và sau (sau kiểm dữ liệu) — chủ quyết 2026-09-23; chỉ khi deploy TAY mới phải chạy hai lệnh trên bằng tay.
 
 **Bẫy:**
 - **Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
