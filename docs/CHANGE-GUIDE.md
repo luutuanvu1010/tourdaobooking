@@ -11,7 +11,7 @@
 2. Mỗi nhóm tệp bạn chạm có bộ kiểm riêng: §3. Trước commit và trước deploy: §5.
 3. Hành vi lạ → đọc §4 (bẫy) trước khi debug. Thấy tài liệu khác mã → §6.
 
-Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–t · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
+Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–u · §3 Ma trận kiểm · §4 Bẫy · §5 Danh sách kiểm · §6 Sai lệch tài liệu ↔ mã.
 
 ## 1. Bảng tra nhanh "Muốn … → xem …"
 
@@ -557,7 +557,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 1. Sửa `ROLES` trong `src/shared/roles.ts` (tên hiển thị, nhóm `INTERNAL`/`EXTERNAL`/`OTHER`, bộ quyền mặc định).
 2. Vai MỚI → thêm migration mới (không sửa migration đã áp) chèn thêm dòng vào `pty_role_type` cùng tên/nhóm với `ROLES`; lệch → `src/roles-schema.test.ts` đỏ.
 3. **Đổi bộ quyền MẶC ĐỊNH của một vai đã có** = đổi quyền của MỌI tài khoản đang mang vai đó → cần **chủ dự án duyệt trước**, và phải có một bước TÍNH LẠI quyền có kiểm soát cho các tài khoản đang giữ vai (chưa có bước này trong mã — lập kế hoạch riêng, đừng tự chạy hàng loạt).
-4. Bẫy: ngoài `src/modules/parties/`, không tệp nào (kể cả chú thích) được nhắc tên bảng vai hồ sơ (`pty_` + `party_role`) — viết "bảng vai" bằng lời (R-N1-12). Đóng một vai trước khi mở vai khác trong nhóm đối lập (LC-3). Gán lại đúng vai trong CÙNG một ngày = mở lại dòng đã đóng hôm đó, không tạo dòng mới. Mã `INTERN` vừa là mã VAI vừa là mã QUYỀN (tạm hẹp, chỉ `order.create` phạm vi `own`) — đừng nhầm với mã quyền cũ.
+4. Bẫy: ngoài `src/modules/parties/`, không tệp nào (kể cả chú thích) được nhắc tên bảng vai hồ sơ (`pty_` + `party_role`) — viết "bảng vai" bằng lời (R-N1-12). Đóng một vai trước khi mở vai khác trong nhóm đối lập (LC-3). Gán lại đúng vai trong CÙNG một ngày = mở lại dòng đã đóng hôm đó, không tạo dòng mới. Mã `INTERN` vừa là mã VAI vừa là mã QUYỀN — xem cột `INTERN` của `MATRIX` (`src/shared/permissions.ts`) cho giá trị chính xác của từng ô, TẠM HẸP ở giai đoạn 1 (lập đơn được, chỉ xem/sửa đơn của chính mình) — đừng nhầm với mã quyền cũ.
 
 **Kiểm:** `node --test src/shared/roles.test.ts src/roles-schema.test.ts src/modules/staff/account-roles.test.ts` → `npm test` → `npm run test:e2e -- admin admin-race parties permissions roles` (rồi `npm run test:e2e` đủ bộ nếu chạm migration, để chạy `audit-invariants --strict` — công thức d) → Chrome `vai-smoke.mjs` + `dot-a-smoke.mjs`.
 

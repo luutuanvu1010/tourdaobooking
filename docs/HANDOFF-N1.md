@@ -409,7 +409,7 @@ npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT count(*) FRO
 **Báo trước nhân viên (trước khi bấm deploy, không phải sau):**
 - Nhãn quyền "Super Admin" đổi tên thành **"Toàn quyền"**.
 - Chỉ tài khoản **Toàn quyền** mới cấp được quyền **Quản trị** cho người khác (trước đây Quản trị cũng cấp được).
-- Trang Hồ sơ không còn cho thêm vai kiểu cũ "Hướng dẫn viên"/"Bán hàng"/"Đại lý"/"Nhân sự" (nay là vai nhóm Nội bộ/Bên ngoài, chỉ gán được ở trang Nhân viên) — hồ sơ đã có sẵn các vai này KHÔNG bị đổi, chỉ route THÊM MỚI qua Hồ sơ bị khoá.
+- Trang Hồ sơ (giao diện) không còn cho CHỌN thêm vai kiểu cũ "Hướng dẫn viên"/"Bán hàng"/"Đại lý"/"Nhân sự" (migration `0024` chỉ đặt `active = 0` cho 4 mã này, không đổi nhóm — máy chủ CHƯA chặn gán mới qua API, chỉ giao diện ẩn lựa chọn) — hồ sơ đã có sẵn các vai này KHÔNG bị đổi.
 
 ## Chế độ bảo trì — đường thoát khẩn
 

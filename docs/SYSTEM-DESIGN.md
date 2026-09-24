@@ -392,7 +392,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ## 7. Danh mục API
 
-Tất cả 69 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`; con số này ĐỔI theo thời gian, đừng tin số ghi ở đây hơn lệnh grep).
+Tất cả 71 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`; con số này ĐỔI theo thời gian, đừng tin số ghi ở đây hơn lệnh grep).
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
@@ -518,7 +518,7 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 
 ### Vai → quyền (ADR-0018, mô hình người–vai–quyền, GĐ1 — nhánh `gd1-mo-hinh-vai`, migration `0024` CHƯA lên production)
 
-Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`/`SUPER_ADMIN`) **không đổi một ô nào** ở giai đoạn này. Bên cạnh đó, tài khoản có thể được gán MỘT hoặc nhiều trong **11 vai** khai ở `src/shared/roles.ts` (đối chiếu `pty_role_type` bằng `src/roles-schema.test.ts`): Giám đốc, Điều hành chung, Hướng dẫn viên nội bộ, Nhân viên kinh doanh, Kế toán (dùng lại mã `ACCOUNTANT` cũ), Thực tập sinh (`INTERN`, mã vai TRÙNG mã quyền, tạm hẹp — chỉ `order.create` phạm vi `own`) — nhóm INTERNAL; Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — nhóm EXTERNAL. Vai nhóm INTERNAL/EXTERNAL chỉ gán/đổi/kết thúc được ở **trang Nhân viên** (`GET`/`PUT /api/staff/:id/roles`); route vai của Hồ sơ (`POST /api/parties/:id/roles`, `.../end`) từ chối các vai này bằng 409 `role_via_account` (§7). Vai nhóm OTHER (khách, HDV/tài xế/đại lý kiểu cũ…) vẫn quản lý ở trang Hồ sơ như trước, không đổi.
+Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`/`SUPER_ADMIN`) **không đổi một ô nào** ở giai đoạn này. Bên cạnh đó, tài khoản có thể được gán MỘT hoặc nhiều trong **11 vai** khai ở `src/shared/roles.ts` (đối chiếu `pty_role_type` bằng `src/roles-schema.test.ts`): Giám đốc, Điều hành chung, Hướng dẫn viên nội bộ, Nhân viên kinh doanh, Kế toán (dùng lại mã `ACCOUNTANT` cũ), Thực tập sinh (`INTERN`, mã vai TRÙNG mã quyền, tạm hẹp giai đoạn 1 — xem cột `INTERN` của `MATRIX` ở `src/shared/permissions.ts`: lập đơn được (`order.create` = `any`), chỉ xem/sửa đơn, tiền, lịch sử, liên hệ của CHÍNH MÌNH (`own`), gửi Góp ý được nhưng chỉ xem yêu cầu của mình; mọi thao tác quản trị/thu chi/người phụ trách khác = `none`) — nhóm INTERNAL; Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — nhóm EXTERNAL. Vai nhóm INTERNAL/EXTERNAL chỉ gán/đổi/kết thúc được ở **trang Nhân viên** (`GET`/`PUT /api/staff/:id/roles`); route vai của Hồ sơ (`POST /api/parties/:id/roles`, `.../end`) từ chối các vai này bằng 409 `role_via_account` (§7). Vai nhóm OTHER (khách, HDV/tài xế/đại lý kiểu cũ…) vẫn quản lý ở trang Hồ sơ như trước, không đổi.
 
 **Quyền hiệu lực của một tài khoản đã gán vai** = quyền MẶC ĐỊNH của (các) vai đang giữ, **cộng** mã trong dòng chỉnh tay `direction = 'ADD'` đang mở, **trừ** mã trong dòng chỉnh tay `direction = 'REMOVE'` đang mở (bảng `stf_permission_adjustment`), rồi **lọc bởi LC-1** (tài khoản giữ vai EXTERNAL chỉ còn lại mã `PARTNER`, nếu có). `stf_permission` (bảng cũ) là bản **hiện thực hoá** của phép tính này tại thời điểm lưu — nơi DUY NHẤT tính lại là `roleChangeStatements` (module `staff`); không nơi nào khác được tự suy ra quyền từ vai.
 
