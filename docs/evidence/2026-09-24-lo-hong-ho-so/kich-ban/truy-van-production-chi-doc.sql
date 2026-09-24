@@ -2,8 +2,12 @@
 -- Mục đích (kế hoạch 2026-09-24 §5 Q6): lỗ F-01 mở từ 20/9 — đã có ai KHÔNG phải quản trị viên sửa/ngưng/đổi liên hệ hồ sơ NHÂN VIÊN chưa?
 -- Không SELECT SĐT/email/MST; chỉ id, tên hiển thị, hành động, thời điểm. Kết quả dán cho AI ở phiên GĐ1 (không dán số điện thoại nếu có).
 --
--- Chạy từ gốc repo (nếu wrangler hỏi "Ok to proceed?" thì trả lời y):
---   npx wrangler d1 execute tourdao-sales-db --remote --file=docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/truy-van-production-chi-doc.sql
+-- CÁCH CHẠY (từ gốc repo; nếu wrangler hỏi "Ok to proceed?" thì trả lời y):
+--   KHÔNG dùng `--file` với `--remote`: wrangler gửi tệp qua cổng /d1/database/<id>/import, cổng này từ chối phiên đăng nhập OAuth
+--   (`wrangler login`) với "Authentication error [code: 10000]" dù tài khoản là Super Administrator có d1 (write) — chủ dự án gặp
+--   2026-09-24. Dùng `--command "<một câu SELECT>"` (cổng /query, đúng cách docs/HANDOFF-N1.md vẫn dùng cho lệnh chỉ đọc):
+--   npx wrangler d1 execute tourdao-sales-db --remote --command "<chép nguyên văn câu (A) dưới đây, bỏ dấu ; cuối, gộp thành một dòng>"
+--   rồi lặp lại cho (B) và (C). Mỗi lần một câu. Bản một dòng sẵn dùng có trong kế hoạch 2026-09-24 §5 Q6 / phiên chat 24/9.
 
 -- (A) Hành động trên hồ sơ CÓ TÀI KHOẢN (staff.party_id) do tài khoản KHÔNG giữ ADMIN/SUPER_ADMIN tại thời điểm đó.
 --     Kỳ vọng khi lỗ chưa bị dùng: 0 dòng. Có dòng = lỗ đã bị dùng (hoặc nhân viên tự sửa hồ sơ chính mình — xem cột tu_sua).
