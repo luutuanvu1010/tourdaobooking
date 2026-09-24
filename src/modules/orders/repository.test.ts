@@ -77,6 +77,17 @@ test("applyAdjustedPax: dịch vụ KHÔNG có mặt trong after (nhập tay, ho
   assert.equal(out[1]!.pax_adult, 1, "dịch vụ nhập tay không có trong after → giữ số gốc");
 });
 
+test("applyAdjustedPax: pax của after_json HỎNG (thiếu trường, không đủ 4 loại khách) → giữ nguyên số gốc, KHÔNG sinh NaN/undefined (kiểm độc lập đợt này)", () => {
+  const rows: ServiceSummaryRow[] = [row({ order_id: "o4", id: "sv4", name: "Tour", sort_order: 0, pax_adult: 2, pax_child: 1 })];
+  // after_json parse ĐƯỢC thành mảng (không rơi vào nhánh try/catch của getLatestAdjustments) nhưng `pax` bên trong thiếu trường —
+  // dữ liệu hỏng dạng này KHÔNG bị chặn bởi Array.isArray, phải chặn ở applyAdjustedPax bằng isPaxCounts.
+  const afterByOrder = new Map([["o4", [{ serviceId: "sv4", pax: {} as never }]]]);
+  const out = applyAdjustedPax(rows, afterByOrder);
+  assert.deepEqual(out, rows, "pax hỏng → giữ nguyên dòng gốc, không ghi đè bằng giá trị thiếu");
+  const summarized = summarizeServices(out);
+  assert.equal(Number.isInteger(summarized.get("o4")!.pax.adult), true, "tổng số khách phải là số nguyên, không phải NaN");
+});
+
 test("summarizeServices(applyAdjustedPax(...)): số khách TÓM TẮT của đơn CÓ điều chỉnh là số MỚI; đơn KHÔNG có điều chỉnh là số GỐC — đúng hành vi phải sửa (Đợt E)", () => {
   const rows: ServiceSummaryRow[] = [
     row({ order_id: "o-adjusted", id: "sv-a", name: "Tour Hòn Mun", sort_order: 0, pax_adult: 2 }),

@@ -3,7 +3,7 @@ import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSumm
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
-import { effectiveMoney, isAdjustmentSeqCollision } from "./money-adjustment";
+import { effectiveMoney, isAdjustmentSeqCollision, isPaxCounts } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -127,7 +127,11 @@ export function summarizeServices(rows: readonly ServiceSummaryRow[]): Map<strin
  * nhiều đơn (đặc tả Đợt E — bài học: bản trước chỉ ghi đè TIỀN ở `toSummaryDtos`, quên ghi đè SỐ KHÁCH, hai con số cạnh nhau trên một thẻ lệch
  * nhau vì `order_service.pax_*` bị trigger `order_service_frozen_update` (0008) đóng băng sau khi đơn không còn nháp — CHỦ ĐÍCH, không đổi).
  * Dịch vụ KHÔNG có mặt trong `after` của đơn nó thuộc về (nhập tay — `editMoneyAsHandler` chỉ xét dịch vụ từ danh mục —, hoặc đơn chưa có khoá
- * trong `afterByOrder` = chưa có điều chỉnh nào) giữ NGUYÊN số đã lưu ở `order_service`. Thuần, không đụng DB — test độc lập ở repository.test.ts.
+ * trong `afterByOrder` = chưa có điều chỉnh nào) giữ NGUYÊN số đã lưu ở `order_service`. `isPaxCounts` (kiểm độc lập đợt này): `after_json` đọc
+ * từ DB có thể parse ĐƯỢC thành mảng (không rơi vào nhánh `catch` của `getLatestAdjustments`) nhưng một phần tử bên trong thiếu/sai trường `pax`
+ * (dữ liệu hỏng KHÔNG bị chặn bởi mỗi `Array.isArray`) — không tự kiểm lại thì ghi `pax_adult: undefined` vào dòng, `summarizeServices` cộng
+ * dồn ra `NaN`, làm vỡ pax của CẢ đơn đó trên `/orders`/Trang chủ; rơi về số gốc CHỈ cho đúng dòng có `pax` hỏng, như `after_json` hỏng toàn bộ.
+ * Thuần, không đụng DB — test độc lập ở repository.test.ts.
  */
 export function applyAdjustedPax(
   rows: readonly ServiceSummaryRow[],
@@ -135,7 +139,7 @@ export function applyAdjustedPax(
 ): ServiceSummaryRow[] {
   return rows.map((r) => {
     const pax = afterByOrder.get(r.order_id)?.find((a) => a.serviceId === r.id)?.pax;
-    return pax ? { ...r, pax_adult: pax.adult, pax_child: pax.child, pax_senior: pax.senior, pax_infant: pax.infant } : r;
+    return isPaxCounts(pax) ? { ...r, pax_adult: pax.adult, pax_child: pax.child, pax_senior: pax.senior, pax_infant: pax.infant } : r;
   });
 }
 

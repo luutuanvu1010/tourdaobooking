@@ -26,7 +26,8 @@ export function recomputeService(stored: StoredService, newPax: PaxCounts): Pars
   return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + l.quantity * l.unitPrice, 0) };
 }
 
-function isPaxCounts(v: unknown): v is PaxCounts {
+/** Xuất để `repository.ts` (`applyAdjustedPax`) tự kiểm lại `after_json` đọc từ DB trước khi dùng — MỘT định nghĩa "pax hợp lệ" cho cả nơi ghi (ở đây) và nơi đọc. */
+export function isPaxCounts(v: unknown): v is PaxCounts {
   if (!v || typeof v !== "object" || Array.isArray(v)) return false;
   const o = v as Record<string, unknown>;
   return PAX_CODES.every((c) => typeof o[c] === "number" && Number.isInteger(o[c]) && (o[c] as number) >= 0);
