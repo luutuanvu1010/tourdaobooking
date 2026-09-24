@@ -1358,9 +1358,11 @@ try {
     const pLogin = await env.openPage(MOB);
     await pLogin.send("Network.clearBrowserCookies");
     await pLogin.send("Page.navigate", { url: env.base + "/login" });
-    await pLogin.waitFor(`document.readyState === 'complete' && ${q("#submit")} && !${q("#submit")}.disabled`, "trang đăng nhập sẵn sàng", 15000);
+    await pLogin.waitFor(`document.readyState === 'complete' && !!${q("#submit")}`, "trang đăng nhập tải xong", 15000);
+    // Bản thiết kế Đăng nhập (2026-09-24): nút chỉ mở khi đã gõ đủ SĐT + 6 số PIN — gõ trước, rồi chờ nút mở.
     await pLogin.ev(setInput(q("#phone"), partnerOnly.phone));
     await pLogin.ev(setInput(q("#pin"), partnerOnly.pin));
+    await pLogin.waitFor(`!${q("#submit")}.disabled`, "trang đăng nhập sẵn sàng (nút mở)", 15000);
     await pLogin.ev(`${q("#submit")}.click(); true`);
     await assertLandedOnOrders(pLogin, "I-1 Đối tác đăng nhập PIN");
     assert.ok(pLogin.requests.some((r) => new URL(r.url).pathname === "/"), "I-1: phải thật sự đi qua \"/\" (đích mặc định sau đăng nhập) rồi mới sang /orders");

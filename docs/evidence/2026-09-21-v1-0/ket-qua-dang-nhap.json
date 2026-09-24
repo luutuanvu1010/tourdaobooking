@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "khối công ty hiện đúng chữ (tiêu đề “Tour Đảo Booking”, “tên · địa chỉ · MST”, “email · Phiên bản”, điện thoại hỗ trợ), khớp dòng company_profile trong D1",
+      "name": "chữ đúng bản thiết kế (tiêu đề “Tour Đảo Booking”, phiên bản, “Hỗ trợ kỹ thuật” + số, chân trang tĩnh); không gọi GET /api/company; D1 tạm có đúng dữ liệu công ty",
       "dat": true
     },
     {
@@ -23,7 +23,7 @@
     },
     {
       "id": "e",
-      "name": "API công ty lỗi (chặn mạng, 500, 404) hoặc chậm; API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, khối công ty ẩn, không kẹt nút",
+      "name": "API công ty bị chặn (trang không còn gọi); API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, không kẹt nút",
       "dat": true
     },
     {
@@ -88,7 +88,7 @@
     "may-B-390-khong-widget": []
   },
   "do": {
-    "cau-hinh-cham-ms-den-khi-nut-mo": 3067,
+    "cau-hinh-cham-ms-den-khi-nut-mo": 3109,
     "may-A-390-dang-tai-xac-minh": {
       "tapDuoi44": [],
       "oGoDuoi16": [],
@@ -100,7 +100,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 342,
+        "rong": 350,
         "cao": 72,
         "trongThe": true
       }
@@ -110,7 +110,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 342,
+        "rong": 350,
         "cao": 72,
         "trongThe": true
       }
@@ -120,7 +120,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 327,
+        "rong": 335,
         "cao": 72,
         "trongThe": true
       }
@@ -130,7 +130,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 272,
+        "rong": 280,
         "cao": 147,
         "trongThe": true
       }
@@ -140,7 +140,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 360,
+        "rong": 400,
         "cao": 72,
         "trongThe": true
       }
@@ -164,7 +164,7 @@
       "consoleErrors": []
     },
     "console-d": {
-      "logEntries": 2,
+      "logEntries": 3,
       "csp": [],
       "other": [],
       "consoleErrors": []
@@ -173,7 +173,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:62945/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:54553/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -181,7 +181,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:62945/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:54553/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -265,7 +265,7 @@
     }
   },
   "widget": {
-    "w": 342,
+    "w": 350,
     "h": 72,
     "token": "XXXX.DUMMY.TOKEN.XXXX",
     "cacheServiceWorker": 22,

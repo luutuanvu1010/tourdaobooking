@@ -83,13 +83,25 @@
   --row-h: 48px;            /* dòng liên kết trong trang Tôi */
   --avatar: 48px;
   --logo-bar: 30px;
-  --logo-login: 56px;       /* Đăng nhập: biểu tượng app trên tiêu đề (bản thiết kế 64px, thu 56px để vừa một màn hình — chủ dự án 2026-09-24) */
-  --w-login: 360px;         /* Đăng nhập v2: bề rộng cột giữa — đủ cho widget Turnstile cỡ "flexible" (tối thiểu 300px) ở khổ 375 */
-  --w-login-foot: 560px;    /* Đăng nhập v2: bề rộng tối đa dòng thông tin công ty ở chân trang */
-  --fs-login-title: 28px;   /* Đăng nhập: cỡ tiêu đề "Tour Đảo Booking" */
-  --fs-login-sub: 17px;     /* Đăng nhập v2: chữ nút lớn (Đăng nhập) */
-  --h-login-btn: 52px;      /* Đăng nhập: chiều cao nút Đăng nhập, và cạnh của nút tròn sinh trắc học đặt cạnh nó */
-  --shadow-logo: 0 4px 16px rgba(12, 74, 110, 0.14); /* Đăng nhập v2: bóng mềm dưới biểu tượng app — màu = --c-primary (#0c4a6e) với độ mờ 0,14; bản thiết kế dùng #005b96, quy về màu có sẵn */
+  /* Đăng nhập — giá trị từ bản thiết kế "Đăng nhập.dc.html" (Claude Design 2026-09-24; chủ dự án yêu cầu tuân thủ 100% — coi là duyệt các màu/số đo mới dưới đây) */
+  --logo-login: 72px;       /* biểu tượng app trên tiêu đề */
+  --w-login: 400px;         /* bề rộng cột giữa */
+  --login-side: 20px;       /* lề hai bên / đáy ở điện thoại */
+  --login-body-bottom: 40px; /* khoảng dưới khối chính (điện thoại) */
+  --fs-login-title: 26px;   /* tiêu đề "Tour Đảo Booking" — điện thoại */
+  --fs-login-title-wide: 32px; /* tiêu đề — màn ≥ 900px */
+  --h-field: 56px;          /* ô gõ, nút Đăng nhập, nút sinh trắc học — điện thoại */
+  --h-field-wide: 52px;     /* cùng các ô/nút đó — màn ≥ 900px */
+  --fs-field: 17px;         /* chữ trong ô gõ (≥ 16px nên iOS không tự phóng to) */
+  --ring-field: 3px;        /* vành xanh nhạt quanh ô đang gõ */
+  --pin-toggle-space: 88px; /* chừa chỗ bên phải ô PIN cho nút Hiện/Ẩn */
+  --radius-xs: 6px;         /* bo góc nút Hiện/Ẩn */
+  --spinner: 16px;          /* vòng quay "Đang đăng nhập…" */
+  --spinner-bar: 2px;
+  --m-spin: 700ms;
+  --c-soft-hover: #f0f7fc;  /* nền nút số hỗ trợ, nền khi rê chuột nút phụ — MÀU MỚI theo bản thiết kế */
+  --c-placeholder: #94a3b8; /* chữ gợi ý trong ô gõ — MÀU MỚI theo bản thiết kế */
+  --c-spinner-track: rgba(255, 255, 255, 0.4); /* vòng mờ của vòng quay trên nút navy */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
   --fs-name: 1.1rem;        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
@@ -625,57 +637,62 @@ body.maint-open { overflow: hidden; }
 .booker-matches { display: grid; gap: var(--s2); }
 .booker-match { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); }
 
-/* ---------- Đăng nhập v2 (bản thiết kế "Đăng nhập v2.dc.html", Claude Design 2026-09-24, cộng các chỉnh của chủ dự án cùng ngày): một cột giữa nền trắng ở MỌI khổ — chỉ token ----------
-   Màu xám của bản thiết kế không có trong token quy về token gần nhất (không thêm màu); ô gõ giữ --fs-ui (16px).
-   VỪA MỘT MÀN HÌNH, KHÔNG KÉO ĐƯỢC (chủ dự án 2026-09-24): body cao đúng 100dvh và không cuộn; chỉ `main` được phép cuộn khi màn hình
-   quá thấp (vd iPhone SE mở bằng Safari có thanh công cụ) — khi nội dung vừa (điện thoại thường, máy tính) thì không có gì để kéo. */
+/* ---------- Đăng nhập — bản thiết kế "Đăng nhập.dc.html" (Claude Design, dự án 11c6f555…, 2026-09-24; chủ dự án yêu cầu TUÂN THỦ 100%) — chỉ token ----------
+   Số đo lấy đúng từ bản thiết kế: cột 400px; logo 72px; tiêu đề 26px (điện thoại) / 32px (≥ 900px); ô gõ cao 56px / 52px, chữ 17px;
+   bo 8px; viền xanh + vành 3px khi gõ; hàng nút cách 12px; "Hỗ trợ kỹ thuật" + nút số điện thoại; chân trang có vạch trên.
+   Khác bản thiết kế (bắt buộc): khung widget Turnstile (lớp bảo mật đang chạy thật) nằm giữa ô PIN và hàng nút.
+   KHÔNG KÉO ĐƯỢC (chủ dự án 2026-09-24): body cao đúng 100dvh, không cuộn; chỉ `main` tự cuộn khi màn thấp hơn nội dung. */
 html:has(body.login-page) { height: 100%; overflow: hidden; }
-body.login-page { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); }
-body.login-page main.login { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; overscroll-behavior: contain; width: 100%; max-width: none; margin: 0; padding: var(--s5) max(var(--s5), env(safe-area-inset-right)) var(--s4) max(var(--s5), env(safe-area-inset-left)); }
-/* margin:auto (không phải align/justify center) để khi phải cuộn, phần đầu không bị cắt mất phía trên. */
-.login-col { display: flex; flex-direction: column; align-items: stretch; gap: var(--s5); width: 100%; max-width: var(--w-login); min-width: 0; margin: auto; }
-.login-head { display: flex; flex-direction: column; align-items: center; gap: var(--s2); text-align: center; }
-.login-logo { display: block; width: var(--logo-login); height: var(--logo-login); border-radius: var(--radius-icon); box-shadow: var(--shadow-logo); }
-.login-head h1 { margin: 0; font-size: var(--fs-login-title); font-weight: 700; line-height: 1.25; color: var(--c-text); }
-.login-maintenance { width: 100%; margin: 0; text-align: center; border-radius: var(--radius-md); }
-.login-btn { display: flex; align-items: center; justify-content: center; gap: var(--s2); width: 100%; min-height: var(--h-login-btn); margin: 0; padding: var(--s3) var(--s5); font-size: var(--fs-login-sub); line-height: 1.3; border-radius: var(--radius-pill); transition: background var(--m-fast) ease; }
-.login-btn.btn-primary { border-color: var(--c-primary); }
-.login-btn.btn-primary:not(:disabled):hover { background: var(--c-primary-strong); border-color: var(--c-primary-strong); }
-/* Nút Đăng nhập chiếm phần còn lại của hàng; nút sinh trắc học CHỈ có biểu tượng đứng ngay cạnh (chủ dự án 2026-09-24), tròn, cùng chiều cao. */
-.login-actions { display: flex; align-items: center; gap: var(--s3); }
-.login-actions .login-btn { flex: 1; min-width: 0; min-height: var(--h-login-btn); } /* nhắc lại min-height: `.btn:not(.btn-link)` ở khổ ≤640px (0,2,0) ép 44px, làm nút Đăng nhập thấp hơn nút tròn bên cạnh */
-.login-passkey-btn { display: flex; flex: none; align-items: center; justify-content: center; width: var(--h-login-btn); height: var(--h-login-btn); margin: 0; padding: 0; color: var(--c-primary); background: var(--c-surface-alt); border-color: var(--c-surface-alt); border-radius: 50%; transition: background var(--m-fast) ease; }
-.login-passkey-btn:not(:disabled):hover { background: var(--c-primary-soft); border-color: var(--c-primary-soft); }
+body.login-page { height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); }
+body.login-page main.login { display: flex; flex-direction: column; height: 100%; max-width: none; margin: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s2) max(var(--login-side), env(safe-area-inset-right)) calc(var(--login-side) + env(safe-area-inset-bottom)) max(var(--login-side), env(safe-area-inset-left)); }
+.login-body { flex: 1 0 auto; display: flex; align-items: flex-start; justify-content: center; padding: var(--s6) 0 var(--login-body-bottom); }
+.login-col { display: flex; flex-direction: column; width: 100%; max-width: var(--w-login); min-width: 0; }
+.login-logo { display: block; width: var(--logo-login); height: var(--logo-login); margin: 0 auto var(--s4); border-radius: var(--radius-icon); box-shadow: var(--shadow-card); }
+.login-col h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--fs-login-title); line-height: 1.22; color: var(--c-primary); text-align: center; }
+.login-alert { margin: var(--s5) 0 0; padding: var(--s3) var(--s4); font-size: var(--fs-label); border-radius: var(--radius-sm); }
+.login-alert p { margin: 0; overflow-wrap: anywhere; }
+.login-form { display: flex; flex-direction: column; gap: var(--s4); margin: var(--s6) 0 0; min-width: 0; }
+.login-field { display: flex; flex-direction: column; gap: var(--s2); }
+.login-field label { font-size: var(--fs-label); font-weight: 700; color: var(--c-text); }
+.login-label-row { display: flex; justify-content: space-between; align-items: baseline; gap: var(--s2); }
+.login-pin-count { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+.login-field input { height: var(--h-field); margin: 0; padding: 0 var(--s4); font-size: var(--fs-field); font-weight: 600; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-sm); outline: none; transition: border-color var(--m-fast) ease, box-shadow var(--m-fast) ease; }
+.login-field input:focus, .login-field input:focus-visible { border-color: var(--c-primary); outline: none; box-shadow: 0 0 0 var(--ring-field) var(--c-primary-soft); }
+.login-field input::placeholder { color: var(--c-placeholder); opacity: 1; }
+.login-pin-wrap { position: relative; display: block; }
+.login-pin-wrap input { width: 100%; padding-right: var(--pin-toggle-space); font-weight: 700; }
+.login-pin-toggle { position: absolute; top: 50%; right: var(--s1); transform: translateY(-50%); height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: transparent; border: 0; border-radius: var(--radius-xs); cursor: pointer; transition: background var(--m-fast) ease; }
+.login-pin-toggle:hover { background: var(--c-soft-hover); }
+.login-turnstile { min-height: var(--h-turnstile); }
+.login-retry { width: 100%; min-height: var(--tap-min); }
+.login-actions { display: flex; gap: var(--s3); margin-top: var(--s2); }
+.login-actions .login-submit { flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--s3); min-width: 0; height: var(--h-field); min-height: var(--h-field); margin: 0; padding: 0 var(--s4); font-size: var(--fs-ui); font-weight: 800; color: var(--c-on-dark); background: var(--c-primary); border: 1px solid var(--c-primary); border-radius: var(--radius-sm); transition: background var(--m-fast) ease; }
+.login-actions .login-submit:not(:disabled):hover { background: var(--c-primary-strong); border-color: var(--c-primary-strong); }
+.login-spinner { display: none; flex: none; width: var(--spinner); height: var(--spinner); border: var(--spinner-bar) solid var(--c-spinner-track); border-top-color: var(--c-on-dark); border-radius: 50%; animation: login-spin var(--m-spin) linear infinite; }
+.login-submit.is-loading .login-spinner { display: block; }
+@keyframes login-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .login-spinner { animation-duration: calc(var(--m-spin) * 4); } }
+.login-actions .login-passkey-btn { flex: none; display: flex; align-items: center; justify-content: center; width: var(--h-field); height: var(--h-field); min-height: var(--h-field); margin: 0; padding: 0; color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-primary); border-radius: var(--radius-sm); transition: background var(--m-fast) ease; }
+.login-actions .login-passkey-btn:hover { background: var(--c-soft-hover); }
 .login-passkey-btn svg { flex: none; }
 .login-hint { margin: 0; text-align: center; }
-.login-form { display: flex; flex-direction: column; gap: var(--s3); min-width: 0; margin: 0; }
-.login-form .alert { margin: 0; }
-/* Hai ô gộp một khung: nhãn nhỏ ở trên, vạch mảnh ngăn giữa; viền khung đổi màu khi đang gõ (thay cho vòng focus từng ô). */
-.login-fields { display: flex; flex-direction: column; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); overflow: hidden; transition: border-color var(--m-fast) ease; }
-.login-fields:focus-within { border-color: var(--c-primary); box-shadow: 0 0 0 1px var(--c-primary); }
-.login-field { display: flex; flex-direction: column; padding: var(--s2) var(--s4) 0; cursor: text; } /* đáy 0: ô gõ tự cao đủ vùng chạm 44px bên dưới nhãn */
-.login-field + .login-field { border-top: 1px solid var(--c-border); }
-.login-field-pin { flex-direction: row; align-items: flex-end; gap: var(--s2); padding-right: var(--s2); padding-bottom: 0; }
-.login-field-main { display: flex; flex: 1; flex-direction: column; min-width: 0; }
-.login-field label { font-size: var(--fs-badge); font-weight: 700; color: var(--c-text-muted); cursor: text; }
-.login-field input { min-width: 0; min-height: var(--tap-min); margin: 0; padding: 0; font-size: var(--fs-ui); color: var(--c-text); background: none; border: 0; border-radius: 0; }
-.login-field input:focus, .login-field input:focus-visible { outline: none; }
-.login-field input::placeholder { color: var(--c-text-muted); opacity: .6; }
-.login-pin-toggle { flex: none; align-self: flex-end; min-width: var(--tap-min); min-height: var(--tap-min); padding: 0 var(--s3); font: inherit; font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: none; border: 0; border-radius: var(--radius-pill); cursor: pointer; transition: background var(--m-fast) ease; }
-.login-pin-toggle:hover { background: var(--c-surface-alt); }
-.login-turnstile { min-height: var(--h-turnstile); }
-.login-forgot { margin: 0; font-size: var(--fs-label); text-align: center; color: var(--c-text-muted); text-wrap: pretty; }
-.login-invite { width: 100%; margin: 0; border: 1px solid var(--c-border); }
+.login-invite { width: 100%; margin: var(--s5) 0 0; border: 1px solid var(--c-border); }
 .login-invite .btn { width: 100%; margin-top: var(--s3); min-height: var(--tap-min); }
-/* Chân trang gọn (chủ dự án 2026-09-24): "Tên · Địa chỉ · MST", "email · Phiên bản", điện thoại hỗ trợ. Chừa vùng an toàn đáy (PWA iPhone). */
-.login-info { flex: none; display: flex; flex-direction: column; align-items: center; gap: var(--s1); padding: var(--s3) max(var(--s5), env(safe-area-inset-right)) calc(var(--s3) + env(safe-area-inset-bottom)) max(var(--s5), env(safe-area-inset-left)); font-size: var(--fs-badge); line-height: 1.5; text-align: center; color: var(--c-text-muted); }
-.login-info p { margin: 0; max-width: var(--w-login-foot); overflow-wrap: anywhere; text-wrap: pretty; }
-.login-meta { display: flex; flex-wrap: wrap; justify-content: center; gap: 0; }
-.login-meta span:empty { display: none; }
-.login-meta span:not(:empty) + span:not(:empty)::before { content: "·"; margin: 0 var(--s2); } /* "email · Phiên bản x"; email trống (API lỗi) thì không có dấu thừa */
-.login-support a { display: inline-flex; align-items: center; min-height: var(--tap-min); font-weight: 700; white-space: nowrap; color: var(--c-primary); text-decoration: none; vertical-align: middle; } /* vùng chạm 44px (passkey-smoke bước h, v1-dang-nhap bước i đo) */
+.login-support { display: flex; align-items: center; justify-content: center; gap: var(--s2); margin-top: var(--s5); font-size: var(--fs-label); color: var(--c-text-muted); }
+.login-support a { display: flex; align-items: center; min-height: var(--tap-min); padding: 0 var(--s4); font-weight: 800; color: var(--c-primary); text-decoration: none; background: var(--c-soft-hover); border-radius: var(--radius-pill); }
 .login-support a:hover { color: var(--c-primary-strong); text-decoration: underline; }
-.login-support { line-height: 1; }
+.login-release { margin-top: var(--s2); font-size: var(--fs-badge); line-height: 1.5; color: var(--c-text-muted); text-align: center; }
+.login-info { flex: none; display: flex; flex-direction: column; align-items: center; padding-top: var(--s4); border-top: 1px solid var(--c-border); font-size: var(--fs-badge); line-height: 1.6; color: var(--c-text-muted); text-align: center; }
+.login-company-name { font-weight: 800; color: var(--c-text); }
+.login-address { text-wrap: balance; }
+@media (min-width: 900px) {
+  body.login-page main.login { padding: var(--s5) var(--s7) var(--s6); }
+  .login-body { align-items: center; padding: var(--s2) 0; } /* bản thiết kế đệm 48px, nhưng khối được CĂN GIỮA nên khi đủ chỗ trông y hệt; đệm tối thiểu nhỏ để có widget Turnstile (bản thiết kế không có) vẫn vừa 1280×800 không cuộn */
+  .login-col h1 { font-size: var(--fs-login-title-wide); }
+  .login-field input, .login-actions .login-submit, .login-actions .login-passkey-btn { height: var(--h-field-wide); min-height: var(--h-field-wide); }
+  .login-actions .login-passkey-btn { width: var(--h-field-wide); }
+  .login-info { font-size: var(--fs-label); }
+}
 
 /* ---------- Trang chủ mới (/home, web/home.ts) — chỉ token ---------- */
 /* Ẩn khỏi mắt ở MỌI khổ màn hình nhưng vẫn còn cho trình đọc màn hình — cùng kỹ thuật với .detail-head h1 và

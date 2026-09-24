@@ -55,7 +55,7 @@ try {
         return {
           brandGone: document.querySelector('.login-brand') === null,
           colHasForm: col !== null && col.querySelector('#login-form') !== null,
-          colWidthOk: col !== null && col.getBoundingClientRect().width <= 360,
+          colWidthOk: col !== null && col.getBoundingClientRect().width <= 400, // cột 400px theo bản thiết kế "Đăng nhập.dc.html" (2026-09-24)
           noHScroll: document.documentElement.scrollWidth <= window.innerWidth,
           phoneUsable: phone !== null && phone.offsetParent !== null && !phone.disabled,
           pinUsable: pin !== null && pin.offsetParent !== null && !pin.disabled,

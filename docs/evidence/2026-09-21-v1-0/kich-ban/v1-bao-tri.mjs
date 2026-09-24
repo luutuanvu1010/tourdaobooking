@@ -189,7 +189,10 @@ try {
     await p.waitFor(`document.readyState === 'complete' && !${q("#maintenance-banner")}.hidden`, "banner hiện");
     assert.equal(await p.ev(`${q("#maintenance-banner")}.getAttribute('role')`), "status");
     assert.match(await text(p, "#maintenance-text"), /^Hệ thống đang tạm đóng để bảo trì\. Thời gian dự kiến hoàn tất là .+, liên hệ quản trị viên khi cần hỗ trợ thêm \(0989929373\)\.$/);
-    assert.equal(await p.ev(`${q("#submit")}.disabled`), false, "nút Đăng nhập vẫn dùng được");
+    // Bản thiết kế Đăng nhập (2026-09-24): nút khoá tới khi gõ đủ SĐT + 6 số PIN — banner bảo trì KHÔNG khoá thêm.
+    await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
+    await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
+    await p.waitFor(`!${q("#submit")}.disabled`, "nút Đăng nhập vẫn dùng được (mở khi gõ đủ)");
     assert.equal(await p.ev(`!!${q("#maintenance-screen")}`), false, "trang đăng nhập KHÔNG dùng lớp phủ");
     await p.shot(join(OUT, "anh/bt-05-dang-nhap-banner.png"));
     assert.deepEqual(await axeViolations(p), []);
@@ -200,9 +203,10 @@ try {
     const p = await env.openPage();
     await p.send("Network.clearBrowserCookies");
     await p.send("Page.navigate", { url: `${env.base}/login` });
-    await p.waitFor(`document.readyState === 'complete' && ${q("#submit")} && !${q("#submit")}.disabled`, "form sẵn sàng");
+    await p.waitFor(`document.readyState === 'complete' && !!${q("#submit")}`, "form tải xong");
     await p.ev(setInput(q("#phone"), ACCOUNTS.salesA.phone));
     await p.ev(setInput(q("#pin"), ACCOUNTS.salesA.pin));
+    await p.waitFor(`!${q("#submit")}.disabled`, "form sẵn sàng (gõ đủ, nút mở)");
     await click(p, "#submit");
     await sleep(1500);
     assert.equal(await p.ev(`${q("#error")}.hidden`), true, "không hiện lỗi chung");
