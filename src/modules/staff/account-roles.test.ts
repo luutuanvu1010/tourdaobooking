@@ -69,9 +69,18 @@ const openPerms = (sqlite: DatabaseSync, id: string) =>
   (sqlite.prepare("SELECT permission_type_code AS c FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY c").all(id) as { c: string }[]).map((r) => r.c);
 const openRoles = (sqlite: DatabaseSync, party: string) =>
   (sqlite.prepare("SELECT role_type_code AS c FROM pty_party_role WHERE party_id = ? AND valid_to_date IS NULL ORDER BY c").all(party) as { c: string }[]).map((r) => r.c);
+/** Dòng chỉnh tay đang mở, dạng "MÃ_QUYỀN:CHIỀU" (I-1: kiểm độc lập vòng 1) — đủ gọn để so bằng deepEqual mà vẫn thấy cả mã lẫn chiều. */
+const openAdj = (sqlite: DatabaseSync, id: string) =>
+  (sqlite.prepare("SELECT permission_type_code AS p, direction AS d FROM stf_permission_adjustment WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY p, d").all(id) as { p: string; d: string }[]).map(
+    (r) => `${r.p}:${r.d}`,
+  );
 const account = async (db: D1Database, id: string): Promise<StaffAccount> => (await staff.getStaffAccount(db, id))!;
 
-/** Chạy một lần đổi vai theo ĐÚNG thứ tự route (Task 7): có câu chốt gỡ ADMIN → hai batch; không → một batch. */
+/**
+ * Chạy một lần đổi vai theo ĐÚNG thứ tự route (Task 7): có câu chốt gỡ ADMIN → hai batch; không → một batch. Lô 1 (khi có chốt) THUA
+ * (câu đầu changes = 0) thì DỪNG, không chạy lô vai — một lần đổi là MỘT khối, không áp nửa vời (I-1: kiểm độc lập vòng 1). Trả kèm
+ * `batch1` (kết quả lô đầu — `[]` khi không có chốt, tức đã gộp vào một batch duy nhất) để test tự kiểm từng câu đã áp dụng hay chưa.
+ */
 async function change(db: D1Database, id: string, next: { roles: string[]; adds?: string[]; removes?: string[]; reason?: string | null }) {
   const acc = await account(db, id);
   const state = (await staff.getAccountRoleState(db, acc, TODAY))!;
@@ -80,13 +89,11 @@ async function change(db: D1Database, id: string, next: { roles: string[]; adds?
     next: { roles: next.roles as never, adds: (next.adds ?? []) as never, removes: (next.removes ?? []) as never, reason: next.reason ?? null },
     actorId: "s-adm", at: AT, today: TODAY,
   });
-  if (c.permissions.guarded) {
-    await db.batch([c.permissions.guarded, ...c.permissions.rest, ...c.adjustmentStatements]);
-    if (c.roleStatements.length) await db.batch(c.roleStatements);
-  } else {
-    await db.batch([...c.roleStatements, ...c.adjustmentStatements, ...c.permissions.rest]);
-  }
-  return c;
+  const batch1 = c.permissions.guarded
+    ? await db.batch([c.permissions.guarded, ...c.permissions.rest, ...c.adjustmentStatements])
+    : await db.batch([...c.roleStatements, ...c.adjustmentStatements, ...c.permissions.rest]);
+  if (c.permissions.guarded && (batch1[0]!.meta.changes ?? 0) !== 0 && c.roleStatements.length) await db.batch(c.roleStatements);
+  return { ...c, batch1 };
 }
 
 test("chuyển tài khoản cũ sang vai mới: vai STAFF đóng hôm qua, quyền = bộ mặc định (mất Kế toán nếu không cộng tay)", async () => {
@@ -132,6 +139,40 @@ test("gỡ ADMIN → có câu chốt 'còn quản trị viên khác' (route ch�
   const state = (await staff.getAccountRoleState(db, acc, TODAY))!;
   const c = staff.roleChangeStatements(db, { account: acc, partyId: acc.partyId!, state, next: { roles: ["SALES_STAFF"], adds: [], removes: [], reason: null }, actorId: "s-adm", at: AT, today: TODAY });
   assert.notEqual(c.permissions.guarded, null);
+});
+
+// I-1 (kiểm độc lập vòng 1): chốt "còn quản trị viên khác" ở HAI câu chỉnh tay (đóng/mở stf_permission_adjustment) phải chạy CÙNG điều kiện
+// và CÙNG số phận với các câu quyền trong lô 1 — hoặc cả lô áp dụng đủ, hoặc không câu nào áp dụng (kể cả hai câu chỉnh tay).
+test("I-1 Case A: còn quản trị viên khác → gỡ ADMIN qua lô có chốt áp dụng đủ, kể cả hai câu chỉnh tay", async () => {
+  const { sqlite, db } = seed();
+  await change(db, "s-old", { roles: ["SALES_STAFF"], adds: ["ADMIN"], reason: "thử" });
+  const c = await change(db, "s-old", { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], reason: "đổi từ quản trị sang kế toán" });
+  assert.notEqual(c.permissions.guarded, null);
+  assert.deepEqual(c.batch1.map((r) => r.meta.changes ?? 0), [1, 1, 1, 1], "còn s-adm là quản trị viên khác: cả lô áp dụng đủ (kể cả hai câu chỉnh tay)");
+  assert.deepEqual(openPerms(sqlite, "s-old"), ["ACCOUNTING", "SALES"]);
+  assert.deepEqual(openAdj(sqlite, "s-old"), ["ACCOUNTING:ADD"]);
+  assert.deepEqual(openRoles(sqlite, "pty-s-old"), ["SALES_STAFF"]);
+});
+
+test("I-1 Case B: hết quản trị viên khác GIỮA CHỪNG (chạy đua) → không câu nào trong lô có chốt áp dụng, kể cả hai câu chỉnh tay", async () => {
+  const { sqlite, db } = seed();
+  await change(db, "s-old", { roles: ["SALES_STAFF"], adds: ["ADMIN"], reason: "thử" });
+  // Đọc trạng thái và dựng câu lệnh TRƯỚC — như route thật sẽ làm (đọc rồi mới ghi).
+  const acc = await account(db, "s-old");
+  const state = (await staff.getAccountRoleState(db, acc, TODAY))!;
+  const c = staff.roleChangeStatements(db, {
+    account: acc, partyId: acc.partyId!, state,
+    next: { roles: ["SALES_STAFF"], adds: ["ACCOUNTING"], removes: [], reason: "đổi từ quản trị sang kế toán" },
+    actorId: "s-adm", at: AT, today: TODAY,
+  });
+  assert.notEqual(c.permissions.guarded, null);
+  // Giả lập chạy đua: s-adm (quản trị viên khác) vừa bị ngưng hoạt động NGAY SAU khi đọc trạng thái, TRƯỚC khi lô có chốt chạy.
+  sqlite.prepare("UPDATE staff SET active = 0 WHERE id = 's-adm'").run();
+  const results = await db.batch([c.permissions.guarded!, ...c.permissions.rest, ...c.adjustmentStatements]);
+  assert.deepEqual(results.map((r) => r.meta.changes ?? 0), [0, 0, 0, 0], "hết quản trị viên khác giữa chừng: không câu nào áp dụng, kể cả hai câu chỉnh tay");
+  assert.deepEqual(openPerms(sqlite, "s-old"), ["ADMIN", "SALES"], "quyền không đổi");
+  assert.deepEqual(openAdj(sqlite, "s-old"), ["ADMIN:ADD"], "dòng chỉnh tay không đổi");
+  assert.deepEqual(openRoles(sqlite, "pty-s-old"), ["SALES_STAFF"], "vai không đổi");
 });
 
 test("tạo tài khoản theo vai: hồ sơ mới mang đúng vai (không STAFF), quyền = mặc định, dòng chỉnh tay có lý do", async () => {
