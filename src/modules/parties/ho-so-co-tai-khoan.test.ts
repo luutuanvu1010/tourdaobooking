@@ -77,6 +77,36 @@ test("hồ sơ của tài khoản ĐANG NGƯNG vẫn là hồ sơ có tài kho�
   const w = setup();
   w.sqlite.exec(`UPDATE staff SET active = 0 WHERE id = '${ADM2}'`);
   assert.equal((await rename(w, SALES, pty(ADM2), "Kẻ Mạo Danh")).status, 403);
+  assert.equal((await addPhone(w, SALES, pty(ADM2))).status, 403, "SALES thêm SĐT vào hồ sơ của tài khoản đang ngưng");
+});
+
+// Kiểm độc lập I-1 (2026-09-24): các ca trên chỉ thử người gọi KHÔNG PHẢI chính hồ sơ mục tiêu, nên `acc.manageable` = false —
+// điều đó tự chặn, che mất ô `party.staff.write`. Đổi ô đó thành `party.write` (ô "any" cho SALES/ACCOUNTING) ở cả ba route
+// (PUT, POST contacts, POST contacts/:cid/end) mà KHÔNG có ca nào dưới đây thì bộ test vẫn xanh — vì với chính mình,
+// `partyAccountVerdict` luôn trả `manageable: true` (actor.id === target.id), nên chỉ còn ô quyết định.
+test("hồ sơ có tài khoản: SALES/ACCOUNTING tự sửa hồ sơ CỦA CHÍNH MÌNH cũng bị chặn (ô party.staff.write = none, không phải cấp bậc)", async () => {
+  const w = setup();
+  for (const as of [SALES, ACC]) {
+    const target = pty(as);
+
+    const beforeRename = logCount(w, target);
+    assert.equal((await rename(w, as, target, "Tự Đổi Tên")).status, 403, `${as} tự đổi tên hồ sơ mình`);
+    assert.notEqual(label(w, as), "Tự Đổi Tên");
+    assert.equal(logCount(w, target), beforeRename, "403 tự đổi tên không ghi thêm nhật ký");
+
+    const beforeAddPhone = logCount(w, target);
+    assert.equal((await addPhone(w, as, target)).status, 403, `${as} tự thêm SĐT vào hồ sơ mình`);
+    assert.equal(logCount(w, target), beforeAddPhone, "403 tự thêm SĐT không ghi thêm nhật ký");
+
+    // Gieo một liên hệ bằng ADMIN (được phép) rồi chính chủ hồ sơ thử tự đóng liên hệ đó.
+    const added = await w.call("POST", `/api/parties/${target}/contacts`, { as: ADM, body: { kind: "EMAIL", value: `tu-dong-${as}@vidu.vn` } });
+    assert.equal(added.status, 201, added.text);
+    const cid = added.json.party.contacts[0].id;
+    const beforeEnd = logCount(w, target);
+    assert.equal((await w.call("POST", `/api/parties/${target}/contacts/${cid}/end`, { as, body: {} })).status, 403, `${as} tự đóng liên hệ của hồ sơ mình`);
+    assert.equal(logCount(w, target), beforeEnd, "403 tự đóng liên hệ không ghi thêm nhật ký");
+    assert.equal(w.q("SELECT valid_to_date v FROM pty_contact_point WHERE id = ?", cid)[0].v, null, "liên hệ vẫn còn mở");
+  }
 });
 
 test("ADR-0013 điều 5: không ai đổi 'đang dùng' của hồ sơ có tài khoản ở màn Hồ sơ (409); gửi lại đúng giá trị cũ khi đổi tên thì không chặn", async () => {
