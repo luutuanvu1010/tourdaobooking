@@ -73,7 +73,7 @@
   --w-side: 340px;            /* cột tóm tắt tiền dính ở máy tính (≥ 960px) */
   /* — Riêng của Island Booking System (tên cũ "Tour Đảo Booking"; KHÔNG có trong tourdaovn): kích thước giao diện điện thoại/PWA. Giá trị giao diện mới đi vào đây, không viết cứng trong luật. — */
   --w-main: 1200px;         /* bề rộng nội dung tối đa các trang mặc định — chủ dự án duyệt tăng từ 960px (đặc tả §16 mục 3); trang Lập đơn dùng --w-form riêng, không đổi */
-  --h-order-skeleton: 180px; /* ước lượng giữa thẻ đơn ít dòng nhất (~157px) và đầy đủ nhất (~240px) — chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
+  --h-order-skeleton: 76px; /* Đợt E (vòng sửa 2026-09-24): thẻ đơn đóng đo THẬT 76px ở cả 390px và 1040px (docs/evidence/2026-09-24-dot-e/) — trước là 180-240px cho khung 7 dòng cũ; chỉ là khung xương lúc đang tải, không cần khớp tuyệt đối */
   --c-on-dark: #ffffff;     /* chữ/biểu tượng trên nền primary hoặc accent */
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
@@ -175,15 +175,40 @@ textarea { min-height: 72px; resize: vertical; }
    ô rộng 394px, trang nở ra 410px). Đó là lỗi CŨ, không do Task 4 gây ra; sửa ở đây sẽ đổi bề mặt điện thoại vốn
    phải giữ nguyên từng chỉ số trong đợt này. Đã báo riêng cho điều phối viên quyết. */
 @media (min-width: 641px) { .toolbar select { max-width: 100%; } }
-.order-row { display: grid; gap: var(--s1); padding: var(--s3) var(--s4); margin-bottom: var(--s2); color: inherit; text-decoration: none; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
-.order-row:hover { outline: 2px solid var(--c-primary); }
-.order-row-main { display: flex; justify-content: space-between; align-items: center; }
-.order-row-money { display: flex; flex-wrap: wrap; gap: var(--s2) var(--s5); }
-.order-row-top { display: flex; justify-content: space-between; align-items: baseline; }
+/* Đợt E Phần A (bố cục sửa lại 2026-09-24, xem "Vòng sửa 2026-09-24" ở đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md):
+   thẻ đơn rút gọn ĐÚNG 2 dòng + nút xổ xuống (web/order-card.ts) — thay cho khung 7 dòng cũ. `.order-card` giữ
+   khung viền/nền/đệm mà `.order-row` từng có một mình.
+   `.order-card-head` xếp `.order-row` (thẻ <a>, hai dòng hiện ngay) cạnh `.order-card-toggle` bằng flexbox — ANH EM
+   trong DOM, KHÔNG lồng nút vào trong <a> (lý do đầy đủ: chú thích đầu web/order-card.ts) — nhưng vẫn nằm gọn
+   TRONG PHẦN NHÌN THẤY của thẻ (không phải hàng riêng như bản trước, vốn là lý do thẻ cũ cao 145px thay vì đúng
+   2 dòng). `.order-row` chiếm hết chỗ còn lại (`flex: 1 1 auto; min-width: 0`) để tên khách co lại + "…" đúng chỗ;
+   `.order-card-toggle` giữ bề rộng cố định `--tap-min` không co. */
+.order-card { display: flex; flex-direction: column; padding: var(--s3) var(--s4); margin-bottom: var(--s2); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.order-card:hover { outline: 2px solid var(--c-primary); }
+.order-card-head { display: flex; align-items: center; gap: var(--s2); }
+.order-row { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: var(--s1); color: inherit; text-decoration: none; }
+.order-row-top { display: flex; align-items: baseline; gap: var(--s2); }
+.order-row-when { flex: none; font-weight: 600; white-space: nowrap; }
+.order-row-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-row-top .badge { flex: none; }
+/* Dòng 2 KHÔNG được xuống hàng (đúng 2 dòng là ràng buộc cứng theo chủ dự án, khác quyết định "cho phép xuống
+   hàng ở khổ hẹp" của đặc tả gốc 2026-09-23 — đã bị thay ở vòng sửa này). SĐT và "Còn thu" không được co (giữ đủ
+   số/chữ); số khách (`.order-row-pax`) là phần được phép co/cắt bằng "…" trước, vì đã có trong dòng 2 lẫn không có
+   dòng nào khác thay thế được — trường hợp thực tế (1-2 loại khách) không bao giờ chạm ngưỡng này. */
+.order-card-line2 { display: flex; flex-wrap: nowrap; align-items: center; gap: var(--s1) var(--s3); min-width: 0; overflow: hidden; font-size: var(--fs-label); color: var(--c-text-muted); }
+/* `.order-row-phone` dùng CHUNG ở cả thẻ đơn (đây) và "Chuyến đón hôm nay" của Trang chủ (web/home.ts,
+   `.dash-today-sub .order-row-phone`) — giữ nguyên `text-decoration`/`cursor` cho cả hai chỗ; `flex: none` không
+   ảnh hưởng gì ở chỗ KHÔNG phải flex container (Trang chủ). */
+.order-row-phone { flex: none; text-decoration: underline; cursor: pointer; white-space: nowrap; }
+.order-row-remaining { flex: none; white-space: nowrap; }
+.order-row-pax { flex: 0 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-row-note { color: var(--c-accent-strong); font-weight: 600; }
-.order-row-phone { text-decoration: underline; cursor: pointer; }
 .money-ok { color: var(--c-green-text); }
 .money-due { color: var(--c-accent-strong); }
+.order-card-toggle { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); margin: 0; padding: 0; color: var(--c-text-muted); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
+.order-card-toggle::after { content: "▾"; font-size: var(--fs-ui); line-height: 1; transition: transform var(--m-fast); }
+.order-card-toggle[aria-expanded="true"]::after { transform: rotate(180deg); }
+.order-card-details { display: grid; gap: var(--s1); margin-top: var(--s2); padding-top: var(--s2); font-size: var(--fs-label); color: var(--c-text-muted); border-top: 1px solid var(--c-border); }
 .skeleton-list { display: grid; gap: var(--s2); margin-bottom: var(--s2); }
 .skeleton-row { height: var(--h-order-skeleton); border-radius: var(--radius-md); background: var(--c-surface-alt); animation: skeleton-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .skeleton-row { animation: none; } }
@@ -220,6 +245,7 @@ table.items th.num, table.items td.num { text-align: right; }
 .pill-btn { font-size: var(--fs-label); font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft); border: none; border-radius: var(--radius-sm); padding: 0 var(--s4); min-height: var(--tap-min); cursor: pointer; }
 .pill-btn.pill-btn-danger { color: var(--c-accent-strong); background: var(--c-accent-soft); }
 .history { margin: 0; padding-left: var(--s5); }
+.history-detail { margin-top: var(--s1); overflow-wrap: anywhere; white-space: pre-line; } /* Task 8 Đợt E: lý do/mô tả (audit_log.detail) của một dòng lịch sử — dài hoặc không dấu cách vẫn không tràn ngang. Task 9: `detail` có thể có ký tự xuống dòng (vd lý do sửa nhiều dòng do FIELD gõ) — `e.detail` là MỘT text node (h(), không innerHTML) nên trình duyệt vẫn giữ \n trong DOM, chỉ CSS mặc định (white-space: normal) collapse nó thành một dòng; pre-line giữ xuống dòng nhưng vẫn tự ngắt dòng dài/khoảng trắng bình thường như trước. */
 
 /* quản trị */
 .alert.ok { color: var(--c-green-text); background: var(--c-green-soft); border-color: var(--c-green-border); }
@@ -720,6 +746,10 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   .lbl-full { display: none; }
   .lbl-short { display: inline; }
 }
+/* Đợt E Phần B: biểu tượng trang trí đi kèm chữ (nhãn ô số liệu, tiêu đề khối, dòng SĐT…) — luôn `aria-hidden`,
+   không đứng một mình. `svg` không co nhỏ hơn kích thước thật đã đặt ở lời gọi `icon()` khi nằm trong hàng flex hẹp. */
+.icon-label { display: inline-flex; align-items: center; gap: var(--s1); }
+.icon-label svg { flex: none; }
 .dash-grid { display: block; }
 .dash-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--s3); margin-bottom: var(--s4); }
 .dash-stat { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3) var(--s4); color: inherit; text-decoration: none; background: var(--c-card); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
@@ -786,7 +816,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
      giữ nút gọi dù lệch bản mẫu. `.dash-today-call` chỉ hiện ở khổ này (cùng cơ chế `.lbl-short`, luật kế thừa ở trên thắng
      `display:none` mặc định của `.lbl-short` vì hai lớp cùng chọn một phần tử và quy tắc này đứng sau trong tệp); nút đặt
      dưới số tiền còn lại trong cụm bên phải, không đổi bề rộng ba cụm khi/tên/tiền hiện có. */
-  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
+  .dash-today-call { display: inline-flex; align-items: center; justify-content: center; gap: var(--s1); min-height: var(--tap-min); padding: 0 var(--s3); margin-top: var(--s1); font-size: var(--fs-label); font-weight: 700; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); cursor: pointer; }
   /* Đợt D Task 3 (đặc tả §3.6: "Biểu đồ và 'Cần xem lại': xếp một cột dưới danh sách chuyến"): khối chỉ tồn tại
      trong DOM khi ADMIN có cảnh báo (web/home.ts) — khi có, phải chiếm trọn bề rộng lưới 2×2 như .dash-today, không
      rơi vào MỘT nửa cột bên cạnh ô trống. */

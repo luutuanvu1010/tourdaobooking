@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
+      "name": "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
       "dat": true
     },
     {
@@ -57,6 +57,21 @@
       "dat": true
     },
     {
+      "id": "m",
+      "name": "tên khách DÀI bị cắt bằng “…” ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng “Khách: <tên đầy đủ>”, ngay trước “Mã đơn”",
+      "dat": true
+    },
+    {
+      "id": "n",
+      "name": "bàn phím THẬT (Input.dispatchKeyEvent qua CDP): Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết",
+      "dat": true
+    },
+    {
+      "id": "o",
+      "name": "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao",
+      "dat": true
+    },
+    {
       "id": "l",
       "name": "console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)",
       "dat": true
@@ -86,7 +101,7 @@
   "do": {
     "danh-sach-390": {
       "nho": [],
-      "dieuKhien": 11,
+      "dieuKhien": 22,
       "trànNgang": 0
     },
     "trang-don-390": {
@@ -126,12 +141,12 @@
     },
     "danh-sach-handlers-loi-390": {
       "nho": [],
-      "dieuKhien": 11,
+      "dieuKhien": 22,
       "trànNgang": 0
     },
     "danh-sach-1040": {
       "nho": [],
-      "dieuKhien": 12,
+      "dieuKhien": 24,
       "trànNgang": 0
     },
     "trang-don-1040": {
@@ -171,11 +186,21 @@
     },
     "danh-sach-handlers-loi-1040": {
       "nho": [],
-      "dieuKhien": 12,
+      "dieuKhien": 24,
       "trànNgang": 0
+    },
+    "history-detail-nhieu-dong": {
+      "soDong": 3,
+      "caoDiv": 65,
+      "whiteSpace": "pre-line",
+      "text": "Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00"
     }
   },
   "anh": {
+    "nguoi-phu-trach-the-dong-390.png": "390×844",
+    "nguoi-phu-trach-the-mo-390.png": "390×844",
+    "nguoi-phu-trach-the-dong-1040.png": "1040×800",
+    "nguoi-phu-trach-the-mo-1040.png": "1040×800",
     "nguoi-phu-trach-tai-lai-390.png": "390×844",
     "nguoi-phu-trach-loi-handlers-390.png": "390×844",
     "nguoi-phu-trach-bang-chon-loi-luu-390.png": "390×844",
@@ -188,10 +213,45 @@
     "nguoi-phu-trach-bang-chon-1040.png": "1040×800",
     "nguoi-phu-trach-chua-co-nguoi-390.png": "390×844",
     "nguoi-phu-trach-danh-sach-chip-390.png": "390×844",
-    "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800"
+    "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800",
+    "nguoi-phu-trach-lich-su-nhieu-dong.png": "390×844"
   },
   "dem": {
+    "the-dong-390": [
+      {
+        "l2Rows": 1,
+        "cardH": 76,
+        "clipped": false
+      },
+      {
+        "l2Rows": 1,
+        "cardH": 76,
+        "clipped": false
+      },
+      {
+        "l2Rows": 1,
+        "cardH": 76,
+        "clipped": false
+      }
+    ],
     "handlers-goi-o-danh-sach-390": 1,
+    "the-dong-1040": [
+      {
+        "l2Rows": 1,
+        "cardH": 76,
+        "clipped": false
+      },
+      {
+        "l2Rows": 1,
+        "cardH": 76,
+        "clipped": false
+      },
+      {
+        "l2Rows": 1,
+        "cardH": 76,
+        "clipped": false
+      }
+    ],
     "handlers-goi-o-danh-sach-1040": 1,
     "thong-bao-no-change": "Người này đang phụ trách đơn rồi. Đã tải lại đơn.",
     "thong-bao-stale": "Đơn này vừa có người khác nhận phụ trách. Đã tải lại đơn.",
@@ -216,10 +276,10 @@
       "trang-don-chua-biet-1040",
       "danh-sach-handlers-loi-1040"
     ],
-    "trang-theo-doi-console": 42
+    "trang-theo-doi-console": 45
   },
   "tongKet": {
-    "dat": 12,
+    "dat": 15,
     "hong": 0
   }
 }

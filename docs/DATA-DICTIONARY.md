@@ -84,6 +84,7 @@
 | `pty_person` | bảng |  |
 | `pty_relationship_type` | bảng tra cứu |  |
 | `pty_role_type` | bảng tra cứu |  |
+| `v_pty_open_role_group` | view công bố | cột: party_id, role_group |
 | `v_pty_party_label` | view công bố | cột: id, display_name, party_kind, active, sort_key |
 
 ## staff
@@ -92,6 +93,7 @@
 |---|---|---|
 | `staff` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: role, full_name |
 | `stf_permission` | bảng |  |
+| `stf_permission_adjustment` | bảng |  |
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
 

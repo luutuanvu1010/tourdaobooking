@@ -1315,6 +1315,53 @@ try {
   }
 
   // ==================================================================================================
+  // J) ĐỢT E PHẦN B — biểu tượng Trang chủ (đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md §B). Mỗi biểu
+  //    tượng: có mặt (svg thật, không phải chữ/emoji), `aria-hidden="true"` (trang trí), LUÔN đi kèm chữ ngay cạnh
+  //    (không đứng một mình). Dùng lại đúng dữ liệu đã tạo ở đầu kịch bản (R1 hôm nay/Bến Cầu Đá, R2 nháp, R3 còn
+  //    thiếu tiền, T3 "Cần xem lại") — ADMIN, khổ máy tính để #dash-review chắc chắn còn hiện.
+  // ==================================================================================================
+  {
+    const p = await env.as(ACCOUNTS.admin, "/", DESK);
+    await p.waitFor("!document.querySelector('#dash-grid').hidden", "Trang chủ tải xong (Phần B)");
+    await p.waitFor("document.querySelector('#dash-review').hidden === false", "khối “Cần xem lại” hiện (dữ liệu T3 còn nguyên)", 8000);
+    const icons = await p.ev(`(() => {
+      const svgOf = (el) => el ? el.querySelector('svg') : null;
+      const info = (el) => { const s = svgOf(el); return { hasSvg: !!s, ariaHidden: s?.getAttribute('aria-hidden') ?? null, text: el ? el.textContent.trim() : null }; };
+      const stats = [...document.querySelectorAll('#dash-stats .dash-stat')].map((el) => info(el.querySelector('.dash-stat-label')));
+      const today = document.querySelector('#dash-today-list .dash-today-row');
+      return {
+        stats,
+        statLabels: [...document.querySelectorAll('#dash-stats .dash-stat-label .lbl-full')].map((e) => e.textContent.trim()),
+        todayTitle: info(document.querySelector('.dash-today-title')),
+        revenueTitle: info(document.querySelector('.dash-revenue-title')),
+        reviewHeading: info(document.querySelector('.dash-review-heading')),
+        reviewRow: info(document.querySelector('#dash-review-list .dash-review-row .dash-review-icon')),
+        todayPhone: info(today?.querySelector('.dash-today-sub .order-row-phone')),
+        todayPlace: info(today?.querySelector('.dash-today-place')),
+      };
+    })()`);
+    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn nháp chưa xác nhận", "Chưa có người phụ trách"], `J: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
+    icons.stats.forEach((s, i) => {
+      assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
+      assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
+    });
+    for (const [name, x] of [["Chuyến đón hôm nay", icons.todayTitle], ["Doanh thu của tôi", icons.revenueTitle], ["Cần xem lại", icons.reviewHeading]]) {
+      assert.ok(x.hasSvg && x.ariaHidden === "true", `J: tiêu đề "${name}" phải có biểu tượng aria-hidden — ${JSON.stringify(x)}`);
+      assert.equal(x.text, name, `J: tiêu đề phải còn đúng chữ gốc "${name}" — ${JSON.stringify(x)}`);
+    }
+    assert.ok(icons.reviewRow.hasSvg && icons.reviewRow.ariaHidden === "true", `J: dòng "Cần xem lại" (mục cảnh báo) phải có biểu tượng aria-hidden (dùng lại "alert") — ${JSON.stringify(icons.reviewRow)}`);
+    assert.ok(icons.todayPhone.hasSvg && icons.todayPhone.ariaHidden === "true" && /09\d{8}/.test(icons.todayPhone.text ?? ""), `J: SĐT ở "Chuyến đón hôm nay" phải có biểu tượng ống nghe đi kèm số — ${JSON.stringify(icons.todayPhone)}`);
+    assert.ok(icons.todayPlace.hasSvg && icons.todayPlace.ariaHidden === "true" && icons.todayPlace.text?.includes("Bến Cầu Đá"), `J: nơi đón ở "Chuyến đón hôm nay" phải có biểu tượng pin đi kèm tên nơi đón (R1, Bến Cầu Đá) — ${JSON.stringify(icons.todayPlace)}`);
+    await axe(p, "trang-chu-bieu-tuong-1040");
+    await shot(p, "task-5-dot-e-bieu-tuong-1040.png");
+    await p.send("Emulation.setDeviceMetricsOverride", { width: MOB.width, height: MOB.height, deviceScaleFactor: 1, mobile: true });
+    await axe(p, "trang-chu-bieu-tuong-390");
+    await shot(p, "task-5-dot-e-bieu-tuong-390.png");
+    p.close();
+    ok(`J) Đợt E Phần B: biểu tượng có mặt + aria-hidden + đi kèm chữ ở ba ô số liệu (${JSON.stringify(icons.statLabels)}), ba tiêu đề khối, dòng "Cần xem lại", SĐT và nơi đón ở "Chuyến đón hôm nay"; axe 0 vi phạm critical/serious ở 1040 và 390px`);
+  }
+
+  // ==================================================================================================
   // I) SỬA SAU PHÁT HÀNH (2026-09-24, cách sửa A do chủ dự án chốt): tài khoản CHỈ Đối tác (PARTNER) tới "/" phải
   //    sang thẳng "/orders" (src/shared/start-page.ts → web/home.ts), KHÔNG gọi dashboard (route "office" → 403,
   //    câu lỗi viết cho FIELD). Trước Đợt D "/" chính là Đơn hàng nên họ vào thẳng danh sách đơn của mình.

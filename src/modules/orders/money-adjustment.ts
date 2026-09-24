@@ -26,10 +26,50 @@ export function recomputeService(stored: StoredService, newPax: PaxCounts): Pars
   return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + l.quantity * l.unitPrice, 0) };
 }
 
-function isPaxCounts(v: unknown): v is PaxCounts {
+/** MỘT định nghĩa "pax hợp lệ" cho cả nơi GHI (`parseMoneyEditInput`, ở đây) và nơi ĐỌC (`parseAdjustmentAfter`, ngay dưới). */
+export function isPaxCounts(v: unknown): v is PaxCounts {
   if (!v || typeof v !== "object" || Array.isArray(v)) return false;
   const o = v as Record<string, unknown>;
   return PAX_CODES.every((c) => typeof o[c] === "number" && Number.isInteger(o[c]) && (o[c] as number) >= 0);
+}
+
+/**
+ * MỘT hàm phân tích `after_json` DUY NHẤT — "số khách hiệu lực" của từng dịch vụ của dòng điều chỉnh gần nhất. `repository.ts:getLatestAdjustment`
+ * (trang chi tiết MỘT đơn) VÀ `repository.ts:getLatestAdjustments` (danh sách/Trang chủ, nhiều đơn) đều gọi ĐÚNG hàm này để lấy `after` — không
+ * còn tự phân tích riêng (kiểm độc lập Đợt E vòng 2 — Lỗi 1: trước bản sửa này, `repository.ts` lọc bằng `isPaxCounts` còn `money-adjustment.ts`
+ * (đường chi tiết đơn, qua `applyAdjustmentToOrder`) hoàn toàn KHÔNG lọc — CÙNG một `after_json` hỏng dạng mềm (mảng đọc được, một phần tử thiếu
+ * trường `pax`) cho ra HAI số khách khác nhau trên hai bề mặt: `/orders`/Trang chủ đúng số gốc, trang chi tiết hiện số bịa từ dữ liệu thiếu).
+ * Dung nạp MỌI kiểu hỏng của `after_json` bằng cách BỎ QUA phần dữ liệu hỏng — KHÔNG BAO GIỜ ném lỗi ra ngoài (Lỗi 2 độc lập đợt này: trước bản
+ * sửa này, một phần tử không phải object — vd `null` — làm `applyAdjustedPax`/`applyAdjustmentToOrder` truy cập `.serviceId` trên giá trị đó và
+ * ném `TypeError`, không được bắt ở đâu cả nên sập MỌI request `/api/orders`/`/api/orders/dashboard`, cho MỌI nhân viên, không riêng đơn hỏng):
+ *  - `after_json` không phải JSON hợp lệ (JSON.parse ném lỗi) → coi như chưa có điều chỉnh nào (mảng rỗng).
+ *  - JSON hợp lệ nhưng không phải mảng (object, số, chuỗi, `null`…) → mảng rỗng.
+ *  - một phần tử không phải object (`null`, số, chuỗi, mảng con…) → BỎ QUA riêng phần tử đó, các phần tử khác vẫn xét.
+ *  - phần tử thiếu `serviceId` (không phải chuỗi) hoặc `pax` không phải `PaxCounts` hợp lệ (thiếu trường, giá trị không phải số nguyên ≥ 0…) →
+ *    BỎ QUA riêng phần tử đó — dịch vụ tương ứng rơi về số ĐÃ LƯU (đúng nguyên tắc "sự kiện thay đổi thì các yếu tố phụ thuộc phải đổi theo",
+ *    ở đây "sự kiện" là dữ liệu điều chỉnh KHÔNG đáng tin thì "yếu tố phụ thuộc" phải lùi về nguồn còn đáng tin — số đã lưu).
+ * KHÔNG kiểm `serviceId` có khớp dịch vụ thật của đơn hay không — đó là việc của `R-ORD-5` (`scripts/audit-checks.mjs`, tầng dữ liệu); một
+ * `serviceId` lạ ở đây chỉ đơn giản không khớp dịch vụ nào ở nơi gọi (`Map.get` trả `undefined`), không gây lỗi.
+ * TRÙNG `serviceId` (hai phần tử hợp lệ, CÙNG dịch vụ — `parseMoneyEditInput` chặn khi GHI, chỉ tới được đây qua dữ liệu hỏng ngoài tầm kiểm):
+ * GOM về ĐÚNG MỘT phần tử, phần tử ĐỨNG SAU (trong mảng) thắng. Không dedupe ở đây thì hai nơi tiêu thụ lại tự chọn khác nhau — `applyAdjustmentToOrder`
+ * dựng `Map` từ mảng (đứng sau thắng), còn `applyAdjustedPax` dùng `Array.find` (đứng TRƯỚC thắng) — CHÍNH LÀ "hai luật khác nhau ở hai nơi" mà hàm
+ * này được viết ra để xoá bỏ, chỉ là ở khâu HỢP GIẢI thay vì khâu lọc dạng. Kết quả trả về vì vậy LUÔN có TỐI ĐA một phần tử cho mỗi `serviceId`.
+ */
+export function parseAdjustmentAfter(afterJson: string): { serviceId: string; pax: PaxCounts }[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(afterJson);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const bySvc = new Map<string, PaxCounts>();
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.serviceId === "string" && isPaxCounts(e.pax)) bySvc.set(e.serviceId, e.pax); // Map.set: phần tử đứng SAU ghi đè phần tử đứng trước.
+  }
+  return Array.from(bySvc, ([serviceId, pax]) => ({ serviceId, pax }));
 }
 
 /**
@@ -94,28 +134,75 @@ export function editablePaxCodesOf(original: OrderServiceDto): readonly PaxCode[
   return snap ? availableCodes(snap) : [];
 }
 
+// ---- NGUỒN SỰ THẬT DUY NHẤT cho tiền hiệu lực (Đợt E task 7 — tái phát lần 4 của "hai nơi tính cùng một số theo hai luật khác nhau") --------
+//
+// LỖI ĐÃ ĐO: đơn có dịch vụ NHẬP TAY + có điều chỉnh → trang chi tiết đơn (applyAdjustmentToOrder, dưới đây) TỰ TÍNH LẠI subtotal từ order_service/
+// order_item GỐC nên CÓ cộng dịch vụ nhập tay; còn `/api/orders`/Trang chủ (orders/repository.ts) từng ĐỌC THẲNG cột `order_money_adjustment.
+// subtotal_after` — cột này, ở nơi GHI cũ (`orders/index.ts:editMoneyAsHandler`), chỉ cộng dịch vụ TỪ DANH MỤC (vòng lặp chỉ duyệt catalogServices),
+// bỏ sót dịch vụ nhập tay → lưu THIẾU. Sửa nơi ghi (mục A) chỉ chữa được đơn TỪ NAY; bảng order_money_adjustment CHỈ-THÊM nên đơn CŨ đã lưu thiếu
+// KHÔNG sửa lại được bằng ghi đè. Sửa thật (mục B): nơi ĐỌC (danh sách/Trang chủ) NGỪNG tin cột `subtotal_after` đã lưu — TỰ TÍNH LẠI, đúng CÁCH
+// trang chi tiết đã làm đúng từ trước, bằng CHÍNH hai hàm dưới đây. Từ nay CHỈ CÒN MỘT ĐƯỜNG TÍNH: `effectiveService`/`effectiveSubtotal`; mọi bề
+// mặt (chi tiết đơn, `/api/orders`, Trang chủ, và nơi GHI khi tính `subtotal_before`/`subtotal_after` mới) đều gọi qua đây, không tự cộng dồn riêng.
+
+/** Đủ dữ liệu của MỘT dịch vụ đã lưu để tính tiền hiệu lực: `items` = dòng tiền ĐÃ LƯU (đóng băng) của dịch vụ — CẢ danh mục lẫn nhập tay. */
+export interface SubtotalServiceInput {
+  id: string;
+  catalogCode: string | null;
+  name: string;
+  unit: string;
+  items: { paxCode: PaxCode | null; catalogPrice: number | null; lineTotal: number }[];
+}
+
+/** Kết quả tính tiền hiệu lực của MỘT dịch vụ. `recomputed` CHỈ có mặt khi dịch vụ THẬT SỰ được tính lại (có trong `after` VÀ recompute thành công) —
+ * dùng để dựng lại `pax`/`items` cho DTO chi tiết đơn; vắng mặt (nhập tay, không có trong `after`, hoặc recompute lỗi) = giữ nguyên như đã lưu. */
+export interface EffectiveService {
+  subtotal: number;
+  recomputed?: { pax: PaxCounts; lines: GeneratedLine[] };
+}
+
+const ownSubtotal = (items: SubtotalServiceInput["items"]): number => items.reduce((n, i) => n + i.lineTotal, 0);
+
 /**
- * Áp dòng điều chỉnh GẦN NHẤT (nếu có) lên đơn để hiển thị SỐ HIỆN HÀNH — KHÔNG đổi gì trong CSDL, chỉ dựng lại DTO trả về. Dịch vụ có mặt trong
- * `after` được tính lại bằng `recomputeService`; dịch vụ vắng mặt (nhập tay, hoặc đơn CHƯA có điều chỉnh — `after = []`) giữ nguyên như đã lưu.
- * An toàn: nếu tính lại lỗi (không nên xảy ra — đã kiểm lúc ghi), giữ dịch vụ đó như đã lưu thay vì làm hỏng cả trang.
+ * Tiền hiệu lực của MỘT dịch vụ — NGUỒN DUY NHẤT, mọi hàm/bề mặt khác đều gọi qua đây (không tự viết lại vòng lặp cộng dồn). `newPax` = số khách
+ * mới nếu dịch vụ có mặt trong dòng điều chỉnh gần nhất, `undefined` nếu không (nhập tay, hoặc catalog nhưng chưa từng bị điều chỉnh) — trường hợp
+ * đó giữ nguyên "own" = tổng `lineTotal` các dòng ĐÃ LƯU của dịch vụ (đây chính là chỗ dịch vụ NHẬP TAY luôn được cộng: nó không bao giờ nằm trong
+ * `after` — vì `parseMoneyEditInput` chỉ cho phép liệt kê dịch vụ TỪ DANH MỤC — nên LUÔN rơi vào nhánh "own", không phụ thuộc mã ghi có nhớ cộng nó
+ * hay không). An toàn: recompute lỗi (không nên xảy ra — đã kiểm lúc ghi) → cũng lùi về "own" thay vì làm hỏng cả trang.
+ */
+export function effectiveService(svc: SubtotalServiceInput, newPax: PaxCounts | undefined): EffectiveService {
+  if (!newPax) return { subtotal: ownSubtotal(svc.items) };
+  const stored: StoredService = { id: svc.id, catalogCode: svc.catalogCode, name: svc.name, unit: svc.unit, pax: newPax, items: svc.items.map((i) => ({ paxCode: i.paxCode, detail: null, catalogPrice: i.catalogPrice })) };
+  const recomputed = recomputeService(stored, newPax);
+  if (!recomputed.ok) return { subtotal: ownSubtotal(svc.items) };
+  return { subtotal: recomputed.subtotal, recomputed: { pax: recomputed.pax, lines: recomputed.lines } };
+}
+
+/** Tổng tiền hiệu lực của MỘT ĐƠN — tổng `effectiveService(...).subtotal` của mọi dịch vụ. Dùng ở CẢ nơi GHI (`orders/index.ts:editMoneyAsHandler`,
+ * tính `subtotal_before`/`subtotal_after` MỚI) lẫn nơi ĐỌC nhiều đơn (`orders/repository.ts`, danh sách/Trang chủ). `services` PHẢI là MỌI dịch vụ
+ * của đơn (kể cả nhập tay) — thiếu dịch vụ nào thì thiếu đúng tiền dịch vụ đó, không có lưới nào khác bù lại. */
+export function effectiveSubtotal(services: readonly SubtotalServiceInput[], after: readonly { serviceId: string; pax: PaxCounts }[]): number {
+  const byService = new Map(after.map((a) => [a.serviceId, a.pax]));
+  return services.reduce((sum, s) => sum + effectiveService(s, byService.get(s.id)).subtotal, 0);
+}
+
+const toSubtotalInput = (s: OrderServiceDto): SubtotalServiceInput => ({
+  id: s.id, catalogCode: s.catalogCode, name: s.name, unit: s.unit,
+  items: s.items.map((i) => ({ paxCode: i.paxCode, catalogPrice: i.catalogPrice, lineTotal: i.lineTotal })),
+});
+
+/**
+ * Áp dòng điều chỉnh GẦN NHẤT (nếu có) lên đơn để hiển thị SỐ HIỆN HÀNH — KHÔNG đổi gì trong CSDL, chỉ dựng lại DTO trả về. MỖI dịch vụ đi qua
+ * ĐÚNG MỘT LẦN `effectiveService` (không tính lại subtotal bằng một vòng lặp riêng) — `subtotal` của đơn = tổng các `eff.subtotal`, `services` =
+ * dịch vụ nào có `eff.recomputed` thì thay `pax`/`items`, còn lại giữ nguyên. Đây CHÍNH LÀ đường mà `effectiveSubtotal` (dùng ở danh sách/Trang
+ * chủ) gọi cho từng đơn — hai bề mặt dùng chung MỘT hàm sơ cấp, không phải hai vòng lặp trông giống nhau.
  */
 export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { serviceId: string; pax: PaxCounts }[]): OrderDetailDto {
   const byService = new Map(after.map((a) => [a.serviceId, a.pax]));
   let subtotal = 0;
   const services: OrderServiceDto[] = order.services.map((s) => {
-    const own = s.items.reduce((n, i) => n + i.lineTotal, 0);
-    const newPax = byService.get(s.id);
-    if (!newPax) {
-      subtotal += own;
-      return s;
-    }
-    const recomputed = recomputeService(toStoredService(s), newPax);
-    if (!recomputed.ok) {
-      subtotal += own;
-      return s;
-    }
-    subtotal += recomputed.subtotal;
-    return { ...s, pax: recomputed.pax, items: recomputed.lines.map(toItemDto) };
+    const eff = effectiveService(toSubtotalInput(s), byService.get(s.id));
+    subtotal += eff.subtotal;
+    return eff.recomputed ? { ...s, pax: eff.recomputed.pax, items: eff.recomputed.lines.map(toItemDto) } : s;
   });
   return { ...order, subtotal, ...effectiveMoney(subtotal, order.discount, order.depositAmount), services };
 }

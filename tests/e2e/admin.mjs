@@ -73,9 +73,9 @@ console.log("✓ nhật ký hiển thị hành động không gắn đơn, khôn
 r = await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { fullName: "Nguyễn Test Hai" });
 assert.equal(r.status, 200); assert.equal(r.body.staff.fullName, "Nguyễn Test Hai");
 assert.equal((await raw(ADMIN, "GET", `/api/parties/${r.body.staff.partyId}`)).body.party.displayName, "Nguyễn Test Hai", "đổi tên tài khoản = đổi tên hồ sơ");
-// ADR-0014 điều 8: cấp ADMIN cho A vẫn do Admin thường làm được (A trước đó chỉ giữ SALES, là "cấp dưới"); nhưng SAU KHI A giữ ADMIN,
-// chính Admin đó KHÔNG còn quản lý được A nữa — chỉ Super Admin mới gỡ lại được (đúng đính chính trực tiếp của chủ dự án).
-r = await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] });
+// LC-4 (ADR-0018 điều 5): Quản trị KHÔNG còn cấp được quyền Quản trị — chỉ Toàn quyền. Sau khi A giữ ADMIN, Quản trị cũng không quản lý được A nữa (ADR-0014 điều 8).
+assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] })).status, 403, "Quản trị không cấp quyền Quản trị");
+r = await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["ADMIN", "SALES"] });
 assert.equal(r.status, 200, JSON.stringify(r.body)); assert.deepEqual(r.body.staff.permissions, ["SALES", "ADMIN"]);
 assert.equal((await raw(ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] })).status, 403, "Admin không còn quản lý được A sau khi A thành Admin");
 r = await raw(SUPER_ADMIN, "PUT", `/api/staff/${A.id}/permissions`, { permissions: ["SALES"] });

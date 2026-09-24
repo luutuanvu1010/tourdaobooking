@@ -387,6 +387,44 @@ Chủ dự án quyết và TỰ CHẠY các lệnh ghi lên remote (`wrangler d1
 - **KHÔNG xoá bảng `aut_passkey`:** không có migration "contract" nào gỡ bảng này ở lần phát hành này.
 - Ghi việc hoàn tác (ngày, lý do) vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp này.
 
+## Lần phát hành kế tiếp: `0024` (mô hình người–vai–quyền, ADR-0018, GĐ1) — RUNBOOK
+
+Chủ dự án quyết và TỰ CHẠY các lệnh ghi lên remote (`wrangler d1 migrations apply --remote`, `wrangler deploy`) trong ứng dụng Terminal của macOS — `CLAUDE.md` §8: AI không tự chạy các lệnh này; mục này chỉ chuẩn bị và liệt kê NGUYÊN LỆNH, không phải lệnh để AI gõ. Mã: `migrations/0024_vai_quyen_mac_dinh.sql` **cùng với mã** module `staff`/`accounts`/`parties` (11 vai, trang Nhân viên chọn vai, route `GET/PUT /api/staff/:id/roles`) và giao diện (`web/role-picker.ts`, `web/staff.ts`, `web/parties.ts`). Đặc tả: `docs/superpowers/specs/2026-09-24-mo-hinh-nguoi-vai-quyen-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-24-mo-hinh-vai-gd0-gd1.md`; ADR: `docs/adr/ADR-0018-mo-hinh-nguoi-vai-quyen.md`.
+
+**Migration `0024` CHỈ THÊM** — cột `pty_role_type.role_group`, 10 dòng vai mới trong `pty_role_type` (vai thứ 11, "Kế toán" `ACCOUNTANT`, dùng lại dòng có sẵn — chỉ gán nhóm INTERNAL), bảng `stf_permission_adjustment`, view `v_pty_open_role_group`, hai trigger CSDL (LC-1, LC-3). **Không đổi quyền của bất kỳ tài khoản nào đang có** — không có câu nào tự tính lại quyền cho tài khoản chưa được gán vai mới; route quyền cũ (`PUT /api/staff/:id/permissions`) vẫn chạy y như trước cho tài khoản chưa gán vai.
+
+**Trước khi deploy — một lệnh chỉ đọc, chủ dự án tự chạy, để biết trước có bao nhiêu tài khoản sẽ đổi cách quản lý (không đổi quyền):** hồ sơ đang giữ vai "Kế toán" (mã cũ `ACCOUNTANT`) không gắn với một địa điểm cụ thể, đang mở — sau khi áp `0024`, các tài khoản này sẽ được đọc là đã có vai mô hình mới (vai nhóm INTERNAL, spec §4 "ACCOUNTANT dùng lại"), tức trở thành "role-managed": sửa quyền của họ sau đó phải qua trang Nhân viên, route quyền cũ trả 409 thay vì áp dụng — QUYỀN THỰC TẾ của họ không đổi một ô nào.
+
+```
+npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT (s.id IS NOT NULL) AS co_tk, (r.location_id IS NOT NULL) AS gan_noi, (r.valid_to_date IS NOT NULL) AS co_ngay_kt, count(*) FROM pty_party_role r LEFT JOIN staff s ON s.party_id = r.party_id WHERE r.role_type_code='ACCOUNTANT' AND (r.valid_to_date IS NULL OR r.valid_to_date >= date('now','+7 hours')) GROUP BY 1,2,3"
+```
+
+Cách đọc: mỗi dòng là một nhóm dòng vai "Kế toán" còn hiệu lực — `co_tk` = 1 là hồ sơ đã có tài khoản; chỉ nhóm `gan_noi` = 0 VÀ `co_ngay_kt` = 0 mới được đọc là vai mô hình mới (nhóm có `co_tk` = 1 là số tài khoản đổi cách quản lý; nhóm `co_tk` = 0 là hồ sơ chưa có tài khoản — khi tạo tài khoản cho họ, trang Nhân viên bắt chọn cả vai Kế toán); các nhóm còn lại (gắn nơi, hoặc có ngày kết thúc) KHÔNG được mô hình mới nhìn thấy — xem nợ (a) ở mục "Việc còn treo".
+
+(Dùng `--command`, KHÔNG dùng `--file`: đường `--file` đi qua cổng nhập khác, từ chối xác thực OAuth — xem nhật ký thi công `docs/superpowers/plans/2026-09-24-mo-hinh-vai-thi-cong-nhat-ky.md`.)
+
+**Các bước phát hành — CHỦ DỰ ÁN tự gõ trong ứng dụng Terminal của macOS, đứng ở thư mục gốc repo (`tourdao-sales`, KHÔNG phải thư mục worktree); AI không chạy các lệnh này (`CLAUDE.md` §8):**
+1. Gộp và đẩy nhánh lên `main`:
+```
+npm run day-len -- gd1-mo-hinh-vai
+```
+2. Chạy toàn bộ dây chuyền triển khai (cổng chỉ-đọc, kiểm phiên bản, điểm khôi phục, test, migration `0024`, deploy, kiểm sau deploy):
+```
+npm run trien-khai
+```
+
+**Hoàn tác — chỉ khi chủ dự án quyết:** nếu lùi Worker về bản cũ mà GIỮ `0024` (migration không lùi được), (1) tài khoản Thực tập sinh mất mọi quyền truy cập (mã cũ không biết quyền Thực tập — hỏng theo hướng an toàn), và (2) route Hồ sơ cũ sẽ lại nhận gán 10 mã vai mới cho hồ sơ (bản cũ không biết nhóm vai tài khoản). Vì vậy không tự lùi; chủ dự án cân nhắc rồi quyết.
+
+**Sau khi áp `0024`:**
+1. `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` (nhìn TÊN) → sạch, không còn migration chờ.
+2. `node scripts/audit-invariants.mjs --db remote` (chỉ đọc) → **R-LC-1 và R-LC-3 phải = 0 vi phạm.** Kiểm "thông tin" (mức nhẹ hơn, không `--strict`) có thể cảnh báo — không đỏ khi không chạy `--strict`; chạy `--strict` riêng nếu muốn xem đủ.
+3. **KHÔNG gán vai hàng loạt.** Chưa có bảng đối chiếu "tài khoản nào nên mang vai nào" — việc đó thuộc đặc tả §14 giai đoạn 2 (chưa làm). Sau khi 0024 lên production, mọi tài khoản (kể cả các dòng "Kế toán" đếm được ở bước trên) vẫn hoạt động y như trước cho tới khi có người vào trang Nhân viên gán vai TỪNG tài khoản một, có xem trước quyền trước khi lưu.
+
+**Báo trước nhân viên (trước khi bấm deploy, không phải sau):**
+- Nhãn quyền "Super Admin" đổi tên thành **"Toàn quyền"**.
+- Chỉ tài khoản **Toàn quyền** mới cấp được quyền **Quản trị** cho người khác (trước đây Quản trị cũng cấp được).
+- Trang Hồ sơ (giao diện) không còn cho CHỌN thêm vai kiểu cũ "Hướng dẫn viên"/"Bán hàng"/"Đại lý"/"Nhân sự" (migration `0024` chỉ đặt `active = 0` cho 4 mã này, không đổi nhóm — máy chủ CHƯA chặn gán mới qua API, chỉ giao diện ẩn lựa chọn) — hồ sơ đã có sẵn các vai này KHÔNG bị đổi.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
@@ -474,3 +512,11 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 - **Face ID lát 2 (đăng nhập bằng Google) chưa lập kế hoạch:** mô phỏng chuyển hướng qua tên miền khác ở lát 0 chưa có kết quả (`docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md`) — chưa rõ cửa sổ app cài (PWA) có giữ cookie và quay về đúng cửa sổ sau khi rời tên miền hay không. Phải thử lại bước đó trước khi lập kế hoạch lát 2. Zalo (lát 3, nếu chủ muốn) để sau.
 - **Route đăng nhập bằng Face ID chưa có hạn mức riêng theo SĐT/tài khoản** (`POST /api/auth/passkey/login`) — chỉ có hạn mức xin thách thức theo IP ở `POST /api/auth/passkey/options` (`CHALLENGE_IP_LIMIT`, 120 lần/15 phút); route `login` không tự giới hạn số lần thử assertion. Rủi ro thấp (một khoá sai gần như không đoán được — không phải PIN 6 số) nhưng ghi nhận là giới hạn đã biết, chưa có test/route chặn riêng.
 - **Kịch bản e2e `passkey` không trả lại mã PIN của tài khoản FIELD** (`tests/e2e/passkey.mjs`, quanh dòng 229–237: admin đặt lại PIN, kịch bản dùng mã mới rồi không đặt về `ACCOUNTS.field.pin`) — chạy `passkey` TRƯỚC `maintenance` (vd `npm run test:e2e -- passkey maintenance`) thì `maintenance` đỏ vì đăng nhập FIELD sai PIN. Thứ tự đủ bộ hiện tại (`maintenance` trước `passkey`) không dính. Có từ `d808c36`; chưa sửa (ghi nhận khi kiểm nhánh Trợ giúp, 2026-09-23).
+- **Mô hình người–vai–quyền GĐ1 (ADR-0018, nhánh `gd1-mo-hinh-vai`, migration `0024`), bảy điểm ⚠️ chờ chủ hoặc phiên GĐ2 quyết** — chi tiết và bằng chứng: `docs/superpowers/plans/2026-09-24-mo-hinh-vai-thi-cong-nhat-ky.md`:
+  1. Hồ sơ đang giữ vai "Kế toán" (mã cũ `ACCOUNTANT`) không gắn địa điểm, đang mở, sẽ được đọc là vai mô hình mới sau khi áp `0024` (câu đếm ở mục runbook `0024` phía trên) — quyền không đổi, chỉ đổi nơi sửa (trang Nhân viên thay vì route quyền cũ).
+  2. Tạo tài khoản MỚI trên một hồ sơ ĐÃ CÓ vai kiểu cũ (`STAFF`/`SALES`/`GUIDE`/`AGENT`) không tự đóng các dòng vai cũ đó — đổi vai (không phải tạo tài khoản) mới đóng. Là câu hỏi dữ liệu, không phải lỗi.
+  3. Route vai còn nhận gán MỚI cho mã vai đã ngưng dùng (`active = 0`) — chưa bị chặn ở máy chủ.
+  4. Một quản trị viên tự sửa vai của CHÍNH MÌNH ở trang Nhân viên nhận lỗi 403 tiếng Việt (không có nút khoá riêng, chỉ chặn lúc lưu) — cần polish giao diện sau.
+  5. ⚠️ Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ (`GET /api/catalog` chỉ cho nhân sự văn phòng) — chưa chọn được dịch vụ từ danh mục. Chủ dự án quyết: mở danh mục cho Thực tập (có/không kèm giá) hay giữ nguyên.
+  6. ⚠️ Nợ (a): "vai đang mở" = `valid_to_date IS NULL` ở mọi nơi — dòng vai tài khoản có NGÀY KẾT THÚC trong tương lai, hoặc dòng "Kế toán" GẮN MỘT NƠI, không được luật nhóm (LC-3) và kiểm "chọn đủ vai" nhìn thấy, và không đóng được từ cả trang Hồ sơ lẫn trang Nhân viên (câu đếm ở runbook `0024` cho biết có bao nhiêu).
+  7. ⚠️ Nợ (b): danh sách Nhân viên chỉ hiện TÊN VAI cho tài khoản đã gán vai (`web/staff.ts` `accessLabel`), dù tài khoản có thể có thêm quyền cộng tay — nhãn có thể thiếu.

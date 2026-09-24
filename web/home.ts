@@ -1,7 +1,7 @@
 import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
-import { icon } from "./icons";
+import { icon, type IconName } from "./icons";
 import { initShell, showError } from "./shell";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { homeRedirect } from "../src/shared/start-page";
@@ -55,11 +55,12 @@ function revenueChart(daily: readonly { date: string; total: number }[]): HTMLEl
  * Mỗi phần (nhãn/giá trị/dòng phụ) có hai bản: đầy đủ (`.lbl-full`, máy tính) và rút gọn (`.lbl-short`, khổ điện
  * thoại ≤639px) — CSS ẩn/hiện theo khổ màn hình (`public/app.css`), không đổi DOM bằng JS.
  */
-function statTile(labelFull: string, labelShort: string, valueFull: string, valueShort: string, subFull: string, subShort: string, valueClass?: string): HTMLElement {
+/** Biểu tượng ở nhãn ô số liệu — trang trí (`aria-hidden`, đi kèm chữ ngay sau), Đợt E Phần B. */
+function statTile(iconName: IconName, labelFull: string, labelShort: string, valueFull: string, valueShort: string, subFull: string, subShort: string, valueClass?: string): HTMLElement {
   return h(
     "a",
     { class: "dash-stat", href: "/orders" },
-    h("span", { class: "dash-stat-label" }, h("span", { class: "lbl-full" }, labelFull), h("span", { class: "lbl-short" }, labelShort)),
+    h("span", { class: "dash-stat-label icon-label" }, icon(iconName, 16), h("span", { class: "lbl-full" }, labelFull), h("span", { class: "lbl-short" }, labelShort)),
     h("span", { class: valueClass ? `dash-stat-value ${valueClass}` : "dash-stat-value" }, h("span", { class: "lbl-full" }, valueFull), h("span", { class: "lbl-short" }, valueShort)),
     h("span", { class: "dash-stat-sub" }, h("span", { class: "lbl-full" }, subFull), h("span", { class: "lbl-short" }, subShort)),
   );
@@ -71,9 +72,9 @@ function renderStats(data: Api.DashboardResponse): void {
   const unpaidSubShort = unpaid.count === 0 ? "Không có đơn nào" : `${unpaid.count} đơn`;
   replaceChildren(
     byId("dash-stats"),
-    statTile("Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due"),
-    statTile("Đơn nháp chưa xác nhận", "Đơn nháp", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
-    statTile("Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Cần gán trước giờ đón", "Cần gán"),
+    statTile("money", "Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due"),
+    statTile("doc-check", "Đơn nháp chưa xác nhận", "Đơn nháp", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
+    statTile("assign", "Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Cần gán trước giờ đón", "Cần gán"),
   );
 }
 
@@ -104,14 +105,19 @@ function todayRow(o: OrderSummary): HTMLElement {
     h(
       "span",
       { class: "lbl-full" },
-      h("span", { class: "order-row-phone", onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } }, o.customerPhone),
+      h(
+        "span",
+        { class: "order-row-phone icon-label", onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } },
+        icon("handset", 16),
+        o.customerPhone,
+      ),
       " · ",
       serviceLine,
     ),
     h("span", { class: "lbl-short" }, mobileSubText),
   ];
   const when: Child[] = [h("span", { class: "dash-today-time" }, time)];
-  if (o.trip.pickupPlace) when.push(h("span", { class: "dash-today-place" }, o.trip.pickupPlace));
+  if (o.trip.pickupPlace) when.push(h("span", { class: "dash-today-place icon-label" }, icon("pin", 14), o.trip.pickupPlace));
   return h(
     "a",
     { class: "dash-today-row", href: `/order?id=${encodeURIComponent(o.id)}` },
@@ -130,6 +136,7 @@ function todayRow(o: OrderSummary): HTMLElement {
       h(
         "span",
         { class: "dash-today-call lbl-short", "aria-label": `Gọi ${o.customerPhone}`, onclick: (e: Event) => { e.preventDefault(); e.stopPropagation(); location.href = `tel:${o.customerPhone}`; } },
+        icon("handset", 16),
         "Gọi",
       ),
     ),
@@ -217,7 +224,16 @@ function renderReview(alerts: ReviewAlerts | null): void {
   section.hidden = false;
 }
 
+/** Biểu tượng trang trí trước ba tiêu đề khối tĩnh có sẵn trong `public/index.html` (không phụ thuộc dữ liệu/quyền — chạy một lần, giữ nguyên chữ gốc). Đợt E Phần B. */
+function initSectionIcons(): void {
+  const prepend = (selector: string, name: IconName) => document.querySelector(selector)?.prepend(icon(name, 16));
+  prepend(".dash-today-title", "clock");
+  prepend(".dash-revenue-title", "chart");
+  prepend(".dash-review-heading", "alert");
+}
+
 async function main(): Promise<void> {
+  initSectionIcons();
   const staff = await initShell();
   // Tài khoản chỉ Đối tác: Trang chủ (dashboard văn phòng) không dành cho họ → sang thẳng Đơn hàng, TRƯỚC khi gọi
   // dashboard (không để lộ 403). `replace` để nút Quay lại không dội về "/" (src/shared/start-page.ts).

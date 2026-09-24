@@ -10,9 +10,10 @@ import type { PaxCounts } from "../../shared/order-lines";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
-import { editablePaxCodesOf, parseMoneyEditInput, recomputeService } from "./money-adjustment";
+import { editablePaxCodesOf, effectiveSubtotal, parseMoneyEditInput, recomputeService } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getStoredServices, insertMoneyAdjustment, listOrders, updateDraftOrder, updateTrip,
+  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
+  updateDraftOrder, updateTrip,
 } from "./repository";
 import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
 import { loadOrderView, resolveBooker, validationContext } from "./service";
@@ -76,21 +77,31 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
 
   const before: { serviceId: string; pax: PaxCounts }[] = [];
   const after: { serviceId: string; pax: PaxCounts }[] = [];
-  let subtotalBefore = 0;
-  let subtotalAfter = 0;
   for (const s of catalogServices) {
     const beforePax = currentPaxOf(s.id);
     const beforeCalc = recomputeService(s, beforePax);
     if (!beforeCalc.ok) return { ok: false, code: "invalid_input", message: beforeCalc.message };
     before.push({ serviceId: s.id, pax: beforePax });
-    subtotalBefore += beforeCalc.subtotal;
 
     const newPax = input.services.find((x) => x.id === s.id)!.pax;
     const afterCalc = recomputeService(s, newPax);
     if (!afterCalc.ok) return { ok: false, code: "invalid_input", message: afterCalc.message };
     after.push({ serviceId: s.id, pax: newPax });
-    subtotalAfter += afterCalc.subtotal;
   }
+
+  // Đợt E task 7, mục A (nơi GHI) — LỖI ĐÃ ĐO: vòng lặp trên chỉ duyệt `catalogServices`, nên khi tính subtotal_before/subtotal_after bằng chính
+  // vòng lặp đó (bản cũ) thì dịch vụ NHẬP TAY (không bao giờ vào `catalogServices`) bị BỎ SÓT — lưu THIẾU đúng tiền của dịch vụ nhập tay (kiểm độc
+  // lập đo được: thiếu 200.000₫). Sửa: tính bằng CHÍNH hàm NGUỒN DUY NHẤT `effectiveSubtotal` (money-adjustment.ts, dùng chung với nơi ĐỌC — trang
+  // chi tiết đơn, `/api/orders`, Trang chủ) trên TOÀN BỘ dịch vụ của đơn (`getServicesForSubtotal`, không phải chỉ `catalogServices`). Dịch vụ nhập
+  // tay không bao giờ có mặt trong `before`/`after` (route này chỉ cho sửa dịch vụ TỪ DANH MỤC) nên `effectiveService` luôn rơi vào nhánh "own" cho
+  // chúng — TỰ ĐỘNG được cộng, không phụ thuộc mã ở đây có nhớ lặp qua nó hay không (đúng bài học Điều 3: gom về MỘT luật, không phải nhớ đủ hai nơi).
+  //
+  // Task 9 (kiểm độc lập): đã đo THẬT — đột biến vòng lặp này về dạng cũ (hai biến tích luỹ bên trong for, bỏ hai dòng effectiveSubtotal dưới đây)
+  // làm `tests/e2e/dispatch.mjs` (khối D2/D3, đọc thẳng cột order_money_adjustment.subtotal_before/subtotal_after đã lưu — không qua bề mặt đọc)
+  // ĐỎ ngay ở D2 ([0, 0] thay vì [200.000, 200.000]), đúng dòng tests/e2e/dispatch.mjs:764. Đã hoàn nguyên về đúng bản này (không phải checkout).
+  const subtotalServices = (await getServicesForSubtotal(db, [orderId])).get(orderId) ?? [];
+  const subtotalBefore = effectiveSubtotal(subtotalServices, before);
+  const subtotalAfter = effectiveSubtotal(subtotalServices, after);
 
   const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, before, after, subtotalBefore, subtotalAfter, input.reason);
   return ok ? { ok: true } : { ok: false, code: "stale" };

@@ -265,6 +265,226 @@ test("R-ORD-4: đơn chưa có điều chỉnh nào (không có dòng) không b�
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-5 (Đợt E — lưới thứ hai cho "after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn", cùng tinh thần R-ORD-4:
+// lớp ứng dụng (parseMoneyEditInput) đã ép bất biến này lúc GHI, đây là kiểm dữ liệu cho trường hợp một đường ghi khác lỡ bỏ qua nó).
+// ---------------------------------------------------------------------------------------------------------------------
+function addService(db: DatabaseSync, s: { id: string; orderId: string; catalogCode?: string | null; sortOrder?: number }): void {
+  db.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES (?, ?, ?, ?, 'Dịch vụ', 'perPax', 1)`)
+    .run(s.id, s.orderId, s.sortOrder ?? 0, s.catalogCode ?? null);
+}
+function addAdjustmentAfter(db: DatabaseSync, o: { id: string; orderId: string; seq: number; after: { serviceId: string; pax?: object }[] }): void {
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', ?, 0, 0)`)
+    .run(o.id, o.orderId, o.seq, JSON.stringify(o.after));
+}
+
+test("R-ORD-5: after_json liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn → hợp lệ (dịch vụ nhập tay không cần liệt kê)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addService(db, { id: "sv-manual", orderId: "o-1", catalogCode: null }); // nhập tay — KHÔNG cần có trong after_json
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] });
+  assert.equal(violations(db, one("R-ORD-5")), 0);
+});
+
+test("R-ORD-5: after_json THIẾU một dịch vụ từ danh mục của đơn → vi phạm (chính loại lỗi Đợt E, do dữ liệu hỏng thay vì do mã đọc sai)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addService(db, { id: "sv2", orderId: "o-1", catalogCode: "ZH2" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] }); // thiếu sv2
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: after_json THỪA một serviceId không thuộc dịch vụ-từ-danh-mục của đơn (id lạ, hoặc trỏ nhầm dịch vụ nhập tay) → vi phạm", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: {} }, { serviceId: "sv-la", pax: {} }] });
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+// Đợt E task 7 — SIẾT R-ORD-5: bản đếm-số-lượng-suông trước đây (chỉ so SỐ LƯỢNG phần tử với số dịch vụ danh mục của đơn) bỏ lọt ca "TRÙNG một
+// serviceId, LẤP CHỖ một dịch vụ khác đang thiếu" — đúng SỐ LƯỢNG (2 phần tử, đơn có 2 dịch vụ danh mục) nên không bị bắt là THIẾU hay THỪA, dù
+// sv2 hoàn toàn không được nhắc tới. Không tăng rủi ro báo oan: `parseMoneyEditInput` đã chặn trùng khi GHI (thân yêu cầu không cho liệt kê hai
+// lần), nên chỉ dữ liệu hỏng NGOÀI TẦM KIỂM mới tạo ra được ca này — không có đường ghi hợp lệ nào tự nhiên trùng serviceId.
+test("R-ORD-5: after_json TRÙNG một serviceId (lấp chỗ một dịch vụ khác đang THIẾU) → vi phạm — đúng SỐ LƯỢNG phần tử nhưng có trùng, không phải mỗi dịch vụ một phần tử", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addService(db, { id: "sv2", orderId: "o-1", catalogCode: "ZH2" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: {} }, { serviceId: "sv1", pax: {} }] }); // 2 phần tử = 2 dịch vụ danh mục, nhưng CẢ HAI là sv1 — sv2 vắng mặt
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: chỉ xét dòng điều chỉnh GẦN NHẤT của mỗi đơn — dòng cũ hỏng đã bị ghi đè bởi dòng mới đúng thì KHÔNG tính", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [] }); // seq=1 hỏng (thiếu sv1) — đã cũ, không còn là dòng gần nhất
+  addAdjustmentAfter(db, { id: "a2", orderId: "o-1", seq: 2, after: [{ serviceId: "sv1", pax: {} }] }); // seq=2 đúng, gần nhất
+  assert.equal(violations(db, one("R-ORD-5")), 0, "chỉ dòng gần nhất được xét, không cộng dồn lỗi của các dòng cũ");
+});
+
+test("R-ORD-5: đơn chưa có điều chỉnh nào không bị tính là vi phạm", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  assert.equal(violations(db, one("R-ORD-5")), 0);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-5 — Lỗi 3 (kiểm độc lập Đợt E vòng 2): after_json HỎNG NẶNG (không phải JSON hợp lệ, hoặc JSON hợp lệ nhưng không phải mảng) từng làm
+// `json_each`/`json_extract` NÉM LỖI THẬT ở tầng SQL — vì audit-invariants.mjs gộp MỌI kiểm vào MỘT lệnh `wrangler d1 execute`, một dòng hỏng như
+// vậy làm CẢ ĐỢT rà soát thoát mã 2 ("không chạy được"), khoảng 30 quy tắc khác KHÔNG được kiểm. Test này chứng minh bằng CHÍNH câu SQL của kiểm
+// (`violations()`, giống hệt cách audit-invariants.mjs đọc kết quả) — không ném lỗi, và TRẢ ĐÚNG 1 vi phạm cho đơn có dòng hỏng.
+// ---------------------------------------------------------------------------------------------------------------------
+function addAdjustmentAfterRaw(db: DatabaseSync, o: { id: string; orderId: string; seq: number; afterJson: string }): void {
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', ?, 0, 0)`).run(
+    o.id, o.orderId, o.seq, o.afterJson,
+  );
+}
+
+test("R-ORD-5: after_json KHÔNG PHẢI JSON hợp lệ (cú pháp hỏng) → 1 vi phạm, KHÔNG ném lỗi SQL (Lỗi 3 độc lập — trước bản sửa này làm CẢ ĐỢT rà soát thoát mã 2)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfterRaw(db, { id: "a1", orderId: "o-1", seq: 1, afterJson: "{không phải json" });
+  assert.doesNotThrow(() => violations(db, one("R-ORD-5")));
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: after_json là JSON hợp lệ nhưng KHÔNG PHẢI mảng (object) → 1 vi phạm, không ném lỗi", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfterRaw(db, { id: "a1", orderId: "o-1", seq: 1, afterJson: JSON.stringify({ sv1: { adult: 2 } }) });
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: dòng KHÁC của MỘT đơn khác (khoẻ) vẫn kiểm ĐÚNG khi có một đơn có after_json hỏng nặng ở đơn kia — cô lập theo từng đơn", () => {
+  const db = build();
+  addOrder(db, "o-broken");
+  addService(db, { id: "sv-broken", orderId: "o-broken", catalogCode: "ZH1" });
+  addAdjustmentAfterRaw(db, { id: "a-broken", orderId: "o-broken", seq: 1, afterJson: "hỏng nặng không phải JSON" });
+
+  addOrder(db, "o-healthy");
+  addService(db, { id: "sv-healthy", orderId: "o-healthy", catalogCode: "ZH2" });
+  addAdjustmentAfter(db, { id: "a-healthy", orderId: "o-healthy", seq: 1, after: [{ serviceId: "sv-healthy", pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] });
+
+  assert.equal(violations(db, one("R-ORD-5")), 1, "đúng MỘT vi phạm (đơn hỏng), đơn khoẻ không bị cuốn theo");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-6a/6b (Đợt E task 9 — kiểm độc lập chỉ ra "còn cửa cho lần thứ NĂM": mọi khẳng định e2e D1–D6 cũ đo BỀ MẶT ĐỌC, đã ngừng tin cột
+// subtotal_before/subtotal_after từ Task 7, nên một đột biến làm NƠI GHI hồi quy về đúng lỗi cũ không còn cổng dữ liệu nào bắt được). Hai kiểm
+// này CHỦ Ý chỉ so hai con số ĐÃ LƯU với nhau (orders.subtotal, và chuỗi subtotal_after→subtotal_before giữa hai dòng liên tiếp) — KHÔNG tính lại
+// effectiveSubtotal bằng SQL (tránh tạo bản sao thứ hai của chính hàm đó — xem chú thích đầy đủ ở scripts/audit-checks.mjs). Mức "warn" — không
+// "fail" — vì tính năng sửa tiền đã sống trên production TỪ TRƯỚC bản vá Task 7 (xem lý do đầy đủ ở audit-checks.mjs): các test dưới đây kiểm
+// ĐÚNG câu SQL, không kiểm mức (đã có test riêng "danh sách kiểm" ở đầu tệp này quét mọi mã bắt đầu bằng R-ORD nếu cần mở rộng).
+// ---------------------------------------------------------------------------------------------------------------------
+/** Đơn có `subtotal` (và `total`/`remaining_amount` khớp — trigger `orders_money_insert` ép) tự chọn, KHÔNG cọc/giảm giá (để subtotal = total = remaining_amount, đơn giản cho test). */
+function addOrderWithSubtotal(db: DatabaseSync, id: string, subtotal: number, staffId = "s-an"): void {
+  db.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, subtotal, total, remaining_amount, created_at, updated_at)
+           VALUES ('${id}', 'TD-${id}', '${staffId}', 'draft', 'K', '0900000009', ${subtotal}, ${subtotal}, ${subtotal}, '${T1}', '${T1}')`);
+}
+function addAdjustmentMoney(db: DatabaseSync, o: { id: string; orderId: string; seq: number; before: number; after: number }): void {
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', '[]', ?, ?)`).run(
+    o.id, o.orderId, o.seq, o.before, o.after,
+  );
+}
+
+test("R-ORD-6a/6b: đúng hai kiểm, mức warn (lý do đầy đủ ở scripts/audit-checks.mjs: tính năng đã sống trên production trước bản vá Task 7, bảng chỉ-thêm — không tự nâng lên fail được)", () => {
+  assert.equal(one("R-ORD-6a").level, "warn");
+  assert.equal(one("R-ORD-6b").level, "warn");
+});
+
+test("R-ORD-6a: dòng ĐẦU TIÊN (seq=1) có subtotal_before khớp orders.subtotal → hợp lệ", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  assert.equal(violations(db, one("R-ORD-6a")), 0);
+});
+
+test("R-ORD-6a: dòng ĐẦU TIÊN có subtotal_before LỆCH orders.subtotal → vi phạm — ĐÚNG ca lỗi Task 7 (nơi ghi hồi quy, bỏ sót dịch vụ nhập tay: orders.subtotal=800.000 nhưng subtotal_before lưu thiếu 600.000)", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 600000, after: 900000 }); // đúng số nơi ghi cũ (lỗi) sẽ lưu cho D3 (Task 7)
+  assert.equal(violations(db, one("R-ORD-6a")), 1);
+});
+
+test("R-ORD-6a: chỉ xét dòng seq=1 — dòng seq=2 lệch orders.subtotal KHÔNG bị 6a tính (đó là việc của 6b, so với dòng trước, không so với orders.subtotal)", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 999999, after: 1200000 }); // before của seq=2 KHÁC orders.subtotal — không phải việc của 6a
+  assert.equal(violations(db, one("R-ORD-6a")), 0, "6a chỉ xét seq=1; seq=2 sai (999999 ≠ subtotal_after của seq=1 = 1100000) là việc của 6b");
+});
+
+test("R-ORD-6a: đơn CHƯA có điều chỉnh nào (không có dòng seq=1) không bị tính là vi phạm", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  assert.equal(violations(db, one("R-ORD-6a")), 0);
+});
+
+test("R-ORD-6a: nhiều đơn — một đơn lệch, một đơn khoẻ → đúng 1 vi phạm, đơn khoẻ không bị cuốn theo", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-broken", 800000);
+  addAdjustmentMoney(db, { id: "a-broken", orderId: "o-broken", seq: 1, before: 600000, after: 900000 });
+  addOrderWithSubtotal(db, "o-healthy", 200000);
+  addAdjustmentMoney(db, { id: "a-healthy", orderId: "o-healthy", seq: 1, before: 200000, after: 200000 });
+  assert.equal(violations(db, one("R-ORD-6a")), 1);
+});
+
+test("R-ORD-6a: đơn ĐÃ HUỶ (status cancelled) vẫn kiểm bình thường — orders.subtotal đứng yên, không phải trường hợp đặc biệt", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 200000);
+  db.exec(`UPDATE orders SET status = 'cancelled' WHERE id = 'o-1'`); // draft → cancelled là chuyển hợp lệ (0017), không cần qua 'confirmed'
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 200000, after: 200000 });
+  assert.equal(violations(db, one("R-ORD-6a")), 0, "huỷ đơn không đụng orders.subtotal — vẫn khớp bình thường");
+});
+
+test("R-ORD-6b: dòng SAU (seq=2) có subtotal_before khớp subtotal_after của dòng NGAY TRƯỚC (seq=1) → hợp lệ", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 1100000, after: 1400000 });
+  assert.equal(violations(db, one("R-ORD-6b")), 0);
+});
+
+test("R-ORD-6b: dòng SAU có subtotal_before LỆCH subtotal_after của dòng trước → vi phạm — chuỗi tiền đứt quãng", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 900000, after: 1400000 }); // 900.000 ≠ 1.100.000 (subtotal_after của seq=1)
+  assert.equal(violations(db, one("R-ORD-6b")), 1);
+});
+
+test("R-ORD-6b: chuỗi BA dòng, chỉ MỘT mắt xích đứt (seq2→seq3) → đúng 1 vi phạm, mắt xích đúng (seq1→seq2) không bị tính", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-1", seq: 2, before: 1100000, after: 1400000 }); // khớp seq=1 — mắt xích lành
+  addAdjustmentMoney(db, { id: "a3", orderId: "o-1", seq: 3, before: 1500000, after: 1600000 }); // 1.500.000 ≠ 1.400.000 (subtotal_after của seq=2) — đứt
+  assert.equal(violations(db, one("R-ORD-6b")), 1);
+});
+
+test("R-ORD-6b: đơn chỉ có MỘT dòng (seq=1, không có dòng trước) không bị tính là vi phạm", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  assert.equal(violations(db, one("R-ORD-6b")), 0);
+});
+
+test("R-ORD-6b: nhiều đơn — seq đánh số lại từ 1 ở mỗi đơn, KHÔNG bắt cặp nhầm giữa hai đơn khác nhau", () => {
+  const db = build();
+  addOrderWithSubtotal(db, "o-1", 800000);
+  addAdjustmentMoney(db, { id: "a1", orderId: "o-1", seq: 1, before: 800000, after: 1100000 });
+  addOrderWithSubtotal(db, "o-2", 500000);
+  addAdjustmentMoney(db, { id: "a2", orderId: "o-2", seq: 1, before: 500000, after: 700000 }); // seq=1 của o-2, KHÔNG được ghép với seq=1 của o-1 (prev.seq = a.seq - 1 CÙNG order_id)
+  assert.equal(violations(db, one("R-ORD-6b")), 0, "hai đơn khác nhau, mỗi đơn tự seq=1 riêng — không có 'dòng trước' nào để so, không phải vi phạm");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // R-AUT-1 (ADR-0016 điều 6/8 — lưới dữ liệu cho "tài khoản đã ngưng không còn Face ID hiệu lực"). Đỏ trên D1 thật là LỖI THẬT, không nới kiểm.
 // Đường API ngưng tài khoản gỡ passkey trong cùng lô ghi (8b — test ở src/modules/accounts/patch-staff.test.ts), nên chỉ dữ liệu lọt lưới mới đỏ.
 // ---------------------------------------------------------------------------------------------------------------------
@@ -312,4 +532,54 @@ test("R-ADR13-1: tài khoản đang hoạt động mà hồ sơ bị ngưng là 
   assert.equal(violations(db, c), 1);
   db.exec("UPDATE pty_party SET active = 0 WHERE id = 'pty-s-binh'");
   assert.equal(violations(db, c), 1, "Bình đã ngưng tài khoản nên hồ sơ ngưng không tính");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-LC-1 / R-LC-3 (ADR-0018, migration 0024 — hai trigger luật cứng LC-1/LC-3 là lưới thứ nhất, chặn lúc ghi). Các kiểm dưới đây
+// là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL trên D1 thật (trigger có thể bị gỡ/sửa nhầm hoặc dữ liệu được ghi thẳng).
+// `schemaWithoutGuards`/`guardSeed` dựng dữ liệu vi phạm bằng cách gỡ ba trigger luật cứng trước khi chèn — mô phỏng đúng tình huống kiểm phải bắt.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Schema đầy đủ NHƯNG gỡ ba trigger luật cứng — để dựng được dữ liệu vi phạm (như dữ liệu sửa tay bằng SQL trên D1 thật) mà kiểm phải bắt. */
+function schemaWithoutGuards(): DatabaseSync {
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA foreign_keys = ON");
+  for (const f of FILES) db.exec(sqlText(f));
+  db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
+  return db;
+}
+function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[]): void {
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(`p-${id}`, id, T1, T1);
+  db.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(`p-${id}`, id, T1, T1);
+  db.prepare("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (?, '', ?, 'x', 'sales', 1, ?, ?)").run(id, `09${id.padStart(8, "0").slice(-8)}`, T1, `p-${id}`);
+  roles.forEach((r, i) => db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, NULL, '2026-09-20', ?, ?)").run(`r-${id}-${i}`, `p-${id}`, r, T1, T1));
+  perms.forEach((p) => db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(`g-${id}-${p}`, id, p, T1, T1, T1));
+}
+
+test("R-LC-1: tài khoản có vai bên ngoài mà giữ quyền khác Đối tác → vi phạm; hợp lệ → 0", () => {
+  const db = schemaWithoutGuards();
+  guardSeed(db, "11", ["COLLABORATOR"], ["PARTNER"]);
+  guardSeed(db, "12", ["SALES_STAFF"], ["SALES"]);
+  assert.equal(violations(db, one("R-LC-1")), 0);
+  guardSeed(db, "13", ["TAXI_DRIVER"], ["PARTNER", "SALES"]);
+  assert.equal(violations(db, one("R-LC-1")), 1);
+  assert.equal(one("R-LC-1").level, "fail");
+});
+
+test("R-LC-3: một hồ sơ giữ cùng lúc vai nội bộ và vai bên ngoài đang mở → vi phạm", () => {
+  const db = schemaWithoutGuards();
+  guardSeed(db, "21", ["SALES_STAFF", "CUSTOMER"], ["SALES"]);
+  assert.equal(violations(db, one("R-LC-3")), 0);
+  guardSeed(db, "22", ["SALES_STAFF", "COLLABORATOR"], ["SALES"]);
+  assert.equal(violations(db, one("R-LC-3")), 1);
+  assert.equal(one("R-LC-3").level, "fail");
+});
+
+test("kiểm 'thông tin' về vai của nhân sự: vai STAFF cũ HOẶC vai nội bộ/bên ngoài đang mở đều đạt", () => {
+  const db = schemaWithoutGuards();
+  const check = CHECKS.find((c) => c.what.startsWith("nhân sự đã có hồ sơ nhưng"))!;
+  guardSeed(db, "31", ["STAFF"], ["SALES"]);
+  guardSeed(db, "32", ["ACCOUNTANT"], ["ACCOUNTING"]);
+  assert.equal(violations(db, check), 0);
+  guardSeed(db, "33", ["CUSTOMER"], ["SALES"]);
+  assert.equal(violations(db, check), 1);
 });

@@ -11,11 +11,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    version: "1.8",
+    version: "1.9",
     date: "2026-10-01",
     items: [
       { kind: "doi", text: "Hồ sơ của người có tài khoản (nhân viên, đối tác) giờ chỉ quản trị viên sửa được tên và số liên hệ." },
       { kind: "doi", text: "Muốn tạm khoá hay cho nghỉ việc một người, dùng màn Nhân viên; màn Hồ sơ không còn tắt được người có tài khoản." },
+    ],
+  },
+  {
+    version: "1.8",
+    date: "2026-09-24",
+    items: [
+      { kind: "moi", text: "Quản trị viên gán vai cho từng tài khoản (Giám đốc, Kế toán, Hướng dẫn viên nội bộ, Cộng tác viên…); quyền tự theo vai, xem trước trước khi lưu." },
+      { kind: "moi", text: "Thêm vai Thực tập sinh: lập đơn và chỉ thấy đơn của mình (chưa chọn được dịch vụ từ danh mục — chờ quyết định)." },
+      { kind: "moi", text: "Tạo tài khoản cho người đã có hồ sơ (ví dụ khách cũ) mà không tạo hồ sơ trùng." },
+      { kind: "doi", text: "Quyền \"Super Admin\" đổi tên thành \"Toàn quyền\". Chỉ Toàn quyền mới cấp được quyền Quản trị." },
     ],
   },
   {

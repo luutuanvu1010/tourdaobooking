@@ -37,7 +37,6 @@ const FROM = "FROM staff s LEFT JOIN v_pty_party_label pl ON pl.id = s.party_id"
 const FIND_BY_PHONE = defineSql("staff", "find_by_phone", `SELECT ${COLUMNS}, s.pin_hash ${FROM} WHERE s.phone = ?1`);
 const FIND_BY_ID = defineSql("staff", "find_by_id", `SELECT ${COLUMNS}, s.pin_hash ${FROM} WHERE s.id = ?1`);
 // ADR-0013 điều 4: hồ sơ gắn tài khoản nào (kể cả tài khoản đang ngưng). staff_party_uq ⇒ tối đa một dòng.
-const FIND_BY_PARTY = defineSql("staff", "find_by_party", "SELECT s.id FROM staff s WHERE s.party_id = ?1");
 const LIST = defineSql("staff", "list", `SELECT ${COLUMNS} ${FROM} ORDER BY s.active DESC, pl.sort_key COLLATE NOCASE, s.created_at`);
 
 /** Đếm quản trị viên đang hoạt động (có quyền ADMIN đang mở). */
@@ -84,8 +83,6 @@ const CLOSE_PERMISSION = defineSql(
 
 export const findByPhone = (db: D1Database, phone: string): Promise<StaffAuthRow | null> => db.prepare(FIND_BY_PHONE).bind(phone).first<StaffAuthRow>();
 export const findById = (db: D1Database, id: string): Promise<StaffAuthRow | null> => db.prepare(FIND_BY_ID).bind(id).first<StaffAuthRow>();
-export const findStaffIdByParty = async (db: D1Database, partyId: string): Promise<string | null> =>
-  (await db.prepare(FIND_BY_PARTY).bind(partyId).first<{ id: string }>())?.id ?? null;
 
 export async function listAll(db: D1Database): Promise<StaffRow[]> {
   return (await db.prepare(LIST).all<StaffRow>()).results;
@@ -113,3 +110,39 @@ export const insertPermissionStatement = (db: D1Database, staffId: string, code:
 
 export const closePermissionStatement = (db: D1Database, staffId: string, code: PermissionCode, actorId: string, at: string, guarded: boolean): D1PreparedStatement =>
   db.prepare(CLOSE_PERMISSION).bind(staffId, code, at, actorId, guarded ? 1 : 0);
+
+// ---- Chỉnh quyền tay (ADR-0018 điều 3) — bảng stf_permission_adjustment ------------------------------------------------------------------------------
+export interface AdjustmentRow { id: string; permission_type_code: string; direction: string; reason: string }
+// Mới nhất trước: lý do của lần chỉnh gần nhất đứng đầu (giao diện điền sẵn).
+const OPEN_ADJUSTMENTS = defineSql(
+  "staff",
+  "open_adjustments",
+  "SELECT id, permission_type_code, direction, reason FROM stf_permission_adjustment WHERE staff_id = ?1 AND valid_to_at IS NULL ORDER BY valid_from_at DESC, permission_type_code",
+);
+// ?7 = 1 khi lần đổi này gỡ ADMIN: mang CÙNG điều kiện "còn quản trị viên khác" với các câu quyền (xem setPermissionStatements của index.ts).
+const INSERT_ADJUSTMENT = defineSql(
+  "staff",
+  "insert_adjustment",
+  `INSERT INTO stf_permission_adjustment (id, staff_id, permission_type_code, direction, reason, valid_from_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?6, ?8, ?6, ?8 WHERE (?7 = 0 OR ${OTHER_ADMIN(2)})`,
+);
+const CLOSE_ADJUSTMENT = defineSql(
+  "staff",
+  "close_adjustment",
+  `UPDATE stf_permission_adjustment SET valid_to_at = ?3, updated_at = ?3, updated_by = ?4
+   WHERE id = ?1 AND staff_id = ?2 AND valid_to_at IS NULL AND (?5 = 0 OR ${OTHER_ADMIN(2)})`,
+);
+const ACCOUNT_OF_PARTY = defineSql("staff", "account_of_party", "SELECT id FROM staff WHERE party_id = ?1");
+
+export async function openAdjustments(db: D1Database, staffId: string): Promise<AdjustmentRow[]> {
+  return (await db.prepare(OPEN_ADJUSTMENTS).bind(staffId).all<AdjustmentRow>()).results;
+}
+export const insertAdjustmentStatement = (
+  db: D1Database,
+  v: { staffId: string; code: PermissionCode; direction: "ADD" | "REMOVE"; reason: string; at: string; actorId: string; guarded: boolean },
+): D1PreparedStatement => db.prepare(INSERT_ADJUSTMENT).bind(crypto.randomUUID(), v.staffId, v.code, v.direction, v.reason, v.at, v.guarded ? 1 : 0, v.actorId);
+export const closeAdjustmentStatement = (db: D1Database, v: { id: string; staffId: string; at: string; actorId: string; guarded: boolean }): D1PreparedStatement =>
+  db.prepare(CLOSE_ADJUSTMENT).bind(v.id, v.staffId, v.at, v.actorId, v.guarded ? 1 : 0);
+export async function accountIdOfParty(db: D1Database, partyId: string): Promise<string | null> {
+  return (await db.prepare(ACCOUNT_OF_PARTY).bind(partyId).first<{ id: string }>())?.id ?? null;
+}
