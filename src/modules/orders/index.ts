@@ -95,6 +95,10 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
   // chi tiết đơn, `/api/orders`, Trang chủ) trên TOÀN BỘ dịch vụ của đơn (`getServicesForSubtotal`, không phải chỉ `catalogServices`). Dịch vụ nhập
   // tay không bao giờ có mặt trong `before`/`after` (route này chỉ cho sửa dịch vụ TỪ DANH MỤC) nên `effectiveService` luôn rơi vào nhánh "own" cho
   // chúng — TỰ ĐỘNG được cộng, không phụ thuộc mã ở đây có nhớ lặp qua nó hay không (đúng bài học Điều 3: gom về MỘT luật, không phải nhớ đủ hai nơi).
+  //
+  // Task 9 (kiểm độc lập): đã đo THẬT — đột biến vòng lặp này về dạng cũ (hai biến tích luỹ bên trong for, bỏ hai dòng effectiveSubtotal dưới đây)
+  // làm `tests/e2e/dispatch.mjs` (khối D2/D3, đọc thẳng cột order_money_adjustment.subtotal_before/subtotal_after đã lưu — không qua bề mặt đọc)
+  // ĐỎ ngay ở D2 ([0, 0] thay vì [200.000, 200.000]), đúng dòng tests/e2e/dispatch.mjs:764. Đã hoàn nguyên về đúng bản này (không phải checkout).
   const subtotalServices = (await getServicesForSubtotal(db, [orderId])).get(orderId) ?? [];
   const subtotalBefore = effectiveSubtotal(subtotalServices, before);
   const subtotalAfter = effectiveSubtotal(subtotalServices, after);

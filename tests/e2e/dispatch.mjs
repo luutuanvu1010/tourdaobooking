@@ -752,8 +752,23 @@ try {
     assert.equal(s.orders.total, expected, "D2 /api/orders");
     assert.ok(s.dashboard, "D2 phải có trong Trang chủ hôm nay");
     assert.equal(s.dashboard.total, expected, "D2 Trang chủ");
+
+    // Task 9 (kiểm độc lập, phần "còn cửa cho lần thứ NĂM"): TẤT CẢ khẳng định D1–D6 ở khối này đo BỀ MẶT ĐỌC (repository.ts) — từ Task 7, nơi
+    // đọc đã NGỪNG tin cột order_money_adjustment.subtotal_before/subtotal_after đã lưu, tự tính lại từ order_service/order_item. Nghĩa là nếu
+    // NƠI GHI (editMoneyAsHandler) hồi quy về đúng lỗi cũ (vòng lặp chỉ duyệt catalogServices, bỏ sót dịch vụ nhập tay khi cộng subtotal_after),
+    // MỌI khẳng định phía trên (chi tiết/​​/orders/​Trang chủ) vẫn XANH — chỉ CỘT ĐÃ LƯU mới sai. Khẳng định dưới đây đọc THẲNG cột đó (không qua
+    // effectiveSubtotal ở nơi đọc) — số mong đợi TỰ TÍNH TỪ KỊCH BẢN: D2 chỉ có dịch vụ nhập tay (200.000₫, không đổi qua lần "sửa" reason ở
+    // trên vì route chỉ cho sửa dịch vụ TỪ DANH MỤC, ở đây rỗng) → before/after đều = 200.000 (own, effectiveSubtotal không có gì để tính lại).
+    // Nơi ghi cũ (đúng lỗi đã vá) cho ra [0, 0] (vòng lặp catalogServices rỗng, không cộng gì) — khác 200.000 rất rõ, không thể trùng hợp đúng.
+    const d2Adj = (await sqlRows(`SELECT subtotal_before, subtotal_after FROM order_money_adjustment WHERE order_id = '${d2.id}' ORDER BY seq DESC LIMIT 1`))[0];
+    assert.deepEqual(
+      [Number(d2Adj.subtotal_before), Number(d2Adj.subtotal_after)],
+      [200000, 200000],
+      "D2 NƠI GHI (cột order_money_adjustment.subtotal_before/subtotal_after ĐÃ LƯU, không phải số tự tính lại lúc đọc): phải là [200.000, 200.000] — nơi ghi cũ (lỗi đã vá) sẽ lưu [0, 0]",
+    );
+
     measured.push({ ca: "D2 chỉ nhập tay", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
-    console.log(`✓ D2 (chỉ nhập tay): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
+    console.log(`✓ D2 (chỉ nhập tay): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫; cột đã lưu [before, after] = [${Number(d2Adj.subtotal_before).toLocaleString("vi-VN")}₫, ${Number(d2Adj.subtotal_after).toLocaleString("vi-VN")}₫]`);
   }
 
   // --- D3: đơn TRỘN danh mục + nhập tay + sửa sau xác nhận — ĐÚNG CA LỖI GỐC kiểm độc lập đo được (thiếu 200.000₫) ------------------------------
@@ -775,8 +790,22 @@ try {
     assert.equal(s.dashboard.total, expected, "D3 Trang chủ — CA LỖI GỐC: bản cũ hiện 900.000 (thiếu 200.000) ở đây");
     assert.ok(s.mine, "D3 phải có trong Việc của tôi");
     assert.deepEqual(s.mine.services.find((x) => x.catalogCode === "ZH1").pax, pax(3), "D3 Việc của tôi: số khách khớp");
+
+    // Task 9 (kiểm độc lập) — CÙNG lý do đã ghi ở khối D2 phía trên: đọc THẲNG cột order_money_adjustment.subtotal_before/subtotal_after ĐÃ LƯU
+    // của D3 (đơn TRỘN — đúng ca lỗi gốc), không qua effectiveSubtotal ở nơi đọc. Số mong đợi TỰ TÍNH TỪ KỊCH BẢN: before = pax GỐC lúc lập đơn
+    // (2 khách × 300.000 danh mục) + 200.000 (nhập tay, own, chưa đổi) = 800.000; after = 3×300.000 + 200.000 = 1.100.000 (= `expected` ở trên).
+    // Nơi ghi cũ (đúng lỗi đã vá, vòng lặp chỉ duyệt catalogServices) sẽ lưu [600.000, 900.000] — THIẾU đúng 200.000 (nhập tay) ở CẢ HAI cột, dù
+    // MỌI khẳng định bề mặt đọc ở trên (chi tiết/​/orders/​Trang chủ/​Việc của tôi) vẫn xanh (chúng không đọc lại cột này).
+    const d3Adj = (await sqlRows(`SELECT subtotal_before, subtotal_after FROM order_money_adjustment WHERE order_id = '${d3.id}' ORDER BY seq DESC LIMIT 1`))[0];
+    const d3ExpectedBefore = 2 * 300000 + 200000; // 800.000
+    assert.deepEqual(
+      [Number(d3Adj.subtotal_before), Number(d3Adj.subtotal_after)],
+      [d3ExpectedBefore, expected],
+      `D3 NƠI GHI (cột đã lưu): phải là [${d3ExpectedBefore.toLocaleString("vi-VN")}₫, ${expected.toLocaleString("vi-VN")}₫] — nơi ghi cũ sẽ lưu [600.000₫, 900.000₫], thiếu 200.000₫ (nhập tay) ở cả hai cột`,
+    );
+
     measured.push({ ca: "D3 TRỘN — ca lỗi gốc", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
-    console.log(`✓ D3 (TRỘN, ca lỗi gốc): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
+    console.log(`✓ D3 (TRỘN, ca lỗi gốc): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫; cột đã lưu [before, after] = [${Number(d3Adj.subtotal_before).toLocaleString("vi-VN")}₫, ${Number(d3Adj.subtotal_after).toLocaleString("vi-VN")}₫]`);
   }
 
   // --- D4: đơn TRỘN + NHIỀU LẦN SỬA LIÊN TIẾP (2 gốc → 5 → 6 → 4) — bốn bề mặt phải lấy ĐÚNG lần sửa GẦN NHẤT ----------------------------------
