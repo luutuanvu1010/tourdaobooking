@@ -127,6 +127,7 @@ a { color: var(--c-primary); }
 #topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-primary); color: #fff; }
 #topbar a { color: #fff; text-decoration: none; }
 .brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: 1.1rem; } .brand span { font-weight: 400; opacity: .8; }
+.brand .brand-name { min-width: 0; font-weight: inherit; line-height: 1.25; opacity: 1; } /* chữ tên app là MỘT khối: "Island Booking System" hẹp chỗ thì ngắt dòng như câu (sidebar máy tính), không tách "System" thành cột riêng */
 .brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); display: block; } /* Đợt D Task 7: sửa cho khớp bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280 đều vẽ logo tròn hết cỡ) — luật gốc trước đây bo góc nhẹ (--radius-sm), chỉ thanh bên máy tính được sửa tròn riêng (:310), bỏ sót thanh đầu trang điện thoại */
 
 main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4), env(safe-area-inset-right)) var(--s4) max(var(--s4), env(safe-area-inset-left)); }
