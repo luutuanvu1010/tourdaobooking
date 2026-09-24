@@ -160,7 +160,7 @@ Expected: toàn bộ PASS, typecheck 0 lỗi. Ghi số test vào báo cáo task 
 - Modify: `docs/data-dictionary.json` (thêm 1 bảng, 1 view); sinh lại `docs/DATA-DICTIONARY.md`
 
 **Interfaces:**
-- Produces: bảng `pty_role_type` có cột `role_group` (`'INTERNAL'|'EXTERNAL'|'OTHER'`); 10 mã vai mới; `stf_permission_type` có `INTERN`, `SUPER_ADMIN.name = 'Toàn quyền'`; bảng `stf_permission_adjustment(id, staff_id, permission_type_code, direction, reason, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by)`; view `v_pty_open_role_group(party_id, role_group)`; lỗi trigger chứa chuỗi `party_role_group_conflict` (LC-3) và `lc1_external_account_permission` (LC-1).
+- Produces: bảng `pty_role_type` có cột `role_group` (`'INTERNAL'|'EXTERNAL'|'OTHER'`, có CHECK); 10 mã vai mới; `stf_permission_type` có `INTERN`, `SUPER_ADMIN.name = 'Toàn quyền'`; bảng `stf_permission_adjustment(id, staff_id, permission_type_code, direction, reason, valid_from_at, valid_to_at, created_at, created_by, updated_at, updated_by)`; view `v_pty_open_role_group(party_id, role_group)`; lỗi trigger chứa chuỗi `party_role_group_conflict` (LC-3) và `lc1_external_account_permission` (LC-1).
 
 - [ ] **Step 1: Viết test (đỏ)** — `src/migrations-0024.test.ts`
 
@@ -319,8 +319,8 @@ Expected: FAIL — `no such column: role_group` / `no such table: stf_permission
 -- (đặc tả §14). Không gieo SĐT/tên thật ở đây.
 
 -- ---- Danh mục vai (module parties) ----------------------------------------------------------------------------------------
--- Nhóm vai: INTERNAL / EXTERNAL / OTHER (danh sách kiểm ở mã — src/shared/roles.ts; không CHECK liệt kê).
-ALTER TABLE pty_role_type ADD COLUMN role_group TEXT NOT NULL DEFAULT 'OTHER';
+-- Nhóm vai: INTERNAL / EXTERNAL / OTHER — tập đóng, ép bằng CHECK ở cột (ADR-0003 điều 3; Ruling R12 khi thi công).
+ALTER TABLE pty_role_type ADD COLUMN role_group TEXT NOT NULL DEFAULT 'OTHER' CHECK (role_group IN ('INTERNAL', 'EXTERNAL', 'OTHER'));
 UPDATE pty_role_type SET role_group = 'INTERNAL', sort_order = 15 WHERE code = 'ACCOUNTANT';
 -- Mã cũ mơ hồ (không nói nội bộ hay độc lập): ngưng dùng cho gán MỚI; dòng đang có giữ nguyên, đóng khi tài khoản được gán vai mới.
 UPDATE pty_role_type SET active = 0 WHERE code IN ('STAFF', 'SALES', 'GUIDE', 'AGENT');
@@ -366,12 +366,12 @@ INSERT INTO stf_permission_type (code, name, description, sort_order) VALUES
 UPDATE stf_permission_type SET name = 'Toàn quyền' WHERE code = 'SUPER_ADMIN';
 
 -- Chỉnh quyền tay so với bộ mặc định của vai (ADR-0018 điều 3): cộng (ADD) hoặc bớt (REMOVE) một mã quyền, bắt buộc lý do, có hiệu lực.
--- direction kiểm ở mã (roles.ts); mỗi (tài khoản, mã quyền) tối đa một dòng đang mở.
+-- direction ADD/REMOVE — tập đóng, ép bằng CHECK (ADR-0003 điều 3); mỗi (tài khoản, mã quyền) tối đa một dòng đang mở.
 CREATE TABLE stf_permission_adjustment (
   id                   TEXT PRIMARY KEY,
   staff_id             TEXT NOT NULL REFERENCES staff(id),
   permission_type_code TEXT NOT NULL REFERENCES stf_permission_type(code),
-  direction            TEXT NOT NULL,
+  direction            TEXT NOT NULL CHECK (direction IN ('ADD', 'REMOVE')),
   reason               TEXT NOT NULL CHECK (length(reason) BETWEEN 1 AND 200),
   valid_from_at        TEXT NOT NULL,
   valid_to_at          TEXT CHECK (valid_to_at IS NULL OR valid_to_at >= valid_from_at),
@@ -384,7 +384,9 @@ CREATE INDEX stf_permission_adjustment_staff_ix ON stf_permission_adjustment(sta
 CREATE UNIQUE INDEX stf_permission_adjustment_open_uq ON stf_permission_adjustment(staff_id, permission_type_code) WHERE valid_to_at IS NULL;
 
 -- LC-1: tài khoản mà hồ sơ đang mở vai bên ngoài chỉ được giữ quyền Đối tác. Chặn ở câu CHÈN quyền (mọi đường ghi quyền đều chèn dòng mới).
-CREATE TRIGGER stf_permission_external_partner_only BEFORE INSERT ON stf_permission
+-- Tên bắt đầu bằng lc1_ (không stf_): src/migrations-n1.test.ts coi mọi trigger tên staff_%/stf_% là trigger siết B5 (cấm trước lần phát hành 2);
+-- trigger này không siết mã cũ (chưa hồ sơ nào có vai bên ngoài) — Ruling R9 khi thi công.
+CREATE TRIGGER lc1_stf_permission_external_partner_only BEFORE INSERT ON stf_permission
 WHEN NEW.valid_to_at IS NULL AND NEW.permission_type_code <> 'PARTNER' AND EXISTS (
   SELECT 1 FROM staff s JOIN v_pty_open_role_group g ON g.party_id = s.party_id
   WHERE s.id = NEW.staff_id AND g.role_group = 'EXTERNAL')
@@ -412,7 +414,7 @@ Expected: PASS cả ba (kiến trúc kiểm bảng mới có cột kiểm toán,
 
 - [ ] **Step 7: P16 — quan sát trigger chặn thật**
 
-Tạm xoá khối `CREATE TRIGGER stf_permission_external_partner_only …` khỏi migration, chạy `node --test src/migrations-0024.test.ts` → phải ĐỎ ở test "LC-1"; chép dòng đỏ; hoàn nguyên; chạy lại → xanh. Làm tương tự với `pty_party_role_group_conflict_ins` (đỏ ở test LC-3). Ghi cả hai dòng đỏ vào báo cáo task.
+Tạm xoá khối `CREATE TRIGGER lc1_stf_permission_external_partner_only …` khỏi migration, chạy `node --test src/migrations-0024.test.ts` → phải ĐỎ ở test "LC-1"; chép dòng đỏ; hoàn nguyên; chạy lại → xanh. Làm tương tự với `pty_party_role_group_conflict_ins` (đỏ ở test LC-3). Ghi cả hai dòng đỏ vào báo cáo task.
 
 - [ ] **Step 8: Toàn bộ test + commit**
 
@@ -1668,7 +1670,7 @@ function schemaWithoutGuards(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
   for (const f of FILES) db.exec(sqlText(f));
-  db.exec("DROP TRIGGER stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
+  db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
   return db;
 }
 function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[]): void {
