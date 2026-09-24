@@ -11,6 +11,23 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.7",
+    date: "2026-09-24",
+    items: [
+      { kind: "sua", text: "Trang Đăng nhập trên điện thoại gọn hơn, hiện đủ trong một màn hình, không phải kéo, kể cả khi mở bằng Safari." },
+    ],
+  },
+  {
+    version: "1.6",
+    date: "2026-09-24",
+    items: [
+      { kind: "doi", text: "Trang Đăng nhập có giao diện mới, gọn trong một màn hình, không cần kéo. Nút Đăng nhập chỉ bấm được khi đã gõ đủ số điện thoại và 6 số mã PIN." },
+      { kind: "moi", text: "Nút Face ID / vân tay nằm ngay cạnh nút Đăng nhập. Ô mã PIN có nút Hiện để xem lại số vừa gõ và bộ đếm 0/6." },
+      { kind: "doi", text: "Gõ sai mã PIN thì ô PIN tự xoá để gõ lại. Số hỗ trợ kỹ thuật 0989 929 373 hiện ngay dưới nút Đăng nhập." },
+      { kind: "doi", text: "Tên ứng dụng đổi thành Island Booking System. App đã cài trên iPhone vẫn giữ tên cũ dưới biểu tượng tới khi cài lại." },
+    ],
+  },
+  {
     version: "1.5",
     date: "2026-09-24",
     items: [

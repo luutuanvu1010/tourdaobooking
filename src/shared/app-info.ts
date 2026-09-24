@@ -9,7 +9,7 @@ const LATEST = CHANGELOG[0];
 if (!LATEST) throw new Error("Nhật ký thay đổi rỗng: cần ít nhất một bản (src/shared/changelog.ts).");
 
 /** Tên ứng dụng. Phải trùng `name` trong `public/manifest.webmanifest` (nguồn khai; `src/shared/app-info.test.ts` kiểm). */
-export const APP_NAME = "Tour Đảo Booking";
+export const APP_NAME = "Island Booking System";
 /** Số phiên bản hiển thị (không kèm chữ "Phiên bản"), dẫn xuất từ nhật ký. */
 export const APP_VERSION: string = LATEST.version;
 /** Ngày phát hành, `YYYY-MM-DD` (giờ Việt Nam), dẫn xuất từ nhật ký. */

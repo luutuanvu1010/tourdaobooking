@@ -154,7 +154,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### c. Thêm trang web
 
 **Sửa theo thứ tự:**
-1. `public/<tên>.html`: copy nguyên `<head>` của `public/locations.html` (đủ thẻ meta iOS, `theme-color`, `manifest`, `apple-touch-icon`), đổi `<title>Tên — Tour Đảo Booking</title>`.
+1. `public/<tên>.html`: copy nguyên `<head>` của `public/locations.html` (đủ thẻ meta iOS, `theme-color`, `manifest`, `apple-touch-icon`), đổi `<title>Tên — Island Booking System</title>`.
    - Thân: `<header id="topbar"></header>`, `<div id="error" class="alert" role="alert" hidden>`, `<script type="module" src="/js/<tên>.js">`.
    - `<body data-title data-back data-tabbar="off">` tuỳ trang. KHÔNG script inline (CSP `script-src 'self'`).
 2. `web/<tên>.ts`: `const staff = await initShell();` (`web/shell.ts`) làm việc đầu; kiểm quyền bằng `hasPermission`/`can` (`src/shared/permissions`, import KHÔNG đuôi `.ts`); lỗi hiện bằng `showError`.
@@ -269,7 +269,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### i. Đổi giao diện: token, font, biểu tượng, chữ
 
 **Token/màu:**
-- Đổi giá trị ở `:root` của `public/app.css` (nhóm "Riêng của Tour Đảo Booking" dành cho token mới).
+- Đổi giá trị ở `:root` của `public/app.css` (nhóm "Riêng của Island Booking System" dành cho token mới).
 - Khối SAU dấu mốc `/* ---------- app iPhone (PWA)` CHỈ dùng token: không hex, `rgb()`/`hsl()`, `px` (trừ `1px`), `rem`/`em`; `@media (…)` được phép. `tests/e2e/pwa.mjs` quét khối đó sau khi bỏ chú thích và `@media`.
 - Cổng đó KHÔNG bắt: tên màu (`red`), `%`, `vw`/`vh`/`ch`, `color-mix()` — tự kiểm.
 - Đổi `--c-primary` phải đổi KHỚP `theme_color` của `public/manifest.webmanifest` và `<meta name="theme-color">` trong từng `public/*.html` (`pwa.mjs` bắt lệch ở mọi trang của `PAGES`).
@@ -296,10 +296,10 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 ### j. Đổi thông tin công ty / tên app / số phiên bản
 
 **Hiện trạng** (tên app còn nhiều bản sao phải khớp; thông tin công ty và số phiên bản mỗi thứ đã có MỘT nguồn):
-- Tên app "Tour Đảo Booking": nguồn khai là `public/manifest.webmanifest` (`name`; `short_name` = "Tour Đảo"; `pwa.mjs` coi là nguồn). Bản sao phải khớp:
-  - 10 × `public/*.html` (`<title>… — Tour Đảo Booking` và `apple-mobile-web-app-title`);
-  - `public/login.html` (`<h1>`); `web/shell.ts` (brand: `"Tour Đảo "` + `<span>Booking</span>`); `web/order.ts` (`document.title`).
-- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) dựng khối ở chân trang từ đó (`#company`): tên (đậm), "Địa chỉ: …", "Email: …" (ẩn khi `null`), "MST: …" — chữ đúng như dữ liệu (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Cũng là nguồn của đầu ảnh xác nhận đơn (`headerBlock` trong `src/shared/order-confirmation.ts`: tên, MST, địa chỉ, hotline, email) — công thức p.
+- Tên app "Island Booking System" (đổi từ "Tour Đảo Booking" 2026-09-24): nguồn khai là `public/manifest.webmanifest` (`name`; `short_name` = "Island Booking"; `pwa.mjs` coi là nguồn). Bản sao phải khớp:
+  - 14 × `public/*.html` (`<title>… — Island Booking System` và `apple-mobile-web-app-title` = tên ngắn);
+  - `public/login.html` (chỉ tiêu đề tab; `<h1>` là tên THƯƠNG HIỆU tĩnh "Tour Đảo Booking" theo chủ dự án 2026-09-24, không phải tên app); `web/shell.ts` (brand: `"Island Booking "` + `<span>System</span>`, và hằng `APP_NAME` của breadcrumb — bản sao cố ý, KHÔNG import `app-info` vì nó kéo nhật ký thay đổi vào mọi bundle); `src/shared/app-info.ts` (`APP_NAME`, test đối chiếu manifest); `src/modules/accounts/index.ts` (`rp.name` trong hộp thoại Face ID — chỉ tên hiển thị, `rpId` không đổi); `web/order.ts` (`document.title`).
+- Thông tin công ty (tên pháp lý, MST, địa chỉ, hotline, email): nguồn là bảng `company_profile` (migration `0002`, một dòng `'default'`; `0013_company_email` điền email). Module `company` (`src/modules/company/`) đọc nó qua `GET /api/company` (public, chỉ đọc, DTO `CompanyDto` không có Zalo/logo/người sửa). Màn đăng nhập (`web/login.ts`) KHÔNG còn dùng nó từ bản thiết kế "Đăng nhập.dc.html" (2026-09-24): chân trang ("Công ty TNHH Tour Đảo · MST …", địa chỉ) và "Hỗ trợ kỹ thuật 0989 929 373" là chữ TĨNH trong `public/login.html` — đổi thông tin công ty thì sửa cả tệp đó; ảnh xác nhận đơn vẫn đọc `company_profile` (viết hoa như DB, không đổi hoa/thường); API lỗi hoặc chậm thì khối ẩn, KHÔNG chặn đăng nhập. Cũng là nguồn của đầu ảnh xác nhận đơn (`headerBlock` trong `src/shared/order-confirmation.ts`: tên, MST, địa chỉ, hotline, email) — công thức p.
 - Số phiên bản: KHÔNG viết tay. `APP_VERSION`/`APP_RELEASE_DATE` ở `src/shared/app-info.ts` dẫn xuất từ mục đầu của `CHANGELOG` (`src/shared/changelog.ts`) — xem công thức t "Ghi nhật ký thay đổi". Màn đăng nhập (`#release`), trang Trợ giúp (`/help`) và `GET /api/auth/config` (`version`) cùng đọc nguồn này.
 
 **Đổi tên app hôm nay:** sửa tất cả nơi trên rồi chạy `npm run test:e2e -- pwa` (đối chiếu manifest ↔ HTML ↔ bundle `web/shell.ts`). Không đổi tên Worker/D1 `tourdao-sales`.
@@ -308,7 +308,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 
 **Kiểm:** `npm run build:web` → `npm test` → `npm run test:e2e -- pwa company`; đổi chữ hiển thị ở màn đăng nhập → `v1-dang-nhap.mjs`.
 
-**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng CHƯA có nơi nào ở `web/` dùng nó — các bản sao tên app ở trên vẫn viết tay (`web/login.ts` mới dùng `formatReleaseLine()`). `v1-dang-nhap.mjs` đọc dòng phiên bản từ `formatReleaseLine()`; dữ liệu công ty trong `EXPECT` vẫn ghi cứng. Kế hoạch v1.0: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`; nhật ký thi công (ruling, chỗ mã lệch kế hoạch, việc của chủ dự án): `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
+**Bẫy:** `pwa.mjs` kiểm tên/meta trên mọi trang của `PAGES` và tên trong bundle `web/shell.ts`, nhưng KHÔNG kiểm `document.title` ở `web/order.ts` — tự soát bằng `grep -rn "Tour Đảo" web public`. `APP_NAME` (`src/shared/app-info.ts`) phải trùng `name` của manifest (`app-info.test.ts` kiểm) nhưng `web/shell.ts`/`web/order.ts` giữ bản sao viết tay (import `app-info` kéo cả nhật ký thay đổi vào bundle của mọi trang); `web/help.ts` dùng `APP_NAME` + `formatReleaseLine()` ("Phiên bản 1.6 · ngày 24 tháng 9 năm 2026"), còn màn Đăng nhập (`web/login.ts`, bản thiết kế 2026-09-24) tự định dạng `releaseText()` từ `APP_VERSION`/`APP_RELEASE_DATE` thành "Phiên bản V1.6 · ngày 24/9/2026" — hai định dạng khác nhau là CÓ CHỦ Ý. `v1-dang-nhap.mjs` tính `EXPECT.release` theo định dạng của màn Đăng nhập; dữ liệu công ty trong `EXPECT` vẫn ghi cứng. Kế hoạch v1.0: `docs/superpowers/plans/2026-09-21-v1-0-thi-cong.md`; nhật ký thi công (ruling, chỗ mã lệch kế hoạch, việc của chủ dự án): `docs/superpowers/plans/2026-09-21-v1-0-thi-cong-nhat-ky.md`.
 
 ### k. Đồng bộ danh mục / Sheet / Cron
 

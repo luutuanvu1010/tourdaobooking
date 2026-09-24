@@ -1,6 +1,6 @@
 {
-  "name": "Tour Đảo Booking",
-  "short_name": "Tour Đảo",
+  "name": "Island Booking System",
+  "short_name": "Island Booking",
   "description": "Lập và quản lý đơn hàng tour cho nhân viên Tour Đảo.",
   "lang": "vi",
   "start_url": "/",

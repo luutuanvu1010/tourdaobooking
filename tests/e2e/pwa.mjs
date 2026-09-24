@@ -103,9 +103,13 @@ for (const path of PAGES) {
   const html = await (await get(path)).text();
   for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
   for (const old of ["Tour Đảo Sales", "Tour Đảo Desk"]) assert.ok(!html.includes(old), `${path} còn tên cũ "${old}"`);
+  // "Tour Đảo Booking" nay là tên THƯƠNG HIỆU ở tiêu đề trang Đăng nhập (chủ dự án 2026-09-24) — chỉ cấm làm TÊN APP (tiêu đề tab).
+  assert.ok(!html.includes("— Tour Đảo Booking</title>"), `${path}: tiêu đề tab còn tên app cũ "Tour Đảo Booking"`);
 }
-assert.ok((await (await get("/login")).text()).includes(`<h1>${NAME}</h1>`), "trang đăng nhập phải có h1 đúng tên trong manifest");
-// thanh đầu trang do web/shell.ts dựng: tên tách thành "Tour Đảo " + <span>phần còn lại</span>
+// Trang Đăng nhập (chủ dự án chốt 2026-09-24): h1 là tên thương hiệu "Tour Đảo Booking"; tên app (đúng manifest) vẫn ở tiêu đề tab (NEEDLES ở trên).
+const loginHtml = await (await get("/login")).text();
+assert.ok(loginHtml.includes("<h1>Tour Đảo Booking</h1>"), "trang đăng nhập phải có h1 \"Tour Đảo Booking\"");
+// thanh đầu trang do web/shell.ts dựng: tên tách thành "<tên ngắn> " + <span>phần còn lại</span> (vd "Island Booking " + "System")
 const shellBundle = await (await get("/js/orders.js")).text();
 const REST = NAME.slice(SHORT.length).trim();
 // esbuild mặc định mã hoá ký tự không-ASCII thành \uXXXX (chữ HOA) trong bản build

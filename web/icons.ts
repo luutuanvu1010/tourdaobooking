@@ -39,6 +39,17 @@ const SHAPES = {
     ["path", { d: "M4.5 5.5h15v10.5H9.5l-5 4V5.5z" }],
     ["path", { d: "M8.5 9.5h7M8.5 12.5h4.5" }],
   ],
+  // Nút đăng nhập sinh trắc học ở trang Đăng nhập — copy ĐÚNG path từ bản thiết kế "Đăng nhập.dc.html" (Claude Design, 2026-09-24, chủ dự án yêu cầu tuân thủ 100%).
+  face: [
+    ["path", { d: "M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8" }],
+    ["path", { d: "M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8" }],
+    ["path", { d: "M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16" }],
+    ["path", { d: "M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" }],
+    ["path", { d: "M8.5 9v1.5" }],
+    ["path", { d: "M15.5 9v1.5" }],
+    ["path", { d: "M12 9v4h-1" }],
+    ["path", { d: "M9 16c1.7 1.3 4.3 1.3 6 0" }],
+  ],
   // Mục "Trợ giúp" của thanh điều hướng dọc: vòng tròn + dấu hỏi.
   help: [
     ["circle", { cx: 12, cy: 12, r: 8.5 }],
