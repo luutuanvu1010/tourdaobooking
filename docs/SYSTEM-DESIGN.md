@@ -367,7 +367,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 - `PUT /api/staff/:id/permissions`: `cleanPermissions` (mảng không rỗng, mã hợp lệ, theo thứ tự chuẩn) → `checkAccountChange` chặn tự đổi quyền của chính mình và chặn mất quản trị viên cuối → `setPermissionStatements` đóng dòng cũ (`valid_to_at`) và mở dòng mới; khi bỏ `ADMIN`, câu chốt đứng đầu batch và mọi câu sau mang `changes() > 0` → thua trả **409 `account_rule`**.
 - `PATCH /api/staff/:id` (tên, SĐT, ngưng/kích hoạt): `patchStaffStatements` giữ thứ tự chốt → nhật ký → đổi tên ở hồ sơ (`renameAccountStatements`), khi ngưng thì thêm ở CUỐI: gỡ Face ID có điều kiện → đẩy `credentials_changed_at` → nhật ký `passkey_removed` (mục 4, 8b); SĐT trùng → **409 `phone_taken`**; chưa có hồ sơ → **409 `no_party`**; đổi SĐT của tài khoản đang nằm trong danh sách được phép của chế độ bảo trì → **409 `account_rule`** (`phoneChangeProblem`; chế độ nhận diện chủ theo SĐT nên đổi là tự khoá — cạnh `accounts → maintenance`). `POST /api/staff/:id/reset-pin` sinh PIN mới, ghi `pin_reset` **không chứa PIN**, mở khoá đăng nhập, trả PIN một lần.
 - `POST /api/account/change-pin`: kiểm PIN hiện tại qua `verifyPinThrottled` (PIN sai → 403 `invalid_credentials`), `validateNewPin` chặn PIN yếu và trùng PIN cũ, ghi `pin_changed`, rồi cấp cookie phiên mới.
-- **Tạm khoá** = ngưng tài khoản (`active = false`) ở màn Nhân viên (`PATCH /api/staff/:id`, trên) — hồ sơ `pty_party` giữ nguyên đang hoạt động, chỉ đăng nhập bị chặn (và Face ID bị gỡ, mục 8b). **Nghỉ việc** = ngưng tài khoản **và** kết thúc vai trò Nhân sự ở màn Hồ sơ (`PUT /api/parties/:id` với `active: false` trên hồ sơ gắn tài khoản — ADR-0013 điều 5); máy chủ giữ bất biến một chiều: tài khoản đang hoạt động thì hồ sơ của nó phải đang hoạt động (`R-ADR13-1`, §10) — chiều ngược lại (tài khoản ngưng, hồ sơ còn hoạt động = "tạm khoá") là hợp lệ.
+- **Tạm khoá** = ngưng tài khoản (`active = false`) ở màn Nhân viên (`PATCH /api/staff/:id`, trên) — hồ sơ `pty_party` giữ nguyên đang hoạt động, chỉ đăng nhập bị chặn (và Face ID bị gỡ, mục 8b). **Nghỉ việc** = ngưng tài khoản (`PATCH /api/staff/:id` với `active: false`, màn Nhân viên) **và** kết thúc vai trò Nhân sự (`STAFF`) ở màn Hồ sơ, bằng `POST /api/parties/:id/roles/:rid/end` (chỉ **admin** — ADR-0013 điều 5). `PUT /api/parties/:id` với `active` khác giá trị hiện tại **không** phải đường làm việc này: với hồ sơ gắn tài khoản, route đó luôn 409 `account_rule` (đổi "đang dùng" của hồ sơ có tài khoản chỉ làm được ở màn Nhân viên, mục (i) dưới) — kể cả admin. Máy chủ giữ bất biến một chiều: tài khoản đang hoạt động thì hồ sơ của nó phải đang hoạt động (`R-ADR13-1`, §10) — chiều ngược lại (tài khoản ngưng, hồ sơ còn hoạt động = "tạm khoá") là hợp lệ.
 
 ### (i) Hồ sơ và địa điểm
 
@@ -443,9 +443,9 @@ Tất cả 69 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 | GET | `/api/parties` | office | parties | danh sách hồ sơ, tìm/lọc, phân trang |
 | POST | `/api/parties` | office | parties | tạo hồ sơ cá nhân hoặc tổ chức |
 | GET | `/api/parties/:id` | office | parties | chi tiết hồ sơ (liên hệ, vai trò, quan hệ) |
-| PUT | `/api/parties/:id` | office | parties | sửa hồ sơ (khoá lạc quan) |
-| POST | `/api/parties/:id/contacts` | office | parties | thêm điểm liên hệ |
-| POST | `/api/parties/:id/contacts/:cid/end` | office | parties | đóng một điểm liên hệ |
+| PUT | `/api/parties/:id` | office | parties | sửa hồ sơ (khoá lạc quan). 403 nếu hồ sơ có tài khoản và người gọi không phải quản trị cấp trên (chính mình hoặc cấp dưới); 409 `account_rule` khi đổi `active` của hồ sơ có tài khoản (kể cả admin) |
+| POST | `/api/parties/:id/contacts` | office | parties | thêm điểm liên hệ. 403 nếu hồ sơ có tài khoản và người gọi không phải quản trị cấp trên |
+| POST | `/api/parties/:id/contacts/:cid/end` | office | parties | đóng một điểm liên hệ. 403 nếu hồ sơ có tài khoản và người gọi không phải quản trị cấp trên |
 | POST | `/api/parties/:id/roles` | admin | parties | gán vai trò hồ sơ (kèm nơi, khoảng hiệu lực) |
 | POST | `/api/parties/:id/roles/:rid/end` | admin | parties | kết thúc một vai trò |
 | POST | `/api/parties/:id/relationships` | admin | parties | thêm quan hệ giữa hai hồ sơ |

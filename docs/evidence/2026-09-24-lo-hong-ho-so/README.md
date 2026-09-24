@@ -62,8 +62,8 @@ Bẫy khi chạy: `--file` với `--remote` đi cổng `/import`, bị "Authenti
 |---|---|---|
 | H2 SALES thêm SĐT vào hồ sơ ADMIN | **403** `forbidden` — "Tài khoản này không được sửa hồ sơ này." (trước GĐ1: 201) | 403 (giống bên trái) |
 | H3a FIELD xem hồ sơ ADMIN (`GET /api/parties/:id`) | 403 (chặn ở cổng office — FIELD không qua `isOffice`) | **403** — chặn ở `can(staff, "party.view")` trong thân handler (`party.view` vẫn `none` cho FIELD trong `MATRIX`), KHÔNG còn phụ thuộc cổng `office`/`order.view` nữa |
-| H3b FIELD đổi tên ADMIN (`PUT /api/parties/:id`) | không tới được (bị chặn ở H3a) | không tới được — cùng lý do H3a |
-| H3c FIELD thêm SĐT vào hồ sơ ADMIN | không tới được | không tới được |
+| H3b FIELD đổi tên ADMIN (`PUT /api/parties/:id`) | không tới được (bị chặn ở H3a) | **403** — kịch bản vẫn gọi được route (cổng `office` đã mở vì `order.view = any`), nhưng `can(staff, "party.write"/"party.staff.write")` trong thân handler vẫn `none` cho FIELD trong `MATRIX` |
+| H3c FIELD thêm SĐT vào hồ sơ ADMIN | không tới được | **403** — cùng lý do H3b (`POST …/contacts` cũng hỏi thẳng ô trong thân handler) |
 | H7 (ngoài phạm vi GĐ1 — GĐ2) | 200 / 400 / như cũ | như cũ |
 
 **Nhận định:**
