@@ -5,6 +5,7 @@ import { showError } from "./shell";
 import { formatReleaseLine } from "../src/shared/app-info";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
+import { icon } from "./icons";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
 registerServiceWorker();
@@ -61,6 +62,25 @@ const maintenanceText = document.getElementById("maintenance-text");
 // Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
 const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
 const hintEl = document.getElementById("passkey-hint");
+// Bản thiết kế "Đăng nhập v2": khối Face ID (tự hiện/ẩn bằng CSS `:has` theo `hidden` của #passkey-login), dòng "Quên PIN?", nút Hiện/Ẩn PIN — đều tuỳ chọn cùng lý do trên.
+const passkeyBlock = document.getElementById("passkey-block");
+const forgotEl = document.getElementById("forgot");
+const forgotCall = document.getElementById("forgot-call");
+const pinToggle = document.getElementById("pin-toggle") as HTMLButtonElement | null;
+
+// Biểu tượng trang trí (aria-hidden trong icon()): khuôn mặt trên nút Face ID, ổ khoá ở dòng nhắc an toàn chân trang.
+passkeyBtn?.prepend(icon("face", 20));
+document.querySelector(".login-safety")?.prepend(icon("lock", 12));
+
+// ---- Nút Hiện/Ẩn mã PIN (chỉ đổi kiểu ô gõ; không đụng giá trị) ----
+pinToggle?.addEventListener("click", () => {
+  const pin = byId<HTMLInputElement>("pin");
+  const show = pin.type === "password";
+  pin.type = show ? "text" : "password";
+  pinToggle.textContent = show ? "Ẩn" : "Hiện";
+  pinToggle.setAttribute("aria-pressed", String(show));
+  pinToggle.setAttribute("aria-label", show ? "Ẩn mã PIN" : "Hiện mã PIN");
+});
 
 // ---- Banner chế độ bảo trì ----
 // Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
@@ -166,6 +186,8 @@ function showInvite(staffId: string): void {
   const box = document.getElementById("passkey-invite");
   if (!box) return location.replace(next); // HTML cũ trong cache chưa có khối này (Tuỳ chọn có chủ ý, xem khai báo passkeyBtn ở trên)
   form.hidden = true;
+  if (passkeyBlock) passkeyBlock.hidden = true; // (bản HTML mới: nút Face ID nằm NGOÀI form, không được đứng trên lời mời)
+  if (forgotEl) forgotEl.hidden = true;
   replaceChildren(box, h("h2", null, "Bật đăng nhập bằng Face ID?"), h("p", null, "Lần sau chỉ cần nhìn vào máy là vào được app, không phải gõ PIN."), flow);
   box.hidden = false;
 }
@@ -336,14 +358,12 @@ byId("release").textContent = formatReleaseLine();
 async function showCompany(): Promise<void> {
   try {
     const { company } = await api<Api.CompanyResponse>("/api/company");
+    const tel = company.hotline.replace(/[^\d+]/g, "");
+    if (forgotCall && tel) replaceChildren(forgotCall, ", hoặc gọi ", h("a", { href: `tel:${tel}` }, company.hotline));
     if (!company.name) return;
-    replaceChildren(
-      companyEl,
-      h("p", { class: "login-company-name" }, company.name),
-      company.address && h("p", null, `Địa chỉ: ${company.address}`),
-      company.email && h("p", null, `Email: ${company.email}`),
-      company.taxCode && h("p", null, `MST: ${company.taxCode}`),
-    );
+    // Bản thiết kế v2: một dòng "Tên · MST · Địa chỉ", dòng sau là email (liên kết thư).
+    const line = [company.name, company.taxCode && `MST ${company.taxCode}`, company.address].filter(Boolean).join(" · ");
+    replaceChildren(companyEl, h("p", null, line), company.email && h("p", null, h("a", { href: `mailto:${company.email}` }, company.email)));
     companyEl.hidden = false;
   } catch {
     // giữ khối ẩn

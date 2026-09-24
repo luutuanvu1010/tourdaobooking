@@ -7,7 +7,7 @@
 //
 // Hai máy chủ nối tiếp: A = Turnstile BẬT bằng khoá thử `1x…AA` (luôn đạt) — các bước a–e, g–o; B = Turnstile TẮT — bước f (không dựng giả lập được: máy chủ đang đòi token thì
 // đăng nhập không kèm token luôn 403, nên "không có khoá" chỉ chứng minh được trên máy chủ thật sự không có khoá).
-//   a  khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST) — so với chính dòng company_profile trong D1
+//   a  khối công ty hiện đúng chữ (tiêu đề "Đăng nhập", dòng phiên bản, "tên · MST · địa chỉ", email, hotline ở "Quên PIN?" — bản thiết kế v2 2026-09-24) — so với chính dòng company_profile trong D1
 //   b  CSP phục vụ đúng (tiền đề của g) · widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử, đăng nhập qua widget, token gửi đi đúng là token của widget
 //   c  sai PIN → lỗi của máy chủ, widget được reset (ô token trống rồi có token mới), nút khoá suốt lúc chờ rồi mở lại, đăng nhập lại được
 //   d  máy chủ trả 403 `turnstile_failed` (THẬT: gỡ token khỏi yêu cầu) và 503 `turnstile_unavailable` (giả lập) → chữ của máy chủ hiện nguyên văn ở #error; nút mở lại; thử lại được
@@ -42,6 +42,7 @@ const EXPECT = {
   address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",
   email: "Tourdaotravel@gmail.com",
   taxCode: "4201969169",
+  hotline: "0845 256 256",
 };
 // Thông báo lỗi Turnstile của MÁY CHỦ: đọc thẳng từ mã nguồn (một nguồn), đối chiếu với chữ của đặc tả.
 const turnstileSource = readFileSync("src/modules/auth/turnstile.ts", "utf8");
@@ -176,7 +177,7 @@ async function measure(p, label) {
   const m = await p.ev(`(() => {
     const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[hidden]'); };
     const ctl = [...document.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, summary')].filter(shown);
-    const card = document.querySelector('.card').getBoundingClientRect();
+    const card = document.getElementById('login-form').getBoundingClientRect(); // bản v2: form không còn là .card — đo theo khung form
     const f = document.querySelector('#turnstile-widget > div')?.getBoundingClientRect();
     return {
       tapDuoi44: ctl.filter((el) => el.getBoundingClientRect().height < 43.5).map((el) => (el.id || el.className || el.tagName) + ':' + Math.round(el.getBoundingClientRect().height)),
@@ -203,18 +204,21 @@ const track = (p, label, expected = [], cspOnly = false) => pages.push([label, p
 // =====================================================================================================================
 const envA = await startEnv({ turnstile: true });
 try {
-  const row = envA.sql("SELECT company_name, tax_code, address, email FROM company_profile WHERE id = 'default'")[0];
+  const row = envA.sql("SELECT company_name, tax_code, address, email, hotline FROM company_profile WHERE id = 'default'")[0];
 
   // ---- a) khối công ty ----
-  await step("a", "khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1", async () => {
-    assert.deepEqual(row, { company_name: EXPECT.company, tax_code: EXPECT.taxCode, address: EXPECT.address, email: EXPECT.email }, "D1 tạm phải có đúng dữ liệu công ty của đặc tả (0002 + 0013)");
+  await step("a", "khối công ty hiện đúng chữ (tiêu đề, dòng phiên bản, dòng “tên · MST · địa chỉ”, email, hotline ở “Quên PIN?”), khớp dòng company_profile trong D1", async () => {
+    assert.deepEqual(row, { company_name: EXPECT.company, tax_code: EXPECT.taxCode, address: EXPECT.address, email: EXPECT.email, hotline: EXPECT.hotline }, "D1 tạm phải có đúng dữ liệu công ty của đặc tả (0002 + 0013)");
     const p = await openLogin(envA, { label: "a" });
     track(p, "a");
     await p.waitFor("!document.getElementById('company').hidden", "khối công ty hiện", 10000);
-    const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, lines: [...document.querySelectorAll('#company p')].map((e) => e.textContent) })`);
+    // Bản thiết kế "Đăng nhập v2" (2026-09-24): tiêu đề trang là "Đăng nhập"; công ty một dòng "Tên · MST · Địa chỉ" + dòng email; hotline ở dòng "Quên PIN?".
+    await p.waitFor("document.getElementById('forgot-call').textContent !== ''", "hotline ở dòng Quên PIN", 10000);
+    const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, lines: [...document.querySelectorAll('#company p')].map((e) => e.textContent), quenPin: document.getElementById('forgot').textContent, tel: document.querySelector('#forgot a')?.getAttribute('href') ?? null })`);
     assert.deepEqual(ui, {
-      app: EXPECT.app, tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
-      lines: [EXPECT.company, `Địa chỉ: ${EXPECT.address}`, `Email: ${EXPECT.email}`, `MST: ${EXPECT.taxCode}`],
+      app: "Đăng nhập", tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
+      lines: [`${EXPECT.company} · MST ${EXPECT.taxCode} · ${EXPECT.address}`, EXPECT.email],
+      quenPin: `Quên PIN? Báo quản trị viên để đặt lại, hoặc gọi ${EXPECT.hotline}.`, tel: `tel:${EXPECT.hotline.replace(/[^\d+]/g, "")}`,
     });
   });
 
@@ -324,7 +328,7 @@ try {
     await widgetReady(slow);
     assert.equal(await slow.ev("document.getElementById('company').hidden"), true, "trong lúc chờ: khối ẩn");
     assert.equal(await slow.ev(BTN_ENABLED), true, "và nút không bị công ty chặn");
-    await slow.waitFor("!document.getElementById('company').hidden && document.querySelectorAll('#company p').length === 4", "khối công ty hiện khi API về", 10000);
+    await slow.waitFor("!document.getElementById('company').hidden && document.querySelectorAll('#company p').length === 2", "khối công ty hiện khi API về (bản v2: dòng tên · MST · địa chỉ + dòng email)", 10000);
     await typeCreds(slow, ACCOUNTS.salesA);
     await submit(slow);
     await loggedIn(slow);

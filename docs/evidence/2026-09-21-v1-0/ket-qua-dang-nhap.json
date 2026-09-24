@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1",
+      "name": "khối công ty hiện đúng chữ (tiêu đề, dòng phiên bản, dòng “tên · MST · địa chỉ”, email, hotline ở “Quên PIN?”), khớp dòng company_profile trong D1",
       "dat": true
     },
     {
@@ -88,7 +88,7 @@
     "may-B-390-khong-widget": []
   },
   "do": {
-    "cau-hinh-cham-ms-den-khi-nut-mo": 3058,
+    "cau-hinh-cham-ms-den-khi-nut-mo": 3061,
     "may-A-390-dang-tai-xac-minh": {
       "tapDuoi44": [],
       "oGoDuoi16": [],
@@ -100,7 +100,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 316,
+        "rong": 342,
         "cao": 72,
         "trongThe": true
       }
@@ -110,7 +110,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 316,
+        "rong": 342,
         "cao": 72,
         "trongThe": true
       }
@@ -120,7 +120,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 311,
+        "rong": 327,
         "cao": 72,
         "trongThe": true
       }
@@ -130,7 +130,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 256,
+        "rong": 272,
         "cao": 147,
         "trongThe": true
       }
@@ -140,7 +140,7 @@
       "oGoDuoi16": [],
       "trànNgang": 0,
       "widget": {
-        "rong": 424,
+        "rong": 360,
         "cao": 72,
         "trongThe": true
       }
@@ -164,7 +164,7 @@
       "consoleErrors": []
     },
     "console-d": {
-      "logEntries": 2,
+      "logEntries": 3,
       "csp": [],
       "other": [],
       "consoleErrors": []
@@ -173,7 +173,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:53703/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:57586/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -181,7 +181,7 @@
       "logEntries": 2,
       "csp": [],
       "other": [
-        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:53703/api/auth/login"
+        "network: Failed to load resource: the server responded with a status of 403 (Forbidden) http://127.0.0.1:57586/api/auth/login"
       ],
       "consoleErrors": []
     },
@@ -265,7 +265,7 @@
     }
   },
   "widget": {
-    "w": 316,
+    "w": 342,
     "h": 72,
     "token": "XXXX.DUMMY.TOKEN.XXXX",
     "cacheServiceWorker": 22,

@@ -42,57 +42,48 @@ try {
   };
 
   // ==================================================================================================
-  // 1) Đăng nhập (/login) — không đăng nhập trước. Cột thương hiệu (.login-brand) chỉ hiện ở máy tính
-  //    (public/app.css: `@media (max-width: 899px) { .login-brand { display: none; } }`); form vẫn dùng
-  //    được ở cả hai khổ (#phone/#pin có mặt và HIỆN thật, không chỉ có trong DOM).
+  // 1) Đăng nhập (/login) — không đăng nhập trước. Bản thiết kế "Đăng nhập v2" (2026-09-24) BỎ cột thương hiệu
+  //    Đợt C: một cột giữa (.login-col) ở CẢ HAI khổ, không cuộn ngang; form vẫn dùng được (#phone/#pin có mặt
+  //    và HIỆN thật, không chỉ có trong DOM).
   // ==================================================================================================
   {
     const measureLogin = (p) =>
       p.ev(`(() => {
-        const brand = document.querySelector('.login-brand');
-        const formCol = document.querySelector('.login-form-col');
-        const phone = document.querySelector('.login-form-col #phone');
-        const pin = document.querySelector('.login-form-col #pin');
+        const col = document.querySelector('.login-col');
+        const phone = document.querySelector('.login-col #phone');
+        const pin = document.querySelector('.login-col #pin');
         return {
-          brandDisplay: brand ? getComputedStyle(brand).display : null,
-          brandVisible: brand !== null && brand.offsetParent !== null,
-          formColHasForm: formCol !== null && formCol.querySelector('#login-form') !== null,
+          brandGone: document.querySelector('.login-brand') === null,
+          colHasForm: col !== null && col.querySelector('#login-form') !== null,
+          colWidthOk: col !== null && col.getBoundingClientRect().width <= 360,
+          noHScroll: document.documentElement.scrollWidth <= window.innerWidth,
           phoneUsable: phone !== null && phone.offsetParent !== null && !phone.disabled,
           pinUsable: pin !== null && pin.offsetParent !== null && !pin.disabled,
         };
       })()`);
+    const expectOne = { brandGone: true, colHasForm: true, colWidthOk: true, noHScroll: true, phoneUsable: true, pinUsable: true };
 
     let p = await env.openPage(DESK);
     await p.send("Page.navigate", { url: env.base + "/login" });
     await p.waitFor("document.readyState === 'complete'", "trang /login tải xong (máy tính)");
     await p.waitFor("!!document.querySelector('#phone')", "form đăng nhập đã dựng (máy tính)");
-    let m = await measureLogin(p);
-    assert.notEqual(m.brandDisplay, "none", `Đăng nhập (máy tính): .login-brand phải HIỆN — ${JSON.stringify(m)}`);
-    assert.equal(m.brandVisible, true, `Đăng nhập (máy tính): .login-brand phải HIỆN thật — ${JSON.stringify(m)}`);
-    assert.equal(m.formColHasForm, true, `Đăng nhập (máy tính): .login-form-col phải chứa form — ${JSON.stringify(m)}`);
-    assert.equal(m.phoneUsable, true, `Đăng nhập (máy tính): #phone phải dùng được — ${JSON.stringify(m)}`);
-    assert.equal(m.pinUsable, true, `Đăng nhập (máy tính): #pin phải dùng được — ${JSON.stringify(m)}`);
+    assert.deepEqual(await measureLogin(p), expectOne, "Đăng nhập (máy tính): một cột giữa, không cột thương hiệu, không cuộn ngang, form dùng được");
     assert.deepEqual(p.consoleErrors, [], `lỗi console (đăng nhập máy tính): ${p.consoleErrors}`);
     await shot(p, "dang-nhap-may-tinh.png");
     await axe(p, "đăng nhập máy tính");
     p.close();
-    ok("Đăng nhập (máy tính, 1040×800): cột thương hiệu hiện, form dùng được, axe không vi phạm critical/serious");
+    ok("Đăng nhập (máy tính, 1040×800): một cột giữa, form dùng được, axe không vi phạm critical/serious");
 
     p = await env.openPage(MOB);
     await p.send("Page.navigate", { url: env.base + "/login" });
     await p.waitFor("document.readyState === 'complete'", "trang /login tải xong (điện thoại)");
     await p.waitFor("!!document.querySelector('#phone')", "form đăng nhập đã dựng (điện thoại)");
-    m = await measureLogin(p);
-    assert.equal(m.brandDisplay, "none", `Đăng nhập (điện thoại): .login-brand phải ẨN (display:none) — ${JSON.stringify(m)}`);
-    assert.equal(m.brandVisible, false, `Đăng nhập (điện thoại): .login-brand phải ẨN thật — ${JSON.stringify(m)}`);
-    assert.equal(m.formColHasForm, true, `Đăng nhập (điện thoại): .login-form-col phải chứa form — ${JSON.stringify(m)}`);
-    assert.equal(m.phoneUsable, true, `Đăng nhập (điện thoại): #phone phải dùng được — ${JSON.stringify(m)}`);
-    assert.equal(m.pinUsable, true, `Đăng nhập (điện thoại): #pin phải dùng được — ${JSON.stringify(m)}`);
+    assert.deepEqual(await measureLogin(p), expectOne, "Đăng nhập (điện thoại): một cột giữa, không cuộn ngang, form dùng được");
     assert.deepEqual(p.consoleErrors, [], `lỗi console (đăng nhập điện thoại): ${p.consoleErrors}`);
     await shot(p, "dang-nhap-dien-thoai.png");
     await axe(p, "đăng nhập điện thoại");
     p.close();
-    ok("Đăng nhập (điện thoại, 390×844): cột thương hiệu ẩn, form vẫn dùng được, axe không vi phạm critical/serious");
+    ok("Đăng nhập (điện thoại, 390×844): một cột giữa, form dùng được, axe không vi phạm critical/serious");
   }
 
   // ==================================================================================================
