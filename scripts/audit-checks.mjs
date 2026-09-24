@@ -52,8 +52,10 @@ export const CHECKS = [
   },
   {
     code: "thông tin",
-    what: "nhân sự đã có hồ sơ nhưng thiếu vai trò STAFF",
-    sql: `SELECT count(*) FROM staff s WHERE s.party_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = s.party_id AND r.role_type_code = 'STAFF')`,
+    what: "nhân sự đã có hồ sơ nhưng không có vai STAFF (cũ) hay vai nội bộ/bên ngoài nào đang mở (ADR-0018)",
+    sql: `SELECT count(*) FROM staff s WHERE s.party_id IS NOT NULL AND NOT EXISTS (
+      SELECT 1 FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+      WHERE r.party_id = s.party_id AND (r.role_type_code = 'STAFF' OR (r.valid_to_date IS NULL AND t.role_group IN ('INTERNAL', 'EXTERNAL'))))`,
     level: "warn-unless-strict",
   },
   {
@@ -61,6 +63,23 @@ export const CHECKS = [
     what: "tài khoản đang hoạt động không có quyền nào (đăng nhập được nhưng không làm được gì)",
     sql: `SELECT count(*) FROM staff s WHERE s.active = 1 AND NOT EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL)`,
     level: "warn-unless-strict",
+  },
+
+  // ---- Luật cứng ADR-0018 — trigger LC-1/LC-3 chặn ở CSDL (migration 0024); các kiểm này là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL. ----
+  {
+    code: "R-LC-1",
+    what: "tài khoản có vai bên ngoài đang mở chỉ giữ quyền Đối tác",
+    sql: `SELECT count(*) FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code <> 'PARTNER'
+     WHERE EXISTS (SELECT 1 FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+                   WHERE r.party_id = s.party_id AND r.valid_to_date IS NULL AND t.role_group = 'EXTERNAL')`,
+    level: "fail",
+  },
+  {
+    code: "R-LC-3",
+    what: "một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài đang mở",
+    sql: `SELECT count(*) FROM (SELECT r.party_id FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
+       WHERE r.valid_to_date IS NULL AND t.role_group IN ('INTERNAL', 'EXTERNAL') GROUP BY r.party_id HAVING count(DISTINCT t.role_group) > 1)`,
+    level: "fail",
   },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----

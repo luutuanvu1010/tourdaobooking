@@ -297,3 +297,53 @@ test("R-AUT-1: Face ID còn hiệu lực của tài khoản ĐANG hoạt động
   addPasskey(db, { id: "pk-an", staffId: "s-an" }); // s-an: active = 1 trong build()
   assert.equal(violations(db, one("R-AUT-1")), 0);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// R-LC-1 / R-LC-3 (ADR-0018, migration 0024 — hai trigger luật cứng LC-1/LC-3 là lưới thứ nhất, chặn lúc ghi). Các kiểm dưới đây
+// là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL trên D1 thật (trigger có thể bị gỡ/sửa nhầm hoặc dữ liệu được ghi thẳng).
+// `schemaWithoutGuards`/`guardSeed` dựng dữ liệu vi phạm bằng cách gỡ ba trigger luật cứng trước khi chèn — mô phỏng đúng tình huống kiểm phải bắt.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Schema đầy đủ NHƯNG gỡ ba trigger luật cứng — để dựng được dữ liệu vi phạm (như dữ liệu sửa tay bằng SQL trên D1 thật) mà kiểm phải bắt. */
+function schemaWithoutGuards(): DatabaseSync {
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA foreign_keys = ON");
+  for (const f of FILES) db.exec(sqlText(f));
+  db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
+  return db;
+}
+function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[]): void {
+  db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'PERSON', ?, 1, ?, ?)").run(`p-${id}`, id, T1, T1);
+  db.prepare("INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES (?, ?, ?, ?)").run(`p-${id}`, id, T1, T1);
+  db.prepare("INSERT INTO staff (id, full_name, phone, pin_hash, role, active, created_at, party_id) VALUES (?, '', ?, 'x', 'sales', 1, ?, ?)").run(id, `09${id.padStart(8, "0").slice(-8)}`, T1, `p-${id}`);
+  roles.forEach((r, i) => db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, ?, NULL, '2026-09-20', ?, ?)").run(`r-${id}-${i}`, `p-${id}`, r, T1, T1));
+  perms.forEach((p) => db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(`g-${id}-${p}`, id, p, T1, T1, T1));
+}
+
+test("R-LC-1: tài khoản có vai bên ngoài mà giữ quyền khác Đối tác → vi phạm; hợp lệ → 0", () => {
+  const db = schemaWithoutGuards();
+  guardSeed(db, "11", ["COLLABORATOR"], ["PARTNER"]);
+  guardSeed(db, "12", ["SALES_STAFF"], ["SALES"]);
+  assert.equal(violations(db, one("R-LC-1")), 0);
+  guardSeed(db, "13", ["TAXI_DRIVER"], ["PARTNER", "SALES"]);
+  assert.equal(violations(db, one("R-LC-1")), 1);
+  assert.equal(one("R-LC-1").level, "fail");
+});
+
+test("R-LC-3: một hồ sơ giữ cùng lúc vai nội bộ và vai bên ngoài đang mở → vi phạm", () => {
+  const db = schemaWithoutGuards();
+  guardSeed(db, "21", ["SALES_STAFF", "CUSTOMER"], ["SALES"]);
+  assert.equal(violations(db, one("R-LC-3")), 0);
+  guardSeed(db, "22", ["SALES_STAFF", "COLLABORATOR"], ["SALES"]);
+  assert.equal(violations(db, one("R-LC-3")), 1);
+  assert.equal(one("R-LC-3").level, "fail");
+});
+
+test("kiểm 'thông tin' về vai của nhân sự: vai STAFF cũ HOẶC vai nội bộ/bên ngoài đang mở đều đạt", () => {
+  const db = schemaWithoutGuards();
+  const check = CHECKS.find((c) => c.what.startsWith("nhân sự đã có hồ sơ nhưng"))!;
+  guardSeed(db, "31", ["STAFF"], ["SALES"]);
+  guardSeed(db, "32", ["ACCOUNTANT"], ["ACCOUNTING"]);
+  assert.equal(violations(db, check), 0);
+  guardSeed(db, "33", ["CUSTOMER"], ["SALES"]);
+  assert.equal(violations(db, check), 1);
+});
