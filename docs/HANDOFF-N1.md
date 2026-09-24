@@ -157,6 +157,8 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 
 ## Đẩy lên GitHub và triển khai: HAI LỆNH chủ dự án tự gõ (từ 2026-09-23)
 
+Bản lời thường cho chủ dự án (từng bước, lệnh nào khi nào, vì sao): `docs/QUY-TRINH-PHAT-HANH.md`.
+
 Đặc tả: `docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md`. Logic + test: `scripts/release-lib.mjs`, `src/release-lib.test.ts`. **AI không được chạy hai lệnh này** (`CLAUDE.md` §8; hook `guard-remote` và `permissions.deny` chặn); chính hai kịch bản cũng **tự từ chối khi không có terminal thật (TTY)**. **Chủ PHẢI chạy cả hai lệnh trong ứng dụng Terminal của macOS** (terminal thật, có TTY; không qua AI, kể cả dạng gõ `! …` trong phiên Claude Code — lời báo chặn của hook cũng nói vậy), đứng ở **thư mục gốc repo, checkout `main`**.
 
 **Đẩy — `npm run day-len -- <nhánh>`** (bỏ `-- <nhánh>` nếu `main` đã chứa sẵn thứ cần đẩy). Bước nào hỏng thì in lý do tiếng Việt, thoát khác 0 và KHÔNG đẩy:
