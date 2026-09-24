@@ -320,6 +320,48 @@ test("R-ORD-5: đơn chưa có điều chỉnh nào không bị tính là vi ph�
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-5 — Lỗi 3 (kiểm độc lập Đợt E vòng 2): after_json HỎNG NẶNG (không phải JSON hợp lệ, hoặc JSON hợp lệ nhưng không phải mảng) từng làm
+// `json_each`/`json_extract` NÉM LỖI THẬT ở tầng SQL — vì audit-invariants.mjs gộp MỌI kiểm vào MỘT lệnh `wrangler d1 execute`, một dòng hỏng như
+// vậy làm CẢ ĐỢT rà soát thoát mã 2 ("không chạy được"), khoảng 30 quy tắc khác KHÔNG được kiểm. Test này chứng minh bằng CHÍNH câu SQL của kiểm
+// (`violations()`, giống hệt cách audit-invariants.mjs đọc kết quả) — không ném lỗi, và TRẢ ĐÚNG 1 vi phạm cho đơn có dòng hỏng.
+// ---------------------------------------------------------------------------------------------------------------------
+function addAdjustmentAfterRaw(db: DatabaseSync, o: { id: string; orderId: string; seq: number; afterJson: string }): void {
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', ?, 0, 0)`).run(
+    o.id, o.orderId, o.seq, o.afterJson,
+  );
+}
+
+test("R-ORD-5: after_json KHÔNG PHẢI JSON hợp lệ (cú pháp hỏng) → 1 vi phạm, KHÔNG ném lỗi SQL (Lỗi 3 độc lập — trước bản sửa này làm CẢ ĐỢT rà soát thoát mã 2)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfterRaw(db, { id: "a1", orderId: "o-1", seq: 1, afterJson: "{không phải json" });
+  assert.doesNotThrow(() => violations(db, one("R-ORD-5")));
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: after_json là JSON hợp lệ nhưng KHÔNG PHẢI mảng (object) → 1 vi phạm, không ném lỗi", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfterRaw(db, { id: "a1", orderId: "o-1", seq: 1, afterJson: JSON.stringify({ sv1: { adult: 2 } }) });
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: dòng KHÁC của MỘT đơn khác (khoẻ) vẫn kiểm ĐÚNG khi có một đơn có after_json hỏng nặng ở đơn kia — cô lập theo từng đơn", () => {
+  const db = build();
+  addOrder(db, "o-broken");
+  addService(db, { id: "sv-broken", orderId: "o-broken", catalogCode: "ZH1" });
+  addAdjustmentAfterRaw(db, { id: "a-broken", orderId: "o-broken", seq: 1, afterJson: "hỏng nặng không phải JSON" });
+
+  addOrder(db, "o-healthy");
+  addService(db, { id: "sv-healthy", orderId: "o-healthy", catalogCode: "ZH2" });
+  addAdjustmentAfter(db, { id: "a-healthy", orderId: "o-healthy", seq: 1, after: [{ serviceId: "sv-healthy", pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] });
+
+  assert.equal(violations(db, one("R-ORD-5")), 1, "đúng MỘT vi phạm (đơn hỏng), đơn khoẻ không bị cuốn theo");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // R-AUT-1 (ADR-0016 điều 6/8 — lưới dữ liệu cho "tài khoản đã ngưng không còn Face ID hiệu lực"). Đỏ trên D1 thật là LỖI THẬT, không nới kiểm.
 // Đường API ngưng tài khoản gỡ passkey trong cùng lô ghi (8b — test ở src/modules/accounts/patch-staff.test.ts), nên chỉ dữ liệu lọt lưới mới đỏ.
 // ---------------------------------------------------------------------------------------------------------------------
