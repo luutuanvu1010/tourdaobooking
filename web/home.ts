@@ -4,6 +4,7 @@ import { dayMonth, paxCounts, vnd, vndShort } from "./format";
 import { icon, type IconName } from "./icons";
 import { initShell, showError } from "./shell";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
+import { homeRedirect } from "../src/shared/start-page";
 import { vnToday } from "../src/shared/vn-date";
 
 const SHORT_WEEKDAY = ["CN", "T2", "T3", "T4", "T5", "T6", "T7"]; // chỉ số = Date.getUTCDay() (0 = Chủ nhật)
@@ -234,6 +235,13 @@ function initSectionIcons(): void {
 async function main(): Promise<void> {
   initSectionIcons();
   const staff = await initShell();
+  // Tài khoản chỉ Đối tác: Trang chủ (dashboard văn phòng) không dành cho họ → sang thẳng Đơn hàng, TRƯỚC khi gọi
+  // dashboard (không để lộ 403). `replace` để nút Quay lại không dội về "/" (src/shared/start-page.ts).
+  const redirect = homeRedirect(staff);
+  if (redirect) {
+    location.replace(redirect);
+    return;
+  }
   const words = staff.fullName.trim().split(/\s+/).filter(Boolean);
   byId("dash-name").textContent = `Chào ${words[words.length - 1] ?? staff.fullName}`;
   // Dải "Đang ở chế độ bảo trì" chung của khung (web/shell.ts) đã dựng xong tại đây (initShell() đã trả về) — suy ra trạng thái từ đó thay vì đọc lại API, tránh đổi chữ ký initShell().

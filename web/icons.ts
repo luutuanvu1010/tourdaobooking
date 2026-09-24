@@ -64,6 +64,23 @@ const SHAPES = {
     }],
   ],
   guests: [["circle", { cx: 12, cy: 8, r: 3.6 }], ["path", { d: "M4.5 20c0-4 3-6 7.5-6s7.5 2 7.5 6" }]],
+  // Nút đăng nhập sinh trắc học ở trang Đăng nhập — copy ĐÚNG path từ bản thiết kế "Đăng nhập.dc.html" (Claude Design, 2026-09-24, chủ dự án yêu cầu tuân thủ 100%).
+  face: [
+    ["path", { d: "M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8" }],
+    ["path", { d: "M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8" }],
+    ["path", { d: "M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16" }],
+    ["path", { d: "M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" }],
+    ["path", { d: "M8.5 9v1.5" }],
+    ["path", { d: "M15.5 9v1.5" }],
+    ["path", { d: "M12 9v4h-1" }],
+    ["path", { d: "M9 16c1.7 1.3 4.3 1.3 6 0" }],
+  ],
+  // Mục "Trợ giúp" của thanh điều hướng dọc: vòng tròn + dấu hỏi.
+  help: [
+    ["circle", { cx: 12, cy: 12, r: 8.5 }],
+    ["path", { d: "M9.6 9.6a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6" }],
+    ["path", { d: "M12 17v.01" }],
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;

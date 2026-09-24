@@ -106,7 +106,8 @@ try {
   await step("a", "/login trên localhost: nút \"Đăng nhập bằng Face ID / vân tay\" hiện", async () => {
     await goto(page, "/login");
     await page.waitFor(`!!${q("#passkey-login")} && !${q("#passkey-login")}.hidden`, "nút Face ID hiện", 10000);
-    assert.equal(await text(page, "#passkey-login"), "Đăng nhập bằng Face ID / vân tay");
+    assert.equal(await text(page, "#passkey-login"), ""); // nút chỉ có biểu tượng (chủ dự án chốt 2026-09-24)
+    assert.equal(await page.ev(`${q("#passkey-login")}.getAttribute("aria-label")`), "Đăng nhập bằng Face ID / vân tay"); // đúng chữ bản thiết kế "Đăng nhập.dc.html"
     await page.shot(join(OUT, "anh/a-dang-nhap-nut-faceid-390.png"));
   });
 

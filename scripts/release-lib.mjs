@@ -1,6 +1,6 @@
 // Logic thuần của hai lệnh CHỦ DỰ ÁN tự gõ (đặc tả docs/superpowers/specs/2026-09-23-lenh-day-trien-khai-an-toan.md):
 //   `npm run day-len [-- <nhánh>]`  → scripts/day-len.mjs    (gộp tiến thẳng vào main, kiểm, hỏi, rồi git push origin main)
-//   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc, kiểm, Time Travel, áp migration, deploy, kiểm dữ liệu)
+//   `npm run trien-khai`            → scripts/trien-khai.mjs (cổng chỉ-đọc, cổng số phiên bản, kiểm, Time Travel, áp migration, deploy, kiểm dữ liệu, cổng số phiên bản sau deploy)
 // AI KHÔNG được chạy hai lệnh này (CLAUDE.md §8; hook .claude/hooks/guard-remote-lib.mjs + permissions.deny chặn). Lớp thứ hai: tự từ chối khi không có TTY.
 //
 // Mọi hàm nhận "bộ chạy lệnh" tiêm vào để test được bằng bộ chạy giả (src/release-lib.test.ts):
@@ -197,8 +197,20 @@ function vnDateTime(d) {
 }
 
 const DEPLOY_CMD = "CI=1 npx wrangler deploy";
+// Cổng số phiên bản (chủ quyết 2026-09-23; công thức t). Hợp đồng mã thoát của kiem-phien-ban.mjs: 0 ĐẠT · 1 CHƯA ĐẠT · 2 KHÔNG CHẠY ĐƯỢC.
+const GATE = "scripts/kiem-phien-ban.mjs";
+const GATE_POST_CMD = `node ${GATE} --sau-deploy`;
+const GATE_PRE_Q =
+  "Bản ở máy không mới hơn production (quên thêm mục nhật ký thay đổi?). Chỉ chọn c nếu đang deploy lại ĐÚNG bản đang chạy. Vẫn tiếp tục? (c/k) ";
+/** Chờ trước khi thử lại cổng sau (Cloudflare cần vài giây để bản mới tới mọi nơi). */
+const POST_GATE_RETRY_MS = 20_000;
+const realSleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-export async function trienKhai({ run, ask, isTTY, log, now = () => new Date() }) {
+/**
+ * @param version số phiên bản ở máy (mục đầu CHANGELOG) — vỏ scripts/trien-khai.mjs truyền vào; lib không tự import mã ứng dụng.
+ * @param sleep chờ trước khi thử lại cổng sau; test truyền hàm tức thì.
+ */
+export async function trienKhai({ run, ask, isTTY, log, now = () => new Date(), sleep = realSleep, version }) {
   const stop = makeStop(log);
   if (!isTTY) return stop(NOT_TTY);
 
@@ -220,6 +232,19 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date() }
   if (!parsed.ok) return stop(`đầu ra \`migrations list\` ${parsed.reason}.`, String(list.stdout ?? "").slice(0, 800));
   const pending = parsed.names;
   log(pending.length ? `Còn ${pending.length} migration chưa áp: ${pending.join(", ")}` : "Không còn migration nào chưa áp.");
+
+  // 2b. cổng số phiên bản TRƯỚC deploy (chỉ đọc): bản ở máy phải MỚI HƠN production — bắt lỗi quên thêm mục nhật ký thay đổi.
+  // 1 = chưa đạt: hỏi (deploy lại đúng bản đang chạy là trường hợp hợp lệ duy nhất). 2 hay mã lạ = không chạy được: DỪNG, không bao giờ coi là đạt.
+  log("\n▶ Cổng số phiên bản (bản ở máy phải mới hơn production)");
+  const preGate = await run("node", [GATE], { stream: true });
+  let preGateText = "ĐẠT";
+  if (preGate.code === 1) {
+    log(`${RED}${BOLD}Cổng phiên bản trước deploy: KHÔNG ĐẠT${RESET}`);
+    if (!yes(await ask(GATE_PRE_Q))) return stop("cổng phiên bản không đạt — không áp migration, không deploy.", "Thêm mục mới vào đầu nhật ký thay đổi (công thức t ở docs/CHANGE-GUIDE.md), commit, đẩy, rồi chạy lại.");
+    preGateText = "KHÔNG ĐẠT (chủ chọn tiếp tục)";
+  } else if (preGate.code !== 0) {
+    return stop(`cổng phiên bản KHÔNG CHẠY ĐƯỢC (mã ${preGate.code}) — không phải đạt; không áp migration, không deploy.`, `Kiểm lại bằng: node ${GATE}`);
+  }
 
   // 3. kiểm mã
   for (const [args, label] of [[["test"], "npm test"], [["run", "typecheck"], "npm run typecheck"], [["run", "build:web"], "npm run build:web"]]) {
@@ -287,6 +312,30 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date() }
     audit.code === 0 ? "ĐẠT" : audit.code === 1 ? "KHÔNG ĐẠT (có bất biến bị vi phạm — xem các dòng ✗ ở trên)" : `KHÔNG CHẠY ĐƯỢC (mã ${audit.code}) — không phải dữ liệu sạch`;
   log(`Kiểm dữ liệu: ${auditText}`);
 
+  // 7b. cổng số phiên bản SAU deploy (chỉ đọc; chạy SAU kiểm dữ liệu để không xen giữa deploy và audit): production phải BẰNG bản ở máy.
+  // Hỏng lần đầu thì chờ rồi thử lại MỘT lần. Lỗi gì ở đây cũng không được bỏ qua khối tóm tắt.
+  log("\n▶ Cổng số phiên bản sau deploy (production phải bằng bản ở máy)");
+  const postGate = async () => {
+    try {
+      return (await run("node", [GATE, "--sau-deploy"], { stream: true })).code;
+    } catch {
+      return 127;
+    }
+  };
+  let postCode = await postGate();
+  if (postCode !== 0) {
+    log(`Cổng phiên bản sau deploy chưa đạt (mã ${postCode}) — chờ ${POST_GATE_RETRY_MS / 1000} giây rồi thử lại một lần.`);
+    try {
+      await sleep(POST_GATE_RETRY_MS);
+    } catch {
+      /* chờ lỗi thì vẫn thử lại ngay */
+    }
+    postCode = await postGate();
+  }
+  const postGateText = postCode === 0 ? "ĐẠT" : postCode === 1 ? "KHÔNG ĐẠT" : `KHÔNG CHẠY ĐƯỢC (mã ${postCode})`;
+  log(`Cổng phiên bản sau deploy: ${postGateText}`);
+  if (postCode !== 0) log(`${RED}${BOLD}Kiểm lại tay sau vài phút:${RESET} ${GATE_POST_CMD}`);
+
   // 8. khối tóm tắt
   log("\n══════════ DÁN VÀO docs/HANDOFF-N1.md (TRẠNG THÁI TRIỂN KHAI) ══════════");
   log(`- Ngày giờ: ${vnDateTime(now())}`);
@@ -296,6 +345,10 @@ export async function trienKhai({ run, ask, isTTY, log, now = () => new Date() }
   if (bookmark) log(`- Điểm khôi phục Time Travel trước khi áp: ${bookmark}`);
   log(`- Worker Version ID: ${versionId ?? "chưa lấy được (xem đầu ra deploy ở trên hoặc `npx wrangler deployments list`)"}`);
   log(`- Kiểm dữ liệu (audit-invariants --db remote): ${auditText}`);
+  log(`- Phiên bản: ${version ?? "không rõ (vỏ không truyền số phiên bản)"}`);
+  log(`- Cổng phiên bản trước deploy: ${preGateText}`);
+  log(`- Cổng phiên bản sau deploy: ${postGateText}`);
+  if (postCode !== 0) log(`  (kiểm lại tay: ${GATE_POST_CMD})`);
   log("═════════════════════════════════════════════════════════════════════");
-  return audit.code === 0 ? 0 : 1;
+  return audit.code === 0 && postCode === 0 ? 0 : 1;
 }

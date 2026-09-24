@@ -195,7 +195,7 @@ function summaryBand(order: Order): HTMLElement {
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   const a = orderActions(order.status, canModify);
-  document.title = `${order.orderCode} — Tour Đảo Booking`;
+  document.title = `${order.orderCode} — Island Booking System`;
   setBarTitle(order.orderCode);
   replaceChildren(
     root,

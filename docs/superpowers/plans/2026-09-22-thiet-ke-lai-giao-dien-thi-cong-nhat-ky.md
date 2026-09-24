@@ -214,6 +214,15 @@ Ba lỗi quan trọng người kiểm ĐO ĐƯỢC (đều là thứ người d�
 
 **Chờ chủ dự án duyệt:** `docs/superpowers/specs/2026-09-23-dot-d-can-chu-duyet.md` — 6 mục (ưu tiên cao nhất: mục lục ADR thiếu hàng ADR-0015) + phần "Nợ đã ghi".
 
+### Đợt D — sửa sau phát hành (2026-09-24): Đối tác vào "/" bị lỗi
+
+**Lỗi (người kiểm độc lập chỉ ra):** từ Đợt D, "/" là Trang chủ, gọi `GET /api/orders/dashboard` (`access: "office"`). Tài khoản CHỈ có quyền Đối tác (`PARTNER`) không đạt `isOffice` → 403 kèm câu viết cho FIELD ("Tài khoản này chỉ dùng cho việc được giao…"), và thanh điều hướng không có mục "Đơn hàng" cho họ. Trước Đợt D "/" là Đơn hàng nên Đối tác vào thẳng danh sách đơn của mình. Đích mặc định sau đăng nhập (PIN lẫn Face ID) là "/".
+
+**Cách sửa A (chủ dự án chốt):** luật thuần `homeRedirect()` ở `src/shared/start-page.ts` (test cạnh tệp) = `!isOffice && canAccessOrders ? "/orders" : null`; `web/home.ts` gọi ngay sau `initShell()`, `location.replace("/orders")` và **không** gọi dashboard. Áp cho mọi đường vào "/" (đăng nhập PIN/Face ID, mở app PWA, gõ địa chỉ, "/home" cũ). KHÔNG đổi ma trận quyền, KHÔNG đổi `access` của route, KHÔNG thêm mục điều hướng (phương án B, không chọn). Chỉ-FIELD giữ banner lỗi (bước C của `trang-chu-smoke.mjs`); văn phòng + Đối tác vẫn vào Trang chủ. FIELD + PARTNER cũng được chuyển sang `/orders` (không phải văn phòng nhưng dùng được Đơn hàng — đọc thẳng từ luật, có test ghim).
+
+**Bằng chứng:** `trang-chu-smoke.mjs` thêm bước I (cuối kịch bản, vì đơn Đối tác lập làm lệch các số đếm toàn công ty ở trên): I-1 đăng nhập PIN thật qua form → đi qua "/" → kết thúc `/orders`, thấy đơn, không banner, không gọi dashboard, console sạch; I-2 mở thẳng "/" khi đã có phiên (1040px). P16: tạm vô hiệu dòng chuyển hướng → `Error: hết giờ chờ: I-1 Đối tác đăng nhập PIN: kết thúc ở /orders` → hoàn nguyên → xanh.
+
+**Nợ ghi lại:** (1) câu 403 dùng chung của `access: "office"` ở `src/shared/router.ts` vẫn viết cho FIELD — sau sửa không còn lộ ra cho Đối tác ở "/", nhưng vẫn lộ nếu Đối tác gọi route office khác; (2) trên `/orders`, Đối tác gọi `GET /api/dispatch/handlers` (`office`) → 403 bị nuốt, dòng "Phụ trách" ẩn — có từ trước Đợt D, sửa phải đổi `access` của route (hợp đồng API) nên cần chủ quyết; (3) thanh điều hướng của Đối tác vẫn không có mục "Đơn hàng" (phương án B, chưa chọn).
 ## Đợt E — thẻ đơn gọn + biểu tượng + chuỗi lỗi "hai luật" (2026-09-23/24)
 
 **Yêu cầu của chủ dự án** sau khi Đợt D lên production: Trang chủ *"đơn điệu, nhìn toàn chữ"* → thêm biểu tượng; mỗi đơn tốn **7 dòng** → rút còn **2 dòng + nút xổ xuống**, để hướng dẫn viên nhìn là biết ngay thông tin quan trọng nhất.

@@ -1,4 +1,5 @@
-// Người phụ trách đơn (module dispatch; ADR-0006, ADR-0009): đơn mới tự có người phụ trách = người lập; đổi người = đóng dòng cũ + mở dòng mới + nhật ký;
+// Người phụ trách đơn (module dispatch; ADR-0006, ADR-0009): đơn mới tự có người phụ trách = người lập NẾU người lập đủ điều kiện làm người phụ trách
+// (tài khoản chỉ Đối tác thì không — ADR-0014 điều 9/10: đơn để trống, nhân viên nhận sau); đổi người = đóng dòng cũ + mở dòng mới + nhật ký;
 // nhận đơn chưa có người; ai được làm gì; người được giao phải là SALES/ADMIN đang hoạt động có hồ sơ; tranh chấp song song đúng một bên thắng;
 // người phụ trách (khác người lập) sửa được đơn (bộ kiểm hành vi đầy đủ ở các mục cuối và ở orders/trip/permissions.mjs).
 // Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng"; đóng dòng HANDLE bằng SQL để có đơn "chưa có người phụ trách".
@@ -14,10 +15,10 @@ const SUPER = await session(ACCOUNTS.superAdmin);
 const me = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
 const [a, b, adm, acc, fld] = [await me(A), await me(B), await me(ADMIN), await me(ACC), await me(FIELD)];
 
-// Hai tài khoản dùng một lần: C (SALES, không liên quan tới các đơn) và D (SALES nhưng đã ngưng hoạt động).
-async function makeStaff(name, active = true) {
+// Tài khoản dùng một lần: C (SALES, không liên quan tới các đơn), D (SALES nhưng đã ngưng hoạt động), P (CHỈ Đối tác — PARTNER, ADR-0014).
+async function makeStaff(name, active = true, permissions = ["SALES"]) {
   const phone = randomPhone();
-  const r = await call(ADMIN, "POST", "/api/staff", { fullName: name, phone, permissions: ["SALES"] });
+  const r = await call(ADMIN, "POST", "/api/staff", { fullName: name, phone, permissions });
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const cookie = (await login(phone, r.body.pin)).cookie;
   if (!active) assert.equal((await call(ADMIN, "PATCH", `/api/staff/${r.body.staff.id}`, { active: false })).status, 200);
@@ -26,6 +27,7 @@ async function makeStaff(name, active = true) {
 const tag = Date.now().toString(36);
 const C = await makeStaff(`Cẩm Cửu ${tag}`);
 const D = await makeStaff(`Đào Đã Nghỉ ${tag}`, false);
+const P = await makeStaff(`Phan Đối Tác ${tag}`, true, ["PARTNER"]);
 
 const newOrder = async (cookie = A) => {
   const r = await call(cookie, "POST", "/api/orders", orderInput());
@@ -58,6 +60,18 @@ assert.deepEqual((await history(A, o1)).map((h) => h.action), ["created"], "đ�
 const oAdmin = await newOrder(ADMIN);
 assert.deepEqual(await handlerOf(ADMIN, oAdmin.id), asDto(adm), "quản trị lập đơn cũng là người phụ trách của đơn mình");
 console.log("✓ đơn mới: người lập là người phụ trách (một dòng HANDLE đang mở)");
+
+// Tài khoản CHỈ Đối tác (có hồ sơ như mọi tài khoản) lập đơn: KHÔNG tự thành người phụ trách — ADR-0014 điều 9 ("hoặc để trống") và điều 10 (không tự thành
+// người phụ trách bằng bất kỳ đường nào). Đơn để trống: không dòng HANDLE nào, không thêm nhật ký; nhân viên bán hàng nhận sau được (dispatch.claim).
+assert.ok(P.partyId, "tài khoản Đối tác vẫn có hồ sơ — ca này KHÔNG phải nhánh 'chưa có hồ sơ'");
+const oPartner = await newOrder(P.cookie);
+assert.equal(await handlerOf(A, oPartner.id), null, "tài khoản chỉ Đối tác lập đơn KHÔNG được tự thành người phụ trách (ADR-0014 điều 9/10)");
+assert.deepEqual(await rowsOf(oPartner.id), [], "không có dòng HANDLE nào (kể cả đã đóng) cho đơn do Đối tác lập");
+assert.deepEqual((await history(ADMIN, oPartner)).map((h) => h.action), ["created"]);
+const claimed = await setHandler(B, oPartner.id, b.id);
+assert.equal(claimed.status, 200, JSON.stringify(claimed.body));
+assert.deepEqual(await handlerOf(A, oPartner.id), asDto(b), "đơn để trống của Đối tác: nhân viên bán hàng nhận cho chính mình được");
+console.log("✓ đơn mới do tài khoản CHỈ Đối tác lập: không có người phụ trách (không dòng HANDLE), nhân viên nhận sau được");
 
 // --- 2) GET /api/dispatch/handlers: tra nhiều đơn, id lạ, giới hạn 100, quyền
 let r = await call(A, "GET", `/api/dispatch/handlers?orderIds=${o1.id},${oAdmin.id},00000000-0000-4000-8000-000000000000`);

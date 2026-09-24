@@ -5,6 +5,7 @@
 import assert from "node:assert/strict";
 import { ACCOUNTS, TURNSTILE_TEST, call, freshIp, login, randomPhone, session, sqlRows } from "./lib.mjs";
 import { verifyTurnstile } from "../../src/modules/auth/turnstile.ts";
+import { APP_VERSION } from "../../src/shared/app-info.ts";
 
 const FAILED = { code: "turnstile_failed", message: "Chưa xác minh được bạn là người thật. Hãy thử lại." };
 const post = (body, ip) => call(null, "POST", "/api/auth/login", body, ip);
@@ -31,7 +32,7 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.match(r.headers.get("content-type"), /^application\/json/);
 assert.equal(r.headers.get("cache-control"), "no-store");
 // passkey: true — giá trị THẬT (Task 7: passkeyRelyingParty(env) !== null); run.mjs đặt PASSKEY_RP_ID=127.0.0.1 / PASSKEY_ORIGIN=<base> riêng cho e2e (Task 9), không lệ thuộc `vars` production của wrangler.jsonc.
-assert.deepEqual(r.body, { turnstileSiteKey: TURNSTILE_TEST.siteKey, maintenance: { on: false, endsAt: null }, passkey: true }, "server e2e phải được bật Turnstile bằng khoá thử (run.mjs truyền --var TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY); chế độ bảo trì TẮT (chi tiết ở maintenance.mjs)");
+assert.deepEqual(r.body, { turnstileSiteKey: TURNSTILE_TEST.siteKey, maintenance: { on: false, endsAt: null }, passkey: true, version: APP_VERSION }, "server e2e phải được bật Turnstile bằng khoá thử (run.mjs truyền --var TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY); chế độ bảo trì TẮT (chi tiết ở maintenance.mjs)");
 assert.doesNotMatch(JSON.stringify(r.body), /secret|1x0000000000000000000000000000000AA/i, "tuyệt đối không lộ khoá bí mật");
 assert.deepEqual((await call(ADMIN, "GET", "/api/auth/config")).body, r.body, "đã đăng nhập cũng thấy như nhau");
 r = await call(null, "POST", "/api/auth/config", {});

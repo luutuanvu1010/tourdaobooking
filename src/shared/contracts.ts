@@ -56,6 +56,8 @@ export interface AuthConfigResponse {
   maintenance: MaintenanceStatusDto;
   /** Máy chủ bật đăng nhập bằng Face ID — PASSKEY_RP_ID/PASSKEY_ORIGIN hợp lệ. */
   passkey: boolean;
+  /** Số phiên bản đang chạy (= APP_VERSION, từ nhật ký thay đổi). Công khai; scripts/kiem-phien-ban.mjs so với bản ở máy trước/sau deploy. */
+  version: string;
 }
 
 // ---- Đăng nhập bằng Face ID (passkey, ADR-0016; đặc tả 2026-09-23-passkey-design.md) ----

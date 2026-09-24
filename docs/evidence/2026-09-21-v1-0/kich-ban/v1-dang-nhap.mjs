@@ -7,7 +7,7 @@
 //
 // Hai máy chủ nối tiếp: A = Turnstile BẬT bằng khoá thử `1x…AA` (luôn đạt) — các bước a–e, g–o; B = Turnstile TẮT — bước f (không dựng giả lập được: máy chủ đang đòi token thì
 // đăng nhập không kèm token luôn 403, nên "không có khoá" chỉ chứng minh được trên máy chủ thật sự không có khoá).
-//   a  khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST) — so với chính dòng company_profile trong D1
+//   a  chữ đúng bản thiết kế "Đăng nhập.dc.html" (2026-09-24): tiêu đề "Tour Đảo Booking", dòng phiên bản, "Hỗ trợ kỹ thuật" + số, chân trang tĩnh; không gọi GET /api/company
 //   b  CSP phục vụ đúng (tiền đề của g) · widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử, đăng nhập qua widget, token gửi đi đúng là token của widget
 //   c  sai PIN → lỗi của máy chủ, widget được reset (ô token trống rồi có token mới), nút khoá suốt lúc chờ rồi mở lại, đăng nhập lại được
 //   d  máy chủ trả 403 `turnstile_failed` (THẬT: gỡ token khỏi yêu cầu) và 503 `turnstile_unavailable` (giả lập) → chữ của máy chủ hiện nguyên văn ở #error; nút mở lại; thử lại được
@@ -26,6 +26,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, TURNSTILE_TEST, ok, setInput, sleep, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { APP_RELEASE_DATE, APP_VERSION } from "../../../../src/shared/app-info.ts";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-21-v1-0";
 const ONLY = process.env.ONLY ? process.env.ONLY.split(",") : null;
@@ -33,13 +34,15 @@ const AXE = readFileSync(process.env.AXE_JS ?? "", "utf8");
 mkdirSync(join(OUT, "anh"), { recursive: true });
 
 // Chữ đúng theo đặc tả (docs/superpowers/specs/2026-09-21-v1-0-dang-nhap-xac-nhan-phu-trach-design.md, việc 1) — bước a còn đối chiếu với chính D1.
+// Riêng dòng phiên bản đọc từ nhật ký thay đổi (src/shared/changelog.ts qua formatReleaseLine): số phiên bản đổi mỗi lần phát hành, ghi cứng sẽ đỏ giả.
 const EXPECT = {
-  app: "Tour Đảo Booking",
-  release: "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026",
+  app: "Island Booking System", // đổi tên app 2026-09-24 (chủ dự án)
+  release: `Phiên bản V${APP_VERSION} · ngày ${Number(APP_RELEASE_DATE.slice(8))}/${Number(APP_RELEASE_DATE.slice(5, 7))}/${APP_RELEASE_DATE.slice(0, 4)}`, // định dạng của bản thiết kế "Đăng nhập.dc.html"
   company: "CÔNG TY TNHH TOUR ĐẢO",
   address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",
   email: "Tourdaotravel@gmail.com",
   taxCode: "4201969169",
+  hotline: "0845 256 256",
 };
 // Thông báo lỗi Turnstile của MÁY CHỦ: đọc thẳng từ mã nguồn (một nguồn), đối chiếu với chữ của đặc tả.
 const turnstileSource = readFileSync("src/modules/auth/turnstile.ts", "utf8");
@@ -114,6 +117,10 @@ const ERR_TEXT = "(document.getElementById('error').hidden ? '' : document.getEl
 const WIDGET_BOX = "document.querySelector('#turnstile-widget > div')";
 const WIDGET_UP = `(() => { const w = ${WIDGET_BOX}; return w !== null && w.getBoundingClientRect().height > 0 && document.querySelector('#turnstile-widget input[name="cf-turnstile-response"]') !== null; })()`;
 const REC = "JSON.stringify(window.__rec)";
+// Bản thiết kế "Đăng nhập.dc.html" (chủ dự án 2026-09-24): nút Đăng nhập chỉ mở khi SĐT ≥ 10 chữ số VÀ PIN đủ 6 số. Để các bước dưới vẫn đo đúng
+// cơ chế Turnstile/cấu hình (nút khoá/mở theo token), điền sẵn một bộ hợp lệ (giả) NGAY khi hai ô được dựng — trước khi login.js chạy (script module
+// chạy sau khi phân tích xong HTML). Bước nào cần tài khoản thật thì gõ đè bằng typeCreds.
+const PREFILL = `(() => { if (window.top !== window) return; new MutationObserver((_, o) => { const ph = document.getElementById('phone'), pin = document.getElementById('pin'); if (ph && pin) { ph.value = '0900000000'; pin.value = '135790'; o.disconnect(); } }).observe(document, { childList: true, subtree: true }); })();`;
 
 const opened = [];
 /** Mở trang đăng nhập CHƯA có phiên (xoá cookie chung của Chrome), khổ `vp`, DPR 1 (ảnh đúng số điểm ảnh). `bypassSW`: bỏ qua service worker để chặn/giả lập request chắc chắn. */
@@ -126,7 +133,7 @@ async function openLogin(env, { vp = M, bypassSW = true, blocked = [], before = 
   await p.send("Network.clearBrowserCookies");
   if (bypassSW) await p.send("Network.setBypassServiceWorker", { bypass: true });
   if (blocked.length) await p.send("Network.setBlockedURLs", { urls: blocked });
-  await p.send("Page.addScriptToEvaluateOnNewDocument", { source: RECORDER + before });
+  await p.send("Page.addScriptToEvaluateOnNewDocument", { source: RECORDER + PREFILL + before });
   p.t0 = Date.now();
   await p.send("Page.navigate", { url: env.base + "/login" });
   await p.waitFor("document.readyState === 'complete'", "trang đăng nhập tải xong");
@@ -174,7 +181,7 @@ async function measure(p, label) {
   const m = await p.ev(`(() => {
     const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[hidden]'); };
     const ctl = [...document.querySelectorAll('button, a[href], input:not([type=hidden]), select, textarea, summary')].filter(shown);
-    const card = document.querySelector('.card').getBoundingClientRect();
+    const card = document.getElementById('login-form').getBoundingClientRect(); // bản v2: form không còn là .card — đo theo khung form
     const f = document.querySelector('#turnstile-widget > div')?.getBoundingClientRect();
     return {
       tapDuoi44: ctl.filter((el) => el.getBoundingClientRect().height < 43.5).map((el) => (el.id || el.className || el.tagName) + ':' + Math.round(el.getBoundingClientRect().height)),
@@ -201,19 +208,22 @@ const track = (p, label, expected = [], cspOnly = false) => pages.push([label, p
 // =====================================================================================================================
 const envA = await startEnv({ turnstile: true });
 try {
-  const row = envA.sql("SELECT company_name, tax_code, address, email FROM company_profile WHERE id = 'default'")[0];
+  const row = envA.sql("SELECT company_name, tax_code, address, email, hotline FROM company_profile WHERE id = 'default'")[0];
 
   // ---- a) khối công ty ----
-  await step("a", "khối công ty hiện đủ 6 mục đúng chữ (tên app, dòng phiên bản, tên công ty, địa chỉ, email, MST), khớp dòng company_profile trong D1", async () => {
-    assert.deepEqual(row, { company_name: EXPECT.company, tax_code: EXPECT.taxCode, address: EXPECT.address, email: EXPECT.email }, "D1 tạm phải có đúng dữ liệu công ty của đặc tả (0002 + 0013)");
+  await step("a", "chữ đúng bản thiết kế (tiêu đề “Tour Đảo Booking”, phiên bản, “Hỗ trợ kỹ thuật” + số, chân trang tĩnh); không gọi GET /api/company; D1 tạm có đúng dữ liệu công ty", async () => {
+    assert.deepEqual(row, { company_name: EXPECT.company, tax_code: EXPECT.taxCode, address: EXPECT.address, email: EXPECT.email, hotline: EXPECT.hotline }, "D1 tạm phải có đúng dữ liệu công ty của đặc tả (0002 + 0013)");
     const p = await openLogin(envA, { label: "a" });
     track(p, "a");
-    await p.waitFor("!document.getElementById('company').hidden", "khối công ty hiện", 10000);
-    const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, lines: [...document.querySelectorAll('#company p')].map((e) => e.textContent) })`);
+    await widgetReady(p);
+    // Bản thiết kế "Đăng nhập.dc.html" (chủ dự án 2026-09-24, tuân thủ 100%): chân trang và số hỗ trợ là chữ TĨNH; trang KHÔNG gọi GET /api/company nữa.
+    const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, chanTrang: [...document.querySelectorAll('.login-info > span')].map((e) => e.textContent), hoTro: document.getElementById('support').textContent, tel: document.querySelector('#support a')?.getAttribute('href') ?? null, dem: document.getElementById('pin-count').textContent })`);
     assert.deepEqual(ui, {
-      app: EXPECT.app, tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
-      lines: [EXPECT.company, `Địa chỉ: ${EXPECT.address}`, `Email: ${EXPECT.email}`, `MST: ${EXPECT.taxCode}`],
+      app: "Tour Đảo Booking", tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
+      chanTrang: ["Công ty TNHH Tour Đảo · MST 4201969169", "19 đường B2 Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, tỉnh Khánh Hoà"],
+      hoTro: "Hỗ trợ kỹ thuật0989 929 373", tel: "tel:0989929373", dem: "6/6",
     });
+    assert.deepEqual(p.requests.filter((r) => r.url.includes("/api/company")), [], "trang Đăng nhập không còn gọi GET /api/company");
   });
 
   // ---- b) CSP + widget + đăng nhập qua widget ----
@@ -257,14 +267,20 @@ try {
     await submit(p);
     await p.waitFor(`${ERR_TEXT} === ${JSON.stringify(BAD_PIN)}`, "lỗi sai PIN của máy chủ hiện nguyên văn");
     await p.waitFor("window.__resets === 1", "turnstile.reset được gọi đúng 1 lần sau lần thất bại");
-    await p.waitFor(`${TOKEN} !== '' && ${BTN_ENABLED}`, "token mới và nút mở lại", 25000);
+    // Bản thiết kế: sai SĐT/PIN (401) thì xoá PIN, bộ đếm về 0/6, nút khoá tới khi gõ lại đủ 6 số.
+    assert.deepEqual(await p.ev("({ pin: document.getElementById('pin').value, dem: document.getElementById('pin-count').textContent })"), { pin: "", dem: "0/6" }, "sai PIN: ô PIN bị xoá, bộ đếm về 0/6");
+    await p.waitFor(`${TOKEN} !== ''`, "token mới về (PIN còn trống)", 25000);
+    assert.ok((await p.ev(ERR_TEXT)) === BAD_PIN, "lỗi sai PIN vẫn còn hiện sau khi token mới về (không bị xoá nhầm)");
+    assert.equal(await p.ev(BTN_ENABLED), false, "có token nhưng PIN trống: nút vẫn khoá");
+    await shoot(p, "dang-nhap-loi-390.png");
+    await p.ev(setInput("document.getElementById('pin')", "999999"));
+    assert.equal(await p.ev(ERR_TEXT), "", "gõ lại PIN thì lỗi cũ ẩn (bản thiết kế)");
+    await p.waitFor(BTN_ENABLED, "nút mở lại", 5000);
     const r = await rec(p);
     assert.deepEqual(r.disabled, [true, false, true, false], "nút: khoá → mở (token 1) → khoá (đang gửi, rồi chờ token mới) → mở (token 2); KHÔNG có lúc nào mở khi chưa có token");
     assert.deepEqual(r.enabledWithToken, [true, true], "cả hai lần mở nút đều vì widget đã có token (không mở sớm)");
     assert.ok(r.token.includes(""), `ô token phải bị xoá khi reset, thấy: ${JSON.stringify(r.token)}`);
     assert.equal(r.token.at(-1), DUMMY, "và được điền lại token mới");
-    assert.ok((await p.ev(ERR_TEXT)) === BAD_PIN, "lỗi sai PIN vẫn còn hiện sau khi token mới về (không bị xoá nhầm)");
-    await shoot(p, "dang-nhap-loi-390.png");
     await typeCreds(p, ACCOUNTS.salesB);
     await submit(p);
     await loggedIn(p);
@@ -305,27 +321,17 @@ try {
   });
 
   // ---- e) API công ty / cấu hình lỗi hoặc chậm ----
-  await step("e", "API công ty lỗi (chặn mạng, 500, 404) hoặc chậm; API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, khối công ty ẩn, không kẹt nút", async () => {
-    // e1) công ty: ba kiểu lỗi — widget vẫn chạy, đăng nhập qua widget được, khối công ty ẩn, dòng phiên bản (hằng trong mã) vẫn hiện
-    for (const [name, opts] of [["chặn mạng", { blocked: ["*/api/company"] }], ["500", { before: errorFetch("/api/company", 500, "internal") }], ["404 (mất dòng)", { before: errorFetch("/api/company", 404, "not_found") }]]) {
-      const p = await openLogin(envA, { label: `e-cong-ty-${name}`, ...opts });
+  await step("e", "API công ty bị chặn (trang không còn gọi); API cấu hình lỗi (chặn, 500) hoặc chậm: vẫn đăng nhập được, không kẹt nút", async () => {
+    // e1/e2) (bản thiết kế 2026-09-24) trang Đăng nhập KHÔNG gọi GET /api/company nữa: chặn hẳn API đó vẫn đăng nhập được, chân trang tĩnh vẫn đủ chữ.
+    {
+      const p = await openLogin(envA, { label: "e-cong-ty-chan", blocked: ["*/api/company"] });
       await widgetReady(p);
-      const st = await p.ev("({ congTyAn: document.getElementById('company').hidden, chu: document.getElementById('company').textContent, release: document.getElementById('release').textContent })");
-      assert.deepEqual(st, { congTyAn: true, chu: "", release: EXPECT.release }, `công ty ${name}: khối ẩn, không rò chữ, dòng phiên bản còn`);
+      assert.deepEqual(await p.ev("({ chanTrang: document.querySelector('.login-info').textContent.includes('MST 4201969169'), release: document.getElementById('release').textContent })"), { chanTrang: true, release: EXPECT.release }, "chặn API công ty: chân trang tĩnh và dòng phiên bản vẫn đủ");
       await typeCreds(p, ACCOUNTS.salesA);
       await submit(p);
       await loggedIn(p);
-      if (name === "chặn mạng") assert.ok(p.failed.length >= 1, "chặn mạng thật sự làm hỏng một yêu cầu");
+      assert.deepEqual(p.failed.filter((f) => String(f.url ?? f).includes("/api/company")), [], "không có yêu cầu nào tới API công ty để mà hỏng");
     }
-    // e2) công ty CHẬM 5 giây: đăng nhập không phải chờ; khối hiện khi API về
-    const slow = await openLogin(envA, { label: "e-cong-ty-cham", before: slowFetch("/api/company", 5000) });
-    await widgetReady(slow);
-    assert.equal(await slow.ev("document.getElementById('company').hidden"), true, "trong lúc chờ: khối ẩn");
-    assert.equal(await slow.ev(BTN_ENABLED), true, "và nút không bị công ty chặn");
-    await slow.waitFor("!document.getElementById('company').hidden && document.querySelectorAll('#company p').length === 4", "khối công ty hiện khi API về", 10000);
-    await typeCreds(slow, ACCOUNTS.salesA);
-    await submit(slow);
-    await loggedIn(slow);
     // e3) cấu hình lỗi: KHÔNG widget (không thể có khoá), không yêu cầu nào tới Cloudflare, nút không kẹt; máy chủ A đang đòi token nên đăng nhập báo lỗi Turnstile của máy chủ
     for (const [name, opts] of [["chặn mạng", { blocked: ["*/api/auth/config"] }], ["500", { before: errorFetch("/api/auth/config", 500, "internal") }]]) {
       const p = await openLogin(envA, { label: `e-cau-hinh-${name}`, ...opts });
@@ -334,7 +340,6 @@ try {
       const st = await p.ev(`({ khungAn: document.getElementById('turnstile-widget').hidden, widget: ${WIDGET_UP}, script: [...document.scripts].some((s) => s.src.includes('cloudflare')) })`);
       assert.deepEqual(st, { khungAn: true, widget: false, script: false }, `cấu hình ${name}: không widget, không script Cloudflare`);
       assert.deepEqual(p.requests.filter((r) => r.url.includes("cloudflare")), [], "không yêu cầu nào tới Cloudflare");
-      await p.waitFor("!document.getElementById('company').hidden", "khối công ty vẫn hiện", 10000);
       await typeCreds(p, ACCOUNTS.salesA);
       await submit(p);
       await p.waitFor(`${ERR_TEXT} === ${JSON.stringify(FAILED)}`, "máy chủ (đang bật Turnstile) từ chối vì thiếu token: chữ của máy chủ hiện, không treo");
@@ -502,7 +507,6 @@ try {
     for (const [label, vp] of [["390", M], ["375", IPHONE_SE], ["320", NARROW], ["1040", DESK]]) {
       const p = await openLogin(envA, { vp, label: `hi-${label}` });
       track(p, `hi-${label}`, label === "390" ? [{ url: "/api/auth/login", status: 401 }] : []); // ở 390 có thêm một lần sai PIN cố ý (trạng thái lỗi)
-      await p.waitFor("!document.getElementById('company').hidden", "khối công ty hiện", 10000);
       await widgetReady(p);
       states[label] = { axe: await axe(p, `may-A-${label}-widget-da-dat`), do: await measure(p, `may-A-${label}`) };
       if (label === "1040") await shoot(p, "dang-nhap-1040.png");
@@ -512,6 +516,7 @@ try {
         await typeCreds(p, ACCOUNTS.admin, "999998");
         await submit(p);
         await p.waitFor(`${ERR_TEXT} === ${JSON.stringify(BAD_PIN)}`, "lỗi sai PIN");
+        await p.ev(setInput("document.getElementById('pin')", "999998")); // PIN bị xoá sau 401 (bản thiết kế): gõ lại để đo trạng thái lỗi với nút mở
         await p.waitFor(`${TOKEN} !== '' && ${BTN_ENABLED}`, "token mới", 25000);
         states.loi = { axe: await axe(p, "may-A-390-loi-sai-pin"), do: await measure(p, "may-A-390-loi-sai-pin") };
       }
@@ -560,9 +565,9 @@ const envB = await startEnv();
 try {
   await step("f", "máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)", async () => {
     const cfg = await (await fetch(envB.base + "/api/auth/config")).json();
-    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng)
+    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false, version: APP_VERSION }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng); + số phiên bản (trang Trợ giúp, dẫn xuất từ nhật ký thay đổi)
     const p = await openLogin(envB, { label: "f" });
-    await p.waitFor(`${BTN_ENABLED} && !document.getElementById('company').hidden`, "nút mở và khối công ty hiện", 10000);
+    await p.waitFor(BTN_ENABLED, "nút mở (Turnstile tắt: không chờ token)", 10000);
     const st = await p.ev(`({ khungAn: document.getElementById('turnstile-widget').hidden, widget: ${WIDGET_UP}, script: [...document.scripts].some((s) => s.src.includes('cloudflare')), thuLai: document.getElementById('turnstile-retry').hidden })`);
     assert.deepEqual(st, { khungAn: true, widget: false, script: false, thuLai: true });
     await sleep(1500); // chờ để chắc chắn không có yêu cầu muộn nào tới Cloudflare
@@ -578,8 +583,9 @@ try {
     await typeCreds(p, ACCOUNTS.salesB, "999999");
     await submit(p);
     await p.waitFor(`${ERR_TEXT} === ${JSON.stringify(BAD_PIN)}`, "lỗi sai PIN");
-    assert.equal(await p.ev(BTN_ENABLED), true);
+    assert.deepEqual(await p.ev(`({ pin: document.getElementById('pin').value, mo: ${BTN_ENABLED} })`), { pin: "", mo: false }, "sai PIN: PIN bị xoá, nút khoá tới khi gõ lại (bản thiết kế)");
     await typeCreds(p, ACCOUNTS.salesB);
+    assert.equal(await p.ev(BTN_ENABLED), true, "gõ lại đủ: nút mở ngay (không chờ token)");
     await submit(p);
     await loggedIn(p);
     assert.deepEqual(loginPosts(p).map((x) => x.turnstileToken), [undefined, undefined], "không gửi turnstileToken khi không có widget");

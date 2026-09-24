@@ -8,7 +8,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { ACCOUNTS, ok, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
+import { ACCOUNTS, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
 const OUT = process.env.OUT ?? "docs/evidence/2026-09-23-trang-chu-moi";
 const AXE = readFileSync(process.env.AXE_JS, "utf8");
@@ -488,9 +488,10 @@ try {
   await axe(p, "Trang chủ máy tính");
 
   // Đợt D Task 4 (ADR-0015): thanh ngang (`.topnav`, 9 mục) đổi thành thanh điều hướng dọc (`#sidebar`) — ĐỔI
-  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 10 mục: 9 mục cũ + "Tài khoản" (trước là `.who` hiện tên nhân
+  // CÓ CHỦ ĐÍCH, không phải lỗi. Nay ADMIN có 11 mục: 9 mục cũ + "Tài khoản" + "Trợ giúp" (từ 1.4) (trước là `.who` hiện tên nhân
   // viên riêng, không tính vào danh sách link; nay là MỘT MỤC CÓ NHÃN trong nhóm TÔI, đúng bản mẫu). Đo cả
   // #sidebar (không tràn) lẫn #topbar (thanh công việc mới: breadcrumb + tìm kiếm + nút, không tràn).
+  // Phát hành 1.4 (gộp nhánh Trợ giúp): nhóm TÔI thêm mục "Trợ giúp" (mọi tài khoản) ⇒ ADMIN 11 mục, FIELD 3 mục.
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
     return {
@@ -501,7 +502,7 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.equal(navMeasure.linkCount, 10, `Thanh điều hướng dọc (ADMIN) phải có 10 mục (9 mục cũ + "Tài khoản") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 11, `Thanh điều hướng dọc (ADMIN) phải có 11 mục (9 mục cũ + "Tài khoản" + "Trợ giúp") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -758,10 +759,10 @@ try {
     })()`);
     assert.equal(fieldNav.sidebarShown, true, `D-1 (FIELD, 1040px): thanh bên phải hiển thị thật — ${JSON.stringify(fieldNav)}`);
     assert.deepEqual(fieldNav.groupTitles, ["TÔI"], `D-1 (FIELD): thanh bên chỉ được có nhóm "TÔI" — nhóm BÁN HÀNG/QUẢN TRỊ rỗng phải ẩn CẢ tiêu đề — ${JSON.stringify(fieldNav)}`);
-    assert.deepEqual(fieldNav.labels, ["Tài khoản", "Góp ý / Báo lỗi"], `D-1 (FIELD): thanh bên chỉ được có 2 mục của nhóm TÔI — ${JSON.stringify(fieldNav)}`);
+    assert.deepEqual(fieldNav.labels, ["Tài khoản", "Góp ý / Báo lỗi", "Trợ giúp"], `D-1 (FIELD): thanh bên chỉ được có 3 mục của nhóm TÔI — ${JSON.stringify(fieldNav)}`);
     assert.equal(fieldNav.logoutShown, true, `D-1 (FIELD): "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(fieldNav)}`);
     await shot(pErr, "task-4-sidebar-field-may-tinh.png");
-    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): đúng 1 nhóm ${JSON.stringify(fieldNav.groupTitles)}, đúng 2 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
+    ok(`D-1) Thanh bên của tài khoản chỉ FIELD (1040px): đúng 1 nhóm ${JSON.stringify(fieldNav.groupTitles)}, đúng 3 mục ${JSON.stringify(fieldNav.labels)}, có "Đăng xuất", không huy hiệu nào (${fieldNav.badgeCount})`);
     pErr.close();
   }
 
@@ -921,7 +922,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Lập đơn mới" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Đơn mới") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, 10, `${at}: thanh bên của ADMIN phải đủ 10 mục — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, 11, `${at}: thanh bên của ADMIN phải đủ 11 mục (gồm "Trợ giúp") — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
@@ -1314,7 +1315,7 @@ try {
   }
 
   // ==================================================================================================
-  // I) ĐỢT E PHẦN B — biểu tượng Trang chủ (đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md §B). Mỗi biểu
+  // J) ĐỢT E PHẦN B — biểu tượng Trang chủ (đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md §B). Mỗi biểu
   //    tượng: có mặt (svg thật, không phải chữ/emoji), `aria-hidden="true"` (trang trí), LUÔN đi kèm chữ ngay cạnh
   //    (không đứng một mình). Dùng lại đúng dữ liệu đã tạo ở đầu kịch bản (R1 hôm nay/Bến Cầu Đá, R2 nháp, R3 còn
   //    thiếu tiền, T3 "Cần xem lại") — ADMIN, khổ máy tính để #dash-review chắc chắn còn hiện.
@@ -1339,25 +1340,89 @@ try {
         todayPlace: info(today?.querySelector('.dash-today-place')),
       };
     })()`);
-    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn nháp chưa xác nhận", "Chưa có người phụ trách"], `I: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
+    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn nháp chưa xác nhận", "Chưa có người phụ trách"], `J: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
     icons.stats.forEach((s, i) => {
-      assert.ok(s.hasSvg && s.ariaHidden === "true", `I: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
-      assert.ok(s.text && s.text.length > 0, `I: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
+      assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
+      assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
     });
     for (const [name, x] of [["Chuyến đón hôm nay", icons.todayTitle], ["Doanh thu của tôi", icons.revenueTitle], ["Cần xem lại", icons.reviewHeading]]) {
-      assert.ok(x.hasSvg && x.ariaHidden === "true", `I: tiêu đề "${name}" phải có biểu tượng aria-hidden — ${JSON.stringify(x)}`);
-      assert.equal(x.text, name, `I: tiêu đề phải còn đúng chữ gốc "${name}" — ${JSON.stringify(x)}`);
+      assert.ok(x.hasSvg && x.ariaHidden === "true", `J: tiêu đề "${name}" phải có biểu tượng aria-hidden — ${JSON.stringify(x)}`);
+      assert.equal(x.text, name, `J: tiêu đề phải còn đúng chữ gốc "${name}" — ${JSON.stringify(x)}`);
     }
-    assert.ok(icons.reviewRow.hasSvg && icons.reviewRow.ariaHidden === "true", `I: dòng "Cần xem lại" (mục cảnh báo) phải có biểu tượng aria-hidden (dùng lại "alert") — ${JSON.stringify(icons.reviewRow)}`);
-    assert.ok(icons.todayPhone.hasSvg && icons.todayPhone.ariaHidden === "true" && /09\d{8}/.test(icons.todayPhone.text ?? ""), `I: SĐT ở "Chuyến đón hôm nay" phải có biểu tượng ống nghe đi kèm số — ${JSON.stringify(icons.todayPhone)}`);
-    assert.ok(icons.todayPlace.hasSvg && icons.todayPlace.ariaHidden === "true" && icons.todayPlace.text?.includes("Bến Cầu Đá"), `I: nơi đón ở "Chuyến đón hôm nay" phải có biểu tượng pin đi kèm tên nơi đón (R1, Bến Cầu Đá) — ${JSON.stringify(icons.todayPlace)}`);
+    assert.ok(icons.reviewRow.hasSvg && icons.reviewRow.ariaHidden === "true", `J: dòng "Cần xem lại" (mục cảnh báo) phải có biểu tượng aria-hidden (dùng lại "alert") — ${JSON.stringify(icons.reviewRow)}`);
+    assert.ok(icons.todayPhone.hasSvg && icons.todayPhone.ariaHidden === "true" && /09\d{8}/.test(icons.todayPhone.text ?? ""), `J: SĐT ở "Chuyến đón hôm nay" phải có biểu tượng ống nghe đi kèm số — ${JSON.stringify(icons.todayPhone)}`);
+    assert.ok(icons.todayPlace.hasSvg && icons.todayPlace.ariaHidden === "true" && icons.todayPlace.text?.includes("Bến Cầu Đá"), `J: nơi đón ở "Chuyến đón hôm nay" phải có biểu tượng pin đi kèm tên nơi đón (R1, Bến Cầu Đá) — ${JSON.stringify(icons.todayPlace)}`);
     await axe(p, "trang-chu-bieu-tuong-1040");
     await shot(p, "task-5-dot-e-bieu-tuong-1040.png");
     await p.send("Emulation.setDeviceMetricsOverride", { width: MOB.width, height: MOB.height, deviceScaleFactor: 1, mobile: true });
     await axe(p, "trang-chu-bieu-tuong-390");
     await shot(p, "task-5-dot-e-bieu-tuong-390.png");
     p.close();
-    ok(`I) Đợt E Phần B: biểu tượng có mặt + aria-hidden + đi kèm chữ ở ba ô số liệu (${JSON.stringify(icons.statLabels)}), ba tiêu đề khối, dòng "Cần xem lại", SĐT và nơi đón ở "Chuyến đón hôm nay"; axe 0 vi phạm critical/serious ở 1040 và 390px`);
+    ok(`J) Đợt E Phần B: biểu tượng có mặt + aria-hidden + đi kèm chữ ở ba ô số liệu (${JSON.stringify(icons.statLabels)}), ba tiêu đề khối, dòng "Cần xem lại", SĐT và nơi đón ở "Chuyến đón hôm nay"; axe 0 vi phạm critical/serious ở 1040 và 390px`);
+  }
+
+  // ==================================================================================================
+  // I) SỬA SAU PHÁT HÀNH (2026-09-24, cách sửa A do chủ dự án chốt): tài khoản CHỈ Đối tác (PARTNER) tới "/" phải
+  //    sang thẳng "/orders" (src/shared/start-page.ts → web/home.ts), KHÔNG gọi dashboard (route "office" → 403,
+  //    câu lỗi viết cho FIELD). Trước Đợt D "/" chính là Đơn hàng nên họ vào thẳng danh sách đơn của mình.
+  //    ĐẶT CUỐI KỊCH BẢN có chủ đích: (1) đơn do Đối tác lập là đơn nháp/chưa phụ trách/còn thiếu tiền — đặt sớm hơn
+  //    sẽ làm lệch các khẳng định đếm toàn công ty ở trên; (2) kho cookie dùng chung — trang của tài khoản này mở sau cùng.
+  //    Hai đường vào: I-1 đăng nhập PIN THẬT qua form /login (đích mặc định "/"); I-2 mở thẳng "/" khi đã có phiên
+  //    (gõ địa chỉ / mở app PWA từ màn hình chính). Chỉ-FIELD vẫn giữ banner lỗi (bước C ở trên, không đổi).
+  // ==================================================================================================
+  {
+    const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+    const partnerOnly = { name: "Đối Tác Thử", phone: "0900000398", pin: "135790", permissions: ["PARTNER"] };
+    for (const stmt of (await insertStaffSql(partnerOnly)).split("\n")) env.sql(stmt);
+    const created = await call(partnerOnly, "POST", "/api/orders", orderInput("Khách Của Đối Tác", "0900000302", [
+      manualService("Tour 4 đảo (đơn Đối tác tự lập)", { departDate: TOMORROW, pickupTime: "07:00", pickupPlace: "Khách sạn Đối tác", unitPrice: 200_000 }),
+    ]));
+    assert.equal(created.status, 201, `Đối tác lập đơn: ${JSON.stringify(created.json)}`);
+
+    const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
+    /** Kết thúc ở /orders, thấy đơn của mình, không banner lỗi, console sạch, KHÔNG từng gọi dashboard. */
+    const assertLandedOnOrders = async (p, label) => {
+      await p.waitFor("location.pathname === '/orders' && document.readyState === 'complete'", `${label}: kết thúc ở /orders`, 15000);
+      await p.waitFor(`${q("#list")} && ${q("#list")}.querySelectorAll('.order-row').length > 0`, `${label}: danh sách đơn hiện`, 10000);
+      const m = await p.ev(`(() => ({
+        path: location.pathname,
+        rows: [...document.querySelectorAll('#list .order-row')].map((a) => a.textContent.includes('Khách Của Đối Tác')),
+        errorHidden: document.querySelector('#error').hidden,
+        errorText: document.querySelector('#error').textContent.trim(),
+        dashGrid: !!document.querySelector('#dash-grid'),
+      }))()`);
+      assert.equal(m.path, "/orders", `${label}: phải kết thúc ở /orders — ${JSON.stringify(m)}`);
+      assert.ok(m.rows.includes(true), `${label}: danh sách phải có đơn "Khách Của Đối Tác" — ${JSON.stringify(m)}`);
+      assert.equal(m.errorHidden, true, `${label}: KHÔNG được có banner lỗi — ${JSON.stringify(m)}`);
+      assert.equal(m.dashGrid, false, `${label}: trang cuối không được là Trang chủ — ${JSON.stringify(m)}`);
+      const dashCalls = p.requests.filter((r) => r.url.includes("/api/orders/dashboard")).map((r) => r.url);
+      assert.deepEqual(dashCalls, [], `${label}: KHÔNG được gọi /api/orders/dashboard (route văn phòng → 403) — đã gọi ${JSON.stringify(dashCalls)}`);
+      assert.deepEqual(p.consoleErrors, [], `lỗi console (${label}): ${p.consoleErrors}`);
+      return m;
+    };
+
+    // I-1: đăng nhập PIN thật qua form (không tiêm cookie) — đích mặc định sau đăng nhập là "/".
+    const pLogin = await env.openPage(MOB);
+    await pLogin.send("Network.clearBrowserCookies");
+    await pLogin.send("Page.navigate", { url: env.base + "/login" });
+    await pLogin.waitFor(`document.readyState === 'complete' && !!${q("#submit")}`, "trang đăng nhập tải xong", 15000);
+    // Bản thiết kế Đăng nhập (2026-09-24): nút chỉ mở khi đã gõ đủ SĐT + 6 số PIN — gõ trước, rồi chờ nút mở.
+    await pLogin.ev(setInput(q("#phone"), partnerOnly.phone));
+    await pLogin.ev(setInput(q("#pin"), partnerOnly.pin));
+    await pLogin.waitFor(`!${q("#submit")}.disabled`, "trang đăng nhập sẵn sàng (nút mở)", 15000);
+    await pLogin.ev(`${q("#submit")}.click(); true`);
+    await assertLandedOnOrders(pLogin, "I-1 Đối tác đăng nhập PIN");
+    assert.ok(pLogin.requests.some((r) => new URL(r.url).pathname === "/"), "I-1: phải thật sự đi qua \"/\" (đích mặc định sau đăng nhập) rồi mới sang /orders");
+    await shot(pLogin, "sua-doi-tac-dang-nhap-vao-don-hang-dien-thoai.png");
+    pLogin.close();
+    ok("I-1) Tài khoản CHỈ Đối tác đăng nhập PIN thật (390px): đi qua \"/\" rồi kết thúc ở /orders, thấy đơn của mình, không banner lỗi, không gọi dashboard, console sạch");
+
+    // I-2: đã có phiên, mở thẳng "/" (gõ địa chỉ / mở app PWA) ở khổ máy tính.
+    const pDirect = await env.as(partnerOnly, "/", DESK);
+    await assertLandedOnOrders(pDirect, "I-2 Đối tác mở thẳng /");
+    await shot(pDirect, "sua-doi-tac-mo-thang-vao-don-hang-may-tinh.png");
+    pDirect.close();
+    ok("I-2) Tài khoản CHỈ Đối tác mở thẳng \"/\" (1040px): kết thúc ở /orders, thấy đơn của mình, không banner lỗi, không gọi dashboard, console sạch");
   }
 } finally {
   await env.stop();

@@ -185,7 +185,8 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
-      // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4).
+      // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4). `dispatch` tự quyết người lập
+      // có đủ điều kiện không (tài khoản chỉ Đối tác thì không — ADR-0014 điều 9/10); không đủ → không có dòng, đơn chưa có người phụ trách.
       const id = await createOrder(
         env.DB,
         staff.id,

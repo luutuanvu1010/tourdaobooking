@@ -2,6 +2,7 @@ import { ApiError, api, type Staff, type Api } from "./api";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
+import { helpHasNews, newDot } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { registerServiceWorker } from "./pwa";
 
@@ -33,7 +34,7 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" },
   ];
 }
 
@@ -42,7 +43,7 @@ function tabBar(admin: boolean, office: boolean, canCreate: boolean, path: strin
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
     ...tabsFor(admin, office, canCreate).map((t) =>
-      h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon)), h("span", null, t.label)),
+      h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon), t.href === "/account" && helpHasNews() && newDot()), h("span", null, t.label)),
     ),
   );
 }
@@ -111,6 +112,8 @@ interface NavItem {
   badge?: () => Promise<number>;
   /** Màu huy hiệu khác màu mặc định (đúng bản mẫu: "Dịch vụ & giá" màu cát, "Góp ý" màu san hô). */
   badgeClass?: string;
+  /** Chấm đỏ "Có bản mới" (chỉ mục Trợ giúp): đọc ngay từ máy này, không gọi mạng. */
+  dot?: () => boolean;
   active: (path: string) => boolean;
 }
 interface NavGroup {
@@ -145,6 +148,7 @@ function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: st
   const me: NavItem[] = [
     { href: "/account", label: "Tài khoản", icon: "me", active: (p) => p === "/account" },
     { href: `/feedback?new=1&from=${encodeURIComponent(path)}`, label: "Góp ý / Báo lỗi", icon: "chat", badge: feedbackBadge, badgeClass: "sidebar-item-badge-accent", active: (p) => p === "/feedback" },
+    { href: "/help", label: "Trợ giúp", icon: "help", dot: helpHasNews, active: (p) => p === "/help" },
   ];
 
   return [
@@ -163,7 +167,7 @@ function sidebarItem(item: NavItem, path: string, loaders: (() => void)[]): HTML
     "a",
     { class: "sidebar-item", href: item.href, "aria-current": item.active(path) ? "page" : false },
     h("span", { class: "sidebar-item-icon" }, icon(item.icon, 18)),
-    h("span", { class: "sidebar-item-label" }, item.label),
+    h("span", { class: "sidebar-item-label" }, item.label, item.dot?.() && newDot()),
   );
   const badge = item.badge;
   if (badge) {
@@ -206,7 +210,7 @@ function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: stri
     h(
       "a",
       { class: "sidebar-head", href: "/" },
-      h("span", { class: "brand" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), "Tour Đảo ", h("span", null, "Booking")),
+      h("span", { class: "brand" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     ),
     h("div", { class: "sidebar-groups" }, ...groups),
     h(
@@ -219,7 +223,9 @@ function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: stri
   );
 }
 
-const APP_NAME = "Tour Đảo Booking";
+
+// Bản sao tên app (nguồn: manifest / src/shared/app-info.ts): KHÔNG import app-info vì nó kéo cả nhật ký thay đổi vào bundle của mọi trang. tests/e2e/pwa.mjs đối chiếu brand với manifest.
+const APP_NAME = "Island Booking System";
 
 /**
  * Chữ breadcrumb trên thanh công việc: `data-title` của trang → nhãn mục điều hướng đang mở → tên app.
@@ -255,6 +261,11 @@ export function setBarTitle(text: string): void {
  */
 export async function initShell(): Promise<Staff> {
   registerServiceWorker();
+  // Nút lùi (history.back) phục hồi trang từ bộ đệm lùi/tiến NGUYÊN TRẠNG, kể cả chấm đỏ vẽ lúc chưa xem /help (tiền lệ: pageshow ở order-form.ts).
+  // Trang được phục hồi mà nay đã xem bản mới nhất ⇒ gỡ mọi chấm "Có bản mới" của Trợ giúp (tab Tôi, dòng ở trang Tôi, menu máy tính).
+  window.addEventListener("pageshow", (e) => {
+    if (e.persisted && !helpHasNews()) for (const dot of document.querySelectorAll(".new-dot")) dot.remove();
+  });
   const { title, back, tabbar } = document.body.dataset;
   const path = location.pathname.replace(/\/+$/, "") || "/";
 
@@ -268,7 +279,7 @@ export async function initShell(): Promise<Staff> {
   replaceChildren(
     byId("topbar"),
     backLink,
-    h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), "Tour Đảo ", h("span", null, "Booking")),
+    h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     // LUÔN dựng (C-1): ở máy tính đây là breadcrumb của mọi trang. Giao diện điện thoại KHÔNG đổi — luật hiển thị ở
     // khổ ≤640px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
     h("span", { class: "bar-title", id: "bar-title" }, barTitleFor(path, title)),
