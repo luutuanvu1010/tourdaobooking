@@ -36,6 +36,8 @@ const FROM = "FROM staff s LEFT JOIN v_pty_party_label pl ON pl.id = s.party_id"
 
 const FIND_BY_PHONE = defineSql("staff", "find_by_phone", `SELECT ${COLUMNS}, s.pin_hash ${FROM} WHERE s.phone = ?1`);
 const FIND_BY_ID = defineSql("staff", "find_by_id", `SELECT ${COLUMNS}, s.pin_hash ${FROM} WHERE s.id = ?1`);
+// ADR-0013 điều 4: hồ sơ gắn tài khoản nào (kể cả tài khoản đang ngưng). staff_party_uq ⇒ tối đa một dòng.
+const FIND_BY_PARTY = defineSql("staff", "find_by_party", "SELECT s.id FROM staff s WHERE s.party_id = ?1");
 const LIST = defineSql("staff", "list", `SELECT ${COLUMNS} ${FROM} ORDER BY s.active DESC, pl.sort_key COLLATE NOCASE, s.created_at`);
 
 /** Đếm quản trị viên đang hoạt động (có quyền ADMIN đang mở). */
@@ -82,6 +84,8 @@ const CLOSE_PERMISSION = defineSql(
 
 export const findByPhone = (db: D1Database, phone: string): Promise<StaffAuthRow | null> => db.prepare(FIND_BY_PHONE).bind(phone).first<StaffAuthRow>();
 export const findById = (db: D1Database, id: string): Promise<StaffAuthRow | null> => db.prepare(FIND_BY_ID).bind(id).first<StaffAuthRow>();
+export const findStaffIdByParty = async (db: D1Database, partyId: string): Promise<string | null> =>
+  (await db.prepare(FIND_BY_PARTY).bind(partyId).first<{ id: string }>())?.id ?? null;
 
 export async function listAll(db: D1Database): Promise<StaffRow[]> {
   return (await db.prepare(LIST).all<StaffRow>()).results;

@@ -65,3 +65,16 @@ export function checkAccountChange(
   if (losesAdmin && activeAdminCount <= 1) return "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.";
   return null;
 }
+
+/**
+ * ADR-0013 điều 2 + ADR-0014 điều 8: hồ sơ gắn tài khoản `target` (null = không gắn) — người gọi có quản được tài khoản đó không.
+ * Cùng luật với `mayManage` ở màn Nhân viên: chính mình, hoặc `canManageAccount`. Chỉ là KẾT LUẬN cấp bậc; ô `party.staff.write`
+ * vẫn phải được route hỏi bằng `can()` (SALES tự mình → manageable nhưng ô = none).
+ */
+export function partyAccountVerdict(
+  actor: { id: string; permissions: readonly PermissionCode[] },
+  target: { id: string; permissions: readonly PermissionCode[] } | null,
+): { linked: false } | { linked: true; manageable: boolean } {
+  if (!target) return { linked: false };
+  return { linked: true, manageable: actor.id === target.id || canManageAccount(actor.permissions, target.permissions) };
+}

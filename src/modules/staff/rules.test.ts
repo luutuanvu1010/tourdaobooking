@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { canManageAccount, checkAccountChange, generatePin, isWeakPin, validateFreshPin } from "./rules.ts";
+import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules.ts";
 
 const admin = { id: "a1", permissions: ["ADMIN"] as const, active: true };
 const sales = { id: "s1", permissions: ["SALES"] as const, active: true };
@@ -58,4 +58,20 @@ test("validateFreshPin (đặt PIN mới không cần PIN cũ, đăng nhập b�
   assert.match(validateFreshPin("12345")!, /đúng 6 chữ số/);
   assert.match(validateFreshPin("123456")!, /dễ đoán/);
   assert.equal(validateFreshPin("583920"), null);
+});
+
+test("ADR-0013 điều 2/4: partyAccountVerdict — hồ sơ không gắn tài khoản; tự mình; cấp dưới; cùng cấp/cấp trên", () => {
+  const admin = { id: "a1", permissions: ["ADMIN"] as const };
+  const superAdmin = { id: "s1", permissions: ["SUPER_ADMIN"] as const };
+  const sales = { id: "x1", permissions: ["SALES"] as const };
+  assert.deepEqual(partyAccountVerdict(sales, null), { linked: false });
+  assert.deepEqual(partyAccountVerdict(admin, { id: "a1", permissions: ["ADMIN"] }), { linked: true, manageable: true }, "tự sửa hồ sơ của chính mình");
+  assert.deepEqual(partyAccountVerdict(admin, { id: "x2", permissions: ["SALES"] }), { linked: true, manageable: true });
+  assert.deepEqual(partyAccountVerdict(admin, { id: "p1", permissions: ["PARTNER"] }), { linked: true, manageable: true });
+  assert.deepEqual(partyAccountVerdict(admin, { id: "a2", permissions: ["ADMIN"] }), { linked: true, manageable: false }, "Admin khác");
+  assert.deepEqual(partyAccountVerdict(admin, { id: "s1", permissions: ["SUPER_ADMIN"] }), { linked: true, manageable: false });
+  assert.deepEqual(partyAccountVerdict(admin, { id: "m1", permissions: ["SALES", "ADMIN"] }), { linked: true, manageable: false }, "giữ ADMIN kèm quyền khác vẫn là cùng cấp");
+  assert.deepEqual(partyAccountVerdict(superAdmin, { id: "a2", permissions: ["ADMIN"] }), { linked: true, manageable: true });
+  assert.deepEqual(partyAccountVerdict(sales, { id: "x2", permissions: ["SALES"] }), { linked: true, manageable: false }, "SALES không quản tài khoản nào");
+  assert.deepEqual(partyAccountVerdict(sales, { id: "x1", permissions: ["SALES"] }), { linked: true, manageable: true }, "tự mình: manageable, nhưng ô party.staff.write của SALES = none vẫn chặn ở route");
 });

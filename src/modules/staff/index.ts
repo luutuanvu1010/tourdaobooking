@@ -6,10 +6,10 @@ import { newPersonStatements, renamePersonStatements, splitPersonName, validateP
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
-  closePermissionStatement, countActiveAdmins, findById, findByPhone, insertPermissionStatement, insertStaffStatement, listAll, parsePermissions,
-  recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement, type StaffRow,
+  closePermissionStatement, countActiveAdmins, findById, findByPhone, findStaffIdByParty, insertPermissionStatement, insertStaffStatement, listAll,
+  parsePermissions, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement, type StaffRow,
 } from "./repository";
-import { canManageAccount, checkAccountChange, generatePin, isWeakPin, validateFreshPin } from "./rules";
+import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile } from "../../shared/contracts";
 import type { PermissionCode } from "../../shared/permissions";
@@ -77,6 +77,20 @@ export async function getActiveStaff(db: D1Database, id: string, sessionIssuedAt
 export async function getStaffAccount(db: D1Database, id: string): Promise<StaffAccount | null> {
   const s = await findById(db, id);
   return s ? toAccount(s) : null;
+}
+
+/**
+ * ADR-0013 điều 4 — gốc lắp ráp tiêm vào `ctx.partyAccount` (module `parties` không import `staff`). Trả KẾT LUẬN, không trả id/quyền
+ * của tài khoản. Hai lượt đọc: id theo hồ sơ, rồi tài khoản đầy đủ (có quyền) bằng hàm đã có.
+ */
+export async function accountOfParty(
+  db: D1Database,
+  actor: { id: string; permissions: readonly PermissionCode[] },
+  partyId: string,
+): Promise<{ linked: false } | { linked: true; manageable: boolean }> {
+  const id = await findStaffIdByParty(db, partyId);
+  const target = id ? await getStaffAccount(db, id) : null;
+  return partyAccountVerdict(actor, id && !target ? { id, permissions: ["SUPER_ADMIN"] } : target);
 }
 
 export async function listStaffAccounts(db: D1Database): Promise<StaffAccount[]> {
