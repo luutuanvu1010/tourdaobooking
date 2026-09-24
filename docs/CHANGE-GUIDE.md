@@ -59,6 +59,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–t · §3 Ma t
 | Cập nhật sổ dữ liệu | `docs/data-dictionary.json` → `npm run dict` | d |
 | Đổi bước của lệnh đẩy (`npm run day-len`) / triển khai (`npm run trien-khai`) chủ dự án tự gõ | `scripts/release-lib.mjs` (+ `src/release-lib.test.ts`), `scripts/day-len.mjs`, `scripts/trien-khai.mjs`, `scripts/release-shell.mjs` | s |
 | Phát hành bản mới / ghi có gì mới | `src/shared/changelog.ts`, `scripts/kiem-phien-ban.mjs` | t |
+| Đổi bảng vai → quyền, thêm vai | `src/shared/roles.ts`, migrations (`pty_role_type`) | u |
 
 ## 2. Các công thức
 
@@ -548,6 +549,18 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 - **Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
 - Trang Trợ giúp và chấm đỏ cập nhật sau deploy + một lần mở lại app (service worker stale-while-revalidate). "Đã xem" lưu theo từng máy (`localStorage` `td_help_seen`).
 
+### u. Vai & quyền (ADR-0018)
+
+**Khi nào:** thêm/sửa vai của mô hình người–vai–quyền (`src/shared/roles.ts`), đổi bộ quyền mặc định của một vai, hoặc thêm mã quyền dùng ở đó.
+
+**Làm:**
+1. Sửa `ROLES` trong `src/shared/roles.ts` (tên hiển thị, nhóm `INTERNAL`/`EXTERNAL`/`OTHER`, bộ quyền mặc định).
+2. Vai MỚI → thêm migration mới (không sửa migration đã áp) chèn thêm dòng vào `pty_role_type` cùng tên/nhóm với `ROLES`; lệch → `src/roles-schema.test.ts` đỏ.
+3. **Đổi bộ quyền MẶC ĐỊNH của một vai đã có** = đổi quyền của MỌI tài khoản đang mang vai đó → cần **chủ dự án duyệt trước**, và phải có một bước TÍNH LẠI quyền có kiểm soát cho các tài khoản đang giữ vai (chưa có bước này trong mã — lập kế hoạch riêng, đừng tự chạy hàng loạt).
+4. Bẫy: ngoài `src/modules/parties/`, không tệp nào (kể cả chú thích) được nhắc tên bảng vai hồ sơ (`pty_` + `party_role`) — viết "bảng vai" bằng lời (R-N1-12). Đóng một vai trước khi mở vai khác trong nhóm đối lập (LC-3). Gán lại đúng vai trong CÙNG một ngày = mở lại dòng đã đóng hôm đó, không tạo dòng mới. Mã `INTERN` vừa là mã VAI vừa là mã QUYỀN (tạm hẹp, chỉ `order.create` phạm vi `own`) — đừng nhầm với mã quyền cũ.
+
+**Kiểm:** `node --test src/shared/roles.test.ts src/roles-schema.test.ts src/modules/staff/account-roles.test.ts` → `npm test` → `npm run test:e2e -- admin admin-race parties permissions roles` (rồi `npm run test:e2e` đủ bộ nếu chạm migration, để chạy `audit-invariants --strict` — công thức d) → Chrome `vai-smoke.mjs` + `dot-a-smoke.mjs`.
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
@@ -571,6 +584,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 | `scripts/*.mjs` (còn lại) | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
 | `src/shared/changelog.ts` | `node --test src/shared/changelog.test.ts` + `help-smoke.mjs` nếu đổi cách hiển thị |
 | `src/shared/permissions.ts` (thêm/bớt ô `MATRIX`), thêm route ghi ở `src/modules/*/index.ts`, `docs/quyen-hoan.json` | `node --test src/permission-enforcement.test.ts src/route-write-guard.test.ts` → `npm test`. Ô mới phải có nơi máy chủ gọi `can(…, "<ô>")` hoặc mục hoãn có hạn; route ghi mới phải hỏi bảng trong thân handler (hay hàm trong `GUARDS`) hoặc có mục `cua_ghi`. Hết hạn hoãn → `npm test` đỏ: vá hoặc chủ dự án gia hạn bằng diff vào `docs/quyen-hoan.json`. Sổ hàng rào: `docs/SO-HANG-RAO.md`. **Luật dừng dây chuyền (chủ duyệt 2026-09-24):** phát hiện an ninh mức HIGH trở lên (kiểm toán, red team) phải có mục ở `docs/quyen-hoan.json` (hoặc sổ tương đương) với người chịu trách nhiệm và hạn; đặc tả/kế hoạch chạm vùng đang hở phải ghi "xây trên lỗ đang hở: <mã>" và không được duyệt trước khi vá hoặc chủ gia hạn có ghi lý do |
+| `src/shared/roles.ts`, vai của `staff` (`src/modules/staff/*`), route vai của `accounts` (`PUT/GET /api/staff/:id/roles`) | `node --test src/shared/roles.test.ts src/roles-schema.test.ts src/modules/staff/account-roles.test.ts` → `npm test` → `npm run test:e2e -- admin admin-race parties permissions roles` → Chrome `vai-smoke.mjs` + `dot-a-smoke.mjs` |
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |
 
 **Thời gian ước lượng** (máy dev, đo 2026-09-21):

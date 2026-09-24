@@ -183,11 +183,13 @@ Module chủ sở hữu bảng của mình; bảng mới mang tiền tố module
 | `v_stf_staff_label` | staff | view công bố: `id, label, active, party_id` (`label` = tên hồ sơ, dự phòng `(chưa có hồ sơ)`) |
 | `pty_party` | parties | hồ sơ: `party_kind` `PERSON` hoặc `ORGANIZATION`, `display_name`, `active` |
 | `pty_person` / `pty_organization` | parties | phần cá nhân (`family_name`, `middle_name`, `given_name`) / phần tổ chức (`legal_name`, `tax_code`, `address`, `invoice_email`) |
-| `pty_contact_kind` / `pty_role_type` / `pty_relationship_type` | parties | tra cứu: loại liên hệ (`PHONE`, `EMAIL`); vai trò hồ sơ (`STAFF`, `GUIDE`, `DRIVER`, `AGENT`, `CUSTOMER`…); loại quan hệ |
+| `pty_contact_kind` / `pty_role_type` / `pty_relationship_type` | parties | tra cứu: loại liên hệ (`PHONE`, `EMAIL`); vai trò hồ sơ (`STAFF`, `GUIDE`, `DRIVER`, `AGENT`, `CUSTOMER`…, nay có thêm 11 vai mô hình người–vai–quyền — ADR-0018); loại quan hệ. `pty_role_type.role_group` (0024, `CHECK IN ('INTERNAL','EXTERNAL','OTHER')`, tập đóng theo ADR-0003 điều 3) phân biệt vai gắn với TÀI KHOẢN (`INTERNAL`/`EXTERNAL`, quản lý ở trang Nhân viên) với vai khác (`OTHER`, vẫn quản lý ở trang Hồ sơ như trước) |
 | `pty_contact_point` | parties | điểm liên hệ của hồ sơ, có `is_primary` và hiệu lực theo ngày |
 | `pty_party_role` | parties | hồ sơ giữ vai trò nào, ở nơi nào, trong khoảng nào |
 | `pty_party_relationship` | parties | quan hệ hồ sơ ↔ hồ sơ, có hiệu lực |
 | `v_pty_party_label` | parties | view công bố: `id, display_name, party_kind, active, sort_key` |
+| `v_pty_open_role_group` (0024) | parties | view nội bộ dùng bởi trigger LC-3: mỗi hồ sơ đang giữ vai nhóm nào (`INTERNAL`/`EXTERNAL`) đang mở, để chặn giữ cả hai cùng lúc |
+| `stf_permission_adjustment` (0024) | staff | dòng CHỈNH TAY cộng/bớt một mã quyền ngoài bộ mặc định của vai (`direction` `CHECK IN ('ADD','REMOVE')`, tập đóng); mỗi (tài khoản, mã quyền) tối đa MỘT dòng đang mở; nơi DUY NHẤT tính là `roleChangeStatements` (module `staff`) |
 | `loc_location_type` | locations | tra cứu loại địa điểm (`OFFICE`, `TICKET_COUNTER`, `PIER`, `PORT`) |
 | `loc_location` | locations | địa điểm (`code`, `name`, `sort_order`, `active`); 0010 nạp sẵn 8 dòng |
 | `v_loc_location_label` | locations | view công bố: `id, code, name, location_type_code, active` |
@@ -246,6 +248,8 @@ erDiagram
 | `staff_party_uq` | 0012 | một hồ sơ tối đa một tài khoản (`WHERE party_id IS NOT NULL`) |
 | `dsp_assignment_handler_open_uq`, `dsp_assignment_grain_ck`, `dsp_assignment_handle_grain_ck` | 0014 | mỗi đơn tối đa **một `HANDLE` đang mở** (chỉ mục duy nhất một phần); đúng MỘT trong `order_id`/`order_service_id`; `HANDLE` chỉ ở hạt đơn (không thì `order_id` NULL lọt chỉ mục). Cố ý KHÔNG có trigger chống chồng lấn khoảng đã đóng — **LỆCH ADR-0003 điều 7 có chủ ý**: đổi người đóng dòng cũ và mở dòng mới cùng một thời điểm, mà vị từ chồng lấn mẫu của ADR coi hai đầu mút trùng là chồng lấn nên sẽ chặn chính đường đổi người. **Lưới thay thế: kiểm `R-DSP-3` của `audit-invariants`** (khoảng NỬA MỞ `[từ, đến)` của các dòng `HANDLE` cùng đơn không chồng nhau; mức đỏ; có test chạy đúng câu SQL ở `src/audit-invariants.test.ts`). Muốn chặn ngay ở CSDL thì cần trigger dùng vị từ nửa mở — việc của một migration mới + ADR |
 | `CHECK` | 0003/0011… | tập ĐÓNG: `orders.status`, `deposit_method`, `party_kind`, khuôn dạng ngày `YYYY-MM-DD` / giờ `HH:MM` |
+| `lc1_stf_permission_external_partner_only` (LC-1) | 0024 | tài khoản đang giữ vai nhóm EXTERNAL chỉ được thêm quyền Đối tác (`PARTNER`) — chặn `INSERT` vào `stf_permission`, kể cả câu `INSERT OR IGNORE` |
+| `pty_party_role_group_conflict_ins` / `_upd` (LC-3) | 0024 | một hồ sơ không được giữ cùng lúc vai nhóm INTERNAL và EXTERNAL đang mở — chặn cả mở mới (`INSERT`) lẫn mở lại vai đã đóng (`UPDATE`) |
 
 ### Migration
 
@@ -270,6 +274,7 @@ erDiagram
 | 0016 | `0016_feedback.sql` | Góp ý / Báo lỗi: chỉ THÊM `fbk_kind`, `fbk_status` (bảng tra cứu), `fbk_ticket`, `fbk_message` |
 | 0017 | `0017_order_status_audit_guards.sql` | ĐÃ lên production 2026-09-21: chỉ THÊM trigger `orders_status_transition` (CSDL chặn đơn chuyển trạng thái sai chiều) và `audit_log_no_update`/`audit_log_no_delete` (nhật ký chỉ-thêm), đối chiếu Oracle TCA |
 | 0018 | `0018_orders_booker_party.sql` | có trong repo, **CHƯA lên production**: chỉ THÊM cột `orders.booker_party_id` (TEXT, NULL được, FK `pty_party(id)` NO ACTION) + chỉ mục `orders_booker_party_idx` — người đặt trên đơn (N2 lát 1, ADR-0011) |
+| 0024 | `0024_vai_quyen_mac_dinh.sql` | có trong nhánh `gd1-mo-hinh-vai`, **CHƯA lên production**: chỉ THÊM — cột `pty_role_type.role_group` (`CHECK`), 11 dòng vai mô hình người–vai–quyền (ADR-0018) vào `pty_role_type`, bảng `stf_permission_adjustment` (`CHECK direction`), view `v_pty_open_role_group`, trigger `lc1_stf_permission_external_partner_only` (LC-1), `pty_party_role_group_conflict_ins`/`_upd` (LC-3). Số `0019` chưa dùng (giữa 0018 và 0020, xem `docs/CHANGE-GUIDE.md` bẫy số migration) |
 
 **Hai tệp cùng tiền tố `0016`** (`0016_maintenance.sql` và `0016_feedback.sql`) — chấp nhận được: wrangler theo dõi migration theo **tên đầy đủ**, không theo số, và thứ tự áp là thứ tự tên (`0016_feedback` trước `0016_maintenance`). Hai tệp hoàn toàn độc lập (bảng `fbk_*` ↔ `mnt_setting`) nên thứ tự nào cũng dựng được schema. KHÔNG đổi tên `0016_feedback.sql` (đã áp production đúng tên đó).
 
@@ -410,7 +415,9 @@ Tất cả 69 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 | GET | `/api/staff/sheet` | admin | accounts | xem trước danh sách nhân viên từ Google Sheet |
 | POST | `/api/staff/sheet/apply` | admin | accounts | tạo tài khoản cho các SĐT đã chọn (quyền `SALES`) |
 | PATCH | `/api/staff/:id` | admin | accounts | sửa tên, SĐT đăng nhập, ngưng/kích hoạt |
-| PUT | `/api/staff/:id/permissions` | admin | accounts | đặt tập quyền app của tài khoản |
+| PUT | `/api/staff/:id/permissions` | admin | accounts | đặt tập quyền app của tài khoản CHƯA gán vai mô hình người–vai–quyền (ADR-0018); tài khoản ĐÃ gán vai (role-managed) → **409 `role_managed`**, sửa qua `PUT /api/staff/:id/roles` |
+| GET | `/api/staff/:id/roles` | admin | accounts | trạng thái vai + chỉnh tay của một tài khoản: vai đang giữ (nhóm INTERNAL/EXTERNAL), quyền hiệu lực (mặc định của vai ± chỉnh tay), dòng chỉnh tay đang mở kèm `reason` — dữ liệu để trang Nhân viên xem trước trước khi lưu |
+| PUT | `/api/staff/:id/roles` | admin | accounts | đổi vai và/hoặc chỉnh tay quyền của tài khoản trong MỘT lần lưu; LC-4 (`roleAssignmentProblem`/`highPermissionProblem`) chặn người không phải Toàn quyền cấp/gỡ quyền Quản trị/Toàn quyền qua đường này — kể cả qua dòng chỉnh tay chưa có hiệu lực hôm nay ("ngủ"); vi phạm LC-1/LC-3 (trigger CSDL) → 409 `rule_violation`; tự sửa vai của chính mình → 403 |
 | POST | `/api/staff/:id/reset-pin` | admin | accounts | đặt lại PIN và mở khoá đăng nhập; cũng gỡ HẾT Face ID của tài khoản đó (ADR-0016 điều 6) |
 | POST | `/api/staff/:id/passkeys/remove-all` | admin | accounts | quản trị viên gỡ hết Face ID của một tài khoản (mất máy, nghi lộ khoá) mà không cần đặt lại PIN; luật "cấp dưới" như các route quản lý tài khoản khác (mục 8) |
 | POST | `/api/staff/:id/unlock` | admin | accounts | mở khoá đăng nhập (xoá bộ đếm theo SĐT) |
@@ -437,7 +444,7 @@ Tất cả 69 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 | GET | `/api/company` | public | company | hồ sơ công ty công khai `{ company }`: tên, MST, địa chỉ, hotline, email (không Zalo/logo/người sửa) |
 | GET | `/api/maintenance` | admin | maintenance | `{ on, endsAt, canToggle }` — `canToggle` = chính người gọi có được bật/tắt không (nằm trong danh sách được phép); KHÔNG trả danh sách |
 | PUT | `/api/maintenance` | admin | maintenance | `{ on, endsAt? }` bật/tắt chế độ bảo trì; trả `{ on, endsAt, canToggle: true }`. 403 `forbidden` (không nằm trong danh sách được phép), 400 `invalid_input` (thiếu/sai `on`; bật mà thiếu/sai giờ dự kiến, giờ không ở tương lai, hoặc quá 7 ngày). Ghi nhật ký `maintenance_changed` (không SĐT) cùng một `db.batch()` với câu cập nhật |
-| GET | `/api/parties/meta` | office | parties | loại vai trò và loại quan hệ |
+| GET | `/api/parties/meta` | office | parties | loại vai trò (TẤT CẢ, kể cả 11 vai mô hình người–vai–quyền — ADR-0018 — kèm `group` INTERNAL/EXTERNAL/OTHER và `active`) và loại quan hệ |
 | GET | `/api/parties/lookup` | office | parties | tra hồ sơ theo SĐT (cảnh báo trùng) |
 | GET | `/api/parties` | office | parties | danh sách hồ sơ, tìm/lọc, phân trang |
 | POST | `/api/parties` | office | parties | tạo hồ sơ cá nhân hoặc tổ chức |
@@ -445,8 +452,8 @@ Tất cả 69 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 | PUT | `/api/parties/:id` | office | parties | sửa hồ sơ (khoá lạc quan) |
 | POST | `/api/parties/:id/contacts` | office | parties | thêm điểm liên hệ |
 | POST | `/api/parties/:id/contacts/:cid/end` | office | parties | đóng một điểm liên hệ |
-| POST | `/api/parties/:id/roles` | admin | parties | gán vai trò hồ sơ (kèm nơi, khoảng hiệu lực) |
-| POST | `/api/parties/:id/roles/:rid/end` | admin | parties | kết thúc một vai trò |
+| POST | `/api/parties/:id/roles` | admin | parties | gán vai trò hồ sơ (kèm nơi, khoảng hiệu lực); vai nhóm INTERNAL/EXTERNAL (mô hình người–vai–quyền, ADR-0018) → **409 `role_via_account`** — vai này chỉ gán được ở trang Nhân viên (`GET/PUT /api/staff/:id/roles`), không qua route Hồ sơ |
+| POST | `/api/parties/:id/roles/:rid/end` | admin | parties | kết thúc một vai trò; vai nhóm INTERNAL/EXTERNAL → **409 `role_via_account`** cùng lý do trên |
 | POST | `/api/parties/:id/relationships` | admin | parties | thêm quan hệ giữa hai hồ sơ |
 | POST | `/api/parties/:id/relationships/:rid/end` | admin | parties | kết thúc một quan hệ |
 | POST | `/api/feedback` | staff | feedback | gửi yêu cầu Góp ý / Báo lỗi (`clientRequestId` chống gửi trùng; trần 5 yêu cầu/giờ giữ bằng MỘT câu `INSERT … SELECT … WHERE (đếm) < trần`); báo email admin chạy trong `waitUntil`, lỗi không làm hỏng yêu cầu |
@@ -508,6 +515,18 @@ Các ô "chưa có route" có mặt để **khoá bản đồ bằng test** (`sr
 Nơi `can()` thực sự được gọi trong mã: `src/modules/orders/index.ts` (6 lời gọi: `order.create`, `order.history.view`, `order.modify` ở `canModify`/`PUT`/`status`, `order.trip.edit`; các route đó truyền `assigned` từ `ctx.isAssigned(id)`, `GET /api/orders/:id` tính MỘT lần cho cả nhật ký và `canModify` để cờ và máy chủ luôn khớp nhau), `src/modules/dispatch/rules.ts` (`dispatch.assign`, `dispatch.claim`, và `order.modify` với `assigned: true` để xét ai được giao phụ trách), `web/shell.ts`, `web/orders.ts`, `web/order-form.ts`, và `src/shared/handler-view.ts` (`handlerControls`: nút đổi/nhận người phụ trách của `web/order.ts`; Sửa/Xác nhận/Huỷ ở trang đơn KHÔNG gọi `can()` mà theo cờ `canModify` của máy chủ), `src/modules/feedback/index.ts` (`feedback.submit`, `feedback.view` với `ownerId` = người gửi, `feedback.triage`) và `web/feedback.ts` + `web/shell.ts`/`web/account.ts` (chấm đỏ, tab hàng đợi). Giao diện chỉ **ẩn/hiện**; máy chủ luôn kiểm lại.
 Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép — `src/architecture.test.ts` bắt mọi tệp ngoài `src/modules/parties/` nhắc tới `pty_party_role`.
 Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi theo nơi (chi nhánh, đại lý tự xem đơn) chỉ khi đạt ngưỡng của `docs/adr/ADR-0010-nguong-mo-rong-sau-doi-chieu-oracle.md` điều 1** (accepted 2026-09-21); tác nhân tự động ghi dữ liệu thay người dùng theo điều 3 của ADR đó. Hai ngoại lệ đã quyết cho N2 lát 1 (đã thi công trên nhánh, migration `0018` **chưa lên production**): lập/sửa đơn được tạo hồ sơ khách + vai `CUSTOMER` (`POST`/`PUT /api/orders`), và đổi người đặt của đơn đã xác nhận theo `order.trip.edit` (`PUT /api/orders/:id/booker`) — `docs/adr/ADR-0011-khach-tren-don-ngoai-le-quyen.md`.
+
+### Vai → quyền (ADR-0018, mô hình người–vai–quyền, GĐ1 — nhánh `gd1-mo-hinh-vai`, migration `0024` CHƯA lên production)
+
+Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`/`SUPER_ADMIN`) **không đổi một ô nào** ở giai đoạn này. Bên cạnh đó, tài khoản có thể được gán MỘT hoặc nhiều trong **11 vai** khai ở `src/shared/roles.ts` (đối chiếu `pty_role_type` bằng `src/roles-schema.test.ts`): Giám đốc, Điều hành chung, Hướng dẫn viên nội bộ, Nhân viên kinh doanh, Kế toán (dùng lại mã `ACCOUNTANT` cũ), Thực tập sinh (`INTERN`, mã vai TRÙNG mã quyền, tạm hẹp — chỉ `order.create` phạm vi `own`) — nhóm INTERNAL; Công ty lữ hành, Hướng dẫn viên độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên — nhóm EXTERNAL. Vai nhóm INTERNAL/EXTERNAL chỉ gán/đổi/kết thúc được ở **trang Nhân viên** (`GET`/`PUT /api/staff/:id/roles`); route vai của Hồ sơ (`POST /api/parties/:id/roles`, `.../end`) từ chối các vai này bằng 409 `role_via_account` (§7). Vai nhóm OTHER (khách, HDV/tài xế/đại lý kiểu cũ…) vẫn quản lý ở trang Hồ sơ như trước, không đổi.
+
+**Quyền hiệu lực của một tài khoản đã gán vai** = quyền MẶC ĐỊNH của (các) vai đang giữ, **cộng** mã trong dòng chỉnh tay `direction = 'ADD'` đang mở, **trừ** mã trong dòng chỉnh tay `direction = 'REMOVE'` đang mở (bảng `stf_permission_adjustment`), rồi **lọc bởi LC-1** (tài khoản giữ vai EXTERNAL chỉ còn lại mã `PARTNER`, nếu có). `stf_permission` (bảng cũ) là bản **hiện thực hoá** của phép tính này tại thời điểm lưu — nơi DUY NHẤT tính lại là `roleChangeStatements` (module `staff`); không nơi nào khác được tự suy ra quyền từ vai.
+
+**LC-4 (không ai tự cấp/gỡ Quản trị+Toàn quyền trừ Toàn quyền)** áp dụng ở MỌI đường cấp quyền, kể cả đường vai và đường chỉnh tay "ngủ" (chưa đổi quyền ròng hôm nay nhưng sẽ tự kích hoạt khi vai đổi sau): `roleAssignmentProblem`/`highPermissionProblem` (`src/shared/roles.ts`) so `currentAdjustments` (dòng chỉnh tay THẬT đang có của tài khoản) với dòng mới, cả hai chiều cấp/gỡ. Bốn đường gọi: `PUT /api/staff/:id/roles` (route mới), `PUT /api/staff/:id/permissions` (route cũ), `POST /api/staff` (tạo mới, route cũ), `POST /api/staff/sheet/apply` (nạp từ Sheet — không cấp cao, luôn `{adds:[],removes:[]}`).
+
+**Route quyền cũ khoá với tài khoản đã gán vai (role-managed):** `PUT /api/staff/:id/permissions` trả 409 `role_managed` cho tài khoản đã có vai mô hình mới — sửa quyền của tài khoản đó phải qua `PUT /api/staff/:id/roles`. Tài khoản CHƯA gán vai không đổi gì (không có câu nào tự tính lại quyền của họ khi phát hành 0024).
+
+**Giao diện** (`web/staff.ts`, `web/role-picker.ts`): chọn vai theo nhóm, xem trước quyền hiệu lực TRƯỚC khi lưu, chặn LC-3 ngay ở giao diện (chọn vai nội bộ tắt lựa chọn nhóm bên ngoài và ngược lại) — máy chủ luôn kiểm lại. Trang Hồ sơ hiện dòng "Đổi ở trang Nhân viên" thay nút "Kết thúc" cho vai do trang Nhân viên quản lý (ADR-0018, R18), và ô thêm vai trò của Hồ sơ không còn liệt kê 11 vai Nội bộ/Bên ngoài này.
 
 ---
 

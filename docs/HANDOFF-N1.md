@@ -387,6 +387,30 @@ Chủ dự án quyết và TỰ CHẠY các lệnh ghi lên remote (`wrangler d1
 - **KHÔNG xoá bảng `aut_passkey`:** không có migration "contract" nào gỡ bảng này ở lần phát hành này.
 - Ghi việc hoàn tác (ngày, lý do) vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp này.
 
+## Lần phát hành kế tiếp: `0024` (mô hình người–vai–quyền, ADR-0018, GĐ1) — RUNBOOK
+
+Chủ dự án quyết và TỰ CHẠY các lệnh ghi lên remote (`wrangler d1 migrations apply --remote`, `wrangler deploy`) trong ứng dụng Terminal của macOS — `CLAUDE.md` §8: AI không tự chạy các lệnh này; mục này chỉ chuẩn bị và liệt kê NGUYÊN LỆNH, không phải lệnh để AI gõ. Mã: `migrations/0024_vai_quyen_mac_dinh.sql` **cùng với mã** module `staff`/`accounts`/`parties` (11 vai, trang Nhân viên chọn vai, route `GET/PUT /api/staff/:id/roles`) và giao diện (`web/role-picker.ts`, `web/staff.ts`, `web/parties.ts`). Đặc tả: `docs/superpowers/specs/2026-09-24-mo-hinh-nguoi-vai-quyen-design.md`; kế hoạch: `docs/superpowers/plans/2026-09-24-mo-hinh-vai-gd0-gd1.md`; ADR: `docs/adr/ADR-0018-mo-hinh-nguoi-vai-quyen.md`.
+
+**Migration `0024` CHỈ THÊM** — cột `pty_role_type.role_group`, 11 dòng vai mới trong `pty_role_type`, bảng `stf_permission_adjustment`, view `v_pty_open_role_group`, hai trigger CSDL (LC-1, LC-3). **Không đổi quyền của bất kỳ tài khoản nào đang có** — không có câu nào tự tính lại quyền cho tài khoản chưa được gán vai mới; route quyền cũ (`PUT /api/staff/:id/permissions`) vẫn chạy y như trước cho tài khoản chưa gán vai.
+
+**Trước khi deploy — một lệnh chỉ đọc, chủ dự án tự chạy, để biết trước có bao nhiêu tài khoản sẽ đổi cách quản lý (không đổi quyền):** hồ sơ đang giữ vai "Kế toán" (mã cũ `ACCOUNTANT`) không gắn với một địa điểm cụ thể, đang mở — sau khi áp `0024`, các tài khoản này sẽ được đọc là đã có vai mô hình mới (vai nhóm INTERNAL, spec §4 "ACCOUNTANT dùng lại"), tức trở thành "role-managed": sửa quyền của họ sau đó phải qua trang Nhân viên, route quyền cũ trả 409 thay vì áp dụng — QUYỀN THỰC TẾ của họ không đổi một ô nào.
+
+```
+npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT count(*) FROM pty_party_role WHERE role_type_code = 'ACCOUNTANT' AND location_id IS NULL AND valid_to_date IS NULL"
+```
+
+(Dùng `--command`, KHÔNG dùng `--file`: đường `--file` đi qua cổng nhập khác, từ chối xác thực OAuth — xem `docs/superpowers/sdd/2026-09-24-mo-hinh-vai-gd0-gd1/` mục tham chiếu `wrangler d1 remote --file`.)
+
+**Sau khi áp `0024`:**
+1. `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` (nhìn TÊN) → sạch, không còn migration chờ.
+2. `node scripts/audit-invariants.mjs --db remote` (chỉ đọc) → **R-LC-1 và R-LC-3 phải = 0 vi phạm.** Kiểm "thông tin" (mức nhẹ hơn, không `--strict`) có thể cảnh báo — không đỏ khi không chạy `--strict`; chạy `--strict` riêng nếu muốn xem đủ.
+3. **KHÔNG gán vai hàng loạt.** Chưa có bảng đối chiếu "tài khoản nào nên mang vai nào" — việc đó thuộc đặc tả §14 giai đoạn 2 (chưa làm). Sau khi 0024 lên production, mọi tài khoản (kể cả các dòng "Kế toán" đếm được ở bước trên) vẫn hoạt động y như trước cho tới khi có người vào trang Nhân viên gán vai TỪNG tài khoản một, có xem trước quyền trước khi lưu.
+
+**Báo trước nhân viên (trước khi bấm deploy, không phải sau):**
+- Nhãn quyền "Super Admin" đổi tên thành **"Toàn quyền"**.
+- Chỉ tài khoản **Toàn quyền** mới cấp được quyền **Quản trị** cho người khác (trước đây Quản trị cũng cấp được).
+- Trang Hồ sơ không còn cho thêm vai kiểu cũ "Hướng dẫn viên"/"Bán hàng"/"Đại lý"/"Nhân sự" (nay là vai nhóm Nội bộ/Bên ngoài, chỉ gán được ở trang Nhân viên) — hồ sơ đã có sẵn các vai này KHÔNG bị đổi, chỉ route THÊM MỚI qua Hồ sơ bị khoá.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
@@ -474,3 +498,8 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 - **Face ID lát 2 (đăng nhập bằng Google) chưa lập kế hoạch:** mô phỏng chuyển hướng qua tên miền khác ở lát 0 chưa có kết quả (`docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md`) — chưa rõ cửa sổ app cài (PWA) có giữ cookie và quay về đúng cửa sổ sau khi rời tên miền hay không. Phải thử lại bước đó trước khi lập kế hoạch lát 2. Zalo (lát 3, nếu chủ muốn) để sau.
 - **Route đăng nhập bằng Face ID chưa có hạn mức riêng theo SĐT/tài khoản** (`POST /api/auth/passkey/login`) — chỉ có hạn mức xin thách thức theo IP ở `POST /api/auth/passkey/options` (`CHALLENGE_IP_LIMIT`, 120 lần/15 phút); route `login` không tự giới hạn số lần thử assertion. Rủi ro thấp (một khoá sai gần như không đoán được — không phải PIN 6 số) nhưng ghi nhận là giới hạn đã biết, chưa có test/route chặn riêng.
 - **Kịch bản e2e `passkey` không trả lại mã PIN của tài khoản FIELD** (`tests/e2e/passkey.mjs`, quanh dòng 229–237: admin đặt lại PIN, kịch bản dùng mã mới rồi không đặt về `ACCOUNTS.field.pin`) — chạy `passkey` TRƯỚC `maintenance` (vd `npm run test:e2e -- passkey maintenance`) thì `maintenance` đỏ vì đăng nhập FIELD sai PIN. Thứ tự đủ bộ hiện tại (`maintenance` trước `passkey`) không dính. Có từ `d808c36`; chưa sửa (ghi nhận khi kiểm nhánh Trợ giúp, 2026-09-23).
+- **Mô hình người–vai–quyền GĐ1 (ADR-0018, nhánh `gd1-mo-hinh-vai`, migration `0024`), bốn điểm ⚠️ chờ chủ hoặc phiên GĐ2 quyết** — chi tiết và bằng chứng: `docs/superpowers/plans/2026-09-24-mo-hinh-vai-thi-cong-nhat-ky.md`:
+  1. Hồ sơ đang giữ vai "Kế toán" (mã cũ `ACCOUNTANT`) không gắn địa điểm, đang mở, sẽ được đọc là vai mô hình mới sau khi áp `0024` (câu đếm ở mục runbook `0024` phía trên) — quyền không đổi, chỉ đổi nơi sửa (trang Nhân viên thay vì route quyền cũ).
+  2. Tạo tài khoản MỚI trên một hồ sơ ĐÃ CÓ vai kiểu cũ (`STAFF`/`SALES`/`GUIDE`/`AGENT`) không tự đóng các dòng vai cũ đó — đổi vai (không phải tạo tài khoản) mới đóng. Là câu hỏi dữ liệu, không phải lỗi.
+  3. Route vai còn nhận gán MỚI cho mã vai đã ngưng dùng (`active = 0`) — chưa bị chặn ở máy chủ.
+  4. Một quản trị viên tự sửa vai của CHÍNH MÌNH ở trang Nhân viên nhận lỗi 403 tiếng Việt (không có nút khoá riêng, chỉ chặn lúc lưu) — cần polish giao diện sau.
