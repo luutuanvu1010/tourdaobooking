@@ -155,3 +155,27 @@ test("stf_permission_adjustment.direction: tập đóng, ép bằng CHECK (ADR-0
     /CHECK/,
   );
 });
+
+// Đặc tả tiêu chí 11 (Minor 1, kiểm toàn nhánh 2026-09-24): phát hành 0024 KHÔNG đổi quyền/vai của tài khoản hiện có — tệp migration không được có
+// câu GHI (INSERT/REPLACE/UPDATE/DELETE) nào vào bảng quyền, bảng chỉnh tay, bảng tài khoản hay bảng vai hồ sơ. Kiểm bằng văn bản: bỏ chú thích `--`,
+// không phân biệt hoa thường, tên bảng phải đứng NGAY sau từ khoá ghi (nên "BEFORE UPDATE ON pty_party_role" của trigger không bị tính) và so nguyên tên
+// (stf_permission_type là danh mục, được phép ghi). Quét cả thân trigger — trigger ghi vào các bảng này cũng bị tính (chặt hơn cần thiết, cố ý).
+const PROTECTED = ["stf_permission", "stf_permission_adjustment", "staff", "pty_party_role"];
+function writesIn(sql: string): { verb: string; table: string }[] {
+  const text = sql.replace(/--[^\n]*/g, " ");
+  const re = /\b(INSERT\s+(?:OR\s+\w+\s+)?INTO|REPLACE\s+INTO|UPDATE\s+(?!(?:ON|OF)\b)(?:OR\s+\w+\s+)?|DELETE\s+FROM)\s*([A-Za-z_][A-Za-z0-9_]*)/gi;
+  return [...text.matchAll(re)].map((m) => ({ verb: m[1]!.split(/\s+/)[0]!.toUpperCase(), table: m[2]!.toLowerCase() }));
+}
+
+test("tiêu chí 11: migration 0024 không ghi vào bảng quyền, bảng tài khoản hay bảng vai hồ sơ (không đổi quyền/vai của tài khoản hiện có)", () => {
+  const file = readdirSync(DIR).find((f) => f.startsWith("0024_") && f.endsWith(".sql"));
+  assert.ok(file, "phải có tệp migrations/0024_*.sql");
+  const writes = writesIn(readFileSync(new URL(file, DIR), "utf8"));
+  // Kiểm chính bộ quét (tránh "kiểm giả"): nó PHẢI thấy các câu ghi danh mục có thật trong 0024, và không nhầm trigger với câu ghi.
+  assert.ok(writes.some((w) => w.verb === "INSERT" && w.table === "pty_role_type"), "bộ quét phải thấy INSERT INTO pty_role_type");
+  assert.ok(writes.some((w) => w.verb === "UPDATE" && w.table === "stf_permission_type"), "bộ quét phải thấy UPDATE stf_permission_type");
+  assert.deepEqual(writesIn("CREATE TRIGGER t BEFORE UPDATE ON pty_party_role BEGIN SELECT 1; END;"), [], "trigger 'BEFORE UPDATE ON' không phải câu ghi");
+  assert.deepEqual(writesIn("update  Stf_Permission set x = 1; -- DELETE FROM staff\n"), [{ verb: "UPDATE", table: "stf_permission" }]);
+  const bad = writes.filter((w) => PROTECTED.includes(w.table));
+  assert.deepEqual(bad, [], `0024 ghi vào bảng tài khoản/quyền/vai: ${JSON.stringify(bad)}`);
+});
