@@ -175,3 +175,35 @@ test("403 đứng TRƯỚC 400: thân yêu cầu sai với hồ sơ không đư�
   assert.equal((await w.call("PUT", `/api/parties/${pty(ADM)}`, { as: SALES, body: { rác: 1 } })).status, 403);
   assert.equal((await w.call("POST", `/api/parties/${pty(ADM)}/contacts`, { as: SALES, body: { kind: "FAX" } })).status, 403);
 });
+
+// Kiểm độc lập I-1 (2026-09-24, ADR-0013 điều 5): không tạo tài khoản trên hồ sơ ĐANG NGƯNG. Chặn ở src/modules/staff/index.ts
+// (createAccountWithRolesStatements, dòng `if (!party.active) return { ok: false, ... }`), lộ ra ở POST /api/staff thành 409 account_rule
+// (src/modules/accounts/index.ts). Xoá dòng chặn đó thì mọi test khác vẫn xanh — chỉ ca này bắt được lỗ.
+test("ADR-0013 điều 5 / I-1: không tạo tài khoản trên hồ sơ đang NGƯNG (409 account_rule); hồ sơ đang hoạt động thì tạo được (201)", async () => {
+  const w = setup();
+
+  // Đối chứng dương: hồ sơ đang hoạt động → tạo tài khoản trên hồ sơ có sẵn được (201).
+  const active = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Khách Còn Hoạt Động", contacts: [] } });
+  assert.equal(active.status, 201, active.text);
+  const activeId = active.json.party.id;
+  const beforeCountOk = w.q("SELECT count(*) n FROM staff")[0].n;
+  const created = await w.call("POST", "/api/staff", { as: ADM, body: { roles: ["SALES_STAFF"], phone: "0900000097", partyId: activeId } });
+  assert.equal(created.status, 201, created.text);
+  assert.equal(w.q("SELECT count(*) n FROM staff")[0].n, beforeCountOk + 1);
+  assert.equal(w.q("SELECT count(*) n FROM staff WHERE party_id = ?", activeId)[0].n, 1);
+
+  // Ca chính: hồ sơ đang ngưng (chưa có tài khoản nên được phép tự ngưng) → tạo tài khoản phải bị chặn.
+  const made = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Khách Sẽ Ngưng", contacts: [] } });
+  assert.equal(made.status, 201, made.text);
+  const inactiveId = made.json.party.id;
+  const stopped = await rename(w, SALES, inactiveId, "Khách Sẽ Ngưng", false);
+  assert.equal(stopped.status, 200, stopped.text);
+  assert.equal(w.q("SELECT active a FROM pty_party WHERE id = ?", inactiveId)[0].a, 0);
+
+  const beforeCount = w.q("SELECT count(*) n FROM staff")[0].n;
+  const blocked = await w.call("POST", "/api/staff", { as: ADM, body: { roles: ["SALES_STAFF"], phone: "0900000098", partyId: inactiveId } });
+  assert.equal(blocked.status, 409, blocked.text);
+  assert.equal(blocked.json.error.code, "account_rule");
+  assert.equal(w.q("SELECT count(*) n FROM staff")[0].n, beforeCount, "không tạo thêm dòng staff");
+  assert.equal(w.q("SELECT count(*) n FROM staff WHERE party_id = ?", inactiveId)[0].n, 0, "không có tài khoản gắn hồ sơ đang ngưng");
+});
