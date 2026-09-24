@@ -163,6 +163,8 @@ test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s
   // Đo thời gian CPU của chính tiến trình (process.cpuUsage), không đo đồng hồ: máy bận vì việc khác (nhiều phiên song song)
   // từng đẩy thời gian đồng hồ lên 2–2,3 s và chặn nhầm `day-len`/`trien-khai`, trong khi hook vẫn chạy ~0,6 s. evaluateBash chạy
   // đồng bộ, không chờ I/O, nên chậm thật của hook = tốn CPU và vẫn bị bắt. Ngưỡng giữ 1500 ms (chủ chọn 2026-09-24).
+  // TIỀN ĐỀ: guard-remote-lib.mjs thuần, không import, không đọc tệp/execSync/Atomics.wait. Thêm chờ đồng bộ vào đó thì test
+  // này BỎ LỌT (kiểm độc lập đã chứng minh bằng Atomics.wait 1 s) — khi ấy phải đo lại bằng đồng hồ hoặc thêm test riêng.
   const cpu = process.cpuUsage();
   evaluateBash("echo " + "$(".repeat(3000), { branch: "worktree-x" });
   evaluateBash("x".repeat(500_000), { branch: "worktree-x" });
