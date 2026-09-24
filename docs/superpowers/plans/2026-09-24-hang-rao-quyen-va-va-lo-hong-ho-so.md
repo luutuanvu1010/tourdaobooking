@@ -1,6 +1,6 @@
 # Kế hoạch: hàng rào quyền + vá lỗ hổng "nhân viên sửa hồ sơ nhân viên"
 
-- **Ngày:** 2026-09-24   **Trạng thái:** GĐ0 thi công trên nhánh `worktree-hang-rao-quyen` (chưa gộp); GĐ1–GĐ4 chờ chủ dự án quyết (§5).
+- **Ngày:** 2026-09-24   **Trạng thái:** GĐ0 đã gộp `main`; §5 chủ dự án đã quyết; ba luật (GĐ4) đã có hiệu lực. **GĐ1: kế hoạch thi công `docs/superpowers/plans/2026-09-24-gd1-adr-0013-thi-cong.md` + ADR-0013 bản sửa 2 (nhánh `ke-hoach-gd1-adr-0013`), chờ chủ duyệt.** GĐ2–3 chưa bắt đầu.
 - **Liên quan:** kiểm toán `docs/AUDIT-2026-09-22-KIEN-TRUC.md` F-01/F-07; `docs/adr/ADR-0013` (proposed); ADR-0001/0005/0007 (accepted 2026-09-20); ADR-0014 điều 8; ADR-0017 (accepted 2026-09-24, nhánh `dot-e-the-don-gon-va-bieu-tuong`); đặc tả 11 vai (nhánh `mo-hinh-nguoi-vai-quyen`, chờ duyệt); Hiến pháp P4, P8, P16, P17, P20, P21, N7.
 - **Bằng chứng chạy thật:** `tests/audit/redteam.test.mjs` R3/R3b/R3c/R3d; `docs/evidence/2026-09-24-lo-hong-ho-so/`.
 - **Nguyên tắc của tài liệu này:** mô tả (thua mã); ngày hạn trong `docs/quyen-hoan.json` là **đề xuất**, chủ dự án xác nhận mới thành hạn thật.
