@@ -2,7 +2,20 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Đăng nhập bằng Face ID (ADR-0016 lát 1) ĐÃ LÊN PRODUCTION (2026-09-23 19:48 giờ VN, chủ dự án tự chạy `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.4: trang Trợ giúp + nhật ký thay đổi ĐÃ LÊN PRODUCTION (2026-09-24 08:27 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-changelog-tro-giup` rồi `npm run trien-khai`)
+
+AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-24, khoảng 08:35 giờ VN:
+
+- **Phiên bản: 1.4.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.4." (thoát 0); `GET /api/auth/config` trả `"version":"1.4"`; `GET /help` → 200.
+- **Mã trên `main` / GitHub:** `origin/main` = d00f8d4 (gộp nhánh `worktree-changelog-tro-giup`, đã chứa Đợt D + sửa Đối tác).
+- **Worker:** `wrangler deployments list` → bản mới nhất **7ce5b2f1-c3a0-46af-9282-a26daca31114**, tạo 2026-09-24T01:27:05Z. Mốc lùi (bản ngay trước): **feed0f32-d579-4fe5-93ef-654932b72c4d** (2026-09-23T23:48Z). Trước nữa: ad71111d (2026-09-23T15:42Z) — hai lần deploy Đợt D/sửa Đối tác này chưa từng được ghi ở đây.
+- **Migration:** `wrangler d1 migrations list tourdao-sales-db --remote` → "No migrations to apply" (lần này không có migration mới).
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt (D1 remote)", thoát 0.
+- **Lần chạy `trien-khai` đầu tiên dừng ở `npm test`**, không ghi gì lên remote: test đo thời gian `guard-remote: lệnh dị dạng không làm hook quá giờ` (`src/claude-guard.test.ts:162`) chạy 2003 ms > ngưỡng 1500 ms khi máy bận (tải trung bình ≈ 7,9). Chạy lại thì qua. Nợ: test này chập chờn khi máy bận; nới ngưỡng = nới kiểm của hàng rào → chủ quyết.
+- **Chế độ bảo trì vẫn BẬT** tới 2026-09-24T06:59Z (13:59 giờ VN); `trien-khai` không đụng tới.
+- **Chưa kiểm:** trang Trợ giúp, chấm đỏ, menu dọc trên iPhone/iPad thật ở production.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Đăng nhập bằng Face ID (ADR-0016 lát 1) ĐÃ LÊN PRODUCTION (2026-09-23 19:48 giờ VN, chủ dự án tự chạy `npm run trien-khai`)
 
 Chủ chạy lệnh ở ứng dụng Terminal. Khối tóm tắt lệnh in ra không hiện trên màn hình của chủ, nên các dòng dưới đây do AI **kiểm lại bằng lệnh chỉ đọc** lúc 2026-09-23, khoảng 20:00 giờ VN.
 
