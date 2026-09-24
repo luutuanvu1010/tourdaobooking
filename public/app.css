@@ -90,7 +90,8 @@
   --login-body-bottom: 16px; /* khoảng từ dòng phiên bản tới vạch chân trang (điện thoại) — chủ dự án 2026-09-24 bỏ khoảng trống để trang không phải kéo (bản thiết kế 40px + phần giãn) */
   --fs-login-title: 26px;   /* tiêu đề "Tour Đảo Booking" — điện thoại */
   --fs-login-title-wide: 32px; /* tiêu đề — màn ≥ 900px */
-  --h-field: 56px;          /* ô gõ, nút Đăng nhập, nút sinh trắc học — điện thoại */
+  --h-field: 52px;          /* ô gõ, nút Đăng nhập, nút sinh trắc học — điện thoại (bản thiết kế 56px; thu 52px = cỡ máy tính để vừa một màn hình, chủ dự án 2026-09-24) */
+  --logo-login-phone: 48px; /* logo trên điện thoại (bản thiết kế 72px; thu nhỏ để vừa một màn hình kể cả Safari + widget Turnstile, chủ dự án 2026-09-24) */
   --h-field-wide: 52px;     /* cùng các ô/nút đó — màn ≥ 900px */
   --fs-field: 17px;         /* chữ trong ô gõ (≥ 16px nên iOS không tự phóng to) */
   --ring-field: 3px;        /* vành xanh nhạt quanh ô đang gõ */
@@ -646,7 +647,6 @@ html:has(body.login-page) { height: 100%; overflow: hidden; }
 body.login-page { height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); }
 body.login-page main.login { display: flex; flex-direction: column; height: 100%; max-width: none; margin: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s2) max(var(--login-side), env(safe-area-inset-right)) calc(var(--login-side) + env(safe-area-inset-bottom)) max(var(--login-side), env(safe-area-inset-left)); }
 .login-body { flex: 1 0 auto; display: flex; align-items: flex-start; justify-content: center; padding: var(--s6) 0 var(--login-body-bottom); }
-@media (max-width: 899px) { .login-body { flex: none; } } /* điện thoại: khối giữa KHÔNG giãn — chân trang nằm ngay dưới dòng phiên bản (chủ dự án 2026-09-24), chỗ thừa (nếu có) để dưới chân trang */
 .login-col { display: flex; flex-direction: column; width: 100%; max-width: var(--w-login); min-width: 0; }
 .login-logo { display: block; width: var(--logo-login); height: var(--logo-login); margin: 0 auto var(--s4); border-radius: var(--radius-icon); box-shadow: var(--shadow-card); }
 .login-col h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--fs-login-title); line-height: 1.22; color: var(--c-primary); text-align: center; }
@@ -686,6 +686,16 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .login-info { flex: none; display: flex; flex-direction: column; align-items: center; padding-top: var(--s4); border-top: 1px solid var(--c-border); font-size: var(--fs-badge); line-height: 1.6; color: var(--c-text-muted); text-align: center; }
 .login-company-name { font-weight: 800; color: var(--c-text); }
 .login-address { text-wrap: balance; }
+/* Điện thoại — VỪA MỘT MÀN HÌNH kể cả Safari có thanh công cụ (390×664) và widget Turnstile (chủ dự án 2026-09-24: "không phải kéo" ở cả app cài lẫn Safari).
+   Lệch bản thiết kế có chủ ý: khối giữa KHÔNG giãn (chân trang nằm ngay dưới dòng phiên bản), logo 48px, ô/nút 52px, khoảng cách gọn hơn. Máy tính giữ nguyên bản thiết kế. */
+@media (max-width: 899px) {
+  .login-body { flex: none; padding-top: var(--s4); }
+  .login-logo { width: var(--logo-login-phone); height: var(--logo-login-phone); margin-bottom: var(--s3); }
+  .login-form { gap: var(--s3); margin-top: var(--s5); }
+  .login-actions { margin-top: 0; }
+  .login-support { margin-top: var(--s4); }
+  .login-info { padding-top: var(--s3); }
+}
 @media (min-width: 900px) {
   body.login-page main.login { padding: var(--s5) var(--s7) var(--s6); }
   .login-body { align-items: center; padding: var(--s2) 0; } /* bản thiết kế đệm 48px, nhưng khối được CĂN GIỮA nên khi đủ chỗ trông y hệt; đệm tối thiểu nhỏ để có widget Turnstile (bản thiết kế không có) vẫn vừa 1280×800 không cuộn */

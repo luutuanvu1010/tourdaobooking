@@ -56,7 +56,8 @@ try {
 
   // 1) Có Face ID (máy chủ bật passkey, Chrome có PublicKeyCredential): nút tròn chỉ biểu tượng đứng NGAY CẠNH nút "Đăng nhập"; trang vừa một
   //    màn hình (390×664 ≈ vùng nhìn thấy của Safari trên iPhone 14 khi có thanh địa chỉ + thanh công cụ; 1040×800 máy tính), có widget Turnstile.
-  for (const [vp, name] of [[view(390, 844, true), "co-face-id-dien-thoai.png"], [view(1280, 800, false), "co-face-id-may-tinh.png"]]) {
+  // 390×664 ≈ vùng nhìn thấy của Safari trên iPhone thường (thanh địa chỉ + thanh công cụ) — chủ dự án 2026-09-24: phải vừa, không phải kéo.
+  for (const [vp, name] of [[view(390, 664, true), "co-face-id-dien-thoai.png"], [view(1280, 800, false), "co-face-id-may-tinh.png"]]) {
     const p = await open(vp, name);
     await p.waitFor("!document.getElementById('passkey-login').hidden", "nút Face ID hiện", 10000);
     // Bản thiết kế: nút Đăng nhập mờ/khoá tới khi SĐT ≥ 10 chữ số và PIN đủ 6 số.
@@ -75,7 +76,7 @@ try {
     assert.equal(m.noVScroll, true, `${vp.width}×${vp.height}: trang phải vừa một màn hình, không có gì để cuộn — ${JSON.stringify(m)}`);
     assert.equal(m.pageOverflow, "hidden", `body không cuộn — ${JSON.stringify(m)}`);
     const wide = vp.width >= 900;
-    assert.deepEqual({ oGoCao: m.oGoCao, nutCao: m.nutCao, chuOGo: m.chuOGo, logo: m.logo }, { oGoCao: wide ? 52 : 56, nutCao: wide ? 52 : 56, chuOGo: "17px", logo: 72 }, `số đo đúng bản thiết kế — ${JSON.stringify(m)}`);
+    assert.deepEqual({ oGoCao: m.oGoCao, nutCao: m.nutCao, chuOGo: m.chuOGo, logo: m.logo }, { oGoCao: 52, nutCao: 52, chuOGo: "17px", logo: wide ? 72 : 48 }, `số đo: máy tính đúng bản thiết kế; điện thoại thu gọn (ô 52px, logo 48px — chủ dự án 2026-09-24, để vừa một màn hình) — ${JSON.stringify(m)}`);
     assert.ok(m.cot <= 400, `cột ≤ 400px — ${JSON.stringify(m)}`);
     assert.equal(m.noHScroll, true, `không cuộn ngang — ${JSON.stringify(m)}`);
     // Nút chỉ có biểu tượng (chủ dự án chốt 2026-09-24): không chữ, có biểu tượng, tên đọc được ở aria-label, tròn ≥ 44px.
