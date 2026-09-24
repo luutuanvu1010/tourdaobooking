@@ -51,7 +51,8 @@ try {
     assert.equal(m.passkeyBlock, true, `khối Face ID phải hiện — ${JSON.stringify(m)}`);
     assert.equal(m.submitBg, "rgb(234, 242, 248)", `nút PIN phải là kiểu phụ (--c-surface-alt) khi có Face ID — ${JSON.stringify(m)}`);
     assert.equal(m.noHScroll, true, `không cuộn ngang — ${JSON.stringify(m)}`);
-    assert.equal(await p.ev("document.getElementById('passkey-login').textContent"), "Tiếp tục với Face ID");
+    // Nút chỉ có biểu tượng (chủ dự án chốt 2026-09-24): không chữ, có biểu tượng, tên đọc được ở aria-label, tròn ≥ 44px.
+    assert.deepEqual(await p.ev("(() => { const b = document.getElementById('passkey-login'); const r = b.getBoundingClientRect(); return { chu: b.textContent, bieuTuong: !!b.querySelector('svg'), ten: b.getAttribute('aria-label'), vuong: Math.round(r.width) === Math.round(r.height), du44: r.height >= 44 }; })()"), { chu: "", bieuTuong: true, ten: "Đăng nhập bằng Face ID hoặc vân tay", vuong: true, du44: true });
     assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
     await shot(p, name);
     p.close();

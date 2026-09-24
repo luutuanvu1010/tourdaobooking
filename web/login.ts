@@ -68,8 +68,8 @@ const forgotEl = document.getElementById("forgot");
 const forgotCall = document.getElementById("forgot-call");
 const pinToggle = document.getElementById("pin-toggle") as HTMLButtonElement | null;
 
-// Biểu tượng trang trí (aria-hidden trong icon()): khuôn mặt trên nút Face ID, ổ khoá ở dòng nhắc an toàn chân trang.
-passkeyBtn?.prepend(icon("face", 20));
+// Biểu tượng (aria-hidden trong icon()): khuôn mặt là nội dung DUY NHẤT của nút Face ID (tên nút ở aria-label trong HTML), ổ khoá ở dòng nhắc an toàn chân trang.
+passkeyBtn?.prepend(icon("face", 32));
 document.querySelector(".login-safety")?.prepend(icon("lock", 12));
 
 // ---- Nút Hiện/Ẩn mã PIN (chỉ đổi kiểu ô gõ; không đụng giá trị) ----

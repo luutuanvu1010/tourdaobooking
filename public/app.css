@@ -88,7 +88,8 @@
   --w-login-foot: 560px;    /* Đăng nhập v2: bề rộng tối đa dòng thông tin công ty ở chân trang */
   --fs-login-title: clamp(32px, 7vw, 40px); /* Đăng nhập v2: cỡ tiêu đề "Đăng nhập" */
   --fs-login-sub: 17px;     /* Đăng nhập v2: dòng giới thiệu dưới tiêu đề và chữ nút lớn */
-  --h-login-btn: 52px;      /* Đăng nhập v2: chiều cao nút Face ID / Đăng nhập bằng PIN */
+  --h-login-btn: 52px;      /* Đăng nhập v2: chiều cao nút Đăng nhập bằng PIN */
+  --passkey-btn: 64px;      /* Đăng nhập v2: nút tròn Face ID chỉ có biểu tượng (chủ dự án chốt 2026-09-24) */
   --login-pad-top: clamp(48px, 10vh, 96px);    /* Đăng nhập v2: khoảng trên cột giữa */
   --login-pad-bottom: clamp(32px, 6vh, 64px);  /* Đăng nhập v2: khoảng dưới cột giữa */
   --shadow-logo: 0 4px 16px rgba(12, 74, 110, 0.14); /* Đăng nhập v2: bóng mềm dưới biểu tượng app — màu = --c-primary (#0c4a6e) với độ mờ 0,14; bản thiết kế dùng #005b96, quy về màu có sẵn */
@@ -644,6 +645,9 @@ body.login-page main.login { flex: 1; display: flex; align-items: center; justif
 .login-btn svg { flex: none; }
 /* Khối Face ID: ẩn khi nút bên trong ẩn (máy chủ tắt passkey / trình duyệt không hỗ trợ) — không cần JS riêng, HTML/JS cũ trong cache vẫn đúng. */
 .login-passkey { display: flex; flex-direction: column; gap: var(--s5); }
+/* Nút Face ID chỉ có biểu tượng (chủ dự án chốt 2026-09-24): tròn, giữa cột; tên nút ở aria-label/title. */
+.login-passkey-btn { display: flex; align-items: center; justify-content: center; align-self: center; width: var(--passkey-btn); height: var(--passkey-btn); margin: 0; padding: 0; border-color: var(--c-primary); border-radius: 50%; transition: background var(--m-fast) ease; }
+.login-passkey-btn:not(:disabled):hover { background: var(--c-primary-strong); border-color: var(--c-primary-strong); }
 .login-passkey:has(> #passkey-login[hidden]) { display: none; }
 .login-hint { margin: calc(-1 * var(--s3)) 0 0; text-align: center; }
 .login-or { display: flex; align-items: center; gap: var(--s4); font-size: var(--fs-label); color: var(--c-text-muted); }

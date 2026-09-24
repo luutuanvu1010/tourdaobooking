@@ -12,9 +12,9 @@
     <!-- Banner chế độ bảo trì: web/login.ts hiện khi GET /api/auth/config báo đang bảo trì (hoặc đăng nhập bị 503 `maintenance`). KHÔNG che form: chủ dự án vẫn phải đăng nhập được. -->
     <div id="maintenance-banner" class="alert warn login-maintenance" role="status" hidden><p id="maintenance-text"></p></div>
     <div class="login-body">
-      <!-- Đăng nhập bằng Face ID (ADR-0016): web/login.ts chỉ hiện khối này khi GET /api/auth/config báo passkey = true và trình duyệt hỗ trợ; lúc đó nút Face ID là nút chính, nút PIN chuyển sang kiểu phụ. Khối KHÔNG có `hidden` riêng: public/app.css ẩn nó theo `hidden` của #passkey-login (`:has`). -->
+      <!-- Đăng nhập bằng Face ID (ADR-0016): web/login.ts chỉ hiện khối này khi GET /api/auth/config báo passkey = true và trình duyệt hỗ trợ; lúc đó nút Face ID (chỉ biểu tượng, tên đọc được nằm ở aria-label — chủ dự án chốt 2026-09-24) là nút chính, nút PIN chuyển sang kiểu phụ. Khối KHÔNG có `hidden` riêng: public/app.css ẩn nó theo `hidden` của #passkey-login (`:has`). -->
       <div id="passkey-block" class="login-passkey">
-        <button id="passkey-login" class="btn btn-primary login-btn" type="button" hidden>Tiếp tục với Face ID</button>
+        <button id="passkey-login" class="btn btn-primary login-passkey-btn" type="button" aria-label="Đăng nhập bằng Face ID hoặc vân tay" title="Đăng nhập bằng Face ID hoặc vân tay" hidden></button>
         <p id="passkey-hint" class="muted login-hint" role="status" hidden></p>
         <div class="login-or" aria-hidden="true"><span>hoặc</span></div>
       </div>
