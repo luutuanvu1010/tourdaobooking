@@ -27,7 +27,8 @@ export interface Ctx<A extends Access = Access> {
   isAssigned: (orderId: string) => Promise<boolean>;
   /**
    * Câu lệnh D1 (CHƯA chạy) đặt người đang đăng nhập làm người phụ trách mặc định của đơn MỚI `orderId` (ADR-0009 điều 4) — gộp vào cùng `db.batch()`
-   * tạo đơn, sau câu INSERT đơn. `null` nếu không có (chưa đăng nhập, hoặc tài khoản chưa có hồ sơ). Do gốc lắp ráp tiêm.
+   * tạo đơn, sau câu INSERT đơn. `null` nếu không có (chưa đăng nhập, hoặc người lập không đủ điều kiện làm người phụ trách — chưa có hồ sơ, tài khoản chỉ
+   * Đối tác: ADR-0014 điều 9/10; luật do `dispatch` quyết). Do gốc lắp ráp tiêm.
    */
   defaultHandlerStatement: (orderId: string, at: string) => D1PreparedStatement | null;
 }
