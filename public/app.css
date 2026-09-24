@@ -91,7 +91,7 @@
   --h-login-btn: 52px;      /* Đăng nhập v2: chiều cao nút Face ID / Đăng nhập bằng PIN */
   --login-pad-top: clamp(48px, 10vh, 96px);    /* Đăng nhập v2: khoảng trên cột giữa */
   --login-pad-bottom: clamp(32px, 6vh, 64px);  /* Đăng nhập v2: khoảng dưới cột giữa */
-  --shadow-logo: 0 4px 16px rgba(0, 91, 150, 0.14); /* Đăng nhập v2: bóng mềm dưới biểu tượng app */
+  --shadow-logo: 0 4px 16px rgba(12, 74, 110, 0.14); /* Đăng nhập v2: bóng mềm dưới biểu tượng app — màu = --c-primary (#0c4a6e) với độ mờ 0,14; bản thiết kế dùng #005b96, quy về màu có sẵn */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
   --fs-name: 1.1rem;        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */

@@ -104,7 +104,10 @@ for (const path of PAGES) {
   for (const needle of NEEDLES) assert.ok(html.includes(needle), `${path} thiếu ${needle}`);
   for (const old of ["Tour Đảo Sales", "Tour Đảo Desk"]) assert.ok(!html.includes(old), `${path} còn tên cũ "${old}"`);
 }
-assert.ok((await (await get("/login")).text()).includes(`<h1>${NAME}</h1>`), "trang đăng nhập phải có h1 đúng tên trong manifest");
+// Bản thiết kế "Đăng nhập v2" (2026-09-24): h1 là "Đăng nhập", tên app (đúng tên trong manifest) nằm ở dòng giới thiệu ngay dưới.
+const loginHtml = await (await get("/login")).text();
+assert.ok(loginHtml.includes("<h1>Đăng nhập</h1>"), "trang đăng nhập phải có h1 \"Đăng nhập\"");
+assert.ok(loginHtml.includes(`<p class="login-sub">${NAME} dành cho nhân viên và đối tác.</p>`), "trang đăng nhập phải có dòng giới thiệu đúng tên trong manifest");
 // thanh đầu trang do web/shell.ts dựng: tên tách thành "Tour Đảo " + <span>phần còn lại</span>
 const shellBundle = await (await get("/js/orders.js")).text();
 const REST = NAME.slice(SHORT.length).trim();
