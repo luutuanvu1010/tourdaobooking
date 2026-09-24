@@ -82,6 +82,17 @@ Mã làm đúng đặc tả; đặc tả sinh lỗ vì ba quyết định duyệ
 | Q5 | Ba luật quy trình §4 | Duyệt (a)(b)(c) |
 | Q6 | Chạy một lần lệnh chỉ-đọc trên production để xem có hồ sơ nhân viên nào đã bị sửa/ngưng bởi tài khoản không phải ADMIN (nhật ký `party_updated` theo `staff_id` không có quyền ADMIN) | Nên, trước GĐ1 |
 
+**Chủ dự án đã quyết (2026-09-24, phiên chat, sau khi hỏi lại từng câu):**
+- **Q1 = B**: duyệt ADR-0013 điều 1–3, sửa điều 4 (bỏ "ngưng tài khoản ⇒ tự ngưng hồ sơ"; giữ "màn Hồ sơ từ chối đổi `active` của hồ sơ có tài khoản" + kiểm một chiều; thêm luật nghỉ việc = đóng vai Nhân sự có ngày + ngưng tài khoản, tạm khoá = chỉ ngưng tài khoản).
+- **Q2 = đồng ý**: luật "hồ sơ CÓ TÀI KHOẢN chỉ quản trị cấp trên sửa" ôm cả hồ sơ công ty lữ hành khi công ty có tài khoản.
+- **Q3 = đồng ý**: tách cổng `office` (ADR-0018) là điều kiện tiên quyết của ADR-0017 và 11 vai GĐ0.
+- **Q4 = giữ nguyên bốn mốc** (08/10, 15/10, 30/11, 31/12) — `docs/quyen-hoan.json` từ nay là hạn thật, không còn là đề xuất.
+- **Q5 = duyệt cả ba luật (a)(b)(c)** — nguyên văn §4; đưa vào `CLAUDE.md` §3/§9 và `docs/CHANGE-GUIDE.md` bằng nhánh `quyet-dinh-24-9-va-ba-luat`, chủ gộp mới có hiệu lực (N9).
+- **Q6 = có**: AI soạn lệnh chỉ đọc (`docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/truy-van-production-chi-doc.sql`), chủ tự chạy; kết quả có thể kéo theo việc sửa dữ liệu — chủ quyết riêng.
+  - **Kết quả chủ chạy 2026-09-24 (dạng `--command`, vì `--file` bị từ chối với OAuth):** **(A) có dòng** — chủ xem và xác nhận "phản ánh đúng thực tế, admin đã sửa thông tin người dùng" → **không sửa dữ liệu**. Lưu ý cho GĐ1: (A) chỉ liệt kê thao tác của tài khoản KHÔNG giữ ADMIN/SUPER_ADMIN *tại thời điểm sửa* (so `stf_permission.valid_from_at`/`valid_to_at` với `audit_log.created_at`), nên dòng "quản trị viên" xuất hiện nghĩa là người đó được cấp quyền sau lần sửa hoặc dùng tài khoản khác — GĐ1 đối chiếu **một** dòng với lịch sử quyền để xác nhận câu truy vấn đúng (AI chưa thấy dữ liệu). **(B) 0 dòng** → bất biến một chiều "tài khoản đang hoạt động ⇒ hồ sơ đang hoạt động" hiện đúng trên production; GĐ1 có thể thêm vào `audit-invariants` ở mức `fail` ngay, không cần giai đoạn `warn`.
+- **Nghỉ việc trong GĐ1: không thêm nút** — hai bước như hiện nay (ngưng tài khoản ở màn Nhân viên, kết thúc vai ở màn Hồ sơ); nút gộp một bước để mô hình 11 vai làm.
+- **Lịch: GĐ1 bắt đầu ngay ở phiên mới** (vai lập kế hoạch), đúng P15.
+
 ## 6. Rủi ro
 
 - Hai hàng rào là phân tích tĩnh (regex + đếm ngoặc trên mã đã che chuỗi/chú thích): route viết khác khuôn `route("METHOD", "path", "access", async (…) => {…})` sẽ làm test đỏ với thông báo rõ — cố ý, để không bỏ sót.
