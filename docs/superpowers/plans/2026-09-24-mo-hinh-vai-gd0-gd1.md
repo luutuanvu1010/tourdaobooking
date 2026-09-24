@@ -590,7 +590,7 @@ git commit -m "Quyền: thêm mức Thực tập (tạm hẹp), đổi nhãn Sup
   - `groupOf(roles): RoleGroup | "NONE" | "MIXED"`, `defaultPermissions(roles): PermissionCode[]`
   - `interface Adjustments { adds; removes }`, `effectivePermissions(roles, adj): { permissions: PermissionCode[]; dropped: PermissionCode[] }`
   - `interface RoleAssignment extends Adjustments { roles; reason: string | null }`, `parseRoleAssignment(body): { ok: true; value: RoleAssignment } | { ok: false; message: string }`
-  - `interface RoleProblem { forbidden: boolean; message: string }`, `highPermissionProblem(actor, current, next): RoleProblem | null`, `roleAssignmentProblem({ actor, currentRoles, currentPermissions, next }): RoleProblem | null`
+  - `interface RoleProblem { forbidden: boolean; message: string }`, `highPermissionProblem(actor, current, next): RoleProblem | null`, `roleAssignmentProblem({ actor, currentRoles, currentPermissions, currentAdjustments, next }): RoleProblem | null` (Ruling R15 khi thi công: `currentAdjustments` bắt buộc; người không phải Toàn quyền không được đổi dòng chỉnh tay có Quản trị/Toàn quyền, kể cả khi quyền ròng hôm nay không đổi)
   - `rolesLabel(roles): string`, `permissionsLabel(list): string`
 
 - [ ] **Step 1: Viết test (đỏ)** — `src/shared/roles.test.ts`
@@ -2008,7 +2008,7 @@ Thay **mọi** biểu thức `dto((await getStaffAccount(db, X))!, …)` bằng 
         const name: { value?: string | null; error?: string } = existingPartyId ? { value: null } : cleanName(body.fullName);
         if (name.error) return error(400, "invalid_input", name.error);
         if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
-        const problem = roleAssignmentProblem({ actor: admin.permissions, currentRoles: [], currentPermissions: [], next: parsed.value });
+        const problem = roleAssignmentProblem({ actor: admin.permissions, currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, next: parsed.value });
         if (problem) return problemResponse(problem);
         if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId }, admin.id);
@@ -2106,7 +2106,7 @@ Xoá dòng kiểm `SUPER_ADMIN` (dòng 430, trả `SUPER_ADMIN_ONLY()`) và thê
       const today = vnToday(now);
       const state = await getAccountRoleState(db, t, today);
       if (!state || !t.partyId) return NO_PARTY();
-      const problem = roleAssignmentProblem({ actor: admin.permissions, currentRoles: state.roles, currentPermissions: t.permissions, next: parsed.value });
+      const problem = roleAssignmentProblem({ actor: admin.permissions, currentRoles: state.roles, currentPermissions: t.permissions, currentAdjustments: { adds: state.adds, removes: state.removes }, next: parsed.value });
       if (problem) return problemResponse(problem);
       const change = roleChangeStatements(db, { account: t, partyId: t.partyId, state, next: parsed.value, actorId: admin.id, at, today });
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
