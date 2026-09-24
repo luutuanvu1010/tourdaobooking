@@ -87,7 +87,7 @@
   --logo-login: 72px;       /* biểu tượng app trên tiêu đề */
   --w-login: 400px;         /* bề rộng cột giữa */
   --login-side: 20px;       /* lề hai bên / đáy ở điện thoại */
-  --login-body-bottom: 40px; /* khoảng dưới khối chính (điện thoại) */
+  --login-body-bottom: 16px; /* khoảng từ dòng phiên bản tới vạch chân trang (điện thoại) — chủ dự án 2026-09-24 bỏ khoảng trống để trang không phải kéo (bản thiết kế 40px + phần giãn) */
   --fs-login-title: 26px;   /* tiêu đề "Tour Đảo Booking" — điện thoại */
   --fs-login-title-wide: 32px; /* tiêu đề — màn ≥ 900px */
   --h-field: 56px;          /* ô gõ, nút Đăng nhập, nút sinh trắc học — điện thoại */
@@ -646,6 +646,7 @@ html:has(body.login-page) { height: 100%; overflow: hidden; }
 body.login-page { height: 100vh; height: 100dvh; overflow: hidden; overscroll-behavior: none; background: var(--c-surface); }
 body.login-page main.login { display: flex; flex-direction: column; height: 100%; max-width: none; margin: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s2) max(var(--login-side), env(safe-area-inset-right)) calc(var(--login-side) + env(safe-area-inset-bottom)) max(var(--login-side), env(safe-area-inset-left)); }
 .login-body { flex: 1 0 auto; display: flex; align-items: flex-start; justify-content: center; padding: var(--s6) 0 var(--login-body-bottom); }
+@media (max-width: 899px) { .login-body { flex: none; } } /* điện thoại: khối giữa KHÔNG giãn — chân trang nằm ngay dưới dòng phiên bản (chủ dự án 2026-09-24), chỗ thừa (nếu có) để dưới chân trang */
 .login-col { display: flex; flex-direction: column; width: 100%; max-width: var(--w-login); min-width: 0; }
 .login-logo { display: block; width: var(--logo-login); height: var(--logo-login); margin: 0 auto var(--s4); border-radius: var(--radius-icon); box-shadow: var(--shadow-card); }
 .login-col h1 { margin: 0; font-family: var(--font-display); font-weight: 800; font-size: var(--fs-login-title); line-height: 1.22; color: var(--c-primary); text-align: center; }
