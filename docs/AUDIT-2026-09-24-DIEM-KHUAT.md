@@ -10,6 +10,8 @@
 4. **App "giật"** chủ yếu vì mỗi trang phải hỏi máy chủ 2–4 lần **nối đuôi nhau** (chiếm 91–97% thời gian chờ), không phải vì máy chủ yếu. **2000 yêu cầu/giây:** phần trang tĩnh chịu được; phần dữ liệu thì không chắc (một cơ sở dữ liệu xử lý từng câu một), nhưng tải thật hiện nay chỉ khoảng **1/40 – 1/400** mức đó — chỗ đáng lo trước là dữ liệu tích luỹ theo thời gian.
 5. **Menu Trang chủ lệch** có hai nguyên nhân thật (nơi đón dán link bản đồ làm Trang chủ tràn ngang và đẩy thanh menu dưới khỏi màn hình; thanh đầu Trang chủ khác kiểu mọi trang khác) — cần **một ảnh iPhone** để biết bạn đang thấy cái nào. Ngoài ra, tài liệu ghi "bản cần quay lại khi có sự cố" đang chỉ về bản 1.6 trong khi production chạy 1.8.
 
+**Cập nhật 25/9 — quy mô thiệt hại thật trên production (chủ dự án tự chạy lệnh chỉ đọc `node scripts/audit-invariants.mjs --db remote`):** "Mọi bất biến đạt", kể cả `R-ORD-6a`, `R-DSP-2a`, `R-DSP-2b`. Nghĩa là tới lúc chạy: **chưa có đơn nào bị tính lại sai giá** do DK-T2-01 (R-ORD-6a bắt đúng dạng lỗi này ở lần điều chỉnh đầu tiên của một đơn), **không có người phụ trách nào đã bị ngưng tài khoản** (DK-X-02) và **không có người phụ trách nào bị hạ vai mất quyền** (DK-T3-03). Các lỗi vẫn nằm trong mã và sẽ xảy ra ở lần dùng đầu tiên; kết quả này chỉ hạ mức khẩn về thiệt hại đã có, không đổi mức nặng của phát hiện. Tiền âm (DK-T2-02) không có kiểm nào nên vẫn CHƯA KIỂM trên production.
+
 ## 2. Top 5 điểm khuất
 
 Xếp theo tiêu chí **"sổ sách và hàng rào hiện tại không có cách nào tự phát hiện"**, không theo mức nặng.
