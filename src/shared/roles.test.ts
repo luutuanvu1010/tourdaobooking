@@ -137,6 +137,28 @@ test("highPermissionProblem (I-2, kiểm độc lập vòng 1): chặn cả chi�
   });
 });
 
+test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng cộng tay Toàn quyền đã có dù Giám đốc mặc định vẫn giữ nguyên quyền đó", () => {
+  const problem = roleAssignmentProblem({
+    actor: ["ADMIN"],
+    currentRoles: ["DIRECTOR"],
+    currentPermissions: ["ADMIN", "SUPER_ADMIN"],
+    currentAdjustments: { adds: ["SUPER_ADMIN"], removes: [] },
+    next: assignment(["DIRECTOR"]),
+  });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+});
+
+test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng bớt tay Quản trị đã có dù Nhân viên kinh doanh mặc định vẫn chưa từng có quyền đó", () => {
+  const problem = roleAssignmentProblem({
+    actor: ["ADMIN"],
+    currentRoles: ["SALES_STAFF"],
+    currentPermissions: ["SALES"],
+    currentAdjustments: { adds: [], removes: ["ADMIN"] },
+    next: assignment(["SALES_STAFF"]),
+  });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+});
+
 test("nhãn lời thường", () => {
   assert.equal(rolesLabel(["SALES_STAFF", "ACCOUNTANT"]), "Nhân viên kinh doanh, Kế toán");
   assert.equal(rolesLabel([]), "chưa gán vai");
