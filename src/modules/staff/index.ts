@@ -2,18 +2,23 @@
 // staff sở hữu bảng `staff`, `stf_*` và luật tài khoản; các hàm ghi trả về CÂU LỆNH D1 chưa chạy để module gọi (accounts) gộp cùng nhật ký
 // audit vào một db.batch() — đổi tài khoản và ghi dấu vết thành công/thất bại cùng nhau. Tên người thuộc hồ sơ (module parties):
 // tạo/đổi tên tài khoản gọi hàm của parties (cạnh staff → parties, ADR-0002); staff.full_name/role là cột chết (ADR-0005).
-import { newPersonStatements, renamePersonStatements, splitPersonName, validatePersonFullName } from "../parties";
+import {
+  accountRolesOf, closeAccountRoleStatement, newPersonStatements, openAccountRoleStatement, openRoleCodesByParty, partySummary, renamePersonStatements,
+  reopenAccountRoleStatement, splitPersonName, validatePersonFullName, type AccountRole,
+} from "../parties";
 import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
-  closePermissionStatement, countActiveAdmins, findById, findByPhone, insertPermissionStatement, insertStaffStatement, listAll, parsePermissions,
-  recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement, type StaffRow,
+  accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
+  insertStaffStatement, listAll, openAdjustments, parsePermissions, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  type AdjustmentRow, type StaffRow,
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, validateFreshPin } from "./rules";
 import { parseStaffSheet as parseSheetRows, type StaffCandidate, type StaffSheetParse } from "./sheet";
 import type { StaffAccount, StaffProfile } from "../../shared/contracts";
-import type { PermissionCode } from "../../shared/permissions";
-import { vnToday } from "../../shared/vn-date";
+import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions";
+import { ROLE_CODES, effectivePermissions, groupOf, isRoleCode, type RoleAssignment, type RoleCode } from "../../shared/roles";
+import { addDays, vnToday } from "../../shared/vn-date";
 
 export type { StaffAccount, StaffCandidate, StaffProfile, StaffSheetParse };
 export {
@@ -166,4 +171,139 @@ export function validateNewPin(pin: unknown, currentPin: string): string | null 
   if (pin === currentPin) return "PIN mới phải khác PIN hiện tại.";
   if (isWeakPin(pin)) return "PIN mới quá dễ đoán (ví dụ 123456, 111111). Hãy chọn PIN khác.";
   return null;
+}
+
+// =================================================================================================================================================
+// Vai → quyền (ADR-0018 điều 3). NƠI DUY NHẤT vai ảnh hưởng quyền: đọc vai qua hàm của parties (không nhắc bảng vai — R-N1-12), tính quyền hiệu lực
+// bằng src/shared/roles.ts, trả câu lệnh CHƯA chạy để accounts gộp cùng nhật ký. Tài khoản chưa gán vai mới KHÔNG bao giờ bị tính lại quyền ở đây.
+// =================================================================================================================================================
+
+/** Mã vai cũ (migration 0011) — đóng khi tài khoản được gán vai mô hình mới (đặc tả §4, §14). */
+const LEGACY_ACCOUNT_ROLES: readonly string[] = ["STAFF", "SALES", "GUIDE", "AGENT"];
+
+export interface AccountRoleState {
+  /** Vai mô hình mới đang mở. Rỗng = tài khoản chưa chuyển sang cách mới (giữ nguyên quyền cũ). */
+  roles: RoleCode[];
+  adds: PermissionCode[];
+  removes: PermissionCode[];
+  /** Lý do của lần chỉnh tay gần nhất (giao diện điền sẵn); null khi không có chỉnh tay. */
+  reason: string | null;
+  /** Dòng vai không gắn nơi: đang mở + đóng từ hôm nay (để dựng câu đóng/mở lại). */
+  rows: AccountRole[];
+  adjustments: AdjustmentRow[];
+}
+
+export async function getAccountRoleState(db: D1Database, account: StaffAccount, today: string): Promise<AccountRoleState | null> {
+  if (!account.partyId) return null;
+  const [rows, adjustments] = await Promise.all([accountRolesOf(db, account.partyId, today), openAdjustments(db, account.id)]);
+  const open = rows.filter((r) => r.validTo === null).map((r) => r.roleTypeCode);
+  const adjusted = (direction: string) => PERMISSION_CODES.filter((c) => adjustments.some((a) => a.permission_type_code === c && a.direction === direction));
+  return { roles: ROLE_CODES.filter((c) => open.includes(c)), adds: adjusted("ADD"), removes: adjusted("REMOVE"), reason: adjustments[0]?.reason ?? null, rows, adjustments };
+}
+
+export interface RoleChange {
+  /** Câu vai (module parties) — ĐÓNG trước, MỞ sau, để trigger LC-3 không vấp khi đổi nhóm trong một lần lưu. */
+  roleStatements: D1PreparedStatement[];
+  adjustmentStatements: D1PreparedStatement[];
+  /** Như setPermissionStatements: `guarded` ≠ null khi lần đổi gỡ ADMIN (route chạy hai batch — xem accounts). */
+  permissions: { guarded: D1PreparedStatement | null; rest: D1PreparedStatement[] };
+  next: PermissionCode[];
+  dropped: PermissionCode[];
+  changed: boolean;
+}
+
+/**
+ * Câu lệnh cho MỘT lần đổi vai + chỉnh tay. Người gọi đã kiểm roleAssignmentProblem + checkAccountChange. Vai bỏ đi đóng vào HÔM QUA nếu bắt đầu trước
+ * hôm nay (không còn hiệu lực từ hôm nay), vào HÔM NAY nếu mới mở hôm nay; gán lại một vai vừa đóng hôm nay thì MỞ LẠI dòng đó (không chèn dòng chồng lấn).
+ */
+export function roleChangeStatements(
+  db: D1Database,
+  args: { account: StaffAccount; partyId: string; state: AccountRoleState; next: RoleAssignment; actorId: string; at: string; today: string },
+): RoleChange {
+  const { account, partyId, state, next, actorId, at, today } = args;
+  const { permissions: nextPermissions, dropped } = effectivePermissions(next.roles, next);
+  const perm = setPermissionStatements(db, { staffId: account.id, current: account.permissions, next: nextPermissions, actorId, at });
+  const guarded = perm.guarded !== null;
+  const closing = state.rows.filter(
+    (r) => r.validTo === null && ((isRoleCode(r.roleTypeCode) && !next.roles.includes(r.roleTypeCode)) || LEGACY_ACCOUNT_ROLES.includes(r.roleTypeCode)),
+  );
+  const opening = next.roles.filter((code) => !state.rows.some((r) => r.roleTypeCode === code && r.validTo === null));
+  const roleStatements = [
+    ...closing.map((r) => closeAccountRoleStatement(db, partyId, r.id, r.validFrom < today ? addDays(today, -1) : today, actorId, at)),
+    ...opening.map((code) => {
+      const closedToday = state.rows.find((r) => r.roleTypeCode === code && r.validTo === today);
+      return closedToday ? reopenAccountRoleStatement(db, partyId, closedToday.id, actorId, at) : openAccountRoleStatement(db, partyId, code, today, actorId, at);
+    }),
+  ];
+  const wanted = [...next.adds.map((c) => ({ c, d: "ADD" as const })), ...next.removes.map((c) => ({ c, d: "REMOVE" as const }))];
+  const closeAdj = state.adjustments.filter((a) => !wanted.some((w) => w.c === a.permission_type_code && w.d === a.direction));
+  const newAdj = wanted.filter((w) => !state.adjustments.some((a) => a.permission_type_code === w.c && a.direction === w.d));
+  const adjustmentStatements = [
+    ...closeAdj.map((a) => closeAdjustmentStatement(db, { id: a.id, staffId: account.id, at, actorId, guarded })),
+    ...newAdj.map((w) => insertAdjustmentStatement(db, { staffId: account.id, code: w.c, direction: w.d, reason: next.reason ?? "", at, actorId, guarded })),
+  ];
+  return {
+    roleStatements,
+    adjustmentStatements,
+    permissions: { guarded: perm.guarded, rest: perm.rest },
+    next: nextPermissions,
+    dropped,
+    changed: perm.changed || roleStatements.length > 0 || adjustmentStatements.length > 0,
+  };
+}
+
+export type CreateWithRoles =
+  | { ok: true; id: string; partyId: string; pin: string; statements: D1PreparedStatement[]; permissions: PermissionCode[] }
+  | { ok: false; message: string };
+
+/**
+ * Tạo tài khoản THEO VAI (ADR-0018): hồ sơ mới mang đúng các vai đã chọn (không thêm vai STAFF cũ), HOẶC dùng lại hồ sơ cá nhân có sẵn (chưa có tài khoản,
+ * không va chạm nhóm vai). Quyền = quyền hiệu lực của vai + chỉnh tay. Thứ tự câu: vai → tài khoản → quyền → chỉnh tay (khoá ngoại + trigger LC-1).
+ */
+export async function createAccountWithRolesStatements(
+  db: D1Database,
+  input: { fullName: string | null; phone: string; assignment: RoleAssignment; existingPartyId: string | null },
+  actorId: string,
+): Promise<CreateWithRoles> {
+  const now = new Date();
+  const at = now.toISOString();
+  const today = vnToday(now);
+  const { assignment } = input;
+  const { permissions } = effectivePermissions(assignment.roles, assignment);
+  const statements: D1PreparedStatement[] = [];
+  let partyId: string;
+  if (input.existingPartyId) {
+    const party = await partySummary(db, input.existingPartyId);
+    if (!party) return { ok: false, message: "Không tìm thấy hồ sơ đã chọn." };
+    if (party.kind !== "PERSON") return { ok: false, message: "Tài khoản chung cho công ty làm ở giai đoạn sau — hãy chọn hồ sơ cá nhân." };
+    if (!party.active) return { ok: false, message: "Hồ sơ đã chọn đang ngưng hoạt động." };
+    if (await accountIdOfParty(db, input.existingPartyId)) return { ok: false, message: "Hồ sơ này đã có tài khoản." };
+    const open = (await accountRolesOf(db, input.existingPartyId, today)).filter((r) => r.validTo === null).map((r) => r.roleTypeCode).filter(isRoleCode);
+    if (groupOf([...open, ...assignment.roles]) === "MIXED") return { ok: false, message: "Hồ sơ này đang giữ vai khác nhóm (nội bộ/bên ngoài) — đóng vai đó trước." };
+    partyId = input.existingPartyId;
+    statements.push(...assignment.roles.filter((c) => !open.includes(c)).map((c) => openAccountRoleStatement(db, partyId, c, today, actorId, at)));
+  } else {
+    const name = input.fullName ? splitPersonName(input.fullName) : null;
+    if (!name) throw new Error("createAccountWithRolesStatements: họ tên rỗng");
+    const person = newPersonStatements(db, { name, roles: assignment.roles.map((c) => ({ roleTypeCode: c, locationId: null, from: today, to: null })), contactsFrom: today }, actorId, at);
+    partyId = person.partyId;
+    statements.push(...person.statements);
+  }
+  const id = crypto.randomUUID();
+  const pin = generatePin();
+  const adjust = (code: PermissionCode, direction: "ADD" | "REMOVE") =>
+    insertAdjustmentStatement(db, { staffId: id, code, direction, reason: assignment.reason ?? "", at, actorId, guarded: false });
+  statements.push(
+    insertStaffStatement(db, { id, phone: input.phone, pinHash: await hashPin(pin), createdAt: at, partyId }),
+    ...permissions.map((code) => insertPermissionStatement(db, id, code, actorId, at, false)),
+    ...assignment.adds.map((c) => adjust(c, "ADD")),
+    ...assignment.removes.map((c) => adjust(c, "REMOVE")),
+  );
+  return { ok: true, id, partyId, pin, statements, permissions };
+}
+
+/** Vai mô hình mới đang mở của từng tài khoản — MỘT truy vấn cho cả danh sách (vai cũ STAFF… không tính). */
+export async function accountRoleCodes(db: D1Database, accounts: readonly StaffAccount[]): Promise<Map<string, RoleCode[]>> {
+  const byParty = await openRoleCodesByParty(db, accounts.flatMap((a) => (a.partyId ? [a.partyId] : [])));
+  return new Map(accounts.map((a) => [a.id, ROLE_CODES.filter((c) => (a.partyId ? (byParty.get(a.partyId) ?? []) : []).includes(c))]));
 }
