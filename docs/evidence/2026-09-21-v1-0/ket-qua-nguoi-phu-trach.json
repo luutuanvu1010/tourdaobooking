@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "danh sách đơn: đóng đúng 2 dòng (không lộ người phụ trách); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
+      "name": "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
       "dat": true
     },
     {
@@ -176,6 +176,10 @@
     }
   },
   "anh": {
+    "nguoi-phu-trach-the-dong-390.png": "390×844",
+    "nguoi-phu-trach-the-mo-390.png": "390×844",
+    "nguoi-phu-trach-the-dong-1040.png": "1040×800",
+    "nguoi-phu-trach-the-mo-1040.png": "1040×800",
     "nguoi-phu-trach-tai-lai-390.png": "390×844",
     "nguoi-phu-trach-loi-handlers-390.png": "390×844",
     "nguoi-phu-trach-bang-chon-loi-luu-390.png": "390×844",
@@ -193,18 +197,18 @@
   "dem": {
     "the-dong-390": [
       {
-        "l2Rows": 2,
-        "cardH": 145,
+        "l2Rows": 1,
+        "cardH": 76,
         "clipped": false
       },
       {
-        "l2Rows": 2,
-        "cardH": 145,
+        "l2Rows": 1,
+        "cardH": 76,
         "clipped": false
       },
       {
-        "l2Rows": 2,
-        "cardH": 145,
+        "l2Rows": 1,
+        "cardH": 76,
         "clipped": false
       }
     ],
@@ -212,17 +216,17 @@
     "the-dong-1040": [
       {
         "l2Rows": 1,
-        "cardH": 120,
+        "cardH": 76,
         "clipped": false
       },
       {
         "l2Rows": 1,
-        "cardH": 120,
+        "cardH": 76,
         "clipped": false
       },
       {
         "l2Rows": 1,
-        "cardH": 120,
+        "cardH": 76,
         "clipped": false
       }
     ],

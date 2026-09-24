@@ -20,7 +20,7 @@
 // theo P8).
 import { type OrderStatus } from "./api";
 import { h, type Child } from "./dom";
-import { dateTime, dayMonth, paxCountsShort, STATUS_LABEL, vnd, vndShort } from "./format";
+import { dateTime, dayMonth, paxCounts, paxCountsShort, STATUS_LABEL, vnd, vndShort } from "./format";
 import { icon } from "./icons";
 import { type PaxCounts } from "../src/shared/order-lines";
 
@@ -135,11 +135,19 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
 
   const head = h("div", { class: "order-card-head" }, link, toggle);
 
-  // ---- Phần xổ xuống: Mã đơn · Đã trả · Tổng · Tên gói · Nơi đón · Người lập · Ngày giờ lập · Ghi chú · Người phụ trách ----
-  // Thứ tự và bộ trường ĐÚNG theo yêu cầu chủ dự án 2026-09-24. Trường rỗng thì KHÔNG dựng dòng, không hiện "—".
+  // ---- Phần xổ xuống: Mã đơn · Số khách · Đã trả · Tổng · Tên gói · Nơi đón · Người lập · Ngày giờ lập · Ghi chú · Người phụ trách ----
+  // Thứ tự và bộ trường gốc ĐÚNG theo yêu cầu chủ dự án 2026-09-24; "Số khách" thêm sau (điều phối viên quyết định
+  // sau vòng sửa đó — xem đầu tệp docs/superpowers/specs/2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md): ở dòng 2,
+  // `.order-row-pax` là phần DUY NHẤT được phép co lại bằng "…" khi hết chỗ (SĐT và "Còn thu" không bao giờ co) —
+  // đơn đủ 4 loại khách + số hai chữ số có thể co hết, mất thông tin trên thẻ đóng. Phần xổ vì vậy LUÔN hiện dòng
+  // này khi đơn có khách (kể cả lúc dòng 2 chưa bị co) — trùng lặp nhẹ, đổi lấy việc không bao giờ mất thông tin.
+  // Vị trí (ngay sau "Mã đơn", trước "Đã trả"): GIẢ ĐỊNH của người thi công (P8 — bề mặt, đảo ngược được); danh
+  // sách gốc của chủ dự án không tính trường này.
   const handlerSlot = h("div", { class: "order-row-handler is-pending" });
   const svc = serviceLine(o.serviceNames);
+  const paxFull = paxCounts(o.pax);
   const detailLines: Child[] = [h("div", null, "Mã đơn: ", o.orderCode)];
+  if (paxFull) detailLines.push(h("div", null, "Số khách: ", paxFull));
   // Phần xổ luôn đủ chỗ (mỗi trường một hàng riêng, không chung hàng với SĐT/nút xổ như dòng 2) — hiện số ĐẦY ĐỦ,
   // không rút gọn (khác "Còn thu" ở dòng 2, phải rút gọn vì chung hàng với SĐT trong khổ hẹp).
   if (money !== "none") detailLines.push(h("div", null, "Đã trả ", vnd(o.depositAmount)));

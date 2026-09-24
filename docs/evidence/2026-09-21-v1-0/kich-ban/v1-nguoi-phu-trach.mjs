@@ -186,8 +186,10 @@ const assignVia = async (account, orderId, who) => {
 // Vòng sửa 2026-09-24: dòng 1 không còn `<strong>` (nay `.order-row-when` + `.order-row-name` riêng) — `code` đọc
 // dòng ĐẦU TIÊN của phần xổ ("Mã đơn: …", bỏ tiền tố) thay vì ngày giờ cũ; thêm `name` đọc TÊN KHÁCH ở dòng 1 để
 // chứng minh tên khách + mã đơn không bị mất (bước a).
+// Bổ sung sau đó (không đổi ngày ghi trên): phần xổ nay LUÔN có dòng "Số khách: …" (bù cho `.order-row-pax` ở dòng
+// 2 là chỗ DUY NHẤT được co bằng "…" khi hết chỗ — xem chú thích ở web/order-card.ts) — `pax` đọc dòng đó, bỏ tiền tố.
 const LIST_ROWS =
-  "[...document.querySelectorAll('#list .order-card')].map((c) => { const a = c.querySelector('.order-row'); const s = c.querySelector('.order-row-handler'); const codeEl = c.querySelector('.order-card-details > div'); return { id: new URL(a.href).searchParams.get('id'), name: c.querySelector('.order-row-name')?.textContent ?? null, code: codeEl ? codeEl.textContent.replace(/^Mã đơn: /, '') : null, handler: s?.textContent ?? null, hidden: s?.hidden ?? null, chip: !!s?.querySelector('.chip') }; })";
+  "[...document.querySelectorAll('#list .order-card')].map((c) => { const a = c.querySelector('.order-row'); const s = c.querySelector('.order-row-handler'); const divs = [...c.querySelectorAll('.order-card-details > div')]; const codeEl = divs[0]; const paxEl = divs.find((d) => d.textContent.startsWith('Số khách: ')); return { id: new URL(a.href).searchParams.get('id'), name: c.querySelector('.order-row-name')?.textContent ?? null, code: codeEl ? codeEl.textContent.replace(/^Mã đơn: /, '') : null, pax: paxEl ? paxEl.textContent.replace(/^Số khách: /, '') : null, handler: s?.textContent ?? null, hidden: s?.hidden ?? null, chip: !!s?.querySelector('.chip') }; })";
 const listReady = (n) => `document.querySelectorAll('#list .order-card').length >= ${n} && [...document.querySelectorAll('#list .order-card')].every((c) => { const s = c.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })`;
 /** Bấm mọi nút xổ đang đóng trong `#list`; trả về số nút đã bấm. */
 const expandAllCards = (p) => p.ev("(() => { const btns = [...document.querySelectorAll('#list .order-card-toggle[aria-expanded=false]')]; for (const b of btns) b.click(); return btns.length; })()");
@@ -313,6 +315,10 @@ try {
         // tiên của PHẦN XỔ ("Mã đơn: …", đọc xuyên qua `[hidden]` — xem chú thích LIST_ROWS).
         assert.equal(r.name, expectedName.get(r.id), `${label}: tên khách phải còn ở dòng 1, đơn ${r.code}`);
         assert.equal(r.code, expectedCode.get(r.id), `${label}: mã đơn phải còn trong phần xổ`);
+        // Bổ sung (không đổi ngày ghi ở trên): cả ba đơn của kịch bản này đều có 3 người lớn, không loại khách nào
+        // khác (getMain: bộ đếm "Số khách (chỉ để vận hành)" = 3 trên dịch vụ nhập tay → pax.adult=3; createOrder:
+        // pax(3) cũng adult=3) — phần xổ phải hiện đúng "Số khách: 03 NL" (đệm 2 chữ số, viết tắt NL — web/format.ts).
+        assert.equal(r.pax, "03 NL", `${label}: phần xổ phải hiện đúng số khách, đơn ${r.code}`);
       }
       // ĐÓNG (mặc định): nút xổ đóng + vùng chạm ≥44px, dòng người phụ trách KHÔNG lộ (cao 0), không tràn ngang.
       const closed = await p.ev(`(() => {
