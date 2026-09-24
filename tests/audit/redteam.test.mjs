@@ -72,6 +72,31 @@ test("R3b FINDING authz: tên do đồng nghiệp đổi hiện ở 'người ph
   assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).json.order.staffName, "Tên Giả");
 });
 
+// 2026-09-24 (docs/evidence/2026-09-24-lo-hong-ho-so/): F-01 rộng hơn kiểm toán ghi — không chỉ tên/ngưng mà cả LIÊN HỆ của hồ sơ nhân viên.
+// Đặc tả 11 vai dự định hiện "SĐT công việc trong hồ sơ" của người phụ trách cho đối tác → số bị cài ở đây sẽ đi ra ngoài.
+test("R3c FINDING authz: nhân viên SALES thêm số điện thoại vào hồ sơ của quản trị viên qua POST /api/parties/:id/contacts", async () => {
+  const w = setup();
+  const r = await w.call("POST", `/api/parties/pty-${ADM}/contacts`, { as: B, body: { kind: "PHONE", value: "0911222333", label: "Zalo", isPrimary: true } });
+  console.log("R3c status", r.status, r.status !== 201 ? r.text : "");
+  assert.equal(r.status, 201);
+  assert.equal(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND value_normalized = '0911222333'", `pty-${ADM}`)[0].n, 1);
+});
+
+// Trong phạm vi ADR-0007 CHO PHÉP (SALES sửa hồ sơ khách), nhưng cờ "ngưng" của hồ sơ dùng chung lan sang đơn NHÁP của người khác
+// (resolveBooker từ chối hồ sơ đã ngưng), và nhật ký chỉ ghi "cá nhân" — không nói việc ngưng (F-07, F-09).
+test("R3d FINDING identity: SALES ngưng hồ sơ KHÁCH đang là người đặt của đồng nghiệp → đồng nghiệp không sửa được đơn nháp của mình (400); nhật ký không ghi việc ngưng", async () => {
+  const w = setup();
+  const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody({ newBooker: { fullName: "Trần Khách", phone: "0912345678" } }) })).json.order;
+  const pid = w.q("SELECT booker_party_id p FROM orders WHERE id = ?", o.id)[0].p;
+  const pk = (await w.call("GET", `/api/parties/${pid}`, { as: B })).json.party;
+  const off = await w.call("PUT", `/api/parties/${pid}`, { as: B, body: { familyName: "Trần", middleName: null, givenName: "Khách", active: false, expectedUpdatedAt: pk.updatedAt } });
+  assert.equal(off.status, 200, off.text);
+  const edit = await w.call("PUT", `/api/orders/${o.id}`, { as: A, body: { ...orderBody(), bookerPartyId: pid, expectedUpdatedAt: o.updatedAt } });
+  console.log("R3d ngưng", off.status, "→ đồng nghiệp sửa đơn", edit.status, edit.status !== 200 ? edit.text : "");
+  assert.equal(edit.status, 400);
+  assert.equal(w.q("SELECT detail FROM audit_log WHERE target_id = ? ORDER BY rowid DESC LIMIT 1", pid)[0].detail, "cá nhân");
+});
+
 test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: order.view any), mọi đường SỬA → 403, đơn không đổi", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
