@@ -68,6 +68,24 @@ try {
   await p.ev("document.querySelector('#add-form').requestSubmit(), true");
   await p.waitFor(`!document.querySelector('#secret').hidden && !!document.querySelector('#secret td.pin')`, "hiện PIN tài khoản mới");
   const internPin = await p.ev(`document.querySelector('#secret td.pin').textContent.trim()`);
+
+  // ---- C2 (Ruling R26). Hồ sơ có sẵn đang giữ vai Kế toán (dữ liệu cũ — chèn thẳng vào D1 tạm): bấm "Dùng hồ sơ có sẵn" thì vai Kế toán được
+  // chọn sẵn, vai người dùng đã tích (Nhân viên kinh doanh) vẫn giữ; lưu được và danh sách hiện đủ hai vai.
+  const KT_NAME = "Kế Toán Có Sẵn Chrome";
+  const KT_PHONE = "0912345680";
+  const ktParty = await p.ev(`fetch('/api/parties', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind: 'PERSON', fullName: ${JSON.stringify(KT_NAME)}, contacts: [{ kind: 'PHONE', value: ${JSON.stringify(KT_PHONE)} }] }) }).then((r) => r.json()).then((b) => b.party.id)`);
+  env.sql(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('chrome-r26', '${ktParty}', 'ACCOUNTANT', NULL, '2026-09-01', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')`);
+  await p.ev(`(${box("#add-perms", "role", "SALES_STAFF")}).click(), true`);
+  await p.ev(setInput("document.querySelector('#add-phone')", KT_PHONE));
+  await p.waitFor(`[...document.querySelectorAll('#add-perms button')].some((b) => b.textContent.includes('Dùng hồ sơ có sẵn'))`, "gợi ý dùng hồ sơ có sẵn");
+  await p.ev(clickText("#add-perms", `Dùng hồ sơ có sẵn: ${KT_NAME}`));
+  await p.waitFor(`${box("#add-perms", "role", "ACCOUNTANT")}.checked`, "R26: vai Kế toán hồ sơ đang giữ được chọn sẵn");
+  assert.equal(await p.ev(`${box("#add-perms", "role", "SALES_STAFF")}.checked`), true, "R26: vai người dùng đã tích vẫn giữ");
+  assert.match(await p.ev(preview("#add-perms")), /Kế toán/);
+  await p.ev("document.querySelector('#add-form').requestSubmit(), true");
+  await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(KT_NAME)}) && tr.textContent.includes('Nhân viên kinh doanh') && tr.textContent.includes('Kế toán'))`, "R26: tài khoản mới mang đủ hai vai");
+  assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+  ok("R26: dùng hồ sơ có sẵn chọn sẵn vai hồ sơ đang giữ, giữ vai đã tích, lưu được");
   p.close();
 
   // ---- D. Điện thoại (quản trị): thẻ hiện vai, axe sạch
