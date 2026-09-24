@@ -26,11 +26,46 @@ export function recomputeService(stored: StoredService, newPax: PaxCounts): Pars
   return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + l.quantity * l.unitPrice, 0) };
 }
 
-/** Xuất để `repository.ts` (`applyAdjustedPax`) tự kiểm lại `after_json` đọc từ DB trước khi dùng — MỘT định nghĩa "pax hợp lệ" cho cả nơi ghi (ở đây) và nơi đọc. */
+/** MỘT định nghĩa "pax hợp lệ" cho cả nơi GHI (`parseMoneyEditInput`, ở đây) và nơi ĐỌC (`parseAdjustmentAfter`, ngay dưới). */
 export function isPaxCounts(v: unknown): v is PaxCounts {
   if (!v || typeof v !== "object" || Array.isArray(v)) return false;
   const o = v as Record<string, unknown>;
   return PAX_CODES.every((c) => typeof o[c] === "number" && Number.isInteger(o[c]) && (o[c] as number) >= 0);
+}
+
+/**
+ * MỘT hàm phân tích `after_json` DUY NHẤT — "số khách hiệu lực" của từng dịch vụ của dòng điều chỉnh gần nhất. `repository.ts:getLatestAdjustment`
+ * (trang chi tiết MỘT đơn) VÀ `repository.ts:getLatestAdjustments` (danh sách/Trang chủ, nhiều đơn) đều gọi ĐÚNG hàm này để lấy `after` — không
+ * còn tự phân tích riêng (kiểm độc lập Đợt E vòng 2 — Lỗi 1: trước bản sửa này, `repository.ts` lọc bằng `isPaxCounts` còn `money-adjustment.ts`
+ * (đường chi tiết đơn, qua `applyAdjustmentToOrder`) hoàn toàn KHÔNG lọc — CÙNG một `after_json` hỏng dạng mềm (mảng đọc được, một phần tử thiếu
+ * trường `pax`) cho ra HAI số khách khác nhau trên hai bề mặt: `/orders`/Trang chủ đúng số gốc, trang chi tiết hiện số bịa từ dữ liệu thiếu).
+ * Dung nạp MỌI kiểu hỏng của `after_json` bằng cách BỎ QUA phần dữ liệu hỏng — KHÔNG BAO GIỜ ném lỗi ra ngoài (Lỗi 2 độc lập đợt này: trước bản
+ * sửa này, một phần tử không phải object — vd `null` — làm `applyAdjustedPax`/`applyAdjustmentToOrder` truy cập `.serviceId` trên giá trị đó và
+ * ném `TypeError`, không được bắt ở đâu cả nên sập MỌI request `/api/orders`/`/api/orders/dashboard`, cho MỌI nhân viên, không riêng đơn hỏng):
+ *  - `after_json` không phải JSON hợp lệ (JSON.parse ném lỗi) → coi như chưa có điều chỉnh nào (mảng rỗng).
+ *  - JSON hợp lệ nhưng không phải mảng (object, số, chuỗi, `null`…) → mảng rỗng.
+ *  - một phần tử không phải object (`null`, số, chuỗi, mảng con…) → BỎ QUA riêng phần tử đó, các phần tử khác vẫn xét.
+ *  - phần tử thiếu `serviceId` (không phải chuỗi) hoặc `pax` không phải `PaxCounts` hợp lệ (thiếu trường, giá trị không phải số nguyên ≥ 0…) →
+ *    BỎ QUA riêng phần tử đó — dịch vụ tương ứng rơi về số ĐÃ LƯU (đúng nguyên tắc "sự kiện thay đổi thì các yếu tố phụ thuộc phải đổi theo",
+ *    ở đây "sự kiện" là dữ liệu điều chỉnh KHÔNG đáng tin thì "yếu tố phụ thuộc" phải lùi về nguồn còn đáng tin — số đã lưu).
+ * KHÔNG kiểm `serviceId` có khớp dịch vụ thật của đơn hay không — đó là việc của `R-ORD-5` (`scripts/audit-checks.mjs`, tầng dữ liệu); một
+ * `serviceId` lạ ở đây chỉ đơn giản không khớp dịch vụ nào ở nơi gọi (`Map.get` trả `undefined`), không gây lỗi.
+ */
+export function parseAdjustmentAfter(afterJson: string): { serviceId: string; pax: PaxCounts }[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(afterJson);
+  } catch {
+    return [];
+  }
+  if (!Array.isArray(parsed)) return [];
+  const out: { serviceId: string; pax: PaxCounts }[] = [];
+  for (const entry of parsed) {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
+    const e = entry as Record<string, unknown>;
+    if (typeof e.serviceId === "string" && isPaxCounts(e.pax)) out.push({ serviceId: e.serviceId, pax: e.pax });
+  }
+  return out;
 }
 
 /**

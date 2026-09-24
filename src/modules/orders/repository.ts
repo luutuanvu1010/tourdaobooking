@@ -3,7 +3,7 @@ import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSumm
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
-import { effectiveMoney, isAdjustmentSeqCollision, isPaxCounts } from "./money-adjustment";
+import { effectiveMoney, isAdjustmentSeqCollision, parseAdjustmentAfter } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -127,11 +127,10 @@ export function summarizeServices(rows: readonly ServiceSummaryRow[]): Map<strin
  * nhiều đơn (đặc tả Đợt E — bài học: bản trước chỉ ghi đè TIỀN ở `toSummaryDtos`, quên ghi đè SỐ KHÁCH, hai con số cạnh nhau trên một thẻ lệch
  * nhau vì `order_service.pax_*` bị trigger `order_service_frozen_update` (0008) đóng băng sau khi đơn không còn nháp — CHỦ ĐÍCH, không đổi).
  * Dịch vụ KHÔNG có mặt trong `after` của đơn nó thuộc về (nhập tay — `editMoneyAsHandler` chỉ xét dịch vụ từ danh mục —, hoặc đơn chưa có khoá
- * trong `afterByOrder` = chưa có điều chỉnh nào) giữ NGUYÊN số đã lưu ở `order_service`. `isPaxCounts` (kiểm độc lập đợt này): `after_json` đọc
- * từ DB có thể parse ĐƯỢC thành mảng (không rơi vào nhánh `catch` của `getLatestAdjustments`) nhưng một phần tử bên trong thiếu/sai trường `pax`
- * (dữ liệu hỏng KHÔNG bị chặn bởi mỗi `Array.isArray`) — không tự kiểm lại thì ghi `pax_adult: undefined` vào dòng, `summarizeServices` cộng
- * dồn ra `NaN`, làm vỡ pax của CẢ đơn đó trên `/orders`/Trang chủ; rơi về số gốc CHỈ cho đúng dòng có `pax` hỏng, như `after_json` hỏng toàn bộ.
- * Thuần, không đụng DB — test độc lập ở repository.test.ts.
+ * trong `afterByOrder` = chưa có điều chỉnh nào) giữ NGUYÊN số đã lưu ở `order_service`. `afterByOrder` đến từ `getLatestAdjustments`, đã đi qua
+ * `money-adjustment.ts:parseAdjustmentAfter` (MỘT hàm phân tích duy nhất, dùng chung với đường chi tiết một đơn — sửa Lỗi 1/2 kiểm độc lập Đợt E
+ * vòng 2) nên MỌI phần tử ở đây đã đảm bảo `pax` hợp lệ (`isPaxCounts`) — hàm này không cần (và không nên) tự kiểm lại, tự kiểm lại là đúng kiểu
+ * "hai luật khác nhau ở hai nơi" đã gây ra Lỗi 1. Thuần, không đụng DB — test độc lập ở repository.test.ts.
  */
 export function applyAdjustedPax(
   rows: readonly ServiceSummaryRow[],
@@ -139,7 +138,7 @@ export function applyAdjustedPax(
 ): ServiceSummaryRow[] {
   return rows.map((r) => {
     const pax = afterByOrder.get(r.order_id)?.find((a) => a.serviceId === r.id)?.pax;
-    return isPaxCounts(pax) ? { ...r, pax_adult: pax.adult, pax_child: pax.child, pax_senior: pax.senior, pax_infant: pax.infant } : r;
+    return pax ? { ...r, pax_adult: pax.adult, pax_child: pax.child, pax_senior: pax.senior, pax_infant: pax.infant } : r;
   });
 }
 
@@ -704,13 +703,19 @@ interface LatestAdjustment {
   after: { serviceId: string; pax: PaxCounts }[];
 }
 
-/** Dòng điều chỉnh gần nhất của đơn (seq lớn nhất) — null nếu chưa có lần sửa nào (ADR-0014 điều 6, Phase B). */
+/**
+ * Dòng điều chỉnh gần nhất của đơn (seq lớn nhất) — null nếu chưa có lần sửa nào (ADR-0014 điều 6, Phase B). `after` đi qua
+ * `money-adjustment.ts:parseAdjustmentAfter` (MỘT hàm phân tích duy nhất, dùng chung với `getLatestAdjustments` — sửa Lỗi 1/2 kiểm độc lập Đợt E
+ * vòng 2): trước bản sửa này hàm ở đây gọi thẳng `JSON.parse` không bắt lỗi, không kiểm dạng — `after_json` hỏng (không phải JSON, phần tử không
+ * phải object…) làm CẢ trang chi tiết đơn NÀY ném lỗi 500 (bao gồm cả route ghi `editMoneyAsHandler` dùng chung hàm này, khiến đơn hỏng không sửa
+ * tiếp được bằng thao tác bình thường). Giờ dữ liệu hỏng chỉ khiến `after` rơi về mảng rỗng (= coi như đơn CHƯA có điều chỉnh, hiện số đã lưu).
+ */
 export async function getLatestAdjustment(db: D1Database, orderId: string): Promise<LatestAdjustment | null> {
   const row = await db
     .prepare("SELECT id, seq, after_json FROM order_money_adjustment WHERE order_id = ? ORDER BY seq DESC LIMIT 1")
     .bind(orderId)
     .first<{ id: string; seq: number; after_json: string }>();
-  return row ? { id: row.id, seq: row.seq, after: JSON.parse(row.after_json) } : null;
+  return row ? { id: row.id, seq: row.seq, after: parseAdjustmentAfter(row.after_json) } : null;
 }
 
 export interface LatestAdjustmentOverlay {
@@ -725,9 +730,12 @@ export interface LatestAdjustmentOverlay {
  * đơn) nhưng gọn hơn cho nhiều đơn cùng lúc. Đơn không có trong kết quả trả về = chưa có điều chỉnh nào (dùng nguyên số gốc, cả tiền lẫn khách).
  * Trước bản sửa Đợt E, hàm này (khi đó tên `getLatestAdjustmentSubtotals`) chỉ trả `subtotal_after` — số khách vẫn lấy thẳng từ `order_service`
  * đã đóng băng ở nơi gọi, nên tiền đúng mà số khách sai (bài học Đợt E, xem `toSummaryDtos`/`applyAdjustedPax`).
- * `after_json` hỏng/không đọc được cho một dòng: rơi về `after: []` (= không ghi đè số khách của đơn đó, `applyAdjustedPax` giữ nguyên số gốc)
- * thay vì làm vỡ cả trang — `subtotalAfter` vẫn dùng được bình thường (đọc trực tiếp cột INTEGER, không qua JSON.parse) nên tiền của đơn đó
- * vẫn đúng, chỉ số khách của riêng đơn đó lùi về gốc.
+ * `after_json` hỏng/không đọc được cho một dòng: `money-adjustment.ts:parseAdjustmentAfter` (MỘT hàm phân tích duy nhất, dùng chung với
+ * `getLatestAdjustment` ở trên — sửa Lỗi 1/2 kiểm độc lập Đợt E vòng 2) rơi về `after: []` (= không ghi đè số khách của đơn đó, `applyAdjustedPax`
+ * giữ nguyên số gốc) thay vì làm vỡ cả trang — `subtotalAfter` vẫn dùng được bình thường (đọc trực tiếp cột INTEGER, không qua JSON.parse) nên
+ * tiền của đơn đó vẫn đúng, chỉ số khách của riêng đơn đó lùi về gốc. Trước bản sửa này, một phần tử KHÔNG PHẢI object (vd `null`) lọt qua
+ * `Array.isArray` rồi làm nơi gọi (`applyAdjustedPax`) ném `TypeError` khi truy cập `.serviceId` — sập MỌI request `/api/orders`/dashboard cho
+ * MỌI nhân viên (Lỗi 2), không riêng đơn có dòng hỏng.
  */
 export async function getLatestAdjustments(db: D1Database, orderIds: readonly string[]): Promise<Map<string, LatestAdjustmentOverlay>> {
   if (orderIds.length === 0) return new Map();
@@ -741,18 +749,7 @@ export async function getLatestAdjustments(db: D1Database, orderIds: readonly st
     )
     .bind(JSON.stringify(orderIds))
     .all<{ order_id: string; subtotal_after: number; after_json: string }>();
-  return new Map(
-    results.map((r) => {
-      let after: { serviceId: string; pax: PaxCounts }[] = [];
-      try {
-        const parsed: unknown = JSON.parse(r.after_json);
-        if (Array.isArray(parsed)) after = parsed as { serviceId: string; pax: PaxCounts }[];
-      } catch {
-        // after_json hỏng — rơi về mảng rỗng, xem chú thích hàm (không làm vỡ cả trang, không đụng subtotalAfter).
-      }
-      return [r.order_id, { subtotalAfter: r.subtotal_after, after }] as const;
-    }),
-  );
+  return new Map(results.map((r) => [r.order_id, { subtotalAfter: r.subtotal_after, after: parseAdjustmentAfter(r.after_json) }] as const));
 }
 
 /**
