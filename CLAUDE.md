@@ -29,6 +29,8 @@ Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặ
   - Việc còn lại (sửa chữ, tài liệu mô tả, CSS không đụng logic, thêm test): test xanh + tóm tắt, chủ duyệt.
 - **Không tự tay đổi luật chi phối chính mình** (N9): `CLAUDE.md`, `.claude/`, `playbook/`, ràng buộc dự án, ADR đã duyệt. Chỉ **đề xuất** bằng diff/tệp trên nhánh; chủ duyệt mới có hiệu lực (riêng `CLAUDE.md`: chỉ được tự sửa số đếm, số migration, tên tệp cho khớp mã, không đổi nghĩa quy tắc; `playbook/` và ADR đã duyệt thì không). Dựng thêm hàng rào chỉ **siết** chính mình (test, hook, deny) thì được, không nới (Điều 9.4).
 - Viết **tiêu chí nghiệm thu trước khi làm**, bằng hành vi kiểm được (P20). Cơ chế kiểm mới chỉ được coi là hoạt động khi **đã quan sát nó chặn thật một lần** (sửa cố ý → đỏ → hoàn nguyên) (P16); điều chưa cưỡng chế được ghi là "dựa vào kỷ luật".
+- **Sổ hàng rào** (chủ duyệt 2026-09-24): mọi hàng rào mà AI dựa vào để tin mình an toàn phải có dòng trong `docs/SO-HANG-RAO.md` — chặn cái gì, cơ chế, ngày quan sát chặn thật (sửa cố ý → đỏ → hoàn nguyên). Hàng rào không có dòng, hoặc dòng chưa có ngày quan sát, coi là lời khuyên. (Bài học 24/9: test khoá GIÁ TRỊ bản đồ quyền được đọc nhầm thành "bản đồ đang được thi hành" — 13/25 ô không được máy chủ hỏi.)
+- **Dừng dây chuyền** (chủ duyệt 2026-09-24): phát hiện an ninh mức HIGH trở lên (kiểm toán, red team) phải có mục trong `docs/quyen-hoan.json` (hoặc sổ tương đương) với người chịu trách nhiệm và hạn; quá hạn thì `npm test` đỏ. Đặc tả/kế hoạch chạm vùng đang hở phải ghi "xây trên lỗ đang hở: <mã>" và không được duyệt trước khi lỗ được vá hoặc chủ dự án gia hạn có ghi lý do.
 - Thấy dấu hiệu một nguyên tắc sắp/đang bị vi phạm: nói ngay **một lần**, bằng lời thường (số hiệu điều để trong ngoặc); chủ đã nghe và vẫn quyết thì thi hành, không nhắc lại (P18).
 
 ## 4. Trả lời chủ dự án: ngắn, dễ hiểu, phi kỹ thuật
@@ -100,6 +102,7 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 - **Việc nhỏ/rõ**: công thức ở `docs/CHANGE-GUIDE.md` → test → commit.
 - **Tính năng mới**: đặc tả ngắn ở `docs/superpowers/specs/` (ghi giả định và điều chưa chắc) → kế hoạch ở `docs/superpowers/plans/` → thi công theo task (mỗi task đỏ→xanh, việc lớn có người kiểm độc lập §3) → cập nhật `SYSTEM-DESIGN.md`/`CHANGE-GUIDE.md`/`data-dictionary.json` nếu đổi cấu trúc.
 - **Việc nhiều bước**: ghi sổ điều phối `docs/superpowers/plans/…-thi-cong-nhat-ky.md` (ruling, nợ). Mỗi việc một phiên; trạng thái sống trong tài liệu, không trong trí nhớ phiên (P19).
+- **Bước ghép khi duyệt** (chủ duyệt 2026-09-24): khi một lượt duyệt gồm ≥ 2 quyết định (ADR/đặc tả), hoặc khi một bảng dùng chung nhận thêm một loại dữ liệu mới, người soạn phải kèm **một trang ghép**: (1) bảng này chứa những loại thực thể nào; (2) từng dòng bản đồ quyền chạm bảng này áp cho loại nào; (3) cổng nào canh cửa nào. Không có trang ghép thì lượt duyệt chưa đủ điều kiện. Mỗi lượt duyệt tối đa **3** quyết định có chạm quyền/dữ liệu. (Bài học 20/9: ba ADR đúng riêng lẻ, ghép lại thành lỗ F-01 vì không ai hỏi "bảng hồ sơ nay chứa ai".)
 - Yêu cầu chưa rõ: xử lý theo P8 ở §3 (cấu trúc → hỏi chủ; bề mặt đảo ngược được → giả định có ghi). Đừng nở phạm vi ra ngoài điều được giao.
 
 ## 10. Bẫy hay dính (danh sách đầy đủ: `docs/CHANGE-GUIDE.md`)

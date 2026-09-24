@@ -1,0 +1,125 @@
+{
+  "_mo_ta": "Danh sách HOÃN của hai hàng rào quyền: src/permission-enforcement.test.ts (mỗi ô của MATRIX phải được máy chủ hỏi) và src/route-write-guard.test.ts (mỗi đường ghi phải hỏi bảng quyền). Mục ở đây là chỗ hở ĐÃ BIẾT, có người chịu trách nhiệm và hạn. Hết hạn → npm test đỏ (dừng dây chuyền) cho tới khi vá hoặc chủ dự án gia hạn bằng cách sửa `han` (có diff để rà). Mục cho ô/route đã được thi hành → test đỏ ('hoãn thừa'), để danh sách không phình.",
+  "_trang_thai": "Các ngày `han` đã được CHỦ DỰ ÁN XÁC NHẬN ngày 2026-09-24 (kế hoạch docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md §5 Q4: 'giữ nguyên bốn mốc'). Từ nay là hạn thật: quá hạn → npm test đỏ; gia hạn chỉ bằng diff vào tệp này do chủ dự án ra lệnh, kèm lý do trong thông điệp commit. Người chịu trách nhiệm là con người (Hiến pháp P9).",
+  "_ngay_han": "Ngày dân sự Việt Nam, so với vnToday() lúc chạy test.",
+  "thao_tac": [
+    {
+      "ma": "party.view",
+      "ly_do": "LỖ ĐANG HỞ (kiểm toán 22/9 F-01; red team R3/R3b; thí nghiệm 24/9): 4 route GET /api/parties* chỉ dựa cổng thô access 'office' (= can(order.view)), không hỏi ô này — nên khi ADR-0017 mở order.view cho FIELD thì FIELD xem được mọi hồ sơ kể cả của quản trị viên.",
+      "ke_hoach": "GĐ1 ADR-0013 (điều 1–3) + GĐ2 ADR-0018: route Hồ sơ gọi can(party.view) và cổng office khai tường minh.",
+      "han": "2026-10-08",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "party.write",
+      "ly_do": "LỖ ĐANG HỞ (F-01): POST/PUT /api/parties* không hỏi ô này; SALES/ACCOUNTING đổi tên, ngưng, thêm SĐT vào hồ sơ của quản trị viên (R3, R3b, R3c → 200/201); tên giả in lên ảnh xác nhận gửi khách.",
+      "ke_hoach": "GĐ1 ADR-0013: ô party.staff.write (hồ sơ CÓ TÀI KHOẢN chỉ quản trị cấp trên sửa) + tiêm partyHasAccount; route Hồ sơ gọi can(). Gỡ mục này ngay khi thi công (test sẽ ép).",
+      "han": "2026-10-08",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "admin.manage",
+      "ly_do": "Thi hành bằng cổng thô router access 'admin' (hasPermission ADMIN|SUPER_ADMIN) và canManageAccount (cấp bậc, ADR-0014 điều 8) — không route quản trị nào (tài khoản, danh mục, địa điểm, Góp ý PATCH, vai trò/quan hệ hồ sơ) hỏi ô này.",
+      "ke_hoach": "GĐ2 ADR-0018: route quản trị gọi can(admin.manage) (+ canManageAccount khi có mục tiêu cụ thể).",
+      "han": "2026-10-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "admin.manage.superadmin",
+      "ly_do": "Thi hành bằng kiểm tay admin.permissions.includes('SUPER_ADMIN') ở POST /api/staff và PUT /api/staff/:id/permissions, không qua can().",
+      "ke_hoach": "GĐ2 ADR-0018: thay kiểm tay bằng can(admin.manage.superadmin).",
+      "han": "2026-10-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "money.view",
+      "ly_do": "Không route nào hỏi ô; 'FIELD không xem tiền' hiện được giữ GIÁN TIẾP: FIELD không qua cổng office nên không tới route đơn, và /api/dispatch/mine không trả tiền. ADR-0017 (accepted 2026-09-24) đổi ô này cho FIELD.",
+      "ke_hoach": "GĐ2 ADR-0018 / thi công ADR-0017: nơi trả tiền gọi can(money.view), không dựa cổng.",
+      "han": "2026-10-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "contact.view",
+      "ly_do": "Không route nào hỏi ô; /api/dispatch/mine trả liên hệ theo phân công mà không hỏi ô. ADR-0017 đổi ô FIELD assigned → any.",
+      "ke_hoach": "GĐ2 ADR-0018 / thi công ADR-0017: route trả liên hệ khách gọi can(contact.view).",
+      "han": "2026-10-15",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "task.progress",
+      "ly_do": "FIELD cập nhật tiến độ việc được giao (ADR-0007) — chưa có route nào (nhiệm vụ đón/lái cano của N2 chưa làm); ô chết từ 20/9.",
+      "ke_hoach": "GĐ2 ADR-0018: bỏ khỏi MATRIX hoặc thi hành khi có route (đặc tả 11 vai).",
+      "han": "2026-11-30",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "dispatch.guides.view",
+      "ly_do": "ADR-0014 điều 10 định nghĩa; chưa có route; đặc tả 11 vai (chờ duyệt) đề nghị bỏ.",
+      "ke_hoach": "Bỏ khỏi MATRIX ở ADR-0018 hoặc 11 vai GĐ1; hoặc thi hành nếu chủ giữ.",
+      "han": "2026-11-30",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "dispatch.request",
+      "ly_do": "ADR-0014 điều 10 định nghĩa (xin nhận / duyệt / từ chối); chưa có route; đặc tả 11 vai đề nghị bỏ.",
+      "ke_hoach": "Như dispatch.guides.view.",
+      "han": "2026-11-30",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "payment.receive",
+      "ly_do": "Để dành cho đợt N3 (thu tiền — ADR-0004); chưa có route.",
+      "ke_hoach": "Thi hành trong N3. Nếu N3 chưa bắt đầu trước hạn, chủ dự án gia hạn có ghi lý do.",
+      "han": "2026-12-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "payment.refund",
+      "ly_do": "Để dành cho đợt N3 (hoàn tiền — ADR-0004); chưa có route.",
+      "ke_hoach": "Như payment.receive.",
+      "han": "2026-12-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "invoice.request",
+      "ly_do": "Để dành cho đợt N3 (yêu cầu hoá đơn — ADR-0010); chưa có route.",
+      "ke_hoach": "Như payment.receive.",
+      "han": "2026-12-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    },
+    {
+      "ma": "invoice.issue",
+      "ly_do": "Để dành cho đợt N3 (đánh dấu hoá đơn đã xuất — ADR-0010); chưa có route.",
+      "ke_hoach": "Như payment.receive.",
+      "han": "2026-12-31",
+      "nguoi_chiu_trach_nhiem": "chủ dự án"
+    }
+  ],
+  "cua_ghi": [
+    { "method": "POST", "path": "/api/parties", "loai": "hoãn", "ly_do": "Tạo hồ sơ chỉ dựa cổng office; không hỏi party.write.", "ke_hoach": "GĐ1 ADR-0013: gọi can(party.write).", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "PUT", "path": "/api/parties/:id", "loai": "hoãn", "ly_do": "LỖ ĐANG HỞ F-01 (R3/R3b): sửa tên/ngưng mọi hồ sơ kể cả của quản trị viên.", "ke_hoach": "GĐ1 ADR-0013: can(hasAccount ? party.staff.write : party.write) + cấp dưới.", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/parties/:id/contacts", "loai": "hoãn", "ly_do": "LỖ ĐANG HỞ (R3c, 24/9): SALES thêm SĐT vào hồ sơ quản trị viên → 201; 11 vai sẽ hiện 'SĐT công việc trong hồ sơ' cho đối tác.", "ke_hoach": "GĐ1 ADR-0013.", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/parties/:id/contacts/:cid/end", "loai": "hoãn", "ly_do": "Như trên (đóng liên hệ của hồ sơ có tài khoản).", "ke_hoach": "GĐ1 ADR-0013.", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/parties/:id/roles", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/parties/:id/roles/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/parties/:id/relationships", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/parties/:id/relationships/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/staff", "loai": "hoãn", "ly_do": "Cổng thô admin + kiểm tay includes('SUPER_ADMIN'); không hỏi admin.manage / admin.manage.superadmin.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/staff/sheet/apply", "loai": "hoãn", "ly_do": "Tạo hàng loạt tài khoản SALES từ Sheet, chỉ cổng thô admin.", "ke_hoach": "GĐ2 ADR-0018: can(admin.manage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "DELETE", "path": "/api/catalog/:code/override", "loai": "hoãn", "ly_do": "Cổng thô admin; MATRIX không có ô danh mục (ADR-0007 gộp vào 'quản lý … danh mục' = admin.manage).", "ke_hoach": "GĐ2 ADR-0018: can(admin.manage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "PATCH", "path": "/api/catalog/:code", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/catalog/:code/ack", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/catalog/sync", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/locations", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "PUT", "path": "/api/locations/:id", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "PATCH", "path": "/api/feedback/:id", "loai": "hoãn", "ly_do": "Handler KHÔNG gọi can(feedback.triage) (SYSTEM-DESIGN §8 từng ghi ngược lại — đã sửa 24/9); chỉ cổng thô admin.", "ke_hoach": "GĐ2 ADR-0018: can(feedback.triage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "PUT", "path": "/api/maintenance", "loai": "hoãn", "ly_do": "Chỉ chủ dự án dùng, kiểm bằng isAllowedPhone (SĐT chủ) — không có ô trong MATRIX; đặc tả 11 vai đề xuất ô settings.ops.", "ke_hoach": "GĐ2 ADR-0018 hoặc 11 vai GĐ0: ô settings.ops.", "han": "2026-11-30", "nguoi_chiu_trach_nhiem": "chủ dự án" },
+    { "method": "POST", "path": "/api/account/change-pin", "loai": "ngoại lệ", "ly_do": "Tự phục vụ trên chính tài khoản đang đăng nhập (access 'staff'); bảng chưa có ô 'tự phục vụ'. Xem xét ô account.self ở ADR-0018; tới lúc đó là ngoại lệ có ghi." },
+    { "method": "POST", "path": "/api/account/passkeys/options", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
+    { "method": "POST", "path": "/api/account/passkeys", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
+    { "method": "DELETE", "path": "/api/account/passkeys/:id", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
+    { "method": "POST", "path": "/api/account/passkeys/remove-all", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
+    { "method": "POST", "path": "/api/account/pin-by-passkey/options", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." },
+    { "method": "POST", "path": "/api/account/pin-by-passkey", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." }
+  ]
+}

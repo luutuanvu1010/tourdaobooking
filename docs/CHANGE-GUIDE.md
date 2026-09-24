@@ -570,6 +570,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 | `.claude/hooks/guard-remote-lib.mjs`, `.claude/settings.json` | `node --test src/claude-guard.test.ts` (gồm kho ca `src/claude-guard.cases.json`); hàng rào mới phải được quan sát chặn thật một lần (sửa cố ý → đỏ → hoàn nguyên) |
 | `scripts/*.mjs` (còn lại) | chạy thử lệnh đó trên D1 local/tạm; `npm test` (bài kiểm R-N1-14 quét cả `scripts/*.mjs` tìm `full_name`) |
 | `src/shared/changelog.ts` | `node --test src/shared/changelog.test.ts` + `help-smoke.mjs` nếu đổi cách hiển thị |
+| `src/shared/permissions.ts` (thêm/bớt ô `MATRIX`), thêm route ghi ở `src/modules/*/index.ts`, `docs/quyen-hoan.json` | `node --test src/permission-enforcement.test.ts src/route-write-guard.test.ts` → `npm test`. Ô mới phải có nơi máy chủ gọi `can(…, "<ô>")` hoặc mục hoãn có hạn; route ghi mới phải hỏi bảng trong thân handler (hay hàm trong `GUARDS`) hoặc có mục `cua_ghi`. Hết hạn hoãn → `npm test` đỏ: vá hoặc chủ dự án gia hạn bằng diff vào `docs/quyen-hoan.json`. Sổ hàng rào: `docs/SO-HANG-RAO.md`. **Luật dừng dây chuyền (chủ duyệt 2026-09-24):** phát hiện an ninh mức HIGH trở lên (kiểm toán, red team) phải có mục ở `docs/quyen-hoan.json` (hoặc sổ tương đương) với người chịu trách nhiệm và hạn; đặc tả/kế hoạch chạm vùng đang hở phải ghi "xây trên lỗ đang hở: <mã>" và không được duyệt trước khi vá hoặc chủ gia hạn có ghi lý do |
 | Chỉ tài liệu | không cần chạy gì; nhưng tài liệu phải khớp mã trong cùng commit |
 
 **Thời gian ước lượng** (máy dev, đo 2026-09-21):
