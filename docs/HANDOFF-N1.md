@@ -2,7 +2,20 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Đăng nhập bằng Face ID (ADR-0016 lát 1) ĐÃ LÊN PRODUCTION (2026-09-23 19:48 giờ VN, chủ dự án tự chạy `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.4: trang Trợ giúp + nhật ký thay đổi ĐÃ LÊN PRODUCTION (2026-09-24 08:27 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-changelog-tro-giup` rồi `npm run trien-khai`)
+
+AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-24, khoảng 08:35 giờ VN:
+
+- **Phiên bản: 1.4.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.4." (thoát 0); `GET /api/auth/config` trả `"version":"1.4"`; `GET /help` → 200.
+- **Mã trên `main` / GitHub:** `origin/main` = d00f8d4 (gộp nhánh `worktree-changelog-tro-giup`, đã chứa Đợt D + sửa Đối tác).
+- **Worker:** `wrangler deployments list` → bản mới nhất **7ce5b2f1-c3a0-46af-9282-a26daca31114**, tạo 2026-09-24T01:27:05Z. Mốc lùi (bản ngay trước): **feed0f32-d579-4fe5-93ef-654932b72c4d** (2026-09-23T23:48Z). Trước nữa: ad71111d (2026-09-23T15:42Z) — hai lần deploy Đợt D/sửa Đối tác này chưa từng được ghi ở đây.
+- **Migration:** `wrangler d1 migrations list tourdao-sales-db --remote` → "No migrations to apply" (lần này không có migration mới).
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt (D1 remote)", thoát 0.
+- **Lần chạy `trien-khai` đầu tiên dừng ở `npm test`**, không ghi gì lên remote: test đo thời gian `guard-remote: lệnh dị dạng không làm hook quá giờ` (`src/claude-guard.test.ts:162`) chạy 2003 ms > ngưỡng 1500 ms khi máy bận (tải trung bình ≈ 7,9). Chạy lại thì qua. Nợ: test này chập chờn khi máy bận; nới ngưỡng = nới kiểm của hàng rào → chủ quyết.
+- **Chế độ bảo trì vẫn BẬT** tới 2026-09-24T06:59Z (13:59 giờ VN); `trien-khai` không đụng tới.
+- **Chưa kiểm:** trang Trợ giúp, chấm đỏ, menu dọc trên iPhone/iPad thật ở production.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Đăng nhập bằng Face ID (ADR-0016 lát 1) ĐÃ LÊN PRODUCTION (2026-09-23 19:48 giờ VN, chủ dự án tự chạy `npm run trien-khai`)
 
 Chủ chạy lệnh ở ứng dụng Terminal. Khối tóm tắt lệnh in ra không hiện trên màn hình của chủ, nên các dòng dưới đây do AI **kiểm lại bằng lệnh chỉ đọc** lúc 2026-09-23, khoảng 20:00 giờ VN.
 
@@ -165,15 +178,26 @@ A1 + N1 (lần 1) + A2 đi cùng MỘT lần phát hành, đúng điều kiện 
 |---|---|---|
 | 1 | kiểm TTY, `main`, cây sạch, `git fetch origin`, `main` == `origin/main` | chỉ triển khai mã ĐÃ đẩy lên GitHub |
 | 2 | cổng chỉ-đọc `CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote` | lệnh lỗi, hoặc đầu ra không đọc được (không đoán) |
+| 2b | cổng số phiên bản TRƯỚC deploy (chỉ đọc): `node scripts/kiem-phien-ban.mjs` — bản ở máy phải MỚI HƠN production | mã 1 (không mới hơn: quên thêm mục nhật ký?) → in đỏ và hỏi "… Chỉ chọn c nếu đang deploy lại ĐÚNG bản đang chạy. Vẫn tiếp tục? (c/k)"; khác đúng `c` → dừng, không ghi gì lên remote; chọn `c` thì khối tóm tắt ghi "Cổng phiên bản trước deploy: KHÔNG ĐẠT (chủ chọn tiếp tục)". Mã 2 hay mã lạ (không đọc được production) → DỪNG, không bao giờ coi là đạt |
 | 3 | `npm test`, `npm run typecheck`, `npm run build:web` | đỏ |
 | 3b | `npm run test:e2e` ĐỦ BỘ (cần mạng, vài phút; đuôi `audit-invariants --strict` trên D1 tạm) | e2e đỏ → in tên kịch bản đỏ và hỏi "Có kịch bản e2e đỏ. Vẫn tiếp tục? (c/k)"; khác đúng `c` → dừng, không ghi gì lên remote. Dùng khi kịch bản đỏ vì lý do ngoài mã (vd `catalog` đỏ vì giá trên Google Sheet thật vừa đổi) — chủ phán; khối tóm tắt ghi rõ "e2e: ĐỎ (chủ chọn tiếp tục)" |
 | 4 | (nếu còn migration chưa áp) in danh sách; `wrangler d1 time-travel info tourdao-sales-db --json` → in điểm khôi phục + lệnh khôi phục; hỏi "Áp N migration này lên production? (c/k)"; `c` → `CI=1 npx wrangler d1 migrations apply tourdao-sales-db --remote` | không lấy được điểm khôi phục; trả lời khác `c` (không áp, không deploy); áp lỗi (KHÔNG deploy) |
 | 5 | hỏi "Triển khai Worker lên production? (c/k)" (vừa áp migration thì câu hỏi ghi "PHẢI deploy ngay") | trả lời khác `c` — nếu đã áp migration thì in cảnh báo ĐỎ kèm lệnh deploy để tự chạy ngay |
 | 6 | `CI=1 npx wrangler deploy` | deploy lỗi (không chạy bước 7) |
 | 7 | `node scripts/audit-invariants.mjs --db remote` | báo ĐẠT / KHÔNG ĐẠT (mã 1) / KHÔNG CHẠY ĐƯỢC (mã 2 — không phải dữ liệu sạch); khác ĐẠT thì thoát khác 0 |
-| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, dòng `e2e: xanh` hoặc `e2e: ĐỎ (chủ chọn tiếp tục): <tên kịch bản>`, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp |
+| 7b | cổng số phiên bản SAU deploy (chỉ đọc, chạy SAU bước 7 để không xen giữa deploy và kiểm dữ liệu): `node scripts/kiem-phien-ban.mjs --sau-deploy` — production phải BẰNG bản ở máy; hỏng thì chờ ~20 giây rồi thử lại MỘT lần | không dừng (đã deploy rồi): ghi ĐẠT / KHÔNG ĐẠT / KHÔNG CHẠY ĐƯỢC (mã N) vào tóm tắt; khác ĐẠT thì in lệnh kiểm lại tay `node scripts/kiem-phien-ban.mjs --sau-deploy` và thoát khác 0 |
+| 8 | in khối tóm tắt: ngày giờ (giờ VN), commit, dòng `e2e: xanh` hoặc `e2e: ĐỎ (chủ chọn tiếp tục): <tên kịch bản>`, migration đã áp, điểm Time Travel, Worker Version ID (nếu đọc được), kết quả kiểm dữ liệu, `Phiên bản: X`, kết quả hai cổng số phiên bản | — chủ dán khối này vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp. Lệnh thoát 0 CHỈ KHI kiểm dữ liệu ĐẠT VÀ cổng sau ĐẠT |
 
 **Lệnh này KHÔNG làm thay** (vẫn làm tay TRƯỚC khi gõ `npm run trien-khai`, theo runbook của từng lần phát hành): các kịch bản Chrome khi chạm giao diện (e2e API thì lệnh ĐÃ chạy ở bước 3b), và các kiểm riêng của từng lần phát hành (ví dụ `GET /api/auth/config` sau deploy Face ID). **Giả định về wrangler:** đầu ra của `migrations list` được đọc theo định dạng của wrangler 4.135.0 (dòng "No migrations to apply" hoặc "Migrations to be applied:" + bảng tên tệp); nâng wrangler mà định dạng đổi thì lệnh DỪNG (an toàn), cần sửa `parsePendingMigrations` + mẫu ở `src/release-lib.fixtures/`. `migrations list --remote` của wrangler gọi `CREATE TABLE IF NOT EXISTS d1_migrations` trước khi đọc — trên production bảng đã có nên thực tế không ghi gì.
+
+## Mọi lần phát hành: bước A.0 — nhật ký thay đổi (từ 2026-09-23)
+
+Trước bước "A. Trước khi deploy" của MỌI runbook, và TRƯỚC khi gõ `npm run trien-khai`:
+1. AI thêm mục mới vào đầu `CHANGELOG` (`src/shared/changelog.ts`) theo công thức t "Ghi nhật ký thay đổi" ở `docs/CHANGE-GUIDE.md`, commit cùng nhánh sẽ deploy. Chủ đọc lướt mục này khi duyệt phát hành.
+2. Cổng số phiên bản: `npm run trien-khai` TỰ chạy `node scripts/kiem-phien-ban.mjs` trước (bước 2b, sau bước đọc migration) và `--sau-deploy` sau (bước 7b, sau kiểm dữ liệu) — chủ quyết 2026-09-23. Mã thoát của cổng: 0 ĐẠT; 1 = quên tăng số (trước) / production chưa bằng bản ở máy (sau); 2 = không đọc được production, KHÔNG phải đạt. Khối tóm tắt đã có dòng "Phiên bản: X" để dán vào mục "TRẠNG THÁI TRIỂN KHAI".
+3. Chỉ khi deploy TAY (không qua `npm run trien-khai`): chạy `node scripts/kiem-phien-ban.mjs` trước và `node scripts/kiem-phien-ban.mjs --sau-deploy` sau `CI=1 npx wrangler deploy`; cả hai phải ĐẠT.
+
+**Lần phát hành đầu tiên mang trang Trợ giúp PHẢI là 1.4** (mục đầu nhắc tới trang Trợ giúp/nhật ký thay đổi). Cổng không bắt được nếu quên, vì production trước đó chưa báo số (coi là 1.0).
 
 ## Điều kiện TRƯỚC khi triển khai
 - **A2 (giao diện đơn) đã xong về mã (2026-09-20): `tsc -p web` = 0 lỗi; bằng chứng ở `docs/evidence/2026-09-20-a2/`.** Còn MỘT cổng: chủ dự án ký duyệt thị giác (mục "Ký duyệt thị giác" trong `docs/evidence/2026-09-20-a2/README.md`) — **chưa ký thì chưa triển khai**. Nhánh chứa A1 (đơn có `services[]`): triển khai chỉ N1 mà thiếu A2 thì giao diện đơn hỏng trên production, nên A1, N1 và A2 đi cùng một lần phát hành. `web/trip-sheet.ts`, `web/order-form.ts` và `web/order.ts` KHÔNG có kiểm tự động trong repo — sửa các tệp này thì PHẢI chạy lại ba kịch bản `docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs`.
@@ -433,3 +457,4 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 - Trang chủ mới: biên an toàn thanh tab dưới cùng ở khổ điện thoại 390px chỉ còn 13px (đo bằng Chrome headless, `env(safe-area-inset-bottom)` = 0 trên môi trường đo — trên iPhone thật biên này NHỎ HƠN vì vùng an toàn thật > 0). Nếu sau này thêm mục điều hướng nữa ở thanh tab thì phải đo lại (kịch bản `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs`, mục D).
 - **Face ID lát 2 (đăng nhập bằng Google) chưa lập kế hoạch:** mô phỏng chuyển hướng qua tên miền khác ở lát 0 chưa có kết quả (`docs/evidence/2026-09-23-passkey/ket-luan-lat-0.md`) — chưa rõ cửa sổ app cài (PWA) có giữ cookie và quay về đúng cửa sổ sau khi rời tên miền hay không. Phải thử lại bước đó trước khi lập kế hoạch lát 2. Zalo (lát 3, nếu chủ muốn) để sau.
 - **Route đăng nhập bằng Face ID chưa có hạn mức riêng theo SĐT/tài khoản** (`POST /api/auth/passkey/login`) — chỉ có hạn mức xin thách thức theo IP ở `POST /api/auth/passkey/options` (`CHALLENGE_IP_LIMIT`, 120 lần/15 phút); route `login` không tự giới hạn số lần thử assertion. Rủi ro thấp (một khoá sai gần như không đoán được — không phải PIN 6 số) nhưng ghi nhận là giới hạn đã biết, chưa có test/route chặn riêng.
+- **Kịch bản e2e `passkey` không trả lại mã PIN của tài khoản FIELD** (`tests/e2e/passkey.mjs`, quanh dòng 229–237: admin đặt lại PIN, kịch bản dùng mã mới rồi không đặt về `ACCOUNTS.field.pin`) — chạy `passkey` TRƯỚC `maintenance` (vd `npm run test:e2e -- passkey maintenance`) thì `maintenance` đỏ vì đăng nhập FIELD sai PIN. Thứ tự đủ bộ hiện tại (`maintenance` trước `passkey`) không dính. Có từ `d808c36`; chưa sửa (ghi nhận khi kiểm nhánh Trợ giúp, 2026-09-23).

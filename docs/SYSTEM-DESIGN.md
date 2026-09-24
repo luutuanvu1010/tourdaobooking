@@ -391,7 +391,7 @@ Tất cả 69 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
-| GET | `/api/auth/config` | public | auth | `{ turnstileSiteKey, maintenance: { on, endsAt }, passkey }` — khoá site để trang đăng nhập dựng widget (`null` = Turnstile tắt), trạng thái chế độ bảo trì cho banner + đếm ngược (không lộ ai được phép), và `passkey: boolean` (đăng nhập Face ID có bật hay không — ADR-0016) |
+| GET | `/api/auth/config` | public | auth | `{ turnstileSiteKey, maintenance: { on, endsAt }, passkey, version }` — khoá site để trang đăng nhập dựng widget (`null` = Turnstile tắt), trạng thái chế độ bảo trì cho banner + đếm ngược (không lộ ai được phép), `passkey: boolean` (đăng nhập Face ID có bật hay không — ADR-0016), và `version` (số phiên bản đang chạy, từ nhật ký thay đổi — `src/shared/changelog.ts`) |
 | POST | `/api/auth/login` | public | auth | đăng nhập SĐT + PIN (+ `turnstileToken` khi Turnstile bật), đặt cookie phiên và ghi `staff.last_login_at`; 403 `turnstile_failed` / 503 `turnstile_unavailable`; 503 `maintenance` (đang bảo trì và SĐT không được phép — sau Turnstile, TRƯỚC PIN) |
 | GET | `/api/auth/me` | staff | auth | `{ staff, maintenance: { on, endsAt } }` — hồ sơ nhân viên của phiên hiện tại; khi đang bảo trì chỉ người được phép tới được đây (người khác nhận 503 `maintenance` từ router) |
 | POST | `/api/auth/logout` | public | auth | xoá cookie phiên |
@@ -527,6 +527,7 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 | Nhân viên | `public/staff.html` | `web/staff.ts` | `/api/staff*` (cột "Đăng nhập gần nhất": `lastLoginAt`, "Chưa đăng nhập" khi `null`) | admin |
 | Nhật ký | `public/audit.html` | `web/audit.ts` | `/api/audit` | admin |
 | Góp ý / Báo lỗi | `public/feedback.html` | `web/feedback.ts` | `/api/feedback*` (gửi yêu cầu, "yêu cầu của tôi", cuộc trao đổi; tab hàng đợi + thống kê chỉ admin) | mọi tài khoản |
+| Trợ giúp | `public/help.html` | `web/help.ts` | phiên bản, nhật ký thay đổi (`src/shared/changelog.ts`), lối tắt Góp ý; chấm đỏ theo `localStorage` `td_help_seen` | mọi tài khoản |
 
 **Lớp logic thuần dùng chung server ↔ `web/`** (`src/shared/`, không import `src/modules/` — `src/architecture.test.ts` kiểm):
 
@@ -577,7 +578,7 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 | Lệnh | Làm gì |
 |---|---|
 | `npm run dev` | `wrangler dev` (tự chạy `build:web` nhờ `build.command` + `watch_dir: web`) |
-| `npm run build:web` | sinh MỘT `BUILD_ID` (dấu thời gian 14 chữ số) rồi esbuild 12 trang `web/*.ts` → `public/js/` (`--bundle --format=esm --target=es2022 --minify --define:__BUILD_ID__`), rồi `web/sw/sw.ts` → `public/sw.js` (`--format=iife`, cùng `__BUILD_ID__` đó — bundle trang và service worker luôn cùng một mã bản dựng) |
+| `npm run build:web` | sinh MỘT `BUILD_ID` (dấu thời gian 14 chữ số) rồi esbuild 13 trang `web/*.ts` → `public/js/` (`--bundle --format=esm --target=es2022 --minify --define:__BUILD_ID__`), rồi `web/sw/sw.ts` → `public/sw.js` (`--format=iife`, cùng `__BUILD_ID__` đó — bundle trang và service worker luôn cùng một mã bản dựng) |
 | `npm run typecheck` | `tsc --noEmit` cho server, `-p web`, `-p web/sw` |
 | `npm test` | `node --test "src/**/*.test.ts"` |
 | `npm run test:e2e` | `node tests/e2e/run.mjs` |
@@ -585,7 +586,7 @@ Phạm vi (`Scope`) hiện chỉ theo sở hữu/phân công; **thêm phạm vi 
 | `npm run db:migrate:local` / `:remote` | `wrangler d1 migrations apply tourdao-sales-db --local` / `--remote` |
 
 **Thêm một trang mới phải khai ở 4 nơi** (không có nơi nào tự suy ra):
-`public/<tên>.html` → mục `esbuild` của `build:web` trong `package.json` → `PAGES` (và nếu cần, `PRECACHE`) trong `src/shared/sw-policy.ts` → điều hướng trong `web/shell.ts`. Hai bài kiểm bắt lỗi nếu quên: `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với các tệp HTML trong `public/`, và `tests/e2e/pwa.mjs` yêu cầu mọi đường dẫn trong `PAGES ∪ PRECACHE` trả 200 với content-type qua được `isCacheable`, đồng thời kiểm thẻ meta iOS và tên/màu trên MỌI trang của `PAGES` (13 trang, thêm `/orders` từ Đợt D Task 5: e2e in "nhất quán trên 13 trang").
+`public/<tên>.html` → mục `esbuild` của `build:web` trong `package.json` → `PAGES` (và nếu cần, `PRECACHE`) trong `src/shared/sw-policy.ts` → điều hướng trong `web/shell.ts`. Hai bài kiểm bắt lỗi nếu quên: `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với các tệp HTML trong `public/`, và `tests/e2e/pwa.mjs` yêu cầu mọi đường dẫn trong `PAGES ∪ PRECACHE` trả 200 với content-type qua được `isCacheable`, đồng thời kiểm thẻ meta iOS và tên/màu trên MỌI trang của `PAGES` (14 trang, thêm `/orders` từ Đợt D Task 5 và `/help` từ trang Trợ giúp: e2e in "nhất quán trên 14 trang").
 
 **Các lớp kiểm.**
 
