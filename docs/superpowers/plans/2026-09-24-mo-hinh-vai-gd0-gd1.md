@@ -83,7 +83,7 @@ Hai luật này nằm trên nhánh `quyet-dinh-24-9-va-ba-luat` (chủ đã duy�
 
 **Xây trên lỗ đang hở: F-01** (`party.view`/`party.write` chưa được máy chủ hỏi — nhân viên văn phòng sửa được hồ sơ nhân viên; hạn vá 2026-10-08 trong `docs/quyen-hoan.json`, việc của ADR-0013). Giai đoạn 1 **không dựa vào và không nới** lỗ này; hai route vai theo nơi của Hồ sơ vẫn nằm trong danh sách hoãn tới khi được vá. **Lỗ L2** (hướng dẫn viên thành "văn phòng" khi `order.view` của `FIELD` = `any`) chỉ mở ở giai đoạn 2 (ADR-0017) — đặc tả §19 ghi "`isOffice` tự đúng cho `FIELD`": **phải tách cổng `office` trước giai đoạn 2** (quyết định Q3 của chủ, 2026-09-24).
 
-**Thứ tự với phiên hàng rào quyền:** CHỜ CHỦ CHỌN (2026-09-24) — giai đoạn 1 làm ngay song song với việc vá F-01, hay chờ vá F-01 + tách cổng `office` xong mới làm. Chưa bắt đầu Task 1 trước khi có câu trả lời.
+**Thứ tự với phiên hàng rào quyền — CHỦ ĐÃ CHỌN (phiên chat 2026-09-24, trả lời "1"):** giai đoạn 1 làm **ngay**, song song với việc vá F-01 (ADR-0013) của phiên hàng rào; **tách cổng `office` bắt buộc xong trước giai đoạn 2** (ADR-0017). Đây cũng là **lời cho phép xây trên lỗ đang hở F-01** theo luật "dừng dây chuyền", lý do: giai đoạn 1 không dựa vào và không nới lỗ này (xem bảng trên). Hai phiên cùng sửa `src/shared/permissions.ts` và `src/modules/parties/index.ts`: bên gộp sau xử lý phần chồng (phiên kia thêm dòng thao tác mới vào `MATRIX` → dòng đó cần thêm ô `INTERN`).
 
 ## Cấu trúc tệp
 
@@ -122,7 +122,7 @@ git fetch origin
 ```bash
 git grep -n "defaultHandlerPartyId" origin/main -- src/modules/dispatch/rules.ts
 ```
-Expected: có dòng khớp. Nếu KHÔNG → **DỪNG**: thiếu bản sửa này thì đơn do Thực tập sinh lập tự nhận Thực tập sinh làm người phụ trách, kiểm `R-DSP-2a` ở cuối e2e (`--strict`) sẽ đỏ. Nhắc chủ đẩy bản 1.5 trước; **không** tự gộp nhánh `sua-phu-trach-1-5` chưa lên main.
+Expected: có dòng khớp. Nếu KHÔNG: Task 1–6 vẫn làm được (không cần bản 1.5); **kiểm lại ngay trước Task 7** — thiếu bản sửa này thì đơn do Thực tập sinh lập tự nhận Thực tập sinh làm người phụ trách, kiểm `R-DSP-2a` ở cuối e2e (`--strict`) sẽ đỏ. Nếu tới Task 7 vẫn chưa có → **DỪNG trước Task 7**, nhắc chủ đẩy bản 1.5; **không** tự gộp nhánh `sua-phu-trach-1-5` chưa lên main.
 
 - [ ] **Step 3: Tạo nhánh thi công**
 
