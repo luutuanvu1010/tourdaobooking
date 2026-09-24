@@ -139,10 +139,10 @@ Phạm vi như `src/shared/permissions.ts`: `none` / `own` (đơn mình lập) /
 
 | Thao tác | SALES | ACCOUNTING | ADMIN | FIELD | INTERN (mới) | PARTNER | SUPER_ADMIN |
 |---|---|---|---|---|---|---|---|
-| `order.view` | any | any | any | **any** Δ (0017) | own | own | any |
-| `money.view` | any | any | any | **any** Δ (0017) | own | own | any |
-| `order.history.view` | ownOrAssigned | any | any | **any** Δ (0017, Q23) | own | own | any |
-| `contact.view` | any | any | any | **any** Δ (0017) | own | **own** Δ (LC-1) | any |
+| `order.view` | any | any | any | **any** Δ (0017) | **ownOrAssigned** (Q29) | own | any |
+| `money.view` | any | any | any | **any** Δ (0017) | **ownOrAssigned** (Q29) | own | any |
+| `order.history.view` | ownOrAssigned | any | any | **any** Δ (0017, Q23) | **ownOrAssigned** (Q29) | own | any |
+| `contact.view` | any | any | any | **any** Δ (0017) | **ownOrAssigned** (Q29) | **own** Δ (LC-1) | any |
 | `order.create` | any | **any** Δ (Q3) | any | **any** Δ (Q3) | any | any | any |
 | `order.modify` (sửa/huỷ nháp — **không còn gồm xác nhận**) | ownOrAssigned | **ownOrAssigned** Δ (Q3, Q20) | any | **ownOrAssigned** Δ (Q20) | ownOrAssigned | own | any |
 | **`order.confirm`** (xác nhận — **tách mới**; chỉ người nhận, Q19) | **assigned** Δ | **assigned** Δ | any | **assigned** Δ | assigned | **none** Δ | any |
@@ -171,7 +171,7 @@ Phạm vi như `src/shared/permissions.ts`: `none` / `own` (đơn mình lập) /
 
 Ghi chú:
 - Kế toán và Thực tập sinh nhận **đơn mình lập** hoặc **đơn Giám đốc / Điều hành chung giao** (mục 4, Q29): luật "ai được làm người nhận, ai được giao cho ai" ở `dispatch` (mở rộng `checkAssignee`), không phải ô mới của bảng.
-- `INTERN` không phải "văn phòng" (`order.view` = own) → dùng trang Đơn hàng như Đối tác; `canAccessOrders` phải gồm `INTERN`; `homeRedirect` (`src/shared/start-page.ts`) tự đưa sang `/orders`.
+- `INTERN` không phải "văn phòng" (`order.view` = ownOrAssigned: đơn mình lập, đơn mình đang nhận — Q29 — và đơn đang được đề nghị cho mình, xem mục 8) → dùng trang Đơn hàng như Đối tác; `canAccessOrders` phải gồm `INTERN`; `homeRedirect` (`src/shared/start-page.ts`) tự đưa sang `/orders`.
 - Với ADR-0017, `FIELD` trở thành "văn phòng" → vào Trang chủ; mục "Đơn hàng" hiện trong menu; mục quản trị vẫn không.
 - `SUPER_ADMIN` = any ở mọi dòng (giữ ADR-0014 điều 2). Quản trị/Toàn quyền xác nhận thay được khi cần (`order.confirm` = any).
 
@@ -205,6 +205,7 @@ Ghi chú:
 - **Đơn chung** = đơn chờ nhận không gửi riêng ai: ai được nhận đơn chung (HDV nội bộ, Kinh doanh, Điều hành, Giám đốc) bấm "Nhận".
 - **Tiếp nhận** = lần đầu đơn có người nhận (bấm "Nhận", hoặc người lập nội bộ tự nhận lúc lập). Mốc này được ghi và dùng để đo đúng hạn.
 - **Chờ nhận** = đơn có đề nghị nhận hoặc đơn chung chưa ai nhận, hoặc đơn đang chờ người mới nhận thay (đổi người).
+- Người được đề nghị nhận **xem được đơn đó** (kể cả tiền và liên lạc khách) trước khi bấm "Nhận", để quyết định nhận — với Thực tập sinh đây là phần mở rộng phạm vi "được đề nghị" (các vai nội bộ khác vốn đã xem mọi đơn).
 
 **Đơn do nội bộ lập** (mọi vai nội bộ, Q20):
 1. Mặc định **tự nhận**: người lập thành người nhận ngay lúc lập (tiếp nhận ngay, không tính hạn).
@@ -381,6 +382,7 @@ Sổ công nợ đối tác, đối soát, xuất hoá đơn VAT, ghi nhận HDV
 5. **Đơn khách lẻ** (bên đặt là khách, không có đối tác): không có phần đối tác, chiết khấu 0. *Khuyến nghị: đồng ý.*
 6. **Giám đốc / Điều hành chung giao đơn cho Kế toán / Thực tập sinh** cũng theo **đề nghị + bấm Nhận có hạn** như mọi người. *Khuyến nghị: đồng ý* (Q21, Q25).
 7. **Nhóm đối tác gợi ý theo vai** khi tạo tài khoản (vd. Công ty lữ hành → "Đại lý", Cộng tác viên → "Cộng tác viên"); danh sách nhóm do Kế toán/Quản trị lập. *Khuyến nghị: đồng ý.*
+8. **Đổi người phụ trách một đơn của đối tác** (sau khi đã có người nhận): người cũ vẫn giữ tới lúc người mới bấm "Nhận" — như đơn nội bộ. Đây là **cách AI hiểu** câu trả lời điểm 2 (Q30), chủ chưa nói trực tiếp. *Khuyến nghị: đồng ý* — đơn không bao giờ vô chủ.
 
 ## 18. Rủi ro và điều chưa chắc
 
@@ -405,6 +407,7 @@ Sổ công nợ đối tác, đối soát, xuất hoá đơn VAT, ghi nhận HDV
 - **Tiền đối tác:** bảng cấu hình (nhóm đối tác + gán đối tác vào nhóm, ánh xạ loại dịch vụ theo tiền tố mã, bảng chiết khấu có hiệu lực + ràng buộc không trùng ô); cột tỷ lệ (phần vạn) + nguồn tỷ lệ theo **dòng dịch vụ** (`order_service`/`order_item`); người giữ cọc trên `orders`; hàm thuần **chọn tỷ lệ 6 mức** và **tính số dẫn xuất** ở `src/shared/` (test ví dụ đại lý A và ví dụ nhiều dòng); bộ dựng phiếu (`order-confirmation.ts`) có test LC-7.
 - **Khách của đối tác:** loại quan hệ mới `CUSTOMER_OF` trong `pty_relationship_type`; `resolveBooker` và ngoại lệ ADR-0011 đổi cho đơn đối tác (bên đặt = đối tác; khách đi tour = hồ sơ người + quan hệ); danh sách khách hàng của Tour Đảo lọc theo vai `CUSTOMER`.
 - **`canAccessOrders`** gồm `INTERN`; **`isOffice`** tự đúng cho `FIELD`.
+- **`INTERN`:** bộ lọc danh sách đơn = mình lập **∪** mình đang phụ trách **∪** đang được đề nghị cho mình (không chỉ lọc `staff_id` như Đối tác); xem chi tiết một đơn cũng theo ba điều kiện đó.
 - **`src/shared/contracts.ts`:** chú thích `MyAssignmentDto` lỗi thời sau ADR-0017 — sửa.
 - **Đợt E:** chế độ thẻ `"no-total"` (`web/order-card.ts`) có thể thừa — quyết khi gộp.
 - **Trang mới** ("Vai & quyền", "Cài đặt vận hành"): khai `PAGES` + script `build:web`; đăng ký kịch bản Chrome trong `web/CLAUDE.md` (đề xuất, chủ duyệt — N9).
