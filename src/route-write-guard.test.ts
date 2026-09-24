@@ -1,0 +1,164 @@
+// HÀNG RÀO 2 — "mỗi ĐƯỜNG GHI phải hỏi bảng quyền, không được chỉ dựa cổng thô" (kế hoạch docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md).
+//
+// Bài học 24/9: 8 route ghi của Hồ sơ và mọi route ghi mức "admin" chỉ dựa `access` của router; cổng "office" lại được suy từ ô
+// `order.view` (`isOffice`), nên khi ADR-0017 mở xem đơn cho FIELD thì FIELD sửa được hồ sơ quản trị viên (thí nghiệm
+// docs/evidence/2026-09-24-lo-hong-ho-so/). `src/route-access.test.ts` chụp MỨC truy cập nên không thấy: mức không đổi.
+//
+// Luật của bài kiểm này (phân tích tĩnh trên mã đã che chuỗi/chú thích — scripts/source-mask-lib.mjs):
+//   (1) Mọi `route("POST|PUT|PATCH|DELETE", path, access, async (…) => {…})` trong src/modules/*/index.ts có access ≠ "public" phải có
+//       trong THÂN handler một lời gọi kiểm quyền được công nhận (GUARDS dưới đây) — HOẶC có mục "cua_ghi" trong docs/quyen-hoan.json:
+//       loại "hoãn" (lý do, kế hoạch, hạn ≥ hôm nay, người chịu trách nhiệm) hay "ngoại lệ" (lý do; thao tác trên chính tài khoản mình).
+//   (2) Mục cho route ĐÃ có kiểm → đỏ ("hoãn thừa"); mục cho route không còn tồn tại → đỏ.
+//   (3) Số route bóc được phải bằng số lời gọi `route(` trong tệp: route viết khác khuôn làm bài kiểm đỏ, không im lặng bỏ qua.
+// Giới hạn: chỉ nhìn thân handler, không đi vào hàm được gọi — hàm kiểm quyền dùng chung phải có tên trong GUARDS (thêm tên = sửa hàng rào,
+// người rà soát đọc kỹ). Kiểm "trên đúng ô nào" là việc của hàng rào 1 (src/permission-enforcement.test.ts).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { readFileSync, readdirSync, existsSync } from "node:fs";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { maskSource } from "../scripts/source-mask-lib.mjs";
+import { isISODate, vnToday } from "./shared/vn-date.ts";
+
+const SRC = fileURLToPath(new URL(".", import.meta.url));
+const ROOT = join(SRC, "..");
+const DEFERRALS_FILE = "docs/quyen-hoan.json";
+const WRITE_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
+
+/**
+ * Hàm kiểm quyền được công nhận. `hoiBang` = hàm đó (hoặc hàm nó gọi trong cùng tệp) hỏi MATRIX qua `can()`/`MATRIX[`;
+ * `canManageAccount`/`mayManage` là luật CẤP BẬC (ADR-0014 điều 8) đi kèm ô `admin.manage` — ô đó đang hoãn ở hàng rào 1.
+ */
+const GUARDS: { name: string; file: string; hoiBang: boolean }[] = [
+  { name: "can", file: "src/shared/permissions.ts", hoiBang: true },
+  { name: "canRead", file: "src/modules/feedback/index.ts", hoiBang: true },
+  { name: "handlerChangeVerdict", file: "src/modules/dispatch/rules.ts", hoiBang: true },
+  { name: "mayChangeHandler", file: "src/modules/dispatch/rules.ts", hoiBang: true },
+  { name: "checkAssignee", file: "src/modules/dispatch/rules.ts", hoiBang: true },
+  { name: "mayManage", file: "src/modules/accounts/index.ts", hoiBang: false },
+  { name: "canManageAccount", file: "src/modules/staff/rules.ts", hoiBang: false },
+];
+const GUARD_RE = new RegExp(`\\b(${GUARDS.map((g) => g.name).join("|")})\\s*\\(|\\bMATRIX\\[`);
+
+interface RouteInfo {
+  module: string;
+  method: string;
+  path: string;
+  access: string;
+  guarded: boolean;
+}
+interface RouteDeferral {
+  method: string;
+  path: string;
+  loai: "hoãn" | "ngoại lệ";
+  ly_do?: string;
+  ke_hoach?: string;
+  han?: string;
+  nguoi_chiu_trach_nhiem?: string;
+}
+
+const key = (method: string, path: string) => `${method} ${path}`;
+
+function collectRoutes(): RouteInfo[] {
+  const out: RouteInfo[] = [];
+  for (const mod of readdirSync(join(SRC, "modules")).sort()) {
+    const file = join(SRC, "modules", mod, "index.ts");
+    if (!existsSync(file)) continue;
+    const text = readFileSync(file, "utf8");
+    const masked = maskSource(text); // che chuỗi + chú thích; cùng độ dài nên chỉ số dùng chung với `text`
+    const declared = (masked.match(/\broute\(/g) ?? []).length;
+    let found = 0;
+    for (const hit of text.matchAll(/route\(\s*"(GET|POST|PUT|PATCH|DELETE)",\s*"([^"]+)",\s*"([^"]+)"/g)) {
+      found++;
+      const tag = `${mod}: route ${hit[1]} ${hit[2]}`;
+      const start = hit.index! + hit[0].length;
+      const nextRoute = masked.indexOf("route(", start);
+      const limit = nextRoute === -1 ? masked.length : nextRoute;
+      const arrow = masked.indexOf("=>", start);
+      assert.ok(arrow !== -1 && arrow < limit, `${tag}: không thấy handler dạng mũi tên trước route kế tiếp`);
+      const open = masked.indexOf("{", arrow);
+      assert.ok(open !== -1 && open < limit, `${tag}: handler không có thân {…}`);
+      let depth = 0;
+      let i = open;
+      for (; i < masked.length; i++) {
+        if (masked[i] === "{") depth++;
+        else if (masked[i] === "}" && --depth === 0) break;
+      }
+      assert.equal(depth, 0, `${tag}: ngoặc nhọn không cân — bộ che chuỗi/chú thích không hiểu tệp này`);
+      const body = masked.slice(open, i + 1);
+      out.push({ module: mod, method: hit[1]!, path: hit[2]!, access: hit[3]!, guarded: GUARD_RE.test(body) });
+    }
+    assert.equal(found, declared, `${mod}/index.ts: có ${declared} lời gọi route( nhưng chỉ bóc được ${found} theo khuôn route("METHOD", "path", "access", …)`);
+  }
+  return out;
+}
+
+function loadDeferrals(): RouteDeferral[] {
+  const raw = JSON.parse(readFileSync(join(ROOT, DEFERRALS_FILE), "utf8")) as { cua_ghi?: unknown };
+  assert.ok(Array.isArray(raw.cua_ghi), `${DEFERRALS_FILE}: thiếu mảng "cua_ghi"`);
+  return raw.cua_ghi as RouteDeferral[];
+}
+
+const routes = collectRoutes();
+const deferrals = loadDeferrals();
+const deferredKeys = new Set(deferrals.map((d) => key(d.method, d.path)));
+const today = vnToday(new Date());
+
+test("hàng rào 2: mọi đường ghi (access ≠ public) hỏi bảng quyền, trừ mục đã khai trong docs/quyen-hoan.json", () => {
+  const unguarded = routes
+    .filter((r) => WRITE_METHODS.has(r.method) && r.access !== "public" && !r.guarded && !deferredKeys.has(key(r.method, r.path)))
+    .map((r) => `${r.method} ${r.path} (${r.module}, access "${r.access}")`);
+  assert.deepEqual(
+    unguarded,
+    [],
+    `Đường ghi chỉ dựa cổng thô, không hỏi bảng quyền và không có trong ${DEFERRALS_FILE} (cua_ghi): ${unguarded.join("; ")}. ` +
+      `Gọi can(staff, "<ô>") (hay một hàm trong GUARDS) trong thân handler, hoặc thêm mục hoãn/ngoại lệ có lý do.`,
+  );
+});
+
+test("hàng rào 2: danh sách hoãn/ngoại lệ (cua_ghi) không thừa, không cũ, đủ trường, còn hạn", () => {
+  const byKey = new Map(routes.map((r) => [key(r.method, r.path), r]));
+  const problems: string[] = [];
+  const seen = new Set<string>();
+  for (const d of deferrals) {
+    const k = key(d.method, d.path);
+    const tag = `cua_ghi "${k}"`;
+    if (seen.has(k)) problems.push(`${tag}: trùng mục`);
+    seen.add(k);
+    const r = byKey.get(k);
+    if (!r) {
+      problems.push(`${tag}: route không còn tồn tại — gỡ mục`);
+      continue;
+    }
+    if (!WRITE_METHODS.has(r.method) || r.access === "public") problems.push(`${tag}: không phải đường ghi cần kiểm (public hoặc GET) — gỡ mục`);
+    if (r.guarded) problems.push(`${tag}: HOÃN THỪA — handler đã hỏi bảng quyền; gỡ mục để danh sách co lại`);
+    if (d.loai !== "hoãn" && d.loai !== "ngoại lệ") problems.push(`${tag}: "loai" phải là "hoãn" hoặc "ngoại lệ"`);
+    if (typeof d.ly_do !== "string" || d.ly_do.trim() === "") problems.push(`${tag}: thiếu "ly_do"`);
+    if (d.loai === "hoãn") {
+      for (const f of ["ke_hoach", "han", "nguoi_chiu_trach_nhiem"] as const) {
+        if (typeof d[f] !== "string" || d[f]!.trim() === "") problems.push(`${tag}: thiếu "${f}"`);
+      }
+      if (typeof d.han === "string" && !isISODate(d.han)) problems.push(`${tag}: "han" phải là ngày YYYY-MM-DD`);
+      else if (typeof d.han === "string" && d.han < today) problems.push(`${tag}: HẾT HẠN HOÃN (${d.han} < ${today}) — vá hoặc chủ dự án gia hạn có ghi lý do`);
+    }
+  }
+  assert.deepEqual(problems, []);
+});
+
+test("hàng rào 2: các hàm kiểm quyền được công nhận có thật, và hàm 'hỏi bảng' thật sự gọi can()/MATRIX", () => {
+  for (const g of GUARDS) {
+    const file = join(ROOT, g.file);
+    assert.ok(existsSync(file), `GUARDS: ${g.file} không tồn tại (${g.name})`);
+    const masked = maskSource(readFileSync(file, "utf8"));
+    const defined = new RegExp(`\\b(function\\s+${g.name}\\s*\\(|(const|let)\\s+${g.name}\\s*=)`).test(masked);
+    assert.ok(defined, `GUARDS: không thấy định nghĩa ${g.name} trong ${g.file}`);
+    if (g.hoiBang && g.name !== "can") assert.ok(/\bcan\s*\(|\bMATRIX\[/.test(masked), `GUARDS: ${g.file} không gọi can()/MATRIX — ${g.name} không còn hỏi bảng?`);
+  }
+});
+
+test("hàng rào 2: bộ bóc route nhìn thấy các route đã biết (chống bài kiểm rỗng)", () => {
+  const known = ["POST /api/orders", "PUT /api/parties/:id", "PATCH /api/staff/:id", "POST /api/auth/login"];
+  const have = new Set(routes.map((r) => key(r.method, r.path)));
+  for (const k of known) assert.ok(have.has(k), `không bóc được ${k} — bộ bóc route hỏng?`);
+  assert.ok(routes.find((r) => key(r.method, r.path) === "POST /api/orders")!.guarded, "POST /api/orders phải được nhận là có kiểm (can(order.create))");
+});
