@@ -99,10 +99,10 @@ function insertConfirmedOrderNoServices(sqlite: DatabaseSync, o: { id: string; s
     .run(o.id, `TD-${o.id}`, o.staffId, m.subtotal, m.discount, m.total, m.depositAmount, m.remainingAmount, o.createdAt, o.createdAt, o.createdAt);
 }
 
-function insertAdjustment(sqlite: DatabaseSync, o: { id: string; orderId: string; seq: number; subtotalAfter: number; subtotalBefore?: number }): void {
+function insertAdjustment(sqlite: DatabaseSync, o: { id: string; orderId: string; seq: number; subtotalAfter: number; subtotalBefore?: number; after?: { serviceId: string; pax: { adult: number; child: number; senior: number; infant: number } }[] }): void {
   sqlite
-    .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', '[]', ?, ?)`)
-    .run(o.id, o.orderId, o.seq, o.subtotalBefore ?? money.subtotal, o.subtotalAfter);
+    .prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', ?, ?, ?)`)
+    .run(o.id, o.orderId, o.seq, JSON.stringify(o.after ?? []), o.subtotalBefore ?? money.subtotal, o.subtotalAfter);
 }
 
 function insertHandler(sqlite: DatabaseSync, o: { id: string; orderId: string; partyId: string; from: string; to?: string | null }): void {
@@ -173,6 +173,24 @@ test("today: đơn có điều chỉnh tiền → total/remainingAmount trong da
   assert.equal(data.today.length, 1);
   assert.equal(data.today[0]!.total, 400_000, "total = subtotal_after điều chỉnh (không phải 1.000.000 gốc)");
   assert.equal(data.today[0]!.remainingAmount, 200_000, "remainingAmount = 400.000 - 200.000 cọc, không phải 800.000 gốc");
+});
+
+// Đợt E: sau khi HDV sửa số khách hậu xác nhận, /orders và "Chuyến đón hôm nay" của Trang chủ từng hiện đúng TIỀN nhưng vẫn hiện số khách CŨ
+// (order_service.pax_* bị trigger 0008 đóng băng, gốc lỗi là toSummaryDtos() không đọc after_json). Ca này mô phỏng đúng bài học đó ở tầng DB thật.
+test("today: đơn có điều chỉnh SỐ KHÁCH → pax trong danh sách hôm nay là số MỚI (after_json), không phải order_service gốc đã đóng băng (bài học Đợt E)", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  insertDraftOrder(sqlite, { id: "e1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
+  insertService(sqlite, { id: "sve1", orderId: "e1", departDate: TODAY }); // pax_adult mặc định = 1 (insertService)
+  confirm(sqlite, "e1");
+  insertAdjustment(sqlite, {
+    id: "adje1", orderId: "e1", seq: 1, subtotalBefore: money.subtotal, subtotalAfter: money.subtotal,
+    after: [{ serviceId: "sve1", pax: { adult: 5, child: 0, senior: 0, infant: 0 } }], // HDV sửa 1 → 5 khách
+  });
+
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  assert.equal(data.today.length, 1);
+  assert.deepEqual(data.today[0]!.pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "pax phải là số MỚI (5), không phải 1 (order_service gốc, đã đóng băng)");
 });
 
 // ---- 2) "Còn thiếu tiền" -----------------------------------------------------------------------------------------

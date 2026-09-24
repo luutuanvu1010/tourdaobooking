@@ -265,6 +265,61 @@ test("R-ORD-4: đơn chưa có điều chỉnh nào (không có dòng) không b�
 });
 
 // ---------------------------------------------------------------------------------------------------------------------
+// R-ORD-5 (Đợt E — lưới thứ hai cho "after_json của điều chỉnh gần nhất liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn", cùng tinh thần R-ORD-4:
+// lớp ứng dụng (parseMoneyEditInput) đã ép bất biến này lúc GHI, đây là kiểm dữ liệu cho trường hợp một đường ghi khác lỡ bỏ qua nó).
+// ---------------------------------------------------------------------------------------------------------------------
+function addService(db: DatabaseSync, s: { id: string; orderId: string; catalogCode?: string | null; sortOrder?: number }): void {
+  db.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult) VALUES (?, ?, ?, ?, 'Dịch vụ', 'perPax', 1)`)
+    .run(s.id, s.orderId, s.sortOrder ?? 0, s.catalogCode ?? null);
+}
+function addAdjustmentAfter(db: DatabaseSync, o: { id: string; orderId: string; seq: number; after: { serviceId: string; pax?: object }[] }): void {
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES (?, ?, ?, '[]', ?, 0, 0)`)
+    .run(o.id, o.orderId, o.seq, JSON.stringify(o.after));
+}
+
+test("R-ORD-5: after_json liệt kê ĐÚNG tập dịch vụ từ danh mục của đơn → hợp lệ (dịch vụ nhập tay không cần liệt kê)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addService(db, { id: "sv-manual", orderId: "o-1", catalogCode: null }); // nhập tay — KHÔNG cần có trong after_json
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] });
+  assert.equal(violations(db, one("R-ORD-5")), 0);
+});
+
+test("R-ORD-5: after_json THIẾU một dịch vụ từ danh mục của đơn → vi phạm (chính loại lỗi Đợt E, do dữ liệu hỏng thay vì do mã đọc sai)", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addService(db, { id: "sv2", orderId: "o-1", catalogCode: "ZH2" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] }); // thiếu sv2
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: after_json THỪA một serviceId không thuộc dịch vụ-từ-danh-mục của đơn (id lạ, hoặc trỏ nhầm dịch vụ nhập tay) → vi phạm", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "sv1", pax: {} }, { serviceId: "sv-la", pax: {} }] });
+  assert.equal(violations(db, one("R-ORD-5")), 1);
+});
+
+test("R-ORD-5: chỉ xét dòng điều chỉnh GẦN NHẤT của mỗi đơn — dòng cũ hỏng đã bị ghi đè bởi dòng mới đúng thì KHÔNG tính", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [] }); // seq=1 hỏng (thiếu sv1) — đã cũ, không còn là dòng gần nhất
+  addAdjustmentAfter(db, { id: "a2", orderId: "o-1", seq: 2, after: [{ serviceId: "sv1", pax: {} }] }); // seq=2 đúng, gần nhất
+  assert.equal(violations(db, one("R-ORD-5")), 0, "chỉ dòng gần nhất được xét, không cộng dồn lỗi của các dòng cũ");
+});
+
+test("R-ORD-5: đơn chưa có điều chỉnh nào không bị tính là vi phạm", () => {
+  const db = build();
+  addOrder(db, "o-1");
+  addService(db, { id: "sv1", orderId: "o-1", catalogCode: "ZH1" });
+  assert.equal(violations(db, one("R-ORD-5")), 0);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
 // R-AUT-1 (ADR-0016 điều 6/8 — lưới dữ liệu cho "tài khoản đã ngưng không còn Face ID hiệu lực"). Đỏ trên D1 thật là LỖI THẬT, không nới kiểm.
 // Đường API ngưng tài khoản gỡ passkey trong cùng lô ghi (8b — test ở src/modules/accounts/patch-staff.test.ts), nên chỉ dữ liệu lọt lưới mới đỏ.
 // ---------------------------------------------------------------------------------------------------------------------

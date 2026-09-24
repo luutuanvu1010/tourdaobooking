@@ -405,7 +405,11 @@ try {
   assert.ok(listed, "không tìm thấy đơn trong danh sách");
   assert.equal(listed.total, 900000, "danh sách đơn phải hiện SỐ MỚI (đã cộng điều chỉnh), khớp trang chi tiết");
   assert.equal(listed.remainingAmount, viewed.remainingAmount, "remainingAmount của danh sách phải khớp trang chi tiết");
-  console.log("✓ trang danh sách đơn hiện đúng số đã sửa, khớp trang chi tiết");
+  // Đợt E: TIỀN đã đúng từ trước (khẳng định ở trên) nhưng SỐ KHÁCH của danh sách từng vẫn hiện số CŨ (2 khách, order_service gốc đã đóng
+  // băng) trong khi trang chi tiết đã hiện đúng số mới — hai con số cạnh nhau trên cùng thẻ nói khác nhau. Khẳng định này bắt đúng lỗi đó.
+  assert.deepEqual(listed.pax, viewed.services[0].pax, "SỐ KHÁCH của danh sách đơn phải khớp trang chi tiết");
+  assert.deepEqual(listed.pax, { adult: 3, child: 0, senior: 0, infant: 0 }, "danh sách đơn phải hiện SỐ KHÁCH MỚI (3), không phải số gốc (2)");
+  console.log("✓ trang danh sách đơn hiện đúng số tiền LẪN số khách đã sửa, khớp trang chi tiết");
 
   // Đơn ĐÃ CÓ điều chỉnh rồi bị HUỶ (qua đường thường của SALES, không phải handler-cancel) vẫn phải hiện đúng số đã sửa gần nhất — không được
   // "quên" điều chỉnh và lùi lại số gốc chỉ vì đổi trạng thái sang cancelled (lỗi thật đã bắt: bản đầu chỉ overlay khi status === "confirmed").
@@ -418,9 +422,33 @@ try {
   const viewedCancelled = await orderView(A, o16.id);
   assert.equal(viewedCancelled.status, "cancelled");
   assert.equal(viewedCancelled.subtotal, 1200000, "đơn đã huỷ vẫn phải hiện SỐ ĐÃ SỬA gần nhất (4 khách × 300,000), không lùi về số gốc (2 khách)");
+  assert.deepEqual(viewedCancelled.services[0].pax, { adult: 4, child: 0, senior: 0, infant: 0 });
   const listedCancelled = (await call(A, "GET", `/api/orders?q=${o16.orderCode}`)).body.orders.find((x) => x.id === o16.id);
   assert.equal(listedCancelled.total, 1200000, "danh sách đơn cũng phải khớp, kể cả đơn đã huỷ");
-  console.log("✓ đơn có điều chỉnh rồi bị huỷ: chi tiết lẫn danh sách vẫn hiện đúng số đã sửa gần nhất, không lùi về số gốc");
+  assert.deepEqual(listedCancelled.pax, { adult: 4, child: 0, senior: 0, infant: 0 }, "danh sách đơn đã huỷ cũng phải hiện SỐ KHÁCH đã sửa gần nhất, không lùi về số gốc (2)");
+  console.log("✓ đơn có điều chỉnh rồi bị huỷ: chi tiết lẫn danh sách vẫn hiện đúng cả tiền lẫn số khách đã sửa gần nhất, không lùi về số gốc");
+
+  // Trang chủ (GET /api/orders/dashboard, "Chuyến đón hôm nay") dùng CHUNG hàm tóm tắt với /api/orders — đơn đón HÔM NAY có điều chỉnh số khách
+  // phải hiện đúng số MỚI ở đây, khớp cả trang chi tiết lẫn /api/orders (bài học Đợt E: tiền đã overlay đúng ở dashboard từ trước, số khách thì chưa).
+  const o18 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ departDate: vnDate(0) })] }))).body.order;
+  assert.equal((await call(A, "POST", `/api/orders/${o18.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await setHandler(A, o18.id, fld.id)).status, 200);
+  r = await moneyEdit(FIELD, o18.id, { reason: "Khách báo thêm 3 người", services: [{ id: o18.services[0].id, pax: pax(5) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+
+  const viewed18 = await orderView(A, o18.id);
+  assert.deepEqual(viewed18.services[0].pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "đối chứng: chi tiết đơn đã hiện đúng số mới");
+
+  const listed18 = (await call(A, "GET", `/api/orders?q=${o18.orderCode}`)).body.orders.find((x) => x.id === o18.id);
+  assert.ok(listed18, "không tìm thấy o18 trong danh sách");
+  assert.deepEqual(listed18.pax, { adult: 5, child: 0, senior: 0, infant: 0 });
+
+  const dash = await call(A, "GET", "/api/orders/dashboard");
+  assert.equal(dash.status, 200, JSON.stringify(dash.body));
+  const dashToday = dash.body.today.find((x) => x.id === o18.id);
+  assert.ok(dashToday, "o18 (đón hôm nay, confirmed) phải có trong Trang chủ / Chuyến đón hôm nay");
+  assert.deepEqual(dashToday.pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "Trang chủ (Chuyến đón hôm nay) phải hiện SỐ KHÁCH MỚI, khớp trang chi tiết và /api/orders (bài học Đợt E)");
+  console.log("✓ sau khi FIELD sửa số khách: /api/orders, Trang chủ (dashboard.today) và trang chi tiết đơn đều hiện ĐÚNG số khách mới, khớp nhau");
 
   // SUPER_ADMIN: any ở MỌI thao tác (ADR-0014 điều 2), kể cả route hẹp này — dùng được dù KHÔNG phải người phụ trách (đơn RIÊNG, không đụng o14).
   const o15 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
