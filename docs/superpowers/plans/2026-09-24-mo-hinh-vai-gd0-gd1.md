@@ -43,12 +43,47 @@ Ghi lại để người kiểm và chủ dự án thấy; mỗi dòng là lựa
 - **Giám đốc = `ADMIN` + `SUPER_ADMIN`**: theo ADR-0018 điều 4 ("Toàn quyền, kèm Quản trị để các chốt 'còn ít nhất một quản trị viên' đếm đúng"); bảng ở đặc tả §4 viết tắt "Toàn quyền".
 - **Cột `INTERN` tạm hẹp** (Task 2): lập đơn, xem/sửa đơn của mình; **chưa** đủ điều kiện làm người phụ trách (`checkAssignee`) — đơn Thực tập sinh lập vào hàng chưa có người. Giai đoạn 2 mở theo đặc tả §5.
 - **Nhãn "Bán hàng" → "Kinh doanh"**: để giai đoạn 3 (đổi nhãn hiển thị cùng trang "Vai & quyền").
-- **Route vai chung của Hồ sơ vẫn nhận mã vai đã ngưng** (`STAFF`, `SALES`, `GUIDE`, `AGENT`) nếu gọi thẳng API; chỉ giao diện lọc bỏ. Lý do: không làm vỡ dữ liệu/kịch bản đang dùng vai theo nơi. Hệ quả cần chủ biết: trang Hồ sơ **không còn cho thêm "Hướng dẫn viên" theo nơi** (vai `GUIDE` mơ hồ, đặc tả §4 đã chốt ngưng gán mới) — đặc tả và ADR-0018 chưa nói gì về vai theo nơi.
+- **Route vai chung của Hồ sơ vẫn nhận mã vai đã ngưng** (`STAFF`, `SALES`, `GUIDE`, `AGENT`) nếu gọi thẳng API; chỉ giao diện lọc bỏ. Lý do: không làm vỡ dữ liệu/kịch bản đang dùng vai theo nơi. Trang Hồ sơ **không còn cho thêm "Hướng dẫn viên" theo nơi (theo bến)** — chủ dự án **đồng ý bỏ** (phiên chat 2026-09-24: "bỏ HDV theo bến").
 - **Vai mở rồi gỡ trong CÙNG ngày**: dòng giữ từ-đến = hôm nay (không đặt được ngày kết thúc trước ngày bắt đầu); trang Hồ sơ vẫn liệt kê vai đó trong hôm ấy (đúng: người đó đã giữ vai một phần ngày). Luật cứng và quyền chỉ xét dòng đang mở nên không ảnh hưởng.
 - **Gỡ quyền Quản trị khi đổi vai chạy hai lô** (Task 7): lô 1 = câu chốt "còn quản trị viên khác" + quyền + chỉnh tay + nhật ký; lô 2 = đóng/mở vai (bảng của `parties` không mang được điều kiện của `staff`). Nếu máy chủ hỏng đúng giữa hai lô, quyền đã đổi mà vai chưa đổi — nhật ký có dòng, quản trị làm lại được. Hệ quả với LC-6 ("nhật ký cùng `db.batch()` với thay đổi"): trong riêng trường hợp này, phần **vai** chạy ở lô sau dòng nhật ký; mọi trường hợp khác đủ một lô. Tranh chấp hai quản trị viên cuối chỉ xảy ra giữa hai Toàn quyền (LC-4).
 - **Tài khoản chỉ có `SUPER_ADMIN`** (không kèm `ADMIN`): trang Nhân viên mở được (cổng trang đổi sang `can(…, "admin.manage")`), nhưng thanh điều hướng chưa hiện mục quản trị (`web/shell.ts` dùng `hasPermission(ADMIN)`) — ngoài phạm vi, ghi nợ.
 - **Tài khoản công ty lữ hành** (hồ sơ tổ chức): chưa làm (giai đoạn 4); tạo tài khoản trên hồ sơ tổ chức bị từ chối có thông báo.
 - **Phát hiện khi rà mã (chưa thử trên trình duyệt):** form lập đơn gọi `GET /api/catalog` (mức `office`), nên tài khoản không phải văn phòng lập đơn — Đối tác hiện nay và Thực tập sinh từ giai đoạn này — có thể không nạp được danh mục dịch vụ. Không sửa ở đây (giai đoạn 2, bảng thao tác mới); ghi nợ để chủ biết.
+
+## Trang ghép và lỗ đang hở (luật "bước ghép khi duyệt" + "dừng dây chuyền", chủ duyệt 2026-09-24 ở phiên hàng rào quyền)
+
+Hai luật này nằm trên nhánh `quyet-dinh-24-9-va-ba-luat` (chủ đã duyệt nội dung, chưa gộp vào `CLAUDE.md`); kế hoạch này áp dụng trước.
+
+**(1) Các bảng chứa những loại thực thể nào (sau giai đoạn 1)**
+
+| Bảng | Chứa | Giai đoạn 1 thêm gì |
+|---|---|---|
+| `pty_party` (+ `pty_person`, `pty_organization`) | mọi người và tổ chức: khách, nhân viên nội bộ, đối tác bên ngoài (cá nhân), công ty lữ hành | không thêm loại; hồ sơ có sẵn (vd khách cũ) nay gắn được tài khoản |
+| `pty_party_role` | vai theo nơi (cũ) + **vai tài khoản** (11 vai nhóm nội bộ/bên ngoài) | **loại dữ liệu mới**: vai sinh quyền (chỉ qua hàm sinh quyền của `staff`) |
+| `staff` | tài khoản của người nội bộ và người bên ngoài (từ ADR-0014) | không đổi |
+| `stf_permission` / `stf_permission_adjustment` (mới) | quyền hiệu lực / cộng-bớt tay có lý do | bảng mới |
+
+**(2) Dòng bản đồ quyền chạm các bảng này áp cho loại nào**
+
+| Thao tác | Áp cho | Giai đoạn 1 |
+|---|---|---|
+| `party.view` / `party.write` (văn phòng) | MỌI hồ sơ, kể cả hồ sơ nhân viên và đối tác có tài khoản | **không đổi — đây là lỗ F-01** (xem dưới) |
+| vai theo nơi `POST /api/parties/:id/roles` (quản trị) | hồ sơ bất kỳ | chặn vai nhóm nội bộ/bên ngoài (409) |
+| `admin.manage` + cấp dưới (`canManageAccount`) + LC-4 | tài khoản, quyền, vai tài khoản | thêm `GET/PUT /api/staff/:id/roles`; LC-4 siết mọi đường cấp quyền |
+| `order.*` của `INTERN` | đơn của chính mình | mới, phạm vi `own` |
+
+**(3) Cổng nào canh cửa nào**
+
+| Cổng | Cửa | Giai đoạn 1 |
+|---|---|---|
+| `office` = `isOffice` = `can(order.view)` không ngữ cảnh | `/api/parties*`, `/api/catalog`, `/api/orders/dashboard`, `/api/dispatch/*`… | **không nới**: `INTERN` có `order.view = own` nên không qua; sáu mã cũ giữ nguyên ô |
+| `orders` = `canAccessOrders` | `/api/orders*` (mỗi route tự kiểm `can()`) | thêm `INTERN` |
+| `admin` (ADMIN hoặc SUPER_ADMIN) | `/api/staff*`, vai theo nơi của Hồ sơ | thêm 2 route vai, có `mayManage` (hàng rào 2 công nhận) |
+| CSDL | ghi `stf_permission`, `pty_party_role` | trigger LC-1, LC-3; kiểm dữ liệu R-LC-1, R-LC-3 |
+
+**Xây trên lỗ đang hở: F-01** (`party.view`/`party.write` chưa được máy chủ hỏi — nhân viên văn phòng sửa được hồ sơ nhân viên; hạn vá 2026-10-08 trong `docs/quyen-hoan.json`, việc của ADR-0013). Giai đoạn 1 **không dựa vào và không nới** lỗ này; hai route vai theo nơi của Hồ sơ vẫn nằm trong danh sách hoãn tới khi được vá. **Lỗ L2** (hướng dẫn viên thành "văn phòng" khi `order.view` của `FIELD` = `any`) chỉ mở ở giai đoạn 2 (ADR-0017) — đặc tả §19 ghi "`isOffice` tự đúng cho `FIELD`": **phải tách cổng `office` trước giai đoạn 2** (quyết định Q3 của chủ, 2026-09-24).
+
+**Thứ tự với phiên hàng rào quyền:** CHỜ CHỦ CHỌN (2026-09-24) — giai đoạn 1 làm ngay song song với việc vá F-01, hay chờ vá F-01 + tách cổng `office` xong mới làm. Chưa bắt đầu Task 1 trước khi có câu trả lời.
 
 ## Cấu trúc tệp
 
@@ -104,10 +139,10 @@ git merge origin/main --no-edit
 Run: `ls migrations | tail -3`, rồi `git branch -a --no-merged origin/main`, rồi với TỪNG nhánh in ra, chạy riêng một lệnh: `git diff --name-only --diff-filter=A origin/main...<nhánh> -- migrations`
 Expected: không nhánh nào đã dùng `0024`. Nếu đã có → dùng số lớn nhất + 1 và **đổi tên tệp ở mọi bước dưới**.
 
-- [ ] **Step 5: Nhánh "hàng rào quyền" (nếu đã vào main)**
+- [ ] **Step 5: Hai hàng rào quyền (đã vào main ở 0a84b27)**
 
-Run: `ls src/route-write-guard.test.ts src/permission-enforcement.test.ts 2>/dev/null`
-Nếu có: route ghi mới `PUT /api/staff/:id/roles` qua được hàng rào nhờ `if (!mayManage(admin, t)) return NOT_MANAGER();` (`mayManage` có trong danh sách lời gọi kiểm được công nhận). **Không** thêm `can(…, "admin.manage")` ở giai đoạn này — làm vậy biến mục hoãn `admin.manage` của `docs/quyen-hoan.json` thành "hoãn thừa" và làm đỏ test của nhánh đó (việc đó thuộc giai đoạn 2). Sau Task 7 chạy thêm `node --test src/route-write-guard.test.ts src/permission-enforcement.test.ts`.
+Run: `ls src/route-write-guard.test.ts src/permission-enforcement.test.ts`
+Expected: có cả hai (chúng nằm trong `npm test`). Route ghi mới `PUT /api/staff/:id/roles` qua được hàng rào 2 nhờ `if (!mayManage(admin, t)) return NOT_MANAGER();` (`mayManage` có trong danh sách lời gọi kiểm được công nhận). **Không** thêm `can(…, "admin.manage")` ở giai đoạn này — làm vậy biến mục hoãn `admin.manage` của `docs/quyen-hoan.json` thành "hoãn thừa" và làm đỏ hàng rào 1 (việc đó thuộc bước tách cổng/route quản trị hỏi bảng của phiên hàng rào). Không sửa `docs/quyen-hoan.json` (hạn thật, chỉ chủ ra lệnh mới đổi).
 
 - [ ] **Step 6: Nền xanh trước khi sửa**
 
