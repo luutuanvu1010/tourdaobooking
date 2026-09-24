@@ -526,6 +526,8 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 
 **Route quyền cũ khoá với tài khoản đã gán vai (role-managed):** `PUT /api/staff/:id/permissions` trả 409 `role_managed` cho tài khoản đã có vai mô hình mới — sửa quyền của tài khoản đó phải qua `PUT /api/staff/:id/roles`. Tài khoản CHƯA gán vai không đổi gì (không có câu nào tự tính lại quyền của họ khi phát hành 0024).
 
+**Tạo tài khoản theo vai trên hồ sơ có sẵn** (`POST /api/staff` kèm `roles` + `partyId`, `createAccountWithRolesStatements`): hồ sơ phải là cá nhân, đang hoạt động, chưa có tài khoản, không lẫn nhóm (LC-3), và **vai được chọn phải gồm mọi vai tài khoản hồ sơ đang giữ** (không gắn nơi, `valid_to_date IS NULL`) — thiếu thì 409 `account_rule` "Hồ sơ này đang giữ vai …: chọn cả vai này (hoặc đổi vai sau khi tạo)." (Ruling R26, để quyền không lệch vai). Vai đã có không chèn lại. Trang Nhân viên chọn sẵn các vai đó khi bấm "Dùng hồ sơ có sẵn" (đọc `GET /api/parties/:id`).
+
 **Giao diện** (`web/staff.ts`, `web/role-picker.ts`): chọn vai theo nhóm, xem trước quyền hiệu lực TRƯỚC khi lưu, chặn LC-3 ngay ở giao diện (chọn vai nội bộ tắt lựa chọn nhóm bên ngoài và ngược lại) — máy chủ luôn kiểm lại. Trang Hồ sơ hiện dòng "Đổi ở trang Nhân viên" thay nút "Kết thúc" cho vai do trang Nhân viên quản lý (ADR-0018, R18), và ô thêm vai trò của Hồ sơ không còn liệt kê 11 vai Nội bộ/Bên ngoài này.
 
 ---

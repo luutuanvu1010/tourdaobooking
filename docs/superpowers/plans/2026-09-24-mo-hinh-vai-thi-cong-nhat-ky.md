@@ -149,3 +149,15 @@ Hai chỗ nói "kiểm tay `includes('SUPER_ADMIN')`" nay đã sai — cơ chế
 ## Kiểm cuối Task 9
 
 `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → 15/15 xanh (số phiên bản 1.8). `npm test`, `npm run typecheck`, `node scripts/kiem-phien-ban.mjs` — kết quả ghi trong báo cáo Task 9 (`.superpowers/sdd/2026-09-24-mo-hinh-vai-gd0-gd1/task-9-report.md`).
+
+## Kiểm toàn nhánh (Task 10) và lô sửa cuối
+
+- **Kết luận người kiểm toàn nhánh:** chưa đạt — cần sửa 1 mục Quan trọng (I-1) và một số mục nhỏ; không có mục chặn khác. Lô sửa cuối (báo cáo: `.superpowers/sdd/2026-09-24-mo-hinh-vai-gd0-gd1/final-fix-report.md`) xử lý như dưới; **chưa có vòng kiểm độc lập sau lô sửa** — cần một vòng trước khi báo đạt.
+- **I-1 → Ruling R26 (đã sửa):** tạo tài khoản trên hồ sơ có sẵn đang giữ vai tài khoản khác (vd hồ sơ đang mở "Kế toán", chỉ chọn "Nhân viên kinh doanh") cho ra quyền chỉ theo vai được chọn trong khi hồ sơ vẫn giữ vai kia (quyền `["SALES"]`, vai `SALES_STAFF + ACCOUNTANT`). Nay máy chủ từ chối (409 `account_rule`, "Hồ sơ này đang giữ vai Kế toán: chọn cả vai này (hoặc đổi vai sau khi tạo).") khi còn vai tài khoản đang mở (không gắn nơi, chưa đóng) không được chọn; chọn đủ thì quyền = hợp các vai, không chèn trùng dòng vai. Trang Nhân viên chọn sẵn các vai đó khi bấm "Dùng hồ sơ có sẵn" (đọc qua `GET /api/parties/:id`, không thêm route). Test: `src/modules/staff/account-roles.test.ts` (ca "Ruling R26"), e2e `roles` bước 6b.
+- **Minor 1 (đã khoá bằng test):** đặc tả tiêu chí 11 — `src/migrations-0024.test.ts` ca "tiêu chí 11": tệp 0024 không có câu ghi vào bảng quyền, bảng chỉnh tay, bảng tài khoản, bảng vai hồ sơ.
+- **Ruling R27 (đã sửa):** mục 1.8 của nhật ký thay đổi không còn nói quá về Thực tập sinh — ghi rõ chưa chọn được dịch vụ từ danh mục (danh mục chỉ mở cho nhân sự văn phòng), chờ chủ quyết.
+- **Minor 4, 5 (đã sửa):** runbook `0024` ở `docs/HANDOFF-N1.md` — "10 dòng vai mới" (Kế toán dùng lại), sửa đường dẫn sai, thêm các bước chủ tự chạy, ghi chú hoàn tác, câu đếm trước-deploy theo nhóm.
+- **Nợ còn lại (ghi sang `docs/HANDOFF-N1.md` "Việc còn treo"):**
+  - (a) "Vai đang mở" = `valid_to_date IS NULL` ở mọi nơi — dòng vai tài khoản có ngày kết thúc trong tương lai, hoặc dòng "Kế toán" gắn một nơi, không được LC-3/kiểm nhóm/kiểm "chọn đủ vai" nhìn thấy, và không đóng được từ cả trang Hồ sơ lẫn trang Nhân viên.
+  - (b) Nhãn ở danh sách Nhân viên cho tài khoản đã gán vai chỉ hiện tên vai (`web/staff.ts` `accessLabel`), dù tài khoản có thể có thêm quyền cộng tay.
+  - Thực tập sinh nhận 403 ở danh mục dịch vụ — chủ quyết.
