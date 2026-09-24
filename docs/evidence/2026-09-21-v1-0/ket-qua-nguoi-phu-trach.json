@@ -57,6 +57,16 @@
       "dat": true
     },
     {
+      "id": "m",
+      "name": "tên khách DÀI bị cắt bằng “…” ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng “Khách: <tên đầy đủ>”, ngay trước “Mã đơn”",
+      "dat": true
+    },
+    {
+      "id": "n",
+      "name": "bàn phím THẬT (Input.dispatchKeyEvent qua CDP): Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết",
+      "dat": true
+    },
+    {
       "id": "l",
       "name": "console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)",
       "dat": true
@@ -254,10 +264,10 @@
       "trang-don-chua-biet-1040",
       "danh-sach-handlers-loi-1040"
     ],
-    "trang-theo-doi-console": 42
+    "trang-theo-doi-console": 44
   },
   "tongKet": {
-    "dat": 12,
+    "dat": 14,
     "hong": 0
   }
 }
