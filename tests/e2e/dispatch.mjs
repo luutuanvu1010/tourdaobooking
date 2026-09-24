@@ -450,6 +450,126 @@ try {
   assert.deepEqual(dashToday.pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "Trang chủ (Chuyến đón hôm nay) phải hiện SỐ KHÁCH MỚI, khớp trang chi tiết và /api/orders (bài học Đợt E)");
   console.log("✓ sau khi FIELD sửa số khách: /api/orders, Trang chủ (dashboard.today) và trang chi tiết đơn đều hiện ĐÚNG số khách mới, khớp nhau");
 
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  // Lỗi 1 + Lỗi 2 (kiểm độc lập Đợt E vòng 2): after_json của dòng điều chỉnh GẦN NHẤT bị HỎNG — dựng thẳng bằng SQL (order_money_adjustment
+  // CHỈ-THÊM, không sửa/xoá được qua API bình thường, kể cả bằng SQL tay — trigger 0021 chặn UPDATE/DELETE; nhưng INSERT thêm MỘT dòng seq mới
+  // thì được, đúng cách mô phỏng "dữ liệu hỏng ngoài tầm kiểm lúc ghi" mà không cần sửa trực tiếp dòng cũ). Tiếp tục dùng o18 (đã đo lành mạnh ở
+  // trên — chi tiết/danh sách/Trang chủ đều đúng 5 khách) để so sánh trước/sau ngay trên CÙNG một đơn.
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  const svc18 = o18.services[0].id;
+  const maxSeq18 = Number((await sqlRows(`SELECT MAX(seq) AS s FROM order_money_adjustment WHERE order_id = '${o18.id}'`))[0].s);
+
+  // --- Lỗi 1: after_json hỏng DẠNG MỀM (mảng đọc được, phần tử có mặt nhưng pax CHỈ có adult, thiếu child/senior/infant) — đúng ca kiểm độc lập
+  // đo được: trước bản sửa, chi tiết đơn hiện "9 người lớn" (bịa từ dữ liệu thiếu) trong khi /orders và Trang chủ hiện "2 người lớn" (số đã lưu).
+  // `subtotal_after` đặt = 600000 (KHÔNG phải 9×300,000): applyAdjustmentToOrder (đường chi tiết) không đọc cột này — nó TỰ TÍNH LẠI subtotal từ
+  // dịch vụ (dùng `own` = số đã lưu khi dịch vụ rơi vào nhánh lùi), nên pax lùi (2) VÀ tiền của chi tiết đơn LUÔN tự nhiên đi cùng nhau (2×300,000
+  // = 600,000). Còn /orders và Trang chủ (`toSummaryDtos`) đọc THẲNG cột `subtotal_after`, không phụ thuộc after_json còn phân tích được hay
+  // không — đặt cột này = 600,000 để mô phỏng ĐÚNG ca kiểm độc lập báo ("tiền khớp cả ba bề mặt"); đây KHÔNG PHẢI một bảo đảm kiến trúc chung (nợ
+  // đã ghi trong báo cáo: chi tiết TÍNH LẠI còn danh sách/Trang chủ ĐỌC CỘT ĐÃ LƯU — hai đường tính tiền khác nhau, cố ý để ngoài phạm vi vòng này).
+  const softSeq = maxSeq18 + 1;
+  const softAfter = JSON.stringify([{ serviceId: svc18, pax: { adult: 9 } }]).replace(/'/g, "''");
+  await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
+    ('adj-soft-${o18.id}', '${o18.id}', ${softSeq}, '[]', '${softAfter}', 1500000, 600000)`);
+
+  const detailSoft = await orderView(A, o18.id);
+  const listSoft = (await call(A, "GET", `/api/orders?q=${o18.orderCode}`)).body.orders.find((x) => x.id === o18.id);
+  const dashSoft = await call(A, "GET", "/api/orders/dashboard");
+  assert.equal(dashSoft.status, 200, "Trang chủ không được sập vì after_json hỏng dạng mềm");
+  const dashTodaySoft = dashSoft.body.today.find((x) => x.id === o18.id);
+
+  assert.deepEqual(detailSoft.services[0].pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: pax hỏng dạng mềm → lùi về số ĐÃ LƯU (2), không hiện 9 bịa từ dữ liệu thiếu (Lỗi 1)");
+  assert.deepEqual(listSoft.pax, detailSoft.services[0].pax, "Lỗi 1 đã sửa: /orders phải khớp CHÍNH XÁC trang chi tiết (trước đây lệch 2 so với 5/9)");
+  assert.deepEqual(dashTodaySoft.pax, detailSoft.services[0].pax, "Lỗi 1 đã sửa: Trang chủ cũng phải khớp trang chi tiết");
+  assert.equal(detailSoft.subtotal, 600000, "chi tiết: tiền TỰ TÍNH LẠI từ dịch vụ, tự nhiên khớp với pax đã lùi (2×300,000) — không đọc cột subtotal_after");
+  assert.equal(listSoft.total, detailSoft.total, "danh sách đọc cột subtotal_after — case này đặt = 600,000 nên khớp chi tiết, đúng ca kiểm độc lập báo");
+  assert.equal(dashTodaySoft.total, detailSoft.total, "Trang chủ cũng đọc cột subtotal_after, khớp chi tiết");
+  console.log("✓ Lỗi 1 đã sửa: after_json hỏng dạng mềm → chi tiết/​danh sách/​Trang chủ CÙNG số khách (2), không còn lệch nhau");
+
+  // --- Lỗi 2 + Lỗi 3: after_json hỏng NẶNG (không phải JSON hợp lệ) — trước bản sửa, một phần tử/nội dung như thế này làm applyAdjustedPax (đường
+  // /orders, Trang chủ) NÉM LỖI, sập request cho MỌI nhân viên (không riêng đơn hỏng); đơn cũng "không gỡ được bằng thao tác bình thường" vì
+  // getLatestAdjustment (đường GHI, editMoneyAsHandler dùng chung) cũng ném lỗi, khiến POST handler-money-edit tiếp theo cũng 500. `subtotal_after`
+  // cũng đặt = 600000 với cùng lý do đã giải thích ở khối Lỗi 1 phía trên (chi tiết tự tính lại, không đọc cột này).
+  const hardSeq = softSeq + 1;
+  await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
+    ('adj-hard-${o18.id}', '${o18.id}', ${hardSeq}, '[]', 'khong phai JSON hop le', 600000, 600000)`);
+
+  const detailHard = await orderView(A, o18.id);
+  assert.deepEqual(detailHard.services[0].pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: after_json hỏng nặng → KHÔNG sập (Lỗi 2), lùi về số ĐÃ LƯU");
+  assert.equal(detailHard.subtotal, 600000, "tiền chi tiết tự tính lại từ dịch vụ (2×300,000), không phụ thuộc after_json hỏng nặng");
+
+  const listHard = await call(A, "GET", `/api/orders?q=${o18.orderCode}`);
+  assert.equal(listHard.status, 200, "Lỗi 2 đã sửa: /api/orders KHÔNG được sập vì MỘT đơn có after_json hỏng nặng");
+  const listedHard = listHard.body.orders.find((x) => x.id === o18.id);
+  assert.deepEqual(listedHard.pax, { adult: 2, child: 0, senior: 0, infant: 0 });
+  assert.equal(listedHard.total, 600000);
+
+  // Một đơn KHÁC (o14, đứng trước o18 trong cùng file, không liên quan, KHÔNG có after_json hỏng) vẫn phải hiện đúng, không bị đơn hỏng của o18
+  // kéo theo — CHỨNG MINH "chỉ ĐÚNG đơn đó rơi về số gốc", không phải cả trang chung một số phận. Truy vấn RIÊNG (không dùng chung `listHard`,
+  // vốn lọc theo mã đơn của o18) để chắc chắn tìm đúng o14 dù D1 tạm có thể có nhiều đơn khác từ các mục kiểm trước.
+  const listedO14StillOk = (await call(A, "GET", `/api/orders?q=${o14.orderCode}`)).body.orders.find((x) => x.id === o14.id);
+  assert.ok(listedO14StillOk, "o14 (đơn khác, không liên quan) vẫn phải có trong /api/orders dù o18 có after_json hỏng nặng");
+  assert.equal(listedO14StillOk.total, 900000, "o14 không bị ảnh hưởng bởi after_json hỏng của o18 — số tiền của NÓ vẫn đúng, không rơi về đâu cả");
+
+  const dashHard = await call(A, "GET", "/api/orders/dashboard");
+  assert.equal(dashHard.status, 200, "Lỗi 2 đã sửa: Trang chủ KHÔNG được sập vì MỘT đơn có after_json hỏng nặng");
+  const dashTodayHard = dashHard.body.today.find((x) => x.id === o18.id);
+  assert.deepEqual(dashTodayHard.pax, { adult: 2, child: 0, senior: 0, infant: 0 });
+  assert.equal(dashTodayHard.total, 600000);
+  console.log("✓ Lỗi 2 đã sửa: after_json hỏng NẶNG (không phải JSON) → /orders và Trang chủ KHÔNG sập, chỉ ĐÚNG đơn hỏng rơi về số gốc, đơn khác không bị kéo theo");
+
+  // --- Lỗi 2 (biến thể khác, CÙNG mức "hỏng nặng" nhưng chạm nhánh mã KHÁC): after_json là JSON HỢP LỆ, LÀ MẢNG, nhưng một PHẦN TỬ không phải
+  // object (`[null]`) — trước bản sửa, applyAdjustedPax/applyAdjustmentToOrder truy cập `.serviceId` thẳng trên phần tử đó, ném TypeError. Khác
+  // với ca "không phải JSON hợp lệ" ở trên (từng đã được `try/catch` của đường DANH SÁCH/Trang chủ — bản CŨ — bắt được một phần; ca `[null]` này
+  // mới là ca CHƯA có lưới nào trước bản sửa, đúng cơ chế gây "sập cả trang" mà kiểm độc lập đo được).
+  const nullElemSeq = hardSeq + 1;
+  await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
+    ('adj-nullelem-${o18.id}', '${o18.id}', ${nullElemSeq}, '[]', '[null]', 600000, 600000)`);
+
+  const detailNullElem = await orderView(A, o18.id);
+  assert.deepEqual(detailNullElem.services[0].pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: after_json = [null] → KHÔNG sập, lùi về số ĐÃ LƯU");
+  const listNullElem = await call(A, "GET", `/api/orders?q=${o18.orderCode}`);
+  assert.equal(listNullElem.status, 200, "Lỗi 2 đã sửa: /api/orders KHÔNG được sập vì after_json = [null] (ca cụ thể kiểm độc lập đo được)");
+  assert.deepEqual(listNullElem.body.orders.find((x) => x.id === o18.id).pax, { adult: 2, child: 0, senior: 0, infant: 0 });
+  const dashNullElem = await call(A, "GET", "/api/orders/dashboard");
+  assert.equal(dashNullElem.status, 200, "Lỗi 2 đã sửa: Trang chủ KHÔNG được sập vì after_json = [null]");
+  console.log("✓ Lỗi 2 đã sửa (biến thể [null]): phần tử KHÔNG phải object trong after_json → /orders và Trang chủ vẫn 200, không sập");
+
+  // "Đơn hỏng cũng không gỡ được bằng thao tác bình thường" (Lỗi 2) — trước bản sửa, editMoneyAsHandler (dùng chung getLatestAdjustment) cũng
+  // ném lỗi 500 khi đọc dòng hỏng nặng, khiến HDV không sửa tiếp được. Giờ phải sửa được bình thường, ghi seq TIẾP THEO (nullElemSeq + 1).
+  r = await moneyEdit(FIELD, o18.id, { reason: "Sửa lại sau khi thấy dữ liệu bất thường", services: [{ id: svc18, pax: pax(4) }] });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const afterRepairSeqs = (await sqlRows(`SELECT seq FROM order_money_adjustment WHERE order_id = '${o18.id}' ORDER BY seq`)).map((x) => Number(x.seq));
+  assert.deepEqual(afterRepairSeqs, [1, softSeq, hardSeq, nullElemSeq, nullElemSeq + 1], "sửa lại bình thường phải ghi được dòng MỚI, không bị chặn bởi các dòng hỏng nặng phía trước");
+  const detailRepaired = await orderView(A, o18.id);
+  assert.deepEqual(detailRepaired.services[0].pax, { adult: 4, child: 0, senior: 0, infant: 0 }, "sau khi sửa lại: hiện đúng số MỚI (4), đơn đã 'gỡ' được khỏi trạng thái hỏng");
+  console.log("✓ Lỗi 2 đã sửa: đơn có dòng điều chỉnh hỏng nặng vẫn SỬA LẠI được bằng thao tác bình thường (POST handler-money-edit), không còn kẹt 500");
+
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  // Lỗi 4 (kiểm độc lập Đợt E vòng 2): sửa NHIỀU LẦN LIÊN TIẾP (2 → 5 → 3) — /orders và Trang chủ phải lấy ĐÚNG lần sửa GẦN NHẤT, cả số khách
+  // LẪN số tiền, không phải lần đầu hay lần giữa. Dùng đơn MỚI (không phải o14 — đơn đó có bài kiểm tranh chấp ở dưới làm số dòng không đoán trước
+  // được; không phải o18 — đơn đó vừa dùng để kiểm dữ liệu hỏng ở trên).
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  const o19 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ departDate: vnDate(0), pax: { adult: 2 } })] }))).body.order;
+  const svc19 = o19.services[0].id;
+  assert.equal((await call(A, "POST", `/api/orders/${o19.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await setHandler(A, o19.id, fld.id)).status, 200);
+
+  assert.equal((await moneyEdit(FIELD, o19.id, { reason: "Khách báo thêm người", services: [{ id: svc19, pax: pax(5) }] })).status, 200);
+  assert.equal((await moneyEdit(FIELD, o19.id, { reason: "Khách huỷ bớt", services: [{ id: svc19, pax: pax(3) }] })).status, 200);
+
+  const detail19 = await orderView(A, o19.id);
+  const listed19 = (await call(A, "GET", `/api/orders?q=${o19.orderCode}`)).body.orders.find((x) => x.id === o19.id);
+  const dash19 = await call(A, "GET", "/api/orders/dashboard");
+  const dashToday19 = dash19.body.today.find((x) => x.id === o19.id);
+
+  for (const [label, surface] of [["chi tiết đơn", detail19.services[0]], ["/orders", listed19], ["Trang chủ", dashToday19]]) {
+    assert.deepEqual(surface.pax, { adult: 3, child: 0, senior: 0, infant: 0 }, `${label}: sau chuỗi sửa 2→5→3 phải hiện ĐÚNG lần CUỐI (3), không phải 2 hay 5`);
+  }
+  assert.equal(detail19.subtotal, 900000, "tiền chi tiết đơn = lần sửa CUỐI (3 khách × 300,000), không phải 600,000 (2) hay 1,500,000 (5)");
+  assert.equal(listed19.total, 900000, "tiền /orders = lần sửa CUỐI");
+  assert.equal(dashToday19.total, 900000, "tiền Trang chủ = lần sửa CUỐI");
+  console.log("✓ Lỗi 4 đã có test: chuỗi sửa liên tiếp 2→5→3 — chi tiết/​danh sách/​Trang chủ đều lấy ĐÚNG lần sửa gần nhất, cả số khách lẫn tiền");
+
   // SUPER_ADMIN: any ở MỌI thao tác (ADR-0014 điều 2), kể cả route hẹp này — dùng được dù KHÔNG phải người phụ trách (đơn RIÊNG, không đụng o14).
   const o15 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc()] }))).body.order;
   assert.equal((await call(A, "POST", `/api/orders/${o15.id}/status`, { status: "confirmed" })).status, 200);
