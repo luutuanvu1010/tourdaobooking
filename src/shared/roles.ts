@@ -117,11 +117,16 @@ export function highPermissionProblem(actor: readonly PermissionCode[], current:
   return changed ? { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." } : null;
 }
 
-/** LC-3 + LC-1 (cộng tay) + LC-4 + "còn ít nhất một quyền" cho MỘT lần gán vai. Máy chủ gọi TRƯỚC khi dựng câu lệnh. */
+/**
+ * LC-3 + LC-1 (cộng tay) + LC-4 + "còn ít nhất một quyền" cho MỘT lần gán vai. LC-4 còn chặn khi THAY ĐỔI dòng chỉnh tay Quản trị/Toàn quyền dù
+ * quyền hiệu lực hôm nay chưa đổi (chỉnh tay "ngủ", phát tác khi vai đổi sau này) — chỉ Toàn quyền được thêm/bớt một dòng như vậy; giữ NGUYÊN một
+ * dòng đã có (không sửa) vẫn được phép (giao diện tự điền lại chỉnh tay hiện có). Máy chủ gọi TRƯỚC khi dựng câu lệnh.
+ */
 export function roleAssignmentProblem(a: {
   actor: readonly PermissionCode[];
   currentRoles: readonly RoleCode[];
   currentPermissions: readonly PermissionCode[];
+  currentAdjustments: Adjustments;
   next: RoleAssignment;
 }): RoleProblem | null {
   const group = groupOf(a.next.roles);
@@ -132,6 +137,13 @@ export function roleAssignmentProblem(a: {
   if (!a.actor.includes("SUPER_ADMIN")) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];
     if (touched.some((r) => ROLES[r].superAdminOnly)) return { forbidden: true, message: "Chỉ Toàn quyền mới gán hoặc gỡ vai Giám đốc, Điều hành chung." };
+    // I-1 (kiểm độc lập vòng 1): chặn cả khi chỉnh tay Quản trị/Toàn quyền "ngủ" — quyền hiệu lực hôm nay không đổi (vai hiện tại đã có sẵn hoặc
+    // chưa từng cần đến quyền đó) nhưng dòng chỉnh tay sẽ phát tác khi vai đổi sau này. So danh sách chỉnh tay MUỐN với danh sách chỉnh tay ĐANG CÓ,
+    // không so quyền hiệu lực ròng (highPermissionProblem ở dưới lo phần đó).
+    const adjustmentChanged = SUPER_ADMIN_GRANTED.some(
+      (p) => a.next.adds.includes(p) !== a.currentAdjustments.adds.includes(p) || a.next.removes.includes(p) !== a.currentAdjustments.removes.includes(p),
+    );
+    if (adjustmentChanged) return { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." };
   }
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actor, a.currentPermissions, next);
