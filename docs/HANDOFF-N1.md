@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.4: trang Trợ giúp + nhật ký thay đổi ĐÃ LÊN PRODUCTION (2026-09-24 08:27 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-changelog-tro-giup` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.6: trang Đăng nhập theo bản thiết kế Claude Design + đổi tên app "Island Booking System" ĐÃ LÊN PRODUCTION (2026-09-24 19:06 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-dang-nhap-v2` rồi `npm run trien-khai`)
+
+AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-24 tối, giờ VN:
+
+- **Phiên bản: 1.6.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.6." (thoát 0); `GET /api/auth/config` trả `"version":"1.6"`; `GET /login` có `<h1>Tour Đảo Booking</h1>`, `#pin-count`, nút Face ID `aria-label="Đăng nhập bằng Face ID / vân tay"`, "Hỗ trợ kỹ thuật"; `GET /manifest.webmanifest` → `name` "Island Booking System", `short_name` "Island Booking".
+- **Mã trên `main` / GitHub:** bản 1.6 = c305994 (nhánh `worktree-dang-nhap-v2`); sau đó `origin/main` = 55ee6bf (chỉ sửa một dòng `docs/CHANGE-GUIDE.md`, không đổi mã chạy — lần `trien-khai` thứ hai chủ dừng ở cổng phiên bản bằng `k`, đúng: không có gì để deploy).
+- **Worker:** `wrangler deployments list` → bản mới nhất **26e05e67-515c-4354-92ae-03ad23a69ccc**, tạo 2026-09-24T12:06:55Z. Mốc lùi (bản ngay trước): **22f29c8d-d7d9-431f-8601-c585d7e414d8** (2026-09-24T08:18Z — bản 1.5, chưa từng được ghi ở mục này). Trước nữa: 7ce5b2f1 (bản 1.4).
+- **Migration:** `wrangler d1 migrations list tourdao-sales-db --remote` → "No migrations to apply" (lần này không có migration mới).
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt (D1 remote)".
+- **Kiểm trước khi gộp:** `npm test` 656/656, `tsc` 0, `test:e2e` 18/18; kịch bản Chrome `dang-nhap-v2` 5/5, `v1-dang-nhap` 15/15, `passkey-smoke`, `v1-bao-tri`, `trang-chu-smoke`, `dot-c-smoke`, `help-smoke` đạt; người kiểm độc lập (chỉ đọc) kết luận ĐẠT, tự chạy lại. Bằng chứng: `docs/evidence/2026-09-24-dang-nhap-v2/`.
+- **Chế độ bảo trì vẫn BẬT** tới 2026-09-26T04:15Z (11:15 giờ VN ngày 26/9); `trien-khai` không đụng tới.
+- **Chưa kiểm:** trang Đăng nhập mới và Face ID trên iPhone thật ở production; app đã cài trên iPhone giữ tên cũ dưới biểu tượng tới khi cài lại. Kết quả in ra của lần `trien-khai` deploy 1.6 AI không thấy — các kiểm chỉ đọc ở trên làm lại sau.
+- **Chờ chủ:** ghi quyết định đổi tên app vào đặc tả (`docs/SYSTEM-DESIGN.md` §16 đã ghi lệch); `web/CLAUDE.md` còn nhắc "cột thương hiệu" (tệp luật — AI chỉ đề xuất).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.4: trang Trợ giúp + nhật ký thay đổi ĐÃ LÊN PRODUCTION (2026-09-24 08:27 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-changelog-tro-giup` rồi `npm run trien-khai`)
 
 AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-24, khoảng 08:35 giờ VN:
 
