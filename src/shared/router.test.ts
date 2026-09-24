@@ -2,6 +2,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { StaffProfile } from "./contracts.ts";
+import { json } from "./http.ts";
 import { createApp, route, type AppModule } from "./router.ts";
 
 const staffOf = (permissions: StaffProfile["permissions"], phone = "0900000001"): StaffProfile => ({ id: "s1", fullName: "NV", phone, partyId: null, permissions });
@@ -32,6 +33,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
         calls.gate.push(s);
         return block(s);
       },
+      partyAccount: async () => ({ linked: false }),
     },
   });
   const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, {} as ExecutionContext);
@@ -96,4 +98,30 @@ test('access "orders": văn phòng và Đối tác dùng được; chỉ Hướn
   assert.equal((await fieldOnly.get("/api/ord")).status, 403);
   const anon = build(null, () => null);
   assert.equal((await anon.get("/api/ord")).status, 401);
+});
+
+test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng nhập; route công khai (chưa đăng nhập) mặc định TỪ CHỐI", async () => {
+  const seen: string[] = [];
+  const mod: AppModule = {
+    name: "t",
+    routes: [
+      route("GET", "/api/pa-open", "public", async (ctx) => json(await ctx.partyAccount("pty-1"))),
+      route("GET", "/api/pa-off", "office", async (ctx) => json(await ctx.partyAccount("pty-1"))),
+    ],
+  };
+  const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pa-open" ? null : who),
+    injected: {
+      isAssigned: async () => false,
+      defaultHandlerStatement: () => null,
+      maintenanceBlock: async () => null,
+      partyAccount: async (_env, actor, partyId) => { seen.push(`${actor.id}:${partyId}`); return { linked: false }; },
+    },
+  });
+  const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
+  assert.deepEqual(await get("/api/pa-open"), { linked: true, manageable: false });
+  assert.deepEqual(await get("/api/pa-off"), { linked: false });
+  assert.deepEqual(seen, ["u1:pty-1"]);
 });

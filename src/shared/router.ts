@@ -8,6 +8,9 @@ import { canAccessOrders, hasPermission, isOffice } from "./permissions.ts";
 /** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014); admin: quyền ADMIN. */
 export type Access = "public" | "staff" | "office" | "orders" | "admin";
 
+/** ADR-0013 điều 4: hồ sơ có gắn tài khoản không, và người đang đăng nhập có quản được tài khoản đó không (luật cấp bậc ADR-0014 điều 8, module `staff` tính). */
+export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean };
+
 export interface Ctx<A extends Access = Access> {
   request: Request;
   env: Env;
@@ -31,6 +34,11 @@ export interface Ctx<A extends Access = Access> {
    * Đối tác: ADR-0014 điều 9/10; luật do `dispatch` quyết). Do gốc lắp ráp tiêm.
    */
   defaultHandlerStatement: (orderId: string, at: string) => D1PreparedStatement | null;
+  /**
+   * ADR-0013 điều 4 — do gốc lắp ráp tiêm (module `parties` không import `staff`). Mỗi lần gọi là 1–2 truy vấn D1.
+   * Chưa đăng nhập → `{ linked: true, manageable: false }` (TỪ CHỐI; không được tụt về ô `party.write`).
+   */
+  partyAccount: (partyId: string) => Promise<PartyAccountVerdict>;
 }
 
 export interface Route {
@@ -103,6 +111,8 @@ export interface AppOptions {
      * Route công khai (`/api/auth/*` trừ `/me`, `/api/company`) không qua cổng. BẮT BUỘC: thiếu là chế độ bảo trì lặng lẽ không còn hiệu lực với phiên đang mở.
      */
     maintenanceBlock: (env: Env, staff: StaffProfile) => Promise<Response | null>;
+    /** ADR-0013 điều 4. BẮT BUỘC: thiếu là route Hồ sơ không biết hồ sơ nào gắn tài khoản. */
+    partyAccount: (env: Env, actor: StaffProfile, partyId: string) => Promise<PartyAccountVerdict>;
   };
 }
 
@@ -147,6 +157,7 @@ export function createApp(opts: AppOptions) {
       request, env, exec, url, params: hit.params, staff,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
       defaultHandlerStatement: (orderId, at) => (who ? opts.injected.defaultHandlerStatement(env, who, orderId, at) : null),
+      partyAccount: (partyId) => (who ? opts.injected.partyAccount(env, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
     } as Ctx);
   }
 

@@ -1,6 +1,7 @@
 // Gốc lắp ráp: danh sách module + nối auth vào router + Cron. Thêm module mới = thêm một dòng vào `modules`.
 // Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn" và có câu "đặt người phụ trách mặc định
 // cho đơn mới" nhưng KHÔNG được import `dispatch` (dispatch → orders là chiều được phép, chiều ngược lại sẽ thành vòng). Router chỉ chuyển chúng vào `ctx`.
+// `parties` cần biết hồ sơ gắn tài khoản nào (ADR-0013) nhưng KHÔNG được import `staff` — tiêm `partyAccount`.
 import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
@@ -12,6 +13,7 @@ import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { ordersModule } from "./modules/orders";
+import { accountOfParty } from "./modules/staff";
 import { createApp } from "./shared/router";
 
 const app = createApp({
@@ -22,6 +24,7 @@ const app = createApp({
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
     defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
     maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
+    partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
   },
 });
 
