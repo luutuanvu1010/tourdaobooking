@@ -213,3 +213,50 @@ Ba lỗi quan trọng người kiểm ĐO ĐƯỢC (đều là thứ người d�
 **Chưa kiểm:** chưa ai thử trên iPhone/iPad **thật** — mọi số đo là Chrome giả lập. `height: 100vh` của thanh bên trên Safari iOS có thể làm chân thanh tụt dưới mép nhìn thấy.
 
 **Chờ chủ dự án duyệt:** `docs/superpowers/specs/2026-09-23-dot-d-can-chu-duyet.md` — 6 mục (ưu tiên cao nhất: mục lục ADR thiếu hàng ADR-0015) + phần "Nợ đã ghi".
+
+## Đợt E — thẻ đơn gọn + biểu tượng + chuỗi lỗi "hai luật" (2026-09-23/24)
+
+**Yêu cầu của chủ dự án** sau khi Đợt D lên production: Trang chủ *"đơn điệu, nhìn toàn chữ"* → thêm biểu tượng; mỗi đơn tốn **7 dòng** → rút còn **2 dòng + nút xổ xuống**, để hướng dẫn viên nhìn là biết ngay thông tin quan trọng nhất.
+
+**Nhánh `dot-e-the-don-gon-va-bieu-tuong`**, HEAD `6182d7f`, 25 commit. **CHƯA gộp** — và tách từ `main` `3de1249` nên đang **chậm 47 commit** so với `main` (`b4a978f`): phải gộp `main` vào nhánh và chạy lại cổng trước khi gộp ngược.
+
+**Kết quả cuối:** `npm test` **672/672** · typecheck 0 · `npm run test:e2e` **18/18** (chạy nhiều lần) · `audit-invariants --db local` đạt · Chrome `v1-nguoi-phu-trach` 15/15, `a2-smoke-order`, `trang-chu-smoke` xanh.
+
+### Đã làm
+- **`web/order-card.ts`** (mới) — thẻ đơn **2 dòng + nút xổ**, đo thật **76px ở cả 390px và 1040px**. Dòng 1: ngày · giờ · tên khách · trạng thái. Dòng 2: SĐT (bấm gọi) · số khách · **chỉ "còn thu"** · nút xổ. Phần xổ: khách · mã đơn · số khách · đã trả · tổng · tên gói · nơi đón · người lập · ngày giờ lập · ghi chú · người phụ trách.
+- 7 biểu tượng mới cho Trang chủ (`web/icons.ts`); logo bo tròn đúng bản mẫu.
+- **Hiện LÝ DO** hướng dẫn viên ghi, **trong mục "Lịch sử"** của trang chi tiết đơn — **không đổi một ô quyền nào** (`permissions.test.ts` không đổi dòng nào), vì lý do vốn nằm ở `audit_log` là đúng nguồn mục đó đã được phép đọc.
+
+### Chuỗi lỗi "HAI NƠI ĐỌC/TÍNH CÙNG MỘT DỮ LIỆU THEO HAI LUẬT KHÁC NHAU" — tái phát BỐN LẦN
+Chủ dự án nêu nguyên tắc: *"khi sự kiện thay đổi thì những yếu tố phụ thuộc phải thay đổi theo"*. Điều tra 5 hướng rồi sửa, và mỗi vòng kiểm lại lộ một biến thể mới:
+
+1. **Số khách kẹt số cũ** trong khi tiền đã mới: `toSummaryDtos()` lấy tiền từ dòng điều chỉnh nhưng lấy số khách từ bảng gốc đã đóng băng. Sửa: `applyAdjustedPax()`.
+2. **`after_json` hỏng dạng mềm** → danh sách báo 2 người, chi tiết báo 5 người. Nguyên nhân: `isPaxCounts()` ở `repository.ts` **nghiêm ngặt hơn** quy tắc dung nạp ở `money-adjustment.ts`. Sửa: `parseAdjustmentAfter()` — **một hàm phân tích duy nhất**.
+3. **Hai phần tử trùng `serviceId`** → hai màn hình tự chọn khác nhau (3 vs 7). Sửa: gom trùng, đứng sau thắng.
+4. **TIỀN thiếu đúng bằng tiền dịch vụ NHẬP TAY** khi đơn có dịch vụ nhập tay + sửa sau xác nhận. Đo được **thiếu 200.000₫**, tạo ra bằng **đúng chức năng của app**, không sửa thẳng dữ liệu. Nơi LƯU chỉ cộng dịch vụ danh mục; nơi ĐỌC một đường tự tính lại (đúng), đường kia đọc thẳng cột đã lưu (thiếu). Sửa **cả nơi ghi và nơi đọc**, gộp về một hàm `effectiveService`/`effectiveSubtotal` — nên **đơn CŨ đã lưu sai cũng hiện đúng** (bảng chỉ-thêm, không sửa được bản ghi cũ).
+
+**Lỗi nghiêm trọng khác đã vá:** một dòng `after_json` hỏng nặng làm **sập cả danh sách + Trang chủ cho MỌI nhân viên**; và hàng rào R-ORD-5 mới **làm cả đợt rà soát (≈30 quy tắc) không chạy được** thay vì báo một vi phạm — cơ chế an toàn tự làm mình im lặng.
+
+### Bài học quan trọng nhất: KIỂM GIẢ
+- Bộ kiểm tiền trong `tests/e2e/dispatch.mjs` được viết với **số mong đợi chọn sẵn cho khớp kết quả** ⇒ **không thể báo đỏ**. "18/18 xanh" là cảm giác an toàn giả. Đã viết lại: số mong đợi **tính từ kịch bản**.
+- **Nơi GHI tiền không có ai canh**: người kiểm đột biến nơi ghi về đúng lỗi cũ → **0/660 test đỏ, 18/18 e2e xanh**. Vì phép kiểm duy nhất chạy trên đơn **không có dịch vụ nhập tay** nên **về cấu trúc không thể bắt**. Đã thêm cổng e2e D2/D3 đọc thẳng cột đã lưu trên đơn CÓ dịch vụ nhập tay — người kiểm cuối tự đột biến **hai biến thể** và cả hai lần cổng đỏ đúng chỗ.
+- **Ruling sai của điều phối viên, ghi lại để không lặp:** tôi từng bảo người thi công *"để khoản tiền này lại, đừng sửa"*, xếp nó là rủi ro tiềm ẩn "bình thường luôn khớp". Người kiểm đo được lệch thật qua thao tác bình thường. **Gặp "hai nơi tính cùng một số theo hai cách" thì mặc định là gom về một luật, không phải hoãn.**
+
+### Hàng rào dữ liệu mới
+`R-ORD-5` (tập dịch vụ trong `after_json` khớp `order_service`) và **`R-ORD-6a/6b`** (chuỗi tiền `order_money_adjustment`) trong `scripts/audit-checks.mjs`.
+**R-ORD-6 đặt mức `"warn"`, KHÔNG `"fail"`, có chủ đích:** migration `0021` đã lên production **trước** bản vá nơi ghi (xác minh: `docs/HANDOFF-N1.md:24` + `git merge-base`), nên production **có thể đã có dòng lịch sử thật mang lỗi cũ** — không sửa được (bảng chỉ-thêm). Đặt `"fail"` ngay là chặn oan cổng phát hành.
+**Lưu ý kỷ luật:** mức `"warn"` **không bao giờ** bị `--strict` nâng thành fail (`scripts/audit-invariants.mjs:33`) — muốn nâng phải **sửa mã**, không có cờ tự động.
+**Việc của chủ dự án:** sau khi phát hành, chạy `node scripts/audit-invariants.mjs --db remote` (chỉ đọc); sạch thì nâng `R-ORD-6` lên `"fail"` ở lần sửa sau.
+
+### Nợ đã ghi
+- Cột `subtotal_after`/`subtotal_before` của **đơn cũ** vẫn sai vĩnh viễn trong dữ liệu (bảng chỉ-thêm). Hiện vô hại: đã `grep` xác nhận **không còn nơi nào đọc lại cột đó để hiển thị**. Nếu sau này làm báo cáo/kế toán đọc thẳng cột đó thì sẽ lại sai.
+- Hiện số khách **"trước → sau"** trong Lịch sử: **chưa làm** — đòi đổi hợp đồng `AuditEntryDto` dùng chung giữa `audit`/`orders`/giao diện ⇒ phải hỏi chủ. Người kiểm đính chính: rào cản thật là hợp đồng dùng chung, **không** phải ranh giới import module như commit mô tả; chi phí làm sau rẻ hơn mô tả vì `id` dùng chung giữa hai bảng **đã có sẵn**.
+- Ô "lý do" là **chữ tự do 300 ký tự, không lọc**. Nay hiện cho SALES (đơn của mình/được giao) + ACCOUNTING; trước chỉ ADMIN qua trang Nhật ký. Người kiểm **đo và loại bỏ** lo ngại lớn nhất: nhóm này **vốn đã** thấy SĐT khách của chính đơn đó ⇒ **không lộ thêm**. Rủi ro còn lại hẹp: hướng dẫn viên có thể gõ thông tin **người thứ ba**, nằm vĩnh viễn trong nhật ký chỉ-thêm. **Chờ chủ quyết** (đề xuất: thêm một dòng nhắc dưới ô nhập).
+- "Cảnh báo quen mắt": `npm run test:e2e` cả bộ luôn để lại 3 dòng dữ liệu cố ý hỏng trong D1 tạm nên **luôn in 2 cảnh báo R-ORD-6** ở vòng phát triển cục bộ (D1 local thường thì **sạch tuyệt đối**). Đề xuất: `dispatch.mjs` dọn dữ liệu cố ý ở cuối, hoặc `run.mjs` khẳng định dải cảnh báo kỳ vọng.
+- Đính chính số liệu: commit `d925c67` ghi "15 test node:sqlite", **thực tế 12** (tổng tệp 36/36 xanh là đúng).
+- `web/CLAUDE.md` chưa có dòng cho tệp mới `web/order-card.ts` → `v1-nguoi-phu-trach.mjs` (tệp luật, chờ chủ duyệt).
+- Hai câu kiểm chưa đo riêng: hiệu năng danh sách với **hàng trăm đơn** (nay thay một lần đọc cột bằng hai truy vấn tính lại); và **iPhone/Safari thật** (mọi số đo là Chrome giả lập).
+
+### Quy trình
+9 lượt thi công, **6 vòng kiểm độc lập** (phần lớn chạy song song 3–8 hướng, mỗi hướng bản sao riêng, tự dựng dữ liệu và đo bằng API/Chrome thật). Hai lần người thi công **tự xin ý kiến thứ hai** rồi tự tìm thêm lỗ hổng trước khi báo cáo.
+**Công thức sandbox cho người kiểm:** `cp -a` worktree rồi **`rm -f <bản sao>/.git`** — vì `.git` ở worktree là **TỆP con trỏ**, thiếu bước này thì mọi lệnh git trong bản sao đụng vào kho thật (đã từng làm worktree gốc tuột sang HEAD tách rời).
