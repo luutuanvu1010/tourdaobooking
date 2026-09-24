@@ -33,7 +33,7 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNE
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
  * Có route dùng: order.create/history.view/modify/trip.edit/money.edit (module orders), dispatch.assign/claim/cancel (module dispatch),
- * feedback.submit/view/triage (module feedback).
+ * feedback.submit/view/triage (module feedback), party.view/write/staff.write (module parties).
  * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
  * Thao tác của N2/N3 (task.progress, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view, dispatch.request) có mặt để test khoá bản
  * đồ; CHƯA có route dùng (thi công ở phiên sau). `order.cancel`/`order.money.edit` (FIELD) đã có route thật (`POST /api/orders/:id/handler-cancel`,
@@ -60,7 +60,8 @@ export const MATRIX = {
   "invoice.request": row("own", "any", "any", "none", "none", "any"), // ghi yêu cầu hoá đơn + thông tin xuất
   "invoice.issue": row("none", "any", "any", "none", "none", "any"), // đánh dấu hoá đơn đã xuất
   "party.view": row("any", "any", "any", "none", "none", "any"), // xem hồ sơ khách/đại lý
-  "party.write": row("any", "any", "any", "none", "none", "any"), // tạo/sửa hồ sơ khách/đại lý
+  "party.write": row("any", "any", "any", "none", "none", "any"), // tạo/sửa hồ sơ KHÔNG gắn tài khoản (khách, đại lý, HDV/tài xế chưa có tài khoản) — ADR-0007, ADR-0013
+  "party.staff.write": row("none", "none", "any", "none", "none", "any"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   "admin.manage": row("none", "none", "any", "none", "none", "any"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": row("none", "none", "none", "none", "none", "any"), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
   "feedback.submit": row("any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)

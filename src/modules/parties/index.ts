@@ -8,7 +8,8 @@ import type {
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
-import { route, type AppModule } from "../../shared/router";
+import { route, type AppModule, type Ctx } from "../../shared/router";
+import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement, findParty, findPartiesByPhone,
@@ -28,6 +29,7 @@ const STALE = () => error(409, "stale", "Hồ sơ vừa được người khác 
 const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hiệu lực (đã đóng hoặc không tồn tại), hoặc ngày kết thúc trước ngày bắt đầu.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
+const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Nhân viên.");
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
@@ -77,7 +79,11 @@ const toRelationship = (r: RelationshipRow): PartyRelationshipDto => ({
   validTo: r.valid_to_date,
 });
 
-function toDetail(d: { party: PartyRow; contacts: ContactRow[]; roles: RoleRow[]; relationships: RelationshipRow[] }, today: string): PartyDto {
+function toDetail(
+  d: { party: PartyRow; contacts: ContactRow[]; roles: RoleRow[]; relationships: RelationshipRow[] },
+  today: string,
+  access: { accountLinked: boolean; editable: boolean },
+): PartyDto {
   const p = d.party;
   const roles = d.roles.map(toRole);
   const openRoleCodes = roles.filter((r) => r.validFrom <= today && (r.validTo === null || r.validTo >= today)).map((r) => r.roleTypeCode);
@@ -100,15 +106,19 @@ function toDetail(d: { party: PartyRow; contacts: ContactRow[]; roles: RoleRow[]
     relationships: d.relationships.map(toRelationship),
     createdAt: p.created_at,
     updatedAt: p.updated_at,
+    ...access,
   };
 }
 
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
 const idParam = (params: Record<string, string>, name: string, re: RegExp): string | null => (re.test(params[name] ?? "") ? params[name]! : null);
 
-async function respondParty(db: D1Database, id: string, status = 200): Promise<Response> {
-  const detail = await getPartyDetail(db, id);
-  return detail ? json({ party: toDetail(detail, vnToday(new Date())) } satisfies PartyResponse, status) : NOT_FOUND();
+/** Hồ sơ đầy đủ cho NGƯỜI ĐANG XEM: `editable` = đúng điều kiện mà route ghi hỏi (ADR-0013 điều 3). Gọi được từ route "office" hoặc "admin" (cả hai luôn có `staff`). */
+async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: string, status = 200): Promise<Response> {
+  const [detail, acc] = await Promise.all([getPartyDetail(ctx.env.DB, id), ctx.partyAccount(id)]);
+  if (!detail) return NOT_FOUND();
+  const editable = acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write");
+  return json({ party: toDetail(detail, vnToday(new Date()), { accountLinked: acc.linked, editable }) } satisfies PartyResponse, status);
 }
 
 export const partiesModule: AppModule = {
@@ -155,7 +165,8 @@ export const partiesModule: AppModule = {
     }),
 
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------
-    route("POST", "/api/parties", "office", async ({ request, env, staff }) => {
+    route("POST", "/api/parties", "office", async (ctx) => {
+      const { request, env, staff } = ctx;
       if (!can(staff, "party.write")) return FORBIDDEN_WRITE();
       const parsed = validatePartyCreate(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
@@ -170,33 +181,41 @@ export const partiesModule: AppModule = {
       const name = v.kind === "PERSON" ? composePersonName(v.name) : v.org.displayName;
       // Không ghi SĐT/email/MST vào nhật ký (chỉ tên và loại) — đặc tả N1 §5.
       await env.DB.batch([...made.statements, auditStatement(env.DB, { staffId: staff.id, action: "party_created", at, targetType: "party", targetId: made.partyId, detail: `${KIND_LABEL[v.kind]} "${name}"` })]);
-      return respondParty(env.DB, made.partyId, 201);
+      return respondParty(ctx, made.partyId, 201);
     }),
 
-    route("GET", "/api/parties/:id", "office", async ({ env, params, staff }) => {
+    route("GET", "/api/parties/:id", "office", async (ctx) => {
+      const { params, staff } = ctx;
       if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
       const id = idParam(params, "id", PARTY_ID_RE);
-      return id ? respondParty(env.DB, id) : NOT_FOUND();
+      return id ? respondParty(ctx, id) : NOT_FOUND();
     }),
 
-    route("PUT", "/api/parties/:id", "office", async ({ request, env, params, staff }) => {
+    route("PUT", "/api/parties/:id", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const current = id ? await findParty(env.DB, id) : null;
       if (!id || !current) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) return FORBIDDEN_WRITE();
       const parsed = validatePartyUpdate(await readJson(request), current.party_kind);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
       const at = new Date().toISOString();
       const stmts = updatePartyStatements(env.DB, id, parsed.value, staff.id, at);
       const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail: `${KIND_LABEL[current.party_kind]}` }, "changes() > 0")]);
       if ((results[stmts.length - 1]!.meta.changes ?? 0) === 0) return STALE();
-      return respondParty(env.DB, id);
+      return respondParty(ctx, id);
     }),
 
     // ---- Liên hệ (SALES/ACCOUNTING/ADMIN: như sửa hồ sơ) ------------------------------------------------------------------
-    route("POST", "/api/parties/:id/contacts", "office", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/contacts", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const detail = id ? await getPartyDetail(env.DB, id) : null;
       if (!id || !detail) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) return FORBIDDEN_WRITE();
       const parsed = validateContact(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const c = parsed.value;
@@ -210,13 +229,16 @@ export const partiesModule: AppModule = {
         ...addContactStatements(env.DB, id, c, vnToday(now), staff.id, at),
         auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: c.kind === "PHONE" ? "thêm số điện thoại" : "thêm email" }),
       ]);
-      return respondParty(env.DB, id, 201);
+      return respondParty(ctx, id, 201);
     }),
 
-    route("POST", "/api/parties/:id/contacts/:cid/end", "office", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/contacts/:cid/end", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const cid = idParam(params, "cid", ROW_ID_RE);
       if (!id || !cid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) return FORBIDDEN_WRITE();
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);
@@ -226,11 +248,12 @@ export const partiesModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "party_contact_changed", at, targetType: "party", targetId: id, detail: "đóng một liên hệ" }, "changes() > 0"),
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return NOT_OPEN();
-      return respondParty(env.DB, id);
+      return respondParty(ctx, id);
     }),
 
     // ---- Vai trò theo nơi (chỉ quản trị viên: ADR-0007 "vai trò hồ sơ") ----------------------------------------------------------
-    route("POST", "/api/parties/:id/roles", "admin", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/roles", "admin", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
       const now = new Date();
@@ -247,10 +270,11 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondParty(env.DB, id, 201);
+      return respondParty(ctx, id, 201);
     }),
 
-    route("POST", "/api/parties/:id/roles/:rid/end", "admin", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/roles/:rid/end", "admin", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
       if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
@@ -263,11 +287,12 @@ export const partiesModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: id }, "changes() > 0"),
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return NOT_OPEN();
-      return respondParty(env.DB, id);
+      return respondParty(ctx, id);
     }),
 
     // ---- Quan hệ giữa hai hồ sơ (chỉ quản trị viên — đề xuất của đặc tả N1 §7.2, đã duyệt) ------------------------------------------
-    route("POST", "/api/parties/:id/relationships", "admin", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/relationships", "admin", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
       const now = new Date();
@@ -284,10 +309,11 @@ export const partiesModule: AppModule = {
         if (problem) return problem;
         throw e;
       }
-      return respondParty(env.DB, id, 201);
+      return respondParty(ctx, id, 201);
     }),
 
-    route("POST", "/api/parties/:id/relationships/:rid/end", "admin", async ({ request, env, params, staff }) => {
+    route("POST", "/api/parties/:id/relationships/:rid/end", "admin", async (ctx) => {
+      const { request, env, params, staff } = ctx;
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
       if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
@@ -300,7 +326,7 @@ export const partiesModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "party_relationship_changed", at, targetType: "party", targetId: id, detail: "kết thúc một quan hệ" }, "changes() > 0"),
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return NOT_OPEN();
-      return respondParty(env.DB, id);
+      return respondParty(ctx, id);
     }),
   ],
 };

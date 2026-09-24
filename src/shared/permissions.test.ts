@@ -26,6 +26,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope]> = {
   "invoice.issue": ["none", "any", "any", "none", "none", "any"],
   "party.view": ["any", "any", "any", "none", "none", "any"],
   "party.write": ["any", "any", "any", "none", "none", "any"],
+  "party.staff.write": ["none", "none", "any", "none", "none", "any"],
   "admin.manage": ["none", "none", "any", "none", "none", "any"],
   "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any"], // ADR-0014 điều 2/8: thao tác MỚI
   "feedback.submit": ["any", "any", "any", "any", "any", "any"],
@@ -35,7 +36,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope]> = {
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN"];
 const OPS = Object.keys(ADR) as OperationCode[];
 
-test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0014 + Góp ý (25 thao tác × 6 quyền)", () => {
+test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0014 + Góp ý (26 thao tác × 6 quyền)", () => {
   assert.deepEqual([...PERMISSION_CODES], [...ORDER]);
   assert.deepEqual(Object.keys(MATRIX).sort(), Object.keys(ADR).sort(), "MATRIX và ADR phải có cùng danh sách thao tác");
   for (const op of OPS) ORDER.forEach((p, i) => assert.equal(MATRIX[op][p], ADR[op]![i], `${op} × ${p}`));
@@ -60,6 +61,7 @@ test("ADR-0014: PARTNER chỉ thấy/sửa đơn của mình, không tự nhận
   assert.equal(can(partner, "order.cancel", { ownerId: "p1", assigned: true }), false);
   assert.equal(can(partner, "party.view"), false);
   assert.equal(can(partner, "party.write"), false);
+  assert.equal(can(partner, "party.staff.write"), false);
   assert.equal(can(partner, "admin.manage"), false);
   assert.equal(can(partner, "contact.view", { ownerId: "other", assigned: true }), true, "đơn đang phụ trách sau khi được duyệt xin nhận (điều 10)");
   assert.equal(can(partner, "task.progress", { assigned: true }), true);
@@ -161,7 +163,7 @@ const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "or
 
 test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ bốn thao tác hẹp cố ý không mở", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };
-  for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
+  for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "party.staff.write", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
   const admin = { id: "a", permissions: ["ADMIN"] as const };
   for (const op of OPS) assert.equal(can(admin, op, { ownerId: "x" }), !ADMIN_NONE_OPS.includes(op), `ADMIN × ${op}`);
 });

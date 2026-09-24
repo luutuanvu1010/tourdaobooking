@@ -513,6 +513,10 @@ export interface PartyDto extends PartyListItemDto {
   createdAt: string;
   /** Mốc cập nhật cuối — gửi lại làm `expectedUpdatedAt` khi sửa (khoá lạc quan). */
   updatedAt: string;
+  /** ADR-0013 điều 6: hồ sơ gắn một tài khoản (kể cả tài khoản đang ngưng). Không kèm id/quyền của tài khoản. */
+  accountLinked: boolean;
+  /** ADR-0013 điều 6: NGƯỜI ĐANG XEM sửa được tên/liên hệ của hồ sơ này (máy chủ tính). Chỉ để ẩn/hiện nút; máy chủ vẫn chặn. */
+  editable: boolean;
 }
 
 export interface PartyListResponse { parties: PartyListItemDto[]; hasMore: boolean }

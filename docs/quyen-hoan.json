@@ -82,9 +82,6 @@
     }
   ],
   "cua_ghi": [
-    { "method": "PUT", "path": "/api/parties/:id", "loai": "hoãn", "ly_do": "LỖ ĐANG HỞ F-01 (R3/R3b): sửa tên/ngưng mọi hồ sơ kể cả của quản trị viên.", "ke_hoach": "GĐ1 ADR-0013: can(hasAccount ? party.staff.write : party.write) + cấp dưới.", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/parties/:id/contacts", "loai": "hoãn", "ly_do": "LỖ ĐANG HỞ (R3c, 24/9): SALES thêm SĐT vào hồ sơ quản trị viên → 201; 11 vai sẽ hiện 'SĐT công việc trong hồ sơ' cho đối tác.", "ke_hoach": "GĐ1 ADR-0013.", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/parties/:id/contacts/:cid/end", "loai": "hoãn", "ly_do": "Như trên (đóng liên hệ của hồ sơ có tài khoản).", "ke_hoach": "GĐ1 ADR-0013.", "han": "2026-10-08", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/parties/:id/roles", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/parties/:id/roles/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/parties/:id/relationships", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
