@@ -50,6 +50,10 @@ export function isPaxCounts(v: unknown): v is PaxCounts {
  *    ở đây "sự kiện" là dữ liệu điều chỉnh KHÔNG đáng tin thì "yếu tố phụ thuộc" phải lùi về nguồn còn đáng tin — số đã lưu).
  * KHÔNG kiểm `serviceId` có khớp dịch vụ thật của đơn hay không — đó là việc của `R-ORD-5` (`scripts/audit-checks.mjs`, tầng dữ liệu); một
  * `serviceId` lạ ở đây chỉ đơn giản không khớp dịch vụ nào ở nơi gọi (`Map.get` trả `undefined`), không gây lỗi.
+ * TRÙNG `serviceId` (hai phần tử hợp lệ, CÙNG dịch vụ — `parseMoneyEditInput` chặn khi GHI, chỉ tới được đây qua dữ liệu hỏng ngoài tầm kiểm):
+ * GOM về ĐÚNG MỘT phần tử, phần tử ĐỨNG SAU (trong mảng) thắng. Không dedupe ở đây thì hai nơi tiêu thụ lại tự chọn khác nhau — `applyAdjustmentToOrder`
+ * dựng `Map` từ mảng (đứng sau thắng), còn `applyAdjustedPax` dùng `Array.find` (đứng TRƯỚC thắng) — CHÍNH LÀ "hai luật khác nhau ở hai nơi" mà hàm
+ * này được viết ra để xoá bỏ, chỉ là ở khâu HỢP GIẢI thay vì khâu lọc dạng. Kết quả trả về vì vậy LUÔN có TỐI ĐA một phần tử cho mỗi `serviceId`.
  */
 export function parseAdjustmentAfter(afterJson: string): { serviceId: string; pax: PaxCounts }[] {
   let parsed: unknown;
@@ -59,13 +63,13 @@ export function parseAdjustmentAfter(afterJson: string): { serviceId: string; pa
     return [];
   }
   if (!Array.isArray(parsed)) return [];
-  const out: { serviceId: string; pax: PaxCounts }[] = [];
+  const bySvc = new Map<string, PaxCounts>();
   for (const entry of parsed) {
     if (!entry || typeof entry !== "object" || Array.isArray(entry)) continue;
     const e = entry as Record<string, unknown>;
-    if (typeof e.serviceId === "string" && isPaxCounts(e.pax)) out.push({ serviceId: e.serviceId, pax: e.pax });
+    if (typeof e.serviceId === "string" && isPaxCounts(e.pax)) bySvc.set(e.serviceId, e.pax); // Map.set: phần tử đứng SAU ghi đè phần tử đứng trước.
   }
-  return out;
+  return Array.from(bySvc, ([serviceId, pax]) => ({ serviceId, pax }));
 }
 
 /**

@@ -534,12 +534,44 @@ try {
   assert.equal(dashNullElem.status, 200, "Lỗi 2 đã sửa: Trang chủ KHÔNG được sập vì after_json = [null]");
   console.log("✓ Lỗi 2 đã sửa (biến thể [null]): phần tử KHÔNG phải object trong after_json → /orders và Trang chủ vẫn 200, không sập");
 
+  // --- Lỗi 1 (biến thể TRÙNG serviceId — phát hiện ở vòng kiểm độc lập THỨ HAI trên CHÍNH task này, sau khi bản sửa đầu "coi là xong"): after_json
+  // có HAI phần tử CÙNG serviceId, cả hai hợp lệ về DẠNG (chỉ tới được đây qua dữ liệu hỏng ngoài tầm kiểm — parseMoneyEditInput chặn khi GHI).
+  // Nếu parseAdjustmentAfter không tự gom (đứng sau thắng), applyAdjustmentToOrder (dựng Map — đứng sau thắng) và applyAdjustedPax (Array.find —
+  // đứng TRƯỚC thắng) sẽ lại tự chọn khác nhau — ĐÚNG kiểu "hai luật khác nhau ở hai nơi" việc này phải xoá bỏ, chỉ dịch sang khâu hợp giải.
+  const dupSeq = nullElemSeq + 1;
+  const dupAfter = JSON.stringify([
+    { serviceId: svc18, pax: { adult: 3, child: 0, senior: 0, infant: 0 } },
+    { serviceId: svc18, pax: { adult: 7, child: 0, senior: 0, infant: 0 } },
+  ]).replace(/'/g, "''");
+  await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
+    ('adj-dup-${o18.id}', '${o18.id}', ${dupSeq}, '[]', '${dupAfter}', 600000, 2100000)`);
+
+  const detailDup = await orderView(A, o18.id);
+  const listDup = (await call(A, "GET", `/api/orders?q=${o18.orderCode}`)).body.orders.find((x) => x.id === o18.id);
+  const dashDup = await call(A, "GET", "/api/orders/dashboard");
+  const dashTodayDup = dashDup.body.today.find((x) => x.id === o18.id);
+  assert.deepEqual(detailDup.services[0].pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: hai phần tử trùng serviceId → phần tử ĐỨNG SAU (7) thắng, không phải 3");
+  assert.deepEqual(listDup.pax, detailDup.services[0].pax, "Lỗi 1 (biến thể trùng serviceId): /orders PHẢI khớp CHÍNH XÁC trang chi tiết (cùng 7)");
+  assert.deepEqual(dashTodayDup.pax, detailDup.services[0].pax, "Trang chủ cũng phải khớp (cùng 7)");
+  console.log("✓ Lỗi 1 đã sửa (biến thể trùng serviceId): after_json có hai phần tử cùng serviceId → chi tiết/​danh sách/​Trang chủ CÙNG lấy phần tử đứng sau, không mỗi bên một số");
+
+  // Bề mặt THỨ TƯ đọc after_json (kiểm độc lập lưu ý: getMyAssignments → loadOrderView → getLatestAdjustment) — "Việc của tôi" của chính FIELD đang
+  // phụ trách o18, trong lúc dòng điều chỉnh gần nhất của o18 VẪN đang là dòng trùng serviceId ở trên. Không có trường tiền nào ở màn này nên chỉ
+  // đo pax — phải khớp CÙNG quy tắc "đứng sau thắng" như ba bề mặt kia, và quan trọng hơn: KHÔNG được 500 (trước bản sửa Lỗi 2, đường này cũng
+  // dùng chung getLatestAdjustment không có try/catch nên cũng sập — chính FIELD là người CẦN sửa lại đơn hỏng, không được kẹt ở màn này).
+  const mineWhileDup = await call(FIELD, "GET", "/api/dispatch/mine");
+  assert.equal(mineWhileDup.status, 200, "Lỗi 2 đã sửa: GET /api/dispatch/mine (bề mặt thứ tư đọc after_json) KHÔNG được sập khi đơn đang phụ trách có after_json hỏng");
+  const mineO18 = mineWhileDup.body.assignments.find((x) => x.orderId === o18.id);
+  assert.ok(mineO18, "o18 (FIELD đang phụ trách, đã xác nhận) phải có trong 'Việc của tôi'");
+  assert.deepEqual(mineO18.services[0].pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "'Việc của tôi' cũng phải khớp CÙNG số (7) — bề mặt thứ tư, không riêng ba bề mặt kia");
+  console.log("✓ Bề mặt thứ tư (GET /api/dispatch/mine) cũng đọc đúng after_json qua parseAdjustmentAfter, không sập, khớp ba bề mặt còn lại");
+
   // "Đơn hỏng cũng không gỡ được bằng thao tác bình thường" (Lỗi 2) — trước bản sửa, editMoneyAsHandler (dùng chung getLatestAdjustment) cũng
-  // ném lỗi 500 khi đọc dòng hỏng nặng, khiến HDV không sửa tiếp được. Giờ phải sửa được bình thường, ghi seq TIẾP THEO (nullElemSeq + 1).
+  // ném lỗi 500 khi đọc dòng hỏng nặng, khiến HDV không sửa tiếp được. Giờ phải sửa được bình thường, ghi seq TIẾP THEO (dupSeq + 1).
   r = await moneyEdit(FIELD, o18.id, { reason: "Sửa lại sau khi thấy dữ liệu bất thường", services: [{ id: svc18, pax: pax(4) }] });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const afterRepairSeqs = (await sqlRows(`SELECT seq FROM order_money_adjustment WHERE order_id = '${o18.id}' ORDER BY seq`)).map((x) => Number(x.seq));
-  assert.deepEqual(afterRepairSeqs, [1, softSeq, hardSeq, nullElemSeq, nullElemSeq + 1], "sửa lại bình thường phải ghi được dòng MỚI, không bị chặn bởi các dòng hỏng nặng phía trước");
+  assert.deepEqual(afterRepairSeqs, [1, softSeq, hardSeq, nullElemSeq, dupSeq, dupSeq + 1], "sửa lại bình thường phải ghi được dòng MỚI, không bị chặn bởi các dòng hỏng nặng phía trước");
   const detailRepaired = await orderView(A, o18.id);
   assert.deepEqual(detailRepaired.services[0].pax, { adult: 4, child: 0, senior: 0, infant: 0 }, "sau khi sửa lại: hiện đúng số MỚI (4), đơn đã 'gỡ' được khỏi trạng thái hỏng");
   console.log("✓ Lỗi 2 đã sửa: đơn có dòng điều chỉnh hỏng nặng vẫn SỬA LẠI được bằng thao tác bình thường (POST handler-money-edit), không còn kẹt 500");

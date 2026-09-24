@@ -130,6 +130,29 @@ test("Lỗi 1 — KHÔNG còn lệch: after_json hỏng dạng mềm (pax chỉ 
   assert.equal(detail.subtotal, 600000, "tiền cũng lùi về số gốc (2 khách × 300,000), không tính theo pax hỏng");
 });
 
+// Lỗi 1 — biến thể TRÙNG serviceId (kiểm độc lập vòng thứ hai trên CHÍNH task này, sau khi báo cáo đầu tiên "coi là xong"): after_json có HAI phần
+// tử CÙNG serviceId, cả hai đều hợp lệ về DẠNG (parseMoneyEditInput chặn khi GHI — chỉ tới được đây qua dữ liệu hỏng ngoài tầm kiểm). Nếu
+// parseAdjustmentAfter không tự gom, hai nơi TIÊU THỤ sẽ lại tự chọn khác nhau: applyAdjustmentToOrder dựng Map từ mảng (phần tử ĐỨNG SAU thắng),
+// còn applyAdjustedPax dùng Array.find (phần tử ĐỨNG TRƯỚC thắng) — CHÍNH LÀ "hai luật khác nhau ở hai nơi" mà việc này phải xoá bỏ, chỉ chuyển
+// từ khâu LỌC DẠNG sang khâu HỢP GIẢI TRÙNG LẶP. R-ORD-5 (scripts/audit-checks.mjs) KHÔNG bắt được ca này (chỉ đếm số lượng + đối chiếu serviceId
+// — hai phần tử trùng serviceId vẫn đủ số lượng và serviceId vẫn khớp dịch vụ thật của đơn).
+test("Lỗi 1 (biến thể TRÙNG serviceId) — KHÔNG còn lệch: after_json có hai phần tử CÙNG serviceId (3 rồi 7) → chi tiết đơn VÀ danh sách/Trang chủ CÙNG lấy phần tử ĐỨNG SAU (7), không phải mỗi bên một số", () => {
+  const rawAfter = [
+    { serviceId: "svc-1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } },
+    { serviceId: "svc-1", pax: { adult: 7, child: 0, senior: 0, infant: 0 } },
+  ];
+  const after = parseAdjustmentAfter(JSON.stringify(rawAfter));
+  assert.deepEqual(after, [{ serviceId: "svc-1", pax: { adult: 7, child: 0, senior: 0, infant: 0 } }], "parseAdjustmentAfter đã gom về MỘT phần tử, đứng sau (7) thắng, ngay từ nguồn");
+
+  const detail = applyAdjustmentToOrder(baseOrder(), after);
+  const rows: ServiceSummaryRow[] = [row({ order_id: "o1", id: "svc-1", name: "Tour đảo", sort_order: 0, pax_adult: 2, pax_child: 0, pax_senior: 0, pax_infant: 0 })];
+  const listSummary = summarizeServices(applyAdjustedPax(rows, new Map([["o1", after]])));
+
+  assert.deepEqual(detail.services[0]!.pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: phải là 7 (phần tử đứng sau), không phải 3");
+  assert.deepEqual(listSummary.get("o1")!.pax, detail.services[0]!.pax, "danh sách/Trang chủ PHẢI khớp CHÍNH XÁC trang chi tiết (cùng 7) — không phải mỗi bên tự chọn một số khác nhau");
+  assert.equal(detail.subtotal, 2100000, "tiền cũng theo phần tử thắng (7×300,000), không phải 3×300,000");
+});
+
 test("summarizeServices(applyAdjustedPax(...)): số khách TÓM TẮT của đơn CÓ điều chỉnh là số MỚI; đơn KHÔNG có điều chỉnh là số GỐC — đúng hành vi phải sửa (Đợt E)", () => {
   const rows: ServiceSummaryRow[] = [
     row({ order_id: "o-adjusted", id: "sv-a", name: "Tour Hòn Mun", sort_order: 0, pax_adult: 2 }),

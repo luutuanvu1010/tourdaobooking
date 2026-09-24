@@ -227,6 +227,22 @@ test("parseAdjustmentAfter: nhiều phần tử hỏng KIỂU KHÁC NHAU trong C
   assert.deepEqual(parseAdjustmentAfter(JSON.stringify(mixed)), [VALID, { serviceId: "svc-2", pax: { adult: 1, child: 0, senior: 0, infant: 0 } }]);
 });
 
+// TRÙNG serviceId (kiểm độc lập, sau khi báo cáo task 6 ban đầu đã "hoàn tất" — phát hiện thêm ở vòng kiểm thứ hai): parseMoneyEditInput chặn
+// khi GHI, chỉ tới được đây qua dữ liệu hỏng ngoài tầm kiểm. Nếu KHÔNG gom, applyAdjustmentToOrder (dựng Map từ mảng, đứng SAU thắng) và
+// applyAdjustedPax (Array.find, đứng TRƯỚC thắng) sẽ lại chọn khác nhau — ĐÚNG kiểu "hai luật khác nhau ở hai nơi" mà hàm này phải xoá bỏ.
+test("parseAdjustmentAfter: HAI phần tử TRÙNG serviceId, cả hai hợp lệ → gom về MỘT, phần tử ĐỨNG SAU thắng", () => {
+  const first = { serviceId: "sv1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } };
+  const second = { serviceId: "sv1", pax: { adult: 7, child: 0, senior: 0, infant: 0 } };
+  assert.deepEqual(parseAdjustmentAfter(JSON.stringify([first, second])), [second], "đứng sau (7) thắng, không phải đứng trước (3)");
+});
+
+test("parseAdjustmentAfter: TRÙNG serviceId, một bên hỏng dạng mềm (pax thiếu trường) → chỉ bên HỢP LỆ được giữ, bất kể đứng trước hay sau (phần tử hỏng bị lọc TRƯỚC khi xét 'đứng sau thắng', không bao giờ ghi đè bản hợp lệ)", () => {
+  const good = { serviceId: "sv1", pax: { adult: 4, child: 0, senior: 0, infant: 0 } };
+  const bad = { serviceId: "sv1", pax: { adult: 9 } }; // thiếu child/senior/infant
+  assert.deepEqual(parseAdjustmentAfter(JSON.stringify([bad, good])), [good], "hỏng đứng trước, hợp lệ đứng sau → hợp lệ thắng");
+  assert.deepEqual(parseAdjustmentAfter(JSON.stringify([good, bad])), [good], "hợp lệ đứng trước, hỏng đứng sau → phần tử hỏng bị LỌC (isPaxCounts sai) TRƯỚC khi được xét ghi đè, nên bản hợp lệ vẫn còn nguyên");
+});
+
 // --- isAdjustmentSeqCollision --------------------------------------------------------------------------------------
 test("isAdjustmentSeqCollision: nhận đúng lỗi UNIQUE order_id+seq (kể cả tiền tố D1_ERROR); lỗi khác thì không", () => {
   assert.ok(isAdjustmentSeqCollision(new Error("UNIQUE constraint failed: order_money_adjustment.order_id, order_money_adjustment.seq")));
