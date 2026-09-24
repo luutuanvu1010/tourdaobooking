@@ -1,6 +1,6 @@
 # Đặc tả: Mô hình người – vai – quyền (11 vai), luồng nhận đơn và tiền của đơn đối tác
 
-- **Ngày:** 2026-09-24 · **Trạng thái:** BẢN NHÁP VÒNG 3 — đã cập nhật theo câu trả lời của chủ ở vòng 1 (4 phần thiết kế), vòng 2 (10 điểm + 4 câu) và vòng 3 (8 điểm + 3 câu), cùng ngày. Chờ chủ dự án duyệt bản viết.
+- **Ngày:** 2026-09-24 · **Trạng thái:** **ĐÃ DUYỆT** — chủ dự án trả lời "đồng ý cả 8 và duyệt đặc tả" trong phiên chat 2026-09-24, sau ba vòng hỏi đáp (vòng 1: 4 phần thiết kế; vòng 2: 10 điểm + 4 câu; vòng 3: 8 điểm + 3 câu). Thay đổi nội dung sau mốc này = đặc tả/ADR mới do chủ duyệt, không sửa thẳng tệp này.
 - **Người soạn:** AI (phiên "mô hình người–vai–quyền"). AI **không tự duyệt** (N3, Điều 7.2).
 - **Nguồn quyết định:** câu trả lời của chủ dự án trong phiên chat 2026-09-24 (mục 3). Tài liệu tham chiếu triết lý: `docs/Ref/Oracle-crm-triet-ly-va-checklist.md`, `docs/Ref/thiet-ke-party-relationship-tca.md`.
 - **Liên quan:** ADR-0001 (danh tính Party–Role–Relationship), ADR-0005 (quyền app đa trị), ADR-0007 (bản đồ quyền), ADR-0009 (người phụ trách), ADR-0010 (hoá đơn là bản chụp), ADR-0011 (khách trên đơn), ADR-0013 (proposed), ADR-0014 (đối tác, Super Admin), **ADR-0017** (accepted 2026-09-24 — HDV nội bộ xem mọi đơn kể cả tiền; **tệp chỉ đang nằm trên nhánh chưa gộp `dot-e-the-don-gon-va-bieu-tuong`**; bàn giao: `docs/superpowers/specs/2026-09-24-adr-0017-ban-giao-cho-mo-hinh-vai.md` cùng nhánh đó).
@@ -102,6 +102,7 @@ Hệ quả thiết kế:
 | Q34 | Đơn đối tác lập: mặc định **đối tác giữ tiền cọc**; nội bộ đổi được. |
 | Q35 | Nội bộ có quyền xem tiền (kể cả HDV nội bộ) **thấy chiết khấu**; đối tác thấy của mình; khách không bao giờ. |
 | Q36 | Đối tác thấy **danh sách HDV nội bộ kèm SĐT công việc** để đề xuất và liên lạc trực tiếp khi cần. |
+| Q37 | Chủ **đồng ý cả 8 điểm ở mục 17** (kể cả cách hiểu Q30: đổi người phụ trách đơn đối tác thì người cũ giữ tới khi người mới bấm Nhận) và **duyệt đặc tả**. |
 
 Và **ADR-0017** (accepted 2026-09-24) được hấp thụ nguyên vẹn vào vai HDV nội bộ: xem mọi đơn kể cả tiền (số hiện hành sau điều chỉnh), mở `/orders` + Trang chủ cho `FIELD`, `PARTNER` không nới thêm. Rủi ro "HDV nghỉ việc đã kịp xem toàn bộ khách và tiền" chủ đã nghe và vẫn quyết (P18 — không nhắc lại).
 
@@ -371,9 +372,9 @@ Không khớp ô nào → **0%** và đơn hiện cảnh báo "chưa có chiết
 
 Sổ công nợ đối tác, đối soát, xuất hoá đơn VAT, ghi nhận HDV đã thu tiền tại cảng (đợt thu tiền, N3); vai nhà cung cấp; trạng thái "đã hoàn thành"; nhiều tài khoản cho một công ty; báo đẩy cho đối tác; chiết khấu theo số lượng, theo mùa hay theo kênh; AI như một tác nhân có định danh.
 
-## 17. Điểm AI suy ra ở vòng 3 — chờ chủ xác nhận khi duyệt đặc tả (kèm khuyến nghị)
+## 17. Điểm AI suy ra ở vòng 3 — ĐÃ ĐƯỢC CHỦ ĐỒNG Ý CẢ 8 (2026-09-24, Q37)
 
-*(8 điểm của vòng 2 đã được chủ trả lời — ghi ở Q29–Q36.)*
+*(8 điểm của vòng 2 đã được chủ trả lời — ghi ở Q29–Q36. Tám điểm dưới đây chủ trả lời "đồng ý cả 8" — nay là quyết định, không còn là suy đoán.)*
 
 1. **Dòng dịch vụ thêm/đổi sau khi gửi đơn** chụp tỷ lệ tại lúc thêm/đổi; **điều chỉnh số khách giữ tỷ lệ cũ** của dòng. *Khuyến nghị: đồng ý.*
 2. **Làm tròn tới đồng theo từng dòng** rồi cộng. *Khuyến nghị: đồng ý* — khớp cách ghi hoá đơn theo dòng sau này.
