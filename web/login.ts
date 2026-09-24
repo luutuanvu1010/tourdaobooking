@@ -2,9 +2,10 @@ import { ApiError, api, safeNext, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
 import { showError } from "./shell";
-import { formatReleaseLine } from "../src/shared/app-info";
+import { APP_RELEASE_DATE, APP_VERSION } from "../src/shared/app-info";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
+import { icon } from "./icons";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
 registerServiceWorker();
@@ -54,13 +55,56 @@ const submit = byId<HTMLButtonElement>("submit");
 // Id KHÔNG được là "turnstile": phần tử có id trở thành thuộc tính `window.<id>`, che mất `window.turnstile` của Cloudflare (và làm `if (window.turnstile)` đúng khi script chưa tải).
 const widgetBox = byId("turnstile-widget");
 const retryBtn = byId<HTMLButtonElement>("turnstile-retry");
-const companyEl = byId("company");
 // Tuỳ chọn có chủ ý: service worker làm mới HTML và JS riêng rẽ, HTML cũ trong cache đi với login.js mới không được làm chết trang đăng nhập (byId ném lỗi khi thiếu).
 const maintenanceEl = document.getElementById("maintenance-banner");
 const maintenanceText = document.getElementById("maintenance-text");
 // Đăng nhập bằng Face ID (ADR-0016): tuỳ chọn cùng lý do trên — HTML cũ trong cache có thể chưa có các phần tử này.
 const passkeyBtn = document.getElementById("passkey-login") as HTMLButtonElement | null;
 const hintEl = document.getElementById("passkey-hint");
+// Bản "Đăng nhập v2": dòng "Quên PIN?", nút Hiện/Ẩn PIN, ô email ở chân trang — đều tuỳ chọn cùng lý do trên. `passkey-block` chỉ có ở HTML v2 đời đầu (nút Face ID đứng riêng trên form): còn trong cache thì vẫn phải ẩn khi hiện lời mời.
+const passkeyBlock = document.getElementById("passkey-block");
+const forgotEl = document.getElementById("forgot");
+const pinToggle = document.getElementById("pin-toggle") as HTMLButtonElement | null;
+// Bản thiết kế "Đăng nhập.dc.html" (chủ dự án yêu cầu tuân thủ 100%, 2026-09-24): bộ đếm PIN "n/6" và nhãn nút lúc đang gửi — tuỳ chọn cùng lý do trên.
+const pinCount = document.getElementById("pin-count");
+const submitLabel = document.getElementById("submit-label");
+const phoneInput = byId<HTMLInputElement>("phone");
+const pinInput = byId<HTMLInputElement>("pin");
+
+// Biểu tượng (aria-hidden trong icon()): khuôn mặt là nội dung DUY NHẤT của nút Face ID đặt cạnh nút Đăng nhập (tên nút ở aria-label trong HTML).
+passkeyBtn?.prepend(icon("face", 26));
+
+// ---- Ô gõ theo bản thiết kế: SĐT chỉ nhận chữ số và dấu cách (tối đa 13 ký tự), PIN chỉ chữ số (tối đa 6); bộ đếm "n/6";
+// nút Đăng nhập chỉ bấm được khi đủ (SĐT ≥ 10 chữ số, PIN đủ 6 số); sửa ô thì ẩn lỗi đăng nhập cũ. Máy chủ vẫn kiểm lại (normalizePhone, isValidPin).
+function filterInput(el: HTMLInputElement, allowed: RegExp, max: number): void {
+  const clean = el.value.replace(allowed, "").slice(0, max);
+  if (clean !== el.value) el.value = clean;
+}
+const inputsValid = (): boolean => phoneInput.value.replace(/\D/g, "").length >= 10 && /^\d{6}$/.test(pinInput.value);
+function onFieldsChanged(): void {
+  if (pinCount) pinCount.textContent = `${pinInput.value.length}/6`;
+  syncSubmit();
+}
+for (const [el, allowed, max] of [[phoneInput, /[^\d\s]/g, 13], [pinInput, /\D/g, 6]] as const) {
+  // `change` cũng nghe: trình điền mật khẩu (iOS/Chrome) có thể đặt giá trị mà không phát `input`.
+  for (const type of ["input", "change"]) {
+    el.addEventListener(type, () => {
+      filterInput(el, allowed, max);
+      if (!widgetProblem && !busy) showError(errorEl, null);
+      onFieldsChanged();
+    });
+  }
+}
+
+// ---- Nút Hiện/Ẩn mã PIN (chỉ đổi kiểu ô gõ; không đụng giá trị) ----
+pinToggle?.addEventListener("click", () => {
+  const pin = byId<HTMLInputElement>("pin");
+  const show = pin.type === "password";
+  pin.type = show ? "text" : "password";
+  pinToggle.textContent = show ? "Ẩn" : "Hiện";
+  pinToggle.setAttribute("aria-pressed", String(show));
+  pinToggle.setAttribute("aria-label", show ? "Ẩn mã PIN" : "Hiện mã PIN");
+});
 
 // ---- Banner chế độ bảo trì ----
 // Chỉ HIỂN THỊ (máy chủ mới là nơi chặn): thông điệp + đồng hồ đếm ngược sống, dùng chung với lớp phủ ở web/maintenance-screen.ts. Không che form vì chủ dự án vẫn phải đăng nhập được.
@@ -166,14 +210,19 @@ function showInvite(staffId: string): void {
   const box = document.getElementById("passkey-invite");
   if (!box) return location.replace(next); // HTML cũ trong cache chưa có khối này (Tuỳ chọn có chủ ý, xem khai báo passkeyBtn ở trên)
   form.hidden = true;
+  if (passkeyBlock) passkeyBlock.hidden = true; // (HTML v2 đời đầu trong cache: nút Face ID nằm NGOÀI form, không được đứng trên lời mời)
+  if (forgotEl) forgotEl.hidden = true;
   replaceChildren(box, h("h2", null, "Bật đăng nhập bằng Face ID?"), h("p", null, "Lần sau chỉ cần nhìn vào máy là vào được app, không phải gõ PIN."), flow);
   box.hidden = false;
 }
 
 function syncSubmit(): void {
-  submit.disabled = busy || !ready || (siteKey !== null && token === null);
+  submit.disabled = busy || !ready || (siteKey !== null && token === null) || !inputsValid();
+  // Đang gửi: vòng quay + "Đang đăng nhập…" (bản thiết kế); CSS hiện vòng quay theo class.
+  submit.classList.toggle("is-loading", busy);
+  if (submitLabel) submitLabel.textContent = busy ? "Đang đăng nhập…" : "Đăng nhập";
 }
-syncSubmit();
+onFieldsChanged(); // giá trị trình duyệt điền sẵn trước khi JS chạy
 
 function showWidgetProblem(message: string): void {
   widgetProblem = true;
@@ -331,25 +380,13 @@ async function start(): Promise<void> {
 }
 void start();
 
-// ---- Chân trang: dòng phiên bản (hằng trong mã) và thông tin công ty (GET /api/company; lỗi/chậm thì khối ẩn, KHÔNG chặn đăng nhập) ----
-byId("release").textContent = formatReleaseLine();
-async function showCompany(): Promise<void> {
-  try {
-    const { company } = await api<Api.CompanyResponse>("/api/company");
-    if (!company.name) return;
-    replaceChildren(
-      companyEl,
-      h("p", { class: "login-company-name" }, company.name),
-      company.address && h("p", null, `Địa chỉ: ${company.address}`),
-      company.email && h("p", null, `Email: ${company.email}`),
-      company.taxCode && h("p", null, `MST: ${company.taxCode}`),
-    );
-    companyEl.hidden = false;
-  } catch {
-    // giữ khối ẩn
-  }
+// ---- Dòng phiên bản theo bản thiết kế: "Phiên bản V1.5 · ngày 24/9/2026" — số và ngày lấy từ nhật ký thay đổi (không viết tay). ----
+// Chân trang (tên công ty · MST, địa chỉ) là chữ tĩnh trong public/login.html đúng như bản thiết kế — trang KHÔNG còn gọi GET /api/company.
+function releaseText(version: string, isoDate: string): string {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  return `Phiên bản V${version} · ngày ${d}/${m}/${y}`;
 }
-void showCompany();
+byId("release").textContent = releaseText(APP_VERSION, APP_RELEASE_DATE);
 
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
@@ -361,7 +398,7 @@ form.addEventListener("submit", async (e) => {
   try {
     const me = await api<Api.MeResponse>("/api/auth/login", {
       method: "POST",
-      body: { phone: byId<HTMLInputElement>("phone").value.trim(), pin: byId<HTMLInputElement>("pin").value, turnstileToken: token ?? undefined },
+      body: { phone: phoneInput.value.trim(), pin: pinInput.value, turnstileToken: token ?? undefined },
     });
     if (await shouldInvite(me.staff.id)) return showInvite(me.staff.id);
     location.replace(next);
@@ -370,6 +407,11 @@ form.addEventListener("submit", async (e) => {
     if (err instanceof ApiError && err.code === MAINTENANCE_CODE) showMaintenanceBanner(err);
     else showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
     busy = false;
+    // Sai SĐT/PIN (401): xoá PIN để gõ lại (bản thiết kế). Lỗi khác (bảo trì, xác minh, mạng) giữ nguyên để bấm lại.
+    if (err instanceof ApiError && err.status === 401) {
+      pinInput.value = "";
+      onFieldsChanged();
+    }
     resetWidget(); // MỌI lần thất bại (kể cả sai PIN): máy chủ đã kiểm và đốt token ở bước Turnstile trước khi kiểm PIN, token cũ không dùng lại được
     syncSubmit();
     // Máy chủ đòi xác minh mà trang chưa có khoá site (lần hỏi cấu hình lúc mở trang lỗi): lấy lại cấu hình rồi dựng widget, thay vì để người dùng bị 403 mãi.

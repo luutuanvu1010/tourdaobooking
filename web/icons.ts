@@ -39,6 +39,42 @@ const SHAPES = {
     ["path", { d: "M4.5 5.5h15v10.5H9.5l-5 4V5.5z" }],
     ["path", { d: "M8.5 9.5h7M8.5 12.5h4.5" }],
   ],
+  // Đợt E (thẻ đơn rút gọn + biểu tượng Trang chủ): 7 hình mới, cùng khuôn 24×24, cùng phong cách nét mảnh không tô đặc.
+  "doc-check": [["rect", { x: 6, y: 3, width: 12, height: 18, rx: 2 }], ["path", { d: "M9 12.6l2 2 4-5.4" }]],
+  // "money" (dùng ở ô "Còn thiếu tiền", web/home.ts): vẽ LẠI sau kiểm độc lập Đợt E (2026-09-24, mục D của phiếu
+  // kiểm) — bản cũ (một hình chữ nhật + một hình tròn giữa) bị đọc thành máy ảnh. Đổi sang HAI tờ tiền chồng lên
+  // nhau (mẫu quen thuộc cho "tiền/thu chi", không có hình nào của camera có hai thân chồng nhau kiểu này), tờ trên
+  // có một vòng tròn nhỏ giữa (con dấu/mệnh giá) — vẫn chỉ rect/circle, không tô đặc, cùng stroke-width dùng chung.
+  money: [
+    ["rect", { x: 2, y: 9, width: 15, height: 9, rx: 1.5 }],
+    ["rect", { x: 7, y: 6, width: 15, height: 9, rx: 1.5 }],
+    ["circle", { cx: 14.5, cy: 10.5, r: 2 }],
+  ],
+  assign: [
+    ["circle", { cx: 9, cy: 8, r: 3.2 }],
+    ["path", { d: "M3 20c0-3.6 2.8-5.6 6-5.6s6 2 6 5.6" }],
+    ["circle", { cx: 18, cy: 7, r: 3.4 }],
+    ["path", { d: "M18 5.4v3.2M16.4 7h3.2" }],
+  ],
+  clock: [["circle", { cx: 12, cy: 12.5, r: 8.5 }], ["path", { d: "M12 7.5v5l3.5 2" }]],
+  chart: [["path", { d: "M4 20V13" }], ["path", { d: "M9.5 20V6" }], ["path", { d: "M15 20V15.5" }], ["path", { d: "M20 20V10" }]],
+  handset: [
+    ["path", {
+      d: "M5.5 4.5c-1 0-1.8.9-1.6 1.9.6 3.3 2.2 6.3 4.4 8.5s5.2 3.8 8.5 4.4c1 .2 1.9-.6 1.9-1.6v-1.9a1.2 1.2 0 0 0-.9-1.2l-3-.8a1.2 1.2 0 0 0-1.2.3l-1 1.1a10.7 10.7 0 0 1-4.6-4.6l1.1-1a1.2 1.2 0 0 0 .3-1.2l-.8-3a1.2 1.2 0 0 0-1.2-.9H5.5z",
+    }],
+  ],
+  guests: [["circle", { cx: 12, cy: 8, r: 3.6 }], ["path", { d: "M4.5 20c0-4 3-6 7.5-6s7.5 2 7.5 6" }]],
+  // Nút đăng nhập sinh trắc học ở trang Đăng nhập — copy ĐÚNG path từ bản thiết kế "Đăng nhập.dc.html" (Claude Design, 2026-09-24, chủ dự án yêu cầu tuân thủ 100%).
+  face: [
+    ["path", { d: "M3 8V5.5A2.5 2.5 0 0 1 5.5 3H8" }],
+    ["path", { d: "M16 3h2.5A2.5 2.5 0 0 1 21 5.5V8" }],
+    ["path", { d: "M21 16v2.5a2.5 2.5 0 0 1-2.5 2.5H16" }],
+    ["path", { d: "M8 21H5.5A2.5 2.5 0 0 1 3 18.5V16" }],
+    ["path", { d: "M8.5 9v1.5" }],
+    ["path", { d: "M15.5 9v1.5" }],
+    ["path", { d: "M12 9v4h-1" }],
+    ["path", { d: "M9 16c1.7 1.3 4.3 1.3 6 0" }],
+  ],
   // Mục "Trợ giúp" của thanh điều hướng dọc: vòng tròn + dấu hỏi.
   help: [
     ["circle", { cx: 12, cy: 12, r: 8.5 }],

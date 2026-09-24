@@ -6,7 +6,7 @@ import { isISODate } from "./vn-date.ts";
 import { CHANGELOG } from "./changelog.ts";
 
 test("số phiên bản và ngày phát hành DẪN XUẤT từ mục đầu của nhật ký (một nguồn)", () => {
-  assert.equal(APP_NAME, "Tour Đảo Booking");
+  assert.equal(APP_NAME, "Island Booking System");
   assert.equal(APP_VERSION, CHANGELOG[0]?.version);
   assert.equal(APP_RELEASE_DATE, CHANGELOG[0]?.date);
   assert.ok(isISODate(APP_RELEASE_DATE));
@@ -18,7 +18,7 @@ test("APP_NAME trùng tên ứng dụng khai ở manifest (nguồn khai của t�
 });
 
 test("formatReleaseLine: dòng phiên bản của bản mới nhất", () => {
-  assert.equal(formatReleaseLine(), "Phiên bản 1.5 · ngày 24 tháng 9 năm 2026");
+  assert.equal(formatReleaseLine(), "Phiên bản 1.7 · ngày 24 tháng 9 năm 2026");
 });
 
 test("formatReleaseLine: nhận số phiên bản và ngày khác (kể cả số 1 chữ số và 2 chữ số)", () => {

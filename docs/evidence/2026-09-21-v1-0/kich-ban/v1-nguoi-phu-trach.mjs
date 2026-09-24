@@ -20,6 +20,9 @@
 //   j  axe 0 vi phạm (mọi mức) ở mọi trạng thái mới (18: 9 × {390, 1040}, gồm bảng chọn đang tải / lỗi tải / lỗi khi lưu); vùng chạm ≥ 44 px; không tràn ngang ở 390 và 1040
 //   k  ảnh 390×844 và 1040×800 (danh sách, trang đơn, bảng chọn, chưa có người, thông báo tải lại, lỗi handlers, lỗi khi lưu)
 //   l  console/CSP sạch ở mọi trang đã theo dõi (trừ dòng mạng đã biết của các lỗi cố ý)
+//   m  (vòng sửa sau kiểm độc lập Đợt E, 2026-09-24, mục A) tên khách DÀI bị cắt bằng "…" ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng "Khách: <tên đầy đủ>", ngay trước "Mã đơn"
+//   n  (vòng sửa sau kiểm độc lập Đợt E, mục B) bàn phím THẬT qua CDP: Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết
+//   o  (Đợt E task 9, việc nhỏ) lý do nhiều dòng ở "Lịch sử" (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — CSS .history-detail thêm white-space: pre-line; đo bằng Range.getClientRects thật
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -41,6 +44,7 @@ const ADMIN = ACCOUNTS.admin;
 const ACC = ACCOUNTS.accounting;
 const C = { name: "Sales Ba", phone: "0900000205", pin: "246813", permissions: ["SALES"] };
 const D = { name: "Sales Tư", phone: "0900000206", pin: "246814", permissions: ["SALES"] };
+const FIELD_ACC = { name: "HDV Đo Dòng", phone: "0900000207", pin: "246815", permissions: ["FIELD"] }; // Task 9 Đợt E (bước o): đo CSS .history-detail
 
 const results = { ghiChu: "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.", buoc: [], axe: {}, do: {}, anh: {}, dem: {} };
 let failures = 0;
@@ -149,6 +153,14 @@ const pressEsc = async (p) => {
   await p.send("Input.dispatchKeyEvent", { type: "keyDown", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
   await p.send("Input.dispatchKeyEvent", { type: "keyUp", key: "Escape", code: "Escape", windowsVirtualKeyCode: 27 });
 };
+/** Phím THẬT qua CDP (Input.dispatchKeyEvent) — không phải KeyboardEvent giả lập bằng JS, để đo đúng hành vi mặc định của trình duyệt (Tab đổi tiêu điểm, Enter/Space kích hoạt nút). Dùng ở bước n. */
+const pressKey = async (p, { key, code, keyCode, text }) => {
+  await p.send("Input.dispatchKeyEvent", { type: "keyDown", key, code, windowsVirtualKeyCode: keyCode, text });
+  await p.send("Input.dispatchKeyEvent", { type: "keyUp", key, code, windowsVirtualKeyCode: keyCode });
+};
+const KEY_TAB = { key: "Tab", code: "Tab", keyCode: 9 };
+const KEY_ENTER = { key: "Enter", code: "Enter", keyCode: 13, text: "\r" };
+const KEY_SPACE = { key: " ", code: "Space", keyCode: 32, text: " " };
 
 // ---- Dữ liệu dựng bằng API / SQL (KHÔNG dùng để kiểm giao diện) ----
 const call = async (account, method, path, body) => {
@@ -179,8 +191,25 @@ const assignVia = async (account, orderId, who) => {
 };
 
 // ---- Biểu thức đọc trang ----
-const LIST_ROWS = "[...document.querySelectorAll('#list .order-row')].map((r) => ({ id: new URL(r.href).searchParams.get('id'), code: r.querySelector('strong').textContent, handler: r.querySelector('.order-row-handler')?.textContent ?? null, hidden: r.querySelector('.order-row-handler')?.hidden ?? null, chip: !!r.querySelector('.order-row-handler .chip') }))";
-const listReady = (n) => `document.querySelectorAll('#list .order-row').length >= ${n} && [...document.querySelectorAll('#list .order-row')].every((r) => { const s = r.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })`;
+// Đợt E: dòng người phụ trách (`.order-row-handler`) nay nằm trong PHẦN XỔ XUỐNG (`.order-card-details`), anh em —
+// không còn là con — của `.order-row` (thẻ `<a>` chỉ còn 2 dòng hiện ngay). Gốc đọc đổi sang `.order-card` (khung
+// ngoài); `textContent`/`querySelector` vẫn xuyên qua được phần tử đang ẩn bởi tổ tiên `[hidden]` (không như
+// `getBoundingClientRect`) nên các bước b/f/i/j/k đọc TÊN người phụ trách qua `LIST_ROWS` không cần mở thẻ trước.
+// Vòng sửa 2026-09-24: dòng 1 không còn `<strong>` (nay `.order-row-when` + `.order-row-name` riêng) — `code` đọc
+// dòng ĐẦU TIÊN của phần xổ ("Mã đơn: …", bỏ tiền tố) thay vì ngày giờ cũ; thêm `name` đọc TÊN KHÁCH ở dòng 1 để
+// chứng minh tên khách + mã đơn không bị mất (bước a).
+// Bổ sung sau đó (không đổi ngày ghi trên): phần xổ nay LUÔN có dòng "Số khách: …" (bù cho `.order-row-pax` ở dòng
+// 2 là chỗ DUY NHẤT được co bằng "…" khi hết chỗ — xem chú thích ở web/order-card.ts) — `pax` đọc dòng đó, bỏ tiền tố.
+// Vòng sửa sau kiểm độc lập Đợt E (2026-09-24, mục A): phần xổ nay có thêm dòng "Khách: <tên đầy đủ>" NGAY DÒNG ĐẦU
+// TIÊN (trước "Mã đơn") — `khach` đọc ĐÚNG VỊ TRÍ `divs[0]` (không dùng `.find()` như `pax`/`code`): nếu ai lỡ dời
+// dòng "Khách" đi chỗ khác (kể cả vẫn còn chữ đúng), `divs[0]` không còn bắt đầu bằng "Khách: " → `khach` = null →
+// đỏ ngay, bắt được cả lỗi NỘI DUNG lẫn lỗi VỊ TRÍ trong một khẳng định. `code` vẫn đọc bằng `.find()` vì "Mã đơn"
+// không còn ở vị trí 0.
+const LIST_ROWS =
+  "[...document.querySelectorAll('#list .order-card')].map((c) => { const a = c.querySelector('.order-row'); const s = c.querySelector('.order-row-handler'); const divs = [...c.querySelectorAll('.order-card-details > div')]; const khachEl = divs[0] && divs[0].textContent.startsWith('Khách: ') ? divs[0] : null; const codeEl = divs.find((d) => d.textContent.startsWith('Mã đơn: ')); const paxEl = divs.find((d) => d.textContent.startsWith('Số khách: ')); return { id: new URL(a.href).searchParams.get('id'), name: c.querySelector('.order-row-name')?.textContent ?? null, khach: khachEl ? khachEl.textContent.replace(/^Khách: /, '') : null, code: codeEl ? codeEl.textContent.replace(/^Mã đơn: /, '') : null, pax: paxEl ? paxEl.textContent.replace(/^Số khách: /, '') : null, handler: s?.textContent ?? null, hidden: s?.hidden ?? null, chip: !!s?.querySelector('.chip') }; })";
+const listReady = (n) => `document.querySelectorAll('#list .order-card').length >= ${n} && [...document.querySelectorAll('#list .order-card')].every((c) => { const s = c.querySelector('.order-row-handler'); return s && !s.classList.contains('is-pending'); })`;
+/** Bấm mọi nút xổ đang đóng trong `#list`; trả về số nút đã bấm. */
+const expandAllCards = (p) => p.ev("(() => { const btns = [...document.querySelectorAll('#list .order-card-toggle[aria-expanded=false]')]; for (const b of btns) b.click(); return btns.length; })()");
 const CARD_NAME = "(document.querySelector('.handler-card .handler-name')?.textContent ?? null)";
 const CARD_READY = "document.querySelector('.handler-card .handler-name, .handler-card .handler-unknown') !== null";
 const CARD_BUTTONS = "[...document.querySelectorAll('.handler-card button')].map((b) => b.textContent)";
@@ -267,7 +296,7 @@ const axeRun = async (p, label) => {
 const measure = async (p, label) => {
   const m = await p.ev(`(() => {
     const shown = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 && !el.closest('[hidden]'); };
-    const ctl = [...document.querySelectorAll('.handler-card button, .handler-card a[href], .sheet button, .sheet input, .sheet a[href], #list .order-row')].filter(shown);
+    const ctl = [...document.querySelectorAll('.handler-card button, .handler-card a[href], .sheet button, .sheet input, .sheet a[href], #list .order-row, #list .order-card-toggle')].filter(shown);
     return { nho: ctl.filter((el) => { const r = el.getBoundingClientRect(); return r.height < 43.5 || r.width < 43.5; }).map((el) => (el.className || el.tagName) + ':' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height)), dieuKhien: ctl.length, trànNgang: document.documentElement.scrollWidth - innerWidth };
   })()`);
   results.do[label] = m;
@@ -282,10 +311,14 @@ try {
   await seedAccount(C);
 
   // ================= a) danh sách đơn =================
-  await step("a", "danh sách đơn: thẻ hiện “Phụ trách: <tên>” ở 390 và 1040; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện", async () => {
+  // Đợt E: dòng người phụ trách nay nằm trong phần xổ xuống (mặc định ĐÓNG) — bước này kiểm CẢ hai trạng thái:
+  // đóng (đúng 2 dòng, KHÔNG lộ người phụ trách) và mở (bấm nút xổ → hiện đúng tên, nằm gọn trong thẻ).
+  await step("a", "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện", async () => {
     const main = await getMain();
     const { a2, b1 } = await getExtra();
     const expected = new Map([[main.id, "Phụ trách: Sales Một"], [a2.id, "Phụ trách: Sales Một"], [b1.id, "Phụ trách: Sales Hai"]]);
+    const expectedName = new Map([[main.id, main.customerName], [a2.id, a2.customerName], [b1.id, b1.customerName]]);
+    const expectedCode = new Map([[main.id, main.orderCode], [a2.id, a2.orderCode], [b1.id, b1.orderCode]]);
     for (const [label, vp] of [["390", M], ["1040", DESK]]) {
       const p = await openAs(A, "/orders", { viewport: vp });
       await p.waitFor(listReady(3), `danh sách có 3 đơn, mỗi thẻ có dòng người phụ trách (${label})`, 10000);
@@ -293,11 +326,65 @@ try {
       assert.equal(rows.length, 3, `${label}: số đơn`);
       for (const r of rows) {
         assert.equal(r.handler, expected.get(r.id), `${label}: đơn ${r.code}`);
-        assert.equal(r.hidden, false, `${label}: dòng người phụ trách của ${r.code} phải hiện`);
         assert.equal(r.chip, false, `${label}: đơn đã có người phụ trách KHÔNG có chip`);
+        // Vòng sửa 2026-09-24 (quyết định 1 của chủ dự án): bản trước đó của Đợt E Phần A làm MẤT tên khách và mã
+        // đơn khi rút gọn thẻ — nay phải CÒN cả hai: tên khách ở DÒNG 1 (`.order-row-name`), mã đơn ở dòng đầu
+        // tiên của PHẦN XỔ ("Mã đơn: …", đọc xuyên qua `[hidden]` — xem chú thích LIST_ROWS).
+        assert.equal(r.name, expectedName.get(r.id), `${label}: tên khách phải còn ở dòng 1, đơn ${r.code}`);
+        assert.equal(r.code, expectedCode.get(r.id), `${label}: mã đơn phải còn trong phần xổ`);
+        // Bổ sung (không đổi ngày ghi ở trên): cả ba đơn của kịch bản này đều có 3 người lớn, không loại khách nào
+        // khác (getMain: bộ đếm "Số khách (chỉ để vận hành)" = 3 trên dịch vụ nhập tay → pax.adult=3; createOrder:
+        // pax(3) cũng adult=3) — phần xổ phải hiện đúng "Số khách: 03 NL" (đệm 2 chữ số, viết tắt NL — web/format.ts).
+        assert.equal(r.pax, "03 NL", `${label}: phần xổ phải hiện đúng số khách, đơn ${r.code}`);
+        // Vòng sửa sau kiểm độc lập Đợt E (2026-09-24, mục A): phần xổ phải có ĐÚNG dòng "Khách: <tên đầy đủ>" ở vị
+        // trí ĐẦU TIÊN (xem chú thích LIST_ROWS) — cả ba đơn ở đây tên chưa đủ dài để dòng 1 bị cắt; ca dòng 1 THẬT
+        // SỰ bị cắt bằng "…" được kiểm riêng ở bước m (tên rất dài).
+        assert.equal(r.khach, expectedName.get(r.id), `${label}: phần xổ phải có đúng dòng “Khách: <tên đầy đủ>” NGAY TRƯỚC “Mã đơn”, đơn ${r.code}`);
       }
-      const layout = await p.ev(`(() => ({ tran: document.documentElement.scrollWidth - innerWidth, cao: [...document.querySelectorAll('#list .order-row-handler')].map((e) => Math.round(e.getBoundingClientRect().height)), trongThe: [...document.querySelectorAll('#list .order-row')].every((r) => { const a = r.getBoundingClientRect(), b = r.querySelector('.order-row-handler').getBoundingClientRect(); return b.left >= a.left - 0.5 && b.right <= a.right + 0.5 && b.top >= a.top && b.bottom <= a.bottom + 0.5; }) }))()`);
-      assert.ok(layout.tran <= 0 && layout.trongThe && layout.cao.every((h) => h >= 18), `${label}: bố cục ${JSON.stringify(layout)}`);
+      // ĐÓNG (mặc định): nút xổ đóng + vùng chạm ≥44px, dòng người phụ trách KHÔNG lộ (cao 0), không tràn ngang.
+      const closed = await p.ev(`(() => {
+        const cards = [...document.querySelectorAll('#list .order-card')];
+        return {
+          tran: document.documentElement.scrollWidth - innerWidth,
+          the: cards.map((c) => {
+            const t = c.querySelector('.order-card-toggle'), tr = t.getBoundingClientRect(), h = c.querySelector('.order-row-handler').getBoundingClientRect();
+            return { expanded: t.getAttribute('aria-expanded'), toggleTapMin: tr.width >= 43.5 && tr.height >= 43.5, handlerAn: h.height === 0 };
+          }),
+        };
+      })()`);
+      assert.ok(closed.tran <= 0, `${label}: đóng — tràn ngang ${closed.tran}px`);
+      assert.ok(closed.the.every((x) => x.expanded === "false"), `${label}: đóng — nút xổ phải aria-expanded=false: ${JSON.stringify(closed.the)}`);
+      assert.ok(closed.the.every((x) => x.toggleTapMin), `${label}: đóng — nút xổ phải ≥44px: ${JSON.stringify(closed.the)}`);
+      assert.ok(closed.the.every((x) => x.handlerAn), `${label}: đóng — dòng người phụ trách KHÔNG được lộ: ${JSON.stringify(closed.the)}`);
+      // "Đúng 2 dòng" — Vòng sửa 2026-09-24 (quyết định 2 của chủ dự án): nay là ràng buộc CỨNG ở MỌI khổ, kể cả
+      // 390px (THAY quyết định gốc của đặc tả 2026-09-23-…, cho phép xuống hàng ở khổ hẹp — "đã trả"/"tổng" đã
+      // chuyển hẳn vào phần xổ để nhường chỗ trên dòng 2). Đo bằng CHIỀU CAO THẬT + số hàng thật của dòng 2 (không
+      // đếm phần tử): dòng 2 không được xuống hàng ở CẢ HAI khổ; SĐT và "Còn thu" không được bị cắt (`scrollWidth
+      // > clientWidth` trên đúng hai phần tử đó) — `.order-row-pax` (số khách) và `.order-row-name` (tên khách,
+      // kiểm riêng ở dưới) là hai chỗ DUY NHẤT được phép co lại bằng "…" khi hết chỗ (CSS `text-overflow: ellipsis`
+      // ở public/app.css), đúng yêu cầu "không được cắt mất SĐT hay số tiền, KHÔNG được tự ý bỏ thêm trường nào
+      // khác". Ngưỡng chiều cao (≤84px ở 390, đo thật bằng shoot() + JSON kết quả trước khi chốt số — xem
+      // ket-qua-nguoi-phu-trach.json): RÕ RÀNG thấp hơn khung 7 dòng cũ (từng 180–240px) và thấp hơn cả mốc 140px
+      // của bản trước Vòng sửa này.
+      const wrap = await p.ev(`(() => [...document.querySelectorAll('#list .order-card')].map((c) => {
+        const l2 = c.querySelector('.order-card-line2');
+        const tops = new Set([...l2.children].map((x) => Math.round(x.getBoundingClientRect().top)));
+        const mustFit = [...l2.querySelectorAll('.order-row-phone, .order-row-remaining b')];
+        const clipped = mustFit.some((x) => x.scrollWidth > x.clientWidth + 1);
+        return { l2Rows: tops.size, cardH: Math.round(c.getBoundingClientRect().height), clipped };
+      }))()`);
+      assert.ok(wrap.every((x) => x.l2Rows === 1), `${label}: đúng 2 dòng — dòng 2 không được xuống hàng: ${JSON.stringify(wrap)}`);
+      assert.ok(wrap.every((x) => !x.clipped), `${label}: dòng 2 KHÔNG được cắt mất SĐT hay “Còn thu”: ${JSON.stringify(wrap)}`);
+      assert.ok(wrap.every((x) => x.cardH <= 84), `${label}: thẻ đóng phải khớp ĐÚNG 2 dòng thật (≤84px): ${JSON.stringify(wrap)}`);
+      results.dem[`the-dong-${label}`] = wrap;
+      await shoot(p, `nguoi-phu-trach-the-dong-${label}.png`);
+      // MỞ: bấm hết nút xổ → dòng người phụ trách hiện thật (đo chiều cao), nằm gọn trong khung thẻ.
+      const n = await expandAllCards(p);
+      assert.equal(n, 3, `${label}: mở đủ 3 nút xổ (thấy ${n})`);
+      await p.waitFor("[...document.querySelectorAll('#list .order-card-toggle')].every((b) => b.getAttribute('aria-expanded') === 'true')", `mọi thẻ đã mở (${label})`, 4000);
+      const layout = await p.ev(`(() => ({ tran: document.documentElement.scrollWidth - innerWidth, cao: [...document.querySelectorAll('#list .order-row-handler')].map((e) => Math.round(e.getBoundingClientRect().height)), trongThe: [...document.querySelectorAll('#list .order-card')].every((c) => { const a = c.getBoundingClientRect(), b = c.querySelector('.order-row-handler').getBoundingClientRect(); return b.left >= a.left - 0.5 && b.right <= a.right + 0.5 && b.top >= a.top - 0.5 && b.bottom <= a.bottom + 0.5; }) }))()`);
+      assert.ok(layout.tran <= 0 && layout.trongThe && layout.cao.every((h) => h >= 18), `${label}: bố cục sau khi mở ${JSON.stringify(layout)}`);
+      await shoot(p, `nguoi-phu-trach-the-mo-${label}.png`);
       const gets = p.requests.filter((r) => r.url.includes("/api/dispatch/handlers"));
       assert.equal(gets.length, 1, `${label}: đúng một lời gọi handlers cho cả trang (thấy ${gets.length})`);
       assert.deepEqual(new URL(gets[0].url).searchParams.get("orderIds").split(",").sort(), rows.map((r) => r.id).sort(), `${label}: gửi đúng các mã đơn đang hiện`);
@@ -329,6 +416,12 @@ try {
     assert.deepEqual(await p.ev(CARD_BUTTONS), ["Đổi người phụ trách"], "người lập vẫn đổi lại được (ADR-0009: giữ quyền)");
     assert.equal(await p.ev("document.activeElement === document.querySelector('[data-action=change-handler]')"), true, "focus trở về nút đổi (đã dựng lại)");
     assert.deepEqual(await p.ev("[...document.querySelectorAll('.history li')].map((li) => li.textContent).filter((t) => /Đổi người phụ trách/.test(t)).length"), 1, "nhật ký đơn có một dòng “Đổi người phụ trách”");
+    // Task 8 Đợt E: mục "Lịch sử" nay dựng thêm `detail` của audit_log (trước bản sửa: API đã trả đúng nhưng trang không dựng ra) — đo bằng
+    // chính dòng "Đổi người phụ trách" vừa tạo ở bước này (KHÔNG dựng thêm đơn/điều chỉnh tiền riêng, tái dùng đúng thao tác đã có).
+    assert.ok(
+      await p.ev("[...document.querySelectorAll('.history li')].some((li) => li.textContent.includes('từ Sales Một sang Sales Hai'))"),
+      "Task 8 Đợt E: dòng “Đổi người phụ trách” hiện đúng chi tiết (ai → ai), không chỉ tên hành động",
+    );
     assert.equal((await handlerOf(main.id)).name, "Sales Hai", "máy chủ ghi B");
     const puts = p.requests.filter((r) => r.method === "PUT" && r.url.endsWith("/handler"));
     assert.equal(puts.length, 1);
@@ -757,6 +850,94 @@ try {
       await shoot(l, `nguoi-phu-trach-danh-sach-chip-${suffix}.png`);
       l.close();
     }
+  });
+
+  // ================= m) tên khách dài: dòng 1 bị cắt nhưng phần xổ có tên đầy đủ =================
+  // Kiểm độc lập Đợt E (2026-09-24, mục A): trước vòng sửa này, tên khách dài bị cắt bằng "…" ở dòng 1 và phần xổ
+  // KHÔNG có tên khách — muốn xem tên đầy đủ phải rời danh sách, mở từng đơn. `.order-row-name` cắt bằng "…" khi
+  // hẹp là CỐ Ý GIỮ (chủ dự án đã chọn đúng 2 dòng ở mọi khổ, không cho dòng 1 giãn ra) — bước này KHÔNG kiểm việc
+  // đó biến mất, mà kiểm phần xổ có bù đủ tên đầy đủ.
+  await step("m", "tên khách DÀI bị cắt bằng “…” ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng “Khách: <tên đầy đủ>”, ngay trước “Mã đơn”", async () => {
+    const longName = "Nguyễn Thị Ánh Tuyết Kim Ngọc Bảo Trân Hoàng Gia Bảo Nguyên Thị Xuân Hương";
+    const longOrder = await createOrder(A, longName);
+    const p = await openAs(A, `/orders?q=${encodeURIComponent(longOrder.orderCode)}`, { viewport: M });
+    await p.waitFor(listReady(1), "danh sách lọc theo mã đơn còn đúng 1 đơn (tên dài)", 10000);
+    const rows = await p.ev(LIST_ROWS);
+    assert.equal(rows.length, 1, `phải lọc đúng 1 đơn theo mã ${longOrder.orderCode} (thấy ${rows.length})`);
+    const clip = await p.ev("(() => { const el = document.querySelector('#list .order-row-name'); return { clipped: el.scrollWidth > el.clientWidth + 1, scrollWidth: el.scrollWidth, clientWidth: el.clientWidth, text: el.textContent }; })()");
+    assert.ok(clip.clipped, `tiền đề: dòng 1 phải THẬT SỰ bị cắt bằng "…" ở 390px với tên dài này (nếu không cắt, phải chọn tên dài hơn): ${JSON.stringify(clip)}`);
+    assert.equal(rows[0].khach, longName, `phần xổ phải hiện ĐÚNG tên khách đầy đủ (không cắt), kể cả khi dòng 1 đã bị cắt: thấy ${JSON.stringify(rows[0].khach)}`);
+    assert.equal(rows[0].name, longName, "dòng 1 (textContent, không qua CSS) vẫn giữ nguyên tên đầy đủ trong DOM — chỉ bị cắt THỊ GIÁC bằng CSS ellipsis, không cắt dữ liệu");
+    p.close();
+  });
+
+  // ================= n) bàn phím thật (Tab/Enter/Space) =================
+  // Kiểm độc lập Đợt E (2026-09-24, mục B): nút xổ trước đó chỉ được kiểm bằng click chuột (`expandAllCards` ở bước
+  // a) — chưa có phép đo THẬT cho bàn phím. Dùng `Input.dispatchKeyEvent` qua CDP (không phải KeyboardEvent giả lập
+  // bằng JS) để đo đúng hành vi mặc định của trình duyệt trên phần tử `<button>` thật (xem chú thích đầu
+  // web/order-card.ts về việc CỐ Ý dùng `<button>` anh em, không lồng trong `<a>`).
+  await step("n", "bàn phím THẬT (Input.dispatchKeyEvent qua CDP): Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết", async () => {
+    await getMain();
+    await getExtra();
+    const p = await openAs(A, "/orders", { viewport: M });
+    await p.waitFor(listReady(3), "danh sách sẵn sàng (bước n)", 10000);
+    const TOGGLE_STATE =
+      "(() => { const t = document.querySelectorAll('#list .order-card-toggle')[0]; const d = document.getElementById(t.getAttribute('aria-controls')); return { active: document.activeElement === t, expanded: t.getAttribute('aria-expanded'), hidden: d.hidden }; })()";
+    await p.ev("document.querySelectorAll('#list .order-row')[0].focus(); true");
+    await pressKey(p, KEY_TAB);
+    let s = await p.ev(TOGGLE_STATE);
+    assert.equal(s.active, true, `Tab từ thẻ <a> (anh em cùng .order-card-head) phải tới ĐÚNG nút xổ kế bên: ${JSON.stringify(s)}`);
+    assert.equal(s.expanded, "false", `trước khi bấm phím, nút xổ đầu tiên phải đang đóng: ${JSON.stringify(s)}`);
+    await pressKey(p, KEY_ENTER);
+    s = await p.ev(TOGGLE_STATE);
+    assert.deepEqual([s.expanded, s.hidden], ["true", false], `Enter phải MỞ được phần xổ: ${JSON.stringify(s)}`);
+    assert.equal(await p.ev("location.pathname"), "/orders", "Enter KHÔNG được điều hướng sang trang chi tiết đơn");
+    await pressKey(p, KEY_ENTER);
+    s = await p.ev(TOGGLE_STATE);
+    assert.deepEqual([s.expanded, s.hidden], ["false", true], `Enter lần hai phải ĐÓNG lại: ${JSON.stringify(s)}`);
+    await pressKey(p, KEY_SPACE);
+    s = await p.ev(TOGGLE_STATE);
+    assert.deepEqual([s.expanded, s.hidden], ["true", false], `Space phải MỞ được phần xổ: ${JSON.stringify(s)}`);
+    assert.equal(await p.ev("location.pathname"), "/orders", "Space KHÔNG được điều hướng sang trang chi tiết đơn");
+    await pressKey(p, KEY_SPACE);
+    s = await p.ev(TOGGLE_STATE);
+    assert.deepEqual([s.expanded, s.hidden], ["false", true], `Space lần hai phải ĐÓNG lại (khôi phục trạng thái đóng cho gọn): ${JSON.stringify(s)}`);
+    p.close();
+  });
+
+  // ================= o) lý do nhiều dòng ở "Lịch sử" =================
+  // Task 9 Đợt E (việc nhỏ — sửa CSS `.history-detail` thiếu `white-space: pre-line`, public/app.css): dữ liệu vẫn lưu ĐÚNG (audit_log.detail
+  // là TEXT, giữ nguyên ký tự xuống dòng; `web/order.ts` dựng `e.detail` bằng h() — MỘT text node, không innerHTML — nên DOM vẫn giữ \n); chỉ
+  // CSS mặc định (white-space: normal) collapse mọi \n thành MỘT dòng lúc hiển thị. Dựng một dòng lịch sử "order_money_adjusted_by_field" có lý
+  // do 3 dòng (qua route handler-money-edit thật — KHÔNG lọc/chặn nội dung ô lý do, đúng chỉ đạo) rồi ĐO THẬT số dòng hiển thị bằng
+  // Range.getClientRects trên CHÍNH text node đó (đúng số HÀNG THỊ GIÁC trình duyệt vẽ ra — không suy luận từ chiều cao/line-height).
+  await step("o", "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao", async () => {
+    for (const stmt of (await insertStaffSql(FIELD_ACC)).split("\n")) env.sql(stmt);
+    const fieldStaffId = env.sql(`SELECT id FROM staff WHERE phone = '${FIELD_ACC.phone}'`)[0].id;
+    const o = await createOrder(A, "Khách Lý Do Nhiều Dòng");
+    assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn (đủ chuyến: departDate + pax của dịch vụ nhập tay createOrder() đã đặt sẵn)");
+    assert.equal((await call(A, "PUT", `/api/orders/${o.id}/handler`, { staffId: fieldStaffId })).status, 200, "giao cho HDV (FIELD)");
+    const reason = "Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00";
+    const edited = await call(FIELD_ACC, "POST", `/api/orders/${o.id}/handler-money-edit`, { reason, services: [] });
+    assert.equal(edited.status, 200, `handler-money-edit: ${edited.status} ${JSON.stringify(edited.json)}`);
+
+    const p = await openAs(A, `/order?id=${o.id}`, { viewport: M });
+    await p.waitFor("[...document.querySelectorAll('.history li')].some((li) => li.textContent.includes('Khách gọi lại xin đổi'))", "trang đơn thấy dòng lịch sử sửa tiền", 10000);
+    const m = await p.ev(`(() => {
+      const li = [...document.querySelectorAll('.history li')].find((x) => x.textContent.includes('Khách gọi lại xin đổi'));
+      const div = li.querySelector('.history-detail');
+      const range = document.createRange();
+      range.selectNodeContents(div.firstChild);
+      const tops = [...range.getClientRects()].map((rc) => Math.round(rc.top));
+      return { soDong: new Set(tops).size, caoDiv: Math.round(div.getBoundingClientRect().height), whiteSpace: getComputedStyle(div).whiteSpace, text: div.textContent };
+    })()`);
+    assert.equal(m.whiteSpace, "pre-line", `CSS .history-detail phải là white-space: pre-line: ${JSON.stringify(m)}`);
+    assert.equal(m.text, reason, "textContent (DOM) giữ NGUYÊN lý do kể cả ký tự xuống dòng — dữ liệu không đổi, chỉ đổi cách hiển thị");
+    assert.equal(m.soDong, 3, `phải hiện ĐÚNG 3 dòng thị giác (đúng số dòng của reason, đo bằng Range.getClientRects) — trước bản sửa CSS, white-space mặc định collapse còn 1 dòng: ${JSON.stringify(m)}`);
+    assert.ok(m.caoDiv > 0, `chiều cao thật của khối lý do (đối chứng, không phải khẳng định chính): ${JSON.stringify(m)}`);
+    results.do["history-detail-nhieu-dong"] = m;
+    await shoot(p, "nguoi-phu-trach-lich-su-nhieu-dong.png");
+    p.close();
   });
 
   // ================= l) console/CSP =================

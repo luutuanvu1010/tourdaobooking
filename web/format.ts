@@ -49,3 +49,14 @@ export function paxCounts(pax: PaxCounts): string {
     .map((c) => `${String(pax[c]).padStart(2, "0")} ${PAX_ABBR[c]}`)
     .join(" · ");
 }
+
+/**
+ * "2NL 1TE" — bản RÚT GỌN của paxCounts() riêng cho dòng 2 thẻ đơn (Đợt E vòng sửa 2026-09-24): không đệm số 0,
+ * không dấu "·", số dính liền chữ viết tắt — nhường chỗ cho SĐT và "Còn thu" trên đúng một hàng ở khổ 390px.
+ * KHÔNG đổi paxCounts() ở trên: hàm đó vẫn dùng ở trang đơn (web/order.ts) và Trang chủ (web/home.ts).
+ */
+export function paxCountsShort(pax: PaxCounts): string {
+  return PAX_ORDER.filter((c) => pax[c] > 0)
+    .map((c) => `${pax[c]}${PAX_ABBR[c]}`)
+    .join(" ");
+}

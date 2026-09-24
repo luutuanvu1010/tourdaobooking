@@ -193,7 +193,7 @@ export const accountsModule: AppModule = {
         {
           publicKey: {
             challenge,
-            rp: { id: rp.rpId, name: "Tour Đảo Booking" },
+            rp: { id: rp.rpId, name: "Island Booking System" }, // tên app hiện trong hộp thoại Face ID; rpId (miền) KHÔNG đổi nên khoá đã bật vẫn dùng được
             user: { id: userHandle, name, displayName: name },
             pubKeyCredParams: [{ type: "public-key", alg: -7 }, { type: "public-key", alg: -257 }],
             timeout: 120_000,
