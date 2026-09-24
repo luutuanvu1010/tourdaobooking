@@ -1,6 +1,6 @@
 {
   "_mo_ta": "Danh sách HOÃN của hai hàng rào quyền: src/permission-enforcement.test.ts (mỗi ô của MATRIX phải được máy chủ hỏi) và src/route-write-guard.test.ts (mỗi đường ghi phải hỏi bảng quyền). Mục ở đây là chỗ hở ĐÃ BIẾT, có người chịu trách nhiệm và hạn. Hết hạn → npm test đỏ (dừng dây chuyền) cho tới khi vá hoặc chủ dự án gia hạn bằng cách sửa `han` (có diff để rà). Mục cho ô/route đã được thi hành → test đỏ ('hoãn thừa'), để danh sách không phình.",
-  "_trang_thai": "ĐỀ XUẤT của AI ngày 2026-09-24 (kế hoạch docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md §5 Q4). Các ngày `han` chờ chủ dự án xác nhận; người chịu trách nhiệm là con người (Hiến pháp P9).",
+  "_trang_thai": "Các ngày `han` đã được CHỦ DỰ ÁN XÁC NHẬN ngày 2026-09-24 (kế hoạch docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md §5 Q4: 'giữ nguyên bốn mốc'). Từ nay là hạn thật: quá hạn → npm test đỏ; gia hạn chỉ bằng diff vào tệp này do chủ dự án ra lệnh, kèm lý do trong thông điệp commit. Người chịu trách nhiệm là con người (Hiến pháp P9).",
   "_ngay_han": "Ngày dân sự Việt Nam, so với vnToday() lúc chạy test.",
   "thao_tac": [
     {
