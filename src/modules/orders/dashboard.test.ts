@@ -82,6 +82,28 @@ function insertService(sqlite: DatabaseSync, s: { id: string; orderId: string; s
     .run(s.id, s.orderId, s.sortOrder ?? 0, s.name ?? "Dịch vụ", s.departDate ?? null, s.pickupTime ?? null, s.pickupPlace ?? null);
 }
 
+/**
+ * Dịch vụ TỪ DANH MỤC (đủ `catalog_code` + một dòng `order_item` có `catalog_price`), CHÈN LÚC ĐƠN CÒN NHÁP (như `insertService`) — cần cho các
+ * ca kiểm "đơn có điều chỉnh tiền" (Đợt E task 7): sau bản sửa, tiền hiệu lực của một đơn CÓ điều chỉnh được TỰ TÍNH LẠI từ order_service/order_item
+ * GỐC (`getServicesForSubtotal`/`effectiveSubtotal`, KHÔNG còn đọc cột `subtotal_after` đã lưu) — dịch vụ NHẬP TAY (`insertService`) không bao giờ
+ * được `recomputeService` chấp nhận (catalogCode null), nên KHÔNG đổi tiền được qua điều chỉnh; muốn mô phỏng "tiền đổi sau khi FIELD sửa số khách"
+ * phải dùng dịch vụ danh mục như hàm này, kèm `after: [{serviceId, pax}]` tương ứng ở `insertAdjustment`. `priceAdult` × pax ban đầu (mặc định 1) =
+ * thành tiền GỐC của dịch vụ; muốn đổi sang tiền MỚI thì đặt lại `pax.adult` trong `after` của điều chỉnh (CÙNG giá `priceAdult` — giá "chụp lúc lập
+ * đơn", không đổi qua điều chỉnh, chỉ số khách đổi — đúng Q11).
+ */
+function insertCatalogService(sqlite: DatabaseSync, s: { id: string; orderId: string; sortOrder?: number; departDate?: string | null; priceAdult: number; paxAdult?: number; name?: string }): void {
+  const paxAdult = s.paxAdult ?? 1;
+  sqlite
+    .prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, ?, 'CAT', ?, 'perPax', ?, ?)`)
+    .run(s.id, s.orderId, s.sortOrder ?? 0, s.name ?? "Dịch vụ danh mục", paxAdult, s.departDate ?? null);
+  sqlite
+    .prepare(
+      `INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total, sort_order)
+       VALUES (?, ?, ?, 'CAT', 'adult', ?, NULL, ?, ?, ?, ?, 0)`,
+    )
+    .run(`${s.id}-it`, s.orderId, s.id, s.name ?? "Dịch vụ danh mục", paxAdult, s.priceAdult, s.priceAdult, paxAdult * s.priceAdult);
+}
+
 /** Chuyển đơn (đã có đủ dịch vụ hợp lệ — mọi dịch vụ có ngày + >=1 khách) sang xác nhận, đúng luồng trigger 0008/0017 cho phép. */
 function confirm(sqlite: DatabaseSync, id: string, at = "2026-09-24T00:00:00.000Z"): void {
   sqlite.prepare(`UPDATE orders SET status = 'confirmed', confirmed_at = ?, updated_at = ? WHERE id = ?`).run(at, at, id);
@@ -165,13 +187,17 @@ test("today: đơn có điều chỉnh tiền → total/remainingAmount trong da
   const sqlite = seed();
   const db = fakeD1(sqlite);
   insertDraftOrder(sqlite, { id: "o1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 1_000_000, total: 1_000_000, depositAmount: 200_000, remainingAmount: 800_000 } });
-  insertService(sqlite, { id: "sv1", orderId: "o1", departDate: TODAY });
+  // Dịch vụ DANH MỤC (không phải nhập tay): 10 khách × 100.000 = 1.000.000 gốc — chỉ dịch vụ danh mục mới TÍNH LẠI được qua điều chỉnh
+  // (Đợt E task 7: tiền hiệu lực nay TỰ TÍNH LẠI từ order_service/order_item, không còn đọc cột `subtotal_after` đã lưu).
+  insertCatalogService(sqlite, { id: "sv1", orderId: "o1", departDate: TODAY, priceAdult: 100_000, paxAdult: 10 });
   confirm(sqlite, "o1");
-  insertAdjustment(sqlite, { id: "adj1", orderId: "o1", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 400_000 }); // giảm số khách sau xác nhận
+  // Điều chỉnh giảm còn 4 khách × 100.000 = 400.000 — số MỚI phải tự tính đúng bằng đó, KHÔNG đọc `subtotalAfter` đã lưu (đặt cố ý SAI/rác dưới
+  // đây để chứng minh không còn đọc cột này: nếu mã cũ còn đọc, khẳng định dưới sẽ thấy 999 thay vì 400.000).
+  insertAdjustment(sqlite, { id: "adj1", orderId: "o1", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 999, after: [{ serviceId: "sv1", pax: { adult: 4, child: 0, senior: 0, infant: 0 } }] });
 
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
   assert.equal(data.today.length, 1);
-  assert.equal(data.today[0]!.total, 400_000, "total = subtotal_after điều chỉnh (không phải 1.000.000 gốc)");
+  assert.equal(data.today[0]!.total, 400_000, "total = TỰ TÍNH LẠI từ order_item + pax mới (4×100.000), không phải 1.000.000 gốc VÀ không phải cột subtotal_after đã lưu (cố ý đặt = 999 ở trên)");
   assert.equal(data.today[0]!.remainingAmount, 200_000, "remainingAmount = 400.000 - 200.000 cọc, không phải 800.000 gốc");
 });
 
@@ -200,16 +226,18 @@ test("unpaid: áp effective money TỪNG đơn rồi mới lọc >0 — không l
   const db = fakeD1(sqlite);
 
   // p1: gốc ĐÃ THU ĐỦ (remaining=0) nhưng điều chỉnh TĂNG subtotal → hiện hành còn thiếu → PHẢI tính vào unpaid.
+  // Dịch vụ DANH MỤC 5×100.000=500.000 gốc, điều chỉnh tăng lên 15×100.000=1.500.000 (subtotalAfter đặt SAI/rác để chứng minh không còn đọc cột đó).
   insertDraftOrder(sqlite, { id: "p1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 500_000, total: 500_000, depositAmount: 500_000, remainingAmount: 0 } });
-  insertService(sqlite, { id: "svp1", orderId: "p1", departDate: "2026-09-26" });
+  insertCatalogService(sqlite, { id: "svp1", orderId: "p1", departDate: "2026-09-26", priceAdult: 100_000, paxAdult: 5 });
   confirm(sqlite, "p1");
-  insertAdjustment(sqlite, { id: "adjp1", orderId: "p1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 1_500_000 });
+  insertAdjustment(sqlite, { id: "adjp1", orderId: "p1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 999, after: [{ serviceId: "svp1", pax: { adult: 15, child: 0, senior: 0, infant: 0 } }] });
 
   // p2: gốc CÒN THIẾU (remaining=300.000) nhưng điều chỉnh GIẢM subtotal đủ để hết thiếu → hiện hành = 0 → KHÔNG tính vào unpaid.
+  // Dịch vụ DANH MỤC 10×100.000=1.000.000 gốc, điều chỉnh giảm còn 7×100.000=700.000.
   insertDraftOrder(sqlite, { id: "p2", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 1_000_000, total: 1_000_000, depositAmount: 700_000, remainingAmount: 300_000 } });
-  insertService(sqlite, { id: "svp2", orderId: "p2", departDate: "2026-09-30" });
+  insertCatalogService(sqlite, { id: "svp2", orderId: "p2", departDate: "2026-09-30", priceAdult: 100_000, paxAdult: 10 });
   confirm(sqlite, "p2");
-  insertAdjustment(sqlite, { id: "adjp2", orderId: "p2", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 700_000 });
+  insertAdjustment(sqlite, { id: "adjp2", orderId: "p2", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 999, after: [{ serviceId: "svp2", pax: { adult: 7, child: 0, senior: 0, infant: 0 } }] });
 
   // p3: confirmed, không điều chỉnh, còn thiếu 250.000 → tính vào unpaid (ca thường).
   insertDraftOrder(sqlite, { id: "p3", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z", m: { subtotal: 250_000, total: 250_000, depositAmount: 0, remainingAmount: 250_000 } });
@@ -295,8 +323,13 @@ test("revenueWeek: đúng người (staff_id), đúng khoảng [đầu thứ Hai
   insertDraftOrder(sqlite, { id: "r6", staffId: "s-a", createdAt: FROM_ISO, m: { subtotal: 999_999, total: 999_999, depositAmount: 0, remainingAmount: 999_999 } });
   // r6 vẫn nháp → KHÔNG tính
 
-  insertConfirmedOrderNoServices(sqlite, { id: "r7", staffId: "s-a", createdAt: FROM_ISO, m: { subtotal: 500_000, total: 500_000, depositAmount: 0, remainingAmount: 500_000 } });
-  insertAdjustment(sqlite, { id: "adjr7", orderId: "r7", seq: 1, subtotalBefore: 500_000, subtotalAfter: 900_000 }); // số HIỆN HÀNH phải là 900.000, không phải 500.000
+  // Dịch vụ DANH MỤC 5×100.000=500.000 gốc, điều chỉnh tăng lên 9×100.000=900.000 — số HIỆN HÀNH phải là 900.000, không phải 500.000 gốc
+  // (`insertConfirmedOrderNoServices` không dùng được ở đây: cần MỘT dịch vụ danh mục để có gì mà `effectiveSubtotal` tính lại được, order_service
+  // chỉ chèn được lúc đơn còn nháp — trigger `order_service_frozen_insert`, nên phải qua `insertDraftOrder` + `confirm()` như các đơn khác).
+  insertDraftOrder(sqlite, { id: "r7", staffId: "s-a", createdAt: FROM_ISO, m: { subtotal: 500_000, total: 500_000, depositAmount: 0, remainingAmount: 500_000 } });
+  insertCatalogService(sqlite, { id: "svr7", orderId: "r7", departDate: "2026-10-01", priceAdult: 100_000, paxAdult: 5 });
+  confirm(sqlite, "r7", FROM_ISO);
+  insertAdjustment(sqlite, { id: "adjr7", orderId: "r7", seq: 1, subtotalBefore: 500_000, subtotalAfter: 999, after: [{ serviceId: "svr7", pax: { adult: 9, child: 0, senior: 0, infant: 0 } }] });
 
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
   assert.equal(data.revenueWeek.count, 3, "r1, r3, r7 (đúng người, đúng khoảng, đã xác nhận)");
@@ -337,9 +370,11 @@ test("revenueWeek.daily: đơn có ĐIỀU CHỈNH tiền → daily dùng số H
   const sqlite = seed();
   const db = fakeD1(sqlite);
 
-  // db1: thứ Ba (22/09), gốc 500.000 nhưng điều chỉnh lên 900.000.
-  insertConfirmedOrderNoServices(sqlite, { id: "db1", staffId: "s-a", createdAt: "2026-09-22T05:00:00.000Z", m: { subtotal: 500_000, total: 500_000, depositAmount: 0, remainingAmount: 500_000 } });
-  insertAdjustment(sqlite, { id: "adjdb1", orderId: "db1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 900_000 });
+  // db1: thứ Ba (22/09), gốc 500.000 nhưng điều chỉnh lên 900.000 (dịch vụ danh mục 5→9 khách × 100.000, xem `insertCatalogService`).
+  insertDraftOrder(sqlite, { id: "db1", staffId: "s-a", createdAt: "2026-09-22T05:00:00.000Z", m: { subtotal: 500_000, total: 500_000, depositAmount: 0, remainingAmount: 500_000 } });
+  insertCatalogService(sqlite, { id: "svdb1", orderId: "db1", departDate: "2026-10-01", priceAdult: 100_000, paxAdult: 5 });
+  confirm(sqlite, "db1", "2026-09-22T05:00:00.000Z");
+  insertAdjustment(sqlite, { id: "adjdb1", orderId: "db1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 999, after: [{ serviceId: "svdb1", pax: { adult: 9, child: 0, senior: 0, infant: 0 } }] });
 
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
   const tuesday = data.revenueWeek.daily.find((d) => d.date === "2026-09-22");

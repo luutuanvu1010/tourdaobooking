@@ -3,7 +3,7 @@ import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSumm
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
-import { effectiveMoney, isAdjustmentSeqCollision, parseAdjustmentAfter } from "./money-adjustment";
+import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type SubtotalServiceInput } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -278,10 +278,12 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
   // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc status = confirmed) — bỏ qua để đỡ một điều kiện IN() thừa.
   const idsMayHaveAdjustment = rows.filter((r) => r.status !== "draft").map((r) => r.id);
   const latestAdjustments = await getLatestAdjustments(db, idsMayHaveAdjustment);
-  const page = rows.map((r) => {
-    const d = toDto(r);
-    const adj = latestAdjustments.get(d.id);
-    const money = adj === undefined ? { total: d.total, remainingAmount: d.remainingAmount } : effectiveMoney(adj.subtotalAfter, d.discount, d.depositAmount);
+  const dtos = rows.map((r) => toDto(r));
+  // Tiền hiệu lực qua NGUỒN DUY NHẤT `computeEffectiveMoney` (Đợt E task 7) — không còn đọc `subtotal_after` đã lưu (có thể SAI với đơn cũ có
+  // dịch vụ nhập tay), tự tính lại từ order_service/order_item GỐC, CÙNG cách trang chi tiết đơn đã làm đúng từ trước.
+  const effectiveByOrder = await computeEffectiveMoney(db, dtos, latestAdjustments);
+  const page = dtos.map((d) => {
+    const money = effectiveByOrder.get(d.id)!;
     return { ...d, total: money.total, remainingAmount: money.remainingAmount };
   });
 
@@ -426,16 +428,20 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   ).map((s) => ({ ...s, trip: todayTripById.get(s.id) ?? s.trip }));
 
   // 2) "Còn thiếu tiền": MỌI đơn confirmed (không lọc trước theo cột gốc — điều chỉnh có thể đưa remainingAmount từ 0 lên dương hoặc ngược lại),
-  //    áp effective money từng đơn RỒI mới lọc/tổng hợp trong JS.
+  //    áp effective money từng đơn (qua NGUỒN DUY NHẤT `computeEffectiveMoney`, Đợt E task 7) RỒI mới lọc/tổng hợp trong JS.
   const { results: confirmedRows } = await db
-    .prepare(`SELECT id, subtotal, discount, total, deposit_amount, remaining_amount FROM orders WHERE status = 'confirmed'`)
-    .all<{ id: string; subtotal: number; discount: number; total: number; deposit_amount: number; remaining_amount: number }>();
+    .prepare(`SELECT id, discount, total, deposit_amount, remaining_amount FROM orders WHERE status = 'confirmed'`)
+    .all<{ id: string; discount: number; total: number; deposit_amount: number; remaining_amount: number }>();
   const latestConfirmed = await getLatestAdjustments(db, confirmedRows.map((r) => r.id));
+  const confirmedMoney = await computeEffectiveMoney(
+    db,
+    confirmedRows.map((r) => ({ id: r.id, discount: r.discount, depositAmount: r.deposit_amount, total: r.total, remainingAmount: r.remaining_amount })),
+    latestConfirmed,
+  );
   const unpaidIds: string[] = [];
   let unpaidTotal = 0;
   for (const r of confirmedRows) {
-    const adj = latestConfirmed.get(r.id);
-    const money = adj === undefined ? { remainingAmount: r.remaining_amount } : effectiveMoney(adj.subtotalAfter, r.discount, r.deposit_amount);
+    const money = confirmedMoney.get(r.id)!;
     if (money.remainingAmount > 0) {
       unpaidIds.push(r.id);
       unpaidTotal += money.remainingAmount;
@@ -463,17 +469,21 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   const weekFromIso = vnLocalToIso(`${weekFrom}T00:00`)!;
   const weekToIsoExclusive = vnLocalToIso(`${addDays(weekTo, 1)}T00:00`)!;
   const { results: weekRows } = await db
-    .prepare(`SELECT id, subtotal, discount, total, deposit_amount, remaining_amount, created_at FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
+    .prepare(`SELECT id, discount, total, deposit_amount, remaining_amount, created_at FROM orders WHERE status = 'confirmed' AND staff_id = ?1 AND created_at >= ?2 AND created_at < ?3`)
     .bind(staffId, weekFromIso, weekToIsoExclusive)
-    .all<{ id: string; subtotal: number; discount: number; total: number; deposit_amount: number; remaining_amount: number; created_at: string }>();
+    .all<{ id: string; discount: number; total: number; deposit_amount: number; remaining_amount: number; created_at: string }>();
   const latestWeek = await getLatestAdjustments(db, weekRows.map((r) => r.id));
+  const weekMoney = await computeEffectiveMoney(
+    db,
+    weekRows.map((r) => ({ id: r.id, discount: r.discount, depositAmount: r.deposit_amount, total: r.total, remainingAmount: r.remaining_amount })),
+    latestWeek,
+  );
   let revenueTotal = 0;
   // Đợt D Task 2: gộp doanh thu HIỆN HÀNH theo ngày dân sự VN của `created_at` — CÙNG tập đơn/CÙNG số tiền đang cộng
   // vào `revenueTotal` ở trên, không tính lại từ nguồn khác (tránh lệch giữa `daily` và `total`, xem test tổng invariant).
   const dailyTotals = new Map<string, number>();
   for (const r of weekRows) {
-    const adj = latestWeek.get(r.id);
-    const money = adj === undefined ? { total: r.total } : effectiveMoney(adj.subtotalAfter, r.discount, r.deposit_amount);
+    const money = weekMoney.get(r.id)!;
     revenueTotal += money.total;
     const day = vnToday(new Date(r.created_at));
     dailyTotals.set(day, (dailyTotals.get(day) ?? 0) + money.total);
@@ -719,23 +729,24 @@ export async function getLatestAdjustment(db: D1Database, orderId: string): Prom
 }
 
 export interface LatestAdjustmentOverlay {
-  subtotalAfter: number;
   /** Số khách MỚI của từng dịch vụ từ danh mục — xem `applyAdjustedPax`. */
   after: { serviceId: string; pax: PaxCounts }[];
 }
 
 /**
- * Tiền (`subtotal_after`) VÀ số khách (`after`) của dòng điều chỉnh GẦN NHẤT cho MỖI đơn trong `orderIds` (một lời gọi, không phải N truy vấn) —
- * dùng cho `listOrders`/`getDashboard` overlay CẢ HAI ở trang danh sách/Trang chủ, cùng ý với `getLatestAdjustment` (dùng cho trang chi tiết MỘT
- * đơn) nhưng gọn hơn cho nhiều đơn cùng lúc. Đơn không có trong kết quả trả về = chưa có điều chỉnh nào (dùng nguyên số gốc, cả tiền lẫn khách).
- * Trước bản sửa Đợt E, hàm này (khi đó tên `getLatestAdjustmentSubtotals`) chỉ trả `subtotal_after` — số khách vẫn lấy thẳng từ `order_service`
- * đã đóng băng ở nơi gọi, nên tiền đúng mà số khách sai (bài học Đợt E, xem `toSummaryDtos`/`applyAdjustedPax`).
+ * Số khách (`after`) của dòng điều chỉnh GẦN NHẤT cho MỖI đơn trong `orderIds` (một lời gọi, không phải N truy vấn) — dùng cho `listOrders`/
+ * `getDashboard` overlay số khách ở trang danh sách/Trang chủ, cùng ý với `getLatestAdjustment` (dùng cho trang chi tiết MỘT đơn) nhưng gọn hơn
+ * cho nhiều đơn cùng lúc. Đơn CÓ mặt trong kết quả trả về (dù `after` rỗng) = đơn ĐÃ có ít nhất một dòng điều chỉnh — `computeEffectiveMoney` dùng
+ * chính sự có-mặt này để quyết định có cần tính lại tiền hay dùng thẳng cột gốc của `orders`. Đơn KHÔNG có trong kết quả = chưa có điều chỉnh nào.
+ * Đợt E task 7: KHÔNG còn đọc/trả `subtotal_after` ở đây nữa — cột đó, ở nơi GHI (`orders/index.ts:editMoneyAsHandler`), TỪNG bị tính thiếu cho
+ * đơn có dịch vụ nhập tay (chỉ cộng dịch vụ TỪ DANH MỤC); sửa nơi ghi chỉ chữa được đơn TỪ NAY, bảng CHỈ-THÊM nên đơn CŨ đã lưu thiếu không sửa lại
+ * được. Tiền hiệu lực giờ LUÔN tính lại từ order_service/order_item GỐC qua `computeEffectiveMoney`/`money-adjustment.ts:effectiveSubtotal` — nguồn
+ * DUY NHẤT, dùng chung với trang chi tiết đơn — nên đơn CŨ đã lưu sai cũng tự động hiện ĐÚNG ở đây, không phụ thuộc giá trị đã lưu sai đó nữa.
  * `after_json` hỏng/không đọc được cho một dòng: `money-adjustment.ts:parseAdjustmentAfter` (MỘT hàm phân tích duy nhất, dùng chung với
  * `getLatestAdjustment` ở trên — sửa Lỗi 1/2 kiểm độc lập Đợt E vòng 2) rơi về `after: []` (= không ghi đè số khách của đơn đó, `applyAdjustedPax`
- * giữ nguyên số gốc) thay vì làm vỡ cả trang — `subtotalAfter` vẫn dùng được bình thường (đọc trực tiếp cột INTEGER, không qua JSON.parse) nên
- * tiền của đơn đó vẫn đúng, chỉ số khách của riêng đơn đó lùi về gốc. Trước bản sửa này, một phần tử KHÔNG PHẢI object (vd `null`) lọt qua
- * `Array.isArray` rồi làm nơi gọi (`applyAdjustedPax`) ném `TypeError` khi truy cập `.serviceId` — sập MỌI request `/api/orders`/dashboard cho
- * MỌI nhân viên (Lỗi 2), không riêng đơn có dòng hỏng.
+ * giữ nguyên số gốc, và `effectiveSubtotal` cũng lùi mỗi dịch vụ về "own" đã lưu) thay vì làm vỡ cả trang. Trước bản sửa Lỗi 2, một phần tử KHÔNG
+ * PHẢI object (vd `null`) lọt qua `Array.isArray` rồi làm nơi gọi (`applyAdjustedPax`) ném `TypeError` khi truy cập `.serviceId` — sập MỌI request
+ * `/api/orders`/dashboard cho MỌI nhân viên, không riêng đơn có dòng hỏng.
  */
 export async function getLatestAdjustments(db: D1Database, orderIds: readonly string[]): Promise<Map<string, LatestAdjustmentOverlay>> {
   if (orderIds.length === 0) return new Map();
@@ -744,12 +755,110 @@ export async function getLatestAdjustments(db: D1Database, orderIds: readonly st
   // số lượng không có trần cố định, nên câu SQL phải TĨNH (một tham số) dù số id đổi.
   const { results } = await db
     .prepare(
-      `SELECT a.order_id, a.subtotal_after, a.after_json FROM order_money_adjustment a
+      `SELECT a.order_id, a.after_json FROM order_money_adjustment a
        WHERE a.order_id IN (SELECT value FROM json_each(?1)) AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = a.order_id)`,
     )
     .bind(JSON.stringify(orderIds))
-    .all<{ order_id: string; subtotal_after: number; after_json: string }>();
-  return new Map(results.map((r) => [r.order_id, { subtotalAfter: r.subtotal_after, after: parseAdjustmentAfter(r.after_json) }] as const));
+    .all<{ order_id: string; after_json: string }>();
+  return new Map(results.map((r) => [r.order_id, { after: parseAdjustmentAfter(r.after_json) }] as const));
+}
+
+interface SubtotalServiceRow {
+  order_id: string;
+  id: string;
+  catalog_code: string | null;
+  name: string;
+  unit: string;
+}
+interface SubtotalItemRow {
+  order_id: string;
+  service_id: string | null;
+  pax_code: PaxCode | null;
+  catalog_price: number | null;
+  line_total: number;
+}
+
+/**
+ * Ghép dòng `order_service`/`order_item` THÔ (kết quả SQL) thành `SubtotalServiceInput[]` theo từng đơn — THUẦN, không I/O (test được không cần
+ * D1 thật, xem `repository.test.ts`). CÙNG quy tắc "dòng `order_item.service_id IS NULL` bị BỎ QUA" như `groupItems()` (dùng cho `findOrder` —
+ * đường trang chi tiết đơn): đơn cũ trước migration 0008 có thể còn dòng tiền chưa gắn dịch vụ; `findOrder` bỏ qua các dòng đó khi dựng DTO, nên
+ * đường ĐÂY (danh sách/Trang chủ, qua `getServicesForSubtotal`) phải bỏ qua Y HỆT — khác đi thì hai bề mặt lại tính "own" lệch nhau cho ĐÚNG loại
+ * đơn cũ vừa sửa lỗi này, tái phát ngay trong chính bản vá.
+ */
+export function buildSubtotalServices(serviceRows: readonly SubtotalServiceRow[], itemRows: readonly SubtotalItemRow[]): Map<string, SubtotalServiceInput[]> {
+  const itemsByService = new Map<string, SubtotalServiceInput["items"]>();
+  for (const i of itemRows) {
+    if (!i.service_id) continue; // sau migration 0008 mọi dòng đều có dịch vụ — xem groupItems() ở trên (findOrder).
+    const entry = { paxCode: i.pax_code, catalogPrice: i.catalog_price, lineTotal: i.line_total };
+    const list = itemsByService.get(i.service_id);
+    if (list) list.push(entry);
+    else itemsByService.set(i.service_id, [entry]);
+  }
+  const out = new Map<string, SubtotalServiceInput[]>();
+  for (const s of serviceRows) {
+    const list = out.get(s.order_id) ?? [];
+    list.push({ id: s.id, catalogCode: s.catalog_code, name: s.name, unit: s.unit, items: itemsByService.get(s.id) ?? [] });
+    out.set(s.order_id, list);
+  }
+  return out;
+}
+
+/**
+ * `order_service`/`order_item` GỐC (đã đóng băng) của NHIỀU đơn — đủ để `money-adjustment.ts:effectiveSubtotal` tính lại tiền hiệu lực. CHỈ gọi
+ * cho đơn THẬT SỰ có điều chỉnh (`orderIds` = khoá của `getLatestAdjustments`) — đơn không có điều chỉnh dùng thẳng cột `orders.total`/
+ * `remaining_amount` gốc, không cần đọc gì thêm (xem `computeEffectiveMoney`). HAI câu TUẦN TỰ (không `db.batch()`): hàm này được gọi từ
+ * `getDashboard` (chỉ đọc) trong bộ kiểm `dashboard.test.ts` dùng D1 giả KHÔNG có `batch()` (chỉ có `prepare().bind().first()/.all()`, xem chú
+ * thích `fakeD1` ở đó) — hai lời gọi độc lập, không cần một giao dịch (đều là SELECT, không ràng buộc lẫn nhau).
+ */
+export async function getServicesForSubtotal(db: D1Database, orderIds: readonly string[]): Promise<Map<string, SubtotalServiceInput[]>> {
+  if (orderIds.length === 0) return new Map();
+  const ids = JSON.stringify(orderIds);
+  const serviceRows = (
+    await db
+      .prepare(`SELECT order_id, id, catalog_code, name, unit FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`)
+      .bind(ids)
+      .all<SubtotalServiceRow>()
+  ).results;
+  const itemRows = (
+    await db.prepare(`SELECT order_id, service_id, pax_code, catalog_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1))`).bind(ids).all<SubtotalItemRow>()
+  ).results;
+  return buildSubtotalServices(serviceRows, itemRows);
+}
+
+/** Cột gốc của `orders` cần để tính tiền hiệu lực khi đơn KHÔNG có điều chỉnh (dùng thẳng) hoặc CÓ điều chỉnh (nền cho `effectiveSubtotal`). */
+export interface OrderMoneyBase {
+  id: string;
+  discount: number;
+  depositAmount: number;
+  total: number;
+  remainingAmount: number;
+}
+
+/**
+ * Tiền HIỆU LỰC cho NHIỀU đơn cùng lúc — NGUỒN DUY NHẤT dùng chung cho `toSummaryDtos` (today/`listOrders`) VÀ hai khối còn lại của `getDashboard`
+ * (unpaid, revenueWeek); trước đây BA nơi này tự đọc `adj.subtotalAfter` (cột đã lưu, có thể SAI với đơn cũ — Đợt E task 7) theo BA vòng lặp
+ * riêng — nay gộp vào MỘT hàm. Đơn KHÔNG có trong `latestAdjustments` (chưa từng điều chỉnh): trả thẳng `total`/`remainingAmount` GỐC, không đọc
+ * gì thêm. Đơn CÓ điều chỉnh: tính lại subtotal từ `getServicesForSubtotal` (order_service/order_item GỐC) + `after` bằng `effectiveSubtotal` —
+ * CÙNG hàm trang chi tiết đơn dùng (`money-adjustment.ts:applyAdjustmentToOrder`) — rồi suy total/remainingAmount bằng `effectiveMoney`.
+ */
+export async function computeEffectiveMoney(
+  db: D1Database,
+  orders: readonly OrderMoneyBase[],
+  latestAdjustments: ReadonlyMap<string, LatestAdjustmentOverlay>,
+): Promise<Map<string, { total: number; remainingAmount: number }>> {
+  const adjustedIds = orders.filter((o) => latestAdjustments.has(o.id)).map((o) => o.id);
+  const servicesByOrder = await getServicesForSubtotal(db, adjustedIds);
+  const out = new Map<string, { total: number; remainingAmount: number }>();
+  for (const o of orders) {
+    const adj = latestAdjustments.get(o.id);
+    if (adj === undefined) {
+      out.set(o.id, { total: o.total, remainingAmount: o.remainingAmount });
+      continue;
+    }
+    const subtotal = effectiveSubtotal(servicesByOrder.get(o.id) ?? [], adj.after);
+    out.set(o.id, effectiveMoney(subtotal, o.discount, o.depositAmount));
+  }
+  return out;
 }
 
 /**

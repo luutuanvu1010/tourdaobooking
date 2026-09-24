@@ -20,7 +20,7 @@ async function loadModule(): Promise<Mod> {
   return (await import(`data:text/javascript;base64,${code}`)) as Mod;
 }
 
-const { summarizeServices, applyAdjustedPax } = await loadModule();
+const { summarizeServices, applyAdjustedPax, buildSubtotalServices } = await loadModule();
 
 type ServiceSummaryRow = typeof import("./repository.ts").ServiceSummaryRow;
 const row = (o: Partial<ServiceSummaryRow> & { order_id: string; name: string; sort_order: number }): ServiceSummaryRow => ({
@@ -151,6 +151,51 @@ test("Lỗi 1 (biến thể TRÙNG serviceId) — KHÔNG còn lệch: after_json
   assert.deepEqual(detail.services[0]!.pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: phải là 7 (phần tử đứng sau), không phải 3");
   assert.deepEqual(listSummary.get("o1")!.pax, detail.services[0]!.pax, "danh sách/Trang chủ PHẢI khớp CHÍNH XÁC trang chi tiết (cùng 7) — không phải mỗi bên tự chọn một số khác nhau");
   assert.equal(detail.subtotal, 2100000, "tiền cũng theo phần tử thắng (7×300,000), không phải 3×300,000");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// buildSubtotalServices (Đợt E task 7 — nguồn cho `getServicesForSubtotal`, dùng ở danh sách/Trang chủ để tính tiền hiệu lực). THUẦN, ghép dòng
+// order_service/order_item THÔ thành SubtotalServiceInput[] theo đơn. "Kiểm phân biệt" (advisor gợi ý): PHẢI cùng quy tắc "bỏ dòng service_id NULL"
+// như `groupItems()` (dùng cho `findOrder` — đường trang chi tiết đơn) — khác đi thì hai bề mặt tính "own" LỆCH NHAU cho đúng loại đơn cũ (trước
+// migration 0008) mà bản sửa này đang chữa, tái phát ngay trong chính bản vá.
+// ---------------------------------------------------------------------------------------------------------------------
+test("buildSubtotalServices: ghép đúng dịch vụ + dòng tiền theo order_id, nhiều đơn không lẫn nhau", () => {
+  const serviceRows = [
+    { order_id: "o1", id: "sv1", catalog_code: "TOUR-1", name: "Tour Hòn Mun", unit: "perPax" },
+    { order_id: "o1", id: "sv-manual", catalog_code: null, name: "Phí phát sinh", unit: "manual" },
+    { order_id: "o2", id: "sv2", catalog_code: "TOUR-2", name: "Tour 4 đảo", unit: "perPax" },
+  ];
+  const itemRows = [
+    { order_id: "o1", service_id: "sv1", pax_code: "adult", catalog_price: 300000, line_total: 600000 },
+    { order_id: "o1", service_id: "sv-manual", pax_code: null, catalog_price: null, line_total: 200000 },
+    { order_id: "o2", service_id: "sv2", pax_code: "adult", catalog_price: 250000, line_total: 250000 },
+  ];
+  const out = buildSubtotalServices(serviceRows, itemRows);
+  assert.deepEqual(out.get("o1"), [
+    { id: "sv1", catalogCode: "TOUR-1", name: "Tour Hòn Mun", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, lineTotal: 600000 }] },
+    { id: "sv-manual", catalogCode: null, name: "Phí phát sinh", unit: "manual", items: [{ paxCode: null, catalogPrice: null, lineTotal: 200000 }] },
+  ]);
+  assert.deepEqual(out.get("o2"), [{ id: "sv2", catalogCode: "TOUR-2", name: "Tour 4 đảo", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 250000, lineTotal: 250000 }] }]);
+  assert.equal(out.has("o3"), false);
+});
+
+test("buildSubtotalServices: dịch vụ KHÔNG có dòng order_item nào → items rỗng (không ném lỗi, không undefined)", () => {
+  const out = buildSubtotalServices([{ order_id: "o1", id: "sv1", catalog_code: "TOUR-1", name: "Tour", unit: "perPax" }], []);
+  assert.deepEqual(out.get("o1"), [{ id: "sv1", catalogCode: "TOUR-1", name: "Tour", unit: "perPax", items: [] }]);
+});
+
+test("buildSubtotalServices: dòng order_item có service_id NULL (đơn cũ trước migration 0008) bị BỎ QUA — CÙNG quy tắc groupItems() ở findOrder, không được đếm vào 'own' của dịch vụ nào", () => {
+  const serviceRows = [{ order_id: "o1", id: "sv1", catalog_code: "TOUR-1", name: "Tour", unit: "perPax" }];
+  const itemRows = [
+    { order_id: "o1", service_id: "sv1", pax_code: "adult", catalog_price: 300000, line_total: 600000 },
+    { order_id: "o1", service_id: null, pax_code: null, catalog_price: null, line_total: 999999 }, // dòng mồ côi — PHẢI bị bỏ, không cộng vào bất kỳ dịch vụ nào
+  ];
+  const out = buildSubtotalServices(serviceRows, itemRows);
+  assert.deepEqual(out.get("o1"), [{ id: "sv1", catalogCode: "TOUR-1", name: "Tour", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, lineTotal: 600000 }] }], "dòng service_id NULL không được lọt vào items của sv1 hay tạo dịch vụ nào khác");
+});
+
+test("buildSubtotalServices: mảng rỗng → Map rỗng", () => {
+  assert.equal(buildSubtotalServices([], []).size, 0);
 });
 
 test("summarizeServices(applyAdjustedPax(...)): số khách TÓM TẮT của đơn CÓ điều chỉnh là số MỚI; đơn KHÔNG có điều chỉnh là số GỐC — đúng hành vi phải sửa (Đợt E)", () => {

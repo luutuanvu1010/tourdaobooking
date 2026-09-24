@@ -3,7 +3,7 @@
 // người phụ trách (khác người lập) sửa được đơn (bộ kiểm hành vi đầy đủ ở các mục cuối và ở orders/trip/permissions.mjs).
 // Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng"; đóng dòng HANDLE bằng SQL để có đơn "chưa có người phụ trách".
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, login, manualService, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA);
 const B = await session(ACCOUNTS.salesB);
@@ -461,15 +461,15 @@ try {
 
   // --- Lỗi 1: after_json hỏng DẠNG MỀM (mảng đọc được, phần tử có mặt nhưng pax CHỈ có adult, thiếu child/senior/infant) — đúng ca kiểm độc lập
   // đo được: trước bản sửa, chi tiết đơn hiện "9 người lớn" (bịa từ dữ liệu thiếu) trong khi /orders và Trang chủ hiện "2 người lớn" (số đã lưu).
-  // `subtotal_after` đặt = 600000 (KHÔNG phải 9×300,000): applyAdjustmentToOrder (đường chi tiết) không đọc cột này — nó TỰ TÍNH LẠI subtotal từ
-  // dịch vụ (dùng `own` = số đã lưu khi dịch vụ rơi vào nhánh lùi), nên pax lùi (2) VÀ tiền của chi tiết đơn LUÔN tự nhiên đi cùng nhau (2×300,000
-  // = 600,000). Còn /orders và Trang chủ (`toSummaryDtos`) đọc THẲNG cột `subtotal_after`, không phụ thuộc after_json còn phân tích được hay
-  // không — đặt cột này = 600,000 để mô phỏng ĐÚNG ca kiểm độc lập báo ("tiền khớp cả ba bề mặt"); đây KHÔNG PHẢI một bảo đảm kiến trúc chung (nợ
-  // đã ghi trong báo cáo: chi tiết TÍNH LẠI còn danh sách/Trang chủ ĐỌC CỘT ĐÃ LƯU — hai đường tính tiền khác nhau, cố ý để ngoài phạm vi vòng này).
+  // Số mong đợi TỰ TÍNH TỪ KỊCH BẢN (không chép từ kết quả chạy): pax hỏng → parseAdjustmentAfter loại bỏ phần tử này → dòng seq=softSeq có
+  // after=[] → svc18 KHÔNG có trong after của dòng GẦN NHẤT → lùi về số ĐÃ LƯU GỐC (order_service, đóng băng lúc tạo đơn = 2 khách, biết trước vì
+  // `catSvc()` mặc định `pax: { adult: 2 }`) × giá ZH1 (300.000/khách) = 600.000₫ — dùng số 600000 THẲNG, không lấy qua `detailSoft.total`.
+  // `subtotal_after` trong SQL đặt = 999999999 (RÁC, KHÔNG PHẢI 600.000) CỐ Ý: Đợt E task 7 đã sửa nơi đọc (repository.ts) NGỪNG đọc cột này —
+  // nếu khẳng định dưới đây vẫn thấy 600.000 dù cột lưu rác, tức mã ĐÃ THẬT SỰ không đọc cột đó nữa (không phải "tình cờ đặt đúng số" như bản cũ).
   const softSeq = maxSeq18 + 1;
   const softAfter = JSON.stringify([{ serviceId: svc18, pax: { adult: 9 } }]).replace(/'/g, "''");
   await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
-    ('adj-soft-${o18.id}', '${o18.id}', ${softSeq}, '[]', '${softAfter}', 1500000, 600000)`);
+    ('adj-soft-${o18.id}', '${o18.id}', ${softSeq}, '[]', '${softAfter}', 999999999, 999999999)`);
 
   const detailSoft = await orderView(A, o18.id);
   const listSoft = (await call(A, "GET", `/api/orders?q=${o18.orderCode}`)).body.orders.find((x) => x.id === o18.id);
@@ -478,20 +478,20 @@ try {
   const dashTodaySoft = dashSoft.body.today.find((x) => x.id === o18.id);
 
   assert.deepEqual(detailSoft.services[0].pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: pax hỏng dạng mềm → lùi về số ĐÃ LƯU (2), không hiện 9 bịa từ dữ liệu thiếu (Lỗi 1)");
-  assert.deepEqual(listSoft.pax, detailSoft.services[0].pax, "Lỗi 1 đã sửa: /orders phải khớp CHÍNH XÁC trang chi tiết (trước đây lệch 2 so với 5/9)");
-  assert.deepEqual(dashTodaySoft.pax, detailSoft.services[0].pax, "Lỗi 1 đã sửa: Trang chủ cũng phải khớp trang chi tiết");
+  assert.deepEqual(listSoft.pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "Lỗi 1 đã sửa: /orders phải khớp CHÍNH XÁC số tự tính (2), trước đây lệch 2 so với 5/9");
+  assert.deepEqual(dashTodaySoft.pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "Lỗi 1 đã sửa: Trang chủ cũng phải khớp số tự tính (2)");
   assert.equal(detailSoft.subtotal, 600000, "chi tiết: tiền TỰ TÍNH LẠI từ dịch vụ, tự nhiên khớp với pax đã lùi (2×300,000) — không đọc cột subtotal_after");
-  assert.equal(listSoft.total, detailSoft.total, "danh sách đọc cột subtotal_after — case này đặt = 600,000 nên khớp chi tiết, đúng ca kiểm độc lập báo");
-  assert.equal(dashTodaySoft.total, detailSoft.total, "Trang chủ cũng đọc cột subtotal_after, khớp chi tiết");
-  console.log("✓ Lỗi 1 đã sửa: after_json hỏng dạng mềm → chi tiết/​danh sách/​Trang chủ CÙNG số khách (2), không còn lệch nhau");
+  assert.equal(listSoft.total, 600000, "danh sách PHẢI tự tính 600.000 (2×300.000) — cột subtotal_after đã lưu RÁC (999999999), không được đọc lại");
+  assert.equal(dashTodaySoft.total, 600000, "Trang chủ PHẢI tự tính 600.000 — CÙNG lý do, không đọc cột subtotal_after đã lưu rác");
+  console.log("✓ Lỗi 1 đã sửa: after_json hỏng dạng mềm → chi tiết/​danh sách/​Trang chủ CÙNG số khách (2) VÀ CÙNG tiền (600.000, tự tính, không đọc cột subtotal_after đã lưu rác)");
 
   // --- Lỗi 2 + Lỗi 3: after_json hỏng NẶNG (không phải JSON hợp lệ) — trước bản sửa, một phần tử/nội dung như thế này làm applyAdjustedPax (đường
   // /orders, Trang chủ) NÉM LỖI, sập request cho MỌI nhân viên (không riêng đơn hỏng); đơn cũng "không gỡ được bằng thao tác bình thường" vì
   // getLatestAdjustment (đường GHI, editMoneyAsHandler dùng chung) cũng ném lỗi, khiến POST handler-money-edit tiếp theo cũng 500. `subtotal_after`
-  // cũng đặt = 600000 với cùng lý do đã giải thích ở khối Lỗi 1 phía trên (chi tiết tự tính lại, không đọc cột này).
+  // cũng đặt RÁC (cùng lý do khối Lỗi 1 ở trên): nơi đọc TỰ TÍNH LẠI từ dịch vụ (2×300.000=600.000), không đọc cột này.
   const hardSeq = softSeq + 1;
   await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
-    ('adj-hard-${o18.id}', '${o18.id}', ${hardSeq}, '[]', 'khong phai JSON hop le', 600000, 600000)`);
+    ('adj-hard-${o18.id}', '${o18.id}', ${hardSeq}, '[]', 'khong phai JSON hop le', 999999999, 999999999)`);
 
   const detailHard = await orderView(A, o18.id);
   assert.deepEqual(detailHard.services[0].pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: after_json hỏng nặng → KHÔNG sập (Lỗi 2), lùi về số ĐÃ LƯU");
@@ -523,16 +523,20 @@ try {
   // mới là ca CHƯA có lưới nào trước bản sửa, đúng cơ chế gây "sập cả trang" mà kiểm độc lập đo được).
   const nullElemSeq = hardSeq + 1;
   await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
-    ('adj-nullelem-${o18.id}', '${o18.id}', ${nullElemSeq}, '[]', '[null]', 600000, 600000)`);
+    ('adj-nullelem-${o18.id}', '${o18.id}', ${nullElemSeq}, '[]', '[null]', 999999999, 999999999)`);
 
   const detailNullElem = await orderView(A, o18.id);
   assert.deepEqual(detailNullElem.services[0].pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: after_json = [null] → KHÔNG sập, lùi về số ĐÃ LƯU");
+  assert.equal(detailNullElem.subtotal, 600000, "chi tiết: 2×300.000 (tự tính), không phụ thuộc after_json hỏng");
   const listNullElem = await call(A, "GET", `/api/orders?q=${o18.orderCode}`);
   assert.equal(listNullElem.status, 200, "Lỗi 2 đã sửa: /api/orders KHÔNG được sập vì after_json = [null] (ca cụ thể kiểm độc lập đo được)");
-  assert.deepEqual(listNullElem.body.orders.find((x) => x.id === o18.id).pax, { adult: 2, child: 0, senior: 0, infant: 0 });
+  const listedNullElem = listNullElem.body.orders.find((x) => x.id === o18.id);
+  assert.deepEqual(listedNullElem.pax, { adult: 2, child: 0, senior: 0, infant: 0 });
+  assert.equal(listedNullElem.total, 600000, "danh sách PHẢI tự tính 600.000 — cột subtotal_after đã lưu RÁC, không được đọc lại");
   const dashNullElem = await call(A, "GET", "/api/orders/dashboard");
   assert.equal(dashNullElem.status, 200, "Lỗi 2 đã sửa: Trang chủ KHÔNG được sập vì after_json = [null]");
-  console.log("✓ Lỗi 2 đã sửa (biến thể [null]): phần tử KHÔNG phải object trong after_json → /orders và Trang chủ vẫn 200, không sập");
+  assert.equal(dashNullElem.body.today.find((x) => x.id === o18.id).total, 600000, "Trang chủ PHẢI tự tính 600.000 — CÙNG lý do");
+  console.log("✓ Lỗi 2 đã sửa (biến thể [null]): phần tử KHÔNG phải object trong after_json → /orders và Trang chủ vẫn 200, không sập, tiền tự tính đúng 600.000");
 
   // --- Lỗi 1 (biến thể TRÙNG serviceId — phát hiện ở vòng kiểm độc lập THỨ HAI trên CHÍNH task này, sau khi bản sửa đầu "coi là xong"): after_json
   // có HAI phần tử CÙNG serviceId, cả hai hợp lệ về DẠNG (chỉ tới được đây qua dữ liệu hỏng ngoài tầm kiểm — parseMoneyEditInput chặn khi GHI).
@@ -544,16 +548,20 @@ try {
     { serviceId: svc18, pax: { adult: 7, child: 0, senior: 0, infant: 0 } },
   ]).replace(/'/g, "''");
   await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
-    ('adj-dup-${o18.id}', '${o18.id}', ${dupSeq}, '[]', '${dupAfter}', 600000, 2100000)`);
+    ('adj-dup-${o18.id}', '${o18.id}', ${dupSeq}, '[]', '${dupAfter}', 999999999, 999999999)`);
 
   const detailDup = await orderView(A, o18.id);
   const listDup = (await call(A, "GET", `/api/orders?q=${o18.orderCode}`)).body.orders.find((x) => x.id === o18.id);
   const dashDup = await call(A, "GET", "/api/orders/dashboard");
   const dashTodayDup = dashDup.body.today.find((x) => x.id === o18.id);
+  const expectedDup = 7 * 300000; // 2.100.000 — phần tử ĐỨNG SAU (7) thắng, tự tính từ giá ZH1 (300.000/khách), KHÔNG đọc subtotal_after (đã lưu rác)
   assert.deepEqual(detailDup.services[0].pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "chi tiết đơn: hai phần tử trùng serviceId → phần tử ĐỨNG SAU (7) thắng, không phải 3");
-  assert.deepEqual(listDup.pax, detailDup.services[0].pax, "Lỗi 1 (biến thể trùng serviceId): /orders PHẢI khớp CHÍNH XÁC trang chi tiết (cùng 7)");
-  assert.deepEqual(dashTodayDup.pax, detailDup.services[0].pax, "Trang chủ cũng phải khớp (cùng 7)");
-  console.log("✓ Lỗi 1 đã sửa (biến thể trùng serviceId): after_json có hai phần tử cùng serviceId → chi tiết/​danh sách/​Trang chủ CÙNG lấy phần tử đứng sau, không mỗi bên một số");
+  assert.deepEqual(listDup.pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "Lỗi 1 (biến thể trùng serviceId): /orders PHẢI khớp số tự tính (7)");
+  assert.deepEqual(dashTodayDup.pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "Trang chủ cũng phải khớp số tự tính (7)");
+  assert.equal(detailDup.subtotal, expectedDup, "chi tiết: 7×300.000 = 2.100.000");
+  assert.equal(listDup.total, expectedDup, "danh sách PHẢI tự tính 2.100.000 — cột subtotal_after đã lưu RÁC, không được đọc lại");
+  assert.equal(dashTodayDup.total, expectedDup, "Trang chủ PHẢI tự tính 2.100.000 — CÙNG lý do");
+  console.log("✓ Lỗi 1 đã sửa (biến thể trùng serviceId): after_json có hai phần tử cùng serviceId → chi tiết/​danh sách/​Trang chủ CÙNG lấy phần tử đứng sau (7), CÙNG tự tính tiền 2.100.000, không mỗi bên một số");
 
   // Bề mặt THỨ TƯ đọc after_json (kiểm độc lập lưu ý: getMyAssignments → loadOrderView → getLatestAdjustment) — "Việc của tôi" của chính FIELD đang
   // phụ trách o18, trong lúc dòng điều chỉnh gần nhất của o18 VẪN đang là dòng trùng serviceId ở trên. Không có trường tiền nào ở màn này nên chỉ
@@ -674,6 +682,180 @@ try {
   assert.deepEqual(seqs, Array.from({ length: seqs.length }, (_, i) => i + 1), "seq của mọi dòng liên tục từ 1, không trùng, không nhảy cóc");
   assert.equal(seqs.length, 1 + wins, "số dòng MỚI (sau lần sửa đầu tiên ở trên) đúng bằng số yêu cầu thành công trong đợt tranh chấp này");
   console.log(`✓ ${N} yêu cầu sửa gần như đồng thời: ${wins} thành công, seq liên tục không trùng (chỉ mục duy nhất chặn thật mọi lần đụng nhau), còn lại 409 stale`);
+
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  // Đợt E task 7 — CA LỖI GỐC đo được thật (kiểm độc lập): đơn có dịch vụ NHẬP TAY (ngoài danh mục) + có ít nhất một lần sửa số khách/tiền SAU
+  // KHI XÁC NHẬN → trang chi tiết đơn và GET /api/dispatch/mine (không có trường tiền — chỉ đối chứng số khách, ADR-0007 điều 3) ĐÚNG; /api/orders
+  // và Trang chủ (`/api/orders/dashboard`) từng THIẾU đúng tiền dịch vụ nhập tay (đo được: thiếu 200.000₫) vì đọc thẳng cột `subtotal_after` đã
+  // lưu — cột này, ở nơi GHI cũ, chỉ cộng dịch vụ TỪ DANH MỤC. Sáu ca dưới đây (đặc tả điều phối viên mục D) mỗi ca TỰ TÍNH số mong đợi TỪ KỊCH
+  // BẢN (giá ZH1 = 300.000₫/khách đã khai ở đầu khối `try` này, dịch vụ nhập tay = 200.000₫/dòng CỐ ĐỊNH) — KHÔNG chép số từ kết quả chạy (đây
+  // chính là chỗ bộ kiểm CŨ ở đoạn hỏng after_json phía trên "kiểm giả": so đối chiếu bốn bề mặt VỚI NHAU thay vì với số tự tính — đã viết lại,
+  // xem đoạn softSeq/hardSeq ở trên đã đặt `subtotal_after` thành số RÁC (999) thay vì số trùng hợp khớp).
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  const manualSvc = (price, extra = {}) => manualService([{ description: "Phí phát sinh", quantity: 1, unitPrice: price }], extra);
+  const measured = []; // bảng số đo cuối — in ra cuối khối này (yêu cầu báo cáo: "ca nào, tự tính tay bao nhiêu, bốn bề mặt trả về bao nhiêu")
+
+  /** Đo BA bề mặt CÓ tiền (chi tiết đơn, /api/orders, Trang chủ hôm nay) + bề mặt thứ tư KHÔNG có tiền (Việc của tôi — chỉ đối chứng số khách). */
+  async function measureFourSurfaces(orderId, orderCode) {
+    const chiTiet = await orderView(A, orderId);
+    const orders = (await call(A, "GET", `/api/orders?q=${orderCode}`)).body.orders.find((x) => x.id === orderId);
+    const dash = await call(A, "GET", "/api/orders/dashboard");
+    assert.equal(dash.status, 200, JSON.stringify(dash.body));
+    const dashboard = dash.body.today.find((x) => x.id === orderId);
+    const mine = (await call(FIELD, "GET", "/api/dispatch/mine")).body.assignments.find((x) => x.orderId === orderId);
+    return { chiTiet, orders, dashboard, mine };
+  }
+
+  // --- D1: đơn CHỈ có dịch vụ DANH MỤC + sửa sau xác nhận (hồi quy — bốn bề mặt vốn đã đúng trước bản sửa này, xác nhận vẫn đúng sau) ------------
+  {
+    const d1 = (await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })] }))).body.order;
+    assert.equal((await call(A, "POST", `/api/orders/${d1.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, d1.id, fld.id)).status, 200);
+    r = await moneyEdit(FIELD, d1.id, { reason: "D1: chỉ danh mục", services: [{ id: d1.services[0].id, pax: pax(3) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+
+    const expected = 3 * 300000; // 900.000 — 3 khách × 300.000, không có dịch vụ nhập tay nào
+    const s = await measureFourSurfaces(d1.id, d1.orderCode);
+    assert.equal(s.chiTiet.total, expected, "D1 chi tiết đơn");
+    assert.equal(s.orders.total, expected, "D1 /api/orders");
+    assert.ok(s.dashboard, "D1 phải có trong Trang chủ hôm nay");
+    assert.equal(s.dashboard.total, expected, "D1 Trang chủ");
+    assert.ok(s.mine, "D1 phải có trong Việc của tôi");
+    assert.deepEqual(s.mine.services[0].pax, pax(3), "D1 Việc của tôi: số khách khớp");
+    measured.push({ ca: "D1 chỉ danh mục", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
+    console.log(`✓ D1 (chỉ danh mục): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
+  }
+
+  // --- D2: đơn CHỈ có dịch vụ NHẬP TAY + "sửa" sau xác nhận (route chỉ chấp nhận services:[] — không có dịch vụ danh mục nào để liệt kê) ----------
+  {
+    const d2 = (await call(A, "POST", "/api/orders", orderInput({ services: [manualSvc(200000, { departDate: vnDate(0) })] }))).body.order;
+    assert.equal((await call(A, "POST", `/api/orders/${d2.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, d2.id, fld.id)).status, 200);
+    r = await moneyEdit(FIELD, d2.id, { reason: "D2: chỉ nhập tay", services: [] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+
+    const expected = 200000; // GIỮ NGUYÊN — đúng lỗi cũ: vòng lặp nơi ghi cũ chỉ duyệt catalogServices (rỗng ở đây) nên subtotal_after cũ = 0
+    const s = await measureFourSurfaces(d2.id, d2.orderCode);
+    assert.equal(s.chiTiet.total, expected, "D2 chi tiết đơn");
+    assert.equal(s.orders.total, expected, "D2 /api/orders");
+    assert.ok(s.dashboard, "D2 phải có trong Trang chủ hôm nay");
+    assert.equal(s.dashboard.total, expected, "D2 Trang chủ");
+    measured.push({ ca: "D2 chỉ nhập tay", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
+    console.log(`✓ D2 (chỉ nhập tay): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
+  }
+
+  // --- D3: đơn TRỘN danh mục + nhập tay + sửa sau xác nhận — ĐÚNG CA LỖI GỐC kiểm độc lập đo được (thiếu 200.000₫) ------------------------------
+  {
+    const d3 = (
+      await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })] }))
+    ).body.order;
+    const d3SvcId = d3.services.find((s) => s.catalogCode === "ZH1").id;
+    assert.equal((await call(A, "POST", `/api/orders/${d3.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, d3.id, fld.id)).status, 200);
+    r = await moneyEdit(FIELD, d3.id, { reason: "D3: đơn trộn — ca lỗi gốc", services: [{ id: d3SvcId, pax: pax(3) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+
+    const expected = 3 * 300000 + 200000; // 1.100.000 = 900.000 (danh mục, 3×300.000) + 200.000 (nhập tay) — bản cũ hiện 900.000 ở /orders & Trang chủ
+    const s = await measureFourSurfaces(d3.id, d3.orderCode);
+    assert.equal(s.chiTiet.total, expected, "D3 chi tiết đơn (đã đúng từ trước bản sửa này)");
+    assert.equal(s.orders.total, expected, "D3 /api/orders — CA LỖI GỐC: bản cũ hiện 900.000 (thiếu 200.000) ở đây");
+    assert.ok(s.dashboard, "D3 phải có trong Trang chủ hôm nay");
+    assert.equal(s.dashboard.total, expected, "D3 Trang chủ — CA LỖI GỐC: bản cũ hiện 900.000 (thiếu 200.000) ở đây");
+    assert.ok(s.mine, "D3 phải có trong Việc của tôi");
+    assert.deepEqual(s.mine.services.find((x) => x.catalogCode === "ZH1").pax, pax(3), "D3 Việc của tôi: số khách khớp");
+    measured.push({ ca: "D3 TRỘN — ca lỗi gốc", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
+    console.log(`✓ D3 (TRỘN, ca lỗi gốc): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
+  }
+
+  // --- D4: đơn TRỘN + NHIỀU LẦN SỬA LIÊN TIẾP (2 gốc → 5 → 6 → 4) — bốn bề mặt phải lấy ĐÚNG lần sửa GẦN NHẤT ----------------------------------
+  {
+    const d4 = (
+      await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })] }))
+    ).body.order;
+    const d4SvcId = d4.services.find((s) => s.catalogCode === "ZH1").id;
+    assert.equal((await call(A, "POST", `/api/orders/${d4.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, d4.id, fld.id)).status, 200);
+    for (const p of [5, 6, 4]) {
+      r = await moneyEdit(FIELD, d4.id, { reason: `D4: sửa còn ${p} khách`, services: [{ id: d4SvcId, pax: pax(p) }] });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+    }
+
+    const expected = 4 * 300000 + 200000; // 1.400.000 — LẦN CUỐI (4), không phải lần giữa (5 → 1.700.000, hay 6 → 2.000.000)
+    const s = await measureFourSurfaces(d4.id, d4.orderCode);
+    assert.equal(s.chiTiet.total, expected, "D4 chi tiết đơn");
+    assert.equal(s.orders.total, expected, "D4 /api/orders");
+    assert.ok(s.dashboard, "D4 phải có trong Trang chủ hôm nay");
+    assert.equal(s.dashboard.total, expected, "D4 Trang chủ");
+    measured.push({ ca: "D4 TRỘN, nhiều lần sửa", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
+    console.log(`✓ D4 (TRỘN, sửa liên tiếp 2→5→6→4): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
+  }
+
+  // --- D5: đơn TRỘN + CỌC + sửa — "còn thu" (remainingAmount) phải đúng ở CẢ BỐN bề mặt --------------------------------------------------------
+  {
+    const d5 = (
+      await call(
+        A, "POST", "/api/orders",
+        orderInput({
+          services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })],
+          depositAmount: 300000, depositMethod: "cash",
+        }),
+      )
+    ).body.order;
+    const d5SvcId = d5.services.find((s) => s.catalogCode === "ZH1").id;
+    assert.equal((await call(A, "POST", `/api/orders/${d5.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, d5.id, fld.id)).status, 200);
+    r = await moneyEdit(FIELD, d5.id, { reason: "D5: đơn trộn có cọc", services: [{ id: d5SvcId, pax: pax(4) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+
+    const expectedTotal = 4 * 300000 + 200000; // 1.400.000
+    const expectedRemaining = expectedTotal - 300000; // 1.100.000 (cọc không đổi qua điều chỉnh)
+    const s = await measureFourSurfaces(d5.id, d5.orderCode);
+    assert.equal(s.chiTiet.total, expectedTotal, "D5 chi tiết đơn: total");
+    assert.equal(s.chiTiet.remainingAmount, expectedRemaining, "D5 chi tiết đơn: còn thu");
+    assert.equal(s.orders.total, expectedTotal, "D5 /api/orders: total");
+    assert.equal(s.orders.remainingAmount, expectedRemaining, "D5 /api/orders: còn thu");
+    assert.ok(s.dashboard, "D5 phải có trong Trang chủ hôm nay");
+    assert.equal(s.dashboard.total, expectedTotal, "D5 Trang chủ: total");
+    assert.equal(s.dashboard.remainingAmount, expectedRemaining, "D5 Trang chủ: còn thu");
+    measured.push({ ca: "D5 TRỘN + cọc (còn thu)", tuTinh: expectedRemaining, chiTiet: s.chiTiet.remainingAmount, orders: s.orders.remainingAmount, dashboard: s.dashboard.remainingAmount });
+    console.log(`✓ D5 (TRỘN + cọc 300.000): tự tính total ${expectedTotal.toLocaleString("vi-VN")}₫, còn thu ${expectedRemaining.toLocaleString("vi-VN")}₫ — khớp cả bốn bề mặt`);
+  }
+
+  // --- D6: đơn CŨ đã lưu `subtotal_after` THIẾU (dựng bằng SQL — bảng order_money_adjustment CHỈ-THÊM, không sửa được bản ghi cũ qua API bình
+  // thường, kể cả bằng SQL tay: trigger 0021 chặn UPDATE/DELETE nhưng INSERT thêm MỘT dòng seq mới thì được, đúng cách mô phỏng "dữ liệu hỏng/cũ
+  // ngoài tầm kiểm lúc ghi" mà file này đã dùng cho các ca after_json hỏng phía trên). subtotal_before=600.000/subtotal_after=900.000 dưới đây LÀ
+  // SỐ THẬT nơi ghi CŨ (trước khi có mục A của bản sửa này) tính ra cho CHÍNH kịch bản này — suy trực tiếp từ công thức nơi ghi cũ (chỉ lặp qua
+  // dịch vụ TỪ DANH MỤC): before = 2 khách × 300.000 = 600.000, after = 3 khách × 300.000 = 900.000, CẢ HAI đều BỎ SÓT đúng 200.000 tiền dịch vụ
+  // nhập tay — khớp chính xác với D3 (kịch bản GIỐNG HỆT D6, chạy qua API thật ở trên) nếu chạy trên mã CHƯA sửa mục A. Đây CHÍNH LÀ lý do mục B
+  // (nơi đọc) quan trọng hơn mục A (nơi ghi): mục A chỉ chữa được đơn TỪ NAY, còn đơn CŨ như D6 chỉ được chữa nếu nơi ĐỌC ngừng tin cột đã lưu.
+  {
+    const d6 = (
+      await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })] }))
+    ).body.order;
+    const d6SvcId = d6.services.find((s) => s.catalogCode === "ZH1").id;
+    assert.equal((await call(A, "POST", `/api/orders/${d6.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, d6.id, fld.id)).status, 200);
+
+    const oldAfter = JSON.stringify([{ serviceId: d6SvcId, pax: { adult: 3, child: 0, senior: 0, infant: 0 } }]).replace(/'/g, "''");
+    await sql(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES
+      ('adj-d6-old-${d6.id}', '${d6.id}', 1, '[]', '${oldAfter}', 600000, 900000)`);
+
+    const expected = 3 * 300000 + 200000; // 1.100.000 — ĐÚNG, dù cột subtotal_after đã lưu SAI (900.000, thiếu 200.000 nhập tay)
+    const s = await measureFourSurfaces(d6.id, d6.orderCode);
+    assert.equal(s.chiTiet.total, expected, "D6 chi tiết đơn: phải đúng dù subtotal_after đã lưu sai");
+    assert.equal(s.orders.total, expected, "D6 /api/orders: KHÔNG được đọc lại 900.000 đã lưu sai (đây là điểm mục B chữa được dữ liệu cũ)");
+    assert.ok(s.dashboard, "D6 phải có trong Trang chủ hôm nay");
+    assert.equal(s.dashboard.total, expected, "D6 Trang chủ: KHÔNG được đọc lại 900.000 đã lưu sai");
+    assert.ok(s.mine, "D6 phải có trong Việc của tôi");
+    assert.deepEqual(s.mine.services.find((x) => x.catalogCode === "ZH1").pax, pax(3), "D6 Việc của tôi: số khách khớp");
+    measured.push({ ca: "D6 dữ liệu CŨ đã lưu sai", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
+    console.log(`✓ D6 (dữ liệu CŨ, subtotal_after đã lưu SAI = 900.000): tự tính ĐÚNG ${expected.toLocaleString("vi-VN")}₫ — cả bốn bề mặt hiện đúng, không đọc lại số đã lưu sai`);
+  }
+
+  console.log("\n=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc remainingAmount cho D5) ===");
+  for (const m of measured) {
+    console.log(`${m.ca}: tự tính ${m.tuTinh.toLocaleString("vi-VN")}₫ | chi tiết ${m.chiTiet.toLocaleString("vi-VN")}₫ | /orders ${m.orders.toLocaleString("vi-VN")}₫ | Trang chủ ${m.dashboard.toLocaleString("vi-VN")}₫`);
+  }
 } finally {
   await sql("DELETE FROM catalog_item WHERE code = 'ZH1'").catch((e) => console.error("dọn danh mục giả ZH1 thất bại:", String(e).slice(0, 200)));
 }
