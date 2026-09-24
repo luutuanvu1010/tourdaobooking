@@ -48,7 +48,7 @@ test("R2 FINDING identity: gửi lại POST có newBooker tạo 2 hồ sơ khác
   assert.equal(n, 2);
 });
 
-test("R3 FINDING authz: nhân viên SALES đổi tên + NGƯNG hồ sơ của quản trị viên qua PUT /api/parties/:id", async () => {
+test("R3 PASS authz (ADR-0013, vá 2026-…): SALES không đổi tên/ngưng hồ sơ quản trị viên — 403, tên không đổi", async () => {
   const w = setup();
   const cur = await w.call("GET", `/api/parties/pty-${ADM}`, { as: B });
   assert.equal(cur.status, 200, cur.text);
@@ -57,29 +57,29 @@ test("R3 FINDING authz: nhân viên SALES đổi tên + NGƯNG hồ sơ của qu
   const label = w.q(`SELECT label FROM v_stf_staff_label WHERE id = ?`, ADM)[0].label;
   const active = w.q(`SELECT active FROM pty_party WHERE id = ?`, `pty-${ADM}`)[0].active;
   console.log("R3 status", r.status, "label=", label, "party.active=", active, r.status !== 200 ? r.text : "");
-  assert.equal(r.status, 200);
-  assert.equal(label, "Kẻ Mạo Danh");
+  assert.equal(r.status, 403);
+  assert.equal(label, "Quản trị");
 });
 
-test("R3b FINDING authz: tên do đồng nghiệp đổi hiện ở 'người phụ trách' của đơn (in lên ảnh xác nhận gửi khách) và ở người lập đơn", async () => {
+test("R3b PASS authz (ADR-0013, vá 2026-…): SALES không đổi được tên đồng nghiệp — 403; người phụ trách và người lập vẫn mang tên thật", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
   const p = (await w.call("GET", `/api/parties/pty-${A}`, { as: B })).json.party;
   const r = await w.call("PUT", `/api/parties/pty-${A}`, { as: B, body: { familyName: null, middleName: null, givenName: "Tên Giả", active: true, expectedUpdatedAt: p.updatedAt } });
-  assert.equal(r.status, 200, r.text);
+  assert.equal(r.status, 403, r.text);
   const h = await w.call("GET", `/api/dispatch/handlers?orderIds=${o.id}`, { as: B });
-  assert.equal(h.json.handlers[o.id].name, "Tên Giả");
-  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).json.order.staffName, "Tên Giả");
+  assert.equal(h.json.handlers[o.id].name, "An");
+  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).json.order.staffName, "An");
 });
 
 // 2026-09-24 (docs/evidence/2026-09-24-lo-hong-ho-so/): F-01 rộng hơn kiểm toán ghi — không chỉ tên/ngưng mà cả LIÊN HỆ của hồ sơ nhân viên.
 // Đặc tả 11 vai dự định hiện "SĐT công việc trong hồ sơ" của người phụ trách cho đối tác → số bị cài ở đây sẽ đi ra ngoài.
-test("R3c FINDING authz: nhân viên SALES thêm số điện thoại vào hồ sơ của quản trị viên qua POST /api/parties/:id/contacts", async () => {
+test("R3c PASS authz (ADR-0013, vá 2026-…): SALES không thêm SĐT vào hồ sơ quản trị viên — 403, không có dòng liên hệ", async () => {
   const w = setup();
   const r = await w.call("POST", `/api/parties/pty-${ADM}/contacts`, { as: B, body: { kind: "PHONE", value: "0911222333", label: "Zalo", isPrimary: true } });
   console.log("R3c status", r.status, r.status !== 201 ? r.text : "");
-  assert.equal(r.status, 201);
-  assert.equal(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND value_normalized = '0911222333'", `pty-${ADM}`)[0].n, 1);
+  assert.equal(r.status, 403);
+  assert.equal(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND value_normalized = '0911222333'", `pty-${ADM}`)[0].n, 0);
 });
 
 // Trong phạm vi ADR-0007 CHO PHÉP (SALES sửa hồ sơ khách), nhưng cờ "ngưng" của hồ sơ dùng chung lan sang đơn NHÁP của người khác

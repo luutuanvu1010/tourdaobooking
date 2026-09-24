@@ -186,4 +186,30 @@ const dump = JSON.stringify(r.body);
 for (const secret of [phone, phone.slice(1), "Phong.Test@Example.com", "phong.test@example.com", "0312345678", "ketoan@thu.vn"]) assert.ok(!dump.includes(secret), `nhật ký lộ dữ liệu cá nhân: ${secret}`);
 assert.equal(partyLogs.filter((e) => e.action === "party_updated" && e.targetId === A.id).length, 2, "hai lần sửa thành công của A (bên thua khoá lạc quan không ghi)");
 console.log("✓ nhật ký, không lộ dữ liệu cá nhân");
+
+// --- ADR-0013: hồ sơ gắn tài khoản chỉ quản trị cấp trên sửa (trên D1 local thật, qua wrangler dev)
+const salesParty = (await call(SALES, "GET", "/api/auth/me")).body.staff.partyId; // StaffProfile.partyId (src/shared/contracts.ts)
+let sp = (await call(SALES, "GET", P(salesParty))).body.party;
+assert.equal(sp.accountLinked, true); assert.equal(sp.editable, false);
+const OTHER = await session(ACCOUNTS.salesB);
+assert.equal((await call(OTHER, "PUT", P(salesParty), { familyName: null, middleName: null, givenName: "Mạo Danh", active: true, expectedUpdatedAt: sp.updatedAt })).status, 403);
+assert.equal((await call(OTHER, "POST", `${P(salesParty)}/contacts`, { kind: "PHONE", value: randomPhone() })).status, 403);
+sp = (await call(ADMIN, "GET", P(salesParty))).body.party;
+assert.equal(sp.editable, true);
+assert.equal((await call(ADMIN, "PUT", P(salesParty), { familyName: sp.familyName, middleName: sp.middleName, givenName: sp.givenName, active: false, expectedUpdatedAt: sp.updatedAt })).status, 409);
+assert.equal((await call(ADMIN, "PUT", P(salesParty), { familyName: sp.familyName, middleName: sp.middleName, givenName: sp.givenName, active: true, expectedUpdatedAt: sp.updatedAt })).status, 200);
+console.log("✓ ADR-0013: hồ sơ có tài khoản — SALES 403, ADMIN sửa được, không đổi 'đang dùng' (409)");
+
+// --- ADR-0013: SUPER_ADMIN sửa được hồ sơ ADMIN; ADMIN không sửa được hồ sơ SUPER_ADMIN
+const SUPER = await session(ACCOUNTS.superAdmin);
+const adminParty = (await call(ADMIN, "GET", "/api/auth/me")).body.staff.partyId;
+const superParty = (await call(SUPER, "GET", "/api/auth/me")).body.staff.partyId;
+let ap = (await call(SUPER, "GET", P(adminParty))).body.party;
+assert.equal(ap.editable, true);
+assert.equal((await call(SUPER, "PUT", P(adminParty), { familyName: ap.familyName, middleName: ap.middleName, givenName: ap.givenName, active: true, expectedUpdatedAt: ap.updatedAt })).status, 200);
+let spr = (await call(ADMIN, "GET", P(superParty))).body.party;
+assert.equal(spr.editable, false);
+assert.equal((await call(ADMIN, "PUT", P(superParty), { familyName: spr.familyName, middleName: spr.middleName, givenName: "Mạo Danh", active: true, expectedUpdatedAt: spr.updatedAt })).status, 403);
+console.log("✓ ADR-0013: SUPER_ADMIN sửa ADMIN được; ADMIN sửa SUPER_ADMIN bị chặn (403)");
+
 console.log("E2E PARTIES OK");
