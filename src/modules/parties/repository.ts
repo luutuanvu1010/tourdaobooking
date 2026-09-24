@@ -106,7 +106,8 @@ const RELATIONSHIPS_OF = defineSql(
      JOIN v_pty_party_label f ON f.id = r.from_party_id JOIN v_pty_party_label tp ON tp.id = r.to_party_id
    WHERE r.from_party_id = ?1 OR r.to_party_id = ?1 ORDER BY (r.valid_to_date IS NOT NULL), r.valid_from_date DESC, r.id`,
 );
-const ROLE_TYPES = defineSql("parties", "role_types", "SELECT code, name FROM pty_role_type WHERE active = 1 ORDER BY sort_order");
+// Mọi loại vai (cả vai đã ngưng) kèm nhóm: giao diện cần tên đúng của vai cũ để hiện; ô "thêm vai" tự lọc nhóm OTHER đang dùng.
+const ROLE_TYPES = defineSql("parties", "role_types", "SELECT code, name, role_group, active FROM pty_role_type ORDER BY sort_order");
 const RELATIONSHIP_TYPES = defineSql("parties", "relationship_types", "SELECT code, name FROM pty_relationship_type WHERE active = 1 ORDER BY sort_order");
 
 export interface ListFilter {
@@ -151,8 +152,9 @@ export async function getPartyDetail(db: D1Database, id: string): Promise<{ part
   return { party: row, contacts: contacts!.results as ContactRow[], roles: roles!.results as RoleRow[], relationships: relationships!.results as RelationshipRow[] };
 }
 
-export async function listRoleTypes(db: D1Database): Promise<TypeRow[]> {
-  return (await db.prepare(ROLE_TYPES).all<TypeRow>()).results;
+export interface RoleTypeRow { code: string; name: string; role_group: string; active: number }
+export async function listRoleTypes(db: D1Database): Promise<RoleTypeRow[]> {
+  return (await db.prepare(ROLE_TYPES).all<RoleTypeRow>()).results;
 }
 export async function listRelationshipTypes(db: D1Database): Promise<TypeRow[]> {
   return (await db.prepare(RELATIONSHIP_TYPES).all<TypeRow>()).results;
@@ -344,3 +346,50 @@ export const addRelationshipStatement = (db: D1Database, r: RelationshipInput, a
   db.prepare(INSERT_RELATIONSHIP).bind(crypto.randomUUID(), r.fromPartyId, r.toPartyId, r.typeCode, r.from, r.to, at, actorId);
 export const endRelationshipStatement = (db: D1Database, partyId: string, relationshipId: string, to: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(END_RELATIONSHIP).bind(relationshipId, partyId, to, at, actorId);
+
+// ---- Vai với Tour Đảo của hồ sơ gắn tài khoản (ADR-0018 điều 3) — CHỈ hàm sinh quyền của module staff dùng, qua index.ts ---------------------
+export interface AccountRoleRow { id: string; role_type_code: string; valid_from_date: string; valid_to_date: string | null }
+// ?2 = hôm nay (giờ VN). Vai không gắn nơi: đang mở, hoặc đã đóng TỪ hôm nay trở đi (để mở lại trong ngày thay vì chèn dòng chồng lấn).
+const ACCOUNT_ROLES_OF = defineSql(
+  "parties",
+  "account_roles_of",
+  `SELECT id, role_type_code, valid_from_date, valid_to_date FROM pty_party_role
+   WHERE party_id = ?1 AND location_id IS NULL AND (valid_to_date IS NULL OR valid_to_date >= ?2)
+   ORDER BY valid_from_date, id`,
+);
+// ?1 = mảng JSON các id hồ sơ. Vai KHÔNG GẮN NƠI đang mở, gộp theo hồ sơ — MỘT truy vấn cho cả danh sách tài khoản. Cùng điều kiện
+// location_id IS NULL với ACCOUNT_ROLES_OF (Ruling R1): vai gắn một nơi cụ thể (HDV/tài xế tại một bến…) không phải vai tài khoản.
+const OPEN_ROLE_CODES_FOR = defineSql(
+  "parties",
+  "open_role_codes_for",
+  `SELECT party_id, group_concat(role_type_code) AS codes FROM pty_party_role
+   WHERE party_id IN (SELECT value FROM json_each(?1)) AND location_id IS NULL AND valid_to_date IS NULL GROUP BY party_id`,
+);
+const ROLE_TYPE_GROUP = defineSql("parties", "role_type_group", "SELECT role_group FROM pty_role_type WHERE code = ?1");
+const ROLE_ROW_GROUP = defineSql(
+  "parties",
+  "role_row_group",
+  "SELECT t.role_group FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code WHERE r.id = ?1 AND r.party_id = ?2",
+);
+const REOPEN_ROLE = defineSql(
+  "parties",
+  "reopen_role",
+  "UPDATE pty_party_role SET valid_to_date = NULL, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND party_id = ?2 AND valid_to_date IS NOT NULL",
+);
+
+export async function accountRolesOf(db: D1Database, partyId: string, today: string): Promise<AccountRoleRow[]> {
+  return (await db.prepare(ACCOUNT_ROLES_OF).bind(partyId, today).all<AccountRoleRow>()).results;
+}
+export async function openRoleCodesFor(db: D1Database, partyIds: readonly string[]): Promise<Map<string, string[]>> {
+  if (partyIds.length === 0) return new Map();
+  const { results } = await db.prepare(OPEN_ROLE_CODES_FOR).bind(JSON.stringify(partyIds)).all<{ party_id: string; codes: string }>();
+  return new Map(results.map((r) => [r.party_id, r.codes.split(",")]));
+}
+export async function roleTypeGroup(db: D1Database, code: string): Promise<string | null> {
+  return (await db.prepare(ROLE_TYPE_GROUP).bind(code).first<{ role_group: string }>())?.role_group ?? null;
+}
+export async function roleRowGroup(db: D1Database, partyId: string, roleId: string): Promise<string | null> {
+  return (await db.prepare(ROLE_ROW_GROUP).bind(roleId, partyId).first<{ role_group: string }>())?.role_group ?? null;
+}
+export const reopenRoleStatement = (db: D1Database, partyId: string, roleId: string, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(REOPEN_ROLE).bind(roleId, partyId, at, actorId);

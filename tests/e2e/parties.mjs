@@ -12,7 +12,13 @@ const P = (id) => `/api/parties/${id}`;
 assert.equal((await call(null, "GET", "/api/parties")).status, 401);
 let r = await call(SALES, "GET", "/api/parties/meta");
 assert.equal(r.status, 200);
-assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), ["ACCOUNTANT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "GUIDE_FREELANCE", "GUIDE_INTERNAL", "HOTEL_RECEPTION", "INTERN", "OPERATIONS_MANAGER", "SALES_STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY"]);
+// ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
+assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
+  "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
+  "HOTEL_RECEPTION", "INTERN", "OPERATIONS_MANAGER", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY",
+]);
+assert.deepEqual(r.body.roleTypes.find((t) => t.code === "SALES_STAFF"), { code: "SALES_STAFF", name: "Nhân viên kinh doanh", group: "INTERNAL", active: true });
+assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);
 assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF"]);
 const locations = (await call(SALES, "GET", "/api/locations")).body.locations;
 const vinpearl = locations.find((l) => l.code === "CANG_VINPEARL");
@@ -147,6 +153,14 @@ assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "GUI
 assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "GUIDE", locationId: "00000000-0000-0000-0000-000000000000" })).status, 400, "nơi không tồn tại");
 assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "KHONG_CO" })).status, 400, "loại vai trò không tồn tại");
 assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "DRIVER", validFrom: "2026-02-30" })).status, 400);
+
+// ADR-0018: vai quyết định quyền đăng nhập không gán/gỡ ở trang Hồ sơ.
+for (const code of ["SALES_STAFF", "COLLABORATOR"]) {
+  const x = await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: code });
+  assert.equal(x.status, 409, `${code}: ${JSON.stringify(x.body)}`);
+  assert.equal(x.body.error.code, "role_via_account");
+}
+console.log("✓ vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên");
 
 // Truy vấn của đợt N1: ai giữ vai HDV ở Bến cảng Vinpearl hôm nay
 r = await call(SALES, "GET", `/api/parties?role=GUIDE&location=${vinpearl.id}`);

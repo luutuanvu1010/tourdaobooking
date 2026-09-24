@@ -63,6 +63,11 @@ const select = (options: { value: string; label: string }[], selected = options[
 const period = (from: string, to: string | null) => (to ? `${from} → ${to}` : `từ ${from}`);
 const checkbox = (checked: boolean) => h("input", { type: "checkbox", checked, style: "width:auto;display:inline;margin:0 6px 0 0" });
 const roleLabel = (code: string) => meta.roleTypes.find((t) => t.code === code)?.name ?? code;
+/** Vai quyết định quyền đăng nhập (nội bộ/bên ngoài, ADR-0018): chỉ gán/gỡ ở trang Nhân viên. */
+const isAccountRole = (code: string): boolean => {
+  const g = meta.roleTypes.find((t) => t.code === code)?.group;
+  return g === "INTERNAL" || g === "EXTERNAL";
+};
 
 // ---- Danh sách + tìm kiếm -----------------------------------------------------------------------------------------
 function queryString(extra: Record<string, string>): string {
@@ -240,9 +245,9 @@ async function openDetail(id: string): Promise<void> {
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở trang Nhân viên") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
   );
-  const rType = select(meta.roleTypes.map((t) => ({ value: t.code, label: t.name })));
+  const rType = select(meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.name })));
   const rLoc = select([{ value: "", label: "(mọi nơi)" }, ...locations.filter((l) => l.active).map((l) => ({ value: l.id, label: l.name }))]);
   const rFrom = input("", { type: "date" });
   const addRole = button("Thêm vai trò", (b) => {

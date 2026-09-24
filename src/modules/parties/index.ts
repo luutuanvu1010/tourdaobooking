@@ -10,8 +10,9 @@ import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
-  addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement, findParty, findPartiesByPhone,
-  getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, renamePersonStatements, updatePartyStatements,
+  accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
+  findParty, findPartiesByPhone, getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, openRoleCodesFor,
+  renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
@@ -22,6 +23,35 @@ import {
 export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName, validatePersonFullName };
 export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 
+/** Một dòng vai với Tour Đảo (không gắn nơi) của hồ sơ gắn tài khoản. */
+export interface AccountRole { id: string; roleTypeCode: string; validFrom: string; validTo: string | null }
+
+/**
+ * Vai của hồ sơ gắn tài khoản: đang mở + đã đóng từ `today` (ADR-0018 điều 3). CHỈ hàm sinh quyền của module staff gọi — vai KHÔNG phải cổng
+ * cho phép (ADR-0001 điều 4); ngoài parties không mã nào đọc bảng vai (R-N1-12).
+ */
+export async function accountRolesOf(db: D1Database, partyId: string, today: string): Promise<AccountRole[]> {
+  return (await accountRoleRows(db, partyId, today)).map((r) => ({ id: r.id, roleTypeCode: r.role_type_code, validFrom: r.valid_from_date, validTo: r.valid_to_date }));
+}
+/** Mã vai đang mở của nhiều hồ sơ trong MỘT truy vấn (danh sách tài khoản). */
+export const openRoleCodesByParty = openRoleCodesFor;
+/** Câu mở một vai với Tour Đảo (không gắn nơi) từ `from` — module staff gộp vào một db.batch() cùng quyền + nhật ký. */
+export const openAccountRoleStatement = (db: D1Database, partyId: string, roleTypeCode: string, from: string, actorId: string, at: string): D1PreparedStatement =>
+  addRoleStatement(db, partyId, { roleTypeCode, locationId: null, from, to: null }, actorId, at);
+/** Câu đóng một vai với Tour Đảo tại ngày `to`. */
+export const closeAccountRoleStatement = (db: D1Database, partyId: string, roleId: string, to: string, actorId: string, at: string): D1PreparedStatement =>
+  endRoleStatement(db, partyId, roleId, to, actorId, at);
+/** Câu mở lại một vai đã đóng trong hôm nay (tránh chèn dòng chồng lấn khi gỡ rồi gán lại cùng ngày). */
+export const reopenAccountRoleStatement = reopenRoleStatement;
+/** Tóm tắt hồ sơ cho module staff (tạo tài khoản trên hồ sơ có sẵn). */
+export async function partySummary(db: D1Database, id: string): Promise<{ kind: "PERSON" | "ORGANIZATION"; active: boolean; displayName: string } | null> {
+  const p = await findParty(db, id);
+  return p ? { kind: p.party_kind, active: p.active === 1, displayName: p.display_name } : null;
+}
+
+const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở trang Nhân viên.");
+const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === "EXTERNAL";
+
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hồ sơ.");
 const STALE = () => error(409, "stale", "Hồ sơ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hiệu lực (đã đóng hoặc không tồn tại), hoặc ngày kết thúc trước ngày bắt đầu.");
@@ -29,6 +59,7 @@ const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hi�
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
+  if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
   if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã giữ vai trò đó ở nơi đó trong khoảng thời gian trùng.");
   if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Quan hệ này đã có trong khoảng thời gian trùng.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại vai trò/quan hệ, địa điểm hoặc hồ sơ liên quan không tồn tại.");
@@ -114,7 +145,10 @@ export const partiesModule: AppModule = {
     // ---- Tra cứu (khai TRƯỚC :id để "meta"/"lookup" không bị hiểu là id) ------------------------------------------------
     route("GET", "/api/parties/meta", "office", async ({ env }) => {
       const [roleTypes, relationshipTypes] = await Promise.all([listRoleTypes(env.DB), listRelationshipTypes(env.DB)]);
-      return json({ roleTypes, relationshipTypes } satisfies PartyMetaResponse);
+      return json({
+        roleTypes: roleTypes.map((t) => ({ code: t.code, name: t.name, group: t.role_group as "INTERNAL" | "EXTERNAL" | "OTHER", active: t.active === 1 })),
+        relationshipTypes,
+      } satisfies PartyMetaResponse);
     }),
 
     route("GET", "/api/parties/lookup", "office", async ({ env, url }) => {
@@ -228,6 +262,7 @@ export const partiesModule: AppModule = {
       const now = new Date();
       const parsed = validateRole(await readJson(request), vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (isAccountGroup(await roleTypeGroup(env.DB, parsed.value.roleTypeCode))) return ACCOUNT_ROLE();
       const at = now.toISOString();
       try {
         await env.DB.batch([
@@ -246,6 +281,7 @@ export const partiesModule: AppModule = {
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
       if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      if (isAccountGroup(await roleRowGroup(env.DB, id, rid))) return ACCOUNT_ROLE();
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);
