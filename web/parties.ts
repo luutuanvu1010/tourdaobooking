@@ -1,5 +1,5 @@
 // Trang Hồ sơ: tìm/lọc, tạo (cảnh báo trùng SĐT — ADR-0001 mục 8), xem/sửa, liên hệ, vai trò theo nơi và quan hệ.
-// Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); mọi nhân sự văn phòng tạo/sửa hồ sơ và liên hệ. Sửa hồ sơ dùng khoá lạc quan.
+// Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); hồ sơ khách/đại lý: mọi nhân sự văn phòng; hồ sơ có tài khoản: chỉ quản trị viên cấp trên (ADR-0013, máy chủ tính `editable`).
 import { hasPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
@@ -204,6 +204,15 @@ async function openDetail(id: string): Promise<void> {
   const address = input(p.address ?? "", { maxLength: 300 });
   const invoiceEmail = input(p.invoiceEmail ?? "", { maxLength: 200, type: "email" });
   const active = checkbox(p.active);
+  active.disabled = p.accountLinked;
+  if (!p.editable) {
+    fullName.disabled = true;
+    displayName.disabled = true;
+    legalName.disabled = true;
+    taxCode.disabled = true;
+    address.disabled = true;
+    invoiceEmail.disabled = true;
+  }
   const saveInfo = button(
     "Lưu thông tin",
     async (b) => {
@@ -221,13 +230,19 @@ async function openDetail(id: string): Promise<void> {
   const info = h(
     "div",
     null,
-    h("div", { class: "grid three" }, ...(person ? [field("Họ và tên (tên = từ cuối)", fullName)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]), h("label", { class: "check" }, active, "Đang dùng")),
-    h("div", { class: "actions" }, saveInfo),
+    h(
+      "div",
+      { class: "grid three" },
+      ...(person ? [field("Họ và tên (tên = từ cuối)", fullName)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]),
+      h("label", { class: "check" }, active, "Đang dùng"),
+    ),
+    p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Nhân viên.") : null,
+    p.editable ? h("div", { class: "actions" }, saveInfo) : null,
   );
 
   // -- liên hệ
   const contactRows = p.contacts.map((c) =>
-    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, c.kind === "PHONE" ? "Điện thoại" : "Email"), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
+    h("tr", { class: c.validTo ? "row-off" : "" }, h("td", null, c.kind === "PHONE" ? "Điện thoại" : "Email"), h("td", null, c.value, c.isPrimary && !c.validTo && h("span", { class: "badge" }, "chính")), h("td", { class: "muted" }, c.label ?? ""), h("td", { class: "muted" }, period(c.validFrom, c.validTo)), h("td", null, p.editable && !c.validTo && button("Đóng", (b) => void act(async () => { await api(`/api/parties/${id}/contacts/${c.id}/end`, { method: "POST", body: {} }); await reload(); }, b)))),
   );
   const cKind = select([{ value: "PHONE", label: "Điện thoại" }, { value: "EMAIL", label: "Email" }]);
   const cValue = input("", { maxLength: 200 });
@@ -278,8 +293,8 @@ async function openDetail(id: string): Promise<void> {
     info,
     h("h3", null, "Liên hệ"),
     h("table", { class: "items" }, h("tbody", null, ...contactRows)),
-    h("div", { class: "grid three" }, field("Loại", cKind), field("Giá trị", cValue), field("Ghi chú", cLabel), h("label", { class: "check" }, cPrimary, "Liên hệ chính")),
-    h("div", { class: "actions" }, addContact),
+    p.editable ? h("div", { class: "grid three" }, field("Loại", cKind), field("Giá trị", cValue), field("Ghi chú", cLabel), h("label", { class: "check" }, cPrimary, "Liên hệ chính")) : null,
+    p.editable ? h("div", { class: "actions" }, addContact) : null,
     h("h3", null, "Vai trò theo nơi"),
     h("table", { class: "items" }, h("tbody", null, ...roleRows)),
     admin
