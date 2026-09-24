@@ -79,6 +79,27 @@ try {
   p.close();
   ok("điện thoại: thẻ hiện vai, axe không vi phạm critical/serious");
 
+  // ---- D2. Hồ sơ (máy tính, quản trị): vai từ mô hình mới hiện "Đổi ở trang Nhân viên" (không nút Kết thúc), ô thêm vai trò không có
+  // mục Nội bộ/Bên ngoài — chỉ gán/gỡ ở trang Nhân viên (R18, web/parties.ts dòng ~248/~250).
+  p = await env.as(ACCOUNTS.admin, "/parties", DESK);
+  await p.ev(setInput("document.querySelector('#q')", NAME));
+  await p.ev("document.querySelector('#search-form').requestSubmit(), true");
+  await p.waitFor(`[...document.querySelectorAll('#list tr')].some((tr) => tr.textContent.includes(${JSON.stringify(NAME)}))`, "danh sách hồ sơ hiện Kế Toán Chrome");
+  await p.ev(`[...document.querySelectorAll('#list tr')].find((tr) => tr.textContent.includes(${JSON.stringify(NAME)})).click(), true`);
+  const roleRow = `[...document.querySelectorAll('#detail table.items tr')].find((tr) => tr.textContent.includes('Cộng tác viên'))`;
+  await p.waitFor(`!document.querySelector('#detail').hidden && !!${roleRow}`, "hồ sơ mở, dòng vai Cộng tác viên hiện");
+  assert.equal(await p.ev(`${roleRow}.textContent.includes('Đổi ở trang Nhân viên')`), true, "R18: vai từ mô hình mới hiện 'Đổi ở trang Nhân viên'");
+  assert.equal(await p.ev(`${roleRow}.querySelector('button') === null`), true, "R18: vai từ mô hình mới không có nút Kết thúc");
+  const addRoleOptions = `[...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Vai trò theo nơi').nextElementSibling.nextElementSibling.querySelector('select').querySelectorAll('option')`;
+  const options = await p.ev(`[...${addRoleOptions}].map((o) => o.textContent.trim())`);
+  assert.ok(options.includes("Khách hàng"), `ô thêm vai trò thiếu mục nhóm khác (vd Khách hàng): ${JSON.stringify(options)}`);
+  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên"];
+  assert.deepEqual(options.filter((o) => ACCOUNT_ROLE_NAMES.includes(o)), [], `R18: ô thêm vai trò không được có mục Nội bộ/Bên ngoài, thấy: ${JSON.stringify(options)}`);
+  await p.shot(join(OUT, "anh", "vai-ho-so-may-tinh.png"));
+  assert.deepEqual(p.consoleErrors, [], `lỗi console (hồ sơ): ${p.consoleErrors}`);
+  p.close();
+  ok("hồ sơ: vai mô hình mới hiện 'Đổi ở trang Nhân viên' (không nút Kết thúc), ô thêm vai trò không có Nội bộ/Bên ngoài (R18)");
+
   // ---- E. Thực tập sinh mở "/" → được đưa sang Đơn hàng (mở SAU CÙNG: kho cookie dùng chung)
   p = await env.as({ phone: INTERN_PHONE, pin: internPin }, "/", MOB);
   await p.waitFor(`location.pathname === '/orders'`, "Thực tập sinh mở '/' được đưa sang Đơn hàng");
