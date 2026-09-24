@@ -12,7 +12,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     version: "1.9",
-    date: "2026-10-01",
+    date: "2026-09-24",
     items: [
       { kind: "doi", text: "Hồ sơ của người có tài khoản (nhân viên, đối tác) giờ chỉ quản trị viên sửa được tên và số liên hệ." },
       { kind: "doi", text: "Muốn tạm khoá hay cho nghỉ việc một người, dùng màn Nhân viên; màn Hồ sơ không còn tắt được người có tài khoản." },
