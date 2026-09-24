@@ -6,6 +6,7 @@ import type {
   ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
 } from "../../shared/contracts";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
@@ -25,6 +26,8 @@ export type { ContactInput, OrgFields, PersonName, RoleInput } from "./rules";
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hồ sơ.");
 const STALE = () => error(409, "stale", "Hồ sơ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hiệu lực (đã đóng hoặc không tồn tại), hoặc ngày kết thúc trước ngày bắt đầu.");
+const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
+const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
@@ -112,19 +115,22 @@ export const partiesModule: AppModule = {
   name: "parties",
   routes: [
     // ---- Tra cứu (khai TRƯỚC :id để "meta"/"lookup" không bị hiểu là id) ------------------------------------------------
-    route("GET", "/api/parties/meta", "office", async ({ env }) => {
+    route("GET", "/api/parties/meta", "office", async ({ env, staff }) => {
+      if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
       const [roleTypes, relationshipTypes] = await Promise.all([listRoleTypes(env.DB), listRelationshipTypes(env.DB)]);
       return json({ roleTypes, relationshipTypes } satisfies PartyMetaResponse);
     }),
 
-    route("GET", "/api/parties/lookup", "office", async ({ env, url }) => {
+    route("GET", "/api/parties/lookup", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
       const phone = normalizePhone(url.searchParams.get("phone") ?? "");
       if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
       const rows = await findPartiesByPhone(env.DB, phone, vnToday(new Date()));
       return json({ matches: rows.map(toListItem) } satisfies PartyLookupResponse);
     }),
 
-    route("GET", "/api/parties", "office", async ({ env, url }) => {
+    route("GET", "/api/parties", "office", async ({ env, url, staff }) => {
+      if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
       const kindRaw = url.searchParams.get("kind");
       if (kindRaw && kindRaw !== "PERSON" && kindRaw !== "ORGANIZATION") return error(400, "invalid_input", "Loại hồ sơ lọc không hợp lệ.");
       const role = url.searchParams.get("role") || null;
@@ -150,6 +156,7 @@ export const partiesModule: AppModule = {
 
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------
     route("POST", "/api/parties", "office", async ({ request, env, staff }) => {
+      if (!can(staff, "party.write")) return FORBIDDEN_WRITE();
       const parsed = validatePartyCreate(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
@@ -166,7 +173,8 @@ export const partiesModule: AppModule = {
       return respondParty(env.DB, made.partyId, 201);
     }),
 
-    route("GET", "/api/parties/:id", "office", async ({ env, params }) => {
+    route("GET", "/api/parties/:id", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "party.view")) return FORBIDDEN_VIEW();
       const id = idParam(params, "id", PARTY_ID_RE);
       return id ? respondParty(env.DB, id) : NOT_FOUND();
     }),
