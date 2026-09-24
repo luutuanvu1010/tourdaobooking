@@ -5,7 +5,9 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 
 const DIR = new URL("../migrations/", import.meta.url);
-const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
+// Chỉ nạp tới 0020: test này ghim KẾT QUẢ CỦA 0020 (nhãn "Super Admin", 6 mã). 0024 (ADR-0018) đổi nhãn thành "Toàn quyền" và thêm INTERN —
+// trạng thái sau cùng do src/migrations-0024.test.ts ghim.
+const files = readdirSync(DIR).filter((f) => f.endsWith(".sql") && f.slice(0, 4) <= "0020").sort();
 
 function open(): DatabaseSync {
   const db = new DatabaseSync(":memory:");

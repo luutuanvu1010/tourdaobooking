@@ -186,6 +186,11 @@
       "kind": "table"
     },
     {
+      "name": "stf_permission_adjustment",
+      "module": "staff",
+      "kind": "table"
+    },
+    {
       "name": "stf_permission_type",
       "module": "staff",
       "kind": "lookup"
@@ -225,6 +230,14 @@
       "columns": [
         "id",
         "order_code"
+      ]
+    },
+    {
+      "name": "v_pty_open_role_group",
+      "module": "parties",
+      "columns": [
+        "party_id",
+        "role_group"
       ]
     },
     {

@@ -12,7 +12,7 @@ const P = (id) => `/api/parties/${id}`;
 assert.equal((await call(null, "GET", "/api/parties")).status, 401);
 let r = await call(SALES, "GET", "/api/parties/meta");
 assert.equal(r.status, 200);
-assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), ["ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "CUSTOMER", "DRIVER", "GUIDE", "SALES", "STAFF"]);
+assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), ["ACCOUNTANT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "GUIDE_FREELANCE", "GUIDE_INTERNAL", "HOTEL_RECEPTION", "INTERN", "OPERATIONS_MANAGER", "SALES_STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY"]);
 assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF"]);
 const locations = (await call(SALES, "GET", "/api/locations")).body.locations;
 const vinpearl = locations.find((l) => l.code === "CANG_VINPEARL");
