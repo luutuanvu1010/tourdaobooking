@@ -138,3 +138,16 @@ Mã làm đúng đặc tả; đặc tả sinh lỗ vì ba quyết định duyệ
 - Bằng chứng thêm (tiêu chí 11): `docs/evidence/2026-09-24-lo-hong-ho-so/README.md` mục "Sau GĐ1 (2026-09-24)" — FIELD vẫn 403 ở PUT/POST contacts kể cả khi bản sao đổi `order.view` của FIELD thành `any`; cổng `office` vẫn suy từ `order.view`, việc tách cổng là của GĐ2/Q3.
 - Nợ: tiêu chí nghiệm thu 10 (kịch bản Chrome) CHƯA ĐẠT — công cụ Chrome lỗi "Script injection timed out" ×4 trong phiên Task 6; mã đã sửa theo brief (đọc `docs/superpowers/plans/2026-09-24-gd1-adr-0013-thi-cong-nhat-ky.md` để biết chi tiết), cần chạy lại kịch bản khi công cụ hoạt động. `tests/audit/doi-tac.test.mjs` ca P4 đỏ sẵn trên `origin/main` trước khi GĐ1 chạm vào — ngoài phạm vi, không sửa. `src/claude-guard.test.ts` ca đo CPU thỉnh thoảng đỏ khi máy tải cao (đã biết từ GĐ0, §8).
 - Tiếp theo: Task 9 (người kiểm độc lập, chỉ đọc, đọc thân handler ba route ghi) → chủ dự án quyết gộp `main` → lên production trước 2026-10-08 theo `docs/QUY-TRINH-PHAT-HANH.md` (hạn thật trong `docs/quyen-hoan.json`).
+
+## 10. Sau GĐ1 — đã lên production, và quyết định mới của chủ (2026-09-25)
+
+- GĐ1 **đã lên production**: `GET https://booking.tourdao.vn/api/auth/config` trả `"version":"1.9"`; `origin/main` = `d981326` (nhánh `va-lo-ho-so-1-9`, gồm cả mô hình vai GĐ1 bản 1.8). Hai vòng kiểm độc lập ĐẠT (nhánh vá; lần gộp với mô hình vai). Truy vấn chỉ đọc (D) chủ chạy 24/9: 0 dòng.
+- Chủ báo sau phát hành, AI đã rà (chỉ đọc, mã = `d981326`):
+  1. Bán hàng không thấy đường mở hồ sơ đồng nghiệp → đúng thiết kế: điện thoại vào qua tab **Tôi → Hồ sơ** (`web/account.ts:39`), máy tính qua thanh bên (`web/shell.ts:137`); thanh tab dưới không có Hồ sơ (ADR-0015 điều 2).
+  2. Tạo đơn xong không thấy nút chọn hướng dẫn viên → nút có ("Đổi người phụ trách", vì đơn đã tự gắn người lập); hộp "Xác nhận đơn để gửi khách" (`web/order.ts:26-31`) che khối; danh sách chọn chỉ có tên (`AssigneeDto`, `src/shared/contracts.ts:405-409`), không ghi vai, không xếp hướng dẫn viên lên đầu.
+  3. Đơn Bán hàng tạo tự gắn người lập làm người phụ trách → ĐÚNG ADR-0009 điều 4 và ADR-0018 điều 7 (chủ duyệt 24/9). Yêu cầu mới đảo điều đó (AI đã nhắc P18 một lần). Hôm nay hướng dẫn viên KHÔNG nhận được đơn: `dispatch.claim` FIELD = none; `PUT /api/orders/:id/handler` qua cổng `office`; `GET /api/orders*` qua cổng `orders` (`canAccessOrders` false với FIELD); ADR-0017 chưa thi công.
+- **Chủ dự án quyết (2026-09-25, phiên chat, sau khi nghe ba phương án):**
+  - **Q7 = làm đúng thứ tự**: AI soạn quyết định mới (ADR) "đơn mới chưa có người phụ trách cho tới khi hướng dẫn viên Nhận" (đảo ADR-0018 điều 7 phần "người lập nội bộ mặc định tự nhận" và ADR-0009 điều 4); **làm GĐ2 trước** (tách cổng `office`, thi công ADR-0017, hướng dẫn viên mở được đơn và bấm Nhận), rồi mới bỏ việc tự gắn.
+  - **Q8 = có**: làm việc chọn hướng dẫn viên dễ thấy hơn — danh sách chọn ghi vai cạnh tên, hướng dẫn viên xếp đầu (đặc tả mô hình vai §8 điểm 2 đã duyệt), hộp xác nhận không che khối người phụ trách.
+  - **Q9 = chưa cần**: không thêm lối vào màn Hồ sơ trên điện thoại ở đợt này.
+- Tiếp theo: gói GĐ2 (ADR-0019 tách cổng + route quản trị hỏi bảng; ADR-0020 đơn chờ hướng dẫn viên nhận; trang ghép; kế hoạch thi công) trên nhánh `ke-hoach-gd2`, chờ chủ duyệt. Số 0019/0020 đã kiểm còn trống trên mọi nhánh (2026-09-25).
