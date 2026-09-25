@@ -33,7 +33,7 @@ const formEl = byId<HTMLFormElement>("order-form");
 const servicesEl = byId("services");
 const emptyEl = byId("services-empty");
 const limitEl = byId("services-limit");
-const addManualBtn = byId<HTMLButtonElement>("add-manual"); // ẨN mặc định; chỉ hiện khi danh mục trống hoặc không tải được (lối dự phòng)
+const addManualBtn = byId<HTMLButtonElement>("add-manual"); // ẨN trong mọi trường hợp (ADR-0021); giữ phần tử để luồng cũ/kịch bản kiểm không gãy
 const orderDateEl = byId<HTMLInputElement>("orderDate");
 const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
@@ -56,18 +56,15 @@ let saving = false;
 const drafts = () => entries.map((e) => e.draft);
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
 
-// ---- ngày chung ở đầu form ----
-// Chỉ là tiện ích nhập liệu phía trình duyệt: ngày vẫn lưu RIÊNG từng dịch vụ (thông tin chuyến). Dịch vụ thêm sau lấy ngày này;
-// đổi ngày chung thì chỉ cập nhật các dịch vụ còn trống ngày hoặc đang theo ngày chung cũ — ngày đã chỉnh riêng được giữ nguyên.
+// ---- một ngày cho cả đơn (ADR-0021) ----
+// Ô "Chọn ngày" là ô ngày khởi hành DUY NHẤT của form; thẻ dịch vụ không còn ô ngày riêng. Dữ liệu vẫn lưu theo từng dịch vụ
+// (không đổi API/bảng) nhưng mọi dịch vụ luôn mang cùng ngày này.
 let orderDate = "";
-const withOrderDate = <D extends ServiceDraft>(d: D): D => (orderDate && !d.trip.departDate ? { ...d, trip: { ...d.trip, departDate: orderDate } } : d);
-orderDateEl.addEventListener("change", () => {
-  const prev = orderDate;
+const withOrderDate = <D extends ServiceDraft>(d: D): D => ({ ...d, trip: { ...d.trip, departDate: orderDate } });
+orderDateEl.addEventListener("input", () => {
   orderDate = orderDateEl.value;
   for (const en of entries) {
-    const cur = en.draft.trip.departDate;
-    if (cur !== "" && cur !== prev) continue;
-    en.draft = { ...en.draft, trip: { ...en.draft.trip, departDate: orderDate } };
+    en.draft = withOrderDate(en.draft);
     en.card.update(en.draft);
   }
   recompute();
@@ -167,6 +164,10 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     }
   });
   lines.push(...orderIssues(drafts()));
+  if (new Set(entries.map((e) => e.draft.trip.departDate)).size > 1) {
+    lines.push("Các dịch vụ đang khác ngày — chọn một ngày cho cả đơn.");
+    focusables.push(orderDateEl);
+  }
   need("customerName", "Nhập tên khách.");
   need("customerPhone", "Nhập số điện thoại khách.");
   const s = orderSummary(drafts(), num("discount"), num("depositAmount"));
@@ -297,15 +298,11 @@ async function loadCatalog(): Promise<void> {
   try {
     const res = await api<Api.CatalogPublicResponse>("/api/catalog");
     setCatalog(res.items);
-    if (res.items.length === 0) {
-      addManualBtn.hidden = false;
-      picker.setNotice("Danh mục dịch vụ đang trống — hãy thêm dịch vụ nhập tay.");
-    }
+    if (res.items.length === 0) picker.setNotice("Danh mục dịch vụ đang trống — báo quản trị viên.");
     else if (res.sync.error) picker.setNotice(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
   } catch {
     // Mất danh mục khi sửa nháp: thẻ đã lưu hiện ở dạng khoá (vẫn sửa được đơn giá/chuyến và lưu được; máy chủ giữ bản chụp).
-    addManualBtn.hidden = false;
-    picker.setNotice("Không tải được danh mục dịch vụ — hãy thêm dịch vụ nhập tay.");
+    picker.setNotice("Không tải được danh mục dịch vụ — tải lại trang để thử lại.");
   }
 }
 
@@ -325,11 +322,10 @@ function fill(o: Api.OrderDetailDto): void {
     const entry = mount(draftFromDto(s, live, `k${++seq}`), s.id === focusId ? true : undefined);
     if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
   }
-  // Ngày chung: hiện ngày của đơn khi MỌI dịch vụ cùng một ngày; khác nhau thì để trống (không đoán).
+  // Đơn cũ (trước ADR-0021) có thể mỗi dịch vụ một ngày: khi đó ô để trống và Lưu báo "chọn một ngày cho cả đơn" (không đoán hộ).
   const dates = new Set(entries.map((e) => e.draft.trip.departDate));
   orderDate = dates.size === 1 ? [...dates][0]! : "";
   orderDateEl.value = orderDate;
-  if (entries.some((e) => e.draft.kind === "manual")) addManualBtn.hidden = false; // đơn cũ đã có dịch vụ nhập tay: giữ lối thêm như trước
 }
 
 async function loadOrder(): Promise<void> {

@@ -55,7 +55,7 @@ test("400 catalog_unavailable: nêu dịch vụ và gợi ý chọn lại từ d
   const b = e(400, "catalog_unavailable", "Dịch vụ 1: dịch vụ TD101 không còn trong danh mục — hãy chọn dịch vụ khác hoặc nhập tay.");
   assert.equal(b.tone, "danger");
   assert.equal(b.focusService, 0);
-  assert.deepEqual(b.lines.map((l) => l.text), ["Chọn lại dịch vụ này từ danh mục, hoặc nhập tay."]);
+  assert.deepEqual(b.lines.map((l) => l.text), ["Chọn lại dịch vụ này từ danh mục."]);
 });
 
 test("400 'Dịch vụ n: không thuộc đơn này' (PUT /trip): đơn vừa được lưu lại ở nơi khác → tải lại đơn, thông báo ngắn", () => {

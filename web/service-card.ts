@@ -82,7 +82,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
   remove.addEventListener("click", () => o.onRemove());
 
   const summaryEl = h("span", { class: "trip-summary" });
-  const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }) });
+  const fields = tripFields({ trip: draft.trip, onChange: (trip) => commit({ ...draft, trip }), noDepartDate: true }); // ngày khởi hành chọn một lần cho cả đơn (ADR-0021)
   const tripDetails = h("details", { class: "trip" }, h("summary", null, h("span", { class: "trip-title" }, "Thông tin chuyến"), summaryEl), fields.root);
   tripDetails.open = o.openTrip;
 
@@ -133,7 +133,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     if (locked) {
       const repick = h("button", { type: "button", class: "btn" }, "Chọn lại từ danh mục");
       repick.addEventListener("click", () => o.onRepick());
-      lockedNote = h("div", { class: "svc-locked" }, h("p", { class: "muted" }, d.repick ? "Dịch vụ này không còn trong danh mục và dòng đã lưu thiếu giá danh mục nên chưa lưu được. Chọn lại từ danh mục, hoặc xoá thẻ này rồi nhập tay." : "Dịch vụ này không còn trong danh mục nên không đổi được số khách. Vẫn sửa được đơn giá và thông tin chuyến."), repick);
+      lockedNote = h("div", { class: "svc-locked" }, h("p", { class: "muted" }, d.repick ? "Dịch vụ này không còn trong danh mục và dòng đã lưu thiếu giá danh mục nên chưa lưu được. Chọn lại từ danh mục, hoặc xoá thẻ này." : "Dịch vụ này không còn trong danh mục nên không đổi được số khách. Vẫn sửa được đơn giá và thông tin chuyến."), repick);
     }
     emptyHint = h("p", { class: "svc-empty" }, "Nhập số khách để xem dòng tiền.");
     const rows = codes.map((code) => {

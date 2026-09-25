@@ -76,7 +76,7 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
     });
   }
   if (e.status === 400 && e.code === "catalog_unavailable") {
-    return banner("danger", fallback, { lines: [{ text: "Chọn lại dịch vụ này từ danh mục, hoặc nhập tay." }], focusService: serviceIndexOf(e.message) });
+    return banner("danger", fallback, { lines: [{ text: "Chọn lại dịch vụ này từ danh mục." }], focusService: serviceIndexOf(e.message) });
   }
   if (e.status === 400 && /^Dịch vụ \d+: không thuộc đơn này/.test(e.message)) {
     return banner("info", "Đơn vừa được lưu lại ở nơi khác. Đã tải lại đơn — hãy kiểm tra rồi sửa tiếp.", { action: "reload_order" });

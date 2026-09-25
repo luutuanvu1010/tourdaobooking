@@ -110,9 +110,9 @@ try {
   await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến");
   assert.equal(await p.ev(`(() => { const t = ${card(1)}.querySelector('details.trip').getBoundingClientRect(); return [...${card(1)}.querySelectorAll('.trip-body input, .trip-body textarea')].every((el) => { const r = el.getBoundingClientRect(); return r.left >= t.left && r.right <= t.right; }); })()`), true, "ô của khối chuyến nằm gọn trong khung (không thò ra ngoài)");
   const dateIn = (k) => `${card(1)}.querySelector('[data-trip="${k}"]')`;
-  await p.ev(setInput(dateIn("departDate"), vnDate(-2)));
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(-2))); // ADR-0021: ngày chọn một lần cho cả đơn
   await p.waitFor(`/Ngày khởi hành đã qua — lưu nháp được, nhưng chưa thể xác nhận\\./.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo ngày đã qua");
-  await p.ev(setInput(dateIn("departDate"), vnDate(7)));
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(7)));
   await p.ev(setInput(dateIn("departTime"), "07:30"));
   await p.ev(setInput(dateIn("pickupTime"), "08:00"));
   await p.waitFor(`/Giờ đón sau giờ khởi hành/.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo giờ đón sau giờ khởi hành");
@@ -197,7 +197,7 @@ try {
   await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TD101");
   await p.ev("document.querySelector('#catalog-list button').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ");
-  await p.ev(setInput(`${card(0)}.querySelector('[data-trip="departDate"]')`, vnDate(5)));
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(5)));
   await p.ev(setInput("document.getElementById('customerName')", "Khách Đổi Giá"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0902 222 333"));
   env.sql("UPDATE catalog_item SET price_adult = 1400000 WHERE code = 'TD101'");
@@ -339,20 +339,17 @@ try {
   p.close();
   ok("bfcache: trang khôi phục (pageshow persisted) đang kẹt 'Đang lưu…' → nút về 'Lưu đơn nháp', form hết inert; pageshow thường không đụng tới");
 
-  // ---- 10e) ngày chung "Chọn ngày": dịch vụ thêm sau lấy ngày này; đổi ngày chung chỉ kéo theo dịch vụ chưa chỉnh riêng ----
+  // ---- 10e) một ngày cho cả đơn (ADR-0021): thẻ không có ô ngày riêng; mọi dịch vụ mang ngày của ô "Chọn ngày" ----
   p = await env.as(ACCOUNTS.salesA, "/order-form");
-  await p.waitFor("document.getElementById('add-manual')", "form mới cho kiểm ngày chung");
-  const tripDate = (i) => `${card(i)}.querySelector('[data-trip="departDate"]').value`;
+  await p.waitFor("document.getElementById('add-manual')", "form mới cho kiểm ngày cả đơn");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(5)));
   await p.ev("document.getElementById('add-manual').click(); document.getElementById('add-manual').click(); true");
   await p.waitFor(`${cards}.length === 2`, "hai thẻ");
-  assert.deepEqual(await p.ev(`[${tripDate(0)}, ${tripDate(1)}]`), [vnDate(5), vnDate(5)], "thẻ mới lấy ngày chung");
-  await p.ev(setInput(`${card(1)}.querySelector('[data-trip="departDate"]')`, vnDate(9))); // chỉnh riêng thẻ 2
+  assert.equal(await p.ev(`${cards}[0].querySelector('[data-trip="departDate"]') === null && ${cards}[1].querySelector('[data-trip="departDate"]') === null`), true, "thẻ dịch vụ không còn ô ngày riêng");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(6)));
-  await p.waitFor(`${tripDate(0)} === ${JSON.stringify(vnDate(6))}`, "thẻ theo ngày chung đổi theo");
-  assert.equal(await p.ev(tripDate(1)), vnDate(9), "thẻ đã chỉnh riêng giữ nguyên ngày");
+  await p.waitFor(`[...${cards}].every((c) => c.querySelector('.trip-summary').textContent.startsWith(${JSON.stringify(vnDate(6).slice(8, 10) + "/" + vnDate(6).slice(5, 7))}))`, "đổi ngày cả đơn: mọi thẻ theo");
   p.close();
-  ok("ngày chung: thẻ mới lấy ngày; đổi ngày chung kéo theo thẻ chưa chỉnh riêng, giữ thẻ đã chỉnh");
+  ok("một ngày cho cả đơn: thẻ không có ô ngày riêng; đổi ngày ở 'Chọn ngày' áp cho mọi dịch vụ");
 
   // ---- 11) quyền: kế toán không lập đơn ----
   p = await env.as(ACCOUNTS.accounting, "/order-form");

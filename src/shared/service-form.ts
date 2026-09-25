@@ -303,7 +303,7 @@ export interface DraftIssue {
 export function draftIssues(d: ServiceDraft): DraftIssue[] {
   const out: DraftIssue[] = [];
   if (d.kind === "catalog") {
-    if (d.repick) return [{ code: "repick", message: "Dịch vụ này không còn trong danh mục — chọn lại từ danh mục hoặc nhập tay." }];
+    if (d.repick) return [{ code: "repick", message: "Dịch vụ này không còn trong danh mục — chọn lại từ danh mục." }];
     const total = paxTotal(d.pax);
     if (total > MAX_GUESTS_PER_SERVICE) out.push({ code: "too_many_guests", message: `Tối đa ${MAX_GUESTS_PER_SERVICE} khách.` });
     else if (total === 0) out.push({ code: "no_guests", message: "Nhập số khách." });

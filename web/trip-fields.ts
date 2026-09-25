@@ -8,7 +8,8 @@ export interface TripFields {
   sync(trip: TripInput): void;
 }
 
-export function tripFields(o: { trip: TripInput; onChange: (next: TripInput) => void; dateLabel?: string }): TripFields {
+/** `noDepartDate`: form Tạo/sửa đơn — ngày khởi hành chọn MỘT lần cho cả đơn ở đầu trang (ADR-0021), không có ô riêng từng dịch vụ. */
+export function tripFields(o: { trip: TripInput; onChange: (next: TripInput) => void; dateLabel?: string; noDepartDate?: boolean }): TripFields {
   let trip = o.trip;
   const inputs = new Map<keyof TripInput, HTMLInputElement | HTMLTextAreaElement>();
   const change = (k: keyof TripInput, value: string) => {
@@ -29,7 +30,7 @@ export function tripFields(o: { trip: TripInput; onChange: (next: TripInput) => 
     "div",
     { class: "trip-body" },
     h("p", { class: "trip-group" }, "Khởi hành"),
-    field("departDate", "date", o.dateLabel ?? "Ngày khởi hành"),
+    !o.noDepartDate && field("departDate", "date", o.dateLabel ?? "Ngày khởi hành"),
     field("departTime", "time", "Giờ khởi hành"),
     h("p", { class: "trip-group" }, "Đón khách"),
     field("pickupTime", "time", "Giờ đón"),

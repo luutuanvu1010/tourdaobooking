@@ -346,7 +346,7 @@ test("draftFromDto: dòng đã lưu thiếu giá danh mục — danh mục còn 
 test("thẻ khoá loại (2): dòng thiếu giá danh mục + danh mục hết → PHẢI chọn lại (máy chủ sẽ 400 catalog_unavailable); bản chụp đủ giá thì không bắt buộc", () => {
   const b = draftFromDto(noPriceDto, new Map(), "k") as CatalogDraft;
   assert.equal(b.repick, true);
-  assert.deepEqual(draftIssues(b).map((i) => [i.code, i.message]), [["repick", "Dịch vụ này không còn trong danh mục — chọn lại từ danh mục hoặc nhập tay."]]);
+  assert.deepEqual(draftIssues(b).map((i) => [i.code, i.message]), [["repick", "Dịch vụ này không còn trong danh mục — chọn lại từ danh mục."]]);
   const c = draftFromDto(savedTour, new Map(), "k") as CatalogDraft;
   assert.deepEqual([isLocked(c), c.repick, draftIssues(c)], [true, false, []]);
 });
