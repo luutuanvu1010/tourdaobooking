@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.13",
+    date: "2026-09-25",
+    items: [
+      { kind: "sua", text: "Sửa lỗi: hướng dẫn viên lưu số khách không còn làm đổi giá đã thoả thuận với khách; thêm khách thì tính theo đúng giá đã thoả thuận." },
+      { kind: "sua", text: "Hướng dẫn viên bấm lưu mà không đổi số khách thì đơn giữ nguyên, không ghi thêm lần sửa nào." },
+      { kind: "doi", text: "Hướng dẫn viên bớt khách làm tiền đơn thấp hơn tiền khách đã trả trước thì app không lưu, và nhắc báo nhân viên kinh doanh hoặc kế toán." },
+    ],
+  },
+  {
     version: "1.12",
     date: "2026-09-25",
     items: [
