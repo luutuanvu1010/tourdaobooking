@@ -33,8 +33,10 @@ Hôm nay (bản 1.9, `origin/main` `d981326`): nhân viên Bán hàng/Quản tr�
 4. **Người lập đơn vẫn làm được mọi việc của người lập** (ADR-0009 điều 1, ô `ownOrAssigned` phần "của mình"): sửa nháp, xác nhận, huỷ, sửa thông tin chuyến, xem lịch sử — dù chưa có ai nhận, và dù người khác đã nhận.
 5. **Hướng dẫn viên đã nhận một đơn nháp** chỉ **xem** và làm những việc hẹp của người phụ trách cấp hẹp (sửa số khách sau xác nhận, huỷ đơn đã xác nhận kèm lý do — ADR-0014 điều 6/11). **Xác nhận** đơn vẫn do người lập hoặc Quản trị làm cho tới khi mô hình vai tách ô `order.confirm` (giai đoạn 2 của mô hình vai).
 6. **Đơn Đối tác lập:** **không đổi** (đã không có người phụ trách từ bản 1.5).
-7. **Đơn không ai nhận:** đây là "đơn chung" của đặc tả mô hình vai §8 mục 3 (đã duyệt) — **hạn nhận** 15 phút làm việc, khối "Chờ tiếp nhận" đỏ và báo đẩy (ADR-0018 điều 8) cần cài đặt vận hành và nơi lưu hạn, **thuộc giai đoạn 5 của mô hình vai, chưa có**. Cách xử lý trong khoảng giữa: **câu hỏi mở M1** (cuối ADR này), trình cùng ADR ở lượt duyệt sau.
+7. **Đơn không ai nhận:** đây là "đơn chung" của đặc tả mô hình vai §8 mục 3 (đã duyệt) — **hạn nhận** 15 phút làm việc, khối "Chờ tiếp nhận" đỏ và báo đẩy (ADR-0018 điều 8) cần cài đặt vận hành và nơi lưu hạn, **thuộc giai đoạn 5 của mô hình vai, chưa có**. Cách xử lý trong khoảng giữa: **M1 — chủ đã trả lời A (2026-09-25)**: ô "Chưa phụ trách" trên Trang chủ đếm **cả đơn nháp lẫn đơn đã xác nhận** chưa có người, chữ phụ "Chờ người nhận"; không đặt hạn tạm.
 8. **Đơn đã có** giữ nguyên người phụ trách hiện có; không có câu dữ liệu nào chạy trên đơn cũ.
+9. **Biên nhận (ảnh xác nhận gửi khách)** — chủ chọn A (2026-09-25): dòng "Nhân viên phụ trách" **không còn lấy tên người lập làm dự phòng**. Chưa có người phụ trách (hoặc không tải được tên) thì ghi **"Chưa có người phụ trách"**; có người nhận thì lần dựng ảnh sau hiện tên họ (ảnh dựng lại mỗi lần mở, không lưu). Sửa `titleBlock` ở `src/shared/order-confirmation.ts` và chú thích `web/confirmation-dialog.ts`; test đỏ trước. Trạng thái "chưa có / đã có người phụ trách" **suy ra** từ việc đơn có dòng `HANDLE` đang mở hay không — **không** thêm cột trạng thái riêng (một nguồn sự thật, không migration); chữ trên màn hình bằng tiếng Việt, không lộ mã kiểu `not-assigned`.
+10. **"Cả hệ thống biết ngay" khi đơn được nhận/giao/đổi trạng thái** — chủ yêu cầu (2026-09-25) **không** hỏi lại theo chu kỳ mà dùng cơ chế **lắng nghe sự kiện, máy chủ chủ động báo** tới mọi màn hình đang mở, hiện thông báo cập nhật trên bảng điều khiển chung. Đây là quyết định kiến trúc riêng (thêm thành phần hạ tầng mới) nên **tách ra ADR riêng** (bản nghiên cứu: `docs/superpowers/specs/2026-09-25-thong-bao-tuc-thi-nghien-cuu.md`). ADR-0020 **không phụ thuộc** vào nó: thiếu thông báo tức thì thì người dùng vẫn thấy trạng thái mới khi mở lại trang; máy chủ vẫn chặn hai người cùng nhận một đơn.
 
 ## Lý do
 
@@ -60,13 +62,16 @@ Hôm nay (bản 1.9, `origin/main` `d981326`): nhân viên Bán hàng/Quản tr�
 - **`src/modules/dispatch`:** gỡ `defaultHandlerStatement`, `defaultHandlerPartyId`; **`src/shared/router.ts`**, **`src/index.ts`**: gỡ `Ctx.defaultHandlerStatement` và `injected.defaultHandlerStatement`; **`src/modules/orders`**: route lập đơn không còn gộp câu đó.
 - **`src/shared/permissions.ts`** (việc lớn): ô `dispatch.claim` của `FIELD` `none` → `any` — làm ở **bước trước** (cùng ADR-0017), không ở bước ADR-0020.
 - **Bài kiểm đảo có chủ đích (đỏ → xanh):** `tests/e2e/dispatch.mjs` bước 1 ("đơn mới: người lập là người phụ trách") đảo thành "đơn mới không có dòng `HANDLE` nào"; các bước sau dựa vào "người lập là người phụ trách" thêm một lần **bấm Nhận** ngay sau khi tạo đơn; hàm `dropHandler` (đóng dòng bằng SQL để giả đơn chưa có người) không còn cần. Rà thêm: `docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs`, `tests/e2e/orders.mjs` (người phụ trách khác người lập), `tests/e2e/permissions.mjs`, `src/modules/orders/dashboard.test.ts`.
-- **Trang chủ:** ô "Chưa phụ trách" — theo M1.
+- **Trang chủ:** ô "Chưa phụ trách" đếm cả đơn nháp (M1 = A); truy vấn ở `src/modules/orders/repository.ts` (đếm hôm nay chỉ đơn đã xác nhận) và `dashboard.test.ts` đổi theo, test đỏ trước.
+- **Biên nhận:** điều 9 — `src/shared/order-confirmation.ts` (+ test), `docs/CHANGE-GUIDE.md` công thức p, `docs/SYSTEM-DESIGN.md` đoạn "Ảnh xác nhận đơn".
 - **Nhật ký thay đổi** của lần phát hành nói bằng lời thường: "Đơn mới chưa có người phụ trách. Hướng dẫn viên (hoặc chính bạn) bấm Nhận để lo đơn."
 - **Khoảng trống để lại cho mô hình vai:** Kế toán/Thực tập "nhận đơn mình lập" (ADR-0018 điều 7) mất đường thực hiện — xem bảng "Sửa những câu nào"; kế hoạch giai đoạn 2 của mô hình vai phải chọn cách.
 - **Tiền điều kiện vận hành:** có ít nhất một tài khoản hướng dẫn viên **đang hoạt động, có hồ sơ** trên production (truy vấn chỉ đọc ở kế hoạch). Không có ⇒ không phát hành ADR-0020.
 - Không migration. Không đổi quyền của tài khoản nào.
 
 ## Câu hỏi mở (trình cùng ADR này ở lượt duyệt sau — chưa hỏi chủ ở lượt ADR-0019)
+
+> **Đã trả lời 2026-09-25:** M1 = **A** (xem điều 7). Giữ nguyên văn câu hỏi dưới đây làm lịch sử.
 
 **M1 — Trong lúc chưa có "hạn nhận 15 phút" (giai đoạn 5 của mô hình vai), đơn không ai bấm Nhận thì sao?**
 - **A (khuyến nghị):** không đặt hạn tạm; ô "Chưa phụ trách" trên Trang chủ đếm cả đơn nháp lẫn đơn đã xác nhận chưa có người (hôm nay chỉ đếm đơn đã xác nhận — `src/modules/orders/repository.ts:462`), chữ phụ "Chờ người nhận". Được: làm nhanh, ai cũng thấy số đơn chờ. Mất: không ai bị nhắc riêng.
