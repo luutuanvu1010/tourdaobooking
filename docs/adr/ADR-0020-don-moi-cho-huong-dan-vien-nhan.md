@@ -1,10 +1,11 @@
 # ADR-0020 — Đơn mới chưa có người phụ trách cho tới khi có người bấm "Nhận"; hướng dẫn viên nội bộ nhận được đơn
 
 - **Trạng thái:** **proposed** — AI soạn 2026-09-25 theo quyết định **Q7** của chủ dự án (phiên chat 2026-09-25, sau khi nghe ba phương án; ghi ở `docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md` §10): *"đơn mới chưa có người phụ trách cho tới khi hướng dẫn viên Nhận"*, làm **sau** việc tách cổng và thi công ADR-0017. AI đã nhắc một lần rằng điều này đảo một điều vừa duyệt ngày 24/9 (P18); chủ đã nghe và vẫn quyết. AI **không tự duyệt** (N3, Điều 7.2). Sau khi accepted chỉ sửa dòng trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Lượt duyệt:** **trình ở lượt duyệt SAU, khi Phần B (ADR-0019) đã lên production** — không thuộc lượt duyệt của ADR-0019. Lý do: luật "dừng dây chuyền" (`CLAUDE.md` §3) — ADR này xây trên hai lỗ đang hở `money.view`, `contact.view`; đặc tả/kế hoạch chạm vùng đang hở không được duyệt trước khi lỗ được vá. Nội dung ở đây là bản nháp để chủ đọc trước, chưa xin duyệt.
 - **Ngày:** 2026-09-25   **Người phê chuẩn:** chủ dự án (chưa duyệt)
 - **Loại quyết định:** **cửa hai chiều.** Chỉ đổi mã và test; không migration. Đơn đã có người phụ trách **giữ nguyên** (không gỡ ai). Quay lại cách cũ = một commit (đơn tạo trong thời gian áp dụng vẫn chưa có người cho tới khi có người nhận — không tự điền ngược).
-- **Phụ thuộc (thứ tự bắt buộc):** chỉ phát hành **sau khi** ADR-0019 (tách cổng, route hỏi bảng) và ADR-0017 (hướng dẫn viên xem mọi đơn) **đã lên production** và hướng dẫn viên **đã bấm "Nhận" được** (ô `dispatch.claim` của `FIELD` = `any`, đặc tả mô hình vai §5 đã duyệt, Q9 ngày 24/9). Lý do: nếu bỏ việc tự gắn trước, mọi đơn mới rơi vào hàng "chưa có người" mà hướng dẫn viên không mở được.
-- **Xây trên lỗ đang hở: `money.view`, `contact.view`** (`docs/quyen-hoan.json`, hạn 2026-10-15 — ô chưa được máy chủ hỏi; "hướng dẫn viên không xem tiền" hôm nay chỉ được giữ gián tiếp bằng cổng). Hai lỗ này được **đóng ở bước ADR-0019**; ADR-0020 chỉ được phát hành sau bước đó (xem Phụ thuộc), nên không dựa vào lỗ nào lúc chạy thật.
+- **Phụ thuộc (thứ tự bắt buộc):** chỉ phát hành **sau khi** ADR-0019 (tách cổng, route hỏi bảng) và ADR-0017 (hướng dẫn viên xem mọi đơn) **đã lên production** và hướng dẫn viên **đã bấm "Nhận" được** (ô `dispatch.claim` của `FIELD` = `any`, đặc tả mô hình vai §5 đã duyệt, Q9 của đặc tả). Lý do: nếu bỏ việc tự gắn trước, mọi đơn mới rơi vào hàng "chưa có người" mà hướng dẫn viên không mở được.
+- **Xây trên lỗ đang hở: `money.view`, `contact.view` (vá ở Phần B)** (`docs/quyen-hoan.json`, hạn 2026-10-15 — ô chưa được máy chủ hỏi; "hướng dẫn viên không xem tiền" hôm nay chỉ được giữ gián tiếp bằng cổng). Hai lỗ này được **đóng ở bước ADR-0019**; ADR-0020 chỉ được phát hành sau bước đó (xem Phụ thuộc), nên không dựa vào lỗ nào lúc chạy thật.
 
 ## Sửa những câu nào của quyết định đã duyệt (nguyên văn → mới)
 
@@ -32,7 +33,7 @@ Hôm nay (bản 1.9, `origin/main` `d981326`): nhân viên Bán hàng/Quản tr�
 4. **Người lập đơn vẫn làm được mọi việc của người lập** (ADR-0009 điều 1, ô `ownOrAssigned` phần "của mình"): sửa nháp, xác nhận, huỷ, sửa thông tin chuyến, xem lịch sử — dù chưa có ai nhận, và dù người khác đã nhận.
 5. **Hướng dẫn viên đã nhận một đơn nháp** chỉ **xem** và làm những việc hẹp của người phụ trách cấp hẹp (sửa số khách sau xác nhận, huỷ đơn đã xác nhận kèm lý do — ADR-0014 điều 6/11). **Xác nhận** đơn vẫn do người lập hoặc Quản trị làm cho tới khi mô hình vai tách ô `order.confirm` (giai đoạn 2 của mô hình vai).
 6. **Đơn Đối tác lập:** **không đổi** (đã không có người phụ trách từ bản 1.5).
-7. **Đơn không ai nhận:** đây là "đơn chung" của đặc tả mô hình vai §8 mục 3 (đã duyệt) — **hạn nhận** 15 phút làm việc, khối "Chờ tiếp nhận" đỏ và báo đẩy (ADR-0018 điều 8) cần cài đặt vận hành và nơi lưu hạn, **thuộc giai đoạn 5 của mô hình vai, chưa có**. Cách xử lý trong khoảng giữa **chờ chủ quyết (Q12 của kế hoạch)**; khuyến nghị: không đặt hạn tạm, ô "Chưa phụ trách" trên Trang chủ đếm **cả đơn nháp lẫn đơn đã xác nhận** chưa có người.
+7. **Đơn không ai nhận:** đây là "đơn chung" của đặc tả mô hình vai §8 mục 3 (đã duyệt) — **hạn nhận** 15 phút làm việc, khối "Chờ tiếp nhận" đỏ và báo đẩy (ADR-0018 điều 8) cần cài đặt vận hành và nơi lưu hạn, **thuộc giai đoạn 5 của mô hình vai, chưa có**. Cách xử lý trong khoảng giữa: **câu hỏi mở M1** (cuối ADR này), trình cùng ADR ở lượt duyệt sau.
 8. **Đơn đã có** giữ nguyên người phụ trách hiện có; không có câu dữ liệu nào chạy trên đơn cũ.
 
 ## Lý do
@@ -43,7 +44,7 @@ Hôm nay (bản 1.9, `origin/main` `d981326`): nhân viên Bán hàng/Quản tr�
 
 ## Rủi ro đã nêu cho chủ dự án (ghi để sau này không ai nói "không biết")
 
-- **Đơn có thể không ai lo** trong khoảng giữa lúc này và giai đoạn 5 (chưa có hạn, chưa có báo đẩy). Giảm nhẹ tuỳ Q12.
+- **Đơn có thể không ai lo** trong khoảng giữa lúc này và giai đoạn 5 (chưa có hạn, chưa có báo đẩy). Giảm nhẹ tuỳ câu trả lời M1.
 - **Hướng dẫn viên nhận đơn nháp nhưng không xác nhận được**: người lập hoặc Quản trị phải xác nhận. Nếu người lập nghỉ, đơn nháp chờ Quản trị.
 - **Thói quen cũ**: nhân viên Bán hàng quen "đơn mình lập là mình lo" — nay phải bấm "Nhận" (nói trong nhật ký thay đổi của lần phát hành).
 
@@ -59,8 +60,15 @@ Hôm nay (bản 1.9, `origin/main` `d981326`): nhân viên Bán hàng/Quản tr�
 - **`src/modules/dispatch`:** gỡ `defaultHandlerStatement`, `defaultHandlerPartyId`; **`src/shared/router.ts`**, **`src/index.ts`**: gỡ `Ctx.defaultHandlerStatement` và `injected.defaultHandlerStatement`; **`src/modules/orders`**: route lập đơn không còn gộp câu đó.
 - **`src/shared/permissions.ts`** (việc lớn): ô `dispatch.claim` của `FIELD` `none` → `any` — làm ở **bước trước** (cùng ADR-0017), không ở bước ADR-0020.
 - **Bài kiểm đảo có chủ đích (đỏ → xanh):** `tests/e2e/dispatch.mjs` bước 1 ("đơn mới: người lập là người phụ trách") đảo thành "đơn mới không có dòng `HANDLE` nào"; các bước sau dựa vào "người lập là người phụ trách" thêm một lần **bấm Nhận** ngay sau khi tạo đơn; hàm `dropHandler` (đóng dòng bằng SQL để giả đơn chưa có người) không còn cần. Rà thêm: `docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs`, `tests/e2e/orders.mjs` (người phụ trách khác người lập), `tests/e2e/permissions.mjs`, `src/modules/orders/dashboard.test.ts`.
-- **Trang chủ:** ô "Chưa phụ trách" — theo Q12.
+- **Trang chủ:** ô "Chưa phụ trách" — theo M1.
 - **Nhật ký thay đổi** của lần phát hành nói bằng lời thường: "Đơn mới chưa có người phụ trách. Hướng dẫn viên (hoặc chính bạn) bấm Nhận để lo đơn."
 - **Khoảng trống để lại cho mô hình vai:** Kế toán/Thực tập "nhận đơn mình lập" (ADR-0018 điều 7) mất đường thực hiện — xem bảng "Sửa những câu nào"; kế hoạch giai đoạn 2 của mô hình vai phải chọn cách.
 - **Tiền điều kiện vận hành:** có ít nhất một tài khoản hướng dẫn viên **đang hoạt động, có hồ sơ** trên production (truy vấn chỉ đọc ở kế hoạch). Không có ⇒ không phát hành ADR-0020.
 - Không migration. Không đổi quyền của tài khoản nào.
+
+## Câu hỏi mở (trình cùng ADR này ở lượt duyệt sau — chưa hỏi chủ ở lượt ADR-0019)
+
+**M1 — Trong lúc chưa có "hạn nhận 15 phút" (giai đoạn 5 của mô hình vai), đơn không ai bấm Nhận thì sao?**
+- **A (khuyến nghị):** không đặt hạn tạm; ô "Chưa phụ trách" trên Trang chủ đếm cả đơn nháp lẫn đơn đã xác nhận chưa có người (hôm nay chỉ đếm đơn đã xác nhận — `src/modules/orders/repository.ts:462`), chữ phụ "Chờ người nhận". Được: làm nhanh, ai cũng thấy số đơn chờ. Mất: không ai bị nhắc riêng.
+- **B:** chưa bỏ việc tự gắn cho tới khi có hạn nhận thật. Được: không đơn nào vô chủ. Mất: hướng dẫn viên chưa là người nhận mặc định như chủ muốn.
+- **C:** như A, thêm tô đỏ đơn chưa có người mà ngày đi là hôm nay hoặc ngày mai. Được: cảnh báo đúng chỗ gấp. Mất: thêm một ít việc, sẽ thay bằng hạn thật sau.
