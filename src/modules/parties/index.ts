@@ -51,7 +51,7 @@ export async function partySummary(db: D1Database, id: string): Promise<{ kind: 
   return p ? { kind: p.party_kind, active: p.active === 1, displayName: p.display_name } : null;
 }
 
-const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở trang Nhân viên.");
+const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
 const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === "EXTERNAL";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hồ sơ.");
@@ -59,15 +59,15 @@ const STALE = () => error(409, "stale", "Hồ sơ vừa được người khác 
 const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hiệu lực (đã đóng hoặc không tồn tại), hoặc ngày kết thúc trước ngày bắt đầu.");
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
-const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Nhân viên.");
+const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.");
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
   if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
-  if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã giữ vai trò đó ở nơi đó trong khoảng thời gian trùng.");
-  if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Quan hệ này đã có trong khoảng thời gian trùng.");
-  if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại vai trò/quan hệ, địa điểm hoặc hồ sơ liên quan không tồn tại.");
+  if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã có công việc đó ở nơi đó trong khoảng thời gian trùng.");
+  if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Người liên hệ này đã được ghi trong khoảng thời gian trùng.");
+  if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại công việc, địa điểm hoặc hồ sơ liên quan không tồn tại.");
   return null;
 }
 
@@ -178,7 +178,7 @@ export const partiesModule: AppModule = {
       const kindRaw = url.searchParams.get("kind");
       if (kindRaw && kindRaw !== "PERSON" && kindRaw !== "ORGANIZATION") return error(400, "invalid_input", "Loại hồ sơ lọc không hợp lệ.");
       const role = url.searchParams.get("role") || null;
-      if (role && !/^[A-Z][A-Z_]{1,29}$/.test(role)) return error(400, "invalid_input", "Mã vai trò lọc không hợp lệ.");
+      if (role && !/^[A-Z][A-Z_]{1,29}$/.test(role)) return error(400, "invalid_input", "Mã công việc để lọc không hợp lệ.");
       const location = url.searchParams.get("location") || null;
       if (location && !UUID_RE.test(location)) return error(400, "invalid_input", "Địa điểm lọc không hợp lệ.");
       const q = (url.searchParams.get("q") ?? "").trim().slice(0, 100);

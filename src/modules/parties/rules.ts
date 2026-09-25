@@ -238,7 +238,7 @@ export interface RoleInput {
 
 export function validateRole(body: Record<string, unknown> | null, today: string): Result<RoleInput> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
-  if (typeof body.roleTypeCode !== "string" || !CODE_RE.test(body.roleTypeCode)) return fail("Loại vai trò không hợp lệ.");
+  if (typeof body.roleTypeCode !== "string" || !CODE_RE.test(body.roleTypeCode)) return fail("Loại công việc không hợp lệ.");
   let locationId: string | null = null;
   if (body.locationId !== undefined && body.locationId !== null && body.locationId !== "") {
     if (typeof body.locationId !== "string" || !UUID_RE.test(body.locationId)) return fail("Địa điểm không hợp lệ.");
@@ -260,10 +260,10 @@ export interface RelationshipInput {
 export function validateRelationship(body: Record<string, unknown> | null, partyId: string, today: string): Result<RelationshipInput> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const { fromPartyId, toPartyId, relationshipTypeCode } = body;
-  if (typeof fromPartyId !== "string" || typeof toPartyId !== "string" || !PARTY_ID_RE.test(fromPartyId) || !PARTY_ID_RE.test(toPartyId)) return fail("Hồ sơ của quan hệ không hợp lệ.");
-  if (fromPartyId === toPartyId) return fail("Một hồ sơ không thể có quan hệ với chính nó.");
-  if (fromPartyId !== partyId && toPartyId !== partyId) return fail("Quan hệ phải có hồ sơ đang xem ở một đầu.");
-  if (typeof relationshipTypeCode !== "string" || !CODE_RE.test(relationshipTypeCode)) return fail("Loại quan hệ không hợp lệ.");
+  if (typeof fromPartyId !== "string" || typeof toPartyId !== "string" || !PARTY_ID_RE.test(fromPartyId) || !PARTY_ID_RE.test(toPartyId)) return fail("Hồ sơ người liên hệ không hợp lệ.");
+  if (fromPartyId === toPartyId) return fail("Một hồ sơ không thể là người liên hệ của chính nó.");
+  if (fromPartyId !== partyId && toPartyId !== partyId) return fail("Người liên hệ phải gắn với hồ sơ đang xem.");
+  if (typeof relationshipTypeCode !== "string" || !CODE_RE.test(relationshipTypeCode)) return fail("Loại liên hệ không hợp lệ.");
   const period = validatePeriod(body.validFrom, body.validTo, today);
   return period.ok ? { ok: true, value: { fromPartyId, toPartyId, typeCode: relationshipTypeCode, from: period.value.from, to: period.value.to } } : period;
 }

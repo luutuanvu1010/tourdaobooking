@@ -15,14 +15,14 @@ interface Tab {
 
 /**
  * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 4 tab, admin 6 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
- * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Hồ sơ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
+ * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Danh bạ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  */
 function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   const adminTabs: Tab[] =
     admin
       ? [
           { href: "/catalog", label: "Dịch vụ", icon: "services", active: (p) => p === "/catalog" },
-          { href: "/staff", label: "Nhân viên", icon: "staff", active: (p) => p === "/staff" },
+          { href: "/staff", label: "Tài khoản", icon: "staff", active: (p) => p === "/staff" },
         ]
       : [];
   const officeTabs: Tab[] = [];
@@ -134,19 +134,19 @@ function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: st
   // Huy hiệu "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án đã chốt nghĩa của con số này), màu mặc định như bản mẫu.
   if (office) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) sales.push({ href: "/order-form", label: "Lập đơn mới", icon: "plus", active: (p) => p === "/order-form" });
-  if (office) sales.push({ href: "/parties", label: "Hồ sơ", icon: "contact-card", active: (p) => p === "/parties" });
+  if (office) sales.push({ href: "/parties", label: "Danh bạ", icon: "contact-card", active: (p) => p === "/parties" });
 
   const management: NavItem[] = admin
     ? [
         { href: "/catalog", label: "Dịch vụ & giá", icon: "services", badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand", active: (p) => p === "/catalog" },
-        { href: "/staff", label: "Nhân viên", icon: "staff", active: (p) => p === "/staff" },
+        { href: "/staff", label: "Quản lý tài khoản", icon: "staff", active: (p) => p === "/staff" },
         { href: "/locations", label: "Địa điểm", icon: "pin", active: (p) => p === "/locations" },
         { href: "/audit", label: "Nhật ký", icon: "history", active: (p) => p === "/audit" },
       ]
     : [];
 
   const me: NavItem[] = [
-    { href: "/account", label: "Tài khoản", icon: "me", active: (p) => p === "/account" },
+    { href: "/account", label: "Của tôi", icon: "me", active: (p) => p === "/account" },
     { href: `/feedback?new=1&from=${encodeURIComponent(path)}`, label: "Góp ý / Báo lỗi", icon: "chat", badge: feedbackBadge, badgeClass: "sidebar-item-badge-accent", active: (p) => p === "/feedback" },
     { href: "/help", label: "Trợ giúp", icon: "help", dot: helpHasNews, active: (p) => p === "/help" },
   ];

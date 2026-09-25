@@ -530,7 +530,7 @@ export interface PartyListResponse { parties: PartyListItemDto[]; hasMore: boole
 export interface PartyLookupResponse { matches: PartyListItemDto[] }
 export interface PartyResponse { party: PartyDto }
 export interface PartyMetaResponse {
-  /** MỌI loại vai (cả vai đã ngưng — để hiện đúng tên); `group` OTHER là vai gán được ở trang Hồ sơ, INTERNAL/EXTERNAL chỉ gán ở trang Nhân viên (ADR-0018). */
+  /** MỌI loại vai (cả vai đã ngưng — để hiện đúng tên); `group` OTHER là vai gán được ở trang Danh bạ (/parties), INTERNAL/EXTERNAL chỉ gán ở màn Quản lý tài khoản (/staff) (ADR-0018). */
   roleTypes: { code: string; name: string; group: "INTERNAL" | "EXTERNAL" | "OTHER"; active: boolean }[];
   relationshipTypes: { code: string; name: string }[];
 }

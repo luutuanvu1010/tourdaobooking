@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.10",
+    date: "2026-09-25",
+    items: [
+      { kind: "doi", text: "Màn \"Nhân viên\" đổi tên thành \"Quản lý tài khoản\" (trên điện thoại là tab \"Tài khoản\"), vì ở đây quản lý cả tài khoản của đối tác." },
+      { kind: "doi", text: "Mục \"Tài khoản\" ở thanh bên máy tính đổi tên thành \"Của tôi\"." },
+      { kind: "doi", text: "Màn \"Hồ sơ\" đổi tên thành \"Danh bạ\"; trong mỗi hồ sơ, \"Vai trò theo nơi\" nay là \"Công việc tại đâu\", \"Quan hệ\" nay là \"Người liên hệ\"." },
+    ],
+  },
+  {
     version: "1.9",
     date: "2026-09-24",
     items: [

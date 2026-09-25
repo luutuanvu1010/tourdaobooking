@@ -1,17 +1,17 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Hồ sơ — Island Booking System</title></head>
-<body data-title="Hồ sơ">
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Danh bạ — Island Booking System</title></head>
+<body data-title="Danh bạ">
 <header id="topbar"></header>
 <main>
-  <h1>Hồ sơ</h1>
-  <p class="muted">Danh bạ chung: khách hàng, đại lý, hướng dẫn viên, lái cano, tài xế, nhân sự… Vai trò chỉ để ghi và tìm — không giới hạn ai được chọn.</p>
+  <h1>Danh bạ</h1>
+  <p class="muted">Danh bạ chung: khách hàng, đại lý, hướng dẫn viên, lái cano, tài xế, nhân sự… Mục "Công việc tại đâu" chỉ để ghi và tìm — không giới hạn ai được chọn.</p>
   <div id="error" class="alert" role="alert" hidden></div>
   <section class="card">
     <form id="search-form" class="grid three" autocomplete="off">
       <label>Tìm (tên hoặc số điện thoại)<input id="q" type="search" maxlength="100"></label>
       <label>Loại<select id="kind"><option value="">Tất cả</option><option value="PERSON">Cá nhân</option><option value="ORGANIZATION">Tổ chức</option></select></label>
-      <label>Vai trò (đang hiệu lực hôm nay)<select id="role"><option value="">Tất cả</option></select></label>
-      <label>Nơi (của vai trò)<select id="location"><option value="">Tất cả</option></select></label>
+      <label>Công việc (đang hiệu lực hôm nay)<select id="role"><option value="">Tất cả</option></select></label>
+      <label>Nơi làm<select id="location"><option value="">Tất cả</option></select></label>
       <label class="check"><input id="inactive" type="checkbox" style="width:auto;display:inline;margin:0 6px 0 0">Gồm cả hồ sơ đã ngưng</label>
       <div><button class="btn btn-primary" type="submit">Tìm</button> <button id="new" class="btn" type="button">+ Hồ sơ mới</button></div>
     </form>
@@ -20,7 +20,7 @@
   <section id="detail" class="card" hidden></section>
   <section class="card table-wrap">
     <table class="items">
-      <thead><tr><th>Tên</th><th>Loại</th><th>Điện thoại chính</th><th>Vai trò hôm nay</th></tr></thead>
+      <thead><tr><th>Tên</th><th>Loại</th><th>Điện thoại chính</th><th>Công việc hôm nay</th></tr></thead>
       <tbody id="list"></tbody>
     </table>
   </section>

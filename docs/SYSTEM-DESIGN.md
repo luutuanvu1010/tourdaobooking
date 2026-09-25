@@ -717,8 +717,9 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 | loại khách | `PaxCode` | `adult`, `child`, `senior`, `infant` |
 | bản chụp | `snapshotService` | dựng lại dịch vụ danh mục từ dữ liệu đã lưu của đơn |
 | danh mục dịch vụ, ghi đè | `catalog_item`, `catalog_override`, `applyOverride` | "giá hiệu lực" = giá Sheet đã áp ghi đè; ghi đè không bị đồng bộ sau đè mất |
-| hồ sơ | bảng `pty_party` ("party") | cá nhân `PERSON` hoặc tổ chức `ORGANIZATION` |
-| vai trò hồ sơ | `pty_party_role`, `pty_role_type` | HDV, tài xế, `STAFF`… — **không** dùng để cho/chặn thao tác |
+| hồ sơ (màn **Danh bạ**, `/parties`) | bảng `pty_party` ("party") | cá nhân `PERSON` hoặc tổ chức `ORGANIZATION`; mỗi mục trong Danh bạ vẫn gọi là "hồ sơ" (từ bản 1.10, trước đó màn tên "Hồ sơ") |
+| vai trò hồ sơ (trên màn: mục **"Công việc tại đâu"**; quan hệ `pty_party_relationship` hiện ở mục **"Người liên hệ"**) | `pty_party_role`, `pty_role_type` | HDV, tài xế, `STAFF`… — **không** dùng để cho/chặn thao tác |
+| tài khoản (màn **Quản lý tài khoản**, `/staff`; tab điện thoại "Tài khoản") | bảng `staff`, module `staff`/`accounts` | đăng nhập (SĐT, PIN, Face ID), vai và quyền, khoá/nghỉ việc; mỗi tài khoản trỏ đúng một hồ sơ. Trang cá nhân `/account` là "Tôi" (mục thanh bên: "Của tôi"). Từ bản 1.10; trước đó màn tên "Nhân viên" |
 | quyền app | `stf_permission`, `PermissionCode` | `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN` (hai mã sau: ADR-0014) |
 | thao tác | `OperationCode`, `MATRIX`, `can()` | ô của bản đồ ADR-0007 + ADR-0014 |
 | nhân sự văn phòng; đơn (văn phòng hoặc Đối tác); nhật ký | `isOffice` / `access: "office"`; `canAccessOrders` / `access: "orders"` (ADR-0014); `audit_log`, `AUDIT_ACTIONS` | mọi quyền trừ chỉ-`FIELD`; văn phòng hoặc `PARTNER`; nhật ký chỉ-thêm |

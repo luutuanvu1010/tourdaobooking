@@ -1,4 +1,4 @@
-// Trang Hồ sơ: tìm/lọc, tạo (cảnh báo trùng SĐT — ADR-0001 mục 8), xem/sửa, liên hệ, vai trò theo nơi và quan hệ.
+// Trang Danh bạ (/parties; mỗi mục là một "hồ sơ"): tìm/lọc, tạo (cảnh báo trùng SĐT — ADR-0001 mục 8), xem/sửa, liên hệ, "Công việc tại đâu" (vai trò theo nơi) và "Người liên hệ" (quan hệ).
 // Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); hồ sơ khách/đại lý: mọi nhân sự văn phòng; hồ sơ có tài khoản: chỉ quản trị viên cấp trên (ADR-0013, máy chủ tính `editable`).
 import { hasPermission } from "../src/shared/permissions";
 import { ApiError, api, type Api, type Staff } from "./api";
@@ -63,7 +63,7 @@ const select = (options: { value: string; label: string }[], selected = options[
 const period = (from: string, to: string | null) => (to ? `${from} → ${to}` : `từ ${from}`);
 const checkbox = (checked: boolean) => h("input", { type: "checkbox", checked, style: "width:auto;display:inline;margin:0 6px 0 0" });
 const roleLabel = (code: string) => meta.roleTypes.find((t) => t.code === code)?.name ?? code;
-/** Vai quyết định quyền đăng nhập (nội bộ/bên ngoài, ADR-0018): chỉ gán/gỡ ở trang Nhân viên. */
+/** Vai quyết định quyền đăng nhập (nội bộ/bên ngoài, ADR-0018): chỉ gán/gỡ ở màn Quản lý tài khoản. */
 const isAccountRole = (code: string): boolean => {
   const g = meta.roleTypes.find((t) => t.code === code)?.group;
   return g === "INTERNAL" || g === "EXTERNAL";
@@ -241,7 +241,7 @@ async function openDetail(id: string): Promise<void> {
       ...(person ? [field("Họ và tên (tên = từ cuối)", fullName)] : [field("Tên gọi", displayName), field("Tên pháp lý", legalName), field("Mã số thuế", taxCode), field("Địa chỉ", address), field("Email nhận hoá đơn", invoiceEmail)]),
       h("label", { class: "check" }, active, "Đang dùng"),
     ),
-    p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Nhân viên.") : null,
+    p.accountLinked ? h("p", { class: "muted" }, "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.") : null,
     p.editable ? h("div", { class: "actions" }, saveInfo) : null,
   );
 
@@ -260,12 +260,12 @@ async function openDetail(id: string): Promise<void> {
 
   // -- vai trò theo nơi
   const roleRows = p.roles.map((r2) =>
-    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở trang Nhân viên") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
+    h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
   );
   const rType = select(meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.name })));
   const rLoc = select([{ value: "", label: "(mọi nơi)" }, ...locations.filter((l) => l.active).map((l) => ({ value: l.id, label: l.name }))]);
   const rFrom = input("", { type: "date" });
-  const addRole = button("Thêm vai trò", (b) => {
+  const addRole = button("Thêm công việc", (b) => {
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
@@ -286,7 +286,7 @@ async function openDetail(id: string): Promise<void> {
       replaceChildren(relPick, ...(found?.parties.filter((x) => x.id !== id).map((x) => h("option", { value: x.id }, `${x.displayName} (${KIND_LABEL[x.kind]})`)) ?? []));
     }, 300);
   });
-  const addRel = button("Thêm quan hệ", (b) => {
+  const addRel = button("Thêm người liên hệ", (b) => {
     if (!relPick.value) return showError(errorEl, "Chọn hồ sơ cần liên kết.");
     const body = relDir.value === "from" ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: "CONTACT_OF" } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: "CONTACT_OF" };
     void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
@@ -300,12 +300,12 @@ async function openDetail(id: string): Promise<void> {
     h("table", { class: "items" }, h("tbody", null, ...contactRows)),
     p.editable ? h("div", { class: "grid three" }, field("Loại", cKind), field("Giá trị", cValue), field("Ghi chú", cLabel), h("label", { class: "check" }, cPrimary, "Liên hệ chính")) : null,
     p.editable ? h("div", { class: "actions" }, addContact) : null,
-    h("h3", null, "Vai trò theo nơi"),
+    h("h3", null, "Công việc tại đâu"),
     h("table", { class: "items" }, h("tbody", null, ...roleRows)),
     admin
-      ? h("div", null, h("div", { class: "grid three" }, field("Vai trò", rType), field("Nơi", rLoc), field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
-      : h("p", { class: "muted" }, "Chỉ quản trị viên thêm/kết thúc vai trò."),
-    h("h3", null, "Quan hệ"),
+      ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), field("Nơi làm", rLoc), field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
+      : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
+    h("h3", null, "Người liên hệ"),
     h("table", { class: "items" }, h("tbody", null, ...relRows)),
     admin ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
     h("div", { class: "actions", style: "margin-top:12px" }, button("Đóng", () => { detailEl.hidden = true; openId = null; }, "btn")),
