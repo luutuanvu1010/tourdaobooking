@@ -34,10 +34,15 @@
 4. **Lý do chọn nhanh** mỗi lần sửa (đơn đã xác nhận — phạm vi theo **C2**): "Khách thêm người", "Khách bớt người", "Đổi dịch vụ", "Khác" (kèm ghi chú ngắn khi chọn "Khác").
 5. **Lịch sử chỉnh sửa** (không phải biên nhận) hiện thay đổi **so với bản đã xác nhận với khách**, dạng lời thường: "Người lớn: 4 (tăng 2)", "Trẻ em: 1 (giảm 1)", "Thêm: Lặn biển", "Bỏ: Tour 3 đảo", "Đã huỷ — Khách yêu cầu huỷ"; kèm ai sửa, lúc nào, lý do. Dữ liệu từ các dòng điều chỉnh chỉ-thêm (ADR-0007 điều 2), không sửa đè.
 6. **Biên nhận** luôn là **con số hiện hành** (sau mọi điều chỉnh), không ghi tăng/giảm. Đơn huỷ: trạng thái "Đã huỷ" (đã có).
-7. **Nhãn "Đã sửa"** cạnh trạng thái (vd "Đã xác nhận · Đã sửa") khi đơn đã xác nhận có ít nhất một dòng điều chỉnh. **Không** thêm trạng thái thứ tư (trạng thái vẫn: Chờ xác nhận / Đã xác nhận / Đã huỷ).
+7. **Nhãn "Đã sửa"** cạnh trạng thái (vd "Đã xác nhận · Đã sửa") khi đơn đã xác nhận có ít nhất một dòng điều chỉnh — nhãn, **không** phải trạng thái. **Tập trạng thái sẽ đổi** vì chủ thêm "Hoàn thành" (trả lời C1, dưới) — quyết định riêng theo đặc tả `docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md`, không thuộc ADR này.
 8. **Thông báo nổi** (qua Bảng tin, ADR-0022) tới **người lập đơn** và **Kế toán** mỗi khi hướng dẫn viên đổi số khách/dịch vụ: "Đơn TD-0123: HDV đổi số khách (tăng 2)". Bổ sung Q-B của ADR-0022 (loại "tiền/sửa" do HDV làm thì **hiện**, không chỉ làm mới). Người khác: chỉ làm mới.
 
-## Câu hỏi mở
+## Câu hỏi mở — chủ đã trả lời (2026-09-25)
+
+- **C1 → chủ mở rộng thành bước mới "Hoàn tất":** *"Hướng dẫn viên sau khi thay đổi đơn có thể bấm xác nhận để CHUYỂN TRẠNG THÁI ĐƠN LÀ HOÀN THÀNH. Lúc này đơn không thể thay đổi bất cứ thông tin nào, và là bất biến"*, kèm ghi nhận kế toán (HDV nợ công ty đúng số đã thu của khách; khách hết nợ) và các giao dịch đại lý/hoa hồng. Việc này vượt phạm vi ADR-0023 (trạng thái mới + sổ tiền + giá theo vai) → tách sang đặc tả `docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md` và các ADR riêng. **Chưa rõ, đã đưa vào câu hỏi của đặc tả:** ai bấm "Xác nhận" (chốt với khách) và "Hoàn tất" có là hai bước khác nhau không.
+- **C2:** *"Chọn lý do trước khi bấm xác nhận chứ. Và ghi lịch sử tự động bởi hệ thống sau khi bấm xác nhận."* → hộp sửa bắt **chọn lý do trước khi lưu**; hệ thống **tự ghi lịch sử** khi lưu. **Chưa rõ** có áp cho đơn nháp không — đưa vào câu hỏi của đặc tả; đến khi chủ trả lời, giả định **có** (mọi lần HDV sửa đều chọn lý do) vì đúng chữ "luôn" của yêu cầu (6).
+
+(Nguyên văn câu hỏi trước khi chủ trả lời, giữ làm lịch sử:)
 
 - **C1 — Hướng dẫn viên đã nhận đơn có tự bấm "Xác nhận" (chốt với khách) được không?** Khuyến nghị: **có** (ADR-0018 điều 7: "người nhận xác nhận và chăm sóc đơn"); người lập và Quản trị vẫn xác nhận được.
 - **C2 — Lý do bắt buộc và lịch sử tăng/giảm áp từ lúc nào?** Khuyến nghị: **chỉ sau khi đã xác nhận**; đơn nháp sửa thẳng như người lập (không lý do, không dòng lịch sử), mốc so sánh = bản lúc xác nhận.
