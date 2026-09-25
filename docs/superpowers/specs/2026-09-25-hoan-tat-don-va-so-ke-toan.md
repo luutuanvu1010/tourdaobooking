@@ -1,6 +1,6 @@
 # Đặc tả (bản nháp): Hoàn tất đơn, sổ công nợ, chiết khấu theo vai, loại biên nhận theo dịch vụ
 
-- **Ngày:** 2026-09-25. **Vai:** lập kế hoạch (không thi công). **Trạng thái:** **bản nháp — chờ chủ trả lời câu hỏi §8**, chưa trình duyệt.
+- **Ngày:** 2026-09-25. **Vai:** lập kế hoạch (không thi công). **Trạng thái:** **chủ đã trả lời mọi câu §8 (2026-09-25, §10)**; bước tiếp: soạn ADR lượt 1 (D1–D3) + trang ghép. Chưa trình duyệt (chờ ADR-0019 lên production).
 - **Việc lớn:** chạm dữ liệu (trạng thái mới, bảng sổ), tiền (công nợ, chiết khấu), quyền (ai hoàn tất, ai xem sổ) → mọi phần thi công có người kiểm độc lập (CLAUDE.md §3).
 - **Xây trên lỗ đang hở: `money.view`, `contact.view`** (`docs/quyen-hoan.json`) — hướng dẫn viên xem công nợ của mình, màn sổ của Kế toán đều dựa vào hai ô này → **không quyết định nào ở đây được duyệt trước khi ADR-0019 lên production** (luật "dừng dây chuyền").
 - **Không duyệt một lần được:** phạm vi sinh ít nhất 5 quyết định chạm dữ liệu/quyền; CLAUDE.md §9 cho tối đa 3 mỗi lượt, mỗi lượt kèm trang ghép. Đề xuất chia lượt ở §7.
@@ -126,3 +126,14 @@ Nhập **số tiền thực thu của khách** và **thu bằng gì** (tiền m�
 - Làm tròn a%·N theo đúng luật chiết khấu đã duyệt: tới đồng, theo dòng.
 - Chưa xác minh: kế toán có cần xuất báo cáo công nợ theo kỳ (tuần/tháng) không — để kế hoạch lượt 1 hỏi.
 - Phần "Dự kiến đối tác còn phải trả" và "người giữ cọc" của đặc tả mô hình vai §11 sẽ được **gộp** vào D2/D3 (không làm hai lần).
+
+## 10. Trả lời của chủ (2026-09-25, phiên chat — áp dụng, không hỏi lại)
+
+- **Q1:** theo khuyến nghị (Xác nhận: người lập, Quản trị, HDV đang phụ trách; Hoàn tất: HDV đang phụ trách, Quản trị/Toàn quyền; không nhảy thẳng sang Hoàn thành).
+- **Q2:** đúng, bổ sung: *"trong phần thanh toán trước thì cần chọn rõ là thu bởi HDV (TM/CK) hay bởi Cty Tour Đảo (CK). Ưu tiên phản ánh đúng phát sinh thực tế. Nếu Cty đã thu thì phần đó loại khỏi phần nợ của HDV với Cty."* → **mỗi lần ghi tiền khách trả** (trả trước lẫn lúc Hoàn tất) bắt buộc chọn **người thu** + **hình thức**: HDV — tiền mặt; HDV — chuyển khoản (vào tài khoản của HDV); Công ty Tour Đảo — chuyển khoản; cùng hai người thu đã có trong ví dụ §5: người hưởng (đại lý) và nhà cung cấp (phần còn lại). Nợ của HDV với công ty = **chỉ** phần HDV thu. (Thay cho `deposit_method` hiện chỉ có hình thức, không có người thu — xử lý ở D2.)
+- **Q3:** đồng ý; *"Mức này hệ thống tự tính và ghi nhận nhưng không hiển thị cho biên nhận (lớp xử lý biên nhận phải làm được điều đó)."* → **luật biên nhận (mở rộng LC-5/LC-7):** mô hình biên nhận dựng từ **danh sách trường được phép** (danh sách trắng), không phải "lấy cả đơn rồi bỏ bớt"; **không bao giờ** có a%, giá vốn, chiết khấu, hoa hồng, quyết toán nhà cung cấp/đại lý, công nợ HDV. Có test: đưa vào đơn đủ các số đó → mô hình biên nhận không chứa số nào trong đó.
+- **Q4:** theo khuyến nghị; *"đại lý ở đây là các vai trò: HDV bên ngoài, tài xế, lữ hành, lễ tân."* → "đại lý" = **tên gọi chung**, không phải vai mới: *Hướng dẫn viên độc lập*, *Tài xế taxi*, *Công ty lữ hành*, *Lễ tân khách sạn*. *Cộng tác viên* (chủ đã kể ở câu gốc "hướng dẫn viên, đại lý, cộng tác viên, lữ hành") — **giả định**: cũng hưởng theo cùng cơ chế (vai bên ngoài); ghi để chủ xác nhận khi duyệt D3/D4. HDV **nội bộ** không hưởng giá đại lý.
+- **Q5:** mỗi ô một kiểu — % trên giá bán **hoặc** số tiền cố định mỗi khách/vé.
+- **Q6:** đơn Hoàn thành không mở lại; Kế toán/Toàn quyền ghi bút toán điều chỉnh có lý do.
+- **Q7:** một biên nhận, chia phần theo người bán.
+- **Mang từ trước:** (a) lý do bắt buộc áp **cả đơn nháp** khi HDV sửa (ADR-0023 C2); (b) **duyệt** thêm loại module "không dùng cơ sở dữ liệu" vào luật kiến trúc cho Bảng tin (ghi ở kế hoạch Bảng tin).

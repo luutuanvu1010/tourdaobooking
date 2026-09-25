@@ -40,7 +40,7 @@
 ## Câu hỏi mở — chủ đã trả lời (2026-09-25)
 
 - **C1 → chủ mở rộng thành bước mới "Hoàn tất":** *"Hướng dẫn viên sau khi thay đổi đơn có thể bấm xác nhận để CHUYỂN TRẠNG THÁI ĐƠN LÀ HOÀN THÀNH. Lúc này đơn không thể thay đổi bất cứ thông tin nào, và là bất biến"*, kèm ghi nhận kế toán (HDV nợ công ty đúng số đã thu của khách; khách hết nợ) và các giao dịch đại lý/hoa hồng. Việc này vượt phạm vi ADR-0023 (trạng thái mới + sổ tiền + giá theo vai) → tách sang đặc tả `docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md` và các ADR riêng. **Chưa rõ, đã đưa vào câu hỏi của đặc tả:** ai bấm "Xác nhận" (chốt với khách) và "Hoàn tất" có là hai bước khác nhau không.
-- **C2:** *"Chọn lý do trước khi bấm xác nhận chứ. Và ghi lịch sử tự động bởi hệ thống sau khi bấm xác nhận."* → hộp sửa bắt **chọn lý do trước khi lưu**; hệ thống **tự ghi lịch sử** khi lưu. **Chưa rõ** có áp cho đơn nháp không — đưa vào câu hỏi của đặc tả; đến khi chủ trả lời, giả định **có** (mọi lần HDV sửa đều chọn lý do) vì đúng chữ "luôn" của yêu cầu (6).
+- **C2:** *"Chọn lý do trước khi bấm xác nhận chứ. Và ghi lịch sử tự động bởi hệ thống sau khi bấm xác nhận."* → hộp sửa bắt **chọn lý do trước khi lưu**; hệ thống **tự ghi lịch sử** khi lưu. Áp **cả đơn nháp** — chủ xác nhận 2026-09-25 (câu 8a của đặc tả Hoàn tất): mọi lần HDV sửa đều chọn lý do trước khi lưu. (Với đơn nháp, lịch sử ghi lý do + ai/lúc nào; phần "tăng/giảm so với bản đã xác nhận" chỉ có từ khi đơn đã xác nhận.)
 
 (Nguyên văn câu hỏi trước khi chủ trả lời, giữ làm lịch sử:)
 

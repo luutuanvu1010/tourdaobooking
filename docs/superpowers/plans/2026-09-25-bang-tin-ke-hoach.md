@@ -14,6 +14,9 @@
 
 **Nhánh thi công:** worktree mới từ `origin/main` mới nhất (gợi ý `bang-tin`), không dùng nhánh kế hoạch này.
 
+
+> **Chủ dự án đã duyệt (phiên chat 2026-09-25, câu 8b của đặc tả Hoàn tất):** thêm vào luật kiến trúc một loại module mới **"không dùng cơ sở dữ liệu"** (tên đề xuất `KHONG_DB`, chặt hơn `STRICT`: không bảng, không SQL, không `.prepare`) cho module Bảng tin. Người thi công sửa `docs/ARCHITECTURE.md` + `src/architecture.test.ts` theo đúng nghĩa đó (có hiệu lực vì chủ đã duyệt — N9), và phải thấy test mới chặn thật một lần (P16).
+
 ## Ràng buộc chung
 
 - Tiếng Việt có dấu ở giao diện, thông báo, tài liệu, commit; không lộ mã thô (`xac_nhan`, `FIELD`…) ra người dùng.
