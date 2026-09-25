@@ -47,7 +47,7 @@ const input2 = {
   discount: 0, depositAmount: 0,
   services: [
     manualService([{ description: "Tour Hòn Mun", quantity: 1, unitPrice: 200000 }], { name: "Dịch vụ một", pax: { adult: 2 }, departDate: vnDate(5), pickupTime: "07:00" }),
-    manualService([{ description: "Đưa đón sân bay", quantity: 1, unitPrice: 100000 }], { name: "Dịch vụ hai", pax: { adult: 1 }, departDate: vnDate(3), pickupTime: "09:00" }),
+    manualService([{ description: "Đưa đón sân bay", quantity: 1, unitPrice: 100000 }], { name: "Dịch vụ hai", pax: { adult: 1 }, departDate: vnDate(5), pickupTime: "09:00" }), // ADR-0021: cả đơn một ngày — phân biệt dịch vụ đầu bằng giờ đón
   ],
 };
 r = await call(A, "POST", "/api/orders", input2);

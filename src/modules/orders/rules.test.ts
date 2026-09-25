@@ -73,6 +73,15 @@ test("có thanh toán trước thì cần phương thức thanh toán; không c�
   assert.equal(ok({ ...base, depositAmount: 0, depositMethod: "cash" }).depositMethod, null);
 });
 
+test("một ngày cho cả đơn (ADR-0021): mọi dịch vụ cùng ngày khởi hành; 'chưa có ngày' cũng là một giá trị", () => {
+  const svc = (departDate?: string) => manual([{ description: "X", quantity: 1, unitPrice: 100000 }], departDate ? { departDate } : {});
+  const order = (...s: unknown[]) => ({ ...base, depositAmount: 0, discount: 0, services: s });
+  assert.equal(message(order(svc("2026-10-01"), svc("2026-10-02"))), "Mọi dịch vụ trong đơn phải cùng một ngày khởi hành.");
+  assert.equal(message(order(svc("2026-10-01"), svc())), "Mọi dịch vụ trong đơn phải cùng một ngày khởi hành.");
+  assert.equal(ok(order(svc("2026-10-01"), svc("2026-10-01"))).services.length, 2);
+  assert.equal(ok(order(svc(), svc())).services.length, 2);
+});
+
 test("bắt buộc có khách, SĐT hợp lệ, ít nhất một dịch vụ", () => {
   assert.match(message({ ...base, customerName: "  " }), /Tên khách/);
   assert.match(message({ ...base, customerPhone: "abc" }), /Số điện thoại/);
@@ -84,7 +93,7 @@ test("bắt buộc có khách, SĐT hợp lệ, ít nhất một dịch vụ", (
 
 test("dịch vụ từ danh mục: dòng tiền do server sinh và cộng vào tạm tính cùng dịch vụ nhập tay", () => {
   const cat = { kind: "catalog", catalogCode: "TD101", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 850000, child: 595000 }, departDate: "2026-09-25" };
-  const v = ok({ ...base, services: [cat, manual([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }])], discount: 0, depositAmount: 0 });
+  const v = ok({ ...base, services: [cat, manual([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { departDate: "2026-09-25" })], discount: 0, depositAmount: 0 });
   assert.equal(v.services.length, 2);
   assert.deepEqual(v.items.map((i) => [i.catalogCode, i.quantity, i.unitPrice]), [["TD101", 2, 850000], ["TD101", 1, 595000], [null, 1, 50000]]);
   assert.equal(v.subtotal, 2 * 850000 + 595000 + 50000);

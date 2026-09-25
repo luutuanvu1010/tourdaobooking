@@ -5,7 +5,7 @@ import {
   CATALOG_CODE_RE, MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, buildLines, paxTotal, payingGuests, priceDeviation,
   type CatalogService, type EffectiveService, type PaxCode, type PaxCounts, type Prices,
 } from "../../shared/order-lines.ts";
-import { MAX_LINES_PER_ORDER, MAX_SERVICES, confirmWindow } from "../../shared/trip-rules.ts";
+import { MAX_LINES_PER_ORDER, MAX_SERVICES, ONE_DATE_MESSAGE, confirmWindow, tripUpdateKeepsOneDate } from "../../shared/trip-rules.ts";
 import { cleanText, dateField, int, text, timeField } from "./fields.ts";
 
 export type { CatalogChangeDto as CatalogChange, CatalogStatus, MissingReason, TripGapDto as TripGap };
@@ -296,6 +296,7 @@ export function validateTripUpdate(
     }
     updates.push({ id: cur.id, trip: trip.value });
   }
+  if (!tripUpdateKeepsOneDate(stored, updates.map((u) => ({ id: u.id, departDate: u.trip.departDate })))) return { ok: false, message: ONE_DATE_MESSAGE }; // ADR-0021
   return { ok: true, value: { expectedUpdatedAt: b.expectedUpdatedAt, updates } };
 }
 

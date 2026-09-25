@@ -23,12 +23,14 @@ try {
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     ...base, discount: 100000, depositAmount: 500000, depositMethod: "cash",
     services: [
-      { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00" },
+      { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00" },
       { kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP },
     ],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const order = created.json.order;
+  // ADR-0021: API nay chặn đơn lệch ngày ("có ngày" + "chưa có ngày"); ca này chỉ còn ở đơn CŨ → dựng lại bằng SQL: dịch vụ danh mục có ngày, dịch vụ nhập tay trống ngày
+  env.sql(`UPDATE order_service SET depart_date = '${vnDate(10)}' WHERE id = '${order.services[0].id}'`);
   const svc = (i) => `document.querySelectorAll('#order .svc-view')[${i}]`;
   const pairs = (root, sel) => `[...${root}.querySelectorAll(${JSON.stringify(sel)})].map((k) => [k.children[0].textContent, k.children[1].textContent])`;
 
@@ -85,7 +87,7 @@ try {
   // ---- 4) bổ sung ngày qua API rồi xác nhận bằng giao diện: khoá, biểu tượng khoá, chỉ còn 'Huỷ đơn' ----
   const d = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${order.id}`)).json.order;
   const tripOf = (s, o = {}) => ({ id: s.id, departDate: s.departDate ?? "", departTime: s.departTime ?? "", pickupTime: s.pickupTime ?? "", pickupPlace: s.pickupPlace ?? "", checkinDate: s.checkinDate ?? "", checkinTime: s.checkinTime ?? "", checkinPlace: s.checkinPlace ?? "", note: s.note ?? "", ...o });
-  const put = await call(ACCOUNTS.salesA, "PUT", `/api/orders/${order.id}/trip`, { expectedUpdatedAt: d.updatedAt, services: [tripOf(d.services[0]), tripOf(d.services[1], { departDate: vnDate(12) })] });
+  const put = await call(ACCOUNTS.salesA, "PUT", `/api/orders/${order.id}/trip`, { expectedUpdatedAt: d.updatedAt, services: [tripOf(d.services[0]), tripOf(d.services[1], { departDate: vnDate(10) })] });
   assert.equal(put.status, 200, JSON.stringify(put.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "đơn nạp lại");
@@ -97,7 +99,7 @@ try {
   const confirmedBtns = await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)");
   assert.ok(confirmedBtns.includes("Huỷ đơn") && !confirmedBtns.includes("Sửa") && !confirmedBtns.includes("Xác nhận đơn"), `đơn đã xác nhận: có 'Huỷ đơn', không còn 'Sửa'/'Xác nhận đơn' (từ Task 9 có thêm 'Sửa thông tin chuyến'): ${confirmedBtns}`);
   assert.equal(await p.ev("document.getElementById('error').hidden"), true);
-  assert.deepEqual(await p.ev(pairs(svc(1), ".svc-facts .kv")), [["Số khách", "3 khách"], ["Khởi hành", dmy(vnDate(12))]]);
+  assert.deepEqual(await p.ev(pairs(svc(1), ".svc-facts .kv")), [["Số khách", "3 khách"], ["Khởi hành", dmy(vnDate(10))]]);
   p.close();
   ok("đơn đã xác nhận: dòng nhắc khoá, 4 biểu tượng khoá, hết nút 'Sửa'/'Xác nhận đơn', còn 'Huỷ đơn'; dịch vụ nhập tay đã có ngày");
 

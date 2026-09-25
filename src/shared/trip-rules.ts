@@ -9,6 +9,26 @@ export const MAX_LINES_PER_ORDER = 50;
 /** Xác nhận đơn: ngày khởi hành không quá khứ và không xa hơn số ngày này (Q12). */
 export const MAX_DAYS_AHEAD = 365;
 
+// ---- Một ngày cho cả đơn (ADR-0021, đặc tả 2026-09-25-mot-ngay-ca-don.md) ----
+export const ONE_DATE_MESSAGE = "Mọi dịch vụ trong đơn phải cùng một ngày khởi hành.";
+
+/** Mọi dịch vụ cùng một giá trị ngày khởi hành; "chưa có ngày" (null/"") cũng là MỘT giá trị (tất cả trống thì đạt, trộn thì không). */
+export const sameDepartDate = (dates: readonly (string | null)[]): boolean => new Set(dates.map((d) => d || null)).size <= 1;
+
+/**
+ * Sửa thông tin chuyến (API nhận gửi MỘT PHẦN dịch vụ): chỉ khi yêu cầu ĐỔI ngày của ít nhất một dịch vụ thì trạng thái SAU khi sửa
+ * (dịch vụ vắng giữ ngày đã lưu) phải cùng một ngày. Không đổi ngày nào → luôn đạt, để đơn cũ (trước 1.11) đang lệch ngày vẫn sửa được ghi chú/giờ.
+ */
+export function tripUpdateKeepsOneDate(stored: readonly { id: string; departDate: string | null }[], updates: readonly { id: string; departDate: string | null }[]): boolean {
+  const next = new Map(stored.map((s) => [s.id, s.departDate || null]));
+  let changed = false;
+  for (const u of updates) {
+    if ((u.departDate || null) !== next.get(u.id)) changed = true;
+    next.set(u.id, u.departDate || null);
+  }
+  return !changed || sameDepartDate([...next.values()]);
+}
+
 /** Khoảng ngày khởi hành cho phép khi xác nhận (bao gồm hai đầu). Repository bind hai giá trị này vào câu UPDATE xác nhận. */
 export const confirmWindow = (today: string): { from: string; to: string } => ({ from: today, to: addDays(today, MAX_DAYS_AHEAD) });
 

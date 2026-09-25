@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { TripInfoDto } from "./contracts.ts";
-import { emptyTrip, formatDm, formatDmy, tripFromDto, tripPayload, tripRows, tripSheetIssues, tripSummaryLine, tripWarnings } from "./trip-form.ts";
+import { emptyTrip, formatDm, formatDmy, tripFromDto, tripPayload, tripRows, tripSheetDateIssues, tripSheetRowDate, tripSummaryLine, tripWarnings } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
 
 const TODAY = "2026-09-19";
@@ -89,16 +89,24 @@ test("tripRows: các dòng hiển thị ở trang đơn; check-in trống ngày 
   ]);
 });
 
-test("tripSheetIssues: ngày khởi hành không được để trống; đổi ngày phải trong khoảng xác nhận; ngày đã lưu (dù đã qua) sửa ghi chú vẫn được", () => {
-  const row = (name: string, savedDepartDate: string | null, departDate: string) => ({ name, savedDepartDate, trip: trip({ departDate }) });
-  assert.deepEqual(tripSheetIssues([row("Tour 4 đảo", "2026-09-20", "2026-09-20")], TODAY), []);
-  assert.deepEqual(tripSheetIssues([row("Tour 4 đảo", "2026-09-10", "2026-09-10")], TODAY), []); // chuyến đã đi: chỉ sửa ghi chú, không đổi ngày
-  assert.deepEqual(tripSheetIssues([row("Tour 4 đảo", "2026-09-20", "")], TODAY), ["Tour 4 đảo: ngày khởi hành không được để trống."]);
-  assert.deepEqual(tripSheetIssues([row("Phao chuối", "2026-09-20", "2026-09-18")], TODAY), ["Phao chuối: ngày khởi hành phải từ 19/09/2026 đến 19/09/2027."]);
-  assert.deepEqual(tripSheetIssues([row("Phao chuối", "2026-09-20", "2027-09-20")], TODAY), ["Phao chuối: ngày khởi hành phải từ 19/09/2026 đến 19/09/2027."]);
-  assert.deepEqual(tripSheetIssues([row("Phao chuối", "2026-09-20", "2027-09-19")], TODAY), []);
-  assert.deepEqual(tripSheetIssues([row("A", null, "2026-13-40")], TODAY), ["A: ngày khởi hành không hợp lệ."]);
-  assert.equal(tripSheetIssues([row("A", "2026-09-20", ""), row("B", "2026-09-20", "")], TODAY).length, 2);
+test("tripSheetDateIssues (ADR-0021, một ô ngày cho cả đơn): không để trống; đổi ngày phải trong khoảng; ngày đã lưu (dù đã qua) giữ nguyên thì vẫn lưu được; đơn cũ lệch ngày để trống = giữ ngày cũ", () => {
+  assert.deepEqual(tripSheetDateIssues("2026-09-20", ["2026-09-20", "2026-09-20"], TODAY), []);
+  assert.deepEqual(tripSheetDateIssues("2026-09-10", ["2026-09-10"], TODAY), []); // chuyến đã đi: chỉ sửa ghi chú, không đổi ngày
+  assert.deepEqual(tripSheetDateIssues("", ["2026-09-20", "2026-09-20"], TODAY), ["Ngày khởi hành không được để trống."]);
+  assert.deepEqual(tripSheetDateIssues("2026-09-18", ["2026-09-20", "2026-09-20"], TODAY), ["Ngày khởi hành phải từ 19/09/2026 đến 19/09/2027."]); // báo MỘT lần, không lặp theo dịch vụ
+  assert.deepEqual(tripSheetDateIssues("2027-09-20", ["2026-09-20"], TODAY), ["Ngày khởi hành phải từ 19/09/2026 đến 19/09/2027."]);
+  assert.deepEqual(tripSheetDateIssues("2027-09-19", ["2026-09-20"], TODAY), []);
+  assert.deepEqual(tripSheetDateIssues("2026-13-40", [null], TODAY), ["Ngày khởi hành không hợp lệ."]);
+  // đơn cũ lệch ngày: để trống = giữ ngày cũ từng dịch vụ (không lỗi); gom về ngày đã qua của một dịch vụ = ĐỔI ngày dịch vụ kia → phải trong khoảng
+  assert.deepEqual(tripSheetDateIssues("", ["2026-09-20", "2026-09-25"], TODAY), []);
+  assert.deepEqual(tripSheetDateIssues("2026-09-10", ["2026-09-10", "2026-09-25"], TODAY), ["Ngày khởi hành phải từ 19/09/2026 đến 19/09/2027."]);
+  assert.deepEqual(tripSheetDateIssues("2026-09-25", ["2026-09-20", "2026-09-25"], TODAY), []);
+});
+
+test("tripSheetRowDate: ô cả đơn có ngày → mọi dịch vụ lấy ngày đó; ô trống → giữ ngày đã lưu của từng dịch vụ", () => {
+  assert.equal(tripSheetRowDate("2026-09-25", "2026-09-20"), "2026-09-25");
+  assert.equal(tripSheetRowDate("", "2026-09-20"), "2026-09-20");
+  assert.equal(tripSheetRowDate("", null), "");
 });
 
 test("tripPayload: PUT /trip thay TOÀN BỘ — mọi dịch vụ, mọi trường (\"\" giữ nguyên để xoá), kèm expectedUpdatedAt", () => {

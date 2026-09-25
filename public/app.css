@@ -583,9 +583,9 @@ body.sheet-open { overflow: hidden; }
 .sheet-close { display: inline-flex; align-items: center; justify-content: center; min-width: var(--tap-min); min-height: var(--tap-min); padding: 0; }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s4); }
 .sheet-warn { display: flex; align-items: flex-start; gap: var(--s2); margin: 0 0 var(--s4); padding: var(--s3); font-size: var(--fs-label); font-weight: 600; color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
-.sheet-svc { margin-bottom: var(--s5); }
+.sheet-svc, .sheet-date { margin-bottom: var(--s5); }
 .sheet-svc .svc-name { margin-bottom: var(--s3); }
-.sheet-svc label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.sheet-svc label, .sheet-date label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
 .sheet-svc .trip-body { padding: 0; border-top: 0; }
 .sheet-foot { padding: var(--s3) var(--s4) calc(var(--s3) + env(safe-area-inset-bottom)); background: var(--c-surface); border-top: 1px solid var(--c-border); }
 .sheet-foot .btn-block { margin-top: 0; }

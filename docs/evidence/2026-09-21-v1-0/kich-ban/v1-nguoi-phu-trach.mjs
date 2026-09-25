@@ -257,7 +257,7 @@ function getMain() {
     await p.ev(setInput(`${card}.querySelector('.price-field')`, "800000"));
     await p.ev(`${card}.querySelector('details.trip > summary').click(); true`);
     await p.waitFor(`${card}.querySelector('details.trip').open`, "mở khối chuyến");
-    await p.ev(setInput(`${card}.querySelector('[data-trip="departDate"]')`, vnDate(7)));
+    await p.ev(setInput("document.getElementById('orderDate')", vnDate(7))); // ADR-0021: một ngày cho cả đơn
     await p.ev(setInput("document.getElementById('customerName')", "Nguyễn Thị Ánh Tuyết"));
     await p.ev(setInput("document.getElementById('customerPhone')", "0912 345 678"));
     await p.ev(setInput("document.getElementById('customerNote')", "Cả nhà ăn chay."));

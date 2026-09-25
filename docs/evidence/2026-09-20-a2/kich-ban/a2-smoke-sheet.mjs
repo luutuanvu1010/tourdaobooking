@@ -22,7 +22,7 @@ try {
     customerName: "Khách Bảng Trượt", customerPhone: "0904 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [
       { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", note: "Đón sớm" },
-      { kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP, departDate: vnDate(12), pickupPlace: "Khách sạn Sunrise" },
+      { kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP, departDate: vnDate(10), pickupPlace: "Khách sạn Sunrise" },
     ],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
@@ -40,6 +40,7 @@ try {
     await p.waitFor("document.querySelector('.sheet-root.open') !== null", "bảng mở");
   };
   const closed = "document.querySelector('.sheet-root') === null";
+  const dateField = "document.querySelector('.sheet [data-trip=\"orderDate\"]')"; // ADR-0021: MỘT ô ngày cho cả đơn
   const facts = (i) => `[...document.querySelectorAll('#order .svc-view')[${i}].querySelectorAll('.svc-facts .kv')].map((k) => [k.children[0].textContent, k.children[1].textContent])`;
 
   // ---- 1) nút và cấu trúc bảng (khổ iPhone) ----
@@ -55,10 +56,12 @@ try {
   assert.equal(await p.ev(`${sheet}.contains(document.activeElement)`), true, "focus đã vào bảng");
   assert.match(await p.ev(`${sheet}.querySelector('.sheet-warn').textContent`), /Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại\./);
   assert.deepEqual(await p.ev("[...document.querySelectorAll('.sheet .sheet-svc .svc-name')].map((e) => e.textContent)"), ["Tour 4 đảo Nha Trang", "Xe đưa đón riêng"]);
-  const vals = (i) => p.ev(`['departDate', 'departTime', 'pickupTime', 'pickupPlace', 'checkinDate', 'checkinTime', 'checkinPlace', 'note'].map((k) => ${field(i, "' + k + '")}.value)`);
-  assert.deepEqual(await vals(0), [vnDate(10), "07:30", "07:00", "Bến Cầu Đá", "", "09:00", "", "Đón sớm"]);
-  assert.deepEqual(await vals(1), [vnDate(12), "", "", "Khách sạn Sunrise", "", "", "", ""]);
-  assert.match(await p.ev(`${group(0)}.querySelector('label:has([data-trip="departDate"])').textContent`), /Ngày khởi hành \(không được xoá\)/);
+  const vals = (i) => p.ev(`['departTime', 'pickupTime', 'pickupPlace', 'checkinDate', 'checkinTime', 'checkinPlace', 'note'].map((k) => ${field(i, "' + k + '")}.value)`);
+  assert.deepEqual(await vals(0), ["07:30", "07:00", "Bến Cầu Đá", "", "09:00", "", "Đón sớm"]);
+  assert.deepEqual(await vals(1), ["", "", "Khách sạn Sunrise", "", "", "", ""]);
+  assert.equal(await p.ev(`${dateField}.value`), vnDate(10), "một ô ngày cho cả đơn, điền sẵn ngày đã lưu");
+  assert.match(await p.ev(`document.querySelector('.sheet label:has([data-trip="orderDate"])').textContent`), /Ngày khởi hành của cả đơn \(không được xoá\)/);
+  assert.equal(await p.ev("document.querySelectorAll('.sheet [data-trip=\"departDate\"]').length"), 0, "nhóm dịch vụ không còn ô ngày riêng");
   assert.match(await p.ev(`${group(0)}.querySelector('label:has([data-trip="checkinDate"])').textContent`), /Để trống = cùng ngày khởi hành\./);
   await p.waitFor(`(() => { const r = ${sheet}.getBoundingClientRect(); return Math.abs(r.bottom - innerHeight) < 1 && Math.abs(r.width - innerWidth) < 1; })()`, "bảng trượt lên sát đáy, rộng hết màn hình");
   ok("bảng mở: dialog + aria-modal, nền inert, khoá cuộn, focus trong bảng, ô điền sẵn ĐẦY ĐỦ, sát đáy ở 390px");
@@ -87,22 +90,22 @@ try {
 
   // ---- 3) chặn Lưu phía trình duyệt: không gửi gì lên máy chủ ----
   await open(p);
-  await p.ev(setInput(field(1, "departDate"), ""));
+  await p.ev(setInput(dateField, ""));
   await p.ev(clickText(".sheet", "Lưu thông tin chuyến"));
-  await p.waitFor("/Xe đưa đón riêng: ngày khởi hành không được để trống\\./.test(document.querySelector('.sheet .field-errors').textContent)", "lỗi ngày trống");
+  await p.waitFor("document.querySelector('.sheet .field-errors').textContent === 'Ngày khởi hành không được để trống.'", "lỗi ngày trống (một lần cho cả đơn)");
   assert.equal(await p.ev("document.querySelectorAll('.sheet .field-error svg').length"), 1, "lỗi có biểu tượng, không chỉ màu");
-  await p.ev(setInput(field(1, "departDate"), vnDate(400)));
-  await p.waitFor("/ngày khởi hành phải từ \\d\\d\\/\\d\\d\\/\\d{4} đến \\d\\d\\/\\d\\d\\/\\d{4}\\./.test(document.querySelector('.sheet .field-errors').textContent)", "lỗi ngoài khoảng (cập nhật theo lần gõ)");
+  await p.ev(setInput(dateField, vnDate(400)));
+  await p.waitFor("/^Ngày khởi hành phải từ \\d\\d\\/\\d\\d\\/\\d{4} đến \\d\\d\\/\\d\\d\\/\\d{4}\\./.test(document.querySelector('.sheet .field-errors').textContent)", "lỗi ngoài khoảng (cập nhật theo lần gõ)");
   assert.equal((await getOrder()).order.updatedAt, before.updatedAt, "bị chặn: máy chủ không nhận gì");
   ok("Lưu bị chặn: ngày trống và ngày ngoài khoảng → lỗi chữ + biểu tượng, đơn ở máy chủ không đổi");
 
   // ---- 4) mất mạng: giữ nguyên dữ liệu đã gõ ----
-  await p.ev(setInput(field(1, "departDate"), vnDate(13)));
+  await p.ev(setInput(dateField, vnDate(13)));
   await p.waitFor("document.querySelector('.sheet .field-errors').childElementCount === 0", "hết lỗi khi ngày hợp lệ");
   await p.ev("window.__fetch = window.fetch; window.fetch = () => Promise.reject(new TypeError('offline')); true");
   await p.ev(clickText(".sheet", "Lưu thông tin chuyến"));
   await p.waitFor("!document.querySelector('.sheet .banner').hidden && /Không kết nối được máy chủ\\./.test(document.querySelector('.sheet .banner').textContent)", "banner mất mạng");
-  assert.equal(await p.ev(`${field(1, "departDate")}.value`), vnDate(13), "dữ liệu đã gõ còn nguyên");
+  assert.equal(await p.ev(`${dateField}.value`), vnDate(13), "dữ liệu đã gõ còn nguyên");
   assert.equal(await p.ev("document.querySelector('.sheet-foot .btn').disabled"), false, "nút Lưu bật lại");
   await p.ev("window.fetch = window.__fetch; true");
   ok("mất mạng: banner nguy hiểm, dữ liệu đã gõ còn nguyên, nút Lưu bật lại");
@@ -113,7 +116,7 @@ try {
   assert.deepEqual(savingNow, ["Đang lưu…", true, true], "vừa bấm Lưu: 'Đang lưu…', nút khoá, banner cũ đã ẩn");
   await p.waitFor("!document.querySelector('.sheet .banner').hidden && /Không kết nối được máy chủ\\./.test(document.querySelector('.sheet .banner').textContent)", "hết giờ → banner mất mạng (bảng không kẹt 'Đang lưu…')");
   assert.deepEqual(await p.ev("(() => { const b = document.querySelector('.sheet-foot .btn'); return [b.textContent, b.disabled]; })()"), ["Lưu thông tin chuyến", false], "nút Lưu bật lại, chữ về 'Lưu thông tin chuyến'");
-  assert.equal(await p.ev(`${field(1, "departDate")}.value`), vnDate(13), "dữ liệu đã gõ còn nguyên");
+  assert.equal(await p.ev(`${dateField}.value`), vnDate(13), "dữ liệu đã gõ còn nguyên");
   await p.ev("window.setTimeout = window.__st; window.fetch = window.__fetch; true");
   await p.ev("document.querySelector('.sheet-close').click(); true");
   await p.waitFor(`${closed} && ${restored}`, "sau hết giờ: đóng được bằng ✕");
@@ -121,7 +124,7 @@ try {
   await p.ev("document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' })); true");
   await p.waitFor(`${closed} && ${restored}`, "sau hết giờ: đóng được bằng Esc");
   await open(p);
-  await p.ev(setInput(field(1, "departDate"), vnDate(13))); // mở lại là nạp lại từ đơn đã lưu: gõ lại ngày cho các nhóm sau
+  await p.ev(setInput(dateField, vnDate(13))); // mở lại là nạp lại từ đơn đã lưu: gõ lại ngày cho các nhóm sau
   ok("hết giờ (máy chủ im lặng): banner 'Không kết nối được máy chủ.', nút Lưu bật lại, dữ liệu còn nguyên, ✕ và Esc đóng được bảng");
 
   // ---- 4b) đang lưu thì KHÔNG đóng được bảng (đóng sẽ nuốt lỗi của máy chủ): ✕, chạm nền, Esc bị bỏ qua; lỗi hiện ngay trong bảng ----
@@ -143,16 +146,16 @@ try {
   assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-info')"), true);
   assert.equal(await p.ev("document.activeElement.dataset.action === 'edit-trip'"), true, "focus về nút mới sau khi tải lại");
   assert.deepEqual(await p.ev(facts(1)), [["Số khách", "3 khách"], ["Khởi hành", dmy(vnDate(13))], ["Đón", "06:45 · Khách sạn Sunrise"]]);
-  assert.deepEqual(await p.ev(facts(0)), [["Số khách", "2 người lớn · 1 trẻ em"], ["Khởi hành", `${dmy(vnDate(10))} · 07:30`], ["Đón", "07:00"], ["Check-in", "Cùng ngày khởi hành · 09:00"], ["Ghi chú", "Đổi giờ đón"]]);
+  assert.deepEqual(await p.ev(facts(0)), [["Số khách", "2 người lớn · 1 trẻ em"], ["Khởi hành", `${dmy(vnDate(13))} · 07:30`], ["Đón", "07:00"], ["Check-in", "Cùng ngày khởi hành · 09:00"], ["Ghi chú", "Đổi giờ đón"]]);
   const after = await getOrder();
   const [s0, s1] = after.order.services;
-  assert.deepEqual([s0.departDate, s0.departTime, s0.pickupTime, s0.pickupPlace, s0.checkinTime, s0.note], [vnDate(10), "07:30", "07:00", null, "09:00", "Đổi giờ đón"], "dịch vụ 1: xoá đúng điểm đón, phần khác nguyên vẹn");
+  assert.deepEqual([s0.departDate, s0.departTime, s0.pickupTime, s0.pickupPlace, s0.checkinTime, s0.note], [vnDate(13), "07:30", "07:00", null, "09:00", "Đổi giờ đón"], "dịch vụ 1: ngày theo ô cả đơn, xoá đúng điểm đón, phần khác nguyên vẹn");
   assert.deepEqual([s1.departDate, s1.pickupTime, s1.pickupPlace], [vnDate(13), "06:45", "Khách sạn Sunrise"]);
   assert.equal(after.order.status, "confirmed");
   assert.deepEqual([after.order.total, after.order.subtotal, s0.pax.adult, s1.items[0].unitPrice], [before.total, before.subtotal, 2, 800000], "tiền và số khách không đổi");
   assert.notEqual(after.order.updatedAt, before.updatedAt);
   assert.equal(after.history.at(-1).action, "trip_updated");
-  ok("lưu thành công: banner 'Đã lưu…', focus về nút, PUT đủ mọi dịch vụ ('' xoá điểm đón), phần khác/tiền/số khách nguyên vẹn, nhật ký trip_updated");
+  ok("lưu thành công: một ngày cho cả đơn áp cho mọi dịch vụ; banner 'Đã lưu…', focus về nút, PUT đủ mọi dịch vụ ('' xoá điểm đón), phần khác/tiền/số khách nguyên vẹn, nhật ký trip_updated");
 
   // ---- 6) đơn đã đổi ở nơi khác → stale: bản đang gõ nói rõ sẽ mất, nút tải lại ----
   await open(p);
@@ -168,6 +171,26 @@ try {
   await p.waitFor(`${closed} && /Bến Ninh Chữ/.test(document.getElementById('order').textContent)`, "tải lại: thấy bản của người kia", 15000);
   assert.deepEqual((await p.ev(facts(0)))[4], ["Ghi chú", "Đổi giờ đón"], "bản đang gõ đã bỏ");
   ok("stale: banner trong bảng nói rõ sẽ mất bản đang gõ; 'Tải lại đơn' đóng bảng và nạp bản mới");
+
+  // ---- 6b) đơn CŨ lệch ngày (trước 1.11, dựng bằng SQL vì API nay chặn): ô cả đơn để trống + dòng giải thích; để trống mà lưu = giữ ngày cũ; chọn ngày = gom cả đơn ----
+  env.sql(`UPDATE order_service SET depart_date = '${vnDate(15)}' WHERE order_id = '${orderId}' AND sort_order = 1`);
+  await p.ev("location.reload(); true");
+  await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "đơn cũ lệch ngày nạp lại");
+  await open(p);
+  assert.equal(await p.ev(`${dateField}.value`), "", "đơn lệch ngày: ô cả đơn để trống");
+  assert.match(await p.ev("document.querySelector('.sheet-date').textContent"), /Các dịch vụ đang khác ngày/);
+  await p.ev(setInput(field(0, "note"), "Chỉ sửa ghi chú"));
+  await p.ev(clickText(".sheet", "Lưu thông tin chuyến"));
+  await p.waitFor(`${closed} && /Đã lưu thông tin chuyến\\./.test(document.getElementById('error').textContent)`, "đơn cũ: sửa ghi chú lưu được", 15000);
+  let legacy = (await getOrder()).order.services;
+  assert.deepEqual(legacy.map((s) => s.departDate), [vnDate(13), vnDate(15)], "để trống = giữ ngày cũ của từng dịch vụ");
+  await open(p);
+  await p.ev(setInput(dateField, vnDate(14)));
+  await p.ev(clickText(".sheet", "Lưu thông tin chuyến"));
+  await p.waitFor(`${closed} && /Đã lưu thông tin chuyến\\./.test(document.getElementById('error').textContent)`, "đơn cũ: chọn một ngày lưu được", 15000);
+  legacy = (await getOrder()).order.services;
+  assert.deepEqual(legacy.map((s) => s.departDate), [vnDate(14), vnDate(14)], "chọn ngày = gom cả đơn về một ngày");
+  ok("đơn cũ lệch ngày: ô cả đơn trống + giải thích; sửa ghi chú giữ ngày cũ; chọn ngày gom cả đơn về một ngày");
 
   // ---- 7) chuyển động: bảng trượt bình thường, tắt khi prefers-reduced-motion ----
   await open(p);

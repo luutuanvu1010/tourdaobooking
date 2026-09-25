@@ -2,7 +2,7 @@
 // kiểm bảng "Sửa thông tin chuyến" và thân PUT /trip. Logic thuần, không DOM. Ngày "YYYY-MM-DD", giờ "HH:MM" theo giờ Việt Nam.
 // `today` luôn do nơi gọi cấp (vnToday(new Date())): không dùng ngày UTC (00:00–07:00 giờ VN sẽ lệch ngày).
 import type { TripInfoDto, TripInput, TripUpdateInput } from "./contracts.ts";
-import { MAX_DAYS_AHEAD, confirmWindow } from "./trip-rules.ts";
+import { MAX_DAYS_AHEAD, confirmWindow, sameDepartDate } from "./trip-rules.ts";
 import { isISODate } from "./vn-date.ts";
 
 /** Thông tin chuyến trống: "" = chưa có (máy chủ chuẩn hoá thành null). */
@@ -86,20 +86,21 @@ export function tripRows(t: TripInfoDto): TripRow[] {
 // ---- Bảng "Sửa thông tin chuyến" (đơn đã xác nhận) -----------------------------------------------------------------
 
 /**
- * Lỗi chặn Lưu ở bảng sửa. Ngày khởi hành không được xoá; nếu ĐỔI ngày thì phải trong khoảng xác nhận (giống máy chủ, `validateTripUpdate`);
- * ngày đã lưu (kể cả đã qua) giữ nguyên thì vẫn sửa được ghi chú/giờ.
+ * Lỗi chặn Lưu ở bảng sửa — MỘT ô ngày cho cả đơn (ADR-0021; đặc tả 2026-09-25-mot-ngay-ca-don.md), báo một lần chứ không lặp theo dịch vụ.
+ * Ngày không được xoá; nếu ĐỔI ngày của dịch vụ nào thì ngày mới phải trong khoảng xác nhận (giống máy chủ, `validateTripUpdate`);
+ * ngày đã lưu (kể cả đã qua) giữ nguyên thì vẫn sửa được ghi chú/giờ. Đơn cũ đang lệch ngày: để trống ô = giữ ngày cũ từng dịch vụ.
  */
-export function tripSheetIssues(rows: readonly { name: string; savedDepartDate: string | null; trip: TripInput }[], today: string): string[] {
+export function tripSheetDateIssues(orderDate: string, savedDates: readonly (string | null)[], today: string): string[] {
+  if (orderDate === "") return sameDepartDate(savedDates) ? ["Ngày khởi hành không được để trống."] : [];
+  if (!isISODate(orderDate)) return ["Ngày khởi hành không hợp lệ."];
   const { from, to } = confirmWindow(today);
-  const out: string[] = [];
-  for (const r of rows) {
-    const d = r.trip.departDate;
-    if (d === "") out.push(`${r.name}: ngày khởi hành không được để trống.`);
-    else if (!isISODate(d)) out.push(`${r.name}: ngày khởi hành không hợp lệ.`);
-    else if (d !== r.savedDepartDate && (d < from || d > to)) out.push(`${r.name}: ngày khởi hành phải từ ${formatDmy(from)} đến ${formatDmy(to)}.`);
-  }
-  return out;
+  const changes = savedDates.some((d) => d !== orderDate);
+  if (changes && (orderDate < from || orderDate > to)) return [`Ngày khởi hành phải từ ${formatDmy(from)} đến ${formatDmy(to)}.`];
+  return [];
 }
+
+/** Ngày gửi lên cho một dịch vụ: ô cả đơn có ngày → ngày đó; ô trống (chỉ gặp ở đơn cũ lệch ngày) → giữ ngày đã lưu. */
+export const tripSheetRowDate = (orderDate: string, savedDepartDate: string | null): string => orderDate || (savedDepartDate ?? "");
 
 /** Thân `PUT /api/orders/:id/trip`: MỌI dịch vụ, MỌI trường (máy chủ thay toàn bộ — trường vắng = xoá). */
 export function tripPayload(services: readonly { id: string; trip: TripInput }[], expectedUpdatedAt: string): TripUpdateInput {

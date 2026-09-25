@@ -1,4 +1,5 @@
-// Bảng trượt "Sửa thông tin chuyến" (A2, đặc tả 5.3) — CHỈ cho đơn đã xác nhận (đơn nháp sửa mọi thứ trong form). Mỗi dịch vụ một nhóm ô điền sẵn ĐẦY ĐỦ giá trị hiện có,
+// Bảng trượt "Sửa thông tin chuyến" (A2, đặc tả 5.3) — CHỈ cho đơn đã xác nhận (đơn nháp sửa mọi thứ trong form). MỘT ô ngày khởi hành cho cả đơn ở đầu bảng
+// (ADR-0021, đặc tả 2026-09-25-mot-ngay-ca-don.md); mỗi dịch vụ một nhóm ô còn lại (giờ, đón, check-in, ghi chú) điền sẵn ĐẦY ĐỦ giá trị hiện có,
 // vì PUT /api/orders/:id/trip thay TOÀN BỘ (trường vắng = xoá) và phải gửi MỌI dịch vụ. ≤ 640px trượt từ đáy; > 640px hộp giữa màn hình.
 // Hộp thoại kiểu modal: role=dialog + aria-modal, phần nền `inert`, Esc / ✕ / chạm nền để đóng, trả focus về nút mở.
 import { ApiError, api, type Order } from "./api";
@@ -9,7 +10,8 @@ import { icon } from "./icons";
 import { tripFields } from "./trip-fields";
 import type { TripInput } from "../src/shared/contracts";
 import { NETWORK_BANNER, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { tripFromDto, tripPayload, tripSheetIssues } from "../src/shared/trip-form";
+import { tripFromDto, tripPayload, tripSheetDateIssues, tripSheetRowDate } from "../src/shared/trip-form";
+import { sameDepartDate } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
 
 export interface TripSheetOptions {
@@ -31,6 +33,13 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
   const rows: Row[] = o.order.services.map((s) => ({ id: s.id, name: s.name, savedDepartDate: s.departDate, trip: tripFromDto(s) }));
   let saving = false;
   let attempted = false;
+  const savedDates = rows.map((r) => r.savedDepartDate);
+  const legacy = !sameDepartDate(savedDates); // đơn trước 1.11 có thể mỗi dịch vụ một ngày
+  let orderDate = legacy ? "" : (savedDates[0] ?? "");
+  const syncRowDates = (): void => {
+    for (const r of rows) r.trip = { ...r.trip, departDate: tripSheetRowDate(orderDate, r.savedDepartDate) };
+  };
+  syncRowDates();
 
   const bannerEl = h("div", { class: "banner", role: "alert", hidden: true });
   const issuesEl = h("div", { class: "field-errors", "aria-live": "polite" });
@@ -40,17 +49,30 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
 
   /** Vẽ lỗi chặn Lưu (chữ + biểu tượng, không chỉ màu); trả số lỗi. */
   const showIssues = (): number => {
-    const issues = tripSheetIssues(rows, vnToday(new Date()));
+    const issues = tripSheetDateIssues(orderDate, savedDates, vnToday(new Date()));
     replaceChildren(issuesEl, ...issues.map((t) => h("p", { class: "field-error" }, icon("alert", 16), t)));
     return issues.length;
   };
 
+  const dateInput = h("input", { type: "date", value: orderDate, autocomplete: "off", "data-trip": "orderDate" });
+  dateInput.addEventListener("input", () => {
+    orderDate = dateInput.value;
+    syncRowDates();
+    if (attempted) showIssues();
+  });
+  const dateBlock = h(
+    "section",
+    { class: "sheet-date" },
+    h("label", null, "Ngày khởi hành của cả đơn (không được xoá)", dateInput),
+    legacy && h("p", { class: "muted" }, "Các dịch vụ đang khác ngày — chọn một ngày nếu muốn đổi; để trống thì giữ ngày cũ của từng dịch vụ."),
+  );
+
   const groups = rows.map((r) => {
     const f = tripFields({
       trip: r.trip,
-      dateLabel: "Ngày khởi hành (không được xoá)",
+      noDepartDate: true,
       onChange: (t) => {
-        r.trip = t;
+        r.trip = { ...t, departDate: tripSheetRowDate(orderDate, r.savedDepartDate) }; // ngày luôn theo ô của cả đơn
         if (attempted) showIssues(); // đã bấm Lưu một lần: lỗi cập nhật theo từng lần gõ
       },
     });
@@ -61,7 +83,7 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
     "div",
     { class: "sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": "trip-sheet-title", tabindex: -1 },
     h("div", { class: "sheet-head" }, h("h2", { id: "trip-sheet-title", class: "sheet-title" }, "Sửa thông tin chuyến"), closeBtn),
-    h("div", { class: "sheet-body" }, h("p", { class: "sheet-warn" }, icon("alert", 18), "Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại."), bannerEl, ...groups),
+    h("div", { class: "sheet-body" }, h("p", { class: "sheet-warn" }, icon("alert", 18), "Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại."), bannerEl, dateBlock, ...groups),
     h("div", { class: "sheet-foot" }, issuesEl, saveBtn),
   );
   const root = h("div", { class: "sheet-root" }, scrim, dialog);

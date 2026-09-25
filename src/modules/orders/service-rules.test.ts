@@ -229,8 +229,9 @@ test("sửa trường vận hành: đơn nháp không kiểm khoảng ngày; xá
   const today = "2026-09-19";
   const cur = [{ id: "a", departDate: "2026-09-10" }, { id: "b", departDate: "2026-10-01" }];
   const input = (services: unknown[]) => ({ expectedUpdatedAt: "2026-09-19T01:00:00.000Z", services });
-  // nháp: ngày quá khứ, bỏ trống ngày đều được
-  assert.ok(validateTripUpdate(input([{ id: "a", departDate: "2020-01-01" }, { id: "b" }]), cur, "draft", today).ok);
+  // nháp: ngày quá khứ, bỏ trống ngày đều được (cả đơn cùng một giá trị — ADR-0021)
+  assert.ok(validateTripUpdate(input([{ id: "a", departDate: "2020-01-01" }, { id: "b", departDate: "2020-01-01" }]), cur, "draft", today).ok);
+  assert.ok(validateTripUpdate(input([{ id: "a" }, { id: "b" }]), cur, "draft", today).ok);
   // xác nhận: giữ nguyên ngày đã qua để sửa ghi chú → được
   const keep = validateTripUpdate(input([{ id: "a", departDate: "2026-09-10", note: "đã đi rồi" }]), cur, "confirmed", today);
   assert.ok(keep.ok);
@@ -239,7 +240,26 @@ test("sửa trường vận hành: đơn nháp không kiểm khoảng ngày; xá
   assert.match((validateTripUpdate(input([{ id: "b", departDate: "2026-09-18" }]), cur, "confirmed", today) as { message: string }).message, /từ 2026-09-19 đến 2027-09-19/);
   assert.ok(!validateTripUpdate(input([{ id: "b", departDate: "2027-09-20" }]), cur, "confirmed", today).ok);
   assert.match((validateTripUpdate(input([{ id: "b" }]), cur, "confirmed", today) as { message: string }).message, /phải có ngày khởi hành/);
-  assert.ok(validateTripUpdate(input([{ id: "b", departDate: "2026-09-19" }]), cur, "confirmed", today).ok); // đầu khoảng
+  assert.ok(validateTripUpdate(input([{ id: "a", departDate: "2026-09-19" }, { id: "b", departDate: "2026-09-19" }]), cur, "confirmed", today).ok); // đầu khoảng
+});
+
+test("một ngày cho cả đơn (ADR-0021): đổi ngày thì sau khi sửa mọi dịch vụ phải cùng ngày; không đổi ngày thì đơn cũ lệch ngày vẫn sửa được", () => {
+  const today = "2026-09-19";
+  const input = (services: unknown[]) => ({ expectedUpdatedAt: "2026-09-19T01:00:00.000Z", services });
+  const same = [{ id: "a", departDate: "2026-10-01" }, { id: "b", departDate: "2026-10-01" }];
+  const msg = (r: ReturnType<typeof validateTripUpdate>) => (r.ok ? "" : r.message);
+  // gửi MỘT PHẦN: đổi ngày một dịch vụ → đơn lệch → chặn (cả nháp lẫn đã xác nhận)
+  for (const st of ["draft", "confirmed"] as const) {
+    assert.equal(msg(validateTripUpdate(input([{ id: "a", departDate: "2026-10-02" }]), same, st, today)), "Mọi dịch vụ trong đơn phải cùng một ngày khởi hành.");
+    assert.ok(validateTripUpdate(input([{ id: "a", departDate: "2026-10-02" }, { id: "b", departDate: "2026-10-02" }]), same, st, today).ok);
+  }
+  // nháp: xoá ngày MỘT dịch vụ (trống + có ngày) cũng là lệch
+  assert.match(msg(validateTripUpdate(input([{ id: "a" }]), same, "draft", today)), /cùng một ngày/);
+  // đơn CŨ đang lệch ngày: chỉ sửa ghi chú/giờ (không đổi ngày nào) → được; đổi ngày mà vẫn lệch → chặn; gom về một ngày → được
+  const legacy = [{ id: "a", departDate: "2026-10-01" }, { id: "b", departDate: "2026-10-05" }];
+  assert.ok(validateTripUpdate(input([{ id: "a", departDate: "2026-10-01", note: "x" }, { id: "b", departDate: "2026-10-05", pickupTime: "07:00" }]), legacy, "confirmed", today).ok);
+  assert.match(msg(validateTripUpdate(input([{ id: "b", departDate: "2026-10-06" }]), legacy, "confirmed", today)), /cùng một ngày/);
+  assert.ok(validateTripUpdate(input([{ id: "b", departDate: "2026-10-01" }]), legacy, "confirmed", today).ok);
 });
 
 test("sửa trường vận hành: kiểm đầu vào (expectedUpdatedAt, id thuộc đơn, không trùng, trường chuyến hợp lệ)", () => {
