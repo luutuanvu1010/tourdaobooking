@@ -127,3 +127,4 @@ Cạnh mới: `orders→pricing`, `pricing→{parties,catalog,audit}`, `billing�
 - **H5 (2026-09-25):** chủ đồng ý — chụp mức chiết khấu, giá vốn, người bán vào đơn lúc Xác nhận (và khi thêm dịch vụ); đổi cài đặt sau không đổi đơn đã xác nhận.
 - **H8 (2026-09-25):** **A** — giá vốn nhà cung cấp tính trên **giá gốc trước giảm**; Tour Đảo chịu phần giảm giá của mình (ví dụ: vé 300.000 giảm 30.000 → trả i-resort 80% × 300.000 = 240.000). Đối tác tự giảm thì đối tác chịu (đã quyết, ADR-0018 §11).
 - **H2' — chưa trả lời.**
+- **H2' (2026-09-25):** chủ đồng ý theo khuyến nghị — (a) **khoá đơn và ghi sổ ngay khi HDV bấm "Đã giao – đã thu đủ"**; (b) **Kế toán bấm "Hoàn thành"** khi mọi khoản người khác nợ công ty của đơn đã về đủ; khoản công ty còn phải trả (hoa hồng, nhà cung cấp) theo dõi riêng trong sổ, **không chặn**. → Mọi câu H1–H9, H2' đã trả lời; bước tiếp: soạn ADR lượt 1 (D0–D2) + trang ghép.
