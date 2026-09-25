@@ -82,3 +82,50 @@ Hiến chương **định hướng** câu trả lời; câu trả lời cụ th�
 - Đề xuất sửa `CLAUDE.md` §2 và §6 để trỏ tới Hiến chương: `docs/superpowers/proposals/2026-09-25-claude-md-hien-chuong.md` (chủ duyệt mới có hiệu lực).
 - Kiểm độc lập (chỉ đọc) bản đề xuất trước khi trình.
 - Không trình cùng lượt với ADR-0024…0026.
+
+## 7. Đối chiếu khung "Enterprise OS" (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/ENTERPRISE_FRAMEWORK.md`, chủ dự án gửi 2026-09-25)
+
+Chủ dự án: *"đây là khung của Enterprise OS để tham chiếu cho toàn bộ dự án của chúng ta. Hãy tiếp tục phân tích sâu để điều chỉnh ở tầng kiến trúc."*
+
+### 7.1 Vị trí: Hiến pháp hay `ARCHITECTURE.md`?
+
+- `playbook/CONSTITUTION.md` là **bản chép chỉ-đọc từ Core**, dùng chung mọi dự án của chủ; repo này **không được sửa** nó (ADR-0012, `playbook/PIN-README.md`). Sửa Hiến pháp chỉ làm ở **repo Core** theo Hiến pháp Điều 9, rồi chép bản mới về đây.
+- **Khuyến nghị hai tầng:**
+  - Phần **dùng chung mọi dự án** của Enterprise OS (5 bản chất của hệ thống ghi nhận; lõi tất định, AI không tính tiền; hộp thư đi; sổ vàng; cưỡng chế bằng máy) → **đề xuất sửa Hiến pháp ở Core** (việc riêng, chủ làm ở Core; bản đề xuất có thể soạn từ mục 7.2).
+  - Phần **riêng Tour Đảo** (16 khái niệm lõi, bản đồ module, 5.7–5.9, mốc, vai) → **`ARCHITECTURE.md` Phần I** (có hiệu lực ngay khi chủ duyệt, không chờ Core).
+  - Khi Core đã có điều tương ứng, điều trong `ARCHITECTURE.md` rút gọn thành "theo Hiến pháp điều X" (tránh hai nguồn — N7).
+
+### 7.2 Từng phần của Enterprise OS
+
+| Enterprise OS | Tour Đảo | Ghi vào |
+|---|---|---|
+| I.1 Người sáng lập làm kiến trúc sư/chuyên gia nghiệp vụ/người kiểm | đã là cách làm (chủ quyết, AI thi công, kiểm độc lập) | Hiến pháp P7, P15 (đã có) |
+| I.2.1 Sự kiện là gốc, bút toán là hệ quả | **áp dụng** | Hiến chương 4.2 |
+| I.2.2 Sổ bất biến, ghi thêm, đảo | **áp dụng** | 5.5 |
+| I.2.3 **Hai trục thời gian + khoá kỳ** | **áp dụng (mới)** | **5.14** |
+| I.2.4 Quy tắc là dữ liệu có phiên bản, không viết cứng | **áp dụng** | 5.2, 5.6 |
+| I.2.5 Truy nguồn đến quy tắc + người duyệt | **áp dụng, mở rộng 4.2** | 4.2 |
+| I.2 Lưu trữ 10 năm (NĐ 174/2016/NĐ-CP) và các luật thuế/BHXH/TT99 | **ràng buộc bên ngoài** — chưa xác định có áp cho sổ **quản trị nội bộ** của Tour Đảo hay không; D1 Time Travel chỉ giữ 30 ngày | **`docs/RANG_BUOC_NGOAI.md` — chưa có** (tệp thuộc bộ 9, `FRAMEWORK.md` v1.4) |
+| II.1 Modular monolith, cấm import chéo bằng máy | **đã có** | 5.3, `architecture.test.ts` |
+| II.2 PostgreSQL, tiền số nguyên | CSDL là Cloudflare D1 (SQLite) — cùng tinh thần giao dịch nguyên khối (`db.batch`); tiền `INTEGER` đã có | K8, 5.4 |
+| II.2 Đa khách thuê + RLS | **không áp** (một công ty, hệ thống nội bộ). Phạm vi dữ liệu theo người (`own/assigned`) thi hành ở `can()` | K4 |
+| II.3 **Lõi tất định; AI không tính tiền** | **áp dụng (mới, tường minh)** | **5.15** |
+| II.4 **Transactional outbox**; hàng đợi | **áp dụng (mới)**; hiện có dạng nhẹ (`notified_at`); hàng đợi Cloudflare Queues khi cần | **5.16** |
+| III.1 Cấu trúc repo (CONSTITUTION, CLAUDE, RANG_BUOC_NGOAI, GLOSSARY, golden/, .claude/…) | có: CONSTITUTION (chép), CLAUDE, ARCHITECTURE, DESIGN (`docs/design`), thuật ngữ (`SYSTEM-DESIGN` §15 + sổ dữ liệu), `.claude/hooks`, `agents` (người kiểm độc lập). **Thiếu:** `RANG_BUOC_NGOAI.md`, sổ vàng | — |
+| III.2 **Sổ vàng** 30–50 ca đúng từng đồng | **áp dụng (mới)** — trước khi làm sổ công nợ | **5.17** |
+| III.3 Lời dặn ≠ cưỡng chế; tách người viết/người chấm; đòi bằng chứng | **đã có** | Hiến pháp P16, N8; sổ hàng rào |
+| III CI chặn merge khi trượt test | **thiếu một phần**: `day-len`/`trien-khai` chạy test trước khi gộp/triển khai; không có CI trên GitHub (Cloudflare chưa nối GitHub) | quy trình (không phải kiến trúc) |
+| IV Quản trị ngữ cảnh, phân tầng model | quy trình làm việc của AI — không thuộc kiến trúc | CLAUDE.md §6 (đọc đúng lúc) đã có tinh thần này |
+| IV.3 Phân quyền lệnh nguy hiểm, bí mật | **đã có** (hook `guard-remote`, `permissions.deny`, N10) | CLAUDE.md §8 |
+| V Lộ trình SaaS 12 tháng | **không áp** — Tour Đảo là hệ thống nội bộ, không bán SaaS | — |
+| VI Bẫy 1 "tài liệu thay cho giao hàng" | **đang có dấu hiệu** (25/9: nhiều tài liệu, một bản vá lên production) → sau khi duyệt Hiến chương, ưu tiên giao **một lát đầu–cuối** có sổ vàng | lộ trình |
+| VI Bẫy 2 bom phạm vi | cảnh giác: đợt Hoàn tất thêm 3–4 module mới → chia lượt, làm lát mỏng trước | 5.13 |
+| VI Bẫy 3, 4 | đã chặn (kiểm độc lập; 5.15) | — |
+| VI Bẫy 5 sửa CSDL production bằng tay | đã chặn bằng hook; **ngoại lệ đang có**: tắt bảo trì bằng SQL khi chủ bị khoá (`docs/HANDOFF-N1.md`) — ngoại lệ cứu hộ có tên | CLAUDE.md §8 |
+| VI Bẫy 6 rẽ nhánh cho khách đặc biệt | đã cấm (không viết cứng i-resort, Tour Đảo) | 2.1, 2.2 |
+| VI Bẫy 8 sao lưu chưa từng khôi phục | **chưa kiểm**: mỗi lần triển khai tạo điểm khôi phục Time Travel, nhưng chưa thấy ghi nhận khôi phục thử | `docs/HANDOFF-N1.md` (runbook) — việc vận hành |
+| VI Bẫy 10 một người là điểm chết | có runbook `HANDOFF-N1.md`, `QUY-TRINH-PHAT-HANH.md` | — |
+
+### 7.3 Hai tài liệu còn trống (đề xuất, chủ duyệt)
+1. **`docs/RANG_BUOC_NGOAI.md`** — ràng buộc bên ngoài (luật, thuế, giới hạn Cloudflare/iOS), mỗi dòng có nguồn + ngày kiểm lại (`FRAMEWORK.md` v1.4). Câu đầu tiên cần trả lời: sổ công nợ nội bộ có phải "sổ kế toán" theo luật (lưu 10 năm) không.
+2. **Sổ vàng** — bộ ca tiền (bắt đầu từ ví dụ 5.1, 5.2A/B của đặc tả Hoàn tất) do chủ/Kế toán xác nhận, trước khi thi công sổ công nợ.

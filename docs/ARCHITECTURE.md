@@ -8,11 +8,11 @@
 >
 > **Bản đồ hiện trạng** (lõi nào đang nằm ở module/bảng nào, đạt hay lệch) là tài liệu **mô tả**, thua mã: `docs/SYSTEM-DESIGN.md` §17.
 >
-> **Nguồn cảm hứng:** bản mẫu "Hiến chương kiến trúc hệ sinh thái ERP doanh nghiệp (tư duy hệ Oracle)" của chủ dự án (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/hien-chuong-kien-truc-erp-Oracle.md`) và đối chiếu Oracle TCA (`docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md`). Bảng "áp dụng / điều chỉnh / hoãn" từng phần của bản mẫu cho Tour Đảo: `docs/superpowers/specs/2026-09-25-hien-chuong-doi-chieu-ban-mau.md`.
+> **Nguồn cảm hứng:** bản mẫu "Hiến chương kiến trúc hệ sinh thái ERP doanh nghiệp (tư duy hệ Oracle)" của chủ dự án (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/hien-chuong-kien-truc-erp-Oracle.md`) khung "Enterprise OS" của chủ dự án (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/ENTERPRISE_FRAMEWORK.md`), và đối chiếu Oracle TCA (`docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md`). Bảng "áp dụng / điều chỉnh / hoãn" từng phần của bản mẫu cho Tour Đảo: `docs/superpowers/specs/2026-09-25-hien-chuong-doi-chieu-ban-mau.md`.
 >
 > **Cách dùng (cho người và AI):** gặp một câu hỏi thiết kế mới, **tra Phần I trước**. Điều khoản đã trả lời được → áp dụng, ghi "theo Hiến chương điều X" trong ADR/đặc tả/commit, **không hỏi lại chủ dự án**. Chỉ mang tới chủ dự án khi (a) một điều khoản không đủ để quyết, (b) muốn lệch khỏi một điều khoản (phải có ADR ghi "lệch có chủ ý" + chủ duyệt), hoặc (c) câu hỏi thuộc chiến lược kinh doanh. Sửa Phần I: chỉ chủ dự án; AI chỉ đề xuất bằng diff (Hiến pháp N9).
 >
-> **Trạng thái:** *(bản đề xuất 2026-09-25, chờ chủ dự án duyệt — khi duyệt, thay dòng này bằng ngày duyệt)*
+> **Trạng thái:** bản đề xuất. Chủ dự án 2026-09-25 đã **đồng ý về nguyên tắc** (điểm 1), **duyệt** 5.7, 5.8, **duyệt 5.9 kèm điều chỉnh** "phải trả khác / thu nhập khác", **cho phép** sửa `CLAUDE.md`. **Chờ:** chốt vị trí (Hiến pháp hay tệp này) và duyệt 5.14–5.17 (bổ sung từ Enterprise OS). Khi duyệt xong, thay dòng này bằng ngày duyệt.
 
 ---
 
@@ -78,7 +78,7 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 
 **4.1 Sự thật = trạng thái bền + nhật ký ghi cùng lô.** Không dựng "event sourcing" (dựng lại trạng thái từ chuỗi sự kiện). Trạng thái hiện hành nằm trong bảng; mỗi lần chuyển trạng thái ghi **dòng nhật ký chỉ-thêm trong cùng lô**, đủ để truy ai/lúc nào/vì sao.
 
-**4.2 Tiền là hình chiếu của sự kiện nghiệp vụ.** Sổ công nợ **không** phải nơi người dùng "nhập tiền tay"; nó được **sinh** từ sự kiện (đã giao, đã thu, hoàn, điều chỉnh) bằng luật cố định, trong cùng lô với sự kiện. Mỗi dòng sổ trỏ về đơn/dòng dịch vụ/lần thu gốc (truy ngược được). Sai → **ghi dòng đảo**, không sửa, không xoá. Bất biến cân đối kiểm bằng `audit-invariants`.
+**4.2 Tiền là hình chiếu của sự kiện nghiệp vụ.** Sổ công nợ **không** phải nơi người dùng "nhập tiền tay"; nó được **sinh** từ sự kiện (đã giao, đã thu, hoàn, điều chỉnh) bằng luật cố định, trong cùng lô với sự kiện. Mỗi con số truy ngược được trọn chuỗi: **báo cáo → dòng sổ → chứng từ (đơn, lần thu) → sự kiện → quy tắc đã áp (mã quy tắc + bản chụp) → người làm/duyệt**. Sai → **ghi dòng đảo**, không sửa, không xoá. Bất biến cân đối kiểm bằng `audit-invariants`.
 
 **4.3 Một sổ.** Tour Đảo giữ **một sổ quản trị nội bộ**. Sổ thuế / chuẩn mực kế toán nhà nước, nhiều sổ song song: **chưa làm** (ADR-0004 loại thuế); khi cần, thêm thành hình chiếu mới từ cùng sự kiện, không sửa sổ cũ.
 
@@ -104,7 +104,7 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 
 **5.8 Bước của luồng gắn với vai trên đối tượng** *(nguyên tắc mới — chủ dự án duyệt riêng; ô quyền cụ thể vẫn quyết ở ADR)*. Quyền làm một bước (nhận đơn, xác nhận, đã giao, hoàn thành) được xét theo **vai của người đó trên chính đối tượng** (người lập, người phụ trách, bên đặt…) kết hợp mức quyền (K4), không theo loại tài khoản đơn thuần.
 
-**5.9 Trả dư thành khoản chờ hoàn** *(nguyên tắc mới — chủ dự án duyệt riêng; luồng hoàn tiền cụ thể quyết ở ADR của sổ tiền)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư thành **khoản công ty còn phải hoàn** trong sổ, người có quyền ghi việc hoàn.
+**5.9 Trả dư thành khoản chờ hoàn** *(nguyên tắc mới — chủ dự án duyệt riêng; luồng hoàn tiền cụ thể quyết ở ADR của sổ tiền)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư ghi là **phải trả khác** (công ty đang nợ khách) cho tới khi hoàn; nếu không hoàn được (khách từ chối nhận, hết thời hạn công ty quy định), **Kế toán** chuyển sang **thu nhập khác** bằng một dòng sổ có lý do. Mặc định luôn là "phải trả khác" — nguyên tắc thận trọng (chủ dự án 2026-09-25).
 
 **5.10 Thông báo không bao giờ kích hoạt tiền.** Ghi tiền xảy ra **trong cùng lô** với sự kiện sinh ra nó; thông báo (Bảng tin, email) chỉ chạy **sau** khi lô đã thành công và được phép thất lạc.
 
@@ -113,6 +113,14 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 **5.12 Kiểm toán là tính năng lõi.** Mọi thay đổi dữ liệu nghiệp vụ để lại: ai (người hay tác nhân), làm gì, lúc nào, lý do (khi luật đòi), bản trước→sau (khi có). Nhật ký không chứa số điện thoại, email, mã số thuế.
 
 **5.13 Nền trước, tính năng sau.** Thứ tự xây: định danh & quyền → bên & tổ chức → danh mục & chính sách → đối tượng nghiệp vụ & luồng → hình chiếu tiền → báo cáo & thông báo. Tính năng không được xây trên một lõi còn hở mà không ghi "xây trên lỗ đang hở" (CLAUDE.md §3).
+
+**5.14 Hai trục thời gian; khoá kỳ.** Mọi dòng tiền ghi **ngày phát sinh** (ngày dân sự VN, khi việc xảy ra) tách khỏi **thời điểm ghi nhận** (UTC, khi hệ thống ghi). Sổ tiền có **kỳ**; kỳ đã khoá thì không ghi thêm vào kỳ đó — sai sót ghi vào kỳ đang mở bằng dòng điều chỉnh/đảo. *(từ Enterprise OS)*
+
+**5.15 Lõi tất định tính tiền; AI không bao giờ tính tiền.** Số tiền, chiết khấu, công nợ chỉ do **mã tất định có test** tính. AI (trợ lý, tác nhân) chỉ đề xuất, trích xuất, giải thích; không tự ra con số tài chính và không ghi số tiền trừ khi đi qua đúng lệnh + luật như người (5.11). *(từ Enterprise OS)*
+
+**5.16 Việc bên ngoài chạy sau giao dịch (hộp thư đi).** Gọi hệ thống ngoài (email, thông báo, sau này hoá đơn điện tử, ngân hàng) **không nằm trong lô ghi**; lỗi bên ngoài không làm hỏng giao dịch nội bộ. Việc bên ngoài **quan trọng** phải để lại trạng thái chờ trong CSDL (vd `notified_at` NULL = chưa gửi) để thử lại được; việc **không quan trọng** (Bảng tin) được phép thất lạc. *(từ Enterprise OS: transactional outbox)*
+
+**5.17 Sổ vàng cho mọi luật tiền.** Mỗi luật sinh ra tiền (giá dòng, chiết khấu, giá vốn, công nợ, hoàn) có **bộ ca mẫu** đầu vào + đáp án **đúng đến từng đồng**, do chủ dự án hoặc Kế toán xác nhận, chạy trong `npm test`. Mã tiền chỉ được nhận khi qua **100%** ca sổ vàng. *(từ Enterprise OS: golden dataset)*
 
 ## Điều 6 — Thi hành và sửa đổi
 
@@ -146,6 +154,10 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 | 5.11 Tác nhân tự động | hook `guard-remote.mjs` + `permissions.deny` (lệnh ghi hệ thống thật) | tác nhân ghi thay người chưa tồn tại | ADR-0010 đ3 |
 | 5.12 Kiểm toán | `audit-actions.ts` (một nguồn tên hành động); không ghi SĐT: dựa vào kỷ luật | nhật ký cũ trên production còn SĐT (`staff_updated` trước 21/9) | Hiến pháp P5 |
 | 5.13 Nền trước | luật "dừng dây chuyền" (`phat-hien-han.test.ts`, `quyen-hoan.json`) | — | CLAUDE.md §3 |
+| 5.14 Hai trục thời gian; khoá kỳ | **chưa có** | sổ tiền chưa có; bảng hiện có dùng `created_at` + ngày dân sự riêng lẻ | Enterprise OS |
+| 5.15 Lõi tất định | tiền chỉ tính ở máy chủ (`buildlines-guard.test.ts`); AI không tính tiền: dựa vào kỷ luật | — | Enterprise OS |
+| 5.16 Hộp thư đi | Góp ý: email trong `waitUntil` + `notified_at` NULL làm hàng chờ (dựa vào kỷ luật) | — | Enterprise OS, ADR-0022 |
+| 5.17 Sổ vàng | test hành vi tiền hiện có (`gia-thoa-thuan.test.ts`…) — **chưa có bộ ca do chủ/Kế toán xác nhận** | chưa có thư mục/tệp sổ vàng | Enterprise OS |
 
 ---
 
