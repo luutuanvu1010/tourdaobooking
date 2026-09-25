@@ -1,6 +1,6 @@
 # Đề xuất sửa `CLAUDE.md` để trỏ tới Hiến chương kiến trúc lõi
 
-- **Ngày:** 2026-09-25. **Trạng thái:** đề xuất — **chưa có hiệu lực**. AI không tự sửa `CLAUDE.md` (Hiến pháp N9; `CLAUDE.md` §3). Chỉ áp khi chủ dự án duyệt Hiến chương (`docs/ARCHITECTURE.md` Phần I) **và** duyệt đề xuất này.
+- **Ngày:** 2026-09-25. **Trạng thái:** **chủ dự án cho phép 2026-09-25** ("Cho phép, đồng thời hãy viết ngắn gọn, tường minh") — đã áp vào `CLAUDE.md` (bản rút gọn) trên nhánh `hien-chuong-kien-truc`. Trước đó: AI không tự sửa `CLAUDE.md` (Hiến pháp N9; `CLAUDE.md` §3). Chỉ áp khi chủ dự án duyệt Hiến chương (`docs/ARCHITECTURE.md` Phần I) **và** duyệt đề xuất này.
 - **Không đổi nghĩa quy tắc nào hiện có**; chỉ thêm đường dẫn và một câu về thứ tự tra cứu.
 
 ## Thay đổi 1 — §2, dòng "Tài liệu chuẩn tắc"

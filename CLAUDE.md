@@ -11,7 +11,8 @@
 
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
 Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
-- Tài liệu **chuẩn tắc** (Hiến pháp, ADR đã duyệt, luật ở `docs/ARCHITECTURE.md`, `docs/SPEC-tourdao-sales.md` đã duyệt) **thắng mã**: mã lệch là lỗi, sửa mã.
+- Tài liệu **chuẩn tắc** (Hiến pháp; **Hiến chương + luật ở `docs/ARCHITECTURE.md`**, đứng trên mọi ADR; ADR đã duyệt; `docs/SPEC-tourdao-sales.md` đã duyệt) **thắng mã**: mã lệch là lỗi, sửa mã.
+- **Câu hỏi thiết kế mới: tra Hiến chương (`docs/ARCHITECTURE.md` Phần I) trước.** Đã có đáp án → áp dụng, ghi "theo Hiến chương điều X", không hỏi lại chủ. Chỉ hỏi khi Hiến chương không đủ, khi muốn lệch (cần ADR), hoặc khi là chiến lược.
 - Tài liệu **mô tả** (`docs/SYSTEM-DESIGN.md`, `docs/DATA-DICTIONARY.md`, `docs/CHANGE-GUIDE.md`) **thua mã**: sửa tài liệu trong cùng commit.
 - **Lệch có chủ ý** đã ghi ở `docs/SYSTEM-DESIGN.md` §16 (mã đúng, tài liệu chuẩn tắc lệch): không sửa mã; giữ ở §16 và trình chủ để ra ADR/dòng lịch sử mới.
 - Không tự hoà giải bằng suy đoán: dừng, nêu xung đột, hỏi chủ.
@@ -70,7 +71,8 @@ Chủ dự án không phải lập trình viên. Quy tắc này áp cho **câu t
 | Luồng nghiệp vụ (lập đơn, xác nhận, phân công…) | `docs/SYSTEM-DESIGN.md` §6; nghiệp vụ và quyết định của chủ: `docs/SPEC-tourdao-sales.md`, `docs/superpowers/specs/` |
 | Dữ liệu: bảng, quan hệ, migration | `docs/SYSTEM-DESIGN.md` §5; từng cột: `docs/DATA-DICTIONARY.md` (nguồn `docs/data-dictionary.json`) |
 | API, quyền, bảo mật | `docs/SYSTEM-DESIGN.md` §7, §8, §11 |
-| Kiến trúc: ranh giới module, nơi đặt mã | `docs/ARCHITECTURE.md`; quyết định đã duyệt: mục lục `docs/adr/README.md` rồi ADR liên quan |
+| Thiết kế mới (dữ liệu, vai, quyền, tiền, luồng) — **đọc đầu tiên** | Hiến chương `docs/ARCHITECTURE.md` Phần I; hiện trạng `docs/SYSTEM-DESIGN.md` §17 |
+| Kiến trúc: ranh giới module, nơi đặt mã | `docs/ARCHITECTURE.md` Phần II; quyết định đã duyệt: mục lục `docs/adr/README.md` rồi ADR liên quan |
 | Hồ sơ khách/đại lý/đối tác, danh tính | ADR-0001, ADR-0010; đối chiếu Oracle TCA (bản nháp): `docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md` |
 | Giao diện, hệ thống thiết kế (màu, chữ, khoảng cách, thành phần) | token ở đầu `public/app.css`; luật giao diện: `web/CLAUDE.md`; thiết kế màn hình: `docs/superpowers/specs/2026-09-19-a2-giao-dien-design.md`, `docs/SYSTEM-DESIGN.md` §9; iPhone: `docs/PWA-IPHONE.md` |
 | Sửa/thêm nhanh: công thức từng loại việc, bẫy | `docs/CHANGE-GUIDE.md`: §1 bảng "muốn … → xem …", rồi đúng công thức ở §2; §3 ma trận "đổi gì → chạy kiểm nào" |
