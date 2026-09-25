@@ -112,3 +112,15 @@ Cạnh mới: `orders→pricing`, `pricing→{parties,catalog,audit}`, `billing�
 3. **Bảng sổ chỉ-thêm** (trigger cấm sửa/xoá + test migration).
 4. **Bảng tin phủ route Hoàn tất.**
 5. **Bất biến cân đối `R-BIL-*`** trong `audit-invariants`.
+
+## 10. Trả lời của chủ (2026-09-25, phiên chat)
+
+- **H1:** đúng — *"người hưởng hoa hồng chính là bên đặt của đơn"* → không thêm ô "Người giới thiệu" (giữ ADR-0018 điều 9); Q4 của đặc tả gốc được thay bằng câu này.
+- **H2:** đúng, và chủ **tách hai bước**: *"việc HDV bấm Hoàn tất và Kế toán xác nhận đơn hoàn tất là khác nhau. Vì HDV giao vé và thu đủ số còn lại từ khách thì HDV đã hoàn tất, nhưng đơn chỉ thực sự hoàn tất khi công ty thu đủ tiền về."* → luồng mới: Đã xác nhận → (HDV) **Đã giao – đã thu đủ của khách** → (Kế toán) **Hoàn thành**. Chi tiết chờ câu làm rõ H2' (dưới).
+- **H3:** đúng. **H4:** đồng ý — *"theo đúng nguyên tắc thận trọng của kế toán"* (khoản chưa được Kế toán xác nhận thì chưa ghi là đã thu/đã trả). **H6, H7, H9:** đồng ý theo khuyến nghị.
+- **H5:** chủ hỏi lại nghĩa của "chụp". **H8:** chủ thấy khó hiểu → hỏi lại bằng ví dụ.
+
+### Câu làm rõ (lượt sau)
+- **H2'** — (a) khoá sửa đơn và ghi sổ ở bước HDV (khuyến nghị) hay bước Kế toán; (b) "Hoàn thành" = mọi khoản **người khác nợ công ty** của đơn đã về đủ (khuyến nghị), khoản **công ty còn phải trả** (hoa hồng, i-resort) theo dõi riêng, không chặn.
+- **H5** (giải thích lại): "chụp" = lưu **bản sao** mức tỷ lệ/giá vốn/người bán vào chính đơn lúc Xác nhận; đổi cài đặt sau đó không làm đổi đơn đã xác nhận.
+- **H8** (hỏi lại): giảm giá cho khách thì giá vốn trả nhà cung cấp tính trên giá **trước** hay **sau** giảm (khuyến nghị: trước).
