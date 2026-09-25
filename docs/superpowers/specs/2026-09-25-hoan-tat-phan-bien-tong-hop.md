@@ -124,3 +124,6 @@ Cạnh mới: `orders→pricing`, `pricing→{parties,catalog,audit}`, `billing�
 - **H2'** — (a) khoá sửa đơn và ghi sổ ở bước HDV (khuyến nghị) hay bước Kế toán; (b) "Hoàn thành" = mọi khoản **người khác nợ công ty** của đơn đã về đủ (khuyến nghị), khoản **công ty còn phải trả** (hoa hồng, i-resort) theo dõi riêng, không chặn.
 - **H5** (giải thích lại): "chụp" = lưu **bản sao** mức tỷ lệ/giá vốn/người bán vào chính đơn lúc Xác nhận; đổi cài đặt sau đó không làm đổi đơn đã xác nhận.
 - **H8** (hỏi lại): giảm giá cho khách thì giá vốn trả nhà cung cấp tính trên giá **trước** hay **sau** giảm (khuyến nghị: trước).
+- **H5 (2026-09-25):** chủ đồng ý — chụp mức chiết khấu, giá vốn, người bán vào đơn lúc Xác nhận (và khi thêm dịch vụ); đổi cài đặt sau không đổi đơn đã xác nhận.
+- **H8 (2026-09-25):** **A** — giá vốn nhà cung cấp tính trên **giá gốc trước giảm**; Tour Đảo chịu phần giảm giá của mình (ví dụ: vé 300.000 giảm 30.000 → trả i-resort 80% × 300.000 = 240.000). Đối tác tự giảm thì đối tác chịu (đã quyết, ADR-0018 §11).
+- **H2' — chưa trả lời.**
