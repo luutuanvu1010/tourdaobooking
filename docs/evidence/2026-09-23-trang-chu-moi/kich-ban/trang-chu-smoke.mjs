@@ -1006,20 +1006,18 @@ try {
     // text-overflow ở trên chưa từng chạy — lưới giả. Phải nổ ra ở đây để không lặng lẽ mất tác dụng nếu sau này ai
     // đổi widths/breadcrumb làm hết trường hợp bị cắt.
     // Bản 1.11 (2026-09-25): nút "Lập đơn mới" → "Tạo đơn" ngắn hơn nên KHÔNG còn khổ nào (đã dò 641–1000px) tự cắt breadcrumb
-    // "Sửa đơn <mã>". Thay vì nới khẳng định: đặt một breadcrumb THẬT DÀI trên trang /staff đang mở rồi đo cắt thật + cơ chế CSS.
-    if (!sawRealClip) {
-      const forced = await pFrame.ev(`(() => {
-        const t = document.querySelector('.bar-title'); const old = t.textContent;
-        t.textContent = 'Sửa đơn TD-20260925-0001 · ' + 'Khách đoàn rất dài '.repeat(20);
-        const cs = getComputedStyle(t); const r = { clipped: t.scrollWidth - t.clientWidth, overflow: cs.overflow, textOverflow: cs.textOverflow, whiteSpace: cs.whiteSpace };
-        t.textContent = old; return r; })()`);
-      assert.ok(forced.clipped > 0, `A-1.1: breadcrumb thật dài phải bị cắt (scrollWidth>clientWidth) — ${JSON.stringify(forced)}`);
-      assert.equal(forced.overflow, "hidden", `A-1.1: breadcrumb bị cắt nhưng overflow không phải "hidden" — ${JSON.stringify(forced)}`);
-      assert.equal(forced.textOverflow, "ellipsis", `A-1.1: breadcrumb bị cắt nhưng text-overflow không phải "ellipsis" — ${JSON.stringify(forced)}`);
-      sawRealClip = true;
-    }
-    assert.ok(sawRealClip, "A-1.1: không đo được lần nào breadcrumb THẬT SỰ bị cắt chữ (scrollWidth>clientWidth) trong toàn bộ lượt quét — khẳng định overflow/text-overflow chưa từng chạy, cần khổ hoặc trang khác");
-    ok(`A-1.1: đã đo được ít nhất một lần breadcrumb thật sự bị cắt (scrollWidth>clientWidth) và xác nhận overflow:hidden + text-overflow:ellipsis đang có tác dụng`);
+    // "Sửa đơn <mã>" — cờ `sawRealClip` giờ chỉ để ghi lại. Cơ chế cắt chữ (overflow + ellipsis) LUÔN được kiểm bằng một breadcrumb
+    // THẬT DÀI đặt trên /staff đang mở (không phụ thuộc có khổ tự cắt hay không, nên không có khẳng định nào "không bao giờ đỏ").
+    // Đã thấy chặn thật 2026-09-25: bỏ `text-overflow: ellipsis` ở `body.has-sidebar #topbar .bar-title` → đỏ → hoàn nguyên.
+    const forced = await pFrame.ev(`(() => {
+      const t = document.querySelector('.bar-title'); const old = t.textContent;
+      t.textContent = 'Sửa đơn TD-20260925-0001 · ' + 'Khách đoàn rất dài '.repeat(20);
+      const cs = getComputedStyle(t); const r = { clipped: t.scrollWidth - t.clientWidth, overflow: cs.overflow, textOverflow: cs.textOverflow, whiteSpace: cs.whiteSpace };
+      t.textContent = old; return r; })()`);
+    assert.ok(forced.clipped > 0, `A-1.1: breadcrumb thật dài phải bị cắt (scrollWidth>clientWidth) — ${JSON.stringify(forced)}`);
+    assert.equal(forced.overflow, "hidden", `A-1.1: breadcrumb bị cắt nhưng overflow không phải "hidden" — ${JSON.stringify(forced)}`);
+    assert.equal(forced.textOverflow, "ellipsis", `A-1.1: breadcrumb bị cắt nhưng text-overflow không phải "ellipsis" — ${JSON.stringify(forced)}`);
+    ok(`A-1.1: breadcrumb thật dài bị cắt ${forced.clipped}px với overflow:hidden + text-overflow:ellipsis; khổ tự cắt trong lượt quét: ${sawRealClip ? "có" : "không (bình thường từ bản 1.11)"}`);
 
     // ================================================================================================
     // G-2 (B — quyết định 8 của chủ dự án): huy hiệu cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN (draftCount = 1,
