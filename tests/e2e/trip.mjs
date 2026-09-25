@@ -95,17 +95,17 @@ try {
   console.log("✓ thông tin chuyến lưu và chuẩn hoá");
 
   // 7) XÁC NHẬN ĐÒI ĐỦ CHUYẾN (Q4): nháp thiếu ngày lưu được, xác nhận 409, bổ sung rồi mới xác nhận được
-  r = await post([cat({ departDate: "" }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { departDate: vnDate(8) })]);
+  r = await post([cat({ departDate: "" }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { departDate: "" })]); // ADR-0021: cả đơn cùng "chưa có ngày"
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const d1 = r.body.order;
   r = await confirm(A, d1);
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "incomplete_trip");
-  assert.deepEqual(r.body.error.missing, [{ serviceId: d1.services[0].id, name: "Tour thử", reasons: ["no_date"] }]);
+  assert.deepEqual(r.body.error.missing, [{ serviceId: d1.services[0].id, name: "Tour thử", reasons: ["no_date"] }, { serviceId: d1.services[1].id, name: "Dịch vụ thử", reasons: ["no_date"] }]);
   let g = await get(A, d1);
   assert.equal(g.order.status, "draft");
   assert.deepEqual(g.history.map((h) => h.action), ["created"], "xác nhận thất bại không ghi nhật ký");
-  r = await put(d1, [cat({ id: d1.services[0].id, departDate: vnDate(9) }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { id: d1.services[1].id, departDate: vnDate(8) })]);
+  r = await put(d1, [cat({ id: d1.services[0].id, departDate: vnDate(9) }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { id: d1.services[1].id, departDate: vnDate(9) })]);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body.order.services.map((x) => x.id), d1.services.map((x) => x.id), "id dịch vụ ổn định qua lần sửa");
   r = await confirm(A, r.body.order);
@@ -288,6 +288,34 @@ try {
   assert.equal(r.status, 200);
   assert.equal((await trip(r.body.order, { note: "sau huỷ" })).status, 409);
   console.log("✓ sửa trường vận hành sau xác nhận: có nhật ký, khoá số khách/dịch vụ, chặn ngày sai");
+
+  // 12b) MỘT NGÀY CHO CẢ ĐƠN (ADR-0021, đặc tả 2026-09-25-mot-ngay-ca-don.md): máy chủ chặn đơn lệch ngày; sửa chuyến đổi ngày phải gom cả đơn
+  const ONE_DATE = "Mọi dịch vụ trong đơn phải cùng một ngày khởi hành.";
+  r = await post([cat(), cat({ catalogCode: "ZT3", pax: { adult: 1 }, catalogPriceSeen: { adult: 800000 }, departDate: vnDate(8) })]);
+  assert.equal(r.status, 400, JSON.stringify(r.body)); assert.equal(r.body.error.message, ONE_DATE);
+  r = await post([cat(), cat({ catalogCode: "ZT3", pax: { adult: 1 }, catalogPriceSeen: { adult: 800000 }, departDate: undefined })]);
+  assert.equal(r.status, 400, "một có ngày, một trống cũng là lệch"); assert.equal(r.body.error.message, ONE_DATE);
+  r = await post([cat(), cat({ catalogCode: "ZT3", pax: { adult: 1 }, catalogPriceSeen: { adult: 800000 } })]);
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const two = r.body.order;
+  r = await put(two, [cat({ id: two.services[0].id }), cat({ id: two.services[1].id, catalogCode: "ZT3", pax: { adult: 1 }, catalogPriceSeen: { adult: 800000 }, departDate: vnDate(9) })]);
+  assert.equal(r.status, 400, "sửa nháp thành lệch ngày → chặn"); assert.equal(r.body.error.message, ONE_DATE);
+  assert.equal((await confirm(A, two)).status, 200);
+  const two2 = (await get(A, two)).order;
+  r = await trip(two2, { departDate: vnDate(9) }); // gửi MỘT PHẦN: chỉ dịch vụ đầu đổi ngày → đơn lệch
+  assert.equal(r.status, 400, JSON.stringify(r.body)); assert.equal(r.body.error.message, ONE_DATE);
+  r = await call(A, "PUT", `/api/orders/${two2.id}/trip`, { expectedUpdatedAt: two2.updatedAt, services: two2.services.map((s) => ({ id: s.id, ...tripOf(s), departDate: vnDate(9) })) });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.deepEqual((await get(A, two2)).order.services.map((s) => s.departDate), [vnDate(9), vnDate(9)]);
+  // đơn CŨ lệch ngày (dựng bằng SQL — API nay chặn): chỉ sửa ghi chú vẫn được; đổi ngày mà vẫn lệch thì chặn
+  await sql(`UPDATE order_service SET depart_date = '${vnDate(12)}' WHERE id = '${two2.services[1].id}'`);
+  const old = (await get(A, two2)).order;
+  r = await trip(old, { note: "chỉ sửa ghi chú" });
+  assert.equal(r.status, 200, `đơn cũ lệch ngày vẫn sửa ghi chú được: ${JSON.stringify(r.body)}`);
+  const old2 = (await get(A, two2)).order;
+  r = await trip(old2, { departDate: vnDate(10) });
+  assert.equal(r.status, 400); assert.equal(r.body.error.message, ONE_DATE);
+  console.log("✓ một ngày cho cả đơn: chặn lập/sửa nháp lệch ngày, chặn sửa chuyến làm lệch (kể cả gửi một phần), gom về một ngày được, đơn cũ sửa ghi chú được");
 
   // 13) BẤT BIẾN (Điều 8.3): kiểm bằng SQL trên MỌI đơn của lần chạy
   const noPax = await sqlRows(`SELECT COUNT(*) AS n FROM order_item i JOIN order_service s ON s.id = i.service_id WHERE s.catalog_code IS NOT NULL AND (i.pax_code IS NULL OR i.catalog_price IS NULL)`);

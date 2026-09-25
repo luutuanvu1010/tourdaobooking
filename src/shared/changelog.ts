@@ -11,6 +11,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.13",
+    date: "2026-09-25",
+    items: [
+      { kind: "sua", text: "Sửa lỗi: hướng dẫn viên lưu số khách không còn làm đổi giá đã thoả thuận với khách; thêm khách thì tính theo đúng giá đã thoả thuận." },
+      { kind: "sua", text: "Hướng dẫn viên bấm lưu mà không đổi số khách thì đơn giữ nguyên, không ghi thêm lần sửa nào." },
+    ],
+  },
+  {
+    version: "1.12",
+    date: "2026-09-25",
+    items: [
+      { kind: "doi", text: "\"Sửa thông tin chuyến\" nay có một ô ngày khởi hành cho cả đơn; đổi ngày là đổi cho mọi dịch vụ trong đơn." },
+      { kind: "doi", text: "Hệ thống không nhận đơn có các dịch vụ khác ngày nhau. Đơn cũ đang khác ngày vẫn sửa được giờ, điểm đón, ghi chú như trước." },
+    ],
+  },
+  {
     version: "1.11",
     date: "2026-09-25",
     items: [

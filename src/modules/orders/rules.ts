@@ -4,6 +4,7 @@
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
 import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
 import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
+import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { int, text } from "./fields.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, validateService, type ServiceContext, type ServiceFailure, type ValidItem, type ValidService } from "./service-rules.ts";
@@ -85,6 +86,7 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
     }
     services.push(r.value);
   }
+  if (!sameDepartDate(services.map((s) => s.trip.departDate))) return fail(ONE_DATE_MESSAGE); // ADR-0021
   const items = services.flatMap((s) => s.items);
   if (items.length > MAX_LINES_PER_ORDER) return fail(`Đơn tối đa ${MAX_LINES_PER_ORDER} dòng tiền.`);
   let subtotal = 0;

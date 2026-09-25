@@ -774,15 +774,14 @@ try {
     // effectiveSubtotal ở nơi đọc) — số mong đợi TỰ TÍNH TỪ KỊCH BẢN: D2 chỉ có dịch vụ nhập tay (200.000₫, không đổi qua lần "sửa" reason ở
     // trên vì route chỉ cho sửa dịch vụ TỪ DANH MỤC, ở đây rỗng) → before/after đều = 200.000 (own, effectiveSubtotal không có gì để tính lại).
     // Nơi ghi cũ (đúng lỗi đã vá) cho ra [0, 0] (vòng lặp catalogServices rỗng, không cộng gì) — khác 200.000 rất rõ, không thể trùng hợp đúng.
-    const d2Adj = (await sqlRows(`SELECT subtotal_before, subtotal_after FROM order_money_adjustment WHERE order_id = '${d2.id}' ORDER BY seq DESC LIMIT 1`))[0];
-    assert.deepEqual(
-      [Number(d2Adj.subtotal_before), Number(d2Adj.subtotal_after)],
-      [200000, 200000],
-      "D2 NƠI GHI (cột order_money_adjustment.subtotal_before/subtotal_after ĐÃ LƯU, không phải số tự tính lại lúc đọc): phải là [200.000, 200.000] — nơi ghi cũ (lỗi đã vá) sẽ lưu [0, 0]",
-    );
+    // ĐỔI CÓ CHỦ Ý 2026-09-25 (vá DK-T2-01): lần "sửa" này không đổi số khách nào (đơn không có dịch vụ danh mục) → từ nay là lưu Y NGUYÊN, KHÔNG
+    // ghi dòng điều chỉnh (planMoneyEdit write=false). Lưới cho cột ĐÃ LƯU ở nơi ghi (bài học Task 9: không bỏ sót dịch vụ nhập tay) vẫn còn ở D3
+    // (đơn TRỘN, có đổi số khách thật) — khẳng định [800.000, 1.100.000] ở đó đọc thẳng cột subtotal_before/subtotal_after.
+    const d2Rows = (await sqlRows(`SELECT count(*) AS n FROM order_money_adjustment WHERE order_id = '${d2.id}'`))[0];
+    assert.equal(Number(d2Rows.n), 0, "D2: không có dịch vụ nào đổi số khách → không ghi dòng điều chỉnh");
 
     measured.push({ ca: "D2 chỉ nhập tay", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
-    console.log(`✓ D2 (chỉ nhập tay): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫; cột đã lưu [before, after] = [${Number(d2Adj.subtotal_before).toLocaleString("vi-VN")}₫, ${Number(d2Adj.subtotal_after).toLocaleString("vi-VN")}₫]`);
+    console.log(`✓ D2 (chỉ nhập tay): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫; lưu y nguyên → không ghi dòng điều chỉnh`);
   }
 
   // --- D3: đơn TRỘN danh mục + nhập tay + sửa sau xác nhận — ĐÚNG CA LỖI GỐC kiểm độc lập đo được (thiếu 200.000₫) ------------------------------
@@ -907,6 +906,56 @@ try {
     console.log(`✓ D6 (dữ liệu CŨ, subtotal_after đã lưu SAI = 900.000): tự tính ĐÚNG ${expected.toLocaleString("vi-VN")}₫ — cả bốn bề mặt hiện đúng, không đọc lại số đã lưu sai`);
   }
 
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  // DK-T2-01 (kiểm toán điểm khuất 24/9, CRITICAL): đơn có GIÁ THOẢ THUẬN (200.000₫/khách, danh mục ZH1 niêm yết 300.000₫) — HDV lưu số khách
+  // KHÔNG được làm tiền đơn nhảy về giá niêm yết. Số mong đợi TỰ TÍNH từ kịch bản. G1: gửi lại y nguyên → không ghi dòng điều chỉnh, tiền không
+  // đổi. G2: 2→3 → 3 × 200.000 ở CẢ bốn bề mặt (chi tiết, /orders, Trang chủ; Việc của tôi chỉ số khách), còn lại = tổng − cọc.
+  // ("Còn lại" âm khi HDV giảm khách: KHÔNG chặn — việc mở chưa quyết, xem docs/CHANGE-GUIDE.md §4 mục 32.)
+  // --------------------------------------------------------------------------------------------------------------------------------------
+  {
+    const DEAL = 200000;
+    const g = (
+      await call(A, "POST", "/api/orders", orderInput({
+        services: [catSvc({ pax: { adult: 2 }, unitPrices: { adult: DEAL }, departDate: vnDate(0) })],
+        depositAmount: 300000, depositMethod: "cash",
+      }))
+    ).body.order;
+    assert.ok(g?.id, "lập đơn giá thoả thuận thất bại");
+    assert.equal(g.services[0].items[0].unitPrice, DEAL, "đối chứng: đơn lưu đúng giá thoả thuận");
+    assert.equal(g.services[0].items[0].catalogPrice, 300000);
+    const gSvc = g.services[0].id;
+    assert.equal((await call(A, "POST", `/api/orders/${g.id}/status`, { status: "confirmed" })).status, 200);
+    assert.equal((await setHandler(A, g.id, fld.id)).status, 200);
+    const adjCount = async () => Number((await sqlRows(`SELECT count(*) AS n FROM order_money_adjustment WHERE order_id = '${g.id}'`))[0].n);
+
+    // G1 — y nguyên
+    r = await moneyEdit(FIELD, g.id, { reason: "Kiểm lại danh sách khách, không đổi", services: [{ id: gSvc, pax: pax(2) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(await adjCount(), 0, "G1: gửi lại y nguyên số khách KHÔNG được ghi dòng điều chỉnh");
+    let s = await measureFourSurfaces(g.id, g.orderCode);
+    assert.equal(s.chiTiet.total, 2 * DEAL, "G1 chi tiết: tổng giữ nguyên 400.000 (không nhảy lên 600.000 giá niêm yết)");
+    assert.equal(s.chiTiet.remainingAmount, 2 * DEAL - 300000, "G1 chi tiết: còn lại 100.000");
+    assert.equal(s.orders.total, 2 * DEAL, "G1 /orders");
+    assert.equal(s.dashboard.total, 2 * DEAL, "G1 Trang chủ");
+    console.log("✓ DK-T2-01 G1: HDV gửi lại y nguyên số khách → không ghi dòng điều chỉnh, tiền giữ giá thoả thuận ở mọi bề mặt");
+
+    // G2 — 2→3
+    r = await moneyEdit(FIELD, g.id, { reason: "Khách báo thêm 1 người", services: [{ id: gSvc, pax: pax(3) }] });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal(await adjCount(), 1);
+    s = await measureFourSurfaces(g.id, g.orderCode);
+    const exp = 3 * DEAL; // 600.000 — KHÔNG phải 900.000 (3 × giá niêm yết)
+    for (const [label, v] of [["chi tiết", s.chiTiet], ["/orders", s.orders], ["Trang chủ", s.dashboard]]) {
+      assert.equal(v.total, exp, `G2 ${label}: tổng theo giá thoả thuận`);
+      assert.equal(v.remainingAmount, exp - 300000, `G2 ${label}: còn lại = tổng − cọc`);
+    }
+    assert.equal(s.chiTiet.services[0].items[0].unitPrice, DEAL, "G2 chi tiết: dòng tiền mang đơn giá thoả thuận (phiếu gửi khách dựng từ đây)");
+    assert.deepEqual(s.mine.services[0].pax, pax(3), "G2 Việc của tôi: số khách khớp");
+    const adj = (await sqlRows(`SELECT subtotal_before, subtotal_after, after_json FROM order_money_adjustment WHERE order_id = '${g.id}'`))[0];
+    assert.deepEqual([Number(adj.subtotal_before), Number(adj.subtotal_after)], [2 * DEAL, exp], "G2: cột đã lưu cũng theo giá thoả thuận (R-ORD-6a khớp orders.subtotal)");
+    assert.deepEqual(JSON.parse(adj.after_json)[0].unitPrices, { adult: DEAL }, "G2: after_json lưu kèm đơn giá để truy vết");
+    console.log("✓ DK-T2-01 G2: HDV 2→3 khách → 3 × giá thoả thuận ở chi tiết, /orders, Trang chủ; cột đã lưu cũng đúng");
+  }
   console.log("\n=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc remainingAmount cho D5) ===");
   for (const m of measured) {
     console.log(`${m.ca}: tự tính ${m.tuTinh.toLocaleString("vi-VN")}₫ | chi tiết ${m.chiTiet.toLocaleString("vi-VN")}₫ | /orders ${m.orders.toLocaleString("vi-VN")}₫ | Trang chủ ${m.dashboard.toLocaleString("vi-VN")}₫`);

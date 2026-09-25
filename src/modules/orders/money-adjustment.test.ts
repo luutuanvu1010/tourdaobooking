@@ -11,7 +11,7 @@ const ZERO = { adult: 0, child: 0, senior: 0, infant: 0 };
 const catalogService = (over: Partial<StoredService> = {}): StoredService => ({
   id: "svc-1", catalogCode: "TOUR-1", name: "Tour đảo", unit: "perPax",
   pax: { ...ZERO, adult: 2 },
-  items: [{ paxCode: "adult", detail: null, catalogPrice: 300000 }],
+  items: [{ paxCode: "adult", detail: null, catalogPrice: 300000, unitPrice: 300000 }],
   ...over,
 });
 
@@ -170,12 +170,12 @@ test("effectiveMoney: total = subtotal - discount; remainingAmount = total - dep
 // trong khi trang chi tiết đơn (tự tính lại) hiện ĐÚNG. Các test dưới đây kiểm ĐÚNG hai hàm sơ cấp làm việc đó — không cần D1 thật. -----------------
 const catalogInput = (over: Partial<SubtotalServiceInput> = {}): SubtotalServiceInput => ({
   id: "svc-cat", catalogCode: "TOUR-1", name: "Tour đảo", unit: "perPax",
-  items: [{ paxCode: "adult", catalogPrice: 300000, lineTotal: 600000 }], // 2 khách × 300.000 đã lưu
+  items: [{ paxCode: "adult", catalogPrice: 300000, unitPrice: 300000, lineTotal: 600000 }], // 2 khách × 300.000 đã lưu
   ...over,
 });
 const manualInput = (over: Partial<SubtotalServiceInput> = {}): SubtotalServiceInput => ({
   id: "svc-manual", catalogCode: null, name: "Phí phát sinh (nhập tay)", unit: "manual",
-  items: [{ paxCode: null, catalogPrice: null, lineTotal: 200000 }],
+  items: [{ paxCode: null, catalogPrice: null, unitPrice: 200000, lineTotal: 200000 }],
   ...over,
 });
 

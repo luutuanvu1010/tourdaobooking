@@ -166,16 +166,16 @@ test("buildSubtotalServices: ghép đúng dịch vụ + dòng tiền theo order_
     { order_id: "o2", id: "sv2", catalog_code: "TOUR-2", name: "Tour 4 đảo", unit: "perPax" },
   ];
   const itemRows = [
-    { order_id: "o1", service_id: "sv1", pax_code: "adult", catalog_price: 300000, line_total: 600000 },
-    { order_id: "o1", service_id: "sv-manual", pax_code: null, catalog_price: null, line_total: 200000 },
-    { order_id: "o2", service_id: "sv2", pax_code: "adult", catalog_price: 250000, line_total: 250000 },
+    { order_id: "o1", service_id: "sv1", pax_code: "adult", catalog_price: 300000, unit_price: 300000, line_total: 600000 },
+    { order_id: "o1", service_id: "sv-manual", pax_code: null, catalog_price: null, unit_price: 200000, line_total: 200000 },
+    { order_id: "o2", service_id: "sv2", pax_code: "adult", catalog_price: 250000, unit_price: 250000, line_total: 250000 },
   ];
   const out = buildSubtotalServices(serviceRows, itemRows);
   assert.deepEqual(out.get("o1"), [
-    { id: "sv1", catalogCode: "TOUR-1", name: "Tour Hòn Mun", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, lineTotal: 600000 }] },
-    { id: "sv-manual", catalogCode: null, name: "Phí phát sinh", unit: "manual", items: [{ paxCode: null, catalogPrice: null, lineTotal: 200000 }] },
+    { id: "sv1", catalogCode: "TOUR-1", name: "Tour Hòn Mun", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, unitPrice: 300000, lineTotal: 600000 }] },
+    { id: "sv-manual", catalogCode: null, name: "Phí phát sinh", unit: "manual", items: [{ paxCode: null, catalogPrice: null, unitPrice: 200000, lineTotal: 200000 }] },
   ]);
-  assert.deepEqual(out.get("o2"), [{ id: "sv2", catalogCode: "TOUR-2", name: "Tour 4 đảo", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 250000, lineTotal: 250000 }] }]);
+  assert.deepEqual(out.get("o2"), [{ id: "sv2", catalogCode: "TOUR-2", name: "Tour 4 đảo", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 250000, unitPrice: 250000, lineTotal: 250000 }] }]);
   assert.equal(out.has("o3"), false);
 });
 
@@ -187,11 +187,11 @@ test("buildSubtotalServices: dịch vụ KHÔNG có dòng order_item nào → it
 test("buildSubtotalServices: dòng order_item có service_id NULL (đơn cũ trước migration 0008) bị BỎ QUA — CÙNG quy tắc groupItems() ở findOrder, không được đếm vào 'own' của dịch vụ nào", () => {
   const serviceRows = [{ order_id: "o1", id: "sv1", catalog_code: "TOUR-1", name: "Tour", unit: "perPax" }];
   const itemRows = [
-    { order_id: "o1", service_id: "sv1", pax_code: "adult", catalog_price: 300000, line_total: 600000 },
-    { order_id: "o1", service_id: null, pax_code: null, catalog_price: null, line_total: 999999 }, // dòng mồ côi — PHẢI bị bỏ, không cộng vào bất kỳ dịch vụ nào
+    { order_id: "o1", service_id: "sv1", pax_code: "adult", catalog_price: 300000, unit_price: 300000, line_total: 600000 },
+    { order_id: "o1", service_id: null, pax_code: null, catalog_price: null, unit_price: 999999, line_total: 999999 }, // dòng mồ côi — PHẢI bị bỏ, không cộng vào bất kỳ dịch vụ nào
   ];
   const out = buildSubtotalServices(serviceRows, itemRows);
-  assert.deepEqual(out.get("o1"), [{ id: "sv1", catalogCode: "TOUR-1", name: "Tour", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, lineTotal: 600000 }] }], "dòng service_id NULL không được lọt vào items của sv1 hay tạo dịch vụ nào khác");
+  assert.deepEqual(out.get("o1"), [{ id: "sv1", catalogCode: "TOUR-1", name: "Tour", unit: "perPax", items: [{ paxCode: "adult", catalogPrice: 300000, unitPrice: 300000, lineTotal: 600000 }] }], "dòng service_id NULL không được lọt vào items của sv1 hay tạo dịch vụ nào khác");
 });
 
 test("buildSubtotalServices: mảng rỗng → Map rỗng", () => {

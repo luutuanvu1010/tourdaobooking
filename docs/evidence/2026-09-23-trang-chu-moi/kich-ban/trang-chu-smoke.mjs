@@ -134,10 +134,11 @@ try {
   //    Trả đủ tiền (remainingAmount=0) để không lẫn vào ô "Còn thiếu tiền" (tách bạch với R3 bên dưới).
   // ==================================================================================================
   const r1Services = [
-    manualService("Đưa đón sân bay (dịch vụ NGÀY MAI, không phải dịch vụ quyết định)", { departDate: TOMORROW, pickupTime: "19:30", pickupPlace: "Sân bay Cam Ranh", unitPrice: 150_000 }),
+    manualService("Đưa đón sân bay (dịch vụ NGÀY MAI, không phải dịch vụ quyết định)", { departDate: TODAY, pickupTime: "19:30", pickupPlace: "Sân bay Cam Ranh", unitPrice: 150_000 }), // ADR-0021: API chặn đơn lệch ngày → dựng đơn CŨ: tạo cùng ngày rồi đổi dịch vụ này sang NGÀY MAI bằng SQL (dưới)
     manualService("Tour 4 đảo (dịch vụ HÔM NAY — quyết định)", { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá", unitPrice: 150_000 }),
   ];
   const r1 = await createAndConfirm(orderInput("Khách Bẫy B Hôm Nay", "0900000301", r1Services, { depositAmount: 300_000 }));
+  env.sql(`UPDATE order_service SET depart_date = '${TOMORROW}' WHERE id = '${r1.services[0].id}'`); // đơn cũ (trước 1.11) có thể lệch ngày — Trang chủ vẫn phải chọn đúng dịch vụ hôm nay
   ok(`R1 tạo + xác nhận (id ${r1.id}): 2 dịch vụ (sort_order 0 = mai 19:30/Sân bay Cam Ranh, sort_order 1 = hôm nay 06:15/Bến Cầu Đá), đã trả đủ 300.000`);
 
   // R2: NHÁP (không xác nhận), có dịch vụ HÔM NAY — phải KHÔNG lọt vào "Chuyến đón hôm nay" dù trùng ngày (chỉ đơn confirmed mới vào).
@@ -1004,8 +1005,19 @@ try {
     // A-1.1: nếu lượt quét này KHÔNG hề gặp một khổ/trang nào có breadcrumb thật sự bị cắt thì khẳng định overflow/
     // text-overflow ở trên chưa từng chạy — lưới giả. Phải nổ ra ở đây để không lặng lẽ mất tác dụng nếu sau này ai
     // đổi widths/breadcrumb làm hết trường hợp bị cắt.
-    assert.ok(sawRealClip, "A-1.1: không đo được lần nào breadcrumb THẬT SỰ bị cắt chữ (scrollWidth>clientWidth) trong toàn bộ lượt quét — khẳng định overflow/text-overflow chưa từng chạy, cần khổ hoặc trang khác");
-    ok(`A-1.1: đã đo được ít nhất một lần breadcrumb thật sự bị cắt (scrollWidth>clientWidth) và xác nhận overflow:hidden + text-overflow:ellipsis đang có tác dụng`);
+    // Bản 1.11 (2026-09-25): nút "Lập đơn mới" → "Tạo đơn" ngắn hơn nên KHÔNG còn khổ nào (đã dò 641–1000px) tự cắt breadcrumb
+    // "Sửa đơn <mã>" — cờ `sawRealClip` giờ chỉ để ghi lại. Cơ chế cắt chữ (overflow + ellipsis) LUÔN được kiểm bằng một breadcrumb
+    // THẬT DÀI đặt trên /staff đang mở (không phụ thuộc có khổ tự cắt hay không, nên không có khẳng định nào "không bao giờ đỏ").
+    // Đã thấy chặn thật 2026-09-25: bỏ `text-overflow: ellipsis` ở `body.has-sidebar #topbar .bar-title` → đỏ → hoàn nguyên.
+    const forced = await pFrame.ev(`(() => {
+      const t = document.querySelector('.bar-title'); const old = t.textContent;
+      t.textContent = 'Sửa đơn TD-20260925-0001 · ' + 'Khách đoàn rất dài '.repeat(20);
+      const cs = getComputedStyle(t); const r = { clipped: t.scrollWidth - t.clientWidth, overflow: cs.overflow, textOverflow: cs.textOverflow, whiteSpace: cs.whiteSpace };
+      t.textContent = old; return r; })()`);
+    assert.ok(forced.clipped > 0, `A-1.1: breadcrumb thật dài phải bị cắt (scrollWidth>clientWidth) — ${JSON.stringify(forced)}`);
+    assert.equal(forced.overflow, "hidden", `A-1.1: breadcrumb bị cắt nhưng overflow không phải "hidden" — ${JSON.stringify(forced)}`);
+    assert.equal(forced.textOverflow, "ellipsis", `A-1.1: breadcrumb bị cắt nhưng text-overflow không phải "ellipsis" — ${JSON.stringify(forced)}`);
+    ok(`A-1.1: breadcrumb thật dài bị cắt ${forced.clipped}px với overflow:hidden + text-overflow:ellipsis; khổ tự cắt trong lượt quét: ${sawRealClip ? "có" : "không (bình thường từ bản 1.11)"}`);
 
     // ================================================================================================
     // G-2 (B — quyết định 8 của chủ dự án): huy hiệu cạnh "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN (draftCount = 1,

@@ -6,11 +6,10 @@ import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
-import type { PaxCounts } from "../../shared/order-lines";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
-import { editablePaxCodesOf, effectiveSubtotal, parseMoneyEditInput, recomputeService } from "./money-adjustment";
+import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
   updateDraftOrder, updateTrip,
@@ -58,52 +57,31 @@ export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "n
 
 /**
  * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
- * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm) — hàm này tự kiểm dạng bằng
- * `parseMoneyEditInput` VÀ tính lại tiền bằng `recomputeService`, nên route gọi hàm này là đủ, không cần lặp lại kiểm ở dispatch/index.ts.
+ * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm). Mọi quyết định (kiểm dạng, lưu y
+ * nguyên thì không ghi, tiền trước/sau theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) nằm ở luật thuần `money-adjustment.ts:planMoneyEdit`; hàm
+ * này chỉ đọc D1 → gọi luật → ghi. Tiền trước/sau tính bằng `effectiveSubtotal` trên MỌI dịch vụ (kể cả nhập tay — bài học Đợt E task 7/9, lưới
+ * e2e ở `tests/e2e/dispatch.mjs` khối D3 đọc thẳng cột đã lưu).
  */
 export async function editMoneyAsHandler(db: D1Database, orderId: string, staffId: string, body: Record<string, unknown> | null): Promise<MoneyEditResult> {
   const meta = await getMeta(db, orderId);
   if (!meta) return { ok: false, code: "not_found" };
   if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
 
-  const stored = await getStoredServices(db, orderId);
-  const catalogServices = stored.filter((s) => s.catalogCode !== null);
-  const catalogIds = catalogServices.map((s) => s.id);
-  const input = parseMoneyEditInput(body, catalogIds);
-  if (!input.ok) return { ok: false, code: "invalid_input", message: input.message };
+  const [stored, latest, servicesByOrder] = await Promise.all([
+    getStoredServices(db, orderId),
+    getLatestAdjustment(db, orderId),
+    getServicesForSubtotal(db, [orderId]),
+  ]);
+  const plan = planMoneyEdit({
+    services: servicesByOrder.get(orderId) ?? [],
+    storedPax: new Map(stored.map((s) => [s.id, s.pax])),
+    latestAfter: latest?.after ?? null,
+    body,
+  });
+  if (!plan.ok) return { ok: false, code: plan.code, message: plan.message };
+  if (!plan.write) return { ok: true }; // y nguyên số khách: không ghi dòng điều chỉnh, không đổi tiền (DK-T2-01)
 
-  const latest = await getLatestAdjustment(db, orderId);
-  const currentPaxOf = (id: string): PaxCounts => latest?.after.find((a) => a.serviceId === id)?.pax ?? stored.find((s) => s.id === id)!.pax;
-
-  const before: { serviceId: string; pax: PaxCounts }[] = [];
-  const after: { serviceId: string; pax: PaxCounts }[] = [];
-  for (const s of catalogServices) {
-    const beforePax = currentPaxOf(s.id);
-    const beforeCalc = recomputeService(s, beforePax);
-    if (!beforeCalc.ok) return { ok: false, code: "invalid_input", message: beforeCalc.message };
-    before.push({ serviceId: s.id, pax: beforePax });
-
-    const newPax = input.services.find((x) => x.id === s.id)!.pax;
-    const afterCalc = recomputeService(s, newPax);
-    if (!afterCalc.ok) return { ok: false, code: "invalid_input", message: afterCalc.message };
-    after.push({ serviceId: s.id, pax: newPax });
-  }
-
-  // Đợt E task 7, mục A (nơi GHI) — LỖI ĐÃ ĐO: vòng lặp trên chỉ duyệt `catalogServices`, nên khi tính subtotal_before/subtotal_after bằng chính
-  // vòng lặp đó (bản cũ) thì dịch vụ NHẬP TAY (không bao giờ vào `catalogServices`) bị BỎ SÓT — lưu THIẾU đúng tiền của dịch vụ nhập tay (kiểm độc
-  // lập đo được: thiếu 200.000₫). Sửa: tính bằng CHÍNH hàm NGUỒN DUY NHẤT `effectiveSubtotal` (money-adjustment.ts, dùng chung với nơi ĐỌC — trang
-  // chi tiết đơn, `/api/orders`, Trang chủ) trên TOÀN BỘ dịch vụ của đơn (`getServicesForSubtotal`, không phải chỉ `catalogServices`). Dịch vụ nhập
-  // tay không bao giờ có mặt trong `before`/`after` (route này chỉ cho sửa dịch vụ TỪ DANH MỤC) nên `effectiveService` luôn rơi vào nhánh "own" cho
-  // chúng — TỰ ĐỘNG được cộng, không phụ thuộc mã ở đây có nhớ lặp qua nó hay không (đúng bài học Điều 3: gom về MỘT luật, không phải nhớ đủ hai nơi).
-  //
-  // Task 9 (kiểm độc lập): đã đo THẬT — đột biến vòng lặp này về dạng cũ (hai biến tích luỹ bên trong for, bỏ hai dòng effectiveSubtotal dưới đây)
-  // làm `tests/e2e/dispatch.mjs` (khối D2/D3, đọc thẳng cột order_money_adjustment.subtotal_before/subtotal_after đã lưu — không qua bề mặt đọc)
-  // ĐỎ ngay ở D2 ([0, 0] thay vì [200.000, 200.000]), đúng dòng tests/e2e/dispatch.mjs:764. Đã hoàn nguyên về đúng bản này (không phải checkout).
-  const subtotalServices = (await getServicesForSubtotal(db, [orderId])).get(orderId) ?? [];
-  const subtotalBefore = effectiveSubtotal(subtotalServices, before);
-  const subtotalAfter = effectiveSubtotal(subtotalServices, after);
-
-  const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, before, after, subtotalBefore, subtotalAfter, input.reason);
+  const ok = await insertMoneyAdjustment(db, orderId, staffId, (latest?.seq ?? 0) + 1, plan.before, plan.after, plan.subtotalBefore, plan.subtotalAfter, plan.reason);
   return ok ? { ok: true } : { ok: false, code: "stale" };
 }
 
