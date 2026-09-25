@@ -1,8 +1,159 @@
-# Kiến trúc đích — tourdao-sales
+# Kiến trúc — tourdao-sales (Hiến chương kiến trúc lõi + luật thi hành)
+
+> **Vị trí trong hệ thống luật.** Tệp này là `ARCHITECTURE.md` của bộ tài liệu nền (`playbook/FRAMEWORK.md` Phần 4, tầng 2 "Định hình"): đứng **dưới** Hiến pháp chung (`playbook/CONSTITUTION.md`, bản chép chỉ-đọc từ Core, ADR-0012) và **trên** mọi ADR, quy trình, đặc tả và mã (Hiến pháp Điều 3.1). Theo Hiến pháp 9.7, tệp này **chỉ được siết thêm**, không định nghĩa lại hay nới một điều của Hiến pháp. Nó **không** phải "văn bản chuẩn mực cao nhất": cao nhất là Hiến pháp chung.
+>
+> **Hai phần, hai tính chất:**
+> - **Phần I — Hiến chương kiến trúc lõi** (chuẩn tắc): các nguyên tắc về *mô hình dữ liệu, lõi dùng chung và ranh giới* mà mọi ADR, đặc tả, mã của dự án phải tuân. Mã lệch là lỗi, sửa mã. Mỗi điều có dòng **Hiện trạng / Cưỡng chế / Nguồn** ở bảng thi hành cuối Phần I; điều nào ghi "dựa vào kỷ luật" là **lời khuyên có cam kết**, chưa phải rào chắn (Hiến pháp P16).
+> - **Phần II — Luật thi hành** (chuẩn tắc, chi tiết): tầng, chiều phụ thuộc, chuẩn dữ liệu, nơi đặt code — nội dung đã có từ 2026-09-19, giữ nguyên.
+>
+> **Bản đồ hiện trạng** (lõi nào đang nằm ở module/bảng nào, đạt hay lệch) là tài liệu **mô tả**, thua mã: `docs/SYSTEM-DESIGN.md` §17.
+>
+> **Nguồn cảm hứng:** bản mẫu "Hiến chương kiến trúc hệ sinh thái ERP doanh nghiệp (tư duy hệ Oracle)" của chủ dự án (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/hien-chuong-kien-truc-erp-Oracle.md`) và đối chiếu Oracle TCA (`docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md`). Bảng "áp dụng / điều chỉnh / hoãn" từng phần của bản mẫu cho Tour Đảo: `docs/superpowers/specs/2026-09-25-hien-chuong-doi-chieu-ban-mau.md`.
+>
+> **Cách dùng (cho người và AI):** gặp một câu hỏi thiết kế mới, **tra Phần I trước**. Điều khoản đã trả lời được → áp dụng, ghi "theo Hiến chương điều X" trong ADR/đặc tả/commit, **không hỏi lại chủ dự án**. Chỉ mang tới chủ dự án khi (a) một điều khoản không đủ để quyết, (b) muốn lệch khỏi một điều khoản (phải có ADR ghi "lệch có chủ ý" + chủ duyệt), hoặc (c) câu hỏi thuộc chiến lược kinh doanh. Sửa Phần I: chỉ chủ dự án; AI chỉ đề xuất bằng diff (Hiến pháp N9).
+>
+> **Trạng thái:** *(bản đề xuất 2026-09-25, chờ chủ dự án duyệt — khi duyệt, thay dòng này bằng ngày duyệt)*
+
+---
+
+# PHẦN I — HIẾN CHƯƠNG KIẾN TRÚC LÕI
+
+## Điều 1 — Tư tưởng cốt lõi
+
+**1.1 App là sổ trạng thái của công ty, không phải tập màn hình.** Việc của hệ thống là giữ một bản số **đúng và bền** về những gì đã thật sự xảy ra ở Tour Đảo — ai đặt gì, ai lo đơn nào, ai đang giữ tiền của ai — qua thời gian dài, dù nhiều người thao tác cùng lúc.
+
+**1.2 Đơn vị hành vi là một lần chuyển trạng thái hợp lệ.** Mọi thay đổi đi theo đúng một khuôn: **lệnh** (ai muốn làm gì) → **kiểm luật và quyền** → **một lô ghi nguyên khối** (tất cả hoặc không có gì) → **trạng thái mới + dấu vết** ghi cùng lô. Màn hình, API, Cron, trợ lý AI chỉ là nơi **phát lệnh**; không nơi nào được ghi dữ liệu nghiệp vụ bằng đường khác.
+
+**1.3 Mô hình dữ liệu là tài sản; mã là thứ thay được.** Viết mã ngày càng rẻ; cái khó đổi và đáng giữ là cách hệ thống định nghĩa **đối tượng, vai, ranh giới, bất biến và quyền**. Quyết định mô hình dữ liệu vì thế được cân nhắc kỹ hơn quyết định mã.
+
+**1.4 Chuỗi bảy lớp.** Mọi tính năng đi qua đúng chuỗi:
+**Thực tế → Bên & đối tượng nghiệp vụ → Lệnh → Luật & chính sách → Giao dịch nguyên khối → Trạng thái bền + nhật ký → Hình chiếu** (sổ tiền, biên nhận, báo cáo, Bảng tin, màn hình).
+Không được đi tắt: hình chiếu không bao giờ là nơi *tạo ra* sự thật; màn hình không bao giờ là nơi *tính* tiền.
+
+## Điều 2 — Bản thể: thứ gì là gì
+
+**2.1 Bên trước vai (ADR-0001).** Mỗi con người hoặc tổ chức ngoài đời là **một hồ sơ** (`pty_party`), tồn tại trước và độc lập với mọi vai. Khách hàng, đối tác, nhà cung cấp, nhân viên chỉ là **vai** hồ sơ đó đóng trong một khoảng thời gian. Cấm tạo bảng "danh sách khách", "danh sách nhà cung cấp"… riêng làm trùng một người/tổ chức. **Chính Tour Đảo cũng là một hồ sơ tổ chức** (bên bán, bên được nợ trong sổ); không viết cứng định danh công ty trong mã — tra qua **một** hàm công bố.
+
+**2.2 Bốn loại thứ, bốn chỗ ở.** Mỗi khái niệm mới phải được xếp vào đúng một loại trước khi thiết kế bảng:
+
+| Loại | Là gì | Ví dụ ở Tour Đảo | Ở đâu |
+|---|---|---|---|
+| **Thực thể** | tồn tại độc lập, có mã riêng, sống lâu | hồ sơ, đơn, dòng dịch vụ, mã dịch vụ, lần thu tiền, dòng sổ | bảng của module chủ |
+| **Vai theo ngữ cảnh** | "ai đứng ở vị trí nào trong việc này" | bên đặt, người phụ trách, người bán ghi trên biên nhận, nhà cung cấp của dòng, người thu tiền | khoá ngoại tới hồ sơ trên đối tượng, hoặc bảng vai có hiệu lực |
+| **Chính sách** | con số / lựa chọn đổi theo thời gian | mức chiết khấu, tỷ lệ giá vốn, người bán theo dịch vụ, hình thức thu | dòng dữ liệu có **ngày hiệu lực** |
+| **Luật tính** | cách từ dữ liệu ra kết quả | chọn mức cụ thể nhất, làm tròn, sinh dòng sổ, bất biến cân đối | hàm thuần trong mã, có test |
+
+Phép thử: **thêm một giá trị mới mà không phải sửa mã → là dữ liệu** (bảng tra cứu, dòng chính sách). Mã phải rẽ nhánh theo giá trị → tập đóng (`CHECK`) và đổi bằng ADR.
+
+**2.3 Điều khoản thương mại gắn vào vai/hồ sơ, không bao giờ gắn vào tài khoản đăng nhập** (ADR-0018 điều 1). Tài khoản là **cách đăng nhập** của một người; con người là hồ sơ; việc họ làm là vai (ADR-0013, ADR-0018).
+
+**2.4 Tổ chức.** Tour Đảo hôm nay là **một pháp nhân**. Trục đơn vị kinh doanh / phòng ban **chưa dựng**; khi cần, dựng thành vai/quan hệ của hồ sơ tổ chức, không thành cây thư mục cứng. Nơi chốn (văn phòng, quầy, bến) là **địa điểm** (`loc_location`), vai được gắn với nơi khi cần (ADR-0008).
+
+## Điều 3 — Lõi dùng chung (kernel)
+
+Lõi là "hệ điều hành" của app: các khái niệm **mọi module dùng chung, không module nào tự làm lại**. Tour Đảo có 16 khái niệm lõi (điều chỉnh từ 18 của bản mẫu):
+
+| # | Khái niệm lõi | Ở Tour Đảo nghĩa là |
+|---|---|---|
+| K1 | **Định danh** | tài khoản, phiên, Face ID. Mọi tác nhân tự động ghi thay người dùng (kể cả AI) có **tài khoản riêng**, đi qua API có phiên như người (ADR-0010 điều 3) |
+| K2 | **Bên** | hồ sơ người/tổ chức + vai + quan hệ + điểm liên hệ (ADR-0001) |
+| K3 | **Tổ chức & địa điểm** | Tour Đảo là hồ sơ tổ chức; địa điểm (ADR-0008) |
+| K4 | **Quyền = Ai × Thao tác × Phạm vi** | một bản đồ (`src/shared/permissions.ts`), phạm vi `any / own / assigned / ownOrAssigned`; **mọi route hỏi bản đồ bằng `can()`** (ADR-0007, ADR-0019) |
+| K5 | **Đối tượng nghiệp vụ có vòng đời** | đơn, phân công, ticket Góp ý… — mỗi thứ có tập trạng thái và luật chuyển |
+| K6 | **Chứng từ** | bản trình bày một phiên bản đối tượng cho người ngoài (biên nhận gửi khách) — dựng từ **danh sách trường được phép** |
+| K7 | **Lệnh + kiểm luật** | route nhận lệnh, kiểm quyền và luật **trước** khi ghi |
+| K8 | **Ranh giới giao dịch** | **một `db.batch()`** = tất cả hoặc không; câu phụ thuộc mang điều kiện "câu chính đã thắng" |
+| K9 | **Luồng trạng thái, giữ, duyệt** | bước của luồng, **giữ đối tượng** khi thiếu điều kiện, cổng duyệt |
+| K10 | **Chính sách & luật** | chính sách có ngày hiệu lực; **chụp** vào đối tượng tại mốc cố định |
+| K11 | **Danh mục tham chiếu** | danh mục dịch vụ (đồng bộ Sheet), bảng tra cứu, địa điểm |
+| K12 | **Nhật ký kiểm toán / sự kiện** | `audit_log` chỉ-thêm: ai, làm gì, lúc nào, lý do; bản trước→sau khi có |
+| K13 | **Hình chiếu tiền** | sổ công nợ **sinh từ sự kiện theo luật**, mỗi dòng trỏ về nguồn |
+| K14 | **Hợp đồng tích hợp** | Google Sheet, Cloudflare, email — chạy lại không sinh trùng (lặp an toàn) |
+| K15 | **Báo cáo** | đọc qua view công bố / hình chiếu, không đọc bảng gốc module khác |
+| K16 | **Thông báo** | Bảng tin (ADR-0022) — hình chiếu cho màn hình, **không bao giờ là nguồn sự thật hay nơi kích hoạt tiền** |
+
+Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/shared/`). Module nghiệp vụ dùng lõi qua `index.ts`, không làm bản riêng.
+
+## Điều 4 — Sự thật và các hình chiếu
+
+**4.1 Sự thật = trạng thái bền + nhật ký ghi cùng lô.** Không dựng "event sourcing" (dựng lại trạng thái từ chuỗi sự kiện). Trạng thái hiện hành nằm trong bảng; mỗi lần chuyển trạng thái ghi **dòng nhật ký chỉ-thêm trong cùng lô**, đủ để truy ai/lúc nào/vì sao.
+
+**4.2 Tiền là hình chiếu của sự kiện nghiệp vụ.** Sổ công nợ **không** phải nơi người dùng "nhập tiền tay"; nó được **sinh** từ sự kiện (đã giao, đã thu, hoàn, điều chỉnh) bằng luật cố định, trong cùng lô với sự kiện. Mỗi dòng sổ trỏ về đơn/dòng dịch vụ/lần thu gốc (truy ngược được). Sai → **ghi dòng đảo**, không sửa, không xoá. Bất biến cân đối kiểm bằng `audit-invariants`.
+
+**4.3 Một sổ.** Tour Đảo giữ **một sổ quản trị nội bộ**. Sổ thuế / chuẩn mực kế toán nhà nước, nhiều sổ song song: **chưa làm** (ADR-0004 loại thuế); khi cần, thêm thành hình chiếu mới từ cùng sự kiện, không sửa sổ cũ.
+
+**4.4 Chứng từ gửi ra ngoài là hình chiếu có lọc.** Biên nhận/phiếu gửi khách dựng từ **danh sách trường được phép**, ở máy chủ; không nhận cả đối tượng rồi "bỏ bớt". Không bao giờ chứa giá vốn, chiết khấu, hoa hồng, công nợ nội bộ.
+
+**4.5 Nhân sự.** Con người (hồ sơ) tách khỏi tài khoản đăng nhập và khỏi vai làm việc; nghỉ việc = đóng vai + ngưng tài khoản, không xoá người (ADR-0013).
+
+## Điều 5 — Nguyên tắc kỹ thuật và rào chắn
+
+**5.1 Bất biến nằm sát dữ liệu, và có hai lớp.** Luật "phải luôn đúng" (toàn vẹn, trạng thái chỉ đi tiến, tiền đã chốt không đổi) được giữ ở **cơ sở dữ liệu** (khoá, `CHECK`, trigger, điều kiện trong câu ghi) **và** ở mã — không bao giờ chỉ ở giao diện (Hiến pháp P21).
+
+**5.2 Cấu hình bằng dữ liệu có kiểu, không bằng mã, không bằng JSON tự do.** Điều doanh nghiệp hay đổi (mức, tỷ lệ, người bán, loại hình) là **dòng dữ liệu có ngày hiệu lực** trong bảng có cột rõ kiểu (ADR-0003). **Không** dùng cơ chế "trường mở rộng tự do" (flexfield/JSON không lược đồ) cho dữ liệu nghiệp vụ.
+
+**5.3 Modular monolith (ADR-0002).** Mỗi module sở hữu bảng của mình, chỉ nó ghi; module khác đọc qua **view công bố**, gọi qua `index.ts`; ghi chung giao dịch bằng **câu lệnh chưa chạy** do module chủ cấp. Đồ thị phụ thuộc chỉ đi xuống, không vòng — **kể cả ở tầng SQL**: trigger của một module chỉ đọc bảng của chính nó hoặc view công bố. Chi tiết: Phần II.
+
+**5.4 Tiền: một nguồn tính duy nhất.** Tiền là `INTEGER` VNĐ, **chỉ tính ở máy chủ**, không tin số từ trình duyệt. Mỗi con số dẫn xuất có **đúng một hàm** tính nó, mọi đường (lập, sửa, đọc, chứng từ) đi qua hàm đó, có hàng rào chặn đường tính thứ hai. (Bài học DK-T2-01, 2026-09-25: hai đường tính cho cùng dòng tiền → mất giá thoả thuận.)
+
+**5.5 Chỉ-thêm và đảo; mọi bảng có dấu vết.** Bảng sổ, nhật ký, điều chỉnh là **chỉ-thêm**, sai thì ghi dòng đảo. **Mọi bảng** có cột ai tạo / lúc nào / ai sửa / lúc nào (bảng chỉ-thêm ghi phần "sửa" bằng phần "tạo" và bị trigger cấm sửa); không `CASCADE`; không xoá cứng — đóng hiệu lực hoặc `active = 0` (ADR-0003). Bảng cũ lệch điều này là **nợ có tên**, sửa khi được chạm.
+
+**5.6 Chụp tại mốc.** Chính sách áp cho một đối tượng được **chụp** (lưu bản sao con số + nguồn quy tắc) vào đối tượng tại **một mốc cố định do ADR của nghiệp vụ đó quy định**; đổi chính sách sau mốc không đổi đối tượng đã chụp. (Đơn: mốc Xác nhận — chủ dự án chốt H5, 2026-09-25.)
+
+**5.7 Giữ đối tượng khi thiếu điều kiện** *(điều mới)*. Một đối tượng thiếu cài đặt bắt buộc cho bước kế tiếp (vd chưa có mức chiết khấu cho bên đặt, chưa có người bán cho dịch vụ) **không bị chặn im lặng và không được đoán**: nó bị **giữ** ở bước hiện tại, hiện rõ lý do giữ và ai phải xử lý; xử lý xong thì được thả. Không bao giờ "lấy 0 cho tiện" với số tiền.
+
+**5.8 Bước của luồng gắn với vai trên đối tượng** *(điều mới)*. Quyền làm một bước (nhận đơn, xác nhận, đã giao, hoàn thành) được xét theo **vai của người đó trên chính đối tượng** (người lập, người phụ trách, bên đặt…) kết hợp mức quyền (K4), không theo loại tài khoản đơn thuần.
+
+**5.9 Trả dư thành khoản chờ hoàn** *(điều mới)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư thành **khoản công ty còn phải hoàn** trong sổ, người có quyền ghi việc hoàn.
+
+**5.10 Thông báo không bao giờ kích hoạt tiền.** Ghi tiền xảy ra **trong cùng lô** với sự kiện sinh ra nó; thông báo (Bảng tin, email) chỉ chạy **sau** khi lô đã thành công và được phép thất lạc.
+
+**5.11 Tác nhân tự động và AI.** Có tài khoản riêng, quyền riêng, gọi qua route có kiểm quyền như người; không ghi thẳng vào cơ sở dữ liệu; không tự chạy lệnh ghi lên hệ thống thật (ADR-0010 điều 3; `CLAUDE.md` §8).
+
+**5.12 Kiểm toán là tính năng lõi.** Mọi thay đổi dữ liệu nghiệp vụ để lại: ai (người hay tác nhân), làm gì, lúc nào, lý do (khi luật đòi), bản trước→sau (khi có). Nhật ký không chứa số điện thoại, email, mã số thuế.
+
+**5.13 Nền trước, tính năng sau.** Thứ tự xây: định danh & quyền → bên & tổ chức → danh mục & chính sách → đối tượng nghiệp vụ & luồng → hình chiếu tiền → báo cáo & thông báo. Tính năng không được xây trên một lõi còn hở mà không ghi "xây trên lỗ đang hở" (CLAUDE.md §3).
+
+## Điều 6 — Thi hành và sửa đổi
+
+**6.1** Mỗi ADR/đặc tả mới ghi **điều nào của Hiến chương nó áp** và, nếu lệch, ghi "lệch có chủ ý: điều X, vì …" — chỉ hợp lệ khi chủ dự án duyệt.
+
+**6.2** Mỗi điều có một dòng ở **bảng thi hành** dưới đây. Điều chưa có cơ chế cưỡng chế ghi "dựa vào kỷ luật" và có hướng dựng rào (P16). Rào mới chỉ được coi là hoạt động khi đã **thấy chặn thật một lần** và có dòng ở `docs/SO-HANG-RAO.md`.
+
+**6.3** Chỗ mã hiện lệch Hiến chương (cột "Lệch hiện có") là **nợ có tên**: không làm mới thêm lệch cùng loại; sửa khi chạm vùng đó hoặc theo lịch trong `docs/quyen-hoan.json`.
+
+**6.4** Sửa Phần I: chỉ chủ dự án; AI đề xuất bằng diff trên nhánh (Hiến pháp N9, Điều 9). Mỗi lần sửa ghi ngày và lý do ở dòng "Trạng thái" đầu tệp.
+
+### Bảng thi hành (Hiện trạng / Cưỡng chế / Nguồn) — cập nhật 2026-09-25
+
+| Điều | Cưỡng chế bằng | Lệch hiện có (nợ có tên) | Nguồn |
+|---|---|---|---|
+| 1.2 Lệnh → một lô ghi | `route-write-guard.test.ts` (đường ghi hỏi quyền); còn lại dựa vào kỷ luật | — | ADR-0002 |
+| 1.4 Không đi tắt chuỗi | dựa vào kỷ luật | biên nhận hôm nay dựng ở trình duyệt từ cả đơn (`src/shared/order-confirmation.ts:220`) | — |
+| 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại) | **Tour Đảo chưa có hồ sơ** (`company_profile` một dòng, không `party_id`) | ADR-0001 |
+| 2.2 Bốn loại thứ | dựa vào kỷ luật (rà ở kiểm độc lập) | — | ADR-0003 |
+| 2.3 Điều khoản trên vai, không trên tài khoản | dựa vào kỷ luật | — | ADR-0018 đ1 |
+| K4 / 5.8 Quyền qua `can()` | `permission-enforcement.test.ts`, `route-write-guard.test.ts` + sổ hoãn `quyen-hoan.json` | các ô/route còn hoãn trong `docs/quyen-hoan.json` (hạn 15/10, 30/11, 31/12); hàng rào canh theo ô, chưa theo route GET (DK-T3-04) | ADR-0007, ADR-0019 |
+| 4.2 / 5.5 Chỉ-thêm, đảo | trigger `audit_log_no_update/delete` (0017), trigger chặn sửa/xoá `order_money_adjustment` (0021) | `order_money_adjustment` **thiếu cột dấu vết, có `CASCADE`** (0021); sổ công nợ chưa có | ADR-0003, ADR-0007 |
+| 4.4 Chứng từ danh sách trắng | dựa vào kỷ luật | như 1.4 | — |
+| 5.1 Bất biến sát dữ liệu | trigger 0008 (khoá dịch vụ), 0017 (trạng thái chỉ đi tiến), `audit-invariants` | khoá tiền đơn đã xác nhận **chỉ ở mã** (đặc tả 2026-09-22 bước B chưa làm) | ADR-0003 |
+| 5.3 Modular monolith | `architecture.test.ts` (import, cạnh, view, `EXPLAIN` SQL module nghiêm) | module `LEGACY` (`accounts`, `audit`, `catalog`, `orders`); trigger đọc chéo module **chưa có bài kiểm** | ADR-0002, ADR-0008 |
+| 5.4 Một nguồn tính tiền | `buildlines-guard.test.ts` (thấy chặn 2026-09-25) + test hành vi | — | DK-T2-01 |
+| 5.6 Chụp tại mốc | giá dịch vụ chụp lúc lập (`order_item.catalog_price/unit_price`) | mức chiết khấu/giá vốn chưa có | ADR-0018 đ11 |
+| 5.7 Giữ đối tượng | **chưa có** — dựa vào kỷ luật | chưa có khái niệm "giữ" | *(mới)* |
+| 5.9 Trả dư → chờ hoàn | **chưa có** | giảm khách dưới tiền trả trước hôm nay để "còn lại" âm, không có chỗ ghi hoàn (`docs/CHANGE-GUIDE.md` §4 mục 32) | *(mới)* |
+| 5.10 Thông báo không kích hoạt tiền | dựa vào kỷ luật (hàng rào khi thi công Bảng tin) | — | ADR-0022 |
+| 5.11 Tác nhân tự động | hook `guard-remote.mjs` + `permissions.deny` (lệnh ghi hệ thống thật) | tác nhân ghi thay người chưa tồn tại | ADR-0010 đ3 |
+| 5.12 Kiểm toán | `audit-actions.ts` (một nguồn tên hành động); không ghi SĐT: dựa vào kỷ luật | nhật ký cũ trên production còn SĐT (`staff_updated` trước 21/9) | Hiến pháp P5 |
+| 5.13 Nền trước | luật "dừng dây chuyền" (`phat-hien-han.test.ts`, `quyen-hoan.json`) | — | CLAUDE.md §3 |
+
+---
+
+# PHẦN II — LUẬT THI HÀNH (ranh giới, dữ liệu, nơi đặt code)
 
 > Từ phiên rà soát 2026-09-19 (`docs/AUDIT-FINDINGS.md`), đã thi công theo `docs/REFACTOR-PLAN.md` (chủ dự án duyệt 2026-09-19). Mô tả **hiện trạng**; mã lệch khỏi đây là lỗi cần sửa.
 >
-> **Bộ tài liệu nền (2026-09-21):** `CLAUDE.md` (cổng vào, quy tắc bắt buộc) · **tệp này = LUẬT kiến trúc** (ranh giới, dữ liệu, nơi đặt code) · `docs/SYSTEM-DESIGN.md` = thiết kế hệ thống (topology, luồng, API, quyền, dữ liệu, giao diện) · `docs/CHANGE-GUIDE.md` = cẩm nang "muốn đổi X thì sửa những đâu". Sửa cấu trúc → cập nhật cả bốn nơi liên quan trong cùng commit.
+> **Bộ tài liệu nền (2026-09-21):** `CLAUDE.md` (cổng vào, quy tắc bắt buộc) · **tệp này = LUẬT kiến trúc** (Phần I: hiến chương; Phần II: ranh giới, dữ liệu, nơi đặt code) · `docs/SYSTEM-DESIGN.md` = thiết kế hệ thống (topology, luồng, API, quyền, dữ liệu, giao diện; §17 bản đồ lõi) · `docs/CHANGE-GUIDE.md` = cẩm nang "muốn đổi X thì sửa những đâu". Sửa cấu trúc → cập nhật cả bốn nơi liên quan trong cùng commit.
 
 ## Các tầng và chiều phụ thuộc (chỉ đi xuống, không vòng)
 
