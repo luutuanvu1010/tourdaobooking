@@ -100,6 +100,8 @@ Nhóm nhận của **sự kiện** tính lúc phát: `tat-ca` + `nguoi:<người
 4. **Không nhận lệnh từ trình duyệt:** trạm bỏ qua mọi tin gửi lên, trừ `ping` (trả tự động bằng `setWebSocketAutoResponse`, không đánh thức trạm).
 5. Phát tin **không bao giờ** làm hỏng thao tác ghi: lỗi RPC chỉ ghi log (không ghi SĐT/email), phản hồi HTTP đã trả trước.
 6. Nhật ký thao tác: **không** ghi mỗi lần kết nối (nhiều, vô ích); chỉ log vận hành.
+7. **Bộ định tuyến không bọc lại phản hồi** (đã đọc `src/shared/router.ts:165-167`: trả nguyên `Response` của route, chỉ bắt lỗi) → phản hồi bắt tay 101 kèm `webSocket` đi thẳng ra, không bị mất. Nếu sau này thêm bước bọc phản hồi (thêm header chung…), route `/api/bang-tin` phải được **miễn**, vì dựng lại `new Response(body, res)` làm rơi `webSocket` và hỏng bắt tay — ghi thành bẫy trong `docs/CHANGE-GUIDE.md`.
+8. **Danh tính gửi sang trạm:** Worker **dựng mới** tập header cho yêu cầu nội bộ tới Durable Object (chỉ header nâng cấp WebSocket cần thiết + tag đã tính ở máy chủ), **không bao giờ** chuyển tiếp header danh tính/tag do trình duyệt gửi lên; trạm chỉ tin tag đến từ Worker (DO không có đường vào từ Internet, chỉ qua binding).
 
 ### 3.5 Phía trình duyệt — "bộ lắng nghe" chung (`web/bangtin.ts`, gọi từ `initShell()`)
 
@@ -113,7 +115,7 @@ Nhóm nhận của **sự kiện** tính lúc phát: `tat-ca` + `nguoi:<người
   - `/order?id=X`: tin về đúng X → tải lại khối người phụ trách + trạng thái. **Đang sửa dở** thì **không** ghi đè: hiện dải "Đơn vừa được cập nhật — Tải lại".
   - `/home`: tải lại ba ô số + "Chưa phụ trách" (phải tách hàm làm mới khỏi `main()`).
   - `/account` ("Việc của tôi"): tải lại `dispatch/mine`.
-- **Thông báo nổi** (thành phần giao diện mới, `web/`, dựng bằng `h()`, màu/khoảng cách qua token, `aria-live="polite"`, tự ẩn ~6 giây, bấm vào mở đơn). Câu mẫu: "Đơn TD-0123 vừa có người nhận", "Có đơn mới chưa có người phụ trách", "Đơn TD-0123 đã được xác nhận". Loại "sửa/chuyến/tiền" → **chỉ làm mới, không hiện** (tránh ồn) — xem câu hỏi Q-B.
+- **Thông báo nổi** (thành phần giao diện mới, `web/`, dựng bằng `h()`, màu/khoảng cách qua token, `aria-live="polite"`, tự ẩn ~6 giây, bấm vào mở đơn). Câu mẫu: "Đơn TD-0123 vừa có người nhận", "Có đơn mới chưa có người phụ trách" (**chỉ** hiện cho người có ô `dispatch.claim` — người bấm Nhận được; Kế toán cũng có tag `tat-ca` nhưng không nhận đơn, với họ chỉ làm mới), "Đơn TD-0123 đã được xác nhận". Loại "sửa/chuyến/tiền" → **chỉ làm mới, không hiện** (tránh ồn) — xem câu hỏi Q-B.
 - CSP: thêm rõ `wss://booking.tourdao.vn` vào `connect-src` (MDN khuyên liệt kê rõ; Safari cũ từng không coi `wss:` là `'self'`; chưa xác minh phiên bản Safari đã sửa). Local/LAN: `'self'` + dev script.
 
 ### 3.6 Chi phí (ước tính, chưa đo)
@@ -150,6 +152,6 @@ Nhóm nhận của **sự kiện** tính lúc phát: `tat-ca` + `nguoi:<người
 ## 6. Câu hỏi cho chủ (gom một lần)
 
 - **Q-A — Duyệt hướng B** (trạm phát tin Durable Object + WebSocket) thay vì hỏi theo chu kỳ? Khuyến nghị: **duyệt**.
-- **Q-B — Hiện thông báo nổi cho loại nào?** Khuyến nghị: *hiện* cho đơn mới chưa có người, có người nhận/đổi người phụ trách, xác nhận, huỷ; *chỉ làm mới, không hiện* cho sửa nội dung/chuyến/tiền.
-- **Q-C — Đối tác có nhận làm mới tức thì cho đơn của mình không?** Khuyến nghị: **có** (họ thấy ngay "đã có người nhận"), không hiện thông báo nổi cho loại sửa.
+- **Q-B — Hiện thông báo nổi cho loại nào?** Khuyến nghị: *hiện* cho đơn mới chưa có người (chỉ với người bấm Nhận được), có người nhận/đổi người phụ trách, xác nhận, huỷ; *chỉ làm mới, không hiện* cho sửa nội dung/chuyến/tiền.
+- **Q-C — Đối tác nhận gì?** ADR-0014 điều 12 (đã duyệt) chọn **chấm đếm trong app** để báo đối tác khi đơn của họ bị sửa/huỷ, không đẩy lên điện thoại. Khuyến nghị: bảng tin **chỉ làm mới màn hình + chấm đếm** của đối tác cho đơn của chính họ, **không** hiện thông báo nổi — giữ đúng cách điều 12 đã chọn. Muốn đối tác cũng thấy thông báo nổi thì là quyết định mới (sửa điều 12), không tự làm.
 - **Q-D — Làm trước hay sau ADR-0020?** Khuyến nghị: **trước** (độc lập, có ích ngay, và khi ADR-0020 lên thì hướng dẫn viên thấy đơn mới tức thì).
