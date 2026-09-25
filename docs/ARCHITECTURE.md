@@ -10,7 +10,7 @@
 >
 > **Nguồn cảm hứng:** bản mẫu "Hiến chương kiến trúc hệ sinh thái ERP doanh nghiệp (tư duy hệ Oracle)" của chủ dự án (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/hien-chuong-kien-truc-erp-Oracle.md`) khung "Enterprise OS" của chủ dự án (`/Users/tuanbao/Documents/Projects/CHUNGCATKIENTHUC/ENTERPRISE_FRAMEWORK.md`), và đối chiếu Oracle TCA (`docs/superpowers/specs/2026-09-21-doi-chieu-oracle-tca.md`). Bảng "áp dụng / điều chỉnh / hoãn" từng phần của bản mẫu cho Tour Đảo: `docs/superpowers/specs/2026-09-25-hien-chuong-doi-chieu-ban-mau.md`.
 >
-> **Cách dùng (cho người và AI):** gặp một câu hỏi thiết kế mới, **tra Phần I trước**. Điều khoản đã trả lời được → áp dụng, ghi "theo Hiến chương điều X" trong ADR/đặc tả/commit, **không hỏi lại chủ dự án**. Chỉ mang tới chủ dự án khi (a) một điều khoản không đủ để quyết, (b) muốn lệch khỏi một điều khoản (phải có ADR ghi "lệch có chủ ý" + chủ duyệt), hoặc (c) câu hỏi thuộc chiến lược kinh doanh. Sửa Phần I: chỉ chủ dự án; AI chỉ đề xuất bằng diff (Hiến pháp N9).
+> **Cách dùng (cho người và AI):** gặp một câu hỏi thiết kế mới, **tra Phần I trước** (chỉ các điều dòng Trạng thái ghi **đã duyệt**). Điều đã duyệt trả lời được **nguyên tắc** → áp dụng, ghi "theo Hiến chương điều X", **không hỏi lại chủ dự án về nguyên tắc đó**. Áp nguyên tắc vào một quyết định cụ thể chạm dữ liệu, quyền, tiền, hợp đồng giữa các phần hay bất biến **vẫn phải qua ADR/đặc tả do chủ dự án duyệt** (Hiến pháp P8, N3; `CLAUDE.md` §3) — một dòng commit không thay được bản ghi quyết định. Ngoài ra chỉ mang tới chủ dự án khi (a) một điều khoản không đủ để quyết, (b) muốn lệch khỏi một điều khoản (phải có ADR ghi "lệch có chủ ý" + chủ duyệt), hoặc (c) câu hỏi thuộc chiến lược kinh doanh. Sửa Phần I: chỉ chủ dự án; AI chỉ đề xuất bằng diff (Hiến pháp N9).
 >
 > **Trạng thái:** bản đề xuất. Chủ dự án 2026-09-25 đã **đồng ý về nguyên tắc** (điểm 1), **duyệt** 5.7, 5.8, **duyệt 5.9 kèm điều chỉnh** "phải trả khác / thu nhập khác", **cho phép** sửa `CLAUDE.md`. **Chờ:** chốt vị trí (Hiến pháp hay tệp này) và duyệt 5.14–5.17 (bổ sung từ Enterprise OS). Khi duyệt xong, thay dòng này bằng ngày duyệt.
 
@@ -104,9 +104,9 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 
 **5.8 Bước của luồng gắn với vai trên đối tượng** *(nguyên tắc mới — chủ dự án duyệt riêng; ô quyền cụ thể vẫn quyết ở ADR)*. Quyền làm một bước (nhận đơn, xác nhận, đã giao, hoàn thành) được xét theo **vai của người đó trên chính đối tượng** (người lập, người phụ trách, bên đặt…) kết hợp mức quyền (K4), không theo loại tài khoản đơn thuần.
 
-**5.9 Trả dư thành khoản chờ hoàn** *(nguyên tắc mới — chủ dự án duyệt riêng; luồng hoàn tiền cụ thể quyết ở ADR của sổ tiền)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư ghi là **phải trả khác** (công ty đang nợ khách) cho tới khi hoàn; nếu không hoàn được (khách từ chối nhận, hết thời hạn công ty quy định), **Kế toán** chuyển sang **thu nhập khác** bằng một dòng sổ có lý do. Mặc định luôn là "phải trả khác" — nguyên tắc thận trọng (chủ dự án 2026-09-25).
+**5.9 Trả dư thành khoản chờ hoàn** *(nguyên tắc mới — chủ dự án duyệt riêng; luồng hoàn tiền cụ thể quyết ở ADR của sổ tiền)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư được ghi vào sổ theo góc độ kế toán là **phải trả khác** hoặc **thu nhập khác** (chủ dự án 2026-09-25: "Có thể đưa vào thu nhập khác hoặc phải trả khác (theo góc độ kế toán)"). *Đề xuất của AI, chờ chủ xác nhận ở ADR sổ tiền (ADR-0026):* mặc định "phải trả khác" cho tới khi hoàn, chỉ chuyển "thu nhập khác" bằng dòng sổ có lý do — theo nguyên tắc thận trọng chủ đã chọn cho sổ tiền; điều kiện chuyển và ai được làm (ô quyền) quyết ở ADR đó.
 
-**5.10 Thông báo không bao giờ kích hoạt tiền.** Ghi tiền xảy ra **trong cùng lô** với sự kiện sinh ra nó; thông báo (Bảng tin, email) chỉ chạy **sau** khi lô đã thành công và được phép thất lạc.
+**5.10 Thông báo không bao giờ kích hoạt tiền.** Ghi tiền xảy ra **trong cùng lô** với sự kiện sinh ra nó; thông báo (Bảng tin, email) chỉ chạy **sau** khi lô đã thành công. Được phép thất lạc hay phải giữ để gửi lại: theo 5.16.
 
 **5.11 Tác nhân tự động và AI.** Có tài khoản riêng, quyền riêng, gọi qua route có kiểm quyền như người; không ghi thẳng vào cơ sở dữ liệu; không tự chạy lệnh ghi lên hệ thống thật (ADR-0010 điều 3; `CLAUDE.md` §8).
 
@@ -114,13 +114,13 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 
 **5.13 Nền trước, tính năng sau.** Thứ tự xây: định danh & quyền → bên & tổ chức → danh mục & chính sách → đối tượng nghiệp vụ & luồng → hình chiếu tiền → báo cáo & thông báo. Tính năng không được xây trên một lõi còn hở mà không ghi "xây trên lỗ đang hở" (CLAUDE.md §3).
 
-**5.14 Hai trục thời gian; khoá kỳ.** Mọi dòng tiền ghi **ngày phát sinh** (ngày dân sự VN, khi việc xảy ra) tách khỏi **thời điểm ghi nhận** (UTC, khi hệ thống ghi). Sổ tiền có **kỳ**; kỳ đã khoá thì không ghi thêm vào kỳ đó — sai sót ghi vào kỳ đang mở bằng dòng điều chỉnh/đảo. *(từ Enterprise OS)*
+**5.14 Hai trục thời gian; khoá kỳ.** *(chờ duyệt)* Mọi dòng tiền ghi **ngày phát sinh** (ngày dân sự VN, khi việc xảy ra) tách khỏi **thời điểm ghi nhận** (UTC, khi hệ thống ghi). Sổ tiền có **kỳ**; kỳ đã khoá thì không ghi thêm vào kỳ đó — sai sót ghi vào kỳ đang mở bằng dòng điều chỉnh/đảo. *(từ Enterprise OS)*
 
-**5.15 Lõi tất định tính tiền; AI không bao giờ tính tiền.** Số tiền, chiết khấu, công nợ chỉ do **mã tất định có test** tính. AI (trợ lý, tác nhân) chỉ đề xuất, trích xuất, giải thích; không tự ra con số tài chính và không ghi số tiền trừ khi đi qua đúng lệnh + luật như người (5.11). *(từ Enterprise OS)*
+**5.15 Lõi tất định tính tiền; AI không bao giờ tính tiền.** *(chờ duyệt)* Số tiền, chiết khấu, công nợ chỉ do **mã tất định có test** tính. AI (trợ lý, tác nhân) chỉ đề xuất, trích xuất, giải thích; không tự ra con số tài chính và không ghi số tiền trừ khi đi qua đúng lệnh + luật như người (5.11). *(từ Enterprise OS)*
 
-**5.16 Việc bên ngoài chạy sau giao dịch (hộp thư đi).** Gọi hệ thống ngoài (email, thông báo, sau này hoá đơn điện tử, ngân hàng) **không nằm trong lô ghi**; lỗi bên ngoài không làm hỏng giao dịch nội bộ. Việc bên ngoài **quan trọng** phải để lại trạng thái chờ trong CSDL (vd `notified_at` NULL = chưa gửi) để thử lại được; việc **không quan trọng** (Bảng tin) được phép thất lạc. *(từ Enterprise OS: transactional outbox)*
+**5.16 Việc bên ngoài chạy sau giao dịch (hộp thư đi).** *(chờ duyệt)* Gọi hệ thống ngoài (email, thông báo, sau này hoá đơn điện tử, ngân hàng) **không nằm trong lô ghi**; lỗi bên ngoài không làm hỏng giao dịch nội bộ. Việc bên ngoài **quan trọng** phải để lại trạng thái chờ trong CSDL (vd `notified_at` NULL = chưa gửi) để **thấy được và gửi lại được** (hôm nay: hiện cờ "chưa gửi được" cho người xử lý, gửi lại bằng tay — chưa có hàng đợi tự thử lại); việc **không quan trọng** (Bảng tin) được phép thất lạc. *(từ Enterprise OS: transactional outbox)*
 
-**5.17 Sổ vàng cho mọi luật tiền.** Mỗi luật sinh ra tiền (giá dòng, chiết khấu, giá vốn, công nợ, hoàn) có **bộ ca mẫu** đầu vào + đáp án **đúng đến từng đồng**, do chủ dự án hoặc Kế toán xác nhận, chạy trong `npm test`. Mã tiền chỉ được nhận khi qua **100%** ca sổ vàng. *(từ Enterprise OS: golden dataset)*
+**5.17 Sổ vàng cho mọi luật tiền.** *(chờ duyệt)* Mỗi luật sinh ra tiền (giá dòng, chiết khấu, giá vốn, công nợ, hoàn) có **bộ ca mẫu** đầu vào + đáp án **đúng đến từng đồng**, do chủ dự án hoặc Kế toán xác nhận, chạy trong `npm test`. Mã tiền chỉ được nhận khi qua **100%** ca sổ vàng. *(từ Enterprise OS: golden dataset)*
 
 ## Điều 6 — Thi hành và sửa đổi
 

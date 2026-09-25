@@ -12,7 +12,7 @@
 ## 2. Thứ tự ưu tiên khi mâu thuẫn (Hiến pháp Điều 3.1)
 Hiến pháp → ràng buộc dự án → ADR → quy trình/playbook → đặc tả → mã. Hiến pháp v2.3.0 nằm ngay trong repo ở `playbook/CONSTITUTION.md` (bản chép chỉ-đọc từ Core, ADR-0012 đã accepted; cách dùng và điều cấm: `playbook/PIN-README.md`). **Không sửa `playbook/`.**
 - Tài liệu **chuẩn tắc** (Hiến pháp; **Hiến chương + luật ở `docs/ARCHITECTURE.md`**, đứng trên mọi ADR; ADR đã duyệt; `docs/SPEC-tourdao-sales.md` đã duyệt) **thắng mã**: mã lệch là lỗi, sửa mã.
-- **Câu hỏi thiết kế mới: tra Hiến chương (`docs/ARCHITECTURE.md` Phần I) trước.** Đã có đáp án → áp dụng, ghi "theo Hiến chương điều X", không hỏi lại chủ. Chỉ hỏi khi Hiến chương không đủ, khi muốn lệch (cần ADR), hoặc khi là chiến lược.
+- **Câu hỏi thiết kế mới: tra Hiến chương (`docs/ARCHITECTURE.md` Phần I) trước**, chỉ các điều dòng Trạng thái ghi **đã duyệt**. Điều đã duyệt trả lời được **nguyên tắc** thì không hỏi lại chủ về nguyên tắc đó. Áp nó vào một quyết định cụ thể chạm dữ liệu, quyền, tiền, hợp đồng hay bất biến **vẫn dừng và hỏi / qua ADR chủ duyệt** như §3 (Hiến pháp P8, N3).
 - Tài liệu **mô tả** (`docs/SYSTEM-DESIGN.md`, `docs/DATA-DICTIONARY.md`, `docs/CHANGE-GUIDE.md`) **thua mã**: sửa tài liệu trong cùng commit.
 - **Lệch có chủ ý** đã ghi ở `docs/SYSTEM-DESIGN.md` §16 (mã đúng, tài liệu chuẩn tắc lệch): không sửa mã; giữ ở §16 và trình chủ để ra ADR/dòng lịch sử mới.
 - Không tự hoà giải bằng suy đoán: dừng, nêu xung đột, hỏi chủ.
