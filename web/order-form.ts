@@ -33,7 +33,8 @@ const formEl = byId<HTMLFormElement>("order-form");
 const servicesEl = byId("services");
 const emptyEl = byId("services-empty");
 const limitEl = byId("services-limit");
-const addManualBtn = byId<HTMLButtonElement>("add-manual");
+const addManualBtn = byId<HTMLButtonElement>("add-manual"); // ẨN mặc định; chỉ hiện khi danh mục trống hoặc không tải được (lối dự phòng)
+const orderDateEl = byId<HTMLInputElement>("orderDate");
 const saveBtn = byId<HTMLButtonElement>("save");
 const field = (id: string) => byId<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>(id);
 const num = (id: string) => parseMoney(field(id).value);
@@ -55,10 +56,27 @@ let saving = false;
 const drafts = () => entries.map((e) => e.draft);
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
 
+// ---- ngày chung ở đầu form ----
+// Chỉ là tiện ích nhập liệu phía trình duyệt: ngày vẫn lưu RIÊNG từng dịch vụ (thông tin chuyến). Dịch vụ thêm sau lấy ngày này;
+// đổi ngày chung thì chỉ cập nhật các dịch vụ còn trống ngày hoặc đang theo ngày chung cũ — ngày đã chỉnh riêng được giữ nguyên.
+let orderDate = "";
+const withOrderDate = <D extends ServiceDraft>(d: D): D => (orderDate && !d.trip.departDate ? { ...d, trip: { ...d.trip, departDate: orderDate } } : d);
+orderDateEl.addEventListener("change", () => {
+  const prev = orderDate;
+  orderDate = orderDateEl.value;
+  for (const en of entries) {
+    const cur = en.draft.trip.departDate;
+    if (cur !== "" && cur !== prev) continue;
+    en.draft = { ...en.draft, trip: { ...en.draft.trip, departDate: orderDate } };
+    en.card.update(en.draft);
+  }
+  recompute();
+});
+
 // ---- ô chọn danh mục và danh sách thẻ ----
 const picker = createCatalogPicker({
   onPick: (item) => {
-    const entry = mount(newCatalogDraft(item, `k${++seq}`));
+    const entry = mount(withOrderDate(newCatalogDraft(item, `k${++seq}`)));
     entry.card.root.scrollIntoView({ block: "nearest" });
   },
 });
@@ -94,7 +112,7 @@ function unmount(entry: Entry): void {
 }
 
 addManualBtn.addEventListener("click", () => {
-  const entry = mount(newManualDraft(`k${++seq}`));
+  const entry = mount(withOrderDate(newManualDraft(`k${++seq}`)));
   entry.card.root.scrollIntoView({ block: "nearest" });
 });
 
@@ -140,8 +158,7 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
       focusables.push(field(id));
     }
   };
-  need("customerName", "Nhập tên khách.");
-  need("customerPhone", "Nhập số điện thoại khách.");
+  // Cùng thứ tự với form: dịch vụ trước, khách hàng sau, thanh toán cuối.
   if (entries.length === 0) lines.push("Thêm ít nhất một dịch vụ.");
   entries.forEach((e, i) => {
     for (const issue of draftIssues(e.draft)) {
@@ -150,11 +167,13 @@ function validate(): { banner: Banner; focus: HTMLElement } | null {
     }
   });
   lines.push(...orderIssues(drafts()));
+  need("customerName", "Nhập tên khách.");
+  need("customerPhone", "Nhập số điện thoại khách.");
   const s = orderSummary(drafts(), num("discount"), num("depositAmount"));
   if (s.discount > s.subtotal) lines.push("Giảm giá không được vượt quá tạm tính.");
-  else if (s.deposit > s.total) lines.push("Tiền cọc không được vượt quá tổng cộng.");
+  else if (s.deposit > s.total) lines.push("Thanh toán trước không được vượt quá tổng cộng.");
   if (s.deposit > 0 && !field("depositMethod").value) {
-    lines.push("Chọn hình thức cọc.");
+    lines.push("Chọn phương thức thanh toán.");
     focusables.push(field("depositMethod"));
   }
   if (lines.length === 0) return null;
@@ -278,10 +297,14 @@ async function loadCatalog(): Promise<void> {
   try {
     const res = await api<Api.CatalogPublicResponse>("/api/catalog");
     setCatalog(res.items);
-    if (res.items.length === 0) picker.setNotice("Danh mục dịch vụ đang trống — hãy thêm dịch vụ nhập tay.");
+    if (res.items.length === 0) {
+      addManualBtn.hidden = false;
+      picker.setNotice("Danh mục dịch vụ đang trống — hãy thêm dịch vụ nhập tay.");
+    }
     else if (res.sync.error) picker.setNotice(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
   } catch {
     // Mất danh mục khi sửa nháp: thẻ đã lưu hiện ở dạng khoá (vẫn sửa được đơn giá/chuyến và lưu được; máy chủ giữ bản chụp).
+    addManualBtn.hidden = false;
     picker.setNotice("Không tải được danh mục dịch vụ — hãy thêm dịch vụ nhập tay.");
   }
 }
@@ -294,7 +317,7 @@ function fill(o: Api.OrderDetailDto): void {
   field("customerNote").value = o.customerNote ?? "";
   (field("discount") as HTMLInputElement).value = o.discount ? grouped(o.discount) : "";
   (field("depositAmount") as HTMLInputElement).value = o.depositAmount ? grouped(o.depositAmount) : "";
-  field("depositMethod").value = o.depositMethod ?? "";
+  field("depositMethod").value = o.depositMethod ?? "cash"; // đơn chưa có thanh toán trước: để sẵn "Tiền mặt" như form mới
   field("paymentNote").value = o.paymentNote ?? "";
   for (const en of [...entries]) unmount(en);
   orderUpdatedAt = o.updatedAt;
@@ -302,6 +325,11 @@ function fill(o: Api.OrderDetailDto): void {
     const entry = mount(draftFromDto(s, live, `k${++seq}`), s.id === focusId ? true : undefined);
     if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
   }
+  // Ngày chung: hiện ngày của đơn khi MỌI dịch vụ cùng một ngày; khác nhau thì để trống (không đoán).
+  const dates = new Set(entries.map((e) => e.draft.trip.departDate));
+  orderDate = dates.size === 1 ? [...dates][0]! : "";
+  orderDateEl.value = orderDate;
+  if (entries.some((e) => e.draft.kind === "manual")) addManualBtn.hidden = false; // đơn cũ đã có dịch vụ nhập tay: giữ lối thêm như trước
 }
 
 async function loadOrder(): Promise<void> {
@@ -323,6 +351,15 @@ async function loadOrder(): Promise<void> {
 
 // ---- khởi động ----
 const staff = await initShell();
+// "Sử dụng thông tin của tôi": điền tên + SĐT của tài khoản đang đăng nhập (hồ sơ tài khoản chưa có email nên ô Email không đổi).
+// Bắn "input" để ô hồ sơ khách (booker-picker) tra lại theo SĐT mới như khi gõ tay.
+byId("use-mine").addEventListener("click", () => {
+  for (const [id, value] of [["customerName", staff.fullName], ["customerPhone", staff.phone]] as const) {
+    const el = field(id);
+    el.value = value;
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+  }
+});
 await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";

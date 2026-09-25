@@ -30,7 +30,7 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   // active() của "/" phải khớp CHÍNH XÁC "/" (không dùng startsWith/prefix) để không lỡ sáng đèn cho mọi đường dẫn.
   if (office) officeTabs.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
   if (office) officeTabs.push({ href: "/orders", label: "Đơn hàng", icon: "orders", active: (p) => p === "/orders" || p === "/order" });
-  if (canCreate) officeTabs.push({ href: "/order-form", label: "Đơn mới", icon: "plus", active: (p) => p === "/order-form" });
+  if (canCreate) officeTabs.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   return [
     ...officeTabs,
     ...adminTabs,
@@ -133,7 +133,7 @@ function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: st
   if (office) sales.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
   // Huy hiệu "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án đã chốt nghĩa của con số này), màu mặc định như bản mẫu.
   if (office) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/orders" || p === "/order" });
-  if (canCreate) sales.push({ href: "/order-form", label: "Lập đơn mới", icon: "plus", active: (p) => p === "/order-form" });
+  if (canCreate) sales.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   if (office) sales.push({ href: "/parties", label: "Danh bạ", icon: "contact-card", active: (p) => p === "/parties" });
 
   const management: NavItem[] = admin
@@ -345,7 +345,7 @@ export async function initShell(): Promise<Staff> {
     // Trang chủ) luôn đưa người dùng về đó kèm bộ lọc, dùng lại tham số `q` mà GET /api/orders đã hỗ trợ.
     location.assign(`/orders?q=${encodeURIComponent((e.target as HTMLInputElement).value.trim())}`);
   });
-  const newOrderBtn = canCreate ? h("a", { class: "btn btn-accent topbar-new", href: "/order-form" }, "Lập đơn mới") : null;
+  const newOrderBtn = canCreate ? h("a", { class: "btn btn-accent topbar-new", href: "/order-form" }, "Tạo đơn") : null;
   append(byId("topbar"), [avatarEl, search, newOrderBtn]);
 
   addNav(admin, office, canCreate, staff);

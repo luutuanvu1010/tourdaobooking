@@ -778,7 +778,7 @@ try {
   //    hồi quy do chính vòng 1 gây ra không bao giờ chạm tới lưới. Ba trang từ nay:
   //      · /staff              — trang danh sách thường + DUY NHẤT chạy nhánh ≤640px (bằng chứng bề mặt điện thoại);
   //                              KHÔNG phải "/" vì nó tự gọi dashboard nên không đo được lời gọi huy hiệu (G-4);
-  //      · /order-form?id=…    — breadcrumb DÀI "Sửa đơn <mã đơn>" (188px): trang bộc lộ lỗi nút "Lập đơn mới" đè
+  //      · /order-form?id=…    — breadcrumb DÀI "Sửa đơn <mã đơn>" (188px): trang bộc lộ lỗi nút "Tạo đơn" đè
   //                              lên tiêu đề ở dải 900–928px. Phải CHỜ setBarTitle() chạy xong, nếu không chỉ đo
   //                              được chữ tĩnh "Tạo đơn mới" (ngắn) và lưới lại không chạm tới lỗi;
   //      · /audit              — ô chọn "Lọc hành động" tự rộng 394px (theo tuỳ chọn dài nhất), bộc lộ tràn ngang
@@ -919,7 +919,7 @@ try {
       if (width <= 640) {
         assert.equal(f.sidebarShown, false, `${at}: thanh bên KHÔNG được hiện ở khổ điện thoại — ${JSON.stringify(f)}`);
         assert.ok(f.tabbarLinks > 0, `${at}: phải còn thanh tab dưới đáy — ${JSON.stringify(f)}`);
-        assert.equal(f.newBtnShown, false, `${at}: nút "Lập đơn mới" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Đơn mới") — ${JSON.stringify(f)}`);
+        assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarLinks, 11, `${at}: thanh bên của ADMIN phải đủ 11 mục (gồm "Trợ giúp") — ${JSON.stringify(f)}`);
@@ -931,7 +931,7 @@ try {
         // KHÔNG bắt được (người kiểm độc lập đột biến --w-sidebar → 300px, chạy lại toàn lưới: không đỏ). Khẳng
         // định dưới đây so với HẰNG SỐ ĐỘC LẬP viết thẳng trong kịch bản (đầu tệp) — đây mới là "nguồn độc lập" thật.
         assert.equal(f.sidebarWidth, SIDEBAR_WIDTH_MOCKUP_PX, `${at}: thanh bên phải rộng đúng ${SIDEBAR_WIDTH_MOCKUP_PX}px (bản mẫu/chủ dự án duyệt, hằng số ĐỘC LẬP trong kịch bản — không đọc từ CSS) — ${JSON.stringify(f)}`);
-        assert.equal(f.newBtnShown, true, `${at}: nút "Lập đơn mới" phải hiện từ 641px — ${JSON.stringify(f)}`);
+        assert.equal(f.newBtnShown, true, `${at}: nút "Tạo đơn" phải hiện từ 641px — ${JSON.stringify(f)}`);
         // (lịch sử, không đổi tên) chiều cao thanh công việc đúng token --bar-h (từng là 71px vì nút cao 46px + đệm dọc quyết định chiều cao).
         assert.ok(Math.abs(f.topbarHeight - f.barToken) <= 1, `${at}: thanh công việc cao ${f.topbarHeight}px, token --bar-h = ${f.barToken}px — ${JSON.stringify(f)}`);
         // C-1 (Đợt D Task 7): cùng lỗ hổng — khẳng định trên tự so với chính CSS. So với hằng số ĐỘC LẬP viết thẳng
@@ -940,12 +940,12 @@ try {
         // (c) không gãy 2 dòng. Chiều cao đã ghim nên đo bằng SỐ DÒNG thật + nội dung có tràn khỏi ô hay không.
         assert.equal(f.topbarRows, 1, `${at}: thanh công việc gãy ${f.topbarRows} dòng — ${JSON.stringify(f)}`);
         assert.ok(f.topbarContentOverflow <= 1, `${at}: nội dung thanh công việc tràn khỏi chiều cao ghim (${f.topbarContentOverflow}px) — ${JSON.stringify(f)}`);
-        // VÒNG SỬA 2 (mục 1) — khẳng định thay thế, và là khẳng định DUY NHẤT còn đổi giá trị được: nút "Lập đơn mới"
+        // VÒNG SỬA 2 (mục 1) — khẳng định thay thế, và là khẳng định DUY NHẤT còn đổi giá trị được: nút "Tạo đơn"
         // phải NẰM TRỌN trong thanh công việc, và `main` phải bắt đầu TỪ đáy thanh trở xuống. Trên bản chưa vá,
         // /order-form?id=… ở 900px cho nút 58…104px trong khi main bắt đầu ở 60px — nút đỏ đè lên chữ tiêu đề.
         assert.ok(
           f.newBtnBottom !== null && f.newBtnBottom <= f.topbarBottom + 1,
-          `${at}: nút "Lập đơn mới" thò RA NGOÀI thanh công việc (đáy nút ${f.newBtnBottom}px > đáy thanh ${f.topbarBottom}px) — nó sẽ đè lên nội dung trang — ${JSON.stringify(f)}`,
+          `${at}: nút "Tạo đơn" thò RA NGOÀI thanh công việc (đáy nút ${f.newBtnBottom}px > đáy thanh ${f.topbarBottom}px) — nó sẽ đè lên nội dung trang — ${JSON.stringify(f)}`,
         );
         assert.ok(
           f.mainTop >= f.topbarBottom - 1,
@@ -1083,7 +1083,7 @@ try {
     })()`);
     assert.ok(
       safetyValve.btnBottom <= safetyValve.mainTop + 1,
-      `C-2: van an toàn min-height — khi cỡ chữ nút "Lập đơn mới" phóng lên 40px, đáy nút (${safetyValve.btnBottom}px) không được ĐÈ lên đỉnh main (${safetyValve.mainTop}px) — ${JSON.stringify(safetyValve)}`,
+      `C-2: van an toàn min-height — khi cỡ chữ nút "Tạo đơn" phóng lên 40px, đáy nút (${safetyValve.btnBottom}px) không được ĐÈ lên đỉnh main (${safetyValve.mainTop}px) — ${JSON.stringify(safetyValve)}`,
     );
     ok(`C-2: van an toàn min-height giữ đúng — cỡ chữ nút phóng lên 40px, #topbar cao ${safetyValve.topbarHeight}px (được phép vượt token 60px nhờ min-height), đáy nút ${safetyValve.btnBottom}px ≤ đỉnh main ${safetyValve.mainTop}px — ${JSON.stringify(safetyValve)}`);
 

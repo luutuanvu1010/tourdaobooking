@@ -195,7 +195,7 @@ function summaryBlock(order: OrderDetailDto): SummaryBlock {
       { label: "Tạm tính", value: money(order.subtotal), emphasis: false },
       { label: "Giảm giá", value: money(order.discount > 0 ? -order.discount : order.discount), emphasis: false },
       { label: "Tổng cộng", value: money(order.total), emphasis: true },
-      { label: "Đã cọc", value: money(order.depositAmount), emphasis: false },
+      { label: "Thanh toán trước", value: money(order.depositAmount), emphasis: false },
       { label: "Còn lại", value: money(order.remainingAmount), emphasis: true },
     ],
   };

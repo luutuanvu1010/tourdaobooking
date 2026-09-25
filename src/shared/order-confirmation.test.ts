@@ -81,7 +81,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
       kind: "summary",
       rows: [
         { label: "Tạm tính", value: "3.600.000 ₫", emphasis: false }, { label: "Giảm giá", value: "-100.000 ₫", emphasis: false },
-        { label: "Tổng cộng", value: "3.500.000 ₫", emphasis: true }, { label: "Đã cọc", value: "1.000.000 ₫", emphasis: false },
+        { label: "Tổng cộng", value: "3.500.000 ₫", emphasis: true }, { label: "Thanh toán trước", value: "1.000.000 ₫", emphasis: false },
         { label: "Còn lại", value: "2.500.000 ₫", emphasis: true },
       ],
     },
@@ -210,7 +210,7 @@ test("tổng kết: đúng số của đơn (không tự tính lại); chỉ T�
   const rows = (o: OrderDetailDto) => one(build(o), "summary").rows;
   const a = rows(order({ subtotal: 12345678, discount: 0, total: 12345678, depositAmount: 5000000, remainingAmount: 7345678 }));
   assert.deepEqual(a.map((r) => [r.label, r.value, r.emphasis]), [
-    ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Đã cọc", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
+    ["Tạm tính", "12.345.678 ₫", false], ["Giảm giá", "0 ₫", false], ["Tổng cộng", "12.345.678 ₫", true], ["Thanh toán trước", "5.000.000 ₫", false], ["Còn lại", "7.345.678 ₫", true],
   ]);
   const over = rows(order({ subtotal: 4000000, discount: 0, total: 4000000, depositAmount: 5000000, remainingAmount: -1000000 }));
   assert.equal(over.find((r) => r.label === "Còn lại")!.value, "-1.000.000 ₫");

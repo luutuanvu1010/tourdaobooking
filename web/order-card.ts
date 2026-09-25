@@ -45,6 +45,8 @@ export interface OrderCardData {
   createdAt: string;
   customerNote: string | null;
   pickupPlace: string | null;
+  /** Số thứ tự trong danh sách (1, 2, 3…); bỏ qua = không hiện. */
+  index?: number;
 }
 
 export type OrderCardMoneyMode = "full" | "no-total" | "none";
@@ -93,6 +95,7 @@ export function orderCard(o: OrderCardData, opts: OrderCardOptions = {}): OrderC
   const line1 = h(
     "div",
     { class: "order-row-top" },
+    o.index !== undefined && h("span", { class: "order-row-index" }, `${o.index}.`),
     h("span", { class: "order-row-when" }, when),
     h("span", { class: "order-row-name" }, o.customerName),
     h("span", { class: `badge badge-${o.status}` }, STATUS_LABEL[o.status]),

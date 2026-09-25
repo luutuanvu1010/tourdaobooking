@@ -24,7 +24,7 @@ interface Row {
   slot: HTMLElement;
 }
 
-function row(o: OrderSummary): Row {
+function row(o: OrderSummary, index: number): Row {
   // Đợt E Phần A (bố cục sửa lại 2026-09-24): thẻ rút gọn 2 dòng + nút xổ xuống, dựng bằng thành phần dùng chung
   // web/order-card.ts (chỉ áp cho /orders ở đợt này — xem đặc tả 2026-09-23-dot-e-the-don-gon-va-bieu-tuong.md,
   // mục "Vòng sửa 2026-09-24"). `handlerSlot` thay cho `slot` cũ: vẫn cùng class `order-row-handler`/`is-pending`,
@@ -47,6 +47,7 @@ function row(o: OrderSummary): Row {
     createdAt: o.createdAt,
     customerNote: o.customerNote,
     pickupPlace: o.trip.pickupPlace,
+    index,
   });
   return { id: o.id, el, slot: handlerSlot };
 }
@@ -86,7 +87,7 @@ async function load(reset: boolean): Promise<void> {
     const { orders, hasMore } = await api<Api.OrderListResponse>(`/api/orders?${params}`);
     if (seq !== loadSeq) return;
     loadingEl.hidden = true;
-    const rows = orders.map(row);
+    const rows = orders.map((o, i) => row(o, offset + i + 1)); // số thứ tự nối tiếp khi "Tải thêm"; tìm/lọc mới đánh lại từ 1
     if (reset) replaceChildren(listEl, ...rows.map((r) => r.el));
     else listEl.append(...rows.map((r) => r.el));
     offset += orders.length;

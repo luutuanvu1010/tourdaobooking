@@ -1,14 +1,28 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Lập đơn — Island Booking System</title></head>
-<body data-title="Tạo đơn mới" data-back="/orders" data-tabbar="off">
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Tạo đơn — Island Booking System</title></head>
+<body data-title="Tạo đơn" data-back="/orders" data-tabbar="off">
 <header id="topbar"></header>
 <main class="form-page">
-  <h1 id="form-title">Tạo đơn mới</h1>
+  <h1 id="form-title">Tạo đơn</h1>
   <div id="error" class="banner" role="alert" hidden></div>
   <form id="order-form" novalidate>
     <div class="form-main">
       <section class="card">
-        <h2>Khách hàng</h2>
+        <h2>Chọn ngày</h2>
+        <label>Ngày khởi hành<input id="orderDate" type="date"></label>
+        <p class="muted" id="orderDate-hint">Dịch vụ chọn sau sẽ lấy ngày này; vẫn đổi được ngày riêng trong từng dịch vụ.</p>
+      </section>
+      <section class="card">
+        <h2>Dịch vụ</h2>
+        <div id="catalog-slot"></div>
+        <button id="add-manual" class="btn btn-block" type="button" hidden>+ Dịch vụ nhập tay</button>
+        <p id="services-limit" class="muted" hidden></p>
+        <div id="services" class="svc-list"></div>
+        <p id="services-empty" class="svc-empty">Chưa có dịch vụ. Chọn dịch vụ từ danh mục.</p>
+      </section>
+      <section class="card">
+        <h2>Thông tin khách hàng</h2>
+        <button id="use-mine" class="btn" type="button">Sử dụng thông tin của tôi</button>
         <div class="grid two">
           <label>Tên khách *<input id="customerName" type="text" maxlength="200" autocomplete="off" required></label>
           <label>Số điện thoại *<input id="customerPhone" type="tel" inputmode="tel" maxlength="30" autocomplete="off" required></label>
@@ -18,19 +32,11 @@
         <div id="booker-slot"></div>
       </section>
       <section class="card">
-        <h2>Dịch vụ</h2>
-        <div id="catalog-slot"></div>
-        <button id="add-manual" class="btn btn-block" type="button">+ Dịch vụ nhập tay</button>
-        <p id="services-limit" class="muted" hidden></p>
-        <div id="services" class="svc-list"></div>
-        <p id="services-empty" class="svc-empty">Chưa có dịch vụ. Chọn từ danh mục hoặc thêm dịch vụ nhập tay.</p>
-      </section>
-      <section class="card">
         <h2>Thanh toán</h2>
         <div class="grid three">
           <label>Giảm giá (₫)<input id="discount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-          <label>Đã cọc (₫)<input id="depositAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
-          <label>Hình thức cọc<select id="depositMethod"><option value="">—</option><option value="cash">Tiền mặt</option><option value="bank_transfer">Chuyển khoản</option><option value="other">Khác</option></select></label>
+          <label>Thanh toán trước (₫)<input id="depositAmount" type="text" inputmode="numeric" autocomplete="off" placeholder="0"></label>
+          <label>Phương thức thanh toán<select id="depositMethod"><option value="">—</option><option value="cash" selected>Tiền mặt</option><option value="bank_transfer">Chuyển khoản</option><option value="other">Khác</option></select></label>
         </div>
         <label class="pay-note">Ghi chú thanh toán<textarea id="paymentNote" maxlength="1000" placeholder="vd: số tài khoản đã chuyển"></textarea></label>
       </section>

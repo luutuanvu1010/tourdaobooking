@@ -438,8 +438,8 @@ try {
   await step("c", "ảnh PNG “Xác nhận gửi khách” SAU KHI đổi người in đúng tên B: giống từng byte bản dựng từ tên B, khác bản dựng từ tên A (người lập)", async () => {
     const main = await getMain();
     const p = await openAs(A, `/order?id=${main.id}`, { lib: true });
-    await p.waitFor("document.querySelector('#send button') !== null", "nút Xác nhận gửi khách", 10000);
-    await p.ev(clickText("#send", "Xác nhận gửi khách"));
+    await p.waitFor("document.querySelector('#send button') !== null", "nút Xem biên nhận", 10000);
+    await p.ev(clickText("#send", "Xem biên nhận"));
     await p.waitFor("(() => { const i = document.querySelector('.sheet .confirm-img'); return !!i && i.complete && i.naturalWidth > 0; })()", "ảnh xác nhận hiện", 20000);
     const same = (name) => p.ev(`(async () => __t.sameBytes(__t.blobOf(document.querySelector('.sheet a.confirm-download').href), await __lib.renderConfirmationPng(await __t.modelOf(${JSON.stringify(main.id)}, ${JSON.stringify(name)}))))()`);
     assert.equal(await same("Sales Hai"), true, "ảnh phải in tên người phụ trách hiện tại (Sales Hai)");
@@ -480,7 +480,7 @@ try {
     assert.deepEqual(await c.ev(CARD_BUTTONS), [], "C: đơn đã có người → không đổi, không nhận");
     assert.deepEqual(await c.ev(ACTION_BUTTONS), []);
     assert.match(await c.ev("document.getElementById('actions').textContent"), NO_PERM, "câu giải thích quyền phải kể cả người phụ trách");
-    assert.equal(await c.ev("document.querySelector('#send button')?.textContent"), "Xác nhận gửi khách", "ảnh xác nhận vẫn có cho mọi người xem được đơn");
+    assert.equal(await c.ev("document.querySelector('#send button')?.textContent"), "Xem biên nhận", "ảnh xác nhận vẫn có cho mọi người xem được đơn");
     c.close();
     const acc = await openAs(ACC, `/order?id=${main.id}`);
     await acc.waitFor(CARD_READY, "khối Người phụ trách (kế toán)", 10000);

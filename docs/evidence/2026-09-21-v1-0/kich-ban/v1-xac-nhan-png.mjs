@@ -197,11 +197,11 @@ async function ensureTools(p) {
 const SEND_BTN = "document.querySelector('#send button')";
 const READY = "(() => { const i = document.querySelector('.sheet .confirm-img'); return !!i && i.complete && i.naturalWidth > 0; })()";
 const DIALOG = "document.querySelector('[role=dialog]')";
-const waitButton = (p) => p.waitFor(`${SEND_BTN} !== null`, "nút “Xác nhận gửi khách” trên trang đơn", 7000);
+const waitButton = (p) => p.waitFor(`${SEND_BTN} !== null`, "nút “Xem biên nhận” trên trang đơn", 7000);
 async function openDialog(p, ms = 20000) {
   await waitButton(p);
   const t0 = Date.now();
-  await p.ev(clickText("#send", "Xác nhận gửi khách"));
+  await p.ev(clickText("#send", "Xem biên nhận"));
   try {
     await p.waitFor(READY, "hộp thoại hiện ảnh xác nhận", ms);
   } catch (e) {
@@ -457,7 +457,7 @@ await step("e", "tải lại trang không bật lại hộp thoại (URL sạch 
   await p.send("Page.reload");
   await p.waitFor("document.readyState === 'complete' && document.querySelector('#order h1') !== null", "trang đơn nạp lại");
   await sleep(1500);
-  assert.deepEqual(await p.ev(`({ dialog: ${DIALOG} !== null, search: location.search, btn: ${SEND_BTN}?.textContent })`), { dialog: false, search: `?id=${ui.id}`, btn: "Xác nhận gửi khách" });
+  assert.deepEqual(await p.ev(`({ dialog: ${DIALOG} !== null, search: location.search, btn: ${SEND_BTN}?.textContent })`), { dialog: false, search: `?id=${ui.id}`, btn: "Xem biên nhận" });
   // đơn mở thẳng, không có moi
   const f = await fx();
   const q = await openAs(ACCOUNTS.salesA, `/order?id=${f.multi.id}`);
@@ -604,7 +604,7 @@ await step("i", "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob t
   for (const [flag, pattern, ms] of cases) {
     await p.ev(`window.__fail.${flag} = true; true`);
     await waitButton(p);
-    await p.ev(clickText("#send", "Xác nhận gửi khách"));
+    await p.ev(clickText("#send", "Xem biên nhận"));
     await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", `${flag}: thông báo lỗi hiện`, ms);
     const st = await errorState(p);
     assert.equal(st.role, "alert", `${flag}: vùng lỗi là role=alert`);
@@ -625,7 +625,7 @@ await step("i", "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob t
   }
   // Esc đóng được ngay khi đang tạo ảnh (trạng thái "đang tạo"), không lỗi muộn sau đó
   await p.ev("window.__fail.hang = true; true");
-  await p.ev(clickText("#send", "Xác nhận gửi khách"));
+  await p.ev(clickText("#send", "Xem biên nhận"));
   await p.waitFor("document.querySelector('.sheet .confirm-status') !== null", "đang tạo ảnh", 4000);
   await closeDialog(p);
   await p.ev("window.__fail.hang = false; true");
@@ -694,7 +694,7 @@ await step("j", "hộp thoại: role=dialog + aria-modal + tên, nền inert, fo
     if (label === "390") {
       // (thông tin công ty đã được lưu tạm sau lần mở thành công nên dùng lỗi phông để dựng trạng thái lỗi)
       await p.ev("(() => { document.fonts.load = () => Promise.reject(new DOMException('mô phỏng', 'NetworkError')); return true; })()");
-      await p.ev(clickText("#send", "Xác nhận gửi khách"));
+      await p.ev(clickText("#send", "Xem biên nhận"));
       await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", "trạng thái lỗi", 8000);
       const ve = await axeRun(p, "hop-thoai-390-loi");
       assert.deepEqual(ve, [], `axe (lỗi): ${JSON.stringify(ve)}`);

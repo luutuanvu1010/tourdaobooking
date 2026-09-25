@@ -98,13 +98,13 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
   if (discount.value > subtotal) return fail("Giảm giá không được vượt quá tạm tính.");
   const total = subtotal - discount.value;
 
-  const deposit = int(b.depositAmount, "Tiền cọc", 0, MAX_AMOUNT, 0);
+  const deposit = int(b.depositAmount, "Thanh toán trước", 0, MAX_AMOUNT, 0);
   if (deposit.error) return fail(deposit.error);
-  if (deposit.value > total) return fail("Tiền cọc không được vượt quá tổng cộng.");
+  if (deposit.value > total) return fail("Thanh toán trước không được vượt quá tổng cộng.");
 
   let depositMethod: DepositMethod | null = null;
   if (deposit.value > 0) {
-    if (!DEPOSIT_METHODS.includes(b.depositMethod as DepositMethod)) return fail("Cần chọn hình thức cọc (tiền mặt, chuyển khoản hoặc khác).");
+    if (!DEPOSIT_METHODS.includes(b.depositMethod as DepositMethod)) return fail("Cần chọn phương thức thanh toán (tiền mặt, chuyển khoản hoặc khác).");
     depositMethod = b.depositMethod as DepositMethod;
   }
 

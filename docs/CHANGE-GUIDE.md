@@ -440,7 +440,7 @@ Ba lớp, đổi đúng lớp:
 - Đơn nháp chưa có ngày khởi hành: ảnh KHÔNG có dòng "Khởi hành" (cố ý — không in cảnh báo nội bộ; nếu muốn báo trước khi gửi thì làm ở hộp thoại).
 - CSP `connect-src` KHÔNG cho `blob:` nên không `fetch("blob:…")` (app không cần; kịch bản Chrome lấy Blob từ nơi tạo URL). `img-src blob:` đủ cho `<img>` và `<a download>`.
 - Blob URL phải được thu hồi khi đóng/thử lại (kịch bản bước c kiểm).
-- Nút "Xác nhận gửi khách" nằm ở `#send`, NGOÀI `#actions`, để bộ nút theo trạng thái/quyền (và ba kịch bản `a2-smoke-*`) không đổi; nút này luôn có cho mọi người xem được đơn.
+- Nút "Xem biên nhận" (trước 1.11 tên là "Xác nhận gửi khách") nằm ở `#send`, NGOÀI `#actions`, để bộ nút theo trạng thái/quyền (và ba kịch bản `a2-smoke-*`) không đổi; nút này luôn có cho mọi người xem được đơn.
 - Tên người phụ trách qua `loadHandlerName` (không bao giờ ném lỗi, tối đa 3 giây, không nhớ đệm nên sau khi đổi người ảnh mở lại ra tên mới); người phụ trách API chưa có → tên người lập. Chữ trên ảnh là dòng "Nhân viên phụ trách".
 - Ảnh KHÔNG được ghi nhật ký: hành động `exported_png` có tên trong `AUDIT_ACTIONS` nhưng không nơi nào ghi — ảnh dựng ở trình duyệt, không đi qua máy chủ, không có route. Cần dấu vết tải/chia sẻ thì phải thêm route ghi nhật ký gọi từ hộp thoại; đừng khẳng định (trong tài liệu hay chữ trên giao diện) rằng việc gửi ảnh đã được ghi lại (§4 mục 28).
 

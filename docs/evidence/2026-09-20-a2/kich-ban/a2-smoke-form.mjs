@@ -12,10 +12,23 @@ try {
   // ---- 1) trang trống, khung điện thoại ----
   let p = await env.as(ACCOUNTS.salesA, "/order-form");
   await p.waitFor("document.getElementById('services-empty') && !document.getElementById('services-empty').hidden", "trạng thái rỗng");
-  assert.match(await p.ev("document.getElementById('services-empty').textContent"), /Chưa có dịch vụ\. Chọn từ danh mục hoặc thêm dịch vụ nhập tay\./);
+  assert.match(await p.ev("document.getElementById('services-empty').textContent"), /Chưa có dịch vụ\. Chọn dịch vụ từ danh mục\./);
   assert.equal(await p.ev("!!document.getElementById('tabbar')"), false, "form lập đơn ẩn thanh tab");
   assert.equal(await p.ev("document.getElementById('save').textContent"), "Lưu đơn nháp");
   ok("form trống: trạng thái rỗng, không thanh tab, nút Lưu");
+
+  // ---- 1b) bề mặt Tạo đơn (2026-09-25): tiêu đề, thứ tự mục, nút nhập tay ẩn, mặc định Tiền mặt, "Sử dụng thông tin của tôi" ----
+  assert.equal(await p.ev("document.getElementById('form-title').textContent"), "Tạo đơn");
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.form-main > .card > h2')].map((x) => x.textContent)"), ["Chọn ngày", "Dịch vụ", "Thông tin khách hàng", "Thanh toán"]);
+  assert.equal(await p.ev("document.getElementById('add-manual').hidden"), true, "nút '+ Dịch vụ nhập tay' ẩn khi danh mục tải được");
+  assert.equal(await p.ev("document.getElementById('depositMethod').value"), "cash", "phương thức thanh toán mặc định Tiền mặt");
+  assert.match(await p.ev("document.querySelector('label:has(#depositAmount)').textContent"), /^Thanh toán trước/);
+  assert.match(await p.ev("document.querySelector('label:has(#depositMethod)').textContent"), /^Phương thức thanh toán/);
+  await p.ev("document.getElementById('use-mine').click(); true");
+  assert.deepEqual(await p.ev("[document.getElementById('customerName').value, document.getElementById('customerPhone').value, document.getElementById('customerEmail').value]"), [ACCOUNTS.salesA.name, ACCOUNTS.salesA.phone, ""]);
+  await p.ev(setInput("document.getElementById('customerName')", ""));
+  await p.ev(setInput("document.getElementById('customerPhone')", ""));
+  ok("Tạo đơn: thứ tự Chọn ngày → Dịch vụ → Thông tin khách hàng → Thanh toán; nhập tay ẩn; Tiền mặt mặc định; nút 'của tôi' điền tên + SĐT tài khoản");
 
   // ---- 2) ô chọn danh mục: tìm, kết quả, trạng thái rỗng ----
   await p.ev("document.getElementById('catalog-q').focus(); true");
@@ -112,13 +125,14 @@ try {
   // ---- 7) thanh toán, tóm tắt, kiểm phía trình duyệt ----
   assert.match(await p.ev("document.getElementById('sum-subtotal').textContent"), /7\.350\.000/);
   await p.ev(setInput("document.getElementById('depositAmount')", "1000000"));
+  await p.ev(setInput("document.getElementById('depositMethod')", "")); // bỏ mặc định Tiền mặt để kiểm lỗi thiếu phương thức
   assert.match(await p.ev("document.getElementById('sum-remaining').textContent"), /6\.350\.000/);
   await p.ev("document.getElementById('save').click(); true"); // thiếu tên/SĐT khách + chưa chọn hình thức cọc
   await p.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt");
   assert.equal(await p.ev("(() => { const r = document.getElementById('save-error').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()"), true, "banner lỗi nằm trong khung nhìn sau khi bấm Lưu (điện thoại)");
   const msg = await p.ev("document.getElementById('save-error').textContent");
-  for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách.", "Chọn hình thức cọc."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
-  ok("tóm tắt 7.350.000 / còn lại 6.350.000; bấm Lưu khi thiếu tên, SĐT, hình thức cọc → banner nêu đủ");
+  for (const m of ["Nhập tên khách.", "Nhập số điện thoại khách.", "Chọn phương thức thanh toán."]) assert.ok(msg.includes(m), `thiếu "${m}" trong: ${msg}`);
+  ok("tóm tắt 7.350.000 / còn lại 6.350.000; bấm Lưu khi thiếu tên, SĐT, phương thức thanh toán → banner nêu đủ");
 
   // ---- 8) lưu thành công → đơn có đúng dữ liệu (đọc lại qua API) ----
   await p.ev(setInput("document.getElementById('customerName')", "Trần Văn Bình"));
@@ -324,6 +338,21 @@ try {
   assert.equal(await p.ev("document.getElementById('customerName').value"), "Khách Bfcache", "dữ liệu đã gõ còn nguyên");
   p.close();
   ok("bfcache: trang khôi phục (pageshow persisted) đang kẹt 'Đang lưu…' → nút về 'Lưu đơn nháp', form hết inert; pageshow thường không đụng tới");
+
+  // ---- 10e) ngày chung "Chọn ngày": dịch vụ thêm sau lấy ngày này; đổi ngày chung chỉ kéo theo dịch vụ chưa chỉnh riêng ----
+  p = await env.as(ACCOUNTS.salesA, "/order-form");
+  await p.waitFor("document.getElementById('add-manual')", "form mới cho kiểm ngày chung");
+  const tripDate = (i) => `${card(i)}.querySelector('[data-trip="departDate"]').value`;
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(5)));
+  await p.ev("document.getElementById('add-manual').click(); document.getElementById('add-manual').click(); true");
+  await p.waitFor(`${cards}.length === 2`, "hai thẻ");
+  assert.deepEqual(await p.ev(`[${tripDate(0)}, ${tripDate(1)}]`), [vnDate(5), vnDate(5)], "thẻ mới lấy ngày chung");
+  await p.ev(setInput(`${card(1)}.querySelector('[data-trip="departDate"]')`, vnDate(9))); // chỉnh riêng thẻ 2
+  await p.ev(setInput("document.getElementById('orderDate')", vnDate(6)));
+  await p.waitFor(`${tripDate(0)} === ${JSON.stringify(vnDate(6))}`, "thẻ theo ngày chung đổi theo");
+  assert.equal(await p.ev(tripDate(1)), vnDate(9), "thẻ đã chỉnh riêng giữ nguyên ngày");
+  p.close();
+  ok("ngày chung: thẻ mới lấy ngày; đổi ngày chung kéo theo thẻ chưa chỉnh riêng, giữ thẻ đã chỉnh");
 
   // ---- 11) quyền: kế toán không lập đơn ----
   p = await env.as(ACCOUNTS.accounting, "/order-form");

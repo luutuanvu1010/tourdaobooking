@@ -86,7 +86,7 @@ try {
     const p = await env.as(ACCOUNTS.salesA, "/account", M);
     try {
       await p.waitFor(`!!${q("#links a[href='/help']")}`, "trang Tôi có dòng Trợ giúp", 10000);
-      assert.deepEqual(await p.ev(`[...document.querySelectorAll('#tabbar .tab')].map((a) => a.textContent.trim())`), ["Trang chủ", "Đơn hàng", "Đơn mới", "Tôi"]);
+      assert.deepEqual(await p.ev(`[...document.querySelectorAll('#tabbar .tab')].map((a) => a.textContent.trim())`), ["Trang chủ", "Đơn hàng", "Tạo đơn", "Tôi"]);
     } finally {
       p.close();
     }

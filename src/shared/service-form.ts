@@ -384,6 +384,6 @@ export interface OrderSummary {
 export function orderSummary(drafts: readonly ServiceDraft[], discount: number, deposit: number): OrderSummary {
   const subtotal = drafts.reduce((sum, d) => sum + draftSubtotal(d), 0);
   const total = subtotal - discount;
-  const warning = discount > subtotal ? "Giảm giá đang lớn hơn tạm tính." : deposit > total ? "Tiền cọc đang lớn hơn tổng cộng." : null;
+  const warning = discount > subtotal ? "Giảm giá đang lớn hơn tạm tính." : deposit > total ? "Thanh toán trước đang lớn hơn tổng cộng." : null;
   return { subtotal, discount, total, deposit, remaining: total - deposit, warning };
 }

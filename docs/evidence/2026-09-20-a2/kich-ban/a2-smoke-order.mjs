@@ -52,7 +52,7 @@ try {
   assert.equal(await p.ev(`${svc(1)}.querySelectorAll('.kv-warn').length`), 1);
   assert.equal(await p.ev(`${svc(1)}.querySelector('.tag-price') === null`), true, "dịch vụ nhập tay không có nhãn lệch giá");
   assert.deepEqual(await p.ev(pairs("document", ".totals .kv")).then((r) => r.slice(0, 5)), [
-    ["Tạm tính", "4.350.000 ₫"], ["Giảm giá", "100.000 ₫"], ["Tổng cộng", "4.250.000 ₫"], ["Đã cọc", "500.000 ₫ (Tiền mặt)"], ["Còn lại", "3.750.000 ₫"],
+    ["Tạm tính", "4.350.000 ₫"], ["Giảm giá", "100.000 ₫"], ["Tổng cộng", "4.250.000 ₫"], ["Thanh toán trước", "500.000 ₫ (Tiền mặt)"], ["Còn lại", "3.750.000 ₫"],
   ]);
   assert.deepEqual(await p.ev("[...document.querySelectorAll('#actions .btn')].map((b) => b.textContent)"), ["Sửa", "Xác nhận đơn", "Huỷ đơn"]);
   assert.equal(await p.ev("!!document.querySelector('.lock-note')"), false, "đơn nháp không có dòng nhắc khoá");

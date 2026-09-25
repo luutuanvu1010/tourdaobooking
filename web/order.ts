@@ -187,7 +187,7 @@ function summaryBand(order: Order): HTMLElement {
       stat("ĐÓN", when, firstSvc?.pickupPlace ?? undefined),
       stat("KHÁCH", order.customerName, order.customerPhone),
       stat("SỐ KHÁCH", pax || "—", serviceLine),
-      stat("CÒN LẠI", vnd(order.remainingAmount), `Tổng ${vnd(order.total)} · đã cọc ${vnd(order.depositAmount)}`, order.remainingAmount > 0),
+      stat("CÒN LẠI", vnd(order.remainingAmount), `Tổng ${vnd(order.total)} · thanh toán trước ${vnd(order.depositAmount)}`, order.remainingAmount > 0),
     ),
   );
 }
@@ -237,7 +237,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           kv("Tạm tính", vnd(order.subtotal)),
           kv("Giảm giá", vnd(order.discount)),
           kv("Tổng cộng", vnd(order.total), "strong"),
-          kv("Đã cọc", order.depositAmount ? `${vnd(order.depositAmount)}${order.depositMethod ? ` (${METHOD_LABEL[order.depositMethod]})` : ""}` : vnd(0)),
+          kv("Thanh toán trước", order.depositAmount ? `${vnd(order.depositAmount)}${order.depositMethod ? ` (${METHOD_LABEL[order.depositMethod]})` : ""}` : vnd(0)),
           kv("Còn lại", vnd(order.remainingAmount), "strong"),
           kv("Ghi chú thanh toán", order.paymentNote),
         ),
@@ -282,7 +282,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   if (a.cancel) btns.push(change("Huỷ đơn", "cancelled", "Huỷ đơn này? Việc huỷ không thể hoàn tác.", "btn btn-danger"));
   replaceChildren(actions, ...btns);
   // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).
-  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xác nhận gửi khách");
+  const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem biên nhận");
   send.addEventListener("click", openConfirmation);
   replaceChildren(sendEl, send);
 }

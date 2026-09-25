@@ -61,15 +61,15 @@ test("số tiền phải là số nguyên không âm, không nhận chuỗi/th�
   assert.match(message({ ...base, discount: -5 }), /Giảm giá/);
 });
 
-test("giảm giá ≤ tạm tính, cọc ≤ tổng cộng", () => {
+test("giảm giá ≤ tạm tính, thanh toán trước ≤ tổng cộng", () => {
   assert.match(message({ ...base, discount: 1400001 }), /Giảm giá/);
   assert.equal(ok({ ...base, discount: 1400000, depositAmount: 0 }).total, 0);
-  assert.match(message({ ...base, depositAmount: 1300001 }), /cọc/);
+  assert.match(message({ ...base, depositAmount: 1300001 }), /Thanh toán trước/);
   assert.equal(ok({ ...base, depositAmount: 1300000 }).remainingAmount, 0);
 });
 
-test("có cọc thì cần hình thức cọc; không cọc thì bỏ hình thức", () => {
-  assert.match(message({ ...base, depositMethod: undefined }), /hình thức/);
+test("có thanh toán trước thì cần phương thức thanh toán; không có thì bỏ phương thức", () => {
+  assert.match(message({ ...base, depositMethod: undefined }), /phương thức thanh toán/);
   assert.equal(ok({ ...base, depositAmount: 0, depositMethod: "cash" }).depositMethod, null);
 });
 

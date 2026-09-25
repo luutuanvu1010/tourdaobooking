@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.11",
+    date: "2026-09-25",
+    items: [
+      { kind: "doi", text: "\"Lập đơn mới\" đổi tên thành \"Tạo đơn\". Màn Tạo đơn nay đi theo thứ tự: chọn ngày, chọn dịch vụ, rồi nhập thông tin khách." },
+      { kind: "moi", text: "Nút \"Sử dụng thông tin của tôi\" ở Tạo đơn: tự điền tên và số điện thoại của chính bạn làm thông tin khách." },
+      { kind: "doi", text: "\"Đã cọc\" đổi thành \"Thanh toán trước\", \"Hình thức cọc\" đổi thành \"Phương thức thanh toán\" (để sẵn Tiền mặt)." },
+      { kind: "doi", text: "Nút \"Xác nhận gửi khách\" trong đơn đổi tên thành \"Xem biên nhận\"; danh sách đơn hàng có thêm số thứ tự." },
+    ],
+  },
+  {
     version: "1.10",
     date: "2026-09-25",
     items: [
