@@ -129,3 +129,33 @@ Chủ dự án: *"đây là khung của Enterprise OS để tham chiếu cho to�
 ### 7.3 Hai tài liệu còn trống (đề xuất, chủ duyệt)
 1. **`docs/RANG_BUOC_NGOAI.md`** — ràng buộc bên ngoài (luật, thuế, giới hạn Cloudflare/iOS), mỗi dòng có nguồn + ngày kiểm lại (`FRAMEWORK.md` v1.4). Câu đầu tiên cần trả lời: sổ công nợ nội bộ có phải "sổ kế toán" theo luật (lưu 10 năm) không.
 2. **Sổ vàng** — bộ ca tiền (bắt đầu từ ví dụ 5.1, 5.2A/B của đặc tả Hoàn tất) do chủ/Kế toán xác nhận, trước khi thi công sổ công nợ.
+
+## 8. Cấu trúc luật cho nhiều dự án — Hiến pháp chung hay riêng? (2026-09-25)
+
+Chủ dự án hỏi: *"Kiểm tra lại xem cấu trúc như thế nào là hợp lý, chiếu theo thực hành tốt và tài liệu chính thức của Anthropic và tài liệu Enterprise OS? Liệu Hiến pháp đặt nền của mọi dự án hay đặt riêng cho từng dự án?"*
+
+### 8.1 Tài liệu chính thức của Anthropic (tra 2026-09-25, qua subagent `claude-code-guide`)
+- Bốn tầng `CLAUDE.md`: tổ chức (macOS `/Library/Application Support/ClaudeCode/CLAUDE.md`), người dùng (`~/.claude/CLAUDE.md`, mọi dự án trên máy), dự án (`./CLAUDE.md`, commit vào git), cá nhân trong dự án (`CLAUDE.local.md`); `CLAUDE.md` thư mục con nạp khi cần; nhập bằng `@đường-dẫn` — https://code.claude.com/docs/en/memory.md
+- `CLAUDE.md` là **lời khuyên**, hook mới **chắc chắn**: "Claude treats them as context, not enforced configuration. To block an action regardless of what Claude decides, use a PreToolUse hook instead." (memory.md); "Unlike CLAUDE.md instructions which are advisory, hooks are deterministic" — https://code.claude.com/docs/en/best-practices.md
+- Mỗi `CLAUDE.md` nên dưới ~200 dòng; dài thì tách theo thư mục/`.claude/rules` (best-practices.md). Hiện: `CLAUDE.md` 121, `src/CLAUDE.md` 33, `web/CLAUDE.md` 45 — đạt.
+- Cài đặt (quyền, hook) gộp theo tầng; `~/.claude/settings.json` áp mọi dự án trên máy — https://code.claude.com/docs/en/settings.md
+- Plugin đóng gói kỹ năng, agent, hook dùng lại cho nhiều repo; **không** chứa `CLAUDE.md`; **không nạp ở phiên cloud/web** — https://code.claude.com/docs/en/plugins/overview.md
+- Tài liệu chính thức **không** nói về mô hình "Hiến pháp chung + bản chép ghim"; đó là cách của playbook (ADR-0012).
+
+### 8.2 Hiện trạng trên máy (đo 2026-09-25, chỉ đọc)
+Có **ba dòng Hiến pháp**, dòng nào cũng tự ghi "áp cho mọi dự án":
+| Nơi | Phiên bản | Dự án dùng |
+|---|---|---|
+| `Master-Project-Framework/CONSTITUTION.md` | v2.2.0 (2026-06-10) | — |
+| `CoreSchemaProject/playbook/CONSTITUTION.md` | v2.3.0 (2026-08-22) | tourdao-sales, pt-hdv (bản ghim khớp băm); nhatrangtravel, Aquanova còn ghim **v2.2.0** |
+| `ketoanvn/CONSTITUTION.md` | **v3.1.0** (2026-08-23), rẽ nhánh từ v2.2.0, cùng số hiệu P1–P21/N1–N10 | ketoanvn |
+⇒ Hiến pháp chung đang **vi phạm chính N7** ở cấp danh mục dự án. Không có `~/.claude/CLAUDE.md` và không có tệp cấp tổ chức.
+
+### 8.3 Khuyến nghị (chủ dự án quyết — việc liên dự án, repo này không tự làm; N4)
+1. **Một Hiến pháp chung duy nhất cho mọi dự án**, có phiên bản, sống ở **một kho riêng chỉ chứa luật** (không lẫn trong một dự án website như `CoreSchemaProject`). Hợp nhất v2.3.0 + v3.1.0 (cùng gốc) thành một bản, bổ sung nguyên tắc chung của Enterprise OS (sự kiện là gốc; sổ chỉ ghi thêm; hai trục thời gian; quy tắc là dữ liệu có phiên bản; truy nguồn; lõi tất định — AI không tính tiền; hộp thư đi; sổ vàng).
+2. **Mỗi dự án chép bản ghim chỉ-đọc** của Hiến pháp (giữ cách ADR-0012): đi cùng mã trong git, phiên cloud/web vẫn thấy (cấp người dùng và plugin không nạp ở cloud), biết chính xác dự án theo phiên bản nào. Dự án cũ nâng ghim lên bản hợp nhất.
+3. **Mỗi dự án có hồ sơ riêng chỉ siết thêm** (Hiến pháp 9.7): `RANG_BUOC_NGOAI.md` (ràng buộc bên ngoài), `ARCHITECTURE.md` (hiến chương kiến trúc riêng — Phần I ở đây), các tài liệu còn lại của bộ 9.
+4. **`CLAUDE.md` ngắn** (< 200 dòng), là bản đồ + lệnh + điều cấm; chi tiết theo thư mục.
+5. **Cưỡng chế bằng máy** tách hai loại: rào **dùng chung** mọi dự án (chặn lệnh ghi hệ thống thật, `--force`, đọc bí mật) → có thể đặt ở `~/.claude/settings.json` hoặc đóng gói plugin; rào **riêng dự án** (test kiến trúc, trigger, `guard-remote`) → trong repo.
+6. Tuỳ chọn: `~/.claude/CLAUDE.md` vài dòng trỏ "mỗi dự án có `playbook/CONSTITUTION.md`, tuân theo nó" — lưới an toàn cho dự án mới chưa ghim; không chép nội dung Hiến pháp vào đó (tránh nguồn thứ hai).
+7. Với Tour Đảo: Phần I `ARCHITECTURE.md` giữ **phần riêng**; khi Hiến pháp hợp nhất có điều chung tương ứng, rút điều đó thành "theo Hiến pháp điều X".
