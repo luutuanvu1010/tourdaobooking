@@ -1,7 +1,7 @@
 # ADR-0022 — "Bảng tin": máy chủ chủ động báo mọi màn hình đang mở khi đơn đổi (Durable Object + WebSocket ngủ đông)
 
-- **Trạng thái:** **proposed** — AI soạn 2026-09-25 theo yêu cầu của chủ dự án (phiên chat 2026-09-25): không hỏi lại máy chủ theo chu kỳ; "thiết kế một cái hook để phần thông báo luôn lắng nghe mỗi khi có thay đổi trạng thái, hiện thông báo cập nhật trên toàn dashboard chung". AI **không tự duyệt** (N3, Điều 7.2). Sau khi accepted chỉ sửa dòng trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
-- **Ngày:** 2026-09-25   **Người phê chuẩn:** chủ dự án (chưa duyệt)
+- **Trạng thái:** **accepted** — chủ dự án duyệt trực tiếp trong phiên chat 2026-09-25 ("1- Duyệt, 2- Duyệt, 3- ok, 4- Trước": duyệt hướng Durable Object + WebSocket; Q-B, Q-C, Q-D theo khuyến nghị của nghiên cứu §6 — xem mục "Trả lời của chủ" cuối tệp). Soạn bởi AI 2026-09-25 theo yêu cầu của chủ (không hỏi lại máy chủ theo chu kỳ; "một cái hook để phần thông báo luôn lắng nghe mỗi khi có thay đổi trạng thái"). Sau mốc này chỉ sửa dòng trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+- **Ngày:** 2026-09-25   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-25)
 - **Loại quyết định:** **cửa một chiều mềm.** Thêm thành phần hạ tầng mới (lớp Durable Object trong cấu hình Worker). Gỡ phần dùng (route, bộ lắng nghe) là một commit; gỡ hẳn lớp DO cần một bước cấu hình `deleted_classes`. Không migration D1, không bảng mới, không đổi quyền của ai.
 - **Nghiên cứu, phương án, chi tiết:** `docs/superpowers/specs/2026-09-25-thong-bao-tuc-thi-nghien-cuu.md` (bản này chỉ ghi điều được quyết).
 - **Liên quan:** ADR-0020 điều 10 (trỏ sang đây); ADR-0018 dòng 14/37 và đặc tả mô hình vai giai đoạn 6 (Web Push — **không** thuộc ADR này, sẽ dùng lại điểm phát và hàm tính nhóm nhận); ADR-0014 điều 12 (đã đọc nguyên văn, `ADR-0014:116-119`: thay đổi do hướng dẫn viên làm được báo tới **đối tác** bằng **chấm đếm trong app**, "**không làm** thông báo đẩy về điện thoại"; ADR-0018 dòng 14 sửa: có báo đẩy cho Điều hành, đối tác vẫn không). ADR này **không** đẩy lên điện thoại khi app đóng, chỉ báo màn hình đang mở. Với **đối tác**, bảng tin chỉ **làm mới màn hình và chấm đếm**, **không** hiện thông báo nổi — để khỏi chồng lên cách điều 12 đã chọn; chủ xác nhận ở câu Q-C của nghiên cứu; ADR-0002 (ranh giới module).
@@ -35,3 +35,10 @@ Hỏi theo chu kỳ (chủ loại); Server-Sent Events (giữ trạm thức, t�
 - Tài liệu: `docs/SYSTEM-DESIGN.md` (§2–§4, §7, §11), `docs/CHANGE-GUIDE.md` (công thức "thêm route ghi đơn thì gọi `baoThayDoi`"), `docs/HANDOFF-N1.md` (deploy ngắt mọi kết nối — bình thường), `docs/SO-HANG-RAO.md`.
 - Việc lớn (triển khai + quyền) → người kiểm độc lập chỉ đọc sau thi công.
 - Mỗi lần deploy mọi kết nối bị ngắt rồi tự nối lại — không phải sự cố.
+
+## Trả lời của chủ (2026-09-25, phiên chat)
+
+- **Q-A:** duyệt phương án B (Durable Object + WebSocket ngủ đông).
+- **Q-B:** thông báo nổi cho: đơn mới chưa có người (chỉ người có `dispatch.claim`), có người nhận / đổi người phụ trách, xác nhận, huỷ; sửa nội dung/chuyến/tiền chỉ làm mới.
+- **Q-C:** đối tác chỉ làm mới màn hình + chấm đếm (giữ ADR-0014 điều 12), không thông báo nổi.
+- **Q-D:** làm **trước** ADR-0020.

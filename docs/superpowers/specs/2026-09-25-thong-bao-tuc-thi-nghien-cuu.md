@@ -3,7 +3,7 @@
 - **Ngày:** 2026-09-25. **Vai:** lập kế hoạch / nghiên cứu (không thi công).
 - **Nguồn yêu cầu:** chủ dự án, phiên chat 2026-09-25, khi chốt ADR-0020: *"nếu hỏi liên tục thế thì quá nhiều request, ta phải thiết kế 1 cái hook để phần thông báo luôn lắng nghe mỗi khi có thay đổi trạng thái, hiện thông báo cập nhật trên toàn dashboard chung, nghiên cứu kỹ chỗ này."* Chủ đã loại phương án hỏi lại máy chủ theo chu kỳ.
 - **Quyết định đi kèm:** bản nháp **ADR-0022** (`docs/adr/ADR-0022-bang-tin-thong-bao-tuc-thi.md`, proposed).
-- **Trạng thái:** bản nghiên cứu, **chưa duyệt**. Chạm triển khai (thành phần hạ tầng mới), quyền (ai nhận tin về đơn nào), cấu hình Cloudflare → **việc lớn** (CLAUDE.md §3).
+- **Trạng thái:** chủ đã duyệt hướng B và trả lời Q-A…Q-D theo khuyến nghị (2026-09-25; ghi ở ADR-0022, accepted). Chạm triển khai (thành phần hạ tầng mới), quyền (ai nhận tin về đơn nào), cấu hình Cloudflare → **việc lớn** (CLAUDE.md §3).
 
 ## 0. Bài toán, nói bằng lời thường
 
