@@ -744,7 +744,7 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 
 ## 17. Bản đồ lõi (mô tả hiện trạng theo Hiến chương kiến trúc, `docs/ARCHITECTURE.md` Phần I)
 
-> Tài liệu **mô tả**: thua mã, sửa cùng commit khi mã đổi. Cập nhật 2026-09-25 (main `eec8d18`, bản 1.13). Luật (chuẩn tắc) ở `docs/ARCHITECTURE.md`; đây chỉ ghi **đang nằm ở đâu** và **đạt/lệch/chưa có**.
+> Tài liệu **mô tả**: thua mã, sửa cùng commit khi mã đổi. Cập nhật 2026-09-25 (main `eec8d18`, bản 1.13). ADR-0022 (đã duyệt) và ADR-0024…0026 (nháp) nhắc dưới đây đang ở nhánh `thong-bao-tuc-thi`, **chưa gộp `main`**. Luật (chuẩn tắc) ở `docs/ARCHITECTURE.md`; đây chỉ ghi **đang nằm ở đâu** và **đạt/lệch/chưa có**.
 
 | Lõi | Đang nằm ở | Tình trạng |
 |---|---|---|
@@ -760,7 +760,7 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 | K10 Chính sách & chụp | giá chụp lúc lập (`order_item.catalog_price/unit_price`); ghi đè giá danh mục (`catalog_override`) | chiết khấu/giá vốn/người bán: chưa có (module `pricing` dự kiến, ADR-0024 nháp) |
 | K11 Danh mục tham chiếu | `catalog` (đồng bộ Google Sheet), các bảng tra cứu `*_type`, `*_kind`, `*_status` | đạt; `catalog` còn `LEGACY` |
 | K12 Nhật ký | `audit` (`audit_log` chỉ-thêm, trigger 0017), `src/shared/audit-actions.ts` | đạt; nhật ký cũ trên production còn SĐT (`staff_updated` trước 21/9) |
-| K13 Hình chiếu tiền | chỉ có cột cọc trên `orders` + `order_money_adjustment` | **chưa có sổ công nợ** (`billing`, ADR-0026 nháp); `order_money_adjustment` thiếu cột dấu vết, có `CASCADE` |
+| K13 Hình chiếu tiền | chỉ có cột cọc trên `orders` + `order_money_adjustment` | **chưa có sổ công nợ** (`billing`, ADR-0026 nháp); `order_money_adjustment` có `CASCADE` (lệch Hiến chương 5.5; thiếu cột dấu vết là cố ý theo ADR-0007 điều 2) |
 | K14 Tích hợp | `catalog/sheet.ts` + Cron 15 phút; email `send_email`; Turnstile | đạt (đồng bộ chạy lại không sinh trùng) |
 | K15 Báo cáo | view công bố `v_*`; Trang chủ (`/api/orders/dashboard`) | đạt ở mức hiện có |
 | K16 Thông báo | chưa có (Bảng tin — ADR-0022 đã duyệt, chưa thi công); email Góp ý | — |

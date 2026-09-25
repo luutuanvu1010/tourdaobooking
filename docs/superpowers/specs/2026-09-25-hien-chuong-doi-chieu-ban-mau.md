@@ -56,7 +56,7 @@
 | 18 Reporting/Semantic Model | K15 | |
 | — | **K16 Thông báo** (mới) | Bảng tin, ADR-0022: hình chiếu, không kích hoạt tiền |
 
-## 4. Điều mới (chưa có ADR nào) — duyệt Hiến chương là duyệt cả ba
+## 4. Nguyên tắc mới (chưa có ADR nào) — chủ dự án duyệt **từng điều, tường minh**, không "duyệt kèm"
 
 - **5.7 Giữ đối tượng khi thiếu điều kiện** (tương đương "hold" của Oracle Order Management).
 - **5.8 Bước của luồng gắn với vai trên đối tượng.**
@@ -70,10 +70,12 @@
 | 2. Ai bấm "Đã giao" | **5.8** | khung: quyền xét theo **vai "người đang phụ trách" trên đơn** kết hợp mức quyền. Mức quyền nào (chỉ HDV, hay cả Bán hàng đang phụ trách) vẫn là **một ô bản đồ quyền** ghi ở ADR-0025 — Hiến chương không tự quyết ô đó; khuyến nghị: mọi mức được làm người phụ trách |
 | 3. "Còn lại" âm | **5.9** | không chặn; phần dư → khoản chờ hoàn; Kế toán ghi hoàn |
 | 4. Cộng tác viên hưởng hoa hồng | **2.2** (vai là dữ liệu) + 5.2 | chỉ là một dòng chính sách, không cần quyết định |
-| 5. Bảng `order_money_adjustment` thiếu dấu vết + `CASCADE` | **5.5** + 6.3 | nợ có tên; sửa khi đợt 1 chạm bảng đó |
+| 5. Bảng `order_money_adjustment` | **5.5** + 6.3 | thiếu cột dấu vết là **cố ý** (ADR-0007 điều 2, đạt 5.5); chỉ `CASCADE` là nợ có tên, sửa khi đợt 1 chạm bảng |
 | 6. Thứ tự làm | **5.13** nền trước | định danh & quyền (ADR-0019, vá DK) → bên (hồ sơ Tour Đảo) → chính sách → đơn & luồng → sổ tiền → thông báo; Bảng tin (ADR-0022, đã duyệt) chạy song song vì là hình chiếu độc lập |
 
-Những câu này vẫn cần **ghi vào ADR-0024…0026** khi trình (theo Hiến chương điều X), nhưng không còn là câu hỏi mở cho chủ dự án.
+Hiến chương **định hướng** câu trả lời; câu trả lời cụ thể vẫn **ghi vào ADR-0024…0026** (theo Hiến chương điều X) và chủ dự án duyệt ADR đó như thường lệ (kèm trang ghép khi chạm quyền/dữ liệu). Lợi ích: chủ duyệt ADR bằng cách đối chiếu với nguyên tắc đã chốt, không phải trả lời lại từng câu từ đầu.
+
+**Lưu ý mốc chụp (H5):** chủ dự án trả lời trong phiên chat 2026-09-25 rằng chụp mức chiết khấu/giá vốn/người bán **lúc Xác nhận**; ADR-0018 điều 11 (đã duyệt) ghi **"lúc gửi đơn"**. Hiến chương không tự đổi câu đó (5.6); ADR-0024…0026 phải ghi rõ là thay ADR-0018 điều 11 và chủ xác nhận khi duyệt.
 
 ## 6. Việc kèm theo (không tự làm — N9)
 

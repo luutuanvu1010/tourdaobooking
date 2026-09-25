@@ -70,7 +70,7 @@ Lõi là "hệ điều hành" của app: các khái niệm **mọi module dùng 
 | K13 | **Hình chiếu tiền** | sổ công nợ **sinh từ sự kiện theo luật**, mỗi dòng trỏ về nguồn |
 | K14 | **Hợp đồng tích hợp** | Google Sheet, Cloudflare, email — chạy lại không sinh trùng (lặp an toàn) |
 | K15 | **Báo cáo** | đọc qua view công bố / hình chiếu, không đọc bảng gốc module khác |
-| K16 | **Thông báo** | Bảng tin (ADR-0022) — hình chiếu cho màn hình, **không bao giờ là nguồn sự thật hay nơi kích hoạt tiền** |
+| K16 | **Thông báo** | Bảng tin (ADR-0022, đã duyệt 2026-09-25; tệp ADR đang ở nhánh `thong-bao-tuc-thi`, chưa gộp `main`) — hình chiếu cho màn hình, **không bao giờ là nguồn sự thật hay nơi kích hoạt tiền** |
 
 Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/shared/`). Module nghiệp vụ dùng lõi qua `index.ts`, không làm bản riêng.
 
@@ -96,15 +96,15 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 
 **5.4 Tiền: một nguồn tính duy nhất.** Tiền là `INTEGER` VNĐ, **chỉ tính ở máy chủ**, không tin số từ trình duyệt. Mỗi con số dẫn xuất có **đúng một hàm** tính nó, mọi đường (lập, sửa, đọc, chứng từ) đi qua hàm đó, có hàng rào chặn đường tính thứ hai. (Bài học DK-T2-01, 2026-09-25: hai đường tính cho cùng dòng tiền → mất giá thoả thuận.)
 
-**5.5 Chỉ-thêm và đảo; mọi bảng có dấu vết.** Bảng sổ, nhật ký, điều chỉnh là **chỉ-thêm**, sai thì ghi dòng đảo. **Mọi bảng** có cột ai tạo / lúc nào / ai sửa / lúc nào (bảng chỉ-thêm ghi phần "sửa" bằng phần "tạo" và bị trigger cấm sửa); không `CASCADE`; không xoá cứng — đóng hiệu lực hoặc `active = 0` (ADR-0003). Bảng cũ lệch điều này là **nợ có tên**, sửa khi được chạm.
+**5.5 Chỉ-thêm và đảo; mọi bảng có dấu vết.** Bảng sổ, nhật ký, điều chỉnh là **chỉ-thêm**, sai thì ghi dòng đảo. **Mọi dòng dữ liệu nghiệp vụ truy được ai tạo / lúc nào** — bằng cột dấu vết trên chính bảng (bảng chỉ-thêm ghi phần "sửa" bằng phần "tạo" và bị trigger cấm sửa), **hoặc** bằng nối một-một với dòng `audit_log` qua khoá chung khi ADR đã chọn như vậy (ADR-0007 điều 2: `order_money_adjustment`); không `CASCADE`; không xoá cứng — đóng hiệu lực hoặc `active = 0` (ADR-0003). Bảng cũ lệch điều này là **nợ có tên**, sửa khi được chạm.
 
-**5.6 Chụp tại mốc.** Chính sách áp cho một đối tượng được **chụp** (lưu bản sao con số + nguồn quy tắc) vào đối tượng tại **một mốc cố định do ADR của nghiệp vụ đó quy định**; đổi chính sách sau mốc không đổi đối tượng đã chụp. (Đơn: mốc Xác nhận — chủ dự án chốt H5, 2026-09-25.)
+**5.6 Chụp tại mốc.** Chính sách áp cho một đối tượng được **chụp** (lưu bản sao con số + nguồn quy tắc) vào đối tượng tại **một mốc cố định do ADR của nghiệp vụ đó quy định**; đổi chính sách sau mốc không đổi đối tượng đã chụp. Hiến chương **không** tự đặt mốc cho nghiệp vụ nào; đổi mốc đã ghi trong một ADR đã duyệt (vd ADR-0018 điều 11: chiết khấu chụp "lúc gửi đơn") phải bằng ADR mới ghi rõ câu bị thay.
 
-**5.7 Giữ đối tượng khi thiếu điều kiện** *(điều mới)*. Một đối tượng thiếu cài đặt bắt buộc cho bước kế tiếp (vd chưa có mức chiết khấu cho bên đặt, chưa có người bán cho dịch vụ) **không bị chặn im lặng và không được đoán**: nó bị **giữ** ở bước hiện tại, hiện rõ lý do giữ và ai phải xử lý; xử lý xong thì được thả. Không bao giờ "lấy 0 cho tiện" với số tiền.
+**5.7 Giữ đối tượng khi thiếu điều kiện** *(nguyên tắc mới — chủ dự án duyệt riêng; áp vào nghiệp vụ cụ thể bằng ADR có trang ghép)*. Một đối tượng thiếu cài đặt bắt buộc cho bước kế tiếp (vd chưa có mức chiết khấu cho bên đặt, chưa có người bán cho dịch vụ) **không bị chặn im lặng và không được đoán**: nó bị **giữ** ở bước hiện tại, hiện rõ lý do giữ và ai phải xử lý; xử lý xong thì được thả. Không bao giờ "lấy 0 cho tiện" với số tiền.
 
-**5.8 Bước của luồng gắn với vai trên đối tượng** *(điều mới)*. Quyền làm một bước (nhận đơn, xác nhận, đã giao, hoàn thành) được xét theo **vai của người đó trên chính đối tượng** (người lập, người phụ trách, bên đặt…) kết hợp mức quyền (K4), không theo loại tài khoản đơn thuần.
+**5.8 Bước của luồng gắn với vai trên đối tượng** *(nguyên tắc mới — chủ dự án duyệt riêng; ô quyền cụ thể vẫn quyết ở ADR)*. Quyền làm một bước (nhận đơn, xác nhận, đã giao, hoàn thành) được xét theo **vai của người đó trên chính đối tượng** (người lập, người phụ trách, bên đặt…) kết hợp mức quyền (K4), không theo loại tài khoản đơn thuần.
 
-**5.9 Trả dư thành khoản chờ hoàn** *(điều mới)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư thành **khoản công ty còn phải hoàn** trong sổ, người có quyền ghi việc hoàn.
+**5.9 Trả dư thành khoản chờ hoàn** *(nguyên tắc mới — chủ dự án duyệt riêng; luồng hoàn tiền cụ thể quyết ở ADR của sổ tiền)*. Khi đối tượng giảm giá trị sau khi đã thu tiền (khách bớt người, huỷ), hệ thống **không chặn** thao tác phản ánh thực tế; phần dư thành **khoản công ty còn phải hoàn** trong sổ, người có quyền ghi việc hoàn.
 
 **5.10 Thông báo không bao giờ kích hoạt tiền.** Ghi tiền xảy ra **trong cùng lô** với sự kiện sinh ra nó; thông báo (Bảng tin, email) chỉ chạy **sau** khi lô đã thành công và được phép thất lạc.
 
@@ -133,8 +133,8 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 | 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại) | **Tour Đảo chưa có hồ sơ** (`company_profile` một dòng, không `party_id`) | ADR-0001 |
 | 2.2 Bốn loại thứ | dựa vào kỷ luật (rà ở kiểm độc lập) | — | ADR-0003 |
 | 2.3 Điều khoản trên vai, không trên tài khoản | dựa vào kỷ luật | — | ADR-0018 đ1 |
-| K4 / 5.8 Quyền qua `can()` | `permission-enforcement.test.ts`, `route-write-guard.test.ts` + sổ hoãn `quyen-hoan.json` | các ô/route còn hoãn trong `docs/quyen-hoan.json` (hạn 15/10, 30/11, 31/12); hàng rào canh theo ô, chưa theo route GET (DK-T3-04) | ADR-0007, ADR-0019 |
-| 4.2 / 5.5 Chỉ-thêm, đảo | trigger `audit_log_no_update/delete` (0017), trigger chặn sửa/xoá `order_money_adjustment` (0021) | `order_money_adjustment` **thiếu cột dấu vết, có `CASCADE`** (0021); sổ công nợ chưa có | ADR-0003, ADR-0007 |
+| K4 / 5.8 Quyền qua `can()` | `permission-enforcement.test.ts`, `route-write-guard.test.ts` + sổ hoãn `quyen-hoan.json` | các ô/route còn hoãn trong `docs/quyen-hoan.json` (hạn 15/10, 30/11, 31/12); hàng rào canh theo ô, chưa theo route GET (phát hiện DK-T3-04, mức MEDIUM, `docs/AUDIT-2026-09-24-DIEM-KHUAT.md` trên nhánh `claude/tourdao-sales-audit-62ea81`) | ADR-0007, ADR-0019 |
+| 4.2 / 5.5 Chỉ-thêm, đảo | trigger `audit_log_no_update/delete` (0017), trigger chặn sửa/xoá `order_money_adjustment` (0021) | `order_money_adjustment` có `ON DELETE CASCADE` (0021:7) — lệch 5.5; (không có cột dấu vết là **cố ý**, nối `audit_log` theo ADR-0007 điều 2 — đạt); sổ công nợ chưa có | ADR-0003, ADR-0007 |
 | 4.4 Chứng từ danh sách trắng | dựa vào kỷ luật | như 1.4 | — |
 | 5.1 Bất biến sát dữ liệu | trigger 0008 (khoá dịch vụ), 0017 (trạng thái chỉ đi tiến), `audit-invariants` | khoá tiền đơn đã xác nhận **chỉ ở mã** (đặc tả 2026-09-22 bước B chưa làm) | ADR-0003 |
 | 5.3 Modular monolith | `architecture.test.ts` (import, cạnh, view, `EXPLAIN` SQL module nghiêm) | module `LEGACY` (`accounts`, `audit`, `catalog`, `orders`); trigger đọc chéo module **chưa có bài kiểm** | ADR-0002, ADR-0008 |
