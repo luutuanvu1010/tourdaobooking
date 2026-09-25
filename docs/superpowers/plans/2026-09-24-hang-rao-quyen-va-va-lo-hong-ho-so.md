@@ -151,3 +151,10 @@ Mã làm đúng đặc tả; đặc tả sinh lỗ vì ba quyết định duyệ
   - **Q8 = có**: làm việc chọn hướng dẫn viên dễ thấy hơn — danh sách chọn ghi vai cạnh tên, hướng dẫn viên xếp đầu (đặc tả mô hình vai §8 điểm 2 đã duyệt), hộp xác nhận không che khối người phụ trách.
   - **Q9 = chưa cần**: không thêm lối vào màn Hồ sơ trên điện thoại ở đợt này.
 - Tiếp theo: gói GĐ2 (ADR-0019 tách cổng + route quản trị hỏi bảng; ADR-0020 đơn chờ hướng dẫn viên nhận; trang ghép; kế hoạch thi công) trên nhánh `ke-hoach-gd2`, chờ chủ duyệt. Số 0019/0020 đã kiểm còn trống trên mọi nhánh (2026-09-25).
+- **Gói GĐ2 (nhánh `ke-hoach-gd2`):** `docs/adr/ADR-0019-tach-cong-van-phong-va-route-hoi-bang.md`, `docs/adr/ADR-0020-don-moi-cho-huong-dan-vien-nhan.md` (proposed — trình ở lượt duyệt sau, khi Phần B đã lên production: luật "dừng dây chuyền"), trang ghép `docs/superpowers/specs/2026-09-25-gd2-trang-ghep.md`, kế hoạch `docs/superpowers/plans/2026-09-25-gd2-thi-cong.md`.
+- **Chủ dự án quyết (2026-09-25, phiên chat — số Q10–Q13 là số của gói GĐ2, không phải Q của mục §5 trên):**
+  - **ADR-0019: duyệt** (accepted 2026-09-25).
+  - **Q10 = giữ** `task.progress`, `dispatch.guides.view` trong bảng, hoãn tới **2026-11-30** (hạn máy). Tiêu chí §2 GĐ2 "sau GĐ2 chỉ còn mục N3" đọc lại thành: còn mục N3 + hai ô này.
+  - **Q11 = chặn**: luật cấp bậc "tự mình hoặc cấp dưới" (ADR-0014 điều 8) nay áp cho thêm/kết thúc vai và quan hệ trên hồ sơ gắn tài khoản (với quan hệ: cả hai đầu); Quản trị không làm được trên hồ sơ của Quản trị khác/Toàn quyền; Toàn quyền làm được; hồ sơ không gắn tài khoản giữ nguyên. Ghi vào ADR-0019 (sửa một phần ADR-0014 điều 8).
+  - **Q12** (số lần phát hành): chủ chưa trả lời riêng — AI áp khuyến nghị 3 lần (R1 = Q8 + ADR-0019, R2 = ADR-0017 + hướng dẫn viên bấm Nhận, R3 = ADR-0020); đổi được.
+  - **Q13 = sửa riêng ngay, trước Phần B**: Đối tác/Thực tập không nạp được danh mục khi lập đơn → Phần A0 (route `GET /api/catalog/for-order`, cổng `orders`, `can(order.create)`), phát hành riêng R0.
