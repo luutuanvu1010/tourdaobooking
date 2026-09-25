@@ -158,9 +158,7 @@ export const dispatchModule: AppModule = {
       if (!result.ok) {
         if (result.code === "not_found") return NOT_FOUND();
         if (result.code === "not_confirmed") return MONEY_EDIT_NOT_CONFIRMED();
-        if (result.code === "stale") return MONEY_EDIT_STALE();
-        if (result.code === "below_deposit") return error(409, "below_deposit", result.message ?? "Số khách mới làm tiền đơn thấp hơn tiền cọc.");
-        return error(400, "invalid_input", result.message ?? "Dữ liệu không hợp lệ.");
+        if (result.code === "stale") return MONEY_EDIT_STALE();        return error(400, "invalid_input", result.message ?? "Dữ liệu không hợp lệ.");
       }
       return json({ ok: true } satisfies HandlerMoneyEditResponse);
     }),

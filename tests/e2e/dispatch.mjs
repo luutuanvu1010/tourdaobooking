@@ -909,8 +909,8 @@ try {
   // --------------------------------------------------------------------------------------------------------------------------------------
   // DK-T2-01 (kiểm toán điểm khuất 24/9, CRITICAL): đơn có GIÁ THOẢ THUẬN (200.000₫/khách, danh mục ZH1 niêm yết 300.000₫) — HDV lưu số khách
   // KHÔNG được làm tiền đơn nhảy về giá niêm yết. Số mong đợi TỰ TÍNH từ kịch bản. G1: gửi lại y nguyên → không ghi dòng điều chỉnh, tiền không
-  // đổi. G2: 2→3 → 3 × 200.000 ở CẢ bốn bề mặt (chi tiết, /orders, Trang chủ; Việc của tôi chỉ số khách), còn lại = tổng − cọc. G3: giảm khách
-  // làm tổng thấp hơn cọc → 409 below_deposit, không ghi gì.
+  // đổi. G2: 2→3 → 3 × 200.000 ở CẢ bốn bề mặt (chi tiết, /orders, Trang chủ; Việc của tôi chỉ số khách), còn lại = tổng − cọc.
+  // ("Còn lại" âm khi HDV giảm khách: KHÔNG chặn — việc mở chưa quyết, xem docs/CHANGE-GUIDE.md §4 mục 32.)
   // --------------------------------------------------------------------------------------------------------------------------------------
   {
     const DEAL = 200000;
@@ -955,14 +955,6 @@ try {
     assert.deepEqual([Number(adj.subtotal_before), Number(adj.subtotal_after)], [2 * DEAL, exp], "G2: cột đã lưu cũng theo giá thoả thuận (R-ORD-6a khớp orders.subtotal)");
     assert.deepEqual(JSON.parse(adj.after_json)[0].unitPrices, { adult: DEAL }, "G2: after_json lưu kèm đơn giá để truy vết");
     console.log("✓ DK-T2-01 G2: HDV 2→3 khách → 3 × giá thoả thuận ở chi tiết, /orders, Trang chủ; cột đã lưu cũng đúng");
-
-    // G3 — giảm làm tổng thấp hơn cọc (3 → 1: 200.000 < cọc 300.000)
-    r = await moneyEdit(FIELD, g.id, { reason: "Khách huỷ bớt", services: [{ id: gSvc, pax: pax(1) }] });
-    assert.equal(r.status, 409, JSON.stringify(r.body));
-    assert.equal(r.body.error.code, "below_deposit");
-    assert.doesNotMatch(r.body.error.message, /\d/, "không lộ số tiền cho HDV");
-    assert.equal(await adjCount(), 1, "G3: bị từ chối thì không ghi dòng nào");
-    console.log("✓ DK-T2-01 G3: giảm khách làm tổng thấp hơn cọc → 409 below_deposit, không ghi gì, không lộ tiền");
   }
   console.log("\n=== Đợt E task 7 — bảng số đo bốn bề mặt (tiền: total, hoặc remainingAmount cho D5) ===");
   for (const m of measured) {

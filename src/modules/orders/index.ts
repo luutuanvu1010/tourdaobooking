@@ -11,7 +11,7 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDiscountAndDeposit, getLatestAdjustment, getMeta, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
+  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
   updateDraftOrder, updateTrip,
 } from "./repository";
 import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
@@ -53,12 +53,12 @@ export async function cancelOrderByHandler(db: D1Database, id: string, staffId: 
   return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
 }
 
-export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "below_deposit" | "stale"; message?: string };
+export type MoneyEditResult = { ok: true } | { ok: false; code: "not_found" | "not_confirmed" | "invalid_input" | "stale"; message?: string };
 
 /**
  * Sửa số khách qua đường hẹp của người phụ trách CẤP HẸP (FIELD, ADR-0014 điều 6) — CHỈ ghi thêm một dòng điều chỉnh, không đụng
  * order_service/order_item/cột tiền của orders. `body` là thân JSON THÔ (đã đọc từ request, route chưa kiểm). Mọi quyết định (kiểm dạng, lưu y
- * nguyên thì không ghi, tiền trước/sau theo ĐƠN GIÁ ĐÃ THOẢ THUẬN, chặn "còn lại" âm) nằm ở luật thuần `money-adjustment.ts:planMoneyEdit`; hàm
+ * nguyên thì không ghi, tiền trước/sau theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) nằm ở luật thuần `money-adjustment.ts:planMoneyEdit`; hàm
  * này chỉ đọc D1 → gọi luật → ghi. Tiền trước/sau tính bằng `effectiveSubtotal` trên MỌI dịch vụ (kể cả nhập tay — bài học Đợt E task 7/9, lưới
  * e2e ở `tests/e2e/dispatch.mjs` khối D3 đọc thẳng cột đã lưu).
  */
@@ -67,19 +67,15 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
   if (!meta) return { ok: false, code: "not_found" };
   if (meta.status !== "confirmed") return { ok: false, code: "not_confirmed" };
 
-  const [stored, latest, money, servicesByOrder] = await Promise.all([
+  const [stored, latest, servicesByOrder] = await Promise.all([
     getStoredServices(db, orderId),
     getLatestAdjustment(db, orderId),
-    getDiscountAndDeposit(db, orderId),
     getServicesForSubtotal(db, [orderId]),
   ]);
-  if (!money) return { ok: false, code: "not_found" };
   const plan = planMoneyEdit({
     services: servicesByOrder.get(orderId) ?? [],
     storedPax: new Map(stored.map((s) => [s.id, s.pax])),
     latestAfter: latest?.after ?? null,
-    discount: money.discount,
-    depositAmount: money.depositAmount,
     body,
   });
   if (!plan.ok) return { ok: false, code: plan.code, message: plan.message };

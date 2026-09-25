@@ -245,8 +245,6 @@ export interface MoneyEditContext {
   storedPax: ReadonlyMap<string, PaxCounts>;
   /** `after` của dòng điều chỉnh gần nhất (đã qua `parseAdjustmentAfter`), null nếu chưa có. */
   latestAfter: readonly { serviceId: string; pax: PaxCounts }[] | null;
-  discount: number;
-  depositAmount: number;
   /** Thân JSON THÔ của request. */
   body: Record<string, unknown> | null;
 }
@@ -254,10 +252,7 @@ export interface MoneyEditContext {
 export type MoneyEditPlan =
   | { ok: true; write: false }
   | { ok: true; write: true; reason: string; before: AdjustmentEntry[]; after: AdjustmentEntry[]; subtotalBefore: number; subtotalAfter: number }
-  | { ok: false; code: "invalid_input" | "below_deposit"; message: string };
-
-/** Không lộ số tiền cho HDV (ADR-0007 điều 3) — thông báo KHÔNG chứa con số. */
-export const BELOW_DEPOSIT_MESSAGE = "Số khách mới làm tiền đơn thấp hơn tiền khách đã đặt cọc — không lưu được. Hãy báo nhân viên kinh doanh hoặc kế toán để xử lý.";
+  | { ok: false; code: "invalid_input"; message: string };
 
 const samePax = (a: PaxCounts, b: PaxCounts): boolean => PAX_ORDER.every((c) => a[c] === b[c]);
 
@@ -267,8 +262,8 @@ const samePax = (a: PaxCounts, b: PaxCounts): boolean => PAX_ORDER.every((c) => 
  *  2. Mọi dịch vụ Y NGUYÊN số khách hiện hành (dòng điều chỉnh gần nhất, hoặc số đã lưu) → `write: false`: KHÔNG ghi dòng điều chỉnh nào
  *     (DK-T2-01: "kiểm lại danh sách, không đổi" từng ghi một dòng và đổi tiền đơn).
  *  3. Tiền trước/sau tính bằng `effectiveSubtotal` (nguồn duy nhất, theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) trên MỌI dịch vụ của đơn.
- *  4. Lần sửa làm GIẢM tiền và đưa "còn lại" xuống dưới 0 (tổng < cọc, hoặc tổng âm do giảm giá) → `below_deposit`. Chỉ chặn khi lần sửa làm
- *     GIẢM tiền: đơn đã cọc dư từ lúc lập (hợp lệ, xem `order-confirmation.test.ts`) vẫn tăng khách được.
+ * KHÔNG chặn "còn lại" âm (giảm khách làm tổng < cọc) — giữ đúng hành vi trước bản vá DK-T2-01. Đây là việc MỞ, CHƯA quyết, để dành cho thiết
+ * kế sổ thu/hoàn tiền (docs/CHANGE-GUIDE.md §4 mục 32).
  */
 export function planMoneyEdit(c: MoneyEditContext): MoneyEditPlan {
   const catalog = c.services.filter((s) => s.catalogCode !== null);
@@ -296,8 +291,5 @@ export function planMoneyEdit(c: MoneyEditContext): MoneyEditPlan {
 
   const subtotalBefore = effectiveSubtotal(c.services, before);
   const subtotalAfter = effectiveSubtotal(c.services, after);
-  if (subtotalAfter < subtotalBefore && effectiveMoney(subtotalAfter, c.discount, c.depositAmount).remainingAmount < 0) {
-    return { ok: false, code: "below_deposit", message: BELOW_DEPOSIT_MESSAGE };
-  }
   return { ok: true, write: true, reason: input.reason, before, after, subtotalBefore, subtotalAfter };
 }

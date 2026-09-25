@@ -1,6 +1,6 @@
 // `planMoneyEdit` — luật THUẦN quyết định một lần "HDV sửa số khách" (POST /api/orders/:id/handler-money-edit) làm gì: không ghi (y nguyên), ghi
-// một dòng điều chỉnh, hay từ chối. Tách khỏi `editMoneyAsHandler` (I/O) để kiểm được không cần D1. Bối cảnh: DK-T2-01 (giá thoả thuận) + yêu cầu
-// điều phối 2026-09-25 (lưu y nguyên không ghi dòng; giảm khách làm tiền đơn thấp hơn cọc → từ chối).
+// một dòng điều chỉnh, hay từ chối (thân sai dạng). Tách khỏi `editMoneyAsHandler` (I/O) để kiểm được không cần D1. Bối cảnh: DK-T2-01 (giá
+// thoả thuận; lưu y nguyên không ghi dòng).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { effectiveSubtotal, parseAdjustmentAfter, planMoneyEdit, type SubtotalServiceInput } from "./money-adjustment.ts";
@@ -23,8 +23,6 @@ const ctx = (over: Partial<Parameters<typeof planMoneyEdit>[0]> = {}): Parameter
   services: [catalogSvc],
   storedPax: new Map([["svc-1", pax(2)]]),
   latestAfter: null,
-  discount: 0,
-  depositAmount: 1_000_000,
   body: { reason: "Khách báo thêm 1 người", services: [{ id: "svc-1", pax: pax(3) }] },
   ...over,
 });
@@ -61,28 +59,10 @@ test("planMoneyEdit: đơn trộn danh mục + nhập tay → tiền trước/sa
   if (r.ok && r.write) assert.deepEqual([r.subtotalBefore, r.subtotalAfter], [2 * DEAL + 200_000, 3 * DEAL + 200_000]);
 });
 
-test("planMoneyEdit: GIẢM khách làm tiền đơn THẤP HƠN tiền cọc → từ chối below_deposit, thông báo tiếng Việt KHÔNG lộ số tiền cho HDV", () => {
-  const r = planMoneyEdit(ctx({ depositAmount: 2 * DEAL, body: { reason: "Khách huỷ bớt", services: [{ id: "svc-1", pax: pax(1) }] } }));
-  assert.ok(!r.ok, JSON.stringify(r));
-  if (r.ok) return;
-  assert.equal(r.code, "below_deposit");
-  assert.match(r.message, /cọc/);
-  assert.doesNotMatch(r.message, /\d/, "HDV không được thấy tiền (ADR-0007 điều 3) — thông báo không chứa con số");
-});
-
-test("planMoneyEdit: giảm khách nhưng còn lại vẫn ≥ 0 → cho ghi", () => {
-  const r = planMoneyEdit(ctx({ storedPax: new Map([["svc-1", pax(3)]]), depositAmount: 1_000_000, body: { reason: "Khách huỷ bớt", services: [{ id: "svc-1", pax: pax(1) }] } }));
+test("planMoneyEdit: GIẢM khách → cho ghi, tiền theo giá thoả thuận (KHÔNG chặn 'còn lại' âm — giữ hành vi trước bản vá, việc mở chưa quyết)", () => {
+  const r = planMoneyEdit(ctx({ storedPax: new Map([["svc-1", pax(3)]]), body: { reason: "Khách huỷ bớt", services: [{ id: "svc-1", pax: pax(1) }] } }));
   assert.ok(r.ok && r.write, JSON.stringify(r));
-});
-
-test("planMoneyEdit: đơn ĐÃ cọc dư từ lúc lập (còn lại âm hợp lệ) — TĂNG khách vẫn cho ghi (chỉ chặn khi lần sửa làm GIẢM tiền)", () => {
-  const r = planMoneyEdit(ctx({ depositAmount: 5 * DEAL }));
-  assert.ok(r.ok && r.write, JSON.stringify(r));
-});
-
-test("planMoneyEdit: giảm giá lớn làm tổng âm sau khi giảm khách → từ chối below_deposit (kể cả cọc = 0)", () => {
-  const r = planMoneyEdit(ctx({ discount: 1_500_000, depositAmount: 0, body: { reason: "Khách huỷ bớt", services: [{ id: "svc-1", pax: pax(1) }] } }));
-  assert.ok(!r.ok && r.code === "below_deposit", JSON.stringify(r));
+  if (r.ok && r.write) assert.deepEqual([r.subtotalBefore, r.subtotalAfter], [3 * DEAL, 1 * DEAL]);
 });
 
 test("planMoneyEdit: thân sai dạng → invalid_input (giữ luật parseMoneyEditInput)", () => {

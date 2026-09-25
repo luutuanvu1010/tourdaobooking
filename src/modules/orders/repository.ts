@@ -870,12 +870,6 @@ export async function computeEffectiveMoney(
  * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Batch thất bại thì cả hai câu đều không
  * được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
  */
-/** Giảm giá + tiền cọc của đơn (không đổi qua điều chỉnh số khách) — `editMoneyAsHandler` cần để chặn "còn lại" âm (`planMoneyEdit`). */
-export async function getDiscountAndDeposit(db: D1Database, orderId: string): Promise<{ discount: number; depositAmount: number } | null> {
-  const row = await db.prepare("SELECT discount, deposit_amount FROM orders WHERE id = ?").bind(orderId).first<{ discount: number; deposit_amount: number }>();
-  return row ? { discount: row.discount, depositAmount: row.deposit_amount } : null;
-}
-
 export async function insertMoneyAdjustment(
   db: D1Database,
   orderId: string,
