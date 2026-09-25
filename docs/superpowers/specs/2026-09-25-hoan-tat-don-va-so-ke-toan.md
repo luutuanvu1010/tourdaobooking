@@ -1,6 +1,6 @@
 # Đặc tả (bản nháp): Hoàn tất đơn, sổ công nợ, chiết khấu theo vai, loại biên nhận theo dịch vụ
 
-- **Ngày:** 2026-09-25. **Vai:** lập kế hoạch (không thi công). **Trạng thái:** **chủ đã trả lời mọi câu §8 (2026-09-25, §10)**; bước tiếp: soạn ADR lượt 1 (D1–D3) + trang ghép. Chưa trình duyệt (chờ ADR-0019 lên production).
+- **Ngày:** 2026-09-25. **Vai:** lập kế hoạch (không thi công). **Trạng thái:** **chủ đã trả lời mọi câu §8 (2026-09-25, §10)**; **đã phản biện ba góc (2026-09-25): xem `2026-09-25-hoan-tat-phan-bien-tong-hop.md` — tài liệu đó THAY §2 (chỗ đặt bản ghi hoàn tất), §4 và §7 của đặc tả này; Q4 "ô Người giới thiệu" bị xét lại (H1)**; bước tiếp: chủ trả lời H1–H9, rồi soạn ADR lượt 1 (D0–D2) + trang ghép. Chưa trình duyệt (chờ ADR-0019 lên production).
 - **Việc lớn:** chạm dữ liệu (trạng thái mới, bảng sổ), tiền (công nợ, chiết khấu), quyền (ai hoàn tất, ai xem sổ) → mọi phần thi công có người kiểm độc lập (CLAUDE.md §3).
 - **Xây trên lỗ đang hở: `money.view`, `contact.view`** (`docs/quyen-hoan.json`) — hướng dẫn viên xem công nợ của mình, màn sổ của Kế toán đều dựa vào hai ô này → **không quyết định nào ở đây được duyệt trước khi ADR-0019 lên production** (luật "dừng dây chuyền").
 - **Không duyệt một lần được:** phạm vi sinh ít nhất 5 quyết định chạm dữ liệu/quyền; CLAUDE.md §9 cho tối đa 3 mỗi lượt, mỗi lượt kèm trang ghép. Đề xuất chia lượt ở §7.
