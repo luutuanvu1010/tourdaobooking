@@ -3,7 +3,7 @@ import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSumm
 import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
-import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type SubtotalServiceInput } from "./money-adjustment";
+import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -242,7 +242,7 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
     unit: s.unit,
     pax: paxOf(s),
     trip: tripOf(s),
-    items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price })),
+    items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price })),
   }));
 }
 
@@ -775,6 +775,7 @@ interface SubtotalItemRow {
   service_id: string | null;
   pax_code: PaxCode | null;
   catalog_price: number | null;
+  unit_price: number;
   line_total: number;
 }
 
@@ -789,7 +790,7 @@ export function buildSubtotalServices(serviceRows: readonly SubtotalServiceRow[]
   const itemsByService = new Map<string, SubtotalServiceInput["items"]>();
   for (const i of itemRows) {
     if (!i.service_id) continue; // sau migration 0008 mọi dòng đều có dịch vụ — xem groupItems() ở trên (findOrder).
-    const entry = { paxCode: i.pax_code, catalogPrice: i.catalog_price, lineTotal: i.line_total };
+    const entry = { paxCode: i.pax_code, catalogPrice: i.catalog_price, unitPrice: i.unit_price, lineTotal: i.line_total };
     const list = itemsByService.get(i.service_id);
     if (list) list.push(entry);
     else itemsByService.set(i.service_id, [entry]);
@@ -820,7 +821,7 @@ export async function getServicesForSubtotal(db: D1Database, orderIds: readonly 
       .all<SubtotalServiceRow>()
   ).results;
   const itemRows = (
-    await db.prepare(`SELECT order_id, service_id, pax_code, catalog_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1))`).bind(ids).all<SubtotalItemRow>()
+    await db.prepare(`SELECT order_id, service_id, pax_code, catalog_price, unit_price, line_total FROM order_item WHERE order_id IN (SELECT value FROM json_each(?1))`).bind(ids).all<SubtotalItemRow>()
   ).results;
   return buildSubtotalServices(serviceRows, itemRows);
 }
@@ -869,13 +870,19 @@ export async function computeEffectiveMoney(
  * `id` dùng CHUNG cho dòng điều chỉnh và dòng audit_log (ADR-0007 điều 2 — không lặp ai/khi nào/lý do). Batch thất bại thì cả hai câu đều không
  * được ghi (giao dịch), nên audit không cần `onlyIf` như `cancelOrder`/`updateDraftOrder`.
  */
+/** Giảm giá + tiền cọc của đơn (không đổi qua điều chỉnh số khách) — `editMoneyAsHandler` cần để chặn "còn lại" âm (`planMoneyEdit`). */
+export async function getDiscountAndDeposit(db: D1Database, orderId: string): Promise<{ discount: number; depositAmount: number } | null> {
+  const row = await db.prepare("SELECT discount, deposit_amount FROM orders WHERE id = ?").bind(orderId).first<{ discount: number; deposit_amount: number }>();
+  return row ? { discount: row.discount, depositAmount: row.deposit_amount } : null;
+}
+
 export async function insertMoneyAdjustment(
   db: D1Database,
   orderId: string,
   staffId: string,
   expectedSeq: number,
-  before: { serviceId: string; pax: PaxCounts }[],
-  after: { serviceId: string; pax: PaxCounts }[],
+  before: AdjustmentEntry[],
+  after: AdjustmentEntry[],
   subtotalBefore: number,
   subtotalAfter: number,
   reason: string,

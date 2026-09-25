@@ -1,8 +1,8 @@
 // Luật thuần cho "dòng điều chỉnh" số khách sau xác nhận (ADR-0014 điều 6, Phase B). Không I/O. Tái dùng nguyên `snapshotService`/`buildLines`
 // đã có (cơ chế "giá lúc lập đơn" của Q11) — KHÔNG viết logic tính giá mới. Dùng chung cho route ghi (dispatch) và overlay đọc (service.ts).
 import type { OrderDetailDto, OrderItemDto, OrderServiceDto } from "../../shared/contracts.ts";
-import { availableCodes, buildLines, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
-import { snapshotService, type StoredService } from "./service-rules.ts";
+import { PAX_ORDER, availableCodes, type GeneratedLine, type PaxCode, type PaxCounts } from "../../shared/order-lines.ts";
+import { snapshotService, storedServiceLines, storedUnitPrices, type StoredService } from "./service-rules.ts";
 
 const PAX_CODES: readonly PaxCode[] = ["adult", "child", "senior", "infant"];
 
@@ -17,11 +17,13 @@ export type Parsed<T> = ({ ok: true } & T) | { ok: false; message: string };
 export const isAdjustmentSeqCollision = (e: unknown): boolean =>
   e instanceof Error && /UNIQUE constraint failed: order_money_adjustment\.order_id, order_money_adjustment\.seq/.test(e.message);
 
-/** Tính lại số khách/dòng tiền của MỘT dịch vụ từ danh mục theo số khách mới, dùng giá đã chụp lúc lập đơn — không tra danh mục hiện tại. */
+/**
+ * Tính lại số khách/dòng tiền của MỘT dịch vụ từ danh mục theo số khách mới, dùng ĐƠN GIÁ ĐÃ THOẢ THUẬN đã lưu (`order_item.unit_price`) trên bản
+ * chụp lúc lập đơn — không tra danh mục hiện tại, không bao giờ lùi về giá niêm yết (DK-T2-01). Đi qua nguồn duy nhất `storedServiceLines`.
+ */
 export function recomputeService(stored: StoredService, newPax: PaxCounts): Parsed<{ pax: PaxCounts; lines: GeneratedLine[]; subtotal: number }> {
-  const snap = snapshotService(stored);
-  if (!snap) return { ok: false, message: `Dịch vụ "${stored.name}" không sửa được qua đường này (nhập tay hoặc thiếu giá đã lưu).` };
-  const built = buildLines(snap, newPax);
+  if (!snapshotService(stored)) return { ok: false, message: `Dịch vụ "${stored.name}" không sửa được qua đường này (nhập tay hoặc thiếu giá đã lưu).` };
+  const built = storedServiceLines(stored, newPax);
   if (!built.ok) return { ok: false, message: `${stored.name}: ${built.message}` };
   return { ok: true, pax: newPax, lines: built.lines, subtotal: built.lines.reduce((n, l) => n + l.quantity * l.unitPrice, 0) };
 }
@@ -106,7 +108,7 @@ const toStoredService = (s: OrderServiceDto): StoredService => ({
   name: s.name,
   unit: s.unit,
   pax: s.pax,
-  items: s.items.map((i) => ({ paxCode: i.paxCode, detail: i.detail, catalogPrice: i.catalogPrice })),
+  items: s.items.map((i) => ({ paxCode: i.paxCode, detail: i.detail, catalogPrice: i.catalogPrice, unitPrice: i.unitPrice })),
 });
 
 const toItemDto = (l: GeneratedLine): OrderItemDto => ({
@@ -150,7 +152,8 @@ export interface SubtotalServiceInput {
   catalogCode: string | null;
   name: string;
   unit: string;
-  items: { paxCode: PaxCode | null; catalogPrice: number | null; lineTotal: number }[];
+  /** `unitPrice` = đơn giá ĐÃ THOẢ THUẬN (`order_item.unit_price`) — nguồn giá khi tính lại (DK-T2-01); `catalogPrice` chỉ để truy vết. */
+  items: { paxCode: PaxCode | null; catalogPrice: number | null; unitPrice: number; lineTotal: number }[];
 }
 
 /** Kết quả tính tiền hiệu lực của MỘT dịch vụ. `recomputed` CHỈ có mặt khi dịch vụ THẬT SỰ được tính lại (có trong `after` VÀ recompute thành công) —
@@ -162,6 +165,12 @@ export interface EffectiveService {
 
 const ownSubtotal = (items: SubtotalServiceInput["items"]): number => items.reduce((n, i) => n + i.lineTotal, 0);
 
+/** Dựng `StoredService` (dạng luật `recomputeService` cần) từ dữ liệu tiền đã lưu — mang theo ĐƠN GIÁ ĐÃ THOẢ THUẬN của từng dòng (DK-T2-01). */
+const storedFromSubtotal = (svc: SubtotalServiceInput, pax: PaxCounts): StoredService => ({
+  id: svc.id, catalogCode: svc.catalogCode, name: svc.name, unit: svc.unit, pax,
+  items: svc.items.map((i) => ({ paxCode: i.paxCode, detail: null, catalogPrice: i.catalogPrice, unitPrice: i.unitPrice })),
+});
+
 /**
  * Tiền hiệu lực của MỘT dịch vụ — NGUỒN DUY NHẤT, mọi hàm/bề mặt khác đều gọi qua đây (không tự viết lại vòng lặp cộng dồn). `newPax` = số khách
  * mới nếu dịch vụ có mặt trong dòng điều chỉnh gần nhất, `undefined` nếu không (nhập tay, hoặc catalog nhưng chưa từng bị điều chỉnh) — trường hợp
@@ -171,8 +180,7 @@ const ownSubtotal = (items: SubtotalServiceInput["items"]): number => items.redu
  */
 export function effectiveService(svc: SubtotalServiceInput, newPax: PaxCounts | undefined): EffectiveService {
   if (!newPax) return { subtotal: ownSubtotal(svc.items) };
-  const stored: StoredService = { id: svc.id, catalogCode: svc.catalogCode, name: svc.name, unit: svc.unit, pax: newPax, items: svc.items.map((i) => ({ paxCode: i.paxCode, detail: null, catalogPrice: i.catalogPrice })) };
-  const recomputed = recomputeService(stored, newPax);
+  const recomputed = recomputeService(storedFromSubtotal(svc, newPax), newPax);
   if (!recomputed.ok) return { subtotal: ownSubtotal(svc.items) };
   return { subtotal: recomputed.subtotal, recomputed: { pax: recomputed.pax, lines: recomputed.lines } };
 }
@@ -187,7 +195,7 @@ export function effectiveSubtotal(services: readonly SubtotalServiceInput[], aft
 
 const toSubtotalInput = (s: OrderServiceDto): SubtotalServiceInput => ({
   id: s.id, catalogCode: s.catalogCode, name: s.name, unit: s.unit,
-  items: s.items.map((i) => ({ paxCode: i.paxCode, catalogPrice: i.catalogPrice, lineTotal: i.lineTotal })),
+  items: s.items.map((i) => ({ paxCode: i.paxCode, catalogPrice: i.catalogPrice, unitPrice: i.unitPrice, lineTotal: i.lineTotal })),
 });
 
 /**
@@ -215,4 +223,81 @@ export function applyAdjustmentToOrder(order: OrderDetailDto, after: readonly { 
 export function effectiveMoney(subtotal: number, discount: number, depositAmount: number): { total: number; remainingAmount: number } {
   const total = subtotal - discount;
   return { total, remainingAmount: total - depositAmount };
+}
+
+// ---- Quyết định một lần "HDV sửa số khách" (luật THUẦN; `orders/index.ts:editMoneyAsHandler` chỉ đọc/ghi D1 quanh hàm này) ------------------
+
+/**
+ * Một phần tử của `before_json`/`after_json`. `unitPrices` = đơn giá đã thoả thuận lúc ghi — CHỈ ĐỂ TRUY VẾT: nơi đọc (`parseAdjustmentAfter`)
+ * không mang trường này ra, số hiển thị LUÔN tính lại từ `order_item.unit_price` gốc (một nguồn giá). Dòng ghi trước bản vá DK-T2-01 không có
+ * trường này — phát lại vẫn đúng vì đơn giá lấy từ `order_item` gốc, không phải từ JSON.
+ */
+export interface AdjustmentEntry {
+  serviceId: string;
+  pax: PaxCounts;
+  unitPrices: Partial<Record<PaxCode, number>>;
+}
+
+export interface MoneyEditContext {
+  /** MỌI dịch vụ của đơn (kể cả nhập tay) với dòng tiền ĐÃ LƯU — từ `repository.ts:getServicesForSubtotal`. */
+  services: readonly SubtotalServiceInput[];
+  /** Số khách ĐÃ LƯU (order_service gốc) của từng dịch vụ. */
+  storedPax: ReadonlyMap<string, PaxCounts>;
+  /** `after` của dòng điều chỉnh gần nhất (đã qua `parseAdjustmentAfter`), null nếu chưa có. */
+  latestAfter: readonly { serviceId: string; pax: PaxCounts }[] | null;
+  discount: number;
+  depositAmount: number;
+  /** Thân JSON THÔ của request. */
+  body: Record<string, unknown> | null;
+}
+
+export type MoneyEditPlan =
+  | { ok: true; write: false }
+  | { ok: true; write: true; reason: string; before: AdjustmentEntry[]; after: AdjustmentEntry[]; subtotalBefore: number; subtotalAfter: number }
+  | { ok: false; code: "invalid_input" | "below_deposit"; message: string };
+
+/** Không lộ số tiền cho HDV (ADR-0007 điều 3) — thông báo KHÔNG chứa con số. */
+export const BELOW_DEPOSIT_MESSAGE = "Số khách mới làm tiền đơn thấp hơn tiền khách đã đặt cọc — không lưu được. Hãy báo nhân viên kinh doanh hoặc kế toán để xử lý.";
+
+const samePax = (a: PaxCounts, b: PaxCounts): boolean => PAX_ORDER.every((c) => a[c] === b[c]);
+
+/**
+ * Luật một lần HDV sửa số khách:
+ *  1. Thân yêu cầu hợp lệ (`parseMoneyEditInput` — lý do bắt buộc, đủ mọi dịch vụ từ danh mục).
+ *  2. Mọi dịch vụ Y NGUYÊN số khách hiện hành (dòng điều chỉnh gần nhất, hoặc số đã lưu) → `write: false`: KHÔNG ghi dòng điều chỉnh nào
+ *     (DK-T2-01: "kiểm lại danh sách, không đổi" từng ghi một dòng và đổi tiền đơn).
+ *  3. Tiền trước/sau tính bằng `effectiveSubtotal` (nguồn duy nhất, theo ĐƠN GIÁ ĐÃ THOẢ THUẬN) trên MỌI dịch vụ của đơn.
+ *  4. Lần sửa làm GIẢM tiền và đưa "còn lại" xuống dưới 0 (tổng < cọc, hoặc tổng âm do giảm giá) → `below_deposit`. Chỉ chặn khi lần sửa làm
+ *     GIẢM tiền: đơn đã cọc dư từ lúc lập (hợp lệ, xem `order-confirmation.test.ts`) vẫn tăng khách được.
+ */
+export function planMoneyEdit(c: MoneyEditContext): MoneyEditPlan {
+  const catalog = c.services.filter((s) => s.catalogCode !== null);
+  const input = parseMoneyEditInput(c.body, catalog.map((s) => s.id));
+  if (!input.ok) return { ok: false, code: "invalid_input", message: input.message };
+  const latest = new Map((c.latestAfter ?? []).map((a) => [a.serviceId, a.pax]));
+
+  const before: AdjustmentEntry[] = [];
+  const after: AdjustmentEntry[] = [];
+  for (const s of catalog) {
+    const currentPax = latest.get(s.id) ?? c.storedPax.get(s.id);
+    if (!currentPax) return { ok: false, code: "invalid_input", message: `Dịch vụ "${s.name}" thiếu số khách đã lưu.` };
+    const stored = storedFromSubtotal(s, currentPax);
+    const unitPrices = storedUnitPrices(stored);
+    if (!unitPrices) return { ok: false, code: "invalid_input", message: `Dịch vụ "${s.name}" thiếu đơn giá đã lưu.` };
+    const beforeCalc = recomputeService(stored, currentPax);
+    if (!beforeCalc.ok) return { ok: false, code: "invalid_input", message: beforeCalc.message };
+    const newPax = input.services.find((x) => x.id === s.id)!.pax;
+    const afterCalc = recomputeService(stored, newPax);
+    if (!afterCalc.ok) return { ok: false, code: "invalid_input", message: afterCalc.message };
+    before.push({ serviceId: s.id, pax: currentPax, unitPrices });
+    after.push({ serviceId: s.id, pax: newPax, unitPrices });
+  }
+  if (after.every((a, i) => samePax(a.pax, before[i]!.pax))) return { ok: true, write: false };
+
+  const subtotalBefore = effectiveSubtotal(c.services, before);
+  const subtotalAfter = effectiveSubtotal(c.services, after);
+  if (subtotalAfter < subtotalBefore && effectiveMoney(subtotalAfter, c.discount, c.depositAmount).remainingAmount < 0) {
+    return { ok: false, code: "below_deposit", message: BELOW_DEPOSIT_MESSAGE };
+  }
+  return { ok: true, write: true, reason: input.reason, before, after, subtotalBefore, subtotalAfter };
 }

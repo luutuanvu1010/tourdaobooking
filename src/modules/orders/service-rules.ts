@@ -3,7 +3,7 @@
 import type { CatalogChangeDto, CatalogStatus, MissingReason, TripGapDto, TripInfoDto } from "../../shared/contracts.ts";
 import {
   CATALOG_CODE_RE, MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, buildLines, paxTotal, payingGuests, priceDeviation,
-  type CatalogService, type EffectiveService, type PaxCode, type PaxCounts, type Prices,
+  type CatalogService, type EffectiveService, type LinesResult, type PaxCode, type PaxCounts, type Prices,
 } from "../../shared/order-lines.ts";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES, ONE_DATE_MESSAGE, confirmWindow, tripUpdateKeepsOneDate } from "../../shared/trip-rules.ts";
 import { cleanText, dateField, int, text, timeField } from "./fields.ts";
@@ -51,7 +51,8 @@ export interface StoredService {
   name: string;
   unit: string;
   pax: PaxCounts;
-  items: { paxCode: PaxCode | null; detail: string | null; catalogPrice: number | null }[];
+  /** `unitPrice` = đơn giá ĐÃ THOẢ THUẬN của dòng (`order_item.unit_price`); `catalogPrice` = giá niêm yết lúc lập (chỉ để truy vết lệch giá). */
+  items: { paxCode: PaxCode | null; detail: string | null; catalogPrice: number | null; unitPrice: number }[];
 }
 
 export interface ServiceContext {
@@ -133,6 +134,35 @@ export function snapshotService(st: StoredService): CatalogService | null {
     if (it.paxCode !== "adult") notes[it.paxCode] = it.detail;
   }
   return { code: st.catalogCode, name: st.name, unit: st.unit, prices, notes };
+}
+
+/**
+ * Đơn giá ĐÃ THOẢ THUẬN theo loại khách của một dịch vụ đã lưu (`order_item.unit_price`). null nếu một dòng thiếu loại khách hoặc đơn giá không
+ * phải số nguyên ≥ 0 — nơi gọi phải TỪ CHỐI, không bao giờ lùi về giá niêm yết (DK-T2-01).
+ */
+export function storedUnitPrices(st: StoredService): Partial<Record<PaxCode, number>> | null {
+  const out: Partial<Record<PaxCode, number>> = {};
+  for (const it of st.items) {
+    if (it.paxCode === null || !Number.isInteger(it.unitPrice) || it.unitPrice < 0) return null;
+    out[it.paxCode] = it.unitPrice;
+  }
+  return out;
+}
+
+/**
+ * NGUỒN DUY NHẤT tính dòng tiền của một dịch vụ ĐÃ LƯU theo số khách mới (DK-T2-01, kiểm toán 2026-09-24): bản chụp giá danh mục lúc lập
+ * (`snapshotService`) + ĐƠN GIÁ ĐÃ THOẢ THUẬN (`storedUnitPrices`) → `buildLines`. Mọi đường tính lại dịch vụ đã lưu (HDV sửa số khách —
+ * `money-adjustment.ts:recomputeService`, và qua nó mọi bề mặt đọc: chi tiết đơn, /api/orders, Trang chủ, phiếu gửi khách) đều đi qua đây.
+ * Trước bản vá, `recomputeService` gọi `buildLines(snap, newPax)` không truyền đơn giá → mọi đơn có giá thoả thuận bị tính lại theo giá niêm yết
+ * ngay lần đầu HDV lưu. Loại khách chưa có dòng lúc lập thì không có trong bản chụp → `buildLines` tự từ chối ("không có giá cho …").
+ * Đường lập/sửa đơn NHÁP (`catalogService`) KHÔNG dùng hàm này: ở đó đơn giá do người dùng gửi lên mỗi lần lưu là nguồn đúng.
+ * `src/buildlines-guard.test.ts` chặn mọi lời gọi `buildLines` thiếu đơn giá trong mã chạy thật.
+ */
+export function storedServiceLines(st: StoredService, pax: PaxCounts): LinesResult {
+  const snap = snapshotService(st);
+  const unitPrices = snap ? storedUnitPrices(st) : null;
+  if (!snap || !unitPrices) return { ok: false, message: `Dịch vụ "${st.name}" không sửa được qua đường này (nhập tay hoặc thiếu giá đã lưu).` };
+  return buildLines(snap, pax, unitPrices);
 }
 
 // ---- Dịch vụ từ danh mục -----------------------------------------------------------------------------------------
