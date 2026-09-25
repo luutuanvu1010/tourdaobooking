@@ -914,11 +914,19 @@ try {
   await step("o", "lý do nhiều dòng của “Lịch sử” (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — đo bằng Range.getClientRects thật, không suy luận từ chiều cao", async () => {
     for (const stmt of (await insertStaffSql(FIELD_ACC)).split("\n")) env.sql(stmt);
     const fieldStaffId = env.sql(`SELECT id FROM staff WHERE phone = '${FIELD_ACC.phone}'`)[0].id;
-    const o = await createOrder(A, "Khách Lý Do Nhiều Dòng");
-    assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn (đủ chuyến: departDate + pax của dịch vụ nhập tay createOrder() đã đặt sẵn)");
+    // Từ 2026-09-25 (vá DK-T2-01) lưu Y NGUYÊN số khách không ghi dòng điều chỉnh/nhật ký nữa — nên đơn ở bước này phải có một dịch vụ DANH MỤC
+    // và HDV đổi số khách THẬT (2 → 3), không còn dùng đơn chỉ-nhập-tay + `services: []` như trước.
+    env.sql(`INSERT OR IGNORE INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('ZLD1','Tour thử lý do nhiều dòng','perPax',300000,NULL,NULL,NULL,NULL,NULL,NULL,97,1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')`);
+    const created = await call(A, "POST", "/api/orders", {
+      customerName: "Khách Lý Do Nhiều Dòng", customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+      services: [{ kind: "catalog", catalogCode: "ZLD1", pax: pax(2), catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
+    });
+    assert.equal(created.status, 201, `dựng đơn danh mục: ${created.status} ${JSON.stringify(created.json)}`);
+    const o = created.json.order;
+    assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn (đủ chuyến: departDate + pax)");
     assert.equal((await call(A, "PUT", `/api/orders/${o.id}/handler`, { staffId: fieldStaffId })).status, 200, "giao cho HDV (FIELD)");
     const reason = "Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00";
-    const edited = await call(FIELD_ACC, "POST", `/api/orders/${o.id}/handler-money-edit`, { reason, services: [] });
+    const edited = await call(FIELD_ACC, "POST", `/api/orders/${o.id}/handler-money-edit`, { reason, services: [{ id: o.services[0].id, pax: pax(3) }] });
     assert.equal(edited.status, 200, `handler-money-edit: ${edited.status} ${JSON.stringify(edited.json)}`);
 
     const p = await openAs(A, `/order?id=${o.id}`, { viewport: M });
