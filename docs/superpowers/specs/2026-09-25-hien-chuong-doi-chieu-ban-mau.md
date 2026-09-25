@@ -159,3 +159,18 @@ Có **ba dòng Hiến pháp**, dòng nào cũng tự ghi "áp cho mọi dự án
 5. **Cưỡng chế bằng máy** tách hai loại: rào **dùng chung** mọi dự án (chặn lệnh ghi hệ thống thật, `--force`, đọc bí mật) → có thể đặt ở `~/.claude/settings.json` hoặc đóng gói plugin; rào **riêng dự án** (test kiến trúc, trigger, `guard-remote`) → trong repo.
 6. Tuỳ chọn: `~/.claude/CLAUDE.md` vài dòng trỏ "mỗi dự án có `playbook/CONSTITUTION.md`, tuân theo nó" — lưới an toàn cho dự án mới chưa ghim; không chép nội dung Hiến pháp vào đó (tránh nguồn thứ hai).
 7. Với Tour Đảo: Phần I `ARCHITECTURE.md` giữ **phần riêng**; khi Hiến pháp hợp nhất có điều chung tương ứng, rút điều đó thành "theo Hiến pháp điều X".
+
+### 8.4 Chủ hỏi tiếp (2026-09-25): gộp Hiến chương vào Hiến pháp? Đặt ở `Projects/`? Mô hình dữ liệu?
+Nguyên văn: *"tôi lại đang nghĩ Hiến chương đưa luôn vào Hiến pháp duy nhất, vì Hiến chương về mặt ý nghĩa còn bao trùm cả hiến pháp ấy chứ?"* và *"mọi dự án của tôi đều và sẽ nằm trong Projects/, vậy Hiến chương và/hoặc Hiến pháp sẽ phải nằm ở đây, các dự án con sẽ tự động chiếu theo (chép bản chỉ đọc về), làm cơ sở dựng Architecture.md chứ? rồi còn Mô hình dữ liệu thì sao."*
+
+Đo thêm (chỉ đọc): `Projects/` **không** phải kho git, không có `Projects/CLAUDE.md`; `Master-Project-Framework/` **là kho git chỉ chứa luật** (CONSTITUTION, GOVERNANCE, PLAYBOOK, templates, init-project.sh) nhưng Hiến pháp của nó là v2.2.0 (cũ nhất).
+
+Đề xuất (chủ quyết; làm ở phiên mở tại kho luật, không từ repo này — N4):
+- **Một kho luật gốc duy nhất trong `Projects/`** — dùng lại `Master-Project-Framework` (đã đúng hình dạng), đưa phần mới của `CoreSchemaProject/playbook` (v2.3.0) và `ketoanvn` (v3.1.0) về; hai nơi kia thôi làm nguồn.
+- **Trong kho luật: ba văn bản, một thứ bậc, phạm vi rõ** — không trộn thành một khối:
+  1. `CONSTITUTION.md` — **cách làm việc** (người quyết, AI làm, cổng, không tự nghiệm thu…): áp **mọi** dự án, kể cả website.
+  2. Hiến chương hệ thống ghi nhận (Enterprise OS: bên trước vai, sự kiện là gốc, sổ chỉ ghi thêm, hai trục thời gian, quy tắc có phiên bản, truy nguồn, lõi tất định, hộp thư đi, sổ vàng): áp cho dự án **giữ dữ liệu nghiệp vụ / tiền**; dự án website khai "không áp".
+  3. **Mô hình dữ liệu lõi** (khái niệm, độc lập công nghệ): Bên–Vai–Quan hệ–Điểm liên hệ–Địa điểm; Đối tượng có vòng đời; Chính sách có hiệu lực + chụp; Sự kiện/Nhật ký; Sổ (phiếu, dòng hai chân, đảo); Chứng từ; Bảng tra cứu.
+  Lý do không trộn: hai văn bản trả lời hai câu hỏi khác nhau (làm việc thế nào / hệ thống ghi nhận phải được xây thế nào); trộn thì dự án website phải mang luật sổ tiền, và văn bản dài làm AI kém tuân thủ (tài liệu Anthropic).
+- **Mỗi dự án:** chép bản chỉ-đọc của kho luật (ghim phiên bản; phiên cloud/web chỉ thấy repo nên vẫn cần bản chép); `ARCHITECTURE.md` = **chiếu** hiến chương + mô hình lõi vào module/bảng của dự án, chỉ siết; `RANG_BUOC_NGOAI.md`; mô hình dữ liệu **cụ thể** của dự án (ở đây: `docs/data-dictionary.json` → `DATA-DICTIONARY.md`, test ép khớp schema thật) → `migrations/` (mã).
+- **Tự động chiếu theo trên máy:** Claude Code nạp mọi `CLAUDE.md` ở **thư mục cha** của thư mục làm việc (memory.md) → một `Projects/CLAUDE.md` ngắn (trỏ tới kho luật) sẽ tự áp cho mọi dự án mở trên máy này. Không thay được bản chép (phiên cloud/web không thấy thư mục cha). "Chép về" không tự động: cần một lệnh chép + kiểm băm (như `scripts/pin-playbook-manifest.mjs` ở repo này).
