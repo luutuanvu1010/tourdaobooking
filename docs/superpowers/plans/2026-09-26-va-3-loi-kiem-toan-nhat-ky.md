@@ -55,3 +55,12 @@
 - Vòng 1: ĐẠT CÓ ĐIỀU KIỆN — DK-T3-02, DK-T4-02 đạt, không tìm được đường lách; DK-T3-01 lọt với tài khoản PARTNER+FIELD gán qua đường cũ (tự dựng trên bản sao tạm, đơn giá 1đ → 201). Tự chạy: `npm test` 817/817, typecheck 0, e2e `admin dispatch nhap-tay-va-gia-doi-tac orders` 4/4, `va3-smoke` 8/8, đột biến bỏ R2 ở xác nhận → e2e đỏ.
 - Vòng 2 (sau a2d43e9, R7): ĐẠT — `holdsPartner` thay đủ 4 chỗ gọi, không còn `isPartnerOnly`; `price-guards.test.ts` 12/12; e2e `nhap-tay-va-gia-doi-tac` xanh (mục 8); không vai nội bộ nào mặc định mang `PARTNER` (không chặn oan).
 - Điều phối chạy toàn bộ e2e sau a2d43e9: 20/20 xanh; audit-invariants đạt, 2 cảnh báo R-ORD-6a/6b (dữ liệu hỏng cố ý của `dispatch.mjs`).
+
+## Rà lại yêu cầu đầu phiên (2026-09-26, sau khi 1.14 và 1.15 đã lên production)
+Chủ yêu cầu đối chiếu từng ý của yêu cầu ban đầu với kết quả. Đạt: worktree/nhánh riêng; vá ở máy chủ; đỏ trước xanh sau; xoá mục `phat_hien` cùng commit vá; kiểm độc lập trước khi báo đạt; mục nhật ký 1.14; không push/deploy, đưa lệnh cho chủ; xong trước hạn 2026-10-05. Chưa đúng/chưa đủ (tự nhận):
+1. Hỏi chủ **3 lượt** thay vì gom một lần (lượt 2: trần giảm giá do lời chủ có ý mới; lượt 3: tài khoản lai quyền do người kiểm phát hiện).
+2. **Tự đặt luật chưa trình**: `isPartnerOnly` ("mọi quyền là PARTNER") — người kiểm độc lập bắt được, chủ quyết lại (R7, a2d43e9).
+3. DK-T3-02 **không có bài kiểm trong `npm test`** (chỉ e2e + khung thử phá). → Đã bù: `src/modules/accounts/reset-pin-self.test.ts` (3 ca: Quản trị, Toàn quyền tự đặt → 403 không ghi gì; đối chứng đặt cho Bán hàng → 200). P16: xoá dòng chặn → `not ok 1`, `not ok 2`, `ok 3`; hoàn nguyên → 3/3 xanh. Dòng DK-T3-02 ở `docs/SO-HANG-RAO.md` đã cập nhật.
+4. **Không đọc Hiến chương 5.1, 5.8 trước khi làm.** Đối chiếu sau: ba luật ADR-0027 chỉ ở mã (lệch 5.1); luật giá Đối tác xét theo quyền người thao tác, không theo bên đặt (lệch 5.8); mốc huỷ HDV theo người phụ trách (khớp 5.8). → Chủ trả lời "ok" cho khuyến nghị giữ nguyên, ghi là chính sách tạm: **ADR-0029** + dòng ở `docs/SYSTEM-DESIGN.md` §16.
+
+Việc giao thêm trong phiên: 1.15 (ADR-0028) đổi cổng `GET /api/catalog` sang `orders`, **lệch ADR-0019** (Phần A0 / Q13 của `docs/superpowers/plans/2026-09-25-gd2-thi-cong.md` chốt route riêng `GET /api/catalog/for-order`). Chủ chọn (2026-09-26): để nhánh `a0-danh-muc-cho-lap-don` (phiên GĐ2, đã làm đúng A0) xử lý khi gộp — xem `docs/HANDOFF-N1.md` "Việc còn treo". Màn "Đơn hàng" cho hướng dẫn viên: làm sau ADR-0019 (chủ chọn A).
