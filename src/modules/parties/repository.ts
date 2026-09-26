@@ -371,6 +371,12 @@ const ROLE_ROW_GROUP = defineSql(
   "role_row_group",
   "SELECT t.role_group FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code WHERE r.id = ?1 AND r.party_id = ?2",
 );
+// Hai đầu của MỘT dòng quan hệ thuộc hồ sơ ?2 (ADR-0019 điều 2 / Q11: luật cấp bậc xét cả hai đầu khi kết thúc quan hệ). Không có dòng → null.
+const RELATIONSHIP_ENDS = defineSql(
+  "parties",
+  "relationship_ends",
+  "SELECT from_party_id, to_party_id FROM pty_party_relationship WHERE id = ?1 AND (from_party_id = ?2 OR to_party_id = ?2)",
+);
 const REOPEN_ROLE = defineSql(
   "parties",
   "reopen_role",
@@ -390,6 +396,10 @@ export async function roleTypeGroup(db: D1Database, code: string): Promise<strin
 }
 export async function roleRowGroup(db: D1Database, partyId: string, roleId: string): Promise<string | null> {
   return (await db.prepare(ROLE_ROW_GROUP).bind(roleId, partyId).first<{ role_group: string }>())?.role_group ?? null;
+}
+export async function relationshipEnds(db: D1Database, partyId: string, relationshipId: string): Promise<{ from: string; to: string } | null> {
+  const r = await db.prepare(RELATIONSHIP_ENDS).bind(relationshipId, partyId).first<{ from_party_id: string; to_party_id: string }>();
+  return r ? { from: r.from_party_id, to: r.to_party_id } : null;
 }
 export const reopenRoleStatement = (db: D1Database, partyId: string, roleId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(REOPEN_ROLE).bind(roleId, partyId, at, actorId);

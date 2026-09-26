@@ -61,10 +61,6 @@
     }
   ],
   "cua_ghi": [
-    { "method": "POST", "path": "/api/parties/:id/roles", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/parties/:id/roles/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/parties/:id/relationships", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/parties/:id/relationships/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "DELETE", "path": "/api/catalog/:code/override", "loai": "hoãn", "ly_do": "Cổng thô admin; MATRIX không có ô danh mục (ADR-0007 gộp vào 'quản lý … danh mục' = admin.manage).", "ke_hoach": "GĐ2 ADR-0018: can(admin.manage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "PATCH", "path": "/api/catalog/:code", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/catalog/:code/ack", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
