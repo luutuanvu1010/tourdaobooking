@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.14: vá 3 phát hiện kiểm toán HIGH (DK-T3-01, DK-T3-02, DK-T4-02; ADR-0027) ĐÃ LÊN PRODUCTION (2026-09-26 12:20 giờ VN, chủ dự án tự chạy `npm run day-len -- va-3-loi-kiem-toan` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.15: Đối tác và Thực tập xem danh mục chỉ-đọc (ADR-0028) ĐÃ LÊN PRODUCTION (2026-09-26 14:30 giờ VN, chủ dự án tự chạy `npm run day-len -- mo-danh-muc-doi-tac` rồi `npm run trien-khai`)
+
+AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-26 chiều, giờ VN:
+
+- **Phiên bản: 1.15.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.15."; `GET /api/auth/config` trả `"version":"1.15"`, bảo trì `on:false`. `GET /api/catalog` chưa đăng nhập → 401 (danh mục vẫn đóng với người ngoài).
+- **Mã trên `main` / GitHub:** `origin/main` = 7f1654d (nhánh `mo-danh-muc-doi-tac`, 3 commit từ 1c37641).
+- **Worker:** `wrangler deployments list` → bản mới nhất **7edc1093-c19c-457c-a55c-e02170640096**, tạo 2026-09-26T07:30:22Z. Mốc lùi (bản ngay trước): **16742d55-e256-48c5-93f1-532c698d40fa** (bản 1.14). Trước nữa: 6ebf4e78 (1.13).
+- **Migration:** "No migrations to apply" (lần này không có migration).
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt (D1 remote)".
+- **Kiểm trước khi gộp:** `npm test` 817/817, `tsc` 0, `test:e2e` 20/20; Chrome `doi-tac-lap-don-smoke.mjs` 6/6 (Đối tác chọn dịch vụ, ô giá/giảm giá khoá, lưu đơn; Bán hàng không bị khoá; axe 0); người kiểm độc lập (chỉ đọc) ĐẠT sau 2 vòng (vòng 1 bắt thiếu tệp ADR-0028). Bằng chứng: `docs/evidence/2026-09-26-mo-danh-muc-doi-tac/`.
+- **Chưa kiểm:** trên iPhone thật. **Có từ trước, chưa sửa:** trang chi tiết đơn của Đối tác gọi `GET /api/dispatch/handlers` → 403 (cổng `office`) nên khối người phụ trách hiện "Chưa tải được người phụ trách."; dòng "tạm chưa được giảm giá" xuống 3 hàng ở khổ máy tính.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.14: vá 3 phát hiện kiểm toán HIGH (DK-T3-01, DK-T3-02, DK-T4-02; ADR-0027) ĐÃ LÊN PRODUCTION (2026-09-26 12:20 giờ VN, chủ dự án tự chạy `npm run day-len -- va-3-loi-kiem-toan` rồi `npm run trien-khai`)
 
 AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-26 trưa, giờ VN:
 
