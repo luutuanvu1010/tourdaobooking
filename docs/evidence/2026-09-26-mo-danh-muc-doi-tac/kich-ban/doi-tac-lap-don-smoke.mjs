@@ -2,6 +2,9 @@
 //   - GET /api/catalog mở cho Đối tác (trước đây 403 → form hiện "Không tải được danh mục dịch vụ").
 //   - Form: ô đơn giá CHỈ XEM (readOnly) khi bằng giá danh mục; ô "Giảm giá" (#discount) khoá kèm dòng "Tài khoản đối tác tạm chưa được giảm giá.".
 //   - Đối chứng: tài khoản Bán hàng KHÔNG bị khoá hai ô trên.
+// Sửa 2026-09-26 (bản 1.17): dòng báo từng nằm trong cột hẹp của hàng ba ô Thanh toán → xuống 3 hàng ở máy tính. Kịch bản nay tìm dòng báo theo
+// NỘI DUNG (không theo vị trí), đếm số hàng hiển thị thật (Range.getClientRects) — máy tính phải 1 hàng, điện thoại ≤ 2 — và kiểm ô giảm giá
+// trỏ tới nó bằng aria-describedby.
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS/ok/sleep/vnDate/setInput từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs) và mẫu step()/openAs()/call() của
 // ../../2026-09-26-va-3-loi-kiem-toan/kich-ban/va3-smoke.mjs. Danh mục là danh mục GIẢ của a2-cdp (TD101 "Tour 4 đảo Nha Trang", người lớn 1.350.000).
 // Chạy từ GỐC repo (worktree), sau `npm run build:web`:
@@ -125,7 +128,9 @@ try {
       const card = ${CARD};
       const lines = card ? [...card.querySelectorAll('.line:not([hidden])')] : [];
       const d = document.getElementById('discount');
-      const next = d.nextElementSibling;
+      const note = [...document.body.querySelectorAll('*')].find((e) => e.children.length === 0 && e.textContent.trim() === ${JSON.stringify(PARTNER_NOTE)});
+      const noteRange = note ? document.createRange() : null;
+      if (noteRange) noteRange.selectNodeContents(note);
       const adultPrice = card ? card.querySelector('.price-field[aria-label="Đơn giá người lớn"]') : null;
       return {
         card: !!card,
@@ -134,7 +139,8 @@ try {
         tagShown: card ? card.querySelector('.line:not([hidden]) .tag-price:not([hidden])') !== null : null,
         discountReadOnly: d.readOnly,
         discountValue: d.value,
-        discountNext: next ? { tag: next.tagName, cls: next.className, text: next.textContent.trim() } : null,
+        note: note ? { tag: note.tagName, id: note.id, cls: note.className, text: note.textContent.trim(), rows: new Set([...noteRange.getClientRects()].map((r) => Math.round(r.top))).size, visible: note.getClientRects().length > 0 } : null,
+        discountDescribedBy: d.getAttribute('aria-describedby'),
         partnerNoteAnywhere: document.body.textContent.includes(${JSON.stringify(PARTNER_NOTE)}),
         catalogErrAnywhere: document.body.textContent.includes(${JSON.stringify(CATALOG_ERR)}),
         subtotal: document.getElementById('sum-subtotal')?.textContent,
@@ -156,7 +162,7 @@ try {
     assert.equal(s.catalogErrAnywhere, false, `không có “${CATALOG_ERR}” — ${JSON.stringify(s)}`);
     assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
     noteErrorLogs(p, "Bán hàng /order-form máy tính");
-    console.log(`    Bán hàng: đơn giá readOnly=${s.visibleLines[0].readOnly} (“${s.visibleLines[0].value}”), giảm giá readOnly=${s.discountReadOnly}, ô sau #discount: ${JSON.stringify(s.discountNext)}`);
+    console.log(`    Bán hàng: đơn giá readOnly=${s.visibleLines[0].readOnly} (“${s.visibleLines[0].value}”), giảm giá readOnly=${s.discountReadOnly}, dòng báo: ${JSON.stringify(s.note)}, aria-describedby=${s.discountDescribedBy}`);
     p.close();
   });
 
@@ -177,7 +183,7 @@ try {
     console.log(`    danh sách: ${JSON.stringify(listed)}`);
   });
 
-  await step("2", `Đối tác (máy tính 1040): chọn TD101, ${PAX} người lớn → ô đơn giá readOnly = true, hiện đúng giá danh mục 1.350.000; ô “Giảm giá” readOnly = true, ngay sau nó dòng “${PARTNER_NOTE}”`, async () => {
+  await step("2", `Đối tác (máy tính 1040): chọn TD101, ${PAX} người lớn → ô đơn giá readOnly = true, hiện đúng giá danh mục 1.350.000; ô “Giảm giá” readOnly = true, có dòng “${PARTNER_NOTE}” nằm gọn MỘT hàng, ô trỏ tới nó (aria-describedby)`, async () => {
     assert.ok(desk, "trang bước 1 chưa mở");
     await pickTd101(desk);
     await desk.waitFor(`(${ADULT_PRICE}).readOnly === true`, "ô đơn giá người lớn readOnly", 5000);
@@ -189,12 +195,14 @@ try {
     }
     assert.equal(s.tagShown, false, `không có nhãn “Khác giá danh mục” — ${JSON.stringify(s)}`);
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
-    assert.equal(s.discountNext?.text, PARTNER_NOTE, `phần tử ngay sau #discount — ${JSON.stringify(s.discountNext)}`);
+    assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
+    assert.equal(s.note.rows, 1, `dòng báo ở máy tính phải nằm gọn 1 hàng — ${JSON.stringify(s.note)}`);
+    assert.ok(s.note.id && s.discountDescribedBy === s.note.id, `ô giảm giá trỏ tới dòng báo bằng aria-describedby — ${s.discountDescribedBy} / ${JSON.stringify(s.note)}`);
     assert.equal(s.catalogErrAnywhere, false, `không có “${CATALOG_ERR}”`);
     assert.match(s.subtotal ?? "", /2\.700\.000/, `tạm tính 2.700.000 — ${s.subtotal}`);
     assert.deepEqual(desk.consoleErrors, [], `lỗi console: ${desk.consoleErrors}`);
     await desk.shot(join(OUT, "anh", "doi-tac-form-may-tinh.png"));
-    console.log(`    dòng tiền: ${JSON.stringify(s.visibleLines)} · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · sau #discount: ${JSON.stringify(s.discountNext)} · tạm tính ${s.subtotal}`);
+    console.log(`    dòng tiền: ${JSON.stringify(s.visibleLines)} · giảm giá readOnly=${s.discountReadOnly} value="${s.discountValue}" · dòng báo: ${JSON.stringify(s.note)} · tạm tính ${s.subtotal}`);
     noteErrorLogs(desk, "Đối tác /order-form máy tính");
     desk.close();
   });
@@ -206,7 +214,8 @@ try {
     const s = await formState(mob);
     assert.deepEqual(s.visibleLines.map((l) => [l.readOnly, l.digits]), [[true, TD101_ADULT]], `ô đơn giá — ${JSON.stringify(s)}`);
     assert.equal(s.discountReadOnly, true, `ô giảm giá readOnly — ${JSON.stringify(s)}`);
-    assert.equal(s.discountNext?.text, PARTNER_NOTE, `phần tử ngay sau #discount — ${JSON.stringify(s.discountNext)}`);
+    assert.equal(s.note?.visible, true, `có dòng “${PARTNER_NOTE}” đang hiện — ${JSON.stringify(s.note)}`);
+    assert.ok(s.note.rows <= 2, `dòng báo ở điện thoại tối đa 2 hàng — ${JSON.stringify(s.note)}`);
     assert.equal(s.catalogErrAnywhere, false, `không có “${CATALOG_ERR}”`);
     const overflow = await mob.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth");
     assert.ok(overflow <= 1, `không tràn ngang ở 390px — lệch ${overflow}px`);
