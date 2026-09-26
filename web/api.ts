@@ -1,4 +1,5 @@
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
+import { donTuDuongDan, laTaoDonMoi, taoSoTuLam } from "./bangtin-logic";
 import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
 
 // Kiểu dữ liệu API lấy từ hợp đồng dùng chung với Worker (src/shared/contracts.ts) — không chép tay ở đây.
@@ -48,6 +49,13 @@ export function goLogin(): Promise<never> {
 /** Hạn chờ một lời gọi API. Máy chủ im lặng (mạng chập chờn) thì báo lỗi mạng thay vì để nút "Đang lưu…" kẹt vĩnh viễn — PWA không có nút tải lại của trình duyệt. */
 const REQUEST_TIMEOUT_MS = 45_000;
 
+/** Bảng tin (ADR-0022, TD-4): đơn nào CHÍNH tab này vừa ghi — trong bộ nhớ của trang, không lưu localStorage. */
+const soTuLam = taoSoTuLam();
+/** Tab này vừa ghi (thành công) đơn `orderId` trong vòng 5 giây? Dùng để không hiện thông báo nổi cho việc mình vừa làm. */
+export function vuaLamBoiTabNay(orderId: string): boolean {
+  return soTuLam.vuaLam(orderId);
+}
+
 export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS); // hết giờ: `fetch`/đọc thân ném AbortError (không phải ApiError) → nơi gọi xử lý như mất mạng
@@ -71,6 +79,10 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
       if (res.status === 401 && path !== "/api/auth/login" && data?.error?.code === "unauthenticated" && !location.pathname.startsWith("/login")) return goLogin();
       throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);
     }
+    // Ghi thành công tới một đơn → nhớ để tin Bảng tin về chính đơn đó (do mình gây ra) không hiện thông báo nổi. Tạo đơn mới: id nằm trong phản hồi.
+    const method = init?.method ?? "GET";
+    const donDaGhi = donTuDuongDan(method, path) ?? (laTaoDonMoi(method, path) ? (data as { order?: { id?: unknown } } | null)?.order?.id : null);
+    if (typeof donDaGhi === "string") soTuLam.ghiNho(donDaGhi);
     return data as T;
   } finally {
     clearTimeout(timer);

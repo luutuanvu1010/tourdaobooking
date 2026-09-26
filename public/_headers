@@ -1,10 +1,11 @@
 # Header bảo mật cho trang tĩnh (Workers Assets). API /api/* đi qua Worker, không dùng file này.
 # script chỉ từ chính trang (không inline, không CDN) + duy nhất https://challenges.cloudflare.com cho widget Turnstile ở màn đăng nhập (web/login.ts chỉ tải khi máy chủ báo có khoá).
 # Turnstile cần đúng ba chỗ: script-src (api.js), frame-src (khung widget; chỉ Cloudflare nên khung cùng nguồn cũng bị chặn — app không có iframe nào), connect-src; style-src/img-src KHÔNG phải nới (đã thử bằng Chrome thật: kịch bản v1-dang-nhap.mjs bước g).
+# connect-src liệt kê rõ wss://booking.tourdao.vn cho Bảng tin (WebSocket /api/bang-tin, ADR-0022): Safari cũ không coi wss: cùng máy là 'self' nên chỉ 'self' thì kết nối bị CSP chặn. Local/LAN (wrangler dev, ws:// cùng host) dựa vào 'self' — CHƯA xác minh trên Safari iPhone thật qua LAN (việc của Task 13).
 # style cho phép inline vì các trang dùng thuộc tính style=.
 # img cho phép data:/blob: để dựng ảnh xác nhận (PNG) ngay trong trình duyệt.
 /*
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
+  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' wss://booking.tourdao.vn https://challenges.cloudflare.com; frame-src https://challenges.cloudflare.com; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'
   X-Content-Type-Options: nosniff
   Referrer-Policy: same-origin
   X-Frame-Options: DENY

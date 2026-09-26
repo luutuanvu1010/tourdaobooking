@@ -124,6 +124,7 @@
   --c-sidebar-border: rgba(255, 255, 255, .12); /* viền mảnh trong sidebar (đầu/chân, không phải giữa các mục) */
   --c-sidebar-badge: rgba(255, 255, 255, .18);  /* nền mặc định huy hiệu số đếm trên sidebar */
   --ls-eyebrow: .08em;         /* giãn chữ tiêu đề nhóm viết hoa (BÁN HÀNG/QUẢN TRỊ/TÔI) */
+  --w-toast: 360px;            /* Bảng tin (ADR-0022): bề rộng thông báo nổi ở máy tính (điện thoại: gần hết bề ngang) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -850,3 +851,11 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .release-note h3 { margin: 0 0 var(--s2); }
 .release-items { margin: 0; padding-left: var(--s4); }
 .release-items li + li { margin-top: var(--s1); }
+
+/* Bảng tin (ADR-0022, TD-4): thông báo nổi khi có đơn đổi. Vùng cố định không chắn thao tác (pointer-events chỉ bật ở từng thông báo); điện thoại: ngay trên thanh tab; máy tính: góc trên phải, dưới thanh công việc. z-index 40 = trên thanh tab (30), dưới bảng trượt (50). */
+.toast-vung { position: fixed; z-index: 40; display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; left: max(var(--s4), env(safe-area-inset-left)); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3)); }
+.toast { pointer-events: auto; display: flex; align-items: center; min-height: var(--tap-min); padding: var(--s2) var(--s4); font-size: var(--fs-label); font-weight: 600; line-height: 1.35; text-decoration: none; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-left: var(--s1) solid var(--c-primary); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
+.toast:hover { background: var(--c-soft-hover); }
+@media (min-width: 641px) {
+  .toast-vung { left: auto; right: var(--s4); bottom: auto; top: calc(var(--bar-h) + var(--s3)); width: var(--w-toast); max-width: calc(100vw - 2 * var(--s4)); }
+}

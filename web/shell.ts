@@ -2,6 +2,7 @@ import { ApiError, api, type Staff, type Api } from "./api";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
+import { batDauBangTin } from "./bangtin";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { registerServiceWorker } from "./pwa";
@@ -349,6 +350,7 @@ export async function initShell(): Promise<Staff> {
   append(byId("topbar"), [avatarEl, search, newOrderBtn]);
 
   addNav(admin, office, canCreate, staff);
+  batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   return staff;
 }
 
