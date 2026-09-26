@@ -127,7 +127,8 @@ r = await call(ADMIN, "POST", "/api/staff", { fullName: `Cộng Tác Viên ${tag
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "vai Cộng tác viên → chỉ quyền Đối tác");
 const P = (await login(phone, r.body.pin)).cookie;
-assert.equal((await call(P, "GET", "/api/catalog")).status, 200, "Đối tác đọc được danh mục chỉ-đọc (ADR-0028, chủ chọn A 26/9)");
+// KHÔNG gọi GET /api/catalog ở đây: kịch bản này chạy TRƯỚC catalog.mjs trên D1 chưa từng đồng bộ — lời gọi đầu tiên tự kéo Sheet thật
+// (CHANGE-GUIDE §4 mục 23) và ẩn danh mục giả ZE*. Quyền đọc danh mục của Đối tác/Thực tập (ADR-0028) do catalog.mjs kiểm.
 const partnerCount = async (name) => (await call(P, "GET", `/api/orders?q=${encodeURIComponent(name)}`)).body.orders.length;
 
 // 3) POST với đơn giá khác giá danh mục (thấp hơn, cao hơn) → 403, không lưu đơn
