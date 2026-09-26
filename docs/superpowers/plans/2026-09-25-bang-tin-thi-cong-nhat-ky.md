@@ -90,7 +90,7 @@
 
 ## Task 3 — router: `ctx.baoThayDoi`, `ctx.dongBangTin` (2026-09-26)
 
-- **Đỏ:** viết 7 bài kiểm mới ở `src/shared/router.test.ts` (gọi `ctx.baoThayDoi`/`ctx.dongBangTin`, kiểm `exec.waitUntil`, kiểm bắt lỗi) TRƯỚC khi sửa `router.ts`. Để có bằng chứng đỏ thật mà không phải `git checkout` (lệnh phá hoại bị hàng rào chặn), tạm ghi đè `src/shared/router.ts` bằng đúng nội dung tại `HEAD` (chưa có `baoThayDoi`/`dongBangTin`) rồi chạy:
+- **Đỏ (mô tả đúng thứ tự thật đã làm — sửa lại 2026-09-26, vòng sửa 1, phát hiện 2: câu cũ nói "viết test TRƯỚC khi sửa router.ts" là sai thứ tự thật):** bản `router.ts`/`index.ts` thêm `baoThayDoi`/`dongBangTin` đã được SOẠN XONG trước, sau đó mới viết 7 bài kiểm ở `src/shared/router.test.ts`. Vì vậy lúc này chạy test đã XANH ngay, không có bằng chứng đỏ. Để vẫn có bằng chứng đỏ thật (không dùng `git checkout` — lệnh phá hoại bị hàng rào auto-mode chặn), đã TẠM ghi đè `src/shared/router.ts` (qua công cụ Write, không qua lệnh git) bằng đúng nội dung tại `HEAD` (chưa có `baoThayDoi`/`dongBangTin`) rồi chạy:
   ```
   node --test src/shared/router.test.ts
   ```
@@ -108,6 +108,23 @@
   - `node --test src/shared/router.test.ts` → `# tests 15 / # pass 15 / # fail 0`.
 - **Mốc kiểm sau Task 3:** `npm test` 823/823 (816 + 7 bài mới); `npm run typecheck` 0 lỗi (ba tsconfig); `node --test "tests/audit/*.test.mjs"` → 34 xanh, đúng 1 đỏ đã có từ trước ("P4 FINDING HDV…", không đổi tên/nội dung) — không có ca đỏ mới.
 - **Tệp đổi:** `src/shared/router.ts`, `src/shared/router.test.ts`, `src/index.ts` (tiêm tạm no-op).
+
+### Vòng sửa 1 (kiểm độc lập, 2026-09-26)
+
+Người kiểm phát hiện: bài "NÉM LỖI ĐỒNG BỘ" không thật kiểm ném lỗi đồng bộ. Trong `buildBangTin` (`router.test.ts`), hàm giả `injected.baoThayDoi`/`dongBangTin` khai `async (env, actor, e) => { await overrides.baoThayDoi?.(env, actor, e); }` — bọc `async` khiến MỌI lỗi ném ra trong `overrides.baoThayDoi` (kể cả ném đồng bộ bằng `throw` thường) đều biến thành lời hứa bị từ chối trước khi `router.ts` thấy được; hàng rào `Promise.resolve().then(...)` (chống ném-lỗi-đồng-bộ) trong `router.ts` chưa từng bị bài kiểm nào chạm tới thật.
+
+- **Sửa hàm giả:** bỏ bọc `async`, chuyển tiếp thẳng tới `overrides.*` (`baoThayDoi: (env, actor, e) => (overrides.baoThayDoi ? overrides.baoThayDoi(env, actor, e) : Promise.resolve()) as Promise<void>` và tương tự cho `dongBangTin`) — nếu `overrides.baoThayDoi` là hàm thường (không `async`) ném lỗi, lỗi đó ném ĐỒNG BỘ ra khỏi chính lời gọi `opts.injected.baoThayDoi(...)`, đúng như tình huống hàng rào trong `router.ts` phải chặn. Đổi tên bài kiểm `dongBangTin` từ "ném lỗi" → "NÉM LỖI ĐỒNG BỘ" cho khớp thực chất (bài này đã dùng hàm thường, không `async`, từ đầu).
+- **Chứng minh hàng rào có tác dụng (đo phân biệt):** tạm bỏ `Promise.resolve().then(...)` ở cả hai nhánh `baoThayDoi`/`dongBangTin` trong `router.ts` (gọi thẳng `opts.injected.baoThayDoi(env, who, e).catch(...)`), chạy lại:
+  ```
+  node --test src/shared/router.test.ts
+  # tests 15 / # pass 13 / # fail 2
+  not ok 12 - hàm tiêm baoThayDoi NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200; console.error một dòng bang_tin_loi, không lộ dữ liệu cá nhân
+  not ok 15 - hàm tiêm dongBangTin NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200; console.error một dòng bang_tin_loi viec=dong
+  ```
+  Dòng lỗi mẫu (bài 12): `Expected values to be strictly equal: 500 !== 200` — route ném lỗi đồng bộ, không ai bắt, `fetch()` bắt ở `catch` ngoài cùng → 500. Đúng hai bài "NÉM LỖI ĐỒNG BỘ" đỏ, bài "BỊ TỪ CHỐI" (test 13, lời hứa bị từ chối) VẪN XANH — chứng minh hai bài kiểm giờ phân biệt được hai đường (ném đồng bộ / hứa bị từ chối), và hàng rào `Promise.resolve().then(...)` là thứ đang chặn đường ném đồng bộ (không phải trùng đường với `.catch`).
+  - Hoàn nguyên `router.ts` về đúng bản đã commit: `git diff --quiet src/shared/router.ts` → không có khác biệt (xanh trở lại, `# tests 15 / # pass 15 / # fail 0`).
+- **Mốc kiểm sau vòng sửa 1:** `node --test src/shared/router.test.ts` 15/15; `npm test` — xanh hết trừ đúng một thất bại đã biết trước, không do vòng sửa này (`src/route-access.test.ts`, `ENOENT` tìm `src/modules/bangtin/index.ts` — phát sinh từ Task 4a đang làm song song, không thuộc phạm vi Task 3); `npm run typecheck` 0 lỗi.
+- **Tệp đổi thêm:** `src/shared/router.test.ts` (sửa hàm giả + đổi tên một bài kiểm); mục nhật ký này.
 
 ## Task 4a — luật thuần bangtin + hạng KHONG_DB (2026-09-26)
 

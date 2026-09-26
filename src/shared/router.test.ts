@@ -161,8 +161,10 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
       defaultHandlerStatement: () => null,
       maintenanceBlock: async () => null,
       partyAccount: async () => ({ linked: false }),
-      baoThayDoi: async (env, actor, e) => { await overrides.baoThayDoi?.(env, actor, e); },
-      dongBangTin: async (env, muc) => { await overrides.dongBangTin?.(env, muc); },
+      // KHÔNG bọc async: nếu `overrides.baoThayDoi`/`dongBangTin` là hàm ĐỒNG BỘ ném lỗi, lời gọi này phải ném lỗi ĐỒNG BỘ ra ngoài — bọc `async` sẽ
+      // biến lỗi đồng bộ thành lời hứa bị từ chối, làm mất khả năng phân biệt hai bài kiểm "NÉM LỖI ĐỒNG BỘ" và "BỊ TỪ CHỐI" (vòng sửa 1, phát hiện 1).
+      baoThayDoi: (env, actor, e) => (overrides.baoThayDoi ? overrides.baoThayDoi(env, actor, e) : Promise.resolve()) as Promise<void>,
+      dongBangTin: (env, muc) => (overrides.dongBangTin ? overrides.dongBangTin(env, muc) : Promise.resolve()) as Promise<void>,
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -289,7 +291,7 @@ test("ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, không phụ thuộc 
   assert.deepEqual(seen, [{ staffId: "s9" }]);
 });
 
-test("hàm tiêm dongBangTin ném lỗi → phản hồi vẫn 200; console.error một dòng bang_tin_loi viec=dong", async () => {
+test("hàm tiêm dongBangTin NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200; console.error một dòng bang_tin_loi viec=dong", async () => {
   const logs: string[] = [];
   const goc = console.error;
   console.error = ((m: string) => { logs.push(m); }) as typeof console.error;
