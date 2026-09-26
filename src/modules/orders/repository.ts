@@ -256,6 +256,12 @@ export interface OrderMeta {
   customerPhone: string;
 }
 
+/** Mã đơn + người lập — chỉ hai trường này (Bảng tin, ADR-0022 điều 4: sự kiện không mang tên/SĐT khách, không tiền). null nếu không có đơn. */
+export async function getOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string } | null> {
+  const row = await db.prepare("SELECT staff_id, order_code FROM orders WHERE id = ?").bind(id).first<{ staff_id: string; order_code: string }>();
+  return row ? { staffId: row.staff_id, orderCode: row.order_code } : null;
+}
+
 export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | null> {
   const row = await db
     .prepare(

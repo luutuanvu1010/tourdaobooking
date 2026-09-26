@@ -8,6 +8,7 @@
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
+import type { TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, MATRIX } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -34,6 +35,16 @@ const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa b
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
+
+/**
+ * Người phụ trách ĐANG MỞ của đơn, dạng Bảng tin cần (ADR-0022, NT-2) — gốc lắp ráp gọi để tính nhãn người nhận và đổi `tao` → `tao_cho_nhan`. Có dòng
+ * đang mở → `coNguoi: true`; `staffId` = tài khoản của hồ sơ đó, **null nếu hồ sơ không có tài khoản** (đơn vẫn CÓ người: không gắn `cho-nhan`, nhưng không
+ * có nhãn `nguoi:` cho người đó). Không có dòng đang mở → `{ coNguoi: false, staffId: null }`. Dùng lại câu tra `findHandlerOf` — không SQL mới.
+ */
+export async function handlerOf(db: D1Database, orderId: string): Promise<TrangThaiPhuTrach> {
+  const row = await findHandlerOf(db, orderId);
+  return row ? { coNguoi: true, staffId: row.staff_id } : { coNguoi: false, staffId: null };
+}
 
 /**
  * Câu lệnh (CHƯA chạy) đặt người lập `who` làm người phụ trách mặc định của đơn MỚI `orderId` — `orders/repository.ts` gộp vào db.batch() tạo đơn, sau câu

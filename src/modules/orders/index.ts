@@ -11,7 +11,7 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
+  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
   updateDraftOrder, updateTrip,
 } from "./repository";
 import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
@@ -42,6 +42,15 @@ function failure(f: Failure): Response {
 export async function findOrderOwner(db: D1Database, id: string): Promise<{ staffId: string; status: OrderStatus; updatedAt: string } | null> {
   const meta = await getMeta(db, id);
   return meta ? { staffId: meta.staffId, status: meta.status, updatedAt: meta.updatedAt } : null;
+}
+
+/**
+ * API công khai cho GỐC LẮP RÁP (src/index.ts — Bảng tin, ADR-0022): mã đơn (`orders.order_code`) + AI LẬP, để dựng sự kiện 5 khoá (điều 4) và tính nhãn
+ * người nhận `nguoi:<người lập>` (NT-2). Chỉ hai trường này — không tên/SĐT khách, không tiền; null nếu không có đơn. Module bảng tin KHÔNG gọi hàm này
+ * (hạng KHONG_DB, không import module nào): gốc lắp ráp đọc rồi truyền dữ liệu vào.
+ */
+export async function findOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string } | null> {
+  return getOrderRef(db, id);
 }
 
 /**
