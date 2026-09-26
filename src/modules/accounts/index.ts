@@ -575,7 +575,7 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
-      if (t.id === ctx.staff.id) return SELF_RESET_PIN(); // DK-T3-02: chặn TRƯỚC mọi ghi; đổi PIN của mình chỉ qua change-pin (có PIN hiện tại)
+      if (t.id === ctx.staff.id) return SELF_RESET_PIN(); // DK-T3-02: chặn TRƯỚC mọi ghi; tự đổi PIN chỉ qua change-pin (PIN hiện tại) hoặc pin-by-passkey (ký Face ID mới)
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       const pin = generatePin();
       const now = Date.now();
