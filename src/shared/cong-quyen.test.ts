@@ -24,6 +24,15 @@ test("ADR-0019 điều 2: money.view = order.view ở mọi cột; contact.view 
   }
 });
 
+test("ADR-0019 + ADR-0028: GET /api/catalog hỏi money.view phạm vi 'của mình' — mọi mã qua cổng orders đều qua (Đối tác/Thực tập đọc được danh mục)", () => {
+  // Route danh mục (src/modules/catalog/index.ts) gọi can(staff, "money.view", { ownerId: staff.id }). Hỏi KHÔNG ngữ cảnh sẽ trả sai cho mã `own`
+  // (PARTNER, INTERN) và phá ADR-0028 — bài này đỏ nếu ai đó thu hẹp ô money.view của một mã trong ORDERS_GATE về none/assigned.
+  for (const c of ORDERS_GATE) {
+    const who = { id: `u-${c}`, permissions: [c] as PermissionCode[] };
+    assert.ok(can(who, "money.view", { ownerId: who.id }), `${c} qua cổng orders nhưng không xem được giá của đơn mình lập → mất danh mục ở form lập đơn`);
+  }
+});
+
 test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 7 mã quyền, isOffice/canAccessOrders mới = công thức cũ", () => {
   const oldIsOffice = (w: { id: string; permissions: readonly PermissionCode[] }) => can(w, "order.view");
   const oldCanAccessOrders = (w: { id: string; permissions: readonly PermissionCode[] }) => oldIsOffice(w) || can(w, "order.view", { ownerId: w.id });

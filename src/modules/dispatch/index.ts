@@ -26,6 +26,8 @@ const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN = () =>
   error(403, "forbidden", "Chỉ người lập đơn, người phụ trách hiện tại hoặc quản trị viên mới được đổi người phụ trách. Đơn chưa có người phụ trách thì nhân viên bán hàng nhận cho chính mình được.");
+/** Từ chối XEM (người phụ trách của mọi đơn, liên hệ khách của "Việc của tôi" — ADR-0019 điều 2). */
+const VIEW_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
 const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
@@ -65,7 +67,10 @@ export const dispatchModule: AppModule = {
   name: "dispatch",
   routes: [
     // Người phụ trách của các đơn đang hiện ở danh sách (một lời gọi mỗi trang). Mọi id gửi lên đều có mặt trong kết quả; đơn chưa có người → null.
-    route("GET", "/api/dispatch/handlers", "office", async ({ env, url }) => {
+    // ADR-0019: cổng "orders" (màn đơn) chỉ lọc thô; route nhận id BẤT KỲ nên thân hỏi `order.view` KHÔNG ngữ cảnh (= xem được mọi đơn) TRƯỚC khi
+    // đọc tham số — Đối tác/Thực tập (`own`) → 403.
+    route("GET", "/api/dispatch/handlers", "orders", async ({ env, url, staff }) => {
+      if (!can(staff, "order.view")) return VIEW_FORBIDDEN();
       const parsed = parseOrderIds(url.searchParams.get("orderIds"));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const rows = parsed.ids.length ? await findHandlersOf(env.DB, parsed.ids) : [];
@@ -79,7 +84,9 @@ export const dispatchModule: AppModule = {
     }),
 
     // Nhân sự có thể được giao: đang hoạt động, có hồ sơ, có quyền Bán hàng/Quản trị (luật `checkAssignee`). Thứ tự theo tên (kiểu Việt Nam) của module staff.
-    route("GET", "/api/dispatch/assignees", "office", async ({ env }) => {
+    // ADR-0019 điều 2: chỉ ai giao được ít nhất đơn của mình (`dispatch.assign` với ownerId = chính mình) — kế toán qua cổng "office" nhưng 403 ở đây.
+    route("GET", "/api/dispatch/assignees", "office", async ({ env, staff }) => {
+      if (!can(staff, "dispatch.assign", { ownerId: staff.id })) return FORBIDDEN();
       const assignees = (await listStaffAccounts(env.DB)).flatMap((account): AssigneeDto[] => {
         const checked = checkAssignee(account);
         return checked.ok ? [{ staffId: account.id, partyId: checked.partyId, name: checked.name }] : [];
@@ -87,17 +94,25 @@ export const dispatchModule: AppModule = {
       return json({ assignees } satisfies AssigneesResponse);
     }),
 
-    // "Việc của tôi": đơn mà CHÍNH staff gọi đang phụ trách — không tham số (staff.id lấy từ phiên đăng nhập), an toàn với MỌI quyền vì tự khoanh
-    // phạm vi bằng chính người gọi, không cần can() riêng. Dùng cho khối "Việc của tôi" ở trang Tôi (FIELD — ADR-0014 điều 6/11).
+    // "Việc của tôi": đơn mà CHÍNH staff gọi đang phụ trách — không tham số (staff.id lấy từ phiên đăng nhập), tự khoanh phạm vi bằng chính người
+    // gọi. Dùng cho khối "Việc của tôi" ở trang Tôi (FIELD — ADR-0014 điều 6/11). Phản hồi có tên/SĐT khách nên vẫn hỏi `contact.view` phạm vi
+    // "được giao" (ADR-0019 điều 2): mọi mã làm người phụ trách được đều có ô ⊇ assigned; Thực tập (`own`) → 403 — giao diện chỉ gọi route này
+    // cho tài khoản có quyền Hướng dẫn viên (`web/account.ts`).
     route("GET", "/api/dispatch/mine", "staff", async ({ env, staff }) => {
+      if (!can(staff, "contact.view", { assigned: true })) return VIEW_FORBIDDEN();
       const orderIds = await findHandledOrderIds(env.DB, staff.id);
       const assignments = await getMyAssignments(env.DB, orderIds);
       return json({ assignments } satisfies MyAssignmentsResponse);
     }),
 
-    // Đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người). Thứ tự: 404 → 400 (thân) → 403 (vượt quyền) hoặc 409 stale (nhận đơn ĐÃ có người) → 400 (người được giao)
-    // → 409 (không đổi) → ghi (409 stale nếu thua tranh chấp). Mọi kết quả "thua đua" là MỘT mã: 409 stale.
-    route("PUT", "/api/orders/:id/handler", "office", async ({ env, request, params, staff, baoThayDoi }) => {
+    // Đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người). Thứ tự: 403 sàng sớm (không có ô nhận/giao nào — ADR-0019) → 404 → 400 (thân) →
+    // 403 (vượt quyền trên đơn này) hoặc 409 stale (nhận đơn ĐÃ có người) → 400 (người được giao) → 409 (không đổi) → ghi (409 stale nếu thua tranh chấp).
+    // Mọi kết quả "thua đua" là MỘT mã: 409 stale.
+    // Sàng sớm KHÔNG đổi 409 nào thành 403: `handlerChangeVerdict` chỉ trả allow/stale cho người có `dispatch.claim` hoặc `dispatch.assign` (theo MATRIX
+    // hôm nay chỉ SALES/ADMIN/SUPER_ADMIN, cả ba đều `dispatch.claim` = any ⇒ luôn qua sàng); ai không có cả hai (kế toán, Đối tác, Thực tập) vốn
+    // chỉ nhận "forbidden" — nay nhận sớm hơn, trước mọi đọc CSDL/thân yêu cầu.
+    route("PUT", "/api/orders/:id/handler", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
+      if (!can(staff, "dispatch.claim") && !can(staff, "dispatch.assign", { ownerId: staff.id })) return FORBIDDEN();
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);

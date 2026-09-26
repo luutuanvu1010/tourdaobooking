@@ -4,20 +4,6 @@
   "_ngay_han": "Ngày dân sự Việt Nam, so với vnToday() lúc chạy test.",
   "thao_tac": [
     {
-      "ma": "money.view",
-      "ly_do": "Không route nào hỏi ô; 'FIELD không xem tiền' hiện được giữ GIÁN TIẾP: FIELD không qua cổng office nên không tới route đơn, và /api/dispatch/mine không trả tiền. ADR-0017 (accepted 2026-09-24) đổi ô này cho FIELD.",
-      "ke_hoach": "GĐ2 ADR-0018 / thi công ADR-0017: nơi trả tiền gọi can(money.view), không dựa cổng.",
-      "han": "2026-10-15",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
-      "ma": "contact.view",
-      "ly_do": "Không route nào hỏi ô; /api/dispatch/mine trả liên hệ theo phân công mà không hỏi ô. ADR-0017 đổi ô FIELD assigned → any.",
-      "ke_hoach": "GĐ2 ADR-0018 / thi công ADR-0017: route trả liên hệ khách gọi can(contact.view).",
-      "han": "2026-10-15",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
       "ma": "task.progress",
       "ly_do": "FIELD cập nhật tiến độ việc được giao (ADR-0007) — chưa có route nào (nhiệm vụ đón/lái cano của N2 chưa làm); ô chết từ 20/9.",
       "ke_hoach": "GĐ2 ADR-0018: bỏ khỏi MATRIX hoặc thi hành khi có route (đặc tả 11 vai).",

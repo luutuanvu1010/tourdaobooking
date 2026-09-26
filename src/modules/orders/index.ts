@@ -23,6 +23,8 @@ import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpda
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
+/** Từ chối XEM (đơn, tiền, liên hệ khách — ADR-0019 điều 2): không cắt bớt trường, trả 403 cả phản hồi. */
+const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
@@ -166,10 +168,14 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
 export const ordersModule: AppModule = {
   name: "orders",
   routes: [
-    // Trang chủ mới (docs/superpowers/sdd/2026-09-23-trang-chu-moi): tổng quan cho nhân viên văn phòng — "office" (không phải "orders"), PARTNER không dùng màn hình này.
+    // Trang chủ (docs/superpowers/sdd/2026-09-23-trang-chu-moi): số liệu TOÀN CÔNG TY + "Chuyến đón hôm nay" (`OrderSummaryDto[]` có tên/SĐT khách, tiền).
+    // ADR-0019 điều 1–2: cổng "orders" chỉ lọc thô; thân hỏi ba ô KHÔNG ngữ cảnh (= xem được MỌI đơn, mọi tiền, mọi liên hệ) TRƯỚC mọi truy vấn —
+    // Đối tác/Thực tập (`own`) → 403. Nếu sau này `money.view`/`contact.view` của một mã bị thu hẹp (vd `assigned`), Trang chủ của mã đó 403 chứ
+    // không trả số toàn công ty (Review Focus 4).
     // PHẢI đứng TRƯỚC route "GET /api/orders/:id" ở dưới: router (`match()`) khớp path theo VỊ TRÍ đoạn, nên ":id" cũng khớp chuỗi "dashboard" —
     // `createApp` lấy candidate ĐẦU TIÊN cùng method trong mảng `routes` (thứ tự khai ở đây), route này đứng trước nên thắng.
-    route("GET", "/api/orders/dashboard", "office", async ({ env, staff }) => {
+    route("GET", "/api/orders/dashboard", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.view") || !can(staff, "money.view") || !can(staff, "contact.view")) return FORBIDDEN_VIEW();
       const today = vnToday(new Date());
       const { from, to } = vnWeekRange(today);
       const data = await getDashboard(env.DB, staff.id, today, from, to);
@@ -177,12 +183,17 @@ export const ordersModule: AppModule = {
     }),
 
     route("GET", "/api/orders", "orders", async ({ env, url, staff }) => {
+      // can(staff, "order.view") KHÔNG ngữ cảnh: "any" (SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → true → không lọc; "own" (PARTNER/INTERN) → false → lọc theo chính mình.
+      // An toàn CHỈ đúng vì cổng "orders" chỉ cho qua mã có order.view ≠ "none" (ORDERS_GATE; bài đối chiếu ở src/shared/cong-quyen.test.ts) — mã
+      // `none` lọt vào đây sẽ bị lọc theo chính mình (an toàn), nhưng đừng gọi listOrders ở cổng khác mà không tự lọc.
+      const ownerId = can(staff, "order.view") ? null : staff.id;
+      // ADR-0019 điều 2: danh sách trả tiền (`total`…) và liên hệ khách (`customerPhone`) — hỏi hai ô với ĐÚNG phạm vi của các đơn sẽ trả: không lọc
+      // = mọi đơn (không ngữ cảnh), lọc = đơn của chính mình. Đứng TRƯỚC đọc tham số (403 không đứng sau 400).
+      const scope = ownerId ? { ownerId } : {};
+      if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       const raw = url.searchParams.get("status");
       const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
       if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
-      // can(staff, "order.view") KHÔNG ngữ cảnh: "any" (SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → true → không lọc; "own" (PARTNER) → false → lọc theo chính mình.
-      // An toàn CHỈ đúng vì access "orders" đã loại trước những quyền order.view = "none" (FIELD) ở router — đừng gọi listOrders ở access khác mà không tự lọc.
-      const ownerId = can(staff, "order.view") ? null : staff.id;
       const result = await listOrders(env.DB, {
         q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
         status,
@@ -228,6 +239,8 @@ export const ordersModule: AppModule = {
       const scope = { ownerId: order.staffId, assigned };
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
       if (!can(staff, "order.view", scope)) return FORBIDDEN();
+      // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
+      if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       const history = can(staff, "order.history.view", scope) ? await getAuditTrail(env.DB, order.id) : [];
       return json({ order, history, canModify: can(staff, "order.modify", scope) } satisfies OrderDetailResponse);
     }),

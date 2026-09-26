@@ -2,6 +2,7 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import type { AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type { CatalogAdminItemDto, CatalogAdminResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
@@ -76,8 +77,12 @@ export const catalogModule: AppModule = {
     // ---- Người lập đơn: danh mục để chọn nhanh trong form tạo đơn -----------------------
     // Cổng "orders" (văn phòng + Đối tác + Thực tập — ai lập được đơn), CHỈ ĐỌC: chủ dự án chọn A 2026-09-26 (ADR-0028) — Đối tác không lập được đơn
     // khi thiếu danh mục vì dịch vụ nhập tay đã ngừng (ADR-0027). Nội dung như nhân viên thấy: giá bán lẻ (ADR-0014 điều 3), không giá vốn/cột nội bộ.
-    // Hướng dẫn viên thuần (order.view = none) vẫn 403. Route quản trị danh mục bên dưới giữ cổng "admin".
-    route("GET", "/api/catalog", "orders", async ({ env }) => {
+    // Hướng dẫn viên thuần (order.view = none) vẫn 403 ở cổng. Route quản trị danh mục bên dưới giữ cổng "admin".
+    // ADR-0019 điều 2: danh mục trả GIÁ → hỏi `money.view` với phạm vi "đơn của chính mình" (người lập đơn thấy giá của đơn mình lập): trung tính với
+    // mọi mã trong ORDERS_GATE (Đối tác/Thực tập `own` vẫn qua — ADR-0028; bài kiểm ở src/shared/cong-quyen.test.ts). KHÔNG hỏi không ngữ cảnh:
+    // làm vậy trả 403 cho Đối tác/Thực tập và phá ADR-0028.
+    route("GET", "/api/catalog", "orders", async ({ env, staff }) => {
+      if (!can(staff, "money.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không được xem bảng giá.");
       try {
         await bootstrapIfNeverSynced(env);
       } catch {
