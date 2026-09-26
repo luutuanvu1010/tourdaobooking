@@ -28,5 +28,14 @@
     }
   ],
   // Email Service (beta, gói Workers Paid): binding EMAIL theo developers.cloudflare.com/email-service (khoá `send_email`). KHÔNG khai `remote`: tài liệu nói `wrangler dev` không dùng remote binding thì chạy bộ mô phỏng cục bộ (không cần đăng nhập/mạng), nên `npm run dev` và e2e chạy offline được. Muốn thử gửi thư thật khi dev thì tạm đổi thành { "name": "EMAIL", "remote": true } (cần đăng nhập Cloudflare), đừng commit. Thiếu binding hoặc thiếu hai secret FEEDBACK_NOTIFY_EMAIL / FEEDBACK_MAIL_FROM thì email tự tắt; yêu cầu Góp ý vẫn lưu và hàng đợi báo "chưa gửi được email". Nếu `wrangler deploy` báo lỗi vì binding này (chưa bật Email Service/chưa xác minh tên miền — CHƯA kiểm chứng), gỡ khối `send_email` rồi deploy lại.
-  "send_email": [{ "name": "EMAIL" }]
+  "send_email": [{ "name": "EMAIL" }],
+  // BẢNG TIN (ADR-0022): trạm WebSocket = Durable Object `BangTin` (src/modules/bangtin/tram.ts, export từ src/index.ts). MỘT trạm duy nhất tên "cong-ty"
+  // cho cả công ty (vài chục nhân viên + đối tác: một trạm đủ sức, không cần chia nhỏ, và phát tin chỉ cần hỏi một nơi). Lưu trữ SQLite theo khuyến nghị
+  // Cloudflare, nhưng trạm KHÔNG lưu dữ liệu nào ngoài một báo thức (không tin, không bảng).
+  // Lưu ý vận hành: (1) MỖI lần deploy ngắt MỌI kết nối đang mở (Cloudflare khởi động lại Durable Object) — trình duyệt tự nối lại trong vài giây.
+  // (2) Sau khi deploy bản có migration "v1" này, Cloudflare CHẶN `wrangler rollback` về mọi bản trước nó (thay đổi vòng đời lớp Durable Object).
+  //     Muốn lùi thì deploy một bản mới GỠ route/bộ nghe phía trình duyệt nhưng GIỮ lớp + binding + migration này — không xoá khối dưới đây.
+  // Không khai BANG_TIN_HAN_GIAY trong `vars`: production dùng mặc định 900 giây; biến đó chỉ để e2e rút ngắn (`--var`).
+  "durable_objects": { "bindings": [{ "name": "BANG_TIN", "class_name": "BangTin" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["BangTin"] }]
 }

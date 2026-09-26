@@ -190,3 +190,119 @@ Nguyên nhân: `src/route-access.test.ts:163-165` đọc `index.ts` của MỌI 
 - `node --test "tests/audit/*.test.mjs"`: chưa chạy lại ở lượt này (không đổi mã chạm khung thử này; mốc Task 0 vẫn là 34/35, 1 đỏ có sẵn không do nhánh này).
 
 **Tệp đổi:** `src/modules/bangtin/rules.ts`, `src/modules/bangtin/rules.test.ts` (mới), `src/architecture.test.ts`, `docs/ARCHITECTURE.md`.
+
+## Task 4b — trạm Durable Object, route bắt tay, cấu hình (2026-09-26)
+
+**Phạm vi (R8):** Bước 3, 4, 5 (lặp lại trên `bangtin/index.ts`), 6, 7 của brief Task 4, trên mốc `6448002`. Bước 1–2 đã xong ở 4a.
+
+**Tệp:** mới `src/modules/bangtin/index.ts`, `src/modules/bangtin/tram.ts`, `src/modules/orders/order-ref.test.ts`, `src/modules/dispatch/handler-of.test.ts`, `tests/audit/cloudflare-workers-gia.mjs`; sửa `src/modules/bangtin/rules.ts` (+test), `src/index.ts`, `src/modules/orders/{index,repository}.ts`, `src/modules/dispatch/index.ts`, `src/route-access.test.ts`, `worker-configuration.d.ts`, `wrangler.jsonc`, `tests/audit/{harness.mjs,README.md}`.
+
+### Hai chỗ làm khác chữ của brief (có lý do)
+
+1. **Thêm hàm thuần `keHoachTram` vào `rules.ts`** (brief không có). `tram.ts` không nạp được dưới `node --test` (chính luật kiến trúc cấm nơi khác ngoài `src/index.ts` nạp nó), nên nếu để quyết định đóng/gửi/bỏ qua/báo thức trong `tram.ts` thì hành vi mới đó không có test đỏ-trước nào cho tới e2e. Tách phần quyết định thành hàm thuần có test; `tram.ts` chỉ còn vỏ gọi API Cloudflare.
+2. **Gom người nhận theo MỘT lượt qua `ctx.getWebSockets()` + `ctx.getTags(ws)`, không gom `Set` từ `getWebSockets(tag)` của từng nhãn.** Tài liệu `developers.cloudflare.com/durable-objects/api/state/` (đọc lại 2026-09-26) KHÔNG hứa `getWebSockets(tag)` trả cùng một đối tượng qua các lần gọi → `Set` theo danh tính có thể không khử trùng được (một kết nối có cả `tat-ca` lẫn `nguoi:x` nhận hai tin). Xét theo chỉ số trong một mảng duy nhất thì "mỗi kết nối nhiều nhất một lần" đúng bất kể danh tính. Cùng trang đó xác nhận `getTags(ws)` có thật và `getWebSockets()` "có thể vẫn trả kết nối sau khi đã gọi `ws.close`" (đang CLOSING) → mọi `send`/`close` chỉ làm khi `readyState === 1`, mỗi lời gọi bọc `try`.
+
+Thêm nhỏ: 426 kèm header `upgrade: websocket` (RFC 7231 §6.5.15 yêu cầu); trạm trả 400 nếu thiếu/sai header nội bộ (nhãn phải là mảng 1–10 chuỗi, mỗi chuỗi 1–256 ký tự — hạn mức của `acceptWebSocket`).
+
+### Đỏ trước
+
+- `keHoachTram` (4 bài mới trong `rules.test.ts`, viết trước hàm) → `node --test src/modules/bangtin/rules.test.ts`:
+  ```
+  # SyntaxError: The requested module './rules.ts' does not provide an export named 'keHoachTram'
+  not ok 1 - src/modules/bangtin/rules.test.ts
+  ```
+- `src/route-access.test.ts`: thêm `bangtin` vào `MODULES` + dòng `GET /api/bang-tin staff` vào SNAPSHOT + sửa chú thích đếm (12 module, 72 route) TRƯỚC khi có `index.ts`:
+  ```
+  not ok 1 - MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppModule` (...)
+    error: "ENOENT: no such file or directory, open '.../src/modules/bangtin/index.ts'"
+  not ok 2 - mức truy cập của 72 route hiện có khớp ảnh chụp đã duyệt (...)
+    error: Could not resolve ".../src/modules/bangtin/index.ts"
+  ```
+- `findOrderRef` (`orders/order-ref.test.ts`, 2 bài) và `handlerOf` (`dispatch/handler-of.test.ts`, 3 bài — có nhánh hồ sơ KHÔNG tài khoản → `{ coNguoi: true, staffId: null }` và nhánh dòng phụ trách đã đóng), cả hai chạy trên SQLite thật dựng từ `migrations/*.sql`, gói `./index` bằng esbuild:
+  ```
+  not ok 1 - handlerOf: người phụ trách đang mở CÓ tài khoản → ...    error: 'handlerOf is not a function'
+  not ok 2 - handlerOf: người phụ trách là hồ sơ KHÔNG tài khoản → ... error: 'handlerOf is not a function'
+  not ok 3 - handlerOf: đơn chưa từng có người phụ trách, ...           error: 'handlerOf is not a function'
+  not ok 4 - findOrderRef: trả ĐÚNG hai trường mã đơn + người lập ...  error: 'findOrderRef is not a function'
+  not ok 5 - findOrderRef: đơn không tồn tại → null ...                error: 'findOrderRef is not a function'
+  ```
+
+### Xanh
+
+- `rules.ts`: `keHoachTram(ketNoi, nhanSuKien | null, nay)` → `{ dong, gui, baoThucKe }` (dùng lại `ketNoiQuaHan`). `rules.test.ts` 10/10.
+- `bangtin/index.ts`: `bangtinModule` MỘT route `GET /api/bang-tin` `staff` — 426 → 403 `cross_origin` (đúng câu của `checkWriteRequest` trong `router.ts`: "Yêu cầu không đến từ trang của hệ thống.") → 503 `unavailable` khi vắng `env.BANG_TIN` → `nhanKetNoi(staff)` → `new Request("https://bang-tin/ket-noi", { headers: { upgrade, x-bang-tin-nhan, x-bang-tin-nguoi } })` (không chép header nào của trình duyệt) → trả nguyên `getByName("cong-ty").fetch(...)`. `phatDon`/`dongCua` gọi RPC `phat`/`dongCua`; vắng binding → return. Không import `./tram` (kể cả kiểu); không chứa tên mô-đun runtime Worker.
+- `tram.ts`: `BangTin extends DurableObject<Env>`; constructor đặt tự trả lời `ping`→`pong`; `fetch` nhận kết nối (`acceptWebSocket(server, nhan)`, `serializeAttachment({ staffId, hetHan })`, đặt báo thức nếu chưa có hoặc muộn hơn); `phat` = `keHoachTram` → đóng 4001 `het-han` rồi gửi; `dongCua` → 4003 `cap-nhat-tai-khoan` (`"tat-ca"` mọi kết nối; `{ staffId }` nhãn `nguoi:<id>`); `alarm` đóng quá hạn + đặt báo thức kế; `webSocketMessage/Close/Error` không làm gì. Storage chỉ dùng `getAlarm`/`setAlarm`.
+- `orders`: `getOrderRef` (SQL mới `SELECT staff_id, order_code FROM orders WHERE id = ?`, `repository.ts`) + `findOrderRef` công khai ở `index.ts` (cùng kiểu `findOrderOwner`). `dispatch`: `handlerOf` dùng `findHandlerOf` (không SQL mới). 5/5 xanh.
+- `src/index.ts`: thêm `bangtinModule`; `export { BangTin } from "./modules/bangtin/tram"`; `baoThayDoi` thật (kiểm `env.BANG_TIN` TRƯỚC hai lần đọc D1 chạy song song; `tao` → `tao_cho_nhan` khi sau thay đổi không ai phụ trách; sự kiện đúng 5 khoá, `luc` ISO; nhãn bằng `nhanSuKien`; `_actor` không vào sự kiện); `dongBangTin` → `dongCua`.
+- `worker-configuration.d.ts`: khai tay `BANG_TIN: DurableObjectNamespace<import("./src/index").BangTin>;` + `BANG_TIN_HAN_GIAY?: string;`. Đã thử bỏ dòng `BANG_TIN_HAN_GIAY` → `tsc` đỏ `TS2559: Type 'Env' has no properties in common with type '{ BANG_TIN_HAN_GIAY?: ... }'` ở `tram.ts` (`docHanGiay(this.env)`) → khôi phục → xanh; chú thích trong tệp cảnh báo `npm run types` chỉ sinh lại tên này nếu `.dev.vars` có nó.
+- `wrangler.jsonc`: `durable_objects.bindings` + `migrations: [{ tag: "v1", new_sqlite_classes: ["BangTin"] }]`, chú thích tiếng Việt (một trạm; mỗi deploy ngắt mọi kết nối; sau bản này `wrangler rollback` về bản trước bị Cloudflare chặn — lùi = deploy bản gỡ route/bộ nghe nhưng GIỮ lớp + binding + migration). Không thêm `BANG_TIN_HAN_GIAY` vào `vars`.
+- `src/route-access.test.ts`: 2/2 xanh (72 route, 12 module).
+
+### Thấy chặn thật (P16) — Bước 5 và Bước 6, trên `bangtin/index.ts`
+
+- **Bước 5 — `KHONG_DB`:** chèn tạm `void env.DB; // PHA-CO-Y-BUOC-5` vào thân route → `node --test src/architecture.test.ts`:
+  ```
+  not ok 19 - KHONG_DB: mọi tệp .ts (trừ *.test.ts) của module hạng KHONG_DB không được đụng env.DB/.prepare(/.batch(/DB.exec(
+    + 'src/modules/bangtin/index.ts: chứa "env.DB"'
+  # pass 22
+  # fail 1
+  ```
+  Hoàn nguyên bằng `Edit` → `grep -c "PHA-CO-Y" src/modules/bangtin/index.ts` = 0 → 23/23 xanh.
+- **Bước 6 — "tệp lớp DO":** thêm tạm `export { BangTin } from "./tram";` vào `bangtin/index.ts` →
+  - `node --test src/architecture.test.ts`:
+    ```
+    not ok 20 - tệp lớp DO modules/bangtin/tram: chỉ src/index.ts được import; không index.ts nào của module chứa "cloudflare:workers"
+      + 'src/modules/bangtin/index.ts: import "./tram" (chỉ src/index.ts được nạp lớp Durable Object)'
+    # pass 22
+    # fail 1
+    ```
+  - `node --test src/route-access.test.ts`:
+    ```
+    # ✘ [ERROR] Could not resolve "cloudflare:workers"
+    not ok 2 - mức truy cập của 72 route hiện có khớp ảnh chụp đã duyệt (...)
+        src/modules/bangtin/tram.ts:9:30: ERROR: Could not resolve "cloudflare:workers"
+    # pass 1
+    # fail 1
+    ```
+  Hoàn nguyên bằng `Edit` → hai tệp 25/25 xanh. Không commit bản phá nào. Cả hai hàng rào cần dòng ở `docs/SO-HANG-RAO.md` (Task 11).
+
+### Khung thử `tests/audit`
+
+- `harness.mjs`: plugin esbuild `cloudflare-workers-gia` trỏ `^cloudflare:workers$` về `tests/audit/cloudflare-workers-gia.mjs` (đường dẫn theo `import.meta.url` của chính harness, không theo `ROOT` vì `AUDIT_ROOT` có thể trỏ nơi khác); tệp giả chỉ có lớp `DurableObject` rỗng; một dòng ở `README.md`.
+- Thấy cần thật: bỏ tạm dòng `plugins: [...]` → `node --test tests/audit/redteam.test.mjs` → `src/modules/bangtin/tram.ts:9:30: ERROR: Could not resolve "cloudflare:workers"`, `not ok 1 - tests/audit/redteam.test.mjs` → khôi phục (chép lại bản sao) → xanh.
+- So bộ ca đỏ: TRƯỚC (mốc `6448002`) `# tests 35 / pass 34 / fail 1` — `not ok 4 - P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào (...)`. SAU: `# tests 35 / pass 34 / fail 1` — đúng MỘT ca đó, cùng tên. Không thêm ca đỏ mới.
+- Tìm nơi khác gói `src/index.ts` bằng esbuild: tìm `entryPoints` / `esbuild.build` / `esbuild"` trong `src`, `tests`, `scripts` → `src/passkey-off.test.ts`, `src/route-access.test.ts`, `src/modules/{dispatch/service,auth/passkey,accounts/patch-staff,staff/account-roles,orders/dashboard,orders/repository}.test.ts`, `tests/audit/harness.mjs`, cộng hai tệp test mới của lượt này. Chỉ `tests/audit/harness.mjs` gói `src/index.ts`; các tệp còn lại gói `index.ts`/`repository.ts`/`service.ts` của MỘT module (không kéo `tram.ts`). `scripts/` và `tests/e2e/` không dùng esbuild. → chỉ harness cần plugin.
+
+### Phản hồi có bị dựng lại không (mất `webSocket`)
+
+Đã đọc: `src/shared/router.ts` — `fetch` trả `await dispatch(...)`, `dispatch` trả thẳng `hit.r.handler(...)`; không có `new Response(...)`/`headers.set`/`headers.append` nào trong `router.ts` hay `src/index.ts` (tìm bằng grep → không dòng nào). `src/index.ts` — `fetch: app.fetch` (không bọc). `wrangler.jsonc` `assets.run_worker_first: ["/api/*"]` → `/api/bang-tin` vào Worker trước, không qua tài sản tĩnh; `public/_headers` dòng 1 tự ghi "API /api/* đi qua Worker, không dùng file này". → phản hồi 101 của trạm đi nguyên tới trình duyệt.
+
+### `wrangler dev` (chỉ local, D1 tạm)
+
+Lệnh (từ thư mục worktree): `CI=1 npx wrangler dev --port 8799 --ip 127.0.0.1 --inspector-port 9239 --persist-to /tmp/bangtin-4b-dev-persist --var SESSION_SECRET:<48 ký tự giả>` (không tạo `.dev.vars` — N10; `SESSION_SECRET` giả để `checkConfig` không trả 500 trước bước đăng nhập). Log: bảng binding có `env.BANG_TIN (BangTin) Durable Object local`, `Ready on http://127.0.0.1:8799`, không dòng lỗi. Bắt tay không cookie:
+
+```
+curl -si -H "Upgrade: websocket" -H "Connection: Upgrade" -H "Sec-WebSocket-Version: 13" -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" http://127.0.0.1:8799/api/bang-tin
+HTTP/1.1 401 Unauthorized
+{"error":{"code":"unauthenticated","message":"Chưa đăng nhập hoặc phiên đã hết hạn."}}
+```
+
+Tắt ngay (dừng tác vụ nền), kiểm: `pgrep -fl "wrangler dev" | grep -c 8799` = 0, `pgrep -fl workerd | grep -c worktrees/bang-tin` = 0; xoá thư mục D1 tạm. (Một `wrangler dev` khác đang chạy từ worktree `va-3-loi-kiem-toan`, cổng 51764 — không phải của lượt này, không đụng.)
+
+### Mốc kiểm sau Task 4b
+
+- `npm test` → **840/840** (831 cũ + 4 `keHoachTram` + 2 `findOrderRef` + 3 `handlerOf`; ca đỏ tạm `route-access` của 4a đã xanh lại).
+- `npm run typecheck` → **0 lỗi** (ba tsconfig).
+- `node --test "tests/audit/*.test.mjs"` → 34/35, đúng một ca đỏ có sẵn "P4 FINDING HDV" (R4).
+
+### Chưa kiểm ở lượt này (để e2e Task 6/7)
+
+Đường 101 thật (bắt tay có phiên đăng nhập, `Origin` đúng), tự trả `pong`, đóng 4001 bằng báo thức/khi phát, đóng 4003, RPC `phat`/`dongCua` qua stub thật, và việc runtime chấp nhận Request dựng mới gửi sang trạm — đều chưa chạy thật; chỉ phần quyết định (`keHoachTram`) có test đơn vị.
+
+### Việc để lại cho task sau
+
+- `docs/SO-HANG-RAO.md`: dòng cho `KHONG_DB` và "tệp lớp DO" (ngày thấy chặn: 2026-09-26) — Task 11.
+- `docs/HANDOFF-N1.md` / runbook: ghi rằng từ bản có trạm, `wrangler rollback` về bản trước bị chặn và cách lùi thay thế — Task 14.
+- Gợi ý (không tự sửa, ngoài phạm vi): thêm dòng chú thích `BANG_TIN_HAN_GIAY` vào `.dev.vars.example` để `npm run types` không làm rơi tên này.
+
+**Commit:** `4e8fe59` (findOrderRef, handlerOf + test — ở commit này `route-access` vẫn đỏ tạm như sau 4a, R11), `7e12192` (module, trạm, gốc lắp ráp, khung thử, route-access xanh lại), và commit cấu hình `wrangler.jsonc` + mục nhật ký này.
