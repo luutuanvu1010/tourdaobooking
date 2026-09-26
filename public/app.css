@@ -305,6 +305,10 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .myjob-service-name { font-weight: 700; }
 .myjob-counters { display: flex; flex-wrap: wrap; gap: var(--s3); margin: var(--s3) 0; }
 .myjob-service input[type="text"] { margin: var(--s2) 0; }
+/* DK-T4-02: vùng huỷ đơn là khối riêng có đường ngăn, tách khỏi nút "Lưu số khách mới" của dịch vụ cuối; chạm lý do còn hỏi lại (confirm) rồi mới huỷ. */
+.myjob-cancel { margin-top: var(--s2); padding-top: var(--s3); border-top: 1px solid var(--c-border); }
+.myjob-cancel-title { margin: 0 0 var(--s1); font-weight: 700; color: var(--c-danger); }
+.myjob-cancel-actions { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s2) 0; }
 button.row-link.danger { color: var(--c-danger); font-weight: 700; }
 
 html { -webkit-text-size-adjust: 100%; overscroll-behavior-y: none; }
