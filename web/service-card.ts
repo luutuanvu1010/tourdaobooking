@@ -27,6 +27,9 @@ export interface CardOptions {
   onRemove: () => void;
   /** Thẻ khoá: "Chọn lại từ danh mục" (trang xoá thẻ rồi mở ô tìm). */
   onRepick: () => void;
+  /** Tài khoản có quyền Đối tác (ADR-0027 R2): đơn giá luôn là giá danh mục — ô đơn giá CHỈ XEM khi đang bằng giá danh mục; nếu đơn cũ đang lệch thì vẫn
+   *  sửa được để đưa về đúng giá (máy chủ từ chối mọi giá khác). */
+  retailOnly?: boolean;
 }
 
 export interface ServiceCard {
@@ -267,6 +270,7 @@ export function createServiceCard(o: CardOptions): ServiceCard {
         if (document.activeElement !== r.price && parseMoney(r.price.value) !== line.unitPrice) setMoneyValue(r.price, line.unitPrice);
         r.total.textContent = vnd(line.lineTotal);
         const deviated = line.deviation !== null; // nhãn chỉ có ở dịch vụ danh mục (catalogPrice !== null)
+        r.price.readOnly = Boolean(o.retailOnly) && !deviated;
         r.tag.hidden = !deviated;
         r.old.hidden = !deviated;
         if (deviated && line.catalogPrice !== null) r.old.textContent = vnd(line.catalogPrice);

@@ -8,7 +8,7 @@
 //  R3 (tài khoản có quyền Đối tác) — chủ dự án chốt 26/9: "đối tác được quyền giảm giá cho khách nhưng luôn phải trả một mức giá cố định (giá vốn) …
 //     có thể đặt mức giảm tối đa là mức chiết khấu của công ty Tour đảo dành cho đối tác"; app CHƯA có bảng mức chiết khấu → chủ chọn "Tạm không cho
 //     giảm" (trần = 0): giảm giá cấp đơn phải bằng 0 ở lập, sửa và xác nhận (xác nhận đọc giảm giá ĐÃ LƯU) → sai 403 forbidden. Nhân viên nội bộ không đổi.
-// Đối tác nhận 403 ở /api/catalog nên dựng đơn bằng API trực tiếp. Dịch vụ nhập tay CŨ dựng bằng SQL trên D1 local tạm (`makeLegacyManual`).
+// Đơn của Đối tác dựng bằng API trực tiếp (từ 1.15 Đối tác đọc được danh mục — ADR-0028; kịch bản không cần giao diện). Dịch vụ nhập tay CŨ dựng bằng SQL trên D1 local tạm (`makeLegacyManual`).
 import assert from "node:assert/strict";
 import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, manualService, orderInput, randomPhone, session, sql, vnDate } from "./lib.mjs";
 
@@ -127,7 +127,7 @@ r = await call(ADMIN, "POST", "/api/staff", { fullName: `Cộng Tác Viên ${tag
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.deepEqual(r.body.staff.permissions, ["PARTNER"], "vai Cộng tác viên → chỉ quyền Đối tác");
 const P = (await login(phone, r.body.pin)).cookie;
-assert.equal((await call(P, "GET", "/api/catalog")).status, 403, "đối chứng: Đối tác không đọc được danh mục (dựng đơn bằng API trực tiếp)");
+assert.equal((await call(P, "GET", "/api/catalog")).status, 200, "Đối tác đọc được danh mục chỉ-đọc (ADR-0028, chủ chọn A 26/9)");
 const partnerCount = async (name) => (await call(P, "GET", `/api/orders?q=${encodeURIComponent(name)}`)).body.orders.length;
 
 // 3) POST với đơn giá khác giá danh mục (thấp hơn, cao hơn) → 403, không lưu đơn

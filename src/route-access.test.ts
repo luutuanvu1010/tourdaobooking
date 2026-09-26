@@ -91,7 +91,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
-  { method: "GET", path: "/api/catalog", access: "office" },
+  { method: "GET", path: "/api/catalog", access: "orders" }, // Đối tác + Thực tập xem danh mục chỉ-đọc (chủ dự án chọn A, 2026-09-26)
   { method: "PATCH", path: "/api/catalog/:code", access: "admin" },
   { method: "POST", path: "/api/catalog/:code/ack", access: "admin" },
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },

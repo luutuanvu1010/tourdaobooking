@@ -2,7 +2,7 @@
 // Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
 import type { CatalogServiceDto } from "../src/shared/contracts";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { can } from "../src/shared/permissions";
+import { can, holdsPartner } from "../src/shared/permissions";
 import {
   canAddService, draftFromDto, draftIssues, newCatalogDraft, newManualDraft, orderIssues, orderSummary, refreshFromCatalog, toServiceInput, totalLines,
   type ServiceDraft,
@@ -13,7 +13,7 @@ import { ApiError, api, type Api, type DepositMethod, type OrderInput } from "./
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
 import { createCatalogPicker } from "./catalog-picker";
-import { byId } from "./dom";
+import { byId, h } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
@@ -79,6 +79,9 @@ const picker = createCatalogPicker({
 });
 byId("catalog-slot").append(picker.root);
 
+// Tài khoản có quyền Đối tác (ADR-0027): đơn giá = giá danh mục, tạm chưa được giảm giá. Máy chủ là nơi chặn; form chỉ khoá ô cho khỏi gõ rồi bị từ chối.
+let retailOnly = false;
+
 function mount(d: ServiceDraft, open?: boolean): Entry {
   const entry = { draft: d } as Entry;
   entry.card = createServiceCard({
@@ -86,6 +89,7 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
     today,
     openTrip: open ?? !isPhone, // ≤ 640px thẻ mới thu gọn khối chuyến (Q2); máy tính mở sẵn
     canAddLine: () => totalLines(drafts()) < MAX_LINES_PER_ORDER,
+    retailOnly,
     onChange: (next) => {
       entry.draft = next;
       recompute();
@@ -347,6 +351,7 @@ async function loadOrder(): Promise<void> {
 
 // ---- khởi động ----
 const staff = await initShell();
+retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 // "Sử dụng thông tin của tôi": điền tên + SĐT của tài khoản đang đăng nhập (hồ sơ tài khoản chưa có email nên ô Email không đổi).
 // Bắn "input" để ô hồ sơ khách (booker-picker) tra lại theo SĐT mới như khi gõ tay.
 byId("use-mine").addEventListener("click", () => {
@@ -364,5 +369,11 @@ if (editId) {
 } else if (!can(staff, "order.create")) {
   // ADR-0007: kế toán xem được đơn nhưng không lập đơn; nút "Đơn mới" đã ẩn, đây là lớp chặn khi mở thẳng đường dẫn.
   lockForm(banner("danger", "Tài khoản này không được lập đơn."));
+}
+if (retailOnly) {
+  // Sau loadOrder: đơn cũ đã lưu giảm giá > 0 thì để ô sửa được (đưa về 0), không thì khoá.
+  const discountEl = field("discount") as HTMLInputElement;
+  discountEl.readOnly = num("discount") === 0;
+  discountEl.after(h("span", { class: "muted" }, "Tài khoản đối tác tạm chưa được giảm giá."));
 }
 recompute();

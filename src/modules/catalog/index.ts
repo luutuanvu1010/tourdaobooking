@@ -73,8 +73,11 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy dịch vụ.
 export const catalogModule: AppModule = {
   name: "catalog",
   routes: [
-    // ---- Nhân viên: danh mục để chọn nhanh trong form tạo đơn ---------------------------
-    route("GET", "/api/catalog", "office", async ({ env }) => {
+    // ---- Người lập đơn: danh mục để chọn nhanh trong form tạo đơn -----------------------
+    // Cổng "orders" (văn phòng + Đối tác + Thực tập — ai lập được đơn), CHỈ ĐỌC: chủ dự án chọn A 2026-09-26 (ADR-0028) — Đối tác không lập được đơn
+    // khi thiếu danh mục vì dịch vụ nhập tay đã ngừng (ADR-0027). Nội dung như nhân viên thấy: giá bán lẻ (ADR-0014 điều 3), không giá vốn/cột nội bộ.
+    // Hướng dẫn viên thuần (order.view = none) vẫn 403. Route quản trị danh mục bên dưới giữ cổng "admin".
+    route("GET", "/api/catalog", "orders", async ({ env }) => {
       try {
         await bootstrapIfNeverSynced(env);
       } catch {
