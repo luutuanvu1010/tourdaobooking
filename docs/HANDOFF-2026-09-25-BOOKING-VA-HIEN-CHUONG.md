@@ -115,7 +115,7 @@ Nguồn: **`docs/ARCHITECTURE.md` Phần I** (nhánh `hien-chuong-kien-truc`); �
 - **Điều 5 — 17 nguyên tắc:** bất biến sát dữ liệu (hai lớp); cấu hình = dữ liệu có kiểu (không flexfield/JSON tự do); modular monolith kể cả tầng SQL; **một nguồn tính tiền**; chỉ-thêm + đảo; chụp tại mốc; **5.7 giữ đối tượng khi thiếu điều kiện**; **5.8 bước của luồng gắn vai trên đối tượng**; **5.9 trả dư → phải trả khác / thu nhập khác**; thông báo không kích hoạt tiền; tác nhân tự động/AI có tài khoản riêng; kiểm toán; nền trước; **5.14 hai trục thời gian + khoá kỳ**; **5.15 lõi tất định, AI không tính tiền**; **5.16 hộp thư đi**; **5.17 sổ vàng**.
 - **Điều 6 — Thi hành:** ADR phải ghi điều áp/lệch; **bảng thi hành** mỗi điều: cưỡng chế bằng gì / lệch hiện có (nợ có tên) / nguồn; sửa chỉ do chủ.
 
-**Trạng thái duyệt:** chủ **đồng ý về nguyên tắc**; **đã duyệt** 5.7, 5.8, 5.9 (kèm điều chỉnh kế toán), **cho phép** sửa `CLAUDE.md` (đã áp, ngắn gọn). **Chờ:** chốt vị trí cuối cùng (xem §3) và duyệt **5.14–5.17**. Hai vòng kiểm độc lập (phần siết lại câu P8 làm **sau** vòng hai — **chưa được kiểm lại**); lỗi đã sửa: thay âm thầm ADR-0018 đ11, dẫn nguồn sai nhánh, gọi nhầm "nợ" bảng 0021, **câu `CLAUDE.md` lỡ nới Hiến pháp P8** (đã siết lại: chỉ miễn hỏi lại *nguyên tắc đã duyệt*; áp vào quyết định cụ thể chạm dữ liệu/quyền/tiền/hợp đồng/bất biến **vẫn dừng và hỏi / qua ADR**).
+**Trạng thái duyệt (cập nhật 2026-09-26):** **ĐÃ DUYỆT toàn bộ** — nguyên tắc, vị trí (phần riêng Tour Đảo ở `ARCHITECTURE.md`; phần chung chuyển vào kho luật gốc `Master-Project-Framework`), 5.7, 5.8, 5.9 (kèm điều chỉnh kế toán), **5.14–5.17**, cho phép sửa `CLAUDE.md` (đã áp). Hai vòng kiểm độc lập (phần siết lại câu P8 làm **sau** vòng hai — **chưa được kiểm lại**); lỗi đã sửa: thay âm thầm ADR-0018 đ11, dẫn nguồn sai nhánh, gọi nhầm "nợ" bảng 0021, **câu `CLAUDE.md` lỡ nới Hiến pháp P8** (đã siết lại: chỉ miễn hỏi lại *nguyên tắc đã duyệt*; áp vào quyết định cụ thể chạm dữ liệu/quyền/tiền/hợp đồng/bất biến **vẫn dừng và hỏi / qua ADR**).
 
 ---
 
@@ -138,7 +138,7 @@ Projects/
 └─ <dự án>/
     ├─ playbook/                    bản chép CHỈ-ĐỌC, ghim phiên bản + băm
     ├─ docs/ARCHITECTURE.md         chiếu (2)+(3) vào module/bảng của dự án — chỉ siết
-    ├─ docs/RANG_BUOC_NGOAI.md      luật, thuế, giới hạn nền tảng (có nguồn, hạn kiểm lại)
+    ├─ RANG_BUOC_NGOAI.md      luật, thuế, giới hạn nền tảng (có nguồn, hạn kiểm lại)
     ├─ docs/data-dictionary.json    mô hình dữ liệu CỤ THỂ (test ép khớp schema)
     ├─ migrations/                  schema thật
     └─ CLAUDE.md                    ngắn (< 200 dòng): bản đồ + lệnh + điều cấm
@@ -182,12 +182,9 @@ Tài liệu: memory https://code.claude.com/docs/en/memory.md · best practices 
 
 ## 5. Việc tiếp theo (thứ tự khuyến nghị) và câu hỏi đang chờ chủ
 
-**Câu hỏi đang chờ chủ (gom một lần):**
-1. Dùng **`Master-Project-Framework` làm kho luật gốc duy nhất**, hợp nhất v2.3.0 + v3.1.0 vào đó? (khuyến nghị: có)
-2. **Ba văn bản trong một kho** (Hiến pháp · Hiến chương hệ thống · Mô hình dữ liệu lõi), không trộn? (có)
-3. Duyệt **5.14–5.17** của Hiến chương? (có)
-4. Tạo **`docs/RANG_BUOC_NGOAI.md`** (câu đầu: sổ công nợ nội bộ có phải lưu 10 năm theo NĐ 174/2016 không) và **bộ Sổ vàng** (bắt đầu từ ví dụ Hòn Tằm, i-resort)? (có)
-5. Lượt 1 Hoàn tất: M1, "Đã giao" có cho Bán hàng, Cộng tác viên — hỏi khi trình ADR-0024…0026 (sau ADR-0019).
+**Câu hỏi đã trả lời (chủ dự án 2026-09-26):** (1) **dùng `Master-Project-Framework` làm kho luật gốc duy nhất, hợp nhất phiên bản**; (2) **có** — ba văn bản trong một kho; (3) **duyệt 5.14–5.17**; (4) **có** — đã tạo `RANG_BUOC_NGOAI.md` (gốc repo, 17 dòng, 4 nhóm chưa khảo sát) và Sổ vàng (`golden/hoan-tat-cong-no.json` 7 ca **chờ chủ/Kế toán xác nhận** + `src/so-vang.test.ts`, đã thấy chặn thật). **Còn chờ:**
+- Lượt 1 Hoàn tất: M1, "Đã giao" có cho Bán hàng, Cộng tác viên — hỏi khi trình ADR-0024…0026 (sau ADR-0019).
+- **Xác nhận 7 ca Sổ vàng** (`golden/hoan-tat-cong-no.json`) — chủ hoặc Kế toán xem từng con số; luật cân đối trong ca là AI đề xuất từ ví dụ của đặc tả.
 
 **Thứ tự làm (sau khi chủ trả lời):**
 1. Chủ `day-len` hai nhánh tài liệu (§0).
@@ -195,7 +192,7 @@ Tài liệu: memory https://code.claude.com/docs/en/memory.md · best practices 
 3. Tour Đảo — **thi công Bảng tin** (ADR-0022, kế hoạch 15 task; việc lớn → kiểm độc lập).
 4. Song song: **vá DK-T3-01, DK-T3-02, DK-T4-02 trước 2026-10-05**.
 5. **ADR-0019** (tách cổng + route hỏi bảng quyền) → ADR-0017/0023 + ADR-0020.
-6. Sổ vàng + `RANG_BUOC_NGOAI.md` → trình lượt 1 Hoàn tất (ADR-0024…0026, trang ghép) → thi công lát mỏng "Tour Đảo bán" không chiết khấu → lượt 2 (chính sách giá, người bán, nhà cung cấp).
+6. Chủ/Kế toán xác nhận Sổ vàng + phiên khảo sát riêng cho `RANG_BUOC_NGOAI.md` (trước hết L1: sổ công nợ có phải lưu 10 năm) → trình lượt 1 Hoàn tất (ADR-0024…0026, trang ghép) → thi công lát mỏng "Tour Đảo bán" không chiết khấu → lượt 2 (chính sách giá, người bán, nhà cung cấp).
 7. Việc nhỏ §1.6 gộp vào một lần phát hành.
 
 ---

@@ -1,0 +1,131 @@
+{
+  "_mo_ta": "Sổ vàng — chia tiền khi đơn 'Đã giao – đã thu đủ' (đặc tả docs/superpowers/specs/2026-09-25-hoan-tat-don-va-so-ke-toan.md §5; ADR-0025/0026 nháp). Mỗi ca: đầu vào + đáp án đúng đến từng đồng. no_tour_dao dương = bên đó nợ Tour Đảo; âm = Tour Đảo nợ bên đó. Luật cân đối (AI đề xuất từ ví dụ của đặc tả, CHỜ chủ/Kế toán xác nhận): nợ mỗi bên = đã thu − được hưởng; phần Tour Đảo giữ = công ty tự thu + tổng nợ các bên = giá bán − giá vốn − hoa hồng.",
+  "luat": "chia-tien-khi-da-giao",
+  "cac_ca": [
+    {
+      "ma": "SV-HT-01",
+      "mo_ta": "Vé Hòn Tằm (Tour Đảo bán), bên đặt là Cộng tác viên hưởng 15%. 2 người lớn × 500.000. HDV thu đủ 1.000.000 tiền mặt tại bến.",
+      "nguon": "đặc tả Hoàn tất §5.1",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "Tour Đảo",
+        "gia_ban": 1000000,
+        "gia_von": 0,
+        "hoa_hong": 150000,
+        "cong_ty_thu": 0,
+        "cac_ben": [
+          { "ben": "HDV Nam", "vai": "hdv_noi_bo", "da_thu": 1000000, "duoc_huong": 0 },
+          { "ben": "CTV A", "vai": "nguoi_huong", "da_thu": 0, "duoc_huong": 150000 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "HDV Nam": 1000000, "CTV A": -150000 }, "tour_dao_giu": 850000 }
+    },
+    {
+      "ma": "SV-HT-02",
+      "mo_ta": "Như SV-HT-01 nhưng Cộng tác viên đã thu cọc 300.000; HDV thu 700.000 còn lại.",
+      "nguon": "đặc tả Hoàn tất §5.1 (biến thể)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "Tour Đảo",
+        "gia_ban": 1000000,
+        "gia_von": 0,
+        "hoa_hong": 150000,
+        "cong_ty_thu": 0,
+        "cac_ben": [
+          { "ben": "HDV Nam", "vai": "hdv_noi_bo", "da_thu": 700000, "duoc_huong": 0 },
+          { "ben": "CTV A", "vai": "nguoi_huong", "da_thu": 300000, "duoc_huong": 150000 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "HDV Nam": 700000, "CTV A": 150000 }, "tour_dao_giu": 850000 }
+    },
+    {
+      "ma": "SV-HT-03",
+      "mo_ta": "Vé tắm bùn i-resort (Tour Đảo làm đại lý), bên đặt là lễ tân khách sạn hưởng 50.000/vé. 2 vé × 300.000; giá vốn 80%. Lễ tân thu trước 200.000; khách trả 400.000 tại quầy i-resort.",
+      "nguon": "đặc tả Hoàn tất §5.2 trường hợp A",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "i-resort",
+        "gia_ban": 600000,
+        "gia_von": 480000,
+        "hoa_hong": 100000,
+        "cong_ty_thu": 0,
+        "cac_ben": [
+          { "ben": "Lễ tân Hương", "vai": "nguoi_huong", "da_thu": 200000, "duoc_huong": 100000 },
+          { "ben": "i-resort", "vai": "nha_cung_cap", "da_thu": 400000, "duoc_huong": 480000 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "Lễ tân Hương": 100000, "i-resort": -80000 }, "tour_dao_giu": 20000 }
+    },
+    {
+      "ma": "SV-HT-04",
+      "mo_ta": "Như SV-HT-03 nhưng HDV của Tour Đảo thu trước 200.000 (lễ tân không cầm tiền).",
+      "nguon": "đặc tả Hoàn tất §5.2 trường hợp B",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "i-resort",
+        "gia_ban": 600000,
+        "gia_von": 480000,
+        "hoa_hong": 100000,
+        "cong_ty_thu": 0,
+        "cac_ben": [
+          { "ben": "HDV Nam", "vai": "hdv_noi_bo", "da_thu": 200000, "duoc_huong": 0 },
+          { "ben": "Lễ tân Hương", "vai": "nguoi_huong", "da_thu": 0, "duoc_huong": 100000 },
+          { "ben": "i-resort", "vai": "nha_cung_cap", "da_thu": 400000, "duoc_huong": 480000 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "HDV Nam": 200000, "Lễ tân Hương": -100000, "i-resort": -80000 }, "tour_dao_giu": 20000 }
+    },
+    {
+      "ma": "SV-HT-05",
+      "mo_ta": "Như SV-HT-03 nhưng không ai thu trước: khách trả đủ 600.000 tại quầy i-resort (nhà cung cấp thu nhiều hơn giá vốn → nợ Tour Đảo).",
+      "nguon": "đặc tả Hoàn tất §5.2 lưu ý P = 0",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "i-resort",
+        "gia_ban": 600000,
+        "gia_von": 480000,
+        "hoa_hong": 100000,
+        "cong_ty_thu": 0,
+        "cac_ben": [
+          { "ben": "Lễ tân Hương", "vai": "nguoi_huong", "da_thu": 0, "duoc_huong": 100000 },
+          { "ben": "i-resort", "vai": "nha_cung_cap", "da_thu": 600000, "duoc_huong": 480000 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "Lễ tân Hương": -100000, "i-resort": 120000 }, "tour_dao_giu": 20000 }
+    },
+    {
+      "ma": "SV-HT-06",
+      "mo_ta": "Khách lẻ đặt thẳng Tour Đảo (không người hưởng), vé Hòn Tằm 1.000.000, khách chuyển khoản thẳng vào tài khoản công ty — HDV không nợ gì (chủ dự án 25/9: 'Nếu cty đã thu thì phần đó loại khỏi phần nợ của HDV').",
+      "nguon": "trả lời Q2 của chủ (đặc tả Hoàn tất §10)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "Tour Đảo",
+        "gia_ban": 1000000,
+        "gia_von": 0,
+        "hoa_hong": 0,
+        "cong_ty_thu": 1000000,
+        "cac_ben": [
+          { "ben": "HDV Nam", "vai": "hdv_noi_bo", "da_thu": 0, "duoc_huong": 0 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "HDV Nam": 0 }, "tour_dao_giu": 1000000 }
+    },
+    {
+      "ma": "SV-HT-07",
+      "mo_ta": "Khách lẻ, 1.000.000: khách chuyển khoản trước 600.000 vào tài khoản công ty, trả HDV 400.000 tiền mặt tại bến — HDV chỉ nợ phần HDV thu.",
+      "nguon": "trả lời Q2 của chủ (đặc tả Hoàn tất §10)",
+      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "dau_vao": {
+        "nguoi_ban_tren_bien_nhan": "Tour Đảo",
+        "gia_ban": 1000000,
+        "gia_von": 0,
+        "hoa_hong": 0,
+        "cong_ty_thu": 600000,
+        "cac_ben": [
+          { "ben": "HDV Nam", "vai": "hdv_noi_bo", "da_thu": 400000, "duoc_huong": 0 }
+        ]
+      },
+      "dap_an": { "no_tour_dao": { "HDV Nam": 400000 }, "tour_dao_giu": 1000000 }
+    }
+  ]
+}

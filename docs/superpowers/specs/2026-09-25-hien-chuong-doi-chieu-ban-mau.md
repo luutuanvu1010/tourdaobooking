@@ -105,7 +105,7 @@ Chủ dự án: *"đây là khung của Enterprise OS để tham chiếu cho to�
 | I.2.3 **Hai trục thời gian + khoá kỳ** | **áp dụng (mới)** | **5.14** |
 | I.2.4 Quy tắc là dữ liệu có phiên bản, không viết cứng | **áp dụng** | 5.2, 5.6 |
 | I.2.5 Truy nguồn đến quy tắc + người duyệt | **áp dụng, mở rộng 4.2** | 4.2 |
-| I.2 Lưu trữ 10 năm (NĐ 174/2016/NĐ-CP) và các luật thuế/BHXH/TT99 | **ràng buộc bên ngoài** — chưa xác định có áp cho sổ **quản trị nội bộ** của Tour Đảo hay không; D1 Time Travel chỉ giữ 30 ngày | **`docs/RANG_BUOC_NGOAI.md` — chưa có** (tệp thuộc bộ 9, `FRAMEWORK.md` v1.4) |
+| I.2 Lưu trữ 10 năm (NĐ 174/2016/NĐ-CP) và các luật thuế/BHXH/TT99 | **ràng buộc bên ngoài** — chưa xác định có áp cho sổ **quản trị nội bộ** của Tour Đảo hay không; D1 Time Travel chỉ giữ 30 ngày | **`RANG_BUOC_NGOAI.md` (gốc repo) — chưa có** (tệp thuộc bộ 9, `FRAMEWORK.md` v1.4) |
 | II.1 Modular monolith, cấm import chéo bằng máy | **đã có** | 5.3, `architecture.test.ts` |
 | II.2 PostgreSQL, tiền số nguyên | CSDL là Cloudflare D1 (SQLite) — cùng tinh thần giao dịch nguyên khối (`db.batch`); tiền `INTEGER` đã có | K8, 5.4 |
 | II.2 Đa khách thuê + RLS | **không áp** (một công ty, hệ thống nội bộ). Phạm vi dữ liệu theo người (`own/assigned`) thi hành ở `can()` | K4 |
@@ -127,7 +127,7 @@ Chủ dự án: *"đây là khung của Enterprise OS để tham chiếu cho to�
 | VI Bẫy 10 một người là điểm chết | có runbook `HANDOFF-N1.md`, `QUY-TRINH-PHAT-HANH.md` | — |
 
 ### 7.3 Hai tài liệu còn trống (đề xuất, chủ duyệt)
-1. **`docs/RANG_BUOC_NGOAI.md`** — ràng buộc bên ngoài (luật, thuế, giới hạn Cloudflare/iOS), mỗi dòng có nguồn + ngày kiểm lại (`FRAMEWORK.md` v1.4). Câu đầu tiên cần trả lời: sổ công nợ nội bộ có phải "sổ kế toán" theo luật (lưu 10 năm) không.
+1. **`RANG_BUOC_NGOAI.md` (gốc repo)** — ràng buộc bên ngoài (luật, thuế, giới hạn Cloudflare/iOS), mỗi dòng có nguồn + ngày kiểm lại (`FRAMEWORK.md` v1.4). Câu đầu tiên cần trả lời: sổ công nợ nội bộ có phải "sổ kế toán" theo luật (lưu 10 năm) không.
 2. **Sổ vàng** — bộ ca tiền (bắt đầu từ ví dụ 5.1, 5.2A/B của đặc tả Hoàn tất) do chủ/Kế toán xác nhận, trước khi thi công sổ công nợ.
 
 ## 8. Cấu trúc luật cho nhiều dự án — Hiến pháp chung hay riêng? (2026-09-25)

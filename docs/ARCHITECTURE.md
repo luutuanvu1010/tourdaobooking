@@ -12,7 +12,7 @@
 >
 > **Cách dùng (cho người và AI):** gặp một câu hỏi thiết kế mới, **tra Phần I trước** (chỉ các điều dòng Trạng thái ghi **đã duyệt**). Điều đã duyệt trả lời được **nguyên tắc** → áp dụng, ghi "theo Hiến chương điều X", **không hỏi lại chủ dự án về nguyên tắc đó**. Áp nguyên tắc vào một quyết định cụ thể chạm dữ liệu, quyền, tiền, hợp đồng giữa các phần hay bất biến **vẫn phải qua ADR/đặc tả do chủ dự án duyệt** (Hiến pháp P8, N3; `CLAUDE.md` §3) — một dòng commit không thay được bản ghi quyết định. Ngoài ra chỉ mang tới chủ dự án khi (a) một điều khoản không đủ để quyết, (b) muốn lệch khỏi một điều khoản (phải có ADR ghi "lệch có chủ ý" + chủ duyệt), hoặc (c) câu hỏi thuộc chiến lược kinh doanh. Sửa Phần I: chỉ chủ dự án; AI chỉ đề xuất bằng diff (Hiến pháp N9).
 >
-> **Trạng thái:** bản đề xuất. Chủ dự án 2026-09-25 đã **đồng ý về nguyên tắc** (điểm 1), **duyệt** 5.7, 5.8, **duyệt 5.9 kèm điều chỉnh** "phải trả khác / thu nhập khác", **cho phép** sửa `CLAUDE.md`. **Chờ:** chốt vị trí (Hiến pháp hay tệp này) và duyệt 5.14–5.17 (bổ sung từ Enterprise OS). Khi duyệt xong, thay dòng này bằng ngày duyệt.
+> **Trạng thái:** **ĐÃ DUYỆT** (chủ dự án, phiên chat 2026-09-25 → 2026-09-26): nguyên tắc chung và vị trí (phần **riêng Tour Đảo** ở tệp này; phần **dùng chung mọi dự án** sẽ chuyển vào kho luật gốc `Master-Project-Framework` — Hiến pháp · Hiến chương hệ thống · Mô hình dữ liệu lõi, ba văn bản; khi kho đó có điều tương ứng, điều ở đây rút thành "theo … điều X"); 5.7, 5.8; 5.9 kèm điều chỉnh kế toán "phải trả khác / thu nhập khác"; **5.14–5.17** (2026-09-26); cho phép sửa `CLAUDE.md` (đã áp, rồi siết lại để không nới P8).
 
 ---
 
@@ -114,13 +114,13 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 
 **5.13 Nền trước, tính năng sau.** Thứ tự xây: định danh & quyền → bên & tổ chức → danh mục & chính sách → đối tượng nghiệp vụ & luồng → hình chiếu tiền → báo cáo & thông báo. Tính năng không được xây trên một lõi còn hở mà không ghi "xây trên lỗ đang hở" (CLAUDE.md §3).
 
-**5.14 Hai trục thời gian; khoá kỳ.** *(chờ duyệt)* Mọi dòng tiền ghi **ngày phát sinh** (ngày dân sự VN, khi việc xảy ra) tách khỏi **thời điểm ghi nhận** (UTC, khi hệ thống ghi). Sổ tiền có **kỳ**; kỳ đã khoá thì không ghi thêm vào kỳ đó — sai sót ghi vào kỳ đang mở bằng dòng điều chỉnh/đảo. *(từ Enterprise OS)*
+**5.14 Hai trục thời gian; khoá kỳ.** Mọi dòng tiền ghi **ngày phát sinh** (ngày dân sự VN, khi việc xảy ra) tách khỏi **thời điểm ghi nhận** (UTC, khi hệ thống ghi). Sổ tiền có **kỳ**; kỳ đã khoá thì không ghi thêm vào kỳ đó — sai sót ghi vào kỳ đang mở bằng dòng điều chỉnh/đảo. *(từ Enterprise OS)*
 
-**5.15 Lõi tất định tính tiền; AI không bao giờ tính tiền.** *(chờ duyệt)* Số tiền, chiết khấu, công nợ chỉ do **mã tất định có test** tính. AI (trợ lý, tác nhân) chỉ đề xuất, trích xuất, giải thích; không tự ra con số tài chính và không ghi số tiền trừ khi đi qua đúng lệnh + luật như người (5.11). *(từ Enterprise OS)*
+**5.15 Lõi tất định tính tiền; AI không bao giờ tính tiền.** Số tiền, chiết khấu, công nợ chỉ do **mã tất định có test** tính. AI (trợ lý, tác nhân) chỉ đề xuất, trích xuất, giải thích; không tự ra con số tài chính và không ghi số tiền trừ khi đi qua đúng lệnh + luật như người (5.11). *(từ Enterprise OS)*
 
-**5.16 Việc bên ngoài chạy sau giao dịch (hộp thư đi).** *(chờ duyệt)* Gọi hệ thống ngoài (email, thông báo, sau này hoá đơn điện tử, ngân hàng) **không nằm trong lô ghi**; lỗi bên ngoài không làm hỏng giao dịch nội bộ. Việc bên ngoài **quan trọng** phải để lại trạng thái chờ trong CSDL (vd `notified_at` NULL = chưa gửi) để **thấy được và gửi lại được** (hôm nay: hiện cờ "chưa gửi được" cho người xử lý, gửi lại bằng tay — chưa có hàng đợi tự thử lại); việc **không quan trọng** (Bảng tin) được phép thất lạc. *(từ Enterprise OS: transactional outbox)*
+**5.16 Việc bên ngoài chạy sau giao dịch (hộp thư đi).** Gọi hệ thống ngoài (email, thông báo, sau này hoá đơn điện tử, ngân hàng) **không nằm trong lô ghi**; lỗi bên ngoài không làm hỏng giao dịch nội bộ. Việc bên ngoài **quan trọng** phải để lại trạng thái chờ trong CSDL (vd `notified_at` NULL = chưa gửi) để **thấy được và gửi lại được** (hôm nay: hiện cờ "chưa gửi được" cho người xử lý, gửi lại bằng tay — chưa có hàng đợi tự thử lại); việc **không quan trọng** (Bảng tin) được phép thất lạc. *(từ Enterprise OS: transactional outbox)*
 
-**5.17 Sổ vàng cho mọi luật tiền.** *(chờ duyệt)* Mỗi luật sinh ra tiền (giá dòng, chiết khấu, giá vốn, công nợ, hoàn) có **bộ ca mẫu** đầu vào + đáp án **đúng đến từng đồng**, do chủ dự án hoặc Kế toán xác nhận, chạy trong `npm test`. Mã tiền chỉ được nhận khi qua **100%** ca sổ vàng. *(từ Enterprise OS: golden dataset)*
+**5.17 Sổ vàng cho mọi luật tiền.** Mỗi luật sinh ra tiền (giá dòng, chiết khấu, giá vốn, công nợ, hoàn) có **bộ ca mẫu** đầu vào + đáp án **đúng đến từng đồng**, do chủ dự án hoặc Kế toán xác nhận, chạy trong `npm test`. Mã tiền chỉ được nhận khi qua **100%** ca sổ vàng. *(từ Enterprise OS: golden dataset)*
 
 ## Điều 6 — Thi hành và sửa đổi
 
@@ -157,7 +157,7 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 | 5.14 Hai trục thời gian; khoá kỳ | **chưa có** | sổ tiền chưa có; bảng hiện có dùng `created_at` + ngày dân sự riêng lẻ | Enterprise OS |
 | 5.15 Lõi tất định | tiền chỉ tính ở máy chủ (`buildlines-guard.test.ts`); AI không tính tiền: dựa vào kỷ luật | — | Enterprise OS |
 | 5.16 Hộp thư đi | Góp ý: email trong `waitUntil` + `notified_at` NULL làm hàng chờ (dựa vào kỷ luật) | — | Enterprise OS, ADR-0022 |
-| 5.17 Sổ vàng | test hành vi tiền hiện có (`gia-thoa-thuan.test.ts`…) — **chưa có bộ ca do chủ/Kế toán xác nhận** | chưa có thư mục/tệp sổ vàng | Enterprise OS |
+| 5.17 Sổ vàng | `golden/` + `src/so-vang.test.ts` (kiểm **nhất quán nội tại** của từng ca: tổng thu = giá bán, nợ mỗi bên = đã thu − được hưởng, phần Tour Đảo giữ = giá bán − giá vốn − hoa hồng); test hành vi tiền hiện có (`gia-thoa-thuan.test.ts`…) | các ca **chờ chủ/Kế toán xác nhận**; **chưa chạy trên mã sổ** (sổ công nợ chưa có) | Enterprise OS |
 
 ---
 
