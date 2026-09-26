@@ -43,7 +43,7 @@ export const maintenanceModule: AppModule = {
       return json({ ...toStatus(state), canToggle: isAllowedPhone(state, staff.phone) } satisfies MaintenanceResponse);
     }),
 
-    route("PUT", "/api/maintenance", "admin", async ({ request, env, staff }) => {
+    route("PUT", "/api/maintenance", "admin", async ({ request, env, staff, dongBangTin }) => {
       const db = env.DB;
       const state = await getMaintenanceState(db);
       if (!isAllowedPhone(state, staff.phone)) return error(403, "forbidden", "Chỉ chủ dự án được bật/tắt chế độ bảo trì.");
@@ -56,6 +56,8 @@ export const maintenanceModule: AppModule = {
         updateSettingStatement(db, { enabled: input.on, endsAt: input.endsAt, at, by: staff.id }),
         auditStatement(db, { staffId: staff.id, action: "maintenance_changed", at, targetType: "system", targetId: "maintenance", detail }),
       ]);
+      // BẢNG TIN (KN-2): BẬT bảo trì → đóng MỌI kết nối đang mở (kết nối lại của tài khoản không được phép sẽ nhận 503 ở lần bắt tay kế).
+      if (input.on) dongBangTin("tat-ca");
       return json({ on: input.on, endsAt: input.endsAt, canToggle: true } satisfies MaintenanceResponse);
     }),
   ],

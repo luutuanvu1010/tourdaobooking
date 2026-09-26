@@ -1,6 +1,8 @@
 // Dùng chung cho các kịch bản e2e. Chạy qua `npm run test:e2e` (tests/e2e/run.mjs dựng D1 tạm + wrangler dev riêng).
 // Chạy lẻ một kịch bản: đặt E2E_BASE_URL (server đang chạy) và E2E_PERSIST_TO (thư mục D1 local của server đó).
+import { randomBytes } from "node:crypto";
 import { execFile } from "node:child_process";
+import { request as httpRequest } from "node:http";
 import { promisify } from "node:util";
 
 const execFileAsync = promisify(execFile);
@@ -102,3 +104,166 @@ export const orderInput = (extra = {}) => ({
   services: [manualService([{ description: "Tour", quantity: 1, unitPrice: 100000 }])],
   ...extra,
 });
+
+/** Đợi cho tới khi `dieuKien()` trả `true`, hoặc hết `ms` (mặc định 2000) thì trả `false` — không ném, để bên gọi tự `assert`. */
+export async function cho(dieuKien, ms = 2000) {
+  const hetHan = Date.now() + ms;
+  for (;;) {
+    if (dieuKien()) return true;
+    if (Date.now() > hetHan) return false;
+    await new Promise((r) => setTimeout(r, 20));
+  }
+}
+
+/**
+ * Đọc khung WebSocket (RFC 6455) tăng dần từ các gói TCP đã nhận (máy chủ gửi KHÔNG che — `masked` luôn false ở phía này, nhưng đọc cả cờ
+ * `masked` để không đoán). Trả `feed(chunk)` — gọi lại mỗi khi có dữ liệu mới; tự gọi `onFrame({ opcode, payload })` cho MỖI khung đọc đủ
+ * (giữ phần dữ liệu còn thiếu ở bộ đệm trong, một khung có thể tới rải trên nhiều gói TCP, hoặc nhiều khung gộp trong một gói).
+ */
+function docKhungWs(onFrame) {
+  let buf = Buffer.alloc(0);
+  return function feed(chunk) {
+    buf = buf.length ? Buffer.concat([buf, chunk]) : chunk;
+    for (;;) {
+      if (buf.length < 2) return;
+      const opcode = buf[0] & 0x0f;
+      const masked = (buf[1] & 0x80) !== 0;
+      let len = buf[1] & 0x7f;
+      let offset = 2;
+      if (len === 126) {
+        if (buf.length < 4) return;
+        len = buf.readUInt16BE(2);
+        offset = 4;
+      } else if (len === 127) {
+        if (buf.length < 10) return;
+        len = Number(buf.readBigUInt64BE(2)); // đủ cho tin Bảng tin (vài trăm byte) — không kỳ vọng khung khổng lồ
+        offset = 10;
+      }
+      let maskKey = null;
+      if (masked) {
+        if (buf.length < offset + 4) return;
+        maskKey = buf.subarray(offset, offset + 4);
+        offset += 4;
+      }
+      if (buf.length < offset + len) return; // khung chưa tới đủ — đợi gói kế
+      let payload = buf.subarray(offset, offset + len);
+      if (masked) {
+        const un = Buffer.alloc(len);
+        for (let i = 0; i < len; i++) un[i] = payload[i] ^ maskKey[i % 4];
+        payload = un;
+      }
+      buf = buf.subarray(offset + len);
+      onFrame({ opcode, payload });
+    }
+  };
+}
+
+/** Dựng một khung CLIENT→máy chủ (LUÔN che theo RFC 6455) — `opcode` 0x1 (văn bản) hoặc 0x8 (đóng). Chỉ cho payload ngắn (< 65536 byte, đủ dùng ở đây). */
+function dungKhungWs(opcode, payload) {
+  const mask = randomBytes(4);
+  const len = payload.length;
+  const head = len < 126 ? Buffer.from([0x80 | opcode, 0x80 | len]) : (() => {
+    const h = Buffer.alloc(4);
+    h[0] = 0x80 | opcode;
+    h[1] = 0x80 | 126;
+    h.writeUInt16BE(len, 2);
+    return h;
+  })();
+  const masked = Buffer.alloc(len);
+  for (let i = 0; i < len; i++) masked[i] = payload[i] ^ mask[i % 4];
+  return Buffer.concat([head, mask, masked]);
+}
+
+/**
+ * Mở một kết nối Bảng tin (GET /api/bang-tin, ADR-0022) — BẰNG `node:http` + sự kiện `upgrade` + bộ đọc/viết khung tối giản ở trên, KHÔNG
+ * dùng `WebSocket` gốc của Node 22. Đã thử `WebSocket` gốc trước (thấy đúng `cookie`/`origin` gửi qua tuỳ chọn `headers`, bắt tay 101 báo
+ * ĐÚNG) — nhưng đo bằng khung thô cho thấy máy chủ (`wrangler dev`/Miniflare cục bộ) phát khung ĐÓNG (mã 4003) chỉ ~20ms sau khi RPC
+ * `dongCua` chạy (xác nhận bằng `console.log` tạm trong `tram.ts`, đã gỡ), còn sự kiện `close` của `WebSocket` gốc chỉ nổi lên sau
+ * ~10 GIÂY (cả khi tự khép đúng khung đóng lại) — một hạn chế của tầng TCP cục bộ (Miniflare), không phải hành vi của mã máy chủ. Đọc
+ * KHUNG THÔ (đủ để thấy khung đóng gần như ngay) tránh được độ trễ đó, nên `dong` dưới đây phản ánh đúng KN-2 ("đóng trong < 2 giây").
+ * Chỉ dùng khi bắt tay được kỳ vọng THÀNH CÔNG (101) — bắt tay bị từ chối (401/403/426/503, không nâng cấp) dùng `batTay` bên dưới.
+ */
+export async function moBangTin(cookie, { origin = BASE, headers = {} } = {}) {
+  const url = new URL(BASE);
+  const req = httpRequest({
+    hostname: url.hostname,
+    port: url.port || (url.protocol === "https:" ? 443 : 80),
+    path: "/api/bang-tin",
+    headers: {
+      connection: "Upgrade",
+      upgrade: "websocket",
+      "sec-websocket-version": "13",
+      "sec-websocket-key": randomBytes(16).toString("base64"),
+      cookie: cookie ?? "",
+      origin,
+      ...headers,
+    },
+  });
+  req.end();
+  const tin = [];
+  let hetHieuLuc;
+  const dong = new Promise((resolve) => { hetHieuLuc = resolve; });
+  const socket = await new Promise((resolve, reject) => {
+    req.on("upgrade", (res, sock) => (res.statusCode === 101 ? resolve(sock) : reject(new Error(`Bắt tay Bảng tin: mã ${res.statusCode} (mong đợi 101).`))));
+    req.on("response", (res) => reject(new Error(`Bắt tay Bảng tin bị từ chối: ${res.statusCode}.`)));
+    req.on("error", (e) => reject(e));
+  });
+  socket.on("data", docKhungWs(({ opcode, payload }) => {
+    if (opcode === 0x1) {
+      // văn bản (BT-3: trạm cũng có thể tự trả "pong" cho "ping", nhưng đó là auto-response ở tầng WebSocket, không phải khung 0x1 thường)
+      try {
+        tin.push(JSON.parse(payload.toString("utf8")));
+      } catch {
+        // rác — trình duyệt thật cũng bỏ qua, không đẩy vào `tin`
+      }
+    } else if (opcode === 0x8) {
+      const code = payload.length >= 2 ? payload.readUInt16BE(0) : 1005;
+      const reason = payload.length > 2 ? payload.subarray(2).toString("utf8") : "";
+      hetHieuLuc({ code, reason });
+      try {
+        socket.end(); // khép hai chiều cho gọn — không cần đợi máy chủ hoàn tất TCP mới coi là "đã đóng" (xem chú thích trên)
+      } catch {
+        // đã đóng
+      }
+    }
+  }));
+  socket.on("error", () => {}); // ECONNRESET sau khi tự end() ở trên là bình thường, không phải lỗi kịch bản
+  return {
+    tin,
+    dong,
+    gui: (text) => socket.write(dungKhungWs(0x1, Buffer.from(text, "utf8"))),
+    dongLai: () => {
+      try {
+        socket.write(dungKhungWs(0x8, Buffer.alloc(0)));
+        socket.end();
+      } catch {
+        // đã đóng
+      }
+    },
+    /** Đợi tới khi `dieuKien(tin)` đúng hoặc hết `ms`. */
+    cho: (dieuKien, ms = 2000) => cho(() => dieuKien(tin), ms),
+  };
+}
+
+/**
+ * Bắt tay Bảng tin bị TỪ CHỐI (không nâng cấp lên WebSocket) — trả mã HTTP (401/403/426/503). Dùng `node:http` thẳng (KHÔNG `fetch`):
+ * `fetch`/undici cấm gửi header `Upgrade` (coi là "forbidden header", ném `InvalidArgumentError: invalid upgrade header`) — cần header
+ * đó để thử ca có `Upgrade: websocket` nhưng vẫn bị chặn TRƯỚC khi nâng cấp (vd 503 lúc bảo trì). Máy chủ trả lỗi trước khi mở khung
+ * WebSocket nên chỉ cần đọc `response`, không cần đọc `upgrade` (bắt tay THÀNH CÔNG dùng `moBangTin` ở trên, không dùng hàm này).
+ */
+export function batTay(cookie, headers = {}) {
+  const url = new URL(BASE);
+  return new Promise((resolve, reject) => {
+    const req = httpRequest({ hostname: url.hostname, port: url.port || 80, path: "/api/bang-tin", headers: { cookie: cookie ?? "", ...headers } });
+    req.on("response", (res) => {
+      res.resume(); // xả thân phản hồi để socket được tái dùng/đóng gọn gàng, không cần đọc nội dung
+      resolve(res.statusCode);
+    });
+    req.on("upgrade", (res) => {
+      res.resume();
+      resolve(res.statusCode); // không mong đợi (hàm này chỉ dùng cho ca bị từ chối) — vẫn trả mã cho bên gọi tự assert
+    });
+    req.on("error", reject);
+    req.end();
+  });
+}

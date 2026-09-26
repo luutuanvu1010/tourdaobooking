@@ -158,7 +158,7 @@ export const accountsModule: AppModule = {
   name: "accounts",
   routes: [
     // ---- Đổi PIN của chính mình -------------------------------------------------
-    route("POST", "/api/account/change-pin", "staff", async ({ request, env, staff }) => {
+    route("POST", "/api/account/change-pin", "staff", async ({ request, env, staff, dongBangTin }) => {
       const body = await readJson(request);
       const currentPin = body?.currentPin;
       if (!isValidPin(currentPin)) return error(400, "invalid_input", "Cần nhập PIN hiện tại (6 số).");
@@ -172,6 +172,8 @@ export const accountsModule: AppModule = {
         await setPinStatement(env.DB, staff.id, body!.newPin as string),
         auditStatement(env.DB, { staffId: staff.id, action: "pin_changed", at, targetType: "staff", targetId: staff.id }),
       ]);
+      // BẢNG TIN (KN-2): PIN vừa đổi — đóng các kết nối cũ của chính tài khoản này (thiết bị khác sẽ phải đăng nhập lại rồi mới nối lại được).
+      dongBangTin({ staffId: staff.id });
       // Mọi phiên cũ (kể cả thiết bị khác) đã bị thu hồi; cấp phiên mới để thiết bị này không phải đăng nhập lại.
       return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id) });
     }),
@@ -244,7 +246,7 @@ export const accountsModule: AppModule = {
     }),
 
     // Gỡ = đóng hiệu lực + đăng xuất mọi máy khác (điều 6); máy đang thao tác nhận phiên mới cùng mốc `now`.
-    route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff }) => {
+    route("POST", "/api/account/passkeys/remove-all", "staff", async ({ request, env, staff, dongBangTin }) => {
       if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
       const now = Date.now();
       const at = new Date(now).toISOString();
@@ -254,10 +256,12 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id, detail: "gỡ tất cả" }, "changes() > 0"),
       ]);
       const removed = revoked!.meta.changes ?? 0;
+      // BẢNG TIN (KN-2): credentials_changed_at luôn được "touch" ở trên dù không còn Face ID nào — đóng kết nối cũ theo đúng nhịp đó.
+      dongBangTin({ staffId: staff.id });
       return json({ removed }, 200, removed > 0 ? { "set-cookie": await newSessionCookie(request, env, staff.id, now) } : {});
     }),
 
-    route("DELETE", "/api/account/passkeys/:id", "staff", async ({ request, env, staff, params }) => {
+    route("DELETE", "/api/account/passkeys/:id", "staff", async ({ request, env, staff, params, dongBangTin }) => {
       if (!passkeyRp(env)) return PASSKEY_ERRORS.off();
       const id = params.id!;
       if (!UUID_RE.test(id)) return error(404, "not_found", "Không tìm thấy Face ID này.");
@@ -269,6 +273,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id }, "changes() > 0"),
       ]);
       if ((revoked!.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy Face ID này.");
+      dongBangTin({ staffId: staff.id }); // BẢNG TIN (KN-2): gỡ thành công — đóng kết nối cũ.
       return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
     }),
 
@@ -288,7 +293,7 @@ export const accountsModule: AppModule = {
       );
     }),
 
-    route("POST", "/api/account/pin-by-passkey", "staff", async ({ request, env, staff }) => {
+    route("POST", "/api/account/pin-by-passkey", "staff", async ({ request, env, staff, dongBangTin }) => {
       const rp = passkeyRp(env);
       if (!rp) return PASSKEY_ERRORS.off();
       const body = await readJson(request);
@@ -305,6 +310,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
       ]);
       await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
+      dongBangTin({ staffId: staff.id }); // BẢNG TIN (KN-2): PIN vừa đổi.
       const res = json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
@@ -478,6 +484,8 @@ export const accountsModule: AppModule = {
         throw e;
       }
       if (built.guardIndex >= 0 && (results[built.guardIndex]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+      // BẢNG TIN (KN-2): tài khoản bị ngưng hoặc đổi SĐT đăng nhập — đóng các kết nối của NÓ (không phải của admin đang thao tác).
+      if (patch.active === false || patch.phone !== undefined) ctx.dongBangTin({ staffId: t.id });
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -507,6 +515,7 @@ export const accountsModule: AppModule = {
       const stmts = [...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest];
       const results = await db.batch(stmts);
       if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
+      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): quyền vừa đổi.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -564,6 +573,7 @@ export const accountsModule: AppModule = {
         if (rule) return rule;
         throw e;
       }
+      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): vai/quyền vừa đổi.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -582,6 +592,7 @@ export const accountsModule: AppModule = {
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "gỡ khi đặt lại PIN", "changes() > 0"),
       ]);
       await unlockPhone(db, t.phone);
+      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): PIN vừa được đặt lại.
       return json({ staff: await one(db, t.id), pin } satisfies StaffWithPinResponse);
     }),
 
@@ -599,6 +610,7 @@ export const accountsModule: AppModule = {
         touchCredentialsStatement(db, t.id, now, true),
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "quản trị viên gỡ", "changes() > 0"),
       ]);
+      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): credentials_changed_at vừa được "touch".
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 

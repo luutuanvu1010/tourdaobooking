@@ -105,6 +105,11 @@ try {
   console.log("✓ tài khoản chủ không đổi được SĐT (409); tài khoản khác đổi SĐT như cũ (admin.mjs)");
 
   // --- 3) BẬT (chủ)
+  // Mốc TRƯỚC lần bật/tắt CỦA CHÍNH kịch bản này: nhật ký `audit_log` chỉ-thêm (trigger `audit_append_only` chặn DELETE, không riêng gì tài
+  // liệu) và DÙNG CHUNG một D1 tạm cho cả lượt chạy — `bangtin.mjs` (Task 6, chạy TRƯỚC kịch bản này ở tests/e2e/run.mjs) cũng tự bật/tắt
+  // bảo trì ở ca 10 để kiểm KN-2 (đóng mọi kết nối), nên cũng ghi hai dòng `maintenance_changed` CỦA NÓ trước khi tới đây. Đếm theo mốc thời
+  // gian (chỉ lấy dòng TỪ đây trở đi) thay vì tổng số dòng từ đầu D1 tạm.
+  const moc = new Date().toISOString();
   const ENDS = new Date(Date.now() + 30 * 60_000).toISOString();
   const ordersBefore = await count("orders");
   const listOf = async () => (await call(ADMIN, "GET", "/api/staff")).body.staff;
@@ -196,11 +201,12 @@ try {
   // --- 8) nhật ký: có lần bật và lần tắt, KHÔNG lộ SĐT
   r = await call(ADMIN, "GET", "/api/audit?action=maintenance_changed&limit=20");
   assert.equal(r.status, 200);
-  const details = r.body.entries.map((e) => e.detail);
+  const entries = r.body.entries.filter((e) => e.at >= moc); // chỉ dòng TỪ mốc trên (của chính kịch bản này — xem chú thích ở mốc)
+  const details = entries.map((e) => e.detail);
   assert.ok(details.some((d) => /^Bật chế độ bảo trì, dự kiến hoàn tất lúc \d{2}:\d{2} \d{2}\/\d{2}\/\d{4}$/.test(d)), `thiếu dòng Bật: ${JSON.stringify(details)}`);
   assert.ok(details.includes("Tắt chế độ bảo trì"), `thiếu dòng Tắt: ${JSON.stringify(details)}`);
-  assert.equal(r.body.entries.length, 2, "chỉ hai lần bật/tắt thành công bằng API (lần bị từ chối/400 không ghi nhật ký)");
-  for (const e of r.body.entries) {
+  assert.equal(entries.length, 2, "chỉ hai lần bật/tắt thành công bằng API (lần bị từ chối/400 không ghi nhật ký)");
+  for (const e of entries) {
     assert.equal(e.action, "maintenance_changed");
     assert.equal(e.targetType, "system");
     assert.ok(e.staffId, "có người thao tác");

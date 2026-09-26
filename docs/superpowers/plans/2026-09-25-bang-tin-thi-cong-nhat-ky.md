@@ -395,3 +395,140 @@ Sau khi hoàn nguyên cả hai: `git diff --quiet src/modules; echo $?` → `0` 
 Canh QUÊN, không canh CỐ Ý: hàng rào chỉ nhìn VỊ TRÍ văn bản của `return`/`baoThayDoi(`, không chạy mã — một lời gọi đặt đúng vị trí nhưng nằm trong một `if` phụ (ví dụ `if (Math.random() < 0.5) baoThayDoi(...)`) vẫn qua được, vì bài kiểm không biết nhánh đó có luôn chạy hay không. Không chứng minh lời gọi CHỈ chạy trên nhánh thành công (400/403/404/409 hoặc "không đổi gì") — việc đó là của e2e Task 7 (DP-1), quan sát hành vi thật qua D1 tạm. Không thấy route ghi đơn khai ở tệp/module khác ngoài hai tệp đã liệt — đã `grep -rn 'route("' src` xác nhận `/api/orders*` chỉ khai ở `orders/index.ts` và `dispatch/index.ts` hôm nay; thêm route ở tệp khác sẽ không được hàng rào này thấy.
 
 **Commit:** `Bảng tin: 8 route ghi đơn báo thay đổi + hàng rào`.
+
+## Task 6 — đóng kết nối khi đổi tài khoản / bảo trì (+ hạ tầng e2e)
+
+Phạm vi: KN-2 (Hiến chương/global-constraints) — ngưng tài khoản, đổi SĐT đăng nhập, đổi quyền, đổi vai, đặt lại/đổi PIN, gỡ Face ID → đóng
+(mã 4003) các kết nối Bảng tin có nhãn `nguoi:<id đó>` trong < 2 giây; bật chế độ bảo trì → đóng MỌI kết nối. `ctx.dongBangTin` và trạm
+(`dongCua`) đã có sẵn từ Task 4b/5 (bắn-và-quên, router tự `waitUntil` + bắt lỗi) — Task 6 chỉ GỌI nó ở đúng chỗ. Cùng lượt, làm hạ tầng e2e
+Task 7 Bước 1 + Bước 3 và hai ca đầu của Bước 2 (ca 9, ca 10); ca 1–8 để dispatch sau viết tiếp trong `tests/e2e/bangtin.mjs` (đã đánh dấu rõ
+"CA 1–8: TODO" ở đầu tệp, TRƯỚC "CA 9").
+
+### Bước 1 — danh sách route (bằng lệnh, không theo trí nhớ)
+
+```
+grep -n "touchCredentialsStatement\|setPinStatement\|setPermissionStatements\|patch.active" src/modules/accounts/index.ts
+```
+
+Khớp đúng dự kiến của đặc tả (không lệch số dòng đáng kể so với `34b34cf`): `POST /api/account/change-pin` (:161), `POST
+/api/account/passkeys/remove-all` (:247), `DELETE /api/account/passkeys/:id` (:260), `POST /api/account/pin-by-passkey` (:291), `PATCH
+/api/staff/:id` (:433, khi `active: false` hoặc đổi SĐT), `PUT /api/staff/:id/permissions` (:485), `PUT /api/staff/:id/roles` (:522, đọc mã
+xác nhận: đổi vai đọc `change.next` — kéo theo đổi quyền), `POST /api/staff/:id/reset-pin` (:570), `POST /api/staff/:id/passkeys/remove-all`
+(:589). Cộng `PUT /api/maintenance` (`src/modules/maintenance/index.ts:46`, khi `input.on === true` → `dongBangTin("tat-ca")`). Hai route
+lấy tuỳ chọn passkey (`POST /api/account/passkeys/options`, `POST /api/account/pin-by-passkey/options`) KHÔNG ghi gì (chỉ phát thách thức) —
+không thuộc danh sách.
+
+### Bước 2 (đỏ) — e2e trước khi thêm lời gọi
+
+Viết `tests/e2e/bangtin.mjs` (mới) với hạ tầng (`moiPhien`, `dongHet`, `doiToiDa`, `taoTaiKhoanDungMotLan`) + ca 9 (tạm ngưng/kích hoạt lại) +
+ca 10 (bảo trì) TRƯỚC khi thêm bất cứ lời gọi `dongBangTin` nào vào `accounts/index.ts`/`maintenance/index.ts`. `npm run test:e2e -- bangtin`:
+
+```
+✓ ca 9: tạm ngưng tài khoản → kết nối của nó đóng 4003 trong 2 giây; kết nối người khác vẫn mở; kích hoạt lại thành công
+```
+… không đúng — dòng thật:
+```
+AssertionError [ERR_ASSERTION]: ca 9: kết nối của tài khoản bị tạm ngưng phải đóng trong 2 giây
+    at file:///…/tests/e2e/bangtin.mjs:63:12 {
+  actual: null, expected: true, operator: '==', diff: 'simple'
+}
+✘ bangtin
+E2E: 1/1 kịch bản LỖI
+```
+Đúng như dự kiến (chưa có lời gọi nào ở `accounts/index.ts`).
+
+### Bước 3 (xanh) — thêm 9 lời gọi `ctx.dongBangTin`
+
+Đưa `dongBangTin` vào phần giải cấu trúc handler của 8 route accounts (route đã dùng `(ctx) =>` thì gọi `ctx.dongBangTin`; route dùng
+`({...}) =>` thì thêm `dongBangTin` vào tập giải cấu trúc — router truyền nó trong CHÍNH đối tượng `ctx`, không cần đổi kiểu tham số) + 1 route
+`PUT /api/maintenance`. Vị trí: NGAY SAU câu ghi D1 cuối cùng của nhánh thành công, TRƯỚC `return` (route có 404 sớm như `DELETE
+/api/account/passkeys/:id` thì gọi SAU điểm 404, chỉ trên đường thành công). Riêng `PATCH /api/staff/:id` chỉ gọi khi `patch.active ===
+false || patch.phone !== undefined` (đổi tên đơn thuần không đóng kết nối — không phải "đổi thông tin đăng nhập"). Các route
+`.../passkeys/remove-all` gọi VÔ ĐIỀU KIỆN trên đường thành công dù `removed` có thể là 0 — vì `touchCredentialsStatement` trong CÙNG batch
+cũng chạy vô điều kiện (hành vi có từ trước Task 6, không đổi), nên đóng kết nối đúng theo nhịp "credentials_changed_at vừa được touch".
+
+**Rủi ro thời gian chạy đã gặp (đúng như cảnh báo của kế hoạch — "chưa ai kiểm trạm qua socket thật"):** sau khi thêm 9 lời gọi, ca 9 vẫn ĐỎ
+với cùng thông báo trên. Gắn tạm một `console.log` vào `dongCua` của `tram.ts` (đã gỡ trước khi commit) và đo bằng ba kịch bản debug viết tay
+(chạy `wrangler dev` riêng trên D1 tạm, KHÔNG qua `npm run test:e2e`, xem lệnh ở dưới):
+1. Xác nhận `dongCua` VẪN được gọi và tìm đúng 1 kết nối khớp (log trạm in ra ngay khi `PATCH` trả 200) — trạm không sai.
+2. Đo bằng socket thô (`node:http` + sự kiện `upgrade`, tự đọc khung nhị phân): khung ĐÓNG (opcode 0x88, mã `0x0fa3` = 4003, lý do
+   `cap-nhat-tai-khoan`) tới nơi chỉ **~20ms** sau khi API `PATCH` trả lời — kể cả khi kịch bản thử tự khép đúng khung đóng lại (viết một
+   khung `0x88` có che, gọi `socket.end()`), sự kiện `close`/`end` ở tầng TCP của socket thô KHÔNG nổi lên trong 5–12 giây đã chờ.
+3. Đo bằng `WebSocket` gốc của Node 22 (`new WebSocket(url, { headers })`) — bắt tay 101 đúng, cookie/Origin máy chủ THẤY được qua tuỳ chọn
+   `headers` (đã kiểm bằng máy chủ `node:http` thử độc lập trước khi viết `moBangTin`) — nhưng sự kiện `close` chỉ nổi lên sau **~10 giây**
+   nhất quán (đo lại nhiều lần), dù khung đóng đã tới máy chủ~gửi đi từ rất sớm.
+
+**Kết luận:** đây là hạn chế của tầng TCP cục bộ (`wrangler dev`/Miniflare mô phỏng Durable Object hibernation) khi đóng một kết nối
+WebSocket — khung ĐÓNG được trạm gửi đi gần như ngay (đúng KN-2 ở mức ứng dụng), nhưng việc kết thúc socket TCP bên dưới bị trễ cục bộ; sự
+kiện `close` của `WebSocket` gốc Node 22 (và của socket thô nếu chỉ nghe `close`/`end`) phụ thuộc vào việc TCP kết thúc nên bị trễ theo,
+không phải lỗi của mã máy chủ (`tram.ts`/`accounts/index.ts` không đổi gì thêm sau phát hiện này). Sửa bằng cách đổi HẲN `moBangTin`/`batTay`
+(`tests/e2e/lib.mjs`) từ `WebSocket` gốc sang `node:http` + sự kiện `upgrade` + một bộ đọc khung WebSocket viết tay (`docKhungWs`, theo
+RFC 6455: khung máy chủ không che, độ dài 7-bit/16-bit/64-bit) — `dong` (Promise) được coi là "đã đóng" ngay khi ĐỌC ĐƯỢC khung đóng (opcode
+`0x8`, mã 2 byte + lý do), không đợi socket TCP thật sự kết thúc. Đo lại: ca 9/10 xanh, `dong` giải quyết trong vài chục ms sau khi API trả
+lời — đúng mốc "< 2 giây" của KN-2 ở mức hành vi (khung đóng tới đúng lúc), không phụ thuộc trễ TCP cục bộ. `batTay` cũng đổi từ `fetch` sang
+`node:http` (chỉ đọc `response`, không cần đọc khung) vì `fetch`/undici CẤM gửi header `Upgrade` (`InvalidArgumentError: invalid upgrade
+header`) — cần header đó cho ca 10 (bắt tay lại có `Upgrade: websocket` nhưng bị 503 chặn trước khi nâng cấp).
+
+Ba kịch bản debug (đã xoá, không còn trong repo) chạy `wrangler dev` riêng trỏ một D1 tạm khác (`/tmp/tourdao-dbg`, ngoài repo) — không đụng
+D1 tạm của `npm run test:e2e`, không phải một cơ chế kiểm còn lại trong mã.
+
+### Bước 3b — sửa lây `maintenance.mjs` (phát hiện khi chạy bộ rộng)
+
+`bangtin.mjs` chạy TRƯỚC `maintenance.mjs` (tests/e2e/run.mjs) và ca 10 CŨNG gọi `PUT /api/maintenance` thật (bắt buộc — chỉ qua route mới
+kích hoạt `dongBangTin("tat-ca")`) nên ghi thêm hai dòng nhật ký `maintenance_changed` (một Bật, một Tắt) VÀO CHUNG bảng `audit_log` của D1
+tạm. `maintenance.mjs` cũ đếm TỔNG số dòng `maintenance_changed` từ đầu D1 tạm (`assert.equal(r.body.entries.length, 2, …)`) — chạy `npm run
+test:e2e -- bangtin admin maintenance passkey roles permissions` lộ ra: `4 !== 2`. Thử xoá hai dòng ca 10 vừa tạo ở `finally` (`DELETE FROM
+audit_log WHERE action = 'maintenance_changed'`) → gặp đúng hàng rào CSDL đã có từ trước (không phải hàng rào mới của Task 6):
+```
+✘ [ERROR] audit_append_only: nhật ký không được xoá: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)
+```
+Xác nhận `audit_log` chỉ-thêm được CƯỠNG CHẾ bằng trigger SQL (không chỉ là quy ước ở CLAUDE.md §7), nên bỏ hướng xoá. Sửa đúng chỗ:
+`maintenance.mjs` ghi một mốc thời gian (`moc`) NGAY TRƯỚC lần Bật CỦA CHÍNH NÓ, và ở bước "8) nhật ký" chỉ lọc + đếm dòng có `at >= moc` —
+không còn giả định mình là nơi DUY NHẤT trong cả lượt chạy gọi `PUT /api/maintenance`. Không đổi ý nghĩa bài kiểm (vẫn đúng hai dòng, đúng
+câu chữ, không lộ SĐT) — chỉ đổi cách CHỌN dòng nào là "của mình".
+
+### Bước 3c — false alarm: thứ tự kịch bản tự chọn (không phải lỗi Task 6)
+
+Chạy ĐÚNG NGUYÊN VĂN lệnh kiểm đề ra (`npm run test:e2e -- bangtin admin maintenance passkey roles permissions`) vẫn đỏ ở `permissions`
+(401 khi đăng nhập `salesB`). Tái lập bằng `npm run test:e2e -- passkey permissions` (KHÔNG có `bangtin`/`admin`/`maintenance`, không đụng
+gì của Task 6) → CÙNG lỗi. Nguyên nhân: `passkey.mjs` tự ghi rõ "CHẠY CUỐI CÙNG" và đổi PIN của `salesB`; chọn tay một tập con kịch bản theo
+thứ tự KHÁC thứ tự chuẩn ở mảng `ALL` (nơi `permissions` luôn chạy trước `passkey`) làm lộ phụ thuộc thứ tự đã có từ trước — không phải hồi
+quy do Task 6. Không sửa (ngoài phạm vi, không đụng file `permissions.mjs`/`passkey.mjs`); ghi lại ở đây để người kiểm không hiểu nhầm.
+
+### Bước 4 — kết quả
+
+```
+npm test           → 862/862 (không đổi so với trước Task 6 — không thêm route, không thêm ô quyền)
+npm run typecheck  → 0 lỗi (ba tsconfig)
+node --test src/bang-tin-guard.test.ts src/route-write-guard.test.ts  → 21/21 (không đổi kết quả)
+npm run test:e2e -- bangtin                                            → 1/1 xanh
+npm run test:e2e -- bangtin admin maintenance passkey roles permissions → 5/6 xanh (permissions đỏ — Bước 3c, false alarm không do Task 6)
+npm run test:e2e -- bangtin admin permissions maintenance roles passkey → 6/6 xanh (cùng tập, đúng thứ tự chuẩn)
+npm run test:e2e (đủ bộ, mảng ALL đã thêm "bangtin")                   → 20/20 kịch bản xanh + audit-invariants ĐẠT (2 cảnh báo R-ORD-6a/6b
+                                                                           không chặn phát hành, dữ liệu lịch sử — không liên quan Task 6)
+```
+
+### Thay đổi tệp
+
+- `src/modules/accounts/index.ts`: 8 lời gọi `dongBangTin`/`ctx.dongBangTin` (đúng vị trí nêu ở Bước 3).
+- `src/modules/maintenance/index.ts`: `PUT /api/maintenance` gọi `dongBangTin("tat-ca")` khi `input.on`.
+- `tests/e2e/lib.mjs`: thêm `cho`, `moBangTin`, `batTay` (`node:http` + bộ đọc/viết khung WebSocket viết tay `docKhungWs`/`dungKhungWs` —
+  xem lý do ở Bước 3).
+- `tests/e2e/bangtin.mjs` (MỚI): hạ tầng (`moiPhien`, `dongHet`, `doiToiDa`, `taoTaiKhoanDungMotLan`) + ca 9 + ca 10; đánh dấu rõ chỗ để
+  dispatch sau viết ca 1–8.
+- `tests/e2e/run.mjs`: thêm `"bangtin"` vào `ALL` (sau `company`, trước `maintenance`) + `"--var", "BANG_TIN_HAN_GIAY:20"`.
+- `tests/e2e/maintenance.mjs`: đếm nhật ký `maintenance_changed` theo mốc thời gian của chính nó (Bước 3b), không theo tổng số dòng.
+- `tests/e2e/README.md`: thêm dòng `bangtin.mjs`.
+
+### Việc để lại cho dispatch sau (ca 1–8, Task 7)
+
+Viết tiếp trong `tests/e2e/bangtin.mjs`, đoạn đã đánh dấu "CA 1–8: TODO" — dùng lại `ADMIN`, `adminId`, `moiPhien`, `dongHet`, `doiToiDa`,
+`taoTaiKhoanDungMotLan` đã có. `moBangTin`/`batTay`/`cho` (`lib.mjs`) đã kiểm chạy đúng qua ca 9/10 — bắt tay 101/401/403/426/503 (BT-1), đọc
+tin JSON (`tin` — cho ca 3/4/5/6), gửi văn bản thô (`gui`, cho ca 7 gửi "ping"/rác) đều đã có sẵn cơ chế, chưa có ca nào dùng `gui`/đọc `tin`
+thật (chỉ ca 9/10 dùng `dong`) — kiểm thêm khi viết ca 1–8.
+
+**Chưa ghi ở `docs/SO-HANG-RAO.md`:** Task 6 chỉ GỌI hạ tầng đã có (không dựng cơ chế chặn MỚI nào — trạm/`dongCua`/`ctx.dongBangTin` đã có
+dòng riêng từ Task 4b/5, còn hàng rào tĩnh `bang-tin-guard` đã có dòng ở Task 5 khi Task 11 tới); hành vi KN-2 được chứng minh bằng e2e (ca
+9/10), không phải một hàng rào chặn-AI kiểu N9 — không thêm dòng mới.
+
+**Commit:** `Bảng tin: đóng kết nối khi đổi tài khoản/bảo trì (Task 6) + hạ tầng e2e ca 9–10 (Task 7)`.
