@@ -5,12 +5,14 @@
 // router khớp theo đoạn nên không đụng route của `orders`).
 // Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch`: gốc lắp ráp (src/index.ts) tiêm `isOrderHandler` và
 // `defaultHandlerStatement` vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
-import { cancelOrderByHandler, editMoneyAsHandler, findOrderOwner, getMyAssignments } from "../orders";
+import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, MATRIX } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
+import { tripDeparted } from "../../shared/trip-rules";
+import { vnToday } from "../../shared/vn-date";
 import { findHandledOrderIds, findHandlerOf, findHandlersOf, insertHandlerStatement, isHandler, type HandlerRow } from "./repository";
 import {
   CANCEL_REASON_LABEL, checkAssignee, defaultHandlerPartyId, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
@@ -27,6 +29,7 @@ const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trác
 const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
 const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn nháp hoặc đã huỷ không dùng được.");
+const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này.");
 const MONEY_EDIT_NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ sửa được số khách của đơn đã xác nhận qua đường này.");
@@ -122,7 +125,9 @@ export const dispatchModule: AppModule = {
 
     // Huỷ đơn qua đường hẹp của người phụ trách CẤP HẸP (FIELD đang phụ trách — ADR-0014 điều 11). Không dùng cho SALES/ADMIN/PARTNER (họ huỷ qua
     // POST /api/orders/:id/status như hôm nay — order.cancel của họ vẫn "none"). Thứ tự: 404 → 403 (không phải người phụ trách/không có order.cancel) →
-    // 409 (không phải đơn đã xác nhận, hoặc đã bị đổi trạng thái) → 400 (lý do) → ghi.
+    // 409 (không phải đơn đã xác nhận, hoặc đã bị đổi trạng thái) → 409 `departed` (tour đã qua ngày đi — DK-T4-02, chủ dự án chốt 2026-09-26: ngày đi
+    // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
+    // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` → khoá lạc quan của cancelOrderByHandler thua → 409.
     route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
@@ -130,6 +135,7 @@ export const dispatchModule: AppModule = {
       if (!order) return NOT_FOUND();
       if (!can(staff, "order.cancel", { assigned })) return CANCEL_FORBIDDEN();
       if (order.status !== "confirmed") return NOT_CONFIRMED();
+      if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return DEPARTED();
       const input = parseCancelReason(await readJson(request));
       if (!input.ok) return error(400, "invalid_input", input.message);
       const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, CANCEL_REASON_LABEL[input.reason]);

@@ -29,6 +29,18 @@ export function tripUpdateKeepsOneDate(stored: readonly { id: string; departDate
   return !changed || sameDepartDate([...next.values()]);
 }
 
+/**
+ * Tour ĐÃ QUA NGÀY ĐI chưa (DK-T4-02, kiểm toán 24/9; chủ dự án chốt 2026-09-26): ngày đi của đơn = ngày khởi hành LỚN NHẤT trong các dịch vụ
+ * (dữ liệu vẫn lưu ngày theo từng dịch vụ); đã qua ⇔ ngày đi < `today` (giờ VN, `vnToday`). Ngày đi = hôm nay → CHƯA qua (trong ngày đi hướng
+ * dẫn viên vẫn huỷ được — khách không đến bến). Dịch vụ chưa có ngày (null/"") bị bỏ qua; KHÔNG dịch vụ nào có ngày → false (không chứng minh
+ * được là đã qua, nên không chặn). Dùng chung: máy chủ chặn `POST /api/orders/:id/handler-cancel`, giao diện ẩn nút "Huỷ đơn này" (trang Tôi).
+ */
+export function tripDeparted(dates: readonly (string | null)[], today: string): boolean {
+  let last: string | null = null;
+  for (const d of dates) if (d && (last === null || d > last)) last = d;
+  return last !== null && last < today;
+}
+
 /** Khoảng ngày khởi hành cho phép khi xác nhận (bao gồm hai đầu). Repository bind hai giá trị này vào câu UPDATE xác nhận. */
 export const confirmWindow = (today: string): { from: string; to: string } => ({ from: today, to: addDays(today, MAX_DAYS_AHEAD) });
 

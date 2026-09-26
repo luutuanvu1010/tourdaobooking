@@ -353,6 +353,44 @@ r = await handlerCancel(FIELD, "00000000-0000-4000-8000-000000000000", { reason:
 assert.equal(r.status, 404);
 console.log("✓ đơn không tồn tại → 404");
 
+// --- 13b) DK-T4-02 (kiểm toán 24/9; chủ dự án chốt 2026-09-26): tour ĐÃ QUA NGÀY ĐI (ngày đi < hôm nay giờ VN) → HDV không huỷ được nữa (409 `departed`),
+// chỉ văn phòng huỷ; NGAY TRONG NGÀY ĐI vẫn huỷ được (khách không đến bến). Sửa số khách (handler-money-edit) giữ như cũ. Thời gian trôi mô phỏng bằng
+// UPDATE order_service.depart_date trên D1 local tạm (trigger 0008 không khoá cột này — đúng cách kiểm toán dựng "tour 40 ngày trước").
+const confirmedForField = async () => {
+  const o = await newOrder(A);
+  assert.equal((await call(A, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200);
+  assert.equal((await setHandler(A, o.id, fld.id)).status, 200);
+  return o;
+};
+const setDepart = (orderId, date) => sql(`UPDATE order_service SET depart_date = '${date}' WHERE order_id = '${orderId}'`);
+const fieldCancelLogs = async (orderId) => (await history(A, { id: orderId })).filter((h) => h.action === "order_cancelled_by_field").length;
+
+const oPast = await confirmedForField();
+await setDepart(oPast.id, vnDate(-1));
+r = await handlerCancel(FIELD, oPast.id, { reason: "customer_requested" });
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "departed");
+assert.match(r.body.error.message, /đã qua ngày đi/);
+assert.equal((await orderMoney(oPast.id)).status, "confirmed", "tour đã qua ngày đi: đơn VẪN đã xác nhận");
+assert.equal(await fieldCancelLogs(oPast.id), 0, "không có dòng nhật ký huỷ");
+r = await handlerCancel(FIELD, oPast.id, {});
+assert.equal(r.status, 409, "thứ tự kiểm: 409 departed đứng TRƯỚC 400 lý do");
+assert.equal(r.body.error.code, "departed");
+r = await handlerCancel(A, oPast.id, { reason: "customer_requested" });
+assert.equal(r.status, 403, "thứ tự kiểm: 403 (không phải người phụ trách cấp hẹp) đứng TRƯỚC 409 departed");
+r = await call(FIELD, "POST", `/api/orders/${oPast.id}/handler-money-edit`, { reason: "tour đã đi — sửa số khách vẫn như cũ", services: oPast.services.filter((s) => s.catalogCode).map((s) => ({ id: s.id, pax: s.pax })) });
+assert.equal(r.status, 200, `handler-money-edit KHÔNG đổi (chủ chọn "sửa số khách giữ như hiện nay"): ${JSON.stringify(r.body)}`);
+r = await call(A, "POST", `/api/orders/${oPast.id}/status`, { status: "cancelled" });
+assert.equal(r.status, 200, "văn phòng (người lập) vẫn huỷ được tour đã qua ngày đi");
+console.log("✓ DK-T4-02: tour đã qua ngày đi → HDV huỷ 409 departed (trước 400, sau 403), đơn vẫn xác nhận; sửa số khách như cũ; văn phòng huỷ được");
+
+const oToday = await confirmedForField();
+await setDepart(oToday.id, vnDate(0));
+r = await handlerCancel(FIELD, oToday.id, { reason: "not_reachable" });
+assert.equal(r.status, 200, `ngày đi = hôm nay → HDV vẫn huỷ được: ${JSON.stringify(r.body)}`);
+assert.equal((await orderMoney(oToday.id)).status, "cancelled");
+console.log("✓ DK-T4-02: ngày đi = hôm nay (giờ VN) → HDV vẫn huỷ được (200)");
+
 // --- 14) POST /api/orders/:id/handler-money-edit: FIELD sửa số khách của đơn đang phụ trách, giá theo giá lúc lập đơn, ghi dòng điều chỉnh
 const T14 = "'2026-01-01T00:00:00.000Z'";
 await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES

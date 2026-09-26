@@ -89,6 +89,31 @@ Bẫy gặp khi chạy trên `/tmp/va3-old`: lần gọi API đầu tiên sau c�
 (tối đa 2 lần, chỉ khi ECONNRESET); không thử lại POST nào khác. Đây là lỗi môi trường/kịch bản, không phải lỗi mã app.
 `a2-cdp.mjs` dùng chung không bị sửa; các kịch bản khác có cùng khuôn "SQL rồi gọi API" có thể gặp cùng bẫy này.
 
+## Bước 6 — thêm bởi NGƯỜI THI CÔNG phần máy chủ DK-T4-02 (2026-09-26)
+
+Chủ dự án chốt (26/9): tour **đã qua ngày đi** (ngày khởi hành lớn nhất < hôm nay giờ VN) thì HDV không huỷ được nữa; ngay trong
+ngày đi vẫn huỷ được; sửa số khách giữ như cũ. Máy chủ trả 409 `departed` (e2e `tests/e2e/dispatch.mjs` khối 13b); giao diện "Việc của
+tôi" không hiện nút "Huỷ đơn này" với đơn đó mà hiện dòng "Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng." (cùng luật thuần
+`tripDeparted`, `src/shared/trip-rules.ts`). Bước 6 người thi công tự thêm và tự chạy — **không phải** lời kiểm của người kiểm giao diện.
+
+| Bước | Trang, khổ, tài khoản | Khẳng định |
+|---|---|---|
+| 6 | `/account` "Việc của tôi", máy tính, HDV | Đơn thứ hai (ZVA3, xác nhận, giao HDV), ngày đi đẩy về hôm qua bằng SQL trên D1 tạm. Thẻ đơn **không** có nút "Huỷ đơn này"; vẫn có "Lưu số khách mới"; vùng `.myjob-cancel` có dòng nhắc "nhờ văn phòng". axe. Không lỗi console. |
+
+P16: chạy kịch bản với `web/account.ts` của commit trước (`97bb97a`, chép tạm vào chỗ rồi `npm run build:web`, `OUT=/tmp/…` để không đè
+ảnh) → bước 6 **✗** (`{"btns":["−","+","Lưu số khách mới","Huỷ đơn này"],"zoneText":"Huỷ đơn này"}`), 7 bước còn lại ✓; trả lại
+`web/account.ts` đã vá, build lại → **8/8 ✓**:
+
+```
+    nút trên thẻ: ["−","+","Lưu số khách mới"] · vùng huỷ: “Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng.”
+✓ 6) Việc của tôi (máy tính 1040): tour đã qua ngày đi → KHÔNG có nút “Huỷ đơn này”, có dòng nhắc “nhờ văn phòng”; “Lưu số khách mới” vẫn còn (sửa số khách giữ như cũ), axe không vi phạm critical/serious
+8 bước ✓, 0 bước ✗
+VA3 SMOKE OK
+```
+
+Lần chạy 8/8 này cũng chụp lại ảnh các bước 1–4; hai ảnh `nhan-vien-*` khác byte nên đã được **trả lại bản cũ** của người kiểm (giữ
+bằng chứng gốc); chỉ thêm ảnh mới `tour-da-qua-ngay-di-may-tinh.png`. Chưa đo bước 6 ở khổ điện thoại.
+
 ## Ảnh (`anh/`)
 
 | Ảnh | Nội dung | Khổ |
@@ -97,6 +122,7 @@ Bẫy gặp khi chạy trên `/tmp/va3-old`: lần gọi API đầu tiên sau c�
 | `nhan-vien-ban-dien-thoai.png` | Thẻ "Quản Trị (bạn)" chỉ có "Sửa"; thẻ khác có "Đặt lại PIN" | 390×844 |
 | `huy-don-mo-may-tinh.png` | "Việc của tôi": vùng "Huỷ đơn" đang mở, dưới đường ngăn, tách khỏi "Lưu số khách mới" | 1040×800 |
 | `huy-don-mo-dien-thoai.png` | Như trên | 390×844 |
+| `tour-da-qua-ngay-di-may-tinh.png` | "Việc của tôi": tour đã qua ngày đi — không có nút huỷ, dòng nhắc nhờ văn phòng (bước 6, người thi công) | 1040×800 |
 
 Ảnh chụp khung nhìn sau khi cuộn phần tử cần xem vào giữa màn hình (không phải toàn trang).
 

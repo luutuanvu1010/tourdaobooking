@@ -1,7 +1,8 @@
 import { ApiError, api, type Api } from "./api";
 import { PERMISSION_LABEL, hasPermission, isOffice } from "../src/shared/permissions";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
-import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
+import { tripDeparted } from "../src/shared/trip-rules";
+import { vnDateTimeText, vnLocalToIso, vnToday } from "../src/shared/vn-date";
 import { counter } from "./counter";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -427,13 +428,18 @@ function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLEl
     );
     cancelBox.hidden = false;
   });
+  // DK-T4-02 phía máy chủ (chủ dự án chốt 2026-09-26): tour đã qua ngày đi (ngày khởi hành lớn nhất < hôm nay giờ VN) thì máy chủ trả 409 `departed`
+  // cho handler-cancel → không hiện nút "Huỷ đơn này" (cùng luật thuần `tripDeparted`), chỉ một dòng nhắc nhờ văn phòng. Ngay trong ngày đi vẫn hiện.
+  const departed = tripDeparted(a.services.map((s) => s.departDate), vnToday(new Date()));
   return h(
     "section",
     { class: "card myjob-card" },
     h("h3", null, a.customerName, h("span", { class: "muted" }, ` · ${a.customerPhone}`)),
     h("div", { class: "muted" }, `Mã đơn: ${a.orderCode}`),
     ...a.services.map((s) => myServiceCard(a.orderId, s, onChanged)),
-    h("div", { class: "myjob-cancel" }, cancelBtn, cancelBox),
+    departed
+      ? h("div", { class: "myjob-cancel" }, h("p", { class: "muted" }, "Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng."))
+      : h("div", { class: "myjob-cancel" }, cancelBtn, cancelBox),
   );
 }
 

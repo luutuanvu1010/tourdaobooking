@@ -246,6 +246,12 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
   }));
 }
 
+/** Ngày khởi hành của từng dịch vụ trong đơn (null = chưa có ngày), theo thứ tự dịch vụ. Đơn không có/không tồn tại → mảng rỗng. */
+export async function getDepartDates(db: D1Database, orderId: string): Promise<(string | null)[]> {
+  const res = await db.prepare("SELECT depart_date FROM order_service WHERE order_id = ? ORDER BY sort_order").bind(orderId).all<{ depart_date: string | null }>();
+  return res.results.map((r) => r.depart_date);
+}
+
 export interface OrderMeta {
   status: OrderStatus;
   staffId: string;

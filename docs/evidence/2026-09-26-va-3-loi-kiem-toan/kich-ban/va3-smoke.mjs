@@ -108,7 +108,7 @@ try {
   env.sql(
     "INSERT OR IGNORE INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ('ZVA3','Tour thử huỷ đơn HDV','perPax',300000,NULL,NULL,NULL,NULL,NULL,NULL,98,1,'2026-01-01T00:00:00.000Z','2026-01-01T00:00:00.000Z')",
   );
-  const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
+  const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" }; // bước 6 dùng lại
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: CUSTOMER, customerPhone: "0903 222 333", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{ kind: "catalog", catalogCode: "ZVA3", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(3), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá" }],
@@ -323,6 +323,38 @@ try {
     assert.deepEqual(mob.consoleErrors, [], `lỗi console: ${mob.consoleErrors}`);
   });
   mob.close();
+
+  // Bước 6 (thêm bởi NGƯỜI THI CÔNG phần máy chủ DK-T4-02, 2026-09-26 — chủ dự án chốt: tour đã qua ngày đi thì HDV không huỷ được nữa, ngay trong
+  // ngày đi vẫn huỷ được): đơn thứ hai, xác nhận + giao HDV, rồi đẩy ngày đi về HÔM QUA bằng SQL trên D1 tạm (trigger 0008 không khoá depart_date).
+  // Đặt SAU 5c vì 5c khẳng định "Việc của tôi" rỗng sau khi huỷ đơn thứ nhất.
+  await step("6", "Việc của tôi (máy tính 1040): tour đã qua ngày đi → KHÔNG có nút “Huỷ đơn này”, có dòng nhắc “nhờ văn phòng”; “Lưu số khách mới” vẫn còn (sửa số khách giữ như cũ)" + axeNote(), async () => {
+    const created2 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
+      customerName: "Khách Tour Đã Đi", customerPhone: "0903 222 444", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
+      services: [{ kind: "catalog", catalogCode: "ZVA3", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(3), departTime: "07:30" }],
+    });
+    assert.equal(created2.status, 201, `dựng đơn thứ hai: ${JSON.stringify(created2.json)}`);
+    const o2 = created2.json.order;
+    assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn thứ hai");
+    assert.equal((await call(ACCOUNTS.salesA, "PUT", `/api/orders/${o2.id}/handler`, { staffId: hdvStaffId })).status, 200, "giao HDV đơn thứ hai");
+    env.sql(`UPDATE order_service SET depart_date = '${vnDate(-1)}' WHERE order_id = '${o2.id}'`);
+    const p = await openAs(HDV, "/account", DESK);
+    const CARD2 = `[...document.querySelectorAll('#myjobs .myjob-card')].find((c) => c.textContent.includes(${JSON.stringify(o2.orderCode)}))`;
+    await p.waitFor(`!!(${CARD2})`, "thẻ đơn đã qua ngày đi trong “Việc của tôi”", 10000);
+    const s = await p.ev(`(() => {
+      const c = ${CARD2};
+      const btns = [...c.querySelectorAll('button')].map((b) => b.textContent.trim());
+      const zone = c.querySelector('.myjob-cancel');
+      return { btns, zoneText: zone ? zone.textContent.trim() : null };
+    })()`);
+    assert.ok(!s.btns.includes("Huỷ đơn này"), `tour đã qua ngày đi KHÔNG được có nút “Huỷ đơn này” — ${JSON.stringify(s)}`);
+    assert.ok(s.btns.includes("Lưu số khách mới"), `sửa số khách giữ như cũ — ${JSON.stringify(s)}`);
+    assert.match(s.zoneText ?? "", /Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng\./, `dòng nhắc — ${JSON.stringify(s)}`);
+    await shotAt(p, `(${CARD2}).querySelector('.myjob-cancel')`, "tour-da-qua-ngay-di-may-tinh.png");
+    await axe(p, "Việc của tôi máy tính (tour đã qua ngày đi)");
+    assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
+    console.log(`    nút trên thẻ: ${JSON.stringify(s.btns)} · vùng huỷ: “${s.zoneText}”`);
+    p.close();
+  });
 } finally {
   for (const p of pages) try { p.close(); } catch { /* đã đóng */ }
   await env.stop();
