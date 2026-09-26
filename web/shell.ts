@@ -1,5 +1,5 @@
 import { ApiError, api, type Staff, type Api } from "./api";
-import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
+import { PERMISSION_LABEL, can, hasPermission, isOffice, seesAllOrders } from "../src/shared/permissions";
 import { append, byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
@@ -18,7 +18,7 @@ interface Tab {
  * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 4 tab, admin 6 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
  * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Danh bạ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  */
-function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
+function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean): Tab[] {
   const adminTabs: Tab[] =
     admin
       ? [
@@ -29,8 +29,8 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   const officeTabs: Tab[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): trang mặc định đổi chỗ — "/" nay là Trang chủ, "/orders" là Đơn hàng.
   // active() của "/" phải khớp CHÍNH XÁC "/" (không dùng startsWith/prefix) để không lỡ sáng đèn cho mọi đường dẫn.
-  if (office) officeTabs.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
-  if (office) officeTabs.push({ href: "/orders", label: "Đơn hàng", icon: "orders", active: (p) => p === "/orders" || p === "/order" });
+  if (seesAll) officeTabs.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
+  if (seesAll) officeTabs.push({ href: "/orders", label: "Đơn hàng", icon: "orders", active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) officeTabs.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   return [
     ...officeTabs,
@@ -39,11 +39,11 @@ function tabsFor(admin: boolean, office: boolean, canCreate: boolean): Tab[] {
   ];
 }
 
-function tabBar(admin: boolean, office: boolean, canCreate: boolean, path: string): HTMLElement {
+function tabBar(admin: boolean, seesAll: boolean, canCreate: boolean, path: string): HTMLElement {
   return h(
     "nav",
     { id: "tabbar", "aria-label": "Điều hướng chính" },
-    ...tabsFor(admin, office, canCreate).map((t) =>
+    ...tabsFor(admin, seesAll, canCreate).map((t) =>
       h("a", { href: t.href, class: t.icon === "plus" ? "tab tab-new" : "tab", "aria-current": t.active(path) ? "page" : false }, h("span", { class: "tab-icon" }, icon(t.icon), t.href === "/account" && helpHasNews() && newDot()), h("span", null, t.label)),
     ),
   );
@@ -94,7 +94,7 @@ async function catalogConflictBadge(): Promise<number> {
  * Huy hiệu "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN, không phải tổng số đơn (quyết định 8 của chủ dự án,
  * `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`). Số này ĐÃ CÓ SẴN ở `GET /api/orders/dashboard`
  * (`draftCount` — cùng số ô "Đơn nháp chưa xác nhận" của Trang chủ), không thêm route mới. Lỗi mạng → 0, giống
- * feedbackBadge(). Route khai `access: "office"` nên chỉ gọi khi mục "Đơn hàng" có mặt (điều kiện `office`).
+ * feedbackBadge(). Route khai cổng "office" (ADR-0019 phần C sẽ đổi sang "orders") nên chỉ gọi khi mục "Đơn hàng" có mặt (điều kiện `seesAll` = xem được mọi đơn).
  */
 async function draftOrderBadge(): Promise<number> {
   try {
@@ -127,13 +127,13 @@ interface NavGroup {
  * tabsFor()/nav ngang cũ (office/admin/canCreate) — KHÔNG tự đổi bản đồ quyền (đặc tả §3.1). Nhóm rỗng bị lọc ở
  * sidebar() (ẩn cả tiêu đề, đặc tả §3.1).
  */
-function navGroups(admin: boolean, office: boolean, canCreate: boolean, path: string): NavGroup[] {
+function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string): NavGroup[] {
   const sales: NavItem[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
-  if (office) sales.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
+  if (seesAll) sales.push({ href: "/", label: "Trang chủ", icon: "home", active: (p) => p === "/" });
   // Huy hiệu "Đơn hàng" = số đơn CHƯA XÁC NHẬN (quyết định 8 của chủ dự án đã chốt nghĩa của con số này), màu mặc định như bản mẫu.
-  if (office) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/orders" || p === "/order" });
+  if (seesAll) sales.push({ href: "/orders", label: "Đơn hàng", icon: "orders", badge: draftOrderBadge, active: (p) => p === "/orders" || p === "/order" });
   if (canCreate) sales.push({ href: "/order-form", label: "Tạo đơn", icon: "plus", active: (p) => p === "/order-form" });
   if (office) sales.push({ href: "/parties", label: "Danh bạ", icon: "contact-card", active: (p) => p === "/parties" });
 
@@ -198,8 +198,8 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff, loaders: (() => void)[]): HTMLElement {
-  const groups = navGroups(admin, office, canCreate, path)
+function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff, loaders: (() => void)[]): HTMLElement {
+  const groups = navGroups(admin, seesAll, office, canCreate, path)
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   const roleLabel = staff.permissions.map((p) => PERMISSION_LABEL[p]).join(" · ") || "Chưa có quyền";
@@ -233,11 +233,11 @@ const APP_NAME = "Island Booking System";
  * Trang chủ và Đơn hàng cố ý KHÔNG khai `data-title` (thuộc tính đó còn đổi cả giao diện điện thoại — ẩn logo và
  * ẩn `h1` — mà hai màn đó chủ dự án đã duyệt), nên trước đây ô breadcrumb của chúng bỏ trống ở máy tính. Tra nhãn
  * từ `navGroups` với đủ quyền: đây chỉ là tra NHÃN THEO ĐƯỜNG DẪN (nhãn không phụ thuộc quyền); việc mục nào được
- * hiện vẫn do `navGroups(admin, office, canCreate)` quyết ở sidebar(), không nới quyền của ai.
+ * hiện vẫn do `navGroups(admin, seesAll, office, canCreate)` quyết ở sidebar(), không nới quyền của ai.
  */
 function barTitleFor(path: string, dataTitle: string | undefined): string {
   if (dataTitle) return dataTitle;
-  for (const group of navGroups(true, true, true, path)) {
+  for (const group of navGroups(true, true, true, true, path)) {
     const item = group.items.find((it) => it.active(path));
     if (item) return item.label;
   }
@@ -289,10 +289,10 @@ export async function initShell(): Promise<Staff> {
   // Sidebar CẦN biết staff (chân thanh: avatar/tên/vai) nên chỉ dựng được SAU KHI đăng nhập xác nhận — khác tab
   // bar (không cần staff). `has-sidebar` chỉ gắn khi ĐÃ THẬT SỰ dựng #sidebar (không để lưới 236px trống khi
   // mất mạng lúc mở trang — nhánh addNav(false) dưới đây không có staff).
-  const addNav = (admin: boolean, office = true, canCreate = office, staff: Staff | null = null) => {
+  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null) => {
     if (staff) {
       const badgeLoaders: (() => void)[] = [];
-      const nav = sidebar(admin, office, canCreate, path, staff, badgeLoaders);
+      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders);
       document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
@@ -314,7 +314,7 @@ export async function initShell(): Promise<Staff> {
       }
     }
     if (tabbar === "off") return;
-    document.body.append(tabBar(admin, office, canCreate, path));
+    document.body.append(tabBar(admin, seesAll, canCreate, path));
     document.body.classList.add("has-tabbar");
   };
   let me: Api.MeResponse;
@@ -331,13 +331,14 @@ export async function initShell(): Promise<Staff> {
   const { staff } = me;
   if (me.maintenance?.on) setMaintenanceStrip(true);
   const admin = hasPermission(staff, "ADMIN");
-  const office = isOffice(staff);
+  const seesAll = seesAllOrders(staff); // Trang chủ, Đơn hàng, ô tìm đơn, huy hiệu đơn nháp
+  const office = isOffice(staff); // chỉ mục "Danh bạ" (cổng văn phòng, ADR-0019)
   const canCreate = can(staff, "order.create"); // kế toán xem được đơn nhưng không lập đơn (ADR-0007): ẩn nút thay vì để bị 403 sau khi điền xong
 
   const avatarEl = h("span", { class: "bar-avatar", "aria-hidden": "true" }, initials(staff.fullName));
   // Ô tìm kiếm/nút "Lập đơn mới" chỉ có ích cho ai thấy được Đơn hàng — cùng đối tượng đang thấy mục "Đơn hàng"
-  // trên sidebar (`office`)/nút "Lập đơn mới" trên sidebar (`canCreate`), không mở rộng hơn logic quyền hiện có.
-  const search = office
+  // trên sidebar (`seesAll`)/nút "Lập đơn mới" trên sidebar (`canCreate`), không mở rộng hơn logic quyền hiện có.
+  const search = seesAll
     ? h("input", { type: "search", class: "topbar-search", placeholder: "Tìm mã đơn, tên khách, SĐT…", "aria-label": "Tìm đơn" })
     : null;
   search?.addEventListener("keydown", (e: KeyboardEvent) => {
@@ -349,7 +350,7 @@ export async function initShell(): Promise<Staff> {
   const newOrderBtn = canCreate ? h("a", { class: "btn btn-accent topbar-new", href: "/order-form" }, "Tạo đơn") : null;
   append(byId("topbar"), [avatarEl, search, newOrderBtn]);
 
-  addNav(admin, office, canCreate, staff);
+  addNav(admin, seesAll, office, canCreate, staff);
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   return staff;
 }
