@@ -37,7 +37,7 @@
 
 **Vị trí:** Phần II, khối sơ đồ "Các tầng và chiều phụ thuộc", dòng 175 (danh sách `src/modules/<tên>/`). Hôm nay danh sách không nhắc `bangtin`.
 
-**Vì sao:** mô tả đúng mã (12 module). Không đổi luật.
+**Vì sao:** mô tả đúng mã (13 thư mục module, trong đó 12 module có route — `staff` không có route; `src/route-access.test.ts` đếm 12). Không đổi luật.
 
 ```diff
 - …, feedback (Góp ý / Báo lỗi — bảng `fbk_*`, route `/api/feedback*`, trang `/feedback`; chỉ import `staff` (nhãn) và `audit`)
