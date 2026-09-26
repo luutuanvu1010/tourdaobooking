@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  MANUAL_FROZEN_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, isPartnerOnly, manualFreezeViolation, retailPricesOnly,
+  MANUAL_FROZEN_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
   type FrozenStored,
 } from "./price-guards.ts";
 
@@ -70,14 +70,14 @@ test("R1: câu lỗi đúng lời chủ dự án (tiếng Việt, chỉ cách l�
   assert.equal(MANUAL_FROZEN_MESSAGE, "dịch vụ nhập tay đã ngừng — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.");
 });
 
-test("isPartnerOnly: mọi quyền đều là PARTNER (có ít nhất một quyền)", () => {
-  assert.equal(isPartnerOnly({ permissions: ["PARTNER"] }), true);
-  assert.equal(isPartnerOnly({ permissions: ["PARTNER", "PARTNER"] }), true);
-  assert.equal(isPartnerOnly({ permissions: ["PARTNER", "SALES"] }), false);
-  assert.equal(isPartnerOnly({ permissions: ["PARTNER", "FIELD"] }), false, "định nghĩa của điều phối viên: chỉ Đối tác = MỌI quyền là PARTNER");
-  assert.equal(isPartnerOnly({ permissions: ["SALES"] }), false);
-  assert.equal(isPartnerOnly({ permissions: ["INTERN"] }), false);
-  assert.equal(isPartnerOnly({ permissions: [] }), false, "không quyền nào: không phải Đối tác (và cũng không lập được đơn)");
+test("holdsPartner: CÓ quyền PARTNER là áp luật giá Đối tác, kể cả khi kèm quyền khác (chủ dự án chốt 2026-09-26)", () => {
+  assert.equal(holdsPartner({ permissions: ["PARTNER"] }), true);
+  assert.equal(holdsPartner({ permissions: ["PARTNER", "SALES"] }), true, "Đối tác bị gán thêm quyền nội bộ qua màn quản lý cũ vẫn theo luật giá Đối tác");
+  assert.equal(holdsPartner({ permissions: ["PARTNER", "FIELD"] }), true, "đường lách người kiểm độc lập chứng minh 26/9: PARTNER+FIELD lập đơn 1đ → 201");
+  assert.equal(holdsPartner({ permissions: ["SALES"] }), false);
+  assert.equal(holdsPartner({ permissions: ["INTERN"] }), false);
+  assert.equal(holdsPartner({ permissions: ["SUPER_ADMIN"] }), false);
+  assert.equal(holdsPartner({ permissions: [] }), false);
 });
 
 test("R2 retailPricesOnly: mọi dòng có giá danh mục và đơn giá = giá danh mục", () => {

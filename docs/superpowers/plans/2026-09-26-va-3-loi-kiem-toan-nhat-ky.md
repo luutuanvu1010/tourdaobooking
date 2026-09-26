@@ -7,7 +7,7 @@
 ## Tiêu chí nghiệm thu (hành vi kiểm được)
 1. **DK-T3-02:** Quản trị/Toàn quyền `POST /api/staff/<chính mình>/reset-pin` → 403, không ghi gì (PIN, `credentials_changed_at`, nhật ký giữ nguyên), phiên và PIN cũ vẫn dùng được; đặt lại PIN cho cấp dưới vẫn 200; trang Quản lý tài khoản không có nút "Đặt lại PIN" ở hàng/thẻ "(bạn)".
 2. **DK-T4-02:** chạm lý do huỷ → hộp hỏi lại có mã đơn, tên khách, "không thể hoàn tác"; bấm Thôi/không đồng ý thì không gọi máy chủ; vùng huỷ là khối riêng tách khỏi nút lưu; máy chủ trả 409 `departed` khi ngày đi (lớn nhất) < hôm nay giờ VN, 200 khi ngày đi = hôm nay; "Việc của tôi" không hiện nút huỷ cho đơn đã qua ngày đi.
-3. **DK-T3-01:** mọi tài khoản: dịch vụ nhập tay mới → 400, sửa tên/dòng tiền dịch vụ nhập tay cũ → 400, đổi ngày/số khách của nó → 200; tài khoản chỉ Đối tác: đơn giá ≠ giá danh mục → 403, giảm giá > 0 → 403, ở lập, sửa **và** xác nhận (kể cả nháp dựng sẵn); Bán hàng cùng thân yêu cầu → 201.
+3. **DK-T3-01:** mọi tài khoản: dịch vụ nhập tay mới → 400, sửa tên/dòng tiền dịch vụ nhập tay cũ → 400, đổi ngày/số khách của nó → 200; tài khoản có quyền Đối tác (kể cả kèm quyền khác): đơn giá ≠ giá danh mục → 403, giảm giá > 0 → 403, ở lập, sửa **và** xác nhận (kể cả nháp dựng sẵn); Bán hàng cùng thân yêu cầu → 201.
 4. Mỗi luật có test đỏ trước (trên mã chưa vá) → xanh sau; `npm test`, `npm run typecheck` (0 lỗi), toàn bộ e2e xanh; kịch bản Chrome của trang đã đổi xanh.
 5. Mỗi mục `phat_hien` bị xoá trong **cùng commit** vá nó; `src/phat-hien-han.test.ts` xanh (kể cả khi mảng rỗng).
 6. Người kiểm độc lập chỉ-đọc báo cáo trước khi coi là đạt.
@@ -19,6 +19,7 @@
 - **R4 (điều phối):** hai quyết định đã duyệt va nhau (ADR-0014 điều 3 "phiếu luôn giá bán lẻ" ↔ ADR-0018 §9 "được giảm giá cho khách") → không tự hoà giải, hỏi chủ. Chủ giải (ADR-0027 quyết định 2).
 - **R5 (điều phối):** app chưa có bảng mức chiết khấu → trần "bằng mức chiết khấu" chưa có số → hỏi thêm một câu; chủ chọn "tạm không cho giảm".
 - **R6 (điều phối):** luật ngừng nhập tay đặt thành kiểm riêng sau `validateOrder` (không đổi cách `validateService` phân tích) để các test đơn vị cũ dùng dịch vụ nhập tay không vỡ vô cớ; e2e chuyển sang danh mục giả `ZE*`.
+- **R7 (chủ, 26/9):** người kiểm độc lập (ĐẠT CÓ ĐIỀU KIỆN) chứng minh tài khoản `PARTNER`+`FIELD` gán qua đường quản trị cũ lọt R2/R3 (đơn giá 1đ → 201) vì vị từ cũ là "mọi quyền đều là PARTNER" (định nghĩa của điều phối viên, chưa trình chủ). Chủ chọn "Có quyền Đối tác là áp" → `holdsPartner`; e2e mục 8 đỏ `201 !== 403` trước, xanh sau.
 - Người thi công lần 1 bị hàng rào chặn `git reset --hard` (định gộp commit) → thêm commit sửa lời riêng (3c7fdb3); không lách.
 
 ## Commit
@@ -32,7 +33,9 @@
 | 91c3488 | DK-T3-01 phần 1: ngừng nhập tay (mọi tài khoản, bản cũ chỉ xem) + tài khoản chỉ Đối tác đúng giá danh mục ở lập/sửa/xác nhận |
 | e72089b | DK-T3-01 phần 2: tài khoản chỉ Đối tác không giảm giá (trần `PARTNER_DISCOUNT_CAP` = 0 chờ bảng chiết khấu) ở lập/sửa/xác nhận; xoá mục sổ → `phat_hien` rỗng |
 | e8000e3 | Sửa các kịch bản Chrome cũ còn tạo dịch vụ nhập tay (khung `a2-cdp.mjs` thêm `legacyManual`, thử lại khi ECONNRESET) |
-| (commit này) | ADR-0027, nhật ký này, mục nhật ký phiên bản 1.14, sổ hàng rào (3 dòng), trạng thái HANDOFF §1.5 |
+| 236a085 | ADR-0027, nhật ký này, mục nhật ký phiên bản 1.14, sổ hàng rào (3 dòng), trạng thái HANDOFF §1.5 |
+
+| (commit sau) | R2/R3 áp cho mọi tài khoản CÓ quyền Đối tác (`holdsPartner`) theo R7; e2e mục 8 |
 
 ## Việc còn treo (không thuộc phạm vi, đã báo chủ)
 - App chưa tính **số đối tác phải trả Tour Đảo** (giá vốn cố định) — làm cùng đợt chiết khấu/sổ công nợ (ADR-0018 §11, ADR-0024…0026); khi có bảng chiết khấu, thay trần 0 bằng mức của đối tác.

@@ -2,10 +2,10 @@
 //  R1 (MỌI tài khoản) — Câu 1: "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện … Sẽ mở lại khi cần thiết": POST/PUT /api/orders không nhận dịch vụ
 //     nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị "đóng băng" (tên + dòng tiền giữ nguyên), vẫn sửa được thông tin chuyến / số khách /
 //     ngày cả đơn, và xoá được khỏi đơn nháp. Vi phạm → 400 invalid_input.
-//  R2 (tài khoản CHỈ Đối tác — mọi quyền đều là PARTNER) — Câu 2: "đối tác vẫn phải trả một mức giá cố định cho công ty" + ADR-0014 điều 3 (ảnh xác
+//  R2 (tài khoản CÓ quyền Đối tác — kể cả kèm quyền khác, chủ chốt 26/9 "Có quyền Đối tác là áp") — Câu 2: "đối tác vẫn phải trả một mức giá cố định cho công ty" + ADR-0014 điều 3 (ảnh xác
 //     nhận luôn là giá bán lẻ): ở lập (POST), sửa (PUT) và xác nhận (POST /status → confirmed) mọi dòng tiền phải có giá danh mục và đơn giá = giá
 //     danh mục → sai 403 forbidden. Nhân viên nội bộ không đổi gì.
-//  R3 (tài khoản CHỈ Đối tác) — chủ dự án chốt 26/9: "đối tác được quyền giảm giá cho khách nhưng luôn phải trả một mức giá cố định (giá vốn) …
+//  R3 (tài khoản có quyền Đối tác) — chủ dự án chốt 26/9: "đối tác được quyền giảm giá cho khách nhưng luôn phải trả một mức giá cố định (giá vốn) …
 //     có thể đặt mức giảm tối đa là mức chiết khấu của công ty Tour đảo dành cho đối tác"; app CHƯA có bảng mức chiết khấu → chủ chọn "Tạm không cho
 //     giảm" (trần = 0): giảm giá cấp đơn phải bằng 0 ở lập, sửa và xác nhận (xác nhận đọc giảm giá ĐÃ LƯU) → sai 403 forbidden. Nhân viên nội bộ không đổi.
 // Đối tác nhận 403 ở /api/catalog nên dựng đơn bằng API trực tiếp. Dịch vụ nhập tay CŨ dựng bằng SQL trên D1 local tạm (`makeLegacyManual`).
@@ -121,7 +121,7 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual([r.body.order.services.length, r.body.order.services[0].kind, r.body.order.subtotal], [1, "catalog", ZE1]);
 console.log("✓ R1: xoá dịch vụ nhập tay cũ khỏi đơn nháp → 200");
 
-// ================================ R2 (giá bán lẻ) + R3 (chưa được giảm giá) — tài khoản CHỈ Đối tác ================================
+// ================================ R2 (giá bán lẻ) + R3 (chưa được giảm giá) — tài khoản Đối tác ====================================
 const phone = randomPhone();
 r = await call(ADMIN, "POST", "/api/staff", { fullName: `Cộng Tác Viên ${tag}`, phone, roles: ["COLLABORATOR"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -236,5 +236,20 @@ r = await put(SALES, so, [catalogAsStored(so.services[0])], { discount: 2 * ZE1 
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal((await confirm(SALES, r.body.order)).status, 200);
 console.log("✓ R2+R3: nhân viên bán hàng cùng thân yêu cầu (đơn giá thoả thuận / có giảm giá) → 201, sửa thêm giảm giá → 200, xác nhận 200");
+
+// 8) Tài khoản CÓ quyền Đối tác kèm quyền nội bộ (gán qua đường quản trị cũ — không kèm vai, nên luật LC-1 của mô hình vai không chạy) vẫn theo luật
+// giá Đối tác (chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp"). Đường lách do người kiểm độc lập chứng minh 26/9: PARTNER+FIELD lập đơn 1đ → 201.
+const hybridPhone = randomPhone();
+r = await call(ADMIN, "POST", "/api/staff", { fullName: `Đối Tác Lai ${tag}`, phone: hybridPhone, permissions: ["PARTNER", "FIELD"] });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+assert.deepEqual([...r.body.staff.permissions].sort(), ["FIELD", "PARTNER"], "đối chứng: đường cũ vẫn cho gán PARTNER kèm quyền nội bộ");
+const PH = (await login(hybridPhone, r.body.pin)).cookie;
+r = await call(PH, "POST", "/api/orders", orderInput({ customerName: `ĐT lai lệch giá ${tag}`, services: [catalogService({ pax: { adult: 2 }, unitPrices: { adult: 1 } })] }));
+assert.equal(r.status, 403, `Đối tác lai, đơn giá 1đ: ${JSON.stringify(r.body)}`);
+assert.match(r.body.error.message, RETAIL);
+r = await call(PH, "POST", "/api/orders", orderInput({ customerName: `ĐT lai giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: 1 }));
+assert.equal(r.status, 403, `Đối tác lai, giảm 1đ: ${JSON.stringify(r.body)}`);
+assert.match(r.body.error.message, NO_DISCOUNT);
+console.log("✓ R2+R3: tài khoản có quyền Đối tác KÈM quyền nội bộ (PARTNER+FIELD, gán qua đường cũ) → đơn giá lệch 403, giảm giá 403");
 
 console.log("E2E NHẬP TAY + GIÁ ĐỐI TÁC OK");

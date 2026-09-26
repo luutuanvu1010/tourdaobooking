@@ -23,7 +23,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–u · §3 Ma t
 | Thêm trường chuyến vào dịch vụ trong đơn | `src/modules/orders/service-rules.ts`, `src/shared/trip-form.ts`, `web/trip-fields.ts` | a2 |
 | Đổi thành phần dịch vụ (loại khách, đơn vị tính) | `src/shared/order-lines.ts`, `migrations/0008_order_service.sql` (trigger) | a3, g |
 | Đổi luật tính tiền / dịch vụ theo nhóm / theo người | `src/shared/order-lines.ts` (`buildLines`), `src/modules/orders/service-rules.ts` | g |
-| Luật dịch vụ nhập tay (đã ngừng — DK-T3-01 R1) / giá bán lẻ (R2) và chưa được giảm giá (R3, trần `PARTNER_DISCOUNT_CAP` = 0) cho tài khoản chỉ Đối tác | `src/modules/orders/price-guards.ts` (+ test), `priceGuard` + nhánh xác nhận ở `src/modules/orders/index.ts`, `isFrozenManual` (`src/shared/service-form.ts`) + `web/service-card.ts`, `tests/e2e/nhap-tay-va-gia-doi-tac.mjs` | g, §4 mục 33 |
+| Luật dịch vụ nhập tay (đã ngừng — DK-T3-01 R1) / giá bán lẻ (R2) và chưa được giảm giá (R3, trần `PARTNER_DISCOUNT_CAP` = 0) cho tài khoản có quyền Đối tác (`holdsPartner`, kể cả kèm quyền khác) | `src/modules/orders/price-guards.ts` (+ test), `priceGuard` + nhánh xác nhận ở `src/modules/orders/index.ts`, `isFrozenManual` (`src/shared/service-form.ts`) + `web/service-card.ts`, `tests/e2e/nhap-tay-va-gia-doi-tac.mjs` | g, §4 mục 33 |
 | Đổi giới hạn (số khách, số dịch vụ, ngày tối đa, độ dài chữ) | `src/shared/trip-rules.ts`, `src/shared/order-lines.ts` | h |
 | Thêm/sửa route API trong module có sẵn | `src/modules/<tên>/index.ts`, `src/shared/contracts.ts` | b |
 | Thêm module mới | `src/index.ts`, `src/architecture.test.ts` (`ALLOWED_EDGES`, `STRICT`/`LEGACY`) | b |

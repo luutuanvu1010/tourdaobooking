@@ -14,7 +14,7 @@
 **1. Ngừng dịch vụ nhập tay — ở máy chủ, cho mọi tài khoản.** `POST /api/orders` và `PUT /api/orders/:id` không nhận dịch vụ nhập tay mới. Dịch vụ nhập tay **đã lưu** trên đơn cũ: dữ liệu giữ nguyên (không xoá cứng), **tên và dòng tiền bị đóng băng** (gửi khác bản đã lưu → từ chối); thông tin chuyến và số khách của dịch vụ đó vẫn sửa được (đơn chỉ có một ngày cho cả đơn — ADR-0021); bỏ dịch vụ đó khỏi đơn thì được. Form hiện dịch vụ nhập tay cũ ở dạng **chỉ xem**. Mở lại khi chủ quyết.
    - *Cách AI áp dụng:* "loại bỏ hoàn toàn" được hiểu là không sinh mới và không sửa giá; dữ liệu cũ không xoá được (luật dữ liệu: không xoá cứng) nên **đóng băng** thay vì xoá.
 
-**2. Giá của tài khoản chỉ Đối tác (mọi quyền đều là `PARTNER`).** Ở lập đơn, sửa đơn **và xác nhận đơn** (bước xác nhận đọc lại bản đã lưu, để nháp lập trước bản vá cũng bị bắt):
+**2. Giá của tài khoản có quyền Đối tác (`PARTNER`), kể cả khi kèm quyền khác** — chủ chốt thêm trong cùng phiên, sau khi người kiểm độc lập chỉ ra tài khoản Đối tác được gán thêm quyền nội bộ qua màn quản lý cũ thì lọt luật: *"Có quyền Đối tác là áp"*. Ở lập đơn, sửa đơn **và xác nhận đơn** (bước xác nhận đọc lại bản đã lưu, để nháp lập trước bản vá cũng bị bắt):
    - (a) đơn giá mọi dòng = **giá danh mục (giá công bố)** lúc lập dòng; dòng không có giá danh mục (nhập tay) không qua được;
    - (b) giảm giá cấp đơn ≤ **mức chiết khấu Tour Đảo dành cho đối tác**; app chưa có bảng chiết khấu nên **tạm bằng 0** (Đối tác chưa giảm được). Khi bảng chiết khấu có (ADR-0018 §11), thay số 0 bằng mức của đối tác đó.
    - Nhân viên nội bộ (Bán hàng, Kế toán, Quản trị, Toàn quyền, Thực tập) không đổi gì.
@@ -30,7 +30,7 @@
 
 ## Trang ghép (CLAUDE.md §9 — lượt duyệt này có 3 quyết định chạm quyền/dữ liệu)
 1. **Bảng chạm và loại thực thể trong đó:** `order_service`/`order_item` (module `orders`) chứa hai loại dịch vụ — **danh mục** (`catalog_code`, `catalog_price` có giá trị) và **nhập tay** (`catalog_price` NULL); sau quyết định 1 loại nhập tay chỉ còn bản cũ, không sinh mới. `orders.discount` (giảm giá cấp đơn), `orders.status`. Không bảng mới, không cột mới.
-2. **Dòng bản đồ quyền (`src/shared/permissions.ts`) và loại áp dụng:** `order.create` (PARTNER `any`) và `order.modify` (PARTNER `own`) → thêm quyết định 2 cho tài khoản chỉ `PARTNER`; các quyền khác giữ nguyên ô. `order.cancel` (FIELD `assigned`) → thêm mốc ngày ở quyết định 3. Quyết định 1 áp mọi quyền (không phải ô quyền — là luật dữ liệu). Không đổi ô nào của `MATRIX`.
+2. **Dòng bản đồ quyền (`src/shared/permissions.ts`) và loại áp dụng:** `order.create` (PARTNER `any`) và `order.modify` (PARTNER `own`) → thêm quyết định 2 cho mọi tài khoản có `PARTNER` (kể cả kèm quyền khác); các quyền khác giữ nguyên ô. `order.cancel` (FIELD `assigned`) → thêm mốc ngày ở quyết định 3. Quyết định 1 áp mọi quyền (không phải ô quyền — là luật dữ liệu). Không đổi ô nào của `MATRIX`.
 3. **Cổng canh cửa nào:** `POST /api/orders`, `PUT /api/orders/:id` (quyết định 1, 2a, 2b); `POST /api/orders/:id/status` → `confirmed` (2a, 2b); `POST /api/orders/:id/handler-cancel` (3). Không đổi: `handler-money-edit`, `GET /api/catalog` (Đối tác vẫn 403 — Đối tác chưa lập được đơn trên giao diện; mở danh mục cho Đối tác là quyết định riêng).
 
 ## Hệ quả và rủi ro còn lại
