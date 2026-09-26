@@ -1,5 +1,6 @@
 // Form lập/sửa đơn (A2, đặc tả §5.1–5.2): thẻ dịch vụ + thông tin chuyến, tóm tắt tiền, banner lỗi/xung đột.
 // Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
+import type { SuKienDon } from "../src/shared/bang-tin";
 import type { CatalogServiceDto } from "../src/shared/contracts";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can } from "../src/shared/permissions";
@@ -9,12 +10,13 @@ import {
 } from "../src/shared/service-form";
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
-import { ApiError, api, type Api, type DepositMethod, type OrderInput } from "./api";
+import { ApiError, api, vuaLamBoiTabNay, type Api, type DepositMethod, type OrderInput } from "./api";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
 import { createCatalogPicker } from "./catalog-picker";
 import { byId } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
+import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
 import { initShell, setBarTitle } from "./shell";
@@ -366,3 +368,14 @@ if (editId) {
   lockForm(banner("danger", "Tài khoản này không được lập đơn."));
 }
 recompute();
+
+// Bảng tin (ADR-0022, TD-3): trang này KHÔNG BAO GIỜ tự tải lại (sẽ xoá những gì người dùng đang nhập). Chỉ khi đang SỬA đơn `editId` mà có tin về đúng đơn đó
+// thì hiện dải báo; khoá lạc quan `stale` ở máy chủ vẫn là lưới thật khi bấm Lưu. Lập đơn mới (không có `editId`) thì không làm gì. Không đè lên một dải báo
+// đang hiện (lỗi lưu/khoá form) và không hiện lúc chính tab này đang lưu hoặc vừa ghi đơn này.
+if (editId) {
+  window.addEventListener("don-thay-doi", (ev) => {
+    if (!suKienVeDon((ev as CustomEvent<SuKienDon[]>).detail, editId)) return;
+    if (formLocked || saving || vuaLamBoiTabNay(editId) || !saveErrorEl.hidden) return;
+    renderBanner(saveErrorEl, banner("warning", "Đơn vừa được người khác cập nhật — lưu sẽ báo lỗi, hãy mở lại đơn"));
+  });
+}
