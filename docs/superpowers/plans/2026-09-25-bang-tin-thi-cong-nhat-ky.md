@@ -540,3 +540,45 @@ không là quyết định của Task 11** (Task 6 không tự quyết, không t
 **Vòng sửa 1 (kiểm độc lập):** sửa đoạn "`docs/SO-HANG-RAO.md`" trên — bản trước nói sai là trạm/`dongCua`/`bang-tin-guard` "đã có dòng
 riêng từ Task 4b/5"; đúng ra sổ đó CHƯA có dòng nào cho Bảng tin, việc ghi (nếu cần) là của Task 11. Không đổi mã, không tự ghi
 `docs/SO-HANG-RAO.md`.
+
+## Mốc e2e sau Task 5 (commit d59aefc)
+
+Lượt 1 của `npm run test:e2e`: 11/19 xanh — 8 kịch bản lỗi `503 turnstile_unavailable` lúc đăng nhập (mạng tới siteverify của Cloudflare, không phải lỗi mã). Chạy lại đúng 8 kịch bản đó: 8/8 xanh, tổng 19/19.
+
+## Mốc e2e sau gộp main (commit 4b2847f, gộp bản 1.14 vào nhánh bang-tin)
+
+- `npm test` 879/879; `npm run typecheck` 0 lỗi; `node --test "tests/audit/*.test.mjs"` 35/36 (chỉ đỏ ca sẵn có "P4 FINDING HDV").
+- `npm run test:e2e` đủ bộ (log `.superpowers/sdd/2026-09-25-bang-tin-ke-hoach/e2e-after-merge.log`, dòng cuối `EXIT=0`): "E2E: 21/21 kịch bản xanh" = 20 kịch bản + `audit-invariants --strict` ĐẠT (2 cảnh báo lịch sử R-ORD-6a/6b, không chặn). Lúc này `bangtin` mới có ca 9–10.
+
+## Task 7 — e2e ca 1–8 (2026-09-26)
+
+Phạm vi: hoàn tất `tests/e2e/bangtin.mjs` — ca 1–8 đặt TRƯỚC ca 9/10 của Task 6, dùng lại `moiPhien`/`dongHet`/`doiToiDa`/`taoTaiKhoanDungMotLan`. Bước 1 (`moBangTin`/`batTay`) và Bước 3 (`run.mjs`: `"bangtin"` sau `company` trước `maintenance`, `--var BANG_TIN_HAN_GIAY:20`) đã làm ở Task 6. Không sửa mã máy chủ.
+
+### Các ca
+1. Bắt tay: không cookie 401; Origin lạ 403; vắng Origin 403; thiếu `Upgrade` 426; đúng → mở (101).
+2. Chuẩn bị phiên salesA/salesB/kế toán/field + hai tài khoản chỉ-Đối tác dùng một lần.
+3. salesA lập đơn → salesA/salesB/kế toán nhận đúng MỘT tin `tao` (khớp `maDon`, đúng 5 khoá) trong 2 giây; Đối tác không liên quan và field không nhận.
+4. Đóng dòng HANDLE bằng SQL, salesB Nhận → văn phòng nhận `nhan`, field không; salesA giao cho field (FIELD làm được người phụ trách cấp hẹp, như `dispatch.mjs`) → field nhận `giao`; giao tiếp sang salesB → field nhận thêm một `giao` (người phụ trách TRƯỚC, NT-2).
+5. Sáu route còn lại của DP-1, mỗi route một lần thành công (đúng một tin đúng `thayDoi`: `sua`, `chuyen`, `sua`, `xac_nhan`, `huy`, `tien`) + một lần 403/409 (không tin nào trong 1,5 giây); `PUT …/trip` và `PUT …/booker` thân "không đổi gì" cũng không tin. Mỗi lần ghi mở kết nối MỚI và đóng ngay.
+6. Đối tác lập đơn → chính Đối tác + văn phòng nhận `tao_cho_nhan` (tài khoản chỉ Đối tác không tự thành người phụ trách), Đối tác thứ hai không nhận; kết nối bắt tay kèm header giả `x-bang-tin-nhan: ["tat-ca","cho-nhan"]` vẫn không nhận tin đơn của salesA (BT-2).
+7. `ping` → `pong`; chuỗi rác không được đáp lại, không sinh tin, kết nối vẫn mở.
+8. Hạn sống 20 giây → đóng mã 4001 sau ~20,0 giây (≤ 23), không đóng sớm, không phát gì. Chạy cuối ca 1–8.
+
+### Thay đổi hạ tầng ngoài dự kiến của brief
+`tests/e2e/lib.mjs`: `moBangTin` trả thêm `raw` (mọi khung văn bản thô). Lý do: "pong" tự động là khung văn bản bình thường nhưng `JSON.parse("pong")` ném lỗi nên không vào `tin` — ca 7 không quan sát được nếu thiếu `raw`. Các ca khác không dùng `raw`.
+
+### Bằng chứng "đỏ" (ruling R14): viết sau mã, chứng minh đỏ bằng sửa cố ý — KHÔNG phải đỏ-trước-mã
+Mã máy chủ đã có từ Task 4–5 nên không thể đỏ trước. Mỗi lần: sửa cố ý một tệp `src/**` → `npm run test:e2e -- bangtin` → chép dòng đỏ → `git checkout -- <tệp>` → xác nhận `git status` chỉ còn tệp `tests/e2e/*`.
+1. Ca 3 — `src/shared/bang-tin.ts` `nhanKetNoi`: `if (false && can(staff, "order.view")) nhan.add("tat-ca")` (bỏ nhãn `tat-ca`):
+   `AssertionError: ca 3: salesB phải nhận đúng một tin 'tao' (mã đơn khớp) trong 2 giây  at tests/e2e/bangtin.mjs:89` → `✘ bangtin`. Đã hoàn nguyên.
+2. Ca 5 (route `PUT /api/orders/:id/trip`) — `src/modules/orders/index.ts`: thay `baoThayDoi({ orderId: id, thayDoi: "chuyen" });` bằng chú thích:
+   `AssertionError: ca 5b PUT /api/orders/:id/trip thành công: phải nhận đúng một tin 'chuyen' trong 2000ms  at motTinDung … bangtin.mjs:148` → `✘ bangtin` (ca 3, 4, 5a vẫn ✓ trước đó). Đã hoàn nguyên.
+3. Ca 6 (BT-2) — `src/modules/bangtin/index.ts`: bắt tay tin header `x-bang-tin-nhan` của trình duyệt thay vì `nhanKetNoi(staff)`:
+   `AssertionError: ca 6 (BT-2): header giả 'x-bang-tin-nhan: ["tat-ca","cho-nhan"]' bị máy chủ bỏ qua — Đối tác vẫn không nhận tin đơn người khác  1 !== 0  at bangtin.mjs:326` → `✘ bangtin`. Đã hoàn nguyên.
+
+### Kết quả xanh (mã máy chủ nguyên vẹn)
+- `npm run test:e2e -- bangtin`: ✔ bangtin (48,2 s) — ca 1–10 đều ✓.
+- `npm run test:e2e` đủ bộ: "E2E: 21/21 kịch bản xanh" (20 kịch bản + `audit-invariants --strict` ĐẠT, 2 cảnh báo lịch sử R-ORD-6a/6b); `bangtin` 48,0 s; ca 8 đóng sau 20008 ms. Không thấy chập chờn ở mốc 2 giây/1,5 giây trong 5 lượt chạy (1 xanh + 3 đỏ có chủ đích dừng ở ca dự kiến + 1 đủ bộ).
+
+### Quan sát cho điều phối viên (không sửa, không có ca kiểm)
+`POST /api/orders/:id/handler-money-edit`: khi thân "y nguyên số khách" thì `editMoneyAsHandler` trả `{ ok: true }` không ghi gì, nhưng route vẫn gọi `baoThayDoi(… "tien")` → phát một tin `tien` dù không đổi gì. DP-1 chỉ nêu ngoại lệ "không đổi gì" cho `trip`/`booker`, và brief Task 7 không đòi ca này nên e2e không khẳng định hành vi đó; nếu chủ muốn nhánh này cũng im lặng thì đó là việc sửa mã ở Task riêng.
