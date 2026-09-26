@@ -12,8 +12,8 @@ export const GOP_MS = 1000;
 export const PING_MS = 50_000;
 export const PONG_HAN_MS = 10_000;
 /**
- * Hoãn quyết định hiện thông báo nổi. Máy chủ phát tin TRƯỚC khi dựng phản hồi HTTP nên khung WebSocket có thể tới trình duyệt trước khi
- * `api()` kịp parse phản hồi và ghi dấu "tab này vừa làm" — kiểm dấu LÚC HIỆN (sau khoảng này) chứ không lúc nhận khung. Chỉ hoãn thông báo
+ * Hoãn quyết định hiện thông báo nổi. Máy chủ phát tin SONG SONG với việc dựng phản hồi HTTP (khung WebSocket có thể tới trình duyệt trước HOẶC sau phản hồi) nên khung có thể tới trước khi
+ * `api()` kịp parse phản hồi và ghi dấu "tab này vừa làm" — kiểm dấu LÚC HIỆN (sau khoảng này) chứ không lúc nhận khung; hoãn này đúng cho cả hai thứ tự. Chỉ hoãn thông báo
  * nổi; `don-thay-doi` (làm mới trang) KHÔNG bị hoãn.
  */
 export const TRE_THONG_BAO_MS = 500;

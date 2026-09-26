@@ -32,10 +32,10 @@ const app = createApp({
     defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
     maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
-    // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): chạy SAU khi phản hồi đã trả, lỗi ở đây không làm
-    // hỏng/chậm thao tác ghi (DP-3). `_actor` (người vừa thao tác) giữ trong chữ ký cho Web Push giai đoạn sau — KHÔNG đưa vào sự kiện (điều 4: đúng 5 khoá).
+    // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): việc phát được BẮT ĐẦU ở một microtask ngay khi route gọi, chạy SONG SONG
+    // với việc dựng phản hồi HTTP nên khung tin có thể tới trình duyệt TRƯỚC hoặc SAU phản hồi của chính thao tác đó; lỗi ở đây không làm hỏng/chậm thao tác ghi (DP-3). `_actor` (người vừa thao tác) giữ trong chữ ký cho Web Push giai đoạn sau — KHÔNG đưa vào sự kiện (điều 4: đúng 5 khoá).
     baoThayDoi: async (env, _actor, e) => {
-      // Kiểm trạm TRƯỚC hai lần đọc D1: khung thử (tests/audit, router.test.ts) không có binding → không đọc gì sau khi phản hồi đã trả.
+      // Kiểm trạm TRƯỚC hai lần đọc D1: khung thử (tests/audit, router.test.ts) không có binding → không đọc gì (bản thật chỉ chạy khi có binding).
       if (!env.BANG_TIN) return;
       const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
       if (!ref) return;

@@ -125,9 +125,9 @@ export interface AppOptions {
     maintenanceBlock: (env: Env, staff: StaffProfile) => Promise<Response | null>;
     /** ADR-0013 điều 4. BẮT BUỘC: thiếu là route Hồ sơ không biết hồ sơ nào gắn tài khoản. */
     partyAccount: (env: Env, actor: StaffProfile, partyId: string) => Promise<PartyAccountVerdict>;
-    /** BẢNG TIN (ADR-0022). BẮT BUỘC (tạm no-op cho tới khi trạm có mã — Task 4): router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. */
+    /** BẢNG TIN (ADR-0022). BẮT BUỘC: router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. Bản thật ở `src/index.ts` (trạm `BangTin` đã có); chỉ là no-op khi môi trường không có binding `BANG_TIN` (khung thử). */
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
-    /** BẢNG TIN (ADR-0022). BẮT BUỘC (tạm no-op cho tới khi trạm có mã — Task 4). */
+    /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
     dongBangTin: (env: Env, muc: { staffId: string } | "tat-ca") => Promise<void>;
   };
 }

@@ -58,7 +58,7 @@ Ba lần đều chỉ chạy khổ 390 (`KHO=390`):
 
 3. `bang-tin-smoke.mjs` (đột biến chính kịch bản): mở trang của B bằng cookie của A (`moTrang(ctxB, …, cookieA)`) → đỏ `(a0)` "hai ngữ cảnh trả CÙNG một người — cookie bị dùng chung" và `(c)` (16 ✓, 2 ✗). Hoàn nguyên bằng checkout tệp kịch bản.
 
-Các kiểm sau **chưa từng thấy đỏ** (dựa vào kỷ luật, chưa có đột biến): `(f1)`/`(f2)` đúng một socket mỗi trang, `(b)` "không thông báo nổi cho tin `tao`", `(d2)` "chữ đang gõ còn nguyên", `(d3)`, `(f3)` không lỗi CSP/console, `(e0)`–axe ở phía "0 vi phạm mới" (đối chứng `(e0)` chỉ chứng minh axe bắt được, không chứng minh app đỏ được), và các ngưỡng thời gian 2 giây.
+Các kiểm sau **chưa từng thấy đỏ** (dựa vào kỷ luật, chưa có đột biến): `(f1)`/`(f2)` đúng một socket mỗi trang, `(b)` "không thông báo nổi cho tin `tao`", `(d2)` "chữ đang gõ còn nguyên", `(f3)` không lỗi CSP/console, `(e0)`–axe ở phía "0 vi phạm mới" (đối chứng `(e0)` chỉ chứng minh axe bắt được, không chứng minh app đỏ được), và các ngưỡng thời gian 2 giây.
 
 ## Ảnh (`anh/`, 12 ảnh, mỗi loại hai khổ 390 và 1040)
 
