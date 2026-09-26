@@ -2,6 +2,7 @@ import { ApiError, api, type Api, type OrderSummary, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
 import { icon, type IconName } from "./icons";
+import { taoBoLamMoi } from "./lam-moi-logic";
 import { initShell, showError } from "./shell";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { homeRedirect } from "../src/shared/start-page";
@@ -246,6 +247,20 @@ async function main(): Promise<void> {
   byId("dash-name").textContent = `Chào ${words[words.length - 1] ?? staff.fullName}`;
   // Dải "Đang ở chế độ bảo trì" chung của khung (web/shell.ts) đã dựng xong tại đây (initShell() đã trả về) — suy ra trạng thái từ đó thay vì đọc lại API, tránh đổi chữ ký initShell().
   byId("dash-maint").hidden = !document.querySelector(".maint-strip");
+  await taiDashboard(staff);
+  // Bảng tin (ADR-0022, TD-3): đơn đổi / vừa nối lại → tải lại số liệu và danh sách hôm nay. Đăng ký MỘT lần, sau lần tải đầu; bộ gộp bảo đảm
+  // một đợt tin + `can-tai-lai` đến cùng lúc không chạy hai lần tải song song.
+  const lamMoi = taoBoLamMoi(() => taiDashboard(staff, true));
+  window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
+  window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
+}
+
+/**
+ * Tải dữ liệu Trang chủ và dựng ba ô số + "Chưa phụ trách" + danh sách hôm nay + doanh thu tuần (một lời gọi `GET /api/orders/dashboard`).
+ * `lamMoi` (theo tin của Bảng tin): không hiện lại khung "đang tải", không chạy lại "Cần xem lại" (không phụ thuộc đơn, gọi thêm hai API của Admin),
+ * và lỗi mạng thì giữ nguyên số cũ đang hiện (không xoá khối, không dựng banner lỗi).
+ */
+async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
   const now = new Date();
   const weekday = new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "long" }).format(now);
   const dateStr = now.toLocaleDateString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric" });
@@ -253,16 +268,18 @@ async function main(): Promise<void> {
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
     // dashboard chính, không làm chậm phần còn lại của trang.
-    const [data, review] = await Promise.all([api<Api.DashboardResponse>("/api/orders/dashboard"), loadReview(staff)]);
+    const [data, review] = await Promise.all([api<Api.DashboardResponse>("/api/orders/dashboard"), lamMoi ? undefined : loadReview(staff)]);
     loadingEl.hidden = true;
+    if (lamMoi) showError(byId("error"), null); // lần tải đầu đã lỗi (banner còn hiện) mà làm mới này thành công → gỡ banner
     byId("dash-date").textContent = `${weekday}, ${dateStr} · ${data.today.length} chuyến đón hôm nay`;
     renderStats(data);
     renderToday(data.today);
     renderRevenue(data.revenueWeek);
-    renderReview(review);
+    if (review !== undefined) renderReview(review);
     // Chỉ hiện khối nội dung SAU KHI dựng xong dữ liệu thật — lúc đang tải/lỗi giữ ẩn (tránh khối rỗng đọng lại cạnh skeleton/banner lỗi).
     byId("dash-grid").hidden = false;
   } catch (err) {
+    if (lamMoi) return; // làm mới lặng lẽ: giữ số cũ
     loadingEl.hidden = true;
     byId("dash-date").textContent = `${weekday}, ${dateStr}`;
     showError(byId("error"), err instanceof ApiError ? err.message : "Không tải được Trang chủ. Thử tải lại trang.");
