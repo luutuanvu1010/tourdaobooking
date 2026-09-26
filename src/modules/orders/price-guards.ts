@@ -5,13 +5,26 @@
 //     đơn giá) phải giữ nguyên; thông tin chuyến và số khách vẫn sửa được (đơn một ngày cho cả đơn — ADR-0021 — nên đổi ngày đơn đổi cả dịch vụ nhập
 //     tay: cho qua); bỏ dịch vụ nhập tay khỏi đơn nháp thì được. Dữ liệu cũ không bị xoá.
 //  R2 (tài khoản CHỈ Đối tác) — Câu 2: "dù đối tác có giảm giá bao nhiêu đi nữa thì đối tác vẫn phải trả một mức giá cố định cho công ty Tour đảo"
-//     + ADR-0014 điều 3 ("ảnh xác nhận/hoá đơn luôn là giá bán lẻ"): mọi dòng tiền phải có giá danh mục và đơn giá = giá danh mục. Giảm giá cấp
-//     đơn KHÔNG chặn. Áp ở lập, sửa VÀ xác nhận đơn (xác nhận không kiểm lại giá — đơn nháp cũ phải bị bắt ở đó).
+//     + ADR-0014 điều 3 ("ảnh xác nhận/hoá đơn luôn là giá bán lẻ"): mọi dòng tiền phải có giá danh mục và đơn giá = giá danh mục. Áp ở lập, sửa
+//     VÀ xác nhận đơn (xác nhận không kiểm lại giá — đơn nháp cũ phải bị bắt ở đó).
+//  R3 (tài khoản CHỈ Đối tác) — chủ dự án chốt 2026-09-26: "Đối tác không tự đặt giá, giá luôn là giá công bố (giá bán lẻ), đối tác được quyền giảm
+//     giá cho khách nhưng luôn phải trả một mức giá cố định (giá vốn) cho công ty Tour đảo … có thể đặt mức giảm tối đa là mức chiết khấu của công ty
+//     Tour đảo dành cho đối tác." App CHƯA có bảng mức chiết khấu → chủ chọn "Tạm không cho giảm": trần giảm giá cấp đơn = 0 (`PARTNER_DISCOUNT_CAP`).
+//     Áp ở lập, sửa VÀ xác nhận (xác nhận đọc giảm giá ĐÃ LƯU). Khi có bảng chiết khấu (việc sau): route tính trần từ bảng đó rồi truyền vào
+//     `discountWithinCap` thay cho hằng 0, và đổi câu lỗi (câu hiện tại nói "chưa được thiết lập").
 // Không I/O; test cạnh tệp (price-guards.test.ts).
 import type { PermissionCode } from "../../shared/permissions.ts";
 
 export const MANUAL_FROZEN_MESSAGE = "dịch vụ nhập tay đã ngừng — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.";
 export const RETAIL_PRICE_MESSAGE = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
+export const PARTNER_DISCOUNT_MESSAGE =
+  "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.";
+
+/**
+ * R3: trần giảm giá cấp đơn (VNĐ) cho tài khoản CHỈ Đối tác HÔM NAY. Chủ dự án 2026-09-26: mức giảm tối đa = mức chiết khấu Tour Đảo dành cho đối tác;
+ * app chưa có bảng mức chiết khấu nên "Tạm không cho giảm" → 0. Đổi hằng này (hoặc thay bằng trần tính từ bảng chiết khấu) là quyết định của chủ dự án.
+ */
+export const PARTNER_DISCOUNT_CAP = 0;
 
 /** Dòng tiền có nội dung so được "giữ nguyên" của dịch vụ nhập tay. */
 export interface FrozenLine {
@@ -62,7 +75,7 @@ export function manualFreezeViolation(services: readonly FrozenInput[], stored: 
 
 /**
  * Tài khoản CHỈ Đối tác: có ít nhất một quyền và MỌI quyền đều là `PARTNER` (định nghĩa của điều phối viên khi giao việc 2026-09-26). Chỉ xét MÃ QUYỀN,
- * không xét vai hồ sơ (vai hồ sơ không bao giờ là điều kiện — `src/CLAUDE.md`). Tài khoản PARTNER kèm quyền khác (nội bộ) KHÔNG thuộc luật R2.
+ * không xét vai hồ sơ (vai hồ sơ không bao giờ là điều kiện — `src/CLAUDE.md`). Tài khoản PARTNER kèm quyền khác (nội bộ) KHÔNG thuộc luật R2/R3.
  */
 export const isPartnerOnly = (who: { readonly permissions: readonly PermissionCode[] }): boolean =>
   who.permissions.length > 0 && who.permissions.every((p) => p === "PARTNER");
@@ -70,3 +83,6 @@ export const isPartnerOnly = (who: { readonly permissions: readonly PermissionCo
 /** R2: mọi dòng tiền có giá danh mục và đơn giá = giá danh mục (dòng nhập tay — `catalogPrice` null — không đạt). */
 export const retailPricesOnly = (items: readonly { catalogPrice: number | null; unitPrice: number }[]): boolean =>
   items.every((i) => i.catalogPrice !== null && i.unitPrice === i.catalogPrice);
+
+/** R3: giảm giá cấp đơn không vượt trần `maxDiscount` (VNĐ). Trần là THAM SỐ để sau này truyền mức chiết khấu thật; hôm nay route truyền `PARTNER_DISCOUNT_CAP` (0). */
+export const discountWithinCap = (discount: number, maxDiscount: number): boolean => discount <= maxDiscount;

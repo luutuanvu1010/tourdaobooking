@@ -14,7 +14,9 @@ import {
   cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
   updateDraftOrder, updateTrip,
 } from "./repository";
-import { RETAIL_PRICE_MESSAGE, isPartnerOnly, manualFreezeViolation, retailPricesOnly } from "./price-guards";
+import {
+  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, isPartnerOnly, manualFreezeViolation, retailPricesOnly,
+} from "./price-guards";
 import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import { loadOrderView, resolveBooker, validationContext, type OrderValidationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
@@ -27,16 +29,19 @@ const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không s�
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
 const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
+const PARTNER_DISCOUNT = () => error(403, "forbidden", PARTNER_DISCOUNT_MESSAGE);
 
 /**
- * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — hai kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`):
- * R1 (mọi tài khoản) dịch vụ nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input`; R2 (tài khoản chỉ Đối tác) đơn giá khác giá danh
- * mục → 403 `forbidden`. Giảm giá cấp đơn không bị xét. null = đạt.
+ * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
+ * theo thứ tự: R1 (mọi tài khoản) dịch vụ nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input`; R2 (tài khoản chỉ Đối tác) đơn giá
+ * khác giá danh mục → 403 `forbidden`; R3 (tài khoản chỉ Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9)
+ * → 403 `forbidden`. null = đạt.
  */
 function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValidationContext): Response | null {
   const frozen = manualFreezeViolation(order.services, ctx.stored);
   if (frozen) return error(400, "invalid_input", frozen);
   if (isPartnerOnly(staff) && !retailPricesOnly(order.items)) return PARTNER_PRICE();
+  if (isPartnerOnly(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
   return null;
 }
 
@@ -306,9 +311,10 @@ export const ordersModule: AppModule = {
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
-        // DK-T3-01 R2: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản chỉ Đối tác chỉ xác nhận được đơn mà MỌI dòng đúng giá
-        // danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục). Giảm giá cấp đơn không xét.
+        // DK-T3-01 R2 + R3: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản chỉ Đối tác chỉ xác nhận được đơn mà MỌI dòng đúng
+        // giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
         if (order && isPartnerOnly(staff) && !retailPricesOnly(order.services.flatMap((s) => s.items))) return PARTNER_PRICE();
+        if (order && isPartnerOnly(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
         if (!(await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, detail))) {
           // Thua vì đơn đã đổi trạng thái, hay vì chưa đủ chuyến? Đọc lại để trả đúng lý do (không ghi nhật ký cho lần xác nhận thất bại).

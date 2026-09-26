@@ -1,10 +1,13 @@
-// DK-T3-01 (kiểm toán điểm khuất 24/9, HIGH) — hai luật máy chủ theo câu trả lời của chủ dự án ngày 2026-09-26:
+// DK-T3-01 (kiểm toán điểm khuất 24/9, HIGH) — ba luật máy chủ theo câu trả lời của chủ dự án ngày 2026-09-26:
 //  R1 (MỌI tài khoản) — Câu 1: "loại bỏ hoàn toàn dịch vụ nhập tay khỏi giao diện … Sẽ mở lại khi cần thiết": POST/PUT /api/orders không nhận dịch vụ
 //     nhập tay MỚI; dịch vụ nhập tay CŨ đã lưu của chính đơn bị "đóng băng" (tên + dòng tiền giữ nguyên), vẫn sửa được thông tin chuyến / số khách /
 //     ngày cả đơn, và xoá được khỏi đơn nháp. Vi phạm → 400 invalid_input.
 //  R2 (tài khoản CHỈ Đối tác — mọi quyền đều là PARTNER) — Câu 2: "đối tác vẫn phải trả một mức giá cố định cho công ty" + ADR-0014 điều 3 (ảnh xác
 //     nhận luôn là giá bán lẻ): ở lập (POST), sửa (PUT) và xác nhận (POST /status → confirmed) mọi dòng tiền phải có giá danh mục và đơn giá = giá
-//     danh mục → sai 403 forbidden. Giảm giá cấp đơn KHÔNG chặn ("đối tác giảm bao nhiêu cũng được"). Nhân viên nội bộ không đổi gì.
+//     danh mục → sai 403 forbidden. Nhân viên nội bộ không đổi gì.
+//  R3 (tài khoản CHỈ Đối tác) — chủ dự án chốt 26/9: "đối tác được quyền giảm giá cho khách nhưng luôn phải trả một mức giá cố định (giá vốn) …
+//     có thể đặt mức giảm tối đa là mức chiết khấu của công ty Tour đảo dành cho đối tác"; app CHƯA có bảng mức chiết khấu → chủ chọn "Tạm không cho
+//     giảm" (trần = 0): giảm giá cấp đơn phải bằng 0 ở lập, sửa và xác nhận (xác nhận đọc giảm giá ĐÃ LƯU) → sai 403 forbidden. Nhân viên nội bộ không đổi.
 // Đối tác nhận 403 ở /api/catalog nên dựng đơn bằng API trực tiếp. Dịch vụ nhập tay CŨ dựng bằng SQL trên D1 local tạm (`makeLegacyManual`).
 import assert from "node:assert/strict";
 import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, manualService, orderInput, randomPhone, session, sql, vnDate } from "./lib.mjs";
@@ -36,6 +39,7 @@ const catalogAsStored = (sv, patch = {}) => ({
 });
 const FROZEN = /dịch vụ nhập tay đã ngừng/;
 const RETAIL = /giá bán lẻ theo danh mục/;
+const NO_DISCOUNT = /^Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập\. Muốn giảm cho khách, nhờ văn phòng\.$/;
 let r;
 
 // ================================================ R1 — dịch vụ nhập tay (mọi tài khoản) ================================================
@@ -117,7 +121,7 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual([r.body.order.services.length, r.body.order.services[0].kind, r.body.order.subtotal], [1, "catalog", ZE1]);
 console.log("✓ R1: xoá dịch vụ nhập tay cũ khỏi đơn nháp → 200");
 
-// ============================================= R2 — giá bán lẻ cho tài khoản CHỈ Đối tác =============================================
+// ================================ R2 (giá bán lẻ) + R3 (chưa được giảm giá) — tài khoản CHỈ Đối tác ================================
 const phone = randomPhone();
 r = await call(ADMIN, "POST", "/api/staff", { fullName: `Cộng Tác Viên ${tag}`, phone, roles: ["COLLABORATOR"] });
 assert.equal(r.status, 201, JSON.stringify(r.body));
@@ -141,28 +145,41 @@ assert.equal(r.status, 400, JSON.stringify(r.body));
 assert.match(r.body.error.message, FROZEN);
 console.log("✓ R2: Đối tác lập đơn với đơn giá khác giá danh mục (thấp/cao) → 403; dịch vụ nhập tay → 400 (R1)");
 
-// 4) Đúng giá danh mục + GIẢM GIÁ LỚN → 201; tự xác nhận → 200 (giảm giá cấp đơn KHÔNG bị chặn)
-const bigDiscount = 2 * ZE1 - 1000;
-r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount: bigDiscount }));
+// 4) R3: đúng giá danh mục + GIẢM GIÁ (dù 1₫ hay gần hết tiền) → 403, không lưu đơn; KHÔNG giảm giá → 201 (mặc định hoặc đơn giá tường minh = giá danh mục)
+// Cùng MỘT thân yêu cầu (đúng giá, có giảm giá) gửi bằng nhân viên bán hàng ở mục 7 → 201: phân biệt đúng loại tài khoản.
+const discountedBody = (discount) => orderInput({ customerName: `ĐT giảm giá ${discount} ${tag}`, services: [catalogService({ pax: { adult: 2 } })], discount });
+for (const d of [1, 2 * ZE1 - 1000]) {
+  r = await call(P, "POST", "/api/orders", discountedBody(d));
+  assert.equal(r.status, 403, `giảm ${d}: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "forbidden");
+  assert.match(r.body.error.message, NO_DISCOUNT);
+  assert.equal(await partnerCount(`ĐT giảm giá ${d} ${tag}`), 0, `giảm ${d}: không lưu đơn`);
+}
+r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT không giảm ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
 let po = r.body.order;
-assert.deepEqual([lines(po)[0].unitPrice, lines(po)[0].catalogPrice, po.subtotal, po.discount, po.total], [ZE1, ZE1, 2 * ZE1, bigDiscount, 1000]);
-// gửi đơn giá TƯỜNG MINH bằng đúng giá danh mục cũng được
-r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT giá tường minh ${tag}`, services: [catalogService({ pax: { adult: 1, child: 1 }, unitPrices: { ...FAKE_CATALOG.ZE1.prices } })] }));
+assert.deepEqual([lines(po)[0].unitPrice, lines(po)[0].catalogPrice, po.subtotal, po.discount, po.total], [ZE1, ZE1, 2 * ZE1, 0, 2 * ZE1]);
+// gửi đơn giá TƯỜNG MINH bằng đúng giá danh mục, giảm giá 0 tường minh, cũng được
+r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT giá tường minh ${tag}`, services: [catalogService({ pax: { adult: 1, child: 1 }, unitPrices: { ...FAKE_CATALOG.ZE1.prices } })], discount: 0 }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
-console.log("✓ R2: Đối tác đúng giá danh mục (mặc định hoặc gửi tường minh) + giảm giá lớn → 201");
+console.log("✓ R3: Đối tác đúng giá danh mục + giảm giá (1₫ / gần hết tiền) → 403, không lưu; không giảm giá → 201");
 
-// 5) PUT: hạ đơn giá → 403 (đơn không đổi); giữ giá, đổi giảm giá → 200
+// 5) PUT: hạ đơn giá → 403 (R2); giữ giá nhưng THÊM giảm giá → 403 (R3); cả hai lần đơn không đổi. Giữ giá, không giảm, đổi ghi chú → 200; tự xác nhận → 200
 r = await put(P, po, [catalogAsStored(po.services[0], { unitPrices: { adult: ZE1 - 1 } })], { discount: 0 });
 assert.equal(r.status, 403, JSON.stringify(r.body));
 assert.match(r.body.error.message, RETAIL);
-assert.equal((await get(P, po.id)).updatedAt, po.updatedAt, "bị từ chối thì đơn không đổi");
-r = await put(P, po, [catalogAsStored(po.services[0])], { discount: bigDiscount - 1 });
+r = await put(P, po, [catalogAsStored(po.services[0])], { discount: 1000 });
+assert.equal(r.status, 403, `R3 ở PUT: ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "forbidden");
+assert.match(r.body.error.message, NO_DISCOUNT);
+const poNow = await get(P, po.id);
+assert.deepEqual([poNow.updatedAt, poNow.discount], [po.updatedAt, 0], "bị từ chối thì đơn không đổi");
+r = await put(P, po, [catalogAsStored(po.services[0])], { discount: 0, customerNote: "Đối tác sửa ghi chú" });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 po = r.body.order;
 r = await confirm(P, po);
-assert.equal(r.status, 200, `Đối tác tự xác nhận đơn đúng giá danh mục có giảm giá lớn → 200: ${JSON.stringify(r.body)}`);
-console.log("✓ R2: Đối tác PUT hạ đơn giá → 403; giữ giá + đổi giảm giá → 200; tự xác nhận (giảm giá lớn) → 200");
+assert.equal(r.status, 200, `Đối tác tự xác nhận đơn đúng giá danh mục, không giảm giá → 200: ${JSON.stringify(r.body)}`);
+console.log("✓ R2+R3: Đối tác PUT hạ đơn giá → 403; PUT thêm giảm giá → 403 (đơn không đổi); giữ giá + không giảm → 200; tự xác nhận → 200");
 
 // 6) XÁC NHẬN đơn nháp CŨ của Đối tác có dòng lệch giá (dựng bằng SQL — trước bản vá API từng nhận) → 403, đơn vẫn nháp
 r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT nháp cũ lệch giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
@@ -184,11 +201,40 @@ r = await put(P, pLeg, [catalogAsStored(pLeg.services[0])]);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 console.log("✓ R2: Đối tác xác nhận nháp cũ lệch giá → 403 (vẫn nháp); nháp cũ có nhập tay: xác nhận/sửa 403, xoá dịch vụ nhập tay → 200");
 
-// 7) Nhân viên bán hàng: CÙNG thân yêu cầu với đơn giá thoả thuận → 201, xác nhận → 200 (luật chỉ áp cho Đối tác)
+// 6b) R3 ở XÁC NHẬN: đơn nháp của Đối tác đúng giá nhưng CÓ giảm giá đã lưu (dựng bằng SQL — trước bản vá API từng nhận) → 403, đơn vẫn nháp.
+//     Cách gỡ: Đối tác sửa giảm giá về 0 (PUT → 200) rồi xác nhận → 200.
+r = await call(P, "POST", "/api/orders", orderInput({ customerName: `ĐT nháp cũ có giảm giá ${tag}`, services: [catalogService({ pax: { adult: 2 } })] }));
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const disc = r.body.order;
+await sql(`UPDATE orders SET discount = 5000, total = subtotal - 5000, remaining_amount = subtotal - 5000 - deposit_amount WHERE id = '${disc.id}'`);
+const discStored = await get(P, disc.id);
+assert.deepEqual([discStored.discount, discStored.total], [5000, 2 * ZE1 - 5000], "đơn nháp cũ dựng đúng");
+r = await confirm(P, discStored);
+assert.equal(r.status, 403, `R3 ở xác nhận: ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "forbidden");
+assert.match(r.body.error.message, NO_DISCOUNT);
+assert.equal((await get(P, disc.id)).status, "draft", "đơn vẫn là nháp");
+r = await put(P, discStored, [catalogAsStored(discStored.services[0])], { discount: 0 });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+r = await confirm(P, r.body.order);
+assert.equal(r.status, 200, JSON.stringify(r.body));
+console.log("✓ R3: Đối tác xác nhận nháp cũ có giảm giá đã lưu → 403 (vẫn nháp); sửa giảm giá về 0 → 200, xác nhận → 200");
+
+// 7) Nhân viên bán hàng (luật R2/R3 chỉ áp cho Đối tác): CÙNG thân yêu cầu với đơn giá thoả thuận → 201, xác nhận → 200; CÙNG thân yêu cầu có giảm giá
+//    mà Đối tác vừa bị 403 ở mục 4 → 201; sửa thêm giảm giá → 200; xác nhận → 200.
 r = await call(SALES, "POST", "/api/orders", orderInput({ customerName: `NV giá thoả thuận ${tag}`, services: [catalogService({ pax: { adult: 2 }, unitPrices: { adult: ZE1 - 10000 } })] }));
 assert.equal(r.status, 201, JSON.stringify(r.body));
 assert.equal(lines(r.body.order)[0].unitPrice, ZE1 - 10000);
 assert.equal((await confirm(SALES, r.body.order)).status, 200);
-console.log("✓ R2: nhân viên bán hàng cùng thân yêu cầu (đơn giá thoả thuận) → 201, xác nhận 200");
+for (const d of [1, 2 * ZE1 - 1000]) {
+  r = await call(SALES, "POST", "/api/orders", discountedBody(d));
+  assert.equal(r.status, 201, `nhân viên, giảm ${d}: ${JSON.stringify(r.body)}`);
+  assert.deepEqual([r.body.order.discount, r.body.order.total], [d, 2 * ZE1 - d]);
+}
+const so = r.body.order;
+r = await put(SALES, so, [catalogAsStored(so.services[0])], { discount: 2 * ZE1 - 1 });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await confirm(SALES, r.body.order)).status, 200);
+console.log("✓ R2+R3: nhân viên bán hàng cùng thân yêu cầu (đơn giá thoả thuận / có giảm giá) → 201, sửa thêm giảm giá → 200, xác nhận 200");
 
 console.log("E2E NHẬP TAY + GIÁ ĐỐI TÁC OK");

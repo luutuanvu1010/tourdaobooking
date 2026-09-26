@@ -140,6 +140,24 @@ Kết quả lần chạy cuối (mã phần B, `npm run build:web`, `CHROME_BIN=
 lại `a2-evidence.mjs`, `v1-*.mjs`, `trang-chu-smoke.mjs`, `dot-a-smoke.mjs` — các kịch bản đó còn POST dịch vụ nhập tay nên sẽ
 nhận 400 cho tới khi được sửa theo cùng cách (`docs/CHANGE-GUIDE.md` §4 mục 33).
 
+## Phần C — DK-T3-01 R3: tài khoản chỉ Đối tác chưa được giảm giá (người thi công, 2026-09-26)
+
+Chủ dự án chốt 26/9: giá luôn là giá bán lẻ; đối tác được giảm cho khách nhưng luôn trả công ty một mức giá cố định, mức giảm tối đa
+= mức chiết khấu Tour Đảo dành cho đối tác; app chưa có bảng mức chiết khấu → **"Tạm không cho giảm"** (trần 0). Chỉ API, không
+đổi giao diện (Đối tác vẫn 403 ở `/api/catalog`, không dùng form; lỗi máy chủ hiện ở banner như mọi lỗi khác).
+
+P16 (đỏ → xanh), e2e `npm run test:e2e -- nhap-tay-va-gia-doi-tac` (D1 local tạm):
+
+| Lần chạy | Mã máy chủ | Kết quả |
+|---|---|---|
+| 1 | HEAD `91c3488` (chưa có R3), e2e đã sửa | ĐỎ ở dòng 153 — `giảm 1: … 201 !== 403` (POST của Đối tác có giảm giá) |
+| 2 | R3 đủ, CỐ Ý bỏ R3 ở PUT (`ctx.stored.length === 0 &&` trong `priceGuard`) | ĐỎ ở dòng 172 — `R3 ở PUT: … 200 !== 403` |
+| 3 | R3 đủ, CỐ Ý bỏ R3 ở nhánh xác nhận | ĐỎ ở dòng 213 — `R3 ở xác nhận: … 200 !== 403` |
+| 4 | R3 đủ (hoàn nguyên bằng bản sao, `diff` sạch) | XANH 12 ✓ — "E2E NHẬP TAY + GIÁ ĐỐI TÁC OK" |
+
+Test đơn vị `src/modules/orders/price-guards.test.ts`: đỏ trước (`does not provide an export named 'PARTNER_DISCOUNT_CAP'`), xanh
+sau (12/12). `src/phat-hien-han.test.ts` xanh 2/2 với `phat_hien: []` (mục DK-T3-01 đã xoá trong cùng commit).
+
 ## Ảnh (`anh/`)
 
 | Ảnh | Nội dung | Khổ |

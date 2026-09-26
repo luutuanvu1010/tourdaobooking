@@ -1,7 +1,11 @@
-// DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng" (mọi tài khoản), R2 giá bán lẻ cho tài khoản CHỈ Đối tác.
+// DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26): R1 dịch vụ nhập tay "đóng băng" (mọi tài khoản), R2 giá bán lẻ cho tài khoản CHỈ Đối tác,
+// R3 trần giảm giá cấp đơn cho tài khoản CHỈ Đối tác (hôm nay trần = 0: "tạm không cho giảm" tới khi có bảng mức chiết khấu).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MANUAL_FROZEN_MESSAGE, RETAIL_PRICE_MESSAGE, isPartnerOnly, manualFreezeViolation, retailPricesOnly, type FrozenStored } from "./price-guards.ts";
+import {
+  MANUAL_FROZEN_MESSAGE, PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, isPartnerOnly, manualFreezeViolation, retailPricesOnly,
+  type FrozenStored,
+} from "./price-guards.ts";
 
 const trip = { departDate: "2026-10-01", departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
 const pax = (adult: number) => ({ adult, child: 0, senior: 0, infant: 0 });
@@ -86,4 +90,19 @@ test("R2 retailPricesOnly: mọi dòng có giá danh mục và đơn giá = giá
 
 test("R2: câu lỗi tiếng Việt", () => {
   assert.equal(RETAIL_PRICE_MESSAGE, "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.");
+});
+
+test("R3 discountWithinCap: giảm giá cấp đơn ≤ trần (trần là THAM SỐ — hôm nay 0, sau này là mức chiết khấu Tour Đảo dành cho đối tác)", () => {
+  assert.equal(discountWithinCap(0, 0), true, "trần 0: không giảm thì đạt");
+  assert.equal(discountWithinCap(1, 0), false, "trần 0: giảm 1₫ cũng không đạt");
+  assert.equal(discountWithinCap(50000, 50000), true, "trần 50.000: giảm đúng bằng trần thì đạt");
+  assert.equal(discountWithinCap(50001, 50000), false, "trần 50.000: vượt 1₫ thì không đạt");
+});
+
+test("R3: trần hôm nay = 0 (chủ dự án 26/9 chọn \"Tạm không cho giảm\" — app chưa có bảng mức chiết khấu) và câu lỗi tiếng Việt", () => {
+  assert.equal(PARTNER_DISCOUNT_CAP, 0);
+  assert.equal(
+    PARTNER_DISCOUNT_MESSAGE,
+    "Tài khoản đối tác chưa được giảm giá: mức giảm tối đa bằng mức chiết khấu Tour Đảo dành cho đối tác, mà mức này chưa được thiết lập. Muốn giảm cho khách, nhờ văn phòng.",
+  );
 });
