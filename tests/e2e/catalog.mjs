@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, BASE as B, call, session, sql } from "./lib.mjs";
+import { ACCOUNTS, BASE as B, call, login, randomPhone, session, sql } from "./lib.mjs";
 // Cần D1 chưa từng đồng bộ danh mục (run.mjs luôn dựng D1 mới) và mạng để đọc Google Sheet thật.
 const ADMIN = await session(ACCOUNTS.admin), SALES = await session(ACCOUNTS.salesA);
 
@@ -59,6 +59,25 @@ const raw = JSON.stringify(r.body);
 for (const secret of ["Kiểm xem có trùng", "tour-3-dao-nha-trang-hon-mun-hon-tam", "tour-hon-tam-tron-goi-cano-buffet", "Khoá giá", "Đường dẫn"]) assert.ok(!raw.includes(secret), `rò: ${secret}`);
 assert.ok(!("override" in td101) && !("sheetPrices" in td101));
 console.log("✓ giá đúng, không rò Khoá giá/Đường dẫn/Ghi chú nội bộ");
+
+// --- Đối tác và Thực tập xem danh mục CHỈ-ĐỌC (chủ dự án chọn A, 2026-09-26): cổng "orders" thay "office" — cùng NỘI DUNG như nhân viên
+// (không rò thêm gì), không đụng route quản trị danh mục; Hướng dẫn viên thuần (FIELD, order.view = none) vẫn 403.
+const newAccount = async (body) => {
+  const res = await call(ADMIN, "POST", "/api/staff", { fullName: `Xem danh mục ${randomPhone().slice(-4)}`, phone: randomPhone(), ...body });
+  assert.equal(res.status, 201, JSON.stringify(res.body));
+  return (await login(res.body.staff.phone, res.body.pin)).cookie;
+};
+const PARTNER = await newAccount({ roles: ["COLLABORATOR"] }), INTERN = await newAccount({ roles: ["INTERN"] }), FIELD_ONLY = await newAccount({ permissions: ["FIELD"] });
+for (const [who, label] of [[PARTNER, "Đối tác"], [INTERN, "Thực tập"]]) {
+  const res = await call(who, "GET", "/api/catalog");
+  assert.equal(res.status, 200, `${label} phải đọc được danh mục: ${JSON.stringify(res.body)}`);
+  assert.deepEqual(res.body.items, items, `${label} thấy ĐÚNG nội dung như nhân viên bán hàng (không thêm, không bớt)`);
+  for (const [m, pth] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", "/api/catalog/TD101"], ["DELETE", "/api/catalog/TD101/override"]]) {
+    assert.equal((await call(who, m, pth, {})).status, 403, `${label}: ${m} ${pth} vẫn phải cấm`);
+  }
+}
+assert.equal((await call(FIELD_ONLY, "GET", "/api/catalog")).status, 403, "Hướng dẫn viên thuần (chỉ FIELD) vẫn không đọc danh mục");
+console.log("✓ Đối tác + Thực tập đọc danh mục (200, cùng nội dung), không vào được quản trị danh mục; Hướng dẫn viên thuần vẫn 403");
 
 // --- kéo lại: idempotent
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});

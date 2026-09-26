@@ -119,3 +119,12 @@ export const isOffice = (who: PermissionHolder): boolean => can(who, "order.view
  * ADR-0018). Mỗi route đơn vẫn tự gọi `can()` để kiểm phạm vi. Router dùng cho access "orders". KHÔNG dùng để hiện/ẩn mục của nhân sự văn phòng (dùng `isOffice`).
  */
 export const canAccessOrders = (who: PermissionHolder): boolean => isOffice(who) || can(who, "order.view", { ownerId: who.id });
+
+/**
+ * Tài khoản CÓ quyền Đối tác (`PARTNER`), kể cả khi kèm quyền khác — chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp". Đường quản trị cũ
+ * (`POST /api/staff` không kèm vai, `PUT /api/staff/:id/permissions`) vẫn gán được PARTNER cùng quyền nội bộ mà luật LC-1 của mô hình vai không
+ * chạy; nếu chỉ xét "mọi quyền đều là PARTNER" thì tài khoản lai lọt R2/R3 (người kiểm độc lập chứng minh 26/9: PARTNER+FIELD lập đơn 1đ → 201).
+ * Chỉ xét MÃ QUYỀN, không xét vai hồ sơ (vai hồ sơ không bao giờ là điều kiện — `src/CLAUDE.md`).
+ * Dùng ở máy chủ (`orders/price-guards.ts`: R2 đơn giá = giá danh mục, R3 trần giảm giá) và ở form lập đơn (khoá ô đơn giá, ô giảm giá).
+ */
+export const holdsPartner = (who: Pick<PermissionHolder, "permissions">): boolean => who.permissions.includes("PARTNER");

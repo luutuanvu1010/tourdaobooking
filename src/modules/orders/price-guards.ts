@@ -13,7 +13,7 @@
 //     Áp ở lập, sửa VÀ xác nhận (xác nhận đọc giảm giá ĐÃ LƯU). Khi có bảng chiết khấu (việc sau): route tính trần từ bảng đó rồi truyền vào
 //     `discountWithinCap` thay cho hằng 0, và đổi câu lỗi (câu hiện tại nói "chưa được thiết lập").
 // Không I/O; test cạnh tệp (price-guards.test.ts).
-import type { PermissionCode } from "../../shared/permissions.ts";
+import { holdsPartner } from "../../shared/permissions.ts";
 
 export const MANUAL_FROZEN_MESSAGE = "dịch vụ nhập tay đã ngừng — không thêm mới, không sửa tên hay giá. Muốn đổi, hãy xoá dịch vụ này rồi chọn dịch vụ từ danh mục.";
 export const RETAIL_PRICE_MESSAGE = "Tài khoản đối tác dùng đúng giá bán lẻ theo danh mục; muốn giá khác, nhờ văn phòng.";
@@ -73,13 +73,8 @@ export function manualFreezeViolation(services: readonly FrozenInput[], stored: 
   return null;
 }
 
-/**
- * Tài khoản CÓ quyền Đối tác (`PARTNER`), kể cả khi kèm quyền khác — chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp". Đường quản trị cũ
- * (`POST /api/staff` không kèm vai, `PUT /api/staff/:id/permissions`) vẫn gán được PARTNER cùng quyền nội bộ mà luật LC-1 của mô hình vai không
- * chạy; nếu chỉ xét "mọi quyền đều là PARTNER" thì tài khoản lai lọt R2/R3 (người kiểm độc lập chứng minh 26/9: PARTNER+FIELD lập đơn 1đ → 201).
- * Chỉ xét MÃ QUYỀN, không xét vai hồ sơ (vai hồ sơ không bao giờ là điều kiện — `src/CLAUDE.md`).
- */
-export const holdsPartner = (who: { readonly permissions: readonly PermissionCode[] }): boolean => who.permissions.includes("PARTNER");
+// `holdsPartner` (tài khoản CÓ quyền Đối tác — luật R2/R3 áp cho ai) nay ở `src/shared/permissions.ts` để form lập đơn (web) dùng CÙNG định nghĩa.
+export { holdsPartner };
 
 /** R2: mọi dòng tiền có giá danh mục và đơn giá = giá danh mục (dòng nhập tay — `catalogPrice` null — không đạt). */
 export const retailPricesOnly = (items: readonly { catalogPrice: number | null; unitPrice: number }[]): boolean =>

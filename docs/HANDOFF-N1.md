@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.14: vá 3 phát hiện kiểm toán HIGH (DK-T3-01, DK-T3-02, DK-T4-02; ADR-0027) ĐÃ LÊN PRODUCTION (2026-09-26 12:20 giờ VN, chủ dự án tự chạy `npm run day-len -- va-3-loi-kiem-toan` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.15: Đối tác và Thực tập xem danh mục chỉ-đọc (ADR-0028) ĐÃ LÊN PRODUCTION (2026-09-26 14:30 giờ VN, chủ dự án tự chạy `npm run day-len -- mo-danh-muc-doi-tac` rồi `npm run trien-khai`)
+
+AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-26 chiều, giờ VN:
+
+- **Phiên bản: 1.15.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.15."; `GET /api/auth/config` trả `"version":"1.15"`, bảo trì `on:false`. `GET /api/catalog` chưa đăng nhập → 401 (danh mục vẫn đóng với người ngoài).
+- **Mã trên `main` / GitHub:** `origin/main` = 7f1654d (nhánh `mo-danh-muc-doi-tac`, 3 commit từ 1c37641).
+- **Worker:** `wrangler deployments list` → bản mới nhất **7edc1093-c19c-457c-a55c-e02170640096**, tạo 2026-09-26T07:30:22Z. Mốc lùi (bản ngay trước): **16742d55-e256-48c5-93f1-532c698d40fa** (bản 1.14). Trước nữa: 6ebf4e78 (1.13).
+- **Migration:** "No migrations to apply" (lần này không có migration).
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt (D1 remote)".
+- **Kiểm trước khi gộp:** `npm test` 817/817, `tsc` 0, `test:e2e` 20/20; Chrome `doi-tac-lap-don-smoke.mjs` 6/6 (Đối tác chọn dịch vụ, ô giá/giảm giá khoá, lưu đơn; Bán hàng không bị khoá; axe 0); người kiểm độc lập (chỉ đọc) ĐẠT sau 2 vòng (vòng 1 bắt thiếu tệp ADR-0028). Bằng chứng: `docs/evidence/2026-09-26-mo-danh-muc-doi-tac/`.
+- **Chưa kiểm:** trên iPhone thật. **Có từ trước, chưa sửa:** trang chi tiết đơn của Đối tác gọi `GET /api/dispatch/handlers` → 403 (cổng `office`) nên khối người phụ trách hiện "Chưa tải được người phụ trách."; dòng "tạm chưa được giảm giá" xuống 3 hàng ở khổ máy tính.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.14: vá 3 phát hiện kiểm toán HIGH (DK-T3-01, DK-T3-02, DK-T4-02; ADR-0027) ĐÃ LÊN PRODUCTION (2026-09-26 12:20 giờ VN, chủ dự án tự chạy `npm run day-len -- va-3-loi-kiem-toan` rồi `npm run trien-khai`)
 
 AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-26 trưa, giờ VN:
 
@@ -559,6 +571,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
 **(c) ADR-0005 mục Quyết định 2 lệch DDL đã duyệt — ghi errata.** ADR viết `stf_permission(staff_id, permission_type_code, created_at, created_by)`, khoá duy nhất `(staff_id, permission_type_code)`; DDL đã duyệt và `0012` thực tế có `id`, `valid_from_at`/`valid_to_at`, đủ bốn cột kiểm toán và chỉ mục duy nhất MỘT PHẦN `stf_permission_open_uq … WHERE valid_to_at IS NULL` (đóng/mở lại quyền giữ lịch sử, đúng "không xoá cứng" của ADR-0003 điều 8). Mã theo DDL; chỉ cần chủ dự án đồng ý ghi errata vào ADR-0005 (chi phí: chỉ tài liệu).
 
 ## Việc còn treo / nợ
+- **Gộp nhánh `a0-danh-muc-cho-lap-don` (GĐ2 Phần A0) — phải sửa lệch của bản 1.15 (chủ chọn 2026-09-26).** Bản 1.15 (ADR-0028, đang ở production) đổi cổng `GET /api/catalog` từ `office` sang `orders` để Đối tác/Thực tập lập đơn; cách này **lệch ADR-0019** (Q13/A0 chốt route RIÊNG `GET /api/catalog/for-order`, cổng `orders` + `can(staff, "order.create")`, còn `/api/catalog` giữ `office`). Hiện chưa lộ gì (cổng `orders` chưa có FIELD), nhưng khi GĐ2 thêm FIELD vào cổng `orders` thì hướng dẫn viên đọc được danh mục giá. Nhánh A0 tách từ 782d053 (cũ hơn `main` nhiều bản) và **chưa biết** 1.14/1.15/ADR-0028. Tệp cả hai phía cùng sửa (so `git diff --name-only 782d053` của từng phía, 2026-09-26): `src/modules/catalog/index.ts`, `web/order-form.ts`, `src/route-access.test.ts`, `tests/e2e/orders.mjs`, `src/shared/changelog.ts`, `src/shared/app-info.test.ts`, `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md`. Khi đưa về `main`: giữ cách của A0 (`/api/catalog` → `office`, form gọi `/for-order`), **giữ** luật giá/khoá ô của 1.14–1.15 (`holdsPartner`, `retailOnly` ở `web/order-form.ts`/`web/service-card.ts`), đặt số bản sau 1.15. **Không vướng chữ nhưng sẽ đỏ:** khối "Đối tác + Thực tập đọc danh mục" của `tests/e2e/catalog.mjs` (1.15) gọi thẳng `GET /api/catalog` và chờ 200 — phải đổi sang `/api/catalog/for-order`; kịch bản Chrome bằng chứng `docs/evidence/2026-09-26-mo-danh-muc-doi-tac/kich-ban/doi-tac-lap-don-smoke.mjs` cũng vậy (ngoài `npm test`/e2e, chỉ vỡ khi chạy lại bằng chứng). Trình chủ **ADR sửa ADR-0028 điều 1** (không sửa ADR đã duyệt — N9). Nhật ký: `docs/superpowers/plans/2026-09-26-va-3-loi-kiem-toan-nhat-ky.md` mục cuối.
 - `staff.role` (ghi hằng `'sales'`) và `staff.full_name` (ghi `''`) là cột chết có chủ đích; gỡ khi lần đầu phải dựng lại `staff` (ADR-0003 điều 10). `docs/data-dictionary.json` ghi `deprecatedColumns`.
 - Module `accounts`, `audit`, `catalog`, `orders` còn ở `LEGACY` của `src/architecture.test.ts` (SQL chưa đăng ký); `wonGuard` của `orders` đọc `audit_log` (ngoại lệ tới N2).
 - Sắp xếp danh sách nhân sự/hồ sơ theo `sort_key` dùng `COLLATE NOCASE` — chữ có dấu chưa theo chuẩn tiếng Việt (danh sách chỉ vài chục dòng; nếu cần sắp lại ở mã bằng `Intl.Collator('vi')`).
@@ -574,7 +587,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
   2. Tạo tài khoản MỚI trên một hồ sơ ĐÃ CÓ vai kiểu cũ (`STAFF`/`SALES`/`GUIDE`/`AGENT`) không tự đóng các dòng vai cũ đó — đổi vai (không phải tạo tài khoản) mới đóng. Là câu hỏi dữ liệu, không phải lỗi.
   3. Route vai còn nhận gán MỚI cho mã vai đã ngưng dùng (`active = 0`) — chưa bị chặn ở máy chủ.
   4. Một quản trị viên tự sửa vai của CHÍNH MÌNH ở trang Nhân viên nhận lỗi 403 tiếng Việt (không có nút khoá riêng, chỉ chặn lúc lưu) — cần polish giao diện sau.
-  5. ⚠️ Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ (`GET /api/catalog` chỉ cho nhân sự văn phòng) — chưa chọn được dịch vụ từ danh mục. Chủ dự án quyết: mở danh mục cho Thực tập (có/không kèm giá) hay giữ nguyên.
+  5. ✅ ĐÃ XỬ LÝ 2026-09-26 (ADR-0028, bản 1.15): chủ dự án chọn mở danh mục CHỈ-ĐỌC, kèm giá bán lẻ, cho cả Thực tập và Đối tác (`GET /api/catalog` cổng `orders`). ~~Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ.~~
   6. ⚠️ Nợ (a): "vai đang mở" = `valid_to_date IS NULL` ở mọi nơi — dòng vai tài khoản có NGÀY KẾT THÚC trong tương lai, hoặc dòng "Kế toán" GẮN MỘT NƠI, không được luật nhóm (LC-3) và kiểm "chọn đủ vai" nhìn thấy, và không đóng được từ cả trang Hồ sơ lẫn trang Nhân viên (câu đếm ở runbook `0024` cho biết có bao nhiêu).
   7. ⚠️ Nợ (b): danh sách Nhân viên chỉ hiện TÊN VAI cho tài khoản đã gán vai (`web/staff.ts` `accessLabel`), dù tài khoản có thể có thêm quyền cộng tay — nhãn có thể thiếu.
 - **Bảng tin (ADR-0022) — CHƯA phát hành; việc còn treo, gom một lần** (chi tiết: `docs/superpowers/plans/2026-09-25-bang-tin-de-xuat-luat.md`, `docs/superpowers/plans/2026-09-26-bang-tin-ban-giao-dieu-phoi.md` §6, mục "Task 11" của nhật ký thi công):
