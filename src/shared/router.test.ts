@@ -34,6 +34,8 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
         return block(s);
       },
       partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
     },
   });
   const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, {} as ExecutionContext);
@@ -118,10 +120,192 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
       defaultHandlerStatement: () => null,
       maintenanceBlock: async () => null,
       partyAccount: async (_env, actor, partyId) => { seen.push(`${actor.id}:${partyId}`); return { linked: false }; },
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
     },
   });
   const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
   assert.deepEqual(await get("/api/pa-open"), { linked: true, manageable: false });
   assert.deepEqual(await get("/api/pa-off"), { linked: false });
   assert.deepEqual(seen, ["u1:pty-1"]);
+});
+
+// BẢNG TIN (ADR-0022, Task 3) — ctx.baoThayDoi / ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, lỗi phát tin không bao giờ làm hỏng/chậm thao tác ghi (DP-3).
+
+type BangTinOverrides = {
+  baoThayDoi?: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: string }) => Promise<void> | void;
+  dongBangTin?: (env: Env, muc: { staffId: string } | "tat-ca") => Promise<void> | void;
+};
+
+/** App giả có route "staff" gọi `ctx.baoThayDoi`/`ctx.dongBangTin` với sự kiện cố định, và một route không gọi gì. */
+function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
+  const mod: AppModule = {
+    name: "bang-tin-giả",
+    routes: [
+      route("GET", "/api/bao", "staff", async (ctx) => {
+        ctx.baoThayDoi({ orderId: "o1", thayDoi: "sua" as never });
+        return new Response("ok");
+      }),
+      route("GET", "/api/no-call", "staff", async () => new Response("ok")),
+      route("GET", "/api/dong", "staff", async (ctx) => {
+        ctx.dongBangTin({ staffId: "s9" });
+        return new Response("ok");
+      }),
+    ],
+  };
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async () => staff,
+    injected: {
+      isAssigned: async () => false,
+      defaultHandlerStatement: () => null,
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async (env, actor, e) => { await overrides.baoThayDoi?.(env, actor, e); },
+      dongBangTin: async (env, muc) => { await overrides.dongBangTin?.(env, muc); },
+    },
+  });
+  const waited: Promise<unknown>[] = [];
+  const exec = { waitUntil: (p: Promise<unknown>) => { waited.push(p); } } as unknown as ExecutionContext;
+  const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, exec);
+  return { get, waited };
+}
+
+/** App giả có route "public" (chưa đăng nhập, `staff` null) gọi `ctx.baoThayDoi` — phải là no-op. */
+function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
+  const mod: AppModule = {
+    name: "bang-tin-giả-cong-khai",
+    routes: [
+      route("GET", "/api/bao-open", "public", async (ctx) => {
+        ctx.baoThayDoi({ orderId: "o1", thayDoi: "sua" as never });
+        return new Response("ok");
+      }),
+    ],
+  };
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async () => null,
+    injected: {
+      isAssigned: async () => false,
+      defaultHandlerStatement: () => null,
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => { await baoThayDoi(); },
+      dongBangTin: async () => {},
+    },
+  });
+  const waited: Promise<unknown>[] = [];
+  const exec = { waitUntil: (p: Promise<unknown>) => { waited.push(p); } } as unknown as ExecutionContext;
+  const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, exec);
+  return { get, waited };
+}
+
+test("ctx.baoThayDoi: exec.waitUntil gọi đúng một lần với sự kiện; phản hồi 200 trả về TRƯỚC khi lời hứa phát tin xong", async () => {
+  const seen: unknown[] = [];
+  let resolveHang: () => void = () => {};
+  const hang = new Promise<void>((r) => { resolveHang = r; });
+  const { get, waited } = buildBangTin(staffOf(["SALES"]), {
+    baoThayDoi: async (_env, actor, e) => { seen.push([actor.id, e]); await hang; },
+  });
+  const res = await get("/api/bao");
+  assert.equal(res.status, 200); // phản hồi đã về dù lời hứa phát tin (hang) chưa xong
+  assert.equal(waited.length, 1);
+  resolveHang();
+  await Promise.allSettled(waited);
+  assert.deepEqual(seen, [["s1", { orderId: "o1", thayDoi: "sua" }]]);
+});
+
+test("route không gọi ctx.baoThayDoi → exec.waitUntil không được gọi", async () => {
+  const { get, waited } = buildBangTin(staffOf(["SALES"]));
+  const res = await get("/api/no-call");
+  assert.equal(res.status, 200);
+  assert.equal(waited.length, 0);
+});
+
+test("ctx.baoThayDoi trên route công khai (chưa đăng nhập, staff null) là no-op: không gọi injected, không gọi waitUntil", async () => {
+  let goiInjected = false;
+  const { get, waited } = buildPublicBao(() => { goiInjected = true; });
+  const res = await get("/api/bao-open");
+  assert.equal(res.status, 200);
+  assert.equal(waited.length, 0);
+  assert.equal(goiInjected, false);
+});
+
+test("hàm tiêm baoThayDoi NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200; console.error một dòng bang_tin_loi, không lộ dữ liệu cá nhân", async () => {
+  const logs: string[] = [];
+  const goc = console.error;
+  console.error = ((m: string) => { logs.push(m); }) as typeof console.error;
+  let res: Response;
+  let waited: Promise<unknown>[];
+  try {
+    const built = buildBangTin(staffOf(["SALES"], "0987654321"), {
+      baoThayDoi: () => { throw new Error("bí mật SĐT 0987654321"); },
+    });
+    res = await built.get("/api/bao");
+    waited = built.waited;
+    await Promise.allSettled(waited);
+  } finally {
+    console.error = goc;
+  }
+  assert.equal(res.status, 200);
+  assert.equal(logs.length, 1);
+  const dong = JSON.parse(logs[0]!);
+  assert.equal(dong.event, "bang_tin_loi");
+  assert.equal(dong.viec, "bao");
+  assert.equal(dong.name, "Error");
+  assert.ok(!logs[0]!.includes("0987654321"));
+});
+
+test("hàm tiêm baoThayDoi trả lời hứa BỊ TỪ CHỐI → phản hồi vẫn 200; console.error một dòng bang_tin_loi", async () => {
+  const logs: string[] = [];
+  const goc = console.error;
+  console.error = ((m: string) => { logs.push(m); }) as typeof console.error;
+  let res: Response;
+  try {
+    const built = buildBangTin(staffOf(["SALES"]), {
+      baoThayDoi: async () => { throw new Error("lỗi phát tin"); },
+    });
+    res = await built.get("/api/bao");
+    await Promise.allSettled(built.waited);
+  } finally {
+    console.error = goc;
+  }
+  assert.equal(res.status, 200);
+  assert.equal(logs.length, 1);
+  const dong = JSON.parse(logs[0]!);
+  assert.equal(dong.event, "bang_tin_loi");
+  assert.equal(dong.viec, "bao");
+});
+
+test("ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, không phụ thuộc người gọi", async () => {
+  const seen: unknown[] = [];
+  const { get, waited } = buildBangTin(staffOf(["SALES"]), {
+    dongBangTin: async (_env, muc) => { seen.push(muc); },
+  });
+  const res = await get("/api/dong");
+  assert.equal(res.status, 200);
+  assert.equal(waited.length, 1);
+  await Promise.allSettled(waited);
+  assert.deepEqual(seen, [{ staffId: "s9" }]);
+});
+
+test("hàm tiêm dongBangTin ném lỗi → phản hồi vẫn 200; console.error một dòng bang_tin_loi viec=dong", async () => {
+  const logs: string[] = [];
+  const goc = console.error;
+  console.error = ((m: string) => { logs.push(m); }) as typeof console.error;
+  let res: Response;
+  try {
+    const built = buildBangTin(staffOf(["SALES"]), {
+      dongBangTin: () => { throw new Error("lỗi đóng"); },
+    });
+    res = await built.get("/api/dong");
+    await Promise.allSettled(built.waited);
+  } finally {
+    console.error = goc;
+  }
+  assert.equal(res.status, 200);
+  assert.equal(logs.length, 1);
+  const dong = JSON.parse(logs[0]!);
+  assert.equal(dong.event, "bang_tin_loi");
+  assert.equal(dong.viec, "dong");
 });

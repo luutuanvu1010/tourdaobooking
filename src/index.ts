@@ -25,6 +25,9 @@ const app = createApp({
     defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
     maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
+    // Tạm no-op — Task 4 (ADR-0022) thay bằng lời gọi trạm bảng tin (Durable Object) thật.
+    baoThayDoi: async () => {},
+    dongBangTin: async () => {},
   },
 });
 

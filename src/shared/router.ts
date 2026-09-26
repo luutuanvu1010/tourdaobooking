@@ -2,6 +2,7 @@
 // khớp đường dẫn, 401/403/404/405 thống nhất, chặn ghi cross-site (CSRF), bắt lỗi toàn cục → 500 JSON có requestId.
 // Router KHÔNG import module nào: cách xác định "ai đang đăng nhập" do gốc lắp ráp (src/index.ts) truyền vào.
 import type { StaffProfile } from "./contracts";
+import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { error, json } from "./http.ts";
 import { canAccessOrders, hasPermission, isOffice } from "./permissions.ts";
 
@@ -39,6 +40,17 @@ export interface Ctx<A extends Access = Access> {
    * Chưa đăng nhập → `{ linked: true, manageable: false }` (TỪ CHỐI; không được tụt về ô `party.write`).
    */
   partyAccount: (partyId: string) => Promise<PartyAccountVerdict>;
+  /**
+   * BẢNG TIN (ADR-0022) — báo một thay đổi đơn vừa xảy ra, để trạm (Durable Object) phát cho mọi kết nối đang mở liên quan. Kiểu `void`: route
+   * KHÔNG `await` được (bắn-và-quên, DP-3) — router tự bọc `exec.waitUntil` + bắt lỗi, lỗi phát tin không bao giờ làm hỏng hay làm chậm thao tác
+   * ghi. Route công khai (`staff` null, chưa đăng nhập) → no-op, không có ai "báo" thay mặt.
+   */
+  baoThayDoi: (e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => void;
+  /**
+   * BẢNG TIN — đóng các kết nối đang mở của một tài khoản (`{ staffId }`, khi tài khoản đó bị ngưng/đổi quyền/đổi SĐT/đổi PIN…) hoặc MỌI kết
+   * nối (`"tat-ca"`, khi bật chế độ bảo trì). Không phụ thuộc người đang gọi (không cần ai đăng nhập) — bắn-và-quên như `baoThayDoi`.
+   */
+  dongBangTin: (muc: { staffId: string } | "tat-ca") => void;
 }
 
 export interface Route {
@@ -113,7 +125,17 @@ export interface AppOptions {
     maintenanceBlock: (env: Env, staff: StaffProfile) => Promise<Response | null>;
     /** ADR-0013 điều 4. BẮT BUỘC: thiếu là route Hồ sơ không biết hồ sơ nào gắn tài khoản. */
     partyAccount: (env: Env, actor: StaffProfile, partyId: string) => Promise<PartyAccountVerdict>;
+    /** BẢNG TIN (ADR-0022). BẮT BUỘC (tạm no-op cho tới khi trạm có mã — Task 4): router gọi cho MỌI route có đăng nhập gọi `ctx.baoThayDoi`. */
+    baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
+    /** BẢNG TIN (ADR-0022). BẮT BUỘC (tạm no-op cho tới khi trạm có mã — Task 4). */
+    dongBangTin: (env: Env, muc: { staffId: string } | "tat-ca") => Promise<void>;
   };
+}
+
+/** Log lỗi phát tin (DP-3): KHÔNG ghi SĐT/email/tên/nội dung lỗi — chỉ mã lỗi (`name`) và việc nào (`bao` báo thay đổi, `dong` đóng kết nối). */
+function ghiLoiBangTin(viec: "bao" | "dong", e: unknown): void {
+  const name = e instanceof Error ? e.name : "unknown";
+  console.error(JSON.stringify({ level: "error", event: "bang_tin_loi", viec, name }));
 }
 
 export function createApp(opts: AppOptions) {
@@ -158,6 +180,13 @@ export function createApp(opts: AppOptions) {
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
       defaultHandlerStatement: (orderId, at) => (who ? opts.injected.defaultHandlerStatement(env, who, orderId, at) : null),
       partyAccount: (partyId) => (who ? opts.injected.partyAccount(env, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
+      baoThayDoi: (e) => {
+        if (!who) return; // route công khai: không ai "báo" thay mặt.
+        exec.waitUntil(Promise.resolve().then(() => opts.injected.baoThayDoi(env, who, e)).catch((err) => ghiLoiBangTin("bao", err)));
+      },
+      dongBangTin: (muc) => {
+        exec.waitUntil(Promise.resolve().then(() => opts.injected.dongBangTin(env, muc)).catch((err) => ghiLoiBangTin("dong", err)));
+      },
     } as Ctx);
   }
 
