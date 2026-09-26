@@ -102,7 +102,7 @@ const profile = (id: string, permissions: PermissionCode[]): StaffProfile => ({ 
 async function callResetPin(sqlite: DatabaseSync, actor: StaffProfile, targetId: string): Promise<{ status: number; body: Record<string, unknown>; writes: string[] }> {
   const { db, writes } = fakeD1(sqlite);
   const url = new URL(`https://booking.test/api/staff/${targetId}/reset-pin`);
-  const ctx = { request: new Request(url, { method: "POST" }), env: { DB: db }, url, params: { id: targetId }, staff: actor } as unknown as Ctx;
+  const ctx = { request: new Request(url, { method: "POST" }), env: { DB: db }, url, params: { id: targetId }, staff: actor, dongBangTin: () => undefined } as unknown as Ctx;
   const res = await resetPin!.handler(ctx);
   return { status: res.status, body: (await res.json()) as Record<string, unknown>, writes };
 }
