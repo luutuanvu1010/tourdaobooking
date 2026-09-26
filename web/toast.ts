@@ -16,6 +16,11 @@ function vungThongBao(): HTMLElement {
   return vung;
 }
 
+/** Tạo sẵn vùng aria-live RỖNG lúc khởi động (nhiều trình đọc màn hình bỏ qua vùng vừa được chèn cùng lúc với nội dung). */
+export function chuanBiVungThongBao(): void {
+  vungThongBao();
+}
+
 function go(el: HTMLElement): void {
   const i = hienCo.indexOf(el);
   if (i >= 0) hienCo.splice(i, 1);

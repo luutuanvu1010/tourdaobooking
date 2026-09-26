@@ -5,8 +5,8 @@
 import type { StaffProfile } from "../src/shared/contracts";
 import type { SuKienDon } from "../src/shared/bang-tin";
 import { vuaLamBoiTabNay } from "./api";
-import { taoBoDieuKhien, thongBaoChoSuKien, type OSocket } from "./bangtin-logic";
-import { hienThongBao } from "./toast";
+import { taoBoDieuKhien, taoBoThongBao, type OSocket } from "./bangtin-logic";
+import { chuanBiVungThongBao, hienThongBao } from "./toast";
 
 /** Cờ module: mỗi trang chỉ một kết nối dù initShell() bị gọi lại. */
 let daBatDau = false;
@@ -14,15 +14,14 @@ let daBatDau = false;
 export function batDauBangTin(staff: StaffProfile): void {
   if (daBatDau) return;
   daBatDau = true;
+  chuanBiVungThongBao(); // vùng aria-live phải có sẵn (rỗng) TRƯỚC khi chèn thông báo, không thì nhiều trình đọc màn hình không đọc
+  const thongBao = taoBoThongBao(staff, vuaLamBoiTabNay, hienThongBao, (fn, ms) => setTimeout(fn, ms));
   const bo = taoBoDieuKhien({
     moSocket: () => new WebSocket(`${location.protocol === "https:" ? "wss" : "ws"}://${location.host}/api/bang-tin`) as unknown as OSocket,
     hen: (fn, ms) => setTimeout(fn, ms),
     huyHen: (id) => clearTimeout(id as ReturnType<typeof setTimeout>),
     ngauNhien: () => Math.random(),
-    khiSuKien: (e: SuKienDon) => {
-      const tb = thongBaoChoSuKien(staff, e, vuaLamBoiTabNay);
-      if (tb) hienThongBao(tb);
-    },
+    khiSuKien: thongBao,
     khiDot: (ds) => window.dispatchEvent(new CustomEvent<SuKienDon[]>("don-thay-doi", { detail: ds })),
     khiCanTaiLai: () => window.dispatchEvent(new CustomEvent("can-tai-lai")),
   });

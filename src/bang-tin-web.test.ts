@@ -15,7 +15,8 @@ import {
   taoBoDieuKhien,
   taoBoGop,
   taoSoTuLam,
-  thongBaoChoSuKien,
+  TRE_THONG_BAO_MS,
+  taoBoThongBao,
   type OSocket,
   type Phu,
 } from "../web/bangtin-logic.ts";
@@ -127,25 +128,68 @@ test("donTuDuongDan/laTaoDonMoi: chỉ yêu cầu GHI tới /api/orders/<id>… 
   assert.equal(donTuDuongDan("POST", "/api/feedback/orders/x"), null);
   assert.equal(laTaoDonMoi("POST", "/api/orders"), true);
   assert.equal(laTaoDonMoi("post", "/api/orders/"), true);
+  // Bộ ghi dấu KHÔNG BAO GIỜ được làm một lần ghi thành công thành lỗi: chuỗi % hỏng không được ném URIError.
+  assert.doesNotThrow(() => donTuDuongDan("PUT", "/api/orders/%E0%A4%A/status"));
+  assert.doesNotThrow(() => donTuDuongDan("POST", "/api/orders/%"));
   assert.equal(laTaoDonMoi("GET", "/api/orders"), false);
   assert.equal(laTaoDonMoi("POST", "/api/orders/abc"), false);
 });
 
-// ---- thông báo nổi: không hiện cho việc chính tab này vừa làm --------------------------------------------------------------------------
-test("thongBaoChoSuKien: null khi tab này vừa làm đơn đó; ngược lại theo thongBaoNoi (văn phòng → /order?id=, Đối tác → null)", () => {
-  const nvVanPhong = { id: "s1", permissions: ["SALES"] as const };
-  const doiTac = { id: "p1", permissions: ["PARTNER"] as const };
-  const e = suKien("o1", "nhan");
-  const khongLam = () => false;
-  const daLam = (id: string) => id === "o1";
-  const tb = thongBaoChoSuKien(nvVanPhong as never, e, khongLam);
-  assert.ok(tb);
-  assert.equal(tb.lienKet, "/order?id=o1");
-  assert.match(tb.cau, /TD-o1/);
-  assert.equal(thongBaoChoSuKien(nvVanPhong as never, e, daLam), null);
-  assert.equal(thongBaoChoSuKien(nvVanPhong as never, suKien("o2", "nhan"), daLam)?.lienKet, "/order?id=o2", "đơn khác vẫn hiện");
-  assert.equal(thongBaoChoSuKien(doiTac as never, e, khongLam), null);
-  assert.equal(thongBaoChoSuKien(nvVanPhong as never, suKien("o1", "sua"), khongLam), null, "loại 'sua' không nổi");
+// ---- thông báo nổi: không hiện cho việc chính tab này vừa làm (quyết định LÚC HIỆN, sau khoảng hoãn) ------------------------------------
+const nvVanPhong = { id: "s1", permissions: ["SALES"] } as never;
+const doiTac = { id: "p1", permissions: ["PARTNER"] } as never;
+function dungThongBao(staff: never) {
+  const dh = dongHoGia();
+  const so = taoSoTuLam(dh.now);
+  const hien: { cau: string; lienKet: string }[] = [];
+  const khiSuKien = taoBoThongBao(staff, so.vuaLam, (tb) => hien.push(tb), dh.hen);
+  return { dh, so, hien, khiSuKien };
+}
+
+test("taoBoThongBao: không có dấu 'tab này vừa làm' → thông báo hiện SAU khoảng hoãn (không hiện ngay); văn phòng → /order?id=", () => {
+  const t = dungThongBao(nvVanPhong);
+  t.khiSuKien(suKien("o1", "nhan"));
+  assert.equal(t.hien.length, 0, "chưa hiện ngay khi tin tới");
+  t.dh.tua(TRE_THONG_BAO_MS - 1);
+  assert.equal(t.hien.length, 0);
+  t.dh.tua(1);
+  assert.equal(t.hien.length, 1);
+  assert.equal(t.hien[0]!.lienKet, "/order?id=o1");
+  assert.match(t.hien[0]!.cau, /TD-o1/);
+});
+
+test("taoBoThongBao — ĐUA: tin WebSocket tới TRƯỚC khi api() ghi dấu (dấu được ghi trong khoảng hoãn) → KHÔNG toast", () => {
+  const t = dungThongBao(nvVanPhong);
+  t.khiSuKien(suKien("o1", "nhan")); // khung tin tới trước phản hồi HTTP
+  t.dh.tua(TRE_THONG_BAO_MS - 100);
+  t.so.ghiNho("o1"); // api() parse xong phản hồi, ghi dấu (trễ)
+  t.dh.tua(100);
+  assert.equal(t.hien.length, 0, "dấu ghi trễ vẫn chặn được toast");
+  t.dh.tua(60_000);
+  assert.equal(t.hien.length, 0);
+});
+
+test("taoBoThongBao: dấu ghi TRƯỚC khi tin tới cũng chặn; dấu của đơn KHÁC không chặn; dấu quá 5 giây không chặn", () => {
+  const t = dungThongBao(nvVanPhong);
+  t.so.ghiNho("o1");
+  t.khiSuKien(suKien("o1", "nhan"));
+  t.khiSuKien(suKien("o2", "nhan"));
+  t.dh.tua(TRE_THONG_BAO_MS);
+  assert.deepEqual(t.hien.map((x) => x.lienKet), ["/order?id=o2"]);
+  t.dh.tua(HAN_TU_LAM_MS + 1);
+  t.khiSuKien(suKien("o1", "huy"));
+  t.dh.tua(TRE_THONG_BAO_MS);
+  assert.equal(t.hien.length, 2, "dấu cũ (hết 5 giây) không chặn nữa");
+});
+
+test("taoBoThongBao: loại không nổi (sua) và Đối tác không bao giờ hẹn giờ/hiện", () => {
+  const t = dungThongBao(nvVanPhong);
+  t.khiSuKien(suKien("o1", "sua"));
+  assert.equal(t.dh.conCho(), 0, "không hẹn giờ cho tin không nổi");
+  const d = dungThongBao(doiTac);
+  d.khiSuKien(suKien("o1", "nhan"));
+  d.dh.tua(60_000);
+  assert.equal(d.hien.length, 0);
 });
 
 // ---- gộp 1 giây -----------------------------------------------------------------------------------------------------------------------
@@ -195,6 +239,22 @@ test("tin hợp lệ: khiSuKien ngay + một khiDot sau 1 giây; tin lạ/JSON h
   t.dh.tua(GOP_MS);
   assert.equal(t.dot.length, 1);
   assert.deepEqual(t.dot[0]!.map((e) => e.orderId), ["a", "b"]);
+});
+
+test("khung KHÔNG phải chuỗi (nhị phân/đối tượng) bị bỏ qua dù nội dung giống một tin hợp lệ", () => {
+  const t = dungBo();
+  t.bo.batDau();
+  const s = t.cuoi();
+  s.mo();
+  s.onmessage?.({ data: suKien("a") }); // đối tượng (không phải chuỗi JSON)
+  s.onmessage?.({ data: new ArrayBuffer(8) });
+  s.onmessage?.({ data: 42 });
+  s.onmessage?.({ data: null });
+  assert.equal(t.tungTin.length, 0);
+  t.dh.tua(GOP_MS * 2);
+  assert.equal(t.dot.length, 0);
+  s.tin(suKien("b")); // chuỗi hợp lệ vẫn qua
+  assert.equal(t.tungTin.length, 1);
 });
 
 test("đóng/lỗi: chờ choNoiLai(lan) tăng dần rồi nối lại; onerror + onclose liên tiếp chỉ hẹn MỘT lần; mở thành công đặt lại lan và phát can-tai-lai", () => {

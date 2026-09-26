@@ -58,6 +58,13 @@ export function vuaLamBoiTabNay(orderId: string): boolean {
 
 export async function api<T>(path: string, init?: { method?: string; body?: unknown }): Promise<T> {
   const controller = new AbortController();
+  // Bảng tin: id lấy từ ĐƯỜNG DẪN thì ghi dấu ngay khi GỬI (máy chủ phát tin trước khi trả phản hồi nên tin có thể tới trước). Ghi thất bại thì không có tin nào — chặn thừa vô hại. Không bao giờ được làm hỏng lời gọi.
+  try {
+    const donTruoc = donTuDuongDan(init?.method ?? "GET", path);
+    if (donTruoc !== null) soTuLam.ghiNho(donTruoc);
+  } catch {
+    // bỏ qua
+  }
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS); // hết giờ: `fetch`/đọc thân ném AbortError (không phải ApiError) → nơi gọi xử lý như mất mạng
   try {
     const res = await fetch(path, {
@@ -79,10 +86,14 @@ export async function api<T>(path: string, init?: { method?: string; body?: unkn
       if (res.status === 401 && path !== "/api/auth/login" && data?.error?.code === "unauthenticated" && !location.pathname.startsWith("/login")) return goLogin();
       throw new ApiError(res.status, data?.error?.code ?? "error", data?.error?.message ?? "Có lỗi xảy ra, thử lại sau.", data?.error);
     }
-    // Ghi thành công tới một đơn → nhớ để tin Bảng tin về chính đơn đó (do mình gây ra) không hiện thông báo nổi. Tạo đơn mới: id nằm trong phản hồi.
-    const method = init?.method ?? "GET";
-    const donDaGhi = donTuDuongDan(method, path) ?? (laTaoDonMoi(method, path) ? (data as { order?: { id?: unknown } } | null)?.order?.id : null);
-    if (typeof donDaGhi === "string") soTuLam.ghiNho(donDaGhi);
+    // Ghi thành công tới một đơn → nhớ để tin Bảng tin về chính đơn đó (do mình gây ra) không hiện thông báo nổi. Tạo đơn mới: id nằm trong phản hồi. Không bao giờ làm một lần ghi thành công thành lỗi.
+    try {
+      const method = init?.method ?? "GET";
+      const donDaGhi = donTuDuongDan(method, path) ?? (laTaoDonMoi(method, path) ? (data as { order?: { id?: unknown } } | null)?.order?.id : null);
+      if (typeof donDaGhi === "string") soTuLam.ghiNho(donDaGhi);
+    } catch {
+      // bỏ qua
+    }
     return data as T;
   } finally {
     clearTimeout(timer);

@@ -11,6 +11,12 @@ export const GOP_MS = 1000;
 /** Ping mỗi 50 giây; không thấy pong trong 10 giây thì coi kết nối đã chết (TD-2). */
 export const PING_MS = 50_000;
 export const PONG_HAN_MS = 10_000;
+/**
+ * Hoãn quyết định hiện thông báo nổi. Máy chủ phát tin TRƯỚC khi dựng phản hồi HTTP nên khung WebSocket có thể tới trình duyệt trước khi
+ * `api()` kịp parse phản hồi và ghi dấu "tab này vừa làm" — kiểm dấu LÚC HIỆN (sau khoảng này) chứ không lúc nhận khung. Chỉ hoãn thông báo
+ * nổi; `don-thay-doi` (làm mới trang) KHÔNG bị hoãn.
+ */
+export const TRE_THONG_BAO_MS = 500;
 
 /** Sổ "đơn nào tab này vừa ghi" — trong bộ nhớ của trang, KHÔNG lưu localStorage. `now` tiêm vào để test tất định. */
 export function taoSoTuLam(now: () => number = Date.now): { ghiNho(orderId: string): void; vuaLam(orderId: string): boolean } {
@@ -32,7 +38,13 @@ export function taoSoTuLam(now: () => number = Date.now): { ghiNho(orderId: stri
 export function donTuDuongDan(method: string, path: string): string | null {
   if (!["POST", "PUT", "PATCH", "DELETE"].includes(method.toUpperCase())) return null;
   const m = /^\/api\/orders\/([^/?#]+)/.exec(path);
-  return m ? decodeURIComponent(m[1]!) : null;
+  if (!m) return null;
+  // Bộ ghi dấu KHÔNG BAO GIỜ được làm một lần ghi thành công thành lỗi: chuỗi % hỏng (URIError) thì dùng nguyên văn (id thật là UUID, không cần giải mã).
+  try {
+    return decodeURIComponent(m[1]!);
+  } catch {
+    return m[1]!;
+  }
 }
 
 /** `POST /api/orders` (tạo đơn) — id nằm trong phản hồi `{ order: { id } }`. */
@@ -40,10 +52,24 @@ export function laTaoDonMoi(method: string, path: string): boolean {
   return method.toUpperCase() === "POST" && /^\/api\/orders\/?(\?.*)?$/.test(path);
 }
 
-/** Thông báo nổi cho một tin đến, hoặc `null` nếu không hiện: `thongBaoNoi` quyết ai/loại nào (TD-4), và không hiện cho thao tác chính tab này vừa làm. */
-export function thongBaoChoSuKien(staff: PermissionHolder, suKien: SuKienDon, vuaLamBoiTabNay: (orderId: string) => boolean): ThongBaoNoi | null {
-  if (vuaLamBoiTabNay(suKien.orderId)) return null;
-  return thongBaoNoi(staff, suKien);
+/**
+ * Bộ hiện thông báo nổi: `thongBaoNoi` quyết ai/loại nào (TD-4) ngay khi tin tới; nếu có thì HẸN `TRE_THONG_BAO_MS` rồi mới kiểm
+ * `vuaLamBoiTabNay(orderId)` — còn dấu (chính tab này vừa ghi đơn đó, kể cả dấu ghi trễ hơn khung tin) thì không hiện. Loại không nổi/tài khoản
+ * không được nhận thì không hẹn giờ gì cả.
+ */
+export function taoBoThongBao(
+  staff: PermissionHolder,
+  vuaLamBoiTabNay: (orderId: string) => boolean,
+  hien: (tb: ThongBaoNoi) => void,
+  hen: (fn: () => void, ms: number) => unknown,
+): (suKien: SuKienDon) => void {
+  return (suKien) => {
+    const tb = thongBaoNoi(staff, suKien);
+    if (!tb) return;
+    hen(() => {
+      if (!vuaLamBoiTabNay(suKien.orderId)) hien(tb);
+    }, TRE_THONG_BAO_MS);
+  };
 }
 
 /** Gộp: tin đầu tiên của một đợt bắt đầu đếm `GOP_MS`; hết hạn thì phát CẢ đợt một lần. Ngưng (`huy`) thì bỏ đợt đang chờ. */
