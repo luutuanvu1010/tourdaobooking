@@ -210,7 +210,7 @@ async function chayMotKho(env, chrome, vp, tag) {
   await step(`[${tag}] (a1) A mở /orders, B mở / (Trang chủ), cả hai đã đăng nhập`, async () => {
     assert.equal(await A.ev("location.pathname"), "/orders");
     assert.equal(await B.ev("location.pathname"), "/");
-    await A.doi("document.querySelector('#loading')?.hidden !== false", "danh sách A tải xong");
+    await A.doi("document.getElementById('loading') !== null && document.getElementById('loading').hidden === true && document.getElementById('list') !== null", "danh sách A tải xong (#loading có mặt VÀ đã ẩn)");
     await B.doi("document.getElementById('loading').hidden && !document.getElementById('dash-grid').hidden", "Trang chủ B tải xong");
   });
   await step(`[${tag}] (f1) mỗi trang một socket: A (/orders)`, () => motSocket(A, "A /orders"));
