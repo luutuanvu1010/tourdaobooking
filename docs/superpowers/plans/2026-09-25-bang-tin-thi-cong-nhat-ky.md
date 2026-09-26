@@ -527,8 +527,16 @@ Viết tiếp trong `tests/e2e/bangtin.mjs`, đoạn đã đánh dấu "CA 1–8
 tin JSON (`tin` — cho ca 3/4/5/6), gửi văn bản thô (`gui`, cho ca 7 gửi "ping"/rác) đều đã có sẵn cơ chế, chưa có ca nào dùng `gui`/đọc `tin`
 thật (chỉ ca 9/10 dùng `dong`) — kiểm thêm khi viết ca 1–8.
 
-**Chưa ghi ở `docs/SO-HANG-RAO.md`:** Task 6 chỉ GỌI hạ tầng đã có (không dựng cơ chế chặn MỚI nào — trạm/`dongCua`/`ctx.dongBangTin` đã có
-dòng riêng từ Task 4b/5, còn hàng rào tĩnh `bang-tin-guard` đã có dòng ở Task 5 khi Task 11 tới); hành vi KN-2 được chứng minh bằng e2e (ca
-9/10), không phải một hàng rào chặn-AI kiểu N9 — không thêm dòng mới.
+**`docs/SO-HANG-RAO.md`:** hôm nay CHƯA có dòng nào cho Bảng tin (không dòng cho trạm/`dongCua`, không dòng cho hàng rào tĩnh
+`bang-tin-guard`) — đã tự `grep` lại `docs/SO-HANG-RAO.md` để xác nhận (Vòng sửa 1, xem dưới; bản trước của mục này khẳng định sai là "đã có
+dòng riêng từ Task 4b/5"). Theo kế hoạch, sổ hàng rào cho cụm Bảng tin là việc của **Task 11** (mục đã ghi ở Task 1/2/4a/4b/5 phía trên: dòng
+cho `bang-tin-guard`, cho `KHONG_DB`/"tệp lớp DO", cho NT-3). Task 6 không dựng cơ chế chặn MỚI nào — chỉ GỌI hạ tầng đã có mã (trạm/
+`dongCua`/`ctx.dongBangTin`, đã committed từ Task 4b/5); hành vi KN-2 (đóng 4003 khi đổi tài khoản, đóng mọi kết nối khi bật bảo trì) được
+chứng minh bằng e2e đỏ-trước-xanh-sau ở ca 9/10 (Bước 2/3 phía trên) — **liệu bằng chứng đó có đáng thêm MỘT dòng riêng ở sổ hàng rào hay
+không là quyết định của Task 11** (Task 6 không tự quyết, không tự ghi).
 
 **Commit:** `Bảng tin: đóng kết nối khi đổi tài khoản/bảo trì (Task 6) + hạ tầng e2e ca 9–10 (Task 7)`.
+
+**Vòng sửa 1 (kiểm độc lập):** sửa đoạn "`docs/SO-HANG-RAO.md`" trên — bản trước nói sai là trạm/`dongCua`/`bang-tin-guard` "đã có dòng
+riêng từ Task 4b/5"; đúng ra sổ đó CHƯA có dòng nào cho Bảng tin, việc ghi (nếu cần) là của Task 11. Không đổi mã, không tự ghi
+`docs/SO-HANG-RAO.md`.
