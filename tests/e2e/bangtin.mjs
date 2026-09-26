@@ -33,6 +33,11 @@ function dongHet(...phiens) {
   }
 }
 
+/** Chờ `ms` mili-giây (chờ ổn định sau khi tin đầu đã tới, để một lần phát đôi không lọt qua kiểm "đúng MỘT tin"). */
+const yen = (ms) => new Promise((res) => setTimeout(res, ms));
+/** Khoảng chờ ổn định sau tin đầu (KHÔNG áp cho mốc "< 2 giây" của tin đầu tiên). */
+const ON_DINH_MS = 300;
+
 /** Đợi `promise` (thường là `phien.dong`) tối đa `ms`; hết giờ mà chưa xong → trả `null` (bên gọi tự `assert`, không ném ở đây). */
 function doiToiDa(promise, ms) {
   return Promise.race([promise, new Promise((res) => setTimeout(() => res(null), ms))]);
@@ -87,6 +92,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     const order = r.body.order;
     for (const [ten, p] of [["salesA", pA], ["salesB", pB], ["kế toán", pAcc]]) {
       assert.ok(await p.cho((tin) => tin.some((t) => t.orderId === order.id && t.thayDoi === "tao" && t.maDon === order.orderCode)), `ca 3: ${ten} phải nhận đúng một tin 'tao' (mã đơn khớp) trong 2 giây`);
+      await yen(ON_DINH_MS); // tin đầu đã tới: chờ ổn định để lần phát đôi (nếu có) hiện ra
       const cuaDon = p.tin.filter((t) => t.orderId === order.id);
       assert.equal(cuaDon.length, 1, `ca 3: ${ten} chỉ nhận đúng MỘT tin cho đơn này`);
       assert.deepEqual(Object.keys(cuaDon[0]).sort(), ["loai", "luc", "maDon", "orderId", "thayDoi"], `ca 3: khung tin của ${ten} phải có đúng 5 khoá`);
@@ -117,6 +123,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     r = await call(salesACookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: fieldId });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.ok(await pField.cho((tin) => tin.some((t) => t.orderId === o4.id && t.thayDoi === "giao")), "ca 4: field vừa được giao phải nhận tin 'giao' trong 2 giây");
+    await yen(ON_DINH_MS);
     assert.equal(pField.tin.filter((t) => t.orderId === o4.id).length, 1, "ca 4: field nhận đúng MỘT tin ở lượt giao này");
 
     r = await call(salesACookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: salesBId });
@@ -125,6 +132,8 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
       await cho(() => pField.tin.filter((t) => t.orderId === o4.id && t.thayDoi === "giao").length === 2, 2000),
       "ca 4: field nhận THÊM một tin 'giao' khi bị đổi đi (là người phụ trách TRƯỚC thay đổi — NT-2), tổng cộng 2 tin 'giao'",
     );
+    await yen(ON_DINH_MS);
+    assert.equal(pField.tin.filter((t) => t.orderId === o4.id).length, 2, "ca 4: sau khi ổn định field vẫn đúng 2 tin (không phát đôi)");
   } finally {
     dongHet(pA, pB, pAcc, pField);
   }
@@ -146,6 +155,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   /** Đợi đúng một tin `thayDoi` của `orderId` trên `phien`, trong `ms`; và khẳng định không có tin thứ hai. */
   const motTinDung = async (phien, orderId, thayDoi, moTa, ms = 2000) => {
     assert.ok(await phien.cho((tin) => tin.some((t) => t.orderId === orderId && t.thayDoi === thayDoi)), `${moTa}: phải nhận đúng một tin '${thayDoi}' trong ${ms}ms`);
+    await yen(ON_DINH_MS); // tin đầu đã tới: chờ ổn định để lần phát đôi (route gọi baoThayDoi hai lần) hiện ra
     assert.equal(phien.tin.filter((t) => t.orderId === orderId).length, 1, `${moTa}: chỉ đúng MỘT tin cho đơn này`);
   };
   /** Đợi `ms` rồi khẳng định KHÔNG có tin nào cho `orderId` trên `phien` (nhánh lỗi/không đổi gì của DP-1). */
@@ -322,7 +332,9 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     // BT-2: đơn của MỘT NGƯỜI KHÁC (salesA) — kết nối gửi nhãn giả "tat-ca"/"cho-nhan" của Đối tác vẫn KHÔNG nhận được.
     const r2 = await call(salesACookie, "POST", "/api/orders", orderInput());
     assert.equal(r2.status, 201, JSON.stringify(r2.body));
-    await new Promise((res) => setTimeout(res, 500));
+    // Đối chứng dương: người lập (salesA, văn phòng) chắc chắn phải nhận tin của r2 — tới lúc đó tin phát chậm (nếu có) cũng đã tới pP1Gia; rồi chờ đủ 1,5 giây như mọi kiểm âm khác.
+    assert.ok(await pOffice.cho((tin) => tin.some((t) => t.orderId === r2.body.order.id)), "ca 6 (BT-2): đối chứng — người lập (văn phòng) phải nhận tin đơn của mình trong 2 giây");
+    await yen(1500);
     assert.equal(pP1Gia.tin.filter((t) => t.orderId === r2.body.order.id).length, 0, `ca 6 (BT-2): header giả 'x-bang-tin-nhan: ["tat-ca","cho-nhan"]' bị máy chủ bỏ qua — Đối tác vẫn không nhận tin đơn người khác`);
   } finally {
     dongHet(pP1, pP1Gia, pP2, pOffice);

@@ -578,7 +578,13 @@ Mã máy chủ đã có từ Task 4–5 nên không thể đỏ trước. Mỗi 
 
 ### Kết quả xanh (mã máy chủ nguyên vẹn)
 - `npm run test:e2e -- bangtin`: ✔ bangtin (48,2 s) — ca 1–10 đều ✓.
-- `npm run test:e2e` đủ bộ: "E2E: 21/21 kịch bản xanh" (20 kịch bản + `audit-invariants --strict` ĐẠT, 2 cảnh báo lịch sử R-ORD-6a/6b); `bangtin` 48,0 s; ca 8 đóng sau 20008 ms. Không thấy chập chờn ở mốc 2 giây/1,5 giây trong 5 lượt chạy (1 xanh + 3 đỏ có chủ đích dừng ở ca dự kiến + 1 đủ bộ).
+- `npm run test:e2e` đủ bộ: "E2E: 21/21 kịch bản xanh" (20 kịch bản + `audit-invariants --strict` ĐẠT, 2 cảnh báo lịch sử R-ORD-6a/6b); `bangtin` 48,0 s; ca 8 đóng sau 20008 ms. Không thấy chập chờn ở mốc 2 giây/1,5 giây trong các lượt xanh (lẻ + đủ bộ); các lượt đỏ có chủ đích dừng đúng ở ca dự kiến.
 
 ### Quan sát cho điều phối viên (không sửa, không có ca kiểm)
 `POST /api/orders/:id/handler-money-edit`: khi thân "y nguyên số khách" thì `editMoneyAsHandler` trả `{ ok: true }` không ghi gì, nhưng route vẫn gọi `baoThayDoi(… "tien")` → phát một tin `tien` dù không đổi gì. DP-1 chỉ nêu ngoại lệ "không đổi gì" cho `trip`/`booker`, và brief Task 7 không đòi ca này nên e2e không khẳng định hành vi đó; nếu chủ muốn nhánh này cũng im lặng thì đó là việc sửa mã ở Task riêng.
+
+### Bổ sung vòng sửa 1 (2026-09-26)
+
+- **Sự thật về một lượt bị ngắt:** lượt chạy sửa cố ý của ca 3 bị ngắt giữa chừng do lỗi tài khoản (403 oauth). Dòng đỏ của ca 3 ở trên lấy từ lượt bị ngắt đó (kết quả chạy nền vẫn ghi ra tệp); sửa cố ý sót lại ở `src/shared/bang-tin.ts` do điều phối viên hoàn nguyên bằng `git checkout` trước khi chạy tiếp. Hai lần đỏ còn lại (ca 5b, ca 6) chạy sau đó, liền mạch.
+- **Kiểm âm ca 5 — trạng thái chứng minh đỏ:** vòng đầu chỉ chứng minh đỏ cho kiểm DƯƠNG của ca 5 (xoá lời phát `chuyen`) và ca 3, ca 6. Các kiểm ÂM (403/409 và "không đổi gì" của trip/booker) chưa có bằng chứng đỏ. Vòng này thử thêm MỘT sửa cố ý: `src/modules/orders/index.ts`, nhánh "không đổi gì" của `PUT /api/orders/:id/trip` cũng gọi `baoThayDoi(… "chuyen")` → `npm run test:e2e -- bangtin`: ca 1–5a ✓, rồi `AssertionError: ca 5b PUT /api/orders/:id/trip 'không đổi gì': không tin nào trong 1500ms  1 !== 0` → `✘ bangtin`. Hoàn nguyên bằng `git checkout -- src/modules/orders/index.ts`, `git status` chỉ còn tệp `tests/e2e/*`. **Vẫn CHƯA chứng minh đỏ** cho: kiểm âm "không đổi gì" của `PUT …/booker`, các kiểm âm 403/409 của 5a/5b/5c/5d/5e/5f (chỉ suy từ cùng khuôn `khongTinNao`, chưa quan sát riêng).
+- **Đổi ở `bangtin.mjs`:** ca 6 kiểm âm BT-2 nay có đối chứng dương (`pOffice` phải nhận tin của đơn r2) rồi chờ 1500 ms mới khẳng định 0 (trước chỉ chờ 500 ms, không đối chứng); ca 3, ca 4, `motTinDung` (ca 5) chờ ổn định 300 ms sau tin đầu rồi mới khẳng định "đúng MỘT tin" để lần phát đôi không lọt. Mốc "< 2 giây" của tin đầu không đổi.
