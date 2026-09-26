@@ -108,3 +108,66 @@
   - `node --test src/shared/router.test.ts` → `# tests 15 / # pass 15 / # fail 0`.
 - **Mốc kiểm sau Task 3:** `npm test` 823/823 (816 + 7 bài mới); `npm run typecheck` 0 lỗi (ba tsconfig); `node --test "tests/audit/*.test.mjs"` → 34 xanh, đúng 1 đỏ đã có từ trước ("P4 FINDING HDV…", không đổi tên/nội dung) — không có ca đỏ mới.
 - **Tệp đổi:** `src/shared/router.ts`, `src/shared/router.test.ts`, `src/index.ts` (tiêm tạm no-op).
+
+## Task 4a — luật thuần bangtin + hạng KHONG_DB (2026-09-26)
+
+**Phạm vi lượt giao này (R7):** chỉ Bước 1 (`rules.ts`/`rules.test.ts`), Bước 2 (bài kiểm kiến trúc), Bước 5 (thấy chặn thật `KHONG_DB`), và sửa `docs/ARCHITECTURE.md`. KHÔNG làm Bước 3/4/6/7 (route, `tram.ts`, gốc lắp ráp, cấu hình, `route-access.test.ts`) — dành cho 4b.
+
+### Đỏ trước
+
+- Tạo `src/modules/bangtin/rules.test.ts` (import `./rules.ts` chưa tồn tại) → `node --test src/modules/bangtin/rules.test.ts`:
+  ```
+  Error [ERR_MODULE_NOT_FOUND]: Cannot find module '.../src/modules/bangtin/rules.ts' imported from '.../rules.test.ts'
+  not ok 1 - src/modules/bangtin/rules.test.ts
+  ```
+- Chạy `node --test src/architecture.test.ts` (thư mục `bangtin` đã có, chưa khai `ALLOWED_EDGES`) → đỏ đúng như kế hoạch dự đoán:
+  ```
+  not ok 1 - mọi module trong src/modules đều khai chiều phụ thuộc ở ALLOWED_EDGES
+  error: 'module "bangtin" chưa khai trong ALLOWED_EDGES'
+  ```
+  (Bài `module không nghiêm phải nằm trong LEGACY` — dòng 412 cũ — cũng đỏ cùng lượt vì chưa có `KHONG_DB`, đúng dự đoán của brief.)
+
+### Xanh
+
+- Viết `src/modules/bangtin/rules.ts`: `hetHan(nay, hanGiay)`, `ketNoiQuaHan(danhSach, nay)`, `docHanGiay(env)` (mặc định 900; giới hạn [5, 3600]), `kiemOrigin(request, url)` (chỉ đúng khi có header `Origin` và khớp `url.origin` — không dùng `sec-fetch-site`). Không import gì (module KHONG_DB, không I/O). `node --test src/modules/bangtin/rules.test.ts` → 6/6 xanh.
+- `src/architecture.test.ts`: thêm `ALLOWED_EDGES.bangtin = []` (chú thích: lá); thêm hằng `KHONG_DB = ["bangtin"] as const`; sửa bài kiểm dòng 412 cũ để nhận `KHONG_DB` (và khẳng định module KHONG_DB không đồng thời ở `STRICT`/`LEGACY`); thêm bài `KHONG_DB: mọi tệp .ts (trừ *.test.ts)...` (quét `env.DB`, `.prepare(`, `.batch(`, `DB.exec(` trên mã đã che chú thích — dùng lại đúng cách che dòng `//`/`/* */`/`*` như `rawPrepareHits`/`R-N1-14` trong tệp này); thêm bài "tệp lớp DO modules/bangtin/tram": không tệp nào ngoài `src/index.ts` import nó (quét MỌI `.ts` kể cả `*.test.ts` bằng `walkAll()` mới, dùng `relSrc`+bỏ đuôi `.ts/.js/.mjs` trước khi so khớp — sau khi kiểm độc lập qua `advisor()` phát hiện bản đầu chỉ so khớp chuỗi thô nên lọt qua trường hợp import có đuôi `.ts`, đã sửa trước khi chạy P16); quét `scripts/*.mjs` cho chuỗi `"bangtin/tram"`; không `index.ts` module nào chứa `"cloudflare:workers"`. `node --test src/architecture.test.ts` → 23/23 xanh.
+
+### KHONG_DB chặn thật (P16)
+
+- Chèn tạm vào `src/modules/bangtin/rules.ts` (cuối tệp): `export const __khongDbTam = () => { const env = {} as unknown as { DB: unknown }; void env.DB; };`
+- `node --test src/architecture.test.ts` → đỏ đúng tệp:
+  ```
+  not ok 19 - KHONG_DB: mọi tệp .ts (trừ *.test.ts) của module hạng KHONG_DB không được đụng env.DB/.prepare(/.batch(/DB.exec(
+  + [ 'src/modules/bangtin/rules.ts: chứa "env.DB"' ]
+  ```
+- Hoàn nguyên bằng `Edit` (xoá đúng hai dòng vừa chèn, không dùng lệnh phá hoại) → `node --test src/architecture.test.ts` → 23/23 xanh lại; `grep -c "khongDbTam" src/modules/bangtin/rules.ts` → 0. Cần thêm dòng ở `docs/SO-HANG-RAO.md` (việc của Task 11, cùng cách ghi chú như NT-3 ở Task 1 — không bỏ sót).
+- Bài kiểm "tệp lớp DO" KHÔNG chặn thật ở lượt này (đúng kế hoạch): `tram.ts` chưa tồn tại nên không có gì để phá; 4b sẽ thấy nó chặn thật khi thêm tạm `export { BangTin } from "./tram"` vào `bangtin/index.ts` (Bước 6 của brief).
+
+### `docs/ARCHITECTURE.md`
+
+Chủ đã duyệt thêm hạng `KHONG_DB` (R2) → sửa trực tiếp, không phải đề xuất: (1) Phần II "Chuẩn dữ liệu và kiểm máy" — thêm một bullet định nghĩa `KHONG_DB`; (2) Phần II "Thêm một module mới" quy tắc 7 — thêm `KHONG_DB` là lựa chọn thứ ba cạnh `STRICT`/`LEGACY`; (3) Phần I, dòng 5.3 bảng thi hành — chỉ sửa ô "Cưỡng chế bằng" (không đổi câu chữ điều 5.3), thêm ADR-0022 vào cột Nguồn. Vì (3) chạm Phần I, đã theo Điều 6.4 (tiền lệ dòng "5.14–5.17 (2026-09-26)"): thêm một mệnh đề vào dòng "Trạng thái" đầu tệp ghi ngày + lý do cho đúng sửa đổi này. Không đụng câu chữ Điều nào của Phần I; không thêm ngoại lệ "gốc lắp ráp nạp `tram.ts`" hay hàng kịch bản Chrome ở đây (hai việc đó chưa duyệt, thuộc `docs/superpowers/plans/2026-09-25-bang-tin-de-xuat-luat.md`, ngoài phạm vi lượt này).
+
+### Xung đột phát hiện trước khi commit (chưa tự xử lý — cần điều phối viên quyết)
+
+`npm test` sau khi tạo thư mục `src/modules/bangtin/` (chỉ có `rules.ts`+`rules.test.ts`, đúng phạm vi 4a) ra **830/831**, KHÔNG phải 831/831:
+
+```
+not ok 546 - MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppModule` (module mới có route không được lặng lẽ thoát khỏi bài kiểm)
+error: "ENOENT: no such file or directory, open '.../src/modules/bangtin/index.ts'"
+```
+
+Nguyên nhân: `src/route-access.test.ts:163-165` đọc `index.ts` của MỌI thư mục dưới `src/modules/` không kiểm tồn tại trước — module `bangtin` chưa có `index.ts` (đúng brief 4a: "chỉ rules.ts+rules.test.ts, no index.ts yet") làm nó `ENOENT` (không phải một assertion đỏ bình thường, mà một exception). Ba ràng buộc của lượt giao này mâu thuẫn nhau: "không tạo `index.ts`", "mọi test hiện có phải xanh", "chỉ được sửa 5 tệp đã liệt kê" (không có `route-access.test.ts`). Không tự chọn — nêu ở đây theo đúng cách "một câu hỏi, gộp lại" (CLAUDE.md §3):
+
+- **(A)** Cho `route-access.test.ts:165` một `existsSync` để bỏ qua thư mục chưa có `index.ts` (không nới luật — một thư mục không `index.ts` chắc chắn không khai `AppModule`) — nhưng đây là tệp hàng rào, cần điều phối viên duyệt trước khi ai sửa.
+- **(B)** Chấp nhận đỏ tạm 830/831: 4b (Bước 3 của brief) thêm `index.ts` + dòng `MODULES`/SNAPSHOT cho `bangtin`, bài kiểm tự xanh lại. Chỉ ổn nếu 4b được giao ngay sau, không merge tạm trạng thái này.
+- **(C)** 4a tự thêm `index.ts` rỗng (`export {}`) cho qua — vi phạm rõ ràng ràng buộc "chỉ rules.ts+rules.test.ts" của brief, không chọn.
+
+**Khuyến nghị của người thi công:** (B), vì đây đúng là điểm nối giữa hai lượt giao đã được thiết kế trước (R7) — 4b làm ngay bước 3 là hết đỏ; nếu quy trình để nhánh này merge/dừng lâu ở giữa 4a/4b thì nên chọn (A) thay vào đó.
+
+### Mốc kiểm sau Task 4a
+
+- `npm test` → **830/831** (thiếu đúng 1, lý do ở trên, không phải hồi quy của mã Task 4a — 23 bài `architecture.test.ts` + 6 bài `rules.test.ts` mới đều xanh).
+- `npm run typecheck` → **0 lỗi** (ba tsconfig: gốc, `web/`, `web/sw/`).
+- `node --test "tests/audit/*.test.mjs"`: chưa chạy lại ở lượt này (không đổi mã chạm khung thử này; mốc Task 0 vẫn là 34/35, 1 đỏ có sẵn không do nhánh này).
+
+**Tệp đổi:** `src/modules/bangtin/rules.ts`, `src/modules/bangtin/rules.test.ts` (mới), `src/architecture.test.ts`, `docs/ARCHITECTURE.md`.

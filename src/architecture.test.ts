@@ -19,6 +19,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   accounts: ["staff", "auth", "audit", "maintenance"], // maintenance: không cho đổi SĐT của tài khoản chủ dự án (PATCH /api/staff/:id)
   audit: [],
   auth: ["staff", "maintenance"], // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc)
+  bangtin: [], // ADR-0022: lá, không import module nào — dữ liệu đơn (mã đơn, ai lập/phụ trách) do gốc lắp ráp đọc qua orders/dispatch rồi truyền vào, không phải bangtin tự đọc
   catalog: ["audit"],
   company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
   // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*:
@@ -52,6 +53,13 @@ const STRICT: readonly { module: string; file: string }[] = [
  * `wonGuard` của orders (đọc audit_log) ở lại tới N2; `accounts`, `catalog` chưa có SQL riêng đáng kể — chuyển STRICT khi có SQL mới.
  */
 const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
+
+/**
+ * Hạng "module không dùng cơ sở dữ liệu" (KHONG_DB, ADR-0022, chủ duyệt 2026-09-25 — kế hoạch Bảng tin): nghiêm hơn
+ * STRICT — không bảng, không câu SQL, không `env.DB`/`.prepare(`/`.batch(`/`DB.exec(` ở BẤT KỲ tệp nào trong module
+ * (kể cả `index.ts`/`tram.ts`, không chỉ `repository.ts` — module này còn không có `repository.ts`).
+ */
+const KHONG_DB = ["bangtin"] as const;
 
 const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing" };
@@ -409,10 +417,76 @@ test("R-N1-12: vai trò hồ sơ không là điều kiện cho phép — chỉ m
   assert.deepEqual(problems, [], "vai trò hồ sơ (HDV, tài xế…) chỉ để ghi và truy vấn, không bao giờ để cho/chặn thao tác (ADR-0001 mục 4, ADR-0005)");
 });
 
-test("module không nghiêm phải nằm trong LEGACY (ngoại lệ có hạn) — module mới không được trốn 8(b)", () => {
+test("module không nghiêm phải nằm trong LEGACY (ngoại lệ có hạn) hoặc KHONG_DB — module mới không được trốn 8(b)", () => {
   const strict = new Set(STRICT.map((s) => s.module));
-  for (const m of MODULES) assert.ok(strict.has(m) || (LEGACY as readonly string[]).includes(m), `module "${m}" không nghiêm và không có trong LEGACY: thêm vào STRICT (kèm repository dùng defineSql)`);
+  const khongDb = new Set<string>(KHONG_DB);
+  for (const m of MODULES) {
+    assert.ok(
+      strict.has(m) || (LEGACY as readonly string[]).includes(m) || khongDb.has(m),
+      `module "${m}" không nghiêm, không có trong LEGACY, không thuộc KHONG_DB: thêm vào STRICT (kèm repository dùng defineSql)`,
+    );
+  }
   for (const m of LEGACY) assert.ok(!strict.has(m), `module "${m}" đã nghiêm — bỏ khỏi LEGACY`);
+  for (const m of khongDb) assert.ok(!strict.has(m) && !(LEGACY as readonly string[]).includes(m), `module "${m}" thuộc KHONG_DB thì không được đồng thời ở STRICT hoặc LEGACY`);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// KHONG_DB (ADR-0022): module không dùng cơ sở dữ liệu — không bảng, không SQL, không env.DB/.prepare(/.batch(/DB.exec(.
+// Dùng lại đúng cách che chú thích (dòng // và cả dòng /*, */, *) như rawPrepareHits/rawExecHits/R-N1-14 ở trên trong
+// tệp này, để chuỗi trong chú thích (ví dụ, giải thích) không bị bắt nhầm là vi phạm thật.
+// ---------------------------------------------------------------------------------------------------------------------
+function khongDbHits(rel: string, source: string): string[] {
+  const code = source.split("\n").map((line) => (/^\s*(?:\/\/|\/\*|\*)/.test(line) ? "" : line.replace(/\/\/.*$/, ""))).join("\n");
+  const out: string[] = [];
+  for (const needle of ["env.DB", ".prepare(", ".batch(", "DB.exec("]) if (code.includes(needle)) out.push(`${rel}: chứa "${needle}"`);
+  return out;
+}
+
+test("KHONG_DB: mọi tệp .ts (trừ *.test.ts) của module hạng KHONG_DB không được đụng env.DB/.prepare(/.batch(/DB.exec(", () => {
+  const problems: string[] = [];
+  for (const m of KHONG_DB) {
+    for (const file of walk(join(SRC, "modules", m))) {
+      problems.push(...khongDbHits(relative(ROOT, file).split(sep).join("/"), readFileSync(file, "utf8")));
+    }
+  }
+  assert.deepEqual(problems, [], "module KHONG_DB không được chạm cơ sở dữ liệu ở bất kỳ tệp nào (không có repository.ts) — xem ADR-0022");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// Tệp lớp Durable Object (`tram.ts`, Task 4b): CHỈ src/index.ts được nạp nó (mã DO thật chỉ chạy trong Worker, không
+// chạy được dưới node --test — nạp nó ở nơi khác làm vỡ mọi khung thử). Quét TOÀN BỘ src/**/*.ts kể cả *.test.ts
+// (khác walk() ở trên, dùng walkAll bên dưới) vì một tệp test cũng có thể lỡ import nó.
+// ---------------------------------------------------------------------------------------------------------------------
+function walkAll(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return walkAll(p);
+    return p.endsWith(".ts") ? [p] : [];
+  });
+}
+
+test("tệp lớp DO modules/bangtin/tram: chỉ src/index.ts được import; không index.ts nào của module chứa \"cloudflare:workers\"", () => {
+  const problems: string[] = [];
+  const rootIndex = join(SRC, "index.ts");
+  for (const file of walkAll(SRC)) {
+    if (resolve(file) === rootIndex) continue;
+    for (const spec of relativeImports(file)) {
+      // Tệp thuần/tệp test import bằng đuôi .ts tường minh (như rules.test.ts của chính module này) — bỏ đuôi trước khi so khớp.
+      if (relSrc(file, spec).replace(/\.(?:ts|js|mjs)$/, "") === "modules/bangtin/tram") {
+        problems.push(`${relative(ROOT, file)}: import "${spec}" (chỉ src/index.ts được nạp lớp Durable Object)`);
+      }
+    }
+  }
+  for (const f of readdirSync(join(ROOT, "scripts")).filter((n) => n.endsWith(".mjs"))) {
+    if (readFileSync(join(ROOT, "scripts", f), "utf8").includes("bangtin/tram")) problems.push(`scripts/${f}: nhắc "bangtin/tram"`);
+  }
+  for (const m of MODULES) {
+    const idx = join(SRC, "modules", m, "index.ts");
+    if (statSync(idx, { throwIfNoEntry: false }) !== undefined && readFileSync(idx, "utf8").includes("cloudflare:workers")) {
+      problems.push(`modules/${m}/index.ts: chứa "cloudflare:workers" (chỉ tram.ts được import từ "cloudflare:workers", và chỉ src/index.ts được nạp tram.ts)`);
+    }
+  }
+  assert.deepEqual(problems, []);
 });
 
 test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu lực hoặc active = 0); UPDATE thì không", () => {
