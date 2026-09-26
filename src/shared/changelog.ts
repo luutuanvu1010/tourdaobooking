@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.18",
+    date: "2026-09-27",
+    items: [
+      { kind: "doi", text: "Hệ thống kiểm tra quyền chặt hơn ở các màn quản trị và màn đơn; với đa số nhân viên bạn không thấy gì khác." },
+      { kind: "doi", text: "Chế độ bảo trì: chỉ tài khoản Toàn quyền có số điện thoại trong danh sách được phép mới bật hoặc tắt được." },
+      { kind: "doi", text: "Quản trị viên không còn thêm hay kết thúc vai, quan hệ (như “Người liên hệ của”) trên hồ sơ của quản trị viên khác hoặc của Toàn quyền; chỉ Toàn quyền làm được." },
+    ],
+  },
+  {
     version: "1.17",
     date: "2026-09-26",
     items: [
