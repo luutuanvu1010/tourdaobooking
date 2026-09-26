@@ -8,6 +8,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
+import { taoBoLamMoi } from "./lam-moi-logic";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
@@ -446,9 +447,18 @@ function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLEl
 async function initMyAssignments(): Promise<void> {
   if (!hasPermission(staff, "FIELD")) return;
   const el = byId("myjobs");
+  // Người dùng đã gõ lý do / bấm +− / mở vùng huỷ trong khối này kể từ lần dựng gần nhất: làm mới theo tin KHÔNG được dựng lại khối dưới tay họ
+  // (mất lý do đang gõ, số khách đã chỉnh). Đặt lại khi khối được dựng mới (sau lưu/huỷ, hoặc tải lại thành công).
+  let dangSua = false;
+  const danhDauSua = (ev: Event): void => {
+    if (ev.type === "input" || (ev.target instanceof Element && ev.target.closest("button"))) dangSua = true;
+  };
+  el.addEventListener("input", danhDauSua);
+  el.addEventListener("click", danhDauSua);
   const load = async (): Promise<void> => {
     try {
       const { assignments } = await api<Api.MyAssignmentsResponse>("/api/dispatch/mine");
+      dangSua = false;
       if (assignments.length === 0) replaceChildren(el, h("h2", null, "Việc của tôi"), h("p", { class: "muted" }, "Bạn chưa được giao phụ trách đơn nào."));
       else replaceChildren(el, h("h2", null, "Việc của tôi"), ...assignments.map((a) => myAssignmentCard(a, () => void load())));
       el.hidden = false;
@@ -457,5 +467,13 @@ async function initMyAssignments(): Promise<void> {
     }
   };
   await load();
+  // Bảng tin (ADR-0022, TD-3): đơn đổi / vừa nối lại → tải lại "Việc của tôi". Đăng ký MỘT lần, sau lần tải đầu (chỉ người có FIELD — như trên);
+  // bộ gộp tránh hai lần tải song song. `load` của thao tác lưu/huỷ trong thẻ vẫn gọi trực tiếp (người dùng vừa chủ động làm).
+  const lamMoi = taoBoLamMoi(async () => {
+    if (dangSua) return;
+    await load();
+  });
+  window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
+  window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 }
 void initMyAssignments();
