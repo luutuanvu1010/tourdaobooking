@@ -222,3 +222,22 @@ test("Điều 8: ADMIN không unlock/reset-pin được một ADMIN khác; SUPER
   assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/reset-pin`, { as: ADM })).status, 403);
   assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/reset-pin`, { as: SUPER })).status, 200);
 });
+
+test("DK-T3-02 (kiểm toán 24/9, đã vá): Quản trị/Toàn quyền KHÔNG tự đặt lại PIN của chính mình — 403 TRƯỚC mọi ghi; vẫn đặt lại được cho cấp dưới", async () => {
+  const { w, SUPER, TARGET_SALES } = setupRank();
+  for (const self of [ADM, SUPER]) {
+    const before = w.q("SELECT pin_hash, credentials_changed_at FROM staff WHERE id = ?", self);
+    const auditBefore = w.q("SELECT COUNT(*) AS n FROM audit_log")[0].n;
+    const r = await w.call("POST", `/api/staff/${self}/reset-pin`, { as: self });
+    assert.equal(r.status, 403, r.text);
+    assert.equal(r.json.error.code, "forbidden");
+    assert.match(r.json.error.message, /Đổi mã PIN/);
+    assert.equal(r.json.pin, undefined, "không trả PIN");
+    assert.deepEqual(w.q("SELECT pin_hash, credentials_changed_at FROM staff WHERE id = ?", self), before, "PIN và mốc đổi thông tin đăng nhập giữ nguyên");
+    assert.equal(w.q("SELECT COUNT(*) AS n FROM audit_log")[0].n, auditBefore, "không có dòng nhật ký nào");
+    assert.equal((await w.call("GET", "/api/auth/me", { as: self })).status, 200, "phiên vẫn hợp lệ");
+  }
+  const ok = await w.call("POST", `/api/staff/${TARGET_SALES}/reset-pin`, { as: ADM });
+  assert.equal(ok.status, 200, ok.text);
+  assert.match(ok.json.pin, /^\d{6}$/);
+});

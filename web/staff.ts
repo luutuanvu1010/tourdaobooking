@@ -80,14 +80,16 @@ function row(s: StaffAccount): HTMLElement {
       "td",
       { class: "row-actions" },
       btn("Sửa", () => void openEdit(s)),
-      btn("Đặt lại PIN", async () => {
-        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
-        const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
-        if (r) {
-          showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
-          await load();
-        }
-      }),
+      // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
+      !isMe &&
+        btn("Đặt lại PIN", async () => {
+          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+          const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
+          if (r) {
+            showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
+            await load();
+          }
+        }),
       s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
@@ -130,14 +132,16 @@ function card(s: StaffAccount): HTMLElement {
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       btn("Sửa", () => void openEdit(s)),
-      btn("Đặt lại PIN", async () => {
-        if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
-        const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
-        if (r) {
-          showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
-          await load();
-        }
-      }),
+      // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
+      !isMe &&
+        btn("Đặt lại PIN", async () => {
+          if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
+          const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
+          if (r) {
+            showSecrets("PIN mới", [{ name: s.fullName, phone: s.phone, pin: r.pin }]);
+            await load();
+          }
+        }),
       s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),

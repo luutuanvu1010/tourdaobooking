@@ -34,6 +34,8 @@ const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này �
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới; tài khoản này do Toàn quyền quản lý.");
+// DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
+const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
 const NO_PARTY = () => error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
 const ROLE_MANAGED = () => error(409, "role_managed", "Tài khoản đã gán vai — đổi quyền bằng cách chọn vai hoặc chỉnh riêng ở mục Vai và quyền.");
 const problemResponse = (p: RoleProblem): Response => error(p.forbidden ? 403 : 400, p.forbidden ? "forbidden" : "invalid_input", p.message);
@@ -54,7 +56,9 @@ function ruleViolation(e: unknown): Response | null {
 /**
  * ADR-0014 điều 8 áp cho tài khoản NGƯỜI KHÁC ("Admin không làm được các việc đó với một Admin/Super Admin KHÁC") — tự sửa chính
  * mình đi theo luật riêng đã có từ trước (`checkAccountChange`: không tự ngưng/tự đổi quyền), không bị chặn thêm ở đây, kẻo che mất
- * thông báo cụ thể hơn của luật đó (và khoá luôn cả việc tự đặt lại mã/mở khoá của chính mình — chưa từng bị cấm).
+ * thông báo cụ thể hơn của luật đó (và khoá luôn cả việc tự mở khoá của chính mình — chưa từng bị cấm).
+ * Riêng tự ĐẶT LẠI PIN của chính mình thì bị chặn ngay trong route reset-pin (DK-T3-02, `SELF_RESET_PIN`), không ở hàm này — unlock và
+ * passkeys/remove-all vẫn dùng hàm này nguyên như cũ.
  */
 const mayManage = (actor: { id: string; permissions: readonly PermissionCode[] }, target: StaffAccount): boolean => actor.id === target.id || canManageAccount(actor.permissions, target.permissions);
 
@@ -571,6 +575,7 @@ export const accountsModule: AppModule = {
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
+      if (t.id === ctx.staff.id) return SELF_RESET_PIN(); // DK-T3-02: chặn TRƯỚC mọi ghi; đổi PIN của mình chỉ qua change-pin (có PIN hiện tại)
       if (!mayManage(ctx.staff, t)) return NOT_MANAGER();
       const pin = generatePin();
       const now = Date.now();
