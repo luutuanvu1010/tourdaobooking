@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.15: Đối tác và Thực tập xem danh mục chỉ-đọc (ADR-0028) ĐÃ LÊN PRODUCTION (2026-09-26 14:30 giờ VN, chủ dự án tự chạy `npm run day-len -- mo-danh-muc-doi-tac` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.16: Bảng tin (thông báo tức thì, ADR-0022) ĐÃ LÊN PRODUCTION (2026-09-26 17:03 giờ VN, chủ dự án tự chạy `npm run day-len -- bang-tin` rồi `npm run trien-khai`)
+
+Số liệu do chủ báo từ kết quả `npm run trien-khai`; phần "AI kiểm" là lệnh chỉ đọc của AI lúc 2026-09-26 chiều, giờ VN:
+
+- **Phiên bản: 1.16.** Chủ báo cổng phiên bản trước và sau deploy đều ĐẠT. AI kiểm: `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.16."; `GET /api/auth/config` trả `"version":"1.16"`, bảo trì `on:false`.
+- **Mã trên `main` / GitHub:** `origin/main` = 260b92b (nhánh `bang-tin`, đã gộp `main` bản 1.15 vào nhánh trước khi gộp ngược; 909 test, e2e 21/21 lúc phát hành).
+- **Worker:** `wrangler deployments list` → bản mới nhất **ce51b35f-2c3e-4845-9562-5eca7021ed7a**, tạo 2026-09-26T10:03:00Z. Bản ngay trước: 7edc1093-c19c-457c-a55c-e02170640096 (1.15). **KHÔNG dùng `wrangler rollback` về bản đó**: lần deploy này mang migration Durable Object (tag `v1`, `new_sqlite_classes`), là cửa một chiều mềm; cách lùi ở mục "Bảng tin (thông báo tức thì, ADR-0022) — ĐÃ PHÁT HÀNH bản 1.16" (Điểm lùi) bên dưới.
+- **Migration D1:** không có (chủ báo "Migration đã áp: không có"). Migration Durable Object đi cùng `wrangler deploy`; chưa kiểm được bằng lệnh chỉ đọc.
+- **Kiểm dữ liệu:** chủ báo `audit-invariants --db remote` ĐẠT; AI chạy lại: "Mọi bất biến đạt (D1 remote)."
+- **AI kiểm công khai (không đăng nhập):** `GET /api/bang-tin` → 401, và `GET` kèm `Upgrade: websocket` → 401 (điểm cuối có mặt, cổng đăng nhập canh trước); `Content-Security-Policy` của `/orders` có `connect-src 'self' wss://booking.tourdao.vn https://challenges.cloudflare.com`.
+- **Chưa kiểm:** kết nối Bảng tin THẬT trên production (cần đăng nhập): mở hai tài khoản thật, một bên bấm "Nhận", bên kia phải tự đổi trong vài giây; iPhone thật (Task 13: khoá màn hình ≥ 1 phút rồi mở lại); trình đọc màn hình; Durable Object thật dưới tải; gói/chi phí Cloudflare. Việc còn treo và các câu chờ chủ: `docs/superpowers/plans/2026-09-25-bang-tin-de-xuat-luat.md`.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.15: Đối tác và Thực tập xem danh mục chỉ-đọc (ADR-0028) ĐÃ LÊN PRODUCTION (2026-09-26 14:30 giờ VN, chủ dự án tự chạy `npm run day-len -- mo-danh-muc-doi-tac` rồi `npm run trien-khai`)
 
 AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-26 chiều, giờ VN:
 
@@ -451,9 +463,9 @@ npm run trien-khai
 - Chỉ tài khoản **Toàn quyền** mới cấp được quyền **Quản trị** cho người khác (trước đây Quản trị cũng cấp được).
 - Trang Hồ sơ (giao diện) không còn cho CHỌN thêm vai kiểu cũ "Hướng dẫn viên"/"Bán hàng"/"Đại lý"/"Nhân sự" (migration `0024` chỉ đặt `active = 0` cho 4 mã này, không đổi nhóm — máy chủ CHƯA chặn gán mới qua API, chỉ giao diện ẩn lựa chọn) — hồ sơ đã có sẵn các vai này KHÔNG bị đổi.
 
-## Lần phát hành kế tiếp: Bảng tin (thông báo tức thì, ADR-0022) — CHƯA PHÁT HÀNH — RUNBOOK
+## Bảng tin (thông báo tức thì, ADR-0022) — ĐÃ PHÁT HÀNH bản 1.16 ngày 2026-09-26 — RUNBOOK
 
-**Trạng thái: CHƯA phát hành.** Mã nằm ở nhánh `bang-tin` (đã gộp `main` bản 1.15 VÀO nhánh ngày 2026-09-26; nhánh CHƯA gộp vào `main`, chưa đẩy, chưa deploy); production vẫn theo mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp — mục này KHÔNG mô tả production. Chủ dự án quyết và TỰ CHẠY các lệnh đẩy/deploy trong ứng dụng Terminal của macOS (`CLAUDE.md` §8: AI không chạy); mục này chỉ chuẩn bị và liệt kê NGUYÊN LỆNH. Mô tả kỹ thuật: `docs/SYSTEM-DESIGN.md` §2, §3, §9, §11; công thức và bẫy: `docs/CHANGE-GUIDE.md` công thức v, bẫy 35–42; nhật ký thi công: `docs/superpowers/plans/2026-09-25-bang-tin-thi-cong-nhat-ky.md`; bằng chứng giao diện: `docs/evidence/2026-09-25-bang-tin/`; sổ hàng rào: `docs/SO-HANG-RAO.md`.
+**Trạng thái: ĐÃ phát hành (1.16, 2026-09-26 17:03 giờ VN — xem mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp).** Phần dưới là runbook đã dùng, giữ lại làm hướng dẫn điểm lùi và vận hành; các câu như "chưa gộp/chưa đẩy/chưa deploy" trong phần này là của thời điểm TRƯỚC phát hành. Chủ dự án quyết và TỰ CHẠY các lệnh đẩy/deploy trong ứng dụng Terminal của macOS (`CLAUDE.md` §8: AI không chạy); mục này chỉ chuẩn bị và liệt kê NGUYÊN LỆNH. Mô tả kỹ thuật: `docs/SYSTEM-DESIGN.md` §2, §3, §9, §11; công thức và bẫy: `docs/CHANGE-GUIDE.md` công thức v, bẫy 35–42; nhật ký thi công: `docs/superpowers/plans/2026-09-25-bang-tin-thi-cong-nhat-ky.md`; bằng chứng giao diện: `docs/evidence/2026-09-25-bang-tin/`; sổ hàng rào: `docs/SO-HANG-RAO.md`.
 
 **Bảng tin là gì (một dòng):** khi một đồng nghiệp lập/nhận/giao/xác nhận/huỷ/sửa một đơn, mọi màn hình đang mở (danh sách đơn, Trang chủ, trang đơn, "Việc của tôi") tự cập nhật, kèm thông báo nhỏ với một số loại thay đổi — qua WebSocket tới MỘT Durable Object. Đối tác chỉ được làm mới màn hình, không có thông báo nhỏ.
 
@@ -590,7 +602,7 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
   5. ✅ ĐÃ XỬ LÝ 2026-09-26 (ADR-0028, bản 1.15): chủ dự án chọn mở danh mục CHỈ-ĐỌC, kèm giá bán lẻ, cho cả Thực tập và Đối tác (`GET /api/catalog` cổng `orders`). ~~Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ.~~
   6. ⚠️ Nợ (a): "vai đang mở" = `valid_to_date IS NULL` ở mọi nơi — dòng vai tài khoản có NGÀY KẾT THÚC trong tương lai, hoặc dòng "Kế toán" GẮN MỘT NƠI, không được luật nhóm (LC-3) và kiểm "chọn đủ vai" nhìn thấy, và không đóng được từ cả trang Hồ sơ lẫn trang Nhân viên (câu đếm ở runbook `0024` cho biết có bao nhiêu).
   7. ⚠️ Nợ (b): danh sách Nhân viên chỉ hiện TÊN VAI cho tài khoản đã gán vai (`web/staff.ts` `accessLabel`), dù tài khoản có thể có thêm quyền cộng tay — nhãn có thể thiếu.
-- **Bảng tin (ADR-0022) — CHƯA phát hành; việc còn treo, gom một lần** (chi tiết: `docs/superpowers/plans/2026-09-25-bang-tin-de-xuat-luat.md`, `docs/superpowers/plans/2026-09-26-bang-tin-ban-giao-dieu-phoi.md` §6, mục "Task 11" của nhật ký thi công):
+- **Bảng tin (ADR-0022) — ĐÃ lên production bản 1.16 (2026-09-26); việc còn treo, gom một lần** (chi tiết: `docs/superpowers/plans/2026-09-25-bang-tin-de-xuat-luat.md`, `docs/superpowers/plans/2026-09-26-bang-tin-ban-giao-dieu-phoi.md` §6, mục "Task 11" của nhật ký thi công):
   1. **Task 13 — thử iPhone thật (chủ):** danh sách ở `docs/superpowers/plans/2026-09-25-bang-tin-ke-hoach.md` Task 13; lặp lại một lượt ngắn trên production sau phát hành. Chưa kiểm: Safari iPhone thật, khoá màn hình ≥ 1 phút, mất mạng thật, CSP `wss:` qua LAN, trình đọc màn hình (dải "Tải lại" nằm trong nền `inert`).
   2. **Chủ duyệt các đề xuất luật** (chưa hiệu lực; AI không tự sửa `docs/ARCHITECTURE.md`, `web/CLAUDE.md`, `src/CLAUDE.md`): ngoại lệ "gốc lắp ráp nạp tệp lớp Durable Object", hàng bảng kịch bản Chrome cho `bang-tin-smoke.mjs`, ngoại lệ import `.ts` ở hai tệp `web/*-logic.ts`, cập nhật danh sách module ở `src/CLAUDE.md`. Trong lúc chờ, `docs/SYSTEM-DESIGN.md` §16 ghi hai chỗ mã lệch chữ luật.
   3. **Quyết định thiết kế chờ chủ:** (a) R24 — khi bảng/hộp đang mở, dải "Tải lại" và cả thông báo nổi nằm DƯỚI lớp phủ (`.toast-vung` z-index 40 < `.sheet-root` 50); (b) R16 — `POST /api/orders/:id/handler-money-edit` phát tin `tien` cả khi số khách y nguyên (sửa đụng hợp đồng tiền orders↔dispatch); (c) "chấm đếm" cho Đối tác (ADR-0014 điều 12) chưa có; (d) quyết định (5) của ADR-0023 về ô `order.view` của Hướng dẫn viên — khi đổi, bài NT-3 đỏ CÓ CHỦ ĐÍCH và buộc hỏi lại chủ (`docs/SO-HANG-RAO.md`).

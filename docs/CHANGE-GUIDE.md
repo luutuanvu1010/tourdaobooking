@@ -685,7 +685,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 4. Sau deploy: `node scripts/audit-invariants.mjs --db remote` (chạy SAU khi đã áp `0014`; D1 chưa có `dsp_*` thì thoát mã 2 = không chạy được); `curl -sI https://booking.tourdao.vn/sw.js` (`no-store`); ghi trạng thái vào `docs/HANDOFF-N1.md` (không ghi hiện trạng vào `CLAUDE.md`).
 5. Lần phát hành có `0015`+`0016` (cột `last_login_at` + chế độ bảo trì; cả hai chỉ THÊM): theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp (0015 + 0016)" — áp rồi `wrangler deploy` NGAY; chế độ bảo trì KHÔNG tự bật (gieo TẮT), chỉ bật sau khi cột "Đăng nhập gần nhất" cho thấy mọi người đã đăng nhập bằng bản mới. `audit-invariants --db remote` chạy SAU khi đã áp `0016` (không có bất biến riêng cho `mnt_setting`).
 6. Lần phát hành v1.0 có thêm Turnstile: theo `docs/HANDOFF-N1.md` mục "Lần phát hành v1.0" — khoá site vào `vars` trước, **deploy MÃ trước khi đặt `TURNSTILE_SECRET_KEY`** (service worker cache `login.js` cũ trên iPhone đã cài PWA), để nhân viên mở app một lần, rồi `wrangler secret put` và kiểm `GET /api/auth/config` khác `null`.
-7. Lần phát hành có Bảng tin (migration Durable Object, KHÔNG có migration D1): theo `docs/HANDOFF-N1.md` mục "Lần phát hành kế tiếp: Bảng tin" — sau lần deploy đó KHÔNG `wrangler rollback` được về bản trước, và mỗi deploy ngắt mọi kết nối Bảng tin (bẫy 36–37).
+7. Lần phát hành có Bảng tin (migration Durable Object, KHÔNG có migration D1): theo `docs/HANDOFF-N1.md` mục "Bảng tin (thông báo tức thì, ADR-0022) — ĐÃ PHÁT HÀNH bản 1.16" — sau lần deploy đó KHÔNG `wrangler rollback` được về bản trước, và mỗi deploy ngắt mọi kết nối Bảng tin (bẫy 36–37).
 
 ## 6. Sai lệch tài liệu ↔ mã (mã thắng)
 
