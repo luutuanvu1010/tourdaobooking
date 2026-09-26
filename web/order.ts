@@ -350,11 +350,14 @@ function change(label: string, to: "confirmed" | "cancelled", prompt: string, cl
   return btn;
 }
 
+let loadSeq = 0; // như web/orders.ts: bỏ phản hồi của lần tải cũ hơn lần đã áp (một lần làm mới im lặng chậm không được vẽ đè bản mới hơn)
 /** `quiet` = làm mới theo tin của Bảng tin: lỗi mạng thì giữ nguyên màn hình đang hiện (không dựng banner đỏ đè lên đơn còn dùng được). */
 async function load(quiet = false): Promise<void> {
+  const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
     const [{ order, history, canModify }, handler] = await Promise.all([api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`), loadHandler(id!)]);
+    if (seq !== loadSeq) return;
     show(null);
     render(order, history, canModify, handler);
     if (autoOpenConfirmation) {
@@ -362,6 +365,7 @@ async function load(quiet = false): Promise<void> {
       openConfirmation();
     }
   } catch (err) {
+    if (seq !== loadSeq) return; // lần tải mới hơn đã/đang lo màn hình (kể cả banner lỗi)
     if (quiet && current) return;
     // Có nút "Tải lại đơn": PWA standalone không có tải lại của trình duyệt, và `load()` tự nuốt lỗi nên các nút vừa bấm (Xác nhận/Huỷ) có thể đang khoá.
     show(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn.", { action: "reload_order" }));
