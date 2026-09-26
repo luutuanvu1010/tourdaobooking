@@ -170,10 +170,12 @@ const call = async (account, method, path, body) => {
 };
 const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "", checkinDate: "", checkinTime: "", checkinPlace: "", note: "" };
 const pax = (adult) => ({ adult, child: 0, senior: 0, infant: 0 });
+// 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400) → đơn dựng sẵn dùng dịch vụ danh mục
+// giả TTB06 của a2-cdp.mjs, VẪN 3 người lớn (bước a khẳng định "Số khách: 03 NL"); trước: dịch vụ nhập tay "Xe đưa đón riêng" 3 khách × 800.000.
 const createOrder = async (account, customer) => {
   const r = await call(account, "POST", "/api/orders", {
     customerName: customer, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
+    services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
   });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
   return r.json.order;
@@ -242,19 +244,21 @@ const pick = (name) => `(() => { const l = [...document.querySelectorAll('.pick'
 const clickSave = (p) => p.ev(clickText(".sheet-foot", "Lưu người phụ trách"));
 const waitSheetClosed = (p) => p.waitFor(`${SHEET} === null`, "bảng đóng", 8000);
 
-// ---- Đơn chính: A lập BẰNG GIAO DIỆN (dịch vụ nhập tay — đủ để lập đơn) ----
+// ---- Đơn chính: A lập BẰNG GIAO DIỆN (một dịch vụ danh mục — đủ để lập đơn) ----
+// 2026-09-26 (DK-T3-01 R1): trước đây bấm nút ẩn "+ Dịch vụ nhập tay" rồi Lưu — máy chủ nay trả 400 (không nhận dịch vụ nhập tay MỚI), nên chọn dịch vụ
+// danh mục TTB06 qua ô tìm, 3 người lớn (giữ "Số khách: 03 NL" mà bước a khẳng định). Trang tới bằng env.as: GET /api/catalog có thể CHƯA xong lúc gõ,
+// và ô tìm chỉ vẽ lại khi focus/gõ → gõ lại mỗi lần thăm dò (cùng cách a2-smoke-form bước 10g).
 let mainPromise = null;
 function getMain() {
   mainPromise ??= (async () => {
     const p = await openAs(A, "/order-form", { track: false });
     const cards = "document.querySelectorAll('#services .svc')";
     const card = `${cards}[0]`;
-    await p.ev("document.getElementById('add-manual').click(); true");
-    await p.waitFor(`${cards}.length === 1`, "thẻ nhập tay");
-    await p.ev(setInput(`${card}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
-    await p.ev(setInput(`${card}.querySelector('.counter-field[aria-label="Số khách (chỉ để vận hành)"]')`, "3"));
-    await p.ev(setInput(`${card}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
-    await p.ev(setInput(`${card}.querySelector('.price-field')`, "800000"));
+    await p.ev("document.getElementById('catalog-q').focus(); true");
+    await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TTB06'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list button').length === 1; })()", "TTB06 trong danh mục", 10000);
+    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor(`${cards}.length === 1`, "thẻ danh mục TTB06");
+    await p.ev(setInput(`${card}.querySelector('.counter-field[aria-label="Người lớn"]')`, "3"));
     await p.ev(`${card}.querySelector('details.trip > summary').click(); true`);
     await p.waitFor(`${card}.querySelector('details.trip').open`, "mở khối chuyến");
     await p.ev(setInput("document.getElementById('orderDate')", vnDate(7))); // ADR-0021: một ngày cho cả đơn
@@ -333,8 +337,8 @@ try {
         assert.equal(r.name, expectedName.get(r.id), `${label}: tên khách phải còn ở dòng 1, đơn ${r.code}`);
         assert.equal(r.code, expectedCode.get(r.id), `${label}: mã đơn phải còn trong phần xổ`);
         // Bổ sung (không đổi ngày ghi ở trên): cả ba đơn của kịch bản này đều có 3 người lớn, không loại khách nào
-        // khác (getMain: bộ đếm "Số khách (chỉ để vận hành)" = 3 trên dịch vụ nhập tay → pax.adult=3; createOrder:
-        // pax(3) cũng adult=3) — phần xổ phải hiện đúng "Số khách: 03 NL" (đệm 2 chữ số, viết tắt NL — web/format.ts).
+        // khác (getMain: bộ đếm "Người lớn" = 3 trên thẻ danh mục TTB06 → pax.adult=3 — trước 2026-09-26 là bộ đếm "Số khách" của
+        // thẻ nhập tay; createOrder: pax(3) cũng adult=3) — phần xổ phải hiện đúng "Số khách: 03 NL" (đệm 2 chữ số, viết tắt NL — web/format.ts).
         assert.equal(r.pax, "03 NL", `${label}: phần xổ phải hiện đúng số khách, đơn ${r.code}`);
         // Vòng sửa sau kiểm độc lập Đợt E (2026-09-24, mục A): phần xổ phải có ĐÚNG dòng "Khách: <tên đầy đủ>" ở vị
         // trí ĐẦU TIÊN (xem chú thích LIST_ROWS) — cả ba đơn ở đây tên chưa đủ dài để dòng 1 bị cắt; ca dòng 1 THẬT

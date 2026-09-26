@@ -2,7 +2,7 @@
 // Chạy từ GỐC repo (cwd): node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs
 // `startEnv()` mặc định chạy máy chủ với Turnstile TẮT; `startEnv({ turnstile: true })` BẬT bằng khoá thử của Cloudflare (v1.0, kich-ban/v1-dang-nhap.mjs).
 import { execFileSync, spawn } from "node:child_process";
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { createServer } from "node:net";
 import { tmpdir } from "node:os";
@@ -82,9 +82,46 @@ export async function startEnv({ turnstile = false, passkey = false } = {}) {
   }
 
   const sql = (query) => JSON.parse(wrangler(["d1", "execute", "tourdao-sales-db", "--local", "--persist-to", persist, "--json", "--command", query]))[0].results;
+  /**
+   * 2026-09-26 (DK-T3-01 R1 — chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400), nhưng dữ liệu CŨ vẫn có dịch vụ
+   * nhập tay và giao diện vẫn phải hiện đúng chúng. Kịch bản cần một dịch vụ nhập tay thì lập đơn qua API với một dịch vụ DANH MỤC giữ chỗ (vd TTB06), rồi
+   * gọi hàm này KHI ĐƠN CÒN NHÁP (trigger 0008 khoá dịch vụ của đơn đã xác nhận): đổi dịch vụ `serviceId` thành nhập tay tên `name`, `adult` khách, thay
+   * các dòng tiền của nó bằng `items` ({ description, detail, quantity, unitPrice } — chi tiết rỗng lưu NULL như máy chủ), giữ thứ tự dòng, rồi tính lại
+   * tiền đơn trong MỘT câu (trigger tiền 0007). Giảm giá + cọc đã lưu phải ≤ tạm tính mới. Xác nhận đơn (nếu cần) SAU khi gọi hàm này.
+   */
+  const legacyManual = (orderId, serviceId, { name, adult = 1, items }) => {
+    const q = (v) => (v === null || v === undefined || v === "" ? "NULL" : `'${String(v).replaceAll("'", "''")}'`);
+    const [{ first }] = sql(`SELECT MIN(sort_order) AS first FROM order_item WHERE service_id = '${serviceId}' AND order_id = '${orderId}'`);
+    assert.ok(first !== null, `legacyManual: dịch vụ ${serviceId} không có dòng tiền nào trong đơn ${orderId}`);
+    const rows = items.map((it, j) =>
+      `('${randomUUID()}','${orderId}','${serviceId}',NULL,NULL,NULL,${q(it.description)},${q(it.detail)},${it.quantity},${it.unitPrice},${it.quantity * it.unitPrice},${first * 1000 + j})`);
+    const sum = `(SELECT SUM(line_total) FROM order_item WHERE order_id = '${orderId}')`;
+    // MỘT lệnh wrangler cho mọi câu ghi (mỗi lệnh mất vài giây; khoảng lặng dài làm kết nối giữ-sống của fetch chết — xem `login` dưới).
+    // Giãn thứ tự dòng của cả đơn ×1000 để chèn các dòng mới đúng chỗ dịch vụ giữ chỗ (ITEM_SELECT xếp theo sort_order của CẢ đơn).
+    sql([
+      `UPDATE order_item SET sort_order = sort_order * 1000 WHERE order_id = '${orderId}'`,
+      `DELETE FROM order_item WHERE service_id = '${serviceId}' AND order_id = '${orderId}'`,
+      `INSERT INTO order_item (id, order_id, service_id, catalog_code, pax_code, catalog_price, description, detail, quantity, unit_price, line_total, sort_order) VALUES ${rows.join(",")}`,
+      `UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = ${q(name)}, pax_adult = ${adult}, pax_child = 0, pax_senior = 0, pax_infant = 0 WHERE id = '${serviceId}' AND order_id = '${orderId}'`,
+      `UPDATE orders SET subtotal = ${sum}, total = ${sum} - discount, remaining_amount = ${sum} - discount - deposit_amount WHERE id = '${orderId}'`,
+    ].join(";\n"));
+  };
   // Gửi luôn token thử của Cloudflare (`turnstileToken`): máy chủ không bật Turnstile thì bỏ qua, bật bằng khoá thử thì token này qua được.
+  // 2026-09-26: thử lại (tối đa 3 lần) khi ECONNRESET — sau vài lệnh `wrangler d1 execute` (mỗi lệnh vài giây, vd `legacyManual`) kết nối giữ-sống của fetch
+  // Node tới máy chủ đã bị đóng; lần gửi đầu dùng lại kết nối chết đó → ECONNRESET, máy chủ KHÔNG nhận yêu cầu (đã đo: không có dòng log nào) nên gửi lại
+  // là an toàn (cùng hiện tượng và cách xử lý với va3-smoke.mjs). Mọi `call` của các kịch bản đều đăng nhập trước nên đi qua đây.
   const login = async (account) => {
-    const r = await fetch(`${base}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json", origin: base, "cf-connecting-ip": `10.9.${Math.floor(Math.random() * 250)}.1` }, body: JSON.stringify({ phone: account.phone, pin: account.pin, turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" }) });
+    const post = () => fetch(`${base}/api/auth/login`, { method: "POST", headers: { "content-type": "application/json", origin: base, "cf-connecting-ip": `10.9.${Math.floor(Math.random() * 250)}.1` }, body: JSON.stringify({ phone: account.phone, pin: account.pin, turnstileToken: "XXXX.DUMMY.TOKEN.XXXX" }) });
+    let r;
+    for (let i = 0; ; i++) {
+      try {
+        r = await post();
+        break;
+      } catch (e) {
+        if (i >= 2 || e?.cause?.code !== "ECONNRESET") throw e;
+        await sleep(200);
+      }
+    }
     assert.equal(r.status, 200, `đăng nhập ${account.phone}: ${r.status}`);
     const [pair] = r.headers.get("set-cookie").split(";");
     const i = pair.indexOf("=");
@@ -156,7 +193,7 @@ export async function startEnv({ turnstile = false, passkey = false } = {}) {
       try { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch { /* còn tiến trình ghi vào thư mục: bỏ qua, không làm hỏng kết quả kiểm */ }
     }
   };
-  return { base, localBase, persist, sql, login, openPage, as, stop, logs };
+  return { base, localBase, persist, sql, legacyManual, login, openPage, as, stop, logs };
 }
 
 /** Biểu thức JS: gõ `value` vào phần tử `el` (biểu thức trả phần tử) và bắn sự kiện input/change. */

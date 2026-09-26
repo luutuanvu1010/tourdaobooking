@@ -11,10 +11,13 @@ seedStaff(w.sqlite, { id: A, phone: "0900000001", name: "An", perms: ["SALES"] }
 seedStaff(w.sqlite, { id: B, phone: "0900000002", name: "Bình", perms: ["SALES"] });
 seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
 seedStaff(w.sqlite, { id: F, phone: "0900000004", name: "Hướng dẫn", perms: ["FIELD"] });
+// 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400) → đơn thử dùng dịch vụ danh mục
+// GIẢ ZA1 (cùng số tiền 2 × 500.000 với dịch vụ nhập tay cũ; cùng cách tests/audit/doi-tac.test.mjs). Kết quả các ca H* không phụ thuộc loại dịch vụ.
+w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
 const inDays = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const orderBody = (extra = {}) => ({
   customerName: "Khách Một", customerPhone: "0912345678",
-  services: [{ kind: "manual", name: "Tour đảo", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, departDate: inDays(3), items: [{ description: "Vé", quantity: 2, unitPrice: 500000 }] }],
+  services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
   depositAmount: 200000, depositMethod: "cash", ...extra,
 });
 const label = () => w.q("SELECT label FROM v_stf_staff_label WHERE id = ?", ADM)[0].label;

@@ -45,6 +45,8 @@ try {
   assert.equal(party.status, 201, JSON.stringify(party.json));
   // Tạo một đơn (ADMIN có quyền order.create) chỉ để sinh một dòng nhật ký "created" — trang /audit đọc bảng audit_log, seed
   // insertStaffSql không đi qua logic ứng dụng nên không tự sinh nhật ký nào.
+  // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400) → đơn dùng dịch vụ danh mục
+  // giả TTB06 của a2-cdp.mjs (trước: dịch vụ nhập tay "Xe đưa đón"). Loại dịch vụ không liên quan điều kịch bản khẳng định (5 trang bảng → thẻ).
   const order = await call(ACCOUNTS.admin, "POST", "/api/orders", {
     customerName: "Khách Kiểm Nhật Ký",
     customerPhone: "0909 000 111",
@@ -56,10 +58,10 @@ try {
     paymentNote: "",
     services: [
       {
-        kind: "manual",
-        name: "Xe đưa đón",
+        kind: "catalog",
+        catalogCode: "TTB06",
         pax: { adult: 1, child: 0, senior: 0, infant: 0 },
-        items: [{ description: "Xe", detail: "", quantity: 1, unitPrice: 100000 }],
+        catalogPriceSeen: { adult: 800000 },
         departDate: "",
         departTime: "",
         pickupTime: "",

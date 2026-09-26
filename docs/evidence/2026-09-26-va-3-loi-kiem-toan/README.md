@@ -158,6 +158,33 @@ P16 (đỏ → xanh), e2e `npm run test:e2e -- nhap-tay-va-gia-doi-tac` (D1 loca
 Test đơn vị `src/modules/orders/price-guards.test.ts`: đỏ trước (`does not provide an export named 'PARTNER_DISCOUNT_CAP'`), xanh
 sau (12/12). `src/phat-hien-han.test.ts` xanh 2/2 với `phat_hien: []` (mục DK-T3-01 đã xoá trong cùng commit).
 
+## Phần D — sửa các kịch bản Chrome cũ vỡ vì luật R1 (người thi công, 2026-09-26)
+
+Chỉ sửa phần DỰNG DỮ LIỆU; điều kịch bản khẳng định giữ nguyên, trừ MỘT chỗ trái luật mới (ghi dưới). Công cụ chung mới ở
+`2026-09-20-a2/kich-ban/a2-cdp.mjs`: `env.legacyManual(orderId, serviceId, { name, adult, items })` — đổi một dịch vụ danh mục giữ chỗ
+(TTB06) của đơn CÒN NHÁP thành dịch vụ nhập tay CŨ (nhiều dòng, giữ thứ tự dòng, tính lại tiền đơn; một lệnh wrangler cho mọi câu ghi);
+`env.login` thử lại khi ECONNRESET (kết nối giữ-sống chết sau các lệnh `wrangler d1 execute` dài — đã tái hiện: lần GET đầu sau
+`legacyManual` bị ECONNRESET, máy chủ không có dòng log nào; cùng hiện tượng `va3-smoke` đã ghi).
+
+| Kịch bản | Sửa gì | Chạy lại (ảnh/JSON ghi ra `/tmp`, KHÔNG đè bằng chứng cũ) |
+|---|---|---|
+| `2026-09-22-buoc-2-dot-a/kich-ban/dot-a-smoke.mjs` | đơn sinh dòng nhật ký: nhập tay → danh mục TTB06 | ✓ 10/10 "DOT A SMOKE OK" (chạy 2 lần: trước và sau khi đổi `a2-cdp.mjs`) |
+| `2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs` | đơn dựng sẵn: nhập tay → TTB06, vẫn 3 người lớn ("03 NL"); đơn lập bằng giao diện: chọn TTB06 qua ô tìm, 3 người lớn | ✓ 15/15 "V1 NGUOI PHU TRACH OK" (chạy 2 lần: trước và sau khi đổi `a2-cdp.mjs`) |
+| `2026-09-21-v1-0/kich-ban/v1-xac-nhan-png.mjs` | đơn dựng sẵn (`f.multi`, `f.long`, `f.confirmed`): dịch vụ nhập tay dựng bằng `legacyManual` — y dữ liệu cũ (tên dài, 3–4 dòng, chi tiết); bước a: dịch vụ thứ hai chọn TTB06 (3 người lớn) thay thẻ nhập tay | ✓ 11/11 "V1 XAC NHAN PNG OK" |
+| `2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs` | R1/R2/R3 (đơn của quản trị): dịch vụ nhập tay dựng bằng `legacyManual` — tên, giá, giờ/nơi đón y như trước; đơn của Đối tác: TTB06 giá bán lẻ, không giảm giá (R1/R2/R3) | ✓ 40 dòng ✓ "TRANG CHU SMOKE OK" |
+| `2026-09-24-lo-hong-ho-so/kich-ban/lo-hong.mjs` (không phải Chrome — khung SQLite trong bộ nhớ) | nhập tay → danh mục giả ZA1 (2 × 500.000, như `tests/audit/doi-tac`) | ✓ chạy hết; H2 403, H3a 403, H7 200/400/`party_updated` — khớp bảng "sau GĐ1" ở README của nó. Trước khi sửa: `TypeError … reading 'id'` ở dòng 41 (POST nhập tay 400) |
+| `2026-09-20-a2/kich-ban/a2-evidence.mjs` | đơn "main" ở phần B: dịch vụ "Xe đưa đón riêng" dựng bằng `legacyManual` | ✗ **vẫn vỡ, lý do KHÁC có từ bản 1.12** (ADR-0021): phần A đỏ ở `[data-trip="departDate"]` của thẻ 1 (`Cannot set properties of null`) — thẻ dịch vụ không còn ô ngày riêng; đỏ TRƯỚC mọi lời gọi máy chủ. Phần B còn gửi đơn lệch ngày (ADR-0021 → 400). Chưa sửa: ngoài phạm vi R1 |
+
+Chạy lại để kiểm hồi quy của bộ khung chung `a2-cdp.mjs` (kịch bản không đổi): `a2-smoke-form` ✓ 24 "UI SMOKE FORM OK",
+`a2-smoke-order` ✓ 11 "UI SMOKE ORDER OK", `a2-smoke-sheet` ✓ 14 "UI SMOKE SHEET OK", `va3-smoke` ✓ 8/8 "VA3 SMOKE OK" (ảnh ra `/tmp`).
+
+**Khẳng định đã đổi vì trái luật mới:** `v1-xac-nhan-png.mjs` bước a từng khẳng định đơn lập bằng giao diện có
+`["catalog", "manual"]`; giao diện không còn lập được dịch vụ nhập tay (R1) nên nay khẳng định `[["catalog","TD101"],["catalog","TTB06"]]`.
+Việc vẽ dịch vụ nhập tay trong ảnh vẫn được kiểm ở các đơn dựng sẵn (bước b, h, k).
+
+Không sửa: `2026-09-19-pwa/kich-ban/*` (dạng API trước A1 — đơn không có `services` — và puppeteer ngoài repo; lỗi thời từ trước).
+`a2-evidence.mjs` phần A vẫn bấm nút ẩn "+ Dịch vụ nhập tay" để chụp thẻ nhập tay MỚI nhưng KHÔNG lưu (chặn `fetch`) — không chạm máy chủ.
+
 ## Ảnh (`anh/`)
 
 | Ảnh | Nội dung | Khổ |

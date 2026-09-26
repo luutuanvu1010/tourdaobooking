@@ -155,12 +155,18 @@ try {
   // ================= B) trang đơn: nháp → thiếu chuyến → đã xác nhận → bảng sửa =================
   const svcTour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise", checkinTime: "09:00", note: "Đón sớm", ...o });
   const svcBanana = (o = {}) => ({ kind: "catalog", catalogCode: "TTB03", pax: pax(7), unitPrices: { adult: 1500000 }, catalogPriceSeen: { adult: 1500000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "10:00", ...o });
-  const svcCar = (o = {}) => ({ kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP, ...o });
+  // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ
+  // TTB06 (cùng 3 khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay cũ "Xe đưa đón riêng" bằng SQL khi đơn còn nháp (`env.legacyManual`).
+  const svcCar = (o = {}) => ({ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, ...o,
+    _legacy: { name: "Xe đưa đón riêng", adult: 3, items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }] } });
   const base = { customerName: "Trần Văn Bình", customerPhone: "0901 234 567", customerEmail: "", customerNote: "", discount: 100000, depositAmount: 500000, depositMethod: "cash", paymentNote: "" };
   const create = async (body) => {
-    const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", body);
+    const r = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
     assert.equal(r.status, 201, JSON.stringify(r.json));
-    return r.json.order;
+    const order = r.json.order;
+    if (!body.services.some((s) => s._legacy)) return order;
+    body.services.forEach((s, i) => s._legacy && env.legacyManual(order.id, order.services[i].id, s._legacy));
+    return (await call(ACCOUNTS.salesA, "GET", `/api/orders/${order.id}`)).json.order;
   };
   const main = await create({ ...base, services: [svcTour(), svcBanana(), svcCar()] });
   const items = "document.querySelectorAll('#order .svc-view')";
