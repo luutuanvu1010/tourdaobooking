@@ -1,4 +1,4 @@
-import { ApiError, api, type Api, type AuditEntry, type Order, type Staff } from "./api";
+import { ApiError, api, vuaLamBoiTabNay, type Api, type AuditEntry, type Order, type Staff } from "./api";
 import { renderBanner } from "./banner";
 import { openBookerSheet } from "./booker-sheet";
 import { openConfirmationDialog } from "./confirmation-dialog";
@@ -6,6 +6,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { METHOD_LABEL, STATUS_LABEL, actionLabel, dateTime, dayMonth, paxCounts, vnd } from "./format";
 import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
+import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
 import { renderServices } from "./order-services";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
@@ -14,6 +15,7 @@ import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved } from "
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { orderActions } from "../src/shared/order-view";
+import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
 const bannerEl = byId("error");
@@ -348,7 +350,8 @@ function change(label: string, to: "confirmed" | "cancelled", prompt: string, cl
   return btn;
 }
 
-async function load(): Promise<void> {
+/** `quiet` = làm mới theo tin của Bảng tin: lỗi mạng thì giữ nguyên màn hình đang hiện (không dựng banner đỏ đè lên đơn còn dùng được). */
+async function load(quiet = false): Promise<void> {
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
     const [{ order, history, canModify }, handler] = await Promise.all([api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`), loadHandler(id!)]);
@@ -359,11 +362,29 @@ async function load(): Promise<void> {
       openConfirmation();
     }
   } catch (err) {
+    if (quiet && current) return;
     // Có nút "Tải lại đơn": PWA standalone không có tải lại của trình duyệt, và `load()` tự nuốt lỗi nên các nút vừa bấm (Xác nhận/Huỷ) có thể đang khoá.
     show(banner("danger", err instanceof ApiError ? err.message : "Không tải được đơn.", { action: "reload_order" }));
   }
 }
 
+/** Đang mở bảng sửa (chuyến/khách/người phụ trách) hoặc hộp xác nhận (cùng khuôn `.sheet[role=dialog]`)? Khi đó không dựng lại trang dưới tay người dùng. */
+const sheetOpen = (): boolean => document.querySelector('.sheet[role="dialog"]') !== null;
+
+/** Làm mới theo tin (ADR-0022, TD-3): MỘT lần tải mỗi lúc (bộ gộp). Có bảng đang mở thì chỉ báo bằng dải "Tải lại" — không tự dựng lại, khỏi mất chữ đang gõ. */
+const lamMoi = taoBoLamMoi(async () => {
+  if (sheetOpen()) return show(banner("info", "Đơn vừa được cập nhật — Tải lại", { action: "reload_order" }));
+  await load(true);
+});
+
 staff = await initShell();
 if (!id) show(banner("danger", "Thiếu mã đơn."));
-else await load();
+else {
+  await load();
+  // Đăng ký MỘT lần, sau lần tải đầu (tin đến trong lúc tải đầu thì lần tải đầu đã đọc dữ liệu mới nhất). Tin về đơn KHÁC thì bỏ qua; tin về đơn
+  // do CHÍNH tab này vừa ghi (≤ 5 giây, sổ của web/api.ts) cũng bỏ qua — trang đã tự tải lại sau thao tác đó và tải lại lần nữa sẽ xoá dải "Đã lưu…".
+  window.addEventListener("don-thay-doi", (ev) => {
+    if (suKienVeDon((ev as CustomEvent<SuKienDon[]>).detail, id) && !vuaLamBoiTabNay(id)) void lamMoi.yeuCau();
+  });
+  window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
+}
