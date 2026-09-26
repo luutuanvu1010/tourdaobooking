@@ -46,13 +46,6 @@
       "nguoi_chiu_trach_nhiem": "chủ dự án"
     },
     {
-      "ma": "dispatch.request",
-      "ly_do": "ADR-0014 điều 10 định nghĩa (xin nhận / duyệt / từ chối); chưa có route; đặc tả 11 vai đề nghị bỏ.",
-      "ke_hoach": "Như dispatch.guides.view.",
-      "han": "2026-11-30",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
       "ma": "payment.receive",
       "ly_do": "Để dành cho đợt N3 (thu tiền — ADR-0004); chưa có route.",
       "ke_hoach": "Thi hành trong N3. Nếu N3 chưa bắt đầu trước hạn, chủ dự án gia hạn có ghi lý do.",
