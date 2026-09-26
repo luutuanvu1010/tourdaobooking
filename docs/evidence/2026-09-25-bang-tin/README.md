@@ -27,7 +27,7 @@ node docs/evidence/2026-09-25-bang-tin/kich-ban/bang-tin-smoke.mjs
 
 ## Kết quả lần chạy chính thức: 36 dòng ✓, 0 dòng ✗ (18 mỗi khổ, hai khổ 390 và 1040)
 
-Mỗi khổ chạy trọn kịch bản với ngữ cảnh và đơn mới. Số đo là của lần chạy chính thức (khoảng cách đo từ lúc máy chủ trả lời thao tác tới lúc thấy kết quả ở tab kia).
+Mỗi khổ chạy trọn kịch bản với ngữ cảnh và đơn mới. Số đo là của lần chạy chính thức. Mốc bắt đầu KHÁC nhau theo bước: ở (b) và (d2) đo từ lúc máy chủ đã trả lời thao tác (`t0` lấy sau khi `fetch` xong), nên không gồm độ trễ yêu cầu; ở (c), (c2), (d1) `t0` lấy ngay TRƯỚC khi bấm nút nên gồm cả độ trễ của yêu cầu đi lên máy chủ (thêm vài chục ms cục bộ).
 
 | Bước | Chứng minh | Số đo (390 / 1040) |
 |---|---|---|
@@ -52,9 +52,13 @@ Hai lựa chọn dựng kịch bản khác chữ trong phiếu việc, và vì s
 ## Đột biến chứng minh kịch bản có thể đỏ (P16)
 
 Viết sau mã, nên chứng minh đỏ bằng sửa cố ý rồi hoàn nguyên (hoàn nguyên bằng `git checkout -- <tệp>`, `git status` sạch, chạy lại xanh):
-Cả hai lần chỉ chạy khổ 390 (`KHO=390`):
+Ba lần đều chỉ chạy khổ 390 (`KHO=390`):
 1. `web/bangtin-logic.ts`: bỏ kiểm `vuaLamBoiTabNay` (`hien(tb)` thẳng) → đỏ đúng hai dòng `(c')` "B thấy thông báo nổi cho việc chính mình làm" và `(c2+e1)` cùng lỗi (16 ✓, 2 ✗), chạy trên kịch bản cuối cùng. (Lần đột biến đầu, trước khi sửa cách nhận diện "trong vùng" của axe, đỏ thêm `(e0)` do lỗi của chính kịch bản lúc mới viết — đối chứng `(e0)` bắt được; đã sửa sang đo bằng DOM `closest('.toast-vung, #error')` và chạy lại đột biến này cho ra kết quả sạch ở trên.)
 2. `web/order.ts`: `if (false && sheetOpen())` (làm mới cả khi có bảng mở) → đỏ `(d1)` và `(d2)` (dải không hiện, "hết giờ chờ") và `(d3)` (15 ✓, 3 ✗).
+
+3. `bang-tin-smoke.mjs` (đột biến chính kịch bản): mở trang của B bằng cookie của A (`moTrang(ctxB, …, cookieA)`) → đỏ `(a0)` "hai ngữ cảnh trả CÙNG một người — cookie bị dùng chung" và `(c)` (16 ✓, 2 ✗). Hoàn nguyên bằng checkout tệp kịch bản.
+
+Các kiểm sau **chưa từng thấy đỏ** (dựa vào kỷ luật, chưa có đột biến): `(f1)`/`(f2)` đúng một socket mỗi trang, `(b)` "không thông báo nổi cho tin `tao`", `(d2)` "chữ đang gõ còn nguyên", `(d3)`, `(f3)` không lỗi CSP/console, `(e0)`–axe ở phía "0 vi phạm mới" (đối chứng `(e0)` chỉ chứng minh axe bắt được, không chứng minh app đỏ được), và các ngưỡng thời gian 2 giây.
 
 ## Ảnh (`anh/`, 12 ảnh, mỗi loại hai khổ 390 và 1040)
 
@@ -63,13 +67,13 @@ Cả hai lần chỉ chạy khổ 390 (`KHO=390`):
 | `bang-tin-b-don-moi-hien-ngay-{390,1040}.png` | `/orders` của A ngay sau khi B lập đơn: dòng mới đã hiện, không có thông báo nổi |
 | `bang-tin-c-thong-bao-co-nguoi-nhan-{390,1040}.png` | `/orders` của A: thông báo "Đơn … vừa có người nhận" (trên thanh tab ở 390, góc phải trên ở 1040), dòng Y đã xổ ra ghi "Phụ trách: Sales Hai" |
 | `bang-tin-c-nguoi-nhan-khong-thay-thong-bao-{390,1040}.png` | màn hình của B sau khi tự nhận: không có thông báo nổi |
-| `bang-tin-d-dai-cap-nhat-hop-bien-nhan-{390,1040}.png` | A đang mở hộp biên nhận, hộp còn nguyên khi đơn được B xác nhận (dải nằm sau hộp) |
-| `bang-tin-d-dai-cap-nhat-bang-sua-chuyen-{390,1040}.png` | A đang mở bảng sửa chuyến, ô ghi chú còn chữ "GHI CHÚ A ĐANG GÕ DỞ 123" sau khi B đổi đơn |
+| `bang-tin-d-dai-cap-nhat-hop-bien-nhan-{390,1040}.png` | A đang mở hộp biên nhận, hộp còn nguyên khi đơn được B xác nhận. **Dải "Tải lại" KHÔNG nhìn thấy trong ảnh này** (nằm sau hộp; bằng chứng là khẳng định DOM của bước d1, không phải ảnh). Thông báo nổi "đã được xác nhận" cũng bị hộp che (xem mục dưới). Hộp còn ghi "Chờ xác nhận" dù B đã xác nhận: đó là trạng thái cũ của hộp, đúng dự kiến (hộp không tự dựng lại khi có tin) |
+| `bang-tin-d-dai-cap-nhat-bang-sua-chuyen-{390,1040}.png` | A đang mở bảng sửa chuyến, ô ghi chú còn chữ "GHI CHÚ A ĐANG GÕ DỞ 123" sau khi B đổi đơn (thấy chữ ở cả hai khổ). **Dải KHÔNG nhìn thấy trong ảnh này**; tên tệp có "dai-cap-nhat" là tên của bước, không phải của điều nhìn thấy |
 | `bang-tin-d-dai-hien-sau-khi-dong-bang-{390,1040}.png` | dải "Đơn vừa được cập nhật — Tải lại" nhìn thấy rõ sau khi A đóng bảng (lúc bảng mở, dải nằm sau bảng nên bị che) |
 
 ## Điều quan sát khi xem ảnh (không phải lỗi của kịch bản)
 
-- Khi bảng sửa chuyến hoặc hộp biên nhận đang mở, dải "Đơn vừa được cập nhật — Tải lại" nằm **sau** bảng (ở 390 bảng phủ gần kín màn hình), người dùng chỉ thấy dải sau khi đóng bảng. Đặc tả TD-3 chỉ nói "chỉ hiện dải" và không nói vị trí; kịch bản khẳng định đúng điều TD-3 nói (bảng không đóng, chữ còn nguyên) nhưng KHÔNG phán đây có phải khiếm khuyết hay không: mục đích của dải là báo cho A mà không phá bảng, và một dải A không thấy được thì chưa đạt mục đích đó. Chủ/điều phối quyết có cần báo trên chính bảng hoặc thông báo nổi khi có bảng mở. Dải có `role="alert"` nhưng nằm trong phần nền `inert` của bảng: chưa kiểm trình đọc màn hình có đọc dải đó không.
+- Khi bảng sửa chuyến hoặc hộp biên nhận đang mở, dải "Đơn vừa được cập nhật — Tải lại" nằm **sau** bảng (ở 390 bảng phủ gần kín màn hình), người dùng chỉ thấy dải sau khi đóng bảng. Đặc tả TD-3 chỉ nói "chỉ hiện dải" và không nói vị trí; kịch bản khẳng định đúng điều TD-3 nói (bảng không đóng, chữ còn nguyên) nhưng KHÔNG phán đây có phải khiếm khuyết hay không: mục đích của dải là báo cho A mà không phá bảng, và một dải A không thấy được thì chưa đạt mục đích đó. **Thông báo nổi cũng nằm dưới lớp phủ trong các ảnh này** (ở 1040 thông báo "đã được xác nhận" bị cắt và mờ dưới lớp phủ ở góc trên phải, ảnh `bang-tin-d-dai-cap-nhat-hop-bien-nhan-1040.png`; ở 390 thông báo nằm trên thanh tab nên bị bảng phủ kín; `public/app.css:856` đặt `.toast-vung` z-index 40, thấp hơn `.sheet-root` z-index 50 ở dòng 581), nên "thêm thông báo nổi khi có bảng mở" KHÔNG tự nó là cách sửa: cần chủ quyết định thứ tự lớp (z-order) hoặc một thông báo nằm TRONG bảng. Chủ/điều phối quyết. Dải có `role="alert"` nhưng nằm trong phần nền `inert` của bảng: chưa kiểm trình đọc màn hình có đọc dải đó không.
 
 ## Chưa kiểm
 
