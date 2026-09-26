@@ -2,7 +2,17 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.16: Bảng tin (thông báo tức thì, ADR-0022) ĐÃ LÊN PRODUCTION (2026-09-26 17:03 giờ VN, chủ dự án tự chạy `npm run day-len -- bang-tin` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.17: dòng báo "tạm chưa được giảm giá" của Đối tác nằm gọn một hàng ĐÃ LÊN PRODUCTION (2026-09-26 20:09 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-sua-dong-giam-gia-doi-tac` rồi `npm run trien-khai`)
+
+AI kiểm bằng lệnh chỉ đọc lúc 2026-09-26 tối, giờ VN:
+
+- **Phiên bản: 1.17.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.17."; `/js/login.js` công khai có `version:"1.17"`, `/js/order-form.js` có `discount-hint`.
+- **Mã trên `main` / GitHub:** `origin/main` = c408616 (524f2ac bản 1.17 + c408616 hai dòng `web/CLAUDE.md` chủ đã duyệt "đồng ý cả hai"); 909 test, typecheck 0, kiểm độc lập ĐẠT CÓ ĐIỀU KIỆN (điều kiện: chủ biết day-len gộp cả dòng luật — đã báo, chủ đồng ý).
+- **Worker:** `wrangler deployments list` → bản mới nhất **b2c0d12f-02b0-43ea-9e6a-858319d1037a**, tạo 2026-09-26T13:09:38Z. Mốc lùi: ce51b35f-2c3e-4845-9562-5eca7021ed7a (1.16) — cùng cấu hình Durable Object, lùi về đó được; KHÔNG lùi xa hơn (xem mục 1.16).
+- **Migration D1:** không có. **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt (D1 remote)."
+- **Chưa kiểm:** nhìn trên iPhone thật; đăng nhập tài khoản Đối tác thật.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.16: Bảng tin (thông báo tức thì, ADR-0022) ĐÃ LÊN PRODUCTION (2026-09-26 17:03 giờ VN, chủ dự án tự chạy `npm run day-len -- bang-tin` rồi `npm run trien-khai`)
 
 Số liệu do chủ báo từ kết quả `npm run trien-khai`; phần "AI kiểm" là lệnh chỉ đọc của AI lúc 2026-09-26 chiều, giờ VN:
 
