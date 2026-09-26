@@ -3,6 +3,7 @@
 Bằng chứng thực nghiệm cho `docs/AUDIT-2026-09-22-KIEN-TRUC.md`. **Không phải bộ test hồi quy** và cố ý không nằm trong `npm test`.
 
 - `harness.mjs` — nạp **cả ứng dụng** (`src/index.ts`: router + mọi module) bằng esbuild, chạy trên D1 giả = SQLite thật (`node:sqlite`) với schema dựng từ `migrations/*.sql`; đăng nhập bằng cookie ký thật (`createSessionToken`). Không mạng, không Turnstile (thiếu khoá = tắt), không đụng D1 local/remote.
+- `cloudflare-workers-gia.mjs` — lớp `DurableObject` giả, `harness.mjs` trỏ `"cloudflare:workers"` về đây (plugin esbuild) để gói được `src/index.ts` (export lớp trạm Bảng tin `BangTin`, ADR-0022) dưới Node; khung thử không có binding `BANG_TIN` nên trạm không bao giờ chạy.
 - `query-plan.test.mjs` — in kế hoạch truy vấn (EXPLAIN QUERY PLAN) của các câu nóng.
 - `redteam.test.mjs` — 17 ca, mỗi ca ghi nhãn:
   - **PASS**: hệ thống giữ được bất biến.

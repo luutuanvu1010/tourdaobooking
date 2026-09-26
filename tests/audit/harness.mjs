@@ -14,10 +14,22 @@ export function openDb() {
   return db;
 }
 
+// src/index.ts export lớp Durable Object `BangTin` (Bảng tin, ADR-0022) — lớp đó import "cloudflare:workers", mô-đun chỉ có trong runtime Worker. Trỏ nó
+// về một lớp giả rỗng cạnh tệp này (đường dẫn theo CHÍNH tệp này, không theo ROOT — AUDIT_ROOT có thể trỏ nơi khác). Khung thử không có binding
+// BANG_TIN nên trạm không bao giờ được dựng; `baoThayDoi`/`dongBangTin` của gốc lắp ráp thấy vắng binding là thôi (DP-3).
+const CLOUDFLARE_WORKERS_GIA = new URL("./cloudflare-workers-gia.mjs", import.meta.url).pathname;
+const cloudflareWorkersGia = {
+  name: "cloudflare-workers-gia",
+  setup(b) {
+    b.onResolve({ filter: /^cloudflare:workers$/ }, () => ({ path: CLOUDFLARE_WORKERS_GIA }));
+  },
+};
+
 async function bundle(entry) {
   const built = await esbuild.build({
     stdin: { contents: entry, resolveDir: `${ROOT}/src`, loader: "ts" },
     bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent",
+    plugins: [cloudflareWorkersGia],
   });
   return import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString("base64")}`);
 }

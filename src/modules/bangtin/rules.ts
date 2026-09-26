@@ -1,6 +1,7 @@
 // Luật thuần của module bangtin (ADR-0022 — Bảng tin: thông báo tức thì qua WebSocket). Không I/O, không import module
 // nào khác, không `env.DB`/SQL: đây là module hạng KHONG_DB (chủ duyệt 2026-09-25, `src/architecture.test.ts`).
-// Lớp Durable Object (`tram.ts`) và route bắt tay (`index.ts`) là việc của lượt giao sau (Task 4b).
+// Lớp Durable Object (`tram.ts`) chỉ là vỏ gọi API của Cloudflare; mọi QUYẾT ĐỊNH của nó (đóng/gửi/bỏ qua, báo thức kế) nằm ở
+// `keHoachTram` dưới đây để kiểm được bằng `node --test` (tram.ts không nạp được ngoài Worker).
 
 /** Mốc hết hạn (mili-giây epoch) của một kết nối bắt đầu lúc `nay` (mili-giây epoch), sống `hanGiay` giây (KN-1). */
 export function hetHan(nay: number, hanGiay: number): number {
@@ -34,4 +35,43 @@ export function docHanGiay(env: { BANG_TIN_HAN_GIAY?: string }): number {
 export function kiemOrigin(request: Request, url: URL): boolean {
   const origin = request.headers.get("origin");
   return origin !== null && origin === url.origin;
+}
+
+/** Một kết nối như trạm thấy lúc xét: nhãn gắn lúc nhận, mốc hết hạn (0 nếu mất gắn kèm → coi như quá hạn), còn MỞ không (`readyState` OPEN). */
+export interface KetNoiXet {
+  nhan: readonly string[];
+  hetHan: number;
+  mo: boolean;
+}
+
+/** Chỉ số (trong mảng đầu vào) các kết nối cần đóng mã 4001 / cần gửi tin; `baoThucKe` = mốc báo thức kế tiếp, null nếu không còn ai. */
+export interface KeHoachTram {
+  dong: number[];
+  gui: number[];
+  baoThucKe: number | null;
+}
+
+/**
+ * Trạm quyết định gì cho từng kết nối (KN-1, NT-2). Chỉ xét kết nối đang MỞ — `getWebSockets()` có thể trả cả kết nối đang đóng (tài liệu
+ * Cloudflare `api/state`), những kết nối đó không đóng lại, không gửi, không làm mốc báo thức. Quá hạn (đúng mốc = quá hạn) → đóng, KHÔNG gửi.
+ * Còn hạn và có ít nhất một nhãn chung với sự kiện → gửi; mỗi kết nối nhiều nhất MỘT lần vì xét theo chỉ số kết nối, không gom theo từng nhãn
+ * (tài liệu không hứa `getWebSockets(tag)` trả cùng một đối tượng qua các lần gọi). `nhanSuKien` null = lượt báo thức: chỉ đóng quá hạn.
+ * `baoThucKe` = mốc hết hạn sớm nhất của các kết nối mở còn hạn.
+ */
+export function keHoachTram(ketNoi: readonly KetNoiXet[], nhanSuKien: readonly string[] | null, nay: number): KeHoachTram {
+  const mo = ketNoi.map((k, i) => ({ i, k, hetHan: k.hetHan })).filter((x) => x.k.mo);
+  const quaHan = new Set(ketNoiQuaHan(mo, nay).map((x) => x.i));
+  const nhanCanGui = new Set(nhanSuKien ?? []);
+  const dong: number[] = [];
+  const gui: number[] = [];
+  let baoThucKe: number | null = null;
+  for (const { i, k } of mo) {
+    if (quaHan.has(i)) {
+      dong.push(i);
+      continue;
+    }
+    if (baoThucKe === null || k.hetHan < baoThucKe) baoThucKe = k.hetHan;
+    if (k.nhan.some((n) => nhanCanGui.has(n))) gui.push(i);
+  }
+  return { dong, gui, baoThucKe };
 }

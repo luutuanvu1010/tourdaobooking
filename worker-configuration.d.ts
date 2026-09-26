@@ -11,6 +11,11 @@ interface __BaseEnv_Env {
 	TURNSTILE_SECRET_KEY?: string;
 	PASSKEY_RP_ID?: string;
 	PASSKEY_ORIGIN?: string;
+	// Hai dòng dưới khai TAY (Bảng tin, ADR-0022; worktree thi công không có .dev.vars nên không chạy `npm run types`). `npm run types` sinh lại BANG_TIN
+	// từ khối `durable_objects` của wrangler.jsonc, nhưng CHỈ sinh BANG_TIN_HAN_GIAY nếu .dev.vars có tên đó (không nằm trong `vars` — production dùng mặc
+	// định 900 giây); thiếu thì thêm tay lại, không thì `docHanGiay(this.env)` ở tram.ts lỗi kiểu.
+	BANG_TIN: DurableObjectNamespace<import("./src/index").BangTin>;
+	BANG_TIN_HAN_GIAY?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {
