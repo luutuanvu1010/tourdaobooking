@@ -2,6 +2,7 @@ import { can } from "../src/shared/permissions";
 import { NO_HANDLER_TEXT, handlerText } from "../src/shared/handler-view";
 import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
+import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
 import { orderCard } from "./order-card";
 import { initShell, showError } from "./shell";
 
@@ -16,6 +17,9 @@ const loadingEl = byId("loading");
 
 let offset = 0;
 let loadSeq = 0; // bỏ kết quả của lần tải cũ khi người dùng gõ tiếp
+let moreLoading = false; // đang chạy "Tải thêm": làm mới theo tin đợi xong lượt này (nếu không, `loadSeq` của nó sẽ vứt kết quả của lượt "Tải thêm")
+let refreshWaiting = false;
+const MAX_PAGE = 100; // `GET /api/orders` nhận limit tối đa 100
 
 /** Một thẻ đơn + chỗ ghi người phụ trách (điền sau khi `GET /api/dispatch/handlers` về). */
 interface Row {
@@ -75,12 +79,17 @@ async function fillHandlers(rows: readonly Row[]): Promise<void> {
   }
 }
 
-async function load(reset: boolean): Promise<void> {
+/**
+ * `refresh` = làm mới theo tin của Bảng tin (Task 9): giữ bộ lọc/ô tìm (đọc lại từ `qInput`/`statusSel`), KHÔNG hiện khung "đang tải", lỗi mạng thì
+ * giữ danh sách cũ và không hiện lỗi, giữ vị trí cuộn, và xin `limit` = số dòng đang xem (sau "Tải thêm", tối đa 100) để không mất dòng đang xem.
+ */
+async function load(reset: boolean, refresh = false): Promise<void> {
   const seq = ++loadSeq;
   if (reset) offset = 0;
-  showError(errorEl, null);
-  if (reset) loadingEl.hidden = false;
-  const params = new URLSearchParams({ limit: String(PAGE), offset: String(offset) });
+  const limit = refresh ? soDongCanTai(listEl.children.length, PAGE, MAX_PAGE) : PAGE;
+  if (!refresh) showError(errorEl, null);
+  if (reset && !refresh) loadingEl.hidden = false;
+  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
   if (qInput.value.trim()) params.set("q", qInput.value.trim());
   if (statusSel.value) params.set("status", statusSel.value as OrderStatus);
   try {
@@ -88,16 +97,41 @@ async function load(reset: boolean): Promise<void> {
     if (seq !== loadSeq) return;
     loadingEl.hidden = true;
     const rows = orders.map((o, i) => row(o, offset + i + 1)); // số thứ tự nối tiếp khi "Tải thêm"; tìm/lọc mới đánh lại từ 1
+    const scrollY = window.scrollY; // đọc LÚC dựng (không lúc bắt đầu tải): người dùng có thể đã cuộn trong lúc chờ
     if (reset) replaceChildren(listEl, ...rows.map((r) => r.el));
     else listEl.append(...rows.map((r) => r.el));
+    if (refresh) window.scrollTo(0, scrollY);
     offset += orders.length;
     moreBtn.hidden = !hasMore;
     emptyEl.hidden = offset > 0;
     void fillHandlers(rows); // không chờ: danh sách hiện ngay, người phụ trách điền vào khi về
   } catch (err) {
-    if (seq === loadSeq) {
+    // Làm mới lặng lẽ giữ danh sách cũ — trừ khi khung "đang tải" của lần tải ĐẦU (bị làm mới này thay thế) còn hiện: lúc đó phải báo lỗi, không để trang kẹt.
+    if (seq === loadSeq && (!refresh || !loadingEl.hidden)) {
       loadingEl.hidden = true;
       showError(errorEl, err instanceof ApiError ? err.message : "Không tải được danh sách.");
+    }
+  }
+}
+
+/** Làm mới theo tin: MỘT lần tải mỗi lúc (bộ gộp), và không chen vào lượt "Tải thêm" đang chạy. */
+const lamMoi = taoBoLamMoi(async () => {
+  if (moreLoading) {
+    refreshWaiting = true;
+    return;
+  }
+  await load(true, true);
+});
+
+async function loadMore(): Promise<void> {
+  moreLoading = true;
+  try {
+    await load(false);
+  } finally {
+    moreLoading = false;
+    if (refreshWaiting) {
+      refreshWaiting = false;
+      void lamMoi.yeuCau();
     }
   }
 }
@@ -108,7 +142,10 @@ qInput.addEventListener("input", () => {
   timer = setTimeout(() => void load(true), 300);
 });
 statusSel.addEventListener("change", () => void load(true));
-moreBtn.addEventListener("click", () => void load(false));
+moreBtn.addEventListener("click", () => void loadMore());
+// Bảng tin (ADR-0022, TD-3): đơn đổi ở nơi khác / vừa nối lại → tải lại danh sách. Đăng ký MỘT lần ở đây (đầu trang), không trong hàm dựng lại.
+window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
+window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 
 // Nút "+ Đơn mới" mặc định ẩn trong HTML tĩnh, chỉ hiện cho người được lập đơn (bản đồ quyền ADR-0007 — không chép ma trận ở đây):
 // tài khoản chỉ-ACCOUNTING bấm vào sẽ bị máy chủ từ chối 403 sau khi đã điền cả form.
