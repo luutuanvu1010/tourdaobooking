@@ -376,7 +376,10 @@ if (retailOnly) {
   // Sau loadOrder: đơn cũ đã lưu giảm giá > 0 thì để ô sửa được (đưa về 0), không thì khoá.
   const discountEl = field("discount") as HTMLInputElement;
   discountEl.readOnly = num("discount") === 0;
-  discountEl.after(h("span", { class: "muted" }, "Tài khoản đối tác tạm chưa được giảm giá."));
+  // Dòng báo nằm DƯỚI cả hàng ba ô Thanh toán (không trong cột hẹp của ô giảm giá — ở máy tính từng xuống 3 hàng), ô trỏ tới nó cho trình đọc màn hình.
+  const hint = h("p", { class: "muted", id: "discount-hint" }, "Tài khoản đối tác tạm chưa được giảm giá.");
+  discountEl.setAttribute("aria-describedby", hint.id);
+  (discountEl.closest(".grid") ?? discountEl).after(hint);
 }
 recompute();
 

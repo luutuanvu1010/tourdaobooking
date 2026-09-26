@@ -69,3 +69,18 @@ trang, không phải lỗi bố cục.
   người phụ trách hiện chữ gì với Đối tác.
 - Máy tính: dòng "Tài khoản đối tác tạm chưa được giảm giá." nằm trong cột hẹp của ô Giảm giá nên xuống 3 dòng, lệch hàng so với hai
   ô bên cạnh. Ô Giảm giá khi khoá trông giống ô sửa được (không có dấu hiệu khoá ngoài dòng chữ). Chỉ là quan sát bề mặt.
+
+## Chạy lại 2026-09-26 — bản 1.17 (dòng báo giảm giá xuống 3 hàng)
+
+Lỗi: ở máy tính, dòng "Tài khoản đối tác tạm chưa được giảm giá." nằm trong cột hẹp của hàng ba ô Thanh toán nên xuống 3 hàng. Sửa
+(`web/order-form.ts`): dòng báo thành `<p class="muted" id="discount-hint">` đặt SAU cả hàng ba ô (`.grid`), ô `#discount` có
+`aria-describedby="discount-hint"`. Kịch bản bước 2/2m nay tìm dòng báo theo NỘI DUNG và đếm số hàng hiển thị (`Range.getClientRects`):
+máy tính phải 1 hàng, điện thoại ≤ 2; bước 2 kiểm thêm `aria-describedby`.
+
+- Mã chưa sửa (gốc `9e0fb88`): **đỏ** đúng bước 2 — `dòng báo ở máy tính phải nằm gọn 1 hàng — {"tag":"SPAN","id":"","cls":"muted",…,"rows":3}`;
+  4 bước ✓, 1 bước ✗ (không axe). Ảnh của lần đỏ ghi ra thư mục tạm, không đè ảnh ở đây.
+- Mã đã sửa: **6/6 ✓ (có axe, 0 vi phạm critical/serious)**; dòng báo `{"tag":"P","id":"discount-hint","rows":1,"visible":true}`. Hai ảnh
+  `anh/doi-tac-form-may-tinh.png`, `anh/doi-tac-form-dien-thoai.png` được chụp lại từ lần này.
+- Ba kịch bản gốc cho `web/order-form.ts` (`a2-smoke-form`, `a2-smoke-order`, `a2-smoke-sheet`): cả ba OK.
+- Kịch bản vẫn gọi `GET /api/catalog` bằng Đối tác (cổng `orders` của 1.15): khi nhánh A0 đưa route về `office` thì phải đổi sang
+  `/api/catalog/for-order` (ghi ở `docs/HANDOFF-N1.md` "Việc còn treo").
