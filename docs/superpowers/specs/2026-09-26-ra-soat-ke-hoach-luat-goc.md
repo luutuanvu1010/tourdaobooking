@@ -27,9 +27,9 @@
 - **Nếu không chọn A:** phải quyết 5.11 **trước 3/10** (rút vế cuối; câu mới chạy đồng hồ riêng).
 
 ### Q2 — trước 3/10: Hiến chương nào chi phối Tour Đảo trong khoảng giữ ghim cũ (người rà cơ cấu 3.2–3.3)
-- TĐ dòng "Trạng thái" (dòng 15, đã kiểm lại 2026-09-26): "…khi kho đó có điều tương ứng, điều ở đây rút thành 'theo … điều X'" — kích hoạt khi kho có điều (ngày chốt 3/10). ↔ PP:156 + H12: rút gọn ở **lần nâng ghim** (không mốc).
+- TĐ dòng "Trạng thái" (dòng 15, đã kiểm lại 2026-09-26; **câu này do chính phiên điều phối viết** khi soạn Hiến chương 25–26/9): "…khi kho đó có điều tương ứng, điều ở đây rút thành 'theo … điều X'" — kích hoạt khi kho có điều (ngày chốt 3/10). ↔ PP:156 + H12: rút gọn ở **lần nâng ghim** (không mốc).
 - Một phiên làm theo dòng 15 sẽ: thay điều bằng tham chiếu tới văn bản **không có trong repo** (phiên cloud không thấy), **ngoài thứ bậc** v2.3.0 đang ghim (`playbook/CONSTITUTION.md`:50 không có tầng Hiến chương hay ràng buộc bên ngoài), và **nới** luật Tour Đảo ở 4.4 (C13 — phiếu:92 tự ghi "là nới so với TĐ") và một vế 4.2 (C14).
-- **Khuyến nghị:** ADR chuyển tiếp của tourdao-sales, chủ duyệt **trước 3/10** (AI soạn khi chủ đồng ý; là luật ⇒ có người kiểm độc lập; số ADR kiểm trên mọi nhánh — ADR-0030/0031 đã được đặc tả "đơn tự do" giữ chỗ): (1) Phần I chi phối Tour Đảo tới lần nâng ghim; (2) rút gọn chỉ trong commit nâng ghim; (3) giữ chữ Tour Đảo ở 4.2, 4.4, 5.9 làm lớp siết; (4) ghi nợ M01 (khoảng đóng ADR-0003 ↔ nửa mở MH:16; HC 5.2 "không chồng nhau" lệch một ngày ở biên); (5) ADR-0026 (sổ tiền, proposed) nói rõ theo 4.2 bản nào.
+- **Khuyến nghị — sửa đúng câu đó, theo đường sửa của chính Phần I** (TĐ 6.4: chỉ chủ dự án duyệt, AI đề xuất bằng diff). Một ADR **không đủ**: Phần I đứng trên mọi ADR (đầu tệp TĐ; `CLAUDE.md` §2), nên ADR không vô hiệu được một câu kích hoạt nằm ở tầng trên. Câu đề xuất (nháp, thay vế cuối của dòng "Trạng thái"): "…điều ở đây chỉ rút thành 'theo … điều X' **trong chính commit nâng ghim** lên bản kho luật chứa điều đó (chủ duyệt); **tới lúc đó Phần I chi phối Tour Đảo**, và chữ chặt hơn của Tour Đảo (4.2, 4.4, 5.9) được giữ làm lớp siết (Hiến pháp 9.7)". Chủ duyệt **trước 3/10**; AI soạn diff khi chủ đồng ý; là luật ⇒ có người kiểm độc lập. Đi cùng đề xuất đó (hoặc một ADR kèm theo, số kiểm trên mọi nhánh — ADR-0030/0031 đã được đặc tả "đơn tự do" giữ chỗ): ghi nợ M01 (khoảng đóng ADR-0003 ↔ nửa mở MH:16; HC 5.2 "không chồng nhau" lệch một ngày ở biên); ADR-0026 (sổ tiền, proposed) nói rõ theo 4.2 bản nào.
 - Việc cùng lần nâng ghim (loại d): `RANG_BUOC_NGOAI.md`:10 "Sửa/thêm dòng: được tự do (siết)" trái Điều 2 v4.0.0 (H06a: chủ duyệt từng dòng); đổi tên Phần I (hai văn bản cùng tên, lý do như P09) + sửa `CLAUDE.md`:14–15 (N9); PIN-README "Cách nâng ghim (chỉ khi Core đổi…)".
 
 ### Q3 — trước khi duyệt ADR-0026 / lượt 1 Hoàn tất (không chặn 3/10): một công ty, một nơi giữ khách và tiền
@@ -92,13 +92,14 @@
 ## 8. Lời dặn cho phiên kho luật (chủ dán, trước 3/10, nếu chọn Q1 = A)
 
 ```
-Vai: LẬP KẾ HOẠCH (kho luật gốc). Đọc báo cáo rà soát độc lập gói v2.0.0 theo khung Enterprise OS và triết lý lõi Oracle:
-tệp docs/superpowers/specs/2026-09-26-ra-soat-ke-hoach-luat-goc.md của repo /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales
-(nhánh ra-soat-luat-goc; sau khi tôi gộp thì có ở main).
+Vai: LẬP KẾ HOẠCH (kho luật gốc). Đọc báo cáo rà soát độc lập gói v2.0.0 theo khung Enterprise OS và triết lý lõi Oracle — mở bằng Read theo đường dẫn tuyệt đối:
+/Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/.claude/worktrees/hien-chuong-kien-truc/docs/superpowers/specs/2026-09-26-ra-soat-ke-hoach-luat-goc.md
+(nếu thư mục đó không còn, sau khi tôi gộp nhánh ra-soat-luat-goc: /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales/docs/superpowers/specs/2026-09-26-ra-soat-ke-hoach-luat-goc.md).
 Tôi (chủ dự án) quyết:
 1. Q1 = A: vẫn chốt 2026-10-03 như đã duyệt và gắn tag v2.0.0, nhưng ghi rõ KHÔNG dự án nào ghim v2.0.0; tag đầu tiên được ghim là v2.1.0, sau phiên hợp nhất luật thực thi và gói sửa nguyên tắc. Sửa NGAY-CHOT.md và tệp phân phối cho khớp thứ tự này (không đổi chữ nguyên tắc).
-2. Soạn NGAY các đề xuất v2.1 thành tệp MỚI trong specs/inbox/ (không sửa phat-hanh-v2.0.0/): V1–V8 ở mục 3 của báo cáo — mỗi điểm có câu chữ đề xuất, lý do, giá nếu sai; đồng hồ 7 ngày tính từ ngày ghi. Có người kiểm độc lập chỉ đọc trước khi trình tôi.
-3. Làm các sửa loại (b) ở mục 4 của báo cáo (CHANGELOG, tệp phân phối, danh sách dự án); mục nào thật ra đổi chữ nguyên tắc thì chuyển sang đề xuất v2.1, không tự làm.
+2. Soạn NGAY các đề xuất v2.1 thành tệp MỚI trong specs/inbox/: V1–V8 ở mục 3 của báo cáo — mỗi điểm có câu chữ đề xuất, lý do, giá nếu sai; đồng hồ 7 ngày tính từ ngày ghi. Có người kiểm độc lập chỉ đọc trước khi trình tôi.
+   Trong phat-hanh-v2.0.0/: KHÔNG sửa ba văn bản (CONSTITUTION.md, HIEN-CHUONG-HE-THONG.md, MO-HINH-DU-LIEU-LOI.md), POLICY_HIERARCHY.md, CLAUDE.md; CHỈ sửa NGAY-CHOT.md (mục 1) và CHANGELOG-doan-them.md (mục 3).
+3. Làm các sửa loại (b) ở mục 4 của báo cáo (CHANGELOG-doan-them.md, tệp phân phối, danh sách dự án); mục nào thật ra đổi chữ nguyên tắc thì chuyển sang đề xuất v2.1, không tự làm.
 4. Đề xuất NGÀY cho phiên hợp nhất luật thực thi (P06), phạm vi gồm mục 5 của báo cáo (9 điểm thực hành EOS, khung dựng dự án templates/ + init-project.sh, GOVERNANCE 1.2/3.4/10.1, PLAYBOOK Phần 4).
 Không gắn tag, không gộp main, không đẩy main, không sửa dự án khác. Trả lời tôi tiếng Việt có dấu, ngắn, kết luận trước.
 ```
