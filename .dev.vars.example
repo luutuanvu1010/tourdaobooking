@@ -17,3 +17,9 @@ TURNSTILE_SECRET_KEY=
 # nếu không mọi lần bật/đăng nhập Face ID bị từ chối (sai origin). Để trống cả hai = TẮT (nút Face ID không hiện).
 PASSKEY_RP_ID=localhost
 PASSKEY_ORIGIN=http://localhost:8787
+
+# Bảng tin (ADR-0022): BANG_TIN_HAN_GIAY = hạn sống của MỘT kết nối Bảng tin, tính bằng giây (mặc định 900 khi vắng; kẹp trong [5, 3600]). TUỲ CHỌN, chỉ để thử/e2e
+# rút ngắn (e2e đặt bằng --var, không qua tệp này); production KHÔNG đặt. Giữ nguyên dòng cuối ở dạng chú thích; chỉ bỏ dấu # khi thật sự cần thử hạn ngắn ở máy mình.
+# BẪY: `npm run types` chỉ sinh tên này vào `Env` (worker-configuration.d.ts) nếu nó CÓ TRONG tệp `.dev.vars`; thiếu thì tệp kiểu bị viết đè và mất dòng khai tay
+# `BANG_TIN_HAN_GIAY?: string;` → `tsc` lỗi ở src/modules/bangtin/tram.ts. Chạy `npm run types` xong PHẢI kiểm tệp đó và thêm lại dòng ấy bằng tay (xem chú thích trong tệp).
+# BANG_TIN_HAN_GIAY=
