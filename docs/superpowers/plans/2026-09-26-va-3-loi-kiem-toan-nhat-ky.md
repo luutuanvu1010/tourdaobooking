@@ -35,7 +35,7 @@
 | e8000e3 | Sửa các kịch bản Chrome cũ còn tạo dịch vụ nhập tay (khung `a2-cdp.mjs` thêm `legacyManual`, thử lại khi ECONNRESET) |
 | 236a085 | ADR-0027, nhật ký này, mục nhật ký phiên bản 1.14, sổ hàng rào (3 dòng), trạng thái HANDOFF §1.5 |
 
-| (commit sau) | R2/R3 áp cho mọi tài khoản CÓ quyền Đối tác (`holdsPartner`) theo R7; e2e mục 8 |
+| a2d43e9 | R2/R3 áp cho mọi tài khoản CÓ quyền Đối tác (`holdsPartner`) theo R7; e2e mục 8 |
 
 ## Việc còn treo (không thuộc phạm vi, đã báo chủ)
 - App chưa tính **số đối tác phải trả Tour Đảo** (giá vốn cố định) — làm cùng đợt chiết khấu/sổ công nợ (ADR-0018 §11, ADR-0024…0026); khi có bảng chiết khấu, thay trần 0 bằng mức của đối tác.
@@ -50,3 +50,8 @@
 - `npm test` 817/817; `npm run typecheck` 0 lỗi; `npm run test:e2e` 20/20 (audit-invariants: đạt, 2 cảnh báo R-ORD-6a/6b do `dispatch.mjs` cố ý chèn dữ liệu hỏng).
 - Chrome: va3-smoke 8/8, a2-smoke-form 24, a2-smoke-order 11, a2-smoke-sheet 14, dot-a-smoke 10/10, dot-c-smoke 6, v1-nguoi-phu-trach 15/15, v1-xac-nhan-png 11/11, trang-chu-smoke 40 ✓.
 - Còn vỡ từ trước (bản 1.12, ADR-0021, không do nhánh này): `a2-evidence.mjs` (ô ngày theo dịch vụ đã bỏ); `2026-09-19-pwa/kich-ban/*` (dạng API trước A1). `tests/audit` 35/36 — ca P4 đỏ cả trên 823c1b1.
+
+## Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc) — **ĐẠT** (2026-09-26)
+- Vòng 1: ĐẠT CÓ ĐIỀU KIỆN — DK-T3-02, DK-T4-02 đạt, không tìm được đường lách; DK-T3-01 lọt với tài khoản PARTNER+FIELD gán qua đường cũ (tự dựng trên bản sao tạm, đơn giá 1đ → 201). Tự chạy: `npm test` 817/817, typecheck 0, e2e `admin dispatch nhap-tay-va-gia-doi-tac orders` 4/4, `va3-smoke` 8/8, đột biến bỏ R2 ở xác nhận → e2e đỏ.
+- Vòng 2 (sau a2d43e9, R7): ĐẠT — `holdsPartner` thay đủ 4 chỗ gọi, không còn `isPartnerOnly`; `price-guards.test.ts` 12/12; e2e `nhap-tay-va-gia-doi-tac` xanh (mục 8); không vai nội bộ nào mặc định mang `PARTNER` (không chặn oan).
+- Điều phối chạy toàn bộ e2e sau a2d43e9: 20/20 xanh; audit-invariants đạt, 2 cảnh báo R-ORD-6a/6b (dữ liệu hỏng cố ý của `dispatch.mjs`).
