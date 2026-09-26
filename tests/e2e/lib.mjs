@@ -246,6 +246,10 @@ export async function moBangTin(cookie, { origin = BASE, headers = {} } = {}) {
   });
   req.end();
   const tin = [];
+  /** MỌI khung văn bản (0x1) nhận được, dạng chuỗi thô — kể cả tin KHÔNG phải SuKienDon (ca 7, BT-3: "pong" tự động đáp cho "ping" là một khung
+   * 0x1 bình thường trên đường truyền — chỉ không tới `webSocketMessage()` của trạm — nhưng `JSON.parse("pong")` ném lỗi nên không vào được
+   * `tin`; kịch bản kiểm ping/pong đọc `raw` thay vì `tin`). Không dùng cho ca khác: mọi ca 1–6/8–10 chỉ cần `tin` (khung SuKienDon hợp lệ). */
+  const raw = [];
   let hetHieuLuc;
   const dong = new Promise((resolve) => { hetHieuLuc = resolve; });
   const socket = await new Promise((resolve, reject) => {
@@ -255,11 +259,13 @@ export async function moBangTin(cookie, { origin = BASE, headers = {} } = {}) {
   });
   socket.on("data", docKhungWs(({ opcode, payload }) => {
     if (opcode === 0x1) {
-      // văn bản (BT-3: trạm cũng có thể tự trả "pong" cho "ping", nhưng đó là auto-response ở tầng WebSocket, không phải khung 0x1 thường)
+      // văn bản: SuKienDon hợp lệ → `tin`; MỌI khung văn bản (kể cả "pong" tự động, BT-3) → `raw`.
+      const text = payload.toString("utf8");
+      raw.push(text);
       try {
-        tin.push(JSON.parse(payload.toString("utf8")));
+        tin.push(JSON.parse(text));
       } catch {
-        // rác — trình duyệt thật cũng bỏ qua, không đẩy vào `tin`
+        // rác hoặc "pong" — trình duyệt thật cũng bỏ qua ở tầng ứng dụng, không đẩy vào `tin`
       }
     } else if (opcode === 0x8) {
       const code = payload.length >= 2 ? payload.readUInt16BE(0) : 1005;
@@ -275,6 +281,7 @@ export async function moBangTin(cookie, { origin = BASE, headers = {} } = {}) {
   socket.on("error", () => {}); // ECONNRESET sau khi tự end() ở trên là bình thường, không phải lỗi kịch bản
   return {
     tin,
+    raw,
     dong,
     gui: (text) => socket.write(dungKhungWs(0x1, Buffer.from(text, "utf8"))),
     dongLai: () => {
