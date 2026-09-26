@@ -8,7 +8,7 @@
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
-import type { TrangThaiPhuTrach } from "../../shared/bang-tin";
+import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, MATRIX } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
@@ -94,11 +94,13 @@ export const dispatchModule: AppModule = {
 
     // Đặt/đổi người phụ trách (hoặc tự nhận khi đơn chưa có người). Thứ tự: 404 → 400 (thân) → 403 (vượt quyền) hoặc 409 stale (nhận đơn ĐÃ có người) → 400 (người được giao)
     // → 409 (không đổi) → ghi (409 stale nếu thua tranh chấp). Mọi kết quả "thua đua" là MỘT mã: 409 stale.
-    route("PUT", "/api/orders/:id/handler", "office", async ({ env, request, params, staff }) => {
+    route("PUT", "/api/orders/:id/handler", "office", async ({ env, request, params, staff, baoThayDoi }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, current] = await Promise.all([findOrderOwner(env.DB, orderId), findHandlerOf(env.DB, orderId)]);
       if (!order) return NOT_FOUND();
+      // Bảng tin (ADR-0022, NT-2): trạng thái phụ trách TRƯỚC thay đổi, tính từ `current` đã đọc — dùng cho cả luật "nhận"/"giao" và nhãn người nhận.
+      const truoc: TrangThaiPhuTrach = { coNguoi: current !== null, staffId: current?.staff_id ?? null };
       // CỐ Ý không xét trạng thái đơn: đổi/nhận người phụ trách được cả với đơn đã xác nhận và đơn ĐÃ HUỶ (khách của đơn huỷ vẫn cần người theo dõi). Với đơn huỷ, việc này chỉ
       // mở thêm cho người phụ trách quyền xem nhật ký đơn (order.history.view); sửa nội dung đơn vẫn bị các luật trạng thái của `orders` chặn như mọi người.
       const input = parseSetHandler(await readJson(request));
@@ -128,13 +130,18 @@ export const dispatchModule: AppModule = {
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return STALE();
       const now = await findHandlerOf(env.DB, orderId);
+      baoThayDoi({
+        orderId,
+        thayDoi: thayDoiCuaHandler({ nguoiGoi: staff.id, handlerTruoc: truoc, handlerSau: { coNguoi: true, staffId: input.staffId } }),
+        handlerTruoc: truoc,
+      });
       return json({ handler: toDto(now!) } satisfies SetHandlerResponse);
     }),
 
     // Huỷ đơn qua đường hẹp của người phụ trách CẤP HẸP (FIELD đang phụ trách — ADR-0014 điều 11). Không dùng cho SALES/ADMIN/PARTNER (họ huỷ qua
     // POST /api/orders/:id/status như hôm nay — order.cancel của họ vẫn "none"). Thứ tự: 404 → 403 (không phải người phụ trách/không có order.cancel) →
     // 409 (không phải đơn đã xác nhận, hoặc đã bị đổi trạng thái) → 400 (lý do) → ghi.
-    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned }) => {
+    route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -148,13 +155,14 @@ export const dispatchModule: AppModule = {
         const now = await findOrderOwner(env.DB, orderId);
         return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();
       }
+      baoThayDoi({ orderId, thayDoi: "huy" });
       return json({ ok: true } satisfies HandlerCancelResponse);
     }),
 
     // Sửa số khách của đơn đang phụ trách CẤP HẸP (FIELD — ADR-0014 điều 6). Ghi thêm dòng điều chỉnh, KHÔNG sửa đè order_service/order_item/cột
     // tiền. Không lộ giá cho FIELD: phản hồi chỉ { ok: true }. Thứ tự: 404 → 403 (không phải người phụ trách/không có order.money.edit) → 409/400
     // do editMoneyAsHandler tự kiểm (không phải đơn đã xác nhận; thân yêu cầu sai/thiếu/thừa dịch vụ) → 409 stale nếu thua khoá lạc quan.
-    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned }) => {
+    route("POST", "/api/orders/:id/handler-money-edit", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();
       const [order, assigned] = await Promise.all([findOrderOwner(env.DB, orderId), isAssigned(orderId)]);
@@ -172,6 +180,7 @@ export const dispatchModule: AppModule = {
         if (result.code === "stale") return MONEY_EDIT_STALE();
         return error(400, "invalid_input", result.message ?? "Dữ liệu không hợp lệ.");
       }
+      baoThayDoi({ orderId, thayDoi: "tien" });
       return json({ ok: true } satisfies HandlerMoneyEditResponse);
     }),
   ],

@@ -334,3 +334,64 @@ Chưa có test cho phần gốc lắp ráp (`baoThayDoi`: kiểm binding trướ
 **Commit:** `4e8fe59` (findOrderRef, handlerOf + test — ở commit này `route-access` vẫn đỏ tạm như sau 4a, R11), `7e12192` (module, trạm, gốc lắp ráp, khung thử, route-access xanh lại), `7a5e816` (cấu hình `wrangler.jsonc` + mục nhật ký này), và commit test route bắt tay + cập nhật nhật ký.
 
 Cổng phát hành: `grep` `wrangler types` / `worker-configuration` / `types --check` trong `scripts/`, `src/*.test.ts`, `.claude/hooks` → không dòng nào; không cổng nào so kiểu sinh tự động, nên tệp kiểu khai tay không làm đỏ `npm run trien-khai`. (`wrangler dev` có in "Your types might be out of date" — chỉ là nhắc, vì dòng hash đầu `worker-configuration.d.ts` là của lần sinh cũ.)
+
+## Task 5 — 8 điểm phát + hàng rào `bang-tin-guard`
+
+Hàng rào mới `src/bang-tin-guard.test.ts` (phân tích tĩnh, không chạy mã — cùng cách `src/route-write-guard.test.ts`, dùng lại `maskSource` của `scripts/source-mask-lib.mjs`): mọi route `POST|PUT|PATCH|DELETE` có đường dẫn bắt đầu `/api/orders` khai ở `src/modules/orders/index.ts` hoặc `src/modules/dispatch/index.ts` phải có ĐÚNG MỘT lời gọi `baoThayDoi(` ở CẤP THÂN HANDLER, đứng sau return áp chót và trước return cuối cùng (cũng ở cấp handler) — return/lời gọi trong hàm lồng (arrow có khối `{}`, hay `function` khai bên trong) bị loại, xác định bằng độ sâu ngoặc nhọn (mỗi `{` được gán cờ "có mở thân hàm không": `=>` liền trước → hàm; `){` mà từ khoá trước `(` là `if|for|while|switch|catch|do` → khối lệnh; là `function` → hàm; còn lại (khuôn tắt phương thức, IIFE…) → THROW "chưa hiểu khuôn này", không đoán). Đối chiếu độc lập: số route ghi `/api/orders` bóc được phải bằng số đếm trực tiếp trên bản che CHỈ chú thích (giữ chuỗi) của từng tệp. `MIEN` (danh sách miễn) rỗng hôm nay; có tự kiểm cho mục trỏ route không tồn tại.
+
+### Bước 1 — đỏ (trước khi thêm 8 lời gọi)
+
+```
+not ok 2 - hàng rào bảng tin: mọi đường ghi đơn (POST|PUT|PATCH|DELETE /api/orders…) gọi ctx.baoThayDoi đúng một lần, giữa return áp chót và return cuối
+  + [
+  +   'POST /api/orders (modules/orders/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'PUT /api/orders/:id (modules/orders/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'PUT /api/orders/:id/trip (modules/orders/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'PUT /api/orders/:id/booker (modules/orders/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'POST /api/orders/:id/status (modules/orders/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'PUT /api/orders/:id/handler (modules/dispatch/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'POST /api/orders/:id/handler-cancel (modules/dispatch/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  +   'POST /api/orders/:id/handler-money-edit (modules/dispatch/index.ts): thiếu lời gọi baoThayDoi(...)…',
+  + ]
+# pass 15
+# fail 1
+```
+Đủ 8 route, đúng tên. 8 tự kiểm của bộ bóc/bộ đánh giá (lời gọi trước return áp chót bị bắt; return trong else/try-catch vẫn ở cấp handler; lời gọi trong chú thích/chuỗi không tính; hàm lồng arrow/`function` có return sau lời gọi không bị coi là cuối/áp chót; lời gọi chỉ trong callback không tính; gọi hai lần không đạt; MIEN trỏ route lạ bị bắt; khuôn tắt phương thức làm hàng rào throw) đã xanh ngay từ đầu (test tự kiểm không phụ thuộc mã thật).
+
+### Bước 2 — thêm 8 lời gọi, xanh
+
+Thêm `baoThayDoi` vào danh sách giải cấu trúc của 8 route và gọi ngay trước `return` thành công, đúng bảng DP-1 (`orders/index.ts`: `POST /api/orders` → `"tao"`; `PUT /:id` → `"sua"`; `PUT /:id/trip` → `"chuyen"`; `PUT /:id/booker` → `"sua"`; `POST /:id/status` → `to === "cancelled" ? "huy" : "xac_nhan"`. `dispatch/index.ts`: `PUT /:id/handler` tính `truoc` từ `current` đã đọc (`{ coNguoi: current !== null, staffId: current?.staff_id ?? null }`) rồi `thayDoiCuaHandler({ nguoiGoi: staff.id, handlerTruoc: truoc, handlerSau: { coNguoi: true, staffId: input.staffId } })`, kèm `handlerTruoc: truoc`; `POST /:id/handler-cancel` → `"huy"`; `POST /:id/handler-money-edit` → `"tien"`). Đổi import `dispatch/index.ts` từ `import type { TrangThaiPhuTrach }` sang `import { thayDoiCuaHandler, type TrangThaiPhuTrach }` (giữ không đuôi `.ts`, đúng phong cách tệp).
+
+Kết quả:
+- `node --test src/bang-tin-guard.test.ts` → 16/16 xanh.
+- `npm test` → **862/862** (846 cũ + 16 hàng rào mới).
+- `npm run typecheck` → 0 lỗi (ba tsconfig).
+- `node --test "tests/audit/*.test.mjs"` → 34/35, đúng MỘT ca đỏ có sẵn `P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào (kể cả để xem việc), và không được giao phụ trách` — không đổi so với trước Task 5 (khung thử không có binding `BANG_TIN`, `env.BANG_TIN` rỗng → gốc lắp ráp `baoThayDoi` tự no-op ngay dòng đầu, DP-3).
+
+### Bước 3 — thấy chặn thật (P16)
+
+Đã stage bản xanh (`git add src/modules/orders/index.ts src/modules/dispatch/index.ts src/bang-tin-guard.test.ts`) trước khi cố ý phá, để `git diff --quiet src/modules` so được đúng "có khác bản xanh hay không" ở mỗi bước.
+
+**(a) Xoá lời gọi ở `POST /api/orders/:id/handler-cancel`:**
+```
+not ok 2 - hàng rào bảng tin: mọi đường ghi đơn …
+  + [ 'POST /api/orders/:id/handler-cancel (modules/dispatch/index.ts): thiếu lời gọi baoThayDoi(...)…' ]
+# fail 1
+```
+Nêu đúng route bị xoá, không route khác. Hoàn nguyên (thêm lại dòng `baoThayDoi({ orderId, thayDoi: "huy" });`) → 16/16 xanh lại.
+
+**(b) Dời lời gọi ở `PUT /api/orders/:id/trip` lên TRƯỚC `if (detail === null) return …`:**
+```
+not ok 2 - hàng rào bảng tin: mọi đường ghi đơn …
+  + [ 'PUT /api/orders/:id/trip (modules/orders/index.ts): thiếu lời gọi baoThayDoi(...)…' ]
+# fail 1
+```
+Lời gọi đứng trước return "không đổi gì" (áp chót lúc này) → bị bắt là sai vị trí, đúng như dự kiến (đặc tả cấm phát tin cho nhánh không đổi gì). Hoàn nguyên (dời lại xuống sau khối `updateTrip` thất bại, trước `return` thành công cuối) → 16/16 xanh lại.
+
+Sau khi hoàn nguyên cả hai: `git diff --quiet src/modules; echo $?` → `0` (khớp đúng bản đã stage, không sót thay đổi thử).
+
+### Giới hạn đã biết của hàng rào (ghi ở `docs/SO-HANG-RAO.md`, Task 11)
+
+Canh QUÊN, không canh CỐ Ý: hàng rào chỉ nhìn VỊ TRÍ văn bản của `return`/`baoThayDoi(`, không chạy mã — một lời gọi đặt đúng vị trí nhưng nằm trong một `if` phụ (ví dụ `if (Math.random() < 0.5) baoThayDoi(...)`) vẫn qua được, vì bài kiểm không biết nhánh đó có luôn chạy hay không. Không chứng minh lời gọi CHỈ chạy trên nhánh thành công (400/403/404/409 hoặc "không đổi gì") — việc đó là của e2e Task 7 (DP-1), quan sát hành vi thật qua D1 tạm. Không thấy route ghi đơn khai ở tệp/module khác ngoài hai tệp đã liệt — đã `grep -rn 'route("' src` xác nhận `/api/orders*` chỉ khai ở `orders/index.ts` và `dispatch/index.ts` hôm nay; thêm route ở tệp khác sẽ không được hàng rào này thấy.
+
+**Commit:** `Bảng tin: 8 route ghi đơn báo thay đổi + hàng rào`.

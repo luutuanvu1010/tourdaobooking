@@ -166,7 +166,7 @@ export const ordersModule: AppModule = {
       return json(result satisfies OrderListResponse);
     }),
 
-    route("POST", "/api/orders", "orders", async ({ env, request, staff, defaultHandlerStatement }) => {
+    route("POST", "/api/orders", "orders", async ({ env, request, staff, defaultHandlerStatement, baoThayDoi }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const parsed = validateOrder(await readJson(request), await validationContext(env.DB, null));
       if (!parsed.ok) return failure(parsed);
@@ -184,6 +184,8 @@ export const ordersModule: AppModule = {
         },
         booker.write,
       );
+      // Bảng tin (ADR-0022 điều 4/7): "tao" — gốc lắp ráp (src/index.ts) tự đổi thành "tao_cho_nhan" khi đơn không có người phụ trách.
+      baoThayDoi({ orderId: id, thayDoi: "tao" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
 
@@ -200,7 +202,7 @@ export const ordersModule: AppModule = {
       return json({ order, history, canModify: can(staff, "order.modify", scope) } satisfies OrderDetailResponse);
     }),
 
-    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned }) => {
+    route("PUT", "/api/orders/:id", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -224,11 +226,12 @@ export const ordersModule: AppModule = {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
       }
+      baoThayDoi({ orderId: id, thayDoi: "sua" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
 
     // Sửa trường vận hành (ngày giờ khởi hành, đón, check-in, ghi chú) — kể cả đơn ĐÃ XÁC NHẬN (Q9). Không đổi khách/tiền.
-    route("PUT", "/api/orders/:id/trip", "orders", async ({ env, request, params, staff, isAssigned }) => {
+    route("PUT", "/api/orders/:id/trip", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -244,11 +247,12 @@ export const ordersModule: AppModule = {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).
-    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned }) => {
+    route("PUT", "/api/orders/:id/booker", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
@@ -267,10 +271,11 @@ export const ordersModule: AppModule = {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
+      baoThayDoi({ orderId: id, thayDoi: "sua" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
 
-    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned }) => {
+    route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const body = await readJson(request);
@@ -298,6 +303,7 @@ export const ordersModule: AppModule = {
           return json({ error: { code: "incomplete_trip", message: "Chưa đủ thông tin chuyến để xác nhận đơn.", missing } } satisfies IncompleteTripBody, 409);
         }
       }
+      baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),
   ],
