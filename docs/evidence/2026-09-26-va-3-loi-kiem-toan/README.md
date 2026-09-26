@@ -59,6 +59,36 @@ Số đo in kèm: hàng/thẻ "(bạn)" chỉ có `["Sửa"]`; hàng/thẻ Sales
 “Huỷ đơn TD-20260926-0001 của Khách Huỷ Thử? Lý do: Khách yêu cầu huỷ. Việc huỷ không thể hoàn tác.” Khoảng cách từ đáy
 nút "Lưu số khách mới" tới đỉnh nút lý do đầu tiên: 107px (cả hai khổ).
 
+Kết quả trên là lần chạy thứ hai (sau khi thêm thử lại đăng nhập khi ECONNRESET, xem mục P16); lần chạy đầu (trước khi thêm)
+cũng 7/7 ✓. Ảnh trong `anh/` là của lần chạy thứ hai.
+
+## P16 — đã quan sát kịch bản chặn thật trên mã CŨ
+
+Không sửa `web/`/`public/` để làm đỏ: lấy nguyên cây mã **trước hai commit vá** (`823c1b1`) bằng
+`git archive 823c1b1 | tar -x -C /tmp/va3-old`, nối `node_modules` bằng liên kết mềm, `npm run build:web` ở đó, rồi chạy
+chính kịch bản này với thư mục làm việc là `/tmp/va3-old` (`ROOT` của `startEnv()` lấy từ thư mục làm việc) và
+`OUT=/tmp/va3-old-out` (không đè ảnh ở đây). Kết quả **0/7 ✓, 7/7 ✗**, thoát mã 1:
+
+```
+✗ 1) … hàng “(bạn)” KHÔNG được có “Đặt lại PIN” — ["Sửa","Đặt lại PIN"]
+✗ 2) … thẻ “(bạn)” KHÔNG được có “Đặt lại PIN” — ["Sửa","Đặt lại PIN"]
+✗ 3) … hết giờ chờ: vùng huỷ mở            (mã cũ không có .myjob-cancel / nút “Thôi”)
+✗ 4) … hết giờ chờ: vùng huỷ mở
+✗ 5a) … confirm phải được gọi đúng 1 lần — []   (mã cũ huỷ NGAY khi chạm lý do, không hỏi lại — đúng lỗi DK-T4-02)
+✗ 5b) … chạm “Thôi”                          (không có nút “Thôi”)
+✗ 5c) … chạm lại “Huỷ đơn này”              (đơn đã bị huỷ ở 5a, thẻ đã biến mất)
+0 bước ✓, 7 bước ✗
+VA3 SMOKE HỎNG
+```
+
+Rồi chạy lại trên mã đã vá (worktree, `3c7fdb3`): 7/7 ✓ như trên. Cơ chế kiểm được coi là hoạt động thật.
+
+Bẫy gặp khi chạy trên `/tmp/va3-old`: lần gọi API đầu tiên sau các lệnh `wrangler d1 execute` dựng dữ liệu hỏng
+`fetch failed … ECONNRESET` (3/3 lần), máy chủ không ghi dòng log nào — kết nối giữ-sống của fetch Node từ vòng chờ máy chủ
+đã bị đóng trong lúc chờ các lệnh SQL, lần gửi đầu dùng lại kết nối chết. Kịch bản nay **thử lại riêng lời gọi đăng nhập**
+(tối đa 2 lần, chỉ khi ECONNRESET); không thử lại POST nào khác. Đây là lỗi môi trường/kịch bản, không phải lỗi mã app.
+`a2-cdp.mjs` dùng chung không bị sửa; các kịch bản khác có cùng khuôn "SQL rồi gọi API" có thể gặp cùng bẫy này.
+
 ## Ảnh (`anh/`)
 
 | Ảnh | Nội dung | Khổ |

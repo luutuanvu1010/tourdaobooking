@@ -58,8 +58,21 @@ const shotAt = async (p, selector, name) => {
 const env = await startEnv();
 const pages = [];
 try {
+  // Đăng nhập có thử lại khi ECONNRESET: sau vài lệnh `wrangler d1 execute` (mỗi lệnh vài giây) kết nối giữ-sống của fetch Node từ vòng chờ
+  // máy chủ đã bị máy chủ đóng; lần gửi đầu tiên dùng lại kết nối chết đó → ECONNRESET, máy chủ KHÔNG nhận yêu cầu (không có dòng log).
+  // Đã gặp thật 3/3 lần khi chạy trên cây mã cũ ở /tmp (kiểm P16); chỉ thử lại lời gọi đăng nhập (không đổi dữ liệu), không thử lại POST khác.
+  const login = async (account) => {
+    for (let i = 0; ; i++) {
+      try {
+        return await env.login(account);
+      } catch (e) {
+        if (i >= 2 || e?.cause?.code !== "ECONNRESET") throw e;
+        await sleep(200);
+      }
+    }
+  };
   const call = async (account, method, path, body) => {
-    const c = await env.login(account);
+    const c = await login(account);
     const r = await fetch(env.base + path, {
       method,
       headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` },
@@ -79,7 +92,7 @@ try {
     await p.send("Page.addScriptToEvaluateOnNewDocument", {
       source: "window.__confirmCalls = []; window.__answer = false; window.confirm = (m) => { window.__confirmCalls.push(String(m)); return window.__answer === true; };",
     });
-    const c = await env.login(account);
+    const c = await login(account);
     await p.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
     await p.send("Page.navigate", { url: env.base + path });
     await p.waitFor("document.readyState === 'complete'", `trang ${path} tải xong`);
