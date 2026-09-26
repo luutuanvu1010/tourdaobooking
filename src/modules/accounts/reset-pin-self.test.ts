@@ -135,6 +135,7 @@ test("Đối chứng: Quản trị đặt lại PIN của nhân viên Bán hàng
   const sqlite = seed();
   const r = await callResetPin(sqlite, profile(ADMIN, ["ADMIN"]), SALES);
   assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.ok(r.writes.length > 0, "đối chứng phải chạy tới nhánh ghi");
   assert.match(String(r.body.pin), /^\d{6}$/);
   assert.notEqual(pinHash(sqlite, SALES), "pin-cu");
   assert.equal(Number(scalar(sqlite, `SELECT count(*) FROM audit_log WHERE action = 'pin_reset' AND target_id = '${SALES}' AND staff_id = '${ADMIN}'`)), 1);
