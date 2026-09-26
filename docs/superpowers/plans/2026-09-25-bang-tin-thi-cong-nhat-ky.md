@@ -769,3 +769,57 @@ Không thêm được an toàn: mỗi mục nhật ký BẮT BUỘC có `version
 - **`docs/SYSTEM-DESIGN.md` §17**: chỉ sửa dòng K16; câu đầu của mục ("Cập nhật 2026-09-25 (main `eec8d18`, bản 1.13)") và các dòng khác không rà lại (ngoài phạm vi). `docs/CHANGE-GUIDE.md` "Thời gian ước lượng" và số kịch bản e2e cũ cũng không đụng.
 - **Không chạy** e2e, kịch bản Chrome, iPhone, `wrangler` nào (chỉ tài liệu; e2e/Chrome đã có bằng chứng ở các mục trước). **Chưa kiểm** (ghi trong tài liệu): Safari iPhone thật, trình đọc màn hình, mất mạng thật, bảng giá/gói Cloudflare, deploy commit cũ trước-DO, hành vi `trien-khai` bước 2 với migration DO (suy luận).
 - **Kiểm sau khi viết:** `npm test` và `npm run typecheck` (số ở báo cáo Task 11); `git status` không chạm `docs/DATA-DICTIONARY.md`, `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md`, `playbook/`, `.claude/`.
+
+## Task 12 — kiểm độc lập toàn nhánh (2026-09-26)
+
+**Kết luận của người kiểm (nguoi-kiem-doc-lap, opus, chỉ đọc; HEAD kiểm `991f985`): ĐẠT CÓ ĐIỀU KIỆN.** Không có phát hiện Nghiêm trọng (không sai quyền, không lộ dữ liệu, không kiểm giả). Hai việc Quan trọng (Q1, Q2) phải làm trước khi gộp — đã làm ở đợt sửa này (mục "Đợt sửa" dưới đây). Trong 12 trọng tâm: 1–10 ĐẠT; 11 KHÔNG ĐẠT (do Q1, Q2 — nay đã sửa); 12 người kiểm phân loại từng khoản nợ.
+
+**Người kiểm đã tự chạy (cây thật, HEAD `991f985`):** `npm test` 906/906; `typecheck` 0; `build:web` 0; `tests/audit` 35/36 (chỉ P4); e2e đủ bộ 21/21; `bang-tin-smoke` 36 ✓ / 0 ✗; `v1-dang-nhap` 15 ✓; `claude-guard` 11/11; guard/architecture/web 66/66.
+
+**Đột biến người kiểm tái hiện trên BẢN SAO (cây thật nguyên vẹn):** (a) xoá `baoThayDoi` ở `PUT` booker → `bang-tin-guard` đỏ đúng route; (b1) import chéo `bangtin` → `orders` → `architecture` đỏ; (b2) `env.DB` trong `tram.ts` → bài `KHONG_DB` đỏ; (c) PARTNER có `dispatch.claim: any` → bài NT-3 đỏ; thêm: bỏ kiểm `Origin` → `bat-tay.test` đỏ.
+
+**Người kiểm KHÔNG kiểm được:** e2e/Chrome trên cây đã gộp `main` (việc của đợt sửa này); runtime Durable Object thật (`readyState` khi ngủ đông, `getTags`, alarm, migration DO khi deploy, deploy lại commit cũ); CSP `wss` ở production; iPhone Safari, trình đọc màn hình, mất mạng thật, gói/chi phí Cloudflare; 8/10 vị trí `dongBangTin` chỉ kiểm bằng đọc mã (không có ca e2e).
+
+### Hai phát hiện Quan trọng và cách đợt sửa xử lý
+
+- **Q1 — nhánh chậm `main` (bản 1.15, ADR-0028).** Đã gộp `main` vào `bang-tin` (commit "Gộp main (bản 1.15, ADR-0028/0029) vào nhánh Bảng tin"; 7 commit của `main`: `c8d3349`, `8eb59bb`, `7f1654d`, `edc9983`, `1701d64`, `b0f4609`, `9a28fd1`). Hai xung đột, giữ cả hai bên: `docs/CHANGE-GUIDE.md` §4 (giữ bẫy 33 bản mới của `main` và bẫy 34 của ADR-0028; bẫy Bảng tin đánh lại **35–42**) và `docs/SYSTEM-DESIGN.md` §16 (giữ ba dòng lệch của Bảng tin và dòng ADR-0029). Không có xung đột ở tệp luật. Commit sau sửa các chỗ trỏ số bẫy (CHANGE-GUIDE `§4 mục 35–42`, `bẫy 38`, `bẫy 36–37`; HANDOFF-N1; mục Task 11 của nhật ký này) và câu A.0 (không còn nói "production ghi 1.14"; nay dặn đọc `changelog.ts` + "TRẠNG THÁI TRIỂN KHAI" lúc phát hành; không đặt sẵn số). Hậu quả phát sinh từ việc gộp: bài mới của `main` `src/modules/accounts/reset-pin-self.test.ts` dựng ngữ cảnh giả không có `ctx.dongBangTin` mà route đặt lại PIN của nhánh này gọi hàm đó → `TypeError: ctx.dongBangTin is not a function` (npm test 908/909); đã thêm hàm rỗng vào ngữ cảnh giả của bài (chỉ bài kiểm, không đổi hành vi mã) → 909/909.
+- **Q2 — lời "đính chính" ở Task 11 là SAI.** Tài liệu Cloudflare (`https://developers.cloudflare.com/durable-objects/api/state/index.md`, kiểm 2026-09-26, dòng ~173) nói nguyên văn: "Disconnected WebSockets are not returned by this method, but `getWebSockets` may still return WebSockets even after `ws.close` has been called. For example, if the server-side WebSocket sends a close, but does not receive one back (and has not detected a disconnect from the client), then the connection is in the `CLOSING` readyState." (dòng ~175: cờ `web_socket_auto_reply_to_close`, bật sẵn từ compatibility date 2026-04-07, làm `CLOSING` hiếm hơn). Vậy bản ghi gốc của Task 4b đúng, lời "Chưa xác minh (đính chính…) điều đó KHÔNG đúng" ở Task 11 mới sai (đây là một đính chính của một đính chính; lịch sử được giữ, không xoá). Đã sửa ở mục Task 0 (bảng tài liệu), mục Task 4b, hàng và bullet của mục Task 11, và `docs/superpowers/plans/2026-09-26-bang-tin-ban-giao-dieu-phoi.md` (bullet "Phải sửa ở Task 11" gạch bỏ, ghi rút lại). Hai chú thích mã `keHoachTram` (`rules.ts`) và `DANG_MO` (`tram.ts`) ĐÚNG và KHÔNG bị sửa. Không có câu nào lặp lại khẳng định sai ở `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md`, `docs/CHANGE-GUIDE.md`, `docs/HANDOFF-N1.md` (đã grep). Riêng `getTags(ws)` trên Cloudflare thật vẫn **chưa kiểm**. Các tệp ghi chú git-ignored của phiên (`cloudflare-docs.md` §d, `progress.md`, `task-11-report.md`) do điều phối viên tự sửa.
+
+### Các phát hiện Nhỏ và cách xử lý (một dòng mỗi cái)
+
+| Mã | Nội dung | Xử lý |
+|---|---|---|
+| N1 | Chú thích mã cũ: `router.ts` 128/130 ("tạm no-op … Task 4"), `index.ts` ("chạy SAU khi phản hồi"), `bangtin-logic.ts` + bẫy 41 ("phát TRƯỚC khi dựng phản hồi") | **Đã sửa ở đợt này** (chỉ chú thích/tài liệu): phát song song, có thể tới trước hoặc sau; hoãn 500 ms đúng cho cả hai. Sửa cả một câu cùng ý ở `docs/SYSTEM-DESIGN.md` §9 |
+| N2 | README bằng chứng tự mâu thuẫn ở `(d3)` | **Đã sửa:** bỏ `(d3)` khỏi danh sách "chưa từng thấy đỏ" |
+| N3 | Tin `tien` khi số khách y nguyên (R16) + tác dụng phụ HDV bấm lưu liên tục làm mọi màn hình văn phòng tải lại ~1×/s | **Chủ quyết** — đã ghi vào `…-de-xuat-luat.md` (R16, đã thêm tác dụng phụ) |
+| N4 | R24 (dải/toast nằm dưới lớp phủ) | **Chủ quyết** — đã có ở `…-de-xuat-luat.md` |
+| N5 | KN-2: 10 vị trí `dongBangTin` đúng; 8/10 không có ca e2e; không có hàng rào tĩnh cho route mới quên `dongBangTin` | **Để nguyên** (dựa vào kỷ luật; đã ghi ở `docs/SO-HANG-RAO.md`) |
+| N6 | Tài khoản lai Đối tác + HDV vẫn thấy toast, trái "có quyền Đối tác là áp" của 1.15 | **Chủ quyết** — mục N6 mới ở `…-de-xuat-luat.md` |
+| N7 | HDV nhận tin/toast về đơn NHÁP được giao nhưng "Việc của tôi" chỉ liệt kê đơn đã xác nhận | **Chủ quyết** — mục N7 mới |
+| N8 | Không có trần số kết nối mỗi `nguoi:` (~1000 tài khoản Đối tác) | **Chủ quyết** — mục N8 mới (đề xuất trần ~10, đóng cũ nhất) |
+| N9 | Ngoại lệ "gốc lắp ráp nạp tệp lớp DO" chưa có trong chữ luật | **Chủ duyệt câu chữ** — trỏ về đề xuất 1 (mục N9 ở `…-de-xuat-luat.md`) |
+| N10 | Dòng Trạng thái + 3 chỗ `KHONG_DB` ở `docs/ARCHITECTURE.md` do AI sửa | **Chủ đọc lại khi gộp** — mục N10 mới |
+| N11 | `hienAviso` (tên hàm tiếng Tây Ban Nha, không lộ người dùng); SYSTEM-DESIGN §11 nói "hoặc mình phụ trách" nhưng tài khoản chỉ-Đối-tác không thể phụ trách (`dispatch/rules.ts:50-56`) | **Để nguyên** (không lộ người dùng; câu §11 đúng cho tài khoản lai — ghi lại ở đây, không đổi) |
+| — | Hai lỗi thị giác Đợt E (chip số khách bị cắt ở 390 px; huy hiệu xuống dòng ở 1040 px) | **Ngoài phạm vi** — đã có phương án + khuyến nghị (1) ở `…-de-xuat-luat.md` |
+
+### Chạy lại TOÀN BỘ trên cây đã gộp `main` (HEAD trước mục này: `20d8ece`)
+
+Không còn `wrangler dev` nào đang chạy khi bắt đầu (`pgrep -f "wrangler dev"` rỗng). Ảnh/kết quả của kịch bản Chrome ghi ra thư mục tạm `/tmp/bt-fix/…`, KHÔNG đè `docs/evidence/` (`git status` sạch sau khi chạy).
+
+| Lệnh | Kết quả thật |
+|---|---|
+| `npm test` (lần đầu, ngay sau gộp) | 909 test: 908 đạt, **1 đỏ** — `reset-pin-self.test.ts` "Đối chứng: Quản trị đặt lại PIN…" (`ctx.dongBangTin is not a function`); nguyên nhân do gộp, sửa như ở Q1 |
+| `npm test` (sau sửa) | **909/909** đạt, 0 đỏ |
+| `npm run typecheck` | 0 lỗi (ba tsconfig) |
+| `npm run build:web` | xanh |
+| `node --test "tests/audit/*.test.mjs"` | **35/36**; đỏ duy nhất vẫn là "P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào…" (có sẵn từ trước, `main` chưa sửa; không có ca đỏ mới) |
+| `npm run test:e2e` (đủ bộ, cần mạng) | **E2E: 21/21 kịch bản xanh** (20 kịch bản gồm `bangtin` 52,3 s, `catalog`, `nhap-tay-va-gia-doi-tac` + `audit-invariants --strict` ĐẠT, 2 cảnh báo lịch sử R-ORD-6a/6b) |
+| `bang-tin-smoke.mjs` (`ANH_DIR=/tmp/bt-fix/anh-bt`) | **36 ✓, 0 ✗** (18 mỗi khổ 390 và 1040), thoát 0 |
+| `a2-smoke-form.mjs` | 24 ✓, 0 ✗, "UI SMOKE FORM OK" |
+| `a2-smoke-order.mjs` | 11 ✓, 0 ✗, "UI SMOKE ORDER OK" |
+| `a2-smoke-sheet.mjs` | 14 ✓, 0 ✗, "UI SMOKE SHEET OK" |
+| `v1-dang-nhap.mjs` (`OUT=/tmp/bt-fix/v1`, cần mạng) | 15 bước ✓, 0 ✗, "V1 DANG NHAP OK" |
+
+`web/order-form.ts` bị CẢ HAI bên sửa (main: khoá ô đơn giá/giảm giá cho Đối tác; nhánh này: làm mới theo tin) và tự gộp không xung đột; ba `a2-smoke-*` xanh xác nhận không hỏng luồng lập/sửa đơn. Chưa chạy `doi-tac-lap-don-smoke.mjs` của `main` (ngoài danh sách yêu cầu; `main` đã chạy 6/6 trước khi gộp).
+
+**Còn lại trước khi phát hành (không đổi so với runbook `docs/HANDOFF-N1.md`):** chủ duyệt các quyết định ở `…-de-xuat-luat.md`; thử iPhone thật (Task 13); chạy lại e2e/Chrome trên đúng commit sẽ phát hành; bước A.0 chọn số phiên bản kế tiếp lúc phát hành.
