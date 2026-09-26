@@ -744,7 +744,7 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 
 ## 17. Bản đồ lõi (mô tả hiện trạng theo Hiến chương kiến trúc, `docs/ARCHITECTURE.md` Phần I)
 
-> Tài liệu **mô tả**: thua mã, sửa cùng commit khi mã đổi. Cập nhật 2026-09-25 (main `eec8d18`, bản 1.13). ADR-0022 (đã duyệt) và ADR-0024…0026 (nháp) nhắc dưới đây đang ở nhánh `thong-bao-tuc-thi`, **chưa gộp `main`**. Luật (chuẩn tắc) ở `docs/ARCHITECTURE.md`; đây chỉ ghi **đang nằm ở đâu** và **đạt/lệch/chưa có**.
+> Tài liệu **mô tả**: thua mã, sửa cùng commit khi mã đổi. Cập nhật 2026-09-25 (main `eec8d18`, bản 1.13). ADR-0022 (đã duyệt) và ADR-0024…0026 (nháp) nhắc dưới đây đã có trên `main` (gộp 2026-09-26). Luật (chuẩn tắc) ở `docs/ARCHITECTURE.md`; đây chỉ ghi **đang nằm ở đâu** và **đạt/lệch/chưa có**.
 
 | Lõi | Đang nằm ở | Tình trạng |
 |---|---|---|

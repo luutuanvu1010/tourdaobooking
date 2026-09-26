@@ -70,7 +70,7 @@ Lõi là "hệ điều hành" của app: các khái niệm **mọi module dùng 
 | K13 | **Hình chiếu tiền** | sổ công nợ **sinh từ sự kiện theo luật**, mỗi dòng trỏ về nguồn |
 | K14 | **Hợp đồng tích hợp** | Google Sheet, Cloudflare, email — chạy lại không sinh trùng (lặp an toàn) |
 | K15 | **Báo cáo** | đọc qua view công bố / hình chiếu, không đọc bảng gốc module khác |
-| K16 | **Thông báo** | Bảng tin (ADR-0022, đã duyệt 2026-09-25; tệp ADR đang ở nhánh `thong-bao-tuc-thi`, chưa gộp `main`) — hình chiếu cho màn hình, **không bao giờ là nguồn sự thật hay nơi kích hoạt tiền** |
+| K16 | **Thông báo** | Bảng tin (ADR-0022, đã duyệt 2026-09-25) — hình chiếu cho màn hình, **không bao giờ là nguồn sự thật hay nơi kích hoạt tiền** |
 
 Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/shared/`). Module nghiệp vụ dùng lõi qua `index.ts`, không làm bản riêng.
 

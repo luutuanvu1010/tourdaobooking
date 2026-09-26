@@ -12,8 +12,8 @@
 |---|---|---|
 | **Production** | bản **1.13**, bảo trì TẮT | `GET https://booking.tourdao.vn/api/auth/config` → `"version":"1.13"` |
 | **`origin/main`** | `eec8d18` — đã có bản vá DK-T2-01 + sổ `phat_hien` | `git log origin/main` |
-| Nhánh **`thong-bao-tuc-thi`** | `d44aa47`, **16 commit chưa gộp**, chỉ tài liệu (đã gộp `main` vào) | ADR-0020/0022/0023/0024/0025/0026, đặc tả Hoàn tất, tổng hợp phản biện, kế hoạch Bảng tin, trang ghép |
-| Nhánh **`hien-chuong-kien-truc`** | **chưa gộp**, chỉ tài liệu + `CLAUDE.md` | Hiến chương (`docs/ARCHITECTURE.md` Phần I), `SYSTEM-DESIGN.md` §17, đối chiếu bản mẫu + Enterprise OS, **tệp này** |
+| Nhánh **`thong-bao-tuc-thi`** | `d44aa47` — **ĐÃ GỘP `main` (2026-09-26)**, chỉ tài liệu | ADR-0020/0022/0023/0024/0025/0026, đặc tả Hoàn tất, tổng hợp phản biện, kế hoạch Bảng tin, trang ghép |
+| Nhánh **`hien-chuong-kien-truc`** | chờ gộp (đã đưa `main` mới vào 2026-09-26 để gộp tiến thẳng được), tài liệu + `CLAUDE.md` + `RANG_BUOC_NGOAI.md` + Sổ vàng | Hiến chương (`docs/ARCHITECTURE.md` Phần I), `SYSTEM-DESIGN.md` §17, đối chiếu bản mẫu + Enterprise OS, **tệp này** |
 | Nhánh `va-gia-thoa-thuan` | đã gộp `main`, đã xoá | — |
 
 **Chủ chạy để đưa tài liệu lên bản chính** (Terminal, thư mục gốc dự án; *không cần triển khai* — chỉ tài liệu):
