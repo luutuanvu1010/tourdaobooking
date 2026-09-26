@@ -531,6 +531,6 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
   2. Tạo tài khoản MỚI trên một hồ sơ ĐÃ CÓ vai kiểu cũ (`STAFF`/`SALES`/`GUIDE`/`AGENT`) không tự đóng các dòng vai cũ đó — đổi vai (không phải tạo tài khoản) mới đóng. Là câu hỏi dữ liệu, không phải lỗi.
   3. Route vai còn nhận gán MỚI cho mã vai đã ngưng dùng (`active = 0`) — chưa bị chặn ở máy chủ.
   4. Một quản trị viên tự sửa vai của CHÍNH MÌNH ở trang Nhân viên nhận lỗi 403 tiếng Việt (không có nút khoá riêng, chỉ chặn lúc lưu) — cần polish giao diện sau.
-  5. ⚠️ Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ (`GET /api/catalog` chỉ cho nhân sự văn phòng) — chưa chọn được dịch vụ từ danh mục. Chủ dự án quyết: mở danh mục cho Thực tập (có/không kèm giá) hay giữ nguyên.
+  5. ✅ ĐÃ XỬ LÝ 2026-09-26 (ADR-0028, bản 1.15): chủ dự án chọn mở danh mục CHỈ-ĐỌC, kèm giá bán lẻ, cho cả Thực tập và Đối tác (`GET /api/catalog` cổng `orders`). ~~Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ.~~
   6. ⚠️ Nợ (a): "vai đang mở" = `valid_to_date IS NULL` ở mọi nơi — dòng vai tài khoản có NGÀY KẾT THÚC trong tương lai, hoặc dòng "Kế toán" GẮN MỘT NƠI, không được luật nhóm (LC-3) và kiểm "chọn đủ vai" nhìn thấy, và không đóng được từ cả trang Hồ sơ lẫn trang Nhân viên (câu đếm ở runbook `0024` cho biết có bao nhiêu).
   7. ⚠️ Nợ (b): danh sách Nhân viên chỉ hiện TÊN VAI cho tài khoản đã gán vai (`web/staff.ts` `accessLabel`), dù tài khoản có thể có thêm quyền cộng tay — nhãn có thể thiếu.
