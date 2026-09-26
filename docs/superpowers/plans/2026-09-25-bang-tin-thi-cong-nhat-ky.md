@@ -688,3 +688,35 @@ Vai: người thi công (không tự nghiệm thu; người kiểm độc lập 
 - **Đỏ:** test thuần viết trước → `node --test src/lam-moi-web.test.ts`: `SyntaxError: The requested module '../web/lam-moi-logic.ts' does not provide an export named 'coODaSua'` (`not ok 1`). **Xanh:** `# pass 9 # fail 0`. Phía trình duyệt: smoke tạm `/private/tmp/t9-evid/smoke-t9b.mjs` (bọc `window.fetch` để làm lỗi/giữ chậm một yêu cầu) trên mã cũ (HEAD trước vòng sửa) → ca O1 ĐỎ (`hết giờ chờ: Tải thêm ra 10 dòng nối tiếp` — số dòng không về 40 vì nối trùng; script dừng ở lỗi đầu nên các ca sau KHÔNG được thử trên mã cũ); trên mã mới 6/6 ✓: O1 làm mới lỗi rồi Tải thêm → 30→40 dòng, 40/40 khác nhau; O2 làm mới chậm 1,5 s + Tải thêm ngay → 40 dòng không trùng, yêu cầu ghi nhận `limit=30&offset=0`, `limit=30&offset=30`, `limit=40&offset=0` (làm mới chạy lại); R23 làm mới im lặng chậm (bản Nháp) về sau lần tải do nút Huỷ → vẫn "Đã huỷ"; A1 bấm "Huỷ đơn này"→"Thôi" + +/− trả về số cũ → tin mới vẫn làm mới; A2 hộp huỷ mở → hoãn + dải, "Thôi" → tự làm mới, dải mất; A3 đã gõ lý do → hoãn + dải, chữ nguyên, "Tải lại" → 4 thẻ.
 - **Chạy lại:** `npm run typecheck` 0 lỗi; `npm run build:web`; `npm test` 906/906; `npm run test:e2e -- pwa` 1/1; Chrome (OUT=/tmp/t9-evid, không đè `docs/evidence`): `v1-nguoi-phu-trach.mjs` 15 bước ✓, `a2-smoke-order.mjs` OK, `dot-c-smoke.mjs` OK, `v1-bao-tri.mjs` tất cả ✓; smoke Task 9 gốc chạy lại 12/12 ✓.
 - **Chưa kiểm:** mã cũ chỉ chạy tới ca O1 (ca O2/R23/A chưa thấy đỏ trên mã cũ); "làm mới lỗi" giả lập bằng bọc `fetch`, không phải mất mạng thật; iPhone thật/Safari (blur/focus của nút khác Chrome — thử lại 400 ms dựa vào `click`+`focusout`); hộp huỷ bị hoãn chỉ thử với Chrome; kịch bản Chrome chính thức không có ca mới (smoke tạm ngoài repo).
+
+## Task 10 — kịch bản Chrome hai tài khoản (2026-09-26)
+
+Vai: thi công (việc nhỏ về mã: chỉ thêm bằng chứng, không đụng `src/`, `web/`, `public/`, test, luật). Thư mục bằng chứng: `docs/evidence/2026-09-25-bang-tin/` (`kich-ban/bang-tin-smoke.mjs`, `README.md`, `anh/` 12 ảnh).
+
+### Đã làm
+- Kịch bản `bang-tin-smoke.mjs` theo khuôn `trang-chu-smoke.mjs` và dùng `startEnv()`/`ACCOUNTS`/`env.login()`/`env.sql()` của `a2-cdp.mjs`. **Hai tài khoản mở cùng lúc** bằng hai ngữ cảnh trình duyệt (`Target.createBrowserContext`) trong một Chrome do kịch bản tự bật (không dùng mẹo "mở sau cùng" của CLAUDE.md §10). Khẳng định đầu tiên: `/api/auth/me` ở hai ngữ cảnh ra hai người khác nhau (Sales Một, Sales Hai), đọc lại A sau khi B mở vẫn ra A.
+- Các bước: (a) A `/orders`, B `/`; (b) B lập đơn bằng `fetch` trong ngữ cảnh B → dòng mới ở A trong < 2 giây, không thông báo nổi; (c) A lập đơn Y, SQL đóng `HANDLE`, B bấm "Nhận phụ trách" → A thấy thông báo nổi có mã đơn + dòng Y đổi "Phụ trách: Sales Một" thành "Sales Hai" (< 2 giây), B không thấy thông báo dù tin `nhan` tới B; (c2) B xác nhận Y → thông báo + huy hiệu ở A; (d1) A mở hộp biên nhận trên đơn nháp X, B xác nhận X → dải "Đơn vừa được cập nhật — Tải lại", hộp không đóng; (d2) A mở bảng sửa chuyến Y, gõ dở, B đổi điểm đón → dải, bảng còn mở, chữ còn nguyên, không thông báo nổi; (d3) đóng bảng, Tải lại → thấy điểm đón mới; (e) axe: nền so với khi có thông báo/dải; (f) một socket mỗi trang (bọc `WebSocket` chèn trước mã trang), không nối lại thừa, console sạch, không lỗi CSP. Mỗi khổ 390 và 1040 chạy trọn một lượt.
+- Hai chỗ khác phiếu việc (ghi cả trong README): đơn nhận việc là đơn của A (không phải đơn X của B) vì người lập cũng là người nhận thì chữ danh sách không đổi; bước (d) chia hai vì đơn nháp không có bảng sửa chuyến (chỉ đơn đã xác nhận mới có), nên "B xác nhận" kiểm bằng hộp biên nhận (`.sheet[role=dialog]`), "chữ đang gõ" kiểm bằng bảng sửa chuyến với tin `chuyen`.
+- Đối chứng dương cho axe `(e0)`: chèn cố ý `<img>` không `alt` vào `.toast-vung` → axe phải báo `image-alt` và cách so nền phải coi là "mới trong vùng". Lần đầu nó đỏ vì lỗi của kịch bản (nhận diện vùng bằng chữ bộ chọn); đã sửa sang đo bằng DOM. Nhờ đó "0 vi phạm mới" ở các dòng axe không phải kết quả rỗng.
+
+### Lệnh (từ gốc worktree, không còn `wrangler dev` nào khác; `npm run build:web` trước)
+```
+CHROME_BIN=$PWD/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh AXE_JS=/private/tmp/tourdao-axe/package/axe.min.js \
+ANH_DIR=docs/evidence/2026-09-25-bang-tin/anh node docs/evidence/2026-09-25-bang-tin/kich-ban/bang-tin-smoke.mjs
+```
+- **Kết quả chính thức: 36 dòng ✓, 0 ✗** (18 mỗi khổ), thoát 0, "BẢNG TIN CHROME HAI TÀI KHOẢN OK". Số đo (390 / 1040): dòng mới ở A sau 1030 / 1018 ms; thông báo "vừa có người nhận" sau 559 / 554 ms; danh sách đổi người phụ trách sau 1072 / 1069 ms; dải "Tải lại" sau 1028 / 1029 ms (hộp biên nhận), 1028 / 1031 ms (bảng sửa chuyến). Yếu tố chính: bộ gộp 1 giây của client + hoãn 500 ms của thông báo nổi.
+- axe: nền 0 vi phạm ở mọi ảnh chụp; khi có thông báo/dải 0 vi phạm mới; chạy riêng trên `.toast-vung` và `#error`: 0. Nền 0 nghĩa là trang sạch với bộ luật mặc định của axe, không phải axe không chạy — đối chứng `(e0)` chứng minh axe chạy và bắt được.
+
+### Đỏ trước xanh (P16) — viết sau mã, chứng minh đỏ bằng sửa cố ý
+1. `web/bangtin-logic.ts` bỏ `vuaLamBoiTabNay` (`hien(tb)`), rebuild, `KHO=390` → 15 ✓, 3 ✗: `(c')` "B thấy thông báo nổi cho việc chính mình làm", `(c2+e1)` cùng lỗi, `(e0)` (lỗi kịch bản lúc đó, xem trên). Hoàn nguyên bằng `git checkout -- web/bangtin-logic.ts`.
+2. `web/order.ts` `if (false && sheetOpen())`, rebuild, `KHO=390` → 15 ✓, 3 ✗: `(d1)` và `(d2)` "hết giờ chờ: dải …", `(d3)` "dải phải còn hiện sau khi đóng bảng". Hoàn nguyên bằng `git checkout -- web/order.ts`.
+Sau mỗi hoàn nguyên: `git status --short` chỉ còn thư mục bằng chứng (`??`), `npm run build:web` lại, chạy chính thức xanh.
+
+### Ảnh (12, xem `docs/evidence/2026-09-25-bang-tin/README.md`)
+Đơn mới hiện ở danh sách A không thông báo; thông báo "vừa có người nhận" + dòng đã xổ "Phụ trách: Sales Hai"; màn hình B không thông báo; hộp biên nhận còn mở dưới dải; bảng sửa chuyến còn chữ "GHI CHÚ A ĐANG GÕ DỞ 123"; dải "Đơn vừa được cập nhật — Tải lại" sau khi đóng bảng. Mỗi loại hai khổ 390 và 1040.
+
+### Điều quan sát để điều phối xử (không sửa ở task này)
+- Khi bảng/hộp đang mở, dải "Tải lại" nằm sau bảng (ở 390 bảng phủ gần kín màn hình) nên người dùng không thấy dải cho tới khi đóng bảng; dải `role="alert"` lại nằm trong phần nền `inert`. Đặc tả không quy định vị trí nên không coi là lỗi mã; nêu để chủ quyết có cần báo trên chính bảng hoặc thông báo nổi khi có bảng mở. Chưa kiểm trình đọc màn hình.
+
+### Chưa kiểm / còn mở
+- iPhone Safari thật, khoá màn hình ≥ 1 phút (TD-7) và LAN/production: Task 13. Mất mạng thật (rớt Wi-Fi, 4G, máy ngủ) và nối lại + `can-tai-lai` ở trình duyệt thật: không nằm trong kịch bản chính thức này. Chưa đo trên Cloudflare thật (chỉ `wrangler dev`, số ms là của máy cục bộ). Chỉ hai tài khoản Bán hàng; loại tin `giao`, `huy`, `tao_cho_nhan` chưa có ca Chrome riêng ở đây. `v1-dang-nhap.mjs` (TD-5) không chạy lại. Người thi công không tự nghiệm thu (N8): chờ người kiểm độc lập.
