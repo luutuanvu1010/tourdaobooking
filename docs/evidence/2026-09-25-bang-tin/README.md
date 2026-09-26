@@ -32,7 +32,7 @@ Mỗi khổ chạy trọn kịch bản với ngữ cảnh và đơn mới. Số 
 | Bước | Chứng minh | Số đo (390 / 1040) |
 |---|---|---|
 | a0, a1 | Hai ngữ cảnh, hai người khác nhau; A ở `/orders`, B ở `/` | có |
-| f1 | Mỗi trang sau đăng nhập mở đúng **một** WebSocket tới `/api/bang-tin` (đếm bằng bọc `WebSocket` chèn trước mã trang), ở 6 trang: A `/orders`, A `/order?id=X`, A `/order?id=Y`, B `/`, B `/order?id=Y` | 1 socket mỗi trang |
+| f1 | Mỗi trang sau đăng nhập mở đúng **một** WebSocket tới `/api/bang-tin` (đếm bằng bọc `WebSocket` chèn trước mã trang), ở 5 trang: A `/orders`, A `/order?id=X`, A `/order?id=Y`, B `/`, B `/order?id=Y` (trang B `/order?id=X` chỉ được kiểm ở `f2`/`f3` chứ không có dòng `f1` riêng) | 1 socket mỗi trang |
 | b | B lập đơn X bằng `fetch` trong ngữ cảnh B; dòng mới hiện ở `/orders` của A **dưới 2 giây**, và **không** có thông báo nổi (tin `tao` chỉ làm mới); A nhận đúng tin `thayDoi=tao` | 1030 ms / 1018 ms |
 | c0 | A lập đơn Y; đóng dòng `HANDLE` của Y bằng SQL (như `tests/e2e/dispatch.mjs`) → đơn chưa có người; danh sách A đang ghi "Phụ trách: Sales Một" | có |
 | c | B bấm **"Nhận phụ trách"** trên `/order?id=Y` → A thấy thông báo nổi "Đơn TD-… vừa có người nhận" (`aria-live=polite`, liên kết `/order?id=Y`) và dòng Y đổi từ "Phụ trách: Sales Một" sang "Phụ trách: Sales Hai", cả hai **dưới 2 giây** | thông báo 559 / 554 ms; danh sách 1072 / 1069 ms |
@@ -53,7 +53,7 @@ Hai lựa chọn dựng kịch bản khác chữ trong phiếu việc, và vì s
 
 Viết sau mã, nên chứng minh đỏ bằng sửa cố ý rồi hoàn nguyên (hoàn nguyên bằng `git checkout -- <tệp>`, `git status` sạch, chạy lại xanh):
 Cả hai lần chỉ chạy khổ 390 (`KHO=390`):
-1. `web/bangtin-logic.ts`: bỏ kiểm `vuaLamBoiTabNay` (`hien(tb)` thẳng) → đỏ `(c')` "B thấy thông báo nổi cho việc chính mình làm" và `(c2+e1)` cùng lỗi (15 ✓, 3 ✗). Dòng ✗ thứ ba của lần đó là `(e0)`: lỗi của CHÍNH kịch bản lúc mới viết (nhận diện "trong vùng" bằng chữ của bộ chọn axe, không khớp với phần tử có `id`), do đối chứng `(e0)` bắt được, đã sửa sang đo bằng DOM (`closest('.toast-vung, #error')`) rồi chạy lại xanh; lần đột biến 1 không chạy lại sau sửa đó (dòng `(c')` đỏ không phụ thuộc phần axe).
+1. `web/bangtin-logic.ts`: bỏ kiểm `vuaLamBoiTabNay` (`hien(tb)` thẳng) → đỏ đúng hai dòng `(c')` "B thấy thông báo nổi cho việc chính mình làm" và `(c2+e1)` cùng lỗi (16 ✓, 2 ✗), chạy trên kịch bản cuối cùng. (Lần đột biến đầu, trước khi sửa cách nhận diện "trong vùng" của axe, đỏ thêm `(e0)` do lỗi của chính kịch bản lúc mới viết — đối chứng `(e0)` bắt được; đã sửa sang đo bằng DOM `closest('.toast-vung, #error')` và chạy lại đột biến này cho ra kết quả sạch ở trên.)
 2. `web/order.ts`: `if (false && sheetOpen())` (làm mới cả khi có bảng mở) → đỏ `(d1)` và `(d2)` (dải không hiện, "hết giờ chờ") và `(d3)` (15 ✓, 3 ✗).
 
 ## Ảnh (`anh/`, 12 ảnh, mỗi loại hai khổ 390 và 1040)
@@ -69,7 +69,7 @@ Cả hai lần chỉ chạy khổ 390 (`KHO=390`):
 
 ## Điều quan sát khi xem ảnh (không phải lỗi của kịch bản)
 
-- Khi bảng sửa chuyến hoặc hộp biên nhận đang mở, dải "Đơn vừa được cập nhật — Tải lại" nằm **sau** bảng (ở 390 bảng phủ gần kín màn hình), người dùng chỉ thấy dải sau khi đóng bảng. Đặc tả TD-3 chỉ nói "chỉ hiện dải" và không nói vị trí, nên kịch bản không coi là lỗi; nên để chủ/người kiểm xem có muốn báo trên bảng hoặc thông báo nổi khi có bảng mở. Dải có `role="alert"` nhưng nằm trong phần nền `inert` của bảng: chưa kiểm trình đọc màn hình có đọc dải đó không.
+- Khi bảng sửa chuyến hoặc hộp biên nhận đang mở, dải "Đơn vừa được cập nhật — Tải lại" nằm **sau** bảng (ở 390 bảng phủ gần kín màn hình), người dùng chỉ thấy dải sau khi đóng bảng. Đặc tả TD-3 chỉ nói "chỉ hiện dải" và không nói vị trí; kịch bản khẳng định đúng điều TD-3 nói (bảng không đóng, chữ còn nguyên) nhưng KHÔNG phán đây có phải khiếm khuyết hay không: mục đích của dải là báo cho A mà không phá bảng, và một dải A không thấy được thì chưa đạt mục đích đó. Chủ/điều phối quyết có cần báo trên chính bảng hoặc thông báo nổi khi có bảng mở. Dải có `role="alert"` nhưng nằm trong phần nền `inert` của bảng: chưa kiểm trình đọc màn hình có đọc dải đó không.
 
 ## Chưa kiểm
 

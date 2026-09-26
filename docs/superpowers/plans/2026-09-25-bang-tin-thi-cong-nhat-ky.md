@@ -708,7 +708,7 @@ ANH_DIR=docs/evidence/2026-09-25-bang-tin/anh node docs/evidence/2026-09-25-bang
 - axe: nền 0 vi phạm ở mọi ảnh chụp; khi có thông báo/dải 0 vi phạm mới; chạy riêng trên `.toast-vung` và `#error`: 0. Nền 0 nghĩa là trang sạch với bộ luật mặc định của axe, không phải axe không chạy — đối chứng `(e0)` chứng minh axe chạy và bắt được.
 
 ### Đỏ trước xanh (P16) — viết sau mã, chứng minh đỏ bằng sửa cố ý
-1. `web/bangtin-logic.ts` bỏ `vuaLamBoiTabNay` (`hien(tb)`), rebuild, `KHO=390` → 15 ✓, 3 ✗: `(c')` "B thấy thông báo nổi cho việc chính mình làm", `(c2+e1)` cùng lỗi, `(e0)` (lỗi kịch bản lúc đó, xem trên). Hoàn nguyên bằng `git checkout -- web/bangtin-logic.ts`.
+1. `web/bangtin-logic.ts` bỏ `vuaLamBoiTabNay` (`hien(tb)`), rebuild, `KHO=390` → 16 ✓, 2 ✗ đúng hai dòng: `(c')` "B thấy thông báo nổi cho việc chính mình làm" và `(c2+e1)` cùng lỗi. (Lần đột biến đầu, trước khi sửa cách nhận diện vùng của axe, đỏ thêm `(e0)` do lỗi của chính kịch bản lúc đó; đã chạy lại đột biến này trên kịch bản cuối, kết quả sạch như trên.) Hoàn nguyên bằng `git checkout -- web/bangtin-logic.ts`.
 2. `web/order.ts` `if (false && sheetOpen())`, rebuild, `KHO=390` → 15 ✓, 3 ✗: `(d1)` và `(d2)` "hết giờ chờ: dải …", `(d3)` "dải phải còn hiện sau khi đóng bảng". Hoàn nguyên bằng `git checkout -- web/order.ts`.
 Sau mỗi hoàn nguyên: `git status --short` chỉ còn thư mục bằng chứng (`??`), `npm run build:web` lại, chạy chính thức xanh.
 
@@ -716,7 +716,7 @@ Sau mỗi hoàn nguyên: `git status --short` chỉ còn thư mục bằng chứ
 Đơn mới hiện ở danh sách A không thông báo; thông báo "vừa có người nhận" + dòng đã xổ "Phụ trách: Sales Hai"; màn hình B không thông báo; hộp biên nhận còn mở dưới dải; bảng sửa chuyến còn chữ "GHI CHÚ A ĐANG GÕ DỞ 123"; dải "Đơn vừa được cập nhật — Tải lại" sau khi đóng bảng. Mỗi loại hai khổ 390 và 1040.
 
 ### Điều quan sát để điều phối xử (không sửa ở task này)
-- Khi bảng/hộp đang mở, dải "Tải lại" nằm sau bảng (ở 390 bảng phủ gần kín màn hình) nên người dùng không thấy dải cho tới khi đóng bảng; dải `role="alert"` lại nằm trong phần nền `inert`. Đặc tả không quy định vị trí nên không coi là lỗi mã; nêu để chủ quyết có cần báo trên chính bảng hoặc thông báo nổi khi có bảng mở. Chưa kiểm trình đọc màn hình.
+- Khi bảng/hộp đang mở, dải "Tải lại" nằm sau bảng (ở 390 bảng phủ gần kín màn hình) nên người dùng không thấy dải cho tới khi đóng bảng; dải `role="alert"` lại nằm trong phần nền `inert`. Đặc tả không quy định vị trí; kịch bản chỉ khẳng định điều TD-3 nói (bảng không đóng, chữ còn nguyên) và KHÔNG phán đây có phải khiếm khuyết hay không — nhưng mục đích của dải là báo cho người dùng, và dải không thấy được thì chưa đạt mục đích. Chủ/điều phối quyết có cần báo trên chính bảng hoặc thông báo nổi khi có bảng mở. Chưa kiểm trình đọc màn hình. Bằng chứng: ảnh `…-hop-bien-nhan-*` và `…-bang-sua-chuyen-*` (không thấy dải), `…-dai-hien-sau-khi-dong-bang-*` (dải chỉ thấy sau khi đóng bảng).
 
 ### Chưa kiểm / còn mở
 - iPhone Safari thật, khoá màn hình ≥ 1 phút (TD-7) và LAN/production: Task 13. Mất mạng thật (rớt Wi-Fi, 4G, máy ngủ) và nối lại + `can-tai-lai` ở trình duyệt thật: không nằm trong kịch bản chính thức này. Chưa đo trên Cloudflare thật (chỉ `wrangler dev`, số ms là của máy cục bộ). Chỉ hai tài khoản Bán hàng; loại tin `giao`, `huy`, `tao_cho_nhan` chưa có ca Chrome riêng ở đây. `v1-dang-nhap.mjs` (TD-5) không chạy lại. Người thi công không tự nghiệm thu (N8): chờ người kiểm độc lập.
