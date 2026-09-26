@@ -439,6 +439,48 @@ npm run trien-khai
 - Chỉ tài khoản **Toàn quyền** mới cấp được quyền **Quản trị** cho người khác (trước đây Quản trị cũng cấp được).
 - Trang Hồ sơ (giao diện) không còn cho CHỌN thêm vai kiểu cũ "Hướng dẫn viên"/"Bán hàng"/"Đại lý"/"Nhân sự" (migration `0024` chỉ đặt `active = 0` cho 4 mã này, không đổi nhóm — máy chủ CHƯA chặn gán mới qua API, chỉ giao diện ẩn lựa chọn) — hồ sơ đã có sẵn các vai này KHÔNG bị đổi.
 
+## Lần phát hành kế tiếp: Bảng tin (thông báo tức thì, ADR-0022) — CHƯA PHÁT HÀNH — RUNBOOK
+
+**Trạng thái: CHƯA phát hành.** Mã nằm ở nhánh `bang-tin` (chưa gộp `main`, chưa đẩy, chưa deploy); production vẫn theo mục "TRẠNG THÁI TRIỂN KHAI" ở đầu tệp — mục này KHÔNG mô tả production. Chủ dự án quyết và TỰ CHẠY các lệnh đẩy/deploy trong ứng dụng Terminal của macOS (`CLAUDE.md` §8: AI không chạy); mục này chỉ chuẩn bị và liệt kê NGUYÊN LỆNH. Mô tả kỹ thuật: `docs/SYSTEM-DESIGN.md` §2, §3, §9, §11; công thức và bẫy: `docs/CHANGE-GUIDE.md` công thức v, bẫy 34–41; nhật ký thi công: `docs/superpowers/plans/2026-09-25-bang-tin-thi-cong-nhat-ky.md`; bằng chứng giao diện: `docs/evidence/2026-09-25-bang-tin/`; sổ hàng rào: `docs/SO-HANG-RAO.md`.
+
+**Bảng tin là gì (một dòng):** khi một đồng nghiệp lập/nhận/giao/xác nhận/huỷ/sửa một đơn, mọi màn hình đang mở (danh sách đơn, Trang chủ, trang đơn, "Việc của tôi") tự cập nhật, kèm thông báo nhỏ với một số loại thay đổi — qua WebSocket tới MỘT Durable Object. Đối tác chỉ được làm mới màn hình, không có thông báo nhỏ.
+
+**Có gì KHÁC các lần phát hành trước (đọc kỹ):**
+1. **KHÔNG có migration D1.** `wrangler d1 migrations list` không đổi. Vì vậy `npm run trien-khai` bước 2 sẽ báo "No migrations to apply" — bình thường (suy từ cách hoạt động, chưa quan sát); bước 4 (Time Travel, hỏi áp migration) bị bỏ qua. Điểm khôi phục Time Travel của D1 KHÔNG liên quan tới lần này.
+2. **CÓ migration Durable Object** (`migrations` ở `wrangler.jsonc`: tag `v1`, `new_sqlite_classes: ["BangTin"]`). Nó do CHÍNH `wrangler deploy` (bước 6 của `trien-khai`) tự áp — không có lệnh áp riêng, không hỏi lại. Đây là **cửa MỘT chiều mềm**: đọc mục "Điểm lùi" ngay dưới trước khi gõ lệnh.
+3. **Không đổi bí mật, không đổi `vars`** của production (không `wrangler secret put`, không sửa `vars`). Không đặt `BANG_TIN_HAN_GIAY` (production dùng mặc định 900 giây).
+4. **CSP mới** (`wss://booking.tourdao.vn` ở `connect-src`, `public/_headers`) đi cùng tệp tĩnh, cùng lần deploy. Service worker không cache `/api/*` và không can thiệp WebSocket, nên đường bắt tay luôn đi thẳng tới Worker. Máy đã cài app nhận khung mới khi mở lại/tải lại app; trong lúc khung cũ còn trong bộ nhớ đệm, Bảng tin có thể chưa chạy thêm một lần mở (suy từ cách service worker làm việc — **chưa kiểm trên iPhone thật**); không phải lỗi máy chủ.
+5. **Mỗi lần deploy (lần này và mọi lần sau) ngắt MỌI kết nối Bảng tin** (Cloudflare khởi động lại Durable Object). Trình duyệt tự nối lại trong 1–30 giây rồi tải lại dữ liệu — mọi màn hình đang mở tải lại gần như cùng lúc. Không phải sự cố.
+6. **Chi phí:** chủ dự án đã xác nhận gói Workers TRẢ PHÍ (2026-09-21, `docs/SYSTEM-DESIGN.md` §12); ước tính của nghiên cứu (`docs/superpowers/specs/2026-09-25-thong-bao-tuc-thi-nghien-cuu.md` §3.6) là nằm trong gói hiện có. **Chưa kiểm** lại bảng giá/giới hạn Durable Object hiện hành trên tài khoản Cloudflare thật.
+
+**Điểm lùi ĐỔI CÁCH (quan trọng):**
+- Sau lần deploy này **KHÔNG `wrangler rollback` được** về bản trước: Cloudflare chặn rollback qua một thay đổi vòng đời lớp Durable Object (tài liệu Cloudflare, mục Rollbacks). Ghi mã bản Worker NGAY TRƯỚC lần deploy (`wrangler deployments list`) làm tham chiếu, nhưng đừng dùng `rollback` tới nó.
+- **Deploy lại một commit CŨ (trước khi có lớp `BangTin`) bằng `wrangler deploy` cũng KHÔNG an toàn** — cùng lý do (bản cũ không khai lớp/binding/migration đang chạy). **Chưa kiểm** (tài liệu không nêu trường hợp này); đừng thử trên production.
+- **Cách lùi tính năng khi cần:** chủ ra lệnh → AI chuẩn bị một commit từ `main` đã **GỠ route `GET /api/bang-tin` và lời gọi `batDauBangTin`** (`web/shell.ts`) nhưng **GIỮ** lớp `BangTin`, binding `BANG_TIN` và khối `migrations`; rồi `npm run trien-khai` như thường (mọi thao tác ghi đơn vẫn chạy; chỉ mất tự cập nhật). Gỡ hẳn lớp cần một migration `deleted_classes` (tag `v2`) — việc riêng, chủ duyệt, không làm trong lúc sự cố.
+- Nếu chỉ MỘT phần có vấn đề: Bảng tin lỗi KHÔNG làm hỏng thao tác ghi đơn (phát tin bắn-và-quên, lỗi chỉ ghi dòng log `bang_tin_loi`); phía trình duyệt thoát lặng khi không nối được (chờ lùi tới 30 giây).
+
+**Trước khi phát hành (AI làm, chủ đọc lướt):**
+- **Bước A.0 — nhật ký thay đổi.** Mục nhật ký cần số phiên bản, mà số đó đặt LÚC phát hành (không đặt sẵn ở nhánh, vì nhánh khác có thể lấy trước): thêm MỘT mục vào ĐẦU `CHANGELOG` (`src/shared/changelog.ts`) với `version` = số kế tiếp sau số lớn nhất đang có ở `main` lúc đó (lúc viết mục này production ghi 1.14), `date` = ngày phát hành, một gạch loại `moi`: **"Danh sách đơn, Trang chủ và trang đơn tự cập nhật khi đồng nghiệp nhận, giao, xác nhận hoặc huỷ đơn; có thông báo nhỏ trên màn hình."** (132 ký tự; đã kiểm bằng `changelogProblems`, không có lỗi). Sửa chuỗi kỳ vọng `formatReleaseLine` ở `src/shared/app-info.test.ts` cho khớp, cùng commit (công thức t). Chưa thêm sẵn — xem nhật ký thi công, mục "Task 11".
+- Đã có: `npm test`, `npm run typecheck`, `npm run build:web`, `npm run test:e2e` đủ bộ (kịch bản `bangtin` cần mạng; `run.mjs` tự thêm `--var BANG_TIN_HAN_GIAY:20`), `node --test "tests/audit/*.test.mjs"` (KHÔNG nằm trong `npm test`; so ca đỏ với mốc trước, không được thêm ca đỏ mới), kịch bản Chrome `bang-tin-smoke.mjs` và các kịch bản cũ của các trang bị chạm (`docs/evidence/2026-09-25-bang-tin/README.md`), người kiểm độc lập (chỉ đọc) đạt — ghi kết quả vào nhật ký thi công trước khi phát hành.
+- **Việc của CHỦ trước khi phát hành (AI không làm được):** thử trên iPhone thật — `docs/superpowers/plans/2026-09-25-bang-tin-ke-hoach.md` Task 13 (danh sách thử tay; dùng `node scripts/dev-iphone.mjs` cho lần thử LAN, ghi kết quả vào `docs/evidence/2026-09-25-bang-tin/iphone.md`) — **chưa làm**: Safari iPhone thật chưa từng được thử (kể cả CSP `wss:` qua LAN, khoá màn hình ≥ 1 phút, mất mạng thật).
+
+**Các bước — CHỦ DỰ ÁN tự gõ trong ứng dụng Terminal của macOS, đứng ở thư mục gốc repo (`tourdao-sales`, KHÔNG phải thư mục worktree); AI không chạy các lệnh này:**
+1. Gộp và đẩy nhánh lên `main` (**có đổi app, cần triển khai**):
+```
+npm run day-len -- bang-tin
+```
+2. Chạy dây chuyền triển khai (**có đổi app**; cổng chỉ-đọc, kiểm phiên bản, test + e2e đủ bộ, deploy — tại đây migration Durable Object được áp —, kiểm dữ liệu, kiểm phiên bản sau deploy):
+```
+npm run trien-khai
+```
+
+**Sau khi deploy (chỉ đọc; AI làm, hoặc chủ):**
+1. `node scripts/kiem-phien-ban.mjs --sau-deploy` → ĐẠT; `npx wrangler deployments list` → ghi Version ID mới + mã bản ngay trước (KHÔNG dùng để `rollback`).
+2. `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt" như mọi lần.
+3. `curl -si https://booking.tourdao.vn/api/bang-tin` (GET, không cookie, chỉ đọc) → `401 unauthenticated` (route đã có và nằm sau cổng đăng nhập).
+4. **Thử tay bằng hai tài khoản thật** (hai máy hoặc một máy + một cửa sổ ẩn danh): A mở "Đơn hàng", B lập một đơn → dòng mới hiện ở A trong vài giây không cần bấm tải lại; B bấm "Nhận phụ trách" (hoặc xác nhận/huỷ) một đơn → A thấy thông báo nhỏ. Ghi kết quả vào mục "TRẠNG THÁI TRIỂN KHAI" đầu tệp kèm số phiên bản và Version ID Worker.
+5. Không tạo/sửa tài khoản, quyền, hồ sơ trên production trong "cửa sổ đóng băng" (phần Hoàn tác) — lần này không cần thao tác nào như vậy.
+
 ## Chế độ bảo trì — đường thoát khẩn
 
 Dùng CHỈ khi chủ dự án bị khoá ngoài (không vào được app để bấm tắt) hoặc chế độ bảo trì kẹt bật. Đây là thao tác GHI lên D1 remote, đi vòng app: theo `CLAUDE.md` §8 chỉ làm khi chủ dự án ra lệnh (hoặc tự chạy bằng `!`). Tác dụng TỨC THÌ (cổng ở máy chủ đọc D1 mỗi request, không đệm), không cần deploy.
@@ -534,3 +576,9 @@ Ba phương án, chủ dự án chọn một (chưa chọn thay):
   5. ⚠️ Thực tập sinh lập được đơn nhưng nhận 403 khi mở danh mục dịch vụ (`GET /api/catalog` chỉ cho nhân sự văn phòng) — chưa chọn được dịch vụ từ danh mục. Chủ dự án quyết: mở danh mục cho Thực tập (có/không kèm giá) hay giữ nguyên.
   6. ⚠️ Nợ (a): "vai đang mở" = `valid_to_date IS NULL` ở mọi nơi — dòng vai tài khoản có NGÀY KẾT THÚC trong tương lai, hoặc dòng "Kế toán" GẮN MỘT NƠI, không được luật nhóm (LC-3) và kiểm "chọn đủ vai" nhìn thấy, và không đóng được từ cả trang Hồ sơ lẫn trang Nhân viên (câu đếm ở runbook `0024` cho biết có bao nhiêu).
   7. ⚠️ Nợ (b): danh sách Nhân viên chỉ hiện TÊN VAI cho tài khoản đã gán vai (`web/staff.ts` `accessLabel`), dù tài khoản có thể có thêm quyền cộng tay — nhãn có thể thiếu.
+- **Bảng tin (ADR-0022) — CHƯA phát hành; việc còn treo, gom một lần** (chi tiết: `docs/superpowers/plans/2026-09-25-bang-tin-de-xuat-luat.md`, `docs/superpowers/plans/2026-09-26-bang-tin-ban-giao-dieu-phoi.md` §6, mục "Task 11" của nhật ký thi công):
+  1. **Task 13 — thử iPhone thật (chủ):** danh sách ở `docs/superpowers/plans/2026-09-25-bang-tin-ke-hoach.md` Task 13; lặp lại một lượt ngắn trên production sau phát hành. Chưa kiểm: Safari iPhone thật, khoá màn hình ≥ 1 phút, mất mạng thật, CSP `wss:` qua LAN, trình đọc màn hình (dải "Tải lại" nằm trong nền `inert`).
+  2. **Chủ duyệt các đề xuất luật** (chưa hiệu lực; AI không tự sửa `docs/ARCHITECTURE.md`, `web/CLAUDE.md`, `src/CLAUDE.md`): ngoại lệ "gốc lắp ráp nạp tệp lớp Durable Object", hàng bảng kịch bản Chrome cho `bang-tin-smoke.mjs`, ngoại lệ import `.ts` ở hai tệp `web/*-logic.ts`, cập nhật danh sách module ở `src/CLAUDE.md`. Trong lúc chờ, `docs/SYSTEM-DESIGN.md` §16 ghi hai chỗ mã lệch chữ luật.
+  3. **Quyết định thiết kế chờ chủ:** (a) R24 — khi bảng/hộp đang mở, dải "Tải lại" và cả thông báo nổi nằm DƯỚI lớp phủ (`.toast-vung` z-index 40 < `.sheet-root` 50); (b) R16 — `POST /api/orders/:id/handler-money-edit` phát tin `tien` cả khi số khách y nguyên (sửa đụng hợp đồng tiền orders↔dispatch); (c) "chấm đếm" cho Đối tác (ADR-0014 điều 12) chưa có; (d) quyết định (5) của ADR-0023 về ô `order.view` của Hướng dẫn viên — khi đổi, bài NT-3 đỏ CÓ CHỦ ĐÍCH và buộc hỏi lại chủ (`docs/SO-HANG-RAO.md`).
+  4. **Ngoài phạm vi nhánh này (Đợt E, thị giác, thấy ở ảnh bằng chứng):** chip số khách bị cắt ở 390 px ("2NI") trên danh sách đơn; huy hiệu "Đã xác nhận" xuống dòng lệch cạnh mã đơn ở 1040 px trên `/order`.
+  5. **Chưa kiểm/nợ nhỏ:** 8/10 vị trí gọi `dongBangTin` chưa có ca e2e (`docs/SO-HANG-RAO.md`); kiểm lại bảng giá Durable Object trên tài khoản Cloudflare thật; deploy commit cũ trước-DO bằng `wrangler deploy` (chưa kiểm — không thử); danh sách Minor đã hoãn ở bàn giao §6 (vd `laSuKienHopLe` thiếu ca "5 khoá, một khoá sai tên", `docHanGiay` nhận "1e3", `tram.ts` nhận socket trước `setAlarm`, gốc lắp ráp `baoThayDoi` chưa có test đơn vị).
