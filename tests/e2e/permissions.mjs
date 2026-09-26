@@ -40,6 +40,20 @@ assert.equal((await call(FIELD, "GET", "/api/locations")).status, 200);
 assert.equal((await call(null, "GET", "/api/orders")).status, 401);
 console.log("✓ FIELD bị chặn mọi bề mặt đơn/tiền/hồ sơ/quản trị (mặc định từ chối)");
 
+// --- Trang chủ (dashboard) là số toàn công ty: cổng "orders" chỉ lọc thô, phải có can(order.view/money.view/contact.view) trong thân (ADR-0019 B4, 2026-09-26).
+// Đối tác và Thực tập chỉ thấy đơn của mình ⇒ 403 (không phải 200 với số toàn công ty); Bán hàng vẫn 200.
+for (const [perm, nhan] of [["PARTNER", "Đối tác"], ["INTERN", "Thực tập"]]) {
+  const p = randomPhone();
+  r = await call(ADMIN, "POST", "/api/staff", { fullName: `${nhan} Trang Chủ Thử`, phone: p, permissions: [perm] });
+  assert.equal(r.status, 201, `${nhan}: ${JSON.stringify(r.body)}`);
+  const cookie = (await login(p, r.body.pin)).cookie;
+  r = await call(cookie, "GET", "/api/orders/dashboard");
+  assert.equal(r.status, 403, `${nhan} GET /api/orders/dashboard → ${r.status} (phải 403: không xem được số toàn công ty)`);
+  assert.equal(r.body.error.code, "forbidden");
+}
+assert.equal((await call(SALES, "GET", "/api/orders/dashboard")).status, 200, "Bán hàng vẫn xem Trang chủ");
+console.log("✓ Đối tác, Thực tập: Trang chủ (dashboard) 403; Bán hàng 200");
+
 // --- ACCOUNTING: xem đơn/nhật ký/bảng giá/hồ sơ; KHÔNG lập/sửa/huỷ đơn; không quản trị
 assert.equal((await call(ACC, "GET", "/api/orders")).status, 200);
 assert.equal((await call(ACC, "GET", "/api/catalog")).status, 200);
@@ -103,7 +117,7 @@ assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permi
 assert.equal((await call(MC, "GET", "/api/orders")).status, 403, "bỏ ACCOUNTING → mất quyền xem đơn ngay");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
 r = await call(MC, "POST", "/api/orders", orderInput());
-assert.equal(r.status, 201, "thêm SALES → lập đơn được ngay");
+assert.equal(r.status, 201, `thêm SALES → lập đơn được ngay: ${JSON.stringify(r.body)}`);
 const mOrder = r.body.order;
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: M.id })).status, 409, "SALES không liên quan không tự nhận được đơn đã có người phụ trách (409 stale, không phải 403)");
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id })).status, 403, "còn GIAO HỘ người khác khi không phải người lập/người phụ trách thì vẫn là vượt quyền");
