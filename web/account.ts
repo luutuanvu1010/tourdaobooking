@@ -8,7 +8,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
-import { taoBoLamMoi } from "./lam-moi-logic";
+import { coODaSua, nenHoanLamMoi, taoBoLamMoi } from "./lam-moi-logic";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
@@ -447,20 +447,13 @@ function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLEl
 async function initMyAssignments(): Promise<void> {
   if (!hasPermission(staff, "FIELD")) return;
   const el = byId("myjobs");
-  // Người dùng đã gõ lý do / bấm +− / mở vùng huỷ trong khối này kể từ lần dựng gần nhất: làm mới theo tin KHÔNG được dựng lại khối dưới tay họ
-  // (mất lý do đang gõ, số khách đã chỉnh). Đặt lại khi khối được dựng mới (sau lưu/huỷ, hoặc tải lại thành công).
-  let dangSua = false;
-  const danhDauSua = (ev: Event): void => {
-    if (ev.type === "input" || (ev.target instanceof Element && ev.target.closest("button"))) dangSua = true;
-  };
-  el.addEventListener("input", danhDauSua);
-  el.addEventListener("click", danhDauSua);
   const load = async (): Promise<void> => {
     try {
       const { assignments } = await api<Api.MyAssignmentsResponse>("/api/dispatch/mine");
-      dangSua = false;
       if (assignments.length === 0) replaceChildren(el, h("h2", null, "Việc của tôi"), h("p", { class: "muted" }, "Bạn chưa được giao phụ trách đơn nào."));
       else replaceChildren(el, h("h2", null, "Việc của tôi"), ...assignments.map((a) => myAssignmentCard(a, () => void load())));
+      // Ghi giá trị gốc của từng ô nhập lúc dựng: sau này so với giá trị hiện tại để biết người dùng đã sửa gì chưa (chỉnh về lại số cũ thì coi như chưa sửa).
+      for (const input of el.querySelectorAll("input")) input.dataset.goc = input.value;
       el.hidden = false;
     } catch {
       // lỗi mạng: khối ẩn, không ảnh hưởng phần còn lại trang (cùng khuôn initMaintenance)
@@ -469,10 +462,36 @@ async function initMyAssignments(): Promise<void> {
   await load();
   // Bảng tin (ADR-0022, TD-3): đơn đổi / vừa nối lại → tải lại "Việc của tôi". Đăng ký MỘT lần, sau lần tải đầu (chỉ người có FIELD — như trên);
   // bộ gộp tránh hai lần tải song song. `load` của thao tác lưu/huỷ trong thẻ vẫn gọi trực tiếp (người dùng vừa chủ động làm).
+  // Khối có ô lý do + bộ đếm số khách + hộp huỷ: KHÔNG dựng lại dưới tay người đang dùng — đánh giá LÚC làm mới (không chốt cờ từ lần bấm trước, nếu không
+  // bấm "Huỷ đơn này" rồi "Thôi" là hết được làm mới). Khi hoãn thì báo bằng dải "Có cập nhật — Tải lại", và tự thử lại khi người dùng rời ô nhập.
+  const dangBan = (): boolean => {
+    const dangGo = document.activeElement instanceof HTMLInputElement && el.contains(document.activeElement);
+    const cacO = [...el.querySelectorAll("input")].map((i) => ({ value: i.value, goc: i.dataset.goc ?? "" }));
+    const hopHuyMo = el.querySelector(".myjob-cancel > div:not([hidden])") !== null;
+    return nenHoanLamMoi({ dangGo, coODaSua: coODaSua(cacO), hopHuyMo });
+  };
+  let choLamMoi = false;
+  const hienAviso = (): void => {
+    if (el.querySelector(".myjobs-update")) return;
+    const tai = h("button", { type: "button", class: "btn" }, "Tải lại");
+    tai.addEventListener("click", () => void load());
+    el.querySelector("h2")?.after(h("div", { class: "banner banner-info myjobs-update", role: "status" }, h("div", { class: "banner-title" }, "Có cập nhật"), h("div", { class: "banner-actions" }, tai)));
+  };
   const lamMoi = taoBoLamMoi(async () => {
-    if (dangSua) return;
-    await load();
+    if (dangBan()) {
+      choLamMoi = true;
+      hienAviso();
+      return;
+    }
+    choLamMoi = false;
+    await load(); // dựng lại khối → dải cũ (nếu có) biến mất cùng khối
   });
+  // Rời ô nhập (blur) hoặc bấm nút (vd "Thôi" đóng hộp huỷ) sau khi hoãn: đợi một nhịp cho cú chạm kế tiếp (vd bấm +/−) xong rồi đánh giá lại, không dựng lại giữa cú chạm.
+  const thuLai = (): void => {
+    if (choLamMoi) setTimeout(() => void lamMoi.yeuCau(), 400);
+  };
+  el.addEventListener("focusout", thuLai);
+  el.addEventListener("click", thuLai);
   window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
   window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 }

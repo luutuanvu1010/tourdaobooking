@@ -2,7 +2,7 @@
 // song, tối đa MỘT lần chạy thêm sau đó), lọc tin theo đơn, số dòng cần tải lại. DOM/trình duyệt kiểm bằng typecheck + build + kịch bản Chrome.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { soDongCanTai, suKienVeDon, taoBoLamMoi } from "../web/lam-moi-logic.ts";
+import { coODaSua, nenHoanLamMoi, soDongCanTai, suKienVeDon, taoBoLamMoi } from "../web/lam-moi-logic.ts";
 import type { SuKienDon } from "./shared/bang-tin.ts";
 
 const suKien = (orderId: string): SuKienDon => ({ loai: "don", orderId, maDon: `TD-${orderId}`, thayDoi: "sua", luc: "2026-09-26T00:00:00.000Z" });
@@ -114,4 +114,19 @@ test("soDongCanTai: không dưới một trang, không quá tối đa, giữ đ�
   assert.equal(soDongCanTai(60, 30, 100), 60);
   assert.equal(soDongCanTai(90, 30, 100), 90);
   assert.equal(soDongCanTai(250, 30, 100), 100);
+});
+
+// ---- vòng sửa 1: quyết định hoãn làm mới khối có ô nhập (trang Tôi) — đánh giá LÚC làm mới, không chốt cờ ----
+test("coODaSua: chỉ true khi có ô khác giá trị gốc", () => {
+  assert.equal(coODaSua([]), false);
+  assert.equal(coODaSua([{ value: "", goc: "" }, { value: "2", goc: "2" }]), false);
+  assert.equal(coODaSua([{ value: "", goc: "" }, { value: "3", goc: "2" }]), true);
+  assert.equal(coODaSua([{ value: "lý do", goc: "" }]), true);
+});
+
+test("nenHoanLamMoi: hoãn khi đang gõ / ô đã sửa / hộp huỷ đang mở; không hoãn khi chỉ từng bấm rồi bỏ", () => {
+  assert.equal(nenHoanLamMoi({ dangGo: false, coODaSua: false, hopHuyMo: false }), false, "bấm 'Huỷ đơn này' rồi 'Thôi', hay chỉnh bộ đếm về lại số cũ → không hoãn");
+  assert.equal(nenHoanLamMoi({ dangGo: true, coODaSua: false, hopHuyMo: false }), true);
+  assert.equal(nenHoanLamMoi({ dangGo: false, coODaSua: true, hopHuyMo: false }), true);
+  assert.equal(nenHoanLamMoi({ dangGo: false, coODaSua: false, hopHuyMo: true }), true);
 });

@@ -44,3 +44,16 @@ export function suKienVeDon(ds: readonly SuKienDon[], orderId: string): boolean 
 export function soDongCanTai(daTai: number, trang: number, toiDa: number): number {
   return Math.max(trang, Math.min(toiDa, daTai));
 }
+
+/** Có ô nhập nào đang khác giá trị lúc khối được dựng (`goc`)? Dùng cho khối có ô lý do/bộ đếm: chỉnh về lại số cũ thì không tính là "đã sửa". */
+export function coODaSua(cacO: readonly { value: string; goc: string }[]): boolean {
+  return cacO.some((o) => o.value !== o.goc);
+}
+
+/**
+ * Có nên HOÃN làm mới một khối có ô nhập không? Đánh giá LÚC làm mới (không chốt cờ từ lần bấm trước — bấm rồi bỏ đi không được chặn làm mới mãi mãi):
+ * hoãn khi con trỏ đang ở một ô nhập của khối, HOẶC có ô đã khác giá trị gốc, HOẶC hộp huỷ đang mở. Nơi gọi phải báo cho người dùng khi hoãn.
+ */
+export function nenHoanLamMoi(t: { dangGo: boolean; coODaSua: boolean; hopHuyMo: boolean }): boolean {
+  return t.dangGo || t.coODaSua || t.hopHuyMo;
+}
