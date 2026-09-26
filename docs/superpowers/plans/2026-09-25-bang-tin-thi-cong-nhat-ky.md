@@ -289,15 +289,41 @@ HTTP/1.1 401 Unauthorized
 
 Tắt ngay (dừng tác vụ nền), kiểm: `pgrep -fl "wrangler dev" | grep -c 8799` = 0, `pgrep -fl workerd | grep -c worktrees/bang-tin` = 0; xoá thư mục D1 tạm. (Một `wrangler dev` khác đang chạy từ worktree `va-3-loi-kiem-toan`, cổng 51764 — không phải của lượt này, không đụng.)
 
+### Test route bắt tay — viết SAU mã (ghi thật, không phải đỏ-trước)
+
+Sau ba commit đầu, rà lại (qua `advisor()`) thấy ba cổng riêng của route (426, 403 `cross_origin`, 503) và BT-2 (yêu cầu gửi trạm dựng mới) chưa có test nào và chưa từng thấy chặn — lần chạy `wrangler dev` chỉ tới cổng 401 của router. Thêm `src/modules/bangtin/bat-tay.test.ts` (6 bài, gói `./index.ts` bằng esbuild, gọi thẳng handler với ctx giả + trạm giả ghi lại yêu cầu; trạm giả trả một đối tượng mốc vì Node không cho dựng phản hồi 101). **Test này viết SAU mã nên xanh ngay lần chạy đầu (6/6)** — không có dòng đỏ-trước; thay vào đó thấy nó chặn thật bằng hai lần phá có chủ ý (P16):
+
+- Tắt kiểm Origin (`if (false && !kiemOrigin(...))`) →
+  ```
+  not ok 3 - Origin vắng hoặc lạ → 403 cross_origin (đúng câu của router), không mở kết nối
+    undefined !== 403
+  # pass 5
+  # fail 1
+  ```
+  (route chạy tới trạm giả và trả đối tượng mốc thay vì 403) → hoàn nguyên → 6/6.
+- Chép header trình duyệt sang trạm (`new Request("https://bang-tin/ket-noi", { headers: request.headers })`) →
+  ```
+  not ok 5 - BT-2: yêu cầu gửi trạm được DỰNG MỚI — chỉ 3 header máy chủ đặt; nhãn/id giả của trình duyệt bị bỏ; trả NGUYÊN phản hồi của trạm
+    chỉ đúng 3 header, không cookie/origin
+    + 'connection', + 'cookie', + 'origin', 'upgrade', 'x-bang-tin-nguoi', 'x-bang-tin-nhan'
+  # pass 5
+  # fail 1
+  ```
+  → hoàn nguyên (`git diff --stat src/modules/bangtin/index.ts` rỗng = đúng bản đã commit) → 6/6.
+
+Bài BT-2 dùng ba tài khoản (Đối tác, Bán hàng, Hướng dẫn viên) gửi kèm nhãn giả `["tat-ca","cho-nhan"]` và id giả; khẳng định nhãn gửi trạm = `nhanKetNoi(staff)` tính ở máy chủ, id = `staff.id`, đúng 3 header, tên trạm `cong-ty`, và route trả NGUYÊN đối tượng của trạm. Thêm bài `phatDon`/`dongCua` (vắng binding → không ném; có binding → gọi đúng RPC).
+
+Chưa có test cho phần gốc lắp ráp (`baoThayDoi`: kiểm binding trước khi đọc D1, `tao` → `tao_cho_nhan`, sự kiện 5 khoá) — hàm đó nằm trong `createApp(...)` của `src/index.ts`, không export được mà không đổi cấu trúc tệp chính của Worker; để e2e Task 6/7 kiểm.
+
 ### Mốc kiểm sau Task 4b
 
-- `npm test` → **840/840** (831 cũ + 4 `keHoachTram` + 2 `findOrderRef` + 3 `handlerOf`; ca đỏ tạm `route-access` của 4a đã xanh lại).
+- `npm test` → **846/846** (831 cũ + 4 `keHoachTram` + 2 `findOrderRef` + 3 `handlerOf` + 6 route bắt tay; ca đỏ tạm `route-access` của 4a đã xanh lại).
 - `npm run typecheck` → **0 lỗi** (ba tsconfig).
 - `node --test "tests/audit/*.test.mjs"` → 34/35, đúng một ca đỏ có sẵn "P4 FINDING HDV" (R4).
 
 ### Chưa kiểm ở lượt này (để e2e Task 6/7)
 
-Đường 101 thật (bắt tay có phiên đăng nhập, `Origin` đúng), tự trả `pong`, đóng 4001 bằng báo thức/khi phát, đóng 4003, RPC `phat`/`dongCua` qua stub thật, và việc runtime chấp nhận Request dựng mới gửi sang trạm — đều chưa chạy thật; chỉ phần quyết định (`keHoachTram`) có test đơn vị.
+Đường 101 thật (bắt tay có phiên đăng nhập, `Origin` đúng), tự trả `pong`, đóng 4001 bằng báo thức/khi phát, đóng 4003, RPC `phat`/`dongCua` qua stub thật, việc runtime chấp nhận Request dựng mới gửi sang trạm, và phần gốc lắp ráp (`baoThayDoi`) — đều chưa chạy thật; có test đơn vị: phần quyết định của trạm (`keHoachTram`) và route bắt tay với trạm giả (`bat-tay.test.ts`). Bộ e2e 19 kịch bản cũng chưa chạy lại sau khi thêm binding + migration Durable Object (điều phối viên để e2e cho task sau).
 
 ### Việc để lại cho task sau
 
@@ -305,4 +331,6 @@ Tắt ngay (dừng tác vụ nền), kiểm: `pgrep -fl "wrangler dev" | grep -c
 - `docs/HANDOFF-N1.md` / runbook: ghi rằng từ bản có trạm, `wrangler rollback` về bản trước bị chặn và cách lùi thay thế — Task 14.
 - Gợi ý (không tự sửa, ngoài phạm vi): thêm dòng chú thích `BANG_TIN_HAN_GIAY` vào `.dev.vars.example` để `npm run types` không làm rơi tên này.
 
-**Commit:** `4e8fe59` (findOrderRef, handlerOf + test — ở commit này `route-access` vẫn đỏ tạm như sau 4a, R11), `7e12192` (module, trạm, gốc lắp ráp, khung thử, route-access xanh lại), và commit cấu hình `wrangler.jsonc` + mục nhật ký này.
+**Commit:** `4e8fe59` (findOrderRef, handlerOf + test — ở commit này `route-access` vẫn đỏ tạm như sau 4a, R11), `7e12192` (module, trạm, gốc lắp ráp, khung thử, route-access xanh lại), `7a5e816` (cấu hình `wrangler.jsonc` + mục nhật ký này), và commit test route bắt tay + cập nhật nhật ký.
+
+Cổng phát hành: `grep` `wrangler types` / `worker-configuration` / `types --check` trong `scripts/`, `src/*.test.ts`, `.claude/hooks` → không dòng nào; không cổng nào so kiểu sinh tự động, nên tệp kiểu khai tay không làm đỏ `npm run trien-khai`. (`wrangler dev` có in "Your types might be out of date" — chỉ là nhắc, vì dòng hash đầu `worker-configuration.d.ts` là của lần sinh cũ.)
