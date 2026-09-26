@@ -1,10 +1,10 @@
 # Đặc tả (bản nháp): Đơn tự do — hướng dẫn viên nhận, từ chối, huỷ
 
-- **Ngày:** 2026-09-26. **Vai:** lập kế hoạch — không thi công, không sửa ADR hay tệp luật. **Trạng thái:** nháp; **đã có trả lời của chủ 2026-09-26 cho mọi câu, trừ Q-X**; chờ soạn ADR + chờ ADR-0019. **Trả lời của chủ CHƯA phải là duyệt ADR**: ADR chỉ được duyệt sau khi ADR-0019 lên production (luật dừng dây chuyền).
+- **Ngày:** 2026-09-26. **Vai:** lập kế hoạch — không thi công, không sửa ADR hay tệp luật. **Trạng thái:** nháp; **đã có trả lời của chủ 2026-09-26 cho mọi câu, trừ bốn câu mới Q-X, Q-Y, Q-Z, Q-AA (§1)**; chờ soạn ADR + chờ ADR-0019. **Trả lời của chủ CHƯA phải là duyệt ADR**: ADR chỉ được duyệt sau khi ADR-0019 lên production (luật dừng dây chuyền).
 - **Việc lớn** (quyền, dữ liệu phân công, nhật ký) → thi công xong phải có người kiểm độc lập chỉ đọc (`CLAUDE.md` §3).
-- **Xây trên lỗ đang hở: `money.view`, `contact.view`** (`docs/quyen-hoan.json`, hạn 2026-10-15; hai ô chưa được máy chủ hỏi). "HDV không thấy SĐT/tiền của đơn chờ nhận" dựa đúng vào hai ô này → **không duyệt trước khi ADR-0019 lên production**. Mục `phat_hien` của sổ đang rỗng (kiểm 2026-09-26).
-- **Hiến chương áp** (Điều 6.1): 1.2, 4.1, 5.1 (bất biến có **hai lớp**: cơ sở dữ liệu **và** mã), 5.3, 5.5, 5.8, 5.10, 5.12, 6.3.
-- **Lệch phải ghi:** các luật mới chỉ nằm ở mã (Q-O đã chốt (a)). Theo 6.3 ("không làm mới thêm lệch cùng loại"), ADR mang chúng phải có dòng "lệch có chủ ý: 5.1, vì …" theo mẫu ADR-0029.
+- **Xây trên lỗ đang hở: `money.view`, `contact.view`, `admin.manage`** (`docs/quyen-hoan.json`, hạn 2026-10-15; các ô chưa được máy chủ hỏi). "HDV không thấy SĐT/tiền của đơn chờ nhận" dựa vào hai ô đầu; "xem số lần từ chối" (§9A) dựa vào `admin.manage`; trang cài đặt dựa vào ô `settings.ops` chưa có (cửa `PUT /api/maintenance` còn hoãn tới 2026-11-30 chờ ô này) → **không duyệt trước khi ADR-0019 lên production**. Mục `phat_hien` của sổ đang rỗng (kiểm 2026-09-26).
+- **Hiến chương áp** (Điều 6.1): 1.2, 4.1, 5.1 (bất biến có **hai lớp**: cơ sở dữ liệu **và** mã), 5.2, 5.3, 5.5, 5.8, 5.10, 5.12, 5.13, 6.3.
+- **Lệch phải ghi:** các luật mới chỉ nằm ở mã (Q-O đã chốt (a)). Theo 6.3 ("không làm mới thêm lệch cùng loại"), ADR mang chúng phải có dòng "lệch có chủ ý: 5.1, vì …" theo mẫu ADR-0029. Về 5.8: G5 xét theo **người thao tác** như ADR-0029 điều 2 (vốn là lệch 5.8) — ADR-0031 phải ghi rõ: lúc lập thì người thao tác chính là người lập (vai trên đối tượng, không lệch); lúc sửa thì xét người sửa (lệch 5.8, ghi như ADR-0029).
 
 ## 0. Hai chỗ đổi quyết định ĐÃ DUYỆT — chủ đã chốt 26/9, ADR phải nêu
 
@@ -27,17 +27,20 @@ Phần còn lại viết theo Cách 1.
 
 **Rủi ro — nói với chủ một lần (P18):**
 1. **Đơn vô chủ sát giờ đi.** Chặn "từ ngày sau ngày đi" (mốc ADR-0027) **không** che ca HDV từ chối ngay trong ngày đi. Bảng tin không báo được khi app đóng (ADR-0022 dòng 7). Mốc ADR-0027 sinh cho ca khách không đến bến (`src/shared/trip-rules.ts:33-35`), không cho ca HDV bỏ việc. → Q-E.
-2. **Gom SĐT.** Câu (2) cộng câu (3) cho phép một HDV nhận lần lượt nhiều đơn, đọc SĐT, rồi từ chối. SĐT đã lộ thì không thu lại được (một chiều). Giảm nhẹ: nhật ký nhận/từ chối đủ để truy; văn phòng xem được số lần từ chối của từng HDV; tuỳ chọn: trần số lần từ chối mỗi ngày. Ý "văn phòng xem số lần" nay thành hạng mục ở §9A (lượt 3); "trần theo ngày" được thay bằng hạn mức chủ đã nêu (2 lần liên tiếp, 15 lần/tuần).
+2. **Gom SĐT.** Câu (2) cộng câu (3) cho phép một HDV nhận lần lượt nhiều đơn, đọc SĐT, rồi từ chối. SĐT đã lộ thì không thu lại được (một chiều). Giảm nhẹ: nhật ký nhận/từ chối đủ để truy; Quản trị và Toàn quyền xem được số lần từ chối của từng HDV (§9A, lượt 4); hạn mức chủ nêu (2 lần liên tiếp, 15 lần/tuần). Hạn mức "liên tiếp" chỉ chặn được kiểu "tự nhận rồi từ chối" nếu chủ đồng ý định nghĩa ở Q-Z; nếu không, kiểu này chỉ còn bị trần 15 lần/tuần.
 
 **B2.** Văn phòng có cần nút "gỡ người phụ trách" (đưa đơn về Chờ nhận thay cho HDV)? Đã chốt: **không** ở đợt này — văn phòng đổi thẳng sang người khác như hôm nay; nếu cần thì làm một ô quyền riêng, không gộp vào Từ chối.
 
 ## 1. Còn mở và đã chốt
 
-**Còn mở — một câu (chủ trả lời một lần):**
+**Còn mở — bốn câu (chủ trả lời một lần):**
 
 | Mã | Câu hỏi | Khuyến nghị |
 |---|---|---|
-| Q-X | (1) Thực tập (`INTERN`) là người trong công ty và lập được đơn (`order.create` của INTERN là `any`, `src/shared/permissions.ts:52`), nhưng chủ chỉ kể Bán hàng, Quản trị, Toàn quyền cho đường bổ sung. (2) Người trong công ty sửa một đơn thường thành sát giờ (dưới 6 giờ tính từ lúc sửa — Q-S2) thì sao? | (1) Thực tập **không** có đường bổ sung, vẫn bị quy tắc 6 giờ chặn; đơn sát giờ nhờ Bán hàng/Quản trị lập. (2) Bán hàng, Quản trị, Toàn quyền được sửa nếu chọn một lý do bổ sung — đơn nhận nhãn "Bổ sung" từ đó; Đối tác và Thực tập bị chặn |
+| Q-X | (1) Thực tập (`INTERN`) là người trong công ty và lập được đơn (`order.create` của INTERN là `any`, `src/shared/permissions.ts:52`), nhưng chủ chỉ kể Bán hàng, Quản trị, Toàn quyền cho đường bổ sung. (2) Người trong công ty sửa một đơn thường thành sát giờ (dưới 6 giờ tính từ lúc sửa — Q-S2) thì sao? | (1) Thực tập **không** có đường bổ sung, vẫn bị quy tắc 6 giờ chặn; đơn sát giờ nhờ Bán hàng/Quản trị lập. (2) Bán hàng, Quản trị, Toàn quyền được sửa (sửa nháp hoặc `/trip`) nếu chọn một lý do bổ sung — đơn nhận nhãn "Bổ sung" từ đó; Đối tác (kể cả tài khoản lai) và Thực tập bị chặn. **Lưu ý:** khuyến nghị (1) đi ngược câu tóm tắt của chủ "chỉ áp dụng với người đặt không phải là người trong công ty" (Thực tập là người trong công ty); chọn ngược lại = cấp ô bổ sung cho INTERN |
+| Q-Y | Bắt buộc ngày đi ngay lúc lập đơn? Hôm nay nháp lưu được khi mọi trường trống (`src/modules/orders/service-rules.ts:295`, "Q12: nháp luôn lưu được"), nên nháp không ngày làm quy tắc 6 giờ không đo được | **Không** — giữ Q12, dùng luật "lần đầu xác định hoặc sớm hơn" (§9A mục 4): lúc nào thời điểm khởi hành lần đầu có giá trị hoặc bị dời sớm hơn thì mới kiểm 6 giờ |
+| Q-Z | **Nói một lần (P18) về cách thi hành Q-Q đã chốt.** Với định nghĩa cũ ("liên tiếp" = chưa Nhận thêm đơn nào), HDV tự nhận rồi từ chối lần lượt không bao giờ bị chặn ở lần thứ 3, vì chính lần nhận đã xoá chuỗi. Định nghĩa mới: một lần Nhận chỉ cắt chuỗi khi đơn đó **không** bị chính người ấy từ chối sau đó; Giao và chọn lúc lập **không** cắt chuỗi. Chủ đồng ý? | **Đồng ý** |
+| Q-AA | Tên bảng mới của `orders` (lý do Đơn bổ sung, cài đặt phía `orders`): bảng mới của `orders` hôm nay chưa có tiền tố đăng ký (`src/architecture.test.ts:64` không có `ord_`; ADR-0002 điều 2, accepted, một chiều, chỉ liệt kê `pty_ loc_ dsp_ bil_ stf_`) | (a) **khuyến nghị:** thêm tiền tố bảng `ord_` = sửa ADR-0002 điều 2 (ghi "nguyên văn → mới") + `TABLE_PREFIX`. (b) Tên kiểu cũ + `legacy: true` như `order_money_adjustment` (`docs/data-dictionary.json:110-115`) = thêm nợ đặt tên |
 
 **Người ngoài công ty là ai** (đã kiểm, không phải câu hỏi): ADR-0018 điều 2 chia 11 vai thành hai nhóm; luật LC-1 (điều 5) buộc năm vai bên ngoài (Công ty lữ hành, HDV độc lập, Lễ tân khách sạn, Tài xế taxi, Cộng tác viên) chỉ giữ quyền Đối tác (`src/shared/roles.ts:33-37`, `:44`). Khách lẻ không có tài khoản. Vậy "người đặt ngoài công ty" = mọi tài khoản có quyền Đối tác, kể cả tài khoản lai ("có quyền Đối tác là áp", `src/shared/permissions.ts:130`; Q-M). Cách hiểu "người đặt" = tài khoản lập đơn: giả định G5.
 
@@ -60,7 +63,7 @@ Phần còn lại viết theo Cách 1.
 | Q-N | Nơi đón là chữ tự do (`migrations/0008_order_service.sql:20`), có thể chứa SĐT, mà mọi HDV đều thấy | Trong phần hẹp, che mọi dãy từ 8 chữ số trở lên (sau khi bỏ dấu cách/chấm/gạch) |
 | Q-O | Luật mới chỉ ở mã hay thêm lớp cơ sở dữ liệu (Hiến chương 5.1)? | **(a) đã chốt: các luật mới ở mã** (chặn Nhận/Từ chối đơn đã huỷ, hạn Q-E, LC-8 mới) + ADR ghi "lệch có chủ ý: 5.1" như ADR-0029. Lý do: ở tầng dữ liệu, Nhận và Giao-cho-chính-mình chạy **cùng một câu** chèn (`src/modules/dispatch/service.ts:32`); Từ chối và Giao-đổi-người đều **đóng** một dòng (câu đóng chạy trước câu mở, trigger không thấy câu sau). Trigger không biết ai gọi ⇒ hoặc chặn cả Giao trên đơn huỷ (trái Q-D), hoặc không chặn được Nhận. Gỡ lệch khi có khoá "Đã giao" của ADR-0025 (áp cho mọi đường). (b, không chọn) Nếu **không ai** (kể cả văn phòng) nhận/giao/đổi người trên đơn đã huỷ: trigger `BEFORE INSERT/UPDATE` dòng `HANDLE` của đơn `cancelled`, đọc view công bố trạng thái đơn — `v_ord_order_state` của ADR-0024 (**còn proposed**) hoặc một view nhỏ mới của `orders`; migration chỉ-thêm |
 | Q-P2 | HDV huỷ (Aborted) có tính vào hạn mức không? | **Không** (chủ: "huỷ ở trên nghĩa là Từ chối"), nhưng văn phòng thấy số lần Huỷ của từng HDV. Xem cảnh báo ở §9A |
-| Q-S2 | Mốc "gửi đi" là lúc nào? Sửa giờ đi sau đó có kiểm lại không? | Mốc = lúc **lưu đơn thành công lần đầu** (Cách 1 không có trạng thái "Đã gửi" riêng); Sửa làm giờ đi **sớm hơn**: giờ mới phải cách **lúc sửa** ≥ 6 giờ — đo từ mốc gửi thì đơn lập 3 ngày trước dời sát giờ vẫn lọt. Sửa làm giờ đi muộn hơn: không kiểm |
+| Q-S2 | Mốc "gửi đi" là lúc nào? Sửa giờ đi sau đó có kiểm lại không? | Mốc = lúc **lưu đơn thành công lần đầu** (Cách 1 không có trạng thái "Đã gửi" riêng). Cách thi hành (sau lượt kiểm): kiểm cả khi thời điểm khởi hành **lần đầu có giá trị** — §9A mục 4. Sửa làm giờ đi **sớm hơn**: giờ mới phải cách **lúc sửa** ≥ 6 giờ — đo từ mốc gửi thì đơn lập 3 ngày trước dời sát giờ vẫn lọt. Sửa làm giờ đi muộn hơn: không kiểm |
 | Q-W | Bán hàng bổ sung đơn sát giờ / đơn sót qua điện thoại, trong khi quy tắc 6 giờ "không có ngoại lệ" | **(a), mở rộng theo chủ:** đường riêng "Lập đơn bổ sung" cho **Bán hàng, Quản trị, Toàn quyền**; **luôn** mang nhãn "Bổ sung"; **bắt buộc** lý do ("Khách gọi điện sát giờ", "Nhập sót đơn đã nhận qua điện thoại", "Khác" không kèm ô chữ); chỉ bỏ qua quy tắc 6 giờ; Bảng tin báo gấp; nhật ký ghi ai, lý do, lúc nào (không SĐT). Vì vậy quy tắc 6 giờ chỉ **chặn cứng** người đặt ngoài công ty (Đối tác) — §9A mục 4, 6 |
 
 **Đã chốt — áp dụng, không hỏi lại:**
@@ -69,9 +72,9 @@ Phần còn lại viết theo Cách 1.
 - **Kế toán thấy mọi đơn** (ADR-0023 dòng 12 — chủ trả lời 25/9; ADR chưa duyệt).
 - **"Điều hành" = vai "Điều hành chung", mức Quản trị** (`src/shared/roles.ts:28`; ADR-0018 điều 4).
 - **Q-P:** chỉ đếm lần HDV **Từ chối** nhận/trả đơn, theo từng người. Văn phòng, Bán hàng huỷ thì không tính. HDV huỷ (Aborted) không tính (Q-P2).
-- **Q-Q:** hai lần Từ chối liên tiếp là hợp lệ; lần thứ 3 thì không. "Liên tiếp" = giữa hai lần chưa Nhận thêm đơn nào. 15 lần/tuần giữ nguyên. Câu "hệ thống tự gán ngay khi có người chủ động lựa chọn HDV đó" khớp mục "Giao/chọn HDV có hiệu lực ngay" (Q-C, Q-D).
+- **Q-Q:** hai lần Từ chối liên tiếp là hợp lệ; lần thứ 3 thì không. "Liên tiếp": định nghĩa chính xác chờ Q-Z. 15 lần/tuần giữ nguyên. Câu "hệ thống tự gán ngay khi có người chủ động lựa chọn HDV đó" khớp mục "Giao/chọn HDV có hiệu lực ngay" (Q-C, Q-D).
 - **Q-R:** chạm hạn mức → hiện "Hãy gọi văn phòng"; văn phòng vẫn Giao đổi người.
-- **Q-S (đổi theo trả lời 26/9 về Q-W):** đường lập đơn **thường** bị quy tắc 6 giờ chặn với **mọi người**. Bán hàng, Quản trị, Toàn quyền đi sát giờ bằng đường "Lập đơn bổ sung". Đối tác không có đường này nên bị **chặn cứng**. Tính từ lúc gửi (Q-S2).
+- **Q-S (đổi theo trả lời 26/9 về Q-W):** đường lập đơn **thường** bị quy tắc 6 giờ chặn với **mọi người**. Bán hàng, Quản trị, Toàn quyền đi sát giờ bằng đường "Lập đơn bổ sung". Đối tác không có đường này nên bị **chặn cứng**. Tính từ lúc gửi (Q-S2). Đây là cách đặc tả ráp hai câu của chủ: Bán hàng đi nhầm đường thường thì nhận 400. Cách khác cũng đúng ý chủ: đường thường tự hỏi lý do bổ sung khi thấy sát giờ (một nút thay vì hai) — để chủ chọn khi duyệt bản thiết kế màn hình.
 - **Q-T:** giờ khởi hành = `depart_time`, bắt buộc. Không xử lý đơn cũ (cảnh báo ở §9A).
 - **Q-U:** tài khoản Toàn quyền của chủ là duy nhất. Cổng theo quyền `settings.ops`, không gắn SĐT. Cài đặt nằm ở module thi hành luật.
 - **Q-V:** hai lát — "chỉ đo" trước, "chặn" sau.
@@ -168,7 +171,8 @@ Phần còn lại viết theo Cách 1.
 | Tệp | Bài kiểm |
 |---|---|
 | `src/shared/bang-tin.test.ts` | `THAY_DOI` 9 giá trị (:18-20), ảnh chụp `nhanKetNoi` (:42-53), NT-3 (:55-65), `nhanSuKien`/NT-2 (:67), `thongBaoNoi` của HDV (:169) |
-| `src/shared/permissions.test.ts` | ảnh chụp ô (:10-11 và các dòng FIELD khác) |
+| `src/shared/permissions.test.ts` | ảnh chụp ô (:10-11 và các dòng FIELD khác); tên bài "26 thao tác" (:40); "ADMIN làm mọi thao tác trừ bốn" (:177-184) — đỏ vì `settings.ops`, `order.pool.view` ADMIN `none` và `dispatch.refuse` ADMIN `assigned` |
+| `src/permission-enforcement.test.ts` (hàng rào 1) | đỏ nếu ô mới vào `MATRIX` trước route hỏi nó — lát "chỉ đo" phải có route hỏi ô ngay |
 | `tests/e2e/dispatch.mjs` | các bước dựa vào ADR-0020 |
 | `src/bang-tin-guard.test.ts` | "thấy 8 route" → 9 |
 
@@ -182,9 +186,9 @@ Người kiểm quan sát: đổi `dispatch.claim` của FIELD → 3 bài đỏ;
 - **Lý do:** mỗi lý do một nút; chỉ lưu khi đã chọn; Huỷ có hộp hỏi lại "không thể hoàn tác". **Làm mới** theo Bảng tin; thua đua → "Đơn vừa có người khác nhận", rồi tải lại.
 - **Bố cục, chữ, cách xếp đơn đã qua ngày đi:** chờ bản thiết kế của chủ (bài học Đợt D).
 
-## 9A. Quy tắc hạn mức (đếm huỷ), giờ khởi hành bắt buộc, và bảng điều khiển của Super Admin
+## 9A. Quy tắc hạn mức (đếm huỷ), giờ khởi hành bắt buộc, và bảng điều khiển của Toàn quyền
 
-> **Chưa qua kiểm độc lập.** Thêm ngày 2026-09-26; cập nhật cùng ngày theo ba lượt trả lời của chủ. Mọi câu đã chốt (§1), trừ Q-X.
+> **Đã qua một lượt kiểm độc lập ngày 2026-09-26; các sửa theo lượt kiểm chưa được kiểm lại.** Mọi câu đã chốt (§1), trừ Q-X, Q-Y, Q-Z, Q-AA.
 
 **Lời chủ (nguyên văn, 2026-09-26).**
 - **Lần đầu:** "hệ thống chuẩn bị sẵn cơ chế đếm số lần huỷ để có những quy tắc và đưa vào hệ thống. Tạm thời không cho phép huỷ quá 2 lần liên tiếp và không quá 15 lần/tuần. Đưa giờ khởi hành là trường bắt buộc và thời điểm đặt đơn không được cách giờ khởi hành ít hơn 6 giờ đồng hồ. Tất cả những quy tắc này đều đưa vào bảng điều khiển của Super Admin (…) để có thể thay đổi, reset dễ dàng."
@@ -194,34 +198,52 @@ Người kiểm quan sát: đổi `dispatch.claim` của FIELD → 3 bài đỏ;
 
 **Hôm nay có gì (đã mở mã):**
 - Chưa có chỗ nào đếm số lần từ chối. Bảng `dsp_assignment` không có cột loại hay lý do đóng; lý do chỉ nằm ở `audit_log.detail`, mà `dispatch` không được đọc thẳng bảng đó (`src/modules/dispatch/repository.ts:2-3`).
-- Giờ khởi hành là cột `order_service.depart_time`, **được để trống**; cột này khác `pickup_time` (giờ đón) (`migrations/0008_order_service.sql:18-19`). Máy chủ nhận giờ trống (`src/modules/orders/fields.ts:52-53`). Bước xác nhận chỉ đòi ngày đi và số khách (`migrations/0008_order_service.sql:74-79`).
+- Giờ khởi hành là cột `order_service.depart_time`, **được để trống**; cột này khác `pickup_time` (giờ đón) (`migrations/0008_order_service.sql:18-19`). Máy chủ nhận giờ trống (`src/modules/orders/fields.ts:52-53`). Bước xác nhận chỉ đòi ngày đi và số khách (`migrations/0008_order_service.sql:74-79`). `PUT /api/orders/:id/trip` (`src/modules/orders/index.ts:266-285`, ô `order.trip.edit` ở `src/shared/permissions.ts:54`) với đơn đã xác nhận chỉ giữ ngày, không giữ giờ (`src/modules/orders/service-rules.ts:322-325`).
+- Nháp lưu được khi ngày trống (`src/modules/orders/service-rules.ts:74`, `:295`); mọi dịch vụ đều trống ngày vẫn đạt luật một ngày (`src/shared/trip-rules.ts:15-16`).
 - Chỗ chứa cài đặt duy nhất là `mnt_setting` của chế độ bảo trì (`migrations/0016_maintenance.sql`). Trang "Cài đặt vận hành" có ô `settings.ops` (chỉ Toàn quyền) đã nằm trong đặc tả mô hình vai (đã duyệt; §9, dòng 234) và trong ADR-0019, nhưng **chưa thi công**.
-- Đã có hàm `vnWeekRange` tính tuần thứ Hai–Chủ nhật theo giờ Việt Nam (`src/shared/vn-date.ts:55`).
+- Có sẵn `vnWeekRange` (tuần thứ Hai–Chủ nhật, giờ VN; `src/shared/vn-date.ts:55`) và `vnLocalToIso` (giờ VN → UTC; `src/shared/vn-date.ts:25`).
 
-**Thiết kế (theo các câu đã chốt):**
+**Thiết kế:**
 
-1. **Bộ đếm Từ chối.** Thêm một bảng chỉ-thêm của `dispatch`, tên đề xuất `dsp_release_event`. Mỗi dòng ghi: người, đơn, loại, lúc, người ghi. Có ba loại: `REFUSE` là Từ chối; `ABORT` là HDV huỷ, chỉ để thống kê, không tính hạn mức (Q-P2); `RESET` là mốc đặt lại. Dòng được ghi **cùng lô** với lệnh. Riêng lệnh HDV huỷ chạy trong `orders` (`src/modules/orders/index.ts:88-90`), nên `orders` phải nhận thêm câu lệnh của `dispatch` vào lô. Đây là cùng chỗ đổi hợp đồng giữa hai module với Q-G. Đặt lại = ghi thêm một dòng `RESET`, **không xoá** (CLAUDE.md §7), kèm nhật ký. Nhật ký chỉ ghi tên người.
-2. **Hạn mức.** **Liên tiếp:** đếm số dòng `REFUSE` từ lần Nhận hoặc `RESET` gần nhất. Đã có 2 thì lần thứ 3 bị chặn: máy chủ trả 409, giao diện hiện đúng câu **"Hãy gọi văn phòng"** khi bấm nút Từ chối (chủ gọi nút này là "Huỷ"). **Theo tuần:** tối đa 15 lần. Văn phòng vẫn giao hoặc đổi người được. Nếu người được giao là HDV đã hết lượt, đơn thuộc về HDV đó ngay và HDV không từ chối được nữa. Quản trị và Toàn quyền xem được số lần Từ chối và Huỷ của từng HDV. Lưu ý: vì tối đa chỉ 2 lần liên tiếp, mức 15 lần/tuần chỉ chạm tới khi HDV nhận xen kẽ, tức có ít nhất 7 lần Nhận nằm giữa các cặp từ chối.
-3. **Giờ khởi hành bắt buộc.** Là `depart_time`, không phải giờ đón. Mọi dịch vụ phải có giờ khởi hành khi lập, khi sửa nháp và khi xác nhận. Không xử lý đơn cũ, vì chủ nói đang ở giai đoạn development. **Cảnh báo:** production vẫn có đơn và nhân viên thật. Đơn nháp cũ thiếu giờ sẽ không xác nhận được cho tới khi nhập giờ. Chủ đã chấp nhận điều này. Không thêm ràng buộc `NOT NULL`, vì phải dựng lại bảng (ADR-0003 điều 10). Luật ở mã (Q-O(a)); mọi migration khác vẫn là tệp mới, chỉ thêm (CLAUDE.md §7).
-4. **Quy tắc 6 giờ.** Giờ khởi hành sớm nhất của đơn (ngày đi + `depart_time`, giờ Việt Nam) phải cách mốc gửi đơn ít nhất 6 giờ. Mốc gửi = lúc lưu đơn thành công lần đầu (`orders.created_at`, `migrations/0003_orders.sql:18`); sửa giờ đi sớm hơn thì giờ mới phải cách lúc sửa ≥ 6 giờ (Q-S2). **Ai bị chặn:** đường lập thường chặn **mọi người**. Bán hàng, Quản trị, Toàn quyền đi sát giờ bằng đường "Lập đơn bổ sung" (mục 6). Người đặt ngoài công ty (Đối tác) không có đường đó nên bị **chặn cứng** — đúng câu của chủ "chỉ áp dụng với người đặt không phải là người trong công ty". Thực tập: Q-X.
-5. **Bảng điều khiển.** Cổng router `admin` + `can(settings.ops)`, tức cổng theo quyền, không theo SĐT. Mỗi quy tắc có: bật/tắt, chế độ "chỉ đo" hay "chặn", và con số. Khi chưa có dòng cài đặt nào, dùng mặc định đúng số chủ nêu: 2 lần, 15 lần, 6 giờ, và giờ khởi hành bắt buộc = bật. Đổi cài đặt = ghi một dòng mới có ngày hiệu lực (Hiến chương 5.2), kèm nhật ký trước → sau. Đặt lại bộ đếm được cho một người hoặc cho tất cả. Thi công hai lát: "chỉ đo" trước, "chặn" sau (Q-V).
-6. **Đơn bổ sung** (Q-W đã chốt (a), mở rộng). Nút riêng "Lập đơn bổ sung" cho Bán hàng, Quản trị, Toàn quyền — ô mới `order.create.supplement` (§13). **Luôn** có nhãn "Bổ sung"; **bắt buộc** chọn lý do: "Khách gọi điện sát giờ", "Nhập sót đơn đã nhận qua điện thoại", "Khác" (không kèm ô chữ — Q-H). Chỉ bỏ qua quy tắc 6 giờ; mọi luật khác (giờ khởi hành bắt buộc, …) giữ nguyên. Nhật ký `order_created_supplement` ghi ai, lý do, lúc nào (không SĐT). Bảng tin: loại tin mới (vd `tao_bo_sung`) kèm thông báo nổi gấp; bài `THAY_DOI` đỏ có chủ ý, app cũ bỏ qua loại mới (§8). **Dữ liệu** (module `orders`, migration chỉ-thêm, cập nhật `docs/data-dictionary.json`) — khuyến nghị cho ADR: bảng tra cứu lý do `ord_supplement_reason` + cột cho phép trống `orders.supplement_reason_code` trỏ vào đó (SQLite cho thêm cột có `REFERENCES` khi mặc định NULL — tiền lệ `migrations/0008_order_service.sql:30`). Nhãn "Bổ sung" = cột có giá trị: một nguồn sự thật, lọc và thống kê rẻ. Phương án khác: bảng một-dòng-mỗi-đơn `ord_order_supplement` (không đụng `orders`, nhưng danh sách phải nối thêm). Chỉ ghi nhật ký thì không đủ (căng Hiến chương 4.1).
+1. **Bộ đếm.** Bảng chỉ-thêm `dsp_release_event` của `dispatch` (tên chờ Q-AA không ảnh hưởng — đây là `dsp_`). Mỗi dòng: người, đơn, loại, lúc, người ghi. **Loại** là bảng tra cứu khoá mã `dsp_release_kind` (ADR-0003 điều 1; không `CHECK` liệt kê): `CLAIM` (tự Nhận — nguồn của "Nhận", N-C), `REFUSE` (Từ chối), `ABORT` (HDV huỷ — chỉ thống kê, Q-P2), `RESET` (mốc đặt lại). Trigger cấm sửa/xoá như `migrations/0021_order_money_adjustment.sql:17-20` (Hiến chương 5.5). Dòng ghi **cùng lô** với lệnh. Lệnh HDV huỷ chạy trong `orders` (`src/modules/orders/index.ts:88-90`), nên `orders` phải nhận thêm câu của `dispatch` vào lô — cùng chỗ đổi hợp đồng với Q-G. **Đặt lại** = ghi dòng `RESET`, không xoá (CLAUDE.md §7); "đặt lại cho tất cả" = mỗi HDV một dòng `RESET`. `RESET` cắt cả chuỗi lẫn đếm tuần. Nhật ký chỉ ghi tên.
+2. **Hạn mức Từ chối.**
+   - **Đếm ai:** tài khoản có quyền Hướng dẫn viên và **không** có quyền văn phòng (Bán hàng, Quản trị, Toàn quyền, Kế toán) — chủ nói "huỷ của văn phòng, bán hàng không tính" (G6).
+   - **Liên tiếp** (theo Q-Z): số `REFUSE` kể từ `CLAIM` gần nhất mà đơn của `CLAIM` đó **không** bị chính người ấy `REFUSE` sau đó, hoặc từ `RESET` gần nhất. Giao và chọn lúc lập không ghi `CLAIM` nên không cắt chuỗi. Đã có 2 thì lần thứ 3 bị chặn: máy chủ trả 409, giao diện hiện đúng câu **"Hãy gọi văn phòng"** (nút chủ gọi là "Huỷ"). Đơn được Giao cho HDV đã hết lượt thuộc về HDV đó ngay, không từ chối được.
+   - **Tuần:** tối đa 15. Lưu ý: vì chỉ được 2 lần liên tiếp, mức 15 chỉ chạm tới khi HDV nhận xen kẽ (ít nhất 7 lần nhận không bị từ chối nằm giữa).
+   - **Đua:** câu chèn `REFUSE` là câu chốt **đầu lô**, có điều kiện đếm (`INSERT … SELECT … WHERE <đếm liên tiếp> < 2 AND <đếm tuần> < 15`). Câu đóng dòng `HANDLE` và nhật ký chạy sau với `changes() > 0`, theo khuôn `src/modules/dispatch/repository.ts:5-7`, `:34-39`. Hai lần Từ chối song song ở ngưỡng thì chỉ một lần thắng.
+   - **Xem số lần:** route của `dispatch` sau cổng `admin` + `can(admin.manage)` trả tên HDV + số Từ chối, Huỷ trong tuần và chuỗi hiện tại; không SĐT. Chỉ Quản trị và Toàn quyền.
+3. **Giờ khởi hành bắt buộc** (`depart_time`, không phải giờ đón). Đòi ở **mọi đường lưu**: lập, sửa nháp, xác nhận, **`/trip`**, và đường HDV thêm dịch vụ (ADR-0023 dòng 21, D6). `/trip` không cho xoá giờ đã có. Không xử lý đơn cũ (chủ: giai đoạn development). Hệ quả: đơn cũ thiếu giờ — nháp thì không xác nhận được, đơn đã xác nhận thì muốn sửa chuyến phải nhập giờ luôn. **Cảnh báo:** production vẫn có đơn và nhân viên thật; chủ đã chấp nhận. Không thêm `NOT NULL` (ADR-0003 điều 10). Luật ở mã (Q-O(a)); migration khác vẫn là tệp mới, chỉ thêm (CLAUDE.md §7).
+4. **Quy tắc 6 giờ.**
+   - **Thời điểm khởi hành sớm nhất** = ngày đi + giờ sớm nhất trong các dịch vụ (ADR-0021: một ngày cho cả đơn), giờ VN, đổi sang UTC bằng `vnLocalToIso`.
+   - **Luật (N-B, Q-Y):** mỗi lần lưu (lập, sửa nháp, `/trip`, xác nhận, HDV thêm dịch vụ) mà thời điểm này **lần đầu có giá trị** (trống → có) **hoặc sớm hơn trước** thì nó phải ≥ **giờ máy chủ lúc lưu + 6 giờ**. Dời muộn hơn thì không kiểm. Lúc lập, "giờ máy chủ" chính là mốc gửi (`orders.created_at`, `migrations/0003_orders.sql:18`). Test biên cần đồng hồ tiêm được.
+   - **Ai bị chặn:** đường thường chặn **mọi người**. Bán hàng, Quản trị, Toàn quyền đi sát giờ bằng "Lập đơn bổ sung" hoặc sửa kèm lý do bổ sung (Q-X(2)). Mọi tài khoản có quyền Đối tác, **kể cả tài khoản lai**, bị **chặn cứng**: chốt `!holdsPartner(staff)` → 403 ở cả hai đường vòng (N-A; `can()` lấy hợp quyền, `src/shared/permissions.ts:108-112`; tài khoản lai vẫn tạo được qua đường quản trị cũ, `:124-126`). Thực tập: Q-X.
+   - **Sau này:** khi có "Gửi đơn hàng" của Đối tác (ADR-0018 điều 9, giai đoạn 5), mốc gửi của Đối tác chuyển sang lúc Gửi — ghi vào ADR.
+5. **Bảng điều khiển.** Mỗi module có **route riêng** (GET/PUT) sau cổng `admin` + `can(settings.ops)`: `dispatch` giữ hạn mức, đặt lại, xem số lần; `orders` giữ giờ bắt buộc và quy tắc 6 giờ. Trang giao diện gọi nhiều route. Không module nào ghi bảng của module kia (Hiến chương 5.3).
+   - Mỗi quy tắc: bật/tắt, "chỉ đo" (ghi nhật ký lần vi phạm, không chặn) hay "chặn", và con số. Mặc định khi chưa có dòng = đúng số chủ nêu (2, 15, 6 giờ; giờ bắt buộc = bật). Đổi = dòng mới có ngày hiệu lực (Hiến chương 5.2), nhật ký trước → sau.
+   - Tắt "giờ bắt buộc" mà vẫn bật "6 giờ": dịch vụ thiếu giờ tính là 00:00 ngày đi (cách chặt nhất), để Đối tác không lách bằng giờ trống.
+   - Cổng theo quyền, không theo SĐT — **chỉ cho trang mới này**; bật/tắt bảo trì vẫn kiểm SĐT như ADR-0019 dòng 48 (`migrations/0016_maintenance.sql:21-22`).
+   - Thi công hai lát: "chỉ đo" trước, "chặn" sau (Q-V).
+6. **Đơn bổ sung** (Q-W). Nút riêng "Lập đơn bổ sung" cho Bán hàng, Quản trị, Toàn quyền — ô `order.create.supplement` **và** chốt `!holdsPartner` (N-A).
+   - **Luôn** có nhãn "Bổ sung"; **bắt buộc** lý do: "Khách gọi điện sát giờ", "Nhập sót đơn đã nhận qua điện thoại", "Khác" (không kèm ô chữ). Chỉ bỏ qua quy tắc 6 giờ; mọi luật khác giữ. Nhật ký `order_created_supplement` ghi ai, lý do, lúc nào (không SĐT).
+   - **Dữ liệu** (module `orders`, migration chỉ-thêm, `docs/data-dictionary.json`): bảng tra cứu lý do + cột cho phép trống trên `orders` trỏ vào đó; nhãn = cột có giá trị. SQLite cho thêm cột có `REFERENCES` khi mặc định NULL (`migrations/0008_order_service.sql:30`). Tên bảng: Q-AA. Bảng `orders` vì vậy nhận thêm một **loại dòng** — "đơn bổ sung" (trang ghép (1)).
+   - **Bảng tin:** loại tin mới `tao_bo_sung`, hiện nổi gấp. Với đơn chưa có người phụ trách, **giữ** `tao_bo_sung` (không đổi thành `tao_cho_nhan` như `src/index.ts:43`) và vẫn gắn `cho-nhan`. Thêm `tu_choi` và `tao_bo_sung` vào danh sách hiện nổi là **mở rộng lựa chọn Q-B của chủ ở ADR-0022** (điều 7 và mục "Trả lời của chủ") → ADR ghi "nguyên văn → mới". Bài `THAY_DOI` đỏ có chủ ý; app cũ bỏ qua loại mới (§8).
+   - **Phụ thuộc lượt 1:** hôm nay HDV chỉ có nhãn `nguoi:<id>` (`src/shared/bang-tin.ts:30-35`), và đơn Bán hàng lập mặc định có người phụ trách là người lập (`src/modules/orders/index.ts:205-215`). Vậy vế "HDV nhận tin gấp" chỉ chạy sau lượt 1 (ADR-0020 + nhãn `cho-nhan` của HDV).
 
 **Nói với chủ một lần (P18):**
-- HDV huỷ (Aborted) không tính vào hạn mức (Q-P2), nên HDV có thể chọn huỷ cả đơn để né hạn mức Từ chối. Huỷ nặng hơn nhiều (khách mất tour) và chỉ có hai lý do, nhưng hệ thống không kiểm được lý do đó là thật. Giảm nhẹ: văn phòng thấy số lần Huỷ của từng HDV.
-- Đường "Lập đơn bổ sung" gỡ được mâu thuẫn với ADR-0014 điều 2 (Toàn quyền = `any` ở mọi ô, bài kiểm `src/shared/permissions.test.ts:46`): Toàn quyền không bị cấm, chỉ phải kèm nhãn + lý do. Nhưng đó vẫn là **một ràng buộc quy trình đặt lên Toàn quyền** (đường thường của Toàn quyền vẫn bị 6 giờ chặn) — ADR phải nói rõ.
+- HDV huỷ (Aborted) không tính vào hạn mức (Q-P2), nên HDV có thể huỷ cả đơn để né hạn mức. Huỷ nặng hơn (khách mất tour), chỉ có hai lý do, nhưng không kiểm được lý do là thật; văn phòng thấy số lần Huỷ của từng HDV.
+- "Lập đơn bổ sung" gỡ được mâu thuẫn với ADR-0014 điều 2 (Toàn quyền = `any` ở mọi ô; bài kiểm `src/shared/permissions.test.ts:46`): Toàn quyền không bị cấm, chỉ phải kèm nhãn + lý do. Đó là **ràng buộc quy trình đặt lên Toàn quyền** (đường thường của Toàn quyền vẫn bị 6 giờ chặn). Có tiền lệ: ADR-0014 điều 10 ("ràng buộc quy trình, không phải bảng quyền"), và luật nghiệp vụ đã ràng Toàn quyền, vd `src/modules/dispatch/index.ts:155-156`. ADR-0031 phải nói rõ.
 - Đối tác không có đường vòng: đơn Đối tác sát giờ phải nhờ văn phòng lập đơn bổ sung.
-- Giờ khởi hành bắt buộc sẽ đổi form lập đơn (cả form của Đối tác) và làm vỡ các kịch bản e2e/Chrome đang lập đơn không có giờ (**chưa kiểm** có bao nhiêu kịch bản).
+- Giờ khởi hành bắt buộc sẽ đổi form lập đơn (cả Đối tác) và làm vỡ các kịch bản e2e/Chrome đang lập đơn không có giờ (**chưa kiểm** có bao nhiêu).
 
 ## 10. Giả định (bề mặt, đảo được — giả định cấu trúc đã đưa lên §1)
 
-**G1:** "huỷ bởi người đặt" = người lập hoặc văn phòng bấm huỷ. **G2:** ở lượt đầu, nhãn "Aborted"/"được trả lại" chỉ hiện ở chi tiết đơn và màn HDV. **G3:** câu chữ thông báo ở §8. **G5:** "người đặt không phải là người trong công ty" hiểu là **tài khoản lập đơn** có quyền Đối tác (cùng cách ADR-0029 điều 2 xét người thao tác), không phải bên đặt ghi trên đơn. **G4 (cấu trúc, theo ô đã có):** câu (A) "người tạo chọn HDV" được thu hẹp: Thực tập không chọn được vì `dispatch.assign` của INTERN là `none` (`src/shared/permissions.ts:58`); Đối tác chỉ đề xuất (ADR-0018 điều 9). Mở cho Thực tập = đổi một ô, cần chủ quyết.
+**G1:** "huỷ bởi người đặt" = người lập hoặc văn phòng bấm huỷ. **G2:** ở lượt đầu, nhãn "Aborted"/"được trả lại" chỉ hiện ở chi tiết đơn và màn HDV. **G3:** câu chữ thông báo ở §8. **G5:** "người đặt không phải là người trong công ty" hiểu là **tài khoản lập đơn** có quyền Đối tác (cùng cách ADR-0029 điều 2 xét người thao tác), không phải bên đặt ghi trên đơn. **G4 (cấu trúc, theo ô đã có):** câu (A) "người tạo chọn HDV" được thu hẹp: Thực tập không chọn được vì `dispatch.assign` của INTERN là `none` (`src/shared/permissions.ts:58`); Đối tác chỉ đề xuất (ADR-0018 điều 9). Mở cho Thực tập = đổi một ô, cần chủ quyết. **G6:** hạn mức Từ chối chỉ đếm tài khoản có quyền Hướng dẫn viên mà không có quyền văn phòng (từ câu "huỷ của văn phòng, bán hàng không tính").
 
 ## 11. Phụ thuộc và thứ tự
 
 1. **ADR-0019 thi công và lên production.** Đã duyệt 25/9 nhưng chưa thi công: cổng vẫn suy từ một ô (`src/shared/permissions.ts:115`, `src/shared/router.ts:174-175`); ô `dispatch.request` còn đó (`permissions.ts:61`). ADR-0019 điều 3 chỉ cho FIELD vào cổng `orders` "khi ADR-0017 được thi công" → bản sửa ADR-0023 phải thay điều kiện này. **Không thi công riêng ADR-0017** (accepted, một chiều: FIELD xem mọi đơn kể cả tiền) trước ADR-0023.
 2. **Chủ trả lời §1** (làm được ngay).
-3. **AI soạn ADR:** **ADR-0030** — số kế tiếp, đã kiểm không nhánh nào có ADR-003x. Nội dung: Từ chối + thay LC-8; ô `dispatch.refuse`; lý do huỷ bắt buộc; HDV huỷ đơn chưa chốt (đổi `cancelOrderByHandler`); "lệch có chủ ý: 5.1" theo Q-O. **Cửa hỗn hợp:** hai chiều cho mã và ô quyền; **một chiều** cho SĐT đã lộ qua nhận-rồi-từ-chối và cho nhật ký chỉ-thêm. **Sửa bản nháp ADR-0020:** bỏ "LC-8 không đổi" và "gỡ hẳn đường tiêm" (Q-C); thêm chốt Nhận (N-2) và chặn tài khoản lai; thêm dòng "nguyên văn → mới" cho ADR-0022 điều 3 / NT-3 và cho ADR-0018 điều 7. **Sửa bản nháp ADR-0023:** cách đặt quyền theo Q-I; `order.history.view` của FIELD; điều kiện cổng thay ADR-0019 điều 3; tách phần "xem" (lượt 1) khỏi "sửa" (lượt 2). **ADR-0031** (lượt 3–4, §9A): bộ đếm + hạn mức Từ chối; giờ khởi hành bắt buộc + quy tắc 6 giờ; Đơn bổ sung cho Bán hàng/Quản trị/Toàn quyền (ô `order.create.supplement`, bảng lý do + cột nhãn; ràng buộc quy trình đặt lên Toàn quyền); trang cài đặt vận hành; "lệch có chủ ý: 5.1" cho các luật chỉ ở mã. Không sửa ADR đã accepted.
+3. **AI soạn ADR:** **ADR-0030** — số kế tiếp, đã kiểm không nhánh nào có ADR-003x. Nội dung: Từ chối + thay LC-8; ô `dispatch.refuse`; lý do huỷ bắt buộc; HDV huỷ đơn chưa chốt (đổi `cancelOrderByHandler`); "lệch có chủ ý: 5.1" theo Q-O. **Cửa hỗn hợp:** hai chiều cho mã và ô quyền; **một chiều** cho SĐT đã lộ qua nhận-rồi-từ-chối và cho nhật ký chỉ-thêm. **Sửa bản nháp ADR-0020:** bỏ "LC-8 không đổi" và "gỡ hẳn đường tiêm" (Q-C); thêm chốt Nhận (N-2) và chặn tài khoản lai; thêm dòng "nguyên văn → mới" cho ADR-0022 điều 3 / NT-3 và cho ADR-0018 điều 7. **Sửa bản nháp ADR-0023:** cách đặt quyền theo Q-I; `order.history.view` của FIELD; điều kiện cổng thay ADR-0019 điều 3; tách phần "xem" (lượt 1) khỏi "sửa" (lượt 2). **ADR-0031** (lượt 3; D8, D9, D10): giờ khởi hành bắt buộc + quy tắc 6 giờ; trang cài đặt (route theo module, ô `settings.ops`); Đơn bổ sung (ô `order.create.supplement` + `!holdsPartner`, bảng lý do + cột nhãn, ràng buộc quy trình đặt lên Toàn quyền); tiền tố `ord_` nếu Q-AA(a) (sửa ADR-0002 điều 2); "lệch có chủ ý: 5.1", ghi về 5.8. **D8 và D10 phải duyệt cùng nhau** — duyệt D8 riêng sẽ chặn cả Bán hàng khi đơn sát giờ. **ADR-0032** (lượt 4; D7): bộ đếm + hạn mức Từ chối, định nghĩa "liên tiếp" theo Q-Z. Một ADR nháp có thể đi hai lần duyệt bằng cách tách phần, như ADR-0023 tách xem/sửa. Không sửa ADR đã accepted.
 4. **Duyệt bốn lượt (§13)**, rồi thi công theo lượt: đỏ → xanh, e2e, Chrome, người kiểm độc lập.
 
 ## 12. Tiêu chí nghiệm thu (hành vi kiểm được)
@@ -237,12 +259,13 @@ Người kiểm quan sát: đổi `dispatch.claim` của FIELD → 3 bài đỏ;
 9. **Không đổi:** Thực tập, Đối tác, Kế toán — e2e quyền hiện có vẫn xanh.
 10. **Hàng rào.** Các bài đỏ có chủ ý ở §8 chỉ đổi sau khi chủ quyết. Hàng rào 1 và 2 xanh. Mỗi rào mới có dòng ở `docs/SO-HANG-RAO.md`, kèm ngày thấy chặn thật.
 11. **Kiểm bất biến LC-8 mới.** Sẽ đỏ với `dropHandler` của e2e (ADR-0020 dòng 64), và có thể đỏ với dữ liệu cũ trên production. Chạy truy vấn chỉ-đọc trước (chủ tự chạy); đặt mức "cảnh báo" trước khi đặt "vi phạm".
-12. **Hạn mức Từ chối (lát 2).** Từ chối lần thứ 3 liên tiếp → 409, và giao diện hiện đúng câu "Hãy gọi văn phòng". Nhận thêm một đơn → được từ chối lại. Toàn quyền đặt lại → được từ chối lại; có dòng `RESET` và dòng nhật ký. Lần từ chối thứ 16 trong tuần → 409. HDV huỷ đơn không làm tăng số đếm (Q-P2). Lát 1 ("chỉ đo"): không chặn, nhưng số đếm đúng.
-13. **Giờ khởi hành.** Lập đơn, sửa nháp hoặc xác nhận mà thiếu `depart_time` → 400/409.
-14. **6 giờ.** Đối tác lập đơn có giờ đi sớm nhất cách lúc gửi dưới 6 giờ (giờ VN) → 400, câu tiếng Việt rõ (vd "Đơn phải đặt trước giờ khởi hành ít nhất 6 giờ — hãy gọi văn phòng"). Bán hàng, Quản trị, Toàn quyền lập đơn như vậy bằng **đường thường** → 400; bằng **đường bổ sung** → 201. Cách đúng 6 giờ → 201. Sửa giờ đi sớm hơn: giờ mới phải cách lúc sửa ≥ 6 giờ (Q-S2). Thực tập: theo Q-X.
-15. **Đơn bổ sung.** Bán hàng, Quản trị, Toàn quyền lập được; Đối tác, Kế toán, HDV, Thực tập (theo Q-X) → 403. Thiếu lý do → 400. Đơn **luôn** mang nhãn "Bổ sung", kể cả ở danh sách. HDV và văn phòng nhận tin gấp qua Bảng tin. Nhật ký có lý do, không SĐT. Mọi luật khác vẫn kiểm (vd giờ khởi hành bắt buộc).
-16. **Trang cài đặt.** Quản trị gọi → 403. Toàn quyền đổi số → có dòng mới và nhật ký trước → sau, không có SĐT. Chưa có dòng cài đặt nào → dùng đúng số mặc định của chủ. Đổi số có hiệu lực ngay từ lần gọi sau.
-17. **Lệnh kiểm:** `npm test` xanh, `npm run typecheck` 0 lỗi, `npm run test:e2e` xanh, `audit-invariants` đạt; người kiểm độc lập ĐẠT.
+12. **Hạn mức Từ chối (lát 2).** Từ chối lần thứ 3 liên tiếp → 409, giao diện hiện đúng "Hãy gọi văn phòng". **Nhận X rồi từ chối X**, lặp lại tới lần thứ 3 liên tiếp → 409 (Q-Z). **Được Giao đơn thứ 3** khi đã từ chối 2 lần → không từ chối được. Nhận một đơn và giữ nó → được từ chối lại. Toàn quyền đặt lại → được lại; có dòng `RESET` + nhật ký. Lần thứ 16 trong tuần → 409. **Hai Từ chối song song** ở ngưỡng → đúng một 200. HDV huỷ không làm tăng số đếm. Tài khoản có quyền văn phòng không bị đếm (G6). Lát 1 ("chỉ đo"): không chặn, số đếm đúng.
+13. **Giờ khởi hành.** Lập, sửa nháp, xác nhận, `/trip` hoặc HDV thêm dịch vụ mà thiếu `depart_time` → 400/409. `/trip` xoá giờ đã có → 400. Đơn cũ đã xác nhận thiếu giờ: sửa chuyến mà không nhập giờ → 400.
+14. **6 giờ** (đồng hồ tiêm được). Đối tác lập đơn có thời điểm khởi hành sớm nhất dưới giờ lưu + 6 giờ → 400, câu tiếng Việt rõ (vd "Đơn phải đặt trước giờ khởi hành ít nhất 6 giờ — hãy gọi văn phòng"). **Nháp không ngày, sau đó điền ngày sát giờ → 400.** `/trip` dời giờ sớm hơn tới sát giờ → 400 ở đường thường. Bán hàng, Quản trị, Toàn quyền: đường thường → 400; đường bổ sung hoặc sửa kèm lý do bổ sung → được. Cách đúng 6 giờ → được. Dời muộn hơn → không kiểm.
+15. **Đơn bổ sung.** Bán hàng, Quản trị, Toàn quyền lập được; Đối tác, Kế toán, HDV, Thực tập (theo Q-X) → 403; **tài khoản lai Đối tác + Bán hàng (hoặc + Quản trị) → 403**. Thiếu lý do → 400. Đơn luôn mang nhãn "Bổ sung", kể cả ở danh sách. Văn phòng nhận tin gấp; HDV nhận tin gấp **sau lượt 1**. Nhật ký có lý do, không SĐT. Mọi luật khác vẫn kiểm.
+16. **Trang cài đặt.** Quản trị gọi route cài đặt của `dispatch` hoặc `orders` → 403. Toàn quyền đổi số → dòng mới + nhật ký trước → sau, không SĐT. Chưa có dòng → đúng số mặc định của chủ. Đổi số có hiệu lực ngay từ lần gọi sau. Tắt "giờ bắt buộc" + bật "6 giờ": dịch vụ thiếu giờ tính 00:00.
+17. **Xem số lần.** Quản trị, Toàn quyền → 200 (tên + số, không SĐT); người khác → 403.
+18. **Lệnh kiểm:** `npm test` xanh, `npm run typecheck` 0 lỗi, `npm run test:e2e` xanh, `audit-invariants` đạt; người kiểm độc lập ĐẠT.
 
 ## 13. Trang ghép (CLAUDE.md §9)
 
@@ -251,13 +274,13 @@ Người kiểm quan sát: đổi `dispatch.claim` của FIELD → 3 bài đỏ;
 | Bảng | Hôm nay | Sau |
 |---|---|---|
 | `dsp_assignment` | dòng `HANDLE`: hồ sơ nội bộ có tài khoản, hoặc hồ sơ không tài khoản; đổi người = đóng một + mở một | thêm cách đóng mà không mở dòng mới (Từ chối) |
-| `orders` | đơn do nội bộ, Đối tác, Thực tập lập | không đổi cột |
+| `orders` | đơn do nội bộ, Đối tác, Thực tập lập | thêm một cột cho phép trống (lý do bổ sung) và **một loại dòng mới: "đơn bổ sung"** (Q-W) |
 | `audit_log` | nhật ký chỉ-thêm | thêm `order_handler_refused`; `cancelled` có lý do |
 | `order_money_adjustment` | dòng điều chỉnh của HDV | theo ADR-0023 (D6) |
-| `dsp_release_event` (mới, §9A) | — | chỉ-thêm của `dispatch`: Từ chối, HDV huỷ, mốc đặt lại |
-| cài đặt luật vận hành (mới, Q-U) | chỉ có `mnt_setting` (bảo trì) | dòng có kiểu + ngày hiệu lực, mỗi module một bảng |
+| `dsp_release_event` + tra cứu `dsp_release_kind` (mới, §9A) | — | chỉ-thêm của `dispatch`, trigger cấm sửa/xoá: `CLAIM`, `REFUSE`, `ABORT`, `RESET` |
+| cài đặt luật vận hành (mới, Q-U) | chỉ có `mnt_setting` (bảo trì) | dòng có kiểu + ngày hiệu lực; một bảng `dsp_` của `dispatch`, một bảng của `orders` (tên theo Q-AA) |
 | `order_service` | `depart_time` được trống (`migrations/0008_order_service.sql:18`) | không đổi cột; bắt buộc ở mã (lệch 5.1, Q-O) |
-| `ord_supplement_reason` + cột `orders.supplement_reason_code` (mới, Q-W) | — | bảng tra cứu lý do + cột cho phép trống; nhãn "Bổ sung" = cột có giá trị; migration chỉ-thêm của `orders` |
+| bảng tra cứu lý do bổ sung + cột trên `orders` (mới, Q-W; tên theo Q-AA) | — | nhãn "Bổ sung" = cột có giá trị; migration chỉ-thêm của `orders` |
 
 **(2) Ô quyền** (`src/shared/permissions.ts`, cột FIELD nếu không ghi khác)
 
@@ -272,11 +295,12 @@ Người kiểm quan sát: đổi `dispatch.claim` của FIELD → 3 bài đỏ;
 | `dispatch.refuse` (mới) | — | SALES/ADMIN/FIELD `assigned`, Toàn quyền `any` (chỉ tự làm — §5 bước 5), còn lại `none` |
 | `order.cancel` | `assigned` (:57) | giữ ô; mở cho đơn chưa chốt (Q-G) |
 | `order.money.edit` | `assigned` (:56) | theo ADR-0023: thêm/bớt dịch vụ, cả đơn chưa chốt (D6, lượt 2) |
-| `order.modify` | như hôm nay (:53) | giữ ô; huỷ phải có lý do |
+| `order.modify` | như hôm nay (:53) | giữ ô; huỷ phải có lý do; sửa nháp theo giờ bắt buộc + 6 giờ; sửa nháp sát giờ kèm lý do bổ sung như dòng `order.trip.edit` |
 | `settings.ops` (mới — đặc tả vai §5, ADR-0019) | chưa có | Toàn quyền `any`, còn lại `none`: xem/đổi cài đặt, đặt lại bộ đếm |
 | `admin.manage` (cột ADMIN) | `any` (:69) | dùng thêm cho "xem số lần từ chối/huỷ của từng HDV" |
 | `order.create` | như hôm nay (:52) | giữ ô; đường thường thêm quy tắc 6 giờ cho **mọi người** |
-| `order.create.supplement` (mới, Q-W) | — | SALES `any`, ADMIN `any`, SUPER_ADMIN `any` (khớp ADR-0014 điều 2); ACCOUNTING, FIELD, PARTNER, INTERN `none` (INTERN theo Q-X) |
+| `order.create.supplement` (mới, Q-W) | — | SALES `any`, ADMIN `any`, SUPER_ADMIN `any` (khớp ADR-0014 điều 2); ACCOUNTING, FIELD, PARTNER, INTERN `none` (INTERN theo Q-X); **thêm chốt `!holdsPartner`** vì `can()` lấy hợp quyền (N-A). Áp cho loại dòng "đơn bổ sung" |
+| `order.trip.edit` | SALES `ownOrAssigned`, ADMIN `any` (:54) | giữ ô; `/trip` thêm giờ bắt buộc + quy tắc 6 giờ; sửa sát giờ kèm lý do bổ sung (Q-X(2)) chỉ SALES/ADMIN/SUPER_ADMIN và `!holdsPartner`. Áp cho cả đơn thường lẫn đơn bổ sung |
 
 **(3) Cổng canh cửa** (sau ADR-0019)
 
@@ -289,16 +313,19 @@ Người kiểm quan sát: đổi `dispatch.claim` của FIELD → 3 bài đỏ;
 | Từ chối | `orders` | `can(dispatch.refuse, {assigned})` + đang phụ trách + trạng thái + hạn Q-E | câu chốt theo `party_id` của người gọi |
 | HDV huỷ | `staff` (`src/modules/dispatch/index.ts:149`) | `can(order.cancel, {assigned})` + `tripDeparted` | trigger 0017 |
 | Bảng tin | `GET /api/bang-tin` | `nhanKetNoi` (không `cho-nhan` cho tài khoản lai); `nhanSuKien` với trạng thái trước "không biết" (N-1) | — |
-| Trang cài đặt vận hành | `admin` | `can(settings.ops)` | đổi = dòng mới + nhật ký; đặt lại = dòng `RESET` |
+| Cài đặt — phía `dispatch` (hạn mức, đặt lại) | `admin` | `can(settings.ops)` | dòng mới + nhật ký; đặt lại = dòng `RESET` |
+| Cài đặt — phía `orders` (giờ bắt buộc, 6 giờ) | `admin` | `can(settings.ops)` | dòng mới + nhật ký |
+| Xem số lần Từ chối/Huỷ (route của `dispatch`) | `admin` | `can(admin.manage)` | chỉ tên + số, không SĐT |
+| Sửa chuyến (`PUT /api/orders/:id/trip`) | `orders` | `can(order.trip.edit, …)` + giờ bắt buộc + 6 giờ; lý do bổ sung chỉ SALES/ADMIN/SUPER_ADMIN và `!holdsPartner` | luật ở mã (lệch 5.1) |
 | Lập / sửa nháp / xác nhận (§9A) | `orders` | đọc cài đặt: giờ khởi hành bắt buộc; 6 giờ chặn **mọi người** ở đường thường | luật ở mã (lệch 5.1) |
-| Lập đơn bổ sung (Q-W) | `orders` | `can(order.create.supplement)` + lý do bắt buộc | chỉ bỏ qua quy tắc 6 giờ; cột lý do + nhật ký `order_created_supplement` |
-| Từ chối / HDV huỷ (§9A) | như trên | + hạn mức Từ chối theo cài đặt (lát 2); HDV huỷ chỉ ghi để thống kê | dòng sự kiện ghi cùng lô |
+| Lập đơn bổ sung (Q-W) | `orders` | `can(order.create.supplement)` + `!holdsPartner` + lý do bắt buộc | chỉ bỏ qua quy tắc 6 giờ; cột lý do + nhật ký `order_created_supplement` |
+| Từ chối / HDV huỷ (§9A) | như trên | + hạn mức Từ chối theo cài đặt (lát 2); HDV huỷ chỉ ghi để thống kê | câu chèn `REFUSE` có điều kiện đếm là câu chốt đầu lô |
 
 **Đếm: 10 quyết định chạm quyền/dữ liệu** → chia 3 + 3 + 3 + 1.
 - **Lượt 1** (chỉ sau khi ADR-0019 lên production; chạy được một mình vì chưa có Từ chối): D1: HDV xem gì. D2: HDV nhận + chốt Nhận + tài khoản lai + sửa ADR-0022 điều 3 / NT-3. D3: đơn mới không có người + chọn HDV lúc lập (hợp đồng `orders`↔`dispatch`).
 - **Lượt 2:** D4: Từ chối + thay LC-8. D5: lý do huỷ bắt buộc + HDV huỷ đơn chưa chốt. D6: HDV sửa đơn (phần "sửa" của ADR-0023).
-- **Lượt 3** (§9A; không cần Từ chối, làm được ngay sau ADR-0019): D8 giờ khởi hành bắt buộc + quy tắc 6 giờ; D9 trang cài đặt + ô `settings.ops` + bảng cài đặt; D10 Đơn bổ sung (ô `order.create.supplement` cho Bán hàng/Quản trị/Toàn quyền + bảng lý do + cột nhãn; Thực tập theo Q-X).
-- **Lượt 4** (sau lượt 2, vì cần Từ chối): D7 bộ đếm + hạn mức Từ chối.
+- **Lượt 3** (ADR-0031; không cần Từ chối, làm được sau ADR-0019; **D8 và D10 duyệt cùng nhau**; vế "HDV nhận tin gấp" chỉ chạy sau lượt 1): D8 giờ khởi hành bắt buộc + quy tắc 6 giờ; D9 trang cài đặt + ô `settings.ops` + bảng cài đặt; D10 Đơn bổ sung (ô `order.create.supplement` cho Bán hàng/Quản trị/Toàn quyền + bảng lý do + cột nhãn; Thực tập theo Q-X).
+- **Lượt 4** (ADR-0032; sau lượt 2, vì cần Từ chối): D7 bộ đếm + hạn mức Từ chối.
 
 ## Phụ lục A — Bằng chứng cho Q-A
 
