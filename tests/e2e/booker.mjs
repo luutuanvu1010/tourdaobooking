@@ -1,6 +1,8 @@
 // Người đặt trên đơn (N2 lát 1, ADR-0011): bỏ qua / gắn hồ sơ có sẵn / tạo hồ sơ mới cùng lúc lưu đơn; máy chủ không tin id từ trình duyệt; nhật ký không lộ SĐT.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, call, ensureFakeCatalog, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+
+await ensureFakeCatalog(); // orderInput() dùng dịch vụ danh mục giả ZE1 (API không nhận dịch vụ nhập tay mới — 2026-09-26)
 
 const SALES = await session(ACCOUNTS.salesA);
 const tag = String(Date.now()).slice(-6);

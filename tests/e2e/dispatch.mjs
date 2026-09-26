@@ -4,8 +4,10 @@
 // người phụ trách (khác người lập) sửa được đơn (bộ kiểm hành vi đầy đủ ở các mục cuối và ở orders/trip/permissions.mjs).
 // Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng"; đóng dòng HANDLE bằng SQL để có đơn "chưa có người phụ trách".
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, manualService, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
+// Chạy SAU catalog.mjs (lần đồng bộ Sheet thật đặt in_sheet = 0 cho mã giả) → phải bật lại danh mục giả ZE* mà orderInput() mặc định dùng.
+await ensureFakeCatalog();
 const A = await session(ACCOUNTS.salesA);
 const B = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
@@ -756,7 +758,15 @@ try {
   // chính là chỗ bộ kiểm CŨ ở đoạn hỏng after_json phía trên "kiểm giả": so đối chiếu bốn bề mặt VỚI NHAU thay vì với số tự tính — đã viết lại,
   // xem đoạn softSeq/hardSeq ở trên đã đặt `subtotal_after` thành số RÁC (999) thay vì số trùng hợp khớp).
   // --------------------------------------------------------------------------------------------------------------------------------------
-  const manualSvc = (price, extra = {}) => manualService([{ description: "Phí phát sinh", quantity: 1, unitPrice: price }], extra);
+  // Đơn có dịch vụ NHẬP TAY: từ 2026-09-26 API không nhận dịch vụ nhập tay mới (chủ dự án, DK-T3-01), nhưng đơn CŨ có nhập tay vẫn nằm trong dữ liệu
+  // thật và mọi bề mặt tiền phải đúng với chúng → dựng đơn CŨ: lập đơn với `services` + một dịch vụ giả ZE1 một dòng ở CUỐI (đúng vị trí dịch vụ nhập
+  // tay cũ), đổi dịch vụ đó thành nhập tay "Phí phát sinh" 1 × `manualPrice` bằng SQL KHI ĐƠN CÒN NHÁP (makeLegacyManual), rồi đọc lại đơn.
+  const legacyManualOrder = async (services, manualPrice, extra = {}) => {
+    const x = await call(A, "POST", "/api/orders", orderInput({ services: [...services, catalogService({ departDate: vnDate(0) })], ...extra }));
+    assert.equal(x.status, 201, JSON.stringify(x.body));
+    await makeLegacyManual(x.body.order.id, x.body.order.services.at(-1).id, { name: "Phí phát sinh", description: "Phí phát sinh", unitPrice: manualPrice });
+    return orderView(A, x.body.order.id);
+  };
   const measured = []; // bảng số đo cuối — in ra cuối khối này (yêu cầu báo cáo: "ca nào, tự tính tay bao nhiêu, bốn bề mặt trả về bao nhiêu")
 
   /** Đo BA bề mặt CÓ tiền (chi tiết đơn, /api/orders, Trang chủ hôm nay) + bề mặt thứ tư KHÔNG có tiền (Việc của tôi — chỉ đối chứng số khách). */
@@ -792,7 +802,7 @@ try {
 
   // --- D2: đơn CHỈ có dịch vụ NHẬP TAY + "sửa" sau xác nhận (route chỉ chấp nhận services:[] — không có dịch vụ danh mục nào để liệt kê) ----------
   {
-    const d2 = (await call(A, "POST", "/api/orders", orderInput({ services: [manualSvc(200000, { departDate: vnDate(0) })] }))).body.order;
+    const d2 = await legacyManualOrder([], 200000);
     assert.equal((await call(A, "POST", `/api/orders/${d2.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d2.id, fld.id)).status, 200);
     r = await moneyEdit(FIELD, d2.id, { reason: "D2: chỉ nhập tay", services: [] });
@@ -824,9 +834,7 @@ try {
 
   // --- D3: đơn TRỘN danh mục + nhập tay + sửa sau xác nhận — ĐÚNG CA LỖI GỐC kiểm độc lập đo được (thiếu 200.000₫) ------------------------------
   {
-    const d3 = (
-      await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })] }))
-    ).body.order;
+    const d3 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000);
     const d3SvcId = d3.services.find((s) => s.catalogCode === "ZH1").id;
     assert.equal((await call(A, "POST", `/api/orders/${d3.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d3.id, fld.id)).status, 200);
@@ -861,9 +869,7 @@ try {
 
   // --- D4: đơn TRỘN + NHIỀU LẦN SỬA LIÊN TIẾP (2 gốc → 5 → 6 → 4) — bốn bề mặt phải lấy ĐÚNG lần sửa GẦN NHẤT ----------------------------------
   {
-    const d4 = (
-      await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })] }))
-    ).body.order;
+    const d4 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000);
     const d4SvcId = d4.services.find((s) => s.catalogCode === "ZH1").id;
     assert.equal((await call(A, "POST", `/api/orders/${d4.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d4.id, fld.id)).status, 200);
@@ -884,15 +890,7 @@ try {
 
   // --- D5: đơn TRỘN + CỌC + sửa — "còn thu" (remainingAmount) phải đúng ở CẢ BỐN bề mặt --------------------------------------------------------
   {
-    const d5 = (
-      await call(
-        A, "POST", "/api/orders",
-        orderInput({
-          services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })],
-          depositAmount: 300000, depositMethod: "cash",
-        }),
-      )
-    ).body.order;
+    const d5 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000, { depositAmount: 300000, depositMethod: "cash" });
     const d5SvcId = d5.services.find((s) => s.catalogCode === "ZH1").id;
     assert.equal((await call(A, "POST", `/api/orders/${d5.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d5.id, fld.id)).status, 200);
@@ -921,9 +919,7 @@ try {
   // nhập tay — khớp chính xác với D3 (kịch bản GIỐNG HỆT D6, chạy qua API thật ở trên) nếu chạy trên mã CHƯA sửa mục A. Đây CHÍNH LÀ lý do mục B
   // (nơi đọc) quan trọng hơn mục A (nơi ghi): mục A chỉ chữa được đơn TỪ NAY, còn đơn CŨ như D6 chỉ được chữa nếu nơi ĐỌC ngừng tin cột đã lưu.
   {
-    const d6 = (
-      await call(A, "POST", "/api/orders", orderInput({ services: [catSvc({ pax: { adult: 2 }, departDate: vnDate(0) }), manualSvc(200000, { departDate: vnDate(0) })] }))
-    ).body.order;
+    const d6 = await legacyManualOrder([catSvc({ pax: { adult: 2 }, departDate: vnDate(0) })], 200000);
     const d6SvcId = d6.services.find((s) => s.catalogCode === "ZH1").id;
     assert.equal((await call(A, "POST", `/api/orders/${d6.id}/status`, { status: "confirmed" })).status, 200);
     assert.equal((await setHandler(A, d6.id, fld.id)).status, 200);

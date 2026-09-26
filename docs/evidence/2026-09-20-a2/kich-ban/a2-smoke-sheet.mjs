@@ -18,15 +18,20 @@ try {
   const dmy = (iso) => `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(0, 4)}`;
 
   // đơn đã xác nhận: dịch vụ danh mục (đủ trường chuyến) + dịch vụ nhập tay
+  // 2026-09-26 (DK-T3-01): API không nhận dịch vụ nhập tay MỚI → dựng đơn CŨ: lập với TTB06 (1 × 800.000, cùng số tiền với dòng nhập tay cũ) rồi đổi
+  // dịch vụ đó thành nhập tay bằng SQL khi đơn CÒN NHÁP (trigger 0008 khoá dịch vụ của đơn đã xác nhận), sau đó mới xác nhận.
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Bảng Trượt", customerPhone: "0904 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [
       { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(10), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00", note: "Đón sớm" },
-      { kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP, departDate: vnDate(10), pickupPlace: "Khách sạn Sunrise" },
+      { kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(10), pickupPlace: "Khách sạn Sunrise" },
     ],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const orderId = created.json.order.id;
+  const manualId = created.json.order.services[1].id;
+  env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${manualId}'`);
+  env.sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = 'Xe 7 chỗ 2 chiều', detail = NULL WHERE service_id = '${manualId}'`);
   assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${orderId}/status`, { status: "confirmed" })).status, 200);
   const getOrder = async () => (await call(ACCOUNTS.salesA, "GET", `/api/orders/${orderId}`)).json;
   const tripOf = (s, o = {}) => ({ id: s.id, departDate: s.departDate ?? "", departTime: s.departTime ?? "", pickupTime: s.pickupTime ?? "", pickupPlace: s.pickupPlace ?? "", checkinDate: s.checkinDate ?? "", checkinTime: s.checkinTime ?? "", checkinPlace: s.checkinPlace ?? "", note: s.note ?? "", ...o });
@@ -234,7 +239,7 @@ try {
   // ---- 10) đơn nháp/huỷ/người khác KHÔNG có nút ----
   const draft = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     customerName: "Khách Nháp", customerPhone: "0905 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-    services: [{ kind: "manual", name: "Xe", pax: pax(1), items: [{ description: "Xe", detail: "", quantity: 1, unitPrice: 100000 }], ...NO_TRIP }],
+    services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP }], // 2026-09-26: trước là dịch vụ nhập tay (API nay không nhận mới)
   });
   p = await env.as(ACCOUNTS.salesA, `/order?id=${draft.json.order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 1", "đơn nháp");

@@ -1,7 +1,9 @@
 // E2E vai & quyền (ADR-0018 giai đoạn 1) trên API THẬT: gán vai sinh quyền, chỉnh tay có lý do, luật cứng LC-1/LC-3/LC-4, route cũ bị khoá với tài khoản
 // đã gán vai, tạo tài khoản trên hồ sơ có sẵn, Thực tập sinh chỉ thấy đơn của mình, nhật ký có dòng đổi vai (không chứa SĐT). Chạy qua tests/e2e/run.mjs.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, orderInput, randomPhone as rnd, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone as rnd, session, sql, sqlRows } from "./lib.mjs";
+
+await ensureFakeCatalog(); // orderInput() dùng dịch vụ danh mục giả ZE1 (API không nhận dịch vụ nhập tay mới — 2026-09-26)
 
 const ADMIN = await session(ACCOUNTS.admin);
 const SUPER = await session(ACCOUNTS.superAdmin);

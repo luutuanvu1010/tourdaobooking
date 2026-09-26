@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, manualService, randomPhone, session, sql, vnDate } from "./lib.mjs";
+import { ACCOUNTS, FAKE_CATALOG, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, randomPhone, session, sql, vnDate } from "./lib.mjs";
 
+await ensureFakeCatalog(); // API không nhận dịch vụ nhập tay mới (chủ dự án 2026-09-26) → đơn thử dùng danh mục giả ZE* (ZE1: người lớn 100.000, trẻ em 50.000)
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
@@ -10,12 +11,14 @@ const FIELD = await session(ACCOUNTS.field);
 // chưa đăng nhập
 assert.equal((await call(null, "GET", "/api/orders")).status, 401);
 
-// Dịch vụ nhập tay (có ngày khởi hành + 3 khách) — tiền tự do; dịch vụ từ danh mục và thông tin chuyến kiểm kỹ ở trip.mjs.
-const svc = (items, extra = {}) => manualService(items, { pax: { adult: 3 }, ...extra });
+// Dịch vụ danh mục giả ZE1 (theo người) với ĐƠN GIÁ THOẢ THUẬN — số lượng dòng = số khách từng loại (máy chủ sinh dòng); dịch vụ danh mục và
+// thông tin chuyến kiểm kỹ ở trip.mjs. Trước 2026-09-26 tệp này dùng dịch vụ nhập tay (tiền tự do); nay API không nhận dịch vụ nhập tay mới.
+// `svc(pax, unitPrices)`: pax { adult, child }; unitPrices chỉ cho loại có khách.
+const svc = (pax, unitPrices, extra = {}) => catalogService({ pax, unitPrices, ...extra });
 const lines = (order) => order.services.flatMap((s) => s.items);
 const input = {
   customerName: "Nguyễn Văn A", customerPhone: "0901 234 567", customerEmail: "a@example.com",
-  services: [svc([{ description: "Tour Hòn Mun", detail: "20/09, 3 khách", quantity: 3, unitPrice: 450000 }, { description: "Áo phao", quantity: 1, unitPrice: 50000 }])],
+  services: [svc({ adult: 3, child: 1 }, { adult: 450000, child: 50000 })], // 3 × 450.000 + 1 × 50.000 = 1.400.000
   discount: 100000, depositAmount: 500000, depositMethod: "cash",
   // client cố gian lận số dẫn xuất:
   total: 1, subtotal: 1, remainingAmount: 0,
@@ -33,9 +36,9 @@ r = await call(A, "GET", "/api/orders?limit=100");
 assert.equal(r.status, 200);
 const summary = r.body.orders.find((x) => x.id === o.id);
 assert.ok(summary, "đơn vừa tạo phải có trong danh sách");
-assert.deepEqual(summary.serviceNames, ["Dịch vụ thử"], "tên dịch vụ mặc định của manualService");
-assert.deepEqual(summary.pax, { adult: 3, child: 0, senior: 0, infant: 0 });
-assert.equal(summary.trip.departDate, vnDate(7), "departDate mặc định của manualService");
+assert.deepEqual(summary.serviceNames, [FAKE_CATALOG.ZE1.name], "tên dịch vụ = tên danh mục của ZE1");
+assert.deepEqual(summary.pax, { adult: 3, child: 1, senior: 0, infant: 0 });
+assert.equal(summary.trip.departDate, vnDate(7), "departDate mặc định của catalogService");
 assert.equal(summary.trip.pickupTime, null, "không gửi pickupTime trong input này");
 assert.equal(summary.trip.pickupPlace, null);
 assert.equal(summary.depositAmount, 500000);
@@ -46,8 +49,8 @@ const input2 = {
   ...input,
   discount: 0, depositAmount: 0,
   services: [
-    manualService([{ description: "Tour Hòn Mun", quantity: 1, unitPrice: 200000 }], { name: "Dịch vụ một", pax: { adult: 2 }, departDate: vnDate(5), pickupTime: "07:00" }),
-    manualService([{ description: "Đưa đón sân bay", quantity: 1, unitPrice: 100000 }], { name: "Dịch vụ hai", pax: { adult: 1 }, departDate: vnDate(5), pickupTime: "09:00" }), // ADR-0021: cả đơn một ngày — phân biệt dịch vụ đầu bằng giờ đón
+    catalogService({ pax: { adult: 2 }, departDate: vnDate(5), pickupTime: "07:00" }),
+    catalogService({ catalogCode: "ZE2", pax: { adult: 1 }, catalogPriceSeen: { ...FAKE_CATALOG.ZE2.prices }, departDate: vnDate(5), pickupTime: "09:00" }), // ADR-0021: cả đơn một ngày — phân biệt dịch vụ đầu bằng giờ đón
   ],
 };
 r = await call(A, "POST", "/api/orders", input2);
@@ -57,10 +60,10 @@ r = await call(A, "GET", "/api/orders?limit=100");
 assert.equal(r.status, 200);
 const summary2 = r.body.orders.find((x) => x.id === o2.id);
 assert.ok(summary2, "đơn 2 dịch vụ vừa tạo phải có trong danh sách");
-assert.deepEqual(summary2.serviceNames, ["Dịch vụ một", "Dịch vụ hai"], "đúng thứ tự 2 dịch vụ (sort_order)");
+assert.deepEqual(summary2.serviceNames, [FAKE_CATALOG.ZE1.name, FAKE_CATALOG.ZE2.name], "đúng thứ tự 2 dịch vụ (sort_order)");
 assert.deepEqual(summary2.pax, { adult: 3, child: 0, senior: 0, infant: 0 }, "pax là TỔNG hai dịch vụ, không phải của riêng dịch vụ nào");
-assert.equal(summary2.trip.departDate, vnDate(5), "trip lấy đúng của dịch vụ ĐẦU (Dịch vụ một)");
-assert.equal(summary2.trip.pickupTime, "07:00", "trip lấy đúng của dịch vụ ĐẦU, không phải Dịch vụ hai (09:00)");
+assert.equal(summary2.trip.departDate, vnDate(5), "trip lấy đúng của dịch vụ ĐẦU (ZE1)");
+assert.equal(summary2.trip.pickupTime, "07:00", "trip lấy đúng của dịch vụ ĐẦU, không phải dịch vụ hai (09:00)");
 // Ca đơn KHÔNG có dịch vụ nào: đã thử — rules.ts:74 `if (!Array.isArray(b.services) || b.services.length === 0) return fail(...)` chặn tạo đơn rỗng
 // (test bất biến `{ services: [] }` ở trên đã xác nhận trả 400), nên KHÔNG tạo được qua API thật. `summarizeServices([])` đã có unit test riêng ở
 // repository.test.ts (Task 1) — coi đó là đủ phủ cho trường hợp không có dịch vụ, bỏ qua ca này ở e2e.
@@ -79,7 +82,7 @@ r = await call(Bc, "GET", "/api/orders?q=%25"); // ký tự LIKE được escape
 assert.equal(r.body.orders.length, 0);
 
 // bất biến: giảm giá / cọc quá mức, số âm, chuỗi
-for (const bad of [{ discount: 1400001 }, { depositAmount: 1300001 }, { discount: -1 }, { services: [svc([{ description: "x", quantity: 1, unitPrice: "5" }])] }, { services: [] }]) {
+for (const bad of [{ discount: 1400001 }, { depositAmount: 1300001 }, { discount: -1 }, { services: [svc({ adult: 1 }, { adult: "5" })] }, { services: [] }]) {
   r = await call(A, "POST", "/api/orders", { ...input, ...bad });
   assert.equal(r.status, 400, JSON.stringify(bad));
 }
@@ -97,7 +100,7 @@ r = await call(A, "GET", `/api/orders/${o.id}`);
 assert.equal(r.body.order.status, "draft"); assert.equal(r.body.history.length, 1); // bị từ chối → không đổi gì, không ghi log
 
 // người lập đơn sửa draft (PUT cần expectedUpdatedAt = mốc đã đọc)
-const replace = { services: [svc([{ description: "Tour Bãi Tranh", quantity: 2, unitPrice: 300000 }], { pax: { adult: 2 } })], discount: 0, depositAmount: 0 };
+const replace = { services: [svc({ adult: 2 }, { adult: 300000 })], discount: 0, depositAmount: 0 }; // 2 × 300.000 = 600.000, một dòng
 r = await call(A, "PUT", `/api/orders/${o.id}`, { ...input, ...replace, expectedUpdatedAt: o.updatedAt });
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.order.total, 600000); assert.equal(r.body.order.remainingAmount, 600000); assert.equal(lines(r.body.order).length, 1);
@@ -167,17 +170,22 @@ console.log("song song:", codes.sort().join(" "));
 r = await call(A, "GET", "/api/orders?limit=3");
 assert.equal(r.body.orders.length, 3); assert.equal(r.body.hasMore, true);
 
-// DỊCH VỤ NHẬP TAY: dòng tiền không mang mã dịch vụ / loại khách / giá danh mục; mã dịch vụ sai dạng bị từ chối
-// (dịch vụ chọn từ danh mục, lưu catalog_price + pax_code: xem trip.mjs)
-r = await call(A, "POST", "/api/orders", { ...input, services: [svc([{ description: "Tour 3 đảo — Người lớn", quantity: 2, unitPrice: 850000 }, { description: "Nhập tay", quantity: 1, unitPrice: 1 }])], discount: 0, depositAmount: 0 });
+// DỊCH VỤ NHẬP TAY CŨ (dựng bằng SQL — API không nhận dịch vụ nhập tay mới từ 2026-09-26; luật đó thử ở nhap-tay-va-gia-doi-tac.mjs): đọc lại đúng
+// kind "manual", dòng tiền không mang mã dịch vụ / loại khách / giá danh mục; mã dịch vụ sai dạng bị từ chối (dịch vụ danh mục: xem trip.mjs)
+r = await call(A, "POST", "/api/orders", { ...input, services: [svc({ adult: 2, child: 1 }, { adult: 850000, child: 1 })], discount: 0, depositAmount: 0 }); // 1.700.000 + 1
 assert.equal(r.status, 201, JSON.stringify(r.body));
-assert.deepEqual(lines(r.body.order).map((i) => [i.catalogCode, i.paxCode, i.catalogPrice]), [[null, null, null], [null, null, null]]);
-assert.equal(r.body.order.services[0].kind, "manual");
 const traced = r.body.order;
+const legacy = (await call(A, "POST", "/api/orders", { ...input, services: [catalogService()], discount: 0, depositAmount: 0 })).body.order;
+await makeLegacyManual(legacy.id, legacy.services[0].id, { name: "Xe đưa đón cũ", description: "Xe 7 chỗ", detail: "2 chiều", quantity: 2, unitPrice: 400000 });
+r = await call(A, "GET", `/api/orders/${legacy.id}`);
+assert.equal(r.body.order.services[0].kind, "manual");
+assert.equal(r.body.order.services[0].name, "Xe đưa đón cũ");
+assert.deepEqual(lines(r.body.order).map((i) => [i.catalogCode, i.paxCode, i.catalogPrice, i.description, i.detail, i.quantity, i.unitPrice, i.lineTotal]), [[null, null, null, "Xe 7 chỗ", "2 chiều", 2, 400000, 800000]]);
+assert.deepEqual([r.body.order.subtotal, r.body.order.total], [800000, 800000]);
 r = await call(A, "POST", "/api/orders", { ...input, services: [{ kind: "catalog", catalogCode: "x y", pax: { adult: 1 }, catalogPriceSeen: {} }] });
 assert.equal(r.status, 400);
 assert.match(r.body.error.message, /mã dịch vụ/, "mã sai DẠNG phải bị từ chối vì dạng, không lẫn với 'không còn trong danh mục'");
-console.log("✓ dịch vụ nhập tay lưu và đọc lại");
+console.log("✓ dịch vụ nhập tay cũ đọc lại đúng");
 
 // BẤT BIẾN TIỀN TRONG SQL (0007): ghi thẳng số sai vào D1 bị TRIGGER chặn; sửa đúng luật qua API vẫn chạy
 for (const bad of [
@@ -257,7 +265,7 @@ assert.equal((await call(FIELD, "GET", `/api/orders/${h.id}`)).status, 403, "FIE
 assert.deepEqual((await detail(Bc, h)).history.map((x) => x.action), ["created", "order_handler_changed"], "người phụ trách xem cả dòng đổi người");
 
 // --- người phụ trách sửa đơn NHÁP đủ: đổi dịch vụ, số khách, giảm giá, cọc — máy chủ tính lại tiền
-const bigger = { services: [svc([{ description: "Tour Bãi Tranh", quantity: 4, unitPrice: 300000 }, { description: "Áo phao", quantity: 2, unitPrice: 50000 }], { pax: { adult: 4 } })], discount: 50000, depositAmount: 100000, depositMethod: "cash" };
+const bigger = { services: [svc({ adult: 4, child: 2 }, { adult: 300000, child: 50000 })], discount: 50000, depositAmount: 100000, depositMethod: "cash" }; // 4 × 300.000 + 2 × 50.000 = 1.300.000
 r = await putOrder(Bc, h, bigger);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual([r.body.order.services[0].pax.adult, r.body.order.subtotal, r.body.order.total, r.body.order.remainingAmount], [4, 1300000, 1250000, 1150000], "dịch vụ, số khách và tiền do máy chủ tính lại");

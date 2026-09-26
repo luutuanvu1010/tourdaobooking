@@ -114,6 +114,32 @@ VA3 SMOKE OK
 Lần chạy 8/8 này cũng chụp lại ảnh các bước 1–4; hai ảnh `nhan-vien-*` khác byte nên đã được **trả lại bản cũ** của người kiểm (giữ
 bằng chứng gốc); chỉ thêm ảnh mới `tour-da-qua-ngay-di-may-tinh.png`. Chưa đo bước 6 ở khổ điện thoại.
 
+## Phần B — DK-T3-01 (dịch vụ nhập tay đã ngừng; giá bán lẻ cho Đối tác) — kịch bản A2 đã sửa (người thi công, 2026-09-26)
+
+Máy chủ nay KHÔNG nhận dịch vụ nhập tay mới (chủ dự án: "loại bỏ hoàn toàn dịch vụ nhập tay"), nên ba kịch bản
+`docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-*.mjs` từng lập đơn nhập tay qua API / bấm nút ẩn "+ Dịch vụ nhập tay" rồi Lưu đã
+đỏ vì LUẬT MỚI (không phải lỗi mã) và được sửa như sau:
+
+- `a2-smoke-order.mjs`: đơn 1 và hai đơn "quick" lập bằng dịch vụ danh mục `TTB06` (1 × 800.000 — cùng số tiền với dòng nhập tay
+  cũ nên mọi khẳng định tổng tiền giữ nguyên); dịch vụ thứ hai của đơn 1 đổi thành nhập tay CŨ bằng SQL khi đơn còn nháp.
+  **Thêm** ở bước 3: thẻ nhập tay đã lưu trong form sửa đơn CHỈ XEM (không ô tên/mô tả/đơn giá, không "+ Thêm dòng"/"Xoá dòng",
+  còn bộ đếm số khách + nút "Xoá", có dòng chú thích). **Thêm** bước 3b: Lưu form sửa đơn nháp cũ có dịch vụ nhập tay sau khi
+  đổi số khách 3 → 4 → máy chủ nhận, dịch vụ vẫn nhập tay, tiền giữ 800.000.
+- `a2-smoke-sheet.mjs`: đơn đã xác nhận có dịch vụ nhập tay dựng như trên (đổi bằng SQL TRƯỚC khi xác nhận); đơn nháp "Xe" đổi
+  sang `TTB06`.
+- `a2-smoke-form.mjs`: bước 8 xoá thẻ nhập tay MỚI (của bước 5) trước khi Lưu → đơn lưu còn 2 dịch vụ, 6.550.000 / còn lại
+  5.550.000 (trước: 3 dịch vụ, 7.350.000 / 6.350.000); bước 9 chờ 2 thẻ; bước 10g Lưu bằng thẻ danh mục TD101 (trước: thẻ nhập
+  tay) và gõ lại ô tìm cho tới khi danh mục tải xong (trang tới bằng `Page.navigate`). Bước 5 (thẻ nhập tay MỚI không nhãn lệch
+  giá) và 10c (trần 50 dòng) giữ nguyên — chỉ kiểm giao diện, không lưu.
+
+P16 cho thẻ chỉ xem: chạy `a2-smoke-order.mjs` với `web/service-card.ts` của commit `8b46b46` (trước bản vá giao diện) → ĐỎ ở bước 3
+(`[4, 1, ["Xoá","Xoá dòng","+ Thêm dòng"], true]` ≠ `[0, 0, ["Xoá"], true]`); trả lại bản vá, build lại → xanh.
+
+Kết quả lần chạy cuối (mã phần B, `npm run build:web`, `CHROME_BIN=…/chrome-wrap.sh`): `a2-smoke-form` **24 ✓** (UI SMOKE FORM OK),
+`a2-smoke-order` **11 ✓** (UI SMOKE ORDER OK), `a2-smoke-sheet` **14 ✓** (UI SMOKE SHEET OK), `va3-smoke` **8/8 ✓**. Không chạy
+lại `a2-evidence.mjs`, `v1-*.mjs`, `trang-chu-smoke.mjs`, `dot-a-smoke.mjs` — các kịch bản đó còn POST dịch vụ nhập tay nên sẽ
+nhận 400 cho tới khi được sửa theo cùng cách (`docs/CHANGE-GUIDE.md` §4 mục 33).
+
 ## Ảnh (`anh/`)
 
 | Ảnh | Nội dung | Khổ |

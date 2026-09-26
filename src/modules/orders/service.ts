@@ -7,14 +7,19 @@ import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import { applyAdjustmentToOrder } from "./money-adjustment";
-import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite } from "./repository";
+import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type StoredServiceRow } from "./repository";
 import { catalogStatusOf, type ServiceContext } from "./service-rules";
+
+/** `ServiceContext` kèm dịch vụ đã lưu ĐẦY ĐỦ (có `lines`) — route dùng lại cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01) sau `validateOrder`. */
+export interface OrderValidationContext extends ServiceContext {
+  stored: readonly StoredServiceRow[];
+}
 
 /**
  * Ngữ cảnh cho `validateOrder`: toàn bộ danh mục hiệu lực (~vài chục dòng, kể cả dịch vụ đang ẩn — có cờ `visible`) và, khi SỬA một đơn,
- * các dịch vụ đã lưu của đơn đó (để giữ bản chụp cho nháp cũ).
+ * các dịch vụ đã lưu của đơn đó (để giữ bản chụp cho nháp cũ, và để so "giữ nguyên" dịch vụ nhập tay cũ — `manualFreezeViolation`).
  */
-export async function validationContext(db: D1Database, orderId: string | null): Promise<ServiceContext> {
+export async function validationContext(db: D1Database, orderId: string | null): Promise<OrderValidationContext> {
   const [catalog, stored] = await Promise.all([getEffectiveServices(db), orderId ? getStoredServices(db, orderId) : Promise.resolve([])]);
   return { catalog, stored };
 }
