@@ -27,7 +27,7 @@ node docs/evidence/2026-09-25-bang-tin/kich-ban/bang-tin-smoke.mjs
 
 ## Kết quả lần chạy chính thức: 36 dòng ✓, 0 dòng ✗ (18 mỗi khổ, hai khổ 390 và 1040)
 
-Mỗi khổ chạy trọn kịch bản với ngữ cảnh và đơn mới. Số đo là của lần chạy chính thức. Mốc bắt đầu KHÁC nhau theo bước: ở (b) và (d2) đo từ lúc máy chủ đã trả lời thao tác (`t0` lấy sau khi `fetch` xong), nên không gồm độ trễ yêu cầu; ở (c), (c2), (d1) `t0` lấy ngay TRƯỚC khi bấm nút nên gồm cả độ trễ của yêu cầu đi lên máy chủ (thêm vài chục ms cục bộ).
+Mỗi khổ chạy trọn kịch bản với ngữ cảnh và đơn mới. Số đo là của lần chạy chính thức. Mốc bắt đầu KHÁC nhau theo bước: chỉ ở (b) đo từ lúc máy chủ đã trả lời thao tác (`t0` lấy sau khi `fetch` xong), nên không gồm độ trễ yêu cầu; ở (c), (c2), (d1), (d2) `t0` lấy ngay TRƯỚC khi bấm nút hoặc gọi API (ở (d2) là trước lần `PUT …/trip`), nên gồm cả độ trễ của yêu cầu đi lên máy chủ (thêm vài chục ms cục bộ).
 
 | Bước | Chứng minh | Số đo (390 / 1040) |
 |---|---|---|
