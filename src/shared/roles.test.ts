@@ -65,13 +65,13 @@ test("parseRoleAssignment: đúng dạng, thứ tự chuẩn, lý do bắt buộ
 });
 
 test("highPermissionProblem (LC-4): chỉ Toàn quyền cấp/gỡ Quản trị, Toàn quyền", () => {
-  assert.equal(highPermissionProblem(["SUPER_ADMIN"], ["SALES"], ["SALES", "ADMIN"]), null);
-  assert.deepEqual(highPermissionProblem(["ADMIN"], ["SALES"], ["SALES", "ADMIN"]), { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
-  assert.equal(highPermissionProblem(["ADMIN"], ["SALES"], ["SALES", "ACCOUNTING"]), null);
+  assert.equal(highPermissionProblem(true, ["SALES"], ["SALES", "ADMIN"]), null);
+  assert.deepEqual(highPermissionProblem(false, ["SALES"], ["SALES", "ADMIN"]), { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+  assert.equal(highPermissionProblem(false, ["SALES"], ["SALES", "ACCOUNTING"]), null);
 });
 
 test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất một quyền", () => {
-  const base = { actor: ["ADMIN"] as const, currentRoles: [] as const, currentPermissions: [] as const, currentAdjustments: { adds: [], removes: [] } as const };
+  const base = { actorIsSuper: false, currentRoles: [] as const, currentPermissions: [] as const, currentAdjustments: { adds: [], removes: [] } as const };
   const mixed = roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF", "COLLABORATOR"]) });
   assert.equal(mixed?.forbidden, false);
   assert.match(mixed!.message, /cùng lúc vai nội bộ và vai bên ngoài/);
@@ -81,14 +81,14 @@ test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất mộ
     message: "Chỉ Toàn quyền mới gán hoặc gỡ vai Giám đốc, Điều hành chung.",
   });
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["ADMIN"], reason: "x" }) })?.forbidden, true, "cộng tay Quản trị");
-  assert.equal(roleAssignmentProblem({ ...base, actor: ["SUPER_ADMIN"], next: assignment(["OPERATIONS_MANAGER"]) }), null);
+  assert.equal(roleAssignmentProblem({ ...base, actorIsSuper: true, next: assignment(["OPERATIONS_MANAGER"]) }), null);
   assert.match(roleAssignmentProblem({ ...base, next: assignment(["INTERN"], { removes: ["INTERN"], reason: "x" }) })!.message, /ít nhất một quyền/);
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["ACCOUNTANT"]) }), null);
 });
 
 test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn cộng tay Toàn quyền dù Giám đốc đã có sẵn qua mặc định (chỉnh tay 'ngủ')", () => {
   const problem = roleAssignmentProblem({
-    actor: ["ADMIN"],
+    actorIsSuper: false,
     currentRoles: ["DIRECTOR"],
     currentPermissions: ["ADMIN", "SUPER_ADMIN"],
     currentAdjustments: { adds: [], removes: [] },
@@ -99,7 +99,7 @@ test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn cộng ta
 
 test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn bớt tay Quản trị dù Nhân viên kinh doanh chưa từng có quyền đó (chỉnh tay 'ngủ')", () => {
   const problem = roleAssignmentProblem({
-    actor: ["ADMIN"],
+    actorIsSuper: false,
     currentRoles: ["SALES_STAFF"],
     currentPermissions: ["SALES"],
     currentAdjustments: { adds: [], removes: [] },
@@ -110,7 +110,7 @@ test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn bớt tay
 
 test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): giữ nguyên một dòng chỉnh tay Quản trị/Toàn quyền đã có (không đổi) vẫn được phép", () => {
   const problem = roleAssignmentProblem({
-    actor: ["ADMIN"],
+    actorIsSuper: false,
     currentRoles: ["OPERATIONS_MANAGER", "SALES_STAFF"],
     currentPermissions: ["SALES"],
     currentAdjustments: { adds: [], removes: ["ADMIN"] },
@@ -121,7 +121,7 @@ test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): giữ nguyên m�
 
 test("roleAssignmentProblem (I-2, kiểm độc lập vòng 1): bỏ vai chỉ-Toàn-quyền-mới-được-gán bằng cách không chọn lại — vẫn phải chặn (ghim luật cũ)", () => {
   const problem = roleAssignmentProblem({
-    actor: ["ADMIN"],
+    actorIsSuper: false,
     currentRoles: ["OPERATIONS_MANAGER"],
     currentPermissions: ["ADMIN"],
     currentAdjustments: { adds: [], removes: [] },
@@ -131,7 +131,7 @@ test("roleAssignmentProblem (I-2, kiểm độc lập vòng 1): bỏ vai chỉ-T
 });
 
 test("highPermissionProblem (I-2, kiểm độc lập vòng 1): chặn cả chiều gỡ Quản trị/Toàn quyền, không chỉ chiều cấp (ghim luật cũ)", () => {
-  assert.deepEqual(highPermissionProblem(["ADMIN"], ["SALES", "ADMIN"], ["SALES"]), {
+  assert.deepEqual(highPermissionProblem(false, ["SALES", "ADMIN"], ["SALES"]), {
     forbidden: true,
     message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền.",
   });
@@ -139,7 +139,7 @@ test("highPermissionProblem (I-2, kiểm độc lập vòng 1): chặn cả chi�
 
 test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng cộng tay Toàn quyền đã có dù Giám đốc mặc định vẫn giữ nguyên quyền đó", () => {
   const problem = roleAssignmentProblem({
-    actor: ["ADMIN"],
+    actorIsSuper: false,
     currentRoles: ["DIRECTOR"],
     currentPermissions: ["ADMIN", "SUPER_ADMIN"],
     currentAdjustments: { adds: ["SUPER_ADMIN"], removes: [] },
@@ -150,7 +150,7 @@ test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòn
 
 test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng bớt tay Quản trị đã có dù Nhân viên kinh doanh mặc định vẫn chưa từng có quyền đó", () => {
   const problem = roleAssignmentProblem({
-    actor: ["ADMIN"],
+    actorIsSuper: false,
     currentRoles: ["SALES_STAFF"],
     currentPermissions: ["SALES"],
     currentAdjustments: { adds: [], removes: ["ADMIN"] },

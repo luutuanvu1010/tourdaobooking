@@ -4,20 +4,6 @@
   "_ngay_han": "Ngày dân sự Việt Nam, so với vnToday() lúc chạy test.",
   "thao_tac": [
     {
-      "ma": "admin.manage",
-      "ly_do": "Thi hành bằng cổng thô router access 'admin' (hasPermission ADMIN|SUPER_ADMIN) và canManageAccount (cấp bậc, ADR-0014 điều 8) — không route quản trị nào (tài khoản, danh mục, địa điểm, Góp ý PATCH, vai trò/quan hệ hồ sơ) hỏi ô này.",
-      "ke_hoach": "GĐ2 ADR-0018: route quản trị gọi can(admin.manage) (+ canManageAccount khi có mục tiêu cụ thể).",
-      "han": "2026-10-15",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
-      "ma": "admin.manage.superadmin",
-      "ly_do": "Thi hành bằng kiểm tay admin.permissions.includes('SUPER_ADMIN') ở POST /api/staff và PUT /api/staff/:id/permissions, không qua can().",
-      "ke_hoach": "GĐ2 ADR-0018: thay kiểm tay bằng can(admin.manage.superadmin).",
-      "han": "2026-10-15",
-      "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    {
       "ma": "money.view",
       "ly_do": "Không route nào hỏi ô; 'FIELD không xem tiền' hiện được giữ GIÁN TIẾP: FIELD không qua cổng office nên không tới route đơn, và /api/dispatch/mine không trả tiền. ADR-0017 (accepted 2026-09-24) đổi ô này cho FIELD.",
       "ke_hoach": "GĐ2 ADR-0018 / thi công ADR-0017: nơi trả tiền gọi can(money.view), không dựa cổng.",
@@ -79,8 +65,6 @@
     { "method": "POST", "path": "/api/parties/:id/roles/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/parties/:id/relationships", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/parties/:id/relationships/:rid/end", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/staff", "loai": "hoãn", "ly_do": "Cổng thô admin + kiểm tay includes('SUPER_ADMIN'); không hỏi admin.manage / admin.manage.superadmin.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/staff/sheet/apply", "loai": "hoãn", "ly_do": "Tạo hàng loạt tài khoản SALES từ Sheet, chỉ cổng thô admin.", "ke_hoach": "GĐ2 ADR-0018: can(admin.manage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "DELETE", "path": "/api/catalog/:code/override", "loai": "hoãn", "ly_do": "Cổng thô admin; MATRIX không có ô danh mục (ADR-0007 gộp vào 'quản lý … danh mục' = admin.manage).", "ke_hoach": "GĐ2 ADR-0018: can(admin.manage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "PATCH", "path": "/api/catalog/:code", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/catalog/:code/ack", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
