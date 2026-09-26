@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.14",
+    date: "2026-09-26",
+    items: [
+      { kind: "sua", text: "Hướng dẫn viên bấm huỷ đơn nay được hỏi lại một lần trước khi huỷ; vùng huỷ đơn tách xa nút lưu số khách và có nút Thôi." },
+      { kind: "doi", text: "Hướng dẫn viên không huỷ được tour đã qua ngày đi; cần huỷ thì nhờ văn phòng. Ngay trong ngày đi vẫn huỷ được." },
+      { kind: "doi", text: "Dịch vụ nhập tay đã ngừng, không thêm mới được. Dịch vụ nhập tay trên đơn cũ chỉ để xem; muốn đổi thì xoá rồi chọn trong danh mục." },
+      { kind: "doi", text: "Tài khoản đối tác lập đơn theo đúng giá bán lẻ của danh mục và tạm chưa được giảm giá; cần giảm cho khách thì nhờ văn phòng." },
+      { kind: "doi", text: "Quản trị viên không tự đặt lại mã PIN của chính mình ở trang Quản lý tài khoản nữa; muốn đổi mã PIN thì vào trang Tôi." },
+    ],
+  },
+  {
     version: "1.13",
     date: "2026-09-25",
     items: [
