@@ -19,6 +19,7 @@ let offset = 0;
 let loadSeq = 0; // bỏ kết quả của lần tải cũ khi người dùng gõ tiếp
 let moreLoading = false; // đang chạy "Tải thêm": làm mới theo tin đợi xong lượt này (nếu không, `loadSeq` của nó sẽ vứt kết quả của lượt "Tải thêm")
 let refreshWaiting = false;
+let lastLoadIsMore = false; // lần tải bắt đầu gần nhất là "Tải thêm" (nó là thứ có thể đã thay thế một lần làm mới đang bay)
 const MAX_PAGE = 100; // `GET /api/orders` nhận limit tối đa 100
 
 /** Một thẻ đơn + chỗ ghi người phụ trách (điền sau khi `GET /api/dispatch/handlers` về). */
@@ -85,23 +86,34 @@ async function fillHandlers(rows: readonly Row[]): Promise<void> {
  */
 async function load(reset: boolean, refresh = false): Promise<void> {
   const seq = ++loadSeq;
-  if (reset) offset = 0;
+  // KHÔNG đụng `offset` của module cho tới khi phản hồi được áp: lần tải lỗi/bị bỏ mà đã đặt lại `offset = 0` thì danh sách cũ vẫn trên màn hình
+  // còn "Tải thêm" xin lại từ 0 → trùng dòng. Yêu cầu dùng `base` cục bộ; `offset` chỉ gán lúc render.
+  const base = reset ? 0 : offset;
+  lastLoadIsMore = !reset;
+  if (reset) refreshWaiting = false; // tải mới hoàn toàn (lọc/tìm/làm mới) đã đọc dữ liệu mới nhất: không còn làm mới nào bị bỏ chờ
   const limit = refresh ? soDongCanTai(listEl.children.length, PAGE, MAX_PAGE) : PAGE;
   if (!refresh) showError(errorEl, null);
   if (reset && !refresh) loadingEl.hidden = false;
-  const params = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+  const params = new URLSearchParams({ limit: String(limit), offset: String(base) });
   if (qInput.value.trim()) params.set("q", qInput.value.trim());
   if (statusSel.value) params.set("status", statusSel.value as OrderStatus);
   try {
     const { orders, hasMore } = await api<Api.OrderListResponse>(`/api/orders?${params}`);
-    if (seq !== loadSeq) return;
+    if (seq !== loadSeq) {
+      // Làm mới bị "Tải thêm" (bấm trong lúc chờ) thay thế: xếp lại để chạy lại, không để mất tin — sau khi "Tải thêm" xong (nếu còn chạy), hoặc ngay (nếu đã xong).
+      if (refresh && lastLoadIsMore) {
+        if (moreLoading) refreshWaiting = true;
+        else void lamMoi.yeuCau();
+      }
+      return;
+    }
     loadingEl.hidden = true;
-    const rows = orders.map((o, i) => row(o, offset + i + 1)); // số thứ tự nối tiếp khi "Tải thêm"; tìm/lọc mới đánh lại từ 1
+    const rows = orders.map((o, i) => row(o, base + i + 1)); // số thứ tự nối tiếp khi "Tải thêm"; tìm/lọc mới đánh lại từ 1
     const scrollY = window.scrollY; // đọc LÚC dựng (không lúc bắt đầu tải): người dùng có thể đã cuộn trong lúc chờ
     if (reset) replaceChildren(listEl, ...rows.map((r) => r.el));
     else listEl.append(...rows.map((r) => r.el));
     if (refresh) window.scrollTo(0, scrollY);
-    offset += orders.length;
+    offset = base + orders.length;
     moreBtn.hidden = !hasMore;
     emptyEl.hidden = offset > 0;
     void fillHandlers(rows); // không chờ: danh sách hiện ngay, người phụ trách điền vào khi về
