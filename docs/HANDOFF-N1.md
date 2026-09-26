@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.6: trang Đăng nhập theo bản thiết kế Claude Design + đổi tên app "Island Booking System" ĐÃ LÊN PRODUCTION (2026-09-24 19:06 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-dang-nhap-v2` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.14: vá 3 phát hiện kiểm toán HIGH (DK-T3-01, DK-T3-02, DK-T4-02; ADR-0027) ĐÃ LÊN PRODUCTION (2026-09-26 12:20 giờ VN, chủ dự án tự chạy `npm run day-len -- va-3-loi-kiem-toan` rồi `npm run trien-khai`)
+
+AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-26 trưa, giờ VN:
+
+- **Phiên bản: 1.14.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.14."; `GET /api/auth/config` trả `"version":"1.14"`, bảo trì `on:false`.
+- **Mã trên `main` / GitHub:** `origin/main` = 0aebb92 (nhánh `va-3-loi-kiem-toan`, 12 commit từ 823c1b1). Lần `trien-khai` đầu KHÔNG phát hành (kiểm lúc đó production vẫn 1.13, không có deployment mới, không rõ dừng ở bước nào — AI không thấy output); lần chạy thứ hai phát hành.
+- **Worker:** `wrangler deployments list` → bản mới nhất **16742d55-e256-48c5-93f1-532c698d40fa**, tạo 2026-09-26T05:20:57Z. Mốc lùi (bản ngay trước): **6ebf4e78-748e-4b4b-81a8-d3a96d9014e4** (2026-09-25T12:45Z — bản 1.13). Trước nữa: b6466b25 (2026-09-25T11:23Z).
+- **Migration:** `wrangler d1 migrations list tourdao-sales-db --remote` → "No migrations to apply" (lần này không có migration).
+- **Kiểm dữ liệu:** `node scripts/audit-invariants.mjs --db remote` → "Mọi bất biến đạt (D1 remote)", không cảnh báo.
+- **Kiểm trước khi gộp:** `npm test` 817/817, `tsc` 0, `test:e2e` 20/20; Chrome `va3-smoke` 8/8 và các kịch bản hồi quy (a2-smoke ×3, dot-a, dot-c, v1-nguoi-phu-trach, v1-xac-nhan-png, trang-chu-smoke); người kiểm độc lập (chỉ đọc) ĐẠT sau 2 vòng. Nhật ký: `docs/superpowers/plans/2026-09-26-va-3-loi-kiem-toan-nhat-ky.md`; bằng chứng: `docs/evidence/2026-09-26-va-3-loi-kiem-toan/`. `docs/quyen-hoan.json` mục `phat_hien` nay rỗng.
+- **Chưa kiểm:** trên iPhone thật ở production (hộp hỏi lại khi HDV huỷ, dịch vụ nhập tay cũ chỉ xem). Đơn Đối tác đã xác nhận trước bản vá chưa được rà lại.
+- **Mục trạng thái này từng đứng yên ở 1.6 trong khi production đã lên 1.7…1.13** (DK-T1-01; các nhánh ghi trạng thái 1.7/1.10/1.12 chưa gộp). Mục dưới đây là lịch sử, không phản ánh các bản 1.7–1.13.
+- **Hạn tiếp theo trong `docs/quyen-hoan.json`:** 17 mục hoãn quyền hết hạn **2026-10-15** (ADR-0019 / GĐ2) — quá hạn `npm test` đỏ.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.6: trang Đăng nhập theo bản thiết kế Claude Design + đổi tên app "Island Booking System" ĐÃ LÊN PRODUCTION (2026-09-24 19:06 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-dang-nhap-v2` rồi `npm run trien-khai`)
 
 AI kiểm lại bằng lệnh chỉ đọc lúc 2026-09-24 tối, giờ VN:
 
