@@ -18,25 +18,26 @@
 | 4a — `rules.ts` + hạng `KHONG_DB` (luật kiến trúc + `docs/ARCHITECTURE.md`, chủ đã duyệt) | `eb67b0b`, `b04870a`, sửa `6448002` | vòng 1: hoàn ô "Nguồn" dòng 5.3 Phần I (vượt phạm vi) + sửa câu "mọi tệp .ts" cho khớp mã; KHONG_DB đã thấy chặn thật |
 | 4b — trạm Durable Object `BangTin`, route bắt tay, gốc lắp ráp, `wrangler.jsonc` (binding + migration `v1 new_sqlite_classes`), khung thử audit, route-access | `4e8fe59`, `7e12192`, `7a5e816`, `6051058` | người kiểm (opus) duyệt, 0 lỗi nặng; chấp nhận 2 chỗ lệch có chủ ý (`keHoachTram`, quét `getWebSockets()`+`getTags`); e2e sau 4b 19/19 |
 | 5 — 8 route ghi đơn gọi `baoThayDoi` + hàng rào `src/bang-tin-guard.test.ts` | `d59aefc` | duyệt, sạch; người kiểm tự tái hiện 2 lần chặn thật + thử thêm route mới không báo → đỏ; `npm test` 862/862; e2e 19/19 (lượt 1 có 8 lỗi 503 `turnstile_unavailable` do mạng tới Cloudflare, chạy lại 8/8 xanh) |
+| 6 (+ Task 7 bước 1, 3, ca 9, 10) — đóng kết nối khi đổi tài khoản/bảo trì; hạ tầng e2e WebSocket (`tests/e2e/lib.mjs` dùng `node:http` + bộ đọc khung tự viết, `tests/e2e/bangtin.mjs`, `run.mjs`) | `4207088`, sửa `4b5f47e` | duyệt; người kiểm tự chạy 862/862, typecheck 0, hàng rào 21/21; e2e đủ bộ **20/20** (có kịch bản `bangtin`); vòng 1: sửa câu nhật ký nói sai "sổ hàng rào đã có dòng bảng tin" |
 
-## 3. Đang dở lúc bàn giao
+## 3. Trạng thái lúc bàn giao
 
-- **Task 6** (+ Task 7 bước 1, 3 và ca 9, 10 theo phán quyết R3) do một subagent của phiên thi công đang chạy: gọi `ctx.dongBangTin` ở 9 route tài khoản + bật bảo trì; hạ tầng e2e WebSocket (`tests/e2e/lib.mjs`, `tests/e2e/bangtin.mjs`, `run.mjs`). Lúc viết tệp này có thay đổi CHƯA commit ở `src/modules/accounts/index.ts`, `src/modules/maintenance/index.ts`, `tests/e2e/{lib,maintenance,run}.mjs`, `tests/e2e/bangtin.mjs`.
-  - **Cách biết đã xong:** có commit Task 6 trong `git log` + mục "Task 6" trong nhật ký + `.superpowers/sdd/…/task-6-report.md`. Nếu phiên thi công đã tắt giữa chừng: xem `git status`; thay đổi dở → giao người thi công mới đọc `task-6-brief.md` + `task-6-report.md` (nếu có) làm tiếp, KHÔNG xoá.
-  - **Cần người kiểm soi:** `tests/e2e/maintenance.mjs` bị sửa — ngoài danh sách tệp dự kiến; kiểm lý do.
-  - **Rủi ro chạy thật lớn nhất** (người kiểm 4b nêu): trạm chỉ gửi/đóng socket có `readyState === 1` phía máy chủ; nếu socket ngủ đông báo trạng thái khác thì không gửi/không đóng được — chỉ e2e (Task 6 ca 9–10, Task 7) chứng minh được.
+- Không còn việc dở: cây làm việc sạch, HEAD = commit cuối của Task 6 (vòng sửa 1). Phiên thi công đã dừng.
+- **Rủi ro chạy thật "socket ngủ đông":** một nửa đã gỡ — ca 9/10 chứng minh trạm đóng được đúng socket thật (4003) và đóng tất cả khi bật bảo trì. Nửa còn lại (GỬI tin theo nhãn tới đúng người) chờ Task 7 ca 3–6.
+- **Bẫy e2e cục bộ đã biết:** `wrangler dev`/Miniflare báo sự kiện đóng socket trễ ~10 giây dù khung Close tới ngay → bộ thử coi "đã đóng" khi ĐỌC được khung Close; `fetch` của Node cấm header `Upgrade` → bắt tay dùng `node:http`.
+- **Bẫy thứ tự kịch bản e2e (có sẵn, không do nhánh này):** `passkey` đổi PIN của `salesB` nên phải chạy sau `permissions`; chạy riêng `passkey permissions` sẽ lỗi 401 — dùng đúng thứ tự trong `ALL`.
+- **Nhánh khác đang chờ gộp:** `va-3-loi-kiem-toan` (bản 1.14, vá 3 lỗi HIGH — theo bộ nhớ chung, chưa kiểm ở phiên này). Nhánh nào gộp sau thì cập nhật từ `main`, chạy lại toàn bộ kiểm; nhật ký thay đổi của bảng tin lấy số phiên bản ở bước A.0 lúc phát hành.
 
 ## 4. Còn lại (thứ tự đề xuất, mô hình đề xuất)
 
-1. Kiểm Task 6 (sonnet; soi thêm `maintenance.mjs` và việc đóng đúng tài khoản) → sửa nếu cần.
-2. **Task 7** ca 1–8 (sonnet): bắt tay 401/403/426; ai nhận tin (văn phòng, Đối tác, HDV theo `order.view` hiện hành — R1); đúng 5 khoá; DP-1 mỗi route một tin, nhánh lỗi/không đổi không tin; header giả `x-bang-tin-nhan` (BT-2); ping/pong; hạn sống 4001 (chạy cuối). Ca 4 phụ thuộc `checkAssignee` có cho giao FIELD không — tự đọc. Ghi mốc e2e sau Task 5 vào nhật ký (chưa ghi).
-3. **Task 8** (sonnet/opus): `web/bangtin.ts`, `web/toast.ts`, `web/shell.ts`, `web/api.ts` (`vuaLamBoiTabNay`), CSS chỉ token, CSP `public/_headers` (`wss://booking.tourdao.vn`) → chạy `v1-dang-nhap.mjs` (cần mạng).
-4. **Task 9**: làm mới các trang (`orders`, `order`, `home`, `account`, `order-form` chỉ dải báo) + chạy lại các kịch bản Chrome theo bảng `web/CLAUDE.md`.
-5. **Task 10**: kịch bản Chrome hai tài khoản đồng thời (hai `Target.createBrowserContext`), ảnh 390/1040.
-6. **Task 11**: `docs/SO-HANG-RAO.md` (3 dòng: bang-tin-guard, KHONG_DB + tệp lớp DO, NT-3 — kèm giới hạn đã biết), `SYSTEM-DESIGN` §2–4/7/11, `CHANGE-GUIDE` (công thức + §3 + bẫy), `changelog.ts` (**không** tự đặt số phiên bản — để bước A.0), tệp đề xuất luật `2026-09-25-bang-tin-de-xuat-luat.md`, và các sửa bắt buộc ở mục 6 dưới.
-7. **Task 12**: `nguoi-kiem-doc-lap` (opus) — tự chạy `npm test`, typecheck, `tests/audit`, e2e đủ bộ, kịch bản Chrome Task 10; phát hiện → một lượt sửa → chạy lại tới khi đạt (R5).
-8. **Task 14**: ghi `docs/HANDOFF-N1.md` (không rollback qua migration DO; deploy commit cũ trước-DO bằng `wrangler deploy` cũng không an toàn; mỗi deploy ngắt mọi kết nối), rồi đưa chủ `npm run day-len -- bang-tin` + `npm run trien-khai` (CÓ đổi app → CẦN triển khai).
-9. Task 13 (iPhone thật) — chủ làm.
+1. **Task 7** ca 1–8 (sonnet): bắt tay 401/403/426; ai nhận tin (văn phòng, Đối tác, HDV theo `order.view` hiện hành — R1); đúng 5 khoá; DP-1 mỗi route một tin, nhánh lỗi/không đổi không tin; header giả `x-bang-tin-nhan` (BT-2); ping/pong; hạn sống 4001 (chạy cuối). Ca 4 phụ thuộc `checkAssignee` có cho giao FIELD không — tự đọc. Ghi mốc e2e sau Task 5 vào nhật ký (chưa ghi).
+2. **Task 8** (sonnet/opus): `web/bangtin.ts`, `web/toast.ts`, `web/shell.ts`, `web/api.ts` (`vuaLamBoiTabNay`), CSS chỉ token, CSP `public/_headers` (`wss://booking.tourdao.vn`) → chạy `v1-dang-nhap.mjs` (cần mạng).
+3. **Task 9**: làm mới các trang (`orders`, `order`, `home`, `account`, `order-form` chỉ dải báo) + chạy lại các kịch bản Chrome theo bảng `web/CLAUDE.md`.
+4. **Task 10**: kịch bản Chrome hai tài khoản đồng thời (hai `Target.createBrowserContext`), ảnh 390/1040.
+5. **Task 11**: `docs/SO-HANG-RAO.md` (3 dòng: bang-tin-guard, KHONG_DB + tệp lớp DO, NT-3 — kèm giới hạn đã biết), `SYSTEM-DESIGN` §2–4/7/11, `CHANGE-GUIDE` (công thức + §3 + bẫy), `changelog.ts` (**không** tự đặt số phiên bản — để bước A.0), tệp đề xuất luật `2026-09-25-bang-tin-de-xuat-luat.md`, và các sửa bắt buộc ở mục 6 dưới.
+6. **Task 12**: `nguoi-kiem-doc-lap` (opus) — tự chạy `npm test`, typecheck, `tests/audit`, e2e đủ bộ, kịch bản Chrome Task 10; phát hiện → một lượt sửa → chạy lại tới khi đạt (R5).
+7. **Task 14**: ghi `docs/HANDOFF-N1.md` (không rollback qua migration DO; deploy commit cũ trước-DO bằng `wrangler deploy` cũng không an toàn; mỗi deploy ngắt mọi kết nối), rồi đưa chủ `npm run day-len -- bang-tin` + `npm run trien-khai` (CÓ đổi app → CẦN triển khai).
+8. Task 13 (iPhone thật) — chủ làm.
 
 ## 5. Phán quyết của điều phối viên (mỗi dòng: quyết gì — vì sao — sai thì mất gì)
 
@@ -58,7 +59,7 @@
 - **Phải sửa ở Task 11:** nhật ký 4b viết như thể tài liệu Cloudflare XÁC NHẬN `getWebSockets()` trả socket đang đóng — thực tế tài liệu **không nói** (`cloudflare-docs.md` §d) → sửa thành "chưa xác minh".
 - **Task 11:** bẫy "`npm run types` làm mất `BANG_TIN_HAN_GIAY`" vào `CHANGE-GUIDE`/`.dev.vars.example`; giới hạn hàng rào bang-tin-guard (`\breturn\b`/`CALL_RE` không phân biệt `.return()`); `src/CLAUDE.md` dòng 6/16 + `CHANGE-GUIDE` công thức b chưa nhắc `bangtin`/`KHONG_DB` (`src/CLAUDE.md` là tệp luật → chỉ đề xuất).
 - **Task 14:** runbook nói rõ deploy commit cũ trước-DO cũng không an toàn.
-- Để vòng kiểm cuối quyết: `laSuKienHopLe` thiếu test "5 khoá, một khoá sai tên"; `choNoiLai` không chặn `lan` âm; `docHanGiay` nhận "1e3"/"0x1E" (vẫn kẹp [5,3600]); `walkAll()` trùng `walk()`; `tram.ts` nhận socket trước `setAlarm` (tự lành); `bat-tay.test.ts` chưa thử thứ tự 403-trước-503; glue `src/index.ts` `baoThayDoi` chưa có unit test (dựa e2e); `collectRoutes()` chạy ở phạm vi module; chưa test `dongBangTin` từ route public.
+- Để vòng kiểm cuối quyết: `laSuKienHopLe` thiếu test "5 khoá, một khoá sai tên"; `choNoiLai` không chặn `lan` âm; `docHanGiay` nhận "1e3"/"0x1E" (vẫn kẹp [5,3600]); `walkAll()` trùng `walk()`; `tram.ts` nhận socket trước `setAlarm` (tự lành); `bat-tay.test.ts` chưa thử thứ tự 403-trước-503; glue `src/index.ts` `baoThayDoi` chưa có unit test (dựa e2e); `collectRoutes()` chạy ở phạm vi module; chưa test `dongBangTin` từ route public; `tests/e2e/maintenance.mjs` nay lọc dòng nhật ký theo mốc thời gian (yếu hơn bản cũ một khe rất nhỏ); bộ ghi khung WebSocket của e2e chỉ hỗ trợ tin < 65536 byte.
 
 ## 7. Việc của chủ (gom một lần, không chặn thi công)
 
