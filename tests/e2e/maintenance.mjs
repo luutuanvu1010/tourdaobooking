@@ -7,6 +7,7 @@ import { ACCOUNTS, call, login, orderInput, randomPhone, session, sql, sqlRows }
 
 const SEED_ALLOWED = "0989929373";
 const ADMIN_PHONE = ACCOUNTS.admin.phone;
+const OWNER_PHONE = ACCOUNTS.superAdmin.phone;
 const HEAD = "Hệ thống đang tạm đóng để bảo trì. Thời gian dự kiến hoàn tất là ";
 const TAIL = "liên hệ quản trị viên khi cần hỗ trợ thêm (0989929373).";
 const COUNTDOWN = /Thời gian dự kiến hoàn tất là (\d+ giờ \d{2} phút \d{2} giây|\d+ phút \d{2} giây|\d+ giây), liên hệ/;
@@ -42,7 +43,8 @@ try {
   const ACCOUNTANT = await session(ACCOUNTS.accountant);
   const FIELD = await session(ACCOUNTS.field);
   const ADMIN = await session(ACCOUNTS.admin);
-  const ADMIN2 = await session(ACCOUNTS.admin);
+  const OWNER = await session(ACCOUNTS.superAdmin); // chủ dự án = Toàn quyền (ADR-0019: ô settings.ops)
+  const OWNER2 = await session(ACCOUNTS.superAdmin);
   const BLOCKED = [["salesA", SALES], ["accountant", ACCOUNTANT], ["field", FIELD]];
 
   // --- 1) TẮT: mọi tài khoản dùng bình thường, /me báo maintenance tắt; quyền bật/tắt
@@ -61,10 +63,30 @@ try {
   assert.equal(r.status, 403, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "forbidden");
   assert.equal((await setting()).enabled, 0, "bị từ chối thì KHÔNG được bật");
-  await setAllowed(ADMIN_PHONE); // từ đây admin test đóng vai chủ dự án
+  // --- 1b) ADR-0019 (B-8): bật/tắt bảo trì hỏi ô `settings.ops` (chỉ Toàn quyền) RỒI mới kiểm SĐT — cả hai điều kiện đều phải đúng.
+  const ON_BODY = { on: true, endsAt: new Date(Date.now() + 30 * 60_000).toISOString() };
+  // (a) Toàn quyền nhưng SĐT KHÔNG trong danh sách → 403 như cũ; nút ẩn.
+  r = await call(OWNER, "GET", "/api/maintenance");
+  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: false }, "Toàn quyền không có SĐT trong danh sách: xem được, canToggle=false");
+  r = await call(OWNER, "PUT", "/api/maintenance", ON_BODY);
+  assert.equal(r.status, 403, `Toàn quyền không có SĐT trong danh sách → 403: ${JSON.stringify(r.body)}`);
+  assert.equal((await setting()).enabled, 0, "bị từ chối thì KHÔNG được bật");
+  // (b) Quản trị KHÔNG Toàn quyền, SĐT có trong danh sách → GET vẫn 200 nhưng canToggle=false; PUT 403 (hôm nay 200: đây là điều ADR-0019 siết).
+  await setAllowed(ADMIN_PHONE);
+  r = await call(ADMIN, "PUT", "/api/maintenance", ON_BODY);
+  assert.equal(r.status, 403, `Quản trị không Toàn quyền dù SĐT trong danh sách → 403: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "forbidden");
+  assert.equal((await setting()).enabled, 0, "bị từ chối thì KHÔNG được bật");
   r = await call(ADMIN, "GET", "/api/maintenance");
-  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true });
-  console.log("✓ nền TẮT: mọi tài khoản dùng bình thường; chỉ ADMIN trong danh sách được phép mới bật/tắt được (không lộ danh sách)");
+  assert.equal(r.status, 200);
+  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: false }, "Quản trị không Toàn quyền: canToggle=false kể cả khi SĐT trong danh sách");
+  // (c) Toàn quyền có SĐT trong danh sách → canToggle=true.
+  await setAllowed(OWNER_PHONE);
+  r = await call(OWNER, "GET", "/api/maintenance");
+  assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true }, "Toàn quyền có SĐT trong danh sách: canToggle=true");
+  console.log("✓ bảo trì hỏi ô settings.ops: Toàn quyền + SĐT → bật/tắt được; Quản trị (dù SĐT trong danh sách) và Toàn quyền không SĐT → 403, canToggle=false");
+
+  console.log("✓ nền TẮT: mọi tài khoản dùng bình thường; chỉ Toàn quyền có SĐT trong danh sách được phép mới bật/tắt được (không lộ danh sách)");
 
   // --- 2) kiểm đầu vào PUT
   const past = new Date(Date.now() - 60_000).toISOString();
@@ -83,24 +105,24 @@ try {
     [{ on: true, endsAt: "2030-02-30T10:00:00Z" }, /giờ dự kiến/], // ngày không có thật (Date.parse lăn sang tháng 3)
   ];
   for (const [body, re] of bad) {
-    r = await call(ADMIN, "PUT", "/api/maintenance", body);
+    r = await call(OWNER, "PUT", "/api/maintenance", body);
     assert.equal(r.status, 400, JSON.stringify(body));
     assert.equal(r.body.error.code, "invalid_input");
     assert.match(r.body.error.message, re, JSON.stringify(body));
   }
-  r = await call(ADMIN, "PUT", "/api/maintenance"); // không thân
+  r = await call(OWNER, "PUT", "/api/maintenance"); // không thân
   assert.equal(r.status, 400);
   assert.equal((await setting()).enabled, 0, "đầu vào sai thì KHÔNG được bật");
   console.log("✓ kiểm đầu vào: thiếu/sai `on`, thiếu/rác/quá khứ/quá 7 ngày/không múi giờ/ngày không có thật → 400 tiếng Việt, không bật");
 
   // --- 2b) không cho đổi SĐT của tài khoản đang là người được phép (đổi là tự khoá hoặc chuyển quyền cho người khác)
-  const adminId = (await call(ADMIN, "GET", "/api/auth/me")).body.staff.id;
-  r = await call(ADMIN, "PATCH", `/api/staff/${adminId}`, { phone: "0900000098" });
+  const adminId = (await call(OWNER, "GET", "/api/auth/me")).body.staff.id;
+  r = await call(OWNER, "PATCH", `/api/staff/${adminId}`, { phone: "0900000098" });
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "account_rule");
   assert.match(r.body.error.message, /chủ dự án/);
-  assert.equal((await call(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === adminId).phone, ADMIN_PHONE, "SĐT của tài khoản chủ không được đổi");
-  r = await call(ADMIN, "PATCH", `/api/staff/${adminId}`, { phone: ADMIN_PHONE }); // gửi lại đúng số cũ = không đổi gì
+  assert.equal((await call(OWNER, "GET", "/api/staff")).body.staff.find((s) => s.id === adminId).phone, OWNER_PHONE, "SĐT của tài khoản chủ không được đổi");
+  r = await call(OWNER, "PATCH", `/api/staff/${adminId}`, { phone: OWNER_PHONE }); // gửi lại đúng số cũ = không đổi gì
   assert.equal(r.status, 200, JSON.stringify(r.body));
   console.log("✓ tài khoản chủ không đổi được SĐT (409); tài khoản khác đổi SĐT như cũ (admin.mjs)");
 
@@ -112,14 +134,14 @@ try {
   const moc = new Date().toISOString();
   const ENDS = new Date(Date.now() + 30 * 60_000).toISOString();
   const ordersBefore = await count("orders");
-  const listOf = async () => (await call(ADMIN, "GET", "/api/staff")).body.staff;
+  const listOf = async () => (await call(OWNER, "GET", "/api/staff")).body.staff;
   const lastLoginOf = async (phone) => (await listOf()).find((s) => s.phone === phone).lastLoginAt;
   const salesLastLogin = await lastLoginOf(ACCOUNTS.salesA.phone);
   assert.ok(salesLastLogin, "salesA vừa đăng nhập nên phải có lastLoginAt");
-  r = await call(ADMIN, "PUT", "/api/maintenance", { on: true, endsAt: ENDS });
+  r = await call(OWNER, "PUT", "/api/maintenance", { on: true, endsAt: ENDS });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body, { on: true, endsAt: ENDS, canToggle: true });
-  assert.deepEqual(await setting(), { enabled: 1, ends_at: ENDS, allowed_phones: ADMIN_PHONE });
+  assert.deepEqual(await setting(), { enabled: 1, ends_at: ENDS, allowed_phones: OWNER_PHONE });
 
   // --- 4) BẬT: phiên CÓ SẴN của người khác bị chặn ngay, mọi loại route, kể cả route quyền ADMIN (503 chứ KHÔNG 403)
   for (const [name, cookie] of BLOCKED) {
@@ -159,17 +181,17 @@ try {
   console.log("✓ BẬT: đăng nhập → 503 cùng thân cho đúng PIN/sai PIN/SĐT lạ, không tiêu hao lượt PIN, không ghi lastLoginAt; thiếu token Turnstile vẫn 403");
 
   // --- 6) BẬT: chủ dùng bình thường (phiên cũ, phiên thứ hai, đăng nhập mới)
-  for (const [name, cookie] of [["admin cũ", ADMIN], ["admin thứ hai", ADMIN2]]) {
+  for (const [name, cookie] of [["chủ (phiên cũ)", OWNER], ["chủ (phiên thứ hai)", OWNER2]]) {
     r = await call(cookie, "GET", "/api/auth/me");
     assert.equal(r.status, 200, name);
     assert.deepEqual(r.body.maintenance, { on: true, endsAt: ENDS }, `${name}: /me báo đang bảo trì để giao diện hiện dải nhắc`);
     assert.equal((await call(cookie, "GET", "/api/orders")).status, 200, name);
     assert.equal((await call(cookie, "GET", "/api/staff")).status, 200, name);
   }
-  r = await login(ADMIN_PHONE, ACCOUNTS.admin.pin);
+  r = await login(OWNER_PHONE, ACCOUNTS.superAdmin.pin);
   assert.equal(r.status, 200, `chủ đăng nhập mới khi đang bảo trì: ${JSON.stringify(r.body)}`);
   assert.equal((await call(r.cookie, "GET", "/api/auth/me")).status, 200);
-  assert.deepEqual((await call(ADMIN, "GET", "/api/maintenance")).body, { on: true, endsAt: ENDS, canToggle: true });
+  assert.deepEqual((await call(OWNER, "GET", "/api/maintenance")).body, { on: true, endsAt: ENDS, canToggle: true });
   console.log("✓ BẬT: chủ dùng bình thường (phiên cũ, phiên thứ hai, đăng nhập mới)");
 
   // --- 7) BẬT: route công khai vẫn chạy, không lộ ai được phép
@@ -183,10 +205,10 @@ try {
   console.log("✓ BẬT: /api/auth/config (on + giờ dự kiến, không lộ danh sách), /api/company, logout vẫn chạy");
 
   // --- 9) TẮT: mọi thứ trở lại; phiên cũ dùng lại được; không ai bị khoá
-  r = await call(ADMIN, "PUT", "/api/maintenance", { on: false });
+  r = await call(OWNER, "PUT", "/api/maintenance", { on: false });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body, { on: false, endsAt: null, canToggle: true });
-  assert.deepEqual(await setting(), { enabled: 0, ends_at: null, allowed_phones: ADMIN_PHONE });
+  assert.deepEqual(await setting(), { enabled: 0, ends_at: null, allowed_phones: OWNER_PHONE });
   for (const [name, cookie] of BLOCKED) {
     r = await call(cookie, "GET", "/api/auth/me");
     assert.equal(r.status, 200, `${name}: phiên cũ dùng lại được sau khi tắt`);
@@ -199,7 +221,7 @@ try {
   console.log("✓ TẮT: phiên cũ dùng lại được, đăng nhập lại được ngay (không bị khoá), config trở về tắt");
 
   // --- 8) nhật ký: có lần bật và lần tắt, KHÔNG lộ SĐT
-  r = await call(ADMIN, "GET", "/api/audit?action=maintenance_changed&limit=20");
+  r = await call(OWNER, "GET", "/api/audit?action=maintenance_changed&limit=20");
   assert.equal(r.status, 200);
   const entries = r.body.entries.filter((e) => e.at >= moc); // chỉ dòng TỪ mốc trên (của chính kịch bản này — xem chú thích ở mốc)
   const details = entries.map((e) => e.detail);
@@ -213,11 +235,11 @@ try {
   }
   // Chỉ quét `detail` (id là UUID nên có thể tình cờ có 9+ chữ số liền) và kiểm hai SĐT liên quan không hề xuất hiện ở đâu trong phản hồi.
   assert.doesNotMatch(details.join(" "), /\d{9,}/, "chi tiết nhật ký không được chứa SĐT (chuỗi 9+ chữ số liền)");
-  assert.ok(!JSON.stringify(r.body).includes(ADMIN_PHONE) && !JSON.stringify(r.body).includes(SEED_ALLOWED), "nhật ký không lộ SĐT của chủ/admin");
+  assert.ok(!JSON.stringify(r.body).includes(OWNER_PHONE) && !JSON.stringify(r.body).includes(SEED_ALLOWED), "nhật ký không lộ SĐT của chủ/admin");
   console.log("✓ nhật ký: đủ lần bật + lần tắt, không lộ SĐT");
 
   // --- 10) đường thoát khẩn: bật lại rồi tắt bằng MỘT câu SQL (như wrangler d1 execute --remote), không cần deploy
-  r = await call(ADMIN, "PUT", "/api/maintenance", { on: true, endsAt: new Date(Date.now() + 60 * 60_000).toISOString() });
+  r = await call(OWNER, "PUT", "/api/maintenance", { on: true, endsAt: new Date(Date.now() + 60 * 60_000).toISOString() });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal((await call(SALES, "GET", "/api/auth/me")).status, 503);
   await sql("UPDATE mnt_setting SET enabled = 0 WHERE id = 'default'");

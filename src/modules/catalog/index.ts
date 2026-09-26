@@ -94,12 +94,14 @@ export const catalogModule: AppModule = {
     }),
 
     // ---- Admin -----------------------------------------------------------------------------
-    route("GET", "/api/catalog/admin", "admin", async ({ env }) => {
+    route("GET", "/api/catalog/admin", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const [items, state] = await Promise.all([loadAll(env.DB), getSyncState(env.DB)]);
       return json({ items: items.map(adminItem), sync: state } satisfies CatalogAdminResponse);
     }),
 
     route("POST", "/api/catalog/sync", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const body = await readJson(request);
       const result = await syncCatalog(env, staff.id, { force: body?.force === true });
       if (result.ok) return json(result satisfies CatalogSyncResponse);
@@ -108,6 +110,7 @@ export const catalogModule: AppModule = {
 
     // Ghi đè giá / ẩn / hiện
     route("PATCH", "/api/catalog/:code", "admin", async ({ env, request, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
       const parsed = parsePatch(await readJson(request));
@@ -135,6 +138,7 @@ export const catalogModule: AppModule = {
 
     // "Giữ ghi đè": đã xem Sheet đổi giá, xác nhận giữ giá ghi đè
     route("POST", "/api/catalog/:code/ack", "admin", async ({ env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
       if (!item.override) return error(409, "no_override", "Dịch vụ này không có ghi đè.");
@@ -148,6 +152,7 @@ export const catalogModule: AppModule = {
 
     // Bỏ toàn bộ ghi đè (giá + ẩn), quay về theo Sheet
     route("DELETE", "/api/catalog/:code/override", "admin", async ({ env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
       if (!item.override) return json({ item: adminItem(item) } satisfies CatalogItemResponse);

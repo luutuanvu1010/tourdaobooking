@@ -404,18 +404,19 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
 }
 
 // === CA 10 (KN-2, Task 6): bật chế độ bảo trì → MỌI kết nối đóng; bắt tay lại của tài khoản không được phép → 503; tắt bảo trì ở `finally`.
-// Theo cùng cách `maintenance.mjs`: server e2e không có SĐT được phép mặc định của production, tạm đặt = SĐT admin test rồi khôi phục. ======
+// Theo cùng cách `maintenance.mjs`: server e2e không có SĐT được phép mặc định của production, tạm đặt = SĐT tài khoản Toàn quyền test (ADR-0019: bật/tắt bảo trì hỏi ô `settings.ops`, chỉ Toàn quyền) rồi khôi phục. ======
 {
   const SEED_ALLOWED = "0989929373";
   const SALES = await session(ACCOUNTS.salesA);
-  const [phienAdmin, phienSales] = await moiPhien(ADMIN, SALES);
+  const OWNER = await session(ACCOUNTS.superAdmin);
+  const [phienAdmin, phienSales] = await moiPhien(OWNER, SALES);
   try {
-    await sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.admin.phone}' WHERE id = 'default'`);
+    await sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.superAdmin.phone}' WHERE id = 'default'`);
     const endsAt = new Date(Date.now() + 30 * 60_000).toISOString();
-    let r = await call(ADMIN, "PUT", "/api/maintenance", { on: true, endsAt });
+    let r = await call(OWNER, "PUT", "/api/maintenance", { on: true, endsAt });
     assert.equal(r.status, 200, JSON.stringify(r.body));
 
-    for (const [ten, phien] of [["admin", phienAdmin], ["salesA", phienSales]]) {
+    for (const [ten, phien] of [["chủ dự án", phienAdmin], ["salesA", phienSales]]) {
       const dong = await doiToiDa(phien.dong, 2000);
       assert.ok(dong, `ca 10: kết nối của ${ten} phải đóng trong 2 giây khi bật bảo trì`);
       assert.equal(dong.code, 4003, `ca 10: mã đóng của ${ten} phải là 4003`);
@@ -425,7 +426,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
     assert.equal(status, 503, "ca 10: bắt tay lại của salesA (không được phép) khi đang bảo trì phải bị chặn 503, không mở kết nối");
   } finally {
     dongHet(phienAdmin, phienSales);
-    await call(ADMIN, "PUT", "/api/maintenance", { on: false }).catch(() => {});
+    await call(OWNER, "PUT", "/api/maintenance", { on: false }).catch(() => {});
     await sql(`UPDATE mnt_setting SET enabled = 0, ends_at = NULL, allowed_phones = '${SEED_ALLOWED}' WHERE id = 'default'`);
     // KHÔNG dọn hai dòng nhật ký `maintenance_changed` vừa tạo: `audit_log` chỉ-thêm được CƯỠNG CHẾ bằng trigger SQL `audit_append_only`
     // (không chỉ là quy ước tài liệu — `DELETE` bị chặn cả trên D1 tạm của e2e, đã tự thử và thấy `SQLITE_CONSTRAINT_TRIGGER`). Ca này CHẠY

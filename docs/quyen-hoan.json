@@ -47,14 +47,6 @@
     }
   ],
   "cua_ghi": [
-    { "method": "DELETE", "path": "/api/catalog/:code/override", "loai": "hoãn", "ly_do": "Cổng thô admin; MATRIX không có ô danh mục (ADR-0007 gộp vào 'quản lý … danh mục' = admin.manage).", "ke_hoach": "GĐ2 ADR-0018: can(admin.manage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "PATCH", "path": "/api/catalog/:code", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/catalog/:code/ack", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/catalog/sync", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "POST", "path": "/api/locations", "loai": "hoãn", "ly_do": "Cổng thô admin; không hỏi admin.manage.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "PUT", "path": "/api/locations/:id", "loai": "hoãn", "ly_do": "Như trên.", "ke_hoach": "GĐ2 ADR-0018.", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "PATCH", "path": "/api/feedback/:id", "loai": "hoãn", "ly_do": "Handler KHÔNG gọi can(feedback.triage) (SYSTEM-DESIGN §8 từng ghi ngược lại — đã sửa 24/9); chỉ cổng thô admin.", "ke_hoach": "GĐ2 ADR-0018: can(feedback.triage).", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" },
-    { "method": "PUT", "path": "/api/maintenance", "loai": "hoãn", "ly_do": "Chỉ chủ dự án dùng, kiểm bằng isAllowedPhone (SĐT chủ) — không có ô trong MATRIX; đặc tả 11 vai đề xuất ô settings.ops.", "ke_hoach": "GĐ2 ADR-0018 hoặc 11 vai GĐ0: ô settings.ops.", "han": "2026-11-30", "nguoi_chiu_trach_nhiem": "chủ dự án" },
     { "method": "POST", "path": "/api/account/change-pin", "loai": "ngoại lệ", "ly_do": "Tự phục vụ trên chính tài khoản đang đăng nhập (access 'staff'); bảng chưa có ô 'tự phục vụ'. Xem xét ô account.self ở ADR-0018; tới lúc đó là ngoại lệ có ghi." },
     { "method": "POST", "path": "/api/account/passkeys/options", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
     { "method": "POST", "path": "/api/account/passkeys", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },

@@ -4,6 +4,7 @@
 import { auditStatement } from "../audit";
 import type { LocationDto, LocationListResponse, LocationResponse } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { findLocation, insertLocationStatement, listLocationTypes, listLocations, locationTypeExists, updateLocationStatement, type LocationRow } from "./repository";
 import { validateLocationCreate, validateLocationUpdate } from "./rules";
@@ -33,6 +34,7 @@ export const locationsModule: AppModule = {
     }),
 
     route("POST", "/api/locations", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const parsed = validateLocationCreate(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (!(await locationTypeExists(env.DB, parsed.value.locationTypeCode))) return BAD_TYPE();
@@ -51,6 +53,7 @@ export const locationsModule: AppModule = {
     }),
 
     route("PUT", "/api/locations/:id", "admin", async ({ request, env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const id = params.id!;
       const current = UUID_RE.test(id) ? await findLocation(env.DB, id) : null;
       if (!current) return NOT_FOUND();

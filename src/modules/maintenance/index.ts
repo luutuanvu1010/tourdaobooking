@@ -6,6 +6,7 @@ import { auditStatement } from "../audit";
 import type { MaintenanceErrorBody, MaintenanceResponse, MaintenanceStatusDto } from "../../shared/contracts";
 import { error, json, readJson } from "../../shared/http";
 import { MAINTENANCE_CODE, checkMaintenanceInput, isAllowedPhone, isBlocked, maintenanceMessage, parseAllowedPhones, type MaintenanceState } from "../../shared/maintenance";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnDateTimeText } from "../../shared/vn-date";
 import { findSetting, updateSettingStatement } from "./repository";
@@ -38,12 +39,16 @@ export const maintenanceModule: AppModule = {
   name: "maintenance",
   routes: [
     // `canToggle`: chính người gọi có được bật/tắt không (nằm trong danh sách được phép). Không trả danh sách.
+    // ADR-0019: chốt chặn của GET là `admin.manage`; `canToggle` (Toàn quyền VÀ SĐT trong danh sách) chỉ để giao diện ẩn/hiện nút — KHÔNG phải chốt chặn (chốt chặn bật/tắt là PUT).
     route("GET", "/api/maintenance", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được xem cài đặt bảo trì.");
       const state = await getMaintenanceState(env.DB);
-      return json({ ...toStatus(state), canToggle: isAllowedPhone(state, staff.phone) } satisfies MaintenanceResponse);
+      return json({ ...toStatus(state), canToggle: can(staff, "settings.ops") && isAllowedPhone(state, staff.phone) } satisfies MaintenanceResponse);
     }),
 
     route("PUT", "/api/maintenance", "admin", async ({ request, env, staff, dongBangTin }) => {
+      // ADR-0019: phải giữ Toàn quyền (ô `settings.ops`) RỒI mới xét SĐT trong danh sách được phép — cả hai điều kiện đều phải đúng; 403 đứng trước đọc thân.
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ chủ dự án được bật/tắt chế độ bảo trì.");
       const db = env.DB;
       const state = await getMaintenanceState(db);
       if (!isAllowedPhone(state, staff.phone)) return error(403, "forbidden", "Chỉ chủ dự án được bật/tắt chế độ bảo trì.");
