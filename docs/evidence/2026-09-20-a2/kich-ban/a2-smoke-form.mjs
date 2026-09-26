@@ -135,6 +135,10 @@ try {
   ok("tóm tắt 7.350.000 / còn lại 6.350.000; bấm Lưu khi thiếu tên, SĐT, phương thức thanh toán → banner nêu đủ");
 
   // ---- 8) lưu thành công → đơn có đúng dữ liệu (đọc lại qua API) ----
+  // 2026-09-26 (DK-T3-01, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): máy chủ không nhận dịch vụ nhập tay MỚI (400) → xoá thẻ nhập tay của bước 5
+  // trước khi lưu; đơn lưu còn HAI dịch vụ danh mục: 3.550.000 (TD101) + 3.000.000 (TTB03) = 6.550.000, cọc 1.000.000 → còn lại 5.550.000.
+  await p.ev(`${card(2)}.querySelector('.svc-remove').click(); true`);
+  await p.waitFor(`${cards}.length === 2 && /6\\.550\\.000/.test(document.getElementById('sum-subtotal').textContent)`, "đã xoá thẻ nhập tay mới, tạm tính 6.550.000");
   await p.ev(setInput("document.getElementById('customerName')", "Trần Văn Bình"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0901 234 567"));
   await p.ev(setInput("document.getElementById('depositMethod')", "bank_transfer"));
@@ -142,20 +146,20 @@ try {
   await p.waitFor("location.pathname === '/order'", "chuyển tới trang đơn sau khi lưu", 15000);
   const orderId = await p.ev("new URLSearchParams(location.search).get('id')");
   const detail = await p.ev(`fetch('/api/orders/' + ${JSON.stringify(orderId)}).then((r) => r.json())`);
-  assert.equal(detail.order.services.length, 3);
-  assert.equal(detail.order.subtotal, 7350000);
-  assert.equal(detail.order.remainingAmount, 6350000);
+  assert.equal(detail.order.services.length, 2);
+  assert.equal(detail.order.subtotal, 6550000);
+  assert.equal(detail.order.remainingAmount, 5550000);
   const tour = detail.order.services.find((s) => s.catalogCode === "TD101");
   assert.deepEqual(tour.items.map((i) => [i.paxCode, i.quantity, i.unitPrice, i.catalogPrice]), [["adult", 2, 1300000, 1350000], ["child", 1, 950000, 950000]]);
   assert.equal(tour.departDate, vnDate(7));
   assert.equal(tour.pickupPlace, "Khách sạn Sunrise");
   assert.equal(detail.order.services.find((s) => s.catalogCode === "TTB03").items[0].quantity, 2, "7 khách nhóm 5 → 2 lượt (máy chủ tự sinh)");
-  ok("lưu: ba dịch vụ, tạm tính 7.350.000, dòng tiền do máy chủ sinh, đơn giá thương lượng và thông tin chuyến đã lưu");
+  ok("lưu (sau khi xoá thẻ nhập tay mới): hai dịch vụ, tạm tính 6.550.000, dòng tiền do máy chủ sinh, đơn giá thương lượng và thông tin chuyến đã lưu");
   p.close();
 
   // ---- 9) sửa nháp: mở lại đúng số khách; đổi số khách → chuyển sang giá danh mục hiện tại ----
   p = await env.as(ACCOUNTS.salesA, `/order-form?id=${orderId}&focus=${tour.id}`);
-  await p.waitFor(`${cards}.length === 3`, "ba thẻ khi sửa");
+  await p.waitFor(`${cards}.length === 2`, "hai thẻ khi sửa");
   assert.equal(await p.ev("document.getElementById('form-title').textContent").then((t) => /^Sửa đơn /.test(t)), true);
   assert.equal(await p.ev("document.getElementById('customerName').value"), "Trần Văn Bình");
   assert.equal(await p.ev("document.getElementById('save').textContent"), "Lưu thay đổi");
@@ -255,13 +259,15 @@ try {
   p = await env.as(ACCOUNTS.salesA, "/orders");
   await p.send("Page.navigate", { url: `${env.base}/order-form` }); // đi từ một trang trước tới form: form có một mục lịch sử riêng
   await p.waitFor("location.pathname === '/order-form' && document.getElementById('add-manual') !== null", "form (đi từ trang trước)");
-  await p.ev("document.getElementById('add-manual').click(); true");
-  await p.waitFor(`${cards}.length === 1`, "thẻ nhập tay (lịch sử)");
+  // 2026-09-26 (DK-T3-01): máy chủ không nhận dịch vụ nhập tay MỚI (chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay") → bước lưu này dùng thẻ danh mục TD101
+  // (trước đây bấm nút ẩn "+ Dịch vụ nhập tay"; lưu nay trả 400 nên kịch bản đổi, không phải lỗi mã).
+  // Trang tới bằng Page.navigate (không qua env.as): GET /api/catalog có thể CHƯA xong lúc gõ, và ô tìm chỉ vẽ lại khi focus/gõ → gõ lại mỗi lần thăm dò.
+  await p.ev("document.getElementById('catalog-q').focus(); true");
+  await p.waitFor("(() => { const q = document.getElementById('catalog-q'); q.value = 'TD101'; q.dispatchEvent(new Event('input', { bubbles: true })); return document.querySelectorAll('#catalog-list button').length === 1; })()", "TD101 (lịch sử)");
+  await p.ev("document.querySelector('#catalog-list button').click(); true");
+  await p.waitFor(`${cards}.length === 1`, "thẻ danh mục (lịch sử)");
   await p.ev(setInput("document.getElementById('customerName')", "Khách Lịch Sử"));
   await p.ev(setInput("document.getElementById('customerPhone')", "0903 555 666"));
-  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
-  await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
-  await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
   await p.ev("document.getElementById('save').click(); true");
   await p.waitFor("location.pathname === '/order'", "lưu thành công → trang đơn", 15000);
   const nav = (await p.send("Page.getNavigationHistory")).result;

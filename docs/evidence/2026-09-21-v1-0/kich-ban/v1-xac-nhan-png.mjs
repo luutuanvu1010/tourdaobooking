@@ -6,7 +6,7 @@
 // Ghi: <OUT>/anh/xac-nhan-*.png (ảnh mẫu + ảnh chụp hộp thoại) và <OUT>/ket-qua-xac-nhan-png.json. Mỗi bước in một dòng "✓"/"✗"; thoát mã 1 nếu có bước ✗ (không dừng ở bước hỏng đầu tiên).
 // Không cần mạng ngoài (không đọc Google Sheet: danh mục giả do a2-cdp.mjs chèn vào D1 tạm; phông chữ tự lưu trữ).
 //
-//   a  tạo đơn BẰNG GIAO DIỆN (dịch vụ theo người có thông tin chuyến + dịch vụ nhập tay) → chuyển tới /order?id=…&moi=1, hộp thoại tự mở, ảnh hiện, URL đã bỏ moi
+//   a  tạo đơn BẰNG GIAO DIỆN (dịch vụ theo người có thông tin chuyến + dịch vụ danh mục thứ hai; trước 2026-09-26 là dịch vụ nhập tay — DK-T3-01 R1) → chuyển tới /order?id=…&moi=1, hộp thoại tự mở, ảnh hiện, URL đã bỏ moi
 //   b  PNG: chữ ký PNG, giải mã được, rộng ≥ 1440, cao đúng bố cục, KHÔNG trống; mọi khối chữ có mực đúng màu; dải màu chính và chữ nổi bật (--c-accent) đúng chỗ; dấu tiếng Việt
 //      được vẽ (mực nằm trên đỉnh chữ hoa); phông Việt đã nạp; ảnh của hộp thoại GIỐNG HỆT (từng byte) bản dựng từ mô hình kỳ vọng và KHÁC bản dựng từ mô hình khác (đối chứng)
 //   c  tải: <a download="xac-nhan-<mã>.png"> trỏ blob: URL giải mã được; mọi blob: URL tạo ra đều bị thu hồi khi đóng (không còn tải được)
@@ -230,11 +230,20 @@ const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "
 const pax = (adult, child = 0, senior = 0, infant = 0) => ({ adult, child, senior, infant });
 const cust = (name, o = {}) => ({ customerName: name, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "", ...o });
 const tour = (o = {}) => ({ kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1350000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30", pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise, 12 Trần Phú", checkinTime: "06:45", checkinPlace: "Bến Cầu Đá", ...o });
-const manual = (name, items, o = {}) => ({ kind: "manual", name, pax: pax(3), items, ...NO_TRIP, departDate: vnDate(7), ...o }); // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
+// Dịch vụ nhập tay (ảnh xác nhận phải vẽ đúng chúng: dữ liệu CŨ vẫn có). 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không
+// nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ TTB06 (cùng số khách), `create` đổi nó thành ĐÚNG dịch vụ nhập tay này (tên, các dòng tiền,
+// số khách) bằng SQL khi đơn còn nháp (`env.legacyManual`) — dữ liệu y như trước, nên mọi khẳng định về ảnh không đổi.
+const manual = (name, items, o = {}) => {
+  const { pax: guests = pax(3), ...trip } = o;
+  return { kind: "catalog", catalogCode: "TTB06", pax: pax(guests.adult), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), ...trip, _legacy: { name, adult: guests.adult, items } }; // ADR-0021: cả đơn một ngày — mọi dịch vụ dựng sẵn cùng vnDate(7)
+};
 const create = async (account, body) => {
-  const r = await call(account, "POST", "/api/orders", body);
+  const r = await call(account, "POST", "/api/orders", { ...body, services: body.services.map(({ _legacy, ...s }) => s) });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
-  return r.json.order;
+  const order = r.json.order;
+  if (!body.services.some((s) => s._legacy)) return order;
+  body.services.forEach((s, i) => s._legacy && env.legacyManual(order.id, order.services[i].id, s._legacy));
+  return (await call(account, "GET", `/api/orders/${order.id}`)).json.order;
 };
 const LONG_WORD = "Nguyễn-Thị-Hồng-Ngọc-Phương-Uyên-Trần-Lê-Phạm-Hoàng-Huỳnh-Võ-Vũ-Đặng-Bùi-Đỗ-Hồ-Ngô-Dương-Lý"; // 90+ ký tự liền, không dấu cách
 let fixtures = null;
@@ -306,14 +315,17 @@ function getUi() {
     await trip("departTime", "07:30");
     await trip("pickupTime", "07:00");
     await trip("pickupPlace", "Khách sạn Sunrise");
-    await p.ev("document.getElementById('add-manual').click(); true");
-    await p.waitFor(`${cards}.length === 2`, "thẻ nhập tay");
-    await p.ev(setInput(`${card(1)}.querySelector('input[placeholder="Vd: Xe đưa đón riêng"]')`, "Xe đưa đón riêng"));
-    await p.ev(setInput(`${card(1)}.querySelector('.counter-field[aria-label="Số khách (chỉ để vận hành)"]')`, "3"));
-    await p.ev(setInput(`${card(1)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
-    await p.ev(setInput(`${card(1)}.querySelector('.price-field')`, "800000"));
+    // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): trước đây dịch vụ thứ hai là thẻ nhập tay (nút ẩn "+ Dịch vụ nhập tay",
+    // "Xe đưa đón riêng" 3 khách × 800.000) — máy chủ nay trả 400 khi Lưu, nên dịch vụ thứ hai là thẻ DANH MỤC TTB06, 3 người lớn. Ảnh vẽ dịch vụ nhập
+    // tay (dữ liệu cũ) vẫn được kiểm ở các đơn dựng sẵn `f.multi`/`f.long`/`f.confirmed` (bước b, h, k).
+    await p.ev("document.getElementById('catalog-q').focus(); true");
+    await p.ev(setInput("document.getElementById('catalog-q')", "TTB06"));
+    await p.waitFor("document.querySelectorAll('#catalog-list button').length === 1", "TTB06 trong danh mục");
+    await p.ev("document.querySelector('#catalog-list button').click(); true");
+    await p.waitFor(`${cards}.length === 2`, "thẻ Motor nước");
+    await p.ev(setInput(counter(1, "Người lớn"), "3"));
     await p.ev(`${card(1)}.querySelector('details.trip > summary').click(); true`);
-    await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến của dịch vụ nhập tay");
+    await p.waitFor(`${card(1)}.querySelector('details.trip').open`, "mở khối chuyến của dịch vụ thứ hai");
     await p.ev(setInput("document.getElementById('customerName')", "Nguyễn Thị Ánh Tuyết"));
     await p.ev(setInput("document.getElementById('customerPhone')", "0912 345 678"));
     await p.ev(setInput("document.getElementById('customerEmail')", "tuyet.nguyen@example.com"));
@@ -330,7 +342,7 @@ function getUi() {
   return uiPromise;
 }
 
-await step("a", "tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ nhập tay) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi", async () => {
+await step("a", "tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ danh mục thứ hai) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi", async () => {
   const ui = await getUi();
   assert.equal(ui.dialogs, 1, "đúng một hộp thoại");
   assert.equal(ui.title, "Xác nhận đơn để gửi khách");
@@ -339,7 +351,8 @@ await step("a", "tạo đơn bằng giao diện (dịch vụ theo người có t
   assert.ok(navs.some((u) => u === `/order?id=${ui.id}&moi=1`), `phải có lần điều hướng /order?id=…&moi=1 (thấy ${JSON.stringify(navs)})`);
   const order = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${ui.id}`)).json.order;
   assert.equal(order.status, "draft");
-  assert.deepEqual(order.services.map((s) => s.kind), ["catalog", "manual"], "đơn có một dịch vụ theo người và một dịch vụ nhập tay");
+  // 2026-09-26 (DK-T3-01 R1): khẳng định cũ ["catalog", "manual"] TRÁI luật mới (giao diện không còn lập được dịch vụ nhập tay) → đổi thành hai dịch vụ danh mục.
+  assert.deepEqual(order.services.map((s) => [s.kind, s.catalogCode]), [["catalog", "TD101"], ["catalog", "TTB06"]], "đơn có hai dịch vụ danh mục (Tour 4 đảo + Motor nước)");
 });
 
 // ---- Bước b: PNG ----

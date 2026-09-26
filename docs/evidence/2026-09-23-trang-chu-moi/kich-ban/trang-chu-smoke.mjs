@@ -89,11 +89,12 @@ try {
     return { status: r.status, json: await r.json().catch(() => null) };
   };
 
-  /** Dịch vụ nhập tay tối thiểu (1 dòng tiền, 1 khách lớn) — đủ để xác nhận được. */
-  const manualService = (name, { departDate, pickupTime, pickupPlace, unitPrice }) => ({
-    kind: "manual",
-    name,
+  /** Dịch vụ danh mục TTB06 (1 người lớn × giá bán lẻ 800.000) — đủ để xác nhận được. */
+  const catalogService = ({ departDate, pickupTime, pickupPlace }) => ({
+    kind: "catalog",
+    catalogCode: "TTB06",
     pax: { adult: 1, child: 0, senior: 0, infant: 0 },
+    catalogPriceSeen: { adult: 800_000 },
     departDate,
     departTime: "",
     pickupTime,
@@ -102,8 +103,24 @@ try {
     checkinTime: "",
     checkinPlace: "",
     note: "",
-    items: [{ description: name, detail: "", quantity: 1, unitPrice }],
   });
+  /**
+   * Dịch vụ nhập tay tối thiểu (1 dòng tiền, 1 khách lớn) — đủ để xác nhận được. 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập
+   * tay"): API không nhận dịch vụ nhập tay MỚI (400) → gửi dịch vụ danh mục giữ chỗ TTB06, `postOrder` đổi nó thành đúng dịch vụ nhập tay CŨ này bằng SQL
+   * khi đơn còn nháp (`env.legacyManual`) — tên, giá, nơi/giờ đón y như trước, nên mọi số tiền và chữ trên Trang chủ không đổi.
+   */
+  const manualService = (name, { departDate, pickupTime, pickupPlace, unitPrice }) => ({
+    ...catalogService({ departDate, pickupTime, pickupPlace }),
+    _legacy: { name, adult: 1, items: [{ description: name, detail: "", quantity: 1, unitPrice }] },
+  });
+  /** POST /api/orders; dịch vụ nào có `_legacy` thì đổi thành dịch vụ nhập tay cũ bằng SQL ngay sau khi lập (đơn còn nháp). Trả đơn đọc lại. */
+  const postOrder = async (account, input) => {
+    const created = await call(account, "POST", "/api/orders", { ...input, services: input.services.map(({ _legacy, ...s }) => s) });
+    if (created.status !== 201) return created;
+    const order = created.json.order;
+    input.services.forEach((s, i) => s._legacy && env.legacyManual(order.id, order.services[i].id, s._legacy));
+    return { status: 201, json: { order: (await call(account, "GET", `/api/orders/${order.id}`)).json.order } };
+  };
 
   const orderInput = (customerName, customerPhone, services, extra = {}) => ({
     customerName,
@@ -119,7 +136,7 @@ try {
   });
 
   const createAndConfirm = async (input) => {
-    const created = await call(ACCOUNTS.admin, "POST", "/api/orders", input);
+    const created = await postOrder(ACCOUNTS.admin, input);
     assert.equal(created.status, 201, `tạo đơn: ${JSON.stringify(created.json)}`);
     const id = created.json.order.id;
     const confirmed = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
@@ -142,7 +159,7 @@ try {
   ok(`R1 tạo + xác nhận (id ${r1.id}): 2 dịch vụ (sort_order 0 = mai 19:30/Sân bay Cam Ranh, sort_order 1 = hôm nay 06:15/Bến Cầu Đá), đã trả đủ 300.000`);
 
   // R2: NHÁP (không xác nhận), có dịch vụ HÔM NAY — phải KHÔNG lọt vào "Chuyến đón hôm nay" dù trùng ngày (chỉ đơn confirmed mới vào).
-  const r2Created = await call(ACCOUNTS.admin, "POST", "/api/orders", orderInput("Khách Nháp Chưa Xác Nhận", "0900000302", [
+  const r2Created = await postOrder(ACCOUNTS.admin, orderInput("Khách Nháp Chưa Xác Nhận", "0900000302", [
     manualService("Dịch vụ nháp (không được lộ ra Trang chủ)", { departDate: TODAY, pickupTime: "10:00", pickupPlace: "Không được hiện", unitPrice: 100_000 }),
   ]));
   assert.equal(r2Created.status, 201, JSON.stringify(r2Created.json));
@@ -1386,8 +1403,10 @@ try {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
     const partnerOnly = { name: "Đối Tác Thử", phone: "0900000398", pin: "135790", permissions: ["PARTNER"] };
     for (const stmt of (await insertStaffSql(partnerOnly)).split("\n")) env.sql(stmt);
+    // 2026-09-26 (DK-T3-01): Đối tác không lập được dịch vụ nhập tay (R1, 400) và phải dùng đúng giá bán lẻ, không giảm giá (R2/R3) → đơn của Đối tác
+    // dùng dịch vụ danh mục TTB06 giá bán lẻ (trước: dịch vụ nhập tay "Tour 4 đảo (đơn Đối tác tự lập)" 200.000). Bước này chỉ khẳng định đơn hiện ở /orders.
     const created = await call(partnerOnly, "POST", "/api/orders", orderInput("Khách Của Đối Tác", "0900000302", [
-      manualService("Tour 4 đảo (đơn Đối tác tự lập)", { departDate: TOMORROW, pickupTime: "07:00", pickupPlace: "Khách sạn Đối tác", unitPrice: 200_000 }),
+      catalogService({ departDate: TOMORROW, pickupTime: "07:00", pickupPlace: "Khách sạn Đối tác" }),
     ]));
     assert.equal(created.status, 201, `Đối tác lập đơn: ${JSON.stringify(created.json)}`);
 

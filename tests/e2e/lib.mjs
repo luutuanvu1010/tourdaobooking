@@ -94,14 +94,59 @@ export function vnDate(days = 0) {
   return new Date(Date.now() + 7 * 3600_000 + days * 86400_000).toISOString().slice(0, 10);
 }
 
-/** Dịch vụ nhập tay tối thiểu (đủ ngày khởi hành + 1 khách để xác nhận được). `extra` ghi đè/bổ sung trường. */
+/**
+ * Dịch vụ nhập tay (thân gửi API). TỪ 2026-09-26 máy chủ KHÔNG nhận dịch vụ nhập tay MỚI (chủ dự án: "loại bỏ hoàn toàn dịch vụ nhập tay" — DK-T3-01):
+ * chỉ dùng để thử chính luật đó, hoặc gửi lại NGUYÊN dịch vụ nhập tay cũ (kèm `id`) của một đơn dựng bằng `makeLegacyManual`. Đơn thường dùng `catalogService`.
+ */
 export const manualService = (items, extra = {}) => ({ kind: "manual", name: "Dịch vụ thử", pax: { adult: 1 }, departDate: vnDate(7), items, ...extra });
 
-/** Đơn hợp lệ tối thiểu; `extra` ghi đè trường cấp đơn (vd `services`, `discount`). */
+/**
+ * Danh mục GIẢ dùng chung (mã `ZE*`, "e2e") — thay dịch vụ nhập tay mặc định của các kịch bản. Tránh `ZT*` (trip.mjs xoá khi dọn), `ZZ*` (catalog.mjs),
+ * `ZH*` (dispatch.mjs), `ZVA3`/`ZLD*` (kịch bản Chrome). ZE1 cùng tên/giá với dịch vụ nhập tay mặc định cũ ("Dịch vụ thử", 1 người lớn × 100.000₫) nên
+ * mọi khẳng định về tên, số khách, tiền của đơn mặc định giữ nguyên.
+ */
+export const FAKE_CATALOG = {
+  ZE1: { name: "Dịch vụ thử", prices: { adult: 100000, child: 50000 } },
+  ZE2: { name: "Dịch vụ thử hai", prices: { adult: 50000 } },
+};
+const FAKE_AT = "'2026-01-01T00:00:00.000Z'";
+
+/**
+ * Chèn/bật lại danh mục giả `ZE*` trên D1 local tạm (UPSERT, `in_sheet = 1`). GỌI Ở ĐẦU MỖI KỊCH BẢN dùng `orderInput()`/`catalogService()`: lib.mjs
+ * không được có tác dụng phụ lúc nạp (run.mjs nạp nó TRƯỚC khi có D1), và mỗi lần đồng bộ Sheet thật (catalog.mjs) đặt `in_sheet = 0` cho mọi mã không
+ * có trên Sheet → kịch bản chạy SAU catalog.mjs phải tự bật lại. Thiếu bước này: POST /api/orders trả 400 `catalog_unavailable`.
+ */
+export async function ensureFakeCatalog() {
+  const rows = Object.entries(FAKE_CATALOG).map(([code, it], i) => {
+    const p = (k) => (it.prices[k] ?? "NULL");
+    return `('${code}','${it.name}','perPax',${p("adult")},${p("child")},NULL,NULL,NULL,NULL,NULL,${90 + i},1,${FAKE_AT},${FAKE_AT})`;
+  });
+  await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,price_senior,price_infant,note_child,note_senior,note_infant,sheet_row,in_sheet,first_seen_at,updated_at) VALUES ${rows.join(",")}
+    ON CONFLICT(code) DO UPDATE SET name = excluded.name, unit = excluded.unit, price_adult = excluded.price_adult, price_child = excluded.price_child, in_sheet = 1`);
+}
+
+/** Dịch vụ DANH MỤC giả ZE1 (theo người): mặc định 1 người lớn × 100.000₫, đủ ngày khởi hành để xác nhận được. `extra` ghi đè (vd `pax`, `unitPrices`, `catalogCode`). */
+export const catalogService = (extra = {}) => ({ kind: "catalog", catalogCode: "ZE1", pax: { adult: 1 }, catalogPriceSeen: { ...FAKE_CATALOG.ZE1.prices }, departDate: vnDate(7), ...extra });
+
+/**
+ * Dựng dịch vụ NHẬP TAY "CŨ" bằng SQL trên D1 local tạm (API không nhận dịch vụ nhập tay mới từ 2026-09-26, nhưng đơn cũ vẫn có trong dữ liệu thật và
+ * mọi đường đọc/tính tiền vẫn phải đúng với chúng). `serviceId` phải là dịch vụ danh mục MỘT dòng tiền của đơn `orderId` CÒN NHÁP (trigger 0008 khoá
+ * dịch vụ của đơn đã xác nhận). Đổi dịch vụ + dòng của nó thành nhập tay rồi tính lại tiền đơn trong MỘT câu (trigger tiền 0007). Cọc phải ≤ tổng mới.
+ */
+export async function makeLegacyManual(orderId, serviceId, { name = "Dịch vụ nhập tay cũ", description = "Phí phát sinh", detail = null, quantity = 1, unitPrice = 100000 } = {}) {
+  const q = (s) => (s === null ? "NULL" : `'${String(s).replaceAll("'", "''")}'`);
+  await sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = ${q(name)} WHERE id = '${serviceId}' AND order_id = '${orderId}'`);
+  await sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = ${q(description)}, detail = ${q(detail)},
+    quantity = ${quantity}, unit_price = ${unitPrice}, line_total = ${quantity * unitPrice} WHERE service_id = '${serviceId}' AND order_id = '${orderId}'`);
+  const sum = `(SELECT SUM(line_total) FROM order_item WHERE order_id = '${orderId}')`;
+  await sql(`UPDATE orders SET subtotal = ${sum}, total = ${sum} - discount, remaining_amount = ${sum} - discount - deposit_amount WHERE id = '${orderId}'`);
+}
+
+/** Đơn hợp lệ tối thiểu (một dịch vụ danh mục giả ZE1 — nhớ `await ensureFakeCatalog()`); `extra` ghi đè trường cấp đơn (vd `services`, `discount`). */
 export const orderInput = (extra = {}) => ({
   customerName: "Nguyễn Văn A",
   customerPhone: "0901 234 567",
-  services: [manualService([{ description: "Tour", quantity: 1, unitPrice: 100000 }])],
+  services: [catalogService()],
   ...extra,
 });
 

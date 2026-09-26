@@ -6,16 +6,19 @@ import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
-import { can } from "../../shared/permissions";
+import { can, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
+  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
   updateDraftOrder, updateTrip,
 } from "./repository";
-import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus } from "./rules";
-import { loadOrderView, resolveBooker, validationContext } from "./service";
+import {
+  PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
+} from "./price-guards";
+import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
+import { loadOrderView, resolveBooker, validationContext, type OrderValidationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -25,6 +28,22 @@ const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơ
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
+const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
+const PARTNER_DISCOUNT = () => error(403, "forbidden", PARTNER_DISCOUNT_MESSAGE);
+
+/**
+ * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
+ * theo thứ tự: R1 (mọi tài khoản) dịch vụ nhập tay mới / sửa tên-giá dịch vụ nhập tay cũ → 400 `invalid_input`; R2 (tài khoản có quyền Đối tác) đơn giá
+ * khác giá danh mục → 403 `forbidden`; R3 (tài khoản có quyền Đối tác) giảm giá cấp đơn vượt trần — hôm nay trần 0, "tạm không cho giảm" (chủ dự án 26/9)
+ * → 403 `forbidden`. null = đạt.
+ */
+function priceGuard(staff: PermissionHolder, order: ValidOrder, ctx: OrderValidationContext): Response | null {
+  const frozen = manualFreezeViolation(order.services, ctx.stored);
+  if (frozen) return error(400, "invalid_input", frozen);
+  if (holdsPartner(staff) && !retailPricesOnly(order.items)) return PARTNER_PRICE();
+  if (holdsPartner(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
+  return null;
+}
 
 /** Lỗi kiểm đầu vào → phản hồi: tab cũ 409, giá danh mục vừa đổi 409 kèm chi tiết, còn lại 400. */
 function failure(f: Failure): Response {
@@ -51,6 +70,14 @@ export async function findOrderOwner(db: D1Database, id: string): Promise<{ staf
  */
 export async function findOrderRef(db: D1Database, id: string): Promise<{ staffId: string; orderCode: string } | null> {
   return getOrderRef(db, id);
+}
+
+/**
+ * API công khai cho `dispatch` (DK-T4-02): ngày khởi hành của từng dịch vụ trong đơn (null = chưa có ngày). `dispatch` đưa vào luật thuần
+ * `tripDeparted` (`src/shared/trip-rules.ts`) để chặn hướng dẫn viên huỷ tour đã qua ngày đi — không đọc thẳng bảng `order_service`.
+ */
+export async function findOrderDepartDates(db: D1Database, id: string): Promise<(string | null)[]> {
+  return getDepartDates(db, id);
 }
 
 /**
@@ -168,8 +195,11 @@ export const ordersModule: AppModule = {
 
     route("POST", "/api/orders", "orders", async ({ env, request, staff, defaultHandlerStatement, baoThayDoi }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
-      const parsed = validateOrder(await readJson(request), await validationContext(env.DB, null));
+      const ctx = await validationContext(env.DB, null);
+      const parsed = validateOrder(await readJson(request), ctx);
       if (!parsed.ok) return failure(parsed);
+      const guard = priceGuard(staff, parsed.value, ctx);
+      if (guard) return guard;
       const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4). `dispatch` tự quyết người lập
@@ -210,8 +240,11 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.status !== "draft") return NOT_EDITABLE();
       const body = await readJson(request);
-      const parsed = validateOrder(body, await validationContext(env.DB, id));
+      const ctx = await validationContext(env.DB, id);
+      const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
+      const guard = priceGuard(staff, parsed.value, ctx);
+      if (guard) return guard;
       const expected = parsed.value.expectedUpdatedAt;
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");
       // Thân yêu cầu không có CẢ HAI khoá `bookerPartyId`/`newBooker` (một `order-form.js` PWA cũ trong bộ nhớ đệm chưa biết trường người đặt) → GIỮ NGUYÊN
@@ -292,6 +325,10 @@ export const ordersModule: AppModule = {
       } else {
         const today = vnToday(new Date());
         const order = await findOrder(env.DB, id);
+        // DK-T3-01 R2 + R3: xác nhận là bước phát phiếu gửi khách mang tên/MST công ty → tài khoản có quyền Đối tác chỉ xác nhận được đơn mà MỌI dòng đúng
+        // giá danh mục (bắt cả đơn nháp CŨ lập trước bản vá, và dòng nhập tay cũ — không có giá danh mục) VÀ giảm giá ĐÃ LƯU không vượt trần (hôm nay 0).
+        if (order && holdsPartner(staff) && !retailPricesOnly(order.services.flatMap((s) => s.items))) return PARTNER_PRICE();
+        if (order && holdsPartner(staff) && !discountWithinCap(order.discount, PARTNER_DISCOUNT_CAP)) return PARTNER_DISCOUNT();
         const detail = order ? summarizeDeviations(order.services.flatMap((s) => s.items)) : undefined;
         if (!(await confirmOrder(env.DB, id, staff.id, today, meta.updatedAt, detail))) {
           // Thua vì đơn đã đổi trạng thái, hay vì chưa đủ chuyến? Đọc lại để trả đúng lý do (không ghi nhật ký cho lần xác nhận thất bại).

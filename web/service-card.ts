@@ -3,7 +3,7 @@
 // và không ghi đè ô đang có focus (gõ tiếng Việt kiểu Telex/VNI không bị ngắt).
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import {
-  addManualLine, cardCodes, draftIssues, draftSubtotal, groupInfo, guestDetail, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
+  addManualLine, cardCodes, draftIssues, draftSubtotal, groupInfo, guestDetail, isFrozenManual, isLocked, previewLines, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, unitLabel,
   type CatalogDraft, type ManualDraft, type ServiceDraft,
 } from "../src/shared/service-form";
 import { tripSummaryLine, tripWarnings } from "../src/shared/trip-form";
@@ -62,7 +62,7 @@ interface ManualRefs {
 function structKey(d: ServiceDraft): string {
   return d.kind === "catalog"
     ? `c|${d.item.code}|${isLocked(d)}|${d.repick}|${cardCodes(d).join(",")}|${groupInfo(d) !== null}` // KHÔNG có d.source: bản chụp → hiện tại không dựng lại (giữ bàn phím); chữ phụ của bộ đếm cập nhật tại chỗ
-    : `m|${d.lines.length}`;
+    : `m|${isFrozenManual(d)}|${d.lines.length}`;
 }
 
 export function createServiceCard(o: CardOptions): ServiceCard {
@@ -151,12 +151,42 @@ export function createServiceCard(o: CardOptions): ServiceCard {
     return h("div", null, group ? null : h("div", { class: "svc-sub" }, "Số khách"), ...guestRows, groupHint, lockedNote, h("div", { class: "svc-lines" }, emptyHint, ...rows));
   }
 
+  /**
+   * Dịch vụ nhập tay ĐÃ LƯU (DK-T3-01, chủ dự án 2026-09-26: "loại bỏ hoàn toàn dịch vụ nhập tay"): CHỈ XEM tên và dòng tiền — máy chủ chỉ nhận lại
+   * nguyên văn. Số khách (vận hành) vẫn sửa được; thông tin chuyến và nút "Xoá" nằm ở khung cố định của thẻ nên vẫn dùng được.
+   */
+  function buildFrozenManualBody(d: ManualDraft): HTMLElement {
+    nameInput = null;
+    manualRefs = [];
+    addLineBtn = null;
+    const guests = counter({ label: "Số khách (chỉ để vận hành)", value: d.guests, onChange: (n) => commit(setGuests(man(), n)) });
+    guestCounter = guests;
+    const lines = d.lines.map((l) =>
+      h(
+        "div",
+        { class: "mline" },
+        h("div", null, l.description),
+        l.detail ? h("div", { class: "muted" }, l.detail) : null,
+        h("div", { class: "mline-nums" }, h("span", null, `${l.quantity} × ${vnd(l.unitPrice)} =`), h("output", { class: "line-total" }, vnd(l.quantity * l.unitPrice))),
+      ),
+    );
+    return h(
+      "div",
+      null,
+      h("div", { class: "svc-locked" }, h("p", { class: "muted" }, "Dịch vụ nhập tay đã ngừng — chỉ xem; muốn đổi thì xoá và chọn từ danh mục.")),
+      h("div", { class: "guest-row" }, h("div", { class: "guest-info" }, h("div", { class: "guest-label" }, "Số khách"), h("div", { class: "muted" }, "Chỉ để vận hành, không nhân với tiền")), guests.root),
+      h("div", { class: "svc-sub" }, "Dòng tiền"),
+      ...lines,
+    );
+  }
+
   function buildManualBody(d: ManualDraft): HTMLElement {
     counters = new Map();
     guestDetails = new Map();
     lineRefs = new Map();
     groupHint = null;
     emptyHint = null;
+    if (isFrozenManual(d)) return buildFrozenManualBody(d);
     const name = h("input", { type: "text", maxLength: 300, autocomplete: "off", value: d.name, placeholder: "Vd: Xe đưa đón riêng" });
     name.addEventListener("input", () => commit({ ...man(), name: name.value }));
     nameInput = name;

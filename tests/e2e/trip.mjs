@@ -2,8 +2,9 @@
 // lệch giá danh mục, xác nhận đòi đủ chuyến, đua tranh chấp, khoá lạc quan, bản chụp cho nháp cũ, sửa trường vận hành sau xác nhận.
 // Dùng danh mục GIẢ (mã ZT*) chèn thẳng vào D1 — không phụ thuộc Google Sheet; dọn ở `finally`.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, manualService, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, ensureFakeCatalog, makeLegacyManual, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
+await ensureFakeCatalog(); // orderInput() mặc định dùng danh mục giả ZE1 (khối 10: PUT thiếu mốc phải qua được bước kiểm dịch vụ rồi mới 400 đúng lý do)
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
@@ -15,7 +16,8 @@ await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,price_child,pric
   ('ZT3','Motor thử','perPax',800000,NULL,NULL,NULL,NULL,NULL,NULL,4,1,${T},${T})`);
 
 const cat = (extra = {}) => ({ kind: "catalog", catalogCode: "ZT1", pax: { adult: 2, child: 1 }, catalogPriceSeen: { adult: 850000, child: 595000 }, departDate: vnDate(7), ...extra });
-const tourLine = [{ description: "Tour", quantity: 1, unitPrice: 100000 }];
+/** Dịch vụ danh mục ZT3 (một dòng người lớn, 800.000) — thay dịch vụ nhập tay cũ của tệp này (API không nhận dịch vụ nhập tay mới từ 2026-09-26). */
+const motor = (extra = {}) => cat({ catalogCode: "ZT3", pax: { adult: 1 }, catalogPriceSeen: { adult: 800000 }, ...extra });
 const lines = (order) => order.services.flatMap((s) => s.items);
 const post = (services, extra = {}) => call(A, "POST", "/api/orders", orderInput({ services, ...extra }));
 const put = (order, services, extra = {}) => call(A, "PUT", `/api/orders/${order.id}`, orderInput({ services, expectedUpdatedAt: order.updatedAt, ...extra }));
@@ -95,17 +97,17 @@ try {
   console.log("✓ thông tin chuyến lưu và chuẩn hoá");
 
   // 7) XÁC NHẬN ĐÒI ĐỦ CHUYẾN (Q4): nháp thiếu ngày lưu được, xác nhận 409, bổ sung rồi mới xác nhận được
-  r = await post([cat({ departDate: "" }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { departDate: "" })]); // ADR-0021: cả đơn cùng "chưa có ngày"
+  r = await post([cat({ departDate: "" }), motor({ departDate: "" })]); // ADR-0021: cả đơn cùng "chưa có ngày"
   assert.equal(r.status, 201, JSON.stringify(r.body));
   const d1 = r.body.order;
   r = await confirm(A, d1);
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "incomplete_trip");
-  assert.deepEqual(r.body.error.missing, [{ serviceId: d1.services[0].id, name: "Tour thử", reasons: ["no_date"] }, { serviceId: d1.services[1].id, name: "Dịch vụ thử", reasons: ["no_date"] }]);
+  assert.deepEqual(r.body.error.missing, [{ serviceId: d1.services[0].id, name: "Tour thử", reasons: ["no_date"] }, { serviceId: d1.services[1].id, name: "Motor thử", reasons: ["no_date"] }]);
   let g = await get(A, d1);
   assert.equal(g.order.status, "draft");
   assert.deepEqual(g.history.map((h) => h.action), ["created"], "xác nhận thất bại không ghi nhật ký");
-  r = await put(d1, [cat({ id: d1.services[0].id, departDate: vnDate(9) }), manualService([{ description: "Áo phao", quantity: 1, unitPrice: 50000 }], { id: d1.services[1].id, departDate: vnDate(9) })]);
+  r = await put(d1, [cat({ id: d1.services[0].id, departDate: vnDate(9) }), motor({ id: d1.services[1].id, departDate: vnDate(9) })]);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.deepEqual(r.body.order.services.map((x) => x.id), d1.services.map((x) => x.id), "id dịch vụ ổn định qua lần sửa");
   r = await confirm(A, r.body.order);
@@ -115,9 +117,16 @@ try {
   console.log("✓ xác nhận đòi đủ ngày khởi hành; nhật ký khớp");
 
   // 8) QUÁ KHỨ / QUÁ XA / 0 KHÁCH (Q12): nháp lưu được, xác nhận bị chặn; hai đầu khoảng [hôm nay, +365] thì được
-  const dated = async (departDate, pax = { adult: 1 }) => {
-    const x = await post([manualService([{ description: "x", quantity: 1, unitPrice: 1 }], { departDate, pax })]);
+  // `noGuests`: dịch vụ danh mục bắt buộc ≥ 1 khách khi lưu, dịch vụ nhập tay (nay API không nhận mới) thì không → nháp "0 khách" dựng bằng SQL: đổi
+  // dịch vụ vừa lưu thành nhập tay CŨ rồi đặt 0 khách (trigger 0008 chỉ khoá đơn ĐÃ xác nhận) — đúng trạng thái đơn nhập tay cũ còn trong dữ liệu thật,
+  // và không làm lệch bất biến "số lượng dòng = số khách" của dịch vụ DANH MỤC ở khối 13.
+  const dated = async (departDate, noGuests = false) => {
+    const x = await post([motor({ departDate })]);
     assert.equal(x.status, 201, JSON.stringify(x.body));
+    if (noGuests) {
+      await makeLegacyManual(x.body.order.id, x.body.order.services[0].id, { unitPrice: 1 });
+      await sql(`UPDATE order_service SET pax_adult = 0 WHERE order_id = '${x.body.order.id}'`);
+    }
     return x.body.order;
   };
   const gap = async (order) => {
@@ -128,7 +137,7 @@ try {
   };
   assert.deepEqual(await gap(await dated(vnDate(-1))), ["past_date"]);
   assert.deepEqual(await gap(await dated(vnDate(366))), ["too_far"]);
-  assert.deepEqual(await gap(await dated(vnDate(7), { adult: 0 })), ["no_guests"]);
+  assert.deepEqual(await gap(await dated(vnDate(7), true)), ["no_guests"]);
   for (const day of [vnDate(0), vnDate(365)]) {
     const x = await confirm(A, await dated(day));
     assert.equal(x.status, 200, `${day}: ${JSON.stringify(x.body)}`);
@@ -137,8 +146,8 @@ try {
 
   // 9) ĐUA "lưu xoá ngày" với "xác nhận": không bao giờ ra đơn xác nhận thiếu ngày (điều kiện nằm trong câu UPDATE)
   for (let round = 0; round < 5; round++) {
-    const d = (await post([manualService(tourLine)])).body.order;
-    const clear = put(d, [manualService(tourLine, { id: d.services[0].id, departDate: "" })]);
+    const d = (await post([motor()])).body.order;
+    const clear = put(d, [motor({ id: d.services[0].id, departDate: "" })]);
     const [p, c] = await Promise.all([clear, confirm(ADMIN, d)]);
     const now = (await get(A, d)).order;
     // Mỗi bên chỉ được 200 hoặc 409 SẠCH — không 500. Nếu điều kiện xác nhận không nằm trong câu UPDATE mà chỉ có trigger đỡ phía sau,
@@ -155,8 +164,8 @@ try {
   console.log("✓ đua lưu-xoá-ngày với xác nhận: không có đơn xác nhận thiếu ngày");
 
   // 10) KHOÁ LẠC QUAN: mốc cũ → 409 stale; thiếu mốc → 400; hai PUT cùng mốc → đúng một bên thắng, bên thua không để lại gì
-  const s0 = (await post([manualService(tourLine)])).body.order;
-  const same = (order) => [manualService(tourLine, { id: order.services[0].id })];
+  const s0 = (await post([motor()])).body.order;
+  const same = (order) => [motor({ id: order.services[0].id })];
   r = await put(s0, same(s0), { customerNote: "v1" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   r = await put(s0, same(s0), { customerNote: "v2" }); // mốc đã cũ
@@ -167,9 +176,11 @@ try {
   assert.match(r.body.error.message, /expectedUpdatedAt/, "thiếu mốc phải bị từ chối ĐÚNG lý do, không phải lỗi khác");
   // Hai bên ghi nội dung KHÁC NHAU: nếu bên thua lọt qua điều kiện, dòng tiền của nó sẽ đè lên bản của bên thắng và lệch với ghi chú đơn.
   // Lặp trên đơn mới mỗi vòng: nếu hai request tình cờ chạy nối tiếp thì vòng đó chưa thử được tranh chấp thật.
-  const mine = (order, tag) => put(order, [manualService([{ description: tag.toUpperCase(), quantity: 1, unitPrice: 100000 }], { id: order.services[0].id })], { customerNote: tag });
+  // Mỗi bên gửi một ĐƠN GIÁ khác nhau (dịch vụ danh mục: mô tả dòng do máy chủ sinh, không phân biệt được hai bên bằng mô tả như dịch vụ nhập tay cũ).
+  const PRICE = { x: 810000, y: 820000 };
+  const mine = (order, tag) => put(order, [motor({ id: order.services[0].id, unitPrices: { adult: PRICE[tag] } })], { customerNote: tag });
   for (let round = 0; round < 3; round++) {
-    const fresh = (await post([manualService(tourLine)])).body.order;
+    const fresh = (await post([motor()])).body.order;
     const [x, y] = await Promise.all([mine(fresh, "x"), mine(fresh, "y")]);
     assert.deepEqual([x.status, y.status].sort(), [200, 409], `${x.status}/${y.status}`);
     const winner = x.status === 200 ? "x" : "y";
@@ -177,7 +188,7 @@ try {
     assert.equal(after.order.services.length, 1);
     assert.equal(lines(after.order).length, 1, "bên thua không được nhân đôi dòng");
     assert.equal(after.order.customerNote, winner);
-    assert.equal(lines(after.order)[0].description, winner.toUpperCase(), "dòng tiền phải là của bên thắng, không bị bên thua đè");
+    assert.equal(lines(after.order)[0].unitPrice, PRICE[winner], "dòng tiền phải là của bên thắng, không bị bên thua đè");
     assert.deepEqual(after.history.map((h) => h.action), ["created", "updated"]);
   }
   console.log("✓ khoá lạc quan: stale / thiếu mốc / hai PUT cùng mốc");
@@ -239,7 +250,7 @@ try {
   assert.equal((await trip(c, { note: "x" }, Bc)).status, 403);
   assert.equal((await call(null, "PUT", `/api/orders/${c.id}/trip`, {})).status, 401);
   // dịch vụ của đơn KHÁC không sửa được qua đơn này (IDOR)
-  const other = (await post([manualService(tourLine)])).body.order;
+  const other = (await post([motor()])).body.order;
   r = await call(A, "PUT", `/api/orders/${c.id}/trip`, { expectedUpdatedAt: c.updatedAt, services: [{ id: other.services[0].id, ...tripOf(other.services[0]), note: "chui" }] });
   assert.equal(r.status, 400, JSON.stringify(r.body));
   assert.match(r.body.error.message, /không thuộc đơn này/);
@@ -276,7 +287,7 @@ try {
   await assert.rejects(sql(`UPDATE order_service SET depart_date = NULL WHERE id = '${svId}'`), /incomplete_trip/);
   await sql(`UPDATE order_service SET note = 'ghi thẳng D1' WHERE id = '${svId}'`); // trường vận hành vẫn ghi được
   // ngày đã qua (đơn đã đi) vẫn sửa được ghi chú nếu KHÔNG đổi ngày
-  const pd = (await post([manualService(tourLine, { departDate: vnDate(0) })])).body.order;
+  const pd = (await post([motor({ departDate: vnDate(0) })])).body.order;
   assert.equal((await confirm(A, pd)).status, 200);
   await sql(`UPDATE order_service SET depart_date = '${vnDate(-3)}' WHERE order_id = '${pd.id}'`);
   const pdNow = (await get(A, pd)).order;

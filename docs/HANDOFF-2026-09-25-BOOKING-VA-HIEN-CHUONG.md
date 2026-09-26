@@ -87,7 +87,7 @@ Chờ xác nhận ──Xác nhận──▶ Đã xác nhận ──Đã giao �
 ### 1.5 Kiểm toán điểm khuất 24/9 — trạng thái
 Nguồn: `docs/AUDIT-2026-09-24-DIEM-KHUAT.md` (nhánh `claude/tourdao-sales-audit-62ea81`), `docs/quyen-hoan.json` mục `phat_hien` (trên `main`).
 - **DK-T2-01 (CRITICAL)** — HDV lưu số khách làm mất giá thoả thuận: **ĐÃ VÁ, lên production 1.13** (một nguồn tính tiền `storedServiceLines` + hàng rào `src/buildlines-guard.test.ts`, kiểm độc lập ĐẠT, e2e 19/19).
-- **Còn mở, hạn 2026-10-05** (quá hạn → `npm test` đỏ): DK-T3-01 (đối tác gọi thẳng API tạo dịch vụ giá tự gõ), DK-T3-02 (Quản trị tự đặt lại PIN không cần PIN cũ), DK-T4-02 (HDV huỷ đơn 2 chạm, không hỏi lại).
+- **DK-T3-01, DK-T3-02, DK-T4-02 (HIGH, hạn 2026-10-05): ĐÃ VÁ trên nhánh `va-3-loi-kiem-toan` (2026-09-26), CHƯA gộp `main`, CHƯA lên production** — mục `phat_hien` nay rỗng. Quyết định của chủ: ADR-0027 (ngừng dịch vụ nhập tay ở máy chủ; Đối tác đúng giá danh mục, giảm giá tối đa bằng mức chiết khấu — tạm 0; HDV không huỷ tour đã qua ngày đi). Nhật ký: `docs/superpowers/plans/2026-09-26-va-3-loi-kiem-toan-nhat-ky.md`. Bản phát hành 1.14.
 - DK-T3-04 (MEDIUM): hàng rào quyền canh theo ô, chưa theo route GET.
 - **Luật "chặn còn lại âm" do AI tự thêm nhầm đã GỠ** (chủ chưa duyệt) → việc mở `docs/CHANGE-GUIDE.md` §4 mục 32, xử lý ở sổ/hoàn tiền.
 
@@ -190,7 +190,7 @@ Tài liệu: memory https://code.claude.com/docs/en/memory.md · best practices 
 1. Chủ `day-len` hai nhánh tài liệu (§0).
 2. Phiên riêng tại `Master-Project-Framework`: hợp nhất Hiến pháp + soạn Hiến chương hệ thống + Mô hình dữ liệu lõi (dán lời dặn §6).
 3. Tour Đảo — **thi công Bảng tin** (ADR-0022, kế hoạch 15 task; việc lớn → kiểm độc lập).
-4. Song song: **vá DK-T3-01, DK-T3-02, DK-T4-02 trước 2026-10-05**.
+4. Song song: **vá DK-T3-01, DK-T3-02, DK-T4-02 trước 2026-10-05** — đã vá trên nhánh `va-3-loi-kiem-toan` (26/9), chờ chủ gộp + triển khai (bản 1.14).
 5. **ADR-0019** (tách cổng + route hỏi bảng quyền) → ADR-0017/0023 + ADR-0020.
 6. Chủ/Kế toán xác nhận Sổ vàng + phiên khảo sát riêng cho `RANG_BUOC_NGOAI.md` (trước hết L1: sổ công nợ có phải lưu 10 năm) → trình lượt 1 Hoàn tất (ADR-0024…0026, trang ghép) → thi công lát mỏng "Tour Đảo bán" không chiết khấu → lượt 2 (chính sách giá, người bán, nhà cung cấp).
 7. Việc nhỏ §1.6 gộp vào một lần phát hành.

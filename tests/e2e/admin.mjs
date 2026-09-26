@@ -110,7 +110,23 @@ for (const a of ["staff_created", "staff_updated", "permission_changed", "staff_
 assert.ok(r.body.entries.some((e) => e.action === "permission_changed" && e.targetId === A.id && /Bán hàng/.test(e.detail)), "nhật ký đổi quyền có nhãn tiếng Việt");
 console.log("✓ sửa/ngưng/kích hoạt, tự khoá bị chặn, ngưng có hiệu lực ngay, đủ nhật ký");
 
-// --- đặt lại PIN thu hồi phiên cũ
+// --- DK-T3-02 (kiểm toán 2026-09-24): Quản trị/Toàn quyền KHÔNG tự đặt lại PIN của chính mình qua route quản trị — route đó không hỏi
+// PIN cũ, nên một phiên bỏ quên sẽ bị chiếm hẳn (vượt bước nhập lại PIN của ADR-0016 điều 2a). Đổi PIN của mình chỉ ở trang Tôi (change-pin, có PIN hiện tại).
+for (const [who, cookie, account] of [["Quản trị", ADMIN, ACCOUNTS.admin], ["Toàn quyền", SUPER_ADMIN, ACCOUNTS.superAdmin]]) {
+  const selfId = (await raw(cookie, "GET", "/api/auth/me")).body.staff.id;
+  r = await raw(cookie, "POST", `/api/staff/${selfId}/reset-pin`);
+  assert.equal(r.status, 403, `${who} tự đặt lại PIN của mình phải bị chặn: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "forbidden");
+  assert.match(r.body.error.message, /Đổi mã PIN/, "thông báo chỉ sang mục Đổi mã PIN ở trang Tôi");
+  assert.equal(r.body.pin, undefined, "không được trả PIN mới");
+  assert.equal((await raw(cookie, "GET", "/api/auth/me")).status, 200, `${who}: phiên đang mở vẫn hợp lệ (không có gì bị ghi)`);
+  assert.equal((await login(account.phone, account.pin)).status, 200, `${who}: PIN cũ vẫn đăng nhập được`);
+  r = await raw(cookie, "GET", "/api/audit?action=pin_reset&limit=50");
+  assert.ok(!r.body.entries.some((e) => e.targetId === selfId), `${who}: không có dòng nhật ký pin_reset cho chính mình`);
+}
+console.log("✓ DK-T3-02: Quản trị/Toàn quyền tự đặt lại PIN của mình → 403, phiên và PIN cũ giữ nguyên");
+
+// --- đặt lại PIN thu hồi phiên cũ (cũng là vế "vẫn đặt lại được cho cấp dưới" của DK-T3-02: A đang chỉ có quyền Bán hàng)
 const s1 = cookieOf(await login(A.phone, A.pin));
 r = await raw(ADMIN, "POST", `/api/staff/${A.id}/reset-pin`);
 assert.equal(r.status, 200); assert.match(r.body.pin, /^\d{6}$/); assert.notEqual(r.body.pin, A.pin);

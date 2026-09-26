@@ -1,7 +1,7 @@
 // Kiểm trang đơn bằng Chrome thật (khổ iPhone 390×844). Chạy từ GỐC repo:
 //   npm run build:web && CHROME_BIN=<đường dẫn tuyệt đối tới kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-20-a2/kich-ban/a2-smoke-order.mjs
 import assert from "node:assert/strict";
-import { ACCOUNTS, clickText, ok, startEnv, vnDate } from "./a2-cdp.mjs";
+import { ACCOUNTS, clickText, ok, setInput, startEnv, vnDate } from "./a2-cdp.mjs";
 
 const env = await startEnv();
 try {
@@ -20,15 +20,19 @@ try {
   const base = { customerName: "Khách Trang Đơn", customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "" };
 
   // đơn 1: nháp, dịch vụ danh mục có đơn giá thương lượng + dịch vụ nhập tay CHƯA có ngày (xác nhận sẽ thiếu)
+  // 2026-09-26 (DK-T3-01, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI → dựng đơn CŨ: lập với TTB06 (1 người lớn
+  // × 800.000 — cùng số tiền với dòng nhập tay cũ nên tổng đơn không đổi) rồi đổi dịch vụ đó thành nhập tay bằng SQL khi đơn còn nháp.
   const created = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
     ...base, discount: 100000, depositAmount: 500000, depositMethod: "cash",
     services: [
       { kind: "catalog", catalogCode: "TD101", pax: pax(2, 1), unitPrices: { adult: 1300000, child: 950000 }, catalogPriceSeen: { adult: 1350000, child: 950000 }, ...NO_TRIP, departTime: "07:30", pickupTime: "07:00", pickupPlace: "Bến Cầu Đá", checkinTime: "09:00" },
-      { kind: "manual", name: "Xe đưa đón riêng", pax: pax(3), items: [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }], ...NO_TRIP },
+      { kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP },
     ],
   });
   assert.equal(created.status, 201, JSON.stringify(created.json));
   const order = created.json.order;
+  env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${order.services[1].id}'`);
+  env.sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = 'Xe 7 chỗ 2 chiều', detail = NULL WHERE service_id = '${order.services[1].id}'`);
   // ADR-0021: API nay chặn đơn lệch ngày ("có ngày" + "chưa có ngày"); ca này chỉ còn ở đơn CŨ → dựng lại bằng SQL: dịch vụ danh mục có ngày, dịch vụ nhập tay trống ngày
   env.sql(`UPDATE order_service SET depart_date = '${vnDate(10)}' WHERE id = '${order.services[0].id}'`);
   const svc = (i) => `document.querySelectorAll('#order .svc-view')[${i}]`;
@@ -81,8 +85,42 @@ try {
   await p.waitFor("location.pathname === '/order-form' && document.querySelectorAll('#services .svc').length === 2", "form mở lại đơn");
   assert.equal(await p.ev("document.querySelectorAll('#services .svc')[1].querySelector('details.trip').open"), true, "thẻ được nhắm mở sẵn khối chuyến");
   assert.equal(await p.ev("document.querySelectorAll('#services .svc')[0].querySelector('details.trip').open"), false);
+  // 2026-09-26 (DK-T3-01): dịch vụ nhập tay ĐÃ LƯU hiện CHỈ XEM — không ô tên/mô tả/đơn giá, không "+ Thêm dòng"/"Xoá dòng"; vẫn có bộ đếm số khách,
+  // khối chuyến và nút "Xoá" dịch vụ; có dòng chú thích. Thẻ danh mục cạnh nó không đổi (vẫn có ô đơn giá).
+  const frozen = await p.ev(`(() => { const c = document.querySelectorAll('#services .svc')[1];
+    return { inputs: [...c.querySelectorAll('input:not(.counter-field)')].filter((i) => !i.closest('details.trip')).length, priceFields: c.querySelectorAll('.price-field').length,
+      buttons: [...c.querySelectorAll('button')].filter((b) => !b.closest('details.trip') && !b.closest('.counter')).map((b) => b.textContent.trim()),
+      counter: !!c.querySelector('.counter-field[aria-label="Số khách (chỉ để vận hành)"]'), note: c.querySelector('.svc-locked')?.textContent ?? null,
+      name: c.querySelector('.svc-name').textContent, line: c.querySelector('.mline')?.textContent ?? null, total: c.querySelector('.svc-total-amount').textContent,
+      catalogPriceFields: document.querySelectorAll('#services .svc')[0].querySelectorAll('.price-field').length }; })()`);
+  assert.deepEqual([frozen.inputs, frozen.priceFields, frozen.buttons, frozen.counter], [0, 0, ["Xoá"], true], `thẻ nhập tay đã lưu chỉ xem (chỉ còn bộ đếm + Xoá): ${JSON.stringify(frozen)}`);
+  assert.equal(frozen.note, "Dịch vụ nhập tay đã ngừng — chỉ xem; muốn đổi thì xoá và chọn từ danh mục.");
+  assert.deepEqual([frozen.name, frozen.total], ["Xe đưa đón riêng", "800.000 ₫"]);
+  assert.match(frozen.line ?? "", /Xe 7 chỗ 2 chiều.*1 × 800\.000 ₫ =.*800\.000 ₫/);
+  assert.ok(frozen.catalogPriceFields > 0, "thẻ danh mục vẫn có ô đơn giá");
   p.close();
-  ok("liên kết 'Sửa': form mở đúng thẻ, khối chuyến mở sẵn");
+  ok("liên kết 'Sửa': form mở đúng thẻ, khối chuyến mở sẵn; thẻ nhập tay đã lưu chỉ xem (không ô tên/giá, còn số khách + Xoá, có chú thích)");
+
+  // ---- 3b) (2026-09-26, DK-T3-01) LƯU form sửa đơn nháp CŨ có dịch vụ nhập tay: đổi số khách của thẻ nhập tay rồi Lưu → máy chủ nhận (tên + dòng tiền
+  //      gửi lại nguyên văn), dịch vụ vẫn là nhập tay, tiền không đổi, số khách mới được lưu. Đơn RIÊNG (không đụng luồng của đơn 1). ----
+  {
+    const c3 = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...base, customerName: "Khách Nhập Tay Cũ", services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(9) }] });
+    assert.equal(c3.status, 201, JSON.stringify(c3.json));
+    const sid = c3.json.order.services[0].id;
+    env.sql(`UPDATE order_service SET catalog_code = NULL, unit = 'manual', name = 'Xe đưa đón riêng', pax_adult = 3 WHERE id = '${sid}'`);
+    env.sql(`UPDATE order_item SET catalog_code = NULL, pax_code = NULL, catalog_price = NULL, description = 'Xe 7 chỗ 2 chiều', detail = NULL WHERE service_id = '${sid}'`);
+    const q = await env.as(ACCOUNTS.salesA, `/order-form?id=${c3.json.order.id}`);
+    await q.waitFor("document.querySelectorAll('#services .svc').length === 1 && !!document.querySelector('#services .svc .svc-locked')", "form sửa đơn cũ có thẻ nhập tay chỉ xem");
+    await q.ev(setInput("document.querySelector('#services .svc .counter-field[aria-label=\"Số khách (chỉ để vận hành)\"]')", "4"));
+    await q.ev("document.getElementById('save').click(); true");
+    await q.waitFor("location.pathname === '/order'", "lưu thành công → trang đơn", 15000);
+    const saved = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${c3.json.order.id}`)).json.order;
+    assert.deepEqual([saved.services[0].kind, saved.services[0].name, saved.services[0].pax.adult, saved.subtotal], ["manual", "Xe đưa đón riêng", 4, 800000], JSON.stringify(saved.services[0]));
+    assert.deepEqual(saved.services[0].items.map((i) => [i.description, i.quantity, i.unitPrice]), [["Xe 7 chỗ 2 chiều", 1, 800000]]);
+    assert.deepEqual(q.consoleErrors, []);
+    q.close();
+  }
+  ok("lưu form sửa đơn nháp cũ có dịch vụ nhập tay (đổi số khách 3 → 4): máy chủ nhận, dịch vụ vẫn nhập tay, tiền giữ 800.000");
 
   // ---- 4) bổ sung ngày qua API rồi xác nhận bằng giao diện: khoá, biểu tượng khoá, chỉ còn 'Huỷ đơn' ----
   const d = (await call(ACCOUNTS.salesA, "GET", `/api/orders/${order.id}`)).json.order;
@@ -135,7 +173,7 @@ try {
   ok("nhãn 'Giá danh mục đã đổi' / 'Dịch vụ đã ẩn khỏi danh mục' chỉ ở đơn nháp; đơn huỷ: huy hiệu xám, không nút, không nhãn");
 
   // ---- 5b) đổi trạng thái THÀNH CÔNG nhưng tải lại đơn lỗi (I4): banner "Không tải được đơn." PHẢI có nút "Tải lại đơn" (PWA standalone không có tải lại của trình duyệt) ----
-  const quick = { ...base, services: [{ kind: "manual", name: "Xe", pax: pax(1), items: [{ description: "Xe", detail: "", quantity: 1, unitPrice: 100000 }], ...NO_TRIP }] };
+  const quick = { ...base, services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(1), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP }] }; // 2026-09-26: trước là dịch vụ nhập tay (API nay không nhận mới)
   const third = await call(ACCOUNTS.salesA, "POST", "/api/orders", { ...quick, customerName: "Khách Tải Lại" });
   assert.equal(third.status, 201, JSON.stringify(third.json));
   p = await env.as(ACCOUNTS.salesA, `/order?id=${third.json.order.id}`);

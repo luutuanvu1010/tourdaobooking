@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import type { OrderServiceDto } from "./contracts.ts";
 import type { CatalogService } from "./order-lines.ts";
 import {
-  addManualLine, canAddService, draftFromDto, draftIssues, draftSubtotal, emptyLine, groupInfo, isLocked, newCatalogDraft, newManualDraft, orderIssues, orderSummary,
+  addManualLine, canAddService, draftFromDto, draftIssues, draftSubtotal, emptyLine, groupInfo, isFrozenManual, isLocked, newCatalogDraft, newManualDraft, orderIssues, orderSummary,
   cardCodes, guestDetail, paxSummary, previewLines, refreshFromCatalog, removeManualLine, setGuests, setManualLine, setPax, setUnitPrice, snapshotItem, toServiceInput, totalLines, unitLabel,
   type CatalogDraft, type ManualDraft,
 } from "./service-form.ts";
@@ -285,6 +285,19 @@ test("draftFromDto (nhập tay): giữ tên, số khách vận hành, dòng ti�
   if (d.kind !== "manual") return;
   assert.deepEqual([d.id, d.name, d.guests, d.lines], ["svc-3", "Xe đưa đón riêng", 3, [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }]]);
   assert.equal(draftSubtotal(d), 800000);
+});
+
+test("isFrozenManual (DK-T3-01, chủ dự án 2026-09-26): dịch vụ nhập tay ĐÃ LƯU = chỉ xem (máy chủ không nhận sửa tên/giá); thẻ nhập tay mới và thẻ danh mục thì không", () => {
+  assert.equal(isFrozenManual(draftFromDto(savedManual, live, "k3")), true, "nhập tay đã lưu (có id)");
+  assert.equal(isFrozenManual(newManualDraft("k9")), false, "thẻ nhập tay mới (không id) — nút thêm vẫn ẩn, máy chủ sẽ từ chối");
+  assert.equal(isFrozenManual(newCatalogDraft(tour, "k1")), false);
+  assert.equal(isFrozenManual(draftFromDto(savedTour, live, "k2")), false, "dịch vụ danh mục đã lưu");
+  // Thân gửi lên của thẻ đóng băng khớp ĐÚNG bản đã lưu (máy chủ so tên + dòng tiền sau khi bỏ khoảng trắng; chi tiết trống gửi "")
+  const d = draftFromDto(savedManual, live, "k3");
+  const input = toServiceInput(d);
+  assert.deepEqual([input.kind, input.id, input.kind === "manual" ? input.name : null, input.kind === "manual" ? input.items : null], [
+    "manual", "svc-3", "Xe đưa đón riêng", [{ description: "Xe 7 chỗ 2 chiều", detail: "", quantity: 1, unitPrice: 800000 }],
+  ]);
 });
 
 // ---- tóm tắt tiền và nhãn ----

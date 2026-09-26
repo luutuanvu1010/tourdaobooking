@@ -1,7 +1,8 @@
 import { ApiError, api, type Api } from "./api";
 import { PERMISSION_LABEL, hasPermission, isOffice } from "../src/shared/permissions";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
-import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
+import { tripDeparted } from "../src/shared/trip-rules";
+import { vnDateTimeText, vnLocalToIso, vnToday } from "../src/shared/vn-date";
 import { counter } from "./counter";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -382,42 +383,63 @@ function myServiceCard(orderId: string, s: Api.MyAssignmentServiceDto, onSaved: 
 function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLElement {
   const cancelBtn = h("button", { class: "btn btn-danger", type: "button" }, "Huỷ đơn này");
   const cancelBox = h("div", { hidden: true });
+  // DK-T4-02 (kiểm toán 24/9): chạm một lý do KHÔNG huỷ ngay — hỏi lại bằng confirm() cùng khuôn chữ với đường Sales/Admin (web/order.ts);
+  // cả vùng huỷ nằm trong khối riêng có đường ngăn (.myjob-cancel), tách khỏi nút "Lưu số khách mới" của dịch vụ cuối; có nút "Thôi" để đóng lại.
   cancelBtn.addEventListener("click", () => {
     cancelBtn.hidden = true;
     const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
     let sending = false;
-    const doCancel = async (reasonCode: string) => {
+    const doCancel = async (reason: { code: string; label: string }) => {
       if (sending) return;
+      if (!confirm(`Huỷ đơn ${a.orderCode} của ${a.customerName}? Lý do: ${reason.label}. Việc huỷ không thể hoàn tác.`)) return;
       sending = true;
       showError(errorBox, null);
       try {
-        await api(`/api/orders/${a.orderId}/handler-cancel`, { method: "POST", body: { reason: reasonCode } });
+        await api(`/api/orders/${a.orderId}/handler-cancel`, { method: "POST", body: { reason: reason.code } });
         onChanged();
       } catch (err) {
         showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
         sending = false;
       }
     };
+    const closeBtn = h("button", { class: "btn", type: "button" }, "Thôi");
+    closeBtn.addEventListener("click", () => {
+      if (sending) return;
+      cancelBox.hidden = true;
+      replaceChildren(cancelBox);
+      cancelBtn.hidden = false;
+      cancelBtn.focus();
+    });
     replaceChildren(
       cancelBox,
-      h("p", null, "Chọn lý do huỷ:"),
-      ...CANCEL_REASONS.map((r) => {
-        const b = h("button", { class: "btn", type: "button" }, r.label);
-        b.addEventListener("click", () => void doCancel(r.code));
-        return b;
-      }),
+      h("p", { class: "myjob-cancel-title" }, "Huỷ đơn"),
+      h("p", { class: "muted" }, "Chọn lý do huỷ. Bạn sẽ được hỏi lại trước khi huỷ."),
+      h(
+        "div",
+        { class: "myjob-cancel-actions" },
+        ...CANCEL_REASONS.map((r) => {
+          const b = h("button", { class: "btn btn-danger", type: "button" }, r.label);
+          b.addEventListener("click", () => void doCancel(r));
+          return b;
+        }),
+        closeBtn,
+      ),
       errorBox,
     );
     cancelBox.hidden = false;
   });
+  // DK-T4-02 phía máy chủ (chủ dự án chốt 2026-09-26): tour đã qua ngày đi (ngày khởi hành lớn nhất < hôm nay giờ VN) thì máy chủ trả 409 `departed`
+  // cho handler-cancel → không hiện nút "Huỷ đơn này" (cùng luật thuần `tripDeparted`), chỉ một dòng nhắc nhờ văn phòng. Ngay trong ngày đi vẫn hiện.
+  const departed = tripDeparted(a.services.map((s) => s.departDate), vnToday(new Date()));
   return h(
     "section",
     { class: "card myjob-card" },
     h("h3", null, a.customerName, h("span", { class: "muted" }, ` · ${a.customerPhone}`)),
     h("div", { class: "muted" }, `Mã đơn: ${a.orderCode}`),
     ...a.services.map((s) => myServiceCard(a.orderId, s, onChanged)),
-    cancelBtn,
-    cancelBox,
+    departed
+      ? h("div", { class: "myjob-cancel" }, h("p", { class: "muted" }, "Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng."))
+      : h("div", { class: "myjob-cancel" }, cancelBtn, cancelBox),
   );
 }
 

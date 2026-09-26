@@ -178,6 +178,12 @@ export function draftFromDto(dto: OrderServiceDto, live: ReadonlyMap<string, Cat
 /** Thẻ bản chụp mà danh mục không còn dịch vụ: bộ đếm chỉ-đọc, chỉ còn "Chọn lại từ danh mục". */
 export const isLocked = (d: ServiceDraft): boolean => d.kind === "catalog" && d.source === "snapshot" && d.live === null;
 
+/**
+ * Dịch vụ nhập tay ĐÃ LƯU (DK-T3-01, chủ dự án chốt 2026-09-26 "loại bỏ hoàn toàn dịch vụ nhập tay"): máy chủ chỉ nhận lại NGUYÊN tên + dòng tiền
+ * (`orders/price-guards.ts`), nên thẻ hiện CHỈ XEM tên và dòng tiền; số khách, thông tin chuyến và nút "Xoá" vẫn dùng được.
+ */
+export const isFrozenManual = (d: ServiceDraft): boolean => d.kind === "manual" && d.id !== null;
+
 // ---- chỉnh sửa (bất biến: trả bản mới) -------------------------------------------------------------------------------
 
 /**

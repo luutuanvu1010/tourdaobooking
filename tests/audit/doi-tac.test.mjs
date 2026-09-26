@@ -14,12 +14,14 @@ function setup() {
   seedStaff(w.sqlite, { id: A, phone: "0900000001", name: "An", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: F, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
+  // 2026-09-26 (DK-T3-01): API không nhận dịch vụ nhập tay mới → đơn thử dùng dịch vụ danh mục GIẢ (cùng số tiền 2 × 500.000 với dịch vụ nhập tay cũ).
+  w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   return w;
 }
 const inDays = (n) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
 const orderBody = (extra = {}) => ({
   customerName: "Khách Riêng Của An", customerPhone: "0912345678",
-  services: [{ kind: "manual", name: "Tour đảo", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, departDate: inDays(3), items: [{ description: "Vé", quantity: 2, unitPrice: 500000 }] }],
+  services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: inDays(3) }],
   depositAmount: 200000, depositMethod: "cash", ...extra,
 });
 
@@ -221,4 +223,23 @@ test("Điều 8: ADMIN không unlock/reset-pin được một ADMIN khác; SUPER
   assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/unlock`, { as: SUPER })).status, 200);
   assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/reset-pin`, { as: ADM })).status, 403);
   assert.equal((await w.call("POST", `/api/staff/${OTHER_ADMIN}/reset-pin`, { as: SUPER })).status, 200);
+});
+
+test("DK-T3-02 (kiểm toán 24/9, đã vá): Quản trị/Toàn quyền KHÔNG tự đặt lại PIN của chính mình — 403 TRƯỚC mọi ghi; vẫn đặt lại được cho cấp dưới", async () => {
+  const { w, SUPER, TARGET_SALES } = setupRank();
+  for (const self of [ADM, SUPER]) {
+    const before = w.q("SELECT pin_hash, credentials_changed_at FROM staff WHERE id = ?", self);
+    const auditBefore = w.q("SELECT COUNT(*) AS n FROM audit_log")[0].n;
+    const r = await w.call("POST", `/api/staff/${self}/reset-pin`, { as: self });
+    assert.equal(r.status, 403, r.text);
+    assert.equal(r.json.error.code, "forbidden");
+    assert.match(r.json.error.message, /Đổi mã PIN/);
+    assert.equal(r.json.pin, undefined, "không trả PIN");
+    assert.deepEqual(w.q("SELECT pin_hash, credentials_changed_at FROM staff WHERE id = ?", self), before, "PIN và mốc đổi thông tin đăng nhập giữ nguyên");
+    assert.equal(w.q("SELECT COUNT(*) AS n FROM audit_log")[0].n, auditBefore, "không có dòng nhật ký nào");
+    assert.equal((await w.call("GET", "/api/auth/me", { as: self })).status, 200, "phiên vẫn hợp lệ");
+  }
+  const ok = await w.call("POST", `/api/staff/${TARGET_SALES}/reset-pin`, { as: ADM });
+  assert.equal(ok.status, 200, ok.text);
+  assert.match(ok.json.pin, /^\d{6}$/);
 });

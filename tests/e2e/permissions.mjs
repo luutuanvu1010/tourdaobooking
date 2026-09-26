@@ -1,7 +1,9 @@
 // Bản đồ quyền ADR-0007 trên route thật: FIELD chỉ dùng việc được giao (không đơn/tiền/hồ sơ), ACCOUNTING xem nhưng không lập đơn,
 // SALES chỉ nhật ký đơn của mình, ADMIN mọi thứ; quyền đổi có hiệu lực ngay; tài khoản nhiều quyền hợp các ô.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, login, orderInput, randomPhone, session } from "./lib.mjs";
+import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone, session } from "./lib.mjs";
+
+await ensureFakeCatalog(); // orderInput() dùng dịch vụ danh mục giả ZE1 (API không nhận dịch vụ nhập tay mới — 2026-09-26)
 
 const SALES = await session(ACCOUNTS.salesA);
 const SALES_B = await session(ACCOUNTS.salesB);

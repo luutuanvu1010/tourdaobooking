@@ -4,6 +4,7 @@ import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
+import type { FrozenLine } from "./price-guards";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
 
@@ -229,9 +230,10 @@ export async function findOrder(db: D1Database, id: string): Promise<OrderDetail
   return { ...toDto(row), services };
 }
 
-export type StoredServiceRow = StoredService & { trip: ValidTrip };
+/** `lines` = nội dung dòng tiền đã lưu theo thứ tự (mô tả, chi tiết, số lượng, đơn giá) — cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01, `price-guards.ts`). */
+export type StoredServiceRow = StoredService & { trip: ValidTrip; lines: FrozenLine[] };
 
-/** Dịch vụ đã lưu của đơn ở dạng luật cần: đủ để dựng "bản chụp" (Q11) và so sánh thay đổi chuyến (Q9). */
+/** Dịch vụ đã lưu của đơn ở dạng luật cần: đủ để dựng "bản chụp" (Q11), so sánh thay đổi chuyến (Q9) và so "giữ nguyên" dịch vụ nhập tay (DK-T3-01). */
 export async function getStoredServices(db: D1Database, orderId: string): Promise<StoredServiceRow[]> {
   const [servicesRes, itemsRes] = await db.batch([db.prepare(SERVICE_SELECT).bind(orderId), db.prepare(ITEM_SELECT).bind(orderId)]);
   const items = groupItems(itemsRes!.results as ItemRow[]);
@@ -243,7 +245,14 @@ export async function getStoredServices(db: D1Database, orderId: string): Promis
     pax: paxOf(s),
     trip: tripOf(s),
     items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price })),
+    lines: (items.get(s.id) ?? []).map((i) => ({ description: i.description, detail: i.detail, quantity: i.quantity, unitPrice: i.unit_price })),
   }));
+}
+
+/** Ngày khởi hành của từng dịch vụ trong đơn (null = chưa có ngày), theo thứ tự dịch vụ. Đơn không có/không tồn tại → mảng rỗng. */
+export async function getDepartDates(db: D1Database, orderId: string): Promise<(string | null)[]> {
+  const res = await db.prepare("SELECT depart_date FROM order_service WHERE order_id = ? ORDER BY sort_order").bind(orderId).all<{ depart_date: string | null }>();
+  return res.results.map((r) => r.depart_date);
 }
 
 export interface OrderMeta {
