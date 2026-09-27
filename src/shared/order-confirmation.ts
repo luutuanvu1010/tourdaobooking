@@ -79,6 +79,13 @@ export const CONFIRMATION_STATUS_TEXT: Record<OrderStatus, string> = { draft: "C
 
 /** Đơn CHƯA có người phụ trách (quyết định chủ dự án 2026-09-28): một sự thật duy nhất, không đoán tên. Thay cho dòng "Nhân viên phụ trách" ở `TitleBlock.note`. */
 export const PENDING_HANDLER_TEXT = "Đơn khởi tạo thành công và đang chờ hướng dẫn viên nhận khách";
+/**
+ * Người xem KHÔNG được biết người phụ trách (Đối tác/Thực tập: `GET /api/dispatch/handlers` trả 403 theo ADR-0019 — có chủ đích). Khác "chưa biết"
+ * (lỗi mạng → dừng, không tạo ảnh) và khác "chưa có ai" (câu chờ nhận): ảnh vẫn tạo, bỏ hẳn phần người phụ trách — không tên, không câu chờ —
+ * vì người xem không có sự thật nào để in (một sự thật duy nhất, chủ dự án 2026-09-28).
+ */
+export const HANDLER_HIDDEN: unique symbol = Symbol("handler-hidden");
+export type HandlerInput = string | null | typeof HANDLER_HIDDEN;
 
 const COLUMNS: ServiceColumns = { description: "Mô tả", quantity: "SL", unitPrice: "Đơn giá", lineTotal: "Thành tiền" };
 const SUBTOTAL_LABEL = "Cộng dịch vụ";
@@ -159,10 +166,12 @@ function headerBlock(company: CompanyDto): HeaderBlock {
   };
 }
 
-function titleBlock(order: OrderDetailDto, handlerName: string | null): TitleBlock {
+function titleBlock(order: OrderDetailDto, handler: HandlerInput): TitleBlock {
   // Người phụ trách (việc 3): CHẮC CHẮN chưa có (handlerName trống sau khi làm sạch) → không dòng "Nhân viên phụ trách", thay bằng câu chờ nhận (note).
   // Tên người lập (`order.staffName`) KHÔNG BAO GIỜ đứng vào vai này (quyết định chủ dự án 2026-09-28) — xem đầu tệp.
-  const noHandler = clean(handlerName) === "";
+  const hidden = handler === HANDLER_HIDDEN;
+  const handlerName = hidden ? null : handler;
+  const noHandler = !hidden && clean(handlerName) === "";
   return {
     kind: "title",
     title: "XÁC NHẬN ĐƠN DỊCH VỤ",
@@ -227,10 +236,10 @@ function fileNameOf(orderCode: string): string {
 /**
  * Đơn + hồ sơ công ty + tên người phụ trách → mô hình nội dung ảnh xác nhận. `handlerName` = người phụ trách đang mở của đơn (việc 3);
  * `null`/trống = CHẮC CHẮN chưa có người phụ trách → dòng "Nhân viên phụ trách" biến mất, thay bằng câu chờ nhận (`PENDING_HANDLER_TEXT`) ở
- * `TitleBlock.note`. KHÔNG có tham số/giá trị nào cho trạng thái "chưa biết" — người gọi (`web/confirmation-dialog.ts`) phải tự chặn ảnh lại
+ * `TitleBlock.note`; `HANDLER_HIDDEN` = người xem không được biết → không dòng, không câu chờ. KHÔNG có tham số/giá trị nào cho trạng thái "chưa biết" — người gọi (`web/confirmation-dialog.ts`) phải tự chặn ảnh lại
  * trước khi tới đây nếu chưa biết. Không sửa `order`/`company`; kết quả chỉ gồm chuỗi, số, mảng, đối tượng.
  */
-export function buildConfirmation(order: OrderDetailDto, company: CompanyDto, handlerName: string | null): ConfirmationModel {
+export function buildConfirmation(order: OrderDetailDto, company: CompanyDto, handlerName: HandlerInput): ConfirmationModel {
   return {
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),

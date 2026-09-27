@@ -11,10 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    version: "1.29",
+    version: "1.30",
     date: "2026-09-28",
     items: [
       { kind: "moi", text: "Thêm vai IT trong nhóm nội bộ." },
+    ],
+  },
+  {
+    version: "1.29",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Tài khoản Đối tác tạo lại được ảnh xác nhận đơn (bản 1.28 báo \"Chưa tải được người phụ trách\"); ảnh của Đối tác không in dòng người phụ trách." },
     ],
   },
   {
