@@ -1,6 +1,6 @@
 # ADR-0020 — Đơn mới chưa có người phụ trách cho tới khi có người bấm "Nhận"; hướng dẫn viên nội bộ nhận được đơn
 
-- **Trạng thái:** **accepted phần điều 1, 2, 3, 7 và 9** — chủ dự án duyệt 2026-09-27 cùng ADR-0030 lượt 1 ("duyệt cả hai lượt luôn"; lời duyệt do điều phối chuyển lại nguyên văn). Điều 9 duyệt riêng ngày 2026-09-27 (hỏi lại trực tiếp qua AskUserQuestion khi thi công Task 1.6b) — nội dung là cách làm chủ đã chọn A từ 2026-09-25 (M1, xem điều 9 dưới), Task 1.6b thi công đúng cách đó trước khi dòng trạng thái này được cập nhật.
+- **Trạng thái:** **accepted phần điều 1, 2, 3, 7 và 9** — chủ dự án duyệt 2026-09-27 cùng ADR-0030 lượt 1 ("duyệt cả hai lượt luôn"; lời duyệt do điều phối chuyển lại nguyên văn). Điều 9 duyệt riêng ngày 2026-09-27 — hỏi lại trực tiếp qua AskUserQuestion SAU KHI người kiểm độc lập lượt 1 phát hiện dòng trạng thái này chưa khớp thực tế (M-2), KHÔNG PHẢI lúc thi công Task 1.6b — nội dung điều 9 (cách làm M1=A) đã chốt từ 2026-09-25, Task 1.6b thi công đúng cách đó trước khi dòng trạng thái này được cập nhật cho khớp.
   - Các điều được duyệt, theo ADR-0030 mục "Đếm quyết định":
     - **điều 2** — D2, dòng S20-5, S20-8, S20-9;
     - **điều 1 và điều 3** — D3, dòng S20-2…S20-4;

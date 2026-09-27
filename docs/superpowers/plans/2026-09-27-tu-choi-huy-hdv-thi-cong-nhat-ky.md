@@ -201,13 +201,17 @@ Người thi công: subagent (Claude Opus 5.5), trên HEAD `c4380fd` (đã gộp
 
 ## 8. Vòng sửa 1 sau kiểm độc lập lượt 1 (I-1, I-2, I-3, M-1; M-2 chờ chủ)
 
+*(Cập nhật 2026-09-27: M-2 đã chốt và mọi mục của vòng sửa 1 đã hoàn tất — xem mục cuối tệp "Vòng sửa 1: HOÀN TẤT đầy đủ" và mục "Dọn điều kiện Important còn lại của Task 1.10 VÒNG 2".)*
+
 Người thi công: subagent (Claude Opus 5.5), từ HEAD `00e5c94`. Không push, không merge, không deploy, không `--remote`. Chi tiết, dòng đỏ nguyên văn: commit + `docs/SO-HANG-RAO.md`.
 
 - **I-1** `a889690`: hằng dùng chung `HANDLER_TRUOC_KHONG_BIET` (`src/shared/bang-tin.ts`), `src/index.ts` (`baoThayDoi`) dùng nó; bài hàng rào (2) đọc mã nguồn `src/index.ts` → đột biến tại NƠI GỌI THẬT `e.handlerTruoc ?? { coNguoi: false, staffId: null }` nay đỏ `npm test` (trước vòng sửa vẫn xanh).
 - **I-3** `6f10eeb`: `thongBaoNoi` — "nhan" không nổi cho kết nối có `cho-nhan` mà không `tat-ca` (quyết định chủ 2026-09-27). "giao" để nguyên (khung 5 khoá không tách được người vừa được giao với HDV không liên quan) — câu hỏi mở cho chủ. Mục "Phối hợp" dưới đây có đoạn bổ sung.
 - **M-1** `603434a`: ba câu báo lỗi gọi trạng thái "nháp" → "chờ xác nhận"; GIỮ nút "Lưu đơn nháp" (chữ màn hình — chờ chủ).
+  *(Cập nhật 2026-09-27: chủ đã chọn, nút đổi thành "Lưu, chờ xác nhận" — commit `481da2e`; và câu "lưu nháp được" cạnh đó đổi thành "vẫn lưu được" ở vòng dọn Task 1.10 vòng 2.)*
 - **I-2** `a7b58ec`: `nguoiPhuTrachTuPhien` (`src/shared/handler-view.ts`) — người CHỈ xem đơn mình phụ trách thấy tên chính mình ở danh sách, trang đơn, biên nhận; KHÔNG gọi `GET /api/dispatch/handlers` (route vẫn 403 với HDV, ruling Task 1.6 giữ). Câu "không sửa được" riêng cho HDV (`khongQuyenSuaText`). Kịch bản Chrome mới: `v1-nguoi-phu-trach.mjs` bước p/q, `v1-xac-nhan-png.mjs` bước l — đỏ trên bản dựng TRƯỚC khi sửa, xanh sau. Ảnh `docs/evidence/2026-09-27-tu-choi-huy-hdv/anh/vong-sua-1-*.png`.
 - **M-2 KHÔNG áp**: đổi dòng trạng thái ADR-0020 thêm "điều 9" là duyệt một điều khoản (dòng trạng thái viết lúc chủ duyệt 27/9, SAU lựa chọn A 25/9, ghi rõ điều 9 "giữ proposed") — AI không tự duyệt (N3). Diff đề xuất nằm ở báo cáo vòng sửa, chờ chủ.
+  *(Cập nhật 2026-09-27: chủ đã duyệt điều 9 trực tiếp qua AskUserQuestion — commit `1924ec5`. Xem mục cuối tệp.)*
 
 **Kết quả trên HEAD `a7b58ec`:** `npm test` 1015/1015; `npm run typecheck` 0 lỗi; `tests/audit` 36/36. Chrome: `v1-nguoi-phu-trach.mjs` 17/17, `v1-xac-nhan-png.mjs` 12/12, `a2-smoke-order` 11/11, `a2-smoke-form` 24/24, `a2-smoke-sheet` 14/14. `npm run test:e2e` đủ bộ **19/21**, `audit-invariants --strict` đạt (2 cảnh báo R-ORD-6a/6b cũ). Hai đỏ, cả hai NGOÀI vòng sửa (không tệp nào của `tests/` hay `src/modules/catalog/` đổi so với `00e5c94`):
 1. `catalog.mjs:25` "Sheet thật không còn dòng TTB03 — kịch bản cần sửa lại" — Google Sheet giá thật lại đổi cấu trúc (khác triệu chứng `:183` ở Task 1.9, cùng gốc bên ngoài; nhánh `sua-e2e-chot-chan-sheet` của phiên khác đang xử lý phần kịch bản).

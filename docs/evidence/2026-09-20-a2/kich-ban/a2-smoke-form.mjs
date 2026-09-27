@@ -111,7 +111,7 @@ try {
   assert.equal(await p.ev(`(() => { const t = ${card(1)}.querySelector('details.trip').getBoundingClientRect(); return [...${card(1)}.querySelectorAll('.trip-body input, .trip-body textarea')].every((el) => { const r = el.getBoundingClientRect(); return r.left >= t.left && r.right <= t.right; }); })()`), true, "ô của khối chuyến nằm gọn trong khung (không thò ra ngoài)");
   const dateIn = (k) => `${card(1)}.querySelector('[data-trip="${k}"]')`;
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(-2))); // ADR-0021: ngày chọn một lần cho cả đơn
-  await p.waitFor(`/Ngày khởi hành đã qua — lưu nháp được, nhưng chưa thể xác nhận\\./.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo ngày đã qua");
+  await p.waitFor(`/Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận\\./.test(${card(1)}.querySelector('.svc-warnings').textContent)`, "cảnh báo ngày đã qua");
   await p.ev(setInput("document.getElementById('orderDate')", vnDate(7)));
   await p.ev(setInput(dateIn("departTime"), "07:30"));
   await p.ev(setInput(dateIn("pickupTime"), "08:00"));

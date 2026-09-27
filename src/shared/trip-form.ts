@@ -38,8 +38,8 @@ export function tripWarnings(trip: TripInput, today: string): TripWarning[] {
   const out: TripWarning[] = [];
   const d = trip.departDate;
   if (isISODate(d)) {
-    if (d < today) out.push({ code: "past_date", message: "Ngày khởi hành đã qua — lưu nháp được, nhưng chưa thể xác nhận." });
-    else if (d > confirmWindow(today).to) out.push({ code: "too_far", message: `Ngày khởi hành quá ${MAX_DAYS_AHEAD} ngày — lưu nháp được, nhưng chưa thể xác nhận.` });
+    if (d < today) out.push({ code: "past_date", message: "Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận." });
+    else if (d > confirmWindow(today).to) out.push({ code: "too_far", message: `Ngày khởi hành quá ${MAX_DAYS_AHEAD} ngày — vẫn lưu được, nhưng chưa thể xác nhận.` });
   }
   if (trip.pickupTime !== "" && trip.departTime !== "" && trip.pickupTime > trip.departTime) {
     out.push({ code: "pickup_after_depart", message: "Giờ đón sau giờ khởi hành — kiểm tra lại." });

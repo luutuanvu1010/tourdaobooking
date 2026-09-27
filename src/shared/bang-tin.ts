@@ -122,7 +122,8 @@ const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
  * `thayDoiCuaHandler`), tức ca (b) "đơn rời hàng chờ" của S20-8; kết nối như vậy nhận khung chỉ vì chính mình vừa nhận, hoặc vì đang chờ nhận — chủ
  * quyết: HDV khác không thấy thông báo nổi, chỉ danh sách hàng chờ tự cập nhật (khung vẫn tới: nhãn `cho-nhan` KHÔNG đổi). Người xem mọi đơn (`tat-ca`)
  * vẫn thấy. `giao` (văn phòng giao đơn đang chờ cho một người) KHÔNG đổi: khung 5 khoá không cho biết người nhận khung là người vừa được giao hay HDV
- * không liên quan (câu hỏi mở cho chủ — nhật ký thi công, mục "Phối hợp với nhánh khác").
+ * không liên quan — chủ đã quyết giữ nguyên cho lượt 1 (2026-09-27); phương án tách loại tin riêng cho người được giao để xét ở lượt 2 (xem nhật ký
+ * thi công, mục "Phối hợp với nhánh khác").
  */
 export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBaoNoi | null {
   const vanPhong = isOffice(staff);
