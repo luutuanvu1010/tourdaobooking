@@ -10,7 +10,8 @@ import { canAccessOrders, isOffice, passesAdminGate } from "./permissions.ts";
 export type Access = "public" | "staff" | "office" | "orders" | "admin";
 
 /** ADR-0013 điều 4: hồ sơ có gắn tài khoản không, và người đang đăng nhập có quản được tài khoản đó không (luật cấp bậc ADR-0014 điều 8, module `staff` tính). */
-export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean };
+/** `vaiAn` (ADR-0044): tài khoản gắn hồ sơ đang giữ Toàn quyền — vai ẩn; người xem không giữ Toàn quyền chỉ thấy vai đang mở của hồ sơ đó. */
+export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean; vaiAn?: boolean };
 
 export interface Ctx<A extends Access = Access> {
   request: Request;

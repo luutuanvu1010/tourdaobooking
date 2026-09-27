@@ -91,3 +91,15 @@ test("ADR-0042: Quản trị xem vai + chỉnh riêng của tài khoản Toàn q
   assert.equal((await w.call("GET", `/api/staff/${ADM}/roles`, { as: ADM })).status, 200, "tự xem của mình được");
   assert.equal((await w.call("GET", `/api/staff/${SUP}/roles`, { as: SUP })).status, 200);
 });
+
+test("ADR-0044: vai IT — Quản trị không gán được (403, không lộ chữ); tài khoản mang vai IT hiện với Quản trị là vai \"IT\" + quyền Quản trị", async () => {
+  const w = setup();
+  const denied = await w.call("PUT", `/api/staff/${SALES}/roles`, { as: ADM, body: { roles: ["IT"] } });
+  assert.equal(denied.status, 403, denied.text);
+  assert.doesNotMatch(denied.text, /Toàn quyền|Super Admin/i);
+  const ok = await w.call("PUT", `/api/staff/${SALES}/roles`, { as: SUP, body: { roles: ["IT"] } });
+  assert.equal(ok.status, 200, ok.text);
+  const row = (await w.call("GET", "/api/staff", { as: ADM })).json.staff.find((s: any) => s.id === SALES);
+  assert.deepEqual(row.roles, ["IT"]);
+  assert.deepEqual(row.permissions, ["ADMIN"], "quyền thật ADMIN + SUPER_ADMIN, Quản trị chỉ thấy ADMIN");
+});

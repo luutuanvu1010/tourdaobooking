@@ -1,6 +1,7 @@
 # ADR-0042 — Quản trị lấy lại đặt lại PIN, mở khoá, gỡ Face ID cho cấp dưới; Toàn quyền là vai ẩn
 
 - **Trạng thái:** **accepted** — chủ dự án nói trong chat 2026-09-27 (sau khi hỏi về kẽ hở đổi SĐT): *"Các lớp tài khoản sẽ là: Super Admin (tôi), Admin (Quản trị tài khoản mức cơ bản: tạo, ngưng, đặt lại PIN, đặt quyền (trừ Super Admin) và ẩn quyền này đi) … Tóm lại là Super Admin giống như 1 vai ẩn, không ai nhìn thấy ngoài chính tôi, và cũng không ai có thể kiểm soát được Super Admin"*. Chủ chọn tiếp trong ba câu hỏi: Quản trị được **mở khoá đăng nhập** và **gỡ Face ID**; Quản trị **chỉ gán vai thường** (không cấp Quản trị); tài khoản Toàn quyền **hiện như Quản trị thường** với người khác. AI ghi lại, không tự quyết.
+- **Bổ sung bởi:** [ADR-0044](ADR-0044-vai-it-cho-tai-khoan-toan-quyen.md) — vai "IT" hiện ra cho tài khoản Toàn quyền; chủ chốt hai điểm chờ ở điều 5.
 - **Ngày:** 2026-09-27   **Loại:** **hai chiều** — một ô bản đồ quyền và cách hiển thị; không đổi dữ liệu, không migration.
 - **Liên quan:**
   - **ADR-0038** (accepted, lên production bản 1.26): **sửa điều 6** — ô `account.access.manage` cột ADMIN `none` → `any`. Các phần khác của ADR-0038 giữ nguyên (`staff.sheet.sync`, `audit.view` vẫn chỉ Toàn quyền; nhật ký im lặng; Góp ý; pháp lý Tour Đảo). Tệp ADR-0038 chỉ thêm một dòng trỏ về đây.
