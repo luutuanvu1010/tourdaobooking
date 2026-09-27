@@ -106,5 +106,5 @@ actionSel.addEventListener("change", () => void load(true));
 moreBtn.addEventListener("click", () => void load(false));
 
 const staff = await initShell();
-if (!can(staff, "audit.view")) showError(errorEl, "Trang Nhật ký chỉ tài khoản Toàn quyền xem được."); // ADR-0038 điều 6
+if (!can(staff, "audit.view")) showError(errorEl, "Trang Nhật ký chỉ người phụ trách hệ thống xem được."); // ADR-0038 điều 6
 else await load(true);

@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MATRIX, PERMISSION_CODES, can, canAccessOrders, hasPermission, isOffice, isPermissionCode, type OperationCode, type PermissionCode, type Scope } from "./permissions.ts";
+import { MATRIX, PERMISSION_CODES, can, canAccessOrders, hasPermission, isOffice, isPermissionCode, type OperationCode, type PermissionCode, type Scope, quyenHienThi } from "./permissions.ts";
 
 // BẢN ĐỌC THỨ HAI của bảng ADR-0007 điều 1 SAU khi ADR-0009 đổi ba ô của SALES (order.modify, order.history.view, dispatch.assign: own → ownOrAssigned),
 // ADR-0014 thêm PARTNER/SUPER_ADMIN + bốn thao tác mới, và ADR-0018 (giai đoạn 1) thêm cột INTERN TẠM HẸP — viết lại độc lập từ tài liệu ADR, không suy
@@ -29,7 +29,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope]> = {
   "party.staff.write": ["none", "none", "any", "none", "none", "any", "none"], // ADR-0013
   "admin.manage": ["none", "none", "any", "none", "none", "any", "none"],
   "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0014 điều 2/8: thao tác MỚI
-  "account.access.manage": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
+  "account.access.manage": ["none", "none", "any", "none", "none", "any", "none"], // ADR-0038 điều 8: Quản trị lấy lại (cấp dưới)
   "staff.sheet.sync": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
   "audit.view": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
   "feedback.submit": ["any", "any", "any", "any", "any", "any", "any"],
@@ -180,9 +180,9 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // (dispatch.request đã bỏ khỏi bản đồ, ADR-0019) chỉ dành cho SUPER_ADMIN hoặc PARTNER/FIELD theo đúng bảng (settings.ops: chỉ Toàn quyền — bật/tắt bảo trì;
 // notice.send: chỉ Toàn quyền gửi/thu hồi tin thủ công, ADR-0034 điều 7) — ADMIN vẫn làm được việc tương ứng qua đường khác (permissions route, order.modify, dispatch.assign).
 // ADR-0038: thêm feedback.view (own — đơn của người khác → không) và feedback.triage (none).
-const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "notice.send", "feedback.view", "feedback.triage", "account.access.manage", "staff.sheet.sync", "audit.view"];
+const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "notice.send", "feedback.view", "feedback.triage", "staff.sheet.sync", "audit.view"];
 
-test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ mười thao tác hẹp cố ý không mở", () => {
+test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ chín thao tác hẹp cố ý không mở", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };
   for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "party.staff.write", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
   const admin = { id: "a", permissions: ["ADMIN"] as const };
@@ -215,4 +215,12 @@ test("ADR-0033: mọi mã quyền có order.modify ≠ none thì có order.creat
   for (const p of PERMISSION_CODES) {
     if (MATRIX["order.modify"][p] !== "none") assert.notEqual(MATRIX["order.create"][p], "none", `${p}: order.modify ≠ none nhưng order.create = none`);
   }
+});
+
+test("quyenHienThi (ADR-0038 điều 8): người xem không giữ Toàn quyền thấy SUPER_ADMIN thành ADMIN, bỏ trùng, đúng thứ tự; Toàn quyền thấy nguyên", () => {
+  assert.deepEqual(quyenHienThi(["SUPER_ADMIN"], false), ["ADMIN"]);
+  assert.deepEqual(quyenHienThi(["ADMIN", "SUPER_ADMIN"], false), ["ADMIN"]);
+  assert.deepEqual(quyenHienThi(["SUPER_ADMIN", "SALES"], false), ["SALES", "ADMIN"]);
+  assert.deepEqual(quyenHienThi(["SALES"], false), ["SALES"]);
+  assert.deepEqual(quyenHienThi(["SUPER_ADMIN", "ADMIN"], true), ["ADMIN", "SUPER_ADMIN"]);
 });

@@ -1,4 +1,4 @@
-// ADR-0038 điều 6 (chủ chọn phương án A, chat 2026-09-27): Quản trị giữ việc kinh doanh + nhân sự (tạo/sửa/ngưng tài khoản cấp dưới, gán vai
+// ADR-0038 điều 6 + 8 (chủ chọn phương án A, rồi điều chỉnh cùng ngày — điều 8: Quản trị lấy lại đặt lại PIN, mở khoá, gỡ Face ID cho cấp dưới): Quản trị giữ việc kinh doanh + nhân sự (tạo/sửa/ngưng tài khoản cấp dưới, gán vai
 // thường), MẤT việc kỹ thuật: đặt lại PIN, gỡ Face ID, mở khoá đăng nhập (`account.access.manage`), đồng bộ nhân viên từ Sheet (`staff.sheet.sync`),
 // xem trang Nhật ký (`audit.view`) — ba ô chỉ Toàn quyền. Chạy CẢ ứng dụng trên SQLite thật (khuôn quan-tri-hoi-bang.test.ts).
 import { test } from "node:test";
@@ -19,13 +19,9 @@ function setup() {
 }
 const logCount = (w: any, action: string) => w.q("SELECT count(*) n FROM audit_log WHERE action = ?", action)[0].n;
 
-test("ADR-0038 điều 6: Quản trị bị chặn 403 ở sáu việc kỹ thuật, không ghi gì, PIN không đổi", async () => {
+test("ADR-0038 điều 8: Quản trị bị chặn 403 ở ba việc kỹ thuật còn lại (đồng bộ Sheet, trang Nhật ký), không ghi gì", async () => {
   const w = setup();
-  const pinBefore = w.q("SELECT pin_hash FROM staff WHERE id = ?", SALES)[0].pin_hash;
   const calls: [string, string, unknown?][] = [
-    ["POST", `/api/staff/${SALES}/reset-pin`],
-    ["POST", `/api/staff/${SALES}/passkeys/remove-all`],
-    ["POST", `/api/staff/${SALES}/unlock`],
     ["GET", "/api/staff/sheet"],
     ["POST", "/api/staff/sheet/apply", { phones: ["0900000001"] }],
     ["GET", "/api/audit"],
@@ -33,9 +29,39 @@ test("ADR-0038 điều 6: Quản trị bị chặn 403 ở sáu việc kỹ thu�
   for (const [method, path, body] of calls) {
     const r = await w.call(method, path, { as: ADM, body });
     assert.equal(r.status, 403, `${method} ${path}: ${r.text}`);
+    assert.doesNotMatch(r.text, /Toàn quyền|Super Admin/i, "câu báo lỗi không nhắc vai ẩn");
   }
-  assert.equal(w.q("SELECT pin_hash FROM staff WHERE id = ?", SALES)[0].pin_hash, pinBefore);
-  for (const a of ["pin_reset", "passkey_removed", "login_unlocked", "staff_synced"]) assert.equal(logCount(w, a), 0, a);
+  assert.equal(logCount(w, "staff_synced"), 0);
+});
+
+test("ADR-0038 điều 8: Quản trị đặt lại PIN, mở khoá, gỡ Face ID cho cấp dưới được; với tài khoản Toàn quyền thì 403 và không lộ vai", async () => {
+  const w = setup();
+  assert.equal((await w.call("POST", `/api/staff/${SALES}/reset-pin`, { as: ADM })).status, 200);
+  assert.equal((await w.call("POST", `/api/staff/${SALES}/unlock`, { as: ADM })).status, 200);
+  const rm = await w.call("POST", `/api/staff/${SALES}/passkeys/remove-all`, { as: ADM });
+  assert.notEqual(rm.status, 403, rm.text); // khung thử tắt Face ID → 503, nhưng KHÔNG bị chặn quyền
+  const pinSup = w.q("SELECT pin_hash FROM staff WHERE id = ?", SUP)[0].pin_hash;
+  for (const path of [`/api/staff/${SUP}/reset-pin`, `/api/staff/${SUP}/unlock`, `/api/staff/${SUP}/passkeys/remove-all`]) {
+    const r = await w.call("POST", path, { as: ADM });
+    assert.ok(r.status === 403 || r.status === 503, `${path}: ${r.status}`);
+    assert.doesNotMatch(r.text, /Toàn quyền|Super Admin/i);
+  }
+  assert.equal((await w.call("POST", `/api/staff/${SUP}/reset-pin`, { as: ADM })).status, 403);
+  assert.equal(w.q("SELECT pin_hash FROM staff WHERE id = ?", SUP)[0].pin_hash, pinSup, "PIN của Toàn quyền không đổi");
+  const patch = await w.call("PATCH", `/api/staff/${SUP}`, { as: ADM, body: { active: false } });
+  assert.equal(patch.status, 403);
+  assert.doesNotMatch(patch.text, /Toàn quyền|Super Admin/i);
+});
+
+test("ADR-0038 điều 8: danh sách tài khoản — Quản trị thấy tài khoản Toàn quyền như Quản trị thường (không có SUPER_ADMIN); Toàn quyền thấy đúng", async () => {
+  const w = setup();
+  const asAdm = await w.call("GET", "/api/staff", { as: ADM });
+  assert.equal(asAdm.status, 200);
+  const supRow = asAdm.json.staff.find((s: any) => s.id === SUP);
+  assert.deepEqual(supRow.permissions, ["ADMIN"]);
+  assert.ok(!asAdm.text.includes("SUPER_ADMIN"));
+  const asSup = await w.call("GET", "/api/staff", { as: SUP });
+  assert.deepEqual(asSup.json.staff.find((s: any) => s.id === SUP).permissions, ["SUPER_ADMIN"]);
 });
 
 test("ADR-0038 điều 6: Toàn quyền vẫn đặt lại PIN, mở khoá, xem Nhật ký", async () => {

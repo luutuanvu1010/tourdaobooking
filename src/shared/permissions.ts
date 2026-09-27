@@ -67,8 +67,8 @@ export const MATRIX = {
   "party.staff.write": row("none", "none", "any", "none", "none", "any", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   "admin.manage": row("none", "none", "any", "none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": row("none", "none", "none", "none", "none", "any", "none"), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
-  // ADR-0038 điều 6: việc KỸ THUẬT tách khỏi admin.manage — chỉ Toàn quyền. Route vẫn hỏi admin.manage TRƯỚC (hàng rào cổng quản trị), rồi hỏi ô dưới.
-  "account.access.manage": row("none", "none", "none", "none", "none", "any", "none"), // đặt lại PIN, gỡ Face ID, mở khoá đăng nhập của tài khoản khác
+  // ADR-0038 điều 6/8: việc KỸ THUẬT tách khỏi admin.manage — Sheet và Nhật ký chỉ Toàn quyền; đăng nhập (PIN, Face ID, mở khoá) Quản trị làm được cho cấp dưới. Route vẫn hỏi admin.manage TRƯỚC (hàng rào cổng quản trị), rồi hỏi ô dưới.
+  "account.access.manage": row("none", "none", "any", "none", "none", "any", "none"), // đặt lại PIN, gỡ Face ID, mở khoá đăng nhập của tài khoản khác — ADR-0038 điều 8: Quản trị lấy lại (vẫn chỉ cấp dưới, luật mayManage)
   "staff.sheet.sync": row("none", "none", "none", "none", "none", "any", "none"), // đồng bộ nhân viên từ Google Sheet (xem trước + áp)
   "audit.view": row("none", "none", "none", "none", "none", "any", "none"), // xem trang Nhật ký toàn hệ thống (GET /api/audit)
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
@@ -89,6 +89,16 @@ export interface PermissionHolder {
 export interface OperationContext {
   readonly ownerId?: string;
   readonly assigned?: boolean;
+}
+
+/**
+ * ADR-0038 điều 8: Toàn quyền là vai ẩn — người xem không giữ Toàn quyền thấy tài khoản Toàn quyền như Quản trị thường (SUPER_ADMIN → ADMIN,
+ * bỏ trùng, giữ thứ tự chuẩn). Chỉ dùng cho dữ liệu TRẢ VỀ người khác xem; không dùng để quyết quyền.
+ */
+export function quyenHienThi(perms: readonly PermissionCode[], viewerSeesHidden: boolean): PermissionCode[] {
+  if (viewerSeesHidden) return PERMISSION_CODES.filter((p) => perms.includes(p));
+  const set = new Set<PermissionCode>(perms.map((p) => (p === "SUPER_ADMIN" ? "ADMIN" : p)));
+  return PERMISSION_CODES.filter((p) => set.has(p));
 }
 
 export const hasPermission = (who: { readonly permissions: readonly PermissionCode[] }, code: PermissionCode): boolean => who.permissions.includes(code);

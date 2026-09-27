@@ -111,20 +111,8 @@ const scalar = (sqlite: DatabaseSync, sql: string): unknown => Object.values(sql
 const pinHash = (sqlite: DatabaseSync, id: string): unknown => scalar(sqlite, `SELECT pin_hash FROM staff WHERE id = '${id}'`);
 const auditCount = (sqlite: DatabaseSync): number => Number(scalar(sqlite, "SELECT count(*) FROM audit_log"));
 
-// ADR-0038 điều 6: Quản trị không còn đặt lại PIN của AI (chặn ở ô account.access.manage, trước luật tự đặt lại) — ca DK-T3-02 chỉ còn cho Toàn quyền.
-test("ADR-0038 điều 6: Quản trị đặt lại PIN của chính mình hay của nhân viên Bán hàng → 403, không ghi gì", async () => {
-  for (const target of [ADMIN, SALES]) {
-    const sqlite = seed();
-    const r = await callResetPin(sqlite, profile(ADMIN, ["ADMIN"]), target);
-    assert.equal(r.status, 403, JSON.stringify(r.body));
-    assert.equal(r.body.pin, undefined);
-    assert.deepEqual(r.writes, []);
-    assert.equal(pinHash(sqlite, target), "pin-cu");
-    assert.equal(auditCount(sqlite), 0);
-  }
-});
-
 for (const [label, id, permissions] of [
+  ["Quản trị", ADMIN, ["ADMIN"]],
   ["Toàn quyền", SUPER, ["ADMIN", "SUPER_ADMIN"]],
 ] as const) {
   test(`DK-T3-02: ${label} tự đặt lại PIN của chính mình → 403, không ghi gì (PIN, Face ID, nhật ký giữ nguyên)`, async () => {
@@ -143,13 +131,13 @@ for (const [label, id, permissions] of [
   });
 }
 
-test("Đối chứng: Toàn quyền đặt lại PIN của nhân viên Bán hàng → 200, có PIN mới, PIN đổi, có nhật ký pin_reset", async () => {
+test("Đối chứng: Quản trị đặt lại PIN của nhân viên Bán hàng → 200, có PIN mới, PIN đổi, có nhật ký pin_reset (ADR-0038 điều 8)", async () => {
   const sqlite = seed();
-  const r = await callResetPin(sqlite, profile(SUPER, ["ADMIN", "SUPER_ADMIN"]), SALES);
+  const r = await callResetPin(sqlite, profile(ADMIN, ["ADMIN"]), SALES);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.ok(r.writes.length > 0, "đối chứng phải chạy tới nhánh ghi");
   assert.match(String(r.body.pin), /^\d{6}$/);
   assert.notEqual(pinHash(sqlite, SALES), "pin-cu");
-  assert.equal(Number(scalar(sqlite, `SELECT count(*) FROM audit_log WHERE action = 'pin_reset' AND target_id = '${SALES}' AND staff_id = '${SUPER}'`)), 1);
-  assert.equal(pinHash(sqlite, SUPER), "pin-cu", "PIN của người thao tác không bị đụng");
+  assert.equal(Number(scalar(sqlite, `SELECT count(*) FROM audit_log WHERE action = 'pin_reset' AND target_id = '${SALES}' AND staff_id = '${ADMIN}'`)), 1);
+  assert.equal(pinHash(sqlite, ADMIN), "pin-cu", "PIN của người thao tác không bị đụng");
 });

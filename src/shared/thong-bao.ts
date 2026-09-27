@@ -52,7 +52,7 @@ export function nhanThayTinThuCong(staff: PermissionHolder, nhan: string[]): boo
 export function nhanNhomNhan(nhan: string[]): string {
   if (nhan.includes("noi-bo")) return "Toàn công ty";
   return nhan
-    .filter((t) => t.startsWith("quyen:"))
+    .filter((t) => t.startsWith("quyen:") && t !== "quyen:SUPER_ADMIN") // ADR-0038 điều 8: Toàn quyền là vai ẩn — không hiện trong "Gửi cho"
     .map((t) => PERMISSION_LABEL[t.slice(6) as PermissionCode])
     .join(", ");
 }

@@ -21,7 +21,7 @@ import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { phoneChangeProblem } from "../../shared/maintenance";
 import { PARTY_ID_RE } from "../../shared/party-id";
-import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode } from "../../shared/permissions";
+import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, type RoleAssignment, type RoleCode, type RoleProblem } from "../../shared/roles";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
@@ -35,8 +35,8 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
-const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ tài khoản Toàn quyền làm được.");
-const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới; tài khoản này do Toàn quyền quản lý.");
+const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ người phụ trách hệ thống làm được.");
+const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
 const NO_PARTY = () => error(409, "no_party", "Tài khoản này chưa có hồ sơ (đang di trú dữ liệu). Thử lại sau ít phút.");
@@ -328,7 +328,8 @@ export const accountsModule: AppModule = {
       if (!can(admin, "admin.manage")) return NOT_ADMIN();
       const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
       const roles = await accountRoleCodes(env.DB, staff);
-      return json({ staff: staff.map((s) => dto(s, locked, passkeys, roles)) } satisfies StaffListResponse);
+      const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0038 điều 8: Toàn quyền là vai ẩn với người khác
+      return json({ staff: staff.map((s) => ({ ...dto(s, locked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden) })) } satisfies StaffListResponse);
     }),
 
     route("POST", "/api/staff", "admin", async ({ request, env, staff: admin }) => {
