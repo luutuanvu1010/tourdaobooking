@@ -41,6 +41,7 @@ replaceChildren(
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)),
+  hasPermission(staff, "SUPER_ADMIN") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
   h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
   logoutBtn,

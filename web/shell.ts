@@ -37,7 +37,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean): Tab[] {
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" },
   ];
 }
 
@@ -140,7 +140,7 @@ interface NavGroup {
  * tabsFor()/nav ngang cũ (office/admin/canCreate) — KHÔNG tự đổi bản đồ quyền (đặc tả §3.1). Nhóm rỗng bị lọc ở
  * sidebar() (ẩn cả tiêu đề, đặc tả §3.1).
  */
-function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string): NavGroup[] {
+function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, superAdmin: boolean, path: string): NavGroup[] {
   const sales: NavItem[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
@@ -158,6 +158,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
         { href: "/audit", label: "Nhật ký", icon: "history", active: (p) => p === "/audit" },
       ]
     : [];
+  // ADR-0034 Task 8: tài khoản chỉ SUPER_ADMIN (không có ADMIN) vẫn phải thấy nhóm QUẢN TRỊ, chỉ với mục này.
+  if (superAdmin) management.push({ href: "/gui-thong-bao", label: "Gửi thông báo", icon: "megaphone", active: (p) => p === "/gui-thong-bao" });
 
   const me: NavItem[] = [
     { href: "/account", label: "Của tôi", icon: "me", active: (p) => p === "/account" },
@@ -211,8 +213,8 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = ""): HTMLElement {
-  const groups = navGroups(admin, seesAll, office, canCreate, path)
+function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", superAdmin = false): HTMLElement {
+  const groups = navGroups(admin, seesAll, office, canCreate, superAdmin, path)
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
@@ -251,7 +253,7 @@ const APP_NAME = "Island Booking System";
  */
 function barTitleFor(path: string, dataTitle: string | undefined): string {
   if (dataTitle) return dataTitle;
-  for (const group of navGroups(true, true, true, true, path)) {
+  for (const group of navGroups(true, true, true, true, true, path)) {
     const item = group.items.find((it) => it.active(path));
     if (item) return item.label;
   }
@@ -304,10 +306,10 @@ export async function initShell(): Promise<Staff> {
   // bar (không cần staff). `has-sidebar` chỉ gắn khi ĐÃ THẬT SỰ dựng #sidebar (không để lưới 236px trống khi
   // mất mạng lúc mở trang — nhánh addNav(false) dưới đây không có staff).
   // `tatTam` khác null = vẽ KHUNG TẠM từ bản nhớ (ADR-0035): đánh dấu `data-khung-tam` để gỡ khi /api/auth/me về; chưa nạp huy hiệu.
-  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null) => {
+  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null, superAdmin = false) => {
     if (staff || tatTam !== null) {
       const badgeLoaders: (() => void)[] = [];
-      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "");
+      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "", superAdmin);
       document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
@@ -392,7 +394,7 @@ export async function initShell(): Promise<Staff> {
   thanhCongViec(initials(staff.fullName), seesAll, canCreate, false);
   ganThongBao(byId("topbar"), staff); // ADR-0034: chỉ khung THẬT có chuông (khung tạm chưa biết soChuaDoc) — ngay sau thanhCongViec(), trước addNav() (R7)
 
-  addNav(admin, seesAll, office, canCreate, staff);
+  addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   return staff;
 }
