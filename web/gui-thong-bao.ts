@@ -87,6 +87,7 @@ function sentList(): { root: HTMLElement; reload: () => Promise<void> } {
         void act(async () => {
           const r = await api<NguoiDaHieuResponse>(`/api/thong-bao/${encodeURIComponent(t.id)}/nguoi-da-hieu`);
           acksCache.set(t.id, r);
+          t.soDaHieu = r.daHieu.length; // m2: con số "x/y đã bấm" + thanh tiến độ vẽ từ bản chụp lúc tải danh sách — cập nhật lại theo dữ liệu vừa tải, không để lệch
           render();
         });
       }
