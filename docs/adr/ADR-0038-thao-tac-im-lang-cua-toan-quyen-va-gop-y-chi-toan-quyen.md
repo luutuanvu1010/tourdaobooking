@@ -1,7 +1,7 @@
 # ADR-0038 — Thao tác "im lặng" của Toàn quyền (vẫn ghi nhật ký, chỉ Toàn quyền xem); Góp ý/Báo lỗi chỉ Toàn quyền; Quản trị chỉ giữ việc kinh doanh + nhân sự
 
 - **Trạng thái:** **accepted** — chủ dự án quyết trong chat 2026-09-27: chọn phương án **A** ("vẫn ghi, chỉ Toàn quyền xem được") cho câu hỏi "thao tác của Super Admin diễn ra trong im lặng, không hiện Nhật ký"; liệt kê thêm *"ẩn thêm bật/tắt bảo trì, đặt lại PIN, gỡ Face ID. Đồng thời gỡ tính năng cho phép Gửi thông báo, và đọc Góp ý, Báo lỗi khỏi tài khoản Giám đốc"*. Sau đó, cùng ngày, chủ giao cho phiên này cả yêu cầu *"hạn chế bớt quyền của Admin (không phải Super Admin): không cho phép gửi thông báo, không cho phép đọc Góp ý, báo lỗi, không được đổi những cấu hình quan trọng, tức không can thiệp về mặt kỹ thuật, chỉ cho quyền liên quan đến kinh doanh thôi"* và chọn trong hai câu hỏi: **"A. Giữ kinh doanh + nhân sự"** (điều 6) và **"Chỉ Toàn quyền"** sửa thông tin pháp lý Tour Đảo (điều 7). AI ghi lại, không tự quyết (tiền lệ ADR-0021, ADR-0027, ADR-0033, ADR-0034).
-- **Ngày:** 2026-09-27   **Loại:** **hai chiều** — chỉ đổi quyền XEM và hai ô của bản đồ quyền; không xoá, không sửa dòng dữ liệu nào; migration chỉ thêm một view.
+- **Ngày:** 2026-09-27   **Loại:** **hai chiều** — đổi quyền xem nhật ký, hai ô Góp ý và thêm ba ô chỉ Toàn quyền (điều 6); không xoá, không sửa dòng dữ liệu nào; migration chỉ thêm một view.
 - **Liên quan:**
   - **Hiến chương** (`docs/ARCHITECTURE.md` Phần I, đã duyệt): **5.12** (mọi thay đổi để lại ai/làm gì/lúc nào) — **giữ nguyên**: dòng nhật ký vẫn ghi đủ, chỉ đổi AI ĐƯỢC ĐỌC. Phương án B (không ghi) bị loại vì trái 5.12.
   - **ADR-0019** (bảng quyền là nguồn duy nhất): **giữ**; hai ô `feedback.view`, `feedback.triage` đổi giá trị cột ADMIN.
@@ -36,6 +36,8 @@ Hệ thống có hai tài khoản giữ Toàn quyền; chủ muốn chỉ một 
 3. **Cổng canh cửa:** `GET /api/audit` — cổng `admin` + `can(admin.manage)` + `can(audit.view)` + bộ lọc `hideSilent` (thân handler); ba route đăng nhập và hai route Sheet — cổng `admin` + `can(admin.manage)` + ô mới tương ứng (403 trước mọi đọc/ghi); `GET /api/feedback`, `PATCH /api/feedback/:id` — cổng `admin` + `can(feedback.triage)`; `GET /api/feedback/:id`, `POST …/messages` — cổng `staff` + `can(feedback.view, { ownerId })` (404 khi không được xem). Kiểm: `src/modules/audit/an-toan-quyen.test.ts`, `src/shared/permissions.test.ts`, `src/shared/dashboard-review.test.ts`, `tests/audit/redteam.test.mjs`, `src/modules/accounts/quan-tri-ky-thuat.test.ts`, e2e `feedback`, `admin`, `orders` (và các kịch bản đổi sang tài khoản Toàn quyền khi đọc Nhật ký/đặt lại PIN/mở khoá).
 
 ## Hệ quả
+
+- **Chờ chủ quyết (người kiểm độc lập nêu 27/9):** khoá đăng nhập tính theo SĐT (`src/modules/auth/throttle.ts`); Quản trị vẫn đổi được SĐT đăng nhập của cấp dưới (việc nhân sự), nên đổi SĐT của một tài khoản đang bị khoá thực chất gỡ khoá mà không qua `account.access.manage`.
 
 - Quản trị không còn thấy thao tác nhạy cảm của Toàn quyền, cũng không đọc/xử lý Góp ý. Yêu cầu Góp ý đang giao cho Quản trị làm người xử lý: Quản trị không mở được nữa (Toàn quyền giao lại nếu cần).
 - Quản trị không còn tự giúp nhân viên quên PIN hay bị khoá đăng nhập: việc đó chuyển về Toàn quyền. Tài khoản mới vẫn nhận PIN khi Quản trị tạo.

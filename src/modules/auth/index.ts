@@ -66,7 +66,7 @@ export async function verifyPinThrottled(request: Request, env: Env, rawPhone: s
   if (!reservation.allowed) {
     const seconds = reservation.retryAfterSeconds;
     const res = json(
-      { error: { code: "too_many_attempts", message: `Nhập sai quá nhiều lần. Thử lại sau ${Math.ceil(seconds / 60)} phút hoặc nhờ quản trị viên mở khoá.`, retryAfterSeconds: seconds } },
+      { error: { code: "too_many_attempts", message: `Nhập sai quá nhiều lần. Thử lại sau ${Math.ceil(seconds / 60)} phút hoặc nhờ người phụ trách hệ thống mở khoá.`, retryAfterSeconds: seconds } },
       429,
       { "retry-after": String(seconds) },
     );
