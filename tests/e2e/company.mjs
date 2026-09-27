@@ -74,4 +74,47 @@ try {
   await sql(`UPDATE company_profile SET ${cols.map((c) => `${c} = ${quote(goc[c])}`).join(", ")} WHERE id = 'default'`);
 }
 assert.deepEqual((await call(null, "GET", "/api/company")).body.company, company, "đã khôi phục nguyên trạng");
+
+// --- QUYỀN trên hồ sơ công ty chủ (ADR-0024 6.4, 6.5 (i); ADR-0038 điều 7; chủ 2026-09-28): API thật, D1 local. Không đổi, không kết thúc vai (T5).
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin);
+const P = (path = "") => `/api/parties/${ho.id}${path}`;
+const chiTiet = (await call(SALES, "GET", P())).body.party;
+assert.equal(chiTiet.editable, false, "Bán hàng không thấy hồ sơ công ty chủ là sửa được");
+assert.equal((await call(ADMIN, "GET", P())).body.party.editable, false, "Quản trị cũng không");
+assert.equal((await call(TOAN_QUYEN, "GET", P())).body.party.editable, true);
+const suaThan = (ten) => ({ displayName: ten, legalName: chiTiet.legalName, taxCode: chiTiet.taxCode, address: chiTiet.address, invoiceEmail: chiTiet.invoiceEmail, active: chiTiet.active, expectedUpdatedAt: chiTiet.updatedAt });
+const vaiCongTyChu = chiTiet.roles.find((x) => x.roleTypeCode === "OWNER_COMPANY" && x.validTo === null);
+assert.ok(vaiCongTyChu, "hồ sơ công ty chủ có dòng vai Công ty chủ đang mở");
+r = await call(SALES, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: `Đại lý T2b ${String(Date.now()).slice(-6)}` });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const khac = r.body.party.id;
+const nhatKy = async (id) => (await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`))[0].n;
+const truocNhatKy = [await nhatKy(ho.id), await nhatKy(khac)];
+for (const [ai, cookie, cach, method, path, body] of [
+  ["Bán hàng", SALES, "sửa tên", "PUT", P(), suaThan("Kẻ Mạo Danh")],
+  ["Bán hàng", SALES, "thêm liên hệ", "POST", P("/contacts"), { kind: "PHONE", value: "0911222333" }],
+  ["Quản trị", ADMIN, "sửa tên", "PUT", P(), suaThan("Kẻ Mạo Danh")],
+  ["Quản trị", ADMIN, "thêm liên hệ", "POST", P("/contacts"), { kind: "PHONE", value: "0911222333" }],
+  ["Quản trị", ADMIN, "đóng Hotline", "POST", P(`/contacts/${hotline.id}/end`), {}],
+  ["Quản trị", ADMIN, "thêm Khách hàng lên công ty chủ", "POST", P("/roles"), { roleTypeCode: "CUSTOMER" }],
+  ["Quản trị", ADMIN, "gán Công ty chủ cho hồ sơ khác", "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "OWNER_COMPANY" }],
+  ["Quản trị", ADMIN, "kết thúc vai Công ty chủ", "POST", P(`/roles/${vaiCongTyChu.id}/end`), {}],
+]) {
+  r = await call(cookie, method, path, body);
+  assert.equal(r.status, 403, `${ai} ${cach}: ${JSON.stringify(r.body)}`);
+  assert.doesNotMatch(JSON.stringify(r.body), /Toàn quyền|SQLITE|constraint|UNIQUE/i, `${ai} ${cach}: chữ lỗi`);
+}
+r = await call(TOAN_QUYEN, "POST", P(`/roles/${vaiCongTyChu.id}/end`), {});
+assert.equal(r.status, 409, JSON.stringify(r.body));
+assert.equal(r.body.error.code, "owner_company_locked");
+assert.doesNotMatch(JSON.stringify(r.body), /Toàn quyền|SQLITE|constraint|RAISE/i);
+assert.deepEqual([await nhatKy(ho.id), await nhatKy(khac)], truocNhatKy, "403/409 không ghi nhật ký");
+// Lớp CSDL trên D1 thật (local): SQL gõ tay đóng dòng công ty chủ cuối cùng bị trigger *_keep_last chặn (không đổi gì).
+await assert.rejects(sql("UPDATE pty_party_role SET valid_to_date = valid_from_date WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL"), /owner_company_last_open/);
+assert.equal((await sqlRows("SELECT count(*) AS n FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL"))[0].n, 1, "vẫn đúng một công ty chủ");
+r = await call(TOAN_QUYEN, "PUT", P(), suaThan(chiTiet.displayName));
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal((await call(ADMIN, "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "CUSTOMER" })).status, 201, "không chặn quá tay: hồ sơ tổ chức thường");
+assert.deepEqual((await call(null, "GET", "/api/company")).body.company, company, "không có gì đổi trên biên nhận");
+console.log("✓ quyền: Bán hàng/Quản trị 403 ở sửa, liên hệ, công việc, gán Công ty chủ; kết thúc vai → 409 kể cả Toàn quyền; không nhật ký; vẫn đúng một");
 console.log("E2E COMPANY OK");

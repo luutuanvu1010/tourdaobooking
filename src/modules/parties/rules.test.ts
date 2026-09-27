@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   composePersonName, splitPersonName, validateContact, validateContactList, validateEndDate, validatePartyCreate, validatePartyUpdate,
-  validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE,
+  ownerCompanyAssignProblem, validatePeriod, validatePersonFullName, validateRelationship, validateRole, PARTY_ID_RE, ROW_ID_RE,
 } from "./rules.ts";
 
 const TODAY = "2026-09-20";
@@ -156,4 +156,14 @@ test("validatePersonFullName: chặn đúng giới hạn 60/100/60 của pty_per
   assert.ok(okMiddle.ok && okMiddle.value.middle === long(100), "tên đệm đúng 100 vẫn hợp lệ");
   assert.ok(validatePersonFullName("Nam").ok, "một từ = chỉ có tên");
   assert.ok(!validatePersonFullName("   ").ok, "tên rỗng");
+});
+
+test("gán Công ty chủ (= đổi công ty chủ, chủ trả lời 2026-09-28): chỉ hồ sơ tổ chức, không gắn nơi, không ngày kết thúc, bắt đầu hôm nay", () => {
+  const vai = (x: Partial<{ locationId: string | null; from: string; to: string | null }> = {}) => ({ roleTypeCode: "OWNER_COMPANY", locationId: null, from: TODAY, to: null, ...x });
+  assert.equal(ownerCompanyAssignProblem("ORGANIZATION", vai(), TODAY), null);
+  assert.match(ownerCompanyAssignProblem("PERSON", vai(), TODAY)!, /tổ chức/);
+  assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ locationId: U1 }), TODAY)!, /nơi/);
+  assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ to: "2026-12-31" }), TODAY)!, /ngày kết thúc/);
+  assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ from: "2026-09-21" }), TODAY)!, /hôm nay/);
+  assert.match(ownerCompanyAssignProblem("ORGANIZATION", vai({ from: "2026-09-19" }), TODAY)!, /hôm nay/);
 });

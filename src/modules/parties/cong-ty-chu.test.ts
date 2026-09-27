@@ -76,6 +76,114 @@ test("không chặn quá tay: SALES tạo và sửa một hồ sơ tổ chức t
   assert.equal(hoSo(w, id).display_name, "Đại lý Thử Mới");
 });
 
+// ---- Vai "Công ty chủ" (6.5 (i) + câu trả lời của chủ 2026-09-28: Toàn quyền ĐỔI được bằng cách gán cho hồ sơ tổ chức khác; không kết thúc được) ----
+const vaiMo = (w: any) => w.q("SELECT id, party_id FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL");
+const ganVai = (w: any, as: string, id: string, body: Record<string, unknown>) => w.call("POST", `/api/parties/${id}/roles`, { as, body });
+const ketThucVai = (w: any, as: string, id: string, rid: string) => w.call("POST", `/api/parties/${id}/roles/${rid}/end`, { as, body: {} });
+/** Một hồ sơ tổ chức ĐỦ thông tin cho biên nhận (tên pháp lý, MST, địa chỉ, liên hệ Hotline) — số giả, không phải của công ty. */
+async function toChucDu(w: any, as: string, ten: string): Promise<string> {
+  let r = await w.call("POST", "/api/parties", { as, body: { kind: "ORGANIZATION", displayName: ten, legalName: `CÔNG TY ${ten.toUpperCase()}`, taxCode: "0312345678", address: "2 Đường Thử" } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.party.id;
+  r = await w.call("POST", `/api/parties/${id}/contacts`, { as, body: { kind: "PHONE", value: "0901 234 567", label: "Hotline", isPrimary: true } });
+  assert.equal(r.status, 201, r.text);
+  return id;
+}
+
+test("6.5 (i): ADMIN thêm/kết thúc công việc trên hồ sơ công ty chủ, hay gán 'Công ty chủ' cho hồ sơ khác → ĐÚNG 403 (không phải 409/500), không ghi, không nhật ký", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const [vai] = vaiMo(w);
+  const KHAC = await toChucDu(w, SALES, "Đại lý Khác");
+  const truoc = { vai: vaiMo(w), logCT: logCount(w, CT), logKhac: logCount(w, KHAC) };
+  for (const [ten, goi] of [
+    ["thêm Khách hàng lên công ty chủ", () => ganVai(w, ADM, CT, { roleTypeCode: "CUSTOMER" })],
+    ["gán Công ty chủ cho hồ sơ khác", () => ganVai(w, ADM, KHAC, { roleTypeCode: "OWNER_COMPANY" })],
+    ["kết thúc vai Công ty chủ", () => ketThucVai(w, ADM, CT, vai.id)],
+  ] as const) {
+    const r = await goi();
+    assert.equal(r.status, 403, `${ten}: ${r.text}`);
+    assert.match(r.json.error.message, /người phụ trách hệ thống/);
+    assert.doesNotMatch(r.text, /Toàn quyền|SQLITE|constraint|UNIQUE/i);
+  }
+  assert.deepEqual({ vai: vaiMo(w), logCT: logCount(w, CT), logKhac: logCount(w, KHAC) }, truoc);
+});
+
+test("kết thúc vai 'Công ty chủ' luôn bị từ chối, kể cả SUPER_ADMIN → 409 owner_company_locked, câu tiếng Việt chỉ cách đổi; không lộ lỗi SQLite; vẫn đúng một", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const [vai] = vaiMo(w);
+  const log = logCount(w, CT);
+  const r = await ketThucVai(w, SUP, CT, vai.id);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "owner_company_locked");
+  assert.match(r.json.error.message, /gán .*Công ty chủ.* cho hồ sơ tổ chức khác/);
+  assert.doesNotMatch(r.text, /Toàn quyền|SQLITE|constraint|RAISE|owner_company_last_open/i);
+  assert.deepEqual(vaiMo(w), [vai]);
+  assert.equal(logCount(w, CT), log);
+});
+
+test("ĐỔI công ty chủ (chủ trả lời 2026-09-28): SUPER_ADMIN gán 'Công ty chủ' cho hồ sơ tổ chức khác → 201; ownerCompany, /api/company, /api/auth/config trả hồ sơ MỚI; vẫn đúng một; nhật ký ghi việc đổi, không MST/SĐT", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const MOI = await toChucDu(w, SALES, "Pháp nhân Mới");
+  const logCu = logCount(w, CT);
+  let r = await ganVai(w, SUP, MOI, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 201, r.text);
+  assert.deepEqual(vaiMo(w).map((x: any) => x.party_id), [MOI], "đúng một dòng mở, là hồ sơ mới");
+  assert.equal(r.json.party.editable, true, "người đổi vẫn sửa được hồ sơ mới");
+  r = await w.call("GET", "/api/company");
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json.company, { name: "CÔNG TY PHÁP NHÂN MỚI", taxCode: "0312345678", address: "2 Đường Thử", hotline: "0901 234 567", email: null });
+  r = await w.call("GET", "/api/auth/config");
+  assert.equal(r.json.companyName, "Pháp nhân Mới");
+  assert.equal(r.json.companyTaxCode, "0312345678");
+  const them = w.q("SELECT action, detail FROM audit_log WHERE target_id = ? ORDER BY rowid DESC LIMIT 1", MOI)[0];
+  assert.equal(them.action, "party_role_added");
+  assert.match(them.detail, /công ty chủ/i);
+  assert.equal(logCount(w, CT), logCu + 1, "hồ sơ cũ có một dòng nhật ký: thôi làm công ty chủ");
+  const bot = w.q("SELECT action, detail FROM audit_log WHERE target_id = ? ORDER BY rowid DESC LIMIT 1", CT)[0];
+  assert.equal(bot.action, "party_role_ended");
+  for (const d of [them.detail, bot.detail]) assert.doesNotMatch(d, /\d{6,}|@/, "nhật ký không ghi MST/SĐT/email");
+  // Bảo vệ đi theo vai: hồ sơ mới bị khoá với Bán hàng, hồ sơ cũ thành hồ sơ tổ chức thường
+  assert.equal((await sua(w, SALES, MOI, "Kẻ Mạo Danh")).status, 403);
+  assert.equal((await sua(w, SALES, CT, hoSo(w, CT).display_name)).status, 200);
+});
+
+test("gán 'Công ty chủ' (SUPER_ADMIN): hồ sơ cá nhân, có nơi, có ngày kết thúc, ngày bắt đầu khác hôm nay → 400; gán lại cho chính công ty chủ → 409 trùng thời gian; không đổi gì", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const KHAC = await toChucDu(w, SALES, "Đại lý Khác");
+  const truoc = vaiMo(w);
+  const nguoi = (await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Nguyễn Thử" } })).json.party.id;
+  const noi = w.q("SELECT id FROM loc_location LIMIT 1")[0].id;
+  for (const [ten, id, body] of [
+    ["hồ sơ cá nhân", nguoi, { roleTypeCode: "OWNER_COMPANY" }],
+    ["có nơi", KHAC, { roleTypeCode: "OWNER_COMPANY", locationId: noi }],
+    ["có ngày kết thúc", KHAC, { roleTypeCode: "OWNER_COMPANY", validTo: "2099-12-31" }],
+    ["bắt đầu ngày khác", KHAC, { roleTypeCode: "OWNER_COMPANY", validFrom: "2099-01-01" }],
+  ] as const) {
+    const r = await ganVai(w, SUP, id, body);
+    assert.equal(r.status, 400, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "invalid_input");
+  }
+  const r = await ganVai(w, SUP, CT, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 409, r.text);
+  assert.doesNotMatch(r.text, /SQLITE|constraint|RAISE/i);
+  assert.deepEqual(vaiMo(w), truoc);
+});
+
+test("không chặn quá tay: ADMIN thêm 'Khách hàng' cho hồ sơ tổ chức thường → 201; 2A (chủ 2026-09-28): ADMIN thêm 'Người liên hệ của' công ty chủ → 201", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const KHAC = await toChucDu(w, SALES, "Đại lý Khác");
+  let r = await ganVai(w, ADM, KHAC, { roleTypeCode: "CUSTOMER" });
+  assert.equal(r.status, 201, r.text);
+  const nguoi = (await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Trần Liên Hệ" } })).json.party.id;
+  r = await w.call("POST", `/api/parties/${CT}/relationships`, { as: ADM, body: { fromPartyId: nguoi, toPartyId: CT, relationshipTypeCode: "CONTACT_OF" } });
+  assert.equal(r.status, 201, r.text);
+});
+
 test("editable của GET /api/parties/:id (hồ sơ công ty chủ): false với SALES và ADMIN, true với SUPER_ADMIN — cùng điều kiện với route ghi", async () => {
   const w = setup();
   const CT = congTyChu(w);

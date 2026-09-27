@@ -390,10 +390,11 @@ const OPEN_ROLE_CODES_FOR = defineSql(
    WHERE party_id IN (SELECT value FROM json_each(?1)) AND location_id IS NULL AND valid_to_date IS NULL GROUP BY party_id`,
 );
 const ROLE_TYPE_GROUP = defineSql("parties", "role_type_group", "SELECT role_group FROM pty_role_type WHERE code = ?1");
-const ROLE_ROW_GROUP = defineSql(
+// Nhóm + mã vai của MỘT dòng vai thuộc hồ sơ ?2 (route kết thúc vai: vai tài khoản → màn Quản lý tài khoản; vai "Công ty chủ" → ô company.legal.write, ADR-0024 6.5).
+const ROLE_ROW_OF = defineSql(
   "parties",
-  "role_row_group",
-  "SELECT t.role_group FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code WHERE r.id = ?1 AND r.party_id = ?2",
+  "role_row_of",
+  "SELECT t.role_group, r.role_type_code FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code WHERE r.id = ?1 AND r.party_id = ?2",
 );
 // Hai đầu của MỘT dòng quan hệ thuộc hồ sơ ?2 (ADR-0019 điều 2 / Q11: luật cấp bậc xét cả hai đầu khi kết thúc quan hệ). Không có dòng → null.
 const RELATIONSHIP_ENDS = defineSql(
@@ -418,8 +419,9 @@ export async function openRoleCodesFor(db: D1Database, partyIds: readonly string
 export async function roleTypeGroup(db: D1Database, code: string): Promise<string | null> {
   return (await db.prepare(ROLE_TYPE_GROUP).bind(code).first<{ role_group: string }>())?.role_group ?? null;
 }
-export async function roleRowGroup(db: D1Database, partyId: string, roleId: string): Promise<string | null> {
-  return (await db.prepare(ROLE_ROW_GROUP).bind(roleId, partyId).first<{ role_group: string }>())?.role_group ?? null;
+export async function roleRowOf(db: D1Database, partyId: string, roleId: string): Promise<{ group: string; code: string } | null> {
+  const r = await db.prepare(ROLE_ROW_OF).bind(roleId, partyId).first<{ role_group: string; role_type_code: string }>();
+  return r ? { group: r.role_group, code: r.role_type_code } : null;
 }
 export async function relationshipEnds(db: D1Database, partyId: string, relationshipId: string): Promise<{ from: string; to: string } | null> {
   const r = await db.prepare(RELATIONSHIP_ENDS).bind(relationshipId, partyId).first<{ from_party_id: string; to_party_id: string }>();

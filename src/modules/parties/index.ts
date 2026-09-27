@@ -15,12 +15,12 @@ import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements,
-  openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
+  openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeGroup, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
-  PARTY_ID_RE, ROW_ID_RE, composePersonName, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate, validatePersonFullName,
-  validateRelationship, validateRole,
+  PARTY_ID_RE, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
+  validatePersonFullName, validateRelationship, validateRole,
 } from "./rules";
 
 export { composePersonName, newOrganizationStatements, newPersonStatements, findPartiesByPhone, renamePersonStatements, splitPersonName, validatePersonFullName };
@@ -81,10 +81,16 @@ const OWNER_COMPANY_FORBIDDEN = () =>
   error(403, "forbidden", "Chỉ người phụ trách hệ thống được sửa hồ sơ công ty chủ (tên, mã số thuế, địa chỉ, liên hệ, công việc) và đổi công ty chủ.");
 /** Hồ sơ `id` có đang giữ vai "Công ty chủ" không — câu tra dữ liệu (không phải kiểm quyền), KHÔNG xuất ra ngoài module. */
 const laCongTyChu = (db: D1Database, id: string): Promise<boolean> => isOwnerCompanyParty(db, id, OWNER_COMPANY_ROLE);
+// Chủ dự án 2026-09-28 ("cho Super Admin đổi"): vai "Công ty chủ" không kết thúc được — đổi bằng cách gán cho hồ sơ tổ chức khác. Lớp route (lớp 1) của bất
+// biến "đúng một, không lúc nào trống"; lớp CSDL là trigger *_keep_last của migration *_ho_so_cong_ty_chu (ánh xạ riêng ở constraintProblem).
+const KHONG_KET_THUC_CONG_TY_CHU = "Không kết thúc được công việc “Công ty chủ”: hệ thống luôn cần một công ty chủ. Muốn đổi thì gán “Công ty chủ” cho hồ sơ tổ chức khác.";
+const OWNER_COMPANY_LOCKED = () => error(409, "owner_company_locked", KHONG_KET_THUC_CONG_TY_CHU);
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
+  // Lớp CSDL của vai "Công ty chủ" (trigger *_keep_last): chỉ tới đây khi lớp route bị vượt — mã riêng để phân biệt với lớp route (P16).
+  if (/owner_company_last_open/.test(m)) return error(409, "owner_company_last_open", KHONG_KET_THUC_CONG_TY_CHU);
   if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
   if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã có công việc đó ở nơi đó trong khoảng thời gian trùng.");
   if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Người liên hệ này đã được ghi trong khoảng thời gian trùng.");
@@ -325,19 +331,33 @@ export const partiesModule: AppModule = {
       const { request, env, params, staff } = ctx;
       if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
-      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const party = id ? await findParty(env.DB, id) : null;
+      if (!id || !party) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
+      // ADR-0024 6.4: MỌI công việc trên hồ sơ công ty chủ — chỉ company.legal.write; hỏi TRƯỚC khi đọc thân (không để 400 lộ trước 403).
+      if ((await laCongTyChu(env.DB, id)) && !can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
       const now = new Date();
-      const parsed = validateRole(await readJson(request), vnToday(now));
+      const today = vnToday(now);
+      const parsed = validateRole(await readJson(request), today);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (isAccountGroup(await roleTypeGroup(env.DB, parsed.value.roleTypeCode))) return ACCOUNT_ROLE();
       const at = now.toISOString();
+      const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
+      if (parsed.value.roleTypeCode === OWNER_COMPANY_ROLE) {
+        // 6.5 (i) + chủ 2026-09-28: gán "Công ty chủ" = ĐỔI công ty chủ — chỉ company.legal.write, trên BẤT KỲ hồ sơ nào (mã vai gửi lên chỉ biết sau khi
+        // đọc thân). Trigger *_switch của migration đóng dòng công ty chủ cũ trong cùng câu chèn; nhật ký ghi ở CẢ hai hồ sơ, chỉ tên (không MST/SĐT/email).
+        if (!can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
+        const problem = ownerCompanyAssignProblem(party.party_kind, parsed.value, today);
+        if (problem) return error(400, "invalid_input", problem);
+        const cu = (await ownerCompanyRows(env.DB, OWNER_COMPANY_ROLE)).find((r) => r.id !== id);
+        stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_added", at, targetType: "party", targetId: id, detail: cu ? `công ty chủ (thay "${cu.display_name}")` : "công ty chủ" }));
+        if (cu) stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: cu.id, detail: `thôi là công ty chủ (chuyển sang "${party.display_name}")` }));
+      } else {
+        stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_added", at, targetType: "party", targetId: id, detail: parsed.value.roleTypeCode }));
+      }
       try {
-        await env.DB.batch([
-          addRoleStatement(env.DB, id, parsed.value, staff.id, at),
-          auditStatement(env.DB, { staffId: staff.id, action: "party_role_added", at, targetType: "party", targetId: id, detail: parsed.value.roleTypeCode }),
-        ]);
+        await env.DB.batch(stmts);
       } catch (e) {
         const problem = constraintProblem(e);
         if (problem) return problem;
@@ -354,15 +374,28 @@ export const partiesModule: AppModule = {
       if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
-      if (isAccountGroup(await roleRowGroup(env.DB, id, rid))) return ACCOUNT_ROLE();
+      const row = await roleRowOf(env.DB, id, rid);
+      if (isAccountGroup(row?.group ?? null)) return ACCOUNT_ROLE();
+      // ADR-0024 6.4 + 6.5 (i): công việc trên hồ sơ công ty chủ, hoặc chính dòng "Công ty chủ" — chỉ company.legal.write (403 trước mọi thứ khác).
+      if ((row?.code === OWNER_COMPANY_ROLE || (await laCongTyChu(env.DB, id))) && !can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
+      // Chủ 2026-09-28: vai "Công ty chủ" không kết thúc được, kể cả người giữ ô — đổi bằng cách gán cho hồ sơ khác (lớp route; lớp CSDL ở dưới).
+      if (row?.code === OWNER_COMPANY_ROLE) return OWNER_COMPANY_LOCKED();
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);
       const at = now.toISOString();
-      const results = await env.DB.batch([
-        endRoleStatement(env.DB, id, rid, to.value, staff.id, at),
-        auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: id }, "changes() > 0"),
-      ]);
+      let results: D1Result[];
+      try {
+        results = await env.DB.batch([
+          endRoleStatement(env.DB, id, rid, to.value, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: id }, "changes() > 0"),
+        ]);
+      } catch (e) {
+        // Không lộ lỗi SQLite thô (trigger của vai "Công ty chủ" nếu lớp route bị vượt).
+        const problem = constraintProblem(e);
+        if (problem) return problem;
+        throw e;
+      }
       if ((results[0]!.meta.changes ?? 0) === 0) return NOT_OPEN();
       return respondParty(ctx, id);
     }),

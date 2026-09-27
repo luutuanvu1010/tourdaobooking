@@ -248,6 +248,19 @@ export function validateRole(body: Record<string, unknown> | null, today: string
   return period.ok ? { ok: true, value: { roleTypeCode: body.roleTypeCode, locationId, from: period.value.from, to: period.value.to } } : period;
 }
 
+/**
+ * Điều kiện DỮ LIỆU của việc gán vai "Công ty chủ" (= ĐỔI công ty chủ — chủ trả lời 2026-09-28 "cho Super Admin đổi"; ADR-0024 6.5): chỉ hồ sơ tổ chức;
+ * không gắn nơi; không ngày kết thúc (vai không bao giờ trống — đổi thì gán cho hồ sơ khác); có hiệu lực từ hôm nay (đúng như hàm ownerCompany đọc dòng
+ * đang mở). null = hợp lệ. Quyền (ô company.legal.write) route hỏi TRƯỚC, riêng.
+ */
+export function ownerCompanyAssignProblem(kind: "PERSON" | "ORGANIZATION", r: RoleInput, today: string): string | null {
+  if (kind !== "ORGANIZATION") return "Chỉ hồ sơ tổ chức mới làm công ty chủ được.";
+  if (r.locationId !== null) return "Công ty chủ không gắn với một nơi làm cụ thể — để trống ô “Nơi làm”.";
+  if (r.to !== null) return "Công ty chủ không có ngày kết thúc. Muốn đổi thì gán “Công ty chủ” cho hồ sơ tổ chức khác.";
+  if (r.from !== today) return "Đổi công ty chủ có hiệu lực từ hôm nay — để trống ô ngày bắt đầu.";
+  return null;
+}
+
 export interface RelationshipInput {
   fromPartyId: string;
   toPartyId: string;
