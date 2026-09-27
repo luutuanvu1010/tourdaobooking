@@ -189,7 +189,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
 test("mức truy cập của 85 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
-  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 81 để đối chiếu nhanh bằng mắt.
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 85 để đối chiếu nhanh bằng mắt.
   // (Cập nhật 2026-09-22: 55 gốc + 2 route ADR-0014 Phase B (handler-cancel, handler-money-edit) + 1 route "việc của tôi" (dispatch/mine) = 58;
   // 2026-09-23: + 1 route Trang chủ mới (GET /api/orders/dashboard) = 59; + 2 route passkey công khai (đăng nhập bằng Face ID, ADR-0016) = 61;
   // + 8 route passkey tự phục vụ/quản trị (bật/gỡ Face ID, đặt PIN bằng Face ID, ADR-0016) = 69;
