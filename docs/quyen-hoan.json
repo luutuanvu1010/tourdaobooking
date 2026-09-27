@@ -44,8 +44,7 @@
       "ke_hoach": "Như payment.receive.",
       "han": "2026-12-31",
       "nguoi_chiu_trach_nhiem": "chủ dự án"
-    },
-    { "ma": "notice.send", "ly_do": "ADR-0034: route gửi thông báo thi công ở Task 6 cùng nhánh.", "ke_hoach": "Gỡ mục này ở Task 6 khi route gọi can(staff, \"notice.send\").", "han": "2026-10-15", "nguoi_chiu_trach_nhiem": "chủ dự án" }
+    }
   ],
   "cua_ghi": [
     { "method": "POST", "path": "/api/account/change-pin", "loai": "ngoại lệ", "ly_do": "Tự phục vụ trên chính tài khoản đang đăng nhập (access 'staff'); bảng chưa có ô 'tự phục vụ'. Xem xét ô account.self ở ADR-0018; tới lúc đó là ngoại lệ có ghi." },

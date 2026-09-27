@@ -97,7 +97,7 @@ export function isGuardedBody(body: string): boolean {
 }
 
 /** Luật (4): ô quản trị được công nhận ở route cổng "admin" (ADR-0019 điều 2). Thêm ô = sửa hàng rào (người rà phải thấy). */
-const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops"];
+const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops", "notice.send"];
 const ADMIN_DENIAL_RE = new RegExp(
   `!\\s*can\\s*\\(\\s*[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*,\\s*"(?:${ADMIN_OPS.map((o) => o.replace(/\./g, "\\.")).join("|")})"\\s*\\)`,
   "g",

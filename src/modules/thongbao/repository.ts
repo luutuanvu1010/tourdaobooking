@@ -32,6 +32,20 @@ const GET_THU_CONG = defineSql("thongbao", "get_thu_cong", `
          (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags,
          (SELECT a.created_at FROM ntf_ack a WHERE a.notice_id = n.id AND a.staff_id = ?2) AS da_hieu_luc
   FROM ntf_notice n WHERE n.id = ?1`);
+const FIND_BY_REQUEST = defineSql("thongbao", "find_by_request", `SELECT id FROM ntf_notice WHERE created_by = ?1 AND client_request_id = ?2`);
+const INSERT_NOTICE = defineSql("thongbao", "insert_notice", `
+  INSERT INTO ntf_notice (id, tieu_de, noi_dung, quan_trong, client_request_id, created_at, created_by, updated_at, updated_by)
+  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
+const INSERT_TARGET = defineSql("thongbao", "insert_target", `
+  INSERT INTO ntf_notice_target (notice_id, tag, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?3, ?4)`);
+const REVOKE = defineSql("thongbao", "revoke", `UPDATE ntf_notice SET valid_to = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND valid_to IS NULL`);
+const LIST_SENT = defineSql("thongbao", "list_sent", `
+  SELECT n.id, n.tieu_de, n.quan_trong, n.created_at, n.valid_to,
+         (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags
+  FROM ntf_notice n ORDER BY n.created_at DESC LIMIT 100`);
+const LIST_ACKS = defineSql("thongbao", "list_acks", `SELECT staff_id, created_at FROM ntf_ack WHERE notice_id = ?1`);
+const GET_NOTICE = defineSql("thongbao", "get_notice", `
+  SELECT n.id, n.valid_to, (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags FROM ntf_notice n WHERE n.id = ?1`);
 const GET_MARK = defineSql("thongbao", "get_mark", `SELECT doc_den_luc FROM ntf_read_mark WHERE staff_id = ?1`);
 const UPSERT_MARK = defineSql("thongbao", "upsert_mark", `
   INSERT INTO ntf_read_mark (staff_id, doc_den_luc, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?2, ?1, ?2, ?1)
@@ -66,3 +80,16 @@ export async function getThuCong(db: D1Database, id: string, staffId: string): P
 export const getMark = async (db: D1Database, staffId: string) => (await db.prepare(GET_MARK).bind(staffId).first<{ doc_den_luc: string }>())?.doc_den_luc ?? null;
 export const upsertMarkStatement = (db: D1Database, staffId: string, at: string) => db.prepare(UPSERT_MARK).bind(staffId, at);
 export const insertAckStatement = (db: D1Database, noticeId: string, staffId: string, at: string) => db.prepare(INSERT_ACK).bind(noticeId, staffId, at);
+
+export const findByRequest = async (db: D1Database, staffId: string, req: string) => (await db.prepare(FIND_BY_REQUEST).bind(staffId, req).first<{ id: string }>())?.id ?? null;
+export const insertNoticeStatement = (db: D1Database, a: { id: string; tieuDe: string; noiDung: string; quanTrong: boolean; req: string; at: string; by: string }) =>
+  db.prepare(INSERT_NOTICE).bind(a.id, a.tieuDe, a.noiDung, a.quanTrong ? 1 : 0, a.req, a.at, a.by);
+export const insertTargetStatement = (db: D1Database, noticeId: string, tag: string, at: string, by: string) => db.prepare(INSERT_TARGET).bind(noticeId, tag, at, by);
+export const revokeStatement = (db: D1Database, id: string, at: string, by: string) => db.prepare(REVOKE).bind(id, at, by);
+export async function listSent(db: D1Database) {
+  return (await db.prepare(LIST_SENT).all<{ id: string; tieu_de: string; quan_trong: number; created_at: string; valid_to: string | null; tags: string | null }>()).results;
+}
+export async function listAcks(db: D1Database, id: string) {
+  return (await db.prepare(LIST_ACKS).bind(id).all<{ staff_id: string; created_at: string }>()).results;
+}
+export const getNotice = (db: D1Database, id: string) => db.prepare(GET_NOTICE).bind(id).first<{ id: string; valid_to: string | null; tags: string | null }>();
