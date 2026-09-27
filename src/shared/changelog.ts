@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.24",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Chuẩn bị thông báo hiện trên màn hình khoá điện thoại; mục bật sẽ xuất hiện trong trang Tài khoản khi công ty mở tính năng." },
+      { kind: "doi", text: "Đăng xuất hoặc đổi mã PIN sẽ tắt thông báo trên mọi điện thoại của tài khoản; muốn nhận lại thì bấm Bật lần nữa." },
+    ],
+  },
+  {
     version: "1.23",
     date: "2026-09-28",
     items: [
