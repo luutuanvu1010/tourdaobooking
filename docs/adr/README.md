@@ -39,6 +39,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0035](ADR-0035-khung-app-nam-san-tren-may.md) | Phần ít thay đổi của app **nằm sẵn trên máy**: nạp sẵn mọi trang/JS; lời gọi dữ liệu song song với `/api/auth/me`; (tuỳ Q1) "bản nhớ khung" tối thiểu để vẽ thanh trên/menu/tab tức thì; **không** chuyển thành app một trang. Dữ liệu `/api/*` vẫn không vào cache. Số 0034 dành cho Thông báo | hai chiều | **accepted** (chủ: "Q1 chọn A, duyệt ADR-0035", chat 2026-09-27; AI ghi lại) |
 | [0036](ADR-0036-thong-bao-man-hinh-khoa.md) | **Thông báo màn hình khoá (Web Push)** cho **mọi tài khoản, kể cả Đối tác** (chủ sửa điểm 1): mỗi máy tự đăng ký nhận, máy chủ chỉ gõ cửa người có tin ở ngăn "Của tôi" — cú gõ cửa không nội dung (VAPID, khoá bí mật chủ tự đặt), giờ yên lặng 22:00–06:00 VN trừ tin quan trọng, gửi chia lô qua Durable Object `BangTin` (không Queues), được phép lỡ, tự tắt khi đăng xuất/đổi PIN/đổi quyền/ngưng; bảng `ntf_push_sub` | hai chiều | **accepted** (chủ: "Đồng ý, làm đi", chat 2026-09-27; AI ghi lại) |
 | [0038](ADR-0038-thao-tac-im-lang-cua-toan-quyen-va-gop-y-chi-toan-quyen.md) | **Thao tác im lặng của Toàn quyền**: đổi vai/quyền, bật/tắt bảo trì, đặt lại PIN, gỡ Face ID vẫn ghi nhật ký nhưng chỉ Toàn quyền xem (view `v_stf_toan_quyen`, migration 0027); **Góp ý/Báo lỗi chỉ Toàn quyền đọc và xử lý** (`feedback.view`/`feedback.triage` cột ADMIN); **Quản trị chỉ giữ kinh doanh + nhân sự** — đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ Sheet, trang Nhật ký, sửa pháp lý Tour Đảo chỉ Toàn quyền (ô `account.access.manage`, `staff.sheet.sync`, `audit.view`) | hai chiều | **accepted** (chủ chọn "A" + liệt kê thao tác, chat 2026-09-27; AI ghi lại) |
+| [0043](ADR-0043-doi-cong-ty-chu-khong-co-luc-trong.md) | **Đổi "công ty chủ"**: Toàn quyền đổi được sang hồ sơ tổ chức khác (gán cho hồ sơ mới thì hồ sơ cũ tự thôi trong cùng câu lệnh), không bao giờ có lúc trống, lịch sử giữ nguyên. Ba trigger thay "chỉ mục duy nhất + trigger cấm đóng" của ADR-0024 bổ sung 6.5(ii). "Người liên hệ của" công ty chủ giữ cho Quản trị | hai chiều | **accepted** — chủ dự án trả lời 2026-09-28 (câu 1: "Cho super Admin đổi…"; câu 2: 2A); thi công trong T2b |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -49,5 +50,13 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | 0040 | Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, nhắc hạn | `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md` | giữ chỗ 2026-09-28; chờ chủ duyệt (lượt sau T2b) |
 | 0041 | Đính kèm ảnh/tệp trong tin của Toàn quyền (kho R2) | nhánh `worktree-thong-bao-he-thong` (phiên Thông báo) | giữ chỗ 2026-09-28; chủ đã chọn phương án A trong chat, ADR đang soạn |
 | 0042 | Quản trị lấy lại đặt lại PIN / mở khoá / gỡ Face ID cho cấp dưới; Toàn quyền là vai ẩn (sửa điều 6 của ADR-0038) | nhánh `worktree-an-nhat-ky-toan-quyen` (phiên siết quyền) | giữ chỗ 2026-09-28; theo lời chủ trong chat 2026-09-27, ADR đang tách ra từ "điều 8" |
+
+**Số migration đã giữ chỗ** (2026-09-28; nếu thứ tự lên main đảo thì nhánh lên sau đổi tên tệp):
+- 0028: nhánh siết quyền (vai "IT", ADR-0042);
+- 0029: nhánh Thông báo (đính kèm, ADR-0041);
+- 0030: T2b (hồ sơ công ty chủ, ADR-0024 điều 6 và ADR-0043);
+- từ 0031: Vận chuyển 1a.
+
+Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
 **Cổng bắt buộc trước khi áp migration N1 lên remote:** hai lệnh chỉ-đọc trên remote D1 (xem mục Bối cảnh của ADR-0001) do chủ dự án chạy. **Bằng chứng chỉ cần nếu sau này muốn gỡ cột `staff.role` (ADR-0005):** D1 hỗ trợ `PRAGMA defer_foreign_keys` và bọc một tệp migration trong một giao dịch.
