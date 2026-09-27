@@ -8,7 +8,7 @@
 // ADR-0030 Task 1.3 (chọn HDV lúc lập ghi created + order_handler_changed CÙNG mốc) chưa lên main. Thêm khi nhánh đó gộp.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA), B = await session(ACCOUNTS.salesB), KT = await session(ACCOUNTS.accountant), TQ = await session(ACCOUNTS.superAdmin);
 assert.equal((await call(null, "GET", "/api/thong-bao")).status, 401);
@@ -216,5 +216,66 @@ assert.ok(!(await call(B, "GET", "/api/thong-bao?ngan=cua-toi")).body.tin.some((
 const s = (await call(TQ, "GET", "/api/thong-bao/da-gui")).body.tin.find((x) => x.id === qt.id);
 assert.ok(s.thuHoiLuc);
 console.log("✓ thu hồi");
+
+// ---- Web Push màn hình khoá (ADR-0036, Task 1): đăng ký/huỷ máy tự phục vụ + GET moi-nhat ---------------------------------
+// (a) chưa đăng nhập → 401
+assert.equal((await call(null, "GET", "/api/account/thong-bao/may")).status, 401);
+assert.equal((await call(null, "GET", "/api/thong-bao/moi-nhat")).status, 401);
+// (b) POST không Origin (và không Sec-Fetch-Site) → 403 (CSRF, trước khi vào handler — dùng DT vì đã có phiên hợp lệ)
+const khongOrigin = await fetch(`${BASE}/api/account/thong-bao/may`, {
+  method: "POST",
+  headers: { cookie: DT, "content-type": "application/json" },
+  body: JSON.stringify({ endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}`, thietBi: "Không Origin" }),
+});
+assert.equal(khongOrigin.status, 403, "POST không Origin → cross_origin 403");
+console.log("✓ Web Push: chưa đăng nhập → 401 (may, moi-nhat); POST không Origin → 403");
+
+// (c) tài khoản CHỈ Đối tác đăng ký được (ADR-0036 điều 1) → 200, soMay = 1
+const ep1 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 0, "trước khi đăng ký: soMay = 0");
+const bat1 = await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "iPhone của Đối tác" });
+assert.equal(bat1.status, 200, JSON.stringify(bat1.body));
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 1, "Đối tác đăng ký được, soMay = 1");
+// (d) đăng ký lại CÙNG endpoint (cùng người) → không đổi
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "iPhone của Đối tác" })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 1, "đăng ký lại cùng máy → soMay không đổi");
+// (e) tài khoản khác (B) đăng ký CÙNG endpoint (máy dùng chung đổi chủ) → soMay của DT về 0
+const soMayBTruoc = (await call(B, "GET", "/api/account/thong-bao/may")).body.soMay;
+const batB = await call(B, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "Máy dùng chung" });
+assert.equal(batB.status, 200, JSON.stringify(batB.body));
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 0, "B đăng ký cùng endpoint → DT mất máy đó");
+assert.equal((await call(B, "GET", "/api/account/thong-bao/may")).body.soMay, soMayBTruoc + 1, "B có thêm một máy đang bật");
+assert.equal((await call(B, "POST", "/api/account/thong-bao/may/huy", { endpoint: ep1 })).status, 200); // dọn, không ảnh hưởng kịch bản sau
+console.log("✓ Web Push: Đối tác đăng ký được; đăng ký lại idempotent; máy dùng chung đổi chủ đúng người");
+
+// (g) endpoint không thuộc dịch vụ đẩy thật → 400
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: "https://example.com/x", thietBi: "Máy lạ" })).status, 400);
+console.log("✓ Web Push: endpoint ngoài danh sách dịch vụ đẩy → 400");
+
+// (f) huỷ {tatCa:true} → soMay = 0; KHÔNG xoá cứng (dòng vẫn còn, revoke_reason = dang-xuat)
+const ep2 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "Máy 1" })).status, 200); // ep1 vừa được B trả lại
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep2, thietBi: "Máy 2" })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 2);
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may/huy", { tatCa: true })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 0, "huỷ tatCa → soMay = 0");
+const dtId = (await sqlRows(`SELECT id FROM staff WHERE phone = '${dtPhone}'`))[0].id;
+const conLai = await sqlRows(`SELECT endpoint, revoke_reason FROM ntf_push_sub WHERE staff_id = '${dtId}' AND revoke_reason = 'dang-xuat'`);
+assert.equal(conLai.length, 2, "huỷ tatCa KHÔNG xoá cứng — 2 dòng vẫn còn, chỉ đổi revoked_at/revoke_reason");
+console.log("✓ Web Push: huỷ tatCa → soMay = 0, không xoá cứng (revoke_reason = dang-xuat)");
+
+// (h) moi-nhat = câu của tin CHƯA ĐỌC mới nhất ở ngăn "Của tôi"; sau khi Toàn quyền gửi tin cho nhóm PARTNER (nhóm của DT)
+await call(DT, "POST", "/api/account/thong-bao/da-doc"); // mở hộp trước để mốc đọc sạch, không lẫn tin cũ
+await new Promise((r) => setTimeout(r, 20)); // đảm bảo tin gửi sau strictly > mốc đọc (so chuỗi, cùng mili-giây sẽ không tính là mới)
+const tieuDeDT = `Tin cho Đối tác ${Date.now().toString(36)}`;
+const guiDT = await call(TQ, "POST", "/api/thong-bao", {
+  tieuDe: tieuDeDT, noiDung: "Nội dung riêng cho Đối tác.", nguoiNhan: ["PARTNER"], quanTrong: false, clientRequestId: randomUUID(),
+});
+assert.equal(guiDT.status, 201, JSON.stringify(guiDT.body));
+const moiNhat1 = (await call(DT, "GET", "/api/thong-bao/moi-nhat")).body;
+assert.equal(moiNhat1.tin?.cau, tieuDeDT, "moi-nhat: cau = tiêu đề của tin thủ công chưa đọc mới nhất");
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/da-doc")).status, 200);
+assert.equal((await call(DT, "GET", "/api/thong-bao/moi-nhat")).body.tin, null, "sau da-doc: moi-nhat trả tin: null");
+console.log("✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc");
 
 console.log("THONGBAO OK");

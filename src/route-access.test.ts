@@ -168,6 +168,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/thong-bao/da-gui", access: "admin" }, // Toàn quyền xem danh sách tin đã gửi
   { method: "GET", path: "/api/thong-bao/:id/nguoi-da-hieu", access: "admin" }, // Toàn quyền xem ai đã hiểu một tin
   { method: "POST", path: "/api/thong-bao/:id/thu-hoi", access: "admin" }, // Toàn quyền thu hồi một tin đã gửi
+  { method: "GET", path: "/api/thong-bao/moi-nhat", access: "staff" }, // Web Push (ADR-0036): SW hỏi câu của tin chưa đọc mới nhất
+  { method: "GET", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: khoá công khai (nếu có) + số máy đang bật của chính mình
+  { method: "POST", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: tự phục vụ đăng ký một máy
+  { method: "POST", path: "/api/account/thong-bao/may/huy", access: "staff" }, // Web Push: tự phục vụ tắt một máy hoặc mọi máy
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -182,7 +186,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 81 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 85 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 81 để đối chiếu nhanh bằng mắt.
@@ -193,8 +197,10 @@ test("mức truy cập của 81 route hiện có khớp ảnh chụp đã duyệ
   // 2026-09-26: + 1 route bắt tay Bảng tin (GET /api/bang-tin, module bangtin, ADR-0022) = 72;
   // 2026-09-27: + 1 route danh mục cho người lập đơn (GET /api/catalog/for-order, ADR-0033) = 73;
   // + 4 route module thongbao đọc (ADR-0034): GET /api/thong-bao, GET /api/thong-bao/tom-tat, POST /api/account/thong-bao/da-doc,
-  // POST /api/account/thong-bao/:id/da-hieu = 77; + 4 route Toàn quyền (ADR-0034 điều 7: gửi, xem đã gửi, xem ai đã hiểu, thu hồi) = 81.)
+  // POST /api/account/thong-bao/:id/da-hieu = 77; + 4 route Toàn quyền (ADR-0034 điều 7: gửi, xem đã gửi, xem ai đã hiểu, thu hồi) = 81;
+  // + 4 route Web Push màn hình khoá (ADR-0036, Task 1): GET /api/thong-bao/moi-nhat, GET/POST /api/account/thong-bao/may,
+  // POST /api/account/thong-bao/may/huy = 85.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 81, "số route thực tế lệch 81 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 81, "SNAPSHOT phải có đúng 81 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 85, "số route thực tế lệch 85 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 85, "SNAPSHOT phải có đúng 85 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

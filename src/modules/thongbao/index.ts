@@ -1,16 +1,19 @@
-// Module thongbao (ADR-0034): hộp thông báo + tin thủ công. Không module nào import module này. Luật lọc ở src/shared/thong-bao.ts (một hàm).
+// Module thongbao (ADR-0034 + ADR-0036): hộp thông báo + tin thủ công + địa chỉ nhận thông báo màn hình khoá. Không module nào import
+// module này. Luật lọc ở src/shared/thong-bao.ts (một hàm).
 import { auditStatement } from "../audit";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type {
-  DaGuiResponse, HopThongBaoResponse, NguoiDaHieuResponse, NguoiNhanTin, PermissionCode, StaffAccount, StaffProfile, TinDaGuiDto, TomTatThongBaoResponse,
+  DaGuiResponse, HopThongBaoResponse, MayThongBaoResponse, MoiNhatResponse, NguoiDaHieuResponse, NguoiNhanTin, PermissionCode, StaffAccount,
+  StaffProfile, TinDaGuiDto, TomTatThongBaoResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, PERMISSION_LABEL } from "../../shared/permissions";
 import { chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong } from "../../shared/thong-bao";
+import { kiemDiaChi } from "../../shared/web-push";
 import { route, type AppModule } from "../../shared/router";
 import {
-  findByRequest, getMark, getNotice, getThuCong, insertAckStatement, insertNoticeStatement, insertTargetStatement,
-  listAcks, listDon, listSent, listThuCong, revokeStatement, upsertMarkStatement,
+  batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, insertAckStatement, insertNoticeStatement, insertTargetStatement,
+  listAcks, listDon, listSent, listThuCong, revokeStatement, tatMayStatement, upsertMarkStatement,
 } from "./repository";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy thông báo.");
@@ -47,6 +50,46 @@ export const thongbaoModule: AppModule = {
       // h.tin (đã cắt) — nếu không, người có > 100 tin "Của tôi" mới hơn sẽ mất tin quan trọng chưa hiểu khỏi dải (trái X4).
       const quanTrongChuaHieu = h.quanTrongChuaHieu.map((t) => ({ id: t.id, tieuDe: t.cau, nguoiGui: t.nguoiGui ?? "", luc: t.luc }));
       return json({ soChuaDoc: h.soChuaDoc, quanTrongChuaHieu } satisfies TomTatThongBaoResponse);
+    }),
+    // Web Push (ADR-0036) — cú gõ cửa màn hình khoá của service worker: câu của tin CHƯA ĐỌC mới nhất ở ngăn "Của tôi" (h.tin đã sắp
+    // xếp mới nhất trước). Chỉ đọc — không đổi mốc đã đọc (đó là việc của POST …/da-doc, người dùng tự bấm khi mở hộp).
+    route("GET", "/api/thong-bao/moi-nhat", "staff", async ({ env, staff }) => {
+      const h = await hop(env.DB, staff, "cua-toi");
+      const t = h.tin.find((x) => x.chuaDoc);
+      return json({ tin: t ? { cau: t.cau, lienKet: t.lienKet } : null } satisfies MoiNhatResponse);
+    }),
+    // Tự phục vụ (ADR-0036 điều 1–2; "ngoại lệ" ở docs/quyen-hoan.json): id luôn lấy từ phiên (staff.id), không tin thân yêu cầu.
+    route("GET", "/api/account/thong-bao/may", "staff", async ({ env, staff }) => {
+      const soMay = await demMay(env.DB, staff.id);
+      const khoa = env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? env.VAPID_PUBLIC_KEY : null;
+      return json({ khoa, soMay } satisfies MayThongBaoResponse);
+    }),
+    route("POST", "/api/account/thong-bao/may", "staff", async ({ env, staff, request }) => {
+      const body = await readJson(request);
+      const endpoint = body?.endpoint;
+      const thietBi = typeof body?.thietBi === "string" ? body.thietBi.trim() : "";
+      if (!kiemDiaChi(endpoint) || thietBi.length < 1 || thietBi.length > 40) {
+        return error(400, "invalid_input", "Địa chỉ máy hoặc tên máy không hợp lệ.");
+      }
+      const at = new Date().toISOString();
+      await env.DB.batch(batMayStatements(env.DB, { id: crypto.randomUUID(), staffId: staff.id, endpoint, thietBi, at }));
+      return json({ ok: true });
+    }),
+    route("POST", "/api/account/thong-bao/may/huy", "staff", async ({ env, staff, request }) => {
+      const body = await readJson(request);
+      const at = new Date().toISOString();
+      if (body?.tatCa === true) {
+        await tatMayStatement(env.DB, staff.id, null, "dang-xuat", at).run();
+        return json({ ok: true });
+      }
+      const endpoint = body?.endpoint;
+      if (typeof endpoint === "string" && endpoint.length >= 1 && endpoint.length <= 1024) {
+        // Không kiểm host bằng kiemDiaChi ở đây: đây là XOÁ theo giá trị đã lưu (không gọi ra ngoài), không phải nơi máy chủ sẽ POST
+        // tới. Endpoint không tồn tại hoặc thuộc người khác → câu UPDATE khớp 0 dòng, vẫn 200 (không lộ ai có/không có máy đó).
+        await tatMayStatement(env.DB, staff.id, endpoint, "tu-tat", at).run();
+        return json({ ok: true });
+      }
+      return error(400, "invalid_input", "Thiếu địa chỉ máy hoặc cờ huỷ tất cả.");
     }),
     route("POST", "/api/account/thong-bao/da-doc", "staff", async ({ env, staff }) => {
       await upsertMarkStatement(env.DB, staff.id, new Date().toISOString()).run();

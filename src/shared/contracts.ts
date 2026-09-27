@@ -642,3 +642,7 @@ export interface GuiThongBaoRequest { tieuDe: string; noiDung: string; nguoiNhan
 export interface TinDaGuiDto { id: string; tieuDe: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; luc: string; thuHoiLuc: string | null; soNguoiNhan: number; soDaHieu: number }
 export interface DaGuiResponse { tin: TinDaGuiDto[] }
 export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc: string }[]; chuaHieu: { ten: string; quyen: string }[] }
+
+// ---- Thông báo màn hình khoá / Web Push (ADR-0036) -----------------------------
+export interface MayThongBaoResponse { khoa: string | null; soMay: number }
+export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } | null }

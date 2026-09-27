@@ -1,4 +1,4 @@
-// SQL của module thongbao (bảng ntf_*; ADR-0034). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
+// SQL của module thongbao (bảng ntf_*; ADR-0034 + ADR-0036). Mọi câu qua defineSql, tham số ?N. Đọc xuyên module CHỈ qua view công bố:
 // v_aud_order_event (audit), v_ord_order_label + v_ord_order_owner (orders), v_dsp_order_handler + v_dsp_first_handler (dispatch), v_stf_staff_label (staff).
 // Không DELETE, không OR REPLACE (R-N1-9).
 import { defineSql } from "../../shared/sql-registry.ts";
@@ -108,3 +108,43 @@ export async function listAcks(db: D1Database, id: string) {
   return (await db.prepare(LIST_ACKS).bind(id).all<{ staff_id: string; created_at: string }>()).results;
 }
 export const getNotice = (db: D1Database, id: string) => db.prepare(GET_NOTICE).bind(id).first<{ id: string; valid_to: string | null; created_by: string | null; tags: string | null }>();
+
+// ---- Web Push (ADR-0036): ntf_push_sub — địa chỉ nhận thông báo màn hình khoá của từng máy. ----
+
+const LIST_MAY_DANG_BAT = defineSql("thongbao", "list_may_dang_bat", `SELECT staff_id, endpoint FROM ntf_push_sub WHERE revoked_at IS NULL`);
+const DEM_MAY = defineSql("thongbao", "dem_may", `SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = ?1 AND revoked_at IS NULL`);
+// Máy dùng chung đổi chủ (đăng ký cùng endpoint bằng tài khoản khác): huỷ dòng đang bật của NGƯỜI KHÁC trước khi chèn dòng mới —
+// tránh đụng UNIQUE INDEX (endpoint) WHERE revoked_at IS NULL. `by` = người vừa thao tác đăng ký (chủ MỚI của máy).
+const THU_HOI_MAY_NGUOI_KHAC = defineSql("thongbao", "thu_hoi_may_nguoi_khac", `
+  UPDATE ntf_push_sub SET revoked_at = ?2, revoke_reason = 'doi-tai-khoan', updated_at = ?2, updated_by = ?3
+  WHERE endpoint = ?1 AND staff_id != ?3 AND revoked_at IS NULL`);
+// Bật lại cùng máy (cùng người, cùng endpoint) = không đổi gì: WHERE NOT EXISTS chỉ chèn khi CHƯA có dòng đang bật với endpoint này
+// (dòng của người khác đã bị câu trên huỷ ngay trước, trong cùng batch()).
+const BAT_MAY = defineSql("thongbao", "bat_may", `
+  INSERT INTO ntf_push_sub (id, staff_id, endpoint, thiet_bi, created_at, created_by, updated_at, updated_by)
+  SELECT ?1, ?2, ?3, ?4, ?5, ?2, ?5, ?2
+  WHERE NOT EXISTS (SELECT 1 FROM ntf_push_sub WHERE endpoint = ?3 AND revoked_at IS NULL)`);
+// Tắt của CHÍNH staffId: `endpoint = NULL` (tham số ?2) = mọi máy của người đó; câu SQL tĩnh theo khuôn `?N IS NULL OR …`.
+const TAT_MAY = defineSql("thongbao", "tat_may", `
+  UPDATE ntf_push_sub SET revoked_at = ?4, revoke_reason = ?3, updated_at = ?4, updated_by = ?1
+  WHERE staff_id = ?1 AND revoked_at IS NULL AND (?2 IS NULL OR endpoint = ?2)`);
+// Hết hiệu lực (dịch vụ đẩy trả 410) — không phải hành động của một người, updated_by = NULL ("hệ thống", theo khuôn migrations-dispatch).
+const HET_HAN = defineSql("thongbao", "het_han_may", `
+  UPDATE ntf_push_sub SET revoked_at = ?2, revoke_reason = 'het-han', updated_at = ?2, updated_by = NULL
+  WHERE revoked_at IS NULL AND endpoint IN (SELECT value FROM json_each(?1))`);
+
+export async function listMayDangBat(db: D1Database): Promise<{ staff_id: string; endpoint: string }[]> {
+  return (await db.prepare(LIST_MAY_DANG_BAT).all<{ staff_id: string; endpoint: string }>()).results;
+}
+export const demMay = async (db: D1Database, staffId: string): Promise<number> =>
+  (await db.prepare(DEM_MAY).bind(staffId).first<{ n: number }>())?.n ?? 0;
+export function batMayStatements(db: D1Database, a: { id: string; staffId: string; endpoint: string; thietBi: string; at: string }): D1PreparedStatement[] {
+  return [
+    db.prepare(THU_HOI_MAY_NGUOI_KHAC).bind(a.endpoint, a.at, a.staffId),
+    db.prepare(BAT_MAY).bind(a.id, a.staffId, a.endpoint, a.thietBi, a.at),
+  ];
+}
+export const tatMayStatement = (db: D1Database, staffId: string, endpoint: string | null, lyDo: string, at: string): D1PreparedStatement =>
+  db.prepare(TAT_MAY).bind(staffId, endpoint, lyDo, at);
+export const hetHanStatement = (db: D1Database, endpoints: string[], at: string): D1PreparedStatement =>
+  db.prepare(HET_HAN).bind(JSON.stringify(endpoints), at);
