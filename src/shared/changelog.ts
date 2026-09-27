@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.22",
+    date: "2026-09-27",
+    items: [
+      { kind: "doi", text: "Đơn mới lập không còn tự ghi người lập là người phụ trách: đơn chưa có ai hiện “Chờ nhận”, chờ hướng dẫn viên hoặc nhân viên bấm Nhận." },
+      { kind: "moi", text: "Hướng dẫn viên thấy danh sách đơn chờ nhận (không có số điện thoại, không có tiền) và bấm Nhận; đơn mình đang phụ trách thì xem đủ thông tin." },
+      { kind: "moi", text: "Khi lập đơn, bạn chọn được hướng dẫn viên phụ trách ngay; chọn xong là có hiệu lực luôn." },
+      { kind: "doi", text: "Mục “Việc của tôi” nay có cả đơn chưa xác nhận mà bạn đang phụ trách." },
+      { kind: "doi", text: "Đơn đã lưu mà chưa chốt nay ghi “Chờ xác nhận” thay cho “Nháp”; người đang lo đơn hiện “HDV: tên người đó”." },
+    ],
+  },
+  {
     version: "1.21",
     date: "2026-09-27",
     items: [
