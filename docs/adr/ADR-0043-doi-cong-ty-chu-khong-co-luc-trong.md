@@ -3,18 +3,27 @@
 - **Trạng thái:** **accepted** — chủ dự án trả lời 2026-09-28 trong phiên điều phối, hai câu hỏi gom một lần.
   - **Câu 1** (nhãn "công ty chủ" có được gỡ hoặc chuyển sang hồ sơ khác không). Nguyên văn: *"Cho super Admin đổi, để sau này tôi có thể dùng cái khung, mã nguồn cho 1 doanh nghiệp khác nữa"*. Chủ ghi kèm số tài khoản Toàn quyền của mình; số đó không chép vào đây.
   - **Câu 2** (ai được thêm/bớt "người liên hệ của Tour Đảo"). Chủ chọn *"2A: Quản trị làm được"*.
-  - Chủ quyết **nguyên tắc**: đổi được, không có lúc trống, giữ lịch sử. **Cơ chế kỹ thuật** ở điều 2 do AI đề xuất và đã thử trên SQLite nháp; người kiểm độc lập soát lại khi thi công T2b.
-- **Ngày:** 2026-09-28   **Loại:** **hai chiều**. Trigger và cách chặn ở máy chủ đổi được bằng migration hay ADR sau. Dòng lịch sử vai không bị xoá hay sửa.
+  - Chủ quyết **nguyên tắc**: đổi được, không có lúc trống, giữ lịch sử. **Cơ chế kỹ thuật** ở điều 2 do AI đề xuất và đã thử trên SQLite nháp.
+  - Người kiểm độc lập (2026-09-28, trên commit 6af320a) kết luận ĐẠT CÓ ĐIỀU KIỆN. Đã sửa hai điểm bắt buộc: ngày bắt đầu khi đổi phải là hôm nay (điều 2), và nhãn của 6.5(i) (mục Liên quan).
+- **Ngày:** 2026-09-28   **Loại:** **hai chiều**. Trigger và cách chặn ở máy chủ đổi được bằng migration hay ADR sau. Dòng lịch sử vai không bị xoá hay sửa lùi.
 - **Liên quan:**
   - **ADR-0024 điều 6, bổ sung 6.5(ii) — THAY** (không sửa nội dung ADR-0024 đã duyệt; câu dưới đây thắng từ khi ADR-0043 có hiệu lực).
     - Nguyên văn cũ: *"(ii) Ở cơ sở dữ liệu: chỉ mục duy nhất một phần trên `pty_party_role(role_type_code)` cho dòng đang mở của mã vai này, cộng trigger cấm đóng vai khi không có dòng mở thay thế trong cùng lô."*
     - Nay thay bằng điều 2 dưới đây.
-    - Lý do phải thay: trên SQLite, chỉ mục duy nhất và trigger cấm đóng kiểm ngay từng câu lệnh. Vì vậy không có thứ tự nào trong cùng một lô vừa đóng dòng cũ vừa mở dòng mới được. Điều phối đã thử năm cách, cả năm đều bị chặn. Tức là vai sẽ không bao giờ đổi được, trái ý chủ ở câu 1.
-  - **ADR-0024 6.5(i)** (route từ chối trừ khi có `company.legal.write`): **giữ**, nói rõ thêm ở điều 2.
+    - Lý do phải thay: trên SQLite, chỉ mục duy nhất và trigger cấm đóng kiểm ngay từng câu lệnh. Vì vậy không có thứ tự nào trong cùng một lô vừa đóng dòng cũ vừa mở dòng mới được. Điều phối đã thử năm cách, cả năm đều bị chặn:
+      - (1) đóng cũ trước, mở mới sau;
+      - (2) mở mới trước, đóng cũ sau;
+      - (3) chèn dòng mới ở dạng đã đóng, rồi một câu `UPDATE` đảo cả hai dòng;
+      - (4) chỉ đóng;
+      - (5) chỉ mở thêm dòng thứ hai.
+    - Tức là vai sẽ không bao giờ đổi được, trái ý chủ ở câu 1. Người kiểm độc lập đã tái hiện độc lập.
+  - **ADR-0024 6.5(i)** (route gán và route kết thúc vai từ chối, trừ khi người gọi có `company.legal.write`):
+    - **giữ vế "gán"**;
+    - **vế "kết thúc" bị thay bởi điều 2**: không ai kết thúc được vai "công ty chủ", kể cả người có `company.legal.write`; muốn đổi thì gán cho hồ sơ khác.
   - **ADR-0024 6.4 và ADR-0038 điều 7** (ô `company.legal.write`, chỉ Toàn quyền): **giữ**.
   - **Hiến chương** (`docs/ARCHITECTURE.md` Phần I):
     - **5.1** (bất biến hai lớp): **giữ**, xem điều 2.
-    - **5.2 và 5.5** (hiệu lực theo ngày, không xoá cứng): **giữ**. Đổi = đóng dòng cũ + mở dòng mới, nên lịch sử còn nguyên.
+    - **5.2 và 5.5** (hiệu lực theo ngày, không xoá cứng): **giữ**. Đổi = đóng dòng cũ + mở dòng mới, lịch sử còn nguyên. Ngày bắt đầu bắt buộc là hôm nay, nên không ghi lùi lịch sử.
   - **ADR-0042** (Toàn quyền là vai ẩn): chữ người khác nhìn thấy không nói "Toàn quyền".
 
 ## Bối cảnh
@@ -34,12 +43,16 @@
      - (b) cấm đóng dòng "công ty chủ" đang mở **cuối cùng**;
      - (c) cấm mở lại dòng "công ty chủ" đã đóng.
      - **Không** dùng chỉ mục duy nhất một phần, vì nó chặn chính việc đổi.
-     - Ngày đóng theo đúng quy ước ngày của route "kết thúc vai" hiện có (giờ Việt Nam).
+   - **Quy ước ngày:**
+     - `valid_to_date` là ngày cuối còn hiệu lực (tính cả ngày đó), cùng quy ước với route "kết thúc vai" hiện có (`src/modules/parties/rules.ts`).
+     - Dòng cũ đóng ở ngày trước ngày bắt đầu của dòng mới. Nếu dòng cũ cũng bắt đầu đúng hôm nay thì đóng ở chính ngày bắt đầu của nó.
+     - Đổi nhiều lần trong **cùng một ngày** có thể bị trigger chống trùng khoảng có sẵn (`migrations/0011`) chặn. Gán lại cho chính hồ sơ đang giữ vai cũng bị chặn. Khi đó máy chủ báo câu tiếng Việt rõ ràng, ví dụ "hôm nay đã đổi, đổi tiếp vào ngày mai". Đây là giới hạn chấp nhận được.
    - **Máy chủ:**
      - Gán vai "công ty chủ" chỉ cho người có `company.legal.write`, và chỉ cho hồ sơ tổ chức; người khác nhận 403.
+     - **Ngày bắt đầu khi gán (đổi) luôn là hôm nay theo giờ Việt Nam**; máy chủ từ chối ngày khác. Lý do: ngày lùi làm trigger (a) đóng lùi dòng cũ, tức ghi sai lịch sử. Ngày tới làm hồ sơ mới hiện ngay trên trang đăng nhập và biên nhận từ hôm nay, vì hàm đọc chỉ xét dòng đang mở.
      - "Kết thúc vai công ty chủ" **luôn** bị từ chối, kể cả Toàn quyền. Câu báo tiếng Việt hướng dẫn "muốn đổi thì gán cho hồ sơ khác"; không lộ lỗi thô của cơ sở dữ liệu.
    - **Kiểm định kỳ:** `audit-invariants` kiểm đúng một hồ sơ đang mở vai "công ty chủ".
-3. **Giao diện tối thiểu.** Lựa chọn "Công ty chủ" chỉ hiện với người có `company.legal.write`, chỉ trên hồ sơ tổ chức, kèm câu xác nhận: trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này. Người khác không thấy lựa chọn đó.
+3. **Giao diện tối thiểu.** Lựa chọn "Công ty chủ" chỉ hiện với người có `company.legal.write`, chỉ trên hồ sơ tổ chức, kèm câu xác nhận: trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay. Người khác không thấy lựa chọn đó.
 4. **Không khoá thêm các cách sửa tay thẳng vào cơ sở dữ liệu**: đổi mã vai, chuyển dòng vai sang hồ sơ khác, xoá dòng. Chỉ người vào thẳng được dữ liệu mới làm được những việc này; giữ như phần đã duyệt.
 5. **"Người liên hệ của" hồ sơ công ty chủ** (quan hệ `CONTACT_OF`): Quản trị thêm/bớt được như với hồ sơ khác (`admin.manage`), theo câu 2 = 2A. Điều này khớp chữ của 6.4 và ADR-0038 điều 7, vì hai chỗ đó không liệt kê quan hệ.
 
@@ -48,8 +61,8 @@
 | Hỏi | Trả lời |
 |---|---|
 | `pty_party_role` chứa gì liên quan? | Dòng vai của mọi hồ sơ, trong đó **đúng một** dòng "công ty chủ" đang mở, cộng các dòng "công ty chủ" đã đóng (lịch sử đổi). |
-| Quyền nào chạm các dòng "công ty chủ"? | Gán (tức đổi): `company.legal.write`, chỉ Toàn quyền. Kết thúc: **không ai**. Sửa định danh, điểm liên hệ: `company.legal.write` (6.4). Quan hệ "người liên hệ của": `admin.manage` (điều 5). |
-| Cổng nào canh? | Route gán vai và route kết thúc vai kiểm trong thân route. Ba trigger ở điều 2. `audit-invariants` kiểm định kỳ. |
+| Quyền nào chạm các dòng "công ty chủ"? | Gán (tức đổi): `company.legal.write`, chỉ Toàn quyền, ngày bắt đầu = hôm nay. Kết thúc: **không ai**. Sửa định danh, điểm liên hệ: `company.legal.write` (6.4). Quan hệ "người liên hệ của": `admin.manage` (điều 5). |
+| Cổng nào canh? | Route gán vai (kiểm quyền, loại hồ sơ, ngày = hôm nay) và route kết thúc vai (luôn từ chối vai này) kiểm trong thân route. Ba trigger ở điều 2. `audit-invariants` kiểm định kỳ. |
 
 ## Hệ quả
 
@@ -64,3 +77,4 @@
 - **Giữ 6.5(ii) như đã duyệt** (vai khoá vĩnh viễn): chủ không chọn.
 - **Giữ chỉ mục duy nhất một phần, bỏ trigger cấm đóng, đổi bằng một lô [đóng cũ, mở mới]:** thử nháp thấy cơ sở dữ liệu để lọt ca "chỉ đóng, không mở". Như vậy "không có lúc trống" chỉ còn một lớp chặn.
 - **Chuyển dòng vai sang hồ sơ mới bằng `UPDATE party_id`:** mất lịch sử (trái Hiến chương 5.2).
+- **Cho chọn ngày bắt đầu tuỳ ý khi đổi:** ghi lùi lịch sử (ngày quá khứ), hoặc hiện hồ sơ mới trước ngày hiệu lực (ngày tương lai). Người kiểm độc lập đã tái hiện cả hai ca.
