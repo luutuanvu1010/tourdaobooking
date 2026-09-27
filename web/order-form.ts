@@ -220,7 +220,7 @@ function setSaving(value: boolean): void {
 
 async function refreshCatalogAfterConflict(): Promise<void> {
   try {
-    const res = await api<Api.CatalogPublicResponse>("/api/catalog");
+    const res = await api<Api.CatalogPublicResponse>("/api/catalog/for-order"); // ADR-0033: route cho người lập đơn (cả Đối tác, Thực tập)
     setCatalog(res.items);
     for (const en of entries) {
       const d = en.draft;
@@ -302,7 +302,7 @@ function setCatalog(items: CatalogServiceDto[]): void {
 
 async function loadCatalog(): Promise<void> {
   try {
-    const res = await api<Api.CatalogPublicResponse>("/api/catalog");
+    const res = await api<Api.CatalogPublicResponse>("/api/catalog/for-order"); // ADR-0033: route cho người lập đơn (cả Đối tác, Thực tập)
     setCatalog(res.items);
     if (res.items.length === 0) picker.setNotice("Danh mục dịch vụ đang trống — báo quản trị viên.");
     else if (res.sync.error) picker.setNotice(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
@@ -363,7 +363,10 @@ byId("use-mine").addEventListener("click", () => {
     el.dispatchEvent(new Event("input", { bubbles: true }));
   }
 });
-await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
+// ADR-0033: danh mục cho form chỉ dành cho người được lập đơn — máy chủ trả 403 cho tài khoản không có `order.create` (Kế toán), nên không gọi
+// (gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang…", lời khuyên sai vì tải lại không giúp gì). Hôm nay mọi mã có `order.modify`
+// đều có `order.create`; ai sửa đơn mà không được lập đơn thì thẻ đã lưu hiện ở dạng khoá như khi mất danh mục (xem `loadCatalog`).
+if (can(staff, "order.create")) await loadCatalog(); // trước loadOrder: thẻ đã lưu cần danh mục hiện tại để biết còn đổi số khách được không
 if (editId) {
   byId("form-title").textContent = "Sửa đơn";
   setBarTitle("Sửa đơn");

@@ -79,10 +79,11 @@ async function collectRealRoutes(): Promise<RouteSnapshot[]> {
 }
 
 // Ảnh chụp ĐÃ DUYỆT — lấy bằng `grep -n 'route(' src/modules/*/index.ts` ngày 2026-09-22, đọc từng dòng để chắc đúng (không đoán).
-// 72 route trên 12 module (55 gốc + 2 route ADR-0014 Phase B: handler-cancel, handler-money-edit + 1 route "việc của tôi": dispatch/mine
+// 73 route trên 12 module (55 gốc + 2 route ADR-0014 Phase B: handler-cancel, handler-money-edit + 1 route "việc của tôi": dispatch/mine
 // + 1 route Trang chủ mới 2026-09-23: GET /api/orders/dashboard + 2 route passkey công khai 2026-09-23 (ADR-0016): đăng nhập bằng Face ID
 // + 8 route passkey tự phục vụ/quản trị 2026-09-23 (ADR-0016): bật/gỡ Face ID, đặt PIN bằng Face ID
-// + 2 route vai 2026-09-24 (ADR-0018) + 1 route bắt tay Bảng tin 2026-09-26 (ADR-0022): GET /api/bang-tin, module bangtin)
+// + 2 route vai 2026-09-24 (ADR-0018) + 1 route bắt tay Bảng tin 2026-09-26 (ADR-0022): GET /api/bang-tin, module bangtin
+// + 1 route 2026-09-27 (ADR-0033): GET /api/catalog/for-order — danh mục cho người lập đơn)
 // — đếm lại bằng `grep -c 'route(' src/modules/*/index.ts` khi nghi ngờ con số này lệch.
 const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/account/change-pin", access: "staff" },
@@ -94,7 +95,8 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/auth/me", access: "staff" },
   { method: "POST", path: "/api/auth/passkey/login", access: "public" }, // đăng nhập bằng Face ID (ADR-0016) — tự gọi maintenanceBlock, không qua cổng bảo trì của router
   { method: "POST", path: "/api/auth/passkey/options", access: "public" }, // xin thách thức WebAuthn để đăng nhập
-  { method: "GET", path: "/api/catalog", access: "orders" }, // Đối tác + Thực tập xem danh mục chỉ-đọc (chủ dự án chọn A, 2026-09-26)
+  { method: "GET", path: "/api/catalog", access: "office" }, // ADR-0033 (2026-09-27): về cổng office như ADR-0019 điều 1 — đảo có chủ đích bản 1.15 (ADR-0028 điều 1: orders)
+  { method: "GET", path: "/api/catalog/for-order", access: "orders" }, // ADR-0033: danh mục cho form lập đơn (Đối tác, Thực tập); chốt chặn thật là can(order.create) trong thân
   { method: "PATCH", path: "/api/catalog/:code", access: "admin" },
   { method: "POST", path: "/api/catalog/:code/ack", access: "admin" },
   { method: "DELETE", path: "/api/catalog/:code/override", access: "admin" },
@@ -171,16 +173,17 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 72 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 73 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
-  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 72 để đối chiếu nhanh bằng mắt.
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 73 để đối chiếu nhanh bằng mắt.
   // (Cập nhật 2026-09-22: 55 gốc + 2 route ADR-0014 Phase B (handler-cancel, handler-money-edit) + 1 route "việc của tôi" (dispatch/mine) = 58;
   // 2026-09-23: + 1 route Trang chủ mới (GET /api/orders/dashboard) = 59; + 2 route passkey công khai (đăng nhập bằng Face ID, ADR-0016) = 61;
   // + 8 route passkey tự phục vụ/quản trị (bật/gỡ Face ID, đặt PIN bằng Face ID, ADR-0016) = 69;
   // 2026-09-24: + 2 route vai (GET/PUT /api/staff/:id/roles, ADR-0018) = 71;
-  // 2026-09-26: + 1 route bắt tay Bảng tin (GET /api/bang-tin, module bangtin, ADR-0022) = 72.)
+  // 2026-09-26: + 1 route bắt tay Bảng tin (GET /api/bang-tin, module bangtin, ADR-0022) = 72;
+  // 2026-09-27: + 1 route danh mục cho người lập đơn (GET /api/catalog/for-order, ADR-0033) = 73.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 72, "số route thực tế lệch 72 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 72, "SNAPSHOT phải có đúng 72 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 73, "số route thực tế lệch 73 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 73, "SNAPSHOT phải có đúng 73 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

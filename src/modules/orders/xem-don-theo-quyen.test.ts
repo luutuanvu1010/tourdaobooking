@@ -111,14 +111,22 @@ test("danh sách/chi tiết đơn: mọi mã qua cổng orders vẫn 200 (thêm 
   assert.equal((await w.call("GET", `/api/orders/${o}`, { as: INTERN })).status, 403);
 });
 
-test("danh mục cho form lập đơn: Đối tác, Thực tập, Bán hàng, Kế toán, Quản trị, Toàn quyền → 200; Hướng dẫn viên chỉ-FIELD → 403 (cổng)", async () => {
+// ADR-0033 (2026-09-27) ĐẢO CÓ CHỦ ĐÍCH ca của bản 1.15 (ADR-0028 điều 1): Đối tác/Thực tập đọc danh mục qua route riêng /api/catalog/for-order
+// (chốt chặn order.create rồi money.view "của mình"), còn GET /api/catalog về cổng office. Ca đầy đủ ở src/modules/catalog/danh-muc-lap-don.test.ts.
+test("danh mục cho form lập đơn (ADR-0033): /api/catalog/for-order — Đối tác, Thực tập, Bán hàng, Quản trị, Toàn quyền → 200; Kế toán, Hướng dẫn viên → 403. /api/catalog (office) — Bán hàng, Kế toán, Quản trị, Toàn quyền → 200; Đối tác, Thực tập, Hướng dẫn viên → 403", async () => {
   const w = setup();
-  for (const as of [PARTNER, INTERN, SALES, ACC, ADM, SUP]) {
+  for (const as of [PARTNER, INTERN, SALES, ADM, SUP]) {
+    const r = await w.call("GET", "/api/catalog/for-order", { as });
+    assert.equal(r.status, 200, `${as} for-order: ${r.text}`);
+    assert.ok(r.json.items.some((i: any) => i.code === "ZA1"));
+  }
+  for (const as of [ACC, FIELD]) assert.equal((await w.call("GET", "/api/catalog/for-order", { as })).status, 403, `${as} for-order`);
+  for (const as of [SALES, ACC, ADM, SUP]) {
     const r = await w.call("GET", "/api/catalog", { as });
     assert.equal(r.status, 200, `${as}: ${r.text}`);
     assert.ok(r.json.items.some((i: any) => i.code === "ZA1"));
   }
-  assert.equal((await w.call("GET", "/api/catalog", { as: FIELD })).status, 403);
+  for (const as of [PARTNER, INTERN, FIELD]) assert.equal((await w.call("GET", "/api/catalog", { as })).status, 403, `${as} /api/catalog`);
 });
 
 test("danh sách người có thể được giao: chỉ ai giao được ít nhất đơn của mình (dispatch.assign) — kế toán nay 403; Bán hàng, Quản trị → 200", async () => {

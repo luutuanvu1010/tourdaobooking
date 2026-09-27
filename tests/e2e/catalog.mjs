@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, BASE as B, call, login, randomPhone, session, sql } from "./lib.mjs";
+import { ACCOUNTS, BASE as B, call, login, randomPhone, session, sql, vnDate } from "./lib.mjs";
 // Cần D1 chưa từng đồng bộ danh mục (run.mjs luôn dựng D1 mới) và mạng để đọc Google Sheet thật.
 const ADMIN = await session(ACCOUNTS.admin), SALES = await session(ACCOUNTS.salesA);
 
@@ -60,24 +60,47 @@ for (const secret of ["Kiểm xem có trùng", "tour-3-dao-nha-trang-hon-mun-hon
 assert.ok(!("override" in td101) && !("sheetPrices" in td101));
 console.log("✓ giá đúng, không rò Khoá giá/Đường dẫn/Ghi chú nội bộ");
 
-// --- Đối tác và Thực tập xem danh mục CHỈ-ĐỌC (chủ dự án chọn A, 2026-09-26): cổng "orders" thay "office" — cùng NỘI DUNG như nhân viên
-// (không rò thêm gì), không đụng route quản trị danh mục; Hướng dẫn viên thuần (FIELD, order.view = none) vẫn 403.
+// --- Đối tác và Thực tập xem danh mục CHỈ-ĐỌC để lập đơn (ADR-0028 điều 2–4; ADR-0033 2026-09-27 thay điều 1): đọc qua route RIÊNG
+// GET /api/catalog/for-order (cổng "orders" + can(order.create) trong thân) — cùng NỘI DUNG như nhân viên (không rò thêm gì), không đụng route quản
+// trị danh mục. GET /api/catalog về cổng "office" (ADR-0019 điều 1): Đối tác/Thực tập nay 403 ở đó — ĐẢO CÓ CHỦ ĐÍCH so với bản 1.15.
+// Kế toán và Hướng dẫn viên thuần (không có order.create) → 403 ở route mới.
 const newAccount = async (body) => {
   const res = await call(ADMIN, "POST", "/api/staff", { fullName: `Xem danh mục ${randomPhone().slice(-4)}`, phone: randomPhone(), ...body });
   assert.equal(res.status, 201, JSON.stringify(res.body));
   return (await login(res.body.staff.phone, res.body.pin)).cookie;
 };
 const PARTNER = await newAccount({ roles: ["COLLABORATOR"] }), INTERN = await newAccount({ roles: ["INTERN"] }), FIELD_ONLY = await newAccount({ permissions: ["FIELD"] });
+const ACCOUNTANT = await session(ACCOUNTS.accountant);
 for (const [who, label] of [[PARTNER, "Đối tác"], [INTERN, "Thực tập"]]) {
-  const res = await call(who, "GET", "/api/catalog");
-  assert.equal(res.status, 200, `${label} phải đọc được danh mục: ${JSON.stringify(res.body)}`);
+  const res = await call(who, "GET", "/api/catalog/for-order");
+  assert.equal(res.status, 200, `${label} phải đọc được danh mục cho form lập đơn: ${JSON.stringify(res.body)}`);
   assert.deepEqual(res.body.items, items, `${label} thấy ĐÚNG nội dung như nhân viên bán hàng (không thêm, không bớt)`);
+  assert.equal(res.body.sync.error, null, `${label}: không phải văn phòng nên không thấy chữ lỗi đồng bộ Sheet`);
+  assert.equal((await call(who, "GET", "/api/catalog")).status, 403, `${label}: GET /api/catalog (cổng office, ADR-0033) phải 403`);
   for (const [m, pth] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", "/api/catalog/TD101"], ["DELETE", "/api/catalog/TD101/override"]]) {
     assert.equal((await call(who, m, pth, {})).status, 403, `${label}: ${m} ${pth} vẫn phải cấm`);
   }
 }
+r = await call(SALES, "GET", "/api/catalog/for-order");
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.deepEqual(r.body.items, items, "Bán hàng: route mới cùng nội dung với GET /api/catalog");
+assert.equal((await call(ACCOUNTANT, "GET", "/api/catalog/for-order")).status, 403, "Kế toán không lập đơn → 403 ở route mới");
+assert.equal((await call(ACCOUNTANT, "GET", "/api/catalog")).status, 200, "Kế toán (văn phòng) vẫn đọc GET /api/catalog");
 assert.equal((await call(FIELD_ONLY, "GET", "/api/catalog")).status, 403, "Hướng dẫn viên thuần (chỉ FIELD) vẫn không đọc danh mục");
-console.log("✓ Đối tác + Thực tập đọc danh mục (200, cùng nội dung), không vào được quản trị danh mục; Hướng dẫn viên thuần vẫn 403");
+assert.equal((await call(FIELD_ONLY, "GET", "/api/catalog/for-order")).status, 403, "Hướng dẫn viên thuần (chỉ FIELD) không đọc danh mục qua route mới");
+// Đối tác lập đơn nháp bằng một dịch vụ lấy từ chính danh sách route mới trả → 201; giá dòng do MÁY CHỦ tính lại (buildLines), đúng giá bán lẻ.
+const partnerTd101 = (await call(PARTNER, "GET", "/api/catalog/for-order")).body.items.find((i) => i.code === "TD101");
+assert.ok(partnerTd101 && partnerTd101.supported && partnerTd101.prices.adult !== null, "TD101 phải có trong danh mục của Đối tác, có giá người lớn");
+r = await call(PARTNER, "POST", "/api/orders", {
+  customerName: "Khách Đối Tác Danh Mục",
+  customerPhone: "0901 111 222",
+  services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2 }, catalogPriceSeen: { adult: partnerTd101.prices.adult }, departDate: vnDate(7) }],
+});
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const partnerLine = r.body.order.services.flatMap((s) => s.items)[0];
+assert.equal(partnerLine.unitPrice, partnerTd101.prices.adult, "giá dòng = giá bán lẻ danh mục");
+assert.equal(partnerLine.lineTotal, partnerTd101.prices.adult * 2);
+console.log("✓ Đối tác + Thực tập đọc danh mục qua /api/catalog/for-order (200, cùng nội dung, không thấy lỗi đồng bộ), /api/catalog 403; Kế toán + Hướng dẫn viên 403 ở route mới; Đối tác lập đơn từ danh mục đúng giá");
 
 // --- kéo lại: idempotent
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
