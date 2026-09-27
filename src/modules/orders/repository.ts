@@ -4,6 +4,7 @@ import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
+import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
@@ -372,6 +373,54 @@ export async function listOrders(
   const rows = results.slice(0, opts.limit);
   const orders = await toSummaryDtos(db, rows);
   return { orders, hasMore: results.length > opts.limit };
+}
+
+/**
+ * Nguồn của hàng chờ nhận (`GET /api/orders/pool`, ADR-0030 S23-2) — CHỈ đọc đúng các cột phần hẹp cần (mã đơn, trạng thái; dịch vụ: tên, số khách, ngày
+ * khởi hành, nơi đón, giờ đón): không đọc tên/SĐT/email khách, tiền, ghi chú, người lập — lớp thứ nhất; lớp thứ hai là danh sách trường được phép ở
+ * `pool.ts`. Số khách là số HIỆN HÀNH (áp dòng điều chỉnh gần nhất — `applyAdjustedPax`, cùng kỹ thuật danh sách đơn), vì đơn đã xác nhận quay về hàng chờ
+ * có thể đã được người phụ trách trước sửa số khách.
+ * Câu SQL chỉ LỌC THÔ trước (một TẬP CHA của hàng chờ, cho đỡ đọc mọi đơn cũ đã xác nhận): đơn nháp/đã xác nhận mà CÓ dịch vụ ngày ≥ `today`, HOẶC không
+ * dịch vụ nào có ngày — đúng bằng phủ định của `tripDeparted` (ngày đi = ngày lớn nhất; đã qua ⇔ < hôm nay). Luật QUYẾT ĐỊNH (chưa huỷ, không có người
+ * phụ trách, chưa qua ngày đi) nằm ở `toPoolOrders` (thuần). "Đơn nào có người phụ trách" KHÔNG hỏi ở đây: route hỏi `ctx.ordersWithHandler` (S20-13).
+ * GIỚI HẠN ĐÃ BIẾT: không chia trang — trả mọi đơn chưa đi, chưa huỷ (hôm nay vài chục); nhiều hơn vài trăm thì phải xem lại.
+ */
+export async function listPoolSources(db: D1Database, today: string): Promise<PoolSourceOrder[]> {
+  const { results: orderRows } = await db
+    .prepare(
+      `SELECT o.id, o.order_code, o.status FROM orders o
+       WHERE o.status IN ('draft', 'confirmed')
+         AND (EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.depart_date >= ?)
+              OR NOT EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.depart_date IS NOT NULL AND s.depart_date <> ''))`,
+    )
+    .bind(today)
+    .all<{ id: string; order_code: string; status: OrderStatus }>();
+  if (orderRows.length === 0) return [];
+  const [{ results: serviceRows }, latest] = await Promise.all([
+    db
+      .prepare(
+        `SELECT id, order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
+         FROM order_service WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY order_id, sort_order`,
+      )
+      .bind(JSON.stringify(orderRows.map((r) => r.id)))
+      .all<ServiceSummaryRow>(),
+    // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc đơn đã xác nhận) — như `toSummaryDtos`.
+    getLatestAdjustments(db, orderRows.filter((r) => r.status !== "draft").map((r) => r.id)),
+  ]);
+  const afterByOrder = new Map(Array.from(latest, ([id, a]) => [id, a.after] as const));
+  const servicesByOrder = new Map<string, PoolSourceService[]>();
+  for (const s of applyAdjustedPax(serviceRows, afterByOrder)) {
+    const list = servicesByOrder.get(s.order_id) ?? [];
+    list.push({
+      name: s.name,
+      pax: { adult: s.pax_adult, child: s.pax_child, senior: s.pax_senior, infant: s.pax_infant },
+      departDate: s.depart_date,
+      pickupTime: s.pickup_time,
+      pickupPlace: s.pickup_place,
+    });
+    servicesByOrder.set(s.order_id, list);
+  }
+  return orderRows.map((r) => ({ id: r.id, orderCode: r.order_code, status: r.status, services: servicesByOrder.get(r.id) ?? [] }));
 }
 
 export interface DashboardData {

@@ -4,6 +4,7 @@
 import { getAuditTrail } from "../audit";
 import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
+  PoolResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, type PermissionHolder } from "../../shared/permissions";
@@ -12,8 +13,9 @@ import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
-  updateDraftOrder, updateTrip,
+  listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
+import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
@@ -185,6 +187,20 @@ export const ordersModule: AppModule = {
       const { from, to } = vnWeekRange(today);
       const data = await getDashboard(env.DB, staff.id, today, from, to, ordersWithHandler);
       return json({ ...data, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
+    }),
+
+    // Hàng chờ nhận (ADR-0030 S23-1, S23-2): PHẦN HẸP của các đơn chưa có người phụ trách, chưa huỷ, chưa qua ngày đi — hướng dẫn viên xem để bấm Nhận
+    // (`PUT /api/orders/:id/handler`, module dispatch). PHẢI đứng TRƯỚC "GET /api/orders/:id" (cùng lý do với route dashboard ở trên — ":id" cũng khớp
+    // chữ "pool"; Review Focus 3). Kiểm quyền TRƯỚC mọi đọc: ô `order.pool.view` (Hướng dẫn viên, Toàn quyền — Quản trị KHÔNG có: đã thấy đủ mọi đơn
+    // qua `order.view`) VÀ không mang quyền Đối tác (tài khoản lai, Q-M — một trong "bốn cửa" của S20-5). Không đòi `contact.view`: nơi đón/giờ đón ở
+    // phần hẹp là ngoại lệ có tên của ô đó, bù bằng che dãy số (`pool.ts`). Tập đơn đang có người hỏi qua `ordersWithHandler` (gốc lắp ráp nối vào
+    // dispatch — S20-13), không SQL nào của orders đọc view của dispatch.
+    route("GET", "/api/orders/pool", "orders", async ({ env, staff, ordersWithHandler }) => {
+      if (!can(staff, "order.pool.view") || holdsPartner(staff)) return FORBIDDEN_VIEW();
+      const today = vnToday(new Date());
+      const sources = await listPoolSources(env.DB, today);
+      const withHandler = await ordersWithHandler(sources.map((o) => o.id));
+      return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
     }),
 
     route("GET", "/api/orders", "orders", async ({ env, url, staff }) => {

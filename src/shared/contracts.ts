@@ -289,6 +289,27 @@ export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean
 export interface OrderResponse { order: OrderDetailDto }
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean }
 
+/** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */
+export interface PoolServiceDto {
+  name: string;
+  pax: PaxCounts;
+  pickupPlace: string | null;
+  pickupTime: string | null;
+}
+/**
+ * Một đơn trong hàng chờ nhận `GET /api/orders/pool` (ADR-0030 S23-1, S23-2) — PHẦN HẸP, ĐÚNG bốn khoá: không tên/SĐT/email khách, không tiền, không
+ * ghi chú, không lịch sử, không người lập. `departDate` = ngày đi (ngày khởi hành lớn nhất; null nếu chưa có ngày). Dựng ở `orders/pool.ts` (danh sách
+ * trường được phép); thêm khoá = sửa cả bài khoá `src/modules/orders/pool.test.ts`.
+ */
+export interface PoolOrderDto {
+  orderId: string;
+  orderCode: string;
+  departDate: string | null;
+  services: PoolServiceDto[];
+}
+/** Đơn chờ nhận: chưa có người phụ trách đang mở, chưa huỷ, chưa qua ngày đi — xếp ngày đi gần nhất trước, chưa có ngày xuống cuối. */
+export interface PoolResponse { orders: PoolOrderDto[] }
+
 /**
  * `GET /api/orders/dashboard` (Trang chủ mới, `access: "office"`) — tổng quan cho nhân viên văn phòng.
  * `today`: đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay.

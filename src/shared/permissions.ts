@@ -35,7 +35,7 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNE
  * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
- * Có route dùng: order.create/history.view/modify/trip.edit/money.edit (module orders), dispatch.assign/claim/cancel (module dispatch),
+ * Có route dùng: order.create/history.view/modify/trip.edit/money.edit/pool.view (module orders), dispatch.assign/claim/cancel (module dispatch),
  * feedback.submit/view/triage (module feedback), party.view/write/staff.write (module parties).
  * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
  * Thao tác của N2/N3 (task.progress, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view) có mặt để test khoá bản
@@ -71,6 +71,10 @@ export const MATRIX = {
   "feedback.view": row("own", "own", "any", "own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
   "feedback.triage": row("none", "none", "any", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
+  // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
+  // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
+  // đòi contact.view; nơi đón đã che dãy từ 8 chữ số — src/modules/orders/pool.ts).
+  "order.pool.view": row("none", "none", "none", "any", "none", "any", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
