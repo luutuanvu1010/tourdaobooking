@@ -99,6 +99,7 @@
 | `stf_permission_adjustment` | bảng |  |
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
+| `v_stf_toan_quyen` | view công bố | cột: staff_id |
 
 ## thongbao
 

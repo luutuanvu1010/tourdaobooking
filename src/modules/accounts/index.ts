@@ -35,6 +35,7 @@ const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
 // ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
 const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+const NOT_SUPER_ONLY = () => error(403, "forbidden", "Việc này chỉ tài khoản Toàn quyền làm được.");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới; tài khoản này do Toàn quyền quản lý.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
@@ -391,6 +392,7 @@ export const accountsModule: AppModule = {
     // ---- Đồng bộ từ Google Sheet: xem trước rồi áp dụng --------------------------
     route("GET", "/api/staff/sheet", "admin", async ({ env, staff: admin }) => {
       if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
       let parsed;
       try {
         parsed = parseStaffSheet(await fetchSheetCsv(env.STAFF_SHEET_ID));
@@ -412,6 +414,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/sheet/apply", "admin", async ({ request, env, staff: admin }) => {
       if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
       const db = env.DB;
       const body = await readJson(request);
       const wanted = Array.isArray(body?.phones) ? body.phones.filter((p): p is string => typeof p === "string") : [];
@@ -596,6 +599,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/:id/reset-pin", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -618,6 +622,7 @@ export const accountsModule: AppModule = {
     // ADR-0016 điều 6/8: quản trị viên gỡ mọi Face ID của một tài khoản (vd. mất máy, nghi lộ khoá) mà không cần đặt lại PIN.
     route("POST", "/api/staff/:id/passkeys/remove-all", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
       if (!passkeyRp(ctx.env)) return PASSKEY_ERRORS.off();
       const db = ctx.env.DB;
       const t = await target(ctx);
@@ -636,6 +641,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/:id/unlock", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();

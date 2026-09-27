@@ -70,6 +70,19 @@ export type AuditAction = keyof typeof AUDIT_ACTIONS;
 /** Loại đối tượng của một dòng nhật ký — trùng với nhóm hành động. */
 export type AuditTargetType = AuditGroup;
 
+/**
+ * ADR-0038: thao tác "im lặng" — dòng nhật ký VẪN ghi, nhưng khi người làm đang giữ Toàn quyền thì chỉ Toàn quyền xem được ở trang Nhật ký
+ * (GET /api/audit). Thêm/bớt hành động ở đây là đổi quyền xem → cần chủ dự án duyệt (ADR mới hoặc sửa ADR-0038).
+ */
+export const SILENT_AUDIT_ACTIONS = [
+  "account_roles_changed",
+  "permission_changed",
+  "staff_role_changed",
+  "maintenance_changed",
+  "pin_reset",
+  "passkey_removed",
+] as const satisfies readonly AuditAction[];
+
 export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
 
 export const auditLabel = (a: AuditAction): string => AUDIT_ACTIONS[a].label;

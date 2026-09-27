@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.26",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Góp ý và Báo lỗi do người phụ trách hệ thống tiếp nhận; tài khoản Quản trị không còn mở hàng đợi Góp ý. Mọi người vẫn gửi và xem góp ý của mình như cũ." },
+      { kind: "doi", text: "Quản trị tập trung việc kinh doanh, nhân sự. Đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ từ Sheet và trang Nhật ký do người phụ trách hệ thống làm." },
+    ],
+  },
+  {
     version: "1.25",
     date: "2026-09-28",
     items: [

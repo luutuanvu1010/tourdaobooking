@@ -33,7 +33,8 @@ async function bundle(entry) {
   });
   return import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString("base64")}`);
 }
-export const app = (await bundle('export { default } from "./index"; export { createSessionToken } from "./modules/auth/session";'));
+// listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
+export const app = (await bundle('export { default } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository";'));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
 export function fakeD1(sqlite) {

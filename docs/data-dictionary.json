@@ -288,6 +288,13 @@
       ]
     },
     {
+      "name": "v_stf_toan_quyen",
+      "module": "staff",
+      "columns": [
+        "staff_id"
+      ]
+    },
+    {
       "name": "v_aud_order_event",
       "module": "audit",
       "columns": [

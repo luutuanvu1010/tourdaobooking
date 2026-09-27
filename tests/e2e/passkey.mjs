@@ -191,6 +191,7 @@ console.log("✓ tự gỡ hết Face ID (còn ≥1 khoá): đăng xuất máy k
 
 // 13. Admin: ngưng tài khoản giữa lúc lấy thách thức và gửi → từ chối; nút admin gỡ
 const ADMIN = await session(ACCOUNTS.admin);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: trang Nhật ký, đặt lại PIN, gỡ Face ID, mở khoá chỉ Toàn quyền
 const fieldId = (await call(SO, "GET", "/api/auth/me")).body.staff.id;
 const activeKeysOf = async (id) => (await sqlRows(`SELECT count(*) AS n FROM aut_passkey WHERE staff_id = '${id}' AND valid_to_at IS NULL`))[0].n;
 assert.equal(await activeKeysOf(fieldId), 1, "trước khi ngưng: field còn đúng khoá `other` từ bước 11");
@@ -223,7 +224,7 @@ r = await enable(SOr, ACCOUNTS.field.pin, other2);
 assert.equal(r.status, 201, JSON.stringify(r.body));
 let staffRow = (await call(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === fieldId);
 assert.equal(staffRow.passkeyCount, 1, JSON.stringify(staffRow));
-r = await call(ADMIN, "POST", `/api/staff/${fieldId}/reset-pin`, {});
+r = await call(TOAN_QUYEN, "POST", `/api/staff/${fieldId}/reset-pin`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.staff.passkeyCount, 0);
 const newFieldPin = r.body.pin;
@@ -240,7 +241,7 @@ r = await enable(SO2, newFieldPin, other3);
 assert.equal(r.status, 201, JSON.stringify(r.body));
 staffRow = (await call(ADMIN, "GET", "/api/staff")).body.staff.find((s) => s.id === fieldId);
 assert.equal(staffRow.passkeyCount, 1, JSON.stringify(staffRow));
-r = await call(ADMIN, "POST", `/api/staff/${fieldId}/passkeys/remove-all`, {});
+r = await call(TOAN_QUYEN, "POST", `/api/staff/${fieldId}/passkeys/remove-all`, {});
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.staff.passkeyCount, 0);
 r = (await passkeyLogin(other3)).r;
@@ -261,7 +262,7 @@ for (let i = 1; i <= 5; i++) {
 r = await login(ACC.phone, ACC.pin, ipAcc);
 assert.equal(r.status, 429, JSON.stringify(r.body));
 assert.equal(r.body.error.code, "too_many_attempts");
-assert.equal((await call(ADMIN, "POST", `/api/staff/${accId}/unlock`, {})).status, 200);
+assert.equal((await call(TOAN_QUYEN, "POST", `/api/staff/${accId}/unlock`, {})).status, 200);
 console.log("✓ sai PIN khi bật Face ID tính chung bộ đếm chống dò với đăng nhập; admin mở khoá xong");
 
 // 15. Gỡ hết khi đã hết passkey → 200 { removed: 0 }, không có set-cookie

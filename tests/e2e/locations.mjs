@@ -4,6 +4,7 @@ import { ACCOUNTS, call, session } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: trang Nhật ký, đặt lại PIN, gỡ Face ID, mở khoá chỉ Toàn quyền
 const code = `TEST_${String(Date.now()).slice(-8)}`;
 
 // --- đọc: phải đăng nhập; mọi tài khoản đọc được; 8 địa điểm gieo sẵn
@@ -53,10 +54,10 @@ assert.equal((await call(SALES, "GET", "/api/locations")).body.locations.find((l
 console.log("✓ ngưng dùng thay cho xoá");
 
 // --- nhật ký: có dòng theo loại đối tượng "location"; bên thua khoá lạc quan KHÔNG để lại dòng
-r = await call(ADMIN, "GET", "/api/audit?action=location_updated&limit=50");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?action=location_updated&limit=50");
 assert.equal(r.body.entries.filter((e) => e.targetId === created.id).length, 2, "đúng 2 lần sửa thành công (sửa tên, ngưng dùng)");
 assert.ok(r.body.entries.every((e) => e.targetType === "location"));
-r = await call(ADMIN, "GET", "/api/audit?action=location_created&limit=50");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?action=location_created&limit=50");
 assert.ok(r.body.entries.some((e) => e.targetId === created.id && e.detail.includes(code)));
 console.log("✓ nhật ký");
 console.log("E2E LOCATIONS OK");

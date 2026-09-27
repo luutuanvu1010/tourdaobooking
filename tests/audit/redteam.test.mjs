@@ -11,6 +11,7 @@ const B = "22222222-2222-4222-8222-222222222222"; // SALES khác
 const ADM = "33333333-3333-4333-8333-333333333333"; // ADMIN
 const F = "44444444-4444-4444-8444-444444444444"; // FIELD
 const K = "55555555-5555-4555-8555-555555555555"; // ACCOUNTING
+const SUP = "77777777-7777-4777-8777-777777777777"; // SUPER_ADMIN — ADR-0038: chỉ Toàn quyền xử lý Góp ý
 
 function setup() {
   const w = world();
@@ -19,6 +20,7 @@ function setup() {
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
   seedStaff(w.sqlite, { id: F, phone: "0900000004", name: "Thực địa", perms: ["FIELD"] });
   seedStaff(w.sqlite, { id: K, phone: "0900000005", name: "Kế toán", perms: ["ACCOUNTING"] });
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
   // 2026-09-26 (DK-T3-01): API không nhận dịch vụ nhập tay mới → đơn thử dùng dịch vụ danh mục GIẢ (cùng số tiền 2 × 500.000 với dịch vụ nhập tay cũ).
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
   return w;
@@ -180,14 +182,14 @@ test("R11 PASS feedback: người khác không đọc/trả lời được yêu 
   assert.equal(t2.status, 200);
   assert.equal(t2.json.ticket.id, id);
   assert.equal(w.q("SELECT count(*) n FROM fbk_ticket")[0].n, 1);
-  for (const who of [B, F, K]) {
+  for (const who of [B, F, K, ADM]) { // ADR-0038: Quản trị cũng không đọc/xử lý Góp ý của người khác
     assert.equal((await w.call("GET", `/api/feedback/${id}`, { as: who })).status, 404);
     assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: who, body: { body: "chen vao" } })).status, 404);
     assert.equal((await w.call("GET", "/api/feedback", { as: who })).status, 403);
     assert.equal((await w.call("PATCH", `/api/feedback/${id}`, { as: who, body: { status: "DONE" } })).status, 403);
   }
   assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: A, body: { body: "x", internal: true } })).status, 403);
-  assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: ADM, body: { body: "ghi chu noi bo", internal: true } })).status, 201);
+  assert.equal((await w.call("POST", `/api/feedback/${id}/messages`, { as: SUP, body: { body: "ghi chu noi bo", internal: true } })).status, 201);
   const mine = await w.call("GET", `/api/feedback/${id}`, { as: A });
   assert.equal(mine.json.messages.some((m) => m.body === "ghi chu noi bo"), false);
   assert.equal((await w.call("GET", "/api/feedback/mine", { as: B })).json.tickets.length, 0);

@@ -29,6 +29,7 @@ export const auditModule: AppModule = {
   routes: [
     route("GET", "/api/audit", "admin", async ({ env, url, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+      if (!can(staff, "audit.view")) return error(403, "forbidden", "Trang Nhật ký chỉ tài khoản Toàn quyền xem được."); // ADR-0038 điều 6
       const raw = url.searchParams.get("action");
       const action = raw ? (isAuditAction(raw) ? raw : undefined) : null;
       if (action === undefined) return error(400, "invalid_input", "Hành động lọc không hợp lệ.");
@@ -38,6 +39,7 @@ export const auditModule: AppModule = {
           q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
           limit: intParam(url.searchParams.get("limit"), 50, 1, 100),
           offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
+          hideSilent: !can(staff, "admin.manage.superadmin"), // ADR-0038: chỉ Toàn quyền xem thao tác im lặng của Toàn quyền
         }),
       );
     }),

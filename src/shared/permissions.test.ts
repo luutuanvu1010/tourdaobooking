@@ -29,9 +29,12 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope]> = {
   "party.staff.write": ["none", "none", "any", "none", "none", "any", "none"], // ADR-0013
   "admin.manage": ["none", "none", "any", "none", "none", "any", "none"],
   "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0014 điều 2/8: thao tác MỚI
+  "account.access.manage": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
+  "staff.sheet.sync": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
+  "audit.view": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
   "feedback.submit": ["any", "any", "any", "any", "any", "any", "any"],
-  "feedback.view": ["own", "own", "any", "own", "own", "any", "own"],
-  "feedback.triage": ["none", "none", "any", "none", "none", "any", "none"],
+  "feedback.view": ["own", "own", "own", "own", "own", "any", "own"], // ADR-0038: Quản trị any → own
+  "feedback.triage": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038: Quản trị any → none
   "settings.ops": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0019: chỉ Toàn quyền (chế độ bảo trì)
   "notice.send": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0034 điều 7: chỉ Toàn quyền gửi/thu hồi tin thủ công
 };
@@ -176,9 +179,10 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // Năm thao tác hẹp, cố ý KHÔNG mở cho ADMIN (ADR-0014, ADR-0019, ADR-0034): admin.manage.superadmin/order.cancel/dispatch.guides.view/settings.ops/notice.send
 // (dispatch.request đã bỏ khỏi bản đồ, ADR-0019) chỉ dành cho SUPER_ADMIN hoặc PARTNER/FIELD theo đúng bảng (settings.ops: chỉ Toàn quyền — bật/tắt bảo trì;
 // notice.send: chỉ Toàn quyền gửi/thu hồi tin thủ công, ADR-0034 điều 7) — ADMIN vẫn làm được việc tương ứng qua đường khác (permissions route, order.modify, dispatch.assign).
-const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "notice.send"];
+// ADR-0038: thêm feedback.view (own — đơn của người khác → không) và feedback.triage (none).
+const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "notice.send", "feedback.view", "feedback.triage", "account.access.manage", "staff.sheet.sync", "audit.view"];
 
-test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ năm thao tác hẹp cố ý không mở", () => {
+test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ mười thao tác hẹp cố ý không mở", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };
   for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "party.staff.write", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
   const admin = { id: "a", permissions: ["ADMIN"] as const };

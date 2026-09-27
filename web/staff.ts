@@ -20,6 +20,8 @@ const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
+// ADR-0038 điều 6: đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ từ Sheet chỉ Toàn quyền — Quản trị không thấy nút (máy chủ vẫn chặn 403).
+let canAccessManage = false;
 
 let me: { id: string };
 let accounts: StaffAccount[] = [];
@@ -81,7 +83,8 @@ function row(s: StaffAccount): HTMLElement {
       { class: "row-actions" },
       btn("Sửa", () => void openEdit(s)),
       // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
-      !isMe &&
+      canAccessManage &&
+        !isMe &&
         btn("Đặt lại PIN", async () => {
           if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -90,11 +93,12 @@ function row(s: StaffAccount): HTMLElement {
             await load();
           }
         }),
-      s.locked && btn("Mở khoá", async () => {
+      canAccessManage && s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
       // Không hiện trên hàng của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
-      !isMe &&
+      canAccessManage &&
+        !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
           if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
@@ -133,7 +137,8 @@ function card(s: StaffAccount): HTMLElement {
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
       btn("Sửa", () => void openEdit(s)),
       // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
-      !isMe &&
+      canAccessManage &&
+        !isMe &&
         btn("Đặt lại PIN", async () => {
           if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -142,11 +147,12 @@ function card(s: StaffAccount): HTMLElement {
             await load();
           }
         }),
-      s.locked && btn("Mở khoá", async () => {
+      canAccessManage && s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
       // Không hiện trên thẻ của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
-      !isMe &&
+      canAccessManage &&
+        !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
           if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
@@ -366,6 +372,8 @@ byId("sheet-pull").addEventListener("click", async () => {
 const staff = await initShell();
 me = staff;
 meSuper = hasPermission(staff, "SUPER_ADMIN");
+canAccessManage = can(staff, "account.access.manage");
+byId("sheet-pull").hidden = !can(staff, "staff.sheet.sync");
 // Cổng trang theo ô admin.manage (Quản trị HOẶC Toàn quyền — cùng đối tượng với access "admin" của API), không riêng quyền ADMIN.
 if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else {
