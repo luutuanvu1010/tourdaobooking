@@ -19,6 +19,7 @@ import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
+import { goiSom } from "./goi-som";
 import { initShell, setBarTitle } from "./shell";
 
 const params = new URLSearchParams(location.search);
@@ -302,7 +303,7 @@ function setCatalog(items: CatalogServiceDto[]): void {
 
 async function loadCatalog(): Promise<void> {
   try {
-    const res = await api<Api.CatalogPublicResponse>("/api/catalog/for-order"); // ADR-0033: route cho người lập đơn (cả Đối tác, Thực tập)
+    const res = await layDanhMuc(); // ADR-0033: route cho người lập đơn (cả Đối tác, Thực tập)
     setCatalog(res.items);
     if (res.items.length === 0) picker.setNotice("Danh mục dịch vụ đang trống — báo quản trị viên.");
     else if (res.sync.error) picker.setNotice(`Chưa cập nhật được giá mới từ Google Sheet (${res.sync.error.replace(/[.\s]+$/, "")}). Đang dùng bản đã lưu — hãy kiểm tra lại giá trước khi gửi khách.`);
@@ -339,7 +340,7 @@ async function loadOrder(): Promise<void> {
   renderBanner(errorEl, null);
   renderBanner(saveErrorEl, null);
   try {
-    const { order, canModify } = await api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`);
+    const { order, canModify } = await layDon!();
     // `canModify` do MÁY CHỦ quyết (người lập, người phụ trách đơn — ADR-0009 — hoặc quản trị); câu này chỉ giải thích khi bị từ chối.
     if (!canModify) return lockForm(banner("danger", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được sửa đơn này."));
     if (order.status !== "draft") return lockForm(banner("danger", "Chỉ sửa được đơn ở trạng thái nháp."));
@@ -352,6 +353,10 @@ async function loadOrder(): Promise<void> {
 }
 
 // ---- khởi động ----
+// Gọi sớm (web/goi-som.ts): danh mục (và đơn đang sửa) gửi NGAY, song song với /api/auth/me của initShell(); vẫn chỉ DÙNG theo đúng điều kiện
+// quyền bên dưới. Tài khoản không lập đơn (Kế toán) thì lời gọi danh mục nhận 403 từ máy chủ và bị bỏ, không hiện lời báo nào.
+const layDanhMuc = goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order"));
+const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
 // "Sử dụng thông tin của tôi": điền tên + SĐT của tài khoản đang đăng nhập (hồ sơ tài khoản chưa có email nên ô Email không đổi).

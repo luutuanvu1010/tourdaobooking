@@ -4,6 +4,7 @@ import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./
 import { byId, h, replaceChildren } from "./dom";
 import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
 import { orderCard } from "./order-card";
+import { goiSom } from "./goi-som";
 import { initShell, showError } from "./shell";
 
 const PAGE = 30;
@@ -21,6 +22,24 @@ let moreLoading = false; // đang chạy "Tải thêm": làm mới theo tin đ�
 let refreshWaiting = false;
 let lastLoadIsMore = false; // lần tải bắt đầu gần nhất là "Tải thêm" (nó là thứ có thể đã thay thế một lần làm mới đang bay)
 const MAX_PAGE = 100; // `GET /api/orders` nhận limit tối đa 100
+
+/** Đường dẫn `GET /api/orders` theo bộ lọc/ô tìm đang hiện. */
+function listUrl(base: number, limit: number): string {
+  const params = new URLSearchParams({ limit: String(limit), offset: String(base) });
+  if (qInput.value.trim()) params.set("q", qInput.value.trim());
+  if (statusSel.value) params.set("status", statusSel.value as OrderStatus);
+  return `/api/orders?${params}`;
+}
+
+// Ô tìm kiếm trên thanh công việc (`web/shell.ts`) đưa người dùng về đây kèm `?q=…` (đặc tả Đợt D §47: dùng lại
+// tham số `q` mà `GET /api/orders` đã hỗ trợ). ĐỔ VÀO Ô TÌM CỦA TRANG trước lần tải đầu, vì ba lý do: `load()` chỉ
+// đọc `qInput.value` nên đây là chỗ duy nhất nối được; người dùng THẤY mình đang lọc theo gì; và sửa/xoá được ngay
+// trên ô đó. Trước sửa này, gõ rồi Enter chỉ tải lại trang và hiện TOÀN BỘ danh sách (ô tìm là nút chết).
+const qFromUrl = new URLSearchParams(location.search).get("q")?.trim();
+if (qFromUrl) qInput.value = qFromUrl;
+// Gọi sớm (web/goi-som.ts): lần tải đầu gửi NGAY, song song với /api/auth/me của initShell(); `load()` chỉ dùng nó khi đường dẫn trùng khớp.
+const urlDau = listUrl(0, PAGE);
+const layDau = goiSom(() => api<Api.OrderListResponse>(urlDau));
 
 /** Một thẻ đơn + chỗ ghi người phụ trách (điền sau khi `GET /api/dispatch/handlers` về). */
 interface Row {
@@ -94,11 +113,9 @@ async function load(reset: boolean, refresh = false): Promise<void> {
   const limit = refresh ? soDongCanTai(listEl.children.length, PAGE, MAX_PAGE) : PAGE;
   if (!refresh) showError(errorEl, null);
   if (reset && !refresh) loadingEl.hidden = false;
-  const params = new URLSearchParams({ limit: String(limit), offset: String(base) });
-  if (qInput.value.trim()) params.set("q", qInput.value.trim());
-  if (statusSel.value) params.set("status", statusSel.value as OrderStatus);
+  const url = listUrl(base, limit);
   try {
-    const { orders, hasMore } = await api<Api.OrderListResponse>(`/api/orders?${params}`);
+    const { orders, hasMore } = await (url === urlDau ? layDau() : api<Api.OrderListResponse>(url));
     if (seq !== loadSeq) {
       // Làm mới bị "Tải thêm" (bấm trong lúc chờ) thay thế: xếp lại để chạy lại, không để mất tin — sau khi "Tải thêm" xong (nếu còn chạy), hoặc ngay (nếu đã xong).
       if (refresh && lastLoadIsMore) {
@@ -167,11 +184,5 @@ const staff = await initShell();
 const newOrderBtn = document.getElementById("new-order");
 if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
 
-// Ô tìm kiếm trên thanh công việc (`web/shell.ts`) đưa người dùng về đây kèm `?q=…` (đặc tả Đợt D §47: dùng lại
-// tham số `q` mà `GET /api/orders` đã hỗ trợ). ĐỔ VÀO Ô TÌM CỦA TRANG trước lần tải đầu, vì ba lý do: `load()` chỉ
-// đọc `qInput.value` nên đây là chỗ duy nhất nối được; người dùng THẤY mình đang lọc theo gì; và sửa/xoá được ngay
-// trên ô đó. Trước sửa này, gõ rồi Enter chỉ tải lại trang và hiện TOÀN BỘ danh sách (ô tìm là nút chết).
-const qFromUrl = new URLSearchParams(location.search).get("q")?.trim();
-if (qFromUrl) qInput.value = qFromUrl;
 
 await load(true);

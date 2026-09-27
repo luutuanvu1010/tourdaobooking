@@ -3,6 +3,7 @@ import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
+import { goiSom } from "./goi-som";
 import { initShell, showError } from "./shell";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { homeRedirect } from "../src/shared/start-page";
@@ -233,6 +234,10 @@ function initSectionIcons(): void {
   prepend(".dash-review-heading", "alert");
 }
 
+// Gọi sớm (web/goi-som.ts): số liệu Trang chủ gửi NGAY, song song với /api/auth/me của initShell(). Tài khoản chỉ Đối tác bị chuyển hướng dưới đây
+// TRƯỚC khi dùng dữ liệu — lời gọi của họ nhận 403 từ máy chủ và bị bỏ, không hiện gì (máy chủ vẫn quyết quyền như cũ).
+const layDashboard = goiSom(() => api<Api.DashboardResponse>("/api/orders/dashboard"));
+
 async function main(): Promise<void> {
   initSectionIcons();
   const staff = await initShell();
@@ -268,7 +273,7 @@ async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
     // dashboard chính, không làm chậm phần còn lại của trang.
-    const [data, review] = await Promise.all([api<Api.DashboardResponse>("/api/orders/dashboard"), lamMoi ? undefined : loadReview(staff)]);
+    const [data, review] = await Promise.all([layDashboard(), lamMoi ? undefined : loadReview(staff)]);
     loadingEl.hidden = true;
     if (lamMoi) showError(byId("error"), null); // lần tải đầu đã lỗi (banner còn hiện) mà làm mới này thành công → gỡ banner
     byId("dash-date").textContent = `${weekday}, ${dateStr} · ${data.today.length} chuyến đón hôm nay`;
