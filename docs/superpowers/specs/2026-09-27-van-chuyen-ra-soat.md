@@ -70,8 +70,19 @@ Hướng đúng: phân hệ mới, dữ liệu thuộc người, luật thuộc 
 
 **Cách rút ngắn đường găng** (đề xuất cho chủ): tách **lượt 1a** gồm hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, cấu hình, nhắc hạn. Phần này không phụ thuộc Đơn hàng, làm được ngay sau lượt duyệt A/B. Phần chuyến xe (1b) làm khi nền xong.
 
-## 6. Việc chờ chủ
-Xem tin nhắn điều phối 27/9 (lựa chọn đường đi; duyệt mô hình sửa).
+## 6. Chủ đã quyết
+
+> **CHỦ ĐÃ QUYẾT 2026-09-27 (phiên điều phối), nguyên văn: `1b, 2i`.**
+> - **1b — đường đi:** làm ngay **lượt 1a** (hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, cấu hình, nhắc hạn). Phần điều xe và chuyến xe (**1b**) làm sau khi nền xong (số khách hiệu lực; chặng đưa đón + danh sách hành khách ở `orders`; tiền tố `ord_`).
+> - **2i — chủ xe công ty:** làm **T2b trước** (Tour Đảo là hồ sơ tổ chức, theo ADR-0024 điều 6 đang proposed). Không dùng cờ tạm "xe của công ty".
+> - Việc áp dụng (điều phối ghi, chủ không phản đối):
+>   - đủ tên cho số khách đã đặt lúc xuất bến; tài xế sửa/bổ sung lúc đón;
+>   - phân bổ từng người vào chuyến;
+>   - chặng có ngày + giờ hẹn riêng;
+>   - giấy tờ không sửa đè;
+>   - hai vai tài xế + một quyền app;
+>   - đủ điều kiện lái xét bằng giấy tờ.
+> - Còn chờ chủ: một nơi giữ tên/MST/địa chỉ Tour Đảo (T2b).
 
 ---
 
