@@ -94,7 +94,7 @@ async function catalogConflictBadge(): Promise<number> {
  * Huy hiệu "Đơn hàng" = SỐ ĐƠN CHƯA XÁC NHẬN, không phải tổng số đơn (quyết định 8 của chủ dự án,
  * `docs/superpowers/specs/2026-09-23-trang-chu-moi-quyet-dinh.md`). Số này ĐÃ CÓ SẴN ở `GET /api/orders/dashboard`
  * (`draftCount` — cùng số ô "Đơn nháp chưa xác nhận" của Trang chủ), không thêm route mới. Lỗi mạng → 0, giống
- * feedbackBadge(). Route khai cổng "office" (ADR-0019 phần C sẽ đổi sang "orders") nên chỉ gọi khi mục "Đơn hàng" có mặt (điều kiện `seesAll` = xem được mọi đơn).
+ * feedbackBadge(). Route khai cổng "orders" (từ ADR-0019 phần B, hỏi `order.view` + `money.view` + `contact.view` trong thân) nên chỉ gọi khi mục "Đơn hàng" có mặt (điều kiện `seesAll` = xem được mọi đơn).
  */
 async function draftOrderBadge(): Promise<number> {
   try {
