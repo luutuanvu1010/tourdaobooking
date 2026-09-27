@@ -221,17 +221,34 @@ function hoTroThongBao(): boolean {
   return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
 }
 
+/** Subscription CỤC BỘ của máy này (nếu có) — dùng `getRegistration()`, KHÔNG dùng `.ready` (I-2, vòng rà 2026-09-28):
+ * `.ready` không bao giờ reject, nếu service worker mãi chưa "active" (lần đầu mở, hoặc lỗi cài) thì treo vô thời hạn
+ * và cả mục Thông báo kẹt "ẩn" theo — `getRegistration()` trả `undefined` ngay nếu chưa có, không treo. */
+async function subscriptionCucBo(): Promise<PushSubscription | null> {
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    return (await reg?.pushManager.getSubscription()) ?? null;
+  } catch {
+    return null;
+  }
+}
+
 async function renderPush(): Promise<void> {
+  const hoTro = hoTroThongBao();
+  // Đọc subscription cục bộ TRƯỚC (nhanh, không cần mạng) để hỏi máy chủ ĐÚNG MỘT LẦN, kèm sẵn `?endpoint=` — máy
+  // chủ trả `mayNay` (I-2) cho đúng cái này, không phải suy từ `soMay` (tổng theo tài khoản, có thể nhiều máy).
+  const sub = hoTro ? await subscriptionCucBo() : null;
   let status: Api.MayThongBaoResponse;
   try {
-    status = await api<Api.MayThongBaoResponse>("/api/account/thong-bao/may");
+    const qs = sub ? `?endpoint=${encodeURIComponent(sub.endpoint)}` : ""; // FCM/APNs endpoint có `:` `/` — phải mã hoá
+    status = await api<Api.MayThongBaoResponse>(`/api/account/thong-bao/may${qs}`);
   } catch {
     return; // lỗi mạng: giữ ẩn, không ảnh hưởng phần còn lại trang (khuôn initMaintenance/initPasskeys)
   }
   const khoa = status.khoa;
   if (!khoa) return; // thiếu khoá công khai VAPID (thiếu bí mật ở máy chủ): ẩn cả mục
 
-  if (!hoTroThongBao()) {
+  if (!hoTro) {
     const msg = daCaiDatChuan()
       ? "Trình duyệt này không hỗ trợ thông báo."
       : "Để nhận thông báo: bấm Chia sẻ → Thêm vào MH chính, rồi mở app từ biểu tượng.";
@@ -245,12 +262,12 @@ async function renderPush(): Promise<void> {
     return;
   }
 
-  const reg = await navigator.serviceWorker.ready.catch(() => null);
-  const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
-  // Trình duyệt có thể còn giữ subscription cũ dù máy chủ đã tắt (đổi PIN/quyền/ngưng tài khoản — ADR-0036 điều 6):
-  // chỉ coi là "đang bật" khi CẢ HAI đồng ý (subscription + soMay > 0). Lệch thì hiện lại nút Bật — bấm sẽ dùng đúng
-  // subscription cũ (trình duyệt trả lại y nguyên khi đã có) và chỉ cần đăng ký lại phía máy chủ.
-  if (sub && status.soMay > 0) {
+  // Trình duyệt có thể còn giữ subscription cũ dù máy chủ đã tắt ĐÚNG MÁY NÀY (đổi PIN/quyền/ngưng tài khoản —
+  // ADR-0036 điều 6): chỉ coi là "đang bật" khi CẢ HAI đồng ý (subscription cục bộ + `mayNay` từ máy chủ, xét đúng
+  // endpoint này — KHÔNG dùng `soMay > 0`, vì đó là tổng theo tài khoản, một máy khác của cùng người vẫn đếm vào).
+  // Lệch thì hiện lại nút Bật — bấm sẽ dùng đúng subscription cũ (trình duyệt trả lại y nguyên khi đã có) và chỉ
+  // cần đăng ký lại phía máy chủ.
+  if (sub && status.mayNay) {
     const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
     const offBtn = h("button", { class: "btn btn-link danger", type: "button" }, "Tắt");
     offBtn.addEventListener("click", async () => {
@@ -284,6 +301,12 @@ async function renderPush(): Promise<void> {
         return;
       }
       const reg2 = await navigator.serviceWorker.ready;
+      // I-3 (vòng rà 2026-09-28): huỷ subscription CŨ trước nếu có — bấm "Bật" có thể rơi vào đây dù trình duyệt
+      // ĐÃ có một subscription (mayNay=false ở trên: máy chủ đã tắt, hoặc đổi cặp khoá VAPID — Bước "Tắt khẩn cấp").
+      // `subscribe()` với `applicationServerKey` KHÁC subscription đang có ném `InvalidStateError` ngay, không tự
+      // thay — phải `unsubscribe()` trước. Cùng khoá thì `unsubscribe()` xong `subscribe()` lại chỉ tốn một nhịp mạng.
+      const subCu = await reg2.pushManager.getSubscription();
+      if (subCu) await subCu.unsubscribe().catch(() => undefined);
       // `Uint8Array.from` trả kiểu tổng quát hơn `BufferSource` mong đợi (TS ≥5.7, buffer có thể là SharedArrayBuffer) — ép kiểu, dữ liệu vẫn đúng.
       const newSub = await reg2.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uSangBytes(khoa) as BufferSource });
       await api("/api/account/thong-bao/may", { method: "POST", body: { endpoint: newSub.endpoint, thietBi: thietBiTu(navigator.userAgent) } });

@@ -113,6 +113,9 @@ export const getNotice = (db: D1Database, id: string) => db.prepare(GET_NOTICE).
 
 const LIST_MAY_DANG_BAT = defineSql("thongbao", "list_may_dang_bat", `SELECT staff_id, endpoint FROM ntf_push_sub WHERE revoked_at IS NULL`);
 const DEM_MAY = defineSql("thongbao", "dem_may", `SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = ?1 AND revoked_at IS NULL`);
+// I-2 (vòng rà 2026-09-28): "đang bật trên MÁY NÀY" — chỉ đúng dòng của CHÍNH staff gọi (?1) khớp endpoint của máy đang mở (?2) và còn hiệu
+// lực; không đọc dòng của staff khác (không lộ ai đang bật máy nào). `soMay` (DEM_MAY) là tổng theo tài khoản, không phân biệt được máy nào.
+const MAY_NAY = defineSql("thongbao", "may_nay", `SELECT 1 FROM ntf_push_sub WHERE staff_id = ?1 AND endpoint = ?2 AND revoked_at IS NULL`);
 // Máy dùng chung đổi chủ (đăng ký cùng endpoint bằng tài khoản khác): huỷ dòng đang bật của NGƯỜI KHÁC trước khi chèn dòng mới —
 // tránh đụng UNIQUE INDEX (endpoint) WHERE revoked_at IS NULL. `by` = người vừa thao tác đăng ký (chủ MỚI của máy).
 const THU_HOI_MAY_NGUOI_KHAC = defineSql("thongbao", "thu_hoi_may_nguoi_khac", `
@@ -140,6 +143,8 @@ export async function listMayDangBat(db: D1Database): Promise<{ staff_id: string
 }
 export const demMay = async (db: D1Database, staffId: string): Promise<number> =>
   (await db.prepare(DEM_MAY).bind(staffId).first<{ n: number }>())?.n ?? 0;
+export const mayDangBat = async (db: D1Database, staffId: string, endpoint: string): Promise<boolean> =>
+  (await db.prepare(MAY_NAY).bind(staffId, endpoint).first()) !== null;
 export function batMayStatements(db: D1Database, a: { id: string; staffId: string; endpoint: string; thietBi: string; at: string }): D1PreparedStatement[] {
   return [
     db.prepare(THU_HOI_MAY_NGUOI_KHAC).bind(a.endpoint, a.at, a.staffId),

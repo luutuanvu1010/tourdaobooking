@@ -15,7 +15,7 @@ import { guiLo, khoaVapid, kiemDiaChi, nenGui, nguoiNhanDay } from "../../shared
 import { route, type AppModule } from "../../shared/router";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
-  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, revokeStatement, tatMayStatement, upsertMarkStatement,
+  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, mayDangBat, revokeStatement, tatMayStatement, upsertMarkStatement,
 } from "./repository";
 
 /** Gốc lắp ráp (src/index.ts) tắt mọi máy của một tài khoản ở cùng chỗ đóng Bảng tin (đổi PIN/quyền/SĐT, ngưng… — ADR-0036). */
@@ -96,11 +96,16 @@ export const thongbaoModule: AppModule = {
       return json({ tin: t ? { cau: t.cau, lienKet: t.lienKet } : null } satisfies MoiNhatResponse);
     }),
     // Tự phục vụ (ADR-0036 điều 1–2; "ngoại lệ" ở docs/quyen-hoan.json): id luôn lấy từ phiên (staff.id), không tin thân yêu cầu.
-    route("GET", "/api/account/thong-bao/may", "staff", async ({ env, staff }) => {
+    route("GET", "/api/account/thong-bao/may", "staff", async ({ env, staff, url }) => {
       const soMay = await demMay(env.DB, staff.id);
       // khoaVapid kiểm CẢ HAI khoá CÓ MẶT VÀ KHỚP NHAU (bẫy 45) — không tự kiểm tay ở đây để tránh lệch với dayGoCua/guiLo.
       const khoa = khoaVapid(env)?.congKhai ?? null;
-      return json({ khoa, soMay } satisfies MayThongBaoResponse);
+      // I-2 (vòng rà 2026-09-28): `?endpoint=` (tuỳ chọn, trình duyệt tự thêm bằng subscription cục bộ nếu có) → "máy NÀY còn hiệu
+      // lực không", CHỈ xét dòng của CHÍNH staff.id (không nhận staff id từ ngoài, không lộ máy người khác). Không truyền → false —
+      // `soMay` là tổng theo tài khoản (nhiều máy có thể cùng bật), không suy ra được máy nào cụ thể còn hiệu lực.
+      const endpoint = url.searchParams.get("endpoint");
+      const mayNay = endpoint !== null && endpoint.length >= 1 && endpoint.length <= 1024 && (await mayDangBat(env.DB, staff.id, endpoint));
+      return json({ khoa, soMay, mayNay } satisfies MayThongBaoResponse);
     }),
     route("POST", "/api/account/thong-bao/may", "staff", async ({ env, staff, request }) => {
       const body = await readJson(request);

@@ -278,6 +278,24 @@ assert.equal((await call(DT, "POST", "/api/account/thong-bao/da-doc")).status, 2
 assert.equal((await call(DT, "GET", "/api/thong-bao/moi-nhat")).body.tin, null, "sau da-doc: moi-nhat trả tin: null");
 console.log("✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc");
 
+// (i) I-2 (vòng rà 2026-09-28): "mayNay" (đang bật ĐÚNG MÁY NÀY) chỉ đúng theo endpoint của CHÍNH tài khoản gọi — không suy từ
+// soMay (tổng theo tài khoản, có thể nhiều máy), và không lộ máy của tài khoản khác dù hỏi đúng endpoint của họ.
+const epI1 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+const epI2 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: epI1, thietBi: "Máy I1" })).status, 200);
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: epI2, thietBi: "Máy I2" })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.mayNay, false, "không hỏi endpoint → mayNay = false");
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI1)}`)).body.mayNay, true, "epI1 đang bật → true");
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI2)}`)).body.mayNay, true, "epI2 đang bật → true");
+const epLa = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epLa)}`)).body.mayNay, false, "endpoint chưa từng đăng ký → false");
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may/huy", { endpoint: epI1 })).status, 200);
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI1)}`)).body.mayNay, false, "đã tắt epI1 → mayNay = false");
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI2)}`)).body.mayNay, true, "epI2 chưa tắt → vẫn true");
+assert.equal((await call(B, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI2)}`)).body.mayNay, false, "tài khoản khác (B) hỏi đúng endpoint của DT → false, không lộ");
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may/huy", { tatCa: true })).status, 200); // dọn
+console.log("✓ I-2: mayNay đúng theo endpoint của CHÍNH tài khoản, không suy từ soMay, không lộ máy người khác");
+
 // ---- Web Push (ADR-0036, Task 3): tự tắt máy ở cùng chỗ đóng Bảng tin; bảo trì không tắt; e2e KHÔNG có khoá VAPID (run.mjs ép rỗng) ----
 /** Số máy đang bật của một tài khoản — đọc thẳng D1 (phiên của tài khoản đó có thể vừa bị thu hồi). */
 const soMayCua = async (id) => (await sqlRows(`SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = '${id}' AND revoked_at IS NULL`))[0].n;
