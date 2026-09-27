@@ -1,6 +1,7 @@
 // TRẠM Bảng tin — lớp Durable Object duy nhất của ADR-0022, MỘT thực thể tên "cong-ty". Dùng WebSocket Hibernation API: trạm được ngủ khi không có
-// việc mà kết nối vẫn giữ; chuỗi "ping" được trả "pong" tự động, không đánh thức trạm (BT-3). Không lưu gì ngoài MỘT báo thức (đóng kết nối quá hạn):
-// không bảng, không lưu tin — tin đi rồi là thôi.
+// việc mà kết nối vẫn giữ; chuỗi "ping" được trả "pong" tự động, không đánh thức trạm (BT-3). Chỉ lưu MỘT báo thức và HÀNG ĐỢI GÕ CỬA (Web Push,
+// ADR-0036): không bảng, không lưu tin — tin đi rồi là thôi. Báo thức dùng cho HAI việc: đóng kết nối quá hạn và gửi từng lô gõ cửa (≤ 40 địa chỉ
+// mỗi lượt, khi một tin có > 40 máy nhận). Hàng đợi chỉ giữ địa chỉ nhận (không SĐT, không nội dung); lô gửi xong là xoá.
 //
 // Mọi QUYẾT ĐỊNH (đóng/gửi/bỏ qua, mốc báo thức kế) nằm ở `keHoachTram` (rules.ts, có test); tệp này chỉ là vỏ gọi API của Cloudflare.
 // CHỈ src/index.ts được import tệp này (architecture.test.ts): nó cần môi trường Worker, không nạp được dưới node --test.
@@ -9,6 +10,13 @@
 import { DurableObject } from "cloudflare:workers";
 import type { SuKienDon } from "../../shared/bang-tin";
 import { docHanGiay, hetHan, keHoachTram, type KetNoiXet } from "./rules";
+import { chiaLo, guiLo, khoaVapid } from "../../shared/web-push";
+
+/** Hàng đợi gõ cửa (ADR-0036): mỗi khoá `day:lo:…` là MỘT lô ≤ 40 địa chỉ (giá trị nhỏ). Khoá sắp theo thời điểm xếp hàng → lô cũ gửi trước. */
+const HANG = "day:lo:";
+/** Địa chỉ nhận 410 ở lượt của trạm — trả về cho `thongbao` ở lần xếp hàng kế để đánh dấu hết hiệu lực (trạm không đụng D1: KHONG_DB). */
+const HET = "day:het";
+const CO_LO = 40;
 
 /** `readyState` OPEN (chuẩn WHATWG). `getWebSockets()` có thể trả cả kết nối đang đóng — chỉ gửi/đóng kết nối còn mở. */
 const DANG_MO = 1;
@@ -95,12 +103,52 @@ export class BangTin extends DurableObject<Env> {
     for (const ws of ds) dong(ws, MA_CAP_NHAT, "cap-nhat-tai-khoan");
   }
 
-  /** Báo thức: đóng kết nối quá hạn, đặt báo thức kế cho hạn sớm nhất còn lại (nếu còn). Lỗi của một kết nối không làm hỏng lượt này (mỗi kết nối tự bắt lỗi). */
+  /**
+   * RPC (gốc lắp ráp, Web Push ADR-0036): xếp `ds` vào hàng đợi theo lô ≤ 40 rồi gọi báo thức NGAY (nếu chưa có báo thức sớm hơn). Trả các địa chỉ
+   * đã nhận 410 ở các lượt trước (rồi xoá khỏi trạm) để người gọi đánh dấu hết hiệu lực trong D1.
+   */
+  async xepHangDay(ds: string[]): Promise<string[]> {
+    const t = `${Date.now().toString(36).padStart(10, "0")}-${crypto.randomUUID().slice(0, 8)}`; // hai lần xếp cùng mili-giây không đè lô của nhau
+    const lo: Record<string, string[]> = {};
+    chiaLo(ds, CO_LO).forEach((x, i) => { lo[`${HANG}${t}-${String(i).padStart(4, "0")}`] = x; });
+    if (Object.keys(lo).length) await this.ctx.storage.put(lo); // put(object) ≤ 128 khoá/lần: 1.000 máy = 25 khoá
+    const bt = await this.ctx.storage.getAlarm();
+    if (bt === null || bt > Date.now()) await this.ctx.storage.setAlarm(Date.now());
+    const het = (await this.ctx.storage.get<string[]>(HET)) ?? [];
+    if (het.length) await this.ctx.storage.delete(HET);
+    return het;
+  }
+
+  /**
+   * Báo thức: đóng kết nối quá hạn; gửi MỘT lô gõ cửa (còn lô thì hẹn lượt kế sau 1 giây); đặt báo thức kế sớm nhất trong hai việc. Lỗi của một kết
+   * nối không làm hỏng lượt này (mỗi kết nối tự bắt lỗi); lỗi gửi lô chỉ ghi log — alarm ném là bị runtime gọi lại (dễ gửi lặp).
+   */
   async alarm(): Promise<void> {
     const ds = this.ctx.getWebSockets();
     const keHoach = keHoachTram(ds.map((ws) => this.xet(ws)), null, Date.now());
     for (const i of keHoach.dong) dong(ds[i]!, MA_QUA_HAN, "het-han");
-    if (keHoach.baoThucKe !== null) await this.ctx.storage.setAlarm(keHoach.baoThucKe);
+    let ke = keHoach.baoThucKe;
+    try {
+      await this.guiMotLo();
+    } catch (e) {
+      console.warn(JSON.stringify({ level: "warn", event: "day_loi", viec: "lo", name: e instanceof Error ? e.name : "unknown" }));
+    }
+    // Xét hàng đợi SAU khi gửi (không dựa vào kết quả đọc trước lúc gửi): trong lúc chờ mạng, `xepHangDay` có thể vừa thêm lô và đặt báo thức — mốc
+    // đặt dưới đây không được làm lô đó chờ tới hạn kết nối. Giữa hai lệnh lưu trữ dưới đây không sự kiện nào chen vào (cổng vào của Durable Object).
+    if ((await this.ctx.storage.list({ prefix: HANG, limit: 1 })).size > 0) ke = Math.min(ke ?? Infinity, Date.now() + 1000);
+    if (ke !== null) await this.ctx.storage.setAlarm(ke); // đặt cả khi không còn kết nối nào
+  }
+
+  /** Gửi MỘT lô (lô cũ nhất). Xoá lô TRƯỚC khi gửi: hỏng giữa chừng thì lỡ lô đó (cú gõ cửa được phép lỡ), không bao giờ gửi lặp vô hạn. */
+  private async guiMotLo(): Promise<void> {
+    const dau = [...(await this.ctx.storage.list<string[]>({ prefix: HANG, limit: 1 }))][0];
+    if (!dau) return;
+    await this.ctx.storage.delete(dau[0]);
+    const khoa = khoaVapid(this.env); // thiếu khoá → bỏ lô, không gửi
+    if (khoa) {
+      const { hetHieuLuc } = await guiLo(dau[1], khoa, Date.now());
+      if (hetHieuLuc.length) await this.ctx.storage.put(HET, [...((await this.ctx.storage.get<string[]>(HET)) ?? []), ...hetHieuLuc].slice(-500));
+    }
   }
 
   /** BT-3: bỏ qua MỌI tin trình duyệt gửi lên ("ping" đã được trả tự động, không tới đây). */

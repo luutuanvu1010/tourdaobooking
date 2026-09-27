@@ -5,10 +5,19 @@
 // BẢNG TIN (ADR-0022): module `bangtin` là lá, không đọc cơ sở dữ liệu (KHONG_DB) — gốc lắp ráp đọc mã đơn/người lập (`orders`) + người phụ trách
 // (`dispatch`), tính nhãn người nhận (`nhanSuKien`) rồi đưa cho `phatDon`. Đây cũng là NƠI DUY NHẤT nạp lớp Durable Object `BangTin` (`tram.ts`) —
 // wrangler cần lớp đó được export từ tệp chính.
+// WEB PUSH (ADR-0036): cũng ở `baoThayDoi` gốc lắp ráp gõ cửa màn hình khoá (`dayGoCua` của `thongbao`) độc lập với phát Bảng tin; `thongbao` giao lô
+// cho trạm qua hàm tiêm `giaoLoDay` (không cạnh thongbao → bangtin); `dongBangTin` còn tắt mọi máy nhận của tài khoản vừa đổi.
+
+/** Gộp kết quả `allSettled`: ném lại lỗi (một lỗi → chính nó; nhiều → AggregateError) để router ghi dòng `bang_tin_loi` như cũ — không nuốt lỗi. */
+function nemNeuLoi(kq: PromiseSettledResult<unknown>[]): void {
+  const loi = kq.flatMap((r) => (r.status === "rejected" ? [r.reason as unknown] : []));
+  if (loi.length === 1) throw loi[0];
+  if (loi.length > 1) throw new AggregateError(loi);
+}
 import { accountsModule } from "./modules/accounts";
 import { auditModule } from "./modules/audit";
 import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
-import { bangtinModule, dongCua, phatDon } from "./modules/bangtin";
+import { bangtinModule, dongCua, phatDon, xepHangDay } from "./modules/bangtin";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
 import { defaultHandlerStatement, dispatchModule, handlerOf, isOrderHandler } from "./modules/dispatch";
@@ -18,8 +27,9 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty } from "./modules/staff";
-import { thongbaoModule } from "./modules/thongbao";
+import { dayGoCua, tatMayStatement, thongbaoModule } from "./modules/thongbao";
 import { nhanSuKien } from "./shared/bang-tin";
+import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { createApp } from "./shared/router";
 
 export { BangTin } from "./modules/bangtin/tram";
@@ -35,20 +45,39 @@ const app = createApp({
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
     // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): việc phát được BẮT ĐẦU ở một microtask ngay khi route gọi, chạy SONG SONG
     // với việc dựng phản hồi HTTP nên khung tin có thể tới trình duyệt TRƯỚC hoặc SAU phản hồi của chính thao tác đó; lỗi ở đây không làm hỏng/chậm thao tác ghi (DP-3). `_actor` (người vừa thao tác) giữ trong chữ ký cho Web Push giai đoạn sau — KHÔNG đưa vào sự kiện (điều 4: đúng 5 khoá).
-    baoThayDoi: async (env, _actor, e) => {
-      // Kiểm trạm TRƯỚC hai lần đọc D1: khung thử (tests/audit, router.test.ts) không có binding → không đọc gì (bản thật chỉ chạy khi có binding).
-      if (!env.BANG_TIN) return;
+    baoThayDoi: async (env, actor, e) => {
+      // Kiểm TRƯỚC hai lần đọc D1: không trạm VÀ không khoá gõ cửa (khung thử, e2e) → không đọc gì.
+      if (!env.BANG_TIN && !khoaVapid(env)) return;
       const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
       if (!ref) return;
       // Đơn mới mà không ai phụ trách (người lập không đủ điều kiện — Đối tác, chưa có hồ sơ) → loại riêng để người nhận được đơn thấy thông báo nổi.
       const thayDoi = e.thayDoi === "tao" && !handlerSau.coNguoi ? "tao_cho_nhan" : e.thayDoi;
-      await phatDon(
-        env,
-        { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc: new Date().toISOString() },
-        nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? { coNguoi: false, staffId: null }, handlerSau }),
-      );
+      const luc = new Date().toISOString();
+      const action = hanhDongCuaThayDoi(thayDoi);
+      // Hai việc ĐỘC LẬP: trạm lỗi thì vẫn gõ cửa, và ngược lại.
+      nemNeuLoi(await Promise.allSettled([
+        phatDon(
+          env,
+          { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc },
+          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? { coNguoi: false, staffId: null }, handlerSau }),
+        ),
+        action === null ? null : dayGoCua(env, {
+          don: {
+            id: "day", orderId: e.orderId, maDon: ref.orderCode, action, actorId: actor.id, tenNguoiLam: null, luc, ownerId: ref.staffId,
+            phuTrach: handlerSau, lapChuaCoNguoi: thayDoi === "tao_cho_nhan", cungLoLap: false,
+          },
+          quanTrong: false,
+        }, (ds) => xepHangDay(env, ds)),
+      ]));
     },
-    dongBangTin: (env, muc) => dongCua(env, muc),
+    // Đóng kết nối Bảng tin + tắt mọi máy nhận của tài khoản đó (ADR-0036; chạy cả khi không có trạm). "tat-ca" (bật bảo trì) KHÔNG tắt máy.
+    dongBangTin: async (env, muc) => {
+      nemNeuLoi(await Promise.allSettled([
+        dongCua(env, muc),
+        typeof muc === "object" ? tatMayStatement(env.DB, muc.staffId, null, "tai-khoan-doi", new Date().toISOString()).run() : null,
+      ]));
+    },
+    giaoLoDay: (env, ds) => xepHangDay(env, ds),
   },
 });
 

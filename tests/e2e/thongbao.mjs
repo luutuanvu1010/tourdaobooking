@@ -278,4 +278,84 @@ assert.equal((await call(DT, "POST", "/api/account/thong-bao/da-doc")).status, 2
 assert.equal((await call(DT, "GET", "/api/thong-bao/moi-nhat")).body.tin, null, "sau da-doc: moi-nhat trả tin: null");
 console.log("✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc");
 
+// ---- Web Push (ADR-0036, Task 3): tự tắt máy ở cùng chỗ đóng Bảng tin; bảo trì không tắt; e2e KHÔNG có khoá VAPID (run.mjs ép rỗng) ----
+/** Số máy đang bật của một tài khoản — đọc thẳng D1 (phiên của tài khoản đó có thể vừa bị thu hồi). */
+const soMayCua = async (id) => (await sqlRows(`SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = '${id}' AND revoked_at IS NULL`))[0].n;
+/** Việc tắt máy chạy trong waitUntil SAU phản hồi → thăm dò tới 3 giây. */
+const choSoMay = async (id, muon) => {
+  const han = Date.now() + 3000;
+  for (;;) {
+    const n = await soMayCua(id);
+    if (n === muon || Date.now() > han) return n;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+};
+const taoTaiKhoan = async (permissions) => {
+  const phone = randomPhone();
+  const r = await call(ADMIN, "POST", "/api/staff", { fullName: `Máy ${Date.now().toString(36)}`, phone, permissions });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  return { id: await idOf(phone), pin: r.body.pin, cookie: (await login(phone, r.body.pin)).cookie };
+};
+const batMay = async (cookie) => {
+  const r = await call(cookie, "POST", "/api/account/thong-bao/may", { endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}`, thietBi: "Máy thử" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+};
+
+// (a) đổi PIN của chính mình → mọi máy của người đó tắt (lý do tai-khoan-doi, không xoá cứng)
+{
+  const X = await taoTaiKhoan(["SALES"]);
+  await batMay(X.cookie);
+  assert.equal(await soMayCua(X.id), 1);
+  const r = await call(X.cookie, "POST", "/api/account/change-pin", { currentPin: X.pin, newPin: X.pin === "582913" ? "582914" : "582913" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(await choSoMay(X.id, 0), 0, "đổi PIN → soMay = 0 trong 3 giây");
+  const dong = await sqlRows(`SELECT revoke_reason FROM ntf_push_sub WHERE staff_id = '${X.id}'`);
+  assert.deepEqual(dong.map((d) => d.revoke_reason), ["tai-khoan-doi"], "không xoá cứng; lý do tai-khoan-doi");
+}
+console.log("✓ Web Push: đổi PIN → máy của người đó tự tắt");
+
+// (b) Toàn quyền ngưng tài khoản có máy → tắt; bật lại tài khoản → máy KHÔNG tự bật lại
+{
+  const Y = await taoTaiKhoan(["SALES"]);
+  await batMay(Y.cookie);
+  assert.equal((await call(TQ, "PATCH", `/api/staff/${Y.id}`, { active: false })).status, 200);
+  assert.equal(await choSoMay(Y.id, 0), 0, "ngưng tài khoản → soMay = 0");
+  assert.equal((await call(TQ, "PATCH", `/api/staff/${Y.id}`, { active: true })).status, 200);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await soMayCua(Y.id), 0, "bật lại tài khoản → máy vẫn tắt (người dùng tự bật lại)");
+}
+console.log("✓ Web Push: ngưng tài khoản → máy tắt; bật lại không tự bật máy");
+
+// (c) bật rồi tắt bảo trì → máy KHÔNG đổi (dongBangTin("tat-ca") chỉ đóng Bảng tin). Cách đặt SĐT được phép như bangtin.mjs ca 10.
+{
+  const Z = await taoTaiKhoan(["SALES"]);
+  await batMay(Z.cookie);
+  const SEED_ALLOWED = "0989929373";
+  try {
+    await sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.superAdmin.phone}' WHERE id = 'default'`);
+    const r = await call(TQ, "PUT", "/api/maintenance", { on: true, endsAt: new Date(Date.now() + 30 * 60_000).toISOString() });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal((await call(TQ, "PUT", "/api/maintenance", { on: false })).status, 200);
+  } finally {
+    await call(TQ, "PUT", "/api/maintenance", { on: false }).catch(() => {});
+    await sql(`UPDATE mnt_setting SET enabled = 0, ends_at = NULL, allowed_phones = '${SEED_ALLOWED}' WHERE id = 'default'`);
+  }
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(await soMayCua(Z.id), 1, "bật/tắt bảo trì KHÔNG tắt máy");
+}
+console.log("✓ Web Push: bật/tắt bảo trì không tắt máy");
+
+// (d) KHÔNG có khoá VAPID: có máy nhận mà gửi tin thủ công / lập đơn vẫn 201 như cũ, máy không bị đụng (thoát sớm trước mọi lần đọc D1 —
+// run.mjs còn kiểm log máy chủ không có dòng `day_loi` nào sau cả lượt).
+{
+  const W = await taoTaiKhoan(["SALES"]);
+  await batMay(W.cookie);
+  const g = await call(TQ, "POST", "/api/thong-bao", { tieuDe: "Gõ cửa không khoá", noiDung: "Kiểm e2e.", nguoiNhan: ["SALES"], quanTrong: true, clientRequestId: randomUUID() });
+  assert.equal(g.status, 201, JSON.stringify(g.body));
+  await taoDon(W.cookie);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await soMayCua(W.id), 1, "thiếu khoá → không gửi, không đánh dấu hết hiệu lực");
+}
+console.log("✓ Web Push: thiếu khoá VAPID → gửi tin / lập đơn vẫn 201, máy không bị đụng");
+
 console.log("THONGBAO OK");

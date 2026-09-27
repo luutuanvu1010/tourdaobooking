@@ -8,13 +8,18 @@ import type {
 } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, PERMISSION_LABEL } from "../../shared/permissions";
-import { chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong } from "../../shared/thong-bao";
-import { kiemDiaChi } from "../../shared/web-push";
+import {
+  chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong,
+} from "../../shared/thong-bao";
+import { guiLo, khoaVapid, kiemDiaChi, nenGui, nguoiNhanDay } from "../../shared/web-push";
 import { route, type AppModule } from "../../shared/router";
 import {
-  batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, insertAckStatement, insertNoticeStatement, insertTargetStatement,
-  listAcks, listDon, listSent, listThuCong, revokeStatement, tatMayStatement, upsertMarkStatement,
+  batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
+  insertTargetStatement, listAcks, listDon, listMayDangBat, listSent, listThuCong, revokeStatement, tatMayStatement, upsertMarkStatement,
 } from "./repository";
+
+/** Gốc lắp ráp (src/index.ts) tắt mọi máy của một tài khoản ở cùng chỗ đóng Bảng tin (đổi PIN/quyền/SĐT, ngưng… — ADR-0036). */
+export { tatMayStatement } from "./repository";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy thông báo.");
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ Toàn quyền được gửi và quản lý thông báo.");
@@ -40,6 +45,38 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
   const docDenLuc = chuanHoaMocGio(mark ?? (await getStaffAccount(db, staff.id))?.createdAt ?? now);
   return locHopThongBao(staff, { don, thuCong, docDenLuc, now, ngan });
 }
+
+/** Cỡ tối đa gửi thẳng trong `waitUntil` của yêu cầu; nhiều hơn thì giao trạm `BangTin` chia lô (ADR-0036). */
+const GUI_THANG_TOI_DA = 40;
+
+/**
+ * WEB PUSH (ADR-0036): gõ cửa màn hình khoá của những ai thấy `tin` ở ngăn "Của tôi" (chọn bằng chính `locHopThongBao`, qua `nguoiNhanDay`).
+ * Thoát sớm TRƯỚC mọi lần đọc D1: thiếu khoá VAPID → thôi; giờ yên lặng và tin không quan trọng → thôi; không ai bật máy → thôi.
+ * ≤ 40 địa chỉ: gửi thẳng; > 40: `giaoLo` (trạm chia lô). Địa chỉ nhận 410 (của lượt này hoặc trạm gom từ lượt trước) → hết hiệu lực.
+ * Người gọi bọc `waitUntil` + bắt lỗi — không bao giờ làm hỏng/chậm phản hồi. Không log địa chỉ/SĐT (guiLo chỉ log mã trạng thái).
+ */
+export async function dayGoCua(
+  env: Env,
+  tin: ({ don: DongDon } | { thuCong: DongThuCong }) & { quanTrong: boolean },
+  giaoLo: (ds: string[]) => Promise<string[]>,
+): Promise<void> {
+  const khoa = khoaVapid(env);
+  if (!khoa) return;
+  const now = new Date();
+  if (!nenGui(tin.quanTrong, now)) return;
+  const may = await listMayDangBat(env.DB);
+  if (may.length === 0) return;
+  const coMay = new Set(may.map((m) => m.staff_id));
+  const taiKhoan = (await listStaffAccounts(env.DB)).filter((s) => s.active && coMay.has(s.id));
+  const chon = new Set(nguoiNhanDay(taiKhoan, tin, now.toISOString()));
+  const ds = may.filter((m) => chon.has(m.staff_id) && kiemDiaChi(m.endpoint)).map((m) => m.endpoint); // chỉ POST tới địa chỉ hợp lệ
+  if (ds.length === 0) return;
+  const het = ds.length <= GUI_THANG_TOI_DA ? (await guiLo(ds, khoa, now.getTime())).hetHieuLuc : await giaoLo(ds);
+  if (het.length) await hetHanStatement(env.DB, het, new Date().toISOString()).run();
+}
+
+/** Bắt lỗi gõ cửa (không bao giờ ném ra route): một dòng log, chỉ tên lỗi. */
+const ghiLoiDay = (e: unknown) => console.warn(JSON.stringify({ level: "warn", event: "day_loi", viec: "gui", name: e instanceof Error ? e.name : "unknown" }));
 
 export const thongbaoModule: AppModule = {
   name: "thongbao",
@@ -115,7 +152,7 @@ export const thongbaoModule: AppModule = {
       ]);
       return json({ ok: true, luc: t.daHieuLuc ?? at });
     }),
-    route("POST", "/api/thong-bao", "admin", async ({ env, staff, request }) => {
+    route("POST", "/api/thong-bao", "admin", async ({ env, staff, request, exec, giaoLoDay }) => {
       if (!can(staff, "notice.send")) return FORBIDDEN();
       const v = kiemTinThuCong(await readJson(request));
       if (!v.ok) return error(400, "invalid_input", v.message);
@@ -133,6 +170,14 @@ export const thongbaoModule: AppModule = {
       // chỉ chèn 0 dòng. Tra lại để lấy id thật sự đã được ghi (có thể là của chính mình, hoặc của bên thắng).
       const win = await findByRequest(env.DB, staff.id, v.value.clientRequestId);
       if (!win) return error(500, "internal", "Không gửi được, thử lại."); // lý thuyết không xảy ra: điều kiện NOT EXISTS chỉ có một khoá
+      if (win === id) {
+        // Gõ cửa màn hình khoá (ADR-0036) SAU khi ghi, trong waitUntil — lỗi/chậm gửi không đổi phản hồi 201. Chỉ lần ghi mới (bên thua không gửi lặp).
+        const thuCong: DongThuCong = {
+          id, tieuDe: v.value.tieuDe, noiDung: v.value.noiDung, quanTrong: v.value.quanTrong, nhan: tags, nguoiGuiId: staff.id,
+          tenNguoiGui: staff.fullName, luc: at, thuHoi: false, daHieuLuc: null,
+        };
+        exec.waitUntil(dayGoCua(env, { thuCong, quanTrong: v.value.quanTrong }, giaoLoDay).catch(ghiLoiDay));
+      }
       return json({ id: win }, win === id ? 201 : 200);
     }),
     route("GET", "/api/thong-bao/da-gui", "admin", async ({ env, staff }) => {
