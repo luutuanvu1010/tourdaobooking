@@ -31,28 +31,19 @@
 
 ## Tóm tắt cho chủ (lời thường)
 
-- **Làm gì:**
-  - Hướng dẫn viên, hay nhân viên đang lo một đơn, bấm được **"Từ chối"** để trả đơn mình đang lo. Đơn quay về danh sách **"Chờ nhận"** cho người khác nhận.
-  - Không trả được khi đơn đã huỷ, hoặc khi ngày đi là hôm nay hay ngày mai. Lúc đó phải gọi văn phòng đổi người.
-  - Mọi lần **Từ chối** hay **Huỷ** phải chọn một lý do có sẵn. Không có ô gõ chữ, để số điện thoại không lọt vào nhật ký (nhật ký không xoá được).
-  - Hướng dẫn viên huỷ được cả đơn **chưa chốt** mình đang lo (hôm nay chỉ huỷ được đơn đã chốt), vẫn chỉ với hai lý do cũ.
-  - "Đã xác nhận" giữ nghĩa cũ: đã chốt với khách. Việc có người nhận hiện bằng nhãn riêng "Chờ nhận" / "HDV: <tên>". Đơn đã lưu mà chưa chốt đổi chữ "Nháp" thành "Chờ xác nhận".
-- **Ai thấy khác:**
-  - Hướng dẫn viên: thấy nút Từ chối và danh sách đơn chờ nhận (không số điện thoại, không tiền).
-  - Văn phòng: thấy chữ "được trả lại" và thông báo khi có đơn bị trả.
-  - Ai huỷ đơn cũng phải chọn lý do.
-- **Không rút lại được:**
-  - số điện thoại, tiền hướng dẫn viên đã xem lúc nhận rồi trả;
-  - mỗi lần huỷ đơn;
-  - mỗi dòng nhật ký.
-- **Chưa có rào:** cho tới khi có hạn mức số lần Từ chối (lượt sau), kiểu "nhận nhiều đơn để xem số điện thoại rồi trả" chỉ phát hiện được **sau khi** xảy ra, qua nhật ký.
-- **Hai lượt duyệt:**
-  - Lượt 1: hướng dẫn viên xem đơn và nhận đơn (cùng hai bản nháp ADR-0020, ADR-0023).
-  - Lượt 2: Từ chối, lý do khi huỷ, huỷ đơn chưa chốt.
-- **Bạn cần quyết khi duyệt (3 câu cuối tệp):**
+- **Từ chối:** hướng dẫn viên, hay nhân viên đang lo một đơn, bấm được "Từ chối" để trả đơn mình đang lo. Đơn quay về danh sách "Chờ nhận" cho người khác nhận.
+- **Khi nào không trả được:** đơn đã huỷ, hoặc ngày đi là hôm nay hay ngày mai. Lúc đó phải gọi văn phòng đổi người.
+- **Lý do:** mọi lần Từ chối hay Huỷ phải chọn một lý do có sẵn. Không có ô gõ chữ, để số điện thoại không lọt vào nhật ký (nhật ký không xoá được).
+- **Huỷ đơn chưa chốt:** hướng dẫn viên huỷ được cả đơn chưa chốt mình đang lo (hôm nay chỉ huỷ được đơn đã chốt), vẫn với hai lý do cũ.
+- **Chữ trên màn hình:** "Đã xác nhận" giữ nghĩa cũ (đã chốt với khách); việc có người nhận hiện bằng nhãn riêng "Chờ nhận" / "HDV: <tên>"; đơn đã lưu mà chưa chốt đổi chữ "Nháp" thành "Chờ xác nhận".
+- **Ai thấy khác:** hướng dẫn viên thấy nút Từ chối và đơn chờ nhận (không số điện thoại, không tiền); văn phòng thấy chữ "được trả lại" và thông báo khi có đơn bị trả; ai huỷ cũng phải chọn lý do.
+- **Không rút lại được:** số điện thoại và tiền hướng dẫn viên đã xem lúc nhận rồi trả; mỗi lần huỷ đơn; mỗi dòng nhật ký.
+- **Chưa có rào:** tới khi có hạn mức số lần Từ chối (lượt sau), kiểu "nhận nhiều đơn để xem số điện thoại rồi trả" chỉ phát hiện được sau khi đã xảy ra, qua nhật ký.
+- **Hai lượt duyệt:** lượt 1 cho hướng dẫn viên xem và nhận đơn (cùng hai bản nháp về nhận đơn và xem đơn); lượt 2 cho Từ chối, lý do huỷ, huỷ đơn chưa chốt.
+- **Bạn cần quyết (3 câu cuối tệp):**
   1. "Ngày đi" tính theo ngày nào khi đơn cũ có nhiều ngày.
   2. Cách chép phần sửa vào hai bản nháp.
-  3. Xác nhận bỏ Phần C cũ của kế hoạch GĐ2.
+  3. Có bỏ phần mở quyền cũ cho hướng dẫn viên trong kế hoạch trước không.
 
 ## Bối cảnh
 
