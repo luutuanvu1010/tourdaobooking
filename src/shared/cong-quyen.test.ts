@@ -24,9 +24,10 @@ test("ADR-0019 điều 2: money.view = order.view ở mọi cột; contact.view 
   }
 });
 
-test("ADR-0019 + ADR-0028: GET /api/catalog hỏi money.view phạm vi 'của mình' — mọi mã qua cổng orders đều qua (Đối tác/Thực tập đọc được danh mục)", () => {
-  // Route danh mục (src/modules/catalog/index.ts) gọi can(staff, "money.view", { ownerId: staff.id }). Hỏi KHÔNG ngữ cảnh sẽ trả sai cho mã `own`
-  // (PARTNER, INTERN) và phá ADR-0028 — bài này đỏ nếu ai đó thu hẹp ô money.view của một mã trong ORDERS_GATE về none/assigned.
+test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi 'của mình' — mọi mã qua cổng orders đều qua (Đối tác/Thực tập đọc được danh mục)", () => {
+  // Route danh mục cho người lập đơn (src/modules/catalog/index.ts, ADR-0033; trước đó là GET /api/catalog ở cổng orders — ADR-0028 điều 1) gọi
+  // can(staff, "money.view", { ownerId: staff.id }) sau chốt order.create. Hỏi KHÔNG ngữ cảnh sẽ trả sai cho mã `own` (PARTNER, INTERN) và làm họ
+  // mất danh mục ở form lập đơn — bài này đỏ nếu ai đó thu hẹp ô money.view của một mã trong ORDERS_GATE về none/assigned.
   for (const c of ORDERS_GATE) {
     const who = { id: `u-${c}`, permissions: [c] as PermissionCode[] };
     assert.ok(can(who, "money.view", { ownerId: who.id }), `${c} qua cổng orders nhưng không xem được giá của đơn mình lập → mất danh mục ở form lập đơn`);

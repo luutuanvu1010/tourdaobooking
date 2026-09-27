@@ -192,3 +192,12 @@ test("isOffice / hasPermission / isPermissionCode", () => {
   assert.equal(isPermissionCode("sales"), false);
   assert.equal(isPermissionCode(1), false);
 });
+
+// Khoá GIÁ TRỊ (ADR-0033): "được lập đơn ⇒ được xem giá bán lẻ" — điều kiện để `GET /api/catalog/for-order` (chốt chặn `can(order.create)`) không
+// 403 oan ở lời hỏi `money.view` { ownerId: staff.id } ngay sau đó (người lập đơn cần giá bán lẻ để chọn dịch vụ). KHÔNG phải phép kiểm tương đương
+// lúc chạy: sửa cả hai cột cho khớp nhau thì bài này vẫn xanh — xem giới hạn ở docs/SO-HANG-RAO.md.
+test("ADR-0033: mọi mã quyền có order.create ≠ none thì money.view ≠ none (khoá cho GET /api/catalog/for-order)", () => {
+  for (const p of PERMISSION_CODES) {
+    if (MATRIX["order.create"][p] !== "none") assert.notEqual(MATRIX["money.view"][p], "none", `${p}: order.create ≠ none nhưng money.view = none`);
+  }
+});

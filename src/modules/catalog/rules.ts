@@ -128,7 +128,7 @@ export function acknowledge(sheet: Prices, ov: Override): Override {
 
 /**
  * Dịch vụ như bên bán hàng dùng: giá hiệu lực (đã áp ghi đè của Admin) + `visible` = còn trong Sheet và không bị Admin ẩn.
- * MỘT nguồn cho "đang hiện / giá hiệu lực": danh mục công khai (`GET /api/catalog`) và luật đơn hàng cùng gọi hàm này.
+ * MỘT nguồn cho "đang hiện / giá hiệu lực": danh mục công khai (`GET /api/catalog`, `GET /api/catalog/for-order`) và luật đơn hàng cùng gọi hàm này.
  */
 export function toEffective(s: CatalogRecord & { override: Override | null }): EffectiveService {
   const eff = applyOverride(s.prices, s.override);
