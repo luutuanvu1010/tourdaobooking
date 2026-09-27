@@ -207,6 +207,18 @@ try {
   ok(`T3) Đã tạo dữ liệu "Cần xem lại": TD101 lệch Sheet (1.200.000 → 1.350.000), 2 góp ý MỚI (${fb1.json.ticket.code} báo lỗi của Sales Một, ${fb2.json.ticket.code} đề xuất của Sales Hai)`);
 
   // ==================================================================================================
+  // S20-13 (ADR-0030; kế hoạch 2026-09-27 Task 1.2) + ADR-0020 điều 7 M1 = A: ô "Chưa phụ trách" đếm CẢ đơn nháp. Đóng dòng người phụ trách
+  // đang mở của R2 (nếu có — đơn do Quản trị lập hôm nay còn tự gắn người lập; khi Task 1.3 bỏ việc tự gắn, câu này không đổi dòng nào) để có
+  // một đơn NHÁP chắc chắn chưa có người. Đáp án đối chiếu ở mục 2 tự tính bằng SQL đọc THẲNG bảng phân công — nguồn độc lập với mã đang kiểm.
+  // ==================================================================================================
+  env.sql(`UPDATE dsp_assignment SET valid_to_at = max('${new Date().toISOString()}', valid_from_at), updated_at = '${new Date().toISOString()}' WHERE order_id = '${r2.id}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
+  const unassignedTruth = env.sql(
+    `SELECT o.id FROM orders o WHERE o.status IN ('draft', 'confirmed') AND NOT EXISTS (SELECT 1 FROM dsp_assignment a WHERE a.order_id = o.id AND a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL)`,
+  ).map((r) => r.id);
+  assert.ok(unassignedTruth.includes(r2.id), `S20-13: R2 (nháp) phải là đơn chưa có người sau khi đóng dòng phụ trách — ${JSON.stringify(unassignedTruth)}`);
+  ok(`S20-13: đáp án tự tính bằng SQL — ${unassignedTruth.length} đơn nháp/đã xác nhận chưa có người phụ trách, gồm R2 (nháp)`);
+
+  // ==================================================================================================
   // F) Ghim thứ tự khai route: GET /api/orders/dashboard PHẢI trả dữ liệu thật (không phải 404 do bị route
   //    "GET /api/orders/:id" ở dưới nuốt mất nếu ai đó lỡ dời thứ tự khai route trong orders/index.ts).
   // ==================================================================================================
@@ -229,7 +241,8 @@ try {
   assert.deepEqual(data.today[0].trip, { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" }, `trip của R1 trong API phải là dịch vụ QUYẾT ĐỊNH (sort_order=1, hôm nay), KHÔNG phải sort_order=0 (mai) — ${JSON.stringify(data.today[0].trip)}`);
   assert.equal(data.revenueWeek.count, 2, `revenueWeek.count phải = 2 (R1 + R3, cùng người lập, cùng tuần) — ${JSON.stringify(data.revenueWeek)}`);
   assert.equal(data.revenueWeek.total, 300_000 + 12_345_000, `revenueWeek.total phải = 12.645.000 — ${JSON.stringify(data.revenueWeek)}`);
-  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} (cross-check DOM bên dưới, không tự đoán trước — phụ thuộc quy tắc gán người phụ trách mặc định của module dispatch, ngoài phạm vi Task 3)`);
+  assert.equal(data.unassignedCount, unassignedTruth.length, `S20-13: unassignedCount phải = số đơn NHÁP + ĐÃ XÁC NHẬN chưa có người (SQL tự tính: ${JSON.stringify(unassignedTruth)}) — API trả ${data.unassignedCount}`);
+  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} = đáp án SQL (đếm cả đơn nháp R2 — ADR-0030 S20-13; DOM đối chiếu bên dưới)`);
 
   // ==================================================================================================
   // Đợt D Task 2 (biểu đồ cột 7 ngày): R1 + R3 đều tạo "bây giờ" (createAndConfirm không truyền created_at riêng) nên
@@ -366,7 +379,7 @@ try {
       assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
       assert.equal(m.stats[2].label, "Chưa có người phụ trách", `${label}: nhãn ĐẦY ĐỦ ô chưa phụ trách — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
-      assert.equal(m.stats[2].sub, "Cần gán trước giờ đón", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải khớp mockup "Cần gán trước giờ đón" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].sub, "Chờ người nhận", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu ĐẦY ĐỦ phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
       assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
 
@@ -416,7 +429,7 @@ try {
       assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 — ${JSON.stringify(m.stats[1])}`);
       assert.equal(m.stats[2].label, "Chưa phụ trách", `${label}: nhãn RÚT GỌN ô chưa phụ trách phải là "Chưa phụ trách" — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
-      assert.equal(m.stats[2].sub, "Cần gán", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Cần gán" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].sub, "Chờ người nhận", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.revenueValue, "12,64tr ₫", `${label}: giá trị RÚT GỌN doanh thu phải là "12,64tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.645.000 ₫") — ${JSON.stringify(m)}`);
       assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
 

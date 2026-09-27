@@ -176,11 +176,12 @@ export const ordersModule: AppModule = {
     // không trả số toàn công ty (Review Focus 4).
     // PHẢI đứng TRƯỚC route "GET /api/orders/:id" ở dưới: router (`match()`) khớp path theo VỊ TRÍ đoạn, nên ":id" cũng khớp chuỗi "dashboard" —
     // `createApp` lấy candidate ĐẦU TIÊN cùng method trong mảng `routes` (thứ tự khai ở đây), route này đứng trước nên thắng.
-    route("GET", "/api/orders/dashboard", "orders", async ({ env, staff }) => {
+    // `ordersWithHandler` (ADR-0030 S20-13): tập đơn đang có người phụ trách cho ô "Chưa phụ trách" — gốc lắp ráp nối vào dispatch, orders không tự đọc.
+    route("GET", "/api/orders/dashboard", "orders", async ({ env, staff, ordersWithHandler }) => {
       if (!can(staff, "order.view") || !can(staff, "money.view") || !can(staff, "contact.view")) return FORBIDDEN_VIEW();
       const today = vnToday(new Date());
       const { from, to } = vnWeekRange(today);
-      const data = await getDashboard(env.DB, staff.id, today, from, to);
+      const data = await getDashboard(env.DB, staff.id, today, from, to, ordersWithHandler);
       return json({ ...data, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
     }),
 

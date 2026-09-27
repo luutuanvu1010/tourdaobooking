@@ -379,9 +379,12 @@ export interface DashboardData {
   today: OrderSummaryDto[];
   /** Đơn confirmed còn thiếu tiền (remainingAmount HIỆN HÀNH > 0, không phải cột gốc). */
   unpaid: { total: number; count: number; earliestDate: string | null };
-  /** Đơn nháp chưa xác nhận — ĐIỂM DUY NHẤT của trang chủ đếm cả đơn nháp. */
+  /** Đơn nháp chưa xác nhận (cùng `unassignedCount` là hai số duy nhất của Trang chủ có đếm đơn nháp). */
   draftCount: number;
-  /** Đơn confirmed chưa có người phụ trách (view công bố v_dsp_order_handler — orders KHÔNG import module dispatch). */
+  /**
+   * Đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13. Tập đơn đang có người
+   * lấy qua hàm tiêm `ordersWithHandler` (module `dispatch` trả lời, gốc lắp ráp nối) — `orders` không import `dispatch` và không đọc view của nó.
+   */
   unassignedCount: number;
   /**
    * Đơn confirmed CỦA CHÍNH `staffId` được lập trong tuần [weekFrom, weekTo] (giờ VN, hai đầu bao gồm) — "doanh thu của tôi tuần này".
@@ -397,8 +400,17 @@ export interface DashboardData {
  * dùng nơi khác, KHÔNG tự chế cách đổi múi giờ mới).
  * BÀI HỌC ĐỢT B: `unpaid`/`revenueWeek` không lọc/tổng hợp thẳng trên cột `remaining_amount`/`total` GỐC của bảng `orders` — phải áp
  * `getLatestAdjustments` + `effectiveMoney` cho TỪNG đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
+ * `ordersWithHandler` = `ctx.ordersWithHandler` của route (gốc lắp ráp nối vào `dispatch`, ADR-0030 S20-13): trong các đơn đưa vào, đơn nào đang có
+ * người phụ trách — nguồn DUY NHẤT của `unassignedCount`.
  */
-export async function getDashboard(db: D1Database, staffId: string, today: string, weekFrom: string, weekTo: string): Promise<DashboardData> {
+export async function getDashboard(
+  db: D1Database,
+  staffId: string,
+  today: string,
+  weekFrom: string,
+  weekTo: string,
+  ordersWithHandler: (orderIds: readonly string[]) => Promise<ReadonlySet<string>>,
+): Promise<DashboardData> {
   // 1) "Chuyến đón hôm nay": id các đơn confirmed mà dịch vụ CÓ NGÀY sớm nhất của đơn (os.id = kết quả subquery) đúng bằng `today`.
   //    Đơn không có dịch vụ nào có ngày đón → subquery không ra dòng nào → không đơn nào khớp `os.id = NULL` → đơn đó không lọt vào (đúng ý §7).
   //    Sắp theo giờ đón của CHÍNH dịch vụ quyết định "hôm nay" (khác quy ước `summarizeServices` sắp theo sort_order — ở đây cần thứ tự lịch trình trong ngày).
@@ -473,10 +485,17 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   // 3) Đơn nháp chưa xác nhận.
   const draftCountRow = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
 
-  // 4) Đơn confirmed chưa có người phụ trách — CHỈ qua view công bố v_dsp_order_handler (orders không import dispatch — src/CLAUDE.md).
-  const unassignedRow = await db
-    .prepare(`SELECT COUNT(*) AS n FROM orders o WHERE o.status = 'confirmed' AND NOT EXISTS (SELECT 1 FROM v_dsp_order_handler h WHERE h.order_id = o.id)`)
-    .first<{ n: number }>();
+  // 4) "Chưa phụ trách" (ADR-0020 điều 7, M1 = A; ADR-0030 S20-13): đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở.
+  //    `orders` KHÔNG đọc dữ liệu phân công (không import `dispatch`, không đọc view của nó — `src/architecture.test.ts` canh): lấy id các đơn còn hiệu
+  //    lực ở đây, hỏi `ordersWithHandler` đơn nào đang có người (dispatch trả lời), đếm phần còn lại. Ngữ nghĩa "dòng đã đóng coi như chưa có ai", "hồ
+  //    sơ không có tài khoản vẫn là có người" thuộc dispatch (`src/modules/dispatch/handler-of.test.ts`).
+  //    GIỚI HẠN ĐÃ BIẾT: mảng id (MỌI đơn chưa huỷ, không lọc theo ngày) lớn dần theo số đơn và đi trong MỘT tham số JSON sang dispatch — cùng loại giới
+  //    hạn đã có ở khối 2 (`getLatestAdjustments` nhận mọi đơn đã xác nhận). Hôm nay vài trăm đơn; khi số đơn chưa huỷ vượt vài nghìn thì phải xem lại.
+  //    Đo 2026-09-27 trên node:sqlite (CHƯA đo trên D1): 2 000 đơn → chuỗi JSON 78 001 byte, cả hàm ~5 ms; 50 000 đơn → 1 950 001 byte — sát giới hạn
+  //    2 MB/chuỗi của D1 (tài liệu Cloudflare; tài liệu không nói rõ giới hạn đó có áp cho tham số ràng buộc hay không).
+  const { results: openRows } = await db.prepare(`SELECT id FROM orders WHERE status IN ('draft', 'confirmed')`).all<{ id: string }>();
+  const withHandler = await ordersWithHandler(openRows.map((r) => r.id));
+  const unassignedCount = openRows.filter((r) => !withHandler.has(r.id)).length;
 
   // 5) "Doanh thu của tôi tuần này": đơn confirmed do CHÍNH staffId lập, trong [weekFrom, weekTo] giờ VN (hai đầu bao gồm) — đổi sang mốc ISO UTC
   //    nửa-mở [đầu thứ Hai, đầu thứ Hai TUẦN SAU) bằng `vnLocalToIso` (đúng quy ước "00:00 giờ VN" đã dùng ở nơi khác, không tự chế).
@@ -513,7 +532,7 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
     today: todaySummaries,
     unpaid: { total: unpaidTotal, count: unpaidIds.length, earliestDate: earliestUnpaid?.d ?? null },
     draftCount: draftCountRow?.n ?? 0,
-    unassignedCount: unassignedRow?.n ?? 0,
+    unassignedCount,
     revenueWeek: { total: revenueTotal, count: weekRows.length, daily },
   };
 }

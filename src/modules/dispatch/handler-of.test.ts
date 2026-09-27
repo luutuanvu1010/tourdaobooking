@@ -1,7 +1,8 @@
 // handlerOf (Bảng tin, ADR-0022): trạng thái người phụ trách ĐANG MỞ của một đơn, dùng để tính nhãn người nhận của sự kiện (NT-2) và đổi `tao` →
 // `tao_cho_nhan` khi đơn mới chưa có người. Nhánh khó: người phụ trách là hồ sơ KHÔNG có tài khoản → đơn CÓ người (`coNguoi: true`) nhưng không có
 // `staffId` (không có nhãn `nguoi:` cho người đó, cũng KHÔNG gắn `cho-nhan`). Chạy trên SQLite thật, schema từ migrations/*.sql (khuôn service.test.ts);
-// gói `./index` bằng esbuild vì đây là API công khai của module.
+// gói `./index` bằng esbuild vì đây là API công khai của module. Cùng tệp: `ordersWithHandler`/`handledOrderIdsOf` — hai hàm tra cứu gốc lắp ráp tiêm vào ctx
+// để `orders` không phải tự đọc view của dispatch (ADR-0030 S20-13), trên cùng dữ liệu mẫu.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -24,9 +25,9 @@ async function loadModule(): Promise<Mod> {
   const code = Buffer.from(built.outputFiles[0]!.text).toString("base64");
   return (await import(`data:text/javascript;base64,${code}`)) as Mod;
 }
-const { handlerOf } = await loadModule();
+const { handlerOf, ordersWithHandler, handledOrderIdsOf } = await loadModule();
 
-/** D1 giả tối thiểu: `prepare(sql).bind(...).first()` (handlerOf chỉ đọc một dòng của view `v_dsp_order_handler`). */
+/** D1 giả tối thiểu: `prepare(sql).bind(...).first()` (handlerOf đọc một dòng của view `v_dsp_order_handler`) và `.all()` (ordersWithHandler, handledOrderIdsOf). */
 function fakeD1(sqlite: DatabaseSync): D1Database {
   const db = {
     prepare: (sql: string) => ({
@@ -35,11 +36,15 @@ function fakeD1(sqlite: DatabaseSync): D1Database {
           const row = sqlite.prepare(sql).get(...args);
           return row ? { ...row } : null;
         },
+        all: async () => ({ results: sqlite.prepare(sql).all(...args).map((r) => ({ ...r })) }),
       }),
     }),
   };
   return db as unknown as D1Database;
 }
+
+/** D1 "không được chạm": mọi lời gọi `prepare` là lỗi — dùng cho ca mảng rỗng (không được tốn một truy vấn). */
+const untouchableD1 = { prepare: () => { throw new Error("không được truy vấn D1"); } } as unknown as D1Database;
 
 const T1 = "2026-09-26T01:00:00.000Z";
 const T2 = "2026-09-26T02:00:00.000Z";
@@ -83,4 +88,23 @@ test("handlerOf: đơn chưa từng có người phụ trách, hoặc dòng cũ 
   const db = fakeD1(seed());
   assert.deepEqual(await handlerOf(db, "o-chua-ai"), { coNguoi: false, staffId: null });
   assert.deepEqual(await handlerOf(db, "o-da-dong"), { coNguoi: false, staffId: null });
+});
+
+// ---- Hàm tra cứu gốc lắp ráp tiêm vào ctx (ADR-0030 S20-13): `orders` hỏi dispatch thay vì tự đọc view của dispatch ----------------------------
+
+test("ordersWithHandler: trả đúng các đơn ĐANG có người — kể cả người phụ trách là hồ sơ không tài khoản; dòng đã đóng, đơn chưa ai, mã lạ không có", async () => {
+  const got = await ordersWithHandler(fakeD1(seed()), ["o-co-tk", "o-khong-tk", "o-chua-ai", "o-da-dong", "khong-co"]);
+  assert.ok(got instanceof Set, "trả Set để nơi gọi tra `has()`");
+  assert.deepEqual([...got].sort(), ["o-co-tk", "o-khong-tk"]);
+});
+
+test("ordersWithHandler: mảng rỗng → tập rỗng, KHÔNG truy vấn D1", async () => {
+  const got = await ordersWithHandler(untouchableD1, []);
+  assert.deepEqual([...got], []);
+});
+
+test("handledOrderIdsOf: đơn mà tài khoản ĐANG phụ trách — dòng đã đóng không tính; người không phụ trách gì → []", async () => {
+  const db = fakeD1(seed());
+  assert.deepEqual(await handledOrderIdsOf(db, "s-b"), ["o-co-tk"], "o-da-dong: dòng của Bình đã đóng");
+  assert.deepEqual(await handledOrderIdsOf(db, "s-a"), []);
 });

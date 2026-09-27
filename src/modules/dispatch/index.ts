@@ -3,8 +3,9 @@
 // SỬA ĐƯỢC ĐƠN như người lập (ADR-0009). Nhiệm vụ đón/lái cano, gán theo dịch vụ: N2.
 // Route: GET /api/dispatch/handlers, GET /api/dispatch/assignees, PUT /api/orders/:id/handler (đường dẫn dưới /api/orders/:id/ vì là thao tác trên MỘT đơn;
 // router khớp theo đoạn nên không đụng route của `orders`).
-// Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch`: gốc lắp ráp (src/index.ts) tiêm `isOrderHandler` và
-// `defaultHandlerStatement` vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
+// Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch` và không đọc view `v_dsp_*` (ADR-0030 S20-13,
+// `src/architecture.test.ts` canh): gốc lắp ráp (src/index.ts) tiêm `isOrderHandler`, `defaultHandlerStatement`, `ordersWithHandler` và `handledOrderIdsOf`
+// vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
@@ -44,6 +45,21 @@ const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa b
 
 /** Người dùng `staffId` có phải người phụ trách ĐANG MỞ của đơn `orderId` không. Gốc lắp ráp tiêm vào `ctx.isAssigned` (ADR-0007 điều 4(b)). */
 export const isOrderHandler = (db: D1Database, staffId: string, orderId: string): Promise<boolean> => isHandler(db, staffId, orderId);
+
+/**
+ * Trong các đơn `orderIds`, đơn nào ĐANG có người phụ trách (dòng `HANDLE` đang mở — kể cả khi người phụ trách là hồ sơ không có tài khoản). Gốc lắp ráp
+ * tiêm vào `ctx.ordersWithHandler` (ADR-0030 S20-13, ADR-0007 điều 4(b)): `orders` hỏi hàm này thay vì tự đọc view của dispatch (câu đếm "Chưa phụ trách"
+ * của Trang chủ; hàng chờ nhận của lượt sau). Dùng lại câu `findHandlersOf` (json_each — câu SQL tĩnh dù số id đổi), không SQL mới. Mảng rỗng → tập
+ * rỗng, không truy vấn. GIỚI HẠN ĐÃ BIẾT: không cắt lô — cả mảng id đi trong MỘT tham số JSON, lớn dần theo số đơn nơi gọi đưa vào (Trang chủ: mọi đơn
+ * chưa huỷ); khi số đó vượt vài nghìn thì phải xem lại (số đo ở chú thích khối 4 của `getDashboard`, `orders/repository.ts`).
+ */
+export async function ordersWithHandler(db: D1Database, orderIds: readonly string[]): Promise<Set<string>> {
+  if (orderIds.length === 0) return new Set();
+  return new Set((await findHandlersOf(db, orderIds)).map((r) => r.order_id));
+}
+
+/** Mọi đơn mà `staffId` ĐANG phụ trách (dòng `HANDLE` đang mở). Gốc lắp ráp tiêm vào `ctx.myHandledOrderIds` với `staffId` = người đang đăng nhập (ADR-0030). Dùng lại `findHandledOrderIds`. */
+export const handledOrderIdsOf = (db: D1Database, staffId: string): Promise<string[]> => findHandledOrderIds(db, staffId);
 
 /**
  * Người phụ trách ĐANG MỞ của đơn, dạng Bảng tin cần (ADR-0022, NT-2) — gốc lắp ráp gọi để tính nhãn người nhận và đổi `tao` → `tao_cho_nhan`. Có dòng

@@ -1,6 +1,7 @@
 // Gốc lắp ráp: danh sách module + nối auth vào router + Cron. Thêm module mới = thêm một dòng vào `modules`.
-// Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn" và có câu "đặt người phụ trách mặc định
-// cho đơn mới" nhưng KHÔNG được import `dispatch` (dispatch → orders là chiều được phép, chiều ngược lại sẽ thành vòng). Router chỉ chuyển chúng vào `ctx`.
+// Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn", có câu "đặt người phụ trách mặc định
+// cho đơn mới", cần biết "trong các đơn này đơn nào đang có người" và "đơn nào tôi đang phụ trách" (ADR-0030 S20-13) nhưng KHÔNG được import `dispatch` (dispatch →
+// orders là chiều được phép, chiều ngược lại sẽ thành vòng) và không đọc view `v_dsp_*` của nó. Router chỉ chuyển chúng vào `ctx`.
 // `parties` cần biết hồ sơ gắn tài khoản nào (ADR-0013) nhưng KHÔNG được import `staff` — tiêm `partyAccount`.
 // BẢNG TIN (ADR-0022): module `bangtin` là lá, không đọc cơ sở dữ liệu (KHONG_DB) — gốc lắp ráp đọc mã đơn/người lập (`orders`) + người phụ trách
 // (`dispatch`), tính nhãn người nhận (`nhanSuKien`) rồi đưa cho `phatDon`. Đây cũng là NƠI DUY NHẤT nạp lớp Durable Object `BangTin` (`tram.ts`) —
@@ -11,7 +12,7 @@ import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatDon } from "./modules/bangtin";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { defaultHandlerStatement, dispatchModule, handlerOf, isOrderHandler } from "./modules/dispatch";
+import { defaultHandlerStatement, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, ordersWithHandler } from "./modules/dispatch";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
@@ -30,6 +31,8 @@ const app = createApp({
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
     defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
+    ordersWithHandler: (env, orderIds) => ordersWithHandler(env.DB, orderIds),
+    handledOrderIdsOf: (env, staffId) => handledOrderIdsOf(env.DB, staffId),
     maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
     // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): việc phát được BẮT ĐẦU ở một microtask ngay khi route gọi, chạy SONG SONG

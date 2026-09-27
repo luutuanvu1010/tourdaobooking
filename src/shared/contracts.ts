@@ -293,8 +293,8 @@ export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntr
  * `GET /api/orders/dashboard` (Trang chủ mới, `access: "office"`) — tổng quan cho nhân viên văn phòng.
  * `today`: đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay.
  * `unpaid`: đơn confirmed còn thiếu tiền theo số HIỆN HÀNH (đã áp điều chỉnh, nếu có) — `earliestDate` = ngày đón sớm nhất trong số đó, null nếu không đơn nào có ngày.
- * `draftCount`: đơn nháp chưa xác nhận (điểm duy nhất của trang này đếm đơn nháp).
- * `unassignedCount`: đơn confirmed chưa có người phụ trách.
+ * `draftCount`: đơn nháp chưa xác nhận.
+ * `unassignedCount`: đơn nháp hoặc đã xác nhận (không tính đơn huỷ) chưa có người phụ trách — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13.
  * `revenueWeek`: doanh thu (tổng `total` hiện hành) của CHÍNH người xem trong tuần `from`..`to` (thứ Hai–Chủ nhật, giờ Việt Nam, hai đầu bao gồm).
  * `revenueWeek.daily`: ĐÚNG 7 phần tử (thứ Hai→Chủ nhật, cùng số hiện hành), ngày không có đơn vẫn có phần tử `total: 0` — dữ liệu cho
  * biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2).

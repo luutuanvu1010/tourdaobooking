@@ -57,6 +57,8 @@ async function callOff(r: Route, env: Record<string, unknown>): Promise<Response
     staff: ADMIN as never,
     isAssigned: async () => false,
     defaultHandlerStatement: () => null,
+    ordersWithHandler: async () => new Set<string>(),
+    myHandledOrderIds: async () => [],
   });
 }
 

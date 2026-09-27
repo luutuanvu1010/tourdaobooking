@@ -29,6 +29,8 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
     injected: {
       isAssigned: async () => false,
       defaultHandlerStatement: () => null,
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async (_env, s) => {
         calls.gate.push(s);
         return block(s);
@@ -126,6 +128,8 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
     injected: {
       isAssigned: async () => false,
       defaultHandlerStatement: () => null,
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
       partyAccount: async (_env, actor, partyId) => { seen.push(`${actor.id}:${partyId}`); return { linked: false }; },
       baoThayDoi: async () => {},
@@ -136,6 +140,41 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
   assert.deepEqual(await get("/api/pa-open"), { linked: true, manageable: false });
   assert.deepEqual(await get("/api/pa-off"), { linked: false });
   assert.deepEqual(seen, ["u1:pty-1"]);
+});
+
+test("ADR-0030 S20-13: ctx.myHandledOrderIds() hỏi đúng người đang đăng nhập (không nhận tham số); chưa đăng nhập → [] không gọi hàm tiêm; ctx.ordersWithHandler chuyển nguyên mảng id", async () => {
+  const seenMine: string[] = [];
+  const seenIds: string[][] = [];
+  const mod: AppModule = {
+    name: "t",
+    routes: [
+      route("GET", "/api/mine-open", "public", async (ctx) => json(await ctx.myHandledOrderIds())),
+      route("GET", "/api/mine-ord", "orders", async (ctx) => json(await ctx.myHandledOrderIds())),
+      route("GET", "/api/with-ord", "orders", async (ctx) => json([...(await ctx.ordersWithHandler(["o1", "o2", "o3"]))])),
+    ],
+  };
+  const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/mine-open" ? null : who),
+    injected: {
+      isAssigned: async () => false,
+      defaultHandlerStatement: () => null,
+      ordersWithHandler: async (_env, orderIds) => { seenIds.push([...orderIds]); return new Set(["o2"]); },
+      handledOrderIdsOf: async (_env, staffId) => { seenMine.push(staffId); return ["o9"]; },
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+    },
+  });
+  const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
+  assert.deepEqual(await get("/api/mine-open"), []);
+  assert.deepEqual(seenMine, [], "chưa đăng nhập: không gọi hàm tiêm");
+  assert.deepEqual(await get("/api/mine-ord"), ["o9"]);
+  assert.deepEqual(seenMine, ["u1"], "id lấy từ phiên đăng nhập");
+  assert.deepEqual(await get("/api/with-ord"), ["o2"]);
+  assert.deepEqual(seenIds, [["o1", "o2", "o3"]]);
 });
 
 // BẢNG TIN (ADR-0022, Task 3) — ctx.baoThayDoi / ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, lỗi phát tin không bao giờ làm hỏng/chậm thao tác ghi (DP-3).
@@ -167,6 +206,8 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
     injected: {
       isAssigned: async () => false,
       defaultHandlerStatement: () => null,
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
       partyAccount: async () => ({ linked: false }),
       // KHÔNG bọc async: nếu `overrides.baoThayDoi`/`dongBangTin` là hàm ĐỒNG BỘ ném lỗi, lời gọi này phải ném lỗi ĐỒNG BỘ ra ngoài — bọc `async` sẽ
@@ -198,6 +239,8 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
     injected: {
       isAssigned: async () => false,
       defaultHandlerStatement: () => null,
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
       partyAccount: async () => ({ linked: false }),
       baoThayDoi: async () => { await baoThayDoi(); },

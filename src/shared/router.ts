@@ -36,6 +36,18 @@ export interface Ctx<A extends Access = Access> {
    */
   defaultHandlerStatement: (orderId: string, at: string) => D1PreparedStatement | null;
   /**
+   * Trong các đơn `orderIds`, đơn nào ĐANG có người phụ trách (ADR-0030 S20-13) — do gốc lắp ráp tiêm; `dispatch` trả lời. Module `orders` không import
+   * `dispatch` và không đọc view `v_dsp_*` của nó (`src/architecture.test.ts` canh): cần biết đơn nào có người thì hỏi hàm này. KHÔNG phụ thuộc người
+   * đang gọi (chỉ tra theo mã đơn nơi gọi đã có) — cả route công khai cũng nhận câu trả lời THẬT: trả tập rỗng ở đó sẽ là câu trả lời SAI ("không đơn nào
+   * có người"), không phải từ chối. Mỗi lần gọi là MỘT truy vấn D1 với cả mảng id trong một tham số JSON (mảng rỗng: không truy vấn).
+   */
+  ordersWithHandler: (orderIds: readonly string[]) => Promise<Set<string>>;
+  /**
+   * Mọi đơn mà NGƯỜI ĐANG ĐĂNG NHẬP đang phụ trách (ADR-0030) — do gốc lắp ráp tiêm; id người lấy từ phiên, KHÔNG nhận tham số (route không hỏi được
+   * thay người khác). Chưa đăng nhập → `[]` (không phụ trách gì), không truy vấn. Mỗi lần gọi là một truy vấn D1.
+   */
+  myHandledOrderIds: () => Promise<string[]>;
+  /**
    * ADR-0013 điều 4 — do gốc lắp ráp tiêm (module `parties` không import `staff`). Mỗi lần gọi là 1–2 truy vấn D1.
    * Chưa đăng nhập → `{ linked: true, manageable: false }` (TỪ CHỐI; không được tụt về ô `party.write`).
    */
@@ -117,6 +129,10 @@ export interface AppOptions {
   injected: {
     isAssigned: (env: Env, staffId: string, orderId: string) => Promise<boolean>;
     defaultHandlerStatement: (env: Env, staff: StaffProfile, orderId: string, at: string) => D1PreparedStatement | null;
+    /** ADR-0030 S20-13. BẮT BUỘC: thiếu là `orders` không biết đơn nào đang có người phụ trách (Trang chủ đếm sai "Chưa phụ trách"). */
+    ordersWithHandler: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
+    /** ADR-0030. BẮT BUỘC. Router luôn truyền `staffId` = người đang đăng nhập (`ctx.myHandledOrderIds`). */
+    handledOrderIdsOf: (env: Env, staffId: string) => Promise<string[]>;
     /**
      * Cổng CHẾ ĐỘ BẢO TRÌ (module `maintenance`, gốc lắp ráp tiêm — router không biết module đó): Response 503 nếu tài khoản này bị chặn LÚC NÀY, hoặc null để cho qua.
      * Chạy cho mọi route cần đăng nhập, ngay sau khi biết ai đang đăng nhập và TRƯỚC kiểm quyền admin/văn phòng (người bị chặn thấy "đang bảo trì", không phải "không đủ quyền").
@@ -179,6 +195,8 @@ export function createApp(opts: AppOptions) {
       request, env, exec, url, params: hit.params, staff,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
       defaultHandlerStatement: (orderId, at) => (who ? opts.injected.defaultHandlerStatement(env, who, orderId, at) : null),
+      ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(env, orderIds),
+      myHandledOrderIds: () => (who ? opts.injected.handledOrderIdsOf(env, who.id) : Promise.resolve([])),
       partyAccount: (partyId) => (who ? opts.injected.partyAccount(env, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
       baoThayDoi: (e) => {
         if (!who) return; // route công khai: không ai "báo" thay mặt.

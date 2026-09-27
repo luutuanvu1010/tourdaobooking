@@ -1,6 +1,7 @@
 // getDashboard() (Trang chủ mới) chạy trên SQLite thật (node:sqlite), schema dựng từ migrations/*.sql — cùng khuôn với dispatch/service.test.ts.
 // Trọng tâm: đúng bài học Đợt B (số tiền HIỆN HÀNH, không phải cột gốc) + ngữ nghĩa "chuyến đón hôm nay" (ngày SỚM NHẤT trong các dịch vụ CÓ ngày,
-// không phải "có ít nhất một dịch vụ trùng hôm nay") + "chưa có người phụ trách" CHỈ qua view v_dsp_order_handler.
+// không phải "có ít nhất một dịch vụ trùng hôm nay") + "chưa có người phụ trách" đếm cả đơn nháp, tập đơn đang có người CHỈ lấy qua hàm tiêm
+// (`ctx.ordersWithHandler`, gốc lắp ráp nối vào `dispatch` — ADR-0030 S20-13): `orders` không tự đọc dữ liệu phân công.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
@@ -133,6 +134,28 @@ function insertHandler(sqlite: DatabaseSync, o: { id: string; orderId: string; p
     .run(o.id, o.orderId, o.partyId, o.from, o.to ?? null, o.from, o.from);
 }
 
+/** Huỷ một đơn (nháp → huỷ hoặc đã xác nhận → huỷ — hai đường trigger `orders_status_transition`, 0017, cho phép). */
+function cancel(sqlite: DatabaseSync, id: string, at = "2026-09-24T00:00:00.000Z"): void {
+  sqlite.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ?`).run(at, id);
+}
+
+/**
+ * Giả hàm tiêm `ctx.ordersWithHandler` (ADR-0030 S20-13; bản thật: `dispatch` → `ordersWithHandler`, nối ở `src/index.ts`). `getDashboard` hỏi
+ * "trong các đơn này, đơn nào ĐANG có người phụ trách" rồi đếm phần còn lại — `orders` không tự đọc dữ liệu phân công. `withHandler` = câu trả lời giả
+ * của dispatch (chỉ trả những id có trong câu hỏi, như bản thật); `asked` ghi lại từng lần hỏi. Ngữ nghĩa "dòng đã đóng coi như chưa có ai", "hồ sơ
+ * không tài khoản vẫn là có người" nay thuộc `dispatch` — bài kiểm ở `src/modules/dispatch/handler-of.test.ts`.
+ */
+function handlerLookup(withHandler: readonly string[] = []) {
+  const asked: string[][] = [];
+  const fn = async (orderIds: readonly string[]): Promise<Set<string>> => {
+    asked.push([...orderIds]);
+    return new Set(withHandler.filter((id) => orderIds.includes(id)));
+  };
+  return { fn, asked };
+}
+/** Cho các ca KHÔNG kiểm `unassignedCount`: không đơn nào có người phụ trách. */
+const NO_HANDLERS = handlerLookup().fn;
+
 const TODAY = "2026-09-24"; // thứ Năm
 const YESTERDAY = "2026-09-23";
 const TOMORROW = "2026-09-25";
@@ -173,7 +196,7 @@ test("today: chỉ đơn confirmed có dịch vụ SỚM NHẤT (trong các dị
   // o6: confirmed, KHÔNG có dịch vụ nào (mô phỏng "không dịch vụ nào có ngày đón") → KHÔNG có, không lỗi.
   insertConfirmedOrderNoServices(sqlite, { id: "o6", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.deepEqual(
     data.today.map((o) => o.id),
     ["o4", "o1"], // sắp theo giờ đón của dịch vụ hôm nay: o4 (06:00) trước o1 (08:00)
@@ -195,7 +218,7 @@ test("today: đơn có điều chỉnh tiền → total/remainingAmount trong da
   // đây để chứng minh không còn đọc cột này: nếu mã cũ còn đọc, khẳng định dưới sẽ thấy 999 thay vì 400.000).
   insertAdjustment(sqlite, { id: "adj1", orderId: "o1", seq: 1, subtotalBefore: 1_000_000, subtotalAfter: 999, after: [{ serviceId: "sv1", pax: { adult: 4, child: 0, senior: 0, infant: 0 } }] });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.today.length, 1);
   assert.equal(data.today[0]!.total, 400_000, "total = TỰ TÍNH LẠI từ order_item + pax mới (4×100.000), không phải 1.000.000 gốc VÀ không phải cột subtotal_after đã lưu (cố ý đặt = 999 ở trên)");
   assert.equal(data.today[0]!.remainingAmount, 200_000, "remainingAmount = 400.000 - 200.000 cọc, không phải 800.000 gốc");
@@ -214,7 +237,7 @@ test("today: đơn có điều chỉnh SỐ KHÁCH → pax trong danh sách hôm
     after: [{ serviceId: "sve1", pax: { adult: 5, child: 0, senior: 0, infant: 0 } }], // HDV sửa 1 → 5 khách
   });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.today.length, 1);
   assert.deepEqual(data.today[0]!.pax, { adult: 5, child: 0, senior: 0, infant: 0 }, "pax phải là số MỚI (5), không phải 1 (order_service gốc, đã đóng băng)");
 });
@@ -255,7 +278,7 @@ test("unpaid: áp effective money TỪNG đơn rồi mới lọc >0 — không l
     m: { subtotal: 100_000, total: 100_000, depositAmount: 100_000, remainingAmount: 0 },
   });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.unpaid.count, 2, "chỉ p1 (0→dương) và p3 (còn thiếu, không đổi)");
   assert.equal(data.unpaid.total, 1_000_000 + 250_000, "1.500.000 - 500.000 cọc (p1) + 250.000 (p3)");
   assert.equal(data.unpaid.earliestDate, "2026-09-25", "ngày đón sớm nhất trong số đơn CÒN THIẾU TIỀN (p3, bỏ qua p2 đã loại)");
@@ -264,7 +287,7 @@ test("unpaid: áp effective money TỪNG đơn rồi mới lọc >0 — không l
 test("unpaid: không đơn nào còn thiếu → count/total = 0, earliestDate = null", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.deepEqual(data.unpaid, { total: 0, count: 0, earliestDate: null });
 });
 
@@ -276,28 +299,49 @@ test("draftCount: đếm đúng số đơn nháp, không đếm đơn đã xác 
   insertDraftOrder(sqlite, { id: "d1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
   insertDraftOrder(sqlite, { id: "d2", staffId: "s-b", createdAt: "2026-09-20T01:00:00.000Z" });
   insertConfirmedOrderNoServices(sqlite, { id: "d3", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" }); // đã xác nhận, không phải nháp
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.draftCount, 2, "d1, d2 còn nháp; d3 đã xác nhận không tính");
 });
 
 // ---- 4) Chưa có người phụ trách --------------------------------------------------------------------------------
 
-test("unassignedCount: đơn confirmed KHÔNG có dòng người phụ trách ĐANG MỞ ở v_dsp_order_handler mới tính", async () => {
+test("unassignedCount (ADR-0020 điều 7 M1 = A, ADR-0030 S20-13): đếm đơn NHÁP lẫn đã xác nhận chưa có người; đơn huỷ không đếm; đơn nháp có người không đếm", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
+  const at = "2026-09-20T01:00:00.000Z";
+  insertConfirmedOrderNoServices(sqlite, { id: "c1", staffId: "s-a", createdAt: at }); // đã xác nhận, CÓ người → KHÔNG tính
+  insertConfirmedOrderNoServices(sqlite, { id: "c2", staffId: "s-a", createdAt: at }); // đã xác nhận, chưa có người → TÍNH
+  insertDraftOrder(sqlite, { id: "d1", staffId: "s-a", createdAt: at }); // nháp, chưa có người → TÍNH (mới: M1 = A)
+  insertDraftOrder(sqlite, { id: "d2", staffId: "s-b", createdAt: at }); // nháp của người khác, chưa có người → TÍNH (số toàn công ty)
+  insertDraftOrder(sqlite, { id: "d3", staffId: "s-a", createdAt: at }); // nháp, CÓ người → KHÔNG tính
+  insertDraftOrder(sqlite, { id: "x1", staffId: "s-a", createdAt: at });
+  cancel(sqlite, "x1"); // nháp → huỷ, chưa có người → KHÔNG tính
+  insertConfirmedOrderNoServices(sqlite, { id: "x2", staffId: "s-a", createdAt: at });
+  cancel(sqlite, "x2"); // đã xác nhận → huỷ, chưa có người → KHÔNG tính
 
-  insertConfirmedOrderNoServices(sqlite, { id: "u1", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
-  insertHandler(sqlite, { id: "h1", orderId: "u1", partyId: "pty-s-a", from: "2026-09-20T02:00:00.000Z" }); // đang mở → KHÔNG tính
+  const lookup = handlerLookup(["c1", "d3"]);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, lookup.fn);
+  assert.equal(data.unassignedCount, 3, "c2 (đã xác nhận) + d1, d2 (nháp) chưa có người; c1, d3 có người; x1, x2 đã huỷ");
+  assert.deepEqual(
+    lookup.asked.map((ids) => [...ids].sort()),
+    [["c1", "c2", "d1", "d2", "d3"]],
+    "hỏi dispatch ĐÚNG MỘT lần, đúng các đơn nháp + đã xác nhận — không hỏi đơn đã huỷ",
+  );
+});
 
-  insertConfirmedOrderNoServices(sqlite, { id: "u2", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" }); // không người phụ trách → TÍNH
+test("unassignedCount: chỉ tin câu trả lời của hàm tiêm — dòng phân công THẬT trong CSDL không được đọc thẳng từ orders", async () => {
+  const sqlite = seed();
+  const db = fakeD1(sqlite);
+  const at = "2026-09-20T01:00:00.000Z";
+  // Dữ liệu THẬT của dispatch cố ý NGƯỢC với câu trả lời giả: nếu `getDashboard` còn tự đọc bảng/view phân công, số đếm sẽ lệch.
+  insertConfirmedOrderNoServices(sqlite, { id: "u1", staffId: "s-a", createdAt: at });
+  insertHandler(sqlite, { id: "h1", orderId: "u1", partyId: "pty-s-a", from: "2026-09-20T02:00:00.000Z" }); // CSDL: có người; hàm tiêm: KHÔNG → TÍNH
+  insertConfirmedOrderNoServices(sqlite, { id: "u2", staffId: "s-a", createdAt: at }); // CSDL: không có ai; hàm tiêm: CÓ người → KHÔNG tính
+  insertDraftOrder(sqlite, { id: "u3", staffId: "s-a", createdAt: at });
+  insertHandler(sqlite, { id: "h3", orderId: "u3", partyId: "pty-s-b", from: "2026-09-20T02:00:00.000Z" }); // CSDL: có người; hàm tiêm: KHÔNG → TÍNH
 
-  insertConfirmedOrderNoServices(sqlite, { id: "u3", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
-  insertHandler(sqlite, { id: "h3", orderId: "u3", partyId: "pty-s-a", from: "2026-09-20T02:00:00.000Z", to: "2026-09-20T03:00:00.000Z" }); // đã đóng → TÍNH (như chưa có ai)
-
-  insertDraftOrder(sqlite, { id: "u4", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" }); // nháp — không liên quan số liệu này
-
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
-  assert.equal(data.unassignedCount, 2, "u2 (chưa từng có) và u3 (người phụ trách đã đóng dòng)");
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, handlerLookup(["u2"]).fn);
+  assert.equal(data.unassignedCount, 2, "u1, u3 (hàm tiêm nói chưa có người); u2 có người theo hàm tiêm");
 });
 
 // ---- 5) Doanh thu tuần --------------------------------------------------------------------------------------------
@@ -331,7 +375,7 @@ test("revenueWeek: đúng người (staff_id), đúng khoảng [đầu thứ Hai
   confirm(sqlite, "r7", FROM_ISO);
   insertAdjustment(sqlite, { id: "adjr7", orderId: "r7", seq: 1, subtotalBefore: 500_000, subtotalAfter: 999, after: [{ serviceId: "svr7", pax: { adult: 9, child: 0, senior: 0, infant: 0 } }] });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.revenueWeek.count, 3, "r1, r3, r7 (đúng người, đúng khoảng, đã xác nhận)");
   assert.equal(data.revenueWeek.total, 100_000 + 200_000 + 900_000);
 });
@@ -351,7 +395,7 @@ test("revenueWeek.daily: đơn rải ở NHIỀU NGÀY khác nhau trong tuần �
   // da3: thứ Ba (22/09), NHƯNG của s-b (nhân viên khác) → KHÔNG được cộng vào daily của s-a.
   insertConfirmedOrderNoServices(sqlite, { id: "da3", staffId: "s-b", createdAt: "2026-09-22T05:00:00.000Z", m: { subtotal: 999_999, total: 999_999, depositAmount: 0, remainingAmount: 999_999 } });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.revenueWeek.daily.length, 7, `daily phải đúng 7 phần tử — thấy ${data.revenueWeek.daily.length}`);
   assert.deepEqual(data.revenueWeek.daily.map((d) => d.date), WEEK_DATES, "daily phải đúng thứ tự ngày T2..CN");
   assert.deepEqual(
@@ -376,7 +420,7 @@ test("revenueWeek.daily: đơn có ĐIỀU CHỈNH tiền → daily dùng số H
   confirm(sqlite, "db1", "2026-09-22T05:00:00.000Z");
   insertAdjustment(sqlite, { id: "adjdb1", orderId: "db1", seq: 1, subtotalBefore: 500_000, subtotalAfter: 999, after: [{ serviceId: "svdb1", pax: { adult: 9, child: 0, senior: 0, infant: 0 } }] });
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   const tuesday = data.revenueWeek.daily.find((d) => d.date === "2026-09-22");
   assert.ok(tuesday, `phải có phần tử ngày 2026-09-22 — ${JSON.stringify(data.revenueWeek.daily)}`);
   assert.equal(tuesday!.total, 900_000, `ngày 22/09 phải = 900.000 (số hiện hành sau điều chỉnh), không phải 500.000 gốc — ${JSON.stringify(data.revenueWeek.daily)}`);
@@ -389,7 +433,7 @@ test("revenueWeek.daily: đơn có ĐIỀU CHỈNH tiền → daily dùng số H
 test("revenueWeek.daily: tuần KHÔNG có đơn nào → vẫn đúng 7 phần tử T2..CN, mỗi phần tử total = 0 (không bỏ trống)", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.revenueWeek.daily.length, 7);
   assert.deepEqual(data.revenueWeek.daily.map((d) => d.date), WEEK_DATES);
   assert.deepEqual(
@@ -411,7 +455,7 @@ test("today: trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (ngày sớm n
   insertService(sqlite, { id: "sv7b", orderId: "o7", sortOrder: 1, departDate: TODAY, pickupTime: "09:00" });
   confirm(sqlite, "o7");
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.deepEqual(
     data.today.map((o) => o.id),
     ["o7"],
@@ -440,7 +484,7 @@ test("today: 2 dịch vụ CÙNG ngày sớm nhất, một cái KHÔNG có giờ
   insertService(sqlite, { id: "sv8b", orderId: "o8", sortOrder: 1, departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" });
   confirm(sqlite, "o8");
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.equal(data.today.length, 1, `o8 phải có trong today — ${JSON.stringify(data.today.map((o) => o.id))}`);
   const o8 = data.today.find((o) => o.id === "o8")!;
   assert.equal(o8.trip.pickupTime, "06:15", `trip.pickupTime PHẢI là 06:15 (sv8b, có giờ đón) — thấy ${JSON.stringify(o8.trip)}. Nếu null thì dịch vụ KHÔNG-CÓ-GIỜ đã thắng khoá phá hoà (bug I-1).`);
@@ -466,7 +510,7 @@ test("today: sắp xếp danh sách — đơn KHÔNG có giờ đón (trip.picku
   insertService(sqlite, { id: "sv10", orderId: "o10", departDate: TODAY, pickupTime: null });
   confirm(sqlite, "o10");
 
-  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to);
+  const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
   assert.deepEqual(
     data.today.map((o) => o.id),
     ["o9", "o10"],
