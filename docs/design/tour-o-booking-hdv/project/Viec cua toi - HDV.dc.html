@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+html{scroll-behavior:smooth}
+body{margin:0;background:#eef2f4;color:#14202b;font-family:'Be Vietnam Pro',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:#0b6e75}
+a:hover{color:#08555b}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="min-height:100vh;">
+  <header style="position:sticky;top:0;z-index:10;background:#ffffff;border-bottom:1px solid #d5dde2;">
+    <div style="max-width:1120px;margin:0 auto;padding:12px 16px 10px;display:flex;flex-direction:column;gap:10px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+        <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+          <div style="font-size:13px;font-weight:600;color:#52606b;letter-spacing:.02em;">Tour Đảo Booking · Việc của tôi</div>
+          <div style="font-size:20px;font-weight:700;line-height:1.25;">HDV: {{ guideName }}</div>
+        </div>
+      </div>
+      <nav style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <a href="#cho-nhan" style="min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;border-radius:10px;background:#e4f1f2;color:#0b4f55;text-decoration:none;font-weight:600;font-size:15px;">
+          <span>Đơn chờ nhận</span><span style="min-width:28px;height:28px;padding:0 8px;box-sizing:border-box;border-radius:14px;background:#0b6e75;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;">{{ queueCount }}</span>
+        </a>
+        <a href="#cua-toi" style="min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;border-radius:10px;background:#eceff1;color:#14202b;text-decoration:none;font-weight:600;font-size:15px;">
+          <span>Đơn của tôi</span><span style="min-width:28px;height:28px;padding:0 8px;box-sizing:border-box;border-radius:14px;background:#14202b;color:#ffffff;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;">{{ mineCount }}</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1120px;margin:0 auto;padding:16px 16px 48px;display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:28px 24px;align-items:start;">
+
+    <section id="cho-nhan" style="scroll-margin-top:130px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <h2 style="margin:0;font-size:20px;font-weight:700;">Đơn chờ nhận</h2>
+        <div style="font-size:14px;color:#52606b;">Chưa có ai phụ trách · ngày đi gần nhất lên trước</div>
+      </div>
+      <sc-if value="{{ queueEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:20px 16px;border-radius:12px;background:#ffffff;border:1px dashed #c3cdd3;color:#52606b;font-size:16px;text-align:center;">Không có đơn nào đang chờ nhận.</div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;">
+        <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-rows:{{ q.rows }};opacity:{{ q.opacity }};transition:grid-template-rows .45s ease,opacity .3s ease;">
+            <div style="min-height:0;overflow:hidden;">
+              <div style="padding-bottom:12px;">
+                <article style="background:#ffffff;border:1px solid #d5dde2;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+                    <div style="display:flex;flex-direction:column;gap:2px;">
+                      <div style="font-size:18px;font-weight:700;">{{ q.dateLabel }}</div>
+                      <div style="font-size:14px;color:#52606b;font-weight:500;">Mã đơn {{ q.id }}</div>
+                    </div>
+                    <div style="flex-shrink:0;padding:4px 10px;border-radius:8px;background:#e4f1f2;color:#0b4f55;font-size:14px;font-weight:700;">{{ q.relLabel }}</div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;border-top:1px solid #e6ebee;">
+                    <sc-for list="{{ q.services }}" as="s" hint-placeholder-count="1">
+                      <div style="display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid #e6ebee;">
+                        <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.35;">{{ s.time }}</div>
+                        <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+                          <div style="font-size:16px;font-weight:600;line-height:1.35;text-wrap:pretty;">{{ s.name }}</div>
+                          <div style="font-size:15px;color:#2f3b45;"><strong style="font-weight:700;">{{ s.guests }} khách</strong></div>
+                          <div style="font-size:15px;color:#2f3b45;line-height:1.45;overflow-wrap:anywhere;">Đón: {{ s.pickup }}</div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <button onClick="{{ q.onClaim }}" disabled="{{ q.claiming }}" style="min-height:52px;border:0;border-radius:12px;background:#0b6e75;color:#ffffff;font-size:17px;font-weight:700;cursor:pointer;" style-active="background:#08555b">{{ q.claimLabel }}</button>
+                </article>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="cua-toi" style="scroll-margin-top:130px;display:flex;flex-direction:column;gap:12px;">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <h2 style="margin:0;font-size:20px;font-weight:700;">Đơn của tôi</h2>
+        <div style="font-size:14px;color:#52606b;">Đơn bạn đang phụ trách</div>
+      </div>
+      <sc-if value="{{ mineEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:20px 16px;border-radius:12px;background:#ffffff;border:1px dashed #c3cdd3;color:#52606b;font-size:16px;text-align:center;">Bạn chưa được giao phụ trách đơn nào.</div>
+      </sc-if>
+      <sc-for list="{{ mine }}" as="m" hint-placeholder-count="3">
+        <article style="background:#ffffff;border:1px solid #d5dde2;border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="font-size:18px;font-weight:700;">{{ m.dateLabel }}</div>
+              <div style="font-size:14px;color:#52606b;font-weight:500;">Mã đơn {{ m.id }} · {{ m.relLabel }}</div>
+            </div>
+            <sc-if value="{{ m.isDraft }}" hint-placeholder-val="{{ false }}">
+              <div style="flex-shrink:0;padding:4px 10px;border-radius:8px;background:#fdf0d5;color:#6e4300;font-size:14px;font-weight:700;">Chờ xác nhận</div>
+            </sc-if>
+            <sc-if value="{{ m.isUpcoming }}" hint-placeholder-val="{{ true }}">
+              <div style="flex-shrink:0;padding:4px 10px;border-radius:8px;background:#e1f3e8;color:#1a5e35;font-size:14px;font-weight:700;">Đã xác nhận</div>
+            </sc-if>
+            <sc-if value="{{ m.isPast }}" hint-placeholder-val="{{ false }}">
+              <div style="flex-shrink:0;padding:4px 10px;border-radius:8px;background:#e8ecef;color:#3d4851;font-size:14px;font-weight:700;">Đã đi tour</div>
+            </sc-if>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px;border-radius:10px;background:#f4f7f8;">
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+              <div style="font-size:16px;font-weight:700;">{{ m.customer }}</div>
+              <div style="font-size:15px;color:#2f3b45;font-variant-numeric:tabular-nums;">{{ m.phone }}</div>
+            </div>
+            <a href="{{ m.tel }}" style="flex-shrink:0;min-height:44px;min-width:64px;padding:0 14px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;border-radius:10px;border:1.5px solid #0b6e75;color:#0b6e75;font-weight:700;font-size:15px;text-decoration:none;">Gọi</a>
+          </div>
+
+          <div style="display:flex;flex-direction:column;border-top:1px solid #e6ebee;">
+            <sc-for list="{{ m.services }}" as="s" hint-placeholder-count="1">
+              <div style="display:grid;grid-template-columns:62px minmax(0,1fr);gap:12px;padding:12px 0;border-bottom:1px solid #e6ebee;">
+                <div style="font-size:18px;font-weight:700;font-variant-numeric:tabular-nums;line-height:1.35;">{{ s.time }}</div>
+                <div style="display:flex;flex-direction:column;gap:4px;min-width:0;">
+                  <div style="font-size:16px;font-weight:600;line-height:1.35;text-wrap:pretty;">{{ s.name }}</div>
+                  <div style="font-size:15px;color:#2f3b45;"><strong style="font-weight:700;">{{ s.guests }} khách</strong> · {{ s.priceLabel }}/khách</div>
+                  <div style="font-size:15px;color:#2f3b45;line-height:1.45;overflow-wrap:anywhere;">Đón: {{ s.pickup }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="font-size:13px;color:#52606b;font-weight:500;">Tổng tiền</div>
+              <div style="font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;">{{ m.total }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="font-size:13px;color:#52606b;font-weight:500;">Đã cọc</div>
+              <div style="font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;">{{ m.deposit }}</div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="font-size:13px;color:#52606b;font-weight:500;">Còn thu</div>
+              <div style="font-size:16px;font-weight:700;color:#0b4f55;font-variant-numeric:tabular-nums;">{{ m.remaining }}</div>
+            </div>
+          </div>
+
+          <sc-if value="{{ m.isDraft }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:14px;color:#52606b;line-height:1.45;">Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.</div>
+          </sc-if>
+          <sc-if value="{{ m.hasActions }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+              <button onClick="{{ m.onEdit }}" style="flex:1 1 160px;min-height:48px;border-radius:12px;border:1.5px solid #14202b;background:#ffffff;color:#14202b;font-size:16px;font-weight:700;cursor:pointer;" style-active="background:#eceff1">Sửa số khách</button>
+              <sc-if value="{{ m.canCancel }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ m.onCancel }}" style="flex:1 1 120px;min-height:48px;border-radius:12px;border:1.5px solid #b42318;background:#ffffff;color:#b42318;font-size:16px;font-weight:700;cursor:pointer;" style-active="background:#fdecea">Huỷ đơn</button>
+              </sc-if>
+            </div>
+          </sc-if>
+        </article>
+      </sc-for>
+    </section>
+  </main>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:50;background:rgba(20,32,43,.45);display:flex;align-items:flex-end;justify-content:center;">
+      <div onClick="{{ stop }}" style="width:100%;max-width:520px;background:#ffffff;border-radius:18px 18px 0 0;padding:20px 16px 24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;max-height:85vh;overflow:auto;">
+        <sc-if value="{{ isEditSheet }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="display:flex;flex-direction:column;gap:2px;">
+              <div style="font-size:19px;font-weight:700;">Sửa số khách</div>
+              <div style="font-size:14px;color:#52606b;">Mã đơn {{ sheetId }}</div>
+            </div>
+            <sc-for list="{{ editRows }}" as="r" hint-placeholder-count="1">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #e6ebee;">
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0;">
+                  <div style="font-size:16px;font-weight:600;line-height:1.35;">{{ r.name }}</div>
+                  <div style="font-size:14px;color:#52606b;">Đón {{ r.time }}</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
+                  <button onClick="{{ r.dec }}" aria-label="Bớt một khách" style="width:48px;height:48px;border-radius:12px;border:1.5px solid #c3cdd3;background:#ffffff;font-size:24px;font-weight:600;color:#14202b;cursor:pointer;">−</button>
+                  <div style="min-width:40px;text-align:center;font-size:20px;font-weight:700;font-variant-numeric:tabular-nums;">{{ r.guests }}</div>
+                  <button onClick="{{ r.inc }}" aria-label="Thêm một khách" style="width:48px;height:48px;border-radius:12px;border:1.5px solid #c3cdd3;background:#ffffff;font-size:24px;font-weight:600;color:#14202b;cursor:pointer;">+</button>
+                </div>
+              </div>
+            </sc-for>
+            <div style="display:flex;justify-content:space-between;font-size:16px;"><span style="color:#52606b;">Tổng tiền mới</span><strong style="font-variant-numeric:tabular-nums;">{{ editTotal }}</strong></div>
+            <div style="display:flex;gap:10px;">
+              <button onClick="{{ closeSheet }}" style="flex:1;min-height:52px;border-radius:12px;border:1.5px solid #c3cdd3;background:#ffffff;color:#14202b;font-size:16px;font-weight:700;cursor:pointer;">Đóng</button>
+              <button onClick="{{ saveEdit }}" style="flex:1;min-height:52px;border-radius:12px;border:0;background:#0b6e75;color:#ffffff;font-size:16px;font-weight:700;cursor:pointer;">Lưu</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isCancelSheet }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div style="font-size:19px;font-weight:700;">Huỷ đơn {{ sheetId }}?</div>
+            <div style="font-size:16px;color:#2f3b45;line-height:1.5;">Đơn của {{ sheetCustomer }}, đi {{ sheetDate }}. Thao tác này không hoàn tác được.</div>
+            <div style="display:flex;gap:10px;">
+              <button onClick="{{ closeSheet }}" style="flex:1;min-height:52px;border-radius:12px;border:1.5px solid #c3cdd3;background:#ffffff;color:#14202b;font-size:16px;font-weight:700;cursor:pointer;">Giữ đơn</button>
+              <button onClick="{{ confirmCancel }}" style="flex:1;min-height:52px;border-radius:12px;border:0;background:#b42318;color:#ffffff;font-size:16px;font-weight:700;cursor:pointer;">Huỷ đơn</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;demoState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Có dữ liệu&quot;,&quot;Hàng chờ trống&quot;,&quot;Cả hai trống&quot;],&quot;default&quot;:&quot;Có dữ liệu&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;simulateOthers&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const TODAY = new Date(2026, 8, 27);
+const WD = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+const pd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const days = s => Math.round((pd(s) - TODAY) / 86400000);
+const fmtDate = s => { const d = pd(s); return `${WD[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; };
+const rel = s => { const n = days(s); if (n === 0) return 'Hôm nay'; if (n === 1) return 'Ngày mai'; if (n > 1) return `Còn ${n} ngày`; return `Đã đi ${-n} ngày trước`; };
+const vnd = n => n.toLocaleString('vi-VN') + ' ₫';
+const total = o => o.services.reduce((a, s) => a + s.guests * s.price, 0);
+
+// Queue items: server sends only `pickupMasked`; full record is fetched after claim.
+const QUEUE = [
+  { id:'TDB-2427', date:'2026-10-02', deposit:1000000, customer:'Phạm Quốc Bảo', phone:'0912 448 305', services:[
+    { name:'Tour 4 đảo Nha Trang', guests:10, price:450000, time:'07:00', pickup:'Sảnh khách sạn Sheraton, 26-28 Trần Phú', pickupMasked:'Sảnh khách sạn Sheraton, 26-28 Trần Phú' }]},
+  { id:'TDB-2418', date:'2026-09-28', deposit:0, customer:'Trần Thị Hồng', phone:'0905 214 887', services:[
+    { name:'Tour 4 đảo Nha Trang', guests:6, price:450000, time:'07:15', pickup:'Khách sạn Liberty Central, 9 Biệt Thự', pickupMasked:'Khách sạn Liberty Central, 9 Biệt Thự' },
+    { name:'Lặn ngắm san hô Hòn Mun', guests:4, price:350000, time:'13:30', pickup:'Cảng Cầu Đá', pickupMasked:'Cảng Cầu Đá' }]},
+  { id:'TDB-2421', date:'2026-09-29', deposit:500000, customer:'Lê Văn Khoa', phone:'0935 812 447', services:[
+    { name:'Tham quan đảo Bình Ba', guests:8, price:550000, time:'06:45', pickup:'Đón ở 0935 812.447 cổng sau', pickupMasked:'Đón ở •••• •••.••• cổng sau' }]},
+  { id:'TDB-2424', date:'2026-09-29', deposit:0, customer:'Nguyễn Hải Yến', phone:'0978 330 216', services:[
+    { name:'Xe đưa đón sân bay Cam Ranh', guests:3, price:120000, time:'05:30', pickup:'Homestay Mộc, hẻm 12 Hùng Vương – gọi 0978330216 khi tới', pickupMasked:'Homestay Mộc, hẻm 12 Hùng Vương – gọi •••••••••• khi tới' },
+    { name:'Tour 4 đảo Nha Trang', guests:3, price:450000, time:'07:30', pickup:'Homestay Mộc, hẻm 12 Hùng Vương', pickupMasked:'Homestay Mộc, hẻm 12 Hùng Vương' }]},
+];
+const MINE = [
+  { id:'TDB-2396', date:'2026-09-30', status:'draft', deposit:0, customer:'Đỗ Minh Châu', phone:'0903 667 120', services:[
+    { name:'Tour 4 đảo Nha Trang', guests:5, price:450000, time:'07:15', pickup:'Khách sạn Novotel, 50 Trần Phú' }]},
+  { id:'TDB-2371', date:'2026-10-01', status:'confirmed', deposit:2000000, customer:'Vũ Thanh Hương', phone:'0987 105 442', services:[
+    { name:'Tham quan đảo Bình Ba', guests:7, price:550000, time:'06:30', pickup:'Nhà nghỉ Sao Biển, 18 Nguyễn Thiện Thuật' },
+    { name:'Bữa tối hải sản trên bè', guests:7, price:300000, time:'17:30', pickup:'Bến Bình Ba' }]},
+  { id:'TDB-2350', date:'2026-09-25', status:'confirmed', deposit:1500000, customer:'Hoàng Gia Linh', phone:'0916 902 381', services:[
+    { name:'Lặn ngắm san hô Hòn Mun', guests:4, price:350000, time:'08:00', pickup:'Cảng Cầu Đá, quầy số 3' }]},
+];
+const sortQueue = a => [...a].sort((x, y) => x.date.localeCompare(y.date) || x.services[0].time.localeCompare(y.services[0].time));
+const sortMine = a => [...a].sort((x, y) => {
+  const px = days(x.date) < 0, py = days(y.date) < 0;
+  if (px !== py) return px ? 1 : -1;
+  return px ? y.date.localeCompare(x.date) : x.date.localeCompare(y.date);
+});
+
+class Component extends DCLogic {
+  state = { queue: sortQueue(QUEUE), mine: sortMine(MINE), leaving: [], claiming: null, sheet: null, draft: [] };
+
+  componentDidMount() {
+    this.t = setTimeout(() => { if ((this.props.simulateOthers ?? true) && this.state.claiming !== 'TDB-2421') this.vanish('TDB-2421'); }, 8000);
+  }
+  componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.t2); }
+
+  vanish(id) {
+    if (!this.state.queue.some(q => q.id === id)) return;
+    this.setState(s => ({ leaving: [...s.leaving, id] }));
+    setTimeout(() => this.setState(s => ({ queue: s.queue.filter(q => q.id !== id), leaving: s.leaving.filter(x => x !== id) })), 480);
+  }
+
+  claim(id) {
+    if (this.state.claiming) return;
+    this.setState({ claiming: id });
+    this.t2 = setTimeout(() => {
+      const o = this.state.queue.find(q => q.id === id);
+      this.setState(s => ({ claiming: null, mine: sortMine([...s.mine, { ...o, status:'draft' }]) }));
+      this.vanish(id);
+    }, 700);
+  }
+
+  renderVals() {
+    const demo = this.props.demoState ?? 'Có dữ liệu';
+    const { queue, mine, leaving, claiming, sheet, draft } = this.state;
+    const qList = demo === 'Có dữ liệu' ? queue : [];
+    const mList = demo === 'Cả hai trống' ? [] : mine;
+    const cur = sheet ? mine.find(m => m.id === sheet.id) : null;
+    const close = () => this.setState({ sheet: null });
+
+    return {
+      guideName: 'Nguyễn Minh Tâm',
+      queueCount: qList.filter(q => !leaving.includes(q.id)).length,
+      mineCount: mList.length,
+      queueEmpty: qList.length === 0,
+      mineEmpty: mList.length === 0,
+      queue: qList.map(q => ({
+        id: q.id, dateLabel: fmtDate(q.date), relLabel: rel(q.date),
+        rows: leaving.includes(q.id) ? '0fr' : '1fr', opacity: leaving.includes(q.id) ? 0 : 1,
+        services: q.services.map(s => ({ name: s.name, guests: s.guests, time: s.time, pickup: s.pickupMasked })),
+        claiming: !!claiming, claimLabel: claiming === q.id ? 'Đang nhận…' : 'Nhận đơn này',
+        onClaim: () => this.claim(q.id),
+      })),
+      mine: mList.map(m => {
+        const n = days(m.date), t = total(m);
+        const isDraft = m.status === 'draft', isPast = !isDraft && n < 0;
+        return {
+          id: m.id, dateLabel: fmtDate(m.date), relLabel: rel(m.date),
+          isDraft, isPast, isUpcoming: !isDraft && !isPast,
+          hasActions: !isDraft, canCancel: !isDraft && !isPast,
+          customer: m.customer, phone: m.phone, tel: 'tel:' + m.phone.replace(/\s/g, ''),
+          services: m.services.map(s => ({ ...s, priceLabel: vnd(s.price) })),
+          total: vnd(t), deposit: vnd(m.deposit), remaining: vnd(Math.max(0, t - m.deposit)),
+          onEdit: () => this.setState({ sheet: { type:'edit', id: m.id }, draft: m.services.map(s => s.guests) }),
+          onCancel: () => this.setState({ sheet: { type:'cancel', id: m.id } }),
+        };
+      }),
+      sheetOpen: !!cur, isEditSheet: sheet?.type === 'edit', isCancelSheet: sheet?.type === 'cancel',
+      sheetId: cur?.id, sheetCustomer: cur?.customer, sheetDate: cur ? fmtDate(cur.date) : '',
+      editRows: cur && sheet.type === 'edit' ? cur.services.map((s, i) => ({
+        name: s.name, time: s.time, guests: draft[i],
+        dec: () => this.setState(st => ({ draft: st.draft.map((g, j) => j === i ? Math.max(1, g - 1) : g) })),
+        inc: () => this.setState(st => ({ draft: st.draft.map((g, j) => j === i ? g + 1 : g) })),
+      })) : [],
+      editTotal: cur ? vnd(cur.services.reduce((a, s, i) => a + (draft[i] ?? s.guests) * s.price, 0)) : '',
+      closeSheet: close,
+      stop: e => e.stopPropagation(),
+      saveEdit: () => this.setState(st => ({ sheet: null, mine: st.mine.map(m => m.id === sheet.id ? { ...m, services: m.services.map((s, i) => ({ ...s, guests: st.draft[i] })) } : m) })),
+      confirmCancel: () => this.setState(st => ({ sheet: null, mine: st.mine.filter(m => m.id !== sheet.id) })),
+    };
+  }
+}
+</script>
+</body>
+</html>
