@@ -16,6 +16,12 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 
+// ADR-0019 (2026-09-24): "Chế độ bảo trì" đòi ô quyền `settings.ops`, nay chỉ Toàn quyền (SUPER_ADMIN) mới có — kịch bản viết
+// TRƯỚC quyết định đó dùng ACCOUNTS.admin (chỉ ADMIN) làm chủ giả, luôn có canToggle=false. KHÔNG đổi ACCOUNTS.admin (Đăng nhập/Góp ý
+// ở trên vẫn phải đúng một ADMIN thường) — thêm một tài khoản riêng, theo đúng khuôn help-smoke.mjs:20 (gán trước khi gọi startEnv(),
+// startEnv() gieo mọi ACCOUNTS vào D1 tạm).
+ACCOUNTS.owner = { name: "Chủ Dự Án", phone: "0900000206", pin: "998877", permissions: ["ADMIN", "SUPER_ADMIN"] };
+
 /** axe-core: 0 vi phạm mức critical/serious (đúng ngưỡng dot-a-smoke.mjs đã dùng). */
 const axe = async (p, label) => {
   if (!(await p.ev("typeof axe !== 'undefined'"))) await p.ev(`${AXE}\n;true`);
@@ -87,13 +93,13 @@ try {
   }
 
   // ==================================================================================================
-  // 2) Tôi (/account) — đăng nhập ACCOUNTS.admin, và đặt admin vào mnt_setting.allowed_phones (như
-  //    v1-bao-tri.mjs đã làm) để mục Chế độ bảo trì thật sự hiện ra (canToggle=true), đủ mọi khối.
+  // 2) Tôi (/account) — đăng nhập ACCOUNTS.owner (ADMIN + SUPER_ADMIN), và đặt owner vào mnt_setting.allowed_phones
+  //    (như v1-bao-tri.mjs đã làm) để mục Chế độ bảo trì thật sự hiện ra (canToggle=true), đủ mọi khối.
   //    Máy tính: .account-layout là grid, #maintenance ở cột phải (grid-column:2), thứ tự DOM gốc
   //    #me,#myjobs,#links,#maintenance,#pin-form. Điện thoại: .account-layout là block, không tràn ngang.
   // ==================================================================================================
   {
-    env.sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.admin.phone}' WHERE id = 'default'`);
+    env.sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.owner.phone}' WHERE id = 'default'`);
 
     const measureAccount = (p) =>
       p.ev(`(() => {
@@ -111,7 +117,7 @@ try {
         };
       })()`);
 
-    let p = await env.as(ACCOUNTS.admin, "/account", DESK);
+    let p = await env.as(ACCOUNTS.owner, "/account", DESK);
     await p.waitFor("!!document.querySelector('#maintenance') && !document.querySelector('#maintenance').hidden", "mục Chế độ bảo trì hiện (máy tính)");
     let m = await measureAccount(p);
     assert.equal(m.layoutDisplay, "grid", `Tôi (máy tính): .account-layout phải display:grid — ${JSON.stringify(m)}`);
@@ -125,7 +131,7 @@ try {
     p.close();
     ok("Tôi (máy tính, 1040×800): .account-layout là grid, #maintenance ở cột phải, thứ tự DOM gốc, axe không vi phạm critical/serious");
 
-    p = await env.as(ACCOUNTS.admin, "/account", MOB);
+    p = await env.as(ACCOUNTS.owner, "/account", MOB);
     await p.waitFor("!!document.querySelector('#maintenance') && !document.querySelector('#maintenance').hidden", "mục Chế độ bảo trì hiện (điện thoại)");
     m = await measureAccount(p);
     assert.equal(m.layoutDisplay, "block", `Tôi (điện thoại): .account-layout phải display:block — ${JSON.stringify(m)}`);
