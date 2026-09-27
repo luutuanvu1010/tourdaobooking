@@ -59,7 +59,8 @@ const app = createApp({
       if (!env.BANG_TIN && !khoaVapid(env)) return;
       const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
       if (!ref) return;
-      // Đơn mới mà không ai phụ trách (người lập không đủ điều kiện — Đối tác, chưa có hồ sơ) → loại riêng để người nhận được đơn thấy thông báo nổi.
+      // Đơn mới mà không ai phụ trách (người lập không đủ điều kiện — Đối tác, chưa có hồ sơ) → loại sự kiện riêng (màn hình làm mới); ADR-0045:
+      // lưu nháp KHÔNG thông báo nổi / gõ cửa ai — tin "chờ nhận" nảy ra lúc xác nhận (luật ở src/shared/thong-bao.ts).
       const thayDoi = e.thayDoi === "tao" && !handlerSau.coNguoi ? "tao_cho_nhan" : e.thayDoi;
       const luc = new Date().toISOString();
       const action = hanhDongCuaThayDoi(thayDoi);

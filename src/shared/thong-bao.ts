@@ -76,7 +76,10 @@ export function locHopThongBao(
   const tat: TinDto[] = [];
   for (const d of vao.don) {
     if (d.luc < moc || d.actorId === staff.id) continue;
-    const loai = loaiTinDon(d);
+    let loai = loaiTinDon(d);
+    // ADR-0045 (vòng kiểm độc lập I-1): người KHÔNG nhận được đơn (Kế toán…) thấy dòng xác nhận của đơn chưa có người như tin "xác nhận"
+    // thường (ở "Tất cả") — giữ đúng hành vi trước 1.30, không để việc xác nhận biến mất khỏi hộp của họ.
+    if (loai === "cho_nhan" && !duocThayTinDon(staff, true)) loai = "xac_nhan";
     if (!loai || !duocThayTinDon(staff, loai === "cho_nhan")) continue;
     // Hộp KHÔNG biết người phụ trách trước sự kiện. Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy ra.
     // Hôm nay (ADR-0030 chưa lên main) nhanSuKien chưa nhận null → truyền { coNguoi: false, staffId: null }; kết quả đúng nhờ .filter.
@@ -94,7 +97,7 @@ export function locHopThongBao(
       id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       cau: coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
       lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",
-      luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: loai === "cho_nhan" && d.phuTrach.coNguoi,
+      luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: false, // ADR-0045: "chờ nhận" chỉ tồn tại khi đơn ĐANG chưa có người → không còn tin chờ nhận "mờ"
     });
   }
   for (const t of vao.thuCong) {

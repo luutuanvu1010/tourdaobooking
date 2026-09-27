@@ -131,6 +131,12 @@ test("nguoiNhanDay: XÁC NHẬN đơn chưa có người phụ trách → ngư�
   const nguoiCoClaim: PermissionHolder = { id: "claim1", permissions: ["ADMIN"] }; // ADMIN: dispatch.claim = any
   assert.deepEqual(nguoiNhanDay([nguoiCoClaim, ketToan], { don: donChoNhan }, now), [nguoiCoClaim.id]);
   assert.deepEqual(nguoiNhanDay([nguoiCoClaim, ketToan], { don: { ...donChoNhan, action: "created" } }, now), [], "lưu nháp không gõ cửa màn hình khoá của ai");
+  // Nháp do NGƯỜI KHÁC lập hộ chủ đơn, đã chọn người phụ trách có tài khoản: cả chủ đơn lẫn người phụ trách đều KHÔNG bị gõ cửa (chỉ khi xác nhận)
+  const chuDon: PermissionHolder = { id: "chu-don", permissions: ["SALES"] };
+  const phuTrach: PermissionHolder = { id: "phu-trach", permissions: ["SALES"] };
+  const nhapHo: DongDon = { ...donChoNhan, action: "created", ownerId: chuDon.id, actorId: "nguoi-khac", phuTrach: { coNguoi: true, staffId: phuTrach.id }, lapChuaCoNguoi: false };
+  assert.deepEqual(nguoiNhanDay([chuDon, phuTrach, nguoiCoClaim], { don: nhapHo }, now), []);
+  assert.deepEqual(nguoiNhanDay([chuDon, phuTrach, nguoiCoClaim], { don: { ...nhapHo, action: "confirmed" } }, now), [chuDon.id, phuTrach.id]);
 });
 
 test("nguoiNhanDay: tin thủ công nhóm quyen:PARTNER → chỉ Đối tác nhận, người gửi không tự nhận dù cùng nhóm", () => {

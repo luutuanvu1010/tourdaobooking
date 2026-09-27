@@ -104,7 +104,7 @@ export function duocThayTinDon(staff: PermissionHolder, choNhan: boolean): boole
 /**
  * Có hiện thông báo nổi cho tài khoản `staff` khi nhận sự kiện `suKien` không, và nếu có thì câu gì + bấm vào đi đâu (TD-4). Đối tác/Thực tập
  * (không văn phòng, không Hướng dẫn viên) không bao giờ hiện (Q-C ADR-0022, điều 12 ADR-0014: chỉ chấm đếm, không thông báo nổi). `tao_cho_nhan`
- * chỉ hiện cho ai nhận được đơn chưa có người (`dispatch.claim`). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
+ * không bao giờ nổi (ADR-0045: lưu nháp không báo ai). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
  */
 export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBaoNoi | null {
   if (!duocThayTinDon(staff, suKien.thayDoi === "tao_cho_nhan")) return null;

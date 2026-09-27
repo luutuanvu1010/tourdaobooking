@@ -52,14 +52,20 @@ test("E3: không thấy tin do chính mình làm hoặc gửi (K6)", () => {
 
 test("Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin chờ nhận khi có dispatch.claim", () => {
   const d = [don({ action: "confirmed", ownerId: "bx", actorId: "bx", phuTrach: { coNguoi: false, staffId: null } })];
-  assert.equal(hop(BX, [don({ ownerId: "bx" })]).tin.length, 0);
+  // Đối tác là CHỦ đơn, người khác xác nhận (không bị loại vì là người thao tác) → vẫn không có tin (khoá cổng Đối tác/Thực tập của duocThayTinDon)
+  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: true, staffId: "hung" } })], [], "tat-ca").tin.length, 0);
+  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: false, staffId: null } })], [], "tat-ca").tin.length, 0);
   assert.equal(hop(NGAN, d).tin.length, 0);
   assert.equal(hop(TAM, d).tin.length, 0);
   const lan = hop(LAN, d, [], "cua-toi");
   assert.equal(lan.tin[0]!.loai, "cho_nhan");
   assert.equal(lan.tin[0]!.cuaToi, true);
   assert.equal(hop(MAI, d, [], "cua-toi").tin.length, 0);
-  assert.equal(hop(MAI, d, [], "tat-ca").tin.length, 0);           // Kế toán không có dispatch.claim → không thấy tin chờ nhận ở ngăn nào (đặc tả §4.2(2))
+  // Kế toán không có dispatch.claim → không có tin "chờ nhận", nhưng VẪN thấy việc xác nhận như tin thường ở "Tất cả" (vòng kiểm I-1)
+  const mai = hop(MAI, d, [], "tat-ca");
+  assert.equal(mai.tin.length, 1);
+  assert.equal(mai.tin[0]!.loai, "xac_nhan");
+  assert.equal(mai.tin[0]!.cuaToi, false);
 });
 
 test("ADR-0045: lưu NHÁP không vào 'Của tôi' của ai (kể cả chủ đơn, người phụ trách, người nhận được đơn); XÁC NHẬN khi chưa ai phụ trách → tin chờ nhận", () => {

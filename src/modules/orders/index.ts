@@ -225,7 +225,7 @@ export const ordersModule: AppModule = {
         },
         booker.write,
       );
-      // Bảng tin (ADR-0022 điều 4/7): "tao" — gốc lắp ráp (src/index.ts) tự đổi thành "tao_cho_nhan" khi đơn không có người phụ trách.
+      // Bảng tin (ADR-0022 điều 4/7): "tao" — gốc lắp ráp (src/index.ts) tự đổi thành "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, ADR-0045).
       baoThayDoi({ orderId: id, thayDoi: "tao" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
