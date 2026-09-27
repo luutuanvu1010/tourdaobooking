@@ -103,7 +103,9 @@ export const thongbaoModule: AppModule = {
         const acks = r.quan_trong ? await listAcks(env.DB, r.id) : [];
         return {
           id: r.id, tieuDe: r.tieu_de, nguoiNhan: nguoiNhanTu(r.tags ?? ""), quanTrong: r.quan_trong === 1, luc: r.created_at, thuHoiLuc: r.valid_to,
-          soNguoiNhan: nhan.filter((s) => s.id !== staff.id).length, soDaHieu: acks.filter((a) => nhan.some((s) => s.id === a.staff_id)).length,
+          // Loại NGƯỜI GỬI (r.created_by) khỏi "số người nhận" — KHÔNG phải người đang xem (staff.id). Với ≥2 Toàn quyền, người xem
+          // khác người gửi thì hai id này khác nhau (người kiểm độc lập, lượt sửa cuối Task 6).
+          soNguoiNhan: nhan.filter((s) => s.id !== r.created_by).length, soDaHieu: acks.filter((a) => nhan.some((s) => s.id === a.staff_id)).length,
         };
       }));
       return json({ tin } satisfies DaGuiResponse);
@@ -113,7 +115,8 @@ export const thongbaoModule: AppModule = {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       const n = await getNotice(env.DB, params.id!);
       if (!n) return NOT_FOUND();
-      const nhan = (await nguoiNhanCuaMotTin(env.DB, (n.tags ?? "").split(" ").filter(Boolean))).filter((s) => s.id !== staff.id);
+      // Loại NGƯỜI GỬI (n.created_by) khỏi danh sách đã hiểu/chưa hiểu — KHÔNG phải người đang xem (staff.id). Cùng lý do ở da-gui.
+      const nhan = (await nguoiNhanCuaMotTin(env.DB, (n.tags ?? "").split(" ").filter(Boolean))).filter((s) => s.id !== n.created_by);
       const acks = new Map((await listAcks(env.DB, n.id)).map((a) => [a.staff_id, a.created_at]));
       const quyen = (s: { permissions: readonly PermissionCode[] }) => s.permissions.map((p) => PERMISSION_LABEL[p]).join(", ");
       return json({

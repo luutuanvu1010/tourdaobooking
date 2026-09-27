@@ -48,13 +48,16 @@ const INSERT_TARGET = defineSql("thongbao", "insert_target", `
   INSERT INTO ntf_notice_target (notice_id, tag, created_at, created_by, updated_at, updated_by)
   SELECT ?1, ?2, ?3, ?4, ?3, ?4 WHERE EXISTS (SELECT 1 FROM ntf_notice WHERE id = ?1)`);
 const REVOKE = defineSql("thongbao", "revoke", `UPDATE ntf_notice SET valid_to = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND valid_to IS NULL`);
+// created_by (người GỬI) bắt buộc phải có ở đây: soNguoiNhan/daHieu/chuaHieu phải loại NGƯỜI GỬI khỏi nhóm nhận, KHÔNG phải người
+// đang xem — với ≥ 2 Toàn quyền, người xem X khác người gửi Y, lọc theo `staff.id` (người xem) sẽ để Y kẹt mãi ở "Chưa hiểu" và bỏ
+// sót X (người kiểm độc lập, lượt sửa cuối Task 6).
 const LIST_SENT = defineSql("thongbao", "list_sent", `
-  SELECT n.id, n.tieu_de, n.quan_trong, n.created_at, n.valid_to,
+  SELECT n.id, n.tieu_de, n.quan_trong, n.created_at, n.valid_to, n.created_by,
          (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags
   FROM ntf_notice n ORDER BY n.created_at DESC LIMIT 100`);
 const LIST_ACKS = defineSql("thongbao", "list_acks", `SELECT staff_id, created_at FROM ntf_ack WHERE notice_id = ?1`);
 const GET_NOTICE = defineSql("thongbao", "get_notice", `
-  SELECT n.id, n.valid_to, (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags FROM ntf_notice n WHERE n.id = ?1`);
+  SELECT n.id, n.valid_to, n.created_by, (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags FROM ntf_notice n WHERE n.id = ?1`);
 const GET_MARK = defineSql("thongbao", "get_mark", `SELECT doc_den_luc FROM ntf_read_mark WHERE staff_id = ?1`);
 const UPSERT_MARK = defineSql("thongbao", "upsert_mark", `
   INSERT INTO ntf_read_mark (staff_id, doc_den_luc, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?2, ?1, ?2, ?1)
@@ -99,9 +102,9 @@ export const insertNoticeStatement = (db: D1Database, a: { id: string; tieuDe: s
 export const insertTargetStatement = (db: D1Database, noticeId: string, tag: string, at: string, by: string) => db.prepare(INSERT_TARGET).bind(noticeId, tag, at, by);
 export const revokeStatement = (db: D1Database, id: string, at: string, by: string) => db.prepare(REVOKE).bind(id, at, by);
 export async function listSent(db: D1Database) {
-  return (await db.prepare(LIST_SENT).all<{ id: string; tieu_de: string; quan_trong: number; created_at: string; valid_to: string | null; tags: string | null }>()).results;
+  return (await db.prepare(LIST_SENT).all<{ id: string; tieu_de: string; quan_trong: number; created_at: string; valid_to: string | null; created_by: string | null; tags: string | null }>()).results;
 }
 export async function listAcks(db: D1Database, id: string) {
   return (await db.prepare(LIST_ACKS).bind(id).all<{ staff_id: string; created_at: string }>()).results;
 }
-export const getNotice = (db: D1Database, id: string) => db.prepare(GET_NOTICE).bind(id).first<{ id: string; valid_to: string | null; tags: string | null }>();
+export const getNotice = (db: D1Database, id: string) => db.prepare(GET_NOTICE).bind(id).first<{ id: string; valid_to: string | null; created_by: string | null; tags: string | null }>();

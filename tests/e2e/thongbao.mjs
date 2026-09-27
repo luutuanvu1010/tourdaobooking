@@ -1,6 +1,7 @@
 // Hộp thông báo (ADR-0034): tin về đơn là hình chiếu của nhật ký; K1 ẩn tên; E3; hai ngăn; số chưa đọc = danh sách.
-// Task 5 chưa có route GỬI (Task 6) nên tin thủ công được SEED THẲNG bằng sql() — không có route gửi không có nghĩa là không kiểm
-// được hộp đọc: seed để "Của tôi" không rỗng, nếu không các phép so KHỚP (tom-tat === danh sách, mở hộp = đọc hết, tài khoản mới = 0)
+// Phần đọc hộp (Task 5, phía đầu tệp) SEED THẲNG tin thủ công bằng sql() thay vì qua route GỬI — route thật (Task 6, phía dưới, "Toàn
+// quyền gửi…") giờ đã có, nhưng seed vẫn giữ vì cần đặt created_at/quan_trong tuỳ ý (tin cũ 40 ngày, mốc thiếu mili-giây…) mà route
+// không cho phép backdate. Không seed thì "Của tôi" rỗng và các phép so KHỚP (tom-tat === danh sách, mở hộp = đọc hết, tài khoản mới = 0)
 // đều đúng một cách vô nghĩa trên tập rỗng (advisor review 2026-09-27: "check it first: I expect all three to be 0 on a fresh D1").
 //
 // Ca "lập đơn kèm HDV → đúng một tin lap, không giao, không cho_nhan" (mục "Phụ thuộc ADR-0030" điểm 4 của kế hoạch) CHƯA thêm ở đây:
@@ -179,6 +180,20 @@ assert.equal((await call(ADMIN, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`))
 const logGui = await sql(`SELECT detail FROM audit_log WHERE action LIKE 'notice_%'`);
 assert.ok(!JSON.stringify(logGui).includes("cổng số 2"), "nhật ký không chép nội dung tin");
 console.log("✓ đã hiểu (kể cả bấm lại), ai đã hiểu, người ngoài nhóm nhận → 404, nhật ký không chứa nội dung");
+
+// I-1 (Important, người kiểm độc lập, lượt sửa cuối): da-gui/nguoi-da-hieu phải loại NGƯỜI GỬI khỏi nhóm nhận, KHÔNG phải người
+// đang XEM. Ca trên (TQ vừa gửi vừa xem) không bắt được lỗi này vì hai id trùng nhau — cần Toàn quyền THỨ HAI (Y) gửi, TQ (X) xem.
+const yPhone = randomPhone();
+let ry = await call(TQ, "POST", "/api/staff", { fullName: `Toàn Quyền Y ${Date.now().toString(36)}`, phone: yPhone, permissions: ["SUPER_ADMIN"] });
+assert.equal(ry.status, 201, JSON.stringify(ry.body));
+const Y = (await login(yPhone, ry.body.pin)).cookie;
+const guiY = await call(Y, "POST", "/api/thong-bao", than({ tieuDe: "Tin của Y", quanTrong: false, clientRequestId: randomUUID() }));
+assert.equal(guiY.status, 201, JSON.stringify(guiY.body));
+const aiY = (await call(TQ, "GET", `/api/thong-bao/${guiY.body.id}/nguoi-da-hieu`)).body;
+const tenTrongDanhSach = [...aiY.daHieu, ...aiY.chuaHieu].map((x) => x.ten);
+assert.ok(tenTrongDanhSach.includes(ACCOUNTS.superAdmin.name), "X (người xem, khác người gửi) phải nằm trong danh sách vì X là người nhận thật");
+assert.ok(!tenTrongDanhSach.some((t) => t.startsWith("Toàn Quyền Y")), "Y (người gửi) không được xuất hiện trong đã hiểu/chưa hiểu — Y không tự nhận tin của chính mình");
+console.log("✓ I-1: da-gui/nguoi-da-hieu loại đúng người gửi (không phải người xem)");
 
 // K3: Đối tác thuần không nhận "Toàn công ty"
 assert.ok(!(await call(DT, "GET", "/api/thong-bao?ngan=cua-toi")).body.tin.some((x) => x.id === qt.id));
