@@ -151,6 +151,8 @@ Hệ quả có chủ ý (chủ đã nghe ở N1): người **vừa bị chuyển
 | `POST /api/thong-bao/:id/da-hieu` | `staff` | T phải thuộc nhóm nhận của tin, tin chưa thu hồi |
 | `GET /api/thong-bao/da-gui`, `GET /api/thong-bao/:id/nguoi-da-hieu`, `POST /api/thong-bao`, `POST /api/thong-bao/:id/thu-hoi` | `admin` | `can(staff,"notice.send")` **trước mọi truy vấn** |
 
+> **2026-09-27 (thi công Task 5):** hai đường ghi tự phục vụ ở trên thực ra là `POST /api/account/thong-bao/da-doc` và `POST /api/account/thong-bao/:id/da-hieu` (tiền tố `/api/account/*`) — hàng rào `src/route-write-guard.test.ts` chỉ nhận mục "ngoại lệ" dưới tiền tố đó. Cổng (`staff`), hành vi, quyền không đổi; chỉ đường dẫn khác chữ ở bảng trên (tài liệu mô tả, không phải quyết định mới).
+
 ### 6.5 Quyền
 
 Thao tác mới `notice.send` = `row("none","none","none","none","none","any","none")` (Q1). Dòng mới trong `docs/SO-HANG-RAO.md` cho chốt chặn này, kèm ngày quan sát chặn thật (sửa cố ý → đỏ → hoàn nguyên).
@@ -160,6 +162,8 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 - `src/shared/thong-bao.ts` (+ `.test.ts`): hàm lọc duy nhất (ngăn, nhãn, người làm, quan trọng), câu hiển thị, kiểm đầu vào tin thủ công, giờ yên lặng (lượt 2, giờ Việt Nam như `vnToday`).
 - `web/thong-bao.ts` (hộp) và `web/gui-thong-bao.ts` (Toàn quyền) khai `PAGES` + `build:web`; chuông + dải trong `web/shell.ts`; tải lại số khi Bảng tin báo có thay đổi (không thêm loại sự kiện Bảng tin — ADR-0022 giữ). Dựng bằng `h()`, nội dung tin bằng `textContent`; CSS qua token; ô gõ 16px. **Làm đúng bản mẫu đã duyệt** (E1).
 - Tài liệu mô tả cùng commit: `SYSTEM-DESIGN.md` (§5, §7, §8, §9), `CHANGE-GUIDE.md` (công thức "thêm loại tin về đơn" = thêm hành động vào view + bảng câu).
+
+> **2026-09-27 (thi công Task 7):** hộp thông báo (chuông, hai ngăn, dải tin quan trọng) không có trang riêng `web/thong-bao.ts` — đúng bản mẫu, hộp là một NGĂN THẢ XUỐNG/TOÀN MÀN HÌNH dựng ngay trong khung app (`web/thong-bao-ui.ts`, gắn vào `web/shell.ts` qua `ganThongBao()`), không phải một trang có URL riêng. `web/gui-thong-bao.ts` (Toàn quyền) vẫn là trang riêng `/gui-thong-bao` như đã ghi.
 
 ## 7. Ca biên
 
