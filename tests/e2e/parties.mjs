@@ -16,10 +16,12 @@ assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
 assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
   "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
-  "HOTEL_RECEPTION", "INTERN", "OPERATIONS_MANAGER", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY",
+  "HOTEL_RECEPTION", "INTERN", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY",
 ]);
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "SALES_STAFF"), { code: "SALES_STAFF", name: "Nhân viên kinh doanh", group: "INTERNAL", active: true });
 assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);
+// ADR-0024 điều 6 (T2b): vai "Công ty chủ" — nhóm OTHER, ngưng gán thường (active = false): ô "Thêm công việc" chung không liệt kê (Ruling T2 của nhật ký thi công T2b).
+assert.deepEqual(r.body.roleTypes.find((t) => t.code === "OWNER_COMPANY"), { code: "OWNER_COMPANY", name: "Công ty chủ", group: "OTHER", active: false });
 assert.deepEqual(r.body.relationshipTypes.map((t) => t.code), ["CONTACT_OF"]);
 const locations = (await call(SALES, "GET", "/api/locations")).body.locations;
 const vinpearl = locations.find((l) => l.code === "CANG_VINPEARL");
