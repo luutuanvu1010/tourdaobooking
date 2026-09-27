@@ -79,6 +79,14 @@ Bảng tên cũ không tiền tố, cột chết `staff.role/full_name` (ADR-000
 - **Ghi chú cho người soạn ADR-0030:** đặc tả đơn tự do §11 nói ADR-0019 "chưa thi công" — nay đã lên production (bản 1.18); đặc tả §6 dòng 156 định lặp lại H1 — không làm.
 
 ## 7. Chủ dự án quyết
+
+> **CHỦ ĐÃ QUYẾT 2026-09-27** — trả lời trong phiên điều phối, nguyên văn: `1A, 2 đồng ý, 3 duyệt, 4 theo gợi ý, 5 duyệt`. Trong lượt hỏi đó, "3" là mục 1 dưới đây.
+> - **Mục 1 (gói "dọn nền") = DUYỆT.** Bước kế: lập kế hoạch ở một phiên riêng, vai LẬP KẾ HOẠCH, chưa viết mã tới khi chủ duyệt kế hoạch.
+>   - Hai mục đã làm trong thi công ADR-0030, trên nhánh `thi-cong-tu-choi-huy-hdv` chưa gộp: **T1d** (feed553) và **T3a** phạm vi hẹp (5ad506d). Kế hoạch chỉ kiểm lại sau khi nhánh đó gộp, không làm lại.
+>   - Các lựa chọn con (T1c(i) cờ tạm hay chờ ADR-0026; cách làm T1b, T1e, T2a phần GĐ4a/luật bù, T2b, T3d, T3e) hỏi khi trình kế hoạch. Mỗi lượt tối đa 3 quyết định chạm dữ liệu/quyền, kèm trang ghép.
+>   - Phân chia dữ liệu giữa các dự án Tour Đảo (Q3 của báo cáo luật gốc, chủ chọn phương án gợi ý) là dữ kiện đầu vào.
+> - Mục 2, 3: chưa hỏi, chưa làm.
+
 1. **Duyệt gói "dọn nền trước sổ công nợ" (mục 3: T1–T3), làm TRƯỚC lượt 1 Hoàn tất.** Khuyến nghị: có — lập kế hoạch rồi thi công như việc lớn (người kiểm độc lập). Các mục **[lệch ADR đã duyệt]** (T2a phần chặn — đọc mã, chưa chạy thử; T3a) và T1c(ii) là sửa lỗi; T1c(i) là **ADR đã duyệt đòi nhưng chưa có nơi ghi** — chủ chọn làm cờ tạm hay chờ ADR-0026; các mục còn lại (T1b, T1e, T2a phần GĐ4a/luật bù, T2b, T3d, T3e) cần chủ chọn cách khi trình kế hoạch.
 2. **Sửa tài liệu:** AI tự sửa §17 và §5 (tài liệu mô tả, thua mã); soạn đề xuất sửa bảng thi hành Phần I, Phần II, `src/CLAUDE.md` (chủ duyệt, N9).
 3. **(Tuỳ chọn) Đo dữ liệu thật trước khi làm T2a/T3d:** năm truy vấn chỉ đọc ở Phụ lục A (đơn đối tác chưa gắn bên đặt, hồ sơ CUSTOMER do Đối tác tạo, SĐT trùng, tài khoản chưa gắn hồ sơ, nhật ký có dãy số giống SĐT). **Chưa chạy thử trên máy** — AI thử trên D1 cục bộ trước khi đưa chủ chạy trên hệ thống thật.
