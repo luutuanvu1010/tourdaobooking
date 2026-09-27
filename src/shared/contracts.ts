@@ -612,3 +612,29 @@ export interface FeedbackBadgeResponse {
   /** Số yêu cầu chờ admin (0 với người không phải admin). */
   queue: number;
 }
+
+// ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy";
+export interface TinDto {
+  id: string;
+  loai: LoaiTin;
+  /** Câu đã dựng ở máy chủ (tin về đơn) hoặc tiêu đề (tin thủ công). Không chứa tên người làm nếu người xem không được xem lịch sử đơn. */
+  cau: string;
+  maDon: string | null;
+  noiDung: string | null; // chỉ tin thủ công
+  nguoiGui: string | null; // chỉ tin thủ công
+  quanTrong: boolean;
+  daHieuLuc: string | null; // tin quan trọng: lúc người xem bấm Đã hiểu
+  lienKet: string | null; // tin về đơn
+  luc: string; // ISO UTC
+  cuaToi: boolean;
+  chuaDoc: boolean;
+  mo: boolean; // tin chờ nhận đã có người nhận (X2)
+}
+export interface HopThongBaoResponse { tin: TinDto[]; soChuaDoc: number }
+export interface TomTatThongBaoResponse { soChuaDoc: number; quanTrongChuaHieu: { id: string; tieuDe: string; nguoiGui: string; luc: string }[] }
+export type NguoiNhanTin = "noi-bo" | PermissionCode[];
+export interface GuiThongBaoRequest { tieuDe: string; noiDung: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; clientRequestId: string }
+export interface TinDaGuiDto { id: string; tieuDe: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; luc: string; thuHoiLuc: string | null; soNguoiNhan: number; soDaHieu: number }
+export interface DaGuiResponse { tin: TinDaGuiDto[] }
+export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc: string }[]; chuaHieu: { ten: string; quyen: string }[] }
