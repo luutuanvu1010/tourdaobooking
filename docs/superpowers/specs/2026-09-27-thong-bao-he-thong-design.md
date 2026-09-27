@@ -30,10 +30,10 @@ Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **danh sác
 | H3 | Mỗi người nhận tin về đơn nào | **Giữ đúng luật hiện nay** (ai được thấy thông báo nổi về đơn đó) |
 | H4 | Màn hình khoá iPhone | **Làm luôn đợt này** |
 | Q1 | Ai được soạn/gửi tin thủ công | **Chỉ Toàn quyền** (`SUPER_ADMIN`) |
-| Q2 | Tin về đơn có ghi tên người làm không | Chủ trả lời: *"Tức là Thông báo về sự thay đổi của Trạng thái đơn: Mới lập, mới có HDV xác nhận, mới bị huỷ……"* — không yêu cầu tên. **Áp dụng: không ghi tên** (như thông báo nổi hôm nay). Bật tên sau = một ADR nhỏ. |
+| Q2 | Tin về đơn có ghi tên người làm không | **CHƯA CHỐT — hỏi lại chủ.** Chủ trả lời: *"Tức là Thông báo về sự thay đổi của Trạng thái đơn: Mới lập, mới có HDV xác nhận, mới bị huỷ……"* — mô tả loại tin, **không** nói có/không tên; còn yêu cầu gốc có câu *"ai mới nhận đơn, ai mới đăng đơn"* (nghĩa đen: ai). Mặc định tạm: **không ghi tên** (như thông báo nổi hôm nay). Ánh xạ tạm: "mới có HDV xác nhận" = `nhan` (HDV tự nhận đơn); `xac_nhan` = văn phòng xác nhận đơn — chủ sửa nếu sai. |
 | Q3 | Ghi tin về đơn chắc chắn hay bắn-và-quên | **Chắc chắn** — ghi cùng batch với thao tác đơn |
 
-Cảnh báo đã nói với chủ (P18, một lần): H4 đưa sớm "giai đoạn 6" của lộ trình ADR-0018. Và theo H3, khi ADR-0017 (HDV xem mọi đơn) được thi công ở GĐ2, **mọi HDV sẽ nhận tin về mọi đơn** trong hộp — chỉnh riêng nếu thấy nhiều.
+Cảnh báo đã nói với chủ trong chat 2026-09-27 (P18, một lần): theo H3, khi ADR-0017 (HDV xem mọi đơn) được thi công ở GĐ2, **mọi HDV sẽ nhận tin về mọi đơn** trong hộp — chỉnh riêng nếu thấy nhiều. Cảnh báo thứ hai nêu trong báo cáo cuối phiên: H4 đưa sớm "giai đoạn 6" của lộ trình ADR-0018.
 
 ## 3. Phạm vi lượt 1
 
@@ -58,7 +58,7 @@ Sinh ra khi thao tác đơn **đã ghi thành công** (cùng batch — Q3). Lo�
 
 `sua`, `chuyen`, `tien` **không** vào hộp (chỉ làm mới màn hình như hôm nay). `tao` là loại **mới so với thông báo nổi** (chủ nêu "mới lập"); thông báo nổi không đổi.
 
-**Ai thấy (H3):** nhãn sự kiện tính bằng đúng `nhanSuKien` (ADR-0022) lúc ghi, lưu kèm tin. Lúc đọc, tin hiện với tài khoản T khi (i) một nhãn của tin nằm trong `nhanKetNoi(T)` **tính lại theo quyền hiện tại**, và (ii) cùng điều kiện lọc của `thongBaoNoi` (T là văn phòng hoặc HDV; `tao_cho_nhan` cần `dispatch.claim`). Không luật quyền viết tay mới — gọi lại hai hàm có sẵn. Hệ quả: ai bị rút quyền thì tin cũ tự ẩn.
+**Ai thấy (H3):** nhãn sự kiện = `nhanSuKien` (ADR-0022) áp lên **ảnh chụp lúc sự kiện** (người lập, người phụ trách trước/sau — lưu kèm tin, §6.1). Lúc đọc, tin hiện với tài khoản T khi (i) một nhãn của tin nằm trong `nhanKetNoi(T)` **tính lại theo quyền hiện tại**, và (ii) T qua điều kiện "được thấy tin về đơn" — điều kiện này hôm nay nằm **bên trong** `thongBaoNoi` (T là văn phòng hoặc HDV; `tao_cho_nhan` cần `dispatch.claim`). Vì `thongBaoNoi` trả `null` cho `tao` (không có câu), phải **tách điều kiện ra một hàm dùng chung** trong `src/shared/bang-tin.ts` (`thongBaoNoi` gọi lại nó — tái cấu trúc, không đổi hành vi thông báo nổi, test hiện có giữ xanh). Không luật quyền viết tay mới. Hệ quả: ai bị rút quyền thì tin cũ tự ẩn. Số trên chuông và danh sách đi qua **cùng một** hàm lọc.
 
 Bấm tin → cùng đường dẫn như thông báo nổi (`/order?id=…` cho văn phòng, `/account` cho HDV); trang đích vẫn tự kiểm quyền.
 
@@ -80,12 +80,11 @@ Số chưa đọc cập nhật: khi tải trang, và khi Bảng tin báo có tha
 
 ## 6. Kiến trúc và dữ liệu (cho người lập kế hoạch)
 
-- **Module mới `thongbao`**, tiền tố bảng `ntf_`, hạng **STRICT** (SQL qua `defineSql`). Cạnh phụ thuộc: `thongbao: ["staff", "audit"]` (nhãn người gửi qua `v_stf_staff_label`; ghi nhật ký). Cạnh mới: `orders → thongbao`, `dispatch → thongbao` (lấy câu lệnh ghi tin, như `auditStatement`). `thongbao` **không** import `orders`/`dispatch` → không vòng: mã đơn (`ma_don`) được **chép vào tin lúc ghi**.
-- **Hàm công bố:** `tinDonStatement(db, { orderId, maDon, thayDoi, nhan[] })` → mảng câu lệnh chưa chạy, gộp vào batch của thao tác đơn (có `onlyIf` như audit khi thao tác có điều kiện tranh chấp).
-- **Luật thuần** `src/shared/thong-bao.ts` (+ `.test.ts`): nhãn của người đọc (`nhanKetNoi` ∪ `quyen:*` ∪ `moi-nguoi`), điều kiện hiện tin về đơn (gọi `thongBaoNoi`), câu hiển thị (bảng §4.1), kiểm đầu vào tin thủ công.
-- **Bảng (migration `0025_thong_bao.sql`, cập nhật `docs/data-dictionary.json` + `npm run dict`):**
-  - `ntf_item` — `id TEXT PK`, `kind TEXT` (`don` | `thu_cong`; không CHECK liệt kê — luật dự án), `order_id TEXT NULL`, `ma_don TEXT NULL`, `thay_doi TEXT NULL`, `tieu_de TEXT NULL`, `noi_dung TEXT NULL`, `created_at`, `created_by TEXT NULL` (NULL = hệ thống), `valid_to TEXT NULL` (thu hồi), `updated_at`, `updated_by`.
-  - `ntf_item_tag` — `item_id`, `tag`; PK (`item_id`, `tag`); chỉ mục (`tag`, `item_id`).
+- **Module mới `thongbao`**, tiền tố bảng `ntf_`, hạng **STRICT** (SQL qua `defineSql`). Cách nối với module đơn: xem §6.1 (**chưa chốt**, người lập kế hoạch xác minh).
+- **Luật thuần** `src/shared/thong-bao.ts` (+ `.test.ts`): nhãn của người đọc (`nhanKetNoi` ∪ `quyen:*` ∪ `moi-nguoi`), điều kiện hiện tin về đơn (hàm tách từ `thongBaoNoi` — §4.1), câu hiển thị (bảng §4.1), kiểm đầu vào tin thủ công; một hàm lọc duy nhất dùng cho cả số chưa đọc và danh sách.
+- **Bảng (migration `0025_thong_bao.sql`, cập nhật `docs/data-dictionary.json` + `npm run dict`; cột ảnh chụp theo §6.1):**
+  - `ntf_item` — `id TEXT PK`, `kind TEXT` (`don` | `thu_cong`; không CHECK liệt kê — luật dự án), `order_id TEXT NULL`, `ma_don TEXT NULL`, `thay_doi TEXT NULL`, `nguoi_lap_id TEXT NULL`, `phu_trach_truoc_id TEXT NULL`, `phu_trach_sau_id TEXT NULL`, `co_phu_trach_truoc`/`co_phu_trach_sau INTEGER NULL`, `tieu_de TEXT NULL`, `noi_dung TEXT NULL`, `created_at`, `created_by TEXT NULL` (NULL = hệ thống), `valid_to TEXT NULL` (thu hồi), `updated_at`, `updated_by`.
+  - `ntf_item_tag` — `item_id`, `tag`; PK (`item_id`, `tag`); chỉ mục (`tag`, `item_id`). Dùng cho tin thủ công (tin về đơn tính nhãn lúc đọc từ ảnh chụp — §6.1).
   - `ntf_read_mark` — `staff_id TEXT PK`, `doc_den_luc`, `updated_at`.
   - Chỉ mục `ntf_item(created_at)`.
 - **Route** (mọi route khai `access`; ghi cần `Origin`):
@@ -96,6 +95,22 @@ Số chưa đọc cập nhật: khi tải trang, và khi Bảng tin báo có tha
 - **Quyền:** thao tác mới `notice.send` = `row("none","none","none","none","none","any","none")` (chỉ Toàn quyền — Q1). Thêm dòng `docs/SO-HANG-RAO.md` cho cổng này kèm ngày quan sát chặn thật (sửa cố ý → đỏ → hoàn nguyên).
 - **Trang:** `web/thong-bao.ts` (hộp) và `web/gui-thong-bao.ts` (Toàn quyền) khai `PAGES` + `build:web`; chuông trong `web/shell.ts`. Dựng bằng `h()`, không `innerHTML`; nội dung tin thủ công chèn bằng `textContent` (chống chèn mã). Giá trị CSS qua token; ô gõ 16px.
 - **Tài liệu mô tả** cập nhật cùng commit: `SYSTEM-DESIGN.md` (§5 bảng, §7 route, §8 quyền), `CHANGE-GUIDE.md` (công thức "thêm loại tin").
+
+### 6.1 Ghi tin về đơn cùng lô — cơ chế CHƯA CHỐT (người lập kế hoạch xác minh trước khi viết kế hoạch)
+
+Sự thật đã kiểm trong mã (2026-09-27):
+- Mã đơn được sinh **ngay trong câu INSERT** (`src/modules/orders/repository.ts:606-633`) → mã JS của `orders` không biết `order_code` trước khi lô chạy.
+- `orders` không biết người phụ trách: `isAssigned` và `defaultHandlerStatement` do **gốc lắp ráp tiêm** qua `ctx` (`src/shared/router.ts:31-37`, `:118-119`); điểm phát Bảng tin đọc `findOrderRef` + `handlerOf` **sau** khi ghi (`src/index.ts:37-49`).
+- View công bố `v_ord_order_label` chỉ có `id, order_code` (`migrations/0009_orders_label_view.sql`) — **không** có người lập. `v_dsp_order_handler` có `order_id, staff_id` (`migrations/0014_dispatch.sql:64`).
+
+Do đó cách "`orders` import hàm của `thongbao` như `auditStatement`" **không đủ** (thiếu mã đơn, người phụ trách). Khuyến nghị:
+- **Gốc lắp ráp tiêm** `ctx.tinDonStatements(orderId, thayDoi, handlerTruoc?)` (mẫu `defaultHandlerStatement`) — `orders`/`dispatch` **không** import `thongbao`, chỉ gộp câu lệnh nhận được vào `db.batch()` của mình, đặt **sau** câu ghi đơn/người phụ trách.
+- Câu lệnh là `INSERT … SELECT` (SQL thuộc `thongbao`) chụp vào dòng tin: mã đơn từ `v_ord_order_label`, người lập (cần **thêm cột `staff_id` vào view công bố của orders** — migration đổi view, hoặc view mới `v_ord_order_owner`), người phụ trách sau từ `v_dsp_order_handler`; người phụ trách trước do bên gọi truyền vào.
+- Nhãn tính **bằng JS lúc đọc** (`nhanSuKien` trên ảnh chụp) — luật một chỗ, không chép sang SQL. Cần đo: hộp 30 ngày có thể vài nghìn dòng lọc bằng JS; nếu chậm, chuyển sang bảng nhãn ghi sẵn.
+- Cạnh: `thongbao → orders, dispatch` (chỉ đọc view), `thongbao → staff, audit`. Không vòng vì `orders`/`dispatch` không import `thongbao`.
+- `tao` vs `tao_cho_nhan`: suy từ ảnh chụp người phụ trách sau (không có → `tao_cho_nhan`), cùng luật như `src/index.ts:44`.
+
+Phương án dự phòng nếu cách trên vướng: ghi tin ở gốc lắp ráp **sau** lô (bắn-và-quên) — **trái Q3**, phải hỏi lại chủ.
 
 ## 7. Ca biên
 
@@ -118,8 +133,9 @@ Số chưa đọc cập nhật: khi tải trang, và khi Bảng tin báo có tha
 7. Thu hồi → tin biến khỏi hộp mọi người; `audit_log` có `notice_revoked`, không chứa nội dung.
 8. Tin thủ công chứa `<script>` hiện nguyên văn là chữ.
 9. Rút quyền văn phòng của B → tin nhãn `tat-ca` không còn trong hộp của B.
-10. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e` xanh; `audit-invariants --db local` đạt; kịch bản Chrome: chuông, hộp, màn gửi (ảnh vào `docs/evidence/`).
-11. Việc lớn (dữ liệu + quyền): có báo cáo người kiểm độc lập chỉ đọc.
+10. Số trên chuông luôn bằng số tin chưa đọc mà danh sách hiện (test luật thuần dùng cùng bộ dữ liệu cho cả hai; e2e so hai route).
+11. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e` xanh; `audit-invariants --db local` đạt; kịch bản Chrome: chuông, hộp, màn gửi (ảnh vào `docs/evidence/`).
+12. Việc lớn (dữ liệu + quyền): có báo cáo người kiểm độc lập chỉ đọc.
 
 ## 9. Lượt 2 — thông báo lên màn hình khoá (Web Push) — CHỜ DUYỆT, chưa hỏi
 
@@ -163,7 +179,7 @@ Bí mật mới: `VAPID_PRIVATE_KEY` (chủ đặt bằng `wrangler secret put`)
 
 ## 11. Phụ thuộc và thứ tự
 
-- Không phụ thuộc GĐ2 (ADR-0017/0019 Phần C) hay Đơn tự do (ADR-0030..0032); nhưng khi các việc đó thêm loại thay đổi đơn mới (ví dụ HDV từ chối), chúng **phải** gọi `tinDonStatement` nếu muốn tin vào hộp — ghi vào `CHANGE-GUIDE.md`.
+- Không phụ thuộc GĐ2 (ADR-0017/0019 Phần C) hay Đơn tự do (ADR-0030..0032); nhưng khi các việc đó thêm loại thay đổi đơn mới (ví dụ HDV từ chối), chúng **phải** gộp câu lệnh ghi tin (§6.1) vào lô nếu muốn tin vào hộp — ghi vào `CHANGE-GUIDE.md`.
 - Chạm `orders/repository.ts` và `dispatch/service.ts` — dễ xung đột với nhánh GĐ2 đang mở; người lập kế hoạch kiểm nhánh trước khi thi công.
 
 ## 12. Trang ghép (CLAUDE.md §9)
@@ -183,11 +199,11 @@ Bí mật mới: `VAPID_PRIVATE_KEY` (chủ đặt bằng `wrangler secret put`)
 |---|---|---|
 | `notice.send` (mới; chỉ `SUPER_ADMIN`) | ghi/thu hồi tin `thu_cong`; đọc danh sách đã gửi | 3 route cổng `admin` |
 | `order.view` (không ngữ cảnh) | tin `don` nhãn `tat-ca` — qua `nhanKetNoi` | đọc hộp |
-| `dispatch.claim` | tin `don` nhãn `cho-nhan` và loại `tao_cho_nhan` — qua `nhanKetNoi` + `thongBaoNoi` | đọc hộp |
-| `isOffice` / `FIELD` | điều kiện chung của tin `don` (Đối tác/Thực tập không thấy) — qua `thongBaoNoi` | đọc hộp |
+| `dispatch.claim` | tin `don` nhãn `cho-nhan` và loại `tao_cho_nhan` — qua `nhanKetNoi` + hàm điều kiện tách từ `thongBaoNoi` | đọc hộp |
+| `isOffice` / `FIELD` | điều kiện chung của tin `don` (Đối tác/Thực tập không thấy) — cùng hàm điều kiện | đọc hộp |
 | mã quyền đang có của tài khoản | tin `thu_cong` nhãn `quyen:<MÃ>` | đọc hộp |
 | (không ô nào) | `ntf_read_mark` — mỗi tài khoản chỉ ghi mốc của chính mình (id lấy từ phiên, không từ yêu cầu) | `POST /api/thong-bao/da-doc` |
-| (không ô nào; ghi do module đơn) | tin `don` chỉ sinh trong batch của thao tác đơn đã qua kiểm quyền của chính thao tác đó | `orders`, `dispatch` |
+| (không ô nào; ghi do module đơn) | tin `don` chỉ sinh trong batch của thao tác đơn đã qua kiểm quyền của chính thao tác đó (câu lệnh do gốc lắp ráp tiêm — §6.1) | `orders`, `dispatch` |
 
 **(3) Cổng nào canh cửa nào**
 
