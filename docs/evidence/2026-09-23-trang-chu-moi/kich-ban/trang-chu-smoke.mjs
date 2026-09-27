@@ -207,15 +207,14 @@ try {
   ok(`T3) Đã tạo dữ liệu "Cần xem lại": TD101 lệch Sheet (1.200.000 → 1.350.000), 2 góp ý MỚI (${fb1.json.ticket.code} báo lỗi của Sales Một, ${fb2.json.ticket.code} đề xuất của Sales Hai)`);
 
   // ==================================================================================================
-  // S20-13 (ADR-0030; kế hoạch 2026-09-27 Task 1.2) + ADR-0020 điều 7 M1 = A: ô "Chưa phụ trách" đếm CẢ đơn nháp. Đóng dòng người phụ trách
-  // đang mở của R2 (nếu có — đơn do Quản trị lập hôm nay còn tự gắn người lập; khi Task 1.3 bỏ việc tự gắn, câu này không đổi dòng nào) để có
-  // một đơn NHÁP chắc chắn chưa có người. Đáp án đối chiếu ở mục 2 tự tính bằng SQL đọc THẲNG bảng phân công — nguồn độc lập với mã đang kiểm.
+  // S20-13 (ADR-0030; kế hoạch 2026-09-27 Task 1.2) + ADR-0020 điều 7 M1 = A: ô "Chưa phụ trách" đếm CẢ đơn nháp. Từ Task 1.3 (ADR-0030 S20-4)
+  // đơn mới lập không chọn ai thì KHÔNG có người phụ trách — R2 (nháp) tự nhiên là đơn nháp chưa có người, không cần câu SQL đóng dòng phụ trách
+  // nữa. Đáp án đối chiếu ở mục 2 tự tính bằng SQL đọc THẲNG bảng phân công — nguồn độc lập với mã đang kiểm.
   // ==================================================================================================
-  env.sql(`UPDATE dsp_assignment SET valid_to_at = max('${new Date().toISOString()}', valid_from_at), updated_at = '${new Date().toISOString()}' WHERE order_id = '${r2.id}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
   const unassignedTruth = env.sql(
     `SELECT o.id FROM orders o WHERE o.status IN ('draft', 'confirmed') AND NOT EXISTS (SELECT 1 FROM dsp_assignment a WHERE a.order_id = o.id AND a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL)`,
   ).map((r) => r.id);
-  assert.ok(unassignedTruth.includes(r2.id), `S20-13: R2 (nháp) phải là đơn chưa có người sau khi đóng dòng phụ trách — ${JSON.stringify(unassignedTruth)}`);
+  assert.ok(unassignedTruth.includes(r2.id), `S20-13: R2 (nháp, lập không chọn người phụ trách) phải là đơn chưa có người — ${JSON.stringify(unassignedTruth)}`);
   ok(`S20-13: đáp án tự tính bằng SQL — ${unassignedTruth.length} đơn nháp/đã xác nhận chưa có người phụ trách, gồm R2 (nháp)`);
 
   // ==================================================================================================

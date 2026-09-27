@@ -66,6 +66,8 @@ test("R3 PASS authz (ADR-0013, vá 2026-…): SALES không đổi tên/ngưng h�
 test("R3b PASS authz (ADR-0013, vá 2026-…): SALES không đổi được tên đồng nghiệp — 403; người phụ trách và người lập vẫn mang tên thật", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  // Từ ADR-0030 S20-4 đơn mới không tự gắn người lập: A Nhận tường minh để đơn có người phụ trách mang tên A (điều bài này kiểm).
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/handler`, { as: A, body: { staffId: A } })).status, 200);
   const p = (await w.call("GET", `/api/parties/pty-${A}`, { as: B })).json.party;
   const r = await w.call("PUT", `/api/parties/pty-${A}`, { as: B, body: { familyName: null, middleName: null, givenName: "Tên Giả", active: true, expectedUpdatedAt: p.updatedAt } });
   assert.equal(r.status, 403, r.text);
@@ -102,6 +104,9 @@ test("R3d FINDING identity: SALES ngưng hồ sơ KHÁCH đang là người đ�
 test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: order.view any), mọi đường SỬA → 403, đơn không đổi", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  // Từ ADR-0030 S20-4 đơn mới không tự gắn người lập (không dòng HANDLE nào lúc lập); A Nhận TRƯỚC khi B thử để đơn "đã có người phụ trách".
+  assert.equal(w.q("SELECT count(*) n FROM dsp_assignment WHERE order_id = ?", o.id)[0].n, 0, "lúc lập: 0 dòng phân công");
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/handler`, { as: A, body: { staffId: A } })).status, 200);
   assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).status, 200);
   assert.equal((await w.call("PUT", `/api/orders/${o.id}`, { as: B, body: { ...orderBody(), expectedUpdatedAt: o.updatedAt } })).status, 403);
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: B, body: { status: "cancelled" } })).status, 403);

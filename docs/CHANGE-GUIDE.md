@@ -154,7 +154,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
 - Router khớp theo THỨ TỰ khai (`createApp` gom mọi route cùng số đoạn rồi `find` theo phương thức): `/api/parties/meta` phải đứng trước `/api/parties/:id`.
 - POST/PUT/PATCH/DELETE thiếu `Origin` cùng site → 403 `cross_origin`; thân không phải JSON → 415 (router chặn trước handler).
 - Module ở tầng dưới có thể khai route dưới đường dẫn của module ở tầng trên (`dispatch` khai `PUT /api/orders/:id/handler`): router khớp theo đoạn nên chỉ cần đoạn cuối khác route của `orders`. Đặt route theo module CHỦ của hành vi (đổi người phụ trách là việc của `dispatch`), không theo tiền tố đường dẫn.
-- Cần gọi hàm của module ở tầng DƯỚI ngược chiều phụ thuộc (`orders` cần biết người phụ trách của `dispatch`): KHÔNG import (bài kiểm kiến trúc đỏ vì vòng) — thêm hàm vào `AppOptions.injected` (`src/shared/router.ts`), nối ở `src/index.ts`, và lấy từ `ctx` trong handler (mẫu `ctx.isAssigned`, `ctx.defaultHandlerStatement`). `injected` là BẮT BUỘC để thiếu là lỗi `tsc`, không phải lặng lẽ tụt quyền.
+- Cần gọi hàm của module ở tầng DƯỚI ngược chiều phụ thuộc (`orders` cần biết người phụ trách của `dispatch`): KHÔNG import (bài kiểm kiến trúc đỏ vì vòng) — thêm hàm vào `AppOptions.injected` (`src/shared/router.ts`), nối ở `src/index.ts`, và lấy từ `ctx` trong handler (mẫu `ctx.isAssigned`, `ctx.newOrderHandler`). `injected` là BẮT BUỘC để thiếu là lỗi `tsc`, không phải lặng lẽ tụt quyền.
 
 ### c. Thêm trang web
 

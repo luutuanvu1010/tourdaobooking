@@ -82,12 +82,13 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   console.log("✓ ca 2: chuẩn bị phiên salesA/salesB/kế toán/field + hai tài khoản Đối tác mới (dùng một lần)");
 }
 
-// === CA 3 (DP-1 POST /api/orders; NT-4): salesA lập đơn → salesA/salesB/kế toán (order.view = any) nhận đúng MỘT tin 'tao' đủ 5 khoá (maDon
-// khớp orderCode) trong 2 giây; Đối tác không liên quan và field (order.view = none) không nhận. ==========================================
+// === CA 3 (DP-1 POST /api/orders; NT-4): salesA lập đơn KÈM người phụ trách được chọn (salesB — ADR-0030 S20-4) → salesA/salesB/kế toán (order.view
+// = any) nhận đúng MỘT tin 'tao' đủ 5 khoá (maDon khớp orderCode) trong 2 giây — không có tin 'giao' nào cho đơn vừa lập; Đối tác không liên quan và
+// field (order.view = none) không nhận. (Đơn lập KHÔNG chọn ai thì phát 'tao_cho_nhan' — xem ca 6.) ===============================================
 {
   const [pA, pB, pAcc, pField, pP1] = await moiPhien(salesACookie, salesBCookie, accountantCookie, fieldCookie, P1.cookie);
   try {
-    const r = await call(salesACookie, "POST", "/api/orders", orderInput());
+    const r = await call(salesACookie, "POST", "/api/orders", orderInput({ handlerStaffId: salesBId }));
     assert.equal(r.status, 201, JSON.stringify(r.body));
     const order = r.body.order;
     for (const [ten, p] of [["salesA", pA], ["salesB", pB], ["kế toán", pAcc]]) {
@@ -105,12 +106,11 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   console.log("✓ ca 3: lập đơn → văn phòng (salesA/salesB/kế toán) nhận đúng một tin 'tao' đủ 5 khoá trong 2 giây; Đối tác/field không nhận");
 }
 
-// === CA 4 (DP-1 PUT /api/orders/:id/handler — nhan/giao; NT-2 handlerTruoc): đóng dòng người phụ trách bằng SQL rồi salesB Nhận → văn phòng
+// === CA 4 (DP-1 PUT /api/orders/:id/handler — nhan/giao; NT-2 handlerTruoc): đơn mới lập không chọn ai (chưa có người) rồi salesB Nhận → văn phòng
 // nhận 'nhan', field (chưa liên quan) thì không; salesA giao cho field (ADR-0014 điều 6: field nay đủ điều kiện làm người phụ trách cấp hẹp)
 // → field nhận 'giao'; salesA giao tiếp từ field sang salesB → field VẪN nhận (là người phụ trách TRƯỚC thay đổi, NT-2), thêm một tin 'giao'. ==
 {
-  const o4 = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order;
-  await sql(`UPDATE dsp_assignment SET valid_to_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE order_id = '${o4.id}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
+  const o4 = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order; // không chọn ai → chưa có người phụ trách (ADR-0030 S20-4)
   const [pA, pB, pAcc, pField] = await moiPhien(salesACookie, salesBCookie, accountantCookie, fieldCookie);
   try {
     let r = await call(salesBCookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: salesBId });

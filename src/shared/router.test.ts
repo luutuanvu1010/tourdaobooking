@@ -28,7 +28,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
     currentStaff: async () => staff,
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
       maintenanceBlock: async (_env, s) => {
@@ -127,7 +127,7 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
     currentStaff: async (req) => (new URL(req.url).pathname === "/api/pa-open" ? null : who),
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
@@ -159,7 +159,7 @@ test("ADR-0030 S20-13: ctx.myHandledOrderIds() hỏi đúng người đang đăn
     currentStaff: async (req) => (new URL(req.url).pathname === "/api/mine-open" ? null : who),
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async (_env, orderIds) => { seenIds.push([...orderIds]); return new Set(["o2"]); },
       handledOrderIdsOf: async (_env, staffId) => { seenMine.push(staffId); return ["o9"]; },
       maintenanceBlock: async () => null,
@@ -175,6 +175,44 @@ test("ADR-0030 S20-13: ctx.myHandledOrderIds() hỏi đúng người đang đăn
   assert.deepEqual(seenMine, ["u1"], "id lấy từ phiên đăng nhập");
   assert.deepEqual(await get("/api/with-ord"), ["o2"]);
   assert.deepEqual(seenIds, [["o1", "o2", "o3"]]);
+});
+
+test("ADR-0030 S20-4: ctx.newOrderHandler(staffId) chuyển NGƯỜI ĐANG ĐĂNG NHẬP (người lập) + người được chọn cho hàm tiêm, trả nguyên kết luận; chưa đăng nhập → không đạt, không gọi hàm tiêm", async () => {
+  const seen: string[] = [];
+  const mod: AppModule = {
+    name: "t",
+    routes: [
+      route("GET", "/api/pick-open", "public", async (ctx) => json(await ctx.newOrderHandler("s-hdv"))),
+      route("GET", "/api/pick-ord", "orders", async (ctx) => {
+        const r = await ctx.newOrderHandler("s-hdv");
+        return json(r.ok ? { ok: true, n: r.statements("o1", "2026-09-27T00:00:00.000Z").length } : r);
+      }),
+    ],
+  };
+  const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pick-open" ? null : who),
+    injected: {
+      isAssigned: async () => false,
+      newOrderHandler: async (_env, actor, staffId) => {
+        seen.push(`${actor.id}→${staffId}`);
+        return { ok: true, statements: (orderId, at) => { seen.push(`câu:${orderId}@${at}`); return []; } };
+      },
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+    },
+  });
+  const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
+  const open = await get("/api/pick-open");
+  assert.equal(open.ok, false, "chưa đăng nhập: không đạt");
+  assert.deepEqual(seen, [], "chưa đăng nhập: không gọi hàm tiêm");
+  assert.deepEqual(await get("/api/pick-ord"), { ok: true, n: 0 });
+  assert.deepEqual(seen, ["u1→s-hdv", "câu:o1@2026-09-27T00:00:00.000Z"], "người thao tác lấy từ phiên; id đơn + mốc do nơi gọi đưa vào, chuyển nguyên");
 });
 
 // BẢNG TIN (ADR-0022, Task 3) — ctx.baoThayDoi / ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, lỗi phát tin không bao giờ làm hỏng/chậm thao tác ghi (DP-3).
@@ -205,7 +243,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
     currentStaff: async () => staff,
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
@@ -238,7 +276,7 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
     currentStaff: async () => null,
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
       ordersWithHandler: async () => new Set<string>(),
       handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,

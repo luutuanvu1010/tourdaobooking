@@ -1,7 +1,8 @@
 // Gốc lắp ráp: danh sách module + nối auth vào router + Cron. Thêm module mới = thêm một dòng vào `modules`.
-// Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn", có câu "đặt người phụ trách mặc định
-// cho đơn mới", cần biết "trong các đơn này đơn nào đang có người" và "đơn nào tôi đang phụ trách" (ADR-0030 S20-13) nhưng KHÔNG được import `dispatch` (dispatch →
-// orders là chiều được phép, chiều ngược lại sẽ thành vòng) và không đọc view `v_dsp_*` của nó. Router chỉ chuyển chúng vào `ctx`.
+// Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn", cần câu "mở người phụ trách do
+// người lập CHỌN cho đơn mới" (ADR-0030 S20-4 — đơn mới không bao giờ tự gắn người lập), cần biết "trong các đơn này đơn nào đang có người" và "đơn nào tôi
+// đang phụ trách" (ADR-0030 S20-13) nhưng KHÔNG được import `dispatch` (dispatch → orders là chiều được phép, chiều ngược lại sẽ thành vòng) và không đọc view
+// `v_dsp_*` của nó. Router chỉ chuyển chúng vào `ctx`.
 // `parties` cần biết hồ sơ gắn tài khoản nào (ADR-0013) nhưng KHÔNG được import `staff` — tiêm `partyAccount`.
 // BẢNG TIN (ADR-0022): module `bangtin` là lá, không đọc cơ sở dữ liệu (KHONG_DB) — gốc lắp ráp đọc mã đơn/người lập (`orders`) + người phụ trách
 // (`dispatch`), tính nhãn người nhận (`nhanSuKien`) rồi đưa cho `phatDon`. Đây cũng là NƠI DUY NHẤT nạp lớp Durable Object `BangTin` (`tram.ts`) —
@@ -12,7 +13,7 @@ import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatDon } from "./modules/bangtin";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { defaultHandlerStatement, dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, ordersWithHandler } from "./modules/dispatch";
+import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler } from "./modules/dispatch";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
@@ -30,7 +31,7 @@ const app = createApp({
   checkConfig: checkAuthConfig,
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
-    defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
+    newOrderHandler: (env, actor, staffId) => newOrderHandler(env.DB, actor.id, staffId),
     ordersWithHandler: (env, orderIds) => ordersWithHandler(env.DB, orderIds),
     handledOrderIdsOf: (env, staffId) => handledOrderIdsOf(env.DB, staffId),
     maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
@@ -42,7 +43,7 @@ const app = createApp({
       if (!env.BANG_TIN) return;
       const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
       if (!ref) return;
-      // Đơn mới mà không ai phụ trách (người lập không đủ điều kiện — Đối tác, chưa có hồ sơ) → loại riêng để người nhận được đơn thấy thông báo nổi.
+      // Đơn mới mà không ai phụ trách (người lập không chọn ai — ADR-0030 S20-4) → loại riêng để người nhận được đơn thấy thông báo nổi.
       const thayDoi = e.thayDoi === "tao" && !handlerSau.coNguoi ? "tao_cho_nhan" : e.thayDoi;
       await phatDon(
         env,

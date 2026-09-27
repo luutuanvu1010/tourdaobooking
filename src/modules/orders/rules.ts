@@ -4,6 +4,7 @@
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
 import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
 import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
+import { UUID_RE } from "../../shared/http.ts";
 import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
 import { vnToday } from "../../shared/vn-date.ts";
 import { int, text } from "./fields.ts";
@@ -42,6 +43,22 @@ const fail = (message: string): Failure => ({ ok: false, message });
 
 const PHONE_RE = /^\+?[0-9][0-9 .\-]{6,18}[0-9]$/;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Người phụ trách do người lập CHỌN ngay lúc lập đơn — trường tuỳ chọn `handlerStaffId` của thân `POST /api/orders` (ADR-0030 S20-4, ADR-0020 điều 1).
+ * `hasHandlerPick`: trường CÓ MẶT (khác `undefined` và `null`) — route hỏi quyền chọn (`dispatch.assign`) NGAY khi thấy có mặt, trước khi kiểm dạng,
+ * nên Thực tập/Đối tác gửi kèm bất cứ giá trị gì (kể cả chuỗi rỗng) đều 403, không phải 400. Vắng hoặc `null` = không chọn: đơn chờ người nhận (form cũ
+ * trong bộ nhớ đệm của ứng dụng không gửi trường này — không vỡ). Luật "ai đủ điều kiện được chọn" KHÔNG ở đây: module dispatch quyết (`checkAssignee`).
+ */
+export const hasHandlerPick = (body: Record<string, unknown> | null): boolean => body !== null && body.handlerStaffId !== undefined && body.handlerStaffId !== null;
+
+/** Dạng của `handlerStaffId`: vắng/`null` → không chọn (`staffId: null`); có mặt thì phải là mã tài khoản (UUID). */
+export function parseHandlerPick(body: Record<string, unknown> | null): { ok: true; staffId: string | null } | Failure {
+  if (!hasHandlerPick(body)) return { ok: true, staffId: null };
+  const v = body!.handlerStaffId;
+  if (typeof v !== "string" || !UUID_RE.test(v)) return fail("Người phụ trách được chọn không hợp lệ. Hãy chọn lại hướng dẫn viên.");
+  return { ok: true, staffId: v };
+}
 
 /** Tên + SĐT khách (bản chụp trên đơn) — dùng chung cho tạo/sửa đơn và đổi khách. */
 function validateCustomer(b: Record<string, unknown>): { ok: true; name: string; phone: string } | Failure {

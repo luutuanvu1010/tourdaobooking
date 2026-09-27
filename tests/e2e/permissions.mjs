@@ -78,8 +78,11 @@ console.log("✓ SALES nhật ký của mình, ADMIN mọi đơn");
 
 // --- người phụ trách (ADR-0009): quyền theo người phụ trách HIỆN TẠI của đơn — đủ sáu vai trên route thật (đơn của A, người phụ trách là B)
 // Dò không phá dữ liệu: PUT /handler sang CHÍNH người đang phụ trách → người có quyền nhận 409 no_change, người không có quyền nhận 403.
+const meA = (await call(SALES, "GET", "/api/auth/me")).body.staff;
 const meB = (await call(SALES_B, "GET", "/api/auth/me")).body.staff;
 const meAdmin = (await call(ADMIN, "GET", "/api/auth/me")).body.staff;
+// Từ ADR-0030 S20-4 đơn mới không tự gắn người lập: người lập Nhận tường minh để đơn "đã có người phụ trách" (điều các dòng dưới cần).
+assert.equal((await call(SALES, "PUT", `/api/orders/${order.id}/handler`, { staffId: meA.id })).status, 200, "người lập Nhận đơn của mình");
 r = await call(SALES_B, "PUT", `/api/orders/${order.id}/handler`, { staffId: meB.id });
 assert.equal(r.status, 409, "B (SALES) chưa phải người phụ trách và đơn đã có người phụ trách → không tự nhận được: thua đua, 409 stale");
 assert.equal(r.body.error.code, "stale");
@@ -116,7 +119,8 @@ assert.equal((await call(MC, "POST", "/api/orders", orderInput())).status, 403);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["FIELD"] })).status, 200);
 assert.equal((await call(MC, "GET", "/api/orders")).status, 403, "bỏ ACCOUNTING → mất quyền xem đơn ngay");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
-r = await call(MC, "POST", "/api/orders", orderInput());
+// Lập kèm CHÍNH MÌNH làm người phụ trách (ADR-0030 S20-4 — đơn mới không tự gắn người lập) để ca "người phụ trách đã nghỉ" ở dưới giữ đúng nghĩa.
+r = await call(MC, "POST", "/api/orders", orderInput({ handlerStaffId: M.id }));
 assert.equal(r.status, 201, `thêm SALES → lập đơn được ngay: ${JSON.stringify(r.body)}`);
 const mOrder = r.body.order;
 assert.equal((await call(MC, "PUT", `/api/orders/${order.id}/handler`, { staffId: M.id })).status, 409, "SALES không liên quan không tự nhận được đơn đã có người phụ trách (409 stale, không phải 403)");

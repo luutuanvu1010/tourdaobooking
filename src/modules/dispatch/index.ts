@@ -1,26 +1,26 @@
 // Module dispatch — phân công (ADR-0006). Đợt này chỉ có NGƯỜI PHỤ TRÁCH đơn (dòng `HANDLE` hạt đơn của `dsp_assignment`): người nhận trách nhiệm chăm sóc khách
-// (gọi xác nhận, đón), mặc định là người lập đơn NẾU người lập đủ điều kiện được giao (tài khoản chỉ Đối tác thì không — ADR-0014 điều 9/10), đổi được, và
-// SỬA ĐƯỢC ĐƠN như người lập (ADR-0009). Nhiệm vụ đón/lái cano, gán theo dịch vụ: N2.
+// (gọi xác nhận, đón), đổi được, và SỬA ĐƯỢC ĐƠN như người lập (ADR-0009). Đơn mới KHÔNG tự gắn người lập (ADR-0030 S20-4, ADR-0020 điều 1, Q-C): người lập
+// CHỌN người phụ trách ngay trong form (có hiệu lực ngay, cùng lô tạo đơn — `newOrderHandler`), không chọn thì đơn chờ người nhận (`dispatch.claim`).
+// Nhiệm vụ đón/lái cano, gán theo dịch vụ: N2.
 // Route: GET /api/dispatch/handlers, GET /api/dispatch/assignees, PUT /api/orders/:id/handler (đường dẫn dưới /api/orders/:id/ vì là thao tác trên MỘT đơn;
 // router khớp theo đoạn nên không đụng route của `orders`).
 // Chiều phụ thuộc (ADR-0006 điều 8): dispatch → orders, staff, audit. `orders` KHÔNG import `dispatch` và không đọc view `v_dsp_*` (ADR-0030 S20-13,
-// `src/architecture.test.ts` canh): gốc lắp ráp (src/index.ts) tiêm `isOrderHandler`, `defaultHandlerStatement`, `ordersWithHandler` và `handledOrderIdsOf`
-// vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`).
+// `src/architecture.test.ts` canh): gốc lắp ráp (src/index.ts) tiêm `isOrderHandler`, `newOrderHandler`, `ordersWithHandler` và `handledOrderIdsOf`
+// vào ctx (ADR-0007 điều 4(b)). Ghi nhật ký và đổi dữ liệu trong cùng một db.batch() (`handlerChangeStatements`, `newOrderHandlerStatements`).
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
-import { route, type AppModule } from "../../shared/router";
+import { route, type AppModule, type NewOrderHandler } from "../../shared/router";
 import { tripDeparted } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
-import { findHandledOrderIds, findHandlerOf, findHandlersOf, insertHandlerStatement, isHandler, type HandlerRow } from "./repository";
+import { findHandledOrderIds, findHandlerOf, findHandlersOf, isHandler, type HandlerRow } from "./repository";
 import {
-  CANCEL_REASON_LABEL, checkAssignee, defaultHandlerPartyId, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
-  type AssigneeCandidate,
+  CANCEL_REASON_LABEL, checkAssignee, handlerChangeVerdict, isOpenHandlerCollision, parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules";
-import { handlerChangeStatements } from "./service";
+import { handlerChangeStatements, newOrderHandlerStatements } from "./service";
 
 const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.staff_id, name: r.label });
 
@@ -72,15 +72,18 @@ export async function handlerOf(db: D1Database, orderId: string): Promise<TrangT
 }
 
 /**
- * Câu lệnh (CHƯA chạy) đặt người lập `who` làm người phụ trách mặc định của đơn MỚI `orderId` — `orders/repository.ts` gộp vào db.batch() tạo đơn, sau câu
- * INSERT đơn (ADR-0009 điều 4). null nếu người lập KHÔNG đủ điều kiện làm người phụ trách (luật `defaultHandlerPartyId` → `checkAssignee`: tài khoản chỉ Đối tác
- * — ADR-0014 điều 9/10 —, hoặc chưa có hồ sơ `party_id`): đơn không có người phụ trách là trạng thái hợp lệ, nhận sau bằng `dispatch.claim`/`dispatch.assign`.
- * `active: true` KHÔNG phải giả định: `who` là người ĐANG ĐĂNG NHẬP (router → `currentStaff` → `getActiveStaff`, hàm này trả null với tài khoản đã ngưng),
- * nên không đọc lại D1. Quyền (`who.permissions`) cũng chính là tập quyền route vừa dùng để cho phép lập đơn (`can(staff, "order.create")`).
+ * Người phụ trách do người lập `actorId` CHỌN (`staffId`) ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C) — gốc lắp ráp tiêm vào
+ * `ctx.newOrderHandler(staffId)`; route `POST /api/orders` chỉ gọi khi thân có `handlerStaffId`, SAU khi tự hỏi quyền chọn của người gọi (`dispatch.assign`
+ * với đơn của chính mình). Đọc tài khoản ĐÍCH từ D1 (`getStaffAccount`: đang hoạt động? hồ sơ? quyền?) rồi xét bằng CHÍNH luật người được giao
+ * `checkAssignee` (không chép luật: đổi luật người được giao — vd chặn tài khoản lai, ADR-0030 S20-5 — thì đường này đổi theo). Không đạt → lời báo; route
+ * trả 400 `invalid_assignee` và không tạo đơn. Đạt → hàm dựng câu lệnh (`newOrderHandlerStatements`) mà `createOrder` gọi với id đơn + mốc `at` của TỪNG
+ * lần thử — hàm này KHÔNG đọc đồng hồ (dòng `HANDLE` và nhật ký cùng mốc với dòng `created`).
  */
-export function defaultHandlerStatement(db: D1Database, who: Omit<AssigneeCandidate, "active">, orderId: string, at: string): D1PreparedStatement | null {
-  const partyId = defaultHandlerPartyId({ ...who, active: true });
-  return partyId ? insertHandlerStatement(db, { id: crypto.randomUUID(), orderId, partyId, at, actorId: who.id }) : null;
+export async function newOrderHandler(db: D1Database, actorId: string, staffId: string): Promise<NewOrderHandler> {
+  const target = checkAssignee(await getStaffAccount(db, staffId));
+  if (!target.ok) return { ok: false, message: target.message };
+  const to = { partyId: target.partyId, name: target.name };
+  return { ok: true, statements: (orderId, at) => newOrderHandlerStatements(db, { orderId, to, actorId, at }) };
 }
 
 export const dispatchModule: AppModule = {

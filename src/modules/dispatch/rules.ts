@@ -62,19 +62,6 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
   return { ok: true, partyId: who.partyId, name: who.fullName };
 }
 
-/**
- * Người phụ trách mặc định của đơn MỚI (ADR-0009 điều 4): hồ sơ của NGƯỜI LẬP — nhưng CHỈ KHI người lập đủ điều kiện làm người phụ trách theo ĐÚNG luật
- * `checkAssignee` ở trên (gọi lại, không chép tay: đổi luật người được giao thì luật này đổi theo). Hôm nay: SALES/ADMIN/SUPER_ADMIN có hồ sơ → chính họ.
- * Không đủ điều kiện → null, đơn chưa có người phụ trách (trạng thái hợp lệ; người đủ điều kiện nhận sau bằng `dispatch.claim`/`dispatch.assign`):
- *  - tài khoản CHỈ Đối tác (`PARTNER`): ADR-0014 điều 9 (với đơn do `PARTNER` lập, ADR-0009 điều 4 không áp dụng — chọn một hướng dẫn viên hoặc để trống)
- *    và điều 10 (`PARTNER` không tự thành người phụ trách bằng bất kỳ đường nào) — đúng chú thích "CỐ Ý CHƯA nhận" của `checkAssignee`;
- *  - tài khoản chưa có hồ sơ (`partyId` null) — như trước.
- */
-export function defaultHandlerPartyId(creator: AssigneeCandidate): string | null {
-  const checked = checkAssignee(creator);
-  return checked.ok ? checked.partyId : null;
-}
-
 /** Lý do huỷ đơn của FIELD qua route hẹp (ADR-0014 điều 11) — danh sách ĐÓNG, đúng nguyên văn câu trả lời của chủ dự án, không thêm/bớt. */
 export const CANCEL_REASONS = ["not_reachable", "customer_requested"] as const;
 export type CancelReason = (typeof CANCEL_REASONS)[number];

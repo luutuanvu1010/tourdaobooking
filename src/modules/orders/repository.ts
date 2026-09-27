@@ -626,7 +626,9 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
  * (mã lớn nhất của ngày + 1) nên việc đọc-rồi-ghi là một bước nguyên tử: D1 ghi tuần tự, nhiều người
  * tạo cùng lúc vẫn ra mã khác nhau. UNIQUE vẫn là lưới an toàn cuối; nếu đụng thì thử lại.
  * `alsoCreate` = các câu (chưa chạy) module KHÁC cần chạy cùng giao dịch, dựng theo id đơn và thời điểm của TỪNG lần thử — id đơn đổi mỗi lần thử nên phải là hàm,
- * không phải danh sách dựng sẵn. Dùng cho dòng người phụ trách mặc định của `dispatch` (ADR-0009 điều 4); `orders` không biết đó là gì, chỉ ghép sau câu INSERT đơn.
+ * không phải danh sách dựng sẵn. Dùng cho người phụ trách do người lập CHỌN lúc lập (`dispatch`, ADR-0030 S20-4 — đơn mới không bao giờ tự gắn người lập; không
+ * chọn thì không có `alsoCreate`); `orders` không biết đó là gì, chỉ ghép sau câu INSERT đơn và dòng nhật ký `created`. MỘT mốc `at` cho cả lần thử: cùng giá
+ * trị đi vào `orders.created_at`, dòng nhật ký `created` và `alsoCreate(id, at)` — đừng đọc đồng hồ lần thứ hai ở đây (hệ thống Thông báo so các mốc này).
  * `booker.before` đứng đầu batch (hồ sơ mới, nếu có, phải tồn tại trước khi đơn trỏ khoá ngoại tới).
  */
 export async function createOrder(

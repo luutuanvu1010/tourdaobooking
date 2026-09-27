@@ -1,8 +1,9 @@
-// Người phụ trách đơn (module dispatch; ADR-0006, ADR-0009): đơn mới tự có người phụ trách = người lập NẾU người lập đủ điều kiện làm người phụ trách
-// (tài khoản chỉ Đối tác thì không — ADR-0014 điều 9/10: đơn để trống, nhân viên nhận sau); đổi người = đóng dòng cũ + mở dòng mới + nhật ký;
-// nhận đơn chưa có người; ai được làm gì; người được giao phải là SALES/ADMIN đang hoạt động có hồ sơ; tranh chấp song song đúng một bên thắng;
+// Người phụ trách đơn (module dispatch; ADR-0006, ADR-0009): đơn mới KHÔNG tự gắn người lập (ADR-0030 S20-4, ADR-0020 điều 1) — không chọn thì đơn chưa có
+// người phụ trách (chờ người nhận); người lập chọn người phụ trách ngay lúc lập (`handlerStaffId`, cùng lô tạo đơn); đổi người = đóng dòng cũ + mở dòng mới +
+// nhật ký; nhận đơn chưa có người; ai được làm gì; người được giao phải là SALES/ADMIN/FIELD đang hoạt động có hồ sơ; tranh chấp song song đúng một bên thắng;
 // người phụ trách (khác người lập) sửa được đơn (bộ kiểm hành vi đầy đủ ở các mục cuối và ở orders/trip/permissions.mjs).
-// Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng"; đóng dòng HANDLE bằng SQL để có đơn "chưa có người phụ trách".
+// Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng". Đơn "chưa có người phụ trách" = đơn mới lập không chọn ai
+// (tự nhiên, không cần SQL); mục nào cần đơn ĐÃ có người thì Nhận/Giao tường minh ngay sau khi lập.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
@@ -47,21 +48,46 @@ const rowsOf = (orderId) =>
 const openOf = async (orderId) => (await rowsOf(orderId)).filter((r) => r.valid_to_at === null);
 const history = async (cookie, order) => (await call(cookie, "GET", `/api/orders/${order.id}`)).body.history;
 const changes = async (cookie, order) => (await history(cookie, order)).filter((h) => h.action === "order_handler_changed");
-/** Mô phỏng đơn "chưa có người phụ trách" (đơn cũ trước 0014 của người lập chưa có hồ sơ): đóng dòng HANDLE đang mở bằng SQL. */
-const dropHandler = (orderId) =>
-  sql(`UPDATE dsp_assignment SET valid_to_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE order_id = '${orderId}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
 const asDto = (who) => ({ partyId: who.partyId, staffId: who.id, name: who.fullName ?? who.name });
 
-// --- 1) đơn mới: người lập là người phụ trách (một dòng HANDLE hạt đơn đang mở, không thêm dòng nhật ký)
+// --- 1) đơn mới KHÔNG tự gắn người lập (ADR-0030 S20-4): không chọn → không có dòng HANDLE nào, nhật ký chỉ "created"
 const o1 = await newOrder(A);
-assert.deepEqual(await handlerOf(A, o1.id), asDto(a));
-let rows = await rowsOf(o1.id);
-assert.equal(rows.length, 1);
-assert.deepEqual([rows[0].task_kind_code, rows[0].status_code, rows[0].valid_to_at, rows[0].created_by, rows[0].order_service_id, rows[0].party_id], ["HANDLE", "PENDING", null, a.id, null, a.partyId]);
-assert.deepEqual((await history(A, o1)).map((h) => h.action), ["created"], "đặt người phụ trách mặc định không thêm dòng nhật ký");
+assert.equal(await handlerOf(A, o1.id), null, "Bán hàng lập đơn không chọn ai → đơn chưa có người phụ trách");
+assert.deepEqual(await rowsOf(o1.id), [], "không có dòng HANDLE nào (kể cả đã đóng)");
+assert.deepEqual((await history(A, o1)).map((h) => h.action), ["created"]);
 const oAdmin = await newOrder(ADMIN);
-assert.deepEqual(await handlerOf(ADMIN, oAdmin.id), asDto(adm), "quản trị lập đơn cũng là người phụ trách của đơn mình");
-console.log("✓ đơn mới: người lập là người phụ trách (một dòng HANDLE đang mở)");
+assert.equal(await handlerOf(ADMIN, oAdmin.id), null, "quản trị lập đơn không chọn ai → cũng chưa có người phụ trách");
+assert.deepEqual(await rowsOf(oAdmin.id), []);
+console.log("✓ đơn mới không chọn người phụ trách: không có dòng HANDLE nào, nhật ký chỉ 'created' (Bán hàng, Quản trị)");
+
+// Lập đơn KÈM người phụ trách được chọn (handlerStaffId): MỘT lô — đơn + đúng một dòng HANDLE đang mở của người được chọn + nhật ký "từ chưa có người
+// phụ trách sang <tên>"; dòng HANDLE và nhật ký CÙNG mốc với lúc lập đơn (createdAt).
+let r = await call(A, "POST", "/api/orders", orderInput({ handlerStaffId: b.id }));
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const oPicked = r.body.order;
+assert.deepEqual(await handlerOf(A, oPicked.id), asDto(b), "người được chọn là người phụ trách ngay khi lập");
+let rows = await rowsOf(oPicked.id);
+assert.equal(rows.length, 1);
+assert.deepEqual([rows[0].task_kind_code, rows[0].status_code, rows[0].valid_to_at, rows[0].created_by, rows[0].order_service_id, rows[0].party_id], ["HANDLE", "PENDING", null, a.id, null, b.partyId]);
+assert.equal(rows[0].valid_from_at, oPicked.createdAt, "dòng HANDLE có hiệu lực ĐÚNG lúc lập đơn (cùng mốc của lô)");
+const hPicked = await history(A, oPicked);
+assert.deepEqual(hPicked.map((h) => h.action), ["created", "order_handler_changed"]);
+assert.equal(hPicked[1].detail, `từ chưa có người phụ trách sang ${b.fullName}`);
+assert.equal(hPicked[1].at, hPicked[0].at, "nhật ký chọn người cùng mốc với nhật ký lập đơn");
+console.log("✓ lập đơn kèm người phụ trách được chọn: một lô — đơn + dòng HANDLE của người được chọn + nhật ký, cùng mốc thời gian");
+
+// Chọn người KHÔNG đủ điều kiện → 400 invalid_assignee, KHÔNG có đơn nào được tạo; Đối tác gửi kèm người được chọn → 403 (không có dispatch.assign).
+const orderCount = async () => Number((await sqlRows("SELECT count(*) AS n FROM orders"))[0].n);
+const nOrders = await orderCount();
+for (const [label, target] of [["kế toán", acc.id], ["đã ngưng", D.id], ["không tồn tại", "00000000-0000-4000-8000-00000000abcd"]]) {
+  r = await call(A, "POST", "/api/orders", orderInput({ handlerStaffId: target }));
+  assert.equal(r.status, 400, `${label}: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "invalid_assignee", label);
+}
+r = await call(P.cookie, "POST", "/api/orders", orderInput({ handlerStaffId: b.id }));
+assert.equal(r.status, 403, `Đối tác chọn người phụ trách: ${JSON.stringify(r.body)}`);
+assert.equal(await orderCount(), nOrders, "không có đơn nào được tạo khi người được chọn sai hoặc người lập không được chọn");
+console.log("✓ chọn người không đủ điều kiện → 400 invalid_assignee; Đối tác gửi kèm người được chọn → 403; không có đơn nào được tạo");
 
 // Tài khoản CHỈ Đối tác (có hồ sơ như mọi tài khoản) lập đơn: KHÔNG tự thành người phụ trách — ADR-0014 điều 9 ("hoặc để trống") và điều 10 (không tự thành
 // người phụ trách bằng bất kỳ đường nào). Đơn để trống: không dòng HANDLE nào, không thêm nhật ký; nhân viên bán hàng nhận sau được (dispatch.claim).
@@ -75,8 +101,12 @@ assert.equal(claimed.status, 200, JSON.stringify(claimed.body));
 assert.deepEqual(await handlerOf(A, oPartner.id), asDto(b), "đơn để trống của Đối tác: nhân viên bán hàng nhận cho chính mình được");
 console.log("✓ đơn mới do tài khoản CHỈ Đối tác lập: không có người phụ trách (không dòng HANDLE), nhân viên nhận sau được");
 
+// Các mục dưới cần o1/oAdmin ĐÃ có người phụ trách (đổi người, ai đổi được…): người lập Nhận tường minh (trước ADR-0030 S20-4 là tự gắn).
+assert.equal((await setHandler(A, o1.id, a.id)).status, 200, "Bán hàng Nhận đơn mình vừa lập");
+assert.equal((await setHandler(ADMIN, oAdmin.id, adm.id)).status, 200, "quản trị Nhận đơn mình vừa lập");
+
 // --- 2) GET /api/dispatch/handlers: tra nhiều đơn, id lạ, giới hạn 100, quyền
-let r = await call(A, "GET", `/api/dispatch/handlers?orderIds=${o1.id},${oAdmin.id},00000000-0000-4000-8000-000000000000`);
+r = await call(A, "GET", `/api/dispatch/handlers?orderIds=${o1.id},${oAdmin.id},00000000-0000-4000-8000-000000000000`);
 assert.equal(r.status, 200);
 assert.deepEqual(r.body, { handlers: { [o1.id]: asDto(a), [oAdmin.id]: asDto(adm), "00000000-0000-4000-8000-000000000000": null } }, "đơn không có người phụ trách (hoặc không có đơn) → null");
 assert.deepEqual(Object.keys(r.body.handlers[o1.id]).sort(), ["name", "partyId", "staffId"], "chỉ tên + id, không SĐT");
@@ -111,7 +141,7 @@ assert.equal((await call(FIELD, "GET", "/api/dispatch/assignees")).status, 403);
 assert.equal((await call(null, "GET", "/api/dispatch/assignees")).status, 401);
 console.log("✓ GET /api/dispatch/assignees: chỉ SALES/ADMIN đang hoạt động có hồ sơ, chỉ tên");
 
-// --- 4) đổi người: người lập A → B. Dòng cũ đóng, dòng mới mở CÙNG thời điểm, nhật ký "từ A sang B"
+// --- 4) đổi người: A (người lập, đã Nhận ở trên) → B. Dòng cũ đóng, dòng mới mở CÙNG thời điểm, nhật ký "từ A sang B"
 r = await setHandler(A, o1.id, b.id);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body, { handler: asDto(b) });
@@ -124,13 +154,12 @@ assert.deepEqual([rows[1].party_id, rows[1].valid_to_at, rows[1].created_by], [b
 assert.equal(rows[0].valid_to_at, rows[1].valid_from_at, "đóng dòng cũ và mở dòng mới CÙNG một thời điểm");
 assert.equal((await openOf(o1.id)).length, 1, "tối đa MỘT người phụ trách đang mở");
 let ch = await changes(A, o1);
-assert.equal(ch.length, 1);
-assert.equal(ch[0].detail, `từ ${a.fullName} sang ${b.fullName}`);
-assert.equal(ch[0].staffName, a.fullName);
-assert.doesNotMatch(ch[0].detail, /09\d{8}/, "nhật ký chỉ ghi tên");
+assert.deepEqual(ch.map((x) => x.detail), [`từ chưa có người phụ trách sang ${a.fullName}`, `từ ${a.fullName} sang ${b.fullName}`], "một dòng lúc Nhận, một dòng lúc đổi");
+assert.equal(ch[1].staffName, a.fullName);
+assert.doesNotMatch(ch[1].detail, /09\d{8}/, "nhật ký chỉ ghi tên");
 r = await call(ADMIN, "GET", `/api/audit?action=order_handler_changed&q=${o1.orderCode}`);
 assert.equal(r.status, 200);
-assert.deepEqual(r.body.entries.map((e) => [e.action, e.targetLabel, e.orderId]), [["order_handler_changed", o1.orderCode, o1.id]]);
+assert.deepEqual(r.body.entries.map((e) => [e.action, e.targetLabel, e.orderId]), [["order_handler_changed", o1.orderCode, o1.id], ["order_handler_changed", o1.orderCode, o1.id]]);
 console.log("✓ đổi người phụ trách: dòng cũ đóng, dòng mới mở cùng thời điểm, nhật ký 'từ A sang B' (chỉ tên)");
 
 // --- 5) ai đổi được: người phụ trách hiện tại (B), người lập (A) kể cả sau khi đã giao lại, quản trị; người khác thì không
@@ -195,9 +224,8 @@ assert.deepEqual(await handlerOf(A, o1.id), asDto(a), "bị từ chối thì kh�
 assert.equal((await rowsOf(o1.id)).length, stableRows);
 console.log("✓ giao cho kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404");
 
-// --- 8) nhận đơn CHƯA có người phụ trách (dispatch.claim): SALES/ADMIN nhận cho CHÍNH MÌNH
+// --- 8) nhận đơn CHƯA có người phụ trách (dispatch.claim): SALES/ADMIN nhận cho CHÍNH MÌNH (đơn mới lập không chọn ai = chưa có người)
 const o2 = await newOrder(A);
-await dropHandler(o2.id);
 assert.equal(await handlerOf(A, o2.id), null, "đơn chưa có người phụ trách");
 for (const [label, cookie, target] of [
   ["kế toán nhận", ACC, acc.id],
@@ -217,10 +245,8 @@ assert.equal(r.status, 409, "chỉ nhận được đơn CHƯA có người ph�
 assert.equal(r.body.error.code, "stale");
 // người lập / quản trị giao cho người khác khi chưa có người; đổi người thường
 const o3 = await newOrder(A);
-await dropHandler(o3.id);
 assert.equal((await setHandler(A, o3.id, C.id)).status, 200, "người lập giao khi chưa có người");
 const o4 = await newOrder(A);
-await dropHandler(o4.id);
 assert.equal((await setHandler(ADMIN, o4.id, b.id)).status, 200, "quản trị giao khi chưa có người");
 console.log("✓ nhận đơn chưa có người phụ trách: SALES/ADMIN nhận cho mình; kế toán/FIELD/giao hộ bị từ chối");
 
@@ -243,6 +269,7 @@ console.log("✓ người phụ trách (khác người lập) sửa được đ�
 let sawStale = 0;
 for (let round = 0; round < 5; round++) {
   const o = await newOrder(A);
+  assert.equal((await setHandler(A, o.id, a.id)).status, 200, "người lập Nhận trước để có người phụ trách đang mở (đua ĐỔI người, không phải đua nhận)");
   // Sáu yêu cầu cùng lúc từ ba người có quyền (người lập, quản trị; người phụ trách hiện tại là chính người lập) sang các người nhận khác nhau.
   const results = await Promise.all([
     setHandler(ADMIN, o.id, b.id), setHandler(A, o.id, C.id), setHandler(ADMIN, o.id, adm.id), setHandler(A, o.id, b.id), setHandler(ADMIN, o.id, C.id), setHandler(A, o.id, adm.id),
@@ -253,7 +280,7 @@ for (let round = 0; round < 5; round++) {
   }
   sawStale += results.filter((z) => z.status === 409 && z.body.error.code === "stale").length;
   assert.ok(wins.length >= 1);
-  assert.equal((await changes(A, o)).length, wins.length, "số dòng nhật ký = số lần đổi thắng");
+  assert.equal((await changes(A, o)).length, 1 + wins.length, "số dòng nhật ký = lần Nhận đầu + số lần đổi thắng");
   rows = await rowsOf(o.id);
   assert.equal(rows.length, 1 + wins.length, "không dòng thừa của bên thua");
   assert.equal(rows.filter((r) => r.valid_to_at !== null).length, wins.length, "số dòng đã đóng = số lần đổi thắng");
@@ -264,8 +291,7 @@ for (let round = 0; round < 5; round++) {
 // nhận đơn chưa có người, ba người nhận CÙNG LÚC (mỗi người chỉ nhận cho chính mình) → đúng một người nhận được
 const E = await makeStaff(`Đinh Em ${tag}`);
 for (let round = 0; round < 5; round++) {
-  const o = await newOrder(A);
-  await dropHandler(o.id);
+  const o = await newOrder(A); // đơn mới lập không chọn ai = chưa có người phụ trách
   const results = await Promise.all([setHandler(B, o.id, b.id), setHandler(C.cookie, o.id, C.id), setHandler(E.cookie, o.id, E.id)]);
   assert.equal(results.filter((z) => z.status === 200).length, 1, `đúng một người nhận được: ${results.map((z) => z.status)}`);
   for (const loser of results.filter((z) => z.status !== 200)) {
@@ -275,7 +301,7 @@ for (let round = 0; round < 5; round++) {
     sawStale++;
   }
   assert.equal((await changes(A, o)).length, 1, "chỉ MỘT dòng nhật ký");
-  assert.equal((await rowsOf(o.id)).length, 2, "dòng của người lập (đã đóng bằng SQL) + dòng của người nhận thắng — bên thua không để lại dòng nào");
+  assert.equal((await rowsOf(o.id)).length, 1, "chỉ dòng của người nhận thắng — bên thua không để lại dòng nào");
   assert.equal((await openOf(o.id)).length, 1);
 }
 console.log(`✓ tranh chấp song song: đúng một bên thắng, bên thua không để lại dòng nào (409 stale thật gặp ${sawStale} lần / 10 vòng)`);
@@ -284,7 +310,7 @@ console.log(`✓ tranh chấp song song: đúng một bên thắng, bên thua kh
 const o6 = await newOrder(A);
 const canModifyOf = async (cookie) => (await call(cookie, "GET", `/api/orders/${o6.id}`)).body.canModify;
 const whoCan = async () => [await canModifyOf(A), await canModifyOf(B), await canModifyOf(C.cookie), await canModifyOf(ADMIN), await canModifyOf(ACC)]; // [A, B, C, ADMIN, kế toán]
-assert.deepEqual(await whoCan(), [true, false, false, true, false], "mới lập: người lập (cũng là người phụ trách) và quản trị");
+assert.deepEqual(await whoCan(), [true, false, false, true, false], "mới lập (chưa có người phụ trách): người lập và quản trị");
 assert.equal((await setHandler(A, o6.id, b.id)).status, 200);
 assert.deepEqual(await whoCan(), [true, true, false, true, false], "giao B: B có quyền, người lập giữ quyền");
 assert.equal((await setHandler(B, o6.id, C.id)).status, 200, "B (người phụ trách) giao tiếp cho C");
@@ -303,7 +329,7 @@ console.log("✓ nhật ký đơn: người phụ trách xem được, người 
 const handlerCancel = (cookie, orderId, body) => call(cookie, "POST", `/api/orders/${orderId}/handler-cancel`, body);
 const orderMoney = async (orderId) => (await sqlRows(`SELECT status, subtotal, total, deposit_amount FROM orders WHERE id = '${orderId}'`))[0];
 
-// Đơn nháp: FIELD chưa là người phụ trách (mặc định là A, người lập) → 403; gán rồi thử huỷ khi CÒN NHÁP → 409 (route chỉ nhận đơn đã xác nhận).
+// Đơn nháp: FIELD chưa là người phụ trách (đơn mới chưa có ai) → 403; gán rồi thử huỷ khi CÒN NHÁP → 409 (route chỉ nhận đơn đã xác nhận).
 const o10 = await newOrder(A);
 r = await handlerCancel(FIELD, o10.id, { reason: "customer_requested" });
 assert.equal(r.status, 403, JSON.stringify(r.body));
@@ -683,13 +709,13 @@ try {
   assert.equal(r.status, 200, JSON.stringify(r.body));
   console.log("✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)");
 
-  // "Việc của tôi": FIELD chỉ thấy đơn CHÍNH MÌNH đang phụ trách VÀ đã xác nhận — không thấy o10 (nháp), o11/o16 (đã huỷ), o15 (người khác phụ
-  // trách). Tuyệt đối không có trường tiền nào trong phản hồi.
+  // "Việc của tôi": FIELD chỉ thấy đơn CHÍNH MÌNH đang phụ trách VÀ đã xác nhận — không thấy o10 (nháp), o11/o16 (đã huỷ), o15 (FIELD không phụ
+  // trách — đơn chưa có ai). Tuyệt đối không có trường tiền nào trong phản hồi.
   const mine = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
   const mineList = await mine(FIELD);
   const mineIds = mineList.map((x) => x.orderId);
   assert.ok(mineIds.includes(o14.id), "FIELD đang phụ trách o14 (đã xác nhận) phải thấy trong danh sách");
-  for (const [label, id] of [["o10 (nháp)", o10.id], ["o11 (đã huỷ)", o11.id], ["o16 (đã huỷ)", o16.id], ["o15 (người khác phụ trách)", o15.id]]) {
+  for (const [label, id] of [["o10 (nháp)", o10.id], ["o11 (đã huỷ)", o11.id], ["o16 (đã huỷ)", o16.id], ["o15 (FIELD không phụ trách)", o15.id]]) {
     assert.ok(!mineIds.includes(id), `${label} không được có trong danh sách của FIELD`);
   }
   const mine14 = mineList.find((x) => x.orderId === o14.id);

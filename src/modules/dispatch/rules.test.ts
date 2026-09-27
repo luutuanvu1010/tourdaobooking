@@ -2,7 +2,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 import {
-  MAX_HANDLER_LOOKUP, checkAssignee, defaultHandlerPartyId, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
+  MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
   parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules.ts";
 
@@ -88,32 +88,6 @@ test("mọi quyền hiện có được xếp vào đúng nhóm được giao / 
   // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).
   // PARTNER (own, không phải assigned) CHƯA đủ điều kiện — cấp thứ ba của PARTNER (điều 10) là Phase C, không phải checkAssignee.
   assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
-});
-
-// --- Người phụ trách mặc định của đơn MỚI (ADR-0009 điều 4; ADR-0014 điều 9–10) ----------------------------------------
-test("người phụ trách mặc định: người lập SALES/ADMIN/SUPER_ADMIN có hồ sơ → chính hồ sơ của họ (ADR-0009 điều 4 giữ nguyên)", () => {
-  for (const perms of [["SALES"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) {
-    assert.equal(defaultHandlerPartyId(account(perms)), "pty-1", perms.join("+"));
-  }
-});
-
-test("người phụ trách mặc định: tài khoản CHỈ Đối tác lập đơn → không ai (ADR-0014 điều 9 'hoặc để trống', điều 10 'không tự thành người phụ trách')", () => {
-  assert.equal(defaultHandlerPartyId(account(["PARTNER"])), null);
-});
-
-test("người phụ trách mặc định: người lập chưa có hồ sơ → không ai (như cũ)", () => {
-  assert.equal(defaultHandlerPartyId(account(["SALES"], { partyId: null })), null);
-});
-
-test("người phụ trách mặc định = ĐÚNG luật người được giao (checkAssignee), không chép tay — mọi tổ hợp quyền, có/không hồ sơ, đang/đã ngưng", () => {
-  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
-    const perms = PERMISSION_CODES.filter((_, i) => (mask & (1 << i)) !== 0);
-    for (const extra of [{}, { partyId: null }, { active: false }]) {
-      const who = account(perms, extra);
-      const checked = checkAssignee(who);
-      assert.equal(defaultHandlerPartyId(who), checked.ok ? checked.partyId : null, `${perms.join("+") || "(không quyền)"} ${JSON.stringify(extra)}`);
-    }
-  }
 });
 
 // --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11) -------------------------------------------------------------------------

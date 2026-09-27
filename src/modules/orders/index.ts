@@ -17,12 +17,14 @@ import {
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
-import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
+import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import { loadOrderView, resolveBooker, validationContext, type OrderValidationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
+/** Chọn người phụ trách lúc lập đơn cần `dispatch.assign` trên đơn của chính mình (ADR-0030 S20-4, G4) — Thực tập, Đối tác không có. */
+const CANNOT_PICK_HANDLER = () => error(403, "forbidden", "Tài khoản này không được chọn người phụ trách khi lập đơn. Bỏ chọn hướng dẫn viên rồi lưu lại.");
 /** Từ chối XEM (đơn, tiền, liên hệ khách — ADR-0019 điều 2): không cắt bớt trường, trả 403 cả phản hồi. */
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
@@ -207,28 +209,30 @@ export const ordersModule: AppModule = {
       return json(result satisfies OrderListResponse);
     }),
 
-    route("POST", "/api/orders", "orders", async ({ env, request, staff, defaultHandlerStatement, baoThayDoi }) => {
+    // Lập đơn. Đơn mới KHÔNG tự gắn người lập (ADR-0030 S20-4, ADR-0020 điều 1, Q-C): người lập chọn người phụ trách ngay trong form (`handlerStaffId`,
+    // tuỳ chọn); không chọn → đơn chờ người nhận. Thứ tự: 403 (không lập đơn được) → đọc thân → 403 (có chọn người mà không có `dispatch.assign` trên đơn
+    // của chính mình — Thực tập, Đối tác: G4; đứng TRƯỚC mọi 400 và mọi đọc CSDL) → 400 (dạng mã người được chọn) → 400/409 (đơn: validateOrder,
+    // priceGuard, người đặt) → 400 `invalid_assignee` (người được chọn không đủ điều kiện — `dispatch` xét bằng `checkAssignee`; KHÔNG tạo đơn) → ghi.
+    route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
+      const body = await readJson(request);
+      if (hasHandlerPick(body) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
+      const pick = parseHandlerPick(body);
+      if (!pick.ok) return error(400, "invalid_input", pick.message);
       const ctx = await validationContext(env.DB, null);
-      const parsed = validateOrder(await readJson(request), ctx);
+      const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx);
       if (guard) return guard;
       const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
-      // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4). `dispatch` tự quyết người lập
-      // có đủ điều kiện không (tài khoản chỉ Đối tác thì không — ADR-0014 điều 9/10); không đủ → không có dòng, đơn chưa có người phụ trách.
-      const id = await createOrder(
-        env.DB,
-        staff.id,
-        parsed.value,
-        (orderId, at) => {
-          const handler = defaultHandlerStatement(orderId, at);
-          return handler ? [handler] : [];
-        },
-        booker.write,
-      );
-      // Bảng tin (ADR-0022 điều 4/7): "tao" — gốc lắp ráp (src/index.ts) tự đổi thành "tao_cho_nhan" khi đơn không có người phụ trách.
+      // Người được chọn: `dispatch` trả câu lệnh (mở dòng `HANDLE` + nhật ký `order_handler_changed`) để gộp vào CÙNG db.batch() tạo đơn — dựng theo id
+      // đơn và mốc `at` của TỪNG lần thử của `createOrder`, nên dòng phụ trách và nhật ký cùng mốc với dòng `created`. Không đạt → 400, không tạo đơn.
+      const handler = pick.staffId === null ? null : await newOrderHandler(pick.staffId);
+      if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
+      const id = await createOrder(env.DB, staff.id, parsed.value, handler?.statements, booker.write);
+      // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
+      // "tao_cho_nhan" khi đơn không có người phụ trách. Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
