@@ -1,4 +1,4 @@
-// Bản đồ quyền ADR-0007 trên route thật: FIELD chỉ dùng việc được giao (không đơn/tiền/hồ sơ), ACCOUNTING xem nhưng không lập đơn,
+// Bản đồ quyền ADR-0007 trên route thật: FIELD chỉ thấy đơn mình phụ trách + hàng chờ nhận (ADR-0030; không lập/sửa đơn, hồ sơ), ACCOUNTING xem nhưng không lập đơn,
 // SALES chỉ nhật ký đơn của mình, ADMIN mọi thứ; quyền đổi có hiệu lực ngay; tài khoản nhiều quyền hợp các ô.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone, session } from "./lib.mjs";
@@ -25,9 +25,21 @@ for (const [cookie, perms] of [[SALES, ["SALES"]], [ADMIN, ["ADMIN"]], [ACC, ["A
 }
 console.log("✓ /me trả quyền + hồ sơ");
 
-// --- FIELD: chặn mặc định mọi bề mặt đơn/tiền/hồ sơ/quản trị (R-N1-15); vẫn đọc được địa điểm
+// --- FIELD (hướng dẫn viên, ADR-0030 S23-1…5 — lượt 1): danh sách đơn 200 nhưng CHỈ đơn mình đang phụ trách; hàng chờ nhận 200 (phần hẹp); chi tiết
+// đơn KHÔNG phụ trách → 404 (không dò được đơn người khác). Vẫn chặn (403) lập/sửa/huỷ đơn, danh mục, hồ sơ, quản trị (R-N1-15); đọc được địa điểm.
+// Tài khoản field dùng chung cho mọi kịch bản (dispatch.mjs chạy trước đã giao cho nó nhiều đơn) ⇒ khẳng định ĐƠN CỦA salesA không có trong danh sách,
+// không khẳng định danh sách rỗng.
+r = await call(FIELD, "GET", "/api/orders?limit=100");
+assert.equal(r.status, 200, `FIELD GET /api/orders → ${r.status} (ADR-0030 S23-4: 200, chỉ đơn mình phụ trách)`);
+assert.ok(!r.body.orders.some((o) => o.id === order.id), "FIELD không thấy đơn của salesA (chưa ai phụ trách) trong danh sách đơn");
+r = await call(FIELD, "GET", "/api/orders/pool");
+assert.equal(r.status, 200, `FIELD GET /api/orders/pool → ${r.status}`);
+assert.ok(r.body.orders.some((o) => o.orderId === order.id), "đơn của salesA chưa có người phụ trách → có trong hàng chờ nhận của FIELD (phần hẹp)");
+r = await call(FIELD, "GET", `/api/orders/${order.id}`);
+assert.equal(r.status, 404, `FIELD mở chi tiết đơn KHÔNG phụ trách → ${r.status} (ADR-0030 S23-4: 404, không phải 403)`);
+assert.equal(r.body.error.code, "not_found");
 const fieldDenied = [
-  ["GET", "/api/orders"], ["GET", `/api/orders/${order.id}`], ["POST", "/api/orders", orderInput()], ["PUT", `/api/orders/${order.id}`, orderInput()],
+  ["POST", "/api/orders", orderInput()], ["PUT", `/api/orders/${order.id}`, orderInput()],
   ["PUT", `/api/orders/${order.id}/trip`, {}], ["POST", `/api/orders/${order.id}/status`, { status: "cancelled" }], ["GET", "/api/catalog"],
   ["GET", "/api/parties"], ["GET", "/api/parties/meta"], ["GET", "/api/parties/lookup?phone=0901234567"], ["POST", "/api/parties", { kind: "PERSON", fullName: "A" }],
   ["GET", "/api/staff"], ["GET", "/api/audit"], ["POST", "/api/locations", {}],
@@ -38,7 +50,7 @@ for (const [method, path, body] of fieldDenied) {
 }
 assert.equal((await call(FIELD, "GET", "/api/locations")).status, 200);
 assert.equal((await call(null, "GET", "/api/orders")).status, 401);
-console.log("✓ FIELD bị chặn mọi bề mặt đơn/tiền/hồ sơ/quản trị (mặc định từ chối)");
+console.log("✓ FIELD: danh sách đơn 200 (không có đơn người khác), hàng chờ 200, chi tiết đơn không phụ trách 404; lập/sửa/huỷ đơn, danh mục, hồ sơ, quản trị vẫn 403");
 
 // --- Trang chủ (dashboard) là số toàn công ty: cổng "orders" chỉ lọc thô, phải có can(order.view/money.view/contact.view) trong thân (ADR-0019 B4, 2026-09-26).
 // Đối tác và Thực tập chỉ thấy đơn của mình ⇒ 403 (không phải 200 với số toàn công ty); Bán hàng vẫn 200.
@@ -117,7 +129,13 @@ const MC = (await login(phone, r.body.pin)).cookie;
 assert.equal((await call(MC, "GET", "/api/orders")).status, 200, "FIELD + ACCOUNTING = văn phòng");
 assert.equal((await call(MC, "POST", "/api/orders", orderInput())).status, 403);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["FIELD"] })).status, 200);
-assert.equal((await call(MC, "GET", "/api/orders")).status, 403, "bỏ ACCOUNTING → mất quyền xem đơn ngay");
+// Bỏ ACCOUNTING → còn CHỈ FIELD: mất quyền xem mọi đơn NGAY (phiên đang mở). Từ ADR-0030 S23-4 tài khoản chỉ-FIELD nhận 200 với danh sách CHỈ đơn mình
+// phụ trách (M chưa phụ trách đơn nào → RỖNG), và chi tiết đơn người khác → 404 — không còn 403. Khẳng định CẢ HAI vế.
+r = await call(MC, "GET", "/api/orders?limit=100");
+assert.equal(r.status, 200, `bỏ ACCOUNTING → chỉ-FIELD: ${r.status}`);
+assert.deepEqual([r.body.orders, r.body.hasMore], [[], false], "bỏ ACCOUNTING → mất quyền xem đơn ngay: danh sách rỗng (chưa phụ trách đơn nào)");
+r = await call(MC, "GET", `/api/orders/${order.id}`);
+assert.equal(r.status, 404, `bỏ ACCOUNTING → mở đơn người khác 404 (không phải 200 như lúc còn ACCOUNTING): ${r.status}`);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
 // Lập kèm CHÍNH MÌNH làm người phụ trách (ADR-0030 S20-4 — đơn mới không tự gắn người lập) để ca "người phụ trách đã nghỉ" ở dưới giữ đúng nghĩa.
 r = await call(MC, "POST", "/api/orders", orderInput({ handlerStaffId: M.id }));

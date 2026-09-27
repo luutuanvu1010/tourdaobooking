@@ -3,7 +3,8 @@
 // nhật ký; nhận đơn chưa có người; ai được làm gì; người được giao phải là SALES/ADMIN/FIELD đang hoạt động có hồ sơ; tranh chấp song song đúng một bên thắng;
 // người phụ trách (khác người lập) sửa được đơn (bộ kiểm hành vi đầy đủ ở các mục cuối và ở orders/trip/permissions.mjs).
 // Dùng tài khoản dùng một lần (randomPhone) cho người "không liên quan" và người "đã ngưng". Đơn "chưa có người phụ trách" = đơn mới lập không chọn ai
-// (tự nhiên, không cần SQL); mục nào cần đơn ĐÃ có người thì Nhận/Giao tường minh ngay sau khi lập.
+// (tự nhiên, không cần SQL); mục nào cần đơn ĐÃ có người thì Nhận/Giao tường minh ngay sau khi lập. Hướng dẫn viên (ADR-0030 lượt 1): nhận đơn chờ nhận,
+// đua hai HDV, hàng chờ phần hẹp, tách ba đường xem đơn — mục 15 cuối tệp.
 import assert from "node:assert/strict";
 import { ACCOUNTS, call, catalogService, ensureFakeCatalog, login, makeLegacyManual, orderInput, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
@@ -178,19 +179,24 @@ for (const [label, cookie, target] of [
   assert.equal(r.body.error.code, "forbidden");
 }
 // "Nhận" (tự đặt mình) một đơn ĐÃ có người phụ trách, bởi người CÓ quyền nhận: là thua đua chứ không phải vượt quyền → 409 stale (giao diện tải lại), không phải 403.
+// Từ ADR-0030 S20-6/S20-12 hướng dẫn viên (FIELD) cũng có quyền nhận (`dispatch.claim` = any) → tự nhận đơn đã có người = thua đua 409 stale như SALES
+// (trước lượt 1 là 403 "bị chặn từ router"); FIELD vẫn KHÔNG giao hộ người khác được (403 — xem mục 8b).
 for (const [label, cookie, target] of [
   ["SALES không liên quan → tự nhận khi đã có người phụ trách", C.cookie, C.id],
   ["người phụ trách cũ (B) đã bị đổi → tự nhận lại", B, b.id],
+  ["hướng dẫn viên (FIELD) → tự nhận khi đã có người phụ trách", FIELD, fld.id],
 ]) {
   r = await setHandler(cookie, o1.id, target);
   assert.equal(r.status, 409, `${label} → ${r.status} ${JSON.stringify(r.body)}`);
   assert.equal(r.body.error.code, "stale", label);
 }
-assert.equal((await setHandler(FIELD, o1.id, fld.id)).status, 403, "FIELD bị chặn từ router");
+r = await setHandler(FIELD, o1.id, b.id);
+assert.equal(r.status, 403, `hướng dẫn viên giao hộ người khác (không có dispatch.assign) → ${r.status} ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "forbidden");
 assert.equal((await setHandler(null, o1.id, a.id)).status, 401);
 assert.deepEqual(await handlerOf(A, o1.id), asDto(a), "bị từ chối thì không đổi gì");
 assert.equal((await rowsOf(o1.id)).length, stableRows);
-console.log("✓ ai đổi được: người lập (kể cả đã giao lại), người phụ trách hiện tại, quản trị; người khác/kế toán/FIELD bị từ chối; tự nhận đơn đã có người → 409 stale");
+console.log("✓ ai đổi được: người lập (kể cả đã giao lại), người phụ trách hiện tại, quản trị; người khác/kế toán bị từ chối, FIELD không giao hộ được; tự nhận đơn đã có người (kể cả FIELD) → 409 stale");
 
 // --- 6) đổi sang chính người đang phụ trách = 409 no_change (không ghi gì)
 const nChanges = (await changes(A, o1)).length;
@@ -224,17 +230,24 @@ assert.deepEqual(await handlerOf(A, o1.id), asDto(a), "bị từ chối thì kh�
 assert.equal((await rowsOf(o1.id)).length, stableRows);
 console.log("✓ giao cho kế toán/đã ngưng/không tồn tại → 400 invalid_assignee; thân sai → 400; đơn lạ → 404");
 
-// --- 8) nhận đơn CHƯA có người phụ trách (dispatch.claim): SALES/ADMIN nhận cho CHÍNH MÌNH (đơn mới lập không chọn ai = chưa có người)
+// --- 8) nhận đơn CHƯA có người phụ trách (dispatch.claim): SALES/ADMIN — và từ ADR-0030 S20-6/S20-12 cả hướng dẫn viên (FIELD) — nhận cho CHÍNH MÌNH
+// (đơn mới lập không chọn ai = chưa có người). Bộ kiểm riêng cho hướng dẫn viên nhận (đua hai HDV, hàng chờ, "Việc của tôi"): mục 15 cuối tệp.
 const o2 = await newOrder(A);
 assert.equal(await handlerOf(A, o2.id), null, "đơn chưa có người phụ trách");
 for (const [label, cookie, target] of [
   ["kế toán nhận", ACC, acc.id],
   ["SALES giao hộ người khác khi không phải người lập", B, a.id],
+  ["hướng dẫn viên giao hộ người khác", FIELD, b.id],
 ]) {
   r = await setHandler(cookie, o2.id, target);
   assert.equal(r.status, 403, `${label}: ${JSON.stringify(r.body)}`);
 }
-assert.equal((await setHandler(FIELD, o2.id, fld.id)).status, 403);
+// Hướng dẫn viên nhận đơn chưa có người (đơn RIÊNG — o2 dành cho B nhận ở dưới): 200 (trước lượt 1 ADR-0030 là 403).
+const o2f = await newOrder(A);
+r = await setHandler(FIELD, o2f.id, fld.id);
+assert.equal(r.status, 200, `hướng dẫn viên nhận đơn chưa có người: ${JSON.stringify(r.body)}`);
+assert.deepEqual(r.body, { handler: asDto(fld) });
+assert.deepEqual((await changes(A, o2f)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${fld.fullName}`]);
 r = await setHandler(B, o2.id, b.id);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body, { handler: asDto(b) });
@@ -248,7 +261,7 @@ const o3 = await newOrder(A);
 assert.equal((await setHandler(A, o3.id, C.id)).status, 200, "người lập giao khi chưa có người");
 const o4 = await newOrder(A);
 assert.equal((await setHandler(ADMIN, o4.id, b.id)).status, 200, "quản trị giao khi chưa có người");
-console.log("✓ nhận đơn chưa có người phụ trách: SALES/ADMIN nhận cho mình; kế toán/FIELD/giao hộ bị từ chối");
+console.log("✓ nhận đơn chưa có người phụ trách: SALES/ADMIN/FIELD nhận cho mình; kế toán/giao hộ (kể cả FIELD giao hộ) bị từ chối");
 
 // --- 9) người phụ trách (khác người lập) SỬA ĐƯỢC ĐƠN nhờ ctx.assigned; người khác thì không (bộ kiểm đầy đủ: mục cuối + orders/trip/permissions.mjs)
 const o5 = await newOrder(A);
@@ -1027,6 +1040,168 @@ try {
   }
 } finally {
   await sql("DELETE FROM catalog_item WHERE code = 'ZH1'").catch((e) => console.error("dọn danh mục giả ZH1 thất bại:", String(e).slice(0, 200)));
+}
+
+// --- 15) HƯỚNG DẪN VIÊN (ADR-0030 lượt 1 — kế hoạch docs/superpowers/plans/2026-09-27-tu-choi-huy-hdv-thi-cong.md, tiêu chí L1-6 "nhận đơn" + L1-3
+// "tách ba đường", kèm L1-1 chốt Nhận và L1-5 ai thấy hàng chờ): hai hướng dẫn viên — FIELD ("HDV A") và FIELDB ("HDV B", ACCOUNTS.fieldB). Đặt CUỐI tệp
+// để các mục trên (đếm "Việc của tôi", số đo bốn bề mặt) không bị đơn nhận thêm ở đây làm lệch. D1 tạm DÙNG CHUNG với các kịch bản khác ⇒ khẳng định theo
+// TẬP id (đối chiếu dòng HANDLE đang mở trong CSDL), không theo số đếm.
+{
+  const FIELDB = await session(ACCOUNTS.fieldB);
+  const fldB = await me(FIELDB);
+  const INTERN = await makeStaff(`Thực Tập Nhận ${tag}`, true, ["INTERN"]);
+  const LAI = await makeStaff(`Lai Đối Tác HDV ${tag}`, true, ["PARTNER", "FIELD"]);
+  const pool = async (cookie) => {
+    const res = await call(cookie, "GET", "/api/orders/pool");
+    assert.equal(res.status, 200, JSON.stringify(res.body));
+    return res.body.orders;
+  };
+  const poolIds = async (cookie) => (await pool(cookie)).map((o) => o.orderId);
+  const mineOf = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
+  const openHandleOf = async (partyId) =>
+    (await sqlRows(`SELECT order_id FROM dsp_assignment WHERE task_kind_code = 'HANDLE' AND order_service_id IS NULL AND valid_to_at IS NULL AND party_id = '${partyId}'`))
+      .map((x) => x.order_id)
+      .sort();
+
+  // L1-6 (a): HDV Nhận một đơn CHỜ NHẬN → 200, thành người phụ trách (nhật ký "từ chưa có người phụ trách sang <tên>"); đơn rời hàng chờ của CẢ HAI HDV; hiện
+  // ở "Việc của tôi" của người nhận (kể cả còn chờ xác nhận — S23-8), không hiện ở của HDV kia.
+  const q1 = await newOrder(A);
+  assert.ok((await poolIds(FIELD)).includes(q1.id), "đơn mới lập không chọn ai → có trong hàng chờ của HDV A");
+  assert.ok((await poolIds(FIELDB)).includes(q1.id), "… và trong hàng chờ của HDV B");
+  r = await setHandler(FIELD, q1.id, fld.id);
+  assert.equal(r.status, 200, `HDV A nhận đơn chờ nhận: ${JSON.stringify(r.body)}`);
+  assert.deepEqual(r.body, { handler: asDto(fld) });
+  assert.deepEqual(await handlerOf(A, q1.id), asDto(fld), "HDV A thành người phụ trách");
+  assert.deepEqual((await changes(A, q1)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${fld.fullName}`]);
+  for (const [label, cookie] of [["HDV A", FIELD], ["HDV B", FIELDB]]) assert.ok(!(await poolIds(cookie)).includes(q1.id), `đơn vừa được nhận rời hàng chờ của ${label}`);
+  const mineQ1 = (await mineOf(FIELD)).find((x) => x.orderId === q1.id);
+  assert.ok(mineQ1, "đơn vừa nhận hiện ở 'Việc của tôi' của HDV A");
+  assert.equal(mineQ1.status, "draft", "đơn còn chờ xác nhận vẫn hiện ở 'Việc của tôi' (S23-8), kèm trạng thái");
+  assert.ok(!(await mineOf(FIELDB)).some((x) => x.orderId === q1.id), "… và KHÔNG hiện ở 'Việc của tôi' của HDV B");
+  console.log("✓ L1-6: HDV nhận đơn chờ nhận → 200, thành người phụ trách, đơn rời hàng chờ của cả hai HDV, hiện ở 'Việc của tôi' (kể cả chờ xác nhận)");
+
+  // L1-6 (b): HDV Nhận đơn ĐÃ có người → 409 stale (thua đua, không phải vượt quyền). HDV GIAO cho người khác (đơn mình phụ trách, hoặc đơn chờ nhận)
+  // → 403 (không có dispatch.assign). Kế toán, Đối tác, Thực tập Nhận → 403; tài khoản lai Đối tác + HDV Nhận → 403 (L1-1, một trong bốn cửa của S20-5).
+  r = await setHandler(FIELDB, q1.id, fldB.id);
+  assert.equal(r.status, 409, `HDV B nhận đơn HDV A đang phụ trách: ${JSON.stringify(r.body)}`);
+  assert.equal(r.body.error.code, "stale");
+  const q2 = await newOrder(A); // đơn chờ nhận — mọi lời gọi dưới đều bị từ chối nên nó vẫn chờ nhận (dùng lại ở L1-3)
+  for (const [label, cookie, orderId, target] of [
+    ["HDV A (đang phụ trách) giao cho HDV B", FIELD, q1.id, fldB.id],
+    ["HDV A giao đơn chờ nhận cho HDV B", FIELD, q2.id, fldB.id],
+    ["kế toán nhận", ACC, q2.id, acc.id],
+    ["Đối tác nhận", P.cookie, q2.id, P.id],
+    ["Thực tập nhận", INTERN.cookie, q2.id, INTERN.id],
+    ["tài khoản lai Đối tác + HDV nhận", LAI.cookie, q2.id, LAI.id],
+  ]) {
+    r = await setHandler(cookie, orderId, target);
+    assert.equal(r.status, 403, `${label}: ${r.status} ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.error.code, "forbidden", label);
+  }
+  assert.deepEqual(await handlerOf(A, q1.id), asDto(fld), "bị từ chối thì không đổi gì");
+  assert.deepEqual(await rowsOf(q2.id), [], "đơn chờ nhận vẫn không có dòng HANDLE nào (kể cả đã đóng)");
+  // L1-1 trên route thật: HDV Nhận đơn ĐÃ HUỶ → 409 cancelled; đơn ĐÃ QUA NGÀY ĐI → 409 departed (mốc tripDeparted; ngày dời bằng SQL như mục 13b).
+  const qCancelled = await newOrder(A);
+  assert.equal((await call(A, "POST", `/api/orders/${qCancelled.id}/status`, { status: "cancelled" })).status, 200);
+  const qPast = await newOrder(A);
+  await setDepart(qPast.id, vnDate(-1));
+  for (const [label, orderId, code] of [["đơn đã huỷ", qCancelled.id, "cancelled"], ["đơn đã qua ngày đi", qPast.id, "departed"]]) {
+    r = await setHandler(FIELD, orderId, fld.id);
+    assert.equal(r.status, 409, `HDV nhận ${label}: ${r.status} ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.error.code, code, label);
+    assert.deepEqual(await rowsOf(orderId), [], `${label}: không có dòng HANDLE nào`);
+  }
+  console.log("✓ L1-6: HDV nhận đơn đã có người → 409 stale; HDV giao hộ → 403; kế toán/Đối tác/Thực tập/tài khoản lai nhận → 403; nhận đơn đã huỷ/đã qua ngày đi → 409");
+
+  // L1-6 (c) ĐUA: hai HDV (vòng chẵn), hoặc HDV và Bán hàng (vòng lẻ), cùng Nhận MỘT đơn chờ nhận → đúng một 200 + một 409 stale; đúng MỘT dòng HANDLE đang
+  // mở (của bên thắng); bên thua không để lại dòng nào, chỉ MỘT dòng nhật ký. (Hai yêu cầu tình cờ chạy nối tiếp thì bên sau thấy đơn đã có người → vẫn
+  // 409 stale, nên khẳng định không phụ thuộc thứ tự tới; chốt cứng của câu ghi nằm ở service.test.ts trên SQLite thật.)
+  for (let round = 0; round < 6; round++) {
+    const o = await newOrder(A);
+    const rivals = round % 2 === 0 ? [[FIELD, fld], [FIELDB, fldB]] : [[FIELD, fld], [B, b]];
+    const results = await Promise.all(rivals.map(([cookie, who]) => setHandler(cookie, o.id, who.id)));
+    const winners = results.flatMap((z, i) => (z.status === 200 ? [i] : []));
+    assert.equal(winners.length, 1, `vòng ${round}: đúng một người nhận được: ${results.map((z) => z.status)}`);
+    const loser = results[1 - winners[0]];
+    assert.equal(loser.status, 409, `vòng ${round} bên thua: ${loser.status} ${JSON.stringify(loser.body)}`);
+    assert.equal(loser.body.error.code, "stale", `vòng ${round} bên thua: ${JSON.stringify(loser.body)}`);
+    const open = await openOf(o.id);
+    assert.equal(open.length, 1, `vòng ${round}: đúng MỘT dòng HANDLE đang mở`);
+    assert.equal(open[0].party_id, rivals[winners[0]][1].partyId, `vòng ${round}: dòng đang mở là của bên thắng`);
+    assert.equal((await rowsOf(o.id)).length, 1, `vòng ${round}: bên thua không để lại dòng nào`);
+    assert.equal((await changes(A, o)).length, 1, `vòng ${round}: chỉ MỘT dòng nhật ký`);
+  }
+  console.log("✓ L1-6 đua: hai HDV (hoặc HDV và Bán hàng) cùng nhận một đơn → đúng một 200 + một 409 stale, đúng một dòng HANDLE đang mở, một dòng nhật ký");
+
+  // L1-3 — TÁCH BA ĐƯỜNG. Chuẩn bị: qB = đơn HDV B đang phụ trách (lập KÈM người, S20-4); qMask = đơn chờ nhận có SĐT gõ trong nơi đón.
+  r = await call(A, "POST", "/api/orders", orderInput({ handlerStaffId: fldB.id }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const qB = r.body.order;
+  r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pickupPlace: "Đón ở 0905 123.456 cổng sau", pickupTime: "07:00" })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  const qMask = r.body.order;
+
+  // (a) Danh sách đơn của HDV = ĐÚNG tập đơn mình đang phụ trách (đối chiếu dòng HANDLE đang mở trong CSDL), không đơn người khác, không đơn chờ nhận;
+  // mỗi dòng có tiền + SĐT khách (money.view/contact.view `assigned`).
+  for (const [label, cookie, who] of [["HDV A", FIELD, fld], ["HDV B", FIELDB, fldB]]) {
+    r = await call(cookie, "GET", "/api/orders?limit=100");
+    assert.equal(r.status, 200, `${label} GET /api/orders: ${JSON.stringify(r.body)}`);
+    assert.equal(r.body.hasMore, false, `${label}: danh sách vừa một trang (limit 100) — nếu không, khẳng định tập dưới không đủ nghĩa`);
+    assert.deepEqual(r.body.orders.map((o) => o.id).sort(), await openHandleOf(who.partyId), `${label}: danh sách đơn = đúng tập đơn mình đang phụ trách`);
+  }
+  r = await call(FIELD, "GET", "/api/orders?limit=100");
+  for (const [label, id] of [["đơn HDV B đang phụ trách", qB.id], ["đơn chờ nhận", q2.id], ["đơn chờ nhận có SĐT ở nơi đón", qMask.id]]) {
+    assert.ok(!r.body.orders.some((o) => o.id === id), `danh sách của HDV A không có ${label}`);
+  }
+  const rowQ1 = r.body.orders.find((o) => o.id === q1.id);
+  assert.ok(rowQ1, "danh sách của HDV A có đơn mình vừa nhận");
+  assert.equal(rowQ1.customerPhone, "0901 234 567", "danh sách đơn mình phụ trách có SĐT khách");
+  assert.equal(typeof rowQ1.total, "number", "danh sách đơn mình phụ trách có tiền");
+
+  // (b) Hàng chờ nhận = CHỈ đơn không có dòng HANDLE đang mở, chưa huỷ, chưa qua ngày đi — dạng PHẦN HẸP (S23-2).
+  const poolA = await pool(FIELD);
+  const poolAIds = poolA.map((o) => o.orderId);
+  for (const [label, id, expected] of [
+    ["đơn chờ nhận", q2.id, true], ["đơn chờ nhận có SĐT ở nơi đón", qMask.id, true], ["đơn HDV A đang phụ trách", q1.id, false],
+    ["đơn HDV B đang phụ trách", qB.id, false], ["đơn đã huỷ (chưa có người)", qCancelled.id, false], ["đơn đã qua ngày đi (chưa có người)", qPast.id, false],
+  ]) assert.equal(poolAIds.includes(id), expected, `hàng chờ ${expected ? "có" : "KHÔNG có"} ${label}`);
+  const candidates = new Set(
+    (await sqlRows(`SELECT o.id FROM orders o WHERE o.status != 'cancelled' AND NOT EXISTS (SELECT 1 FROM dsp_assignment d WHERE d.order_id = o.id
+      AND d.task_kind_code = 'HANDLE' AND d.order_service_id IS NULL AND d.valid_to_at IS NULL)`)).map((x) => x.id),
+  );
+  for (const id of poolAIds) assert.ok(candidates.has(id), `mọi đơn ở hàng chờ phải chưa huỷ và không có người phụ trách đang mở: ${id}`);
+  for (const o of poolA) {
+    assert.deepEqual(Object.keys(o).sort(), ["departDate", "orderCode", "orderId", "services"], `phần hẹp: đúng bốn khoá của đơn ${o.orderCode}`);
+    for (const sv of o.services) assert.deepEqual(Object.keys(sv).sort(), ["name", "pax", "pickupPlace", "pickupTime"], `phần hẹp: đúng bốn khoá của dịch vụ (${o.orderCode})`);
+  }
+  const poolJson = JSON.stringify(poolA);
+  for (const secret of ["0901 234 567", "Nguyễn Văn A", "0905 123.456"]) assert.ok(!poolJson.includes(secret), `hàng chờ không lộ "${secret}"`);
+  const maskSv = poolA.find((o) => o.orderId === qMask.id).services[0];
+  assert.deepEqual([maskSv.pickupPlace, maskSv.pickupTime], ["Đón ở •••• •••.••• cổng sau", "07:00"], "SĐT gõ trong nơi đón bị che ở hàng chờ; giờ đón giữ");
+  // L1-5: ai thấy hàng chờ — HDV, Toàn quyền → 200; Bán hàng, Kế toán, Quản trị, Đối tác, Thực tập, tài khoản lai Đối tác + HDV → 403.
+  assert.equal((await call(SUPER, "GET", "/api/orders/pool")).status, 200, "Toàn quyền xem được hàng chờ");
+  for (const [label, cookie] of [["Bán hàng", A], ["Kế toán", ACC], ["Quản trị", ADMIN], ["Đối tác", P.cookie], ["Thực tập", INTERN.cookie], ["tài khoản lai", LAI.cookie]]) {
+    r = await call(cookie, "GET", "/api/orders/pool");
+    assert.equal(r.status, 403, `${label} xem hàng chờ → ${r.status} ${JSON.stringify(r.body)}`);
+  }
+
+  // (c) HDV A mở CHI TIẾT đơn HDV B đang phụ trách, hoặc một đơn chờ nhận → 404, CÙNG thân lỗi với đơn không tồn tại (không dò được đơn có hay không).
+  const notFound = (await call(FIELD, "GET", "/api/orders/00000000-0000-4000-8000-00000000f00d")).body;
+  assert.equal(notFound.error.code, "not_found");
+  for (const [label, id] of [["đơn HDV B đang phụ trách", qB.id], ["đơn chờ nhận", q2.id]]) {
+    r = await call(FIELD, "GET", `/api/orders/${id}`);
+    assert.equal(r.status, 404, `HDV A mở chi tiết ${label} → ${r.status} ${JSON.stringify(r.body)}`);
+    assert.deepEqual(r.body, notFound, `${label}: cùng thân lỗi với đơn không tồn tại`);
+  }
+  // (d) HDV A mở chi tiết đơn MÌNH phụ trách → 200, đủ tiền, SĐT, lịch sử; không sửa được (order.modify của FIELD = none).
+  r = await call(FIELD, "GET", `/api/orders/${q1.id}`);
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(r.body.order.customerPhone, "0901 234 567", "chi tiết đơn mình phụ trách có SĐT khách");
+  assert.equal(typeof r.body.order.total, "number", "chi tiết đơn mình phụ trách có tiền");
+  assert.ok(r.body.order.total > 0, "tiền của đơn khác 0");
+  assert.deepEqual(r.body.history.map((h) => h.action), ["created", "order_handler_changed"], "chi tiết đơn mình phụ trách có lịch sử");
+  assert.equal(r.body.canModify, false, "hướng dẫn viên không sửa/xác nhận đơn (order.modify = none)");
+  console.log("✓ L1-3 tách ba đường: danh sách = đúng đơn mình phụ trách (có tiền/SĐT); hàng chờ = chỉ đơn chưa ai nhận, chưa huỷ, chưa qua ngày đi, phần hẹp, SĐT ở nơi đón bị che; chi tiết đơn người khác/đơn chờ nhận → 404; đơn mình → 200 đủ tiền/SĐT/lịch sử");
 }
 
 console.log("E2E DISPATCH OK");

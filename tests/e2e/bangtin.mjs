@@ -8,11 +8,12 @@
 // CA 1–8 (bắt tay 401/403/426/101; ai nhận tin theo quyền — NT-4; 8 điểm phát DP-1; Đối tác + nhãn giả BT-2; ping/pong BT-3; hạn sống KN-1)
 // + CA 9, CA 10 (Task 6 — KN-2: đóng kết nối khi đổi tài khoản / bảo trì) + CA 11 (ADR-0030 S20-8/9: HDV không lộ tin đơn HDV khác).
 //
-// CA 11 (đặc tả §12 mục 3, `docs/superpowers/specs/2026-09-26-don-tu-do-hdv-nhan-tu-choi-design.md`): viết ở Task 1.4, CHƯA chạy được đủ —
-// `dispatch.claim` của FIELD vẫn "none" tới khi Task 1.5 đổi thành "any" (kế hoạch `docs/superpowers/plans/2026-09-27-tu-choi-huy-hdv-thi-cong.md`).
-// TRƯỚC Task 1.5: HDV không có nhãn `cho-nhan` nên các khẳng định "nhận đúng một tin" ở CA 11 phần 2 SẼ ĐỎ (0 tin, không phải 1) — đây là
-// đỏ CÓ CHỜ, không phải lỗi; chạy lại và xác nhận xanh ở Task 1.9 (sau Task 1.5).
+// CA 11 (đặc tả §12 mục 3, `docs/superpowers/specs/2026-09-26-don-tu-do-hdv-nhan-tu-choi-design.md`): viết ở Task 1.4; chạy ĐỦ từ Task 1.5 (hướng dẫn
+// viên có `dispatch.claim` = any → có nhãn `cho-nhan`), xác nhận xanh ở Task 1.9 (kế hoạch `docs/superpowers/plans/2026-09-27-tu-choi-huy-hdv-thi-cong.md`).
+// Từ ADR-0030 lượt 1, field (hướng dẫn viên) có nhãn `cho-nhan`: nhận ĐÚNG MỘT tin lúc một đơn RỜI hàng chờ (luật (b) của S20-8, "ngoại lệ duy nhất"
+// S20-9) — CA 4 đếm cả tin đó và khoá thêm: văn phòng sửa/xác nhận/huỷ đơn HDV khác đang phụ trách thì field không nhận thêm khung nào.
 import assert from "node:assert/strict";
+import { laSuKienHopLe } from "../../src/shared/bang-tin.ts";
 import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
 
 await ensureFakeCatalog(); // "catalog" (Sheet thật) chạy trước "bangtin" trong ALL và đặt in_sheet = 0 cho mã giả — orderInput() dùng ZE1.
@@ -75,11 +76,14 @@ const salesACookie = await session(ACCOUNTS.salesA);
 const salesBCookie = await session(ACCOUNTS.salesB);
 const accountantCookie = await session(ACCOUNTS.accountant);
 const fieldCookie = await session(ACCOUNTS.field);
+// "HDV B" của ca 4 và ca 11 (hướng dẫn viên thứ hai, chỉ quyền FIELD — ACCOUNTS dùng chung; kịch bản khác không đổi tài khoản này).
+const fieldBCookie = await session(ACCOUNTS.fieldB);
 const meOf = async (cookie) => (await call(cookie, "GET", "/api/auth/me")).body.staff;
-const [salesAMe, salesBMe, fieldMe] = await Promise.all([meOf(salesACookie), meOf(salesBCookie), meOf(fieldCookie)]);
+const [salesAMe, salesBMe, fieldMe, fieldBMe] = await Promise.all([meOf(salesACookie), meOf(salesBCookie), meOf(fieldCookie), meOf(fieldBCookie)]);
 const salesAId = salesAMe.id;
 const salesBId = salesBMe.id;
 const fieldId = fieldMe.id;
+const fieldBId = fieldBMe.id;
 const P1 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 1 (test)", ["PARTNER"]);
 const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PARTNER"]);
 {
@@ -89,7 +93,8 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
 
 // === CA 3 (DP-1 POST /api/orders; NT-4): salesA lập đơn KÈM người phụ trách được chọn (salesB — ADR-0030 S20-4) → salesA/salesB/kế toán (order.view
 // = any) nhận đúng MỘT tin 'tao' đủ 5 khoá (maDon khớp orderCode) trong 2 giây — không có tin 'giao' nào cho đơn vừa lập; Đối tác không liên quan và
-// field (order.view = none) không nhận. (Đơn lập KHÔNG chọn ai thì phát 'tao_cho_nhan' — xem ca 6.) ===============================================
+// field (không phụ trách đơn này; đơn lập KÈM người nên không phải đơn chờ nhận — không nhãn `cho-nhan`, Review Focus 5) không nhận. (Đơn lập KHÔNG
+// chọn ai thì phát 'tao_cho_nhan' — xem ca 6.) ======================================================================================================
 {
   const [pA, pB, pAcc, pField, pP1] = await moiPhien(salesACookie, salesBCookie, accountantCookie, fieldCookie, P1.cookie);
   try {
@@ -104,45 +109,81 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
       assert.deepEqual(Object.keys(cuaDon[0]).sort(), ["loai", "luc", "maDon", "orderId", "thayDoi"], `ca 3: khung tin của ${ten} phải có đúng 5 khoá`);
     }
     assert.equal(pP1.tin.filter((t) => t.orderId === order.id).length, 0, "ca 3: Đối tác không liên quan không nhận tin đơn của salesA");
-    assert.equal(pField.tin.filter((t) => t.orderId === order.id).length, 0, "ca 3: field (order.view = none) không nhận tin đơn");
+    assert.equal(pField.tin.filter((t) => t.orderId === order.id).length, 0, "ca 3: field (không phụ trách, đơn lập kèm người — không phải đơn chờ nhận) không nhận tin đơn");
   } finally {
     dongHet(pA, pB, pAcc, pField, pP1);
   }
   console.log("✓ ca 3: lập đơn → văn phòng (salesA/salesB/kế toán) nhận đúng một tin 'tao' đủ 5 khoá trong 2 giây; Đối tác/field không nhận");
 }
 
-// === CA 4 (DP-1 PUT /api/orders/:id/handler — nhan/giao; NT-2 handlerTruoc): đơn mới lập không chọn ai (chưa có người) rồi salesB Nhận → văn phòng
-// nhận 'nhan', field (chưa liên quan) thì không; salesA giao cho field (ADR-0014 điều 6: field nay đủ điều kiện làm người phụ trách cấp hẹp)
-// → field nhận 'giao'; salesA giao tiếp từ field sang salesB → field VẪN nhận (là người phụ trách TRƯỚC thay đổi, NT-2), thêm một tin 'giao'. ==
+// === CA 4 (DP-1 PUT /api/orders/:id/handler — nhan/giao; NT-2 handlerTruoc; ADR-0030 S20-8/S20-9): đơn mới lập không chọn ai (đơn CHỜ NHẬN) rồi
+// salesB Nhận → văn phòng nhận 'nhan'; field (hướng dẫn viên, có nhãn `cho-nhan` từ lượt 1) nhận ĐÚNG MỘT tin 'nhan' của đơn vừa RỜI hàng chờ (luật (b)
+// — "ngoại lệ duy nhất" S20-9; trước lượt 1 là 0 tin); salesA giao cho field → field nhận 'giao' (tổng 2); salesA giao tiếp từ field sang salesB → field
+// VẪN nhận (người phụ trách TRƯỚC thay đổi, NT-2), tổng 3. Khoá chặt (Task 1.9): salesA giao tiếp cho fieldB ("HDV B") rồi văn phòng sửa, xác nhận, huỷ
+// đơn fieldB đang phụ trách → fieldB nhận từng tin (đối chứng dương — tin CÓ phát), field ("HDV A", không liên quan) KHÔNG nhận thêm khung nào. =====
 {
   const o4 = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order; // không chọn ai → chưa có người phụ trách (ADR-0030 S20-4)
-  const [pA, pB, pAcc, pField] = await moiPhien(salesACookie, salesBCookie, accountantCookie, fieldCookie);
+  const [pA, pB, pAcc, pField, pFieldB] = await moiPhien(salesACookie, salesBCookie, accountantCookie, fieldCookie, fieldBCookie);
+  const cuaField = () => pField.tin.filter((t) => t.orderId === o4.id);
   try {
     let r = await call(salesBCookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: salesBId });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     for (const [ten, p] of [["salesA", pA], ["salesB", pB], ["kế toán", pAcc]]) {
       assert.ok(await p.cho((tin) => tin.some((t) => t.orderId === o4.id && t.thayDoi === "nhan")), `ca 4: ${ten} phải nhận tin 'nhan' trong 2 giây`);
     }
-    assert.equal(pField.tin.filter((t) => t.orderId === o4.id).length, 0, "ca 4: field chưa liên quan tới đơn, chưa nhận tin nào");
+    // (a) Tin THÊM của lượt 1 (luật (b), S20-8): đơn vừa rời hàng chờ → field nhận ĐÚNG MỘT khung, đúng đơn, `thayDoi` là 'nhan' hoặc 'giao' (thao tác
+    // làm đơn rời hàng chờ), đủ khung 5 khoá hợp lệ theo CHÍNH hàm trình duyệt dùng để lọc tin (`laSuKienHopLe`).
+    assert.ok(await pField.cho((tin) => tin.some((t) => t.orderId === o4.id)), "ca 4: field (hướng dẫn viên) phải nhận tin đơn vừa rời hàng chờ trong 2 giây (S20-8 luật (b))");
+    await yen(ON_DINH_MS);
+    assert.equal(cuaField().length, 1, "ca 4: field nhận ĐÚNG MỘT tin lúc đơn rời hàng chờ (không phát đôi)");
+    const roiHang = cuaField()[0];
+    assert.ok(laSuKienHopLe(roiHang), `ca 4: tin rời hàng chờ phải đủ khung 5 khoá hợp lệ (laSuKienHopLe): ${JSON.stringify(roiHang)}`);
+    assert.deepEqual(Object.keys(roiHang).sort(), ["loai", "luc", "maDon", "orderId", "thayDoi"], "ca 4: tin rời hàng chờ đúng 5 khoá");
+    assert.ok(["nhan", "giao"].includes(roiHang.thayDoi), `ca 4: tin rời hàng chờ phải là 'nhan' hoặc 'giao', nhận '${roiHang.thayDoi}'`);
+    assert.equal(roiHang.thayDoi, "nhan", "ca 4: salesB TỰ nhận → 'nhan'");
+    assert.equal(roiHang.maDon, o4.orderCode, "ca 4: tin rời hàng chờ đúng mã đơn");
 
     r = await call(salesACookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: fieldId });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.ok(await pField.cho((tin) => tin.some((t) => t.orderId === o4.id && t.thayDoi === "giao")), "ca 4: field vừa được giao phải nhận tin 'giao' trong 2 giây");
     await yen(ON_DINH_MS);
-    assert.equal(pField.tin.filter((t) => t.orderId === o4.id).length, 1, "ca 4: field nhận đúng MỘT tin ở lượt giao này");
+    assert.equal(cuaField().length, 2, "ca 4: field nhận đúng MỘT tin ở lượt giao này (tổng 2: 'nhan' lúc rời hàng chờ + 'giao')");
 
     r = await call(salesACookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: salesBId });
     assert.equal(r.status, 200, JSON.stringify(r.body));
     assert.ok(
-      await cho(() => pField.tin.filter((t) => t.orderId === o4.id && t.thayDoi === "giao").length === 2, 2000),
+      await cho(() => cuaField().filter((t) => t.thayDoi === "giao").length === 2, 2000),
       "ca 4: field nhận THÊM một tin 'giao' khi bị đổi đi (là người phụ trách TRƯỚC thay đổi — NT-2), tổng cộng 2 tin 'giao'",
     );
     await yen(ON_DINH_MS);
-    assert.equal(pField.tin.filter((t) => t.orderId === o4.id).length, 2, "ca 4: sau khi ổn định field vẫn đúng 2 tin (không phát đôi)");
+    assert.equal(cuaField().length, 3, "ca 4: sau khi ổn định field vẫn đúng 3 tin — 1 'nhan' + 2 'giao' (không phát đôi)");
+
+    // (b) Đơn nay do HDV B (fieldB) phụ trách; field ("HDV A") không còn liên quan. Mỗi thao tác của văn phòng: fieldB nhận đúng tin đó (đối chứng dương),
+    // field KHÔNG nhận thêm khung nào — không route nào truyền "trước chưa ai" thật (Review Focus 5; luật (a)/(b) của `nhanSuKien`).
+    const tinCuaFieldB = (thayDoi) => pFieldB.tin.filter((t) => t.orderId === o4.id && t.thayDoi === thayDoi).length;
+    r = await call(salesACookie, "PUT", `/api/orders/${o4.id}/handler`, { staffId: fieldBId });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.ok(await cho(() => tinCuaFieldB("giao") === 1, 2000), "ca 4 (b): fieldB vừa được giao phải nhận tin 'giao' trong 2 giây");
+    const cur = (await call(salesACookie, "GET", `/api/orders/${o4.id}`)).body.order;
+    r = await call(salesACookie, "PUT", `/api/orders/${o4.id}`, orderInput({ customerNote: "ca 4: văn phòng sửa đơn HDV B", expectedUpdatedAt: cur.updatedAt }));
+    assert.equal(r.status, 200, `ca 4 (b): văn phòng sửa đơn nháp HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
+    assert.ok(await cho(() => tinCuaFieldB("sua") === 1, 2000), "ca 4 (b): fieldB (người phụ trách) phải nhận tin 'sua' trong 2 giây");
+    r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "confirmed" });
+    assert.equal(r.status, 200, `ca 4 (b): văn phòng xác nhận đơn HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
+    assert.ok(await cho(() => tinCuaFieldB("xac_nhan") === 1, 2000), "ca 4 (b): fieldB phải nhận tin 'xac_nhan' trong 2 giây");
+    r = await call(salesACookie, "POST", `/api/orders/${o4.id}/status`, { status: "cancelled" });
+    assert.equal(r.status, 200, `ca 4 (b): văn phòng huỷ đơn HDV B đang phụ trách: ${JSON.stringify(r.body)}`);
+    assert.ok(await cho(() => tinCuaFieldB("huy") === 1, 2000), "ca 4 (b): fieldB phải nhận tin 'huy' trong 2 giây");
+    await yen(1500); // tin sai (nếu có) tới cùng lúc với tin của fieldB — chờ đủ như kiểm âm của ca 5 trước khi khẳng định
+    assert.equal(
+      cuaField().length,
+      3,
+      `ca 4 (b): field (HDV A, không liên quan) KHÔNG được nhận thêm khung nào khi văn phòng sửa/xác nhận/huỷ đơn HDV B đang phụ trách: ${JSON.stringify(cuaField().slice(3))}`,
+    );
   } finally {
-    dongHet(pA, pB, pAcc, pField);
+    dongHet(pA, pB, pAcc, pField, pFieldB);
   }
-  console.log("✓ ca 4: nhận đơn chưa có người → văn phòng nhận 'nhan'; giao cho field → field nhận 'giao'; giao tiếp đi → field vẫn nhận (là người phụ trách trước)");
+  console.log("✓ ca 4: nhận đơn chưa có người → văn phòng 'nhan', field đúng một tin rời hàng chờ; giao cho field → 'giao'; giao tiếp đi → field vẫn nhận (NT-2); văn phòng sửa/xác nhận/huỷ đơn HDV B → fieldB nhận, field không nhận thêm");
 }
 
 // === CA 5 (DP-1, 6 route còn lại): PUT /api/orders/:id (sua), PUT .../trip (chuyen), PUT .../booker (sua), POST .../status (xac_nhan),
@@ -441,14 +482,12 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   console.log("✓ ca 10: bật bảo trì đóng mọi kết nối (4003, kể cả admin); bắt tay lại của tài khoản không được phép → 503; đã tắt bảo trì");
 }
 
-// === CA 11 (ADR-0030 S20-8, S20-9 — CHƯA CHẠY ĐỦ, chờ Task 1.5 mở dispatch.claim cho FIELD; xem chú thích đầu tệp): HDV A (fieldB) và tài
+// === CA 11 (ADR-0030 S20-8, S20-9 — chạy đủ từ Task 1.5; xem chú thích đầu tệp): HDV A (fieldB) và tài
 // khoản lai Đối tác+HDV KHÔNG nhận tin nào về đơn HDV B (field) đang phụ trách khi văn phòng xác nhận/sửa/sửa chuyến/đổi tiền/huỷ đơn đó
 // (luật (a)/(b) của `nhanSuKien`: sau vẫn có người trong suốt các thao tác này, và không route nào truyền handlerTruoc "chưa ai" thật).
 // Ngoại lệ DUY NHẤT (S20-9): một đơn CHƯA có người (chờ nhận) — lúc salesB Nhận nó (rời hàng chờ), fieldB phải nhận ĐÚNG một tin qua nhãn
 // cho-nhan (thayDoi 'nhan') để gỡ đơn khỏi danh sách chờ nhận; tài khoản lai vẫn KHÔNG nhận (S20-8: !holdsPartner chặn cho-nhan của lai). =====
 {
-  const fieldBCookie = await session(ACCOUNTS.fieldB);
-  const fieldBId = (await meOf(fieldBCookie)).id;
   const lai = await taoTaiKhoanDungMotLan("Lai Đối Tác + HDV Bảng Tin (test)", ["PARTNER", "FIELD"]);
 
   // --- Phần 1: đơn ĐÃ có người phụ trách (field = "HDV B") — fieldB ("HDV A") và tài khoản lai không nhận tin nào của đơn này. ---
@@ -488,7 +527,7 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   console.log("✓ ca 11a: HDV khác (fieldB) và tài khoản lai Đối tác+HDV không nhận tin nào về đơn HDV B đang phụ trách (xác nhận/sửa/sửa chuyến/đổi tiền/huỷ)");
 
   // --- Phần 2 (ngoại lệ S20-9): đơn CHƯA có người (chờ nhận) — salesB Nhận → fieldB (đang chờ hàng chờ) nhận ĐÚNG một tin 'nhan' qua
-  // cho-nhan; tài khoản lai KHÔNG nhận (S20-8: !holdsPartner). CHƯA CHẠY ĐỦ tới khi Task 1.5 mở dispatch.claim cho FIELD (xem đầu tệp). ---
+  // cho-nhan; tài khoản lai KHÔNG nhận (S20-8: !holdsPartner). ---
   {
     const oC = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order; // không chọn ai → chưa có người, đang ở hàng chờ
     const [pFieldB, pLai] = await moiPhien(fieldBCookie, lai.cookie);
