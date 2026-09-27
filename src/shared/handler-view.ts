@@ -1,6 +1,6 @@
 // Người phụ trách đơn ở giao diện (v1.0, Task 8): ai thấy nút nào, chữ hiển thị, và câu báo khi máy chủ từ chối. Thuần, không DOM (web/orders.ts, web/order.ts, web/handler-sheet.ts dựng DOM).
 // Quyền đi qua `can()` (một nguồn — permissions.ts), KHÔNG chép ma trận: "được giao" = `handler.staffId` là chính người dùng. Máy chủ vẫn kiểm lại mọi thao tác (`PUT /api/orders/:id/handler`).
-import type { HandlerDto } from "./contracts.ts";
+import type { HandlerDto, OrderStatus } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 
@@ -52,4 +52,22 @@ export function handlerFailure(e: ErrorInput | null, kind: "assign" | "claim"): 
 export function handlerSaved(kind: "assign" | "claim", name: string, hadHandler: boolean): string {
   if (kind === "claim") return "Bạn đã nhận phụ trách đơn này.";
   return hadHandler ? `Đã đổi người phụ trách sang ${name}.` : `Đã giao đơn cho ${name} phụ trách.`;
+}
+
+export interface MyJobActions {
+  /** Nút "Huỷ đơn này" ở thẻ đơn trong "Việc của tôi". */
+  cancel: boolean;
+  /** Ô sửa số khách của từng dịch vụ trong đơn (còn cần `editablePaxCodes` của TỪNG dịch vụ mới thật sự hiện — gate này chỉ ở mức đơn). */
+  editPax: boolean;
+}
+
+/**
+ * "Việc của tôi" (`GET /api/dispatch/mine`) từ bản 1.6 (ADR-0030 S23-8, lượt 1) trả CẢ đơn nháp, không chỉ đơn đã xác nhận — hàm thuần này quyết
+ * nút nào hiện, theo `status` của đơn và đã qua ngày đi hay chưa. Nháp: `handler-money-edit`/`handler-cancel` đều từ chối bằng 409
+ * (`not_confirmed`/`not_editable`) nên ẩn cả hai, tránh bấm hụt — huỷ đơn nháp thuộc lượt 2 (ADR-0030 D5), CHƯA có ở đây. Đã xác nhận còn ngày đi:
+ * đủ cả hai. Đã xác nhận, qua ngày đi: giữ sửa số khách, ẩn huỷ (DK-T4-02 — nhờ văn phòng).
+ */
+export function myJobActions({ status, departed }: { status: OrderStatus; departed: boolean }): MyJobActions {
+  if (status !== "confirmed") return { cancel: false, editPax: false };
+  return { cancel: !departed, editPax: true };
 }

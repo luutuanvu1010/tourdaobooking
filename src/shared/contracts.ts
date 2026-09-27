@@ -437,9 +437,11 @@ export interface HandlerCancelResponse { ok: true }
 export interface HandlerMoneyEditResponse { ok: true }
 
 /**
- * Màn "việc của tôi" của FIELD (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ `OrderDto`/
- * `OrderServiceDto`/`OrderItemDto` — để một lần đổi kiểu dữ liệu đơn sau này (thêm trường tiền) không vô tình lọt vào đây (ADR-0007 điều 3: FIELD
- * không bao giờ thấy giá/tổng tiền).
+ * Màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11, ADR-0030 S23-8). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ
+ * `OrderDto`/`OrderServiceDto`/`OrderItemDto` — để một lần đổi kiểu dữ liệu đơn sau này không vô tình lọt trường tiền vào đây. Route hẹp này vẫn
+ * KHÔNG trả trường tiền nào (bản 1.6): đó là phạm vi của MÀN NÀY (gọn, không hiện bảng giá cho việc hằng ngày), KHÔNG còn là giới hạn quyền —
+ * ADR-0017 (accepted 2026-09-24) đã đảo ngược ADR-0007 điều 3/4(c): HDV xem được tiền của đơn mình phụ trách ở chi tiết đơn (`money.view` ô
+ * `assigned`, `GET /api/orders/:id`).
  */
 export interface MyAssignmentServiceDto extends TripInfoDto {
   id: string;
@@ -455,6 +457,8 @@ export interface MyAssignmentDto {
   orderCode: string;
   customerName: string;
   customerPhone: string;
+  /** Từ bản 1.6: đơn NHÁP cũng có trong danh sách (không chỉ đã xác nhận) — giao diện dùng `status` để ẩn nút huỷ/sửa số khách (`myJobActions`). */
+  status: OrderStatus;
   services: MyAssignmentServiceDto[];
 }
 export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }

@@ -1,6 +1,7 @@
 import { ApiError, api, type Api } from "./api";
 import { PERMISSION_LABEL, hasPermission, isOffice } from "../src/shared/permissions";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
+import { myJobActions } from "../src/shared/handler-view";
 import { tripDeparted } from "../src/shared/trip-rules";
 import { vnDateTimeText, vnLocalToIso, vnToday } from "../src/shared/vn-date";
 import { counter } from "./counter";
@@ -344,10 +345,12 @@ const CANCEL_REASONS: { code: string; label: string }[] = [
   { code: "customer_requested", label: "Khách yêu cầu huỷ" },
 ];
 
-function myServiceCard(orderId: string, s: Api.MyAssignmentServiceDto, onSaved: () => void): HTMLElement {
+function myServiceCard(orderId: string, s: Api.MyAssignmentServiceDto, canEditPax: boolean, onSaved: () => void): HTMLElement {
   const trip = [s.departDate, s.departTime].filter(Boolean).join(" ");
   const pickup = [s.pickupTime, s.pickupPlace].filter(Boolean).join(" — ");
-  const editable = s.editablePaxCodes.length > 0;
+  // canEditPax = myJobActions({ status, departed }).editPax (ADR-0030 S23-8): đơn NHÁP không sửa được số khách ở đây (route handler-money-edit
+  // vẫn 409 not_confirmed) dù dịch vụ có editablePaxCodes — gate ở MỨC ĐƠN đứng trước gate ở mức dịch vụ.
+  const editable = canEditPax && s.editablePaxCodes.length > 0;
   const draft = new Map<PaxCode, number>(s.editablePaxCodes.map((code) => [code, s.pax[code]]));
   const counters = s.editablePaxCodes.map((code) => counter({ label: PAX_LABEL[code], value: s.pax[code], onChange: (n) => draft.set(code, n) }));
   const reasonInput = h("input", { type: "text", placeholder: "Lý do sửa (bắt buộc)", maxlength: 300 });
@@ -432,15 +435,20 @@ function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLEl
   // DK-T4-02 phía máy chủ (chủ dự án chốt 2026-09-26): tour đã qua ngày đi (ngày khởi hành lớn nhất < hôm nay giờ VN) thì máy chủ trả 409 `departed`
   // cho handler-cancel → không hiện nút "Huỷ đơn này" (cùng luật thuần `tripDeparted`), chỉ một dòng nhắc nhờ văn phòng. Ngay trong ngày đi vẫn hiện.
   const departed = tripDeparted(a.services.map((s) => s.departDate), vnToday(new Date()));
+  // ADR-0030 S23-8 (bản 1.6): "Việc của tôi" nay có cả đơn nháp — `myJobActions` quyết nút nào hiện theo `a.status` (đơn nháp ẩn cả huỷ VÀ sửa số
+  // khách, vì cả hai route hẹp đều 409 với đơn chưa xác nhận). Huỷ đơn NHÁP thuộc lượt 2 (ADR-0030 D5), CHƯA có ở đây.
+  const actions = myJobActions({ status: a.status, departed });
   return h(
     "section",
     { class: "card myjob-card" },
     h("h3", null, a.customerName, h("span", { class: "muted" }, ` · ${a.customerPhone}`)),
     h("div", { class: "muted" }, `Mã đơn: ${a.orderCode}`),
-    ...a.services.map((s) => myServiceCard(a.orderId, s, onChanged)),
-    departed
-      ? h("div", { class: "myjob-cancel" }, h("p", { class: "muted" }, "Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng."))
-      : h("div", { class: "myjob-cancel" }, cancelBtn, cancelBox),
+    ...a.services.map((s) => myServiceCard(a.orderId, s, actions.editPax, onChanged)),
+    actions.cancel
+      ? h("div", { class: "myjob-cancel" }, cancelBtn, cancelBox)
+      : departed
+        ? h("div", { class: "myjob-cancel" }, h("p", { class: "muted" }, "Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng."))
+        : null,
   );
 }
 
@@ -450,8 +458,11 @@ async function initMyAssignments(): Promise<void> {
   const load = async (): Promise<void> => {
     try {
       const { assignments } = await api<Api.MyAssignmentsResponse>("/api/dispatch/mine");
-      if (assignments.length === 0) replaceChildren(el, h("h2", null, "Việc của tôi"), h("p", { class: "muted" }, "Bạn chưa được giao phụ trách đơn nào."));
-      else replaceChildren(el, h("h2", null, "Việc của tôi"), ...assignments.map((a) => myAssignmentCard(a, () => void load())));
+      // "HDV: <tên>" (ADR-0030 S23-8, ruling điều phối 2026-09-27): tên của CHÍNH người đang xem, lấy từ phiên đăng nhập (`staff.fullName`) —
+      // KHÔNG gọi GET /api/dispatch/handlers (route đó phục vụ bảng chọn người phụ trách của văn phòng, không phải nhu cầu này).
+      const meLine = h("p", { class: "muted" }, `HDV: ${staff.fullName}`);
+      if (assignments.length === 0) replaceChildren(el, h("h2", null, "Việc của tôi"), meLine, h("p", { class: "muted" }, "Bạn chưa được giao phụ trách đơn nào."));
+      else replaceChildren(el, h("h2", null, "Việc của tôi"), meLine, ...assignments.map((a) => myAssignmentCard(a, () => void load())));
       // Ghi giá trị gốc của từng ô nhập lúc dựng: sau này so với giá trị hiện tại để biết người dùng đã sửa gì chưa (chỉnh về lại số cũ thì coi như chưa sửa).
       for (const input of el.querySelectorAll("input")) input.dataset.goc = input.value;
       el.hidden = false;

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { HandlerDto } from "./contracts.ts";
-import { handlerControls, handlerFailure, handlerSaved, handlerText, NO_HANDLER_TEXT } from "./handler-view.ts";
+import { handlerControls, handlerFailure, handlerSaved, handlerText, myJobActions, NO_HANDLER_TEXT } from "./handler-view.ts";
 import type { PermissionCode } from "./permissions.ts";
 
 // Ba nhân viên bán hàng (A lập đơn, B được giao, C người ngoài), quản trị, kế toán, nhân viên hiện trường.
@@ -95,4 +95,11 @@ test("handlerSaved: câu báo sau khi lưu — nhận, đổi người, giao l�
   assert.equal(handlerSaved("claim", "Sales Một", false), "Bạn đã nhận phụ trách đơn này.");
   assert.equal(handlerSaved("assign", "Sales Hai", true), "Đã đổi người phụ trách sang Sales Hai.");
   assert.equal(handlerSaved("assign", "Sales Hai", false), "Đã giao đơn cho Sales Hai phụ trách.");
+});
+
+test("myJobActions (ADR-0030 S23-8, lượt 1): nháp → ẩn cả hai; đã xác nhận còn ngày đi → đủ cả hai; đã xác nhận qua ngày đi → chỉ còn sửa số khách", () => {
+  assert.deepEqual(myJobActions({ status: "draft", departed: false }), { cancel: false, editPax: false }, "nháp chưa đi thì cũng ẩn cả hai (route đều 409)");
+  assert.deepEqual(myJobActions({ status: "draft", departed: true }), { cancel: false, editPax: false }, "nháp đã qua ngày đi vẫn ẩn cả hai — trạng thái thắng, không xét departed");
+  assert.deepEqual(myJobActions({ status: "confirmed", departed: false }), { cancel: true, editPax: true });
+  assert.deepEqual(myJobActions({ status: "confirmed", departed: true }), { cancel: false, editPax: true }, "giữ DK-T4-02: qua ngày đi thì ẩn huỷ, vẫn sửa được số khách");
 });
