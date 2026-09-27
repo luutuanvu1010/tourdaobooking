@@ -214,7 +214,7 @@ function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: b
     h(
       "a",
       { class: "sidebar-head", href: "/" },
-      h("span", { class: "brand" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
+      h("span", { class: "brand" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30, decoding: "sync" }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     ),
     h("div", { class: "sidebar-groups" }, ...groups),
     h(
@@ -283,7 +283,7 @@ export async function initShell(): Promise<Staff> {
   replaceChildren(
     byId("topbar"),
     backLink,
-    h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30 }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
+    h("a", { class: "brand", href: "/" }, h("img", { class: "brand-logo", src: "/icons/logo-96.png", alt: "", width: 30, height: 30, decoding: "sync" }), h("span", { class: "brand-name" }, "Island Booking ", h("span", null, "System"))),
     // LUÔN dựng (C-1): ở máy tính đây là breadcrumb của mọi trang. Giao diện điện thoại KHÔNG đổi — luật hiển thị ở
     // khổ ≤640px vẫn đòi `body[data-title]`, nên trang không khai `data-title` vẫn hiện logo và không hiện breadcrumb.
     h("span", { class: "bar-title", id: "bar-title" }, barTitleFor(path, title)),
