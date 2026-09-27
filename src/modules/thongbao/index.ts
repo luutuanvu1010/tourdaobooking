@@ -63,18 +63,22 @@ export async function dayGoCua(
   giaoLo: (ds: string[]) => Promise<string[]>,
 ): Promise<void> {
   const khoa = khoaVapid(env);
-  if (!khoa) return;
+  if (!khoa) return ghiDay({ boQua: "thieu-khoa" });
   const now = new Date();
   const may = await listMayDangBat(env.DB);
-  if (may.length === 0) return;
+  if (may.length === 0) return ghiDay({ boQua: "khong-may" });
   const coMay = new Set(may.map((m) => m.staff_id));
   const taiKhoan = (await listStaffAccounts(env.DB)).filter((s) => s.active && coMay.has(s.id));
   const chon = new Set(nguoiNhanDay(taiKhoan, tin, now.toISOString()));
   const ds = may.filter((m) => chon.has(m.staff_id) && kiemDiaChi(m.endpoint)).map((m) => m.endpoint); // chỉ POST tới địa chỉ hợp lệ
-  if (ds.length === 0) return;
+  if (ds.length === 0) return ghiDay({ may: may.length, nguoiNhan: chon.size, gui: 0 });
   const het = ds.length <= GUI_THANG_TOI_DA ? (await guiLo(ds, khoa, now.getTime())).hetHieuLuc : await giaoLo(ds);
   if (het.length) await hetHanStatement(env.DB, het, new Date().toISOString()).run();
+  ghiDay({ may: may.length, nguoiNhan: chon.size, gui: ds.length, hetHieuLuc: het.length });
 }
+
+/** Một dòng nhật ký mỗi lần gõ cửa — CHỈ số đếm/lý do bỏ qua (không địa chỉ máy, không id/SĐT): đủ để đọc `wrangler tail` biết tin có được gửi không. */
+const ghiDay = (x: Record<string, string | number>) => void console.log(JSON.stringify({ level: "info", event: "day", ...x }));
 
 /** Bắt lỗi gõ cửa (không bao giờ ném ra route): một dòng log, chỉ tên lỗi. */
 const ghiLoiDay = (e: unknown) => console.warn(JSON.stringify({ level: "warn", event: "day_loi", viec: "gui", name: e instanceof Error ? e.name : "unknown" }));

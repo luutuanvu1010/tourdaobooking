@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto, OrderItemDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
-import { buildConfirmation, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
+import { buildConfirmation, HANDLER_HIDDEN, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
 
 // ---- dữ liệu mẫu: đúng hình dạng OrderDetailDto (id/mã nội bộ có tên riêng để phép thử "không lộ" không đúng/sai do trùng chữ) ----
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
@@ -41,7 +41,7 @@ function one<K extends Kind>(m: ConfirmationModel, kind: K): Extract<Confirmatio
   assert.equal(all.length, 1, `phải có đúng một khối "${kind}"`);
   return all[0]!;
 }
-const build = (o: OrderDetailDto, handler: string | null = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel => buildConfirmation(o, company, handler);
+const build = (o: OrderDetailDto, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel => buildConfirmation(o, company, handler);
 /** Giá trị của dòng nhãn/giá trị có nhãn `label` (undefined = không có dòng đó). */
 const value = (rows: { label: string; value: string }[], label: string): string | undefined => rows.find((r) => r.label === label)?.value;
 const details = (s: OrderServiceDto): { label: string; value: string }[] => one(build(order({ services: [s] })), "service").details;
@@ -209,6 +209,13 @@ test("nhân viên phụ trách: có tên thì in tên, không có câu chờ; nu
   // đơn nào cũng vậy kể cả staffName rỗng — tên người lập không bao giờ xuất hiện thay cho người phụ trách
   assert.equal(title(order({ staffName: "" }), null).note, PENDING_HANDLER_TEXT);
   assert.ok(!JSON.stringify(build(order(), null)).includes("Nguyễn Thu Hà"), "tên người lập không được in dù đơn chưa có người phụ trách");
+});
+
+test("người xem KHÔNG được biết người phụ trách (Đối tác — máy chủ trả 403): vẫn tạo ảnh, KHÔNG dòng phụ trách, KHÔNG câu chờ, KHÔNG tên người lập", () => {
+  const t = one(build(order(), HANDLER_HIDDEN), "title");
+  assert.equal(value(t.rows, "Nhân viên phụ trách"), undefined);
+  assert.equal(t.note, null, "không được khẳng định đơn đang chờ khi người xem không biết");
+  assert.ok(!JSON.stringify(build(order(), HANDLER_HIDDEN)).includes("Nguyễn Thu Hà"), "tên người lập không được in");
 });
 
 test("tổng kết: đúng số của đơn (không tự tính lại); chỉ Tổng cộng và Còn lại nổi bật; giảm giá 0 in '0 ₫'; còn lại âm giữ nguyên dấu", () => {
