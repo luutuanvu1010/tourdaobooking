@@ -1,8 +1,8 @@
-# Đề xuất ADR-0037 — Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ, tài xế, nhắc hạn
+# Đề xuất ADR-0039 — Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ, tài xế, nhắc hạn
 
 - **Ngày:** 2026-09-27.
 - **Người soạn:** phiên điều phối.
-- **Trạng thái:** **ĐỀ XUẤT — CHỜ CHỦ DUYỆT.** Nháp ngoài `docs/adr/`; chép vào `docs/adr/ADR-0037-*.md` khi chủ duyệt. Số 0037 kiểm còn trống trên mọi nhánh ngày 27/9 — kiểm lại lúc chép.
+- **Trạng thái:** **ĐỀ XUẤT — CHỜ CHỦ DUYỆT.** Nháp ngoài `docs/adr/`; chép vào `docs/adr/ADR-0039-*.md` khi chủ duyệt. Số 0039 (đổi từ 0037 ngày 28/9: 0037 nhường cho ADR của phiên HDV — lý do huỷ "Khác"; 0038 là ADR của phiên siết quyền). Kiểm lại mọi nhánh lúc chép.
 - **Duyệt TÁCH RIÊNG khỏi T2b:** hai lượt; mỗi lượt tối đa 3 quyết định (CLAUDE.md §9).
 - **Người kiểm độc lập** (2026-09-28, trên 96c7024): ĐẠT CÓ ĐIỀU KIỆN. Đã sửa:
   - đọc giấy tờ tài xế qua HÀM công bố, không qua view;
@@ -106,7 +106,7 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
   - kiểm quyền "xem đủ số".
 - **Giao diện:** màn Xe (danh sách, thêm, sửa, ngừng), giấy tờ xe, giấy tờ trong hồ sơ người, danh mục, danh sách sắp hết hạn — theo khuôn màn Địa điểm/Danh mục hiện có. Chủ muốn đẹp theo thiết kế riêng thì vẽ Claude Design trước.
 - **Việc lớn** (dữ liệu + quyền + dữ liệu cá nhân) ⇒ người kiểm độc lập ở cuối.
-- **Thứ tự:** T2b duyệt + gộp → ADR-0037 duyệt (lượt riêng) → thi công 1a (phiên riêng). ADR-0038 đi song song, nhánh nào gộp sau thì gộp main trước.
+- **Thứ tự:** T2b duyệt + gộp → ADR-0039 duyệt (lượt riêng) → thi công 1a (phiên riêng). ADR-0038 đi song song, nhánh nào gộp sau thì gộp main trước.
 - **Thay/sửa quyết định cũ:**
   - ADR-0002 (thêm module, tiền tố) — bổ sung;
   - ADR-0013:21 (`party.staff.write`) — giấy tờ theo ô mới của D2;

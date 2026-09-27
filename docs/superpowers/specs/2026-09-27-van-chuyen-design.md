@@ -17,7 +17,7 @@
   - đối chiếu triết lý Oracle;
   - đối chiếu Hiến pháp, Hiến chương và các ADR.
 - **Số giữ chỗ (phải kiểm lại trên mọi nhánh trước khi dùng):**
-  - ADR-0037: 0036 đã dùng ở nhánh Thông báo.
+  - ADR-0039: 0036 của nhánh Thông báo, 0037 của phiên HDV (lý do "Khác"), 0038 của phiên siết quyền.
   - Migration 0026: 0025 đã dùng ở nhánh Thông báo; 0019 giữ cho B5.
   - Tiền tố module `vc_`: chưa ai dùng hay giữ chỗ.
 - **Nguồn:**
@@ -107,7 +107,7 @@ Theo Hiến chương 5.3, ADR-0002, Phần II.
 - **`locations`:** thêm loại điểm "ga cáp treo", "sân bay", "khách sạn" bằng migration. Đã có "bến tàu" (PIER) và "cảng" (PORT).
 - **`dispatch`:** không đổi.
   - Phần loại nhiệm vụ PICKUP/DROPOFF của ADR-0006 (gắn theo một dòng dịch vụ — `migrations/0014`:48) **không** gom được nhiều đơn, nên với **xe đường bộ** được thay bằng Chuyến xe.
-  - **BOAT (cano) giữ nguyên.** ADR-0037 ghi rõ câu nào của ADR-0006 bị thay.
+  - **BOAT (cano) giữ nguyên.** ADR-0039 ghi rõ câu nào của ADR-0006 bị thay.
 - **Luật chạm dữ liệu module khác** (số khách, trạng thái đơn, giấy tờ của tài xế) **không giữ được bằng trigger chéo module** (5.3). Thay vào đó giữ ba lớp:
   1. kiểm ở máy chủ lúc ghi;
   2. kiểm lại bằng MỘT hàm thuần "trạng thái hợp lệ của chuyến" lúc xuất bến và mỗi lần đọc;
@@ -201,7 +201,7 @@ Nhãn tầng giữ: **[CSDL]** trigger/khoá duy nhất/CHECK · **[MC]** máy c
 
 Mỗi lượt duyệt tối đa 3 quyết định chạm dữ liệu/quyền, kèm trang ghép (CLAUDE.md §9).
 
-- **ADR-0037, lượt duyệt A:**
+- **ADR-0039, lượt duyệt A:**
   1. phân hệ Vận chuyển + thực thể Chuyến xe (thay PICKUP/DROPOFF đường bộ của ADR-0006);
   2. quyền app Tài xế + các ô Vận chuyển;
   3. giấy tờ của người ở `parties` + bảo vệ CCCD.
