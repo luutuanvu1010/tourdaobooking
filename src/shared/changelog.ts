@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.25",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Thông báo hiện trên màn hình khoá điện thoại: vào trang Tài khoản, bấm \"Bật thông báo trên điện thoại\" rồi cho phép." },
+      { kind: "moi", text: "Trên iPhone, cần mở app từ biểu tượng ngoài màn hình chính thì mới bật được." },
+    ],
+  },
+  {
     version: "1.24",
     date: "2026-09-28",
     items: [
