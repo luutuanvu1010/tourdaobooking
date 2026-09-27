@@ -416,7 +416,13 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 @media (min-width: 900px) {
   .topbar-search { display: block; flex: 1 1 auto; max-width: var(--w-search); margin: 0; margin-left: auto; }
   .topbar-new { margin-left: 0; } /* ô tìm kiếm đã nhận margin-left:auto — để cả hai cùng auto thì chỗ trống bị chia đôi, ô tìm rơi ra giữa */
-  .bell { margin-left: 0; } /* cùng lý do: ô tìm kiếm là phần tử đầu cụm, đã nhận margin-left:auto */
+  /* Chỉ bỏ margin-left:auto của chuông khi Ô TÌM THẬT SỰ CÓ MẶT trong DOM (vai thấy được "Đơn hàng" — `seesAll`): ô
+     tìm đã nhận margin-left:auto nên nó mới là phần tử đầu cụm cần tự đẩy sang phải. Vai KHÔNG có ô tìm (Hướng dẫn
+     viên/Đối tác — `seesAll` sai): `web/shell.ts` `thanhCongViec()` không dựng `<input class="topbar-search">` cho
+     họ nên phần tử này vắng mặt HẲN trong DOM, không phải chỉ bị CSS ẩn — phải GIỮ margin-left:auto ở chính chuông,
+     nếu không cụm chuông (+ nút Tạo đơn nếu có) mất chỗ dựa để tự đẩy phải và rơi lại ngay sau tiêu đề (đo thật
+     trước khi sửa: Hướng dẫn viên/Đối tác ở 1280px chuông cách mép phải ~900px thay vì ~16–138px như Toàn quyền/Bán hàng). */
+  #topbar:has(> .topbar-search) .bell { margin-left: 0; }
 }
 /* Ngưỡng 641px (không phải 900px như bản Task 4 đầu tiên — quyết định 9 của chủ dự án): ở dải 641–899px bản cũ còn
    thanh ngang đủ 9 mục, nếu thanh bên chỉ hiện từ 900px thì dải đó MẤT hết lối điều hướng lẫn nút Đăng xuất.
@@ -900,7 +906,11 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .ntf-strip button { flex: none; padding: 0 var(--s3); min-height: var(--tap-min); font-size: var(--fs-label); font-weight: 800; color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-primary); border-radius: var(--radius-sm); cursor: pointer; white-space: nowrap; }
 
 .ntf-panel { position: fixed; inset: 0; z-index: var(--z-ntf); display: flex; flex-direction: column; background: var(--c-surface); }
-.ntf-panel-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); background: var(--c-primary); color: var(--c-on-dark); }
+/* Ngăn phủ TOÀN màn hình ở điện thoại (không đi qua #topbar) nên phần đầu phải TỰ chừa vùng an toàn trên (tai thỏ/đảo
+   động) — cùng cách #topbar đã làm (app.css:148/334): padding-top = --s2 + safe-area-inset-top. Khổ máy tính
+   (≥641px, ngăn thả xuống dưới #topbar) không cần khoảng chừa này — khối @media (min-width: 641px) bên dưới đặt lại
+   padding-top: var(--s3), không phải calc() này, nên không đổi. */
+.ntf-panel-head { display: flex; align-items: center; gap: var(--s2); padding: calc(var(--s2) + env(safe-area-inset-top)) var(--s3) var(--s2); background: var(--c-primary); color: var(--c-on-dark); }
 .ntf-panel-head h3 { flex: 1; margin: 0; color: var(--c-on-dark); }
 .icon-btn { display: flex; align-items: center; justify-content: center; width: var(--tap-min); height: var(--tap-min); padding: 0; color: inherit; background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
 .icon-btn:hover { background: var(--c-sidebar-active); }
