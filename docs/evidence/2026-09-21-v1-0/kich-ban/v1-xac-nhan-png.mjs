@@ -17,7 +17,8 @@
 //      người → câu chờ nhận, KHÔNG BAO GIỜ tên người lập; 404/500/mất mạng/hết giờ 3 giây/dữ liệu hỏng (thiếu khoá, `name` sai dạng/rỗng) → KHÔNG tạo ảnh,
 //      báo lỗi tiếng Việt cố định + nút Thử lại
 //   g2 bằng chứng: đơn THẬT chưa có người phụ trách (đóng dòng HANDLE bằng SQL, không phải giả lập fetch) → ảnh vẫn ra đúng câu chờ nhận, không tràn/chồng
-//      chữ, không lộ tên người lập; lưu vào docs/evidence/thong-bao/bien-nhan-chua-co-phu-trach.png
+//      chữ, không lộ tên người lập; ghi <OUT>/anh/xac-nhan-chua-co-phu-trach.png như mọi ảnh mẫu khác (tôn trọng OUT); bản đã commit ở
+//      docs/evidence/thong-bao/bien-nhan-chua-co-phu-trach.png là bản chép tay một lần, không phải do kịch bản tự ghi mỗi lần chạy
 //   h  đơn cỡ tối đa (20 dịch vụ, 50 dòng tiền, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau,
 //      mọi chữ có mực, không vượt giới hạn diện tích canvas
 //   i  vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob trả null, getContext null): thông báo tiếng Việt + nút Thử lại, không kẹt (Esc đóng được), Thử lại ra ảnh
@@ -608,8 +609,7 @@ await step("g2", "đơn THẬT chưa có người phụ trách (đóng dòng HAN
   assert.equal(info.note, "Đơn khởi tạo thành công và đang chờ hướng dẫn viên nhận khách");
   assert.ok(!info.labels.includes("Nhân viên phụ trách"), "KHÔNG còn dòng 'Nhân viên phụ trách' khi chưa có người");
   assert.ok(!info.json.includes(unassigned.staffName), `KHÔNG được in tên người lập "${unassigned.staffName}" thay cho người phụ trách`);
-  mkdirSync("docs/evidence/thong-bao", { recursive: true });
-  writeFileSync("docs/evidence/thong-bao/bien-nhan-chua-co-phu-trach.png", Buffer.from(await p.ev(`__t.b64(${downloadHref})`), "base64"));
+  writeFileSync(join(ANH, "xac-nhan-chua-co-phu-trach.png"), Buffer.from(await p.ev(`__t.b64(${downloadHref})`), "base64"));
   p.close();
 });
 
