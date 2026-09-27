@@ -116,6 +116,34 @@ Cả hai đỏ dừng ngay ở dòng `assert.equal(ok, false, …)` (103/115) �
 
 **Chưa kiểm:** kịch bản Chrome không chạy (Task 0.1 không sửa tệp giao diện nào, chỉ `repository.ts`/`index.ts` server + chú thích, nên không thuộc diện phải chạy lại Chrome theo `web/CLAUDE.md`). `node scripts/audit-invariants.mjs --db local` sau e2e KHÔNG chạy riêng trong phiên này (script `test:e2e` chỉ tự chạy audit-invariants khi chạy đủ mọi kịch bản, không phải tập con `orders dispatch trip`). Người kiểm độc lập cần tự xác nhận lại theo N8 (người thi công không tự nghiệm thu).
 
+## 5. Task 1.3 — Đơn mới không tự gắn người lập; chọn HDV lúc lập (S20-4, ADR-0020 điều 1, Q-C)
+
+Commit mã **86c53f4**; commit đề xuất tệp luật **e32309c** (`docs/superpowers/proposals/2026-09-27-hook-newOrderHandler.md`, chờ chủ duyệt — N9). Hook mới: `ctx.newOrderHandler(staffId)` (thay `ctx.defaultHandlerStatement`).
+
+**Đỏ trước** — `node --test src/modules/orders/don-moi-chon-hdv.test.ts` trên mã d12af2b: **đỏ 7/7**, ví dụ:
+
+```
+not ok 1 - (1) lập đơn KHÔNG chọn hướng dẫn viên → không có dòng HANDLE nào, nhật ký chỉ 'created' — …
+  error: Bán hàng: đơn mới không có dòng phân công nào (không tự gắn người lập — ADR-0030 S20-4)
+  expected: 0   actual: 1
+not ok 5 - (3) chọn người KHÔNG đủ điều kiện … → 400 invalid_assignee, KHÔNG có đơn nào được tạo
+  expected: 400   actual: 201
+not ok 7 - (4) Thực tập, Đối tác gửi kèm handlerStaffId → 403 …
+  expected: 403   actual: 201
+```
+
+`tests/audit/redteam.test.mjs` sau khi đổi mã (trước khi sửa bài): `R3b … Cannot read properties of null (reading 'name')`; `R4 … expected: 409 actual: 200` — đúng hai dòng của bảng "Bài kiểm đổi kỳ vọng"; sửa bằng Nhận tường minh sau khi lập.
+
+**Ràng buộc `at` (hệ thống Thông báo):** giữ — `createOrder` sinh MỘT `at` mỗi lần thử, đưa vào `orders.created_at`, dòng `created` và `alsoCreate(id, at)`; `newOrderHandler` trả `statements(orderId, at)` không đọc đồng hồ. Có dòng `order_handler_changed` ("từ chưa có người phụ trách sang <tên>") trong CÙNG lô, cùng `at`, theo brief Task 1.3 + ADR-0030 S20-4 + lời giao việc của điều phối — xem lưu ý ở mục "Phối hợp" dưới (câu "không tạo dòng `order_handler_changed` riêng cho lúc lập").
+
+**Thấy chặn thật (3 đột biến, đều hoàn nguyên từ bản sao, `diff -q` sạch):** (a) luôn gọi `createOrder` khi hook không đạt → `not ok 5 … 201 !== 400`; (b) bỏ cổng `dispatch.assign` → `not ok 7 … Thực tập — HDV hợp lệ: … 201 !== 403`; (c) cộng 1 ms vào `at` trong hook → `not ok 3 … expected '2026-09-27T10:00:44.904Z' actual '2026-09-27T10:00:44.905Z'`. Ba dòng mới ở `docs/SO-HANG-RAO.md`.
+
+**Ngoài bảng "Bài kiểm đổi kỳ vọng"** (cùng lớp "không còn tự gắn người lập"; chỉ khôi phục điều kiện trước, không đổi giá trị kỳ vọng): `tests/e2e/permissions.mjs` (người lập Nhận trước dòng "409 stale"; `mOrder` lập kèm chính M để ca "người phụ trách đã nghỉ" giữ nghĩa); `tests/e2e/bangtin.mjs` ca 3 (lập kèm salesB → vẫn phát `tao`, "đúng MỘT tin" nay còn chứng minh không có `giao`), ca 4 (bỏ câu SQL đóng dòng — thành thừa). Kịch bản Chrome `docs/evidence/2026-09-23-trang-chu-moi/kich-ban/trang-chu-smoke.mjs`: bỏ câu SQL đóng dòng phụ trách của R2 (carry của Task 1.2), giữ đáp án SQL tự tính.
+
+**Kết quả:** `npm test` 975/975; `npm run typecheck` 0 lỗi; `tests/audit` 35/36 (chỉ P4 FINDING HDV đỏ sẵn — cùng lý do cũ: FIELD giao được từ ADR-0014 Phase B); `npm run test:e2e` đủ bộ **21/21** kèm `audit-invariants` (chạy riêng `permissions` hoặc `orders dispatch permissions bangtin` thì `permissions` đỏ `catalog_unavailable` ZE1 vì `GET /api/catalog` của kế toán tự kéo Sheet thật khi D1 tạm chưa từng đồng bộ — suy từ đọc mã là có sẵn, không do Task 1.3, CHƯA chạy lại trên mã cũ để xác nhận; theo thứ tự đủ bộ thì xanh); kịch bản Chrome bản gốc **TRANG CHU SMOKE OK 41 bước** (không còn lỗi tương phản "System" — không cần bản tạm), `unassignedCount=3` = đáp án SQL.
+
+**Chưa làm / để task sau:** `docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs` (giả định người lập là người phụ trách — nhãn thuộc Task 1.7) chưa chạy lại; giao diện chọn HDV trong form (Task 1.8, chờ thiết kế).
+
 ## Phối hợp với nhánh khác (Thông báo hệ thống) — ghi 2026-09-27, điều phối
 
 Một phiên AI khác đang làm nhánh `worktree-thong-bao-he-thong` (kế hoạch Thông báo hệ thống, số migration 0025, **CHƯA có mã, đang chờ chủ duyệt**) báo trước các chỗ hai nhánh sẽ đụng khi gộp. Đây là ghi chú điều phối, KHÔNG phải chủ dự án ra lệnh, KHÔNG đổi phạm vi lượt 1 của kế hoạch này — chỉ để người thi công các Task 1.3/1.4 và người gộp sau này biết mà tránh xung đột hoặc mất luật. Ghi nguyên các điểm chạm, áp dụng khi tới Task tương ứng hoặc lúc gộp:
