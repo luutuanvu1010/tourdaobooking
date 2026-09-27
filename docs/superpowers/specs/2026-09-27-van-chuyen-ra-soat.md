@@ -82,7 +82,8 @@ Hướng đúng: phân hệ mới, dữ liệu thuộc người, luật thuộc 
 >   - giấy tờ không sửa đè;
 >   - hai vai tài xế + một quyền app;
 >   - đủ điều kiện lái xét bằng giấy tờ.
-> - Còn chờ chủ: một nơi giữ tên/MST/địa chỉ Tour Đảo (T2b).
+> - **T2b — CHỦ CHỌN (a), 2026-09-27, nguyên văn "T2b chọn a":** tên, MST, địa chỉ Tour Đảo giữ ở **hồ sơ tổ chức Tour Đảo** (`pty_party` + `pty_organization`, mã vai "công ty chủ", theo ADR-0024 điều 6). Bảng `company_profile`, trang đăng nhập và biên nhận đọc qua MỘT hàm công bố của `parties`.
+>   - Còn phải chốt khi soạn ADR: hotline, email → điểm liên hệ của hồ sơ; Zalo, logo → nơi ở; thu hồi `company_profile` theo expand–contract.
 
 ---
 
