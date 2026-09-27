@@ -55,6 +55,10 @@ Ghi theo tin điều phối 2026-09-27 (không phải lời duyệt kế hoạch
    - Ca e2e (lập đơn kèm HDV → đúng **một** tin `lap`, không `giao`, không `cho_nhan`): thêm vào `tests/e2e/thongbao.mjs` **sau khi** ADR-0030 Task 1.3 lên main; trước đó ghi "chưa kiểm được, chờ ADR-0030".
    - Luật này dựa vào bất biến "cùng mốc" của nhánh ADR-0030. Nếu sau này lô lập đổi cách lấy giờ (hai `new Date()` khác nhau) thì tin `giao` thừa sẽ quay lại — ca e2e trên là chỗ bắt.
 5. **Hệ quả hiển thị (điều phối đã báo chủ):** sau R1, mỗi đơn mới chưa chọn HDV làm số đỏ của **mọi** HDV có quyền nhận tăng 1.
+6. **Hợp đồng `bang-tin.ts` đổi ở ADR-0030 Task 1.4 (commit c38c224 bên nhánh đó):** `nhanSuKien` nhận `handlerTruoc: TrangThaiPhuTrach | null` (`null` = không biết, không bao giờ coi là "chưa ai"; thêm luật (b) gắn `cho-nhan` khi BIẾT trước chưa ai); `nhanKetNoi` chỉ cho `cho-nhan` khi `can(dispatch.claim) && !holdsPartner(staff)`; `thongBaoNoi` có `holdsPartner` ở ca `tao_cho_nhan`. Việc của nhánh này, tuỳ nhánh nào lên main trước:
+   - Task 1: `duocThayTinDon` lấy đúng điều kiện `!choNhan || (can(staff, "dispatch.claim") && !holdsPartner(staff))` và bật ca test tài khoản lai `duocThayTinDon(SALES+PARTNER, true) === false`.
+   - Task 2: `locHopThongBao` truyền `handlerTruoc: null`; **giữ** `.filter((t) => t !== "cho-nhan")` vì luật (a) vẫn gắn `cho-nhan` theo trạng thái hiện tại, còn nhãn này do loại tin quyết.
+   - Kiểm sau gộp: `grep -n "handlerTruoc: TrangThaiPhuTrach | null" src/shared/bang-tin.ts` có kết quả ⇒ không còn chỗ nào của `thong-bao.ts` truyền `{ coNguoi: false, staffId: null }` làm `handlerTruoc`.
 
 ---
 
@@ -102,7 +106,8 @@ test("duocThayTinDon: văn phòng/HDV thấy; Đối tác/Thực tập không; t
   assert.equal(duocThayTinDon(ai("INTERN"), false), false);
   assert.equal(duocThayTinDon(ai("SALES"), true), true);       // SALES có dispatch.claim
   assert.equal(duocThayTinDon(ai("ACCOUNTING"), true), false); // Kế toán không nhận đơn
-  assert.equal(duocThayTinDon(ai("FIELD"), true), false);      // hôm nay FIELD dispatch.claim = none
+  assert.equal(duocThayTinDon(ai("FIELD"), true), false);      // hôm nay FIELD dispatch.claim = none (ADR-0030 R1 đổi thành true — có chủ đích)
+  assert.equal(duocThayTinDon(ai("SALES", "PARTNER"), true), false); // tài khoản lai: không nhận đơn chờ (ADR-0030; chỉ thêm khi ADR-0030 Task 1.4 đã lên main)
 });
 ```
 Thêm `duocThayTinDon` và `type PermissionCode` vào import đầu tệp test (import `PermissionCode` từ `./permissions.ts`).
@@ -119,7 +124,7 @@ Thêm `duocThayTinDon` và `type PermissionCode` vào import đầu tệp test (
 export function duocThayTinDon(staff: PermissionHolder, choNhan: boolean): boolean {
   const vanPhong = isOffice(staff);
   if (!vanPhong && !hasPermission(staff, "FIELD")) return false;
-  return !choNhan || can(staff, "dispatch.claim");
+  return !choNhan || can(staff, "dispatch.claim");   // ADR-0030 Task 1.4 đã lên main → `(can(staff, "dispatch.claim") && !holdsPartner(staff))`
 }
 
 export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBaoNoi | null {
@@ -392,7 +397,11 @@ export function locHopThongBao(
     if (d.luc < moc || d.actorId === staff.id) continue;
     const loai = loaiTinDon(d);
     if (!loai || !duocThayTinDon(staff, loai === "cho_nhan")) continue;
-    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach })
+    // Hộp KHÔNG biết người phụ trách trước sự kiện → truyền null ("không biết"), KHÔNG được khẳng định "trước chưa ai" (coi nhầm = rò tin, lỗi NT-3 canh).
+    // Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy từ trạng thái HIỆN TẠI (!handlerSau.coNguoi).
+    // Nếu ADR-0030 Task 1.4 CHƯA lên main (kiểu còn là TrangThaiPhuTrach, không nhận null): tạm truyền { coNguoi: false, staffId: null } — kết quả
+    // như nhau nhờ .filter — và đổi sang null ngay khi gộp (xem mục "Phụ thuộc ADR-0030" điểm 6).
+    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: null, handlerSau: d.phuTrach })
       .filter((t) => t !== "cho-nhan");
     if (loai === "cho_nhan") nhan.push("cho-nhan");
     const chung = nhan.filter((t) => ketNoi.has(t));
