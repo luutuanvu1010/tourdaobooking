@@ -25,15 +25,24 @@ const sheetItem = (code) => {
   assert.ok(it, `Sheet thật không còn dòng ${code} — kịch bản cần sửa lại (Sheet đã đổi cấu trúc, không chỉ đổi giá)`);
   return it;
 };
-const sheetTD101 = sheetItem("TD101"), sheetTD103 = sheetItem("TD103");
+// Chủ dự án đổi mã dịch vụ trên Sheet (2026-09-27: TD101… → TD1…) — kịch bản KHÔNG ghim mã nào: chọn lúc chạy
+// MA1 = dòng "theo người" đầu tiên có giá người lớn lẫn trẻ em; MA3 = một dòng "theo người" khác có giá trẻ em.
+const coGia = (i) => i.unit === "perPax" && i.prices.adult !== null && i.prices.child !== null;
+const sheetTD101 = sheetParsed.items.find(coGia);
+assert.ok(sheetTD101, "Sheet thật không còn dòng 'theo người' nào có giá người lớn + trẻ em — kịch bản cần xem lại");
+const sheetTD103 = sheetParsed.items.find((i) => coGia(i) && i.code !== sheetTD101.code);
+assert.ok(sheetTD103, "Sheet thật cần ít nhất hai dòng 'theo người' có giá trẻ em");
+const MA1 = sheetTD101.code, MA3 = sheetTD103.code;
+// MA2: một dòng bất kỳ khác MA1/MA3 để thử ẩn/hiện (trước đây ghim TD102).
+const MA2 = sheetParsed.items.find((i) => i.code !== MA1 && i.code !== MA3).code;
 // Dịch vụ thứ hai để đối chiếu đơn vị + giá: chọn LÚC CHẠY một dòng có đơn vị khác "theo người" (vd theo nhóm 5 khách),
 // không ghim mã cố định — TTB03 từng dùng ở đây đã bị chủ dự án bỏ khỏi Sheet thật (2026-09-27), làm kịch bản đỏ dù đồng bộ đúng.
-const sheetKhac = sheetParsed.items.find((i) => i.unit !== "perPax") ?? sheetItem("TD102");
+const sheetKhac = sheetParsed.items.find((i) => i.unit !== "perPax") ?? sheetTD103;
 const vnd = (n) => n.toLocaleString("vi-VN"); // "850000" → "850.000" — dùng để đối chiếu câu chữ nhật ký
-console.log(`✓ đọc Sheet thật: TD101 giá người lớn ${vnd(sheetTD101.prices.adult)} ₫, ${sheetKhac.code} (${sheetKhac.unit}) có giá ${JSON.stringify(sheetKhac.prices)}`);
+console.log(`✓ đọc Sheet thật: ${MA1} giá người lớn ${vnd(sheetTD101.prices.adult)} ₫, ${sheetKhac.code} (${sheetKhac.unit}) có giá ${JSON.stringify(sheetKhac.prices)}`);
 
 assert.equal((await call(null, "GET", "/api/catalog")).status, 401);
-for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", "/api/catalog/TD101"], ["DELETE", "/api/catalog/TD101/override"]]) {
+for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", `/api/catalog/${MA1}`], ["DELETE", `/api/catalog/${MA1}/override`]]) {
   assert.equal((await call(SALES, m, p, {})).status, 403, `${m} ${p} phải cấm với sales`);
 }
 
@@ -50,8 +59,8 @@ assert.equal(r.status, 200);
 const items = r.body.items;
 console.log(`✓ bootstrap: ${items.length} dịch vụ, lastSuccessAt=${r.body.sync.lastSuccessAt ? "có" : "KHÔNG"}`);
 assert.ok(items.length >= 30 && r.body.sync.lastSuccessAt && !r.body.sync.error);
-const td101 = items.find((i) => i.code === "TD101");
-assert.deepEqual(td101.prices, sheetTD101.prices, `giá TD101 phải khớp Sheet thật đọc được ở trên (${JSON.stringify(sheetTD101.prices)})`);
+const td101 = items.find((i) => i.code === MA1);
+assert.deepEqual(td101.prices, sheetTD101.prices, `giá ${MA1} phải khớp Sheet thật đọc được ở trên (${JSON.stringify(sheetTD101.prices)})`);
 assert.equal(td101.notes.child, sheetTD101.notes.child);
 assert.equal(td101.supported, true);
 const khac = items.find((i) => i.code === sheetKhac.code);
@@ -81,7 +90,7 @@ for (const [who, label] of [[PARTNER, "Đối tác"], [INTERN, "Thực tập"]])
   assert.deepEqual(res.body.items, items, `${label} thấy ĐÚNG nội dung như nhân viên bán hàng (không thêm, không bớt)`);
   assert.equal(res.body.sync.error, null, `${label}: không phải văn phòng nên không thấy chữ lỗi đồng bộ Sheet`);
   assert.equal((await call(who, "GET", "/api/catalog")).status, 403, `${label}: GET /api/catalog (cổng office, ADR-0033) phải 403`);
-  for (const [m, pth] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", "/api/catalog/TD101"], ["DELETE", "/api/catalog/TD101/override"]]) {
+  for (const [m, pth] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", `/api/catalog/${MA1}`], ["DELETE", `/api/catalog/${MA1}/override`]]) {
     assert.equal((await call(who, m, pth, {})).status, 403, `${label}: ${m} ${pth} vẫn phải cấm`);
   }
 }
@@ -93,12 +102,12 @@ assert.equal((await call(ACCOUNTANT, "GET", "/api/catalog")).status, 200, "Kế 
 assert.equal((await call(FIELD_ONLY, "GET", "/api/catalog")).status, 403, "Hướng dẫn viên thuần (chỉ FIELD) vẫn không đọc danh mục");
 assert.equal((await call(FIELD_ONLY, "GET", "/api/catalog/for-order")).status, 403, "Hướng dẫn viên thuần (chỉ FIELD) không đọc danh mục qua route mới");
 // Đối tác lập đơn nháp bằng một dịch vụ lấy từ chính danh sách route mới trả → 201; giá dòng do MÁY CHỦ tính lại (buildLines), đúng giá bán lẻ.
-const partnerTd101 = (await call(PARTNER, "GET", "/api/catalog/for-order")).body.items.find((i) => i.code === "TD101");
-assert.ok(partnerTd101 && partnerTd101.supported && partnerTd101.prices.adult !== null, "TD101 phải có trong danh mục của Đối tác, có giá người lớn");
+const partnerTd101 = (await call(PARTNER, "GET", "/api/catalog/for-order")).body.items.find((i) => i.code === MA1);
+assert.ok(partnerTd101 && partnerTd101.supported && partnerTd101.prices.adult !== null, `${MA1} phải có trong danh mục của Đối tác, có giá người lớn`);
 r = await call(PARTNER, "POST", "/api/orders", {
   customerName: "Khách Đối Tác Danh Mục",
   customerPhone: "0901 111 222",
-  services: [{ kind: "catalog", catalogCode: "TD101", pax: { adult: 2 }, catalogPriceSeen: { adult: partnerTd101.prices.adult }, departDate: vnDate(7) }],
+  services: [{ kind: "catalog", catalogCode: MA1, pax: { adult: 2 }, catalogPriceSeen: { adult: partnerTd101.prices.adult }, departDate: vnDate(7) }],
 });
 assert.equal(r.status, 201, JSON.stringify(r.body));
 const partnerLine = r.body.order.services.flatMap((s) => s.items)[0];
@@ -113,71 +122,71 @@ assert.deepEqual([r.body.added, r.body.changed, r.body.hidden], [0, 0, 0]);
 console.log(`✓ kéo lại không đổi gì (unchanged=${r.body.unchanged}, problems=${r.body.problems.length}, warnings=${r.body.warnings.length})`);
 
 // --- Sheet đổi giá (mô phỏng: sửa thẳng bản sao) → kéo về khôi phục + nhật ký ghi rõ
-await sql("UPDATE catalog_item SET price_adult = 1 WHERE code = 'TD101'");
-assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD101").prices.adult, 1);
+await sql(`UPDATE catalog_item SET price_adult = 1 WHERE code = '${MA1}'`);
+assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === MA1).prices.adult, 1);
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
 assert.equal(r.body.changed, 1);
-assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD101").prices.adult, sheetTD101.prices.adult);
+assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === MA1).prices.adult, sheetTD101.prices.adult);
 r = await call(ADMIN, "GET", "/api/audit?action=catalog_synced&limit=3");
-assert.match(r.body.entries[0].detail, new RegExp(`TD101: giá người lớn 1 ₫ → ${vnd(sheetTD101.prices.adult).replace(/\./g, "\\.")} ₫`));
+assert.match(r.body.entries[0].detail, new RegExp(`${MA1}: giá người lớn 1 ₫ → ${vnd(sheetTD101.prices.adult).replace(/\./g, "\\.")} ₫`));
 assert.equal(r.body.entries[0].staffName, "QTV Test");
-console.log(`✓ đổi giá trên Sheet → kéo về, nhật ký ghi 'TD101: giá người lớn 1 ₫ → ${vnd(sheetTD101.prices.adult)} ₫'`);
+console.log(`✓ đổi giá trên Sheet → kéo về, nhật ký ghi '${MA1}: giá người lớn 1 ₫ → ${vnd(sheetTD101.prices.adult)} ₫'`);
 
 // --- ghi đè có chủ đích
-assert.equal((await call(ADMIN, "PATCH", "/api/catalog/TD101", { prices: { adult: -5 } })).status, 400);
-assert.equal((await call(ADMIN, "PATCH", "/api/catalog/TD101", { prices: { adult: "800000" } })).status, 400);
-assert.equal((await call(ADMIN, "PATCH", "/api/catalog/TD101", { prices: { teen: 1 } })).status, 400);
+assert.equal((await call(ADMIN, "PATCH", `/api/catalog/${MA1}`, { prices: { adult: -5 } })).status, 400);
+assert.equal((await call(ADMIN, "PATCH", `/api/catalog/${MA1}`, { prices: { adult: "800000" } })).status, 400);
+assert.equal((await call(ADMIN, "PATCH", `/api/catalog/${MA1}`, { prices: { teen: 1 } })).status, 400);
 assert.equal((await call(ADMIN, "PATCH", "/api/catalog/NOPE", { hidden: true })).status, 404);
-r = await call(ADMIN, "PATCH", "/api/catalog/TD101", { prices: { adult: 800000, infant: 50000 } });
+r = await call(ADMIN, "PATCH", `/api/catalog/${MA1}`, { prices: { adult: 800000, infant: 50000 } });
 assert.equal(r.status, 200);
 assert.deepEqual(r.body.item.overridden, ["adult", "infant"]);
 assert.deepEqual(r.body.item.sheetPrices, sheetTD101.prices);
 assert.equal(r.body.item.prices.adult, 800000);
-let sales = (await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD101");
+let sales = (await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === MA1);
 assert.equal(sales.prices.adult, 800000); assert.equal(sales.prices.child, sheetTD101.prices.child);
 // KÉO LẠI KHÔNG ĐÈ ghi đè
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
-sales = (await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD101");
+sales = (await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === MA1);
 assert.equal(sales.prices.adult, 800000, "kéo lại không được đè ghi đè của Admin");
 console.log("✓ ghi đè giá; kéo lại KHÔNG đè");
 
 // --- Sheet đổi giá sau ghi đè → cảnh báo xung đột, giá ghi đè vẫn giữ
-await sql("UPDATE catalog_item SET price_adult = 900000 WHERE code = 'TD101'");
+await sql(`UPDATE catalog_item SET price_adult = 900000 WHERE code = '${MA1}'`);
 r = await call(ADMIN, "GET", "/api/catalog/admin");
-let a = r.body.items.find((i) => i.code === "TD101");
+let a = r.body.items.find((i) => i.code === MA1);
 assert.deepEqual(a.conflicts, [{ code: "adult", base: sheetTD101.prices.adult, current: 900000, override: 800000 }]);
 assert.equal(a.prices.adult, 800000);
-r = await call(ADMIN, "POST", "/api/catalog/TD101/ack");
+r = await call(ADMIN, "POST", `/api/catalog/${MA1}/ack`);
 assert.equal(r.body.item.conflicts.length, 0);
 assert.equal(r.body.item.prices.adult, 800000);
 console.log("✓ xung đột được cảnh báo, 'Giữ ghi đè' xác nhận");
 
 // --- bỏ ghi đè → theo Sheet (kéo về giá Sheet thật)
 await call(ADMIN, "POST", "/api/catalog/sync", {});
-r = await call(ADMIN, "DELETE", "/api/catalog/TD101/override");
+r = await call(ADMIN, "DELETE", `/api/catalog/${MA1}/override`);
 assert.deepEqual(r.body.item.overridden, []);
 assert.equal(r.body.item.prices.adult, sheetTD101.prices.adult);
 
 // --- ẩn / hiện
-r = await call(ADMIN, "PATCH", "/api/catalog/TD102", { hidden: true });
+r = await call(ADMIN, "PATCH", `/api/catalog/${MA2}`, { hidden: true });
 assert.equal(r.body.item.hidden, true);
-assert.ok(!(await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === "TD102"));
-assert.equal((await call(ADMIN, "GET", "/api/catalog/admin")).body.items.find((i) => i.code === "TD102").hidden, true);
+assert.ok(!(await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === MA2));
+assert.equal((await call(ADMIN, "GET", "/api/catalog/admin")).body.items.find((i) => i.code === MA2).hidden, true);
 await call(ADMIN, "POST", "/api/catalog/sync", {});
-assert.ok(!(await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === "TD102"), "kéo lại không hiện lại dịch vụ đã ẩn");
-await call(ADMIN, "PATCH", "/api/catalog/TD102", { hidden: false });
-assert.ok((await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === "TD102"));
+assert.ok(!(await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === MA2), "kéo lại không hiện lại dịch vụ đã ẩn");
+await call(ADMIN, "PATCH", `/api/catalog/${MA2}`, { hidden: false });
+assert.ok((await call(SALES, "GET", "/api/catalog")).body.items.some((i) => i.code === MA2));
 console.log("✓ ẩn/hiện dịch vụ");
 
 // --- Cron (giả lập): không có người thao tác → nhật ký "Hệ thống (tự động)"
-await sql("UPDATE catalog_item SET price_child = 1 WHERE code = 'TD103'");
+await sql(`UPDATE catalog_item SET price_child = 1 WHERE code = '${MA3}'`);
 const cron = await fetch(B + "/__scheduled?cron=*/15+*+*+*+*");
 assert.equal(cron.status, 200);
 await new Promise((r) => setTimeout(r, 3000));
 r = await call(ADMIN, "GET", "/api/audit?action=catalog_synced&limit=1");
 assert.equal(r.body.entries[0].staffName, "Hệ thống (tự động)");
-assert.match(r.body.entries[0].detail, /TD103/);
-assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD103").prices.child, sheetTD103.prices.child);
+assert.match(r.body.entries[0].detail, new RegExp(MA3));
+assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === MA3).prices.child, sheetTD103.prices.child);
 console.log("✓ Cron tự kéo, nhật ký ghi 'Hệ thống (tự động)'");
 
 // --- chốt chặn: Sheet 'mất' hơn nửa dịch vụ. Số mã giả tính theo Sheet THẬT lúc chạy (số dòng hợp lệ đổi theo thời gian: 61 → 133

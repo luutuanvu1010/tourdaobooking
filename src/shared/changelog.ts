@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.23",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Nút quay về trong ngăn Thông báo không còn bị phần tai thỏ và đồng hồ của iPhone che." },
+      { kind: "sua", text: "Chuông thông báo nằm đúng góc phải ở tài khoản Hướng dẫn viên và Đối tác trên máy tính." },
+    ],
+  },
+  {
     version: "1.22",
     date: "2026-09-28",
     items: [
