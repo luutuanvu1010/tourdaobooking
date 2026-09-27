@@ -294,14 +294,52 @@ test("thongBaoNoi: tài khoản lai Đối tác + Hướng dẫn viên (không v
   assert.deepEqual(thongBaoNoi(laiDoiTacHdv, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/account" });
 });
 
-test("thongBaoNoi: Hướng dẫn viên (không văn phòng) thấy các loại còn lại, liên kết /account", () => {
-  assert.deepEqual(thongBaoNoi(huongDanVien, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/account" });
+test("thongBaoNoi: Hướng dẫn viên (không văn phòng) thấy các loại còn lại TRỪ 'nhan', liên kết /account", () => {
+  // Đảo có chủ đích (vòng sửa 1, phát hiện I-3): chủ dự án quyết 2026-09-27 (AskUserQuestion, progress.md mục "Chủ đã quyết") — một HDV Nhận đơn ở hàng
+  // chờ thì HDV khác KHÔNG thấy thông báo nổi, chỉ danh sách hàng chờ tự cập nhật. Trước vòng sửa ca này khoá { cau: "Đơn TD1 vừa có người nhận", … }.
+  assert.equal(thongBaoNoi(huongDanVien, suKien("nhan")), null, "HDV không văn phòng: 'nhan' không thông báo nổi (quyết định chủ 2026-09-27)");
   assert.deepEqual(thongBaoNoi(huongDanVien, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/account" });
   assert.deepEqual(
     thongBaoNoi(huongDanVien, suKien("tao_cho_nhan")),
     { cau: "Có đơn mới chưa có người phụ trách: TD1", lienKet: "/account" },
     "ADR-0030 S20-6/S20-8: FIELD có dispatch.claim → thấy đơn mới chờ nhận (liên kết giữ /account tới khi có thiết kế màn HDV — Task 1.8)",
   );
+});
+
+// Vòng sửa 1 (I-3) — quyết định chủ dự án 2026-09-27: "nhan" (một người tự Nhận đơn ở hàng chờ — `thayDoiCuaHandler` chỉ trả "nhan" khi TRƯỚC chưa ai
+// phụ trách và người mới = chính người gọi, tức luôn là ca (b) "đơn rời hàng chờ" của S20-8) KHÔNG hiện thông báo nổi cho kết nối nhận tin hàng chờ
+// (`cho-nhan`) mà không xem mọi đơn (không `tat-ca`) — theo ĐÚNG `nhanKetNoi`, một nguồn. Kết nối đó nhận khung "nhan" chỉ vì (1) CHÍNH mình vừa nhận
+// (không cần báo việc mình làm) hoặc (2) đang chờ nhận (chủ: chỉ danh sách tự cập nhật). Nhãn `cho-nhan` VẪN gắn như cũ (khung vẫn tới, trang vẫn tải lại
+// danh sách hàng chờ) — chỉ bỏ CHỮ nổi. Mọi kết nối khác và mọi loại khác giữ nguyên: suy kỳ vọng từ `nhanKetNoi` + loại đối chứng `xac_nhan` (cùng
+// tập người được thông báo nổi như "nhan" trước vòng sửa), không chép tay.
+test("thongBaoNoi: 'nhan' → null ĐÚNG cho kết nối có cho-nhan mà không có tat-ca (theo nhanKetNoi); kết nối khác giữ như loại xac_nhan — 128 tập con quyền", () => {
+  const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
+  let soCaImLang = 0;
+  for (const permissions of tapCon) {
+    const staff = { id: "ket-noi", permissions };
+    const nhan = nhanKetNoi(staff);
+    const chiHangCho = nhan.includes("cho-nhan") && !nhan.includes("tat-ca");
+    const kq = thongBaoNoi(staff, suKien("nhan"));
+    const doiChung = thongBaoNoi(staff, suKien("xac_nhan"));
+    if (chiHangCho) {
+      soCaImLang++;
+      assert.equal(kq, null, `permissions=${JSON.stringify(permissions)} nhanKetNoi=${JSON.stringify(nhan)}: 'nhan' không được nổi`);
+    } else {
+      assert.equal(kq === null, doiChung === null, `permissions=${JSON.stringify(permissions)}: 'nhan' phải cùng người nhận thông báo nổi với 'xac_nhan'`);
+      if (kq !== null) assert.deepEqual(kq, { cau: "Đơn TD1 vừa có người nhận", lienKet: doiChung!.lienKet });
+    }
+  }
+  assert.ok(soCaImLang > 0, "phải có ít nhất một tập quyền thật (FIELD) rơi vào ca im lặng — không thì bài này không canh gì");
+});
+
+test("thongBaoNoi: vòng sửa I-3 CHỈ đổi 'nhan' — HDV vẫn thấy giao/xac_nhan/huy/tao_cho_nhan; văn phòng/kế toán vẫn thấy 'nhan'", () => {
+  for (const thayDoi of ["giao", "xac_nhan", "huy", "tao_cho_nhan"] as const) {
+    assert.notEqual(thongBaoNoi(huongDanVien, suKien(thayDoi)), null, `HDV × ${thayDoi} vẫn nổi`);
+  }
+  assert.deepEqual(thongBaoNoi(vanPhong, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
+  assert.deepEqual(thongBaoNoi(ketToan, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
+  // nhanKetNoi (nguồn luật lai + nhãn cho-nhan) KHÔNG đổi: HDV vẫn nhận khung hàng chờ để trang tải lại danh sách.
+  assert.deepEqual(nhanKetNoi(huongDanVien), ["cho-nhan", "nguoi:nv3"]);
 });
 
 test("thongBaoNoi: Đối tác/Thực tập KHÔNG BAO GIỜ hiện thông báo nổi (Q-C ADR-0022)", () => {

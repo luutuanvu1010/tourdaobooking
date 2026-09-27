@@ -116,12 +116,23 @@ const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
  * (không văn phòng, không Hướng dẫn viên) không bao giờ hiện (Q-C ADR-0022, điều 12 ADR-0014: chỉ chấm đếm, không thông báo nổi). `tao_cho_nhan`
  * chỉ hiện cho ai nhận được đơn chưa có người (`dispatch.claim`) VÀ không mang quyền Đối tác (`!holdsPartner` — ADR-0030 S20-8/9, cùng luật với
  * `nhanKetNoi`: tài khoản lai Đối tác+HDV không hiện thông báo về hàng chờ nhận). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
+ *
+ * `nhan` (quyết định chủ dự án 2026-09-27 — vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-3): KHÔNG hiện cho kết nối có nhãn `cho-nhan`
+ * mà KHÔNG có `tat-ca` — tính bằng CHÍNH `nhanKetNoi` (một nguồn, không viết lại luật lai). "nhan" luôn là một người TỰ nhận đơn chưa có ai (xem
+ * `thayDoiCuaHandler`), tức ca (b) "đơn rời hàng chờ" của S20-8; kết nối như vậy nhận khung chỉ vì chính mình vừa nhận, hoặc vì đang chờ nhận — chủ
+ * quyết: HDV khác không thấy thông báo nổi, chỉ danh sách hàng chờ tự cập nhật (khung vẫn tới: nhãn `cho-nhan` KHÔNG đổi). Người xem mọi đơn (`tat-ca`)
+ * vẫn thấy. `giao` (văn phòng giao đơn đang chờ cho một người) KHÔNG đổi: khung 5 khoá không cho biết người nhận khung là người vừa được giao hay HDV
+ * không liên quan (câu hỏi mở cho chủ — nhật ký thi công, mục "Phối hợp với nhánh khác").
  */
 export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBaoNoi | null {
   const vanPhong = isOffice(staff);
   const huongDanVien = !vanPhong && hasPermission(staff, "FIELD");
   if (!vanPhong && !huongDanVien) return null;
   if (suKien.thayDoi === "tao_cho_nhan" && (!can(staff, "dispatch.claim") || holdsPartner(staff))) return null;
+  if (suKien.thayDoi === "nhan") {
+    const nhan = nhanKetNoi(staff);
+    if (nhan.includes("cho-nhan") && !nhan.includes("tat-ca")) return null;
+  }
   const dungCau = CAU_THONG_BAO[suKien.thayDoi];
   if (!dungCau) return null;
   return { cau: dungCau(suKien.maDon), lienKet: vanPhong ? `/order?id=${suKien.orderId}` : "/account" };
