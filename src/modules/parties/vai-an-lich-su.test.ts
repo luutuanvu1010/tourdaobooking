@@ -21,6 +21,7 @@ function setup() {
       VALUES ('${id}', '${party}', '${code}', '${from}', ${to ? `'${to}'` : "NULL"}, '${NOW}', '${NOW}')`);
   role("r-sup-dir", `pty-${SUP}`, "DIRECTOR", "2026-01-01", "2026-09-01");
   role("r-sup-it", `pty-${SUP}`, "IT", "2026-09-02", null);
+  role("r-sup-future", `pty-${SUP}`, "OPERATIONS_MANAGER", "2099-01-01", null); // chưa hiệu lực — không phải vai đang mở
   role("r-adm-op-old", `pty-${ADM}`, "SALES_STAFF", "2026-01-01", "2026-09-01");
   role("r-adm-op", `pty-${ADM}`, "OPERATIONS_MANAGER", "2026-09-02", null);
   return w;
@@ -39,6 +40,6 @@ test("ADR-0044: người không giữ Toàn quyền xem hồ sơ Toàn quyền �
 
 test("ADR-0044: Toàn quyền xem hồ sơ của mình → đủ lịch sử; hồ sơ người khác vẫn hiện lịch sử như cũ với mọi người", async () => {
   const w = setup();
-  assert.deepEqual(codes(await w.call("GET", `/api/parties/pty-${SUP}`, { as: SUP })), ["DIRECTOR", "IT"]);
+  assert.deepEqual(codes(await w.call("GET", `/api/parties/pty-${SUP}`, { as: SUP })), ["DIRECTOR", "IT", "OPERATIONS_MANAGER"]);
   assert.deepEqual(codes(await w.call("GET", `/api/parties/pty-${ADM}`, { as: SALES })), ["OPERATIONS_MANAGER", "SALES_STAFF"]);
 });
