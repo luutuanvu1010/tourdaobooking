@@ -137,21 +137,28 @@ assert.equal((await call(TQ, "POST", "/api/thong-bao", than())).status, 201);
 // R6: tin chống trùng gửi với quanTrong: false, không để lại dải nhắc trên DB dev.
 const b = than({ tieuDe: "Tin chống trùng", quanTrong: false });
 const r1 = await call(TQ, "POST", "/api/thong-bao", b), r2 = await call(TQ, "POST", "/api/thong-bao", b);
+assert.equal(r1.status, 201, JSON.stringify(r1.body));
+assert.equal(r2.status, 200, JSON.stringify(r2.body));
+assert.ok(r1.body.id, "lần gửi đầu phải trả id");
 assert.equal(r1.body.id, r2.body.id, "gửi lại cùng clientRequestId → cùng tin (chống bấm hai lần / mạng chậm)");
+assert.equal(
+  (await sqlRows(`SELECT COUNT(*) AS n FROM ntf_notice WHERE client_request_id = '${b.clientRequestId}'`))[0].n,
+  1,
+  "chỉ một dòng ntf_notice dù gửi hai lần cùng clientRequestId",
+);
 assert.equal((await call(TQ, "POST", "/api/thong-bao", than({ tieuDe: "" }))).status, 400);
 console.log("✓ gửi: chỉ Toàn quyền, chống trùng, kiểm đầu vào");
 
 const tt = (await call(A, "GET", "/api/thong-bao/tom-tat")).body;
 const qt = tt.quanTrongChuaHieu.find((x) => x.tieuDe === "Đổi cổng đón Cầu Đá");
 assert.ok(qt, "Bán hàng thấy tin quan trọng ở dải");
-assert.equal((await call(A, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`)).status, 200);
+const guiHieu1 = await call(A, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`);
+assert.equal(guiHieu1.status, 200);
 assert.ok(!(await call(A, "GET", "/api/thong-bao/tom-tat")).body.quanTrongChuaHieu.some((x) => x.id === qt.id), "bấm Đã hiểu → dải tắt");
-// Bấm lần hai vẫn OK, cùng mốc (đặc tả §7).
-const hieuLai1 = await call(A, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`);
-assert.equal(hieuLai1.status, 200);
-const hieuLai2 = await call(A, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`);
-assert.equal(hieuLai2.status, 200);
-assert.equal(hieuLai2.body.luc, hieuLai1.body.luc, "bấm lại nhiều lần vẫn trả đúng mốc đã hiểu lần đầu");
+// Bấm lại (lần hai) vẫn OK, cùng mốc lần đầu (đặc tả §7).
+const guiHieu2 = await call(A, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`);
+assert.equal(guiHieu2.status, 200);
+assert.equal(guiHieu2.body.luc, guiHieu1.body.luc, "bấm lại vẫn trả đúng mốc đã hiểu lần đầu, không đổi");
 // Người không thuộc nhóm nhận (Đối tác thuần, tin "noi-bo") bấm → 404.
 assert.equal((await call(DT, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`)).status, 404, "Đối tác thuần không thuộc nhóm nhận 'noi-bo' → 404");
 const ai = (await call(TQ, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`)).body;

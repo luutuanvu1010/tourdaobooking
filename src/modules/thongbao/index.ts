@@ -2,7 +2,7 @@
 import { auditStatement } from "../audit";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type {
-  DaGuiResponse, HopThongBaoResponse, NguoiDaHieuResponse, NguoiNhanTin, PermissionCode, StaffProfile, TinDaGuiDto, TomTatThongBaoResponse,
+  DaGuiResponse, HopThongBaoResponse, NguoiDaHieuResponse, NguoiNhanTin, PermissionCode, StaffAccount, StaffProfile, TinDaGuiDto, TomTatThongBaoResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, PERMISSION_LABEL } from "../../shared/permissions";
@@ -20,8 +20,12 @@ const FORBIDDEN = () => error(403, "forbidden", "Chỉ Toàn quyền được g�
 const nguoiNhanTu = (tags: string): NguoiNhanTin =>
   tags.split(" ").includes("noi-bo") ? "noi-bo" : tags.split(" ").filter(Boolean).map((t) => t.slice(6) as PermissionCode);
 
-async function nguoiNhanCua(db: D1Database, tags: string[]) {
-  return (await listStaffAccounts(db)).filter((s) => s.active && nhanThayTinThuCong(s, tags));
+/** Lọc, trên một danh sách tài khoản ĐANG HOẠT ĐỘNG đã có sẵn (không tự truy vấn), ai thuộc nhóm nhận `tags`. */
+const locNguoiNhan = (dangHoatDong: StaffAccount[], tags: string[]) => dangHoatDong.filter((s) => nhanThayTinThuCong(s, tags));
+
+/** R6: gọi `listStaffAccounts` một lần cho MỘT tin — dùng ở nguoi-da-hieu (đúng một tin mỗi lần gọi route). */
+async function nguoiNhanCuaMotTin(db: D1Database, tags: string[]) {
+  return locNguoiNhan((await listStaffAccounts(db)).filter((s) => s.active), tags);
 }
 
 async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-ca"): Promise<HopThongBaoResponse> {
@@ -82,10 +86,12 @@ export const thongbaoModule: AppModule = {
     }),
     route("GET", "/api/thong-bao/da-gui", "admin", async ({ env, staff }) => {
       if (!can(staff, "notice.send")) return FORBIDDEN();
-      const rows = await listSent(env.DB);
+      // R6: listStaffAccounts gọi ĐÚNG MỘT LẦN ở đây, ngoài vòng lặp bên dưới (không phải một lần mỗi tin đã gửi).
+      const [rows, taiKhoan] = await Promise.all([listSent(env.DB), listStaffAccounts(env.DB)]);
+      const dangHoatDong = taiKhoan.filter((s) => s.active);
       const tin: TinDaGuiDto[] = await Promise.all(rows.map(async (r) => {
         const tags = (r.tags ?? "").split(" ").filter(Boolean);
-        const nhan = await nguoiNhanCua(env.DB, tags);
+        const nhan = locNguoiNhan(dangHoatDong, tags);
         const acks = r.quan_trong ? await listAcks(env.DB, r.id) : [];
         return {
           id: r.id, tieuDe: r.tieu_de, nguoiNhan: nguoiNhanTu(r.tags ?? ""), quanTrong: r.quan_trong === 1, luc: r.created_at, thuHoiLuc: r.valid_to,
@@ -99,7 +105,7 @@ export const thongbaoModule: AppModule = {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       const n = await getNotice(env.DB, params.id!);
       if (!n) return NOT_FOUND();
-      const nhan = (await nguoiNhanCua(env.DB, (n.tags ?? "").split(" ").filter(Boolean))).filter((s) => s.id !== staff.id);
+      const nhan = (await nguoiNhanCuaMotTin(env.DB, (n.tags ?? "").split(" ").filter(Boolean))).filter((s) => s.id !== staff.id);
       const acks = new Map((await listAcks(env.DB, n.id)).map((a) => [a.staff_id, a.created_at]));
       const quyen = (s: { permissions: readonly PermissionCode[] }) => s.permissions.map((p) => PERMISSION_LABEL[p]).join(", ");
       return json({
