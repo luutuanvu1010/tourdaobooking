@@ -1,4 +1,4 @@
-# ADR-0035 — Thông báo màn hình khoá (Web Push) cho tài khoản nội bộ: cú gõ cửa không nội dung, giờ yên lặng, tự tắt
+# ADR-0036 — Thông báo màn hình khoá (Web Push) cho tài khoản nội bộ: cú gõ cửa không nội dung, giờ yên lặng, tự tắt
 
 - **Trạng thái:** **proposed** — AI soạn 2026-09-27 theo câu trả lời M1–M4, N4 của chủ trong chat cùng ngày (đặc tả `docs/superpowers/specs/2026-09-27-thong-bao-he-thong-design.md` §2, §9). **Lượt duyệt thứ hai** — chỉ duyệt sau ADR-0034; chưa thi công.
 - **Ngày:** 2026-09-27   **Loại:** cửa **hai chiều** (tắt được bằng cách gỡ khoá bí mật và nút bật; bảng địa chỉ máy ở lại), có **một bí mật mới** (triển khai — chủ tự đặt).
@@ -15,7 +15,7 @@ Nhân viên cần biết tin mới cả khi app đang đóng. iPhone hỗ trợ 
 ## Quyết định
 
 1. **Chỉ tài khoản nội bộ** (có ít nhất một quyền khác `PARTNER`) bật được, bằng nút trong trang Tài khoản; xin quyền trong cú chạm.
-2. **Lưu địa chỉ nhận của máy** trong bảng `ntf_push_sub` (module `thongbao`): tài khoản, địa chỉ, tên máy ngắn, lúc tạo, lúc hết hiệu lực + lý do. Không lưu khoá mã hoá của máy; không xoá cứng.
+2. **Lưu địa chỉ nhận của máy** trong bảng `ntf_push_sub` (module `thongbao`): tài khoản, địa chỉ, tên máy ngắn, lúc hết hiệu lực + lý do, và đủ 4 cột dấu vết. Không lưu khoá mã hoá của máy; không xoá cứng.
 3. **Cú gõ cửa không nội dung**, ký VAPID (ES256, Web Crypto, không thư viện ngoài), khoá bí mật `VAPID_PRIVATE_KEY` do **chủ** đặt bằng `wrangler secret put`. Service worker tự hỏi máy chủ tin mới nhất bằng phiên của máy; hỏi không được vẫn hiện "Tour Đảo: bạn có thông báo mới".
 4. **Chỉ rung cho tin ngăn "Của tôi"** (ADR-0034 điều 4). **Giờ yên lặng 22:00–06:00 giờ Việt Nam**, trừ tin quan trọng.
 5. **Gửi sau khi lô ghi thành công**, bằng `ctx.waitUntil`; được phép lỡ, không theo dõi gửi lại. 410 → địa chỉ hết hiệu lực; 404 chỉ ghi log.

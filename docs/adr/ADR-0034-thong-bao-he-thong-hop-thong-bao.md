@@ -7,7 +7,7 @@
   - **ADR-0022** (Bảng tin, accepted): **không sửa**. Dùng lại `nhanSuKien`, `nhanKetNoi`; điều kiện bên trong `thongBaoNoi` được **tách** thành hàm dùng chung (không đổi hành vi thông báo nổi).
   - **ADR-0002 / ADR-0008** (đồ thị module): **bổ sung** module `thongbao` và các cạnh đi ra của nó.
   - **ADR-0014 điều 12**: giữ — Đối tác/Thực tập không nhận tin về đơn; chỉ nhận tin thủ công khi nhóm của họ được chọn.
-  - **ADR-0035** (proposed, cùng ngày): thông báo màn hình khoá — lượt duyệt riêng.
+  - **ADR-0036** (proposed, cùng ngày): thông báo màn hình khoá — lượt duyệt riêng.
   - Số 0030–0032 dành cho Đơn tự do, 0033 đã dùng → 0034.
 
 ## Bối cảnh
@@ -20,7 +20,7 @@ Khi hỏi nguồn của tin về đơn, AI trình hai phương án: (a) **đọc
 
 1. **Tin về đơn là hình chiếu của `audit_log`**, không có bảng riêng. Nguồn: các hành động `created`, `order_claimed` (mới — điều 2), `order_handler_changed`, `confirmed`, `cancelled`, `order_cancelled_by_field`, đọc qua **view công bố** của module `audit` trong 30 ngày gần nhất. Không sửa lô ghi nào của `orders`.
 2. **Hành động nhật ký mới `order_claimed`**: `dispatch` ghi khi người làm tự đặt mình vào đơn chưa có người phụ trách (luật `thayDoiCuaHandler` sẵn có); còn lại vẫn `order_handler_changed`. Không migration.
-3. **Ai thấy tin về đơn** — tính lúc đọc, theo **trạng thái hiện tại** của đơn (người lập, người phụ trách hiện tại) và **quyền hiện tại** của người xem: nhãn `nhanSuKien` ∩ `nhanKetNoi(người xem)`, cộng điều kiện "được thấy tin về đơn" tách từ `thongBaoNoi`, trừ tin do chính người xem làm. Tin kèm tên người làm (qua `v_stf_staff_label`), chỉ hiện cho người vốn được thấy tin.
+3. **Ai thấy tin về đơn** — tính lúc đọc, theo **trạng thái hiện tại** của đơn (người lập, người phụ trách hiện tại) và **quyền hiện tại** của người xem: nhãn `nhanSuKien` ∩ `nhanKetNoi(người xem)`, cộng điều kiện "được thấy tin về đơn" tách từ `thongBaoNoi`, trừ tin do chính người xem làm. Tin kèm tên người làm (qua `v_stf_staff_label`) **chỉ khi** `can(người xem, "order.history.view", phạm vi của đơn)` đúng — cùng ranh giới route chi tiết đơn dùng để giấu lịch sử; sai thì máy chủ dựng câu không tên (chủ chọn 2026-09-27 sau phát hiện của người kiểm độc lập).
 4. **Hai ngăn**: "Của tôi" (tin thủ công của mình, đơn mình lập/phụ trách, đơn chờ nhận nếu nhận được) và "Tất cả" (thêm tin nhãn `tat-ca`). Số chưa đọc chỉ đếm "Của tôi"; số và danh sách qua **một** hàm lọc. Mở hộp = đặt mốc đã đọc.
 5. **Module mới `thongbao`**, tiền tố `ntf_`, hạng nghiêm. Cạnh: `thongbao → audit, orders, dispatch, staff` (chỉ đọc view công bố + `auditStatement`). Không module nào import `thongbao` → không vòng. View công bố mới: sự kiện đơn (`audit`), người lập của đơn `v_ord_order_owner` (`orders`), và nếu cần mốc phụ trách đầu tiên (`dispatch`) — không sửa view đang có.
 6. **Tin thủ công là thực thể**: bảng `ntf_notice` (tiêu đề, nội dung, quan trọng, thu hồi bằng `valid_to`), `ntf_notice_target` (`moi-nguoi` | `quyen:<MÃ>`, so với quyền **hiện có** lúc đọc), `ntf_ack` (chỉ-thêm: ai "Đã hiểu" tin quan trọng nào, lúc nào), `ntf_read_mark` (mốc đã đọc của mỗi tài khoản, chỉ chính tài khoản đặt). Migration `0025_thong_bao.sql`.
@@ -33,7 +33,7 @@ Khi hỏi nguồn của tin về đơn, AI trình hai phương án: (a) **đọc
 
 - ADR-0002/0008: thêm một module và các cạnh đi ra (bổ sung). `src/architecture.test.ts` `ALLOWED_EDGES` cập nhật cùng commit mã.
 - `MATRIX` (`src/shared/permissions.ts`): thêm dòng `notice.send`; không đổi ô nào đang có.
-- `src/shared/audit-actions.ts`: thêm `order_claimed`, `notice_sent`, `notice_revoked`, `notice_acknowledged`.
+- `src/shared/audit-actions.ts`: thêm `order_claimed` (nhóm `order`), `notice_sent`, `notice_revoked`, `notice_acknowledged` (nhóm mới `notice`).
 - Không sửa ADR-0022, ADR-0014, ADR-0018.
 
 ## Phương án bị loại
