@@ -3,6 +3,10 @@
 - **Ngày:** 2026-09-27.
 - **Người soạn:** phiên điều phối.
 - **Trạng thái:** **ĐỀ XUẤT — CHỜ CHỦ DUYỆT.** Nháp đặt ngoài `docs/adr/` để tránh hỏi quyền từng lần sửa. Chủ duyệt xong mới chép vào ADR-0024.
+- **Người kiểm độc lập** (2026-09-28, trên 96c7024): ĐẠT CÓ ĐIỀU KIỆN. Đã sửa cả ba điểm:
+  - Nghiêm trọng: lỗ gán/kết thúc vai "công ty chủ" (mục 3.5);
+  - Quan trọng: ô quyền trỏ đúng ADR-0038 điều 7 (mục 3.4);
+  - Quan trọng: chân trang đăng nhập mô tả đúng hiện trạng (mục 3.2).
 - **Hình thức:** ADR-0024 **"accepted phần điều 6"**, kèm câu bổ sung theo quyết định (a) của chủ. Không cần số ADR mới. Tiền lệ duyệt từng phần: ADR-0020 (điều 1, 2, 3, 7), ADR-0023 (điều 1, 2, 4).
 - **Nguồn quyết định, kiểm được:**
   - Chủ chọn "2i" (làm T2b trước phân hệ Vận chuyển lượt 1a) và "T2b chọn a", trong phiên điều phối 2026-09-27. Ghi ở `docs/superpowers/specs/2026-09-27-van-chuyen-ra-soat.md` §6 (commit 85b677a, 9690e05).
@@ -31,15 +35,27 @@ Việc này trái Hiến chương 2.1: "Chính Tour Đảo cũng là một hồ 
    - Email là điểm liên hệ loại `EMAIL`.
 2. **Mọi nơi đọc qua MỘT hàm công bố của `parties`** (tên hàm chốt ở kế hoạch):
    - `GET /api/company`: giữ đường dẫn, đổi nguồn đọc. Biên nhận không phải sửa.
-   - Trang đăng nhập: chân trang lấy tên + MST từ `GET /api/auth/config`, route công khai mà trang đã gọi sẵn. Thêm 2 trường vào đó, **không** thêm request. Chữ tĩnh trong `login.html` chỉ là lớp dự phòng khi mạng lỗi, và có bài kiểm so khớp với dữ liệu gieo.
+   - **Trang đăng nhập** (nói rõ vì chạm màn hình chủ đã duyệt):
+     - Hôm nay chân trang là chữ tĩnh, theo bản thiết kế Claude Design (`web/login.ts`:386-388, commit ec83521; trang KHÔNG gọi `/api/company`). Chủ đã chọn "(a) … trang đăng nhập … đọc qua một hàm" ở câu T2b.
+     - Đề xuất: **hình thức chân trang giữ y bản thiết kế**, chỉ đổi NGUỒN chữ. Tên + MST lấy từ `GET /api/auth/config` — route công khai trang vốn đã gọi (`src/modules/auth/index.ts`:103-104). Thêm 2 trường, **không** thêm request.
+     - Chữ tĩnh hiện có là nội dung hiện trước khi cấu hình tải xong, hoặc khi lỗi mạng.
+     - Chữ tĩnh hôm nay đã lệch dữ liệu gieo một chữ hoa ("tỉnh" ở `login.html`:45 so với "Tỉnh" ở `migrations/0002`:20). Khi làm thì sửa theo dữ liệu hồ sơ. Bài so khớp dùng chuỗi đã chuẩn hoá, không so từng ký tự.
 3. **Giới hạn phạm vi (nói rõ):**
    - `company_profile` **không bị xoá** ở lượt này. Các cột pháp lý thôi được đọc; `logo_url` (thương hiệu, không phải định danh) còn ở lại.
    - Việc thu hồi hẳn làm theo expand–contract ở một lần phát hành sau (CLAUDE.md §7).
-4. **Ai được sửa hồ sơ công ty chủ:** trỏ tới ô quyền mà **ADR-0038** (phiên siết quyền Quản trị, đang soạn) định cho "sửa định danh pháp lý Tour Đảo".
-   - Khuyến nghị: **chỉ Toàn quyền**.
-   - Nếu ADR-0038 chưa duyệt khi T2b phát hành: tạm "chỉ SUPER_ADMIN, chờ ADR-0038".
-   - Mọi route ghi hồ sơ khác (`party.write`, gộp hồ sơ) từ chối hồ sơ này.
-5. **Tách riêng khỏi phần còn lại của ADR-0024.** Dòng "Dữ liệu" của ADR-0024 (`:81`) gộp hồ sơ Tour Đảo với cột mốc trên `orders` (điều 3) và `v_ord_order_state`. Đề xuất này chỉ phát hành phần điều 6. Điều 1–5, 7… vẫn là proposed.
+4. **Ai được sửa hồ sơ công ty chủ:** ô **`company.legal.write`, chỉ SUPER_ADMIN**, theo **ADR-0038 điều 7** (nhánh `worktree-an-nhat-ky-toan-quyen`, commit d8165e3, chủ chọn 27/9, CHƯA gộp main). Ô này thay cho `admin.manage` trong câu gốc của điều 6.
+   - Mọi route ghi hồ sơ công ty chủ (định danh, điểm liên hệ, **vai**) hỏi ô này trong thân route.
+   - Nếu T2b lên main trước ADR-0038, T2b tự thêm ô vào MATRIX; nhánh gộp sau gộp main và không khai lặp.
+   - `party.write` từ chối hồ sơ công ty chủ.
+   - **Tính năng gộp hồ sơ chưa có trong mã** (N2). Khi xây, nó phải từ chối hồ sơ này; ghi thành yêu cầu cho tính năng đó.
+5. **Chặn lỗ gán / kết thúc vai "công ty chủ"** (người kiểm độc lập phát hiện, Nghiêm trọng).
+   - `POST /api/parties/:id/roles` và `POST /api/parties/:id/roles/:rid/end` (`src/modules/parties/index.ts`:291-297, 316-324) hôm nay chỉ đòi `can(admin.manage)` và chỉ chặn vai nhóm nội bộ/ngoài. Vai nhóm OTHER như "công ty chủ" lọt qua, nên bất kỳ Quản trị nào cũng kết thúc được vai (làm hỏng `/api/company`) hoặc gán thêm một "công ty chủ" thứ hai.
+   - **Hai lớp (Hiến chương 5.1):**
+     - (i) hai route trên từ chối mã vai "công ty chủ" trừ khi người gọi có `company.legal.write`;
+     - (ii) ở CSDL: chỉ mục duy nhất một phần `pty_party_role(role_type_code) WHERE role_type_code = '<mã công ty chủ>' AND valid_to_date IS NULL` — người kiểm đã thử trên SQLite tạm: dòng mở thứ hai bị chặn, dòng đã đóng vẫn chèn được;
+     - cộng trigger cấm đóng vai này khi không có dòng mở thay thế trong cùng lô.
+   - Có dòng sổ hàng rào và ngày thấy chặn (P16).
+6. **Tách riêng khỏi phần còn lại của ADR-0024.** Dòng "Dữ liệu" của ADR-0024 (`:81`) gộp hồ sơ Tour Đảo với cột mốc trên `orders` (điều 3) và `v_ord_order_state`. Đề xuất này chỉ phát hành phần điều 6. Điều 1–5, 7… vẫn là proposed.
 
 ## 4. Điều kiện "không xây trên lỗ đang hở" (dòng 7 của ADR-0024) — kiểm lại 2026-09-27
 
@@ -53,13 +69,15 @@ Việc này trái Hiến chương 2.1: "Chính Tour Đảo cũng là một hồ 
 
 ## 5. Dữ liệu và thi công (cho phiên thi công; kế hoạch chốt chi tiết)
 
-- **Migration chỉ-thêm (số trống kế tiếp, kiểm mọi nhánh; 0026 đã có chủ):**
+- **Migration chỉ-thêm** (số trống kế tiếp, kiểm mọi nhánh lúc thi công; ngày 27/9: 0025 và 0026 của nhánh Thông báo, 0027 của nhánh siết quyền ⇒ số trống là **0028**):
   - thêm mã vai "công ty chủ" vào `pty_role_type`, nhóm `OTHER`, không sinh quyền;
   - thêm hồ sơ Tour Đảo + `pty_organization` + điểm liên hệ, chép từ `company_profile`.
 - **Luật "không gieo tên thật / SĐT bằng migration"** (`migrations/0020`:3, `0024`:4) nhắm dữ liệu cá nhân. Hotline công ty là thông tin công khai (đã in trên trang đăng nhập). Nếu người kiểm độc lập thấy luật vẫn áp, dùng runbook gieo — ADR-0024 `:81` đã cho phép.
 - **`audit-invariants`:** đúng một hồ sơ mở vai "công ty chủ"; `GET /api/company` trả đúng dữ liệu hồ sơ đó.
 - **Test hồi quy:**
-  - Bán hàng sửa hoặc gộp hồ sơ công ty chủ → 403;
+  - Bán hàng sửa hồ sơ công ty chủ → 403;
+  - Quản trị (không có `company.legal.write`) gán hoặc kết thúc vai "công ty chủ" → 403;
+  - gán vai "công ty chủ" thứ hai → CSDL chặn;
   - `/api/auth/config` có tên + MST;
   - biên nhận vẫn in đúng.
 - **Module:** `company` đọc qua `parties` ⇒ `ALLOWED_EDGES` thêm `company → parties`. Hoặc chuyển route `/api/company` vào `parties` — kế hoạch chọn, người kiểm độc lập xác nhận không vòng.
@@ -70,8 +88,8 @@ Việc này trái Hiến chương 2.1: "Chính Tour Đảo cũng là một hồ 
 | Hỏi | Trả lời |
 |---|---|
 | Bảng `pty_party` chứa những loại thực thể nào sau khi áp? | người, tổ chức (khách, đại lý, nhân sự…) **+ đúng một "công ty chủ"** (mới) |
-| Dòng bản đồ quyền nào chạm bảng này áp cho loại mới? | `party.write` (Bán hàng, Kế toán `any` với hồ sơ không gắn tài khoản) — **loại trừ** công ty chủ; gộp hồ sơ — loại trừ; sửa công ty chủ — ô của ADR-0038 (tạm chỉ SUPER_ADMIN) |
-| Cổng nào canh? | route `party.write`, gộp hồ sơ: kiểm vai "công ty chủ" trong thân route → 403; `GET /api/company`, `/api/auth/config`: công khai, chỉ đọc tên/MST/địa chỉ/hotline/email — **không** đọc gì khác của `parties` |
+| Dòng bản đồ quyền nào chạm bảng này áp cho loại mới? | `party.write` (Bán hàng, Kế toán `any` với hồ sơ không gắn tài khoản) — **loại trừ** công ty chủ. `admin.manage` (gán/kết thúc vai nhóm OTHER) — **loại trừ** vai "công ty chủ". Sửa định danh, điểm liên hệ, vai của công ty chủ — **`company.legal.write`, chỉ SUPER_ADMIN** (ADR-0038 điều 7). Gộp hồ sơ (chưa có mã) — phải loại trừ khi xây. |
+| Cổng nào canh? | Route `party.write`, `POST /api/parties/:id/roles`, `POST /api/parties/:id/roles/:rid/end`: kiểm vai "công ty chủ" trong thân route → 403 nếu thiếu `company.legal.write`. CSDL: chỉ mục duy nhất một phần (một vai mở) + trigger cấm đóng khi không có dòng thay. `GET /api/company`, `/api/auth/config`: công khai, chỉ đọc tên/MST/địa chỉ/hotline/email — **không** đọc gì khác của `parties`. |
 
 ## 7. Bị loại
 - **(b)** Giữ `company_profile` làm nguồn, hồ sơ chỉ là khung: vẫn hai nơi ghi (H5). Chủ không chọn.

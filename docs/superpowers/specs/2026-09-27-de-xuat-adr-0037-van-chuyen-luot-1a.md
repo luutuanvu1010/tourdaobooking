@@ -3,12 +3,19 @@
 - **Ngày:** 2026-09-27.
 - **Người soạn:** phiên điều phối.
 - **Trạng thái:** **ĐỀ XUẤT — CHỜ CHỦ DUYỆT.** Nháp ngoài `docs/adr/`; chép vào `docs/adr/ADR-0037-*.md` khi chủ duyệt. Số 0037 kiểm còn trống trên mọi nhánh ngày 27/9 — kiểm lại lúc chép.
+- **Duyệt TÁCH RIÊNG khỏi T2b:** hai lượt; mỗi lượt tối đa 3 quyết định (CLAUDE.md §9).
+- **Người kiểm độc lập** (2026-09-28, trên 96c7024): ĐẠT CÓ ĐIỀU KIỆN. Đã sửa:
+  - đọc giấy tờ tài xế qua HÀM công bố, không qua view;
+  - CCCD không trùng giữ bằng trigger;
+  - biển số không trùng với xe đang bảo dưỡng;
+  - số migration;
+  - con trỏ ADR-0038.
 - **Nguồn:**
   - chủ chốt 27/9: `docs/superpowers/specs/2026-09-27-van-chuyen-design.md` §0; `2026-09-27-van-chuyen-ra-soat.md` §6 ("1b, 2i", "T2b chọn a");
   - ba báo cáo rà độc lập: phụ lục của `2026-09-27-van-chuyen-ra-soat.md`.
 - **Điều kiện trước:**
   - **T2b** (`2026-09-27-de-xuat-t2b-ho-so-tour-dao.md`) được duyệt và gộp TRƯỚC, vì xe công ty có chủ là hồ sơ Tour Đảo;
-  - ô quyền trỏ tới cách chia `admin.manage` của **ADR-0038** (phiên siết quyền Quản trị).
+  - ô quyền khớp **ADR-0038 điều 6** (nhánh `worktree-an-nhat-ky-toan-quyen`, chủ chọn "A. giữ kinh doanh + nhân sự"): `admin.manage` giữ cho Quản trị với danh mục, địa điểm, hồ sơ, tài khoản cấp dưới; việc kỹ thuật chỉ Toàn quyền.
 
 ## Bối cảnh
 
@@ -27,7 +34,7 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
   - Bổ sung ADR-0002 điều 2 (tiền tố) và đồ thị: `van-chuyen → parties` (đọc view/hàm công bố), `→ audit` (`auditStatement`).
   - Không module nào import `van-chuyen`.
 - **Xe** (thực thể có vòng đời; Hiến chương 2.2):
-  - biển số (duy nhất trong các xe đang dùng), **số khung** (định danh bền), tên/đời xe;
+  - biển số: duy nhất trong các xe **chưa ngừng** (đang dùng + bảo dưỡng — xe bảo dưỡng vẫn giữ biển); **số khung** (định danh bền); tên/đời xe;
   - **số người được chở, không kể tài xế** — tham số từng xe, INTEGER > 0 (chủ chốt; giấy cũ ghi 16 chỗ thì nhập 15);
   - **chủ xe** = khoá tới hồ sơ (lượt 1a: hồ sơ Tour Đảo — hàm công bố của T2b);
   - trạng thái vòng đời: *đang dùng / bảo dưỡng / ngừng* — tập đóng `CHECK`, đổi bằng ADR;
@@ -45,7 +52,8 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
     - Giám sát hành trình;
     - Camera người lái.
 - **Danh sách "giấy tờ sắp hết hạn"** (xe + tài xế) trong phân hệ Vận chuyển:
-  - Giấy tờ tài xế đọc qua view công bố của `parties`, không số.
+  - Giấy tờ tài xế đọc qua **một HÀM công bố** ở `parties/index.ts`, trả loại, hạng, hạn, tên hiển thị — **không** số.
+  - Không đọc qua view: luật đã duyệt chỉ cho view công bố chứa khoá + nhãn + cờ tối thiểu (`docs/ARCHITECTURE.md` Phần II quy tắc 4; bài "điều 3" ở `src/architecture.test.ts`). Muốn view thì phải xin mở rộng như ADR-0024 với `v_ord_order_state`.
   - Ngưỡng "sắp hết hạn" (số ngày) là **chính sách có ngày hiệu lực**. Chỉ Toàn quyền sửa (`settings.ops`, theo 2a). Mặc định 30 ngày.
   - **Chưa lên chuông** — hộp thông báo hôm nay chỉ chiếu sự kiện nhật ký và tin tay. Nhắc theo thời gian là cơ chế mới, để sau.
 - **Để sang lượt 1b** (không có gì đọc chúng ở 1a):
@@ -62,15 +70,18 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
   - số, ngày cấp, nơi cấp, ngày hết hạn;
   - **hạng** (cột có kiểu; chỉ dùng với GPLX; danh mục hạng B, D1, D2, D, và hạng cũ B2, C, D, E).
   - Gia hạn = thêm dòng mới. Sửa sai có lý do.
-  - Số CCCD là duy nhất trên các hồ sơ đang mở (một số — một người, OR:32).
+  - Số CCCD thuộc về đúng một người (OR:32). Giữ bằng **TRIGGER** so `party_id` khác nhau, theo khuôn `pty_party_role_group_conflict_ins` (`migrations/0024`).
+    - Không dùng chỉ mục một phần: SQLite cấm truy vấn con trong `WHERE` của chỉ mục một phần.
+    - Không dùng `UNIQUE(loại, số)` phẳng: sẽ chặn nhầm lần cấp lại của CHÍNH người đó, vì CCCD giữ số qua các lần cấp.
+    - Người kiểm đã thử cả hai trên SQLite tạm.
 - **Nghĩa của hạng** (chở tối đa bao nhiêu khách) là **luật của Vận chuyển**, làm ở 1b — không nằm ở `parties`.
 - **Bảo vệ dữ liệu cá nhân:**
   - Số CCCD và số GPLX **che** trong mọi danh sách.
   - "Xem đủ số" cần ô quyền riêng; mỗi lần xem ghi nhật ký **không kèm số**.
   - Nhật ký, Bảng tin, thông báo **không bao giờ** chứa số giấy tờ, tên kèm năm sinh, hay chữ tự do của giấy tờ. Siết Hiến chương 5.12 theo 9.7.
   - Có hàng rào kiểm và dòng sổ hàng rào (P16).
-  - View `parties` cho Vận chuyển chỉ có: loại, hạng, hạn, trạng thái — không số.
-- **Ô quyền mới, có tên** — người giữ khớp cách chia `admin.manage` của ADR-0038:
+  - Hàm `parties` cho Vận chuyển chỉ trả: loại, hạng, hạn, trạng thái — không số.
+- **Ô quyền mới, có tên** — người giữ khớp ADR-0038 điều 6 (Quản trị giữ phần nhân sự):
   - "ghi giấy tờ của người": khuyến nghị Quản trị + Toàn quyền. **Không** cho người chỉ điều xe, vì ai sửa hạn là mở khoá xuất bến (1b).
   - "xem đủ số giấy tờ": khuyến nghị Quản trị + Toàn quyền.
   - Danh mục "loại giấy tờ của người" và "hạng": Quản trị sửa (theo 2a).
@@ -86,7 +97,7 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
 
 ## Hệ quả
 
-- **Dữ liệu:** migration chỉ-thêm, số trống kế tiếp (0026 đã có chủ). `docs/data-dictionary.json` + `npm run dict`.
+- **Dữ liệu:** migration chỉ-thêm, số trống kế tiếp lúc thi công (27/9: 0025–0026 của nhánh Thông báo, 0027 của nhánh siết quyền, T2b dự kiến lấy 0028 ⇒ 1a từ 0029, kiểm lại mọi nhánh). `docs/data-dictionary.json` + `npm run dict`.
 - **Hàng rào mới** (mỗi cái có dòng sổ hàng rào và ngày thấy chặn):
   - trigger cấm sửa đè giấy tờ đã có dòng mới;
   - trigger không xoá;
@@ -95,7 +106,7 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
   - kiểm quyền "xem đủ số".
 - **Giao diện:** màn Xe (danh sách, thêm, sửa, ngừng), giấy tờ xe, giấy tờ trong hồ sơ người, danh mục, danh sách sắp hết hạn — theo khuôn màn Địa điểm/Danh mục hiện có. Chủ muốn đẹp theo thiết kế riêng thì vẽ Claude Design trước.
 - **Việc lớn** (dữ liệu + quyền + dữ liệu cá nhân) ⇒ người kiểm độc lập ở cuối.
-- **Thứ tự:** T2b gộp → ADR-0038 chốt ô → thi công 1a (phiên riêng).
+- **Thứ tự:** T2b duyệt + gộp → ADR-0037 duyệt (lượt riêng) → thi công 1a (phiên riêng). ADR-0038 đi song song, nhánh nào gộp sau thì gộp main trước.
 - **Thay/sửa quyết định cũ:**
   - ADR-0002 (thêm module, tiền tố) — bổ sung;
   - ADR-0013:21 (`party.staff.write`) — giấy tờ theo ô mới của D2;
@@ -106,7 +117,7 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
 | Hỏi | Trả lời |
 |---|---|
 | Bảng nào nhận loại dữ liệu mới? | `pty_*` nhận **giấy tờ của người** (loại mới; có số CCCD — dữ liệu cá nhân nhạy cảm); `vc_*` là bảng mới. `audit_log` nhận hành động mới của xe/giấy tờ — không số. |
-| Dòng bản đồ quyền chạm các bảng đó áp cho loại nào? | `party.view`/`party.write` hiện có **không** mở giấy tờ; giấy tờ chỉ qua hai ô mới của D2. Ô quản lý xe (Quản trị + Toàn quyền, khớp ADR-0038). Chính sách "ngưỡng sắp hết hạn": `settings.ops`. |
+| Dòng bản đồ quyền chạm các bảng đó áp cho loại nào? | `party.view`/`party.write` hiện có **không** mở giấy tờ; giấy tờ chỉ qua hai ô mới của D2. Ô quản lý xe (Quản trị + Toàn quyền — việc kinh doanh theo ADR-0038 điều 6). Chính sách "ngưỡng sắp hết hạn": `settings.ops`. |
 | Cổng nào canh? | Route Vận chuyển sau cổng văn phòng (danh sách mã cổng chốt ở kế hoạch, khớp ADR-0019); route giấy tờ ở `parties` hỏi ô D2 trong thân route; DTO che số; view `parties` cho Vận chuyển không có số. |
 
 ## Phương án bị loại
