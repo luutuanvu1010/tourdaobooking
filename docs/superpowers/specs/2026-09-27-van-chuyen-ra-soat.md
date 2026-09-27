@@ -89,7 +89,7 @@ Hướng đúng: phân hệ mới, dữ liệu thuộc người, luật thuộc 
 >   - `logo_url` tạm ở lại `company_profile`;
 >   - thu hồi `company_profile` theo expand–contract.
 >
->   Kế tiếp: thi công T2b (việc lớn, có người kiểm độc lập), rồi trình ADR-0039 (Vận chuyển lượt 1a).
+>   Kế tiếp: thi công T2b (việc lớn, có người kiểm độc lập), rồi trình ADR-0040 (Vận chuyển lượt 1a).
 
 ---
 

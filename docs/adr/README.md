@@ -42,4 +42,10 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
+**Số đã giữ chỗ** (có bản đề xuất đang chờ chủ duyệt; phiên khác đặt số ADR mới nên bỏ qua các số này để khỏi trùng. Ngày 2026-09-28 đã trùng hai lần vì số chỉ nằm trong bản nháp):
+
+| Số | Việc | Bản đề xuất | Trạng thái |
+|---|---|---|---|
+| 0040 | Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, nhắc hạn | `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md` | giữ chỗ 2026-09-28; chờ chủ duyệt (lượt sau T2b) |
+
 **Cổng bắt buộc trước khi áp migration N1 lên remote:** hai lệnh chỉ-đọc trên remote D1 (xem mục Bối cảnh của ADR-0001) do chủ dự án chạy. **Bằng chứng chỉ cần nếu sau này muốn gỡ cột `staff.role` (ADR-0005):** D1 hỗ trợ `PRAGMA defer_foreign_keys` và bọc một tệp migration trong một giao dịch.

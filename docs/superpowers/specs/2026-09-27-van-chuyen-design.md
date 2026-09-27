@@ -17,8 +17,8 @@
   - đối chiếu triết lý Oracle;
   - đối chiếu Hiến pháp, Hiến chương và các ADR.
 - **Số giữ chỗ (phải kiểm lại trên mọi nhánh trước khi dùng):**
-  - ADR-0039: 0036 của nhánh Thông báo, 0037 của phiên HDV (lý do "Khác"), 0038 của phiên siết quyền.
-  - Migration 0026: 0025 đã dùng ở nhánh Thông báo; 0019 giữ cho B5.
+  - ADR-0040 (giữ chỗ ở cuối `docs/adr/README.md`). Các số trước đã có chủ: 0036 Thông báo (Web Push), 0037 phiên HDV (lý do "Khác"), 0038 siết quyền, 0039 Thông báo (giờ yên lặng).
+  - Migration (ngày 28/9): 0025–0026 Thông báo, 0027 siết quyền (đã lên main); 0028 dự kiến cho T2b; Vận chuyển 1a từ 0029. Số 0019 giữ cho B5.
   - Tiền tố module `vc_`: chưa ai dùng hay giữ chỗ.
 - **Nguồn:**
   - `docs/ARCHITECTURE.md` Phần I (Hiến chương) và Phần II;
@@ -107,7 +107,7 @@ Theo Hiến chương 5.3, ADR-0002, Phần II.
 - **`locations`:** thêm loại điểm "ga cáp treo", "sân bay", "khách sạn" bằng migration. Đã có "bến tàu" (PIER) và "cảng" (PORT).
 - **`dispatch`:** không đổi.
   - Phần loại nhiệm vụ PICKUP/DROPOFF của ADR-0006 (gắn theo một dòng dịch vụ — `migrations/0014`:48) **không** gom được nhiều đơn, nên với **xe đường bộ** được thay bằng Chuyến xe.
-  - **BOAT (cano) giữ nguyên.** ADR-0039 ghi rõ câu nào của ADR-0006 bị thay.
+  - **BOAT (cano) giữ nguyên.** ADR-0040 ghi rõ câu nào của ADR-0006 bị thay.
 - **Luật chạm dữ liệu module khác** (số khách, trạng thái đơn, giấy tờ của tài xế) **không giữ được bằng trigger chéo module** (5.3). Thay vào đó giữ ba lớp:
   1. kiểm ở máy chủ lúc ghi;
   2. kiểm lại bằng MỘT hàm thuần "trạng thái hợp lệ của chuyến" lúc xuất bến và mỗi lần đọc;
@@ -201,7 +201,7 @@ Nhãn tầng giữ: **[CSDL]** trigger/khoá duy nhất/CHECK · **[MC]** máy c
 
 Mỗi lượt duyệt tối đa 3 quyết định chạm dữ liệu/quyền, kèm trang ghép (CLAUDE.md §9).
 
-- **ADR-0039, lượt duyệt A:**
+- **ADR-0040, lượt duyệt A:**
   1. phân hệ Vận chuyển + thực thể Chuyến xe (thay PICKUP/DROPOFF đường bộ của ADR-0006);
   2. quyền app Tài xế + các ô Vận chuyển;
   3. giấy tờ của người ở `parties` + bảo vệ CCCD.
