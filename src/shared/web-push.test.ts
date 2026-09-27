@@ -122,14 +122,15 @@ test("nguoiNhanDay: Kế toán chỉ có order.view (tin nằm ở 'Tất cả')
   assert.deepEqual(nguoiNhanDay([ketToan], { don: donNhan }, now), []);
 });
 
-test("nguoiNhanDay: đơn chưa có người phụ trách → người có dispatch.claim nhận, Kế toán không", () => {
+test("nguoiNhanDay: XÁC NHẬN đơn chưa có người phụ trách → người có dispatch.claim nhận, Kế toán không; lưu NHÁP → không ai (ADR-0045)", () => {
   const now = new Date().toISOString();
   const donChoNhan: DongDon = {
-    id: "d2", orderId: "o2", maDon: "TD002", action: "created", actorId: lap.id, tenNguoiLam: "Lập",
+    id: "d2", orderId: "o2", maDon: "TD002", action: "confirmed", actorId: lap.id, tenNguoiLam: "Lập",
     luc: now, ownerId: lap.id, phuTrach: { coNguoi: false, staffId: null }, lapChuaCoNguoi: true, cungLoLap: false,
   };
   const nguoiCoClaim: PermissionHolder = { id: "claim1", permissions: ["ADMIN"] }; // ADMIN: dispatch.claim = any
   assert.deepEqual(nguoiNhanDay([nguoiCoClaim, ketToan], { don: donChoNhan }, now), [nguoiCoClaim.id]);
+  assert.deepEqual(nguoiNhanDay([nguoiCoClaim, ketToan], { don: { ...donChoNhan, action: "created" } }, now), [], "lưu nháp không gõ cửa màn hình khoá của ai");
 });
 
 test("nguoiNhanDay: tin thủ công nhóm quyen:PARTNER → chỉ Đối tác nhận, người gửi không tự nhận dù cùng nhóm", () => {

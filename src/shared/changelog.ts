@@ -11,6 +11,13 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.30",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Lưu đơn nháp không còn báo ai; khi đơn được bấm \"Xác nhận đơn\" mà chưa có người phụ trách, người nhận được đơn mới được báo (cả trên màn hình khoá)." },
+    ],
+  },
+  {
     version: "1.29",
     date: "2026-09-28",
     items: [

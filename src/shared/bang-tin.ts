@@ -83,9 +83,8 @@ export interface ThongBaoNoi {
   lienKet: string;
 }
 
-/** Chỉ 5 loại thay đổi hiện thông báo nổi (TD-4) — `tao`, `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
+/** Chỉ 4 loại thay đổi hiện thông báo nổi (TD-4) — `tao`, `tao_cho_nhan` (ADR-0045: lưu nháp không báo), `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
 const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
-  tao_cho_nhan: (maDon) => `Có đơn mới chưa có người phụ trách: ${maDon}`,
   nhan: (maDon) => `Đơn ${maDon} vừa có người nhận`,
   giao: (maDon) => `Đơn ${maDon} vừa đổi người phụ trách`,
   xac_nhan: (maDon) => `Đơn ${maDon} đã được xác nhận`,

@@ -144,19 +144,16 @@ const huongDanVien = { id: "nv3", permissions: ["FIELD"] as const }; // order.vi
 const doiTac = { id: "nv4", permissions: ["PARTNER"] as const };
 const thucTap = { id: "nv5", permissions: ["INTERN"] as const };
 
-test("thongBaoNoi: văn phòng thấy đủ 5 loại có thông báo nổi (TD-4), câu đúng chữ, liên kết /order?id=", () => {
-  assert.deepEqual(thongBaoNoi(vanPhong, suKien("tao_cho_nhan")), {
-    cau: "Có đơn mới chưa có người phụ trách: TD1",
-    lienKet: "/order?id=order1",
-  });
+test("thongBaoNoi: văn phòng thấy đủ 4 loại có thông báo nổi (TD-4), câu đúng chữ, liên kết /order?id=", () => {
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("xac_nhan")), { cau: "Đơn TD1 đã được xác nhận", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("huy")), { cau: "Đơn TD1 đã bị huỷ", lienKet: "/order?id=order1" });
 });
 
-test("thongBaoNoi: tao/sua/chuyen/tien không hiện thông báo nổi (chỉ làm mới màn hình)", () => {
+test("thongBaoNoi: tao/tao_cho_nhan/sua/chuyen/tien không hiện thông báo nổi (chỉ làm mới màn hình; ADR-0045: lưu nháp không báo)", () => {
   assert.equal(thongBaoNoi(vanPhong, suKien("tao")), null);
+  assert.equal(thongBaoNoi(vanPhong, suKien("tao_cho_nhan")), null);
   assert.equal(thongBaoNoi(vanPhong, suKien("sua")), null);
   assert.equal(thongBaoNoi(vanPhong, suKien("chuyen")), null);
   assert.equal(thongBaoNoi(vanPhong, suKien("tien")), null);

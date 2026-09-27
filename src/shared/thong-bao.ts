@@ -22,10 +22,12 @@ type LoaiTinDon = Exclude<LoaiTin, "thu_cong">;
 
 export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
-    case "created": return d.lapChuaCoNguoi ? "cho_nhan" : "lap";
+    // ADR-0045: lưu NHÁP không báo ai (chỉ còn ở ngăn "Tất cả", xem locHopThongBao); "chờ nhận" nảy ra lúc XÁC NHẬN đơn chưa có người phụ trách
+    // (theo người phụ trách HIỆN TẠI — có người nhận rồi thì thành tin "xác nhận" thường). `lapChuaCoNguoi` không còn quyết loại tin.
+    case "created": return "lap";
     case "order_claimed": return "nhan";
     case "order_handler_changed": return d.cungLoLap ? null : "giao";
-    case "confirmed": return "xac_nhan";
+    case "confirmed": return d.phuTrach.coNguoi ? "xac_nhan" : "cho_nhan";
     case "cancelled": case "order_cancelled_by_field": return "huy";
     default: return null;
   }
@@ -33,7 +35,7 @@ export function loaiTinDon(d: DongDon): LoaiTinDon | null {
 
 const CAU: Record<LoaiTinDon, { coTen: (ten: string, ma: string) => string; khongTen: (ma: string) => string }> = {
   lap: { coTen: (t, m) => `${t} vừa lập đơn mới ${m}`, khongTen: (m) => `Có đơn mới ${m}` },
-  cho_nhan: { coTen: (t, m) => `${t} vừa lập đơn ${m}, chưa có người phụ trách`, khongTen: (m) => `Có đơn mới ${m}, chưa có người phụ trách` },
+  cho_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}, chưa có người phụ trách`, khongTen: (m) => `Có đơn mới ${m}, chưa có người phụ trách` },
   nhan: { coTen: (t, m) => `${t} vừa nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa có người nhận` },
   giao: { coTen: (t, m) => `${t} vừa giao đơn ${m} cho người khác phụ trách`, khongTen: (m) => `Đơn ${m} vừa đổi người phụ trách` },
   xac_nhan: { coTen: (t, m) => `${t} vừa xác nhận đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa được xác nhận` },
@@ -82,6 +84,8 @@ export function locHopThongBao(
     const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach })
       .filter((t) => t !== "cho-nhan");
     if (loai === "cho_nhan") nhan.push("cho-nhan");
+    // ADR-0045: đơn NHÁP chưa là việc của ai — tin "lập đơn" chỉ ở ngăn "Tất cả" (không "Của tôi" → không số đỏ, không gõ cửa màn hình khoá).
+    if (d.action === "created") nhan.splice(0, nhan.length, ...nhan.filter((t) => t === "tat-ca"));
     const chung = nhan.filter((t) => ketNoi.has(t));
     if (!chung.length) continue;
     const cuaToi = chung.some((t) => t !== "tat-ca");
