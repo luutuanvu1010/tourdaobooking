@@ -1,7 +1,7 @@
 // Luật THUẦN của module dispatch (không I/O): danh sách id đơn khi tra người phụ trách, điều kiện người được giao, ai được đặt/đổi người phụ trách,
 // câu nhật ký. Import kèm đuôi .ts (chạy trực tiếp bằng `node --test`). Ma trận quyền là MỘT nơi (`src/shared/permissions.ts`): ở đây chỉ HỎI `can()`.
 import { UUID_RE } from "../../shared/http.ts";
-import { can, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
+import { can, holdsPartner, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
 
 /** Số đơn tối đa của một lần tra `GET /api/dispatch/handlers` (danh sách đơn có trang tối đa 100 đơn). */
 export const MAX_HANDLER_LOOKUP = 100;
@@ -46,11 +46,16 @@ export interface AssigneeCandidate extends PermissionHolder {
  * Không giao cho tài khoản chỉ kế toán hoặc không quyền nào. Vai trò hồ sơ (HDV, tài xế…) KHÔNG là điều kiện (ADR-0001 mục 4).
  * CỐ Ý CHƯA nhận `task.progress` (cấp thứ ba của PARTNER, ADR-0014 điều 10): việc đó cần thêm luật "chỉ qua duyệt yêu cầu đang chờ" ở `mayChangeHandler`
  * cùng lúc (Phase C) — nếu chỉ mở ở đây mà chưa có luật đó, một SALES gán thẳng được một PARTNER chưa từng xin việc, phá đúng điều 10 cấm.
+ * Tài khoản LAI (còn quyền `PARTNER` KÈM quyền khác, vd SALES+PARTNER hay FIELD+PARTNER) không đủ điều kiện, dù có quyền khác đủ cấp (ADR-0030 S20-5,
+ * `holdsPartner`) — bốn cửa chặn tài khoản lai dùng LẠI đúng hàm này (S20-5 dòng "checkAssignee"): giao/đổi người phụ trách đi qua route `PUT
+ * /api/orders/:id/handler` gọi `checkAssignee` cho TÀI KHOẢN ĐÍCH; tự nhận có thêm cửa riêng ở route đó (ADR-0014 điều 9/10 vẫn giữ PARTNER thuần không
+ * bao giờ được giao — tài khoản lai càng không).
  */
 export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: string; name: string }> {
   if (!who) return { ok: false, message: "Không tìm thấy nhân viên được chọn." };
   if (!who.active) return { ok: false, message: "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách." };
   if (!who.partyId) return { ok: false, message: "Nhân viên này chưa có hồ sơ, không thể giao phụ trách." };
+  if (holdsPartner(who)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm người phụ trách được." };
   const narrowTier = who.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
   const eligible = can(who, "order.modify", { assigned: true }) || narrowTier;
   if (!eligible) return { ok: false, message: "Chỉ giao phụ trách cho người có quyền Bán hàng, Quản trị hoặc Hướng dẫn viên." };

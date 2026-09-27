@@ -76,6 +76,13 @@ test("người được giao: chỉ kế toán, không quyền nào, đã ngưng
   }
 });
 
+test("người được giao: tài khoản LAI (còn quyền Đối tác kèm quyền khác) không đủ điều kiện dù quyền khác đủ cấp (ADR-0030 S20-5)", () => {
+  for (const perms of [["PARTNER", "FIELD"], ["PARTNER", "SALES"]] as PermissionCode[][]) {
+    const r = checkAssignee(account(perms));
+    assert.ok(!r.ok && /Tài khoản có quyền Đối tác không làm người phụ trách được\./.test(r.message), `${perms.join("+")} → ${JSON.stringify(r)}`);
+  }
+});
+
 test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify/order.money.edit của bản đồ quyền)", () => {
   const eligible = PERMISSION_CODES.filter((p) => checkAssignee(account([p])).ok);
   // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).

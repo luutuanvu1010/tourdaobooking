@@ -38,9 +38,10 @@ function violations(db: DatabaseSync, check: Check): number {
 }
 
 /**
- * Schema đầy đủ + dữ liệu KHOẺ: một quản trị, ba nhân viên (An còn quyền; Bình đã ngưng nhưng còn quyền SALES; Cửu còn hoạt động nhưng chỉ còn FIELD —
- * cấp hẹp, ĐỦ điều kiện làm người phụ trách từ ADR-0014 điều 6/Phase B, không còn là ca vi phạm),
- * một hồ sơ không có tài khoản (Xa). Tài khoản được tạo trước 0012 để backfill sinh hồ sơ/quyền như production. Chưa đơn nào, chưa người phụ trách nào.
+ * Schema đầy đủ + dữ liệu KHOẺ: một quản trị, bốn nhân viên (An còn quyền; Bình đã ngưng nhưng còn quyền SALES; Cửu còn hoạt động nhưng chỉ còn FIELD —
+ * cấp hẹp, ĐỦ điều kiện làm người phụ trách từ ADR-0014 điều 6/Phase B, không còn là ca vi phạm; Lai còn SALES nhưng THÊM quyền Đối tác (PARTNER) —
+ * tài khoản LAI, không đủ điều kiện dù còn SALES, ADR-0030 S20-5), một hồ sơ không có tài khoản (Xa). Tài khoản được tạo trước 0012 để backfill sinh
+ * hồ sơ/quyền như production. Chưa đơn nào, chưa người phụ trách nào.
  */
 function build(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
@@ -50,13 +51,17 @@ function build(): DatabaseSync {
     ('s-admin', 'Quản Trị Viên', '0901000001', 'x', 'admin', 1, '2026-09-01T00:00:00.000Z'),
     ('s-an', 'Nguyễn Văn An', '0901000002', 'x', 'sales', 1, '2026-09-01T00:00:00.000Z'),
     ('s-binh', 'Trần Thị Bình', '0901000003', 'x', 'sales', 0, '2026-09-01T00:00:00.000Z'),
-    ('s-cuu', 'Lê Cẩm Cửu', '0901000004', 'x', 'sales', 1, '2026-09-01T00:00:00.000Z')`);
+    ('s-cuu', 'Lê Cẩm Cửu', '0901000004', 'x', 'sales', 1, '2026-09-01T00:00:00.000Z'),
+    ('s-lai', 'Lâm Lai Đôi', '0901000005', 'x', 'sales', 1, '2026-09-01T00:00:00.000Z')`);
   for (const f of FILES.filter((x) => x.slice(0, 4) > "0011")) db.exec(sqlText(f));
   // Cửu mất quyền Bán hàng, chỉ còn Hướng dẫn viên (FIELD): cấp hẹp, đủ điều kiện làm người phụ trách (ADR-0014 điều 6) — không còn là ca vi phạm R-DSP-2a.
   // (valid_from_at của quyền backfill là giờ chạy migration nên đóng bằng chính giá trị đó, không dùng ngày cố định.)
   db.exec(`UPDATE stf_permission SET valid_to_at = valid_from_at WHERE staff_id = 's-cuu'`);
   db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at)
            SELECT 'stp-cuu-field', 's-cuu', 'FIELD', valid_from_at, created_at, updated_at FROM stf_permission WHERE staff_id = 's-cuu'`);
+  // Lai: còn SALES (backfill) THÊM quyền Đối tác (PARTNER) — tài khoản LAI, không đủ điều kiện làm người phụ trách dù còn SALES (ADR-0030 S20-5).
+  db.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at)
+           SELECT 'stp-lai-partner', 's-lai', 'PARTNER', valid_from_at, created_at, updated_at FROM stf_permission WHERE staff_id = 's-lai'`);
   db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-xa', 'PERSON', 'Lê Văn Xa', 1, '${T1}', '${T1}')`);
   db.exec(`INSERT INTO pty_person (party_id, family_name, middle_name, given_name, created_at, updated_at) VALUES ('pty-xa', 'Lê', 'Văn', 'Xa', '${T1}', '${T1}')`);
   return db;
@@ -141,6 +146,7 @@ test("R-DSP-2a/2b: hồ sơ không tài khoản hoặc mất hết quyền đủ
     ["Xa: hồ sơ không có tài khoản", "pty-xa", 1, 0],
     ["Cửu: còn hoạt động, chỉ còn FIELD — cấp hẹp vẫn đủ điều kiện (ADR-0014 điều 6)", "pty-s-cuu", 0, 0],
     ["Bình: tài khoản đã ngưng (quyền SALES còn mở)", "pty-s-binh", 0, 1],
+    ["Lai: còn SALES nhưng THÊM quyền Đối tác (tài khoản lai) — không đủ điều kiện (ADR-0030 S20-5)", "pty-s-lai", 1, 0],
   ];
   for (const [what, party, a, b] of cases) {
     const db = build();

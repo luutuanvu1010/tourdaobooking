@@ -10,7 +10,7 @@ import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
-import { can, hasPermission, MATRIX } from "../../shared/permissions";
+import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { tripDeparted } from "../../shared/trip-rules";
 import { vnToday } from "../../shared/vn-date";
@@ -34,6 +34,10 @@ const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn vi�
 const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn nháp hoặc đã huỷ không dùng được.");
 const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
+/** Chốt "Nhận" (ADR-0030 S20-5, lệch có chủ ý 5.1 — `docs/SYSTEM-DESIGN.md` §16): áp CHỈ cho tự nhận đơn chưa có người, không áp cho "giao". */
+const CLAIM_PARTNER_FORBIDDEN = () => error(403, "forbidden", "Tài khoản có quyền Đối tác không làm người phụ trách được.");
+const CLAIM_CANCELLED = () => error(409, "cancelled", "Đơn đã huỷ, không nhận được.");
+const CLAIM_DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi, không nhận được.");
 const MONEY_EDIT_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới sửa được số khách theo cách này.");
 const MONEY_EDIT_NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ sửa được số khách của đơn đã xác nhận qua đường này.");
 const MONEY_EDIT_STALE = () => error(409, "stale", "Đơn vừa được sửa bởi người khác, hãy tải lại rồi thử lại.");
@@ -119,14 +123,23 @@ export const dispatchModule: AppModule = {
       if (!order) return NOT_FOUND();
       // Bảng tin (ADR-0022, NT-2): trạng thái phụ trách TRƯỚC thay đổi, tính từ `current` đã đọc — dùng cho cả luật "nhận"/"giao" và nhãn người nhận.
       const truoc: TrangThaiPhuTrach = { coNguoi: current !== null, staffId: current?.staff_id ?? null };
-      // CỐ Ý không xét trạng thái đơn: đổi/nhận người phụ trách được cả với đơn đã xác nhận và đơn ĐÃ HUỶ (khách của đơn huỷ vẫn cần người theo dõi). Với đơn huỷ, việc này chỉ
-      // mở thêm cho người phụ trách quyền xem nhật ký đơn (order.history.view); sửa nội dung đơn vẫn bị các luật trạng thái của `orders` chặn như mọi người.
+      // Chốt Nhận đơn đã huỷ/đã qua ngày đi (ADR-0030 S20-5) chỉ áp cho "Nhận" thật (xem khối dưới, sau verdict). GIAO cho người khác vẫn được cả với đơn đã
+      // xác nhận và đơn ĐÃ HUỶ (khách của đơn huỷ vẫn cần người theo dõi) — luật chốt Nhận chỉ ở mã máy chủ, không trigger: LỆCH CÓ CHỦ Ý 5.1, xem
+      // `docs/SYSTEM-DESIGN.md` §16. Với đơn huỷ, giao chỉ mở thêm cho người phụ trách quyền xem nhật ký đơn (order.history.view); sửa nội dung đơn vẫn bị
+      // các luật trạng thái của `orders` chặn như mọi người.
       const input = parseSetHandler(await readJson(request));
       if (!input.ok) return error(400, "invalid_input", input.message);
       // "Nhận" đơn ĐÃ có người phụ trách (người có quyền nhận thua đua) là 409 stale để giao diện tải lại — không phải 403 (xem `handlerChangeVerdict`).
       const verdict = handlerChangeVerdict(staff, { ownerId: order.staffId }, current ? { staffId: current.staff_id } : null, input.staffId);
       if (verdict === "stale") return STALE();
       if (verdict === "forbidden") return FORBIDDEN();
+      // "Nhận" thật: đơn CHƯA có người (current === null) và người gọi tự đặt CHÍNH MÌNH. Chốt Nhận (ADR-0030 S20-5) và chặn tài khoản lai (có quyền Đối
+      // tác) chỉ áp NHÁNH này — giao cho người khác không đổi (đúng chú thích ở trên).
+      if (current === null && input.staffId === staff.id) {
+        if (holdsPartner(staff)) return CLAIM_PARTNER_FORBIDDEN();
+        if (order.status === "cancelled") return CLAIM_CANCELLED();
+        if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return CLAIM_DEPARTED();
+      }
       const target = checkAssignee(await getStaffAccount(env.DB, input.staffId));
       if (!target.ok) return error(400, "invalid_assignee", target.message);
       if (current?.party_id === target.partyId) return NO_CHANGE();
