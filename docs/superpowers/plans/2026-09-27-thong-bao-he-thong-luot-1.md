@@ -49,7 +49,11 @@ Ghi theo tin điều phối 2026-09-27 (không phải lời duyệt kế hoạch
 3. **Đổi kỳ vọng có chủ đích (không phải lỗi):** khi ADR-0030 R1 lên (FIELD có `dispatch.claim`, tài khoản lai bị loại), hai ca đổi kết quả theo ADR-0030 S20-6:
    - Task 1: `duocThayTinDon(ai("FIELD"), true)` từ `false` thành `true`.
    - Task 2, bài "Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin chờ nhận khi có dispatch.claim": ca của HDV đổi theo. Người gộp sửa kỳ vọng và ghi dòng "đổi có chủ đích theo ADR-0030 S20-6" trong thông điệp commit.
-4. **Chọn HDV lúc lập (ADR-0030 Task 1.3):** thêm ca test — dòng `dsp_assignment` HANDLE có **cùng** `valid_from_at` với `created_at` của dòng `created` → tin xếp `lap`, **không** `cho_nhan` (điều kiện `f.first_at > e.created_at` ở Task 5 đã cho kết quả này; ca test khoá nó lại). Lúc lập chỉ có **một** tin, không có thêm tin `giao`. Đặt ca ở e2e Task 5 (`tests/e2e/thongbao.mjs`) sau khi ADR-0030 Task 1.3 có đường lập đơn kèm HDV; trước đó ghi là "chưa kiểm được, chờ ADR-0030".
+4. **Chọn HDV lúc lập (ADR-0030 Task 1.3, commit 86c53f4 bên nhánh đó — đính chính của điều phối 2026-09-27):** khi lập đơn có chọn người phụ trách (kể cả người lập tự chọn chính mình), lô lập ghi **cả** dòng `created` **lẫn** dòng `order_handler_changed` ("từ chưa có người phụ trách sang <tên>"), cùng một mốc: `audit_log.created_at` hai dòng = `orders.created_at` = `valid_from_at` của dòng HANDLE (bên đó khoá bằng so bằng tuyệt đối; lệch +1 ms thì đỏ). Không ghi `order_claimed`. Để giữ đặc tả §4.1 (lập đơn = **một** tin):
+   - Task 5 tính cờ `cung_lo_lap` (dòng `order_handler_changed` có dòng `created` cùng đơn, **cùng** `created_at`); Task 2 `loaiTinDon` trả `null` khi `cungLoLap` → không có tin `giao`. Test thuần ở Task 2 khoá luật này ngay.
+   - Phân loại `lap`/`cho_nhan` không đổi: `first_at` = `created_at` → `f.first_at > e.created_at` sai → `lap`.
+   - Ca e2e (lập đơn kèm HDV → đúng **một** tin `lap`, không `giao`, không `cho_nhan`): thêm vào `tests/e2e/thongbao.mjs` **sau khi** ADR-0030 Task 1.3 lên main; trước đó ghi "chưa kiểm được, chờ ADR-0030".
+   - Luật này dựa vào bất biến "cùng mốc" của nhánh ADR-0030. Nếu sau này lô lập đổi cách lấy giờ (hai `new Date()` khác nhau) thì tin `giao` thừa sẽ quay lại — ca e2e trên là chỗ bắt.
 5. **Hệ quả hiển thị (điều phối đã báo chủ):** sau R1, mỗi đơn mới chưa chọn HDV làm số đỏ của **mọi** HDV có quyền nhận tăng 1.
 
 ---
@@ -183,7 +187,7 @@ export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc
 ```ts
 export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
 export interface DongDon { id: string; orderId: string; maDon: string; action: string; actorId: string | null; tenNguoiLam: string | null;
-  luc: string; ownerId: string; phuTrach: TrangThaiPhuTrach; lapChuaCoNguoi: boolean }
+  luc: string; ownerId: string; phuTrach: TrangThaiPhuTrach; lapChuaCoNguoi: boolean; cungLoLap: boolean }
 export interface DongThuCong { id: string; tieuDe: string; noiDung: string; quanTrong: boolean; nhan: string[]; nguoiGuiId: string;
   tenNguoiGui: string; luc: string; thuHoi: boolean; daHieuLuc: string | null }
 export function loaiTinDon(d: DongDon): Exclude<LoaiTin, "thu_cong"> | null;
@@ -210,7 +214,7 @@ const ai = (id: string, ...p: PermissionCode[]) => ({ id, permissions: p });
 const LAN = ai("lan", "SALES"), HUNG = ai("hung", "SALES"), MAI = ai("mai", "ACCOUNTING"), VU = ai("vu", "SUPER_ADMIN");
 const TAM = ai("tam", "FIELD"), BX = ai("bx", "PARTNER"), NGAN = ai("ngan", "INTERN"), LAI = ai("lai", "PARTNER", "SALES");
 const don = (o: Partial<DongDon>): DongDon => ({ id: "e" + Math.random(), orderId: "o1", maDon: "TD-20260927-0001", action: "created", actorId: "hung",
-  tenNguoiLam: "Hùng", luc: "2026-09-27T02:00:00.000Z", ownerId: "hung", phuTrach: { coNguoi: true, staffId: "hung" }, lapChuaCoNguoi: false, ...o });
+  tenNguoiLam: "Hùng", luc: "2026-09-27T02:00:00.000Z", ownerId: "hung", phuTrach: { coNguoi: true, staffId: "hung" }, lapChuaCoNguoi: false, cungLoLap: false, ...o });
 const tin = (o: Partial<DongThuCong>): DongThuCong => ({ id: "n" + Math.random(), tieuDe: "Tiêu đề", noiDung: "Nội dung", quanTrong: false, nhan: ["noi-bo"],
   nguoiGuiId: "vu", tenNguoiGui: "Vũ", luc: "2026-09-27T01:30:00.000Z", thuHoi: false, daHieuLuc: null, ...o });
 const hop = (staff: ReturnType<typeof ai>, d: DongDon[], t: DongThuCong[] = [], ngan: "cua-toi" | "tat-ca" = "tat-ca", docDenLuc = "2026-09-26T00:00:00.000Z") =>
@@ -221,6 +225,8 @@ test("loaiTinDon: map hành động nhật ký → loại tin", () => {
   assert.equal(loaiTinDon(don({ action: "created", lapChuaCoNguoi: true })), "cho_nhan");
   assert.equal(loaiTinDon(don({ action: "order_claimed" })), "nhan");
   assert.equal(loaiTinDon(don({ action: "order_handler_changed" })), "giao");
+  // Chọn người phụ trách ngay lúc lập (kể cả tự chọn mình): lô lập ghi created + order_handler_changed CÙNG mốc → chỉ một tin "lap" (đặc tả §4.1)
+  assert.equal(loaiTinDon(don({ action: "order_handler_changed", cungLoLap: true })), null);
   assert.equal(loaiTinDon(don({ action: "confirmed" })), "xac_nhan");
   assert.equal(loaiTinDon(don({ action: "cancelled" })), "huy");
   assert.equal(loaiTinDon(don({ action: "order_cancelled_by_field" })), "huy");
@@ -338,6 +344,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 export interface DongDon {
   id: string; orderId: string; maDon: string; action: string; actorId: string | null; tenNguoiLam: string | null;
   luc: string; ownerId: string; phuTrach: TrangThaiPhuTrach; lapChuaCoNguoi: boolean;
+  cungLoLap: boolean; // order_handler_changed cùng mốc với dòng created của đơn = chọn người phụ trách LÚC LẬP (ADR-0030 Task 1.3) → không thành tin riêng
 }
 export interface DongThuCong {
   id: string; tieuDe: string; noiDung: string; quanTrong: boolean; nhan: string[]; nguoiGuiId: string;
@@ -349,7 +356,7 @@ export function loaiTinDon(d: DongDon): LoaiTinDon | null {
   switch (d.action) {
     case "created": return d.lapChuaCoNguoi ? "cho_nhan" : "lap";
     case "order_claimed": return "nhan";
-    case "order_handler_changed": return "giao";
+    case "order_handler_changed": return d.cungLoLap ? null : "giao";
     case "confirmed": return "xac_nhan";
     case "cancelled": case "order_cancelled_by_field": return "huy";
     default: return null;
@@ -734,7 +741,9 @@ import type { DongDon, DongThuCong } from "../../shared/thong-bao.ts";
 const LIST_DON = defineSql("thongbao", "list_don", `
   SELECT e.id, e.order_id, o.order_code AS ma_don, e.action, e.staff_id AS actor_id, s.label AS ten_nguoi_lam, e.created_at AS luc,
          w.staff_id AS owner_id, (h.order_id IS NOT NULL) AS co_nguoi, h.staff_id AS handler_staff_id,
-         (f.first_at IS NULL OR f.first_at > e.created_at) AS lap_chua_co_nguoi
+         (f.first_at IS NULL OR f.first_at > e.created_at) AS lap_chua_co_nguoi,
+         (e.action = 'order_handler_changed' AND EXISTS (SELECT 1 FROM v_aud_order_event c
+            WHERE c.order_id = e.order_id AND c.action = 'created' AND c.created_at = e.created_at)) AS cung_lo_lap
   FROM v_aud_order_event e
   JOIN v_ord_order_label o ON o.id = e.order_id
   JOIN v_ord_order_owner w ON w.id = e.order_id
@@ -759,14 +768,14 @@ const INSERT_ACK = defineSql("thongbao", "insert_ack", `
   ON CONFLICT (notice_id, staff_id) DO NOTHING`);
 
 interface DonRow { id: string; order_id: string; ma_don: string; action: string; actor_id: string | null; ten_nguoi_lam: string | null; luc: string;
-  owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number }
+  owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number; cung_lo_lap: number }
 interface ThuCongRow { id: string; tieu_de: string; noi_dung: string; quan_trong: number; created_by: string; ten_nguoi_gui: string; created_at: string;
   thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
 
 export async function listDon(db: D1Database, tu: string): Promise<DongDon[]> {
   const r = (await db.prepare(LIST_DON).bind(tu).all<DonRow>()).results;
   return r.map((x) => ({ id: x.id, orderId: x.order_id, maDon: x.ma_don, action: x.action, actorId: x.actor_id, tenNguoiLam: x.ten_nguoi_lam, luc: x.luc,
-    ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: x.lap_chua_co_nguoi === 1 }));
+    ownerId: x.owner_id, phuTrach: { coNguoi: x.co_nguoi === 1, staffId: x.handler_staff_id }, lapChuaCoNguoi: x.lap_chua_co_nguoi === 1, cungLoLap: x.cung_lo_lap === 1 }));
 }
 export async function listThuCong(db: D1Database, tu: string, staffId: string): Promise<DongThuCong[]> {
   const r = (await db.prepare(LIST_THU_CONG).bind(tu, staffId).all<ThuCongRow>()).results;
