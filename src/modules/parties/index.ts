@@ -5,6 +5,7 @@ import { auditStatement } from "../audit";
 import type {
   ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
 } from "../../shared/contracts";
+import { OWNER_COMPANY_ROLE } from "../../shared/cong-ty-chu";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
@@ -14,7 +15,7 @@ import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   findParty, findPartiesByPhone, getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, openRoleCodesFor,
-  relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
+  ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
@@ -49,6 +50,20 @@ export const reopenAccountRoleStatement = reopenRoleStatement;
 export async function partySummary(db: D1Database, id: string): Promise<{ kind: "PERSON" | "ORGANIZATION"; active: boolean; displayName: string } | null> {
   const p = await findParty(db, id);
   return p ? { kind: p.party_kind, active: p.active === 1, displayName: p.display_name } : null;
+}
+
+/** Định danh Tour Đảo cho nơi đọc ngoài module (ADR-0024 điều 6 + 6.2). Trường có thể null: dữ liệu hồ sơ tổ chức cho phép trống. */
+export interface OwnerCompany { partyId: string; displayName: string; legalName: string | null; taxCode: string | null; address: string | null; hotline: string | null; email: string | null }
+/**
+ * HÀM CÔNG BỐ DUY NHẤT về định danh Tour Đảo (ADR-0024 điều 6, 6.2; Hiến chương 2.1): hồ sơ đang mở vai OWNER_COMPANY_ROLE ("Công ty chủ").
+ * Mọi nơi đọc tên / MST / địa chỉ / hotline / email của công ty đi qua đây (GET /api/company, GET /api/auth/config). Không viết cứng id: đổi công ty chủ
+ * (chủ dự án 2026-09-28) thì hàm tự trả hồ sơ mới. null khi không có ĐÚNG một hồ sơ như vậy; nơi gọi tự quyết khi thiếu trường (GET /api/company: 404).
+ */
+export async function ownerCompany(db: D1Database): Promise<OwnerCompany | null> {
+  const rows = await ownerCompanyRows(db, OWNER_COMPANY_ROLE);
+  if (rows.length !== 1) return null;
+  const r = rows[0]!;
+  return { partyId: r.id, displayName: r.display_name, legalName: r.legal_name, taxCode: r.tax_code, address: r.address, hotline: r.hotline, email: r.email };
 }
 
 const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");

@@ -1,7 +1,8 @@
 // Thông tin BẢN PHÁT HÀNH của ứng dụng: tên, số phiên bản, ngày phát hành. Là hằng trong mã (thuộc về bản phát hành, không phải dữ liệu
 // vận hành) nên KHÔNG nằm ở D1. Thuần, không I/O — server và giao diện dùng chung một nguồn.
 // Số phiên bản và ngày KHÔNG viết tay ở đây: dẫn xuất từ mục đầu của nhật ký thay đổi (src/shared/changelog.ts, công thức j ở docs/CHANGE-GUIDE.md).
-// Thông tin pháp lý của công ty (tên, MST, địa chỉ…) KHÔNG ở đây mà ở bảng `company_profile`, đọc qua module `company` (GET /api/company).
+// Thông tin pháp lý của công ty (tên, MST, địa chỉ…) KHÔNG ở đây mà ở HỒ SƠ CÔNG TY CHỦ (module `parties`, hàm công bố `ownerCompany` — ADR-0024 điều 6),
+// đọc qua `GET /api/company` (biên nhận).
 import { CHANGELOG } from "./changelog.ts";
 import { isISODate } from "./vn-date.ts";
 

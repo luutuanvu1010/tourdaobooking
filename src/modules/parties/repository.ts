@@ -109,6 +109,20 @@ const RELATIONSHIPS_OF = defineSql(
 // Mọi loại vai (cả vai đã ngưng) kèm nhóm: giao diện cần tên đúng của vai cũ để hiện; ô "thêm vai" tự lọc nhóm OTHER đang dùng.
 const ROLE_TYPES = defineSql("parties", "role_types", "SELECT code, name, role_group, active FROM pty_role_type ORDER BY sort_order");
 const RELATIONSHIP_TYPES = defineSql("parties", "relationship_types", "SELECT code, name FROM pty_relationship_type WHERE active = 1 ORDER BY sort_order");
+// ADR-0024 điều 6 / 6.2: hồ sơ "công ty chủ" = hồ sơ đang mở vai ?1. LIMIT 2 để nơi gọi phân biệt "đúng một" với "không có / hơn một" (ba trigger của
+// migration *_ho_so_cong_ty_chu giữ đúng một). Hotline = liên hệ PHONE đang mở có nhãn "Hotline" (6.1; không phân biệt hoa thường), ưu tiên liên hệ chính
+// rồi mới nhất; email = liên hệ EMAIL đang mở, ưu tiên liên hệ chính. KHÔNG trả Zalo (chưa nơi nào đọc; CompanyDto cố ý không có).
+const OWNER_COMPANY = defineSql(
+  "parties",
+  "owner_company",
+  `SELECT p.id, p.display_name, o.legal_name, o.tax_code, o.address,
+     (SELECT c.value FROM pty_contact_point c WHERE c.party_id = p.id AND c.contact_kind_code = 'PHONE' AND c.valid_to_date IS NULL AND lower(trim(c.label)) = 'hotline'
+       ORDER BY c.is_primary DESC, c.valid_from_date DESC, c.created_at DESC, c.id LIMIT 1) AS hotline,
+     (SELECT c.value FROM pty_contact_point c WHERE c.party_id = p.id AND c.contact_kind_code = 'EMAIL' AND c.valid_to_date IS NULL
+       ORDER BY c.is_primary DESC, c.valid_from_date DESC, c.created_at DESC, c.id LIMIT 1) AS email
+   FROM pty_party_role r JOIN pty_party p ON p.id = r.party_id LEFT JOIN pty_organization o ON o.party_id = p.id
+   WHERE r.role_type_code = ?1 AND r.valid_to_date IS NULL LIMIT 2`,
+);
 
 export interface ListFilter {
   today: string;
@@ -155,6 +169,11 @@ export async function getPartyDetail(db: D1Database, id: string): Promise<{ part
 export interface RoleTypeRow { code: string; name: string; role_group: string; active: number }
 export async function listRoleTypes(db: D1Database): Promise<RoleTypeRow[]> {
   return (await db.prepare(ROLE_TYPES).all<RoleTypeRow>()).results;
+}
+export interface OwnerCompanyRow { id: string; display_name: string; legal_name: string | null; tax_code: string | null; address: string | null; hotline: string | null; email: string | null }
+/** Các hồ sơ đang mở vai `roleCode` (tối đa 2) kèm định danh — chỉ `ownerCompany` của index.ts gọi, với mã vai công ty chủ. */
+export async function ownerCompanyRows(db: D1Database, roleCode: string): Promise<OwnerCompanyRow[]> {
+  return (await db.prepare(OWNER_COMPANY).bind(roleCode).all<OwnerCompanyRow>()).results;
 }
 export async function listRelationshipTypes(db: D1Database): Promise<TypeRow[]> {
   return (await db.prepare(RELATIONSHIP_TYPES).all<TypeRow>()).results;

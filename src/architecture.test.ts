@@ -21,7 +21,9 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   auth: ["staff", "maintenance"], // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc)
   bangtin: [], // ADR-0022: lá, không import module nào — dữ liệu đơn (mã đơn, ai lập/phụ trách) do gốc lắp ráp đọc qua orders/dispatch rồi truyền vào, không phải bangtin tự đọc
   catalog: ["audit"],
-  company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
+  // ADR-0024 điều 6 (6.2): GET /api/company đọc định danh Tour Đảo qua hàm công bố ownerCompany của parties; company_profile chỉ còn logo_url (6.3).
+  // NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md trước khi gộp.
+  company: ["parties"],
   // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*:
   // `orders` cần "người dùng có phải người phụ trách" và "câu đặt người phụ trách mặc định cho đơn mới" thì gốc lắp ráp (src/index.ts) tiêm vào ctx (ADR-0007 điều 4(b)).
   // Import thật của mã: `orders` (findOrderOwner: đơn có không, ai lập), `staff` (tài khoản người được giao / danh sách người có thể được giao), `audit` (auditStatement).
