@@ -45,7 +45,10 @@
 **T1 — Tiền một nguồn**
 - **T1a** Một hàm cho mỗi số tiền (H3): `buildLines` sinh sẵn `lineTotal`; một hàm tổng/còn lại ở `shared/` cho cả máy chủ và web; ADR-0026 nêu tên đúng MỘT hàm "phải thu hiện hành" và sửa dòng 56; ghi chú/đưa cột tiền đứng yên vào `deprecatedColumns`; thêm kiểm `subtotal = Σ line_total` vào audit-invariants (rẻ).
 - **T1b** Xác nhận gắn phiên bản: thêm `expectedUpdatedAt` vào lệnh xác nhận và điều kiện `updated_at` vào `confirmOrder` (web/order.ts:343; orders/repository.ts:698-703). Lý do: chủ đã chọn chụp chính sách "lúc Xác nhận" (H5), ADR-0024–0026 gắn sổ vào mốc này. [đường ghi A1]
-- **T1c** Route HDV sửa số khách (`POST …/handler-money-edit`): thêm cờ "chênh với tiền đã thu" cho Kế toán; kiểm lại đơn còn `confirmed` và người gọi còn phụ trách ngay lúc ghi. **[lệch ADR đã duyệt: ADR-0007 đ2c, ADR-0014 đ6]** ADR-0023 sẽ mở rộng đường này. [đường ghi A3]
+- **T1c** Route HDV sửa số khách (`POST …/handler-money-edit`, đang chạy):
+  - (i) **Cờ "chênh với tiền đã thu" cho Kế toán** — **[ADR đã duyệt đòi, chưa làm]**: ADR-0007 điều 2(c) và ADR-0014 điều 6 (Cấp hẹp FIELD) đòi "tiền tự tính lại ở máy chủ và mọi chênh lệch với tổng đã thu được đánh dấu cho ACCOUNTING" như một bất biến của đường sửa sau xác nhận. **Nơi ghi cờ chưa có** — sổ công nợ/lần thu đang soạn ở ADR-0026 (proposed; người rà dữ liệu xếp #24 ngăn 4). ⇒ Chủ chọn: làm cờ tạm ngay (vd một dòng đánh dấu cho Kế toán khi tổng mới < tiền cọc đã thu), hay chờ ADR-0026. Liên quan việc mở ở `docs/CHANGE-GUIDE.md` §4 mục 32 (luật "chặn còn lại âm" đã gỡ).
+  - (ii) Kiểm lại đơn còn `confirmed` và người gọi còn phụ trách **ngay trong câu ghi** (hiện chỉ kiểm trước, không nguyên tử; không trigger đòi `confirmed`) — sửa lỗi tranh chấp, không cần quyết định mới.
+  ADR-0023 sẽ mở rộng đường này. [đường ghi A3; dữ liệu #24]
 - **T1d** Huỷ của HDV: thêm `updated_at` vào điều kiện huỷ (orders/repository.ts:719) — hoặc sửa chú thích đang khẳng định có khoá (dispatch/index.ts:163; orders/index.ts:61, 88) — trước ADR-0030 (mở huỷ cho đơn chưa chốt). [đường ghi A5]
 - **T1e** Chống gửi trùng: duyệt đặc tả nháp `2026-09-22-chong-gui-trung.md` (lập đơn, hồ sơ); ADR-0026 thêm điều khoản lặp an toàn cho "lần thu" (hiện không có). [đường ghi A2, (5)1]
 
@@ -54,7 +57,7 @@
 - **T2b** Định danh Tour Đảo một nơi (H5): chủ quyết trong ADR-0024 nơi giữ tên/MST/địa chỉ; nơi kia (và trang đăng nhập) đọc qua hàm/view.
 
 **T3 — Ranh giới và sổ sách dữ liệu**
-- **T3a** Bỏ việc `orders` đọc view của `dispatch` (H1): đưa câu đếm sang hàm công bố của `dispatch` hoặc tiêm qua `ctx`; ADR-0030 không lặp lại. **[lệch ADR đã duyệt: ADR-0006 đ8, Hiến chương 5.3]**
+- **T3a** Bỏ việc `orders` đọc view của `dispatch` (H1): đưa câu đếm sang hàm công bố của `dispatch` hoặc tiêm qua `ctx`; ADR-0030 không lặp lại. **[lệch ADR đã duyệt: ADR-0006 đ8 — "`orders` … không có SQL đọc bảng `dsp_*`; việc `orders` cần biết … đi qua hàm do `dispatch` cung cấp"; ADR-0007 đ4 và phần "phương án đã loại" (vòng); Hiến chương 5.3]** Ghi chú minh bạch: đặc tả Trang chủ `2026-09-23-trang-chu-moi-design.md` §4 cho là hợp lệ theo quy tắc chung "đọc xuyên module qua view công bố"; đặc tả đó **không ghi dòng trạng thái duyệt**, còn tệp quyết định của chủ (`…-quyet-dinh.md`) để ngỏ "đặt ở module nào"; theo thứ bậc `CLAUDE.md` §2 (ADR trên đặc tả), ADR-0006 đ8 cụ thể hơn và thắng. Chủ xác nhận khi duyệt gói.
 - **T3b** Khoá danh sách bảng `legacy` trong test = danh sách ADR-0002 điều 2 + một ngoại lệ có tên (H2); đăng ký tiền tố `ord_` (Q-AA đã chốt 26/9). Là siết — AI đề xuất được.
 - **T3c** `orders` còn LEGACY quá "hạn trước N2" mà không có còi: đưa hạn vào `docs/quyen-hoan.json`, lập lộ trình lên STRICT; làm `audit.wonGuardSql()` (ADR-0002 đ4) trước khi `billing` (STRICT) cần khuôn đó. [chỗ đặt A2, A4]
 - **T3d** Lý do gõ chữ tự do đi thẳng vào nhật ký chỉ-thêm, không lọc SĐT/email/MST (lỡ ghi thì không gỡ được): danh sách lý do đóng (hướng ADR-0023) hoặc lọc ở máy chủ + dòng sổ hàng rào. [dữ liệu #19]
@@ -76,7 +79,7 @@ Bảng tên cũ không tiền tố, cột chết `staff.role/full_name` (ADR-000
 - **Ghi chú cho người soạn ADR-0030:** đặc tả đơn tự do §11 nói ADR-0019 "chưa thi công" — nay đã lên production (bản 1.18); đặc tả §6 dòng 156 định lặp lại H1 — không làm.
 
 ## 7. Chủ dự án quyết
-1. **Duyệt gói "dọn nền trước sổ công nợ" (mục 3: T1–T3), làm TRƯỚC lượt 1 Hoàn tất.** Khuyến nghị: có — lập kế hoạch rồi thi công như việc lớn (người kiểm độc lập). Các mục **[lệch ADR đã duyệt]** (T1c, T2a phần chặn, T3a) là sửa lỗi; các mục còn lại (T1b, T1e, T2a phần GĐ4a/luật bù, T2b, T3d, T3e) cần chủ chọn cách khi trình kế hoạch.
+1. **Duyệt gói "dọn nền trước sổ công nợ" (mục 3: T1–T3), làm TRƯỚC lượt 1 Hoàn tất.** Khuyến nghị: có — lập kế hoạch rồi thi công như việc lớn (người kiểm độc lập). Các mục **[lệch ADR đã duyệt]** (T2a phần chặn — đọc mã, chưa chạy thử; T3a) và T1c(ii) là sửa lỗi; T1c(i) là **ADR đã duyệt đòi nhưng chưa có nơi ghi** — chủ chọn làm cờ tạm hay chờ ADR-0026; các mục còn lại (T1b, T1e, T2a phần GĐ4a/luật bù, T2b, T3d, T3e) cần chủ chọn cách khi trình kế hoạch.
 2. **Sửa tài liệu:** AI tự sửa §17 và §5 (tài liệu mô tả, thua mã); soạn đề xuất sửa bảng thi hành Phần I, Phần II, `src/CLAUDE.md` (chủ duyệt, N9).
 3. **(Tuỳ chọn) Đo dữ liệu thật trước khi làm T2a/T3d:** năm truy vấn chỉ đọc ở Phụ lục A (đơn đối tác chưa gắn bên đặt, hồ sơ CUSTOMER do Đối tác tạo, SĐT trùng, tài khoản chưa gắn hồ sơ, nhật ký có dãy số giống SĐT). **Chưa chạy thử trên máy** — AI thử trên D1 cục bộ trước khi đưa chủ chạy trên hệ thống thật.
 
