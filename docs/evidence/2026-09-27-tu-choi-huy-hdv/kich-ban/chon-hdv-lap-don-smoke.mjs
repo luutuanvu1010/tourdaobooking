@@ -353,7 +353,9 @@ try {
     assert.equal(bodies[0].handlerStaffId, hdv1.id, JSON.stringify(bodies[0]));
     const handler = await handlerOfOrder(id);
     assert.equal(handler?.staffId, hdv1.id, JSON.stringify(handler));
-    // Kế hoạch Task 1.8 bước 4(e): trang đơn vừa mở (hộp thoại xác nhận `moi=1` đang mở, nền inert — DOM vẫn đọc được) hiện đúng người phụ trách.
+    // Chỉ kiểm khối "Người phụ trách" ở trang đơn có TÊN đúng người vừa chọn (hộp thoại xác nhận `moi=1` đang mở, nền inert — DOM vẫn đọc được).
+    // KHÔNG kiểm chữ có tiền tố "HDV: " hay không — điều phối đã ra ruling (2026-09-28): trang đơn giữ tên trần dưới tiêu đề mục "Người phụ trách"
+    // (khác danh sách/thẻ đơn, nơi tiêu đề "HDV: <tên>" cần tự giải thích trong một dòng gọn) — xem sổ điều phối, không phải thiếu sót cần sửa.
     await p.waitFor(`(document.querySelector('.handler-name')?.textContent ?? '').includes(${JSON.stringify(HDV1.name)})`, "trang đơn: khối Người phụ trách hiện tên HDV", 10000);
     const mine = await call(HDV1, "GET", "/api/dispatch/mine");
     assert.equal(mine.status, 200, JSON.stringify(mine.json));
