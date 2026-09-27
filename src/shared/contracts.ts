@@ -264,6 +264,11 @@ export interface OrderInput {
   newBooker?: { fullName: string; phone: string } | null;
   /** Bắt buộc khi sửa (PUT): `updatedAt` của đơn mà form đã đọc — lệch → 409 `stale`. */
   expectedUpdatedAt?: string;
+  /**
+   * CHỈ khi lập (POST /api/orders; PUT bỏ qua): người phụ trách người lập chọn ngay trong form (mã tài khoản — ADR-0030 S20-4). Vắng/`null` = không chọn
+   * (đơn "Chờ nhận"). Người gọi không có `dispatch.assign` trên đơn của mình → 403; người được chọn không đủ điều kiện → 400 `invalid_assignee`, không tạo đơn.
+   */
+  handlerStaffId?: string | null;
 }
 
 /** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */
@@ -422,11 +427,19 @@ export interface HandlerDto {
 /** `GET /api/dispatch/handlers?orderIds=a,b,c` (tối đa 100 id): mọi id gửi lên đều có mặt; `null` = đơn chưa có người phụ trách (hoặc không có đơn đó). */
 export interface HandlersResponse { handlers: Record<string, HandlerDto | null> }
 
-/** Nhân sự có thể được giao phụ trách: đang hoạt động, có hồ sơ, có quyền Bán hàng hoặc Quản trị. Chỉ tên, KHÔNG có SĐT. */
+/**
+ * Nhân sự có thể được giao phụ trách (`checkAssignee` của dispatch): đang hoạt động, có hồ sơ, không mang quyền Đối tác, và có quyền Bán hàng, Quản trị
+ * (kể cả Toàn quyền) hoặc Hướng dẫn viên (cấp hẹp — ADR-0014 điều 6, ADR-0030). Chỉ tên, KHÔNG có SĐT.
+ */
 export interface AssigneeDto {
   staffId: string;
   partyId: string;
   name: string;
+  /**
+   * Nhãn nhóm HIỂN THỊ để bảng chọn gom người ("Hướng dẫn viên" / "Bán hàng" / "Quản trị" — Task 1.8 phần b ADR-0030), máy chủ tính bằng
+   * `assigneeRoleLabel` (`src/shared/assignee-pick.ts`): một nhãn cho mỗi người, ưu tiên Hướng dẫn viên > Quản trị > Bán hàng. KHÔNG phải luật quyền.
+   */
+  roleLabel: string;
 }
 export interface AssigneesResponse { assignees: AssigneeDto[] }
 

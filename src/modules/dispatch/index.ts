@@ -10,6 +10,7 @@
 import { cancelOrderByHandler, editMoneyAsHandler, findOrderDepartDates, findOrderOwner, getMyAssignments } from "../orders";
 import { getStaffAccount, listStaffAccounts } from "../staff";
 import type { AssigneeDto, AssigneesResponse, HandlerCancelResponse, HandlerDto, HandlerMoneyEditResponse, HandlersResponse, MyAssignmentsResponse, SetHandlerResponse } from "../../shared/contracts";
+import { assigneeRoleLabel } from "../../shared/assignee-pick";
 import { thayDoiCuaHandler, type TrangThaiPhuTrach } from "../../shared/bang-tin";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can, hasPermission, holdsPartner, MATRIX } from "../../shared/permissions";
@@ -106,13 +107,15 @@ export const dispatchModule: AppModule = {
       return json({ handlers } satisfies HandlersResponse);
     }),
 
-    // Nhân sự có thể được giao: đang hoạt động, có hồ sơ, có quyền Bán hàng/Quản trị (luật `checkAssignee`). Thứ tự theo tên (kiểu Việt Nam) của module staff.
+    // Nhân sự có thể được giao: đang hoạt động, có hồ sơ, không mang quyền Đối tác, có quyền Bán hàng/Quản trị/Toàn quyền hoặc Hướng dẫn viên (luật
+    // `checkAssignee` — ai có mặt chỉ do luật đó). Thứ tự theo tên (kiểu Việt Nam) của module staff. Mỗi người kèm `roleLabel` (nhãn nhóm hiển thị cho bảng
+    // chọn trong form lập đơn — `assigneeRoleLabel`, Task 1.8 phần b ADR-0030; KHÔNG phải luật quyền).
     // ADR-0019 điều 2: chỉ ai giao được ít nhất đơn của mình (`dispatch.assign` với ownerId = chính mình) — kế toán qua cổng "office" nhưng 403 ở đây.
     route("GET", "/api/dispatch/assignees", "office", async ({ env, staff }) => {
       if (!can(staff, "dispatch.assign", { ownerId: staff.id })) return FORBIDDEN();
       const assignees = (await listStaffAccounts(env.DB)).flatMap((account): AssigneeDto[] => {
         const checked = checkAssignee(account);
-        return checked.ok ? [{ staffId: account.id, partyId: checked.partyId, name: checked.name }] : [];
+        return checked.ok ? [{ staffId: account.id, partyId: checked.partyId, name: checked.name, roleLabel: assigneeRoleLabel(account.permissions) }] : [];
       });
       return json({ assignees } satisfies AssigneesResponse);
     }),

@@ -128,19 +128,22 @@ assert.equal((await call(FIELD, "GET", `/api/dispatch/handlers?orderIds=${o1.id}
 assert.equal((await call(null, "GET", `/api/dispatch/handlers?orderIds=${o1.id}`)).status, 401);
 console.log("✓ GET /api/dispatch/handlers: tra nhiều đơn, null cho đơn không có người, tối đa 100, giá trị lạ 400, quyền");
 
-// --- 3) GET /api/dispatch/assignees: chỉ SALES/ADMIN đang hoạt động có hồ sơ; chỉ tên
+// --- 3) GET /api/dispatch/assignees: đang hoạt động, có hồ sơ, không lai Đối tác, có SALES/ADMIN/SUPER_ADMIN hoặc FIELD; chỉ tên + nhãn nhóm `roleLabel`
+// (Task 1.8 phần b ADR-0030 — bảng chọn trong form lập đơn gom người theo nhóm; ưu tiên Hướng dẫn viên > Quản trị > Bán hàng)
 r = await call(A, "GET", "/api/dispatch/assignees");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 const ids = r.body.assignees.map((x) => x.staffId);
 for (const who of [a, b, adm, C]) assert.ok(ids.includes(who.id), `${who.id} phải có trong danh sách người có thể được giao`);
 for (const [label, who] of [["kế toán", acc], ["đã ngưng", D]]) assert.ok(!ids.includes(who.id), `${label} không được có trong danh sách`);
 assert.ok(ids.includes(fld.id), "FIELD nay đủ điều kiện làm người phụ trách cấp hẹp (ADR-0014 điều 6) nên phải có trong danh sách");
-assert.deepEqual(r.body.assignees.find((x) => x.staffId === b.id), asDto(b));
-assert.ok(r.body.assignees.every((x) => Object.keys(x).sort().join() === "name,partyId,staffId"));
+assert.deepEqual(r.body.assignees.find((x) => x.staffId === b.id), { ...asDto(b), roleLabel: "Bán hàng" });
+assert.equal(r.body.assignees.find((x) => x.staffId === fld.id).roleLabel, "Hướng dẫn viên");
+assert.equal(r.body.assignees.find((x) => x.staffId === adm.id).roleLabel, "Quản trị");
+assert.ok(r.body.assignees.every((x) => Object.keys(x).sort().join() === "name,partyId,roleLabel,staffId"));
 assert.doesNotMatch(JSON.stringify(r.body), /09\d{8}/, "không lộ SĐT");
 assert.equal((await call(FIELD, "GET", "/api/dispatch/assignees")).status, 403);
 assert.equal((await call(null, "GET", "/api/dispatch/assignees")).status, 401);
-console.log("✓ GET /api/dispatch/assignees: chỉ SALES/ADMIN đang hoạt động có hồ sơ, chỉ tên");
+console.log("✓ GET /api/dispatch/assignees: đúng người đủ điều kiện (kể cả FIELD), chỉ tên + nhãn nhóm");
 
 // --- 4) đổi người: A (người lập, đã Nhận ở trên) → B. Dòng cũ đóng, dòng mới mở CÙNG thời điểm, nhật ký "từ A sang B"
 r = await setHandler(A, o1.id, b.id);

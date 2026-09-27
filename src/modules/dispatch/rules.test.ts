@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { assigneeRoleLabel } from "../../shared/assignee-pick.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 import {
   MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
@@ -88,6 +89,23 @@ test("mọi quyền hiện có được xếp vào đúng nhóm được giao / 
   // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).
   // PARTNER (own, không phải assigned) CHƯA đủ điều kiện — cấp thứ ba của PARTNER (điều 10) là Phase C, không phải checkAssignee.
   assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
+});
+
+test("nhãn nhóm roleLabel (bảng chọn trong form lập đơn, Task 1.8 phần b): với MỌI tổ hợp quyền mà checkAssignee nhận, nhãn luôn là một quyền người đó THẬT SỰ có — nhánh cuối “Bán hàng” của assigneeRoleLabel không bao giờ gắn nhầm", () => {
+  const holds: Record<string, (p: readonly PermissionCode[]) => boolean> = {
+    "Hướng dẫn viên": (p) => p.includes("FIELD"),
+    "Quản trị": (p) => p.includes("ADMIN") || p.includes("SUPER_ADMIN"),
+    "Bán hàng": (p) => p.includes("SALES"),
+  };
+  let eligible = 0;
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const perms = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    if (!checkAssignee(account(perms)).ok) continue;
+    eligible++;
+    const label = assigneeRoleLabel(perms);
+    assert.ok(holds[label]?.(perms), `${perms.join("+")} → “${label}” nhưng không giữ quyền tương ứng — thêm cấp người được giao mới thì phải thêm nhóm ở src/shared/assignee-pick.ts`);
+  }
+  assert.ok(eligible > 0, "điều kiện của phép kiểm: có tổ hợp đủ điều kiện");
 });
 
 // --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11; "other" — ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27) -----------------------------------------
