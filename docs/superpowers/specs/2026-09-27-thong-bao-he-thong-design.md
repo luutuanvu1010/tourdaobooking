@@ -50,6 +50,9 @@ Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **hộp th�
 | X2 | Tin chờ nhận đã có người nhận | **Mờ đi, ghi "đã có người nhận"** | |
 | X3 | Nhắc tin quan trọng chưa hiểu | **Dải ở đầu mọi trang** | |
 | X4 | Giữ tin bao lâu | **30 ngày**; tin quan trọng chưa "Đã hiểu" giữ tới khi bấm | |
+| K3 | "Toàn công ty" có tới ~1.000 tài khoản Đối tác không (phát hiện của trợ lý đọc hộ — văn bản cũ tự mâu thuẫn) | **Chỉ nội bộ**; muốn gửi Đối tác thì tick riêng nhóm Đối tác | Hiến pháp P8 |
+| K4 | HDV thấy tên người làm trên đơn mình dẫn không | **Giữ ẩn tên** đợt này (`order.history.view` của FIELD = none); mở sau bằng quyết định quyền riêng | |
+| K5 | Thực tập bật được thông báo màn hình khoá không | **Có — coi là nội bộ** (lượt 2) | |
 | K2 | Quản trị có thấy dòng nhật ký `notice_*` qua nhật ký chung `GET /api/audit` (`admin.manage`) không (phát hiện kiểm độc lập vòng 2) | **Được thấy** — giữ lệ Quản trị xem mọi dòng nhật ký; dòng chỉ có mã tin + ai + lúc nào; màn "ai đã/chưa hiểu" vẫn chỉ Toàn quyền | CLAUDE.md §9 bước ghép |
 | K1 | Tên người làm khi người xem không được xem lịch sử đơn (phát hiện của người kiểm độc lập) | **Ẩn tên** nếu `order.history.view` của người xem sai với đơn đó — câu không tên như thông báo nổi hôm nay | ranh giới quyền ADR-0007/0009; Hiến pháp P8 |
 
@@ -95,7 +98,7 @@ Hệ quả có chủ ý (chủ đã nghe ở N1): người **vừa bị chuyển
 
 ### 4.3 Hành động nhật ký mới `order_claimed`
 
-`handlerChangeStatements` (`src/modules/dispatch/service.ts:25`) ghi `order_claimed` khi người làm tự đặt mình vào đơn **chưa có** người phụ trách (cùng luật `thayDoiCuaHandler`, `src/shared/bang-tin.ts`), còn lại vẫn `order_handler_changed`. Thêm một dòng vào `src/shared/audit-actions.ts` và truyền tín hiệu "tự nhận" vào `handlerChangeStatements` (hiện luật `thayDoiCuaHandler` chạy ở gốc lắp ráp `src/index.ts`, chưa ở `dispatch/service.ts` — đổi chữ ký hàm); không migration (CHECK liệt kê đã bỏ ở 0007). Dòng nhật ký cũ trước ngày phát hành vẫn là `order_handler_changed` → hiện là "giao" (chấp nhận, chỉ ảnh hưởng tin ≤ 30 ngày quanh lúc phát hành).
+`handlerChangeStatements` (`src/modules/dispatch/service.ts:25`) ghi `order_claimed` khi người làm tự đặt mình vào đơn **chưa có** người phụ trách (cùng luật `thayDoiCuaHandler`, `src/shared/bang-tin.ts`), còn lại vẫn `order_handler_changed`. Thêm một dòng vào `src/shared/audit-actions.ts` và truyền tín hiệu "tự nhận" vào `handlerChangeStatements` — thay đổi **nội bộ module `dispatch`**: route đã gọi `handlerChangeStatements` (`src/modules/dispatch/index.ts:135`) và `thayDoiCuaHandler` (`:153`) trong cùng tệp; chỉ cần tính tín hiệu trước khi dựng lô; không migration (CHECK liệt kê đã bỏ ở 0007). Dòng nhật ký cũ trước ngày phát hành vẫn là `order_handler_changed` → hiện là "giao" (chấp nhận, chỉ ảnh hưởng tin ≤ 30 ngày quanh lúc phát hành).
 
 ### 4.4 Hai ngăn (E4)
 
@@ -106,7 +109,7 @@ Hệ quả có chủ ý (chủ đã nghe ở N1): người **vừa bị chuyển
 
 ## 5. Tin thủ công (Toàn quyền)
 
-- Trường: **tiêu đề** (≤ 120 ký tự), **nội dung** (chữ thường ≤ 2000 ký tự, giữ xuống dòng, không định dạng), **quan trọng** (có/không), **người nhận**: "Toàn công ty" hoặc tick ≥ 1 nhóm quyền (`SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, INTERN, SUPER_ADMIN`, nhãn tiếng Việt từ `PERMISSION_LABELS`). T thấy tin khi tin nhắm `moi-nguoi` hoặc T **đang** có một trong các quyền được chọn.
+- Trường: **tiêu đề** (≤ 120 ký tự), **nội dung** (chữ thường ≤ 2000 ký tự, giữ xuống dòng, không định dạng), **quan trọng** (có/không), **người nhận**: "Toàn công ty" hoặc tick ≥ 1 nhóm quyền (`SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, INTERN, SUPER_ADMIN`, nhãn tiếng Việt từ `PERMISSION_LABELS`). **"Toàn công ty" = tài khoản nội bộ** (có ít nhất một quyền khác `PARTNER`; K3) — **không** tới tài khoản chỉ-Đối-tác; muốn gửi Đối tác phải tick riêng nhóm Đối tác. Nhãn lưu: `noi-bo` hoặc `quyen:<MÃ>`. T thấy tin khi (tin nhắm `noi-bo` và T là nội bộ) hoặc T **đang** có một trong các quyền được chọn. Màn gửi ghi rõ dưới lựa chọn: "Toàn công ty (nhân viên nội bộ, không gồm Đối tác)".
 - **Tin quan trọng (N3, X3):** hiện **dải nổi bật ở đầu mọi trang** tới khi T bấm vào đọc và bấm **"Đã hiểu"**; vẫn thao tác app bình thường. Mỗi lần "Đã hiểu" ghi một dòng (ai, lúc nào) — chỉ-thêm. Toàn quyền xem danh sách **đã hiểu / chưa hiểu** trong số người **hiện** thuộc nhóm nhận. Tin quan trọng chưa "Đã hiểu" giữ trong hộp quá 30 ngày (X4) và không bị mốc đã đọc tắt.
 - **Thu hồi:** ẩn khỏi hộp và dải của mọi người (đặt `valid_to`, không xoá). Không sửa sau khi gửi (thu hồi rồi gửi tin mới).
 - **Nhật ký:** `notice_sent`, `notice_revoked`, `notice_acknowledged` (nhóm mới `notice` trong `src/shared/audit-actions.ts`) — chỉ mã tin, không chép nội dung (nội dung có thể chứa SĐT — CLAUDE.md §7, Hiến chương 5.12).
@@ -125,12 +128,12 @@ Hệ quả có chủ ý (chủ đã nghe ở N1): người **vừa bị chuyển
 - `audit`: view sự kiện đơn (vd `v_aud_order_event`: `id, order_id, staff_id, action, created_at` cho đúng các hành động ở bảng §4.1). `VIEW_PREFIX` trong `src/architecture.test.ts` chưa có tiền tố cho `audit` — thêm cùng commit.
 - `orders`: người lập của đơn — view mới `v_ord_order_owner (id, staff_id)` (không sửa `v_ord_order_label` đang được đọc).
 - `dispatch`: "lúc lập đơn đã có người phụ trách chưa" (X2) — nếu `v_dsp_order_handler` (chỉ dòng đang mở) không đủ, thêm view mới (vd `v_dsp_first_handler_at (order_id, since)`). Người lập kế hoạch chọn, ghi vào kế hoạch.
-- Đo: ~30 ngày × vài chục dòng nhật ký/ngày → vài nghìn dòng lọc bằng JS mỗi lần mở hộp; nếu chậm (> 200 ms CPU), lọc sơ bằng SQL theo hành động + thời gian trước.
+- Đo: ~30 ngày × vài chục dòng nhật ký/ngày → vài nghìn dòng lọc bằng JS mỗi lần mở hộp; nếu chậm (> 200 ms CPU), lọc sơ bằng SQL theo hành động + thời gian trước. Đo **cả** route tóm tắt (chuông + dải) — gọi ở mọi lần tải trang và mỗi tin Bảng tin, thường hơn mở hộp.
 
 ### 6.3 Bảng mới (migration `0025_thong_bao.sql`; cập nhật `docs/data-dictionary.json` + `npm run dict`)
 
 - `ntf_notice` — `id TEXT PK`, `tieu_de`, `noi_dung`, `quan_trong INTEGER` (0/1), `created_at`, `created_by`, `valid_to TEXT NULL` (thu hồi), `updated_at`, `updated_by`.
-- `ntf_notice_target` — `notice_id`, `tag` (`moi-nguoi` | `quyen:<MÃ>`); PK (`notice_id`, `tag`).
+- `ntf_notice_target` — `notice_id`, `tag` (`noi-bo` | `quyen:<MÃ>`); PK (`notice_id`, `tag`).
 - `ntf_ack` — `notice_id`, `staff_id`; PK (`notice_id`, `staff_id`); chỉ-thêm (trigger cấm UPDATE/DELETE).
 - `ntf_read_mark` — `staff_id TEXT PK`, `doc_den_luc` (mốc do chính tài khoản đặt; id lấy từ phiên).
 - **Mọi bảng trên** (và `ntf_push_sub` ở lượt 2) có đủ 4 cột dấu vết `created_at`/`updated_at` NOT NULL, `created_by`/`updated_by` `TEXT NULL` không khoá ngoại — bài kiểm "ADR-0003: bảng mới…" trong `src/architecture.test.ts` bắt buộc, kể cả bảng chỉ-thêm (tiền lệ `fbk_message`, `migrations/0016_feedback.sql`).
@@ -171,7 +174,7 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 1. Bán hàng A lập đơn → Kế toán B thấy "A vừa lập đơn mới DH-…" ở ngăn "Tất cả", **không** ở "Của tôi", số đỏ của B không tăng; A **không** thấy tin của chính mình. Bán hàng C (không lập, không phụ trách) thấy tin đó ở "Tất cả" **không có tên A** (phản hồi JSON không chứa tên A — K1).
 2. Đối tác P lập đơn (chưa ai phụ trách) → Bán hàng S1, S2 (có `dispatch.claim`) thấy tin chờ nhận ở "Của tôi", số đỏ +1; Đối tác khác, Thực tập, HDV (hôm nay `dispatch.claim` = none) **không** thấy. S1 nhận đơn → S2 thấy tin chờ nhận **mờ, "đã có người nhận"**; Kế toán thấy "S1 vừa nhận đơn DH-…" ở ngăn "Tất cả"; **P không thấy** tin nào về đơn (ADR-0014 điều 12, §3).
 3. Lô ghi đơn bị làm hỏng giữa chừng (test) → không có tin (không dòng nhật ký).
-4. Toàn quyền gửi tin thường cho nhóm "Kế toán" → Kế toán thấy, Bán hàng không; tài khoản Bán hàng + Kế toán thấy.
+4. Toàn quyền gửi tin thường cho nhóm "Kế toán" → Kế toán thấy, Bán hàng không; tài khoản Bán hàng + Kế toán thấy. Gửi "Toàn công ty" → mọi tài khoản nội bộ (kể cả Thực tập) thấy; tài khoản **chỉ-Đối-tác không** thấy (K3).
 5. Tin quan trọng → dải hiện ở mọi trang của người nhận; bấm "Đã hiểu" → dải tắt, `ntf_ack` có dòng, `audit_log` có `notice_acknowledged` không chứa nội dung; Toàn quyền thấy người đó ở cột "đã hiểu".
 6. Quản trị (không Toàn quyền) gọi `POST /api/thong-bao` → 403, không có dòng mới; curl thiếu `Origin` → 403.
 7. Thu hồi → tin biến khỏi hộp và dải của mọi người; nhật ký `notice_revoked`.
@@ -185,7 +188,7 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 
 ### 9.1 Cách hoạt động
 
-- Trang Tài khoản có nút **"Bật thông báo trên màn hình khoá"** — chỉ cho **tài khoản nội bộ** (M4: tài khoản có ít nhất một quyền khác `PARTNER`; giả định, chủ sửa nếu sai). iPhone: chỉ hiện khi app đã **cài ra màn hình chính** (iOS 16.4+), nếu chưa thì hiện hướng dẫn cài. Xin quyền ngay trong cú chạm.
+- Trang Tài khoản có nút **"Bật thông báo trên màn hình khoá"** — chỉ cho **tài khoản nội bộ** (M4, K5: tài khoản có ít nhất một quyền khác `PARTNER` — gồm Thực tập). iPhone: chỉ hiện khi app đã **cài ra màn hình chính** (iOS 16.4+), nếu chưa thì hiện hướng dẫn cài. Xin quyền ngay trong cú chạm.
 - Có tin mới thuộc ngăn **"Của tôi"** của người đó (M1) → máy chủ gửi **cú gõ cửa không nội dung**; service worker **tự hỏi** `GET /api/thong-bao/tom-tat` (cookie phiên cùng nguồn; lượt 2 thêm trường `moiNhat: { cau, lienKet }` vào phản hồi) rồi hiện câu của tin mới nhất. Hỏi không được (401, mất mạng) → **vẫn** hiện "Tour Đảo: bạn có thông báo mới" (iOS bắt buộc mỗi lần đẩy phải hiện; không thì Safari thu hồi quyền). Không nội dung nào đi qua máy chủ Apple/Google.
 - **Giờ yên lặng 22:00–06:00 giờ Việt Nam** (M2): không gửi, trừ tin quan trọng. Tin vẫn vào hộp.
 - Gửi **sau** khi lô ghi thành công (`ctx.waitUntil`; tin về đơn móc vào điểm phát `baoThayDoi` có sẵn ở gốc lắp ráp, tin thủ công sau `POST /api/thong-bao`). Được phép lỡ (N4, Hiến chương 5.16) — hộp vẫn giữ đủ.
@@ -221,7 +224,7 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 
 - Tên mục "Thông báo"; màn gửi "Gửi thông báo" (nhóm Quản trị, chỉ Toàn quyền thấy).
 - Chuông ở thanh trên của khung; "9+"; tin mới trong lần mở tô nền khác.
-- "Nội bộ" = tài khoản có ít nhất một quyền khác `PARTNER` (Thực tập tính là nội bộ).
+- (Định nghĩa "nội bộ" đã chuyển thành quyết định K3/K5 ở §2 — không còn là giả định.)
 
 ## 11. Phụ thuộc và thứ tự
 
@@ -238,7 +241,7 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 | `audit_log` (đọc qua view sự kiện đơn) | dòng nhật ký về đơn — **nguồn** của tin về đơn; không đổi bảng, chỉ thêm view + hành động `order_claimed` |
 | `v_ord_order_owner` (mới) | người lập của đơn |
 | `ntf_notice` | tin thủ công (thường / quan trọng) |
-| `ntf_notice_target` | nhóm nhận của tin thủ công: `moi-nguoi`, `quyen:<MÃ>` |
+| `ntf_notice_target` | nhóm nhận của tin thủ công: `noi-bo`, `quyen:<MÃ>` |
 | `ntf_ack` | ai đã bấm "Đã hiểu" tin quan trọng nào, lúc nào |
 | `ntf_read_mark` | mốc đã đọc mỗi tài khoản |
 | (lượt 2) `ntf_push_sub` | địa chỉ nhận thông báo của từng máy, theo tài khoản nội bộ |

@@ -14,7 +14,7 @@ Nhân viên cần biết tin mới cả khi app đang đóng. iPhone hỗ trợ 
 
 ## Quyết định
 
-1. **Chỉ tài khoản nội bộ** (có ít nhất một quyền khác `PARTNER`) bật được, bằng nút trong trang Tài khoản; xin quyền trong cú chạm.
+1. **Chỉ tài khoản nội bộ** (có ít nhất một quyền khác `PARTNER` — gồm Thực tập, chủ chọn 2026-09-27) bật được, bằng nút trong trang Tài khoản; xin quyền trong cú chạm.
 2. **Lưu địa chỉ nhận của máy** trong bảng `ntf_push_sub` (module `thongbao`): tài khoản, địa chỉ, tên máy ngắn, lúc hết hiệu lực + lý do, và đủ 4 cột dấu vết. Không lưu khoá mã hoá của máy; không xoá cứng.
 3. **Cú gõ cửa không nội dung**, ký VAPID (ES256, Web Crypto, không thư viện ngoài), khoá bí mật `VAPID_PRIVATE_KEY` do **chủ** đặt bằng `wrangler secret put`. Service worker tự hỏi máy chủ tin mới nhất bằng phiên của máy; hỏi không được vẫn hiện "Tour Đảo: bạn có thông báo mới".
 4. **Chỉ rung cho tin ngăn "Của tôi"** (ADR-0034 điều 4). **Giờ yên lặng 22:00–06:00 giờ Việt Nam**, trừ tin quan trọng.
