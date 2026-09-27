@@ -71,8 +71,29 @@ export function setMaintenanceStrip(on: boolean): void {
   if (on) stripsEl().append(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ bạn dùng được"));
 }
 
+/** Huỷ thông báo màn hình khoá (Web Push, ADR-0036 điều 6) của TÀI KHOẢN trước khi đăng xuất — dựa vào kỷ luật phía
+ * trình duyệt (`/api/auth/logout` là route công khai, không đọc phiên nên không tự tắt được ở máy chủ). `tatCa: true`
+ * tắt MỌI địa chỉ của tài khoản (đúng điều 6: đăng xuất cũng như đổi PIN/đổi quyền — không chỉ máy này).
+ * BẮT BUỘC gọi `huy` KỂ CẢ khi máy này chưa từng bật (không có subscription cục bộ) — tài khoản có thể đã bật ở MÁY
+ * KHÁC (điện thoại), và đăng xuất ở máy tính vẫn phải tắt cả điện thoại đó theo đúng điều 6. Sửa sau vòng rà 2026-09-28
+ * (I-1): bản trước có `if (!sub) return;` TRƯỚC lời gọi `huy`, bỏ qua hẳn bước này khi máy đang đăng xuất chưa từng
+ * bật — chỉ `sub.unsubscribe()` (dọn subscription CỦA MÁY NÀY, nếu có) mới cần điều kiện đó. */
+async function tatThongBaoMayNay(): Promise<void> {
+  try {
+    await api("/api/account/thong-bao/may/huy", { method: "POST", body: { tatCa: true } }).catch(() => undefined);
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe().catch(() => undefined);
+    }
+  } catch {
+    // bất kỳ lỗi nào (mạng, trình duyệt lạ…): bỏ qua, đăng xuất vẫn tiếp tục ngay sau đây.
+  }
+}
+
 export async function logout(): Promise<void> {
   xoaKhungNho(); // ADR-0035: máy dùng chung — người sau không thấy khung của người trước
+  await Promise.race([tatThongBaoMayNay(), new Promise((resolve) => setTimeout(resolve, 2000))]);
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   location.assign("/login");
 }

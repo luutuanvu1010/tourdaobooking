@@ -220,6 +220,11 @@
       "name": "ntf_read_mark",
       "module": "thongbao",
       "kind": "table"
+    },
+    {
+      "name": "ntf_push_sub",
+      "module": "thongbao",
+      "kind": "table"
     }
   ],
   "views": [

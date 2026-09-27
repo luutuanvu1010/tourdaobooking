@@ -66,6 +66,9 @@ try {
       // Bảng tin (ADR-0022, KN-1): rút ngắn hạn sống kết nối cho e2e (mặc định production 900 giây) — đủ dài cho mỗi ca (kết nối mới mỗi ca)
       // mà ca "hạn sống" (Task 7 ca 8) chỉ cần chờ ~23 giây; đừng nới mốc "< 2 giây" (KN-2) nếu tăng số này.
       "--var", "BANG_TIN_HAN_GIAY:20",
+      // Web Push (ADR-0036): ép khoá VAPID RỖNG — e2e không phụ thuộc .dev.vars của máy và KHÔNG BAO GIỜ gõ cửa dịch vụ đẩy thật bằng địa chỉ giả.
+      "--var", "VAPID_PUBLIC_KEY:",
+      "--var", "VAPID_PRIVATE_KEY:",
     ],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } },
   );
@@ -121,6 +124,8 @@ try {
       results.push({ name: "audit-invariants", ok: false });
     }
   }
+  // Web Push (ADR-0036): khoá VAPID bị ép rỗng → không lượt gửi nào được chạy, nên log máy chủ KHÔNG được có dòng `day_loi` (gửi hỏng/lỗi lô).
+  results.push({ name: "không có day_loi (thiếu khoá VAPID thì không gửi)", ok: !log.includes('"event":"day_loi"') });
   console.log("── Tóm tắt từng bộ ──");
   for (const x of results) console.log(`${x.ok === true ? "✔" : x.ok === false ? "✘" : "⏭ chưa chạy (wrangler dev dùng chung đã thoát)"} ${x.name}`);
   failed = results.filter((x) => x.ok !== true).length;

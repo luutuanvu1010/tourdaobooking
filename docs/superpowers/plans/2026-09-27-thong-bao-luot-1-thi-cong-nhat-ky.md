@@ -42,3 +42,9 @@
 - Tiêu chí §8 chỉ đạt một phần: mục 2 (chuỗi Đối tác lập → S1 nhận → S2 thấy mờ chỉ có ở luật thuần), 6 (e2e không khẳng định "không có dòng mới" khi 403), 7 (không khẳng định `notice_revoked` và dải sau thu hồi), 9 (chuyển người phụ trách/rút quyền chỉ có ở luật thuần).
 - Nhỏ: `listAcks` mỗi tin (≤100 truy vấn); `LIMIT 3000` chưa đo lượng thật; hai lần bấm "Đã hiểu" đồng thời trả `luc` của lần thua; chống gửi trùng đồng thời theo khuôn Góp ý nhưng chưa quan sát chặn thật trên D1 local; `GLOB 'quyen:[A-Z]*'` lỏng (mã kiểm `PERMISSION_CODES`); không hàng rào quét `DEFAULT datetime('now')`; trang Gửi thông báo khi không có quyền còn hai thẻ rỗng; ngăn thả xuống che nút dải ở máy tính; lớp CSS `.err`/`.icon-btn` tên chung; hàm tạo `#strips` chép hai nơi; `id` UUID chèn thẳng vào điều kiện SQL nhật ký (theo khuôn Góp ý).
 - Kịch bản `v1-bao-tri.mjs`, `dot-c-smoke.mjs` cũ (dùng tài khoản chỉ-ADMIN cho bảo trì).
+
+## Lượt 2 — Web Push màn hình khoá (ADR-0036, 2026-09-27/28)
+
+- Kế hoạch `docs/superpowers/plans/2026-09-27-thong-bao-luot-2-web-push.md` (5 task, cách B). Kiểm độc lập: Task 1; Task 2+3; rà cuối toàn lượt; kiểm lại phạm vi lượt sửa gom. Chrome thật (có cửa sổ): bật → gửi → hiện thông báo → tắt → đăng xuất huỷ máy.
+- Quyết định điều phối: `thongbao` tới DO `BangTin` qua hàm tiêm `giaoLoDay` (không thêm cạnh module); thêm/gỡ Face ID cũng tắt máy (phía an toàn); `GET /api/account/thong-bao/may?endpoint=` có thể làm địa chỉ máy hiện trong Workers Logs — chấp nhận vì địa chỉ vô dụng nếu không có khoá bí mật (sai thì đổi sang POST).
+- Nợ: chưa thử iPhone thật, >40 máy, 410 thật, Apple nhận JWT 12 giờ; nút Đăng xuất ở màn bảo trì (`web/maintenance-screen.ts`) chưa huỷ máy; `khopCapKhoa` chỉ so x/y; 410 từ DO ghi ở lần gửi >40 kế tiếp; ca 8 e2e bangtin chập chờn khi máy bận; sổ hàng rào: vế "ngưng tài khoản" chưa quan sát đỏ riêng; kịch bản `dot-c-smoke.mjs` lỗi có sẵn (canToggle cần SUPER_ADMIN).

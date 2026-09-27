@@ -8,6 +8,11 @@ export function vnToday(now: Date): string {
   return new Date(now.getTime() + VN_OFFSET_MS).toISOString().slice(0, 10);
 }
 
+/** Giờ trong ngày (0–23) theo giờ Việt Nam — dùng cho giờ yên lặng của Web Push (ADR-0036, `src/shared/web-push.ts`). */
+export function vnHour(now: Date): number {
+  return new Date(now.getTime() + VN_OFFSET_MS).getUTCHours();
+}
+
 /** Mốc ISO UTC → "HH:MM DD/MM/YYYY" theo giờ Việt Nam (cho câu chữ ghi vào nhật ký, không phụ thuộc Intl/ngôn ngữ máy). Mốc không hợp lệ → chuỗi gốc. */
 export function vnDateTimeText(iso: string): string {
   const ms = Date.parse(iso);

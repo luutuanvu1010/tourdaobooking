@@ -51,6 +51,12 @@ export interface Ctx<A extends Access = Access> {
    * nối (`"tat-ca"`, khi bật chế độ bảo trì). Không phụ thuộc người đang gọi (không cần ai đăng nhập) — bắn-và-quên như `baoThayDoi`.
    */
   dongBangTin: (muc: { staffId: string } | "tat-ca") => void;
+  /**
+   * WEB PUSH (ADR-0036) — giao một danh sách địa chỉ nhận cho trạm `BangTin` chia lô ≤ 40 bằng báo thức (khi > 40 máy). Hàm tiêm để `thongbao` không
+   * import `bangtin` (không nới ALLOWED_EDGES). Trả địa chỉ đã nhận 410 ở các lượt trước của trạm (người gọi đánh dấu hết hiệu lực). Không có trạm → `[]`.
+   * Khác `baoThayDoi`: trả lời hứa — người gọi tự bọc `waitUntil` + bắt lỗi.
+   */
+  giaoLoDay: (ds: string[]) => Promise<string[]>;
 }
 
 export interface Route {
@@ -129,6 +135,8 @@ export interface AppOptions {
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
     dongBangTin: (env: Env, muc: { staffId: string } | "tat-ca") => Promise<void>;
+    /** WEB PUSH (ADR-0036). BẮT BUỘC. Bản thật ở `src/index.ts` (`xepHangDay` của module `bangtin`); `[]` khi môi trường không có binding `BANG_TIN`. */
+    giaoLoDay: (env: Env, ds: string[]) => Promise<string[]>;
   };
 }
 
@@ -187,6 +195,7 @@ export function createApp(opts: AppOptions) {
       dongBangTin: (muc) => {
         exec.waitUntil(Promise.resolve().then(() => opts.injected.dongBangTin(env, muc)).catch((err) => ghiLoiBangTin("dong", err)));
       },
+      giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
     } as Ctx);
   }
 

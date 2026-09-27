@@ -109,6 +109,7 @@
 | `ntf_notice_target` | bảng |  |
 | `ntf_ack` | bảng |  |
 | `ntf_read_mark` | bảng |  |
+| `ntf_push_sub` | bảng |  |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

@@ -8,7 +8,7 @@
 // ADR-0030 Task 1.3 (chọn HDV lúc lập ghi created + order_handler_changed CÙNG mốc) chưa lên main. Thêm khi nhánh đó gộp.
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { ACCOUNTS, call, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
+import { ACCOUNTS, BASE, call, ensureFakeCatalog, login, orderInput, randomPhone, session, sql, sqlRows } from "./lib.mjs";
 
 const A = await session(ACCOUNTS.salesA), B = await session(ACCOUNTS.salesB), KT = await session(ACCOUNTS.accountant), TQ = await session(ACCOUNTS.superAdmin);
 assert.equal((await call(null, "GET", "/api/thong-bao")).status, 401);
@@ -216,5 +216,167 @@ assert.ok(!(await call(B, "GET", "/api/thong-bao?ngan=cua-toi")).body.tin.some((
 const s = (await call(TQ, "GET", "/api/thong-bao/da-gui")).body.tin.find((x) => x.id === qt.id);
 assert.ok(s.thuHoiLuc);
 console.log("✓ thu hồi");
+
+// ---- Web Push màn hình khoá (ADR-0036, Task 1): đăng ký/huỷ máy tự phục vụ + GET moi-nhat ---------------------------------
+// (a) chưa đăng nhập → 401
+assert.equal((await call(null, "GET", "/api/account/thong-bao/may")).status, 401);
+assert.equal((await call(null, "GET", "/api/thong-bao/moi-nhat")).status, 401);
+// (b) POST không Origin (và không Sec-Fetch-Site) → 403 (CSRF, trước khi vào handler — dùng DT vì đã có phiên hợp lệ)
+const khongOrigin = await fetch(`${BASE}/api/account/thong-bao/may`, {
+  method: "POST",
+  headers: { cookie: DT, "content-type": "application/json" },
+  body: JSON.stringify({ endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}`, thietBi: "Không Origin" }),
+});
+assert.equal(khongOrigin.status, 403, "POST không Origin → cross_origin 403");
+console.log("✓ Web Push: chưa đăng nhập → 401 (may, moi-nhat); POST không Origin → 403");
+
+// (c) tài khoản CHỈ Đối tác đăng ký được (ADR-0036 điều 1) → 200, soMay = 1
+const ep1 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 0, "trước khi đăng ký: soMay = 0");
+const bat1 = await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "iPhone của Đối tác" });
+assert.equal(bat1.status, 200, JSON.stringify(bat1.body));
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 1, "Đối tác đăng ký được, soMay = 1");
+// (d) đăng ký lại CÙNG endpoint (cùng người) → không đổi
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "iPhone của Đối tác" })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 1, "đăng ký lại cùng máy → soMay không đổi");
+// (e) tài khoản khác (B) đăng ký CÙNG endpoint (máy dùng chung đổi chủ) → soMay của DT về 0
+const soMayBTruoc = (await call(B, "GET", "/api/account/thong-bao/may")).body.soMay;
+const batB = await call(B, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "Máy dùng chung" });
+assert.equal(batB.status, 200, JSON.stringify(batB.body));
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 0, "B đăng ký cùng endpoint → DT mất máy đó");
+assert.equal((await call(B, "GET", "/api/account/thong-bao/may")).body.soMay, soMayBTruoc + 1, "B có thêm một máy đang bật");
+assert.equal((await call(B, "POST", "/api/account/thong-bao/may/huy", { endpoint: ep1 })).status, 200); // dọn, không ảnh hưởng kịch bản sau
+console.log("✓ Web Push: Đối tác đăng ký được; đăng ký lại idempotent; máy dùng chung đổi chủ đúng người");
+
+// (g) endpoint không thuộc dịch vụ đẩy thật → 400
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: "https://example.com/x", thietBi: "Máy lạ" })).status, 400);
+console.log("✓ Web Push: endpoint ngoài danh sách dịch vụ đẩy → 400");
+
+// (f) huỷ {tatCa:true} → soMay = 0; KHÔNG xoá cứng (dòng vẫn còn, revoke_reason = dang-xuat)
+const ep2 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep1, thietBi: "Máy 1" })).status, 200); // ep1 vừa được B trả lại
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: ep2, thietBi: "Máy 2" })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 2);
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may/huy", { tatCa: true })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.soMay, 0, "huỷ tatCa → soMay = 0");
+const dtId = (await sqlRows(`SELECT id FROM staff WHERE phone = '${dtPhone}'`))[0].id;
+const conLai = await sqlRows(`SELECT endpoint, revoke_reason FROM ntf_push_sub WHERE staff_id = '${dtId}' AND revoke_reason = 'dang-xuat'`);
+assert.equal(conLai.length, 2, "huỷ tatCa KHÔNG xoá cứng — 2 dòng vẫn còn, chỉ đổi revoked_at/revoke_reason");
+console.log("✓ Web Push: huỷ tatCa → soMay = 0, không xoá cứng (revoke_reason = dang-xuat)");
+
+// (h) moi-nhat = câu của tin CHƯA ĐỌC mới nhất ở ngăn "Của tôi"; sau khi Toàn quyền gửi tin cho nhóm PARTNER (nhóm của DT)
+await call(DT, "POST", "/api/account/thong-bao/da-doc"); // mở hộp trước để mốc đọc sạch, không lẫn tin cũ
+await new Promise((r) => setTimeout(r, 20)); // đảm bảo tin gửi sau strictly > mốc đọc (so chuỗi, cùng mili-giây sẽ không tính là mới)
+const tieuDeDT = `Tin cho Đối tác ${Date.now().toString(36)}`;
+const guiDT = await call(TQ, "POST", "/api/thong-bao", {
+  tieuDe: tieuDeDT, noiDung: "Nội dung riêng cho Đối tác.", nguoiNhan: ["PARTNER"], quanTrong: false, clientRequestId: randomUUID(),
+});
+assert.equal(guiDT.status, 201, JSON.stringify(guiDT.body));
+const moiNhat1 = (await call(DT, "GET", "/api/thong-bao/moi-nhat")).body;
+assert.equal(moiNhat1.tin?.cau, tieuDeDT, "moi-nhat: cau = tiêu đề của tin thủ công chưa đọc mới nhất");
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/da-doc")).status, 200);
+assert.equal((await call(DT, "GET", "/api/thong-bao/moi-nhat")).body.tin, null, "sau da-doc: moi-nhat trả tin: null");
+console.log("✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc");
+
+// (i) I-2 (vòng rà 2026-09-28): "mayNay" (đang bật ĐÚNG MÁY NÀY) chỉ đúng theo endpoint của CHÍNH tài khoản gọi — không suy từ
+// soMay (tổng theo tài khoản, có thể nhiều máy), và không lộ máy của tài khoản khác dù hỏi đúng endpoint của họ.
+const epI1 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+const epI2 = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: epI1, thietBi: "Máy I1" })).status, 200);
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may", { endpoint: epI2, thietBi: "Máy I2" })).status, 200);
+assert.equal((await call(DT, "GET", "/api/account/thong-bao/may")).body.mayNay, false, "không hỏi endpoint → mayNay = false");
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI1)}`)).body.mayNay, true, "epI1 đang bật → true");
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI2)}`)).body.mayNay, true, "epI2 đang bật → true");
+const epLa = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epLa)}`)).body.mayNay, false, "endpoint chưa từng đăng ký → false");
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may/huy", { endpoint: epI1 })).status, 200);
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI1)}`)).body.mayNay, false, "đã tắt epI1 → mayNay = false");
+assert.equal((await call(DT, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI2)}`)).body.mayNay, true, "epI2 chưa tắt → vẫn true");
+assert.equal((await call(B, "GET", `/api/account/thong-bao/may?endpoint=${encodeURIComponent(epI2)}`)).body.mayNay, false, "tài khoản khác (B) hỏi đúng endpoint của DT → false, không lộ");
+assert.equal((await call(DT, "POST", "/api/account/thong-bao/may/huy", { tatCa: true })).status, 200); // dọn
+console.log("✓ I-2: mayNay đúng theo endpoint của CHÍNH tài khoản, không suy từ soMay, không lộ máy người khác");
+
+// ---- Web Push (ADR-0036, Task 3): tự tắt máy ở cùng chỗ đóng Bảng tin; bảo trì không tắt; e2e KHÔNG có khoá VAPID (run.mjs ép rỗng) ----
+/** Số máy đang bật của một tài khoản — đọc thẳng D1 (phiên của tài khoản đó có thể vừa bị thu hồi). */
+const soMayCua = async (id) => (await sqlRows(`SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = '${id}' AND revoked_at IS NULL`))[0].n;
+/** Việc tắt máy chạy trong waitUntil SAU phản hồi → thăm dò tới 3 giây. */
+const choSoMay = async (id, muon) => {
+  const han = Date.now() + 3000;
+  for (;;) {
+    const n = await soMayCua(id);
+    if (n === muon || Date.now() > han) return n;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+};
+const taoTaiKhoan = async (permissions) => {
+  const phone = randomPhone();
+  const r = await call(ADMIN, "POST", "/api/staff", { fullName: `Máy ${Date.now().toString(36)}`, phone, permissions });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  return { id: await idOf(phone), pin: r.body.pin, cookie: (await login(phone, r.body.pin)).cookie };
+};
+const batMay = async (cookie) => {
+  const r = await call(cookie, "POST", "/api/account/thong-bao/may", { endpoint: `https://fcm.googleapis.com/fcm/send/${randomUUID()}`, thietBi: "Máy thử" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+};
+
+// (a) đổi PIN của chính mình → mọi máy của người đó tắt (lý do tai-khoan-doi, không xoá cứng)
+{
+  const X = await taoTaiKhoan(["SALES"]);
+  await batMay(X.cookie);
+  assert.equal(await soMayCua(X.id), 1);
+  const r = await call(X.cookie, "POST", "/api/account/change-pin", { currentPin: X.pin, newPin: X.pin === "582913" ? "582914" : "582913" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal(await choSoMay(X.id, 0), 0, "đổi PIN → soMay = 0 trong 3 giây");
+  const dong = await sqlRows(`SELECT revoke_reason, updated_by FROM ntf_push_sub WHERE staff_id = '${X.id}'`);
+  assert.deepEqual(dong.map((d) => d.revoke_reason), ["tai-khoan-doi"], "không xoá cứng; lý do tai-khoan-doi");
+  assert.equal(dong[0].updated_by, null, "tắt kèm khi tài khoản đổi = hệ thống (updated_by NULL), không ghi chủ máy");
+}
+console.log("✓ Web Push: đổi PIN → máy của người đó tự tắt");
+
+// (b) Toàn quyền ngưng tài khoản có máy → tắt; bật lại tài khoản → máy KHÔNG tự bật lại
+{
+  const Y = await taoTaiKhoan(["SALES"]);
+  await batMay(Y.cookie);
+  assert.equal((await call(TQ, "PATCH", `/api/staff/${Y.id}`, { active: false })).status, 200);
+  assert.equal(await choSoMay(Y.id, 0), 0, "ngưng tài khoản → soMay = 0");
+  const dongY = await sqlRows(`SELECT updated_by FROM ntf_push_sub WHERE staff_id = '${Y.id}'`);
+  assert.deepEqual(dongY.map((d) => d.updated_by), [null], "Toàn quyền ngưng → updated_by NULL (hệ thống), không ghi chủ máy");
+  assert.equal((await call(TQ, "PATCH", `/api/staff/${Y.id}`, { active: true })).status, 200);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await soMayCua(Y.id), 0, "bật lại tài khoản → máy vẫn tắt (người dùng tự bật lại)");
+}
+console.log("✓ Web Push: ngưng tài khoản → máy tắt; bật lại không tự bật máy");
+
+// (c) bật rồi tắt bảo trì → máy KHÔNG đổi (dongBangTin("tat-ca") chỉ đóng Bảng tin). Cách đặt SĐT được phép như bangtin.mjs ca 10.
+{
+  const Z = await taoTaiKhoan(["SALES"]);
+  await batMay(Z.cookie);
+  const SEED_ALLOWED = "0989929373";
+  try {
+    await sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.superAdmin.phone}' WHERE id = 'default'`);
+    const r = await call(TQ, "PUT", "/api/maintenance", { on: true, endsAt: new Date(Date.now() + 30 * 60_000).toISOString() });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+    assert.equal((await call(TQ, "PUT", "/api/maintenance", { on: false })).status, 200);
+  } finally {
+    await call(TQ, "PUT", "/api/maintenance", { on: false }).catch(() => {});
+    await sql(`UPDATE mnt_setting SET enabled = 0, ends_at = NULL, allowed_phones = '${SEED_ALLOWED}' WHERE id = 'default'`);
+  }
+  await new Promise((r) => setTimeout(r, 500));
+  assert.equal(await soMayCua(Z.id), 1, "bật/tắt bảo trì KHÔNG tắt máy");
+}
+console.log("✓ Web Push: bật/tắt bảo trì không tắt máy");
+
+// (d) KHÔNG có khoá VAPID: có máy nhận mà gửi tin thủ công / lập đơn vẫn 201 như cũ, máy không bị đụng (thoát sớm trước mọi lần đọc D1 —
+// run.mjs còn kiểm log máy chủ không có dòng `day_loi` nào sau cả lượt).
+{
+  const W = await taoTaiKhoan(["SALES"]);
+  await batMay(W.cookie);
+  const g = await call(TQ, "POST", "/api/thong-bao", { tieuDe: "Gõ cửa không khoá", noiDung: "Kiểm e2e.", nguoiNhan: ["SALES"], quanTrong: true, clientRequestId: randomUUID() });
+  assert.equal(g.status, 201, JSON.stringify(g.body));
+  await taoDon(W.cookie);
+  await new Promise((r) => setTimeout(r, 300));
+  assert.equal(await soMayCua(W.id), 1, "thiếu khoá → không gửi, không đánh dấu hết hiệu lực");
+}
+console.log("✓ Web Push: thiếu khoá VAPID → gửi tin / lập đơn vẫn 201, máy không bị đụng");
 
 console.log("THONGBAO OK");

@@ -223,8 +223,21 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 3. 22:30 giờ VN: tin thường không rung, tin quan trọng rung (test luật thuần với giờ giả).
 4. Đổi PIN / đổi quyền / ngưng / đăng xuất → địa chỉ có `revoked_at`, lần gửi sau không tới máy đó.
 5. Phiên hết hạn → vẫn hiện "bạn có thông báo mới" (test service worker với 401).
-6. Tài khoản chỉ-Đối-tác gọi route đăng ký → 403.
+6. ~~Tài khoản chỉ-Đối-tác gọi route đăng ký → 403.~~ **ĐẢO NGƯỢC bởi ADR-0036 điều 1** (chủ dự án sửa ngay khi duyệt ADR, 2026-09-27): tài khoản chỉ-Đối-tác đăng ký được, nhận **200** — "mọi tài khoản" thay vì "chỉ tài khoản nội bộ". Tiêu chí thật: đăng ký/gửi/nhận hoạt động y hệt cho Đối tác như cho nhân viên nội bộ.
 7. Khoá bí mật chỉ nằm trong `wrangler secret` / `.dev.vars`; `git grep` không thấy khoá.
+
+### 9.5 Lệch có ghi so với §9.1–§9.4 (thi công Task 1–5, mã thắng — không sửa các mục trên, ghi ở đây theo CLAUDE.md §2)
+
+Đặc tả này là bản NHÁP (chưa duyệt riêng cho §9 — chỉ ADR-0036 đã accepted); các điểm dưới đây là quyết định/điều chỉnh khi thi công, không phải lỗi:
+
+1. **"Mọi tài khoản" thay "chỉ tài khoản nội bộ"** (§9.1 gạch 1, §9.4 mục 6) — theo đúng sửa đổi của chủ khi duyệt ADR-0036 điều 1 ("thay vì cần cơ chế phát thì tạo cơ chế lắng nghe từ hệ thống cho mỗi tài khoản"). Nút đổi tên thành **"Bật thông báo trên điện thoại"** (không riêng "màn hình khoá" — áp dụng cho cả máy tính có hỗ trợ).
+2. **Đường dẫn route** khác §9.2: `POST /api/account/thong-bao/may` (đăng ký), `GET /api/account/thong-bao/may` (đọc khoá công khai + số máy), `POST /api/account/thong-bao/may/huy` (huỷ) — dưới tiền tố `/api/account/*`, không phải `/api/thong-bao/may*` như §9.2 ghi: `src/route-write-guard.test.ts` chỉ nhận "ngoại lệ" tự phục vụ cho route dưới tiền tố đó (cùng lý do đã áp dụng cho `POST /api/account/thong-bao/da-doc` ở lượt 1, §6.4).
+3. **Service worker hỏi route riêng** `GET /api/thong-bao/moi-nhat` — KHÔNG thêm trường `moiNhat` vào `GET /api/thong-bao/tom-tat` như §9.1/§9.2 ghi: giữ nguyên hợp đồng `tom-tat` đang dùng ở mọi lần tải trang (đổi nó sẽ chạm mọi nơi gọi tom-tat để đổi một trường chỉ SW cần).
+4. **Tự tắt (M3) rộng hơn danh sách ở §9.1**: cũng chạy khi thêm/gỡ Face ID (mọi chỗ đang gọi `dongBangTin` ở `src/modules/accounts/index.ts`) — an toàn hơn (người dùng bật lại được), không phải thiếu sót. **Bật chế độ bảo trì KHÔNG tắt địa chỉ** (không có trong danh sách ADR — chế độ bảo trì là tạm thời, không phải đổi quyền/danh tính).
+5. **Câu chung khi hỏi hỏng** đổi từ "Tour Đảo: bạn có thông báo mới" (§9.1) thành **"Bạn có thông báo mới"** với tiêu đề riêng **"Island Booking"** (App đổi tên 2026-09-24, `docs/SYSTEM-DESIGN.md` §16) — khớp thương hiệu app hiện tại, không phải "Tour Đảo".
+6. **Ngưỡng gửi thẳng/hàng đợi (§9.3 "10.000 lần gọi ra ngoài/lượt")**: mã dùng ngưỡng **40 máy** cố định (không tính theo hạn mức 10.000, đơn giản và dư sức ở quy mô hiện tại — 30 nhân viên + tới ~1.000 đối tác) làm ranh giới gửi thẳng (`ctx.waitUntil`) so với giao Durable Object `BangTin` chia lô.
+
+Bốn điểm 2–4 không đổi Ý NGHĨA của quyết định (K5/M1–M4 gốc) — chỉ đổi CÁCH đặt tên/đường dẫn/phạm vi khi chạm chi tiết thi công; điểm 1, 5 là quyết định chủ đã chốt sau khi đặc tả này được viết.
 
 ## 10. Giả định (bề mặt, đảo được — chữ và vị trí cuối cùng chốt ở bản mẫu)
 

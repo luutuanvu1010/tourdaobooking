@@ -642,3 +642,9 @@ export interface GuiThongBaoRequest { tieuDe: string; noiDung: string; nguoiNhan
 export interface TinDaGuiDto { id: string; tieuDe: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; luc: string; thuHoiLuc: string | null; soNguoiNhan: number; soDaHieu: number }
 export interface DaGuiResponse { tin: TinDaGuiDto[] }
 export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc: string }[]; chuaHieu: { ten: string; quyen: string }[] }
+
+// ---- Thông báo màn hình khoá / Web Push (ADR-0036) -----------------------------
+// `mayNay`: chỉ đúng khi tham số truy vấn `endpoint` khớp MỘT dòng đang bật CỦA CHÍNH staff gọi route (I-2, vòng rà 2026-09-28)
+// — không hỏi thì luôn `false`; không lộ máy của người khác (tự lọc theo `staff.id` ở máy chủ, không nhận staff id từ ngoài).
+export interface MayThongBaoResponse { khoa: string | null; soMay: number; mayNay: boolean }
+export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } | null }
