@@ -214,9 +214,8 @@ Tên nhánh do người thi công đặt theo lệnh chủ dự án. Không dùn
    - Người kiểm đọc lại từng nhánh. (Task 1.5)
 2. **Chi tiết 404 hay 403.** 404 **chỉ** cho tài khoản mà mọi ô `order.view` của nó là `none` hoặc `assigned` (hôm nay: chỉ-FIELD). Đối tác và Thực tập mở đơn người khác vẫn **403** (e2e hiện có giữ nguyên, L1-13). (Task 1.5)
 3. **Thứ tự khai route.** `GET /api/orders/pool` phải khai **trước** `GET /api/orders/:id`: router khớp theo vị trí đoạn, `:id` cũng khớp chữ "pool". Cùng khuôn với `GET /api/orders/dashboard` (`src/modules/orders/index.ts:170-176`). Test: `GET /api/orders/pool` của HDV không bao giờ trả 404 "Không tìm thấy đơn". (Task 1.5)
-4. **`GET /api/dispatch/handlers` với HDV** (`src/modules/dispatch/index.ts:72-84` hỏi `can(order.view)` không ngữ cảnh).
-   - Sau S23, HDV nhận 403 ở `web/orders.ts:69`, `web/order.ts:75` và `web/confirmation-dialog.ts:44` → "chưa tải được người phụ trách".
-   - Kế hoạch chọn: route cho qua khi **mọi** id được hỏi là đơn người gọi đang phụ trách. Đây là áp ô `order.view = assigned` có ngữ cảnh, không thêm ô. Điều phối xác nhận (mục "Điểm cần điều phối quyết"). (Task 1.6)
+4. **`GET /api/dispatch/handlers` với HDV** (`src/modules/dispatch/index.ts:72-84` hỏi `can(order.view)` không ngữ cảnh) — **ruling điều phối: KHÔNG mở route này cho HDV**, vẫn 403 như hôm nay.
+   - Sau S23, HDV nhận 403 ở `web/orders.ts:69`, `web/order.ts:75` và `web/confirmation-dialog.ts:44` → "chưa tải được người phụ trách". Ba nơi này với HDV không cần gọi route: chính người phụ trách chỉ cần thấy tên mình, đọc từ phiên đăng nhập ở giao diện (Task 1.6). Không thêm bề mặt route mới cho một nhu cầu nhỏ.
 5. **Bảng tin lộ tin qua `handlerTruoc`.**
    - Chỉ route **thật sự biết** trạng thái trước mới truyền `handlerTruoc`: `PUT …/handler` hôm nay, route Từ chối ở lượt 2.
    - `POST /api/orders` **không** truyền `handlerTruoc`. Truyền "trước chưa ai" thì luật (b) của S20-8 sẽ gắn `cho-nhan` cho đơn lập kèm HDV, và mọi HDV thấy mã đơn đó.
@@ -332,7 +331,7 @@ Mỗi dòng dưới đây **phải** đổi trong đúng lượt ghi ở cột 3
 | `src/modules/orders/index.ts` (`POST /api/orders` :207-231), `repository.ts` (`createOrder` :613-657), `src/modules/dispatch/index.ts` (`defaultHandlerStatement` :54-64 → dạng mới), `rules.ts` (`defaultHandlerPartyId` :60-71 — gỡ), `src/shared/router.ts`, `src/index.ts`, `src/shared/router.test.ts`, `src/passkey-off.test.ts:59`, `src/shared/contracts.ts` (thân lập đơn), `tests/e2e/dispatch.mjs`, `tests/audit/redteam.test.mjs`, `src/CLAUDE.md:15` (**chỉ đề xuất**) | đơn mới + chọn HDV lúc lập | 1.3 |
 | `src/shared/bang-tin.ts` (`nhanKetNoi` :30-35, `nhanSuKien` :42-53, `thongBaoNoi` :100-108), `bang-tin.test.ts`, `src/index.ts:47`, `src/shared/router.ts` (kiểu `handlerTruoc`), `tests/e2e/bangtin.mjs` | S20-8, S20-9, Q-M | 1.4 |
 | `src/shared/permissions.ts` (`MATRIX` :47-74, `ORDERS_GATE` :122, hàm mới "chỉ xem việc được giao"), `permissions.test.ts`, `cong-quyen.test.ts`, `src/modules/orders/index.ts` (`GET /api/orders` :185-205, `GET /api/orders/:id` :233-246, route mới `GET /api/orders/pool`), `src/modules/orders/pool.ts` (mới, thuần) + `pool.test.ts`, `src/modules/orders/repository.ts` (`listOrders` :347, câu ứng viên hàng chờ), `src/modules/orders/xem-don-theo-quyen.test.ts`, `src/shared/contracts.ts` (`PoolOrderDto`), `src/shared/start-page.ts`, `start-page.test.ts`, `src/shared/router.test.ts`, `src/route-access.test.ts`, `src/modules/catalog/danh-muc-lap-don.test.ts`, `src/modules/dispatch/index.ts:27-28` | quyền HDV, hàng chờ, ba đường | 1.5 |
-| `src/modules/dispatch/index.ts` (`GET /api/dispatch/handlers` :72-84, `GET /api/dispatch/mine` :101-106), `src/modules/orders/index.ts` (`getMyAssignments` :134-166), `src/shared/contracts.ts` (`MyAssignmentDto` :432-438), `src/shared/handler-view.ts` (hàm ẩn/hiện nút "Việc của tôi") + test | handlers cho HDV, "Việc của tôi" có nháp | 1.6 |
+| `src/modules/orders/index.ts` (`getMyAssignments` :134-166), `src/shared/contracts.ts` (`MyAssignmentDto` :432-438), `src/shared/handler-view.ts` (hàm ẩn/hiện nút "Việc của tôi"), `web/account.ts` (hiện tên chính mình, không gọi `handlers`) + test | "Việc của tôi" có nháp; không mở route `handlers` | 1.6 |
 | `web/format.ts:23`, `public/orders.html:10`, `web/home.ts:77`, `src/shared/handler-view.ts` (:8, :10) + test, kịch bản Chrome | nhãn lượt 1 | 1.7 |
 | `web/account.ts` (:339-460 "Việc của tôi"), `public/account.html` (nếu cần), `web/order-form.ts` (chọn HDV), `web/handler-sheet.ts` (tái dùng bảng chọn), `web/shell.ts` (điều hướng HDV), `public/app.css` (token), kịch bản Chrome mới `docs/evidence/2026-09-2x-tu-choi-huy-hdv/kich-ban/hdv-smoke.mjs` | giao diện lượt 1 (chờ thiết kế) | 1.8 |
 | `tests/e2e/*.mjs`, `tests/e2e/lib.mjs` (thêm tài khoản HDV thứ hai), `tests/audit/*.test.mjs`, `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md` (§6–§8, §16), `docs/CHANGE-GUIDE.md`, `src/shared/changelog.ts`, nhật ký thi công | e2e, tài liệu lượt 1 | 1.9 |
@@ -558,25 +557,21 @@ Mỗi dòng dưới đây **phải** đổi trong đúng lượt ghi ở cột 3
   - Ghi vào nhật ký.
 - [ ] **Bước 6: Commit (b)** "Hướng dẫn viên: xem đơn mình phụ trách (đủ) và hàng chờ (phần hẹp), bấm Nhận; đơn khác 404 (ADR-0030 S23-1…5, S20-6, S20-12)".
 
-### Task 1.6: HDV tải được tên người phụ trách; "Việc của tôi" có đơn nháp (S23-8)
+### Task 1.6: "Việc của tôi" có đơn nháp; HDV thấy tên mình ở bề mặt, không mở route `handlers` (S23-8)
 
-**Tệp:** `src/modules/dispatch/index.ts` (:72-84, :101-106), `src/modules/orders/index.ts` (`getMyAssignments` :134-166), `src/shared/contracts.ts` (`MyAssignmentDto` :432-438), `src/shared/handler-view.ts` (hàm mới) + test, `tests/e2e/dispatch.mjs:686-705`.
+**Ruling điều phối (2026-09-27):** KHÔNG mở `GET /api/dispatch/handlers` cho HDV. Route đó vốn phục vụ bảng chọn người phụ trách (nhiều tên, nhiều đơn) của văn phòng; mở thêm một ngữ cảnh `assigned` chỉ để lấy đúng tên của chính mình là thêm một bề mặt route mới cho một nhu cầu nhỏ, trong khi HDV luôn đã biết mình là ai (không cần tra ngược). Cách an toàn hơn và ít việc hơn: giao diện tự hiện "HDV: <tên đăng nhập>" cho chính người xem, không gọi route nào thêm.
+
+**Tệp:** `src/modules/orders/index.ts` (`getMyAssignments` :134-166), `src/shared/contracts.ts` (`MyAssignmentDto` :432-438), `src/shared/handler-view.ts` (hàm mới) + test, `web/account.ts` (khối "Việc của tôi"), `tests/e2e/dispatch.mjs:686-705`.
 
 - [ ] **Bước 1: Đỏ trước.**
-  - Harness: HDV gọi `GET /api/dispatch/handlers?orderIds=<đơn mình phụ trách>` → 200 kèm tên mình (hôm nay 403). Gọi kèm **một** id đơn người khác → 403 cả phản hồi, không trả một phần.
   - HDV nhận một đơn **nháp** → `GET /api/dispatch/mine` có đơn đó, trường trạng thái = nháp. Đơn đã huỷ vẫn không có.
   - Hàm thuần gợi ý `myJobActions({ status, departed })` → `{ cancel, editPax }`: nháp → `{ false, false }` ở lượt 1; đã xác nhận chưa qua ngày đi → `{ true, true }`; đã qua ngày đi → `{ false, true }` (giữ DK-T4-02).
 - [ ] **Bước 2: Mã.**
-  - Route handlers phải **hỏi bảng quyền**, không chỉ so danh sách (bài học 24/9: ô không được máy chủ hỏi thì không có hiệu lực). Dạng gợi ý, đứng trước đọc tham số chỉ ở phần `can()`:
-    `if (!can(staff, "order.view") && (!can(staff, "order.view", { assigned: true }) || <có một id không phải đơn người gọi đang phụ trách>)) return 403`.
-    - Tập đơn của người gọi lấy bằng `findHandledOrderIds`; thiếu một id → 403 cả phản hồi.
-    - Đây là **áp ô `order.view = assigned`** với ngữ cảnh, không thêm ô (Review Focus 4). Điều phối xác nhận trước khi phát hành.
-    - Người kiểm xác nhận hàng rào 2 (`src/route-write-guard.test.ts`) nhận dạng lời gọi này là "đã kiểm quyền".
-    - Nếu điều phối chọn không mở route: giao diện HDV không gọi route này mà hiện "HDV: <tên mình>" (bề mặt). Đổi task tương ứng.
   - `getMyAssignments`: lọc `status !== "cancelled"` thay cho `=== "confirmed"`; thêm trường trạng thái vào `MyAssignmentDto` (tên gợi ý `status`). Đổi hợp đồng `orders`↔`dispatch`: test đỏ trước.
   - Chú thích `MyAssignmentDto` và `getMyAssignments` (:126-133) sửa cho đúng: HDV nay xem tiền của đơn mình phụ trách ở chi tiết đơn; "Việc của tôi" vẫn không trả tiền (phạm vi route, không phải điều cấm).
+  - `web/account.ts`: khối "Việc của tôi" hiện dòng "HDV: <tên của chính người đang xem>" lấy từ phiên đăng nhập (`staff.name`/hồ sơ hiện có), KHÔNG gọi `GET /api/dispatch/handlers`. Không đổi route đó, không đổi ô quyền nào.
 - [ ] **Bước 3:** `tests/e2e/dispatch.mjs:686-705`: o10 (nháp) nay có trong danh sách; khoá DTO thêm trường trạng thái (:696). `npm test`, `npm run typecheck`, `npm run test:e2e -- dispatch`.
-- [ ] **Bước 4: Commit** "Việc của tôi có cả đơn nháp kèm trạng thái; HDV tra được tên người phụ trách của đơn mình (ADR-0030 S23-8)".
+- [ ] **Bước 4: Commit** "Việc của tôi có cả đơn nháp kèm trạng thái; hiện tên chính mình ở bề mặt, không mở thêm route (ADR-0030 S23-8)".
 
 ### Task 1.7: Nhãn lượt 1 — "Chờ xác nhận", "Chờ nhận", "HDV: <tên>" (điều 3, Q-A2)
 
@@ -641,7 +636,7 @@ Mỗi dòng dưới đây **phải** đổi trong đúng lượt ghi ở cột 3
   > - `GET /api/orders/pool` (vị trí khai trước `:id`, danh sách trường, che số);
   > - `POST /api/orders` từ đầu tới `db.batch`;
   > - `PUT /api/orders/:id/handler` (chốt Nhận);
-  > - `GET /api/dispatch/handlers`, `GET /api/dispatch/mine`.
+  > - `GET /api/dispatch/mine` (`GET /api/dispatch/handlers` KHÔNG đổi — ruling điều phối, xem Task 1.6).
   >
   > **Đọc từng dòng `MATRIX` đã đổi:** đúng cột `FIELD`, dòng `PARTNER` nguyên vẹn, `ORDERS_GATE`/`OFFICE_GATE`.
   >
@@ -920,7 +915,7 @@ Nguồn: trang ghép của ADR-0030 (mục "Trang ghép"), chỉ giữ các dòn
 | Hàng chờ (`GET /api/orders/pool`) | `orders` | `can(order.pool.view)` + `!holdsPartner` | Danh sách trường được phép; chỉ đơn không có dòng mở, chưa huỷ, chưa qua ngày đi |
 | Danh sách / chi tiết đơn | `orders` | `can(order.view/money.view/contact.view/order.history.view, { assigned })`; lọc theo người phụ trách qua hook `ctx` | Đơn khác → 404 (chỉ tài khoản chỉ-`assigned`) |
 | "Đơn của tôi" (`GET /api/dispatch/mine`) | `staff` | `can(contact.view, { assigned: true })` (đã có) | Chỉ đơn của người gọi; thêm đơn nháp |
-| Tên người phụ trách (`GET /api/dispatch/handlers`) — **kế hoạch thêm, áp ô đã duyệt, chờ điều phối xác nhận** | `orders` | `can(order.view)`, hoặc `can(order.view, { assigned: true })` + mọi id là đơn người gọi đang phụ trách | — |
+| Tên người phụ trách của chính mình | — (không route; giao diện đọc từ phiên đăng nhập) | — (ruling điều phối: không mở `GET /api/dispatch/handlers` cho HDV) | — |
 | Bảng tin (`GET /api/bang-tin`) | `staff` | `nhanKetNoi` (không `cho-nhan` cho lai); `nhanSuKien` với "không biết" | — |
 | Danh mục cho form lập đơn | `GET /api/catalog` cổng `office`; `/for-order` cổng `orders` | `/for-order`: `can(order.create)` → HDV 403 ở thân | — |
 
@@ -997,12 +992,22 @@ Mỗi dòng chỉ được ghi **sau khi** thấy chặn thật: ngày + phép �
 
 ## Điểm cần điều phối quyết trước khi thi công
 
-1. **ADR-0030 chưa có trên `main`**, và ADR-0020/ADR-0023 chưa ghi "accepted phần tương ứng" + chép dòng S20/S23 (Task 0 bước 1–2). Ai làm, lúc nào.
-2. **Phạm vi D6.** ADR-0030 dòng 5 ghi lượt 2 = "điều 1, điều 2, S23-9"; mục "Đếm quyết định" ghi D6 = "ADR-0023 điều 3–8". Kế hoạch chỉ làm S23-9 trên route hiện có. ADR-0023 điều 3, 5–8 (thêm/bớt dịch vụ, lịch sử tăng/giảm, "Đã sửa", thông báo nổi) để kế hoạch riêng. Dòng trạng thái ADR-0023 ghi theo quyết định này.
-3. **Giao diện chờ bản thiết kế của chủ** (ADR-0030 Hệ quả): Task 1.8 và 2.9 bị chặn tới khi có bản thiết kế. Vì vậy "việc của chủ" không chỉ là gộp/đẩy/triển khai.
-4. **ADR-0020 điều 9 (biên nhận "Chưa có người phụ trách")** không nằm trong danh sách lượt 1. Từ R1, biên nhận của đơn chưa có ai sẽ ghi tên người lập như "nhân viên phụ trách" (Review Focus 8). Làm kèm R1 hay để sau?
-5. **`GET /api/dispatch/handlers` cho HDV** (Task 1.6): kế hoạch chọn mở ở máy chủ cho người đang phụ trách mọi đơn được hỏi (áp ô `order.view = assigned`, không thêm ô). Cách khác: giao diện không gọi mà tự hiện "HDV: <tên mình>".
-6. **T3b không áp dụng.** Không đăng ký `ord_` ở kế hoạch này vì thuộc ADR-0031. Có luật DỪNG nếu task nào cần bảng.
+**Điều phối đã quyết cả 6 điểm (2026-09-27), không hỏi lại — ghi để người thi công theo:**
+
+1. **ADR-0030 lên `main`:** làm ở Task 0 bước 1–2, người soạn ADR-0030 (nhánh `worktree-agent-a9441c370e4ac49ff`) chép nguyên các dòng "nguyên văn → mới" của Mục S20 vào chính `docs/adr/ADR-0020-*.md` (đổi dòng trạng thái: accepted phần điều 1–2, S20-13), và Mục S23 phần "xem" (điều 1–2, S23-1…5, S23-8) + S23-9 (điều 4, đã chủ duyệt cùng lượt 2) vào `docs/adr/ADR-0023-*.md` (đổi dòng trạng thái: accepted phần điều 1, 2, 4; điều 3, 5–8 GIỮ proposed — xem điểm 2). Gộp nhánh đó vào `main` bằng `day-len` TRƯỚC khi Task 1.1 bắt đầu (chỉ tài liệu, không cần triển khai).
+2. **Phạm vi D6: đã quyết — chỉ làm S23-9** trên route `handler-money-edit` hiện có. ADR-0023 điều 3, 5–8 (thêm/bớt dịch vụ, lịch sử tăng/giảm, nhãn "Đã sửa", thông báo nổi) sang kế hoạch riêng, sau này. Dòng trạng thái ADR-0023 chỉ chuyển accepted cho điều 1, 2, 4.
+3. **Giao diện chờ bản thiết kế của chủ:** giữ nguyên — Task 1.8 và 2.9 bị chặn tới khi chủ đưa bản thiết kế (theo tiền lệ đăng nhập kiểu mới). "Việc của chủ dự án" phải thêm dòng xin bản thiết kế cho hai màn: HDV (danh sách chờ nhận, Việc của tôi, nút Từ chối/Huỷ) và form lập đơn (chọn HDV).
+4. **ADR-0020 điều 9 (biên nhận "Chưa có người phụ trách"):** LÀM KÈM R1, thêm một task nhỏ 1.6b (xem dưới, chèn sau Task 1.6) — câu trả lời M1=A đã được chủ chốt từ trước (ghi trong bộ nhớ dự án), không phải quyết định mới; R1 làm tăng hẳn số đơn không có người ngay khi lập, nên phải sửa cùng lúc, không để lộ tên người lập nhầm thành "nhân viên phụ trách".
+5. **`GET /api/dispatch/handlers` cho HDV: đã quyết — KHÔNG mở** (xem Task 1.6, và các chỗ đã sửa ở trên). Giao diện tự hiện tên chính mình, không gọi route.
+6. **T3b không áp dụng — đúng, giữ nguyên.** Không đăng ký `ord_` ở kế hoạch này.
+
+### Task 1.6b (mới, chèn sau Task 1.6): Biên nhận đơn chưa có người phụ trách ghi đúng câu (ADR-0020 điều 9, M1=A)
+
+**Tệp:** `web/confirmation-dialog.ts` (đầu tệp có chú thích "chưa có người thì dùng tên người lập"), test cạnh tệp, `docs/evidence/…` ảnh xác nhận nếu cần chụp lại.
+
+- [ ] **Bước 1: Đỏ trước.** Đơn mới không chọn HDV (S20-2..4) → ảnh xác nhận gửi khách ghi đúng "Chưa có người phụ trách" (không phải tên người lập). Đơn có chọn HDV → ghi tên HDV như hôm nay.
+- [ ] **Bước 2: Mã.** Bỏ nhánh "không có thì dùng tên người lập"; khi không có dòng `HANDLE` mở, in cố định "Chưa có người phụ trách". Chỉ đổi khi **máy chủ xác nhận** chưa có người (không đoán ở giao diện).
+- [ ] **Bước 3:** `npm test`, `npm run build:web`, chạy lại kịch bản xác nhận gửi khách hiện có, sửa ảnh nếu cần. Commit "Biên nhận đơn chưa có người phụ trách ghi đúng câu, không dùng tên người lập (ADR-0020 điều 9, M1=A)".
 
 ## Tự rà kế hoạch (người lập kế hoạch, 2026-09-27)
 
