@@ -29,7 +29,7 @@ export const auditModule: AppModule = {
   routes: [
     route("GET", "/api/audit", "admin", async ({ env, url, staff }) => {
       if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
-      if (!can(staff, "audit.view")) return error(403, "forbidden", "Trang Nhật ký chỉ tài khoản Toàn quyền xem được."); // ADR-0038 điều 6
+      if (!can(staff, "audit.view")) return error(403, "forbidden", "Trang Nhật ký chỉ người phụ trách hệ thống xem được."); // ADR-0038 điều 6
       const raw = url.searchParams.get("action");
       const action = raw ? (isAuditAction(raw) ? raw : undefined) : null;
       if (action === undefined) return error(400, "invalid_input", "Hành động lọc không hợp lệ.");

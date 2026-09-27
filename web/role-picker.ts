@@ -53,7 +53,9 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
         const b = h("input", { type: "checkbox", style: CHECK_STYLE, value: c, "data-kind": "role" });
         b.addEventListener("change", refresh);
         roleBoxes.set(c, b);
-        return h("label", { class: "check" }, b, ROLES[c].name, roleLocked(c) && h("span", { class: "muted" }, " — chỉ Toàn quyền gán"));
+        // ADR-0042: Toàn quyền là vai ẩn — người không giữ Toàn quyền không thấy vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung).
+        // Ô vẫn được tạo (value()/set() đọc đủ mọi mã), chỉ không đưa lên màn hình.
+        return opts.actorIsSuperAdmin || !ROLES[c].superAdminOnly ? h("label", { class: "check" }, b, ROLES[c].name) : null;
       }));
   const permBox = (map: Map<PermissionCode, HTMLInputElement>, p: PermissionCode, kind: "add" | "remove"): HTMLElement => {
     const b = h("input", { type: "checkbox", style: CHECK_STYLE, value: p, "data-kind": kind });
@@ -62,13 +64,14 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
     return h("label", { class: "check" }, b, PERMISSION_LABEL[p]);
   };
 
+  const shown = (p: PermissionCode): boolean => opts.actorIsSuperAdmin || p !== "SUPER_ADMIN"; // ADR-0042: vai ẩn — ô vẫn tạo, chỉ không hiện
   const el = h("div", null,
     h("div", { class: "grid two" }, roleGroup("INTERNAL"), roleGroup("EXTERNAL")),
     preview,
     h("details", null, h("summary", null, "Chỉnh riêng cho người này (cộng hoặc bớt quyền)"),
       h("div", { class: "grid two" },
-        h("div", null, h("strong", null, "Cộng thêm"), ...PERMISSION_CODES.map((p) => permBox(addBoxes, p, "add"))),
-        h("div", null, h("strong", null, "Bớt đi"), ...PERMISSION_CODES.map((p) => permBox(removeBoxes, p, "remove")))),
+        h("div", null, h("strong", null, "Cộng thêm"), ...PERMISSION_CODES.map((p) => permBox(addBoxes, p, "add")).filter((_, i) => shown(PERMISSION_CODES[i]!))),
+        h("div", null, h("strong", null, "Bớt đi"), ...PERMISSION_CODES.map((p) => permBox(removeBoxes, p, "remove")).filter((_, i) => shown(PERMISSION_CODES[i]!)))),
       h("label", null, "Lý do chỉnh riêng (bắt buộc khi có cộng/bớt)", reason)));
 
   const reset = (v: RolePickerValue): void => {

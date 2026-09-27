@@ -34,15 +34,17 @@ export function kiemDiaChi(raw: unknown): raw is string {
   return DUOI_HOP_LE.some((d) => host.length > d.length && host.endsWith(d));
 }
 
-/** Đang trong giờ yên lặng (22:00–06:00 giờ VN, hai đầu: ≥22 hoặc <6) — không rung máy trừ tin quan trọng. */
+/** Đang trong giờ yên lặng (22:00–06:00 giờ VN, hai đầu: ≥22 hoặc <6). Từ ADR-0039: KHÔNG còn chặn gửi cú gõ cửa (điều đó do
+ * `dayGoCua` quyết — nay luôn gửi, xem hàm đó); đây là nguồn luật DUY NHẤT cho cờ `imLang` ở `GET /api/thong-bao/moi-nhat`,
+ * để service worker biết hiện thông báo không rung/không kêu (`silent: true`) hay hiện như bình thường. */
 export function trongGioYenLang(now: Date): boolean {
   const h = vnHour(now);
   return h >= 22 || h < 6;
 }
 
-/** Có nên gõ cửa không: tin quan trọng luôn gõ; tin thường chỉ gõ ngoài giờ yên lặng. */
-export function nenGui(quanTrong: boolean, now: Date): boolean {
-  return quanTrong || !trongGioYenLang(now);
+/** Có nên hiện KHÔNG RUNG (`silent`, ADR-0039) không: tin quan trọng luôn rung như thường; tin thường chỉ im lặng trong giờ yên lặng. */
+export function imLang(quanTrong: boolean, now: Date): boolean {
+  return !quanTrong && trongGioYenLang(now);
 }
 
 /** `THAY_DOI` (`src/shared/bang-tin.ts`, ADR-0022) → hành động của hộp thông báo (`ntf_*`/`loaiTinDon`, ADR-0034) mà `dayGoCua` (Task 3)

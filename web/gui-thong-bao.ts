@@ -210,7 +210,7 @@ function setupForm(sent: { reload: () => Promise<void> }): void {
   });
 }
 
-if (!can(staff, "notice.send")) showError(errorEl, "Chỉ Toàn quyền dùng được trang này.");
+if (!can(staff, "notice.send")) showError(errorEl, "Chỉ người phụ trách hệ thống dùng được trang này.");
 else {
   const sent = sentList();
   replaceChildren(byId("sent"), sent.root);

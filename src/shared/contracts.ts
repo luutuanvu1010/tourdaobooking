@@ -651,4 +651,5 @@ export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc
 // `mayNay`: chỉ đúng khi tham số truy vấn `endpoint` khớp MỘT dòng đang bật CỦA CHÍNH staff gọi route (I-2, vòng rà 2026-09-28)
 // — không hỏi thì luôn `false`; không lộ máy của người khác (tự lọc theo `staff.id` ở máy chủ, không nhận staff id từ ngoài).
 export interface MayThongBaoResponse { khoa: string | null; soMay: number; mayNay: boolean }
-export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } | null }
+// `imLang` (ADR-0039): đang giờ yên lặng (22:00–06:00 VN) VÀ tin không quan trọng — service worker hiện `silent: true` (không rung/kêu).
+export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } | null; imLang: boolean }

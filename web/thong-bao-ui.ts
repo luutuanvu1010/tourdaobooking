@@ -98,7 +98,7 @@ function ngayChu(nhan: string): string {
 function openTinDialog(t: TinDto, nhan: string, onAcked: () => void): void {
   if (document.querySelector(".ntf-dialog-root")) return; // bấm đúp không mở hai hộp
   const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
-  const fromLine = h("p", { class: "muted" }, `${t.nguoiGui ?? ""} (Toàn quyền) gửi ${ngayChu(nhan)} lúc ${gioVN(t.luc)}${t.nhomNhan ? ` · ${t.nhomNhan}` : ""}`);
+  const fromLine = h("p", { class: "muted" }, `${t.nguoiGui ?? ""} gửi ${ngayChu(nhan)} lúc ${gioVN(t.luc)}${t.nhomNhan ? ` · ${t.nhomNhan}` : ""}`);
   const ackedLine = h("p", { class: "muted" }, t.daHieuLuc ? `Bạn đã bấm “Đã hiểu” lúc ${gioVN(t.daHieuLuc)}.` : "");
   ackedLine.hidden = t.daHieuLuc === null;
   const closeBtn = h("button", { type: "button", class: "btn btn-link sheet-close", "aria-label": "Đóng" }, icon("close", 20));

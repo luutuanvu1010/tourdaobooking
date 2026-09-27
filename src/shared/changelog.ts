@@ -21,6 +21,28 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     ],
   },
   {
+    version: "1.29",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Tài khoản Đối tác tạo lại được ảnh xác nhận đơn (bản 1.28 báo \"Chưa tải được người phụ trách\"); ảnh của Đối tác không in dòng người phụ trách." },
+    ],
+  },
+  {
+    version: "1.28",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Ảnh xác nhận đơn chưa có người phụ trách nay ghi \"Đơn khởi tạo thành công và đang chờ hướng dẫn viên nhận khách\" thay vì tên người lập." },
+      { kind: "doi", text: "Từ 22:00 đến 6:00 thông báo vẫn hiện trên màn hình khoá nhưng không rung, không kêu; tin quan trọng vẫn rung." },
+    ],
+  },
+  {
+    version: "1.27",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Quản trị đặt lại được mã PIN, mở khoá đăng nhập và gỡ Face ID cho nhân viên mình quản lý." },
+    ],
+  },
+  {
     version: "1.26",
     date: "2026-09-28",
     items: [

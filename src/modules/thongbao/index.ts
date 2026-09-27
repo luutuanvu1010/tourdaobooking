@@ -11,7 +11,7 @@ import { can, PERMISSION_LABEL } from "../../shared/permissions";
 import {
   chuanHoaMocGio, NGAY_GIU_TIN, kiemTinThuCong, locHopThongBao, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong,
 } from "../../shared/thong-bao";
-import { guiLo, khoaVapid, kiemDiaChi, nenGui, nguoiNhanDay } from "../../shared/web-push";
+import { guiLo, imLang, khoaVapid, kiemDiaChi, nguoiNhanDay } from "../../shared/web-push";
 import { route, type AppModule } from "../../shared/router";
 import {
   batMayStatements, demMay, findByRequest, getMark, getNotice, getThuCong, hetHanStatement, insertAckStatement, insertNoticeStatement,
@@ -22,7 +22,7 @@ import {
 export { tatMayStatement } from "./repository";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy thông báo.");
-const FORBIDDEN = () => error(403, "forbidden", "Chỉ Toàn quyền được gửi và quản lý thông báo.");
+const FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được gửi và quản lý thông báo.");
 
 /** "quyen:<QUYỀN>" | "noi-bo" (lưu ở ntf_notice_target) → NguoiNhanTin để trả về giao diện. */
 const nguoiNhanTu = (tags: string): NguoiNhanTin =>
@@ -50,8 +50,10 @@ async function hop(db: D1Database, staff: StaffProfile, ngan: "cua-toi" | "tat-c
 const GUI_THANG_TOI_DA = 40;
 
 /**
- * WEB PUSH (ADR-0036): gõ cửa màn hình khoá của những ai thấy `tin` ở ngăn "Của tôi" (chọn bằng chính `locHopThongBao`, qua `nguoiNhanDay`).
- * Thoát sớm TRƯỚC mọi lần đọc D1: thiếu khoá VAPID → thôi; giờ yên lặng và tin không quan trọng → thôi; không ai bật máy → thôi.
+ * WEB PUSH (ADR-0036, ADR-0039): gõ cửa màn hình khoá của những ai thấy `tin` ở ngăn "Của tôi" (chọn bằng chính `locHopThongBao`, qua
+ * `nguoiNhanDay`). Thoát sớm TRƯỚC mọi lần đọc D1: thiếu khoá VAPID → thôi; không ai bật máy → thôi. Từ ADR-0039, giờ yên lặng KHÔNG
+ * còn ở đây — vẫn gõ cửa như ban ngày; `tin.quanTrong` không dùng trong hàm này nữa, chỉ máy chủ dùng lại ở `GET …/moi-nhat` (`imLang`)
+ * để service worker quyết có rung/kêu hay không (silent).
  * ≤ 40 địa chỉ: gửi thẳng; > 40: `giaoLo` (trạm chia lô). Địa chỉ nhận 410 (của lượt này hoặc trạm gom từ lượt trước) → hết hiệu lực.
  * Người gọi bọc `waitUntil` + bắt lỗi — không bao giờ làm hỏng/chậm phản hồi. Không log địa chỉ/SĐT (guiLo chỉ log mã trạng thái).
  */
@@ -61,19 +63,22 @@ export async function dayGoCua(
   giaoLo: (ds: string[]) => Promise<string[]>,
 ): Promise<void> {
   const khoa = khoaVapid(env);
-  if (!khoa) return;
+  if (!khoa) return ghiDay({ boQua: "thieu-khoa" });
   const now = new Date();
-  if (!nenGui(tin.quanTrong, now)) return;
   const may = await listMayDangBat(env.DB);
-  if (may.length === 0) return;
+  if (may.length === 0) return ghiDay({ boQua: "khong-may" });
   const coMay = new Set(may.map((m) => m.staff_id));
   const taiKhoan = (await listStaffAccounts(env.DB)).filter((s) => s.active && coMay.has(s.id));
   const chon = new Set(nguoiNhanDay(taiKhoan, tin, now.toISOString()));
   const ds = may.filter((m) => chon.has(m.staff_id) && kiemDiaChi(m.endpoint)).map((m) => m.endpoint); // chỉ POST tới địa chỉ hợp lệ
-  if (ds.length === 0) return;
+  if (ds.length === 0) return ghiDay({ may: may.length, nguoiNhan: chon.size, gui: 0 });
   const het = ds.length <= GUI_THANG_TOI_DA ? (await guiLo(ds, khoa, now.getTime())).hetHieuLuc : await giaoLo(ds);
   if (het.length) await hetHanStatement(env.DB, het, new Date().toISOString()).run();
+  ghiDay({ may: may.length, nguoiNhan: chon.size, gui: ds.length, hetHieuLuc: het.length });
 }
+
+/** Một dòng nhật ký mỗi lần gõ cửa — CHỈ số đếm/lý do bỏ qua (không địa chỉ máy, không id/SĐT): đủ để đọc `wrangler tail` biết tin có được gửi không. */
+const ghiDay = (x: Record<string, string | number>) => void console.log(JSON.stringify({ level: "info", event: "day", ...x }));
 
 /** Bắt lỗi gõ cửa (không bao giờ ném ra route): một dòng log, chỉ tên lỗi. */
 const ghiLoiDay = (e: unknown) => console.warn(JSON.stringify({ level: "warn", event: "day_loi", viec: "gui", name: e instanceof Error ? e.name : "unknown" }));
@@ -93,7 +98,9 @@ export const thongbaoModule: AppModule = {
     route("GET", "/api/thong-bao/moi-nhat", "staff", async ({ env, staff }) => {
       const h = await hop(env.DB, staff, "cua-toi");
       const t = h.tin.find((x) => x.chuaDoc);
-      return json({ tin: t ? { cau: t.cau, lienKet: t.lienKet } : null } satisfies MoiNhatResponse);
+      // ADR-0039: máy chủ báo giờ yên lặng qua CỜ này (không qua nội dung push) — service worker dùng để hiện `silent: true`.
+      // Không có tin cụ thể (t undefined, hiếm — đọc lại đúng lúc mất tin) → coi như không quan trọng, vẫn im lặng trong giờ yên lặng.
+      return json({ tin: t ? { cau: t.cau, lienKet: t.lienKet } : null, imLang: imLang(t?.quanTrong ?? false, new Date()) } satisfies MoiNhatResponse);
     }),
     // Tự phục vụ (ADR-0036 điều 1–2; "ngoại lệ" ở docs/quyen-hoan.json): id luôn lấy từ phiên (staff.id), không tin thân yêu cầu.
     route("GET", "/api/account/thong-bao/may", "staff", async ({ env, staff, url }) => {
