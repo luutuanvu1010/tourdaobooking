@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { ACCOUNTS, BASE as B, call, login, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 // Cần D1 chưa từng đồng bộ danh mục (run.mjs luôn dựng D1 mới) và mạng để đọc Google Sheet thật.
 const ADMIN = await session(ACCOUNTS.admin), SALES = await session(ACCOUNTS.salesA);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: trang Nhật ký, đặt lại PIN, gỡ Face ID, mở khoá chỉ Toàn quyền
 
 // --- Đọc THẲNG Sheet thật, trong CHÍNH lượt chạy này (Đợt D Task 6, F-4): kịch bản này từng GHIM CỨNG giá đọc
 // được từ Sheet tại một thời điểm (vd TTB03 "1.000.000"), nên mỗi lần chủ dự án thật sự đổi giá trên Sheet, kịch
@@ -42,7 +43,7 @@ for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync
 // "0 thay đổi" nên không ghi nhật ký) → kiểm này KHÔNG chứng minh claimFirstSync; điều đó dựa vào UPDATE có điều kiện.
 const burst = await Promise.all(Array.from({ length: 5 }, () => call(SALES, "GET", "/api/catalog")));
 assert.ok(burst.every((b) => b.status === 200));
-const syncedLogs = (await call(ADMIN, "GET", "/api/audit?action=catalog_synced&limit=10")).body.entries;
+const syncedLogs = (await call(TOAN_QUYEN, "GET", "/api/audit?action=catalog_synced&limit=10")).body.entries;
 assert.equal(syncedLogs.length, 1, `bootstrap song song ghi nhật ký đồng bộ ${syncedLogs.length} lần`);
 console.log("✓ 5 request đầu tiên song song → một dòng nhật ký đồng bộ");
 let r = await call(SALES, "GET", "/api/catalog");
@@ -118,7 +119,7 @@ assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
 assert.equal(r.body.changed, 1);
 assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD101").prices.adult, sheetTD101.prices.adult);
-r = await call(ADMIN, "GET", "/api/audit?action=catalog_synced&limit=3");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?action=catalog_synced&limit=3");
 assert.match(r.body.entries[0].detail, new RegExp(`TD101: giá người lớn 1 ₫ → ${vnd(sheetTD101.prices.adult).replace(/\./g, "\\.")} ₫`));
 assert.equal(r.body.entries[0].staffName, "QTV Test");
 console.log(`✓ đổi giá trên Sheet → kéo về, nhật ký ghi 'TD101: giá người lớn 1 ₫ → ${vnd(sheetTD101.prices.adult)} ₫'`);
@@ -174,7 +175,7 @@ await sql("UPDATE catalog_item SET price_child = 1 WHERE code = 'TD103'");
 const cron = await fetch(B + "/__scheduled?cron=*/15+*+*+*+*");
 assert.equal(cron.status, 200);
 await new Promise((r) => setTimeout(r, 3000));
-r = await call(ADMIN, "GET", "/api/audit?action=catalog_synced&limit=1");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?action=catalog_synced&limit=1");
 assert.equal(r.body.entries[0].staffName, "Hệ thống (tự động)");
 assert.match(r.body.entries[0].detail, /TD103/);
 assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD103").prices.child, sheetTD103.prices.child);

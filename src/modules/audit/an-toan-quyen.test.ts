@@ -1,10 +1,11 @@
 // ADR-0038: (1) thao tác "im lặng" của Toàn quyền (đổi vai/quyền, bật/tắt bảo trì, đặt lại PIN, gỡ Face ID) vẫn GHI nhật ký nhưng chỉ Toàn quyền
-// xem được ở GET /api/audit; (2) Quản trị không còn đọc/xử lý Góp ý của người khác (feedback.view = own, feedback.triage = none).
+// xem được; (2) Quản trị không còn đọc/xử lý Góp ý của người khác (feedback.view = own, feedback.triage = none); (6) trang Nhật ký chỉ Toàn quyền
+// (`audit.view`). Vì (6), bộ lọc (1) là lớp phòng thủ thứ hai (ai đó được mở `audit.view` mà không giữ Toàn quyền) — kiểm ở tầng truy vấn `listAll`.
 // Chạy CẢ ứng dụng trên SQLite thật qua khung tests/audit/harness.mjs (cùng khuôn quan-tri-hoi-bang.test.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
-import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { world, seedStaff, fakeD1, app } from "../../../tests/audit/harness.mjs";
 
 const SALES = "11111111-1111-4111-8111-111111111111";
 const ADM = "33333333-3333-4333-8333-333333333333";
@@ -30,17 +31,25 @@ function setup() {
 }
 
 const ids = (r: any): string[] => r.json.entries.map((e: any) => e.id).sort();
+/** Truy vấn của trang Nhật ký như người KHÔNG giữ Toàn quyền nhận (hideSilent = true), trả dạng giống kết quả route cho `ids()`. */
+async function asNonSuper(w: any, opts: { action?: string; q?: string; limit?: number } = {}) {
+  const json = await app.listAll(fakeD1(w.sqlite), { action: (opts.action ?? null) as any, q: opts.q ?? "", limit: opts.limit ?? 100, offset: 0, hideSilent: true });
+  return { json };
+}
 
-test("ADR-0038: Quản trị KHÔNG thấy 6 thao tác im lặng do Toàn quyền làm (kể cả tài khoản giữ cả Quản trị lẫn Toàn quyền); thấy thao tác thường của Toàn quyền và mọi thao tác của Quản trị", async () => {
+test("ADR-0038 điều 6: Quản trị gọi trang Nhật ký → 403", async () => {
+  const { w } = setup();
+  assert.equal((await w.call("GET", "/api/audit", { as: ADM })).status, 403);
+});
+
+test("ADR-0038: người không giữ Toàn quyền KHÔNG nhận 6 thao tác im lặng do Toàn quyền làm (kể cả tài khoản giữ cả Quản trị lẫn Toàn quyền); nhận thao tác thường của Toàn quyền và mọi thao tác của Quản trị", async () => {
   const { w, log } = setup();
   const silentBySup = SILENT.map((a) => log(SUP, a));
   const silentByDir = SILENT.map((a) => log(DIR, a));
   const normalBySup = log(SUP, "location_created");
   const silentByAdm = SILENT.map((a) => log(ADM, a));
-  const r = await w.call("GET", "/api/audit?limit=100", { as: ADM });
-  assert.equal(r.status, 200);
-  const seen = ids(r);
-  for (const id of [...silentBySup, ...silentByDir]) assert.ok(!seen.includes(id), `Quản trị không được thấy ${id}`);
+  const seen = ids(await asNonSuper(w));
+  for (const id of [...silentBySup, ...silentByDir]) assert.ok(!seen.includes(id), `không được thấy ${id}`);
   assert.deepEqual(seen, [normalBySup, ...silentByAdm].sort());
 });
 
@@ -58,11 +67,11 @@ test("ADR-0038: lọc theo hành động hay tìm theo tên cũng không lộ d�
   const { w, log } = setup();
   const bySup = log(SUP, "pin_reset");
   const byAdm = log(ADM, "pin_reset");
-  let r = await w.call("GET", "/api/audit?action=pin_reset", { as: ADM });
+  let r: any = await asNonSuper(w, { action: "pin_reset" });
   assert.deepEqual(ids(r), [byAdm]);
-  r = await w.call("GET", `/api/audit?q=${encodeURIComponent("Chủ")}`, { as: ADM });
+  r = await asNonSuper(w, { q: "Chủ" });
   assert.ok(!ids(r).includes(bySup));
-  r = await w.call("GET", "/api/audit?action=pin_reset&limit=1", { as: ADM });
+  r = await asNonSuper(w, { action: "pin_reset", limit: 1 });
   assert.deepEqual(ids(r), [byAdm]);
   assert.equal(r.json.hasMore, false, "dòng bị giấu không được làm hiện nút 'xem thêm'");
   r = await w.call("GET", "/api/audit?action=pin_reset", { as: SUP });
@@ -73,8 +82,7 @@ test("ADR-0038: người vừa bị gỡ Toàn quyền → thao tác im lặng h
   const { w, log } = setup();
   const id = log(DIR, "pin_reset");
   w.sqlite.exec(`UPDATE stf_permission SET valid_to_at = '2026-09-27T01:00:00.000Z' WHERE staff_id = '${DIR}' AND permission_type_code = 'SUPER_ADMIN'`);
-  const r = await w.call("GET", "/api/audit", { as: ADM });
-  assert.ok(ids(r).includes(id));
+  assert.ok(ids(await asNonSuper(w)).includes(id));
 });
 
 const ticket = () => ({ kind: "BUG", title: "Nút lưu không bấm được", body: "Bấm Lưu không thấy gì.", clientRequestId: crypto.randomUUID(), context: { path: "/order" } });

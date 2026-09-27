@@ -83,6 +83,6 @@ export const SILENT_AUDIT_ACTIONS = [
   "passkey_removed",
 ] as const satisfies readonly AuditAction[];
 
-export const isAuditAction =(v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
+export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
 
 export const auditLabel = (a: AuditAction): string => AUDIT_ACTIONS[a].label;
