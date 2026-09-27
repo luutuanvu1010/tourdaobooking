@@ -5,6 +5,7 @@ import { initials } from "./format";
 import { batDauBangTin } from "./bangtin";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon, type IconName } from "./icons";
+import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { registerServiceWorker } from "./pwa";
 
 interface Tab {
@@ -60,6 +61,7 @@ export function setMaintenanceStrip(on: boolean): void {
 }
 
 export async function logout(): Promise<void> {
+  xoaKhungNho(); // ADR-0035: máy dùng chung — người sau không thấy khung của người trước
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   location.assign("/login");
 }
@@ -198,11 +200,12 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff, loaders: (() => void)[]): HTMLElement {
+function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = ""): HTMLElement {
   const groups = navGroups(admin, seesAll, office, canCreate, path)
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
-  const roleLabel = staff.permissions.map((p) => PERMISSION_LABEL[p]).join(" · ") || "Chưa có quyền";
+  // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
+  const roleLabel = staff ? staff.permissions.map((p) => PERMISSION_LABEL[p]).join(" · ") || "Chưa có quyền" : "";
   const logoutBtn = h("button", { class: "sidebar-logout", type: "button" }, "Đăng xuất");
   logoutBtn.addEventListener("click", () => void logout());
   return h(
@@ -217,8 +220,8 @@ function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: b
     h(
       "div",
       { class: "sidebar-foot" },
-      h("span", { class: "sidebar-avatar", "aria-hidden": "true" }, initials(staff.fullName)),
-      h("span", { class: "sidebar-who" }, h("span", { class: "sidebar-name" }, staff.fullName), h("span", { class: "sidebar-role" }, roleLabel)),
+      h("span", { class: "sidebar-avatar", "aria-hidden": "true" }, staff ? initials(staff.fullName) : tat),
+      h("span", { class: "sidebar-who" }, h("span", { class: "sidebar-name" }, staff?.fullName ?? ""), h("span", { class: "sidebar-role" }, roleLabel)),
       logoutBtn,
     ),
   );
@@ -289,10 +292,11 @@ export async function initShell(): Promise<Staff> {
   // Sidebar CẦN biết staff (chân thanh: avatar/tên/vai) nên chỉ dựng được SAU KHI đăng nhập xác nhận — khác tab
   // bar (không cần staff). `has-sidebar` chỉ gắn khi ĐÃ THẬT SỰ dựng #sidebar (không để lưới 236px trống khi
   // mất mạng lúc mở trang — nhánh addNav(false) dưới đây không có staff).
-  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null) => {
-    if (staff) {
+  // `tatTam` khác null = vẽ KHUNG TẠM từ bản nhớ (ADR-0035): đánh dấu `data-khung-tam` để gỡ khi /api/auth/me về; chưa nạp huy hiệu.
+  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null) => {
+    if (staff || tatTam !== null) {
       const badgeLoaders: (() => void)[] = [];
-      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders);
+      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "");
       document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
@@ -300,7 +304,8 @@ export async function initShell(): Promise<Staff> {
       const loadBadges = () => {
         for (const load of badgeLoaders) load();
       };
-      if (nav.offsetParent !== null) loadBadges();
+      if (tatTam !== null) nav.dataset.khungTam = "1";
+      else if (nav.offsetParent !== null) loadBadges();
       else {
         // Thanh bên chưa hiện lúc dựng khung (điện thoại, hoặc iPad đang dựng đứng): chờ khổ màn hình đổi. Không nạp
         // sẵn thì XOAY iPad 768→1024 sẽ ra thanh bên KHÔNG có huy hiệu nào cho tới khi tải lại trang (hồi quy so với
@@ -314,18 +319,52 @@ export async function initShell(): Promise<Staff> {
       }
     }
     if (tabbar === "off") return;
-    document.body.append(tabBar(admin, seesAll, canCreate, path));
+    const tabs = tabBar(admin, seesAll, canCreate, path);
+    if (tatTam !== null) tabs.dataset.khungTam = "1";
+    document.body.append(tabs);
     document.body.classList.add("has-tabbar");
   };
+  /** Thanh công việc: avatar (điện thoại) + ô tìm + nút "Tạo đơn" — cùng một cách dựng cho khung tạm và khung thật. */
+  const thanhCongViec = (tat: string, seesAll: boolean, canCreate: boolean, tam: boolean) => {
+    const avatarEl = h("span", { class: "bar-avatar", "aria-hidden": "true" }, tat);
+    // Ô tìm kiếm/nút "Lập đơn mới" chỉ có ích cho ai thấy được Đơn hàng — cùng đối tượng đang thấy mục "Đơn hàng"
+    // trên sidebar (`seesAll`)/nút "Lập đơn mới" trên sidebar (`canCreate`), không mở rộng hơn logic quyền hiện có.
+    const search = seesAll
+      ? h("input", { type: "search", class: "topbar-search", placeholder: "Tìm mã đơn, tên khách, SĐT…", "aria-label": "Tìm đơn" })
+      : null;
+    search?.addEventListener("keydown", (e: KeyboardEvent) => {
+      if (e.key !== "Enter") return;
+      // Đợt D Task 5: Đơn hàng dời sang /orders — ô tìm kiếm trên thanh công việc (có ở mọi trang office, kể cả
+      // Trang chủ) luôn đưa người dùng về đó kèm bộ lọc, dùng lại tham số `q` mà GET /api/orders đã hỗ trợ.
+      location.assign(`/orders?q=${encodeURIComponent((e.target as HTMLInputElement).value.trim())}`);
+    });
+    const newOrderBtn = canCreate ? h("a", { class: "btn btn-accent topbar-new", href: "/order-form" }, "Tạo đơn") : null;
+    const nodes = [avatarEl, search, newOrderBtn].filter((n): n is HTMLElement => n !== null);
+    if (tam) for (const n of nodes) n.dataset.khungTam = "1";
+    append(byId("topbar"), nodes);
+  };
+
+  // ADR-0035 điều 3: có bản nhớ khung → vẽ khung NGAY (không chờ mạng). /api/auth/me vẫn là nguồn sự thật: về thì gỡ khung tạm, vẽ lại như cũ.
+  const nho = layKhungNho();
+  if (nho) {
+    thanhCongViec(nho.tat, nho.seesAll, nho.canCreate, true);
+    addNav(nho.admin, nho.seesAll, nho.office, nho.canCreate, null, nho.tat);
+  }
   let me: Api.MeResponse;
   try {
     me = await api<Api.MeResponse>("/api/auth/me");
   } catch (err) {
-    if (err instanceof ApiError) throw err;
+    if (err instanceof ApiError) {
+      for (const el of document.querySelectorAll("[data-khung-tam]")) el.remove(); // lỗi thật (vd 500): không để khung tạm mồ côi
+      document.body.classList.remove("has-sidebar", "has-tabbar");
+      throw err;
+    }
     // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
     const el = document.getElementById("error");
     if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.");
-    addNav(false); // không biết vai khi mất mạng: hiện 4 tab cơ bản để còn điều hướng (QA2 Q2-04); không dựng sidebar (thiếu staff cho chân thanh)
+    // Không biết vai khi mất mạng: hiện 4 tab cơ bản để còn điều hướng (QA2 Q2-04); không dựng sidebar (thiếu staff cho chân thanh).
+    // Có khung tạm từ bản nhớ (ADR-0035) thì giữ nó — đủ mục đúng vai hơn 4 tab cơ bản.
+    if (!nho) addNav(false);
     return new Promise<never>(() => undefined);
   }
   const { staff } = me;
@@ -335,20 +374,11 @@ export async function initShell(): Promise<Staff> {
   const office = isOffice(staff); // chỉ mục "Danh bạ" (cổng văn phòng, ADR-0019)
   const canCreate = can(staff, "order.create"); // kế toán xem được đơn nhưng không lập đơn (ADR-0007): ẩn nút thay vì để bị 403 sau khi điền xong
 
-  const avatarEl = h("span", { class: "bar-avatar", "aria-hidden": "true" }, initials(staff.fullName));
-  // Ô tìm kiếm/nút "Lập đơn mới" chỉ có ích cho ai thấy được Đơn hàng — cùng đối tượng đang thấy mục "Đơn hàng"
-  // trên sidebar (`seesAll`)/nút "Lập đơn mới" trên sidebar (`canCreate`), không mở rộng hơn logic quyền hiện có.
-  const search = seesAll
-    ? h("input", { type: "search", class: "topbar-search", placeholder: "Tìm mã đơn, tên khách, SĐT…", "aria-label": "Tìm đơn" })
-    : null;
-  search?.addEventListener("keydown", (e: KeyboardEvent) => {
-    if (e.key !== "Enter") return;
-    // Đợt D Task 5: Đơn hàng dời sang /orders — ô tìm kiếm trên thanh công việc (có ở mọi trang office, kể cả
-    // Trang chủ) luôn đưa người dùng về đó kèm bộ lọc, dùng lại tham số `q` mà GET /api/orders đã hỗ trợ.
-    location.assign(`/orders?q=${encodeURIComponent((e.target as HTMLInputElement).value.trim())}`);
-  });
-  const newOrderBtn = canCreate ? h("a", { class: "btn btn-accent topbar-new", href: "/order-form" }, "Tạo đơn") : null;
-  append(byId("topbar"), [avatarEl, search, newOrderBtn]);
+  luuKhungNho({ tat: initials(staff.fullName), admin, seesAll, office, canCreate });
+  // Gỡ khung tạm (nếu có) rồi vẽ khung thật trong CÙNG một lượt chạy — trình duyệt không vẽ khung trống ở giữa.
+  for (const el of document.querySelectorAll("[data-khung-tam]")) el.remove();
+  document.body.classList.remove("has-sidebar", "has-tabbar");
+  thanhCongViec(initials(staff.fullName), seesAll, canCreate, false);
 
   addNav(admin, seesAll, office, canCreate, staff);
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)

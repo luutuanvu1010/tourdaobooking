@@ -5,6 +5,7 @@ import type { AuthConfigResponse } from "../src/shared/contracts";
 import { maintenanceMessageParts } from "../src/shared/maintenance";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
+import { xoaKhungNho } from "./khung-nho";
 
 const SCREEN_ID = "maintenance-screen";
 /** Khoảng hỏi lại xem chế độ bảo trì đã tắt chưa (GET /api/auth/config — công khai, một truy vấn nhẹ). */
@@ -68,6 +69,7 @@ export function showMaintenanceScreen(endsAt: string | null): Promise<never> {
     const logoutBtn = h("button", { class: "btn btn-link", type: "button" }, "Đăng xuất");
     logoutBtn.addEventListener("click", () => {
       // /api/auth/logout là route công khai nên không bị chặn bảo trì. Không dùng `api()` (api.ts import tệp này). Lỗi mạng: vẫn về trang đăng nhập, cookie sẽ hết hạn sau.
+      xoaKhungNho(); // ADR-0035: như logout() ở shell.ts — không dựa ngầm vào việc /login cũng xoá
       void fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" })
         .catch(() => undefined)
         .finally(() => location.assign("/login"));

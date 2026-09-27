@@ -5,8 +5,9 @@ import { CACHE_NAME, PRECACHE, cacheKey, isCacheable, routeFor } from "../../src
 declare const self: ServiceWorkerGlobalScope;
 
 self.addEventListener("install", (event) => {
-  // Lỗi một mục (vd chưa build) không làm hỏng cả lần cài.
-  event.waitUntil(caches.open(CACHE_NAME).then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.add(url)))));
+  // Lỗi một mục (vd chưa build) không làm hỏng cả lần cài. `cache: "reload"`: lấy thẳng từ máy chủ, bỏ qua bộ nhớ HTTP của trình duyệt —
+  // không thì bản dựng mới có thể nạp sẵn HTML/JS của bản CŨ (ETag cũ còn trong bộ nhớ HTTP) và chạy lệch nhau cho tới lần triển khai sau.
+  event.waitUntil(caches.open(CACHE_NAME).then((cache) => Promise.allSettled(PRECACHE.map((url) => cache.add(new Request(url, { cache: "reload" }))))));
   void self.skipWaiting();
 });
 

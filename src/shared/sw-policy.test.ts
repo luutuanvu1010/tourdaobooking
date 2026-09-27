@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { CACHE_NAME, CACHE_VERSION, PAGES, PRECACHE, cacheKey, isCacheable, routeFor } from "./sw-policy.ts";
 
 const ORIGIN = "https://booking.tourdao.vn";
@@ -115,6 +115,15 @@ test("chỉ cache đúng các loại nội dung của khung; JSON, văn bản th
 test("danh sách nạp sẵn: không trùng và đều thuộc cache khung", () => {
   assert.equal(new Set(PRECACHE).size, PRECACHE.length);
   for (const p of PRECACHE) assert.equal(shell(p), "shell", p);
+});
+
+// Tối ưu tải 2026-09-27: mọi trang và mọi tệp JS của trang phải nằm sẵn trong máy ngay khi cài bản mới — không để lần bấm đầu tiên sau mỗi lần
+// triển khai phải kéo cả trang qua mạng. Đọc danh sách tệp từ chính script `build:web` nên thêm trang mới mà quên nạp sẵn thì bài này đỏ.
+test("nạp sẵn đủ mọi trang và mọi tệp JS do build:web sinh ra", () => {
+  const script: string = JSON.parse(readFileSync(new URL("../../package.json", import.meta.url), "utf8")).scripts["build:web"];
+  const bundles = [...script.matchAll(/web\/([A-Za-z0-9_-]+)\.ts/g)].map((m) => `/js/${m[1]}.js`);
+  assert.ok(bundles.length >= 10, "không đọc được danh sách trang từ build:web");
+  for (const p of [...PAGES, ...bundles]) assert.ok(PRECACHE.includes(p), `thiếu trong PRECACHE: ${p}`);
 });
 
 test("mã phiên bản do build chèn; ngoài bản build (như test này) là 'dev'; tên cache gắn với phiên bản", () => {
