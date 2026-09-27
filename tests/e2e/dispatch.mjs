@@ -47,6 +47,8 @@ const rowsOf = (orderId) =>
 const openOf = async (orderId) => (await rowsOf(orderId)).filter((r) => r.valid_to_at === null);
 const history = async (cookie, order) => (await call(cookie, "GET", `/api/orders/${order.id}`)).body.history;
 const changes = async (cookie, order) => (await history(cookie, order)).filter((h) => h.action === "order_handler_changed");
+/** Tự nhận đơn chưa có người phụ trách (ADR-0034 §4.3): nhật ký ghi hành động RIÊNG `order_claimed`, không phải `order_handler_changed`. */
+const claimEntries = async (cookie, order) => (await history(cookie, order)).filter((h) => h.action === "order_claimed");
 /** Mô phỏng đơn "chưa có người phụ trách" (đơn cũ trước 0014 của người lập chưa có hồ sơ): đóng dòng HANDLE đang mở bằng SQL. */
 const dropHandler = (orderId) =>
   sql(`UPDATE dsp_assignment SET valid_to_at = strftime('%Y-%m-%dT%H:%M:%fZ','now') WHERE order_id = '${orderId}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
@@ -210,7 +212,8 @@ assert.equal((await setHandler(FIELD, o2.id, fld.id)).status, 403);
 r = await setHandler(B, o2.id, b.id);
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.deepEqual(r.body, { handler: asDto(b) });
-assert.deepEqual((await changes(A, o2)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${b.fullName}`]);
+assert.deepEqual((await claimEntries(A, o2)).map((h) => h.detail), [`từ chưa có người phụ trách sang ${b.fullName}`], "tự nhận đơn chưa có người ghi order_claimed (ADR-0034 §4.3), không phải order_handler_changed");
+assert.deepEqual(await changes(A, o2), [], "tự nhận không để lại dòng order_handler_changed");
 assert.equal((await openOf(o2.id)).length, 1);
 r = await setHandler(C.cookie, o2.id, C.id); // đã có người phụ trách: không còn "nhận" được — thua đua, không phải vượt quyền
 assert.equal(r.status, 409, "chỉ nhận được đơn CHƯA có người phụ trách");
@@ -274,7 +277,8 @@ for (let round = 0; round < 5; round++) {
     assert.equal(loser.body.error.code, "stale", `bên thua: ${JSON.stringify(loser.body)}`);
     sawStale++;
   }
-  assert.equal((await changes(A, o)).length, 1, "chỉ MỘT dòng nhật ký");
+  assert.equal((await claimEntries(A, o)).length, 1, "chỉ MỘT dòng nhật ký, hành động order_claimed (tự nhận, ADR-0034 §4.3)");
+  assert.equal((await changes(A, o)).length, 0, "tự nhận không ghi order_handler_changed");
   assert.equal((await rowsOf(o.id)).length, 2, "dòng của người lập (đã đóng bằng SQL) + dòng của người nhận thắng — bên thua không để lại dòng nào");
   assert.equal((await openOf(o.id)).length, 1);
 }
