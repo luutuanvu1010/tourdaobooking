@@ -14,15 +14,17 @@
 3. **Vai "IT"** (mã `IT`, nhóm nội bộ): bộ quyền mặc định = Giám đốc (Quản trị + Toàn quyền), `superAdminOnly` — chỉ Toàn quyền gán hoặc gỡ (LC-4). Quản trị không thấy vai này ở màn chọn vai (ADR-0042) và nhận 403 nếu gọi thẳng.
 4. Tài khoản chủ mang vai IT thì người khác thấy **"IT"** ở Quản lý tài khoản và Danh bạ; quyền hiện ra là Quản trị (`quyenHienThi`, ADR-0042). Chủ tự chuyển vai của mình sang IT trên màn Sửa tài khoản — được phép khi quyền không đổi (luật "không tự đổi quyền của chính mình" giữ nguyên). Hai trường hợp (người kiểm độc lập tái hiện 28/9): (a) tài khoản đang có Quản trị + Toàn quyền (ví dụ vai Giám đốc) → chọn IT, bỏ vai cũ, xem trước không có "Sẽ thêm"/"Sẽ mất" → Lưu; (b) tài khoản chỉ có Toàn quyền → xem trước báo "Sẽ thêm: Quản trị" và lưu sẽ bị 409 — mở "Chỉnh riêng", tick "Bớt đi: Quản trị", ghi lý do, để quyền giữ nguyên rồi mới Lưu (không ai khác làm hộ được vì Quản trị không quản tài khoản Toàn quyền).
 
+5. **Lịch sử vai của hồ sơ Toàn quyền không hiện với người khác** (người kiểm độc lập nêu 28/9: Danh bạ hiện cả lịch sử vai, nên chuyển Giám đốc → IT sẽ để lộ "Giám đốc (đã kết thúc)" cạnh "IT"). Chủ chọn: *"Ẩn vai đã kết thúc của bạn"*. `GET /api/parties/:id`: khi hồ sơ gắn tài khoản đang giữ Toàn quyền (`ctx.partyAccount` trả `vaiAn`) và người xem không có `admin.manage.superadmin`, chỉ trả vai đang mở. Lịch sử vẫn lưu nguyên, Toàn quyền xem đủ; hồ sơ người khác không đổi. Danh sách Danh bạ vốn chỉ trả vai đang mở.
+
 ## Trang ghép (CLAUDE.md §9)
 
 1. **Bảng chạm tới:** `pty_role_type` thêm một dòng vai nội bộ `IT` (cùng loại thực thể với 11 vai có sẵn); `pty_party_role` nhận dòng vai IT khi Toàn quyền gán (đường gán vai có sẵn).
 2. **Dòng bản đồ quyền:** không ô nào đổi. Vai chỉ SINH bộ quyền (`defaultPermissions`), không phải cổng cho phép.
-3. **Cổng canh cửa:** `PUT /api/staff/:id/roles` — `admin.manage` + `mayManage` + `roleAssignmentProblem` (vai `superAdminOnly` → 403 với người không giữ Toàn quyền). Kiểm: `src/shared/roles.test.ts`, `src/roles-schema.test.ts`, `src/modules/accounts/quan-tri-ky-thuat.test.ts` (ca "vai IT"), e2e `parties` (danh mục vai).
+3. **Cổng canh cửa:** `GET /api/parties/:id` — `party.view` + lọc vai theo `vaiAn` (test `src/modules/parties/vai-an-lich-su.test.ts`); `PUT /api/staff/:id/roles` — `admin.manage` + `mayManage` + `roleAssignmentProblem` (vai `superAdminOnly` → 403 với người không giữ Toàn quyền). Kiểm: `src/shared/roles.test.ts`, `src/roles-schema.test.ts`, `src/modules/accounts/quan-tri-ky-thuat.test.ts` (ca "vai IT"), e2e `parties` (danh mục vai).
 
 ## Hệ quả
 
-- Danh bạ (`GET /api/parties/:id`, mọi nhân viên văn phòng) hiện **cả lịch sử vai** (vai đã kết thúc hiện mờ), không chỉ vai đang mở như Quản lý tài khoản. Nếu tài khoản chủ đang mang vai Giám đốc rồi chuyển sang IT, hồ sơ của chủ hiện cả "Giám đốc (đã kết thúc)" lẫn "IT". Người kiểm độc lập nêu 28/9 — chờ chủ quyết.
+
 - Gói JavaScript của giao diện chứa nguyên bảng vai → quyền mặc định (kể cả IT = Quản trị + Toàn quyền) — giới hạn có từ trước (giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại), không phải hàng rào.
 
 - Hoàn tác: gỡ vai IT khỏi tài khoản (Toàn quyền), bỏ mục `IT` ở `roles.ts` rồi migration mới đặt `pty_role_type.active = 0` cho `IT` (không xoá cứng).

@@ -149,7 +149,11 @@ async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: strin
   const [detail, acc] = await Promise.all([getPartyDetail(ctx.env.DB, id), ctx.partyAccount(id)]);
   if (!detail) return NOT_FOUND();
   const editable = acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write");
-  return json({ party: toDetail(detail, vnToday(new Date()), { accountLinked: acc.linked, editable }) } satisfies PartyResponse, status);
+  const today = vnToday(new Date());
+  const party = toDetail(detail, today, { accountLinked: acc.linked, editable });
+  // ADR-0044 (chủ chọn 28/9): hồ sơ của tài khoản Toàn quyền — người xem không giữ Toàn quyền chỉ thấy vai ĐANG MỞ, không thấy lịch sử vai.
+  if (acc.linked && acc.vaiAn && !can(ctx.staff, "admin.manage.superadmin")) party.roles = party.roles.filter((r) => r.validTo === null || r.validTo >= today);
+  return json({ party } satisfies PartyResponse, status);
 }
 
 export const partiesModule: AppModule = {
