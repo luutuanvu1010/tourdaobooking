@@ -170,6 +170,11 @@ export interface RoleTypeRow { code: string; name: string; role_group: string; a
 export async function listRoleTypes(db: D1Database): Promise<RoleTypeRow[]> {
   return (await db.prepare(ROLE_TYPES).all<RoleTypeRow>()).results;
 }
+// ADR-0024 6.4: hồ sơ ?1 có đang mở vai ?2 (mã vai công ty chủ) không — câu tra dữ liệu dùng NỘI BỘ module (route ghi, respondParty). KHÔNG xuất qua index.ts.
+const IS_OWNER_COMPANY = defineSql("parties", "is_owner_company", "SELECT 1 AS x FROM pty_party_role WHERE party_id = ?1 AND role_type_code = ?2 AND valid_to_date IS NULL LIMIT 1");
+export async function isOwnerCompanyParty(db: D1Database, partyId: string, roleCode: string): Promise<boolean> {
+  return (await db.prepare(IS_OWNER_COMPANY).bind(partyId, roleCode).first()) !== null;
+}
 export interface OwnerCompanyRow { id: string; display_name: string; legal_name: string | null; tax_code: string | null; address: string | null; hotline: string | null; email: string | null }
 /** Các hồ sơ đang mở vai `roleCode` (tối đa 2) kèm định danh — chỉ `ownerCompany` của index.ts gọi, với mã vai công ty chủ. */
 export async function ownerCompanyRows(db: D1Database, roleCode: string): Promise<OwnerCompanyRow[]> {

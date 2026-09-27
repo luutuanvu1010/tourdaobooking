@@ -76,6 +76,9 @@ export const MATRIX = {
   "feedback.triage": row("none", "none", "none", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   "notice.send": row("none", "none", "none", "none", "none", "any", "none"), // gửi/thu hồi thông báo thủ công, xem ai đã hiểu — chỉ Toàn quyền (ADR-0034 điều 7)
+  // ADR-0038 điều 7 + ADR-0024 6.4 (T2b): sửa định danh (tên, MST, địa chỉ), liên hệ, công việc của hồ sơ công ty chủ và ĐỔI công ty chủ (gán vai
+  // "Công ty chủ" — chủ trả lời 2026-09-28) — chỉ Toàn quyền. party.write / party.staff.write / admin.manage từ chối hồ sơ này (module parties).
+  "company.legal.write": row("none", "none", "none", "none", "none", "any", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

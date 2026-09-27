@@ -14,8 +14,8 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  findParty, findPartiesByPhone, getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, openRoleCodesFor,
-  ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
+  findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements,
+  openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
@@ -75,6 +75,12 @@ const NOT_OPEN = () => error(409, "not_open", "Dòng này không còn đang hi�
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không xem được hồ sơ.");
 const FORBIDDEN_WRITE = () => error(403, "forbidden", "Tài khoản này không được sửa hồ sơ này. Hồ sơ của người có tài khoản chỉ quản trị viên cấp trên sửa.");
 const ACTIVE_BY_ACCOUNT = () => error(409, "account_rule", "Người này có tài khoản: tạm khoá hoặc cho nghỉ việc ở màn Quản lý tài khoản.");
+// ADR-0024 6.4 + ADR-0038 điều 7: hồ sơ công ty chủ chỉ người giữ ô company.legal.write sửa. Chữ nói "người phụ trách hệ thống", KHÔNG "Toàn quyền"
+// (Toàn quyền là vai ẩn — ADR-0038 điều 8 / ADR-0042; chỉ đạo D5 của nhật ký thi công T2b).
+const OWNER_COMPANY_FORBIDDEN = () =>
+  error(403, "forbidden", "Chỉ người phụ trách hệ thống được sửa hồ sơ công ty chủ (tên, mã số thuế, địa chỉ, liên hệ, công việc) và đổi công ty chủ.");
+/** Hồ sơ `id` có đang giữ vai "Công ty chủ" không — câu tra dữ liệu (không phải kiểm quyền), KHÔNG xuất ra ngoài module. */
+const laCongTyChu = (db: D1Database, id: string): Promise<boolean> => isOwnerCompanyParty(db, id, OWNER_COMPANY_ROLE);
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
@@ -159,11 +165,14 @@ function toDetail(
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
 const idParam = (params: Record<string, string>, name: string, re: RegExp): string | null => (re.test(params[name] ?? "") ? params[name]! : null);
 
-/** Hồ sơ đầy đủ cho NGƯỜI ĐANG XEM: `editable` = đúng điều kiện mà route ghi hỏi (ADR-0013 điều 3). Gọi được từ route "office" hoặc "admin" (cả hai luôn có `staff`). */
+/**
+ * Hồ sơ đầy đủ cho NGƯỜI ĐANG XEM: `editable` = đúng điều kiện mà route ghi hỏi (ADR-0013 điều 3; hồ sơ công ty chủ: ô company.legal.write — ADR-0024 6.4).
+ * Gọi được từ route "office" hoặc "admin" (cả hai luôn có `staff`).
+ */
 async function respondParty<A extends "office" | "admin">(ctx: Ctx<A>, id: string, status = 200): Promise<Response> {
-  const [detail, acc] = await Promise.all([getPartyDetail(ctx.env.DB, id), ctx.partyAccount(id)]);
+  const [detail, acc, chu] = await Promise.all([getPartyDetail(ctx.env.DB, id), ctx.partyAccount(id), laCongTyChu(ctx.env.DB, id)]);
   if (!detail) return NOT_FOUND();
-  const editable = acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write");
+  const editable = chu ? can(ctx.staff, "company.legal.write") : acc.linked ? can(ctx.staff, "party.staff.write") && acc.manageable : can(ctx.staff, "party.write");
   return json({ party: toDetail(detail, vnToday(new Date()), { accountLinked: acc.linked, editable }) } satisfies PartyResponse, status);
 }
 
@@ -245,8 +254,11 @@ export const partiesModule: AppModule = {
       const id = idParam(params, "id", PARTY_ID_RE);
       const current = id ? await findParty(env.DB, id) : null;
       if (!id || !current) return NOT_FOUND();
-      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
-      if (acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) return FORBIDDEN_WRITE();
+      const [acc, chu]: [PartyAccountVerdict, boolean] = await Promise.all([ctx.partyAccount(id), laCongTyChu(env.DB, id)]);
+      // ADR-0024 6.4 + ADR-0038 điều 7: hồ sơ công ty chủ — chỉ ô company.legal.write; party.write và party.staff.write từ chối hồ sơ này. Hỏi TRƯỚC khi đọc thân.
+      if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
+        return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
+      }
       const parsed = validatePartyUpdate(await readJson(request), current.party_kind);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
@@ -263,8 +275,11 @@ export const partiesModule: AppModule = {
       const id = idParam(params, "id", PARTY_ID_RE);
       const detail = id ? await getPartyDetail(env.DB, id) : null;
       if (!id || !detail) return NOT_FOUND();
-      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
-      if (acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) return FORBIDDEN_WRITE();
+      const [acc, chu]: [PartyAccountVerdict, boolean] = await Promise.all([ctx.partyAccount(id), laCongTyChu(env.DB, id)]);
+      // ADR-0024 6.4: liên hệ của hồ sơ công ty chủ (Hotline, Zalo, email in trên biên nhận) — chỉ ô company.legal.write.
+      if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
+        return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
+      }
       const parsed = validateContact(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const c = parsed.value;
@@ -286,8 +301,11 @@ export const partiesModule: AppModule = {
       const id = idParam(params, "id", PARTY_ID_RE);
       const cid = idParam(params, "cid", ROW_ID_RE);
       if (!id || !cid || !(await findParty(env.DB, id))) return NOT_FOUND();
-      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
-      if (acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) return FORBIDDEN_WRITE();
+      const [acc, chu]: [PartyAccountVerdict, boolean] = await Promise.all([ctx.partyAccount(id), laCongTyChu(env.DB, id)]);
+      // ADR-0024 6.4: đóng liên hệ của hồ sơ công ty chủ (vd Hotline — biên nhận báo lỗi nếu hết Hotline) — chỉ ô company.legal.write.
+      if (chu ? !can(staff, "company.legal.write") : acc.linked ? !(can(staff, "party.staff.write") && acc.manageable) : !can(staff, "party.write")) {
+        return chu ? OWNER_COMPANY_FORBIDDEN() : FORBIDDEN_WRITE();
+      }
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);

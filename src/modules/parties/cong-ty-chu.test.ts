@@ -1,0 +1,87 @@
+// Hồi quy quyền trên HỒ SƠ CÔNG TY CHỦ (ADR-0024 điều 6, 6.4, 6.5; ADR-0038 điều 7; câu trả lời của chủ 2026-09-28 "cho Super Admin đổi") — chạy CẢ ứng dụng
+// (router + mọi module) trên SQLite thật qua khung tests/audit/harness.mjs. Mọi ca từ chối khẳng định ĐÚNG MÃ (403/409), không chỉ "không 2xx": lớp
+// cơ sở dữ liệu cũng chặn nên "bị từ chối" chung chung sẽ che một lỗ ở route (Review Focus 1 của kế hoạch T2b).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+
+const SALES = "11111111-1111-4111-8111-111111111111";
+const ACC = "55555555-5555-4555-8555-555555555555";
+const ADM = "33333333-3333-4333-8333-333333333333";
+const SUP = "77777777-7777-4777-8777-777777777777";
+
+function setup() {
+  const w = world();
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: ACC, phone: "0900000005", name: "Kế toán", perms: ["ACCOUNTING"] });
+  seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
+  return w;
+}
+/** id hồ sơ công ty chủ — đọc theo mã vai (tệp test không bị R-N1-12 quét; không viết cứng id). */
+const congTyChu = (w: any): string => w.q("SELECT party_id FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL")[0].party_id;
+const logCount = (w: any, partyId: string): number => w.q("SELECT count(*) n FROM audit_log WHERE target_id = ?", partyId)[0].n;
+const hoSo = (w: any, id: string) =>
+  w.q("SELECT p.display_name, p.active, p.updated_at, o.legal_name, o.tax_code, o.address, o.invoice_email FROM pty_party p LEFT JOIN pty_organization o ON o.party_id = p.id WHERE p.id = ?", id)[0];
+const lienHe = (w: any, id: string) => w.q("SELECT id, label, valid_to_date FROM pty_contact_point WHERE party_id = ? ORDER BY id", id);
+
+/** PUT hồ sơ tổ chức với tên gọi `ten`, còn lại giữ nguyên giá trị đang có (+ khoá lạc quan). */
+function sua(w: any, as: string, id: string, ten?: string) {
+  const h = hoSo(w, id);
+  return w.call("PUT", `/api/parties/${id}`, {
+    as,
+    body: { displayName: ten ?? h.display_name, legalName: h.legal_name, taxCode: h.tax_code, address: h.address, invoiceEmail: h.invoice_email, active: h.active === 1, expectedUpdatedAt: h.updated_at },
+  });
+}
+const themSdt = (w: any, as: string, id: string) => w.call("POST", `/api/parties/${id}/contacts`, { as, body: { kind: "PHONE", value: "0911222333", label: "Thử" } });
+const dongLienHe = (w: any, as: string, id: string, cid: string) => w.call("POST", `/api/parties/${id}/contacts/${cid}/end`, { as, body: {} });
+
+test("6.4: SALES, ACCOUNTING, ADMIN (không có company.legal.write) sửa tên / thêm liên hệ / đóng liên hệ của hồ sơ công ty chủ → ĐÚNG 403, không ghi, không nhật ký; chữ không nói 'Toàn quyền'", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const hotline = lienHe(w, CT).find((c: any) => c.label === "Hotline").id;
+  const truoc = { ho: hoSo(w, CT), lh: lienHe(w, CT), log: logCount(w, CT) };
+  for (const as of [SALES, ACC, ADM]) {
+    for (const [ten, goi] of [["PUT", () => sua(w, as, CT, "Kẻ Mạo Danh")], ["thêm liên hệ", () => themSdt(w, as, CT)], ["đóng Hotline", () => dongLienHe(w, as, CT, hotline)]] as const) {
+      const r = await goi();
+      assert.equal(r.status, 403, `${as} ${ten}: ${r.text}`);
+      assert.equal(r.json.error.code, "forbidden");
+      assert.match(r.json.error.message, /người phụ trách hệ thống/);
+      assert.doesNotMatch(r.text, /Toàn quyền/, "chữ mới không nói 'Toàn quyền' (vai ẩn — chỉ đạo D5)");
+    }
+  }
+  assert.deepEqual({ ho: hoSo(w, CT), lh: lienHe(w, CT), log: logCount(w, CT) }, truoc);
+});
+
+test("6.4: SUPER_ADMIN (company.legal.write) sửa hồ sơ công ty chủ → 200 có nhật ký; thêm liên hệ → 201", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const log = logCount(w, CT);
+  let r = await sua(w, SUP, CT);
+  assert.equal(r.status, 200, r.text);
+  assert.equal(logCount(w, CT), log + 1);
+  assert.equal(w.q("SELECT action FROM audit_log WHERE target_id = ? ORDER BY rowid DESC LIMIT 1", CT)[0].action, "party_updated");
+  r = await themSdt(w, SUP, CT);
+  assert.equal(r.status, 201, r.text);
+});
+
+test("không chặn quá tay: SALES tạo và sửa một hồ sơ tổ chức thường → 201/200", async () => {
+  const w = setup();
+  let r = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "ORGANIZATION", displayName: "Đại lý Thử" } });
+  assert.equal(r.status, 201, r.text);
+  const id = r.json.party.id;
+  r = await sua(w, SALES, id, "Đại lý Thử Mới");
+  assert.equal(r.status, 200, r.text);
+  assert.equal(hoSo(w, id).display_name, "Đại lý Thử Mới");
+});
+
+test("editable của GET /api/parties/:id (hồ sơ công ty chủ): false với SALES và ADMIN, true với SUPER_ADMIN — cùng điều kiện với route ghi", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  for (const [as, mong] of [[SALES, false], [ADM, false], [SUP, true]] as const) {
+    const r = await w.call("GET", `/api/parties/${CT}`, { as });
+    assert.equal(r.status, 200, r.text);
+    assert.equal(r.json.party.editable, mong, as);
+  }
+});
