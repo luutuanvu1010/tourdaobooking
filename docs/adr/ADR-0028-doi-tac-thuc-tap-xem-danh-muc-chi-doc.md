@@ -1,6 +1,6 @@
 # ADR-0028 — Đối tác và Thực tập xem danh mục dịch vụ CHỈ-ĐỌC để lập đơn
 
-- **Trạng thái:** **accepted** — chủ dự án quyết trực tiếp trong phiên chat 2026-09-26, chọn phương án **(A)** "mở cho cả Đối tác và Thực tập" (trả lời: *"a"*). AI ghi lại, không tự quyết (tiền lệ ADR-0021, ADR-0027).
+- **Trạng thái:** **accepted** — chủ dự án quyết trực tiếp trong phiên chat 2026-09-26, chọn phương án **(A)** "mở cho cả Đối tác và Thực tập" (trả lời: *"a"*). AI ghi lại, không tự quyết (tiền lệ ADR-0021, ADR-0027). **Điều 1 (và dòng 3 của Trang ghép) bị thay bởi ADR-0033 (accepted 2026-09-27)**: `GET /api/catalog` về cổng `office`, người lập đơn đọc danh mục qua `GET /api/catalog/for-order`; điều 2–4 giữ nguyên.
 - **Ngày:** 2026-09-26   **Loại:** cửa **hai chiều** — đổi cổng truy cập của một route đọc, không migration, không dữ liệu mới; gỡ bằng một commit. Phần một chiều duy nhất: giá bán lẻ Đối tác/Thực tập đã xem thì không thu lại — nhưng ADR-0014 điều 3 đã cho Đối tác thấy giá bán lẻ.
 
 ## Bối cảnh
