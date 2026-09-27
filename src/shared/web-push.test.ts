@@ -3,7 +3,9 @@ import assert from "node:assert/strict";
 import { THAY_DOI } from "./bang-tin.ts";
 import type { PermissionHolder } from "./permissions.ts";
 import type { DongDon, DongThuCong } from "./thong-bao.ts";
-import { chiaLo, guiLo, hanhDongCuaThayDoi, kiemDiaChi, nenGui, nguoiNhanDay, taoJwtVapid, trongGioYenLang, type KhoaVapid } from "./web-push.ts";
+import {
+  chiaLo, guiLo, hanhDongCuaThayDoi, khoaVapid, kiemDiaChi, nenGui, nguoiNhanDay, taoJwtVapid, trongGioYenLang, type KhoaVapid,
+} from "./web-push.ts";
 
 test("kiemDiaChi: nhận địa chỉ thật của các dịch vụ đẩy", () => {
   assert.equal(kiemDiaChi("https://fcm.googleapis.com/fcm/send/abc123"), true);
@@ -151,6 +153,30 @@ async function sinhKhoaThu(): Promise<{ pair: CryptoKeyPair; jwkBiMat: string }>
 }
 const b64uDecode = (s: string): Uint8Array => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
 const decodeJson = (s: string): unknown => JSON.parse(new TextDecoder().decode(b64uDecode(s)));
+const b64uEncode = (b: ArrayBuffer | Uint8Array) => btoa(String.fromCharCode(...new Uint8Array(b))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+/** Chuỗi "KHOA CONG KHAI" thật mà lệnh tạo khoá (Task 5) in ra cho một cặp khoá — dùng để test khoá KHỚP/LỆCH có thật, không giả lập. */
+const congKhaiThat = async (pair: CryptoKeyPair) => b64uEncode(await crypto.subtle.exportKey("raw", pair.publicKey));
+
+test("khoaVapid: khoá công khai KHỚP khoá bí mật → trả cặp; thiếu một trong hai → null", async () => {
+  const { pair, jwkBiMat } = await sinhKhoaThu();
+  const congKhai = await congKhaiThat(pair);
+  assert.deepEqual(khoaVapid({ VAPID_PUBLIC_KEY: congKhai, VAPID_PRIVATE_KEY: jwkBiMat }), { congKhai, biMat: jwkBiMat });
+  assert.equal(khoaVapid({}), null);
+  assert.equal(khoaVapid({ VAPID_PUBLIC_KEY: congKhai }), null);
+  assert.equal(khoaVapid({ VAPID_PRIVATE_KEY: jwkBiMat }), null);
+});
+
+test("khoaVapid: khoá công khai LỆCH khoá bí mật (hai cặp sinh riêng) → null, không ném (bẫy 45 — mọi lần gửi sau đó sẽ 403 nếu không bắt ở đây)", async () => {
+  const a = await sinhKhoaThu();
+  const b = await sinhKhoaThu();
+  const congKhaiCuaB = await congKhaiThat(b.pair);
+  assert.equal(khoaVapid({ VAPID_PUBLIC_KEY: congKhaiCuaB, VAPID_PRIVATE_KEY: a.jwkBiMat }), null);
+});
+
+test("khoaVapid: khoá bí mật hỏng (không phải JSON, thiếu x/y) → null, không ném", () => {
+  assert.equal(khoaVapid({ VAPID_PUBLIC_KEY: "abc", VAPID_PRIVATE_KEY: "không phải json" }), null);
+  assert.equal(khoaVapid({ VAPID_PUBLIC_KEY: "abc", VAPID_PRIVATE_KEY: "{}" }), null);
+});
 
 test("taoJwtVapid: 3 phần, header/claims đúng, chữ ký 64 byte, verify được bằng khoá công khai; sửa 1 ký tự → false", async () => {
   const { pair, jwkBiMat } = await sinhKhoaThu();

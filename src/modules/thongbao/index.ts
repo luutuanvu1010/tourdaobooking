@@ -98,7 +98,8 @@ export const thongbaoModule: AppModule = {
     // Tự phục vụ (ADR-0036 điều 1–2; "ngoại lệ" ở docs/quyen-hoan.json): id luôn lấy từ phiên (staff.id), không tin thân yêu cầu.
     route("GET", "/api/account/thong-bao/may", "staff", async ({ env, staff }) => {
       const soMay = await demMay(env.DB, staff.id);
-      const khoa = env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? env.VAPID_PUBLIC_KEY : null;
+      // khoaVapid kiểm CẢ HAI khoá CÓ MẶT VÀ KHỚP NHAU (bẫy 45) — không tự kiểm tay ở đây để tránh lệch với dayGoCua/guiLo.
+      const khoa = khoaVapid(env)?.congKhai ?? null;
       return json({ khoa, soMay } satisfies MayThongBaoResponse);
     }),
     route("POST", "/api/account/thong-bao/may", "staff", async ({ env, staff, request }) => {

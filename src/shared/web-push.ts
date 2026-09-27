@@ -100,9 +100,42 @@ export async function taoJwtVapid(khoaBiMat: string, aud: string, nowSec: number
   return `${dau}.${b64u(chuKy)}`; // Web Crypto trả r‖s 64 byte (IEEE P1363) = đúng dạng JWS ES256 — KHÔNG đổi sang DER
 }
 
+const b64uDecode = (s: string): Uint8Array => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), (c) => c.charCodeAt(0));
+
+/**
+ * Khoá công khai TÍNH LẠI từ khoá bí mật (JWK P-256: trường `x`/`y`) có bằng đúng chuỗi khoá công khai đang cấu hình không — cùng
+ * dạng "raw" (0x04 ‖ X ‖ Y, 65 byte, base64url) mà lệnh tạo khoá ở Task 5 in ra và `crypto.subtle.exportKey("raw", …)` trả về.
+ * Không dùng `crypto.subtle` (không cần ký/verify, chỉ ghép byte) nên chạy đồng bộ, không ném với JSON hỏng/thiếu trường.
+ */
+function khopCapKhoa(congKhai: string, biMatJwk: string): boolean {
+  try {
+    const { x, y } = JSON.parse(biMatJwk) as { x?: unknown; y?: unknown };
+    if (typeof x !== "string" || typeof y !== "string") return false;
+    const raw = new Uint8Array(65);
+    raw[0] = 0x04;
+    raw.set(b64uDecode(x), 1);
+    raw.set(b64uDecode(y), 33);
+    return b64u(raw) === congKhai;
+  } catch {
+    return false;
+  }
+}
+
 export interface KhoaVapid { congKhai: string; biMat: string }
-export const khoaVapid = (env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string }): KhoaVapid | null =>
-  env.VAPID_PUBLIC_KEY && env.VAPID_PRIVATE_KEY ? { congKhai: env.VAPID_PUBLIC_KEY, biMat: env.VAPID_PRIVATE_KEY } : null;
+/**
+ * Cả hai khoá VAPID có mặt VÀ khớp nhau (bẫy 45, `docs/CHANGE-GUIDE.md`): khoá công khai (`vars`) và khoá bí mật (`wrangler secret`)
+ * do CHỦ đặt ở hai lệnh/hai lượt deploy khác nhau — lệch cặp (vd chạy lệnh tạo khoá quá một lần) làm mọi lần gửi bị dịch vụ đẩy từ
+ * chối (403) mà không có dấu hiệu nào khác ngoài log `day_loi`. Bắt lệch NGAY ở đây (trả `null`, tắt tính năng, không throw) thay vì
+ * để lộ ra bằng gửi thật — một dòng log `vapid_khoa_lech` (không có giá trị khoá) để chủ dò khi cần.
+ */
+export const khoaVapid = (env: { VAPID_PUBLIC_KEY?: string; VAPID_PRIVATE_KEY?: string }): KhoaVapid | null => {
+  if (!env.VAPID_PUBLIC_KEY || !env.VAPID_PRIVATE_KEY) return null;
+  if (!khopCapKhoa(env.VAPID_PUBLIC_KEY, env.VAPID_PRIVATE_KEY)) {
+    console.warn(JSON.stringify({ level: "warn", event: "vapid_khoa_lech" }));
+    return null;
+  }
+  return { congKhai: env.VAPID_PUBLIC_KEY, biMat: env.VAPID_PRIVATE_KEY };
+};
 
 /** Nhớ JWT trong isolate tối đa 1 giờ theo (`aud`, khoá) — JWT còn hiệu lực 12 giờ nhưng ký lại sớm hơn nhiều để không bao giờ ký một
  * JWT gần hết hạn (đồng hồ Worker/dịch vụ đẩy lệch). Không giữ qua nhiều isolate: mất khi Worker tái tạo, không phải bug. */
