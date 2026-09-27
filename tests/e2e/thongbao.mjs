@@ -177,6 +177,17 @@ assert.equal((await call(DT, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`))
 const ai = (await call(TQ, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`)).body;
 assert.ok(ai.daHieu.some((x) => x.ten === ACCOUNTS.salesA.name));
 assert.equal((await call(ADMIN, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`)).status, 403);
+// m1 (rà soát độc lập lượt 2, rẻ): soNguoiNhan ở da-gui đếm đúng nhóm nhận 'noi-bo', KHÔNG tính người GỬI (TQ) — đếm lại thẳng từ CSDL
+// (mọi tài khoản active giữ ít nhất một quyền khác PARTNER, trừ chính TQ) để không phụ thuộc số tài khoản seed sẵn có thể đổi.
+const noiBoKhacTQ = (
+  await sqlRows(
+    `SELECT COUNT(DISTINCT s.id) AS n FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL
+     WHERE s.active = 1 AND p.permission_type_code != 'PARTNER' AND s.id != '${tqId}'`,
+  )
+)[0].n;
+const guiQt = (await call(TQ, "GET", "/api/thong-bao/da-gui")).body.tin.find((x) => x.id === qt.id);
+assert.equal(guiQt.soNguoiNhan, noiBoKhacTQ, "soNguoiNhan không tính người gửi (TQ)");
+assert.equal(guiQt.soDaHieu, 1, "đúng một người (Sales A) đã bấm Đã hiểu lúc này");
 const logGui = await sql(`SELECT detail FROM audit_log WHERE action LIKE 'notice_%'`);
 assert.ok(!JSON.stringify(logGui).includes("cổng số 2"), "nhật ký không chép nội dung tin");
 console.log("✓ đã hiểu (kể cả bấm lại), ai đã hiểu, người ngoài nhóm nhận → 404, nhật ký không chứa nội dung");
