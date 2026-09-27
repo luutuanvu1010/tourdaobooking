@@ -38,6 +38,7 @@ export const auditModule: AppModule = {
           q: (url.searchParams.get("q") ?? "").trim().slice(0, 100),
           limit: intParam(url.searchParams.get("limit"), 50, 1, 100),
           offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
+          hideSilent: !can(staff, "admin.manage.superadmin"), // ADR-0038: chỉ Toàn quyền xem thao tác im lặng của Toàn quyền
         }),
       );
     }),

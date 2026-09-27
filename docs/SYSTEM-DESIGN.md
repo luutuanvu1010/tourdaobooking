@@ -304,6 +304,7 @@ erDiagram
 | 0018 | `0018_orders_booker_party.sql` | có trong repo, **CHƯA lên production**: chỉ THÊM cột `orders.booker_party_id` (TEXT, NULL được, FK `pty_party(id)` NO ACTION) + chỉ mục `orders_booker_party_idx` — người đặt trên đơn (N2 lát 1, ADR-0011) |
 | 0024 | `0024_vai_quyen_mac_dinh.sql` | có trong nhánh `gd1-mo-hinh-vai`, **CHƯA lên production**: chỉ THÊM — cột `pty_role_type.role_group` (`CHECK`), 11 dòng vai mô hình người–vai–quyền (ADR-0018) vào `pty_role_type`, bảng `stf_permission_adjustment` (`CHECK direction`), view `v_pty_open_role_group`, trigger `lc1_stf_permission_external_partner_only` (LC-1), `pty_party_role_group_conflict_ins`/`_upd` (LC-3). Số `0019` chưa dùng (giữa 0018 và 0020, xem `docs/CHANGE-GUIDE.md` bẫy số migration) |
 | 0025 | `0025_thong_bao.sql` | Thông báo hệ thống lượt 1 (ADR-0034), **CHƯA lên production**: chỉ THÊM — 4 bảng `ntf_notice`, `ntf_notice_target`, `ntf_ack` (chỉ-thêm), `ntf_read_mark`; 3 view công bố `v_aud_order_event`, `v_ord_order_owner`, `v_dsp_first_handler` |
+| 0027 | `0027_v_stf_toan_quyen.sql` | ADR-0038, **CHƯA lên production**: chỉ THÊM view `v_stf_toan_quyen` (tài khoản đang giữ `SUPER_ADMIN`) cho bộ lọc thao tác im lặng của `GET /api/audit`; không đổi bảng/dữ liệu. Số 0026 do nhánh Thông báo màn hình khoá giữ |
 
 **Hai tệp cùng tiền tố `0016`** (`0016_maintenance.sql` và `0016_feedback.sql`) — chấp nhận được: wrangler theo dõi migration theo **tên đầy đủ**, không theo số, và thứ tự áp là thứ tự tên (`0016_feedback` trước `0016_maintenance`). Hai tệp hoàn toàn độc lập (bảng `fbk_*` ↔ `mnt_setting`) nên thứ tự nào cũng dựng được schema. KHÔNG đổi tên `0016_feedback.sql` (đã áp production đúng tên đó).
 
@@ -475,7 +476,7 @@ Tất cả 81 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 | PATCH | `/api/catalog/:code` | admin | catalog | ghi đè giá và/hoặc ẩn/hiện một dịch vụ |
 | POST | `/api/catalog/:code/ack` | admin | catalog | "Giữ ghi đè" sau khi Sheet đổi giá |
 | DELETE | `/api/catalog/:code/override` | admin | catalog | bỏ toàn bộ ghi đè, quay về theo Sheet |
-| GET | `/api/audit` | admin | audit | nhật ký toàn hệ thống, lọc `action` / `q`, phân trang |
+| GET | `/api/audit` | admin | audit | nhật ký toàn hệ thống, lọc `action` / `q`, phân trang; người không có `admin.manage.superadmin` không nhận thao tác im lặng (`SILENT_AUDIT_ACTIONS`) do người đang giữ Toàn quyền làm — lọc trong SQL qua view `v_stf_toan_quyen` (ADR-0038) |
 | GET | `/api/locations` | staff | locations | danh sách địa điểm + loại địa điểm |
 | POST | `/api/locations` | admin | locations | thêm địa điểm |
 | PUT | `/api/locations/:id` | admin | locations | sửa địa điểm (khoá lạc quan) |
@@ -560,8 +561,8 @@ Hai tầng, cả hai **mặc định từ chối**:
 | `admin.manage.superadmin` | none | none | none | none | none | `PUT /api/staff/:id/permissions` (đổi thành/khỏi `SUPER_ADMIN`), `PUT /api/staff/:id/roles` (gán/gỡ vai cấp cao, LC-4), `POST /api/staff` (tạo mới với `SUPER_ADMIN`) — chỉ `SUPER_ADMIN` gọi được, ADR-0014 điều 2/8 |
 | `settings.ops` | none | none | none | none | none | cài đặt vận hành (ADR-0019): **chỉ `SUPER_ADMIN` = any** (cột SUPER_ADMIN không có trong bảng này). `PUT /api/maintenance` chặn bằng ô này rồi mới kiểm SĐT trong danh sách được phép; `GET /api/maintenance` chặn bằng `admin.manage`, cờ `canToggle` = `settings.ops` && SĐT trong danh sách |
 | `feedback.submit` | any | any | any | any | any | `POST /api/feedback`, `POST /api/feedback/:id/messages` (mọi tài khoản đăng nhập đều gửi được) |
-| `feedback.view` | own | own | any | own | own | `GET /api/feedback/mine`, `GET /api/feedback/:id` — "của mình" ở đây là NGƯỜI GỬI yêu cầu (không phải người lập đơn) |
-| `feedback.triage` | none | none | any | none | none | `POST /api/feedback/:id/messages` (nơi DUY NHẤT ô này **từ chối**: 403 khi người không triage ghi chú nội bộ), `GET /api/feedback/:id` và `GET /api/feedback/badge` (chỉ dùng cờ để đổi nội dung trả về); còn `GET /api/feedback` (hàng đợi) và `PATCH /api/feedback/:id` đều gọi `can(staff, "feedback.triage")` viết thẳng trong thân và từ chối 403 (ADR-0019 phần B; trước đó chỉ có router) |
+| `feedback.view` | own | own | own (ADR-0038) | own | own | `GET /api/feedback/mine`, `GET /api/feedback/:id` — "của mình" ở đây là NGƯỜI GỬI yêu cầu (không phải người lập đơn) |
+| `feedback.triage` | none | none | none (ADR-0038) | none | none | `POST /api/feedback/:id/messages` (nơi DUY NHẤT ô này **từ chối**: 403 khi người không triage ghi chú nội bộ), `GET /api/feedback/:id` và `GET /api/feedback/badge` (chỉ dùng cờ để đổi nội dung trả về); còn `GET /api/feedback` (hàng đợi) và `PATCH /api/feedback/:id` đều gọi `can(staff, "feedback.triage")` viết thẳng trong thân và từ chối 403 (ADR-0019 phần B; trước đó chỉ có router) |
 | `notice.send` (ADR-0034) | none | none | none | none | none | gửi/xem đã gửi/xem ai đã hiểu/thu hồi tin thủ công (module `thongbao`): **chỉ `SUPER_ADMIN` = any** (cột SUPER_ADMIN không có trong bảng này, cùng khuôn `settings.ops`); `ADMIN` qua được cổng router `admin` nhưng bị `can(staff,"notice.send")` chặn 403 ngay đầu thân, TRƯỚC mọi truy vấn (`src/modules/thongbao/index.ts`) |
 
 Ba ô `feedback.*` là mở rộng của module Góp ý (spec 2026-09-21), KHÔNG thuộc bảng ADR-0007 gốc. Ba thao tác `order.cancel`, `dispatch.guides.view`, `admin.manage.superadmin` là ADR-0014 (điều 2/8/9/11); ô `dispatch.request` (ADR-0014 điều 10) đã bỏ khỏi bản đồ ở ADR-0019 vì không còn route dự kiến.

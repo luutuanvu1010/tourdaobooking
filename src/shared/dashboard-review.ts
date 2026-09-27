@@ -12,7 +12,7 @@
 // này ở phía server cho RIÊNG khối này; việc kiểm lại ở đây làm cho "không phải quản trị không nhận được dữ liệu"
 // là một điều kiểm được bằng test thuần, không chỉ dựa vào kỷ luật gọi API đúng chỗ ở web/.
 import type { CatalogAdminItemDto, FeedbackTicketDto } from "./contracts.ts";
-import { hasPermission, type PermissionHolder } from "./permissions.ts";
+import { can, hasPermission, type PermissionHolder } from "./permissions.ts";
 
 export interface ReviewCatalogAlert {
   /** Mã dịch vụ có ghi đè lệch Sheet — dịch vụ ĐẦU TIÊN theo thứ tự `items` truyền vào (đủ cho một dòng tóm tắt; xem đủ chi tiết ở trang Dịch vụ & giá). */
@@ -76,7 +76,8 @@ export function reviewAlerts(
   if (!canSeeReviewAlerts(staff)) return null;
   if (!data) return null;
   const catalogConflict = summarizeCatalogConflicts(data.catalogItems);
-  const feedbackQueue = summarizeFeedbackQueue(data.tickets);
+  // ADR-0038: hàng đợi Góp ý chỉ dành cho người có `feedback.triage` (hôm nay: Toàn quyền) — Quản trị không nhận dòng góp ý dù `data` có.
+  const feedbackQueue = can(staff, "feedback.triage") ? summarizeFeedbackQueue(data.tickets) : null;
   if (!catalogConflict && !feedbackQueue) return null;
   return { catalogConflict, feedbackQueue };
 }

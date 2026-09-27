@@ -68,8 +68,8 @@ export const MATRIX = {
   "admin.manage": row("none", "none", "any", "none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": row("none", "none", "none", "none", "none", "any", "none"), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
-  "feedback.view": row("own", "own", "any", "own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
-  "feedback.triage": row("none", "none", "any", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
+  "feedback.view": row("own", "own", "own", "own", "own", "any", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
+  "feedback.triage": row("none", "none", "none", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   "notice.send": row("none", "none", "none", "none", "none", "any", "none"), // gửi/thu hồi thông báo thủ công, xem ai đã hiểu — chỉ Toàn quyền (ADR-0034 điều 7)
 } as const satisfies Record<string, Row>;
