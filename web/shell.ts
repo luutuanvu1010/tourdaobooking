@@ -7,6 +7,7 @@ import { helpHasNews, newDot } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { registerServiceWorker } from "./pwa";
+import { ganThongBao } from "./thong-bao-ui";
 
 interface Tab {
   href: string;
@@ -55,9 +56,19 @@ const MAINTENANCE_STRIP_ID = "maint-strip";
  * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ bạn dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ người ĐƯỢC PHÉP tới được app lúc bảo trì nên chỉ họ thấy dải này;
  * gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt, khỏi phải tải lại trang).
  */
+/** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.ntf-strip` của Thông báo — ADR-0034) — tạo lười, cái nào chạy trước tạo (R7). */
+function stripsEl(): HTMLElement {
+  let el = document.getElementById("strips");
+  if (!el) {
+    el = h("div", { id: "strips" });
+    document.getElementById("topbar")?.after(el);
+  }
+  return el;
+}
+
 export function setMaintenanceStrip(on: boolean): void {
   document.getElementById(MAINTENANCE_STRIP_ID)?.remove();
-  if (on) document.getElementById("topbar")?.after(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ bạn dùng được"));
+  if (on) stripsEl().append(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ bạn dùng được"));
 }
 
 export async function logout(): Promise<void> {
@@ -379,6 +390,7 @@ export async function initShell(): Promise<Staff> {
   for (const el of document.querySelectorAll("[data-khung-tam]")) el.remove();
   document.body.classList.remove("has-sidebar", "has-tabbar");
   thanhCongViec(initials(staff.fullName), seesAll, canCreate, false);
+  ganThongBao(byId("topbar"), staff); // ADR-0034: chỉ khung THẬT có chuông (khung tạm chưa biết soChuaDoc) — ngay sau thanhCongViec(), trước addNav() (R7)
 
   addNav(admin, seesAll, office, canCreate, staff);
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
