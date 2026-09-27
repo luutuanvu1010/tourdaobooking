@@ -25,9 +25,12 @@ const sheetItem = (code) => {
   assert.ok(it, `Sheet thật không còn dòng ${code} — kịch bản cần sửa lại (Sheet đã đổi cấu trúc, không chỉ đổi giá)`);
   return it;
 };
-const sheetTD101 = sheetItem("TD101"), sheetTTB03 = sheetItem("TTB03"), sheetTD103 = sheetItem("TD103");
+const sheetTD101 = sheetItem("TD101"), sheetTD103 = sheetItem("TD103");
+// Dịch vụ thứ hai để đối chiếu đơn vị + giá: chọn LÚC CHẠY một dòng có đơn vị khác "theo người" (vd theo nhóm 5 khách),
+// không ghim mã cố định — TTB03 từng dùng ở đây đã bị chủ dự án bỏ khỏi Sheet thật (2026-09-27), làm kịch bản đỏ dù đồng bộ đúng.
+const sheetKhac = sheetParsed.items.find((i) => i.unit !== "perPax") ?? sheetItem("TD102");
 const vnd = (n) => n.toLocaleString("vi-VN"); // "850000" → "850.000" — dùng để đối chiếu câu chữ nhật ký
-console.log(`✓ đọc Sheet thật: TD101 giá người lớn ${vnd(sheetTD101.prices.adult)} ₫, TTB03 giá người lớn ${vnd(sheetTTB03.prices.adult)} ₫`);
+console.log(`✓ đọc Sheet thật: TD101 giá người lớn ${vnd(sheetTD101.prices.adult)} ₫, ${sheetKhac.code} (${sheetKhac.unit}) có giá ${JSON.stringify(sheetKhac.prices)}`);
 
 assert.equal((await call(null, "GET", "/api/catalog")).status, 401);
 for (const [m, p] of [["GET", "/api/catalog/admin"], ["POST", "/api/catalog/sync"], ["PATCH", "/api/catalog/TD101"], ["DELETE", "/api/catalog/TD101/override"]]) {
@@ -51,9 +54,10 @@ const td101 = items.find((i) => i.code === "TD101");
 assert.deepEqual(td101.prices, sheetTD101.prices, `giá TD101 phải khớp Sheet thật đọc được ở trên (${JSON.stringify(sheetTD101.prices)})`);
 assert.equal(td101.notes.child, sheetTD101.notes.child);
 assert.equal(td101.supported, true);
-const ttb03 = items.find((i) => i.code === "TTB03");
-assert.equal(ttb03.unit, sheetTTB03.unit);
-assert.deepEqual(ttb03.prices, sheetTTB03.prices, `giá TTB03 phải khớp Sheet thật đọc được ở trên (${JSON.stringify(sheetTTB03.prices)})`);
+const khac = items.find((i) => i.code === sheetKhac.code);
+assert.ok(khac, `API thiếu dịch vụ ${sheetKhac.code} có trên Sheet thật`);
+assert.equal(khac.unit, sheetKhac.unit);
+assert.deepEqual(khac.prices, sheetKhac.prices, `giá ${sheetKhac.code} phải khớp Sheet thật đọc được ở trên (${JSON.stringify(sheetKhac.prices)})`);
 // không rò cột nội bộ / booking
 const raw = JSON.stringify(r.body);
 for (const secret of ["Kiểm xem có trùng", "tour-3-dao-nha-trang-hon-mun-hon-tam", "tour-hon-tam-tron-goi-cano-buffet", "Khoá giá", "Đường dẫn"]) assert.ok(!raw.includes(secret), `rò: ${secret}`);
