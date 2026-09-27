@@ -803,7 +803,7 @@ try {
 
   // --------------------------------------------------------------------------------------------------------------------------------------
   // Đợt E task 7 — CA LỖI GỐC đo được thật (kiểm độc lập): đơn có dịch vụ NHẬP TAY (ngoài danh mục) + có ít nhất một lần sửa số khách/tiền SAU
-  // KHI XÁC NHẬN → trang chi tiết đơn và GET /api/dispatch/mine (không có trường tiền — chỉ đối chứng số khách, ADR-0007 điều 3) ĐÚNG; /api/orders
+  // KHI XÁC NHẬN → trang chi tiết đơn và GET /api/dispatch/mine (từ Task 1.8 có ba trường tiền cấp đơn — đo cả tiền lẫn số khách) ĐÚNG; /api/orders
   // và Trang chủ (`/api/orders/dashboard`) từng THIẾU đúng tiền dịch vụ nhập tay (đo được: thiếu 200.000₫) vì đọc thẳng cột `subtotal_after` đã
   // lưu — cột này, ở nơi GHI cũ, chỉ cộng dịch vụ TỪ DANH MỤC. Sáu ca dưới đây (đặc tả điều phối viên mục D) mỗi ca TỰ TÍNH số mong đợi TỪ KỊCH
   // BẢN (giá ZH1 = 300.000₫/khách đã khai ở đầu khối `try` này, dịch vụ nhập tay = 200.000₫/dòng CỐ ĐỊNH) — KHÔNG chép số từ kết quả chạy (đây
