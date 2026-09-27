@@ -186,8 +186,18 @@ test("guiLo: header vapid đúng dạng; 410 → trả về; 404/403/ném lỗi 
     const ma = url.endsWith("/ep0") ? 410 : url.endsWith("/ep1") ? 404 : url.endsWith("/ep2") ? 403 : 201;
     return new Response(null, { status: ma });
   }) as unknown as typeof fetch;
-  const { hetHieuLuc } = await guiLo(ds, khoa, Date.now(), goi);
+  const logs: string[] = [];
+  const goc = console.warn;
+  console.warn = ((m: string) => { logs.push(String(m)); }) as typeof console.warn;
+  let hetHieuLuc: string[];
+  try {
+    ({ hetHieuLuc } = await guiLo(ds, khoa, Date.now(), goi));
+  } finally {
+    console.warn = goc;
+  }
   assert.deepEqual(hetHieuLuc, ["https://fcm.googleapis.com/ep0"]);
+  assert.equal(logs.length, 3, "404, 403, ném lỗi → mỗi cái một dòng day_loi");
+  for (const l of logs) assert.ok(!l.includes("fcm.googleapis.com") && !l.includes("/ep"), `log lộ địa chỉ: ${l}`);
   assert.ok(dinhCao <= 6, `đỉnh cao ${dinhCao} vượt trần 6`);
   assert.equal(daGoi.length, 13);
   for (const g of daGoi) {
@@ -195,4 +205,23 @@ test("guiLo: header vapid đúng dạng; 410 → trả về; 404/403/ném lỗi 
     assert.ok(g.headers.Authorization?.includes("k=khoa-cong-khai-thu"));
     assert.equal(g.headers.TTL, "3600");
   }
+});
+
+test("guiLo: mỗi lời gọi có hạn giờ (signal); hết hạn → lỗi thường, không coi là 410", async () => {
+  const { jwkBiMat } = await sinhKhoaThu();
+  const khoa: KhoaVapid = { congKhai: "k", biMat: jwkBiMat };
+  const signals: (AbortSignal | null | undefined)[] = [];
+  const goi = (async (_url: string, init?: RequestInit) => {
+    signals.push(init?.signal);
+    throw new DOMException("hết giờ", "TimeoutError");
+  }) as unknown as typeof fetch;
+  const goc = console.warn;
+  console.warn = () => {};
+  try {
+    const { hetHieuLuc } = await guiLo(["https://fcm.googleapis.com/a"], khoa, Date.now(), goi);
+    assert.deepEqual(hetHieuLuc, []);
+  } finally {
+    console.warn = goc;
+  }
+  assert.ok(signals[0] instanceof AbortSignal, "fetch phải có signal hạn giờ");
 });

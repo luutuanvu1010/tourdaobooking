@@ -309,8 +309,9 @@ const batMay = async (cookie) => {
   const r = await call(X.cookie, "POST", "/api/account/change-pin", { currentPin: X.pin, newPin: X.pin === "582913" ? "582914" : "582913" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.equal(await choSoMay(X.id, 0), 0, "đổi PIN → soMay = 0 trong 3 giây");
-  const dong = await sqlRows(`SELECT revoke_reason FROM ntf_push_sub WHERE staff_id = '${X.id}'`);
+  const dong = await sqlRows(`SELECT revoke_reason, updated_by FROM ntf_push_sub WHERE staff_id = '${X.id}'`);
   assert.deepEqual(dong.map((d) => d.revoke_reason), ["tai-khoan-doi"], "không xoá cứng; lý do tai-khoan-doi");
+  assert.equal(dong[0].updated_by, null, "tắt kèm khi tài khoản đổi = hệ thống (updated_by NULL), không ghi chủ máy");
 }
 console.log("✓ Web Push: đổi PIN → máy của người đó tự tắt");
 
@@ -320,6 +321,8 @@ console.log("✓ Web Push: đổi PIN → máy của người đó tự tắt");
   await batMay(Y.cookie);
   assert.equal((await call(TQ, "PATCH", `/api/staff/${Y.id}`, { active: false })).status, 200);
   assert.equal(await choSoMay(Y.id, 0), 0, "ngưng tài khoản → soMay = 0");
+  const dongY = await sqlRows(`SELECT updated_by FROM ntf_push_sub WHERE staff_id = '${Y.id}'`);
+  assert.deepEqual(dongY.map((d) => d.updated_by), [null], "Toàn quyền ngưng → updated_by NULL (hệ thống), không ghi chủ máy");
   assert.equal((await call(TQ, "PATCH", `/api/staff/${Y.id}`, { active: true })).status, 200);
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(await soMayCua(Y.id), 0, "bật lại tài khoản → máy vẫn tắt (người dùng tự bật lại)");

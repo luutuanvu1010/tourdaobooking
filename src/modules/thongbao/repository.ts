@@ -124,9 +124,11 @@ const BAT_MAY = defineSql("thongbao", "bat_may", `
   INSERT INTO ntf_push_sub (id, staff_id, endpoint, thiet_bi, created_at, created_by, updated_at, updated_by)
   SELECT ?1, ?2, ?3, ?4, ?5, ?2, ?5, ?2
   WHERE NOT EXISTS (SELECT 1 FROM ntf_push_sub WHERE endpoint = ?3 AND revoked_at IS NULL)`);
-// Tắt của CHÍNH staffId: `endpoint = NULL` (tham số ?2) = mọi máy của người đó; câu SQL tĩnh theo khuôn `?N IS NULL OR …`.
+// Tắt máy của staffId: `endpoint = NULL` (tham số ?2) = mọi máy của người đó; câu SQL tĩnh theo khuôn `?N IS NULL OR …`.
+// `updated_by` (?5) = người thao tác: chính chủ máy (tu-tat, dang-xuat) hoặc NULL = hệ thống (tai-khoan-doi — tắt kèm khi tài khoản đổi;
+// ai làm thay đổi đó đã có trong audit_log của chính thao tác), theo khuôn HET_HAN bên dưới.
 const TAT_MAY = defineSql("thongbao", "tat_may", `
-  UPDATE ntf_push_sub SET revoked_at = ?4, revoke_reason = ?3, updated_at = ?4, updated_by = ?1
+  UPDATE ntf_push_sub SET revoked_at = ?4, revoke_reason = ?3, updated_at = ?4, updated_by = ?5
   WHERE staff_id = ?1 AND revoked_at IS NULL AND (?2 IS NULL OR endpoint = ?2)`);
 // Hết hiệu lực (dịch vụ đẩy trả 410) — không phải hành động của một người, updated_by = NULL ("hệ thống", theo khuôn migrations-dispatch).
 const HET_HAN = defineSql("thongbao", "het_han_may", `
@@ -144,7 +146,7 @@ export function batMayStatements(db: D1Database, a: { id: string; staffId: strin
     db.prepare(BAT_MAY).bind(a.id, a.staffId, a.endpoint, a.thietBi, a.at),
   ];
 }
-export const tatMayStatement = (db: D1Database, staffId: string, endpoint: string | null, lyDo: string, at: string): D1PreparedStatement =>
-  db.prepare(TAT_MAY).bind(staffId, endpoint, lyDo, at);
+export const tatMayStatement = (db: D1Database, staffId: string, endpoint: string | null, lyDo: string, at: string, by: string | null): D1PreparedStatement =>
+  db.prepare(TAT_MAY).bind(staffId, endpoint, lyDo, at, by);
 export const hetHanStatement = (db: D1Database, endpoints: string[], at: string): D1PreparedStatement =>
   db.prepare(HET_HAN).bind(JSON.stringify(endpoints), at);

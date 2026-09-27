@@ -124,7 +124,12 @@ export async function guiLo(ds: string[], khoa: KhoaVapid, nowMs: number, goi: t
       try {
         const jwt = await layJwt(khoa.biMat, new URL(ep).origin, nowMs);
         // Thân rỗng: KHÔNG đặt Content-Length/Content-Encoding bằng tay (Apple: thân rỗng thì bỏ Content-Encoding). Phải thử máy thật.
-        const r = await goi(ep, { method: "POST", headers: { TTL: "3600", Urgency: "high", Authorization: `vapid t=${jwt}, k=${khoa.congKhai}` } });
+        // Hạn giờ 10 giây: một dịch vụ đẩy treo không được giữ cả lô (và waitUntil) — hết giờ = lỗi thường (vào catch), không phải 410.
+        const r = await goi(ep, {
+          method: "POST",
+          headers: { TTL: "3600", Urgency: "high", Authorization: `vapid t=${jwt}, k=${khoa.congKhai}` },
+          signal: AbortSignal.timeout(10_000),
+        });
         await r.body?.cancel();
         if (r.status === 410) het.push(ep);
         else if (!r.ok) console.warn(JSON.stringify({ level: "warn", event: "day_loi", ma: r.status }));

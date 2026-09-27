@@ -116,14 +116,14 @@ export const thongbaoModule: AppModule = {
       const body = await readJson(request);
       const at = new Date().toISOString();
       if (body?.tatCa === true) {
-        await tatMayStatement(env.DB, staff.id, null, "dang-xuat", at).run();
+        await tatMayStatement(env.DB, staff.id, null, "dang-xuat", at, staff.id).run();
         return json({ ok: true });
       }
       const endpoint = body?.endpoint;
       if (typeof endpoint === "string" && endpoint.length >= 1 && endpoint.length <= 1024) {
         // Không kiểm host bằng kiemDiaChi ở đây: đây là XOÁ theo giá trị đã lưu (không gọi ra ngoài), không phải nơi máy chủ sẽ POST
         // tới. Endpoint không tồn tại hoặc thuộc người khác → câu UPDATE khớp 0 dòng, vẫn 200 (không lộ ai có/không có máy đó).
-        await tatMayStatement(env.DB, staff.id, endpoint, "tu-tat", at).run();
+        await tatMayStatement(env.DB, staff.id, endpoint, "tu-tat", at, staff.id).run();
         return json({ ok: true });
       }
       return error(400, "invalid_input", "Thiếu địa chỉ máy hoặc cờ huỷ tất cả.");

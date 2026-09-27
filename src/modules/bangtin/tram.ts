@@ -9,7 +9,7 @@
 // GET /api/bang-tin dựng MỚI (nhãn đã tính ở máy chủ — BT-2), các RPC `phat`/`dongCua` chỉ do gốc lắp ráp gọi.
 import { DurableObject } from "cloudflare:workers";
 import type { SuKienDon } from "../../shared/bang-tin";
-import { docHanGiay, hetHan, keHoachTram, type KetNoiXet } from "./rules";
+import { docHanGiay, hetHan, keHoachTram, mocBaoThuc, type KetNoiXet } from "./rules";
 import { chiaLo, guiLo, khoaVapid } from "../../shared/web-push";
 
 /** Hàng đợi gõ cửa (ADR-0036): mỗi khoá `day:lo:…` là MỘT lô ≤ 40 địa chỉ (giá trị nhỏ). Khoá sắp theo thời điểm xếp hàng → lô cũ gửi trước. */
@@ -127,7 +127,6 @@ export class BangTin extends DurableObject<Env> {
     const ds = this.ctx.getWebSockets();
     const keHoach = keHoachTram(ds.map((ws) => this.xet(ws)), null, Date.now());
     for (const i of keHoach.dong) dong(ds[i]!, MA_QUA_HAN, "het-han");
-    let ke = keHoach.baoThucKe;
     try {
       await this.guiMotLo();
     } catch (e) {
@@ -135,7 +134,8 @@ export class BangTin extends DurableObject<Env> {
     }
     // Xét hàng đợi SAU khi gửi (không dựa vào kết quả đọc trước lúc gửi): trong lúc chờ mạng, `xepHangDay` có thể vừa thêm lô và đặt báo thức — mốc
     // đặt dưới đây không được làm lô đó chờ tới hạn kết nối. Giữa hai lệnh lưu trữ dưới đây không sự kiện nào chen vào (cổng vào của Durable Object).
-    if ((await this.ctx.storage.list({ prefix: HANG, limit: 1 })).size > 0) ke = Math.min(ke ?? Infinity, Date.now() + 1000);
+    const conLo = (await this.ctx.storage.list({ prefix: HANG, limit: 1 })).size > 0;
+    const ke = mocBaoThuc(keHoach.baoThucKe, conLo, Date.now()); // quyết định ở rules.ts (có test)
     if (ke !== null) await this.ctx.storage.setAlarm(ke); // đặt cả khi không còn kết nối nào
   }
 
