@@ -67,7 +67,7 @@ export const MATRIX = {
   "party.staff.write": row("none", "none", "any", "none", "none", "any", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   "admin.manage": row("none", "none", "any", "none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": row("none", "none", "none", "none", "none", "any", "none"), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
-  // ADR-0038 điều 6/8: việc KỸ THUẬT tách khỏi admin.manage — Sheet và Nhật ký chỉ Toàn quyền; đăng nhập (PIN, Face ID, mở khoá) Quản trị làm được cho cấp dưới. Route vẫn hỏi admin.manage TRƯỚC (hàng rào cổng quản trị), rồi hỏi ô dưới.
+  // ADR-0038 điều 6 (sửa bởi ADR-0042): việc KỸ THUẬT tách khỏi admin.manage — Sheet và Nhật ký chỉ Toàn quyền; đăng nhập (PIN, Face ID, mở khoá) Quản trị làm được cho cấp dưới. Route vẫn hỏi admin.manage TRƯỚC (hàng rào cổng quản trị), rồi hỏi ô dưới.
   "account.access.manage": row("none", "none", "any", "none", "none", "any", "none"), // đặt lại PIN, gỡ Face ID, mở khoá đăng nhập của tài khoản khác — ADR-0042: Quản trị lấy lại (vẫn chỉ cấp dưới, luật mayManage)
   "staff.sheet.sync": row("none", "none", "none", "none", "none", "any", "none"), // đồng bộ nhân viên từ Google Sheet (xem trước + áp)
   "audit.view": row("none", "none", "none", "none", "none", "any", "none"), // xem trang Nhật ký toàn hệ thống (GET /api/audit)

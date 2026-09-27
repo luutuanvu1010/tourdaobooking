@@ -14,7 +14,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
     version: "1.27",
     date: "2026-09-28",
     items: [
-      { kind: "doi", text: "Quản trị lại đặt lại được mã PIN, mở khoá đăng nhập và gỡ Face ID cho nhân viên mình quản lý." },
+      { kind: "doi", text: "Quản trị đặt lại được mã PIN, mở khoá đăng nhập và gỡ Face ID cho nhân viên mình quản lý." },
     ],
   },
   {

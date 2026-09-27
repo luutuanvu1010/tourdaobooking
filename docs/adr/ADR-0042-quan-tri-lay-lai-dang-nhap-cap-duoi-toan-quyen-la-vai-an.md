@@ -25,7 +25,7 @@
 
 1. **Bảng chạm tới:** không bảng nào đổi; `stf_permission` chỉ được đọc (đã có).
 2. **Dòng bản đồ quyền:** `account.access.manage` (đổi cột ADMIN); `admin.manage.superadmin` (dùng để quyết "thấy vai ẩn"); `admin.manage` + `mayManage` (giữ).
-3. **Cổng canh cửa:** ba route đăng nhập — cổng `admin` + `can(admin.manage)` + `can(account.access.manage)` + `mayManage`; `GET /api/staff` — cổng `admin` + `can(admin.manage)` + `quyenHienThi`. Kiểm: `src/modules/accounts/quan-tri-ky-thuat.test.ts`, `src/modules/accounts/reset-pin-self.test.ts`, `src/shared/permissions.test.ts`, e2e `admin`, `admin-race`.
+3. **Cổng canh cửa:** `GET /api/staff/:id/roles` — cổng `admin` + `can(admin.manage)` + `mayManage`; ba route đăng nhập — cổng `admin` + `can(admin.manage)` + `can(account.access.manage)` + `mayManage`; `GET /api/staff` — cổng `admin` + `can(admin.manage)` + `quyenHienThi`. Kiểm: `src/modules/accounts/quan-tri-ky-thuat.test.ts`, `src/modules/accounts/reset-pin-self.test.ts`, `src/shared/permissions.test.ts`, e2e `admin`, `admin-race`.
 
 ## Hệ quả
 
