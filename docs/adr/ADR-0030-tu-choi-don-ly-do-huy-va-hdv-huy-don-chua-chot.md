@@ -439,3 +439,13 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 3. **Phần C + D của kế hoạch GĐ2:** đã ghi dòng DỪNG ở `docs/superpowers/plans/2026-09-25-gd2-thi-cong.md` (commit `a74048e`, đã có trên `main`) — không thi công theo văn bản cũ. Viết lại Phần C+D theo Mục S20/S23 là việc CỦA LƯỢT THI CÔNG SAU, chỉ bắt đầu khi ADR-0030 (và ADR-0020/0023 tương ứng) đã accepted; không làm ở đợt soạn ADR này.
 
 Không còn câu hỏi mở cho ADR-0030. Điều 1–5 và Mục S20/S23 sẵn sàng để chủ duyệt theo lượt (xem "Đếm quyết định chạm quyền/dữ liệu").
+
+## Sửa đổi sau khi duyệt (chủ dự án quyết trực tiếp, 2026-09-27, khi thi công Task 1.8)
+
+**Điều 2 — thêm lựa chọn "Khác (ghi lý do)" cho HDV huỷ đơn qua route hẹp `handler-cancel`, với điều kiện chặn số điện thoại.**
+
+- Bối cảnh: khi thi công màn "Việc của tôi" (Task 1.8), chủ muốn thêm ô "Khác" cho gõ lý do tự do khi HDV huỷ đơn — khác với điều 2 đã duyệt ("danh sách đóng... 'Khác' không kèm ô chữ", lý do Q-H đã bị loại vì "chữ tự do đi thẳng vào nhật ký chỉ-thêm mà không lọc SĐT/email/MST, lỡ ghi thì không gỡ được").
+- Người thi công đã đúng khi KHÔNG tự làm mà báo lại xung đột (không tự hoà giải — `CLAUDE.md` §2). Điều phối đã trình lại đúng rủi ro cho chủ.
+- **Chủ quyết (nguyên văn ý): mở ô chữ cho "Khác", nhưng ô đó CHỈ NHẬN VĂN BẢN THƯỜNG — không được nhập số điện thoại.**
+- Cách áp: `note` của lý do "Khác" phải qua cùng luật nhận diện "dãy số dài" đã có ở `maskLongDigits`/Q-N (một dãy ≥ 8 chữ số, đếm sau khi bỏ dấu cách/chấm/gạch/ngoặc đơn/dấu cộng/gạch dài) — nếu `note` chứa một dãy như vậy, route trả 400, không ghi. Không "che" số (khác với hàng chờ nhận, nơi số được che rồi vẫn hiện) — ở đây **chặn hẳn**, vì đây là nhật ký chỉ-thêm không xoá được (rủi ro đã nêu ở điều 2 vẫn đúng, chỉ chặn thêm được rủi ro "số điện thoại", không chặn được mọi loại dữ liệu nhạy cảm khác — chủ đã biết và chấp nhận giới hạn này).
+- Không đổi phần còn lại của điều 2 (Từ chối, Huỷ qua `/status`, vẫn danh sách đóng, không ô chữ) — chỉ áp cho "Khác" của HDV huỷ qua `handler-cancel`.
