@@ -8,7 +8,7 @@ import {
 
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
-test("danh mục: đủ 12 vai, 7 nội bộ + 5 bên ngoài (ADR-0042 thêm vai IT), bộ mặc định là mã quyền hợp lệ", () => {
+test("danh mục: đủ 12 vai, 7 nội bộ + 5 bên ngoài (ADR-0044 thêm vai IT), bộ mặc định là mã quyền hợp lệ", () => {
   assert.equal(ROLE_CODES.length, 12);
   assert.deepEqual(Object.keys(ROLES).sort(), [...ROLE_CODES].sort());
   assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 7);
@@ -23,7 +23,7 @@ test("danh mục: đủ 12 vai, 7 nội bộ + 5 bên ngoài (ADR-0042 thêm vai
 test("bộ mặc định đúng đặc tả §4 + ADR-0018 điều 4 (Giám đốc = Toàn quyền kèm Quản trị; Điều hành = Quản trị)", () => {
   assert.deepEqual(defaultPermissions(["DIRECTOR"]), ["ADMIN", "SUPER_ADMIN"]);
   assert.deepEqual(defaultPermissions(["OPERATIONS_MANAGER"]), ["ADMIN"]);
-  assert.deepEqual(defaultPermissions(["IT"]), ["ADMIN", "SUPER_ADMIN"], "ADR-0042: vai IT = cùng bộ quyền Giám đốc, chỉ khác tên hiện ra");
+  assert.deepEqual(defaultPermissions(["IT"]), ["ADMIN", "SUPER_ADMIN"], "ADR-0044: vai IT = cùng bộ quyền Giám đốc, chỉ khác tên hiện ra");
   assert.equal(ROLES.IT.name, "IT");
   assert.deepEqual(defaultPermissions(["GUIDE_INTERNAL"]), ["FIELD"]);
   assert.deepEqual(defaultPermissions(["SALES_STAFF"]), ["SALES"]);

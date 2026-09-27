@@ -92,7 +92,7 @@ test("ADR-0042: Quản trị xem vai + chỉnh riêng của tài khoản Toàn q
   assert.equal((await w.call("GET", `/api/staff/${SUP}/roles`, { as: SUP })).status, 200);
 });
 
-test("ADR-0042: vai IT — Quản trị không gán được (403, không lộ chữ); tài khoản mang vai IT hiện với Quản trị là vai \"IT\" + quyền Quản trị", async () => {
+test("ADR-0044: vai IT — Quản trị không gán được (403, không lộ chữ); tài khoản mang vai IT hiện với Quản trị là vai \"IT\" + quyền Quản trị", async () => {
   const w = setup();
   const denied = await w.call("PUT", `/api/staff/${SALES}/roles`, { as: ADM, body: { roles: ["IT"] } });
   assert.equal(denied.status, 403, denied.text);

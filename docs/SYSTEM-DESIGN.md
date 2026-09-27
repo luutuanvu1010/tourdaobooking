@@ -307,7 +307,7 @@ erDiagram
 | 0025 | `0025_thong_bao.sql` | Thông báo hệ thống lượt 1 (ADR-0034), **CHƯA lên production**: chỉ THÊM — 4 bảng `ntf_notice`, `ntf_notice_target`, `ntf_ack` (chỉ-thêm), `ntf_read_mark`; 3 view công bố `v_aud_order_event`, `v_ord_order_owner`, `v_dsp_first_handler` |
 | 0026 | `0026_thong_bao_may.sql` | Thông báo màn hình khoá / Web Push lượt 2 (ADR-0036), **CHƯA lên production**: chỉ THÊM — bảng `ntf_push_sub` (địa chỉ nhận của từng máy) + chỉ mục duy nhất một phần (một endpoint đang bật thuộc đúng một tài khoản) |
 | 0027 | `0027_v_stf_toan_quyen.sql` | ADR-0038, **CHƯA lên production**: chỉ THÊM view `v_stf_toan_quyen` (tài khoản đang giữ `SUPER_ADMIN`) cho bộ lọc thao tác im lặng của `GET /api/audit`; không đổi bảng/dữ liệu. Số 0026 do nhánh Thông báo màn hình khoá giữ |
-| 0028 | `0028_vai_it.sql` | ADR-0042, **CHƯA lên production**: chỉ THÊM một dòng `pty_role_type` — vai `IT` (nội bộ; bộ quyền mặc định ở `src/shared/roles.ts`) |
+| 0028 | `0028_vai_it.sql` | ADR-0044, **CHƯA lên production**: chỉ THÊM một dòng `pty_role_type` — vai `IT` (nội bộ; bộ quyền mặc định ở `src/shared/roles.ts`) |
 
 **Hai tệp cùng tiền tố `0016`** (`0016_maintenance.sql` và `0016_feedback.sql`) — chấp nhận được: wrangler theo dõi migration theo **tên đầy đủ**, không theo số, và thứ tự áp là thứ tự tên (`0016_feedback` trước `0016_maintenance`). Hai tệp hoàn toàn độc lập (bảng `fbk_*` ↔ `mnt_setting`) nên thứ tự nào cũng dựng được schema. KHÔNG đổi tên `0016_feedback.sql` (đã áp production đúng tên đó).
 
@@ -486,7 +486,7 @@ Tất cả 81 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ�
 | GET | `/api/company` | public | company | hồ sơ công ty công khai `{ company }`: tên, MST, địa chỉ, hotline, email (không Zalo/logo/người sửa) |
 | GET | `/api/maintenance` | admin | maintenance | `{ on, endsAt, canToggle }` — `canToggle` = chính người gọi có được bật/tắt không (nằm trong danh sách được phép); KHÔNG trả danh sách |
 | PUT | `/api/maintenance` | admin | maintenance | `{ on, endsAt? }` bật/tắt chế độ bảo trì; trả `{ on, endsAt, canToggle: true }`. 403 `forbidden` (không nằm trong danh sách được phép), 400 `invalid_input` (thiếu/sai `on`; bật mà thiếu/sai giờ dự kiến, giờ không ở tương lai, hoặc quá 7 ngày). Ghi nhật ký `maintenance_changed` (không SĐT) cùng một `db.batch()` với câu cập nhật |
-| GET | `/api/parties/meta` | office | parties | loại vai trò (TẤT CẢ, kể cả 12 vai mô hình người–vai–quyền — ADR-0018, ADR-0042 thêm `IT` — kèm `group` INTERNAL/EXTERNAL/OTHER và `active`) và loại quan hệ |
+| GET | `/api/parties/meta` | office | parties | loại vai trò (TẤT CẢ, kể cả 12 vai mô hình người–vai–quyền — ADR-0018, ADR-0044 thêm `IT` — kèm `group` INTERNAL/EXTERNAL/OTHER và `active`) và loại quan hệ |
 | GET | `/api/parties/lookup` | office | parties | tra hồ sơ theo SĐT (cảnh báo trùng) |
 | GET | `/api/parties` | office | parties | danh sách hồ sơ, tìm/lọc, phân trang |
 | POST | `/api/parties` | office | parties | tạo hồ sơ cá nhân hoặc tổ chức |
