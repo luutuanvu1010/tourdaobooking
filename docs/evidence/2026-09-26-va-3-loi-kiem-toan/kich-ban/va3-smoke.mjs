@@ -1,6 +1,7 @@
 // Kịch bản Chrome (bằng chứng giao diện) cho hai lỗi kiểm toán 24/9 vá trên nhánh va-3-loi-kiem-toan:
 //   DK-T3-02 (web/staff.ts): nút "Đặt lại PIN" KHÔNG hiện ở hàng/thẻ "(bạn)" của quản trị đang đăng nhập, VẪN hiện ở người khác.
 //   DK-T4-02 (web/account.ts myAssignmentCard): HDV chạm lý do huỷ → hỏi lại bằng confirm(); vùng huỷ là khối riêng .myjob-cancel có nút "Thôi".
+//   → Từ Task 1.8 ADR-0030 (2026-09-27) phần giao diện DK-T4-02 kiểm ở ../../2026-09-27-tu-choi-huy-hdv/kich-ban/hdv-viec-cua-toi-smoke.mjs (xem ghi chú cuối tệp).
 // Dùng lại NGUYÊN cơ chế CDP của A2 (startEnv()/ACCOUNTS/ok/vnDate từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs), mẫu step() ✓/✗ của
 // ../../2026-09-21-v1-0/kich-ban/v1-dang-nhap.mjs (không dừng ở bước hỏng đầu tiên) và cách gieo tài khoản HDV của v1-nguoi-phu-trach.mjs.
 // Chạy từ GỐC repo, sau `npm run build:web`:
@@ -182,179 +183,14 @@ try {
   });
 
   // ==================================================================================================
-  // DK-T4-02 — /account "Việc của tôi" bằng tài khoản HDV (FIELD) — mở SAU CÙNG
-  // ==================================================================================================
-  const CARD = `[...document.querySelectorAll('#myjobs .myjob-card')].find((c) => c.textContent.includes(${JSON.stringify(order.orderCode)}))`;
-  const clickIn = (text) => `(() => { const c = ${CARD}; const b = c && [...c.querySelectorAll('button')].find((x) => x.textContent.trim() === ${JSON.stringify(text)} && x.offsetParent !== null); if (!b) return false; b.click(); return true; })()`;
-  const REASON = "Khách yêu cầu huỷ";
-  /** Cấu trúc + trạng thái vùng huỷ của thẻ đơn. */
-  const cancelState = (p) =>
-    p.ev(`(() => {
-      const card = ${CARD};
-      if (!card) return { card: false };
-      const zone = card.querySelector('.myjob-cancel');
-      const btns = [...card.querySelectorAll('button')];
-      const byText = (t) => btns.find((b) => b.textContent.trim() === t) ?? null;
-      const cancelBtn = byText('Huỷ đơn này');
-      const save = byText('Lưu số khách mới');
-      const reasons = ['Không liên hệ được với khách', 'Khách yêu cầu huỷ'].map(byText);
-      const close = byText('Thôi');
-      const shown = (el) => el !== null && el.offsetParent !== null;
-      const inZone = (el) => el !== null && zone !== null && zone.contains(el);
-      const saveR = save ? save.getBoundingClientRect() : null;
-      const firstR = reasons[0] ? reasons[0].getBoundingClientRect() : null;
-      return {
-        card: true,
-        zone: zone !== null,
-        zoneDirectChildOfCard: zone !== null && zone.parentElement === card,
-        zoneInsideService: zone !== null && zone.closest('.myjob-service') !== null,
-        zoneBorderTop: zone ? getComputedStyle(zone).borderTopWidth + ' ' + getComputedStyle(zone).borderTopStyle : null,
-        cancelBtnShown: shown(cancelBtn),
-        cancelBtnInZone: inZone(cancelBtn),
-        saveExists: save !== null,
-        saveInService: save !== null && save.closest('.myjob-service') !== null,
-        saveInZone: inZone(save),
-        reasonsShown: reasons.map(shown),
-        reasonsInZone: reasons.map(inZone),
-        reasonsDanger: reasons.map((b) => b !== null && b.classList.contains('btn-danger')),
-        reasonsInService: reasons.map((b) => b !== null && b.closest('.myjob-service') !== null),
-        closeShown: shown(close),
-        closeInZone: inZone(close),
-        title: zone ? (zone.querySelector('.myjob-cancel-title')?.textContent ?? null) : null,
-        gapSaveToReasonPx: saveR && firstR && firstR.height > 0 ? Math.round(firstR.top - saveR.bottom) : null,
-      };
-    })()`);
-  const handlerCancelPosts = (p) => p.requests.filter((r) => r.method === "POST" && r.url.includes("/handler-cancel")).length;
-
-  // Bước 3: máy tính — mở vùng huỷ, kiểm cấu trúc (d), chụp, axe, rồi "Thôi" (b).
-  await step("3", "Việc của tôi (máy tính 1040): chạm “Huỷ đơn này” → hiện vùng “Huỷ đơn” (2 nút lý do + “Thôi”) trong khối .myjob-cancel riêng, KHÔNG nằm trong khối dịch vụ có “Lưu số khách mới”; “Thôi” đóng vùng, hiện lại “Huỷ đơn này”" + axeNote(), async () => {
-    const p = await openAs(HDV, "/account", DESK);
-    await p.waitFor(`!!(${CARD})`, "thẻ đơn trong “Việc của tôi”", 10000);
-    let s = await cancelState(p);
-    assert.equal(s.saveExists && s.saveInService, true, `khối dịch vụ phải CÓ nút “Lưu số khách mới” (đơn danh mục) — ${JSON.stringify(s)}`);
-    assert.equal(s.cancelBtnShown, true, `nút “Huỷ đơn này” phải hiện trước khi chạm — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsShown, [false, false], "chưa chạm thì chưa có nút lý do");
-    assert.ok(await p.ev(clickIn("Huỷ đơn này")), "chạm “Huỷ đơn này”");
-    await p.waitFor(`(() => { const c = ${CARD}; return !!c && [...c.querySelectorAll('.myjob-cancel button')].some((b) => b.textContent.trim() === 'Thôi' && b.offsetParent !== null); })()`, "vùng huỷ mở");
-    s = await cancelState(p);
-    assert.equal(s.zone && s.zoneDirectChildOfCard, true, `.myjob-cancel phải là con TRỰC TIẾP của thẻ đơn — ${JSON.stringify(s)}`);
-    assert.equal(s.zoneInsideService, false, `.myjob-cancel KHÔNG được nằm trong .myjob-service — ${JSON.stringify(s)}`);
-    assert.equal(s.cancelBtnShown, false, `“Huỷ đơn này” ẩn khi vùng đang mở — ${JSON.stringify(s)}`);
-    assert.equal(s.cancelBtnInZone, true, `“Huỷ đơn này” nằm trong .myjob-cancel — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsShown, [true, true], `2 nút lý do phải hiện — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsInZone, [true, true], `2 nút lý do phải nằm trong .myjob-cancel — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsInService, [false, false], `nút lý do KHÔNG được nằm trong khối dịch vụ — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsDanger, [true, true], `nút lý do kiểu nguy hiểm (btn-danger) — ${JSON.stringify(s)}`);
-    assert.equal(s.closeShown && s.closeInZone, true, `nút “Thôi” hiện, trong .myjob-cancel — ${JSON.stringify(s)}`);
-    assert.equal(s.saveInZone, false, `“Lưu số khách mới” KHÔNG được nằm trong .myjob-cancel — ${JSON.stringify(s)}`);
-    assert.equal(s.title, "Huỷ đơn", `tiêu đề vùng — ${JSON.stringify(s)}`);
-    assert.equal(s.zoneBorderTop, "1px solid", `vùng huỷ có đường ngăn phía trên — ${JSON.stringify(s)}`);
-    assert.deepEqual(await p.ev("window.__confirmCalls"), [], "mở vùng huỷ chưa hỏi confirm");
-    await shotAt(p, `(${CARD}).querySelector('.myjob-cancel')`, "huy-don-mo-may-tinh.png");
-    await axe(p, "Việc của tôi máy tính (vùng huỷ mở)");
-    console.log(`    cấu trúc: ${JSON.stringify({ zoneDirectChildOfCard: s.zoneDirectChildOfCard, zoneInsideService: s.zoneInsideService, zoneBorderTop: s.zoneBorderTop, gapSaveToReasonPx: s.gapSaveToReasonPx })}`);
-    // b) "Thôi"
-    assert.ok(await p.ev(clickIn("Thôi")), "chạm “Thôi”");
-    s = await cancelState(p);
-    assert.equal(s.cancelBtnShown, true, `“Thôi” → “Huỷ đơn này” hiện lại — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsShown, [false, false], `“Thôi” → nút lý do biến mất — ${JSON.stringify(s)}`);
-    assert.equal(s.closeShown, false, `“Thôi” → vùng đóng — ${JSON.stringify(s)}`);
-    assert.equal(handlerCancelPosts(p), 0, "không có POST handler-cancel");
-    assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
-    p.close();
-  });
-
-  // Bước 4–6: điện thoại 390 — mở vùng, chụp, axe; a) confirm trả false; b) "Thôi"; c) confirm trả true (huỷ thật, bước phá huỷ để CUỐI).
-  const mob = await openAs(HDV, "/account", MOB);
-  await step("4", "Việc của tôi (điện thoại 390): vùng “Huỷ đơn” mở, cùng cấu trúc (khối .myjob-cancel riêng, ngoài khối dịch vụ có “Lưu số khách mới”)" + axeNote(), async () => {
-    await mob.waitFor(`!!(${CARD})`, "thẻ đơn trong “Việc của tôi”", 10000);
-    assert.ok(await mob.ev(clickIn("Huỷ đơn này")), "chạm “Huỷ đơn này”");
-    await mob.waitFor(`(() => { const c = ${CARD}; return !!c && [...c.querySelectorAll('.myjob-cancel button')].some((b) => b.textContent.trim() === 'Thôi' && b.offsetParent !== null); })()`, "vùng huỷ mở");
-    const s = await cancelState(mob);
-    assert.equal(s.saveExists && s.saveInService && !s.saveInZone, true, `“Lưu số khách mới” trong khối dịch vụ, ngoài vùng huỷ — ${JSON.stringify(s)}`);
-    assert.equal(s.zoneDirectChildOfCard && !s.zoneInsideService, true, `.myjob-cancel riêng, ngoài .myjob-service — ${JSON.stringify(s)}`);
-    assert.deepEqual([s.reasonsShown, s.reasonsInZone, s.reasonsInService], [[true, true], [true, true], [false, false]], `nút lý do — ${JSON.stringify(s)}`);
-    assert.equal(s.closeShown && s.closeInZone, true, `nút “Thôi” — ${JSON.stringify(s)}`);
-    const overflow = await mob.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth");
-    assert.ok(overflow <= 1, `không tràn ngang ở 390px — lệch ${overflow}px`);
-    await shotAt(mob, `(${CARD}).querySelector('.myjob-cancel')`, "huy-don-mo-dien-thoai.png");
-    await axe(mob, "Việc của tôi điện thoại (vùng huỷ mở)");
-    console.log(`    khoảng cách từ đáy “Lưu số khách mới” tới đỉnh nút lý do đầu: ${s.gapSaveToReasonPx}px`);
-  });
-
-  await step("5a", `confirm trả false: chạm “${REASON}” → confirm gọi ĐÚNG 1 lần, chữ có mã đơn + tên khách + “không thể hoàn tác”; KHÔNG có POST handler-cancel; đơn VẪN “confirmed” (API bằng Sales)`, async () => {
-    await mob.ev("window.__answer = false; true");
-    assert.ok(await mob.ev(clickIn(REASON)), `chạm “${REASON}”`);
-    await sleep(700); // POST (nếu có) là bất đồng bộ — đợi rồi mới đếm
-    const calls = await mob.ev("window.__confirmCalls");
-    assert.equal(calls.length, 1, `confirm phải được gọi đúng 1 lần — ${JSON.stringify(calls)}`);
-    assert.ok(calls[0].includes(order.orderCode), `chữ confirm phải có mã đơn ${order.orderCode} — ${calls[0]}`);
-    assert.ok(calls[0].includes(CUSTOMER), `chữ confirm phải có tên khách — ${calls[0]}`);
-    assert.ok(calls[0].includes("không thể hoàn tác"), `chữ confirm phải có “không thể hoàn tác” — ${calls[0]}`);
-    assert.equal(handlerCancelPosts(mob), 0, "KHÔNG được có POST handler-cancel khi bấm Huỷ ở hộp");
-    assert.equal(await statusOf(), "confirmed", "đơn phải vẫn “confirmed”");
-    const s = await cancelState(mob);
-    assert.deepEqual(s.reasonsShown, [true, true], `vùng lý do vẫn mở sau khi từ chối — ${JSON.stringify(s)}`);
-    console.log(`    chữ confirm: “${calls[0]}”`);
-  });
-
-  await step("5b", "“Thôi” đóng vùng huỷ, nút “Huỷ đơn này” hiện lại, vẫn không có POST handler-cancel", async () => {
-    assert.ok(await mob.ev(clickIn("Thôi")), "chạm “Thôi”");
-    const s = await cancelState(mob);
-    assert.equal(s.cancelBtnShown, true, `“Huỷ đơn này” hiện lại — ${JSON.stringify(s)}`);
-    assert.deepEqual(s.reasonsShown, [false, false], `nút lý do biến mất — ${JSON.stringify(s)}`);
-    assert.equal(s.closeShown, false, `“Thôi” biến mất — ${JSON.stringify(s)}`);
-    assert.equal(handlerCancelPosts(mob), 0, "không có POST handler-cancel");
-    assert.equal(await statusOf(), "confirmed");
-  });
-
-  await step("5c", `confirm trả true: mở lại vùng, chạm “${REASON}” → đúng 1 POST handler-cancel, đơn thành “cancelled” (API bằng Sales), thẻ biến khỏi “Việc của tôi”`, async () => {
-    assert.ok(await mob.ev(clickIn("Huỷ đơn này")), "chạm lại “Huỷ đơn này”");
-    await mob.waitFor(`(() => { const c = ${CARD}; return !!c && [...c.querySelectorAll('.myjob-cancel button')].some((b) => b.textContent.trim() === ${JSON.stringify(REASON)} && b.offsetParent !== null); })()`, "vùng huỷ mở lại");
-    await mob.ev("window.__answer = true; true");
-    assert.ok(await mob.ev(clickIn(REASON)), `chạm “${REASON}”`);
-    await mob.waitFor(`!(${CARD})`, "thẻ đơn biến khỏi “Việc của tôi”", 10000);
-    const calls = await mob.ev("window.__confirmCalls");
-    assert.equal(calls.length, 2, `tổng số lần confirm = 2 (1 từ chối + 1 đồng ý) — ${JSON.stringify(calls)}`);
-    assert.equal(handlerCancelPosts(mob), 1, "đúng 1 POST handler-cancel");
-    assert.equal(await statusOf(), "cancelled", "đơn phải thành “cancelled”");
-    const empty = await mob.ev("document.querySelector('#myjobs').textContent");
-    assert.ok(empty.includes("Bạn chưa được giao phụ trách đơn nào."), `khối “Việc của tôi” còn lại: ${empty}`);
-    assert.deepEqual(mob.consoleErrors, [], `lỗi console: ${mob.consoleErrors}`);
-  });
-  mob.close();
-
-  // Bước 6 (thêm bởi NGƯỜI THI CÔNG phần máy chủ DK-T4-02, 2026-09-26 — chủ dự án chốt: tour đã qua ngày đi thì HDV không huỷ được nữa, ngay trong
-  // ngày đi vẫn huỷ được): đơn thứ hai, xác nhận + giao HDV, rồi đẩy ngày đi về HÔM QUA bằng SQL trên D1 tạm (trigger 0008 không khoá depart_date).
-  // Đặt SAU 5c vì 5c khẳng định "Việc của tôi" rỗng sau khi huỷ đơn thứ nhất.
-  await step("6", "Việc của tôi (máy tính 1040): tour đã qua ngày đi → KHÔNG có nút “Huỷ đơn này”, có dòng nhắc “nhờ văn phòng”; “Lưu số khách mới” vẫn còn (sửa số khách giữ như cũ)" + axeNote(), async () => {
-    const created2 = await call(ACCOUNTS.salesA, "POST", "/api/orders", {
-      customerName: "Khách Tour Đã Đi", customerPhone: "0903 222 444", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
-      services: [{ kind: "catalog", catalogCode: "ZVA3", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 300000 }, ...NO_TRIP, departDate: vnDate(3), departTime: "07:30" }],
-    });
-    assert.equal(created2.status, 201, `dựng đơn thứ hai: ${JSON.stringify(created2.json)}`);
-    const o2 = created2.json.order;
-    assert.equal((await call(ACCOUNTS.salesA, "POST", `/api/orders/${o2.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn thứ hai");
-    assert.equal((await call(ACCOUNTS.salesA, "PUT", `/api/orders/${o2.id}/handler`, { staffId: hdvStaffId })).status, 200, "giao HDV đơn thứ hai");
-    env.sql(`UPDATE order_service SET depart_date = '${vnDate(-1)}' WHERE order_id = '${o2.id}'`);
-    const p = await openAs(HDV, "/account", DESK);
-    const CARD2 = `[...document.querySelectorAll('#myjobs .myjob-card')].find((c) => c.textContent.includes(${JSON.stringify(o2.orderCode)}))`;
-    await p.waitFor(`!!(${CARD2})`, "thẻ đơn đã qua ngày đi trong “Việc của tôi”", 10000);
-    const s = await p.ev(`(() => {
-      const c = ${CARD2};
-      const btns = [...c.querySelectorAll('button')].map((b) => b.textContent.trim());
-      const zone = c.querySelector('.myjob-cancel');
-      return { btns, zoneText: zone ? zone.textContent.trim() : null };
-    })()`);
-    assert.ok(!s.btns.includes("Huỷ đơn này"), `tour đã qua ngày đi KHÔNG được có nút “Huỷ đơn này” — ${JSON.stringify(s)}`);
-    assert.ok(s.btns.includes("Lưu số khách mới"), `sửa số khách giữ như cũ — ${JSON.stringify(s)}`);
-    assert.match(s.zoneText ?? "", /Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng\./, `dòng nhắc — ${JSON.stringify(s)}`);
-    await shotAt(p, `(${CARD2}).querySelector('.myjob-cancel')`, "tour-da-qua-ngay-di-may-tinh.png");
-    await axe(p, "Việc của tôi máy tính (tour đã qua ngày đi)");
-    assert.deepEqual(p.consoleErrors, [], `lỗi console: ${p.consoleErrors}`);
-    console.log(`    nút trên thẻ: ${JSON.stringify(s.btns)} · vùng huỷ: “${s.zoneText}”`);
-    p.close();
-  });
+  // DK-T4-02 — phần GIAO DIỆN (bước 3–6 cũ: vùng .myjob-cancel + confirm(), dòng "nhờ văn phòng") ĐÃ THAY từ Task 1.8 ADR-0030 (2026-09-27): "Việc của tôi"
+  // dựng lại theo bản thiết kế của chủ dự án (web/viec-cua-toi.ts) — huỷ đi qua bảng "Huỷ đơn" hỏi lại (chọn lý do rồi mới bấm được "Huỷ đơn", "Giữ đơn"
+  // đóng không gửi), đơn đã đi tour không có nút "Huỷ đơn" (chip "Đã đi tour"; bản thiết kế không có dòng "nhờ văn phòng"). Kiểm ở
+  // docs/evidence/2026-09-27-tu-choi-huy-hdv/kich-ban/hdv-viec-cua-toi-smoke.mjs bước 1 (đã đi tour: chỉ "Sửa số khách") và bước 8 (bảng huỷ).
+  // Phần máy chủ DK-T4-02 (409 departed) vẫn canh ở tests/e2e/dispatch.mjs mục 13b. Dữ liệu đơn/HDV ở trên giữ nguyên (vô hại) để không đụng bước 1–2.
+  void order;
+  void statusOf;
+  void hdvStaffId;
 } finally {
   for (const p of pages) try { p.close(); } catch { /* đã đóng */ }
   await env.stop();
