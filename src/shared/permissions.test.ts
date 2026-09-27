@@ -201,3 +201,12 @@ test("ADR-0033: mọi mã quyền có order.create ≠ none thì money.view ≠ 
     if (MATRIX["order.create"][p] !== "none") assert.notEqual(MATRIX["money.view"][p], "none", `${p}: order.create ≠ none nhưng money.view = none`);
   }
 });
+
+// Khoá GIÁ TRỊ (ADR-0033): "được sửa đơn ⇒ được lập đơn" — `web/order-form.ts` chỉ nạp danh mục khi `can(staff, "order.create")`
+// (`if (can(staff, "order.create")) await loadCatalog()`), nên người có `order.modify` mà không có `order.create` sẽ mở form SỬA đơn mà mất danh mục.
+// Cũng chỉ khoá giá trị bảng, không phải phép kiểm lúc chạy.
+test("ADR-0033: mọi mã quyền có order.modify ≠ none thì có order.create ≠ none (form lập/sửa đơn chỉ nạp danh mục cho người lập đơn)", () => {
+  for (const p of PERMISSION_CODES) {
+    if (MATRIX["order.modify"][p] !== "none") assert.notEqual(MATRIX["order.create"][p], "none", `${p}: order.modify ≠ none nhưng order.create = none`);
+  }
+});
