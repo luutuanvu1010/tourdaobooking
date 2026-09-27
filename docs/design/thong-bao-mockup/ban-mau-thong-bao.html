@@ -1,0 +1,605 @@
+<title>Bản mẫu Thông báo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@700;800&family=Nunito:wght@400;600;700;800&display=swap">
+<style>
+/* Bản mẫu bấm thử — màu, chữ, khoảng cách chép từ public/app.css của app (không tự chế). App không có giao diện tối nên bản mẫu cố ý một giao diện, tô nền/màu tường minh. */
+:root {
+  color-scheme: light;
+  --c-primary: #0c4a6e; --c-primary-strong: #082f49; --c-primary-soft: #dcebf6;
+  --c-accent: #c0392b; --c-accent-soft: #fef2f0;
+  --c-sand: #f5a623; --c-sand-soft: #fbe3b3; --c-sand-text: #5a4109; --c-sand-border: #e9d3a4;
+  --c-surface: #ffffff; --c-surface-alt: #eaf2f8; --c-text: #0f172a; --c-text-muted: #475569; --c-border: #d3e1ec;
+  --c-green-soft: #dcfce7; --c-green-text: #166534; --c-green-border: #a7e3bc;
+  --c-danger: #b01235; --c-danger-soft: #fde9ee;
+  --c-soft-hover: #f0f7fc; --c-placeholder: #94a3b8; --c-scrim: rgba(15, 23, 42, .45);
+  --c-sidebar-item: rgba(255,255,255,.72); --c-sidebar-active: rgba(255,255,255,.14); --c-sidebar-border: rgba(255,255,255,.12);
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px;
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 18px; --radius-pill: 999px;
+  --shadow-card: 0 1px 3px rgba(15,23,42,.08); --shadow-overlay: 0 12px 32px rgba(15,23,42,.16);
+  --font-display: "Be Vietnam Pro", "Nunito", system-ui, sans-serif;
+  --font: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --w-sidebar: 236px; --bar-h: 60px; --tabbar-h: 56px;
+  --mock-ground: #f3f6f9; --mock-ink: #334155;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--mock-ground); color: var(--c-text); font: 15px/1.5 var(--font); padding-inline: 16px; padding-block: 16px 40px; }
+button { font: inherit; color: inherit; }
+button:focus-visible, a:focus-visible, input:focus-visible, textarea:focus-visible, label:focus-within { outline: 2px solid var(--c-primary); outline-offset: 2px; }
+svg.i { width: 20px; height: 20px; flex: none; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+
+/* ---------- thanh điều khiển bản mẫu (không thuộc app) ---------- */
+.mock { max-width: 1080px; margin: 0 auto; display: flex; flex-direction: column; gap: var(--s4); }
+.mock-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--s3); }
+.mock-head h1 { margin: 0; font: 800 1.35rem/1.25 var(--font-display); color: var(--c-primary-strong); text-wrap: balance; }
+.mock-head p { margin: 2px 0 0; color: var(--c-text-muted); font-size: .9rem; max-width: 62ch; }
+.controls { display: flex; flex-wrap: wrap; gap: var(--s3); align-items: center; }
+.seg { display: inline-flex; background: #fff; border: 1px solid var(--c-border); border-radius: var(--radius-pill); padding: 3px; gap: 2px; }
+.seg-label { font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--c-text-muted); margin-right: 2px; align-self: center; padding-left: 8px; }
+.seg button { border: 0; background: none; padding: 6px 12px; border-radius: var(--radius-pill); cursor: pointer; font-weight: 700; font-size: .85rem; color: var(--mock-ink); }
+.seg button[aria-pressed="true"] { background: var(--c-primary); color: #fff; }
+.reset { border: 0; background: none; text-decoration: underline; color: var(--c-primary); cursor: pointer; font-weight: 700; font-size: .85rem; }
+
+.stage { display: flex; justify-content: center; }
+.scroll-x { overflow-x: auto; max-width: 100%; }
+
+/* ---------- khung thiết bị ---------- */
+.device { position: relative; background: var(--c-surface-alt); overflow: hidden; box-shadow: 0 1px 0 var(--c-border), 0 18px 40px rgba(15,23,42,.12); }
+.device.desktop { width: 1040px; height: 680px; border-radius: 12px; display: grid; grid-template-columns: var(--w-sidebar) 1fr; }
+.device.phone { width: min(390px, 100%); height: 800px; border-radius: 34px; border: 10px solid #0b1220; display: flex; flex-direction: column; }
+
+/* thanh dọc máy tính */
+.side { background: var(--c-primary); color: #fff; display: flex; flex-direction: column; padding: var(--s4) var(--s3); gap: var(--s2); }
+.brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: 1.05rem; line-height: 1.2; padding: 0 var(--s2) var(--s3); }
+.brand small { display: block; font-weight: 400; opacity: .85; font-size: 1rem; }
+.logo { width: 30px; height: 30px; border-radius: 50%; background: radial-gradient(circle at 50% 45%, var(--c-sand) 0 28%, var(--c-accent) 30%); flex: none; }
+.nav-group { font-size: .72rem; font-weight: 800; letter-spacing: .08em; color: var(--c-sidebar-item); padding: var(--s3) var(--s2) var(--s1); }
+.nav-item { display: flex; align-items: center; gap: var(--s3); padding: 8px 10px; border-radius: var(--radius-sm); color: var(--c-sidebar-item); font-weight: 600; font-size: .92rem; border: 0; background: none; text-align: left; width: 100%; cursor: pointer; }
+.nav-item svg.i { width: 18px; height: 18px; }
+.nav-item[aria-current="page"] { background: var(--c-sidebar-active); color: #fff; }
+.nav-item .new { margin-left: auto; font-size: .7rem; font-weight: 800; background: var(--c-sand); color: var(--c-sand-text); padding: 1px 7px; border-radius: var(--radius-pill); }
+.side-foot { margin-top: auto; border-top: 1px solid var(--c-sidebar-border); padding: var(--s3) var(--s2) 0; display: flex; align-items: center; gap: var(--s2); font-size: .85rem; }
+.avatar { width: 32px; height: 32px; border-radius: 50%; background: var(--c-sand); color: var(--c-primary-strong); display: grid; place-items: center; font-weight: 800; font-size: .8rem; flex: none; }
+.side-foot b { display: block; font-size: .9rem; }
+.side-foot span { opacity: .75; font-size: .78rem; }
+
+.work { display: flex; flex-direction: column; min-width: 0; position: relative; }
+.workbar { height: var(--bar-h); background: #fff; border-bottom: 1px solid var(--c-border); display: flex; align-items: center; gap: var(--s3); padding: 0 var(--s4); }
+.crumb { font-size: .88rem; color: var(--c-text-muted); font-weight: 600; margin-right: auto; }
+.search { width: 280px; height: 40px; border: 1px solid var(--c-border); border-radius: var(--radius-sm); display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s3); color: var(--c-placeholder); font-size: .9rem; }
+.search svg.i { width: 16px; height: 16px; }
+.btn-create { height: 40px; padding: 0 18px; border: 0; border-radius: var(--radius-sm); background: var(--c-accent); color: #fff; font-weight: 800; cursor: default; }
+
+/* chuông */
+.bell { position: relative; width: 44px; height: 44px; border-radius: var(--radius-sm); border: 1px solid transparent; background: none; display: grid; place-items: center; cursor: pointer; color: var(--c-primary); }
+.bell:hover { background: var(--c-soft-hover); }
+.bell[aria-expanded="true"] { background: var(--c-primary-soft); }
+.bell .count { position: absolute; top: 4px; right: 3px; min-width: 18px; height: 18px; padding: 0 5px; border-radius: var(--radius-pill); background: var(--c-danger); color: #fff; font-size: .7rem; font-weight: 800; line-height: 18px; text-align: center; box-shadow: 0 0 0 2px #fff; font-variant-numeric: tabular-nums; }
+.phone .bell { color: #fff; }
+.phone .bell:hover, .phone .bell[aria-expanded="true"] { background: rgba(255,255,255,.14); }
+.phone .bell .count { box-shadow: 0 0 0 2px var(--c-primary); }
+
+/* dải tin quan trọng */
+.banner { display: flex; align-items: center; gap: var(--s3); background: var(--c-sand-soft); border-bottom: 1px solid var(--c-sand-border); color: var(--c-sand-text); padding: 10px var(--s4); }
+.banner .ico { width: 30px; height: 30px; border-radius: var(--radius-sm); background: var(--c-sand); color: var(--c-primary-strong); display: grid; place-items: center; flex: none; }
+.banner .ico svg.i { width: 18px; height: 18px; }
+.banner-text { min-width: 0; flex: 1; font-size: .9rem; line-height: 1.35; }
+.banner-text b { color: var(--c-primary-strong); }
+.banner-text span { display: block; font-size: .8rem; }
+.banner button { flex: none; border: 1px solid var(--c-primary); background: #fff; color: var(--c-primary); border-radius: var(--radius-sm); padding: 6px 12px; font-weight: 800; font-size: .85rem; cursor: pointer; white-space: nowrap; }
+
+/* nội dung trang */
+.content { flex: 1; overflow: auto; padding: var(--s4); display: flex; flex-direction: column; gap: var(--s4); }
+.hello { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px var(--s3); }
+.hello h2 { margin: 0; font: 800 1.3rem/1.3 var(--font-display); color: var(--c-primary); }
+.hello span { color: var(--c-text-muted); font-size: .88rem; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s3); }
+.phone .stats { grid-template-columns: 1fr 1fr; }
+.stat { background: #fff; border-radius: var(--radius-md); padding: var(--s3) var(--s4); box-shadow: var(--shadow-card); }
+.stat small { display: block; font-size: .7rem; font-weight: 800; letter-spacing: .06em; color: var(--c-text-muted); text-transform: uppercase; }
+.stat b { display: block; font: 800 1.4rem/1.3 var(--font-display); color: var(--c-text); font-variant-numeric: tabular-nums; }
+.stat span { font-size: .82rem; color: var(--c-text-muted); }
+.ghost { background: #fff; border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: var(--s4); color: var(--c-text-muted); font-size: .88rem; }
+.ghost h3 { margin: 0 0 var(--s2); font: 700 1rem/1.3 var(--font); color: var(--c-text); }
+.ghost .line { height: 10px; border-radius: 5px; background: var(--c-surface-alt); margin-top: 10px; }
+
+/* ngăn thông báo */
+.panel { position: absolute; z-index: 20; background: #fff; box-shadow: var(--shadow-overlay); display: flex; flex-direction: column; }
+.desktop .panel { top: calc(var(--bar-h) - 6px); right: 128px; width: 420px; max-height: 560px; border-radius: var(--radius-md); border: 1px solid var(--c-border); }
+.phone .panel { inset: 0; }
+.panel-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4) 0; }
+.phone .panel-head { background: var(--c-primary); color: #fff; padding: var(--s3) var(--s3) var(--s3); }
+.panel-head h3 { margin: 0; font: 800 1.1rem/1.3 var(--font-display); color: var(--c-primary); flex: 1; }
+.phone .panel-head h3 { color: #fff; }
+.icon-btn { width: 40px; height: 40px; border: 0; background: none; border-radius: var(--radius-sm); display: grid; place-items: center; cursor: pointer; color: inherit; }
+.icon-btn:hover { background: var(--c-soft-hover); }
+.phone .panel-head .icon-btn:hover { background: rgba(255,255,255,.14); }
+.tabs { display: flex; gap: var(--s1); padding: var(--s3) var(--s4) 0; border-bottom: 1px solid var(--c-border); }
+.tab { border: 0; background: none; padding: 8px 10px 10px; font-weight: 800; font-size: .9rem; color: var(--c-text-muted); cursor: pointer; border-bottom: 3px solid transparent; margin-bottom: -1px; display: inline-flex; gap: 6px; align-items: center; }
+.tab[aria-selected="true"] { color: var(--c-primary); border-bottom-color: var(--c-primary); }
+.tab .n { font-size: .72rem; background: var(--c-danger); color: #fff; border-radius: var(--radius-pill); padding: 0 6px; line-height: 17px; font-variant-numeric: tabular-nums; }
+.tab-note { font-size: .78rem; color: var(--c-text-muted); padding: var(--s2) var(--s4) 0; }
+.list { overflow: auto; flex: 1; padding: var(--s2) 0; }
+.day { font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; color: var(--c-text-muted); padding: var(--s3) var(--s4) var(--s1); }
+.item { display: grid; grid-template-columns: 36px 1fr; gap: var(--s3); padding: 10px var(--s4); width: 100%; border: 0; background: none; text-align: left; cursor: pointer; position: relative; }
+.item:hover { background: var(--c-soft-hover); }
+.item.unread { background: #f4f9fd; }
+.item.unread::before { content: ""; position: absolute; left: 6px; top: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--c-primary); transform: translateY(-50%); }
+.item .badge { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: var(--c-primary-soft); color: var(--c-primary); }
+.item .badge svg.i { width: 18px; height: 18px; }
+.badge.k-cho { background: var(--c-sand-soft); color: var(--c-sand-text); }
+.badge.k-nhan, .badge.k-xacnhan { background: var(--c-green-soft); color: var(--c-green-text); }
+.badge.k-huy { background: var(--c-danger-soft); color: var(--c-danger); }
+.badge.k-tin { background: var(--c-primary); color: #fff; }
+.badge.k-tin.qt { background: var(--c-sand); color: var(--c-primary-strong); }
+.item .txt { display: block; margin: 0; font-size: .9rem; line-height: 1.4; color: var(--c-text); }
+.item .txt b { font-weight: 800; }
+.item .code { font-variant-numeric: tabular-nums; font-weight: 800; color: var(--c-primary); }
+.item .meta { display: flex; flex-wrap: wrap; gap: 4px var(--s2); align-items: center; margin-top: 3px; font-size: .78rem; color: var(--c-text-muted); }
+.chip { font-size: .7rem; font-weight: 800; padding: 1px 8px; border-radius: var(--radius-pill); border: 1px solid transparent; }
+.chip.qt { background: var(--c-sand-soft); color: var(--c-sand-text); border-color: var(--c-sand-border); }
+.chip.ok { background: var(--c-green-soft); color: var(--c-green-text); border-color: var(--c-green-border); }
+.chip.muted { background: var(--c-surface-alt); color: var(--c-text-muted); }
+.item.faded .txt, .item.faded .badge { opacity: .5; }
+.empty { padding: var(--s6) var(--s4); text-align: center; color: var(--c-text-muted); font-size: .9rem; }
+.panel-foot { border-top: 1px solid var(--c-border); padding: var(--s2) var(--s4); font-size: .76rem; color: var(--c-text-muted); }
+
+/* hộp đọc tin */
+.scrim { position: absolute; inset: 0; background: var(--c-scrim); z-index: 30; display: grid; place-items: center; padding: var(--s4); }
+.dialog { background: #fff; border-radius: var(--radius-lg); width: min(480px, 100%); max-height: 100%; overflow: auto; box-shadow: var(--shadow-overlay); padding: var(--s5); display: flex; flex-direction: column; gap: var(--s3); }
+.phone .scrim { place-items: end center; padding: 0; }
+.phone .dialog { border-radius: var(--radius-lg) var(--radius-lg) 0 0; width: 100%; }
+.dialog h3 { margin: 0; font: 800 1.15rem/1.35 var(--font-display); color: var(--c-primary-strong); text-wrap: balance; }
+.dialog .from { font-size: .82rem; color: var(--c-text-muted); }
+.dialog .body { white-space: pre-line; font-size: .95rem; line-height: 1.55; }
+.dialog .row { display: flex; gap: var(--s2); justify-content: flex-end; flex-wrap: wrap; }
+.btn { border: 1px solid var(--c-primary); background: #fff; color: var(--c-primary); border-radius: var(--radius-sm); padding: 10px 18px; font-weight: 800; cursor: pointer; }
+.btn.primary { background: var(--c-primary); color: #fff; }
+.btn.danger { border-color: var(--c-danger); color: var(--c-danger); }
+.btn.small { padding: 6px 12px; font-size: .85rem; }
+
+/* điện thoại: thanh đầu và thanh tab */
+.pbar { background: var(--c-primary); color: #fff; height: calc(var(--bar-h) + 6px); display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s3); flex: none; }
+.pbar .brand { padding: 0; font-size: 1.05rem; flex: 1; }
+.pbar .brand small { display: inline; }
+.pbar h3 { flex: 1; margin: 0; font: 800 1.05rem/1.3 var(--font-display); }
+.tabbar { height: calc(var(--tabbar-h) + 10px); background: #fff; border-top: 1px solid var(--c-border); display: grid; grid-template-columns: repeat(5, 1fr); flex: none; padding-bottom: 6px; }
+.tabbar button { border: 0; background: none; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: .7rem; font-weight: 700; color: var(--c-text-muted); cursor: pointer; }
+.tabbar button[aria-current="page"] { color: var(--c-primary); }
+.tabbar .plus { width: 40px; height: 40px; border-radius: 50%; background: var(--c-accent); color: #fff; display: grid; place-items: center; }
+
+/* Gửi thông báo */
+.send { display: grid; grid-template-columns: 1.05fr 1fr; gap: var(--s4); align-items: start; }
+.phone .send { grid-template-columns: 1fr; }
+.card { background: #fff; border-radius: var(--radius-md); box-shadow: var(--shadow-card); padding: var(--s4); display: flex; flex-direction: column; gap: var(--s3); }
+.card h3 { margin: 0; font: 800 1.05rem/1.3 var(--font-display); color: var(--c-primary); }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field > span { font-size: .85rem; color: var(--c-text-muted); font-weight: 600; display: flex; justify-content: space-between; }
+.field input[type="text"], .field textarea { font: inherit; font-size: 16px; padding: 10px 12px; border: 1px solid var(--c-border); border-radius: var(--radius-sm); color: var(--c-text); background: #fff; width: 100%; }
+.field textarea { min-height: 110px; resize: vertical; }
+.field input::placeholder, .field textarea::placeholder { color: var(--c-placeholder); }
+.who { display: flex; flex-direction: column; gap: var(--s2); }
+.radio, .check { display: flex; gap: var(--s2); align-items: flex-start; font-size: .92rem; cursor: pointer; }
+.radio input, .check input { margin-top: 4px; accent-color: var(--c-primary); width: 16px; height: 16px; }
+.radio small, .check small { display: block; color: var(--c-text-muted); font-size: .8rem; }
+.groups { display: flex; flex-wrap: wrap; gap: var(--s2); padding-left: 24px; }
+.groups label { display: inline-flex; gap: 6px; align-items: center; border: 1px solid var(--c-border); border-radius: var(--radius-pill); padding: 4px 12px; font-size: .85rem; cursor: pointer; }
+.groups label:has(input:checked) { background: var(--c-primary-soft); border-color: var(--c-primary); color: var(--c-primary-strong); font-weight: 700; }
+.groups input { accent-color: var(--c-primary); }
+.groups.off { opacity: .45; pointer-events: none; }
+.important { background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); padding: var(--s3); color: var(--c-sand-text); }
+.err { color: var(--c-danger); font-size: .85rem; font-weight: 700; }
+.sent { display: flex; flex-direction: column; }
+.sent-item { border-top: 1px solid var(--c-border); padding: var(--s3) 0; display: flex; flex-direction: column; gap: 6px; }
+.sent-item:first-child { border-top: 0; padding-top: 0; }
+.sent-item h4 { margin: 0; font-size: .95rem; font-weight: 800; }
+.sent-item .meta { font-size: .78rem; color: var(--c-text-muted); display: flex; flex-wrap: wrap; gap: 4px var(--s2); align-items: center; }
+.bar { height: 6px; background: var(--c-surface-alt); border-radius: 3px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--c-green-text); border-radius: 3px; }
+.acks { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s3); font-size: .82rem; background: var(--c-surface-alt); border-radius: var(--radius-sm); padding: var(--s3); }
+.acks h5 { margin: 0 0 4px; font-size: .75rem; letter-spacing: .06em; text-transform: uppercase; color: var(--c-text-muted); }
+.acks ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 2px; }
+.acks li { display: flex; justify-content: space-between; gap: var(--s2); }
+.acks li time { color: var(--c-text-muted); font-variant-numeric: tabular-nums; }
+.confirm { background: var(--c-danger-soft); border-radius: var(--radius-sm); padding: var(--s3); font-size: .85rem; display: flex; flex-direction: column; gap: var(--s2); }
+.revoked { opacity: .55; }
+.actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+
+/* thông báo nhỏ của bản mẫu */
+.toast { position: absolute; left: 50%; bottom: 80px; transform: translateX(-50%); background: var(--c-primary-strong); color: #fff; padding: 10px 16px; border-radius: var(--radius-sm); font-size: .88rem; z-index: 40; box-shadow: var(--shadow-overlay); max-width: 90%; }
+.desktop .toast { bottom: 24px; }
+
+/* ghi chú dưới bản mẫu */
+.notes { background: #fff; border: 1px solid var(--c-border); border-radius: var(--radius-md); padding: var(--s4) var(--s5); }
+.notes h2 { margin: 0 0 var(--s2); font: 800 1rem/1.3 var(--font-display); color: var(--c-primary-strong); }
+.notes ul { margin: 0; padding-left: 1.1em; display: flex; flex-direction: column; gap: 6px; color: var(--mock-ink); font-size: .9rem; max-width: 80ch; }
+.notes code { font-size: .82rem; background: var(--c-surface-alt); padding: 0 4px; border-radius: 4px; }
+</style>
+
+<div class="mock">
+  <div class="mock-head">
+    <div>
+      <h1>Bản mẫu Thông báo — Island Booking System</h1>
+      <p>Bấm thử: chuông, dải tin quan trọng màu cát, từng tin trong hộp, và mục “Gửi thông báo” (chỉ Toàn quyền). Dữ liệu là ví dụ; giờ giả định là 09:40 thứ Bảy 27/09/2026.</p>
+    </div>
+    <div class="controls">
+      <div class="seg" role="group" aria-label="Xem với vai">
+        <span class="seg-label">Vai</span>
+        <button type="button" id="r-sales" data-role="sales">Bán hàng · Lan</button>
+        <button type="button" id="r-acc" data-role="acc">Kế toán · Mai</button>
+        <button type="button" id="r-super" data-role="super">Toàn quyền · Vũ</button>
+      </div>
+      <div class="seg" role="group" aria-label="Khổ màn hình">
+        <span class="seg-label">Khổ</span>
+        <button type="button" id="d-desktop" data-device="desktop">Máy tính</button>
+        <button type="button" id="d-phone" data-device="phone">Điện thoại</button>
+      </div>
+      <button type="button" class="reset" id="reset">Đặt lại</button>
+    </div>
+  </div>
+  <div class="stage"><div class="scroll-x"><div id="app"></div></div></div>
+  <section class="notes" aria-labelledby="notes-h">
+    <h2 id="notes-h">Bản mẫu này thể hiện các điều bạn đã chọn</h2>
+    <ul>
+      <li><b>Chuông + số đỏ</b> chỉ đếm ngăn “Của tôi”. Mở hộp là đọc hết: số về 0, tin mới vẫn tô nền xanh nhạt trong lần mở đó.</li>
+      <li><b>Hai ngăn.</b> “Của tôi” = tin công ty gửi tới mình, đơn mình lập/phụ trách, đơn chờ nhận (nếu mình nhận được đơn). “Tất cả” thêm tin về mọi đơn khác.</li>
+      <li><b>Tên người làm</b> chỉ hiện khi người xem được xem lịch sử của đơn đó. Đổi sang vai Bán hàng rồi Kế toán để thấy cùng một tin có tên / không tên.</li>
+      <li><b>Việc của chính mình không hiện</b> (vd Lan không thấy tin “Lan vừa lập đơn”). Đơn chờ nhận mà đã có người nhận thì <b>mờ đi, ghi “Đã có người nhận”</b>.</li>
+      <li><b>Tin quan trọng</b> hiện dải màu cát ở đầu mọi trang tới khi bấm “Đã hiểu”. Toàn quyền xem được ai đã/chưa hiểu, và thu hồi tin (có bước xác nhận ngay trên trang).</li>
+      <li><b>“Toàn công ty”</b> = nhân viên nội bộ, không gồm Đối tác. Gửi Đối tác phải tick riêng nhóm Đối tác.</li>
+    </ul>
+  </section>
+</div>
+
+<script>
+(() => {
+  const ICON = {
+    bell: '<path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/>',
+    home: '<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+    orders: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    tag: '<path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+    users: '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0"/><path d="M16 4a4 4 0 0 1 0 8M22 21a7 7 0 0 0-4-6.3"/>',
+    me: '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
+    mega: '<path d="M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z"/><path d="M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12"/>',
+    x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    back: '<path d="M19 12H5M12 19l-7-7 7-7"/>',
+    wait: '<circle cx="9" cy="8" r="4"/><path d="M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6"/>',
+    ok: '<circle cx="12" cy="12" r="9"/><path d="m8 12 3 3 5-6"/>',
+    swap: '<path d="M7 7h13l-3-3M17 17H4l3 3"/>',
+    file: '<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M12 12v6M9 15h6"/>',
+    ban: '<circle cx="12" cy="12" r="9"/><path d="m6 6 12 12"/>',
+    search: '<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>',
+    send: '<path d="M22 2 11 13M22 2l-7 20-4-9-9-4z"/>',
+    pin: '<path d="M12 22s7-6.2 7-12a7 7 0 0 0-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>'
+  };
+  const ic = (n) => `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[n]}</svg>`;
+  const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  /* ---- người dùng mẫu (quyền thật của app: permissions.ts) ---- */
+  const ROLES = {
+    sales: { id: "lan", name: "Lan", full: "Nguyễn Thị Lan", label: "Bán hàng", ini: "NL", perms: ["SALES"], claim: true, allHistory: false },
+    acc:   { id: "mai", name: "Mai", full: "Trần Ngọc Mai", label: "Kế toán", ini: "TM", perms: ["ACCOUNTING"], claim: false, allHistory: true },
+    super: { id: "vu",  name: "Vũ",  full: "Lưu Tuấn Vũ", label: "Toàn quyền", ini: "LV", perms: ["SUPER_ADMIN"], claim: true, allHistory: true }
+  };
+  const PEOPLE = { lan: "Lan", hung: "Hùng", tri: "Trị", mai: "Mai", vu: "Vũ", bx: "Khách sạn Biển Xanh" };
+
+  /* ---- sổ nhật ký mẫu: tin về đơn là hình chiếu của các dòng này ---- */
+  const EVENTS = [
+    { id: "e1", kind: "cho", actor: "bx",   code: "TD-20260927-0014", owner: "bx",   handler: null,   at: "09:35", day: "Hôm nay", mins: 5 },
+    { id: "e2", kind: "nhan", actor: "hung", code: "TD-20260927-0011", owner: "lan",  handler: "hung", at: "09:12", day: "Hôm nay", mins: 28 },
+    { id: "e3", kind: "lap", actor: "hung", code: "TD-20260927-0013", owner: "hung", handler: "hung", at: "08:58", day: "Hôm nay", mins: 42 },
+    { id: "e4", kind: "cho", actor: "bx",   code: "TD-20260927-0009", owner: "bx",   handler: "hung", at: "08:10", day: "Hôm nay", mins: 90 },
+    { id: "e5", kind: "xacnhan", actor: "tri", code: "TD-20260926-0008", owner: "lan", handler: "lan", at: "17:40", day: "Hôm qua", mins: 960 },
+    { id: "e6", kind: "giao", actor: "tri", code: "TD-20260926-0007", owner: "lan",  handler: "hung", at: "16:05", day: "Hôm qua", mins: 1055 },
+    { id: "e7", kind: "huy",  actor: "hung", code: "TD-20260926-0005", owner: "hung", handler: "hung", at: "14:20", day: "Hôm qua", mins: 1160 },
+    { id: "e8", kind: "lap",  actor: "lan",  code: "TD-20260926-0004", owner: "lan",  handler: "lan",  at: "10:02", day: "Hôm qua", mins: 1420 }
+  ];
+  const STAFF_IN_GROUP = {
+    noibo: [["Lan", "Bán hàng"], ["Hùng", "Bán hàng"], ["Phương", "Bán hàng"], ["Mai", "Kế toán"], ["Trị", "Quản trị"], ["Tâm", "Hướng dẫn viên"], ["Khoa", "Hướng dẫn viên"], ["Ngân", "Thực tập"]],
+    SALES: [["Lan", "Bán hàng"], ["Hùng", "Bán hàng"], ["Phương", "Bán hàng"]]
+  };
+  const GROUPS = [["SALES", "Bán hàng"], ["ACCOUNTING", "Kế toán"], ["ADMIN", "Quản trị"], ["FIELD", "Hướng dẫn viên"], ["PARTNER", "Đối tác"], ["INTERN", "Thực tập"], ["SUPER_ADMIN", "Toàn quyền"]];
+
+  const initialNotices = () => ([
+    { id: "n1", title: "Từ 01/10: đón khách bến Cầu Đá ở cổng số 2", body: "Cảng Cầu Đá sửa cổng chính từ 01/10 đến hết 15/10.\nMọi chuyến đón bến Cầu Đá hẹn khách ở cổng số 2 (cạnh bãi xe máy), đến sớm 15 phút.\nBán hàng nhắn lại khách đã đặt các ngày này.", important: true, to: ["noibo"], by: "Vũ", at: "08:30", day: "Hôm nay", mins: 70, revoked: false,
+      acks: [["Hùng", "08:41"], ["Phương", "08:52"], ["Trị", "09:05"], ["Tâm", "09:20"]] },
+    { id: "n2", title: "Bảng giá tour 4 đảo mùa thấp điểm đã cập nhật", body: "Giá tour 4 đảo từ 01/10 giảm 50.000 ₫/khách người lớn. Danh mục trong app đã đồng bộ sáng nay; đơn đã xác nhận giữ giá cũ.", important: false, to: ["SALES"], by: "Vũ", at: "16:20", day: "Hôm qua", mins: 1040, revoked: false, acks: [] }
+  ]);
+
+  const fresh = () => ({
+    role: "sales",
+    device: window.innerWidth < 760 ? "phone" : "desktop",
+    page: "home",
+    panel: false,
+    tab: "mine",
+    read: {},                /* vai → các tin đã đọc (mở hộp = đọc hết) */
+    justRead: {},            /* vai → danh sách id được tô "mới" trong lần mở này */
+    acked: { sales: {}, acc: {}, super: {} },
+    notices: initialNotices(),
+    dialog: null,
+    confirmRevoke: null,
+    showAcks: null,
+    toast: "",
+    form: { title: "", body: "", who: "noibo", groups: ["SALES"], important: false, err: "" }
+  });
+  let S = fresh();
+
+  /* ---- luật lọc (một hàm cho cả số đỏ lẫn danh sách) ---- */
+  function seesHistory(r, e) { return r.allHistory || e.owner === r.id || e.handler === r.id; }
+  function isInternal(r) { return r.perms.some((p) => p !== "PARTNER"); }
+  function orderItems(r) {
+    const out = [];
+    for (const e of EVENTS) {
+      if (e.actor === r.id) continue;                                   /* việc của chính mình không hiện */
+      const mine = e.owner === r.id || e.handler === r.id || (e.kind === "cho" && r.claim);
+      out.push({ ...e, type: "don", mine });
+    }
+    return out;
+  }
+  function noticeItems(r) {
+    return S.notices.filter((n) => !n.revoked && n.by !== r.name && (n.to.includes("noibo") ? isInternal(r) : n.to.some((g) => r.perms.includes(g))))
+      .map((n) => ({ ...n, type: "tin", mine: true }));
+  }
+  function items(r, tab) {
+    const all = [...noticeItems(r), ...orderItems(r)].sort((a, b) => a.mins - b.mins);
+    return tab === "mine" ? all.filter((x) => x.mine) : all;
+  }
+  /* mốc đã đọc: mở hộp = mọi tin đang có coi là đã đọc (bản mẫu nhớ theo id thay cho mốc giờ) */
+  const readSet = (key) => (S.read[key] ||= new Set());
+  function unreadMine(key) { return items(ROLES[key], "mine").filter((x) => !readSet(key).has(x.id)); }
+  function unreadCount(key) { return unreadMine(key).length; }
+  function pendingImportant(key) {
+    return noticeItems(ROLES[key]).filter((n) => n.important && !S.acked[key][n.id]);
+  }
+
+  function sentence(r, e) {
+    const who = seesHistory(r, e) ? `<b>${esc(PEOPLE[e.actor])}</b> vừa ` : "";
+    const code = `<span class="code">${e.code}</span>`;
+    const noName = !who;
+    switch (e.kind) {
+      case "cho": return noName ? `Có đơn mới ${code}, chưa có người phụ trách` : `${who}lập đơn ${code}, chưa có người phụ trách`;
+      case "lap": return noName ? `Có đơn mới ${code}` : `${who}lập đơn mới ${code}`;
+      case "nhan": return noName ? `Đơn ${code} vừa có người nhận` : `${who}nhận đơn ${code}`;
+      case "giao": return noName ? `Đơn ${code} vừa đổi người phụ trách` : `${who}giao đơn ${code} cho người khác phụ trách`;
+      case "xacnhan": return noName ? `Đơn ${code} vừa được xác nhận` : `${who}xác nhận đơn ${code}`;
+      case "huy": return noName ? `Đơn ${code} vừa bị huỷ` : `${who}huỷ đơn ${code}`;
+    }
+  }
+  const KIND_ICON = { cho: "wait", lap: "file", nhan: "ok", giao: "swap", xacnhan: "ok", huy: "ban" };
+  const ago = (x) => x.mins < 60 ? `${x.mins} phút trước` : x.day === "Hôm nay" ? `${x.at}` : `${x.day} ${x.at}`;
+
+  /* ---- dựng giao diện ---- */
+  function bellHtml() {
+    const n = unreadCount(S.role);
+    const label = n ? `Thông báo, ${n} tin chưa đọc` : "Thông báo";
+    return `<button type="button" class="bell" id="bell" aria-label="${label}" aria-expanded="${S.panel}">${ic("bell")}${n ? `<span class="count">${n > 9 ? "9+" : n}</span>` : ""}</button>`;
+  }
+  function bannerHtml() {
+    const p = pendingImportant(S.role);
+    if (!p.length) return "";
+    const n = p[0];
+    return `<div class="banner" role="status"><span class="ico">${ic("mega")}</span>
+      <div class="banner-text"><b>Tin quan trọng: ${esc(n.title)}</b><span>${esc(n.by)} gửi ${n.day === "Hôm nay" ? "lúc " + n.at : n.day + " " + n.at}${p.length > 1 ? ` · còn ${p.length - 1} tin quan trọng khác` : ""}</span></div>
+      <button type="button" data-open="${n.id}">Đọc và bấm Đã hiểu</button></div>`;
+  }
+  function panelHtml() {
+    if (!S.panel) return "";
+    const r = ROLES[S.role];
+    const list = items(r, S.tab);
+    const mineN = unreadCount(S.role);
+    const justRead = S.justRead[S.role] || [];
+    let lastDay = "", rows = "";
+    for (const x of list) {
+      if (x.day !== lastDay) { rows += `<div class="day">${x.day}</div>`; lastDay = x.day; }
+      const unread = justRead.includes(x.id) ? " unread" : "";
+      if (x.type === "tin") {
+        const acked = S.acked[S.role][x.id];
+        rows += `<button type="button" class="item${unread}" data-open="${x.id}">
+          <span class="badge k-tin${x.important ? " qt" : ""}">${ic("mega")}</span>
+          <span><span class="txt"><b>${esc(x.title)}</b></span>
+          <span class="meta">${x.important ? (acked ? `<span class="chip ok">Đã hiểu</span>` : `<span class="chip qt">Quan trọng · chưa bấm Đã hiểu</span>`) : ""}<span>Tin công ty · ${esc(x.by)} · ${ago(x)}</span></span></span></button>`;
+      } else {
+        const taken = x.kind === "cho" && x.handler;
+        rows += `<button type="button" class="item${unread}${taken ? " faded" : ""}" data-order="${x.code}">
+          <span class="badge k-${x.kind}">${ic(KIND_ICON[x.kind])}</span>
+          <span><span class="txt">${sentence(r, x)}</span>
+          <span class="meta">${taken ? `<span class="chip muted">Đã có người nhận</span>` : ""}<span>${ago(x)}</span></span></span></button>`;
+      }
+    }
+    const allN = items(r, "all").length;
+    const head = S.device === "phone"
+      ? `<div class="panel-head"><button type="button" class="icon-btn" id="close" aria-label="Quay lại">${ic("back")}</button><h3>Thông báo</h3></div>`
+      : `<div class="panel-head"><h3>Thông báo</h3><button type="button" class="icon-btn" id="close" aria-label="Đóng">${ic("x")}</button></div>`;
+    return `<div class="panel" role="dialog" aria-label="Thông báo">${head}
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab" role="tab" id="tab-mine" aria-selected="${S.tab === "mine"}" data-tab="mine">Của tôi${mineN ? `<span class="n">${mineN}</span>` : ""}</button>
+        <button type="button" class="tab" role="tab" id="tab-all" aria-selected="${S.tab === "all"}" data-tab="all">Tất cả <span style="font-weight:600">(${allN})</span></button>
+      </div>
+      <div class="tab-note">${S.tab === "mine" ? "Tin công ty gửi bạn, đơn bạn lập hoặc phụ trách, đơn chờ nhận." : "Thêm tin về mọi đơn bạn được xem. Số đỏ trên chuông không đếm ngăn này."}</div>
+      <div class="list">${rows || `<div class="empty">Chưa có thông báo nào.</div>`}</div>
+      <div class="panel-foot">Giữ tin trong 30 ngày. Tin quan trọng chưa bấm “Đã hiểu” được giữ tới khi bấm.</div></div>`;
+  }
+  function dialogHtml() {
+    if (!S.dialog) return "";
+    const n = S.notices.find((x) => x.id === S.dialog);
+    if (!n) return "";
+    const acked = S.acked[S.role][n.id];
+    const btn = n.important && !acked
+      ? `<button type="button" class="btn primary" id="ack">Đã hiểu</button>`
+      : `<button type="button" class="btn" id="dlg-close">Đóng</button>`;
+    return `<div class="scrim" id="scrim"><div class="dialog" role="dialog" aria-modal="true" aria-labelledby="dlg-h">
+      ${n.important ? `<span class="chip qt" style="align-self:flex-start">Tin quan trọng</span>` : ""}
+      <h3 id="dlg-h">${esc(n.title)}</h3>
+      <div class="from">${esc(n.by)} (Toàn quyền) gửi ${n.day === "Hôm nay" ? "hôm nay lúc " + n.at : n.day.toLowerCase() + " lúc " + n.at} · ${n.to.includes("noibo") ? "Toàn công ty" : n.to.map((g) => GROUPS.find((x) => x[0] === g)[1]).join(", ")}</div>
+      <div class="body">${esc(n.body)}</div>
+      ${acked ? `<div class="from">Bạn đã bấm “Đã hiểu” lúc ${acked}.</div>` : ""}
+      <div class="row">${n.important && !acked ? `<button type="button" class="btn" id="dlg-close">Để sau</button>` : ""}${btn}</div></div></div>`;
+  }
+  function homeHtml() {
+    const r = ROLES[S.role];
+    return `<div class="hello"><h2>Chào ${esc(r.name)}</h2><span>Thứ Bảy, 27/09/2026 · 3 chuyến đón hôm nay</span></div>
+      <div class="stats">
+        <div class="stat"><small>Còn thiếu tiền</small><b style="color:var(--c-accent)">4.350.000 ₫</b><span>2 đơn</span></div>
+        <div class="stat"><small>Đơn nháp</small><b>3</b><span>Cần xác nhận đơn</span></div>
+        ${S.device === "phone" ? "" : `<div class="stat"><small>Chưa có người phụ trách</small><b>1</b><span>Cần gán trước giờ đón</span></div>`}
+      </div>
+      <div class="ghost"><h3>Chuyến đón hôm nay</h3>Phần này giữ nguyên như Trang chủ hiện tại — bản mẫu chỉ vẽ phần thông báo.<div class="line"></div><div class="line" style="width:70%"></div><div class="line" style="width:85%"></div></div>`;
+  }
+  function sendHtml() {
+    const f = S.form;
+    const sent = S.notices.map((n) => {
+      const target = n.to.includes("noibo") ? STAFF_IN_GROUP.noibo : (STAFF_IN_GROUP[n.to[0]] || STAFF_IN_GROUP.noibo);
+      const ackNames = n.acks.map((a) => a[0]);
+      const done = target.filter((p) => ackNames.includes(p[0]));
+      const notYet = target.filter((p) => !ackNames.includes(p[0]));
+      const pct = Math.round(done.length / target.length * 100);
+      const toTxt = n.to.includes("noibo") ? "Toàn công ty (nội bộ)" : n.to.map((g) => GROUPS.find((x) => x[0] === g)[1]).join(", ");
+      return `<div class="sent-item${n.revoked ? " revoked" : ""}">
+        <h4>${esc(n.title)}</h4>
+        <div class="meta">${n.important ? `<span class="chip qt">Quan trọng</span>` : ""}${n.revoked ? `<span class="chip muted">Đã thu hồi</span>` : ""}<span>${toTxt} · ${n.day} ${n.at}</span></div>
+        ${n.important ? `<div class="meta"><span>${done.length}/${target.length} người đã bấm Đã hiểu</span></div><div class="bar"><i style="width:${pct}%"></i></div>` : ""}
+        ${S.showAcks === n.id ? `<div class="acks"><div><h5>Đã hiểu (${done.length})</h5><ul>${done.map((p) => `<li><span>${p[0]} · ${p[1]}</span><time>${n.acks.find((a) => a[0] === p[0])[1]}</time></li>`).join("") || "<li>Chưa ai</li>"}</ul></div><div><h5>Chưa hiểu (${notYet.length})</h5><ul>${notYet.map((p) => `<li><span>${p[0]} · ${p[1]}</span></li>`).join("") || "<li>Không còn ai</li>"}</ul></div></div>` : ""}
+        ${S.confirmRevoke === n.id ? `<div class="confirm"><span>Thu hồi tin này? Tin sẽ biến khỏi hộp thông báo và dải nhắc của mọi người. Không hoàn tác được.</span><div class="actions"><button type="button" class="btn small danger" data-revoke-yes="${n.id}">Thu hồi</button><button type="button" class="btn small" data-revoke-no>Giữ lại</button></div></div>` : ""}
+        ${n.revoked ? "" : `<div class="actions">${n.important ? `<button type="button" class="btn small" data-acks="${n.id}">${S.showAcks === n.id ? "Ẩn danh sách" : "Xem ai đã hiểu"}</button>` : ""}${S.confirmRevoke === n.id ? "" : `<button type="button" class="btn small danger" data-revoke="${n.id}">Thu hồi</button>`}</div>`}
+      </div>`;
+    }).join("");
+    return `<div class="hello"><h2>Gửi thông báo</h2><span>Chỉ Toàn quyền thấy mục này</span></div>
+      <div class="send">
+        <form class="card" id="send-form" novalidate>
+          <h3>Soạn tin</h3>
+          <label class="field"><span>Tiêu đề <em style="font-style:normal">${f.title.length}/120</em></span><input type="text" id="f-title" maxlength="120" placeholder="Ví dụ: Lịch nghỉ lễ 2/9" value="${esc(f.title)}"></label>
+          <label class="field"><span>Nội dung <em style="font-style:normal">${f.body.length}/2000</em></span><textarea id="f-body" maxlength="2000" placeholder="Viết như tin nhắn bình thường. Xuống dòng được giữ nguyên.">${esc(f.body)}</textarea></label>
+          <fieldset class="who" style="border:0;padding:0;margin:0"><legend class="field" style="padding:0"><span>Gửi cho</span></legend>
+            <label class="radio"><input type="radio" name="who" id="w-noibo" value="noibo" ${f.who === "noibo" ? "checked" : ""}><span>Toàn công ty<small>Nhân viên nội bộ, không gồm Đối tác</small></span></label>
+            <label class="radio"><input type="radio" name="who" id="w-groups" value="groups" ${f.who === "groups" ? "checked" : ""}><span>Chọn nhóm</span></label>
+            <div class="groups${f.who === "groups" ? "" : " off"}">${GROUPS.map(([k, l]) => `<label><input type="checkbox" id="g-${k}" data-group="${k}" ${f.groups.includes(k) ? "checked" : ""}>${l}</label>`).join("")}</div>
+          </fieldset>
+          <label class="check important"><input type="checkbox" id="f-important" ${f.important ? "checked" : ""}><span><b>Tin quan trọng</b><small style="color:inherit">Hiện dải nhắc ở đầu mọi trang tới khi người nhận bấm “Đã hiểu”. Bạn xem được ai đã/chưa hiểu.</small></span></label>
+          ${f.err ? `<div class="err" role="alert">${esc(f.err)}</div>` : ""}
+          <div class="actions"><button type="submit" class="btn primary">${ic("send").replace('class="i"', 'class="i" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"')}Gửi thông báo</button></div>
+        </form>
+        <div class="card"><h3>Đã gửi</h3><div class="sent">${sent}</div></div>
+      </div>`;
+  }
+  function meHtml() {
+    const r = ROLES[S.role];
+    return `<div class="hello"><h2>Tôi</h2><span>${esc(r.full)} · ${r.label}</span></div>
+      <div class="card">${S.role === "super" ? `<button type="button" class="btn" data-page="send" style="text-align:left">${ic("mega").replace('class="i"', 'class="i" style="vertical-align:-4px;margin-right:8px"')}Gửi thông báo</button>` : ""}
+      <div class="ghost" style="box-shadow:none;padding:0">Các mục khác của trang Tôi giữ nguyên (Góp ý, Trợ giúp, Đăng xuất…).<div class="line"></div><div class="line" style="width:60%"></div></div></div>`;
+  }
+
+  function desktopHtml() {
+    const r = ROLES[S.role];
+    const navBtn = (page, icon, label, extra = "") => `<button type="button" class="nav-item" data-page="${page}" ${S.page === page ? 'aria-current="page"' : ""}>${ic(icon)}${label}${extra}</button>`;
+    const dead = (icon, label) => `<button type="button" class="nav-item" data-dead>${ic(icon)}${label}</button>`;
+    return `<div class="device desktop">
+      <aside class="side">
+        <div class="brand"><span class="logo"></span><span>Island Booking<small>System</small></span></div>
+        <div class="nav-group">BÁN HÀNG</div>
+        ${navBtn("home", "home", "Trang chủ")}${dead("orders", "Đơn hàng")}${dead("plus", "Tạo đơn")}${dead("users", "Danh bạ")}
+        ${S.role === "super" ? `<div class="nav-group">QUẢN TRỊ</div>${dead("tag", "Dịch vụ &amp; giá")}${dead("users", "Quản lý tài khoản")}${navBtn("send", "mega", "Gửi thông báo", '<span class="new">Mới</span>')}` : ""}
+        <div class="nav-group">TÔI</div>${dead("me", "Của tôi")}
+        <div class="side-foot"><span class="avatar">${r.ini}</span><span><b>${esc(r.full)}</b><span>${r.label}</span></span></div>
+      </aside>
+      <div class="work">
+        <div class="workbar"><span class="crumb">${S.page === "send" ? "Quản trị / Gửi thông báo" : "Trang chủ"}</span>
+          <span class="search">${ic("search")}Tìm mã đơn, tên khách, SĐT…</span>${bellHtml()}<button type="button" class="btn-create" tabindex="-1">Tạo đơn</button></div>
+        ${bannerHtml()}
+        <div class="content">${S.page === "send" ? sendHtml() : homeHtml()}</div>
+        ${panelHtml()}
+      </div>
+      ${dialogHtml()}${S.toast ? `<div class="toast" role="status">${S.toast}</div>` : ""}
+    </div>`;
+  }
+  function phoneHtml() {
+    const r = ROLES[S.role];
+    const titleBar = S.page === "send"
+      ? `<div class="pbar"><button type="button" class="icon-btn" data-page="me" aria-label="Quay lại">${ic("back")}</button><h3>Gửi thông báo</h3>${bellHtml()}</div>`
+      : `<div class="pbar"><div class="brand"><span class="logo"></span><span>Island Booking <small>System</small></span></div>${bellHtml()}<span class="avatar">${r.ini}</span></div>`;
+    const tab = (page, icon, label) => `<button type="button" data-page="${page}" ${S.page === page || (page === "me" && S.page === "send") ? 'aria-current="page"' : ""}>${ic(icon)}${label}</button>`;
+    return `<div class="device phone">
+      ${titleBar}${bannerHtml()}
+      <div class="content">${S.page === "send" ? sendHtml() : S.page === "me" ? meHtml() : homeHtml()}</div>
+      <nav class="tabbar">${tab("home", "home", "Trang chủ")}<button type="button" data-dead>${ic("orders")}Đơn hàng</button><button type="button" data-dead><span class="plus">${ic("plus")}</span></button><button type="button" data-dead>${ic("tag")}Dịch vụ</button>${tab("me", "me", "Tôi")}</nav>
+      ${panelHtml()}${dialogHtml()}${S.toast ? `<div class="toast" role="status">${S.toast}</div>` : ""}
+    </div>`;
+  }
+
+  const app = document.getElementById("app");
+  let toastTimer = 0;
+  function toast(msg) { S.toast = msg; render(); clearTimeout(toastTimer); toastTimer = setTimeout(() => { S.toast = ""; render(); }, 2600); }
+  function render() {
+    const keep = document.activeElement && document.activeElement.id;
+    const selStart = document.activeElement && document.activeElement.selectionStart;
+    app.innerHTML = S.device === "phone" ? phoneHtml() : desktopHtml();
+    document.querySelectorAll("[data-role]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.role === S.role)));
+    document.querySelectorAll("[data-device]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.device === S.device)));
+    if (keep) { const el = document.getElementById(keep); if (el) { el.focus(); if (selStart != null && el.setSelectionRange) try { el.setSelectionRange(selStart, selStart); } catch (e) {} } }
+  }
+
+  function openPanel() {
+    S.panel = !S.panel;
+    if (S.panel) {
+      const r = ROLES[S.role], seen = readSet(S.role);
+      S.justRead[S.role] = items(r, "all").filter((x) => !seen.has(x.id)).map((x) => x.id);
+      items(r, "all").forEach((x) => seen.add(x.id));
+    }
+    render();
+  }
+
+  document.addEventListener("click", (ev) => {
+    const t = ev.target.closest("button, [data-open], #scrim");
+    if (!t) return;
+    if (t.dataset.role) { S.role = t.dataset.role; S.panel = false; S.dialog = null; if (S.page === "send" && S.role !== "super") S.page = "home"; render(); return; }
+    if (t.dataset.device) { S.device = t.dataset.device; S.panel = false; if (S.device === "desktop" && S.page === "me") S.page = "home"; render(); return; }
+    if (t.id === "reset") { S = fresh(); render(); return; }
+    if (!app.contains(t)) return;
+    if (t.id === "bell") { openPanel(); return; }
+    if (t.id === "close") { S.panel = false; render(); return; }
+    if (t.dataset.tab) { S.tab = t.dataset.tab; render(); return; }
+    if (t.dataset.open) { S.dialog = t.dataset.open; render(); return; }
+    if (t.dataset.order) { toast(`Mở đơn ${t.dataset.order} (bản mẫu — trong app thật sẽ mở trang đơn)`); return; }
+    if (t.id === "ack") {
+      const d = new Date(); const hh = "09:" + String(40 + (d.getSeconds() % 19)).padStart(2, "0");
+      S.acked[S.role][S.dialog] = hh;
+      const n = S.notices.find((x) => x.id === S.dialog); if (n && !n.acks.some((a) => a[0] === ROLES[S.role].name)) n.acks.push([ROLES[S.role].name, hh]);
+      S.dialog = null; toast("Đã ghi nhận: bạn đã hiểu tin này"); return;
+    }
+    if (t.id === "dlg-close" || t.id === "scrim") { if (t.id === "scrim" && ev.target !== t) return; S.dialog = null; render(); return; }
+    if (t.dataset.page) { S.page = t.dataset.page; S.panel = false; render(); return; }
+    if (t.dataset.dead !== undefined) { toast("Mục này không thuộc bản mẫu thông báo"); return; }
+    if (t.dataset.acks) { S.showAcks = S.showAcks === t.dataset.acks ? null : t.dataset.acks; render(); return; }
+    if (t.dataset.revoke) { S.confirmRevoke = t.dataset.revoke; render(); return; }
+    if (t.dataset.revokeYes) { const n = S.notices.find((x) => x.id === t.dataset.revokeYes); n.revoked = true; S.confirmRevoke = null; toast("Đã thu hồi. Tin đã biến khỏi hộp thông báo của mọi người."); return; }
+    if (t.dataset.revokeNo !== undefined) { S.confirmRevoke = null; render(); return; }
+  });
+  document.addEventListener("input", (ev) => {
+    const t = ev.target;
+    if (t.id === "f-title") { S.form.title = t.value; S.form.err = ""; render(); }
+    else if (t.id === "f-body") { S.form.body = t.value; S.form.err = ""; render(); }
+  });
+  document.addEventListener("change", (ev) => {
+    const t = ev.target;
+    if (t.name === "who") { S.form.who = t.value; render(); }
+    else if (t.dataset.group) { const g = t.dataset.group; S.form.groups = t.checked ? [...S.form.groups, g] : S.form.groups.filter((x) => x !== g); render(); }
+    else if (t.id === "f-important") { S.form.important = t.checked; render(); }
+  });
+  document.addEventListener("submit", (ev) => {
+    if (ev.target.id !== "send-form") return;
+    ev.preventDefault();
+    const f = S.form;
+    if (!f.title.trim()) { f.err = "Chưa có tiêu đề. Viết một câu ngắn nói tin này về việc gì."; render(); return; }
+    if (!f.body.trim()) { f.err = "Chưa có nội dung."; render(); return; }
+    if (f.who === "groups" && !f.groups.length) { f.err = "Chưa chọn nhóm nào. Tick ít nhất một nhóm hoặc chọn Toàn công ty."; render(); return; }
+    const id = "n" + Date.now();
+    S.notices.unshift({ id, title: f.title.trim(), body: f.body.trim(), important: f.important, to: f.who === "noibo" ? ["noibo"] : [...f.groups], by: "Vũ", at: "09:40", day: "Hôm nay", mins: 0, revoked: false, acks: [], });
+    const to = f.who === "noibo" ? "toàn công ty (nội bộ)" : f.groups.map((g) => GROUPS.find((x) => x[0] === g)[1]).join(", ");
+    S.form = { title: "", body: "", who: "noibo", groups: ["SALES"], important: false, err: "" };
+    toast(`Đã gửi cho ${to}. Đổi vai sang Bán hàng hoặc Kế toán để xem họ nhận thế nào.`);
+  });
+
+  render();
+})();
+</script>
