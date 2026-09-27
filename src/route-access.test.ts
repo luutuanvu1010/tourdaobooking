@@ -102,7 +102,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/catalog/sync", access: "admin" },
   { method: "GET", path: "/api/company", access: "public" },
   { method: "GET", path: "/api/dispatch/assignees", access: "office" },
-  { method: "GET", path: "/api/dispatch/handlers", access: "office" },
+  { method: "GET", path: "/api/dispatch/handlers", access: "orders" }, // ADR-0019 điều 1: màn đơn; thân hỏi can(order.view) không ngữ cảnh
   { method: "GET", path: "/api/dispatch/mine", access: "staff" }, // "việc của tôi" (FIELD) — ADR-0014 điều 6/11, tự khoanh phạm vi bằng staff.id
   { method: "GET", path: "/api/feedback", access: "admin" },
   { method: "POST", path: "/api/feedback", access: "staff" },
@@ -121,12 +121,12 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/orders/:id", access: "orders" },
   { method: "PUT", path: "/api/orders/:id", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/booker", access: "orders" },
-  { method: "PUT", path: "/api/orders/:id/handler", access: "office" }, // module dispatch, không phải orders
+  { method: "PUT", path: "/api/orders/:id/handler", access: "orders" }, // module dispatch, không phải orders; ADR-0019 điều 1: màn đơn, thân hỏi dispatch.claim/dispatch.assign trước mọi thứ
   { method: "POST", path: "/api/orders/:id/handler-cancel", access: "staff" }, // module dispatch, ADR-0014 điều 11 — FIELD đang phụ trách, tự kiểm can() bên trong
   { method: "POST", path: "/api/orders/:id/handler-money-edit", access: "staff" }, // module dispatch, ADR-0014 điều 6 — FIELD đang phụ trách, tự kiểm can() bên trong
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/trip", access: "orders" },
-  { method: "GET", path: "/api/orders/dashboard", access: "office" }, // Trang chủ mới — office (không phải "orders": PARTNER không dùng màn hình này)
+  { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
   { method: "GET", path: "/api/parties", access: "office" },
   { method: "POST", path: "/api/parties", access: "office" },
   { method: "GET", path: "/api/parties/:id", access: "office" },

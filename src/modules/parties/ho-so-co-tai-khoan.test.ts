@@ -207,3 +207,96 @@ test("ADR-0013 điều 5 / I-1: không tạo tài khoản trên hồ sơ đang N
   assert.equal(w.q("SELECT count(*) n FROM staff")[0].n, beforeCount, "không tạo thêm dòng staff");
   assert.equal(w.q("SELECT count(*) n FROM staff WHERE party_id = ?", inactiveId)[0].n, 0, "không có tài khoản gắn hồ sơ đang ngưng");
 });
+
+// ---- ADR-0019 điều 2 / Q11 (chủ quyết 25/9): vai và quan hệ của hồ sơ GẮN TÀI KHOẢN theo luật cấp bậc ("tự mình hoặc cấp dưới") -------------------
+// Sửa một phần ADR-0014 điều 8. Quan hệ chạm HAI hồ sơ nên xét cả hai đầu. Hồ sơ không gắn tài khoản: chỉ ô admin.manage như cũ.
+const DRIVER = { roleTypeCode: "DRIVER" };
+const addRole = (w: any, as: string, partyId: string, body: unknown = DRIVER) => w.call("POST", `/api/parties/${partyId}/roles`, { as, body });
+const endRole = (w: any, as: string, partyId: string, rid: string) => w.call("POST", `/api/parties/${partyId}/roles/${rid}/end`, { as, body: {} });
+const link = (w: any, as: string, onParty: string, from: string, to: string) =>
+  w.call("POST", `/api/parties/${onParty}/relationships`, { as, body: { fromPartyId: from, toPartyId: to, relationshipTypeCode: "CONTACT_OF" } });
+const endLink = (w: any, as: string, onParty: string, rid: string) => w.call("POST", `/api/parties/${onParty}/relationships/${rid}/end`, { as, body: {} });
+const roleRows = (w: any, partyId: string) => w.q("SELECT id, valid_to_date v FROM pty_party_role WHERE party_id = ?", partyId);
+const relRows = (w: any) => w.q("SELECT id, valid_to_date v FROM pty_party_relationship");
+async function customer(w: any, name = "Khách Lẻ") {
+  const made = await w.call("POST", "/api/parties", { as: SUP, body: { kind: "PERSON", fullName: name, contacts: [] } });
+  assert.equal(made.status, 201, made.text);
+  return made.json.party.id as string;
+}
+const auditCount = (w: any, action: string) => w.q("SELECT count(*) n FROM audit_log WHERE action = ?", action)[0].n;
+
+test("Q11 (a): ADMIN thêm vai vào hồ sơ của ADMIN khác hoặc SUPER_ADMIN → 403, không dòng vai, không nhật ký; 403 đứng trước 400", async () => {
+  const w = setup();
+  const before = auditCount(w, "party_role_added");
+  for (const target of [ADM2, SUP]) {
+    const rowsBefore = roleRows(w, pty(target)).length;
+    assert.equal((await addRole(w, ADM, pty(target))).status, 403, `ADM thêm vai vào ${target}`);
+    assert.equal((await addRole(w, ADM, pty(target), { rác: 1 })).status, 403, `403 đứng trước 400 (${target})`);
+    assert.equal(roleRows(w, pty(target)).length, rowsBefore, "không thêm dòng vai");
+  }
+  assert.equal(auditCount(w, "party_role_added"), before, "không nhật ký party_role_added");
+});
+
+test("Q11 (b): ADMIN kết thúc vai trên hồ sơ của ADMIN khác → 403, vai vẫn mở", async () => {
+  const w = setup();
+  const put = await addRole(w, SUP, pty(ADM2));
+  assert.equal(put.status, 201, put.text);
+  const rid = put.json.party.roles.find((r: any) => r.roleTypeCode === "DRIVER").id;
+  const before = auditCount(w, "party_role_ended");
+  assert.equal((await endRole(w, ADM, pty(ADM2), rid)).status, 403);
+  assert.equal(w.q("SELECT valid_to_date v FROM pty_party_role WHERE id = ?", rid)[0].v, null, "vai vẫn mở");
+  assert.equal(auditCount(w, "party_role_ended"), before);
+  assert.equal((await endRole(w, SUP, pty(ADM2), rid)).status, 200, "Toàn quyền kết thúc được");
+});
+
+test("Q11 (c): ADMIN thêm quan hệ mà MỘT đầu là hồ sơ của ADMIN khác → 403 cả hai chiều gọi (trên hồ sơ khách và trên hồ sơ ADMIN khác)", async () => {
+  const w = setup();
+  const k = await customer(w);
+  const before = auditCount(w, "party_relationship_changed");
+  assert.equal((await link(w, ADM, k, k, pty(ADM2))).status, 403, "gọi trên hồ sơ khách, đầu kia là ADMIN khác");
+  assert.equal((await link(w, ADM, k, pty(ADM2), k)).status, 403, "đảo chiều quan hệ");
+  assert.equal((await link(w, ADM, pty(ADM2), k, pty(ADM2))).status, 403, "gọi trên hồ sơ ADMIN khác");
+  assert.equal((await link(w, ADM, k, k, pty(SUP))).status, 403, "đầu kia là SUPER_ADMIN");
+  assert.equal(relRows(w).length, 0, "không có dòng quan hệ");
+  assert.equal(auditCount(w, "party_relationship_changed"), before);
+});
+
+test("Q11 (d): ADMIN kết thúc quan hệ giữa khách và hồ sơ ADMIN khác → 403 (gọi từ đầu nào cũng vậy), quan hệ vẫn mở", async () => {
+  const w = setup();
+  const k = await customer(w);
+  const made = await link(w, SUP, k, k, pty(ADM2));
+  assert.equal(made.status, 201, made.text);
+  const rid = relRows(w)[0].id;
+  const before = auditCount(w, "party_relationship_changed");
+  assert.equal((await endLink(w, ADM, k, rid)).status, 403, "gọi từ hồ sơ khách");
+  assert.equal((await endLink(w, ADM, pty(ADM2), rid)).status, 403, "gọi từ hồ sơ ADMIN khác");
+  assert.equal(relRows(w)[0].v, null, "quan hệ vẫn mở");
+  assert.equal(auditCount(w, "party_relationship_changed"), before);
+  assert.equal((await endLink(w, SUP, k, rid)).status, 200, "Toàn quyền kết thúc được");
+});
+
+test("Q11 (e): đối chứng dương — ADMIN làm được trên hồ sơ cấp dưới, của chính mình, hồ sơ khách; SUPER_ADMIN làm được trên hồ sơ ADMIN khác", async () => {
+  const w = setup();
+  const k = await customer(w);
+  for (const target of [pty(SALES), pty(PARTNER), pty(ADM), k]) {
+    const put = await addRole(w, ADM, target);
+    assert.equal(put.status, 201, `ADM thêm vai vào ${target}: ${put.text}`);
+    const rid = put.json.party.roles.find((r: any) => r.roleTypeCode === "DRIVER").id;
+    assert.equal((await endRole(w, ADM, target, rid)).status, 200, `ADM kết thúc vai ${target}`);
+  }
+  for (const other of [pty(SALES), pty(PARTNER), pty(ADM)]) {
+    const made = await link(w, ADM, k, k, other);
+    assert.equal(made.status, 201, `ADM nối khách với ${other}: ${made.text}`);
+    const rid = w.q("SELECT id FROM pty_party_relationship WHERE to_party_id = ?", other)[0].id;
+    assert.equal((await endLink(w, ADM, k, rid)).status, 200, `ADM kết thúc quan hệ với ${other}`);
+  }
+  const k2 = await customer(w, "Khách Hai");
+  assert.equal((await link(w, ADM, k, k, k2)).status, 201, "quan hệ giữa hai hồ sơ khách");
+  // Toàn quyền làm được trên hồ sơ của ADMIN khác.
+  const put = await addRole(w, SUP, pty(ADM2));
+  assert.equal(put.status, 201, put.text);
+  assert.equal((await link(w, SUP, k, k, pty(ADM2))).status, 201);
+  // Bán hàng: 403 ở cổng.
+  assert.equal((await addRole(w, SALES, k)).status, 403);
+  assert.equal((await link(w, SALES, k, k, k2)).status, 403);
+});

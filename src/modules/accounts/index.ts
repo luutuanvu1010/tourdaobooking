@@ -21,7 +21,7 @@ import { toBase64Url } from "../../shared/encoding";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { phoneChangeProblem } from "../../shared/maintenance";
 import { PARTY_ID_RE } from "../../shared/party-id";
-import { PERMISSION_CODES, isPermissionCode, type PermissionCode } from "../../shared/permissions";
+import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import { highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, type RoleAssignment, type RoleCode, type RoleProblem } from "../../shared/roles";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
@@ -33,6 +33,8 @@ const isPasskeyTaken = (e: unknown) => e instanceof Error && /UNIQUE constraint 
 const PHONE_TAKEN = () => error(409, "phone_taken", "Số điện thoại này đã có tài khoản.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy nhân viên.");
 const LAST_ADMIN = () => error(409, "account_rule", "Hệ thống phải còn ít nhất một quản trị viên đang hoạt động.");
+// ADR-0019 điều 2: lời cổng `admin` của router, nhắc lại ở thân handler khi ô `admin.manage` của bảng quyền không cho.
+const NOT_ADMIN = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
 const NOT_MANAGER = () => error(403, "forbidden", "Chỉ quản lý được tài khoản cấp dưới; tài khoản này do Toàn quyền quản lý.");
 // DK-T3-02: đặt lại PIN ở đây KHÔNG hỏi PIN cũ — áp lên chính mình thì một phiên bỏ quên đủ để chiếm hẳn tài khoản (vượt ADR-0016 điều 2a).
 const SELF_RESET_PIN = () => error(403, "forbidden", "Không tự đặt lại PIN của chính mình ở đây. Để đổi PIN, vào trang Tôi, mục “Đổi mã PIN”, rồi nhập PIN hiện tại.");
@@ -321,13 +323,16 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Danh sách / tạo thủ công ------------------------------------------------
-    route("GET", "/api/staff", "admin", async ({ env }) => {
+    route("GET", "/api/staff", "admin", async ({ env, staff: admin }) => {
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
       const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
       const roles = await accountRoleCodes(env.DB, staff);
       return json({ staff: staff.map((s) => dto(s, locked, passkeys, roles)) } satisfies StaffListResponse);
     }),
 
     route("POST", "/api/staff", "admin", async ({ request, env, staff: admin }) => {
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      const actorIsSuper = can(admin, "admin.manage.superadmin"); // LC-4 (ADR-0019): "là Toàn quyền" do bảng quyền trả lời, không kiểm tay
       const db = env.DB;
       const body = await readJson(request);
       const phone = typeof body?.phone === "string" ? normalizePhone(body.phone) : null;
@@ -340,7 +345,7 @@ export const accountsModule: AppModule = {
         const name: { value?: string | null; error?: string } = existingPartyId ? { value: null } : cleanName(body.fullName);
         if (name.error) return error(400, "invalid_input", name.error);
         if (!phone) return error(400, "invalid_input", "Số điện thoại không hợp lệ (cần 10 số, bắt đầu bằng 0 hoặc +84).");
-        const problem = roleAssignmentProblem({ actor: admin.permissions, currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, next: parsed.value });
+        const problem = roleAssignmentProblem({ actorIsSuper, currentRoles: [], currentPermissions: [], currentAdjustments: { adds: [], removes: [] }, next: parsed.value });
         if (problem) return problemResponse(problem);
         if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
         const created = await createAccountWithRolesStatements(db, { fullName: name.value ?? null, phone, assignment: parsed.value, existingPartyId }, admin.id);
@@ -370,7 +375,7 @@ export const accountsModule: AppModule = {
       const perms = body?.permissions === undefined ? { value: [] } : cleanPermissions(body.permissions);
       if (perms.error) return error(400, "invalid_input", perms.error);
       // LC-4 (ADR-0018 điều 5): chỉ Toàn quyền cấp Quản trị/Toàn quyền — thay luật cũ chỉ chặn SUPER_ADMIN (trước đây Quản trị cấp được Quản trị).
-      const high = highPermissionProblem(admin.permissions, [], perms.value!);
+      const high = highPermissionProblem(actorIsSuper, [], perms.value!);
       if (high) return problemResponse(high);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
@@ -384,7 +389,8 @@ export const accountsModule: AppModule = {
     }),
 
     // ---- Đồng bộ từ Google Sheet: xem trước rồi áp dụng --------------------------
-    route("GET", "/api/staff/sheet", "admin", async ({ env }) => {
+    route("GET", "/api/staff/sheet", "admin", async ({ env, staff: admin }) => {
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
       let parsed;
       try {
         parsed = parseStaffSheet(await fetchSheetCsv(env.STAFF_SHEET_ID));
@@ -405,6 +411,7 @@ export const accountsModule: AppModule = {
     }),
 
     route("POST", "/api/staff/sheet/apply", "admin", async ({ request, env, staff: admin }) => {
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
       const db = env.DB;
       const body = await readJson(request);
       const wanted = Array.isArray(body?.phones) ? body.phones.filter((p): p is string => typeof p === "string") : [];
@@ -442,6 +449,7 @@ export const accountsModule: AppModule = {
     // ---- Sửa một tài khoản (tên, SĐT đăng nhập, ngưng/kích hoạt) --------------------------------
     route("PATCH", "/api/staff/:id", "admin", async (ctx) => {
       const { request, env, staff: admin } = ctx;
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -496,6 +504,8 @@ export const accountsModule: AppModule = {
     // ---- Đặt tập quyền của tài khoản (ADR-0005) ---------------------------------------------------------
     route("PUT", "/api/staff/:id/permissions", "admin", async (ctx) => {
       const { request, env, staff: admin } = ctx;
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      const actorIsSuper = can(admin, "admin.manage.superadmin");
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -508,7 +518,7 @@ export const accountsModule: AppModule = {
       const next = perms.value!;
       const problem = checkAccountChange(admin.id, t, { permissions: next }, await countActiveAdmins(db));
       if (problem) return error(409, "account_rule", problem);
-      const high = highPermissionProblem(admin.permissions, t.permissions, next); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
+      const high = highPermissionProblem(actorIsSuper, t.permissions, next); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
       if (high) return problemResponse(high);
 
       const at = new Date().toISOString();
@@ -525,6 +535,7 @@ export const accountsModule: AppModule = {
 
     // ---- Vai với Tour Đảo của tài khoản (ADR-0018) ---------------------------------------------------------
     route("GET", "/api/staff/:id/roles", "admin", async (ctx) => {
+      if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
       const state = await getAccountRoleState(ctx.env.DB, t, vnToday(new Date()));
@@ -534,6 +545,8 @@ export const accountsModule: AppModule = {
 
     route("PUT", "/api/staff/:id/roles", "admin", async (ctx) => {
       const { request, env, staff: admin } = ctx;
+      if (!can(admin, "admin.manage")) return NOT_ADMIN();
+      const actorIsSuper = can(admin, "admin.manage.superadmin");
       const db = env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -545,7 +558,7 @@ export const accountsModule: AppModule = {
       const today = vnToday(now);
       const state = await getAccountRoleState(db, t, today);
       if (!state || !t.partyId) return NO_PARTY();
-      const problem = roleAssignmentProblem({ actor: admin.permissions, currentRoles: state.roles, currentPermissions: t.permissions, currentAdjustments: { adds: state.adds, removes: state.removes }, next: parsed.value });
+      const problem = roleAssignmentProblem({ actorIsSuper, currentRoles: state.roles, currentPermissions: t.permissions, currentAdjustments: { adds: state.adds, removes: state.removes }, next: parsed.value });
       if (problem) return problemResponse(problem);
       const change = roleChangeStatements(db, { account: t, partyId: t.partyId, state, next: parsed.value, actorId: admin.id, at, today });
       const accountProblem = checkAccountChange(admin.id, t, { permissions: change.next }, await countActiveAdmins(db));
@@ -582,6 +595,7 @@ export const accountsModule: AppModule = {
     }),
 
     route("POST", "/api/staff/:id/reset-pin", "admin", async (ctx) => {
+      if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -603,6 +617,7 @@ export const accountsModule: AppModule = {
 
     // ADR-0016 điều 6/8: quản trị viên gỡ mọi Face ID của một tài khoản (vd. mất máy, nghi lộ khoá) mà không cần đặt lại PIN.
     route("POST", "/api/staff/:id/passkeys/remove-all", "admin", async (ctx) => {
+      if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
       if (!passkeyRp(ctx.env)) return PASSKEY_ERRORS.off();
       const db = ctx.env.DB;
       const t = await target(ctx);
@@ -620,6 +635,7 @@ export const accountsModule: AppModule = {
     }),
 
     route("POST", "/api/staff/:id/unlock", "admin", async (ctx) => {
+      if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();

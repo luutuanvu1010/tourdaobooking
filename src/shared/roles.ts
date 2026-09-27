@@ -111,8 +111,8 @@ export interface RoleProblem {
 }
 
 /** LC-4 cho MỌI đường đổi quyền (gán vai, route cũ PUT …/permissions, tạo tài khoản): chỉ Toàn quyền cấp hoặc gỡ Quản trị/Toàn quyền. */
-export function highPermissionProblem(actor: readonly PermissionCode[], current: readonly PermissionCode[], next: readonly PermissionCode[]): RoleProblem | null {
-  if (actor.includes("SUPER_ADMIN")) return null;
+export function highPermissionProblem(actorIsSuper: boolean, current: readonly PermissionCode[], next: readonly PermissionCode[]): RoleProblem | null {
+  if (actorIsSuper) return null;
   const changed = SUPER_ADMIN_GRANTED.some((p) => current.includes(p) !== next.includes(p));
   return changed ? { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." } : null;
 }
@@ -123,7 +123,7 @@ export function highPermissionProblem(actor: readonly PermissionCode[], current:
  * dòng đã có (không sửa) vẫn được phép (giao diện tự điền lại chỉnh tay hiện có). Máy chủ gọi TRƯỚC khi dựng câu lệnh.
  */
 export function roleAssignmentProblem(a: {
-  actor: readonly PermissionCode[];
+  actorIsSuper: boolean;
   currentRoles: readonly RoleCode[];
   currentPermissions: readonly PermissionCode[];
   currentAdjustments: Adjustments;
@@ -134,7 +134,7 @@ export function roleAssignmentProblem(a: {
   if (group === "EXTERNAL" && a.next.adds.some((p) => !EXTERNAL_ALLOWED.includes(p))) {
     return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền Đối tác — bỏ phần cộng tay quyền khác." };
   }
-  if (!a.actor.includes("SUPER_ADMIN")) {
+  if (!a.actorIsSuper) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];
     if (touched.some((r) => ROLES[r].superAdminOnly)) return { forbidden: true, message: "Chỉ Toàn quyền mới gán hoặc gỡ vai Giám đốc, Điều hành chung." };
     // I-1 (kiểm độc lập vòng 1): chặn cả khi chỉnh tay Quản trị/Toàn quyền "ngủ" — quyền hiệu lực hôm nay không đổi (vai hiện tại đã có sẵn hoặc
@@ -146,7 +146,7 @@ export function roleAssignmentProblem(a: {
     if (adjustmentChanged) return { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." };
   }
   const next = effectivePermissions(a.next.roles, a.next).permissions;
-  const high = highPermissionProblem(a.actor, a.currentPermissions, next);
+  const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);
   if (high) return high;
   if (next.length === 0) return { forbidden: false, message: "Tài khoản phải còn ít nhất một quyền." };
   return null;

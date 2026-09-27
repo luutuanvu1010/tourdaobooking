@@ -14,7 +14,7 @@ import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   findParty, findPartiesByPhone, getPartyDetail, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, openRoleCodesFor,
-  renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
+  relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowGroup, roleTypeGroup, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
@@ -286,10 +286,15 @@ export const partiesModule: AppModule = {
     }),
 
     // ---- Vai trò theo nơi (chỉ quản trị viên: ADR-0007 "vai trò hồ sơ") ----------------------------------------------------------
+    // ADR-0019 điều 2 / Q11 (25/9): luật cấp bậc áp cho vai/quan hệ của hồ sơ gắn tài khoản (sửa một phần ADR-0014 điều 8) — Quản trị không
+    // thêm/kết thúc vai của Quản trị khác hay Toàn quyền; hồ sơ không gắn tài khoản chỉ cần ô admin.manage. Kiểm quyền đứng trước đọc thân yêu cầu.
     route("POST", "/api/parties/:id/roles", "admin", async (ctx) => {
       const { request, env, params, staff } = ctx;
+      if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
       if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
       const now = new Date();
       const parsed = validateRole(await readJson(request), vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
@@ -310,9 +315,12 @@ export const partiesModule: AppModule = {
 
     route("POST", "/api/parties/:id/roles/:rid/end", "admin", async (ctx) => {
       const { request, env, params, staff } = ctx;
+      if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
       if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
       if (isAccountGroup(await roleRowGroup(env.DB, id, rid))) return ACCOUNT_ROLE();
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
@@ -327,13 +335,21 @@ export const partiesModule: AppModule = {
     }),
 
     // ---- Quan hệ giữa hai hồ sơ (chỉ quản trị viên — đề xuất của đặc tả N1 §7.2, đã duyệt) ------------------------------------------
+    // ADR-0019 điều 2 / Q11: một quan hệ chạm HAI hồ sơ nên luật cấp bậc xét CẢ HAI đầu (siết, AI hiểu vậy — ghi ở commit).
     route("POST", "/api/parties/:id/relationships", "admin", async (ctx) => {
       const { request, env, params, staff } = ctx;
+      if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
       if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
       const now = new Date();
       const parsed = validateRelationship(await readJson(request), id, vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      // Đầu kia chỉ biết SAU khi đọc thân, nên 403 này đứng sau 400 thân sai (không ghi gì trước đó).
+      const other = parsed.value.fromPartyId === id ? parsed.value.toPartyId : parsed.value.fromPartyId;
+      const otherAcc: PartyAccountVerdict = await ctx.partyAccount(other);
+      if (otherAcc.linked && !otherAcc.manageable) return FORBIDDEN_WRITE();
       const at = now.toISOString();
       try {
         await env.DB.batch([
@@ -350,9 +366,15 @@ export const partiesModule: AppModule = {
 
     route("POST", "/api/parties/:id/relationships/:rid/end", "admin", async (ctx) => {
       const { request, env, params, staff } = ctx;
+      if (!can(staff, "admin.manage")) return FORBIDDEN_WRITE();
       const id = idParam(params, "id", PARTY_ID_RE);
       const rid = idParam(params, "rid", ROW_ID_RE);
       if (!id || !rid || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const ends = await relationshipEnds(env.DB, id, rid);
+      for (const partyId of new Set(ends ? [id, ends.from, ends.to] : [id])) {
+        const acc: PartyAccountVerdict = await ctx.partyAccount(partyId);
+        if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
+      }
       const now = new Date();
       const to = validateEndDate(await readJson(request), vnToday(now));
       if (!to.ok) return error(400, "invalid_input", to.message);

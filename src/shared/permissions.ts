@@ -38,7 +38,7 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNE
  * Có route dùng: order.create/history.view/modify/trip.edit/money.edit (module orders), dispatch.assign/claim/cancel (module dispatch),
  * feedback.submit/view/triage (module feedback), party.view/write/staff.write (module parties).
  * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
- * Thao tác của N2/N3 (task.progress, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view, dispatch.request) có mặt để test khoá bản
+ * Thao tác của N2/N3 (task.progress, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view) có mặt để test khoá bản
  * đồ; CHƯA có route dùng (thi công ở phiên sau). `order.cancel`/`order.money.edit` (FIELD) đã có route thật (`POST /api/orders/:id/handler-cancel`,
  * `POST /api/orders/:id/handler-money-edit`, module dispatch — ADR-0014 điều 11/6, Phase B; `order.money.edit` ghi qua "dòng điều chỉnh" chỉ-thêm
  * ở bảng `order_money_adjustment`, không sửa đè `order_service`/`order_item`/cột tiền của `orders`).
@@ -58,7 +58,6 @@ export const MATRIX = {
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
   "dispatch.claim": row("any", "none", "any", "none", "none", "any", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này)
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
-  "dispatch.request": row("none", "none", "none", "none", "any", "any", "none"), // xin nhận việc (chưa đổi người phụ trách) — thao tác MỚI (ADR-0014 điều 10, chưa có route)
   "payment.receive": row("own", "any", "any", "none", "none", "any", "none"), // ghi thu tiền
   "payment.refund": row("none", "any", "any", "none", "none", "any", "none"), // ghi hoàn tiền
   "invoice.request": row("own", "any", "any", "none", "none", "any", "none"), // ghi yêu cầu hoá đơn + thông tin xuất
@@ -71,6 +70,7 @@ export const MATRIX = {
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
   "feedback.view": row("own", "own", "any", "own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
   "feedback.triage": row("none", "none", "any", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
+  "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
@@ -111,14 +111,24 @@ export function can(who: PermissionHolder, op: OperationCode, ctx: OperationCont
   return who.permissions.some((p) => allows(cells[p], who.id, ctx));
 }
 
-/** Nhân sự "văn phòng": dùng được màn hình/API đơn (mọi quyền trừ chỉ-FIELD). Router dùng cho access "office". */
-export const isOffice = (who: PermissionHolder): boolean => can(who, "order.view");
-
 /**
- * Tài khoản dùng được route đơn (`/api/orders*`): nhân sự văn phòng (ADR-0007) HOẶC bất kỳ quyền nào xem được đơn CỦA MÌNH (Đối tác — ADR-0014; Thực tập —
- * ADR-0018). Mỗi route đơn vẫn tự gọi `can()` để kiểm phạm vi. Router dùng cho access "orders". KHÔNG dùng để hiện/ẩn mục của nhân sự văn phòng (dùng `isOffice`).
+ * ADR-0019: CỔNG của router = danh sách mã quyền KHAI TƯỜNG MINH (không suy từ ô nào). Cổng chỉ LỌC THÔ; mỗi route sau cổng vẫn phải gọi `can()`
+ * trong thân xử lý (hàng rào 2). Đổi danh sách = sửa `src/shared/cong-quyen.test.ts` trong cùng commit.
  */
-export const canAccessOrders = (who: PermissionHolder): boolean => isOffice(who) || can(who, "order.view", { ownerId: who.id });
+export const ADMIN_GATE = ["ADMIN", "SUPER_ADMIN"] as const satisfies readonly PermissionCode[];
+/** Văn phòng: Hồ sơ, danh mục cho form lập đơn, danh sách người được giao. KHÔNG gồm FIELD dù FIELD xem được mọi đơn (ADR-0017) — Q3 của chủ dự án. */
+export const OFFICE_GATE = ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const satisfies readonly PermissionCode[];
+/** Màn đơn: `/api/orders*`, Trang chủ, người phụ trách của đơn. Mỗi mã ở đây phải có `order.view` ≠ none (bài kiểm đối chiếu). */
+export const ORDERS_GATE = ["SALES", "ACCOUNTING", "ADMIN", "PARTNER", "SUPER_ADMIN", "INTERN"] as const satisfies readonly PermissionCode[];
+
+const holdsAny = (who: { readonly permissions: readonly PermissionCode[] }, gate: readonly PermissionCode[]): boolean => who.permissions.some((p) => gate.includes(p));
+export const passesAdminGate = (who: PermissionHolder): boolean => holdsAny(who, ADMIN_GATE);
+/** Qua cổng "office" (vào Hồ sơ…). KHÔNG dùng để hiện Trang chủ/Đơn hàng — dùng `seesAllOrders`. */
+export const isOffice = (who: PermissionHolder): boolean => holdsAny(who, OFFICE_GATE);
+/** Qua cổng "orders". Mỗi route đơn vẫn tự gọi `can()` để kiểm phạm vi. */
+export const canAccessOrders = (who: PermissionHolder): boolean => holdsAny(who, ORDERS_GATE);
+/** Xem được MỌI đơn (không ngữ cảnh): hiện Trang chủ, mục "Đơn hàng", ô tìm đơn; `homeRedirect` giữ người này ở Trang chủ. Là câu hỏi của BẢNG, không phải cổng. */
+export const seesAllOrders = (who: PermissionHolder): boolean => can(who, "order.view");
 
 /**
  * Tài khoản CÓ quyền Đối tác (`PARTNER`), kể cả khi kèm quyền khác — chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp". Đường quản trị cũ

@@ -20,7 +20,6 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope]> = {
   "dispatch.assign": ["ownOrAssigned", "none", "any", "none", "none", "any", "none"],
   "dispatch.claim": ["any", "none", "any", "none", "none", "any", "none"], // ADR-0009 điều 2: nhận phụ trách đơn chưa có người (điều kiện do dịch vụ của dispatch kiểm, không phải ô ma trận)
   "dispatch.guides.view": ["none", "none", "none", "none", "any", "any", "none"], // ADR-0014 điều 9: thao tác MỚI
-  "dispatch.request": ["none", "none", "none", "none", "any", "any", "none"], // ADR-0014 điều 10: thao tác MỚI
   "payment.receive": ["own", "any", "any", "none", "none", "any", "none"],
   "payment.refund": ["none", "any", "any", "none", "none", "any", "none"],
   "invoice.request": ["own", "any", "any", "none", "none", "any", "none"],
@@ -33,11 +32,12 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope]> = {
   "feedback.submit": ["any", "any", "any", "any", "any", "any", "any"],
   "feedback.view": ["own", "own", "any", "own", "own", "any", "own"],
   "feedback.triage": ["none", "none", "any", "none", "none", "any", "none"],
+  "settings.ops": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0019: chỉ Toàn quyền (chế độ bảo trì)
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN"];
 const OPS = Object.keys(ADR) as OperationCode[];
 
-test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0013 + ADR-0014 + ADR-0018 (giai đoạn 1) + Góp ý (26 thao tác × 7 quyền)", () => {
+test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0013 + ADR-0014 + ADR-0018 (giai đoạn 1) + Góp ý + ADR-0019 (26 thao tác × 7 quyền)", () => {
   assert.deepEqual([...PERMISSION_CODES], [...ORDER]);
   assert.deepEqual(Object.keys(MATRIX).sort(), Object.keys(ADR).sort(), "MATRIX và ADR phải có cùng danh sách thao tác");
   for (const op of OPS) ORDER.forEach((p, i) => assert.equal(MATRIX[op][p], ADR[op]![i], `${op} × ${p}`));
@@ -172,9 +172,9 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
   assert.equal(can({ id: "", permissions: ["SALES"] }, "order.modify", { ownerId: "" }), true, "so sánh id nguyên văn (id rỗng không tồn tại thật)");
 });
 
-// Bốn thao tác hẹp, cố ý KHÔNG mở cho ADMIN (ADR-0014): admin.manage.superadmin/order.cancel/dispatch.guides.view/dispatch.request
-// chỉ dành cho SUPER_ADMIN hoặc PARTNER/FIELD theo đúng bảng — ADMIN vẫn làm được việc tương ứng qua đường khác (permissions route, order.modify, dispatch.assign).
-const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "dispatch.request"];
+// Bốn thao tác hẹp, cố ý KHÔNG mở cho ADMIN (ADR-0014, ADR-0019): admin.manage.superadmin/order.cancel/dispatch.guides.view/settings.ops (dispatch.request đã bỏ khỏi bản đồ, ADR-0019)
+// chỉ dành cho SUPER_ADMIN hoặc PARTNER/FIELD theo đúng bảng (settings.ops: chỉ Toàn quyền — bật/tắt bảo trì) — ADMIN vẫn làm được việc tương ứng qua đường khác (permissions route, order.modify, dispatch.assign).
+const ADMIN_NONE_OPS: readonly OperationCode[] = ["admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops"];
 
 test("FIELD không xem đơn/tiền/nhật ký; ADMIN làm mọi thao tác của bản đồ TRỪ bốn thao tác hẹp cố ý không mở", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };

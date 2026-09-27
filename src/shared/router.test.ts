@@ -91,6 +91,14 @@ test('access "admin": ADMIN dùng được; SUPER_ADMIN-chỉ (không giữ ADMI
   assert.equal((await sales.get("/api/adm")).status, 403);
 });
 
+test('access "admin" đọc ADMIN_GATE (ADR-0019): mọi quyền ngoài ADMIN/SUPER_ADMIN đều 403, kể cả khi kèm nhau', async () => {
+  for (const perms of [["ACCOUNTING"], ["FIELD"], ["PARTNER"], ["INTERN"], ["SALES", "ACCOUNTING", "FIELD", "PARTNER", "INTERN"]] as const) {
+    const r = build(staffOf([...perms]), () => null);
+    assert.equal((await r.get("/api/adm")).status, 403, perms.join("+"));
+  }
+  assert.equal((await build(staffOf(["SALES", "ADMIN"]), () => null).get("/api/adm")).status, 200);
+});
+
 test('access "orders": văn phòng và Đối tác dùng được; chỉ Hướng dẫn viên thì không; chưa đăng nhập 401', async () => {
   const office = build(staffOf(["SALES"]), () => null);
   assert.equal((await office.get("/api/ord")).status, 200);

@@ -2,6 +2,7 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import type { AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type { CatalogAdminItemDto, CatalogAdminResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
@@ -76,8 +77,12 @@ export const catalogModule: AppModule = {
     // ---- Người lập đơn: danh mục để chọn nhanh trong form tạo đơn -----------------------
     // Cổng "orders" (văn phòng + Đối tác + Thực tập — ai lập được đơn), CHỈ ĐỌC: chủ dự án chọn A 2026-09-26 (ADR-0028) — Đối tác không lập được đơn
     // khi thiếu danh mục vì dịch vụ nhập tay đã ngừng (ADR-0027). Nội dung như nhân viên thấy: giá bán lẻ (ADR-0014 điều 3), không giá vốn/cột nội bộ.
-    // Hướng dẫn viên thuần (order.view = none) vẫn 403. Route quản trị danh mục bên dưới giữ cổng "admin".
-    route("GET", "/api/catalog", "orders", async ({ env }) => {
+    // Hướng dẫn viên thuần (order.view = none) vẫn 403 ở cổng. Route quản trị danh mục bên dưới giữ cổng "admin".
+    // ADR-0019 điều 2: danh mục trả GIÁ → hỏi `money.view` với phạm vi "đơn của chính mình" (người lập đơn thấy giá của đơn mình lập): trung tính với
+    // mọi mã trong ORDERS_GATE (Đối tác/Thực tập `own` vẫn qua — ADR-0028; bài kiểm ở src/shared/cong-quyen.test.ts). KHÔNG hỏi không ngữ cảnh:
+    // làm vậy trả 403 cho Đối tác/Thực tập và phá ADR-0028.
+    route("GET", "/api/catalog", "orders", async ({ env, staff }) => {
+      if (!can(staff, "money.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không được xem bảng giá.");
       try {
         await bootstrapIfNeverSynced(env);
       } catch {
@@ -89,12 +94,14 @@ export const catalogModule: AppModule = {
     }),
 
     // ---- Admin -----------------------------------------------------------------------------
-    route("GET", "/api/catalog/admin", "admin", async ({ env }) => {
+    route("GET", "/api/catalog/admin", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const [items, state] = await Promise.all([loadAll(env.DB), getSyncState(env.DB)]);
       return json({ items: items.map(adminItem), sync: state } satisfies CatalogAdminResponse);
     }),
 
     route("POST", "/api/catalog/sync", "admin", async ({ env, request, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const body = await readJson(request);
       const result = await syncCatalog(env, staff.id, { force: body?.force === true });
       if (result.ok) return json(result satisfies CatalogSyncResponse);
@@ -103,6 +110,7 @@ export const catalogModule: AppModule = {
 
     // Ghi đè giá / ẩn / hiện
     route("PATCH", "/api/catalog/:code", "admin", async ({ env, request, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
       const parsed = parsePatch(await readJson(request));
@@ -130,6 +138,7 @@ export const catalogModule: AppModule = {
 
     // "Giữ ghi đè": đã xem Sheet đổi giá, xác nhận giữ giá ghi đè
     route("POST", "/api/catalog/:code/ack", "admin", async ({ env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
       if (!item.override) return error(409, "no_override", "Dịch vụ này không có ghi đè.");
@@ -143,6 +152,7 @@ export const catalogModule: AppModule = {
 
     // Bỏ toàn bộ ghi đè (giá + ẩn), quay về theo Sheet
     route("DELETE", "/api/catalog/:code/override", "admin", async ({ env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const item = await loadByParam(env.DB, params.code);
       if (!item) return NOT_FOUND();
       if (!item.override) return json({ item: adminItem(item) } satisfies CatalogItemResponse);

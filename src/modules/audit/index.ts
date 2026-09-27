@@ -3,6 +3,7 @@
 // cùng một db.batch() với thay đổi dữ liệu → ghi nhật ký và đổi dữ liệu thành công/thất bại cùng nhau.
 // Route riêng: GET /api/audit (nhật ký toàn hệ thống) — chỉ admin. Module không phụ thuộc module nào.
 import { error, intParam, json } from "../../shared/http";
+import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
   insertStatement, isAuditAction, listAll, listByOrder,
@@ -26,7 +27,8 @@ export function getAuditTrail(db: D1Database, orderId: string): Promise<AuditEnt
 export const auditModule: AppModule = {
   name: "audit",
   routes: [
-    route("GET", "/api/audit", "admin", async ({ env, url }) => {
+    route("GET", "/api/audit", "admin", async ({ env, url, staff }) => {
+      if (!can(staff, "admin.manage")) return error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
       const raw = url.searchParams.get("action");
       const action = raw ? (isAuditAction(raw) ? raw : undefined) : null;
       if (action === undefined) return error(400, "invalid_input", "Hành động lọc không hợp lệ.");

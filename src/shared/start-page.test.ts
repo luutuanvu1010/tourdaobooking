@@ -3,7 +3,7 @@ import { test } from "node:test";
 import { homeRedirect } from "./start-page.ts";
 import type { PermissionCode } from "./permissions.ts";
 
-// `id` thật (không rỗng): isOffice() của PARTNER sai là vì ô "own" không có `ownerId` để so — test ghim đúng điều đó,
+// `id` thật (không rỗng): seesAllOrders() của PARTNER sai là vì ô "own" không có `ownerId` để so — test ghim đúng điều đó,
 // không dựa vào id rỗng tình cờ khớp.
 const who = (...permissions: PermissionCode[]) => ({ id: "staff-1", permissions });
 

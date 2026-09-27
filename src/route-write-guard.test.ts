@@ -1,10 +1,10 @@
-// HÀNG RÀO 2 — "mỗi ĐƯỜNG GHI phải hỏi bảng quyền, không được chỉ dựa cổng thô" (kế hoạch docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md).
+// HÀNG RÀO 2 — "mỗi ĐƯỜNG GHI phải hỏi bảng quyền, không được chỉ dựa cổng thô" (kế hoạch docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md);
+// từ ADR-0019 điều 6 (2026-09-26) phủ thêm MỌI ROUTE — đọc lẫn ghi — sau cổng `office`, `orders`, `admin` (luật (1b) dưới đây).
 //
 // Bài học 24/9: 8 route ghi của Hồ sơ, 4 của danh mục, 2 của địa điểm không có lời kiểm quyền nào ngoài `access` của router; cổng "office"
 // lại được suy từ ô `order.view` (`isOffice`), nên khi ADR-0017 mở xem đơn cho FIELD thì FIELD sửa được hồ sơ quản trị viên (thí nghiệm
-// docs/evidence/2026-09-24-lo-hong-ho-so/). `src/route-access.test.ts` chụp MỨC truy cập nên không thấy: mức không đổi. (Các route
-// `/api/staff/:id*` có `mayManage` và `PUT /api/maintenance` có `isAllowedPhone` — kiểm thật, nhưng không qua ô `admin.manage` của MATRIX;
-// việc đó là của hàng rào 1.)
+// docs/evidence/2026-09-24-lo-hong-ho-so/). `src/route-access.test.ts` chụp MỨC truy cập nên không thấy: mức không đổi. ADR-0019 điều 2: cổng
+// chỉ lọc thô — route ĐỌC sau cổng cũng trả tiền, liên hệ khách, hồ sơ, nhật ký…, nên cũng phải hỏi ô của MATRIX trong thân handler.
 //
 // Luật của bài kiểm này (phân tích tĩnh trên mã đã che chuỗi/chú thích — scripts/source-mask-lib.mjs):
 //   (1) Mọi `route("POST|PUT|PATCH|DELETE", path, access, async (…) => {…})` trong src/modules/*/index.ts có access ≠ "public" phải có
@@ -14,8 +14,18 @@
 //       hạn ≥ hôm nay, người chịu trách nhiệm) hay "ngoại lệ" (lý do) — "ngoại lệ" CHỈ dành cho thao tác tự phục vụ trên chính tài khoản
 //       đang đăng nhập (access "staff", đường dẫn /api/account/*); route khác phải là "hoãn" có hạn (người kiểm độc lập 24/9: "ngoại lệ"
 //       bản đầu né được hạn vĩnh viễn).
+//   (1b) ADR-0019 điều 6: mọi route — GET lẫn ghi — có access "office", "orders" hay "admin" phải có lời gọi kiểm quyền được dùng kết quả
+//       như (1). Route ĐỌC sau ba cổng đó KHÔNG có mục hoãn nào (cua_ghi chỉ nhận đường ghi); đường ghi có mục hoãn còn hạn thì (1)/(2) xét.
+//       `GUARDS` KHÔNG thêm tên cho luật này (thêm tên = nới hàng rào). Vì `mayManage` có trong GUARDS, route `/api/staff/:id*` chỉ có
+//       `mayManage` vẫn được tính "đã kiểm" dù thiếu `can(…, "admin.manage")` — chỗ hở đó do luật (4) bắt.
 //   (2) Mục cho route ĐÃ có kiểm → đỏ ("hoãn thừa"); mục cho route không còn tồn tại → đỏ.
 //   (3) Số route bóc được phải bằng số lời gọi `route(` trong tệp: route viết khác khuôn làm bài kiểm đỏ, không im lặng bỏ qua.
+//   (4) HÀNG RÀO CỔNG QUẢN TRỊ (ADR-0019 B-5b, siết; cùng bộ bóc route, cơ chế riêng — dòng riêng ở docs/SO-HANG-RAO.md): mọi route access
+//       "admin" phải có trong thân handler NGUYÊN VĂN (che chú thích, GIỮ chuỗi để đọc tên ô) một câu `if (… !can(<biến>, "<ô>") …) return …`
+//       ở CẤP THÂN handler, với ô viết thẳng thuộc ADMIN_OPS (`admin.manage`, `admin.manage.superadmin`, `feedback.triage`, `settings.ops`).
+//       `mayManage`/`canManageAccount` (luật cấp bậc) KHÔNG thay được ô. Không có mục hoãn nào. GIỚI HẠN: canh QUÊN, không canh CỐ Ý —
+//       không biết ô có đúng cho route đó không (ô nào trong bốn ô cũng qua), không biết <biến> có phải người gọi không, không canh "đứng trước
+//       đọc thân/ghi", `if (!can(…) && false) return` vẫn qua, `if` lồng trong `if` không ngoặc nhọn (`if (a) if (!can(…)) return`) vẫn qua.
 // GIỚI HẠN (ghi ở docs/SO-HANG-RAO.md): canh QUÊN, không canh CỐ Ý — chỉ phân biệt "lời gọi đứng trơ thành câu lệnh" với "lời gọi ở vị trí
 // biểu thức"; KHÔNG biết kết quả có ảnh hưởng luồng điều khiển (return/throw) hay không, KHÔNG kiểm ô có đúng không. Mọi vị trí biểu thức
 // đều được coi là "đã dùng": `void can(…)`, `const u = can(…)` không dùng, `if (can(…)) {}` rỗng, đối số của hàm khác, toán tử phẩy, ngoặc thừa
@@ -57,6 +67,8 @@ interface RouteInfo {
   path: string;
   access: string;
   guarded: boolean;
+  /** Thân handler `{…}` NGUYÊN VĂN (chưa che) — cho luật (4), cần đọc tên ô trong chuỗi. */
+  body: string;
 }
 interface RouteDeferral {
   method: string;
@@ -80,6 +92,55 @@ export function isGuardedBody(body: string): boolean {
     while (k >= 0 && /\s/.test(body[k]!)) k--;
     const before = k >= 0 ? body[k]! : "{";
     if (before !== ";" && before !== "{" && before !== "}") return true;
+  }
+  return false;
+}
+
+/** Luật (4): ô quản trị được công nhận ở route cổng "admin" (ADR-0019 điều 2). Thêm ô = sửa hàng rào (người rà phải thấy). */
+const ADMIN_OPS = ["admin.manage", "admin.manage.superadmin", "feedback.triage", "settings.ops"];
+const ADMIN_DENIAL_RE = new RegExp(
+  `!\\s*can\\s*\\(\\s*[A-Za-z_$][\\w$]*(?:\\s*\\.\\s*[A-Za-z_$][\\w$]*)*\\s*,\\s*"(?:${ADMIN_OPS.map((o) => o.replace(/\./g, "\\.")).join("|")})"\\s*\\)`,
+  "g",
+);
+
+/**
+ * Luật (4): thân handler NGUYÊN VĂN có một câu `if (… !can(<biến>, "<ô quản trị>") …) return …` (cho phép `{ return`) đứng ở CẤP THÂN handler
+ * (độ sâu ngoặc nhọn 1 — `return` trong hàm lồng không rời handler). Lời gọi đúng HAI đối số, ô là chuỗi viết thẳng thuộc ADMIN_OPS, có `!`
+ * ngay trước (kết quả sai ⇒ return). CỐ Ý KHÔNG nhận: `mayManage` một mình, biến trung gian (`const ok = can(…); if (!ok) return`), `if (can(…))
+ * return`, lời gọi trong chú thích/chuỗi/khuôn mẫu, `if (!can(…)) {}`. Che hai lần trên chính đoạn thân: giữ chuỗi để đọc tên ô, che cả
+ * chuỗi để đếm ngoặc và biết lời gọi là MÃ (đoạn thân mở/đóng bằng ngoặc của mã nên che riêng cho cùng kết quả như che cả tệp).
+ */
+export function hasAdminDenial(rawBody: string): boolean {
+  const code = maskSource(rawBody, { strings: false, comments: true });
+  const masked = maskSource(rawBody);
+  for (const m of code.matchAll(ADMIN_DENIAL_RE)) {
+    const at = m.index!;
+    const end = at + m[0].length;
+    if (!/^!\s*can\s*\(/.test(masked.slice(at))) continue; // chữ trong chuỗi/khuôn mẫu, không phải mã
+    let ifAt = -1;
+    let open = -1;
+    for (const f of masked.slice(0, at).matchAll(/\bif\s*\(/g)) {
+      ifAt = f.index!;
+      open = f.index! + f[0].length - 1;
+    }
+    if (ifAt === -1) continue;
+    let depth = 0;
+    let close = -1;
+    for (let k = open; k < masked.length; k++) {
+      if (masked[k] === "(") depth++;
+      else if (masked[k] === ")" && --depth === 0) {
+        close = k;
+        break;
+      }
+    }
+    if (close === -1 || end > close) continue; // lời gọi không nằm trong điều kiện của `if` gần nhất
+    if (!/^\s*\{?\s*return\b/.test(masked.slice(close + 1))) continue;
+    let braces = 0;
+    for (let k = 0; k < ifAt; k++) {
+      if (masked[k] === "{") braces++;
+      else if (masked[k] === "}") braces--;
+    }
+    if (braces === 1) return true;
   }
   return false;
 }
@@ -110,7 +171,7 @@ function collectRoutes(): RouteInfo[] {
         else if (masked[i] === "}" && --depth === 0) break;
       }
       assert.equal(depth, 0, `${tag}: ngoặc nhọn không cân — bộ che chuỗi/chú thích không hiểu tệp này`);
-      out.push({ module: mod, method: hit[1]!, path: hit[2]!, access: hit[3]!, guarded: isGuardedBody(masked.slice(open, i + 1)) });
+      out.push({ module: mod, method: hit[1]!, path: hit[2]!, access: hit[3]!, guarded: isGuardedBody(masked.slice(open, i + 1)), body: text.slice(open, i + 1) });
     }
     assert.equal(found, declared, `${mod}/index.ts: có ${declared} lời gọi route( nhưng chỉ bóc được ${found} theo khuôn route("METHOD", "path", "access", …)`);
   }
@@ -137,6 +198,20 @@ test("hàng rào 2: mọi đường ghi (access ≠ public) hỏi bảng quyền
     [],
     `Đường ghi chỉ dựa cổng thô, không hỏi bảng quyền và không có trong ${DEFERRALS_FILE} (cua_ghi): ${unguarded.join("; ")}. ` +
       `Gọi can(staff, "<ô>") (hay một hàm trong GUARDS) trong thân handler và DÙNG kết quả, hoặc thêm mục hoãn có hạn.`,
+  );
+});
+
+/** Cổng chỉ lọc thô (ADR-0019 điều 1–2): sau ba cổng này, route đọc lẫn ghi phải tự hỏi ô của MATRIX. Cổng "staff" (tự phục vụ) và "public" ngoài phạm vi. */
+const GATED = new Set(["office", "orders", "admin"]);
+
+test("hàng rào 2 (ADR-0019): mọi route — đọc lẫn ghi — sau cổng office/orders/admin hỏi bảng quyền trong thân handler; route đọc không có mục hoãn", () => {
+  const unguarded = routes
+    .filter((r) => GATED.has(r.access) && !r.guarded && !(WRITE_METHODS.has(r.method) && deferredKeys.has(key(r.method, r.path))))
+    .map((r) => `${r.method} ${r.path} (${r.module}, access "${r.access}")`);
+  assert.deepEqual(
+    unguarded,
+    [],
+    `Route sau cổng ${[...GATED].join("/")} chỉ dựa cổng thô: ${unguarded.join("; ")}. Gọi can(staff, "<ô>") trong thân handler và DÙNG kết quả.`,
   );
 });
 
@@ -195,9 +270,53 @@ test("hàng rào 2: lời gọi kiểm quyền phải được DÙNG — lời g
 });
 
 test("hàng rào 2: bộ bóc route nhìn thấy các route đã biết (chống bài kiểm rỗng)", () => {
-  const known = ["POST /api/orders", "PUT /api/parties/:id", "PATCH /api/staff/:id", "POST /api/auth/login"];
+  const known = ["POST /api/orders", "PUT /api/parties/:id", "PATCH /api/staff/:id", "POST /api/auth/login", "GET /api/orders/dashboard", "GET /api/audit"];
   const have = new Set(routes.map((r) => key(r.method, r.path)));
   for (const k of known) assert.ok(have.has(k), `không bóc được ${k} — bộ bóc route hỏng?`);
   assert.ok(routes.find((r) => key(r.method, r.path) === "POST /api/orders")!.guarded, "POST /api/orders phải được nhận là có kiểm (can(order.create))");
   assert.ok(routes.find((r) => key(r.method, r.path) === "PUT /api/orders/:id/handler")!.guarded, "PUT …/handler phải được nhận là có kiểm (handlerChangeVerdict)");
+});
+
+// ---- Luật (4) — hàng rào cổng quản trị (ADR-0019, B-5b). Không có mục hoãn nào: không đọc docs/quyen-hoan.json. ----
+
+test("hàng rào cổng quản trị (ADR-0019): mọi route cổng admin có `if (!can(<người gọi>, \"<ô quản trị>\")) return …` ở cấp thân handler", () => {
+  const missing = routes
+    .filter((r) => r.access === "admin" && !hasAdminDenial(r.body))
+    .map((r) => `${r.method} ${r.path} (${r.module})`);
+  assert.deepEqual(
+    missing,
+    [],
+    `Route cổng admin không hỏi ô quản trị bằng chữ viết thẳng: ${missing.join("; ")}. Đầu thân handler phải có ` +
+      `if (!can(staff, "<ô>")) return <từ chối>; với ô thuộc ${ADMIN_OPS.join(", ")} — mayManage/canManageAccount (luật cấp bậc) KHÔNG thay được ô.`,
+  );
+});
+
+test("hàng rào cổng quản trị: bộ đánh giá nhận đúng khuôn, từ chối các khuôn lách (tự kiểm trên đoạn mã mẫu)", () => {
+  assert.equal(hasAdminDenial(`{ if (!can(admin, "admin.manage")) return NOT_ADMIN(); }`), true);
+  assert.equal(hasAdminDenial(`{ if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN(); }`), true, "biến dạng thành viên (ctx.staff) được nhận");
+  assert.equal(hasAdminDenial(`{\n  if (!can(staff, "feedback.triage")) {\n    return error(403);\n  }\n}`), true, "khối `{ return … }` được nhận");
+  assert.equal(hasAdminDenial(`{ const db = env.DB; if (!can(staff, "settings.ops")) return F(); }`), true);
+  assert.equal(hasAdminDenial(`{ if (!can(staff, "order.view") || !can(staff, "admin.manage.superadmin")) return F(); }`), true, "ô quản trị trong điều kiện ghép");
+  assert.equal(hasAdminDenial(`{ const t = await target(ctx); if (!mayManage(admin, t)) return NOT_MANAGER(); }`), false, "chỉ luật cấp bậc (mayManage) — không có ô quản trị");
+  assert.equal(hasAdminDenial(`{ if (!can(staff, "order.view")) return F(); }`), false, "ô không phải ô quản trị");
+  assert.equal(hasAdminDenial(`{ const ok = can(staff, "admin.manage"); if (!ok) return F(); }`), false, "biến trung gian: CỐ Ý không nhận (viết thẳng trong điều kiện)");
+  assert.equal(hasAdminDenial(`{ if (can(staff, "admin.manage")) return F(); }`), false, "không có `!`: kết quả đúng mới return — ngược chiều");
+  assert.equal(hasAdminDenial(`{ if (!can(staff, "admin.manage")) {} return F(); }`), false, "khối rỗng");
+  assert.equal(hasAdminDenial(`{ if (!can(staff, "admin.manage")) log(); return F(); }`), false, "sau điều kiện không phải return");
+  assert.equal(hasAdminDenial(`{ if (!can(staff, "admin.manage", { ownerId: x })) return F(); }`), false, "đúng hai đối số — ô quản trị không có ngữ cảnh");
+  assert.equal(hasAdminDenial(`{ xs.map((x) => { if (!can(staff, "admin.manage")) return null; }); return F(); }`), false, "return trong hàm lồng không rời handler");
+  assert.equal(hasAdminDenial(`{ if (a) { if (!can(staff, "admin.manage")) return F(); } return G(); }`), false, "không ở cấp thân handler");
+  assert.equal(hasAdminDenial(`{ // if (!can(staff, "admin.manage")) return F();\n return G(); }`), false, "trong chú thích");
+  assert.equal(hasAdminDenial("{ const s = `if (!can(staff, \"admin.manage\")) return F();`; return G(); }"), false, "trong khuôn mẫu");
+  assert.equal(hasAdminDenial(`{ if (x) return y; const v = !can(staff, "admin.manage"); return v; }`), false, "lời gọi sau câu if, không nằm trong điều kiện");
+});
+
+test("hàng rào cổng quản trị: bộ bóc thấy các route cổng admin đã biết và nhận chúng là có ô quản trị (chống bài kiểm rỗng)", () => {
+  const known = ["PATCH /api/staff/:id", "PUT /api/staff/:id/roles", "GET /api/maintenance", "PUT /api/maintenance", "PATCH /api/feedback/:id", "POST /api/parties/:id/roles", "GET /api/audit"];
+  for (const k of known) {
+    const r = routes.find((x) => key(x.method, x.path) === k);
+    assert.ok(r, `không bóc được ${k} — bộ bóc route hỏng?`);
+    assert.equal(r.access, "admin", `${k} phải ở cổng admin`);
+    assert.ok(hasAdminDenial(r.body), `${k} phải được nhận là có if (!can(…, "<ô quản trị>")) return …`);
+  }
 });
