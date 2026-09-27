@@ -6,9 +6,12 @@ import { APP_RELEASE_DATE, APP_VERSION } from "../src/shared/app-info";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
+import { xoaKhungNho } from "./khung-nho";
 import { enableFlow, getAssertion, passkeyErrorMessage, passkeySupported, platformAuthenticatorAvailable } from "./passkey";
 
 registerServiceWorker();
+// ADR-0035: màn đăng nhập = có thể là người KHÁC sắp dùng máy này → bỏ bản nhớ khung của phiên trước (không để thoáng hiện chữ cái tên/menu của họ).
+xoaKhungNho();
 
 // ---- Cloudflare Turnstile ----
 // Trang KHÔNG nhúng script của Cloudflare trong HTML: chỉ tải (`api.js?render=explicit`) khi máy chủ báo có khoá site (`GET /api/auth/config`), để lúc Turnstile tắt trang không chạm tới bên thứ ba nào.

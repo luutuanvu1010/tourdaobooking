@@ -11,6 +11,22 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.21",
+    date: "2026-09-27",
+    items: [
+      { kind: "sua", text: "Thanh tab dưới đáy không còn nhảy lên xuống khi chuyển trang trên iPhone." },
+      { kind: "sua", text: "Trong lúc chờ dữ liệu, trang hiện khung thẻ trắng thay vì một khoảng trống." },
+    ],
+  },
+  {
+    version: "1.20",
+    date: "2026-09-27",
+    items: [
+      { kind: "doi", text: "Mở trang nhanh hơn: thanh trên, menu và thanh tab hiện ngay khi bấm; danh sách đơn và Trang chủ hiện dữ liệu nhanh gần gấp đôi." },
+      { kind: "doi", text: "Sau mỗi lần cập nhật, app lưu sẵn mọi màn hình trên máy nên lần mở đầu tiên của từng màn cũng không phải chờ tải." },
+    ],
+  },
+  {
     version: "1.19",
     date: "2026-09-27",
     items: [

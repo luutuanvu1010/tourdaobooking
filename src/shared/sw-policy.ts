@@ -18,16 +18,17 @@ export const PAGES: readonly string[] = ["/", "/orders", "/home", "/login", "/or
 /** Tệp tĩnh đúng mẫu: CSS, manifest, JS của trang, font woff2, icon PNG. Không cho phép thư mục lồng nhau hay ký tự lạ. */
 const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js|fonts\/[A-Za-z0-9_-]+\.woff2|icons\/[A-Za-z0-9_-]+\.png)$/;
 
-/** Nạp sẵn lúc cài. Các trang còn lại (/catalog, /staff, /audit, /parties, /locations) tự vào cache ở lần mở đầu.
- *  Đợt D Task 5 (đổi trang mặc định): "/" (Trang chủ) và "/orders" (Đơn hàng, trang nhân viên mở nhiều nhất) đều
- *  phải chạy được ngoại tuyến ngay từ lần cài đầu — thêm cả hai script `home.js`/`orders.js`. */
+/** Nạp sẵn lúc cài: MỌI trang và MỌI tệp JS của trang (tối ưu tải 2026-09-27, ~250 KB nén, một lần mỗi bản dựng) — sau mỗi lần
+ *  triển khai, không lần bấm nào phải kéo cả trang qua mạng; mỗi lần bấm chỉ còn chờ dữ liệu. Test đối chiếu với `PAGES` và script
+ *  `build:web` nên thêm trang mới mà quên dòng này thì `npm test` đỏ. */
 export const PRECACHE: readonly string[] = [
-  "/", "/orders", "/login", "/order-form", "/order", "/account",
+  "/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help",
   "/app.css",
   "/fonts/nunito-latin-viet-var.woff2", "/fonts/nunito-vietnamese-var.woff2",
   "/fonts/be-vietnam-pro-latin-viet-700.woff2", "/fonts/be-vietnam-pro-vietnamese-700.woff2",
   "/fonts/be-vietnam-pro-latin-viet-800.woff2", "/fonts/be-vietnam-pro-vietnamese-800.woff2",
   "/js/login.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
+  "/js/catalog.js", "/js/staff.js", "/js/audit.js", "/js/parties.js", "/js/locations.js", "/js/feedback.js", "/js/help.js",
   "/manifest.webmanifest",
   "/icons/logo-96.png", "/icons/icon-192.png",
 ];

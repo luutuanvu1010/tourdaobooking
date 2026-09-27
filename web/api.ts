@@ -1,5 +1,6 @@
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { donTuDuongDan, laTaoDonMoi, taoSoTuLam } from "./bangtin-logic";
+import { xoaKhungNho } from "./khung-nho";
 import { endsAtFrom, showMaintenanceScreen } from "./maintenance-screen";
 
 // Kiểu dữ liệu API lấy từ hợp đồng dùng chung với Worker (src/shared/contracts.ts) — không chép tay ở đây.
@@ -41,6 +42,7 @@ export { safeNext } from "../src/shared/safe-next";
 
 /** Chuyển về trang đăng nhập rồi giữ lời gọi treo (trang sắp bị thay), tránh chạy tiếp code giả định đã đăng nhập. */
 export function goLogin(): Promise<never> {
+  xoaKhungNho(); // ADR-0035: hết phiên → người đăng nhập kế tiếp (có thể là người khác) không thấy khung của phiên cũ
   const next = location.pathname + location.search;
   location.replace(`/login?next=${encodeURIComponent(next)}`);
   return new Promise<never>(() => undefined);
