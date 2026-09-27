@@ -1,7 +1,7 @@
 // Luật thuần của hộp thông báo (ADR-0034, đặc tả 2026-09-27-thong-bao-he-thong-design.md §4–§5). Một hàm lọc cho cả số đỏ lẫn danh sách.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { kiemTinThuCong, laNoiBo, locHopThongBao, loaiTinDon, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong } from "./thong-bao.ts";
+import { chuanHoaMocGio, kiemTinThuCong, laNoiBo, locHopThongBao, loaiTinDon, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong } from "./thong-bao.ts";
 import type { PermissionCode } from "./permissions.ts";
 
 const NOW = "2026-09-27T02:40:00.000Z";
@@ -137,4 +137,16 @@ test("kiemTinThuCong: bắt lỗi bằng câu tiếng Việt; cắt khoảng tr�
   assert.match(sai({ nguoiNhan: ["BOSS"] }), /nhóm/i);
   assert.match(sai({ quanTrong: "có" }), /quan trọng/i);
   assert.match(sai({ clientRequestId: "abc" }), /mã yêu cầu/i);
+});
+
+// BẮT BUỘC (rà soát trước thi công): locHopThongBao so mốc giờ BẰNG CHUỖI (không parse lại) — mọi giá trị đưa vào (luc, docDenLuc, now)
+// phải cùng dạng ISO có mili-giây. Mốc đọc mặc định lấy từ staff.createdAt, không đảm bảo luôn ở dạng này → phải chuẩn hoá bằng chuanHoaMocGio.
+test("chuanHoaMocGio: chuẩn hoá mốc thiếu mili-giây; minh hoạ vì sao thiếu chuẩn hoá làm so chuỗi SAI thứ tự thời gian thật", () => {
+  const thieuMs = "2026-09-27T02:40:00Z"; // dạng staff.createdAt có thể có (không có .SSS)
+  const ngaySau = "2026-09-27T02:40:00.150Z"; // 150ms SAU, cùng giây — thời gian thật ngaySau > thieuMs
+  // Minh hoạ lỗi: so chuỗi trực tiếp (không chuẩn hoá) cho kết quả NGƯỢC — "Z" (0x5A) > "." (0x2E) nên mốc thiếu mili-giây trông "sau" mốc thật ra đứng sau nó.
+  assert.ok(thieuMs > ngaySau, "minh hoạ lỗi: chuỗi thiếu mili-giây so LỚN HƠN mốc thật ra đứng sau — đây là lỗi chuanHoaMocGio phải tránh");
+  assert.equal(chuanHoaMocGio(thieuMs), "2026-09-27T02:40:00.000Z");
+  assert.ok(chuanHoaMocGio(thieuMs) < ngaySau, "sau khi chuẩn hoá, so sánh chuỗi khớp đúng thứ tự thời gian thật");
+  assert.equal(chuanHoaMocGio("2026-09-27T02:40:00.000Z"), "2026-09-27T02:40:00.000Z", "mốc đã chuẩn giữ nguyên (idempotent)");
 });

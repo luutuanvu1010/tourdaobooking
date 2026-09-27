@@ -33,6 +33,8 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   orders: ["audit", "catalog", "staff", "parties", "locations"],
   parties: ["locations", "audit"],
   staff: ["parties", "audit"],
+  // ADR-0034: đọc view công bố (sự kiện đơn, người lập, người phụ trách, nhãn) + auditStatement + getStaffAccount; không module nào import thongbao
+  thongbao: ["audit", "orders", "dispatch", "staff"],
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
@@ -45,6 +47,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "maintenance", file: "modules/maintenance/repository.ts" },
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },
+  { module: "thongbao", file: "modules/thongbao/repository.ts" },
 ];
 
 /**

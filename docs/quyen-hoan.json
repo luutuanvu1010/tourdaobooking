@@ -54,7 +54,9 @@
     { "method": "DELETE", "path": "/api/account/passkeys/:id", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
     { "method": "POST", "path": "/api/account/passkeys/remove-all", "loai": "ngoại lệ", "ly_do": "Tự phục vụ Face ID của chính mình (ADR-0016)." },
     { "method": "POST", "path": "/api/account/pin-by-passkey/options", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." },
-    { "method": "POST", "path": "/api/account/pin-by-passkey", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." }
+    { "method": "POST", "path": "/api/account/pin-by-passkey", "loai": "ngoại lệ", "ly_do": "Đặt PIN bằng Face ID của chính mình (ADR-0016 điều 2b)." },
+    { "method": "POST", "path": "/api/account/thong-bao/da-doc", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: đặt mốc đã đọc hộp thông báo của chính mình (ADR-0034 điều 6); id lấy từ phiên." },
+    { "method": "POST", "path": "/api/account/thong-bao/:id/da-hieu", "loai": "ngoại lệ", "ly_do": "Tự phục vụ: xác nhận chính mình đã hiểu tin quan trọng gửi tới mình (ADR-0034 điều 8); thân kiểm người gọi thuộc nhóm nhận." }
   ],
   "_phat_hien_mo_ta": "Phát hiện an ninh/tiền mức HIGH trở lên từ kiểm toán/red team còn MỞ (luật 'dừng dây chuyền', CLAUDE.md §3, chủ duyệt 2026-09-24). Mỗi mục có người chịu trách nhiệm và hạn; quá hạn → npm test đỏ (src/phat-hien-han.test.ts) cho tới khi vá (xoá mục trong cùng commit vá) hoặc chủ dự án gia hạn bằng diff có lý do trong thông điệp commit.",
   "phat_hien": []

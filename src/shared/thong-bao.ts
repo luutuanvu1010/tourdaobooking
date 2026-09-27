@@ -49,6 +49,14 @@ export function nhanThayTinThuCong(staff: PermissionHolder, nhan: string[]): boo
   return nhan.some((t) => (t === "noi-bo" ? laNoiBo(staff) : t.startsWith("quyen:") && hasPermission(staff, t.slice(6) as PermissionCode)));
 }
 
+/**
+ * Chuẩn hoá một mốc giờ về ISO có mili-giây (`…T…Z`, luôn 3 chữ số). `locHopThongBao` so mốc giờ BẰNG CHUỖI (không `Date.parse` lại), nên
+ * mọi giá trị đưa vào (`luc`, `docDenLuc`, `now`) phải cùng dạng — thiếu mili-giây làm chuỗi so SAI thứ tự (`"…:00Z" > "…:00.150Z"` theo
+ * so sánh ký tự, vì `Z` (0x5A) > `.` (0x2E), dù mốc trước thật ra đứng TRƯỚC). Dùng cho mốc không tự sinh ở dạng chuẩn (vd `staff.createdAt`
+ * — nguồn của mốc đọc mặc định khi tài khoản chưa từng mở hộp).
+ */
+export const chuanHoaMocGio = (x: string): string => new Date(x).toISOString();
+
 export function locHopThongBao(
   staff: PermissionHolder,
   vao: { don: DongDon[]; thuCong: DongThuCong[]; docDenLuc: string; now: string; ngan: "cua-toi" | "tat-ca" },

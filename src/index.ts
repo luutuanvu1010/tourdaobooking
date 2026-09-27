@@ -18,13 +18,14 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty } from "./modules/staff";
+import { thongbaoModule } from "./modules/thongbao";
 import { nhanSuKien } from "./shared/bang-tin";
 import { createApp } from "./shared/router";
 
 export { BangTin } from "./modules/bangtin/tram";
 
 const app = createApp({
-  modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule, bangtinModule],
+  modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule, bangtinModule, thongbaoModule],
   currentStaff,
   checkConfig: checkAuthConfig,
   injected: {
