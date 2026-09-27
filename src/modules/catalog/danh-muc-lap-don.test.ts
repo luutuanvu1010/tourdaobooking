@@ -77,7 +77,7 @@ test("ADR-0033: sync.error = null với Đối tác/Thực tập (không qua c�
   }
 });
 
-test("ADR-0033: Kế toán (không có order.create) → 403 ở THÂN route mới, không kèm danh mục; chỉ-Hướng dẫn viên → 403 ở CỔNG orders", async () => {
+test("ADR-0033 + ADR-0030 S23-5: Kế toán và chỉ-Hướng dẫn viên (không có order.create) → 403 ở THÂN route mới, không kèm danh mục", async () => {
   const w = setup();
   const acc = await w.call("GET", "/api/catalog/for-order", { as: ACC });
   assert.equal(acc.status, 403, `Kế toán: ${acc.text}`);
@@ -86,7 +86,10 @@ test("ADR-0033: Kế toán (không có order.create) → 403 ở THÂN route m�
   assert.equal(acc.json.items, undefined, "403 không được kèm items");
   const field = await w.call("GET", "/api/catalog/for-order", { as: FIELD });
   assert.equal(field.status, 403, `Hướng dẫn viên: ${field.text}`);
-  assert.equal(field.json.error.message, GATE_ORDERS, "chỉ-FIELD không qua cổng orders (Phần C chưa làm)");
+  // ADR-0030 S23-5: FIELD nay QUA cổng orders (lời báo của cổng `GATE_ORDERS` không còn) — chặn ở chốt order.create trong thân (ADR-0019 điều 3:
+  // hướng dẫn viên không đọc danh mục giá cho form lập đơn).
+  assert.notEqual(field.json.error.message, GATE_ORDERS, "không còn bị chặn ở cổng orders");
+  assert.equal(field.json.error.message, BODY_NO_CREATE, "chỉ-FIELD bị chặn ở thân (can order.create)");
   assert.equal(field.json.items, undefined);
 });
 

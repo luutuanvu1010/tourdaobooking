@@ -345,17 +345,29 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
   });
 }
 
+/**
+ * Danh sách đơn một trang. PHẠM VI (máy chủ thi hành, không chỉ ở tầng một bản ghi): `ownerId` = null VÀ `orderIds` = null → MỌI đơn (người xem được mọi
+ * đơn); có ít nhất một trong hai → CHỈ các đơn khớp MỘT trong hai (hợp): người lập = `ownerId` (ô `own` — ADR-0014 điều 3, D-01) HOẶC id thuộc `orderIds`
+ * (đơn đang phụ trách — ô `assigned`, ADR-0030 S23-4; tập do route lấy qua `ctx.myHandledOrderIds`, orders không tự đọc dữ liệu phân công). `orderIds` = []
+ * nghĩa là "không đơn nào" (KHÔNG phải "không lọc") — điều kiện json_each vẫn được đặt dù mảng rỗng. `orderIds` là trường BẮT BUỘC (không tuỳ chọn): mọi nơi
+ * gọi phải tự nói rõ phạm vi.
+ */
 export async function listOrders(
   db: D1Database,
-  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null },
+  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null; orderIds: readonly string[] | null },
 ): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean }> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
-  // ADR-0014 điều 3 (D-01): tài khoản Đối tác chỉ thấy đơn của chính mình — ownerId khác null là phạm vi "own" thực thi ở máy chủ, không chỉ ở tầng một bản ghi.
-  if (opts.ownerId) {
-    where.push("o.staff_id = ?");
+  const scope: string[] = [];
+  if (opts.ownerId !== null) {
+    scope.push("o.staff_id = ?");
     binds.push(opts.ownerId);
   }
+  if (opts.orderIds !== null) {
+    scope.push("o.id IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(opts.orderIds));
+  }
+  if (scope.length) where.push(`(${scope.join(" OR ")})`);
   if (opts.status) {
     where.push("o.status = ?");
     binds.push(opts.status);

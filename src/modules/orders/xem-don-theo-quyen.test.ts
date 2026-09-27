@@ -251,3 +251,126 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);
 });
+
+// ---- Hướng dẫn viên qua cổng orders (S23-5) — ba đường tách nhau (S23-1…4). Các ca dưới cần FIELD trong ORDERS_GATE (cùng lần phát hành với nhánh lọc
+// thứ ba và chi tiết 404 — S23-4: thiếu một trong ba thì HDV rơi vào trang lỗi 403). ----------------------------------------------------------------
+
+test("ADR-0030 L1-3 (b), L1-5, Review Focus 3: hướng dẫn viên GET /api/orders/pool → 200 phần hẹp (không bao giờ 404) — đúng tập, đúng khoá, nơi đón bị che", async () => {
+  const { w, ids } = await poolWorld();
+  for (const as of [FIELD, FIELD_B]) assertPool(await w.call("GET", "/api/orders/pool", { as }), ids, `HDV ${as}`);
+  const empty = setup();
+  const r = await empty.call("GET", "/api/orders/pool", { as: FIELD });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { orders: [] }, "hàng chờ rỗng vẫn 200, không rơi vào route chi tiết đơn");
+});
+
+test("ADR-0030 L1-3 (a): hướng dẫn viên GET /api/orders → 200, CHỈ các đơn mình ĐANG phụ trách (kể cả đơn nháp), có tiền + SĐT; tìm theo SĐT/mã đơn cũng chỉ trong tập đó", async () => {
+  const { w, ids } = await poolWorld();
+  const cuaB = await orderHandledBy(w, FIELD_B);
+  const nhapCuaA = ids.coNguoi; // đơn nháp giao cho FIELD lúc lập
+  const daXacNhanCuaA = await orderHandledBy(w, FIELD);
+  assert.equal((await w.call("POST", `/api/orders/${daXacNhanCuaA}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  const list = await w.call("GET", "/api/orders?limit=100", { as: FIELD });
+  assert.equal(list.status, 200, list.text);
+  assert.deepEqual(new Set(list.json.orders.map((o: any) => o.id)), new Set([nhapCuaA, daXacNhanCuaA]), "chỉ đơn HDV A đang phụ trách");
+  for (const o of list.json.orders) {
+    assert.equal(typeof o.total, "number", "đơn mình phụ trách: có tiền (money.view = assigned)");
+    assert.equal(o.customerPhone, "0912345678", "đơn mình phụ trách: có SĐT (contact.view = assigned)");
+  }
+  const byPhone = await w.call("GET", "/api/orders?q=0912345678&limit=100", { as: FIELD });
+  assert.equal(byPhone.status, 200, byPhone.text);
+  assert.deepEqual(new Set(byPhone.json.orders.map((o: any) => o.id)), new Set([nhapCuaA, daXacNhanCuaA]), "tìm theo SĐT không lòi đơn người khác (mọi đơn thử cùng SĐT)");
+  const drafts = await w.call("GET", "/api/orders?status=draft&limit=100", { as: FIELD });
+  assert.deepEqual(drafts.json.orders.map((o: any) => o.id), [nhapCuaA], "lọc trạng thái áp TRONG tập đơn mình phụ trách");
+  const listB = await w.call("GET", "/api/orders?limit=100", { as: FIELD_B });
+  assert.deepEqual(listB.json.orders.map((o: any) => o.id), [cuaB], "HDV B chỉ thấy đơn của B");
+});
+
+test("ADR-0030 Review Focus 1: hướng dẫn viên KHÔNG phụ trách đơn nào → GET /api/orders trả DANH SÁCH RỖNG (tập rỗng KHÔNG có nghĩa là 'không lọc'), tìm theo SĐT/mã đơn cũng rỗng", async () => {
+  const { w, ids } = await poolWorld();
+  const r = await w.call("GET", "/api/orders?limit=100", { as: FIELD_B });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json, { orders: [], hasMore: false });
+  const code = w.q("SELECT order_code FROM orders WHERE id = ?", ids.moi)[0].order_code;
+  for (const q of ["0912345678", code, "Khách"]) {
+    const s = await w.call("GET", `/api/orders?q=${encodeURIComponent(q)}`, { as: FIELD_B });
+    assert.deepEqual(s.json.orders, [], `tìm "${q}"`);
+  }
+});
+
+test("ADR-0030 L1-3 (c), S23-4: hướng dẫn viên mở chi tiết đơn HDV khác đang phụ trách, đơn chờ nhận, đơn không phụ trách → 404 — CÙNG câu trả lời với đơn không tồn tại", async () => {
+  const { w, ids } = await poolWorld();
+  const cuaB = await orderHandledBy(w, FIELD_B);
+  const missing = await w.call("GET", `/api/orders/${NO_SUCH_ORDER}`, { as: FIELD });
+  assert.equal(missing.status, 404);
+  for (const [label, id] of [["đơn HDV B đang phụ trách", cuaB], ["đơn chờ nhận", ids.moi], ["đơn đã huỷ", ids.daHuy], ["đơn quá ngày đi", ids.quaNgay]] as const) {
+    const r = await w.call("GET", `/api/orders/${id}`, { as: FIELD });
+    assert.equal(r.status, 404, `${label}: ${r.text}`);
+    assert.deepEqual(r.json, missing.json, `${label}: không phân biệt được với đơn không tồn tại`);
+  }
+});
+
+test("ADR-0030 L1-3 (d), S23-3: hướng dẫn viên mở chi tiết đơn mình phụ trách → 200 ĐỦ (tiền, SĐT, lịch sử), không được sửa (canModify = false)", async () => {
+  const { w, ids } = await poolWorld();
+  const r = await w.call("GET", `/api/orders/${ids.coNguoi}`, { as: FIELD });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(typeof r.json.order.total, "number");
+  assert.equal(r.json.order.customerPhone, "0912345678");
+  assert.ok(Array.isArray(r.json.history) && r.json.history.length >= 2, `lịch sử có dòng lập đơn + dòng giao người phụ trách: ${JSON.stringify(r.json.history)}`);
+  assert.equal(r.json.canModify, false, "HDV không sửa/xác nhận đơn (order.modify = none)");
+});
+
+test("ADR-0030 Review Focus 1: tài khoản ghép Hướng dẫn viên + Thực tập thấy HỢP hai tập 'mình lập' ∪ 'mình phụ trách', không thấy đơn khác", async () => {
+  const { w, ids } = await poolWorld();
+  const minhLap = await newOrder(w, HDV_TT);
+  const minhPhuTrach = await orderHandledBy(w, HDV_TT);
+  const list = await w.call("GET", "/api/orders?limit=100", { as: HDV_TT });
+  assert.equal(list.status, 200, list.text);
+  assert.deepEqual(new Set(list.json.orders.map((o: any) => o.id)), new Set([minhLap, minhPhuTrach]));
+  assert.equal((await w.call("GET", `/api/orders/${minhLap}`, { as: HDV_TT })).status, 200);
+  assert.equal((await w.call("GET", `/api/orders/${minhPhuTrach}`, { as: HDV_TT })).status, 200);
+  assert.equal((await w.call("GET", `/api/orders/${ids.moi}`, { as: HDV_TT })).status, 403, "đơn khác: 403 (không phải chỉ-assigned vì có ô own của Thực tập)");
+});
+
+test("ADR-0030 L1-13, Review Focus 2: Đối tác, Thực tập, tài khoản lai Hướng dẫn viên+Đối tác mở đơn người khác → vẫn 403 (không phải 404)", async () => {
+  const { w, ids } = await poolWorld();
+  for (const as of [PARTNER, INTERN, LAI_HDV]) {
+    const r = await w.call("GET", `/api/orders/${ids.moi}`, { as });
+    assert.equal(r.status, 403, `${as}: ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden", as);
+  }
+});
+
+test("ADR-0030 L1-12, S23-5: hướng dẫn viên — GET /api/catalog/for-order → 403 ở THÂN route (can order.create), GET /api/catalog → 403 ở CỔNG office; Trang chủ và người phụ trách của các đơn → 403", async () => {
+  const w = setup();
+  const forOrder = await w.call("GET", "/api/catalog/for-order", { as: FIELD });
+  assert.equal(forOrder.status, 403, forOrder.text);
+  assert.equal(forOrder.json.error.message, "Tài khoản này không lập đơn nên không xem được danh mục dịch vụ.", "lời báo của THÂN route, không phải của cổng orders");
+  const catalog = await w.call("GET", "/api/catalog", { as: FIELD });
+  assert.equal(catalog.status, 403, catalog.text);
+  assert.equal(catalog.json.error.message, "Tài khoản này chỉ dùng cho việc được giao, không dùng màn hình này.", "lời báo của cổng office");
+  assert.equal((await w.call("GET", "/api/orders/dashboard", { as: FIELD })).status, 403, "Trang chủ = số toàn công ty: HDV không xem");
+  const o = await newOrder(w, SALES);
+  assert.equal((await w.call("GET", `/api/dispatch/handlers?orderIds=${o}`, { as: FIELD })).status, 403, "ruling điều phối: không mở route handlers cho HDV");
+});
+
+test("ADR-0030 S20-6/S20-12, L1-6: hướng dẫn viên Nhận đơn ở hàng chờ → 200, đơn rời hàng chờ và hiện ở danh sách + chi tiết của mình; HDV khác Nhận sau → 409 stale; HDV GIAO cho người khác → 403", async () => {
+  const { w, ids } = await poolWorld();
+  const nhan = await w.call("PUT", `/api/orders/${ids.moi}/handler`, { as: FIELD, body: { staffId: FIELD } });
+  assert.equal(nhan.status, 200, nhan.text);
+  assert.equal(nhan.json.handler.staffId, FIELD);
+  const pool = await w.call("GET", "/api/orders/pool", { as: FIELD_B });
+  assert.ok(!pool.json.orders.some((o: any) => o.orderId === ids.moi), "đơn vừa nhận rời hàng chờ");
+  const list = await w.call("GET", "/api/orders?limit=100", { as: FIELD });
+  assert.ok(list.json.orders.some((o: any) => o.id === ids.moi), "đơn vừa nhận hiện ở danh sách của HDV A");
+  assert.equal((await w.call("GET", `/api/orders/${ids.moi}`, { as: FIELD })).status, 200);
+  assert.equal((await w.call("GET", `/api/orders/${ids.moi}`, { as: FIELD_B })).status, 404, "HDV B: đơn người khác → 404");
+  const tre = await w.call("PUT", `/api/orders/${ids.moi}/handler`, { as: FIELD_B, body: { staffId: FIELD_B } });
+  assert.equal(tre.status, 409, tre.text);
+  assert.equal(tre.json.error.code, "stale");
+  const giao = await w.call("PUT", `/api/orders/${ids.chuaCoNgay}/handler`, { as: FIELD, body: { staffId: FIELD_B } });
+  assert.equal(giao.status, 403, `HDV giao cho người khác: ${giao.text}`);
+  assert.equal(w.q("SELECT count(*) n FROM dsp_assignment WHERE order_id = ? AND valid_to_at IS NULL", ids.chuaCoNgay)[0].n, 0, "403 không ghi");
+  const lai = await w.call("PUT", `/api/orders/${ids.chuaCoNgay}/handler`, { as: LAI_HDV, body: { staffId: LAI_HDV } });
+  assert.equal(lai.status, 403, `tài khoản lai Nhận: ${lai.text}`);
+});

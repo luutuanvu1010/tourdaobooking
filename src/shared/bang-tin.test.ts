@@ -54,7 +54,7 @@ test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ", 
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["ADMIN"] }), nhomDayDu);
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["SUPER_ADMIN"] }), nhomDayDu);
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["ACCOUNTING"] }), nhomTatCa);
-  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["FIELD"] }), chiNguoi);
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["FIELD"] }), ["cho-nhan", "nguoi:x"], "ADR-0030 S20-8: hướng dẫn viên nhận tin hàng chờ (cho-nhan), KHÔNG có tat-ca");
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER"] }), chiNguoi);
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["INTERN"] }), chiNguoi);
 });
@@ -209,7 +209,7 @@ const suKien = (thayDoi: SuKienDon["thayDoi"]): SuKienDon => ({
 });
 const vanPhong = { id: "nv1", permissions: ["SALES"] as const }; // order.view=any, dispatch.claim=any
 const ketToan = { id: "nv2", permissions: ["ACCOUNTING"] as const }; // order.view=any, dispatch.claim=none
-const huongDanVien = { id: "nv3", permissions: ["FIELD"] as const }; // order.view=none, dispatch.claim=none, có FIELD
+const huongDanVien = { id: "nv3", permissions: ["FIELD"] as const }; // order.view=assigned, dispatch.claim=any (ADR-0030 S20-6), có FIELD
 const doiTac = { id: "nv4", permissions: ["PARTNER"] as const };
 const thucTap = { id: "nv5", permissions: ["INTERN"] as const };
 
@@ -248,14 +248,18 @@ test("thongBaoNoi: tài khoản lai Đối tác + văn phòng (dispatch.claim=an
 
 test("thongBaoNoi: tài khoản lai Đối tác + Hướng dẫn viên (không văn phòng) KHÔNG hiện tao_cho_nhan", () => {
   const laiDoiTacHdv = { id: "nv7", permissions: ["PARTNER", "FIELD"] as const }; // không văn phòng, có FIELD → huongDanVien
-  assert.equal(thongBaoNoi(laiDoiTacHdv, suKien("tao_cho_nhan")), null, "lai Đối tác+FIELD: hôm nay FIELD không có dispatch.claim, và dù có thì holdsPartner vẫn chặn");
+  assert.equal(thongBaoNoi(laiDoiTacHdv, suKien("tao_cho_nhan")), null, "lai Đối tác+FIELD: có dispatch.claim (qua FIELD, ADR-0030 S20-6) nhưng holdsPartner chặn");
   assert.deepEqual(thongBaoNoi(laiDoiTacHdv, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/account" });
 });
 
 test("thongBaoNoi: Hướng dẫn viên (không văn phòng) thấy các loại còn lại, liên kết /account", () => {
   assert.deepEqual(thongBaoNoi(huongDanVien, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/account" });
   assert.deepEqual(thongBaoNoi(huongDanVien, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/account" });
-  assert.equal(thongBaoNoi(huongDanVien, suKien("tao_cho_nhan")), null, "FIELD không có dispatch.claim hôm nay");
+  assert.deepEqual(
+    thongBaoNoi(huongDanVien, suKien("tao_cho_nhan")),
+    { cau: "Có đơn mới chưa có người phụ trách: TD1", lienKet: "/account" },
+    "ADR-0030 S20-6/S20-8: FIELD có dispatch.claim → thấy đơn mới chờ nhận (liên kết giữ /account tới khi có thiết kế màn HDV — Task 1.8)",
+  );
 });
 
 test("thongBaoNoi: Đối tác/Thực tập KHÔNG BAO GIỜ hiện thông báo nổi (Q-C ADR-0022)", () => {

@@ -26,7 +26,7 @@ const toDto = (r: HandlerRow): HandlerDto => ({ partyId: r.party_id, staffId: r.
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
 const FORBIDDEN = () =>
-  error(403, "forbidden", "Chỉ người lập đơn, người phụ trách hiện tại hoặc quản trị viên mới được đổi người phụ trách. Đơn chưa có người phụ trách thì nhân viên bán hàng nhận cho chính mình được.");
+  error(403, "forbidden", "Chỉ người lập đơn, người phụ trách hiện tại hoặc quản trị viên mới được đổi người phụ trách. Đơn chưa có người phụ trách thì nhân viên bán hàng hoặc hướng dẫn viên nhận cho chính mình được.");
 /** Từ chối XEM (người phụ trách của mọi đơn, liên hệ khách của "Việc của tôi" — ADR-0019 điều 2). */
 const VIEW_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
@@ -132,8 +132,9 @@ export const dispatchModule: AppModule = {
     // 403 (vượt quyền trên đơn này) hoặc 409 stale (nhận đơn ĐÃ có người) → 400 (người được giao) → 409 (không đổi) → ghi (409 stale nếu thua tranh chấp).
     // Mọi kết quả "thua đua" là MỘT mã: 409 stale.
     // Sàng sớm KHÔNG đổi 409 nào thành 403: `handlerChangeVerdict` chỉ trả allow/stale cho người có `dispatch.claim` hoặc `dispatch.assign` (theo MATRIX
-    // hôm nay chỉ SALES/ADMIN/SUPER_ADMIN, cả ba đều `dispatch.claim` = any ⇒ luôn qua sàng); ai không có cả hai (kế toán, Đối tác, Thực tập) vốn
-    // chỉ nhận "forbidden" — nay nhận sớm hơn, trước mọi đọc CSDL/thân yêu cầu.
+    // hôm nay SALES/ADMIN/SUPER_ADMIN và — từ ADR-0030 S20-6/S20-12 — FIELD, cả bốn đều `dispatch.claim` = any ⇒ luôn qua sàng; FIELD không có
+    // `dispatch.assign` nên chỉ tự Nhận được, giao cho người khác → 403); ai không có cả hai (kế toán, Đối tác, Thực tập) vốn chỉ nhận "forbidden" — nay
+    // nhận sớm hơn, trước mọi đọc CSDL/thân yêu cầu.
     route("PUT", "/api/orders/:id/handler", "orders", async ({ env, request, params, staff, baoThayDoi }) => {
       if (!can(staff, "dispatch.claim") && !can(staff, "dispatch.assign", { ownerId: staff.id })) return FORBIDDEN();
       const orderId = params.id!;

@@ -76,14 +76,22 @@ test("P3 FINDING tách dữ liệu: đối tác liệt kê + tra theo SĐT toàn
   assert.equal(put.status, 200, put.text);
 });
 
-test("P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào (kể cả để xem việc), và không được giao phụ trách", async () => {
+// P4 (đã sửa — thành test hồi quy): FINDING cũ "HDV không mở được đơn nào, không được giao phụ trách" đã được xử lý ở hai lần: ADR-0014 điều 6 (Phase B —
+// hướng dẫn viên đủ điều kiện làm người phụ trách CẤP HẸP, nên phần "giao" đỏ từ đó, nợ ghi ở nhật ký thi công ADR-0030) và ADR-0030 S23-1…5 (Task 1.5 —
+// hướng dẫn viên qua cổng orders: danh sách = đơn mình ĐANG phụ trách, chi tiết đơn không phụ trách = 404).
+test("P4 (đã sửa, ADR-0014 điều 6 + ADR-0030 S23-4): tài khoản chỉ quyền Hướng dẫn viên — danh sách 200 chỉ đơn mình phụ trách, chi tiết đơn không phụ trách 404; được giao phụ trách thì thấy đơn đó", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
-  assert.equal((await w.call("GET", "/api/orders", { as: F })).status, 403);
-  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: F })).status, 403);
+  const list = await w.call("GET", "/api/orders", { as: F });
+  assert.equal(list.status, 200, list.text);
+  assert.deepEqual(list.json.orders, [], "chưa phụ trách đơn nào → danh sách rỗng (không lộ đơn của An)");
+  const hidden = await w.call("GET", `/api/orders/${o.id}`, { as: F });
+  assert.equal(hidden.status, 404, hidden.text);
   const assign = await w.call("PUT", `/api/orders/${o.id}/handler`, { as: ADM, body: { staffId: F } });
-  assert.equal(assign.status, 400, assign.text);
-  assert.match(assign.json.error.message, /Chỉ giao phụ trách cho người có quyền Bán hàng hoặc Quản trị/);
+  assert.equal(assign.status, 200, assign.text);
+  const after = await w.call("GET", "/api/orders", { as: F });
+  assert.deepEqual(after.json.orders.map((x) => x.id), [o.id], "được giao → thấy đúng đơn đó");
+  assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: F })).status, 200);
 });
 
 test("P5 FINDING khoá tài khoản: ai biết SĐT của đối tác làm sai PIN 5 lần là khoá được người đó 15 phút (PIN đúng cũng bị 429)", async () => {

@@ -31,13 +31,13 @@ test("handlerControls: đơn đã có người phụ trách — người lập, 
   assert.deepEqual(buttons(FIELD, handler("b")), [false, false]);
 });
 
-test("handlerControls: đơn CHƯA có người phụ trách — mọi SALES/ADMIN nhận được; chỉ người lập và quản trị còn thêm nút giao; kế toán/hiện trường không có gì", () => {
+test("handlerControls: đơn CHƯA có người phụ trách — mọi SALES/ADMIN/hướng dẫn viên nhận được; chỉ người lập và quản trị còn thêm nút giao; kế toán không có gì", () => {
   assert.deepEqual(buttons(C, null), [false, true], "SALES khác: chỉ có 'Nhận phụ trách'");
   assert.deepEqual(buttons(B, null), [false, true]);
   assert.deepEqual(buttons(A, null), [true, true], "người lập: nhận cho mình hoặc giao người khác");
   assert.deepEqual(buttons(ADMIN, null), [true, true]);
   assert.deepEqual(buttons(ACC, null), [false, false]);
-  assert.deepEqual(buttons(FIELD, null), [false, false]);
+  assert.deepEqual(buttons(FIELD, null), [false, true], "ADR-0030 S20-6: hướng dẫn viên có nút 'Nhận phụ trách', không có nút giao");
 });
 
 test("handlerControls: người phụ trách là hồ sơ chưa có tài khoản (staffId null) không làm ai thành 'được giao'; chưa biết người phụ trách (undefined) thì KHÔNG nút nào — không đoán 'chưa có' rồi mời nhận", () => {

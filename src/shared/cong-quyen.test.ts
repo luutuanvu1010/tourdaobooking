@@ -8,7 +8,8 @@ import { ADMIN_GATE, MATRIX, OFFICE_GATE, ORDERS_GATE, PERMISSION_CODES, can, ca
 test("ADR-0019: ba danh sách cổng khai tường minh (khoá giá trị)", () => {
   assert.deepEqual([...ADMIN_GATE], ["ADMIN", "SUPER_ADMIN"]);
   assert.deepEqual([...OFFICE_GATE], ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"]);
-  assert.deepEqual([...ORDERS_GATE], ["SALES", "ACCOUNTING", "ADMIN", "PARTNER", "SUPER_ADMIN", "INTERN"]); // phần C thêm FIELD
+  // ADR-0030 S23-5 (sửa ADR-0019 điều 1): FIELD vào cổng orders cùng lần phát hành với phần xem của ADR-0023 — đúng thứ tự PERMISSION_CODES.
+  assert.deepEqual([...ORDERS_GATE], ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN"]);
 });
 
 test("ADR-0019: đối chiếu danh sách với bảng — cổng orders chỉ gồm mã xem được ít nhất một đơn; cổng office chỉ gồm mã xem mọi hồ sơ", () => {
@@ -24,24 +25,47 @@ test("ADR-0019 điều 2: money.view = order.view ở mọi cột; contact.view 
   }
 });
 
-test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi 'của mình' — mọi mã qua cổng orders đều qua (Đối tác/Thực tập đọc được danh mục)", () => {
+// NGOẠI LỆ CÓ TÊN (ADR-0030 S23-5): hướng dẫn viên qua cổng orders nhưng KHÔNG lập đơn (order.create = none) nên không có "đơn mình lập" để xem giá;
+// money.view của FIELD = assigned (giá của đơn mình PHỤ TRÁCH). Route /api/catalog/for-order chặn FIELD ở chốt order.create TRƯỚC câu hỏi money.view.
+const KHONG_LAP_DON: readonly PermissionCode[] = ["FIELD"];
+
+test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi 'của mình' — mọi mã qua cổng orders đều qua (Đối tác/Thực tập đọc được danh mục), trừ ngoại lệ có tên FIELD (không lập đơn)", () => {
   // Route danh mục cho người lập đơn (src/modules/catalog/index.ts, ADR-0033; trước đó là GET /api/catalog ở cổng orders — ADR-0028 điều 1) gọi
   // can(staff, "money.view", { ownerId: staff.id }) sau chốt order.create. Hỏi KHÔNG ngữ cảnh sẽ trả sai cho mã `own` (PARTNER, INTERN) và làm họ
   // mất danh mục ở form lập đơn — bài này đỏ nếu ai đó thu hẹp ô money.view của một mã trong ORDERS_GATE về none/assigned.
   for (const c of ORDERS_GATE) {
     const who = { id: `u-${c}`, permissions: [c] as PermissionCode[] };
+    if (KHONG_LAP_DON.includes(c)) {
+      // Ngoại lệ chỉ hợp lệ khi mã đó THẬT SỰ không lập đơn — nới order.create của FIELD thì bài này đỏ, buộc xem lại money.view.
+      assert.equal(MATRIX["order.create"][c], "none", `${c} là ngoại lệ "không lập đơn" nhưng order.create ≠ none`);
+      assert.equal(can(who, "money.view", { ownerId: who.id }), false, `${c}: ngoại lệ đã hết cần (xem được giá đơn mình lập) — bỏ khỏi KHONG_LAP_DON`);
+      continue;
+    }
     assert.ok(can(who, "money.view", { ownerId: who.id }), `${c} qua cổng orders nhưng không xem được giá của đơn mình lập → mất danh mục ở form lập đơn`);
   }
 });
 
-test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 7 mã quyền, isOffice/canAccessOrders mới = công thức cũ", () => {
+// ĐỔI CÓ CHỦ ĐÍCH (ADR-0030 S23-5): tổ hợp có FIELD mà KHÔNG có mã nào khác của ORDERS_GATE cũ (SALES, ACCOUNTING, ADMIN, PARTNER, SUPER_ADMIN, INTERN)
+// nay qua cổng orders. Với 7 mã hôm nay chỉ có ĐÚNG MỘT tổ hợp như vậy: chỉ-FIELD. Liệt kê TƯỜNG MINH, không suy.
+const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD"]);
+
+test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 7 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng tổ hợp liệt kê ở ADR-0030 S23-5 (chỉ-FIELD)", () => {
   const oldIsOffice = (w: { id: string; permissions: readonly PermissionCode[] }) => can(w, "order.view");
   const oldCanAccessOrders = (w: { id: string; permissions: readonly PermissionCode[] }) => oldIsOffice(w) || can(w, "order.view", { ownerId: w.id });
+  const seen = new Set<string>();
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const who = { id: "x", permissions: PERMISSION_CODES.filter((_, i) => mask & (1 << i)) };
-    assert.equal(isOffice(who), oldIsOffice(who), `isOffice lệch: ${who.permissions.join("+")}`);
-    assert.equal(canAccessOrders(who), oldCanAccessOrders(who), `canAccessOrders lệch: ${who.permissions.join("+")}`);
+    const key = who.permissions.join("+");
+    assert.equal(isOffice(who), oldIsOffice(who), `isOffice lệch: ${key}`);
+    if (DOI_CO_CHU_Y_CANH_CUA_DON.has(key)) {
+      seen.add(key);
+      assert.equal(oldCanAccessOrders(who), false, `${key}: công thức cũ vốn đã cho qua — không phải đổi có chủ đích`);
+      assert.equal(canAccessOrders(who), true, `${key}: ADR-0030 S23-5 — nay qua cổng orders`);
+      continue;
+    }
+    assert.equal(canAccessOrders(who), oldCanAccessOrders(who), `canAccessOrders lệch: ${key}`);
     // Kiểm ĐỊNH NGHĨA (seesAllOrders được định nghĩa đúng bằng biểu thức này) — không phải bằng chứng giữ hành vi; chỉ chặn ai đó lặng lẽ đổi định nghĩa.
     assert.equal(seesAllOrders(who), can(who, "order.view"), `seesAllOrders lệch: ${who.permissions.join("+")}`);
   }
+  assert.deepEqual(seen, DOI_CO_CHU_Y_CANH_CUA_DON, "mọi tổ hợp đổi có chủ đích phải thật sự được gặp (danh sách không được cũ)");
 });

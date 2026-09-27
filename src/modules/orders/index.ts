@@ -7,7 +7,7 @@ import type {
   PoolResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
-import { can, type PermissionHolder } from "../../shared/permissions";
+import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
@@ -203,15 +203,24 @@ export const ordersModule: AppModule = {
       return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
     }),
 
-    route("GET", "/api/orders", "orders", async ({ env, url, staff }) => {
-      // can(staff, "order.view") KHÔNG ngữ cảnh: "any" (SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → true → không lọc; "own" (PARTNER/INTERN) → false → lọc theo chính mình.
-      // An toàn CHỈ đúng vì cổng "orders" chỉ cho qua mã có order.view ≠ "none" (ORDERS_GATE; bài đối chiếu ở src/shared/cong-quyen.test.ts) — mã
-      // `none` lọt vào đây sẽ bị lọc theo chính mình (an toàn), nhưng đừng gọi listOrders ở cổng khác mà không tự lọc.
-      const ownerId = can(staff, "order.view") ? null : staff.id;
-      // ADR-0019 điều 2: danh sách trả tiền (`total`…) và liên hệ khách (`customerPhone`) — hỏi hai ô với ĐÚNG phạm vi của các đơn sẽ trả: không lọc
-      // = mọi đơn (không ngữ cảnh), lọc = đơn của chính mình. Đứng TRƯỚC đọc tham số (403 không đứng sau 400).
-      const scope = ownerId ? { ownerId } : {};
-      if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
+    route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds }) => {
+      // BA NHÁNH LỌC (ADR-0030 S23-4, Review Focus 1), mỗi nhánh hỏi bảng quyền với ĐÚNG ngữ cảnh của tập đơn nó trả:
+      //  (1) `can(order.view)` KHÔNG ngữ cảnh ("any" — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → mọi đơn, không lọc;
+      //  (2) "mình lập": `can(order.view, { ownerId: chính mình })` ("own" — PARTNER/INTERN) → đơn có người lập = chính mình;
+      //  (3) "mình phụ trách": `can(order.view, { assigned: true })` ("assigned" — FIELD) → đơn đang phụ trách, tập lấy qua `ctx.myHandledOrderIds` (gốc
+      //      lắp ráp nối vào dispatch; orders không đọc dữ liệu phân công). Tài khoản ghép (vd FIELD + INTERN) thấy HỢP (2) ∪ (3).
+      // Không nhánh nào đúng → 403 (mã `none` lọt qua cổng cũng không bao giờ thành "mọi đơn"). ADR-0019 điều 2: danh sách trả tiền (`total`…) và liên
+      // hệ khách (`customerPhone`) → hỏi `money.view`/`contact.view` cho TỪNG tập sẽ trả với đúng ngữ cảnh đó. Mọi câu hỏi quyền đứng TRƯỚC đọc tham
+      // số và trước mọi truy vấn (403 không đứng sau 400).
+      const seesAll = can(staff, "order.view");
+      const mine = { ownerId: staff.id };
+      const handling = { assigned: true };
+      const own = !seesAll && can(staff, "order.view", mine);
+      const handled = !seesAll && can(staff, "order.view", handling);
+      if (!seesAll && !own && !handled) return FORBIDDEN_VIEW();
+      if (seesAll && (!can(staff, "money.view") || !can(staff, "contact.view"))) return FORBIDDEN_VIEW();
+      if (own && (!can(staff, "money.view", mine) || !can(staff, "contact.view", mine))) return FORBIDDEN_VIEW();
+      if (handled && (!can(staff, "money.view", handling) || !can(staff, "contact.view", handling))) return FORBIDDEN_VIEW();
       const raw = url.searchParams.get("status");
       const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
       if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
@@ -220,7 +229,9 @@ export const ordersModule: AppModule = {
         status,
         limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
-        ownerId,
+        ownerId: own ? staff.id : null,
+        // Tập rỗng (chưa phụ trách đơn nào) = danh sách rỗng, KHÔNG phải "không lọc" (listOrders coi [] là "không đơn nào").
+        orderIds: handled ? await myHandledOrderIds() : null,
       });
       return json(result satisfies OrderListResponse);
     }),
@@ -261,7 +272,9 @@ export const ordersModule: AppModule = {
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
       const scope = { ownerId: order.staffId, assigned };
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
-      if (!can(staff, "order.view", scope)) return FORBIDDEN();
+      // ADR-0030 S23-4: tài khoản CHỈ xem đơn mình phụ trách (chỉ-FIELD) nhận 404 như đơn không tồn tại (không dò được đơn người khác, kể cả đơn chờ nhận —
+      // hàng chờ có route riêng ở dạng phần hẹp); Đối tác/Thực tập mở đơn người khác vẫn 403 (Review Focus 2).
+      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN();
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       const history = can(staff, "order.history.view", scope) ? await getAuditTrail(env.DB, order.id) : [];

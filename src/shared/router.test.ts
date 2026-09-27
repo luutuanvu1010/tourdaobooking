@@ -101,13 +101,15 @@ test('access "admin" đọc ADMIN_GATE (ADR-0019): mọi quyền ngoài ADMIN/SU
   assert.equal((await build(staffOf(["SALES", "ADMIN"]), () => null).get("/api/adm")).status, 200);
 });
 
-test('access "orders": văn phòng và Đối tác dùng được; chỉ Hướng dẫn viên thì không; chưa đăng nhập 401', async () => {
+test('access "orders": văn phòng, Đối tác và (ADR-0030 S23-5) chỉ Hướng dẫn viên dùng được; không quyền nào → 403; chưa đăng nhập 401', async () => {
   const office = build(staffOf(["SALES"]), () => null);
   assert.equal((await office.get("/api/ord")).status, 200);
   const partner = build(staffOf(["PARTNER"]), () => null);
   assert.equal((await partner.get("/api/ord")).status, 200);
   const fieldOnly = build(staffOf(["FIELD"]), () => null);
-  assert.equal((await fieldOnly.get("/api/ord")).status, 403);
+  assert.equal((await fieldOnly.get("/api/ord")).status, 200, "cổng chỉ lọc thô; mỗi route đơn tự hỏi can() (hàng rào 2)");
+  const nobody = build(staffOf([]), () => null);
+  assert.equal((await nobody.get("/api/ord")).status, 403);
   const anon = build(null, () => null);
   assert.equal((await anon.get("/api/ord")).status, 401);
 });

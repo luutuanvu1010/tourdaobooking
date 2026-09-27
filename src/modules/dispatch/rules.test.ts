@@ -123,13 +123,14 @@ test("đổi người: người lập vẫn đổi được sau khi đã giao l�
   assert.ok(!mayChangeHandler(who("former", ["SALES"]), ORDER, { staffId: "someone-else" }, "former"), "người từng phụ trách không còn quyền");
 });
 
-test("nhận đơn chưa có người phụ trách: SALES/ADMIN nhận CHO CHÍNH MÌNH; nhận cho người khác thì phải là người lập/quản trị", () => {
+test("nhận đơn chưa có người phụ trách: SALES/ADMIN/FIELD nhận CHO CHÍNH MÌNH; nhận cho người khác thì phải là người lập/quản trị", () => {
   assert.ok(mayChangeHandler(who("other", ["SALES"]), ORDER, null, "other"), "SALES nhận cho mình");
   assert.ok(!mayChangeHandler(who("other", ["SALES"]), ORDER, null, "creator"), "SALES giao hộ người khác khi không phải người lập");
   assert.ok(mayChangeHandler(who("creator", ["SALES"]), ORDER, null, "other"), "người lập giao cho người khác");
   assert.ok(mayChangeHandler(who("boss", ["ADMIN"]), ORDER, null, "other"), "quản trị giao cho người khác");
   assert.ok(!mayChangeHandler(who("acc", ["ACCOUNTING"]), ORDER, null, "acc"), "kế toán không nhận");
-  assert.ok(!mayChangeHandler(who("field", ["FIELD"]), ORDER, null, "field"), "FIELD không nhận");
+  assert.ok(mayChangeHandler(who("field", ["FIELD"]), ORDER, null, "field"), "ADR-0030 S20-6/S20-12: FIELD nhận cho CHÍNH MÌNH đơn chưa có người");
+  assert.ok(!mayChangeHandler(who("field", ["FIELD"]), ORDER, null, "creator"), "FIELD KHÔNG giao hộ người khác (dispatch.assign = none)");
   assert.ok(mayChangeHandler(who("multi", ["ACCOUNTING", "SALES"]), ORDER, null, "multi"), "nhiều quyền: hợp các ô");
 });
 
@@ -151,7 +152,9 @@ test("phán quyết: vẫn 'forbidden' khi KHÔNG phải nhận cho chính mình
   const current = { staffId: "handler" };
   assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, current, "x"), "forbidden", "giao hộ người khác: không phải 'nhận', là vượt quyền");
   assert.equal(handlerChangeVerdict(who("acc", ["ACCOUNTING"]), ORDER, current, "acc"), "forbidden", "kế toán không có dispatch.claim");
-  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, current, "field"), "forbidden", "FIELD không có dispatch.claim");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, current, "field"), "stale", "ADR-0030 S20-6: FIELD có dispatch.claim — tự nhận đơn ĐÃ có người = thua đua (409), không phải vượt quyền");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, null, "field"), "allow", "FIELD nhận đơn chưa có người cho chính mình");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, null, "creator"), "forbidden", "FIELD giao hộ người khác: vượt quyền");
   assert.equal(handlerChangeVerdict(who("acc", ["ACCOUNTING"]), ORDER, null, "acc"), "forbidden", "chưa có người phụ trách nhưng kế toán vẫn không nhận được");
   assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, null, "creator"), "forbidden", "chưa có người phụ trách: SALES giao hộ người khác");
   // được phép: đúng như mayChangeHandler (một nguồn)
