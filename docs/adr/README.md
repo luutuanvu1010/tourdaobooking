@@ -47,5 +47,6 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
 | 0040 | Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, nhắc hạn | `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md` | giữ chỗ 2026-09-28; chờ chủ duyệt (lượt sau T2b) |
+| 0041 | Đính kèm ảnh/tệp trong tin của Toàn quyền (kho R2) | nhánh `worktree-thong-bao-he-thong` (phiên Thông báo) | giữ chỗ 2026-09-28; chủ đã chọn phương án A trong chat, ADR đang soạn |
 
 **Cổng bắt buộc trước khi áp migration N1 lên remote:** hai lệnh chỉ-đọc trên remote D1 (xem mục Bối cảnh của ADR-0001) do chủ dự án chạy. **Bằng chứng chỉ cần nếu sau này muốn gỡ cột `staff.role` (ADR-0005):** D1 hỗ trợ `PRAGMA defer_foreign_keys` và bọc một tệp migration trong một giao dịch.
