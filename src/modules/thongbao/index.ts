@@ -22,7 +22,7 @@ import {
 export { tatMayStatement } from "./repository";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy thông báo.");
-const FORBIDDEN = () => error(403, "forbidden", "Chỉ Toàn quyền được gửi và quản lý thông báo.");
+const FORBIDDEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống được gửi và quản lý thông báo.");
 
 /** "quyen:<QUYỀN>" | "noi-bo" (lưu ở ntf_notice_target) → NguoiNhanTin để trả về giao diện. */
 const nguoiNhanTu = (tags: string): NguoiNhanTin =>
