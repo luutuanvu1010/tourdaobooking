@@ -13,7 +13,12 @@
 //   d  chia sẻ: nút chỉ hiện khi navigator.canShare({ files }) đúng; bấm → navigator.share nhận đúng tệp PNG; người dùng huỷ thì im lặng, lỗi khác thì báo tiếng Việt
 //   e  tải lại trang KHÔNG bật lại hộp thoại; mở đơn không kèm moi và SỬA đơn nháp cũng không tự bật; nút "Xác nhận gửi khách" luôn có
 //   f  đơn đã xác nhận / đã huỷ mở lại bằng nút, huy hiệu đúng chữ và đúng màu token; SALES khác và kế toán cũng có nút (quyết định: chỉ xem, không cần quyền sửa)
-//   g  tên người phụ trách: API có tên → in tên; API 404/500/lỗi mạng/không có người/chậm → tên người lập, ảnh vẫn ra trong vài giây
+//   g  người phụ trách BA trạng thái, không hai (quyết định chủ dự án 2026-09-28, "một sự thật duy nhất"): API có tên → in tên; API xác nhận RÕ chưa có
+//      người → câu chờ nhận, KHÔNG BAO GIỜ tên người lập; 404/500/mất mạng/hết giờ 3 giây/dữ liệu hỏng (thiếu khoá, `name` sai dạng/rỗng) → KHÔNG tạo ảnh,
+//      báo lỗi tiếng Việt cố định + nút Thử lại
+//   g2 bằng chứng: đơn THẬT chưa có người phụ trách (đóng dòng HANDLE bằng SQL, không phải giả lập fetch) → ảnh vẫn ra đúng câu chờ nhận, không tràn/chồng
+//      chữ, không lộ tên người lập; ghi <OUT>/anh/xac-nhan-chua-co-phu-trach.png như mọi ảnh mẫu khác (tôn trọng OUT); bản đã commit ở
+//      docs/evidence/thong-bao/bien-nhan-chua-co-phu-trach.png là bản chép tay một lần, không phải do kịch bản tự ghi mỗi lần chạy
 //   h  đơn cỡ tối đa (20 dịch vụ, 50 dòng tiền, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau,
 //      mọi chữ có mực, không vượt giới hạn diện tích canvas
 //   i  vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob trả null, getContext null): thông báo tiếng Việt + nút Thử lại, không kẹt (Esc đóng được), Thử lại ra ảnh
@@ -521,8 +526,9 @@ await step("f", "đơn đã xác nhận / đã huỷ mở lại bằng nút, huy
   assert.equal(new Set(seen.slice(0, 3)).size, 3, `ba trạng thái phải có ba màu huy hiệu khác nhau: ${seen}`);
 });
 
-// ---- Bước g: tên người phụ trách ----
-await step("g", "tên người phụ trách: API có tên → in tên; API 404/500/lỗi mạng/không có người/chậm → tên người lập, ảnh vẫn ra trong vài giây, không chặn", async () => {
+// ---- Bước g: người phụ trách BA trạng thái ----
+const HANDLER_UNKNOWN_MSG = "Chưa tải được người phụ trách, vui lòng thử lại.";
+await step("g", "người phụ trách BA trạng thái (chủ dự án 2026-09-28): có tên → in tên; API xác nhận RÕ chưa có người → câu chờ nhận (không tên người lập); 404/500/mạng lỗi/hết giờ/dữ liệu hỏng → KHÔNG tạo ảnh, báo lỗi cố định + Thử lại", async () => {
   const f = await fx();
   const id = f.multi.id;
   const p = await openAs(ACCOUNTS.salesA, `/order?id=${id}`);
@@ -533,22 +539,78 @@ await step("g", "tên người phụ trách: API có tên → in tên; API 404/5
       if (m === '404') return json(404, { error: { code: 'not_found', message: 'giả lập' } });
       if (m === '500') return json(500, { error: { code: 'internal', message: 'giả lập' } });
       if (m === 'network') return Promise.reject(new TypeError('offline'));
+      if (m === 'missing-key') return json(200, { handlers: {} });
+      if (m === 'bad-name') return json(200, { handlers: { ['${id}']: { partyId: 'p1', staffId: 's1', name: 42 } } });
+      if (m === 'blank-name') return json(200, { handlers: { ['${id}']: { partyId: 'p1', staffId: 's1', name: '   ' } } });
       return new Promise(() => {}); }; return true; })()`);
-  const expected = async (handler) => p.ev(`__t.modelOf(${JSON.stringify(id)}, ${JSON.stringify(handler)}).then((m) => __lib.renderConfirmationPng(m)).then(() => true)`);
   const sameAs = (handler) => p.ev(`(async () => __t.sameBytes(await __t.blobOf(${downloadHref}), await __lib.renderConfirmationPng(await __t.modelOf(${JSON.stringify(id)}, ${JSON.stringify(handler)}))))()`);
+  const errState = () => p.ev(`(() => { const e = document.querySelector('.sheet .confirm-error'); return e ? { role: e.getAttribute('role'), text: e.textContent, retry: !!e.querySelector('button.confirm-retry'), img: !!document.querySelector('.sheet .confirm-img'), dl: document.querySelector('.sheet a.confirm-download')?.hidden ?? null } : null; })()`);
   const staffName = f.multi.staffName;
   assert.equal(staffName, "Sales Một");
-  await expected(null);
-  const times = {};
-  for (const [mode, name] of [["name", "Lê Minh Tuấn"], ["none", null], ["404", null], ["500", null], ["network", null], ["slow", null]]) {
+
+  // (a) có tên → in tên; đối chứng: khác ảnh dựng từ "chưa có người"
+  await p.ev("window.__h.mode = 'name'; true");
+  await openDialog(p);
+  assert.equal(await sameAs("Lê Minh Tuấn"), true, "chế độ name: ảnh đúng bằng mô hình dựng từ tên phụ trách");
+  assert.equal(await sameAs(null), false, "đối chứng: ảnh có tên phụ trách phải khác ảnh dựng từ 'chưa có người'");
+  await closeDialog(p);
+
+  // (b) máy chủ xác nhận RÕ chưa có người → ảnh vẫn ra, đúng câu chờ nhận (KHÔNG tên người lập)
+  await p.ev("window.__h.mode = 'none'; true");
+  await openDialog(p);
+  assert.equal(await sameAs(null), true, "chế độ none: ảnh đúng bằng mô hình dựng từ 'chưa có người' (câu chờ nhận)");
+  assert.equal(await p.ev("document.querySelector('.sheet .confirm-img') !== null"), true, "chế độ none: vẫn có ảnh (khác 404/500/mạng/hết giờ/dữ liệu hỏng)");
+  await closeDialog(p);
+
+  // (c) KHÔNG BIẾT (404/500/mất mạng/dữ liệu hỏng) → KHÔNG tạo ảnh, báo đúng câu, có nút Thử lại
+  for (const mode of ["404", "500", "network", "missing-key", "bad-name", "blank-name"]) {
     await p.ev(`window.__h.mode = ${JSON.stringify(mode)}; true`);
-    times[mode] = await openDialog(p, 15000);
-    assert.equal(await sameAs(name), true, `chế độ ${mode}: ảnh phải dựng từ tên phụ trách ${JSON.stringify(name)} (hoặc tên người lập ${staffName} khi API không có)`);
-    if (mode === "name") assert.equal(await sameAs(null), false, "đối chứng: ảnh có tên phụ trách khác ảnh dùng tên người lập");
+    await waitButton(p);
+    await p.ev(clickText("#send", "Xem biên nhận"));
+    await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", `${mode}: thông báo lỗi hiện`, 10000);
+    const st = await errState();
+    assert.equal(st.role, "alert", `${mode}: vùng lỗi role=alert`);
+    assert.equal(st.text.includes(HANDLER_UNKNOWN_MSG), true, `${mode}: đúng câu báo cố định (thấy "${st.text}")`);
+    assert.deepEqual([st.retry, st.img, st.dl], [true, false, true], `${mode}: có nút Thử lại; KHÔNG có ảnh; nút Tải ẩn`);
     await closeDialog(p);
   }
-  results.thoiGian.tenPhuTrachMs = times;
-  assert.ok(times.slow < 9000, `API phụ trách chậm/treo không được chặn ảnh quá ${times.slow} ms`);
+
+  // (c bis) hết giờ 3 giây: cũng KHÔNG BIẾT — báo lỗi ngay sau 3 giây, KHÔNG chặn tới hạn chót 30 giây như trước
+  await p.ev("window.__h.mode = 'slow'; true");
+  const t0 = Date.now();
+  await waitButton(p);
+  await p.ev(clickText("#send", "Xem biên nhận"));
+  await p.waitFor("document.querySelector('.sheet .confirm-error') !== null", "slow: thông báo lỗi hiện sau khi hết giờ 3 giây", 8000);
+  const slowMs = Date.now() - t0;
+  const stSlow = await errState();
+  assert.equal(stSlow.text.includes(HANDLER_UNKNOWN_MSG), true, `slow: đúng câu báo cố định (thấy "${stSlow.text}")`);
+  assert.ok(slowMs >= 2900 && slowMs < 6000, `slow: phải báo lỗi ngay sau khi hết giờ 3 giây người phụ trách, không chặn tới hạn chót 30 giây (đo ${slowMs} ms)`);
+  results.thoiGian.tenPhuTrachMs = { slow: slowMs };
+
+  // Thử lại sau khi máy chủ có tên trở lại → ảnh hiện ra bình thường
+  await p.ev("window.__h.mode = 'name'; true");
+  await p.ev("document.querySelector('.sheet .confirm-retry').click(); true");
+  await p.waitFor(READY, "Thử lại: ảnh hiện sau khi máy chủ có tên trở lại", 10000);
+  assert.equal(await sameAs("Lê Minh Tuấn"), true, "Thử lại: ảnh đúng bằng mô hình dựng từ tên phụ trách");
+  await closeDialog(p);
+});
+
+// ---- Bước g2: bằng chứng — đơn THẬT chưa có người phụ trách ----
+await step("g2", "đơn THẬT chưa có người phụ trách (đóng dòng HANDLE bằng SQL, không phải giả lập fetch): ảnh ra đúng câu chờ nhận, không tràn/chồng chữ, không lộ tên người lập; lưu bằng chứng", async () => {
+  const unassigned = await create(ACCOUNTS.salesA, { ...cust("Chưa Có Người Phụ Trách"), services: [tour()] });
+  env.sql(`UPDATE dsp_assignment SET valid_to_at = valid_from_at WHERE order_id = '${unassigned.id}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
+  const p = await openAs(ACCOUNTS.salesA, `/order?id=${unassigned.id}`, { track: false });
+  await openDialog(p);
+  const a = await p.ev(`__t.analyze(${downloadHref}, ${JSON.stringify(unassigned.id)}, null)`);
+  assert.equal(a.sig, "89504e470d0a1a0a");
+  assert.deepEqual(a.inkMissing, [], "câu chờ nhận: mọi khối chữ phải có mực");
+  assert.deepEqual([a.outOfMargin, a.marginInk, a.bottomInk, a.overlapCount], [[], 0, 0, 0], `câu chờ nhận: lề/đáy/chồng chữ ${JSON.stringify({ o: a.outOfMargin, m: a.marginInk, b: a.bottomInk, ov: a.overlaps })}`);
+  const info = await p.ev(`__t.modelOf(${JSON.stringify(unassigned.id)}, null).then((m) => { const t = m.blocks.find((b) => b.kind === 'title'); return { note: t.note, labels: t.rows.map((r) => r.label), json: JSON.stringify(m) }; })`);
+  assert.equal(info.note, "Đơn khởi tạo thành công và đang chờ hướng dẫn viên nhận khách");
+  assert.ok(!info.labels.includes("Nhân viên phụ trách"), "KHÔNG còn dòng 'Nhân viên phụ trách' khi chưa có người");
+  assert.ok(!info.json.includes(unassigned.staffName), `KHÔNG được in tên người lập "${unassigned.staffName}" thay cho người phụ trách`);
+  writeFileSync(join(ANH, "xac-nhan-chua-co-phu-trach.png"), Buffer.from(await p.ev(`__t.b64(${downloadHref})`), "base64"));
+  p.close();
 });
 
 // ---- Bước h: đơn cỡ lớn ----

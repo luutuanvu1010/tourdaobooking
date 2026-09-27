@@ -4,7 +4,7 @@ Tài liệu này viết cho **chủ dự án**, không cần biết lập trình
 
 ## Tính năng này làm gì
 
-Khi nhân viên hoặc đối tác bật nút "Bật thông báo trên điện thoại" ở trang **Tôi**, điện thoại của họ sẽ **rung và hiện thông báo ngay cả khi màn hình đang khoá** mỗi khi có tin liên quan tới họ (ai đó nhận đơn, giao đơn, xác nhận, huỷ đơn…, hoặc bạn gửi một thông báo chung). Ai cũng bật được, kể cả tài khoản Đối tác.
+Khi nhân viên hoặc đối tác bật nút "Bật thông báo trên điện thoại" ở trang **Tôi**, điện thoại của họ sẽ **rung và hiện thông báo ngay cả khi màn hình đang khoá** mỗi khi có tin liên quan tới họ (ai đó nhận đơn, giao đơn, xác nhận, huỷ đơn…, hoặc bạn gửi một thông báo chung). Ai cũng bật được, kể cả tài khoản Đối tác. **Từ 22:00 đến 6:00 sáng:** thông báo vẫn hiện trên màn hình khoá như ban ngày, chỉ khác là **không rung, không kêu** (đỡ làm giật mình lúc ngủ); riêng thông báo bạn đánh dấu "quan trọng" vẫn rung/kêu như thường.
 
 Muốn bật được, ứng dụng cần một "cặp chìa khoá" để ký thông báo cho an toàn. Bạn tạo cặp chìa khoá này **một lần** bằng một lệnh ở dưới; nửa "chìa công khai" sẽ được thêm vào mã, nửa "chìa bí mật" không bao giờ hiện ra màn hình, đi thẳng vào kho bí mật của Cloudflare.
 
@@ -64,7 +64,7 @@ Mục đã hiện ra (Bước 4 xong) không có nghĩa là thông báo chắc c
 1. Trên một điện thoại đã cài app ra màn hình chính, mở trang Tôi → bấm "Bật thông báo trên điện thoại" → cho phép → thấy chữ "Đang bật trên máy này".
 2. Khoá màn hình điện thoại đó.
 3. Nhờ ai đó (hoặc chính bạn ở máy khác) gửi một thông báo cho nhóm của tài khoản vừa bật.
-4. Đợi tối đa 1 phút. Ghi lại CHÍNH XÁC điều xảy ra: (a) rung và hiện ĐÚNG câu của thông báo bạn vừa gửi — tốt nhất; (b) rung nhưng chỉ hiện câu chung "Bạn có thông báo mới" — vẫn hoạt động nhưng máy chưa hỏi được nội dung thật lúc đó (mạng chập chờn hoặc phiên hết hạn, không phải lỗi chìa khoá vì mục đã hiện ra ở Bước 4); (c) không rung gì cả — báo lại để tìm nguyên nhân khác (quyền thông báo bị hệ điều hành chặn, mạng...).
+4. Đợi tối đa 1 phút. Ghi lại CHÍNH XÁC điều xảy ra: (a) rung và hiện ĐÚNG câu của thông báo bạn vừa gửi — tốt nhất; (b) rung nhưng chỉ hiện câu chung "Bạn có thông báo mới" — vẫn hoạt động nhưng máy chưa hỏi được nội dung thật lúc đó (mạng chập chờn hoặc phiên hết hạn, không phải lỗi chìa khoá vì mục đã hiện ra ở Bước 4); (c) không hiện gì cả trên màn hình khoá — báo lại để tìm nguyên nhân khác (quyền thông báo bị hệ điều hành chặn, mạng...). **Nếu thử trong khoảng 22:00–6:00 sáng:** thông báo thường CHỈ HIỆN, KHÔNG RUNG — đúng như thiết kế (ADR-0039), không phải lỗi; muốn thấy rung thì thử ban ngày hoặc đánh dấu thông báo đó "quan trọng".
 
 ## Tắt tạm — hai cách, tuỳ có sự cố hay không (sửa 2026-09-28)
 
@@ -101,6 +101,6 @@ Ghi lại kết quả từng bước (đạt / không đạt / chưa thử đư�
 5. A tự đổi mã PIN của mình → gửi lại một thông báo thử → máy A **KHÔNG** rung nữa (phải bấm bật lại mới nhận tiếp).
 6. Bật lại thông báo cho A. Đăng xuất tài khoản A ở MỘT máy khác (không phải điện thoại của A) → máy điện thoại của A không còn rung nữa, hoặc nếu có rung thì chỉ hiện câu chung "Bạn có thông báo mới" (không lộ nội dung thật).
 7. Lặp lại bước 1–2 với một tài khoản **chỉ có quyền Đối tác** (không phải nhân viên nội bộ) — phải bật và nhận được y như nhân viên.
-8. Gửi hai thông báo liên tiếp cho cùng một người, không mở thông báo đầu tiên ra — cả hai lần đều phải rung (không bị lần sau "đè" mất lần trước lặng lẽ).
-9. Sau 22 giờ đêm (giờ Việt Nam): gửi một thông báo thường → **không** rung; gửi một thông báo đánh dấu "quan trọng" → **vẫn** rung.
+8. Gửi hai thông báo liên tiếp cho cùng một người, không mở thông báo đầu tiên ra — cả hai lần đều phải rung (không bị lần sau "đè" mất lần trước lặng lẽ). (Thử vào **ban ngày** — trong giờ yên lặng 22:00–6:00, thông báo thường không rung nên không thấy rõ khác biệt này.)
+9. Sau 22 giờ đêm (giờ Việt Nam): gửi một thông báo thường → **vẫn hiện trên màn hình khoá nhưng không rung, không kêu**; gửi một thông báo đánh dấu "quan trọng" → **vẫn rung/kêu** như ban ngày. (Đổi từ 28/9 theo quyết định của bạn — trước đó ban đêm không gửi gì cả cho tin thường; ghi lại: **chưa chắc iPhone tôn trọng "không rung"** — Apple chưa có tài liệu khẳng định, có thể tuỳ chế độ Tập trung/Không làm phiền của máy; chỉ biết chắc khi thử trên iPhone thật, ghi đúng điều thấy được vào đây.)
 10. **Nhóm lớn (hơn 40 máy đang bật cùng lúc, vd gửi cho "Toàn công ty" khi phần lớn nhân viên + đối tác đã bật):** máy cuối cùng nhận được có thể chậm hơn máy đầu tiên vài chục giây tới khoảng một phút (chia lô 40 máy một lượt) — vẫn coi là đạt nếu MỌI máy đều rung, chỉ khác nhau thời điểm. **Nếu công ty chưa có đủ 40 người bật thông báo cùng lúc để thử, cứ ghi "chưa kiểm được (chưa đủ máy)"** — đừng ghi "đạt" khi chưa thật sự có đủ máy để thấy chia lô.

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto, OrderItemDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
-import { buildConfirmation, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
+import { buildConfirmation, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
 
 // ---- dữ liệu mẫu: đúng hình dạng OrderDetailDto (id/mã nội bộ có tên riêng để phép thử "không lộ" không đúng/sai do trùng chữ) ----
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
@@ -56,6 +56,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
     {
       kind: "title", title: "XÁC NHẬN ĐƠN DỊCH VỤ", status: { code: "draft", text: "Chờ xác nhận" },
       rows: [{ label: "Mã đơn", value: "TD-20260921-0007" }, { label: "Ngày lập", value: "21/09/2026" }, { label: "Nhân viên phụ trách", value: "Lê Minh Tuấn" }],
+      note: null,
     },
     {
       kind: "customer", heading: "Thông tin khách hàng",
@@ -196,14 +197,18 @@ test("trạng thái: nháp 'Chờ xác nhận', đã xác nhận 'Đã xác nh�
   for (const [code, text] of cases) assert.deepEqual(one(build(order({ status: code })), "title").status, { code, text });
 });
 
-test("nhân viên phụ trách: dùng tên người phụ trách; null hoặc trống → tên người lập của đơn; cả hai trống → không dòng", () => {
-  const rows = (o: OrderDetailDto, handler: string | null) => one(build(o, handler), "title").rows;
+test("nhân viên phụ trách: có tên thì in tên, không có câu chờ; null/trống → KHÔNG dòng, in câu chờ nhận; KHÔNG BAO GIỜ dùng tên người lập thay thế (chủ dự án 2026-09-28)", () => {
+  const title = (o: OrderDetailDto, handler: string | null) => one(build(o, handler), "title");
+  const rows = (o: OrderDetailDto, handler: string | null) => title(o, handler).rows;
   assert.equal(value(rows(order(), "Lê Minh Tuấn"), "Nhân viên phụ trách"), "Lê Minh Tuấn");
-  assert.equal(value(rows(order(), null), "Nhân viên phụ trách"), "Nguyễn Thu Hà");
-  assert.equal(value(rows(order(), "   "), "Nhân viên phụ trách"), "Nguyễn Thu Hà");
-  assert.equal(value(rows(order({ staffName: "" }), null), "Nhân viên phụ trách"), undefined);
-  // tên người lập chỉ xuất hiện làm phương án dự phòng, không thành dòng riêng
-  assert.ok(!JSON.stringify(build(order(), "Lê Minh Tuấn")).includes("Nguyễn Thu Hà"));
+  assert.equal(title(order(), "Lê Minh Tuấn").note, null);
+  for (const handler of [null, "   "]) {
+    assert.equal(value(rows(order(), handler), "Nhân viên phụ trách"), undefined, `handler=${JSON.stringify(handler)}: không còn dòng "Nhân viên phụ trách"`);
+    assert.equal(title(order(), handler).note, PENDING_HANDLER_TEXT, `handler=${JSON.stringify(handler)}: phải có câu chờ nhận`);
+  }
+  // đơn nào cũng vậy kể cả staffName rỗng — tên người lập không bao giờ xuất hiện thay cho người phụ trách
+  assert.equal(title(order({ staffName: "" }), null).note, PENDING_HANDLER_TEXT);
+  assert.ok(!JSON.stringify(build(order(), null)).includes("Nguyễn Thu Hà"), "tên người lập không được in dù đơn chưa có người phụ trách");
 });
 
 test("tổng kết: đúng số của đơn (không tự tính lại); chỉ Tổng cộng và Còn lại nổi bật; giảm giá 0 in '0 ₫'; còn lại âm giữ nguyên dấu", () => {
