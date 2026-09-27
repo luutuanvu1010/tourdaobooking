@@ -6,6 +6,8 @@
 
 **Architecture:** Module mới `thongbao` (tiền tố `ntf_`, hạng STRICT) không ai import; nó đọc view công bố của `audit`, `orders`, `dispatch`, `staff` và sở hữu 4 bảng tin thủ công/xác nhận/mốc đọc. Mọi luật "ai thấy gì, câu gì, chưa đọc bao nhiêu" nằm trong MỘT hàm thuần `locHopThongBao` ở `src/shared/thong-bao.ts`, dùng cho cả số đỏ lẫn danh sách. Giao diện: chuông + ngăn + dải trong `web/shell.ts`, trang `/gui-thong-bao` cho Toàn quyền.
 
+**Trạng thái:** **CHỦ ĐÃ DUYỆT** trong chat 2026-09-27 ("Ok duyệt. Thi công với trợ lý Subagent"), gồm cả mục "Phụ thuộc ADR-0030". Thi công theo cách subagent-driven (mỗi task một trợ lý làm + một trợ lý kiểm). HDV bấm "Từ chối" **chưa** lên chuông (đặc tả §2 K7) — `v_aud_order_event` ở Task 3 KHÔNG có `order_handler_refused`.
+
 **Tech Stack:** TypeScript, Cloudflare Worker + D1 (SQLite), giao diện thuần dựng bằng `h()`, esbuild, `node --test`, e2e `tests/e2e/*.mjs`, kịch bản Chrome CDP.
 
 **Spec:** `docs/superpowers/specs/2026-09-27-thong-bao-he-thong-design.md` (lượt 1 ĐÃ DUYỆT) · `docs/adr/ADR-0034-thong-bao-he-thong-hop-thong-bao.md` (accepted) · bản mẫu `docs/design/thong-bao-mockup/ban-mau-thong-bao.html` (ĐÃ DUYỆT — chuẩn nghiệm thu giao diện). Lượt 2 (Web Push, ADR-0036) **không** thuộc kế hoạch này.

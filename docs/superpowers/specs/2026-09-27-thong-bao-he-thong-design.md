@@ -54,6 +54,7 @@ Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **hộp th�
 | K4 | HDV thấy tên người làm trên đơn mình dẫn không | **Giữ ẩn tên** đợt này (`order.history.view` của FIELD = none); mở sau bằng quyết định quyền riêng | |
 | K5 | Thực tập bật được thông báo màn hình khoá không | **Có — coi là nội bộ** (lượt 2) | |
 | K6 | Người gửi tin thủ công có thấy tin của chính mình trong hộp không | **Không** (theo E3) — xem tin đã gửi ở màn "Gửi thông báo". AI nêu khi trình bản mẫu; chủ duyệt bản mẫu 2026-09-27 | |
+| K7 | HDV bấm "Từ chối" đơn (`order_handler_refused`, ADR-0030) có lên chuông không | **Chưa — để sau.** Lượt 1 không đưa `order_handler_refused` vào `v_aud_order_event`; thêm ở lượt sau khi ADR-0030 đã lên production (chủ trả lời trong chat 2026-09-27 khi duyệt kế hoạch). Không đổi ADR-0034 (đã duyệt): danh sách loại tin của điều 2 giữ nguyên. | |
 | K2 | Quản trị có thấy dòng nhật ký `notice_*` qua nhật ký chung `GET /api/audit` (`admin.manage`) không (phát hiện kiểm độc lập vòng 2) | **Được thấy** — giữ lệ Quản trị xem mọi dòng nhật ký; dòng chỉ có mã tin + ai + lúc nào; màn "ai đã/chưa hiểu" vẫn chỉ Toàn quyền | CLAUDE.md §9 bước ghép |
 | K1 | Tên người làm khi người xem không được xem lịch sử đơn (phát hiện của người kiểm độc lập) | **Ẩn tên** nếu `order.history.view` của người xem sai với đơn đó — câu không tên như thông báo nổi hôm nay | ranh giới quyền ADR-0007/0009; Hiến pháp P8 |
 
