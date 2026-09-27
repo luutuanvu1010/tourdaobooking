@@ -11,6 +11,14 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.21",
+    date: "2026-09-27",
+    items: [
+      { kind: "sua", text: "Thanh tab dưới đáy không còn nhảy lên xuống khi chuyển trang trên iPhone." },
+      { kind: "sua", text: "Trong lúc chờ dữ liệu, trang hiện khung thẻ trắng thay vì một khoảng trống." },
+    ],
+  },
+  {
     version: "1.20",
     date: "2026-09-27",
     items: [
