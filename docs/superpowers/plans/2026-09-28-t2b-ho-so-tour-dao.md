@@ -1,5 +1,14 @@
 # T2b — Tour Đảo là hồ sơ tổ chức (ADR-0024 điều 6) — Kế hoạch thi công
 
+> **ĐỌC TRƯỚC — kế hoạch đã bị thay một phần trong lúc thi công (2026-09-28).** Nguồn: chỉ đạo của điều phối và câu trả lời của chủ, ghi đủ ở sổ thi công `docs/superpowers/plans/2026-09-28-t2b-thi-cong-nhat-ky.md` mục 4 (Ruling D1–D13, T1–T8). Chỗ nào dưới đây lệch các điểm sau thì các điểm sau THẮNG:
+> - **Số migration là `0030`** (`migrations/0030_ho_so_cong_ty_chu.sql`), không phải 0028 (0028, 0029 đã chia cho nhánh khác — D1, D13). Test tìm tệp theo đuôi tên: `src/migrations-ho-so-cong-ty-chu.test.ts` (T1), không phải `src/migrations-0028.test.ts`.
+> - **Task 3 thay theo ADR-0043** (chủ trả lời "cho Super Admin đổi"): KHÔNG có chỉ mục duy nhất một phần `pty_party_role_owner_company_uq`, KHÔNG có trigger cấm đóng kiểu cũ. Thay bằng ba trigger `pty_party_role_owner_company_switch` (chèn dòng mở mới ⇒ đóng dòng cũ), `…_keep_last` (không đóng được dòng mở cuối), `…_no_reopen` (không mở lại). Mọi chỗ nói "chỉ mục", "409 `owner_company_exists`", "phương án A/B", "vai không bao giờ đổi được" dưới đây là PHƯƠNG ÁN CŨ.
+> - **Đổi công ty chủ** = người giữ `company.legal.write` gán vai cho hồ sơ TỔ CHỨC khác, không gắn nơi, không ngày kết thúc, ngày bắt đầu = HÔM NAY (T6, ADR-0043 điều 2). Kết thúc vai → 409 `owner_company_locked` kể cả Toàn quyền. Gán lại cho chính hồ sơ đang giữ → 409 `owner_company_already`; đổi lại trong ngày → 409 `owner_company_same_day`.
+> - **Task 9 bỏ** (chủ chọn 2A — quan hệ giữ `admin.manage`).
+> - **Mã vai gieo `active = 0`** (T2), lựa chọn "Công ty chủ" chỉ hiện với người giữ ô (Task 10 tối thiểu theo D7 + D12).
+> - **Chữ người dùng thấy không nói "Toàn quyền"** — dùng "người phụ trách hệ thống" (D5).
+> - Số bản nhật ký thay đổi tạm "1.30" (D9).
+
 > **Cho người thi công (AI):** BẮT BUỘC dùng superpowers:subagent-driven-development (khuyến nghị) hoặc superpowers:executing-plans để làm theo từng task. Các bước dùng ô `- [ ]` để đánh dấu. Đây là **việc lớn** theo `CLAUDE.md` §3 (dữ liệu: migration + dữ liệu thật; quyền: ô mới trong `MATRIX`; luật: đề xuất sửa `docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`). Người thi công **không tự nghiệm thu**: Task 16 là người kiểm độc lập chỉ đọc. AI **không deploy**: chủ dự án tự chạy `npm run day-len` rồi `npm run trien-khai` (Task 17).
 
 **Mục tiêu:** Tour Đảo có **một** hồ sơ tổ chức trong module `parties`, đánh dấu bằng mã vai "Công ty chủ". Mọi nơi đọc tên, mã số thuế, địa chỉ, hotline, email của công ty (`GET /api/company` cho biên nhận, `GET /api/auth/config` cho chân trang đăng nhập) đều đi qua **một** hàm công bố của `parties`. Chỉ Toàn quyền sửa được hồ sơ đó. Vai "Công ty chủ" được chặn hai lớp: ở route và ở cơ sở dữ liệu.
