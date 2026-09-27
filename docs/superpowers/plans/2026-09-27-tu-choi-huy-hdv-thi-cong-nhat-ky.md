@@ -144,6 +144,28 @@ not ok 7 - (4) Thực tập, Đối tác gửi kèm handlerStaffId → 403 …
 
 **Chưa làm / để task sau:** `docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs` (giả định người lập là người phụ trách — nhãn thuộc Task 1.7) chưa chạy lại; giao diện chọn HDV trong form (Task 1.8, chờ thiết kế).
 
+## 6. Task 1.5 — Quyền HDV, hàng chờ nhận, ba đường xem (S23-1…5, S20-6, S20-12)
+
+Hai commit mã: **dcba739** (a — `order.pool.view` + route `GET /api/orders/pool` + `pool.ts` + `PoolOrderDto`; FIELD chưa qua cổng, chỉ Toàn quyền gọi được; 74 route) và **eccf6d8** (b — bốn ô FIELD + `dispatch.claim` FIELD + `ORDERS_GATE` có FIELD + nhánh lọc thứ ba + chi tiết 404 + `seesOnlyAssignedOrders` + mọi bài đổi kỳ vọng R1 của bảng + 3 dòng sổ hàng rào). Hai commit đều tự xanh (`npm test` 991 sau (a), 1002 sau (b)).
+
+**Đỏ trước (a)** — trên mã c38c224: `pool.test.ts` `ERR_MODULE_NOT_FOUND … pool.ts`; harness `GET /api/orders/pool` (Toàn quyền) `{"error":{"code":"not_found","message":"Không tìm thấy đơn."}}` `404 !== 200` — đúng bẫy Review Focus 3 (route `:id` nuốt chữ "pool"); ca ai-thấy-hàng-chờ `404 !== 403`; ghim dòng PARTNER (thiếu `order.pool.view`); route-access (74) và bảng ADR (27 thao tác) đỏ.
+
+**Đỏ trước (b)** — trên mã dcba739: 21 ca, ví dụ HDV `GET /api/orders/pool` → `{"error":{"code":"forbidden","message":"Tài khoản này không dùng được màn hình đơn."}}` `403 !== 200`; HDV `GET /api/orders` `403 !== 200`; chi tiết đơn không phụ trách `403 !== 404`; audit `P4` `403 !== 200`, `R5` `403 !== 200`; `permissions.test.ts` đỏ khi nạp (chưa có `seesOnlyAssignedOrders`).
+
+**Thấy chặn thật (4 đột biến, hoàn nguyên từ bản sao, `diff -q` sạch):** (1) `money.view` FIELD `none` → 6 ca đỏ, gồm `not ok 17 - ADR-0030 L1-3 (d)` `403 !== 200` và `cong-quyen` `money.view lệch order.view ở FIELD 'none' !== 'assigned'`; (2) thêm `customerPhone` vào `toPoolOrder` → `not ok 1 - phần hẹp: đơn điền ĐỦ MỌI TRƯỜNG` `+ 'customerPhone'` (harness vẫn xanh vì SQL không đọc cột SĐT — lớp 1 giữ); (3) bỏ `|| holdsPartner(staff)` ở route pool → `not ok 10 - … (L1-5)` `aaaaaaaa-… {"orders":[…]}` `200 !== 403`; (4) `listOrders` bỏ điều kiện khi mảng rỗng → `not ok 15 - … KHÔNG phụ trách đơn nào → … DANH SÁCH RỖNG` + audit P4. Thêm: dòng Bảng tin (NT-3) nay tự bắt lỗi trên bảng quyền thật — đột biến chỉ `nhanSuKien` (không đụng `MATRIX`) → 3 ca đỏ; ghi bổ sung ở dòng đó của `docs/SO-HANG-RAO.md`.
+
+**Kết quả:** `npm test` 1002/1002; `npm run typecheck` 0 lỗi; `node --test "tests/audit/*.test.mjs"` **36/36** — nợ cũ `P4 FINDING HDV` dọn xong (đổi thành "P4 (đã sửa, ADR-0014 điều 6 + ADR-0030 S23-4)": danh sách 200 rỗng, chi tiết đơn không phụ trách 404, Quản trị giao → 200 rồi thấy đúng đơn đó).
+
+**e2e (`npm run test:e2e` đủ bộ, sau (b)):** 17/21 xanh, `audit-invariants --strict` đạt. Đỏ 4 kịch bản, mỗi kịch bản dừng ở khẳng định đỏ ĐẦU TIÊN:
+- `orders.mjs:264` FIELD mở đơn `404` (đòi 403) — dòng bảng R1 `orders.mjs:264`.
+- `dispatch.mjs:189` FIELD tự nhận đơn đã có người `409` (đòi 403) — dòng bảng R1 `dispatch.mjs:151-164` (số dòng đã dời).
+- `permissions.mjs:37` FIELD `GET /api/orders` `200` (đòi 403) — dòng bảng R1 `permissions.mjs:28-41`.
+- `bangtin.mjs:126` CA 4 "field chưa liên quan tới đơn, chưa nhận tin nào" `1` (đòi 0) — **KHÔNG có trong bảng**: HDV nay có nhãn `cho-nhan` nên nhận ĐÚNG MỘT tin `nhan` lúc đơn rời hàng chờ (luật (b) S20-8, L1-9 "ngoại lệ duy nhất") — đúng thiết kế đã duyệt; hai khẳng định đếm sau đó của CA 4 (1 → 2, 2 → 3) cùng lý do. Không sửa (luật "đỏ ngoài bảng: báo điều phối").
+
+**Chẩn đoán tạm (không commit, hoàn nguyên, cây sạch):** (i) chỉ đổi 3 khẳng định đếm của CA 4 sang kỳ vọng mới → `bangtin` 1/1 xanh, **CA 11a, 11b xanh**; (ii) chỉ đổi các dòng đã biết của bảng (orders:264 → 404; dispatch:189 → 409; dispatch:237 FIELD nhận đơn riêng → 200; permissions fieldDenied → danh sách 200/chi tiết 404/hàng chờ 200) cộng `permissions.mjs:120` → `orders catalog dispatch permissions` 4/4 xanh. Nghĩa là ngoài các dòng bảng, chỉ còn **hai chỗ ngoài bảng**: `bangtin.mjs` CA 4 (3 khẳng định) và `permissions.mjs:120` ("bỏ ACCOUNTING → mất quyền xem đơn ngay": tài khoản chỉ-FIELD nay 200 danh sách rỗng — cùng nghĩa dòng fieldDenied nhưng không nằm trong số dòng của bảng). Để Task 1.9 sửa sau khi điều phối xác nhận.
+
+**Ruling người thi công (bề mặt, đảo ngược được):** che = thay từng chữ số bằng "•", giữ dấu ngăn; dấu ngăn thêm ngoặc đơn, dấu cộng, gạch dài (chặt hơn Q-N — số bàn "(0258) 3521 234" lọt nếu không thêm); che cả tên dịch vụ (dịch vụ nhập tay là chữ tự do); thứ tự hàng chờ: ngày đi gần nhất trước, chưa có ngày xuống cuối, hoà theo mã đơn; `departDate` = ngày khởi hành lớn nhất (cùng định nghĩa `tripDeparted`); SQL lọc thô tập cha (ngày ≥ hôm nay hoặc không có ngày) + luật quyết định ở `toPoolOrders`; `listOrders.orderIds` bắt buộc, `[]` = không đơn nào; audit P4 thêm ca "giao → thấy đơn" (nợ ADR-0014 điều 6).
+
 ## Phối hợp với nhánh khác (Thông báo hệ thống) — ghi 2026-09-27, điều phối
 
 Một phiên AI khác đang làm nhánh `worktree-thong-bao-he-thong` (kế hoạch Thông báo hệ thống, số migration 0025, **CHƯA có mã, đang chờ chủ duyệt**) báo trước các chỗ hai nhánh sẽ đụng khi gộp. Đây là ghi chú điều phối, KHÔNG phải chủ dự án ra lệnh, KHÔNG đổi phạm vi lượt 1 của kế hoạch này — chỉ để người thi công các Task 1.3/1.4 và người gộp sau này biết mà tránh xung đột hoặc mất luật. Ghi nguyên các điểm chạm, áp dụng khi tới Task tương ứng hoặc lúc gộp:
