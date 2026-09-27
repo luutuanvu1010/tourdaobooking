@@ -1,215 +1,257 @@
 # Đặc tả (bản nháp): Thông báo hệ thống — chuông, hộp thông báo, tin của Toàn quyền, thông báo màn hình khoá
 
-- **Trạng thái:** bản nháp, chờ chủ duyệt. **Duyệt làm hai lượt** (CLAUDE.md §9: tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt):
-  - **Lượt 1** — §3–§8: hộp thông báo + tin thủ công. Ba quyết định Q1–Q3 **chủ đã trả lời trong chat 2026-09-27** (ghi ở §2). Văn bản quyết định: `docs/adr/ADR-0034-thong-bao-he-thong-hop-thong-bao.md` (proposed).
-  - **Lượt 2** — §9: thông báo lên màn hình khoá (Web Push). Ba quyết định P1–P3 **chưa hỏi**; chỉ hỏi sau khi lượt 1 được duyệt. Có ADR riêng khi hỏi (dự kiến ADR-0035).
+- **Trạng thái:** bản nháp, chờ chủ duyệt. Chủ đã trả lời **đủ các câu hỏi** trong chat 2026-09-27 (§2). **Duyệt làm hai lượt** (CLAUDE.md §9: tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt):
+  - **Lượt 1** — hộp thông báo + tin thủ công: `docs/adr/ADR-0034-thong-bao-he-thong-hop-thong-bao.md` (proposed). Ba quyết định chạm quyền/dữ liệu: (1) hộp là hình chiếu của sổ nhật ký, (2) bảng tin thủ công + xác nhận đã hiểu + mốc đã đọc, (3) ô quyền `notice.send`.
+  - **Lượt 2** — thông báo màn hình khoá: `docs/adr/ADR-0035-thong-bao-man-hinh-khoa.md` (proposed). Ba quyết định: (1) lưu địa chỉ nhận của máy, (2) khoá bí mật mới + cú gõ cửa không nội dung, (3) luật tự tắt.
 - **Ngày:** 2026-09-27. **Người soạn:** AI (phiên lập kế hoạch; không thi công trong phiên này — P15).
-- **Không xây trên lỗ đang hở:** `docs/quyen-hoan.json` mục `phat_hien` đang rỗng (kiểm 2026-09-27); các mục `thao_tac` hoãn không liên quan (thu tiền, hoá đơn, `task.progress`, `dispatch.guides.view`).
-- **Số đã giữ:** migration `0025_*` (số lớn nhất ở `main` và mọi nhánh cục bộ là 0024; `0019` dành cho B5). ADR-0034 (0030–0032 dành cho Đơn tự do, 0033 đã dùng).
+- **Không xây trên lỗ đang hở:** `docs/quyen-hoan.json` mục `phat_hien` rỗng (kiểm 2026-09-27).
+- **Số đã giữ:** migration `0025_*` (số lớn nhất ở `main` và mọi nhánh cục bộ là 0024; `0019` dành cho B5). ADR-0034, ADR-0035 (0030–0032 dành cho Đơn tự do, 0033 đã dùng).
+- **Cổng trước thi công giao diện:** bản mẫu bấm thử được (iPhone + máy tính) do AI vẽ, **chủ duyệt** rồi mới làm, làm đúng 100% bản mẫu (§2 E1; bài học Đợt D).
 
 ## 0. Bài toán bằng lời thường
 
-Hôm nay app có **thông báo nổi** (Bảng tin, ADR-0022): hiện chốc lát trên màn hình **đang mở** khi đơn đổi trạng thái. Không lưu: ai đang tắt app thì lỡ, không xem lại được. Admin cũng không có cách nào gửi một tin cho mọi người.
+Hôm nay app có **thông báo nổi** (Bảng tin, ADR-0022): hiện chốc lát trên màn hình **đang mở** khi đơn đổi trạng thái; không lưu, tắt app là lỡ. Admin không có cách gửi tin cho mọi người.
 
-Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **danh sách tin** gồm (a) tin do chủ/Toàn quyền soạn, (b) tin tự động khi **trạng thái đơn đổi** (mới lập, có HDV nhận, được xác nhận, bị huỷ…); và **đợt này làm luôn** thông báo lên màn hình khoá iPhone.
+Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **hộp thông báo** gồm (a) tin do Toàn quyền soạn (có loại quan trọng phải bấm "Đã hiểu"), (b) tin tự động khi **trạng thái đơn đổi**, kèm tên người làm ("Hùng vừa nhận đơn DH-123"); và **thông báo lên màn hình khoá** iPhone cho nhân viên nội bộ.
 
 ## 1. Hiện trạng (đã rà mã, `main` a74048e)
 
-- Bảng tin: module `bangtin` hạng `KHONG_DB` (không bảng), sự kiện đúng 5 khoá, không tên người (`src/shared/bang-tin.ts:12`). Điểm phát `ctx.baoThayDoi` bắn-và-quên sau khi ghi (`src/index.ts:37-49`). Thông báo nổi chỉ cho 5 loại, không cho Đối tác/Thực tập (`src/shared/bang-tin.ts:80-110`).
-- Nhật ký `audit_log`: ghi **cùng batch** với thao tác qua `auditStatement` (`src/modules/audit/index.ts:19`) — tiền lệ "module khác đưa câu lệnh vào batch của mình mà vẫn giữ luật chỉ-module-chủ-ghi-bảng".
-- Mẫu "đã xem": cột `submitter_seen_at`/`admin_seen_at` của Góp ý (`migrations/0016_feedback.sql`), chấm đếm `GET /api/feedback/badge`.
-- Service worker `web/sw/sw.ts`: chỉ `install/activate/fetch`, chưa có `push`.
-- Chưa có quyền "gửi thông báo". `SUPER_ADMIN` = `any` ở mọi thao tác (`src/shared/permissions.ts:40`).
+- Bảng tin: module `bangtin` hạng `KHONG_DB`, sự kiện đúng 5 khoá, không tên người (`src/shared/bang-tin.ts:12`). Điểm phát `ctx.baoThayDoi` sau khi ghi (`src/index.ts:37-49`). Thông báo nổi chỉ 5 loại, không cho Đối tác/Thực tập (`src/shared/bang-tin.ts:80-110`). Đóng kết nối khi ngưng tài khoản/đổi PIN/đổi quyền: `dongBangTin` (`src/modules/accounts/index.ts:182,266,282,319,500,532,593`).
+- **Sổ nhật ký `audit_log`** ghi **cùng lô** với mọi thao tác đơn (`auditStatement`, `src/modules/audit/index.ts:19`), có người làm (`staff_id`), đơn (`order_id`), hành động, giờ. Hành động về đơn: `created`, `confirmed`, `cancelled`, `order_cancelled_by_field`, `order_handler_changed` (`src/shared/audit-actions.ts:18-25`). `order_handler_changed` **không** phân biệt "tự nhận" với "được giao" (`src/modules/dispatch/service.ts:25-31`: chi tiết là câu chữ có tên, không có mã người mới).
+- View công bố: `v_ord_order_label` chỉ `id, order_code` (`migrations/0009_orders_label_view.sql`) — **không** có người lập; `v_dsp_order_handler` có `order_id, staff_id` (`migrations/0014_dispatch.sql:64`); `v_stf_staff_label` (tên nhân viên).
+- Mẫu "đã xem": cột `*_seen_at` của Góp ý (`migrations/0016_feedback.sql`), chấm đếm `GET /api/feedback/badge`.
+- Service worker `web/sw/sw.ts`: chưa có `push`. Đăng xuất `POST /api/auth/logout` là route công khai, chỉ xoá cookie (`src/modules/auth/index.ts:171`).
+- `SUPER_ADMIN` = `any` ở mọi thao tác (`src/shared/permissions.ts:40`).
 
-## 2. Quyết định của chủ (chat 2026-09-27, nguyên ý)
+## 2. Quyết định của chủ (chat 2026-09-27)
 
-| # | Câu hỏi | Chủ chọn |
+| # | Câu hỏi | Chủ chọn | Căn cứ đã nêu khi hỏi |
+|---|---|---|---|
+| H1 | Hình thức | Chuông + hộp thông báo; vẫn giữ thông báo nổi | |
+| H2 | Tin thủ công gửi cho ai | Toàn công ty **hoặc** theo nhóm quyền | |
+| H3 | Ai nhận tin về đơn nào | Giữ đúng luật "ai thấy" của thông báo nổi | |
+| H4 | Màn hình khoá | Làm luôn đợt này | |
+| Q1 | Ai gửi tin thủ công | **Chỉ Toàn quyền** | |
+| Q2 | Tin về đơn có tên người làm | **Có tên** | |
+| Q3 | Tin về đơn phải chắc chắn hay được lỡ | **Chắc chắn** | |
+| N1 | Tin về đơn lấy từ đâu | **Đọc lại từ sổ nhật ký** — hộp là hình chiếu | Hiến chương 1.4, 4.1, K16; Hiến pháp P6 |
+| N2 | Làm ngay hay chờ sau sổ tiền | **Làm ngay**; thông báo không bao giờ kích hoạt tiền | Hiến chương 5.13, 5.10; Hiến pháp P3 |
+| N3 | Tin quan trọng | **Có**, bắt bấm "Đã hiểu", Toàn quyền xem ai đã/chưa | Hiến pháp P5 |
+| N4 | Lỡ thông báo màn hình khoá | **Chấp nhận lỡ** (hộp vẫn giữ đủ) | Hiến chương 5.16 |
+| E1 | Thiết kế giao diện | **AI vẽ bản mẫu, chủ duyệt**, làm đúng 100% | bài học Đợt D |
+| E2 | Khi nào "đã đọc" | **Mở hộp là đọc hết** (trừ tin quan trọng) | |
+| E3 | Việc của chính mình | **Không hiện** cho chính người làm | |
+| E4 | Chống ngợp | **Hai ngăn "Của tôi" / "Tất cả"**; số đỏ chỉ đếm "Của tôi" | Hiến pháp P11 |
+| M1 | Rung máy cho tin nào | **Chỉ ngăn "Của tôi"** | |
+| M2 | Giờ yên lặng | **22:00–06:00 giờ Việt Nam**, trừ tin quan trọng | |
+| M3 | Máy còn nhận khi đăng xuất/đổi PIN/đổi quyền/ngưng | **Tự tắt, phải bật lại** | |
+| M4 | Đối tác nhận trên màn hình khoá | **Chưa — đợt này chỉ nội bộ** | |
+| X1 | "Mới có HDV xác nhận" là gì | **HDV bấm nhận đơn** (`nhan`) | |
+| X2 | Tin chờ nhận đã có người nhận | **Mờ đi, ghi "đã có người nhận"** | |
+| X3 | Nhắc tin quan trọng chưa hiểu | **Dải ở đầu mọi trang** | |
+| X4 | Giữ tin bao lâu | **30 ngày**; tin quan trọng chưa "Đã hiểu" giữ tới khi bấm | |
+
+Cảnh báo đã nói với chủ (P18, mỗi điều một lần): (a) theo H3, khi ADR-0017 (HDV xem mọi đơn) thi công ở GĐ2, **mọi HDV có tin về mọi đơn** ở ngăn "Tất cả" (ngăn "Của tôi" không đổi); (b) H4 đưa sớm "giai đoạn 6" của ADR-0018; (c) thông báo là tầng xây sau cùng (5.13) — chủ chọn làm ngay (N2).
+
+## 3. Phạm vi
+
+**Có:** chuông + số chưa đọc ở khung mọi trang; hộp thông báo hai ngăn; tin tự động về đơn kèm tên người làm; màn "Gửi thông báo" cho Toàn quyền (soạn, đánh dấu quan trọng, xem đã gửi, xem ai đã/chưa "Đã hiểu", thu hồi); dải nhắc tin quan trọng; thông báo màn hình khoá cho tài khoản nội bộ (lượt 2).
+
+**Không (YAGNI):** đánh dấu đọc từng tin thường; tin có ảnh/tệp; hẹn giờ gửi; chọn đích danh từng người; email; mỗi người tự chọn loại tin; giờ yên lặng tuỳ người; màn hình khoá cho Đối tác (cần hàng đợi — đợt sau); tin về đơn cho Đối tác/Thực tập (ADR-0014 điều 12 giữ).
+
+## 4. Tin về đơn — hình chiếu của sổ nhật ký (N1)
+
+### 4.1 Không ghi gì thêm
+
+Tin về đơn **không có bảng riêng**. Hộp thông báo đọc các dòng `audit_log` về đơn trong 30 ngày qua view công bố của module `audit`. Vì nhật ký đã ghi cùng lô với thao tác (Hiến chương 4.1), tin **không thể lệch hay mất** so với việc thật (Q3 thoả mà không sửa lô ghi nào); tên người làm có sẵn (`staff_id` → `v_stf_staff_label`).
+
+| Loại | Lấy từ hành động nhật ký | Câu hiển thị (mẫu; chữ cuối cùng duyệt ở bản mẫu) |
 |---|---|---|
-| H1 | Hình thức | Chuông + hộp thông báo (xem lại được, đã đọc/chưa đọc); vẫn giữ thông báo nổi |
-| H2 | Tin thủ công gửi cho ai | Toàn công ty **hoặc** theo nhóm quyền |
-| H3 | Mỗi người nhận tin về đơn nào | **Giữ đúng luật hiện nay** (ai được thấy thông báo nổi về đơn đó) |
-| H4 | Màn hình khoá iPhone | **Làm luôn đợt này** |
-| Q1 | Ai được soạn/gửi tin thủ công | **Chỉ Toàn quyền** (`SUPER_ADMIN`) |
-| Q2 | Tin về đơn có ghi tên người làm không | **Có tên** (chủ trả lời 2026-09-27, lượt hỏi thứ hai: *"1- Có tên"*). Câu hiển thị kèm tên người thao tác, ví dụ "Lan vừa nhận đơn DH-123". Ánh xạ tạm (chờ chủ xác nhận): "mới có HDV xác nhận" = `nhan` (HDV tự nhận đơn); `xac_nhan` = văn phòng xác nhận đơn. |
-| Q3 | Ghi tin về đơn chắc chắn hay bắn-và-quên | **Chắc chắn** — ghi cùng batch với thao tác đơn |
+| Lập đơn | `created` | Lan vừa lập đơn mới DH-… |
+| Lập đơn, **lúc lập** chưa có người phụ trách | `created` + (§4.2 X2) | Lan vừa lập đơn DH-…, chưa có người phụ trách |
+| HDV/nhân viên tự nhận | `order_claimed` (**hành động nhật ký mới** — §4.3) | Hùng vừa nhận đơn DH-… |
+| Giao/đổi người phụ trách | `order_handler_changed` | Lan vừa giao đơn DH-… cho người khác phụ trách |
+| Xác nhận | `confirmed` | Lan vừa xác nhận đơn DH-… |
+| Huỷ | `cancelled`, `order_cancelled_by_field` | Hùng vừa huỷ đơn DH-… |
 
-Cảnh báo đã nói với chủ trong chat 2026-09-27 (P18, một lần): theo H3, khi ADR-0017 (HDV xem mọi đơn) được thi công ở GĐ2, **mọi HDV sẽ nhận tin về mọi đơn** trong hộp — chỉnh riêng nếu thấy nhiều. Cảnh báo thứ hai nêu trong báo cáo cuối phiên: H4 đưa sớm "giai đoạn 6" của lộ trình ADR-0018.
+Các hành động khác (`updated`, `trip_updated`, tiền…) không vào hộp. Người làm là hệ thống (`staff_id` NULL) → câu không tên ("Đơn DH-… vừa …").
 
-## 3. Phạm vi lượt 1
+### 4.2 Ai thấy — theo trạng thái HIỆN TẠI của đơn và quyền HIỆN TẠI của người xem
 
-**Có:** chuông + số chưa đọc ở khung mọi trang; trang/ngăn "Thông báo"; tin tự động về đơn; màn "Gửi thông báo" cho Toàn quyền (soạn, xem đã gửi, thu hồi); nhật ký gửi/thu hồi.
+Lúc đọc, với mỗi dòng nhật ký, tính nhãn bằng `nhanSuKien` (ADR-0022) trên **trạng thái hiện tại**: người lập (view của `orders` — §6.2), người phụ trách hiện tại (`v_dsp_order_handler`); `handlerTruoc` = không rõ. Người xem T thấy tin khi:
+1. một nhãn nằm trong `nhanKetNoi(T)` tính theo quyền hiện tại; **và**
+2. T qua điều kiện "được thấy tin về đơn" — **tách** từ `thongBaoNoi` thành hàm dùng chung trong `src/shared/bang-tin.ts` (văn phòng hoặc HDV; loại chờ nhận cần `dispatch.claim`); `thongBaoNoi` gọi lại hàm đó, không đổi hành vi; **và**
+3. T **không** phải người làm (E3).
 
-**Không (YAGNI):** đánh dấu đọc từng tin; ghim/dải trên cùng; tin có ảnh/tệp; hẹn giờ gửi; chọn đích danh từng người; email; tin về đơn cho Đối tác/Thực tập (điều 12 ADR-0014 giữ: họ chỉ có chấm đếm — chưa xây, ngoài phạm vi).
+Hệ quả có chủ ý (chủ đã nghe ở N1): người **vừa bị chuyển khỏi** đơn không còn thấy tin về đơn đó; người **mới** phụ trách thấy cả tin cũ của đơn; ai bị rút quyền thì tin cũ tự ẩn.
 
-## 4. Hai loại tin
+**Tin chờ nhận đã có người (X2):** dòng `created` của đơn **lúc lập** chưa có người phụ trách mà nay đã có → vẫn hiện, **mờ đi**, thêm chữ "đã có người nhận". "Lúc lập chưa có người" suy từ lịch sử phân công qua view công bố của `dispatch` (§6.2).
 
-### 4.1 Tin về đơn (tự động)
+### 4.3 Hành động nhật ký mới `order_claimed`
 
-Sinh ra khi thao tác đơn **đã ghi thành công** (cùng batch — Q3). Loại tin lấy từ bộ `THAY_DOI` có sẵn:
+`handlerChangeStatements` (`src/modules/dispatch/service.ts:25`) ghi `order_claimed` khi người làm tự đặt mình vào đơn **chưa có** người phụ trách (cùng luật `thayDoiCuaHandler`, `src/shared/bang-tin.ts`), còn lại vẫn `order_handler_changed`. Chỉ thêm một dòng vào `src/shared/audit-actions.ts`, không migration (CHECK liệt kê đã bỏ ở 0007). Dòng nhật ký cũ trước ngày phát hành vẫn là `order_handler_changed` → hiện là "giao" (chấp nhận, chỉ ảnh hưởng tin ≤ 30 ngày quanh lúc phát hành).
 
-| Loại | Khi nào | Câu hiển thị (kèm tên người thao tác — Q2; mẫu, chờ chủ duyệt chữ) |
-|---|---|---|
-| `tao` | Lập đơn, đơn có người phụ trách ngay | Lan vừa lập đơn mới DH-… |
-| `tao_cho_nhan` | Lập đơn, chưa ai phụ trách | Lan vừa lập đơn DH-…, chưa có người phụ trách |
-| `nhan` | Có người tự nhận đơn | Hùng vừa nhận đơn DH-… |
-| `giao` | Đổi/giao người phụ trách | Lan vừa giao đơn DH-… cho người khác phụ trách |
-| `xac_nhan` | Xác nhận đơn | Lan vừa xác nhận đơn DH-… |
-| `huy` | Huỷ đơn (văn phòng hoặc HDV huỷ) | Hùng vừa huỷ đơn DH-… |
+### 4.4 Hai ngăn (E4)
 
-`sua`, `chuyen`, `tien` **không** vào hộp (chỉ làm mới màn hình như hôm nay). `tao` là loại **mới so với thông báo nổi** (chủ nêu "mới lập"); thông báo nổi không đổi.
+- **"Của tôi"** = tin thủ công gửi tới mình + tin về đơn có nhãn `nguoi:<mình>` (mình lập / mình phụ trách) + tin chờ nhận (nếu mình nhận được).
+- **"Tất cả"** = "Của tôi" + tin về đơn nhãn `tat-ca`.
+- **Số đỏ trên chuông chỉ đếm "Của tôi"**, tin có thời điểm sau mốc đã đọc (E2), hiện tối đa "9+". Số và danh sách đi qua **cùng một** hàm lọc (tiêu chí §8).
+- Mở hộp (bất kỳ ngăn) = đặt mốc đã đọc = giờ máy chủ.
 
-**Ai thấy (H3):** nhãn sự kiện = `nhanSuKien` (ADR-0022) áp lên **ảnh chụp lúc sự kiện** (người lập, người phụ trách trước/sau — lưu kèm tin, §6.1). Lúc đọc, tin hiện với tài khoản T khi (i) một nhãn của tin nằm trong `nhanKetNoi(T)` **tính lại theo quyền hiện tại**, và (ii) T qua điều kiện "được thấy tin về đơn" — điều kiện này hôm nay nằm **bên trong** `thongBaoNoi` (T là văn phòng hoặc HDV; `tao_cho_nhan` cần `dispatch.claim`). Vì `thongBaoNoi` trả `null` cho `tao` (không có câu), phải **tách điều kiện ra một hàm dùng chung** trong `src/shared/bang-tin.ts` (`thongBaoNoi` gọi lại nó — tái cấu trúc, không đổi hành vi thông báo nổi, test hiện có giữ xanh). Không luật quyền viết tay mới. Hệ quả: ai bị rút quyền thì tin cũ tự ẩn. Số trên chuông và danh sách đi qua **cùng một** hàm lọc.
+## 5. Tin thủ công (Toàn quyền)
 
-Bấm tin → cùng đường dẫn như thông báo nổi (`/order?id=…` cho văn phòng, `/account` cho HDV); trang đích vẫn tự kiểm quyền.
-
-### 4.2 Tin thủ công (Toàn quyền)
-
-- Trường: **tiêu đề** (≤ 120 ký tự), **nội dung** (chữ thường, ≤ 2000 ký tự, giữ xuống dòng, không định dạng/HTML), **người nhận**: "Toàn công ty" hoặc tick ≥ 1 nhóm quyền trong `SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, INTERN, SUPER_ADMIN` (nhãn tiếng Việt từ `PERMISSION_LABELS`).
-- Nhãn lưu: `moi-nguoi` hoặc `quyen:<MÃ>`. Lúc đọc, T thấy tin khi có `moi-nguoi`, hoặc T đang có quyền `<MÃ>` (một tài khoản nhiều quyền thấy tin nếu trùng bất kỳ).
-- **Thu hồi:** Toàn quyền bấm "Thu hồi" → tin ẩn khỏi hộp của mọi người (đặt `valid_to`, không xoá hẳn). Không sửa nội dung sau khi gửi (muốn sửa: thu hồi, gửi tin mới).
-- Nhật ký: `notice_sent`, `notice_revoked` (chỉ mã tin + số nhóm; **không** chép nội dung, vì nội dung có thể chứa SĐT — CLAUDE.md §7).
-- Không gửi tin cho tài khoản đã ngưng (tự nhiên: tài khoản ngưng không đăng nhập được).
-
-## 5. Đã đọc
-
-Một mốc cho mỗi tài khoản: `doc_den_luc`. **Mở hộp thông báo = đánh dấu đã đọc mọi tin tới lúc đó.** Số trên chuông = số tin T được thấy có thời điểm > mốc (hiện tối đa "9+"). Tài khoản chưa có mốc: tính từ lúc tài khoản được tạo (không đổ dồn tin cũ lên người mới).
-
-Hộp hiện tin **30 ngày gần nhất**, tối đa 100 tin, mới nhất trên cùng; tin thủ công đã thu hồi không hiện. Tin cũ hơn vẫn nằm trong bảng (không xoá cứng) nhưng không hiện.
-
-Số chưa đọc cập nhật: khi tải trang, và khi Bảng tin báo có thay đổi đơn (đã có kết nối, không thêm kết nối mới). Tin thủ công mới hiện ở lần tải trang kế tiếp — hoặc ngay nếu lượt 2 (Web Push) được duyệt. Không thêm loại sự kiện vào Bảng tin (ADR-0022 điều 4 giữ nguyên).
+- Trường: **tiêu đề** (≤ 120 ký tự), **nội dung** (chữ thường ≤ 2000 ký tự, giữ xuống dòng, không định dạng), **quan trọng** (có/không), **người nhận**: "Toàn công ty" hoặc tick ≥ 1 nhóm quyền (`SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, INTERN, SUPER_ADMIN`, nhãn tiếng Việt từ `PERMISSION_LABELS`). T thấy tin khi tin nhắm `moi-nguoi` hoặc T **đang** có một trong các quyền được chọn.
+- **Tin quan trọng (N3, X3):** hiện **dải nổi bật ở đầu mọi trang** tới khi T bấm vào đọc và bấm **"Đã hiểu"**; vẫn thao tác app bình thường. Mỗi lần "Đã hiểu" ghi một dòng (ai, lúc nào) — chỉ-thêm. Toàn quyền xem danh sách **đã hiểu / chưa hiểu** trong số người **hiện** thuộc nhóm nhận. Tin quan trọng chưa "Đã hiểu" giữ trong hộp quá 30 ngày (X4) và không bị mốc đã đọc tắt.
+- **Thu hồi:** ẩn khỏi hộp và dải của mọi người (đặt `valid_to`, không xoá). Không sửa sau khi gửi (thu hồi rồi gửi tin mới).
+- **Nhật ký:** `notice_sent`, `notice_revoked`, `notice_acknowledged` — chỉ mã tin, không chép nội dung (nội dung có thể chứa SĐT — CLAUDE.md §7, Hiến chương 5.12).
+- Tin thủ công **là** thực thể (có vòng đời: đã gửi → đã thu hồi) — có bảng riêng, không phải hình chiếu.
 
 ## 6. Kiến trúc và dữ liệu (cho người lập kế hoạch)
 
-- **Module mới `thongbao`**, tiền tố bảng `ntf_`, hạng **STRICT** (SQL qua `defineSql`). Cách nối với module đơn: xem §6.1 (**chưa chốt**, người lập kế hoạch xác minh).
-- **Luật thuần** `src/shared/thong-bao.ts` (+ `.test.ts`): nhãn của người đọc (`nhanKetNoi` ∪ `quyen:*` ∪ `moi-nguoi`), điều kiện hiện tin về đơn (hàm tách từ `thongBaoNoi` — §4.1), câu hiển thị (bảng §4.1), kiểm đầu vào tin thủ công; một hàm lọc duy nhất dùng cho cả số chưa đọc và danh sách.
-- **Bảng (migration `0025_thong_bao.sql`, cập nhật `docs/data-dictionary.json` + `npm run dict`; cột ảnh chụp theo §6.1):**
-  - `ntf_item` — `id TEXT PK`, `kind TEXT` (`don` | `thu_cong`; không CHECK liệt kê — luật dự án), `order_id TEXT NULL`, `ma_don TEXT NULL`, `thay_doi TEXT NULL`, `nguoi_lap_id TEXT NULL`, `phu_trach_truoc_id TEXT NULL`, `phu_trach_sau_id TEXT NULL`, `co_phu_trach_truoc`/`co_phu_trach_sau INTEGER NULL`, `tieu_de TEXT NULL`, `noi_dung TEXT NULL`, `created_at`, `created_by TEXT NULL` (NULL = hệ thống), `valid_to TEXT NULL` (thu hồi), `updated_at`, `updated_by`.
-  - `ntf_item_tag` — `item_id`, `tag`; PK (`item_id`, `tag`); chỉ mục (`tag`, `item_id`). Dùng cho tin thủ công (tin về đơn tính nhãn lúc đọc từ ảnh chụp — §6.1).
-  - `ntf_read_mark` — `staff_id TEXT PK`, `doc_den_luc`, `updated_at`.
-  - Chỉ mục `ntf_item(created_at)`.
-- **Route** (mọi route khai `access`; ghi cần `Origin`):
-  - `GET /api/thong-bao` (cổng `staff`) — danh sách đã lọc.
-  - `GET /api/thong-bao/chua-doc` (cổng `staff`) — `{ soChuaDoc }`.
-  - `POST /api/thong-bao/da-doc` (cổng `staff`) — đặt mốc = giờ máy chủ.
-  - `GET /api/thong-bao/da-gui`, `POST /api/thong-bao`, `POST /api/thong-bao/:id/thu-hoi` — cổng `admin`, thân hỏi `can(staff, "notice.send")` trước mọi truy vấn.
-- **Quyền:** thao tác mới `notice.send` = `row("none","none","none","none","none","any","none")` (chỉ Toàn quyền — Q1). Thêm dòng `docs/SO-HANG-RAO.md` cho cổng này kèm ngày quan sát chặn thật (sửa cố ý → đỏ → hoàn nguyên).
-- **Trang:** `web/thong-bao.ts` (hộp) và `web/gui-thong-bao.ts` (Toàn quyền) khai `PAGES` + `build:web`; chuông trong `web/shell.ts`. Dựng bằng `h()`, không `innerHTML`; nội dung tin thủ công chèn bằng `textContent` (chống chèn mã). Giá trị CSS qua token; ô gõ 16px.
-- **Tài liệu mô tả** cập nhật cùng commit: `SYSTEM-DESIGN.md` (§5 bảng, §7 route, §8 quyền), `CHANGE-GUIDE.md` (công thức "thêm loại tin").
+### 6.1 Module và cạnh
 
-### 6.1 Ghi tin về đơn cùng lô — cơ chế CHƯA CHỐT (người lập kế hoạch xác minh trước khi viết kế hoạch)
+- **Module mới `thongbao`**, tiền tố `ntf_`, hạng **STRICT** (SQL qua `defineSql`). Chỉ `thongbao` ghi bảng `ntf_*`.
+- Cạnh: `thongbao → audit` (view sự kiện đơn + `auditStatement`), `thongbao → orders` (view người lập), `thongbao → dispatch` (view phân công), `thongbao → staff` (`v_stf_staff_label`). **Không** module nào import `thongbao` (gốc lắp ráp gọi hàm của nó cho màn hình khoá — lượt 2) → không vòng. Khai `ALLOWED_EDGES` trong `src/architecture.test.ts`.
+- **Không sửa lô ghi nào của `orders`**; `dispatch` chỉ đổi mã hành động nhật ký (§4.3).
 
-Sự thật đã kiểm trong mã (2026-09-27):
-- Mã đơn được sinh **ngay trong câu INSERT** (`src/modules/orders/repository.ts:606-633`) → mã JS của `orders` không biết `order_code` trước khi lô chạy.
-- `orders` không biết người phụ trách: `isAssigned` và `defaultHandlerStatement` do **gốc lắp ráp tiêm** qua `ctx` (`src/shared/router.ts:31-37`, `:118-119`); điểm phát Bảng tin đọc `findOrderRef` + `handlerOf` **sau** khi ghi (`src/index.ts:37-49`).
-- View công bố `v_ord_order_label` chỉ có `id, order_code` (`migrations/0009_orders_label_view.sql`) — **không** có người lập. `v_dsp_order_handler` có `order_id, staff_id` (`migrations/0014_dispatch.sql:64`).
+### 6.2 View công bố cần thêm (migration `0025`)
 
-Do đó cách "`orders` import hàm của `thongbao` như `auditStatement`" **không đủ** (thiếu mã đơn, người phụ trách). Khuyến nghị:
-- **Gốc lắp ráp tiêm** `ctx.tinDonStatements(orderId, thayDoi, handlerTruoc?)` (mẫu `defaultHandlerStatement`) — `orders`/`dispatch` **không** import `thongbao`, chỉ gộp câu lệnh nhận được vào `db.batch()` của mình, đặt **sau** câu ghi đơn/người phụ trách.
-- Câu lệnh là `INSERT … SELECT` (SQL thuộc `thongbao`) chụp vào dòng tin: mã đơn từ `v_ord_order_label`, người lập (cần **thêm cột `staff_id` vào view công bố của orders** — migration đổi view, hoặc view mới `v_ord_order_owner`), người phụ trách sau từ `v_dsp_order_handler`; người phụ trách trước do bên gọi truyền vào.
-- Nhãn tính **bằng JS lúc đọc** (`nhanSuKien` trên ảnh chụp) — luật một chỗ, không chép sang SQL. Cần đo: hộp 30 ngày có thể vài nghìn dòng lọc bằng JS; nếu chậm, chuyển sang bảng nhãn ghi sẵn.
-- Cạnh: `thongbao → orders, dispatch` (chỉ đọc view), `thongbao → staff, audit`. Không vòng vì `orders`/`dispatch` không import `thongbao`.
-- `tao` vs `tao_cho_nhan`: suy từ ảnh chụp người phụ trách sau (không có → `tao_cho_nhan`), cùng luật như `src/index.ts:44`.
+- `audit`: view sự kiện đơn (vd `v_aud_order_event`: `id, order_id, staff_id, action, created_at` cho đúng các hành động ở bảng §4.1; người lập kế hoạch kiểm tiền tố view của `audit`).
+- `orders`: người lập của đơn — view mới `v_ord_order_owner (id, staff_id)` (không sửa `v_ord_order_label` đang được đọc).
+- `dispatch`: "lúc lập đơn đã có người phụ trách chưa" (X2) — nếu `v_dsp_order_handler` (chỉ dòng đang mở) không đủ, thêm view mới (vd `v_dsp_first_handler_at (order_id, since)`). Người lập kế hoạch chọn, ghi vào kế hoạch.
+- Đo: ~30 ngày × vài chục dòng nhật ký/ngày → vài nghìn dòng lọc bằng JS mỗi lần mở hộp; nếu chậm (> 200 ms CPU), lọc sơ bằng SQL theo hành động + thời gian trước.
 
-Phương án dự phòng nếu cách trên vướng: ghi tin ở gốc lắp ráp **sau** lô (bắn-và-quên) — **trái Q3**, phải hỏi lại chủ.
+### 6.3 Bảng mới (migration `0025_thong_bao.sql`; cập nhật `docs/data-dictionary.json` + `npm run dict`)
+
+- `ntf_notice` — `id TEXT PK`, `tieu_de`, `noi_dung`, `quan_trong INTEGER` (0/1), `created_at`, `created_by`, `valid_to TEXT NULL` (thu hồi), `updated_at`, `updated_by`.
+- `ntf_notice_target` — `notice_id`, `tag` (`moi-nguoi` | `quyen:<MÃ>`); PK (`notice_id`, `tag`).
+- `ntf_ack` — `notice_id`, `staff_id`, `created_at`; PK (`notice_id`, `staff_id`); chỉ-thêm (trigger cấm UPDATE/DELETE).
+- `ntf_read_mark` — `staff_id TEXT PK`, `doc_den_luc`, `created_at`, `updated_at` (mốc do chính tài khoản đặt; id lấy từ phiên).
+- Không `CHECK` liệt kê; không xoá cứng; cột WHO `TEXT NULL` không khoá ngoại (luật dự án).
+
+### 6.4 Route (mọi route khai `access`; ghi cần `Origin` cùng site)
+
+| Route | Cổng | Kiểm trong thân |
+|---|---|---|
+| `GET /api/thong-bao?ngan=cua-toi\|tat-ca` | `staff` | lọc §4.2 + §5 |
+| `GET /api/thong-bao/tom-tat` → `{ soChuaDoc, quanTrongChuaHieu[] }` (chuông + dải) | `staff` | cùng hàm lọc |
+| `POST /api/thong-bao/da-doc` | `staff` | mốc của chính mình |
+| `POST /api/thong-bao/:id/da-hieu` | `staff` | T phải thuộc nhóm nhận của tin, tin chưa thu hồi |
+| `GET /api/thong-bao/da-gui`, `GET /api/thong-bao/:id/nguoi-da-hieu`, `POST /api/thong-bao`, `POST /api/thong-bao/:id/thu-hoi` | `admin` | `can(staff,"notice.send")` **trước mọi truy vấn** |
+
+### 6.5 Quyền
+
+Thao tác mới `notice.send` = `row("none","none","none","none","none","any","none")` (Q1). Dòng mới trong `docs/SO-HANG-RAO.md` cho chốt chặn này, kèm ngày quan sát chặn thật (sửa cố ý → đỏ → hoàn nguyên).
+
+### 6.6 Luật thuần và giao diện
+
+- `src/shared/thong-bao.ts` (+ `.test.ts`): hàm lọc duy nhất (ngăn, nhãn, người làm, quan trọng), câu hiển thị, kiểm đầu vào tin thủ công, giờ yên lặng (lượt 2, giờ Việt Nam như `vnToday`).
+- `web/thong-bao.ts` (hộp) và `web/gui-thong-bao.ts` (Toàn quyền) khai `PAGES` + `build:web`; chuông + dải trong `web/shell.ts`; tải lại số khi Bảng tin báo có thay đổi (không thêm loại sự kiện Bảng tin — ADR-0022 giữ). Dựng bằng `h()`, nội dung tin bằng `textContent`; CSS qua token; ô gõ 16px. **Làm đúng bản mẫu đã duyệt** (E1).
+- Tài liệu mô tả cùng commit: `SYSTEM-DESIGN.md` (§5, §7, §8, §9), `CHANGE-GUIDE.md` (công thức "thêm loại tin về đơn" = thêm hành động vào view + bảng câu).
 
 ## 7. Ca biên
 
-- Thao tác đơn thất bại / bị chặn tranh chấp → không có tin (cùng batch, `onlyIf`).
-- Đơn bị huỷ sau khi có tin "mới lập": cả hai tin cùng hiện (lịch sử), bấm vào thấy trạng thái hiện tại.
-- Tài khoản vừa bị rút quyền văn phòng: tin nhãn `tat-ca` biến khỏi hộp ở lần tải tiếp.
-- Người phụ trách là hồ sơ không có tài khoản: không có nhãn `nguoi:` cho họ (giống Bảng tin).
-- Nội dung tin thủ công chứa SĐT/email: cho phép (chủ tự viết), nhưng nhật ký không chép nội dung.
-- Hai Toàn quyền thu hồi cùng lúc: lần hai trả 409 "Tin đã được thu hồi".
-- Chế độ bảo trì bật: tài khoản bị chặn không gọi được API → không thấy gì; không có ngoại lệ.
+- Thao tác đơn thất bại / bị chặn tranh chấp → không có dòng nhật ký → không có tin (tự nhiên).
+- Đơn lập rồi bị huỷ: hai tin cùng hiện; bấm vào thấy trạng thái hiện tại.
+- Người phụ trách là hồ sơ không có tài khoản: không có nhãn `nguoi:` (giống Bảng tin).
+- Tài khoản đổi quyền: tin thủ công theo nhóm và tin nhãn `tat-ca` hiện/ẩn theo quyền mới ở lần tải tiếp; danh sách "chưa hiểu" của Toàn quyền tính theo nhóm hiện tại.
+- Hai Toàn quyền thu hồi cùng lúc: lần hai 409 "Tin đã được thu hồi". Bấm "Đã hiểu" hai lần: lần hai không ghi thêm (PK), trả OK.
+- Nội dung chứa `<script>`: hiện nguyên văn là chữ.
+- Chế độ bảo trì: tài khoản bị chặn không gọi được API → không thấy gì.
 
 ## 8. Tiêu chí nghiệm thu lượt 1 (hành vi kiểm được)
 
-1. Lập đơn bằng tài khoản Bán hàng A → Kế toán B mở chuông thấy "Đơn mới: DH-…" và số chưa đọc = 1; mở hộp → số về 0.
-2. Đơn lập bởi Đối tác (chưa ai phụ trách) → HDV có `dispatch.claim` thấy "Có đơn mới chưa có người phụ trách"; Đối tác khác và Thực tập **không** thấy.
-3. HDV nhận đơn → người lập thấy "vừa có người nhận"; một HDV khác không liên quan **không** thấy (trước ADR-0017).
-4. Batch đơn bị làm hỏng giữa chừng (test) → không có dòng `ntf_item` nào.
-5. Toàn quyền gửi tin cho nhóm "Kế toán" → Kế toán thấy, Bán hàng không thấy; tài khoản Bán hàng + Kế toán thấy.
-6. Tài khoản Quản trị (không Toàn quyền) gọi `POST /api/thong-bao` → 403; không có dòng mới. Bằng curl thiếu `Origin` → 403.
-7. Thu hồi → tin biến khỏi hộp mọi người; `audit_log` có `notice_revoked`, không chứa nội dung.
-8. Tin thủ công chứa `<script>` hiện nguyên văn là chữ.
-9. Rút quyền văn phòng của B → tin nhãn `tat-ca` không còn trong hộp của B.
-10. Số trên chuông luôn bằng số tin chưa đọc mà danh sách hiện (test luật thuần dùng cùng bộ dữ liệu cho cả hai; e2e so hai route).
-11. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e` xanh; `audit-invariants --db local` đạt; kịch bản Chrome: chuông, hộp, màn gửi (ảnh vào `docs/evidence/`).
-12. Việc lớn (dữ liệu + quyền): có báo cáo người kiểm độc lập chỉ đọc.
+1. Bán hàng A lập đơn → Kế toán B thấy "A vừa lập đơn mới DH-…" ở ngăn "Tất cả", **không** ở "Của tôi", số đỏ của B không tăng; A **không** thấy tin của chính mình.
+2. Đối tác lập đơn (chưa ai phụ trách) → HDV có `dispatch.claim` thấy tin chờ nhận ở "Của tôi", số đỏ +1; Đối tác khác và Thực tập không thấy. HDV H nhận đơn → HDV khác thấy tin chờ nhận **mờ, "đã có người nhận"**; người lập thấy "H vừa nhận đơn DH-…".
+3. Lô ghi đơn bị làm hỏng giữa chừng (test) → không có tin (không dòng nhật ký).
+4. Toàn quyền gửi tin thường cho nhóm "Kế toán" → Kế toán thấy, Bán hàng không; tài khoản Bán hàng + Kế toán thấy.
+5. Tin quan trọng → dải hiện ở mọi trang của người nhận; bấm "Đã hiểu" → dải tắt, `ntf_ack` có dòng, `audit_log` có `notice_acknowledged` không chứa nội dung; Toàn quyền thấy người đó ở cột "đã hiểu".
+6. Quản trị (không Toàn quyền) gọi `POST /api/thong-bao` → 403, không có dòng mới; curl thiếu `Origin` → 403.
+7. Thu hồi → tin biến khỏi hộp và dải của mọi người; nhật ký `notice_revoked`.
+8. Số đỏ luôn bằng số tin chưa đọc ở ngăn "Của tôi" (test luật thuần cùng bộ dữ liệu; e2e so hai route).
+9. Rút quyền văn phòng của B → tin `tat-ca` biến khỏi hộp B. Chuyển người phụ trách từ C sang D → D thấy tin cũ của đơn, C không còn.
+10. Tin > 30 ngày không hiện, trừ tin quan trọng chưa "Đã hiểu".
+11. `npm test`, `npm run typecheck` (0 lỗi), `npm run test:e2e` xanh; `audit-invariants --db local` đạt; kịch bản Chrome nhiều khổ màn (390, 768 dựng đứng, 1040, 1440) đối chiếu **từng khối** với bản mẫu đã duyệt, ảnh vào `docs/evidence/`.
+12. Việc lớn (dữ liệu + quyền): báo cáo người kiểm độc lập chỉ đọc.
 
-## 9. Lượt 2 — thông báo lên màn hình khoá (Web Push) — CHỜ DUYỆT, chưa hỏi
+## 9. Lượt 2 — thông báo màn hình khoá (Web Push)
 
-Thiết kế để chủ duyệt sau lượt 1. Các điều "chưa kiểm" được tra cứu song song và ghi vào §9.4 trước khi hỏi.
+### 9.1 Cách hoạt động
 
-### 9.1 Cách hoạt động (khuyến nghị)
+- Trang Tài khoản có nút **"Bật thông báo trên màn hình khoá"** — chỉ cho **tài khoản nội bộ** (M4: tài khoản có ít nhất một quyền khác `PARTNER`; giả định, chủ sửa nếu sai). iPhone: chỉ hiện khi app đã **cài ra màn hình chính** (iOS 16.4+), nếu chưa thì hiện hướng dẫn cài. Xin quyền ngay trong cú chạm.
+- Có tin mới thuộc ngăn **"Của tôi"** của người đó (M1) → máy chủ gửi **cú gõ cửa không nội dung**; service worker **tự hỏi** `GET /api/thong-bao/tom-tat` (cookie phiên cùng nguồn) rồi hiện câu của tin mới nhất. Hỏi không được (401, mất mạng) → **vẫn** hiện "Tour Đảo: bạn có thông báo mới" (iOS bắt buộc mỗi lần đẩy phải hiện; không thì Safari thu hồi quyền). Không nội dung nào đi qua máy chủ Apple/Google.
+- **Giờ yên lặng 22:00–06:00 giờ Việt Nam** (M2): không gửi, trừ tin quan trọng. Tin vẫn vào hộp.
+- Gửi **sau** khi lô ghi thành công (`ctx.waitUntil`; tin về đơn móc vào điểm phát `baoThayDoi` có sẵn ở gốc lắp ráp, tin thủ công sau `POST /api/thong-bao`). Được phép lỡ (N4, Hiến chương 5.16) — hộp vẫn giữ đủ.
+- Máy chủ nhận 410 từ dịch vụ đẩy → đánh dấu địa chỉ hết hiệu lực; 404 chỉ ghi log.
+- **Tự tắt (M3):** đăng xuất (trình duyệt huỷ đăng ký + gọi route huỷ trước khi xoá cookie), đổi PIN, đổi quyền/vai, ngưng tài khoản, đổi SĐT → đánh dấu mọi địa chỉ của tài khoản hết hiệu lực — đặt cùng chỗ đang gọi `dongBangTin`. Người dùng phải bấm bật lại.
 
-- Người dùng bấm "Bật thông báo trên màn hình khoá" trong trang Tài khoản (iPhone: chỉ hiện khi app đã **cài ra màn hình chính**; nếu chưa, hiện hướng dẫn cài). Trình duyệt hỏi quyền → gửi "địa chỉ nhận" của máy lên máy chủ.
-- Khi có tin mới đáng rung (P1), máy chủ gửi một **"cú gõ cửa" không mang nội dung** tới dịch vụ đẩy của Apple/Google. Service worker nhận, **tự hỏi máy chủ** tin mới nhất (bằng phiên đăng nhập của chính máy đó) rồi hiện thông báo. Không nội dung nào đi qua máy chủ Apple/Google. Hỏi không được (phiên hết hạn, mất mạng) → vẫn hiện "Tour Đảo: bạn có thông báo mới" (iOS bắt buộc mỗi lần đẩy phải hiện một thông báo, không thì thu hồi quyền — §9.4).
-- Gửi sau khi thao tác đã ghi xong (`ctx.waitUntil`); lỡ một cú gõ không mất tin (tin đã nằm trong hộp — Q3).
-- Địa chỉ nhận trả 410 → đánh dấu hết hiệu lực (404 chỉ ghi log — §9.4).
+### 9.2 Dữ liệu và bí mật
 
-### 9.2 Dữ liệu (dự kiến, cùng migration hoặc `0026`)
+- `ntf_push_sub` — `id`, `staff_id`, `endpoint`, `thiet_bi` (chuỗi ngắn để người dùng nhận ra máy), `created_at`, `revoked_at NULL`, `revoke_reason NULL`. Không lưu khoá mã hoá của máy (không gửi nội dung — tối thiểu dữ liệu). Không xoá cứng.
+- Bí mật mới `VAPID_PRIVATE_KEY` — **chủ** đặt bằng `wrangler secret put` (CLAUDE.md §8); khoá công khai trong `vars`. Ký JWT ES256 bằng Web Crypto (chữ ký r‖s 64 byte dùng thẳng), không thư viện ngoài.
+- Route: `POST /api/thong-bao/may` (đăng ký), `POST /api/thong-bao/may/huy` — cổng `staff`, chỉ cho chính mình, chỉ tài khoản nội bộ.
 
-`ntf_push_sub` — `id`, `staff_id`, `endpoint` (địa chỉ nhận), `user_agent_ngan` (để người dùng nhận ra máy), `created_at`, `revoked_at NULL`, `revoke_reason NULL`. Không lưu khoá mã hoá của máy (không cần vì không gửi nội dung — tối thiểu dữ liệu).
+### 9.3 Kết quả tra cứu (2026-09-27, tài liệu chính thức; chưa thử máy thật)
 
-Bí mật mới: `VAPID_PRIVATE_KEY` (chủ đặt bằng `wrangler secret put`); khoá công khai trong `vars`.
+- iOS 16.4+, app đã cài màn hình chính, xin quyền trong cú chạm; **không có đẩy im lặng** — mỗi lần đẩy phải `showNotification`, không thì bị thu hồi (webkit.org/blog/13878, webkit.org/blog/12945, developer.apple.com "Sending web push notifications in web apps and browsers").
+- Thân rỗng được phép (Apple: payload rỗng thì bỏ `Content-Encoding`) — xác nhận gián tiếp, **chưa thử gửi thật**. `TTL` bắt buộc; `Authorization: vapid t=<JWT>, k=<khoá công khai>`; JWT `exp` ≤ 24 giờ, làm mới ≤ 1 lần/giờ.
+- Mã Apple: 410 hết hạn; 404 đường dẫn sai; 403 xác thực; 429 quá nhiều.
+- Cookie trong service worker: `fetch` cùng nguồn mặc định gửi cookie, `SameSite=Lax` không chặn — **iOS thật chưa có văn bản → phải thử iPhone thật**.
+- Worker gói trả phí: 10.000 lần gọi ra ngoài/lượt; `waitUntil` sống 30 giây sau phản hồi, 6 kết nối chờ cùng lúc → ~30 máy nội bộ gửi thẳng được; ~1000 máy Đối tác cần hàng đợi (lý do M4).
+- Bẫy triển khai: service worker mới chỉ tới máy sau khi nhân viên mở app một lần (như Turnstile).
 
-### 9.3 Ba quyết định sẽ hỏi chủ (lượt 2)
+### 9.4 Tiêu chí nghiệm thu lượt 2
 
-- **P1 — Rung máy cho tin nào.** Khuyến nghị: tin thủ công + tin về đơn **của mình** (mình lập / mình phụ trách) + **đơn chờ nhận** (với ai nhận được). Tin "mọi đơn" (Quản lý/Kế toán thấy mọi đơn) **chỉ vào hộp**, không rung — tránh rung hàng chục lần mỗi ngày. Phương án khác: rung mọi tin trong hộp; hoặc cho mỗi người tự chọn.
-- **P2 — Lưu địa chỉ nhận của máy + khi nào xoá hiệu lực:** đăng xuất, ngưng tài khoản, đổi PIN, đổi quyền (giống cách Bảng tin đóng kết nối — `dongCua`).
-- **P3 — Khoá bí mật mới + cách gửi không mang nội dung** (như §9.1). Phương án khác: gửi kèm nội dung đã mã hoá (hiện câu đầy đủ ngay cả khi phiên hết hạn, nhưng nội dung đi qua máy chủ Apple dù đã mã hoá, và phải tự viết phần mã hoá vì dự án không dùng thư viện ngoài).
+1. Tài khoản nội bộ bật thông báo trên iPhone thật (đã cài) → Toàn quyền gửi tin cho nhóm của họ → màn hình khoá hiện đúng câu trong ≤ 1 phút.
+2. Tin chỉ thuộc ngăn "Tất cả" → **không** rung.
+3. 22:30 giờ VN: tin thường không rung, tin quan trọng rung (test luật thuần với giờ giả).
+4. Đổi PIN / đổi quyền / ngưng / đăng xuất → địa chỉ có `revoked_at`, lần gửi sau không tới máy đó.
+5. Phiên hết hạn → vẫn hiện "bạn có thông báo mới" (test service worker với 401).
+6. Tài khoản chỉ-Đối-tác gọi route đăng ký → 403.
+7. Khoá bí mật chỉ nằm trong `wrangler secret` / `.dev.vars`; `git grep` không thấy khoá.
 
-### 9.4 Kết quả tra cứu (2026-09-27, tài liệu chính thức; chưa thử trên máy thật)
+## 10. Giả định (bề mặt, đảo được — chữ và vị trí cuối cùng chốt ở bản mẫu)
 
-- **iOS** [đã xác nhận từ nguồn]: cần iOS/iPadOS **16.4+** và app **đã cài ra màn hình chính**; xin quyền phải gọi ngay trong xử lý cú chạm của người dùng. **Không có đẩy im lặng**: service worker phải gọi `showNotification` cho **mọi** lần đẩy, nếu không Safari **thu hồi quyền** (webkit.org/blog/12945, developer.apple.com "Sending web push notifications in web apps and browsers"). → Nhánh dự phòng "bạn có thông báo mới" là bắt buộc và phải có test.
-- **Thân rỗng** [xác nhận gián tiếp]: Apple ghi "payload rỗng thì có thể bỏ Content-Encoding" — ngầm cho phép; chưa thử gửi thật. Header: `TTL` bắt buộc (RFC 8030, thiếu → 400); `Urgency`, `Topic` tuỳ chọn; `Authorization: vapid t=<JWT>, k=<khoá công khai>` — JWT ES256, `aud` = origin dịch vụ đẩy, `exp` ≤ 24 giờ, không làm mới quá 1 lần/giờ.
-- **Mã lỗi Apple** [đã xác nhận]: **410** = địa chỉ nhận hết hạn → đánh dấu hết hiệu lực; 404 = đường dẫn sai (không phải hết hạn) → ghi log, không thu hồi; 403 xác thực; 429 gửi quá nhiều.
-- **Cookie trong service worker** [mặc định đã xác nhận; iOS thật chưa]: `fetch` cùng nguồn mặc định gửi cookie, `SameSite=Lax` không chặn. Hành vi thật của iOS với app đã cài chưa có văn bản → **phải thử iPhone thật**; 401 → vẫn hiện thông báo chung.
-- **Giới hạn Worker (gói trả phí)** [đã xác nhận]: 10.000 lần gọi ra ngoài mỗi lượt (chỉnh được); nhưng `ctx.waitUntil` chỉ sống **30 giây** sau phản hồi và chỉ **6 kết nối** chờ cùng lúc. Gửi ~1000 máy (tin thủ công cho nhóm Đối tác) trong một lượt là rủi ro [suy luận, chưa đo] → đề xuất **Cloudflare Queues** (binding mới — thêm vào P3) hoặc chia lô bằng Durable Object sẵn có. Tin về đơn (vài chục máy) gửi thẳng được.
-- **Ký VAPID bằng Web Crypto** [đã xác nhận]: ECDSA P-256 trả chữ ký r‖s 64 byte — đúng dạng JWS ES256, dùng thẳng; khoá công khai 65 byte base64url không `=`. Không cần thư viện ngoài.
-- **Bẫy triển khai**: service worker mới chỉ tới máy nhân viên sau khi họ mở app một lần (như Turnstile) — nút "Bật thông báo" chỉ hoạt động từ lần mở thứ hai.
-
-## 10. Giả định (bề mặt, đảo được)
-
-- Tên mục: "Thông báo"; màn gửi: "Gửi thông báo" (trong nhóm Quản trị, chỉ Toàn quyền thấy).
-- Chuông đặt ở thanh trên của khung, cạnh tên người dùng; số dạng chấm đỏ theo token hiện có.
-- 30 ngày / 100 tin / "9+".
-- Mở hộp = đọc hết (không đánh dấu từng tin).
+- Tên mục "Thông báo"; màn gửi "Gửi thông báo" (nhóm Quản trị, chỉ Toàn quyền thấy).
+- Chuông ở thanh trên của khung; "9+"; tin mới trong lần mở tô nền khác.
+- "Nội bộ" = tài khoản có ít nhất một quyền khác `PARTNER` (Thực tập tính là nội bộ).
 
 ## 11. Phụ thuộc và thứ tự
 
-- Không phụ thuộc GĐ2 (ADR-0017/0019 Phần C) hay Đơn tự do (ADR-0030..0032); nhưng khi các việc đó thêm loại thay đổi đơn mới (ví dụ HDV từ chối), chúng **phải** gộp câu lệnh ghi tin (§6.1) vào lô nếu muốn tin vào hộp — ghi vào `CHANGE-GUIDE.md`.
-- Chạm `orders/repository.ts` và `dispatch/service.ts` — dễ xung đột với nhánh GĐ2 đang mở; người lập kế hoạch kiểm nhánh trước khi thi công.
+1. Chủ duyệt đặc tả + ADR-0034 (lượt 1) → 2. AI vẽ bản mẫu, chủ duyệt → 3. kế hoạch + thi công lượt 1 (người kiểm độc lập) → 4. chủ duyệt ADR-0035 → 5. thi công lượt 2 + thử iPhone thật → phát hành.
+- Không phụ thuộc GĐ2 hay Đơn tự do; khi các việc đó thêm hành động nhật ký về đơn (vd HDV từ chối), muốn có tin thì thêm hành động vào view sự kiện đơn + bảng câu (ghi ở `CHANGE-GUIDE.md`).
+- §4.3 chạm `dispatch/service.ts` — kiểm nhánh GĐ2/Đơn tự do trước khi thi công để tránh xung đột.
 
 ## 12. Trang ghép (CLAUDE.md §9)
 
-**(1) Bảng chứa loại thực thể nào**
+**(1) Bảng/view chứa loại thực thể nào**
 
-| Bảng | Chứa |
+| Bảng / view | Chứa |
 |---|---|
-| `ntf_item` | hai loại: tin về đơn (`kind=don`, có `order_id`, `ma_don`, `thay_doi`, mã người thao tác — tên đọc qua `v_stf_staff_label`; không tiền, không SĐT) và tin thủ công (`kind=thu_cong`, có tiêu đề, nội dung, người gửi) |
-| `ntf_item_tag` | nhãn người nhận của mỗi tin: `tat-ca`, `cho-nhan`, `nguoi:<id>` (tin đơn); `moi-nguoi`, `quyen:<MÃ>` (tin thủ công) |
-| `ntf_read_mark` | mốc đã đọc của mỗi tài khoản |
-| (lượt 2) `ntf_push_sub` | địa chỉ nhận thông báo của từng máy, theo tài khoản |
+| `audit_log` (đọc qua view sự kiện đơn) | dòng nhật ký về đơn — **nguồn** của tin về đơn; không đổi bảng, chỉ thêm view + hành động `order_claimed` |
+| `v_ord_order_owner` (mới) | người lập của đơn |
+| `ntf_notice` | tin thủ công (thường / quan trọng) |
+| `ntf_notice_target` | nhóm nhận của tin thủ công: `moi-nguoi`, `quyen:<MÃ>` |
+| `ntf_ack` | ai đã bấm "Đã hiểu" tin quan trọng nào, lúc nào |
+| `ntf_read_mark` | mốc đã đọc mỗi tài khoản |
+| (lượt 2) `ntf_push_sub` | địa chỉ nhận thông báo của từng máy, theo tài khoản nội bộ |
 
 **(2) Dòng bản đồ quyền chạm các bảng này, áp cho loại nào**
 
 | Ô quyền | Áp cho | Dùng ở |
 |---|---|---|
-| `notice.send` (mới; chỉ `SUPER_ADMIN`) | ghi/thu hồi tin `thu_cong`; đọc danh sách đã gửi | 3 route cổng `admin` |
-| `order.view` (không ngữ cảnh) | tin `don` nhãn `tat-ca` — qua `nhanKetNoi` | đọc hộp |
-| `dispatch.claim` | tin `don` nhãn `cho-nhan` và loại `tao_cho_nhan` — qua `nhanKetNoi` + hàm điều kiện tách từ `thongBaoNoi` | đọc hộp |
-| `isOffice` / `FIELD` | điều kiện chung của tin `don` (Đối tác/Thực tập không thấy) — cùng hàm điều kiện | đọc hộp |
-| mã quyền đang có của tài khoản | tin `thu_cong` nhãn `quyen:<MÃ>` | đọc hộp |
-| (không ô nào) | `ntf_read_mark` — mỗi tài khoản chỉ ghi mốc của chính mình (id lấy từ phiên, không từ yêu cầu) | `POST /api/thong-bao/da-doc` |
-| (không ô nào; ghi do module đơn) | tin `don` chỉ sinh trong batch của thao tác đơn đã qua kiểm quyền của chính thao tác đó (câu lệnh do gốc lắp ráp tiêm — §6.1) | `orders`, `dispatch` |
+| `notice.send` (mới; chỉ `SUPER_ADMIN`) | ghi/thu hồi `ntf_notice`, `ntf_notice_target`; đọc đã gửi + `ntf_ack` của mọi người | 4 route cổng `admin` |
+| `order.view` (không ngữ cảnh) | tin về đơn nhãn `tat-ca` (ngăn "Tất cả") — qua `nhanKetNoi` | đọc hộp |
+| `dispatch.claim` | tin chờ nhận — qua `nhanKetNoi` + hàm điều kiện tách từ `thongBaoNoi` | đọc hộp |
+| `isOffice` / `FIELD` | điều kiện chung của tin về đơn (Đối tác/Thực tập không thấy) | đọc hộp |
+| mã quyền đang có | tin thủ công nhắm `quyen:<MÃ>`; quyền "Đã hiểu" | đọc hộp, `POST …/da-hieu` |
+| (không ô; chính mình) | `ntf_read_mark`, `ntf_ack` của mình, (lượt 2) `ntf_push_sub` của mình — id lấy từ phiên | `staff` |
+| (không ô) | tin về đơn **không có đường ghi riêng** — chỉ sinh từ nhật ký của thao tác đơn đã qua kiểm quyền của chính nó | — |
 
 **(3) Cổng nào canh cửa nào**
 
 | Cửa | Cổng | Kiểm trong thân |
 |---|---|---|
-| `GET /api/thong-bao`, `/chua-doc`, `POST /da-doc` | `staff` (mọi tài khoản đăng nhập) | lọc theo nhãn tính lại từ quyền hiện tại |
-| `GET /api/thong-bao/da-gui`, `POST /api/thong-bao`, `POST /api/thong-bao/:id/thu-hoi` | `admin` | `can(staff,"notice.send")` trước mọi truy vấn |
-| ghi tin `don` | cổng của route đơn tương ứng | không có route ghi riêng |
-| (lượt 2) đăng ký/huỷ địa chỉ nhận | `staff` | chỉ cho chính mình |
+| đọc hộp, tóm tắt, đã đọc, đã hiểu | `staff` | hàm lọc duy nhất theo quyền hiện tại; đã hiểu: phải thuộc nhóm nhận |
+| gửi, thu hồi, đã gửi, người đã hiểu | `admin` | `can(staff,"notice.send")` trước mọi truy vấn |
+| (lượt 2) đăng ký/huỷ máy | `staff` | chỉ chính mình, chỉ tài khoản nội bộ |
