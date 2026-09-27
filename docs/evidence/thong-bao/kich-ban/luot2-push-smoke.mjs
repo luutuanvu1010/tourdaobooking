@@ -79,6 +79,31 @@ const shot = (p, name) => p.shot(`${OUT}/${name}`);
     await shot(p, "luot2-chua-bat.png");
     p.close();
     ok("Chưa bật: hiện đúng nút 'Bật thông báo trên điện thoại'");
+
+    // 1e) I-1 (vòng rà 2026-09-28): đăng xuất ở máy CHƯA TỪNG bật thông báo vẫn phải huỷ MỌI địa chỉ của tài khoản
+    // (ADR-0036 điều 6) — kể cả khi tài khoản đã bật ở MÁY KHÁC (mô phỏng: đăng ký thẳng qua API bằng một endpoint
+    // giả, không qua trình duyệt này). Trước khi sửa I-1, `tatThongBaoMayNay()` có `if (!sub) return;` TRƯỚC lời gọi
+    // huỷ nên bỏ qua hẳn bước này khi máy đang đăng xuất không có subscription cục bộ — máy kia không bao giờ tắt.
+    const [{ id: accId }] = env.sql(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.accounting.phone}'`);
+    const epMayKhac = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+    const cAcc = await env.login(ACCOUNTS.accounting);
+    const dkKhac = await fetch(env.base + "/api/account/thong-bao/may", {
+      method: "POST",
+      headers: { "content-type": "application/json", origin: env.base, cookie: `${cAcc.name}=${cAcc.value}` },
+      body: JSON.stringify({ endpoint: epMayKhac, thietBi: "Điện thoại (máy khác)" }),
+    });
+    assert.equal(dkKhac.status, 200, `đăng ký máy khác trước khi thử đăng xuất — ${await dkKhac.text()}`);
+    const [{ n: soMayTruoc }] = env.sql(`SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = '${accId}' AND revoked_at IS NULL`);
+    assert.equal(soMayTruoc, 1, "trước khi đăng xuất: 1 máy đang bật (máy khác, không phải trình duyệt đang mở)");
+
+    p = await env.as(ACCOUNTS.accounting, "/account", MOB);
+    // Trình duyệt vừa mở CHƯA TỪNG bấm Bật — không có subscription cục bộ. Bấm Đăng xuất vẫn phải huỷ máy khác đó.
+    await p.ev(`(() => { [...document.querySelectorAll('#links a, #links button')].find(b => b.textContent.trim() === 'Đăng xuất').click(); return true; })()`);
+    await p.waitFor("location.pathname === '/login'", "đăng xuất xong (máy này chưa từng bật)", 8000);
+    const [{ n: soMaySau }] = env.sql(`SELECT COUNT(*) AS n FROM ntf_push_sub WHERE staff_id = '${accId}' AND revoked_at IS NULL`);
+    assert.equal(soMaySau, 0, "I-1: đăng xuất ở máy chưa từng bật vẫn phải huỷ máy khác của tài khoản");
+    p.close();
+    ok("I-1: đăng xuất từ máy chưa từng đăng ký push vẫn huỷ mọi địa chỉ của tài khoản (ADR-0036 điều 6)");
   } finally {
     await env.stop();
   }
@@ -101,8 +126,24 @@ const shot = (p, name) => p.shot(`${OUT}/${name}`);
     const [{ id: salesAId }] = env.sql(`SELECT id FROM staff WHERE phone = '${ACCOUNTS.salesA.phone}'`);
     await p.send("Browser.grantPermissions", { origin: new URL(env.base).origin, permissions: ["notifications"] });
     await p.waitFor("!!document.querySelector('#push')?.querySelector('button')", "nút Bật hiện (vòng thật)");
+
+    // I-3 (vòng rà 2026-09-28): mô phỏng subscription CŨ dùng CẶP KHOÁ VAPID KHÁC (đúng tình huống "Tắt khẩn cấp" rồi
+    // đổi khoá — docs/HUONG-DAN-BAT-THONG-BAO-DIEN-THOAI.md) — subscribe THẬT bằng một khoá P-256 ngẫu nhiên, không
+    // phải khoá của máy chủ đang chạy. Trước khi sửa: bấm Bật gọi `subscribe()` với khoá THẬT trong khi trình duyệt
+    // còn giữ subscription khoá KHÁC → `InvalidStateError`, nút Bật báo lỗi mãi (không tự phục hồi được).
+    await p.ev(`(async () => {
+      const reg = await navigator.serviceWorker.ready;
+      const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+      const raw = new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey));
+      await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: raw });
+      return true;
+    })()`);
+    await p.send("Page.navigate", { url: env.base + "/account" }); // tải lại: renderPush() đọc lại mayNay (false — endpoint lạ chưa đăng ký ở máy chủ)
+    await p.waitFor("document.readyState === 'complete'", "tải lại sau khi có subscription khoá khác");
+    await p.waitFor("!!document.querySelector('#push')?.querySelector('button')", "vẫn hiện nút Bật dù đã có subscription (khoá khác, mayNay=false)");
+
     await p.ev(`(() => { document.querySelector('#push button').click(); return true; })()`);
-    await p.waitFor("document.querySelector('#push')?.textContent.includes('Đang bật')", "đăng ký push THẬT thành công (đợi mạng)", 15000);
+    await p.waitFor("document.querySelector('#push')?.textContent.includes('Đang bật')", "I-3: bật lại được dù trước đó có subscription khoá KHÁC (đợi mạng)", 15000);
     const [{ so_may: soMaySauBat }] = env.sql(`SELECT COUNT(*) AS so_may FROM ntf_push_sub WHERE staff_id = '${salesAId}' AND revoked_at IS NULL`);
     assert.equal(soMaySauBat, 1, "soMay phải = 1 sau khi bật");
     assert.deepEqual(p.consoleErrors, [], `lỗi console (sau khi bật): ${p.consoleErrors}`);
