@@ -7,11 +7,13 @@
 //
 // Hai máy chủ nối tiếp: A = Turnstile BẬT bằng khoá thử `1x…AA` (luôn đạt) — các bước a–e, g–o; B = Turnstile TẮT — bước f (không dựng giả lập được: máy chủ đang đòi token thì
 // đăng nhập không kèm token luôn 403, nên "không có khoá" chỉ chứng minh được trên máy chủ thật sự không có khoá).
-//   a  chữ đúng bản thiết kế "Đăng nhập.dc.html" (2026-09-24): tiêu đề "Tour Đảo Booking", dòng phiên bản, "Hỗ trợ kỹ thuật" + số, chân trang tĩnh; không gọi GET /api/company
+//   a  chữ đúng bản thiết kế "Đăng nhập.dc.html" (2026-09-24): tiêu đề "Tour Đảo Booking", dòng phiên bản, "Hỗ trợ kỹ thuật" + số; chân trang tên · MST = hồ sơ công
+//      ty chủ đọc qua GET /api/auth/config (T2b, ADR-0024 6.2), địa chỉ tĩnh; không gọi GET /api/company
+//   a2 (T2b) chân trang đi theo cấu hình: đổi tên gọi của hồ sơ công ty chủ trong D1 tạm → trang mới hiện tên mới
 //   b  CSP phục vụ đúng (tiền đề của g) · widget hiện, nút khoá tới khi có token, tự đạt bằng khoá thử, đăng nhập qua widget, token gửi đi đúng là token của widget
 //   c  sai PIN → lỗi của máy chủ, widget được reset (ô token trống rồi có token mới), nút khoá suốt lúc chờ rồi mở lại, đăng nhập lại được
 //   d  máy chủ trả 403 `turnstile_failed` (THẬT: gỡ token khỏi yêu cầu) và 503 `turnstile_unavailable` (giả lập) → chữ của máy chủ hiện nguyên văn ở #error; nút mở lại; thử lại được
-//   e  API công ty lỗi/chậm; API cấu hình lỗi/chậm → trang vẫn đăng nhập được, khối công ty ẩn, không kẹt nút
+//   e  API công ty lỗi/chậm; API cấu hình lỗi/chậm → trang vẫn đăng nhập được, không kẹt nút; cấu hình lỗi → chân trang giữ chữ tĩnh dự phòng (T2b)
 //   f  (máy chủ B) không có khoá → không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường
 //   g  không lỗi CSP và console sạch ở mọi trang đã mở
 //   h  axe-core: 0 vi phạm (MỌI mức) ở 4 trạng thái của máy chủ A + trạng thái không widget
@@ -38,12 +40,17 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const EXPECT = {
   app: "Island Booking System", // đổi tên app 2026-09-24 (chủ dự án)
   release: `Phiên bản V${APP_VERSION} · ngày ${Number(APP_RELEASE_DATE.slice(8))}/${Number(APP_RELEASE_DATE.slice(5, 7))}/${APP_RELEASE_DATE.slice(0, 4)}`, // định dạng của bản thiết kế "Đăng nhập.dc.html"
-  company: "CÔNG TY TNHH TOUR ĐẢO",
-  address: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà",
-  email: "Tourdaotravel@gmail.com",
-  taxCode: "4201969169",
-  hotline: "0845 256 256",
 };
+// T2b (ADR-0024 6.2): chân trang tên · MST đọc GET /api/auth/config (hồ sơ công ty chủ), chữ tĩnh trong public/login.html là DỰ PHÒNG. Chữ tĩnh đọc thẳng từ
+// tệp HTML (một nguồn, không gõ lại số của công ty); giá trị thật đọc từ D1 tạm ở bước a.
+const LOGIN_HTML = readFileSync("public/login.html", "utf8");
+const TINH = {
+  ten: LOGIN_HTML.match(/<span id="company-name"[^>]*>([^<]*)<\/span>/)?.[1]?.trim(),
+  mst: LOGIN_HTML.match(/<span id="company-tax"[^>]*>([^<]*)<\/span>/)?.[1]?.trim(),
+  diaChi: LOGIN_HTML.match(/<span class="login-address"[^>]*>([^<]*)<\/span>/)?.[1]?.trim(),
+};
+const HO_SO_CONG_TY_CHU = `SELECT p.id, p.display_name, o.tax_code FROM pty_party_role x JOIN pty_party p ON p.id = x.party_id LEFT JOIN pty_organization o ON o.party_id = p.id
+  WHERE x.role_type_code = 'OWNER_COMPANY' AND x.valid_to_date IS NULL`;
 // Thông báo lỗi Turnstile của MÁY CHỦ: đọc thẳng từ mã nguồn (một nguồn), đối chiếu với chữ của đặc tả.
 const turnstileSource = readFileSync("src/modules/auth/turnstile.ts", "utf8");
 const FAILED = turnstileSource.match(/const FAILED_MESSAGE = "([^"]+)"/)?.[1];
@@ -208,22 +215,40 @@ const track = (p, label, expected = [], cspOnly = false) => pages.push([label, p
 // =====================================================================================================================
 const envA = await startEnv({ turnstile: true });
 try {
-  const row = envA.sql("SELECT company_name, tax_code, address, email, hotline FROM company_profile WHERE id = 'default'")[0];
+  const hoSo = envA.sql(HO_SO_CONG_TY_CHU);
 
   // ---- a) khối công ty ----
-  await step("a", "chữ đúng bản thiết kế (tiêu đề “Tour Đảo Booking”, phiên bản, “Hỗ trợ kỹ thuật” + số, chân trang tĩnh); không gọi GET /api/company; D1 tạm có đúng dữ liệu công ty", async () => {
-    assert.deepEqual(row, { company_name: EXPECT.company, tax_code: EXPECT.taxCode, address: EXPECT.address, email: EXPECT.email, hotline: EXPECT.hotline }, "D1 tạm phải có đúng dữ liệu công ty của đặc tả (0002 + 0013)");
+  await step("a", "chữ đúng bản thiết kế (tiêu đề “Tour Đảo Booking”, phiên bản, “Hỗ trợ kỹ thuật” + số); chân trang tên · MST = hồ sơ công ty chủ (qua cấu hình), địa chỉ tĩnh; không gọi GET /api/company", async () => {
+    assert.equal(hoSo.length, 1, "D1 tạm phải có đúng một hồ sơ công ty chủ (migration *_ho_so_cong_ty_chu)");
+    assert.ok(TINH.ten && TINH.mst && TINH.diaChi, "public/login.html có chữ tĩnh dự phòng: #company-name, #company-tax, .login-address");
     const p = await openLogin(envA, { label: "a" });
     track(p, "a");
     await widgetReady(p);
-    // Bản thiết kế "Đăng nhập.dc.html" (chủ dự án 2026-09-24, tuân thủ 100%): chân trang và số hỗ trợ là chữ TĨNH; trang KHÔNG gọi GET /api/company nữa.
+    // Bản thiết kế "Đăng nhập.dc.html" (chủ dự án 2026-09-24, tuân thủ 100%): HÌNH THỨC chân trang giữ nguyên; T2b chỉ đổi NGUỒN chữ tên · MST (ADR-0024 6.2).
     const ui = await p.ev(`({ app: document.querySelector('h1').textContent, tieuDe: document.title, release: document.getElementById('release').textContent, chanTrang: [...document.querySelectorAll('.login-info > span')].map((e) => e.textContent), hoTro: document.getElementById('support').textContent, tel: document.querySelector('#support a')?.getAttribute('href') ?? null, dem: document.getElementById('pin-count').textContent })`);
     assert.deepEqual(ui, {
       app: "Tour Đảo Booking", tieuDe: `Đăng nhập — ${EXPECT.app}`, release: EXPECT.release,
-      chanTrang: ["Công ty TNHH Tour Đảo · MST 4201969169", "19 đường B2 Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, tỉnh Khánh Hoà"],
+      chanTrang: [`${hoSo[0].display_name} · MST ${hoSo[0].tax_code}`, TINH.diaChi],
       hoTro: "Hỗ trợ kỹ thuật0989 929 373", tel: "tel:0989929373", dem: "6/6",
     });
-    assert.deepEqual(p.requests.filter((r) => r.url.includes("/api/company")), [], "trang Đăng nhập không còn gọi GET /api/company");
+    assert.deepEqual(p.requests.filter((r) => r.url.includes("/api/company")), [], "trang Đăng nhập không gọi GET /api/company");
+  });
+
+  // ---- a2) (T2b, ADR-0024 6.2) chân trang đi theo cấu hình: đổi tên gọi của hồ sơ công ty chủ trong D1 tạm → mở lại trang → chân trang hiện tên mới ----
+  await step("a2", "chân trang đi theo cấu hình: đổi tên gọi hồ sơ công ty chủ trong D1 tạm → trang mới hiện tên mới (không thêm yêu cầu mạng, không gọi /api/company)", async () => {
+    const q = (v) => `'${String(v).replaceAll("'", "''")}'`;
+    envA.sql(`UPDATE pty_party SET display_name = 'Công ty Thử Chân Trang' WHERE id = ${q(hoSo[0].id)}`);
+    try {
+      const p = await openLogin(envA, { label: "a2" });
+      track(p, "a2");
+      await p.waitFor(`document.getElementById('company-name').textContent === 'Công ty Thử Chân Trang'`, "chân trang đổi theo cấu hình", 10000);
+      const chanTrang = await p.ev(`[...document.querySelectorAll('.login-info > span')].map((e) => e.textContent)`);
+      assert.deepEqual(chanTrang, [`Công ty Thử Chân Trang · MST ${hoSo[0].tax_code}`, TINH.diaChi]);
+      assert.deepEqual(p.requests.filter((r) => r.url.includes("/api/company")), [], "không gọi GET /api/company");
+      assert.equal(p.requests.filter((r) => r.url.endsWith("/api/auth/config")).length >= 1, true, "chữ đến từ chính yêu cầu cấu hình vốn có");
+    } finally {
+      envA.sql(`UPDATE pty_party SET display_name = ${q(hoSo[0].display_name)} WHERE id = ${q(hoSo[0].id)}`);
+    }
   });
 
   // ---- b) CSP + widget + đăng nhập qua widget ----
@@ -326,7 +351,7 @@ try {
     {
       const p = await openLogin(envA, { label: "e-cong-ty-chan", blocked: ["*/api/company"] });
       await widgetReady(p);
-      assert.deepEqual(await p.ev("({ chanTrang: document.querySelector('.login-info').textContent.includes('MST 4201969169'), release: document.getElementById('release').textContent })"), { chanTrang: true, release: EXPECT.release }, "chặn API công ty: chân trang tĩnh và dòng phiên bản vẫn đủ");
+      assert.deepEqual(await p.ev(`({ chanTrang: document.querySelector('.login-info').textContent.includes(${JSON.stringify(`MST ${hoSo[0].tax_code}`)}), release: document.getElementById('release').textContent })`), { chanTrang: true, release: EXPECT.release }, "chặn API công ty: chân trang và dòng phiên bản vẫn đủ");
       await typeCreds(p, ACCOUNTS.salesA);
       await submit(p);
       await loggedIn(p);
@@ -339,6 +364,8 @@ try {
       await p.waitFor(BTN_ENABLED, "nút Đăng nhập mở dù không lấy được cấu hình", 8000);
       const st = await p.ev(`({ khungAn: document.getElementById('turnstile-widget').hidden, widget: ${WIDGET_UP}, script: [...document.scripts].some((s) => s.src.includes('cloudflare')) })`);
       assert.deepEqual(st, { khungAn: true, widget: false, script: false }, `cấu hình ${name}: không widget, không script Cloudflare`);
+      // T2b (ADR-0024 6.2): không có cấu hình → chân trang giữ đúng chữ tĩnh dự phòng của public/login.html.
+      assert.deepEqual(await p.ev(`[...document.querySelectorAll('.login-info > span')].map((e) => e.textContent)`), [`${TINH.ten} · MST ${TINH.mst}`, TINH.diaChi], `cấu hình ${name}: chân trang giữ chữ tĩnh`);
       assert.deepEqual(p.requests.filter((r) => r.url.includes("cloudflare")), [], "không yêu cầu nào tới Cloudflare");
       await typeCreds(p, ACCOUNTS.salesA);
       await submit(p);
@@ -565,7 +592,8 @@ const envB = await startEnv();
 try {
   await step("f", "máy chủ không có khoá Turnstile: /api/auth/config = null, không widget, không yêu cầu nào tới Cloudflare, đăng nhập bình thường (kể cả sai PIN không phải chờ token)", async () => {
     const cfg = await (await fetch(envB.base + "/api/auth/config")).json();
-    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false, version: APP_VERSION }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng); + số phiên bản (trang Trợ giúp, dẫn xuất từ nhật ký thay đổi)
+    const [hoB] = envB.sql(HO_SO_CONG_TY_CHU);
+    assert.deepEqual(cfg, { turnstileSiteKey: null, maintenance: { on: false, endsAt: null }, passkey: false, version: APP_VERSION, companyName: hoB.display_name, companyTaxCode: hoB.tax_code }); // + trạng thái chế độ bảo trì (tắt) kể từ migration 0016; + Face ID (ADR-0016, T11: startEnv() mặc định PASSKEY_RP_ID/ORIGIN rỗng); + số phiên bản (trang Trợ giúp, dẫn xuất từ nhật ký thay đổi); + tên, MST hồ sơ công ty chủ (T2b, ADR-0024 6.2)
     const p = await openLogin(envB, { label: "f" });
     await p.waitFor(BTN_ENABLED, "nút mở (Turnstile tắt: không chờ token)", 10000);
     const st = await p.ev(`({ khungAn: document.getElementById('turnstile-widget').hidden, widget: ${WIDGET_UP}, script: [...document.scripts].some((s) => s.src.includes('cloudflare')), thuLai: document.getElementById('turnstile-retry').hidden })`);

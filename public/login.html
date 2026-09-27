@@ -39,10 +39,11 @@
       <span id="release" class="login-release"></span>
     </div>
   </div>
-  <!-- Chân trang: chữ tĩnh đúng như bản thiết kế. -->
+  <!-- Chân trang theo bản thiết kế. Tên + MST do web/login.ts thay từ GET /api/auth/config (hồ sơ công ty chủ — ADR-0024 6.2); chữ tĩnh là DỰ PHÒNG
+       (chưa tải xong, lỗi mạng) và phải khớp dữ liệu gieo (src/chan-trang-dang-nhap.test.ts). Địa chỉ vẫn là chữ tĩnh (6.2 duyệt hai trường). -->
   <footer class="login-info">
-    <span><span class="login-company-name">Công ty TNHH Tour Đảo</span> · MST 4201969169</span>
-    <span class="login-address">19 đường B2 Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, tỉnh Khánh Hoà</span>
+    <span><span id="company-name" class="login-company-name">Công ty TNHH Tour Đảo</span> · MST <span id="company-tax">4201969169</span></span>
+    <span class="login-address">19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà</span>
   </footer>
 </main>
 <script type="module" src="/js/login.js"></script>

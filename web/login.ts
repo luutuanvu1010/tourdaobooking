@@ -3,6 +3,7 @@ import { byId, h, replaceChildren } from "./dom";
 import { registerServiceWorker } from "./pwa";
 import { showError } from "./shell";
 import { APP_RELEASE_DATE, APP_VERSION } from "../src/shared/app-info";
+import { chanTrangCongTy } from "../src/shared/cong-ty-chu";
 import { MAINTENANCE_CODE } from "../src/shared/maintenance";
 import { endsAtFrom, renderMaintenanceMessage } from "./maintenance-screen";
 import { icon } from "./icons";
@@ -328,6 +329,19 @@ retryBtn.addEventListener("click", () => {
 // ---- Cấu hình (GET /api/auth/config) ----
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * ADR-0024 6.2: tên + MST ở chân trang lấy từ cấu hình (hồ sơ công ty chủ); thiếu/sai → GIỮ chữ tĩnh của public/login.html (dự phòng khi chưa tải xong, lỗi
+ * mạng, bản máy chủ cũ). Không ném lỗi: `login.html` cũ trong bộ nhớ đệm có thể chưa có #company-name/#company-tax (không dùng byId — nó ném lỗi khi thiếu).
+ */
+function apDungChanTrang(config: unknown): void {
+  const c = chanTrangCongTy(config);
+  const ten = document.getElementById("company-name");
+  const mst = document.getElementById("company-tax");
+  if (!c || !ten || !mst) return;
+  ten.textContent = c.ten;
+  mst.textContent = c.mst;
+}
+
 /** Hỏi cấu hình một lần: true = đã có câu trả lời của máy chủ (có khoá hoặc `null`); false = lỗi (mất mạng, 5xx…). */
 async function fetchConfig(): Promise<boolean> {
   try {
@@ -342,6 +356,7 @@ async function fetchConfig(): Promise<boolean> {
         void prefetchPasskey();
       }
     }
+    apDungChanTrang(config); // CUỐI khối: chân trang không bao giờ được làm hỏng cấu hình đăng nhập (Ruling T4 của nhật ký thi công T2b)
     return true;
   } catch {
     return false; // `siteKey` giữ nguyên (null nếu chưa từng biết)
@@ -384,7 +399,8 @@ async function start(): Promise<void> {
 void start();
 
 // ---- Dòng phiên bản theo bản thiết kế: "Phiên bản V1.5 · ngày 24/9/2026" — số và ngày lấy từ nhật ký thay đổi (không viết tay). ----
-// Chân trang (tên công ty · MST, địa chỉ) là chữ tĩnh trong public/login.html đúng như bản thiết kế — trang KHÔNG còn gọi GET /api/company.
+// Chân trang giữ hình thức bản thiết kế: tên · MST đọc từ GET /api/auth/config (apDungChanTrang — hồ sơ công ty chủ, ADR-0024 6.2), địa chỉ là chữ tĩnh;
+// trang vẫn KHÔNG gọi GET /api/company (không thêm yêu cầu mạng).
 function releaseText(version: string, isoDate: string): string {
   const [y, m, d] = isoDate.split("-").map(Number);
   return `Phiên bản V${version} · ngày ${d}/${m}/${y}`;
