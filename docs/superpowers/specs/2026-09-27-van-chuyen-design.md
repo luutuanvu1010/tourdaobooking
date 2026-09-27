@@ -1,5 +1,15 @@
 # Phân hệ Vận chuyển (xe, tài xế, chuyến xe) — thiết kế
 
+> **ĐÃ RÀ SOÁT (commit 8b2c9a1): có 9 điểm phải sửa. Đọc `docs/superpowers/specs/2026-09-27-van-chuyen-ra-soat.md` TRƯỚC khi dùng bản này.** Các câu dưới đây đã biết là SAI:
+> - §3 "không giữ được bằng trigger chéo module": Hiến chương 5.3 CHO PHÉP trigger đọc view công bố.
+> - Đọc số khách qua view: phải đọc qua MỘT hàm "số khách hiệu lực" của `orders`.
+> - "Khách trên chuyến" không phải vai, mà là thực thể phân bổ (từng người vào chuyến).
+> - Cột Oracle "Identity" của giấy tờ: sai. Giấy tờ là thực thể do bên ngoài cấp.
+> - Nhu cầu đưa đón phải là thực thể "chặng đưa đón" của `orders`, không suy từ ô chữ.
+> - Vai và quyền tài xế: tách hai vai (công ty / đối tác) + một quyền app riêng.
+> - Hợp đồng vận chuyển là thực thể.
+> - Điểm dừng chuẩn phải là `loc_location`.
+
 - **Ngày:** 2026-09-27.
 - **Vai:** phiên điều phối soạn, sau khi động não với chủ dự án.
 - **Trạng thái:** **BẢN NHÁP ĐỂ RÀ SOÁT — CHƯA DUYỆT.** Chưa có ADR. Ba người rà độc lập, chỉ đọc, đang soi bản này:

@@ -85,6 +85,7 @@ Bảng tên cũ không tiền tố, cột chết `staff.role/full_name` (ADR-000
 >   - Hai mục đã làm trong thi công ADR-0030, trên nhánh `thi-cong-tu-choi-huy-hdv` chưa gộp: **T1d** (feed553) và **T3a** phạm vi hẹp (5ad506d). Kế hoạch chỉ kiểm lại sau khi nhánh đó gộp, không làm lại.
 >   - Các lựa chọn con (T1c(i) cờ tạm hay chờ ADR-0026; cách làm T1b, T1e, T2a phần GĐ4a/luật bù, T2b, T3d, T3e) hỏi khi trình kế hoạch. Mỗi lượt tối đa 3 quyết định chạm dữ liệu/quyền, kèm trang ghép.
 >   - Phân chia dữ liệu giữa các dự án Tour Đảo (Q3 của báo cáo luật gốc, chủ chọn phương án gợi ý) là dữ kiện đầu vào.
+>   - **Bổ sung 2026-09-27 (điều phối, sau rà soát phân hệ Vận chuyển; không phải lời duyệt mới):** Vận chuyển cần `orders` công bố **"số khách hiệu lực" một nguồn**, tức số khách sau điều chỉnh (hôm nay chỉ nằm trong `order_money_adjustment.after_json`, `orders/money-adjustment.ts`:39-60). Việc này cùng gốc H3/T1 của gói, nên kế hoạch dọn nền đưa vào như một sản phẩm bắt buộc. Xem `2026-09-27-van-chuyen-ra-soat.md` mục H1.
 > - Mục 2, 3: chưa hỏi, chưa làm.
 
 1. **Duyệt gói "dọn nền trước sổ công nợ" (mục 3: T1–T3), làm TRƯỚC lượt 1 Hoàn tất.** Khuyến nghị: có — lập kế hoạch rồi thi công như việc lớn (người kiểm độc lập). Các mục **[lệch ADR đã duyệt]** (T2a phần chặn — đọc mã, chưa chạy thử; T3a) và T1c(ii) là sửa lỗi; T1c(i) là **ADR đã duyệt đòi nhưng chưa có nơi ghi** — chủ chọn làm cờ tạm hay chờ ADR-0026; các mục còn lại (T1b, T1e, T2a phần GĐ4a/luật bù, T2b, T3d, T3e) cần chủ chọn cách khi trình kế hoạch.
