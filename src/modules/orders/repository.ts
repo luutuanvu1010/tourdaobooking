@@ -709,14 +709,16 @@ export async function confirmOrder(db: D1Database, id: string, staffId: string, 
 }
 
 /**
- * Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)`
- * (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không
- * detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
+ * Huỷ đơn có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan, chống hai người đổi cùng lúc — kể cả khi người kia chỉ đổi
+ * `updated_at` mà KHÔNG đổi `status`, ví dụ `PUT /trip` chen giữa lúc route đọc và lúc gọi hàm này). Trả false nếu điều kiện không còn đúng — KHÔNG
+ * đổi gì, KHÔNG ghi nhật ký (T1d, điều kiện tiên quyết ADR-0030 lượt 1: trước bản sửa này câu UPDATE chỉ khoá theo `status`, để lọt ca chen giữa
+ * trên). Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một
+ * hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
  */
 export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, opts?: { action?: AuditAction; detail?: string }): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const results = await db.batch([
-    db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ?`).bind(at, id, from),
+    db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ? AND updated_at = ?`).bind(at, id, from, prevUpdatedAt),
     auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail }, "changes() > 0"),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;

@@ -160,7 +160,8 @@ export const dispatchModule: AppModule = {
     // POST /api/orders/:id/status như hôm nay — order.cancel của họ vẫn "none"). Thứ tự: 404 → 403 (không phải người phụ trách/không có order.cancel) →
     // 409 (không phải đơn đã xác nhận, hoặc đã bị đổi trạng thái) → 409 `departed` (tour đã qua ngày đi — DK-T4-02, chủ dự án chốt 2026-09-26: ngày đi
     // = ngày khởi hành lớn nhất trong các dịch vụ, đã qua ⇔ < hôm nay giờ VN; ngay trong ngày đi vẫn huỷ được; từ hôm sau chỉ văn phòng huỷ qua
-    // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` → khoá lạc quan của cancelOrderByHandler thua → 409.
+    // /status) → 400 (lý do) → ghi. Đổi ngày giữa lúc đọc và lúc ghi (PUT /trip) làm đổi `updated_at` (KHÔNG đổi `status`) → khoá lạc quan của
+    // cancelOrderByHandler (khoá theo CẢ `status` VÀ `updated_at`, T1d) thua → 409.
     route("POST", "/api/orders/:id/handler-cancel", "staff", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
       const orderId = params.id!;
       if (!UUID_RE.test(orderId)) return NOT_FOUND();

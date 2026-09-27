@@ -12,13 +12,9 @@ Máy đã có `node_modules` sẵn, không cần `npm ci`.
 |---|---|
 | `npm test` | **952/952 xanh** (mốc mới; kế hoạch ghi 945/945 ở `a74048e`, tăng lên vì `cf2264c` đã gộp thêm nội dung ADR-0030/0020/0023 + các bản 1.19/1.20 từ main) |
 | `npm run typecheck` | thoát mã 0 (`tsc --noEmit` gốc + `web` + `web/sw`), không có dòng lỗi |
-| `node --test "tests/audit/*.test.mjs"` | 35/36 — **1 ca đỏ sẵn từ trước, không do nhánh này**: `P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào...` (`tests/audit/doi-tac.test.mjs:79-87`) kỳ vọng gán HDV làm người phụ trách trả `400`, thực tế trả `200`. Đã xác nhận qua nhật ký cũ `docs/superpowers/plans/2026-09-25-gd2-thi-cong-nhat-ky.md` §5: ca này "đã đỏ sẵn từ trước trên 86b2a60 …, không do nhánh này; thuộc phần D" — tức là kết quả của việc mô hình 11 vai đã cho HDV làm người phụ trách được, còn bài kiểm audit này chưa cập nhật lại kỳ vọng. Không thuộc phạm vi Task 0/0.1, không sửa ở đây; ghi lại để điều phối biết bài này cần cập nhật khi làm phần liên quan (D6/việc gán handler) hoặc một task dọn audit riêng. |
+| `node --test "tests/audit/*.test.mjs"` | 35/36 — **1 ca đỏ sẵn từ trước, không do nhánh này**: `P4 FINDING HDV: tài khoản chỉ quyền Hướng dẫn viên không mở được đơn nào...` (`tests/audit/doi-tac.test.mjs:79-87`) kỳ vọng gán HDV làm người phụ trách trả `400`, thực tế trả `200`. Đã xác nhận qua nhật ký cũ `docs/superpowers/plans/2026-09-25-gd2-thi-cong-nhat-ky.md` §5: ca này "đã đỏ sẵn từ trước trên 86b2a60 …, không do nhánh này; thuộc phần D". Nguyên nhân cụ thể: ADR-0014 điều 6 đã cho FIELD/HDV được gán làm người phụ trách (cấp hẹp) — dòng e2e "FIELD nay gán được làm người phụ trách (ADR-0014 điều 6, cấp hẹp)" ở bộ `dispatch` (mục 5 dưới) xác nhận hành vi này đang chạy đúng theo ADR, còn bài `P4 FINDING` chưa cập nhật lại kỳ vọng theo ADR đó. Không thuộc phạm vi Task 0/0.1, không sửa ở đây; ghi lại để điều phối biết bài này cần cập nhật khi làm phần liên quan (D6/việc gán handler) hoặc một task dọn audit riêng. Chạy lại SAU khi sửa mã Task 0.1 (mục 4 dưới): vẫn 35/36, cùng đúng một ca này — không phát sinh ca đỏ mới. |
 
-**Ca đo CPU `src/claude-guard.test.ts`:** nằm trong 952 ca của `npm test` ở trên và đã **xanh** (không đỏ do máy bận lúc chạy). `uptime` lúc chạy: xem log dưới. Không sửa tệp này.
-
-```
-uptime lúc chạy bộ npm test (bước 3): 15:07 lên, load trung bình thấp (máy rảnh)
-```
+**Ca đo CPU `src/claude-guard.test.ts`:** nằm trong 952 ca của `npm test` ở trên và đã **xanh** — không đỏ do máy bận lúc chạy, nên theo brief KHÔNG cần ghi `uptime` (chỉ ghi khi ca này đỏ). Không sửa tệp này.
 
 ## 2. Task 0 bước 4 — Nhánh chưa gộp chạm cùng tệp
 
@@ -43,4 +39,79 @@ T3b: không áp dụng — ADR-0030 không thêm bảng.
 
 ## 4. Task 0.1 (T1d) — Khoá lạc quan cho câu huỷ
 
-(Ghi tiếp bên dưới khi thi công xong từng bước.)
+**Lỗi tìm thấy (T0-1):** `cancelOrder` (`src/modules/orders/repository.ts:716-723`) nhận `prevUpdatedAt`, tính `at = nextStamp(prevUpdatedAt)`, nhưng câu `UPDATE` chỉ khoá `WHERE id = ? AND status = ?` — **không** có `AND updated_at = ?`. Một request khác đổi `updated_at` (ví dụ `PUT /trip`) chen giữa lúc route đọc và lúc gọi `cancelOrder`, không đổi `status`, vẫn để huỷ thành công với mốc cũ.
+
+### Bước 1 — Đỏ trước
+
+Tệp: `src/modules/orders/cancel-lock.test.ts` (mới, SQLite thật dựng từ `migrations/*.sql`, fakeD1 hỗ trợ `batch()` như `dispatch/service.test.ts`). 3 ca: (1) mặc định `cancelled`, (2) đường HDV `order_cancelled_by_field`, (3) đối chứng dương (mốc đúng vẫn huỷ được, giữ hành vi cũ).
+
+Chạy `node --test src/modules/orders/cancel-lock.test.ts` trên mã **chưa sửa** → **ĐỎ 2/3** (ca đối chứng dương xanh ngay):
+
+```
+not ok 1 - cancelOrder: request PUT /trip chen giữa đổi updated_at (KHÔNG đổi status) → huỷ với mốc CŨ (M1) phải thua khoá lạc quan...
+  error: huỷ với mốc cũ phải thua khoá lạc quan
+  expected: false
+  actual: true
+
+not ok 2 - cancelOrder: ca 'order_cancelled_by_field' (đường huỷ hẹp của HDV, ADR-0014 điều 11) cũng thua khoá lạc quan như ca mặc định
+  error: huỷ với mốc cũ (đường HDV) phải thua khoá lạc quan
+  expected: false
+  actual: true
+
+ok 3 - cancelOrder: huỷ với mốc ĐÚNG ...
+# tests 3, pass 1, fail 2
+```
+
+### Bước 2 — Mã
+
+Thêm `AND updated_at = ?` (bind `prevUpdatedAt`) vào câu `UPDATE` của `cancelOrder`. Giữ `nextStamp(prevUpdatedAt)` và nhật ký `changes() > 0` nguyên vẹn. Không đổi chữ ký hàm.
+
+### Bước 3 — Chú thích
+
+Ba chỗ khẳng định optimistic lock đã hoạt động (đúng ở LỜI VĂN nhưng SAI so với mã trước khi sửa — mã trước chỉ khoá theo `status`) được làm rõ **khoá theo `status` VÀ `updated_at`**:
+- `src/modules/orders/index.ts:59-61` (`findOrderOwner`)
+- `src/modules/orders/index.ts:85-89` (`cancelOrderByHandler`)
+- `src/modules/dispatch/index.ts:159-163` (route `handler-cancel`)
+
+### Bước 4 — Hai đường route (đọc lại, không sửa)
+
+- `POST /api/orders/:id/status` (`src/modules/orders/index.ts:337`): `if (!(await cancelOrder(env.DB, id, staff.id, from, meta.updatedAt))) return RACED();` — thua khoá lạc quan → `RACED()` → 409 `invalid_transition`. Đúng T0-2.
+- `POST /api/orders/:id/handler-cancel` (`src/modules/dispatch/index.ts:164-176`): gọi `cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, ...)`; `order.updatedAt` đọc từ `findOrderOwner` ngay trước đó (dòng 167) — nếu `updated_at` đã đổi (PUT /trip chen giữa) thì thua khoá lạc quan → `ok=false` → xem nhánh dưới dòng 175 (đọc lại `findOrderOwner`, nếu `status` vẫn `confirmed` thì trả `HANDLER_RACED()` → 409 `stale`). Ca harness/e2e ở mức HTTP không dựng (tuỳ chọn theo brief, khó tái hiện ổn định); xác nhận bằng đọc mã tĩnh như trên.
+
+### Bước 5 — Thấy chặn thật (P16)
+
+Bỏ tạm `AND updated_at = ?` (đổi câu `UPDATE` về `WHERE id = ? AND status = ?` như trước khi sửa) → chạy `node --test src/modules/orders/cancel-lock.test.ts` → **đỏ lại đúng 2/3 ca** (ca 3 đối chứng dương vẫn xanh):
+
+```
+not ok 1 - cancelOrder: request PUT /trip chen giữa đổi updated_at (KHÔNG đổi status) → huỷ với mốc CŨ (M1) phải thua khoá lạc quan...
+  location: cancel-lock.test.ts:95:1
+  error: huỷ với mốc cũ phải thua khoá lạc quan
+  expected: false
+  actual: true
+  operator: strictEqual
+  stack: TestContext.<anonymous> (cancel-lock.test.ts:103:10)
+
+not ok 2 - cancelOrder: ca 'order_cancelled_by_field' ... cũng thua khoá lạc quan như ca mặc định
+  error: huỷ với mốc cũ (đường HDV) phải thua khoá lạc quan
+  expected: false
+  actual: true
+  stack: TestContext.<anonymous> (cancel-lock.test.ts:115:10)
+```
+
+Cả hai đỏ dừng ngay ở dòng `assert.equal(ok, false, …)` (103/115) — **trước khi** chạy tới `orderRow`/`auditCount`, nên không liên quan gì tới việc `orderRow` từng phải sửa (xem chú thích dưới). Hoàn nguyên (thêm lại `AND updated_at = ?`, bind `prevUpdatedAt`) → chạy lại → **xanh 3/3**. Đã quan sát chặn thật một lần (sửa cố ý → đỏ → hoàn nguyên → xanh), đúng P16. Dòng sổ hàng rào (`docs/SO-HANG-RAO.md`) sẽ ghi ở Task 1.9 của kế hoạch lượt 1 (không ghi ở Task 0 này theo brief).
+
+**Ghi chú viết test (không phải hành vi mã, để người sau khỏi phải dựng lại):** ngay SAU khi sửa mã (bước 2), lần chạy lại ĐẦU TIÊN vẫn đỏ ở ca 1 — nhưng KHÔNG cùng lý do bước 1: `ok` lúc này đã đúng là `false` (mã đã sửa hoạt động), lỗi mới nằm ở CHÍNH tệp test — `assert.deepEqual` (map sang `deepStrictEqual`) so sánh object không-prototype do `node:sqlite` `.get()` trả về với object literal thường, lệch prototype nên báo lỗi dù giá trị từng trường khớp nhau. Sửa hàm `orderRow` (spread ra object thường) rồi chạy lại → xanh 3/3, TRƯỚC KHI làm bước 5 (đột biến). Vì vậy khi làm bước 5 (bỏ tạm khoá), `orderRow` đã ở dạng đúng từ trước; đỏ ở bước 5 tái hiện đúng thông báo "true !== false" của bước 1 (dừng ở dòng `assert.equal(ok, false, …)`, TRƯỚC dòng gọi `orderRow`), không liên quan gì tới lỗi prototype đã sửa.
+
+### Bước 6 — Kết quả sau khi sửa
+
+| Lệnh | Kết quả |
+|---|---|
+| `node --test src/modules/orders/cancel-lock.test.ts` | 3/3 xanh |
+| `npm test` | 955/955 xanh (952 + 3 ca mới của `cancel-lock.test.ts`) |
+| `npm run typecheck` | thoát mã 0, không lỗi |
+| `node --test "tests/audit/*.test.mjs"` (chạy lại SAU khi sửa mã) | 35/36 — vẫn đúng một ca `P4 FINDING HDV` đỏ sẵn từ trước (mục 1), không phát sinh ca đỏ mới do khoá lạc quan |
+| `npm run test:e2e -- orders dispatch trip` | có mạng, đã chạy: **3/3 kịch bản xanh** (`orders` 12.8s, `dispatch` 67.8s, `trip` 20.3s) — không có ca nào đỏ liên quan tới huỷ đơn/khoá lạc quan. |
+
+**Kiểm thêm (advisor gợi ý):** `orders.updated_at` khai `NOT NULL` ngay từ `migrations/0003_orders.sql:19` và không có migration nào rebuild lại bảng `orders` sau đó — thêm `AND updated_at = ?` vào `WHERE` không có rủi ro NULL không bao giờ khớp.
+
+**Chưa kiểm:** kịch bản Chrome không chạy (Task 0.1 không sửa tệp giao diện nào, chỉ `repository.ts`/`index.ts` server + chú thích, nên không thuộc diện phải chạy lại Chrome theo `web/CLAUDE.md`). `node scripts/audit-invariants.mjs --db local` sau e2e KHÔNG chạy riêng trong phiên này (script `test:e2e` chỉ tự chạy audit-invariants khi chạy đủ mọi kịch bản, không phải tập con `orders dispatch trip`). Người kiểm độc lập cần tự xác nhận lại theo N8 (người thi công không tự nghiệm thu).

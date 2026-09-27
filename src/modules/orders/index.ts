@@ -58,7 +58,8 @@ function failure(f: Failure): Response {
 
 /**
  * API công khai cho module khác (`dispatch`, cạnh dispatch → orders — ADR-0006 điều 8): đơn có tồn tại không, AI LẬP, trạng thái, và mốc `updated_at`
- * (để `dispatch` truyền vào khoá lạc quan khi tự ghi qua `cancelOrderByHandler`). Chỉ trả các trường này, không lộ gì khác của đơn; null nếu không có đơn.
+ * (để `dispatch` truyền vào khoá lạc quan khi tự ghi qua `cancelOrderByHandler` — khoá theo CẢ `status` VÀ `updated_at`, T1d). Chỉ trả các trường này,
+ * không lộ gì khác của đơn; null nếu không có đơn.
  */
 export async function findOrderOwner(db: D1Database, id: string): Promise<{ staffId: string; status: OrderStatus; updatedAt: string } | null> {
   const meta = await getMeta(db, id);
@@ -85,7 +86,8 @@ export async function findOrderDepartDates(db: D1Database, id: string): Promise<
 /**
  * Huỷ đơn qua đường hẹp của người phụ trách CẤP HẸP (`FIELD`, ADR-0014 điều 11) — CHỈ đổi `status`/`updated_at`, không đụng dịch vụ hay cột tiền (đúng khoá
  * "đơn đã xác nhận không đổi tiền" — xem `docs/superpowers/specs/2026-09-22-khoa-tien-don-da-xac-nhan.md`). Route gọi hàm này SAU KHI đã tự kiểm
- * `status === "confirmed"` bằng `findOrderOwner`; hàm này chỉ còn lo tranh chấp (khoá lạc quan) nên vẫn ràng buộc `from: "confirmed"` cho chắc.
+ * `status === "confirmed"` bằng `findOrderOwner`; hàm này chỉ còn lo tranh chấp (khoá lạc quan khoá theo CẢ `status` VÀ `updated_at`, T1d) nên vẫn
+ * ràng buộc `from: "confirmed"` cho chắc.
  */
 export async function cancelOrderByHandler(db: D1Database, id: string, staffId: string, prevUpdatedAt: string, reasonLabel: string): Promise<boolean> {
   return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
