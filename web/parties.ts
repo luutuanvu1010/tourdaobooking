@@ -27,7 +27,7 @@ let openId: string | null = null;
 const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.";
 /** Câu xác nhận trước khi đổi công ty chủ (ADR-0024 6.2: trang đăng nhập và biên nhận đọc hồ sơ công ty chủ). Không nói "Toàn quyền" (vai ẩn). */
 const XAC_NHAN_DOI_CONG_TY_CHU =
-  "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email) — thiếu mục nào thì biên nhận báo lỗi tới khi bổ sung. Công ty chủ hiện tại sẽ thôi giữ công việc này.";
+  "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email) — thiếu mục nào thì biên nhận báo lỗi tới khi bổ sung. Công ty chủ hiện tại sẽ thôi giữ công việc này.";
 const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
 /**

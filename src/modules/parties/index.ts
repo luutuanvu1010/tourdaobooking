@@ -85,6 +85,10 @@ const laCongTyChu = (db: D1Database, id: string): Promise<boolean> => isOwnerCom
 // biến "đúng một, không lúc nào trống"; lớp CSDL là trigger *_keep_last của migration *_ho_so_cong_ty_chu (ánh xạ riêng ở constraintProblem).
 const KHONG_KET_THUC_CONG_TY_CHU = "Không kết thúc được công việc “Công ty chủ”: hệ thống luôn cần một công ty chủ. Muốn đổi thì gán “Công ty chủ” cho hồ sơ tổ chức khác.";
 const OWNER_COMPANY_LOCKED = () => error(409, "owner_company_locked", KHONG_KET_THUC_CONG_TY_CHU);
+// ADR-0043 điều 2: hai giới hạn chấp nhận được của việc đổi, báo bằng câu hợp ngữ cảnh (không câu chung "trùng thời gian").
+const OWNER_COMPANY_ALREADY = () => error(409, "owner_company_already", "Hồ sơ này đang là công ty chủ.");
+const OWNER_COMPANY_SAME_DAY = () =>
+  error(409, "owner_company_same_day", "Hôm nay hồ sơ này vừa thôi là công ty chủ, nên chưa đổi lại được. Muốn đổi lại cho hồ sơ này thì làm vào ngày mai.");
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
@@ -336,20 +340,24 @@ export const partiesModule: AppModule = {
       const acc: PartyAccountVerdict = await ctx.partyAccount(id);
       if (acc.linked && !acc.manageable) return FORBIDDEN_WRITE();
       // ADR-0024 6.4: MỌI công việc trên hồ sơ công ty chủ — chỉ company.legal.write; hỏi TRƯỚC khi đọc thân (không để 400 lộ trước 403).
-      if ((await laCongTyChu(env.DB, id)) && !can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
+      const chu = await laCongTyChu(env.DB, id);
+      if (chu && !can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
       const now = new Date();
       const today = vnToday(now);
       const parsed = validateRole(await readJson(request), today);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (isAccountGroup(await roleTypeGroup(env.DB, parsed.value.roleTypeCode))) return ACCOUNT_ROLE();
       const at = now.toISOString();
+      const doiCongTyChu = parsed.value.roleTypeCode === OWNER_COMPANY_ROLE;
       const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
-      if (parsed.value.roleTypeCode === OWNER_COMPANY_ROLE) {
-        // 6.5 (i) + chủ 2026-09-28: gán "Công ty chủ" = ĐỔI công ty chủ — chỉ company.legal.write, trên BẤT KỲ hồ sơ nào (mã vai gửi lên chỉ biết sau khi
-        // đọc thân). Trigger *_switch của migration đóng dòng công ty chủ cũ trong cùng câu chèn; nhật ký ghi ở CẢ hai hồ sơ, chỉ tên (không MST/SĐT/email).
+      if (doiCongTyChu) {
+        // 6.5 (i) + ADR-0043: gán "Công ty chủ" = ĐỔI công ty chủ — chỉ company.legal.write, trên BẤT KỲ hồ sơ nào (mã vai gửi lên chỉ biết sau khi đọc thân);
+        // hồ sơ tổ chức, không gắn nơi, không ngày kết thúc, bắt đầu HÔM NAY (ngày lùi ghi sai lịch sử; ngày tới hiện hồ sơ mới trước ngày hiệu lực). Trigger
+        // *_switch của migration đóng dòng công ty chủ cũ trong cùng câu chèn; nhật ký ghi ở CẢ hai hồ sơ, chỉ tên (không MST/SĐT/email).
         if (!can(staff, "company.legal.write")) return OWNER_COMPANY_FORBIDDEN();
         const problem = ownerCompanyAssignProblem(party.party_kind, parsed.value, today);
         if (problem) return error(400, "invalid_input", problem);
+        if (chu) return OWNER_COMPANY_ALREADY(); // câu hợp ngữ cảnh thay cho câu chung "trùng thời gian" của trigger chồng lấn 0011 (ADR-0043 điều 2)
         const cu = (await ownerCompanyRows(env.DB, OWNER_COMPANY_ROLE)).find((r) => r.id !== id);
         stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_added", at, targetType: "party", targetId: id, detail: cu ? `công ty chủ (thay "${cu.display_name}")` : "công ty chủ" }));
         if (cu) stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: cu.id, detail: `thôi là công ty chủ (chuyển sang "${party.display_name}")` }));
@@ -359,6 +367,8 @@ export const partiesModule: AppModule = {
       try {
         await env.DB.batch(stmts);
       } catch (e) {
+        // ADR-0043 điều 2: đổi LẠI trong cùng ngày về hồ sơ vừa thôi vai → trigger chồng lấn 0011 chặn; báo câu hợp ngữ cảnh, không câu chung "trùng thời gian".
+        if (doiCongTyChu && e instanceof Error && /party_role_overlap/.test(e.message)) return OWNER_COMPANY_SAME_DAY();
         const problem = constraintProblem(e);
         if (problem) return problem;
         throw e;

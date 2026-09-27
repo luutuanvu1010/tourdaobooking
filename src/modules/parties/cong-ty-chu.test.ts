@@ -150,27 +150,71 @@ test("ĐỔI công ty chủ (chủ trả lời 2026-09-28): SUPER_ADMIN gán 'C�
   assert.equal((await sua(w, SALES, CT, hoSo(w, CT).display_name)).status, 200);
 });
 
-test("gán 'Công ty chủ' (SUPER_ADMIN): hồ sơ cá nhân, có nơi, có ngày kết thúc, ngày bắt đầu khác hôm nay → 400; gán lại cho chính công ty chủ → 409 trùng thời gian; không đổi gì", async () => {
+test("gán 'Công ty chủ' (SUPER_ADMIN): hồ sơ cá nhân, có nơi, có ngày kết thúc, ngày bắt đầu đã qua hoặc chưa tới → 400 câu tiếng Việt (ADR-0043 điều 2: ngày bắt đầu = hôm nay); không đổi gì, không nhật ký", async () => {
   const w = setup();
   const CT = congTyChu(w);
   const KHAC = await toChucDu(w, SALES, "Đại lý Khác");
-  const truoc = vaiMo(w);
+  const truoc = { vai: vaiMo(w), log: logCount(w, CT) + logCount(w, KHAC) };
   const nguoi = (await w.call("POST", "/api/parties", { as: SALES, body: { kind: "PERSON", fullName: "Nguyễn Thử" } })).json.party.id;
   const noi = w.q("SELECT id FROM loc_location LIMIT 1")[0].id;
-  for (const [ten, id, body] of [
-    ["hồ sơ cá nhân", nguoi, { roleTypeCode: "OWNER_COMPANY" }],
-    ["có nơi", KHAC, { roleTypeCode: "OWNER_COMPANY", locationId: noi }],
-    ["có ngày kết thúc", KHAC, { roleTypeCode: "OWNER_COMPANY", validTo: "2099-12-31" }],
-    ["bắt đầu ngày khác", KHAC, { roleTypeCode: "OWNER_COMPANY", validFrom: "2099-01-01" }],
+  for (const [ten, id, body, chu] of [
+    ["hồ sơ cá nhân", nguoi, { roleTypeCode: "OWNER_COMPANY" }, /tổ chức/],
+    ["có nơi", KHAC, { roleTypeCode: "OWNER_COMPANY", locationId: noi }, /nơi/],
+    ["có ngày kết thúc", KHAC, { roleTypeCode: "OWNER_COMPANY", validTo: "2099-12-31" }, /ngày kết thúc/],
+    ["bắt đầu ngày ĐÃ QUA (ghi lùi lịch sử)", KHAC, { roleTypeCode: "OWNER_COMPANY", validFrom: "2020-01-01" }, /hôm nay/],
+    ["bắt đầu ngày CHƯA TỚI (hiện trước ngày hiệu lực)", KHAC, { roleTypeCode: "OWNER_COMPANY", validFrom: "2099-01-01" }, /hôm nay/],
   ] as const) {
     const r = await ganVai(w, SUP, id, body);
     assert.equal(r.status, 400, `${ten}: ${r.text}`);
     assert.equal(r.json.error.code, "invalid_input");
+    assert.match(r.json.error.message, chu, ten);
   }
+  assert.deepEqual({ vai: vaiMo(w), log: logCount(w, CT) + logCount(w, KHAC) }, truoc);
+});
+
+test("gán lại 'Công ty chủ' cho CHÍNH hồ sơ đang giữ → 409 owner_company_already 'đang là công ty chủ' (không câu chung 'trùng thời gian'); không đổi gì", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const truoc = vaiMo(w);
   const r = await ganVai(w, SUP, CT, { roleTypeCode: "OWNER_COMPANY" });
   assert.equal(r.status, 409, r.text);
-  assert.doesNotMatch(r.text, /SQLITE|constraint|RAISE/i);
+  assert.equal(r.json.error.code, "owner_company_already");
+  assert.match(r.json.error.message, /đang là công ty chủ/);
+  assert.doesNotMatch(r.text, /SQLITE|constraint|RAISE|trùng/i);
   assert.deepEqual(vaiMo(w), truoc);
+});
+
+test("đổi đi rồi đổi LẠI trong cùng ngày về hồ sơ vừa thôi vai (trigger chồng lấn 0011 chặn) → 409 owner_company_same_day, câu 'đổi lại vào ngày mai'; vẫn đúng một", async () => {
+  const w = setup();
+  const CT = congTyChu(w); // dòng gieo bắt đầu HÔM NAY (khung dựng CSDL lúc chạy) → đổi đi thì dòng đó đóng ở chính hôm nay
+  const MOI = await toChucDu(w, SALES, "Pháp nhân Mới");
+  assert.equal((await ganVai(w, SUP, MOI, { roleTypeCode: "OWNER_COMPANY" })).status, 201);
+  const r = await ganVai(w, SUP, CT, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "owner_company_same_day");
+  assert.match(r.json.error.message, /ngày mai/);
+  assert.doesNotMatch(r.text, /SQLITE|constraint|RAISE|trùng/i);
+  assert.deepEqual(vaiMo(w).map((x: any) => x.party_id), [MOI]);
+});
+
+test("MỌI đường ghi vai đều qua chốt: Bán hàng, Kế toán gán/kết thúc 'Công ty chủ' → 403 (cổng quản trị); vai tài khoản không nhận 'OWNER_COMPANY' (400); tạo hồ sơ kèm 'roles' không sinh vai", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const [vai] = vaiMo(w);
+  const KHAC = await toChucDu(w, SALES, "Đại lý Khác");
+  const truoc = { vai: vaiMo(w), log: logCount(w, CT) + logCount(w, KHAC) };
+  for (const as of [SALES, ACC]) {
+    assert.equal((await ganVai(w, as, KHAC, { roleTypeCode: "OWNER_COMPANY" })).status, 403, `${as} gán`);
+    assert.equal((await ketThucVai(w, as, CT, vai.id)).status, 403, `${as} kết thúc`);
+  }
+  // Đường vai TÀI KHOẢN (module staff) chỉ nhận mã vai của roles.ts — kể cả người giữ mọi quyền.
+  const r = await w.call("PUT", `/api/staff/${SALES}/roles`, { as: SUP, body: { roles: ["OWNER_COMPANY"], adds: [], removes: [], reason: null } });
+  assert.equal(r.status, 400, r.text);
+  // Tạo hồ sơ (party.write của Bán hàng) không nhận vai: trường 'roles' lạ bị bỏ qua.
+  const moi = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "ORGANIZATION", displayName: "Tổ chức Kèm Vai", roles: [{ roleTypeCode: "OWNER_COMPANY" }] } });
+  assert.equal(moi.status, 201, moi.text);
+  assert.deepEqual(moi.json.party.roles, []);
+  assert.deepEqual({ vai: vaiMo(w), log: logCount(w, CT) + logCount(w, KHAC) }, truoc);
 });
 
 test("không chặn quá tay: ADMIN thêm 'Khách hàng' cho hồ sơ tổ chức thường → 201; 2A (chủ 2026-09-28): ADMIN thêm 'Người liên hệ của' công ty chủ → 201", async () => {
