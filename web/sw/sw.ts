@@ -62,8 +62,15 @@ self.addEventListener("push", (event: PushEvent) => {
 self.addEventListener("notificationclick", (event: NotificationEvent) => {
   event.notification.close();
   const raw = (event.notification.data as { lienKet?: string } | null)?.lienKet ?? "/";
-  const url = new URL(raw, self.location.origin);
-  const dich = url.origin === self.location.origin ? url.href : self.location.origin + "/"; // chỉ mở trang cùng nguồn
+  // Sửa kèm vòng rà 2026-09-28: `new URL()` có thể ném với chuỗi hỏng (dữ liệu `lienKet` không đúng dạng URL, dù
+  // hiếm) — bọc try, hỏng thì mở trang chủ thay vì để cả `notificationclick` lỗi (không mở gì).
+  let dich = self.location.origin + "/";
+  try {
+    const url = new URL(raw, self.location.origin);
+    if (url.origin === self.location.origin) dich = url.href; // chỉ mở trang cùng nguồn
+  } catch {
+    // dich giữ nguyên "/" đã đặt ở trên.
+  }
   event.waitUntil(
     (async () => {
       for (const c of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) {
