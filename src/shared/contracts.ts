@@ -438,10 +438,11 @@ export interface HandlerMoneyEditResponse { ok: true }
 
 /**
  * Màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11, ADR-0030 S23-8). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ
- * `OrderDto`/`OrderServiceDto`/`OrderItemDto` — để một lần đổi kiểu dữ liệu đơn sau này không vô tình lọt trường tiền vào đây. Route hẹp này vẫn
- * KHÔNG trả trường tiền nào (bản 1.6): đó là phạm vi của MÀN NÀY (gọn, không hiện bảng giá cho việc hằng ngày), KHÔNG còn là giới hạn quyền —
- * ADR-0017 (accepted 2026-09-24) đã đảo ngược ADR-0007 điều 3/4(c): HDV xem được tiền của đơn mình phụ trách ở chi tiết đơn (`money.view` ô
- * `assigned`, `GET /api/orders/:id`).
+ * `OrderDto`/`OrderServiceDto`/`OrderItemDto` — mỗi trường ở đây là một quyết định có chủ ý, một lần đổi kiểu dữ liệu đơn sau này không được tự lọt
+ * thêm trường nào (giá từng dòng, giảm giá, ghi chú thanh toán… vẫn KHÔNG có). Từ Task 1.8 (chủ dự án quyết 2026-09-27: HDV cần biết còn thu bao
+ * nhiêu) có ĐÚNG ba trường tiền cấp đơn — `total`, `depositAmount`, `remainingAmount` — số HIỆN HÀNH sau điều chỉnh (ADR-0017 điều 5), dựa trên ô
+ * `money.view` phạm vi `assigned` đã cấp cho HDV (ADR-0017, thu hẹp ở ADR-0030 S23-5); route hỏi ô đó (ADR-0019 điều 2). Không có bảng giá, không
+ * có tiền từng dịch vụ.
  */
 export interface MyAssignmentServiceDto extends TripInfoDto {
   id: string;
@@ -459,6 +460,12 @@ export interface MyAssignmentDto {
   customerPhone: string;
   /** Từ bản 1.6: đơn NHÁP cũng có trong danh sách (không chỉ đã xác nhận) — giao diện dùng `status` để ẩn nút huỷ/sửa số khách (`myJobActions`). */
   status: OrderStatus;
+  /** Tổng tiền của đơn (VNĐ), số hiện hành sau điều chỉnh số khách — cùng số với `OrderDto.total` của chi tiết đơn. */
+  total: number;
+  /** Đã cọc (VNĐ) — cùng số với `OrderDto.depositAmount`. */
+  depositAmount: number;
+  /** Còn thu (VNĐ) — cùng số với `OrderDto.remainingAmount` (máy chủ tính, giao diện không tự trừ). */
+  remainingAmount: number;
   services: MyAssignmentServiceDto[];
 }
 export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }

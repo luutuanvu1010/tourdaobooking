@@ -118,11 +118,14 @@ export const dispatchModule: AppModule = {
     }),
 
     // "Việc của tôi": đơn mà CHÍNH staff gọi đang phụ trách — không tham số (staff.id lấy từ phiên đăng nhập), tự khoanh phạm vi bằng chính người
-    // gọi. Dùng cho khối "Việc của tôi" ở trang Tôi (FIELD — ADR-0014 điều 6/11). Phản hồi có tên/SĐT khách nên vẫn hỏi `contact.view` phạm vi
-    // "được giao" (ADR-0019 điều 2): mọi mã làm người phụ trách được đều có ô ⊇ assigned; Thực tập (`own`) → 403 — giao diện chỉ gọi route này
-    // cho tài khoản có quyền Hướng dẫn viên (`web/account.ts`).
+    // gọi. Dùng cho khối "Việc của tôi" ở trang Tôi (FIELD — ADR-0014 điều 6/11). Phản hồi có tên/SĐT khách nên hỏi `contact.view` phạm vi "được
+    // giao", và từ Task 1.8 (chủ dự án quyết 2026-09-27) có Tổng tiền/Đã cọc/Còn thu nên hỏi CẢ `money.view` cùng phạm vi (ADR-0019 điều 2: thiếu
+    // một ô → 403 cả phản hồi, không cắt bớt trường). Mọi mã làm người phụ trách được đều có hai ô ⊇ assigned; Thực tập (`own`) và Đối tác thuần
+    // (`money.view` = own; không bao giờ làm người phụ trách được — `checkAssignee`) → 403. Giao diện chỉ gọi route này cho tài khoản có quyền Hướng
+    // dẫn viên (`web/account.ts`).
     route("GET", "/api/dispatch/mine", "staff", async ({ env, staff }) => {
       if (!can(staff, "contact.view", { assigned: true })) return VIEW_FORBIDDEN();
+      if (!can(staff, "money.view", { assigned: true })) return VIEW_FORBIDDEN();
       const orderIds = await findHandledOrderIds(env.DB, staff.id);
       const assignments = await getMyAssignments(env.DB, orderIds);
       return json({ assignments } satisfies MyAssignmentsResponse);

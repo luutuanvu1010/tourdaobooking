@@ -151,10 +151,42 @@ test("danh sách người có thể được giao: chỉ ai giao được ít nh
   for (const as of [PARTNER, INTERN, FIELD]) assert.equal((await w.call("GET", "/api/dispatch/assignees", { as })).status, 403, as);
 });
 
-test("'Việc của tôi' trả liên hệ khách → hỏi contact.view phạm vi 'được giao': Thực tập (own) → 403; Hướng dẫn viên, Đối tác, Bán hàng → 200", async () => {
+// Task 1.8 (chủ dự án quyết 2026-09-27: HDV cần biết còn thu bao nhiêu) — "Việc của tôi" nay trả thêm ba trường tiền, nên route hỏi CẢ `money.view`
+// phạm vi "được giao" (ADR-0019 điều 2: nơi trả tiền hỏi ô tiền; thiếu → 403 cả phản hồi, không cắt bớt trường). ĐẢO CÓ CHỦ ĐÍCH: Đối tác trước đây
+// 200 (contact.view = ownOrAssigned) nay 403 (money.view = own) — siết, không mất chức năng: Đối tác thuần không bao giờ làm người phụ trách
+// (`checkAssignee`), danh sách của họ luôn rỗng, giao diện cũng không gọi route này cho họ.
+test("'Việc của tôi' trả liên hệ khách VÀ tiền → hỏi contact.view và money.view phạm vi 'được giao': Thực tập, Đối tác → 403; Hướng dẫn viên, Bán hàng, Kế toán → 200", async () => {
   const w = setup();
-  assert.equal((await w.call("GET", "/api/dispatch/mine", { as: INTERN })).status, 403);
-  for (const as of [FIELD, PARTNER, SALES]) assert.equal((await w.call("GET", "/api/dispatch/mine", { as })).status, 200, as);
+  for (const as of [INTERN, PARTNER]) {
+    const r = await w.call("GET", "/api/dispatch/mine", { as });
+    assert.equal(r.status, 403, `${as}: ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden");
+  }
+  for (const as of [FIELD, SALES, ACC, LAI_HDV]) assert.equal((await w.call("GET", "/api/dispatch/mine", { as })).status, 200, as);
+});
+
+// Task 1.8 (quyết định A của chủ dự án, 2026-09-27): ba trường tiền của "Việc của tôi" là số HIỆN HÀNH sau điều chỉnh (ADR-0017 điều 5) — PHẢI trùng
+// đúng số mà chi tiết đơn (`GET /api/orders/:id`, cùng người xem) trả, kể cả sau khi HDV sửa số khách (dòng điều chỉnh, không sửa đè cột tiền).
+test("'Việc của tôi' có Tổng tiền / Đã cọc / Còn thu = đúng số của chi tiết đơn, kể cả đơn nháp và đơn đã sửa số khách", async () => {
+  const w = setup();
+  const draft = await orderHandledBy(w, FIELD); // 2 người lớn × 500.000 = 1.000.000, cọc 200.000
+  const conf = await orderHandledBy(w, FIELD);
+  const ok = await w.call("POST", `/api/orders/${conf}/status`, { as: SALES, body: { status: "confirmed" } });
+  assert.equal(ok.status, 200, ok.text);
+  const svc = (await w.call("GET", `/api/orders/${conf}`, { as: FIELD })).json.order.services[0].id;
+  const edit = await w.call("POST", `/api/orders/${conf}/handler-money-edit`, { as: FIELD, body: { reason: "Khách thêm người", services: [{ id: svc, pax: { adult: 3, child: 0, senior: 0, infant: 0 } }] } });
+  assert.equal(edit.status, 200, edit.text);
+
+  const mine = await w.call("GET", "/api/dispatch/mine", { as: FIELD });
+  assert.equal(mine.status, 200, mine.text);
+  const byId = new Map(mine.json.assignments.map((a: any) => [a.orderId, a]));
+  const money = (a: any) => ({ total: a.total, depositAmount: a.depositAmount, remainingAmount: a.remainingAmount });
+  assert.deepEqual(money(byId.get(draft)), { total: 1000000, depositAmount: 200000, remainingAmount: 800000 }, "đơn nháp: số lúc lập");
+  assert.deepEqual(money(byId.get(conf)), { total: 1500000, depositAmount: 200000, remainingAmount: 1300000 }, "đơn đã xác nhận, đã sửa 2 → 3 người lớn: số SAU điều chỉnh");
+  for (const id of [draft, conf]) {
+    const detail = (await w.call("GET", `/api/orders/${id}`, { as: FIELD })).json.order;
+    assert.deepEqual(money(byId.get(id)), money(detail), `${id}: trùng chi tiết đơn`);
+  }
 });
 
 // ============================================================================================================================================

@@ -131,10 +131,12 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
 
 /**
  * Dữ liệu cho màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch) — tái dùng `loadOrderView` (đã có overlay điều chỉnh, ADR-0014 điều 6)
- * rồi LỌC BỎ mọi trường tiền trước khi trả ra. Từ bản 1.6 (ADR-0030 S23-8, lượt 1): trả CẢ đơn nháp, chỉ loại đơn đã huỷ — trước đó chỉ trả đơn đã
- * xác nhận, nay HDV cũng thấy đơn nháp mình đang phụ trách (chưa có nút huỷ/sửa số khách cho đơn nháp: `myJobActions` ở giao diện quyết theo
- * `status`). KHÔNG trả tiền là phạm vi thiết kế của MÀN NÀY, không phải giới hạn quyền — ADR-0017 đã đảo ngược ADR-0007 điều 3, HDV xem được tiền
- * ở chi tiết đơn (`GET /api/orders/:id`). `orderIds` do `dispatch` truyền vào (đơn mà staff gọi đang là người phụ trách — dispatch tự tra, orders
+ * rồi dựng lại TỪNG trường được phép (không trải đối tượng nguồn). Từ bản 1.6 (ADR-0030 S23-8, lượt 1): trả CẢ đơn nháp, chỉ loại đơn đã huỷ — trước đó
+ * chỉ trả đơn đã xác nhận, nay HDV cũng thấy đơn nháp mình đang phụ trách (chưa có nút huỷ/sửa số khách cho đơn nháp: `myJobActions` ở giao diện quyết
+ * theo `status`). Tiền: chủ dự án quyết 2026-09-27 (Task 1.8): HDV cần biết còn thu bao nhiêu — mở ĐÚNG ba trường tiền cấp đơn (`total`,
+ * `depositAmount`, `remainingAmount`, số hiện hành sau điều chỉnh của `loadOrderView` — ADR-0017 điều 5), dựa trên quyền `money.view` (assigned) đã
+ * cấp từ Task 1.5/ADR-0017; route hỏi ô đó trước khi gọi hàm này. Không giá từng dòng, không giảm giá, không ghi chú thanh toán.
+ * `orderIds` do `dispatch` truyền vào (đơn mà staff gọi đang là người phụ trách — dispatch tự tra, orders
  * không biết khái niệm "người phụ trách"). `editablePaxCodes` tính từ đơn GỐC (`findOrder`, trước overlay) qua `editablePaxCodesOf` — KHÔNG tính từ
  * `items` của bản đã overlay (`loadOrderView`), vì overlay có thể bỏ hẳn dòng của một loại khách đã bị sửa về 0, làm loại đó biến mất khỏi ô nhập
  * (lỗi thật, kiểm độc lập 2026-09-22).
@@ -155,6 +157,9 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
         customerName: o.customerName,
         customerPhone: o.customerPhone,
         status: o.status,
+        total: o.total,
+        depositAmount: o.depositAmount,
+        remainingAmount: o.remainingAmount,
         services: o.services.map((s) => ({
           id: s.id,
           name: s.name,

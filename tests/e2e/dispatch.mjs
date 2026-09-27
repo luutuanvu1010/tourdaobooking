@@ -677,6 +677,7 @@ try {
   const mineO18 = mineWhileDup.body.assignments.find((x) => x.orderId === o18.id);
   assert.ok(mineO18, "o18 (FIELD đang phụ trách, đã xác nhận) phải có trong 'Việc của tôi'");
   assert.deepEqual(mineO18.services[0].pax, { adult: 7, child: 0, senior: 0, infant: 0 }, "'Việc của tôi' cũng phải khớp CÙNG số (7) — bề mặt thứ tư, không riêng ba bề mặt kia");
+  assert.equal(mineO18.total, detailDup.total, "'Việc của tôi' (Task 1.8 có tiền): tổng tiền khớp chi tiết đơn, không đọc subtotal_after rác");
   console.log("✓ Bề mặt thứ tư (GET /api/dispatch/mine) cũng đọc đúng after_json qua parseAdjustmentAfter, không sập, khớp ba bề mặt còn lại");
 
   // "Đơn hỏng cũng không gỡ được bằng thao tác bình thường" (Lỗi 2) — trước bản sửa, editMoneyAsHandler (dùng chung getLatestAdjustment) cũng
@@ -723,7 +724,9 @@ try {
   console.log("✓ SUPER_ADMIN dùng được route dù không phải người phụ trách (any ở mọi thao tác, ADR-0014 điều 2)");
 
   // "Việc của tôi" (bản 1.6, ADR-0030 S23-8): FIELD thấy đơn CHÍNH MÌNH đang phụ trách, KỂ CẢ đơn nháp (o10) — chỉ loại đơn đã huỷ (o11, o16) và
-  // đơn mình không phụ trách (o15). Mỗi đơn kèm `status` để giao diện tự quyết nút nào hiện (`myJobActions`). Tuyệt đối không có trường tiền nào.
+  // đơn mình không phụ trách (o15). Mỗi đơn kèm `status` để giao diện tự quyết nút nào hiện (`myJobActions`). Tiền (Task 1.8, chủ dự án quyết
+  // 2026-09-27: HDV cần biết còn thu bao nhiêu): ĐÚNG ba trường cấp đơn `total`/`depositAmount`/`remainingAmount`, trùng số của chi tiết đơn; không
+  // giá từng dòng, không giảm giá — và dịch vụ vẫn không có trường tiền nào.
   const mine = async (cookie) => (await call(cookie, "GET", "/api/dispatch/mine")).body.assignments;
   const mineList = await mine(FIELD);
   const mineIds = mineList.map((x) => x.orderId);
@@ -736,17 +739,22 @@ try {
   assert.equal(mine10.status, "draft", "o10 còn nháp: trường status phải là 'draft'");
   const mine14 = mineList.find((x) => x.orderId === o14.id);
   assert.equal(mine14.status, "confirmed", "o14 đã xác nhận: trường status phải là 'confirmed'");
-  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "orderCode", "orderId", "services", "status"]);
+  assert.deepEqual(Object.keys(mine14).sort(), ["customerName", "customerPhone", "depositAmount", "orderCode", "orderId", "remainingAmount", "services", "status", "total"]);
   assert.deepEqual(
     Object.keys(mine14.services[0]).sort(),
     ["catalogCode", "checkinDate", "checkinPlace", "checkinTime", "departDate", "departTime", "editablePaxCodes", "id", "name", "note", "pax", "pickupPlace", "pickupTime"].sort(),
   );
-  assert.doesNotMatch(JSON.stringify(mine14), /subtotal|discount|total|price|amount/i, "tuyệt đối không lộ trường tiền nào");
-  assert.doesNotMatch(JSON.stringify(mine10), /subtotal|discount|total|price|amount/i, "đơn nháp trong 'Việc của tôi' cũng không lộ trường tiền nào");
+  for (const [label, m] of [["o14 (đã xác nhận)", mine14], ["o10 (nháp)", mine10]]) {
+    const { services: svcs, total, depositAmount, remainingAmount, ...rest } = m;
+    assert.doesNotMatch(JSON.stringify(svcs), /subtotal|discount|total|price|amount/i, `${label}: dịch vụ trong 'Việc của tôi' không có trường tiền nào (không giá từng dòng)`);
+    assert.doesNotMatch(JSON.stringify(rest), /subtotal|discount|total|price|amount/i, `${label}: ngoài ba trường tiền cấp đơn, không lộ thêm trường tiền nào`);
+    const detail = await orderView(FIELD, m.orderId);
+    assert.deepEqual({ total, depositAmount, remainingAmount }, { total: detail.total, depositAmount: detail.depositAmount, remainingAmount: detail.remainingAmount }, `${label}: ba trường tiền trùng chi tiết đơn`);
+  }
   assert.deepEqual(mine14.services[0].editablePaxCodes, ["adult"]);
   assert.equal((await mine(A)).some((x) => x.orderId === o14.id), false, "SALES (đã đổi người phụ trách o14 sang FIELD từ đầu mục 14) không còn thấy o14 trong DANH SÁCH CỦA CHÍNH HỌ");
   assert.deepEqual(await mine(ACC), [], "kế toán gọi được (access staff), chỉ không có đơn nào của họ — không lỗi");
-  console.log("✓ GET /api/dispatch/mine (bản 1.6): đơn CHÍNH MÌNH đang phụ trách kể cả nháp, kèm status, không có trường tiền nào");
+  console.log("✓ GET /api/dispatch/mine (bản 1.6 + Task 1.8): đơn CHÍNH MÌNH đang phụ trách kể cả nháp, kèm status; ba trường tiền cấp đơn trùng chi tiết đơn, không tiền từng dịch vụ");
 
   // editablePaxCodes không được "mất" loại khách sau khi bị sửa về 0 (lỗi thật tìm được lúc kiểm độc lập 2026-09-22): dịch vụ theo người có HAI
   // loại khách (adult+child) — sửa trẻ em về 0 rồi gọi lại /api/dispatch/mine phải VẪN thấy "child" trong editablePaxCodes (server vẫn chấp nhận
@@ -813,7 +821,7 @@ try {
   };
   const measured = []; // bảng số đo cuối — in ra cuối khối này (yêu cầu báo cáo: "ca nào, tự tính tay bao nhiêu, bốn bề mặt trả về bao nhiêu")
 
-  /** Đo BA bề mặt CÓ tiền (chi tiết đơn, /api/orders, Trang chủ hôm nay) + bề mặt thứ tư KHÔNG có tiền (Việc của tôi — chỉ đối chứng số khách). */
+  /** Đo BỐN bề mặt CÓ tiền: chi tiết đơn, /api/orders, Trang chủ hôm nay, và Việc của tôi (có ba trường tiền cấp đơn từ Task 1.8 — chủ dự án quyết 2026-09-27). */
   async function measureFourSurfaces(orderId, orderCode) {
     const chiTiet = await orderView(A, orderId);
     const orders = (await call(A, "GET", `/api/orders?q=${orderCode}`)).body.orders.find((x) => x.id === orderId);
@@ -840,6 +848,7 @@ try {
     assert.equal(s.dashboard.total, expected, "D1 Trang chủ");
     assert.ok(s.mine, "D1 phải có trong Việc của tôi");
     assert.deepEqual(s.mine.services[0].pax, pax(3), "D1 Việc của tôi: số khách khớp");
+    assert.equal(s.mine.total, expected, "D1 Việc của tôi: tổng tiền (Task 1.8)");
     measured.push({ ca: "D1 chỉ danh mục", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
     console.log(`✓ D1 (chỉ danh mục): tự tính ${expected.toLocaleString("vi-VN")}₫ — chi tiết ${s.chiTiet.total.toLocaleString("vi-VN")}₫, /orders ${s.orders.total.toLocaleString("vi-VN")}₫, Trang chủ ${s.dashboard.total.toLocaleString("vi-VN")}₫`);
   }
@@ -893,6 +902,7 @@ try {
     assert.equal(s.dashboard.total, expected, "D3 Trang chủ — CA LỖI GỐC: bản cũ hiện 900.000 (thiếu 200.000) ở đây");
     assert.ok(s.mine, "D3 phải có trong Việc của tôi");
     assert.deepEqual(s.mine.services.find((x) => x.catalogCode === "ZH1").pax, pax(3), "D3 Việc của tôi: số khách khớp");
+    assert.equal(s.mine.total, expected, "D3 Việc của tôi: tổng tiền có cả dịch vụ nhập tay (Task 1.8)");
 
     // Task 9 (kiểm độc lập) — CÙNG lý do đã ghi ở khối D2 phía trên: đọc THẲNG cột order_money_adjustment.subtotal_before/subtotal_after ĐÃ LƯU
     // của D3 (đơn TRỘN — đúng ca lỗi gốc), không qua effectiveSubtotal ở nơi đọc. Số mong đợi TỰ TÍNH TỪ KỊCH BẢN: before = pax GỐC lúc lập đơn
@@ -980,6 +990,7 @@ try {
     assert.equal(s.dashboard.total, expected, "D6 Trang chủ: KHÔNG được đọc lại 900.000 đã lưu sai");
     assert.ok(s.mine, "D6 phải có trong Việc của tôi");
     assert.deepEqual(s.mine.services.find((x) => x.catalogCode === "ZH1").pax, pax(3), "D6 Việc của tôi: số khách khớp");
+    assert.equal(s.mine.total, expected, "D6 Việc của tôi: tổng tiền không đọc lại số đã lưu sai (Task 1.8)");
     measured.push({ ca: "D6 dữ liệu CŨ đã lưu sai", tuTinh: expected, chiTiet: s.chiTiet.total, orders: s.orders.total, dashboard: s.dashboard.total });
     console.log(`✓ D6 (dữ liệu CŨ, subtotal_after đã lưu SAI = 900.000): tự tính ĐÚNG ${expected.toLocaleString("vi-VN")}₫ — cả bốn bề mặt hiện đúng, không đọc lại số đã lưu sai`);
   }
@@ -1023,7 +1034,7 @@ try {
     assert.equal(await adjCount(), 1);
     s = await measureFourSurfaces(g.id, g.orderCode);
     const exp = 3 * DEAL; // 600.000 — KHÔNG phải 900.000 (3 × giá niêm yết)
-    for (const [label, v] of [["chi tiết", s.chiTiet], ["/orders", s.orders], ["Trang chủ", s.dashboard]]) {
+    for (const [label, v] of [["chi tiết", s.chiTiet], ["/orders", s.orders], ["Trang chủ", s.dashboard], ["Việc của tôi", s.mine]]) {
       assert.equal(v.total, exp, `G2 ${label}: tổng theo giá thoả thuận`);
       assert.equal(v.remainingAmount, exp - 300000, `G2 ${label}: còn lại = tổng − cọc`);
     }
