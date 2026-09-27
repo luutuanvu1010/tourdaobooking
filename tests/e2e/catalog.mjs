@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { ACCOUNTS, BASE as B, call, login, randomPhone, session, sql, vnDate } from "./lib.mjs";
+import { ACCOUNTS, BASE as B, call, login, randomPhone, session, sql, sqlRows, vnDate } from "./lib.mjs";
 // Cần D1 chưa từng đồng bộ danh mục (run.mjs luôn dựng D1 mới) và mạng để đọc Google Sheet thật.
 const ADMIN = await session(ACCOUNTS.admin), SALES = await session(ACCOUNTS.salesA);
 
@@ -176,15 +176,17 @@ assert.match(r.body.entries[0].detail, /TD103/);
 assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.find((i) => i.code === "TD103").prices.child, sheetTD103.prices.child);
 console.log("✓ Cron tự kéo, nhật ký ghi 'Hệ thống (tự động)'");
 
-// --- chốt chặn: Sheet 'mất' hơn nửa dịch vụ
-const fake = Array.from({ length: 70 }, (_, i) => `('ZZ${i}','Giả ${i}','perPax',1,1,1,1,'2026-01-01','2026-01-01')`).join(",");
-await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,in_sheet,first_seen_at,updated_at) SELECT code,name,unit,price_adult,1,first_seen_at,updated_at FROM (SELECT 'ZZ'||value code,'Giả '||value name,'perPax' unit,1 price_adult,'2026-01-01' first_seen_at,'2026-01-01' updated_at FROM (WITH RECURSIVE c(value) AS (SELECT 0 UNION ALL SELECT value+1 FROM c WHERE value<69) SELECT value FROM c))`);
+// --- chốt chặn: Sheet 'mất' hơn nửa dịch vụ. Số mã giả tính theo Sheet THẬT lúc chạy (số dòng hợp lệ đổi theo thời gian: 61 → 133
+// ngày 2026-09-27): `syncGuard` chặn khi số sẽ ẩn × 2 > số đang có trong Sheet, tức cần số mã giả > số dịch vụ thật.
+const [{ n: dangCoTrongSheet }] = await sqlRows("SELECT count(*) AS n FROM catalog_item WHERE in_sheet = 1");
+const soMaGia = dangCoTrongSheet + 1;
+await sql(`INSERT INTO catalog_item (code,name,unit,price_adult,in_sheet,first_seen_at,updated_at) SELECT code,name,unit,price_adult,1,first_seen_at,updated_at FROM (SELECT 'ZZ'||value code,'Giả '||value name,'perPax' unit,1 price_adult,'2026-01-01' first_seen_at,'2026-01-01' updated_at FROM (WITH RECURSIVE c(value) AS (SELECT 0 UNION ALL SELECT value+1 FROM c WHERE value<${soMaGia - 1}) SELECT value FROM c))`);
 r = await call(ADMIN, "POST", "/api/catalog/sync", {});
 assert.equal(r.status, 409); assert.equal(r.body.error.code, "sync_guard");
-assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.filter((i) => i.code.startsWith("ZZ")).length, 70, "chốt chặn: chưa ẩn gì");
+assert.equal((await call(SALES, "GET", "/api/catalog")).body.items.filter((i) => i.code.startsWith("ZZ")).length, soMaGia, "chốt chặn: chưa ẩn gì");
 assert.match((await call(ADMIN, "GET", "/api/catalog/admin")).body.sync.lastError, /Chưa áp dụng thay đổi nào/);
 r = await call(ADMIN, "POST", "/api/catalog/sync", { force: true });
-assert.equal(r.status, 200); assert.equal(r.body.hidden, 70);
+assert.equal(r.status, 200); assert.equal(r.body.hidden, soMaGia);
 await sql("DELETE FROM catalog_item WHERE code LIKE 'ZZ%'");
 console.log("✓ chốt chặn Sheet hỏng + ép kéo");
 
