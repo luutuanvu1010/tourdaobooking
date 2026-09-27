@@ -1,6 +1,9 @@
 // Trang Danh bạ (/parties; mỗi mục là một "hồ sơ"): tìm/lọc, tạo (cảnh báo trùng SĐT — ADR-0001 mục 8), xem/sửa, liên hệ, "Công việc tại đâu" (vai trò theo nơi) và "Người liên hệ" (quan hệ).
-// Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); hồ sơ khách/đại lý: mọi nhân sự văn phòng; hồ sơ có tài khoản: chỉ quản trị viên cấp trên (ADR-0013, máy chủ tính `editable`).
-import { hasPermission } from "../src/shared/permissions";
+// Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); hồ sơ khách/đại lý: mọi nhân sự văn phòng; hồ sơ có tài khoản: chỉ quản trị viên cấp trên (ADR-0013, máy chủ tính `editable`);
+// hồ sơ công ty chủ: chỉ người giữ ô company.legal.write (ADR-0024 6.4 — máy chủ tính `editable`). Lựa chọn "Công ty chủ" (= đổi công ty chủ, chủ dự án 2026-09-28)
+// chỉ hiện với người giữ ô đó, trên hồ sơ tổ chức, kèm câu xác nhận. Giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại.
+import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
+import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials } from "./format";
@@ -22,6 +25,9 @@ let offset = 0;
 let openId: string | null = null;
 
 const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.";
+/** Câu xác nhận trước khi đổi công ty chủ (ADR-0024 6.2: trang đăng nhập và biên nhận đọc hồ sơ công ty chủ). Không nói "Toàn quyền" (vai ẩn). */
+const XAC_NHAN_DOI_CONG_TY_CHU =
+  "Đặt hồ sơ này làm công ty chủ? Trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này (tên, mã số thuế, địa chỉ, liên hệ ghi chú “Hotline”, email) — thiếu mục nào thì biên nhận báo lỗi tới khi bổ sung. Công ty chủ hiện tại sẽ thôi giữ công việc này.";
 const fail = (err: unknown) => showError(errorEl, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
 
 /**
@@ -262,10 +268,17 @@ async function openDetail(id: string): Promise<void> {
   const roleRows = p.roles.map((r2) =>
     h("tr", { class: r2.validTo ? "row-off" : "" }, h("td", null, r2.roleName), h("td", null, r2.locationName ?? "(mọi nơi)"), h("td", { class: "muted" }, period(r2.validFrom, r2.validTo)), h("td", null, admin && !r2.validTo && (isAccountRole(r2.roleTypeCode) ? h("span", { class: "muted" }, "Đổi ở màn Quản lý tài khoản") : button("Kết thúc", (b) => void act(async () => { await api(`/api/parties/${id}/roles/${r2.id}/end`, { method: "POST", body: {} }); await reload(); }, b))))),
   );
-  const rType = select(meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.name })));
+  // Vai "Công ty chủ" gieo "ngưng gán thường" (active = false) nên không có trong danh sách chung; chỉ người giữ ô company.legal.write thấy nó, trên hồ sơ tổ
+  // chức chưa phải công ty chủ — gán = ĐỔI công ty chủ (chủ dự án 2026-09-28).
+  const doiCongTyChu = can(me, "company.legal.write") && p.kind === "ORGANIZATION" && !p.roles.some((x) => x.roleTypeCode === OWNER_COMPANY_ROLE && x.validTo === null);
+  const rType = select([
+    ...meta.roleTypes.filter((t) => t.active && t.group === "OTHER").map((t) => ({ value: t.code, label: t.name })),
+    ...(doiCongTyChu ? [{ value: OWNER_COMPANY_ROLE, label: roleLabel(OWNER_COMPANY_ROLE) }] : []),
+  ]);
   const rLoc = select([{ value: "", label: "(mọi nơi)" }, ...locations.filter((l) => l.active).map((l) => ({ value: l.id, label: l.name }))]);
   const rFrom = input("", { type: "date" });
   const addRole = button("Thêm công việc", (b) => {
+    if (rType.value === OWNER_COMPANY_ROLE && !confirm(XAC_NHAN_DOI_CONG_TY_CHU)) return;
     const body = { roleTypeCode: rType.value, locationId: rLoc.value || null, validFrom: rFrom.value || undefined };
     void act(async () => { await api(`/api/parties/${id}/roles`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
@@ -322,7 +335,7 @@ byId("new").addEventListener("click", openCreate);
 byId("more").addEventListener("click", () => void search(false));
 
 me = await initShell();
-admin = hasPermission(me, "ADMIN");
+admin = can(me, "admin.manage"); // Quản trị hoặc Toàn quyền (như cổng quản trị của máy chủ) — tài khoản chỉ giữ Toàn quyền cũng thấy khối công việc (Ruling T7, T2b)
 const [m, l] = await Promise.all([act(() => api<Api.PartyMetaResponse>("/api/parties/meta")), act(() => api<Api.LocationListResponse>("/api/locations"))]);
 if (m) meta = m;
 if (l) locations = l.locations;

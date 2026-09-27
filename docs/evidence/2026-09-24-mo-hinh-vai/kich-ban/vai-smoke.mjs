@@ -113,6 +113,8 @@ try {
   assert.ok(options.includes("Khách hàng"), `ô thêm vai trò thiếu mục nhóm khác (vd Khách hàng): ${JSON.stringify(options)}`);
   const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên"];
   assert.deepEqual(options.filter((o) => ACCOUNT_ROLE_NAMES.includes(o)), [], `R18: ô thêm vai trò không được có mục Nội bộ/Bên ngoài, thấy: ${JSON.stringify(options)}`);
+  // T2b (ADR-0024 6.5; chủ 2026-09-28): "Công ty chủ" không phải vai gán thường — chỉ người giữ ô company.legal.write thấy, trên hồ sơ tổ chức (t2b-danh-ba-smoke.mjs).
+  assert.ok(!options.includes("Công ty chủ"), `ô thêm vai trò của Quản trị không được có "Công ty chủ", thấy: ${JSON.stringify(options)}`);
   await p.shot(join(OUT, "anh", "vai-ho-so-may-tinh.png"));
   assert.deepEqual(p.consoleErrors, [], `lỗi console (hồ sơ): ${p.consoleErrors}`);
   p.close();
