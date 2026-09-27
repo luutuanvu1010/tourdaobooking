@@ -43,8 +43,9 @@ export const thongbaoModule: AppModule = {
   routes: [
     route("GET", "/api/thong-bao/tom-tat", "staff", async ({ env, staff }) => {
       const h = await hop(env.DB, staff, "cua-toi");
-      const quanTrongChuaHieu = h.tin.filter((t) => t.loai === "thu_cong" && t.quanTrong && t.daHieuLuc === null)
-        .map((t) => ({ id: t.id, tieuDe: t.cau, nguoiGui: t.nguoiGui ?? "", luc: t.luc }));
+      // Sửa vòng kiểm Task 5→6: quanTrongChuaHieu lấy từ trường riêng của locHopThongBao (tính TRƯỚC khi cắt trần 100), KHÔNG lọc từ
+      // h.tin (đã cắt) — nếu không, người có > 100 tin "Của tôi" mới hơn sẽ mất tin quan trọng chưa hiểu khỏi dải (trái X4).
+      const quanTrongChuaHieu = h.quanTrongChuaHieu.map((t) => ({ id: t.id, tieuDe: t.cau, nguoiGui: t.nguoiGui ?? "", luc: t.luc }));
       return json({ soChuaDoc: h.soChuaDoc, quanTrongChuaHieu } satisfies TomTatThongBaoResponse);
     }),
     route("POST", "/api/account/thong-bao/da-doc", "staff", async ({ env, staff }) => {
@@ -61,7 +62,9 @@ export const thongbaoModule: AppModule = {
       // Tra thẳng theo id, KHÔNG qua cửa sổ 30 ngày của listThuCong: tin quan trọng có thể đã quá hạn giữ, và bấm "Đã hiểu" lần hai
       // (đã hiểu từ trước) vẫn phải tìm thấy tin để trả OK như đặc tả §7 (rà soát trước thi công, mục R5).
       const t = await getThuCong(env.DB, id, staff.id);
-      if (!t || t.thuHoi || !t.quanTrong || !nhanThayTinThuCong(staff, t.nhan)) return NOT_FOUND();
+      // K6 (mục 3, người kiểm độc lập): người GỬI bấm "Đã hiểu" trên chính tin mình gửi → 404, giống cách locHopThongBao (E3) ẩn hẳn
+      // tin đó khỏi hộp của người gửi — id không lộ ra thì đường tự phục vụ này cũng phải coi như "không tìm thấy".
+      if (!t || t.thuHoi || !t.quanTrong || t.nguoiGuiId === staff.id || !nhanThayTinThuCong(staff, t.nhan)) return NOT_FOUND();
       const at = new Date().toISOString();
       await env.DB.batch([
         insertAckStatement(env.DB, id, staff.id, at),
@@ -74,15 +77,20 @@ export const thongbaoModule: AppModule = {
       const v = kiemTinThuCong(await readJson(request));
       if (!v.ok) return error(400, "invalid_input", v.message);
       const cu = await findByRequest(env.DB, staff.id, v.value.clientRequestId);
-      if (cu) return json({ id: cu }, 200);
+      if (cu) return json({ id: cu }, 200); // bấm-hai-lần TUẦN TỰ: đã có tin từ lần gửi trước, trả lại luôn
       const id = crypto.randomUUID(), at = new Date().toISOString();
       const tags = nhanNguoiNhan(v.value.nguoiNhan);
       await env.DB.batch([
         insertNoticeStatement(env.DB, { id, tieuDe: v.value.tieuDe, noiDung: v.value.noiDung, quanTrong: v.value.quanTrong, req: v.value.clientRequestId, at, by: staff.id }),
         ...tags.map((t) => insertTargetStatement(env.DB, id, t, at, staff.id)),
-        auditStatement(env.DB, { staffId: staff.id, action: "notice_sent", at, targetType: "notice", targetId: id, detail: `${tags.length} nhóm nhận` }),
+        auditStatement(env.DB, { staffId: staff.id, action: "notice_sent", at, targetType: "notice", targetId: id, detail: `${tags.length} nhóm nhận` }, `EXISTS (SELECT 1 FROM ntf_notice WHERE id = '${id}')`),
       ]);
-      return json({ id }, 201);
+      // Mối lo 4: hai yêu cầu GỬI ĐỒNG THỜI cùng clientRequestId đều có thể qua được lần tra `findByRequest` ở trên trước khi ai ghi
+      // xong — INSERT_NOTICE (repository.ts) chỉ chèn được MỘT trong hai (WHERE NOT EXISTS, D1 tuần tự hoá batch()); bên thua không lỗi,
+      // chỉ chèn 0 dòng. Tra lại để lấy id thật sự đã được ghi (có thể là của chính mình, hoặc của bên thắng).
+      const win = await findByRequest(env.DB, staff.id, v.value.clientRequestId);
+      if (!win) return error(500, "internal", "Không gửi được, thử lại."); // lý thuyết không xảy ra: điều kiện NOT EXISTS chỉ có một khoá
+      return json({ id: win }, win === id ? 201 : 200);
     }),
     route("GET", "/api/thong-bao/da-gui", "admin", async ({ env, staff }) => {
       if (!can(staff, "notice.send")) return FORBIDDEN();

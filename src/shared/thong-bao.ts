@@ -95,10 +95,14 @@ export function locHopThongBao(
     });
   }
   tat.sort((a, b) => (a.luc < b.luc ? 1 : a.luc > b.luc ? -1 : 0));
-  const cua = tat.filter((x) => x.cuaToi).slice(0, TOI_DA_TIN);
+  // cuaToiDay: ngăn "Của tôi" ĐÃ lọc quyền, CHƯA cắt trần TOI_DA_TIN — nguồn cho quanTrongChuaHieu (X4 đứng trên trần: tin quan trọng
+  // chưa "Đã hiểu" không được biến mất khỏi dải chỉ vì hộp có > 100 tin mới hơn). Sửa vòng kiểm Task 5→6, một nguồn luật duy nhất ở đây.
+  const cuaToiDay = tat.filter((x) => x.cuaToi);
+  const cua = cuaToiDay.slice(0, TOI_DA_TIN);
   const soChuaDoc = cua.filter((x) => x.chuaDoc).length; // đếm trên ĐÚNG danh sách ngăn "Của tôi" trả về → số đỏ không bao giờ lệch danh sách (Review Focus 5)
   const tin = vao.ngan === "cua-toi" ? cua : tat.slice(0, TOI_DA_TIN);
-  return { tin, soChuaDoc };
+  const quanTrongChuaHieu = cuaToiDay.filter((x) => x.loai === "thu_cong" && x.quanTrong && x.daHieuLuc === null);
+  return { tin, soChuaDoc, quanTrongChuaHieu };
 }
 
 export function kiemTinThuCong(raw: unknown): { ok: true; value: GuiThongBaoRequest } | { ok: false; message: string } {

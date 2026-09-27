@@ -125,6 +125,19 @@ test("R2: 150 tin 'Của tôi' chưa đọc → soChuaDoc đúng 100, bằng s�
   assert.equal(cua.soChuaDoc, cua.tin.filter((x) => x.cuaToi && x.chuaDoc).length);
 });
 
+// Sửa vòng kiểm Task 5→6 (mục 1, người kiểm độc lập): quanTrongChuaHieu (dùng ở dải chuông tom-tat) KHÔNG được ghim vào trần TOI_DA_TIN.
+// Trước sửa: route tom-tat lọc quanTrongChuaHieu từ `h.tin` đã bị cắt 100 → người có > 100 tin "Của tôi" mới hơn mất tin quan trọng chưa
+// hiểu khỏi dải (trái X4). Nay locHopThongBao trả riêng trường này, tính TRƯỚC khi cắt.
+test("quanTrongChuaHieu không bị cắt bởi trần TOI_DA_TIN dù danh sách 'tin' đã bị cắt (X4 đứng trên trần)", () => {
+  const moiHon = Array.from({ length: 120 }, (_, i) =>
+    don({ ownerId: "lan", actorId: "hung", luc: new Date(Date.parse(NOW) - i * 60000).toISOString() }));
+  const quanTrongCu = tin({ luc: new Date(Date.parse(NOW) - 5 * 86400000).toISOString(), quanTrong: true, tieuDe: "Tin quan trọng cũ" });
+  const h = hop(LAN, moiHon, [quanTrongCu], "cua-toi", "2026-01-01T00:00:00.000Z");
+  assert.equal(h.tin.length, 100, "danh sách 'tin' vẫn bị cắt ở 100 — không đổi hành vi cũ");
+  assert.ok(!h.tin.some((x) => x.id === quanTrongCu.id), "tin quan trọng cũ bị cắt khỏi 'tin' (đứng ngoài 100 dòng mới nhất)");
+  assert.ok(h.quanTrongChuaHieu.some((x) => x.id === quanTrongCu.id), "nhưng vẫn có trong quanTrongChuaHieu — không bị ghim vào trần 100");
+});
+
 test("kiemTinThuCong: bắt lỗi bằng câu tiếng Việt; cắt khoảng trắng; giữ xuống dòng", () => {
   const ok = kiemTinThuCong({ tieuDe: "  Lịch nghỉ  ", noiDung: "Dòng 1\nDòng 2", nguoiNhan: "noi-bo", quanTrong: true, clientRequestId: "11111111-1111-4111-8111-111111111111" });
   assert.ok(ok.ok && ok.value.tieuDe === "Lịch nghỉ" && ok.value.noiDung === "Dòng 1\nDòng 2");

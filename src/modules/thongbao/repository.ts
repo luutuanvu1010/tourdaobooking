@@ -28,16 +28,25 @@ const LIST_THU_CONG = defineSql("thongbao", "list_thu_cong", `
 // Tra một tin thủ công theo id, KHÔNG qua cửa sổ 30 ngày (khác LIST_THU_CONG): route "đã hiểu" phải tìm được tin quan trọng dù đã quá hạn giữ,
 // và bấm lần hai (đã "Đã hiểu" từ trước) vẫn phải thấy tin để trả OK thay vì 404 (đặc tả §7; rà soát trước thi công, mục R5).
 const GET_THU_CONG = defineSql("thongbao", "get_thu_cong", `
-  SELECT n.id, n.quan_trong, (n.valid_to IS NOT NULL) AS thu_hoi,
+  SELECT n.id, n.quan_trong, n.created_by, (n.valid_to IS NOT NULL) AS thu_hoi,
          (SELECT group_concat(t.tag, ' ') FROM ntf_notice_target t WHERE t.notice_id = n.id) AS tags,
          (SELECT a.created_at FROM ntf_ack a WHERE a.notice_id = n.id AND a.staff_id = ?2) AS da_hieu_luc
   FROM ntf_notice n WHERE n.id = ?1`);
 const FIND_BY_REQUEST = defineSql("thongbao", "find_by_request", `SELECT id FROM ntf_notice WHERE created_by = ?1 AND client_request_id = ?2`);
+// Mối lo 4 (điều phối, rà soát Task 6): chống trùng bằng findByRequest ĐẦU route chỉ bắt được bấm-hai-lần TUẦN TỰ. Hai yêu cầu gửi
+// THẬT SỰ ĐỒNG THỜI (hai tab) đều có thể qua được lần tra đó trước khi dòng đầu ghi xong. Theo đúng khuôn đã có ở module feedback
+// (fbk_ticket, cùng mục đích chống trùng theo client_request_id): MỘT câu INSERT … SELECT … WHERE NOT EXISTS (cùng người gửi + cùng
+// mã yêu cầu) — D1 tuần tự hoá các lời gọi batch() nên hai yêu cầu song song không cùng lọt qua điều kiện này; bên thua chèn 0 dòng,
+// route tra lại findByRequest sau batch() để lấy id của bên thắng và trả 200 thay vì tưởng lỗi.
 const INSERT_NOTICE = defineSql("thongbao", "insert_notice", `
   INSERT INTO ntf_notice (id, tieu_de, noi_dung, quan_trong, client_request_id, created_at, created_by, updated_at, updated_by)
-  VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7)`);
+  SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?6, ?7
+  WHERE NOT EXISTS (SELECT 1 FROM ntf_notice WHERE created_by = ?7 AND client_request_id = ?5)`);
+// Chèn nhóm nhận CHỈ khi tin ?1 vừa được chèn thật ở câu trên (cùng khuôn insertFirstMessageStatement của feedback) — nếu tin thua cuộc
+// đua ở trên (bị bỏ qua vì đã có người khác chèn trước), các dòng nhóm nhận của yêu cầu thua cũng không được chèn theo một id "ma".
 const INSERT_TARGET = defineSql("thongbao", "insert_target", `
-  INSERT INTO ntf_notice_target (notice_id, tag, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?3, ?4)`);
+  INSERT INTO ntf_notice_target (notice_id, tag, created_at, created_by, updated_at, updated_by)
+  SELECT ?1, ?2, ?3, ?4, ?3, ?4 WHERE EXISTS (SELECT 1 FROM ntf_notice WHERE id = ?1)`);
 const REVOKE = defineSql("thongbao", "revoke", `UPDATE ntf_notice SET valid_to = ?2, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND valid_to IS NULL`);
 const LIST_SENT = defineSql("thongbao", "list_sent", `
   SELECT n.id, n.tieu_de, n.quan_trong, n.created_at, n.valid_to,
@@ -58,9 +67,9 @@ interface DonRow { id: string; order_id: string; ma_don: string; action: string;
   owner_id: string; co_nguoi: number; handler_staff_id: string | null; lap_chua_co_nguoi: number; cung_lo_lap: number }
 interface ThuCongRow { id: string; tieu_de: string; noi_dung: string; quan_trong: number; created_by: string; ten_nguoi_gui: string; created_at: string;
   thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
-interface ThuCongLookupRow { id: string; quan_trong: number; thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
+interface ThuCongLookupRow { id: string; quan_trong: number; created_by: string | null; thu_hoi: number; tags: string | null; da_hieu_luc: string | null }
 
-export interface ThuCongLookup { id: string; quanTrong: boolean; thuHoi: boolean; nhan: string[]; daHieuLuc: string | null }
+export interface ThuCongLookup { id: string; quanTrong: boolean; thuHoi: boolean; nhan: string[]; daHieuLuc: string | null; nguoiGuiId: string | null }
 
 export async function listDon(db: D1Database, tu: string): Promise<DongDon[]> {
   const r = (await db.prepare(LIST_DON).bind(tu).all<DonRow>()).results;
@@ -75,7 +84,10 @@ export async function listThuCong(db: D1Database, tu: string, staffId: string): 
 export async function getThuCong(db: D1Database, id: string, staffId: string): Promise<ThuCongLookup | null> {
   const x = await db.prepare(GET_THU_CONG).bind(id, staffId).first<ThuCongLookupRow>();
   if (!x) return null;
-  return { id: x.id, quanTrong: x.quan_trong === 1, thuHoi: x.thu_hoi === 1, nhan: (x.tags ?? "").split(" ").filter(Boolean), daHieuLuc: x.da_hieu_luc };
+  return {
+    id: x.id, quanTrong: x.quan_trong === 1, thuHoi: x.thu_hoi === 1, nhan: (x.tags ?? "").split(" ").filter(Boolean),
+    daHieuLuc: x.da_hieu_luc, nguoiGuiId: x.created_by,
+  };
 }
 export const getMark = async (db: D1Database, staffId: string) => (await db.prepare(GET_MARK).bind(staffId).first<{ doc_den_luc: string }>())?.doc_den_luc ?? null;
 export const upsertMarkStatement = (db: D1Database, staffId: string, at: string) => db.prepare(UPSERT_MARK).bind(staffId, at);

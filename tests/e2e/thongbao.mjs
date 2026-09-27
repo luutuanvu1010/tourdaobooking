@@ -147,7 +147,17 @@ assert.equal(
   "chỉ một dòng ntf_notice dù gửi hai lần cùng clientRequestId",
 );
 assert.equal((await call(TQ, "POST", "/api/thong-bao", than({ tieuDe: "" }))).status, 400);
-console.log("✓ gửi: chỉ Toàn quyền, chống trùng, kiểm đầu vào");
+// Mối lo 4 (điều phối, rà soát Task 6): hai yêu cầu gửi THẬT SỰ ĐỒNG THỜI (không tuần tự như ca trên) cùng clientRequestId vẫn chỉ một tin.
+const dong = than({ tieuDe: "Tin đồng thời", quanTrong: false });
+const [pa, pb] = await Promise.all([call(TQ, "POST", "/api/thong-bao", dong), call(TQ, "POST", "/api/thong-bao", dong)]);
+assert.equal(pa.body.id, pb.body.id, "hai yêu cầu gửi đồng thời cùng clientRequestId → cùng một tin");
+assert.deepEqual([pa.status, pb.status].sort(), [200, 201], "đúng một lần 201 (tạo mới) và một lần 200 (gửi lại), không lỗi 500");
+assert.equal(
+  (await sqlRows(`SELECT COUNT(*) AS n FROM ntf_notice WHERE client_request_id = '${dong.clientRequestId}'`))[0].n,
+  1,
+  "chỉ một dòng ntf_notice dù hai yêu cầu chạy đồng thời",
+);
+console.log("✓ gửi: chỉ Toàn quyền, chống trùng (tuần tự lẫn đồng thời), kiểm đầu vào");
 
 const tt = (await call(A, "GET", "/api/thong-bao/tom-tat")).body;
 const qt = tt.quanTrongChuaHieu.find((x) => x.tieuDe === "Đổi cổng đón Cầu Đá");
@@ -159,6 +169,8 @@ assert.ok(!(await call(A, "GET", "/api/thong-bao/tom-tat")).body.quanTrongChuaHi
 const guiHieu2 = await call(A, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`);
 assert.equal(guiHieu2.status, 200);
 assert.equal(guiHieu2.body.luc, guiHieu1.body.luc, "bấm lại vẫn trả đúng mốc đã hiểu lần đầu, không đổi");
+// K6 (mục 3, người kiểm độc lập): người GỬI (Toàn quyền) bấm Đã hiểu trên chính tin mình gửi → 404.
+assert.equal((await call(TQ, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`)).status, 404, "K6: người gửi bấm Đã hiểu trên tin của chính mình → 404");
 // Người không thuộc nhóm nhận (Đối tác thuần, tin "noi-bo") bấm → 404.
 assert.equal((await call(DT, "POST", `/api/account/thong-bao/${qt.id}/da-hieu`)).status, 404, "Đối tác thuần không thuộc nhóm nhận 'noi-bo' → 404");
 const ai = (await call(TQ, "GET", `/api/thong-bao/${qt.id}/nguoi-da-hieu`)).body;

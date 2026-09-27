@@ -631,7 +631,9 @@ export interface TinDto {
   chuaDoc: boolean;
   mo: boolean; // tin chờ nhận đã có người nhận (X2)
 }
-export interface HopThongBaoResponse { tin: TinDto[]; soChuaDoc: number }
+// quanTrongChuaHieu: tin quan trọng CHƯA "Đã hiểu" của ngăn "Của tôi", tính trên tập ĐÃ LỌC QUYỀN TRƯỚC KHI CẮT TRẦN TOI_DA_TIN — không bị
+// ghim mất khi hộp có > 100 tin mới hơn (X4 đứng trên trần; sửa vòng kiểm Task 5→6, một nguồn luật ở locHopThongBao).
+export interface HopThongBaoResponse { tin: TinDto[]; soChuaDoc: number; quanTrongChuaHieu: TinDto[] }
 export interface TomTatThongBaoResponse { soChuaDoc: number; quanTrongChuaHieu: { id: string; tieuDe: string; nguoiGui: string; luc: string }[] }
 export type NguoiNhanTin = "noi-bo" | PermissionCode[];
 export interface GuiThongBaoRequest { tieuDe: string; noiDung: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; clientRequestId: string }
