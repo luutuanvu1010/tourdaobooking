@@ -274,9 +274,17 @@ const guiDT = await call(TQ, "POST", "/api/thong-bao", {
 assert.equal(guiDT.status, 201, JSON.stringify(guiDT.body));
 const moiNhat1 = (await call(DT, "GET", "/api/thong-bao/moi-nhat")).body;
 assert.equal(moiNhat1.tin?.cau, tieuDeDT, "moi-nhat: cau = tiêu đề của tin thủ công chưa đọc mới nhất");
+// ADR-0039: imLang = đang giờ yên lặng (22:00–06:00 giờ VN) VÀ tin không quan trọng (tin gửi ở trên quanTrong=false). Tính
+// lại giờ VN ngay ở đây (KHÔNG import src/shared/web-push.ts — kịch bản e2e gọi API thật, không tái dùng luật server) để so.
+const vnHourNay = new Date(Date.now() + 7 * 3600_000).getUTCHours();
+const trongGioYenLangNay = vnHourNay >= 22 || vnHourNay < 6;
+assert.equal(typeof moiNhat1.imLang, "boolean", "moi-nhat: imLang phải là boolean");
+assert.equal(moiNhat1.imLang, trongGioYenLangNay, "moi-nhat: imLang khớp giờ yên lặng VN hiện tại (tin không quan trọng)");
 assert.equal((await call(DT, "POST", "/api/account/thong-bao/da-doc")).status, 200);
-assert.equal((await call(DT, "GET", "/api/thong-bao/moi-nhat")).body.tin, null, "sau da-doc: moi-nhat trả tin: null");
-console.log("✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc");
+const moiNhat2 = (await call(DT, "GET", "/api/thong-bao/moi-nhat")).body;
+assert.equal(moiNhat2.tin, null, "sau da-doc: moi-nhat trả tin: null");
+assert.equal(moiNhat2.imLang, trongGioYenLangNay, "moi-nhat: không có tin cụ thể vẫn theo giờ yên lặng (coi như không quan trọng)");
+console.log("✓ Web Push: moi-nhat trả câu của tin chưa đọc mới nhất; null sau khi đã đọc; imLang khớp giờ yên lặng VN (ADR-0039)");
 
 // (i) I-2 (vòng rà 2026-09-28): "mayNay" (đang bật ĐÚNG MÁY NÀY) chỉ đúng theo endpoint của CHÍNH tài khoản gọi — không suy từ
 // soMay (tổng theo tài khoản, có thể nhiều máy), và không lộ máy của tài khoản khác dù hỏi đúng endpoint của họ.

@@ -66,7 +66,7 @@ test("parseRoleAssignment: đúng dạng, thứ tự chuẩn, lý do bắt buộ
 
 test("highPermissionProblem (LC-4): chỉ Toàn quyền cấp/gỡ Quản trị, Toàn quyền", () => {
   assert.equal(highPermissionProblem(true, ["SALES"], ["SALES", "ADMIN"]), null);
-  assert.deepEqual(highPermissionProblem(false, ["SALES"], ["SALES", "ADMIN"]), { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+  assert.deepEqual(highPermissionProblem(false, ["SALES"], ["SALES", "ADMIN"]), { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
   assert.equal(highPermissionProblem(false, ["SALES"], ["SALES", "ACCOUNTING"]), null);
 });
 
@@ -78,7 +78,7 @@ test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất mộ
   assert.match(roleAssignmentProblem({ ...base, next: assignment(["COLLABORATOR"], { adds: ["SALES"], reason: "x" }) })!.message, /chỉ giữ quyền Đối tác/);
   assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["OPERATIONS_MANAGER"]) }), {
     forbidden: true,
-    message: "Chỉ Toàn quyền mới gán hoặc gỡ vai Giám đốc, Điều hành chung.",
+    message: "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung.",
   });
   assert.equal(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["ADMIN"], reason: "x" }) })?.forbidden, true, "cộng tay Quản trị");
   assert.equal(roleAssignmentProblem({ ...base, actorIsSuper: true, next: assignment(["OPERATIONS_MANAGER"]) }), null);
@@ -94,7 +94,7 @@ test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn cộng ta
     currentAdjustments: { adds: [], removes: [] },
     next: assignment(["DIRECTOR"], { adds: ["SUPER_ADMIN"], reason: "x" }),
   });
-  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
 });
 
 test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn bớt tay Quản trị dù Nhân viên kinh doanh chưa từng có quyền đó (chỉnh tay 'ngủ')", () => {
@@ -105,7 +105,7 @@ test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): chặn bớt tay
     currentAdjustments: { adds: [], removes: [] },
     next: assignment(["SALES_STAFF"], { removes: ["ADMIN"], reason: "x" }),
   });
-  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
 });
 
 test("roleAssignmentProblem (I-1, kiểm độc lập vòng 1): giữ nguyên một dòng chỉnh tay Quản trị/Toàn quyền đã có (không đổi) vẫn được phép", () => {
@@ -127,13 +127,13 @@ test("roleAssignmentProblem (I-2, kiểm độc lập vòng 1): bỏ vai chỉ-T
     currentAdjustments: { adds: [], removes: [] },
     next: assignment(["SALES_STAFF"]),
   });
-  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới gán hoặc gỡ vai Giám đốc, Điều hành chung." });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung." });
 });
 
 test("highPermissionProblem (I-2, kiểm độc lập vòng 1): chặn cả chiều gỡ Quản trị/Toàn quyền, không chỉ chiều cấp (ghim luật cũ)", () => {
   assert.deepEqual(highPermissionProblem(false, ["SALES", "ADMIN"], ["SALES"]), {
     forbidden: true,
-    message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền.",
+    message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị.",
   });
 });
 
@@ -145,7 +145,7 @@ test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòn
     currentAdjustments: { adds: ["SUPER_ADMIN"], removes: [] },
     next: assignment(["DIRECTOR"]),
   });
-  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
 });
 
 test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòng bớt tay Quản trị đã có dù Nhân viên kinh doanh mặc định vẫn chưa từng có quyền đó", () => {
@@ -156,7 +156,7 @@ test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòn
     currentAdjustments: { adds: [], removes: ["ADMIN"] },
     next: assignment(["SALES_STAFF"]),
   });
-  assert.deepEqual(problem, { forbidden: true, message: "Chỉ Toàn quyền mới cấp hoặc gỡ quyền Quản trị, Toàn quyền." });
+  assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
 });
 
 test("nhãn lời thường", () => {

@@ -4,7 +4,7 @@ import { THAY_DOI } from "./bang-tin.ts";
 import type { PermissionHolder } from "./permissions.ts";
 import type { DongDon, DongThuCong } from "./thong-bao.ts";
 import {
-  chiaLo, guiLo, hanhDongCuaThayDoi, khoaVapid, kiemDiaChi, nenGui, nguoiNhanDay, taoJwtVapid, trongGioYenLang, type KhoaVapid,
+  chiaLo, guiLo, hanhDongCuaThayDoi, imLang, khoaVapid, kiemDiaChi, nguoiNhanDay, taoJwtVapid, trongGioYenLang, type KhoaVapid,
 } from "./web-push.ts";
 
 test("kiemDiaChi: nhận địa chỉ thật của các dịch vụ đẩy", () => {
@@ -68,14 +68,21 @@ test("kiemDiaChi: từ chối nhãn con rỗng đứng trước hậu tố hợp
 // Task 2 — giờ yên lặng, chọn người nhận, chia lô, ký VAPID ES256, gửi một lô.
 // ---------------------------------------------------------------------------------------------------------------------------------
 
-test("trongGioYenLang/nenGui: 22:00–06:00 giờ VN (hai đầu), tin quan trọng luôn vượt qua", () => {
-  assert.equal(nenGui(false, new Date("2026-09-27T14:59:00Z")), true); // 21:59 VN → gửi
-  assert.equal(nenGui(false, new Date("2026-09-27T15:00:00Z")), false); // 22:00 VN → không
-  assert.equal(nenGui(false, new Date("2026-09-27T22:59:00Z")), false); // 05:59 VN → không
-  assert.equal(nenGui(false, new Date("2026-09-27T23:00:00Z")), true); // 06:00 VN → gửi
-  assert.equal(nenGui(true, new Date("2026-09-27T15:30:00Z")), true); // quan trọng, dù đang yên lặng (22:30 VN) → vẫn gửi
-  assert.equal(trongGioYenLang(new Date("2026-09-27T15:00:00Z")), true);
-  assert.equal(trongGioYenLang(new Date("2026-09-27T23:00:00Z")), false);
+// ADR-0039 (thay điều 4 của ADR-0036): giờ yên lặng KHÔNG còn chặn gửi cú gõ cửa — vẫn gửi như ban ngày, chỉ đổi có rung/kêu
+// (`imLang`) hay không. Đổi CÓ CHỦ ĐÍCH từ bản trước ("nenGui: ngoài giờ yên lặng mà tin không quan trọng → không gửi").
+test("trongGioYenLang: đúng biên 22:00–06:00 giờ VN (hai đầu)", () => {
+  assert.equal(trongGioYenLang(new Date("2026-09-27T14:59:00Z")), false); // 21:59 VN → chưa yên lặng
+  assert.equal(trongGioYenLang(new Date("2026-09-27T15:00:00Z")), true); // 22:00 VN → yên lặng
+  assert.equal(trongGioYenLang(new Date("2026-09-27T22:59:00Z")), true); // 05:59 VN → còn yên lặng
+  assert.equal(trongGioYenLang(new Date("2026-09-27T23:00:00Z")), false); // 06:00 VN → hết yên lặng
+});
+
+test("imLang (ADR-0039): tin thường im lặng trong giờ yên lặng, tin quan trọng không bao giờ im lặng", () => {
+  assert.equal(imLang(false, new Date("2026-09-27T14:59:00Z")), false); // 21:59 VN, tin thường → không im lặng
+  assert.equal(imLang(false, new Date("2026-09-27T15:00:00Z")), true); // 22:00 VN, tin thường → im lặng
+  assert.equal(imLang(false, new Date("2026-09-27T22:59:00Z")), true); // 05:59 VN, tin thường → im lặng
+  assert.equal(imLang(false, new Date("2026-09-27T23:00:00Z")), false); // 06:00 VN, tin thường → không im lặng
+  assert.equal(imLang(true, new Date("2026-09-27T15:30:00Z")), false); // 22:30 VN, tin quan trọng → không bao giờ im lặng
 });
 
 test("hanhDongCuaThayDoi: đủ 9 giá trị THAY_DOI, ba giá trị (sua/chuyen/tien) trả null", () => {
