@@ -29,3 +29,13 @@ function nenCua(selector: string): string {
 test("khung xương đang tải khác màu nền trang (không vô hình)", () => {
   assert.notEqual(nenCua(".skeleton-row"), nenCua("body"));
 });
+
+// Thanh tab nhảy lên/xuống trên iPhone (video của chủ dự án 2026-09-27): trang NGẮN hơn màn hình thì iPhone đặt thanh tab cao hơn đúng một vùng an toàn.
+// Khoá quy tắc giữ trang có thanh tab luôn cao ≥ cả màn hình (kể cả vùng vạch vuốt). Chỉ khoá quy tắc CSS — hiệu quả thật phải xem trên iPhone.
+test("trang có thanh tab luôn cao ít nhất cả màn hình, tính cả vùng an toàn dưới đáy", () => {
+  const m = /body\.has-tabbar\s*\{[^}]*min-height:\s*([^;}]+)/.exec(css);
+  assert.ok(m, "thiếu min-height cho body.has-tabbar");
+  const v = giaTri(m[1]!);
+  assert.match(v, /100vh/);
+  assert.match(v, /env\(safe-area-inset-bottom\)/);
+});

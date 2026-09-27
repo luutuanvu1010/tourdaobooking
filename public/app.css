@@ -78,6 +78,7 @@
   --tap-min: 44px;          /* vùng chạm tối thiểu */
   --bar-h: 60px;            /* thanh đầu trang, chưa tính vùng an toàn — chủ dự án duyệt tăng từ 52px theo bản thiết kế mới (đặc tả §16 mục 3) */
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
+  --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
   --fs-tab: 12px;           /* = --fs-xs của tourdaovn; nhãn thanh tab */
   --row-h: 48px;            /* dòng liên kết trong trang Tôi */
@@ -336,6 +337,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   #tabbar .tab-icon { display: flex; align-items: center; justify-content: center; height: var(--tab-icon); } /* cùng chiều cao để các nhãn thẳng hàng với nút Đơn mới */
   #tabbar .tab-new .tab-icon { width: var(--tab-icon); border-radius: 50%; color: var(--c-on-dark); background: var(--c-accent); }
   body.has-tabbar main { padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s4)); }
+  body.has-tabbar { min-height: var(--h-trang-toi-thieu); }
 
   .btn:not(.btn-link) { min-height: var(--tap-min); }
   .toolbar input { flex: 1 1 0; min-width: 0; }
