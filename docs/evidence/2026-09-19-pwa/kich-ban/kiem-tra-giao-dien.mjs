@@ -139,7 +139,7 @@ report.form = await p.evaluate(() => {
   };
 });
 note(!report.form.tabbarPresent, "form: không được có thanh tab");
-note(report.form.saveBtn === "Lưu đơn nháp" && report.form.cancelHidden && report.form.h1Hidden, "form: nút Lưu/Quay lại/h1 sai");
+note(report.form.saveBtn === "Lưu, chờ xác nhận" && report.form.cancelHidden && report.form.h1Hidden, "form: nút Lưu/Quay lại/h1 sai");
 note(Math.abs(report.form.actionsBottomGap) <= 1, `form: nút Lưu phải dính đáy (gap=${report.form.actionsBottomGap})`);
 note(!report.form.overflowX, "form: tràn ngang");
 

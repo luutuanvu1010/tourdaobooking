@@ -14,7 +14,7 @@ try {
   await p.waitFor("document.getElementById('services-empty') && !document.getElementById('services-empty').hidden", "trạng thái rỗng");
   assert.match(await p.ev("document.getElementById('services-empty').textContent"), /Chưa có dịch vụ\. Chọn dịch vụ từ danh mục\./);
   assert.equal(await p.ev("!!document.getElementById('tabbar')"), false, "form lập đơn ẩn thanh tab");
-  assert.equal(await p.ev("document.getElementById('save').textContent"), "Lưu đơn nháp");
+  assert.equal(await p.ev("document.getElementById('save').textContent"), "Lưu, chờ xác nhận");
   ok("form trống: trạng thái rỗng, không thanh tab, nút Lưu");
 
   // ---- 1b) bề mặt Tạo đơn (2026-09-25): tiêu đề, thứ tự mục, nút nhập tay ẩn, mặc định Tiền mặt, "Sử dụng thông tin của tôi" ----
@@ -340,10 +340,10 @@ try {
   await p.ev("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: false })); true"); // tải trang thường: KHÔNG đụng tới trạng thái
   assert.equal(await p.ev(stuck), true, "pageshow không persisted: giữ nguyên trạng thái đang lưu");
   await p.ev("window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })); true"); // trang khôi phục từ bfcache
-  await p.waitFor("document.getElementById('save').textContent === 'Lưu đơn nháp' && !document.getElementById('save').disabled && !document.getElementById('order-form').hasAttribute('inert')", "pageshow persisted: nút về 'Lưu đơn nháp', bật, form hết inert");
+  await p.waitFor("document.getElementById('save').textContent === 'Lưu, chờ xác nhận' && !document.getElementById('save').disabled && !document.getElementById('order-form').hasAttribute('inert')", "pageshow persisted: nút về 'Lưu, chờ xác nhận', bật, form hết inert");
   assert.equal(await p.ev("document.getElementById('customerName').value"), "Khách Bfcache", "dữ liệu đã gõ còn nguyên");
   p.close();
-  ok("bfcache: trang khôi phục (pageshow persisted) đang kẹt 'Đang lưu…' → nút về 'Lưu đơn nháp', form hết inert; pageshow thường không đụng tới");
+  ok("bfcache: trang khôi phục (pageshow persisted) đang kẹt 'Đang lưu…' → nút về 'Lưu, chờ xác nhận', form hết inert; pageshow thường không đụng tới");
 
   // ---- 10e) một ngày cho cả đơn (ADR-0021): thẻ không có ô ngày riêng; mọi dịch vụ mang ngày của ô "Chọn ngày" ----
   p = await env.as(ACCOUNTS.salesA, "/order-form");
