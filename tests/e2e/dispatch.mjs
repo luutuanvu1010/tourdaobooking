@@ -130,7 +130,7 @@ assert.equal(ch.length, 1);
 assert.equal(ch[0].detail, `từ ${a.fullName} sang ${b.fullName}`);
 assert.equal(ch[0].staffName, a.fullName);
 assert.doesNotMatch(ch[0].detail, /09\d{8}/, "nhật ký chỉ ghi tên");
-r = await call(ADMIN, "GET", `/api/audit?action=order_handler_changed&q=${o1.orderCode}`);
+r = await call(SUPER, "GET", `/api/audit?action=order_handler_changed&q=${o1.orderCode}`);
 assert.equal(r.status, 200);
 assert.deepEqual(r.body.entries.map((e) => [e.action, e.targetLabel, e.orderId]), [["order_handler_changed", o1.orderCode, o1.id]]);
 console.log("✓ đổi người phụ trách: dòng cũ đóng, dòng mới mở cùng thời điểm, nhật ký 'từ A sang B' (chỉ tên)");

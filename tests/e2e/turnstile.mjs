@@ -18,6 +18,7 @@ const attempts = async (...keys) => {
 };
 
 const ADMIN = await session(ACCOUNTS.admin);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: trang Nhật ký, đặt lại PIN, gỡ Face ID, mở khoá chỉ Toàn quyền
 /** Tài khoản dùng một lần (SĐT ngẫu nhiên) — KHÔNG đụng ACCOUNTS.*: kịch bản khác dùng chung D1 và các tài khoản đó. */
 async function mk(name) {
   const phone = randomPhone();
@@ -90,7 +91,7 @@ r = await post({ phone: B.phone, pin: B.pin }, ipB);
 assert.equal(r.status, 403, "SĐT đang bị khoá mà thiếu token: 403 chứ không 429");
 assert.equal(r.body.error.code, "turnstile_failed");
 assert.deepEqual(await attempts(`phone:${B.phone}`), { [`phone:${B.phone}`]: 5 }, "không ghi thêm lượt nào");
-assert.equal((await call(ADMIN, "POST", `/api/staff/${B.id}/unlock`, {})).status, 200);
+assert.equal((await call(TOAN_QUYEN, "POST", `/api/staff/${B.id}/unlock`, {})).status, 200);
 assert.equal((await withToken(B.pin)).status, 200, "admin mở khoá → đăng nhập lại được");
 console.log("✓ Turnstile chạy trước chống dò: thiếu token trên SĐT đang khoá → 403, không ghi thêm lượt");
 

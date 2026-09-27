@@ -1,5 +1,5 @@
 import { ApiError, api, type Api } from "./api";
-import { PERMISSION_LABEL, hasPermission, isOffice } from "../src/shared/permissions";
+import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
 import { tripDeparted } from "../src/shared/trip-rules";
 import { vnDateTimeText, vnLocalToIso, vnToday } from "../src/shared/vn-date";
@@ -41,7 +41,7 @@ replaceChildren(
   byId("links"),
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
-  hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)),
+  can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
   hasPermission(staff, "SUPER_ADMIN") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
   h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),

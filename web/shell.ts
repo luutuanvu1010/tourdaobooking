@@ -176,9 +176,10 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
         { href: "/catalog", label: "Dịch vụ & giá", icon: "services", badge: catalogConflictBadge, badgeClass: "sidebar-item-badge-sand", active: (p) => p === "/catalog" },
         { href: "/staff", label: "Quản lý tài khoản", icon: "staff", active: (p) => p === "/staff" },
         { href: "/locations", label: "Địa điểm", icon: "pin", active: (p) => p === "/locations" },
-        { href: "/audit", label: "Nhật ký", icon: "history", active: (p) => p === "/audit" },
       ]
     : [];
+  // ADR-0038 điều 6: trang Nhật ký chỉ Toàn quyền (ô audit.view).
+  if (superAdmin) management.push({ href: "/audit", label: "Nhật ký", icon: "history", active: (p) => p === "/audit" });
   // ADR-0034 Task 8: tài khoản chỉ SUPER_ADMIN (không có ADMIN) vẫn phải thấy nhóm QUẢN TRỊ, chỉ với mục này.
   if (superAdmin) management.push({ href: "/gui-thong-bao", label: "Gửi thông báo", icon: "megaphone", active: (p) => p === "/gui-thong-bao" });
 
