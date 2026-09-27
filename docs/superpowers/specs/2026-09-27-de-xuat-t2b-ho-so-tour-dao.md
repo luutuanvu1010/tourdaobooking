@@ -2,7 +2,7 @@
 
 - **Ngày:** 2026-09-27.
 - **Người soạn:** phiên điều phối.
-- **Trạng thái:** **ĐỀ XUẤT — CHỜ CHỦ DUYỆT.** Nháp đặt ngoài `docs/adr/` để tránh hỏi quyền từng lần sửa. Chủ duyệt xong mới chép vào ADR-0024.
+- **Trạng thái:** **ĐÃ DUYỆT 2026-09-28** — chủ dự án trả lời nguyên văn "duyệt T2b" trong phiên điều phối. Đã chép vào ADR-0024: **accepted phần điều 6**, kèm bổ sung 6.1–6.6 rút từ §3 dưới đây. Từ nay sửa nội dung = ADR mới. (Trước khi duyệt, nháp đặt ngoài `docs/adr/` để tránh hỏi quyền từng lần sửa.)
 - **Người kiểm độc lập** (2026-09-28, trên 96c7024): ĐẠT CÓ ĐIỀU KIỆN. Đã sửa cả ba điểm:
   - Nghiêm trọng: lỗ gán/kết thúc vai "công ty chủ" (mục 3.5);
   - Quan trọng: ô quyền trỏ đúng ADR-0038 điều 7 (mục 3.4);

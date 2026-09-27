@@ -84,6 +84,12 @@ Hướng đúng: phân hệ mới, dữ liệu thuộc người, luật thuộc 
 >   - đủ điều kiện lái xét bằng giấy tờ.
 > - **T2b — CHỦ CHỌN (a), 2026-09-27, nguyên văn "T2b chọn a":** tên, MST, địa chỉ Tour Đảo giữ ở **hồ sơ tổ chức Tour Đảo** (`pty_party` + `pty_organization`, mã vai "công ty chủ", theo ADR-0024 điều 6). Bảng `company_profile`, trang đăng nhập và biên nhận đọc qua MỘT hàm công bố của `parties`.
 >   - Còn phải chốt khi soạn ADR: hotline, email → điểm liên hệ của hồ sơ; Zalo, logo → nơi ở; thu hồi `company_profile` theo expand–contract.
+> - **T2b — CHỦ DUYỆT 2026-09-28, nguyên văn "duyệt T2b":** duyệt đề xuất `2026-09-27-de-xuat-t2b-ho-so-tour-dao.md`. Đã chép vào ADR-0024 (**accepted phần điều 6**, bổ sung 6.1–6.6). Các điểm "còn phải chốt" ở trên đã chốt trong đề xuất:
+>   - hotline, Zalo, email là điểm liên hệ (`PHONE` có `label`, `EMAIL`);
+>   - `logo_url` tạm ở lại `company_profile`;
+>   - thu hồi `company_profile` theo expand–contract.
+>
+>   Kế tiếp: thi công T2b (việc lớn, có người kiểm độc lập), rồi trình ADR-0039 (Vận chuyển lượt 1a).
 
 ---
 
