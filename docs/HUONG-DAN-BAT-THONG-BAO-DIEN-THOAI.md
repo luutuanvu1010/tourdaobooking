@@ -66,17 +66,27 @@ Mục đã hiện ra (Bước 4 xong) không có nghĩa là thông báo chắc c
 3. Nhờ ai đó (hoặc chính bạn ở máy khác) gửi một thông báo cho nhóm của tài khoản vừa bật.
 4. Đợi tối đa 1 phút. Ghi lại CHÍNH XÁC điều xảy ra: (a) rung và hiện ĐÚNG câu của thông báo bạn vừa gửi — tốt nhất; (b) rung nhưng chỉ hiện câu chung "Bạn có thông báo mới" — vẫn hoạt động nhưng máy chưa hỏi được nội dung thật lúc đó (mạng chập chờn hoặc phiên hết hạn, không phải lỗi chìa khoá vì mục đã hiện ra ở Bước 4); (c) không rung gì cả — báo lại để tìm nguyên nhân khác (quyền thông báo bị hệ điều hành chặn, mạng...).
 
-## Tắt khẩn cấp (chỉ khi có sự cố)
+## Tắt tạm — hai cách, tuỳ có sự cố hay không (sửa 2026-09-28)
 
-Nếu cần tắt tính năng ngay lập tức (không cần đưa mã mới lên), đứng ở thư mục `tourdao-sales`, chạy:
+**Chìa khoá bí mật (nửa `VAPID_PRIVATE_KEY`) không bao giờ xem lại được, kể cả bởi bạn hay AI** — Cloudflare không cho đọc lại bí mật đã đặt. Vì vậy có hai cách tắt, tuỳ tình huống:
+
+### Cách A — chỉ muốn tạm dừng, KHÔNG nghi lộ chìa khoá (giữ được cặp cũ, không ai phải bật lại)
+
+Báo AI: "tạm dừng thông báo, không nghi lộ chìa khoá". AI sẽ tạm bỏ dòng chìa khoá công khai khỏi tệp cấu hình rồi báo bạn chạy lại đúng hai lệnh của Bước 1 (`npm run day-len -- <tên nhánh>` rồi `npm run trien-khai`) — **chậm hơn cách B vài phút** vì phải đưa mã lên, nhưng KHÔNG đụng tới nửa bí mật trên Cloudflare nên cặp chìa khoá cũ còn nguyên. Muốn bật lại: báo AI thêm đúng dòng chìa khoá công khai đó trở lại rồi chạy lại hai lệnh trên — xong ngay, không ai phải bấm "Bật" lại (máy vẫn đang bật vẫn bật, không mất gì).
+
+### Cách B — có sự cố thật (nghi chìa khoá bị lộ, hoặc cần tắt NGAY LẬP TỨC không chờ đưa mã lên)
+
+Đứng ở thư mục `tourdao-sales`, chạy:
 
 ```
 npx wrangler secret delete VAPID_PRIVATE_KEY
 ```
 
-Ngay sau lệnh này: mọi thông báo ngừng gửi (không ai rung, không có lỗi hiện ra), mục "Thông báo trên điện thoại" biến mất khỏi trang Tôi ở lần mở app kế tiếp. Dữ liệu ai đã bật được GIỮ NGUYÊN — muốn bật lại tính năng thì chỉ cần làm lại Bước 3 và Bước 4.
+**Lệnh này sẽ hỏi lại một câu (kiểu "…are you sure… (y/N)")** — gõ `y` rồi Enter mới thật sự xoá; Enter suông hoặc gõ điều gì khác sẽ HUỶ lệnh (chưa xoá gì).
 
-**Đừng tạo cặp chìa khoá mới nếu không có lý do** (nghi bị lộ, hoặc máy chủ báo sai): mỗi lần đổi chìa khoá, MỌI người đã bật thông báo phải bấm bật lại từ đầu.
+Ngay sau khi xoá thật: mọi thông báo ngừng gửi (không ai rung, không có lỗi hiện ra), mục "Thông báo trên điện thoại" biến mất khỏi trang Tôi ở lần mở app kế tiếp. Dữ liệu ai đã bật được GIỮ NGUYÊN (không xoá), nhưng **nửa bí mật đã mất vĩnh viễn — không có cách nào lấy lại đúng cặp chìa khoá cũ**. Muốn bật lại tính năng, PHẢI làm lại Bước 3 (chìa khoá MỚI hoàn toàn) và Bước 4, rồi **mọi người đã từng bật đều phải tự mở app và bấm "Bật thông báo trên điện thoại" lại một lần** (máy chủ từ chối chìa khoá cũ). Bước bấm lại này nay LÀM ĐƯỢC ỔN ĐỊNH (từ bản sửa 2026-09-28): trước đây nếu máy còn nhớ chìa khoá cũ, bấm "Bật" có thể báo lỗi mãi không tự hết; nay ứng dụng tự dọn chìa khoá cũ trước khi đăng ký chìa khoá mới.
+
+**Chỉ dùng Cách B khi thật sự có lý do** (nghi bị lộ, hoặc cần tắt ngay không chờ được): nó buộc TẤT CẢ mọi người bấm lại. Việc thường ngày (bảo trì định kỳ, tạm dừng vài giờ…) dùng Cách A.
 
 ---
 
