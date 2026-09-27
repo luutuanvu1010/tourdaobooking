@@ -9,7 +9,7 @@
 ```diff
  | `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` | ba `a2-smoke-*.mjs` ở `docs/evidence/2026-09-20-a2/kich-ban/` |
 +| Khối "Người phụ trách" trong form lập đơn: `web/assignee-picker.ts`, `src/shared/assignee-pick.ts`, phần chọn người phụ trách của `web/order-form.ts` / `#owner-card` của `public/order-form.html`, khối `.owner-*`/`.assignee-*` của `public/app.css` (Task 1.8 phần b ADR-0030) | `chon-hdv-lap-don-smoke.mjs` ở `docs/evidence/2026-09-27-tu-choi-huy-hdv/kich-ban/` (12 bước, 390 + 1040, không cần mạng ngoài) + ba `a2-smoke-*.mjs` ở dòng trên |
- | `web/login.ts`, `public/login.html`, CSP ở `public/_headers` | … |
+ | `web/login.ts`, `public/login.html`, CSP ở `public/_headers` | `v1-dang-nhap.mjs` ở `docs/evidence/2026-09-21-v1-0/kich-ban/` (15 bước, ước ~9 phút, cần mạng) + `dot-c-smoke.mjs` (cột thương hiệu máy tính, xem hàng cuối bảng) |
 ```
 
 ## Cách áp khi chủ duyệt

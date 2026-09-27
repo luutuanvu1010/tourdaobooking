@@ -353,6 +353,8 @@ try {
     assert.equal(bodies[0].handlerStaffId, hdv1.id, JSON.stringify(bodies[0]));
     const handler = await handlerOfOrder(id);
     assert.equal(handler?.staffId, hdv1.id, JSON.stringify(handler));
+    // Kế hoạch Task 1.8 bước 4(e): trang đơn vừa mở (hộp thoại xác nhận `moi=1` đang mở, nền inert — DOM vẫn đọc được) hiện đúng người phụ trách.
+    await p.waitFor(`(document.querySelector('.handler-name')?.textContent ?? '').includes(${JSON.stringify(HDV1.name)})`, "trang đơn: khối Người phụ trách hiện tên HDV", 10000);
     const mine = await call(HDV1, "GET", "/api/dispatch/mine");
     assert.equal(mine.status, 200, JSON.stringify(mine.json));
     assert.ok(mine.json.assignments.some((a) => a.orderId === id || a.id === id), `đơn ${id} có trong Việc của tôi của HDV: ${JSON.stringify(mine.json.assignments.map((a) => a.orderId ?? a.id))}`);
@@ -426,6 +428,21 @@ try {
     await short.waitFor(`!${OWNER}.hidden && !!${OPENER}`, "khối (1040×768)", 10000);
     const v = await short.ev("(() => { const s = document.getElementById('save').getBoundingClientRect(); return { inView: s.top >= 0 && s.bottom <= innerHeight, bottom: Math.round(s.bottom), vh: innerHeight }; })()");
     assert.equal(v.inView, true, `1040×768: nút Lưu trong khung nhìn — ${JSON.stringify(v)}`);
+    // Trường hợp cao nhất của cột phải dính: ĐÃ chọn người (khối cao hơn) + bấm Lưu khi form trống → banner lỗi nhiều dòng ở cột phải. Banner và nút
+    // Lưu đều phải nằm trọn trong khung nhìn (order-form.ts: ≥ 960px banner ở cột dính "luôn thấy").
+    await short.ev(`${OPENER}.click(); true`);
+    await short.waitFor("!!document.querySelector('.assignee-root.open .assignee-none')", "bảng chọn (1040×768)", 10000);
+    await short.ev(`${personBtn(hdv1.id)}.click(); true`);
+    await short.waitFor("!document.querySelector('.assignee-root')", "bảng chọn đóng (1040×768)");
+    await short.ev("document.getElementById('save').click(); true");
+    await short.waitFor("!document.getElementById('save-error').hidden", "banner kiểm phía trình duyệt (1040×768)");
+    await sleep(300);
+    const tall = await short.ev(`(() => { const r = (id) => document.getElementById(id).getBoundingClientRect(); const e = r('save-error'); const s = r('save'); const o = r('owner-card');
+      return { lines: document.querySelectorAll('#save-error .banner-lines li').length, errIn: e.top >= 0 && e.bottom <= innerHeight, saveIn: s.top >= 0 && s.bottom <= innerHeight, ownerTop: Math.round(o.top), errBottom: Math.round(e.bottom), saveBottom: Math.round(s.bottom), vh: innerHeight }; })()`);
+    assert.ok(tall.lines >= 3, `banner nhiều dòng — ${JSON.stringify(tall)}`);
+    assert.deepEqual([tall.errIn, tall.saveIn], [true, true], `1040×768, đã chọn + banner lỗi: banner và nút Lưu đều trong khung nhìn — ${JSON.stringify(tall)}`);
+    await shotView(short, "chon-hdv-da-chon-loi-1040x768.png");
+    assert.deepEqual(short.consoleErrors, []);
     short.close();
   });
 
