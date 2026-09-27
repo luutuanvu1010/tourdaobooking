@@ -32,7 +32,7 @@ const VIEW_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không �
 const NO_CHANGE = () => error(409, "no_change", "Người này đang phụ trách đơn rồi.");
 const STALE = () => error(409, "stale", "Người phụ trách đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 const CANCEL_FORBIDDEN = () => error(403, "forbidden", "Chỉ hướng dẫn viên đang phụ trách đơn mới huỷ được đơn theo cách này.");
-const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn nháp hoặc đã huỷ không dùng được.");
+const NOT_CONFIRMED = () => error(409, "not_editable", "Chỉ huỷ được đơn đã xác nhận qua đường này; đơn chờ xác nhận hoặc đã huỷ không dùng được.");
 const DEPARTED = () => error(409, "departed", "Tour đã qua ngày đi — hướng dẫn viên không huỷ được nữa. Nhờ văn phòng huỷ nếu cần.");
 const HANDLER_RACED = () => error(409, "stale", "Đơn vừa được người khác đổi, hãy tải lại rồi thử lại.");
 /** Chốt "Nhận" (ADR-0030 S20-5, lệch có chủ ý 5.1 — `docs/SYSTEM-DESIGN.md` §16): áp CHỈ cho tự nhận đơn chưa có người, không áp cho "giao". */

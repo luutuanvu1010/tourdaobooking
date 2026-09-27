@@ -26,8 +26,8 @@ test("409 stale: nguy hiểm, nói rõ bản đang gõ sẽ mất, hành động
 
 test("409 client_outdated: thông tin, tải lại trang; 409 not_editable: nguy hiểm, khoá form, dùng lời của máy chủ", () => {
   assert.deepEqual([e(409, "client_outdated").tone, e(409, "client_outdated").title, e(409, "client_outdated").action], ["info", "Trang đã cũ. Hãy tải lại trang.", "reload_page"]);
-  const n = e(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp.");
-  assert.deepEqual([n.tone, n.title, n.action], ["danger", "Chỉ sửa được đơn ở trạng thái nháp.", "lock_form"]);
+  const n = e(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận.");
+  assert.deepEqual([n.tone, n.title, n.action], ["danger", "Chỉ sửa được đơn đang chờ xác nhận.", "lock_form"]);
 });
 
 test("409 incomplete_trip: mỗi dịch vụ thiếu một dòng '<tên> — <nhãn>' kèm serviceId cho liên kết 'Sửa'", () => {
