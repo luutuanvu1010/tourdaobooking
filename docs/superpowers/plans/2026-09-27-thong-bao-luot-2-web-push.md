@@ -146,14 +146,14 @@ export async function guiLo(ds: string[], khoa: KhoaVapid, nowMs: number, goi: t
 
 ## Task 3 — Gửi: móc điểm phát, chia lô DO, 410, tự tắt (VIỆC LỚN: dữ liệu + hợp đồng module → người kiểm độc lập)
 
-**Tệp chạm:** `src/modules/thongbao/index.ts` (+ `repository.ts`), `src/index.ts`, `src/shared/router.ts` (một hàm tiêm mới), `src/modules/bangtin/index.ts`, `src/modules/bangtin/tram.ts`, `worker-configuration.d.ts`, `.dev.vars.example`, `src/shared/router.test.ts`.
+**Tệp chạm:** `src/modules/thongbao/index.ts` (+ `repository.ts`), `src/index.ts`, `src/shared/router.ts` (một hàm tiêm mới), `src/modules/bangtin/index.ts`, `src/modules/bangtin/tram.ts`, `worker-configuration.d.ts`, `.dev.vars.example`, `tests/e2e/run.mjs`, `src/shared/router.test.ts`.
 
 **Việc làm**
 - `thongbao/index.ts` export `dayGoCua(env, tin, giaoLo)` (gốc lắp ráp import được — gốc không phải module; không module nào import `thongbao`). Thứ tự thoát sớm **trước mọi lần đọc D1**: không có `khoaVapid(env)` → thôi; `!nenGui(quanTrong, now)` → thôi; `listMayDangBat` rỗng → thôi. Rồi: `listStaffAccounts` (lọc `active`) chỉ cho các `staff_id` có máy → `nguoiNhanDay` → địa chỉ của người được chọn → **≤ 40**: `guiLo` thẳng; **> 40**: `giaoLo(ds)` (DO). Gộp `hetHieuLuc` (của `guiLo` hoặc danh sách trễ DO trả về) → `hetHanStatement`.
 - **Hàm tiêm mới** `giaoLoDay(env, ds: string[]) => Promise<string[]>` ở `router.ts` (`AppOptions.injected` + `Ctx`, khuôn `dongBangTin`; bản ctx trả `Promise` vì route cần kết quả) — bản thật ở `src/index.ts` gọi `xepHangDay` của `bangtin`; không có binding → trả `[]`. Lý do không thêm cạnh `thongbao → bangtin`: không nới `ALLOWED_EDGES` (Điều 9.4); khuôn tiêm đã có tiền lệ.
-- **Tin về đơn** — `src/index.ts`, trong `baoThayDoi` sau `phatDon`: `hanhDongCuaThayDoi(thayDoi)` null → thôi; dựng một `DongDon` (`id: "day"`, `action`, `actorId: actor.id` — dùng `_actor` đang để dành, `tenNguoiLam: null`, `luc: new Date().toISOString()`, `ownerId: ref.staffId`, `phuTrach: handlerSau`, `lapChuaCoNguoi: thayDoi === "tao_cho_nhan"`, `cungLoLap: false`) → `dayGoCua(env, { don, quanTrong: false }, …)`. Đã ở trong `waitUntil` của router; lỗi vào `bang_tin_loi` như cũ.
+- **Tin về đơn** — `src/index.ts`, trong `baoThayDoi` sau `phatDon`: `hanhDongCuaThayDoi(thayDoi)` null → thôi; dựng một `DongDon` (`id: "day"`, `action`, `actorId: actor.id` — dùng `_actor` đang để dành, `tenNguoiLam: null`, `luc: new Date().toISOString()`, `ownerId: ref.staffId`, `phuTrach: handlerSau`, `lapChuaCoNguoi: thayDoi === "tao_cho_nhan"`, `cungLoLap: false`) → `dayGoCua(env, { don, quanTrong: false }, …)`, chạy **độc lập** với `phatDon` (`Promise.allSettled` hoặc hai `try` riêng — DO ném thì vẫn gõ cửa, và ngược lại). Đã ở trong `waitUntil` của router; lỗi vào `bang_tin_loi` như cũ.
 - **Tin thủ công** — `POST /api/thong-bao`: chỉ khi vừa ghi mới (`win === id`), `exec.waitUntil(dayGoCua(env, { thuCong, quanTrong }, ctx.giaoLoDay).catch(log))`; `thuCong` dựng từ giá trị vừa ghi (`nhan = tags`, `nguoiGuiId = staff.id`, `thuHoi: false`, `daHieuLuc: null`). Lỗi gửi không đổi phản hồi 201.
-- **Tự tắt** — `src/index.ts`: `dongBangTin: (env, muc) => Promise.allSettled([dongCua(env, muc), typeof muc === "object" ? tatMayStatement(env.DB, muc.staffId, null, "tai-khoan-doi", now).run() : null])` — tắt địa chỉ chạy **cả khi không có** `BANG_TIN`; `"tat-ca"` (bảo trì) không tắt. Phủ: đổi PIN, đặt lại PIN, đổi quyền/vai, ngưng, đổi SĐT, Face ID (xem "Lệch có ghi"). `tatMayStatement` cần export từ `thongbao/index.ts`.
+- **Tự tắt** — `src/index.ts`: `dongBangTin: (env, muc) => Promise.allSettled([dongCua(env, muc), typeof muc === "object" ? tatMayStatement(env.DB, muc.staffId, null, "tai-khoan-doi", now).run() : null])` — tắt địa chỉ chạy **cả khi không có** `BANG_TIN`; `"tat-ca"` (bảo trì) không tắt; mỗi kết quả `rejected` ghi một dòng `bang_tin_loi` (chỉ `name`) — `allSettled` không được nuốt lỗi router đang ghi. Phủ: đổi PIN, đặt lại PIN, đổi quyền/vai, ngưng, đổi SĐT, Face ID (xem "Lệch có ghi"). `tatMayStatement` cần export từ `thongbao/index.ts`.
 - **DO `BangTin`** (`tram.ts`) — sửa chú thích đầu tệp ("không lưu gì ngoài MỘT báo thức" → thêm hàng đợi gõ cửa). `bangtin/index.ts` thêm `xepHangDay(env, ds)` (khuôn `phatDon`). Mẫu:
 
 ```ts
@@ -199,7 +199,8 @@ private async guiMotLo(): Promise<boolean> {
   return ds.size > 1;
 }
 ```
-- Kiểu `Env`: `VAPID_PUBLIC_KEY?: string` (sẽ có trong `vars` — Task 5) và `VAPID_PRIVATE_KEY?: string` thêm **tay** vào `worker-configuration.d.ts` kèm chú thích như `BANG_TIN_HAN_GIAY`; `.dev.vars.example` thêm hai dòng trống kèm hướng dẫn (khoá **riêng** cho máy local).
+- Kiểu `Env`: `VAPID_PUBLIC_KEY?: string` (sẽ có trong `vars` — Task 5) và `VAPID_PRIVATE_KEY?: string` thêm **tay** vào `worker-configuration.d.ts` kèm chú thích như `BANG_TIN_HAN_GIAY`; `.dev.vars.example` thêm hai dòng trống kèm hướng dẫn: đặt **cả hai** `VAPID_PUBLIC_KEY` và `VAPID_PRIVATE_KEY` (`.dev.vars` đè `vars` — chỉ đặt bí mật thì khoá công khai production đi cặp khoá bí mật local → mọi lần gửi 403); JWK bọc trong nháy đơn.
+- `tests/e2e/run.mjs`: ép `"--var", "VAPID_PUBLIC_KEY:"` và `"--var", "VAPID_PRIVATE_KEY:"` (rỗng) như cách đặt `BANG_TIN_HAN_GIAY` — e2e không phụ thuộc `.dev.vars` của máy và **không bao giờ** gọi dịch vụ đẩy thật với địa chỉ giả của Task 1.
 
 **Test đỏ trước**
 - `src/shared/router.test.ts`: `giaoLoDay` được chuyển vào `ctx`; thiếu hàm tiêm → lỗi kiểu (typecheck) — theo khuôn ca `dongBangTin` có sẵn.
@@ -238,7 +239,7 @@ self.addEventListener("push", (event) => {
         if (b.tin) { cau = b.tin.cau; lienKet = b.tin.lienKet ?? "/"; }
       }
     } catch { /* 401, mất mạng, quá giờ → vẫn hiện câu chung: iOS thu hồi quyền nếu một lần đẩy không hiện gì */ }
-    await self.registration.showNotification("Tour Đảo", { body: cau, tag: "thong-bao", data: { lienKet }, icon: "/icons/icon-192.png" });
+    await self.registration.showNotification("Tour Đảo", { body: cau, tag: "thong-bao", renotify: true, data: { lienKet }, icon: "/icons/icon-192.png" }); // renotify: cùng tag mà thiếu cờ này thì tin thứ hai thay tin cũ LẶNG LẼ (không rung)
   })());
 });
 
@@ -249,9 +250,8 @@ self.addEventListener("notificationclick", (event) => {
   const dich = url.origin === self.location.origin ? url.href : self.location.origin + "/"; // chỉ mở trang cùng nguồn
   event.waitUntil((async () => {
     for (const c of await self.clients.matchAll({ type: "window", includeUncontrolled: true })) {
-      await (c as WindowClient).focus();
-      await (c as WindowClient).navigate(dich);
-      return;
+      try { await (c as WindowClient).focus(); await (c as WindowClient).navigate(dich); return; }
+      catch { /* navigate() ném với cửa sổ chưa do SW điều khiển; iOS chưa chắc hỗ trợ → rơi xuống openWindow */ }
     }
     await self.clients.openWindow(dich);
   })());
@@ -288,10 +288,11 @@ node -e 'const s=crypto.subtle;s.generateKey({name:"ECDSA",namedCurve:"P-256"},t
 5. A đổi PIN → gửi tin lại → **không** rung (§9.4-4); bật lại được.
 6. Đăng xuất A trên máy khác → máy của A không rung nữa, hoặc nếu rung thì chỉ hiện "Bạn có thông báo mới" (§9.4-5).
 7. Tài khoản chỉ-Đối-tác: làm bước 1–2 với tin nhóm Đối tác (ADR điểm 1).
-8. Sau 22:00 giờ VN: tin thường không rung, tin quan trọng rung (§9.4-3; luật đã khoá bằng test Task 2).
-9. `git grep -n "\"d\":"` và `git grep -n VAPID_PRIVATE_KEY` chỉ ra chú thích/tên biến, không ra giá trị khoá (§9.4-7).
+8. Gửi hai tin liền nhau, không mở tin đầu → **cả hai** lần đều rung (cờ `renotify`; hành vi iOS chưa kiểm).
+9. Sau 22:00 giờ VN: tin thường không rung, tin quan trọng rung (§9.4-3; luật đã khoá bằng test Task 2).
+10. `git grep -n "\"d\":"` và `git grep -n VAPID_PRIVATE_KEY` chỉ ra chú thích/tên biến, không ra giá trị khoá (§9.4-7).
 
-**Nghiệm thu:** tài liệu mô tả khớp mã (route, bảng, SW); dòng `SO-HANG-RAO.md` có ngày quan sát; người kiểm độc lập đọc lại lệnh khoá + thứ tự triển khai + tiêu chí; bước 1–9 do chủ/AI ghi kết quả thật (không ghi "đạt" khi chưa thử).
+**Nghiệm thu:** tài liệu mô tả khớp mã (route, bảng, SW); dòng `SO-HANG-RAO.md` có ngày quan sát; người kiểm độc lập đọc lại lệnh khoá + thứ tự triển khai + tiêu chí; bước 1–10 do chủ/AI ghi kết quả thật (không ghi "đạt" khi chưa thử).
 **Lệnh kiểm:** `npm test` · `npm run typecheck` · `npm run test:e2e` (toàn bộ) · `node scripts/audit-invariants.mjs --db local`
 
 ---
