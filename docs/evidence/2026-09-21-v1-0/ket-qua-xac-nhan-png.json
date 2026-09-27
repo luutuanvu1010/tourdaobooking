@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ nhập tay) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi",
+      "name": "tạo đơn bằng giao diện (dịch vụ theo người có thông tin chuyến + dịch vụ danh mục thứ hai) → tự chuyển tới /order?id=…&moi=1, hộp thoại tự mở đúng một lần, ảnh hiện, URL đã bỏ moi",
       "dat": true
     },
     {
@@ -33,7 +33,7 @@
     },
     {
       "id": "g",
-      "name": "tên người phụ trách: API có tên → in tên; API 404/500/lỗi mạng/không có người/chậm → tên người lập, ảnh vẫn ra trong vài giây, không chặn",
+      "name": "tên người phụ trách (ADR-0020 điều 9): API xác nhận có tên → in tên; API xác nhận CHƯA có người → 'Chưa có người phụ trách'; API lỗi/404/500/mất mạng/chậm → BỎ HẲN DÒNG (CHƯA BIẾT, không đoán, không dùng tên người lập); ảnh vẫn ra trong vài giây, không chặn",
       "dat": true
     },
     {
@@ -68,7 +68,7 @@
       "title": "Xác nhận đơn để gửi khách",
       "inertAll": true,
       "rootInert": false,
-      "inertCount": 5,
+      "inertCount": 6,
       "focusIn": true,
       "bodyOpen": true,
       "small": [],
@@ -86,7 +86,7 @@
       "title": "Xác nhận đơn để gửi khách",
       "inertAll": true,
       "rootInert": false,
-      "inertCount": 5,
+      "inertCount": 6,
       "focusIn": true,
       "bodyOpen": true,
       "small": [],
@@ -104,7 +104,7 @@
     "taoBangGiaoDien": {
       "w": 1440,
       "h": 2628,
-      "bytes": 457262,
+      "bytes": 461203,
       "scale": 2,
       "chu": 68
     },
@@ -112,28 +112,28 @@
       "w": 1440,
       "h": 2268,
       "cssH": 1134,
-      "bytes": 414872,
+      "bytes": 418573,
       "chu": 57,
-      "dungMs": 106,
-      "phuTrach": "Sales Một"
+      "dungMs": 105,
+      "phuTrach": null
     },
     "xac-nhan-mau-2-nhieu-dich-vu.png": {
       "w": 1440,
       "h": 4046,
       "cssH": 2023,
-      "bytes": 694018,
+      "bytes": 697466,
       "chu": 117,
-      "dungMs": 105,
-      "phuTrach": "Sales Một"
+      "dungMs": 104,
+      "phuTrach": null
     },
     "xac-nhan-mau-3-don-dai.png": {
       "w": 1440,
       "h": 9226,
       "cssH": 4613,
-      "bytes": 2099325,
+      "bytes": 2103430,
       "chu": 281,
       "dungMs": 104,
-      "phuTrach": "Sales Một"
+      "phuTrach": null
     },
     "chup-hop-thoai-390": "đã lưu",
     "chup-hop-thoai-1040": "đã lưu",
@@ -141,15 +141,15 @@
   },
   "thoiGian": {
     "tenPhuTrachMs": {
-      "404": 104,
-      "500": 103,
-      "name": 106,
-      "none": 105,
+      "404": 103,
+      "500": 102,
+      "name": 105,
+      "none": 104,
       "network": 108,
-      "slow": 3086
+      "slow": 3060
     },
-    "xac-nhan-mau-1-mot-dich-vu.png": 106,
-    "xac-nhan-mau-2-nhieu-dich-vu.png": 105,
+    "xac-nhan-mau-1-mot-dich-vu.png": 105,
+    "xac-nhan-mau-2-nhieu-dich-vu.png": 104,
     "xac-nhan-mau-3-don-dai.png": 104
   },
   "lon": {
@@ -159,7 +159,7 @@
       "cssH": 14587,
       "scale": 1.25,
       "mp": 16.41,
-      "bytes": 4075139,
+      "bytes": 4076668,
       "chu": 854
     },
     "tien-rong-9e15": {
@@ -168,7 +168,7 @@
       "cssH": 3941,
       "scale": 2,
       "mp": 11.35,
-      "bytes": 2066522,
+      "bytes": 2068216,
       "chu": 186
     }
   },

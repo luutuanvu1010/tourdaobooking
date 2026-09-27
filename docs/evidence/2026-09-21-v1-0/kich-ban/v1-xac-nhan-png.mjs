@@ -13,7 +13,8 @@
 //   d  chia sẻ: nút chỉ hiện khi navigator.canShare({ files }) đúng; bấm → navigator.share nhận đúng tệp PNG; người dùng huỷ thì im lặng, lỗi khác thì báo tiếng Việt
 //   e  tải lại trang KHÔNG bật lại hộp thoại; mở đơn không kèm moi và SỬA đơn nháp cũng không tự bật; nút "Xác nhận gửi khách" luôn có
 //   f  đơn đã xác nhận / đã huỷ mở lại bằng nút, huy hiệu đúng chữ và đúng màu token; SALES khác và kế toán cũng có nút (quyết định: chỉ xem, không cần quyền sửa)
-//   g  tên người phụ trách: API có tên → in tên; API 404/500/lỗi mạng/không có người/chậm → tên người lập, ảnh vẫn ra trong vài giây
+//   g  tên người phụ trách (ADR-0020 điều 9): API xác nhận có tên → in tên; API xác nhận CHƯA có người → "Chưa có người phụ trách"; API lỗi/404/500/mất
+//      mạng/chậm (CHƯA BIẾT) → BỎ HẲN DÒNG, không đoán và không dùng tên người lập; ảnh vẫn ra trong vài giây
 //   h  đơn cỡ tối đa (20 dịch vụ, 50 dòng tiền, tên 100+ ký tự liền, tiền 100.000.000.000 ₫, ghi chú dài) và tiền rộng quá cột: không lỗi, không tràn lề, không chữ chồng nhau,
 //      mọi chữ có mực, không vượt giới hạn diện tích canvas
 //   i  vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob trả null, getContext null): thông báo tiếng Việt + nút Thử lại, không kẹt (Esc đóng được), Thử lại ra ảnh
@@ -219,6 +220,9 @@ const closeDialog = async (p) => {
   await p.waitFor(`${DIALOG} === null`, "hộp thoại đóng bằng Esc", 4000);
 };
 const downloadHref = "document.querySelector('.sheet a.confirm-download').href";
+// Đọc trạng thái người phụ trách THẬT từ máy chủ, BA trạng thái (khớp `loadHandlerName` của `web/confirmation-dialog.ts`, ADR-0020 điều 9): chuỗi tên;
+// `null` = máy chủ XÁC NHẬN chưa có người; `undefined` = CHƯA BIẾT (lỗi, mã khác 200, dữ liệu hỏng). Chạy TRONG trang bằng `p.ev(...)`.
+const readHandlerJs = (orderId) => `fetch('/api/dispatch/handlers?orderIds=${orderId}').then((r) => r.ok ? r.json() : Promise.reject(r.status)).then((j) => { const f = j?.handlers?.['${orderId}']; if (f === null) return null; return (f && typeof f.name === 'string' && f.name.trim() !== '') ? f.name : undefined; }).catch(() => undefined)`;
 
 // ---- Dữ liệu dựng bằng API (KHÔNG dùng để kiểm giao diện) ----
 const call = async (account, method, path, body) => {
@@ -361,7 +365,7 @@ await step("b", "PNG giải mã được, rộng ≥ 1440, cao đúng bố cục
   const { p } = ui;
   await ensureTools(p);
   const href = await p.ev(downloadHref);
-  const handler = await p.ev(`fetch('/api/dispatch/handlers?orderIds=${ui.id}').then((r) => r.ok ? r.json() : null).then((j) => j?.handlers?.['${ui.id}']?.name ?? null).catch(() => null)`);
+  const handler = await p.ev(readHandlerJs(ui.id));
   const a = await p.ev(`__t.analyze(${JSON.stringify(href)}, ${JSON.stringify(ui.id)}, ${JSON.stringify(handler)})`);
   results.anh.taoBangGiaoDien = { w: a.w, h: a.h, bytes: a.bytes, scale: a.scale, chu: a.texts };
   assert.equal(a.sig, "89504e470d0a1a0a", "chữ ký PNG");
@@ -505,7 +509,7 @@ await step("f", "đơn đã xác nhận / đã huỷ mở lại bằng nút, huy
     await openDialog(p);
     const a = await p.ev(`(async () => {
       const href = ${downloadHref};
-      const model = await __t.modelOf(${JSON.stringify(order.id)}, await fetch('/api/dispatch/handlers?orderIds=${order.id}').then((r) => r.ok ? r.json() : null).then((j) => j?.handlers?.['${order.id}']?.name ?? null).catch(() => null));
+      const model = await __t.modelOf(${JSON.stringify(order.id)}, await ${readHandlerJs(order.id)});
       const pr = await __lib.prepareConfirmation(model);
       const blob = await __t.blobOf(href); const d = await __t.decode(blob);
       const badge = pr.layout.ops.find((o) => o.kind === 'rect' && o.tag === 'status-badge');
@@ -522,7 +526,7 @@ await step("f", "đơn đã xác nhận / đã huỷ mở lại bằng nút, huy
 });
 
 // ---- Bước g: tên người phụ trách ----
-await step("g", "tên người phụ trách: API có tên → in tên; API 404/500/lỗi mạng/không có người/chậm → tên người lập, ảnh vẫn ra trong vài giây, không chặn", async () => {
+await step("g", "tên người phụ trách (ADR-0020 điều 9): API xác nhận có tên → in tên; API xác nhận CHƯA có người → 'Chưa có người phụ trách'; API lỗi/404/500/mất mạng/chậm → BỎ HẲN DÒNG (CHƯA BIẾT, không đoán, không dùng tên người lập); ảnh vẫn ra trong vài giây, không chặn", async () => {
   const f = await fx();
   const id = f.multi.id;
   const p = await openAs(ACCOUNTS.salesA, `/order?id=${id}`);
@@ -537,14 +541,16 @@ await step("g", "tên người phụ trách: API có tên → in tên; API 404/5
   const expected = async (handler) => p.ev(`__t.modelOf(${JSON.stringify(id)}, ${JSON.stringify(handler)}).then((m) => __lib.renderConfirmationPng(m)).then(() => true)`);
   const sameAs = (handler) => p.ev(`(async () => __t.sameBytes(await __t.blobOf(${downloadHref}), await __lib.renderConfirmationPng(await __t.modelOf(${JSON.stringify(id)}, ${JSON.stringify(handler)}))))()`);
   const staffName = f.multi.staffName;
-  assert.equal(staffName, "Sales Một");
+  assert.equal(staffName, "Sales Một"); // fixture: người lập KHÔNG BAO GIỜ được dùng làm dự phòng dưới đây
   await expected(null);
   const times = {};
-  for (const [mode, name] of [["name", "Lê Minh Tuấn"], ["none", null], ["404", null], ["500", null], ["network", null], ["slow", null]]) {
+  // handler kỳ vọng theo TRẠNG THÁI MÁY CHỦ XÁC NHẬN (ADR-0020 điều 9): chuỗi tên · null (đã xác nhận: chưa có người) · undefined (CHƯA BIẾT — lỗi/404/500/mất mạng/hết giờ)
+  for (const [mode, handler] of [["name", "Lê Minh Tuấn"], ["none", null], ["404", undefined], ["500", undefined], ["network", undefined], ["slow", undefined]]) {
     await p.ev(`window.__h.mode = ${JSON.stringify(mode)}; true`);
     times[mode] = await openDialog(p, 15000);
-    assert.equal(await sameAs(name), true, `chế độ ${mode}: ảnh phải dựng từ tên phụ trách ${JSON.stringify(name)} (hoặc tên người lập ${staffName} khi API không có)`);
-    if (mode === "name") assert.equal(await sameAs(null), false, "đối chứng: ảnh có tên phụ trách khác ảnh dùng tên người lập");
+    assert.equal(await sameAs(handler), true, `chế độ ${mode}: ảnh phải dựng đúng theo trạng thái người phụ trách máy chủ xác nhận (${JSON.stringify(handler)}) — KHÔNG BAO GIỜ dùng tên người lập ${staffName}`);
+    if (mode === "name") assert.equal(await sameAs(null), false, "đối chứng: có tên phụ trách phải khác 'Chưa có người phụ trách'");
+    if (mode === "none") assert.equal(await sameAs(undefined), false, "đối chứng: 'Chưa có người phụ trách' (đã xác nhận) phải khác BỎ DÒNG (chưa biết)");
     await closeDialog(p);
   }
   results.thoiGian.tenPhuTrachMs = times;
@@ -729,7 +735,7 @@ await step("k", "ảnh mẫu (một dịch vụ, nhiều dịch vụ, đơn dài
   for (const [file, order] of samples) {
     const p = await openAs(ACCOUNTS.salesA, `/order?id=${order.id}`, { track: false });
     const ms = await openDialog(p, 30000);
-    const handler = await p.ev(`fetch('/api/dispatch/handlers?orderIds=${order.id}').then((r) => r.ok ? r.json() : null).then((j) => j?.handlers?.['${order.id}']?.name ?? null).catch(() => null)`);
+    const handler = await p.ev(readHandlerJs(order.id));
     const a = await p.ev(`__t.analyze(${downloadHref}, ${JSON.stringify(order.id)}, ${JSON.stringify(handler)})`);
     assert.equal(a.sig, "89504e470d0a1a0a");
     assert.ok(a.w >= 1440, `${file}: rộng ${a.w} (cao ${a.layoutH} px CSS, độ phân giải ${a.scale}) — đơn phải nằm trong giới hạn diện tích canvas ở độ phân giải 2`);

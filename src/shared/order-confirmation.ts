@@ -11,8 +11,13 @@
 // gõ rời về dạng dựng sẵn (NFC). Bộ vẽ có thể đưa thẳng vào canvas; nó chỉ cần tách theo "\n".
 // Đơn nháp CHƯA có ngày khởi hành thì dịch vụ đó KHÔNG có dòng "Khởi hành" (ảnh gửi khách không mang cảnh báo nội bộ "Chưa có ngày khởi hành" của trang đơn).
 // CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, nhãn khác giá danh mục, mã danh mục, giá danh mục, id, đơn vị thô,
-// ghi chú thanh toán, cách cọc, người lập (chỉ làm dự phòng cho "Nhân viên phụ trách"). Tiền lấy NGUYÊN từ đơn (máy chủ tính); chỉ "tổng dịch vụ" được cộng ở đây.
+// ghi chú thanh toán, cách cọc, người lập. Tiền lấy NGUYÊN từ đơn (máy chủ tính); chỉ "tổng dịch vụ" được cộng ở đây.
+// Dòng "Nhân viên phụ trách" (ADR-0020 điều 9): người lập KHÔNG BAO GIỜ là dự phòng — đơn mới không tự gắn người lập làm người phụ trách (ADR-0030 S20-4)
+// nên hiện tên người lập ở đây là SAI. `handlerName` mang BA trạng thái (như `web/order.ts` `Handler`): chuỗi = tên; `null` = máy chủ ĐÃ XÁC NHẬN đơn
+// chưa có người phụ trách (dòng "HANDLE" đang mở) → in "Chưa có người phụ trách"; `undefined` = CHƯA BIẾT (lỗi, hết giờ, dữ liệu hỏng, chưa tải xong) →
+// bỏ hẳn dòng, không đoán lên giấy gửi khách.
 import type { CompanyDto, OrderDetailDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
+import { NO_HANDLER_TEXT } from "./handler-view.ts";
 import { PAX_LABEL, PAX_ORDER, parseUnit, paxTotal, type PaxCounts } from "./order-lines.ts";
 import { formatDmy } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
@@ -150,9 +155,9 @@ function headerBlock(company: CompanyDto): HeaderBlock {
   };
 }
 
-function titleBlock(order: OrderDetailDto, handlerName: string | null): TitleBlock {
-  // Người phụ trách (việc 3); chưa có thì người lập của đơn. Tên người lập KHÔNG bao giờ thành dòng riêng.
-  const handler = clean(handlerName) !== "" ? handlerName : order.staffName;
+function titleBlock(order: OrderDetailDto, handlerName: string | null | undefined): TitleBlock {
+  // ADR-0020 điều 9: null (máy chủ XÁC NHẬN chưa có người) → chữ cố định; undefined hoặc chuỗi rỗng/trắng (CHƯA BIẾT) → bỏ dòng (rowsOf tự bỏ chuỗi rỗng).
+  const handler = handlerName === null ? NO_HANDLER_TEXT : clean(handlerName);
   return {
     kind: "title",
     title: "XÁC NHẬN ĐƠN DỊCH VỤ",
@@ -214,10 +219,11 @@ function fileNameOf(orderCode: string): string {
 }
 
 /**
- * Đơn + hồ sơ công ty + tên người phụ trách → mô hình nội dung ảnh xác nhận. `handlerName` = người phụ trách đang mở của đơn (việc 3);
- * null/trống → dùng tên người lập của đơn. Không sửa `order`/`company`; kết quả chỉ gồm chuỗi, số, mảng, đối tượng.
+ * Đơn + hồ sơ công ty + tên người phụ trách → mô hình nội dung ảnh xác nhận. `handlerName` = người phụ trách đang mở của đơn, BA trạng thái
+ * (ADR-0020 điều 9): chuỗi = tên; `null` = máy chủ XÁC NHẬN chưa có người → "Chưa có người phụ trách"; `undefined` = CHƯA BIẾT (lỗi/hết giờ/dữ liệu
+ * hỏng) → bỏ hẳn dòng, KHÔNG bao giờ dùng tên người lập. Không sửa `order`/`company`; kết quả chỉ gồm chuỗi, số, mảng, đối tượng.
  */
-export function buildConfirmation(order: OrderDetailDto, company: CompanyDto, handlerName: string | null): ConfirmationModel {
+export function buildConfirmation(order: OrderDetailDto, company: CompanyDto, handlerName: string | null | undefined): ConfirmationModel {
   return {
     orderCode: clean(order.orderCode),
     fileName: fileNameOf(order.orderCode),

@@ -1,7 +1,8 @@
 // Hộp thoại "Xác nhận đơn để gửi khách" (v1.0, đặc tả "Việc 2"): dựng ảnh PNG xác nhận từ đơn đang xem rồi cho xem trước, tải về ("Tải ảnh PNG") hoặc chia sẻ ("Chia sẻ" — chỉ khi
 // `navigator.canShare({ files })`, vd iPhone → Zalo). Cùng khuôn với bảng trượt "Sửa thông tin chuyến" (trip-sheet.ts, dùng chung CSS `.sheet*`): role=dialog + aria-modal, phần nền `inert`,
 // Esc / ✕ / chạm nền để đóng, trả focus về nút mở. Đóng được mọi lúc (kể cả lúc đang dựng ảnh): kết quả đến muộn bị bỏ và `blob:` URL luôn được thu hồi.
-// Dựng ảnh: tên người phụ trách (GET /api/dispatch/handlers, tối đa 3 giây, lỗi/404/chậm → null → mô hình dùng tên người lập) + hồ sơ công ty (GET /api/company, nhớ lại sau lần đầu)
+// Dựng ảnh: tên người phụ trách (GET /api/dispatch/handlers, tối đa 3 giây — BA trạng thái như web/order.ts: tên · null = máy chủ XÁC NHẬN chưa có người ·
+// undefined = CHƯA BIẾT khi lỗi/404/5xx/mất mạng/hết giờ/dữ liệu hỏng, ADR-0020 điều 9) + hồ sơ công ty (GET /api/company, nhớ lại sau lần đầu)
 // → buildConfirmation → renderConfirmationPng. Lỗi ở bất kỳ bước nào → thông báo tiếng Việt + nút "Thử lại", không bao giờ kẹt ở "Đang tạo ảnh…" (hạn chót 30 giây).
 import type { CompanyDto } from "../src/shared/contracts";
 import { buildConfirmation } from "../src/shared/order-confirmation";
@@ -34,22 +35,27 @@ function loadCompany(): Promise<CompanyDto> {
 }
 
 /**
- * Tên người phụ trách đang mở của đơn (`GET /api/dispatch/handlers?orderIds=<id>` → `{ handlers: { [id]: { name } | null } }`). KHÔNG bao giờ ném lỗi và không chặn ảnh quá 3 giây:
- * 404 (API chưa có), 5xx, mất mạng, hết giờ, chưa có người phụ trách → null (mô hình dùng tên người lập). Kiểm cấu trúc chặt vì đây là dữ liệu từ ngoài trang.
+ * Tên người phụ trách đang mở của đơn (`GET /api/dispatch/handlers?orderIds=<id>` → `{ handlers: { [id]: { name } | null } }`). KHÔNG bao giờ ném lỗi và không chặn ảnh quá 3 giây.
+ * BA trạng thái, như `Handler` của `web/order.ts` (ADR-0020 điều 9): chuỗi = tên; `null` = máy chủ **XÁC NHẬN** đơn chưa có người phụ trách (dòng "HANDLE" nào đang mở cũng không có);
+ * `undefined` = **CHƯA BIẾT** (404 API chưa có, 5xx, mất mạng, hết giờ, đáp ứng thiếu khoá hoặc `name` sai dạng) — KHÔNG được gộp vào `null`, kẻo một lần mạng chập chờn làm ảnh gửi khách
+ * ghi "Chưa có người phụ trách" cho một đơn thật ra đã có người. Kiểm cấu trúc chặt vì đây là dữ liệu từ ngoài trang.
  */
-export async function loadHandlerName(orderId: string): Promise<string | null> {
+export async function loadHandlerName(orderId: string): Promise<string | null | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const res = await Promise.race([
       api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${encodeURIComponent(orderId)}`),
-      new Promise<null>((resolve) => {
-        timer = setTimeout(() => resolve(null), HANDLER_TIMEOUT_MS);
+      new Promise<undefined>((resolve) => {
+        timer = setTimeout(() => resolve(undefined), HANDLER_TIMEOUT_MS);
       }),
     ]);
-    const name: unknown = res?.handlers?.[orderId]?.name;
-    return typeof name === "string" && name.trim() !== "" ? name : null;
+    if (res === undefined) return undefined; // hết giờ: CHƯA BIẾT, không phải "chưa có người"
+    const found = res.handlers?.[orderId];
+    if (found === null) return null; // máy chủ xác nhận: chưa có người phụ trách
+    const name: unknown = found?.name;
+    return typeof name === "string" && name.trim() !== "" ? name : undefined; // thiếu khoá/dữ liệu hỏng → CHƯA BIẾT
   } catch {
-    return null;
+    return undefined;
   } finally {
     clearTimeout(timer);
   }
