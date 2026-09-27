@@ -8,14 +8,14 @@ import {
 
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
-test("danh mục: đủ 11 vai, 6 nội bộ + 5 bên ngoài, bộ mặc định là mã quyền hợp lệ", () => {
-  assert.equal(ROLE_CODES.length, 11);
+test("danh mục: đủ 12 vai, 7 nội bộ + 5 bên ngoài (ADR-0042 thêm vai IT), bộ mặc định là mã quyền hợp lệ", () => {
+  assert.equal(ROLE_CODES.length, 12);
   assert.deepEqual(Object.keys(ROLES).sort(), [...ROLE_CODES].sort());
-  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 6);
+  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 7);
   assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL").length, 5);
   for (const r of ROLE_CODES) for (const p of ROLES[r].defaults) assert.ok((PERMISSION_CODES as readonly string[]).includes(p), `${r} → ${p}`);
   for (const r of ROLE_CODES.filter((x) => ROLES[x].group === "EXTERNAL")) assert.deepEqual([...ROLES[r].defaults], ["PARTNER"], r);
-  assert.deepEqual(ROLE_CODES.filter((r) => ROLES[r].superAdminOnly), ["DIRECTOR", "OPERATIONS_MANAGER"]);
+  assert.deepEqual(ROLE_CODES.filter((r) => ROLES[r].superAdminOnly), ["DIRECTOR", "OPERATIONS_MANAGER", "IT"]);
   assert.equal(isRoleCode("SALES_STAFF"), true);
   assert.equal(isRoleCode("STAFF"), false, "vai cũ mơ hồ không thuộc mô hình mới");
 });
@@ -23,6 +23,8 @@ test("danh mục: đủ 11 vai, 6 nội bộ + 5 bên ngoài, bộ mặc định
 test("bộ mặc định đúng đặc tả §4 + ADR-0018 điều 4 (Giám đốc = Toàn quyền kèm Quản trị; Điều hành = Quản trị)", () => {
   assert.deepEqual(defaultPermissions(["DIRECTOR"]), ["ADMIN", "SUPER_ADMIN"]);
   assert.deepEqual(defaultPermissions(["OPERATIONS_MANAGER"]), ["ADMIN"]);
+  assert.deepEqual(defaultPermissions(["IT"]), ["ADMIN", "SUPER_ADMIN"], "ADR-0042: vai IT = cùng bộ quyền Giám đốc, chỉ khác tên hiện ra");
+  assert.equal(ROLES.IT.name, "IT");
   assert.deepEqual(defaultPermissions(["GUIDE_INTERNAL"]), ["FIELD"]);
   assert.deepEqual(defaultPermissions(["SALES_STAFF"]), ["SALES"]);
   assert.deepEqual(defaultPermissions(["INTERN"]), ["INTERN"]);
