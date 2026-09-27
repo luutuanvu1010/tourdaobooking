@@ -5,6 +5,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 
 interface Check {
   code: string;
@@ -582,4 +583,25 @@ test("kiểm 'thông tin' về vai của nhân sự: vai STAFF cũ HOẶC vai n�
   assert.equal(violations(db, check), 0);
   guardSeed(db, "33", ["CUSTOMER"], ["SALES"]);
   assert.equal(violations(db, check), 1);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-PTY-1 (ADR-0024 điều 6): đúng một hồ sơ đang mở vai công ty chủ → 0; ĐỔI công ty chủ (trigger) vẫn 0; mất dòng mở → 1; hai dòng mở (trigger đổi bị gỡ) → 1", () => {
+  const c = one("R-PTY-1");
+  assert.equal(c.level, "fail");
+  assert.match(c.sql, new RegExp(`'${OWNER_COMPANY_ROLE}'`), "một nguồn mã vai: câu kiểm dùng đúng mã của src/shared/cong-ty-chu.ts");
+  let db = build();
+  assert.equal(violations(db, c), 0);
+  db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-org-b', 'ORGANIZATION', 'Pháp nhân B', 1, '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at)
+           VALUES ('ptr-org-b', 'pty-org-b', '${OWNER_COMPANY_ROLE}', '2099-01-01', '${T1}', '${T1}')`);
+  assert.equal(violations(db, c), 0, "đổi công ty chủ (chủ trả lời 2026-09-28) vẫn đúng một");
+  db = build();
+  db.exec(`DELETE FROM pty_party_role WHERE role_type_code = '${OWNER_COMPANY_ROLE}'`);
+  assert.equal(violations(db, c), 1, "không còn hồ sơ công ty chủ");
+  db = build();
+  db.exec("DROP TRIGGER pty_party_role_owner_company_switch");
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at)
+           VALUES ('ptr-thu-hai', 'pty-xa', '${OWNER_COMPANY_ROLE}', '2099-01-01', '${T1}', '${T1}')`);
+  assert.equal(violations(db, c), 1, "hai hồ sơ cùng mở vai");
 });
