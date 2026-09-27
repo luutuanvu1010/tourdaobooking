@@ -4,10 +4,11 @@ import type { HandlerDto, OrderStatus } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 
-/** Chip ở danh sách đơn và ở khối "Người phụ trách" khi đơn chưa có người. */
-export const NO_HANDLER_TEXT = "Chưa có người phụ trách";
-/** Dòng ở danh sách đơn. */
-export const handlerText = (name: string): string => `Phụ trách: ${name}`;
+/** Chip ở danh sách đơn và ở khối "Người phụ trách" khi đơn chưa có người (ADR-0030 điều 3, Q-A2: "Chờ nhận" thay
+ * "Chưa có người phụ trách" — đơn mới không tự gắn người lập, HDV cần thấy ngay đây là đơn đang chờ ai đó bấm Nhận). */
+export const NO_HANDLER_TEXT = "Chờ nhận";
+/** Dòng ở danh sách đơn (ADR-0030 điều 3, Q-A2: "HDV: <tên>" thay "Phụ trách: <tên>"). */
+export const handlerText = (name: string): string => `HDV: ${name}`;
 
 export interface HandlerControls {
   /** Nút mở bảng chọn người phụ trách (đổi, hoặc giao lần đầu). */

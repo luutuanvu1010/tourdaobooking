@@ -1,7 +1,8 @@
 import { AUDIT_ACTIONS } from "../src/shared/audit-actions";
 import { vndShort } from "../src/shared/money";
 import { PAX_ORDER, type PaxCounts } from "../src/shared/order-lines";
-import type { AuditAction, DepositMethod, OrderStatus } from "./api";
+import { STATUS_LABEL } from "../src/shared/order-status-label";
+import type { AuditAction, DepositMethod } from "./api";
 
 const nf = new Intl.NumberFormat("vi-VN");
 
@@ -9,7 +10,7 @@ const nf = new Intl.NumberFormat("vi-VN");
 export const vnd = (n: number): string => `${nf.format(n)} ₫`;
 export const grouped = (n: number): string => nf.format(n);
 
-export { vndShort };
+export { STATUS_LABEL, vndShort };
 
 /** "1.350.000 đ" / "1350000" → 1350000; rỗng → 0. */
 export function parseMoney(text: string): number {
@@ -19,8 +20,6 @@ export function parseMoney(text: string): number {
 
 export const dateTime = (iso: string): string =>
   new Date(iso).toLocaleString("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" });
-
-export const STATUS_LABEL: Record<OrderStatus, string> = { draft: "Nháp", confirmed: "Đã xác nhận", cancelled: "Đã huỷ" };
 
 export const METHOD_LABEL: Record<DepositMethod, string> = { cash: "Tiền mặt", bank_transfer: "Chuyển khoản", other: "Khác" };
 

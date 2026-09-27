@@ -17,7 +17,6 @@
 // chưa có người phụ trách (dòng "HANDLE" đang mở) → in "Chưa có người phụ trách"; `undefined` = CHƯA BIẾT (lỗi, hết giờ, dữ liệu hỏng, chưa tải xong) →
 // bỏ hẳn dòng, không đoán lên giấy gửi khách.
 import type { CompanyDto, OrderDetailDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
-import { NO_HANDLER_TEXT } from "./handler-view.ts";
 import { PAX_LABEL, PAX_ORDER, parseUnit, paxTotal, type PaxCounts } from "./order-lines.ts";
 import { formatDmy } from "./trip-form.ts";
 import { vnToday } from "./vn-date.ts";
@@ -155,9 +154,14 @@ function headerBlock(company: CompanyDto): HeaderBlock {
   };
 }
 
+/** Chữ khi máy chủ XÁC NHẬN đơn chưa có người phụ trách (ADR-0020 điều 9) — chữ RIÊNG cho khách, KHÔNG dùng chung
+ * `NO_HANDLER_TEXT` của `handler-view.ts` (Task 1.7, ADR-0030 điều 3 đổi hằng đó thành "Chờ nhận" cho HDV nội bộ):
+ * khách xem ảnh xác nhận không hiểu "chờ nhận" nghĩa là gì, nên giữ nguyên câu đầy đủ trên giấy gửi khách. */
+const HANDLER_PENDING_TEXT_FOR_CUSTOMER = "Chưa có người phụ trách";
+
 function titleBlock(order: OrderDetailDto, handlerName: string | null | undefined): TitleBlock {
   // ADR-0020 điều 9: null (máy chủ XÁC NHẬN chưa có người) → chữ cố định; undefined hoặc chuỗi rỗng/trắng (CHƯA BIẾT) → bỏ dòng (rowsOf tự bỏ chuỗi rỗng).
-  const handler = handlerName === null ? NO_HANDLER_TEXT : clean(handlerName);
+  const handler = handlerName === null ? HANDLER_PENDING_TEXT_FOR_CUSTOMER : clean(handlerName);
   return {
     kind: "title",
     title: "XÁC NHẬN ĐƠN DỊCH VỤ",

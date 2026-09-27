@@ -3,7 +3,7 @@
   "buoc": [
     {
       "id": "a",
-      "name": "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
+      "name": "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “HDV: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện",
       "dat": true
     },
     {

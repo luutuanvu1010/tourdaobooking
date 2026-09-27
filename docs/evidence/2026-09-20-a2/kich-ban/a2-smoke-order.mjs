@@ -41,7 +41,7 @@ try {
   // ---- 1) đơn nháp: hai khối dịch vụ, chip, số khách, chuyến, dòng tiền, nhãn lệch giá, tổng, thanh toán, nút ----
   let p = await env.as(ACCOUNTS.salesA, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "hai khối dịch vụ");
-  assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Nháp");
+  assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Chờ xác nhận"); // ADR-0030 điều 3, Q-A2 — Task 1.7
   assert.equal(await p.ev(`${svc(0)}.querySelector('.svc-name').textContent`), "Tour 4 đảo Nha Trang");
   assert.deepEqual(await p.ev(`[...${svc(0)}.querySelectorAll('.chip')].map((c) => c.textContent)`), ["theo người", "TD101"]);
   assert.deepEqual(await p.ev(pairs(svc(0), ".svc-facts .kv")), [

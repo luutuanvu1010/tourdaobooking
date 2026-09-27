@@ -76,7 +76,7 @@ function renderStats(data: Api.DashboardResponse): void {
   replaceChildren(
     byId("dash-stats"),
     statTile("money", "Còn thiếu tiền", "Còn thiếu", vnd(unpaid.total), `${vndShort(unpaid.total)} ₫`, unpaidSubFull, unpaidSubShort, "money-due"),
-    statTile("doc-check", "Đơn nháp chưa xác nhận", "Đơn nháp", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
+    statTile("doc-check", "Đơn chờ xác nhận", "Chờ xác nhận", String(draftCount), String(draftCount), "Cần xác nhận đơn", "Cần xác nhận đơn"),
     statTile("assign", "Chưa có người phụ trách", "Chưa phụ trách", String(unassignedCount), String(unassignedCount), "Chờ người nhận", "Chờ người nhận"),
   );
 }

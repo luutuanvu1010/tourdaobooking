@@ -374,8 +374,8 @@ try {
       assert.equal(m.stats[0].label, "Còn thiếu tiền", `${label}: nhãn ĐẦY ĐỦ ô "Còn thiếu tiền" — ${JSON.stringify(m.stats[0])}`);
       assert.equal(m.stats[0].value, "12.345.000 ₫", `${label}: giá trị ĐẦY ĐỦ ô "Còn thiếu tiền" phải hiện 12.345.000 ₫ — ${JSON.stringify(m.stats[0])}`);
       assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
-      assert.equal(m.stats[1].label, "Đơn nháp chưa xác nhận", `${label}: nhãn ĐẦY ĐỦ ô đơn nháp — ${JSON.stringify(m.stats[1])}`);
-      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].label, "Đơn chờ xác nhận", `${label}: nhãn ĐẦY ĐỦ ô đơn nháp (ADR-0030 điều 3, Q-A2 — Task 1.7) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn chờ xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
       assert.equal(m.stats[2].label, "Chưa có người phụ trách", `${label}: nhãn ĐẦY ĐỦ ô chưa phụ trách — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].sub, "Chờ người nhận", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.stats[2])}`);
@@ -424,8 +424,8 @@ try {
       assert.equal(m.stats[0].label, "Còn thiếu", `${label}: nhãn RÚT GỌN ô "Còn thiếu tiền" phải là "Còn thiếu" (bản đang thật sự hiển thị ở khổ hẹp) — ${JSON.stringify(m.stats[0])}`);
       assert.equal(m.stats[0].value, "12,34tr ₫", `${label}: giá trị RÚT GỌN ô "Còn thiếu tiền" phải là "12,34tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.345.000 ₫") — ${JSON.stringify(m.stats[0])}`);
       assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
-      assert.equal(m.stats[1].label, "Đơn nháp", `${label}: nhãn RÚT GỌN ô đơn nháp phải là "Đơn nháp" — ${JSON.stringify(m.stats[1])}`);
-      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].label, "Chờ xác nhận", `${label}: nhãn RÚT GỌN ô đơn nháp phải là "Chờ xác nhận" (ADR-0030 điều 3, Q-A2 — Task 1.7) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn chờ xác nhận" phải = 1 — ${JSON.stringify(m.stats[1])}`);
       assert.equal(m.stats[2].label, "Chưa phụ trách", `${label}: nhãn RÚT GỌN ô chưa phụ trách phải là "Chưa phụ trách" — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].sub, "Chờ người nhận", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.stats[2])}`);
@@ -743,9 +743,12 @@ try {
   }
 
   // ==================================================================================================
-  // C) Trạng thái LỖI thật — tài khoản KHÔNG có quyền văn phòng (chỉ FIELD) gọi "/": route "office" của
-  //    GET /api/orders/dashboard trả 403 THẬT (src/shared/router.ts), không phải mô phỏng bằng cách chặn mạng.
-  //    Khẳng định: CHỈ còn banner lỗi hiện; #dash-grid ẨN (gộp #dash-stats — Đợt D Task 1); #loading đã ẩn (không kẹt ở khung xương).
+  // C) (SỬA sau kế hoạch 2026-09-27 Task 1.7, ruling điều phối đã xác nhận ở Task 1.5 — ĐẢO CÓ CHỦ ĐÍCH, không phải
+  //    lỗi, đúng dòng `src/shared/start-page.test.ts:26-32`/S23-4) — TRƯỚC: tài khoản chỉ FIELD không có quyền văn
+  //    phòng gọi "/" thấy banner lỗi 403 THẬT của route "office" (GET /api/orders/dashboard). Từ ADR-0030 S23-4
+  //    (Task 1.5): chỉ-FIELD nay có cổng "orders" (đọc đơn mình phụ trách) → `homeRedirect` (src/shared/start-page.ts)
+  //    đưa họ sang THẲNG "/orders" trước khi trang chủ kịp gọi dashboard — banner lỗi cũ KHÔNG BAO GIỜ còn hiện được.
+  //    Khẳng định MỚI: dừng đúng ở "/orders", KHÔNG banner lỗi, KHÔNG gọi /api/orders/dashboard (route văn phòng).
   // ==================================================================================================
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
@@ -753,21 +756,24 @@ try {
     for (const stmt of (await insertStaffSql(fieldOnly)).split("\n")) env.sql(stmt);
 
     const pErr = await env.as(fieldOnly, "/", MOB);
-    await pErr.waitFor("!document.querySelector('#error').hidden", "banner lỗi hiện (tài khoản không có quyền văn phòng)");
+    await pErr.waitFor("location.pathname === '/orders' && document.readyState === 'complete'", "chỉ-FIELD mở \"/\" phải dừng ở /orders (ADR-0030 S23-4)", 15000);
+    await pErr.waitFor("!document.querySelector('#loading') || document.querySelector('#loading').hidden", "danh sách /orders tải xong (không kẹt khung xương)", 10000);
     const mErr = await pErr.ev(`(() => ({
+      path: location.pathname,
       errorHidden: document.querySelector('#error').hidden,
-      errorText: document.querySelector('#error').textContent.trim(),
-      gridHidden: document.querySelector('#dash-grid').hidden,
-      loadingHidden: document.querySelector('#loading').hidden,
-      todayBadgeHidden: document.querySelector('#dash-today-count').hidden,
+      errorText: document.querySelector('#error').hidden ? "" : document.querySelector('#error').textContent.trim(),
+      hasDashGrid: !!document.querySelector('#dash-grid'),
     }))()`);
-    assert.equal(mErr.errorHidden, false, `Trạng thái lỗi: #error phải HIỆN — ${JSON.stringify(mErr)}`);
-    assert.ok(mErr.errorText.length > 0, "Trạng thái lỗi: #error phải có nội dung tiếng Việt");
-    assert.equal(mErr.gridHidden, true, `Trạng thái lỗi: #dash-grid phải ẨN (không có số liệu/danh sách/doanh thu) — ${JSON.stringify(mErr)}`);
-    assert.equal(mErr.loadingHidden, true, `Trạng thái lỗi: #loading (khung xương) phải ẨN, không kẹt lại — ${JSON.stringify(mErr)}`);
-    assert.equal(mErr.todayBadgeHidden, true, `Trạng thái lỗi: huy hiệu số chuyến hôm nay phải ẨN (chưa từng có số thật) — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.path, "/orders", `Task 1.7: chỉ-FIELD phải dừng ở /orders (KHÔNG còn ở Trang chủ "/") — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.errorHidden, true, `Task 1.7: KHÔNG còn banner lỗi (route "office" không bao giờ được gọi) — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.hasDashGrid, false, `Task 1.7: trang cuối không được là Trang chủ (không có #dash-grid) — ${JSON.stringify(mErr)}`);
+    // KHÔNG khẳng định "không gọi dashboard" ở đây (khác khối I/PARTNER dưới): ADR-0035 (`layDashboard`/`goiSom`,
+    // web/home.ts) gọi dashboard SỚM song song với /api/auth/me dựa trên bản nhớ CỦA TRÌNH DUYỆT từ lượt xem trước
+    // (có thể là tài khoản seesAll khác, cùng persist Chrome của kịch bản) — gọi sớm rồi 403/bỏ qua là ĐÚNG thiết
+    // kế, không phải rò quyền (route vẫn tự kiểm access "office", chỉ-FIELD không đọc được số liệu). Ngoài phạm vi
+    // Task 1.7 (nhãn hiển thị) nên không kiểm ở đây; chỉ khẳng định KẾT QUẢ hiển thị: dừng ở /orders, không banner lỗi.
     await shot(pErr, "trang-chu-loi-khong-co-quyen.png");
-    ok(`C) Trạng thái lỗi thật (tài khoản chỉ FIELD, không có quyền văn phòng, điện thoại 390×844): CHỈ banner lỗi hiện ("${mErr.errorText}"), #dash-grid ẨN, #loading đã ẩn`);
+    ok(`C) (Task 1.7) chỉ-FIELD mở "/" (điện thoại 390×844): dừng ở /orders, KHÔNG banner lỗi, KHÔNG gọi dashboard — thay cho trạng thái lỗi cũ (đã hết từ Task 1.5, ADR-0030 S23-4)`);
 
     // ================================================================================================
     // D-1 (Fix round 1 — bằng chứng còn thiếu): THANH BÊN của tài khoản chỉ có quyền FIELD. Bản đồ quyền của
@@ -1381,7 +1387,7 @@ try {
         todayPlace: info(today?.querySelector('.dash-today-place')),
       };
     })()`);
-    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn nháp chưa xác nhận", "Chưa có người phụ trách"], `J: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
+    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn chờ xác nhận", "Chưa có người phụ trách"], `J: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
     icons.stats.forEach((s, i) => {
       assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
       assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
@@ -1409,7 +1415,8 @@ try {
   //    ĐẶT CUỐI KỊCH BẢN có chủ đích: (1) đơn do Đối tác lập là đơn nháp/chưa phụ trách/còn thiếu tiền — đặt sớm hơn
   //    sẽ làm lệch các khẳng định đếm toàn công ty ở trên; (2) kho cookie dùng chung — trang của tài khoản này mở sau cùng.
   //    Hai đường vào: I-1 đăng nhập PIN THẬT qua form /login (đích mặc định "/"); I-2 mở thẳng "/" khi đã có phiên
-  //    (gõ địa chỉ / mở app PWA từ màn hình chính). Chỉ-FIELD vẫn giữ banner lỗi (bước C ở trên, không đổi).
+  //    (gõ địa chỉ / mở app PWA từ màn hình chính). Chỉ-FIELD (bước C ở trên) từ Task 1.7 CŨNG sang "/orders" —
+  //    không còn banner lỗi (ADR-0030 S23-4, khác PARTNER chỉ ở lý do quyền: FIELD = "mình phụ trách", PARTNER = "mình lập").
   // ==================================================================================================
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);

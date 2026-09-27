@@ -51,9 +51,9 @@ test("handlerControls: nhãn nút giao — 'Đổi người phụ trách' khi đ
   assert.equal(handlerControls(A, ORDER, null).assignLabel, "Chọn người phụ trách");
 });
 
-test("chữ hiển thị: 'Phụ trách: <tên>' và chip 'Chưa có người phụ trách'", () => {
-  assert.equal(handlerText("Lê Minh Tuấn"), "Phụ trách: Lê Minh Tuấn");
-  assert.equal(NO_HANDLER_TEXT, "Chưa có người phụ trách");
+test("chữ hiển thị: 'HDV: <tên>' và chip 'Chờ nhận' (ADR-0030 điều 3, Q-A2 — thay 'Phụ trách: <tên>'/'Chưa có người phụ trách')", () => {
+  assert.equal(handlerText("An"), "HDV: An");
+  assert.equal(NO_HANDLER_TEXT, "Chờ nhận");
 });
 
 test("handlerFailure: 409 stale (đổi) → cảnh báo + tải lại; 409 stale (nhận) nói đơn vừa có người; 409 no_change → tải lại; 403 → tải lại (quyền đã đổi)", () => {
