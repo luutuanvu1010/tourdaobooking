@@ -116,7 +116,7 @@ export function can(who: PermissionHolder, op: OperationCode, ctx: OperationCont
  * trong thân xử lý (hàng rào 2). Đổi danh sách = sửa `src/shared/cong-quyen.test.ts` trong cùng commit.
  */
 export const ADMIN_GATE = ["ADMIN", "SUPER_ADMIN"] as const satisfies readonly PermissionCode[];
-/** Văn phòng: Hồ sơ, danh mục cho form lập đơn, danh sách người được giao. KHÔNG gồm FIELD dù FIELD xem được mọi đơn (ADR-0017) — Q3 của chủ dự án. */
+/** Văn phòng: Hồ sơ, danh mục `GET /api/catalog`, danh sách người được giao. KHÔNG gồm FIELD dù FIELD xem được mọi đơn (ADR-0017) — Q3 của chủ dự án. */
 export const OFFICE_GATE = ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const satisfies readonly PermissionCode[];
 /** Màn đơn: `/api/orders*`, Trang chủ, người phụ trách của đơn. Mỗi mã ở đây phải có `order.view` ≠ none (bài kiểm đối chiếu). */
 export const ORDERS_GATE = ["SALES", "ACCOUNTING", "ADMIN", "PARTNER", "SUPER_ADMIN", "INTERN"] as const satisfies readonly PermissionCode[];

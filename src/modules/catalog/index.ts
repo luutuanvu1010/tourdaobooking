@@ -2,7 +2,7 @@
 // Sheet là nguồn chính; Admin có thể ghi đè giá/ẩn dịch vụ (ghi đè không bị lần đồng bộ sau đè mất). App KHÔNG BAO GIỜ ghi ngược vào Sheet.
 import type { AuditAction } from "../audit";
 import { error, json, readJson } from "../../shared/http";
-import { can } from "../../shared/permissions";
+import { can, isOffice } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import type { CatalogAdminItemDto, CatalogAdminResponse, CatalogItemResponse, CatalogPublicResponse, CatalogServiceDto, CatalogSyncResponse } from "../../shared/contracts";
 import { CATALOG_CODE_RE as CODE_RE, MAX_AMOUNT_VND as MAX_PRICE, PAX_LABEL, PAX_ORDER, parseUnit, type EffectiveService, type PaxCode } from "../../shared/order-lines";
@@ -70,27 +70,47 @@ async function loadByParam(db: D1Database, code: string | undefined): Promise<St
   return code && CODE_RE.test(code) ? loadOne(db, code) : null;
 }
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy dịch vụ.");
+const FORBIDDEN_PRICES = () => error(403, "forbidden", "Tài khoản này không được xem bảng giá.");
+
+/**
+ * Danh mục cho form lập đơn — MỘT nguồn cho cả `GET /api/catalog` (văn phòng) và `GET /api/catalog/for-order` (người lập đơn, ADR-0033):
+ * giá bán lẻ hiệu lực (đã áp ghi đè), ghi chú cho khách, chỉ dịch vụ đang hiện; không giá gốc Sheet/thông tin ghi đè/cột nội bộ.
+ * Lần gọi đầu khi CHƯA TỪNG đồng bộ tự kéo Sheet (`bootstrapIfNeverSynced`) — nên người gọi phải kiểm quyền TRƯỚC khi gọi hàm này.
+ * `showSyncError`: chữ lỗi đồng bộ Sheet là chuyện vận hành nội bộ — chỉ trả cho người qua cổng office; người khác nhận `null`.
+ */
+async function catalogForOrderForm(env: Env, { showSyncError }: { showSyncError: boolean }): Promise<CatalogPublicResponse> {
+  try {
+    await bootstrapIfNeverSynced(env);
+  } catch {
+    /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới */
+  }
+  const [items, state] = await Promise.all([loadAll(env.DB), getSyncState(env.DB)]);
+  const visible = items.map(toEffective).filter((e) => e.visible).map(publicItem);
+  return { items: visible, sync: { lastSuccessAt: state.lastSuccessAt, error: showSyncError ? state.lastError : null } };
+}
 
 export const catalogModule: AppModule = {
   name: "catalog",
   routes: [
-    // ---- Người lập đơn: danh mục để chọn nhanh trong form tạo đơn -----------------------
-    // Cổng "orders" (văn phòng + Đối tác + Thực tập — ai lập được đơn), CHỈ ĐỌC: chủ dự án chọn A 2026-09-26 (ADR-0028) — Đối tác không lập được đơn
-    // khi thiếu danh mục vì dịch vụ nhập tay đã ngừng (ADR-0027). Nội dung như nhân viên thấy: giá bán lẻ (ADR-0014 điều 3), không giá vốn/cột nội bộ.
-    // Hướng dẫn viên thuần (order.view = none) vẫn 403 ở cổng. Route quản trị danh mục bên dưới giữ cổng "admin".
-    // ADR-0019 điều 2: danh mục trả GIÁ → hỏi `money.view` với phạm vi "đơn của chính mình" (người lập đơn thấy giá của đơn mình lập): trung tính với
-    // mọi mã trong ORDERS_GATE (Đối tác/Thực tập `own` vẫn qua — ADR-0028; bài kiểm ở src/shared/cong-quyen.test.ts). KHÔNG hỏi không ngữ cảnh:
-    // làm vậy trả 403 cho Đối tác/Thực tập và phá ADR-0028.
-    route("GET", "/api/catalog", "orders", async ({ env, staff }) => {
-      if (!can(staff, "money.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không được xem bảng giá.");
-      try {
-        await bootstrapIfNeverSynced(env);
-      } catch {
-        /* Sheet lỗi ở lần đầu: vẫn trả danh mục rỗng + cảnh báo bên dưới, cho phép nhập tay */
-      }
-      const [items, state] = await Promise.all([loadAll(env.DB), getSyncState(env.DB)]);
-      const visible = items.map(toEffective).filter((e) => e.visible).map(publicItem);
-      return json({ items: visible, sync: { lastSuccessAt: state.lastSuccessAt, error: state.lastError } } satisfies CatalogPublicResponse);
+    // ---- Văn phòng: danh mục dịch vụ đang bán ------------------------------------------
+    // Cổng "office" (ADR-0019 điều 1; ADR-0033 đưa về từ cổng "orders" của bản 1.15 — ADR-0028 điều 1 bị thay). Đối tác/Thực tập KHÔNG gọi route
+    // này nữa: form lập đơn dùng `GET /api/catalog/for-order` bên dưới. ADR-0019 điều 2: danh mục trả GIÁ → hỏi `money.view` (mọi mã của OFFICE_GATE
+    // đang `any` nên trung tính hôm nay; ngữ cảnh "của mình" giữ như bản trước cho khớp route người lập đơn).
+    route("GET", "/api/catalog", "office", async ({ env, staff }) => {
+      if (!can(staff, "money.view", { ownerId: staff.id })) return FORBIDDEN_PRICES();
+      return json((await catalogForOrderForm(env, { showSyncError: true })) satisfies CatalogPublicResponse);
+    }),
+
+    // ---- Người lập đơn: danh mục để chọn nhanh trong form tạo/sửa đơn (ADR-0033, chủ dự án 2026-09-27) ----------
+    // Cổng "orders" (văn phòng + Đối tác + Thực tập; sau Phần C thêm Hướng dẫn viên) chỉ lọc thô — CHỐT CHẶN THẬT là `order.create`, hỏi TRƯỚC mọi
+    // truy vấn (kể cả bootstrapIfNeverSynced): Kế toán, Hướng dẫn viên (kể cả khi đã vào cổng orders và `money.view = any` theo ADR-0017) → 403,
+    // đúng ADR-0019 điều 3 "hướng dẫn viên không đọc danh mục giá cho form lập đơn". Rồi mới hỏi `money.view` phạm vi "của mình" (người lập đơn
+    // thấy giá của đơn mình lập; Đối tác/Thực tập `own` qua — bài khoá "order.create ⇒ money.view" ở src/shared/permissions.test.ts).
+    // CHỈ ĐỌC, cùng nội dung văn phòng thấy (ADR-0028 điều 2 giữ); chữ lỗi đồng bộ Sheet chỉ cho người văn phòng.
+    route("GET", "/api/catalog/for-order", "orders", async ({ env, staff }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Tài khoản này không lập đơn nên không xem được danh mục dịch vụ.");
+      if (!can(staff, "money.view", { ownerId: staff.id })) return FORBIDDEN_PRICES();
+      return json((await catalogForOrderForm(env, { showSyncError: isOffice(staff) })) satisfies CatalogPublicResponse);
     }),
 
     // ---- Admin -----------------------------------------------------------------------------

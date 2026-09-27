@@ -6,7 +6,8 @@
   - Q-G: ADR-0014 điều 11;
   - Q-K: ADR-0022 điều 3;
   - ADR-0022 mục "Trả lời của chủ" Q-B: thêm "đơn vừa được trả lại" vào danh sách hiện nổi;
-  - "Giao có hiệu lực ngay": ADR-0018 điều 7.
+  - "Giao có hiệu lực ngay": ADR-0018 điều 7;
+  - điều kiện đưa hướng dẫn viên vào cổng `orders` và ô `money.view` của hướng dẫn viên: ADR-0019 điều 1 (bảng cổng) và điều 3 (dòng S23-5).
 
   AI **không tự duyệt** (N3, Điều 7.2). Sau khi accepted chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
 - **Ngày:** 2026-09-27   **Người phê chuẩn:** chủ dự án (chưa duyệt)
@@ -33,13 +34,14 @@
 
 - **Từ chối:** hướng dẫn viên, hay nhân viên đang lo một đơn, bấm được "Từ chối" để trả đơn mình đang lo. Đơn quay về danh sách "Chờ nhận" cho người khác nhận.
 - **Khi nào không trả được:** đơn đã huỷ, hoặc ngày đi là hôm nay hay ngày mai. Lúc đó phải gọi văn phòng đổi người.
-- **Lý do:** mọi lần Từ chối hay Huỷ phải chọn một lý do có sẵn. Không có ô gõ chữ, để số điện thoại không lọt vào nhật ký (nhật ký không xoá được).
+- **Lý do:** mọi lần Từ chối, Huỷ, và khi hướng dẫn viên sửa đơn, phải chọn một lý do có sẵn. Không có ô gõ chữ, để số điện thoại không lọt vào nhật ký (nhật ký không xoá được).
 - **Huỷ đơn chưa chốt:** hướng dẫn viên huỷ được cả đơn chưa chốt mình đang lo (hôm nay chỉ huỷ được đơn đã chốt), vẫn với hai lý do cũ.
 - **Chữ trên màn hình:** "Đã xác nhận" giữ nghĩa cũ (đã chốt với khách); việc có người nhận hiện bằng nhãn riêng "Chờ nhận" / "HDV: <tên>"; đơn đã lưu mà chưa chốt đổi chữ "Nháp" thành "Chờ xác nhận".
 - **Ai thấy khác:** hướng dẫn viên thấy nút Từ chối và đơn chờ nhận (không số điện thoại, không tiền); văn phòng thấy chữ "được trả lại" và thông báo khi có đơn bị trả; ai huỷ cũng phải chọn lý do.
 - **Không rút lại được:** số điện thoại và tiền hướng dẫn viên đã xem lúc nhận rồi trả; mỗi lần huỷ đơn; mỗi dòng nhật ký.
 - **Chưa có rào:** tới khi có hạn mức số lần Từ chối (lượt sau), kiểu "nhận nhiều đơn để xem số điện thoại rồi trả" chỉ phát hiện được sau khi đã xảy ra, qua nhật ký.
 - **Hai lượt duyệt:** lượt 1 cho hướng dẫn viên xem và nhận đơn (cùng hai bản nháp về nhận đơn và xem đơn); lượt 2 cho Từ chối, lý do huỷ, huỷ đơn chưa chốt.
+- **Việc dọn nền đi kèm:** Lượt 1 sửa luôn câu đếm hiện có ở `orders/repository.ts:477-479` để không lặp lỗi đọc view của dispatch (T3a của gói dọn nền — chủ chưa duyệt gói, chỉ duyệt việc này vì nó nằm trong cùng đợt sửa).
 - **Bạn cần làm:** chỉ duyệt theo hai lượt trên. Không còn câu hỏi mở; ba điểm còn lại đã giải bằng quyết định đã duyệt (mục cuối tệp).
 
 ## Bối cảnh
@@ -100,7 +102,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 
 **2. Lý do bắt buộc cho mọi Từ chối/Huỷ; HDV huỷ được đơn chưa chốt (D5).**
    - **Danh sách đóng** (Q-H, đặc tả §7 đã chốt "không bảng, không cột"). "Khác" **không kèm ô chữ**.
-     - Lý do **phải** đóng: hôm nay chữ tự do đi thẳng vào nhật ký chỉ-thêm mà không lọc SĐT/email/MST, lỡ ghi thì không gỡ được (`migrations/0017_order_status_audit_guards.sql:17-21`; mục T3d của báo cáo rà cấu trúc `docs/superpowers/specs/2026-09-27-ra-soat-cau-truc-du-an-theo-oracle.md` trên nhánh `hien-chuong-kien-truc`).
+     - Lý do **phải** đóng: hôm nay chữ tự do đi thẳng vào nhật ký chỉ-thêm mà không lọc SĐT/email/MST, lỡ ghi thì không gỡ được (`migrations/0017_order_status_audit_guards.sql:17-21`; mục T3d của báo cáo rà cấu trúc `docs/superpowers/specs/2026-09-27-ra-soat-cau-truc-du-an-theo-oracle.md` trên nhánh `ra-soat-luat-goc`, commit cd9f7b0).
      - **Từ chối:** "Bận lịch khác", "Ốm / việc riêng", "Không phù hợp tuyến/dịch vụ", "Khác".
      - **Huỷ qua `POST /api/orders/:id/status`:** "Khách đổi ý", "Khách đặt trùng", "Sai thông tin — lập lại đơn", "Khác". Áp **mọi ai** huỷ bằng đường này (Bán hàng, Quản trị, Toàn quyền, và Đối tác, Thực tập với đơn của mình), theo câu (3) của chủ "bất cứ hành động … huỷ nào cũng cần có lý do" (*giả định của AI, bề mặt: Đối tác/Thực tập dùng cùng danh sách*).
      - **HDV huỷ (Aborted):** giữ đúng hai lý do "Không liên hệ được với khách", "Khách yêu cầu huỷ" (ADR-0014 điều 11; `dispatch/rules.ts:74-80`).
@@ -166,7 +168,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 | S20-2 | ADR-0020, dòng "ADR-0018 điều 7, câu 2", cột mới | "Phần 'chọn người khác = đề nghị' **giữ nguyên** (hiện thực ở giai đoạn 5 …; tới lúc đó 'chọn người' vẫn có hiệu lực ngay như hôm nay)." | **Giao/chọn có hiệu lực ngay**, thay câu "chọn người khác = đề nghị" của ADR-0018 điều 7 (đặc tả §1; chủ, Q-Q: "hệ thống tự gán ngay khi có người chủ động lựa chọn HDV đó"). Người được chọn Từ chối được sau (ADR-0030). Đối tác vẫn chỉ **đề xuất** (ADR-0018 điều 9). Hạn nhận và "đề nghị nhận" của giai đoạn 5 nằm ngoài phạm vi (đặc tả §2). |
 | S20-3 | **ADR-0018 điều 7** câu 3; đặc tả mô hình vai §6 LC-8 **vế sau** (dòng 192), §8 dòng 226 | "Đổi người: người cũ giữ tới khi người mới bấm Nhận." / "đổi người chỉ hoàn tất khi người mới bấm 'Nhận'; tới lúc đó người cũ vẫn phụ trách" | **Giao/đổi người có hiệu lực ngay**; không có khoảng "chờ người mới bấm Nhận". |
 | S20-4 | ADR-0020 điều 1 ("đường tiêm `defaultHandlerStatement` … **gỡ hẳn**, không để lại hàm trả `null`"), Lý do gạch 3, Hệ quả gạch 1 | gỡ hẳn đường tiêm | **Giữ và đổi dạng** (Q-C) đường tiêm — hợp đồng `orders`↔`dispatch`, ADR-0007 điều 4(b); hôm nay ở `orders/index.ts:207`, `:223`. Chi tiết:<br>• Lô tạo đơn nhận câu mở dòng `HANDLE` cho **người được chọn** trong form, **không bao giờ** mặc định người lập, kèm nhật ký `order_handler_changed`. Không chọn ai → không có câu nào, đơn Chờ nhận.<br>• Chọn được: ai có `dispatch.assign` trên đơn của mình (Bán hàng, Quản trị, Toàn quyền). Thực tập, Đối tác không chọn được (G4).<br>• Người được chọn phải qua `checkAssignee` (`dispatch/rules.ts:50`); không đạt → **400** và **không** tạo đơn.<br>• Bảng tin phát `tao`, không phát `giao`. |
-| S20-5 | ADR-0020 điều 2 (thêm) | — | **Chốt Nhận (N-2).** Đây là đổi có chủ ý chú thích "CỐ Ý không xét trạng thái đơn" ở `dispatch/index.ts:122-123`.<br>• **Nhận** → **409** nếu đơn **đã huỷ**, **đã qua ngày đi** (`tripDeparted`, mốc ADR-0027 điều 3), hoặc — khi có ADR-0025 — **Đã giao**. Áp **mọi người**.<br>• **Giao** cho người khác trên đơn huỷ vẫn được.<br>• **Lệch có chủ ý: 5.1, vì** Nhận và Giao-cho-chính-mình là cùng một câu chèn ở tầng dữ liệu, trigger không phân biệt được. Lý do đầy đủ và điều kiện gỡ lệch: ADR-0030 điều 4.<br>• Giới hạn đã biết: đọc rồi mới ghi, nên đơn bị huỷ đúng lúc vẫn có thể được Nhận.<br>**Chặn tài khoản lai** (có quyền Đối tác kèm quyền khác — `holdsPartner`, `permissions.ts:140`; Q-M) ở bốn cửa:<br>• danh sách chờ nhận;<br>• Nhận (403);<br>• `checkAssignee`;<br>• Bảng tin: không nhãn `cho-nhan`, không thông báo nổi về đơn chờ nhận.<br>Câu kiểm dữ liệu `handlerAccountEligible` (`scripts/audit-checks.mjs:19-20`) loại cả tài khoản lai cho khớp `checkAssignee` mới. |
+| S20-5 | ADR-0020 điều 2 (thêm) | — | **Chốt Nhận (N-2).** Đây là đổi có chủ ý chú thích "CỐ Ý không xét trạng thái đơn" ở `dispatch/index.ts:122-123`.<br>• **Nhận** → **409** nếu đơn **đã huỷ**, **đã qua ngày đi** (`tripDeparted`, mốc ADR-0027 điều 3), hoặc — khi có ADR-0025 — **Đã giao**. Áp **mọi người**.<br>• **Giao** cho người khác trên đơn huỷ vẫn được.<br>• **Lệch có chủ ý: 5.1, vì** Nhận và Giao-cho-chính-mình là cùng một câu chèn ở tầng dữ liệu, trigger không phân biệt được. Lưới dữ liệu còn: chỉ mục duy nhất một dòng mở mỗi đơn (`migrations/0014_dispatch.sql:58-59`). **Gỡ lệch** (ADR mới do chủ duyệt) khi có khoá "Đã giao" của ADR-0025, hoặc khi chủ chấp nhận "không ai nhận/giao trên đơn đã huỷ": lúc đó thêm trigger chặn dòng `HANDLE` mới của đơn `cancelled`, đọc view công bố trạng thái đơn. **Dòng này tự đủ** và được duyệt ở lượt 1; điều 4 (lượt 2) chỉ áp cùng lý do cho các luật của lượt 2, không cần xác nhận lại dòng này.<br>• Giới hạn đã biết: đọc rồi mới ghi, nên đơn bị huỷ đúng lúc vẫn có thể được Nhận.<br>**Chặn tài khoản lai** (có quyền Đối tác kèm quyền khác — `holdsPartner`, `permissions.ts:140`; Q-M) ở bốn cửa:<br>• danh sách chờ nhận;<br>• Nhận (403);<br>• `checkAssignee`;<br>• Bảng tin: không nhãn `cho-nhan`, không thông báo nổi về đơn chờ nhận.<br>Câu kiểm dữ liệu `handlerAccountEligible` (`scripts/audit-checks.mjs:19-20`) loại cả tài khoản lai cho khớp `checkAssignee` mới. |
 | S20-6 | ADR-0020 dòng "Phụ thuộc" | "sau khi ADR-0019 (…) và ADR-0017 (…) đã lên production" | "Sau ADR-0019 (GĐ2 Phần B đã lên bản 1.18) **và phần xem của ADR-0023 theo Mục S23 dưới đây**, thay cho ADR-0017 điều 1; **không** thi công ADR-0017 nguyên dạng. `dispatch.claim` của `FIELD`: `none` → `any` cùng đợt thi công lượt 1." |
 | S20-7 | ADR-0020 điều 5 | "(sửa số khách sau xác nhận, huỷ đơn **đã xác nhận** kèm lý do …)" | "Theo ADR-0023 (sửa) và ADR-0030 điều 2 (huỷ cả đơn chưa chốt)." |
 | S20-8 | **ADR-0022 điều 3** (accepted) | "Nhóm nhận suy từ ô `order.view` hiện hành, không đặt luật quyền mới: `any` → tag `tat-ca`; còn lại → `nguoi:<staffId>`. Sự kiện về một đơn gửi tới `tat-ca` + người lập + người phụ trách cũ + người phụ trách mới." | Giữ câu cũ, **thêm**:<br>• Kết nối có `dispatch.claim` và **không** có quyền Đối tác mang thêm nhãn `cho-nhan`, **kể cả khi `order.view` ≠ `any`** (hướng dẫn viên).<br>• Sự kiện gắn `cho-nhan` khi (a) **sau** thay đổi đơn không còn ai phụ trách, hoặc (b) route truyền trạng thái trước **thật** và trước đó chưa có ai.<br>• Mặc định trạng thái trước đổi thành **"không biết"** (thay "chưa ai" ở `src/index.ts:47`). "Không biết" không bao giờ sinh `cho-nhan` (N-1 bước (1)(2)). |
@@ -174,7 +176,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 | S20-10 | ADR-0020 dòng 4 "Lượt duyệt" | "**trình ở lượt duyệt SAU, khi Phần B (ADR-0019) đã lên production**" | Điều kiện **đã thoả** (bản 1.18, 2026-09-27). Trình ở lượt 1, cùng Mục S20/S23. |
 | S20-11 | ADR-0020 dòng 8 "Xây trên lỗ đang hở: `money.view`, `contact.view`" | lỗ đang hở | **Đã đóng**: hai mục đã gỡ khỏi `docs/quyen-hoan.json` (GĐ2 Phần B). |
 | S20-12 | ADR-0020 Hệ quả gạch 2 | "ô `dispatch.claim` của `FIELD` `none` → `any` — làm ở **bước trước** (cùng ADR-0017), không ở bước ADR-0020" | Làm **cùng đợt thi công lượt 1**, thay cho Phần C + D của kế hoạch GĐ2 (khớp S20-6). |
-| S20-13 | ADR-0020 điều 7 (M1) + Hệ quả gạch "Trang chủ" ("truy vấn ở `src/modules/orders/repository.ts`") | ô "Chưa phụ trách" đếm cả đơn nháp; sửa câu đếm trong `orders` | Giữ M1. **Không** mở rộng việc `orders` đọc view `v_dsp_order_handler` (`orders/repository.ts:477-479` — lệch đã biết, trái ADR-0006 điều 8, ADR-0007 điều 4, Hiến chương 5.3). Câu đếm lấy tập đơn đang có người qua **hàm công bố của `dispatch`** hoặc tiêm qua `ctx` (T3a của báo cáo rà cấu trúc 2026-09-27). |
+| S20-13 | ADR-0020 điều 7 (M1) + Hệ quả gạch "Trang chủ" ("truy vấn ở `src/modules/orders/repository.ts`") | ô "Chưa phụ trách" đếm cả đơn nháp; sửa câu đếm trong `orders` | Giữ M1. **Không** mở rộng việc `orders` đọc view `v_dsp_order_handler` (`orders/repository.ts:477-479` — lệch đã biết, trái ADR-0006 điều 8, ADR-0007 điều 4, Hiến chương 5.3). Câu đếm lấy tập đơn đang có người qua **hàm công bố của `dispatch`** hoặc tiêm qua `ctx` (T3a của báo cáo rà cấu trúc 2026-09-27). Lượt 1 sửa luôn câu đếm hiện có ở `orders/repository.ts:477-479` để không lặp lỗi đọc view của dispatch (T3a của gói dọn nền — chủ chưa duyệt gói, chỉ duyệt việc này vì nó nằm trong cùng đợt sửa). |
 
 ## Mục S23 — đề xuất sửa bản nháp ADR-0023 (phần "xem" trình ở lượt 1; phần "sửa" ở lượt 2)
 
@@ -184,10 +186,11 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 | S23-2 | ADR-0023 điều 1, gạch 1 (đơn chờ nhận) | "mã đơn, ngày đi, dịch vụ, số khách, nơi đón/giờ đón. Không SĐT…, không tiền, không lịch sử" | Giữ, **thêm**:<br>• Dựng từ **danh sách trường được phép** ở máy chủ (Hiến chương 4.4).<br>• Nơi đón (`order_service.pickup_place`, chữ tự do) **che mọi dãy từ 8 chữ số** trở lên, đếm sau khi bỏ dấu cách/chấm/gạch (Q-N).<br>• Là **ngoại lệ có tên** của chú thích ô `contact.view` (`permissions.ts:51` gộp "điểm đón, giờ" vào liên hệ).<br>• Chỉ gồm đơn không có dòng `HANDLE` mở, chưa huỷ, chưa qua ngày đi. Tập "đơn đang có người" lấy qua hàm công bố của `dispatch`/tiêm qua `ctx` (như S20-13), không có SQL của `orders` đọc `v_dsp_*`. Tài khoản lai không thấy (Q-M).<br>• Bài khoá `cong-quyen.test.ts:19` chỉ canh `order.view`/`money.view`, không canh `order.pool.view`. Vì vậy thêm **một bài kiểm riêng** cho phần hẹp và một dòng ở `docs/SO-HANG-RAO.md`. |
 | S23-3 | ADR-0023 điều 1, gạch 2 (đơn mình phụ trách) | "đủ như người lập thấy, kể cả SĐT khách và tiền" | Thêm "**kể cả lịch sử**" (`order.history.view` = `assigned`, câu (2) của chủ). |
 | S23-4 | ADR-0023 điều 1, gạch 3 | "Đơn mình **từng** phụ trách rồi bị đổi: không thấy nữa." | "…rồi bị đổi **hoặc tự Từ chối**: không thấy nữa (404); thấy lại ở hàng chờ dạng phần hẹp" — áp cho hướng dẫn viên (chỉ quyền `FIELD`); người có `order.view = any` không đổi.<br>Chi tiết đơn HDV không được xem: **404** (hôm nay 403, `orders/index.ts:241`).<br>**Bẫy:** `GET /api/orders` lọc "người lập = tôi" khi `can(order.view)` không ngữ cảnh trả sai (`orders/index.ts:189-193`). Với `FIELD` = `assigned`, danh sách sẽ **403**. Cần **nhánh lọc thứ ba** theo người phụ trách, lấy tập đơn qua **hàm công bố của `dispatch`** tiêm qua `ctx` như `ctx.isAssigned` (vd `findHandledOrderIds`, hôm nay nằm trong `dispatch/repository.ts:65`, phải công bố qua `dispatch/index.ts`). **Không** thêm SQL của `orders` đọc `v_dsp_order_handler` — không lặp lại lệch ở `orders/repository.ts:477-479`.<br>Cùng lúc, `homeRedirect` (`src/shared/start-page.ts:16`) sẽ chuyển tài khoản chỉ-`FIELD` sang `/orders`. Thiếu nhánh lọc thứ ba thì HDV rơi vào trang lỗi 403, nên hai việc này phải cùng một lần phát hành. |
-| S23-5 | **ADR-0019** (accepted) điều 1 bảng dòng `orders`, điều 3 | "`FIELD` **chỉ khi** ADR-0017 được thi công (điều 3)" / "ô `money.view` của `FIELD` là `any`" | "`FIELD` vào cổng `orders` khi **phần xem của ADR-0023 (bản sửa này)** được thi công; `money.view` của `FIELD` = `assigned`."<br>Hệ quả với danh mục giá. HDV không đọc được bảng giá theo đúng ý ADR-0019 điều 3, trong cả hai trường hợp:<br>• **Trước khi nhánh ADR-0033 gộp `main`:** `GET /api/catalog` ở cổng `orders` (ADR-0028) trả **403 ở thân** (`catalog/index.ts:85`, `can(money.view, { ownerId })` sai với `assigned`).<br>• **Sau khi ADR-0033 gộp** (accepted 2026-09-27 trên nhánh `danh-muc-lap-don`): `GET /api/catalog` về cổng `office` (HDV 403 ở cổng); `GET /api/catalog/for-order` hỏi `can(order.create)` (`FIELD` = `none` → 403 ở thân). |
-| S23-6 | Tách lượt | ADR-0023 là một khối | **Lượt 1 (D1):** điều 1–2 + Hệ quả gạch 1 và 4 + S23-8. **Lượt 2 (D6):** điều 3–8 + Hệ quả gạch 2, 3. Khi duyệt lượt 1, dòng trạng thái ghi "accepted phần xem (điều 1–2)". |
+| S23-5 | **ADR-0019** (accepted) điều 1 bảng dòng `orders`, điều 3 | "`FIELD` **chỉ khi** ADR-0017 được thi công (điều 3)" / "ô `money.view` của `FIELD` là `any`" | "`FIELD` vào cổng `orders` khi **phần xem của ADR-0023 (bản sửa này)** được thi công; `money.view` của `FIELD` = `assigned`."<br>Hệ quả với danh mục giá. HDV không đọc được bảng giá, đúng ý ADR-0019 điều 3. ADR-0033 (accepted 2026-09-27) **đã gộp trên `main`** (a74048e):<br>• `GET /api/catalog` ở cổng `office` (`catalog/index.ts:99`): HDV 403 ở cổng.<br>• `GET /api/catalog/for-order` ở cổng `orders` hỏi `can(order.create)` trước mọi truy vấn (`catalog/index.ts:110-111`). Sau S23-5, HDV qua được cổng `orders` nhưng `order.create` = `none`, nên **403 ở thân route** (không còn ở cổng). |
+| S23-6 | Tách lượt | ADR-0023 là một khối | **Lượt 1 (D1):** điều 1–2 + Hệ quả gạch 1 và 4 + S23-8. **Lượt 2 (D6):** điều 3–8 (điều 4 theo S23-9) + Hệ quả gạch 2, 3. Khi duyệt lượt 1, dòng trạng thái ghi "accepted phần xem (điều 1–2)". |
 | S23-7 | ADR-0023 dòng 7 ("không được duyệt trước khi ADR-0019 lên production") | điều kiện | **Đã thoả** (GĐ2 Phần B, bản 1.18). Hai mục này không còn trong `docs/quyen-hoan.json`. |
-| S23-8 | ADR-0023 điều 1, gạch 2 (thêm) — danh sách "Đơn của tôi" | — | HDV thấy **cả đơn nháp** mình đang phụ trách (đặc tả §9: đơn chưa huỷ, chưa Hoàn thành), để có chỗ bấm Từ chối/Huỷ ở lượt 2. Route: `GET /api/dispatch/mine` (cổng `staff`, đã hỏi `contact.view` với phạm vi "được giao" ở `dispatch/index.ts:102`). Bỏ lọc "chỉ đơn đã xác nhận" trong `getMyAssignments` (`orders/index.ts:141`), giữ lọc chưa huỷ. Đây là hàm công bố của `orders`, nên là đổi hợp đồng `orders`↔`dispatch`, test đỏ trước. |
+| S23-8 | ADR-0023 điều 1, gạch 2 (thêm) — danh sách "Đơn của tôi" | — | HDV thấy **cả đơn nháp** mình đang phụ trách (đặc tả §9: đơn chưa huỷ, chưa Hoàn thành), để có chỗ bấm Từ chối/Huỷ ở lượt 2. Route: `GET /api/dispatch/mine` (cổng `staff`, đã hỏi `contact.view` với phạm vi "được giao" ở `dispatch/index.ts:102`). Bỏ lọc "chỉ đơn đã xác nhận" trong `getMyAssignments` (`orders/index.ts:141`), giữ lọc chưa huỷ. Đây là hàm công bố của `orders`, nên là đổi hợp đồng `orders`↔`dispatch`, test đỏ trước.<br>**Lượt 1 phải ẩn hai nút với đơn nháp.** Khối "Việc của tôi" (`web/account.ts:384-444`) luôn hiện nút "Huỷ đơn này" và "Lưu số khách mới". Dữ liệu trả về (`orders/index.ts:144-154`) lại không có trường trạng thái. Ở lượt 1, bấm hai nút đó với đơn nháp nhận 409 (`dispatch/index.ts:170`, `orders/index.ts:106`). Vì vậy:<br>• thêm trường trạng thái đơn vào dữ liệu "Việc của tôi" (`MyAssignmentDto`);<br>• giao diện ẩn hai nút khi đơn là nháp.<br>Lượt 2 mở lại nút Huỷ cho đơn nháp (điều 2). Nút sửa số khách mở theo ADR-0023 phần sửa (D6). |
+| S23-9 | **ADR-0023 điều 4** (phần sửa, lượt 2) | "'Khách thêm người', 'Khách bớt người', 'Đổi dịch vụ', 'Khác' (kèm ghi chú ngắn khi chọn 'Khác')" | **Bỏ "kèm ghi chú ngắn"**: "Khác" không có ô chữ, như mọi danh sách lý do ở ADR-0030 điều 2.<br>Lý do:<br>• Hôm nay lý do sửa số khách của HDV là chữ tự do (`orders/money-adjustment.ts:86-87`), ghi thẳng vào `audit_log.detail` (`orders/repository.ts:906`).<br>• Không có cơ chế lọc SĐT/email/MST nào. Đây là lỗ #19 / T3d của báo cáo rà cấu trúc 2026-09-27.<br>• Bỏ ô chữ đơn giản hơn dựng bộ lọc + dòng sổ hàng rào.<br>Khi thi công D6, route `handler-money-edit` đổi sang nhận mã lý do trong danh sách đóng; lý do ngoài danh sách → 400. |
 
 ## Loại cửa
 
@@ -267,8 +270,9 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
       - `:181` **vẫn xanh**: `FIELD` = `assigned` hỏi không ngữ cảnh vẫn sai.
     - `src/shared/cong-quyen.test.ts`:
       - `:11` (`ORDERS_GATE`);
-      - `:27-33`: HDV không xem giá đơn mình lập. Thêm ngoại lệ có tên cho `FIELD`, vì `order.create` = `none`. Bài vẫn còn trên nhánh ADR-0033, tên đổi theo `for-order`.
-      - `:36-44` ("phần B không đổi hành vi").
+      - `:27-35` (tên bài theo `for-order` sau khi ADR-0033 gộp): HDV không xem giá đơn mình lập. Thêm ngoại lệ có tên cho `FIELD`, vì `order.create` = `none`.
+      - `:37-47` ("phần B không đổi hành vi").
+    - `src/modules/catalog/danh-muc-lap-don.test.ts:89` (bài `:80`): ca "chỉ-Hướng dẫn viên → 403 ở **CỔNG** `orders`". Sau S23-5, HDV vẫn nhận 403 nhưng ở **thân** route (`can(order.create)`), không còn ở cổng, nên lời báo đổi và bài đổi kết quả.
     - `src/shared/bang-tin.test.ts`:
       - `:30-40` (128 tập con: thêm luật loại tài khoản lai khỏi `cho-nhan`);
       - `:42-53`;
@@ -279,7 +283,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
     - `src/shared/handler-view.test.ts:34` (ca `:40`).
     - `src/shared/router.test.ts:102`.
     - `src/shared/start-page.test.ts:26` (`homeRedirect` của tài khoản chỉ-`FIELD` → `/orders`; xem S23-4).
-    - `src/route-access.test.ts:174`: ảnh chụp mức truy cập, nếu có route mới như hàng chờ; sửa cùng commit.
+    - `src/route-access.test.ts:176` (73 route sau khi ADR-0033 gộp): ảnh chụp mức truy cập, nếu có route mới như hàng chờ; sửa cùng commit.
     - e2e, suy từ đọc mã:
       - `tests/e2e/permissions.mjs:29-38`;
       - `tests/e2e/orders.mjs:264` (HDV mở đơn không phụ trách: 403 → 404; `GET /api/orders` đổi kết quả);
@@ -287,7 +291,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
   - **Lượt 2 (điều 1–5 + ADR-0023 phần sửa):**
     - `permissions.test.ts`: bảng giá trị ô (thêm `dispatch.refuse`), `:40` (27 → 28 thao tác), `:183` (ADMIN × `dispatch.refuse` = `assigned`).
     - `src/shared/bang-tin.test.ts:18-20` (`THAY_DOI` 9 → 10).
-    - `src/route-access.test.ts:174` (route Từ chối).
+    - `src/route-access.test.ts:176` (route Từ chối).
     - e2e, suy từ đọc mã:
       - `tests/e2e/dispatch.mjs:306-316` (HDV huỷ đơn nháp: 409 → 200);
       - `:417-418` (sửa số khách đơn nháp: 409, thuộc D6).
@@ -339,7 +343,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 | Hàng chờ, danh sách, chi tiết đơn (S23) | `orders` | `can(order.pool.view)` + chặn lai / `can(order.view…, { assigned })`; lọc theo người phụ trách qua hàm tiêm của `dispatch` | Danh sách trường được phép; đơn khác → 404 |
 | "Đơn của tôi" (`GET /api/dispatch/mine`) | `staff` | `can(contact.view, { assigned: true })` (đã có) | Chỉ đơn của người gọi; thêm đơn nháp (S23-8) |
 | Bảng tin (`GET /api/bang-tin`) | `staff` (`src/route-access.test.ts:91`) | `nhanKetNoi` (không `cho-nhan` cho lai); `nhanSuKien` với trạng thái trước "không biết" (S20-8) | — |
-| Danh mục cho form lập đơn | Hôm nay: `GET /api/catalog` cổng `orders` (ADR-0028). Sau khi ADR-0033 gộp: `GET /api/catalog` cổng `office` + `GET /api/catalog/for-order` cổng `orders` | Hôm nay: `can(money.view, { ownerId: self })`, HDV 403 ở thân sau S23-5. Sau ADR-0033: `can(order.create)`, HDV 403 | — (xem S23-5) |
+| Danh mục cho form lập đơn (ADR-0033, đã gộp trên `main`) | `GET /api/catalog` cổng `office`; `GET /api/catalog/for-order` cổng `orders` | `/for-order`: `can(order.create)` trước mọi truy vấn → HDV 403 ở thân sau S23-5; `/api/catalog`: HDV 403 ở cổng `office` | — (xem S23-5) |
 
 ## Đếm quyết định chạm quyền/dữ liệu (tối đa 3 mỗi lượt — `CLAUDE.md` §9)
 
@@ -351,7 +355,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 - **Lượt 2** (sau khi lượt 1 đã thi công):
   - **D4** Từ chối + thay LC-8 + `dispatch.refuse` (điều 1; lệch 5.1 ở điều 4 là **cách thi hành** D4, không phải quyết định thứ tư);
   - **D5** lý do bắt buộc + HDV huỷ đơn chưa chốt (điều 2);
-  - **D6** HDV sửa đơn (ADR-0023 điều 3–8).
+  - **D6** HDV sửa đơn (ADR-0023 điều 3–8; điều 4 theo S23-9 — "Khác" không kèm ô chữ).
   - = **3**.
 - **Không đếm:**
   - điều 3 (nhãn, bề mặt, không đổi dữ liệu);
@@ -361,17 +365,16 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 
 ## Phụ thuộc — trước khi thi công (hiện trạng đọc từ repo 2026-09-27)
 
-- **ADR-0019:** accepted 25/9. GĐ2 Phần B **đã lên production bản 1.18** (2026-09-27 10:02 giờ VN), theo tệp trạng thái ở nhánh `ghi-trang-thai-1-18`. `docs/HANDOFF-N1.md` trên `main` mới ghi tới 1.17. **AI chưa tự kiểm production bằng lệnh.**
+- **ADR-0019:** accepted 25/9. GĐ2 Phần B **đã lên production bản 1.18** (2026-09-27 10:02 giờ VN), theo mục "TRẠNG THÁI TRIỂN KHAI" của `docs/HANDOFF-N1.md` trên `main` (a74048e). **AI chưa tự kiểm production bằng lệnh.**
 - **ADR-0017:** accepted 24/9, **chưa thi công**: `ORDERS_GATE` chưa có `FIELD` (`permissions.ts:122`), `order.view` của `FIELD` = `none` (`:48`).
   - Kế hoạch GĐ2 Phần C (Task C1 bước 2) đặt bốn ô `FIELD` = `any`. Đó là cửa một chiều: HDV xem mọi đơn kể cả tiền.
   - Đặc tả §11 mục 1 cấm thi công riêng ADR-0017 trước ADR-0023.
-  - Nhánh `danh-muc-lap-don` (chưa gộp) đã ghi dòng **DỪNG** ở Phần C (commit a74048e).
+  - Dòng **DỪNG** ở Phần C đã có trên `main` (commit a74048e, gộp từ nhánh `danh-muc-lap-don`).
   - ⇒ Không thi công Phần C + D theo văn bản cũ; viết lại theo Mục S20/S23 ở lượt thi công sau (mục "Đã áp dụng nguyên tắc đã duyệt", điểm 3).
 - **ADR-0020, ADR-0023:** **proposed**, chưa duyệt (mục lục `docs/adr/README.md`).
 - **ADR-0022:** accepted (bản 1.16).
 - **ADR-0025** (khoá "Đã giao"), **ADR-0024** (`v_ord_order_state`): proposed. Các ca "Từ chối/huỷ sau Đã giao" chưa có chặn cho tới khi hai ADR này được duyệt.
-- **ADR-0033** (danh mục cho người lập đơn): **accepted** 2026-09-27 trên nhánh `danh-muc-lap-don`, **chưa gộp** `main`. S23-5 đã viết cho cả hai trường hợp.
-  - **Cảnh báo gộp:** nhánh đó và nhánh này **cùng thêm một dòng ngay sau dòng 0029** của `docs/adr/README.md` (0033 và 0030). Khi gộp sẽ xung đột; người gộp giữ **cả hai dòng**, xếp 0030 trước 0033.
+- **ADR-0033** (danh mục cho người lập đơn): **accepted** 2026-09-27, **đã gộp trên `main`** (a74048e). Nhánh này đã gộp `main` a74048e; xung đột ở `docs/adr/README.md` đã giải bằng cách giữ cả hai dòng 0030 và 0033. S23-5 viết theo hiện trạng sau khi gộp.
 - **Sửa lỗi nền trước Q-G:** thêm khoá `updated_at` vào câu huỷ (điều 2; T1d). Không cần ADR riêng.
 - **Bảng mới của `orders`:** ADR-0030 không thêm bảng nào của `orders`. Mọi bảng mới của `orders` về sau (đặc tả §9A: bảng lý do bổ sung, cài đặt phía `orders` — ADR-0031/0032) chỉ được thêm **sau khi**:
   - đăng ký tiền tố `ord_` (Q-AA đã chốt); và
@@ -420,13 +423,12 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 **Mục S20/S23 (lượt 1):** đặc tả §12 mục 1, 2, 3, 4, 8 (tách ba đường, phần hẹp, Bảng tin không lộ tin, Nhận có chốt, lập đơn kèm HDV). Thêm:
 - "Đơn của tôi" có đơn nháp HDV đang phụ trách.
 - Tài khoản chỉ-`FIELD` vào `/` được chuyển sang `/orders` và thấy danh sách (không phải trang lỗi 403).
+- Với đơn nháp trong "Việc của tôi", **không** hiện nút "Huỷ đơn này" và "Lưu số khách mới". Dữ liệu trả về có trường trạng thái đơn. Kiểm bằng kịch bản Chrome và bằng hàm thuần ẩn/hiện nút (S23-8).
 
 ## Đã áp dụng nguyên tắc đã duyệt (không hỏi lại — `CLAUDE.md` §3)
 
 1. **"Ngày đi" cho mốc "hôm nay hoặc ngày mai" khi đơn cũ có nhiều ngày:** áp đúng ADR-0027 điều 3 (đã duyệt) — ngày đi = ngày khởi hành **lớn nhất**; chặn khi ngày đó ≤ ngày mai. Đây là áp một định nghĩa đã có, không phải quyết định mới, nên không hỏi lại. Phương án "ngày sớm nhất" (một định nghĩa thứ hai, khác ADR-0027) đã loại, không đưa vào ADR.
 2. **Mục S20/S23:** giữ nguyên trong ADR-0030 (không sửa hai bản nháp ADR-0020/ADR-0023), theo tiền lệ ADR-0025. Mỗi ADR đọc một mình: ADR-0030 trỏ rõ tới điều đang sửa của hai bản nháp; khi chủ duyệt lượt 1 và ADR-0020/0023 chuyển accepted, người soạn đợt đó chép nguyên các dòng "nguyên văn → mới" vào chính hai tệp ADR-0020/0023 trong CÙNG lượt duyệt (không phải bây giờ).
-3. **Phần C + D của kế hoạch GĐ2:** đã ghi dòng DỪNG ở `docs/superpowers/plans/2026-09-25-gd2-thi-cong.md` (nhánh `danh-muc-lap-don`, commit `a74048e`) — không thi công theo văn bản cũ. Viết lại Phần C+D theo Mục S20/S23 là việc CỦA LƯỢT THI CÔNG SAU, chỉ bắt đầu khi ADR-0030 (và ADR-0020/0023 tương ứng) đã accepted; không làm ở đợt soạn ADR này.
-
-## Câu hỏi cho chủ khi duyệt
+3. **Phần C + D của kế hoạch GĐ2:** đã ghi dòng DỪNG ở `docs/superpowers/plans/2026-09-25-gd2-thi-cong.md` (commit `a74048e`, đã có trên `main`) — không thi công theo văn bản cũ. Viết lại Phần C+D theo Mục S20/S23 là việc CỦA LƯỢT THI CÔNG SAU, chỉ bắt đầu khi ADR-0030 (và ADR-0020/0023 tương ứng) đã accepted; không làm ở đợt soạn ADR này.
 
 Không còn câu hỏi mở cho ADR-0030. Điều 1–5 và Mục S20/S23 sẵn sàng để chủ duyệt theo lượt (xem "Đếm quyết định chạm quyền/dữ liệu").

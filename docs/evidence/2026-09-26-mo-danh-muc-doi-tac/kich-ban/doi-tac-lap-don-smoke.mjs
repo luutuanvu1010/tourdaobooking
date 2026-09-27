@@ -1,5 +1,6 @@
 // Kịch bản Chrome (bằng chứng giao diện) cho commit c8d3349 trên nhánh mo-danh-muc-doi-tac: tài khoản Đối tác (quyền PARTNER) lập đơn từ danh mục.
-//   - GET /api/catalog mở cho Đối tác (trước đây 403 → form hiện "Không tải được danh mục dịch vụ").
+//   - GET /api/catalog mở cho Đối tác (trước đây 403 → form hiện "Không tải được danh mục dịch vụ"). Từ ADR-0033 (2026-09-27) form đọc
+//     GET /api/catalog/for-order thay thế (route cho người lập đơn); GET /api/catalog về cổng office.
 //   - Form: ô đơn giá CHỈ XEM (readOnly) khi bằng giá danh mục; ô "Giảm giá" (#discount) khoá kèm dòng "Tài khoản đối tác tạm chưa được giảm giá.".
 //   - Đối chứng: tài khoản Bán hàng KHÔNG bị khoá hai ô trên.
 // Sửa 2026-09-26 (bản 1.17): dòng báo từng nằm trong cột hẹp của hàng ba ô Thanh toán → xuống 3 hàng ở máy tính. Kịch bản nay tìm dòng báo theo
@@ -101,8 +102,9 @@ try {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
     for (const stmt of (await insertStaffSql(PARTNER)).split("\n")) env.sql(stmt);
   }
-  const catRes = await call(PARTNER, "GET", "/api/catalog");
-  console.log(`  (GET /api/catalog bằng Đối tác → ${catRes.status}, ${catRes.json?.items?.length ?? "?"} mục)`);
+  // ADR-0033 (2026-09-27): form lập đơn đọc danh mục qua GET /api/catalog/for-order; GET /api/catalog về cổng office (Đối tác nhận 403 ở đó).
+  const catRes = await call(PARTNER, "GET", "/api/catalog/for-order");
+  console.log(`  (GET /api/catalog/for-order bằng Đối tác → ${catRes.status}, ${catRes.json?.items?.length ?? "?"} mục)`);
 
   // ---- biểu thức dùng chung trên form ----
   const CARD = "[...document.querySelectorAll('#services .svc')].find((c) => c.querySelector('.svc-name')?.textContent === 'Tour 4 đảo Nha Trang')";

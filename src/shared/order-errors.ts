@@ -26,7 +26,7 @@ export interface Banner {
   action: BannerAction;
   /** Chỉ số (0-based) thẻ dịch vụ cần cuộn tới; null = không có. */
   focusService: number | null;
-  /** true → tải lại `GET /api/catalog` rồi cập nhật giá đã xem (catalog_changed; giữ đơn giá đã thương lượng). */
+  /** true → tải lại `GET /api/catalog/for-order` (ADR-0033) rồi cập nhật giá đã xem (catalog_changed; giữ đơn giá đã thương lượng). */
   refreshCatalog: boolean;
 }
 
