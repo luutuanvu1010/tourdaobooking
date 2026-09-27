@@ -50,6 +50,7 @@ Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **hộp th�
 | X2 | Tin chờ nhận đã có người nhận | **Mờ đi, ghi "đã có người nhận"** | |
 | X3 | Nhắc tin quan trọng chưa hiểu | **Dải ở đầu mọi trang** | |
 | X4 | Giữ tin bao lâu | **30 ngày**; tin quan trọng chưa "Đã hiểu" giữ tới khi bấm | |
+| K2 | Quản trị có thấy dòng nhật ký `notice_*` qua nhật ký chung `GET /api/audit` (`admin.manage`) không (phát hiện kiểm độc lập vòng 2) | **Được thấy** — giữ lệ Quản trị xem mọi dòng nhật ký; dòng chỉ có mã tin + ai + lúc nào; màn "ai đã/chưa hiểu" vẫn chỉ Toàn quyền | CLAUDE.md §9 bước ghép |
 | K1 | Tên người làm khi người xem không được xem lịch sử đơn (phát hiện của người kiểm độc lập) | **Ẩn tên** nếu `order.history.view` của người xem sai với đơn đó — câu không tên như thông báo nổi hôm nay | ranh giới quyền ADR-0007/0009; Hiến pháp P8 |
 
 Cảnh báo đã nói với chủ (P18, mỗi điều một lần): (a) theo H3, khi ADR-0017 (HDV xem mọi đơn) thi công ở GĐ2, **mọi HDV có tin về mọi đơn** ở ngăn "Tất cả" (ngăn "Của tôi" không đổi); (b) H4 đưa sớm "giai đoạn 6" của ADR-0018; (c) thông báo là tầng xây sau cùng (5.13) — chủ chọn làm ngay (N2).
@@ -77,7 +78,7 @@ Tin về đơn **không có bảng riêng**. Hộp thông báo đọc các dòng
 
 Các hành động khác (`updated`, `trip_updated`, tiền…) không vào hộp. Người làm là hệ thống (`staff_id` NULL) → câu không tên ("Đơn DH-… vừa …").
 
-**Tên người làm chỉ hiện khi người xem được xem lịch sử của đơn đó (K1):** `can(người xem, "order.history.view", { ownerId: người lập, assigned: người xem là người phụ trách hiện tại })` — cùng lời hỏi route `GET /api/orders/:id` dùng để trả/giấu lịch sử (`src/modules/orders/index.ts:244`). Sai → câu **không tên** (vd "Đơn DH-… vừa bị huỷ", "Đơn DH-… vừa có người nhận"). Hôm nay: Bán hàng thấy tên ở đơn mình lập/phụ trách; Kế toán, Quản trị, Toàn quyền thấy tên ở mọi đơn. Tên không bao giờ được gửi cho trình duyệt khi lời hỏi sai (máy chủ dựng câu).
+**Tên người làm chỉ hiện khi người xem được xem lịch sử của đơn đó (K1):** `can(người xem, "order.history.view", { ownerId: người lập, assigned: người xem là người phụ trách hiện tại })` — cùng lời hỏi route `GET /api/orders/:id` dùng để trả/giấu lịch sử (`src/modules/orders/index.ts:244`). Sai → câu **không tên** (vd "Đơn DH-… vừa bị huỷ", "Đơn DH-… vừa có người nhận"). Hôm nay: Bán hàng thấy tên ở đơn mình lập/phụ trách; Kế toán, Quản trị, Toàn quyền thấy tên ở mọi đơn; Hướng dẫn viên (`order.history.view` = none) **không** thấy tên kể cả đơn mình phụ trách; Đối tác/Thực tập không có tin về đơn. Tên không bao giờ được gửi cho trình duyệt khi lời hỏi sai (máy chủ dựng câu).
 
 ### 4.2 Ai thấy — theo trạng thái HIỆN TẠI của đơn và quyền HIỆN TẠI của người xem
 
@@ -94,7 +95,7 @@ Hệ quả có chủ ý (chủ đã nghe ở N1): người **vừa bị chuyển
 
 ### 4.3 Hành động nhật ký mới `order_claimed`
 
-`handlerChangeStatements` (`src/modules/dispatch/service.ts:25`) ghi `order_claimed` khi người làm tự đặt mình vào đơn **chưa có** người phụ trách (cùng luật `thayDoiCuaHandler`, `src/shared/bang-tin.ts`), còn lại vẫn `order_handler_changed`. Chỉ thêm một dòng vào `src/shared/audit-actions.ts`, không migration (CHECK liệt kê đã bỏ ở 0007). Dòng nhật ký cũ trước ngày phát hành vẫn là `order_handler_changed` → hiện là "giao" (chấp nhận, chỉ ảnh hưởng tin ≤ 30 ngày quanh lúc phát hành).
+`handlerChangeStatements` (`src/modules/dispatch/service.ts:25`) ghi `order_claimed` khi người làm tự đặt mình vào đơn **chưa có** người phụ trách (cùng luật `thayDoiCuaHandler`, `src/shared/bang-tin.ts`), còn lại vẫn `order_handler_changed`. Thêm một dòng vào `src/shared/audit-actions.ts` và truyền tín hiệu "tự nhận" vào `handlerChangeStatements` (hiện luật `thayDoiCuaHandler` chạy ở gốc lắp ráp `src/index.ts`, chưa ở `dispatch/service.ts` — đổi chữ ký hàm); không migration (CHECK liệt kê đã bỏ ở 0007). Dòng nhật ký cũ trước ngày phát hành vẫn là `order_handler_changed` → hiện là "giao" (chấp nhận, chỉ ảnh hưởng tin ≤ 30 ngày quanh lúc phát hành).
 
 ### 4.4 Hai ngăn (E4)
 
@@ -193,7 +194,7 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 
 ### 9.2 Dữ liệu và bí mật
 
-- `ntf_push_sub` — `id`, `staff_id`, `endpoint`, `thiet_bi` (chuỗi ngắn để người dùng nhận ra máy), `created_at`, `revoked_at NULL`, `revoke_reason NULL`. Không lưu khoá mã hoá của máy (không gửi nội dung — tối thiểu dữ liệu). Không xoá cứng.
+- `ntf_push_sub` — `id`, `staff_id`, `endpoint`, `thiet_bi` (chuỗi ngắn để người dùng nhận ra máy), `revoked_at NULL`, `revoke_reason NULL`, cộng đủ 4 cột dấu vết `created_at`/`updated_at`/`created_by`/`updated_by` (§6.3). Không lưu khoá mã hoá của máy (không gửi nội dung — tối thiểu dữ liệu). Không xoá cứng.
 - Bí mật mới `VAPID_PRIVATE_KEY` — **chủ** đặt bằng `wrangler secret put` (CLAUDE.md §8); khoá công khai trong `vars`. Ký JWT ES256 bằng Web Crypto (chữ ký r‖s 64 byte dùng thẳng), không thư viện ngoài.
 - Route: `POST /api/thong-bao/may` (đăng ký), `POST /api/thong-bao/may/huy` — cổng `staff`, chỉ cho chính mình, chỉ tài khoản nội bộ.
 
@@ -261,4 +262,5 @@ Thao tác mới `notice.send` = `row("none","none","none","none","none","any","n
 |---|---|---|
 | đọc hộp, tóm tắt, đã đọc, đã hiểu | `staff` | hàm lọc duy nhất theo quyền hiện tại; đã hiểu: phải thuộc nhóm nhận |
 | gửi, thu hồi, đã gửi, người đã hiểu | `admin` | `can(staff,"notice.send")` trước mọi truy vấn |
+| nhật ký chung `GET /api/audit` (có sẵn) — nay chứa thêm `notice_sent/revoked/acknowledged` | `admin` | `can(staff,"admin.manage")` (Quản trị + Toàn quyền) — chủ chấp nhận (K2); không chứa nội dung tin |
 | (lượt 2) đăng ký/huỷ máy | `staff` | chỉ chính mình, chỉ tài khoản nội bộ |

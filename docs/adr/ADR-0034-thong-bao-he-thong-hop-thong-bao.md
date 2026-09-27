@@ -26,7 +26,7 @@ Khi hỏi nguồn của tin về đơn, AI trình hai phương án: (a) **đọc
 6. **Tin thủ công là thực thể**: bảng `ntf_notice` (tiêu đề, nội dung, quan trọng, thu hồi bằng `valid_to`), `ntf_notice_target` (`moi-nguoi` | `quyen:<MÃ>`, so với quyền **hiện có** lúc đọc), `ntf_ack` (chỉ-thêm: ai "Đã hiểu" tin quan trọng nào, lúc nào), `ntf_read_mark` (mốc đã đọc của mỗi tài khoản, chỉ chính tài khoản đặt). Migration `0025_thong_bao.sql`.
 7. **Ô quyền mới `notice.send`** = chỉ `SUPER_ADMIN`. Route gửi / thu hồi / xem đã gửi / xem ai đã hiểu: cổng `admin` + `can(staff,"notice.send")` trước mọi truy vấn. Route đọc hộp / tóm tắt / đã đọc / đã hiểu: cổng `staff`. Ghi cần `Origin` cùng site.
 8. **Tin quan trọng**: dải nhắc ở đầu mọi trang tới khi người nhận bấm "Đã hiểu"; không chặn thao tác; giữ quá 30 ngày nếu chưa "Đã hiểu".
-9. **Nhật ký**: `notice_sent`, `notice_revoked`, `notice_acknowledged` — chỉ mã tin, **không** chép nội dung.
+9. **Nhật ký**: `notice_sent`, `notice_revoked`, `notice_acknowledged` — chỉ mã tin, **không** chép nội dung. Các dòng này hiện trong nhật ký chung `GET /api/audit` cho mọi ai có `admin.manage` (Quản trị + Toàn quyền) — chủ chấp nhận 2026-09-27; màn "ai đã/chưa hiểu" vẫn chỉ `notice.send`.
 10. Bảng tin không thêm loại sự kiện; trình duyệt dùng tin Bảng tin sẵn có làm tín hiệu tải lại số chưa đọc.
 
 ## Sửa gì của quyết định cũ
