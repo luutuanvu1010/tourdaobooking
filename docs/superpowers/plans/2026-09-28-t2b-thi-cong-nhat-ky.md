@@ -7,7 +7,7 @@
   - ADR-0038 điều 7.
 - **Nhánh thi công:** `worktree-agent-adbf65d3e8d68a3f9` (worktree `.claude/worktrees/agent-adbf65d3e8d68a3f9`). Tách từ `origin/main` @ `d6468e7` (bản 1.26, đã có ADR-0038). **Lệch kế hoạch (theo lệnh điều phối, bước 0):** `main` CHƯA có nhánh `dac-ta-van-chuyen`; nhánh thi công tự gộp hai nhánh vào: `git merge --no-edit dac-ta-van-chuyen` (tua nhanh tới `f4ec6ff`: ADR-0024 "accepted phần điều 6", 6.1–6.6, bảng "Số đã giữ chỗ") rồi `git merge --no-edit worktree-agent-aa7d23379c3035075` (nhánh kế hoạch, commit gộp `5139be2`). Thông điệp của commit gộp là chữ Anh mặc định của git (do `--no-edit` theo lệnh) — ghi nhận, không viết lại lịch sử.
 - **Cách thi công:** executing-plans, một phiên thi công (subagent do điều phối giao, vai THI CÔNG), làm lần lượt từng task; không tự nghiệm thu.
-- **Trạng thái:** ĐANG THI CÔNG (2026-09-28). Chủ đã trả lời trong lúc thi công (Ruling D12): Task 9 bỏ (2A); Task 3 thay bằng "cơ chế Y" (Toàn quyền đổi được công ty chủ, ba trigger). Chưa push, chưa gộp, chưa lên production.
+- **Trạng thái:** NGƯỜI THI CÔNG ĐÃ LÀM XONG phần của mình (2026-09-28, đỉnh `133f8e0` + commit nhật ký này) — CHỜ người kiểm độc lập (Task 16, điều phối giao) và chủ (duyệt tệp đề xuất luật, truy vấn chỉ đọc, `day-len`, `trien-khai` — Task 17). Chủ đã trả lời trong lúc thi công (D12, D14, D15): Task 9 bỏ (2A); Task 3 thay bằng ADR-0043 (bốn trigger, đổi được công ty chủ). Chưa push, chưa gộp, chưa lên production. KHÔNG tự tuyên bố đạt.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả của người kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task 0)
@@ -58,8 +58,8 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 | 11 | Trang đăng nhập: `#company-name`/`#company-tax` + `apDungChanTrang` (cuối khối, không ném lỗi — T4); địa chỉ tĩnh sửa CẢ BA chỗ lệch (D3/Q2); `src/chan-trang-dang-nhap.test.ts`; `v1-dang-nhap.mjs` bước a, a2 (mới), e, f | `6b94fc7` | 1060/1060 | test: `public/login.html thiếu #company-name` (2 ca) | 2026-09-28: (a) bỏ lời gọi `apDungChanTrang(config)` → `ONLY=a2` `✗ a2) … hết giờ chờ: chân trang đổi theo cấu hình` → hoàn nguyên; (b) đổi tên tĩnh → `not ok 2 … tên … expected: 'công ty tnhh tour đảo' actual: 'công ty tnhh đảo tour'` → hoàn nguyên → 2/2. Chrome sau T2b: `v1-dang-nhap` **16/16 ✓**; ảnh 390×844 và 1040×800 so với ảnh gốc Task 0: **bố cục không đổi**, khác DUY NHẤT dòng địa chỉ ("19 Đường B2, Khu đô thị…, Tỉnh Khánh Hoà"); `dot-c-smoke` 2 ✓ rồi cùng điểm đỏ sẵn có; `v1-xac-nhan-png` 11/11 ✓ (biên nhận không đổi) | chưa |
 | 12 | Sổ hàng rào: 11 dòng mới, mỗi dòng có ngày + đột biến + dòng đỏ | `c860c41` | 1060/1060 | — | — | chưa |
 | 13 | Tài liệu mô tả (`SYSTEM-DESIGN` §5, §6 (i), §7, §8, §9, §14, §17; `CHANGE-GUIDE` §1, §2 d/j/u, §3, bẫy 46; `tests/e2e/README.md`; README bằng chứng T2b + ghi chú ở README v1.0), sổ dữ liệu (`company_profile` sáu cột chết + `npm run dict`), tệp đề xuất luật (mục 1–5) | (commit tài liệu T2b) | 1060/1060 | — | — | chưa |
-| 14 | Kiểm toàn bộ (tự khai) | — | _(điền)_ | — | — | — |
-| 15 | Nhật ký thay đổi (số bản chốt lúc gộp) | _(điền)_ | _(điền)_ | — | — | _(điền)_ |
+| 14 | Kiểm toàn bộ (tự khai) — mục 7 | — | 1071/1071 (đỉnh `133f8e0`) | — | — | — |
+| 15 | Nhật ký thay đổi — số TẠM "1.30" (D9); gỡ xung đột với 1.27–1.29 của `main` khi gộp (1.30 ở trên) | `3c4ff7a` (+ gộp `ccdd284`) | 1071/1071 | — | — | chưa |
 
 ## 4. Phán quyết của điều phối trong lúc thi công (Ruling) — kèm giá nếu sai
 
@@ -127,16 +127,19 @@ Ruling mới — **của người thi công** (P8: bề mặt, đảo ngược �
 - **Đổi sang hồ sơ thiếu tên pháp lý/MST/địa chỉ/Hotline** làm `GET /api/company` 404 (biên nhận báo lỗi) — máy chủ chưa chặn (Ruling T8, chờ chủ quyết); giao diện chỉ cảnh báo trong câu xác nhận.
 - **Đổi đi rồi đổi lại trong cùng ngày** bị trigger chồng lấn 0011 chặn từ lần thứ ba (hồ sơ gieo hôm nay: ngay lần đổi lại) — Ruling T5.
 - **Kịch bản `dot-a-smoke.mjs` và `dot-c-smoke.mjs` đỏ sẵn có** (bước "nhat-ky" và "Chế độ bảo trì": Quản trị mất quyền theo ADR-0038) — không thuộc T2b, cần sửa kịch bản ở việc khác.
-- **Nhánh gộp song song** (D8): `src/shared/permissions.ts`, `src/shared/permissions.test.ts` (dòng `ADMIN_NONE_OPS` và tên test "mười một") sẽ xung đột với `worktree-an-nhat-ky-toan-quyen` (bỏ `account.access.manage` khỏi `ADMIN_NONE_OPS`, tên "chín"): gộp tay = hợp cả hai (bỏ `account.access.manage`, thêm `company.legal.write`, đếm lại → "mười"). `thi-cong-tu-choi-huy-hdv` cũng sửa `permissions.ts`/`permissions.test.ts`/`architecture.test.ts`/`contracts.ts`/`audit-checks.mjs`. Nhánh nào lên sau thì gộp `main`.
+- **Nhánh gộp song song** (D8): xung đột với nhánh ADR-0042 ĐÃ gỡ khi gộp `dac-ta-van-chuyen` (kéo theo `main` @ `20e0c6e`) — `ADMIN_NONE_OPS` = mười thao tác. `thi-cong-tu-choi-huy-hdv` (chưa lên `main`) cũng sửa `permissions.ts`/`permissions.test.ts`/`architecture.test.ts`/`contracts.ts`/`audit-checks.mjs` — nhánh nào lên sau thì gộp `main`.
+- **Kịch bản `vai-smoke.mjs` đỏ sẵn có trên `main` @ `20e0c6e`** ở bước A (`9 !== 11` ô vai — ADR-0042 ẩn Giám đốc/Điều hành chung với Quản trị); đã chạy trên bản xuất của `main` (`/tmp/t2b-main`) → cùng lỗi. Không thuộc T2b; khẳng định T2b thêm ở bước D2 không tới được trên đỉnh nhánh (đã thấy chặn thật TRƯỚC khi gộp `main`, Task 10 (ii)). Cần sửa kịch bản ở việc khác.
 
 ## 7. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
 
-- `npm test`: _(điền)_ · `npm run typecheck`: _(điền)_ · `npm run build:web`: _(điền)_
-- `npm run test:e2e` đủ bộ + `audit-invariants --strict` (có `R-PTY-1`): _(điền)_
-- `node scripts/audit-invariants.mjs --db local`: _(điền)_
-- `node --test "tests/audit/*.test.mjs"`: _(điền)_
-- Chrome: `v1-dang-nhap` _(điền)_ · `dot-c-smoke` _(điền)_ · `dot-a-smoke` _(điền)_ · `vai-smoke` _(điền)_ · `t2b-danh-ba-smoke` _(điền)_ · `v1-xac-nhan-png` _(điền)_
-- So ảnh màn đăng nhập 390×844 và 1040×800 với ảnh gốc: _(điền)_
+Trên đỉnh nhánh `133f8e0` (sau hai lần gộp `dac-ta-van-chuyen`, kéo theo `main` @ `20e0c6e`, trigger (d)):
+- `npm test`: **1071/1071** · `npm run typecheck`: **0 lỗi** · `npm run build:web`: chạy được.
+- `npm run test:e2e` đủ bộ: lần 1 trên `133f8e0` đứt giữa kịch bản `dispatch` (`TypeError: fetch failed … ECONNREFUSED 127.0.0.1:59404` — máy chủ `wrangler dev` của lần chạy bị tắt từ ngoài, máy đang bận nhiều phiên; 9 kịch bản đầu đã xanh) → chạy lại một lần theo D10: **23/23 kịch bản xanh**; đuôi `audit-invariants --strict`: **mọi bất biến đạt** (có `✓ R-PTY-1`), 2 cảnh báo sẵn có (R-ORD-6a/6b, dữ liệu e2e).
+- `node scripts/audit-invariants.mjs --db local` (D1 local của worktree, `npm run db:migrate:local` lúc 06:2x): `✓ R-PTY-1`; `✗ R-N1-5 còn ít nhất một quản trị viên đang hoạt động` vì D1 local mới dựng CHƯA có tài khoản nào (không phải T2b; e2e có tài khoản thì đạt).
+- `node --test "tests/audit/*.test.mjs"`: **35/36**; đỏ duy nhất `P4 FINDING HDV` (ca FINDING cũ, cũng đỏ trên mốc `d6468e7` — chạy trên bản xuất `/tmp/t2b-base`). Ca `DK-T3-02` đỏ ở mốc nay xanh nhờ `main` (ADR-0042).
+- Chrome trên đỉnh nhánh: `t2b-danh-ba-smoke` **2 ✓, OK** · `v1-dang-nhap` **16/16 ✓** · `v1-xac-nhan-png` **12/12 ✓** (`main` thêm một bước) · `dot-a-smoke` 8 ✓ rồi đỏ sẵn có "nhat-ky" · `dot-c-smoke` 2 ✓ rồi đỏ sẵn có "Chế độ bảo trì" · `vai-smoke` đỏ sẵn có của `main` ở bước A (xem mục 6).
+- So ảnh màn đăng nhập 390×844 và 1040×800 với ảnh gốc Task 0: **bố cục không đổi**; khác duy nhất dòng địa chỉ (D3/Q2) — ảnh trước/sau ở `docs/evidence/2026-09-28-t2b/anh/`.
+- Cổng phiên bản chỉ đọc `node scripts/kiem-phien-ban.mjs` (GET công khai): **ĐẠT — bản ở máy 1.30 mới hơn production 1.29** (lúc 06:1x ngày 2026-09-28).
 
 ## 8. Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc) — Task 16
 
@@ -147,7 +150,11 @@ Ruling mới — **của người thi công** (P8: bề mặt, đảo ngược �
 
 ## 9. Chưa kiểm (lúc viết mục này)
 
-- _(điền: ví dụ iPhone thật, tài khoản thật trên production)_
+- Người kiểm độc lập (Task 16) CHƯA chạy — điều phối giao.
+- Dữ liệu production: dòng `company_profile` thật có qua được `CHECK` của `pty_organization` và hotline chuẩn hoá được không — cần truy vấn chỉ đọc của CHỦ (báo cáo cuối có nguyên lệnh `--command`). Chưa áp migration 0030 lên D1 thật (việc của chủ qua `npm run trien-khai`).
+- Trigger chạy trên D1 THẬT (Cloudflare): mới chạy trên SQLite của `node:sqlite` và D1 local (miniflare) qua e2e/Chrome; hàm `date(x, '+7 hours')`, `max(a, b)` là SQLite chuẩn.
+- iPhone thật; tài khoản Toàn quyền thật đổi công ty chủ trên production.
+- Kịch bản `dot-a-smoke`, `dot-c-smoke`, `vai-smoke` không xanh trọn vẹn vì đỏ sẵn có (mục 6) — phần của chúng sau điểm đỏ chưa chạy trên đỉnh nhánh.
 
 ## 10. Phát hành (chủ dự án tự chạy — Task 17)
 
