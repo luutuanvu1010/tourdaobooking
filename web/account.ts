@@ -11,6 +11,7 @@ import { icon } from "./icons";
 import { coODaSua, nenHoanLamMoi, taoBoLamMoi } from "./lam-moi-logic";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
+import { b64uSangBytes, thietBiTu } from "./push-ui";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
 
 const errorEl = byId("error");
@@ -201,6 +202,101 @@ async function initPasskeys(): Promise<void> {
   if (passkeyEnabled) await renderPasskeys();
 }
 void initPasskeys();
+
+// ---- Thông báo trên điện thoại (Web Push màn hình khoá, ADR-0036) ------------------------------------------------
+// Không hỏi lại trạng thái này sau khi đổi PIN/Face ID: máy chủ tự tắt địa chỉ chạy SAU phản hồi (waitUntil, Task 3),
+// gọi lại ngay có thể vẫn thấy "đang bật" cũ — trang tự cập nhật đúng ở lần tải sau hoặc lần bấm nút của chính mục này.
+const pushEl = byId("push");
+
+function pushHeading(): HTMLElement {
+  return h("h2", { id: "push-heading" }, "Thông báo trên điện thoại");
+}
+
+/** Đã cài ra màn hình chính (chạy như app độc lập) — cách Safari/iOS báo (`navigator.standalone`) và cách chuẩn (`display-mode`). */
+function daCaiDatChuan(): boolean {
+  return matchMedia("(display-mode: standalone)").matches || (navigator as { standalone?: boolean }).standalone === true;
+}
+
+function hoTroThongBao(): boolean {
+  return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+async function renderPush(): Promise<void> {
+  let status: Api.MayThongBaoResponse;
+  try {
+    status = await api<Api.MayThongBaoResponse>("/api/account/thong-bao/may");
+  } catch {
+    return; // lỗi mạng: giữ ẩn, không ảnh hưởng phần còn lại trang (khuôn initMaintenance/initPasskeys)
+  }
+  const khoa = status.khoa;
+  if (!khoa) return; // thiếu khoá công khai VAPID (thiếu bí mật ở máy chủ): ẩn cả mục
+
+  if (!hoTroThongBao()) {
+    const msg = daCaiDatChuan()
+      ? "Trình duyệt này không hỗ trợ thông báo."
+      : "Để nhận thông báo: bấm Chia sẻ → Thêm vào MH chính, rồi mở app từ biểu tượng.";
+    replaceChildren(pushEl, pushHeading(), h("p", { class: "muted" }, msg));
+    pushEl.hidden = false;
+    return;
+  }
+  if (Notification.permission === "denied") {
+    replaceChildren(pushEl, pushHeading(), h("p", { class: "muted" }, "Bạn đã chặn thông báo. Mở Cài đặt → Thông báo → Island Booking để bật lại."));
+    pushEl.hidden = false;
+    return;
+  }
+
+  const reg = await navigator.serviceWorker.ready.catch(() => null);
+  const sub = reg ? await reg.pushManager.getSubscription().catch(() => null) : null;
+  // Trình duyệt có thể còn giữ subscription cũ dù máy chủ đã tắt (đổi PIN/quyền/ngưng tài khoản — ADR-0036 điều 6):
+  // chỉ coi là "đang bật" khi CẢ HAI đồng ý (subscription + soMay > 0). Lệch thì hiện lại nút Bật — bấm sẽ dùng đúng
+  // subscription cũ (trình duyệt trả lại y nguyên khi đã có) và chỉ cần đăng ký lại phía máy chủ.
+  if (sub && status.soMay > 0) {
+    const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
+    const offBtn = h("button", { class: "btn btn-link danger", type: "button" }, "Tắt");
+    offBtn.addEventListener("click", async () => {
+      showError(errorBox, null);
+      offBtn.disabled = true;
+      try {
+        await api("/api/account/thong-bao/may/huy", { method: "POST", body: { endpoint: sub.endpoint } });
+        await sub.unsubscribe().catch(() => undefined);
+        await renderPush();
+      } catch (err) {
+        showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
+        offBtn.disabled = false;
+      }
+    });
+    replaceChildren(pushEl, pushHeading(), h("p", { class: "muted" }, "Đang bật trên máy này."), errorBox, offBtn);
+    pushEl.hidden = false;
+    return;
+  }
+
+  const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
+  const onBtn = h("button", { class: "btn btn-primary", type: "button" }, "Bật thông báo trên điện thoại");
+  onBtn.addEventListener("click", async () => {
+    showError(errorBox, null);
+    onBtn.disabled = true;
+    try {
+      const perm = await Notification.requestPermission(); // trong CHÍNH cú chạm, không await nào trước dòng này
+      if (perm !== "granted") {
+        showError(errorBox, "Bạn chưa cho phép thông báo.");
+        onBtn.disabled = false;
+        if (perm === "denied") void renderPush();
+        return;
+      }
+      const reg2 = await navigator.serviceWorker.ready;
+      // `Uint8Array.from` trả kiểu tổng quát hơn `BufferSource` mong đợi (TS ≥5.7, buffer có thể là SharedArrayBuffer) — ép kiểu, dữ liệu vẫn đúng.
+      const newSub = await reg2.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uSangBytes(khoa) as BufferSource });
+      await api("/api/account/thong-bao/may", { method: "POST", body: { endpoint: newSub.endpoint, thietBi: thietBiTu(navigator.userAgent) } });
+      await renderPush();
+    } catch (err) {
+      showError(errorBox, err instanceof ApiError ? err.message : "Không bật được thông báo trên máy này.");
+      onBtn.disabled = false;
+    }
+  });
+  replaceChildren(pushEl, pushHeading(), errorBox, onBtn);
+  pushEl.hidden = false;
+}
+void renderPush();
 
 // ---- Chế độ bảo trì (chỉ chủ dự án: GET /api/maintenance trả canToggle = true) ----
 // Bật = mọi tài khoản khác bị chặn NGAY (kể cả phiên đang mở) — nên bật phải qua bước xác nhận thứ hai ngay trong trang (không dùng confirm() của trình duyệt). Máy chủ mới là nơi kiểm quyền và giờ hợp lệ.
