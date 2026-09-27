@@ -28,7 +28,7 @@ Ghi chú: hôm nay `auth` đã tới `parties` **bắc cầu** (`auth → staff 
 
 ```diff
 -| 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại) | **Tour Đảo chưa có hồ sơ** (`company_profile` một dòng, không `party_id`) | ADR-0001 |
-+| 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại); hồ sơ công ty chủ (vai `OWNER_COMPANY`, migration 0030): ba trigger "đúng một, không lúc nào trống, đổi được" + kiểm `R-PTY-1` + hàm công bố `ownerCompany` + test route `src/modules/parties/cong-ty-chu.test.ts` | địa chỉ ở chân trang đăng nhập vẫn là chữ tĩnh (6.2 duyệt hai trường); `company_profile` chưa thu hồi (cột pháp lý đã chết, còn câu giữ chỗ `find_logo` — nợ R1/D4); lớp CSDL KHÔNG canh "ai được đổi công ty chủ" (chỉ route) | ADR-0001, ADR-0024 điều 6 (+ ADR-0043) |
++| 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại); hồ sơ công ty chủ (vai `OWNER_COMPANY`, migration 0030): bốn trigger "đúng một, không lúc nào trống, đổi được, ngày bắt đầu = hôm nay" (ADR-0043) + kiểm `R-PTY-1` + hàm công bố `ownerCompany` + test route `src/modules/parties/cong-ty-chu.test.ts` | địa chỉ ở chân trang đăng nhập vẫn là chữ tĩnh (6.2 duyệt hai trường); `company_profile` chưa thu hồi (cột pháp lý đã chết, còn câu giữ chỗ `find_logo` — nợ R1/D4); lớp CSDL KHÔNG canh "ai được đổi công ty chủ" (chỉ route) | ADR-0001, ADR-0024 điều 6 (+ ADR-0043) |
 ```
 
 **2b. Phần II, sơ đồ tầng (dòng 175 và 177)** — mô tả đúng module `company` và việc `parties` nằm DƯỚI `auth`/`staff`/`company` như `ALLOWED_EDGES` thật (sơ đồ đã lỏng từ khi có `staff → parties`). Lý do: tài liệu luật phải khớp đồ thị mà test ép.

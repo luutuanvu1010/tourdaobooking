@@ -1,5 +1,5 @@
 // Kiểm migration hồ sơ công ty chủ (ADR-0024 điều 6, bổ sung 6.1–6.6; 6.5(ii) theo câu trả lời của chủ 2026-09-28 "cho Super Admin đổi" — cơ chế Y, nhật ký
-// thi công T2b Ruling D12): hồ sơ tổ chức Tour Đảo, mã vai OWNER_COMPANY, ba trigger giữ "đúng một công ty chủ, không lúc nào trống".
+// thi công T2b Ruling D12): hồ sơ tổ chức Tour Đảo, mã vai OWNER_COMPANY, bốn trigger giữ "đúng một công ty chủ, không lúc nào trống".
 // Dựng schema bằng node:sqlite từ migrations/*.sql. Tệp migration tìm theo ĐUÔI tên (không theo số — số có thể phải đổi khi nhiều nhánh
 // cùng xếp hàng, chỉ đạo D1 của điều phối, nhật ký thi công T2b). Mọi giá trị riêng của công ty so với dòng company_profile đọc từ CSDL, không gõ tay.
 import { test } from "node:test";
@@ -188,7 +188,7 @@ test("không id cứng (ADR-0024 điều 6): id các dòng gieo không xuất hi
   assert.deepEqual(problems, [], "tra hồ sơ công ty chủ bằng mã vai qua hàm công bố ownerCompany, không bằng id");
 });
 
-// ---- 6.5 (ii) theo cơ chế Y (chủ trả lời 2026-09-28 "cho Super Admin đổi" — Ruling D12): ba trigger trên pty_party_role ---------------
+// ---- 6.5 (ii) theo cơ chế Y (chủ trả lời 2026-09-28 "cho Super Admin đổi" — Ruling D12; trigger (d) theo ADR-0043 lượt 2): bốn trigger trên pty_party_role ---------------
 const ACTOR = "11111111-0000-4000-8000-000000000001";
 const ORG_B = "22222222-2222-4222-8222-222222222222";
 const ORG_C = "33333333-3333-4333-8333-333333333333";
