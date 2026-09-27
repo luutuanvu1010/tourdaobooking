@@ -1,7 +1,7 @@
 # Đặc tả: tối ưu tải trang — phần ít thay đổi nằm sẵn trên máy, mỗi lần bấm chỉ chờ dữ liệu
 
 - **Nguồn:** chủ dự án, phiên chat 2026-09-27: *"những gì ít và/hoặc hiếm khi thay đổi (bộ khung, nền, logo…) thì lưu đệm trên máy, để mỗi khi tải trang sẽ đạt tốc độ nhanh nhất"*; yêu cầu đặc tả + ADR ngắn trước khi thi công tiếp.
-- **Quyết định kèm theo:** ADR-0035 (proposed). **Loại việc:** việc lớn (cách bản mới đến máy nhân viên) → người kiểm độc lập, chỉ đọc.
+- **Quyết định kèm theo:** ADR-0035 (accepted 2026-09-27). **Loại việc:** việc lớn (cách bản mới đến máy nhân viên) → người kiểm độc lập, chỉ đọc.
 - **Không** migration, không đổi API, không đổi quyền. Máy chủ vẫn quyết mọi quyền; dữ liệu `/api/*` vẫn **không bao giờ** vào bộ nhớ đệm của service worker.
 
 ## 1. Hiện trạng đo được (2026-09-27)
@@ -15,12 +15,12 @@
 
 ## 2. Phạm vi (mỗi mục một lát, làm theo thứ tự)
 
-- **Lát 1 — đã thi công trên nhánh `worktree-toi-uu-tai-trang` (7e38695), chờ duyệt ADR:**
+- **Lát 1 — đã thi công trên nhánh `worktree-toi-uu-tai-trang` (7e38695):**
   - Nạp sẵn **mọi** trang + mọi JS lúc cài bản mới, lấy thẳng máy chủ (`cache: "reload"`); test đối chiếu `build:web`.
   - Gửi lời gọi dữ liệu **song song** với `/api/auth/me` ở Đơn hàng, Trang chủ, Chi tiết đơn, Lập/Sửa đơn (`web/goi-som.ts`); vẫn chỉ dùng dữ liệu sau `initShell()`.
   - Kết quả đo: `/orders` 417 → 215 ms; `/` (tài khoản quản trị) 419 → 419 ms, vì khối "Cần xem lại" phải biết vai trước — lát 2 giải.
 - **Lát 2 — vẽ bộ khung ngay (Q1 = A; đã thi công):** lưu trên máy một **"bản nhớ khung"** gồm chữ cái đầu tên + các mục menu được thấy (4 cờ: quản trị / thấy mọi đơn / văn phòng / được lập đơn). Mở trang → vẽ thanh trên, menu, tab **ngay** từ bản nhớ; `/api/auth/me` về thì vẽ lại nếu khác và ghi đè bản nhớ. Đăng xuất / hết phiên → xoá bản nhớ. Không lưu SĐT, email, dữ liệu khách hay đơn.
-- **Lát 3 — chuyển trang không chớp trắng (giả định bề mặt, đảo ngược được; đã thi công):** bật hiệu ứng chuyển trang của trình duyệt bằng một dòng CSS (`@view-transition { navigation: auto; }`); máy không hỗ trợ thì như cũ.
+- **Lát 3 — chuyển trang không chớp trắng: ĐÃ THỬ VÀ BỎ (2026-09-27).** Một dòng CSS `@view-transition { navigation: auto; }`; nhưng trang tự chuyển hướng ngay lúc mở (đăng nhập, Trang chủ của Đối tác) làm Chrome huỷ hiệu ứng và tự in lỗi đỏ ở console ("Transition was aborted… ViewTransition opt-in disabled") — nuốt các lời hứa ở `pageswap`/`pagereveal` không hết lỗi. Kịch bản `v1-dang-nhap.mjs` (bước f, g: console sạch) đỏ trên bản mới, xanh trên `main`. Bỏ để giữ console sạch; xem lại khi có cách không in lỗi.
 - **Lát 4 — gọn mã dùng chung (giả định bề mặt):** tách phần mã chung của các trang (khung, menu, biểu tượng) thành một tệp dùng chung để iPhone không phải đọc lại ~14 bản sao; kiểm lại `build:web`, `PRECACHE`, CSP.
 
 - **Lát 4 — KHÔNG làm (đo 2026-09-27):** tách mã chung (esbuild `--splitting`) giảm tổng JS 672 KB → 260 KB (chưa nén), nhưng mỗi lần chuyển trang iPhone vẫn phải đọc phần mã chung (chunk lớn nhất 47 KB) cộng mã trang — gần như cũ, nên người dùng không thấy nhanh hơn; cái giá là tên tệp chunk đổi theo mỗi bản dựng nên `PRECACHE` phải sinh tự động lúc build. Lợi chỉ còn ở dung lượng nạp sẵn mỗi lần triển khai. Xem lại nếu đo trên iPhone thật thấy thời gian đọc mã đáng kể.

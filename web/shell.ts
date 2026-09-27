@@ -354,7 +354,11 @@ export async function initShell(): Promise<Staff> {
   try {
     me = await api<Api.MeResponse>("/api/auth/me");
   } catch (err) {
-    if (err instanceof ApiError) throw err;
+    if (err instanceof ApiError) {
+      for (const el of document.querySelectorAll("[data-khung-tam]")) el.remove(); // lỗi thật (vd 500): không để khung tạm mồ côi
+      document.body.classList.remove("has-sidebar", "has-tabbar");
+      throw err;
+    }
     // Mất mạng (khung vẫn mở được từ cache): báo rõ thay vì để trang trống, rồi giữ lời gọi treo như goLogin() ở api.ts.
     const el = document.getElementById("error");
     if (el) showError(el, "Không có kết nối mạng. Kiểm tra Wi-Fi hoặc 4G rồi mở lại app.");
