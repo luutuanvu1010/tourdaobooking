@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.22",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Chuông thông báo trên thanh trên: báo khi có đơn mới, có người nhận đơn, giao đơn, xác nhận hay huỷ đơn liên quan tới bạn." },
+      { kind: "moi", text: "Bấm chuông để xem hai ngăn \"Của tôi\" và \"Tất cả\"; mở ra là coi như đã đọc hết, bấm một tin để mở đúng đơn." },
+      { kind: "moi", text: "Chủ công ty gửi được thông báo cho cả công ty hoặc từng nhóm; tin quan trọng hiện dải nhắc cho tới khi bạn bấm \"Đã hiểu\"." },
+    ],
+  },
+  {
     version: "1.21",
     date: "2026-09-27",
     items: [
