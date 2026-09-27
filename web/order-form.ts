@@ -1,7 +1,8 @@
 // Form lập/sửa đơn (A2, đặc tả §5.1–5.2): thẻ dịch vụ + thông tin chuyến, tóm tắt tiền, banner lỗi/xung đột.
 // Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
+import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
-import type { CatalogServiceDto } from "../src/shared/contracts";
+import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
 import {
@@ -11,15 +12,17 @@ import {
 import { MAX_LINES_PER_ORDER, MAX_SERVICES } from "../src/shared/trip-rules";
 import { vnToday } from "../src/shared/vn-date";
 import { ApiError, api, vuaLamBoiTabNay, type Api, type DepositMethod, type OrderInput } from "./api";
+import { openAssigneePicker } from "./assignee-picker";
 import { renderBanner } from "./banner";
 import { createBookerPicker } from "./booker-picker";
 import { createCatalogPicker } from "./catalog-picker";
-import { byId, h } from "./dom";
+import { byId, h, replaceChildren } from "./dom";
 import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
 import { goiSom } from "./goi-som";
+import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
 import { initShell, setBarTitle } from "./shell";
 
@@ -121,6 +124,52 @@ addManualBtn.addEventListener("click", () => {
   entry.card.root.scrollIntoView({ block: "nearest" });
 });
 
+// ---- người phụ trách chọn ngay lúc lập đơn (Task 1.8 phần b ADR-0030; bản thiết kế "Nguoi phu trach - Form lap don", phương án 1b) ----
+// Khối nằm CUỐI form, ngay trước vùng nút Lưu (cột phải ≥ 960px, sau "Tóm tắt" ở khổ một cột). Chỉ dựng khi LẬP đơn mới và người lập có `dispatch.assign`
+// trên đơn của mình (`mayPickHandlerOnCreate` — đúng câu máy chủ hỏi); sửa đơn thì đổi người ở trang đơn (`web/handler-sheet.ts`). Chọn chỉ lưu vào biến
+// dưới đây; máy chủ nhận khi bấm Lưu (`handlerStaffId` trong thân POST — `collect`). Mọi nút trong khối là `type="button"` (khối nằm trong <form>).
+const ownerEl = byId("owner-card");
+let canPickHandler = false;
+let handlerPick: AssigneeDto | null = null;
+/** Banner lưu đang hiện là lỗi `invalid_assignee`: đổi/bỏ lựa chọn thì gỡ banner đó (lời báo về người cũ không còn đúng). */
+let assigneeErrorShown = false;
+
+function setHandlerPick(picked: AssigneeDto | null): void {
+  handlerPick = picked;
+  if (assigneeErrorShown) {
+    assigneeErrorShown = false;
+    renderBanner(saveErrorEl, null);
+  }
+  renderOwner(true); // nút mở bảng bị dựng lại → đặt focus vào nút mới ("Đổi" / "Chọn người phụ trách"), không để focus rơi ra `body`
+}
+
+function renderOwner(focus = false): void {
+  const p = handlerPick;
+  const head = h(
+    "div",
+    { class: "owner-head" },
+    h("h2", { id: "owner-title", class: "owner-title" }, "Người phụ trách"),
+    p === null ? h("span", { class: "chip hdv-chip chip-warn" }, "Chờ nhận") : null,
+  );
+  let opener: HTMLButtonElement;
+  if (p === null) {
+    opener = h("button", { type: "button", class: "owner-pick", "data-action": "pick-handler" }, h("span", null, "Chọn người phụ trách"), icon("next", 18));
+    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, h("p", { class: "owner-text" }, "Chưa chọn ai — hướng dẫn viên nào cũng bấm Nhận được."), opener));
+  } else {
+    opener = h(
+      "button",
+      { type: "button", class: "owner-current", "data-action": "pick-handler", "aria-label": `Đổi người phụ trách, đang chọn ${p.name}` },
+      h("span", { class: "owner-current-text" }, h("span", { class: "owner-name" }, `HDV: ${p.name}`), h("span", { class: "owner-role" }, p.roleLabel)),
+      h("span", { class: "owner-change" }, "Đổi"),
+    );
+    const clear = h("button", { type: "button", class: "owner-clear", "data-action": "clear-handler" }, "Bỏ chọn — để Chờ nhận");
+    clear.addEventListener("click", () => setHandlerPick(null));
+    replaceChildren(ownerEl, head, h("div", { class: "owner-body" }, opener, clear));
+  }
+  opener.addEventListener("click", () => openAssigneePicker({ current: handlerPick, onPick: setHandlerPick }, opener));
+  if (focus) opener.focus();
+}
+
 // ---- tóm tắt tiền và trạng thái nút ----
 function recompute(): void {
   const ds = drafts();
@@ -203,6 +252,8 @@ function collect(): OrderInput {
     paymentNote: field("paymentNote").value,
     ...bookerPicker.payload(),
     ...(orderUpdatedAt ? { expectedUpdatedAt: orderUpdatedAt } : {}),
+    // Chỉ khi LẬP đơn và đã chọn người: chưa chọn → KHÔNG gửi trường này (đơn "Chờ nhận"), sửa đơn → không bao giờ gửi (PUT không đổi người phụ trách).
+    ...(canPickHandler && !editId && handlerPick ? { handlerStaffId: handlerPick.staffId } : {}),
   };
 }
 
@@ -249,6 +300,9 @@ async function onSaveError(err: unknown): Promise<void> {
   if (failure.refreshCatalog) await refreshCatalogAfterConflict();
   if (failure.action === "lock_form") lockForm(failure);
   renderBanner(saveErrorEl, failure, { reloadOrder: () => void loadOrder(), reloadPage: () => location.reload() });
+  // 400 `invalid_assignee`: người được chọn vừa nghỉ/mất quyền giữa lúc điền form — máy chủ KHÔNG tạo đơn; form giữ nguyên (kể cả lựa chọn, để người dùng
+  // thấy mình đã chọn ai) và banner nói cách sửa. Đổi/bỏ lựa chọn thì banner này tự gỡ (`setHandlerPick`).
+  assigneeErrorShown = err instanceof ApiError && err.code === "invalid_assignee";
   const target = failure.focusService === null ? undefined : entries[failure.focusService]?.card.root;
   (wide() ? (target ?? saveErrorEl) : saveErrorEl).scrollIntoView({ block: "center" }); // < 960px: banner (nêu rõ dịch vụ/giá) nằm cuối form nên cuộn tới ĐÓ; ≥ 960px: cuộn tới thẻ (banner ở cột dính, luôn thấy)
 }
@@ -262,6 +316,7 @@ formEl.addEventListener("submit", async (e) => {
   e.preventDefault();
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
+  assigneeErrorShown = false;
   for (const en of entries) en.card.showIssues(true);
   const invalid = validate();
   if (invalid) {
@@ -360,6 +415,12 @@ const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.Cata
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
+// Khối "Người phụ trách": chỉ lập đơn mới, chỉ ai máy chủ cho chọn (Thực tập, Đối tác thuần: khối KHÔNG hiện — không phải hiện rồi báo lỗi).
+canPickHandler = !editId && mayPickHandlerOnCreate(staff);
+if (canPickHandler) {
+  ownerEl.hidden = false;
+  renderOwner();
+}
 // "Sử dụng thông tin của tôi": điền tên + SĐT của tài khoản đang đăng nhập (hồ sơ tài khoản chưa có email nên ô Email không đổi).
 // Bắn "input" để ô hồ sơ khách (booker-picker) tra lại theo SĐT mới như khi gõ tay.
 byId("use-mine").addEventListener("click", () => {

@@ -63,6 +63,13 @@ test("400 'Dịch vụ n: không thuộc đơn này' (PUT /trip): đơn vừa đ
   assert.deepEqual([b.tone, b.title, b.action], ["info", "Đơn vừa được lưu lại ở nơi khác. Đã tải lại đơn — hãy kiểm tra rồi sửa tiếp.", "reload_order"]);
 });
 
+test("400 invalid_assignee (lập đơn kèm người phụ trách vừa nghỉ/mất quyền — Task 1.8 phần b): tiêu đề ĐÚNG lời máy chủ, một dòng nói đơn chưa lưu + cách sửa; KHÔNG khoá form, không tải lại, không cuộn tới thẻ dịch vụ", () => {
+  const b = e(400, "invalid_assignee", "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách.");
+  assert.deepEqual([b.tone, b.title, b.action, b.focusService, b.refreshCatalog], ["danger", "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách.", "none", null, false]);
+  assert.deepEqual(b.lines.map((l) => l.text), ["Đơn chưa được lưu. Bỏ chọn hoặc chọn người phụ trách khác rồi bấm Lưu lại."]);
+  assert.equal(e(400, "invalid_assignee", "").title, "Có lỗi xảy ra, thử lại sau.", "thiếu lời máy chủ: câu chung");
+});
+
 test("403 / 404 / lỗi lạ: lời của máy chủ, nguy hiểm; thiếu lời thì câu chung", () => {
   assert.deepEqual([e(403, "forbidden", "Tài khoản này không được lập đơn.").title, e(403, "forbidden").tone], ["Tài khoản này không được lập đơn.", "danger"]);
   assert.equal(e(404, "not_found", "Không tìm thấy đơn.").title, "Không tìm thấy đơn.");

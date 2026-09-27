@@ -140,6 +140,9 @@
   --h-hdv-btn: 52px;           /* nút "Nhận", hai nút đáy bảng sửa/huỷ */
   --h-hdv-act: 48px;           /* nút "Sửa số khách" / "Huỷ đơn" trên thẻ */
   --hdv-count: 28px;           /* ô số đếm trên hai ô điều hướng */
+  /* Khối "Người phụ trách" trong form lập đơn + bảng chọn (Task 1.8 phần b ADR-0030) — số đo từ bản thiết kế "Nguoi phu trach - Form lap don.dc.html"
+     (Claude Design 2026-09-28, phương án 1b; cùng tiền lệ duyệt như nhóm trên). Cỡ chữ/chiều cao còn lại dùng lại token --fs-hdv-* / --h-hdv-btn ở trên. */
+  --bw-owner: 2px;             /* viền nhấn của thẻ "Người phụ trách" (thẻ khác trong form không có viền) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -727,6 +730,41 @@ body.sheet-open { overflow: hidden; }
 .pick.is-current .pick-mark { border-color: var(--c-border); }
 .pick-status, .pick-empty { margin: 0; padding: var(--s5) var(--s3); font-weight: 600; text-align: center; color: var(--c-text-muted); }
 .pick-error-text { margin: var(--s2) 0 0; }
+
+/* ---------- Task 1.8 phần b ADR-0030: khối "Người phụ trách" trong form lập đơn (web/order-form.ts) + bảng chọn web/assignee-picker.ts (khuôn .sheet* ở
+   trên) — theo bản thiết kế "Nguoi phu trach - Form lap don.dc.html", phương án 1b. Chỉ token. Chip "Chờ nhận" dùng lại `.chip.hdv-chip.chip-warn`. ---------- */
+.owner-card { display: flex; flex-direction: column; gap: var(--s3); color: var(--c-primary); border: var(--bw-owner) solid var(--c-primary); }
+.owner-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.card h2.owner-title { margin: 0; font-family: inherit; font-size: var(--fs-hdv-md); font-weight: 800; color: var(--c-primary); }
+.owner-body { display: flex; flex-direction: column; gap: var(--s3); }
+.owner-text { margin: 0; font-size: var(--fs-hdv-sm); font-weight: 600; line-height: 1.45; }
+.owner-pick, .owner-current, .owner-clear { font-family: inherit; color: var(--c-primary); cursor: pointer; border-radius: var(--radius-md); }
+.owner-pick { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: var(--tap-min); padding: 0 var(--s4); font-size: var(--fs-ui); font-weight: 800; background: var(--c-surface); border: 1px solid var(--c-primary); }
+.owner-current { display: flex; align-items: center; justify-content: space-between; gap: var(--s2); min-height: var(--h-hdv-btn); padding: var(--s2) var(--s4); text-align: left; background: var(--c-primary-soft); border: 1px solid var(--c-primary); }
+.owner-current-text { display: flex; flex-direction: column; gap: calc(var(--s1) / 2); min-width: 0; }
+.owner-name { font-size: var(--fs-hdv-md); font-weight: 800; overflow-wrap: anywhere; }
+.owner-role { font-size: var(--fs-label); font-weight: 600; }
+.owner-change { flex: none; font-size: var(--fs-hdv-sm); font-weight: 800; }
+.owner-clear { min-height: var(--tap-min); font-size: var(--fs-hdv-sm); font-weight: 700; background: var(--c-surface); border: 1px solid var(--c-border); }
+.owner-pick svg { flex: none; }
+.assignee-sheet { color: var(--c-primary); }
+.assignee-head { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s4) var(--s4) var(--s3); border-bottom: 1px solid var(--c-border); }
+.assignee-head-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+.assignee-title { margin: 0; font-family: inherit; font-size: var(--fs-hdv-h); font-weight: 800; color: var(--c-primary); }
+.assignee-close { display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); padding: 0; color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); cursor: pointer; }
+.assignee-search { min-height: var(--tap-min); margin: 0; padding: 0 var(--s3); font-size: var(--fs-ui); color: var(--c-primary); border: 1px solid var(--c-border); border-radius: var(--radius-md); }
+.sheet-body.assignee-body { padding: var(--s2) var(--s4) var(--s4); }
+.assignee-list { display: flex; flex-direction: column; }
+.assignee-none, .assignee-person { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); min-height: var(--h-hdv-btn); font-family: inherit; color: var(--c-primary); text-align: left; cursor: pointer; }
+.assignee-none { padding: 0; background: none; border: 0; border-bottom: 1px solid var(--c-border); }
+.assignee-none-text { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-ui); font-weight: 700; }
+.assignee-group { display: flex; flex-direction: column; }
+.assignee-group-label { margin: 0; padding: var(--s4) 0 var(--s1); font-size: var(--fs-label); font-weight: 800; color: var(--c-primary); }
+.assignee-person { margin: 0 calc(-1 * var(--s3)); padding: 0 var(--s3); font-size: var(--fs-hdv-md); font-weight: 600; background: transparent; border: 0; border-radius: var(--radius-md); }
+.assignee-person.is-selected { font-weight: 800; background: var(--c-primary-soft); }
+.assignee-person-name { min-width: 0; overflow-wrap: anywhere; }
+.assignee-none svg, .assignee-person svg { flex: none; }
+.assignee-empty { margin: 0; padding: var(--s5) 0; font-size: var(--fs-ui); font-weight: 600; text-align: center; }
 .login-turnstile-wait { display: flex; align-items: center; justify-content: center; min-height: var(--h-turnstile); margin: 0; padding: 0 var(--s3); font-size: var(--fs-label); font-weight: 600; text-align: center; color: var(--c-text-muted); background: var(--c-surface-alt); border: 1px solid var(--c-border); border-radius: var(--radius-sm); } /* khung giữ chỗ của widget lúc chờ nạp script Cloudflare: cùng chiều cao với widget để dựng xong không đẩy nút Đăng nhập */
 
 /* ---------- chế độ bảo trì (lớp phủ web/maintenance-screen.ts, banner ở đăng nhập, dải ở web/shell.ts, mục ở trang Tôi web/account.ts) — chỉ token ---------- */

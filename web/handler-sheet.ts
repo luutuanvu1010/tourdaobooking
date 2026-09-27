@@ -1,6 +1,8 @@
 // Bảng trượt "Đổi người phụ trách" (v1.0, Task 8; đặc tả "Việc 3 → Giao diện") — cùng khuôn với trip-sheet.ts và dùng chung CSS `.sheet*`: ≤ 640px trượt từ đáy, > 640px hộp giữa màn hình;
 // role=dialog + aria-modal, phần nền `inert`, Esc / ✕ / chạm nền để đóng, trả focus về nút mở. Danh sách người có thể nhận phụ trách lấy từ GET /api/dispatch/assignees khi mở bảng
-// (chỉ tên, đã lọc ở máy chủ: đang hoạt động, có hồ sơ, có quyền Bán hàng/Quản trị); chọn một người rồi "Lưu người phụ trách" → PUT /api/orders/:id/handler.
+// (chỉ tên, đã lọc ở máy chủ bằng `checkAssignee`: đang hoạt động, có hồ sơ, không mang quyền Đối tác, có quyền Bán hàng/Quản trị/Toàn quyền HOẶC Hướng dẫn
+// viên — ADR-0030, Task 1.1); chọn một người rồi "Lưu người phụ trách" → PUT /api/orders/:id/handler. Chọn người ngay lúc LẬP đơn là bảng khác:
+// `web/assignee-picker.ts` (không gọi API ghi, chọn xong chỉ lưu vào form).
 // KHÓA KHI ĐANG LƯU: nút, danh sách và ✕ khoá, Esc/chạm nền không đóng (đóng giữa chừng thì lỗi của máy chủ không còn chỗ hiện và người dùng tưởng đã huỷ).
 // Máy chủ từ chối vì màn hình đã cũ (409 stale/no_change, 403) → bảng đóng và nơi gọi tải lại đơn kèm thông báo (`onOutdated`); lỗi khác (vd người vừa nghỉ, 400) → thông báo ngay trong bảng
 // và danh sách được tải lại. Không có test tự động cho tệp này (như trip-sheet.ts): bằng chứng là docs/evidence/2026-09-21-v1-0/kich-ban/v1-nguoi-phu-trach.mjs. Luật thuần (câu báo lỗi) ở src/shared/handler-view.ts.

@@ -81,6 +81,11 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
   if (e.status === 400 && /^Dịch vụ \d+: không thuộc đơn này/.test(e.message)) {
     return banner("info", "Đơn vừa được lưu lại ở nơi khác. Đã tải lại đơn — hãy kiểm tra rồi sửa tiếp.", { action: "reload_order" });
   }
+  // Lập đơn kèm người phụ trách không còn đủ điều kiện (vừa nghỉ, mất quyền giữa lúc điền form — Task 1.8 phần b ADR-0030): máy chủ KHÔNG tạo đơn. Giữ
+  // nguyên form (không khoá, không tải lại) để người dùng bỏ chọn hoặc chọn người khác rồi lưu lại; tiêu đề là đúng lời máy chủ (lý do cụ thể).
+  if (e.status === 400 && e.code === "invalid_assignee") {
+    return banner("danger", fallback, { lines: [{ text: "Đơn chưa được lưu. Bỏ chọn hoặc chọn người phụ trách khác rồi bấm Lưu lại." }] });
+  }
   if (e.status === 400) return banner("danger", fallback, { focusService: serviceIndexOf(e.message) });
   return banner("danger", fallback);
 }
