@@ -40,10 +40,7 @@
 - **Không rút lại được:** số điện thoại và tiền hướng dẫn viên đã xem lúc nhận rồi trả; mỗi lần huỷ đơn; mỗi dòng nhật ký.
 - **Chưa có rào:** tới khi có hạn mức số lần Từ chối (lượt sau), kiểu "nhận nhiều đơn để xem số điện thoại rồi trả" chỉ phát hiện được sau khi đã xảy ra, qua nhật ký.
 - **Hai lượt duyệt:** lượt 1 cho hướng dẫn viên xem và nhận đơn (cùng hai bản nháp về nhận đơn và xem đơn); lượt 2 cho Từ chối, lý do huỷ, huỷ đơn chưa chốt.
-- **Bạn cần quyết (3 câu cuối tệp):**
-  1. "Ngày đi" tính theo ngày nào khi đơn cũ có nhiều ngày.
-  2. Cách chép phần sửa vào hai bản nháp.
-  3. Có bỏ phần mở quyền cũ cho hướng dẫn viên trong kế hoạch trước không.
+- **Bạn cần làm:** chỉ duyệt theo hai lượt trên. Không còn câu hỏi mở; ba điểm còn lại đã giải bằng quyết định đã duyệt (mục cuối tệp).
 
 ## Bối cảnh
 
@@ -79,7 +76,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
      Route **thêm một chốt riêng** "người gọi đang phụ trách đơn này", áp cả Toàn quyền → không thì **403**. Đây là **ngoại lệ có chủ ý** (đặc tả §5 bước 5) so với route sửa số khách (`dispatch/index.ts:196`), nơi Toàn quyền qua được khi không phụ trách. Ô Toàn quyền vẫn `any`, nên **không trái** ADR-0014 điều 2: thao tác chỉ định nghĩa trên dòng phụ trách của chính người gọi. Toàn quyền **không trả thay** người khác; muốn đổi người thì dùng Giao (Q-D).
    - **Khi nào không được (409):**
      - đơn **đã huỷ**;
-     - ngày đi là hôm nay hoặc ngày mai (giờ VN, `vnToday`) → "Gọi văn phòng để đổi người" (Q-E, áp mọi người). "Ngày đi" tính thế nào khi đơn có nhiều ngày: câu hỏi 1;
+     - ngày đi là hôm nay hoặc ngày mai (giờ VN, `vnToday`) → "Gọi văn phòng để đổi người" (Q-E, áp mọi người). "Ngày đi" = ngày khởi hành **lớn nhất** (ADR-0027 điều 3), chặn khi ngày đó ≤ ngày mai;
      - sau này, từ "Đã giao" (trigger của ADR-0025, **chưa có**).
 
      Đơn **chưa có ngày đi nào** thì không chặn, **theo ADR-0027 điều 3** (`src/shared/trip-rules.ts:38-42`: không dịch vụ nào có ngày thì không coi là đã qua). Người phụ trách là hồ sơ không tài khoản: không ai tự từ chối được, văn phòng Giao người khác.
@@ -369,7 +366,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
   - Kế hoạch GĐ2 Phần C (Task C1 bước 2) đặt bốn ô `FIELD` = `any`. Đó là cửa một chiều: HDV xem mọi đơn kể cả tiền.
   - Đặc tả §11 mục 1 cấm thi công riêng ADR-0017 trước ADR-0023.
   - Nhánh `danh-muc-lap-don` (chưa gộp) đã ghi dòng **DỪNG** ở Phần C (commit a74048e).
-  - ⇒ Phần C + D được thay bằng lượt 1 ở đây (câu hỏi 3).
+  - ⇒ Không thi công Phần C + D theo văn bản cũ; viết lại theo Mục S20/S23 ở lượt thi công sau (mục "Đã áp dụng nguyên tắc đã duyệt", điểm 3).
 - **ADR-0020, ADR-0023:** **proposed**, chưa duyệt (mục lục `docs/adr/README.md`).
 - **ADR-0022:** accepted (bản 1.16).
 - **ADR-0025** (khoá "Đã giao"), **ADR-0024** (`v_ord_order_state`): proposed. Các ca "Từ chối/huỷ sau Đã giao" chưa có chặn cho tới khi hai ADR này được duyệt.
@@ -396,7 +393,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 2. **Ai.** Toàn quyền không đang phụ trách → 403. Bán hàng không phụ trách → 403. Kế toán, Đối tác, Thực tập → 403.
 3. **Khi nào.**
    - Đơn đã huỷ → 409.
-   - Ngày đi là hôm nay hoặc ngày mai → 409 "Gọi văn phòng để đổi người". Ngày đi tính theo trả lời câu hỏi 1.
+   - Ngày đi là hôm nay hoặc ngày mai → 409 "Gọi văn phòng để đổi người". Ngày đi = ngày khởi hành lớn nhất (ADR-0027 điều 3); đơn cũ có ngày [hôm nay, ngày kia] → 200.
    - Đã qua ngày đi → 409.
    - Ngày đi là ngày kia → 200. Đồng hồ hoặc ngày tương đối phải tiêm được.
    - Đơn chưa có ngày đi nào → 200 (ADR-0027 điều 3).
@@ -424,12 +421,12 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 - "Đơn của tôi" có đơn nháp HDV đang phụ trách.
 - Tài khoản chỉ-`FIELD` vào `/` được chuyển sang `/orders` và thấy danh sách (không phải trang lỗi 403).
 
+## Đã áp dụng nguyên tắc đã duyệt (không hỏi lại — `CLAUDE.md` §3)
+
+1. **"Ngày đi" cho mốc "hôm nay hoặc ngày mai" khi đơn cũ có nhiều ngày:** áp đúng ADR-0027 điều 3 (đã duyệt) — ngày đi = ngày khởi hành **lớn nhất**; chặn khi ngày đó ≤ ngày mai. Đây là áp một định nghĩa đã có, không phải quyết định mới, nên không hỏi lại. Phương án "ngày sớm nhất" (một định nghĩa thứ hai, khác ADR-0027) đã loại, không đưa vào ADR.
+2. **Mục S20/S23:** giữ nguyên trong ADR-0030 (không sửa hai bản nháp ADR-0020/ADR-0023), theo tiền lệ ADR-0025. Mỗi ADR đọc một mình: ADR-0030 trỏ rõ tới điều đang sửa của hai bản nháp; khi chủ duyệt lượt 1 và ADR-0020/0023 chuyển accepted, người soạn đợt đó chép nguyên các dòng "nguyên văn → mới" vào chính hai tệp ADR-0020/0023 trong CÙNG lượt duyệt (không phải bây giờ).
+3. **Phần C + D của kế hoạch GĐ2:** đã ghi dòng DỪNG ở `docs/superpowers/plans/2026-09-25-gd2-thi-cong.md` (nhánh `danh-muc-lap-don`, commit `a74048e`) — không thi công theo văn bản cũ. Viết lại Phần C+D theo Mục S20/S23 là việc CỦA LƯỢT THI CÔNG SAU, chỉ bắt đầu khi ADR-0030 (và ADR-0020/0023 tương ứng) đã accepted; không làm ở đợt soạn ADR này.
+
 ## Câu hỏi cho chủ khi duyệt
 
-1. **"Ngày đi" cho mốc "hôm nay hoặc ngày mai" khi đơn cũ có nhiều ngày.** ADR-0021 chưa ép một ngày ở máy chủ, nên đơn cũ có thể có nhiều ngày.
-   - **(a) Khuyến nghị: theo ADR-0027 điều 3** — ngày đi = ngày khởi hành **lớn nhất**. Chặn khi ngày đó ≤ ngày mai. Được: một định nghĩa "ngày đi" cho cả Nhận, Huỷ, Từ chối. Mất: đơn cũ có dịch vụ đi sớm (vd hôm nay) mà dịch vụ khác đi xa vẫn trả được.
-   - **(b) Ngày khởi hành sớm nhất** ≤ ngày mai → 409. Chặt hơn, nhưng là **định nghĩa thứ hai, khác ADR-0027**. Viết theo "sớm nhất ≤ ngày mai", không viết "rơi vào hôm nay hoặc ngày mai", vì đơn có ngày [hôm qua, ngày mai] sẽ lọt.
-2. **Cách áp Mục S20/S23.**
-   - **Khuyến nghị:** khi chủ duyệt lượt 1, AI chép đúng các dòng S20/S23 vào hai bản nháp ADR-0020/0023 **trước** khi đổi trạng thái. Hai bản đó chưa accepted, và mục lục ADR chỉ khoá ADR đã accepted. Như vậy mỗi ADR đọc một mình vẫn đúng.
-   - **Cách khác:** giữ ở đây, như ADR-0025 đã làm với ADR-0023.
-3. **Bỏ Phần C + D của kế hoạch GĐ2 và thay bằng lượt 1 ở đây?** Khuyến nghị: **có**. Chạy Phần C như đang viết thì HDV xem được mọi đơn kể cả tiền (cửa một chiều). Nhánh `danh-muc-lap-don` đã ghi dòng DỪNG, chờ gộp.
+Không còn câu hỏi mở cho ADR-0030. Điều 1–5 và Mục S20/S23 sẵn sàng để chủ duyệt theo lượt (xem "Đếm quyết định chạm quyền/dữ liệu").
