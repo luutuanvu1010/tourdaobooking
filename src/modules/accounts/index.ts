@@ -328,7 +328,7 @@ export const accountsModule: AppModule = {
       if (!can(admin, "admin.manage")) return NOT_ADMIN();
       const [staff, locked, passkeys] = await Promise.all([listStaffAccounts(env.DB), lockedPhones(env.DB), countActivePasskeys(env.DB)]);
       const roles = await accountRoleCodes(env.DB, staff);
-      const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0038 điều 8: Toàn quyền là vai ẩn với người khác
+      const seesHidden = can(admin, "admin.manage.superadmin"); // ADR-0042: Toàn quyền là vai ẩn với người khác
       return json({ staff: staff.map((s) => ({ ...dto(s, locked, passkeys, roles), permissions: quyenHienThi(s.permissions, seesHidden) })) } satisfies StaffListResponse);
     }),
 
@@ -393,7 +393,7 @@ export const accountsModule: AppModule = {
     // ---- Đồng bộ từ Google Sheet: xem trước rồi áp dụng --------------------------
     route("GET", "/api/staff/sheet", "admin", async ({ env, staff: admin }) => {
       if (!can(admin, "admin.manage")) return NOT_ADMIN();
-      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
+      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
       let parsed;
       try {
         parsed = parseStaffSheet(await fetchSheetCsv(env.STAFF_SHEET_ID));
@@ -415,7 +415,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/sheet/apply", "admin", async ({ request, env, staff: admin }) => {
       if (!can(admin, "admin.manage")) return NOT_ADMIN();
-      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
+      if (!can(admin, "staff.sheet.sync")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
       const db = env.DB;
       const body = await readJson(request);
       const wanted = Array.isArray(body?.phones) ? body.phones.filter((p): p is string => typeof p === "string") : [];
@@ -542,6 +542,7 @@ export const accountsModule: AppModule = {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
+      if (!mayManage(ctx.staff, t)) return NOT_MANAGER(); // ADR-0042: vai + chỉnh riêng của tài khoản Toàn quyền/Quản trị khác không lộ cho Quản trị
       const state = await getAccountRoleState(ctx.env.DB, t, vnToday(new Date()));
       if (!state) return NO_PARTY();
       return json({ roles: state.roles, adds: state.adds, removes: state.removes, reason: state.reason } satisfies StaffRolesResponse);
@@ -600,7 +601,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/:id/reset-pin", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
-      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();
@@ -623,7 +624,7 @@ export const accountsModule: AppModule = {
     // ADR-0016 điều 6/8: quản trị viên gỡ mọi Face ID của một tài khoản (vd. mất máy, nghi lộ khoá) mà không cần đặt lại PIN.
     route("POST", "/api/staff/:id/passkeys/remove-all", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
-      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
       if (!passkeyRp(ctx.env)) return PASSKEY_ERRORS.off();
       const db = ctx.env.DB;
       const t = await target(ctx);
@@ -642,7 +643,7 @@ export const accountsModule: AppModule = {
 
     route("POST", "/api/staff/:id/unlock", "admin", async (ctx) => {
       if (!can(ctx.staff, "admin.manage")) return NOT_ADMIN();
-      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6: việc kỹ thuật chỉ Toàn quyền
+      if (!can(ctx.staff, "account.access.manage")) return NOT_SUPER_ONLY(); // ADR-0038 điều 6 (sửa bởi ADR-0042: ô đăng nhập mở lại cho Quản trị, chỉ cấp dưới qua mayManage)
       const db = ctx.env.DB;
       const t = await target(ctx);
       if (!t) return NOT_FOUND();

@@ -1,6 +1,7 @@
 # ADR-0038 — Thao tác "im lặng" của Toàn quyền (vẫn ghi nhật ký, chỉ Toàn quyền xem); Góp ý/Báo lỗi chỉ Toàn quyền; Quản trị chỉ giữ việc kinh doanh + nhân sự
 
 - **Trạng thái:** **accepted** — chủ dự án quyết trong chat 2026-09-27: chọn phương án **A** ("vẫn ghi, chỉ Toàn quyền xem được") cho câu hỏi "thao tác của Super Admin diễn ra trong im lặng, không hiện Nhật ký"; liệt kê thêm *"ẩn thêm bật/tắt bảo trì, đặt lại PIN, gỡ Face ID. Đồng thời gỡ tính năng cho phép Gửi thông báo, và đọc Góp ý, Báo lỗi khỏi tài khoản Giám đốc"*. Sau đó, cùng ngày, chủ giao cho phiên này cả yêu cầu *"hạn chế bớt quyền của Admin (không phải Super Admin): không cho phép gửi thông báo, không cho phép đọc Góp ý, báo lỗi, không được đổi những cấu hình quan trọng, tức không can thiệp về mặt kỹ thuật, chỉ cho quyền liên quan đến kinh doanh thôi"* và chọn trong hai câu hỏi: **"A. Giữ kinh doanh + nhân sự"** (điều 6) và **"Chỉ Toàn quyền"** sửa thông tin pháp lý Tour Đảo (điều 7). AI ghi lại, không tự quyết (tiền lệ ADR-0021, ADR-0027, ADR-0033, ADR-0034).
+- **Sửa bởi:** [ADR-0042](ADR-0042-quan-tri-lay-lai-dang-nhap-cap-duoi-toan-quyen-la-vai-an.md) — điều 6: ô `account.access.manage` mở lại cho Quản trị (chỉ cấp dưới); Toàn quyền là vai ẩn.
 - **Ngày:** 2026-09-27   **Loại:** **hai chiều** — đổi quyền xem nhật ký, hai ô Góp ý và thêm ba ô chỉ Toàn quyền (điều 6); không xoá, không sửa dòng dữ liệu nào; migration chỉ thêm một view.
 - **Liên quan:**
   - **Hiến chương** (`docs/ARCHITECTURE.md` Phần I, đã duyệt): **5.12** (mọi thay đổi để lại ai/làm gì/lúc nào) — **giữ nguyên**: dòng nhật ký vẫn ghi đủ, chỉ đổi AI ĐƯỢC ĐỌC. Phương án B (không ghi) bị loại vì trái 5.12.
@@ -29,12 +30,6 @@ Hệ thống có hai tài khoản giữ Toàn quyền; chủ muốn chỉ một 
    Giao diện ẩn các nút và mục "Nhật ký" theo đúng ba ô (máy chủ vẫn chặn 403). Ngưng tài khoản vẫn gỡ Face ID của người bị ngưng như cũ (hệ quả của việc ngưng, không phải thao tác gỡ riêng). Vì trang Nhật ký nay chỉ Toàn quyền, bộ lọc điều 1–3 là **lớp phòng thủ thứ hai** — có tác dụng nếu sau này `audit.view` được mở cho người không giữ Toàn quyền.
 7. **Thông tin pháp lý Tour Đảo** (tên, mã số thuế, địa chỉ, điểm liên hệ của hồ sơ "công ty chủ", ADR-0024 điều 6): chỉ Toàn quyền sửa, kết thúc vai hay gộp. Hôm nay chưa có route sửa riêng; việc T2b (hồ sơ tổ chức Tour Đảo) khi thi công thêm ô `company.legal.write` = chỉ `SUPER_ADMIN` và hỏi ô đó ở mọi route ghi hồ sơ công ty chủ — không dùng `admin.manage`.
 
-8. **Điều chỉnh điều 6 + Toàn quyền là vai ẩn** (chủ, chat 2026-09-27, sau khi hỏi về kẽ hở đổi SĐT): *"Các lớp tài khoản sẽ là: Super Admin (tôi), Admin (Quản trị tài khoản mức cơ bản: tạo, ngưng, đặt lại PIN, đặt quyền (trừ Super Admin) và ẩn quyền này đi) … Super Admin giống như 1 vai ẩn, không ai nhìn thấy ngoài chính tôi, và cũng không ai có thể kiểm soát được Super Admin"*; chủ chọn tiếp: Quản trị được **mở khoá đăng nhập** và **gỡ Face ID**; Quản trị **chỉ gán vai thường** (không cấp Quản trị — LC-4 giữ nguyên); tài khoản Toàn quyền **hiện như Quản trị thường** với người khác.
-   - `account.access.manage` cột ADMIN `none` → `any` (thay phần tương ứng của điều 6). Vẫn chỉ với tài khoản **cấp dưới** (`mayManage`): Quản trị không đặt lại PIN, mở khoá, gỡ Face ID, sửa, ngưng tài khoản Quản trị khác hay Toàn quyền. `staff.sheet.sync`, `audit.view` giữ chỉ Toàn quyền.
-   - **Kẽ hở đổi SĐT** (khoá đăng nhập tính theo SĐT; Quản trị đổi SĐT của tài khoản đang bị khoá thì tài khoản đó hết khoá): **không chặn** — Quản trị vốn đặt lại PIN (tự mở khoá) được cho cùng tài khoản đó, nên đổi SĐT không cho thêm quyền nào.
-   - **Vai ẩn:** `GET /api/staff` trả quyền qua `quyenHienThi` (`src/shared/permissions.ts`): người không có `admin.manage.superadmin` thấy `SUPER_ADMIN` thành `ADMIN`. Tin thông báo không ghi "(Toàn quyền)" sau tên người gửi; "Gửi cho" không liệt kê nhóm Toàn quyền. Màn chọn vai ẩn ô Toàn quyền và các vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung) với người không giữ Toàn quyền; trang Quản lý tài khoản ẩn nút trên tài khoản không quản được. Câu báo lỗi người khác có thể gặp nói "người phụ trách hệ thống", không nói "Toàn quyền".
-   - Giới hạn (không ẩn): nhật ký thay đổi cũ trong trang Trợ giúp (bản ≤ 1.1x) có nhắc "Toàn quyền" — nhật ký chỉ-thêm, không sửa bản cũ; tên tài khoản của chủ vẫn hiện ở đơn chủ lập/phụ trách.
-
 ## Trang ghép (CLAUDE.md §9 — lượt duyệt gồm 2 quyết định chạm quyền)
 
 1. **Bảng chạm tới:** `audit_log` (không thêm loại thực thể, chỉ đổi ai đọc được dòng nào); `fbk_ticket`/`fbk_message` (không đổi dữ liệu, chỉ đổi ai đọc/xử lý); `stf_permission` chỉ được ĐỌC qua view mới.
@@ -43,10 +38,10 @@ Hệ thống có hai tài khoản giữ Toàn quyền; chủ muốn chỉ một 
 
 ## Hệ quả
 
-- Kẽ hở đổi SĐT: chủ đã xem, không chặn (điều 8).
+- **Chờ chủ quyết (người kiểm độc lập nêu 27/9):** khoá đăng nhập tính theo SĐT (`src/modules/auth/throttle.ts`); Quản trị vẫn đổi được SĐT đăng nhập của cấp dưới (việc nhân sự), nên đổi SĐT của một tài khoản đang bị khoá thực chất gỡ khoá mà không qua `account.access.manage`.
 
 - Quản trị không còn thấy thao tác nhạy cảm của Toàn quyền, cũng không đọc/xử lý Góp ý. Yêu cầu Góp ý đang giao cho Quản trị làm người xử lý: Quản trị không mở được nữa (Toàn quyền giao lại nếu cần).
-- (Điều 8 thay) Quản trị vẫn giúp nhân viên cấp dưới quên PIN, bị khoá đăng nhập, đổi máy (gỡ Face ID).
+- Quản trị không còn tự giúp nhân viên quên PIN hay bị khoá đăng nhập: việc đó chuyển về Toàn quyền. Tài khoản mới vẫn nhận PIN khi Quản trị tạo.
 - Dòng `staff_created` có ghi nhãn quyền (có thể là "Toàn quyền") không nằm trong danh sách im lặng; nay Quản trị không đọc được Nhật ký nên không lộ. Nếu sau này mở `audit.view` cho người khác, xét thêm hành động này (người kiểm độc lập nêu 27/9).
 - Hoàn tác: đảo các ô ở `permissions.ts` (hai ô Góp ý, ba ô mới về `any` cho ADMIN) và bỏ `hideSilent`; view `v_stf_toan_quyen` để lại vô hại.
 - Lượt duyệt này gồm 3 quyết định chạm quyền (nhật ký im lặng, Góp ý, tách việc kỹ thuật) — đúng trần 3 của CLAUDE.md §9; điều 7 chỉ ghi ô cho việc T2b sau này.

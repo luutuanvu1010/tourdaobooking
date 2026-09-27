@@ -13,7 +13,7 @@ const mk = async (name) => {
 const X = await mk("Race X"), Y = await mk("Race Y");
 const xc = (await login(X.phone, X.pin)).cookie;
 const isAdmin = (s) => s.permissions.includes("ADMIN") && s.active;
-// ADR-0038 điều 8: Quản trị thấy tài khoản Toàn quyền như Quản trị thường — đọc danh sách bằng Toàn quyền để thấy vai thật.
+// ADR-0042: Quản trị thấy tài khoản Toàn quyền như Quản trị thường — đọc danh sách bằng Toàn quyền để thấy vai thật.
 const list = (await call(SUPER, "GET", "/api/staff")).body.staff;
 const others = list.filter((s) => isAdmin(s) && s.id !== X.id && s.id !== Y.id);
 for (const o of others) assert.equal((await call(SUPER, "PATCH", `/api/staff/${o.id}`, { active: false })).status, 200);

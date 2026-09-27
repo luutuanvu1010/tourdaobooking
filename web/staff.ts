@@ -63,7 +63,7 @@ async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
   }
 }
 
-// ADR-0038 điều 8: Quản trị chỉ tác động được tài khoản cấp dưới (luật mayManage của máy chủ) — ẩn nút trên tài khoản Quản trị khác và tài khoản
+// ADR-0042: Quản trị chỉ tác động được tài khoản cấp dưới (luật mayManage của máy chủ) — ẩn nút trên tài khoản Quản trị khác và tài khoản
 // Toàn quyền (máy chủ trả tài khoản Toàn quyền như Quản trị thường cho người không giữ Toàn quyền, nên chỉ cần xét ADMIN).
 const quanDuoc = (s: StaffAccount): boolean => meSuper || s.id === me.id || !s.permissions.includes("ADMIN");
 
@@ -193,7 +193,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
     boxes.set(code, box);
-    return meSuper || code !== "SUPER_ADMIN" ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null; // ADR-0038 điều 8: vai ẩn
+    return meSuper || code !== "SUPER_ADMIN" ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null; // ADR-0042: vai ẩn
   });
   const save = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");

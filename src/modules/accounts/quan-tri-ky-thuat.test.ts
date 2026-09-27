@@ -1,6 +1,6 @@
-// ADR-0038 điều 6 + 8 (chủ chọn phương án A, rồi điều chỉnh cùng ngày — điều 8: Quản trị lấy lại đặt lại PIN, mở khoá, gỡ Face ID cho cấp dưới): Quản trị giữ việc kinh doanh + nhân sự (tạo/sửa/ngưng tài khoản cấp dưới, gán vai
-// thường), MẤT việc kỹ thuật: đặt lại PIN, gỡ Face ID, mở khoá đăng nhập (`account.access.manage`), đồng bộ nhân viên từ Sheet (`staff.sheet.sync`),
-// xem trang Nhật ký (`audit.view`) — ba ô chỉ Toàn quyền. Chạy CẢ ứng dụng trên SQLite thật (khuôn quan-tri-hoi-bang.test.ts).
+// ADR-0038 điều 6 (chủ chọn phương án A, chat 2026-09-27) + ADR-0042 (sửa điều 6 cùng ngày): Quản trị giữ việc kinh doanh + nhân sự — tạo/sửa/ngưng
+// tài khoản cấp dưới, gán vai thường, đặt lại PIN / mở khoá / gỡ Face ID cho cấp dưới (`account.access.manage`); đồng bộ nhân viên từ Sheet
+// (`staff.sheet.sync`) và trang Nhật ký (`audit.view`) chỉ Toàn quyền; Toàn quyền là vai ẩn. Chạy CẢ ứng dụng trên SQLite thật (khuôn quan-tri-hoi-bang.test.ts).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
@@ -19,7 +19,7 @@ function setup() {
 }
 const logCount = (w: any, action: string) => w.q("SELECT count(*) n FROM audit_log WHERE action = ?", action)[0].n;
 
-test("ADR-0038 điều 8: Quản trị bị chặn 403 ở ba việc kỹ thuật còn lại (đồng bộ Sheet, trang Nhật ký), không ghi gì", async () => {
+test("ADR-0042: Quản trị bị chặn 403 ở ba việc kỹ thuật còn lại (đồng bộ Sheet, trang Nhật ký), không ghi gì", async () => {
   const w = setup();
   const calls: [string, string, unknown?][] = [
     ["GET", "/api/staff/sheet"],
@@ -34,7 +34,7 @@ test("ADR-0038 điều 8: Quản trị bị chặn 403 ở ba việc kỹ thuậ
   assert.equal(logCount(w, "staff_synced"), 0);
 });
 
-test("ADR-0038 điều 8: Quản trị đặt lại PIN, mở khoá, gỡ Face ID cho cấp dưới được; với tài khoản Toàn quyền thì 403 và không lộ vai", async () => {
+test("ADR-0042: Quản trị đặt lại PIN, mở khoá, gỡ Face ID cho cấp dưới được; với tài khoản Toàn quyền thì 403 và không lộ vai", async () => {
   const w = setup();
   assert.equal((await w.call("POST", `/api/staff/${SALES}/reset-pin`, { as: ADM })).status, 200);
   assert.equal((await w.call("POST", `/api/staff/${SALES}/unlock`, { as: ADM })).status, 200);
@@ -53,7 +53,7 @@ test("ADR-0038 điều 8: Quản trị đặt lại PIN, mở khoá, gỡ Face I
   assert.doesNotMatch(patch.text, /Toàn quyền|Super Admin/i);
 });
 
-test("ADR-0038 điều 8: danh sách tài khoản — Quản trị thấy tài khoản Toàn quyền như Quản trị thường (không có SUPER_ADMIN); Toàn quyền thấy đúng", async () => {
+test("ADR-0042: danh sách tài khoản — Quản trị thấy tài khoản Toàn quyền như Quản trị thường (không có SUPER_ADMIN); Toàn quyền thấy đúng", async () => {
   const w = setup();
   const asAdm = await w.call("GET", "/api/staff", { as: ADM });
   assert.equal(asAdm.status, 200);
@@ -79,4 +79,15 @@ test("ADR-0038 điều 6: Quản trị GIỮ việc nhân sự — tạo, sửa 
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { fullName: "An Đổi Tên" } })).status, 200);
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { active: false } })).status, 200);
   assert.equal((await w.call("PATCH", `/api/staff/${SALES}`, { as: ADM, body: { active: true } })).status, 200);
+});
+
+test("ADR-0042: Quản trị xem vai + chỉnh riêng của tài khoản Toàn quyền (GET /api/staff/:id/roles) → 403, không lộ mã; của cấp dưới → 200", async () => {
+  const w = setup();
+  const r = await w.call("GET", `/api/staff/${SUP}/roles`, { as: ADM });
+  assert.equal(r.status, 403, r.text);
+  assert.ok(!r.text.includes("SUPER_ADMIN"));
+  assert.doesNotMatch(r.text, /Toàn quyền|Super Admin/i);
+  assert.equal((await w.call("GET", `/api/staff/${SALES}/roles`, { as: ADM })).status, 200);
+  assert.equal((await w.call("GET", `/api/staff/${ADM}/roles`, { as: ADM })).status, 200, "tự xem của mình được");
+  assert.equal((await w.call("GET", `/api/staff/${SUP}/roles`, { as: SUP })).status, 200);
 });

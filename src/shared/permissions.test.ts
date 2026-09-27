@@ -29,7 +29,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope]> = {
   "party.staff.write": ["none", "none", "any", "none", "none", "any", "none"], // ADR-0013
   "admin.manage": ["none", "none", "any", "none", "none", "any", "none"],
   "admin.manage.superadmin": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0014 điều 2/8: thao tác MỚI
-  "account.access.manage": ["none", "none", "any", "none", "none", "any", "none"], // ADR-0038 điều 8: Quản trị lấy lại (cấp dưới)
+  "account.access.manage": ["none", "none", "any", "none", "none", "any", "none"], // ADR-0042: Quản trị lấy lại (cấp dưới)
   "staff.sheet.sync": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
   "audit.view": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 6
   "feedback.submit": ["any", "any", "any", "any", "any", "any", "any"],
@@ -217,7 +217,7 @@ test("ADR-0033: mọi mã quyền có order.modify ≠ none thì có order.creat
   }
 });
 
-test("quyenHienThi (ADR-0038 điều 8): người xem không giữ Toàn quyền thấy SUPER_ADMIN thành ADMIN, bỏ trùng, đúng thứ tự; Toàn quyền thấy nguyên", () => {
+test("quyenHienThi (ADR-0042): người xem không giữ Toàn quyền thấy SUPER_ADMIN thành ADMIN, bỏ trùng, đúng thứ tự; Toàn quyền thấy nguyên", () => {
   assert.deepEqual(quyenHienThi(["SUPER_ADMIN"], false), ["ADMIN"]);
   assert.deepEqual(quyenHienThi(["ADMIN", "SUPER_ADMIN"], false), ["ADMIN"]);
   assert.deepEqual(quyenHienThi(["SUPER_ADMIN", "SALES"], false), ["SALES", "ADMIN"]);

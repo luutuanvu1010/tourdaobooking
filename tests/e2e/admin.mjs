@@ -129,7 +129,7 @@ console.log("✓ DK-T3-02: Quản trị/Toàn quyền tự đặt lại PIN củ
 
 // --- đặt lại PIN thu hồi phiên cũ (cũng là vế "vẫn đặt lại được cho cấp dưới" của DK-T3-02: A đang chỉ có quyền Bán hàng)
 const s1 = cookieOf(await login(A.phone, A.pin));
-r = await raw(ADMIN, "POST", `/api/staff/${A.id}/reset-pin`); // ADR-0038 điều 8: Quản trị đặt lại PIN cho cấp dưới
+r = await raw(ADMIN, "POST", `/api/staff/${A.id}/reset-pin`); // ADR-0042: Quản trị đặt lại PIN cho cấp dưới
 assert.equal(r.status, 200); assert.match(r.body.pin, /^\d{6}$/); assert.notEqual(r.body.pin, A.pin);
 const oldPin = A.pin; A.pin = r.body.pin;
 assert.equal((await raw(s1, "GET", "/api/auth/me")).status, 401, "phiên cũ phải bị thu hồi");
@@ -167,7 +167,7 @@ assert.ok(Number(r.headers.get("retry-after")) > 0);
 assert.equal(r.body.error.code, "too_many_attempts");
 r = await raw(ADMIN, "GET", "/api/staff");
 assert.equal(r.body.staff.find((s) => s.id === A.id).locked, true);
-assert.equal((await raw(ADMIN, "POST", `/api/staff/${A.id}/unlock`)).status, 200); // ADR-0038 điều 8
+assert.equal((await raw(ADMIN, "POST", `/api/staff/${A.id}/unlock`)).status, 200); // ADR-0042
 assert.equal((await login(victim, A.pin, fresh())).status, 200);
 r = await raw(ADMIN, "GET", "/api/staff");
 assert.equal(r.body.staff.find((s) => s.id === A.id).locked, false);
@@ -198,7 +198,7 @@ console.log("✓ giới hạn theo IP");
 
 // --- kéo từ Sheet (Sheet nhân viên thật, chưa có SĐT)
 assert.equal((await raw(ADMIN, "GET", "/api/staff/sheet")).status, 403, "ADR-0038 điều 6: Quản trị không đồng bộ nhân viên từ Sheet");
-{ // ADR-0038 điều 8: Toàn quyền là vai ẩn — danh sách tài khoản Quản trị nhận không có SUPER_ADMIN; tài khoản Toàn quyền không bị Quản trị tác động
+{ // ADR-0042: Toàn quyền là vai ẩn — danh sách tài khoản Quản trị nhận không có SUPER_ADMIN; tài khoản Toàn quyền không bị Quản trị tác động
   const list = await raw(ADMIN, "GET", "/api/staff");
   assert.ok(!JSON.stringify(list.body).includes("SUPER_ADMIN"), "Quản trị không thấy mã Toàn quyền");
   const supId = (await raw(SUPER_ADMIN, "GET", "/api/auth/me")).body.staff.id;

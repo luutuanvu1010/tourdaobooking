@@ -53,7 +53,7 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
         const b = h("input", { type: "checkbox", style: CHECK_STYLE, value: c, "data-kind": "role" });
         b.addEventListener("change", refresh);
         roleBoxes.set(c, b);
-        // ADR-0038 điều 8: Toàn quyền là vai ẩn — người không giữ Toàn quyền không thấy vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung).
+        // ADR-0042: Toàn quyền là vai ẩn — người không giữ Toàn quyền không thấy vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung).
         // Ô vẫn được tạo (value()/set() đọc đủ mọi mã), chỉ không đưa lên màn hình.
         return opts.actorIsSuperAdmin || !ROLES[c].superAdminOnly ? h("label", { class: "check" }, b, ROLES[c].name) : null;
       }));
@@ -64,7 +64,7 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
     return h("label", { class: "check" }, b, PERMISSION_LABEL[p]);
   };
 
-  const shown = (p: PermissionCode): boolean => opts.actorIsSuperAdmin || p !== "SUPER_ADMIN"; // ADR-0038 điều 8: vai ẩn — ô vẫn tạo, chỉ không hiện
+  const shown = (p: PermissionCode): boolean => opts.actorIsSuperAdmin || p !== "SUPER_ADMIN"; // ADR-0042: vai ẩn — ô vẫn tạo, chỉ không hiện
   const el = h("div", null,
     h("div", { class: "grid two" }, roleGroup("INTERNAL"), roleGroup("EXTERNAL")),
     preview,

@@ -173,3 +173,9 @@ test("chuanHoaMocGio: chuẩn hoá mốc thiếu mili-giây; minh hoạ vì sao 
   assert.ok(chuanHoaMocGio(thieuMs) < ngaySau, "sau khi chuẩn hoá, so sánh chuỗi khớp đúng thứ tự thời gian thật");
   assert.equal(chuanHoaMocGio("2026-09-27T02:40:00.000Z"), "2026-09-27T02:40:00.000Z", "mốc đã chuẩn giữ nguyên (idempotent)");
 });
+
+test("nhanNhomNhan (ADR-0042): không liệt kê nhóm Toàn quyền trong \"Gửi cho\" — vai ẩn", () => {
+  assert.equal(nhanNhomNhan(["quyen:ADMIN", "quyen:SUPER_ADMIN"]), "Quản trị");
+  assert.equal(nhanNhomNhan(["quyen:SUPER_ADMIN"]), "");
+  assert.equal(nhanNhomNhan(["quyen:SALES", "quyen:ADMIN"]), "Bán hàng, Quản trị");
+});

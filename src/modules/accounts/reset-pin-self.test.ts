@@ -131,7 +131,7 @@ for (const [label, id, permissions] of [
   });
 }
 
-test("Đối chứng: Quản trị đặt lại PIN của nhân viên Bán hàng → 200, có PIN mới, PIN đổi, có nhật ký pin_reset (ADR-0038 điều 8)", async () => {
+test("Đối chứng: Quản trị đặt lại PIN của nhân viên Bán hàng → 200, có PIN mới, PIN đổi, có nhật ký pin_reset (ADR-0042)", async () => {
   const sqlite = seed();
   const r = await callResetPin(sqlite, profile(ADMIN, ["ADMIN"]), SALES);
   assert.equal(r.status, 200, JSON.stringify(r.body));
