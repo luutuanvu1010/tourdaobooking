@@ -16,6 +16,11 @@ interface __BaseEnv_Env {
 	// định 900 giây); thiếu thì thêm tay lại, không thì `docHanGiay(this.env)` ở tram.ts lỗi kiểu.
 	BANG_TIN: DurableObjectNamespace<import("./src/index").BangTin>;
 	BANG_TIN_HAN_GIAY?: string;
+	// Web Push (ADR-0036) — khai TAY như BANG_TIN_HAN_GIAY ở trên. VAPID_PUBLIC_KEY sẽ vào `vars` của wrangler.jsonc khi triển khai
+	// (không phải bí mật); VAPID_PRIVATE_KEY là bí mật, đặt bằng `wrangler secret put` (Task 5) — không nằm trong .dev.vars.example mặc
+	// định. `npm run types` không sinh lại hai dòng này nếu .dev.vars không có VAPID_PRIVATE_KEY; thiếu thì thêm tay lại.
+	VAPID_PUBLIC_KEY?: string;
+	VAPID_PRIVATE_KEY?: string;
 }
 declare namespace Cloudflare {
 	interface GlobalProps {

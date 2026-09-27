@@ -612,3 +612,39 @@ export interface FeedbackBadgeResponse {
   /** Số yêu cầu chờ admin (0 với người không phải admin). */
   queue: number;
 }
+
+// ---- Thông báo hệ thống (ADR-0034) --------------------------------------------
+export type LoaiTin = "thu_cong" | "lap" | "cho_nhan" | "nhan" | "giao" | "xac_nhan" | "huy";
+export interface TinDto {
+  id: string;
+  loai: LoaiTin;
+  /** Câu đã dựng ở máy chủ (tin về đơn) hoặc tiêu đề (tin thủ công). Không chứa tên người làm nếu người xem không được xem lịch sử đơn. */
+  cau: string;
+  maDon: string | null;
+  noiDung: string | null; // chỉ tin thủ công
+  nguoiGui: string | null; // chỉ tin thủ công
+  /** Nhãn tiếng Việt "Gửi cho" (K3): "Toàn công ty" cho `noi-bo`, tên (các) nhóm quyền cho tin gửi theo nhóm; chỉ tin thủ công, `null` cho tin về đơn. */
+  nhomNhan: string | null;
+  quanTrong: boolean;
+  daHieuLuc: string | null; // tin quan trọng: lúc người xem bấm Đã hiểu
+  lienKet: string | null; // tin về đơn
+  luc: string; // ISO UTC
+  cuaToi: boolean;
+  chuaDoc: boolean;
+  mo: boolean; // tin chờ nhận đã có người nhận (X2)
+}
+// quanTrongChuaHieu: tin quan trọng CHƯA "Đã hiểu" của ngăn "Của tôi", tính trên tập ĐÃ LỌC QUYỀN TRƯỚC KHI CẮT TRẦN TOI_DA_TIN — không bị
+// ghim mất khi hộp có > 100 tin mới hơn (X4 đứng trên trần; sửa vòng kiểm Task 5→6, một nguồn luật ở locHopThongBao).
+export interface HopThongBaoResponse { tin: TinDto[]; soChuaDoc: number; quanTrongChuaHieu: TinDto[] }
+export interface TomTatThongBaoResponse { soChuaDoc: number; quanTrongChuaHieu: { id: string; tieuDe: string; nguoiGui: string; luc: string }[] }
+export type NguoiNhanTin = "noi-bo" | PermissionCode[];
+export interface GuiThongBaoRequest { tieuDe: string; noiDung: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; clientRequestId: string }
+export interface TinDaGuiDto { id: string; tieuDe: string; nguoiNhan: NguoiNhanTin; quanTrong: boolean; luc: string; thuHoiLuc: string | null; soNguoiNhan: number; soDaHieu: number }
+export interface DaGuiResponse { tin: TinDaGuiDto[] }
+export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc: string }[]; chuaHieu: { ten: string; quyen: string }[] }
+
+// ---- Thông báo màn hình khoá / Web Push (ADR-0036) -----------------------------
+// `mayNay`: chỉ đúng khi tham số truy vấn `endpoint` khớp MỘT dòng đang bật CỦA CHÍNH staff gọi route (I-2, vòng rà 2026-09-28)
+// — không hỏi thì luôn `false`; không lộ máy của người khác (tự lọc theo `staff.id` ở máy chủ, không nhận staff id từ ngoài).
+export interface MayThongBaoResponse { khoa: string | null; soMay: number; mayNay: boolean }
+export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } | null }

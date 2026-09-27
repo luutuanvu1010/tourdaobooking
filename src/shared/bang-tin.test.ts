@@ -6,6 +6,7 @@ import { MATRIX, PERMISSION_CODES, can, type PermissionCode } from "./permission
 import {
   THAY_DOI,
   choNoiLai,
+  duocThayTinDon,
   laSuKienHopLe,
   nhanKetNoi,
   nhanSuKien,
@@ -205,4 +206,16 @@ test("laSuKienHopLe: khoá thừa, khoá thiếu, thayDoi lạ, kiểu sai, khô
   assert.equal(laSuKienHopLe("chuoi"), false);
   assert.equal(laSuKienHopLe(42), false);
   assert.equal(laSuKienHopLe([hopLe]), false, "mảng không phải sự kiện");
+});
+
+test("duocThayTinDon: văn phòng/HDV thấy; Đối tác/Thực tập không; tin chờ nhận cần dispatch.claim", () => {
+  const ai = (...p: PermissionCode[]) => ({ id: "x", permissions: p });
+  assert.equal(duocThayTinDon(ai("SALES"), false), true);
+  assert.equal(duocThayTinDon(ai("ACCOUNTING"), false), true);
+  assert.equal(duocThayTinDon(ai("FIELD"), false), true);
+  assert.equal(duocThayTinDon(ai("PARTNER"), false), false);
+  assert.equal(duocThayTinDon(ai("INTERN"), false), false);
+  assert.equal(duocThayTinDon(ai("SALES"), true), true); // SALES có dispatch.claim
+  assert.equal(duocThayTinDon(ai("ACCOUNTING"), true), false); // Kế toán không nhận đơn
+  assert.equal(duocThayTinDon(ai("FIELD"), true), false); // hôm nay FIELD dispatch.claim = none (ADR-0030 R1 đổi thành true — có chủ đích)
 });

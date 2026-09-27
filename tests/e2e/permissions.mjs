@@ -116,6 +116,8 @@ assert.equal((await call(MC, "POST", "/api/orders", orderInput())).status, 403);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["FIELD"] })).status, 200);
 assert.equal((await call(MC, "GET", "/api/orders")).status, 403, "bỏ ACCOUNTING → mất quyền xem đơn ngay");
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
+// Các lần đọc /api/catalog ở trên có thể là lần đồng bộ Sheet ĐẦU TIÊN của D1 này (khi catalog.mjs không chạy trước) — lần đó ẩn mã giả ZE*; bật lại.
+await ensureFakeCatalog();
 r = await call(MC, "POST", "/api/orders", orderInput());
 assert.equal(r.status, 201, `thêm SALES → lập đơn được ngay: ${JSON.stringify(r.body)}`);
 const mOrder = r.body.order;

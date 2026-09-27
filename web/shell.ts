@@ -7,6 +7,7 @@ import { helpHasNews, newDot } from "./help-seen";
 import { icon, type IconName } from "./icons";
 import { layKhungNho, luuKhungNho, xoaKhungNho } from "./khung-nho";
 import { registerServiceWorker } from "./pwa";
+import { ganThongBao } from "./thong-bao-ui";
 
 interface Tab {
   href: string;
@@ -36,7 +37,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean): Tab[] {
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" },
   ];
 }
 
@@ -55,13 +56,44 @@ const MAINTENANCE_STRIP_ID = "maint-strip";
  * Dải mảnh dưới thanh đầu trang: "Đang ở chế độ bảo trì — chỉ bạn dùng được" (liên kết tới trang Tôi, nơi tắt). Chỉ người ĐƯỢC PHÉP tới được app lúc bảo trì nên chỉ họ thấy dải này;
  * gọi lại với `on = false` để gỡ (trang Tôi gọi ngay sau khi bật/tắt, khỏi phải tải lại trang).
  */
+/** `#strips` (dải mảnh dưới thanh đầu trang, dùng chung với `.ntf-strip` của Thông báo — ADR-0034) — tạo lười, cái nào chạy trước tạo (R7). */
+function stripsEl(): HTMLElement {
+  let el = document.getElementById("strips");
+  if (!el) {
+    el = h("div", { id: "strips" });
+    document.getElementById("topbar")?.after(el);
+  }
+  return el;
+}
+
 export function setMaintenanceStrip(on: boolean): void {
   document.getElementById(MAINTENANCE_STRIP_ID)?.remove();
-  if (on) document.getElementById("topbar")?.after(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ bạn dùng được"));
+  if (on) stripsEl().append(h("a", { class: "maint-strip", id: MAINTENANCE_STRIP_ID, href: "/account" }, "Đang ở chế độ bảo trì — chỉ bạn dùng được"));
+}
+
+/** Huỷ thông báo màn hình khoá (Web Push, ADR-0036 điều 6) của TÀI KHOẢN trước khi đăng xuất — dựa vào kỷ luật phía
+ * trình duyệt (`/api/auth/logout` là route công khai, không đọc phiên nên không tự tắt được ở máy chủ). `tatCa: true`
+ * tắt MỌI địa chỉ của tài khoản (đúng điều 6: đăng xuất cũng như đổi PIN/đổi quyền — không chỉ máy này).
+ * BẮT BUỘC gọi `huy` KỂ CẢ khi máy này chưa từng bật (không có subscription cục bộ) — tài khoản có thể đã bật ở MÁY
+ * KHÁC (điện thoại), và đăng xuất ở máy tính vẫn phải tắt cả điện thoại đó theo đúng điều 6. Sửa sau vòng rà 2026-09-28
+ * (I-1): bản trước có `if (!sub) return;` TRƯỚC lời gọi `huy`, bỏ qua hẳn bước này khi máy đang đăng xuất chưa từng
+ * bật — chỉ `sub.unsubscribe()` (dọn subscription CỦA MÁY NÀY, nếu có) mới cần điều kiện đó. */
+async function tatThongBaoMayNay(): Promise<void> {
+  try {
+    await api("/api/account/thong-bao/may/huy", { method: "POST", body: { tatCa: true } }).catch(() => undefined);
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.getRegistration();
+      const sub = await reg?.pushManager.getSubscription();
+      if (sub) await sub.unsubscribe().catch(() => undefined);
+    }
+  } catch {
+    // bất kỳ lỗi nào (mạng, trình duyệt lạ…): bỏ qua, đăng xuất vẫn tiếp tục ngay sau đây.
+  }
 }
 
 export async function logout(): Promise<void> {
   xoaKhungNho(); // ADR-0035: máy dùng chung — người sau không thấy khung của người trước
+  await Promise.race([tatThongBaoMayNay(), new Promise((resolve) => setTimeout(resolve, 2000))]);
   await api("/api/auth/logout", { method: "POST" }).catch(() => undefined);
   location.assign("/login");
 }
@@ -129,7 +161,7 @@ interface NavGroup {
  * tabsFor()/nav ngang cũ (office/admin/canCreate) — KHÔNG tự đổi bản đồ quyền (đặc tả §3.1). Nhóm rỗng bị lọc ở
  * sidebar() (ẩn cả tiêu đề, đặc tả §3.1).
  */
-function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string): NavGroup[] {
+function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, superAdmin: boolean, path: string): NavGroup[] {
   const sales: NavItem[] = [];
   // Đợt D Task 5 (ADR-0015 điều 4): "/" nay là Trang chủ, "/orders" là Đơn hàng — active() của "/" phải khớp
   // CHÍNH XÁC "/" (không phải mọi đường dẫn bắt đầu bằng "/").
@@ -147,6 +179,8 @@ function navGroups(admin: boolean, seesAll: boolean, office: boolean, canCreate:
         { href: "/audit", label: "Nhật ký", icon: "history", active: (p) => p === "/audit" },
       ]
     : [];
+  // ADR-0034 Task 8: tài khoản chỉ SUPER_ADMIN (không có ADMIN) vẫn phải thấy nhóm QUẢN TRỊ, chỉ với mục này.
+  if (superAdmin) management.push({ href: "/gui-thong-bao", label: "Gửi thông báo", icon: "megaphone", active: (p) => p === "/gui-thong-bao" });
 
   const me: NavItem[] = [
     { href: "/account", label: "Của tôi", icon: "me", active: (p) => p === "/account" },
@@ -200,8 +234,8 @@ function sidebarGroup(group: NavGroup, path: string, loaders: (() => void)[]): H
  * Đăng xuất: bản mẫu không vẽ (ảnh chỉ là một phần khung), nhưng đây là thao tác BẮT BUỘC PHẢI CÒN (trang Tôi
  * cũng có "Đăng xuất" riêng, `web/account.ts`) — thêm một liên kết nhỏ, không đổi khối nào bản mẫu đã vẽ.
  */
-function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = ""): HTMLElement {
-  const groups = navGroups(admin, seesAll, office, canCreate, path)
+function sidebar(admin: boolean, seesAll: boolean, office: boolean, canCreate: boolean, path: string, staff: Staff | null, loaders: (() => void)[], tat = "", superAdmin = false): HTMLElement {
+  const groups = navGroups(admin, seesAll, office, canCreate, superAdmin, path)
     .map((g) => sidebarGroup(g, path, loaders))
     .filter((g): g is HTMLElement => g !== null);
   // `staff` null = khung tạm từ bản nhớ (ADR-0035): chân thanh chỉ có chữ cái đầu, tên/vai điền khi /api/auth/me về.
@@ -240,7 +274,7 @@ const APP_NAME = "Island Booking System";
  */
 function barTitleFor(path: string, dataTitle: string | undefined): string {
   if (dataTitle) return dataTitle;
-  for (const group of navGroups(true, true, true, true, path)) {
+  for (const group of navGroups(true, true, true, true, true, path)) {
     const item = group.items.find((it) => it.active(path));
     if (item) return item.label;
   }
@@ -293,10 +327,10 @@ export async function initShell(): Promise<Staff> {
   // bar (không cần staff). `has-sidebar` chỉ gắn khi ĐÃ THẬT SỰ dựng #sidebar (không để lưới 236px trống khi
   // mất mạng lúc mở trang — nhánh addNav(false) dưới đây không có staff).
   // `tatTam` khác null = vẽ KHUNG TẠM từ bản nhớ (ADR-0035): đánh dấu `data-khung-tam` để gỡ khi /api/auth/me về; chưa nạp huy hiệu.
-  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null) => {
+  const addNav = (admin: boolean, seesAll = true, office = seesAll, canCreate = seesAll, staff: Staff | null = null, tatTam: string | null = null, superAdmin = false) => {
     if (staff || tatTam !== null) {
       const badgeLoaders: (() => void)[] = [];
-      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "");
+      const nav = sidebar(admin, seesAll, office, canCreate, path, staff, badgeLoaders, tatTam ?? "", superAdmin);
       document.body.prepend(nav);
       document.body.classList.add("has-sidebar");
       // Huy hiệu chỉ nạp khi thanh bên ĐANG HIỂN THỊ THẬT (`offsetParent` null khi CSS ẩn nó ở khổ hẹp). Hỏi chính
@@ -379,8 +413,9 @@ export async function initShell(): Promise<Staff> {
   for (const el of document.querySelectorAll("[data-khung-tam]")) el.remove();
   document.body.classList.remove("has-sidebar", "has-tabbar");
   thanhCongViec(initials(staff.fullName), seesAll, canCreate, false);
+  ganThongBao(byId("topbar"), staff); // ADR-0034: chỉ khung THẬT có chuông (khung tạm chưa biết soChuaDoc) — ngay sau thanhCongViec(), trước addNav() (R7)
 
-  addNav(admin, seesAll, office, canCreate, staff);
+  addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   return staff;
 }

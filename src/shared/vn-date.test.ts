@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { addDays, isHHMM, isISODate, vnDateTimeText, vnLocalToIso, vnToday, vnWeekRange } from "./vn-date.ts";
+import { addDays, isHHMM, isISODate, vnDateTimeText, vnHour, vnLocalToIso, vnToday, vnWeekRange } from "./vn-date.ts";
 
 test("vnToday: ngày theo giờ Việt Nam, không phải UTC", () => {
   assert.equal(vnToday(new Date("2026-09-16T18:30:00Z")), "2026-09-17"); // 01:30 ngày 17 giờ VN
@@ -52,4 +52,11 @@ test("vnWeekRange: đầu tuần thứ Hai, cuối tuần Chủ nhật, hai đ�
 test("vnWeekRange: qua tháng và qua năm", () => {
   assert.deepEqual(vnWeekRange("2026-09-30"), { from: "2026-09-28", to: "2026-10-04" }); // thứ Tư, tuần qua tháng
   assert.deepEqual(vnWeekRange("2027-01-01"), { from: "2026-12-28", to: "2027-01-03" }); // thứ Sáu, tuần qua năm
+});
+
+test("vnHour: giờ theo giờ Việt Nam (dùng cho giờ yên lặng của Web Push, ADR-0036), kể cả qua ngày", () => {
+  assert.equal(vnHour(new Date("2026-09-27T14:59:00Z")), 21); // 21:59 VN
+  assert.equal(vnHour(new Date("2026-09-27T15:00:00Z")), 22); // 22:00 VN
+  assert.equal(vnHour(new Date("2026-09-27T22:59:00Z")), 5); // 05:59 VN (qua ngày)
+  assert.equal(vnHour(new Date("2026-09-27T23:00:00Z")), 6); // 06:00 VN (qua ngày)
 });

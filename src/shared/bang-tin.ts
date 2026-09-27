@@ -93,18 +93,25 @@ const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
 };
 
 /**
+ * Tài khoản có được thấy tin về đơn không (TD-4, dùng chung cho thông báo nổi và hộp thông báo — ADR-0034 điều 3). Đối tác/Thực tập
+ * (không văn phòng, không Hướng dẫn viên) không bao giờ (Q-C ADR-0022, điều 12 ADR-0014). Tin "chờ nhận" chỉ cho ai nhận được đơn chưa có người.
+ */
+export function duocThayTinDon(staff: PermissionHolder, choNhan: boolean): boolean {
+  const vanPhong = isOffice(staff);
+  if (!vanPhong && !hasPermission(staff, "FIELD")) return false;
+  return !choNhan || can(staff, "dispatch.claim"); // ADR-0030 Task 1.4 đã lên main → `(can(staff, "dispatch.claim") && !holdsPartner(staff))`
+}
+
+/**
  * Có hiện thông báo nổi cho tài khoản `staff` khi nhận sự kiện `suKien` không, và nếu có thì câu gì + bấm vào đi đâu (TD-4). Đối tác/Thực tập
  * (không văn phòng, không Hướng dẫn viên) không bao giờ hiện (Q-C ADR-0022, điều 12 ADR-0014: chỉ chấm đếm, không thông báo nổi). `tao_cho_nhan`
  * chỉ hiện cho ai nhận được đơn chưa có người (`dispatch.claim`). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
  */
 export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBaoNoi | null {
-  const vanPhong = isOffice(staff);
-  const huongDanVien = !vanPhong && hasPermission(staff, "FIELD");
-  if (!vanPhong && !huongDanVien) return null;
-  if (suKien.thayDoi === "tao_cho_nhan" && !can(staff, "dispatch.claim")) return null;
+  if (!duocThayTinDon(staff, suKien.thayDoi === "tao_cho_nhan")) return null;
   const dungCau = CAU_THONG_BAO[suKien.thayDoi];
   if (!dungCau) return null;
-  return { cau: dungCau(suKien.maDon), lienKet: vanPhong ? `/order?id=${suKien.orderId}` : "/account" };
+  return { cau: dungCau(suKien.maDon), lienKet: isOffice(staff) ? `/order?id=${suKien.orderId}` : "/account" };
 }
 
 const KHOA_SU_KIEN_HOP_LE = ["loai", "orderId", "maDon", "thayDoi", "luc"] as const;

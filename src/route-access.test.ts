@@ -42,7 +42,7 @@ async function loadModule(entry: string): Promise<Record<string, AppModule>> {
   return (await import(`data:text/javascript;base64,${code}`)) as Record<string, AppModule>;
 }
 
-/** 12 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
+/** 13 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
 const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/accounts/index.ts", exportName: "accountsModule" },
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
@@ -56,6 +56,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/maintenance/index.ts", exportName: "maintenanceModule" },
   { entry: "./modules/orders/index.ts", exportName: "ordersModule" },
   { entry: "./modules/parties/index.ts", exportName: "partiesModule" },
+  { entry: "./modules/thongbao/index.ts", exportName: "thongbaoModule" },
 ];
 
 /** Sắp xếp tất định: theo `path` rồi theo `method` (so sánh chuỗi thường, không qua `localeCompare`). */
@@ -159,11 +160,23 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "DELETE", path: "/api/account/passkeys/:id", access: "staff" }, // gỡ một Face ID, đăng xuất mọi máy khác
   { method: "POST", path: "/api/account/pin-by-passkey", access: "staff" }, // đặt PIN mới bằng Face ID, không cần PIN cũ (ADR-0016 điều 2b)
   { method: "POST", path: "/api/account/pin-by-passkey/options", access: "staff" }, // xin thách thức "pin" riêng
+  { method: "GET", path: "/api/thong-bao", access: "staff" }, // hộp thông báo (ADR-0034)
+  { method: "GET", path: "/api/thong-bao/tom-tat", access: "staff" }, // chuông: số chưa đọc + tin quan trọng chưa "Đã hiểu"
+  { method: "POST", path: "/api/account/thong-bao/da-doc", access: "staff" }, // tự phục vụ: đặt mốc đã đọc của chính mình
+  { method: "POST", path: "/api/account/thong-bao/:id/da-hieu", access: "staff" }, // tự phục vụ: xác nhận đã hiểu tin quan trọng
+  { method: "POST", path: "/api/thong-bao", access: "admin" }, // Toàn quyền gửi tin thủ công (ADR-0034 điều 7; notice.send)
+  { method: "GET", path: "/api/thong-bao/da-gui", access: "admin" }, // Toàn quyền xem danh sách tin đã gửi
+  { method: "GET", path: "/api/thong-bao/:id/nguoi-da-hieu", access: "admin" }, // Toàn quyền xem ai đã hiểu một tin
+  { method: "POST", path: "/api/thong-bao/:id/thu-hoi", access: "admin" }, // Toàn quyền thu hồi một tin đã gửi
+  { method: "GET", path: "/api/thong-bao/moi-nhat", access: "staff" }, // Web Push (ADR-0036): SW hỏi câu của tin chưa đọc mới nhất
+  { method: "GET", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: khoá công khai (nếu có) + số máy đang bật của chính mình
+  { method: "POST", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: tự phục vụ đăng ký một máy
+  { method: "POST", path: "/api/account/thong-bao/may/huy", access: "staff" }, // Web Push: tự phục vụ tắt một máy hoặc mọi máy
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
-// đưa vào MODULES, route của nó không được canh mức truy cập gì cả — bài kiểm chính bên dưới vẫn xanh vì nó chỉ thấy 12 module đã liệt kê,
-// không tự phát hiện module thứ 13. Bài kiểm này quét THƯ MỤC thật (không hardcode số 12) để bắt đúng tình huống đó.
+// đưa vào MODULES, route của nó không được canh mức truy cập gì cả — bài kiểm chính bên dưới vẫn xanh vì nó chỉ thấy 13 module đã liệt kê,
+// không tự phát hiện module thứ 14. Bài kiểm này quét THƯ MỤC thật (không hardcode số 13) để bắt đúng tình huống đó.
 test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppModule` (module mới có route không được lặng lẽ thoát khỏi bài kiểm)", () => {
   const dirs = readdirSync(join(SRC_DIR, "modules")).filter((d) => statSync(join(SRC_DIR, "modules", d)).isDirectory());
   const routedDirs = dirs
@@ -173,17 +186,21 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 73 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 85 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
-  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 73 để đối chiếu nhanh bằng mắt.
+  // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 85 để đối chiếu nhanh bằng mắt.
   // (Cập nhật 2026-09-22: 55 gốc + 2 route ADR-0014 Phase B (handler-cancel, handler-money-edit) + 1 route "việc của tôi" (dispatch/mine) = 58;
   // 2026-09-23: + 1 route Trang chủ mới (GET /api/orders/dashboard) = 59; + 2 route passkey công khai (đăng nhập bằng Face ID, ADR-0016) = 61;
   // + 8 route passkey tự phục vụ/quản trị (bật/gỡ Face ID, đặt PIN bằng Face ID, ADR-0016) = 69;
   // 2026-09-24: + 2 route vai (GET/PUT /api/staff/:id/roles, ADR-0018) = 71;
   // 2026-09-26: + 1 route bắt tay Bảng tin (GET /api/bang-tin, module bangtin, ADR-0022) = 72;
-  // 2026-09-27: + 1 route danh mục cho người lập đơn (GET /api/catalog/for-order, ADR-0033) = 73.)
+  // 2026-09-27: + 1 route danh mục cho người lập đơn (GET /api/catalog/for-order, ADR-0033) = 73;
+  // + 4 route module thongbao đọc (ADR-0034): GET /api/thong-bao, GET /api/thong-bao/tom-tat, POST /api/account/thong-bao/da-doc,
+  // POST /api/account/thong-bao/:id/da-hieu = 77; + 4 route Toàn quyền (ADR-0034 điều 7: gửi, xem đã gửi, xem ai đã hiểu, thu hồi) = 81;
+  // + 4 route Web Push màn hình khoá (ADR-0036, Task 1): GET /api/thong-bao/moi-nhat, GET/POST /api/account/thong-bao/may,
+  // POST /api/account/thong-bao/may/huy = 85.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 73, "số route thực tế lệch 73 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 73, "SNAPSHOT phải có đúng 73 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 85, "số route thực tế lệch 85 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 85, "SNAPSHOT phải có đúng 85 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

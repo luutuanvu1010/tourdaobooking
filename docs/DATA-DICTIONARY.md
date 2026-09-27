@@ -7,6 +7,7 @@
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
 | `audit_log` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `v_aud_order_event` | view công bố | cột: id, order_id, staff_id, action, created_at |
 
 ## auth
 
@@ -37,6 +38,7 @@
 | `dsp_assignment_status` | bảng tra cứu |  |
 | `dsp_task_kind` | bảng tra cứu |  |
 | `v_dsp_order_handler` | view công bố | cột: order_id, party_id, staff_id, label, since |
+| `v_dsp_first_handler` | view công bố | cột: order_id, first_at |
 
 ## feedback
 
@@ -70,6 +72,7 @@
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
+| `v_ord_order_owner` | view công bố | cột: id, staff_id |
 
 ## parties
 
@@ -96,6 +99,16 @@
 | `stf_permission_adjustment` | bảng |  |
 | `stf_permission_type` | bảng tra cứu |  |
 | `v_stf_staff_label` | view công bố | cột: id, label, active, party_id |
+
+## thongbao
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `ntf_notice` | bảng |  |
+| `ntf_notice_target` | bảng |  |
+| `ntf_ack` | bảng |  |
+| `ntf_read_mark` | bảng |  |
+| `ntf_push_sub` | bảng |  |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

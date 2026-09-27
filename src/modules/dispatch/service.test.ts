@@ -118,7 +118,7 @@ test("đơn mới: dòng HANDLE hạt đơn đang mở; tra bằng findHandlerOf
 
 test("đổi người thắng: dòng cũ đóng + dòng mới mở CÙNG thời điểm + đúng MỘT dòng nhật ký 'từ A sang B' (chỉ tên)", async () => {
   const { sqlite, db } = await withHandlerA();
-  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2 }));
+  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2, tuNhan: false }));
   assert.equal(results[0]!.meta.changes, 1, "câu chốt thắng");
   assert.deepEqual(assignments(sqlite), [
     { party_id: "pty-s-a", valid_from_at: T1, valid_to_at: T2, created_by: "s-a", updated_by: "s-a" },
@@ -132,8 +132,8 @@ test("đổi người thắng: dòng cũ đóng + dòng mới mở CÙNG thời 
 test("đổi người THUA (người phụ trách đã đổi giữa lúc route đọc và lúc ghi): không đổi gì, không dòng mới, KHÔNG dòng nhật ký", async () => {
   const { sqlite, db } = await withHandlerA();
   // Hai route cùng đọc "người phụ trách = An" rồi ghi: An → Bình (thắng) và An → Cửu (thua).
-  const first = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2 }));
-  const second = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: C, actorId: "s-b", at: T3 }));
+  const first = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2, tuNhan: false }));
+  const second = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: C, actorId: "s-b", at: T3, tuNhan: false }));
   assert.equal(first[0]!.meta.changes, 1);
   assert.equal(second[0]!.meta.changes, 0, "câu chốt của bên thua không áp dụng");
   assert.deepEqual(openParties(sqlite), ["pty-s-b"], "người phụ trách vẫn là của bên thắng");
@@ -144,7 +144,7 @@ test("đổi người THUA (người phụ trách đã đổi giữa lúc route 
 test("nhận đơn CHƯA có người phụ trách: mở dòng mới + nhật ký 'từ chưa có người phụ trách sang B'", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
-  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2 }));
+  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2, tuNhan: false }));
   assert.equal(results[0]!.meta.changes, 1);
   assert.deepEqual(assignments(sqlite, "o-2"), [{ party_id: "pty-s-b", valid_from_at: T2, valid_to_at: null, created_by: "s-b", updated_by: "s-b" }]);
   assert.deepEqual(audits(sqlite).map((a) => [a.order_id, a.detail]), [["o-2", "từ chưa có người phụ trách sang Trần Thị Bình"]]);
@@ -153,8 +153,8 @@ test("nhận đơn CHƯA có người phụ trách: mở dòng mới + nhật k�
 test("hai người nhận cùng lúc một đơn chưa có người: đúng một người nhận được, bên thua không dòng nào, không nhật ký, không vỡ chỉ mục duy nhất", async () => {
   const sqlite = seed();
   const db = fakeD1(sqlite);
-  const first = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2 }));
-  const second = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: C, actorId: "s-c", at: T3 })); // không ném lỗi UNIQUE
+  const first = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2, tuNhan: false }));
+  const second = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: C, actorId: "s-c", at: T3, tuNhan: false })); // không ném lỗi UNIQUE
   assert.equal(first[0]!.meta.changes, 1);
   assert.equal(second[0]!.meta.changes, 0);
   assert.deepEqual(openParties(sqlite, "o-2"), ["pty-s-b"]);
@@ -166,7 +166,7 @@ test("đổi người rồi đổi lại nhiều lần: mỗi lần đúng một
   const { sqlite, db } = await withHandlerA();
   const chain: [typeof A, typeof A, string][] = [[A, B, T2], [B, A, T3], [A, C, "2026-09-21T04:00:00.000Z"]];
   for (const [from, to, at] of chain) {
-    const r = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from, to, actorId: "s-a", at }));
+    const r = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from, to, actorId: "s-a", at, tuNhan: false }));
     assert.equal(r[0]!.meta.changes, 1);
     assert.equal(openParties(sqlite).length, 1);
   }
@@ -188,7 +188,7 @@ test("đổi người CHỈ đóng dòng HANDLE: việc khác (PICKUP, BOAT…) 
   addOpenTask(sqlite, "pk-a", "o-1", "PICKUP", A.partyId); // cùng hồ sơ với người phụ trách cũ: nếu câu đóng bỏ điều kiện loại việc thì dòng này bị đóng theo
   addOpenTask(sqlite, "pk-c", "o-1", "PICKUP", C.partyId);
   addOpenTask(sqlite, "bo-a", "o-1", "BOAT", A.partyId);
-  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2 }));
+  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2, tuNhan: false }));
   assert.equal(results[0]!.meta.changes, 1, "câu chốt chỉ đóng ĐÚNG MỘT dòng (HANDLE)");
   assert.deepEqual(
     tasksOf(sqlite, "o-1").map((t) => [t.task_kind_code, t.party_id, t.valid_to_at]).sort(),
@@ -209,7 +209,7 @@ test("nhận đơn chưa có người phụ trách KHÔNG bị việc khác đan
   const db = fakeD1(sqlite);
   addOpenTask(sqlite, "pk-1", "o-2", "PICKUP", C.partyId);
   addOpenTask(sqlite, "pk-2", "o-2", "PICKUP", B.partyId);
-  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2 }));
+  const results = await db.batch(handlerChangeStatements(db, { orderId: "o-2", from: null, to: B, actorId: "s-b", at: T2, tuNhan: false }));
   assert.equal(results[0]!.meta.changes, 1, "vẫn nhận được");
   assert.deepEqual(tasksOf(sqlite, "o-2").map((t) => [t.task_kind_code, t.party_id, t.valid_to_at]).sort(), [
     ["HANDLE", "pty-s-b", null],
@@ -221,7 +221,7 @@ test("nhận đơn chưa có người phụ trách KHÔNG bị việc khác đan
 test("đồng hồ hai máy chủ lệch: dòng cũ mở SAU thời điểm đổi thì valid_to_at = valid_from_at (không vi phạm CHECK, không 500)", async () => {
   const { sqlite, db } = await withHandlerA();
   sqlite.exec("UPDATE dsp_assignment SET valid_from_at = '2026-09-21T09:00:00.000Z'"); // dòng cũ "mở trong tương lai" so với T2
-  const r = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2 }));
+  const r = await db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: B, actorId: "s-a", at: T2, tuNhan: false }));
   assert.equal(r[0]!.meta.changes, 1);
   assert.equal(assignments(sqlite).find((x) => x.party_id === "pty-s-a")!.valid_to_at, "2026-09-21T09:00:00.000Z", "đóng đúng bằng thời điểm mở (không trước nó)");
   assert.deepEqual(openParties(sqlite), ["pty-s-b"]);
@@ -229,7 +229,7 @@ test("đồng hồ hai máy chủ lệch: dòng cũ mở SAU thời điểm đ�
 
 test("đổi người: người thao tác ghi ở cột WHO, hồ sơ nhận là khoá ngoại thật (hồ sơ lạ → batch thất bại, không dòng nào đổi)", async () => {
   const { sqlite, db } = await withHandlerA();
-  await assert.rejects(db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: { partyId: "pty-khong-co", name: "Ai đó" }, actorId: "s-a", at: T2 })), /FOREIGN KEY/);
+  await assert.rejects(db.batch(handlerChangeStatements(db, { orderId: "o-1", from: A, to: { partyId: "pty-khong-co", name: "Ai đó" }, actorId: "s-a", at: T2, tuNhan: false })), /FOREIGN KEY/);
   assert.deepEqual(openParties(sqlite), ["pty-s-a"], "giao dịch quay lại: dòng cũ vẫn mở");
   assert.equal(audits(sqlite).length, 0);
 });

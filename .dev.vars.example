@@ -23,3 +23,9 @@ PASSKEY_ORIGIN=http://localhost:8787
 # BẪY: `npm run types` chỉ sinh tên này vào `Env` (worker-configuration.d.ts) nếu nó CÓ TRONG tệp `.dev.vars`; thiếu thì tệp kiểu bị viết đè và mất dòng khai tay
 # `BANG_TIN_HAN_GIAY?: string;` → `tsc` lỗi ở src/modules/bangtin/tram.ts. Chạy `npm run types` xong PHẢI kiểm tệp đó và thêm lại dòng ấy bằng tay (xem chú thích trong tệp).
 # BANG_TIN_HAN_GIAY=
+
+# Web Push màn hình khoá (ADR-0036): TUỲ CHỌN, chỉ khi muốn thử gửi thông báo thật ở máy mình (vắng → không gửi gì, không lỗi). Đặt CẢ HAI:
+# `.dev.vars` ĐÈ `vars` của wrangler.jsonc — chỉ đặt khoá bí mật thì khoá công khai production đi cặp với khoá bí mật local → mọi lần gửi bị 403.
+# VAPID_PRIVATE_KEY là JWK P-256 (JSON) — bọc trong nháy đơn. Cách tạo cặp khoá: Task 5 của kế hoạch Thông báo lượt 2. e2e ép cả hai RỖNG.
+# VAPID_PUBLIC_KEY=
+# VAPID_PRIVATE_KEY='{"kty":"EC","crv":"P-256","x":"…","y":"…","d":"…"}'

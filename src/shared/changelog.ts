@@ -11,6 +11,31 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    version: "1.24",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Chuẩn bị thông báo hiện trên màn hình khoá điện thoại; mục bật sẽ xuất hiện trong trang Tài khoản khi công ty mở tính năng." },
+      { kind: "doi", text: "Đăng xuất hoặc đổi mã PIN sẽ tắt thông báo trên mọi điện thoại của tài khoản; muốn nhận lại thì bấm Bật lần nữa." },
+    ],
+  },
+  {
+    version: "1.23",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Nút quay về trong ngăn Thông báo không còn bị phần tai thỏ và đồng hồ của iPhone che." },
+      { kind: "sua", text: "Chuông thông báo nằm đúng góc phải ở tài khoản Hướng dẫn viên và Đối tác trên máy tính." },
+    ],
+  },
+  {
+    version: "1.22",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Chuông thông báo trên thanh trên: báo khi có đơn mới, có người nhận đơn, giao đơn, xác nhận hay huỷ đơn liên quan tới bạn." },
+      { kind: "moi", text: "Bấm chuông để xem hai ngăn \"Của tôi\" và \"Tất cả\"; mở ra là coi như đã đọc hết, bấm một tin để mở đúng đơn." },
+      { kind: "moi", text: "Chủ công ty gửi được thông báo cho cả công ty hoặc từng nhóm; tin quan trọng hiện dải nhắc cho tới khi bạn bấm \"Đã hiểu\"." },
+    ],
+  },
+  {
     version: "1.21",
     date: "2026-09-27",
     items: [
