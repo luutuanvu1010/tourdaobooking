@@ -28,7 +28,7 @@
 
 | Đối tượng | Loại | Ghi chú |
 |---|---|---|
-| `company_profile` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `company_profile` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2); cột chết: company_name, tax_code, address, hotline, zalo_number, email |
 
 ## dispatch
 

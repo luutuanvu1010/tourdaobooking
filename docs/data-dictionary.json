@@ -44,7 +44,15 @@
       "name": "company_profile",
       "module": "company",
       "kind": "table",
-      "legacy": true
+      "legacy": true,
+      "deprecatedColumns": [
+        "company_name",
+        "tax_code",
+        "address",
+        "hotline",
+        "zalo_number",
+        "email"
+      ]
     },
     {
       "name": "dsp_assignment",

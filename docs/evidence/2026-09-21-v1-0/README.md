@@ -22,6 +22,8 @@ npm run build:web && AXE_JS=<…/axe/package/axe.min.js> CHROME_BIN=<…/docs/ev
 
 Hai máy chủ nối tiếp: **A** = Turnstile BẬT bằng khoá thử; **B** = Turnstile TẮT (bước f — không giả lập được: máy chủ đang đòi token thì đăng nhập không kèm token luôn 403).
 
+> **Cập nhật T2b (2026-09-28, ADR-0024 6.2):** chân trang tên · MST nay đọc `GET /api/auth/config` (hồ sơ công ty chủ), chữ tĩnh trong `public/login.html` là dự phòng. Kịch bản sửa bước a (kỳ vọng đọc từ D1 tạm + chữ tĩnh đọc từ HTML, không gõ số), thêm bước **a2** (đổi tên gọi trong D1 tạm → chân trang đổi theo), bước e (cấu hình lỗi → chữ tĩnh), bước f (tập trường cấu hình có `companyName`, `companyTaxCode`) — **16 bước**. Lần chạy sau T2b và ảnh trước/sau: `docs/evidence/2026-09-28-t2b/README.md`. Bảng dưới là lần chạy v1.0 (lịch sử).
+
 | Bước | Chứng minh gì | Số liệu/quan sát |
 |---|---|---|
 | a | Khối công ty hiện đủ 6 mục đúng chữ: tên app "Tour Đảo Booking" (h1 + `<title>`), "Phiên bản 1.0 · ngày 21 tháng 9 năm 2026", "CÔNG TY TNHH TOUR ĐẢO", "Địa chỉ: 19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà", "Email: Tourdaotravel@gmail.com", "MST: 4201969169" — đối chiếu với chính dòng `company_profile` trong D1 (đúng như dữ liệu, viết hoa như DB) | |
