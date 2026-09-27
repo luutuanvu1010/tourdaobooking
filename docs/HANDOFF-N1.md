@@ -2,7 +2,20 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.17: dòng báo "tạm chưa được giảm giá" của Đối tác nằm gọn một hàng ĐÃ LÊN PRODUCTION (2026-09-26 20:09 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-sua-dong-giam-gia-doi-tac` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.18: kiểm quyền chặt hơn (ADR-0019 Phần B) ĐÃ LÊN PRODUCTION (2026-09-27 10:02 giờ VN, chủ dự án tự chạy `npm run day-len -- gd2-cong-va-bang` rồi `npm run trien-khai`)
+
+AI kiểm bằng lệnh chỉ đọc lúc 2026-09-27 sáng, giờ VN:
+
+- **Phiên bản: 1.18.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.18."; `GET /api/auth/config` trả `"version":"1.18"`, bảo trì `on:false`.
+- **Mã trên `main` / GitHub:** `origin/main` = dc4b4f9 (nhánh `gd2-cong-va-bang`, 15 commit; 938 test, typecheck 0, e2e 21/21). Kiểm độc lập B9 (opus, chỉ đọc, tự chạy lại và tự làm hơn 15 phép đột biến): ĐẠT CÓ ĐIỀU KIỆN, 0 Critical; điều kiện đã xử lý (tài liệu bảo trì sửa; chủ chạy truy vấn P2 trước khi phát hành). Nhật ký thi công: `docs/superpowers/plans/2026-09-25-gd2-thi-cong-nhat-ky.md`.
+- **Worker:** `wrangler deployments list` → bản mới nhất **7f7820a1-cc77-4397-ad91-77a3cfa14e51**, tạo 2026-09-27T03:02:17Z. Mốc lùi: b2c0d12f-02b0-43ea-9e6a-858319d1037a (1.17) — cùng cấu hình Durable Object, lùi về đó được.
+- **Migration D1:** không có (`wrangler d1 migrations list --remote` → "No migrations to apply!"). **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt (D1 remote)."
+- **AI kiểm công khai (không đăng nhập):** `/api/orders/dashboard`, `/api/orders`, `/api/catalog`, `/api/maintenance`, `/api/staff`, `/api/dispatch/handlers`, `/api/dispatch/assignees`, `/api/feedback`, `/api/audit`, `/api/bang-tin` đều 401.
+- **Điều người dùng thấy khác:** (1) chỉ Toàn quyền có số điện thoại trong danh sách được phép mới bật/tắt được chế độ bảo trì; (2) Quản trị không còn thêm/kết thúc vai và quan hệ trên hồ sơ của Quản trị khác hoặc của Toàn quyền; (3) bốn chỗ chỉ siết ở máy chủ, giao diện không gọi: Kế toán `GET /api/dispatch/assignees` 403, Kế toán `PUT /api/orders/<id không tồn tại>/handler` 404→403, Thực tập và tài khoản không quyền `GET /api/dispatch/mine` 403.
+- **Chưa kiểm:** thao tác thật bằng tài khoản đã đăng nhập trên production (chủ bật/tắt bảo trì ở trang Tôi; Quản trị mở hồ sơ); iPhone thật.
+- **Còn mở:** Phần C (hướng dẫn viên xem mọi đơn, ADR-0017) CHƯA được bắt đầu — chủ phải quyết xung đột ADR-0019 điều 3 ↔ ADR-0028 (hướng dẫn viên vào cổng màn đơn sẽ đọc được bảng giá qua `GET /api/catalog`); khuyến nghị: route danh mục riêng cho người lập đơn + sửa ADR-0028. `docs/quyen-hoan.json` chỉ còn `task.progress`, `dispatch.guides.view` (hạn 2026-11-30) và bốn mục N3 (hạn 2026-12-31). ADR-0019 đã lên production nên điều kiện "dừng dây chuyền" của đặc tả Đơn tự do (`money.view`, `contact.view`) đã hết; có thể soạn ADR-0030..0032 khi chủ ra lệnh.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.17: dòng báo "tạm chưa được giảm giá" của Đối tác nằm gọn một hàng ĐÃ LÊN PRODUCTION (2026-09-26 20:09 giờ VN, chủ dự án tự chạy `npm run day-len -- worktree-sua-dong-giam-gia-doi-tac` rồi `npm run trien-khai`)
 
 AI kiểm bằng lệnh chỉ đọc lúc 2026-09-26 tối, giờ VN:
 
