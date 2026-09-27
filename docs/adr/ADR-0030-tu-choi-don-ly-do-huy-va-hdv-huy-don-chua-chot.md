@@ -41,7 +41,7 @@
 
 - **Từ chối:** hướng dẫn viên, hay nhân viên đang lo một đơn, bấm được "Từ chối" để trả đơn mình đang lo. Đơn quay về danh sách "Chờ nhận" cho người khác nhận.
 - **Khi nào không trả được:** đơn đã huỷ, hoặc ngày đi là hôm nay hay ngày mai. Lúc đó phải gọi văn phòng đổi người.
-- **Lý do:** mọi lần Từ chối, Huỷ, và khi hướng dẫn viên sửa đơn, phải chọn một lý do có sẵn. Không có ô gõ chữ, để số điện thoại không lọt vào nhật ký (nhật ký không xoá được).
+- **Lý do:** mọi lần Từ chối, Huỷ, và khi hướng dẫn viên sửa đơn, phải chọn một lý do có sẵn. Không có ô gõ chữ, để số điện thoại không lọt vào nhật ký (nhật ký không xoá được). *(ADR-0037: HDV huỷ đơn nay có thêm lựa chọn "Khác" cho gõ chữ, với điều kiện máy chủ chặn số điện thoại.)*
 - **Huỷ đơn chưa chốt:** hướng dẫn viên huỷ được cả đơn chưa chốt mình đang lo (hôm nay chỉ huỷ được đơn đã chốt), vẫn với hai lý do cũ.
 - **Chữ trên màn hình:** "Đã xác nhận" giữ nghĩa cũ (đã chốt với khách); việc có người nhận hiện bằng nhãn riêng "Chờ nhận" / "HDV: <tên>"; đơn đã lưu mà chưa chốt đổi chữ "Nháp" thành "Chờ xác nhận".
 - **Ai thấy khác:** hướng dẫn viên thấy nút Từ chối và đơn chờ nhận (không số điện thoại, không tiền); văn phòng thấy chữ "được trả lại" và thông báo khi có đơn bị trả; ai huỷ cũng phải chọn lý do.
@@ -108,11 +108,11 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
    - Theo 5.8: quyền Từ chối xét theo **vai người phụ trách trên chính đơn**, khớp Hiến chương.
 
 **2. Lý do bắt buộc cho mọi Từ chối/Huỷ; HDV huỷ được đơn chưa chốt (D5).**
-   - **Danh sách đóng** (Q-H, đặc tả §7 đã chốt "không bảng, không cột"). "Khác" **không kèm ô chữ**.
+   - **Danh sách đóng** (Q-H, đặc tả §7 đã chốt "không bảng, không cột"). "Khác" **không kèm ô chữ** — TRỪ HDV huỷ qua `handler-cancel`, xem ADR-0037.
      - Lý do **phải** đóng: hôm nay chữ tự do đi thẳng vào nhật ký chỉ-thêm mà không lọc SĐT/email/MST, lỡ ghi thì không gỡ được (`migrations/0017_order_status_audit_guards.sql:17-21`; mục T3d của báo cáo rà cấu trúc `docs/superpowers/specs/2026-09-27-ra-soat-cau-truc-du-an-theo-oracle.md` trên nhánh `ra-soat-luat-goc`, commit cd9f7b0).
      - **Từ chối:** "Bận lịch khác", "Ốm / việc riêng", "Không phù hợp tuyến/dịch vụ", "Khác".
      - **Huỷ qua `POST /api/orders/:id/status`:** "Khách đổi ý", "Khách đặt trùng", "Sai thông tin — lập lại đơn", "Khác". Áp **mọi ai** huỷ bằng đường này (Bán hàng, Quản trị, Toàn quyền, và Đối tác, Thực tập với đơn của mình), theo câu (3) của chủ "bất cứ hành động … huỷ nào cũng cần có lý do" (*giả định của AI, bề mặt: Đối tác/Thực tập dùng cùng danh sách*).
-     - **HDV huỷ (Aborted):** giữ đúng hai lý do "Không liên hệ được với khách", "Khách yêu cầu huỷ" (ADR-0014 điều 11; `dispatch/rules.ts:74-80`).
+     - **HDV huỷ (Aborted):** giữ đúng hai lý do "Không liên hệ được với khách", "Khách yêu cầu huỷ" (ADR-0014 điều 11; `dispatch/rules.ts:74-80`) — **cộng một lựa chọn thứ ba "Khác" theo ADR-0037**.
    - Danh sách là **hằng trong mã**, cùng khuôn `CANCEL_REASONS` (`dispatch/rules.ts:74`). Nhật ký ghi nhãn tiếng Việt của lý do đã chọn. Không bảng tra cứu, không migration. Đổi danh sách = một lần phát hành.
    - **HDV huỷ đơn chưa chốt (Q-G):**
      - Route `handler-cancel` bỏ 409 "chưa xác nhận" (`dispatch/index.ts:170`), chỉ còn chặn đơn đã huỷ; giữ chặn đã qua ngày đi (`:171`).
@@ -222,7 +222,7 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 - **Q-B (b), HDV cũ giữ đơn tới khi có người nhận ("xin trả").** Không có đơn vô chủ. Nhưng chủ chọn (a). Ngoài ra cần thêm mã `dsp_assignment_status` (migration) và một ADR sửa ADR-0006 điều 2.
 - **Q-A Cách 2a (bấm Nhận = xác nhận), 2b (đổi tên).** Cách 2a phá luật lõi: HDV không nhận được đơn thiếu ngày/số khách, tiền khoá ngay lúc nhận, Từ chối thành đi lùi. Cách 2b phải đổi chữ ở mọi màn hình, trợ giúp, kịch bản kiểm thử và biên nhận.
 - **Q-O (b), trigger ngay bây giờ.** Chặn cả Giao trên đơn huỷ, và cần view trạng thái đơn còn proposed (ADR-0024).
-- **Q-H có ô chữ tự do.** Nhật ký chỉ-thêm không gỡ được SĐT; bộ lọc SĐT chỉ giảm nhẹ.
+- **Q-H có ô chữ tự do.** Nhật ký chỉ-thêm không gỡ được SĐT; bộ lọc SĐT chỉ giảm nhẹ. *(Xét lại một phần ở ADR-0037: cho HDV huỷ, chấp nhận "giảm nhẹ" — chặn hẳn dãy số dài — thay vì cấm hoàn toàn ô chữ.)*
 - **Q-F (b), nhắm thông báo riêng người nhận.** Phải sửa ADR-0022 điều 3 thêm một lần. Để ADR sau nếu cần.
 - **Nút "gỡ người phụ trách" cho văn phòng (câu B2 của đặc tả).** Chủ: không ở đợt này. Nếu cần thì làm một ô riêng, không gộp vào Từ chối.
 - **Toàn quyền Từ chối thay người khác.** Toàn quyền đã có Giao; "trả thay" làm mờ nghĩa "tự trả" và lẫn với nút "gỡ người phụ trách" ở trên.
@@ -440,12 +440,6 @@ Chủ đã chốt: Q-A Cách 1, Q-B (a), Q-D, Q-E, Q-F (a), Q-G, Q-H, Q-O (a) (�
 
 Không còn câu hỏi mở cho ADR-0030. Điều 1–5 và Mục S20/S23 sẵn sàng để chủ duyệt theo lượt (xem "Đếm quyết định chạm quyền/dữ liệu").
 
-## Sửa đổi sau khi duyệt (chủ dự án quyết trực tiếp, 2026-09-27, khi thi công Task 1.8)
+## Sửa bởi ADR sau (đúng quy ước "thay đổi nội dung = ADR mới trỏ về ADR này", dòng Trạng thái ở đầu tệp)
 
-**Điều 2 — thêm lựa chọn "Khác (ghi lý do)" cho HDV huỷ đơn qua route hẹp `handler-cancel`, với điều kiện chặn số điện thoại.**
-
-- Bối cảnh: khi thi công màn "Việc của tôi" (Task 1.8), chủ muốn thêm ô "Khác" cho gõ lý do tự do khi HDV huỷ đơn — khác với điều 2 đã duyệt ("danh sách đóng... 'Khác' không kèm ô chữ", lý do Q-H đã bị loại vì "chữ tự do đi thẳng vào nhật ký chỉ-thêm mà không lọc SĐT/email/MST, lỡ ghi thì không gỡ được").
-- Người thi công đã đúng khi KHÔNG tự làm mà báo lại xung đột (không tự hoà giải — `CLAUDE.md` §2). Điều phối đã trình lại đúng rủi ro cho chủ.
-- **Chủ quyết (nguyên văn ý): mở ô chữ cho "Khác", nhưng ô đó CHỈ NHẬN VĂN BẢN THƯỜNG — không được nhập số điện thoại.**
-- Cách áp: `note` của lý do "Khác" phải qua cùng luật nhận diện "dãy số dài" đã có ở `maskLongDigits`/Q-N (một dãy ≥ 8 chữ số, đếm sau khi bỏ dấu cách/chấm/gạch/ngoặc đơn/dấu cộng/gạch dài) — nếu `note` chứa một dãy như vậy, route trả 400, không ghi. Không "che" số (khác với hàng chờ nhận, nơi số được che rồi vẫn hiện) — ở đây **chặn hẳn**, vì đây là nhật ký chỉ-thêm không xoá được (rủi ro đã nêu ở điều 2 vẫn đúng, chỉ chặn thêm được rủi ro "số điện thoại", không chặn được mọi loại dữ liệu nhạy cảm khác — chủ đã biết và chấp nhận giới hạn này).
-- Không đổi phần còn lại của điều 2 (Từ chối, Huỷ qua `/status`, vẫn danh sách đóng, không ô chữ) — chỉ áp cho "Khác" của HDV huỷ qua `handler-cancel`.
+- **ADR-0037** (accepted, 2026-09-27) sửa điều 2: HDV huỷ đơn qua route hẹp `handler-cancel` có thêm lựa chọn thứ ba "Khác" cho gõ lý do tự do, với điều kiện máy chủ chặn nếu chữ gõ vào chứa dãy số dài giống số điện thoại. Các câu dưới đây (điều 2, và Tóm tắt cho chủ) vẫn đúng cho Từ chối, cho Huỷ qua `/status`, và cho hai lý do có sẵn của HDV huỷ — CHỈ lựa chọn "Khác" mới theo ADR-0037.
