@@ -388,6 +388,7 @@ Tiêu chí viết bằng hành vi kiểm được: xem mục 3.
 8. **Danh sách khoá đúng từng mã:**
    - `tests/e2e/parties.mjs:16-19` khoá **nguyên** danh sách mã vai của `/api/parties/meta` → sẽ đỏ, sửa ở Task 2.
    - `tests/e2e/turnstile.mjs:35` khoá **nguyên** tập trường của `/api/auth/config` → sửa ở Task 6.
+   - `tests/e2e/maintenance.mjs:201` cấm chữ `phone` trong thân cấu hình → không thêm hotline vào cấu hình.
 9. **Nhánh gộp song song:**
    - `thi-cong-tu-choi-huy-hdv` cũng sửa `permissions.ts`, `permissions.test.ts`, `architecture.test.ts`, `contracts.ts`, `audit-checks.mjs`.
    - Nhánh ADR-0038 sửa `permissions.ts`, `permissions.test.ts`, `tests/e2e/parties.mjs`.
@@ -461,8 +462,15 @@ Tiêu chí viết bằng hành vi kiểm được: xem mục 3.
   - Chạy `grep -rn "roleTypes\|parties.length\|matches.length\|count(\*)[^\"]*pty_\|FROM pty_contact_point" tests src docs/evidence/*/kich-ban`.
   - Đã biết:
     - `tests/e2e/parties.mjs:16-19` (danh sách mã vai) → sửa ở Task 2;
-    - `tests/e2e/turnstile.mjs:35` → sửa ở Task 6.
-  - Đã xem và **không** ảnh hưởng: `tests/audit/doi-tac.test.mjs:66-72` dùng `find`/`some`; `dot-a-smoke.mjs` đòi `>= 1` thẻ; `src/migrations-n1.test.ts:181,201` dựng tới `0011`/`0012`.
+    - `tests/e2e/turnstile.mjs:35` (dòng 36 sau khi gộp nhánh ADR-0038) khoá nguyên tập trường của cấu hình → sửa ở Task 6.
+  - Đã xem và **không** ảnh hưởng:
+    - `tests/audit/doi-tac.test.mjs:66-72` dùng `find`/`some`;
+    - `dot-a-smoke.mjs` đòi `>= 1` thẻ;
+    - `src/migrations-n1.test.ts:181,201` dựng tới `0011`/`0012`;
+    - `tests/e2e/maintenance.mjs:37-39, 198-201, 247-248` và `tests/e2e/passkey.mjs:37-38` chỉ đọc trường con (`r.body.maintenance`, `r.body.passkey`), **không** khoá tập trường của cấu hình. Các `deepEqual(r.body, …)` còn lại của hai tệp là API khác.
+  - Lưu ý: `tests/e2e/maintenance.mjs:201` đòi thân cấu hình **không** khớp `/allowed|…|phone/i`.
+    - Hai trường mới (`companyName`, `companyTaxCode`) và giá trị của chúng không chứa các chữ đó.
+    - **Đừng** thêm hotline vào cấu hình.
   - Ghi mọi chỗ mới tìm thấy.
 - [ ] **Bước 10 — mở nhật ký thi công** `docs/superpowers/plans/2026-09-28-t2b-thi-cong-nhat-ky.md`: điền mốc, nhánh, câu trả lời của chủ (nếu đã có).
 
@@ -997,7 +1005,7 @@ route("GET", "/api/auth/config", "public", async ({ env }) => {
 
   - `src/architecture.test.ts:21` sửa thành: `auth: ["staff", "maintenance", "parties"], // … ; parties: ADR-0024 6.2 — GET /api/auth/config trả tên + MST công ty chủ (chỉ đọc; auth vốn đã tới parties bắc cầu qua staff)`.
 - [ ] **Bước 4: Chạy, thấy xanh:** tệp bước 1, cùng `node --test src/architecture.test.ts` → xanh. Rồi `npm test`, `npm run typecheck` (cả ba tsconfig: `web/login.ts` dùng kiểu này).
-- [ ] **Bước 5: E2E** `tests/e2e/turnstile.mjs:35`.
+- [ ] **Bước 5: E2E** `tests/e2e/turnstile.mjs:35` (dòng 36 sau khi gộp nhánh ADR-0038; đây là chỗ DUY NHẤT khoá nguyên tập trường của cấu hình — Task 0 bước 9).
   - Đọc `ho` (tên hiển thị, MST) bằng `sqlRows` (import từ `./lib.mjs`).
   - Thêm `companyName: ho.display_name, companyTaxCode: ho.tax_code` vào đối tượng `deepEqual`.
   - Chạy `npm run test:e2e -- turnstile company`. Chạy trước khi sửa dòng 35 thì đỏ; ghi dòng đỏ vào nhật ký.
@@ -1016,7 +1024,9 @@ route("GET", "/api/auth/config", "public", async ({ env }) => {
 
 - [ ] **Bước 1: Viết test đỏ (bảng quyền).**
   - `src/shared/permissions.test.ts`, bảng `ADR`, thêm: `"company.legal.write": ["none", "none", "none", "none", "none", "any", "none"], // ADR-0038 điều 7 + ADR-0024 6.4: chỉ Toàn quyền sửa hồ sơ công ty chủ`.
-  - Thêm `"company.legal.write"` vào `ADMIN_NONE_OPS` (dòng 179), và sửa chú thích dòng 176–178 từ "Năm thao tác" thành "Sáu thao tác".
+  - Thêm `"company.legal.write"` vào `ADMIN_NONE_OPS` (dòng 179 trên `5dc4732`).
+  - **Đếm lại** số thao tác trong chú thích ngay trên nó, theo `main` lúc thi công, rồi sửa số và thêm lý do "chỉ Toàn quyền sửa hồ sơ công ty chủ (ADR-0038 điều 7)".
+  - Nhánh ADR-0038 thêm ba ô chỉ Toàn quyền (`account.access.manage`, `staff.sheet.sync`, `audit.view`), nên con số trên `main` sẽ không còn là "Năm" như ở `5dc4732`.
 - [ ] **Bước 2: Viết test đỏ (cả ứng dụng)** `src/modules/parties/cong-ty-chu.test.ts`.
   - Khung `world()`/`seedStaff()` như `src/modules/parties/ho-so-co-tai-khoan.test.ts:17-27`: SALES, ACCOUNTING, ADMIN, SUPER_ADMIN.
   - `CT` = id hồ sơ công ty chủ đọc bằng `w.q` theo mã vai.
@@ -1227,7 +1237,7 @@ const chuan = (s: string) => s.normalize("NFC").toLocaleLowerCase("vi").replace(
 - [ ] **Bước 3: HTML** `public/login.html:42-46`.
   - Sửa chú thích dòng 42 thành: chân trang theo bản thiết kế; tên + MST do `web/login.ts` thay từ `GET /api/auth/config` (ADR-0024 6.2); chữ tĩnh là dự phòng.
   - Dòng 44: `<span><span id="company-name" class="login-company-name">Công ty TNHH Tour Đảo</span> · MST <span id="company-tax">…giữ nguyên số đang có…</span></span>`.
-  - Dòng 45: **theo câu Q2** (mặc định (b)). Chép đúng chữ địa chỉ của dữ liệu gieo `migrations/0002_company_profile.sql:20`: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà". Nếu chủ chọn (a) thì chỉ đổi "tỉnh" → "Tỉnh".
+  - Dòng 45: **theo câu Q2**, mặc định (a) = đúng phần đã duyệt: chỉ đổi "tỉnh" → "Tỉnh", phần còn lại giữ nguyên chữ của bản thiết kế. Chỉ khi chủ chọn (b) mới chép đúng chữ địa chỉ của dữ liệu gieo `migrations/0002_company_profile.sql:20`: "19 Đường B2, Khu đô thị Vĩnh Điềm Trung, Phường Tây Nha Trang, Tỉnh Khánh Hoà". Cả hai cách đều qua bài so khớp (chuỗi đã chuẩn hoá bỏ hoa/thường và dấu câu).
   - Không đổi lớp CSS, không thêm phần tử khối.
 - [ ] **Bước 4: TS** `web/login.ts`.
   - `import { chanTrangCongTy } from "../src/shared/cong-ty-chu";`.
@@ -1464,7 +1474,8 @@ npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT length(compa
 - **Q2 — Sửa chữ địa chỉ tĩnh ở chân trang đăng nhập tới đâu?** Ngoài "tỉnh → Tỉnh" (đã duyệt), chữ tĩnh còn lệch dữ liệu ở "đường → Đường" và thiếu dấu phẩy sau "B2".
   - (a) chỉ sửa "Tỉnh";
   - (b) sửa cả ba cho khớp đúng dữ liệu hồ sơ.
-  - **Khuyến nghị và mặc định (b)**, đúng nguyên tắc 6.2 "sửa theo dữ liệu hồ sơ".
+  - **Khuyến nghị (b)**, đúng nguyên tắc 6.2 "sửa theo dữ liệu hồ sơ".
+  - **Mặc định (a)** khi chưa có câu trả lời: màn này chủ đã duyệt theo bản thiết kế, nên không tự đổi chữ ngoài phần đã duyệt. Nếu chọn (b) thì làm lại Task 11 bước 3 (sửa một dòng HTML).
 - **Q3 — Chân trang đăng nhập hiện "tên gọi" hay "tên pháp lý"?**
   - (a) Chân trang hiện **tên gọi** của hồ sơ, gieo đúng chữ đang hiện "Công ty TNHH Tour Đảo" nên màn hình không đổi. Biên nhận giữ **tên pháp lý** viết HOA như cũ.
   - (b) Chân trang cũng dùng tên pháp lý: sẽ hiện chữ HOA, khác bản thiết kế.

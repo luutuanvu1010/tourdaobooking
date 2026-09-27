@@ -33,7 +33,7 @@
 | 6.5 | A (giữ trigger cấm đóng) hay B (bỏ trigger) | _(điền)_ | Task 3 |
 | Câu 2 (điều phối) | Quan hệ "Người liên hệ của Tour Đảo": giữ Quản trị hay khoá chỉ Toàn quyền | _(điền)_ | Task 9 |
 | Q1 | Chặn thêm bốn cách lách bằng SQL tay (chuyển hồ sơ, đổi mã, xoá, chèn dòng đã đóng) | _(điền)_ | Task 3 bước 7 |
-| Q2 | Sửa chữ địa chỉ tĩnh: chỉ "Tỉnh" hay cả ba chỗ lệch | _(điền)_ | Task 11 bước 3 |
+| Q2 | Sửa chữ địa chỉ tĩnh: chỉ "Tỉnh" (mặc định (a), đúng phần đã duyệt) hay cả ba chỗ lệch ((b), khuyến nghị) | _(điền)_ | Task 11 bước 3 |
 | Q3 | Chân trang hiện tên gọi (giữ bản thiết kế) hay tên pháp lý (chữ HOA) | _(điền)_ | Task 5, 6, 11 |
 | Đề xuất luật | Duyệt `docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md` | _(điền)_ | Task 17 |
 | Truy vấn chỉ đọc trước phát hành (mục 7 bước 2 của kế hoạch) | Kết quả (chỉ độ dài/cờ) | _(điền)_ | Task 17 |
