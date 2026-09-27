@@ -208,7 +208,10 @@ export const dispatchModule: AppModule = {
       if (tripDeparted(await findOrderDepartDates(env.DB, orderId), vnToday(new Date()))) return DEPARTED();
       const input = parseCancelReason(await readJson(request));
       if (!input.ok) return error(400, "invalid_input", input.message);
-      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, CANCEL_REASON_LABEL[input.reason]);
+      // "Khác" (ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27): nhãn nhật ký CHÍNH LÀ note đã kiểm (không chứa dãy số dài) — hai mã cũ vẫn dùng
+      // nhãn cố định của CANCEL_REASON_LABEL.
+      const label = input.reason === "other" ? input.note! : CANCEL_REASON_LABEL[input.reason];
+      const ok = await cancelOrderByHandler(env.DB, orderId, staff.id, order.updatedAt, label);
       if (!ok) {
         const now = await findOrderOwner(env.DB, orderId);
         return now?.status === "confirmed" ? HANDLER_RACED() : NOT_CONFIRMED();

@@ -7,6 +7,7 @@
 // Đây là NGOẠI LỆ CÓ TÊN của chú thích ô `contact.view` (`src/shared/permissions.ts`, gộp "điểm đón, giờ" vào liên hệ): nơi đón/giờ đón ở phần hẹp
 // không đòi `contact.view` — bù lại nơi đón (chữ tự do, có thể chứa SĐT) bị che dãy số (`maskLongDigits`, Q-N).
 import type { OrderStatus, PaxCounts, PoolOrderDto } from "../../shared/contracts.ts";
+import { DIGIT_RUN, MIN_LONG_DIGIT_RUN } from "../../shared/text-guards.ts";
 import { tripDeparted } from "../../shared/trip-rules.ts";
 
 /** Một dịch vụ của đơn nguồn — chỉ phần phần hẹp cần (nơi gọi có thể đưa đối tượng giàu hơn; `toPoolOrder` không đọc gì khác). */
@@ -26,27 +27,21 @@ export interface PoolSourceOrder {
   services: readonly PoolSourceService[];
 }
 
-/** Ngưỡng che: một dãy từ NGẦN NÀY chữ số trở lên (chủ dự án, Q-N: "8 chữ số"). */
-const MIN_MASKED_DIGITS = 8;
-/**
- * Một "dãy số": bắt đầu và kết thúc bằng chữ số; giữa hai chữ số được chen dấu ngăn. Q-N: dấu cách, chấm, gạch nối. Ruling người thi công (Task 1.5,
- * CHẶT HƠN Q-N, đảo ngược được): thêm ngoặc đơn, dấu cộng, gạch dài (– —) — số bàn Nha Trang hay viết "(0258) 3521 234", số quốc tế "(+84) 905 …".
- * KHÔNG coi `/`, `,`, `:` là dấu ngăn (hai số cách nhau bằng "/" vẫn được che riêng từng số; giờ "6:30" không bị gộp).
- * Hai lớp ký tự rời nhau (chữ số / dấu ngăn) nên biểu thức chạy tuyến tính, không quay lui bùng nổ.
- */
-const DIGIT_RUN = /\d(?:[\s.()+\-–—]*\d)*/g;
+// Ngưỡng + regex nhận diện "dãy số dài" nay là MỘT nguồn sự thật ở `src/shared/text-guards.ts` (`MIN_LONG_DIGIT_RUN`, `DIGIT_RUN`) — tái dùng ở
+// `dispatch/rules.ts` (`parseCancelReason`, lý do "Khác" khi HDV huỷ đơn, ADR-0030 điều 2 sửa đổi 2026-09-27) để CHẶN HẲN thay vì che. Đổi ngưỡng/dấu
+// ngăn thì sửa ở tệp đó, không sửa ở đây.
 const MASK_CHAR = "•";
 
 /**
- * Che mọi dãy từ 8 chữ số trở lên (đếm sau khi bỏ dấu ngăn — xem `DIGIT_RUN`): thay TỪNG chữ số của dãy bằng "•", giữ nguyên dấu ngăn và mọi chữ khác
- * ("Đón ở 0905 123.456 cổng sau" → "Đón ở •••• •••.••• cổng sau"). Cách che là bề mặt (ADR-0030 S23-2 để người thi công chọn): giữ dấu ngăn cho người đọc
- * thấy "ở đây có một số đã được ẩn". Dãy dưới 8 chữ số (số phòng, số nhà, giờ) giữ nguyên. `null` → `null`.
+ * Che mọi dãy từ 8 chữ số trở lên (đếm sau khi bỏ dấu ngăn — xem `DIGIT_RUN` ở `src/shared/text-guards.ts`): thay TỪNG chữ số của dãy bằng "•", giữ
+ * nguyên dấu ngăn và mọi chữ khác ("Đón ở 0905 123.456 cổng sau" → "Đón ở •••• •••.••• cổng sau"). Cách che là bề mặt (ADR-0030 S23-2 để người thi công
+ * chọn): giữ dấu ngăn cho người đọc thấy "ở đây có một số đã được ẩn". Dãy dưới 8 chữ số (số phòng, số nhà, giờ) giữ nguyên. `null` → `null`.
  */
 export function maskLongDigits(text: string): string;
 export function maskLongDigits(text: string | null): string | null;
 export function maskLongDigits(text: string | null): string | null {
   if (text === null) return null;
-  return text.replace(DIGIT_RUN, (run) => (run.replace(/\D/g, "").length >= MIN_MASKED_DIGITS ? run.replace(/\d/g, MASK_CHAR) : run));
+  return text.replace(DIGIT_RUN, (run) => (run.replace(/\D/g, "").length >= MIN_LONG_DIGIT_RUN ? run.replace(/\d/g, MASK_CHAR) : run));
 }
 
 /**

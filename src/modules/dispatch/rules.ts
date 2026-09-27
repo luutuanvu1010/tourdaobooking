@@ -2,6 +2,7 @@
 // câu nhật ký. Import kèm đuôi .ts (chạy trực tiếp bằng `node --test`). Ma trận quyền là MỘT nơi (`src/shared/permissions.ts`): ở đây chỉ HỎI `can()`.
 import { UUID_RE } from "../../shared/http.ts";
 import { can, holdsPartner, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
+import { hasLongDigitRun } from "../../shared/text-guards.ts";
 
 /** Số đơn tối đa của một lần tra `GET /api/dispatch/handlers` (danh sách đơn có trang tối đa 100 đơn). */
 export const MAX_HANDLER_LOOKUP = 100;
@@ -62,20 +63,36 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
   return { ok: true, partyId: who.partyId, name: who.fullName };
 }
 
-/** Lý do huỷ đơn của FIELD qua route hẹp (ADR-0014 điều 11) — danh sách ĐÓNG, đúng nguyên văn câu trả lời của chủ dự án, không thêm/bớt. */
-export const CANCEL_REASONS = ["not_reachable", "customer_requested"] as const;
+/**
+ * Lý do huỷ đơn của FIELD qua route hẹp (ADR-0014 điều 11) — danh sách ĐÓNG, đúng nguyên văn câu trả lời của chủ dự án, không thêm/bớt.
+ * `"other"` ("Khác") thêm ở ADR-0030 điều 2, mục "Sửa đổi sau khi duyệt" (chủ dự án quyết trực tiếp 2026-09-27, khi thi công Task 1.8): KHÔNG có nhãn cố
+ * định — nhãn của nó CHÍNH LÀ `note` người dùng gõ (xem `parseCancelReason`), nên KHÔNG có mặt trong `CANCEL_REASON_LABEL`.
+ */
+export const CANCEL_REASONS = ["not_reachable", "customer_requested", "other"] as const;
 export type CancelReason = (typeof CANCEL_REASONS)[number];
-export const CANCEL_REASON_LABEL: Record<CancelReason, string> = {
+export const CANCEL_REASON_LABEL: Record<Exclude<CancelReason, "other">, string> = {
   not_reachable: "Không liên hệ được với khách",
   customer_requested: "Khách yêu cầu huỷ",
 };
 const isCancelReason = (v: unknown): v is CancelReason => typeof v === "string" && (CANCEL_REASONS as readonly string[]).includes(v);
 
-/** Thân `POST /api/orders/:id/handler-cancel`: `{ reason }`. */
-export function parseCancelReason(body: Record<string, unknown> | null): Parsed<{ reason: CancelReason }> {
+/**
+ * Thân `POST /api/orders/:id/handler-cancel`: `{ reason, note? }`.
+ *  - `reason` là một trong hai mã cũ: `note` (nếu có gửi kèm) bị BỎ QUA, không lỗi, không có trong kết quả — hai lý do đó vẫn không ô chữ.
+ *  - `reason === "other"`: `note` (đã `.trim()`) là lý do bắt buộc, KHÔNG được chứa dãy số dài giống số điện thoại (`hasLongDigitRun`, cùng luật/ngưỡng
+ *    với việc che nơi đón ở hàng chờ nhận — ở đây CHẶN HẲN bằng 400, không che rồi ghi, vì nhật ký chỉ-thêm không xoá được).
+ */
+export function parseCancelReason(body: Record<string, unknown> | null): Parsed<{ reason: CancelReason; note?: string }> {
   const reason = body?.reason;
-  if (!isCancelReason(reason)) return { ok: false, message: `Lý do huỷ phải là một trong: "${CANCEL_REASON_LABEL.not_reachable}", "${CANCEL_REASON_LABEL.customer_requested}".` };
-  return { ok: true, reason };
+  if (!isCancelReason(reason)) {
+    return { ok: false, message: `Lý do huỷ phải là một trong: "${CANCEL_REASON_LABEL.not_reachable}", "${CANCEL_REASON_LABEL.customer_requested}", "Khác".` };
+  }
+  if (reason !== "other") return { ok: true, reason };
+  const rawNote = body?.note;
+  const note = typeof rawNote === "string" ? rawNote.trim() : "";
+  if (note === "") return { ok: false, message: 'Cần nhập lý do khi chọn "Khác".' };
+  if (hasLongDigitRun(note)) return { ok: false, message: "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường." };
+  return { ok: true, reason, note };
 }
 
 /**

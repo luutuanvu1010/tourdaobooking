@@ -31,10 +31,13 @@ import { showError } from "./shell";
 /**
  * Lý do huỷ của hướng dẫn viên — bản chép tay của danh sách ĐÓNG ở máy chủ (`src/modules/dispatch/rules.ts` `CANCEL_REASONS`, ADR-0014 điều 11; ADR-0030
  * điều 2 "HDV huỷ: giữ đúng hai lý do"). Kế hoạch Task 2.1 (lượt 2) gộp về một tệp chung ở `src/shared/`. Thêm lựa chọn = thêm một phần tử ở đây và ở máy chủ.
+ * `"other"` ("Khác", ADR-0030 điều 2 "Sửa đổi sau khi duyệt", chủ dự án quyết 2026-09-27) mở một ô chữ tự do — máy chủ chặn số điện thoại/dãy số dài
+ * trong ô đó bằng `hasLongDigitRun` (`src/shared/text-guards.ts`); giao diện KHÔNG tự lọc lại, chỉ hiện đúng lỗi máy chủ trả về (xem `openCancelSheet`).
  */
 const CANCEL_REASONS: readonly { code: string; label: string }[] = [
   { code: "not_reachable", label: "Không liên hệ được với khách" },
   { code: "customer_requested", label: "Khách yêu cầu huỷ" },
+  { code: "other", label: "Khác" },
 ];
 const NO_NET = "Không kết nối được máy chủ.";
 const CHIP_CLASS: Record<MyJobChipTone, string> = {
@@ -220,16 +223,34 @@ function openCancelSheet(a: Api.MyAssignmentDto, departDate: string | null, open
   const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
   const keepBtn = h("button", { type: "button", class: "btn" }, "Giữ đơn");
   const confirmBtn = h("button", { type: "button", class: "btn btn-primary", disabled: true }, "Huỷ đơn");
+  // Ô chữ của lý do "Khác" (ADR-0030 điều 2 "Sửa đổi sau khi duyệt") — chỉ hiện khi đã chọn "Khác"; máy chủ (không phải ở đây) chặn số điện thoại.
+  const otherInput = h("input", {
+    type: "text",
+    maxlength: 300,
+    autocomplete: "off",
+    placeholder: "Lý do khác (không nhập số điện thoại)",
+    "aria-label": "Lý do khác",
+    hidden: true,
+  });
+  function updateConfirm(): void {
+    confirmBtn.disabled = sheet?.isBusy() === true || chosen === null || (chosen === "other" && otherInput.value.trim() === "");
+  }
   const radios = CANCEL_REASONS.map((r) => {
     const input = h("input", { type: "radio", name: "hdv-cancel-reason", value: r.code });
     input.addEventListener("change", () => {
       chosen = r.code;
-      confirmBtn.disabled = false;
+      otherInput.hidden = r.code !== "other";
+      if (r.code === "other") otherInput.focus();
       showError(errorBox, null);
+      updateConfirm();
     });
     return { input, el: h("label", { class: "pick" }, input, h("span", { class: "pick-mark", "aria-hidden": "true" }), h("span", { class: "pick-name" }, r.label)) };
   });
-  const fieldset = h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, "Chọn lý do huỷ"), ...radios.map((r) => r.el));
+  otherInput.addEventListener("input", () => {
+    showError(errorBox, null);
+    updateConfirm();
+  });
+  const fieldset = h("fieldset", { class: "pick-list" }, h("legend", { class: "pick-legend" }, "Chọn lý do huỷ"), ...radios.map((r) => r.el), otherInput);
 
   const sheet = openSheet({
     id: "hdv-cancel",
@@ -243,22 +264,28 @@ function openCancelSheet(a: Api.MyAssignmentDto, departDate: string | null, open
   const setBusy = (busy: boolean): void => {
     sheet.setBusy(busy);
     keepBtn.disabled = busy;
-    confirmBtn.disabled = busy || chosen === null;
     fieldset.disabled = busy;
+    otherInput.disabled = busy;
+    confirmBtn.disabled = busy || chosen === null || (chosen === "other" && otherInput.value.trim() === "");
     confirmBtn.textContent = busy ? "Đang huỷ…" : "Huỷ đơn";
   };
   keepBtn.addEventListener("click", () => {
     if (!sheet.isBusy()) sheet.close();
   });
   confirmBtn.addEventListener("click", async () => {
-    if (sheet.isBusy() || chosen === null) return;
+    const note = chosen === "other" ? otherInput.value.trim() : null;
+    if (sheet.isBusy() || chosen === null || (chosen === "other" && note === "")) return;
     showError(errorBox, null);
     setBusy(true);
     try {
-      await api<Api.HandlerCancelResponse>(`/api/orders/${encodeURIComponent(a.orderId)}/handler-cancel`, { method: "POST", body: { reason: chosen } });
+      await api<Api.HandlerCancelResponse>(`/api/orders/${encodeURIComponent(a.orderId)}/handler-cancel`, {
+        method: "POST",
+        body: chosen === "other" ? { reason: chosen, note } : { reason: chosen },
+      });
       sheet.close(false);
       done({ said: `Đã huỷ đơn ${a.orderCode}.` });
     } catch (err) {
+      // 400 (note rỗng hoặc chứa số điện thoại — máy chủ, không phải ở đây, kiểm) → giữ bảng mở, KHÔNG mất nội dung đã gõ, hiện đúng lỗi máy chủ.
       setBusy(false);
       if (isOutdated(err)) {
         sheet.close(false);

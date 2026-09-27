@@ -8,6 +8,8 @@
 //   (4) bấm Nhận → đơn sang "Đơn của tôi", tải lại từ máy chủ;
 //   (5) bảng "Sửa số khách" (điện thoại): lý do bắt buộc, nút chọn nhanh điền ô, thân gửi đủ mọi dịch vụ danh mục, tiền trên thẻ cập nhật theo máy chủ;
 //   (6) bảng "Huỷ đơn" (điện thoại): hỏi lại, "Giữ đơn" không huỷ, phải chọn lý do, huỷ thật → thẻ biến mất (DK-T4-02 phần giao diện, thay va3-smoke bước 3–6);
+//       lý do "Khác" (ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27): gõ số điện thoại → máy chủ chặn (400), không huỷ, không mất nội dung đã gõ;
+//       sửa lại lý do thường → huỷ thành công;
 //   (7) máy tính: bảng giữa màn hình, Esc đóng không gửi gì.
 // Dùng lại cơ chế CDP của A2 (startEnv()/ACCOUNTS/ok/vnDate từ ../../2026-09-20-a2/kich-ban/a2-cdp.mjs), mẫu step() ✓/✗ của va3-smoke.mjs (không dừng ở bước
 // hỏng đầu tiên). Mọi trang trình duyệt là CÙNG một tài khoản HDV (kho cookie chung không gây nhầm người); tài khoản khác chỉ gọi API bằng Node (cookie riêng).
@@ -344,7 +346,7 @@ try {
     assert.equal(sh.title, `Huỷ đơn ${M4.orderCode}?`);
     assert.equal(await mob.ev("document.querySelector('.sheet-title .hdv-nowrap').getClientRects().length"), 1, "mã đơn trong tiêu đề không bị ngắt dòng");
     assert.ok(sh.text.startsWith("Đơn của Phạm Quốc Bảo, đi ") && sh.text.endsWith("Thao tác này không hoàn tác được."), sh.text);
-    assert.deepEqual(sh.reasons, ["Không liên hệ được với khách", "Khách yêu cầu huỷ"]);
+    assert.deepEqual(sh.reasons, ["Không liên hệ được với khách", "Khách yêu cầu huỷ", "Khác"]);
     assert.deepEqual(sh.foot, [["Giữ đơn", false], ["Huỷ đơn", true]], "“Huỷ đơn” khoá tới khi chọn lý do");
     await shotView(mob, "hdv-huy-don-390.png");
     await axe(mob, "bảng huỷ đơn điện thoại");
@@ -367,6 +369,45 @@ try {
     assert.deepEqual(mob.consoleErrors, [], `lỗi console: ${mob.consoleErrors}`);
   });
   mob.close();
+
+  // Lý do "Khác" (ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27): ô chữ tự do, máy chủ (không phải giao diện) chặn số điện thoại. Đơn RIÊNG (M5,
+  // lập sau khi mob đã đóng) để không đụng các khẳng định số đếm/thứ tự "Đơn của tôi" đã kiểm ở bước 6 — mở trang MỚI (mob2) để tải đơn này.
+  const M5 = await newOrder("Bùi Thu Trang", [td101({ adult: 2 }, { departDate: vnDate(7), pickupTime: "07:00", pickupPlace: "Khách sạn Sunrise" })], { handlerStaffId: hdv.id, depositAmount: 400000, depositMethod: "cash" });
+  await confirm(M5);
+  const mob2 = await open(MOB);
+  await step("9", "Điện thoại: “Huỷ đơn” lý do “Khác” — gõ số điện thoại → máy chủ chặn (400), lỗi hiện trong bảng, không huỷ, không mất chữ đã gõ; sửa lại lý do thường → huỷ thành công" + axeNote(), async () => {
+    const openCancel5 = () => mob2.ev(`(() => { const b = [...(${mineCard(M5)}).querySelectorAll('button')].find((x) => x.textContent.trim() === 'Huỷ đơn'); b.click(); return true; })()`);
+    const pickOther = () => mob2.ev("(() => { const i = [...document.querySelectorAll('.sheet .pick')].find((x) => x.querySelector('.pick-name').textContent === 'Khác').querySelector('input'); i.click(); return true; })()");
+    const typeOther = (text) => mob2.ev(`(() => { const i = document.querySelector('.sheet input[aria-label="Lý do khác"]'); i.value = ${JSON.stringify(text)}; i.dispatchEvent(new Event('input', { bubbles: true })); return true; })()`);
+    const clickCancel = () => mob2.ev("(() => { [...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent === 'Huỷ đơn').click(); return true; })()");
+
+    assert.ok(await openCancel5());
+    await mob2.waitFor("!!document.querySelector('.sheet-root.open .sheet[role=dialog]')", "bảng huỷ mở");
+    assert.ok(await pickOther());
+    assert.equal(await mob2.ev("document.querySelector('.sheet input[aria-label=\"Lý do khác\"]').hidden"), false, "ô lý do khác hiện ra khi chọn Khác");
+    assert.equal(await mob2.ev("[...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent === 'Huỷ đơn').disabled"), true, "khoá tới khi có chữ");
+    await typeOther("Gọi lại số 0905 123 456 để xác nhận");
+    assert.equal(await mob2.ev("[...document.querySelectorAll('.sheet-foot button')].find((x) => x.textContent === 'Huỷ đơn').disabled"), false, "có chữ thì mở khoá (giao diện không tự lọc số — máy chủ mới kiểm)");
+    assert.ok(await clickCancel());
+    await mob2.waitFor("!!document.querySelector('.sheet .alert:not([hidden])')", "máy chủ báo lỗi ngay trong bảng", 10000);
+    const err = await mob2.ev("document.querySelector('.sheet .alert').textContent");
+    assert.match(err, /không được chứa số điện thoại/, err);
+    assert.ok(await mob2.ev("!!document.querySelector('.sheet-root')"), "bảng vẫn mở, chưa huỷ");
+    assert.equal(await mob2.ev('document.querySelector(\'.sheet input[aria-label="Lý do khác"]\').value'), "Gọi lại số 0905 123 456 để xác nhận", "không mất nội dung đã gõ");
+    assert.equal((await detail(M5)).status, "confirmed", "chưa huỷ");
+    await shotView(mob2, "hdv-huy-don-khac-loi-390.png");
+    // Sửa lại — văn bản thường, không dãy số dài → huỷ thành công.
+    await typeOther("Khách đổi lịch bất ngờ, xin huỷ");
+    assert.ok(await clickCancel());
+    await mob2.waitFor(`!document.querySelector('.sheet-root') && !(${mineCard(M5)})`, "bảng đóng, thẻ biến khỏi Đơn của tôi", 10000);
+    const posts = mob2.requests.filter((x) => x.method === "POST" && x.url.includes(`/api/orders/${M5.id}/handler-cancel`));
+    assert.equal(posts.length, 2, "một lần bị 400, một lần thành công");
+    assert.deepEqual(JSON.parse(posts[0].postData), { reason: "other", note: "Gọi lại số 0905 123 456 để xác nhận" });
+    assert.deepEqual(JSON.parse(posts[1].postData), { reason: "other", note: "Khách đổi lịch bất ngờ, xin huỷ" });
+    assert.equal((await detail(M5)).status, "cancelled");
+    assert.deepEqual(mob2.consoleErrors, [], `lỗi console: ${mob2.consoleErrors}`);
+  });
+  mob2.close();
 } finally {
   for (const p of pages) try { p.close(); } catch { /* đã đóng */ }
   await env.stop();

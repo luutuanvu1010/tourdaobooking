@@ -90,17 +90,36 @@ test("mọi quyền hiện có được xếp vào đúng nhóm được giao / 
   assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
 });
 
-// --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11) -------------------------------------------------------------------------
-test("lý do huỷ: đúng một trong hai mã đóng", () => {
+// --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11; "other" — ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27) -----------------------------------------
+test("lý do huỷ: đúng một trong hai mã đóng cũ — note (nếu có gửi kèm) bị bỏ qua, không lỗi", () => {
   assert.deepEqual(parseCancelReason({ reason: "not_reachable" }), { ok: true, reason: "not_reachable" });
   assert.deepEqual(parseCancelReason({ reason: "customer_requested" }), { ok: true, reason: "customer_requested" });
+  assert.deepEqual(parseCancelReason({ reason: "not_reachable", note: "0905123456" }), { ok: true, reason: "not_reachable" }, "note thừa với mã cũ không gây lỗi và không lọt vào kết quả");
 });
 
-test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đóng → từ chối, thông điệp nêu cả hai lựa chọn hợp lệ", () => {
+test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đóng → từ chối, thông điệp nêu đủ ba lựa chọn hợp lệ", () => {
   for (const body of [null, {}, { reason: "" }, { reason: "khác" }, { reason: 1 }, { reason: "Không liên hệ được với khách" }, { reason: "NOT_REACHABLE" }]) {
     const r = parseCancelReason(body as Record<string, unknown> | null);
-    assert.ok(!r.ok && /Không liên hệ được với khách/.test(r.message) && /Khách yêu cầu huỷ/.test(r.message), JSON.stringify(body));
+    assert.ok(!r.ok && /Không liên hệ được với khách/.test(r.message) && /Khách yêu cầu huỷ/.test(r.message) && /Khác/.test(r.message), JSON.stringify(body));
   }
+});
+
+test('lý do "Khác": thiếu note, note rỗng, hoặc note toàn khoảng trắng → từ chối, nêu đúng lý do', () => {
+  for (const body of [{ reason: "other" }, { reason: "other", note: "" }, { reason: "other", note: "   " }, { reason: "other", note: 5 }]) {
+    const r = parseCancelReason(body as Record<string, unknown> | null);
+    assert.ok(!r.ok && /Cần nhập lý do khi chọn "Khác"/.test(r.message), JSON.stringify(body));
+  }
+});
+
+test('lý do "Khác": note chứa số điện thoại/dãy số dài (mọi cách viết) → từ chối, không ghi', () => {
+  for (const note of ["Gọi số 0905123456 không được", "Khách để lại số (0258) 3521 234 rồi mất liên lạc", "Đổi lịch, gọi +84 905 123 456 xác nhận"]) {
+    const r = parseCancelReason({ reason: "other", note });
+    assert.ok(!r.ok && /không được chứa số điện thoại hoặc dãy số dài/.test(r.message), JSON.stringify({ note, r }));
+  }
+});
+
+test('lý do "Khác": note hợp lệ (văn bản thường, đã trim) → ok, trả đúng note đã trim', () => {
+  assert.deepEqual(parseCancelReason({ reason: "other", note: "  Khách đổi lịch bất ngờ  " }), { ok: true, reason: "other", note: "Khách đổi lịch bất ngờ" });
 });
 
 // --- Ai được đặt/đổi người phụ trách (ADR-0009 điều 1–2) --------------------------------------------------------------
