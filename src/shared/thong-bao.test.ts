@@ -34,7 +34,11 @@ test("K1: tên chỉ có khi người xem được xem lịch sử đơn; không
   const lan = hop(LAN, d);                                                            // Bán hàng, không lập/không phụ trách
   assert.equal(lan.tin[0]!.cau, "Có đơn mới TD-20260927-0001");
   assert.ok(!JSON.stringify(lan).includes("Hùng"), "JSON không được chứa tên");
-  assert.ok(!JSON.stringify(hop(TAM, d)).includes("Hùng"), "HDV (history none) không thấy tên");
+  // HDV Tâm đang phụ trách chính đơn này (không chỉ "không thấy tin nào" — phải THẤY tin rồi mới khoá được là tin không mang tên, K4).
+  const dTam = [don({ ownerId: "hung", phuTrach: { coNguoi: true, staffId: "tam" } })];
+  const tam = hop(TAM, dTam);
+  assert.equal(tam.tin.length, 1, "HDV đang phụ trách phải THẤY tin — nếu rỗng thì khẳng định dưới vô nghĩa");
+  assert.ok(!JSON.stringify(tam).includes("Hùng"), "HDV (history none) không thấy tên dù đang phụ trách");
   const cuaLan = [don({ ownerId: "lan", actorId: "tri", tenNguoiLam: "Trị", action: "confirmed", phuTrach: { coNguoi: true, staffId: "lan" } })];
   assert.equal(hop(LAN, cuaLan).tin[0]!.cau, "Trị vừa xác nhận đơn TD-20260927-0001");  // đơn của Lan → có tên
   assert.equal(hop(LAN, [don({ actorId: null, tenNguoiLam: null, ownerId: "lan" })]).tin[0]!.cau, "Có đơn mới TD-20260927-0001"); // hệ thống → không tên
@@ -71,11 +75,18 @@ test("Hai ngăn + số chưa đọc chỉ đếm 'Của tôi', luôn bằng số
     don({ action: "created", ownerId: "hung", actorId: "hung", luc: "2026-09-27T02:20:00.000Z" }),        // đơn khác
     don({ action: "created", ownerId: "lan", actorId: "lan" }),                                            // của chính Lan
   ];
-  const t = [tin({ luc: "2026-09-27T01:00:00.000Z" }), tin({ thuHoi: true }), tin({ nhan: ["quyen:ACCOUNTING"] })];
+  const t = [
+    tin({ luc: "2026-09-27T01:00:00.000Z" }),
+    tin({ thuHoi: true }),
+    tin({ nhan: ["quyen:ACCOUNTING"] }),
+    tin({ luc: "2026-08-01T00:00:00.000Z", quanTrong: true, daHieuLuc: null }), // Review Focus 5: quan trọng quá 30 ngày, chưa "Đã hiểu" — vẫn giữ (X4)
+    tin({ nguoiGuiId: "lan" }),                                                  // Review Focus 5: chính người xem gửi — không được thấy tin của mình (K6)
+  ];
   const cua = hop(LAN, d, t, "cua-toi", "2026-09-27T00:00:00.000Z");
   const tat = hop(LAN, d, t, "tat-ca", "2026-09-27T00:00:00.000Z");
-  assert.equal(cua.tin.length, 2);
-  assert.equal(tat.tin.length, 3);
+  assert.equal(cua.tin.length, 3, "thêm 1 tin quan trọng cũ giữ lại; tin tự gửi bị loại (K6)");
+  assert.equal(tat.tin.length, 4);
+  assert.ok(cua.tin.some((x) => x.quanTrong && x.daHieuLuc === null), "tin quan trọng quá 30 ngày chưa 'Đã hiểu' vẫn có mặt");
   for (const r of [cua, tat]) assert.equal(r.soChuaDoc, cua.tin.filter((x) => x.cuaToi && x.chuaDoc).length);
   assert.equal(hop(LAN, d, t, "cua-toi", NOW).soChuaDoc, 0, "mở hộp = đọc hết");
   assert.deepEqual(cua.tin.map((x) => x.luc), [...cua.tin.map((x) => x.luc)].sort().reverse(), "mới nhất trên cùng");
