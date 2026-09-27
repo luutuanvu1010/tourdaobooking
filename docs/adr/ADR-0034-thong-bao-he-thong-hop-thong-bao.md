@@ -1,6 +1,6 @@
 # ADR-0034 — Thông báo hệ thống: hộp thông báo là hình chiếu của sổ nhật ký; tin thủ công chỉ Toàn quyền gửi, có loại quan trọng
 
-- **Trạng thái:** **proposed** — AI soạn 2026-09-27 theo các câu chủ trả lời trong chat cùng ngày (ghi đủ ở đặc tả `docs/superpowers/specs/2026-09-27-thong-bao-he-thong-design.md` §2). Chờ chủ duyệt; chưa thi công.
+- **Trạng thái:** **accepted** — chủ dự án trả lời *"Duyệt"* trong chat 2026-09-27 cho câu "duyệt lượt 1 (đặc tả + ADR-0034)", sau hai vòng kiểm độc lập và một vòng trợ lý đọc hộ chủ. AI ghi lại, không tự quyết (tiền lệ ADR-0021, ADR-0027, ADR-0033). Soạn theo các câu chủ trả lời cùng ngày (đặc tả `docs/superpowers/specs/2026-09-27-thong-bao-he-thong-design.md` §2). Từ mốc này chỉ sửa dòng trạng thái; đổi nội dung = ADR mới. Chưa thi công; giao diện chờ bản mẫu được chủ duyệt (đặc tả E1).
 - **Ngày:** 2026-09-27   **Loại:** cửa **một chiều** về dữ liệu (bảng tin thủ công, xác nhận "Đã hiểu" — dữ liệu tích luỹ, chỉ-thêm); **hai chiều** về quyền (một ô mới) và về hình chiếu (gỡ hộp thông báo không mất dữ liệu nghiệp vụ nào).
 - **Liên quan:**
   - **Hiến chương** (`docs/ARCHITECTURE.md` Phần I, đã duyệt): 1.4 (hình chiếu không tạo sự thật), 4.1 (sự thật = trạng thái + nhật ký cùng lô), K16 (thông báo là hình chiếu), 5.10 (thông báo không kích hoạt tiền), 5.12 (nhật ký không chứa SĐT/email/MST), 5.13 (thứ tự xây — chủ chọn làm ngay, đặc tả §2 N2). ADR này **theo** các điều đó, không lệch.

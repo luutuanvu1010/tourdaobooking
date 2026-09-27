@@ -1,6 +1,6 @@
 # Đặc tả (bản nháp): Thông báo hệ thống — chuông, hộp thông báo, tin của Toàn quyền, thông báo màn hình khoá
 
-- **Trạng thái:** bản nháp, chờ chủ duyệt. Chủ đã trả lời **đủ các câu hỏi** trong chat 2026-09-27 (§2). **Duyệt làm hai lượt** (CLAUDE.md §9: tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt):
+- **Trạng thái:** **lượt 1 ĐÃ DUYỆT** (chủ trả lời "Duyệt" trong chat 2026-09-27 — đặc tả §1–§8, §12 và ADR-0034 accepted); lượt 2 (§9, ADR-0036) chờ duyệt riêng. Bước kế: bản mẫu giao diện (E1) → kế hoạch thi công. Chủ đã trả lời **đủ các câu hỏi** trong chat 2026-09-27 (§2). **Duyệt làm hai lượt** (CLAUDE.md §9: tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt):
   - **Lượt 1** — hộp thông báo + tin thủ công: `docs/adr/ADR-0034-thong-bao-he-thong-hop-thong-bao.md` (proposed). Ba quyết định chạm quyền/dữ liệu: (1) hộp là hình chiếu của sổ nhật ký, (2) bảng tin thủ công + xác nhận đã hiểu + mốc đã đọc, (3) ô quyền `notice.send`.
   - **Lượt 2** — thông báo màn hình khoá: `docs/adr/ADR-0036-thong-bao-man-hinh-khoa.md` (proposed). Ba quyết định: (1) lưu địa chỉ nhận của máy, (2) khoá bí mật mới + cú gõ cửa không nội dung, (3) luật tự tắt.
 - **Ngày:** 2026-09-27. **Người soạn:** AI (phiên lập kế hoạch; không thi công trong phiên này — P15).
