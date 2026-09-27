@@ -2,7 +2,7 @@
 // Worker/Node — chỉ import ./permissions.ts (điều 3 ADR-0022: nhóm nhận suy từ ô `order.view`/`dispatch.claim` hiện hành, không đặt luật
 // quyền mới ở đây). Sự kiện chỉ gồm đúng 5 khoá của điều 4 (không tiền, không SĐT, không tên người) — thêm trường = đổi ADR.
 
-import { can, hasPermission, isOffice, type PermissionHolder } from "./permissions.ts";
+import { can, hasPermission, holdsPartner, isOffice, type PermissionHolder } from "./permissions.ts";
 
 /** 9 loại thay đổi một đơn có thể phát (điều 4 + điều 7). */
 export const THAY_DOI = ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien"] as const;
@@ -25,30 +25,41 @@ export interface TrangThaiPhuTrach {
 
 /**
  * Nhãn của một kết nối (ai nhận được tin gì) — NT-1. Luôn có `nguoi:<id>`; thêm `tat-ca` nếu xem được mọi đơn (`order.view`, không ngữ
- * cảnh = ô `any`); thêm `cho-nhan` nếu nhận được đơn chưa có người (`dispatch.claim`). Không luật quyền viết tay ngoài hai lời gọi `can()` này.
+ * cảnh = ô `any`); thêm `cho-nhan` nếu nhận được đơn chưa có người (`dispatch.claim`) VÀ tài khoản không mang quyền Đối tác (`!holdsPartner`
+ * — ADR-0030 S20-8/9, Q-M: tài khoản lai Đối tác+HDV không được đưa vào hàng chờ nhận nên cũng không nhận tin của hàng chờ). Không luật
+ * quyền viết tay ngoài `can()`/`holdsPartner`.
  */
 export function nhanKetNoi(staff: PermissionHolder): string[] {
   const nhan = new Set<string>([`nguoi:${staff.id}`]);
   if (can(staff, "order.view")) nhan.add("tat-ca");
-  if (can(staff, "dispatch.claim")) nhan.add("cho-nhan");
+  if (can(staff, "dispatch.claim") && !holdsPartner(staff)) nhan.add("cho-nhan");
   return [...nhan].sort();
 }
 
 /**
  * Nhãn của một sự kiện đơn (ai được gửi tin) — NT-2. Luôn có `tat-ca` + `nguoi:<người lập>`; thêm `nguoi:<người phụ trách trước/sau>` khi
- * người đó có tài khoản (`staffId !== null`); thêm `cho-nhan` khi và chỉ khi SAU thay đổi đơn không còn ai phụ trách (`!handlerSau.coNguoi`) —
- * người phụ trách là hồ sơ không tài khoản thì đơn CÓ người (không gắn `cho-nhan`) nhưng không có nhãn `nguoi:` cho người đó. Không trùng lặp.
+ * người đó có tài khoản (`staffId !== null`); người phụ trách là hồ sơ không tài khoản thì đơn CÓ người (không gắn `cho-nhan`) nhưng không có
+ * nhãn `nguoi:` cho người đó. Không trùng lặp.
+ *
+ * `cho-nhan` (ADR-0030 S20-8/9) khi và chỉ khi:
+ *   (a) SAU thay đổi đơn không còn ai phụ trách (`!handlerSau.coNguoi`) — đơn đang/vừa vào hàng chờ; hoặc
+ *   (b) trạng thái TRƯỚC thay đổi **biết được** (khác `null`) và trước đó chưa ai phụ trách (`!handlerTruoc.coNguoi`) — đơn VỪA rời hàng
+ *       chờ (được Nhận/được Giao), để mọi HDV đang chờ gỡ nó khỏi danh sách.
+ * `handlerTruoc === null` nghĩa là "không biết trạng thái trước" (route ghi không tự đọc lại — mặc định của gốc lắp ráp, `src/index.ts:47`):
+ * KHÔNG BAO GIỜ được coi là "trước chưa ai phụ trách". Coi nhầm "không biết" thành "chưa ai" làm rò tin: một đơn ĐÃ có người (ví dụ HDV B)
+ * mà văn phòng xác nhận/sửa/đổi tiền/huỷ — route đó không truyền `handlerTruoc` — sẽ bị gắn `cho-nhan` sai, lộ cho MỌI tài khoản có
+ * `dispatch.claim` (mọi HDV khác, không chỉ B) dù đơn không hề rời hàng chờ. Đây là lỗi mà bài NT-3 (thay ở `bang-tin.test.ts`) canh.
  */
 export function nhanSuKien(input: {
   ownerId: string;
-  handlerTruoc: TrangThaiPhuTrach;
+  handlerTruoc: TrangThaiPhuTrach | null;
   handlerSau: TrangThaiPhuTrach;
 }): string[] {
   const { ownerId, handlerTruoc, handlerSau } = input;
   const nhan = new Set<string>(["tat-ca", `nguoi:${ownerId}`]);
-  if (handlerTruoc.staffId !== null) nhan.add(`nguoi:${handlerTruoc.staffId}`);
+  if (handlerTruoc !== null && handlerTruoc.staffId !== null) nhan.add(`nguoi:${handlerTruoc.staffId}`);
   if (handlerSau.staffId !== null) nhan.add(`nguoi:${handlerSau.staffId}`);
-  if (!handlerSau.coNguoi) nhan.add("cho-nhan");
+  if (!handlerSau.coNguoi || (handlerTruoc !== null && !handlerTruoc.coNguoi)) nhan.add("cho-nhan");
   return [...nhan].sort();
 }
 
@@ -95,13 +106,14 @@ const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
 /**
  * Có hiện thông báo nổi cho tài khoản `staff` khi nhận sự kiện `suKien` không, và nếu có thì câu gì + bấm vào đi đâu (TD-4). Đối tác/Thực tập
  * (không văn phòng, không Hướng dẫn viên) không bao giờ hiện (Q-C ADR-0022, điều 12 ADR-0014: chỉ chấm đếm, không thông báo nổi). `tao_cho_nhan`
- * chỉ hiện cho ai nhận được đơn chưa có người (`dispatch.claim`). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
+ * chỉ hiện cho ai nhận được đơn chưa có người (`dispatch.claim`) VÀ không mang quyền Đối tác (`!holdsPartner` — ADR-0030 S20-8/9, cùng luật với
+ * `nhanKetNoi`: tài khoản lai Đối tác+HDV không hiện thông báo về hàng chờ nhận). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
  */
 export function thongBaoNoi(staff: PermissionHolder, suKien: SuKienDon): ThongBaoNoi | null {
   const vanPhong = isOffice(staff);
   const huongDanVien = !vanPhong && hasPermission(staff, "FIELD");
   if (!vanPhong && !huongDanVien) return null;
-  if (suKien.thayDoi === "tao_cho_nhan" && !can(staff, "dispatch.claim")) return null;
+  if (suKien.thayDoi === "tao_cho_nhan" && (!can(staff, "dispatch.claim") || holdsPartner(staff))) return null;
   const dungCau = CAU_THONG_BAO[suKien.thayDoi];
   if (!dungCau) return null;
   return { cau: dungCau(suKien.maDon), lienKet: vanPhong ? `/order?id=${suKien.orderId}` : "/account" };

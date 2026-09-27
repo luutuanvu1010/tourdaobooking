@@ -6,7 +6,12 @@
 // ngay sau (`moiPhien`/`dongHet`), không giữ kết nối qua nhiều ca (task-7-brief Bước 2).
 //
 // CA 1–8 (bắt tay 401/403/426/101; ai nhận tin theo quyền — NT-4; 8 điểm phát DP-1; Đối tác + nhãn giả BT-2; ping/pong BT-3; hạn sống KN-1)
-// + CA 9, CA 10 (Task 6 — KN-2: đóng kết nối khi đổi tài khoản / bảo trì).
+// + CA 9, CA 10 (Task 6 — KN-2: đóng kết nối khi đổi tài khoản / bảo trì) + CA 11 (ADR-0030 S20-8/9: HDV không lộ tin đơn HDV khác).
+//
+// CA 11 (đặc tả §12 mục 3, `docs/superpowers/specs/2026-09-26-don-tu-do-hdv-nhan-tu-choi-design.md`): viết ở Task 1.4, CHƯA chạy được đủ —
+// `dispatch.claim` của FIELD vẫn "none" tới khi Task 1.5 đổi thành "any" (kế hoạch `docs/superpowers/plans/2026-09-27-tu-choi-huy-hdv-thi-cong.md`).
+// TRƯỚC Task 1.5: HDV không có nhãn `cho-nhan` nên các khẳng định "nhận đúng một tin" ở CA 11 phần 2 SẼ ĐỎ (0 tin, không phải 1) — đây là
+// đỏ CÓ CHỜ, không phải lỗi; chạy lại và xác nhận xanh ở Task 1.9 (sau Task 1.5).
 import assert from "node:assert/strict";
 import { ACCOUNTS, BASE, batTay, call, cho, ensureFakeCatalog, moBangTin, orderInput, randomPhone, session, sql } from "./lib.mjs";
 
@@ -436,4 +441,72 @@ const P2 = await taoTaiKhoanDungMotLan("Đối Tác Bảng Tin 2 (test)", ["PART
   console.log("✓ ca 10: bật bảo trì đóng mọi kết nối (4003, kể cả admin); bắt tay lại của tài khoản không được phép → 503; đã tắt bảo trì");
 }
 
-console.log("E2E BANG TIN (ca 1–10) OK");
+// === CA 11 (ADR-0030 S20-8, S20-9 — CHƯA CHẠY ĐỦ, chờ Task 1.5 mở dispatch.claim cho FIELD; xem chú thích đầu tệp): HDV A (fieldB) và tài
+// khoản lai Đối tác+HDV KHÔNG nhận tin nào về đơn HDV B (field) đang phụ trách khi văn phòng xác nhận/sửa/sửa chuyến/đổi tiền/huỷ đơn đó
+// (luật (a)/(b) của `nhanSuKien`: sau vẫn có người trong suốt các thao tác này, và không route nào truyền handlerTruoc "chưa ai" thật).
+// Ngoại lệ DUY NHẤT (S20-9): một đơn CHƯA có người (chờ nhận) — lúc salesB Nhận nó (rời hàng chờ), fieldB phải nhận ĐÚNG một tin qua nhãn
+// cho-nhan (thayDoi 'nhan') để gỡ đơn khỏi danh sách chờ nhận; tài khoản lai vẫn KHÔNG nhận (S20-8: !holdsPartner chặn cho-nhan của lai). =====
+{
+  const fieldBCookie = await session(ACCOUNTS.fieldB);
+  const fieldBId = (await meOf(fieldBCookie)).id;
+  const lai = await taoTaiKhoanDungMotLan("Lai Đối Tác + HDV Bảng Tin (test)", ["PARTNER", "FIELD"]);
+
+  // --- Phần 1: đơn ĐÃ có người phụ trách (field = "HDV B") — fieldB ("HDV A") và tài khoản lai không nhận tin nào của đơn này. ---
+  {
+    const o0 = (await call(salesACookie, "POST", "/api/orders", orderInput({ handlerStaffId: fieldId }))).body.order;
+    const [pFieldB, pLai] = await moiPhien(fieldBCookie, lai.cookie);
+    try {
+      // "sua" (PUT /api/orders/:id) chỉ sửa được đơn NHÁP (`NOT_EDITABLE`, src/modules/orders/index.ts:31) — làm TRƯỚC khi xác nhận.
+      assert.equal((await call(salesACookie, "PUT", `/api/orders/${o0.id}`, orderInput({ customerNote: "ca 11: sửa đơn HDV B", expectedUpdatedAt: o0.updatedAt }))).status, 200, "ca 11: sửa đơn HDV B đang phụ trách (còn nháp)");
+      const o = { id: o0.id };
+      assert.equal((await call(salesACookie, "POST", `/api/orders/${o.id}/status`, { status: "confirmed" })).status, 200, "ca 11: xác nhận đơn HDV B đang phụ trách");
+      let cur = (await call(salesACookie, "GET", `/api/orders/${o.id}`)).body.order;
+      const sv = cur.services[0];
+      assert.equal(
+        (await call(salesACookie, "PUT", `/api/orders/${o.id}/trip`, {
+          expectedUpdatedAt: cur.updatedAt,
+          services: [{ id: sv.id, departDate: sv.departDate ?? "", departTime: sv.departTime ?? "", pickupTime: sv.pickupTime ?? "", pickupPlace: sv.pickupPlace ?? "", checkinDate: sv.checkinDate ?? "", checkinTime: sv.checkinTime ?? "", checkinPlace: sv.checkinPlace ?? "", note: "ca 11: sửa chuyến" }],
+        })).status,
+        200,
+        "ca 11: sửa chuyến đơn HDV B đang phụ trách",
+      );
+      cur = (await call(salesACookie, "GET", `/api/orders/${o.id}`)).body.order;
+      assert.equal(
+        (await call(fieldCookie, "POST", `/api/orders/${o.id}/handler-money-edit`, { reason: "ca 11: khách báo thêm người", services: [{ id: cur.services[0].id, pax: { adult: 2, child: 0, senior: 0, infant: 0 } }] })).status,
+        200,
+        "ca 11: HDV B tự đổi tiền đơn mình đang phụ trách",
+      );
+      assert.equal((await call(fieldCookie, "POST", `/api/orders/${o.id}/handler-cancel`, { reason: "customer_requested" })).status, 200, "ca 11: HDV B huỷ đơn mình đang phụ trách");
+
+      await yen(1500); // không có đối chứng dương ở phần này (mọi thao tác đều KHÔNG được lộ) — chờ đủ để một lần phát sai (nếu có) hiện ra
+      assert.equal(pFieldB.tin.filter((t) => t.orderId === o.id).length, 0, "ca 11: HDV A (fieldB) không được nhận tin NÀO về đơn HDV B đang phụ trách (xác nhận/sửa/sửa chuyến/đổi tiền/huỷ)");
+      assert.equal(pLai.tin.filter((t) => t.orderId === o.id).length, 0, "ca 11: tài khoản lai Đối tác+HDV không được nhận tin nào về đơn này (S20-8)");
+    } finally {
+      dongHet(pFieldB, pLai);
+    }
+  }
+  console.log("✓ ca 11a: HDV khác (fieldB) và tài khoản lai Đối tác+HDV không nhận tin nào về đơn HDV B đang phụ trách (xác nhận/sửa/sửa chuyến/đổi tiền/huỷ)");
+
+  // --- Phần 2 (ngoại lệ S20-9): đơn CHƯA có người (chờ nhận) — salesB Nhận → fieldB (đang chờ hàng chờ) nhận ĐÚNG một tin 'nhan' qua
+  // cho-nhan; tài khoản lai KHÔNG nhận (S20-8: !holdsPartner). CHƯA CHẠY ĐỦ tới khi Task 1.5 mở dispatch.claim cho FIELD (xem đầu tệp). ---
+  {
+    const oC = (await call(salesACookie, "POST", "/api/orders", orderInput())).body.order; // không chọn ai → chưa có người, đang ở hàng chờ
+    const [pFieldB, pLai] = await moiPhien(fieldBCookie, lai.cookie);
+    try {
+      const r = await call(salesBCookie, "PUT", `/api/orders/${oC.id}/handler`, { staffId: salesBId });
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+      assert.ok(
+        await pFieldB.cho((tin) => tin.some((t) => t.orderId === oC.id && t.thayDoi === "nhan")),
+        "ca 11b: HDV A (fieldB) phải nhận tin 'nhan' trong 2 giây (đơn vừa rời hàng chờ — S20-9, luật (b))",
+      );
+      await yen(ON_DINH_MS);
+      assert.equal(pFieldB.tin.filter((t) => t.orderId === oC.id).length, 1, "ca 11b: fieldB chỉ đúng MỘT tin cho đơn này");
+      assert.equal(pLai.tin.filter((t) => t.orderId === oC.id).length, 0, "ca 11b: tài khoản lai Đối tác+HDV KHÔNG nhận tin của hàng chờ (S20-8)");
+    } finally {
+      dongHet(pFieldB, pLai);
+    }
+  }
+  console.log("✓ ca 11b: đơn vừa rời hàng chờ (được Nhận) → HDV khác nhận đúng một tin 'nhan' qua cho-nhan; tài khoản lai không nhận (S20-8, S20-9)");
+}
+
+console.log("E2E BANG TIN (ca 1–11) OK");

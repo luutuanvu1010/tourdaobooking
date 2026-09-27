@@ -2,7 +2,7 @@
 // Task 2: hàm thuần phía trình duyệt (chờ nối lại, quyết định thông báo nổi TD-4, kiểm tin hợp lệ).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MATRIX, PERMISSION_CODES, can, type PermissionCode } from "./permissions.ts";
+import { MATRIX, PERMISSION_CODES, can, holdsPartner, type PermissionCode } from "./permissions.ts";
 import {
   THAY_DOI,
   choNoiLai,
@@ -27,16 +27,23 @@ function moiTapCon<T>(mang: readonly T[]): T[][] {
   return [...conCacTap, ...conCacTap.map((t) => [dau as T, ...t])];
 }
 
-test("nhanKetNoi: mọi tập con quyền (128) khớp can(order.view)/can(dispatch.claim) suy từ MATRIX", () => {
+test("nhanKetNoi: mọi tập con quyền (128) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner) suy từ MATRIX (ADR-0030 S20-8)", () => {
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
   assert.equal(tapCon.length, 128);
   for (const permissions of tapCon) {
     const staff = { id: "nv1", permissions };
     const ky_vong = new Set<string>(["nguoi:nv1"]);
     if (can(staff, "order.view")) ky_vong.add("tat-ca");
-    if (can(staff, "dispatch.claim")) ky_vong.add("cho-nhan");
+    if (can(staff, "dispatch.claim") && !holdsPartner(staff)) ky_vong.add("cho-nhan");
     assert.deepEqual(nhanKetNoi(staff), [...ky_vong].sort(), `permissions=${JSON.stringify(permissions)}`);
   }
+});
+
+test("nhanKetNoi: tài khoản lai Đối tác + quyền có dispatch.claim (SALES/ADMIN/SUPER_ADMIN) KHÔNG có cho-nhan (ADR-0030 S20-8, Q-M)", () => {
+  // holdsPartner áp bất kể quyền đi kèm (chủ dự án 2026-09-26: "Có quyền Đối tác là áp") — cùng luật với checkAssignee.
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SALES"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+SALES: tat-ca có (order.view=any qua SALES), cho-nhan KHÔNG");
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "ADMIN"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+ADMIN: cho-nhan KHÔNG");
+  assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SUPER_ADMIN"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+SUPER_ADMIN: cho-nhan KHÔNG (SUPER_ADMIN any ở mọi ô nhưng holdsPartner vẫn chặn)");
 });
 
 test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ", () => {
@@ -52,52 +59,115 @@ test("nhanKetNoi: bảng ảnh chụp hôm nay theo từng quyền đơn lẻ", 
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["INTERN"] }), chiNguoi);
 });
 
-test("NT-3: mọi mã quyền có dispatch.claim khác none đều có order.view = any (hôm nay nhãn cho-nhan không thêm người nhận nào ngoài tat-ca)", () => {
-  for (const p of PERMISSION_CODES) {
-    if (MATRIX["dispatch.claim"][p] !== "none") {
-      assert.equal(
-        MATRIX["order.view"][p],
-        "any",
-        "Nhãn cho-nhan nay thêm người nhận ngoài order.view — quyết định (5)/GĐ2 Phần D: hỏi chủ trước khi sửa bài kiểm này",
-      );
+// NT-3 (thay, ADR-0030 S20-8/9, đỏ có chủ ý — chủ đã duyệt): trước đây (bài cũ) mọi mã quyền có dispatch.claim ≠ none đều có order.view = any,
+// nên nhãn cho-nhan không bao giờ thêm người nhận ngoài tat-ca — bất biến đó vỡ khi FIELD nhận dispatch.claim mà VẪN order.view hẹp (Task 1.5,
+// lượt 1). Luật thật (bất biến phải giữ mãi, không chỉ hôm nay): với MỌI kết nối suy từ MATRIX mà KHÔNG có nhãn tat-ca, và MỌI sự kiện dựng
+// bằng nhanSuKien() từ mọi tổ hợp (người lập/người phụ trách X/Y phân biệt với chính kết nối đó để không match qua nguoi:), kết nối đó chỉ
+// nhận được sự kiện QUA NHÃN cho-nhan khi đơn đang ở hàng chờ (sau = chưa ai) hoặc VỪA rời hàng chờ (trước = chưa ai, biết) — never khi
+// "đơn đang có người khác phụ trách, trước không biết". Test mô phỏng ĐÚNG cách trạm ghép cặp: một kết nối nhận sự kiện khi và chỉ khi giao
+// giữa nhãn kết nối và nhãn sự kiện không rỗng (`phatDon`, `src/modules/bangtin/index.ts:41`).
+const CHU = "chu-lap-don"; // người lập — không trùng id kết nối đang xét lẫn X/Y, để không match qua nguoi:<ownerId>
+const HX: TrangThaiPhuTrach = { coNguoi: true, staffId: "hx-nguoi-phu-trach" };
+const HY: TrangThaiPhuTrach = { coNguoi: true, staffId: "hy-nguoi-phu-trach" };
+const CHUA_AI: TrangThaiPhuTrach = { coNguoi: false, staffId: null };
+const TRUOC_TO_HOP: (TrangThaiPhuTrach | null)[] = [null, CHUA_AI, HX, HY]; // không biết, chưa ai, có người X, có người Y
+const SAU_TO_HOP: TrangThaiPhuTrach[] = [CHUA_AI, HX, HY];
+
+test("NT-3 (thay): kết nối không có tat-ca chỉ nhận sự kiện qua cho-nhan khi hàng chờ đổi (sau=chưa ai, hoặc trước=chưa ai VÀ biết) — không bao giờ khi trước KHÔNG BIẾT", () => {
+  // Ghi chú: TRƯỚC Task 1.5 (FIELD dispatch.claim vẫn "none"), mọi mã quyền có dispatch.claim ≠ none cũng có order.view = any nên bị bỏ qua
+  // (skip "coi kết nối không có tat-ca") — bài này chưa có ca coChoNhan=true THẬT để soi trên mã hôm nay; nó đã được CHỨNG MINH bắt lỗi bằng
+  // đột biến tay (dispatch.claim FIELD tạm "any" + nhanSuKien/mặc định kiểu cũ) trước khi commit — xem báo cáo thi công. Sau Task 1.5 bài này
+  // chạy có ý nghĩa thật với FIELD.
+  const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
+  for (const permissions of tapCon) {
+    const staff = { id: "ket-noi-dang-xet", permissions };
+    const nhanKN = nhanKetNoi(staff);
+    if (nhanKN.includes("tat-ca")) continue; // phạm vi của NT-3 chỉ nói về kết nối KHÔNG có tat-ca
+    const coChoNhan = nhanKN.includes("cho-nhan");
+    for (const handlerTruoc of TRUOC_TO_HOP) {
+      for (const handlerSau of SAU_TO_HOP) {
+        const nhanSK = nhanSuKien({ ownerId: CHU, handlerTruoc, handlerSau });
+        const giaoNhau = nhanKN.some((n) => nhanSK.includes(n)); // đúng cách trạm ghép cặp (phatDon): giao khác rỗng
+        const doiHangCho = !handlerSau.coNguoi || (handlerTruoc !== null && !handlerTruoc.coNguoi);
+        const kyVongNhanQuaChoNhan = coChoNhan && doiHangCho;
+        assert.equal(
+          giaoNhau,
+          kyVongNhanQuaChoNhan,
+          `permissions=${JSON.stringify(permissions)} truoc=${JSON.stringify(handlerTruoc)} sau=${JSON.stringify(handlerSau)} — ` +
+            `nhanKetNoi=${JSON.stringify(nhanKN)} nhanSuKien=${JSON.stringify(nhanSK)}`,
+        );
+      }
     }
   }
 });
 
-test("nhanSuKien: luôn có tat-ca + nguoi:owner; thêm nguoi:handler khi có tài khoản; cho-nhan khi và chỉ khi sau thay đổi không còn ai phụ trách", () => {
+// Hàng rào (docs/SO-HANG-RAO.md) — mô phỏng ĐÚNG biểu thức mặc định của gốc lắp ráp `src/index.ts:47`
+// (`nhanSuKien({ ..., handlerTruoc: e.handlerTruoc ?? MAC_DINH_HOM_NAY, ... })`), vì `bang-tin.test.ts` (thuần, không I/O) KHÔNG được import
+// `src/index.ts` (Worker, mở Durable Object). `MAC_DINH_HOM_NAY` PHẢI khớp giá trị thật ở đó — người sửa `src/index.ts:47` mà quên sửa đây (hoặc
+// ngược lại) thì hai nơi lệch nhau; bài test không tự phát hiện lệch đó, chỉ giữ đúng GIÁ TRỊ ĐÚNG hôm nay (giới hạn ghi ở docs/SO-HANG-RAO.md).
+const MAC_DINH_HOM_NAY: TrangThaiPhuTrach | null = null; // "không biết" — PHẢI khớp src/index.ts:47
+
+test("hàng rào: mặc định handlerTruoc của gốc lắp ráp (mô phỏng src/index.ts:47) là 'không biết' — route không truyền handlerTruoc cho đơn ĐÃ có người không được gắn cho-nhan", () => {
+  // Mô phỏng chính xác một lô ghi không truyền handlerTruoc (ví dụ POST /status xác nhận đơn mà HDV B đang phụ trách): route không đọc lại
+  // trạng thái trước, `e.handlerTruoc` là `undefined`, gốc lắp ráp coi `undefined ?? MAC_DINH_HOM_NAY`.
+  const eHandlerTruoc: TrangThaiPhuTrach | undefined = undefined;
+  const daCoNguoiPhuTrach: TrangThaiPhuTrach = { coNguoi: true, staffId: "hdv-b" };
+  const suKien = nhanSuKien({ ownerId: "chu", handlerTruoc: eHandlerTruoc ?? MAC_DINH_HOM_NAY, handlerSau: daCoNguoiPhuTrach });
+  assert.ok(!suKien.includes("cho-nhan"), `mặc định phải là 'không biết' (null) — đơn HDV B đang phụ trách không được lộ cho-nhan cho HDV khác: ${JSON.stringify(suKien)}`);
+});
+
+test("nhanSuKien: luôn có tat-ca + nguoi:owner; thêm nguoi:handler khi có tài khoản; cho-nhan theo luật (a)/(b) — ADR-0030 S20-8/9", () => {
   const chuaAi: TrangThaiPhuTrach = { coNguoi: false, staffId: null };
   const coTaiKhoan = (id: string): TrangThaiPhuTrach => ({ coNguoi: true, staffId: id });
   const khongTaiKhoan: TrangThaiPhuTrach = { coNguoi: true, staffId: null };
+  const khongBiet = null; // ADR-0030 S20-8/9: "không biết trạng thái trước" — mặc định của gốc lắp ráp khi route không tự đọc lại
 
   assert.deepEqual(
     nhanSuKien({ ownerId: "chu", handlerTruoc: chuaAi, handlerSau: chuaAi }),
     ["cho-nhan", "nguoi:chu", "tat-ca"],
-    "đơn mới chưa ai phụ trách",
+    "đơn mới chưa ai phụ trách — luật (a): sau=chưa ai",
   );
   assert.deepEqual(
     nhanSuKien({ ownerId: "chu", handlerTruoc: chuaAi, handlerSau: coTaiKhoan("nv2") }),
-    ["nguoi:chu", "nguoi:nv2", "tat-ca"],
-    "vừa có người nhận (có tài khoản) — không cho-nhan",
+    ["cho-nhan", "nguoi:chu", "nguoi:nv2", "tat-ca"],
+    "vừa có người nhận (trước=chưa ai, BIẾT) — luật (b): đơn vừa rời hàng chờ, các HDV khác phải gỡ nó khỏi danh sách chờ nhận",
   );
   assert.deepEqual(
     nhanSuKien({ ownerId: "chu", handlerTruoc: coTaiKhoan("nv2"), handlerSau: coTaiKhoan("nv3") }),
     ["nguoi:chu", "nguoi:nv2", "nguoi:nv3", "tat-ca"],
-    "đổi người phụ trách",
+    "đổi người phụ trách (đã có người → có người khác) — không cho-nhan (không (a) không (b))",
   );
   assert.deepEqual(
     nhanSuKien({ ownerId: "chu", handlerTruoc: coTaiKhoan("nv2"), handlerSau: chuaAi }),
     ["cho-nhan", "nguoi:chu", "nguoi:nv2", "tat-ca"],
-    "huỷ phụ trách — lại chưa ai",
+    "huỷ phụ trách — lại chưa ai — luật (a): sau=chưa ai",
   );
   assert.deepEqual(
     nhanSuKien({ ownerId: "chu", handlerTruoc: chuaAi, handlerSau: khongTaiKhoan }),
-    ["nguoi:chu", "tat-ca"],
-    "người phụ trách là hồ sơ KHÔNG tài khoản: đơn có người (không cho-nhan) nhưng không có nhãn nguoi: cho người đó",
+    ["cho-nhan", "nguoi:chu", "tat-ca"],
+    "người phụ trách MỚI là hồ sơ KHÔNG tài khoản: không có nhãn nguoi: cho người đó, nhưng vẫn cho-nhan qua luật (b) (trước=chưa ai, biết) — đơn vẫn vừa rời hàng chờ",
   );
   assert.deepEqual(
     nhanSuKien({ ownerId: "chu", handlerTruoc: chuaAi, handlerSau: coTaiKhoan("chu") }),
+    ["cho-nhan", "nguoi:chu", "tat-ca"],
+    "owner = handler → một nhãn, không trùng lặp; luật (b) vẫn áp (trước=chưa ai, biết) dù người mới = chính người lập",
+  );
+
+  // "Không biết" (null) — ADR-0030 S20-8/9: KHÔNG BAO GIỜ sinh cho-nhan qua luật (b), và KHÔNG thêm nguoi: cho người phụ trách trước.
+  assert.deepEqual(
+    nhanSuKien({ ownerId: "chu", handlerTruoc: khongBiet, handlerSau: coTaiKhoan("nv2") }),
+    ["nguoi:chu", "nguoi:nv2", "tat-ca"],
+    "không biết trước + sau đã có người (ví dụ 'xác nhận' đơn nv2 đang phụ trách) — KHÔNG cho-nhan (đây là ca lộ tin nếu coi nhầm 'không biết' = 'chưa ai')",
+  );
+  assert.deepEqual(
+    nhanSuKien({ ownerId: "chu", handlerTruoc: khongBiet, handlerSau: chuaAi }),
+    ["cho-nhan", "nguoi:chu", "tat-ca"],
+    "không biết trước + sau chưa ai — vẫn cho-nhan qua luật (a) (sau=chưa ai không phụ thuộc trước)",
+  );
+  assert.deepEqual(
+    nhanSuKien({ ownerId: "chu", handlerTruoc: khongBiet, handlerSau: khongTaiKhoan }),
     ["nguoi:chu", "tat-ca"],
-    "owner = handler → một nhãn, không trùng lặp",
+    "không biết trước + sau có người không tài khoản — không cho-nhan, không nguoi: nào cho trước (không biết)",
   );
 });
 
@@ -164,6 +234,22 @@ test("thongBaoNoi: tao/sua/chuyen/tien không hiện thông báo nổi (chỉ l�
 test("thongBaoNoi: tao_cho_nhan chỉ hiện cho ai có dispatch.claim (Kế toán không có → null)", () => {
   assert.equal(thongBaoNoi(ketToan, suKien("tao_cho_nhan")), null);
   assert.deepEqual(thongBaoNoi(ketToan, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
+});
+
+test("thongBaoNoi: tài khoản lai Đối tác + văn phòng (dispatch.claim=any qua SALES) KHÔNG hiện tao_cho_nhan (ADR-0030 S20-8, giống nhanKetNoi)", () => {
+  const laiDoiTacVanPhong = { id: "nv6", permissions: ["PARTNER", "SALES"] as const }; // isOffice=true (qua SALES) → vanPhong
+  assert.equal(thongBaoNoi(laiDoiTacVanPhong, suKien("tao_cho_nhan")), null, "lai Đối tác+SALES: có dispatch.claim (qua SALES) nhưng holdsPartner chặn");
+  assert.deepEqual(
+    thongBaoNoi(laiDoiTacVanPhong, suKien("nhan")),
+    { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" },
+    "các loại khác tao_cho_nhan không bị chặn bởi holdsPartner",
+  );
+});
+
+test("thongBaoNoi: tài khoản lai Đối tác + Hướng dẫn viên (không văn phòng) KHÔNG hiện tao_cho_nhan", () => {
+  const laiDoiTacHdv = { id: "nv7", permissions: ["PARTNER", "FIELD"] as const }; // không văn phòng, có FIELD → huongDanVien
+  assert.equal(thongBaoNoi(laiDoiTacHdv, suKien("tao_cho_nhan")), null, "lai Đối tác+FIELD: hôm nay FIELD không có dispatch.claim, và dù có thì holdsPartner vẫn chặn");
+  assert.deepEqual(thongBaoNoi(laiDoiTacHdv, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/account" });
 });
 
 test("thongBaoNoi: Hướng dẫn viên (không văn phòng) thấy các loại còn lại, liên kết /account", () => {
