@@ -7,8 +7,8 @@
 // tạo ảnh, dừng lại ở thông báo "Chưa tải được người phụ trách" + Thử lại — không được đoán. Lỗi ở bất kỳ bước nào khác → thông báo tiếng Việt + nút "Thử
 // lại", không bao giờ kẹt ở "Đang tạo ảnh…" (hạn chót 30 giây).
 import type { CompanyDto } from "../src/shared/contracts";
-import { buildConfirmation } from "../src/shared/order-confirmation";
-import { api, type Api, type Order } from "./api";
+import { buildConfirmation, HANDLER_HIDDEN, type HandlerInput } from "../src/shared/order-confirmation";
+import { api, ApiError, type Api, type Order } from "./api";
 import { ConfirmationImageError, renderConfirmationPng, type ImageErrorCode } from "./confirmation-image";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
@@ -43,9 +43,9 @@ const HANDLER_TIMED_OUT = Symbol("handler-timed-out");
  * Tên người phụ trách đang mở của đơn (`GET /api/dispatch/handlers?orderIds=<id>` → `{ handlers: { [id]: { name } | null } }`), tối đa 3 giây. BA trạng
  * thái, không hai (quyết định chủ dự án 2026-09-28 — "một sự thật duy nhất", đừng gộp lại như hồi trước): chuỗi tên hợp lệ → dùng tên; `null` = máy chủ
  * trả lời RÕ RÀNG "chưa có người phụ trách"; `undefined` = KHÔNG BIẾT (404, 5xx, mất mạng, hết giờ, thiếu khoá `handlers`/khoá `orderId`, hoặc `name`
- * không phải chuỗi/rỗng) — không được đoán, `make()` phải dừng lại chứ không tạo ảnh. Kiểm cấu trúc chặt vì đây là dữ liệu từ ngoài trang.
+ * không phải chuỗi/rỗng) — không được đoán, `make()` phải dừng lại chứ không tạo ảnh. Riêng 403 → `HANDLER_HIDDEN` (người xem không được biết). Kiểm cấu trúc chặt vì đây là dữ liệu từ ngoài trang.
  */
-export async function loadHandlerName(orderId: string): Promise<string | null | undefined> {
+export async function loadHandlerName(orderId: string): Promise<HandlerInput | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const res = await Promise.race([
@@ -59,8 +59,9 @@ export async function loadHandlerName(orderId: string): Promise<string | null | 
     const found = res.handlers[orderId];
     if (found === null) return null;
     return found && typeof found.name === "string" && found.name.trim() !== "" ? found.name : undefined;
-  } catch {
-    return undefined;
+  } catch (e) {
+    // 403 = người xem KHÔNG được biết người phụ trách (Đối tác/Thực tập, ADR-0019) — sự thật rõ ràng, không phải lỗi: ảnh bỏ phần người phụ trách.
+    return e instanceof ApiError && e.status === 403 ? HANDLER_HIDDEN : undefined;
   } finally {
     clearTimeout(timer);
   }
