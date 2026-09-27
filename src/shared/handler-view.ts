@@ -1,14 +1,29 @@
 // Người phụ trách đơn ở giao diện (v1.0, Task 8): ai thấy nút nào, chữ hiển thị, và câu báo khi máy chủ từ chối. Thuần, không DOM (web/orders.ts, web/order.ts, web/handler-sheet.ts dựng DOM).
 // Quyền đi qua `can()` (một nguồn — permissions.ts), KHÔNG chép ma trận: "được giao" = `handler.staffId` là chính người dùng. Máy chủ vẫn kiểm lại mọi thao tác (`PUT /api/orders/:id/handler`).
-import type { HandlerDto, OrderStatus } from "./contracts.ts";
+import type { HandlerDto, OrderStatus, StaffProfile } from "./contracts.ts";
 import { banner, type Banner, type ErrorInput } from "./order-errors.ts";
-import { can, type PermissionHolder } from "./permissions.ts";
+import { can, seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
 
 /** Chip ở danh sách đơn và ở khối "Người phụ trách" khi đơn chưa có người (ADR-0030 điều 3, Q-A2: "Chờ nhận" thay
  * "Chưa có người phụ trách" — đơn mới không tự gắn người lập, HDV cần thấy ngay đây là đơn đang chờ ai đó bấm Nhận). */
 export const NO_HANDLER_TEXT = "Chờ nhận";
 /** Dòng ở danh sách đơn (ADR-0030 điều 3, Q-A2: "HDV: <tên>" thay "Phụ trách: <tên>"). */
 export const handlerText = (name: string): string => `HDV: ${name}`;
+
+/**
+ * Người phụ trách suy từ PHIÊN ĐĂNG NHẬP, không hỏi máy chủ (ADR-0030 S23-4/S23-8; vòng sửa 1 sau kiểm độc lập lượt 1, phát hiện I-2 — cùng cách
+ * `web/account.ts` đã làm ở Task 1.6). Tài khoản CHỈ xem được đơn mình ĐANG phụ trách (`seesOnlyAssignedOrders`: máy chủ trả danh sách = đúng tập đơn
+ * họ phụ trách, chi tiết đơn khác → 404) thì MỌI đơn đang hiện trước mặt họ là đơn họ phụ trách → người phụ trách = chính họ; tên `fullName` của phiên
+ * = `display_name` của hồ sơ, cùng nguồn với `label` của `v_dsp_order_handler`. Trang KHÔNG gọi `GET /api/dispatch/handlers` cho họ — route đó hỏi
+ * `order.view` không ngữ cảnh (xem mọi đơn), 403 với họ, và không mở cho họ (ruling điều phối Task 1.6).
+ * `undefined` = không suy được: người xem mọi đơn, Đối tác, Thực tập, tài khoản ghép (HDV + Thực tập/Đối tác thấy cả đơn mình lập — người phụ trách
+ * có thể là người khác), hoặc phiên thiếu hồ sơ/tên → trang hỏi máy chủ như cũ.
+ */
+export function nguoiPhuTrachTuPhien(staff: Pick<StaffProfile, "id" | "fullName" | "partyId" | "permissions">): HandlerDto | undefined {
+  if (!seesOnlyAssignedOrders(staff)) return undefined;
+  if (staff.partyId === null || staff.fullName.trim() === "") return undefined;
+  return { partyId: staff.partyId, staffId: staff.id, name: staff.fullName };
+}
 
 export interface HandlerControls {
   /** Nút mở bảng chọn người phụ trách (đổi, hoặc giao lần đầu). */

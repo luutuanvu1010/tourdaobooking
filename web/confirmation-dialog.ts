@@ -1,18 +1,21 @@
 // Hộp thoại "Xác nhận đơn để gửi khách" (v1.0, đặc tả "Việc 2"): dựng ảnh PNG xác nhận từ đơn đang xem rồi cho xem trước, tải về ("Tải ảnh PNG") hoặc chia sẻ ("Chia sẻ" — chỉ khi
 // `navigator.canShare({ files })`, vd iPhone → Zalo). Cùng khuôn với bảng trượt "Sửa thông tin chuyến" (trip-sheet.ts, dùng chung CSS `.sheet*`): role=dialog + aria-modal, phần nền `inert`,
 // Esc / ✕ / chạm nền để đóng, trả focus về nút mở. Đóng được mọi lúc (kể cả lúc đang dựng ảnh): kết quả đến muộn bị bỏ và `blob:` URL luôn được thu hồi.
-// Dựng ảnh: tên người phụ trách (GET /api/dispatch/handlers, tối đa 3 giây — BA trạng thái như web/order.ts: tên · null = máy chủ XÁC NHẬN chưa có người ·
+// Dựng ảnh: tên người phụ trách (hướng dẫn viên: chính họ, từ phiên; người khác: GET /api/dispatch/handlers, tối đa 3 giây — BA trạng thái như web/order.ts: tên · null = máy chủ XÁC NHẬN chưa có người ·
 // undefined = CHƯA BIẾT khi lỗi/404/5xx/mất mạng/hết giờ/dữ liệu hỏng, ADR-0020 điều 9) + hồ sơ công ty (GET /api/company, nhớ lại sau lần đầu)
 // → buildConfirmation → renderConfirmationPng. Lỗi ở bất kỳ bước nào → thông báo tiếng Việt + nút "Thử lại", không bao giờ kẹt ở "Đang tạo ảnh…" (hạn chót 30 giây).
 import type { CompanyDto } from "../src/shared/contracts";
+import { nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { buildConfirmation } from "../src/shared/order-confirmation";
-import { api, type Api, type Order } from "./api";
+import { api, type Api, type Order, type Staff } from "./api";
 import { ConfirmationImageError, renderConfirmationPng, type ImageErrorCode } from "./confirmation-image";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
 
 export interface ConfirmationDialogOptions {
   order: Order;
+  /** Người đang xem (phiên đăng nhập): hướng dẫn viên chỉ xem đơn mình phụ trách → tên người phụ trách lấy từ phiên, không gọi GET /api/dispatch/handlers. */
+  viewer: Staff;
   /** Nút đã mở hộp thoại (nơi trả focus khi đóng). Là hàm vì trang đơn dựng lại các nút mỗi lần tải lại đơn. */
   opener: () => HTMLElement | null;
 }
@@ -86,9 +89,14 @@ interface Made {
   orderCode: string;
 }
 
-/** Tên người phụ trách + công ty → mô hình → PNG. Mỗi lỗi mang tên bước hỏng để hiện đúng thông báo. */
-async function make(order: Order): Promise<Made> {
-  const handler = loadHandlerName(order.id); // chạy song song với công ty và việc nạp phông; không bao giờ lỗi
+/**
+ * Tên người phụ trách + công ty → mô hình → PNG. Mỗi lỗi mang tên bước hỏng để hiện đúng thông báo.
+ * Hướng dẫn viên (chỉ xem đơn mình phụ trách, ADR-0030 S23-4): người phụ trách = chính họ, tên từ phiên (`nguoiPhuTrachTuPhien`) — GET /api/dispatch/handlers
+ * 403 với họ và trước vòng sửa 1 (phát hiện I-2) làm ảnh gửi khách MẤT dòng "Nhân viên phụ trách" dù chính họ đang phụ trách.
+ */
+async function make(order: Order, viewer: Staff): Promise<Made> {
+  const tuPhien = nguoiPhuTrachTuPhien(viewer);
+  const handler = tuPhien ? Promise.resolve(tuPhien.name) : loadHandlerName(order.id); // chạy song song với công ty và việc nạp phông; không bao giờ lỗi
   let company: CompanyDto;
   try {
     company = await loadCompany();
@@ -220,7 +228,7 @@ export function openConfirmationDialog(o: ConfirmationDialogOptions): void {
     const mine = ++attempt;
     showBusy();
     try {
-      const made = await withDeadline(make(order), TOTAL_TIMEOUT_MS);
+      const made = await withDeadline(make(order, o.viewer), TOTAL_TIMEOUT_MS);
       if (closed || mine !== attempt) return;
       showImage(made);
     } catch (e) {

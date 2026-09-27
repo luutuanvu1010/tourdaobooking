@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { OrderItemDto, OrderServiceDto } from "./contracts.ts";
-import { catalogTag, orderActions, serviceView, type OrderActions } from "./order-view.ts";
+import { catalogTag, khongQuyenSuaText, orderActions, serviceView, type OrderActions } from "./order-view.ts";
 
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
 const item = (o: Partial<OrderItemDto> = {}): OrderItemDto => ({
@@ -72,4 +72,26 @@ test("orderActions: nút theo trạng thái và quyền; đơn đã xác nhận 
   assert.deepEqual(orderActions("confirmed", false), A({ noPermission: true, locked: true }));
   assert.deepEqual(orderActions("cancelled", true), A({}));
   assert.deepEqual(orderActions("cancelled", false), A({ noPermission: true }));
+});
+
+// Vòng sửa 1 (I-2): câu "Chỉ <người lập>, người phụ trách đơn hoặc quản trị viên mới được sửa…" mâu thuẫn khi CHÍNH người đang xem là người phụ trách mà
+// là hướng dẫn viên (order.modify ô FIELD = none). Câu cho HDV nói điều trang này không làm được và nhờ ai — không hứa nút cụ thể.
+test("khongQuyenSuaText: HDV (chỉ xem đơn mình phụ trách) — câu riêng, KHÔNG nói 'người phụ trách đơn … mới được sửa'; đơn đã xác nhận chỉ tới mục “Việc của tôi”", () => {
+  const hdv = { permissions: ["FIELD"] as const };
+  const daXacNhan = khongQuyenSuaText({ ownerName: "Sales Một", status: "confirmed", viewer: hdv });
+  assert.equal(daXacNhan, "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ Sales Một (người lập đơn) hoặc văn phòng.");
+  for (const status of ["draft", "cancelled"] as const) {
+    assert.equal(khongQuyenSuaText({ ownerName: "Sales Một", status, viewer: hdv }), "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ Sales Một (người lập đơn) hoặc văn phòng.", status);
+  }
+  for (const c of [daXacNhan]) assert.ok(!c.includes("người phụ trách đơn"), c);
+});
+
+test("khongQuyenSuaText: người khác (kế toán, bán hàng không liên quan, tài khoản ghép) giữ nguyên câu cũ", () => {
+  for (const perms of [["ACCOUNTING"], ["SALES"], ["FIELD", "INTERN"]] as const) {
+    assert.equal(
+      khongQuyenSuaText({ ownerName: "Sales Một", status: "draft", viewer: { permissions: perms } }),
+      "Chỉ Sales Một (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.",
+      JSON.stringify(perms),
+    );
+  }
 });
