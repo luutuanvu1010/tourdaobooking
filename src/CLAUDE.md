@@ -12,7 +12,7 @@
 - Module khác chỉ import qua `index.ts`; **chỉ module chủ ghi bảng của mình**; muốn ghi cùng giao dịch thì nhận **câu lệnh D1 chưa chạy** từ `index.ts` của module chủ rồi gộp vào một `db.batch()`.
 - Đọc xuyên module **chỉ qua view công bố** `v_<tiền tố>_*` (chỉ đọc, chỉ khoá + nhãn). Không JOIN thẳng bảng của module khác.
 - **Module "nghiêm"** (`auth`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `parties`, `staff`): SQL đi qua `defineSql`, câu tĩnh (`src/shared/sql-registry.ts`), `architecture.test.ts` ép đầy đủ. Module cũ (`accounts`, `audit`, `catalog`, `orders`) ở `LEGACY`: ngoại lệ có hạn, đừng coi là mẫu.
-- `orders` **KHÔNG** import `dispatch`: "đang là người phụ trách" và "đặt người phụ trách mặc định cho đơn mới" do gốc lắp ráp tiêm vào `ctx` (`ctx.isAssigned`, `ctx.defaultHandlerStatement`); route dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
+- `orders` **KHÔNG** import `dispatch`: "đang là người phụ trách" và "mở người phụ trách do người lập chọn cho đơn mới" (đơn mới không bao giờ tự gắn người lập — ADR-0030 S20-4) do gốc lắp ráp tiêm vào `ctx` (`ctx.isAssigned`, `ctx.newOrderHandler`); route dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
 - Thêm module: khai cạnh ở `ALLOWED_EDGES`, đưa vào `STRICT` hoặc `LEGACY` (kèm lý do), thêm bảng/view vào `docs/data-dictionary.json` rồi `npm run dict`, thêm dòng vào mảng `modules`. Công thức: `docs/ARCHITECTURE.md` mục "Thêm một module mới" và `docs/CHANGE-GUIDE.md` công thức b.
 
 ## Quyền và bảo mật
