@@ -12,14 +12,14 @@
 
 ## Bối cảnh
 
-Thông báo nổi (ADR-0022) chỉ tới màn hình đang mở và không lưu: tắt app là lỡ, không xem lại được. Không có kênh để chủ gửi một tin cho mọi người. Chủ chọn: chuông + hộp thông báo xem lại được (H1), tin thủ công gửi toàn công ty hoặc theo nhóm quyền (H2), tin về đơn theo đúng luật "ai thấy" hiện nay (H3), chỉ Toàn quyền gửi tin thủ công (Q1), tin về đơn là tin đổi trạng thái (Q2 — việc có kèm tên người **chưa chốt**, mặc định tạm không tên), ghi tin về đơn chắc chắn — cùng lô với thao tác (Q3).
+Thông báo nổi (ADR-0022) chỉ tới màn hình đang mở và không lưu: tắt app là lỡ, không xem lại được. Không có kênh để chủ gửi một tin cho mọi người. Chủ chọn: chuông + hộp thông báo xem lại được (H1), tin thủ công gửi toàn công ty hoặc theo nhóm quyền (H2), tin về đơn theo đúng luật "ai thấy" hiện nay (H3), chỉ Toàn quyền gửi tin thủ công (Q1), tin về đơn là tin đổi trạng thái và **kèm tên người thao tác** (Q2, chủ trả lời 2026-09-27), ghi tin về đơn chắc chắn — cùng lô với thao tác (Q3).
 
 Phương án đã trình (lời thường): (A) lưu mỗi tin một lần kèm nhãn người nhận, lúc đọc tính lại theo quyền hiện tại — **khuyến nghị**; (B) lưu một bản cho từng người nhận; (C) dựng từ nhật ký hệ thống. Chủ đi tiếp với A (trả lời các câu hỏi theo A, không phản đối).
 
 ## Quyết định
 
 1. **Module mới `thongbao`**, tiền tố bảng `ntf_`, hạng nghiêm (SQL đăng ký qua `defineSql`). Chỉ `thongbao` ghi bảng `ntf_*`. Không vòng phụ thuộc. **Cơ chế nối với `orders`/`dispatch` chưa chốt** (đặc tả §6.1 — người lập kế hoạch xác minh): khuyến nghị gốc lắp ráp tiêm câu lệnh ghi tin qua `ctx` (mẫu `defaultHandlerStatement`), `orders`/`dispatch` không import `thongbao`; `thongbao` đọc view công bố của `orders` (cần thêm người lập vào view — đổi view) và `dispatch`. Phải sửa thành quyết định cụ thể trước khi ADR chuyển accepted.
-2. **Bảng** (migration `0025_thong_bao.sql`): `ntf_item` (một dòng mỗi tin; `kind` = `don` | `thu_cong`; tin về đơn chỉ có mã đơn, mã loại thay đổi, không tên người, không tiền, không SĐT), `ntf_item_tag` (nhãn người nhận), `ntf_read_mark` (mốc đã đọc mỗi tài khoản). Không xoá cứng: tin thủ công thu hồi bằng `valid_to`.
+2. **Bảng** (migration `0025_thong_bao.sql`): `ntf_item` (một dòng mỗi tin; `kind` = `don` | `thu_cong`; tin về đơn chỉ có mã đơn, mã loại thay đổi, mã người thao tác — tên hiển thị lúc đọc qua `v_stf_staff_label`; không tiền, không SĐT), `ntf_item_tag` (nhãn người nhận), `ntf_read_mark` (mốc đã đọc mỗi tài khoản). Không xoá cứng: tin thủ công thu hồi bằng `valid_to`.
 3. **Tin về đơn ghi cùng lô** với thao tác đơn: câu lệnh chưa chạy (điều 1) được gộp vào `db.batch()` của thao tác, sau câu ghi đơn/người phụ trách, kèm điều kiện `onlyIf` khi thao tác có chặn tranh chấp; dòng tin chụp mã đơn, người lập, người phụ trách trước/sau. Sáu loại vào hộp: `tao`, `tao_cho_nhan`, `nhan`, `giao`, `xac_nhan`, `huy`. Thao tác đơn mới về sau muốn có tin trong hộp phải gọi hàm này (ghi ở `CHANGE-GUIDE.md`).
 4. **Ai thấy tin về đơn:** nhãn = `nhanSuKien` áp lên ảnh chụp lúc sự kiện; lúc đọc, tài khoản thấy tin khi có nhãn chung với `nhanKetNoi(tài khoản)` **tính theo quyền hiện tại** và qua điều kiện "được thấy tin về đơn" tách từ `thongBaoNoi` (văn phòng hoặc Hướng dẫn viên; `tao_cho_nhan` cần `dispatch.claim`). Hệ quả có chủ ý: bị rút quyền thì tin cũ ẩn; khi ADR-0017 cho Hướng dẫn viên `order.view` = `any`, họ thấy mọi tin về đơn.
 5. **Tin thủ công:** ô mới `notice.send` = chỉ `SUPER_ADMIN` (`row("none","none","none","none","none","any","none")`). Người nhận: `moi-nguoi` hoặc một/nhiều `quyen:<MÃ>`; lúc đọc so với mã quyền **hiện có** của tài khoản. Không sửa sau khi gửi; thu hồi được. Nhật ký `notice_sent`/`notice_revoked` không chép nội dung.
@@ -45,7 +45,7 @@ Phương án đã trình (lời thường): (A) lưu mỗi tin một lần kèm 
 - Lô ghi của hai module đơn (`orders`, `dispatch`) chứa thêm câu ghi tin; lỗi ghi tin làm hỏng cả thao tác đơn (cùng lô) — đổi lấy tính chắc chắn. Câu lệnh ghi tin phải đơn giản (INSERT thuần) để không thành điểm hỏng mới.
 - Bảng `ntf_item` lớn dần (ước ~100 dòng/ngày, chưa đo); không xoá cứng. Truy vấn hộp giới hạn 30 ngày / 100 tin, có chỉ mục.
 - Tài khoản có nhiều quyền thấy hợp các tin của mọi quyền.
-- Bật tên người làm trong tin về đơn về sau = ADR mới (đổi dữ liệu lưu trong tin).
+- Tên người thao tác chỉ hiện cho người vốn được thấy tin (điều 4); không ghi vào sự kiện Bảng tin (ADR-0022 giữ 5 khoá).
 
 ## Trang ghép
 

@@ -30,7 +30,7 @@ Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **danh sác
 | H3 | Mỗi người nhận tin về đơn nào | **Giữ đúng luật hiện nay** (ai được thấy thông báo nổi về đơn đó) |
 | H4 | Màn hình khoá iPhone | **Làm luôn đợt này** |
 | Q1 | Ai được soạn/gửi tin thủ công | **Chỉ Toàn quyền** (`SUPER_ADMIN`) |
-| Q2 | Tin về đơn có ghi tên người làm không | **CHƯA CHỐT — hỏi lại chủ.** Chủ trả lời: *"Tức là Thông báo về sự thay đổi của Trạng thái đơn: Mới lập, mới có HDV xác nhận, mới bị huỷ……"* — mô tả loại tin, **không** nói có/không tên; còn yêu cầu gốc có câu *"ai mới nhận đơn, ai mới đăng đơn"* (nghĩa đen: ai). Mặc định tạm: **không ghi tên** (như thông báo nổi hôm nay). Ánh xạ tạm: "mới có HDV xác nhận" = `nhan` (HDV tự nhận đơn); `xac_nhan` = văn phòng xác nhận đơn — chủ sửa nếu sai. |
+| Q2 | Tin về đơn có ghi tên người làm không | **Có tên** (chủ trả lời 2026-09-27, lượt hỏi thứ hai: *"1- Có tên"*). Câu hiển thị kèm tên người thao tác, ví dụ "Lan vừa nhận đơn DH-123". Ánh xạ tạm (chờ chủ xác nhận): "mới có HDV xác nhận" = `nhan` (HDV tự nhận đơn); `xac_nhan` = văn phòng xác nhận đơn. |
 | Q3 | Ghi tin về đơn chắc chắn hay bắn-và-quên | **Chắc chắn** — ghi cùng batch với thao tác đơn |
 
 Cảnh báo đã nói với chủ trong chat 2026-09-27 (P18, một lần): theo H3, khi ADR-0017 (HDV xem mọi đơn) được thi công ở GĐ2, **mọi HDV sẽ nhận tin về mọi đơn** trong hộp — chỉnh riêng nếu thấy nhiều. Cảnh báo thứ hai nêu trong báo cáo cuối phiên: H4 đưa sớm "giai đoạn 6" của lộ trình ADR-0018.
@@ -47,14 +47,14 @@ Cảnh báo đã nói với chủ trong chat 2026-09-27 (P18, một lần): theo
 
 Sinh ra khi thao tác đơn **đã ghi thành công** (cùng batch — Q3). Loại tin lấy từ bộ `THAY_DOI` có sẵn:
 
-| Loại | Khi nào | Câu hiển thị (không tên người) |
+| Loại | Khi nào | Câu hiển thị (kèm tên người thao tác — Q2; mẫu, chờ chủ duyệt chữ) |
 |---|---|---|
-| `tao` | Lập đơn, đơn có người phụ trách ngay | Đơn mới: DH-… |
-| `tao_cho_nhan` | Lập đơn, chưa ai phụ trách | Có đơn mới chưa có người phụ trách: DH-… |
-| `nhan` | Có người tự nhận đơn | Đơn DH-… vừa có người nhận |
-| `giao` | Đổi/giao người phụ trách | Đơn DH-… vừa đổi người phụ trách |
-| `xac_nhan` | Xác nhận đơn | Đơn DH-… đã được xác nhận |
-| `huy` | Huỷ đơn (văn phòng hoặc HDV huỷ) | Đơn DH-… đã bị huỷ |
+| `tao` | Lập đơn, đơn có người phụ trách ngay | Lan vừa lập đơn mới DH-… |
+| `tao_cho_nhan` | Lập đơn, chưa ai phụ trách | Lan vừa lập đơn DH-…, chưa có người phụ trách |
+| `nhan` | Có người tự nhận đơn | Hùng vừa nhận đơn DH-… |
+| `giao` | Đổi/giao người phụ trách | Lan vừa giao đơn DH-… cho người khác phụ trách |
+| `xac_nhan` | Xác nhận đơn | Lan vừa xác nhận đơn DH-… |
+| `huy` | Huỷ đơn (văn phòng hoặc HDV huỷ) | Hùng vừa huỷ đơn DH-… |
 
 `sua`, `chuyen`, `tien` **không** vào hộp (chỉ làm mới màn hình như hôm nay). `tao` là loại **mới so với thông báo nổi** (chủ nêu "mới lập"); thông báo nổi không đổi.
 
@@ -188,7 +188,7 @@ Bí mật mới: `VAPID_PRIVATE_KEY` (chủ đặt bằng `wrangler secret put`)
 
 | Bảng | Chứa |
 |---|---|
-| `ntf_item` | hai loại: tin về đơn (`kind=don`, có `order_id`, `ma_don`, `thay_doi`; không tên người, không tiền, không SĐT) và tin thủ công (`kind=thu_cong`, có tiêu đề, nội dung, người gửi) |
+| `ntf_item` | hai loại: tin về đơn (`kind=don`, có `order_id`, `ma_don`, `thay_doi`, mã người thao tác — tên đọc qua `v_stf_staff_label`; không tiền, không SĐT) và tin thủ công (`kind=thu_cong`, có tiêu đề, nội dung, người gửi) |
 | `ntf_item_tag` | nhãn người nhận của mỗi tin: `tat-ca`, `cho-nhan`, `nguoi:<id>` (tin đơn); `moi-nguoi`, `quyen:<MÃ>` (tin thủ công) |
 | `ntf_read_mark` | mốc đã đọc của mỗi tài khoản |
 | (lượt 2) `ntf_push_sub` | địa chỉ nhận thông báo của từng máy, theo tài khoản |
