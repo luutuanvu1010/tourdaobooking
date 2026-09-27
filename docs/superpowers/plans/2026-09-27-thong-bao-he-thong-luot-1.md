@@ -35,6 +35,23 @@
 4. **Tài khoản mới tạo sau khi đã có nhiều tin** — số đỏ không được đổ dồn tin cũ (mốc mặc định = ngày tạo tài khoản). Test: Task 2 + Task 5.
 5. **Số đỏ lệch danh sách** (vd tin của chính mình, tin đã thu hồi, tin quan trọng quá 30 ngày) — số luôn bằng số tin `chuaDoc && cuaToi` trong danh sách ngăn "Của tôi". Test: Task 2 (thuộc tính trên bộ dữ liệu trộn) + Task 5 (e2e so hai route).
 
+
+## Phụ thuộc ADR-0030 (nhánh `thi-cong-tu-choi-huy-hdv`)
+
+Ghi theo tin điều phối 2026-09-27 (không phải lời duyệt kế hoạch). Nhánh `thi-cong-tu-choi-huy-hdv` đang thi công R1 của ADR-0030 (đã xong T1d, feed553). Hai nhánh sửa chung nhiều tệp; nhánh nào gộp sau phải gộp tay cẩn thận.
+
+1. **Chỗ sửa chung:**
+   - `src/modules/dispatch/index.ts`, route `PUT /api/orders/:id/handler`: Task 4 (ghi `order_claimed`) trùng ADR-0030 Task 1.1 (chốt Nhận, loại tài khoản lai). Sau gộp route vẫn phải có **đúng một** `baoThayDoi` (`bang-tin-guard.test.ts`).
+   - `src/shared/bang-tin.ts`: ADR-0030 Task 1.4 sửa `nhanKetNoi`, `nhanSuKien` (`handlerTruoc` có thể là "không biết"), `thongBaoNoi` (thêm ca tài khoản lai); Task 2.4 thêm `tu_choi`. Task 1 của kế hoạch này tách `duocThayTinDon` khỏi `thongBaoNoi` trong cùng tệp.
+   - `src/route-access.test.ts`: phía này 73 → 77 (Task 5) → 81 (Task 6); ADR-0030 +1 ở R1, +1 ở R2. Khi gộp, số cuối = tổng cả hai phía, không lấy số của một bên.
+   - Các tệp khác: `src/shared/audit-actions.ts`; `src/shared/permissions.ts` + `permissions.test.ts`; phần đuôi `src/shared/contracts.ts` và `public/app.css`; `web/shell.ts` (điều hướng HDV của ADR-0030 Task 1.8); `web/account.ts`; `tests/e2e/dispatch.mjs`; `src/architecture.test.ts`; `src/index.ts`.
+2. **Một nguồn luật:** hộp thông báo giữ thiết kế lọc bằng giao nhãn với `nhanKetNoi` — **không** viết thêm luật quyền bằng tay trong `locHopThongBao`. Nhờ vậy luật loại tài khoản lai của ADR-0030 (đặt trong `nhanKetNoi`) tự áp cho hộp. Nếu ADR-0030 gộp **trước**: điều kiện lai nó thêm vào `thongBaoNoi` phải chuyển vào `duocThayTinDon` khi làm Task 1.
+3. **Đổi kỳ vọng có chủ đích (không phải lỗi):** khi ADR-0030 R1 lên (FIELD có `dispatch.claim`, tài khoản lai bị loại), hai ca đổi kết quả theo ADR-0030 S20-6:
+   - Task 1: `duocThayTinDon(ai("FIELD"), true)` từ `false` thành `true`.
+   - Task 2, bài "Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin chờ nhận khi có dispatch.claim": ca của HDV đổi theo. Người gộp sửa kỳ vọng và ghi dòng "đổi có chủ đích theo ADR-0030 S20-6" trong thông điệp commit.
+4. **Chọn HDV lúc lập (ADR-0030 Task 1.3):** thêm ca test — dòng `dsp_assignment` HANDLE có **cùng** `valid_from_at` với `created_at` của dòng `created` → tin xếp `lap`, **không** `cho_nhan` (điều kiện `f.first_at > e.created_at` ở Task 5 đã cho kết quả này; ca test khoá nó lại). Lúc lập chỉ có **một** tin, không có thêm tin `giao`. Đặt ca ở e2e Task 5 (`tests/e2e/thongbao.mjs`) sau khi ADR-0030 Task 1.3 có đường lập đơn kèm HDV; trước đó ghi là "chưa kiểm được, chờ ADR-0030".
+5. **Hệ quả hiển thị (điều phối đã báo chủ):** sau R1, mỗi đơn mới chưa chọn HDV làm số đỏ của **mọi** HDV có quyền nhận tăng 1.
+
 ---
 
 ## Bản đồ tệp
