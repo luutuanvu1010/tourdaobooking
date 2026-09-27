@@ -64,3 +64,14 @@ test("LC-4 qua bảng quyền: quản trị cấp Quản trị cho cấp dưới
   assert.deepEqual(w.q("SELECT permission_type_code p FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY 1", SALES).map((r: any) => r.p), ["SALES"]);
   assert.equal((await w.call("PUT", `/api/staff/${SALES}/permissions`, { as: SUP, body })).status, 200);
 });
+
+test("LC-4 qua bảng quyền: quản trị gán vai Điều hành cho cấp dưới bằng PUT …/roles → 403, không đổi quyền; toàn quyền → 200", async () => {
+  const w = setup();
+  const perms = () => w.q("SELECT permission_type_code p FROM stf_permission WHERE staff_id = ? AND valid_to_at IS NULL ORDER BY 1", SALES).map((r: any) => r.p);
+  const body = { roles: ["OPERATIONS_MANAGER"] };
+  assert.equal((await w.call("PUT", `/api/staff/${SALES}/roles`, { as: ADM, body })).status, 403);
+  assert.deepEqual(perms(), ["SALES"], "403 không đổi quyền");
+  const ok = await w.call("PUT", `/api/staff/${SALES}/roles`, { as: SUP, body });
+  assert.equal(ok.status, 200, JSON.stringify(ok.body));
+  assert.deepEqual(perms(), ["ADMIN"], "Toàn quyền gán được: Điều hành sinh quyền Quản trị");
+});
