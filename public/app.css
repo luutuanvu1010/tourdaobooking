@@ -881,11 +881,16 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 
 /* ---------- Thông báo (ADR-0034) — chỉ token ---------- */
 .bell { position: relative; display: flex; align-items: center; justify-content: center; flex: none; width: var(--tap-min); height: var(--tap-min); padding: 0; color: var(--c-on-dark); background: none; border: 0; border-radius: var(--radius-sm); cursor: pointer; }
-body.has-sidebar .bell { color: var(--c-text-muted); } /* thanh công việc máy tính nền trắng (không phải nền primary như điện thoại/thanh ngang cũ) */
 .bell:hover { background: var(--c-soft-hover); }
 .bell[aria-expanded="true"] { background: var(--c-primary-soft); }
 .bell-count { position: absolute; top: var(--s1); right: var(--s1); min-width: var(--ntf-badge); height: var(--ntf-badge); padding: 0 var(--s1); display: flex; align-items: center; justify-content: center; font-size: var(--fs-badge); font-weight: 800; line-height: 1; color: var(--c-on-dark); background: var(--c-danger); border-radius: var(--radius-pill); box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-primary); }
-body.has-sidebar .bell-count { box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-surface); }
+/* I2 (rà soát độc lập): body.has-sidebar gắn ở MỌI khổ (thanh bên chỉ bị CSS ẩn dưới 641px) — hai luật màu/viền dưới đây
+   chỉ đúng khi thanh công việc thật sự đổi sang nền trắng (≥641px, xem body.has-sidebar #topbar ở trên); để ngoài
+   @media thì điện thoại thừa hưởng nhầm màu xám/viền trắng trên nền xanh đậm, chuông gần như biến mất. */
+@media (min-width: 641px) {
+  body.has-sidebar .bell { color: var(--c-text-muted); } /* thanh công việc máy tính nền trắng (không phải nền primary như điện thoại/thanh ngang cũ) */
+  body.has-sidebar .bell-count { box-shadow: 0 0 0 var(--ntf-badge-ring) var(--c-surface); }
+}
 
 .ntf-strip { display: flex; align-items: center; gap: var(--s3); padding: var(--s2) max(var(--s4), env(safe-area-inset-right)) var(--s2) max(var(--s4), env(safe-area-inset-left)); color: var(--c-sand-text); background: var(--c-sand-soft); border-bottom: 1px solid var(--c-sand-border); }
 .ntf-strip-ico { flex: none; width: var(--icon-badge); height: var(--icon-badge); display: flex; align-items: center; justify-content: center; color: var(--c-primary-strong); background: var(--c-sand); border-radius: var(--radius-sm); }

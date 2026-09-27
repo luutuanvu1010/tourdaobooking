@@ -1,7 +1,7 @@
 // THÔNG BÁO HỆ THỐNG (ADR-0034) — luật thuần dùng chung server ↔ web/: tin về đơn là HÌNH CHIẾU của audit_log; một hàm lọc cho cả số đỏ
 // lẫn danh sách. Không I/O. Luật quyền chỉ qua can()/hasPermission/isOffice và các hàm của bang-tin.ts — không viết tay luật mới.
 import { duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
-import { can, hasPermission, isOffice, PERMISSION_CODES, type PermissionCode, type PermissionHolder } from "./permissions.ts";
+import { can, hasPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
 
 export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
@@ -48,6 +48,14 @@ export function nhanNguoiNhan(n: NguoiNhanTin): string[] {
 export function nhanThayTinThuCong(staff: PermissionHolder, nhan: string[]): boolean {
   return nhan.some((t) => (t === "noi-bo" ? laNoiBo(staff) : t.startsWith("quyen:") && hasPermission(staff, t.slice(6) as PermissionCode)));
 }
+/** Nhãn tiếng Việt "Gửi cho" của tin thủ công (5b, đúng bản mẫu): "Toàn công ty" cho `noi-bo`, tên (các) nhóm quyền nối bằng ", " khi gửi theo nhóm. */
+export function nhanNhomNhan(nhan: string[]): string {
+  if (nhan.includes("noi-bo")) return "Toàn công ty";
+  return nhan
+    .filter((t) => t.startsWith("quyen:"))
+    .map((t) => PERMISSION_LABEL[t.slice(6) as PermissionCode])
+    .join(", ");
+}
 
 /**
  * Chuẩn hoá một mốc giờ về ISO có mili-giây (`…T…Z`, luôn 3 chữ số). `locHopThongBao` so mốc giờ BẰNG CHUỖI (không `Date.parse` lại), nên
@@ -79,7 +87,7 @@ export function locHopThongBao(
     const cuaToi = chung.some((t) => t !== "tat-ca");
     const coTen = d.tenNguoiLam !== null && can(staff, "order.history.view", { ownerId: d.ownerId, assigned: d.phuTrach.staffId === staff.id });
     tat.push({
-      id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, quanTrong: false, daHieuLuc: null,
+      id: d.id, loai, maDon: d.maDon, noiDung: null, nguoiGui: null, nhomNhan: null, quanTrong: false, daHieuLuc: null,
       cau: coTen ? CAU[loai].coTen(d.tenNguoiLam!, d.maDon) : CAU[loai].khongTen(d.maDon),
       lienKet: isOffice(staff) ? `/order?id=${d.orderId}` : "/account",
       luc: d.luc, cuaToi, chuaDoc: d.luc > vao.docDenLuc, mo: loai === "cho_nhan" && d.phuTrach.coNguoi,
@@ -90,7 +98,7 @@ export function locHopThongBao(
     const conGiu = t.luc >= moc || (t.quanTrong && t.daHieuLuc === null);
     if (!conGiu) continue;
     tat.push({
-      id: t.id, loai: "thu_cong", cau: t.tieuDe, maDon: null, noiDung: t.noiDung, nguoiGui: t.tenNguoiGui, quanTrong: t.quanTrong,
+      id: t.id, loai: "thu_cong", cau: t.tieuDe, maDon: null, noiDung: t.noiDung, nguoiGui: t.tenNguoiGui, nhomNhan: nhanNhomNhan(t.nhan), quanTrong: t.quanTrong,
       daHieuLuc: t.daHieuLuc, lienKet: null, luc: t.luc, cuaToi: true, chuaDoc: t.luc > vao.docDenLuc, mo: false,
     });
   }

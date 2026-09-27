@@ -1,7 +1,7 @@
 // Luật thuần của hộp thông báo (ADR-0034, đặc tả 2026-09-27-thong-bao-he-thong-design.md §4–§5). Một hàm lọc cho cả số đỏ lẫn danh sách.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { chuanHoaMocGio, kiemTinThuCong, laNoiBo, locHopThongBao, loaiTinDon, nhanNguoiNhan, nhanThayTinThuCong, type DongDon, type DongThuCong } from "./thong-bao.ts";
+import { chuanHoaMocGio, kiemTinThuCong, laNoiBo, locHopThongBao, loaiTinDon, nhanNguoiNhan, nhanNhomNhan, nhanThayTinThuCong, type DongDon, type DongThuCong } from "./thong-bao.ts";
 import type { PermissionCode } from "./permissions.ts";
 
 const NOW = "2026-09-27T02:40:00.000Z";
@@ -102,6 +102,16 @@ test("K3: 'Toàn công ty' = nội bộ; Đối tác thuần không nhận, Đ�
   assert.equal(nhanThayTinThuCong(BX, ["quyen:PARTNER"]), true);
   assert.equal(nhanThayTinThuCong(LAI, ["noi-bo"]), true);
   assert.equal(nhanThayTinThuCong(MAI, ["quyen:SALES"]), false);
+});
+
+// 5b (rà soát độc lập lượt 2): dòng người gửi ở hộp đọc cần "· Toàn công ty" / "· <nhóm>" đúng bản mẫu — TinDto.nhomNhan.
+test("nhomNhan: nhãn 'Gửi cho' của tin thủ công đúng bản mẫu; null cho tin về đơn", () => {
+  assert.equal(nhanNhomNhan(["noi-bo"]), "Toàn công ty");
+  assert.equal(nhanNhomNhan(["quyen:SALES"]), "Bán hàng");
+  assert.equal(nhanNhomNhan(["quyen:SALES", "quyen:ACCOUNTING"]), "Bán hàng, Kế toán");
+  assert.equal(hop(MAI, [], [tin({ nhan: ["noi-bo"] })], "cua-toi").tin[0]!.nhomNhan, "Toàn công ty");
+  assert.equal(hop(LAN, [], [tin({ nhan: ["quyen:SALES"] })], "cua-toi").tin[0]!.nhomNhan, "Bán hàng");
+  assert.equal(hop(LAN, [don({ ownerId: "lan" })], [], "cua-toi").tin[0]!.nhomNhan, null);
 });
 
 test("X4: 30 ngày; tin quan trọng chưa Đã hiểu giữ quá 30 ngày; tối đa 100", () => {

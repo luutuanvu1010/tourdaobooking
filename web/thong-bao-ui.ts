@@ -67,7 +67,7 @@ function tinRow(t: TinDto, now: string, onOpenTin: (t: TinDto) => void): HTMLEle
   );
   row.addEventListener("click", () => {
     if (t.loai === "thu_cong") onOpenTin(t);
-    else if (t.maDon) location.href = `/order?id=${encodeURIComponent(t.maDon)}`;
+    else if (t.lienKet) location.href = t.lienKet;
   });
   return row;
 }
@@ -98,7 +98,7 @@ function ngayChu(nhan: string): string {
 function openTinDialog(t: TinDto, nhan: string, onAcked: () => void): void {
   if (document.querySelector(".ntf-dialog-root")) return; // bấm đúp không mở hai hộp
   const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
-  const fromLine = h("p", { class: "muted" }, `${t.nguoiGui ?? ""} (Toàn quyền) gửi ${ngayChu(nhan)} lúc ${gioVN(t.luc)}`);
+  const fromLine = h("p", { class: "muted" }, `${t.nguoiGui ?? ""} (Toàn quyền) gửi ${ngayChu(nhan)} lúc ${gioVN(t.luc)}${t.nhomNhan ? ` · ${t.nhomNhan}` : ""}`);
   const ackedLine = h("p", { class: "muted" }, t.daHieuLuc ? `Bạn đã bấm “Đã hiểu” lúc ${gioVN(t.daHieuLuc)}.` : "");
   ackedLine.hidden = t.daHieuLuc === null;
   const closeBtn = h("button", { type: "button", class: "btn btn-link sheet-close", "aria-label": "Đóng" }, icon("close", 20));
@@ -206,7 +206,11 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
     if (e.key === "Escape") closePanel();
   };
   const onDocClick = (e: MouseEvent): void => {
-    if (panelRoot && !panelRoot.contains(e.target as Node) && e.target !== bell && !bell.contains(e.target as Node)) closePanel();
+    const target = e.target as Node;
+    // m3: hộp đọc tin thủ công (.ntf-dialog-root) được chèn NGOÀI panelRoot (con riêng của document.body) — bấm trong hộp đó (kể
+    // cả nút "Đã hiểu"/"Để sau"/"Đóng", hay chạm nền mờ của hộp) không được coi là "bấm ra ngoài ngăn" và đóng luôn ngăn bên dưới.
+    if (target instanceof Element && target.closest(".ntf-dialog-root")) return;
+    if (panelRoot && !panelRoot.contains(target) && target !== bell && !bell.contains(target)) closePanel();
   };
 
   const taiTomTat = async (): Promise<void> => {
@@ -224,11 +228,15 @@ export function ganThongBao(topbar: HTMLElement, staff: Staff): void {
   window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
   window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 
-  /** Mở đúng tin (từ dải nhắc) trong ngăn "Của tôi" và hiện hộp đọc — tin quan trọng chưa hiểu luôn thuộc ngăn này (K6/E3). */
+  /**
+   * Mở đúng tin (từ dải nhắc) trong ngăn "Của tôi" và hiện hộp đọc — tin quan trọng chưa hiểu luôn thuộc ngăn này (K6/E3).
+   * Tìm trong `quanTrongChuaHieu` TRƯỚC (nguồn tính trước khi cắt trần 100 tin — cùng lý do X4 ở `tom-tat`): tin có thể
+   * đã rơi khỏi `tin` (đã cắt trần) nếu tài khoản có > 100 tin "Của tôi" mới hơn, nhưng vẫn còn quan trọng chưa hiểu.
+   */
   async function moTinTheoId(id: string): Promise<void> {
     try {
-      const { tin } = await api<HopThongBaoResponse>("/api/thong-bao?ngan=cua-toi");
-      const t = tin.find((x) => x.id === id);
+      const r = await api<HopThongBaoResponse>("/api/thong-bao?ngan=cua-toi");
+      const t = r.quanTrongChuaHieu.find((x) => x.id === id) ?? r.tin.find((x) => x.id === id);
       if (t) {
         const nhan = nhomTheoNgay([t], new Date().toISOString())[0]?.nhan ?? "Hôm nay";
         openTinDialog(t, nhan, () => void taiTomTat());

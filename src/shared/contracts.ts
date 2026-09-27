@@ -623,6 +623,8 @@ export interface TinDto {
   maDon: string | null;
   noiDung: string | null; // chỉ tin thủ công
   nguoiGui: string | null; // chỉ tin thủ công
+  /** Nhãn tiếng Việt "Gửi cho" (K3): "Toàn công ty" cho `noi-bo`, tên (các) nhóm quyền cho tin gửi theo nhóm; chỉ tin thủ công, `null` cho tin về đơn. */
+  nhomNhan: string | null;
   quanTrong: boolean;
   daHieuLuc: string | null; // tin quan trọng: lúc người xem bấm Đã hiểu
   lienKet: string | null; // tin về đơn
