@@ -1,6 +1,6 @@
 # ADR-0035 — Phần ít thay đổi của app nằm sẵn trên máy; mỗi lần mở trang chỉ chờ dữ liệu
 
-- **Trạng thái:** **proposed** — chờ chủ dự án duyệt (Q1, Q2 ở đặc tả `docs/superpowers/specs/2026-09-27-toi-uu-tai-trang.md` §6).
+- **Trạng thái:** **accepted** — chủ dự án quyết trong phiên chat 2026-09-27: *"Q1 chọn A, duyệt ADR-0035"* (điều 3 áp phương án A: lưu bản nhớ khung). AI ghi lại, không tự quyết. Từ mốc này chỉ sửa dòng trạng thái; thay đổi nội dung = ADR mới.
 - **Ngày:** 2026-09-27   **Loại:** cửa **hai chiều** — không migration, không đổi API/quyền; gỡ bằng revert commit và một lần triển khai (service worker `no-store` nên máy nhận bản gỡ ở lần mở kế tiếp).
 - **Liên quan:** xây trên thiết kế PWA 2026-09-19 (`docs/PWA-IPHONE.md`, `src/shared/sw-policy.ts`); giữ nguyên Bảng tin (ADR-0022); phối hợp thứ tự với ADR-0034 (Thông báo, proposed — cùng chạm `web/shell.ts`, `web/sw/sw.ts`). Số 0030–0032 dành cho Đơn tự do, 0034 cho Thông báo → lấy 0035 (kiểm lại số lúc gộp).
 

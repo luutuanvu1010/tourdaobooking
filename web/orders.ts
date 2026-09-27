@@ -37,9 +37,11 @@ function listUrl(base: number, limit: number): string {
 // trên ô đó. Trước sửa này, gõ rồi Enter chỉ tải lại trang và hiện TOÀN BỘ danh sách (ô tìm là nút chết).
 const qFromUrl = new URLSearchParams(location.search).get("q")?.trim();
 if (qFromUrl) qInput.value = qFromUrl;
-// Gọi sớm (web/goi-som.ts): lần tải đầu gửi NGAY, song song với /api/auth/me của initShell(); `load()` chỉ dùng nó khi đường dẫn trùng khớp.
+// Gọi sớm (web/goi-som.ts): lần tải đầu gửi NGAY, song song với /api/auth/me của initShell(). Chỉ lần `load()` ĐẦU TIÊN được dùng, và chỉ
+// khi đường dẫn trùng; lần đầu đã bắt đầu thì bỏ hẳn — không để một lần tải sau (bộ lọc đổi rồi quay về mặc định) nhận nhầm bản chụp lúc mở trang
+// (người kiểm độc lập 2026-09-27, phát hiện Important).
 const urlDau = listUrl(0, PAGE);
-const layDau = goiSom(() => api<Api.OrderListResponse>(urlDau));
+let layDau: (() => Promise<Api.OrderListResponse>) | null = goiSom(() => api<Api.OrderListResponse>(urlDau));
 
 /** Một thẻ đơn + chỗ ghi người phụ trách (điền sau khi `GET /api/dispatch/handlers` về). */
 interface Row {
@@ -114,8 +116,10 @@ async function load(reset: boolean, refresh = false): Promise<void> {
   if (!refresh) showError(errorEl, null);
   if (reset && !refresh) loadingEl.hidden = false;
   const url = listUrl(base, limit);
+  const som = layDau;
+  layDau = null;
   try {
-    const { orders, hasMore } = await (url === urlDau ? layDau() : api<Api.OrderListResponse>(url));
+    const { orders, hasMore } = await (som && url === urlDau ? som() : api<Api.OrderListResponse>(url));
     if (seq !== loadSeq) {
       // Làm mới bị "Tải thêm" (bấm trong lúc chờ) thay thế: xếp lại để chạy lại, không để mất tin — sau khi "Tải thêm" xong (nếu còn chạy), hoặc ngay (nếu đã xong).
       if (refresh && lastLoadIsMore) {

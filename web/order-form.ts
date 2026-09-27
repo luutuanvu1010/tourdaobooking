@@ -20,6 +20,7 @@ import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
 import { goiSom } from "./goi-som";
+import { layKhungNho } from "./khung-nho";
 import { initShell, setBarTitle } from "./shell";
 
 const params = new URLSearchParams(location.search);
@@ -354,8 +355,8 @@ async function loadOrder(): Promise<void> {
 
 // ---- khởi động ----
 // Gọi sớm (web/goi-som.ts): danh mục (và đơn đang sửa) gửi NGAY, song song với /api/auth/me của initShell(); vẫn chỉ DÙNG theo đúng điều kiện
-// quyền bên dưới. Tài khoản không lập đơn (Kế toán) thì lời gọi danh mục nhận 403 từ máy chủ và bị bỏ, không hiện lời báo nào.
-const layDanhMuc = goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order"));
+// quyền bên dưới. Danh mục chỉ gọi sớm khi bản nhớ khung (ADR-0035) nói máy này thuộc người được lập đơn — Kế toán không gọi route này như cũ.
+const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.CatalogPublicResponse>("/api/catalog/for-order")) : () => api<Api.CatalogPublicResponse>("/api/catalog/for-order");
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này

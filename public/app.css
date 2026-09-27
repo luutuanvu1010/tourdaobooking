@@ -215,6 +215,8 @@ textarea { min-height: 72px; resize: vertical; }
 .skeleton-row { height: var(--h-order-skeleton); border-radius: var(--radius-md); background: var(--c-surface-alt); animation: skeleton-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .skeleton-row { animation: none; } }
 @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
+/* Chuyển trang không chớp trắng (ADR-0035, lát 3): trình duyệt giữ trang cũ tới khi trang mới vẽ xong rồi chuyển mượt. Máy không hỗ trợ thì như cũ; giảm chuyển động thì tắt. */
+@media (prefers-reduced-motion: no-preference) { @view-transition { navigation: auto; } }
 .badge { padding: 2px 10px; font-size: .8rem; font-weight: 700; border-radius: 999px; }
 .badge-draft { color: var(--c-sand-text); background: var(--c-sand-soft); }
 .badge-confirmed { color: var(--c-green-text); background: var(--c-green-soft); }
