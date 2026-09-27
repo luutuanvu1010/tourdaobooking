@@ -6,7 +6,7 @@
 - **Ngày:** 2026-09-27. **Người soạn:** AI (phiên lập kế hoạch; không thi công trong phiên này — P15).
 - **Không xây trên lỗ đang hở:** `docs/quyen-hoan.json` mục `phat_hien` rỗng (kiểm 2026-09-27).
 - **Số đã giữ:** migration `0025_*` (số lớn nhất ở `main` và mọi nhánh cục bộ là 0024; `0019` dành cho B5). ADR-0034, ADR-0036 (0030–0032 dành cho Đơn tự do, 0033 đã dùng, **0035 đã dùng** ở nhánh chưa gộp `worktree-toi-uu-tai-trang` — `ADR-0035-khung-app-nam-san-tren-may.md`).
-- **Cổng trước thi công giao diện:** bản mẫu bấm thử được (iPhone + máy tính) do AI vẽ, **chủ duyệt** rồi mới làm, làm đúng 100% bản mẫu (§2 E1; bài học Đợt D).
+- **Cổng trước thi công giao diện:** bản mẫu bấm thử được (iPhone + máy tính) do AI vẽ, **chủ duyệt** rồi mới làm, làm đúng 100% bản mẫu (§2 E1; bài học Đợt D). **ĐÃ DUYỆT** — chủ trả lời *"duyệt"* trong chat 2026-09-27 cho bản mẫu `docs/design/thong-bao-mockup/ban-mau-thong-bao.html` (commit 261b74a; bản đăng https://claude.ai/artifact/6oyms74ZYFvosY5YAYAHk7). Bản mẫu là chuẩn nghiệm thu giao diện: vị trí chuông, hai ngăn, câu chữ, màu dải tin (cát), màn Gửi thông báo, bước xác nhận thu hồi.
 
 ## 0. Bài toán bằng lời thường
 
@@ -53,6 +53,7 @@ Chủ muốn: một **chuông** có số chưa đọc; bấm vào ra **hộp th�
 | K3 | "Toàn công ty" có tới ~1.000 tài khoản Đối tác không (phát hiện của trợ lý đọc hộ — văn bản cũ tự mâu thuẫn) | **Chỉ nội bộ**; muốn gửi Đối tác thì tick riêng nhóm Đối tác | Hiến pháp P8 |
 | K4 | HDV thấy tên người làm trên đơn mình dẫn không | **Giữ ẩn tên** đợt này (`order.history.view` của FIELD = none); mở sau bằng quyết định quyền riêng | |
 | K5 | Thực tập bật được thông báo màn hình khoá không | **Có — coi là nội bộ** (lượt 2) | |
+| K6 | Người gửi tin thủ công có thấy tin của chính mình trong hộp không | **Không** (theo E3) — xem tin đã gửi ở màn "Gửi thông báo". AI nêu khi trình bản mẫu; chủ duyệt bản mẫu 2026-09-27 | |
 | K2 | Quản trị có thấy dòng nhật ký `notice_*` qua nhật ký chung `GET /api/audit` (`admin.manage`) không (phát hiện kiểm độc lập vòng 2) | **Được thấy** — giữ lệ Quản trị xem mọi dòng nhật ký; dòng chỉ có mã tin + ai + lúc nào; màn "ai đã/chưa hiểu" vẫn chỉ Toàn quyền | CLAUDE.md §9 bước ghép |
 | K1 | Tên người làm khi người xem không được xem lịch sử đơn (phát hiện của người kiểm độc lập) | **Ẩn tên** nếu `order.history.view` của người xem sai với đơn đó — câu không tên như thông báo nổi hôm nay | ranh giới quyền ADR-0007/0009; Hiến pháp P8 |
 
