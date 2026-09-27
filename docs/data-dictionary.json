@@ -12,7 +12,8 @@
     "maintenance",
     "orders",
     "parties",
-    "staff"
+    "staff",
+    "thongbao"
   ],
   "tables": [
     {
@@ -199,6 +200,26 @@
       "name": "mnt_setting",
       "module": "maintenance",
       "kind": "table"
+    },
+    {
+      "name": "ntf_notice",
+      "module": "thongbao",
+      "kind": "table"
+    },
+    {
+      "name": "ntf_notice_target",
+      "module": "thongbao",
+      "kind": "table"
+    },
+    {
+      "name": "ntf_ack",
+      "module": "thongbao",
+      "kind": "table"
+    },
+    {
+      "name": "ntf_read_mark",
+      "module": "thongbao",
+      "kind": "table"
     }
   ],
   "views": [
@@ -259,6 +280,33 @@
         "label",
         "active",
         "party_id"
+      ]
+    },
+    {
+      "name": "v_aud_order_event",
+      "module": "audit",
+      "columns": [
+        "id",
+        "order_id",
+        "staff_id",
+        "action",
+        "created_at"
+      ]
+    },
+    {
+      "name": "v_ord_order_owner",
+      "module": "orders",
+      "columns": [
+        "id",
+        "staff_id"
+      ]
+    },
+    {
+      "name": "v_dsp_first_handler",
+      "module": "dispatch",
+      "columns": [
+        "order_id",
+        "first_at"
       ]
     }
   ],

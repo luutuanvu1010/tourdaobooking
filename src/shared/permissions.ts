@@ -71,6 +71,7 @@ export const MATRIX = {
   "feedback.view": row("own", "own", "any", "own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
   "feedback.triage": row("none", "none", "any", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
+  "notice.send": row("none", "none", "none", "none", "none", "any", "none"), // gửi/thu hồi thông báo thủ công, xem ai đã hiểu — chỉ Toàn quyền (ADR-0034 điều 7)
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
