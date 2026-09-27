@@ -47,6 +47,7 @@ Mục lục: §1 Bảng tra nhanh · §2 Công thức a1–a3, b–v · §3 Ma t
 | Cột "Đăng nhập gần nhất" / ghi nhận đăng nhập thành công | `src/modules/staff/{repository,index}.ts` (`recordLogin`), `src/modules/auth/index.ts` (route login PIN + Face ID), `web/staff.ts`, `public/staff.html` | q, l |
 | Đăng nhập nhanh bằng Face ID (passkey): bật/gỡ, đăng nhập, đặt PIN bằng Face ID, nút gỡ cho quản trị | `src/modules/auth/{webauthn,cbor,challenge,passkey,repository,index}.ts`, `src/modules/accounts/index.ts` (`/api/account/passkeys*`, `/api/account/pin-by-passkey*`, `/api/staff/:id/passkeys/remove-all`), `web/passkey.ts`, `src/shared/passkey-error.ts`, `web/login.ts`, `web/account.ts`, `web/staff.ts`, `migrations/0023_auth_passkey.sql` | r |
 | Thông báo hệ thống (chuông, ngăn "Của tôi"/"Tất cả", dải tin quan trọng, trang Gửi thông báo cho Toàn quyền) | `src/shared/thong-bao.ts` (+ test, luật lọc duy nhất), `src/modules/thongbao/{repository,index}.ts`, `web/thong-bao-logic.ts`/`web/thong-bao-ui.ts` (chuông/ngăn/dải, gắn qua `ganThongBao()` ở `web/shell.ts`), `web/gui-thong-bao.ts` + `public/gui-thong-bao.html` (trang gửi), `migrations/0025_thong_bao.sql`, ADR-0034 | b, c, e |
+| Thêm một loại tin mới về đơn (hành động nhật ký mới lên chuông/hộp thông báo) | `src/shared/thong-bao.ts` (`loaiTinDon`, `CAU`), `src/shared/contracts.ts` (`LoaiTin`), `migrations/00xx_*.sql` (view `v_aud_order_event`), `web/thong-bao-ui.ts` (icon/màu) | w |
 | Thêm biến môi trường / bí mật | `wrangler.jsonc` (`vars`), `.dev.vars`, `worker-configuration.d.ts` | l |
 | Đổi cách đồng bộ Sheet / danh mục / ghi đè admin | `src/modules/catalog/*`, `src/shared/sheets.ts` | k |
 | Đổi cột Sheet nhân viên / cách nạp nhân viên | `src/modules/staff/sheet.ts`, `src/modules/accounts/index.ts` | k |
@@ -587,6 +588,24 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 **Kiểm:** `node --test src/bang-tin-guard.test.ts src/shared/bang-tin.test.ts src/modules/bangtin/rules.test.ts src/modules/bangtin/bat-tay.test.ts src/bang-tin-web.test.ts src/lam-moi-web.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- bangtin` (thêm `admin maintenance` khi chạm đóng kết nối; đủ bộ khi chạm `wrangler.jsonc`/`router.ts`) → `node --test "tests/audit/*.test.mjs"` (KHÔNG nằm trong `npm test`; ghi ca đỏ sẵn có trước/sau, không được thêm ca đỏ mới) → Chrome `bang-tin-smoke.mjs` khi chạm `web/` (§3).
 
 **Bẫy:** §4 mục 35–42.
+
+### w. Thêm một loại tin về đơn (Thông báo hệ thống, ADR-0034)
+
+**Khi nào:** thêm một hành động nhật ký mới cần lên hộp thông báo (chuông/ngăn/dải) như một tin về đơn — KHÔNG áp dụng cho tin thủ công (Toàn quyền gửi, không cần đổi mã).
+
+**Làm:**
+1. Tin về đơn KHÔNG có bảng riêng — là hình chiếu của `audit_log` qua view `v_aud_order_event` (`migrations/0025_thong_bao.sql`). Hành động mới chưa có trong view (kiểm bằng `IN (…)` của view) thì thêm **migration mới** (chỉ THÊM, không sửa `0025` đã áp) tạo lại view với hành động đó — cùng khuôn expand–contract của dự án (công thức d).
+2. Thêm hành động vào `HANH_DONG_TIN_DON` (`src/shared/thong-bao.ts`) nếu tệp này giữ danh sách hành động hợp lệ tách khỏi view (đối chiếu hằng số thật trước khi sửa — đừng đoán).
+3. `loaiTinDon(d: DongDon)` (`src/shared/thong-bao.ts`) — thêm nhánh `case` cho hành động mới, trả về một `LoaiTin` (thêm giá trị vào `LoaiTin` ở `src/shared/contracts.ts` nếu là loại hoàn toàn mới, không phải nhãn có sẵn).
+4. Bảng câu `CAU` (cùng tệp): thêm `coTen`/`khongTen` cho loại mới — câu tiếng Việt, không tên nếu người xem không được xem lịch sử đơn (K1).
+5. Nhãn "ai nhận" của tin loại mới suy từ `nhanSuKien`/`nhanKetNoi` (`src/shared/bang-tin.ts`) — **không** viết luật quyền tay trong `locHopThongBao` (một nguồn luật, xem công thức v mục (3)); nếu loại mới cần một nhãn "ai nhận" chưa có (như `cho-nhan`), đó là quyết định K7-kiểu (phạm vi ai thấy tin gì) — **dừng và hỏi chủ**, đừng tự suy diễn.
+6. Giao diện: thêm icon + màu badge cho `LoaiTin` mới ở `web/thong-bao-ui.ts` (`KIND_ICON`, `KIND_BADGE_CLASS`) và `web/icons.ts` nếu cần hình mới.
+7. Test thuần đỏ trước/xanh sau ở `src/shared/thong-bao.test.ts` (`loaiTinDon`, câu, ai nhận); cập nhật `docs/data-dictionary.json` + `npm run dict` nếu view đổi cột.
+
+**K7 (nhắc lại, đã quyết — đừng hỏi lại):** HDV bấm "Từ chối" **chưa** lên chuông ở lượt 1 (`v_aud_order_event` không có `order_handler_refused`) — quyết định của chủ, không phải thiếu sót; chỉ đổi khi có ADR/quyết định mới.
+
+**Kiểm:** `node --test src/shared/thong-bao.test.ts` → `npm test` → `npm run typecheck` → `npm run build:web` → `npm run test:e2e -- thongbao pwa` (đủ bộ khi chạm migration).
+
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 
 | Bạn chạm | Chạy |
