@@ -164,7 +164,7 @@ route("PUT", "/api/foo/:id", "office", async ({ env, request, params, staff }) =
    - `<body data-title data-back data-tabbar="off">` tuỳ trang. KHÔNG script inline (CSP `script-src 'self'`).
 2. `web/<tên>.ts`: `const staff = await initShell();` (`web/shell.ts`) làm việc đầu; kiểm quyền bằng `hasPermission`/`can` (`src/shared/permissions`, import KHÔNG đuôi `.ts`); lỗi hiện bằng `showError`.
 3. `package.json` → script `build:web`: thêm `web/<tên>.ts` vào lệnh esbuild đầu (danh sách liệt kê từng tệp).
-4. `src/shared/sw-policy.ts`: thêm `"/<tên>"` (không `.html`) vào `PAGES`. Chỉ thêm `PRECACHE` nếu muốn nạp sẵn (hiện chỉ 5 trang lõi).
+4. `src/shared/sw-policy.ts`: thêm `"/<tên>"` (không `.html`) vào `PAGES` **và** thêm `"/<tên>"` + `"/js/<tên>.js"` vào `PRECACHE` (từ 2026-09-27 nạp sẵn MỌI trang; `src/shared/sw-policy.test.ts` đọc script `build:web` và đỏ nếu thiếu).
 5. Điều hướng: `web/shell.ts` (`tabsFor` cho thanh tab điện thoại, `replaceChildren(nav, …)` cho thanh trên máy tính); mục ở tab "Tôi": `web/account.ts`.
 6. Quyền: ẩn/hiện ở web KHÔNG thay cho `access` của route (e).
 7. `tests/e2e/pwa.mjs` KHÔNG cần sửa: nó duyệt mọi trang của `PAGES` (thẻ meta iOS, `theme-color`, `— ${NAME}</title>`, không còn tên cũ) và vòng `PAGES ∪ PRECACHE` kiểm trang trả 200 + qua `isCacheable` — thêm vào `PAGES` là được kiểm ngay.

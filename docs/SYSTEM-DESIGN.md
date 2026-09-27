@@ -653,7 +653,7 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 | `npm run db:migrate:local` / `:remote` | `wrangler d1 migrations apply tourdao-sales-db --local` / `--remote` |
 
 **Thêm một trang mới phải khai ở 4 nơi** (không có nơi nào tự suy ra):
-`public/<tên>.html` → mục `esbuild` của `build:web` trong `package.json` → `PAGES` (và nếu cần, `PRECACHE`) trong `src/shared/sw-policy.ts` → điều hướng trong `web/shell.ts`. Hai bài kiểm bắt lỗi nếu quên: `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với các tệp HTML trong `public/`, và `tests/e2e/pwa.mjs` yêu cầu mọi đường dẫn trong `PAGES ∪ PRECACHE` trả 200 với content-type qua được `isCacheable`, đồng thời kiểm thẻ meta iOS và tên/màu trên MỌI trang của `PAGES` (14 trang, thêm `/orders` từ Đợt D Task 5 và `/help` từ trang Trợ giúp: e2e in "nhất quán trên 14 trang").
+`public/<tên>.html` → mục `esbuild` của `build:web` trong `package.json` → `PAGES` và `PRECACHE` (trang + `/js/<tên>.js`, bắt buộc từ 2026-09-27) trong `src/shared/sw-policy.ts` → điều hướng trong `web/shell.ts`. Hai bài kiểm bắt lỗi nếu quên: `src/shared/sw-policy.test.ts` đối chiếu `PAGES` với các tệp HTML trong `public/`, và `tests/e2e/pwa.mjs` yêu cầu mọi đường dẫn trong `PAGES ∪ PRECACHE` trả 200 với content-type qua được `isCacheable`, đồng thời kiểm thẻ meta iOS và tên/màu trên MỌI trang của `PAGES` (14 trang, thêm `/orders` từ Đợt D Task 5 và `/help` từ trang Trợ giúp: e2e in "nhất quán trên 14 trang").
 
 **Các lớp kiểm.**
 
