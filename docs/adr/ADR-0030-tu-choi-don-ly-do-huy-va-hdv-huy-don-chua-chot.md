@@ -1,6 +1,13 @@
 # ADR-0030 — Người phụ trách "Từ chối" đơn (đơn về Chờ nhận, thay LC-8); mọi lần Từ chối/Huỷ có lý do; hướng dẫn viên huỷ được đơn chưa chốt
 
-- **Trạng thái:** **proposed** — AI soạn 2026-09-27 (vai lập kế hoạch) từ đặc tả `docs/superpowers/specs/2026-09-26-don-tu-do-hdv-nhan-tu-choi-design.md` (dưới đây gọi "đặc tả"); chủ dự án đã trả lời mọi câu hỏi mở ngày 2026-09-26/27 (đặc tả §0, §1, §9A). **Trả lời của chủ CHƯA phải là duyệt ADR này.** Các điểm sau đổi quyết định đã duyệt, nên phải qua lượt duyệt có trang ghép (`CLAUDE.md` §9):
+- **Trạng thái:** **accepted** — chủ dự án duyệt trực tiếp trong phiên chat 2026-09-27 ("duyệt cả hai lượt luôn").
+  - Lượt 1 (D1–D3): S20-2…5, 8, 9, 13 và S23-1…5, 8.
+  - Lượt 2 (D4–D6): điều 1, điều 2, S23-9.
+  - Lời duyệt do điều phối chuyển lại nguyên văn; người soạn tệp này không trực tiếp thấy tin nhắn của chủ.
+
+  AI soạn 2026-09-27 (vai lập kế hoạch) từ đặc tả `docs/superpowers/specs/2026-09-26-don-tu-do-hdv-nhan-tu-choi-design.md` (dưới đây gọi "đặc tả"). AI không tự duyệt (N3, Điều 7.2). Từ mốc này chỉ sửa dòng trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.
+
+  Các điểm sau đổi quyết định đã duyệt, nên đã qua lượt duyệt có trang ghép (`CLAUDE.md` §9):
   - Q-B: thay LC-8 (ADR-0018 điều 5);
   - Q-C;
   - Q-G: ADR-0014 điều 11;
@@ -9,8 +16,8 @@
   - "Giao có hiệu lực ngay": ADR-0018 điều 7;
   - điều kiện đưa hướng dẫn viên vào cổng `orders` và ô `money.view` của hướng dẫn viên: ADR-0019 điều 1 (bảng cổng) và điều 3 (dòng S23-5).
 
-  AI **không tự duyệt** (N3, Điều 7.2). Sau khi accepted chỉ sửa dòng trạng thái; đổi nội dung = ADR mới trỏ về ADR này.
-- **Ngày:** 2026-09-27   **Người phê chuẩn:** chủ dự án (chưa duyệt)
+- **Lượt 1 kéo theo:** ADR-0020 điều 1, 2 (S20-2…5) và ADR-0023 điều 1–2 (S23-1…5, 8) cần chuyển "accepted phần tương ứng" cùng lúc — xem S20-6/S23-6.
+- **Ngày:** 2026-09-27   **Người phê chuẩn:** chủ dự án (đã duyệt 2026-09-27)
 - **Loại quyết định:** **cửa hỗn hợp.**
   - Hai chiều: mã, route, ô quyền, nhãn.
   - **Một chiều:** SĐT/tiền hướng dẫn viên đã xem qua "nhận rồi từ chối"; **mỗi lần huỷ đơn**; dòng nhật ký chỉ-thêm.
