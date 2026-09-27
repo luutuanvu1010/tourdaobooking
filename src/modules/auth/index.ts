@@ -1,6 +1,7 @@
 // Module auth — phiên đăng nhập (cookie ký HMAC) + chống dò PIN + Cloudflare Turnstile ở đăng nhập (./turnstile.ts). Route: /api/auth/*.
 // Kiểm quyền từng route KHÔNG nằm ở đây: router (src/shared/router.ts) dùng `currentStaff` do gốc lắp ráp truyền vào.
 import { getMaintenanceState, maintenanceBlock, toStatus } from "../maintenance";
+import { ownerCompany } from "../parties";
 import { authenticate, getActiveStaff, isValidPin, normalizePhone, recordLogin, type StaffProfile } from "../staff";
 import { APP_VERSION } from "../../shared/app-info";
 import type { AuthConfigResponse, MeResponse, PasskeyRequestOptionsResponse } from "../../shared/contracts";
@@ -100,9 +101,21 @@ export const authModule: AppModule = {
   routes: [
     // Công khai: trang đăng nhập hỏi trước khi dựng widget. Khoá site không nhúng cứng vào HTML (local dùng khoá thử của Cloudflare).
     // `maintenance`: trang đăng nhập hiện banner + đếm ngược khi đang bảo trì. Chỉ {on, endsAt} — KHÔNG lộ ai được phép.
-    route("GET", "/api/auth/config", "public", async ({ env }) =>
-      json({ turnstileSiteKey: turnstileSiteKey(env), maintenance: toStatus(await getMaintenanceState(env.DB)), passkey: passkeyRelyingParty(env) !== null, version: APP_VERSION } satisfies AuthConfigResponse),
-    ),
+    route("GET", "/api/auth/config", "public", async ({ env }) => {
+      // ADR-0024 6.2: tên + MST của hồ sơ công ty chủ cho chân trang đăng nhập (thêm hai trường, không thêm yêu cầu). Đọc lỗi KHÔNG được làm hỏng cấu hình
+      // đăng nhập (Turnstile, bảo trì, Face ID): ghi một dòng log rồi trả null — trang giữ chữ tĩnh.
+      const [maintenance, company] = await Promise.all([
+        getMaintenanceState(env.DB),
+        ownerCompany(env.DB).catch((e: unknown) => {
+          console.error(JSON.stringify({ level: "error", event: "company_config_failed", message: e instanceof Error ? e.message : String(e) }));
+          return null;
+        }),
+      ]);
+      return json({
+        turnstileSiteKey: turnstileSiteKey(env), maintenance: toStatus(maintenance), passkey: passkeyRelyingParty(env) !== null, version: APP_VERSION,
+        companyName: company?.displayName ?? null, companyTaxCode: company?.taxCode ?? null,
+      } satisfies AuthConfigResponse);
+    }),
 
     route("POST", "/api/auth/login", "public", async ({ request, env }) => {
       const body = await readJson(request);

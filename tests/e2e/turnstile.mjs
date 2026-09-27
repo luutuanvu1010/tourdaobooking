@@ -33,7 +33,10 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.match(r.headers.get("content-type"), /^application\/json/);
 assert.equal(r.headers.get("cache-control"), "no-store");
 // passkey: true — giá trị THẬT (Task 7: passkeyRelyingParty(env) !== null); run.mjs đặt PASSKEY_RP_ID=127.0.0.1 / PASSKEY_ORIGIN=<base> riêng cho e2e (Task 9), không lệ thuộc `vars` production của wrangler.jsonc.
-assert.deepEqual(r.body, { turnstileSiteKey: TURNSTILE_TEST.siteKey, maintenance: { on: false, endsAt: null }, passkey: true, version: APP_VERSION }, "server e2e phải được bật Turnstile bằng khoá thử (run.mjs truyền --var TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY); chế độ bảo trì TẮT (chi tiết ở maintenance.mjs)");
+// companyName / companyTaxCode (ADR-0024 6.2, T2b): tên gọi + MST của hồ sơ công ty chủ, đọc từ D1 (không gõ số của công ty). Đây là chỗ khoá NGUYÊN tập trường của cấu hình.
+const [ho] = await sqlRows(`SELECT p.display_name, o.tax_code FROM pty_party_role x JOIN pty_party p ON p.id = x.party_id LEFT JOIN pty_organization o ON o.party_id = p.id
+  WHERE x.role_type_code = 'OWNER_COMPANY' AND x.valid_to_date IS NULL`);
+assert.deepEqual(r.body, { turnstileSiteKey: TURNSTILE_TEST.siteKey, maintenance: { on: false, endsAt: null }, passkey: true, version: APP_VERSION, companyName: ho.display_name, companyTaxCode: ho.tax_code }, "server e2e phải được bật Turnstile bằng khoá thử (run.mjs truyền --var TURNSTILE_SITE_KEY / TURNSTILE_SECRET_KEY); chế độ bảo trì TẮT (chi tiết ở maintenance.mjs)");
 assert.doesNotMatch(JSON.stringify(r.body), /secret|1x0000000000000000000000000000000AA/i, "tuyệt đối không lộ khoá bí mật");
 assert.deepEqual((await call(ADMIN, "GET", "/api/auth/config")).body, r.body, "đã đăng nhập cũng thấy như nhau");
 r = await call(null, "POST", "/api/auth/config", {});

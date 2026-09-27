@@ -65,6 +65,10 @@ export interface AuthConfigResponse {
   passkey: boolean;
   /** Số phiên bản đang chạy (= APP_VERSION, từ nhật ký thay đổi). Công khai; scripts/kiem-phien-ban.mjs so với bản ở máy trước/sau deploy. */
   version: string;
+  /** Tên gọi của hồ sơ công ty chủ (ADR-0024 6.2) — chân trang đăng nhập. null = chưa có / đọc lỗi → trang giữ chữ tĩnh. */
+  companyName: string | null;
+  /** Mã số thuế của hồ sơ công ty chủ (6.2). null như trên. */
+  companyTaxCode: string | null;
 }
 
 // ---- Đăng nhập bằng Face ID (passkey, ADR-0016; đặc tả 2026-09-23-passkey-design.md) ----
