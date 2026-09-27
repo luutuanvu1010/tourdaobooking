@@ -8,6 +8,7 @@ import { openHandlerSheet } from "./handler-sheet";
 import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
 import { renderServices } from "./order-services";
+import { goiSom } from "./goi-som";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
@@ -356,7 +357,7 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify }, handler] = await Promise.all([api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id!)}`), loadHandler(id!)]);
+    const [{ order, history, canModify }, handler] = await layDon!();
     if (seq !== loadSeq) return;
     show(null);
     render(order, history, canModify, handler);
@@ -381,6 +382,8 @@ const lamMoi = taoBoLamMoi(async () => {
   await load(true);
 });
 
+// Gọi sớm (web/goi-som.ts): đơn + người phụ trách gửi NGAY, song song với /api/auth/me của initShell(); chỉ dựng trang sau khi initShell() xong.
+const layDon = id ? goiSom(() => Promise.all([api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id)}`), loadHandler(id)])) : null;
 staff = await initShell();
 if (!id) show(banner("danger", "Thiếu mã đơn."));
 else {

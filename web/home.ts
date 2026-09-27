@@ -3,6 +3,8 @@ import { byId, h, replaceChildren, type Child } from "./dom";
 import { dayMonth, paxCounts, vnd, vndShort } from "./format";
 import { icon, type IconName } from "./icons";
 import { taoBoLamMoi } from "./lam-moi-logic";
+import { goiSom } from "./goi-som";
+import { layKhungNho } from "./khung-nho";
 import { initShell, showError } from "./shell";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
 import { homeRedirect } from "../src/shared/start-page";
@@ -183,10 +185,7 @@ function renderRevenue(rev: Api.DashboardResponse["revenueWeek"]): void {
  */
 async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
   if (!canSeeReviewAlerts(staff)) return null;
-  const [catalogRes, feedbackRes] = await Promise.allSettled([
-    api<Api.CatalogAdminResponse>("/api/catalog/admin"),
-    api<Api.FeedbackQueueResponse>("/api/feedback"),
-  ]);
+  const [catalogRes, feedbackRes] = await Promise.allSettled([layCatalogAdmin(), layFeedback()]);
   return reviewAlerts(staff, {
     catalogItems: catalogRes.status === "fulfilled" ? catalogRes.value.items : [],
     tickets: feedbackRes.status === "fulfilled" ? feedbackRes.value.tickets : [],
@@ -233,6 +232,16 @@ function initSectionIcons(): void {
   prepend(".dash-review-heading", "alert");
 }
 
+// Gọi sớm (web/goi-som.ts) theo bản nhớ khung (ADR-0035): CHỈ khi máy này lần trước thuộc người xem được mọi đơn (`seesAll` — cùng điều kiện
+// homeRedirect) thì gửi số liệu Trang chủ NGAY, song song với /api/auth/me. Không có bản nhớ → gọi sau initShell() như cũ. Tài khoản chỉ Đối
+// tác không bao giờ gọi route này (trang-chu-smoke.mjs I-1); bản nhớ cũ sai thì máy chủ trả 403 và kết quả bị bỏ.
+const nho = layKhungNho();
+const layDashboard = nho?.seesAll === true ? goiSom(() => api<Api.DashboardResponse>("/api/orders/dashboard")) : () => api<Api.DashboardResponse>("/api/orders/dashboard");
+// Khối "Cần xem lại" (hai API của quản trị): bản nhớ nói lần trước là quản trị → gửi sớm luôn. Vẫn chỉ DÙNG khi canSeeReviewAlerts(staff) thật đồng ý.
+const nhoAdmin = nho?.admin === true;
+const layCatalogAdmin = nhoAdmin ? goiSom(() => api<Api.CatalogAdminResponse>("/api/catalog/admin")) : () => api<Api.CatalogAdminResponse>("/api/catalog/admin");
+const layFeedback = nhoAdmin ? goiSom(() => api<Api.FeedbackQueueResponse>("/api/feedback")) : () => api<Api.FeedbackQueueResponse>("/api/feedback");
+
 async function main(): Promise<void> {
   initSectionIcons();
   const staff = await initShell();
@@ -268,7 +277,7 @@ async function taiDashboard(staff: Staff, lamMoi = false): Promise<void> {
   try {
     // loadReview() không bao giờ ném lỗi (allSettled + canSeeReviewAlerts() chặn trước) — gọi song song với
     // dashboard chính, không làm chậm phần còn lại của trang.
-    const [data, review] = await Promise.all([api<Api.DashboardResponse>("/api/orders/dashboard"), lamMoi ? undefined : loadReview(staff)]);
+    const [data, review] = await Promise.all([layDashboard(), lamMoi ? undefined : loadReview(staff)]);
     loadingEl.hidden = true;
     if (lamMoi) showError(byId("error"), null); // lần tải đầu đã lỗi (banner còn hiện) mà làm mới này thành công → gỡ banner
     byId("dash-date").textContent = `${weekday}, ${dateStr} · ${data.today.length} chuyến đón hôm nay`;
