@@ -62,6 +62,24 @@ Ghi theo tin điều phối 2026-09-27 (không phải lời duyệt kế hoạch
    - Task 2: `locHopThongBao` truyền `handlerTruoc: null`; **giữ** `.filter((t) => t !== "cho-nhan")` vì luật (a) vẫn gắn `cho-nhan` theo trạng thái hiện tại, còn nhãn này do loại tin quyết.
    - Kiểm sau gộp: `grep -n "handlerTruoc: TrangThaiPhuTrach | null" src/shared/bang-tin.ts` có kết quả ⇒ không còn chỗ nào của `thong-bao.ts` truyền `{ coNguoi: false, staffId: null }` làm `handlerTruoc`.
 
+
+## Sửa sau rà soát trước thi công (2026-09-27, sau khi gộp main 1.21 / ADR-0035) — ĐỨNG TRÊN chữ của từng Task
+
+Người rà chỉ-đọc đối chiếu kế hoạch với mã sau khi gộp main. Bốn chỗ chặn đã sửa thẳng trong Task 1, 2, 5. Các điểm dưới đây **thắng** chữ của Task tương ứng khi hai bên khác nhau; người thi công làm theo đây.
+
+- **R1 (Task 1):** ca tài khoản lai `duocThayTinDon(SALES+PARTNER, true) === false` KHÔNG thêm lúc này (đỏ trên main: văn phòng + có `dispatch.claim`, chưa có `holdsPartner`). Bật khi gộp ADR-0030 Task 1.4 (mục Phụ thuộc điểm 6).
+- **R2 (Task 2):** thêm test thuần: 150 tin "Của tôi" chưa đọc → `soChuaDoc === 100` và bằng số tin `chuaDoc` trong danh sách ngăn "Của tôi".
+- **R3 (Task 3):** test migration chèn `audit_log`/`dsp_assignment` phải tạo sẵn dòng `staff` và `orders` thật trước (khuôn `seedOrder` ở `src/migrations-0021.test.ts:10-24`), vì `node:sqlite` bật `foreign_keys`. Bỏ bước kiểm chỉ mục `audit_log(created_at)`: đã có `idx_audit_created` (`migrations/0007_*.sql`). Không thêm `integrityEdges` cho hai cạnh nội bộ module `thongbao` (sổ chỉ dùng cho cạnh xuyên module). Tên test "26 thao tác" ở `src/shared/permissions.test.ts` đổi theo số thật (27).
+- **R4 (Task 4):** thêm vào danh sách tệp `tests/e2e/dispatch.mjs` — dòng ~213 (sau tự nhận: lọc `order_claimed` thay `order_handler_changed`, chi tiết "từ chưa có người phụ trách sang …") và ~277 (vòng tranh nhận: đếm `order_claimed`). Đổi có chủ đích, ghi trong thân commit.
+- **R5 (Task 5):** tạo đơn e2e bằng `orderInput()` có sẵn ở `tests/e2e/lib.mjs` (~dòng 146): `call(cookie, "POST", "/api/orders", orderInput())` sau `ensureFakeCatalog()`; bỏ chỉ dẫn "chép `input` ở orders.mjs". Route `da-hieu`: tra tin theo id (đọc thẳng `ntf_notice` + nhóm nhận, không qua cửa sổ 30 ngày) để lần bấm thứ hai với tin đã hiểu vẫn trả OK như đặc tả §7; tin không tồn tại / đã thu hồi / không thuộc nhóm nhận → 404.
+- **R6 (Task 6):** `da-gui` gọi `listStaffAccounts` MỘT lần ngoài vòng lặp. Tài khoản chỉ-Đối-tác trong e2e tạo thẳng bằng `POST /api/staff { …, permissions: ["PARTNER"] }` như `tests/e2e/dispatch.mjs:~34` (thay cách đổi vai). "Tin chống trùng" gửi với `quanTrong: false` để không để lại dải nhắc trên DB dev.
+- **R7 (Task 7 — shell sau ADR-0035):** dòng `append(byId("topbar"), [avatarEl, search, newOrderBtn])` không còn; `thanhCongViec(...)` được gọi hai lần (khung tạm từ bản nhớ khung và khung thật). Gọi `ganThongBao(byId("topbar"), staff)` **chỉ** ngay sau lời gọi `thanhCongViec(initials(staff.fullName), seesAll, canCreate, false)` của khung thật và trước `addNav(...)`. Chuông KHÔNG mang `data-khung-tam`. `#strips` tạo lười ngay trong `setMaintenanceStrip`/`ganThongBao` (cái nào chạy trước tạo), không mang `data-khung-tam`.
+- **R8 (Task 7 — vị trí chuông đúng bản mẫu):** chèn nút chuông ngay TRƯỚC `.topbar-new` (không có thì thêm cuối topbar) → DOM: avatar, ô tìm, chuông, Tạo đơn. Máy tính: chuông nằm giữa ô tìm và "Tạo đơn"; tài khoản không có ô tìm thì `.bell` mang `margin-left:auto`. Điện thoại: thứ tự logo – chuông – avatar như bản mẫu (dùng `order`/`margin-left` qua `#topbar:has(> .bell)`); bỏ luật `.bell + .bar-avatar` trong chữ Task 7. Đối chiếu bằng mắt với bản mẫu ở cả hai khổ.
+- **R9 (Task 7/8 — kịch bản Chrome bắt buộc theo `web/CLAUDE.md`):** Task 7 sửa `setMaintenanceStrip`/`.maint-strip` → chạy thêm `v1-bao-tri.mjs`; Task 8 sửa `web/account.ts` → chạy thêm `dot-c-smoke.mjs`. `hienThongBao` nằm ở `web/toast.ts`.
+- **R10 (Task 8 — trang mới sau ADR-0035):** thêm `"/gui-thong-bao"` và `"/js/gui-thong-bao.js"` vào `PRECACHE` (`src/shared/sw-policy.ts`) cùng `PAGES`. Tham số `superAdmin` mới của `addNav`/`navGroups`/`sidebar` mặc định `false`; ba chỗ gọi `addNav` (khung tạm, nhánh mất mạng, khung thật): chỉ khung thật truyền `hasPermission(staff, "SUPER_ADMIN")` — bản nhớ khung khoá 5 trường (`src/khung-nho-web.test.ts`), KHÔNG thêm trường. Trang `gui-thong-bao.ts` không `return` ở cấp đầu module: dùng khuôn `if (!can(staff, "notice.send")) showError(…); else { … }` như `web/staff.ts:~370`.
+- **R11 (Task 9):** thêm `thongbao` vào danh sách module / "Module nghiêm" của `src/CLAUDE.md` (chỉ tên cho khớp mã; nếu hook chặn thì để diff cho chủ). Sửa đặc tả bằng một dòng lịch sử có ngày: §6.4 (đường `/api/account/thong-bao/*`) và §6.6 (hộp là ngăn trong khung app theo bản mẫu, không có trang `web/thong-bao.ts`).
+- **Hoãn có ghi (không làm lượt này):** đo CPU `tom-tat` (đặc tả §6.2) → Task 10 ghi "chưa đo" vào nhật ký; `goiSom` cho `tom-tat`/`da-gui` (ADR-0035 điều 2) và chuông không số ở khung tạm (tránh nhảy bố cục) → nợ ghi nhật ký, cần chủ chọn nếu muốn.
+
 ---
 
 ## Bản đồ tệp
@@ -109,7 +127,6 @@ test("duocThayTinDon: văn phòng/HDV thấy; Đối tác/Thực tập không; t
   assert.equal(duocThayTinDon(ai("SALES"), true), true);       // SALES có dispatch.claim
   assert.equal(duocThayTinDon(ai("ACCOUNTING"), true), false); // Kế toán không nhận đơn
   assert.equal(duocThayTinDon(ai("FIELD"), true), false);      // hôm nay FIELD dispatch.claim = none (ADR-0030 R1 đổi thành true — có chủ đích)
-  assert.equal(duocThayTinDon(ai("SALES", "PARTNER"), true), false); // tài khoản lai: không nhận đơn chờ (ADR-0030; chỉ thêm khi ADR-0030 Task 1.4 đã lên main)
 });
 ```
 Thêm `duocThayTinDon` và `type PermissionCode` vào import đầu tệp test (import `PermissionCode` từ `./permissions.ts`).
@@ -265,8 +282,8 @@ test("Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin c
   const lan = hop(LAN, d, [], "cua-toi");
   assert.equal(lan.tin[0]!.loai, "cho_nhan");
   assert.equal(lan.tin[0]!.cuaToi, true);
-  assert.equal(hop(MAI, d, [], "cua-toi").tin.length, 0);          // Kế toán: chỉ ở "Tất cả"
-  assert.equal(hop(MAI, d, [], "tat-ca").tin.length, 1);
+  assert.equal(hop(MAI, d, [], "cua-toi").tin.length, 0);
+  assert.equal(hop(MAI, d, [], "tat-ca").tin.length, 0);           // Kế toán không có dispatch.claim → không thấy tin chờ nhận ở ngăn nào (đặc tả §4.2(2))
 });
 
 test("X2: tin chờ nhận đã có người → mờ; nhãn cho-nhan chỉ áp cho dòng lập đơn", () => {
@@ -399,11 +416,10 @@ export function locHopThongBao(
     if (d.luc < moc || d.actorId === staff.id) continue;
     const loai = loaiTinDon(d);
     if (!loai || !duocThayTinDon(staff, loai === "cho_nhan")) continue;
-    // Hộp KHÔNG biết người phụ trách trước sự kiện → truyền null ("không biết"), KHÔNG được khẳng định "trước chưa ai" (coi nhầm = rò tin, lỗi NT-3 canh).
-    // Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy từ trạng thái HIỆN TẠI (!handlerSau.coNguoi).
-    // Nếu ADR-0030 Task 1.4 CHƯA lên main (kiểu còn là TrangThaiPhuTrach, không nhận null): tạm truyền { coNguoi: false, staffId: null } — kết quả
-    // như nhau nhờ .filter — và đổi sang null ngay khi gộp (xem mục "Phụ thuộc ADR-0030" điểm 6).
-    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: null, handlerSau: d.phuTrach })
+    // Hộp KHÔNG biết người phụ trách trước sự kiện. Nhãn cho-nhan do chính loại tin quyết (dòng dưới), nên bỏ mọi cho-nhan nhanSuKien suy ra.
+    // Hôm nay (ADR-0030 chưa lên main) nhanSuKien chưa nhận null → truyền { coNguoi: false, staffId: null }; kết quả đúng nhờ .filter.
+    // KHI GỘP ADR-0030 Task 1.4: đổi thành handlerTruoc: null ("không biết" — không bao giờ coi là "chưa ai", NT-3). Mục "Phụ thuộc ADR-0030" điểm 6.
+    const nhan = nhanSuKien({ ownerId: d.ownerId, handlerTruoc: { coNguoi: false, staffId: null }, handlerSau: d.phuTrach })
       .filter((t) => t !== "cho-nhan");
     if (loai === "cho_nhan") nhan.push("cho-nhan");
     const chung = nhan.filter((t) => ketNoi.has(t));
@@ -427,8 +443,9 @@ export function locHopThongBao(
     });
   }
   tat.sort((a, b) => (a.luc < b.luc ? 1 : a.luc > b.luc ? -1 : 0));
-  const soChuaDoc = tat.filter((x) => x.cuaToi && x.chuaDoc).length;
-  const tin = (vao.ngan === "cua-toi" ? tat.filter((x) => x.cuaToi) : tat).slice(0, TOI_DA_TIN);
+  const cua = tat.filter((x) => x.cuaToi).slice(0, TOI_DA_TIN);
+  const soChuaDoc = cua.filter((x) => x.chuaDoc).length;      // đếm trên ĐÚNG danh sách ngăn "Của tôi" trả về → số đỏ không bao giờ lệch danh sách (Review Focus 5)
+  const tin = vao.ngan === "cua-toi" ? cua : tat.slice(0, TOI_DA_TIN);
   return { tin, soChuaDoc };
 }
 
@@ -711,7 +728,10 @@ const tin = tatKT.tin.find((t) => t.maDon === don.orderCode);
 assert.ok(tin && tin.cau.startsWith(ACCOUNTS.salesA.name + " vừa lập đơn"), "Kế toán thấy tên người lập");
 assert.equal(tin.cuaToi, false);
 const tatB = await call(B, "GET", "/api/thong-bao?ngan=tat-ca");
-assert.ok(!JSON.stringify(tatB.body).includes(ACCOUNTS.salesA.name), "K1: Bán hàng B không thấy tên A ở đơn không phải của mình");
+const tinB = tatB.body.tin.find((t) => t.maDon === don.orderCode);
+assert.ok(tinB, "B thấy tin lập đơn ở ngăn Tất cả");
+// Chỉ kiểm tin của ĐÚNG đơn này: dữ liệu e2e cũ (dispatch.mjs, orders.mjs) có đơn A lập mà B phụ trách → B được thấy tên A hợp lệ ở đó.
+assert.ok(!JSON.stringify(tinB).includes(ACCOUNTS.salesA.name), "K1: Bán hàng B không thấy tên A ở đơn không phải của mình");
 const tuA = (await call(A, "GET", "/api/thong-bao?ngan=tat-ca")).body;
 assert.ok(!tuA.tin.some((t) => t.maDon === don.orderCode), "E3: A không thấy tin của chính mình");
 console.log("✓ tin về đơn: K1, E3");
