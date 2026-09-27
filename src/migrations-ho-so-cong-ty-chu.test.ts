@@ -196,9 +196,11 @@ const org = (db: DatabaseSync, id: string, name: string) =>
   db.exec(`INSERT INTO pty_party (id, party_kind, display_name, created_at, updated_at) VALUES ('${id}', 'ORGANIZATION', '${name}', 'x', 'x')`);
 let seq = 0;
 /** Câu "đổi công ty chủ": chèn MỘT dòng vai OWNER_COMPANY đang mở cho hồ sơ `party` từ ngày `from` (như route gán vai). */
-const openOwner = (db: DatabaseSync, party: string, from: string) =>
+/** Chèn dòng OWNER_COMPANY đang mở: ngày bắt đầu `from`, thời điểm tạo `createdAt` (ISO UTC). Mặc định 03:00Z = 10:00 giờ VN CÙNG ngày `from` (thoả trigger (d)). */
+const insertOwnerRow = (db: DatabaseSync, party: string, from: string, createdAt = `${from}T03:00:00.000Z`) =>
   db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, created_by, updated_at, updated_by)
-           VALUES ('44444444-4444-4444-8444-${String(++seq).padStart(12, "0")}', '${party}', '${OWNER_COMPANY_ROLE}', NULL, '${from}', NULL, 'x', '${ACTOR}', 'x', '${ACTOR}')`);
+           VALUES ('44444444-4444-4444-8444-${String(++seq).padStart(12, "0")}', '${party}', '${OWNER_COMPANY_ROLE}', NULL, '${from}', NULL, '${createdAt}', '${ACTOR}', '${createdAt}', '${ACTOR}')`);
+const openOwner = (db: DatabaseSync, party: string, from: string) => insertOwnerRow(db, party, from);
 const ownerRows = (db: DatabaseSync): Row[] =>
   db.prepare("SELECT id, party_id, valid_from_date AS f, valid_to_date AS t, updated_by FROM pty_party_role WHERE role_type_code = ? ORDER BY id")
     .all(OWNER_COMPANY_ROLE).map((r) => ({ ...r }));
@@ -277,6 +279,34 @@ test("trigger (c): mở lại dòng công ty chủ đã đóng bị chặn (đ�
   openOwner(db, ORG_B, "2026-09-28");
   assert.throws(() => db.exec(`UPDATE pty_party_role SET valid_to_date = NULL WHERE id = '${vaiA}'`), /owner_company_no_reopen/);
   assert.deepEqual(openParties(db), [ORG_B]);
+});
+
+test("trigger (d) (ADR-0043 lượt 2): dòng OWNER_COMPANY đang mở phải có ngày bắt đầu = ngày giờ Việt Nam của created_at — ngày lùi, ngày tới, lấy nhầm ngày UTC đều bị chặn; hai mốc sát nửa đêm đúng", () => {
+  const cases: [string, string, string, boolean][] = [
+    ["20:30Z ngày 27 = 03:30 giờ VN ngày 28, bắt đầu 28", "2026-09-28", "2026-09-27T20:30:00.000Z", true],
+    ["10:00Z ngày 28 = 17:00 giờ VN ngày 28", "2026-09-28", "2026-09-28T10:00:00.000Z", true],
+    ["ngày LÙI (ghi sai lịch sử)", "2026-05-01", "2026-09-28T10:00:00.000Z", false],
+    ["ngày TỚI (hiện trước ngày hiệu lực)", "2026-09-29", "2026-09-28T10:00:00.000Z", false],
+    ["lấy nhầm ngày UTC (20:30Z ngày 27 là ngày 28 giờ VN)", "2026-09-27", "2026-09-27T20:30:00.000Z", false],
+    ["biên: 16:59:59.999Z = 23:59:59 giờ VN ngày 27", "2026-09-27", "2026-09-27T16:59:59.999Z", true],
+    ["biên: 17:00:00Z = 00:00 giờ VN ngày 28", "2026-09-28", "2026-09-27T17:00:00.000Z", true],
+  ];
+  for (const [ten, from, createdAt, dung] of cases) {
+    const { db } = seeded();
+    org(db, ORG_B, "Pháp nhân B");
+    if (dung) {
+      insertOwnerRow(db, ORG_B, from, createdAt);
+      assert.deepEqual(openParties(db), [ORG_B], ten);
+    } else {
+      assert.throws(() => insertOwnerRow(db, ORG_B, from, createdAt), /owner_company_start_not_today/, ten);
+      assert.equal(owners(db).length, 1, `${ten}: không đổi gì`);
+    }
+  }
+  // Vai khác không bị trigger này chạm (ngày lùi vẫn chèn được).
+  const { db } = seeded();
+  org(db, ORG_B, "Pháp nhân B");
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at)
+           VALUES ('55555555-5555-4555-8555-000000000001', '${ORG_B}', 'CUSTOMER', '2026-01-01', '2026-09-28T10:00:00.000Z', '2026-09-28T10:00:00.000Z')`);
 });
 
 test("gán vai lần hai cho CHÍNH hồ sơ đang là công ty chủ: trigger chồng lấn 0011 chặn trước — không dòng nào bị đóng", () => {

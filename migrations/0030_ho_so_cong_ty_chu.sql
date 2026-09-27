@@ -70,6 +70,14 @@ WHEN OLD.role_type_code = 'OWNER_COMPANY' AND OLD.valid_to_date IS NULL AND NEW.
   AND NOT EXISTS (SELECT 1 FROM pty_party_role o WHERE o.role_type_code = 'OWNER_COMPANY' AND o.valid_to_date IS NULL AND o.id <> OLD.id)
 BEGIN SELECT RAISE(ABORT, 'owner_company_last_open: không kết thúc được công ty chủ cuối cùng — muốn đổi thì gán công ty chủ cho hồ sơ khác'); END;
 
+-- (d) (ADR-0043 lượt 2) Dòng OWNER_COMPANY đang mở phải bắt đầu đúng NGÀY TẠO theo giờ Việt Nam: valid_from_date = date(created_at, '+7 hours').
+-- Ngày lùi làm (a) đóng lùi dòng cũ (ghi sai lịch sử); ngày tới làm hồ sơ mới hiện trước ngày hiệu lực. Không đọc giờ hiện tại trong SQL: created_at do
+-- máy chủ ghi (cùng một thời điểm với valid_from_date — route gán vai); dòng gieo ở trên cũng ghi hai giá trị trong cùng một câu (và được gieo TRƯỚC khi có
+-- trigger này). Không chặn người tự ghi created_at giả bằng SQL tay (điều 4 của ADR-0043).
+CREATE TRIGGER pty_party_role_owner_company_start_today BEFORE INSERT ON pty_party_role
+WHEN NEW.role_type_code = 'OWNER_COMPANY' AND NEW.valid_to_date IS NULL AND NEW.valid_from_date IS NOT date(NEW.created_at, '+7 hours')
+BEGIN SELECT RAISE(ABORT, 'owner_company_start_not_today: ngày bắt đầu của công ty chủ phải là hôm nay (giờ Việt Nam)'); END;
+
 -- (c) Không mở lại dòng OWNER_COMPANY đã đóng: đổi lại = gán một dòng mới (lịch sử giữ nguyên).
 CREATE TRIGGER pty_party_role_owner_company_no_reopen BEFORE UPDATE OF valid_to_date ON pty_party_role
 WHEN OLD.role_type_code = 'OWNER_COMPANY' AND OLD.valid_to_date IS NOT NULL AND NEW.valid_to_date IS NULL

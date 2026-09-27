@@ -38,7 +38,7 @@ test("đổi công ty chủ (chủ trả lời 2026-09-28): cấu hình đăng n
   w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${B}', 'ORGANIZATION', 'Pháp nhân Mới', 1, '${at}', '${at}')`);
   w.sqlite.exec(`INSERT INTO pty_organization (party_id, legal_name, tax_code, address, created_at, updated_at) VALUES ('${B}', 'CÔNG TY MỚI', '0312345678', '2 Đường Mới', '${at}', '${at}')`);
   w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at)
-                 VALUES ('12345678-1234-4234-8234-000000000002', '${B}', 'OWNER_COMPANY', '2099-01-01', '${at}', '${at}')`);
+                 VALUES ('12345678-1234-4234-8234-000000000002', '${B}', 'OWNER_COMPANY', '2026-09-28', '${at}', '${at}')`);
   const r = await w.call("GET", "/api/auth/config");
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.companyName, "Pháp nhân Mới");

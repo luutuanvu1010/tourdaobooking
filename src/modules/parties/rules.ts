@@ -257,7 +257,7 @@ export function ownerCompanyAssignProblem(kind: "PERSON" | "ORGANIZATION", r: Ro
   if (kind !== "ORGANIZATION") return "Chỉ hồ sơ tổ chức mới làm công ty chủ được.";
   if (r.locationId !== null) return "Công ty chủ không gắn với một nơi làm cụ thể — để trống ô “Nơi làm”.";
   if (r.to !== null) return "Công ty chủ không có ngày kết thúc. Muốn đổi thì gán “Công ty chủ” cho hồ sơ tổ chức khác.";
-  if (r.from !== today) return "Đổi công ty chủ có hiệu lực từ hôm nay — để trống ô ngày bắt đầu.";
+  if (r.from !== today) return "Đổi công ty chủ có hiệu lực từ hôm nay — để trống ô ngày bắt đầu."; // lớp CSDL: trigger *_start_today (ADR-0043 điều 2)
   return null;
 }
 

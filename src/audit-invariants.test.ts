@@ -594,7 +594,7 @@ test("R-PTY-1 (ADR-0024 điều 6): đúng một hồ sơ đang mở vai công t
   assert.equal(violations(db, c), 0);
   db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('pty-org-b', 'ORGANIZATION', 'Pháp nhân B', 1, '${T1}', '${T1}')`);
   db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at)
-           VALUES ('ptr-org-b', 'pty-org-b', '${OWNER_COMPANY_ROLE}', '2099-01-01', '${T1}', '${T1}')`);
+           VALUES ('ptr-org-b', 'pty-org-b', '${OWNER_COMPANY_ROLE}', '2026-09-21', '${T1}', '${T1}')`);
   assert.equal(violations(db, c), 0, "đổi công ty chủ (chủ trả lời 2026-09-28) vẫn đúng một");
   db = build();
   db.exec(`DELETE FROM pty_party_role WHERE role_type_code = '${OWNER_COMPANY_ROLE}'`);
@@ -602,6 +602,6 @@ test("R-PTY-1 (ADR-0024 điều 6): đúng một hồ sơ đang mở vai công t
   db = build();
   db.exec("DROP TRIGGER pty_party_role_owner_company_switch");
   db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at)
-           VALUES ('ptr-thu-hai', 'pty-xa', '${OWNER_COMPANY_ROLE}', '2099-01-01', '${T1}', '${T1}')`);
+           VALUES ('ptr-thu-hai', 'pty-xa', '${OWNER_COMPANY_ROLE}', '2026-09-21', '${T1}', '${T1}')`);
   assert.equal(violations(db, c), 1, "hai hồ sơ cùng mở vai");
 });

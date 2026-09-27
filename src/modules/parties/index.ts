@@ -87,14 +87,15 @@ const KHONG_KET_THUC_CONG_TY_CHU = "Không kết thúc được công việc “
 const OWNER_COMPANY_LOCKED = () => error(409, "owner_company_locked", KHONG_KET_THUC_CONG_TY_CHU);
 // ADR-0043 điều 2: hai giới hạn chấp nhận được của việc đổi, báo bằng câu hợp ngữ cảnh (không câu chung "trùng thời gian").
 const OWNER_COMPANY_ALREADY = () => error(409, "owner_company_already", "Hồ sơ này đang là công ty chủ.");
-const OWNER_COMPANY_SAME_DAY = () =>
-  error(409, "owner_company_same_day", "Hôm nay hồ sơ này vừa thôi là công ty chủ, nên chưa đổi lại được. Muốn đổi lại cho hồ sơ này thì làm vào ngày mai.");
+const OWNER_COMPANY_SAME_DAY = () => error(409, "owner_company_same_day", "Hồ sơ này vừa thôi làm công ty chủ hôm nay, gán lại vào ngày mai.");
+const NGAY_BAT_DAU_HOM_NAY = "Đổi công ty chủ có hiệu lực từ hôm nay — để trống ô ngày bắt đầu.";
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
-  // Lớp CSDL của vai "Công ty chủ" (trigger *_keep_last): chỉ tới đây khi lớp route bị vượt — mã riêng để phân biệt với lớp route (P16).
+  // Lớp CSDL của vai "Công ty chủ" (trigger *_keep_last, *_start_today): chỉ tới đây khi lớp route bị vượt — mã riêng để phân biệt với lớp route (P16).
   if (/owner_company_last_open/.test(m)) return error(409, "owner_company_last_open", KHONG_KET_THUC_CONG_TY_CHU);
+  if (/owner_company_start_not_today/.test(m)) return error(409, "owner_company_start_not_today", NGAY_BAT_DAU_HOM_NAY);
   if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
   if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã có công việc đó ở nơi đó trong khoảng thời gian trùng.");
   if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Người liên hệ này đã được ghi trong khoảng thời gian trùng.");
@@ -347,6 +348,8 @@ export const partiesModule: AppModule = {
       const parsed = validateRole(await readJson(request), today);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (isAccountGroup(await roleTypeGroup(env.DB, parsed.value.roleTypeCode))) return ACCOUNT_ROLE();
+      // `today` (ngày bắt đầu mặc định) và `at` (created_at) lấy từ CÙNG một `now` — trigger *_start_today của migration đòi valid_from_date = ngày giờ VN của
+      // created_at cho dòng "Công ty chủ"; hai giá trị từ hai lần đọc đồng hồ có thể lệch ngày lúc nửa đêm (ADR-0043 điều 2).
       const at = now.toISOString();
       const doiCongTyChu = parsed.value.roleTypeCode === OWNER_COMPANY_ROLE;
       const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
