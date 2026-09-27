@@ -2,8 +2,10 @@
 // Task 2: hàm thuần phía trình duyệt (chờ nối lại, quyết định thông báo nổi TD-4, kiểm tin hợp lệ).
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { MATRIX, PERMISSION_CODES, can, holdsPartner, type PermissionCode } from "./permissions.ts";
 import {
+  HANDLER_TRUOC_KHONG_BIET,
   THAY_DOI,
   choNoiLai,
   laSuKienHopLe,
@@ -101,19 +103,59 @@ test("NT-3 (thay): kết nối không có tat-ca chỉ nhận sự kiện qua ch
   }
 });
 
-// Hàng rào (docs/SO-HANG-RAO.md) — mô phỏng ĐÚNG biểu thức mặc định của gốc lắp ráp `src/index.ts:47`
-// (`nhanSuKien({ ..., handlerTruoc: e.handlerTruoc ?? MAC_DINH_HOM_NAY, ... })`), vì `bang-tin.test.ts` (thuần, không I/O) KHÔNG được import
-// `src/index.ts` (Worker, mở Durable Object). `MAC_DINH_HOM_NAY` PHẢI khớp giá trị thật ở đó — người sửa `src/index.ts:47` mà quên sửa đây (hoặc
-// ngược lại) thì hai nơi lệch nhau; bài test không tự phát hiện lệch đó, chỉ giữ đúng GIÁ TRỊ ĐÚNG hôm nay (giới hạn ghi ở docs/SO-HANG-RAO.md).
-const MAC_DINH_HOM_NAY: TrangThaiPhuTrach | null = null; // "không biết" — PHẢI khớp src/index.ts:47
+// Hàng rào (docs/SO-HANG-RAO.md, dòng "Bảng tin không lộ đơn người khác cho HDV") — mặc định `handlerTruoc` của gốc lắp ráp (`baoThayDoi` ở
+// `src/index.ts`) phải là "KHÔNG BIẾT" (`null`), không phải "chưa ai phụ trách". `bang-tin.test.ts` (thuần, không I/O) KHÔNG import được
+// `src/index.ts` (nạp lớp Durable Object của `cloudflare:workers`), nên canh bằng HAI lớp cùng một nguồn — vòng sửa 1 sau kiểm độc lập lượt 1
+// (phát hiện I-1: bản cũ dùng hằng CHÉP TAY `MAC_DINH_HOM_NAY`, đổi dòng thật ở `src/index.ts` về "chưa ai" thì bài này vẫn xanh):
+//   (1) GIÁ TRỊ: hằng dùng chung `HANDLER_TRUOC_KHONG_BIET` (src/shared/bang-tin.ts) là `null` và không sinh `cho-nhan` cho đơn đã có người;
+//   (2) NƠI GỌI THẬT: đọc mã nguồn `src/index.ts`, đúng MỘT lời gọi `nhanSuKien(` và đối số `handlerTruoc:` của nó ĐÚNG là
+//       `e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET` (bỏ khoảng trắng) — viết tay giá trị khác ở nơi gọi (kể cả `{ coNguoi: false, staffId: null }`)
+//       hoặc bỏ hằng thì đỏ.
+const INDEX_TS = readFileSync(new URL("../index.ts", import.meta.url), "utf8");
 
-test("hàng rào: mặc định handlerTruoc của gốc lắp ráp (mô phỏng src/index.ts:47) là 'không biết' — route không truyền handlerTruoc cho đơn ĐÃ có người không được gắn cho-nhan", () => {
-  // Mô phỏng chính xác một lô ghi không truyền handlerTruoc (ví dụ POST /status xác nhận đơn mà HDV B đang phụ trách): route không đọc lại
-  // trạng thái trước, `e.handlerTruoc` là `undefined`, gốc lắp ráp coi `undefined ?? MAC_DINH_HOM_NAY`.
+/** Đoạn đối số của MỌI lời gọi `nhanSuKien(` trong một tệp nguồn (khớp ngoặc tròn; KHÔNG xử lý ngoặc nằm trong chuỗi/chú thích — đủ cho mã của gốc lắp ráp, ngoặc lệch thì bài đỏ chứ không xanh nhầm). */
+function doiSoCacLoiGoi(nguon: string, ham: string): string[] {
+  const kq: string[] = [];
+  const mau = new RegExp(`\\b${ham}\\(`, "g");
+  for (let m = mau.exec(nguon); m !== null; m = mau.exec(nguon)) {
+    let sau = 1;
+    let i = m.index + m[0].length;
+    const dau = i;
+    for (; i < nguon.length && sau > 0; i++) {
+      if (nguon[i] === "(") sau++;
+      else if (nguon[i] === ")") sau--;
+    }
+    kq.push(nguon.slice(dau, i - 1));
+  }
+  return kq;
+}
+
+test("hàng rào (1): HANDLER_TRUOC_KHONG_BIET là 'không biết' (null) — route không truyền handlerTruoc cho đơn ĐÃ có người không được gắn cho-nhan", () => {
+  assert.equal(HANDLER_TRUOC_KHONG_BIET, null, "mặc định phải là 'không biết' (null), không phải 'chưa ai phụ trách'");
+  // Mô phỏng một lô ghi không truyền handlerTruoc (ví dụ POST /status xác nhận đơn mà HDV B đang phụ trách): route không đọc lại trạng thái trước,
+  // `e.handlerTruoc` là `undefined`, gốc lắp ráp dùng `e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET` — nơi gọi thật do bài (2) canh.
   const eHandlerTruoc: TrangThaiPhuTrach | undefined = undefined;
   const daCoNguoiPhuTrach: TrangThaiPhuTrach = { coNguoi: true, staffId: "hdv-b" };
-  const suKien = nhanSuKien({ ownerId: "chu", handlerTruoc: eHandlerTruoc ?? MAC_DINH_HOM_NAY, handlerSau: daCoNguoiPhuTrach });
-  assert.ok(!suKien.includes("cho-nhan"), `mặc định phải là 'không biết' (null) — đơn HDV B đang phụ trách không được lộ cho-nhan cho HDV khác: ${JSON.stringify(suKien)}`);
+  const suKien = nhanSuKien({ ownerId: "chu", handlerTruoc: eHandlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau: daCoNguoiPhuTrach });
+  assert.ok(!suKien.includes("cho-nhan"), `đơn HDV B đang phụ trách không được lộ cho-nhan cho HDV khác: ${JSON.stringify(suKien)}`);
+});
+
+test("hàng rào (2): gốc lắp ráp src/index.ts gọi nhanSuKien với handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET (không viết tay giá trị mặc định)", () => {
+  assert.match(
+    INDEX_TS,
+    /import\s*\{[^}]*\bHANDLER_TRUOC_KHONG_BIET\b[^}]*\}\s*from\s*"\.\/shared\/bang-tin"/,
+    "src/index.ts phải import HANDLER_TRUOC_KHONG_BIET từ ./shared/bang-tin (một nguồn cho giá trị mặc định)",
+  );
+  const loiGoi = doiSoCacLoiGoi(INDEX_TS, "nhanSuKien");
+  assert.equal(loiGoi.length, 1, `src/index.ts phải có ĐÚNG một lời gọi nhanSuKien( — thấy ${loiGoi.length}`);
+  const doiSo = loiGoi[0]!.replace(/\s+/g, "");
+  const m = /handlerTruoc:([^,{}]*(?:\{[^}]*\}[^,}]*)?)/.exec(doiSo);
+  assert.ok(m, `lời gọi nhanSuKien ở src/index.ts phải truyền handlerTruoc: … — thấy: ${doiSo}`);
+  assert.equal(
+    m![1],
+    "e.handlerTruoc??HANDLER_TRUOC_KHONG_BIET",
+    `mặc định handlerTruoc ở nơi gọi thật phải là hằng dùng chung ('không biết'), không viết tay giá trị khác — thấy: ${m![1]}`,
+  );
 });
 
 test("nhanSuKien: luôn có tat-ca + nguoi:owner; thêm nguoi:handler khi có tài khoản; cho-nhan theo luật (a)/(b) — ADR-0030 S20-8/9", () => {

@@ -20,7 +20,7 @@ import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
 import { partiesModule } from "./modules/parties";
 import { findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty } from "./modules/staff";
-import { nhanSuKien } from "./shared/bang-tin";
+import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
 import { createApp } from "./shared/router";
 
 export { BangTin } from "./modules/bangtin/tram";
@@ -46,12 +46,13 @@ const app = createApp({
       // Đơn mới mà không ai phụ trách (người lập không chọn ai — ADR-0030 S20-4) → loại riêng để người nhận được đơn thấy thông báo nổi.
       const thayDoi = e.thayDoi === "tao" && !handlerSau.coNguoi ? "tao_cho_nhan" : e.thayDoi;
       // ADR-0030 S20-8/9: route không tự đọc lại trạng thái trước khi ghi (chỉ `PUT .../handler` mới truyền `e.handlerTruoc` thật) mặc định
-      // là "KHÔNG BIẾT" (`null`), KHÔNG PHẢI "chưa ai phụ trách" — coi nhầm thành "chưa ai" làm `nhanSuKien` gắn `cho-nhan` sai cho đơn ĐÃ có
-      // người, lộ tin sang mọi HDV khác (xem chú thích `nhanSuKien`, bài NT-3 ở `src/shared/bang-tin.test.ts`).
+      // là "KHÔNG BIẾT" — hằng dùng chung `HANDLER_TRUOC_KHONG_BIET` (`null`), KHÔNG PHẢI "chưa ai phụ trách": coi nhầm thành "chưa ai" làm
+      // `nhanSuKien` gắn `cho-nhan` sai cho đơn ĐÃ có người, lộ tin sang mọi HDV khác (xem chú thích `nhanSuKien`). KHÔNG viết tay giá trị
+      // mặc định ở đây: bài hàng rào "(2)" ở `src/shared/bang-tin.test.ts` đọc chính dòng này và đỏ nếu đối số khác `e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET`.
       await phatDon(
         env,
         { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc: new Date().toISOString() },
-        nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? null, handlerSau }),
+        nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau }),
       );
     },
     dongBangTin: (env, muc) => dongCua(env, muc),

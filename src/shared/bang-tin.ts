@@ -24,6 +24,14 @@ export interface TrangThaiPhuTrach {
 }
 
 /**
+ * Trạng thái người phụ trách TRƯỚC thay đổi khi route ghi KHÔNG tự đọc lại (chỉ `PUT /api/orders/:id/handler` truyền `handlerTruoc` thật): "KHÔNG
+ * BIẾT" (`null`), KHÔNG phải "chưa ai phụ trách" — xem chú thích `nhanSuKien`. Gốc lắp ráp (`baoThayDoi` ở `src/index.ts`) dùng ĐÚNG hằng này làm mặc
+ * định (`e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET`); bài hàng rào ở `bang-tin.test.ts` đọc cả giá trị này LẪN nơi gọi thật (vòng sửa 1 sau kiểm độc
+ * lập lượt 1 ADR-0030, phát hiện I-1: hằng chép tay trong bài kiểm không canh được dòng thật).
+ */
+export const HANDLER_TRUOC_KHONG_BIET: TrangThaiPhuTrach | null = null;
+
+/**
  * Nhãn của một kết nối (ai nhận được tin gì) — NT-1. Luôn có `nguoi:<id>`; thêm `tat-ca` nếu xem được mọi đơn (`order.view`, không ngữ
  * cảnh = ô `any`); thêm `cho-nhan` nếu nhận được đơn chưa có người (`dispatch.claim`) VÀ tài khoản không mang quyền Đối tác (`!holdsPartner`
  * — ADR-0030 S20-8/9, Q-M: tài khoản lai Đối tác+HDV không được đưa vào hàng chờ nhận nên cũng không nhận tin của hàng chờ). Không luật
@@ -45,7 +53,7 @@ export function nhanKetNoi(staff: PermissionHolder): string[] {
  *   (a) SAU thay đổi đơn không còn ai phụ trách (`!handlerSau.coNguoi`) — đơn đang/vừa vào hàng chờ; hoặc
  *   (b) trạng thái TRƯỚC thay đổi **biết được** (khác `null`) và trước đó chưa ai phụ trách (`!handlerTruoc.coNguoi`) — đơn VỪA rời hàng
  *       chờ (được Nhận/được Giao), để mọi HDV đang chờ gỡ nó khỏi danh sách.
- * `handlerTruoc === null` nghĩa là "không biết trạng thái trước" (route ghi không tự đọc lại — mặc định của gốc lắp ráp, `src/index.ts:47`):
+ * `handlerTruoc === null` nghĩa là "không biết trạng thái trước" (route ghi không tự đọc lại — mặc định `HANDLER_TRUOC_KHONG_BIET` của gốc lắp ráp, `baoThayDoi` ở `src/index.ts`):
  * KHÔNG BAO GIỜ được coi là "trước chưa ai phụ trách". Coi nhầm "không biết" thành "chưa ai" làm rò tin: một đơn ĐÃ có người (ví dụ HDV B)
  * mà văn phòng xác nhận/sửa/đổi tiền/huỷ — route đó không truyền `handlerTruoc` — sẽ bị gắn `cho-nhan` sai, lộ cho MỌI tài khoản có
  * `dispatch.claim` (mọi HDV khác, không chỉ B) dù đơn không hề rời hàng chờ. Đây là lỗi mà bài NT-3 (thay ở `bang-tin.test.ts`) canh.
