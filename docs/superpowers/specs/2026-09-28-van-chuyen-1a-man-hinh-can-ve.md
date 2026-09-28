@@ -41,6 +41,20 @@
 - Danh mục "loại giấy tờ xe", "loại giấy tờ của người", "hạng giấy phép lái xe": theo khuôn màn Danh mục / Địa điểm hiện có.
 - Tạo tài khoản tài xế: màn Quản lý tài khoản hiện có, chỉ thêm vai "Tài xế" vào danh sách vai.
 
+## Nơi vẽ và đoạn yêu cầu dán vào Claude Design
+
+- Vẽ trong dự án Claude Design có sẵn **"Tour Đảo Booking Design System"** (`https://claude.ai/design/p/34f284df-c97a-4672-bb66-d7df03a0d97a`). Dự án này đã có màu, chữ, 15 thành phần và mẫu màn (chủ chọn 28/9; không chạy đồng bộ mới vì app không viết bằng React).
+- Đoạn yêu cầu (chép nguyên văn):
+
+> Dùng hệ thiết kế của dự án này: màu, chữ, và các thành phần Card, Button, Chip, Badge, Field, Sheet, Sidebar, TabBar, Banner. Vẽ phân hệ "Vận chuyển" cho app Tour Đảo Booking. Mỗi màn vẽ hai cỡ: điện thoại rộng 390 (có TabBar) và máy tính rộng 1040 (có Sidebar, thêm mục "Vận chuyển"). Chữ tiếng Việt có dấu; không hiện mã kỹ thuật; ô nhập cỡ chữ 16px. Dữ liệu mẫu thực tế: xe 16 chỗ biển 79B-012.34, xe 7 chỗ biển 79A-345.67, tài xế Nguyễn Văn An.
+> 1. Danh sách xe: mỗi xe hiện biển số, tên/đời xe, số người được chở, trạng thái (Đang dùng / Bảo dưỡng / Ngừng), dấu cảnh báo khi có giấy tờ sắp hết hạn hoặc đã hết hạn; lọc theo trạng thái; nút "Thêm xe".
+> 2. Thêm / sửa xe: biển số, số khung, tên/đời xe, "Số người được chở (không kể tài xế)" với gợi ý "xe 16 chỗ nhập 15", trạng thái; nút Lưu và nút "Ngừng dùng" (không xoá).
+> 3. Chi tiết một xe: danh sách giấy tờ xe (Đăng ký, Kiểm định, Bảo hiểm TNDS, Phù hiệu xe hợp đồng, Giám sát hành trình, Camera người lái) với số, ngày cấp, ngày hết hạn, "còn N ngày"; nút "Gia hạn" (thêm dòng mới, giữ dòng cũ làm lịch sử), nút "Sửa sai" (chọn lý do); xem lịch sử gia hạn.
+> 4. Giấy tờ của một người (một mục trong hồ sơ người ở Danh bạ): CCCD, Giấy phép lái xe (có hạng, ví dụ D2), Khám sức khoẻ, Tập huấn nghiệp vụ. Số luôn che dạng ••••1234; nút "Xem đủ số" có câu xác nhận "Việc xem sẽ được ghi nhật ký"; thêm / gia hạn / sửa sai.
+> 5. "Giấy tờ của tôi": nhân viên, tài xế tự xem giấy tờ của mình, số che, "còn N ngày".
+> 6. "Giấy tờ sắp hết hạn": gộp giấy tờ xe và tài xế, xếp theo ngày hết hạn gần nhất, mốc 30 ngày; giấy đã hết hạn tô đỏ; bấm một dòng mở xe hoặc hồ sơ người.
+> 7. Trang đầu của tài xế: lời chào, tóm tắt "Giấy tờ của tôi", và một khung trống ghi "Cuốc xe của bạn sẽ hiện ở đây".
+
 ## Lưu ý khi vẽ
 
 - Giữ bảng màu, cỡ chữ, khoảng cách của app hiện tại (token ở đầu `public/app.css`). Ô gõ cỡ chữ 16px để iPhone không phóng to.
