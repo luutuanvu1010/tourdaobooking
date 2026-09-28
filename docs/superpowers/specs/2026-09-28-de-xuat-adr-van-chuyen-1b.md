@@ -45,6 +45,9 @@ Nguồn: lời giao của điều phối ngày 2026-09-28 và `2026-09-27-van-ch
 | C10 | Chủ xe = hồ sơ công ty chủ (T2b, đã có) | không đổi |
 | C11 | (ra-soát §6, chủ không phản đối) Đủ tên cho số khách đã đặt **lúc xuất bến**; tài xế sửa/bổ sung lúc đón; phân bổ từng người; giấy tờ không sửa đè | A2, B2 |
 | C12 | (Q-AA, 26/9) Thêm tiền tố bảng `ord_` cho `orders` | A3 |
+| C13 | (chủ, 28/9 tối, qua điều phối) **Vận chuyển vừa là dịch vụ ĐỘC LẬP, vừa là THÀNH PHẦN trong chuỗi dịch vụ.** Độc lập: chuyến lẻ ngoài tour, vd đơn "đưa đón sân bay" riêng. Thành phần: vd vé đi Hòn Tằm kèm đón tận nơi từ khách sạn tới cảng, 1 hoặc 2 chiều. Chặng/chuyến phục vụ cả hai bằng **MỘT khái niệm**, không làm hai đường riêng | A1 (mục "Một khái niệm cho cả hai trường hợp"), B1 |
+| C14 | (chủ, 28/9 tối) **Phương tiện là thực thể độc lập**, là tài sản của công ty **hoặc** của đối tác (nhà xe). Chủ xe là một Bên có vai phù hợp. Xe của đối tác cũng có hồ sơ xe như xe công ty | B1 (mục "Xe và tài xế: tham chiếu hồ sơ"), §6.2, §8 — mở chủ xe cho đối tác là **quyết định mới**, phối hợp lượt 2, không sửa ADR-0040 |
+| C15 | (chủ, 28/9 tối) **Xe và tài xế đều có hồ sơ riêng.** Tài xế là hồ sơ người (`parties`), giấy tờ ở hồ sơ người (đã có ở 1a cho tài xế nội bộ). Chuyến **tham chiếu** hồ sơ xe và hồ sơ tài xế, không chép thông tin | B1, B2 (bản chụp — xem cách hoà với Hiến chương 5.6) |
 
 ---
 
@@ -115,6 +118,12 @@ Mỗi lượt duyệt tối đa 3 quyết định chạm quyền hoặc dữ li�
 
   - Ràng buộc nơi đón: `CHECK` đúng một trong hai cột `pickup_location_id` / `pickup_place` có giá trị. Nơi trả cũng vậy.
   - Nhà riêng giữ chữ (dữ liệu cá nhân). Khách sạn, sân bay, ga, bến dùng `loc_location` (ra-soát C9).
+- **Một khái niệm cho cả hai trường hợp (C13).** Chặng **luôn** gắn đúng một dòng dịch vụ trên đơn (`order_service_id` bắt buộc). Không có bảng, route hay luật riêng cho "đưa đón độc lập":
+  - **Thành phần trong chuỗi:** đơn có dịch vụ "Vé Hòn Tằm"; dịch vụ đó mang 1 chặng (chiều đi: khách sạn → cảng) hoặc 2 chặng (thêm chiều về: cảng → khách sạn).
+  - **Độc lập:** đơn chỉ có **một** dịch vụ "Đưa đón sân bay" (một mã danh mục như mọi dịch vụ khác, có giá riêng); dịch vụ đó mang 1 hoặc 2 chặng. Đơn này đi đúng đường lập, xác nhận, sửa, huỷ của mọi đơn.
+  - Vận chuyển chỉ thấy **chặng** (kèm dịch vụ và đơn của nó); nó không phân biệt hai trường hợp. Máy không rẽ nhánh theo loại dịch vụ.
+  - Giá đưa đón: khi là thành phần thì nằm trong giá của dịch vụ chính hoặc là một dòng dịch vụ đưa đón riêng trên cùng đơn — do danh mục quyết, **không** do chặng. Chặng không mang tiền.
+  - Số người của chặng mặc định = số khách hiệu lực của **chính dịch vụ đó** (theo Q6 có thể ít hơn).
 - **Có dòng chặng = "có hẹn đón".** Đây là cờ ADR-0006 điều 6 đòi. Không cần thêm cột cờ trên `order_service`.
 - **Dữ liệu danh mục:** thêm loại điểm `HOTEL` (khách sạn), `AIRPORT` (sân bay), `CABLE_CAR` (ga cáp treo) vào `loc_location_type` bằng migration (bảng tra cứu, chỉ thêm).
 - **Hai giờ, hai chỗ (giữ ADR-0006 điều 5):** giờ/nơi **hẹn với khách** nằm ở chặng (`orders`). Giờ/nơi **xe tới thực tế** nằm ở điểm dừng của chuyến (`van-chuyen`). Không chép qua lại.
@@ -226,7 +235,7 @@ Mỗi lượt duyệt tối đa 3 quyết định chạm quyền hoặc dữ li�
 
 | Hỏi | Trả lời |
 |---|---|
-| **(1) Bảng nào chứa loại thực thể nào?** | `ord_transfer_leg` (mới): chặng đưa đón của dịch vụ — **một loại**. `ord_passenger` (mới): hành khách của đơn — **một loại**, dữ liệu cá nhân (họ tên, năm sinh), không phải hồ sơ Bên; chuỗi phiên bản theo `person_key`. `order_service`: không thêm loại dòng; hai cột đón cũ ngừng ghi ở lần phát hành 2 (theo Q4). `loc_location_type`: thêm ba mã loại điểm. `audit_log`: hành động mới `order_leg_*`, `order_passenger_*`, **chỉ số lượng**. View mới `v_ord_order_flag`, `v_ord_leg_key`, `v_ord_passenger_key` (chỉ khoá + cờ). |
+| **(1) Bảng nào chứa loại thực thể nào?** | `ord_transfer_leg` (mới): chặng đưa đón của dịch vụ — **một loại**, dùng chung cho dịch vụ đưa đón độc lập và đưa đón kèm dịch vụ khác (C13). `ord_passenger` (mới): hành khách của đơn — **một loại**, dữ liệu cá nhân (họ tên, năm sinh), không phải hồ sơ Bên; chuỗi phiên bản theo `person_key`. `order_service`: không thêm loại dòng; hai cột đón cũ ngừng ghi ở lần phát hành 2 (theo Q4). `loc_location_type`: thêm ba mã loại điểm. `audit_log`: hành động mới `order_leg_*`, `order_passenger_*`, **chỉ số lượng**. View mới `v_ord_order_flag`, `v_ord_leg_key`, `v_ord_passenger_key` (chỉ khoá + cờ). |
 | **(2) Dòng bản đồ quyền nào chạm bảng nào, áp cho loại nào?** | `order.modify` (nháp) và `order.trip.edit` (sau xác nhận) → `ord_transfer_leg`: **cùng loại dữ liệu** với hai cột đón cũ, không đổi nghĩa ô. `order.passenger.write` (mới) → `ord_passenger`. `contact.view` → đọc `ord_passenger` (nghĩa mở rộng có tên). `DRIVER` → **không** ô nào của `orders`; tài xế ghi `ord_passenger` chỉ qua `trip.passenger.add` (lượt 2), bằng câu do `orders` cấp. `party.*` → không chạm (hành khách không phải hồ sơ). |
 | **(3) Cổng nào canh cửa nào?** | Route chặng và hành khách ở **cổng `orders`**, thân hỏi `can()` trước mọi truy vấn. `ORDERS_GATE` không có `DRIVER` (bài `cong-quyen.test.ts` giữ nguyên). Hàm `soKhachHieuLuc` và câu lệnh ghi hành khách công bố cho `van-chuyen` **không tự kiểm quyền**: nơi gọi phải kiểm trước — ghi ở chú thích + bài kiểm "mọi nơi gọi đều đứng sau `can()`". |
 
@@ -248,6 +257,14 @@ Mỗi lượt duyệt tối đa 3 quyết định chạm quyền hoặc dữ li�
 - **5.7 (giữ — lần áp đầu tiên)**;
 - 5.8 (bước gắn vai trên đối tượng: tài xế **của chuyến này**);
 - 5.12.
+
+**Xe và tài xế: tham chiếu hồ sơ, không chép (C14, C15; Oracle TCA — Bên / vai / tài sản tách bạch):**
+- **Xe** là thực thể độc lập của `van-chuyen` (`vc_vehicle`, 1a). **Chủ xe** là một Bên (`owner_party_id` → `pty_party`) — khoá ngoại này đã trỏ tới **mọi** hồ sơ, không chỉ công ty chủ, nên lược đồ đã sẵn cho xe của nhà xe đối tác.
+- **Luật của chuyến không phụ thuộc chủ xe là ai.** Sức chứa, trùng giờ, nghỉ, cổng xuất bến đọc hồ sơ xe; không nhánh mã nào hỏi "xe công ty hay xe đối tác". Bộ điều kiện xuất bến có thể có dòng theo chủ xe về sau (dạng "áp cho xe thuê"), nhưng 1b không thêm.
+- **Mở chủ xe cho đối tác là quyết định MỚI, không làm ở 1b.** ADR-0040 D1 (accepted) ghi "Lượt 1a: hồ sơ công ty chủ", và route `POST /api/van-chuyen/xe` hôm nay luôn gán công ty chủ. Việc cho phép hồ sơ nhà xe (vai "nhà xe" của hồ sơ tổ chức hoặc cá nhân) làm chủ xe, ai được nhập xe của đối tác, và giấy tờ xe đối tác ai ghi, thuộc **ADR của lượt 2** (đang soạn song song). ADR đó ghi "nguyên văn → mới" cho ADR-0040 D1; đề xuất này **không** sửa ADR-0040.
+- **Tài xế** là hồ sơ người (`pty_party`); giấy tờ ở hồ sơ người (1a). `vc_trip_driver.driver_party_id` trỏ hồ sơ; không có bảng "tài xế" riêng ở `van-chuyen`. Đủ điều kiện lái xét bằng giấy tờ, không bằng vai (ADR-0001, C9) — nên lượt 2 thêm tài xế đối tác không đổi luật của 1b.
+- **Chuyến chỉ lưu khoá:** `vc_trip.vehicle_id`, `vc_trip_driver.driver_party_id`, `vc_trip_allocation.crew_party_id`. Biển số, tên tài xế, số chỗ **đọc từ hồ sơ** mỗi lần hiển thị; không cột nào trên chuyến chép chúng.
+- **Ngoại lệ duy nhất là bản chụp lúc xuất bến (B2)**, xem cách hoà ở B2.
 
 **Đồ thị:** thêm cạnh `van-chuyen → orders` (bổ sung ADR-0002 và `ALLOWED_DEPS`). Hôm nay chỉ có `van-chuyen → parties, audit`. Vẫn không module nào import `van-chuyen`.
 
@@ -355,12 +372,16 @@ Mỗi lượt duyệt tối đa 3 quyết định chạm quyền hoặc dữ li�
 7. `require_contract` = 1 → theo Q5.
 
 **Bản chụp** (Hiến chương 5.6; mốc chụp = **lúc xuất bến**):
+- **Hoà với C15 ("chuyến tham chiếu, không chép"):** bản chụp **không** phải thông tin vận hành của chuyến, mà là **bằng chứng** điều kiện đã kiểm lúc xuất bến (lưu 3 năm). Hiến chương 5.6 (đứng trên ADR) đòi chụp con số + nguồn tại mốc. Cách làm:
+  - **trước hết lưu khoá** (id xe, id hồ sơ tài xế, id hồ sơ chủ xe, id từng dòng giấy tờ xe và giấy tờ người, id dòng quy tắc) — đúng tinh thần C15;
+  - **chỉ chép thêm giá trị nào hồ sơ còn sửa tại chỗ được về sau**, vì chỉ khoá thì lần sửa sau sẽ đổi luôn bằng chứng cũ: biển số và số chỗ (sửa được trên hồ sơ xe), hạn giấy tờ (sửa sai tại dòng hiện hành có lý do, ADR-0040), hạng GPLX. Không chép tên, không chép số giấy tờ.
+  - Người soạn coi đây là **áp** C15 cùng 5.6, không phải lệch. Nếu điều phối thấy C15 có ý cấm cả bản chụp giá trị thì đây là **xung đột với Hiến chương 5.6** — dừng và hỏi chủ, không tự hoà.
 - **`vc_trip_departure_check`:**
   - một dòng đầu (chuyến, lúc, bản chính sách đã dùng, kết quả);
-  - các dòng có kiểu (**không JSON** — 5.2), chụp **giá trị**:
-    - biển số, `passenger_capacity`;
-    - tài xế (`party_id`) + hạng + hạn GPLX (không số);
-    - từng giấy tờ xe (loại, hạn, id dòng);
+  - các dòng có kiểu (**không JSON** — 5.2):
+    - xe: `vehicle_id`, `owner_party_id` + giá trị biển số, `passenger_capacity` lúc đó;
+    - tài xế: `driver_party_id`, id dòng GPLX + giá trị hạng, hạn (không số);
+    - từng giấy tờ xe và giấy tờ người đã áp: id dòng + giá trị loại, hạn;
     - từng điều kiện đã áp (id dòng quy tắc);
     - `rest_minutes` đã dùng.
 - **`vc_trip_manifest`** — bản chốt danh sách: mỗi người lúc xuất bến = `allocation_id` + `passenger_row_id` (dòng `ord_passenger` **hiện hành lúc xuất bến**, giải từ `person_key` qua `hanhKhachChoChuyen`; dòng bất biến, A2) hoặc `crew_party_id`.
@@ -510,6 +531,8 @@ Chỉ gồm những điều vượt khung các quyết định ở §0. Mỗi c�
 
 - **Lượt 2** (nhà xe đối tác, tài xế đối tác có tài khoản, báo bận, từ chối chuyến, thông báo):
   - dùng lại `vc_trip`, `vc_trip_driver` (có hiệu lực — đổi tài xế không mất lịch sử), máy trạng thái, cổng xuất bến, bản chụp;
+  - **quyết định mới của lượt 2 (C14):** mở chủ xe cho hồ sơ nhà xe đối tác — sửa ADR-0040 D1 "nguyên văn → mới"; route thêm xe nhận `owner_party_id` là hồ sơ có vai nhà xe; ai nhập và ai ghi giấy tờ xe đối tác. 1b đã để sẵn: luật chuyến không rẽ nhánh theo chủ xe, bản chụp lưu `owner_party_id`;
+  - tài xế đối tác là hồ sơ người + giấy tờ ở `parties` (C15), dùng lại nguyên cổng xuất bến;
   - ô `trip.*` thêm cột hoặc phạm vi cho tài xế đối tác;
   - phải sửa LC-1 (ADR-0018) và định nghĩa "nội bộ" của thông báo (ADR-0034 điều 6);
   - L2 (trùng giờ) mở rộng cho "khung không sẵn sàng" dùng chung cho xe và người;
@@ -573,6 +596,10 @@ Mọi lát:
 - **G6.** Người đi kèm (HDV, phụ xe) trên chuyến do văn phòng thêm; họ là hồ sơ (`pty_party`), không vào danh sách hành khách của đơn.
 - **G7.** Trạng thái "giữ" không lưu riêng; tính lại mỗi lần đọc (5.7 không đòi lưu). Nếu Hoàn tất cần lưu thì ADR đó quyết.
 - **G8.** Thông báo đẩy cho tài xế và văn phòng thuộc lượt 2 (C1). 1b chỉ ghi sự kiện và hiện trên màn.
+- **G9 (C13).** Đơn "đưa đón sân bay" độc lập = đơn có một dịch vụ đưa đón từ danh mục. Giả định: danh mục đã hoặc sẽ có mã dịch vụ đưa đón (đồng bộ từ Sheet như mọi dịch vụ). Nếu Sheet chưa có dòng này thì đây là việc nhập danh mục, không phải thay đổi mã. **Chưa kiểm** Sheet thật.
+- **G10 (C15 × 5.6).** Bản chụp xuất bến chép một ít giá trị (biển số, số chỗ, hạng, hạn) bên cạnh khoá — xem B2. Điều phối kiểm cách hiểu này với chủ nếu cần.
+
+**Phối hợp với lượt 2 (đang soạn song song):** 1b **không** mở chủ xe cho đối tác và **không** sửa ADR-0040 D1. Lượt 2 mang quyết định đó. Hai bản cần thống nhất tên vai "nhà xe" và việc bộ điều kiện xuất bến có dòng theo chủ xe hay không.
 
 **Rủi ro:**
 - A1 + Q4(a) đụng khoảng 20 tệp đang đọc hai cột đón cũ, kể cả biên nhận và hàng chờ HDV. Dễ đụng nhánh ADR-0030 / Đơn tự do đang sửa `orders`.
