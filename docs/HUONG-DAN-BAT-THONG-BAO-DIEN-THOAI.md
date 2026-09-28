@@ -96,7 +96,7 @@ Ghi lại kết quả từng bước (đạt / không đạt / chưa thử đư�
 
 1. **Tài khoản nhân viên (A):** cài app ra màn hình chính (nếu chưa) → mở app → vào trang Tôi → bấm "Bật thông báo trên điện thoại" → cho phép → thấy chữ "Đang bật trên máy này".
 2. Khoá màn hình điện thoại của A. Bạn (Toàn quyền) gửi một thông báo THƯỜNG (không phải khẩn cấp) cho đúng nhóm của A, vào ban ngày → chờ tối đa 1 phút, ghi lại CHÍNH XÁC câu hiện trên màn hình khoá: **đúng câu của thông báo bạn vừa gửi** (đạt) hay **chỉ câu chung "Bạn có thông báo mới"** (máy chưa hỏi được nội dung thật lúc đó — ghi rõ, đây là điều ADR-0036 còn để ngỏ với iPhone thật, không phải chắc chắn lỗi).
-3. Một người khác lập một đơn và giao cho A phụ trách → máy A rung với câu kiểu "… vừa lập đơn mới …". Thử với tài khoản Kế toán (nếu Kế toán chỉ xem ngăn "Tất cả") → máy Kế toán **KHÔNG** rung.
+3. Một người khác lập một đơn, giao cho A phụ trách, rồi bấm **"Xác nhận đơn"** → máy A rung với câu kiểu "… vừa xác nhận đơn …". Chỉ lưu nháp thì **không** máy nào rung (ADR-0045). Thử với tài khoản Kế toán (nếu Kế toán chỉ xem ngăn "Tất cả") → máy Kế toán **KHÔNG** rung.
 4. Bấm vào thông báo vừa hiện trên máy A → app phải tự mở đúng trang của đơn đó.
 5. A tự đổi mã PIN của mình → gửi lại một thông báo thử → máy A **KHÔNG** rung nữa (phải bấm bật lại mới nhận tiếp).
 6. Bật lại thông báo cho A. Đăng xuất tài khoản A ở MỘT máy khác (không phải điện thoại của A) → máy điện thoại của A không còn rung nữa, hoặc nếu có rung thì chỉ hiện câu chung "Bạn có thông báo mới" (không lộ nội dung thật).

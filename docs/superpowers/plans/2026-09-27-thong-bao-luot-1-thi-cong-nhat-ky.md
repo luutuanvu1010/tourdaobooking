@@ -48,3 +48,9 @@
 - Kế hoạch `docs/superpowers/plans/2026-09-27-thong-bao-luot-2-web-push.md` (5 task, cách B). Kiểm độc lập: Task 1; Task 2+3; rà cuối toàn lượt; kiểm lại phạm vi lượt sửa gom. Chrome thật (có cửa sổ): bật → gửi → hiện thông báo → tắt → đăng xuất huỷ máy.
 - Quyết định điều phối: `thongbao` tới DO `BangTin` qua hàm tiêm `giaoLoDay` (không thêm cạnh module); thêm/gỡ Face ID cũng tắt máy (phía an toàn); `GET /api/account/thong-bao/may?endpoint=` có thể làm địa chỉ máy hiện trong Workers Logs — chấp nhận vì địa chỉ vô dụng nếu không có khoá bí mật (sai thì đổi sang POST).
 - Nợ: chưa thử iPhone thật, >40 máy, 410 thật, Apple nhận JWT 12 giờ; nút Đăng xuất ở màn bảo trì (`web/maintenance-screen.ts`) chưa huỷ máy; `khopCapKhoa` chỉ so x/y; 410 từ DO ghi ở lần gửi >40 kế tiếp; ca 8 e2e bangtin chập chờn khi máy bận; sổ hàng rào: vế "ngưng tài khoản" chưa quan sát đỏ riêng; kịch bản `dot-c-smoke.mjs` lỗi có sẵn (canToggle cần SUPER_ADMIN).
+
+## 28/9 — 1.29 (ảnh xác nhận Đối tác, log số đếm) + 1.30 (ADR-0045)
+
+- 1.29: 403 của `/api/dispatch/handlers` → `HANDLER_HIDDEN` (ảnh không dòng người phụ trách). Nguyên nhân lần thử đầu không có thông báo: log `day` ghi `boQua: khong-may` (iPhone chưa đăng ký); bật lại → `gui: 1`.
+- 1.30: ADR-0045 — nháp không báo; xác nhận đơn chưa có người = "chờ nhận". Kiểm độc lập 2 vòng ĐẠT (I-1 Kế toán mất dòng xác nhận → đã sửa a95a669).
+- Nợ: m-3 test `thongBaoNoi` tao_cho_nhan cho Kế toán nay rỗng (nhánh dispatch.claim trong `thongBaoNoi` là mã chết cho toast); m-5 `lapChuaCoNguoi` còn tính nhưng không dùng, `dayGoCua` vẫn chạy (2 lần đọc D1) mỗi lần lưu nháp; m-6 đơn xác nhận-chưa-có-người rồi bị huỷ vẫn để tin "chờ nhận" trong "Của tôi" (có từ trước); m-7 HDV mở ảnh xác nhận cũng rơi vào `HANDLER_HIDDEN` (403) — chấp nhận, chưa ghi đặc tả; `loadHandlerName` chưa có test đơn vị.
