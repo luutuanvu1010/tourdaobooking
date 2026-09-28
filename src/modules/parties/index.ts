@@ -93,6 +93,11 @@ const NGAY_BAT_DAU_HOM_NAY = "Đổi công ty chủ có hiệu lực từ hôm n
 // Ruling T8 (điều phối, áp ADR-0043 "không lúc nào trống"): hồ sơ sắp làm công ty chủ phải đủ các mục biên nhận cần (một nguồn: thieuChoCongTyChu).
 const OWNER_COMPANY_INCOMPLETE = (thieu: string[]) =>
   error(409, "owner_company_incomplete", `Hồ sơ này chưa đủ thông tin để làm công ty chủ — còn thiếu: ${thieu.join(", ")}. Bổ sung ở Danh bạ rồi thử lại.`);
+// Ruling D17 (điều phối, cùng loại T8 — điều kiện trước thao tác, không trigger): công ty chủ luôn là hồ sơ ĐANG DÙNG.
+const OWNER_COMPANY_INACTIVE = () =>
+  error(409, "owner_company_inactive", "Hồ sơ này đang ngưng dùng nên chưa làm công ty chủ được. Bật lại “Đang dùng” cho hồ sơ rồi thử lại.");
+const OWNER_COMPANY_KEEP_ACTIVE = () =>
+  error(409, "owner_company_keep_active", "Hồ sơ này đang là công ty chủ nên không ngưng dùng được. Muốn thôi dùng thì đổi công ty chủ sang hồ sơ khác trước.");
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
@@ -281,6 +286,8 @@ export const partiesModule: AppModule = {
       const parsed = validatePartyUpdate(await readJson(request), current.party_kind);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       if (acc.linked && parsed.value.active !== (current.active === 1)) return ACTIVE_BY_ACCOUNT();
+      // Ruling D17 (b): hồ sơ công ty chủ không ngưng dùng được (kể cả người giữ ô) — muốn thôi dùng thì đổi công ty chủ trước. PUT là đường DUY NHẤT đặt active.
+      if (chu && !parsed.value.active) return OWNER_COMPANY_KEEP_ACTIVE();
       const at = new Date().toISOString();
       const stmts = updatePartyStatements(env.DB, id, parsed.value, staff.id, at);
       const results = await env.DB.batch([...stmts, auditStatement(env.DB, { staffId: staff.id, action: "party_updated", at, targetType: "party", targetId: id, detail: `${KIND_LABEL[current.party_kind]}` }, "changes() > 0")]);
@@ -369,6 +376,7 @@ export const partiesModule: AppModule = {
         const problem = ownerCompanyAssignProblem(party.party_kind, parsed.value, today);
         if (problem) return error(400, "invalid_input", problem);
         if (chu) return OWNER_COMPANY_ALREADY(); // câu hợp ngữ cảnh thay cho câu chung "trùng thời gian" của trigger chồng lấn 0011 (ADR-0043 điều 2)
+        if (party.active !== 1) return OWNER_COMPANY_INACTIVE(); // Ruling D17 (a): công ty chủ luôn là hồ sơ đang dùng
         // Ruling T8: điều kiện TRƯỚC khi đổi (không phải bất biến — không trigger): hồ sơ mới phải đủ mục mà GET /api/company cần, để không lúc nào trống.
         const d = await companyIdentityOf(env.DB, id);
         const thieu = thieuChoCongTyChu({ legalName: d?.legal_name ?? null, taxCode: d?.tax_code ?? null, address: d?.address ?? null, hotline: d?.hotline ?? null });

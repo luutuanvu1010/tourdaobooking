@@ -203,6 +203,46 @@ test("Ruling T8 của điều phối: đổi sang hồ sơ tổ chức THIẾU t
   assert.equal((await w.call("GET", "/api/company")).status, 200, "không lúc nào trống: biên nhận đọc được ngay");
 });
 
+test("Ruling D17 (a) của điều phối: đổi sang hồ sơ tổ chức đủ thông tin nhưng đang NGƯNG DÙNG (active = 0) → 409 owner_company_inactive; không đổi gì, không nhật ký; bật lại 'Đang dùng' thì đổi được", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const NGUNG = await toChucDu(w, SALES, "Pháp nhân Ngưng");
+  const h = hoSo(w, NGUNG);
+  let r = await w.call("PUT", `/api/parties/${NGUNG}`, { as: SALES, body: { displayName: h.display_name, legalName: h.legal_name, taxCode: h.tax_code, address: h.address, invoiceEmail: h.invoice_email, active: false, expectedUpdatedAt: h.updated_at } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(hoSo(w, NGUNG).active, 0);
+  const truoc = { vai: vaiMo(w), log: logCount(w, CT) + logCount(w, NGUNG) };
+  r = await ganVai(w, SUP, NGUNG, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "owner_company_inactive");
+  assert.match(r.json.error.message, /ngưng dùng/);
+  assert.doesNotMatch(r.text, /Toàn quyền|SQLITE|constraint/i);
+  assert.deepEqual({ vai: vaiMo(w), log: logCount(w, CT) + logCount(w, NGUNG) }, truoc);
+  const h2 = hoSo(w, NGUNG);
+  r = await w.call("PUT", `/api/parties/${NGUNG}`, { as: SALES, body: { displayName: h2.display_name, legalName: h2.legal_name, taxCode: h2.tax_code, address: h2.address, invoiceEmail: h2.invoice_email, active: true, expectedUpdatedAt: h2.updated_at } });
+  assert.equal(r.status, 200, r.text);
+  r = await ganVai(w, SUP, NGUNG, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 201, r.text);
+  assert.deepEqual(vaiMo(w).map((x: any) => x.party_id), [NGUNG]);
+});
+
+test("Ruling D17 (b) của điều phối: PUT đặt 'Đang dùng' = false cho hồ sơ ĐANG là công ty chủ (kể cả SUPER_ADMIN) → 409 owner_company_keep_active 'đổi công ty chủ sang hồ sơ khác trước'; không ghi, không nhật ký; sửa tên mà vẫn dùng → 200", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  const h = hoSo(w, CT);
+  const log = logCount(w, CT);
+  let r = await w.call("PUT", `/api/parties/${CT}`, { as: SUP, body: { displayName: h.display_name, legalName: h.legal_name, taxCode: h.tax_code, address: h.address, invoiceEmail: h.invoice_email, active: false, expectedUpdatedAt: h.updated_at } });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "owner_company_keep_active");
+  assert.match(r.json.error.message, /đổi công ty chủ sang hồ sơ khác trước/);
+  assert.doesNotMatch(r.text, /Toàn quyền|SQLITE|constraint/i);
+  assert.equal(hoSo(w, CT).active, 1);
+  assert.equal(logCount(w, CT), log);
+  r = await sua(w, SUP, CT, "Công ty TNHH Tour Đảo (sửa thử)");
+  assert.equal(r.status, 200, r.text);
+  assert.equal(hoSo(w, CT).active, 1);
+});
+
 test("gán lại 'Công ty chủ' cho CHÍNH hồ sơ đang giữ → 409 owner_company_already 'đang là công ty chủ' (không câu chung 'trùng thời gian'); không đổi gì", async () => {
   const w = setup();
   const CT = congTyChu(w);
