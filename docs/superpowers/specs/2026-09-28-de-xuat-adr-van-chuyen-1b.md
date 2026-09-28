@@ -1,6 +1,6 @@
 # Đề xuất ADR — Vận chuyển lượt 1b: chặng đưa đón, danh sách hành khách, chuyến xe, xuất bến, tài xế xem cuốc
 
-- **Ngày:** 2026-09-28. **Vai:** người soạn thiết kế, chỉ viết tài liệu, không thi công. **Trạng thái:** **ĐỀ XUẤT — CHƯA DUYỆT, CHƯA CÓ NGƯỜI KIỂM ĐỘC LẬP.**
+- **Ngày:** 2026-09-28. **Vai:** người soạn thiết kế, chỉ viết tài liệu, không thi công. **Trạng thái:** **Lượt duyệt 1 ĐÃ DUYỆT → ADR-0047** (2026-09-28 khuya, kèm Q4 = (a)). **Lượt duyệt 2 còn là ĐỀ XUẤT, chưa duyệt.** Chưa có người kiểm độc lập.
 - **Số ADR:** chưa lấy. Văn bản gọi là **ADR-00xx-A** (lượt duyệt 1) và **ADR-00xx-B** (lượt duyệt 2); số chốt lúc chủ duyệt. Tệp này KHÔNG nằm trong `docs/adr/`, và KHÔNG giữ chỗ ở `docs/adr/README.md`.
 - **Migration dự kiến** (chỉ để lập kế hoạch, không giữ chỗ):
   - `0034`: phía `orders`;
@@ -82,6 +82,8 @@ Mỗi lượt duyệt tối đa 3 quyết định chạm quyền hoặc dữ li�
 ---
 
 ## 3. Lượt duyệt 1 — ADR-00xx-A (module `orders`)
+
+> **ĐÃ DUYỆT → ADR-0047** (`docs/adr/ADR-0047-chang-dua-don-va-danh-sach-hanh-khach.md`, accepted). Chủ trả lời trực tiếp phiên điều phối 2026-09-28 khuya: lượt duyệt 1 (A1, A2, A3) **"Duyệt"**; Q4 **"Chặng thay hẳn ô cũ"** = phương án (a). ADR-0047 là văn bản chuẩn tắc; mục này giữ làm lịch sử đề xuất. Khi soạn ADR, nơi trả đổi từ "đúng một" sang "tối đa một" (để chép dữ liệu cũ không có nơi trả). Q1, Q2, Q3, Q5, Q6 thuộc lượt 2, chưa quyết.
 
 **Loại:**
 - **một chiều:** bảng `ord_*` và dữ liệu cá nhân của khách (họ tên, năm sinh) đã lưu;
@@ -491,6 +493,8 @@ Chỉ gồm những điều vượt khung các quyết định ở §0. Mỗi c�
 **Q3. Tài xế có thấy số điện thoại người liên hệ của đơn để gọi khách lúc đón không?**
 - (a) **Khuyến nghị:** Có, nhưng chỉ trong ngày của chuyến, chỉ với đơn có khách trên chuyến mình lái; hết ngày thì ẩn.
 - (b) Không. Tài xế gọi văn phòng, văn phòng gọi khách.
+
+> **Q4 ĐÃ QUYẾT (2026-09-28 khuya): (a) — "Chặng thay hẳn ô cũ". Đã áp vào ADR-0047 điều A1.**
 
 **Q4. Ô "giờ đón / nơi đón" hiện có trên từng dịch vụ của đơn xử lý thế nào khi có "chặng đưa đón" (có chiều đi, chiều về, nơi trả, ngày đón riêng)?**
 - (a) **Khuyến nghị:** Chặng thay hẳn hai ô cũ. Đơn cũ được máy chuyển sang tự động. Màn lập đơn, biên nhận, hàng chờ nhận của hướng dẫn viên đều đọc chặng. Được: một chỗ ghi, không lệch. Mất: việc lớn nhất của lượt này, làm trong hai lần phát hành.
