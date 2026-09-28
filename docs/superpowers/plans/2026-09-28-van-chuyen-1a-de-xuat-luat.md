@@ -1,4 +1,4 @@
-# Vận chuyển lượt 1a — đề xuất sửa luật (CHỜ CHỦ DUYỆT)
+# Vận chuyển lượt 1a — đề xuất sửa luật (ĐÃ DUYỆT 2026-09-28, ĐÃ ÁP)
 
 - **Ngày:** 2026-09-28.
 - **Người soạn:** phiên lập kế hoạch Vận chuyển 1a (nhánh `worktree-agent-ac0436b2bbf204613`).
@@ -10,7 +10,7 @@
   - Điều 9.4: hàng rào đã duyệt chỉ được SIẾT; muốn NỚI phải có chủ duyệt.
   - Tiền lệ `docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md` (T2b): ADR đã có chữ cạnh / tiền tố, nhưng **sửa test không tự thành được phép**.
 - **Căn cứ:** ADR-0040 (accepted 2026-09-28) D1 ghi "module mới `van-chuyen`, hạng STRICT, tiền tố bảng `vc_`, tiền tố view `vc`; phụ thuộc `parties` và `audit`; không module nào import `van-chuyen`".
-- **Trạng thái:** CHỜ CHỦ DUYỆT. Chưa duyệt thì **không** đưa lệnh gộp (Task K3).
+- **Trạng thái:** **ĐÃ DUYỆT 2026-09-28 19:48 VN** — chủ trả lời trực tiếp phiên điều phối: "Duyệt tất cả, có mục Hiến chương" (Mục 1–5 kèm 2e, 2f); sau đó chọn "Áp ngay" (kèm sửa một con số menu: dòng 4b "Xe" ghi 13 mục thay 14). **ĐÃ ÁP** (điều phối, mỗi tệp một commit): `140c813` (`src/architecture.test.ts` — chú thích "CHỜ CHỦ DUYỆT" → "đã duyệt 2026-09-28"), `b7f36fe` (`docs/ARCHITECTURE.md`), `6b51ac5` (`src/CLAUDE.md`), `1861de9` (`web/CLAUDE.md`), `262321a` (`CLAUDE.md`).
   - Duyệt xong: mỗi tệp luật một commit, sửa đúng diff dưới đây.
   - Đổi chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` thành "đã duyệt <ngày>" (tiền lệ Ruling D21 của T2b).
 

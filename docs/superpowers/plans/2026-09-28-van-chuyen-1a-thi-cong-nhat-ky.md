@@ -33,9 +33,9 @@
 | Câu | Nội dung | Trả lời (nguyên văn, ngày) | Ảnh hưởng |
 |---|---|---|---|
 | R5 (điều phối hỏi) | Ô "xem giấy tờ của chính mình (số che)" mở cho ai | **"Mọi nhân viên"** — phương án A, 2026-09-28 (ghi ở dòng trạng thái ADR-0040, `9ead2e7`) | Task A7 (không còn phụ thuộc) |
-| Q1 | Quản trị có được nhập / xem đủ số giấy tờ của tài khoản cấp trên | **Không** — Ruling R8 của điều phối (2026-09-28): áp luật cấp bậc hiện có (`mayManage` / ADR-0042). → **Chủ trả lời 2026-09-28 19:48 VN, trực tiếp với điều phối (điều phối chuyển lại nguyên văn): "Có, cho mọi người"** — Quản trị ĐƯỢC nhập / gia hạn / sửa sai / huỷ dòng và "xem đủ số" giấy tờ của MỌI người, kể cả Quản trị khác và tài khoản Toàn quyền ⇒ Ruling R24 thay R8. **Mã CHƯA đổi** — xem 11.11 | Task A8, A9; R24 |
+| Q1 | Quản trị có được nhập / xem đủ số giấy tờ của tài khoản cấp trên | **Không** — Ruling R8 của điều phối (2026-09-28): áp luật cấp bậc hiện có (`mayManage` / ADR-0042). → **Chủ trả lời 2026-09-28 19:48 VN, trực tiếp với điều phối (điều phối chuyển lại nguyên văn): "Có, cho mọi người"** — Quản trị ĐƯỢC nhập / gia hạn / sửa sai / huỷ dòng và "xem đủ số" giấy tờ của MỌI người, kể cả Quản trị khác và tài khoản Toàn quyền ⇒ Ruling R24 thay R8. **Mã CHƯA đổi** — xem 11.11. → **Tối 2026-09-28 (sau 19:48, trực tiếp với điều phối):** chủ bấm TỪ CHỐI lần sửa mã R24 của điều phối, rồi chọn **"Đưa lên bản hiện tại, sửa sau"** ⇒ **R24 HOÃN**: 1a phát hành với R8 (Quản trị chưa làm được giấy tờ của tài khoản cấp trên); việc mở ghi vào `docs/BACKLOG.md` mục 4 | Task A8, A9; R24 (hoãn) |
 | Q2 | Thêm xe có bắt buộc số khung | **Bắt buộc ở máy chủ; cột CSDL để trống được** — Ruling R9 của điều phối (2026-09-28). → Chủ trả lời 2026-09-28 19:48 (qua điều phối): **"Bắt buộc"** (giữ nguyên) | Task A13 |
-| Đề xuất luật | Duyệt `docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md` (mục 1–5; 2e tuỳ chọn) | **"Duyệt tất cả, có mục Hiến chương"** — chủ trả lời điều phối 2026-09-28 19:48 VN (điều phối chuyển lại): duyệt Mục 1–5 kèm 2e, 2f ⇒ Ruling R25 (áp luật). **Chưa áp** — xem 11.11 | Task K3; R25 |
+| Đề xuất luật | Duyệt `docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md` (mục 1–5; 2e tuỳ chọn) | **"Duyệt tất cả, có mục Hiến chương"** — chủ trả lời điều phối 2026-09-28 19:48 VN (điều phối chuyển lại): duyệt Mục 1–5 kèm 2e, 2f ⇒ Ruling R25 (áp luật). **Chưa áp** — xem 11.11. → **Tối 2026-09-28, chủ chọn "Áp ngay"** (kèm sửa số mục thanh bên 14 → 13) ⇒ **ĐÃ ÁP bởi điều phối** (phiên có lời duyệt trực tiếp của chủ; ba tệp `CLAUDE.md` qua hộp hỏi quyền chủ bấm đồng ý): `140c813` (`src/architecture.test.ts`), `b7f36fe` (`docs/ARCHITECTURE.md`), `6b51ac5` (`src/CLAUDE.md`), `1861de9` (`web/CLAUDE.md`), `262321a` (`CLAUDE.md`) — mục 12 | Task K3; R25 (đã áp) |
 | Truy vấn chỉ đọc (Ruling R1; kế hoạch mục 9 bước 4) | Số hồ sơ đang giữ vai "Tài xế" cũ (`DRIVER`) trên production: đang giữ / tổng số dòng | **chờ chủ chạy** — lệnh chỉ đọc soạn sẵn trong báo cáo Phần A (`npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT (SELECT count(*) FROM pty_party_role WHERE role_type_code = 'DRIVER' AND valid_to_date IS NULL) AS dang_giu_vai_tai_xe_cu, (SELECT count(*) FROM pty_party_role WHERE role_type_code = 'DRIVER') AS tong_so_dong"`); câu `SELECT` đã chạy thử trên D1 local (`--local`, 0 / 0) — cú pháp và tên cột đúng. _(điền: hai con số khi chủ chạy)_ | Task K3 (chỉ để biết; lượt 1a không đổi các dòng đó) |
 | Bản vẽ | Link Claude Design bảy màn | Điều phối báo 2026-09-28 (lúc Task A3): chủ đã vẽ xong 7 màn; bản vẽ ở nhánh `dac-ta-van-chuyen` @ `65dde6a`, thư mục `docs/design/van-chuyen-1a/` (đọc `README.md` ở đó trước) — CHƯA gộp vào nhánh Phần A; yêu cầu máy chủ rút ra từ bản vẽ: Ruling R15 | Phần B |
 
@@ -127,8 +127,8 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
   - (a) thêm một dòng `docs/SO-HANG-RAO.md`: chặn "sửa sai giấy tờ (người và xe) phải chọn lý do trong danh sách đóng"; cơ chế: máy chủ (`LY_DO_SUA_SAI` ở `src/shared/giay-to.ts` + route sửa sai + test); lớp CSDL: KHÔNG CÓ (lý do chỉ nằm trong nhật ký), **dựa vào kỷ luật**; ngày quan sát chặn thật — nếu chưa từng P16 lời kiểm lý do ở máy chủ thì làm ngay (bỏ bước kiểm lý do → test đỏ → hoàn nguyên) rồi ghi ngày.
   - (b) tệp đề xuất luật thêm **Mục 2f**: `docs/ARCHITECTURE.md` Phần I, bảng thi hành, dòng "5.1 Bất biến sát dữ liệu" (dòng 147 trên `c276848`), cột chỗ còn hở thêm "sửa sai giấy tờ phải có lý do (ADR-0040) chỉ ở mã — lý do nằm trong nhật ký, CSDL không có cột để kiểm"; lý do Hiến chương 6.2; thêm dòng vào bảng "Tóm tắt để chủ duyệt". Không sửa `docs/ARCHITECTURE.md` thật.
 - **R23** (điều phối, 2026-09-28 tối, sau báo cáo Phần B): chấp nhận 10 chỗ lệch bản vẽ (trừ ô "Đổi mốc" — bỏ khỏi màn 06), chốt GB1, dời `warnDays` giấy tờ người + `documentCount` xe sang lượt 1b; việc: bỏ ô đổi mốc, áp sổ hàng rào + tài liệu mô tả, sửa ba kịch bản có sẵn cho đúng phần 1a đổi, gộp 4c vào 4b. Chi tiết và kết quả: **mục 11.10**.
-- **R24** (điều phối, 2026-09-28 tối, sau câu trả lời của chủ lúc 19:48): Q1 đổi sang (b) — **THAY R8**: bỏ luật cấp bậc ở mọi route giấy tờ người (thêm, gia hạn, sửa sai, huỷ dòng, xem đủ số); ô `party.document.write` / `.reveal` giữ nguyên (Quản trị + Toàn quyền); các cổng khác không đổi; giao diện bỏ chế độ "chỉ xem" giấy tờ ở hồ sơ tài khoản cấp trên; sửa bài, kịch bản, sổ, tài liệu. **Trạng thái: CHƯA LÀM — bị hàng rào an toàn của phiên chặn** (mục 11.11).
-- **R25** (cùng tin): áp luật đã duyệt (ARCHITECTURE 2a–2f, `src/CLAUDE.md` 3a–3d, `web/CLAUDE.md` 4a, 4b, 4d, `CLAUDE.md` 5a, 5b; chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts`; dòng Trạng thái tệp đề xuất) — làm SAU R24 khi mã đã chốt. **Trạng thái: CHƯA LÀM** (mục 11.11).
+- **R24** (điều phối, 2026-09-28 tối, sau câu trả lời của chủ lúc 19:48): Q1 đổi sang (b) — **THAY R8**: bỏ luật cấp bậc ở mọi route giấy tờ người (thêm, gia hạn, sửa sai, huỷ dòng, xem đủ số); ô `party.document.write` / `.reveal` giữ nguyên (Quản trị + Toàn quyền); các cổng khác không đổi; giao diện bỏ chế độ "chỉ xem" giấy tờ ở hồ sơ tài khoản cấp trên; sửa bài, kịch bản, sổ, tài liệu. **Trạng thái: CHƯA LÀM — bị hàng rào an toàn của phiên chặn** (mục 11.11). → **HOÃN theo chủ** (mục 2, mục 12): điều phối thử tự làm trong phiên có lời duyệt trực tiếp; chủ bấm từ chối lần sửa mã, rồi chọn "Đưa lên bản hiện tại, sửa sau". Bài đỏ điều phối viết dở đã hoàn nguyên (`git checkout --`), không commit; mã giữ R8.
+- **R25** (cùng tin): áp luật đã duyệt (ARCHITECTURE 2a–2f, `src/CLAUDE.md` 3a–3d, `web/CLAUDE.md` 4a, 4b, 4d, `CLAUDE.md` 5a, 5b; chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts`; dòng Trạng thái tệp đề xuất) — làm SAU R24 khi mã đã chốt. **Trạng thái: CHƯA LÀM** (mục 11.11). → **ĐÃ ÁP bởi điều phối** (chủ chọn "Áp ngay"; R24 hoãn nên mã đã chốt) — mục 12.
 - **Q1, Q2 của kế hoạch mục 12** coi như đã trả lời bằng R8, R9 (mặc định (a) cả hai) — ghi ở mục 2. (Chủ trả lời lại 19:48: Q1 "Có, cho mọi người" → R24; Q2 "Bắt buộc".)
 - **Cấm của lượt thi công:** không `git push`, không gộp vào `main`; không lệnh `--remote`, `wrangler deploy`/`secret`; không sửa `CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/` (kể cả `docs/adr/README.md`), `src/CLAUDE.md`, `web/CLAUDE.md`. Truy vấn chỉ-đọc remote là việc của CHỦ (câu lệnh viết sẵn trong báo cáo).
 
@@ -209,9 +209,14 @@ _Chép nguyên từ lời điều phối (người kiểm chỉ đọc); ngườ
 ### Kiểm độc lập cuối — Task K2
 
 - **Cuối — Task K2 (bắt buộc; phải chạy e2e đủ bộ — điều kiện của A24; phủ cả R22 sau `30c2fef`):**
-  - **Kết luận:** _(điền: ĐẠT / ĐẠT CÓ ĐIỀU KIỆN / KHÔNG ĐẠT, ngày, trên mã commit nào)_
-  - **Phép đột biến người kiểm tự làm:** _(điền)_
-  - **Phát hiện và cách xử lý:** _(điền)_
+  - **Kết luận:** **ĐẠT CÓ ĐIỀU KIỆN**, 2026-09-28 tối, trên `1a2fe66` (đỉnh cuối Phần B, gồm R23). 0 CAO, 0 VỪA, 3 THẤP. Điều kiện còn treo KHÔNG phải lỗi mã: R24, R25 chưa có mã lúc kiểm (quyết định của chủ) — sau đó R24 hoãn, R25 điều phối áp (mục 12).
+  - **Người kiểm tự chạy (hai lần: trên `06bdb2c` và `1a2fe66`):** `npm test` 1305/1306 + 1 đỏ giả `src/standards.test.ts` (bản chụp không có `.git`; chạy lại trong worktree thật: 9/9); typecheck 0; `build:web` 0; `tests/audit` 36/36; **`npm run test:e2e` ĐỦ BỘ 24/24 cả hai lần** (gồm `van-chuyen` và đuôi `audit-invariants --strict`: R-PTY-1..4, R-VC-1..2 đạt) — **điều kiện e2e của A24 đã đóng**; 8/8 kịch bản Chrome Phần B tự chạy lại; `kiem-phien-ban.mjs` → "bản ở máy 1.35 mới hơn production 1.34"; `npm run dict` diff rỗng.
+  - **Phép đột biến người kiểm tự làm (đỏ đúng rồi hoàn nguyên):** (a) bỏ `/tai-xe` khỏi `PAGES` → `homeRedirect … trang đích phải là trang có thật` đỏ; (b) bỏ dòng xoá số trong `che()` (`web/giay-to-ui.ts`) → `giay-to-nguoi-smoke` bước 2, 3 đỏ.
+  - **Phát hiện và cách xử lý:**
+    - THẤP-1: dòng 4b "Xe" ghi "Quản trị nay 14 mục", thật là 13 (nợ ADR-0038) → điều phối sửa khi áp R25, chủ đồng ý ("sửa một con số menu cho đúng") — commit `1861de9`.
+    - THẤP-2: sự kiện `pagehide` / `visibilitychange` (GB4 — che số khi rời trang / ẩn app) chưa có bước Chrome giả lập → nợ (mục 6), không chặn gộp.
+    - THẤP-3: tài khoản lai PARTNER + ADMIN — nợ cũ (xem A24 THẤP-3), không chặn gộp.
+    - Người kiểm ghi nhận: người thi công bị hàng rào an toàn chặn ở R24 đã không lách và hoàn nguyên sạch (người kiểm `diff -r` bản chụp với worktree thật: `src/`, `web/` giống hệt).
 
 ## 9. Chưa kiểm (lúc viết mục này)
 
@@ -227,7 +232,7 @@ _Chép nguyên từ lời điều phối (người kiểm chỉ đọc); ngườ
 
 ## 10. Phát hành (chủ dự án tự chạy — Task K3)
 
-- Chủ đã duyệt tệp đề xuất luật: _(điền ngày, nguyên văn)_; commit áp từng tệp luật: _(điền)_
+- Chủ đã duyệt tệp đề xuất luật: **2026-09-28 19:48 VN, "Duyệt tất cả, có mục Hiến chương"** (trực tiếp với điều phối); rồi "Áp ngay" (kèm sửa số mục thanh bên 14 → 13). Commit áp từng tệp luật (điều phối): `140c813`, `b7f36fe`, `6b51ac5`, `1861de9`, `262321a` — mục 12.
 - `npm run day-len -- <nhánh>`: _(điền: ngày giờ, kết quả)_
 - `npm run trien-khai` (có migration 0031–0033): _(điền: số phiên bản, Worker, mốc lùi, `audit-invariants --db remote`, cổng phiên bản sau deploy)_
 - AI kiểm bằng GET công khai sau triển khai: _(điền)_
@@ -440,3 +445,25 @@ Sau mỗi lượt treo / hết giờ: người thi công dừng `wrangler dev`, 
 - Chrome (ảnh ra `/tmp`): `sap-het-han-smoke` **7/7** (`SAP HET HAN SMOKE OK (7 bước)`) · `help-smoke` **5/5, 14 giây** (`HELP SMOKE OK — mọi bước ✓`) · `trang-chu-smoke` 11 ✓ rồi đỏ `trang-chu-smoke.mjs:450:12` (đỏ sẵn — "Cần xem lại" 1 dòng, ADR-0038) · `dot-c-smoke` 2 ✓ rồi đỏ `:126` với khác biệt DUY NHẤT `+ 'push'` (đỏ sẵn — ADR-0036). Số dòng sau khi thêm chú thích: `trang-chu-smoke.mjs:538` / `:964` (trước là `:535` / `:961`), `dot-c-smoke.mjs:126` / `:140` (trước là `:124` / `:138`), `help-smoke.mjs:76`, `:160`, `:185`.
 - Không còn `wrangler dev` / `workerd` / Chrome headless nào của worktree này.
 - Commit R23: `20691f7` (màn 06), `76f1451` (ba kịch bản có sẵn), `41a0ffd` (sổ hàng rào, tài liệu, đề xuất luật, nhật ký 11.10), cộng commit nhật ký này.
+
+## 12. Điều phối: hoãn R24, áp R25, gom việc phát hành (2026-09-28 tối)
+
+- **Vì sao điều phối tự làm:** người thi công Phần B bị hàng rào an toàn chặn ở R24, vì lời duyệt chỉ đến qua tin chuyển lại (mục 11.11). Chủ trả lời trực tiếp trong phiên điều phối. Điều phối dời nhánh `dac-ta-van-chuyen` tiến thẳng tới `1a2fe66` (fast-forward) rồi làm tiếp trên đó. Người kiểm độc lập vẫn tách riêng (N8).
+- **R24:**
+  - Điều phối viết bài đỏ trước ở `giay-to-route.test.ts`. Trên mã cũ, đúng như mong đợi: `not ok 14` (201/403) và `not ok 17` (200/403).
+  - Chủ bấm TỪ CHỐI ba lần sửa `src/modules/parties/index.ts`, rồi chọn **"Đưa lên bản hiện tại, sửa sau"**.
+  - Điều phối hoàn nguyên tệp test (`git checkout --`), không commit gì. Mã giữ R8.
+  - Việc mở ghi ở `docs/BACKLOG.md` mục 4.
+- **R25** ("Áp ngay"):
+  - Áp nguyên văn tệp đề xuất, mỗi tệp một commit:
+    - `140c813`: chú thích `src/architecture.test.ts`, 2 chỗ, "CHỜ CHỦ DUYỆT" → "đã duyệt 2026-09-28";
+    - `b7f36fe`: `docs/ARCHITECTURE.md` 2a–2f, kèm dòng "Trạng thái" đầu tệp theo Hiến chương 6.4;
+    - `6b51ac5`: `src/CLAUDE.md` 3a–3d;
+    - `1861de9`: `web/CLAUDE.md` 4a, 4b, 4d;
+    - `262321a`: `CLAUDE.md` 5a, 5b.
+  - **Một chỗ khác nguyên văn, chủ đã đồng ý:** dòng 4b "Xe" ghi "Quản trị nay 13 mục, thêm 3 mục Vận chuyển" thay cho "14 mục" (K2 THẤP-1), kèm ghi chú kịch bản `trang-chu-smoke` còn khoá 14 (nợ ADR-0038, đỏ sẵn).
+  - Cần người kiểm độc lập so khớp nguyên văn phần áp này (điều phối không tự nghiệm thu).
+- **Truy vấn chỉ đọc vai "Tài xế" cũ** (Ruling R1): chỉ để biết, không chặn gộp và triển khai (Task K3). Chủ tự chạy `! sh ~/.claude/jobs/32bcd96e/tmp/kiem-tai-xe.sh`, gửi lại hai con số. _(điền khi có)_
+- **Nhánh phát hành:** `dac-ta-van-chuyen`, chứa trọn Phần A, Phần B, R23, R25, trạng thái 1.34 ở HANDOFF và sửa "bẫy 45→47".
+  - Lệnh gộp: `npm run day-len -- dac-ta-van-chuyen`.
+  - Sau đó `npm run trien-khai`: có migration 0031–0033, bản 1.35.
