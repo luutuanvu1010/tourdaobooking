@@ -43,7 +43,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   thongbao: ["audit", "orders", "dispatch", "staff"],
   // ADR-0040 D1: Vận chuyển lượt 1a đọc parties qua hàm công bố (ownerCompany — chủ xe; expiringDriverDocuments — danh sách sắp hết hạn) và khoá ngoại
   // vc_vehicle.owner_party_id; ghi nhật ký qua auditStatement. Không module nào import van-chuyen.
-  // NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md trước khi gộp.
+  // NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
   "van-chuyen": ["parties", "audit"],
 };
 
@@ -75,7 +75,7 @@ const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
  */
 const KHONG_DB = ["bangtin"] as const;
 
-// vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md trước khi gộp.
+// vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
 const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
