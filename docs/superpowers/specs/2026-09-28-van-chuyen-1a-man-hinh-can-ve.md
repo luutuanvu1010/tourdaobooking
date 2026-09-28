@@ -32,7 +32,7 @@
    - Gộp giấy tờ của xe và của tài xế, xếp theo ngày hết hạn gần nhất.
    - Mốc mặc định 30 ngày; giấy đã hết hạn tô đỏ.
    - Bấm một dòng thì mở xe hoặc hồ sơ người tương ứng.
-7. **Trang đầu của tài xế** (lượt 1a)
+7. **Trang đầu của tài xế** (vai "Tài xế công ty"; lượt 1a)
    - Lời chào + "Giấy tờ của tôi" (tóm tắt hạn).
    - Một chỗ trống ghi "Cuốc xe của bạn sẽ hiện ở đây" (lượt 1b mới có cuốc xe).
 

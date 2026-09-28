@@ -62,7 +62,7 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0028: vai "IT", ADR-0044 (đã lên main, bản 1.30);
 - 0029: nhánh Thông báo (đính kèm, ADR-0041), chưa thi công;
 - 0030: T2b (hồ sơ công ty chủ, ADR-0024 điều 6 và ADR-0043) (đã lên main, bản 1.34);
-- từ 0031: Vận chuyển lượt 1a (ADR-0040).
+- 0031, 0032, 0033: Vận chuyển lượt 1a (ADR-0040) — lần lượt vai + quyền tài xế, giấy tờ của người, xe (kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md`); số kế tiếp cho việc khác là 0034.
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
