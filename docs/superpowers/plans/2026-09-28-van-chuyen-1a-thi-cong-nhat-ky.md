@@ -46,7 +46,7 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 | Task | Việc | Commit | `npm test` sau | Dòng ĐỎ trước (đã thấy) | Đột biến P16 (ngày · đột biến · dòng đỏ) | Người kiểm |
 |---|---|---|---|---|---|---|
 | A0 | Điều kiện trước, mốc | (commit A0 — chỉ nhật ký) | 1175/1175; tsc 0 | — | — | — |
-| A1 | `src/shared/giay-to.ts` | _(điền)_ | _(điền)_ | _(điền)_ | — | _(điền)_ |
+| A1 | `src/shared/giay-to.ts` | (commit A1) | 1180/1180; tsc 0 | 2026-09-28: `node --test src/shared/giay-to.test.ts` → `not ok 1 - src/shared/giay-to.test.ts` … `ERR_MODULE_NOT_FOUND: Cannot find module …/src/shared/giay-to.ts` | — (luật thuần, không phải hàng rào) | chưa |
 | A2 | Quyền `DRIVER`, vai `DRIVER_INTERNAL`, migration 0031, cột thứ tám, 256 tập con | _(điền)_ | _(điền)_ | _(điền)_ | _(điền: ô `order.view` của DRIVER; DRIVER vào OFFICE_GATE; bỏ `active = 0`)_ | _(điền)_ |
 | A3 | Trang đầu `/tai-xe` | _(điền)_ | _(điền)_ | _(điền)_ | _(điền: bỏ nhánh DRIVER)_ | _(điền)_ |
 | A4 | Vai đã ngưng không gán mới | _(điền)_ | _(điền)_ | _(điền)_ | _(điền: bỏ lời kiểm)_ | _(điền)_ |
