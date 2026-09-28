@@ -17,12 +17,13 @@ const hop = (staff: ReturnType<typeof ai>, d: DongDon[], t: DongThuCong[] = [], 
 
 test("loaiTinDon: map hành động nhật ký → loại tin", () => {
   assert.equal(loaiTinDon(don({ action: "created" })), "lap");
-  assert.equal(loaiTinDon(don({ action: "created", lapChuaCoNguoi: true })), "cho_nhan");
+  assert.equal(loaiTinDon(don({ action: "created", lapChuaCoNguoi: true, phuTrach: { coNguoi: false, staffId: null } })), "lap"); // ADR-0045: nháp không "chờ nhận"
   assert.equal(loaiTinDon(don({ action: "order_claimed" })), "nhan");
   assert.equal(loaiTinDon(don({ action: "order_handler_changed" })), "giao");
   // Chọn người phụ trách ngay lúc lập (kể cả tự chọn mình): lô lập ghi created + order_handler_changed CÙNG mốc → chỉ một tin "lap" (đặc tả §4.1)
   assert.equal(loaiTinDon(don({ action: "order_handler_changed", cungLoLap: true })), null);
   assert.equal(loaiTinDon(don({ action: "confirmed" })), "xac_nhan");
+  assert.equal(loaiTinDon(don({ action: "confirmed", phuTrach: { coNguoi: false, staffId: null } })), "cho_nhan"); // ADR-0045: xác nhận mà chưa ai phụ trách
   assert.equal(loaiTinDon(don({ action: "cancelled" })), "huy");
   assert.equal(loaiTinDon(don({ action: "order_cancelled_by_field" })), "huy");
   assert.equal(loaiTinDon(don({ action: "updated" })), null);
@@ -34,8 +35,9 @@ test("K1: tên chỉ có khi người xem được xem lịch sử đơn; không
   const lan = hop(LAN, d);                                                            // Bán hàng, không lập/không phụ trách
   assert.equal(lan.tin[0]!.cau, "Có đơn mới TD-20260927-0001");
   assert.ok(!JSON.stringify(lan).includes("Hùng"), "JSON không được chứa tên");
-  // HDV Tâm đang phụ trách chính đơn này: order.history.view = assigned cho FIELD (ADR-0030 S23-3) → THẤY tên.
-  const dTam = [don({ ownerId: "hung", phuTrach: { coNguoi: true, staffId: "tam" } })];
+  // HDV Tâm đang phụ trách chính đơn này (không chỉ "không thấy tin nào" — phải THẤY tin rồi mới khoá được là tin không mang tên, K4):
+  // order.history.view = assigned cho FIELD (ADR-0030 S23-3) → THẤY tên.
+  const dTam = [don({ action: "confirmed", ownerId: "hung", phuTrach: { coNguoi: true, staffId: "tam" } })];
   const tam = hop(TAM, dTam);
   assert.equal(tam.tin.length, 1, "HDV đang phụ trách phải THẤY tin — nếu rỗng thì khẳng định dưới vô nghĩa");
   assert.ok(JSON.stringify(tam).includes("Hùng"), "HDV đang phụ trách (history assigned, ADR-0030 S23-3) phải thấy tên");
@@ -50,8 +52,10 @@ test("E3: không thấy tin do chính mình làm hoặc gửi (K6)", () => {
 });
 
 test("Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin chờ nhận khi có dispatch.claim", () => {
-  const d = [don({ action: "created", lapChuaCoNguoi: true, ownerId: "bx", actorId: "bx", phuTrach: { coNguoi: false, staffId: null } })];
-  assert.equal(hop(BX, [don({ ownerId: "bx" })]).tin.length, 0);
+  const d = [don({ action: "confirmed", ownerId: "bx", actorId: "bx", phuTrach: { coNguoi: false, staffId: null } })];
+  // Đối tác là CHỦ đơn, người khác xác nhận (không bị loại vì là người thao tác) → vẫn không có tin (khoá cổng Đối tác/Thực tập của duocThayTinDon)
+  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: true, staffId: "hung" } })], [], "tat-ca").tin.length, 0);
+  assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: false, staffId: null } })], [], "tat-ca").tin.length, 0);
   assert.equal(hop(NGAN, d).tin.length, 0);
   const tam = hop(TAM, d); // FIELD dispatch.claim = any (ADR-0030 S20-6/S20-12) → HDV THẤY tin chờ nhận
   assert.equal(tam.tin.length, 1);
@@ -60,15 +64,26 @@ test("Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin c
   assert.equal(lan.tin[0]!.loai, "cho_nhan");
   assert.equal(lan.tin[0]!.cuaToi, true);
   assert.equal(hop(MAI, d, [], "cua-toi").tin.length, 0);
-  assert.equal(hop(MAI, d, [], "tat-ca").tin.length, 0);           // Kế toán không có dispatch.claim → không thấy tin chờ nhận ở ngăn nào (đặc tả §4.2(2))
+  // Kế toán không có dispatch.claim → không có tin "chờ nhận", nhưng VẪN thấy việc xác nhận như tin thường ở "Tất cả" (vòng kiểm I-1)
+  const mai = hop(MAI, d, [], "tat-ca");
+  assert.equal(mai.tin.length, 1);
+  assert.equal(mai.tin[0]!.loai, "xac_nhan");
+  assert.equal(mai.tin[0]!.cuaToi, false);
 });
 
-test("X2: tin chờ nhận đã có người → mờ; nhãn cho-nhan chỉ áp cho dòng lập đơn", () => {
-  const lap = don({ action: "created", lapChuaCoNguoi: true, ownerId: "bx", actorId: "bx", phuTrach: { coNguoi: true, staffId: "hung" } });
-  const xn = don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: false, staffId: null } });
-  const r = hop(LAN, [lap, xn], [], "cua-toi");
-  assert.equal(r.tin.length, 1, "dòng xác nhận của đơn chưa có người KHÔNG vào 'Của tôi'");
-  assert.equal(r.tin[0]!.mo, true);
+test("ADR-0045: lưu NHÁP không vào 'Của tôi' của ai (kể cả chủ đơn, người phụ trách, người nhận được đơn); XÁC NHẬN khi chưa ai phụ trách → tin chờ nhận", () => {
+  const chuaAi = { coNguoi: false, staffId: null };
+  const nhapChuaAi = don({ action: "created", lapChuaCoNguoi: true, ownerId: "bx", actorId: "bx", phuTrach: chuaAi });
+  const nhapCoTam = don({ action: "created", ownerId: "lan", actorId: "hung", phuTrach: { coNguoi: true, staffId: "tam" } });
+  for (const nguoi of [LAN, VU, TAM]) assert.equal(hop(nguoi, [nhapChuaAi, nhapCoTam], [], "cua-toi").tin.length, 0, `${nguoi.id}: nháp không vào 'Của tôi'`);
+  assert.equal(hop(LAN, [nhapChuaAi], [], "tat-ca").tin[0]!.loai, "lap", "nháp vẫn còn ở ngăn 'Tất cả' cho người xem mọi đơn");
+  const xn = don({ action: "confirmed", ownerId: "bx", actorId: "bx", tenNguoiLam: "Bảo", phuTrach: chuaAi });
+  const r = hop(VU, [nhapChuaAi, xn], [], "cua-toi");
+  assert.equal(r.tin.length, 1);
+  assert.equal(r.tin[0]!.loai, "cho_nhan");
+  assert.equal(r.tin[0]!.cau, "Bảo vừa xác nhận đơn TD-20260927-0001, chưa có người phụ trách");
+  // Có người nhận rồi → dòng xác nhận thành tin "xác nhận" thường, rời "Của tôi" của người không liên quan
+  assert.equal(hop(LAN, [don({ ...xn, phuTrach: { coNguoi: true, staffId: "hung" } })], [], "cua-toi").tin.length, 0);
 });
 
 test("Hai ngăn + số chưa đọc chỉ đếm 'Của tôi', luôn bằng số tin cuaToi&&chuaDoc", () => {
@@ -113,7 +128,7 @@ test("nhomNhan: nhãn 'Gửi cho' của tin thủ công đúng bản mẫu; null
   assert.equal(nhanNhomNhan(["quyen:SALES", "quyen:ACCOUNTING"]), "Bán hàng, Kế toán");
   assert.equal(hop(MAI, [], [tin({ nhan: ["noi-bo"] })], "cua-toi").tin[0]!.nhomNhan, "Toàn công ty");
   assert.equal(hop(LAN, [], [tin({ nhan: ["quyen:SALES"] })], "cua-toi").tin[0]!.nhomNhan, "Bán hàng");
-  assert.equal(hop(LAN, [don({ ownerId: "lan" })], [], "cua-toi").tin[0]!.nhomNhan, null);
+  assert.equal(hop(LAN, [don({ ownerId: "lan", action: "confirmed" })], [], "cua-toi").tin[0]!.nhomNhan, null);
 });
 
 test("X4: 30 ngày; tin quan trọng chưa Đã hiểu giữ quá 30 ngày; tối đa 100", () => {
@@ -130,7 +145,7 @@ test("X4: 30 ngày; tin quan trọng chưa Đã hiểu giữ quá 30 ngày; tố
 // chuaDoc thật sự có trong danh sách ngăn "Của tôi" trả về — số đỏ không được lệch danh sách dù dữ liệu vượt trần (Review Focus 5).
 test("R2: 150 tin 'Của tôi' chưa đọc → soChuaDoc đúng 100, bằng số tin chuaDoc của ngăn 'Của tôi'", () => {
   const nhieu = Array.from({ length: 150 }, (_, i) =>
-    don({ ownerId: "lan", actorId: "hung", luc: new Date(Date.parse(NOW) - i * 60000).toISOString() }));
+    don({ ownerId: "lan", actorId: "hung", action: "confirmed", luc: new Date(Date.parse(NOW) - i * 60000).toISOString() }));
   const cua = hop(LAN, nhieu, [], "cua-toi", "2026-01-01T00:00:00.000Z");
   assert.equal(cua.tin.length, 100);
   assert.equal(cua.soChuaDoc, 100);
@@ -142,7 +157,7 @@ test("R2: 150 tin 'Của tôi' chưa đọc → soChuaDoc đúng 100, bằng s�
 // hiểu khỏi dải (trái X4). Nay locHopThongBao trả riêng trường này, tính TRƯỚC khi cắt.
 test("quanTrongChuaHieu không bị cắt bởi trần TOI_DA_TIN dù danh sách 'tin' đã bị cắt (X4 đứng trên trần)", () => {
   const moiHon = Array.from({ length: 120 }, (_, i) =>
-    don({ ownerId: "lan", actorId: "hung", luc: new Date(Date.parse(NOW) - i * 60000).toISOString() }));
+    don({ ownerId: "lan", actorId: "hung", action: "confirmed", luc: new Date(Date.parse(NOW) - i * 60000).toISOString() }));
   const quanTrongCu = tin({ luc: new Date(Date.parse(NOW) - 5 * 86400000).toISOString(), quanTrong: true, tieuDe: "Tin quan trọng cũ" });
   const h = hop(LAN, moiHon, [quanTrongCu], "cua-toi", "2026-01-01T00:00:00.000Z");
   assert.equal(h.tin.length, 100, "danh sách 'tin' vẫn bị cắt ở 100 — không đổi hành vi cũ");

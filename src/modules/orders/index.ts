@@ -267,7 +267,7 @@ export const ordersModule: AppModule = {
       if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
       const id = await createOrder(env.DB, staff.id, parsed.value, handler?.statements, booker.write);
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
-      // "tao_cho_nhan" khi đơn không có người phụ trách. Không bao giờ phát "giao" cho đơn vừa lập.
+      // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),

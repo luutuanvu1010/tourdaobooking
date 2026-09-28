@@ -256,19 +256,16 @@ const huongDanVien = { id: "nv3", permissions: ["FIELD"] as const }; // order.vi
 const doiTac = { id: "nv4", permissions: ["PARTNER"] as const };
 const thucTap = { id: "nv5", permissions: ["INTERN"] as const };
 
-test("thongBaoNoi: văn phòng thấy đủ 5 loại có thông báo nổi (TD-4), câu đúng chữ, liên kết /order?id=", () => {
-  assert.deepEqual(thongBaoNoi(vanPhong, suKien("tao_cho_nhan")), {
-    cau: "Có đơn mới chưa có người phụ trách: TD1",
-    lienKet: "/order?id=order1",
-  });
+test("thongBaoNoi: văn phòng thấy đủ 4 loại có thông báo nổi (TD-4), câu đúng chữ, liên kết /order?id=", () => {
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("xac_nhan")), { cau: "Đơn TD1 đã được xác nhận", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("huy")), { cau: "Đơn TD1 đã bị huỷ", lienKet: "/order?id=order1" });
 });
 
-test("thongBaoNoi: tao/sua/chuyen/tien không hiện thông báo nổi (chỉ làm mới màn hình)", () => {
+test("thongBaoNoi: tao/tao_cho_nhan/sua/chuyen/tien không hiện thông báo nổi (chỉ làm mới màn hình; ADR-0045: lưu nháp không báo)", () => {
   assert.equal(thongBaoNoi(vanPhong, suKien("tao")), null);
+  assert.equal(thongBaoNoi(vanPhong, suKien("tao_cho_nhan")), null);
   assert.equal(thongBaoNoi(vanPhong, suKien("sua")), null);
   assert.equal(thongBaoNoi(vanPhong, suKien("chuyen")), null);
   assert.equal(thongBaoNoi(vanPhong, suKien("tien")), null);
@@ -300,11 +297,7 @@ test("thongBaoNoi: Hướng dẫn viên (không văn phòng) thấy các loại 
   // chờ thì HDV khác KHÔNG thấy thông báo nổi, chỉ danh sách hàng chờ tự cập nhật. Trước vòng sửa ca này khoá { cau: "Đơn TD1 vừa có người nhận", … }.
   assert.equal(thongBaoNoi(huongDanVien, suKien("nhan")), null, "HDV không văn phòng: 'nhan' không thông báo nổi (quyết định chủ 2026-09-27)");
   assert.deepEqual(thongBaoNoi(huongDanVien, suKien("giao")), { cau: "Đơn TD1 vừa đổi người phụ trách", lienKet: "/account" });
-  assert.deepEqual(
-    thongBaoNoi(huongDanVien, suKien("tao_cho_nhan")),
-    { cau: "Có đơn mới chưa có người phụ trách: TD1", lienKet: "/account" },
-    "ADR-0030 S20-6/S20-8: FIELD có dispatch.claim → thấy đơn mới chờ nhận (liên kết giữ /account tới khi có thiết kế màn HDV — Task 1.8)",
-  );
+  assert.equal(thongBaoNoi(huongDanVien, suKien("tao_cho_nhan")), null, "ADR-0045: lưu nháp không báo ai, kể cả HDV có dispatch.claim — chờ nhận nảy ra lúc Xác nhận");
 });
 
 // Vòng sửa 1 (I-3) — quyết định chủ dự án 2026-09-27: "nhan" (một người tự Nhận đơn ở hàng chờ — `thayDoiCuaHandler` chỉ trả "nhan" khi TRƯỚC chưa ai
@@ -333,10 +326,11 @@ test("thongBaoNoi: 'nhan' → null ĐÚNG cho kết nối có cho-nhan mà khôn
   assert.ok(soCaImLang > 0, "phải có ít nhất một tập quyền thật (FIELD) rơi vào ca im lặng — không thì bài này không canh gì");
 });
 
-test("thongBaoNoi: vòng sửa I-3 CHỈ đổi 'nhan' — HDV vẫn thấy giao/xac_nhan/huy/tao_cho_nhan; văn phòng/kế toán vẫn thấy 'nhan'", () => {
-  for (const thayDoi of ["giao", "xac_nhan", "huy", "tao_cho_nhan"] as const) {
+test("thongBaoNoi: vòng sửa I-3 CHỈ đổi 'nhan' — HDV vẫn thấy giao/xac_nhan/huy; văn phòng/kế toán vẫn thấy 'nhan'; tao_cho_nhan không nổi (ADR-0045)", () => {
+  for (const thayDoi of ["giao", "xac_nhan", "huy"] as const) {
     assert.notEqual(thongBaoNoi(huongDanVien, suKien(thayDoi)), null, `HDV × ${thayDoi} vẫn nổi`);
   }
+  assert.equal(thongBaoNoi(huongDanVien, suKien("tao_cho_nhan")), null, "ADR-0045: lưu nháp không báo ai");
   assert.deepEqual(thongBaoNoi(vanPhong, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
   assert.deepEqual(thongBaoNoi(ketToan, suKien("nhan")), { cau: "Đơn TD1 vừa có người nhận", lienKet: "/order?id=order1" });
   // nhanKetNoi (nguồn luật lai + nhãn cho-nhan) KHÔNG đổi: HDV vẫn nhận khung hàng chờ để trang tải lại danh sách.

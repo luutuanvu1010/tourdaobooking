@@ -11,7 +11,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    version: "1.31",
+    version: "1.33",
     date: "2026-09-28",
     items: [
       { kind: "doi", text: "Đơn mới lập không còn tự ghi người lập là người phụ trách: đơn chưa có ai hiện “Chờ nhận”, chờ hướng dẫn viên hoặc nhân viên bấm Nhận." },
@@ -20,6 +20,13 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Mục “Việc của tôi” làm lại theo mẫu mới: đơn chờ nhận và đơn của bạn (kể cả chưa xác nhận) trên một màn; mỗi đơn có Tổng tiền, Đã cọc, Còn thu, nút gọi khách." },
       { kind: "doi", text: "Hướng dẫn viên sửa số khách hoặc huỷ đơn qua một bảng hỏi lại: sửa số khách có nút chọn nhanh lý do, huỷ đơn phải chọn lý do rồi mới bấm được." },
       { kind: "doi", text: "Đơn đã lưu mà chưa chốt nay ghi “Chờ xác nhận” thay cho “Nháp”; người đang lo đơn hiện “HDV: tên người đó”." },
+    ],
+  },
+  {
+    version: "1.31",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Lưu đơn nháp không còn báo ai; khi đơn được bấm \"Xác nhận đơn\" mà chưa có người phụ trách, người nhận được đơn mới được báo (cả trên màn hình khoá)." },
     ],
   },
   {

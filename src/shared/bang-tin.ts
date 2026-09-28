@@ -102,9 +102,8 @@ export interface ThongBaoNoi {
   lienKet: string;
 }
 
-/** Chỉ 5 loại thay đổi hiện thông báo nổi (TD-4) — `tao`, `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
+/** Chỉ 4 loại thay đổi hiện thông báo nổi (TD-4) — `tao`, `tao_cho_nhan` (ADR-0045: lưu nháp không báo), `sua`, `chuyen`, `tien` chỉ làm mới màn hình, không nổi. */
 const CAU_THONG_BAO: { [K in ThayDoiDon]?: (maDon: string) => string } = {
-  tao_cho_nhan: (maDon) => `Có đơn mới chưa có người phụ trách: ${maDon}`,
   nhan: (maDon) => `Đơn ${maDon} vừa có người nhận`,
   giao: (maDon) => `Đơn ${maDon} vừa đổi người phụ trách`,
   xac_nhan: (maDon) => `Đơn ${maDon} đã được xác nhận`,
@@ -124,8 +123,7 @@ export function duocThayTinDon(staff: PermissionHolder, choNhan: boolean): boole
 /**
  * Có hiện thông báo nổi cho tài khoản `staff` khi nhận sự kiện `suKien` không, và nếu có thì câu gì + bấm vào đi đâu (TD-4). Đối tác/Thực tập
  * (không văn phòng, không Hướng dẫn viên) không bao giờ hiện (Q-C ADR-0022, điều 12 ADR-0014: chỉ chấm đếm, không thông báo nổi). `tao_cho_nhan`
- * chỉ hiện cho ai nhận được đơn chưa có người (`dispatch.claim`) VÀ không mang quyền Đối tác (`!holdsPartner` — ADR-0030 S20-8/9, cùng luật với
- * `nhanKetNoi`: tài khoản lai Đối tác+HDV không hiện thông báo về hàng chờ nhận). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
+ * không bao giờ nổi (ADR-0045: lưu nháp không báo ai — kể cả đơn chờ nhận). Hướng dẫn viên bấm vào mở `/account` (hôm nay không mở được `/order`).
  *
  * `nhan` (quyết định chủ dự án 2026-09-27 — vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-3): KHÔNG hiện cho kết nối có nhãn `cho-nhan`
  * mà KHÔNG có `tat-ca` — tính bằng CHÍNH `nhanKetNoi` (một nguồn, không viết lại luật lai). "nhan" luôn là một người TỰ nhận đơn chưa có ai (xem
