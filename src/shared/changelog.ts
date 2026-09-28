@@ -11,13 +11,21 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // T2b — hồ sơ công ty chủ (ADR-0024 điều 6). SỐ TẠM "1.30" theo chỉ đạo D9 của điều phối (1.27–1.29 do nhánh khác giữ); điều phối chốt số thật lúc gộp.
-    version: "1.30",
+    // T2b — hồ sơ công ty chủ (ADR-0024 điều 6, ADR-0043). SỐ TẠM "1.32" theo chỉ đạo D16 của điều phối (1.30 = vai IT đã phát hành, 1.31 = Thông báo
+    // ADR-0045); điều phối chốt số thật lúc gộp cuối.
+    version: "1.32",
     date: "2026-09-28",
     items: [
       { kind: "doi", text: "Tên và mã số thuế ở cuối trang đăng nhập, cùng thông tin công ty trên ảnh xác nhận đơn, nay lấy từ hồ sơ công ty trong Danh bạ: sửa một nơi là đổi mọi nơi." },
       { kind: "doi", text: "Chỉ người phụ trách hệ thống sửa được tên, mã số thuế, địa chỉ, số liên hệ của hồ sơ công ty trong Danh bạ, và đổi sang hồ sơ công ty khác khi cần." },
       { kind: "sua", text: "Địa chỉ ở cuối trang đăng nhập viết lại đúng như hồ sơ công ty." },
+    ],
+  },
+  {
+    version: "1.30",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Thêm vai IT trong nhóm nội bộ." },
     ],
   },
   {
