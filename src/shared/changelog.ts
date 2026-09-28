@@ -20,7 +20,7 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "moi", text: "Quản trị ghi giấy tờ của nhân viên (căn cước, bằng lái, khám sức khoẻ, tập huấn) trong hồ sơ ở Danh bạ; số luôn che, bấm \"Xem đủ số\" thì số hiện 10 giây." },
       { kind: "moi", text: "Trang Tôi có mục \"Giấy tờ của tôi\": nhân viên xem giấy tờ và ngày hết hạn của mình, số được che." },
       { kind: "moi", text: "Có tài khoản cho tài xế công ty: mở app là vào trang của tài xế, xem giấy tờ và hạn giấy tờ của mình." },
-      { kind: "moi", text: "Danh sách giấy tờ sắp hết hạn của xe và tài xế, mặc định nhắc trước 30 ngày; số đếm hiện ở menu, bấm một dòng để mở xe hoặc hồ sơ." },
+      { kind: "moi", text: "Quản trị có danh sách giấy tờ của xe và tài xế còn 30 ngày trở xuống hoặc đã hết hạn; số đếm hiện ở menu và trang Tôi, bấm một dòng để mở xe hoặc hồ sơ." },
       { kind: "moi", text: "Quản trị sửa được danh mục loại giấy tờ xe, loại giấy tờ của người và hạng bằng lái (mục \"Danh mục giấy tờ\" ở trang Tôi)." },
     ],
   },
