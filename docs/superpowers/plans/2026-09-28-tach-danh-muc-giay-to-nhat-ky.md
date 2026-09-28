@@ -31,7 +31,7 @@
 |---|---|
 | `8db6357` | Mã: khối dùng chung + hai trang + trang chuyển hướng, `web/shell.ts` (hai mục, tab Tôi), `web/account.ts` (hai dòng), `PAGES` / `PRECACHE` / `build:web` |
 | `2a9d2b9` | Kịch bản Chrome: `danh-muc-giay-to-smoke.mjs` viết lại (10 bước), `xe-smoke.mjs` bước 1–2, `trang-chu-smoke.mjs` số mục 14 → 16 |
-| (commit tài liệu) | `docs/SYSTEM-DESIGN.md` §9, `docs/CHANGE-GUIDE.md` (§3 + công thức y), `docs/SO-HANG-RAO.md`, README + 6 ảnh bằng chứng (bỏ 3 ảnh cũ), tệp đề xuất luật, nhật ký này |
+| `f516184` | `docs/SYSTEM-DESIGN.md` §9, `docs/CHANGE-GUIDE.md` (§3 + công thức y), `docs/SO-HANG-RAO.md`, README + 6 ảnh bằng chứng (bỏ 3 ảnh cũ), tệp đề xuất luật, nhật ký này |
 
 ## 4. Đỏ trước / xanh sau
 
@@ -58,7 +58,7 @@ Mỗi lượt: sửa cố ý → `npm run build:web` → chạy `danh-muc-giay-t
 
 ## 6. Kết quả người thi công tự đo (CHƯA kiểm độc lập)
 
-Mã như `2a9d2b9` (commit tài liệu sau đó không đổi `web/`, `public/*.html`, `src/`, `package.json`). Trước mỗi lượt Chrome: không có `wrangler` / `workerd` nào khác đang chạy; sau cùng: không còn tiến trình nào của worktree này.
+Mã như `2a9d2b9` (commit tài liệu `f516184` và commit ghi sổ sau đó không đổi `web/`, `public/*.html`, `src/`, `package.json`); `npm test` + typecheck chạy lại trên `f516184`: 1306/1306, thoát 0. Soát tài liệu mô tả (`grep "13 mục\|14 mục\|:538\|:964"` ngoài sổ lịch sử `docs/superpowers/plans/`): không còn số đếm / số dòng cũ của thanh bên. Trước mỗi lượt Chrome: không có `wrangler` / `workerd` nào khác đang chạy; sau cùng: không còn tiến trình nào của worktree này.
 
 - `npm test`: **1306/1306**, thoát 0 (mốc trước khi sửa: 1306/1306).
 - `npm run typecheck`: **thoát 0** (ba tsconfig).
@@ -73,6 +73,7 @@ Mã như `2a9d2b9` (commit tài liệu sau đó không đổi `web/`, `public/*.
 | `dot-c-smoke.mjs` | 2 ✓ rồi đỏ `:126:12` | **đỏ sẵn**: khác biệt DUY NHẤT `+ 'push'` (ADR-0036) — thứ tự con của trang Tôi KHÔNG đổi (hai dòng mới nằm trong thẻ có sẵn) |
 | `tai-xe-trang-dau-smoke.mjs` | **4 ✓**, thoát 0 | chạy vì `web/shell.ts` đổi chữ ký `navGroups` / `addNav` (nhánh tài xế) |
 | `sap-het-han-smoke.mjs` | **7 ✓**, thoát 0 | chạy vì nhóm VẬN CHUYỂN của `web/account.ts` có dòng mới (huy hiệu ở `#vc-links` vẫn đúng) |
+| `help-smoke.mjs` | **5 ✓**, thoát 0 (`HELP SMOKE OK — mọi bước ✓`) | chạy vì mục "Trợ giúp" của thanh bên nay nằm dưới mép ở 1040×820 (kịch bản kiểm mục CÓ MẶT trong `#sidebar` và chấm đỏ, không kiểm đang trong khung nhìn) |
 
 ## 7. Đỏ sẵn (không do việc này, không chữa — theo lời giao)
 
