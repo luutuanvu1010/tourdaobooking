@@ -4,6 +4,8 @@
 - **Phạm vi:** lượt 3 của phân hệ Vận chuyển theo điều chủ đã chốt (thiết kế `2026-09-27-van-chuyen-design.md` §0.2, §0.13): *giá thuê, chi phí, công nợ nhà xe (làm cùng sổ công nợ)*; *xe đối tác thuê theo chuyến, giá theo tuyến hoặc loại xe*. Chủ: "để sau, đi cùng sổ công nợ".
 - **Số quyết định:** **3** (D1, D2, D3), đúng trần của một lượt duyệt (`CLAUDE.md` §9). **D3 có điều kiện**: chỉ quyết được sau khi ADR-0026 và ADR-0024 điều 1–5 (hiện **proposed**) được duyệt — xem §0.
 - **Xây trên lỗ đang hở:** kiểm 2026-09-28 trên nhánh này (gốc `3bb73f0`): `docs/quyen-hoan.json` mục `phat_hien` **rỗng**. Mục `thao_tac` còn 6 ô hoãn; hai ô liên quan tới tiền là `payment.receive`, `payment.refund` (hạn **2026-12-31**, "để dành cho N3", chưa có route) — D3 dùng sổ của ADR-0026, nơi hai ô này được thi hành. D1, D2 không xây trên ô hoãn nào. **Phải kiểm lại ngày trình duyệt.**
+- **Sửa quyết định đã duyệt:** ADR-0040 D1 (đồ thị module của `van-chuyen`) và ADR-0004 (ranh giới phạm vi: thêm chi phí và phải trả nhà cung cấp) — bảng ở §7. Duyệt lượt 3 = duyệt cả hai chỗ sửa đó.
+- **Kiểm độc lập:** **chưa có.** Theo tiền lệ (đề xuất ADR-0040, đề xuất T2b), cần một người kiểm độc lập chỉ-đọc trước khi trình chủ.
 - **Điều Hiến chương áp** (Hiến chương 6.1): 1.4 (chuỗi bảy lớp), 2.1 (bên trước vai — nhà xe là vai), 2.2 (bốn loại), 4.2 (tiền là hình chiếu của sự kiện), 4.3 (một sổ), 4.4 (chứng từ danh sách trắng), 5.1 (bất biến hai lớp), 5.2 (chính sách có kiểu, có ngày hiệu lực), 5.3 (ranh giới module), 5.4 (một nguồn tính), 5.5 (chỉ-thêm, đảo), 5.6 (chụp tại mốc), 5.7 (giữ khi thiếu điều kiện), 5.9 (trả dư — **chỉ áp tương tự**, xem D3), 5.12 (kiểm toán), 5.14 (hai trục thời gian), 5.15 (lõi tất định), 5.17 (sổ vàng). Lệch có chủ ý: **không đề xuất lệch nào**; chỗ có nguy cơ lệch ghi ở §7.
 
 ## 0. Tóm tắt cho người duyệt
@@ -38,6 +40,7 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | G6 | **Nhà xe** là hồ sơ (người hoặc tổ chức, rà soát C.7 "nhà xe có thể là cá nhân") mang một **vai nhóm bên ngoài**, `handles: "never"`; lượt 2 sửa LC-1 (ADR-0018) để người ngoài không bị ép thành bên đặt | ADR-0040 D3 "lượt 2" | Nếu lượt 2 chưa có vai này: D1 **không** tự tạo vai (tránh hai nơi định nghĩa nhà xe); 3a-1 kẹt | 3a-1 |
 | G7 | Lượt 1b có **tuyến** hay không là **chưa chắc**. Đề xuất: **tuyến là danh mục của lượt 3** (D1), chuyến chỉ nhận thêm một khoá tới tuyến (chọn khi điều xe) | — | Nếu 1b đã có tuyến: D1 dùng lại, bỏ phần danh mục tuyến | 3a-1 (thu nhỏ) |
 | G8 | Tài xế đối tác (lượt 2) có tài khoản nhưng **không** mở ô tiền nào; cột `DRIVER` giữ mọi ô nghiệp vụ = `none` ngoài "xem cuốc của mình" | ADR-0040 D3 | — | — |
+| G9 | `parties` công bố **hai view mới** cho trigger của `vc_`: (i) hồ sơ đang mở **một mã vai cụ thể** (nhà xe); (ii) id hồ sơ **công ty chủ**. Đã kiểm 28/9: chỉ có `v_pty_open_role_group` (nhóm vai) và `v_pty_party_label`; T2b công bố công ty chủ bằng **hàm** | `migrations/0024:26`, ADR-0024 6.2 | Không có view thì hai luật tương ứng chỉ giữ ở **máy chủ + kiểm định kỳ**, ghi rõ ở sổ hàng rào (không khai là "hai lớp") | 3a-1, 3a-2 (lớp CSDL) |
 
 ## 3. Quyết định
 
@@ -63,7 +66,7 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | Có ít nhất tuyến hoặc loại xe | `CHECK (route_code IS NOT NULL OR vehicle_type_code IS NOT NULL)` | như trên |
 | Không chồng hiệu lực cùng khoá (nhà xe, tuyến, loại xe) | trigger chèn/sửa `…_overlap` (khuôn `pty_party_role_overlap`, `migrations/0011:97-104`) | kiểm trước, mã lỗi riêng |
 | Chỉ-thêm: không đổi tiền/khoá; chỉ được đặt `valid_to_date` **một lần** từ rỗng | trigger `BEFORE UPDATE` (khuôn `vc_vehicle_document_identity`) + trigger cấm `DELETE` | route không có đường sửa tiền |
-| Nhà xe phải đang mang vai nhà xe | trigger đọc **view công bố** `v_pty_…` (Hiến chương 5.3 cho phép; ADR-0024 điều 5 nếu được duyệt) | kiểm qua hàm công bố của `parties` |
+| Nhà xe phải đang mang vai nhà xe | trigger đọc **view công bố của `parties` theo mã vai** — **chưa có** (view hiện có `v_pty_open_role_group`, `migrations/0024:26`, chỉ trả **nhóm** vai, không trả mã vai); cần view mới ở `parties` (G9). Tới lúc có view: lớp CSDL **chưa giữ**, ghi "dựa vào máy chủ" ở sổ hàng rào | kiểm qua hàm công bố của `parties` |
 
 **Route** (cổng văn phòng, hỏi `can()` đầu thân route, 403 trước 400 — khuôn `van-chuyen/index.ts`):
 - `GET /api/van-chuyen/bang-gia?nha-xe=&ngay=` (`transport.rate.view`)
@@ -99,7 +102,7 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | Dòng đảo = âm đúng dòng gốc, mỗi gốc đảo tối đa một lần | trigger chèn + chỉ mục duy nhất một phần trên `reverses_id` | — |
 | Mỗi chuyến tối đa **một** dòng *chụp giá* chưa bị đảo | trigger chèn `NOT EXISTS` (chỉ đọc bảng `vc_`) | kiểm trong lô, câu có điều kiện |
 | Tổng chi phí chuyến ≥ 0 | trigger chèn (tổng hiện có + dòng mới ≥ 0) | hàm tổng + kiểm trước |
-| Chỉ ghi chi phí cho chuyến có bên vận chuyển ≠ công ty chủ | trigger đọc bảng chuyến (`vc_`) + view công bố công ty chủ của `parties` | hàm `ownerCompany` |
+| Chỉ ghi chi phí cho chuyến có bên vận chuyển ≠ công ty chủ | trigger đọc bảng chuyến (`vc_`) + **view công bố "công ty chủ" của `parties` — chưa có** (T2b công bố bằng **hàm** `ownerCompany`; trigger không gọi được hàm TypeScript); cần view mới (G9). Tới lúc có: chỉ lớp máy chủ + `R-VC-COST-3` | hàm `ownerCompany` |
 | Không ghi *điều chỉnh* cho chuyến đã **chốt vào sổ** trừ qua lô của D3 | trigger (dấu "đã chốt" nằm ở bảng `vc_`, xem D3) | route từ chối 409 |
 | Bất biến dữ liệu định kỳ | `audit-invariants`: `R-VC-COST-1` chuyến giao nhà xe có đúng một dòng chụp còn hiệu lực **hoặc** được liệt kê "thiếu giá"; `R-VC-COST-2` dòng đảo khớp gốc; `R-VC-COST-3` không chuyến nào của công ty chủ có dòng chi phí | — |
 
@@ -219,6 +222,16 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 
 ## 7. Tự rà: chỗ mơ hồ, chỗ đụng ADR đã duyệt / đang chờ (chỉ nêu, không tự hoà giải)
 
+**Câu đã duyệt bị đổi** (khuôn ADR-0024/ADR-0026; khi duyệt, ADR lượt 3 phải ghi rõ các câu này):
+
+| Nguồn (**accepted**) | Câu hiện hành | Sau lượt 3 |
+|---|---|---|
+| **ADR-0040 D1** + chú thích `src/architecture.test.ts:45-47` | "Phụ thuộc `parties` … và `audit` … **Không module nào import `van-chuyen`**." | D1/D2: `van-chuyen` **thêm** phụ thuộc `locations` (điểm đầu/cuối tuyến) — nếu 1b chưa thêm. D3 **bắt buộc đổi một trong hai vế**: (B) `billing` import `van-chuyen` ⇒ **bỏ** câu "không module nào import"; (A) thêm cạnh `van-chuyen → billing`. Không có cách nào giữ nguyên cả hai câu. |
+| **ADR-0004** "Được làm" / "Vẫn KHÔNG làm" (sửa ranh giới `docs/SPEC-tourdao-sales.md` §1: "Không phải kế toán") | Được làm: **sổ thu tiền** từng lần + hoàn tiền của booking; yêu cầu hoá đơn. Vẫn không làm: **công nợ đại lý**… | Lượt 3 thêm **chi phí mua ngoài** (giá thuê xe, chi phí chuyến) và (D3) **công nợ phải trả nhà cung cấp** — **không nằm trong danh sách "được làm"**. Phải mở rộng ranh giới phạm vi bằng câu mới ("ghi nhận chi phí nhà xe và phải trả nhà xe; vẫn không: hoá đơn đầu vào, thuế, đối soát ngân hàng") — cửa hai chiều về phạm vi, nhưng là **sửa quyết định đã duyệt** nên chủ duyệt rõ (Hiến pháp P4). ADR-0026 (proposed) đã tính mở lại "công nợ đại lý"; lượt 3 mở thêm phía **nhà cung cấp**. |
+| **ADR-0040** thiết kế kèm (§6 "Để sau: danh mục loại xe") | loại xe để sau | D1 dựng danh mục loại xe (không phải sửa ADR, chỉ ghi "đã làm ở lượt 3") |
+
+**Xung đột với bản đề xuất đang chờ và chỗ mơ hồ:**
+
 - **X1 — Ai sở hữu điều khoản nhà cung cấp.** ADR-0024 điều 1 (**proposed**) giao cho `pricing` (`prc_`) "chính sách có hiệu lực theo ngày: … **điều khoản cung ứng (người bán, nhà cung cấp, a%)**". Giá thuê xe là một điều khoản cung ứng. Đề xuất D1 đặt ở `vc_` → **trái chữ** của ADR-0024 điều 1 (chưa duyệt nên chưa là lệch với văn bản chuẩn tắc, nhưng hai bản đề xuất phải khớp trước khi cùng duyệt). Hai phương án ở Q2.
 - **X2 — Sổ của ADR-0026 giả định mọi dòng nợ thuộc một đơn** (`order_id` trên `bil_debt_line`, quyết toán phân bổ theo đơn). Nợ nhà xe thuộc **chuyến gom nhiều đơn**. Đây đúng là trường hợp "bảng dùng chung nhận loại dữ liệu mới" của `CLAUDE.md` §9 (bài học F-01). Khuyến nghị sửa ADR-0026 **trước khi duyệt** (Q10).
 - **X3 — Nguy cơ tính chi phí vận chuyển hai lần** (Hiến chương 5.4). Danh mục có dịch vụ "đưa đón sân bay"; lượt 2 của Hoàn tất (D5, `pricing`) có thể gán **giá vốn nhà cung cấp** (a%) cho dòng dịch vụ đó, đồng thời D2 ghi **chi phí thuê** cho chuyến chở chính khách đó. Hai nguồn cho một sự thật. Ảnh hưởng cả `R-BIL-2` ("phần Tour Đảo = giá bán − giá vốn − hoa hồng") và ca `tour_dao_giu` của `golden/hoan-tat-cong-no.json`. Khuyến nghị: dịch vụ đưa đón **không** có giá vốn a% ở D5 khi Tour Đảo tự điều xe; chi phí xe là **chi phí chuyến**, không phải giá vốn của dòng dịch vụ; không phân bổ ở lượt 3 (Q9).
@@ -232,51 +245,54 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 
 ## 8. Câu hỏi cho chủ dự án (gom một lần)
 
+Q1–Q10 cần trả lời để làm phần giá và chi phí; Q11–Q12 chỉ cần khi trình phần sổ công nợ (có thể trả lời sau).
+
 > Giải nghĩa một câu: **"phải trả nhà xe"** là số tiền Tour Đảo **đang nợ** nhà xe cho những chuyến họ đã chạy mà công ty chưa trả; **"trả trước cho nhà xe"** là tiền công ty đã đưa nhà xe **nhiều hơn** số đang nợ, nhà xe coi như còn nợ lại công ty.
 
-**Q1. Có làm phần giá và chi phí xe trước, không chờ sổ công nợ?**
+**[cần trả lời bây giờ] Q1. Có làm phần giá và chi phí xe trước, không chờ sổ công nợ?**
 - (a) *Khuyến nghị:* làm trước bảng giá thuê + chi phí từng chuyến (Kế toán in được bảng kê để trả tay); phần "nợ nhà xe trong sổ" làm khi có sổ công nợ. Được: có số chi phí sớm. Mất: tạm thời vẫn trả nhà xe ngoài hệ thống.
 - (b) Chờ sổ công nợ, làm cả một lần. Được: một lần duyệt. Mất: chưa có số chi phí xe tới khi sổ xong.
+- *Nói rõ một lần:* **(b) là đúng lời anh đã nói** ("để sau, đi cùng sổ công nợ"); (a) là đề xuất khác của người soạn, lý do: phần giá và chi phí không cần sổ công nợ để đúng, và sổ công nợ còn đang chờ duyệt. Anh giữ (b) thì làm theo (b).
 
-**Q2. Bảng giá thuê xe đặt ở đâu?**
+**[cần trả lời bây giờ] Q2. Bảng giá thuê xe đặt ở đâu?**
 - (a) *Khuyến nghị:* ở phân hệ **Vận chuyển** — giá tra theo tuyến và loại xe, là khái niệm của Vận chuyển. Được: Vận chuyển tự đủ, không phải chờ phân hệ "chính sách giá" (chưa có). Mất: bản đề xuất "đồ thị module" đang chờ duyệt phải sửa một câu (nó định để mọi điều khoản nhà cung cấp ở phân hệ chính sách giá).
 - (b) Ở phân hệ **chính sách giá** (chưa xây). Được: mọi giá vốn một chỗ. Mất: phải xây phân hệ đó trước; phân hệ giá phải "biết" tuyến/loại xe của Vận chuyển.
 
-**Q3. Khi nhà xe có cả giá theo tuyến và giá theo loại xe, giá nào thắng?** (giá khớp cả tuyến và loại xe luôn thắng trước)
+**[cần trả lời bây giờ] Q3. Khi nhà xe có cả giá theo tuyến và giá theo loại xe, giá nào thắng?** (giá khớp cả tuyến và loại xe luôn thắng trước)
 - (a) *Khuyến nghị:* **giá theo tuyến** thắng giá chỉ theo loại xe (tuyến cụ thể hơn: ví dụ "sân bay Cam Ranh" có giá riêng).
 - (b) **Giá theo loại xe** thắng.
 
-**Q4. Chụp giá vào chuyến lúc nào?** (sau lúc đó, đổi bảng giá không đổi tiền của chuyến)
+**[cần trả lời bây giờ] Q4. Chụp giá vào chuyến lúc nào?** (sau lúc đó, đổi bảng giá không đổi tiền của chuyến)
 - (a) *Khuyến nghị:* lúc **giao chuyến cho nhà xe** (nếu lượt 2 có bước "nhà xe bấm nhận" thì lúc nhận). Đổi nhà xe/tuyến/loại xe trước khi xe chạy thì máy tự tính lại.
 - (b) Lúc **xe xuất bến**. Được: sát thực tế. Mất: nhà xe nhận chuyến mà chưa "chốt" giá.
 - (c) Lúc **kết thúc chuyến**.
 
-**Q5. Ai được nhập giá thuê, ai được sửa tiền của một chuyến?**
+**[cần trả lời bây giờ] Q5. Ai được nhập giá thuê, ai được sửa tiền của một chuyến?**
 - (a) *Khuyến nghị:* **Quản trị + Toàn quyền** nhập bảng giá; **Kế toán + Toàn quyền** sửa tiền từng chuyến (có lý do). Kế toán xem được bảng giá; bán hàng, hướng dẫn viên, tài xế, đối tác không thấy gì.
 - (b) Kế toán làm cả hai.
 - (c) Quản trị làm cả hai.
 
-**Q6. Chuyến thuê xe mà chưa có giá trong bảng: có cho xe chạy không?**
+**[cần trả lời bây giờ] Q6. Chuyến thuê xe mà chưa có giá trong bảng: có cho xe chạy không?**
 - (a) *Khuyến nghị:* **cho chạy**, chuyến hiện "thiếu giá — chờ nhập giá", không tính 0 đồng; chưa đưa vào sổ nợ được cho tới khi có giá.
 - (b) **Không cho giao/xuất bến** tới khi có giá. Được: không bao giờ thiếu. Mất: chặn vận hành vì chuyện giấy tờ tiền.
 
-**Q7. Phí huỷ chuyến với nhà xe:** lượt này ghi tay (Kế toán ghi "phí huỷ muộn", có lý do) — đồng ý? Hay cần bảng "huỷ trước bao nhiêu giờ thì mất bao nhiêu" ngay?
+**[cần trả lời bây giờ] Q7. Phí huỷ chuyến với nhà xe:** lượt này ghi tay (Kế toán ghi "phí huỷ muộn", có lý do) — đồng ý? Hay cần bảng "huỷ trước bao nhiêu giờ thì mất bao nhiêu" ngay?
 - *Khuyến nghị:* ghi tay trước; làm bảng mốc huỷ sau khi thấy tần suất.
 
-**Q8. Chi phí xe của chính công ty** (xăng, lương tài xế, bảo dưỡng) có thuộc lượt này không?
+**[cần trả lời bây giờ] Q8. Chi phí xe của chính công ty** (xăng, lương tài xế, bảo dưỡng) có thuộc lượt này không?
 - *Khuyến nghị:* **không** — lượt 3 chỉ xe thuê ngoài.
 
-**Q9. Tiền xe thuê có cần chia vào từng đơn** (để biết lãi từng đơn) không? Và dịch vụ "đưa đón sân bay" trên đơn: tiền xe tính là chi phí của **chuyến** hay giá vốn của **dịch vụ trên đơn**? (không được tính cả hai)
+**[cần trả lời bây giờ] Q9. Tiền xe thuê có cần chia vào từng đơn** (để biết lãi từng đơn) không? Và dịch vụ "đưa đón sân bay" trên đơn: tiền xe tính là chi phí của **chuyến** hay giá vốn của **dịch vụ trên đơn**? (không được tính cả hai)
 - (a) *Khuyến nghị:* lượt này **chỉ tính theo chuyến, không chia vào đơn**; tiền xe luôn là chi phí chuyến, dịch vụ đưa đón **không** có thêm giá vốn nhà cung cấp riêng khi Tour Đảo tự điều xe. Chia vào đơn làm sau (cần luật chia: theo đầu người hay theo đơn).
 - (b) Chia ngay theo số người của mỗi đơn trên chuyến.
 
-**Q10. Sổ công nợ (bản đề xuất đang chờ duyệt) hiện chỉ cho mỗi dòng nợ gắn với một đơn.** Nợ nhà xe gắn với **chuyến** (một chuyến chở khách của nhiều đơn). Đồng ý sửa bản đề xuất sổ công nợ **trước khi duyệt** để dòng nợ gắn được với chuyến?
+**[cần trả lời bây giờ] Q10. Sổ công nợ (bản đề xuất đang chờ duyệt) hiện chỉ cho mỗi dòng nợ gắn với một đơn.** Nợ nhà xe gắn với **chuyến** (một chuyến chở khách của nhiều đơn). Đồng ý sửa bản đề xuất sổ công nợ **trước khi duyệt** để dòng nợ gắn được với chuyến?
 - *Khuyến nghị:* **đồng ý** — sửa một lần lúc chưa có dữ liệu thì rẻ; sau khi có dữ liệu là cửa một chiều.
 
-**Q11. Công ty trả nhà xe nhiều hơn số nợ** (ứng trước, trả nhầm): ghi thành "nhà xe còn nợ lại công ty", trừ vào chuyến sau hoặc nhà xe trả lại, do Kế toán ghi — đồng ý? (Luật hiện có chỉ nói trường hợp **khách** trả dư.)
+**[trả lời khi trình phần sổ công nợ — D3] Q11. Công ty trả nhà xe nhiều hơn số nợ** (ứng trước, trả nhầm): ghi thành "nhà xe còn nợ lại công ty", trừ vào chuyến sau hoặc nhà xe trả lại, do Kế toán ghi — đồng ý? (Luật hiện có chỉ nói trường hợp **khách** trả dư.)
 - *Khuyến nghị:* đồng ý.
 
-**Q12. Nợ nhà xe vào sổ lúc nào?**
+**[trả lời khi trình phần sổ công nợ — D3] Q12. Nợ nhà xe vào sổ lúc nào?**
 - (a) Ngay khi chuyến **kết thúc** (máy tự ghi). Được: sổ luôn đủ nợ, thận trọng hơn theo kế toán. Mất: sai giá/sai nhà xe thì phải ghi dòng sửa trong sổ; tài xế bấm "kết thúc" là sinh tiền.
 - (b) *Khuyến nghị:* khi **Kế toán chốt** bảng kê của nhà xe (vd cuối tuần/tháng). Được: Kế toán soát trước, sổ sạch. Mất: giữa hai lần chốt, nợ chỉ hiện ở bảng kê "chưa chốt", chưa vào sổ.
 - Lưu ý: chọn một trong hai là **quyết định khó đổi** (quyết định chiều phụ thuộc giữa phần Vận chuyển và phần sổ).
