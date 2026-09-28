@@ -175,7 +175,7 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
 - `git diff --stat c276848 -- web public`: **rỗng**. `git diff --stat 3159fed -- CLAUDE.md .claude playbook docs/adr src/CLAUDE.md web/CLAUDE.md docs/ARCHITECTURE.md`: **rỗng** (Ruling R14).
 - Lệnh chỉ đọc cho chủ (đếm hồ sơ đang giữ vai `DRIVER` cũ trên production) đã chạy thử NGUYÊN câu `SELECT` trên D1 local bằng `--local`: cú pháp + tên cột đúng (local 0 / 0). Lệnh `--remote` là việc của chủ.
 - **Sau Ruling R18, R19** (đỉnh `0b35fa0`, 2026-09-28): `npm test` **1287/1287** (thoát 0; +2 bài mới) · `npm run typecheck` **thoát 0** · `npm run test:e2e -- parties van-chuyen` **`E2E: 3/3 kịch bản xanh`** (thoát 0; máy không có `trien-khai`, không `wrangler dev` nào khác lúc chạy). Không chạy lại e2e đủ bộ / Chrome (R18, R19 chỉ đổi hai route máy chủ; `web/`, `public/` vẫn không đổi).
-- Chrome Phần B: _(Phần B điền từng kịch bản)_
+- Chrome Phần B: xem mục 11.7 (người thi công Phần B điền 2026-09-28 — tám kịch bản mới + chạy lại kịch bản có sẵn).
 
 ## 8. Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc)
 
@@ -228,3 +228,133 @@ _Chép nguyên từ lời điều phối (người kiểm chỉ đọc); ngườ
 - `npm run day-len -- <nhánh>`: _(điền: ngày giờ, kết quả)_
 - `npm run trien-khai` (có migration 0031–0033): _(điền: số phiên bản, Worker, mốc lùi, `audit-invariants --db remote`, cổng phiên bản sau deploy)_
 - AI kiểm bằng GET công khai sau triển khai: _(điền)_
+
+## 11. Phần B — giao diện theo bản vẽ (người thi công Phần B, 2026-09-28)
+
+- **Nhánh:** `worktree-agent-a0820caa3926e181b` (worktree `.claude/worktrees/agent-a0820caa3926e181b`), tách từ `origin/main` @ `c276848` (bản 1.34); gộp `dac-ta-van-chuyen` (`65dde6a` bản vẽ, rồi `e4d2013` theo điều phối) và nhánh Phần A `worktree-agent-a9cf548897a76b7f7` (lần đầu `ce813ed`, lần hai `30c2fef` — R18, R19; lần cuối `5162f4a` — R22, commit gộp `b986bb7`, xem 11.7).
+- **Căn cứ:** bản vẽ `docs/design/van-chuyen-1a/` (README + 00–07 + khung dùng chung); kế hoạch mục 7 (B0–B8); lời giao của điều phối (các tin bổ sung: A19 chuyển sang Phần B + soát nhãn "Tài xế"; R18 ẩn mục giấy tờ với tài khoản mang quyền Đối tác; gộp `e4d2013`; tệp đề xuất luật chỉ điền 4a, 4b; gộp đúng `5162f4a`; Task K1 — nhật ký thay đổi 1.35).
+- **Ranh giới Phần A được giữ:** không sửa `migrations/`, `src/modules/**`, `src/shared/permissions.ts`, `src/shared/roles.ts`, `scripts/audit-checks.mjs`, `src/shared/contracts.ts`. Tệp dùng chung Phần B THÊM mới: `src/shared/giay-to-hien-thi.ts` (+ test); sửa `src/shared/start-page.ts` (+ test) và `src/shared/sw-policy.ts` theo lời giao.
+- **Người ghi mục này là người thi công — KHÔNG tự nghiệm thu (N8).**
+
+### 11.1 Mốc Chrome trước khi sửa (đỉnh gộp `448d47b`, 2026-09-28 17:25–17:52, Chrome headless, ảnh ra `/tmp`)
+
+| Kịch bản | Kết quả mốc | Ghi chú |
+|---|---|---|
+| `tai-xe-trang-dau-smoke.mjs` (bản Phần A, 2 bước) | xanh 2/2 | |
+| `dot-c-smoke.mjs` | **đỏ sẵn** (2 ✓ rồi dừng) | `Tôi (máy tính): thứ tự DOM gốc phải giữ nguyên — … "domOrder":["me","myjobs","links","maintenance","passkeys","push","pin-form"]` — `#push` (Thông báo) có từ trước |
+| `dot-a-smoke.mjs` | **đỏ sẵn** (8 ✓) | `hết giờ chờ: nhat-ky: thẻ đã dựng xong (máy tính)` — Nhật ký chỉ Toàn quyền (ADR-0038), như mốc A0 |
+| `t2b-danh-ba-smoke.mjs` | xanh 2/2 | |
+| `vai-smoke.mjs` | xanh 7/7 | |
+| `v1-bao-tri.mjs` | **đỏ sẵn** (3 ✓, 15 ✗) | bước đầu `hết giờ chờ: mục bảo trì hiện` — mục bảo trì không hiện cho tài khoản chủ trong kịch bản |
+| `help-smoke.mjs` | **treo sẵn** ở bước d (3 ✓ a–c) | không kết thúc sau 13 phút → người thi công dừng tiến trình |
+| `trang-chu-smoke.mjs` | **đỏ sẵn** (11 ✓) | dòng 450 "phải có đúng 2 dòng cảnh báo" (như mốc A0) |
+| `hdv-viec-cua-toi-smoke.mjs` | xanh 10/10 | |
+
+### 11.2 Bảng từng việc Phần B
+
+| Việc | Commit | Kịch bản / test (xanh) | Dòng ĐỎ trước (đã thấy) | Đột biến P16 (2026-09-28 · đột biến · dòng đỏ → hoàn nguyên → xanh) |
+|---|---|---|---|---|
+| B0 nền: token bản vẽ, biểu tượng xe tải / mắt / mũi tên, luật hiển thị thuần, bảng trượt, form giấy tờ, bộ che số | `a56948c` | `src/shared/giay-to-hien-thi.test.ts` 16/16 (sau thêm R18: 17/17) | `not ok 1 - src/shared/giay-to-hien-thi.test.ts` … `ERR_MODULE_NOT_FOUND: …/src/shared/giay-to-hien-thi.ts` | — (luật hiển thị; điều kiện ẩn / hiện đo ở từng màn) |
+| B1 màn 07 `/tai-xe` + điều hướng tài xế; `TRANG_DAU_TAI_XE` = `/tai-xe` | `c5cc9e2` | `tai-xe-trang-dau-smoke.mjs` 4/4; `start-page.test.ts` 10/10 | Chrome 0/4: `hết giờ chờ: khối Giấy tờ của tôi dựng xong` (1–2), `hết giờ chờ: dòng chưa có giấy tờ` (3), `hết giờ chờ: Bán hàng rời trang của tài xế` (4); test: `expected: '/tai-xe' actual: '/account'` | (a) cờ `taiXe` của `addNav` = `false` ⇒ `✗ 1 … điện thoại: đúng hai tab của tài xế`, `✗ 2 … máy tính: menu tài xế […]`, `✗ 3 … 1 !== 2` · (b) bỏ lời chặn tài khoản không phải tài xế ở `web/tai-xe.ts` ⇒ `✗ 4 … hết giờ chờ: Bán hàng rời trang của tài xế` |
+| B2 màn 00 (menu + trang Tôi), 01 `/xe`, 02 `/xe-sua` | `5d35389` | `xe-smoke.mjs` 13/13 | 0/13: `hết giờ chờ: mục Vận chuyển`, `… nhóm VẬN CHUYỂN`, `… câu từ chối`, `… trạng thái trống`, `… form` … Lần xanh đầu lộ lỗi: ở 1040 cả thẻ lẫn bảng cùng hiện (`.vc-list` thắng `.vc-narrow` vì đứng sau) → đưa luật khổ xuống cuối CSS, thêm bước đo "đúng một cách trình bày theo khổ" | (a) `addNav(…, can(staff, "vehicle.manage"))` → `true` ⇒ `✗ 3 … { parent: true }` · (b) `if (can(staff, "vehicle.manage"))` ở `web/account.ts` → `if (true)` ⇒ `✗ 3 … eyebrow / top / vc: true` · (c) cùng đột biến ở `web/xe.ts` (nút "Thêm xe") ⇒ `✗ 3 … true !== false` |
+| B5 màn 05 "Giấy tờ của tôi" + R18 (`coMucGiayToCuaToi`) | `5d35389` (cùng commit — cùng tệp `web/account.ts`) | `giay-to-cua-toi-smoke.mjs` 5/5; bài `coMucGiayToCuaToi` | test: `does not provide an export named 'coMucGiayToCuaToi'` | (a) bỏ `!holdsPartner(who)` ⇒ `✗ 4b … tài khoản lai … [{ method: 'GET', path: '/api/parties/documents/mine' }]` · (b) không gọi `initGiayToCuaToi()` ⇒ `✗ 1, 2 … hết giờ chờ: khối Giấy tờ của tôi`, `✗ 3` |
+| B3 màn 03 `/xe-chi-tiet` | `32cd6bd` | `xe-chi-tiet-smoke.mjs` 7/7 | 0/7: `hết giờ chờ: sáu giấy tờ` / `… giấy tờ` | (a) `const ngung = xe.status === "retired"` → luôn sai ⇒ `✗ 7 … true !== false` · (b) "Gia hạn" cả giấy không hạn (máy tính) ⇒ `✗ 1 … giấy không hạn: không Gia hạn` |
+| B4 màn 04 mục "Giấy tờ" ở Danh bạ + mở theo `?id=` | `35a370d` | `giay-to-nguoi-smoke.mjs` 7/7 | 0/7: `hết giờ chờ: hồ sơ mở thẳng theo id` | (a) bỏ `can(me, "party.document.write")` ở điều kiện mục ⇒ `✗ 4 … true !== false` · (b) bỏ `&& p.editable` ở "Xem đủ số" ⇒ `✗ 5` · (c) bỏ `&& p.editable` ở ghi ⇒ `✗ 5` · (d) tắt tự che (`conLai <= -86400000`) ⇒ `✗ 3 … hết giờ chờ: tự che` |
+| B6 màn 06 `/giay-to-sap-het-han` + ô đổi mốc | `42390f0` | `sap-het-han-smoke.mjs` 7/7 | 0/7: `hết giờ chờ: trạng thái trống`, `… sáu dòng`, `… câu từ chối` … Lần xanh đầu đỏ bước 5 (nút "Đổi mốc" nằm trong dòng tiêu đề) → tách ra ngoài | ô đổi mốc theo `vehicle.manage` thay `settings.ops` ⇒ `✗ 2 … Quản trị không thấy ô đổi mốc (settings.ops chỉ Toàn quyền)` |
+| A19 (điều phối chuyển sang Phần B) `/danh-muc-giay-to` khuôn sẵn + soát nhãn "Tài xế" (điều phối mục 2) | `a800746` | `danh-muc-giay-to-smoke.mjs` 6/6; `nhan-tai-xe-smoke.mjs` 4/4 | 0/6: `hết giờ chờ: dòng Danh mục giấy tờ`, `… khối người`, `… khối hạng`, `… câu báo` | (a) bỏ `can(staff, "admin.manage") &&` ở dòng trang Tôi ⇒ `✗ e … true !== false` · (b) chặn trang theo `feedback.submit` ⇒ `✗ e` (không còn câu "Chỉ quản trị viên…") |
+| B7 | — | — | — | Chủ chưa yêu cầu vẽ lại trang Danh mục giấy tờ — làm theo khuôn sẵn (A19). |
+| B8 bằng chứng | `50cecad` (50 ảnh + README); đề xuất luật 4a / 4b: `1e054d8` | ảnh `docs/evidence/2026-09-28-van-chuyen-1a/anh/`, `README.md`; `npm run test:e2e -- pwa` 2/2 (11.7) | — | — |
+| K1 nhật ký thay đổi 1.35 (điều phối giao thêm) | `c251b73` | `changelog.test.ts` + `app-info.test.ts` 15/15; `kiem-phien-ban.mjs` ĐẠT | `bản #0 (1.35) gạch 1: dài 161 ký tự, tối đa 160` (lần viết đầu) | — (nội dung chữ) |
+
+Cách chạy đột biến: tệp tạm ngoài repo (`/tmp/vc1b/dot-bien.py`: sửa đúng MỘT chỗ khớp một lần → `npm run build:web` → chạy kịch bản → chép lại tệp gốc → build lại, kiểm "đã hoàn nguyên: True").
+
+### 11.3 Token
+
+- Hai token MỚI của bản vẽ: `--w-doc-chip: 148px`, `--t-reveal: 10s` (web/giay-to-ui.ts đọc `--t-reveal` bằng `getComputedStyle` — chữ "10 giây" và đồng hồ cùng một nguồn).
+- Đối chiếu bảng "Token đã dùng" của bản vẽ (26 dòng): mọi token màu / khoảng cách / bo góc / bóng / chữ / chiều cao / `--counter-*` / `--w-sheet` / `--m-*` / `--focus-ring` **đã có** trong `public/app.css`.
+- Bản vẽ còn viết cứng số đo ở từng màn (cỡ chữ 15/17/19/22/24/26/28px, chiều cao dòng 36/56/60/64/72px, bề rộng cột, vòng 40/36px, lề thụt 42px…). Sau dấu mốc PWA không được viết cứng ⇒ thêm 38 token vào nhóm "Riêng" (`--pad-vc-chip`, `--pad-vc-no`, `--gap-vc-label`, `--bw-vc`, `--fs-vc-sm/md/lg/step/plate/h/plate-lg`, `--ls-vc-no`, `--sidebar-sub-indent`, `--h-vc-sub/link/row/row-lg/row-xl/due`, `--vc-ring(-sm)`, `--vc-radio(-on)`, `--vc-check`, `--w-vc-form/mine/head-min/plate/seats/status/date/date-sm/act/no/no-sm/person-type/person-act/chevron`), giá trị đúng bản vẽ, chú thích cạnh từng token. Kiểm bằng luật quét của `tests/e2e/pwa.mjs` (0 giá trị viết cứng) và tự soát `%`/tên màu (chỉ `width: 100%`).
+
+### 11.4 Chỗ lệch bản vẽ và lý do
+
+1. **Vỏ app giữ vỏ thật** (README bản vẽ, điểm đoán 1): menu tài xế là nhóm "TÔI" có sẵn (Trang chủ → `/tai-xe`, Của tôi, Góp ý / Báo lỗi, Trợ giúp) — bản vẽ đoán nhóm "CỦA TÔI" chỉ hai mục; chuông thông báo vẫn có ở thanh trên của tài xế (ADR-0040 D3: tài xế nhận thông báo gửi cho mình). Khung tạm từ bản nhớ khung (5 trường đã duyệt, ADR-0035) chưa biết "tài xế" nên thanh tab tài xế thiếu "Trang chủ" một nhịp trước khi `/api/auth/me` về. _Mã: `web/shell.ts:44` (tab), `web/shell.ts:207` (mục TÔI)._
+2. **01:** cột GIẤY TỜ khi không có cảnh báo ghi "Không có giấy sắp hết hạn" (bản vẽ "Còn hạn") — máy chủ không cho biết xe có giấy tờ nào không, xe mới chưa nhập giấy sẽ hiện "Còn hạn" sai (trường còn thiếu — 11.6). Lọc ra rỗng: "Không có xe nào ở trạng thái này." (bản vẽ hiện "Chưa có xe nào" cả khi chỉ là lọc). Dòng cảnh báo dùng tên loại đầy đủ của danh mục ("Phù hiệu xe hợp đồng đã hết hạn 8 ngày · 2 giấy sắp hết hạn"). _Mã: `web/xe.ts:45`, `public/xe.html:11`._
+3. **02:** ô "Tên / đời xe" gắn `name` (câu hỏi 11.6); bộ đếm mặc định 15 (bản vẽ mẫu 6), tối thiểu 1, không mức trần ở giao diện (máy chủ chặn > 100 bằng câu của máy chủ); "Ngừng dùng" trong hộp xác nhận **gửi ngay** giá trị đã lưu + trạng thái Ngừng (bản vẽ chỉ đổi trong form, phải bấm Lưu — dễ tưởng đã ngừng); "Dùng lại xe" giữ như bản vẽ (đổi trong form, bấm Lưu mới gửi, máy chủ kiểm biển số); breadcrumb "Vận chuyển › Xe › Sửa xe <biển>". _Mã: `web/xe-sua.ts:43` (15), `web/xe-sua.ts:186` (Ngừng gửi ngay), `web/xe-sua.ts:21`, `:35` (breadcrumb)._
+4. **03:** "Lịch sử (N)" ở máy tính đặt dưới tên loại — cột nút 250px của bản vẽ không chứa được ba nút (chữ nút gãy dòng); chip "Hết hạn hôm nay" tông cát ở mọi màn (bản vẽ 03/04 vẽ đỏ, 06 vẽ cát — thống nhất theo máy chủ: hôm nay còn hạn, `level: "soon"`); hộp tóm tắt "Giấy tờ còn hạn" dùng dấu ✓ (bản vẽ vẽ tam giác cảnh báo cả khi còn hạn); "N giấy đã hết hạn" không kèm "· 0 giấy sắp hết hạn"; xe chưa có giấy / xe đã ngừng có câu riêng (bản vẽ không vẽ). _Mã: `web/xe-chi-tiet.ts:147-148`, `src/shared/giay-to-hien-thi.ts:47` (hôm nay), `web/giay-to-ui.ts:36` (✓), `src/shared/giay-to-hien-thi.ts:149`, `:155` (tóm tắt)._
+5. **Bảng "Sửa sai"** (form-giay-to): lý do lấy từ danh sách ĐÓNG của máy chủ (`LY_DO_SUA_SAI` — xe 4 lý do, người 5–6; "Nhập sai hạng" chỉ với giấy phép lái xe) thay ba lý do bản vẽ vẽ ("Nhập nhầm số / ngày", "Chọn nhầm loại"); mỗi lý do MỘT ô (máy chủ nhận đúng một trường mỗi lần sửa sai) thay vì hiện cả ba ô. Gia hạn giấy tờ **xe** cũng có dòng "Số hiện tại … — để trống nếu không đổi số" (máy chủ chép số cũ khi để trống; bản vẽ chỉ ghi cho số che). Giao diện chỉ bắt "Nhập ngày hết hạn." và "chọn lý do" như bản vẽ; số bắt buộc theo loại và thứ tự ngày để máy chủ báo (một nguồn luật). _Mã: `web/giay-to-ui.ts:149-152`, `:176`, `:225` (lý do → một ô), `web/giay-to-ui.ts:124` (dòng "để trống nếu không đổi số")._
+6. **04:** mục đặt trong khung chi tiết Danh bạ thật (bản vẽ vẽ lại hồ sơ dạng thẻ); tiêu đề "Giấy tờ" dùng kiểu h3 có sẵn của hồ sơ (bản vẽ: "cùng kiểu tiêu đề mục"); thêm "Lịch sử (N)" ở máy tính (bản vẽ chỉ vẽ ở điện thoại); hồ sơ tài khoản cấp trên: danh sách số che + câu "chỉ xem", không nút (Ruling R8; bản vẽ không vẽ). _Mã: `web/parties.ts:318` (mục), `web/parties.ts:408` (Lịch sử), `web/parties.ts:510` (chỉ xem)._
+7. **05:** khối chỉ dựng khi có giấy tờ, hoặc là tài xế ("Chưa có giấy tờ nào."); nhân viên chưa có giấy thấy trang Tôi như cũ. Máy tính: khối trải hai cột (tối đa 720px) trong bố cục hai cột có sẵn của trang Tôi. _Mã: `web/account.ts:80`, `:87`, `:103`._
+8. **06:** ô "Đổi mốc" (kế hoạch B6, bản vẽ không vẽ): nút chữ cạnh dòng tiêu đề, chỉ Toàn quyền, bảng trượt một ô số. _Mã: `web/giay-to-sap-het-han.ts:119-120`._
+9. **07:** "Xem tất cả" → trang Tôi (danh sách đủ của màn 05); tài xế chưa có giấy: "Chưa có giấy tờ nào. Báo văn phòng để cập nhật." _Mã: `public/tai-xe.html:13`, `web/tai-xe.ts:37`._
+10. **00:** thẻ đầu trang Tôi của Quản trị có thêm dòng "Danh mục giấy tờ" (A19, sau bản vẽ); huy hiệu "Sắp hết hạn" ẩn khi 0. _Mã: `web/account.ts:44`, `web/shell.ts:197`._
+
+### 11.5 Giả định Phần B (P8 — bề mặt, đảo ngược được)
+
+- **GB1** "Tên / đời xe" → `name`; `modelYear` = null khi thêm, giữ nguyên giá trị đã lưu khi sửa; hiện "tên + năm" nếu máy chủ có năm (`tenXe`). **Chờ điều phối xác nhận** (11.6 câu 3).
+- **GB2** Mốc "sắp hết hạn" của chip giấy tờ NGƯỜI = 30 (`NGUONG_MAC_DINH`, bằng dòng gieo 0033) vì API chưa trả `warnDays` (11.6 câu 1).
+- **GB3** Tài khoản không phải "chỉ tài xế" mở `/tai-xe` → về "/".
+- **GB4** Người bấm "Xem đủ số" rồi ẩn ứng dụng / rời trang → số che ngay (ngoài 10 giây).
+
+### 11.6 Gửi điều phối — trường API còn thiếu và câu hỏi (không chặn màn nào; giao diện đang chạy bằng giá trị thay thế)
+
+1. **`warnDays` trong phản hồi giấy tờ của NGƯỜI** (`GET /api/parties/documents/mine`, `GET /api/parties/:id/documents`): nhân viên thường không gọi được `/api/van-chuyen/meta`, nên chip hạn ở trang Tôi, trang đầu tài xế, Danh bạ dùng 30 cố định — Toàn quyền đổi mốc thì chip giấy tờ người lệch danh sách "sắp hết hạn".
+2. **Số giấy tờ hiện hành của xe trong `VehicleDto`** (vd `documentCount`): để cột GIẤY TỜ ghi đúng bản vẽ "Còn hạn" khi xe có giấy, và "Chưa có giấy tờ" khi chưa nhập.
+3. **Câu hỏi dữ liệu:** bản vẽ có MỘT ô "Tên / đời xe", hợp đồng có `name` + `modelYear`. Phần B chọn GB1 (không tự tách năm). Phương án khác: (a) hai ô "Tên xe" + "Đời xe"; (b) tách 4 số cuối thành năm. Cần điều phối / chủ chốt.
+
+### 11.7 Kết quả người thi công tự đo (CHƯA phải kiểm độc lập — Task K2)
+
+**Gộp lần cuối (theo điều phối):** `5162f4a` (đỉnh Phần A — Ruling R22) → commit gộp `b986bb7`; `e4d2013` đã có trong nhánh từ trước (`git merge-base --is-ancestor e4d2013 HEAD` → có). Gộp chỉ chạm 6 tệp: `docs/SO-HANG-RAO.md`, tệp đề xuất luật (mục 2f + một dòng bảng tóm tắt — tự gộp, không xung đột với 4a / 4b), nhật ký này (phần Phần A), ba tệp bài máy chủ (`giay-to-route.test.ts`, `giay-to-xe.test.ts`, `rules.test.ts`) — **không tệp giao diện nào** ⇒ không kịch bản Chrome nào bị lần gộp này chạm.
+
+**Trên `b986bb7`** (máy không có `trien-khai`, không `wrangler dev` / `node --test` nào khác lúc chạy):
+- `npm test`: **1306/1306**, thoát 0.
+- `npm run typecheck`: **thoát 0** (ba tsconfig).
+- `npm run build:web`: **thoát 0**.
+
+**Chrome — tám kịch bản Phần B** (ảnh ghi vào `docs/evidence/2026-09-28-van-chuyen-1a/anh/`; mã giao diện của `a800746` — sau đó `web/`, `public/` KHÔNG đổi, `src/shared/` chỉ đổi `changelog.ts` + `app-info.test.ts` ở K1: `git diff --stat a800746 HEAD -- web public src/shared package.json`):
+
+| Kịch bản | Kết quả | Thời gian |
+|---|---|---|
+| `tai-xe-trang-dau-smoke.mjs` | 4 ✓, thoát 0 | 32 giây |
+| `xe-smoke.mjs` | 13 ✓, thoát 0 | 28 giây |
+| `xe-chi-tiet-smoke.mjs` | 7 ✓, thoát 0 | 21 giây |
+| `giay-to-nguoi-smoke.mjs` | 7 ✓, thoát 0 | 47 giây |
+| `giay-to-cua-toi-smoke.mjs` | 5 ✓, thoát 0 | 40 giây |
+| `sap-het-han-smoke.mjs` | 7 ✓, thoát 0 | 40 giây |
+| `danh-muc-giay-to-smoke.mjs` | 6 ✓, thoát 0 | 19 giây |
+| `nhan-tai-xe-smoke.mjs` | 4 ✓, thoát 0 | 23 giây |
+
+**Chrome — chạy lại kịch bản CÓ SẴN mà `web/CLAUDE.md` bắt cho các tệp Phần B chạm** (cùng mã, ảnh ra `/tmp`, so mốc 11.1):
+
+| Kịch bản | Mốc 11.1 | Sau Phần B | Kết luận |
+|---|---|---|---|
+| `dot-c-smoke.mjs` | đỏ sẵn, 2 ✓ (`:124` thứ tự DOM — `#push`) | 2 ✓, đỏ **cùng chỗ** `:124`; danh sách con nay có thêm `links-top`, `vc-eyebrow`, `vc-links` (tài khoản Quản trị của kịch bản có ô vehicle.manage); `maintColumn` 2, `scrollOverflow` 0 | đỏ sẵn; Phần B thêm phần tử vào đúng mảng mà dòng đỏ đang khoá — ghi ở tệp đề xuất luật mục 4b ("Kèm") |
+| `dot-a-smoke.mjs` | đỏ sẵn, 8 ✓ (Nhật ký chỉ Toàn quyền) | 8 ✓, đỏ **cùng chỗ** (`hết giờ chờ: nhat-ky: thẻ đã dựng xong (máy tính)`) | như mốc |
+| `t2b-danh-ba-smoke.mjs` | 2/2 | **2/2**, thoát 0 | xanh |
+| `vai-smoke.mjs` | 7/7 | **7/7**, thoát 0 | xanh |
+| `v1-bao-tri.mjs` | đỏ sẵn, 3 ✓ | 3 ✓, đỏ **cùng chỗ** (bước đầu `hết giờ chờ: mục bảo trì hiện`) | như mốc |
+| `help-smoke.mjs` | treo sẵn ở bước d (3 ✓ a–c) | treo ở bước d (3 ✓ a–c), người thi công dừng sau 600 giây | như mốc |
+| `trang-chu-smoke.mjs` | đỏ sẵn, 11 ✓ (`:450`) | 11 ✓, đỏ **cùng chỗ** `:450` (`actual: 1`, `expected: 2`) | như mốc; dòng `:535` (11 mục thanh bên) chưa tới được — Phần B làm Quản trị có 14 mục (ghi ở "Kèm" của 4b) |
+| `hdv-viec-cua-toi-smoke.mjs` | 10/10 | **10/10**, thoát 0 | xanh |
+
+Sau mỗi lượt treo / hết giờ: người thi công dừng `wrangler dev`, `workerd`, Chrome headless mồ côi của chính worktree này (không đụng Chrome thường của máy). Lúc viết mục này: không còn `wrangler dev` nào của Phần B.
+
+**Task K1 (điều phối giao thêm):** `c251b73` "Nhật ký thay đổi 1.35: phân hệ Vận chuyển lượt 1a" — mục 1.35 (ngày 2026-09-28, sáu gạch lời thường) ở đầu `CHANGELOG`, cùng commit sửa chuỗi kỳ vọng `src/shared/app-info.test.ts:21`. `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts`: lần đầu **đỏ** (`bản #0 (1.35) gạch 1: dài 161 ký tự, tối đa 160`) → rút gọn → **15/15**. `node scripts/kiem-phien-ban.mjs` (GET công khai `/api/auth/config`, chỉ đọc): `ĐẠT: bản ở máy 1.35 mới hơn production 1.34.`, thoát 0. `web/CLAUDE.md` bắt `help-smoke.mjs` khi sửa `changelog.ts`:
+- chạy nguyên kịch bản hai lần sau K1: **0 ✓, treo** (người thi công dừng ở 300 giây rồi 420 giây). Mốc 11.1 và lượt "sau Phần B" đã treo ở bước d (sau 3 ✓); nay treo ngay bước a.
+- Hỏi thẳng trang đang treo qua CDP (tệp tạm ngoài repo): trang `/help` đã dựng xong — 35 bản (= `CHANGELOG.length`), bản đầu "Phiên bản 1.35 — ngày 28 tháng 9 năm 2026" kèm nhãn "Mới cập nhật"; trang cao **10.977 px** (kịch bản chụp ở tỉ lệ điểm ảnh 2 ⇒ ảnh cả trang cao ~22.000 px). Ảnh `a-tro-giup-390.png` KHÔNG được ghi ⇒ chỗ treo là lời gọi `Page.captureScreenshot` với `captureBeyondViewport` (ảnh cả trang) ở `help-smoke.mjs:70` (bước d: `:154`, bước e: `:179` cùng kiểu).
+- Bản sao ngoài repo (`/tmp/vc1b/help-smoke-anh-khung.mjs`: y nguyên kịch bản, chỉ đổi `shot` thành chụp khung nhìn): **5/5 ✓ (a–e), "HELP SMOKE OK — mọi bước ✓", 14 giây, thoát 0**.
+- Kết luận của người thi công (chưa ai kiểm): mọi phép kiểm của `help-smoke` đạt với 1.35; kịch bản treo vì ảnh cả trang của trang Trợ giúp quá cao với Chrome headless máy này — lỗi có sẵn (mốc 11.1 đã treo), nhật ký càng dài càng dễ treo. **Không sửa** `help-smoke.mjs` (kịch bản của tính năng khác, ngoài phạm vi Phần B) — nợ ghi ở 11.8.
+
+**e2e:** `npm run test:e2e -- pwa` (Task B8; trên `50cecad` — mã như `b986bb7`, commit sau chỉ thêm ảnh + README; máy không có `trien-khai`, không `wrangler dev` nào khác): **`E2E: 2/2 kịch bản xanh`** (thoát 0) — `pwa` (manifest + luật quét giá trị viết cứng của khối PWA trong `app.css`, icon, font, service worker, "thẻ meta iOS, tên và màu nhất quán trên 21 trang") + kiểm cuối `day_loi`. **Chưa chạy (để K2):** `npm run test:e2e` đủ bộ (điều phối: K2 chạy đủ bộ).
+
+**Đối chiếu mục 9 "Chưa kiểm" (người thi công Phần B; không sửa mục 9):**
+- "Giao diện có sẵn tự hiện mã quyền mới 'Tài xế'" → `nhan-tai-xe-smoke.mjs` 4/4: màn Quản lý tài khoản hiện vai "Tài xế công ty" ở nhóm Nội bộ, xem trước "Tài xế"; trang Gửi thông báo có nhóm nhận "Tài xế"; không lộ mã thô `DRIVER` ở hai trang. Không sửa `web/role-picker.ts`, `web/gui-thong-bao.ts` (tự hiện theo `PERMISSION_LABEL` / `ROLES`).
+- "Giao diện với tài khoản lai mang quyền Đối tác (R18)" → `coMucGiayToCuaToi` (`src/shared/giay-to-hien-thi.ts`) + bài đơn vị (mọi tổ hợp 8 quyền) + `giay-to-cua-toi-smoke.mjs` bước 4a (Đối tác) và 4b (lai Tài xế + Đối tác): không khối, KHÔNG gọi `/api/parties/documents/mine`. Đột biến bỏ `!holdsPartner(who)` ⇒ bước 4b đỏ (11.2).
+- "Toàn bộ Phần B và Task A19" → mục 11.2, 11.7 (người thi công tự đo; K2 chưa kiểm).
+- `dot-c-smoke` trên `c276848`: Phần B cũng chưa chạy trên `c276848`; mốc 11.1 đo trên đỉnh gộp `448d47b` (đã đỏ sẵn cùng chỗ trước khi Phần B sửa).
+
+### 11.8 Nợ và việc cho điều phối (người thi công Phần B; không chặn màn nào)
+
+1. **`help-smoke.mjs` treo ở ảnh cả trang `/help`** (11.7): tới khi người giữ kịch bản đổi cách chụp (chụp khung nhìn, hoặc `clip` giới hạn chiều cao), dòng `web/CLAUDE.md:48` (sửa `changelog.ts` → `help-smoke`) không dùng được làm cổng. Có sẵn từ trước Phần B.
+2. **Tệp đề xuất luật, bảng tóm tắt cuối tệp:** dòng "4a (chờ Phần B), 4b (Phần B), 4c, 4d" còn nhãn "(chờ Phần B)" dù 4a đã điền — điều phối giao CHỈ điền mục 4a, 4b nên người thi công không sửa dòng tóm tắt; điều phối sửa khi trình chủ. Nếu chủ duyệt dòng "Trang đầu tài xế" của 4b thì bỏ 4c (đã ghi ở 4b).
+3. **Hai kịch bản đỏ sẵn đang khoá thứ Phần B đổi:** `trang-chu-smoke.mjs:535` (11 mục thanh bên của Quản trị — nay 14: "Vận chuyển", "Xe", "Sắp hết hạn") và `dot-c-smoke.mjs:124,138` (thứ tự con trang Tôi — nay thêm `links-top`, `vc-eyebrow`, `vc-links`, `my-docs` tuỳ tài khoản). Không sửa (kịch bản của tính năng khác, đang đỏ vì lý do khác); đã ghi ở "Kèm" của mục 4b.
+4. **Mục 11.6 còn mở:** `warnDays` cho giấy tờ người, số giấy tờ của xe trong `VehicleDto`, câu hỏi "Tên / đời xe" (GB1).
+5. **Số bản 1.35 (K1):** số do điều phối giao; người thi công KHÔNG tự kiểm các nhánh đang xếp hàng khác có sửa `changelog.ts` không (bước "Chọn số" của Task K1) — chốt lại lúc gộp cuối.
