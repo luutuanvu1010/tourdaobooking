@@ -40,6 +40,8 @@ void feedbackBadge().then((n) => {
 const lienKetDau = [
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
+  // Danh mục giấy tờ (ADR-0040 D1, D2; Task A19 — khuôn sẵn): loại giấy tờ xe, loại giấy tờ của người, hạng giấy phép lái xe. Ô admin.manage.
+  can(staff, "admin.manage") && h("a", { class: "row-link", href: "/danh-muc-giay-to" }, "Danh mục giấy tờ", icon("next", 20)),
 ];
 const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền

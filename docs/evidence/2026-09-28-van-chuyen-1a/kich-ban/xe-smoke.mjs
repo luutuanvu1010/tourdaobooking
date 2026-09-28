@@ -55,7 +55,7 @@ try {
         const order = [...document.querySelector('.account-layout').children].filter((e) => e.getClientRects().length > 0).map((e) => e.id || e.className);
         return { top: rows('#links-top'), eyebrow: t(document.querySelector('.vc-eyebrow')), vc: rows('#vc-links'), rest: rows('#links'), order };
       })()`);
-      assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm"]);
+      assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Danh mục giấy tờ"]); // "Danh mục giấy tờ": Task A19 (khuôn sẵn, không có trong bản vẽ)
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
       assert.deepEqual(s.vc, [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }]);
       assert.ok(s.rest.some((r) => r.text?.startsWith("Góp ý")) && s.rest.some((r) => r.text === "Đăng xuất"), JSON.stringify(s.rest));
