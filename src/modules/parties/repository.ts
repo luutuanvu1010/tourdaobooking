@@ -447,3 +447,52 @@ export async function relationshipEnds(db: D1Database, partyId: string, relation
 }
 export const reopenRoleStatement = (db: D1Database, partyId: string, roleId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(REOPEN_ROLE).bind(roleId, partyId, at, actorId);
+
+// ---- Giấy tờ của người (ADR-0040 D2) -------------------------------------------------------------------------------------------------------------------
+// Số giấy tờ là dữ liệu cá nhân: câu ĐỌC danh sách chỉ lấy `number_key` để CHE ở index.ts (cheSo) — không lấy `document_number`; số đầy đủ chỉ rời máy chủ
+// ở route "xem đủ số". "Hiện hành" = chưa huỷ và không có dòng gia hạn CHƯA huỷ nối tiếp (khớp trigger *_superseded của migration *_giay_to_cua_nguoi).
+export interface PersonDocRow {
+  id: string;
+  document_type_code: string;
+  type_name: string;
+  license_class_code: string | null;
+  class_name: string | null;
+  number_key: string | null;
+  issued_date: string | null;
+  issued_place: string | null;
+  expiry_date: string | null;
+  previous_id: string | null;
+  voided_at: string | null;
+  updated_at: string;
+  is_current: number;
+}
+const HIEN_HANH = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
+// ?1 = hồ sơ; ?2 = 1 chỉ dòng hiện hành (giấy tờ của tôi — R15 điểm 6). Thứ tự (quyết định thiết kế 3 của bản vẽ): hiện hành trước; trong đó ngày hết hạn
+// tăng dần (đã hết → sắp hết → còn hạn), "không hạn" cuối; rồi thứ tự loại, mốc tạo.
+const LIST_PERSON_DOCS = defineSql(
+  "parties",
+  "list_person_documents",
+  `SELECT d.id, d.document_type_code, t.name AS type_name, d.license_class_code, c.name AS class_name, d.number_key, d.issued_date, d.issued_place, d.expiry_date,
+          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+   FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code LEFT JOIN pty_license_class c ON c.code = d.license_class_code
+   WHERE d.party_id = ?1 AND (?2 = 0 OR ${HIEN_HANH})
+   ORDER BY is_current DESC, d.expiry_date IS NULL, d.expiry_date, t.sort_order, d.created_at, d.id`,
+);
+const LIST_DOC_TYPES = defineSql(
+  "parties",
+  "list_person_document_types",
+  "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type ORDER BY sort_order, code",
+);
+const LIST_LICENSE_CLASSES = defineSql("parties", "list_license_classes", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class ORDER BY sort_order, code");
+
+export async function listPersonDocuments(db: D1Database, partyId: string, onlyCurrent: boolean): Promise<PersonDocRow[]> {
+  return (await db.prepare(LIST_PERSON_DOCS).bind(partyId, onlyCurrent ? 1 : 0).all<PersonDocRow>()).results;
+}
+export interface DocTypeRow { code: string; name: string; has_expiry: number; sort_order: number; active: number; updated_at: string }
+export interface LicenseClassRow { code: string; name: string; sort_order: number; active: number; updated_at: string }
+export async function listPersonDocumentTypes(db: D1Database): Promise<DocTypeRow[]> {
+  return (await db.prepare(LIST_DOC_TYPES).all<DocTypeRow>()).results;
+}
+export async function listLicenseClasses(db: D1Database): Promise<LicenseClassRow[]> {
+  return (await db.prepare(LIST_LICENSE_CLASSES).all<LicenseClassRow>()).results;
+}

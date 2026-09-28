@@ -3,10 +3,11 @@
 import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
+import type { LyDoSuaSai } from "./giay-to.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 
-export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
+export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, LyDoSuaSai, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
 // ---- Nhân viên / phiên -------------------------------------------------------
 export interface StaffProfile {
@@ -583,6 +584,49 @@ export interface PartyMetaResponse {
   roleTypes: { code: string; name: string; group: "INTERNAL" | "EXTERNAL" | "OTHER"; active: boolean }[];
   relationshipTypes: { code: string; name: string }[];
 }
+
+// ---- Giấy tờ của người (ADR-0040 D2; module parties) — số LUÔN che ở mọi DTO dưới đây; số đầy đủ CHỈ có ở PersonDocumentRevealResponse. ----
+export interface PersonDocumentDto {
+  id: string;
+  typeCode: string;
+  typeName: string;
+  classCode: string | null;
+  className: string | null;
+  /** "••••6789" (4 ký tự cuối của số đã chuẩn hoá; số ngắn hơn 8 ký tự → "••••"); null = giấy không có số. */
+  maskedNumber: string | null;
+  issuedDate: string | null;
+  issuedPlace: string | null;
+  /** null = không hạn. */
+  expiryDate: string | null;
+  /** Số ngày còn lại tới ngày hết hạn (giờ VN); null = không hạn; âm = đã quá hạn. */
+  daysLeft: number | null;
+  /** Dòng này GIA HẠN dòng nào (giao diện gom "Lịch sử (N)" theo chuỗi này). */
+  previousId: string | null;
+  /** Chưa huỷ và không có dòng gia hạn còn hiệu lực — chỉ dòng hiện hành gia hạn / sửa sai được. */
+  current: boolean;
+  voided: boolean;
+  /** Khoá lạc quan của sửa sai (`expectedUpdatedAt`). */
+  updatedAt: string;
+}
+export interface PersonDocumentListResponse { documents: PersonDocumentDto[] }
+/** Chỉ ở POST /api/parties/:id/documents/:did/reveal ("Xem đủ số", ô party.document.reveal; mỗi lần một dòng nhật ký KHÔNG kèm số). */
+export interface PersonDocumentRevealResponse { number: string }
+export interface DocumentTypeDto { code: string; name: string; hasExpiry: boolean; sortOrder: number; active: boolean; updatedAt: string }
+export interface LicenseClassDto { code: string; name: string; sortOrder: number; active: boolean; updatedAt: string }
+export interface PersonDocumentMetaResponse { types: DocumentTypeDto[]; classes: LicenseClassDto[] }
+/** Thân POST /api/parties/:id/documents. */
+export interface PersonDocumentAddRequest {
+  typeCode: string;
+  number?: string | null;
+  classCode?: string | null;
+  issuedDate?: string | null;
+  issuedPlace?: string | null;
+  expiryDate?: string | null;
+}
+/** Thân POST …/documents/:did/renew — KHÔNG gửi `number` (hoặc null) thì máy chủ chép số của dòng trước; không gửi `classCode` thì chép hạng. */
+export type PersonDocumentRenewRequest = Omit<PersonDocumentAddRequest, "typeCode">;
+/** Thân POST …/documents/:did/correct (người) và …/giay-to/:did/sua-sai (xe) — `reason` thuộc LY_DO_SUA_SAI; `value` của đúng trường; NHAP_NHAM_DONG không gửi `value`. */
+export interface DocumentCorrectRequest { reason: LyDoSuaSai; value?: string | null; expectedUpdatedAt: string }
 
 // ---- Góp ý / Báo lỗi (module feedback) ----
 export interface FeedbackContextDto {

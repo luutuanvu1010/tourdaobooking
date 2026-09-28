@@ -88,6 +88,13 @@ export const MATRIX = {
   // ADR-0038 điều 7 + ADR-0024 6.4 (T2b): sửa định danh (tên, MST, địa chỉ), liên hệ, công việc của hồ sơ công ty chủ và ĐỔI công ty chủ (gán vai
   // "Công ty chủ" — chủ trả lời 2026-09-28) — chỉ Toàn quyền. party.write / party.staff.write / admin.manage từ chối hồ sơ này (module parties).
   "company.legal.write": row("none", "none", "none", "none", "none", "any", "none", "none"),
+  // ADR-0040 D2 (giấy tờ của NGƯỜI — số CCCD, số bằng lái là dữ liệu cá nhân; party.view / party.write KHÔNG mở giấy tờ):
+  // xem giấy tờ của CHÍNH MÌNH (số che) — mọi tài khoản nội bộ (Ruling R5: chủ trả lời 28/9 "Mọi nhân viên"), Đối tác không (Ruling R4: route cổng
+  // "staff", thân route hỏi ô này với ownerId = chính người gọi). Route: GET /api/parties/documents/mine.
+  "party.document.view": row("own", "own", "own", "own", "none", "any", "own", "own"),
+  // ghi giấy tờ của người (thêm, gia hạn, sửa sai) + xem danh sách giấy tờ (số che) của người khác — Quản trị + Toàn quyền; Quản trị còn theo luật cấp bậc
+  // khi hồ sơ gắn tài khoản (Ruling R8). Route: GET/POST /api/parties/:id/documents…, GET /api/parties/documents/meta.
+  "party.document.write": row("none", "none", "any", "none", "none", "any", "none", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

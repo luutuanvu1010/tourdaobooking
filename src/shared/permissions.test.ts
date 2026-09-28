@@ -42,6 +42,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.pool.view": ["none", "none", "none", "any", "none", "any", "none", "none"], // ADR-0030 S23-1: thao tác MỚI — hàng chờ nhận (phần hẹp); Quản trị KHÔNG có (xem mọi đơn qua order.view)
   "notice.send": ["none", "none", "none", "none", "none", "any", "none", "none"], // ADR-0034 điều 7: chỉ Toàn quyền gửi/thu hồi tin thủ công
   "company.legal.write": ["none", "none", "none", "none", "none", "any", "none", "none"], // ADR-0038 điều 7 + ADR-0024 6.4: chỉ Toàn quyền sửa hồ sơ công ty chủ (và đổi công ty chủ — chủ trả lời 2026-09-28)
+  "party.document.view": ["own", "own", "own", "own", "none", "any", "own", "own"], // ADR-0040 D2 + R5 (chủ 28/9: "Mọi nhân viên"): giấy tờ của CHÍNH MÌNH, số che; Đối tác không
+  "party.document.write": ["none", "none", "any", "none", "none", "any", "none", "none"], // ADR-0040 D2: ghi giấy tờ của người + xem danh sách (số che) của người khác — Quản trị + Toàn quyền
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -191,7 +193,7 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
   assert.equal(can({ id: "", permissions: ["SALES"] }, "order.modify", { ownerId: "" }), true, "so sánh id nguyên văn (id rỗng không tồn tại thật)");
 });
 
-// Mười một thao tác hẹp, cố ý KHÔNG mở cho ADMIN (ADR-0014, ADR-0019, ADR-0024, ADR-0030, ADR-0034, ADR-0038): admin.manage.superadmin/order.cancel/
+// Mười hai thao tác hẹp, cố ý KHÔNG mở cho ADMIN (ADR-0014, ADR-0019, ADR-0024, ADR-0030, ADR-0034, ADR-0038): admin.manage.superadmin/order.cancel/
 // dispatch.guides.view/settings.ops/order.pool.view/notice.send/feedback.view/feedback.triage/staff.sheet.sync/audit.view/company.legal.write (dispatch.request
 // đã bỏ khỏi bản đồ, ADR-0019) chỉ dành cho SUPER_ADMIN hoặc PARTNER/FIELD theo đúng bảng (settings.ops: chỉ Toàn quyền — bật/tắt bảo trì; notice.send: chỉ
 // Toàn quyền gửi/thu hồi tin thủ công, ADR-0034 điều 7) — ADMIN vẫn làm được việc tương ứng qua đường khác (permissions route, order.modify, dispatch.assign).
@@ -199,12 +201,13 @@ test("mặc định từ chối: không quyền, thao tác lạ, chủ đơn thi
 // ADR-0038: thêm feedback.view (own — đơn của người khác → không) và feedback.triage (none); điều 6: staff.sheet.sync, audit.view (account.access.manage:
 // Quản trị lấy lại theo ADR-0042 nên không còn ở đây).
 // ADR-0038 điều 7 + ADR-0024 6.4 (T2b): company.legal.write — chỉ Toàn quyền sửa hồ sơ công ty chủ và đổi công ty chủ.
+// ADR-0040 D2: party.document.view — ô `own` của Quản trị (giấy tờ của chính mình); Quản trị xem giấy tờ NGƯỜI KHÁC qua party.document.write.
 const ADMIN_NONE_OPS: readonly OperationCode[] = [
   "admin.manage.superadmin", "order.cancel", "dispatch.guides.view", "settings.ops", "order.pool.view",
-  "notice.send", "feedback.view", "feedback.triage", "staff.sheet.sync", "audit.view", "company.legal.write",
+  "notice.send", "feedback.view", "feedback.triage", "staff.sheet.sync", "audit.view", "company.legal.write", "party.document.view",
 ];
 
-test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ mười một thao tác hẹp cố ý không mở", () => {
+test("FIELD không xem đơn/tiền/nhật ký của đơn KHÔNG được giao; ADMIN làm mọi thao tác của bản đồ TRỪ mười hai thao tác hẹp cố ý không mở", () => {
   const field = { id: "f", permissions: ["FIELD"] as const };
   for (const op of ["order.view", "money.view", "order.history.view", "order.create", "order.modify", "party.view", "party.staff.write", "admin.manage"] as OperationCode[]) assert.equal(can(field, op, { ownerId: "x" }), false, op);
   const admin = { id: "a", permissions: ["ADMIN"] as const };
@@ -268,6 +271,8 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (Ruling R2)
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
+    "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
+    "party.document.write": "none",
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });

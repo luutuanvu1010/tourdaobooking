@@ -4,7 +4,9 @@
 import { auditStatement } from "../audit";
 import type {
   ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
+  PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse,
 } from "../../shared/contracts";
+import { soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
@@ -14,11 +16,12 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements,
-  newPersonStatements,
+  companyIdentityOf, findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listLicenseClasses, listParties, listPersonDocumentTypes, listPersonDocuments,
+  listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
-  type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
+  type PartyListRow, type PartyRow, type ContactRow, type PersonDocRow, type RelationshipRow, type RoleRow,
 } from "./repository";
+import { cheSo } from "./giay-to";
 import {
   PARTY_ID_RE, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
   validatePersonFullName, validateRelationship, validateRole,
@@ -184,6 +187,25 @@ function toDetail(
   };
 }
 
+// ---- Giấy tờ của người (ADR-0040 D2) — số LUÔN che ở mọi DTO; KHÔNG chép `number_key`/`document_number` ra DTO (số đầy đủ chỉ ở route "xem đủ số"). ----
+const DOC_FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không xem hay sửa được giấy tờ của người khác.");
+const toPersonDocDto = (r: PersonDocRow, today: string): PersonDocumentDto => ({
+  id: r.id,
+  typeCode: r.document_type_code,
+  typeName: r.type_name,
+  classCode: r.license_class_code,
+  className: r.class_name,
+  maskedNumber: cheSo(r.number_key),
+  issuedDate: r.issued_date,
+  issuedPlace: r.issued_place,
+  expiryDate: r.expiry_date,
+  daysLeft: r.expiry_date === null ? null : soNgayConLai(r.expiry_date, today),
+  previousId: r.previous_id,
+  current: r.is_current === 1,
+  voided: r.voided_at !== null,
+  updatedAt: r.updated_at,
+});
+
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
 const idParam = (params: Record<string, string>, name: string, re: RegExp): string | null => (re.test(params[name] ?? "") ? params[name]! : null);
 
@@ -246,6 +268,37 @@ export const partiesModule: AppModule = {
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
       });
       return json({ parties: rows.map(toListItem), hasMore } satisfies PartyListResponse);
+    }),
+
+    // ---- Giấy tờ của người (ADR-0040 D2) — hai route tra cứu khai TRƯỚC các route :id (thói quen của tệp) ----------------------------------------------
+    route("GET", "/api/parties/documents/mine", "staff", async ({ env, staff }) => {
+      // Ruling R4 + R5 (chủ 28/9: mọi nhân viên nội bộ): cổng "staff"; ô own chặn Đối tác; CHỈ giấy tờ của chính người gọi, CHỈ dòng hiện hành (R15 điểm 6),
+      // ngày hết hạn tăng dần; số che.
+      if (!can(staff, "party.document.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không có mục giấy tờ.");
+      if (!staff.partyId) return json({ documents: [] } satisfies PersonDocumentListResponse);
+      const today = vnToday(new Date());
+      return json({ documents: (await listPersonDocuments(env.DB, staff.partyId, true)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);
+    }),
+
+    route("GET", "/api/parties/documents/meta", "office", async ({ env, staff }) => {
+      // Danh mục loại giấy tờ của người + hạng GPLX: cho người ghi giấy tờ (chọn loại/hạng) và người sửa danh mục (admin.manage).
+      if (!can(staff, "party.document.write") && !can(staff, "admin.manage")) return DOC_FORBIDDEN();
+      const [types, classes] = await Promise.all([listPersonDocumentTypes(env.DB), listLicenseClasses(env.DB)]);
+      return json({
+        types: types.map((t) => ({ code: t.code, name: t.name, hasExpiry: t.has_expiry === 1, sortOrder: t.sort_order, active: t.active === 1, updatedAt: t.updated_at })),
+        classes: classes.map((c) => ({ code: c.code, name: c.name, sortOrder: c.sort_order, active: c.active === 1, updatedAt: c.updated_at })),
+      } satisfies PersonDocumentMetaResponse);
+    }),
+
+    route("GET", "/api/parties/:id/documents", "office", async ({ env, params, staff }) => {
+      // ADR-0040 D2: party.view KHÔNG mở giấy tờ; người ghi giấy tờ (Quản trị, Toàn quyền) xem danh sách (số che) của người khác — đủ dòng lịch sử.
+      if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      const party = id ? await findParty(env.DB, id) : null;
+      if (!id || !party) return NOT_FOUND();
+      if (party.party_kind !== "PERSON") return json({ documents: [] } satisfies PersonDocumentListResponse);
+      const today = vnToday(new Date());
+      return json({ documents: (await listPersonDocuments(env.DB, id, false)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);
     }),
 
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------
