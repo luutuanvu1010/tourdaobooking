@@ -84,6 +84,36 @@ test("ADR-0046 điểm 3: thao tác bảo mật vẫn tắt MỌI máy (lý do t
   assert.equal(dong(w, b).revoke_reason, "tai-khoan-doi", "ngưng tài khoản → mọi máy tắt");
 });
 
+test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 7 thao tác bảo mật true, đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
+  // Kiểm người kiểm độc lập 28/9 (VỪA): bài chạy-app ở trên chỉ phủ đổi SĐT/ngưng + đổi quyền/vai; 5 route bảo mật còn lại (gỡ Face ID, đổi PIN
+  // bằng Face ID, quản trị đặt lại PIN / gỡ Face ID) cần giả lập WebAuthn/PIN thật — bài QUÉT NGUỒN này canh cờ của TỪNG route (tách theo `route(`).
+  const src = readFileSync(new URL("./modules/accounts/index.ts", import.meta.url), "utf8");
+  const RE_ROUTE = /route\("(GET|POST|PUT|PATCH|DELETE)", "([^"]+)"/g;
+  const moc = [...src.matchAll(RE_ROUTE)].map((m) => ({ ten: `${m[1]} ${m[2]}`, tu: m.index ?? 0 }));
+  const thay: Record<string, boolean[]> = {};
+  moc.forEach((r, i) => {
+    const than = src.slice(r.tu, i + 1 < moc.length ? moc[i + 1]!.tu : src.length);
+    const co = [...than.matchAll(/dongBangTin\(\{\s*staffId:[^}]*?tatThongBao:\s*(true|false)\s*\}\)/g)].map((m) => m[1] === "true");
+    const goi = (than.match(/dongBangTin\(/g) ?? []).length;
+    assert.equal(co.length, goi, `${r.ten}: mọi lời gọi dongBangTin phải khai rõ tatThongBao: true|false`);
+    if (goi > 0) thay[r.ten] = co;
+  });
+  assert.deepEqual(thay, {
+    "POST /api/account/change-pin": [true], // đổi PIN (tự đổi)
+    "POST /api/account/passkeys/remove-all": [true], // gỡ mọi Face ID (tự gỡ)
+    "DELETE /api/account/passkeys/:id": [true], // gỡ một Face ID (tự gỡ)
+    "POST /api/account/pin-by-passkey": [true], // đổi PIN bằng Face ID
+    "PATCH /api/staff/:id": [true], // ngưng tài khoản / đổi SĐT đăng nhập
+    "PUT /api/staff/:id/permissions": [false], // đổi quyền — ADR-0046 điểm 2: KHÔNG tắt
+    "PUT /api/staff/:id/roles": [false], // đổi vai — ADR-0046 điểm 2: KHÔNG tắt
+    "POST /api/staff/:id/reset-pin": [true], // quản trị đặt lại PIN
+    "POST /api/staff/:id/passkeys/remove-all": [true], // quản trị gỡ mọi Face ID
+  });
+  // Chế độ bảo trì chỉ đóng Bảng tin ("tat-ca"), không tắt máy (ADR-0036/0046 điểm 4).
+  const bt = readFileSync(new URL("./modules/maintenance/index.ts", import.meta.url), "utf8");
+  assert.deepEqual([...bt.matchAll(/dongBangTin\(([^)]*)\)/g)].map((m) => m[1]), ['"tat-ca"']);
+});
+
 test("ADR-0046 tiêu chí 4: web/shell.ts — đăng xuất gửi địa chỉ CỦA MÁY NÀY kèm dangXuat, không còn gửi tatCa: true", () => {
   const src = readFileSync(new URL("../web/shell.ts", import.meta.url), "utf8");
   const than = src.slice(src.indexOf("async function tatThongBaoMayNay"), src.indexOf("export async function logout"));

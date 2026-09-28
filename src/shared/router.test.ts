@@ -223,7 +223,7 @@ test("ADR-0030 S20-4: ctx.newOrderHandler(staffId) chuyển NGƯỜI ĐANG ĐĂN
 
 type BangTinOverrides = {
   baoThayDoi?: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: string }) => Promise<void> | void;
-  dongBangTin?: (env: Env, muc: { staffId: string } | "tat-ca") => Promise<void> | void;
+  dongBangTin?: (env: Env, muc: { staffId: string; tatThongBao: boolean } | "tat-ca") => Promise<void> | void;
 };
 
 /** App giả có route "staff" gọi `ctx.baoThayDoi`/`ctx.dongBangTin` với sự kiện cố định, và một route không gọi gì. */
@@ -237,7 +237,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
       }),
       route("GET", "/api/no-call", "staff", async () => new Response("ok")),
       route("GET", "/api/dong", "staff", async (ctx) => {
-        ctx.dongBangTin({ staffId: "s9" });
+        ctx.dongBangTin({ staffId: "s9", tatThongBao: true });
         return new Response("ok");
       }),
     ],
@@ -383,7 +383,7 @@ test("ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, không phụ thuộc 
   assert.equal(res.status, 200);
   assert.equal(waited.length, 1);
   await Promise.allSettled(waited);
-  assert.deepEqual(seen, [{ staffId: "s9" }]);
+  assert.deepEqual(seen, [{ staffId: "s9", tatThongBao: true }]);
 });
 
 test("hàm tiêm dongBangTin NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200; console.error một dòng bang_tin_loi viec=dong", async () => {
