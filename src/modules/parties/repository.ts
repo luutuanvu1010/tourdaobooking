@@ -544,6 +544,46 @@ const VOID_PERSON_DOC = defineSql(
   "UPDATE pty_person_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3",
 );
 
+// ---- Danh mục loại giấy tờ của người + hạng GPLX (Quản trị sửa — khuôn loc_location: dấu vết, active, khoá lạc quan; khoá chính là mã, Ruling R7) --------
+const INSERT_DOC_TYPE = defineSql(
+  "parties",
+  "insert_person_document_type",
+  `INSERT INTO pty_person_document_type (code, name, has_expiry, sort_order, active, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?5, ?6)`,
+);
+// Mã không đổi được sau khi tạo (khoá chính; câu UPDATE không đặt `code`).
+const UPDATE_DOC_TYPE = defineSql(
+  "parties",
+  "update_person_document_type",
+  "UPDATE pty_person_document_type SET name = ?2, has_expiry = ?3, sort_order = ?4, active = ?5, updated_at = ?6, updated_by = ?7 WHERE code = ?1 AND updated_at = ?8",
+);
+const FIND_DOC_TYPE = defineSql("parties", "find_person_document_type", "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type WHERE code = ?1");
+const INSERT_LICENSE_CLASS = defineSql(
+  "parties",
+  "insert_license_class",
+  `INSERT INTO pty_license_class (code, name, sort_order, active, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, 1, ?4, ?5, ?4, ?5)`,
+);
+const UPDATE_LICENSE_CLASS = defineSql(
+  "parties",
+  "update_license_class",
+  "UPDATE pty_license_class SET name = ?2, sort_order = ?3, active = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7",
+);
+const FIND_LICENSE_CLASS = defineSql("parties", "find_license_class", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class WHERE code = ?1");
+
+export const findPersonDocumentType = (db: D1Database, code: string): Promise<DocTypeRow | null> => db.prepare(FIND_DOC_TYPE).bind(code).first<DocTypeRow>();
+export const findLicenseClass = (db: D1Database, code: string): Promise<LicenseClassRow | null> => db.prepare(FIND_LICENSE_CLASS).bind(code).first<LicenseClassRow>();
+export const insertPersonDocTypeStatement = (db: D1Database, t: { code: string; name: string; hasExpiry: boolean; sortOrder: number }, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_DOC_TYPE).bind(t.code, t.name, t.hasExpiry ? 1 : 0, t.sortOrder, at, actorId);
+export const updatePersonDocTypeStatement = (
+  db: D1Database, code: string, t: { name: string; hasExpiry: boolean; sortOrder: number; active: boolean; expectedUpdatedAt: string }, actorId: string, at: string,
+): D1PreparedStatement => db.prepare(UPDATE_DOC_TYPE).bind(code, t.name, t.hasExpiry ? 1 : 0, t.sortOrder, t.active ? 1 : 0, at, actorId, t.expectedUpdatedAt);
+export const insertLicenseClassStatement = (db: D1Database, c: { code: string; name: string; sortOrder: number }, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_LICENSE_CLASS).bind(c.code, c.name, c.sortOrder, at, actorId);
+export const updateLicenseClassStatement = (
+  db: D1Database, code: string, c: { name: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }, actorId: string, at: string,
+): D1PreparedStatement => db.prepare(UPDATE_LICENSE_CLASS).bind(code, c.name, c.sortOrder, c.active ? 1 : 0, at, actorId, c.expectedUpdatedAt);
+
 // "Xem đủ số" (ô party.document.reveal): số đầy đủ + tên loại của MỘT dòng thuộc hồ sơ ?2 — câu DUY NHẤT mà kết quả rời máy chủ có số đầy đủ.
 const FIND_PERSON_DOC_NUMBER = defineSql(
   "parties",

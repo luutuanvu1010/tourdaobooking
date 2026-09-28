@@ -6,7 +6,7 @@ import type {
   ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
   PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
 } from "../../shared/contracts";
-import { soNgayConLai } from "../../shared/giay-to";
+import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
@@ -16,13 +16,14 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, getPartyDetail, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
+  companyIdentityOf, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
+  insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
   listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
-import { cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
+import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
   validatePersonFullName, validateRelationship, validateRole,
@@ -242,6 +243,17 @@ const hienHanhCua = (d: PersonDocFull): GiayToNhap => ({
   typeCode: d.document_type_code, number: d.document_number, numberKey: d.number_key, classCode: d.license_class_code,
   issuedDate: d.issued_date, issuedPlace: d.issued_place, expiryDate: d.expiry_date,
 });
+/** Danh mục loại giấy tờ của người + hạng GPLX (route 2 và sau mỗi lần sửa danh mục). */
+async function respondDocMeta(db: D1Database, status = 200): Promise<Response> {
+  const [types, classes] = await Promise.all([listPersonDocumentTypes(db), listLicenseClasses(db)]);
+  return json({
+    types: types.map((t) => ({ code: t.code, name: t.name, hasExpiry: t.has_expiry === 1, sortOrder: t.sort_order, active: t.active === 1, updatedAt: t.updated_at })),
+    classes: classes.map((c) => ({ code: c.code, name: c.name, sortOrder: c.sort_order, active: c.active === 1, updatedAt: c.updated_at })),
+  } satisfies PersonDocumentMetaResponse, status);
+}
+const ADMIN_ONLY = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+const CATALOG_STALE = () => error(409, "stale", "Danh mục vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+const CODE_TAKEN = () => error(409, "code_taken", "Mã này đã có trong danh mục.");
 /** Danh sách giấy tờ (đủ lịch sử, số che) của hồ sơ sau khi ghi. */
 async function respondDocs(db: D1Database, partyId: string, status: number): Promise<Response> {
   const today = vnToday(new Date());
@@ -325,11 +337,78 @@ export const partiesModule: AppModule = {
     route("GET", "/api/parties/documents/meta", "office", async ({ env, staff }) => {
       // Danh mục loại giấy tờ của người + hạng GPLX: cho người ghi giấy tờ (chọn loại/hạng) và người sửa danh mục (admin.manage).
       if (!can(staff, "party.document.write") && !can(staff, "admin.manage")) return DOC_FORBIDDEN();
-      const [types, classes] = await Promise.all([listPersonDocumentTypes(env.DB), listLicenseClasses(env.DB)]);
-      return json({
-        types: types.map((t) => ({ code: t.code, name: t.name, hasExpiry: t.has_expiry === 1, sortOrder: t.sort_order, active: t.active === 1, updatedAt: t.updated_at })),
-        classes: classes.map((c) => ({ code: c.code, name: c.name, sortOrder: c.sort_order, active: c.active === 1, updatedAt: c.updated_at })),
-      } satisfies PersonDocumentMetaResponse);
+      return respondDocMeta(env.DB);
+    }),
+
+    // Danh mục loại giấy tờ của người + hạng GPLX — Quản trị sửa (ADR-0040 D2; ô admin.manage viết thẳng — luật (4) của hàng rào 2). Hai mã loại CỐ ĐỊNH
+    // (CCCD, GPLX — CHECK/trigger và mã nguồn dựa vào) không ngưng được. Nhật ký cùng lô, chỉ mã + tên (danh mục, không phải dữ liệu cá nhân).
+    route("POST", "/api/parties/document-types", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const parsed = kiemLoaiGiayToMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      try {
+        await env.DB.batch([
+          insertPersonDocTypeStatement(env.DB, v, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "party_document_catalog_changed", at, detail: `loại giấy tờ: ${v.code} — ${v.name}` }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: pty_person_document_type\.code/.test(e.message)) return CODE_TAKEN();
+        throw e;
+      }
+      return respondDocMeta(env.DB, 201);
+    }),
+
+    route("PUT", "/api/parties/document-types/:code", "admin", async ({ request, env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const code = params.code ?? "";
+      if (!MA_LOAI_GIAY_TO_RE.test(code) || !(await findPersonDocumentType(env.DB, code))) return error(404, "not_found", "Không tìm thấy loại giấy tờ.");
+      const parsed = kiemSuaLoaiGiayTo(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      if (!v.active && (code === LOAI_CO_DINH.CCCD || code === LOAI_CO_DINH.GPLX)) return error(409, "fixed_type", "Loại giấy tờ này hệ thống cần dùng, không ngưng được.");
+      const at = new Date().toISOString();
+      const results = await env.DB.batch([
+        updatePersonDocTypeStatement(env.DB, code, v, staff.id, at),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_document_catalog_changed", at, detail: `loại giấy tờ: ${code} — ${v.name}` }, "changes() > 0"),
+      ]);
+      if ((results[0]!.meta.changes ?? 0) === 0) return CATALOG_STALE();
+      return respondDocMeta(env.DB);
+    }),
+
+    route("POST", "/api/parties/license-classes", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const parsed = kiemHangMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      try {
+        await env.DB.batch([
+          insertLicenseClassStatement(env.DB, v, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "party_document_catalog_changed", at, detail: `hạng: ${v.code} — ${v.name}` }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: pty_license_class\.code/.test(e.message)) return CODE_TAKEN();
+        throw e;
+      }
+      return respondDocMeta(env.DB, 201);
+    }),
+
+    route("PUT", "/api/parties/license-classes/:code", "admin", async ({ request, env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const code = params.code ?? "";
+      if (!MA_HANG_RE.test(code) || !(await findLicenseClass(env.DB, code))) return error(404, "not_found", "Không tìm thấy hạng giấy phép lái xe.");
+      const parsed = kiemSuaHang(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      const results = await env.DB.batch([
+        updateLicenseClassStatement(env.DB, code, v, staff.id, at),
+        auditStatement(env.DB, { staffId: staff.id, action: "party_document_catalog_changed", at, detail: `hạng: ${code} — ${v.name}` }, "changes() > 0"),
+      ]);
+      if ((results[0]!.meta.changes ?? 0) === 0) return CATALOG_STALE();
+      return respondDocMeta(env.DB);
     }),
 
     route("GET", "/api/parties/:id/documents", "office", async ({ env, params, staff }) => {

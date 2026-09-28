@@ -1,7 +1,7 @@
 // Luật thuần giấy tờ của NGƯỜI (ADR-0040 D2) — module parties. Không I/O, không SQL (SQL chỉ ở repository.ts). Import bằng đuôi .ts.
 // Số giấy tờ và nơi cấp là dữ liệu cá nhân: KHÔNG BAO GIỜ vào nhật ký, Bảng tin, thông báo, câu báo lỗi (ADR-0040 D2). Hàm dựng chi tiết nhật ký dưới đây
 // không nhận số hay nơi cấp — lỡ truyền vào ô trước/sau cũng bị bỏ (chỉ nhận ngày YYYY-MM-DD cho lý do về ngày, tên hạng cho lý do về hạng).
-import { LOAI_CO_DINH, LY_DO_SUA_SAI, isLyDoSuaSai, kiemNgayCap, kiemNgayHetHan, type LyDoSuaSai, type TruongSua } from "../../shared/giay-to.ts";
+import { LOAI_CO_DINH, LY_DO_SUA_SAI, isLyDoSuaSai, kiemNgayCap, kiemNgayHetHan, kiemTenDanhMuc, kiemThuTu, type LyDoSuaSai, type TruongSua } from "../../shared/giay-to.ts";
 import { isISODate } from "../../shared/vn-date.ts";
 import type { Result } from "./rules.ts";
 
@@ -184,4 +184,28 @@ export function chiTietNhatKy(v: { loai: string; hang?: string | null; hetHan?: 
   }
   if (v.giaHan) return `${ten}: gia hạn, hết hạn ${ngay(v.truoc)} → ${ngay(v.sau)}`;
   return `${ten}, ${v.hetHan && isISODate(v.hetHan) ? `hết hạn ${v.hetHan}` : "không hạn"}`;
+}
+
+// ---- Danh mục hạng giấy phép lái xe (Quản trị sửa, ô admin.manage — ADR-0040 D2; khoá chính là mã, Ruling R7). Loại giấy tờ dùng luật chung ở
+// src/shared/giay-to.ts (kiemLoaiGiayToMoi / kiemSuaLoaiGiayTo — cùng luật với loại giấy tờ xe). Nghĩa của hạng (chở bao nhiêu khách) KHÔNG ở đây (lượt 1b).
+/** Mã hạng: chữ HOA / số / gạch dưới, 1–20 ký tự, bắt đầu bằng chữ hoặc số (khớp CHECK code = upper(code), length 1–20) — vd D2, B2_OLD. */
+export const MA_HANG_RE = /^[A-Z0-9][A-Z0-9_]{0,19}$/;
+export function kiemHangMoi(body: Record<string, unknown> | null): Result<{ code: string; name: string; sortOrder: number }> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if (typeof body.code !== "string" || !MA_HANG_RE.test(body.code)) return fail("Mã hạng gồm chữ HOA không dấu, số, gạch dưới (1–20 ký tự), ví dụ D2 hoặc B2_OLD.");
+  const name = kiemTenDanhMuc(body.name, 60);
+  if (!name.ok) return name;
+  const sortOrder = kiemThuTu(body.sortOrder);
+  if (!sortOrder.ok) return sortOrder;
+  return { ok: true, value: { code: body.code, name: name.value, sortOrder: sortOrder.value } };
+}
+export function kiemSuaHang(body: Record<string, unknown> | null): Result<{ name: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if (typeof body.expectedUpdatedAt !== "string" || !body.expectedUpdatedAt) return fail("Thiếu mốc cập nhật (expectedUpdatedAt) — hãy tải lại trang.");
+  if (typeof body.active !== "boolean") return fail("Trạng thái “đang dùng” phải là có/không.");
+  const name = kiemTenDanhMuc(body.name, 60);
+  if (!name.ok) return name;
+  const sortOrder = kiemThuTu(body.sortOrder);
+  if (!sortOrder.ok) return sortOrder;
+  return { ok: true, value: { name: name.value, sortOrder: sortOrder.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } };
 }

@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { LY_DO_SUA_SAI, type LyDoSuaSai } from "../../shared/giay-to.ts";
-import { cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to.ts";
+import { cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to.ts";
 
 const DM: DanhMucGiayTo = {
   loai: new Map([
@@ -144,4 +144,15 @@ test("chiTietNhatKy: đủ sáu lý do — KHÔNG BAO GIỜ chứa số (kể c�
   assert.equal(chiTietNhatKy({ loai: "Căn cước công dân (CCCD)", lyDo: "SAI_SO", truoc: SO, sau: SO }), "Căn cước công dân (CCCD): Nhập sai số");
   assert.equal(chiTietNhatKy({ loai: "Căn cước công dân (CCCD)", lyDo: "SAI_NOI_CAP", truoc: "Nơi A", sau: "Nơi B" }), "Căn cước công dân (CCCD): Nhập sai nơi cấp");
   assert.equal(chiTietNhatKy({ loai: "Giấy phép lái xe", lyDo: "SAI_HANG", truoc: "Hạng D2", sau: "Hạng B" }), "Giấy phép lái xe: Nhập sai hạng (Hạng D2 → Hạng B)");
+});
+
+test("kiemHangMoi / kiemSuaHang: danh mục hạng giấy phép lái xe — mã chữ HOA/số 1–20 (khớp CHECK), tên 1–60, thứ tự; sửa cần mốc cập nhật và trạng thái", () => {
+  assert.deepEqual(kiemHangMoi({ code: "C1", name: " Hạng  C1 ", sortOrder: 9 }), { ok: true, value: { code: "C1", name: "Hạng C1", sortOrder: 9 } });
+  assert.deepEqual(kiemHangMoi({ code: "BE", name: "Hạng BE" }), { ok: true, value: { code: "BE", name: "Hạng BE", sortOrder: 0 } });
+  for (const bad of [null, { code: "c1", name: "x" }, { code: "", name: "x" }, { code: "A".repeat(21), name: "x" }, { code: "C 1", name: "x" }, { code: "C1", name: "x".repeat(61) }, { code: "C1", name: "x", sortOrder: "1" }]) {
+    assert.equal(kiemHangMoi(bad as Record<string, unknown> | null).ok, false, JSON.stringify(bad));
+  }
+  assert.deepEqual(kiemSuaHang({ name: "Hạng C1 (mới)", sortOrder: 3, active: false, expectedUpdatedAt: "t1" }), { ok: true, value: { name: "Hạng C1 (mới)", sortOrder: 3, active: false, expectedUpdatedAt: "t1" } });
+  assert.equal(kiemSuaHang({ name: "x", sortOrder: 3, active: true }).ok, false, "thiếu mốc cập nhật");
+  assert.equal(kiemSuaHang({ name: "x", sortOrder: 3, expectedUpdatedAt: "t1" }).ok, false, "thiếu trạng thái");
 });

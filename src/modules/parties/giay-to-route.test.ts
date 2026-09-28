@@ -412,3 +412,81 @@ test("route 7: ghi nhật ký LỖI thì KHÔNG trả số (ghi trước, trả 
     w.sqlite.exec("ALTER TABLE audit_log_tam RENAME TO audit_log");
   }
 });
+
+// ---- Route 8–11: danh mục loại giấy tờ của người + hạng GPLX (ô admin.manage; khuôn loc_location: dấu vết, active, khoá lạc quan, nhật ký cùng lô — R7) ----
+const loaiMoi = (w: any, as: string, body: unknown) => w.call("POST", "/api/parties/document-types", { as, body });
+const suaLoai = (w: any, as: string, code: string, body: unknown) => w.call("PUT", `/api/parties/document-types/${code}`, { as, body });
+const hangMoi = (w: any, as: string, body: unknown) => w.call("POST", "/api/parties/license-classes", { as, body });
+const suaHang = (w: any, as: string, code: string, body: unknown) => w.call("PUT", `/api/parties/license-classes/${code}`, { as, body });
+const mocLoai = (w: any, code: string): string => w.q("SELECT updated_at FROM pty_person_document_type WHERE code = ?", code)[0].updated_at;
+const mocHang = (w: any, code: string): string => w.q("SELECT updated_at FROM pty_license_class WHERE code = ?", code)[0].updated_at;
+const nhatKyDanhMuc = (w: any): string[] => w.q("SELECT detail FROM audit_log WHERE action = 'party_document_catalog_changed' ORDER BY rowid").map((r: any) => r.detail);
+
+test("route 8–11 quyền: Bán hàng, Kế toán, Hướng dẫn viên, tài xế → 403 ở cổng quản trị; không ghi, không nhật ký", async () => {
+  const w = setup();
+  const n0 = soNhatKy(w);
+  for (const as of [SALES, ACC, FIELD, DRIVER]) {
+    for (const r of [
+      await loaiMoi(w, as, { code: "THE_HDV", name: "Thẻ hướng dẫn viên" }),
+      await suaLoai(w, as, "HEALTH_CHECK", { name: "Khám", hasExpiry: true, sortOrder: 3, active: false, expectedUpdatedAt: mocLoai(w, "HEALTH_CHECK") }),
+      await hangMoi(w, as, { code: "C1", name: "Hạng C1" }),
+      await suaHang(w, as, "B", { name: "Hạng B", sortOrder: 1, active: false, expectedUpdatedAt: mocHang(w, "B") }),
+    ]) {
+      assert.equal(r.status, 403, `${as}: ${r.text}`);
+      assert.match(r.json.error.message, /Chỉ quản trị viên/);
+    }
+  }
+  assert.equal(soNhatKy(w), n0);
+  assert.equal(w.q("SELECT count(*) n FROM pty_person_document_type")[0].n, 4);
+});
+
+test("route 8, 9 loại giấy tờ: thêm → 201 (mã trùng 409 code_taken, mã sai khuôn 400); sửa có mốc → 200, mốc cũ → 409 stale; nhật ký 'loại giấy tờ: <mã> — <tên>'", async () => {
+  const w = setup();
+  let r = await loaiMoi(w, ADM, { code: "THE_HDV", name: "Thẻ hướng dẫn viên", hasExpiry: true, sortOrder: 5 });
+  assert.equal(r.status, 201, r.text);
+  assert.ok(r.json.types.some((t: any) => t.code === "THE_HDV" && t.name === "Thẻ hướng dẫn viên" && t.hasExpiry && t.active && t.sortOrder === 5));
+  assert.equal(w.q("SELECT created_by FROM pty_person_document_type WHERE code = 'THE_HDV'")[0].created_by, ADM, "dấu vết người tạo");
+  r = await loaiMoi(w, ADM, { code: "THE_HDV", name: "Trùng" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "code_taken");
+  assert.equal((await loaiMoi(w, ADM, { code: "the hdv", name: "Sai" })).status, 400);
+  const moc = mocLoai(w, "THE_HDV");
+  r = await suaLoai(w, ADM, "THE_HDV", { name: "Thẻ HDV", hasExpiry: true, sortOrder: 6, active: true, expectedUpdatedAt: moc });
+  assert.equal(r.status, 200, r.text);
+  r = await suaLoai(w, ADM, "THE_HDV", { name: "Thẻ HDV cũ", hasExpiry: true, sortOrder: 6, active: true, expectedUpdatedAt: moc });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale");
+  assert.equal((await suaLoai(w, ADM, "KHONG_CO", { name: "x", hasExpiry: true, sortOrder: 0, active: true, expectedUpdatedAt: moc })).status, 404);
+  assert.deepEqual(nhatKyDanhMuc(w), ["loại giấy tờ: THE_HDV — Thẻ hướng dẫn viên", "loại giấy tờ: THE_HDV — Thẻ HDV"], "một dòng mỗi lần ghi thật (không dòng cho 409)");
+});
+
+test("route 9: ngưng CCCD / GPLX → 409 fixed_type (hệ thống cần dùng), không đổi; ngưng Khám sức khoẻ → 200, rồi thêm giấy tờ loại đó → 400", async () => {
+  const w = setup();
+  for (const code of ["CCCD", "GPLX"]) {
+    const r = await suaLoai(w, SUP, code, { name: "Tên", hasExpiry: true, sortOrder: 1, active: false, expectedUpdatedAt: mocLoai(w, code) });
+    assert.equal(r.status, 409, `${code}: ${r.text}`);
+    assert.equal(r.json.error.code, "fixed_type");
+    assert.match(r.json.error.message, /không ngưng được/);
+    assert.equal(w.q("SELECT active FROM pty_person_document_type WHERE code = ?", code)[0].active, 1);
+  }
+  const r = await suaLoai(w, ADM, "HEALTH_CHECK", { name: "Khám sức khoẻ", hasExpiry: true, sortOrder: 3, active: false, expectedUpdatedAt: mocLoai(w, "HEALTH_CHECK") });
+  assert.equal(r.status, 200, r.text);
+  const t = await them(w, ADM, pty(DRIVER), { typeCode: "HEALTH_CHECK" });
+  assert.equal(t.status, 400, t.text);
+});
+
+test("route 10, 11 hạng: thêm → 201 (trùng 409 code_taken); sửa có mốc → 200 (mốc cũ 409 stale); ngưng một hạng → thêm GPLX hạng đó → 400; nhật ký 'hạng: <mã> — <tên>'", async () => {
+  const w = setup();
+  let r = await hangMoi(w, ADM, { code: "C1", name: "Hạng C1", sortOrder: 9 });
+  assert.equal(r.status, 201, r.text);
+  assert.ok(r.json.classes.some((c: any) => c.code === "C1" && c.name === "Hạng C1" && c.active));
+  assert.equal((await hangMoi(w, ADM, { code: "C1", name: "Trùng" })).json.error.code, "code_taken");
+  assert.equal((await hangMoi(w, ADM, { code: "c1", name: "Sai" })).status, 400);
+  const moc = mocHang(w, "D1");
+  r = await suaHang(w, ADM, "D1", { name: "Hạng D1", sortOrder: 2, active: false, expectedUpdatedAt: moc });
+  assert.equal(r.status, 200, r.text);
+  assert.equal((await suaHang(w, ADM, "D1", { name: "Hạng D1", sortOrder: 2, active: true, expectedUpdatedAt: moc })).json.error.code, "stale");
+  const t = await them(w, ADM, pty(DRIVER), { typeCode: "GPLX", number: SO_GPLX, classCode: "D1" });
+  assert.equal(t.status, 400, t.text);
+  assert.deepEqual(nhatKyDanhMuc(w), ["hạng: C1 — Hạng C1", "hạng: D1 — Hạng D1"]);
+});

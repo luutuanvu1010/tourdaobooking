@@ -1,7 +1,7 @@
 // Luật thuần giấy tờ dùng chung (ADR-0040 D1, D2): lý do sửa sai (danh sách đóng), trạng thái xe (tập đóng), số ngày còn lại, mức hạn.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LOAI_CO_DINH, LY_DO_SUA_SAI, TRANG_THAI_XE, kiemNgayCap, kiemNgayHetHan, mucHan, soNgayConLai, type LyDoSuaSai } from "./giay-to.ts";
+import { LOAI_CO_DINH, LY_DO_SUA_SAI, TRANG_THAI_XE, kiemLoaiGiayToMoi, kiemNgayCap, kiemNgayHetHan, kiemSuaLoaiGiayTo, mucHan, soNgayConLai, type LyDoSuaSai } from "./giay-to.ts";
 
 test("soNgayConLai: ngày dân sự giờ VN — cùng ngày 0, qua tháng, qua năm, đã quá hạn âm, năm nhuận", () => {
   assert.equal(soNgayConLai("2026-10-28", "2026-09-28"), 30);
@@ -60,4 +60,20 @@ test("kiemNgayHetHan: trống = không hạn; loại không hạn thì không đ
   assert.deepEqual(kiemNgayHetHan("2026-01-01", "2026-01-01", true), { ok: true, value: "2026-01-01" });
   assert.equal(kiemNgayHetHan("2025-12-31", "2026-01-01", true).ok, false);
   assert.equal(kiemNgayHetHan("2026-13-01", null, true).ok, false);
+});
+
+test("kiemLoaiGiayToMoi / kiemSuaLoaiGiayTo: danh mục loại giấy tờ (người lẫn xe) — mã chữ HOA 2–30, tên 1–100, có hạn, thứ tự; sửa cần mốc cập nhật và trạng thái", () => {
+  assert.deepEqual(kiemLoaiGiayToMoi({ code: "THE_HDV", name: "  Thẻ   hướng dẫn viên ", hasExpiry: true, sortOrder: 5 }), {
+    ok: true, value: { code: "THE_HDV", name: "Thẻ hướng dẫn viên", hasExpiry: true, sortOrder: 5 },
+  });
+  assert.deepEqual(kiemLoaiGiayToMoi({ code: "SO_BAO_DUONG", name: "Sổ bảo dưỡng" }), { ok: true, value: { code: "SO_BAO_DUONG", name: "Sổ bảo dưỡng", hasExpiry: true, sortOrder: 0 } });
+  for (const bad of [null, { code: "the_hdv", name: "x" }, { code: "X", name: "x" }, { code: "A".repeat(31), name: "x" }, { code: "THE HDV", name: "x" }, { code: "THE_HDV", name: "" },
+    { code: "THE_HDV", name: "x".repeat(101) }, { code: "THE_HDV", name: "x", hasExpiry: "có" }, { code: "THE_HDV", name: "x", sortOrder: -1 }, { code: "THE_HDV", name: "x", sortOrder: 1.5 }]) {
+    assert.equal(kiemLoaiGiayToMoi(bad as Record<string, unknown> | null).ok, false, JSON.stringify(bad));
+  }
+  assert.deepEqual(kiemSuaLoaiGiayTo({ name: "Thẻ HDV", hasExpiry: false, sortOrder: 2, active: false, expectedUpdatedAt: "t1" }), {
+    ok: true, value: { name: "Thẻ HDV", hasExpiry: false, sortOrder: 2, active: false, expectedUpdatedAt: "t1" },
+  });
+  assert.match((kiemSuaLoaiGiayTo({ name: "x", hasExpiry: true, sortOrder: 0, active: true }) as { message: string }).message, /mốc cập nhật/);
+  assert.equal(kiemSuaLoaiGiayTo({ name: "x", hasExpiry: true, sortOrder: 0, expectedUpdatedAt: "t1" }).ok, false, "thiếu trạng thái");
 });

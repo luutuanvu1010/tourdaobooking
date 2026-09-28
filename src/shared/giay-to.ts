@@ -72,3 +72,47 @@ export function kiemNgayHetHan(raw: unknown, ngayCap: string | null, coHan: bool
   if (ngayCap !== null && raw.trim() < ngayCap) return { ok: false, message: "Ngày hết hạn phải từ ngày cấp trở đi." };
   return { ok: true, value: raw.trim() };
 }
+
+// ---- Danh mục "loại giấy tờ" sửa được trong app (ADR-0040 D1, D2; Ruling R7: khoá chính là mã) — cùng luật cho loại giấy tờ của NGƯỜI (parties) và của
+// XE (van-chuyen). Mã chữ HOA / số / gạch dưới 2–30 ký tự, bắt đầu bằng chữ (khớp CHECK code = upper(code), length 2–30); tên 1–100 ký tự.
+/** Mã loại giấy tờ mới (khớp CHECK của hai bảng danh mục loại giấy tờ). */
+export const MA_LOAI_GIAY_TO_RE = /^[A-Z][A-Z0-9_]{1,29}$/;
+export interface LoaiGiayToMoi { code: string; name: string; hasExpiry: boolean; sortOrder: number }
+export interface LoaiGiayToSua { name: string; hasExpiry: boolean; sortOrder: number; active: boolean; expectedUpdatedAt: string }
+
+/** Tên danh mục: gọn khoảng trắng, 1–`max` ký tự. Dùng cho loại giấy tờ (100) và hạng giấy phép lái xe (60). */
+export function kiemTenDanhMuc(v: unknown, max: number): KetQua<string> {
+  if (typeof v !== "string" || v.trim() === "") return { ok: false, message: "Tên là bắt buộc." };
+  const s = v.trim().replace(/\s+/g, " ");
+  return s.length > max ? { ok: false, message: `Tên tối đa ${max} ký tự.` } : { ok: true, value: s };
+}
+/** Thứ tự hiển thị: số nguyên 0–9999 (thiếu = 0). */
+export function kiemThuTu(v: unknown): KetQua<number> {
+  const n = v === undefined ? 0 : v;
+  return typeof n === "number" && Number.isInteger(n) && n >= 0 && n <= 9999 ? { ok: true, value: n } : { ok: false, message: "Thứ tự phải là số nguyên từ 0 đến 9999." };
+}
+
+export function kiemLoaiGiayToMoi(body: Record<string, unknown> | null): KetQua<LoaiGiayToMoi> {
+  if (!body) return { ok: false, message: "Dữ liệu không hợp lệ." };
+  if (typeof body.code !== "string" || !MA_LOAI_GIAY_TO_RE.test(body.code)) {
+    return { ok: false, message: "Mã loại giấy tờ gồm chữ HOA không dấu, số, gạch dưới (2–30 ký tự, bắt đầu bằng chữ), ví dụ THE_HDV." };
+  }
+  const name = kiemTenDanhMuc(body.name, 100);
+  if (!name.ok) return name;
+  if (body.hasExpiry !== undefined && typeof body.hasExpiry !== "boolean") return { ok: false, message: "“Có ngày hết hạn” phải là có/không." };
+  const sortOrder = kiemThuTu(body.sortOrder);
+  if (!sortOrder.ok) return sortOrder;
+  return { ok: true, value: { code: body.code, name: name.value, hasExpiry: body.hasExpiry !== false, sortOrder: sortOrder.value } };
+}
+
+export function kiemSuaLoaiGiayTo(body: Record<string, unknown> | null): KetQua<LoaiGiayToSua> {
+  if (!body) return { ok: false, message: "Dữ liệu không hợp lệ." };
+  if (typeof body.expectedUpdatedAt !== "string" || !body.expectedUpdatedAt) return { ok: false, message: "Thiếu mốc cập nhật (expectedUpdatedAt) — hãy tải lại trang." };
+  if (typeof body.active !== "boolean") return { ok: false, message: "Trạng thái “đang dùng” phải là có/không." };
+  if (typeof body.hasExpiry !== "boolean") return { ok: false, message: "“Có ngày hết hạn” phải là có/không." };
+  const name = kiemTenDanhMuc(body.name, 100);
+  if (!name.ok) return name;
+  const sortOrder = kiemThuTu(body.sortOrder);
+  if (!sortOrder.ok) return sortOrder;
+  return { ok: true, value: { name: name.value, hasExpiry: body.hasExpiry, sortOrder: sortOrder.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } };
+}
