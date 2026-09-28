@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0046 (thông báo điện thoại tự tắt đúng máy — sửa ADR-0036 điều 6) + tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ chọn 28/9).
+    version: "1.36",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Đăng xuất ở máy tính không còn làm tắt thông báo trên điện thoại: chỉ máy đang đăng xuất mới thôi nhận thông báo." },
+      { kind: "doi", text: "Đổi vai hoặc quyền của một người không còn làm tắt thông báo trên điện thoại của họ; đổi PIN, gỡ Face ID, ngưng tài khoản thì vẫn tắt." },
+      { kind: "doi", text: "Danh mục giấy tờ tách làm hai: \"Loại giấy tờ xe\" nằm trong Vận chuyển, \"Loại giấy tờ người\" nằm trong nhóm Quản trị." },
+    ],
+  },
+  {
     // Vận chuyển lượt 1a (ADR-0040; Task K1 của docs/superpowers/plans/2026-09-28-van-chuyen-1a.md). Số "1.35" theo điều phối (main 1.34, 1.32 để trống);
     // điều phối chốt số thật lúc gộp cuối.
     version: "1.35",
