@@ -98,6 +98,29 @@ test("route 1 (R5 'Mọi nhân viên'): mọi tài khoản nội bộ → 200 (c
   assert.deepEqual(khong.json.documents, []);
 });
 
+test("route 1 (Ruling R18): tài khoản LAI — quyền Đối tác KÈM quyền nội bộ (Bán hàng, Hướng dẫn viên, Quản trị, Thực tập, Tài xế) → 403 ĐÚNG câu, không lộ giấy tờ của chính mình (tiền lệ chặn tài khoản lai, ADR-0030)", async () => {
+  const w = setup();
+  const LAI: [string, string[], string][] = [
+    ["a1111111-1111-4111-8111-111111111111", ["PARTNER", "SALES"], "079000000111"],
+    ["a2222222-2222-4222-8222-222222222222", ["PARTNER", "FIELD"], "079000000222"],
+    ["a3333333-3333-4333-8333-333333333333", ["PARTNER", "ADMIN"], "079000000333"],
+    ["a4444444-4444-4444-8444-444444444444", ["PARTNER", "INTERN"], "079000000444"],
+    ["a5555555-5555-4555-8555-555555555555", ["PARTNER", "DRIVER"], "079000000555"],
+  ];
+  let i = 0;
+  for (const [id, perms, so] of LAI) {
+    seedStaff(w.sqlite, { id, phone: `09000001${String(++i).padStart(2, "0")}`, name: "Tài khoản lai", perms });
+    gieo(w, { party: pty(id), type: "CCCD", so, het: "2030-01-01" }); // có giấy tờ THẬT của chính mình: 200 sẽ lộ dữ liệu
+    const r = await w.call("GET", "/api/parties/documents/mine", { as: id });
+    assert.equal(r.status, 403, `${perms.join("+")}: ${r.text}`);
+    assert.equal(r.json.error.code, "forbidden");
+    assert.match(r.json.error.message, /không có mục giấy tờ/, `${perms.join("+")}: câu của ô, không phải câu của cổng`);
+    for (const lo of ["documents", "maskedNumber", so.slice(-4)]) assert.ok(!r.text.includes(lo), `${perms.join("+")}: lộ "${lo}"`);
+  }
+  const sales = await w.call("GET", "/api/parties/documents/mine", { as: SALES });
+  assert.equal(sales.status, 200, "Bán hàng THUẦN vẫn 200 — chỉ tài khoản mang quyền Đối tác bị chặn");
+});
+
 // ---- Route 3: GET /api/parties/:id/documents (người ghi giấy tờ xem danh sách của người khác, số che) -------------------------------------------------------
 
 test("route 3: Bán hàng, Kế toán → 403 ĐÚNG câu của ô (party.view KHÔNG mở giấy tờ); Hướng dẫn viên, tài xế, Đối tác → 403 ở cổng office", async () => {
