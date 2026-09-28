@@ -11,6 +11,20 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Vận chuyển lượt 1a (ADR-0040; Task K1 của docs/superpowers/plans/2026-09-28-van-chuyen-1a.md). Số "1.35" theo điều phối (main 1.34, 1.32 để trống);
+    // điều phối chốt số thật lúc gộp cuối.
+    version: "1.35",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Mục Vận chuyển mới cho Quản trị: quản lý xe của công ty (biển số, số người được chở, trạng thái) và giấy tờ từng xe kèm ngày hết hạn, gia hạn, lịch sử." },
+      { kind: "moi", text: "Quản trị ghi giấy tờ của nhân viên (căn cước, bằng lái, khám sức khoẻ, tập huấn) trong hồ sơ ở Danh bạ; số luôn che, bấm \"Xem đủ số\" thì số hiện 10 giây." },
+      { kind: "moi", text: "Trang Tôi có mục \"Giấy tờ của tôi\": nhân viên xem giấy tờ và ngày hết hạn của mình, số được che." },
+      { kind: "moi", text: "Có tài khoản cho tài xế công ty: mở app là vào trang của tài xế, xem giấy tờ và hạn giấy tờ của mình." },
+      { kind: "moi", text: "Danh sách giấy tờ sắp hết hạn của xe và tài xế, mặc định nhắc trước 30 ngày; số đếm hiện ở menu, bấm một dòng để mở xe hoặc hồ sơ." },
+      { kind: "moi", text: "Quản trị sửa được danh mục loại giấy tờ xe, loại giấy tờ của người và hạng bằng lái (mục \"Danh mục giấy tờ\" ở trang Tôi)." },
+    ],
+  },
+  {
     // T2b — hồ sơ công ty chủ (ADR-0024 điều 6, ADR-0043). SỐ "1.34" theo chỉ đạo D19 của điều phối: main 356084a đã có 1.33 (HDV — ADR-0030 +
     // ADR-0037) ngay trên 1.31, số 1.32 để trống đúng như main; điều phối chốt số thật lúc gộp cuối.
     version: "1.34",
