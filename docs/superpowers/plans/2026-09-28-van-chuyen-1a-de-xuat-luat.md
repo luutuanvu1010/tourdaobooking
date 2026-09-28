@@ -135,10 +135,10 @@ Lý do: chữ `DRIVER` nằm ở hai bảng khác nghĩa. Người sau dễ đ�
 
 ## Mục 4 — `web/CLAUDE.md`, bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào"
 
-**4a. Phần A (Task A19):** thêm một dòng. **CHỜ PHẦN B** — Task A19 hoãn (điều phối R15: "Không làm giao diện ở Phần A"); trang và kịch bản dưới CHƯA có trên nhánh Phần A. Người làm Phần B điền lại tên tệp / số bước thật trước khi trình.
+**4a. Task A19 (điều phối chuyển sang Phần B, 2026-09-28) — ĐÃ LÀM ở Phần B, tên tệp và số bước thật:** thêm một dòng, cuối bảng.
 
 ```diff
-+| Trang Danh mục giấy tờ: `web/danh-muc-giay-to.ts`, `public/danh-muc-giay-to.html`, dòng "Danh mục giấy tờ" ở `web/account.ts` (ADR-0040, khuôn sẵn) | `danh-muc-giay-to-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (Quản trị thêm/sửa/ngưng; Bán hàng không thấy; 390 + 1040) + `dot-c-smoke.mjs` (bố cục trang Tôi) |
++| Trang Danh mục giấy tờ (khuôn sẵn trang Địa điểm — bản vẽ Vận chuyển không vẽ màn này): `web/danh-muc-giay-to.ts`, `public/danh-muc-giay-to.html`, dòng "Danh mục giấy tờ" ở `web/account.ts` (ADR-0040) | `danh-muc-giay-to-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (6 bước: Quản trị ba khối 6 / 4 / 8 dòng, thêm, sửa, ngưng loại hệ thống cần → câu tiếng Việt; Bán hàng không thấy; 390 + 1040, không cần mạng ngoài) + `dot-c-smoke.mjs` (bố cục trang Tôi) |
 ```
 
 **4c. Phần A (Task A3, Ruling R10) — dòng mới, đặt ngay sau dòng `web/home.ts` (dòng 46 của `web/CLAUDE.md` trên `fedffdf`).**
@@ -155,10 +155,19 @@ Lý do: `vai-smoke.mjs` là kịch bản duy nhất khoá danh sách vai theo nh
 +| Vai và bộ quyền mặc định ở màn Quản lý tài khoản: `src/shared/roles.ts`, `web/role-picker.ts`, phần chọn vai của `web/staff.ts` | `vai-smoke.mjs` ở `docs/evidence/2026-09-24-mo-hinh-vai/kich-ban/` (ô vai theo nhóm, vai ẩn theo ADR-0042, "Tài xế công ty" ở nhóm Nội bộ → xem trước "Tài xế") + `dot-a-smoke.mjs` |
 ```
 
-**4b. Phần B (Task B8):**
-- Người thi công điền một dòng cho mỗi màn: trang đầu tài xế, danh sách xe, chi tiết xe, giấy tờ trong Danh bạ, giấy tờ của tôi, giấy tờ sắp hết hạn.
-- Mỗi dòng ghi tên kịch bản Chrome và số bước.
-- **Chưa có lúc lập kế hoạch.**
+**4b. Phần B (Task B8) — người thi công Phần B điền 2026-09-28:** bảy dòng, cuối bảng (sau dòng 4a). Dòng "Trang đầu tài xế" dưới THAY dòng 4c (Phần B đổi `TRANG_DAU_TAI_XE` sang `/tai-xe` và viết lại `tai-xe-trang-dau-smoke.mjs` thành 4 bước) — chủ duyệt dòng này thì bỏ 4c để khỏi trùng.
+
+```diff
++| Trang đầu tài xế (ADR-0040 D3, bản vẽ 07): `web/tai-xe.ts`, `public/tai-xe.html`, `TRANG_DAU_TAI_XE` / `homeRedirect` của `src/shared/start-page.ts`, phần tài xế của `web/shell.ts` (tab và mục "Trang chủ" → `/tai-xe`) | `tai-xe-trang-dau-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (4 bước, 390 + 1040, không cần mạng ngoài) + `trang-chu-smoke.mjs` (người xem mọi đơn vẫn ở Trang chủ) |
++| Xe (bản vẽ 00–02): `web/xe.ts`, `web/xe-sua.ts`, `public/xe.html`, `public/xe-sua.html`, mục "Vận chuyển" của `web/shell.ts`, nhóm VẬN CHUYỂN của `web/account.ts`, huy hiệu `web/vc-dem.ts` | `xe-smoke.mjs` (13 bước) + `trang-chu-smoke.mjs` (đếm mục thanh bên — Quản trị nay 14 mục) + `dot-c-smoke.mjs` (bố cục trang Tôi) |
++| Chi tiết xe và bảng giấy tờ dùng chung (bản vẽ 03, form-giay-to, bang-truot): `web/xe-chi-tiet.ts`, `public/xe-chi-tiet.html`, `web/giay-to-ui.ts`, `web/bang-truot.ts`, `src/shared/giay-to-hien-thi.ts`, khối `.vc-*` của `public/app.css` | `xe-chi-tiet-smoke.mjs` (7 bước) + `giay-to-nguoi-smoke.mjs` |
++| Giấy tờ của một người trong Danh bạ (bản vẽ 04): mục "Giấy tờ" và mở hồ sơ theo `?id=` của `web/parties.ts`, bộ che số `taoBoCheSo` của `web/giay-to-ui.ts`, token `--t-reveal` | `giay-to-nguoi-smoke.mjs` (7 bước; bước 3 chờ tự che ~10 giây) + `t2b-danh-ba-smoke.mjs` + `dot-a-smoke.mjs` |
++| "Giấy tờ của tôi" (bản vẽ 05): khối `#my-docs` của `web/account.ts`, `coMucGiayToCuaToi` của `src/shared/giay-to-hien-thi.ts` (Ruling R18: tài khoản mang quyền Đối tác, kể cả lai, không có mục) | `giay-to-cua-toi-smoke.mjs` (5 bước) + `dot-c-smoke.mjs` |
++| Giấy tờ sắp hết hạn (bản vẽ 06): `web/giay-to-sap-het-han.ts`, `public/giay-to-sap-het-han.html`, `web/vc-dem.ts` | `sap-het-han-smoke.mjs` (7 bước) |
++| Quyền / vai mới tự hiện ở trang có sẵn (ADR-0040 D3): `web/role-picker.ts`, `web/gui-thong-bao.ts`, `PERMISSION_LABEL` / `ROLES` | `nhan-tai-xe-smoke.mjs` (4 bước) + `vai-smoke.mjs` |
+```
+
+Kèm, không phải luật (để người sửa hai kịch bản đang đỏ sẵn biết): `trang-chu-smoke.mjs:535` khoá 11 mục thanh bên của Quản trị — Phần B thêm "Vận chuyển" + "Xe" + "Sắp hết hạn" (bản vẽ 00) nên thành 14; `dot-c-smoke.mjs:124,138` khoá thứ tự con của trang Tôi (đỏ sẵn vì `#push`) — Phần B thêm `#links-top`, `.vc-eyebrow`, `#vc-links` (chỉ tài khoản có ô vehicle.manage) và `#my-docs` (chỉ khi có giấy tờ hoặc là tài xế).
 
 ## Mục 5 — `CLAUDE.md` gốc
 
