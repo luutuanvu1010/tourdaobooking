@@ -2,7 +2,7 @@
 
 - **Ngày:** 2026-09-27.
 - **Người soạn:** phiên điều phối.
-- **Trạng thái:** **ĐỀ XUẤT — CHỜ CHỦ DUYỆT.** Nháp ngoài `docs/adr/`; chép vào `docs/adr/ADR-0040-*.md` khi chủ duyệt. Số 0040, đổi hai lần trong ngày 28/9:
+- **Trạng thái:** **ĐÃ DUYỆT 2026-09-28, có điều chỉnh D3** (tài xế là nhân viên có tài khoản) và giao diện vẽ trên Claude Design. Văn bản chính thức: `docs/adr/ADR-0040-van-chuyen-luot-1a-xe-giay-to-tai-xe.md` — bản đó thắng tệp nháp này nếu lệch. Số 0040, đổi hai lần trong ngày 28/9:
   - 0037 nhường cho ADR của phiên HDV (lý do huỷ "Khác");
   - 0038 là ADR của phiên siết quyền;
   - 0039 đã bị nhánh Thông báo dùng (giờ yên lặng) khi số đó mới chỉ giữ trong bản nháp này.

@@ -41,6 +41,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0037](ADR-0037-huy-don-hdv-them-ly-do-khac-chan-so-dien-thoai.md) | Hướng dẫn viên huỷ đơn qua route hẹp `handler-cancel` có thêm lựa chọn thứ ba **"Khác"** cho gõ lý do tự do, máy chủ chặn 400 nếu chữ gõ chứa dãy số dài giống số điện thoại (dùng lại luật `maskLongDigits`/Q-N). **Sửa điều 2 của ADR-0030** (chỉ với HDV huỷ; Từ chối và Huỷ qua `/status` vẫn danh sách đóng, không ô chữ) | hai chiều | **accepted** (chủ duyệt trực tiếp trong chat 2026-09-27, hỏi lại qua AskUserQuestion khi thi công Task 1.8; AI ghi lại) |
 | [0038](ADR-0038-thao-tac-im-lang-cua-toan-quyen-va-gop-y-chi-toan-quyen.md) | **Thao tác im lặng của Toàn quyền**: đổi vai/quyền, bật/tắt bảo trì, đặt lại PIN, gỡ Face ID vẫn ghi nhật ký nhưng chỉ Toàn quyền xem (view `v_stf_toan_quyen`, migration 0027); **Góp ý/Báo lỗi chỉ Toàn quyền đọc và xử lý** (`feedback.view`/`feedback.triage` cột ADMIN); **Quản trị chỉ giữ kinh doanh + nhân sự** — đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ Sheet, trang Nhật ký, sửa pháp lý Tour Đảo chỉ Toàn quyền (ô `account.access.manage`, `staff.sheet.sync`, `audit.view`) | hai chiều | **accepted** (chủ chọn "A" + liệt kê thao tác, chat 2026-09-27; AI ghi lại) |
 | [0039](ADR-0039-gio-yen-lang-hien-khong-rung.md) | **Giờ yên lặng 22:00–06:00 VN: thông báo màn hình khoá vẫn hiện, chỉ không rung/không kêu** (thay ADR-0036 điều 4 "không gửi"); tin quan trọng vẫn rung; máy chủ báo "giờ yên lặng" qua `moi-nhat`, push vẫn không nội dung | hai chiều | **accepted** (chủ nói trong chat 2026-09-28; AI ghi lại) |
+| [0040](ADR-0040-van-chuyen-luot-1a-xe-giay-to-tai-xe.md) | **Phân hệ Vận chuyển, lượt 1a:** module `van-chuyen` (`vc_`): hồ sơ xe (biển số, số khung, số người chở không kể tài xế, chủ xe = công ty chủ, đang dùng/bảo dưỡng/ngừng), giấy tờ xe (gia hạn = dòng mới), danh mục sửa được, danh sách giấy tờ sắp hết hạn (30 ngày); giấy tờ của người ở `parties` (CCCD một người, số che, "xem đủ số" có ô riêng và nhật ký không số); **tài xế là nhân viên có tài khoản** (vai nội bộ "Tài xế", quyền app `DRIVER`: lượt 1a mọi ô nghiệp vụ = không, chỉ xem giấy tờ của mình; lượt 1b xem cuốc xe của mình); giao diện vẽ trên Claude Design | một chiều (tiền tố, chủ bảng); hai chiều (ô quyền, danh mục) | **accepted** — chủ dự án duyệt 2026-09-28 kèm điều chỉnh D3 (tài xế có tài khoản) và giao diện vẽ trên Claude Design |
 | [0041](ADR-0041-dinh-kem-tep-tin-thong-bao.md) | **Đính kèm ảnh/tệp trong tin của Toàn quyền**: kho R2 (`TEP`, chủ tạo), bảng `ntf_attachment`; ≤5 tệp/tin, ≤10MB/tệp; JPG/PNG/HEIC/PDF/DOC/DOCX/TXT/MD kiểm theo nội dung thật; chỉ người thấy tin (và người gửi) tải được, thu hồi tin thì khoá tệp; ảnh xem trước | một chiều (hạ tầng) | **accepted** (chủ chọn "a", chat 2026-09-28; AI ghi lại) |
 | [0042](ADR-0042-quan-tri-lay-lai-dang-nhap-cap-duoi-toan-quyen-la-vai-an.md) | **Sửa ADR-0038 điều 6:** Quản trị lấy lại đặt lại PIN, mở khoá, gỡ Face ID cho **cấp dưới**; **Toàn quyền là vai ẩn** — người khác thấy tài khoản Toàn quyền như Quản trị thường, câu chữ không nhắc "Toàn quyền" | hai chiều | **accepted** (chủ, chat 2026-09-27; AI ghi lại) |
 | [0043](ADR-0043-doi-cong-ty-chu-khong-co-luc-trong.md) | **Đổi "công ty chủ"**: Toàn quyền đổi được sang hồ sơ tổ chức khác (gán cho hồ sơ mới thì hồ sơ cũ tự thôi trong cùng câu lệnh), không bao giờ có lúc trống, lịch sử giữ nguyên, ngày bắt đầu luôn là hôm nay. Bốn trigger thay "chỉ mục duy nhất + trigger cấm đóng" của ADR-0024 bổ sung 6.5(ii). "Người liên hệ của" công ty chủ giữ cho Quản trị | hai chiều | **accepted** — chủ dự án trả lời 2026-09-28 (câu 1: "Cho super Admin đổi…"; câu 2: 2A); thi công trong T2b |
@@ -53,15 +54,15 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| 0040 | Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, nhắc hạn | `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md` | giữ chỗ 2026-09-28; chờ chủ duyệt (lượt sau T2b) |
+| — | (hiện không có số nào đang giữ chỗ; số ADR mới kế tiếp là 0046) | | |
 
-(0041, 0042 và 0044 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
+(0040, 0041, 0042 và 0044 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
 **Số migration đã giữ chỗ** (2026-09-28; nếu thứ tự lên main đảo thì nhánh lên sau đổi tên tệp):
-- 0028: nhánh siết quyền (vai "IT", ADR-0044);
-- 0029: nhánh Thông báo (đính kèm, ADR-0041);
-- 0030: T2b (hồ sơ công ty chủ, ADR-0024 điều 6 và ADR-0043);
-- từ 0031: Vận chuyển 1a.
+- 0028: vai "IT", ADR-0044 (đã lên main, bản 1.30);
+- 0029: nhánh Thông báo (đính kèm, ADR-0041), chưa thi công;
+- 0030: T2b (hồ sơ công ty chủ, ADR-0024 điều 6 và ADR-0043) (đã lên main, bản 1.34);
+- từ 0031: Vận chuyển lượt 1a (ADR-0040).
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
