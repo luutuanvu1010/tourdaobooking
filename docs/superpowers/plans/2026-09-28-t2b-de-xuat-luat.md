@@ -9,9 +9,14 @@
 Hai cạnh này ĐÃ nằm trong mã của nhánh (để test chạy được), nhưng việc sửa test **không tự thành được phép**. Không vòng: bài "đồ thị phụ thuộc module không có vòng" (`src/architecture.test.ts`) xanh; lập luận ở kế hoạch `docs/superpowers/plans/2026-09-28-t2b-ho-so-tour-dao.md` mục 1.2 (tập tới được từ `parties` chỉ gồm `locations`, `audit`).
 
 ```diff
--  auth: ["staff", "maintenance"], // maintenance: …
+-  auth: ["staff", "maintenance"], // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc)
++  // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc).
++  // parties: ADR-0024 6.2 — GET /api/auth/config trả tên + MST công ty chủ qua hàm công bố ownerCompany (chỉ đọc; auth vốn đã tới parties bắc cầu qua
++  // staff). NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md trước khi gộp.
 +  auth: ["staff", "maintenance", "parties"],
 -  company: [], // chỉ đọc hồ sơ công ty của chính mình; không import module nào
++  // ADR-0024 điều 6 (6.2): GET /api/company đọc định danh Tour Đảo qua hàm công bố ownerCompany của parties; company_profile chỉ còn logo_url (6.3).
++  // NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md trước khi gộp.
 +  company: ["parties"],
 ```
 
@@ -34,8 +39,8 @@ Ghi chú: hôm nay `auth` đã tới `parties` **bắc cầu** (`auth → staff 
 **2b. Phần II, sơ đồ tầng (dòng 175 và 177)** — mô tả đúng module `company` và việc `parties` nằm DƯỚI `auth`/`staff`/`company` như `ALLOWED_EDGES` thật (sơ đồ đã lỏng từ khi có `staff → parties`). Lý do: tài liệu luật phải khớp đồ thị mà test ép.
 
 ```diff
--src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, company (chỉ đọc bảng `company_profile`, route `GET /api/company`; sửa hồ sơ công ty là M5, chưa làm), dispatch (…
-+src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties (kể cả HỒ SƠ CÔNG TY CHỦ — Tour Đảo, vai `OWNER_COMPANY`, hàm công bố `ownerCompany`; nằm DƯỚI `auth`, `staff`, `company` trong đồ thị), company (route `GET /api/company` = danh sách trắng năm trường cho biên nhận, đọc định danh qua `parties.ownerCompany`; bảng `company_profile` chỉ còn `logo_url`, chờ thu hồi), dispatch (…
+-src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, company (chỉ đọc bảng `company_profile`, route `GET /api/company`; sửa hồ sơ công ty là M5, chưa làm), dispatch (người phụ trách đơn — bảng `dsp_*`; `orders` KHÔNG import nó, gốc lắp ráp tiêm hàm vào `ctx`), maintenance (chế độ bảo trì chỉ chủ dự án dùng được — bảng `mnt_setting`, route `/api/maintenance`; `auth` và `accounts` chỉ đọc trạng thái của nó, router nhận cổng chặn do gốc lắp ráp tiêm — `AppOptions.injected.maintenanceBlock`), feedback (Góp ý / Báo lỗi — bảng `fbk_*`, route `/api/feedback*`, trang `/feedback`; chỉ import `staff` (nhãn) và `audit`)
++src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties (kể cả HỒ SƠ CÔNG TY CHỦ — Tour Đảo, vai `OWNER_COMPANY`, hàm công bố `ownerCompany`; nằm DƯỚI `auth`, `staff`, `company` trong đồ thị), company (route `GET /api/company` = danh sách trắng năm trường cho biên nhận, đọc định danh qua `parties.ownerCompany`; bảng `company_profile` chỉ còn `logo_url`, chờ thu hồi), dispatch (người phụ trách đơn — bảng `dsp_*`; `orders` KHÔNG import nó, gốc lắp ráp tiêm hàm vào `ctx`), maintenance (chế độ bảo trì chỉ chủ dự án dùng được — bảng `mnt_setting`, route `/api/maintenance`; `auth` và `accounts` chỉ đọc trạng thái của nó, router nhận cổng chặn do gốc lắp ráp tiêm — `AppOptions.injected.maintenanceBlock`), feedback (Góp ý / Báo lỗi — bảng `fbk_*`, route `/api/feedback*`, trang `/feedback`; chỉ import `staff` (nhãn) và `audit`)
 -src/modules/auth, staff năng lực nền: phiên, đăng nhập, tài khoản + quyền app (accounts dùng trực tiếp); staff không có route
 +src/modules/auth, staff năng lực nền: phiên, đăng nhập, tài khoản + quyền app (accounts dùng trực tiếp); staff không có route. Cả hai đọc `parties` (staff: hồ sơ của tài khoản; auth: tên + MST công ty chủ cho `GET /api/auth/config`)
 ```
