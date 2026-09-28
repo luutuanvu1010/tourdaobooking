@@ -1402,13 +1402,15 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 }
 
 /* 06 Giấy tờ sắp hết hạn */
-.vc-due-head { display: flex; flex-direction: column; gap: var(--s1); margin-bottom: var(--s3); }
-.vc-due-head h1 { margin: 0; font-size: var(--fs-title); font-weight: 800; }
-.vc-due-sub { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s2); margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.vc-due-top { display: flex; flex-direction: column; gap: var(--s1); margin-bottom: var(--s3); }
+.vc-due-top h1 { margin: 0; font-size: var(--fs-title); font-weight: 800; }
+.vc-due-sub { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .vc-due-sub strong { color: var(--c-text); }
+.vc-due-subrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s2); }
+.vc-due-doi { font-size: var(--fs-label); text-decoration: underline; }
 @media (min-width: 641px) {
-  .vc-due-head { margin-bottom: var(--s4); }
-  .vc-due-head h1 { font-size: var(--fs-vc-h); }
+  .vc-due-top { margin-bottom: var(--s4); }
+  .vc-due-top h1 { font-size: var(--fs-vc-h); }
   .vc-due-sub { font-size: var(--fs-vc-sm); }
 }
 .vc-ring { flex: none; display: flex; align-items: center; justify-content: center; width: var(--vc-ring); height: var(--vc-ring); color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-pill); }
@@ -1446,6 +1448,14 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-txdoc-exp { font-size: var(--fs-label); color: var(--c-text-muted); }
 .vc-empty-line { margin: 0; padding: var(--s3) var(--s4); font-size: var(--fs-label); color: var(--c-text-muted); border-top: 1px solid var(--c-border); }
 
-/* hiện theo khổ: bảng (≥900px) / danh sách thẻ (<900px) — CUỐI khối để thắng display của chính thành phần (cùng độ đặc thù, đứng sau). */
+/* Danh mục giấy tờ (khuôn sẵn của trang Địa điểm — Task A19) */
+.dm-khoi { margin-bottom: var(--s5); }
+.vc-check-inline { display: inline; width: auto; margin: 0 var(--s2) 0 0; }
+.vc-grow { flex: 1; min-width: 0; }
+
+/* hiện theo khổ — CUỐI khối để thắng display của chính thành phần (cùng độ đặc thù, đứng sau): bảng (≥900px) / danh sách thẻ (<900px); chữ riêng
+   điện thoại (≤640px, tiêu đề đã ở thanh đầu) / máy tính. */
 @media (max-width: 899px) { .vc-wide { display: none; } }
 @media (min-width: 900px) { .vc-narrow { display: none; } }
+@media (max-width: 640px) { .vc-desk { display: none; } }
+@media (min-width: 641px) { .vc-phone { display: none; } }

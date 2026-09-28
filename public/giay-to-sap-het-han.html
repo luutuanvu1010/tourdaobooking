@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Giấy tờ sắp hết hạn — Island Booking System</title></head>
+<body data-title="Sắp hết hạn" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Giấy tờ sắp hết hạn (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/06 Sap het han.dc.html). Giấy xe + giấy tài xế chung một danh sách. -->
+  <div class="vc-due-top"><h1 id="due-title">Giấy tờ sắp hết hạn</h1><div id="due-subrow" class="vc-due-subrow"><p id="due-sub" class="vc-due-sub"></p></div></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <section id="due-empty" class="vc-card vc-empty vc-empty-ok" hidden><span class="vc-empty-title">Không có giấy tờ nào sắp hết hạn</span></section>
+  <div id="due-list" class="vc-card vc-due-list vc-narrow" hidden></div>
+  <div id="due-table" class="vc-card vc-table vc-wide" hidden></div>
+</main>
+<script type="module" src="/js/giay-to-sap-het-han.js"></script>
+</body></html>
