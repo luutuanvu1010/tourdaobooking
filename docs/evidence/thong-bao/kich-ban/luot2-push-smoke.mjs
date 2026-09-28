@@ -178,7 +178,8 @@ const shot = (p, name) => p.shot(`${OUT}/${name}`);
     assert.equal(soMaySauTat, 0, "soMay phải = 0 sau khi Tắt");
     ok("Tắt: soMay = 0, quay lại nút Bật");
 
-    // Bật lại rồi Đăng xuất — logout() phải POST …/may/huy {tatCa:true} + unsubscribe() TRƯỚC khi rời trang.
+    // Bật lại rồi Đăng xuất — logout() phải POST …/may/huy { endpoint: <máy này>, dangXuat: true } + unsubscribe() TRƯỚC khi rời trang
+    // (ADR-0046: chỉ tắt ĐÚNG máy đăng xuất; tài khoản ở đây chỉ có một máy nên soMay = 0).
     await p.ev(`(() => { document.querySelector('#push button').click(); return true; })()`);
     await p.waitFor("document.querySelector('#push')?.textContent.includes('Đang bật')", "bật lại trước khi thử đăng xuất", 15000);
     await p.ev(`(() => { [...document.querySelectorAll('#links a, #links button')].find(b => b.textContent.trim() === 'Đăng xuất').click(); return true; })()`);
@@ -186,7 +187,7 @@ const shot = (p, name) => p.shot(`${OUT}/${name}`);
     const [{ so_may: soMaySauDangXuat }] = env.sql(`SELECT COUNT(*) AS so_may FROM ntf_push_sub WHERE staff_id = '${salesAId}' AND revoked_at IS NULL`);
     const [{ revoke_reason }] = env.sql(`SELECT revoke_reason FROM ntf_push_sub WHERE staff_id = '${salesAId}' ORDER BY updated_at DESC LIMIT 1`);
     assert.equal(soMaySauDangXuat, 0, "soMay phải = 0 sau khi đăng xuất");
-    assert.equal(revoke_reason, "dang-xuat", "lý do huỷ phải là 'dang-xuat' (đúng ADR-0036 điều 6)");
+    assert.equal(revoke_reason, "dang-xuat", "lý do huỷ phải là 'dang-xuat' (ADR-0046 điểm 1, thay ADR-0036 điều 6)");
     ok("Đăng xuất: tự huỷ máy TRƯỚC khi rời trang (soMay = 0, revoke_reason = dang-xuat)");
 
     p.close();

@@ -389,4 +389,29 @@ console.log("✓ Web Push: bật/tắt bảo trì không tắt máy");
 }
 console.log("✓ Web Push: thiếu khoá VAPID → gửi tin / lập đơn vẫn 201, máy không bị đụng");
 
+// (e) ADR-0046 (thay ADR-0036 điều 6): đổi quyền KHÔNG tắt máy; đăng xuất ({ endpoint, dangXuat: true }) chỉ tắt ĐÚNG máy đó, máy kia vẫn bật.
+{
+  const V = await taoTaiKhoan(["SALES"]);
+  const epA = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+  const epB = `https://fcm.googleapis.com/fcm/send/${randomUUID()}`;
+  for (const [ep, ten] of [[epA, "Máy A"], [epB, "Máy B"]]) {
+    const r = await call(V.cookie, "POST", "/api/account/thong-bao/may", { endpoint: ep, thietBi: ten });
+    assert.equal(r.status, 200, JSON.stringify(r.body));
+  }
+  assert.equal(await soMayCua(V.id), 2);
+  const doiQuyen = await call(ADMIN, "PUT", `/api/staff/${V.id}/permissions`, { permissions: ["SALES", "ACCOUNTING"] });
+  assert.equal(doiQuyen.status, 200, JSON.stringify(doiQuyen.body));
+  await new Promise((r) => setTimeout(r, 500)); // dongBangTin là bắn-và-quên — cho nó chạy xong trước khi đếm
+  assert.equal(await soMayCua(V.id), 2, "ADR-0046: đổi quyền KHÔNG tắt máy");
+  // Đổi quyền không đụng phiên đăng nhập (không "touch" credentials) → cookie cũ của V vẫn dùng được.
+  const dx = await call(V.cookie, "POST", "/api/account/thong-bao/may/huy", { endpoint: epA, dangXuat: true });
+  assert.equal(dx.status, 200, JSON.stringify(dx.body));
+  const dongV = await sqlRows(`SELECT endpoint, revoke_reason FROM ntf_push_sub WHERE staff_id = '${V.id}' ORDER BY endpoint`);
+  const theo = Object.fromEntries(dongV.map((d) => [d.endpoint, d.revoke_reason]));
+  assert.equal(theo[epA], "dang-xuat", "máy đăng xuất: lý do dang-xuat");
+  assert.equal(theo[epB], null, "ADR-0046: máy kia của cùng tài khoản vẫn bật");
+  await call(V.cookie, "POST", "/api/account/thong-bao/may/huy", { tatCa: true }); // dọn
+}
+console.log("✓ Web Push (ADR-0046): đổi quyền không tắt máy; đăng xuất chỉ tắt đúng máy đó");
+
 console.log("THONGBAO OK");

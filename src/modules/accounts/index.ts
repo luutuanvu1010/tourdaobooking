@@ -180,7 +180,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_changed", at, targetType: "staff", targetId: staff.id }),
       ]);
       // BẢNG TIN (KN-2): PIN vừa đổi — đóng các kết nối cũ của chính tài khoản này (thiết bị khác sẽ phải đăng nhập lại rồi mới nối lại được).
-      dongBangTin({ staffId: staff.id });
+      dongBangTin({ staffId: staff.id, tatThongBao: true });
       // Mọi phiên cũ (kể cả thiết bị khác) đã bị thu hồi; cấp phiên mới để thiết bị này không phải đăng nhập lại.
       return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id) });
     }),
@@ -264,7 +264,7 @@ export const accountsModule: AppModule = {
       ]);
       const removed = revoked!.meta.changes ?? 0;
       // BẢNG TIN (KN-2): credentials_changed_at luôn được "touch" ở trên dù không còn Face ID nào — đóng kết nối cũ theo đúng nhịp đó.
-      dongBangTin({ staffId: staff.id });
+      dongBangTin({ staffId: staff.id, tatThongBao: true });
       return json({ removed }, 200, removed > 0 ? { "set-cookie": await newSessionCookie(request, env, staff.id, now) } : {});
     }),
 
@@ -280,7 +280,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "passkey_removed", at, targetType: "staff", targetId: staff.id }, "changes() > 0"),
       ]);
       if ((revoked!.meta.changes ?? 0) === 0) return error(404, "not_found", "Không tìm thấy Face ID này.");
-      dongBangTin({ staffId: staff.id }); // BẢNG TIN (KN-2): gỡ thành công — đóng kết nối cũ.
+      dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): gỡ thành công — đóng kết nối cũ.
       return json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
     }),
 
@@ -317,7 +317,7 @@ export const accountsModule: AppModule = {
         auditStatement(env.DB, { staffId: staff.id, action: "pin_set_by_passkey", at, targetType: "staff", targetId: staff.id }),
       ]);
       await unlockPhone(env.DB, staff.phone); // chủ quyết 2026-09-23: có PIN mới thì gỡ khoá "sai PIN quá nhiều", như admin reset-pin
-      dongBangTin({ staffId: staff.id }); // BẢNG TIN (KN-2): PIN vừa đổi.
+      dongBangTin({ staffId: staff.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa đổi.
       const res = json({ ok: true }, 200, { "set-cookie": await newSessionCookie(request, env, staff.id, now) });
       res.headers.append("set-cookie", clearChallengeCookie(request));
       return res;
@@ -501,7 +501,7 @@ export const accountsModule: AppModule = {
       }
       if (built.guardIndex >= 0 && (results[built.guardIndex]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
       // BẢNG TIN (KN-2): tài khoản bị ngưng hoặc đổi SĐT đăng nhập — đóng các kết nối của NÓ (không phải của admin đang thao tác).
-      if (patch.active === false || patch.phone !== undefined) ctx.dongBangTin({ staffId: t.id });
+      if (patch.active === false || patch.phone !== undefined) ctx.dongBangTin({ staffId: t.id, tatThongBao: true });
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -533,7 +533,7 @@ export const accountsModule: AppModule = {
       const stmts = [...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest];
       const results = await db.batch(stmts);
       if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
-      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): quyền vừa đổi.
+      ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -595,7 +595,7 @@ export const accountsModule: AppModule = {
         if (rule) return rule;
         throw e;
       }
-      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): vai/quyền vừa đổi.
+      ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): vai/quyền vừa đổi. ADR-0046: đổi vai KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 
@@ -617,7 +617,7 @@ export const accountsModule: AppModule = {
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "gỡ khi đặt lại PIN", "changes() > 0"),
       ]);
       await unlockPhone(db, t.phone);
-      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): PIN vừa được đặt lại.
+      ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): PIN vừa được đặt lại.
       return json({ staff: await one(db, t.id), pin } satisfies StaffWithPinResponse);
     }),
 
@@ -637,7 +637,7 @@ export const accountsModule: AppModule = {
         touchCredentialsStatement(db, t.id, now, true),
         adminAudit(db, ctx.staff.id, "passkey_removed", t.id, "quản trị viên gỡ", "changes() > 0"),
       ]);
-      ctx.dongBangTin({ staffId: t.id }); // BẢNG TIN (KN-2): credentials_changed_at vừa được "touch".
+      ctx.dongBangTin({ staffId: t.id, tatThongBao: true }); // BẢNG TIN (KN-2): credentials_changed_at vừa được "touch".
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);
     }),
 

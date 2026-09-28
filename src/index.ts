@@ -89,12 +89,13 @@ const app = createApp({
         }, (ds) => xepHangDay(env, ds))],
       ]);
     },
-    // Đóng kết nối Bảng tin + tắt mọi máy nhận của tài khoản đó (ADR-0036; chạy cả khi không có trạm). "tat-ca" (bật bảo trì) KHÔNG tắt máy.
+    // Đóng kết nối Bảng tin (mọi lần gọi) + tắt mọi máy nhận thông báo điện thoại của tài khoản đó CHỈ khi `tatThongBao` (ADR-0046: thao tác bảo
+    // mật; đổi vai/quyền không tắt — thay ADR-0036 điều 6). Chạy cả khi không có trạm. "tat-ca" (bật bảo trì) KHÔNG tắt máy.
     dongBangTin: async (env, muc) => {
       await nemNeuLoi([
         ["tram", dongCua(env, muc)],
         // updated_by = NULL (hệ thống): tắt kèm khi tài khoản đổi — người làm thay đổi đó có trong audit_log của chính thao tác.
-        ["tat-may", typeof muc === "object" ? tatMayStatement(env.DB, muc.staffId, null, "tai-khoan-doi", new Date().toISOString(), null).run() : null],
+        ["tat-may", typeof muc === "object" && muc.tatThongBao ? tatMayStatement(env.DB, muc.staffId, null, "tai-khoan-doi", new Date().toISOString(), null).run() : null],
       ]);
     },
     giaoLoDay: (env, ds) => xepHangDay(env, ds),

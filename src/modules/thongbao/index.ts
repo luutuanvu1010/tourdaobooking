@@ -128,6 +128,8 @@ export const thongbaoModule: AppModule = {
     route("POST", "/api/account/thong-bao/may/huy", "staff", async ({ env, staff, request }) => {
       const body = await readJson(request);
       const at = new Date().toISOString();
+      // `tatCa: true` = chủ động tắt MỌI máy của chính tài khoản. ADR-0046: đăng xuất KHÔNG còn dùng lối này (chỉ tắt đúng máy — nhánh
+      // `dangXuat` dưới); giữ lối này cho việc chủ động "tắt mọi máy của tôi" (và e2e dọn). Lý do giữ chữ cũ `dang-xuat` cho khớp dữ liệu đã có.
       if (body?.tatCa === true) {
         await tatMayStatement(env.DB, staff.id, null, "dang-xuat", at, staff.id).run();
         return json({ ok: true });
@@ -136,7 +138,8 @@ export const thongbaoModule: AppModule = {
       if (typeof endpoint === "string" && endpoint.length >= 1 && endpoint.length <= 1024) {
         // Không kiểm host bằng kiemDiaChi ở đây: đây là XOÁ theo giá trị đã lưu (không gọi ra ngoài), không phải nơi máy chủ sẽ POST
         // tới. Endpoint không tồn tại hoặc thuộc người khác → câu UPDATE khớp 0 dòng, vẫn 200 (không lộ ai có/không có máy đó).
-        await tatMayStatement(env.DB, staff.id, endpoint, "tu-tat", at, staff.id).run();
+        // ADR-0046 điểm 1: `dangXuat: true` = máy này đang đăng xuất → chỉ tắt ĐÚNG máy này, lý do `dang-xuat`; không cờ = người dùng tự bấm "Tắt".
+        await tatMayStatement(env.DB, staff.id, endpoint, body?.dangXuat === true ? "dang-xuat" : "tu-tat", at, staff.id).run();
         return json({ ok: true });
       }
       return error(400, "invalid_input", "Thiếu địa chỉ máy hoặc cờ huỷ tất cả.");
