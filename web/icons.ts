@@ -113,14 +113,20 @@ const SHAPES = {
     ["circle", { cx: 12, cy: 12, r: 9 }],
     ["path", { d: "m6 6 12 12" }],
   ],
+  // Vận chuyển lượt 1a (ADR-0040) — path chép ĐÚNG từ bản vẽ docs/design/van-chuyen-1a/ (vo-may-tinh.dc.html biến IC.truck; 04 Giay to cua mot nguoi.dc.html
+  // nút "Xem đủ số"; 03 Chi tiet xe.dc.html mũi tên "Lịch sử (N)"). Xe tải là biểu tượng MỚI của bản vẽ (điểm đoán 3), cùng nét 1.8 với cả bộ.
+  truck: [["path", { d: "M3 16V6h11v10M14 9h4l3 4v3h-2M3 16h1M10 16h5M7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z" }]],
+  eye: [["path", { d: "M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12zM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z" }]],
+  "chevron-down": [["path", { d: "M6 9l6 6 6-6" }]],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;
 
-export function icon(name: IconName, size = 24): SVGSVGElement {
+/** `net`: độ dày nét riêng khi bản vẽ vẽ khác mặc định (vd tam giác cảnh báo 2, biểu tượng trạng thái trống 1.5 — bản vẽ Vận chuyển). Bỏ trống = như cũ. */
+export function icon(name: IconName, size = 24, net?: number): SVGSVGElement {
   const svg = document.createElementNS(NS, "svg");
   const bold = name === "plus" || name === "back" || name === "check";
-  const attrs = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": bold ? 2.2 : 1.8, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" };
+  const attrs = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": net ?? (bold ? 2.2 : 1.8), "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" };
   for (const [k, v] of Object.entries(attrs)) svg.setAttribute(k, String(v));
   for (const [tag, shape] of SHAPES[name]) {
     const el = document.createElementNS(NS, tag);
