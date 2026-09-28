@@ -92,10 +92,13 @@ export async function accountOfParty(
   db: D1Database,
   actor: { id: string; permissions: readonly PermissionCode[] },
   partyId: string,
-): Promise<{ linked: false } | { linked: true; manageable: boolean }> {
+): Promise<{ linked: false } | { linked: true; manageable: boolean; vaiAn: boolean }> {
   const id = await accountIdOfParty(db, partyId);
   const target = id ? await getStaffAccount(db, id) : null;
-  return partyAccountVerdict(actor, id && !target ? { id, permissions: ["SUPER_ADMIN"] } : target);
+  const shown = id && !target ? { id, permissions: ["SUPER_ADMIN"] as PermissionCode[] } : target;
+  const v = partyAccountVerdict(actor, shown);
+  // ADR-0044: hồ sơ gắn tài khoản Toàn quyền là "vai ẩn" — parties lọc lịch sử vai khi người xem không giữ Toàn quyền.
+  return v.linked ? { ...v, vaiAn: shown!.permissions.includes("SUPER_ADMIN") } : v;
 }
 
 export async function listStaffAccounts(db: D1Database): Promise<StaffAccount[]> {

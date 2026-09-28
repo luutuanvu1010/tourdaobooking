@@ -43,6 +43,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0041](ADR-0041-dinh-kem-tep-tin-thong-bao.md) | **Đính kèm ảnh/tệp trong tin của Toàn quyền**: kho R2 (`TEP`, chủ tạo), bảng `ntf_attachment`; ≤5 tệp/tin, ≤10MB/tệp; JPG/PNG/HEIC/PDF/DOC/DOCX/TXT/MD kiểm theo nội dung thật; chỉ người thấy tin (và người gửi) tải được, thu hồi tin thì khoá tệp; ảnh xem trước | một chiều (hạ tầng) | **accepted** (chủ chọn "a", chat 2026-09-28; AI ghi lại) |
 | [0042](ADR-0042-quan-tri-lay-lai-dang-nhap-cap-duoi-toan-quyen-la-vai-an.md) | **Sửa ADR-0038 điều 6:** Quản trị lấy lại đặt lại PIN, mở khoá, gỡ Face ID cho **cấp dưới**; **Toàn quyền là vai ẩn** — người khác thấy tài khoản Toàn quyền như Quản trị thường, câu chữ không nhắc "Toàn quyền" | hai chiều | **accepted** (chủ, chat 2026-09-27; AI ghi lại) |
 | [0043](ADR-0043-doi-cong-ty-chu-khong-co-luc-trong.md) | **Đổi "công ty chủ"**: Toàn quyền đổi được sang hồ sơ tổ chức khác (gán cho hồ sơ mới thì hồ sơ cũ tự thôi trong cùng câu lệnh), không bao giờ có lúc trống, lịch sử giữ nguyên, ngày bắt đầu luôn là hôm nay. Bốn trigger thay "chỉ mục duy nhất + trigger cấm đóng" của ADR-0024 bổ sung 6.5(ii). "Người liên hệ của" công ty chủ giữ cho Quản trị | hai chiều | **accepted** — chủ dự án trả lời 2026-09-28 (câu 1: "Cho super Admin đổi…"; câu 2: 2A); thi công trong T2b |
+| [0044](ADR-0044-vai-it-cho-tai-khoan-toan-quyen.md) | **Bổ sung ADR-0042:** vai **"IT"** (cùng quyền Giám đốc, chỉ Toàn quyền gán) để mọi người thấy tài khoản chủ là "IT"; giữ tên vai "Giám đốc"; Quản trị vẫn đổi người phụ trách đơn của chủ | hai chiều | **accepted** (chủ, chat 2026-09-28; AI ghi lại) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -51,9 +52,8 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
 | 0040 | Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ xe, tài xế, giấy tờ người, nhắc hạn | `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md` | giữ chỗ 2026-09-28; chờ chủ duyệt (lượt sau T2b) |
-| 0044 | Vai "IT": mọi người thấy tài khoản Toàn quyền dưới tên vai "IT" (bổ sung ADR-0042, đã phát hành ở 1.27) | nhánh `worktree-an-nhat-ky-toan-quyen` (phiên siết quyền) | giữ chỗ 2026-09-28; chủ quyết trong chat, ADR đang soạn |
 
-(0041 và 0042 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
+(0041, 0042 và 0044 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
 **Số migration đã giữ chỗ** (2026-09-28; nếu thứ tự lên main đảo thì nhánh lên sau đổi tên tệp):
 - 0028: nhánh siết quyền (vai "IT", ADR-0044);

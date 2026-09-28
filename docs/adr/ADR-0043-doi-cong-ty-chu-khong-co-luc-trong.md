@@ -27,7 +27,7 @@
     - **5.1** (bất biến hai lớp): **giữ**. Mọi luật ở điều 2 đều có cả lớp cơ sở dữ liệu (trigger a–d) lẫn lớp máy chủ, kể cả luật "ngày bắt đầu = hôm nay".
     - **5.2 và 5.5** (hiệu lực theo ngày, không xoá cứng): **giữ**. Đổi = đóng dòng cũ + mở dòng mới, lịch sử còn nguyên. Ngày bắt đầu bắt buộc là hôm nay, nên không ghi lùi lịch sử.
   - **ADR-0042** (Toàn quyền là vai ẩn): chữ người khác nhìn thấy không nói "Toàn quyền".
-  - **`src/CLAUDE.md`** (ngày dân sự do máy chủ truyền vào, không dùng `date('now')` trong SQL): **giữ**. Trigger (d) chỉ đổi `created_at` do máy chủ ghi sang ngày giờ Việt Nam; không đọc giờ hiện tại trong SQL.
+  - **`src/CLAUDE.md`** (ngày dân sự do máy chủ truyền vào, không dùng `date('now')` trong SQL): **giữ**. Trigger (d) chỉ đổi `created_at` do máy chủ ghi sang ngày giờ Việt Nam; không đọc giờ hiện tại trong SQL. Độ lệch `'+7 hours'` là bản sao của `VN_OFFSET_MS` (`src/shared/vn-date.ts`). Người kiểm độc lập đã chứng minh hai công thức tương đương, và Việt Nam không có giờ mùa hè; migration 0012 đã dùng cùng độ lệch.
 
 ## Bối cảnh
 
@@ -61,7 +61,7 @@
      - "Kết thúc vai công ty chủ" **luôn** bị từ chối, kể cả Toàn quyền. Câu báo tiếng Việt hướng dẫn "muốn đổi thì gán cho hồ sơ khác"; không lộ lỗi thô của cơ sở dữ liệu.
    - **Kiểm định kỳ:** `audit-invariants` kiểm đúng một hồ sơ đang mở vai "công ty chủ".
 3. **Giao diện tối thiểu.** Lựa chọn "Công ty chủ" chỉ hiện với người có `company.legal.write`, chỉ trên hồ sơ tổ chức, kèm câu xác nhận: trang đăng nhập và biên nhận sẽ dùng thông tin của hồ sơ này từ hôm nay. Người khác không thấy lựa chọn đó.
-4. **Không khoá thêm các cách sửa tay thẳng vào cơ sở dữ liệu**: đổi mã vai, chuyển dòng vai sang hồ sơ khác, xoá dòng, tự ghi `created_at` giả. Chỉ người vào thẳng được dữ liệu mới làm được những việc này; giữ như phần đã duyệt.
+4. **Không khoá thêm các cách sửa tay thẳng vào cơ sở dữ liệu**: đổi mã vai, chuyển dòng vai sang hồ sơ khác, xoá dòng, tự ghi `created_at` giả, sửa `valid_from_date` của dòng đã tạo (app không có câu `UPDATE` nào cho cột này; người kiểm độc lập đã xác nhận). Chỉ người vào thẳng được dữ liệu mới làm được những việc này; giữ như phần đã duyệt.
 5. **"Người liên hệ của" hồ sơ công ty chủ** (quan hệ `CONTACT_OF`): Quản trị thêm/bớt được như với hồ sơ khác (`admin.manage`), theo câu 2 = 2A. Điều này khớp chữ của 6.4 và ADR-0038 điều 7, vì hai chỗ đó không liệt kê quan hệ.
 
 ## Trang ghép (CLAUDE.md §9)
