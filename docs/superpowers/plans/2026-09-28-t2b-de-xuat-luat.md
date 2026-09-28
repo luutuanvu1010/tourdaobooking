@@ -1,8 +1,8 @@
-# T2b — đề xuất sửa luật (CHỜ CHỦ DUYỆT — không tự có hiệu lực)
+# T2b — đề xuất sửa luật (ĐÃ DUYỆT 2026-09-28)
 
 - **Ngày:** 2026-09-28. **Người soạn:** phiên thi công T2b (vai thi công, nhánh `worktree-agent-adbf65d3e8d68a3f9`).
 - **Vì sao có tệp này:** Hiến pháp N9 — AI không tự sửa luật chi phối chính mình; Điều 9.4 — hàng rào đã duyệt chỉ được SIẾT, muốn NỚI phải có chủ duyệt. Chỉ đạo D6 của điều phối (nhật ký thi công `docs/superpowers/plans/2026-09-28-t2b-thi-cong-nhat-ky.md`).
-- **Trạng thái:** CHỜ CHỦ DUYỆT. Chủ phải duyệt tệp này **trước** `npm run day-len`. Chưa duyệt thì nhánh không được gộp.
+- **Trạng thái:** ĐÃ DUYỆT 2026-09-28 — chủ trả lời nguyên văn "duyệt luật T2b" (qua phiên điều phối). Mục 1 đã có sẵn trong mã (không sửa thêm); Mục 2a, 2b, 3, 4, 5 áp nguyên văn ở Task 17 — mỗi tệp luật một commit (ghi ở Ruling D20 của nhật ký thi công).
 
 ## Mục 1 — NỚI hàng rào đồ thị module: hai cạnh mới trong `ALLOWED_EDGES` (`src/architecture.test.ts`)
 
