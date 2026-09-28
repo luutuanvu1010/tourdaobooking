@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Trang chủ — Island Booking System</title></head>
+<!-- Trang đầu của tài xế (ADR-0040 D3; bản vẽ docs/design/van-chuyen-1a/project/07 Trang dau tai xe.dc.html). Không khai data-title: điện thoại hiện logo như Trang chủ. -->
+<body>
+<header id="topbar"></header>
+<main>
+  <div class="vc-hello"><h1 id="tx-hello"></h1><span id="tx-date" class="vc-hello-date"></span></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div class="vc-tx-grid">
+    <!-- Lượt 1b thay nội dung khối này bằng các cuốc được giao (quyết định thiết kế 9: giữ chỗ ở vị trí chính). -->
+    <section id="tx-cuoc" class="vc-cuoc" aria-label="Cuốc xe"><span>Cuốc xe của bạn sẽ hiện ở đây</span></section>
+    <section id="tx-docs" class="vc-card" aria-labelledby="tx-docs-title">
+      <div class="vc-txdocs-head"><h2 id="tx-docs-title" class="vc-card-title">Giấy tờ của tôi</h2><a class="vc-link-all" href="/account">Xem tất cả</a></div>
+      <div id="tx-docs-list"></div>
+    </section>
+  </div>
+</main>
+<script type="module" src="/js/tai-xe.js"></script>
+</body></html>

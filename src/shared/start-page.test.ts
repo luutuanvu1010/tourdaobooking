@@ -45,9 +45,9 @@ test("homeRedirect: chỉ INTERN (Thực tập) → \"/orders\" (không có Tran
 });
 
 // ADR-0040 D3 + Ruling R3, R10 (điều phối 2026-09-28): tài khoản chỉ có quyền Tài xế không qua cổng orders — ở lại Trang chủ thì web/home.ts sẽ gọi
-// GET /api/orders/dashboard và nhận 403. Chưa có màn /tai-xe (Phần B chờ bản vẽ) nên trang đầu TẠM là trang Tài khoản; Phần B đổi hằng này sang "/tai-xe".
-test("homeRedirect: chỉ Tài xế (DRIVER) → trang đầu của tài xế (Ruling R10: tạm là trang Tài khoản) — trang có thật (không 404), không phải Trang chủ (không vòng, không gọi dashboard đơn)", () => {
-  assert.equal(TRANG_DAU_TAI_XE, "/account", "Ruling R10: chưa có màn /tai-xe → trang Tài khoản hiện có; Phần B đổi thành /tai-xe");
+// GET /api/orders/dashboard và nhận 403. Phần A tạm đưa sang trang Tài khoản (R10); Phần B dựng màn /tai-xe theo bản vẽ 07 và đổi hằng này sang "/tai-xe".
+test("homeRedirect: chỉ Tài xế (DRIVER) → trang đầu của tài xế /tai-xe (màn 07 của bản vẽ, Phần B) — trang có thật (không 404), không phải Trang chủ (không vòng, không gọi dashboard đơn)", () => {
+  assert.equal(TRANG_DAU_TAI_XE, "/tai-xe", "Phần B: màn /tai-xe đã dựng (bản vẽ 07) — thay trang Tài khoản tạm của Ruling R10");
   assert.ok(PAGES.includes(TRANG_DAU_TAI_XE), "trang đích phải là trang có thật của app (PAGES — src/shared/sw-policy.test.ts đối chiếu public/*.html)");
   assert.notEqual(TRANG_DAU_TAI_XE, "/", "không vòng về Trang chủ");
   assert.equal(homeRedirect(who("DRIVER")), TRANG_DAU_TAI_XE);

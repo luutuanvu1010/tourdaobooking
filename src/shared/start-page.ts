@@ -16,10 +16,10 @@
 import { canAccessOrders, hasPermission, seesAllOrders, type PermissionHolder } from "./permissions.ts";
 
 /**
- * Trang đầu của tài khoản chỉ có phần Tài xế (ADR-0040 D3, Ruling R3). Ruling R10: màn "/tai-xe" (màn số 7 của danh sách màn) dựng ở Phần B theo bản vẽ —
- * TỚI KHI ĐÓ trang đầu tạm là trang Tài khoản có sẵn (không 404, không gọi dashboard đơn). Phần B đổi hằng này thành "/tai-xe" (cùng bài khoá ở start-page.test.ts).
+ * Trang đầu của tài khoản chỉ có phần Tài xế (ADR-0040 D3, Ruling R3): màn "/tai-xe" (màn 07 của bản vẽ docs/design/van-chuyen-1a/ — public/tai-xe.html,
+ * web/tai-xe.ts), dựng ở Phần B. Trước đó Ruling R10 tạm dùng trang Tài khoản. Thanh tab / menu của tài xế (web/shell.ts) cũng dựa vào hằng này.
  */
-export const TRANG_DAU_TAI_XE = "/account";
+export const TRANG_DAU_TAI_XE = "/tai-xe";
 
 /** Đường dẫn phải chuyển sang khi người dùng mở "/", hoặc `null` = ở lại Trang chủ. */
 export function homeRedirect(who: PermissionHolder): string | null {
