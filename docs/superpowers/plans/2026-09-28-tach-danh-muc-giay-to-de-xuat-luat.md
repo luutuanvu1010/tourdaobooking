@@ -6,7 +6,7 @@
 - **Căn cứ:** chủ dự án chọn 2026-09-28 (trực tiếp với điều phối) "Tách theo chủ dữ liệu": "Loại giấy tờ xe" thuộc Vận chuyển; "Loại giấy tờ người" (loại giấy tờ của người + hạng giấy phép lái xe) là danh mục chung trong nhóm Quản trị; bỏ dòng "Danh mục giấy tờ" ở trang "Của tôi".
 - **Tính chất:** chỉ sửa CHỮ trong bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào" cho khớp tên tệp, đường dẫn và số đếm mới. **Không nới, không siết** hàng rào nào: kịch bản Chrome giữ TÊN `danh-muc-giay-to-smoke.mjs` (vì thế bảng hiện tại vẫn trỏ đúng tệp tới khi chủ duyệt), chỉ đổi nội dung kiểm.
 - **Đã soát các tệp luật khác** (`grep -n "Danh mục giấy tờ\|danh-muc-giay-to\|Quản trị nay 13\|:538"` trên `CLAUDE.md`, `src/CLAUDE.md`, `docs/ARCHITECTURE.md`): không nhắc trang này → không cần sửa.
-- **Trạng thái:** **CHỜ CHỦ DUYỆT.** Chưa áp.
+- **Trạng thái:** **ĐÃ DUYỆT 2026-09-28 tối** (chủ trả lời điều phối: "Duyệt"); **ĐÃ ÁP** — hai dòng `web/CLAUDE.md` nguyên văn (commit kế tiếp). Ghi chú người kiểm cuối: Mục 1 thực chất SIẾT nhẹ (thêm kịch bản phải chạy), không phải "chỉ đổi chữ".
 
 ## Mục 1 — `web/CLAUDE.md` dòng 51 (trang Danh mục giấy tờ)
 
