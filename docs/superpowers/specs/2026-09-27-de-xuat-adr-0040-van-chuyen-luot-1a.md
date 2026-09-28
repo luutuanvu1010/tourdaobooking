@@ -102,7 +102,7 @@ Chủ chọn làm trước **lượt 1a** — phần không cần Đơn hàng: h
 
 ## Hệ quả
 
-- **Dữ liệu:** migration chỉ-thêm, số trống kế tiếp lúc thi công (27/9: 0025–0026 của nhánh Thông báo, 0027 của nhánh siết quyền, T2b dự kiến lấy 0028 ⇒ 1a từ 0029, kiểm lại mọi nhánh). `docs/data-dictionary.json` + `npm run dict`.
+- **Dữ liệu:** migration chỉ-thêm, số trống kế tiếp lúc thi công (chia lại 28/9, ghi ở cuối `docs/adr/README.md`: 0028 vai IT đã lên main, 0029 Thông báo đính kèm, 0030 T2b ⇒ 1a từ 0031; kiểm lại mọi nhánh lúc thi công). `docs/data-dictionary.json` + `npm run dict`.
 - **Hàng rào mới** (mỗi cái có dòng sổ hàng rào và ngày thấy chặn):
   - trigger cấm sửa đè giấy tờ đã có dòng mới;
   - trigger không xoá;
