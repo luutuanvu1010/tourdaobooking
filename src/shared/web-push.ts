@@ -125,7 +125,7 @@ function khopCapKhoa(congKhai: string, biMatJwk: string): boolean {
 
 export interface KhoaVapid { congKhai: string; biMat: string }
 /**
- * Cả hai khoá VAPID có mặt VÀ khớp nhau (bẫy 45, `docs/CHANGE-GUIDE.md`): khoá công khai (`vars`) và khoá bí mật (`wrangler secret`)
+ * Cả hai khoá VAPID có mặt VÀ khớp nhau (bẫy 47, `docs/CHANGE-GUIDE.md`): khoá công khai (`vars`) và khoá bí mật (`wrangler secret`)
  * do CHỦ đặt ở hai lệnh/hai lượt deploy khác nhau — lệch cặp (vd chạy lệnh tạo khoá quá một lần) làm mọi lần gửi bị dịch vụ đẩy từ
  * chối (403) mà không có dấu hiệu nào khác ngoài log `day_loi`. Bắt lệch NGAY ở đây (trả `null`, tắt tính năng, không throw) thay vì
  * để lộ ra bằng gửi thật — một dòng log `vapid_khoa_lech` (không có giá trị khoá) để chủ dò khi cần.
