@@ -1,7 +1,7 @@
 // Luật thuần giấy tờ dùng chung (ADR-0040 D1, D2): lý do sửa sai (danh sách đóng), trạng thái xe (tập đóng), số ngày còn lại, mức hạn.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LOAI_CO_DINH, LY_DO_SUA_SAI, TRANG_THAI_XE, mucHan, soNgayConLai, type LyDoSuaSai } from "./giay-to.ts";
+import { LOAI_CO_DINH, LY_DO_SUA_SAI, TRANG_THAI_XE, kiemNgayCap, kiemNgayHetHan, mucHan, soNgayConLai, type LyDoSuaSai } from "./giay-to.ts";
 
 test("soNgayConLai: ngày dân sự giờ VN — cùng ngày 0, qua tháng, qua năm, đã quá hạn âm, năm nhuận", () => {
   assert.equal(soNgayConLai("2026-10-28", "2026-09-28"), 30);
@@ -43,4 +43,21 @@ test("TRANG_THAI_XE: tập đóng active / maintenance / retired (khớp CHECK c
 
 test("LOAI_CO_DINH: hai mã loại giấy tờ của người mà CHECK/trigger dựa vào (đổi bằng ADR)", () => {
   assert.deepEqual({ ...LOAI_CO_DINH }, { CCCD: "CCCD", GPLX: "GPLX" });
+});
+
+test("kiemNgayCap: trống → null; đúng lịch; không sau hôm nay", () => {
+  for (const v of [undefined, null, "", "  "]) assert.deepEqual(kiemNgayCap(v, "2026-09-28"), { ok: true, value: null });
+  assert.deepEqual(kiemNgayCap("2026-09-28", "2026-09-28"), { ok: true, value: "2026-09-28" });
+  assert.equal(kiemNgayCap("2026-09-29", "2026-09-28").ok, false);
+  assert.equal(kiemNgayCap("2026-02-30", "2026-09-28").ok, false);
+  assert.equal(kiemNgayCap(20260101, "2026-09-28").ok, false);
+});
+
+test("kiemNgayHetHan: trống = không hạn; loại không hạn thì không được có; đúng lịch; không trước ngày cấp", () => {
+  assert.deepEqual(kiemNgayHetHan(null, "2026-01-01", true), { ok: true, value: null });
+  assert.deepEqual(kiemNgayHetHan("", null, false), { ok: true, value: null });
+  assert.match((kiemNgayHetHan("2030-01-01", null, false) as { message: string }).message, /không có ngày hết hạn/);
+  assert.deepEqual(kiemNgayHetHan("2026-01-01", "2026-01-01", true), { ok: true, value: "2026-01-01" });
+  assert.equal(kiemNgayHetHan("2025-12-31", "2026-01-01", true).ok, false);
+  assert.equal(kiemNgayHetHan("2026-13-01", null, true).ok, false);
 });

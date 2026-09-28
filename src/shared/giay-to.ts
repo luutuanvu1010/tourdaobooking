@@ -1,6 +1,7 @@
 // Giấy tờ (ADR-0040 D1, D2) — luật thuần dùng chung server ↔ web/. Không I/O, không import module. Không có số giấy tờ nào ở đây.
 // Máy chủ (`parties` cho giấy tờ của người, `van-chuyen` cho giấy tờ xe) và giao diện Phần B cùng import tệp này — một nguồn cho danh sách lý do
-// sửa sai, nhãn trạng thái xe và cách tính "còn bao nhiêu ngày".
+// sửa sai, nhãn trạng thái xe, cách tính "còn bao nhiêu ngày" và luật NGÀY chung của mọi giấy tờ (người lẫn xe).
+import { isISODate } from "./vn-date.ts";
 
 /** Mã loại giấy tờ CỐ ĐỊNH mà mã nguồn và CHECK/trigger dựa vào (Hiến chương 2.2: đổi bằng ADR, không sửa trong app). */
 export const LOAI_CO_DINH = { CCCD: "CCCD", GPLX: "GPLX" } as const;
@@ -47,4 +48,27 @@ export function mucHan(hetHan: string | null, homNay: string, nguongNgay: number
   const con = soNgayConLai(hetHan, homNay);
   if (con < 0) return "het-han";
   return con <= nguongNgay ? "sap-het" : "con-han";
+}
+
+export type KetQua<T> = { ok: true; value: T } | { ok: false; message: string };
+const rong = (v: unknown): boolean => v === undefined || v === null || (typeof v === "string" && v.trim() === "");
+
+/** Ngày cấp (giấy tờ người lẫn xe): để trống được; có thì "YYYY-MM-DD" đúng lịch và không sau hôm nay (giờ VN, `homNay` do máy chủ đưa). */
+export function kiemNgayCap(raw: unknown, homNay: string): KetQua<string | null> {
+  if (rong(raw)) return { ok: true, value: null };
+  if (typeof raw !== "string" || !isISODate(raw.trim())) return { ok: false, message: "Ngày cấp không hợp lệ (YYYY-MM-DD)." };
+  if (raw.trim() > homNay) return { ok: false, message: "Ngày cấp không được sau hôm nay." };
+  return { ok: true, value: raw.trim() };
+}
+
+/**
+ * Ngày hết hạn: để trống = không hạn (ADR-0040 D1). Loại giấy tờ "không có hạn" (`coHan` false) thì không được có ngày hết hạn; có thì "YYYY-MM-DD"
+ * đúng lịch và không trước ngày cấp.
+ */
+export function kiemNgayHetHan(raw: unknown, ngayCap: string | null, coHan: boolean): KetQua<string | null> {
+  if (rong(raw)) return { ok: true, value: null };
+  if (!coHan) return { ok: false, message: "Loại giấy tờ này không có ngày hết hạn — để trống ô ngày hết hạn." };
+  if (typeof raw !== "string" || !isISODate(raw.trim())) return { ok: false, message: "Ngày hết hạn không hợp lệ (YYYY-MM-DD)." };
+  if (ngayCap !== null && raw.trim() < ngayCap) return { ok: false, message: "Ngày hết hạn phải từ ngày cấp trở đi." };
+  return { ok: true, value: raw.trim() };
 }
