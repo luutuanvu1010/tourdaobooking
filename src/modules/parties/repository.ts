@@ -404,7 +404,8 @@ const OPEN_ROLE_CODES_FOR = defineSql(
   `SELECT party_id, group_concat(role_type_code) AS codes FROM pty_party_role
    WHERE party_id IN (SELECT value FROM json_each(?1)) AND location_id IS NULL AND valid_to_date IS NULL GROUP BY party_id`,
 );
-const ROLE_TYPE_GROUP = defineSql("parties", "role_type_group", "SELECT role_group FROM pty_role_type WHERE code = ?1");
+// Nhóm + trạng thái "đang dùng" của MỘT loại vai (route thêm vai: vai tài khoản → màn Quản lý tài khoản; loại đã ngưng → không gán mới — Ruling R6, ADR-0040 D3).
+const ROLE_TYPE_OF = defineSql("parties", "role_type_of", "SELECT role_group, active FROM pty_role_type WHERE code = ?1");
 // Nhóm + mã vai của MỘT dòng vai thuộc hồ sơ ?2 (route kết thúc vai: vai tài khoản → màn Quản lý tài khoản; vai "Công ty chủ" → ô company.legal.write, ADR-0024 6.5).
 const ROLE_ROW_OF = defineSql(
   "parties",
@@ -431,8 +432,10 @@ export async function openRoleCodesFor(db: D1Database, partyIds: readonly string
   const { results } = await db.prepare(OPEN_ROLE_CODES_FOR).bind(JSON.stringify(partyIds)).all<{ party_id: string; codes: string }>();
   return new Map(results.map((r) => [r.party_id, r.codes.split(",")]));
 }
-export async function roleTypeGroup(db: D1Database, code: string): Promise<string | null> {
-  return (await db.prepare(ROLE_TYPE_GROUP).bind(code).first<{ role_group: string }>())?.role_group ?? null;
+/** Loại vai `code`: nhóm và còn dùng không; null nếu mã không có trong danh mục. */
+export async function roleTypeOf(db: D1Database, code: string): Promise<{ group: string; active: boolean } | null> {
+  const r = await db.prepare(ROLE_TYPE_OF).bind(code).first<{ role_group: string; active: number }>();
+  return r ? { group: r.role_group, active: r.active === 1 } : null;
 }
 export async function roleRowOf(db: D1Database, partyId: string, roleId: string): Promise<{ group: string; code: string } | null> {
   const r = await db.prepare(ROLE_ROW_OF).bind(roleId, partyId).first<{ role_group: string; role_type_code: string }>();

@@ -210,8 +210,10 @@ test("ADR-0013 điều 5 / I-1: không tạo tài khoản trên hồ sơ đang N
 
 // ---- ADR-0019 điều 2 / Q11 (chủ quyết 25/9): vai và quan hệ của hồ sơ GẮN TÀI KHOẢN theo luật cấp bậc ("tự mình hoặc cấp dưới") -------------------
 // Sửa một phần ADR-0014 điều 8. Quan hệ chạm HAI hồ sơ nên xét cả hai đầu. Hồ sơ không gắn tài khoản: chỉ ô admin.manage như cũ.
-const DRIVER = { roleTypeCode: "DRIVER" };
-const addRole = (w: any, as: string, partyId: string, body: unknown = DRIVER) => w.call("POST", `/api/parties/${partyId}/roles`, { as, body });
+// Loại công việc ĐANG DÙNG (Lái cano, nhóm OTHER): mã hồ sơ cũ DRIVER đã ngưng từ migration *_vai_quyen_tai_xe (ADR-0040 D3) và máy chủ từ chối gán mới loại
+// đã ngưng (Ruling R6) — dùng DRIVER ở đây sẽ nhận 409 role_type_inactive, không đo được luật cấp bậc.
+const BOAT_CAPTAIN = { roleTypeCode: "BOAT_CAPTAIN" };
+const addRole = (w: any, as: string, partyId: string, body: unknown = BOAT_CAPTAIN) => w.call("POST", `/api/parties/${partyId}/roles`, { as, body });
 const endRole = (w: any, as: string, partyId: string, rid: string) => w.call("POST", `/api/parties/${partyId}/roles/${rid}/end`, { as, body: {} });
 const link = (w: any, as: string, onParty: string, from: string, to: string) =>
   w.call("POST", `/api/parties/${onParty}/relationships`, { as, body: { fromPartyId: from, toPartyId: to, relationshipTypeCode: "CONTACT_OF" } });
@@ -241,7 +243,7 @@ test("Q11 (b): ADMIN kết thúc vai trên hồ sơ của ADMIN khác → 403, v
   const w = setup();
   const put = await addRole(w, SUP, pty(ADM2));
   assert.equal(put.status, 201, put.text);
-  const rid = put.json.party.roles.find((r: any) => r.roleTypeCode === "DRIVER").id;
+  const rid = put.json.party.roles.find((r: any) => r.roleTypeCode === "BOAT_CAPTAIN").id;
   const before = auditCount(w, "party_role_ended");
   assert.equal((await endRole(w, ADM, pty(ADM2), rid)).status, 403);
   assert.equal(w.q("SELECT valid_to_date v FROM pty_party_role WHERE id = ?", rid)[0].v, null, "vai vẫn mở");
@@ -281,7 +283,7 @@ test("Q11 (e): đối chứng dương — ADMIN làm được trên hồ sơ c�
   for (const target of [pty(SALES), pty(PARTNER), pty(ADM), k]) {
     const put = await addRole(w, ADM, target);
     assert.equal(put.status, 201, `ADM thêm vai vào ${target}: ${put.text}`);
-    const rid = put.json.party.roles.find((r: any) => r.roleTypeCode === "DRIVER").id;
+    const rid = put.json.party.roles.find((r: any) => r.roleTypeCode === "BOAT_CAPTAIN").id;
     assert.equal((await endRole(w, ADM, target, rid)).status, 200, `ADM kết thúc vai ${target}`);
   }
   for (const other of [pty(SALES), pty(PARTNER), pty(ADM)]) {

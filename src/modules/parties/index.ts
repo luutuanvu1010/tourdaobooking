@@ -16,7 +16,7 @@ import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements,
   newPersonStatements,
-  openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeGroup, updatePartyStatements,
+  openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
 import {
@@ -68,6 +68,8 @@ export async function ownerCompany(db: D1Database): Promise<OwnerCompany | null>
 }
 
 const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
+// Ruling R6 (điều phối 2026-09-28; ADR-0040 D3): loại công việc đã ngưng dùng (active = 0) không gán mới — áp cho MỌI loại đã ngưng, trừ đổi công ty chủ.
+const ROLE_TYPE_INACTIVE = () => error(409, "role_type_inactive", "Loại công việc này đã ngưng dùng nên không gán mới được. Chọn loại khác trong danh sách.");
 const isAccountGroup = (g: string | null): boolean => g === "INTERNAL" || g === "EXTERNAL";
 
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy hồ sơ.");
@@ -362,11 +364,16 @@ export const partiesModule: AppModule = {
       const today = vnToday(now);
       const parsed = validateRole(await readJson(request), today);
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
-      if (isAccountGroup(await roleTypeGroup(env.DB, parsed.value.roleTypeCode))) return ACCOUNT_ROLE();
+      const loai = await roleTypeOf(env.DB, parsed.value.roleTypeCode);
+      if (isAccountGroup(loai?.group ?? null)) return ACCOUNT_ROLE();
       // `today` (ngày bắt đầu mặc định) và `at` (created_at) lấy từ CÙNG một `now` — trigger *_start_today của migration đòi valid_from_date = ngày giờ VN của
       // created_at cho dòng "Công ty chủ"; hai giá trị từ hai lần đọc đồng hồ có thể lệch ngày lúc nửa đêm (ADR-0043 điều 2).
       const at = now.toISOString();
       const doiCongTyChu = parsed.value.roleTypeCode === OWNER_COMPANY_ROLE;
+      // ADR-0040 D3 + Ruling R1, R6: loại vai đang ngưng (active = 0) KHÔNG gán mới được — trước đây chỉ bị ẩn ở giao diện (web/parties.ts). Áp cho mọi loại đã
+      // ngưng (mã cũ mơ hồ của 0024, mã hồ sơ cũ DRIVER của 0031). Ngoại lệ: đổi công ty chủ (OWNER_COMPANY gieo active = 0 để ô "Thêm công việc" chung không
+      // liệt kê — Ruling T2 của T2b; đường riêng ở dưới). Mã lạ (loai = null) đi tiếp như cũ: câu chèn vấp khoá ngoại → 400.
+      if (!doiCongTyChu && loai !== null && !loai.active) return ROLE_TYPE_INACTIVE();
       const stmts: D1PreparedStatement[] = [addRoleStatement(env.DB, id, parsed.value, staff.id, at)];
       if (doiCongTyChu) {
         // 6.5 (i) + ADR-0043: gán "Công ty chủ" = ĐỔI công ty chủ — chỉ company.legal.write, trên BẤT KỲ hồ sơ nào (mã vai gửi lên chỉ biết sau khi đọc thân);
