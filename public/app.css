@@ -1406,8 +1406,6 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-due-top h1 { margin: 0; font-size: var(--fs-title); font-weight: 800; }
 .vc-due-sub { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
 .vc-due-sub strong { color: var(--c-text); }
-.vc-due-subrow { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s2); }
-.vc-due-doi { font-size: var(--fs-label); text-decoration: underline; }
 @media (min-width: 641px) {
   .vc-due-top { margin-bottom: var(--s4); }
   .vc-due-top h1 { font-size: var(--fs-vc-h); }

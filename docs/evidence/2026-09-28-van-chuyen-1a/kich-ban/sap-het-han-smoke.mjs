@@ -3,7 +3,8 @@
 // 2–3) có dữ liệu (1040 / 390): giấy xe + giấy tài xế chung MỘT danh sách, xếp theo ngày hết hạn (đã hết lên đầu), biểu tượng xe / người đầu dòng, chip đỏ (đã hết) /
 //      cát (còn N ngày), không số giấy tờ; huy hiệu "Sắp hết hạn" = số dòng; trang Tôi điện thoại có cùng số.
 // 4) bấm dòng xe → chi tiết xe; dòng người → hồ sơ ở Danh bạ mở thẳng (mục Giấy tờ hiện).
-// 5) ô đổi mốc (không có trong bản vẽ — kế hoạch B6): Quản trị KHÔNG thấy; Toàn quyền thấy, đổi 45 ngày → danh sách và dòng tiêu đề theo mốc mới.
+// 5) Ruling R23 (điều phối 2026-09-28): KHÔNG ai thấy ô đổi mốc, kể cả Toàn quyền (1040 + 390) — bản vẽ và danh sách màn chủ duyệt không có ô này; chip giấy tờ
+//    người cố định 30 ngày nên đổi mốc ở giao diện làm hai nơi lệch nhau. Mốc chỉ đổi ở máy chủ (route giữ nguyên); lượt 1b làm lại. (Thay phần "ô đổi mốc" của kế hoạch B6.)
 // 6) Bán hàng mở thẳng → câu từ chối của máy chủ, không danh sách.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/sap-het-han-smoke.mjs
@@ -81,7 +82,7 @@ try {
       assert.ok(!s.html.includes("790100000412") && !s.html.includes("PH-0091"), "danh sách không có số giấy tờ");
       assert.deepEqual(await p.ev(`[...document.querySelectorAll('#due-table .vc-due-head span')].map((x) => x.innerText.trim())`), ["", "XE / NGƯỜI", "LOẠI GIẤY", "HẾT HẠN", "CÒN", ""]);
       assert.deepEqual(await p.ev(`[...document.querySelectorAll('#due-table a.vc-due-trow')].map((r) => r.querySelector('.vc-due-exp').innerText.trim())`), KY_VONG.map((k) => k.exp));
-      assert.equal(s.threshold, false, "Quản trị không thấy ô đổi mốc (settings.ops chỉ Toàn quyền)");
+      assert.equal(s.threshold, false, "Quản trị không thấy ô đổi mốc (Ruling R23: màn 06 không có ô này)");
       assert.equal(await p.ev(txt("#bar-title")), "Vận chuyển › Sắp hết hạn");
       await axe(p, "06 máy tính");
       await shotFull(p, "06-sap-het-han-1040.png");
@@ -129,22 +130,21 @@ try {
     }
   });
 
-  await dem.step("5", "06 đổi mốc (Toàn quyền — không có trong bản vẽ): nút “Đổi mốc” → bảng → 45 ngày → tiêu đề + danh sách theo mốc mới (thêm GPLX 38 ngày)", async () => {
-    const p = await env.as(SUPER, "/giay-to-sap-het-han", DESK);
-    try {
-      await p.waitFor("document.querySelectorAll('#due-table a.vc-due-trow').length === 6 && !!document.querySelector('#due-threshold')", "danh sách + nút đổi mốc", 10000);
-      assert.ok(await p.ev(clickVisible("main", "Đổi mốc")));
-      await p.waitFor("document.querySelector('.sheet-root.open') && !!document.querySelector('#due-days')", "bảng đổi mốc", 5000);
-      assert.equal(await p.ev("document.querySelector('#due-days').value"), "30");
-      await p.ev(typeInto("#due-days", "45"));
-      await shotView(p, "06-doi-moc-1040.png");
-      assert.ok(await p.ev(clickVisible(".sheet-root", "Lưu mốc")));
-      await p.waitFor("!document.querySelector('.sheet-root') && document.querySelectorAll('#due-table a.vc-due-trow').length === 7", "danh sách theo mốc 45", 8000);
-      assert.equal(await p.ev(txt("#due-sub")), "Trong 45 ngày tới · gồm cả giấy đã hết hạn · 7 giấy");
-      const nk = env.sql("SELECT detail FROM audit_log WHERE action = 'expiry_policy_changed'");
-      assert.deepEqual(nk.map((r) => r.detail), ["mốc nhắc giấy tờ sắp hết hạn: 30 → 45 ngày"]);
-    } finally {
-      p.close();
+  await dem.step("5", "06 Toàn quyền (Ruling R23): KHÔNG có ô “Đổi mốc” ở 1040 lẫn 390 — không nút nào nói “mốc”, không bảng đổi mốc; danh sách vẫn theo mốc 30", async () => {
+    for (const [vp, layout, sel] of [[DESK, "desk", "#due-table a.vc-due-trow"], [MOB, "mob", "#due-list a.vc-due-row"]]) {
+      const p = await env.as(SUPER, "/giay-to-sap-het-han", vp);
+      try {
+        await p.waitFor(`document.querySelectorAll(${JSON.stringify(sel)}).length === 6`, `sáu dòng (${layout})`, 10000);
+        await sleep(400);
+        const s = await read(p, layout);
+        assert.equal(s.threshold, false, `${layout}: Toàn quyền không có #due-threshold (R23)`);
+        const nutMoc = await p.ev(`[...document.querySelectorAll('main button, main a')].filter((b) => b.getClientRects().length > 0 && /mốc/i.test(b.innerText)).map((b) => b.innerText.trim())`);
+        assert.deepEqual(nutMoc, [], `${layout}: không nút / liên kết nào nói “mốc” (R23)`);
+        assert.equal(await p.ev("!!document.querySelector('#due-days')"), false, `${layout}: không có ô nhập mốc`);
+        assert.ok((s.sub ?? "").includes("6 giấy"), s.sub);
+      } finally {
+        p.close();
+      }
     }
   });
 
