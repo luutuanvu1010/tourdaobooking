@@ -3,7 +3,7 @@
 // innerHTML. SỐ ĐỦ của giấy tờ người: chỉ nằm trong text node của ô số lúc đang "Xem đủ số" (không thuộc tính, không nhãn trợ năng, không lưu trình duyệt,
 // không console) và rời DOM khi hết giờ / "Che lại" / rời trang.
 import { LOAI_CO_DINH, LY_DO_SUA_SAI, type LyDoSuaSai } from "../src/shared/giay-to";
-import { lyDoSuaSai, ngayVN, thanSuaSai, thoiGianTuToken, type Chip, type Tone } from "../src/shared/giay-to-hien-thi";
+import { NHAN_TRANG_THAI_XE, TONE_TRANG_THAI_XE, lyDoSuaSai, ngayVN, thanSuaSai, thoiGianTuToken, type Chip, type Tone } from "../src/shared/giay-to-hien-thi";
 import { vnToday } from "../src/shared/vn-date";
 import { ApiError, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -12,6 +12,20 @@ import { icon } from "./icons";
 
 export const LOI_MANG = "Không kết nối được máy chủ.";
 export const loiCua = (err: unknown): string => (err instanceof ApiError ? err.message : LOI_MANG);
+
+/**
+ * Breadcrumb nhiều cấp của các trang Vận chuyển (bản vẽ: "Vận chuyển › Xe › 79B-123.45"). `#bar-title` là CÙNG một ô cho breadcrumb máy tính và tiêu đề
+ * thanh đầu điện thoại: phần đầu (`.vc-crumb-pre`) ẩn ở ≤640px nên điện thoại chỉ còn `cuoi` (như tiêu đề bản vẽ điện thoại).
+ */
+export function datCrumb(dau: string, cuoi: string): void {
+  const el = document.getElementById("bar-title");
+  if (el) replaceChildren(el, h("span", { class: "vc-crumb-pre" }, `${dau} › `), cuoi);
+}
+
+/** Chip trạng thái xe (Đang dùng / Bảo dưỡng / Ngừng — bản vẽ 01, 02, 03). */
+export function chipTrangThaiXe(status: Api.VehicleStatus): HTMLElement {
+  return h("span", { class: `vc-chip vc-chip-${TONE_TRANG_THAI_XE[status]}` }, NHAN_TRANG_THAI_XE[status]);
+}
 
 export function chipEl(c: Chip): HTMLElement {
   return h("span", { class: `vc-chip vc-chip-${c.tone}` }, c.icon && icon("alert", 12, 2.4), c.text);

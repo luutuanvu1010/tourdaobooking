@@ -1,8 +1,7 @@
 // Trang đầu của tài xế (/tai-xe — ADR-0040 D3; bản vẽ docs/design/van-chuyen-1a/project/07 Trang dau tai xe.dc.html). Lượt 1a: lời chào, khối "Cuốc xe" giữ
 // chỗ (lượt 1b thay nội dung), "Giấy tờ của tôi" tóm tắt HAI giấy gần hạn nhất (điều phối chốt theo bản vẽ), "Xem tất cả" → trang Tôi (danh sách đủ).
 // Chỉ gọi GET /api/parties/documents/mine (cổng "staff", số CHE) — không lời gọi đơn hàng nào. Tài khoản không phải "chỉ tài xế" → về Trang chủ "/".
-import { NGUONG_MAC_DINH, chipHan, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import { can } from "../src/shared/permissions";
+import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { TRANG_DAU_TAI_XE, homeRedirect } from "../src/shared/start-page";
 import { api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -26,7 +25,11 @@ async function main(): Promise<void> {
   byId("tx-date").textContent = `${thu.charAt(0).toLocaleUpperCase("vi-VN")}${thu.slice(1)}, ${ngay}`;
 
   const list = byId("tx-docs-list");
-  if (!can(staff, "party.document.view", { ownerId: staff.id })) return;
+  // Ruling R18: tài khoản mang quyền Đối tác (kể cả lai) không có mục — không gọi route (máy chủ trả 403).
+  if (!coMucGiayToCuaToi(staff)) {
+    byId("tx-docs").hidden = true;
+    return;
+  }
   try {
     const { documents } = await api<Api.PersonDocumentListResponse>("/api/parties/documents/mine");
     const hai = haiGiayGanHan(documents);

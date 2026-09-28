@@ -1,4 +1,5 @@
 import { ApiError, api, type Api } from "./api";
+import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
@@ -9,6 +10,8 @@ import { renderMaintenanceMessage } from "./maintenance-screen";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
+import { chipEl } from "./giay-to-ui";
+import { demSapHetHan } from "./vc-dem";
 import { initViecCuaToi } from "./viec-cua-toi";
 
 const errorEl = byId("error");
@@ -34,16 +37,73 @@ void feedbackBadge().then((n) => {
     feedbackBadgeEl.hidden = false;
   }
 });
-replaceChildren(
-  byId("links"),
+const lienKetDau = [
   isOffice(staff) && h("a", { class: "row-link", href: "/parties" }, "Danh bạ", icon("next", 20)),
   hasPermission(staff, "ADMIN") && h("a", { class: "row-link", href: "/locations" }, "Địa điểm", icon("next", 20)),
+];
+const lienKetSau = [
   can(staff, "audit.view") && h("a", { class: "row-link", href: "/audit" }, "Nhật ký", icon("next", 20)), // ADR-0038 điều 6: chỉ Toàn quyền
   hasPermission(staff, "SUPER_ADMIN") && h("a", { class: "row-link", href: "/gui-thong-bao" }, "Gửi thông báo", icon("next", 20)),
   h("a", { class: "row-link", href: "/feedback" }, "Góp ý / Báo lỗi", feedbackBadgeEl, icon("next", 20)),
   h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
   logoutBtn,
-);
+];
+if (can(staff, "vehicle.manage")) {
+  // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm → nhãn "VẬN CHUYỂN" → Xe / Giấy tờ sắp hết hạn (huy hiệu cát) → phần còn lại.
+  // `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong #links vẫn đúng; tài khoản không có ô vehicle.manage: DOM như cũ.
+  const soSapHet = h("span", { class: "vc-badge", hidden: true });
+  void demSapHetHan().then((n) => {
+    if (n > 0) {
+      soSapHet.textContent = String(n);
+      soSapHet.hidden = false;
+    }
+  });
+  byId("links").before(
+    h("section", { id: "links-top", class: "card list-card" }, ...lienKetDau),
+    h("div", { id: "vc-eyebrow", class: "vc-eyebrow" }, "VẬN CHUYỂN"),
+    h(
+      "section",
+      { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
+      h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
+      h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
+    ),
+  );
+  replaceChildren(byId("links"), ...lienKetSau);
+} else replaceChildren(byId("links"), ...lienKetDau, ...lienKetSau);
+
+// ---- Giấy tờ của tôi (ADR-0040 D2 — mọi nhân viên nội bộ, R5; bản vẽ 05): số CHE, chỉ xem, giấy gần hết hạn nhất đầu (máy chủ xếp). Tài khoản mang quyền Đối
+// tác (kể cả lai — R18) không có mục: không gọi route. Chỉ dựng khối khi có giấy tờ, hoặc với tài xế (để họ biết phải báo văn phòng) — nhân viên chưa có giấy
+// tờ nào thấy trang Tôi như trước.
+async function initGiayToCuaToi(): Promise<void> {
+  if (!coMucGiayToCuaToi(staff)) return;
+  let docs: Api.PersonDocumentDto[];
+  try {
+    docs = (await api<Api.PersonDocumentListResponse>("/api/parties/documents/mine")).documents;
+  } catch {
+    return; // lỗi mạng: không có khối (không ảnh hưởng phần còn lại của trang)
+  }
+  if (docs.length === 0 && !hasPermission(staff, "DRIVER")) return;
+  const dong = (d: Api.PersonDocumentDto): HTMLElement =>
+    h(
+      "div",
+      { class: "vc-mydoc" },
+      h("span", { class: "vc-doc-title" }, tenGiayTo(d)),
+      chipEl(chipHan(d.daysLeft, NGUONG_MAC_DINH)),
+      h("span", { class: d.maskedNumber ? "vc-mydoc-no" : "vc-mydoc-no is-empty" }, h("span", { class: "vc-no-val" }, d.maskedNumber ?? "—")),
+      h("span", { class: "vc-mydoc-exp" }, ...(d.expiryDate ? [h("span", { class: "vc-exp-pre" }, "Hết hạn "), ngayVN(d.expiryDate)] : ["Không hạn"])),
+    );
+  byId("me").after(
+    h(
+      "section",
+      { id: "my-docs", class: "card vc-mydocs", "aria-labelledby": "my-docs-heading" },
+      h("h2", { id: "my-docs-heading" }, "Giấy tờ của tôi"),
+      h("div", { class: "vc-mydocs-head vc-th", "aria-hidden": "true" }, h("span", null, "LOẠI"), h("span", null, "SỐ"), h("span", null, "HẾT HẠN"), h("span", null, "CÒN")),
+      ...(docs.length ? docs.map(dong) : [h("p", { class: "vc-empty-line" }, "Chưa có giấy tờ nào.")]),
+      h("div", { class: "vc-note" }, "Thông tin sai hoặc đã có giấy mới? Báo văn phòng để cập nhật."),
+    ),
+  );
+}
+void initGiayToCuaToi();
 form.addEventListener("submit", async (e) => {
   e.preventDefault();
   showError(errorEl, null);

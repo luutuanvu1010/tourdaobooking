@@ -1,0 +1,15 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Thêm xe — Island Booking System</title></head>
+<body data-title="Thêm xe" data-back="/xe">
+<header id="topbar"></header>
+<main>
+  <!-- Thêm / sửa xe (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/02 Them sua xe.dc.html). /xe-sua = thêm; /xe-sua?id=<xe> = sửa. -->
+  <a class="vc-back" href="/xe">‹ Xe</a>
+  <div class="vc-page-head"><h1 id="xe-title">Thêm xe</h1></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <form id="xe-form" class="vc-card vc-form" autocomplete="off" novalidate hidden></form>
+  <div id="xe-stop" class="vc-stop-block" hidden></div>
+  <div id="xe-bottom" class="vc-bottom-bar" hidden></div>
+</main>
+<script type="module" src="/js/xe-sua.js"></script>
+</body></html>

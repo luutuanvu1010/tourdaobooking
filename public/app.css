@@ -1162,10 +1162,6 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .sidebar-parent.is-open-parent { color: var(--c-on-dark); font-weight: 700; }
 .sidebar-item.sidebar-sub { min-height: var(--h-vc-sub); padding-left: var(--sidebar-sub-indent); }
 
-/* hiện theo khổ: bảng (≥900px) / danh sách thẻ (<900px) */
-@media (max-width: 899px) { .vc-wide { display: none; } }
-@media (min-width: 900px) { .vc-narrow { display: none; } }
-
 /* thành phần chung */
 .vc-card { background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-md); box-shadow: var(--shadow-card); }
 .vc-chip { display: inline-flex; align-items: center; gap: var(--s1); flex: none; padding: var(--pad-vc-chip); font-size: var(--fs-badge); font-weight: 700; line-height: 1.5; white-space: nowrap; border: 1px solid; border-radius: var(--radius-pill); }
@@ -1239,6 +1235,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-xe-docs.vc-tone-danger { color: var(--c-danger-text); }
 .vc-xe-docs.vc-tone-warn { color: var(--c-sand-text); }
 .vc-xe-docs.vc-tone-none { color: var(--c-text-muted); }
+.vc-xe-docs svg { flex: none; }
 
 /* 02 Thêm / sửa xe */
 .vc-form { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4); }
@@ -1449,3 +1446,6 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-txdoc-exp { font-size: var(--fs-label); color: var(--c-text-muted); }
 .vc-empty-line { margin: 0; padding: var(--s3) var(--s4); font-size: var(--fs-label); color: var(--c-text-muted); border-top: 1px solid var(--c-border); }
 
+/* hiện theo khổ: bảng (≥900px) / danh sách thẻ (<900px) — CUỐI khối để thắng display của chính thành phần (cùng độ đặc thù, đứng sau). */
+@media (max-width: 899px) { .vc-wide { display: none; } }
+@media (min-width: 900px) { .vc-narrow { display: none; } }

@@ -4,6 +4,16 @@
 // không chép tay.
 import type { ExpiringItemDto, VehicleDto, VehicleStatus } from "./contracts.ts";
 import { LOAI_CO_DINH, LY_DO_SUA_SAI, type LyDoSuaSai, type TruongSua } from "./giay-to.ts";
+import { can, holdsPartner, type PermissionHolder } from "./permissions.ts";
+
+/**
+ * Tài khoản có mục "Giấy tờ của tôi" (trang Tôi — màn 05; trang đầu tài xế — màn 07): đúng hai điều kiện route GET /api/parties/documents/mine hỏi — ô
+ * party.document.view phạm vi của mình (R5: mọi nhân viên nội bộ) VÀ không mang quyền Đối tác, kể cả tài khoản lai (Ruling R18). Giao diện hỏi hàm này TRƯỚC
+ * khi gọi route: không gọi rồi hiện lỗi 403.
+ */
+export function coMucGiayToCuaToi(who: PermissionHolder): boolean {
+  return can(who, "party.document.view", { ownerId: who.id }) && !holdsPartner(who);
+}
 
 export type Tone = "danger" | "warn" | "ok" | "muted";
 export interface Chip {

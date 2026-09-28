@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Xe — Island Booking System</title></head>
+<body data-title="Xe" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Danh sách xe (ADR-0040 D1; bản vẽ docs/design/van-chuyen-1a/project/01 Danh sach xe.dc.html). Điện thoại: thẻ + nút "Thêm xe" dính đáy; máy tính (≥900px): bảng. -->
+  <div class="vc-page-head"><h1>Xe</h1><a id="xe-add-top" class="vc-btn btn btn-primary vc-head-btn" href="/xe-sua" hidden>Thêm xe</a></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="vc-filters" class="vc-filters" role="group" aria-label="Lọc theo trạng thái" hidden></div>
+  <section id="xe-empty" class="vc-card vc-empty" hidden><span class="vc-empty-title">Chưa có xe nào</span><span class="vc-empty-text">Thêm xe để theo dõi giấy tờ và hạn.</span></section>
+  <p id="xe-filter-empty" class="vc-card vc-filter-empty" hidden>Không có xe nào ở trạng thái này.</p>
+  <div id="xe-cards" class="vc-list vc-narrow"></div>
+  <div id="xe-table" class="vc-card vc-table vc-wide" hidden></div>
+  <div id="xe-add-bottom" class="vc-bottom-bar" hidden><a class="vc-btn btn btn-primary" href="/xe-sua">Thêm xe</a></div>
+</main>
+<script type="module" src="/js/xe.js"></script>
+</body></html>

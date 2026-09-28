@@ -2,9 +2,10 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  LOC_XE, NGUONG_MAC_DINH, NHAN_TRANG_THAI_XE, canhBaoXe, chipHan, demLocXe, duongDanDong, haiGiayGanHan, lichSuCua, loiChao, lyDoSuaSai, ngayVN, tenGiayTo,
-  tenXe, thanDungLaiHoacSuaXe, thanNgungXe, thanSuaSai, thanXeMoi, thoiGianTuToken, tomTatGiayToXe, xepTheoHan,
+  LOC_XE, NGUONG_MAC_DINH, NHAN_TRANG_THAI_XE, canhBaoXe, chipHan, coMucGiayToCuaToi, demLocXe, duongDanDong, haiGiayGanHan, lichSuCua, loiChao, lyDoSuaSai, ngayVN,
+  tenGiayTo, tenXe, thanDungLaiHoacSuaXe, thanNgungXe, thanSuaSai, thanXeMoi, thoiGianTuToken, tomTatGiayToXe, xepTheoHan,
 } from "./giay-to-hien-thi.ts";
+import { PERMISSION_CODES, can, holdsPartner, type PermissionCode } from "./permissions.ts";
 
 test("ngayVN: YYYY-MM-DD → dd/mm/yyyy bằng thao tác chuỗi (không Date theo múi giờ máy); null → chuỗi rỗng", () => {
   assert.equal(ngayVN("2026-09-30"), "30/09/2026");
@@ -141,6 +142,19 @@ test("thoiGianTuToken: đọc token --t-reveal (10s / 10000ms) → mili-giây; g
 test("duongDanDong: dòng xe → chi tiết xe; dòng người → hồ sơ ở Danh bạ (mở thẳng theo id)", () => {
   assert.equal(duongDanDong({ kind: "vehicle", targetId: "11111111-1111-4111-8111-111111111111" }), "/xe-chi-tiet?id=11111111-1111-4111-8111-111111111111");
   assert.equal(duongDanDong({ kind: "person", targetId: "22222222-2222-4222-8222-222222222222" }), "/parties?id=22222222-2222-4222-8222-222222222222");
+});
+
+test("coMucGiayToCuaToi: mọi nhân viên nội bộ có mục (R5); tài khoản mang quyền Đối tác KHÔNG có, kể cả lai (Ruling R18) — giao diện không gọi rồi hiện lỗi", () => {
+  const ai = (...permissions: PermissionCode[]) => ({ id: "s-1", permissions });
+  for (const p of ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "SUPER_ADMIN", "INTERN", "DRIVER"] as const) assert.equal(coMucGiayToCuaToi(ai(p)), true, p);
+  assert.equal(coMucGiayToCuaToi(ai("PARTNER")), false);
+  for (const p of ["SALES", "ADMIN", "FIELD", "DRIVER"] as const) assert.equal(coMucGiayToCuaToi(ai(p, "PARTNER")), false, `${p}+PARTNER (lai)`);
+  assert.equal(coMucGiayToCuaToi(ai()), false, "không quyền nào");
+  // Cùng hai điều kiện route GET /api/parties/documents/mine hỏi, trên cả 256 tập con quyền.
+  for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
+    const w = ai(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
+    assert.equal(coMucGiayToCuaToi(w), can(w, "party.document.view", { ownerId: w.id }) && !holdsPartner(w), w.permissions.join("+"));
+  }
 });
 
 test("loiChao: “Chào” + tên gọi (từ cuối của họ tên), như Trang chủ", () => {

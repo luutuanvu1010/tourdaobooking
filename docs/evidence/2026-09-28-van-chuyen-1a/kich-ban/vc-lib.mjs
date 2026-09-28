@@ -20,6 +20,8 @@ export const SUPER = { name: "Chủ Dự Án", phone: "0900000411", pin: "246411
 export const DRIVER = { name: "Nguyễn Văn Hùng", phone: "0900000412", pin: "246412", permissions: ["DRIVER"] };
 export const PARTNER = { name: "Đối Tác Thử", phone: "0900000413", pin: "246413", permissions: ["PARTNER"] };
 export const DRIVER2 = { name: "Trần Minh Tuấn", phone: "0900000414", pin: "246414", permissions: ["DRIVER"] };
+/** Tài khoản LAI Tài xế + Đối tác (Ruling R18: mang quyền Đối tác thì KHÔNG có mục "Giấy tờ của tôi", kể cả lai). */
+export const LAI = { name: "Lai Tài Đối", phone: "0900000415", pin: "246415", permissions: ["DRIVER", "PARTNER"] };
 
 /** Bộ đếm bước: bước hỏng không dừng cả kịch bản; cuối cùng `xong()` thoát 1 nếu có bước ✗. */
 export function boDem(ten) {
