@@ -496,3 +496,70 @@ export async function listPersonDocumentTypes(db: D1Database): Promise<DocTypeRo
 export async function listLicenseClasses(db: D1Database): Promise<LicenseClassRow[]> {
   return (await db.prepare(LIST_LICENSE_CLASSES).all<LicenseClassRow>()).results;
 }
+
+// Một dòng giấy tờ của hồ sơ ?2 kèm cờ hiện hành — route ghi đọc trước khi quyết (gia hạn chép số của dòng này; sửa sai so với giá trị đang có).
+// `document_number` chỉ ở trong máy chủ — KHÔNG bao giờ vào DTO, nhật ký, câu báo lỗi.
+export interface PersonDocFull {
+  id: string;
+  party_id: string;
+  document_type_code: string;
+  document_number: string | null;
+  number_key: string | null;
+  license_class_code: string | null;
+  issued_date: string | null;
+  issued_place: string | null;
+  expiry_date: string | null;
+  previous_id: string | null;
+  voided_at: string | null;
+  updated_at: string;
+  is_current: number;
+}
+const FIND_PERSON_DOC = defineSql(
+  "parties",
+  "find_person_document",
+  `SELECT d.id, d.party_id, d.document_type_code, d.document_number, d.number_key, d.license_class_code, d.issued_date, d.issued_place, d.expiry_date,
+          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+   FROM pty_person_document d WHERE d.id = ?1 AND d.party_id = ?2`,
+);
+const INSERT_PERSON_DOC = defineSql(
+  "parties",
+  "insert_person_document",
+  `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
+     previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?11, ?12)`,
+);
+// Sửa sai: MỘT câu tĩnh đặt đủ các trường sửa được (giá trị không đổi ghi lại như cũ) + khoá lạc quan updated_at. Không đổi người, loại, dòng trước (trigger
+// *_identity của migration giữ). Dòng đã có dòng gia hạn / đã huỷ bị trigger chặn (lớp CSDL — route đã kiểm "hiện hành" trước, lớp route).
+const UPDATE_PERSON_DOC = defineSql(
+  "parties",
+  "update_person_document",
+  `UPDATE pty_person_document SET document_number = ?4, number_key = ?5, license_class_code = ?6, issued_date = ?7, issued_place = ?8, expiry_date = ?9,
+     updated_at = ?10, updated_by = ?11
+   WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3`,
+);
+// "Nhập nhầm cả dòng" = huỷ dòng (không xoá — Hiến chương 5.5), cùng khoá lạc quan.
+const VOID_PERSON_DOC = defineSql(
+  "parties",
+  "void_person_document",
+  "UPDATE pty_person_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3",
+);
+
+export function findPersonDocument(db: D1Database, docId: string, partyId: string): Promise<PersonDocFull | null> {
+  return db.prepare(FIND_PERSON_DOC).bind(docId, partyId).first<PersonDocFull>();
+}
+/** Giá trị của một dòng giấy tờ (đã kiểm ở luật thuần giay-to.ts). */
+export interface PersonDocValues {
+  typeCode: string;
+  number: string | null;
+  numberKey: string | null;
+  classCode: string | null;
+  issuedDate: string | null;
+  issuedPlace: string | null;
+  expiryDate: string | null;
+}
+export const insertPersonDocStatement = (db: D1Database, id: string, partyId: string, v: PersonDocValues, previousId: string | null, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_PERSON_DOC).bind(id, partyId, v.typeCode, v.number, v.numberKey, v.classCode, v.issuedDate, v.issuedPlace, v.expiryDate, previousId, at, actorId);
+export const updatePersonDocStatement = (db: D1Database, id: string, partyId: string, expectedUpdatedAt: string, v: PersonDocValues, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(UPDATE_PERSON_DOC).bind(id, partyId, expectedUpdatedAt, v.number, v.numberKey, v.classCode, v.issuedDate, v.issuedPlace, v.expiryDate, at, actorId);
+export const voidPersonDocStatement = (db: D1Database, id: string, partyId: string, expectedUpdatedAt: string, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(VOID_PERSON_DOC).bind(id, partyId, expectedUpdatedAt, at, actorId);

@@ -158,3 +158,183 @@ test("route 2: Quản trị → 200, 4 loại giấy tờ của người + 8 h�
   assert.equal(d.status, 403, d.text);
   assert.match(d.json.error.message, CAU_CONG_OFFICE);
 });
+
+// ---- Route 4–6: ghi giấy tờ của người — thêm, gia hạn (dòng mới), sửa sai có lý do, huỷ dòng nhập nhầm (Task A8; Ruling R8 = luật cấp bậc) ----------------------
+const soNhatKy = (w: any): number => w.q("SELECT count(*) n FROM audit_log")[0].n;
+const soGiayTo = (w: any): number => w.q("SELECT count(*) n FROM pty_person_document")[0].n;
+const nhatKyCuoi = (w: any, action: string) => w.q("SELECT target_type, target_id, detail FROM audit_log WHERE action = ? ORDER BY rowid DESC LIMIT 1", action)[0];
+const them = (w: any, as: string, party: string, body: unknown) => w.call("POST", `/api/parties/${party}/documents`, { as, body });
+const giaHan = (w: any, as: string, party: string, did: string, body: unknown = {}) => w.call("POST", `/api/parties/${party}/documents/${did}/renew`, { as, body });
+const suaSai = (w: any, as: string, party: string, did: string, body: unknown) => w.call("POST", `/api/parties/${party}/documents/${did}/correct`, { as, body });
+const dong = (w: any, did: string) => w.q("SELECT * FROM pty_person_document WHERE id = ?", did)[0];
+async function hoSoKhac(w: any, name = "Người Khác"): Promise<string> {
+  const r = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: name, contacts: [] } });
+  assert.equal(r.status, 201, r.text);
+  return r.json.party.id as string;
+}
+/** Không chữ số nào của số (≥ 4 chữ số liền) trong câu/chi tiết. */
+const khongSo = (s: string, label: string) => assert.doesNotMatch(s, /\d{4,}/, `${label}: ${s}`);
+
+test("route 4–6 quyền: Bán hàng, Kế toán → 403 ĐÚNG câu của ô, không ghi, không nhật ký; Hướng dẫn viên, tài xế → 403 ở cổng office", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  // Hồ sơ KHÔNG gắn tài khoản: luật cấp bậc không chặn ở đây, nên chỉ lời hỏi ô party.document.write mới chặn được Bán hàng/Kế toán (phép đột biến
+  // bỏ lời hỏi ô phải đỏ — trên hồ sơ gắn tài khoản, luật cấp bậc cũng trả 403 cùng câu và sẽ che lỗ).
+  const kTk = await hoSoKhac(w, "Người Không Tài Khoản");
+  const kTkDoc = gieo(w, { party: kTk, type: "HEALTH_CHECK", het: "2027-01-01" });
+  const [n0, g0] = [soNhatKy(w), soGiayTo(w)];
+  for (const as of [SALES, ACC]) {
+    for (const [ten, goi] of [
+      ["thêm (hồ sơ có tài khoản)", () => them(w, as, pty(DRIVER), { typeCode: "HEALTH_CHECK" })],
+      ["gia hạn (hồ sơ có tài khoản)", () => giaHan(w, as, pty(DRIVER), g.gplx, { expiryDate: "2031-01-01" })],
+      ["sửa sai (hồ sơ có tài khoản)", () => suaSai(w, as, pty(DRIVER), g.cccd, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: AT })],
+      ["thêm (hồ sơ không tài khoản)", () => them(w, as, kTk, { typeCode: "HEALTH_CHECK" })],
+      ["gia hạn (hồ sơ không tài khoản)", () => giaHan(w, as, kTk, kTkDoc, { expiryDate: "2031-01-01" })],
+      ["sửa sai (hồ sơ không tài khoản)", () => suaSai(w, as, kTk, kTkDoc, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: AT })],
+    ] as const) {
+      const r = await goi();
+      assert.equal(r.status, 403, `${as} ${ten}: ${r.text}`);
+      assert.match(r.json.error.message, CAU_O_GIAY_TO, `${as} ${ten}`);
+    }
+  }
+  for (const as of [FIELD, DRIVER]) {
+    const r = await them(w, as, pty(DRIVER), { typeCode: "HEALTH_CHECK" });
+    assert.equal(r.status, 403, r.text);
+    assert.match(r.json.error.message, CAU_CONG_OFFICE);
+  }
+  assert.deepEqual([soNhatKy(w), soGiayTo(w)], [n0, g0], "không ghi gì, không nhật ký");
+});
+
+test("route 4 thêm: Quản trị thêm CCCD → 201, danh sách mới số che; nhật ký party_document_added không có số; CCCD trùng người khác → 409 cccd_taken, câu không số", async () => {
+  const w = setup();
+  const r = await them(w, ADM, pty(DRIVER), { typeCode: "CCCD", number: "079 123 456 789", issuedDate: "2021-01-01", issuedPlace: "Cục Cảnh sát", expiryDate: "2030-01-01" });
+  assert.equal(r.status, 201, r.text);
+  assert.deepEqual(r.json.documents.map((d: any) => [d.typeCode, d.maskedNumber, d.current]), [["CCCD", "••••6789", true]]);
+  khongLoSo(r, "thân 201");
+  const nk = nhatKyCuoi(w, "party_document_added");
+  assert.deepEqual({ ...nk }, { target_type: "party", target_id: pty(DRIVER), detail: "Căn cước công dân (CCCD), hết hạn 2030-01-01" });
+  const khac = await hoSoKhac(w);
+  const g0 = soGiayTo(w);
+  const t = await them(w, ADM, khac, { typeCode: "CCCD", number: SO_CCCD, expiryDate: "2031-01-01" });
+  assert.equal(t.status, 409, t.text);
+  assert.equal(t.json.error.code, "cccd_taken");
+  khongSo(t.json.error.message, "câu báo trùng");
+  khongLoSo(t, "thân 409");
+  assert.equal(soGiayTo(w), g0, "không dòng mới");
+});
+
+test("route 4 đầu vào sai → 400: CCCD 11 số, GPLX thiếu hạng, khám sức khoẻ kèm hạng, loại lạ, loại không hạn kèm ngày hết hạn, loại đã ngưng, hồ sơ tổ chức", async () => {
+  const w = setup();
+  w.sqlite.exec(`INSERT INTO pty_person_document_type (code, name, has_expiry, sort_order, created_at, updated_at) VALUES ('KHONG_HAN_THU', 'Loại không hạn (thử)', 0, 9, '${AT}', '${AT}')`);
+  w.sqlite.exec(`INSERT INTO pty_person_document_type (code, name, has_expiry, sort_order, active, created_at, updated_at) VALUES ('DA_NGUNG_THU', 'Loại đã ngưng (thử)', 1, 10, 0, '${AT}', '${AT}')`);
+  const g0 = soGiayTo(w);
+  for (const [ten, body] of [
+    ["CCCD 11 số", { typeCode: "CCCD", number: "07912345678" }],
+    ["GPLX thiếu hạng", { typeCode: "GPLX", number: SO_GPLX }],
+    ["khám sức khoẻ kèm hạng", { typeCode: "HEALTH_CHECK", classCode: "B" }],
+    ["loại lạ", { typeCode: "KHONG_CO" }],
+    ["không hạn kèm ngày hết hạn", { typeCode: "KHONG_HAN_THU", expiryDate: "2030-01-01" }],
+    ["loại đã ngưng", { typeCode: "DA_NGUNG_THU" }],
+  ] as const) {
+    const r = await them(w, ADM, pty(DRIVER), body);
+    assert.equal(r.status, 400, `${ten}: ${r.text}`);
+    assert.equal(r.json.error.code, "invalid_input", ten);
+    khongLoSo(r, ten);
+  }
+  const org = await w.call("POST", "/api/parties", { as: ADM, body: { kind: "ORGANIZATION", displayName: "Tổ chức Thử" } });
+  const o = await them(w, ADM, org.json.party.id, { typeCode: "HEALTH_CHECK" });
+  assert.equal(o.status, 400, `hồ sơ tổ chức: ${o.text}`);
+  assert.equal(soGiayTo(w), g0);
+});
+
+test("route 5 gia hạn: KHÔNG gửi số → 201, dòng mới mang số cũ (SQL), dòng cũ thành lịch sử; nhật ký party_document_renewed không số; gia hạn dòng cũ lần nữa → 409 document_not_current", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  const r = await giaHan(w, ADM, pty(DRIVER), g.gplx, { issuedDate: "2026-09-20", expiryDate: "2036-09-20" });
+  assert.equal(r.status, 201, r.text);
+  khongLoSo(r, "thân gia hạn");
+  const moi = r.json.documents.find((d: any) => d.previousId === g.gplx);
+  assert.ok(moi && moi.current, "có dòng mới hiện hành nối dòng cũ");
+  assert.equal(r.json.documents.find((d: any) => d.id === g.gplx).current, false, "dòng cũ thành lịch sử");
+  assert.deepEqual([dong(w, moi.id).number_key, dong(w, moi.id).document_number, dong(w, moi.id).license_class_code], [SO_GPLX, SO_GPLX, "D2"], "chép số + hạng dòng trước");
+  const nk = nhatKyCuoi(w, "party_document_renewed");
+  assert.equal(nk.detail, "Giấy phép lái xe hạng D2: gia hạn, hết hạn 2026-11-05 → 2036-09-20");
+  khongSo(nk.detail.replace(/\d{4}-\d{2}-\d{2}/g, ""), "nhật ký gia hạn");
+  for (const cu of [g.gplx, g.gplxCu]) {
+    const x = await giaHan(w, ADM, pty(DRIVER), cu, { expiryDate: "2040-01-01" });
+    assert.equal(x.status, 409, x.text);
+    assert.equal(x.json.error.code, "document_not_current", "lớp route (không phải lớp CSDL document_changed)");
+  }
+  const la = await giaHan(w, ADM, pty(DRIVER), "99999999-9999-4999-8999-999999999999", {});
+  assert.equal(la.status, 404, la.text);
+  const nguoiKhac = await giaHan(w, ADM, pty(SALES), g.cccd, {});
+  assert.equal(nguoiKhac.status, 404, `giấy tờ của hồ sơ khác: ${nguoiKhac.text}`);
+});
+
+test("route 6 sửa sai: dòng cũ → 409 document_not_current; ngày hết hạn → 200 + nhật ký trước→sau; số → nhật ký chỉ 'Nhập sai số'; số của người khác → 409 cccd_taken; mốc cũ → 409 stale", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  let r = await suaSai(w, ADM, pty(DRIVER), g.gplxCu, { reason: "SAI_NGAY_HET_HAN", value: "2026-02-05", expectedUpdatedAt: AT });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "document_not_current");
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_HET_HAN", value: "2038-03-12", expectedUpdatedAt: AT });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(nhatKyCuoi(w, "party_document_corrected").detail, "Căn cước công dân (CCCD): Nhập sai ngày hết hạn (2037-03-12 → 2038-03-12)");
+  const moc = dong(w, g.cccd).updated_at;
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_SO", value: "079 123 456 780", expectedUpdatedAt: moc });
+  assert.equal(r.status, 200, r.text);
+  khongLoSo(r, "thân sửa số");
+  assert.equal(dong(w, g.cccd).number_key, "079123456780");
+  assert.equal(nhatKyCuoi(w, "party_document_corrected").detail, "Căn cước công dân (CCCD): Nhập sai số");
+  // Người khác giữ số 079000000001; sửa số của tài xế thành số đó → 409 cccd_taken, không đổi.
+  const khac = await hoSoKhac(w);
+  assert.equal((await them(w, ADM, khac, { typeCode: "CCCD", number: "079000000001" })).status, 201);
+  const moc2 = dong(w, g.cccd).updated_at;
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_SO", value: "079000000001", expectedUpdatedAt: moc2 });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "cccd_taken");
+  khongSo(r.json.error.message, "câu báo");
+  assert.equal(dong(w, g.cccd).number_key, "079123456780");
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_NGAY_CAP", value: "2021-01-01", expectedUpdatedAt: AT });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "stale", "mốc cũ");
+  r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "SAI_SO", value: "079 123 456 780", expectedUpdatedAt: dong(w, g.cccd).updated_at });
+  assert.equal(r.status, 400, `giá trị không đổi: ${r.text}`);
+  // Mọi dòng nhật ký giấy tờ: không chứa chữ số của các số đã dùng.
+  for (const x of w.q("SELECT detail FROM audit_log WHERE action LIKE 'party_document_%'")) khongSo(String(x.detail).replace(/\d{4}-\d{2}-\d{2}/g, ""), "nhật ký");
+});
+
+test("route 6 'Nhập nhầm cả dòng' → 200: dòng bị huỷ (voided), vẫn còn trong danh sách; số CCCD của dòng đó rảnh cho người khác", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  const truoc = soGiayTo(w);
+  const r = await suaSai(w, ADM, pty(DRIVER), g.cccd, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: AT });
+  assert.equal(r.status, 200, r.text);
+  const d = r.json.documents.find((x: any) => x.id === g.cccd);
+  assert.deepEqual([d.voided, d.current], [true, false]);
+  assert.equal(nhatKyCuoi(w, "party_document_corrected").detail, "Căn cước công dân (CCCD): Nhập nhầm cả dòng (huỷ dòng này)");
+  assert.equal(soGiayTo(w), truoc, "không xoá dòng nào");
+  const khac = await hoSoKhac(w);
+  const t = await them(w, ADM, khac, { typeCode: "CCCD", number: SO_CCCD });
+  assert.equal(t.status, 201, `số đã rảnh: ${t.text}`);
+});
+
+test("R8 (Q1): Quản trị ghi giấy tờ cho hồ sơ gắn tài khoản Quản trị khác hoặc Toàn quyền → 403; Toàn quyền ghi cho chính mình → 201; Quản trị ghi cho hồ sơ không tài khoản → 201", async () => {
+  const w = setup();
+  const ADM2 = "99999999-9999-4999-8999-999999999990";
+  seedStaff(w.sqlite, { id: ADM2, phone: "0900000009", name: "Quản trị Hai", perms: ["ADMIN"] });
+  const n0 = soNhatKy(w);
+  for (const tren of [SUP, ADM2]) {
+    const r = await them(w, ADM, pty(tren), { typeCode: "HEALTH_CHECK", expiryDate: "2027-01-01" });
+    assert.equal(r.status, 403, `${tren}: ${r.text}`);
+    assert.match(r.json.error.message, CAU_O_GIAY_TO);
+  }
+  assert.equal(soNhatKy(w), n0);
+  assert.equal((await them(w, SUP, pty(SUP), { typeCode: "HEALTH_CHECK", expiryDate: "2027-01-01" })).status, 201, "Toàn quyền ghi cho chính mình");
+  assert.equal((await them(w, ADM, pty(ADM), { typeCode: "HEALTH_CHECK", expiryDate: "2027-01-01" })).status, 201, "Quản trị ghi cho chính mình");
+  const khac = await hoSoKhac(w);
+  assert.equal((await them(w, ADM, khac, { typeCode: "HEALTH_CHECK", expiryDate: "2027-01-01" })).status, 201, "hồ sơ không tài khoản");
+  const g = gieo(w, { party: pty(SUP), type: "HEALTH_CHECK", het: "2028-01-01" });
+  assert.equal((await giaHan(w, ADM, pty(SUP), g, { expiryDate: "2029-01-01" })).status, 403, "gia hạn trên cấp trên");
+  assert.equal((await suaSai(w, ADM, pty(SUP), g, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: AT })).status, 403, "sửa sai trên cấp trên");
+});

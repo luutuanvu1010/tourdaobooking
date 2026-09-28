@@ -16,12 +16,13 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listLicenseClasses, listParties, listPersonDocumentTypes, listPersonDocuments,
-  listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements,
+  companyIdentityOf, findParty, findPartiesByPhone, findPersonDocument, getPartyDetail, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
+  listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
+  voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
-  type PartyListRow, type PartyRow, type ContactRow, type PersonDocRow, type RelationshipRow, type RoleRow,
+  type PartyListRow, type PartyRow, type ContactRow, type PersonDocFull, type PersonDocRow, type PersonDocValues, type RelationshipRow, type RoleRow,
 } from "./repository";
-import { cheSo } from "./giay-to";
+import { cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
   PARTY_ID_RE, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
   validatePersonFullName, validateRelationship, validateRole,
@@ -206,6 +207,47 @@ const toPersonDocDto = (r: PersonDocRow, today: string): PersonDocumentDto => ({
   updatedAt: r.updated_at,
 });
 
+const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này ở hồ sơ.");
+// Lớp ROUTE của "chỉ dòng hiện hành gia hạn / sửa sai được"; lớp CSDL (trigger *_superseded, *_voided, *_renew_mismatch, chỉ mục *_next_uq) trả mã KHÁC
+// (document_changed) — để phép đột biến bỏ lời kiểm ở route thấy đỏ (Review Focus 1).
+const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
+const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+const DOC_ID_RE = /^[0-9a-f-]{36}$/;
+
+/** Lỗi ràng buộc CSDL của giấy tờ → phản hồi rõ nghĩa, KHÔNG nhắc số; lỗi lạ trả null để ném lên (500 có requestId). */
+function docProblem(e: unknown): Response | null {
+  const m = e instanceof Error ? e.message : "";
+  if (/person_document_cccd_other_person/.test(m)) return error(409, "cccd_taken", "Số CCCD này đã có ở một hồ sơ khác. Kiểm tra lại số hoặc hồ sơ.");
+  if (/person_document_superseded|person_document_voided|person_document_renew_mismatch|UNIQUE constraint failed: pty_person_document\.previous_id/.test(m)) {
+    return error(409, "document_changed", "Giấy tờ này vừa được người khác gia hạn hoặc sửa — tải lại rồi làm tiếp.");
+  }
+  if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại giấy tờ, hạng hoặc hồ sơ không tồn tại.");
+  return null;
+}
+
+/** Danh mục của một lần kiểm (mọi loại + mọi hạng) và tra tên để dựng chi tiết nhật ký. */
+async function danhMucGiayTo(db: D1Database, homNay: string): Promise<{ dm: DanhMucGiayTo; tenLoai: (c: string) => string; tenHang: (c: string | null) => string | null }> {
+  const [types, classes] = await Promise.all([listPersonDocumentTypes(db), listLicenseClasses(db)]);
+  return {
+    dm: {
+      loai: new Map(types.map((t) => [t.code, { hasExpiry: t.has_expiry === 1, active: t.active === 1 }])),
+      hang: new Map(classes.map((c) => [c.code, { active: c.active === 1 }])),
+      homNay,
+    },
+    tenLoai: (c) => types.find((t) => t.code === c)?.name ?? c,
+    tenHang: (c) => (c === null ? null : (classes.find((x) => x.code === c)?.name ?? c)),
+  };
+}
+const hienHanhCua = (d: PersonDocFull): GiayToNhap => ({
+  typeCode: d.document_type_code, number: d.document_number, numberKey: d.number_key, classCode: d.license_class_code,
+  issuedDate: d.issued_date, issuedPlace: d.issued_place, expiryDate: d.expiry_date,
+});
+/** Danh sách giấy tờ (đủ lịch sử, số che) của hồ sơ sau khi ghi. */
+async function respondDocs(db: D1Database, partyId: string, status: number): Promise<Response> {
+  const today = vnToday(new Date());
+  return json({ documents: (await listPersonDocuments(db, partyId, false)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse, status);
+}
+
 const KIND_LABEL = { PERSON: "cá nhân", ORGANIZATION: "tổ chức" } as const;
 const idParam = (params: Record<string, string>, name: string, re: RegExp): string | null => (re.test(params[name] ?? "") ? params[name]! : null);
 
@@ -299,6 +341,118 @@ export const partiesModule: AppModule = {
       if (party.party_kind !== "PERSON") return json({ documents: [] } satisfies PersonDocumentListResponse);
       const today = vnToday(new Date());
       return json({ documents: (await listPersonDocuments(env.DB, id, false)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);
+    }),
+
+    // Ghi giấy tờ của người (ADR-0040 D2): thứ tự 403 ô → 404 hồ sơ → 403 cấp bậc (Ruling R8 = Q1: Quản trị không ghi giấy tờ của tài khoản cấp trên) →
+    // 400 thân → 409 dòng hiện hành → ghi + nhật ký cùng lô (chi tiết KHÔNG số) → 409 stale (khoá lạc quan).
+    route("POST", "/api/parties/:id/documents", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
+      if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      const party = id ? await findParty(env.DB, id) : null;
+      if (!id || !party) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return DOC_FORBIDDEN();
+      if (party.party_kind !== "PERSON") return error(400, "invalid_input", "Giấy tờ chỉ gắn với hồ sơ cá nhân.");
+      const now = new Date();
+      const d = await danhMucGiayTo(env.DB, vnToday(now));
+      const parsed = kiemThemGiayTo(await readJson(request), d.dm);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v: PersonDocValues = parsed.value;
+      const at = now.toISOString();
+      try {
+        await env.DB.batch([
+          insertPersonDocStatement(env.DB, crypto.randomUUID(), id, v, null, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "party_document_added", at, targetType: "party", targetId: id, detail: chiTietNhatKy({ loai: d.tenLoai(v.typeCode), hang: d.tenHang(v.classCode), hetHan: v.expiryDate }) }),
+        ]);
+      } catch (e) {
+        const problem = docProblem(e);
+        if (problem) return problem;
+        throw e;
+      }
+      return respondDocs(env.DB, id, 201);
+    }),
+
+    route("POST", "/api/parties/:id/documents/:did/renew", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
+      if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return DOC_FORBIDDEN();
+      const did = idParam(params, "did", DOC_ID_RE);
+      const cu = did ? await findPersonDocument(env.DB, did, id) : null;
+      if (!did || !cu) return DOC_NOT_FOUND();
+      const now = new Date();
+      const d = await danhMucGiayTo(env.DB, vnToday(now));
+      // Gia hạn = dòng MỚI; không gửi số thì chép số (và hạng) của dòng trước — số đầy đủ không phải ra trình duyệt (Review Focus 3).
+      const parsed = kiemGiaHan(await readJson(request), { typeCode: cu.document_type_code, number: cu.document_number, classCode: cu.license_class_code }, d.dm);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (cu.is_current !== 1) return DOC_NOT_CURRENT();
+      const v: PersonDocValues = parsed.value;
+      const at = now.toISOString();
+      try {
+        await env.DB.batch([
+          insertPersonDocStatement(env.DB, crypto.randomUUID(), id, v, did, staff.id, at),
+          auditStatement(env.DB, {
+            staffId: staff.id, action: "party_document_renewed", at, targetType: "party", targetId: id,
+            detail: chiTietNhatKy({ loai: d.tenLoai(v.typeCode), hang: d.tenHang(v.classCode), giaHan: true, truoc: cu.expiry_date, sau: v.expiryDate }),
+          }),
+        ]);
+      } catch (e) {
+        const problem = docProblem(e);
+        if (problem) return problem;
+        throw e;
+      }
+      return respondDocs(env.DB, id, 201);
+    }),
+
+    route("POST", "/api/parties/:id/documents/:did/correct", "office", async (ctx) => {
+      const { request, env, params, staff } = ctx;
+      if (!can(staff, "party.document.write")) return DOC_FORBIDDEN();
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return DOC_FORBIDDEN();
+      const did = idParam(params, "did", DOC_ID_RE);
+      const cu = did ? await findPersonDocument(env.DB, did, id) : null;
+      if (!did || !cu) return DOC_NOT_FOUND();
+      const now = new Date();
+      const d = await danhMucGiayTo(env.DB, vnToday(now));
+      const hienHanh = hienHanhCua(cu);
+      const parsed = kiemSuaSai(await readJson(request), hienHanh, d.dm);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (cu.is_current !== 1) return DOC_NOT_CURRENT();
+      const s = parsed.value;
+      const at = now.toISOString();
+      const loai = d.tenLoai(cu.document_type_code);
+      let ghi: D1PreparedStatement;
+      let detail: string;
+      if (s.huy) {
+        ghi = voidPersonDocStatement(env.DB, did, id, s.expectedUpdatedAt, staff.id, at);
+        detail = chiTietNhatKy({ loai, lyDo: s.lyDo });
+      } else {
+        const moi: PersonDocValues = { ...hienHanh };
+        if (s.truong === "number") Object.assign(moi, { number: s.giaTri, numberKey: s.giaTri === null ? null : chuanHoaSo(s.giaTri) });
+        else moi[s.truong] = s.giaTri;
+        ghi = updatePersonDocStatement(env.DB, did, id, s.expectedUpdatedAt, moi, staff.id, at);
+        // Trước → sau CHỈ cho ngày (YYYY-MM-DD) và hạng (tên hạng); số và nơi cấp không bao giờ vào nhật ký (chiTietNhatKy còn tự bỏ nếu lỡ truyền).
+        const [truoc, sau] =
+          s.truong === "issuedDate" || s.truong === "expiryDate" ? [hienHanh[s.truong], moi[s.truong]]
+          : s.truong === "classCode" ? [d.tenHang(hienHanh.classCode), d.tenHang(moi.classCode)]
+          : [null, null];
+        detail = chiTietNhatKy({ loai, lyDo: s.lyDo, truoc, sau });
+      }
+      let results: D1Result[];
+      try {
+        results = await env.DB.batch([ghi, auditStatement(env.DB, { staffId: staff.id, action: "party_document_corrected", at, targetType: "party", targetId: id, detail }, "changes() > 0")]);
+      } catch (e) {
+        const problem = docProblem(e);
+        if (problem) return problem;
+        throw e;
+      }
+      if ((results[0]!.meta.changes ?? 0) === 0) return DOC_STALE();
+      return respondDocs(env.DB, id, 200);
     }),
 
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------

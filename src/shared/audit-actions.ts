@@ -48,6 +48,10 @@ export const AUDIT_ACTIONS = {
   party_role_added: { label: "Thêm vai trò hồ sơ", group: "party" },
   party_role_ended: { label: "Kết thúc vai trò hồ sơ", group: "party" },
   party_relationship_changed: { label: "Đổi quan hệ hồ sơ", group: "party" },
+  // ADR-0040 D2: giấy tờ của người — `detail` KHÔNG BAO GIỜ chứa số giấy tờ, nơi cấp (chiTietNhatKy của src/modules/parties/giay-to.ts).
+  party_document_added: { label: "Thêm giấy tờ của người", group: "party" },
+  party_document_renewed: { label: "Gia hạn giấy tờ của người", group: "party" },
+  party_document_corrected: { label: "Sửa sai giấy tờ của người", group: "party" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
