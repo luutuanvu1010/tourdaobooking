@@ -1600,4 +1600,628 @@ BEGIN SELECT RAISE(ABORT, 'expiry_policy_append_only: chính sách không xoá')
 
 ---
 
-<!-- TIEP-THEO: Task A13 trở đi -->
+### Task A13: Module `van-chuyen` — xe (ô `vehicle.manage`)
+
+**Tệp:**
+- Tạo mã: `src/modules/van-chuyen/index.ts`, `rules.ts`, `repository.ts`.
+- Tạo test: `src/modules/van-chuyen/rules.test.ts`, `xe.test.ts`.
+- Sửa mã: `src/shared/permissions.ts`, `src/shared/contracts.ts`, `src/shared/audit-actions.ts` (nhóm `vehicle`, hai hành động), `src/index.ts` (mảng `modules`, dòng 49).
+- Sửa test / hàng rào: `src/shared/permissions.test.ts`, `src/modules/orders/xem-don-theo-quyen.test.ts`, `src/architecture.test.ts` (`STRICT`), `src/route-access.test.ts` (`MODULES` + SNAPSHOT +4 → 101).
+
+**DTO:**
+
+```ts
+// ---- Vận chuyển (ADR-0040 D1) ----
+export type VehicleStatus = "active" | "maintenance" | "retired";
+export interface VehicleDto {
+  id: string; plateNumber: string; chassisNumber: string | null; name: string; modelYear: number | null;
+  passengerCapacity: number;             // số người được chở KHÔNG kể tài xế
+  status: VehicleStatus; validFrom: string; validTo: string | null;
+  alert: "none" | "soon" | "expired";    // giấy tờ xe hiện hành gần hết / đã hết hạn theo ngưỡng đang hiệu lực
+  updatedAt: string;
+}
+export interface VehicleDocumentDto {
+  id: string; typeCode: string; typeName: string; number: string | null;   // giấy tờ XE: số đầy đủ (không phải dữ liệu cá nhân)
+  issuedDate: string | null; expiryDate: string | null; daysLeft: number | null;
+  previousId: string | null; current: boolean; voided: boolean; updatedAt: string;
+}
+export interface VehicleListResponse { vehicles: VehicleDto[] }
+export interface VehicleResponse { vehicle: VehicleDto; documents: VehicleDocumentDto[] }
+```
+
+- [ ] **Bước 1: Test đỏ (luật thuần)** `rules.test.ts`:
+  - `chuanHoaBienSo("79b-012.34")` = `"79B01234"`; biển rỗng / ký tự lạ / dài quá → từ chối.
+  - `kiemXeMoi`:
+    - thiếu số khung → "Cần số khung (in trên giấy đăng ký xe)." (Q2 mặc định);
+    - `passengerCapacity` 0 / 101 / 15.5 / "15" → từ chối;
+    - `modelYear` 1949 / năm sau + 2 → từ chối;
+    - trạng thái mặc định `active`; xe mới không được `retired`;
+    - ngày bắt đầu mặc định hôm nay, không sau hôm nay.
+  - `kiemSuaXe`:
+    - `active → retired` đặt `validTo` = hôm nay;
+    - `retired → active` bỏ `validTo`;
+    - trạng thái lạ → từ chối;
+    - thiếu `expectedUpdatedAt` → từ chối.
+- [ ] **Bước 2: Test đỏ (bảng quyền):**
+  - bảng `ADR` thêm `vehicle.manage` (mục 1.3.2);
+  - bài ghim `DRIVER` và bài ghim Đối tác thêm `"vehicle.manage": "none"`.
+- [ ] **Bước 3: Test đỏ (cả ứng dụng)** `xe.test.ts`. Khung `world()` + `seedStaff` đủ tám quyền.
+  - **Quyền:**
+    - Bán hàng, Kế toán × route 12–15 → **403** đúng mã;
+    - Hướng dẫn viên, tài xế, Đối tác, Thực tập → **403** ở cổng `office`.
+  - **Thêm xe:**
+    - Quản trị thêm xe → **201**;
+    - SQL xác nhận `owner_party_id` = hồ sơ đang mở vai `OWNER_COMPANY`;
+    - nhật ký `vehicle_created` có biển số.
+  - **Trùng:**
+    - trùng biển với xe chưa ngừng, viết khác ("79B 012 34") → **409 `plate_taken`**;
+    - trùng số khung → **409 `chassis_taken`**;
+    - thiếu số khung → **400**.
+  - **Ngừng dùng:**
+    - `PUT` trạng thái `retired` → 200, `validTo` = hôm nay (giờ VN), nhật ký "trạng thái Đang dùng → Ngừng dùng";
+    - xe mới cùng biển → 201;
+    - `PUT` xe cũ về `active` → **409 `plate_taken`**.
+  - **Khoá lạc quan:** `expectedUpdatedAt` cũ → **409 `stale`**.
+  - **Đọc:**
+    - `GET` danh sách có `alert` đúng: gieo giấy tờ xe bằng SQL, hết hạn sau 5 ngày → `soon`; đã hết hạn → `expired`; không giấy tờ → `none`;
+    - `GET /api/van-chuyen/xe/<id lạ>` → 404.
+- [ ] **Bước 4: Đỏ.**
+- [ ] **Bước 5: Mã.**
+  - `MATRIX` thêm `"vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none"), // ADR-0040 D1: quản lý xe, giấy tờ xe, danh sách sắp hết hạn — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038 điều 6)`.
+  - `repository.ts` (`defineSql("van-chuyen", …)`, import đuôi `.ts`):
+    - `LIST_VEHICLES`: kèm `(SELECT min(d.expiry_date) … giấy tờ hiện hành …) AS nearest_expiry`;
+    - `FIND_VEHICLE`, `INSERT_VEHICLE`;
+    - `UPDATE_VEHICLE` (`WHERE id = ?1 AND updated_at = ?2`);
+    - `LIST_VEHICLE_DOCS`;
+    - `CURRENT_WARN_DAYS`: `SELECT warn_days FROM vc_expiry_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`.
+  - `index.ts`:
+    - `export const vanChuyenModule: AppModule = { name: "van-chuyen", routes: [...] }`;
+    - mỗi route mở đầu `if (!can(staff, "vehicle.manage")) return FORBIDDEN();`;
+    - thêm xe lấy chủ bằng `const chu = await ownerCompany(env.DB); if (!chu) return error(409, "no_owner_company", "Chưa có hồ sơ công ty chủ nên chưa thêm xe được. Báo người phụ trách hệ thống.");`;
+    - ánh xạ lỗi: `vc_vehicle.plate_key` → 409 `plate_taken` "Biển số này đang thuộc một xe chưa ngừng dùng."; `vc_vehicle.chassis_key` → 409 `chassis_taken`.
+  - `audit-actions.ts`: `AUDIT_GROUPS.vehicle = "Xe"`; `vehicle_created`, `vehicle_updated`.
+  - `src/index.ts:49`: thêm `vanChuyenModule` cuối mảng `modules`.
+  - `src/architecture.test.ts`: `STRICT` thêm `{ module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }` (siết, chú thích "ADR-0040 D1").
+  - `src/route-access.test.ts`: `MODULES` thêm `{ entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }`; SNAPSHOT thêm bốn route `office`; đếm 97 → 101.
+- [ ] **Bước 6: Xanh:**
+  - `node --test src/modules/van-chuyen/rules.test.ts src/modules/van-chuyen/xe.test.ts src/architecture.test.ts src/permission-enforcement.test.ts src/route-write-guard.test.ts src/route-access.test.ts src/shared/permissions.test.ts src/modules/orders/xem-don-theo-quyen.test.ts src/shared/audit-actions.test.ts`;
+  - rồi `npm test`, `npm run typecheck`.
+- [ ] **Bước 7: P16:**
+  - (a) Thay `!can(staff, "vehicle.manage")` ở route 13 bằng `false` → ca Bán hàng đỏ (201 ≠ 403).
+  - (b) Bỏ luật bắt buộc số khung → ca thiếu số khung đỏ.
+  - (c) Thêm tạm `db.prepare("SELECT 1")` vào `van-chuyen/repository.ts` → bài `.prepare(<chuỗi thô>)` của `src/architecture.test.ts` đỏ — chứng minh module đã nằm trong `STRICT`.
+- [ ] **Bước 8: Commit.** "Phân hệ Vận chuyển: xe — thêm, sửa, ngừng dùng; chủ xe là công ty chủ (ADR-0040 D1)".
+
+---
+
+### Task A14: Giấy tờ xe — thêm, gia hạn, sửa sai
+
+**Tệp:** `src/modules/van-chuyen/{rules,repository,index}.ts`, `src/shared/audit-actions.ts` (`vehicle_document_added`, `_renewed`, `_corrected`), `src/modules/van-chuyen/giay-to-xe.test.ts` (mới), `src/route-access.test.ts` (+3 → 104).
+
+- [ ] **Bước 1: Test đỏ** — khuôn Task A8, **khác** ở ba chỗ: không CCCD, không che số, lý do chỉ gồm các lý do `choXe`.
+  - **Quyền:** Bán hàng → **403** × route 16–18.
+  - **Thêm:** Quản trị thêm "Kiểm định" hết hạn sau 20 ngày → 201. Nhật ký `vehicle_document_added` có "xe <biển>: Kiểm định, hết hạn …", **không** số giấy tờ (luật chung của `chiTietNhatKy`).
+  - **Đầu vào sai:** "Đăng ký xe" (`has_expiry = 0`) kèm ngày hết hạn → 400.
+  - **Gia hạn:**
+    - không gửi số → chép số cũ;
+    - gia hạn dòng cũ lần nữa → **409 `document_not_current`**.
+  - **Sửa sai:**
+    - dòng cũ → **409 `document_not_current`**;
+    - "Nhập sai nơi cấp" / "Nhập sai hạng" → **400** (không áp cho xe);
+    - "Nhập nhầm cả dòng" → huỷ.
+  - **Xe đã ngừng:** thêm / gia hạn giấy tờ → **409 `vehicle_retired`** "Xe đã ngừng dùng.".
+- [ ] **Bước 2: Đỏ. Bước 3: Mã.**
+  - Luật thuần dùng lại `LY_DO_SUA_SAI`, `soNgayConLai`.
+  - Ánh xạ lỗi CSDL `vehicle_document_*` → 409 `document_changed` (mã khác lớp route, như A8).
+- [ ] **Bước 4: Xanh:** `node --test src/modules/van-chuyen/giay-to-xe.test.ts src/route-write-guard.test.ts src/route-access.test.ts`, rồi `npm test`, `npm run typecheck`.
+- [ ] **Bước 5: P16:**
+  - (a) Bỏ lời hỏi `vehicle.manage` ở route 16 → ca Bán hàng đỏ.
+  - (b) Bỏ lời kiểm "dòng hiện hành" ở route 18 → ca "sửa dòng cũ" đỏ (`document_changed` ≠ `document_not_current`).
+- [ ] **Bước 6: Commit.** "Giấy tờ xe: thêm, gia hạn là dòng mới, sửa sai có lý do (ADR-0040 D1)".
+
+---
+
+### Task A15: Danh mục loại giấy tờ xe, ngưỡng, danh sách sắp hết hạn
+
+**Tệp:** `src/modules/van-chuyen/{rules,repository,index}.ts`, `src/shared/contracts.ts`, `src/shared/audit-actions.ts` (`vehicle_document_type_changed`, `expiry_policy_changed`), `src/modules/van-chuyen/sap-het-han.test.ts` (mới), `src/route-access.test.ts` (+5 → **109**).
+
+**DTO:**
+
+```ts
+export interface VanChuyenMetaResponse { documentTypes: DocumentTypeDto[]; warnDays: number }
+/** Một dòng "giấy tờ sắp hết hạn" — KHÔNG có số giấy tờ (ADR-0040 D1, D2). */
+export interface ExpiringItemDto {
+  kind: "vehicle" | "person"; targetId: string;   // id xe hoặc id hồ sơ người (bấm dòng mở xe / hồ sơ)
+  label: string;                                   // biển số + tên xe, hoặc tên hiển thị của người
+  typeName: string; className: string | null; expiryDate: string; daysLeft: number; level: "soon" | "expired";
+}
+export interface ExpiringListResponse { warnDays: number; items: ExpiringItemDto[] }
+```
+
+- [ ] **Bước 1: Test đỏ** `sap-het-han.test.ts`. Gieo bằng SQL + route:
+  - xe X chưa ngừng: Kiểm định hết hạn sau 5 ngày;
+  - xe Y đã ngừng: Bảo hiểm hết hạn sau 3 ngày;
+  - tài khoản tài xế tạo bằng `POST /api/staff` `roles: ["DRIVER_INTERNAL"]` (đường thật): GPLX đã hết hạn 2 ngày, CCCD hết hạn sau 10 ngày;
+  - Hướng dẫn viên: CCCD hết hạn sau 5 ngày.
+
+  Ca:
+  - **Route 23:**
+    - Bán hàng → **403**;
+    - Quản trị → 200, `warnDays` 30, **đúng ba dòng** theo thứ tự hạn: GPLX (`expired`, `daysLeft` −2), Kiểm định X (`soon`, 5), CCCD tài xế (`soon`, 10);
+    - không có xe Y, không có Hướng dẫn viên;
+    - `Object.keys` mỗi dòng đúng tám khoá của `ExpiringItemDto`;
+    - thân không chứa số giấy tờ nào đã gieo.
+  - **Route 22:**
+    - Quản trị → **403** đúng mã (`settings.ops` chỉ Toàn quyền);
+    - Toàn quyền `{ warnDays: 7 }` → 200;
+    - route 23 thành hai dòng (GPLX, Kiểm định);
+    - bảng chính sách có hai dòng, dòng cũ nguyên vẹn; nhật ký `expiry_policy_changed` "30 → 7 ngày";
+    - `warnDays` 0 / 366 / `"7"` → 400.
+  - **Route 19:** Quản trị → 200, 6 loại + `warnDays`; Bán hàng → 403.
+  - **Route 20, 21:**
+    - Quản trị thêm loại "SO_BAO_DUONG" → 201;
+    - trùng mã → 409 `code_taken`; mốc cũ → 409 `stale`;
+    - Bán hàng → 403 ở cổng `admin`.
+- [ ] **Bước 2: Đỏ. Bước 3: Mã.**
+  - Route 22: `access: "admin"` + `if (!can(staff, "settings.ops")) return …`; chèn dòng mới `valid_from_at` = `new Date().toISOString()`.
+  - Route 23:
+    - `warnDays` = dòng hiệu lực; `until = addDays(today, warnDays)` (`src/shared/vn-date.ts:50`);
+    - giấy tờ xe hiện hành của xe chưa ngừng có hạn ≤ `until`;
+    - cộng `expiringDriverDocuments(env.DB, { today, until })` của `parties`;
+    - gộp, sắp theo `expiryDate` rồi `label`.
+  - Route 19–21: khuôn Task A10.
+- [ ] **Bước 4: Xanh:**
+  - `node --test src/modules/van-chuyen/sap-het-han.test.ts src/route-write-guard.test.ts src/route-access.test.ts src/permission-enforcement.test.ts src/architecture.test.ts`;
+  - rồi `npm test`, `npm run typecheck`.
+- [ ] **Bước 5: P16:**
+  - (a) Bỏ lời hỏi `settings.ops` ở route 22 → ca Quản trị đỏ (200 ≠ 403) **và** luật (4) của `src/route-write-guard.test.ts` đỏ.
+  - (b) Bỏ lọc `status <> 'retired'` → ca xe Y đỏ.
+  - (c) Bỏ lời hỏi `vehicle.manage` ở route 23 → ca Bán hàng đỏ.
+- [ ] **Bước 6: Commit.** "Vận chuyển: danh mục loại giấy tờ xe, mốc nhắc có ngày hiệu lực, danh sách giấy tờ sắp hết hạn gộp xe và tài xế (ADR-0040 D1)".
+
+---
+
+### Task A16: Hàng rào toàn tuyến — che số và nhật ký không số (ADR-0040 D2, "bài nhật ký không chứa số giấy tờ")
+
+**Tệp:** tạo `src/giay-to-khong-lo-so.test.ts`. Khung harness + nạp danh sách route thật bằng esbuild như `src/route-access.test.ts:32-43`.
+
+- [ ] **Bước 1: Viết bài.**
+  - **Thế giới:** Quản trị, Toàn quyền, một tài khoản tài xế (tạo qua `POST /api/staff`), một xe.
+  - **Số đánh dấu (giả):**
+    - CCCD `079888777666`, sau khi sửa sai thành `079888777665`;
+    - GPLX `790888777666`;
+    - nơi cấp `"NOI CAP DANH DAU"`;
+    - số giấy tờ xe `KD-DANHDAU-9`.
+  - **Bảng ca `TUYEN`:** mỗi route có `/documents` hoặc `/giay-to` trong đường dẫn (route 1–7, 16–18) chạy ít nhất một lần.
+    - Gồm: thêm, gia hạn, sửa sai số, sửa sai nơi cấp, huỷ dòng, xem đủ số (Quản trị + Toàn quyền), CCCD trùng (409), giấy tờ xe thêm / gia hạn / sửa sai.
+  - **(1) Đủ tuyến (siết):**
+    - tập route (phương thức + đường dẫn) của `partiesModule` và `vanChuyenModule` khớp `/documents|\/giay-to/`
+    - **bằng** tập khoá của `TUYEN`.
+    - Thêm route giấy tờ mới mà quên ca → đỏ.
+  - **(2) Nhật ký:** `JSON.stringify(w.q("SELECT * FROM audit_log"))` không chứa bất kỳ số đánh dấu nào (kể cả dạng đã bỏ dấu `-`), không chứa nơi cấp đánh dấu.
+  - **(3) Thân trả về:**
+    - thân của MỌI lời gọi ở `TUYEN`, **trừ** route 7 (`reveal`),
+    - cộng `GET /api/parties/:id`, `GET /api/van-chuyen/sap-het-han`, `GET /api/audit?limit=100` (Toàn quyền),
+    - không chứa số đánh dấu của **người**.
+    - Nơi cấp được hiện ở danh sách giấy tờ (không phải số), nhưng **không** ở nhật ký.
+  - **(4) Xem đủ số:** thân trả về của route 7 **có** đúng số — chống bài rỗng.
+- [ ] **Bước 2: Chạy.** Bài phải xanh ngay trên mã A7–A15. Nếu đỏ là lỗi thật: sửa mã, không sửa bài.
+- [ ] **Bước 3: P16:**
+  - (a) Cho route 4 ghi `detail` kèm số → (2) đỏ.
+  - (b) Cho `cheSo` trả nguyên số → (3) đỏ.
+  - (c) Xoá một khoá khỏi `TUYEN` → (1) đỏ.
+  - Hoàn nguyên; chép nguyên văn.
+- [ ] **Bước 4: Commit.** "Hàng rào toàn tuyến: số giấy tờ của người không lọt vào nhật ký hay danh sách, chỉ ra ở 'xem đủ số' (ADR-0040 D2)".
+
+---
+
+### Task A17: Kiểm bất biến dữ liệu `R-PTY-2..4`, `R-VC-1..2`
+
+**Tệp:** `scripts/audit-checks.mjs` (mảng `CHECKS`, sau khối `R-PTY-1`), `src/audit-invariants.test.ts`.
+
+| Mã | Kiểm | Mức | Câu SQL (đếm vi phạm) |
+|---|---|---|---|
+| `R-PTY-2` | một số CCCD thuộc đúng một người (dòng chưa huỷ) — lưới thứ hai của trigger | `fail` | `SELECT count(*) FROM (SELECT number_key FROM pty_person_document WHERE document_type_code = 'CCCD' AND voided_at IS NULL GROUP BY number_key HAVING count(DISTINCT party_id) > 1)` |
+| `R-PTY-3` | dòng gia hạn cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ | `fail` | `SELECT (SELECT count(*) FROM pty_person_document n JOIN pty_person_document p ON p.id = n.previous_id WHERE p.party_id <> n.party_id OR p.document_type_code <> n.document_type_code) + (SELECT count(*) FROM (SELECT previous_id FROM pty_person_document WHERE previous_id IS NOT NULL AND voided_at IS NULL GROUP BY previous_id HAVING count(*) > 1))` |
+| `R-PTY-4` | nhật ký không chứa số giấy tờ của người (số chuẩn hoá dài ≥ 8) | `warn-unless-strict` (note: "nhật ký chỉ-thêm — không gỡ được; báo chủ dự án ngay, đây là dữ liệu cá nhân") | `SELECT count(*) FROM audit_log a WHERE a.detail IS NOT NULL AND EXISTS (SELECT 1 FROM pty_person_document d WHERE d.number_key IS NOT NULL AND length(d.number_key) >= 8 AND instr(upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', '')), d.number_key) > 0)` |
+| `R-VC-1` | biển số không trùng giữa các xe chưa ngừng | `fail` | `SELECT count(*) FROM (SELECT plate_key FROM vc_vehicle WHERE status <> 'retired' GROUP BY plate_key HAVING count(*) > 1)` |
+| `R-VC-2` | dòng gia hạn giấy tờ xe cùng xe, cùng loại; không tách nhánh | `fail` | như `R-PTY-3` trên `vc_vehicle_document` (`vehicle_id`) |
+
+- **Vì sao `R-PTY-4` không `fail`:**
+  - e2e chạy `--strict` nên đỏ (`tests/e2e/run.mjs:119`);
+  - production (`npm run trien-khai` chạy **không** `--strict`, `scripts/release-lib.mjs:310`) chỉ cảnh báo.
+  - Một dòng rò đã ghi thì không xoá được, nên `fail` sẽ đỏ vĩnh viễn và chặn mọi lần triển khai sau.
+- D1 chưa áp `0032`/`0033` thì script thoát mã 2 (không chạy được). `npm run trien-khai` chạy kiểm **sau** khi áp migration.
+
+- [ ] **Bước 1: Test đỏ** (`src/audit-invariants.test.ts`, dùng `build()` dòng 47-65). Mỗi mã:
+  - ca xanh;
+  - ca đỏ: `DROP TRIGGER` / `DROP INDEX` tương ứng trước, rồi chèn dòng vi phạm;
+  - ca "dữ liệu khoẻ ⇒ 0" (bài dòng 114-119 tự phủ).
+  - `R-PTY-4`:
+    - chèn một dòng `audit_log` có `detail` chứa số giấy tờ đã gieo (viết cách quãng "079 888 777 666") → 1;
+    - chỉ chứa `••••7666` → 0.
+- [ ] **Bước 2: Đỏ** ("phải có đúng một kiểm R-PTY-2"). **Bước 3:** thêm năm phần tử vào `CHECKS`, chú thích dẫn ADR-0040.
+- [ ] **Bước 4: Xanh:** `node --test src/audit-invariants.test.ts`, rồi `npm test`. `npm run db:migrate:local` rồi `node scripts/audit-invariants.mjs --db local` → "Mọi bất biến đạt".
+- [ ] **Bước 5: P16:**
+  - (a) `R-PTY-2`: `> 1` → `> 2` → ca đỏ đỏ.
+  - (b) `R-PTY-4`: `>= 8` → `>= 20` → ca đỏ đỏ.
+  - (c) `R-VC-1`: bỏ điều kiện `status <> 'retired'` → ca "biển của xe đã ngừng" (xanh) thành vi phạm → đỏ.
+- [ ] **Bước 6: Commit.** "Kiểm bất biến: CCCD một người, chuỗi gia hạn, biển số, nhật ký không số giấy tờ (ADR-0040)".
+
+---
+
+### Task A18: Bài cổng toàn tuyến của tài xế — *siết, có thể bỏ nếu điều phối thấy thừa*
+
+**Lý do giữ:** ADR-0040 D3 "không vào cổng văn phòng, không vào cổng đơn hàng". Bài `cong-quyen` (A2) chỉ khoá **danh sách**. Bài này chứng minh router thật áp danh sách đó với **mọi** route, và buộc quyết định cho mỗi route `staff` mới.
+
+**Tệp:** tạo `src/tai-xe-cong.test.ts`.
+
+- [ ] **Bước 1: Viết bài.**
+  - Nạp route của cả 14 module (esbuild, như `route-access`). Harness với một tài khoản **chỉ `DRIVER`**.
+  - Mỗi route `office` / `orders` / `admin`:
+    - thay `:tham_số` bằng một UUID hợp khuôn, thân `{}`;
+    - kỳ vọng **403**, `error.code` `forbidden` — câu cổng của router, `src/shared/router.ts:212-214`.
+  - Mỗi route `staff`: bảng `BANG_STAFF` ghi **tay** "PHƯƠNG_THỨC đường_dẫn → mã trạng thái kỳ vọng + một câu lý do". Ghi lúc thi công bằng lần chạy đầu, **đọc từng dòng** đối chiếu ADR-0040 D3 ("chỉ đăng nhập, trang Tài khoản, thông báo, giấy tờ của mình"). Ví dụ:
+    - `GET /api/parties/documents/mine` → 200;
+    - `GET /api/dispatch/mine` → 403 (ô `contact.view` none);
+    - `GET /api/locations` → 200 (tên nơi, không nhạy cảm).
+  - Khẳng định tập khoá `BANG_STAFF` = tập route `staff` thật. Route `staff` mới mà chưa quyết cho tài xế → đỏ.
+- [ ] **Bước 2: Chạy** → xanh. Có route `staff` nào trả dữ liệu đơn / khách / tiền cho tài xế → **DỪNG**, báo điều phối (lỗ ngoài kế hoạch).
+- [ ] **Bước 3: P16:** tạm thêm `"DRIVER"` vào `ORDERS_GATE` → các route `orders` đỏ (≠ 403) → hoàn nguyên.
+- [ ] **Bước 4: Commit.** "Bài cổng toàn tuyến: tài khoản chỉ Tài xế bị mọi cổng văn phòng / đơn / quản trị từ chối (ADR-0040 D3)".
+
+---
+
+### Task A19: Màn "khuôn sẵn" — trang Danh mục giấy tờ (không cần bản vẽ)
+
+Danh sách màn ghi "dùng khuôn sẵn, không cần vẽ, trừ khi chủ muốn". Vai "Tài xế công ty" ở màn Quản lý tài khoản **đã tự có** từ Task A2 (`web/role-picker.ts` liệt kê `ROLE_CODES`), kiểm bằng `vai-smoke.mjs`. Task này làm trang danh mục theo **công thức c** của `docs/CHANGE-GUIDE.md` và khuôn `web/locations.ts`.
+
+**Tệp:**
+- Tạo: `public/danh-muc-giay-to.html`, `web/danh-muc-giay-to.ts`, `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/danh-muc-giay-to-smoke.mjs` + `docs/evidence/2026-09-28-van-chuyen-1a/README.md`.
+- Sửa: `package.json` (`build:web`), `src/shared/sw-policy.ts` (`PAGES` + `PRECACHE`), `web/account.ts` (một dòng liên kết).
+
+- [ ] **Bước 1: Kịch bản Chrome đỏ trước** `danh-muc-giay-to-smoke.mjs`, dựng trên `startEnv()` của `docs/evidence/2026-09-20-a2/kich-ban/a2-cdp.mjs`. Trang của tài khoản nào mở **sau cùng** (kho cookie chung, `web/CLAUDE.md:29`).
+  - (a) Quản trị mở trang Tôi → có dòng "Danh mục giấy tờ" → mở được. Thấy ba khối:
+    - "Loại giấy tờ xe" (6 dòng);
+    - "Loại giấy tờ của người" (4);
+    - "Hạng giấy phép lái xe" (8).
+  - (b) Thêm loại giấy tờ người "Thẻ hướng dẫn viên" → hiện ngay.
+  - (c) Sửa tên một hạng → lưu, tải lại vẫn đúng.
+  - (d) Ngưng "Giấy phép lái xe" → câu báo tiếng Việt "không ngưng được", không lộ mã `fixed_type`.
+  - (e) Bán hàng: trang Tôi **không** có dòng; mở thẳng `/danh-muc-giay-to` → câu "Chỉ quản trị viên…", không bảng nào.
+  - (f) axe không vi phạm critical/serious. Ảnh 390 và 1040.
+  - Chạy `npm run build:web`, rồi kịch bản → đỏ (trang chưa có). Ghi nhật ký.
+- [ ] **Bước 2: Mã** — theo đúng công thức c:
+  - `<head>` chép từ `public/locations.html`; `<title>Danh mục giấy tờ — Island Booking System</title>`.
+  - `web/danh-muc-giay-to.ts`:
+    - `const staff = await initShell();`;
+    - không `can(staff, "admin.manage")` → câu báo, dừng;
+    - gọi `GET /api/van-chuyen/meta` và `GET /api/parties/documents/meta`;
+    - mỗi dòng: tên, "có hạn" (không có ở hạng), thứ tự, "đang dùng", nút Lưu (gửi `expectedUpdatedAt`); form "Thêm";
+    - dựng bằng `h()`; ô gõ 16px; CSS chỉ dùng class sẵn có hoặc token.
+  - `package.json`: thêm `web/danh-muc-giay-to.ts` vào lệnh esbuild đầu của `build:web`.
+  - `src/shared/sw-policy.ts`: `PAGES` thêm `"/danh-muc-giay-to"`; `PRECACHE` thêm trang + `"/js/danh-muc-giay-to.js"`.
+  - `web/account.ts:40`: ngay sau dòng "Địa điểm", thêm `can(staff, "admin.manage") && h("a", { class: "row-link", href: "/danh-muc-giay-to" }, "Danh mục giấy tờ", icon("next", 20)),`.
+- [ ] **Bước 3: Xanh:**
+  - `npm test` (`sw-policy.test.ts` so `PAGES` với `public/*.html`);
+  - `npm run build:web`, `npm run typecheck`;
+  - `npm run test:e2e -- pwa`;
+  - kịch bản Chrome bước 1;
+  - `dot-c-smoke.mjs` (bố cục trang Tôi, `web/CLAUDE.md:42`).
+- [ ] **Bước 4: P16:** bỏ điều kiện `can(staff, "admin.manage") &&` ở dòng liên kết → ca (e) đỏ → hoàn nguyên.
+- [ ] **Bước 5: README** bằng chứng: lệnh chạy, số dòng ✓, ảnh, giới hạn (không phải iPhone thật). Ghi rõ "khuôn sẵn — chủ có thể yêu cầu vẽ lại ở Phần B".
+- [ ] **Bước 6: Commit.** "Trang Danh mục giấy tờ cho Quản trị: loại giấy tờ xe, loại giấy tờ của người, hạng giấy phép lái xe (khuôn sẵn, ADR-0040)".
+
+---
+
+### Task A20: E2E `tests/e2e/van-chuyen.mjs`
+
+**Tệp:** tạo `tests/e2e/van-chuyen.mjs`; sửa `tests/e2e/run.mjs:23` (`ALL` thêm `"van-chuyen"` sau `"roles"`), `tests/e2e/README.md` (một dòng).
+
+- [ ] **Bước 1: Viết kịch bản** (khuôn công thức o; dữ liệu độc nhất `randomPhone()`, biển số có `Date.now()`; số giấy tờ **giả**):
+  1. **Tài khoản tài xế:**
+     - Quản trị `POST /api/staff` `{ fullName: "Tài Xế E2E", phone: randomPhone(), roles: ["DRIVER_INTERNAL"] }` → 201, `permissions` = `["DRIVER"]`, có `pin`;
+     - `login(phone, pin)` → `GET /api/auth/me` quyền `["DRIVER"]`.
+  2. **Cổng:** tài xế gọi `/api/orders`, `/api/orders/dashboard`, `/api/parties`, `/api/van-chuyen/xe`, `/api/staff`, `/api/dispatch/mine` → 403 từng cái; `GET /api/parties/documents/mine` → 200 `[]`.
+  3. **Vai đã ngưng:** Quản trị gán vai `DRIVER` cũ cho một hồ sơ → 409 `role_type_inactive`.
+  4. **Giấy tờ người:**
+     - Quản trị thêm CCCD + GPLX (hạng D2, hết hạn sau 10 ngày) cho hồ sơ tài xế → 201, số che;
+     - Bán hàng xem giấy tờ hồ sơ đó → 403;
+     - tài xế xem của mình → hai dòng, số che.
+  5. **Xem đủ số:** Quản trị → đúng số. `sqlRows` nhật ký `party_document_number_viewed` mới nhất: `detail` không có số.
+  6. **Trùng / gia hạn / sửa sai:**
+     - CCCD trùng cho hồ sơ khác → 409 `cccd_taken`;
+     - gia hạn GPLX không gửi số → 201; sửa sai dòng cũ → 409.
+  7. **Xe:**
+     - Quản trị thêm xe → 201; trùng biển → 409;
+     - thêm Kiểm định hết hạn sau 5 ngày;
+     - danh sách sắp hết hạn có Kiểm định và GPLX của tài xế.
+  8. **Ngưỡng:**
+     - Quản trị đổi → 403;
+     - Toàn quyền đổi 7 → danh sách hết GPLX (10 ngày);
+     - Toàn quyền đổi lại 30 (dòng mới) ở `finally`.
+  9. **Nhật ký:** `sqlRows("SELECT count(*) n FROM audit_log WHERE detail LIKE '%<số CCCD>%'")` = 0.
+- [ ] **Bước 2: Chạy:** tắt `wrangler dev` mồ côi; `npm run test:e2e -- van-chuyen parties roles permissions company` → xanh. Rồi `npm run test:e2e` **đủ bộ**: đuôi `audit-invariants --strict` có `R-PTY-2..4`, `R-VC-1..2` đạt.
+- [ ] **Bước 3: P16:** tạm đổi ô `vehicle.manage` của ADMIN thành `none` → bước 7 đỏ → hoàn nguyên.
+- [ ] **Bước 4: Commit.** "E2E Vận chuyển 1a: tài khoản tài xế, giấy tờ, xe, danh sách sắp hết hạn (ADR-0040)".
+
+---
+
+### Task A21: Sổ hàng rào — gom P16 thành dòng mới
+
+**Tệp:** `docs/SO-HANG-RAO.md` (thêm dòng vào bảng, trước mục "Cách thêm dòng").
+
+- [ ] **Bước 1:** Thêm các dòng dưới. Cột "Đã thấy chặn thật" điền từ nhật ký (ngày + phép đột biến + dòng đỏ nguyên văn + hoàn nguyên → xanh). **Không** để trống khi xin kiểm độc lập.
+
+| Hàng rào | Chặn cái gì | Cơ chế | Đã thấy chặn thật | Ghi chú |
+|---|---|---|---|---|
+| Bài ghim hàng `DRIVER` (`src/shared/permissions.test.ts`) + bài "DRIVER không ở cổng nào" (`src/shared/cong-quyen.test.ts`) | Mở lặng lẽ một ô nghiệp vụ cho tài xế; đưa tài xế vào cổng văn phòng / đơn / quản trị | Khoá giá trị từng ô và danh sách cổng | _(điền: A2 bước 9 a, b)_ | Khoá GIÁ TRỊ bảng, không chứng minh route hỏi đúng ô (bài học 24/9) — phần đó ở dòng A16/A18 |
+| `homeRedirect` → `/tai-xe` (`src/shared/start-page.test.ts`) | Tài xế ở lại Trang chủ và gọi dashboard đơn (403) | Hàm thuần + bài 256 tập con "không đổi hành vi" | _(điền: A3 bước 6)_ | Không phủ "gọi sớm theo bản nhớ khung" trên máy dùng chung (một lời gọi 403 bị bỏ) |
+| Lời kiểm "vai đã ngưng" ở `POST /api/parties/:id/roles` + `vai-da-ngung.test.ts` | Gán mới vai hồ sơ đã ngưng (`DRIVER` cũ, STAFF, SALES, GUIDE, AGENT) bằng API | Route 409 `role_type_inactive`; trừ đường đổi công ty chủ | _(điền: A4 bước 6)_ | Chỉ lớp route (không trigger): "ngưng" là luật đổi được, không phải bất biến |
+| Trigger `pty_person_document_cccd_one_person_ins/_upd` (0032) + `R-PTY-2` | Một số CCCD ở hai người, kể cả SQL chạy tay | Trigger + kiểm dữ liệu sau triển khai | _(điền: A5 bước 7; A17 bước 5 a)_ | Dòng đã huỷ không tính |
+| Trigger `…_superseded`, `…_voided`, `…_identity`, `…_renew_ins`, chỉ mục `…_next_uq` (0032, 0033) + `R-PTY-3`, `R-VC-2` | Sửa đè giấy tờ đã gia hạn; sửa dòng đã huỷ; chuyển giấy tờ sang người/xe khác; gia hạn nối sai; tách nhánh | Trigger + chỉ mục duy nhất một phần + kiểm dữ liệu | _(điền: A5, A12 bước 7)_ | Dòng gia hạn nhập nhầm bị huỷ thì dòng trước sống lại (cố ý) |
+| Trigger `…_no_delete` (3 bảng) + `vc_expiry_policy_no_update/_no_delete` | Xoá xe / giấy tờ; sửa hay xoá chính sách ngưỡng | Trigger | _(điền: A5, A12)_ | Mã còn R-N1-9 (không câu `DELETE` đăng ký) |
+| Chỉ mục `vc_vehicle_plate_open_uq`, `vc_vehicle_chassis_uq` + `R-VC-1` | Hai xe chưa ngừng cùng biển; hai xe cùng số khung | Chỉ mục duy nhất một phần | _(điền: A12 bước 7)_ | Số khung bắt buộc chỉ ở mã (Q2) |
+| `can(staff, "party.document.view" / "party.document.write" / "party.document.reveal")` ở route 1–7 + `giay-to-route.test.ts` | Đối tác xem giấy tờ của mình; Bán hàng / Kế toán xem hay ghi giấy tờ người khác; xem đủ số không có ô | Lời hỏi viết thẳng trong thân route; test đòi **đúng 403** | _(điền: A7 bước 6, A8 bước 5, A9 bước 5)_ | Lớp CSDL trả 409 nên "không 2xx" sẽ che lỗ |
+| Luật cấp bậc ở route 4–7 (Q1) | Quản trị ghi / xem đủ số giấy tờ của tài khoản cấp trên | `ctx.partyAccount(id).manageable` | _(điền: A8 bước 5 b, A9 bước 5 c)_ | Bỏ nếu chủ trả lời Q1 = không áp |
+| Thứ tự "ghi nhật ký rồi mới trả số" ở route 7 | Trả số mà không để lại dấu vết | `db.batch` nhật ký trước `return` | _(điền: A9 bước 5 b)_ | — |
+| `can(staff, "vehicle.manage" / "settings.ops" / "admin.manage")` ở route 8–23 + test route | Người không phải Quản trị / Toàn quyền quản lý xe; Quản trị đổi ngưỡng | Lời hỏi viết thẳng; luật (4) hàng rào 2 cho route `admin` | _(điền: A10, A13–A15)_ | — |
+| `src/giay-to-khong-lo-so.test.ts` | Số giấy tờ của người lọt vào nhật ký, danh sách, thân lỗi, trang Nhật ký | Chạy mọi route giấy tờ (danh sách lấy từ mã thật) với số đánh dấu rồi quét | _(điền: A16 bước 3)_ | Không quét Bảng tin / thông báo: route giấy tờ không phát tin (lượt 1a) |
+| `R-PTY-4` (`scripts/audit-checks.mjs`) | Nhật ký production chứa số giấy tờ | SQL chỉ đọc sau mỗi lần triển khai; e2e `--strict` đỏ | _(điền: A17 bước 5 b)_ | Production chỉ cảnh báo (nhật ký chỉ-thêm) |
+| `src/tai-xe-cong.test.ts` (siết) | Route văn phòng / đơn / quản trị mở cho tài xế; route `staff` mới chưa quyết cho tài xế | Gọi mọi route thật bằng tài khoản chỉ `DRIVER` | _(điền: A18 bước 3)_ | Bảng route `staff` ghi tay |
+| Kịch bản Chrome `danh-muc-giay-to-smoke.mjs` + dòng "Tài xế công ty" ở `vai-smoke.mjs` | Trang danh mục hiện cho Bán hàng; vai tài xế không có ở màn tài khoản | Chrome thật (CDP), ngoài `npm test` | _(điền: A19 bước 4, A2 bước 8)_ | Không chạy trong CI |
+
+- [ ] **Bước 2:** `git diff --stat` → chỉ `docs/SO-HANG-RAO.md`. Commit: "Sổ hàng rào: các hàng rào Vận chuyển 1a, kèm ngày thấy chặn thật".
+
+---
+
+### Task A22: Tài liệu mô tả, hoàn thiện đề xuất luật
+
+- [ ] **Bước 1 — sổ dữ liệu:** kiểm lại đủ 7 bảng + module `van-chuyen` (Task A5, A12); `npm run dict`; `npm test`.
+- [ ] **Bước 2 — `docs/SYSTEM-DESIGN.md`** (tài liệu mô tả, thua mã; `grep -n "^#"` rồi sửa đúng mục):
+  - §5: 7 bảng, trigger, chỉ mục, migration 0031–0033;
+  - §7: 23 route mới;
+  - §8: cột `DRIVER`, 4 ô, cổng; vai đã ngưng bị từ chối;
+  - §9: trang `/danh-muc-giay-to` (+ trang Phần B khi xong);
+  - §14: lượt 1b (cuốc xe, xuất bến);
+  - §15 từ vựng: "Tài xế công ty", "giấy tờ hiện hành", "gia hạn", "huỷ dòng nhập nhầm";
+  - §17 bản đồ lõi.
+- [ ] **Bước 3 — `docs/CHANGE-GUIDE.md`:**
+  - §1: dòng "Giấy tờ của người / xe / Vận chuyển";
+  - §2 d: "số kế tiếp" = 0034 (0029 vẫn giữ cho Thông báo);
+  - §2 e: `row()` 8 cột; ô mới phải quyết cột `DRIVER` + hai bài ghim; 256 tập con;
+  - §2 u: vai `DRIVER_INTERNAL`; `DRIVER` cũ ngưng; loại vai đã ngưng bị route từ chối;
+  - **công thức mới "y. Giấy tờ (người, xe) / Vận chuyển"**: thêm loại giấy tờ, che số, gia hạn chép số, không số vào nhật ký;
+  - §3: dòng kiểm cho `src/modules/van-chuyen/*`, `src/giay-to-khong-lo-so.test.ts`, `src/tai-xe-cong.test.ts`, migration 0031–0033 (e2e đủ bộ).
+  - §4 bẫy mới:
+    - (1) chữ `DRIVER` ở hai bảng;
+    - (2) số giấy tờ không bao giờ vào `detail`, DTO mặc định, câu báo lỗi;
+    - (3) thêm mã quyền → mọi bài "tập con quyền" nhân đôi;
+    - (4) route giấy tờ mới phải thêm ca vào `TUYEN` của `src/giay-to-khong-lo-so.test.ts`.
+- [ ] **Bước 4 — `tests/e2e/README.md`:** dòng `van-chuyen.mjs`.
+- [ ] **Bước 5 — đề xuất luật** `docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md`: điền số dòng thật lúc đó cho mục 2–5; điền mục 4a (dòng `web/CLAUDE.md` của Task A19). **Không tự sửa** các tệp luật (N9).
+- [ ] **Bước 6 — nhật ký thi công:** bảng task, Ruling mới, nợ.
+- [ ] **Bước 7:** Commit "Tài liệu Vận chuyển 1a Phần A: sổ dữ liệu, thiết kế hệ thống, cẩm nang; đề xuất sửa luật chờ chủ duyệt".
+
+---
+
+### Task A23: Kiểm toàn bộ Phần A (người thi công — tự khai, chưa phải nghiệm thu)
+
+- [ ] `npm test`, `npm run typecheck`, `npm run build:web` → xanh / 0 lỗi. Ghi số test.
+- [ ] Tắt `wrangler dev` mồ côi; `npm run test:e2e` đủ bộ. Đuôi `audit-invariants --strict` đạt, có năm kiểm mới.
+- [ ] `npm run db:migrate:local` → `node scripts/audit-invariants.mjs --db local` → "Mọi bất biến đạt".
+- [ ] `node --test "tests/audit/*.test.mjs"` → không đỏ mới so mốc (ca `FINDING` là hành vi cố ý).
+- [ ] Chrome: `vai-smoke`, `dot-a-smoke`, `trang-chu-smoke`, `dot-c-smoke`, `danh-muc-giay-to-smoke` → xanh trên đỉnh nhánh.
+- [ ] Ghi tất cả vào nhật ký mục "Kết quả kiểm của người thi công (tự khai)".
+
+### Task A24: Kiểm độc lập giữa chừng Phần A — *khuyến nghị, điều phối quyết*
+
+- [ ] Giao `subagent_type: nguoi-kiem-doc-lap` (không phải người thi công). Đầu vào: kế hoạch, nhật ký, `git diff <mốc>...<nhánh>`. Việc phải làm:
+  1. Đọc mã thật **mọi** route 1–23: lời hỏi ô đúng, đứng trước đọc thân, dẫn tới `return`.
+  2. Tự chạy lại `npm test`, `npm run typecheck`, và các test mới của Task A2–A18.
+  3. Tự làm ít nhất **năm** phép đột biến của Task A21 trên bản sao (không commit) và thấy đỏ.
+  4. Kiểm ba migration:
+     - không số viết tay;
+     - tên trigger `pty_` / `vc_`;
+     - tên tệp không phải B5;
+     - `db:migrate:local` áp được.
+  5. Kiểm `parties/index.ts` xuất **đúng một** hàm mới cho module khác.
+  6. Phán các điểm ở mục 14:
+     - phạm vi lời kiểm "vai đã ngưng";
+     - lọc báo cáo theo vai trong `expiringDriverDocuments`;
+     - có giữ Task A18 hay không.
+  7. Đối chiếu tiêu chí mục 3, dòng 1–17.
+- [ ] Người kiểm chỉ báo cáo. Có phát hiện Nghiêm trọng / Quan trọng → quay lại task liên quan trước khi sang Phần B.
+
+---
+
+## 7. PHẦN B — Giao diện: **LÀM KHI CÓ BẢN VẼ** Claude Design của chủ
+
+**Điều kiện bắt đầu:**
+- Chủ gửi link bản vẽ. Chủ vẽ trong dự án "Tour Đảo Booking Design System", theo đoạn yêu cầu ở `docs/superpowers/specs/2026-09-28-van-chuyen-1a-man-hinh-can-ve.md` mục "Nơi vẽ".
+- Phần A đã xong (và đã kiểm A24 nếu điều phối chọn).
+
+**Luật:**
+- **Làm đúng bản vẽ** (tiền lệ trang Đăng nhập: "giao diện lớn → chủ thiết kế trên Claude Design rồi làm đúng 100%").
+- Hai cỡ 390 và 1040.
+- Không `innerHTML`; ô gõ 16px; CSS chỉ token, giá trị mới vào nhóm "Riêng của Tour Đảo Booking" (`web/CLAUDE.md`).
+- Chữ tiếng Việt có dấu, không lộ mã.
+- Giao diện chỉ ẩn/hiện theo `can()`; máy chủ đã chặn ở Phần A.
+- **Bản vẽ cần dữ liệu mà API Phần A chưa có → DỪNG, hỏi điều phối.** Không tự thêm trường vào hợp đồng API.
+
+**Điểm nối API** (đã có ở Phần A):
+
+| # | Màn (danh sách màn) | Trang / tệp dự kiến | API | Ẩn/hiện theo |
+|---|---|---|---|---|
+| 1 | Danh sách xe | `/xe` — `public/xe.html`, `web/xe.ts` | `GET /api/van-chuyen/xe` (`alert`); lọc trạng thái ở trình duyệt | `can(staff, "vehicle.manage")` |
+| 2 | Thêm / sửa xe | trong `/xe` (bảng trượt) hoặc `/xe-sua` — theo bản vẽ | `POST /api/van-chuyen/xe`, `PUT /api/van-chuyen/xe/:id` (`expectedUpdatedAt`); "Ngừng dùng" = `PUT` `status: "retired"`; lỗi `plate_taken` / `chassis_taken` / `stale` hiện câu của máy chủ | như trên |
+| 3 | Chi tiết xe + giấy tờ xe | `/xe-chi-tiet?id=` | `GET /api/van-chuyen/xe/:id`; `POST …/giay-to`, `…/gia-han`, `…/sua-sai`; loại từ `GET /api/van-chuyen/meta`; lý do từ `LY_DO_SUA_SAI` (lọc `choXe`) của `src/shared/giay-to.ts` | như trên |
+| 4 | Giấy tờ của một người (Danh bạ) | khối mới trong `openDetail` của `web/parties.ts`, chỉ hồ sơ cá nhân | `GET /api/parties/:id/documents`; `POST …/documents`, `…/renew`, `…/correct`; "Xem đủ số" → `POST …/reveal`, câu xác nhận "Việc xem sẽ được ghi nhật ký", số chỉ hiện tạm (đóng khối là ẩn, không lưu vào `localStorage`) | khối: `party.document.write`; nút xem đủ số: `party.document.reveal` |
+| 5 | Giấy tờ của tôi | khối ở trang Tôi (`web/account.ts`, `public/account.html`) | `GET /api/parties/documents/mine` | `can(staff, "party.document.view", { ownerId: staff.id })` |
+| 6 | Giấy tờ sắp hết hạn | `/giay-to-sap-het-han` | `GET /api/van-chuyen/sap-het-han`; ô đổi mốc → `POST /api/van-chuyen/nguong-het-han`; bấm dòng xe → `/xe-chi-tiet?id=`, dòng người → hồ sơ ở Danh bạ (thêm tham số mở hồ sơ theo id nếu `web/parties.ts` chưa có) | trang: `vehicle.manage`; ô mốc: `settings.ops` |
+| 7 | Trang đầu tài xế | `/tai-xe` — `public/tai-xe.html`, `web/tai-xe.ts` (`TRANG_DAU_TAI_XE`) | `GET /api/parties/documents/mine` (tóm tắt hạn) + khung "Cuốc xe của bạn sẽ hiện ở đây" | trang của tài khoản chỉ `DRIVER` (`homeRedirect`) |
+| 8 | Menu | `web/shell.ts`: mục "Vận chuyển" (Sidebar máy tính; thanh tab theo bản vẽ). Tài xế: thanh tab "Trang chủ" (`/tai-xe`) + "Tôi" | — | "Vận chuyển": `vehicle.manage`; tab tài xế: `homeRedirect(staff) === TRANG_DAU_TAI_XE` |
+
+**Task Phần B:**
+- **B0.** Nhận bản vẽ; đối chiếu từng màn với bảng trên; ghi chỗ lệch (thiếu dữ liệu → hỏi điều phối) vào nhật ký.
+- **B1.** Trang đầu tài xế `/tai-xe` + thanh tab tài xế (màn 7, 8).
+  - Công thức c: `PAGES`, `PRECACHE`, `build:web`, `<head>` iOS.
+  - Chrome: tài xế đăng nhập → `/` chuyển `/tai-xe`, **không** có yêu cầu `/api/orders/dashboard` (đọc `page.requests`), thấy giấy tờ của mình số che, thanh tab chỉ hai mục.
+- **B2.** Danh sách xe + thêm / sửa / ngừng (màn 1, 2); menu "Vận chuyển" (màn 8).
+- **B3.** Chi tiết xe + giấy tờ xe (màn 3).
+- **B4.** Giấy tờ của một người trong Danh bạ (màn 4). Chrome:
+  - Bán hàng không thấy khối;
+  - Quản trị thấy số che; "Xem đủ số" có câu xác nhận, số hiện rồi ẩn;
+  - nhật ký có dòng.
+- **B5.** "Giấy tờ của tôi" ở trang Tôi (màn 5). Chrome: nhân viên có giấy tờ thấy số che; Đối tác không thấy khối.
+- **B6.** Giấy tờ sắp hết hạn (màn 6): ô mốc chỉ Toàn quyền; dòng hết hạn tô đỏ bằng token có sẵn.
+- **B7.** Nếu chủ muốn vẽ lại trang Danh mục giấy tờ (A19) thì làm theo bản vẽ.
+- **B8.** Mỗi màn một kịch bản Chrome ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (390 + 1040, axe, P16 cho mỗi điều kiện ẩn/hiện).
+  - README bằng chứng.
+  - Thêm các dòng `web/CLAUDE.md` vào **mục 4b** của tệp đề xuất luật.
+  - `npm run test:e2e -- pwa`.
+- Mỗi task B: test đỏ trước (kịch bản Chrome), xanh sau, commit riêng.
+
+---
+
+## 8. Kết thúc (sau Phần A + Phần B)
+
+### Task K1: Nhật ký thay đổi — số bản chốt LÚC GỘP (tạm 1.35)
+
+- [ ] **Chọn số.**
+  - Đọc mục đầu `CHANGELOG` trên `main` mới nhất (`src/shared/changelog.ts:16` hôm nay là 1.34).
+  - Kiểm nhánh đang xếp hàng có sửa tệp đó: `git log --oneline main..<nhánh> -- src/shared/changelog.ts`.
+  - Lấy số trống kế tiếp (tạm **1.35**).
+- [ ] **Mục mới** (lời thường, ≤ 160 ký tự mỗi gạch, không chữ kỹ thuật). Gợi ý:
+  - `moi`: "Quản trị quản lý xe của công ty: biển số, số người được chở, giấy tờ xe và ngày hết hạn."
+  - `moi`: "Giấy tờ của nhân viên (căn cước, bằng lái, khám sức khoẻ) lưu trong hồ sơ; số luôn được che."
+  - `moi`: "Có tài khoản cho tài xế công ty; tài xế xem được giấy tờ và hạn giấy tờ của mình."
+  - `moi`: "Danh sách giấy tờ sắp hết hạn của xe và tài xế, mặc định nhắc trước 30 ngày."
+  - Sửa chuỗi kỳ vọng `formatReleaseLine` ở `src/shared/app-info.test.ts:21` **cùng commit**.
+- [ ] `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts`, rồi `node scripts/kiem-phien-ban.mjs` (GET công khai, chỉ đọc) → thoát 0.
+- [ ] Commit "Nhật ký thay đổi <số>: phân hệ Vận chuyển lượt 1a".
+
+### Task K2: Người kiểm độc lập (chỉ đọc) — BẮT BUỘC
+
+- [ ] Giao `subagent_type: nguoi-kiem-doc-lap`. Đầu vào: kế hoạch, nhật ký, `git diff main...<nhánh>`. Việc phải làm:
+  1. Mọi việc của Task A24 (nếu A24 đã làm: chỉ kiểm phần đổi sau đó, cộng phần B).
+  2. Phần B:
+     - mỗi màn đúng bản vẽ (so ảnh 390 / 1040);
+     - không `innerHTML`; CSS chỉ token;
+     - nút ẩn/hiện khớp ô quyền;
+     - số đầy đủ không bao giờ nằm trong DOM khi chưa bấm "Xem đủ số", không ghi vào `localStorage`.
+  3. Tự chạy lại `npm test`, `npm run typecheck`, `npm run test:e2e` (nếu có mạng), và ít nhất hai kịch bản Chrome Phần B.
+  4. Đối chiếu tiêu chí mục 3, từng dòng 1–18.
+  5. Xác nhận tệp đề xuất luật đầy đủ, và **chủ đã duyệt** trước khi đưa lệnh gộp.
+- [ ] Người kiểm chỉ báo cáo. Điều phối ghi kết quả vào nhật ký mục "Kiểm độc lập". Phát hiện Nghiêm trọng / Quan trọng → quay lại task, rồi kiểm lại phạm vi sửa.
+
+### Task K3: Gộp và phát hành (chủ dự án tự chạy — AI chỉ chuẩn bị)
+
+- [ ] **AI kiểm lại trước khi đưa lệnh:**
+  - chủ đã trả lời Q1, Q2 (hoặc chấp nhận mặc định);
+  - chủ đã **duyệt** tệp đề xuất luật;
+  - chủ đã chạy truy vấn đếm vai `DRIVER` cũ (mục 9 bước 4).
+- [ ] Sửa các tệp luật **đúng như diff đã duyệt**, mỗi tệp một commit. Đổi chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` thành "đã duyệt <ngày>" (tiền lệ Ruling D21 của T2b).
+- [ ] Đưa chủ lệnh gộp và lệnh triển khai (mục 9 bước 5–6). **Có migration 0031–0033** ⇒ **cần `npm run trien-khai`** sau `day-len`.
+- [ ] Sau khi chủ báo xong, AI kiểm bằng lệnh chỉ đọc và GET công khai:
+  - `node scripts/kiem-phien-ban.mjs --sau-deploy`;
+  - `curl -s -o /dev/null -w "%{http_code}" https://booking.tourdao.vn/api/van-chuyen/xe` → **401** (route có, chưa đăng nhập);
+  - ghi trạng thái vào `docs/HANDOFF-N1.md` trên một nhánh ghi trạng thái.
+
+---
+
+## 9. Việc của chủ dự án (gom một lần)
+
+1. **Trả lời hai câu hỏi** ở mục 12. Không chặn thi công; chưa trả lời thì làm theo mặc định.
+2. **Vẽ bảy màn** trên Claude Design theo `docs/superpowers/specs/2026-09-28-van-chuyen-1a-man-hinh-can-ve.md` và gửi link. Phần B bắt đầu khi có link.
+3. **Duyệt đề xuất sửa luật** `docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md` trước khi gộp.
+4. **Trước khi triển khai — chạy một truy vấn CHỈ ĐỌC** (Ruling R1): đếm hồ sơ đang giữ vai "Tài xế" cũ. Truy vấn chỉ in **số lượng**, không in tên. Chạy trong ứng dụng Terminal, ở thư mục repo gốc:
+
+```
+cd /Users/tuanbao/Documents/Projects/ctytnhhtourdao/tourdao-sales
+```
+
+```
+npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT (SELECT count(*) FROM pty_party_role WHERE role_type_code = 'DRIVER' AND valid_to_date IS NULL) AS dang_giu_vai_tai_xe_cu, (SELECT count(*) FROM pty_party_role WHERE role_type_code = 'DRIVER') AS tong_so_dong"
+```
+
+   - Chép hai con số gửi lại cho AI.
+   - Ý nghĩa: số hồ sơ còn mang vai "Tài xế" cũ. Lượt 1a **không đổi** các dòng đó, chỉ không cho gán mới.
+   - Nếu các người đó là tài xế công ty thì sau khi phát hành, tạo tài khoản cho họ với vai "Tài xế công ty" trên chính hồ sơ có sẵn (màn Quản lý tài khoản).
+5. **Gộp nhánh** (Terminal, thư mục repo gốc như trên): `npm run day-len -- <tên nhánh thi công>`
+6. **Triển khai** (cần, vì có đổi app và migration 0031–0033): `npm run trien-khai`
+7. **Thử tay sau triển khai:**
+   - Quản trị tạo tài khoản "Tài xế công ty", nhập căn cước + bằng lái cho người đó (số hiện che);
+   - tài xế đăng nhập trên **iPhone thật**, thấy trang đầu và giấy tờ của mình;
+   - Quản trị thêm một xe và giấy tờ xe; xem danh sách sắp hết hạn;
+   - Bán hàng mở hồ sơ người đó: không thấy giấy tờ.
+
+## 10. Trang ghép (`CLAUDE.md` §9 — cập nhật từ trang ghép của ADR-0040 bằng tên thật)
+
+| Hỏi | Trả lời |
+|---|---|
+| Bảng nào chứa những loại thực thể nào? | `pty_person_document`: giấy tờ của **người** (chỉ hồ sơ cá nhân; CCCD, GPLX, khám sức khoẻ, tập huấn; có số — dữ liệu cá nhân). `pty_person_document_type`, `pty_license_class`: danh mục. `pty_role_type`: thêm vai tài khoản `DRIVER_INTERNAL`; `DRIVER` cũ ngưng. `stf_permission_type`: thêm quyền `DRIVER`. `vc_vehicle`: xe công ty (chủ = hồ sơ công ty chủ). `vc_vehicle_document`: giấy tờ xe. `vc_vehicle_document_type`: danh mục. `vc_expiry_policy`: chính sách ngưỡng. `audit_log`: 12 hành động mới, **không số giấy tờ**. |
+| Dòng bản đồ quyền nào chạm các bảng đó, áp cho loại nào? | **`party.view` / `party.write` / `party.staff.write`: KHÔNG mở giấy tờ.** `party.document.view` (mọi nhân viên nội bộ, phạm vi của mình; Đối tác không): giấy tờ **của chính mình**, số che. `party.document.write` (Quản trị + Toàn quyền, cộng luật cấp bậc — Q1): ghi giấy tờ người + xem danh sách (số che) của người khác. `party.document.reveal` (Quản trị + Toàn quyền, cộng cấp bậc): số đầy đủ, mỗi lần một dòng nhật ký. `vehicle.manage` (Quản trị + Toàn quyền): xe, giấy tờ xe, danh sách sắp hết hạn (cả dòng giấy tờ tài xế — không số). `admin.manage`: ba danh mục. `settings.ops` (chỉ Toàn quyền): ngưỡng. Cột `DRIVER`: mọi ô `none` trừ góp ý và `party.document.view`. |
+| Cổng nào canh cửa nào? | Route 1 (`staff`) + ô `own`. Route 2–7, 12–19, 23 (`office` — Bán hàng, Kế toán, Quản trị, Toàn quyền) + ô trong thân. Route 8–11, 20–22 (`admin`) + ô viết thẳng (luật 4). `DRIVER` không ở cổng `office` / `orders` / `admin`. CSDL: trigger CCCD, không sửa đè, không xoá, gia hạn đúng chuỗi; chỉ mục biển số / số khung. DTO che số; số đầy đủ chỉ ở route 7. Kiểm dữ liệu `R-PTY-2..4`, `R-VC-1..2` sau triển khai. |
+
+## 11. Hoàn tác
+
+**Lùi Worker về bản trước sau khi 0031–0033 đã áp: an toàn về dữ liệu.**
+- Migration chỉ thêm. Mã cũ không đọc bảng mới.
+- **Tài khoản tài xế** dưới mã cũ:
+  - `isPermissionCode("DRIVER")` sai nên quyền `DRIVER` bị lọc bỏ (`src/modules/staff/repository.ts:30`); tài xế đăng nhập được nhưng không có quyền nào;
+  - vai `DRIVER_INTERNAL` không có trong `ROLE_CODES` cũ, nên màn tài khoản hiện "chưa gán vai" cho người đó.
+- **Mã vai `DRIVER` cũ** vẫn `active = 0`: mã cũ chỉ ẩn nó khỏi ô "Thêm công việc", không lỗi.
+- Chấp nhận được. Chủ quyết có lùi hay không.
+
+**Gỡ migration:** D1 không có lệnh "lùi migration". Gỡ bảng / trigger phải bằng **migration mới** và là quyết định mới (ADR).
+
+**Time Travel:** `npm run trien-khai` in lệnh khôi phục điểm trước khi áp. Chủ tự quyết.
+
+## 12. CÂU HỎI CHO CHỦ
+
+Chỉ điều **vượt khung ADR-0040**. Cả hai **không chặn** task nào; chưa trả lời thì làm theo mặc định. Mỗi câu một lời thường, rồi phương án.
+
+**Q1 — Quản trị có được nhập giấy tờ và "xem đủ số" giấy tờ của tài khoản cấp trên không?** (tài khoản Quản trị khác, và tài khoản của chủ)
+- (a) **Không** — áp luật "chỉ tự mình hoặc cấp dưới" đang có cho tài khoản và vai (ADR-0014 điều 8, ADR-0019 Q11). Quản trị vẫn làm được cho mọi tài xế, nhân viên thường và người không có tài khoản.
+- (b) **Có** — Quản trị làm được cho mọi người, như ADR-0040 ghi "Quản trị + Toàn quyền" mà không nói cấp bậc.
+- **Khuyến nghị và mặc định (a)**: số căn cước của người quản trị cũng là dữ liệu cá nhân, và luật cấp bậc đã áp cho mọi việc khác trên tài khoản cấp trên. Chọn (b) thì bỏ một điều kiện ở Task A8, A9.
+
+**Q2 — Thêm xe có bắt buộc số khung không?**
+- (a) **Bắt buộc** (số khung in trên giấy đăng ký xe; ADR gọi nó là "định danh bền").
+- (b) **Không bắt buộc** (thêm được xe khi chưa có giấy tờ trong tay; số khung, nếu nhập, vẫn không được trùng).
+- **Khuyến nghị và mặc định (a).** Kế hoạch để cột trong cơ sở dữ liệu **được trống**, chỉ máy chủ bắt buộc. Đổi sang (b) chỉ sửa một luật ở Task A13, không phải dựng lại bảng.
+
+## 13. Giả định đã ghi (P8 — bề mặt, đảo ngược được; chủ không cần trả lời trừ khi muốn đổi)
+
+- **G1:** Khoá chính ba bảng danh mục là mã (`code`), không `id` UUID; mọi tính chất khác theo khuôn `loc_location` (mục 1.1).
+- **G2:** Mã loại giấy tờ tiếng Anh (`CCCD`, `GPLX`, `HEALTH_CHECK`…, `INSPECTION`…); không bao giờ hiện ra người dùng.
+- **G3:** **Che số mọi loại giấy tờ của người**, không riêng CCCD / GPLX (siết hơn ADR).
+- **G4:** Giấy tờ **xe** hiện đủ số (không phải dữ liệu cá nhân), nhưng **nhật ký** giấy tờ xe cũng không ghi số, cho một luật chung.
+- **G5:** Sửa sai = **một** trường theo **một** lý do trong danh sách đóng. "Nhập nhầm cả dòng" = huỷ dòng (không xoá) — là một lý do của "sửa sai" (ADR-0040 D1, D2).
+- **G6:** `has_expiry = 1` cho phép để trống ngày hết hạn (= không hạn); giấy để trống không lên danh sách sắp hết hạn.
+- **G7:** "Người lái" trong danh sách sắp hết hạn = hồ sơ đang dùng, đang mở vai "Tài xế công ty". Lọc **báo cáo** trong `parties`, không phải điều kiện cho phép.
+- **G8:** GPLX một hạng một dòng; bằng có nhiều hạng thì nhập nhiều dòng cùng số. Chỉ CCCD có luật "một số một người".
+- **G9:** Xe đã ngừng: dùng lại được (`PUT` trạng thái), miễn biển chưa thuộc xe khác chưa ngừng; không thêm / gia hạn giấy tờ cho xe đã ngừng.
+- **G10:** Ngưỡng đổi có hiệu lực **ngay** (không đặt ngày tương lai); chỉ-thêm.
+- **G11:** Tài xế giữ **góp ý / báo lỗi** như mọi tài khoản (Ruling R2 — ô "mọi tài khoản đăng nhập", không phải ô nghiệp vụ).
+- **G12:** Nhãn nhóm nhật ký mới là "Xe"; `detail` mở đầu bằng biển số (trang Nhật ký không có nhãn đối tượng cho xe).
+
+## 14. Tự rà kế hoạch (người lập kế hoạch, 2026-09-28) — điểm không chắc
+
+- **Đã có đủ** chín điểm của lời giao việc (mục 1.1–1.9) và năm Ruling R1–R5 (mục 0). Mỗi điểm dẫn `tệp:dòng` đo trên `9ead2e7`.
+- **Không chứa** số giấy tờ, SĐT thật. Số trong kế hoạch là số giả. Lệnh cho chủ chỉ in số lượng.
+
+**Chỗ chưa chắc, để người kiểm độc lập / điều phối xem:**
+1. **D1 chưa đọc thử ba migration.** Nháp chỉ chứng minh ngữ nghĩa SQLite (`node:sqlite`, 51 ca đạt). D1 được chứng minh ở `npm run db:migrate:local` (Task A5 bước 6, A12 bước 6) và e2e.
+   - Mọi trigger giữ khuôn **một câu** như migration hiện có. Tiền lệ `0030` (đã lên production) có thân trigger chứa dấu `;`.
+2. **Phạm vi lời kiểm "vai đã ngưng" (Task A4):**
+   - áp cho mọi loại đã ngưng (STAFF / SALES / GUIDE / AGENT / `DRIVER`), không riêng `DRIVER`;
+   - khớp ý 0024 nhưng đổi hành vi một route đang có;
+   - điều phối muốn hẹp thì đổi một điều kiện.
+3. **Lọc theo vai trong `expiringDriverDocuments`** (G7): lọc báo cáo trong `parties`, không phải điều kiện cho phép. Người kiểm đối chiếu ADR-0001:21 ("không lấy vai làm cổng chọn người") và phán.
+4. **`vai-smoke.mjs:34`** khoá 11 ô vai trong khi `ROLE_CODES` hôm nay có 12. Có thể đã đỏ sẵn; Task A0 đo.
+5. **Task A18** (bài cổng toàn tuyến) và phần "đủ tuyến" của Task A16 là **siết** thêm ngoài ADR. Điều phối có thể bỏ A18 nếu thấy thừa. Phần "đủ tuyến" của A16 nên giữ, vì nó giữ hàng rào ADR-0040 yêu cầu còn phủ route giấy tờ mới.
+6. **Cạnh "gọi sớm theo bản nhớ khung"** (`web/home.ts:243`): tài xế trên máy dùng chung với văn phòng có thể gây một lời gọi dashboard 403 bị bỏ qua. Cùng loại với tài khoản Đối tác hôm nay, không lộ dữ liệu.
+7. **Số route** thành 109 (`route-access`). Hai nhánh gộp song song đều thêm route thì phải gộp tay SNAPSHOT.
+8. **Nhánh Thông báo đính kèm (`0029`)** chưa tồn tại. Nếu nó gộp trước và đổi `contracts.ts` / sổ dữ liệu thì gộp tay; số `0031`–`0033` không đổi.
