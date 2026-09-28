@@ -85,36 +85,53 @@ assert.equal((await call(TOAN_QUYEN, "GET", P())).body.party.editable, true);
 const suaThan = (ten) => ({ displayName: ten, legalName: chiTiet.legalName, taxCode: chiTiet.taxCode, address: chiTiet.address, invoiceEmail: chiTiet.invoiceEmail, active: chiTiet.active, expectedUpdatedAt: chiTiet.updatedAt });
 const vaiCongTyChu = chiTiet.roles.find((x) => x.roleTypeCode === "OWNER_COMPANY" && x.validTo === null);
 assert.ok(vaiCongTyChu, "hồ sơ công ty chủ có dòng vai Công ty chủ đang mở");
-r = await call(SALES, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: `Đại lý T2b ${String(Date.now()).slice(-6)}` });
-assert.equal(r.status, 201, JSON.stringify(r.body));
-const khac = r.body.party.id;
-const nhatKy = async (id) => (await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`))[0].n;
-const truocNhatKy = [await nhatKy(ho.id), await nhatKy(khac)];
-for (const [ai, cookie, cach, method, path, body] of [
-  ["Bán hàng", SALES, "sửa tên", "PUT", P(), suaThan("Kẻ Mạo Danh")],
-  ["Bán hàng", SALES, "thêm liên hệ", "POST", P("/contacts"), { kind: "PHONE", value: "0911222333" }],
-  ["Quản trị", ADMIN, "sửa tên", "PUT", P(), suaThan("Kẻ Mạo Danh")],
-  ["Quản trị", ADMIN, "thêm liên hệ", "POST", P("/contacts"), { kind: "PHONE", value: "0911222333" }],
-  ["Quản trị", ADMIN, "đóng Hotline", "POST", P(`/contacts/${hotline.id}/end`), {}],
-  ["Quản trị", ADMIN, "thêm Khách hàng lên công ty chủ", "POST", P("/roles"), { roleTypeCode: "CUSTOMER" }],
-  ["Quản trị", ADMIN, "gán Công ty chủ cho hồ sơ khác", "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "OWNER_COMPANY" }],
-  ["Quản trị", ADMIN, "kết thúc vai Công ty chủ", "POST", P(`/roles/${vaiCongTyChu.id}/end`), {}],
-]) {
-  r = await call(cookie, method, path, body);
-  assert.equal(r.status, 403, `${ai} ${cach}: ${JSON.stringify(r.body)}`);
-  assert.doesNotMatch(JSON.stringify(r.body), /Toàn quyền|SQLITE|constraint|UNIQUE/i, `${ai} ${cach}: chữ lỗi`);
+// Mọi lệnh GHI của khối này nằm trong try/finally (người kiểm độc lập T2b): `finally` khôi phục tên + Hotline của hồ sơ công ty chủ (phòng khi một ca 403
+// hỏng mà lọt ghi) và cho hồ sơ tạm "Đại lý T2b" ngưng dùng (không xoá cứng). Dòng nhật ký là chỉ-thêm (trigger audit_append_only) — không xoá được, cố ý.
+let khac = null;
+try {
+  r = await call(SALES, "POST", "/api/parties", { kind: "ORGANIZATION", displayName: `Đại lý T2b ${String(Date.now()).slice(-6)}` });
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  khac = r.body.party.id;
+  const nhatKy = async (id) => (await sqlRows(`SELECT count(*) AS n FROM audit_log WHERE target_id = '${id}'`))[0].n;
+  const truocNhatKy = [await nhatKy(ho.id), await nhatKy(khac)];
+  for (const [ai, cookie, cach, method, path, body] of [
+    ["Bán hàng", SALES, "sửa tên", "PUT", P(), suaThan("Kẻ Mạo Danh")],
+    ["Bán hàng", SALES, "thêm liên hệ", "POST", P("/contacts"), { kind: "PHONE", value: "0911222333" }],
+    ["Quản trị", ADMIN, "sửa tên", "PUT", P(), suaThan("Kẻ Mạo Danh")],
+    ["Quản trị", ADMIN, "thêm liên hệ", "POST", P("/contacts"), { kind: "PHONE", value: "0911222333" }],
+    ["Quản trị", ADMIN, "đóng Hotline", "POST", P(`/contacts/${hotline.id}/end`), {}],
+    ["Quản trị", ADMIN, "thêm Khách hàng lên công ty chủ", "POST", P("/roles"), { roleTypeCode: "CUSTOMER" }],
+    ["Quản trị", ADMIN, "gán Công ty chủ cho hồ sơ khác", "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "OWNER_COMPANY" }],
+    ["Quản trị", ADMIN, "kết thúc vai Công ty chủ", "POST", P(`/roles/${vaiCongTyChu.id}/end`), {}],
+  ]) {
+    r = await call(cookie, method, path, body);
+    assert.equal(r.status, 403, `${ai} ${cach}: ${JSON.stringify(r.body)}`);
+    assert.doesNotMatch(JSON.stringify(r.body), /Toàn quyền|SQLITE|constraint|UNIQUE/i, `${ai} ${cach}: chữ lỗi`);
+  }
+  r = await call(TOAN_QUYEN, "POST", P(`/roles/${vaiCongTyChu.id}/end`), {});
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "owner_company_locked");
+  assert.doesNotMatch(JSON.stringify(r.body), /Toàn quyền|SQLITE|constraint|RAISE/i);
+  // Ruling D17 (b): hồ sơ công ty chủ không ngưng dùng được, kể cả người giữ ô.
+  r = await call(TOAN_QUYEN, "PUT", P(), { ...suaThan(chiTiet.displayName), active: false });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "owner_company_keep_active");
+  // Ruling T8: đổi sang hồ sơ thiếu thông tin → 409 nêu mục thiếu (không đổi gì).
+  r = await call(TOAN_QUYEN, "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "owner_company_incomplete");
+  assert.deepEqual([await nhatKy(ho.id), await nhatKy(khac)], truocNhatKy, "403/409 không ghi nhật ký");
+  // Lớp CSDL trên D1 thật (local): SQL gõ tay đóng dòng công ty chủ cuối cùng bị trigger *_keep_last chặn (không đổi gì).
+  await assert.rejects(sql("UPDATE pty_party_role SET valid_to_date = valid_from_date WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL"), /owner_company_last_open/);
+  assert.equal((await sqlRows("SELECT count(*) AS n FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL"))[0].n, 1, "vẫn đúng một công ty chủ");
+  r = await call(TOAN_QUYEN, "PUT", P(), suaThan(chiTiet.displayName));
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  assert.equal((await call(ADMIN, "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "CUSTOMER" })).status, 201, "không chặn quá tay: hồ sơ tổ chức thường");
+  assert.deepEqual((await call(null, "GET", "/api/company")).body.company, company, "không có gì đổi trên biên nhận");
+} finally {
+  await sql(`UPDATE pty_party SET display_name = ${quote(ho.display_name)} WHERE id = '${ho.id}'`);
+  await sql(`UPDATE pty_contact_point SET valid_to_date = NULL WHERE id = '${hotline.id}'`);
+  if (khac) await sql(`UPDATE pty_party SET active = 0 WHERE id = '${khac}'`);
 }
-r = await call(TOAN_QUYEN, "POST", P(`/roles/${vaiCongTyChu.id}/end`), {});
-assert.equal(r.status, 409, JSON.stringify(r.body));
-assert.equal(r.body.error.code, "owner_company_locked");
-assert.doesNotMatch(JSON.stringify(r.body), /Toàn quyền|SQLITE|constraint|RAISE/i);
-assert.deepEqual([await nhatKy(ho.id), await nhatKy(khac)], truocNhatKy, "403/409 không ghi nhật ký");
-// Lớp CSDL trên D1 thật (local): SQL gõ tay đóng dòng công ty chủ cuối cùng bị trigger *_keep_last chặn (không đổi gì).
-await assert.rejects(sql("UPDATE pty_party_role SET valid_to_date = valid_from_date WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL"), /owner_company_last_open/);
-assert.equal((await sqlRows("SELECT count(*) AS n FROM pty_party_role WHERE role_type_code = 'OWNER_COMPANY' AND valid_to_date IS NULL"))[0].n, 1, "vẫn đúng một công ty chủ");
-r = await call(TOAN_QUYEN, "PUT", P(), suaThan(chiTiet.displayName));
-assert.equal(r.status, 200, JSON.stringify(r.body));
-assert.equal((await call(ADMIN, "POST", `/api/parties/${khac}/roles`, { roleTypeCode: "CUSTOMER" })).status, 201, "không chặn quá tay: hồ sơ tổ chức thường");
-assert.deepEqual((await call(null, "GET", "/api/company")).body.company, company, "không có gì đổi trên biên nhận");
 console.log("✓ quyền: Bán hàng/Quản trị 403 ở sửa, liên hệ, công việc, gán Công ty chủ; kết thúc vai → 409 kể cả Toàn quyền; không nhật ký; vẫn đúng một");
 console.log("E2E COMPANY OK");
