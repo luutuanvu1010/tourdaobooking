@@ -4,6 +4,7 @@
 - **Người soạn:** phiên lập kế hoạch Vận chuyển 1a (nhánh `worktree-agent-ac0436b2bbf204613`).
 - **Người thi công** bổ sung số dòng thật và mục 4b ở Task A22 / B8 của kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md`.
   - **Task A22 (người thi công Phần A, 2026-09-28):** số dòng mục 1–5 đo lại trên nhánh thi công `worktree-agent-a9cf548897a76b7f7` @ `fedffdf` (tệp luật mục 2–5 không đổi so với `c276848` — nhánh không sửa chúng). Mục 4a **chờ Phần B** (Task A19 hoãn — trang Danh mục giấy tờ chưa dựng). Thêm mục 4c, 4d (hai dòng bảng Chrome cho mã Phần A đã chạm).
+  - **Task B8 (người thi công Phần B, 2026-09-28):** điền 4a (Task A19 đã làm ở Phần B) và 4b; theo Ruling R23 của điều phối, 4c gộp vào 4b.
 - **Vì sao có tệp này:**
   - Hiến pháp N9: AI không tự sửa luật chi phối chính mình.
   - Điều 9.4: hàng rào đã duyệt chỉ được SIẾT; muốn NỚI phải có chủ duyệt.
@@ -149,12 +150,7 @@ Lý do: chữ `DRIVER` nằm ở hai bảng khác nghĩa. Người sau dễ đ�
 +| Trang Danh mục giấy tờ (khuôn sẵn trang Địa điểm — bản vẽ Vận chuyển không vẽ màn này): `web/danh-muc-giay-to.ts`, `public/danh-muc-giay-to.html`, dòng "Danh mục giấy tờ" ở `web/account.ts` (ADR-0040) | `danh-muc-giay-to-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (6 bước: Quản trị ba khối 6 / 4 / 8 dòng, thêm, sửa, ngưng loại hệ thống cần → câu tiếng Việt; Bán hàng không thấy; 390 + 1040, không cần mạng ngoài) + `dot-c-smoke.mjs` (bố cục trang Tôi) |
 ```
 
-**4c. Phần A (Task A3, Ruling R10) — dòng mới, đặt ngay sau dòng `web/home.ts` (dòng 46 của `web/CLAUDE.md` trên `fedffdf`).**
-Lý do: `src/shared/start-page.ts` quyết trang đầu cho `web/home.ts` (tài khoản chỉ-`DRIVER` → `TRANG_DAU_TAI_XE`, tạm `/account`); sửa hàm này mà không chạy kịch bản thì "gọi dashboard rồi 403" quay lại mà không ai thấy.
-
-```diff
-+| Trang đầu theo quyền: `src/shared/start-page.ts` (`homeRedirect`, `TRANG_DAU_TAI_XE`), phần chuyển hướng đầu `web/home.ts` | `tai-xe-trang-dau-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (2 bước: 390 + 1040 — tài xế mở "/" về trang đầu của tài xế, không lời gọi `/api/orders*`, không lỗi console) + `trang-chu-smoke.mjs` (người xem mọi đơn vẫn ở Trang chủ) |
-```
+**4c. Gộp vào 4b** (Ruling R23 của điều phối, 2026-09-28): dòng "Trang đầu tài xế" của 4b thay dòng 4c cũ (Phần A, Task A3 — lúc `TRANG_DAU_TAI_XE` còn tạm `/account` và `tai-xe-trang-dau-smoke.mjs` có 2 bước); Phần B đổi hằng sang `/tai-xe` và viết lại kịch bản thành 4 bước. Không còn dòng 4c riêng.
 
 **4d. Phần A (Task A2) — dòng mới cho màn Quản lý tài khoản (vai).**
 Lý do: `vai-smoke.mjs` là kịch bản duy nhất khoá danh sách vai theo nhóm (nay 10 ô, có "Tài xế công ty" ở nhóm Nội bộ) nhưng bảng của `web/CLAUDE.md` chưa có dòng trỏ tới nó. Ghi kèm: Task A2 đã sửa kịch bản cho khớp ADR-0042 (đỏ sẵn ở mốc A0: khoá 11 ô + `.disabled`, mã thật 9 ô ẩn vai cấp cao) — sửa KỊCH BẢN, không sửa mã; P16 thấy chặn thật 2026-09-28 (`docs/SO-HANG-RAO.md`).
@@ -163,7 +159,7 @@ Lý do: `vai-smoke.mjs` là kịch bản duy nhất khoá danh sách vai theo nh
 +| Vai và bộ quyền mặc định ở màn Quản lý tài khoản: `src/shared/roles.ts`, `web/role-picker.ts`, phần chọn vai của `web/staff.ts` | `vai-smoke.mjs` ở `docs/evidence/2026-09-24-mo-hinh-vai/kich-ban/` (ô vai theo nhóm, vai ẩn theo ADR-0042, "Tài xế công ty" ở nhóm Nội bộ → xem trước "Tài xế") + `dot-a-smoke.mjs` |
 ```
 
-**4b. Phần B (Task B8) — người thi công Phần B điền 2026-09-28:** bảy dòng, cuối bảng (sau dòng 4a). Dòng "Trang đầu tài xế" dưới THAY dòng 4c (Phần B đổi `TRANG_DAU_TAI_XE` sang `/tai-xe` và viết lại `tai-xe-trang-dau-smoke.mjs` thành 4 bước) — chủ duyệt dòng này thì bỏ 4c để khỏi trùng.
+**4b. Phần B (Task B8) — người thi công Phần B điền 2026-09-28:** bảy dòng, cuối bảng (sau dòng 4a). Dòng "Trang đầu tài xế" dưới đã thay dòng 4c cũ (4c gộp vào 4b — Ruling R23).
 
 ```diff
 +| Trang đầu tài xế (ADR-0040 D3, bản vẽ 07): `web/tai-xe.ts`, `public/tai-xe.html`, `TRANG_DAU_TAI_XE` / `homeRedirect` của `src/shared/start-page.ts`, phần tài xế của `web/shell.ts` (tab và mục "Trang chủ" → `/tai-xe`) | `tai-xe-trang-dau-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (4 bước, 390 + 1040, không cần mạng ngoài) + `trang-chu-smoke.mjs` (người xem mọi đơn vẫn ở Trang chủ) |
@@ -175,7 +171,7 @@ Lý do: `vai-smoke.mjs` là kịch bản duy nhất khoá danh sách vai theo nh
 +| Quyền / vai mới tự hiện ở trang có sẵn (ADR-0040 D3): `web/role-picker.ts`, `web/gui-thong-bao.ts`, `PERMISSION_LABEL` / `ROLES` | `nhan-tai-xe-smoke.mjs` (4 bước) + `vai-smoke.mjs` |
 ```
 
-Kèm, không phải luật (để người sửa hai kịch bản đang đỏ sẵn biết): `trang-chu-smoke.mjs:535` khoá 11 mục thanh bên của Quản trị — Phần B thêm "Vận chuyển" + "Xe" + "Sắp hết hạn" (bản vẽ 00) nên thành 14; `dot-c-smoke.mjs:124,138` khoá thứ tự con của trang Tôi (đỏ sẵn vì `#push`) — Phần B thêm `#links-top`, `.vc-eyebrow`, `#vc-links` (chỉ tài khoản có ô vehicle.manage) và `#my-docs` (chỉ khi có giấy tờ hoặc là tài xế).
+Kèm, không phải luật: theo Ruling R23 người thi công Phần B đã sửa hai kịch bản có sẵn cho ĐÚNG phần 1a đổi — `trang-chu-smoke.mjs:535` và `:961` 11 → 14 mục thanh bên của Quản trị ("Vận chuyển" + "Xe" + "Sắp hết hạn", bản vẽ 00); `dot-c-smoke.mjs:124,138` thêm `#links-top`, `#vc-eyebrow`, `#vc-links` (tài khoản có ô vehicle.manage; `#my-docs` chỉ hiện khi có giấy tờ hoặc là tài xế, tài khoản của kịch bản không có). Chỗ đỏ SẴN trên main, không do 1a, còn nguyên: `trang-chu-smoke.mjs:450` (khối "Cần xem lại" chỉ còn 1 dòng — góp ý chỉ Toàn quyền, ADR-0038) và số mục thanh bên thiếu "Nhật ký" (ADR-0038: main có 10, không 11); `dot-c-smoke.mjs` thiếu `push` (Thông báo, ADR-0036). `help-smoke.mjs` nay chụp khung nhìn ở trang `/help` (trang cao làm lời chụp cả trang treo).
 
 ## Mục 5 — `CLAUDE.md` gốc
 
@@ -201,5 +197,5 @@ Kèm, không phải luật (để người sửa hai kịch bản đang đỏ s�
 | 2e — chữ Hiến chương 5.12 | tuỳ chọn | Có / không |
 | 2f — `docs/ARCHITECTURE.md` bảng thi hành, dòng 5.1 (Ruling R22) | ghi đúng cơ chế thật: "sửa sai giấy tờ phải có lý do" chỉ ở mã | Duyệt |
 | 3 — `src/CLAUDE.md` | làm rõ luật, không đổi nghĩa (kèm `bangtin` đang thiếu) | Duyệt |
-| 4a (chờ Phần B), 4b (Phần B), 4c, 4d — `web/CLAUDE.md` | thêm dòng bảng kịch bản | Duyệt |
+| 4a (Task A19 — đã điền), 4b (Phần B — đã điền; 4c gộp vào 4b), 4d — `web/CLAUDE.md` | thêm dòng bảng kịch bản | Duyệt |
 | 5a, 5b — `CLAUDE.md` gốc | sửa số quyền + một bẫy | Duyệt |
