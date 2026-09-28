@@ -138,7 +138,7 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 |---|---|---|---|
 | 1.2 Lệnh → một lô ghi | `route-write-guard.test.ts` (đường ghi hỏi quyền); còn lại dựa vào kỷ luật | — | ADR-0002 |
 | 1.4 Không đi tắt chuỗi | dựa vào kỷ luật | biên nhận hôm nay dựng ở trình duyệt từ cả đơn (`src/shared/order-confirmation.ts:220`) | — |
-| 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại) | **Tour Đảo chưa có hồ sơ** (`company_profile` một dòng, không `party_id`) | ADR-0001 |
+| 2.1 Bên trước vai; Tour Đảo là hồ sơ | `architecture.test.ts` (tiền tố, khoá ngoại); hồ sơ công ty chủ (vai `OWNER_COMPANY`, migration 0030): bốn trigger "đúng một, không lúc nào trống, đổi được, ngày bắt đầu = hôm nay" (ADR-0043) + kiểm `R-PTY-1` + hàm công bố `ownerCompany` + test route `src/modules/parties/cong-ty-chu.test.ts` | địa chỉ ở chân trang đăng nhập vẫn là chữ tĩnh (6.2 duyệt hai trường); `company_profile` chưa thu hồi (cột pháp lý đã chết, còn câu giữ chỗ `find_logo` — nợ R1/D4); lớp CSDL KHÔNG canh "ai được đổi công ty chủ" (chỉ route) | ADR-0001, ADR-0024 điều 6 (+ ADR-0043) |
 | 2.2 Bốn loại thứ | dựa vào kỷ luật (rà ở kiểm độc lập) | — | ADR-0003 |
 | 2.3 Điều khoản trên vai, không trên tài khoản | dựa vào kỷ luật | — | ADR-0018 đ1 |
 | K4 / 5.8 Quyền qua `can()` | `permission-enforcement.test.ts`, `route-write-guard.test.ts` + sổ hoãn `quyen-hoan.json` | các ô/route còn hoãn trong `docs/quyen-hoan.json` (hạn 15/10, 30/11, 31/12); hàng rào canh theo ô, chưa theo route GET (phát hiện DK-T3-04, mức MEDIUM, `docs/AUDIT-2026-09-24-DIEM-KHUAT.md` trên nhánh `claude/tourdao-sales-audit-62ea81`) | ADR-0007, ADR-0019 |
@@ -172,9 +172,9 @@ Mỗi khái niệm lõi có **đúng một chỗ sống** (module hoặc `src/sh
 ```
 src/index.ts            gốc lắp ráp: danh sách module, nối auth vào router, Cron
    │
-src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties, company (chỉ đọc bảng `company_profile`, route `GET /api/company`; sửa hồ sơ công ty là M5, chưa làm), dispatch (người phụ trách đơn — bảng `dsp_*`; `orders` KHÔNG import nó, gốc lắp ráp tiêm hàm vào `ctx`), maintenance (chế độ bảo trì chỉ chủ dự án dùng được — bảng `mnt_setting`, route `/api/maintenance`; `auth` và `accounts` chỉ đọc trạng thái của nó, router nhận cổng chặn do gốc lắp ráp tiêm — `AppOptions.injected.maintenanceBlock`), feedback (Góp ý / Báo lỗi — bảng `fbk_*`, route `/api/feedback*`, trang `/feedback`; chỉ import `staff` (nhãn) và `audit`)
+src/modules/<tên>/      module nghiệp vụ: accounts, orders, catalog, audit, locations, parties (kể cả HỒ SƠ CÔNG TY CHỦ — Tour Đảo, vai `OWNER_COMPANY`, hàm công bố `ownerCompany`; nằm DƯỚI `auth`, `staff`, `company` trong đồ thị), company (route `GET /api/company` = danh sách trắng năm trường cho biên nhận, đọc định danh qua `parties.ownerCompany`; bảng `company_profile` chỉ còn `logo_url`, chờ thu hồi), dispatch (người phụ trách đơn — bảng `dsp_*`; `orders` KHÔNG import nó, gốc lắp ráp tiêm hàm vào `ctx`), maintenance (chế độ bảo trì chỉ chủ dự án dùng được — bảng `mnt_setting`, route `/api/maintenance`; `auth` và `accounts` chỉ đọc trạng thái của nó, router nhận cổng chặn do gốc lắp ráp tiêm — `AppOptions.injected.maintenanceBlock`), feedback (Góp ý / Báo lỗi — bảng `fbk_*`, route `/api/feedback*`, trang `/feedback`; chỉ import `staff` (nhãn) và `audit`)
    │   ↳ chỉ import module khác qua index.ts của nó
-src/modules/auth, staff năng lực nền: phiên, đăng nhập, tài khoản + quyền app (accounts dùng trực tiếp); staff không có route
+src/modules/auth, staff năng lực nền: phiên, đăng nhập, tài khoản + quyền app (accounts dùng trực tiếp); staff không có route. Cả hai đọc `parties` (staff: hồ sơ của tài khoản; auth: tên + MST công ty chủ cho `GET /api/auth/config`)
    │
 src/shared/             router, http, contracts (kiểu API), audit-actions, order-lines… — không import module nào; web/ được import
 ```
