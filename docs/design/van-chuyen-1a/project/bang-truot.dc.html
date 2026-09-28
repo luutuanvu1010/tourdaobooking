@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<sc-if value="{{ open }}" hint-placeholder-val="{{ false }}">
+  <div onClick="{{ onClose }}" style="position:absolute;inset:0;z-index:50;background:var(--c-scrim);display:flex;align-items:{{ align }};justify-content:center;padding:{{ pad }};box-sizing:border-box;font-family:var(--font);color:var(--c-text);">
+    <div onClick="{{ stop }}" role="dialog" aria-modal="true" aria-label="{{ title }}" style="width:100%;max-width:var(--w-sheet);max-height:{{ maxH }};background:var(--c-surface);border-radius:{{ radius }};box-shadow:var(--shadow-overlay);display:flex;flex-direction:column;overflow:hidden;">
+      <div style="flex:none;display:flex;align-items:center;justify-content:space-between;gap:var(--s2);padding:var(--s2) var(--s3) var(--s2) var(--s4);border-bottom:1px solid var(--c-border);">
+        <div style="margin:0;font-family:var(--font-display);font-weight:800;font-size:var(--fs-title);">{{ title }}</div>
+        <button onClick="{{ onClose }}" aria-label="Đóng" style="flex:none;width:var(--tap-min);height:var(--tap-min);display:flex;align-items:center;justify-content:center;border:0;background:none;color:var(--c-text-muted);cursor:pointer;border-radius:var(--radius-sm);"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"></path></svg></button>
+      </div>
+      <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;">{{ children }}</div>
+    </div>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;open&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;wide&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Gia hạn&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;onClose&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;() =&gt; void&quot;},&quot;children&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;ReactNode&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const wide = !!this.props.wide;
+    return {
+      open: !!this.props.open,
+      title: this.props.title ?? '',
+      onClose: this.props.onClose,
+      stop: e => e.stopPropagation(),
+      align: wide ? 'center' : 'flex-end',
+      pad: wide ? 'var(--s5)' : '0',
+      radius: wide ? 'var(--radius-lg)' : 'var(--radius-lg) var(--radius-lg) 0 0',
+      maxH: wide ? '90%' : 'calc(100% - 60px)',
+    };
+  }
+}
+</script>
+</body>
+</html>

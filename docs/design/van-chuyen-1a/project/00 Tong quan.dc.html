@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--c-primary:#0c4a6e;--c-primary-strong:#082f49;--c-primary-soft:#dcebf6;--c-accent:#c0392b;--c-sand:#f5a623;--c-sand-soft:#fbe3b3;--c-sand-text:#5a4109;--c-sand-border:#e9d3a4;--c-surface:#ffffff;--c-surface-alt:#eaf2f8;--c-text:#0f172a;--c-text-muted:#475569;--c-border:#d3e1ec;--c-green-soft:#dcfce7;--c-green-text:#166534;--c-green-border:#a7e3bc;--c-danger:#b01235;--c-danger-text:#8e0e2b;--c-danger-soft:#fde9ee;--c-danger-border:#f1c3cf;--c-on-dark:#ffffff;--c-scrim:rgba(15,23,42,.45);--c-soft-hover:#f0f7fc;--c-placeholder:#94a3b8;--c-sidebar-item:rgba(255,255,255,.72);--c-sidebar-active:rgba(255,255,255,.14);--c-sidebar-border:rgba(255,255,255,.12);--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--radius-sm:8px;--radius-md:12px;--radius-lg:18px;--radius-pill:999px;--shadow-card:0 1px 3px rgba(15,23,42,.08);--shadow-overlay:0 12px 32px rgba(15,23,42,.16);--m-fast:180ms;--m-base:300ms;--font-display:"Be Vietnam Pro","Nunito",system-ui,sans-serif;--font:"Nunito","Be Vietnam Pro",system-ui,sans-serif;--fs-ui:16px;--fs-label:14px;--fs-badge:12px;--fs-title:18px;--fs-field:17px;--fs-tab:12px;--h-field:52px;--tap-min:44px;--bar-h:60px;--tabbar-h:56px;--row-h:48px;--w-sidebar:236px;--w-search:280px;--w-sheet:520px;--w-main:1200px;--logo-bar:30px;--avatar:48px;--focus-ring:2px;--ls-eyebrow:.08em;--w-doc-chip:148px;--t-reveal:10s}
+body{margin:0;background:#dfe7ee;color:var(--c-text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+a{color:var(--c-primary)}
+a:hover{color:var(--c-primary-strong)}
+button,input,select{font-family:inherit}
+:focus-visible{outline:var(--focus-ring) solid var(--c-primary);outline-offset:2px}
+</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s6);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <strong>00 Tổng quan</strong><span>·</span><a href="01 Danh sach xe.dc.html">01 Danh sách xe</a><span>·</span><a href="02 Them sua xe.dc.html">02 Thêm / sửa xe</a><span>·</span><a href="03 Chi tiet xe.dc.html">03 Chi tiết xe</a><span>·</span><a href="04 Giay to cua mot nguoi.dc.html">04 Giấy tờ của một người</a><span>·</span><a href="05 Giay to cua toi.dc.html">05 Giấy tờ của tôi</a><span>·</span><a href="06 Sap het han.dc.html">06 Sắp hết hạn</a><span>·</span><a href="07 Trang dau tai xe.dc.html">07 Trang đầu tài xế</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:30px;color:var(--c-primary);">Vận chuyển · lượt 1a — Tổng quan</h1>
+    <div style="font-size:16px;line-height:1.6;text-wrap:pretty;">Hồ sơ xe, giấy tờ xe, giấy tờ người, danh sách sắp hết hạn. Hôm nay trong bản vẽ: 28/09/2026. Mọi màu, khoảng cách, cỡ chữ lấy từ khối <strong>:root</strong> của public/app.css (main @ c2768483).</div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);">
+    <h2 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;">Chỗ vào Vận chuyển</h2>
+    <div style="font-size:15px;line-height:1.6;max-width:860px;text-wrap:pretty;"><strong>Quyết định: hai mục con, không dùng tab ngang.</strong> Xe và Sắp hết hạn là hai việc khác nhau (quản lý hồ sơ / rà hạn), mỗi việc mở thẳng một chạm từ menu; tab ngang sẽ thêm một hàng điều khiển ngay dưới thanh đầu 60px vốn đã chật trên điện thoại. Điện thoại: hai dòng liên kết trong trang Tôi, đặt ngay dưới Danh bạ / Địa điểm, có nhãn nhóm “VẬN CHUYỂN”. Huy hiệu số cát ở “Sắp hết hạn” giống huy hiệu “Dịch vụ &amp; giá”.</div>
+    <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+      <div style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">00 · Chỗ vào · 390 (trang Tôi của Quản trị)</div>
+        <dc-import name="vo-dien-thoai" title="Tôi" back="{{ false }}" tab="Tôi" initials="CÁ" hint-size="390px,844px">
+          <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+            <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:var(--s4);display:flex;align-items:center;gap:var(--s3);">
+              <div style="flex:none;width:var(--avatar);height:var(--avatar);border-radius:var(--radius-pill);background:var(--c-primary);color:var(--c-on-dark);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;">CÁ</div>
+              <div style="display:flex;flex-direction:column;"><span style="font-family:var(--font-display);font-weight:800;font-size:19px;">Chủ Dự Án</span><span style="font-size:15px;color:var(--c-text-muted);">Quản trị, Toàn quyền</span></div>
+            </div>
+            <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:0 var(--s4);display:flex;flex-direction:column;">
+              <div style="min-height:var(--row-h);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--c-border);font-size:17px;">Danh bạ<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></div>
+              <div style="min-height:var(--row-h);display:flex;align-items:center;justify-content:space-between;font-size:17px;">Địa điểm<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></div>
+            </div>
+            <div style="padding:var(--s1) var(--s4) 0;font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);">VẬN CHUYỂN</div>
+            <div style="background:var(--c-surface);border:2px solid var(--c-primary);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:0 var(--s4);display:flex;flex-direction:column;">
+              <a href="01 Danh sach xe.dc.html" style="min-height:var(--row-h);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--c-border);font-size:17px;color:var(--c-text);text-decoration:none;">Xe<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+              <a href="06 Sap het han.dc.html" style="min-height:var(--row-h);display:flex;align-items:center;gap:var(--s2);font-size:17px;color:var(--c-text);text-decoration:none;"><span style="flex:1;">Giấy tờ sắp hết hạn</span><span style="padding:1px var(--s2);font-size:var(--fs-badge);font-weight:800;color:var(--c-sand-text);background:var(--c-sand);border-radius:var(--radius-pill);">6</span><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></a>
+            </div>
+            <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:0 var(--s4);display:flex;flex-direction:column;">
+              <div style="min-height:var(--row-h);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--c-border);font-size:17px;">Nhật ký<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></div>
+              <div style="min-height:var(--row-h);display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--c-border);font-size:17px;">Góp ý / Báo lỗi<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5l7 7-7 7"></path></svg></div>
+              <div style="min-height:var(--row-h);display:flex;align-items:center;font-size:17px;font-weight:800;color:var(--c-danger-text);">Đăng xuất</div>
+            </div>
+          </div>
+        </dc-import>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">00 · Chỗ vào · 1040 (menu dọc, nhóm QUẢN TRỊ, sau Địa điểm)</div>
+        <dc-import name="vo-may-tinh" active="xe" crumb="Vận chuyển › Xe" due-count="6" height="640px" hint-size="1040px,640px">
+          <div style="font-size:15px;line-height:1.6;color:var(--c-text-muted);max-width:520px;">“Vận chuyển” là mục cha, luôn mở sẵn hai mục con <strong style="color:var(--c-text);">Xe</strong> và <strong style="color:var(--c-text);">Sắp hết hạn</strong> (thụt lề 42px, không biểu tượng). Mục cha chữ trắng khi đang ở một mục con; nền sáng chỉ đặt ở mục con đang chọn. Nội dung trang: xem <a href="01 Danh sach xe.dc.html">01</a> và <a href="06 Sap het han.dc.html">06</a>.</div>
+        </dc-import>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);max-width:980px;">
+    <h2 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;">Quyết định không hiển nhiên</h2>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);display:flex;flex-direction:column;">
+      <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:220px minmax(0,1fr);gap:var(--s4);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);font-size:15px;line-height:1.55;">
+          <strong>{{ d.k }}</strong><span style="text-wrap:pretty;">{{ d.v }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);max-width:980px;">
+    <h2 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;">Token đã dùng</h2>
+    <div style="font-size:15px;">Nguồn: public/app.css :root. Dòng có nhãn <span style="padding:0 var(--s2);border-radius:var(--radius-pill);font-size:var(--fs-badge);font-weight:800;background:var(--c-sand-soft);color:var(--c-sand-text);border:1px solid var(--c-sand-border);">MỚI</span> là token phải thêm. Không dùng --c-accent trong phân hệ (chỉ còn ở nút “Tạo đơn” của vỏ app, giữ nguyên).</div>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);overflow:hidden;">
+      <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 220px;gap:var(--s3);padding:var(--s2) var(--s4);font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);border-bottom:1px solid var(--c-border);"><span>TOKEN</span><span>NƠI DÙNG</span><span>GIÁ TRỊ</span></div>
+      <sc-for list="{{ tokens }}" as="t" hint-placeholder-count="12">
+        <div style="display:grid;grid-template-columns:200px minmax(0,1fr) 220px;gap:var(--s3);align-items:center;min-height:40px;padding:var(--s1) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);background:{{ t.bg }};">
+          <span style="display:flex;align-items:center;gap:var(--s2);font-weight:800;">{{ t.name }}<sc-if value="{{ t.isNew }}" hint-placeholder-val="{{ false }}"><span style="padding:0 var(--s2);border-radius:var(--radius-pill);font-size:var(--fs-badge);font-weight:800;background:var(--c-sand-soft);color:var(--c-sand-text);border:1px solid var(--c-sand-border);">MỚI</span></sc-if></span>
+          <span>{{ t.use }}</span>
+          <span style="display:flex;align-items:center;gap:var(--s2);"><sc-if value="{{ t.isColor }}" hint-placeholder-val="{{ false }}"><span style="flex:none;width:18px;height:18px;border-radius:4px;border:1px solid var(--c-border);background:{{ t.value }};"></span></sc-if>{{ t.value }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:var(--s3);max-width:980px;">
+    <h2 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;">Phần đoán — đội thi công đối chiếu</h2>
+    <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:var(--s4) var(--s5);display:flex;flex-direction:column;gap:var(--s2);font-size:15px;line-height:1.55;">
+      <sc-for list="{{ guesses }}" as="g" hint-placeholder-count="6"><div style="display:flex;gap:var(--s2);"><span style="flex:none;">–</span><span style="text-wrap:pretty;">{{ g }}</span></div></sc-for>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const T = (name, use, value, isNew) => ({ name, use, value, isNew: !!isNew, isColor: /^#|^rgba/.test(value), bg: isNew ? 'var(--c-sand-soft)' : 'transparent' });
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      decisions: [
+        { k: 'Xe / Sắp hết hạn', v: 'Hai mục con (menu dọc) / hai dòng liên kết (trang Tôi), không tab ngang: mỗi phần một chạm, không thêm hàng điều khiển dưới thanh đầu.' },
+        { k: 'Nút chính ở đáy (điện thoại)', v: '“Thêm xe”, “Lưu”, “Thêm giấy tờ” dính đáy, rộng hết, trong tầm ngón cái — giống nút chốt của các app gọi xe. Máy tính: nút ở góc phải tiêu đề.' },
+        { k: 'Thứ tự giấy tờ', v: 'Đã hết hạn → sắp hết hạn → còn hạn → không hạn. Việc cần làm luôn ở đầu, không phải cuộn tìm.' },
+        { k: 'Lịch sử gia hạn', v: 'Mở ngay dưới dòng (nút “Lịch sử (N)”), dòng cũ nền xám nhạt + nhãn “Đã thay”. So cũ/mới tại chỗ, không rời trang.' },
+        { k: 'Sửa sai', v: 'Bảng riêng, nút Lưu bị khoá tới khi chọn lý do. Chữ nhắc: giấy mới được cấp thì dùng “Gia hạn” — tránh ghi đè mất lịch sử.' },
+        { k: 'Tự che số sau 10 giây', v: 'Sau xác nhận, số hiện đủ trên nền xanh nhạt kèm đếm ngược “Tự che sau N giây” và nút “Che lại”. Mỗi lần mở là một lần xem có ghi nhật ký; số không nằm lại trên màn hình khi máy để bàn.' },
+        { k: 'Ngừng dùng xe', v: 'Không có trong nhóm chọn trạng thái; là nút viền đỏ riêng + hộp xác nhận nói rõ “không bị xoá”. Xe đã Ngừng có “Dùng lại xe”.' },
+        { k: 'Số người được chở', v: 'Bộ đếm −/+ thay ô gõ (xe công ty chủ yếu 6 hoặc 15), gợi ý “Xe 16 chỗ nhập 15.” ngay dưới.' },
+        { k: 'Trang đầu tài xế', v: 'Khối “Cuốc xe” giữ chỗ ở trên, giấy tờ ở dưới — để lượt sau chỉ thay nội dung, không đổi bố cục.' },
+      ],
+      tokens: [
+        T('--c-surface-alt', 'Nền trang, nhãn “Ngừng”/“Không hạn”, nền dòng lịch sử', '#eaf2f8'),
+        T('--c-surface', 'Thẻ, bảng trượt, ô gõ', '#ffffff'),
+        T('--c-border', 'Viền thẻ, đường kẻ dòng, viền ô gõ', '#d3e1ec'),
+        T('--c-primary', 'Thanh đầu, tiêu đề trang, nút chính, viền mục “Giấy tờ”', '#0c4a6e'),
+        T('--c-primary-strong', 'Menu dọc, nền nút chính khi :active/:hover', '#082f49'),
+        T('--c-primary-soft', 'Vòng biểu tượng xe/người, nền số đang hiện đủ, ghi chú gia hạn', '#dcebf6'),
+        T('--c-text / --c-text-muted', 'Chữ chính / chữ phụ', '#0f172a / #475569'),
+        T('--c-sand-soft / -text / -border', 'Sắp hết hạn (≤ 30 ngày), “Bảo dưỡng”, lời nhắc ghi nhật ký', '#fbe3b3'),
+        T('--c-sand', 'Huy hiệu số “Sắp hết hạn” trên menu, avatar', '#f5a623'),
+        T('--c-danger-soft / -text / -border', 'Đã hết hạn, lỗi ô gõ', '#fde9ee'),
+        T('--c-danger', 'Viền nút “Ngừng dùng xe”, nền nút xác nhận ngừng, viền ô lỗi 2px', '#b01235'),
+        T('--c-green-soft / -text / -border', 'Còn hạn, “Đang dùng”', '#dcfce7'),
+        T('--c-scrim', 'Lớp phủ sau bảng trượt / hộp thoại', 'rgba(15,23,42,.45)'),
+        T('--c-soft-hover', 'Nền dòng bảng khi rê chuột / thẻ khi chạm', '#f0f7fc'),
+        T('--s1 … --s7', 'Mọi khoảng cách', '4 / 8 / 12 / 16 / 24 / 32 / 48px'),
+        T('--radius-md / -sm / -lg / -pill', 'Thẻ / nút, ô gõ / bảng trượt / huy hiệu', '12 / 8 / 18 / 999px'),
+        T('--shadow-card / --shadow-overlay', 'Thẻ / bảng trượt', '0 1px 3px … / 0 12px 32px …'),
+        T('--fs-ui / --fs-label / --fs-badge / --fs-field', 'Nội dung / nhãn / huy hiệu / chữ trong ô gõ', '16 / 14 / 12 / 17px'),
+        T('--h-field / --tap-min / --row-h', 'Nút chính đáy, ô gõ / vùng chạm tối thiểu / dòng liên kết trang Tôi', '52 / 44 / 48px'),
+        T('--counter-btn / --counter-field', 'Bộ đếm số người được chở', '44 / 48px'),
+        T('--w-sheet', 'Bề rộng tối đa bảng trượt / hộp thoại máy tính', '520px'),
+        T('--w-sidebar / --bar-h / --tabbar-h', 'Vỏ app (giữ nguyên)', '236 / 60 / 56px'),
+        T('--m-fast / --m-base', 'Xoay mũi tên “Lịch sử” / trượt bảng', '180 / 300ms'),
+        T('--focus-ring', 'Vòng :focus-visible navy', '2px'),
+        T('--w-doc-chip', 'Cột “Còn” (còn N ngày / đã hết hạn N ngày) trong bảng máy tính — vừa “Đã hết hạn 99 ngày”', '148px', true),
+        T('--t-reveal', 'Thời gian số CCCD / GPLX hiện đủ trước khi tự che', '10s', true),
+      ],
+      guesses: [
+        'Vỏ app dựng lại từ ảnh docs/evidence (trang chủ 390/1040, Tôi, Danh bạ) và các lớp .sidebar-*, .sheet-* trong app.css — thanh trạng thái 9:41 và vùng an toàn 34px là minh hoạ.',
+        'Menu dọc của Tài xế (một nhóm “CỦA TÔI”: Trang chủ, Của tôi) và việc tài xế không có ô tìm kiếm / nút Tạo đơn trên thanh công việc — chưa có ảnh gốc.',
+        'Biểu tượng xe tải (menu, danh sách, trạng thái trống) là biểu tượng MỚI cùng nét 1.8 với bộ sẵn có; các biểu tượng khác vẽ lại theo ảnh, cần thay bằng tệp gốc.',
+        'Dữ liệu tự thêm cho đủ màn: hạn kiểm định 79B-246.80 = 19/10/2026; số điện thoại 0900 000 412; số đủ CCCD 056 092 011 234 và GPLX 7901 2345 5678 (hư cấu, chỉ để minh hoạ “Xem đủ số”); số khung 79A-678.90.',
+        'Trang đầu tài xế ghi “2 giấy” theo đề bài nhưng chỉ Khám sức khoẻ ≤ 30 ngày; GPLX (38 ngày) hiện xanh. Cần chốt: khối tóm tắt hiện “2 giấy gần hạn nhất” hay chỉ giấy trong ngưỡng.',
+        'Quyền sửa giấy tờ người (Gia hạn / Sửa sai) vẽ giống nhau cho người có và không có quyền xem đủ số — chỉ nút “Xem đủ số” đổi theo quyền.',
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

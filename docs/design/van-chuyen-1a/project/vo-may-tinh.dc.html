@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="position:relative;width:1040px;height:{{ height }};border-radius:var(--radius-md);overflow:hidden;border:1px solid var(--c-border);box-shadow:var(--shadow-overlay);display:grid;grid-template-columns:var(--w-sidebar) minmax(0,1fr);font-family:var(--font);color:var(--c-text);font-size:var(--fs-ui);background:var(--c-surface-alt);">
+  <aside style="background:var(--c-primary-strong);display:flex;flex-direction:column;min-height:0;">
+    <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s4);border-bottom:1px solid var(--c-sidebar-border);color:var(--c-on-dark);">
+      <img src="docs/design/a2-mockup/refs/logo-tour-dao-96.png" alt="" width="30" height="30" style="width:var(--logo-bar);height:var(--logo-bar);border-radius:var(--radius-pill);">
+      <div style="display:flex;flex-direction:column;font-family:var(--font-display);font-size:17px;line-height:1.25;"><strong style="font-weight:800;">Island Booking</strong><span style="font-weight:500;">System</span></div>
+    </div>
+    <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;gap:var(--s5);padding:var(--s4) var(--s3);">
+      <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:1px;">
+          <div style="padding:0 var(--s3) var(--s1);font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-sidebar-item);">{{ g.title }}</div>
+          <sc-for list="{{ g.items }}" as="it" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:var(--s3);min-height:36px;padding:var(--s2) var(--s3) var(--s2) {{ it.padL }};box-sizing:border-box;border-radius:var(--radius-sm);background:{{ it.bg }};color:{{ it.color }};font-size:var(--fs-label);font-weight:{{ it.weight }};">
+              <sc-if value="{{ it.hasIcon }}" hint-placeholder-val="{{ true }}">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="{{ it.d }}"></path></svg>
+              </sc-if>
+              <span style="flex:1;min-width:0;">{{ it.label }}</span>
+              <sc-if value="{{ it.hasBadge }}" hint-placeholder-val="{{ false }}">
+                <span style="flex:none;padding:1px var(--s2);font-size:var(--fs-badge);font-weight:800;color:var(--c-sand-text);background:var(--c-sand);border-radius:var(--radius-pill);">{{ it.badge }}</span>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s4);border-top:1px solid var(--c-sidebar-border);">
+      <div style="flex:none;width:var(--logo-bar);height:var(--logo-bar);border-radius:var(--radius-pill);background:var(--c-sand);color:var(--c-sand-text);display:flex;align-items:center;justify-content:center;font-size:var(--fs-badge);font-weight:800;">{{ initials }}</div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;">
+        <span style="font-size:var(--fs-label);font-weight:700;color:var(--c-on-dark);">{{ userName }}</span>
+        <span style="font-size:var(--fs-badge);color:var(--c-sidebar-item);">{{ userRole }}</span>
+      </div>
+      <span style="font-size:var(--fs-badge);font-weight:600;color:var(--c-sidebar-item);text-decoration:underline;">Đăng xuất</span>
+    </div>
+  </aside>
+  <div style="display:flex;flex-direction:column;min-width:0;min-height:0;position:static;">
+    <div style="flex:none;height:var(--bar-h);box-sizing:border-box;background:var(--c-surface);border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:var(--s4);padding:0 var(--s4);">
+      <div style="flex:1;min-width:0;font-size:var(--fs-label);font-weight:600;">{{ crumb }}</div>
+      <sc-if value="{{ showTools }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:var(--s3);">
+          <div style="width:var(--w-search);height:var(--tap-min);box-sizing:border-box;border:1px solid var(--c-border);border-radius:var(--radius-sm);display:flex;align-items:center;padding:0 var(--s3);font-size:15px;color:var(--c-placeholder);">Tìm mã đơn, tên khách, SĐT…</div>
+          <div style="width:var(--tap-min);height:var(--tap-min);display:flex;align-items:center;justify-content:center;color:var(--c-text-muted);"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 1 1 12 0c0 7 3 8 3 8H3s3-1 3-8M10 20a2 2 0 0 0 4 0"></path></svg></div>
+          <div style="height:var(--tap-min);padding:0 var(--s4);display:flex;align-items:center;border-radius:var(--radius-sm);background:var(--c-accent);color:var(--c-on-dark);font-weight:800;">Tạo đơn</div>
+        </div>
+      </sc-if>
+    </div>
+    <div style="flex:1;min-height:0;overflow:auto;">
+      <div style="max-width:var(--w-main);padding:var(--s5);box-sizing:border-box;display:flex;flex-direction:column;gap:var(--s4);">{{ children }}</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1040,&quot;height&quot;:820},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;driver&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;active&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;danhba&quot;,&quot;xe&quot;,&quot;han&quot;,&quot;toi&quot;],&quot;default&quot;:&quot;xe&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;crumb&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Vận chuyển › Xe&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;height&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;820px&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;dueCount&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:5,&quot;tsType&quot;:&quot;number&quot;},&quot;initials&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;QT&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;userName&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Quản Trị&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;userRole&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Quản trị&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;children&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;ReactNode&quot;}}">
+const IC = {
+  home: 'M3 11l9-7 9 7M5 10v10h14V10',
+  doc: 'M7 3h8l4 4v14H7zM10 11h6M10 15h6',
+  plus: 'M12 5v14M5 12h14',
+  card: 'M3 5h18v14H3zM8 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM5 16a3.5 3.5 0 0 1 6 0M14 10h4M14 14h4',
+  tag: 'M3 12V4h8l10 10-8 8zM7.5 7.5h.01',
+  users: 'M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM2 21v-1a6 6 0 0 1 12 0v1M16 3.5a4 4 0 0 1 0 7.5M22 21v-1a6 6 0 0 0-4-5.6',
+  pin: 'M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11zM12 12a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  truck: 'M3 16V6h11v10M14 9h4l3 4v3h-2M3 16h1M10 16h5M7 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM17 18a2 2 0 1 0 0-4 2 2 0 0 0 0 4z',
+  hist: 'M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2',
+  user: 'M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0',
+  chat: 'M4 5h16v11H8l-4 4z',
+  help: 'M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01',
+};
+class Component extends DCLogic {
+  renderVals() {
+    const role = this.props.role ?? 'admin';
+    const active = this.props.active ?? 'xe';
+    const it = (key, label, d, extra = {}) => {
+      const on = key === active;
+      const parentOn = extra.parent && ['xe', 'han'].includes(active);
+      return {
+        label, d: d || '', hasIcon: !!d, padL: extra.sub ? '42px' : 'var(--s3)',
+        bg: on ? 'var(--c-sidebar-active)' : 'transparent',
+        color: on || parentOn ? 'var(--c-on-dark)' : 'var(--c-sidebar-item)',
+        weight: on || parentOn ? 700 : 500,
+        hasBadge: !!extra.badge, badge: extra.badge,
+      };
+    };
+    const groups = role === 'driver'
+      ? [
+          { title: 'CỦA TÔI', items: [it('home', 'Trang chủ', IC.home), it('toi', 'Của tôi', IC.user)] },
+        ]
+      : [
+          { title: 'BÁN HÀNG', items: [it('home', 'Trang chủ', IC.home), it('don', 'Đơn hàng', IC.doc), it('tao', 'Tạo đơn', IC.plus), it('danhba', 'Danh bạ', IC.card)] },
+          { title: 'QUẢN TRỊ', items: [it('dv', 'Dịch vụ & giá', IC.tag), it('tk', 'Quản lý tài khoản', IC.users), it('dd', 'Địa điểm', IC.pin),
+            it('vc', 'Vận chuyển', IC.truck, { parent: true }), it('xe', 'Xe', null, { sub: true }), it('han', 'Sắp hết hạn', null, { sub: true, badge: this.props.dueCount ?? 5 }),
+            it('nk', 'Nhật ký', IC.hist)] },
+          { title: 'TÔI', items: [it('toi', 'Của tôi', IC.user), it('gy', 'Góp ý / Báo lỗi', IC.chat), it('tg', 'Trợ giúp', IC.help)] },
+        ];
+    return {
+      height: this.props.height ?? '820px',
+      groups,
+      crumb: this.props.crumb ?? '',
+      showTools: role !== 'driver',
+      initials: this.props.initials ?? (role === 'driver' ? 'NH' : 'QT'),
+      userName: this.props.userName ?? (role === 'driver' ? 'Nguyễn Văn Hùng' : 'Quản Trị'),
+      userRole: this.props.userRole ?? (role === 'driver' ? 'Tài xế' : 'Quản trị'),
+    };
+  }
+}
+</script>
+</body>
+</html>

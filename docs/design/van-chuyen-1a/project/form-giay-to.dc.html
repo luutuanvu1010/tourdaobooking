@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<div style="display:flex;flex-direction:column;font-family:var(--font);color:var(--c-text);">
+  <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4);">
+    <sc-if value="{{ isRenew }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;gap:var(--s2);align-items:flex-start;padding:var(--s3);border-radius:var(--radius-sm);background:var(--c-primary-soft);color:var(--c-primary);font-size:var(--fs-label);font-weight:600;line-height:1.5;">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex:none;margin-top:1px;"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5M12 7v5l3 2"></path></svg>
+        <span>Dòng hiện tại ({{ oldLine }}) được giữ làm lịch sử. Gia hạn thêm một dòng mới.</span>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isFix }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:var(--s2);">
+        <div style="font-size:var(--fs-label);font-weight:700;">Lý do sửa</div>
+        <div role="radiogroup" style="display:flex;flex-direction:column;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:hidden;">
+          <sc-for list="{{ reasons }}" as="r" hint-placeholder-count="3">
+            <button role="radio" aria-checked="{{ r.on }}" onClick="{{ r.pick }}" style="min-height:var(--tap-min);display:flex;align-items:center;gap:var(--s3);padding:0 var(--s3);border:0;border-bottom:1px solid var(--c-border);background:{{ r.bg }};color:var(--c-text);font-size:16px;font-weight:{{ r.weight }};text-align:left;cursor:pointer;">
+              <span style="flex:none;width:20px;height:20px;box-sizing:border-box;border-radius:var(--radius-pill);border:{{ r.ring }};"></span>{{ r.label }}
+            </button>
+          </sc-for>
+        </div>
+        <div style="font-size:var(--fs-label);color:var(--c-text-muted);line-height:1.5;">Sửa sai ghi đè dòng hiện tại và được ghi nhật ký kèm lý do. Giấy mới được cấp thì dùng “Gia hạn”.</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:var(--fs-label);font-weight:700;">Loại giấy tờ</label>
+        <select value="{{ type }}" onChange="{{ onType }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+          <sc-for list="{{ typeOptions }}" as="o" hint-placeholder-count="4"><option value="{{ o }}">{{ o }}</option></sc-for>
+        </select>
+      </div>
+    </sc-if>
+    <div style="display:flex;flex-direction:column;gap:6px;">
+      <label style="font-size:var(--fs-label);font-weight:700;">{{ noLabel }}</label>
+      <input value="{{ no }}" onChange="{{ onNo }}" placeholder="{{ noPlaceholder }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+      <sc-if value="{{ masked }}" hint-placeholder-val="{{ false }}">
+        <div style="font-size:var(--fs-label);color:var(--c-text-muted);">Số hiện tại {{ docNo }} — để trống nếu không đổi số.</div>
+      </sc-if>
+    </div>
+    <sc-if value="{{ showClass }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:var(--fs-label);font-weight:700;">Hạng</label>
+        <select value="{{ cls }}" onChange="{{ onCls }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+          <sc-for list="{{ classes }}" as="c" hint-placeholder-count="4"><option value="{{ c }}">{{ c }}</option></sc-for>
+        </select>
+      </div>
+    </sc-if>
+    <sc-if value="{{ showPlace }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:var(--fs-label);font-weight:700;">Nơi cấp</label>
+        <input value="{{ place }}" onChange="{{ onPlace }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+      </div>
+    </sc-if>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:var(--s3);">
+      <div style="display:flex;flex-direction:column;gap:6px;">
+        <label style="font-size:var(--fs-label);font-weight:700;">Ngày cấp</label>
+        <input type="date" value="{{ issued }}" onChange="{{ onIssued }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+      </div>
+      <sc-if value="{{ hasExp }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          <label style="font-size:var(--fs-label);font-weight:700;">Ngày hết hạn</label>
+          <input type="date" value="{{ exp }}" onChange="{{ onExp }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+        </div>
+      </sc-if>
+    </div>
+    <sc-if value="{{ isAdd }}" hint-placeholder-val="{{ false }}">
+      <button onClick="{{ toggleNoExp }}" role="checkbox" aria-checked="{{ noExp }}" style="min-height:var(--tap-min);display:flex;align-items:center;gap:var(--s3);padding:0;border:0;background:none;color:var(--c-text);font-size:16px;cursor:pointer;text-align:left;">
+        <span style="flex:none;width:22px;height:22px;box-sizing:border-box;border-radius:6px;border:2px solid var(--c-primary);background:{{ noExpBg }};color:var(--c-on-dark);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;">{{ noExpMark }}</span>Giấy này không có hạn
+      </button>
+    </sc-if>
+    <sc-if value="{{ showErr }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-label);font-weight:700;color:var(--c-danger-text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.01"></path></svg>{{ errText }}</div>
+    </sc-if>
+  </div>
+  <div style="position:sticky;bottom:0;padding:var(--s3) var(--s4) var(--s5);background:var(--c-surface);border-top:1px solid var(--c-border);">
+    <button onClick="{{ submit }}" aria-disabled="{{ disabled }}" style="width:100%;min-height:var(--h-field);border:0;border-radius:var(--radius-sm);background:{{ btnBg }};color:{{ btnFg }};font-size:17px;font-weight:800;cursor:pointer;">{{ submitLabel }}</button>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:420,&quot;height&quot;:620},&quot;kind&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;renew&quot;,&quot;fix&quot;,&quot;add&quot;],&quot;default&quot;:&quot;renew&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;docType&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Kiểm định&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;docNo&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;KD-0456&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;issued&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;15/04/2026&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;exp&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;15/10/2026&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;masked&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;showClass&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;cls&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;showPlace&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;place&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;typeOptions&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;string[]&quot;},&quot;onSubmit&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;(v) =&gt; void&quot;}}">
+const toIso = s => { if (!s) return ''; const [d, m, y] = s.split('/'); return `${y}-${m}-${d}`; };
+const toVn = s => { if (!s) return null; const [y, m, d] = s.split('-'); return `${d}/${m}/${y}`; };
+const REASONS = ['Nhập nhầm số', 'Nhập nhầm ngày', 'Chọn nhầm loại'];
+class Component extends DCLogic {
+  state = {};
+  defaults() {
+    const pr = this.props || {};
+    const kind = pr.kind ?? 'renew';
+    return kind === 'fix'
+      ? { no: pr.masked ? '' : (pr.docNo ?? ''), issued: toIso(pr.issued), exp: toIso(pr.exp), cls: pr.cls ?? '', place: pr.place ?? '', reason: null, type: pr.docType, noExp: !pr.exp, tried: false }
+      : kind === 'add'
+        ? { no: '', issued: '2026-09-28', exp: '', cls: 'B', place: '', reason: null, type: (pr.typeOptions || [])[0], noExp: false, tried: false }
+        : { no: '', issued: '2026-09-28', exp: '', cls: pr.cls ?? '', place: pr.place ?? '', reason: null, type: pr.docType, noExp: false, tried: false };
+  }
+  renderVals() {
+    const p = this.props, s = { ...this.defaults(), ...this.state };
+    const kind = p.kind ?? 'renew';
+    const set = k => e => this.setState({ [k]: e.target.value });
+    const hasExp = kind === 'add' ? !s.noExp : !!(p.exp || kind === 'renew');
+    let err = '';
+    if (kind === 'fix' && !s.reason) err = 'Chọn lý do trước khi lưu.';
+    else if (kind !== 'fix' && !s.no.trim() && !p.masked) err = 'Nhập số giấy tờ.';
+    else if (hasExp && !s.exp) err = 'Nhập ngày hết hạn.';
+    else if (hasExp && s.issued && s.exp <= s.issued) err = 'Ngày hết hạn phải sau ngày cấp.';
+    const disabled = kind === 'fix' && !s.reason;
+    const showClass = !!p.showClass && (kind !== 'add' || /lái xe/i.test(s.type || ''));
+    return {
+      isRenew: kind === 'renew', isFix: kind === 'fix', isAdd: kind === 'add',
+      oldLine: [p.docNo, p.exp ? `hết hạn ${p.exp}` : null].filter(Boolean).join(' · '),
+      reasons: REASONS.map(r => ({ label: r, on: s.reason === r, pick: () => this.setState({ reason: r }),
+        bg: s.reason === r ? 'var(--c-primary-soft)' : 'var(--c-surface)', weight: s.reason === r ? 800 : 600,
+        ring: s.reason === r ? '6px solid var(--c-primary)' : '2px solid var(--c-border)' })),
+      typeOptions: p.typeOptions || [], type: s.type, onType: set('type'),
+      noLabel: kind === 'renew' ? 'Số mới' : 'Số', no: s.no, onNo: set('no'),
+      noPlaceholder: p.masked ? 'Nhập đủ số' : 'In trên giấy',
+      masked: !!p.masked && kind !== 'add', docNo: p.docNo,
+      showClass, cls: s.cls, onCls: set('cls'), classes: ['B', 'C1', 'D1', 'D2', 'D'],
+      showPlace: !!p.showPlace, place: s.place, onPlace: set('place'),
+      issued: s.issued, onIssued: set('issued'), exp: s.exp, onExp: set('exp'), hasExp,
+      noExp: s.noExp, noExpBg: s.noExp ? 'var(--c-primary)' : 'var(--c-surface)', noExpMark: s.noExp ? '✓' : '',
+      toggleNoExp: () => this.setState({ noExp: !s.noExp }),
+      showErr: s.tried && !!err, errText: err, disabled,
+      btnBg: disabled ? 'var(--c-surface-alt)' : 'var(--c-primary)', btnFg: disabled ? 'var(--c-text-muted)' : 'var(--c-on-dark)',
+      submitLabel: kind === 'renew' ? 'Lưu gia hạn' : kind === 'fix' ? 'Lưu sửa sai' : 'Thêm giấy tờ',
+      submit: () => {
+        if (err) { this.setState({ tried: true }); return; }
+        p.onSubmit && p.onSubmit({ no: s.no.trim(), issued: toVn(s.issued), exp: hasExp ? toVn(s.exp) : null, cls: s.cls, place: s.place, reason: s.reason, type: s.type });
+      },
+    };
+  }
+}
+</script>
+</body>
+</html>

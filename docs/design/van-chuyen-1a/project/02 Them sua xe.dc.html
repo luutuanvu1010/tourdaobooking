@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800&family=Be+Vietnam+Pro:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--c-primary:#0c4a6e;--c-primary-strong:#082f49;--c-primary-soft:#dcebf6;--c-accent:#c0392b;--c-sand:#f5a623;--c-sand-soft:#fbe3b3;--c-sand-text:#5a4109;--c-sand-border:#e9d3a4;--c-surface:#ffffff;--c-surface-alt:#eaf2f8;--c-text:#0f172a;--c-text-muted:#475569;--c-border:#d3e1ec;--c-green-soft:#dcfce7;--c-green-text:#166534;--c-green-border:#a7e3bc;--c-danger:#b01235;--c-danger-text:#8e0e2b;--c-danger-soft:#fde9ee;--c-danger-border:#f1c3cf;--c-on-dark:#ffffff;--c-scrim:rgba(15,23,42,.45);--c-soft-hover:#f0f7fc;--c-placeholder:#94a3b8;--c-sidebar-item:rgba(255,255,255,.72);--c-sidebar-active:rgba(255,255,255,.14);--c-sidebar-border:rgba(255,255,255,.12);--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--radius-sm:8px;--radius-md:12px;--radius-lg:18px;--radius-pill:999px;--shadow-card:0 1px 3px rgba(15,23,42,.08);--shadow-overlay:0 12px 32px rgba(15,23,42,.16);--m-fast:180ms;--m-base:300ms;--font-display:"Be Vietnam Pro","Nunito",system-ui,sans-serif;--font:"Nunito","Be Vietnam Pro",system-ui,sans-serif;--fs-ui:16px;--fs-label:14px;--fs-badge:12px;--fs-title:18px;--fs-field:17px;--fs-tab:12px;--h-field:52px;--tap-min:44px;--bar-h:60px;--tabbar-h:56px;--row-h:48px;--w-sidebar:236px;--w-search:280px;--w-sheet:520px;--w-main:1200px;--logo-bar:30px;--avatar:48px;--focus-ring:2px;--ls-eyebrow:.08em;--counter-btn:44px;--counter-field:48px;--ring-field:3px;--w-doc-chip:148px;--t-reveal:10s}
+body{margin:0;background:#dfe7ee;color:var(--c-text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+a{color:var(--c-primary)}
+a:hover{color:var(--c-primary-strong)}
+button,input,select{font-family:inherit}
+input::placeholder{color:var(--c-placeholder)}
+:focus-visible{outline:var(--focus-ring) solid var(--c-primary);outline-offset:2px}
+</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="00 Tong quan.dc.html">00 Tổng quan</a><span>·</span><a href="01 Danh sach xe.dc.html">01 Danh sách xe</a><span>·</span><strong>02 Thêm / sửa xe</strong><span>·</span><a href="03 Chi tiet xe.dc.html">03 Chi tiết xe</a><span>·</span><a href="04 Giay to cua mot nguoi.dc.html">04 Giấy tờ của một người</a><span>·</span><a href="05 Giay to cua toi.dc.html">05 Giấy tờ của tôi</a><span>·</span><a href="06 Sap het han.dc.html">06 Sắp hết hạn</a><span>·</span><a href="07 Trang dau tai xe.dc.html">07 Trang đầu tài xế</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:820px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">02 · Thêm / sửa xe</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Trạng thái trong form chỉ có Đang dùng / Bảo dưỡng; “Ngừng” đi qua nút nguy hiểm riêng có hộp xác nhận, để không ai chuyển nhầm bằng một chạm. Số người dùng bộ đếm −/+ (xe công ty chỉ 6 hoặc 15, ít khi gõ). Thử: đổi biển số rồi bấm Lưu; ở chế độ Sửa bấm “Ngừng dùng xe”.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <sc-for list="{{ boards }}" as="b" hint-placeholder-count="2">
+      <div style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;">
+          <span style="font-size:var(--fs-label);font-weight:800;">{{ b.label }}</span>
+          <sc-for list="{{ b.modes }}" as="m" hint-placeholder-count="2">
+            <button onClick="{{ m.pick }}" style="min-height:36px;padding:0 var(--s3);border-radius:var(--radius-pill);border:1px solid var(--c-primary);background:{{ m.bg }};color:{{ m.fg }};font-size:var(--fs-label);font-weight:700;cursor:pointer;">{{ m.label }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ b.isPhone }}" hint-placeholder-val="{{ true }}">
+          <dc-import name="vo-dien-thoai" title="{{ b.title }}" tab="Tôi" back-href="01 Danh sach xe.dc.html" hint-size="390px,844px">
+            <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4);">
+              <div style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4);">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Biển số</label>
+                  <input value="{{ b.plate }}" onChange="{{ b.onPlate }}" placeholder="Ví dụ: 79B-123.45" aria-invalid="{{ b.err }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:{{ b.plateBorder }};border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+                  <sc-if value="{{ b.err }}" hint-placeholder-val="{{ false }}">
+                    <div role="alert" style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-label);font-weight:700;color:var(--c-danger-text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.01"></path></svg>Biển số này đang dùng cho xe khác.</div>
+                  </sc-if>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Số khung</label>
+                  <input value="{{ b.vin }}" onChange="{{ b.onVin }}" placeholder="In trên giấy đăng ký xe" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Tên / đời xe</label>
+                  <input value="{{ b.name }}" onChange="{{ b.onName }}" placeholder="Ví dụ: Ford Transit 2019" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Số người được chở (không kể tài xế)</label>
+                  <div style="display:flex;align-items:center;gap:var(--s2);">
+                    <button onClick="{{ b.dec }}" aria-label="Bớt một người" style="width:var(--counter-btn);height:var(--counter-btn);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:22px;font-weight:700;cursor:pointer;">−</button>
+                    <div style="width:var(--counter-field);text-align:center;font-size:20px;font-weight:800;">{{ b.seats }}</div>
+                    <button onClick="{{ b.inc }}" aria-label="Thêm một người" style="width:var(--counter-btn);height:var(--counter-btn);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:22px;font-weight:700;cursor:pointer;">+</button>
+                  </div>
+                  <div style="font-size:var(--fs-label);color:var(--c-text-muted);">Xe 16 chỗ nhập 15.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Trạng thái</label>
+                  <sc-if value="{{ b.stopped }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s3);">
+                      <span style="padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--fs-badge);font-weight:700;line-height:1.5;background:var(--c-surface-alt);color:var(--c-text-muted);border:1px solid var(--c-border);">Ngừng</span>
+                      <button onClick="{{ b.reuse }}" style="min-height:var(--tap-min);padding:0 var(--s4);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-weight:700;font-size:15px;cursor:pointer;">Dùng lại xe</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.notStopped }}" hint-placeholder-val="{{ true }}">
+                    <div role="radiogroup" style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:hidden;">
+                      <sc-for list="{{ b.statuses }}" as="s" hint-placeholder-count="2">
+                        <button role="radio" aria-checked="{{ s.on }}" onClick="{{ s.pick }}" style="min-height:var(--tap-min);border:0;background:{{ s.bg }};color:{{ s.fg }};font-size:15px;font-weight:700;cursor:pointer;">{{ s.label }}</button>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+              <sc-if value="{{ b.canStop }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:var(--s2);">
+                  <button onClick="{{ b.askStop }}" style="min-height:var(--tap-min);border-radius:var(--radius-sm);border:1px solid var(--c-danger);background:var(--c-surface);color:var(--c-danger-text);font-size:16px;font-weight:800;cursor:pointer;" style-active="background:var(--c-danger-soft)">Ngừng dùng xe</button>
+                  <div style="font-size:var(--fs-label);color:var(--c-text-muted);text-align:center;">Xe không bị xoá — giấy tờ và lịch sử vẫn giữ.</div>
+                </div>
+              </sc-if>
+            </div>
+            <div style="position:sticky;bottom:0;padding:var(--s3) var(--s4);background:var(--c-surface-alt);border-top:1px solid var(--c-border);">
+              <button onClick="{{ b.save }}" style="width:100%;min-height:var(--h-field);border:0;border-radius:var(--radius-sm);background:var(--c-primary);color:var(--c-on-dark);font-size:17px;font-weight:800;cursor:pointer;" style-active="background:var(--c-primary-strong)">{{ b.saveLabel }}</button>
+            </div>
+            <dc-import name="bang-truot" open="{{ b.confirm }}" title="{{ b.confirmTitle }}" on-close="{{ b.closeStop }}" hint-size="0px,0px">
+              <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);font-size:16px;line-height:1.6;">
+                <div>Xe <strong>không bị xoá</strong>. Xe chuyển sang trạng thái <strong>Ngừng</strong>; giấy tờ và lịch sử vẫn giữ nguyên.</div>
+                <div style="color:var(--c-text-muted);font-size:15px;">Có thể dùng lại xe bất cứ lúc nào.</div>
+              </div>
+              <div style="padding:var(--s3) var(--s4) var(--s5);border-top:1px solid var(--c-border);display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);">
+                <button onClick="{{ b.closeStop }}" style="min-height:var(--h-field);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:16px;font-weight:700;cursor:pointer;">Giữ nguyên</button>
+                <button onClick="{{ b.doStop }}" style="min-height:var(--h-field);border-radius:var(--radius-sm);border:0;background:var(--c-danger);color:var(--c-on-dark);font-size:16px;font-weight:800;cursor:pointer;">Ngừng dùng</button>
+              </div>
+            </dc-import>
+          </dc-import>
+        </sc-if>
+        <sc-if value="{{ b.isDesk }}" hint-placeholder-val="{{ false }}">
+          <dc-import name="vo-may-tinh" active="xe" crumb="{{ b.crumb }}" due-count="{{ dueCount }}" hint-size="1040px,820px">
+            <div style="display:flex;align-items:center;gap:var(--s3);">
+              <a href="01 Danh sach xe.dc.html" style="font-size:var(--fs-label);font-weight:700;">‹ Xe</a>
+            </div>
+            <h2 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">{{ b.title }}</h2>
+            <div style="max-width:640px;background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);padding:var(--s5);display:flex;flex-direction:column;gap:var(--s4);">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Biển số</label>
+                  <input value="{{ b.plate }}" onChange="{{ b.onPlate }}" placeholder="Ví dụ: 79B-123.45" aria-invalid="{{ b.err }}" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:{{ b.plateBorder }};border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+                  <sc-if value="{{ b.err }}" hint-placeholder-val="{{ false }}">
+                    <div role="alert" style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-label);font-weight:700;color:var(--c-danger-text);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex:none;"><path d="M12 4l9 16H3L12 4zM12 10v4M12 17v.01"></path></svg>Biển số này đang dùng cho xe khác.</div>
+                  </sc-if>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Số khung</label>
+                  <input value="{{ b.vin }}" onChange="{{ b.onVin }}" placeholder="In trên giấy đăng ký xe" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:6px;">
+                <label style="font-size:var(--fs-label);font-weight:700;">Tên / đời xe</label>
+                <input value="{{ b.name }}" onChange="{{ b.onName }}" placeholder="Ví dụ: Ford Transit 2019" style="min-height:var(--h-field);box-sizing:border-box;width:100%;padding:0 var(--s3);border:1px solid var(--c-border);border-radius:var(--radius-sm);font-size:var(--fs-field);color:var(--c-text);background:var(--c-surface);">
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s4);">
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Số người được chở (không kể tài xế)</label>
+                  <div style="display:flex;align-items:center;gap:var(--s2);">
+                    <button onClick="{{ b.dec }}" aria-label="Bớt một người" style="width:var(--counter-btn);height:var(--counter-btn);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:22px;font-weight:700;cursor:pointer;">−</button>
+                    <div style="width:var(--counter-field);text-align:center;font-size:20px;font-weight:800;">{{ b.seats }}</div>
+                    <button onClick="{{ b.inc }}" aria-label="Thêm một người" style="width:var(--counter-btn);height:var(--counter-btn);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:22px;font-weight:700;cursor:pointer;">+</button>
+                  </div>
+                  <div style="font-size:var(--fs-label);color:var(--c-text-muted);">Xe 16 chỗ nhập 15.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <label style="font-size:var(--fs-label);font-weight:700;">Trạng thái</label>
+                  <sc-if value="{{ b.stopped }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:var(--s3);min-height:var(--tap-min);">
+                      <span style="padding:2px 10px;border-radius:var(--radius-pill);font-size:var(--fs-badge);font-weight:700;line-height:1.5;background:var(--c-surface-alt);color:var(--c-text-muted);border:1px solid var(--c-border);">Ngừng</span>
+                      <button onClick="{{ b.reuse }}" style="min-height:var(--tap-min);padding:0 var(--s4);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-weight:700;font-size:15px;cursor:pointer;">Dùng lại xe</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ b.notStopped }}" hint-placeholder-val="{{ true }}">
+                    <div role="radiogroup" style="display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--c-border);border-radius:var(--radius-sm);overflow:hidden;">
+                      <sc-for list="{{ b.statuses }}" as="s" hint-placeholder-count="2">
+                        <button role="radio" aria-checked="{{ s.on }}" onClick="{{ s.pick }}" style="min-height:var(--tap-min);border:0;background:{{ s.bg }};color:{{ s.fg }};font-size:15px;font-weight:700;cursor:pointer;">{{ s.label }}</button>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:var(--s3);padding-top:var(--s4);border-top:1px solid var(--c-border);">
+                <button onClick="{{ b.save }}" style="min-height:var(--tap-min);padding:0 var(--s6);border:0;border-radius:var(--radius-sm);background:var(--c-primary);color:var(--c-on-dark);font-size:16px;font-weight:800;cursor:pointer;" style-hover="background:var(--c-primary-strong)">{{ b.saveLabel }}</button>
+                <a href="01 Danh sach xe.dc.html" style="min-height:var(--tap-min);padding:0 var(--s4);display:flex;align-items:center;border-radius:var(--radius-sm);border:1px solid var(--c-border);color:var(--c-primary);font-weight:700;text-decoration:none;">Huỷ</a>
+                <sc-if value="{{ b.canStop }}" hint-placeholder-val="{{ false }}">
+                  <button onClick="{{ b.askStop }}" style="margin-left:auto;min-height:var(--tap-min);padding:0 var(--s4);border-radius:var(--radius-sm);border:1px solid var(--c-danger);background:var(--c-surface);color:var(--c-danger-text);font-size:15px;font-weight:800;cursor:pointer;" style-hover="background:var(--c-danger-soft)">Ngừng dùng xe</button>
+                </sc-if>
+              </div>
+            </div>
+            <dc-import name="bang-truot" wide="{{ true }}" open="{{ b.confirm }}" title="{{ b.confirmTitle }}" on-close="{{ b.closeStop }}" hint-size="0px,0px">
+              <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);font-size:16px;line-height:1.6;">
+                <div>Xe <strong>không bị xoá</strong>. Xe chuyển sang trạng thái <strong>Ngừng</strong>; giấy tờ và lịch sử vẫn giữ nguyên.</div>
+                <div style="color:var(--c-text-muted);font-size:15px;">Có thể dùng lại xe bất cứ lúc nào.</div>
+              </div>
+              <div style="padding:var(--s3) var(--s4);border-top:1px solid var(--c-border);display:flex;justify-content:flex-end;gap:var(--s2);">
+                <button onClick="{{ b.closeStop }}" style="min-height:var(--tap-min);padding:0 var(--s4);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:16px;font-weight:700;cursor:pointer;">Giữ nguyên</button>
+                <button onClick="{{ b.doStop }}" style="min-height:var(--tap-min);padding:0 var(--s4);border-radius:var(--radius-sm);border:0;background:var(--c-danger);color:var(--c-on-dark);font-size:16px;font-weight:800;cursor:pointer;">Ngừng dùng</button>
+              </div>
+            </dc-import>
+          </dc-import>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const TAKEN = ['79B-123.45', '79B-246.80', '79A-678.90', '79A-135.79'];
+const EDIT = { plate: '79A-678.90', vin: 'RL4GA3FV0M1027734', name: 'Toyota Innova 2021', seats: 6, status: 'active' };
+const ADD = { plate: '79A-678.90', vin: '', name: 'Toyota Fortuner 2022', seats: 6, status: 'active' };
+const norm = s => s.replace(/[\s.\-]/g, '').toUpperCase();
+const fresh = mode => ({ mode, ...(mode === 'edit' ? EDIT : ADD), submitted: mode === 'add', confirm: false });
+class Component extends DCLogic {
+  state = { p: fresh('add'), d: fresh('edit') };
+  up(k, patch) { this.setState(s => ({ [k]: { ...s[k], ...patch } })); }
+  renderVals() {
+    const board = (k, isPhone) => {
+      const b = this.state[k];
+      const self = b.mode === 'edit' ? EDIT.plate : null;
+      const dup = TAKEN.some(p => norm(p) === norm(b.plate) && p !== self);
+      const err = b.submitted && dup;
+      const ev = f => e => this.up(k, { [f]: e.target.value, submitted: f === 'plate' ? false : b.submitted });
+      const title = b.mode === 'edit' ? `Sửa xe ${EDIT.plate}` : 'Thêm xe';
+      return {
+        isPhone, isDesk: !isPhone,
+        label: isPhone ? '02 · Thêm / sửa xe · 390' : '02 · Thêm / sửa xe · 1040',
+        modes: [['add', 'Thêm'], ['edit', 'Sửa']].map(([m, label]) => ({ label, pick: () => this.setState({ [k]: fresh(m) }),
+          bg: b.mode === m ? 'var(--c-primary)' : 'var(--c-surface)', fg: b.mode === m ? 'var(--c-on-dark)' : 'var(--c-primary)' })),
+        title, crumb: `Vận chuyển › Xe › ${b.mode === 'edit' ? 'Sửa xe' : 'Thêm xe'}`,
+        plate: b.plate, vin: b.vin, name: b.name, seats: b.seats, err,
+        plateBorder: err ? '2px solid var(--c-danger)' : '1px solid var(--c-border)',
+        onPlate: ev('plate'), onVin: ev('vin'), onName: ev('name'),
+        dec: () => this.up(k, { seats: Math.max(1, b.seats - 1) }), inc: () => this.up(k, { seats: Math.min(60, b.seats + 1) }),
+        stopped: b.status === 'stopped', notStopped: b.status !== 'stopped',
+        statuses: [['active', 'Đang dùng'], ['maint', 'Bảo dưỡng']].map(([v, label]) => ({ label, on: b.status === v, pick: () => this.up(k, { status: v }),
+          bg: b.status === v ? 'var(--c-primary-soft)' : 'var(--c-surface)', fg: b.status === v ? 'var(--c-primary)' : 'var(--c-text-muted)' })),
+        canStop: b.mode === 'edit' && b.status !== 'stopped',
+        reuse: () => this.up(k, { status: 'active' }),
+        saveLabel: b.mode === 'edit' ? 'Lưu' : 'Lưu xe',
+        save: () => this.up(k, { submitted: true }),
+        confirm: b.confirm, confirmTitle: `Ngừng dùng xe ${EDIT.plate}?`,
+        askStop: () => this.up(k, { confirm: true }), closeStop: () => this.up(k, { confirm: false }),
+        doStop: () => this.up(k, { confirm: false, status: 'stopped' }),
+      };
+    };
+    return { dueCount: 6, boards: [board('p', true), board('d', false)] };
+  }
+}
+</script>
+</body>
+</html>
