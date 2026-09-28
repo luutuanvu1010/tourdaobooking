@@ -7,7 +7,7 @@
   - ADR-0038 điều 7.
 - **Nhánh thi công:** `worktree-agent-adbf65d3e8d68a3f9` (worktree `.claude/worktrees/agent-adbf65d3e8d68a3f9`). Tách từ `origin/main` @ `d6468e7` (bản 1.26, đã có ADR-0038). **Lệch kế hoạch (theo lệnh điều phối, bước 0):** `main` CHƯA có nhánh `dac-ta-van-chuyen`; nhánh thi công tự gộp hai nhánh vào: `git merge --no-edit dac-ta-van-chuyen` (tua nhanh tới `f4ec6ff`: ADR-0024 "accepted phần điều 6", 6.1–6.6, bảng "Số đã giữ chỗ") rồi `git merge --no-edit worktree-agent-aa7d23379c3035075` (nhánh kế hoạch, commit gộp `5139be2`). Thông điệp của commit gộp là chữ Anh mặc định của git (do `--no-edit` theo lệnh) — ghi nhận, không viết lại lịch sử.
 - **Cách thi công:** executing-plans, một phiên thi công (subagent do điều phối giao, vai THI CÔNG), làm lần lượt từng task; không tự nghiệm thu.
-- **Trạng thái:** NGƯỜI THI CÔNG ĐÃ LÀM XONG phần của mình (2026-09-28, đỉnh `133f8e0` + commit nhật ký này) — CHỜ người kiểm độc lập (Task 16, điều phối giao) và chủ (duyệt tệp đề xuất luật, truy vấn chỉ đọc, `day-len`, `trien-khai` — Task 17). Chủ đã trả lời trong lúc thi công (D12, D14, D15): Task 9 bỏ (2A); Task 3 thay bằng ADR-0043 (bốn trigger, đổi được công ty chủ). Chưa push, chưa gộp, chưa lên production. KHÔNG tự tuyên bố đạt.
+- **Trạng thái:** NGƯỜI THI CÔNG ĐÃ LÀM XONG phần của mình (2026-09-28; lượt D16 xong trên đỉnh `36cb1f3` + commit nhật ký này) — CHỜ người kiểm độc lập (Task 16, điều phối giao) và chủ (duyệt tệp đề xuất luật, truy vấn chỉ đọc, `day-len`, `trien-khai` — Task 17). Chủ đã trả lời trong lúc thi công (D12, D14, D15): Task 9 bỏ (2A); Task 3 thay bằng ADR-0043 (bốn trigger, đổi được công ty chủ). Chưa push, chưa gộp, chưa lên production. KHÔNG tự tuyên bố đạt.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả của người kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task 0)
@@ -138,7 +138,16 @@ Ruling mới — **của người thi công** (P8: bề mặt, đảo ngược �
 
 ## 7. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
 
-Trên đỉnh nhánh `133f8e0` (sau hai lần gộp `dac-ta-van-chuyen`, kéo theo `main` @ `20e0c6e`, trigger (d)):
+**Lần kiểm mới nhất — trên đỉnh `36cb1f3`** (sau D16: gộp `dac-ta-van-chuyen` @ `cfbd438` và `main` @ `50c49ac`, Ruling T8 của điều phối):
+- `npm test`: **1076/1076** · `npm run typecheck`: **thoát 0** · `npm run build:web`: chạy được.
+- `npm run test:e2e` đủ bộ: **23/23 kịch bản xanh**; đuôi `audit-invariants --strict`: mọi bất biến đạt (có `✓ R-PTY-1`), 2 cảnh báo sẵn có (R-ORD-6a/6b).
+- `node --test "tests/audit/*.test.mjs"`: **35/36** (đỏ sẵn có `P4 FINDING HDV`, như mốc).
+- Chrome: `t2b-danh-ba-smoke` **2 ✓, OK** (chạy lại vì câu xác nhận ở Danh bạ đổi). Các kịch bản Chrome khác không chạy lại ở lượt này (không chạm `web/login.ts`, biên nhận, trang Nhân viên).
+- D1 local của worktree dựng lại từ đầu (xoá trạng thái, áp đủ migration kể cả `0028_vai_it.sql` của `main`).
+- Cổng phiên bản chỉ đọc: **ĐẠT — bản ở máy 1.32 mới hơn production 1.29** (production chưa lên 1.30/1.31).
+- Lưu ý đo typecheck: từ lượt này đọc MÃ THOÁT của `npm run typecheck`; vài lần trước có đếm chuỗi "error TS" trong đầu ra có mã màu (đếm đó có thể sai — một lần đã bỏ sót lỗi và bị mã thoát bắt lại ngay trước commit). Các lần ghi "0 lỗi" ở mốc cuối mỗi đợt đều đã có mã thoát 0.
+
+Lần kiểm trước — trên đỉnh nhánh `133f8e0` (sau hai lần gộp `dac-ta-van-chuyen`, kéo theo `main` @ `20e0c6e`, trigger (d)):
 - `npm test`: **1071/1071** · `npm run typecheck`: **0 lỗi** · `npm run build:web`: chạy được.
 - `npm run test:e2e` đủ bộ: lần 1 trên `133f8e0` đứt giữa kịch bản `dispatch` (`TypeError: fetch failed … ECONNREFUSED 127.0.0.1:59404` — máy chủ `wrangler dev` của lần chạy bị tắt từ ngoài, máy đang bận nhiều phiên; 9 kịch bản đầu đã xanh) → chạy lại một lần theo D10: **23/23 kịch bản xanh**; đuôi `audit-invariants --strict`: **mọi bất biến đạt** (có `✓ R-PTY-1`), 2 cảnh báo sẵn có (R-ORD-6a/6b, dữ liệu e2e).
 - `node scripts/audit-invariants.mjs --db local` (D1 local của worktree — đã XOÁ `.wrangler/state/v3/d1` rồi `npm run db:migrate:local` lại sau khi có trigger (d), vì wrangler không áp lại tệp cùng tên; xác nhận bằng `sqlite_master`: đủ bốn trigger `pty_party_role_owner_company_*`): `✓ R-PTY-1`; `✗ R-N1-5 còn ít nhất một quản trị viên đang hoạt động` vì D1 local mới dựng CHƯA có tài khoản nào (không phải T2b; e2e có tài khoản thì đạt).
