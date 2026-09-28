@@ -23,8 +23,12 @@ test("homeRedirect: nhân sự văn phòng → ở lại Trang chủ", () => {
   }
 });
 
-test("homeRedirect: chỉ FIELD → giữ nguyên hành vi (không chuyển; Trang chủ hiện banner lỗi đã thiết kế)", () => {
-  assert.equal(homeRedirect(who("FIELD")), null);
+test("homeRedirect: chỉ FIELD → \"/orders\" (ADR-0030 S23-4/S23-5: qua cổng orders, danh sách = đơn mình phụ trách; không xem được Trang chủ toàn công ty)", () => {
+  assert.equal(homeRedirect(who("FIELD")), "/orders");
+});
+
+test("homeRedirect: FIELD kèm văn phòng → ở lại Trang chủ (xem được mọi đơn qua quyền văn phòng)", () => {
+  for (const office of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(homeRedirect(who("FIELD", office)), null, `FIELD+${office}`);
 });
 
 test("homeRedirect: FIELD + PARTNER → \"/orders\" (không phải văn phòng nhưng dùng được Đơn hàng)", () => {

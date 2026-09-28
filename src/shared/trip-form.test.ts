@@ -36,8 +36,8 @@ test("tripWarnings: ngày đã qua / quá 365 ngày; biên hôm nay và +365 KH�
   assert.deepEqual(codes(trip({ departDate: "2027-09-19" })), []);
   assert.deepEqual(codes(trip({ departDate: "2027-09-20" })), ["too_far"]);
   assert.deepEqual(codes(trip()), []);
-  assert.equal(tripWarnings(trip({ departDate: "2026-09-18" }), TODAY)[0]!.message, "Ngày khởi hành đã qua — lưu nháp được, nhưng chưa thể xác nhận.");
-  assert.equal(tripWarnings(trip({ departDate: "2027-09-20" }), TODAY)[0]!.message, "Ngày khởi hành quá 365 ngày — lưu nháp được, nhưng chưa thể xác nhận.");
+  assert.equal(tripWarnings(trip({ departDate: "2026-09-18" }), TODAY)[0]!.message, "Ngày khởi hành đã qua — vẫn lưu được, nhưng chưa thể xác nhận.");
+  assert.equal(tripWarnings(trip({ departDate: "2027-09-20" }), TODAY)[0]!.message, "Ngày khởi hành quá 365 ngày — vẫn lưu được, nhưng chưa thể xác nhận.");
 });
 
 test("tripWarnings dùng `today` do nơi gọi cấp: 00:30 giờ VN vẫn là ngày hôm sau (không dùng ngày UTC)", () => {

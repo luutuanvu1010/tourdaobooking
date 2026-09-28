@@ -13,9 +13,10 @@
 // CỐ Ý KHÔNG có trong mô hình (đặc tả "Nội dung"): ghi chú vận hành của dịch vụ, nhãn khác giá danh mục, mã danh mục, giá danh mục, id, đơn vị thô, ghi chú thanh toán, cách cọc.
 // Tiền lấy NGUYÊN từ đơn (máy chủ tính); chỉ "tổng dịch vụ" được cộng ở đây.
 // NGƯỜI LẬP ĐƠN (`order.staffName`) KHÔNG BAO GIỜ được in trong vai "Nhân viên phụ trách" (quyết định chủ dự án 2026-09-28, sửa lỗi hiển thị sai sự thật khi đơn do
-// Đối tác/HDV lập chưa có ai phụ trách): đơn CHƯA có người phụ trách (`handlerName` null hoặc rỗng sau khi làm sạch — xem `titleBlock`) thì KHÔNG có dòng
-// "Nhân viên phụ trách", thay bằng `TitleBlock.note` = `PENDING_HANDLER_TEXT`. Trường hợp KHÔNG BIẾT (404/5xx/mất mạng/hết giờ/dữ liệu hỏng) KHÔNG đi tới
-// đây: hộp thoại (`web/confirmation-dialog.ts`) chặn lại trước, không tạo ảnh, không đoán — hàm này không có tham số nào biểu diễn "chưa biết".
+// Đối tác/HDV lập chưa có ai phụ trách — cùng gốc với ADR-0020 điều 9/ADR-0030 S20-4: đơn mới không tự gắn người lập làm người phụ trách): đơn CHƯA có
+// người phụ trách (`handlerName` null hoặc rỗng sau khi làm sạch — xem `titleBlock`) thì KHÔNG có dòng "Nhân viên phụ trách", thay bằng `TitleBlock.note`
+// = `PENDING_HANDLER_TEXT`. Trường hợp KHÔNG BIẾT (404/5xx/mất mạng/hết giờ/dữ liệu hỏng) KHÔNG đi tới đây: hộp thoại (`web/confirmation-dialog.ts`) chặn
+// lại trước, không tạo ảnh, không đoán — hàm này không có tham số nào biểu diễn "chưa biết".
 import type { CompanyDto, OrderDetailDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
 import { PAX_LABEL, PAX_ORDER, parseUnit, paxTotal, type PaxCounts } from "./order-lines.ts";
 import { formatDmy } from "./trip-form.ts";

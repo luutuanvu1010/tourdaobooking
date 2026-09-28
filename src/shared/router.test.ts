@@ -28,7 +28,9 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
     currentStaff: async () => staff,
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async (_env, s) => {
         calls.gate.push(s);
         return block(s);
@@ -100,13 +102,15 @@ test('access "admin" đọc ADMIN_GATE (ADR-0019): mọi quyền ngoài ADMIN/SU
   assert.equal((await build(staffOf(["SALES", "ADMIN"]), () => null).get("/api/adm")).status, 200);
 });
 
-test('access "orders": văn phòng và Đối tác dùng được; chỉ Hướng dẫn viên thì không; chưa đăng nhập 401', async () => {
+test('access "orders": văn phòng, Đối tác và (ADR-0030 S23-5) chỉ Hướng dẫn viên dùng được; không quyền nào → 403; chưa đăng nhập 401', async () => {
   const office = build(staffOf(["SALES"]), () => null);
   assert.equal((await office.get("/api/ord")).status, 200);
   const partner = build(staffOf(["PARTNER"]), () => null);
   assert.equal((await partner.get("/api/ord")).status, 200);
   const fieldOnly = build(staffOf(["FIELD"]), () => null);
-  assert.equal((await fieldOnly.get("/api/ord")).status, 403);
+  assert.equal((await fieldOnly.get("/api/ord")).status, 200, "cổng chỉ lọc thô; mỗi route đơn tự hỏi can() (hàng rào 2)");
+  const nobody = build(staffOf([]), () => null);
+  assert.equal((await nobody.get("/api/ord")).status, 403);
   const anon = build(null, () => null);
   assert.equal((await anon.get("/api/ord")).status, 401);
 });
@@ -126,7 +130,9 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
     currentStaff: async (req) => (new URL(req.url).pathname === "/api/pa-open" ? null : who),
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
       partyAccount: async (_env, actor, partyId) => { seen.push(`${actor.id}:${partyId}`); return { linked: false }; },
       baoThayDoi: async () => {},
@@ -138,6 +144,79 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
   assert.deepEqual(await get("/api/pa-open"), { linked: true, manageable: false });
   assert.deepEqual(await get("/api/pa-off"), { linked: false });
   assert.deepEqual(seen, ["u1:pty-1"]);
+});
+
+test("ADR-0030 S20-13: ctx.myHandledOrderIds() hỏi đúng người đang đăng nhập (không nhận tham số); chưa đăng nhập → [] không gọi hàm tiêm; ctx.ordersWithHandler chuyển nguyên mảng id", async () => {
+  const seenMine: string[] = [];
+  const seenIds: string[][] = [];
+  const mod: AppModule = {
+    name: "t",
+    routes: [
+      route("GET", "/api/mine-open", "public", async (ctx) => json(await ctx.myHandledOrderIds())),
+      route("GET", "/api/mine-ord", "orders", async (ctx) => json(await ctx.myHandledOrderIds())),
+      route("GET", "/api/with-ord", "orders", async (ctx) => json([...(await ctx.ordersWithHandler(["o1", "o2", "o3"]))])),
+    ],
+  };
+  const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/mine-open" ? null : who),
+    injected: {
+      isAssigned: async () => false,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async (_env, orderIds) => { seenIds.push([...orderIds]); return new Set(["o2"]); },
+      handledOrderIdsOf: async (_env, staffId) => { seenMine.push(staffId); return ["o9"]; },
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+    },
+  });
+  const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
+  assert.deepEqual(await get("/api/mine-open"), []);
+  assert.deepEqual(seenMine, [], "chưa đăng nhập: không gọi hàm tiêm");
+  assert.deepEqual(await get("/api/mine-ord"), ["o9"]);
+  assert.deepEqual(seenMine, ["u1"], "id lấy từ phiên đăng nhập");
+  assert.deepEqual(await get("/api/with-ord"), ["o2"]);
+  assert.deepEqual(seenIds, [["o1", "o2", "o3"]]);
+});
+
+test("ADR-0030 S20-4: ctx.newOrderHandler(staffId) chuyển NGƯỜI ĐANG ĐĂNG NHẬP (người lập) + người được chọn cho hàm tiêm, trả nguyên kết luận; chưa đăng nhập → không đạt, không gọi hàm tiêm", async () => {
+  const seen: string[] = [];
+  const mod: AppModule = {
+    name: "t",
+    routes: [
+      route("GET", "/api/pick-open", "public", async (ctx) => json(await ctx.newOrderHandler("s-hdv"))),
+      route("GET", "/api/pick-ord", "orders", async (ctx) => {
+        const r = await ctx.newOrderHandler("s-hdv");
+        return json(r.ok ? { ok: true, n: r.statements("o1", "2026-09-27T00:00:00.000Z").length } : r);
+      }),
+    ],
+  };
+  const who = { id: "u1", phone: "0900000001", fullName: "A", permissions: ["SALES"] } as unknown as StaffProfile;
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async (req) => (new URL(req.url).pathname === "/api/pick-open" ? null : who),
+    injected: {
+      isAssigned: async () => false,
+      newOrderHandler: async (_env, actor, staffId) => {
+        seen.push(`${actor.id}→${staffId}`);
+        return { ok: true, statements: (orderId, at) => { seen.push(`câu:${orderId}@${at}`); return []; } };
+      },
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+    },
+  });
+  const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
+  const open = await get("/api/pick-open");
+  assert.equal(open.ok, false, "chưa đăng nhập: không đạt");
+  assert.deepEqual(seen, [], "chưa đăng nhập: không gọi hàm tiêm");
+  assert.deepEqual(await get("/api/pick-ord"), { ok: true, n: 0 });
+  assert.deepEqual(seen, ["u1→s-hdv", "câu:o1@2026-09-27T00:00:00.000Z"], "người thao tác lấy từ phiên; id đơn + mốc do nơi gọi đưa vào, chuyển nguyên");
 });
 
 // BẢNG TIN (ADR-0022, Task 3) — ctx.baoThayDoi / ctx.dongBangTin: bắn-và-quên qua exec.waitUntil, lỗi phát tin không bao giờ làm hỏng/chậm thao tác ghi (DP-3).
@@ -168,7 +247,9 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
     currentStaff: async () => staff,
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
       partyAccount: async () => ({ linked: false }),
       // KHÔNG bọc async: nếu `overrides.baoThayDoi`/`dongBangTin` là hàm ĐỒNG BỘ ném lỗi, lời gọi này phải ném lỗi ĐỒNG BỘ ra ngoài — bọc `async` sẽ
@@ -200,7 +281,9 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
     currentStaff: async () => null,
     injected: {
       isAssigned: async () => false,
-      defaultHandlerStatement: () => null,
+      newOrderHandler: async () => ({ ok: false, message: "không dùng" }),
+      ordersWithHandler: async () => new Set<string>(),
+      handledOrderIdsOf: async () => [],
       maintenanceBlock: async () => null,
       partyAccount: async () => ({ linked: false }),
       baoThayDoi: async () => { await baoThayDoi(); },

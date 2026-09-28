@@ -1,8 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { HandlerDto } from "./contracts.ts";
-import { handlerControls, handlerFailure, handlerSaved, handlerText, NO_HANDLER_TEXT } from "./handler-view.ts";
-import type { PermissionCode } from "./permissions.ts";
+import { handlerControls, handlerFailure, handlerSaved, handlerText, myJobActions, NO_HANDLER_TEXT, nguoiPhuTrachTuPhien } from "./handler-view.ts";
+import { can, PERMISSION_CODES, type PermissionCode } from "./permissions.ts";
 
 // Ba nhân viên bán hàng (A lập đơn, B được giao, C người ngoài), quản trị, kế toán, nhân viên hiện trường.
 const who = (id: string, ...permissions: PermissionCode[]) => ({ id, permissions });
@@ -31,13 +31,13 @@ test("handlerControls: đơn đã có người phụ trách — người lập, 
   assert.deepEqual(buttons(FIELD, handler("b")), [false, false]);
 });
 
-test("handlerControls: đơn CHƯA có người phụ trách — mọi SALES/ADMIN nhận được; chỉ người lập và quản trị còn thêm nút giao; kế toán/hiện trường không có gì", () => {
+test("handlerControls: đơn CHƯA có người phụ trách — mọi SALES/ADMIN/hướng dẫn viên nhận được; chỉ người lập và quản trị còn thêm nút giao; kế toán không có gì", () => {
   assert.deepEqual(buttons(C, null), [false, true], "SALES khác: chỉ có 'Nhận phụ trách'");
   assert.deepEqual(buttons(B, null), [false, true]);
   assert.deepEqual(buttons(A, null), [true, true], "người lập: nhận cho mình hoặc giao người khác");
   assert.deepEqual(buttons(ADMIN, null), [true, true]);
   assert.deepEqual(buttons(ACC, null), [false, false]);
-  assert.deepEqual(buttons(FIELD, null), [false, false]);
+  assert.deepEqual(buttons(FIELD, null), [false, true], "ADR-0030 S20-6: hướng dẫn viên có nút 'Nhận phụ trách', không có nút giao");
 });
 
 test("handlerControls: người phụ trách là hồ sơ chưa có tài khoản (staffId null) không làm ai thành 'được giao'; chưa biết người phụ trách (undefined) thì KHÔNG nút nào — không đoán 'chưa có' rồi mời nhận", () => {
@@ -51,9 +51,9 @@ test("handlerControls: nhãn nút giao — 'Đổi người phụ trách' khi đ
   assert.equal(handlerControls(A, ORDER, null).assignLabel, "Chọn người phụ trách");
 });
 
-test("chữ hiển thị: 'Phụ trách: <tên>' và chip 'Chưa có người phụ trách'", () => {
-  assert.equal(handlerText("Lê Minh Tuấn"), "Phụ trách: Lê Minh Tuấn");
-  assert.equal(NO_HANDLER_TEXT, "Chưa có người phụ trách");
+test("chữ hiển thị: 'HDV: <tên>' và chip 'Chờ nhận' (ADR-0030 điều 3, Q-A2 — thay 'Phụ trách: <tên>'/'Chưa có người phụ trách')", () => {
+  assert.equal(handlerText("An"), "HDV: An");
+  assert.equal(NO_HANDLER_TEXT, "Chờ nhận");
 });
 
 test("handlerFailure: 409 stale (đổi) → cảnh báo + tải lại; 409 stale (nhận) nói đơn vừa có người; 409 no_change → tải lại; 403 → tải lại (quyền đã đổi)", () => {
@@ -95,4 +95,52 @@ test("handlerSaved: câu báo sau khi lưu — nhận, đổi người, giao l�
   assert.equal(handlerSaved("claim", "Sales Một", false), "Bạn đã nhận phụ trách đơn này.");
   assert.equal(handlerSaved("assign", "Sales Hai", true), "Đã đổi người phụ trách sang Sales Hai.");
   assert.equal(handlerSaved("assign", "Sales Hai", false), "Đã giao đơn cho Sales Hai phụ trách.");
+});
+
+test("myJobActions (ADR-0030 S23-8, lượt 1): nháp → ẩn cả hai; đã xác nhận còn ngày đi → đủ cả hai; đã xác nhận qua ngày đi → chỉ còn sửa số khách", () => {
+  assert.deepEqual(myJobActions({ status: "draft", departed: false }), { cancel: false, editPax: false }, "nháp chưa đi thì cũng ẩn cả hai (route đều 409)");
+  assert.deepEqual(myJobActions({ status: "draft", departed: true }), { cancel: false, editPax: false }, "nháp đã qua ngày đi vẫn ẩn cả hai — trạng thái thắng, không xét departed");
+  assert.deepEqual(myJobActions({ status: "confirmed", departed: false }), { cancel: true, editPax: true });
+  assert.deepEqual(myJobActions({ status: "confirmed", departed: true }), { cancel: false, editPax: true }, "giữ DK-T4-02: qua ngày đi thì ẩn huỷ, vẫn sửa được số khách");
+});
+
+// Vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030 (phát hiện I-2): trang Đơn hàng, trang đơn và biên nhận gọi GET /api/dispatch/handlers (403 với HDV — route
+// hỏi order.view KHÔNG ngữ cảnh, không mở cho HDV theo ruling Task 1.6) → HDV mở đơn CHÍNH MÌNH phụ trách thấy "Chưa tải được người phụ trách", biên
+// nhận mất dòng "Nhân viên phụ trách". Người chỉ xem được đơn mình đang phụ trách thì người phụ trách của MỌI đơn họ thấy = chính họ (tên từ phiên).
+const phien = (permissions: PermissionCode[], o: { partyId?: string | null; fullName?: string } = {}) => ({
+  id: "nv-xem",
+  fullName: o.fullName ?? "Hướng Dẫn Viên A",
+  partyId: o.partyId === undefined ? "pty-nv-xem" : o.partyId,
+  permissions,
+});
+
+test("nguoiPhuTrachTuPhien: chỉ-HDV → người phụ trách = chính mình (tên + tài khoản + hồ sơ từ phiên), KHÔNG cần hỏi máy chủ", () => {
+  assert.deepEqual(nguoiPhuTrachTuPhien(phien(["FIELD"])), { partyId: "pty-nv-xem", staffId: "nv-xem", name: "Hướng Dẫn Viên A" });
+});
+
+test("nguoiPhuTrachTuPhien: người xem mọi đơn / Đối tác / Thực tập / tài khoản ghép HDV+Thực tập hoặc HDV+Đối tác → undefined (trang hỏi máy chủ như cũ)", () => {
+  for (const perms of [["SALES"], ["ACCOUNTING"], ["ADMIN"], ["SUPER_ADMIN"], ["PARTNER"], ["INTERN"], ["FIELD", "INTERN"], ["FIELD", "PARTNER"], ["FIELD", "SALES"]] as PermissionCode[][]) {
+    assert.equal(nguoiPhuTrachTuPhien(phien(perms)), undefined, JSON.stringify(perms));
+  }
+});
+
+test("nguoiPhuTrachTuPhien: 128 tập con quyền — có giá trị KHI VÀ CHỈ KHI máy chủ chỉ trả đơn đang phụ trách (nhánh (3) của GET /api/orders: không 'mọi đơn', không 'mình lập', có 'mình phụ trách')", () => {
+  const moiTapCon = <T,>(mang: readonly T[]): T[][] => (mang.length === 0 ? [[]] : ((con) => [...con, ...con.map((t) => [mang[0] as T, ...t])])(moiTapCon(mang.slice(1))));
+  const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
+  assert.equal(tapCon.length, 128);
+  let soCaTuPhien = 0;
+  for (const permissions of tapCon) {
+    const s = phien(permissions);
+    // Suy từ bảng quyền bằng đúng ba câu hỏi route danh sách đơn đặt (src/modules/orders/index.ts, ADR-0030 S23-4), không chép tay tên quyền.
+    const chiDonPhuTrach = !can(s, "order.view") && !can(s, "order.view", { ownerId: s.id }) && can(s, "order.view", { assigned: true });
+    const kq = nguoiPhuTrachTuPhien(s);
+    assert.equal(kq !== undefined, chiDonPhuTrach, `permissions=${JSON.stringify(permissions)}`);
+    if (kq) soCaTuPhien++;
+  }
+  assert.ok(soCaTuPhien > 0, "phải có tập quyền thật (FIELD) rơi vào ca tự phiên");
+});
+
+test("nguoiPhuTrachTuPhien: phiên thiếu hồ sơ hoặc tên rỗng → undefined (không dựng người phụ trách từ dữ liệu thiếu — trang hỏi máy chủ, ra 'chưa biết' như cũ)", () => {
+  assert.equal(nguoiPhuTrachTuPhien(phien(["FIELD"], { partyId: null })), undefined);
+  assert.equal(nguoiPhuTrachTuPhien(phien(["FIELD"], { fullName: "   " })), undefined);
 });

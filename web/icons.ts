@@ -19,6 +19,7 @@ const SHAPES = {
   lock: [["rect", { x: 5, y: 11, width: 14, height: 9, rx: 2 }], ["path", { d: "M8 11V8a4 4 0 0 1 8 0v3" }]],
   alert: [["path", { d: "M12 4l9 16H3L12 4z" }], ["path", { d: "M12 10v4M12 17v.01" }]],
   close: [["path", { d: "M6 6l12 12M18 6L6 18" }]],
+  check: [["path", { d: "M5 12l5 5 9-10" }]], // dấu ✓ của hàng đang chọn trong bảng chọn người phụ trách (form lập đơn — Task 1.8 phần b), đúng nét bản thiết kế
   // 4 hình mới cho thanh điều hướng dọc (ADR-0015, Đợt D Task 4) — copy ĐÚNG path/circle/rect từ mockup
   // docs/design/mockup-by-ClaudeDesign/00 Trang chu v2.dc.html (dòng ~65, ~82, ~86, ~98), theo đúng khuôn 24×24 đã có.
   "contact-card": [
@@ -118,7 +119,7 @@ export type IconName = keyof typeof SHAPES;
 
 export function icon(name: IconName, size = 24): SVGSVGElement {
   const svg = document.createElementNS(NS, "svg");
-  const bold = name === "plus" || name === "back";
+  const bold = name === "plus" || name === "back" || name === "check";
   const attrs = { width: size, height: size, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": bold ? 2.2 : 1.8, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" };
   for (const [k, v] of Object.entries(attrs)) svg.setAttribute(k, String(v));
   for (const [tag, shape] of SHAPES[name]) {

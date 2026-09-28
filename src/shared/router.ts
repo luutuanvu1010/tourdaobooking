@@ -13,6 +13,14 @@ export type Access = "public" | "staff" | "office" | "orders" | "admin";
 /** `vaiAn` (ADR-0044): tài khoản gắn hồ sơ đang giữ Toàn quyền — vai ẩn; người xem không giữ Toàn quyền chỉ thấy vai đang mở của hồ sơ đó. */
 export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean; vaiAn?: boolean };
 
+/**
+ * Kết luận của `dispatch` về người mà người lập CHỌN làm người phụ trách ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C). Đạt → `statements`
+ * dựng các câu lệnh D1 (CHƯA chạy) cho MỘT lần thử của lô tạo đơn: nhận id đơn và mốc `at` của CHÍNH lần thử đó từ `createOrder` (id đơn đổi mỗi lần
+ * thử lại khi trùng mã) — không tự đọc đồng hồ: dòng `HANDLE` mở và dòng nhật ký mang ĐÚNG mốc của dòng nhật ký `created` cùng lô. Không đạt → `message`
+ * (lời báo cho người dùng, route trả 400 `invalid_assignee` và KHÔNG tạo đơn).
+ */
+export type NewOrderHandler = { ok: true; statements: (orderId: string, at: string) => D1PreparedStatement[] } | { ok: false; message: string };
+
 export interface Ctx<A extends Access = Access> {
   request: Request;
   env: Env;
@@ -31,11 +39,25 @@ export interface Ctx<A extends Access = Access> {
    */
   isAssigned: (orderId: string) => Promise<boolean>;
   /**
-   * Câu lệnh D1 (CHƯA chạy) đặt người đang đăng nhập làm người phụ trách mặc định của đơn MỚI `orderId` (ADR-0009 điều 4) — gộp vào cùng `db.batch()`
-   * tạo đơn, sau câu INSERT đơn. `null` nếu không có (chưa đăng nhập, hoặc người lập không đủ điều kiện làm người phụ trách — chưa có hồ sơ, tài khoản chỉ
-   * Đối tác: ADR-0014 điều 9/10; luật do `dispatch` quyết). Do gốc lắp ráp tiêm.
+   * Người phụ trách do người lập CHỌN ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C) — đơn mới KHÔNG BAO GIỜ tự gắn người lập; không chọn thì
+   * route không gọi hàm này và đơn "chờ nhận". `dispatch` đọc tài khoản `staffId` và xét bằng CHÍNH luật người được giao (`checkAssignee`: đang hoạt
+   * động, có hồ sơ, không phải tài khoản có quyền Đối tác, đủ cấp); đạt thì trả hàm dựng câu lệnh để gộp vào CÙNG `db.batch()` tạo đơn (xem
+   * `NewOrderHandler`). Quyền CHỌN của người gọi (`dispatch.assign`) route tự hỏi TRƯỚC khi gọi. Do gốc lắp ráp tiêm; mỗi lần gọi là một truy vấn D1.
+   * Chưa đăng nhập → không đạt, không truy vấn.
    */
-  defaultHandlerStatement: (orderId: string, at: string) => D1PreparedStatement | null;
+  newOrderHandler: (staffId: string) => Promise<NewOrderHandler>;
+  /**
+   * Trong các đơn `orderIds`, đơn nào ĐANG có người phụ trách (ADR-0030 S20-13) — do gốc lắp ráp tiêm; `dispatch` trả lời. Module `orders` không import
+   * `dispatch` và không đọc view `v_dsp_*` của nó (`src/architecture.test.ts` canh): cần biết đơn nào có người thì hỏi hàm này. KHÔNG phụ thuộc người
+   * đang gọi (chỉ tra theo mã đơn nơi gọi đã có) — cả route công khai cũng nhận câu trả lời THẬT: trả tập rỗng ở đó sẽ là câu trả lời SAI ("không đơn nào
+   * có người"), không phải từ chối. Mỗi lần gọi là MỘT truy vấn D1 với cả mảng id trong một tham số JSON (mảng rỗng: không truy vấn).
+   */
+  ordersWithHandler: (orderIds: readonly string[]) => Promise<Set<string>>;
+  /**
+   * Mọi đơn mà NGƯỜI ĐANG ĐĂNG NHẬP đang phụ trách (ADR-0030) — do gốc lắp ráp tiêm; id người lấy từ phiên, KHÔNG nhận tham số (route không hỏi được
+   * thay người khác). Chưa đăng nhập → `[]` (không phụ trách gì), không truy vấn. Mỗi lần gọi là một truy vấn D1.
+   */
+  myHandledOrderIds: () => Promise<string[]>;
   /**
    * ADR-0013 điều 4 — do gốc lắp ráp tiêm (module `parties` không import `staff`). Mỗi lần gọi là 1–2 truy vấn D1.
    * Chưa đăng nhập → `{ linked: true, manageable: false }` (TỪ CHỐI; không được tụt về ô `party.write`).
@@ -123,7 +145,12 @@ export interface AppOptions {
    */
   injected: {
     isAssigned: (env: Env, staffId: string, orderId: string) => Promise<boolean>;
-    defaultHandlerStatement: (env: Env, staff: StaffProfile, orderId: string, at: string) => D1PreparedStatement | null;
+    /** ADR-0030 S20-4. BẮT BUỘC. `actor` = người đang đăng nhập (người lập — ghi vào cột người thao tác và nhật ký), `staffId` = người được chọn. */
+    newOrderHandler: (env: Env, actor: StaffProfile, staffId: string) => Promise<NewOrderHandler>;
+    /** ADR-0030 S20-13. BẮT BUỘC: thiếu là `orders` không biết đơn nào đang có người phụ trách (Trang chủ đếm sai "Chưa phụ trách"). */
+    ordersWithHandler: (env: Env, orderIds: readonly string[]) => Promise<Set<string>>;
+    /** ADR-0030. BẮT BUỘC. Router luôn truyền `staffId` = người đang đăng nhập (`ctx.myHandledOrderIds`). */
+    handledOrderIdsOf: (env: Env, staffId: string) => Promise<string[]>;
     /**
      * Cổng CHẾ ĐỘ BẢO TRÌ (module `maintenance`, gốc lắp ráp tiêm — router không biết module đó): Response 503 nếu tài khoản này bị chặn LÚC NÀY, hoặc null để cho qua.
      * Chạy cho mọi route cần đăng nhập, ngay sau khi biết ai đang đăng nhập và TRƯỚC kiểm quyền admin/văn phòng (người bị chặn thấy "đang bảo trì", không phải "không đủ quyền").
@@ -146,6 +173,9 @@ function ghiLoiBangTin(viec: "bao" | "dong", e: unknown): void {
   const name = e instanceof Error ? e.name : "unknown";
   console.error(JSON.stringify({ level: "error", event: "bang_tin_loi", viec, name }));
 }
+
+/** `ctx.newOrderHandler` ở route công khai (không ai đăng nhập): không đạt, không truy vấn. */
+const NOT_SIGNED_IN: NewOrderHandler = { ok: false, message: "Chưa đăng nhập hoặc phiên đã hết hạn." };
 
 export function createApp(opts: AppOptions) {
   const routes = opts.modules.flatMap((m) => m.routes);
@@ -187,7 +217,9 @@ export function createApp(opts: AppOptions) {
     return hit.r.handler({
       request, env, exec, url, params: hit.params, staff,
       isAssigned: (orderId) => (who ? opts.injected.isAssigned(env, who.id, orderId) : Promise.resolve(false)),
-      defaultHandlerStatement: (orderId, at) => (who ? opts.injected.defaultHandlerStatement(env, who, orderId, at) : null),
+      newOrderHandler: (staffId) => (who ? opts.injected.newOrderHandler(env, who, staffId) : Promise.resolve(NOT_SIGNED_IN)),
+      ordersWithHandler: (orderIds) => opts.injected.ordersWithHandler(env, orderIds),
+      myHandledOrderIds: () => (who ? opts.injected.handledOrderIdsOf(env, who.id) : Promise.resolve([])),
       partyAccount: (partyId) => (who ? opts.injected.partyAccount(env, who, partyId) : Promise.resolve({ linked: true, manageable: false } as const)),
       baoThayDoi: (e) => {
         if (!who) return; // route công khai: không ai "báo" thay mặt.

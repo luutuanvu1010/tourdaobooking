@@ -35,7 +35,7 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNE
  * "Của mình" = người lập đơn (với `feedback.view` là người GỬI yêu cầu); "được giao" = người phụ trách đang mở của đơn
  * (do `dispatch` cung cấp hàm `isOrderHandler`, gốc lắp ráp `src/index.ts` tiêm vào `ctx.isAssigned` — ADR-0007 điều 4(b); route nào cần thì gọi và truyền kết quả vào
  * `can(who, op, { ownerId, assigned })`). Route KHÔNG truyền `assigned` thì ô `ownOrAssigned` chạy như `own`.
- * Có route dùng: order.create/history.view/modify/trip.edit/money.edit (module orders), dispatch.assign/claim/cancel (module dispatch),
+ * Có route dùng: order.create/history.view/modify/trip.edit/money.edit/pool.view (module orders), dispatch.assign/claim/cancel (module dispatch),
  * feedback.submit/view/triage (module feedback), party.view/write/staff.write (module parties).
  * `SUPER_ADMIN` = `any` ở MỌI thao tác, không ngoại lệ (ADR-0014 điều 2) — kể cả các thao tác dưới đây chưa có route dùng.
  * Thao tác của N2/N3 (task.progress, payment.*, invoice.*) và ADR-0014 Phase C (dispatch.guides.view) có mặt để test khoá bản
@@ -43,12 +43,14 @@ const row = (SALES: Scope, ACCOUNTING: Scope, ADMIN: Scope, FIELD: Scope, PARTNE
  * `POST /api/orders/:id/handler-money-edit`, module dispatch — ADR-0014 điều 11/6, Phase B; `order.money.edit` ghi qua "dòng điều chỉnh" chỉ-thêm
  * ở bảng `order_money_adjustment`, không sửa đè `order_service`/`order_item`/cột tiền của `orders`).
  * ADR-0018 giai đoạn 1: cột INTERN TẠM HẸP (lập đơn; xem/sửa đơn của mình); giai đoạn 2 đổi sang giá trị đích của đặc tả §5.
+ * ADR-0030 lượt 1 (S23-1, S23-3, S23-5, S20-6, S20-12 — thay ADR-0017 điều 1, không thi công ADR-0017 nguyên dạng): cột FIELD xem đơn/tiền/liên hệ/lịch sử
+ * của đơn ĐANG PHỤ TRÁCH (`assigned`), tự nhận đơn chờ nhận (`dispatch.claim` any — chốt Nhận + chặn tài khoản lai ở route), xem hàng chờ (`order.pool.view`).
  */
 export const MATRIX = {
-  "order.view": row("any", "any", "any", "none", "own", "any", "own"), // xem đơn
-  "money.view": row("any", "any", "any", "none", "own", "any", "own"), // xem tiền, bảng giá danh mục
-  "order.history.view": row("ownOrAssigned", "any", "any", "none", "own", "any", "own"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách)
-  "contact.view": row("any", "any", "any", "assigned", "ownOrAssigned", "any", "own"), // tên/SĐT khách, điểm đón, giờ — PARTNER: own (đơn tự lập) + assigned (đơn được duyệt "xin nhận", ADR-0014 điều 10)
+  "order.view": row("any", "any", "any", "assigned", "own", "any", "own"), // xem đơn — FIELD: chỉ đơn đang phụ trách (ADR-0030 S23-1); chi tiết đơn khác → 404 (seesOnlyAssignedOrders)
+  "money.view": row("any", "any", "any", "assigned", "own", "any", "own"), // xem tiền, bảng giá danh mục — FIELD assigned (ADR-0030 S23-5): tiền đơn mình phụ trách, KHÔNG bảng giá (for-order chặn ở order.create)
+  "order.history.view": row("ownOrAssigned", "any", "any", "assigned", "own", "any", "own"), // nhật ký/lịch sử sửa đơn (ADR-0009: cả người phụ trách; ADR-0030 S23-3: FIELD đơn đang phụ trách)
+  "contact.view": row("any", "any", "any", "assigned", "ownOrAssigned", "any", "own"), // tên/SĐT khách, điểm đón, giờ — PARTNER: own (đơn tự lập) + assigned (đơn được duyệt "xin nhận", ADR-0014 điều 10). NGOẠI LỆ CÓ TÊN (ADR-0030 S23-2): nơi đón/giờ đón ở PHẦN HẸP của hàng chờ (order.pool.view) không đòi ô này — nơi đón đã che dãy số
   "order.create": row("any", "none", "any", "none", "any", "any", "any"), // lập đơn (đơn mới luôn là của người lập)
   "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any", "none"), // thông tin vận hành sau xác nhận
@@ -56,7 +58,7 @@ export const MATRIX = {
   "order.money.edit": row("own", "any", "any", "assigned", "none", "any", "none"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0014 điều 6, route: POST /api/orders/:id/handler-money-edit (module dispatch, FIELD)
   "order.cancel": row("none", "none", "none", "assigned", "none", "any", "none"), // huỷ đơn đang phụ trách, lý do bắt buộc — ADR-0014 điều 11, route: POST /api/orders/:id/handler-cancel (module dispatch)
   "dispatch.assign": row("ownOrAssigned", "none", "any", "none", "none", "any", "none"), // đặt/đổi người phụ trách và nhiệm vụ (ADR-0009: cả người phụ trách hiện tại)
-  "dispatch.claim": row("any", "none", "any", "none", "none", "any", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này)
+  "dispatch.claim": row("any", "none", "any", "any", "none", "any", "none"), // nhận phụ trách đơn CHƯA có người (ADR-0009; điều kiện "chưa có người" do dịch vụ của dispatch kiểm, không phải ô này) — FIELD any (ADR-0030 S20-6/S20-12); chốt Nhận (đã huỷ/qua ngày đi) + chặn tài khoản có quyền Đối tác ở route PUT /api/orders/:id/handler
   "dispatch.guides.view": row("none", "none", "none", "none", "any", "any", "none"), // danh sách hẹp hướng dẫn viên nội bộ — thao tác MỚI (ADR-0014 điều 9, chưa có route)
   "payment.receive": row("own", "any", "any", "none", "none", "any", "none"), // ghi thu tiền
   "payment.refund": row("none", "any", "any", "none", "none", "any", "none"), // ghi hoàn tiền
@@ -75,6 +77,10 @@ export const MATRIX = {
   "feedback.view": row("own", "own", "own", "own", "own", "any", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
   "feedback.triage": row("none", "none", "none", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
+  // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
+  // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
+  // đòi contact.view; nơi đón đã che dãy từ 8 chữ số — src/modules/orders/pool.ts).
+  "order.pool.view": row("none", "none", "none", "any", "none", "any", "none"),
   "notice.send": row("none", "none", "none", "none", "none", "any", "none"), // gửi/thu hồi thông báo thủ công, xem ai đã hiểu — chỉ Toàn quyền (ADR-0034 điều 7)
   // ADR-0038 điều 7 + ADR-0024 6.4 (T2b): sửa định danh (tên, MST, địa chỉ), liên hệ, công việc của hồ sơ công ty chủ và ĐỔI công ty chủ (gán vai
   // "Công ty chủ" — chủ trả lời 2026-09-28) — chỉ Toàn quyền. party.write / party.staff.write / admin.manage từ chối hồ sơ này (module parties).
@@ -134,10 +140,16 @@ export function can(who: PermissionHolder, op: OperationCode, ctx: OperationCont
  * trong thân xử lý (hàng rào 2). Đổi danh sách = sửa `src/shared/cong-quyen.test.ts` trong cùng commit.
  */
 export const ADMIN_GATE = ["ADMIN", "SUPER_ADMIN"] as const satisfies readonly PermissionCode[];
-/** Văn phòng: Hồ sơ, danh mục `GET /api/catalog`, danh sách người được giao. KHÔNG gồm FIELD dù FIELD xem được mọi đơn (ADR-0017) — Q3 của chủ dự án. */
+/**
+ * Văn phòng: Hồ sơ, danh mục `GET /api/catalog`, danh sách người được giao. KHÔNG gồm FIELD (Q3 của chủ dự án): hướng dẫn viên chỉ xem đơn mình phụ
+ * trách và hàng chờ (ADR-0030 S23-1/S23-5 — ADR-0017 "FIELD xem mọi đơn" không thi công nguyên dạng).
+ */
 export const OFFICE_GATE = ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const satisfies readonly PermissionCode[];
-/** Màn đơn: `/api/orders*`, Trang chủ, người phụ trách của đơn. Mỗi mã ở đây phải có `order.view` ≠ none (bài kiểm đối chiếu). */
-export const ORDERS_GATE = ["SALES", "ACCOUNTING", "ADMIN", "PARTNER", "SUPER_ADMIN", "INTERN"] as const satisfies readonly PermissionCode[];
+/**
+ * Màn đơn: `/api/orders*`, Trang chủ, người phụ trách của đơn. Mỗi mã ở đây phải có `order.view` ≠ none (bài kiểm đối chiếu). FIELD vào cổng này từ ADR-0030
+ * S23-5 (sửa ADR-0019 điều 1), CÙNG lần phát hành với nhánh lọc thứ ba của `GET /api/orders` và chi tiết 404 (S23-4) — mọi route sau cổng tự hỏi `can()`.
+ */
+export const ORDERS_GATE = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN"] as const satisfies readonly PermissionCode[];
 
 const holdsAny = (who: { readonly permissions: readonly PermissionCode[] }, gate: readonly PermissionCode[]): boolean => who.permissions.some((p) => gate.includes(p));
 export const passesAdminGate = (who: PermissionHolder): boolean => holdsAny(who, ADMIN_GATE);
@@ -147,6 +159,15 @@ export const isOffice = (who: PermissionHolder): boolean => holdsAny(who, OFFICE
 export const canAccessOrders = (who: PermissionHolder): boolean => holdsAny(who, ORDERS_GATE);
 /** Xem được MỌI đơn (không ngữ cảnh): hiện Trang chủ, mục "Đơn hàng", ô tìm đơn; `homeRedirect` giữ người này ở Trang chủ. Là câu hỏi của BẢNG, không phải cổng. */
 export const seesAllOrders = (who: PermissionHolder): boolean => can(who, "order.view");
+/**
+ * CHỈ xem được đơn mình ĐANG PHỤ TRÁCH (ADR-0030 S23-4): mọi ô `order.view` của các quyền người đó là `none` hoặc `assigned`, và có ít nhất một `assigned`
+ * (hôm nay: đúng tài khoản chỉ-FIELD). Chi tiết đơn không được xem trả 404 CHO NGƯỜI NÀY (như đơn không tồn tại — hướng dẫn viên không dò được đơn của người
+ * khác); người có ô `own` (Đối tác, Thực tập) hay `any` vẫn nhận 403 như cũ (Review Focus 2). Câu hỏi của BẢNG, không phải cổng.
+ */
+export const seesOnlyAssignedOrders = (who: Pick<PermissionHolder, "permissions">): boolean => {
+  const cells = who.permissions.map((p) => MATRIX["order.view"][p]);
+  return cells.some((c) => c === "assigned") && cells.every((c) => c === "none" || c === "assigned");
+};
 
 /**
  * Tài khoản CÓ quyền Đối tác (`PARTNER`), kể cả khi kèm quyền khác — chủ dự án chốt 2026-09-26: "Có quyền Đối tác là áp". Đường quản trị cũ

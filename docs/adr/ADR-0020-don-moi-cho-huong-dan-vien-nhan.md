@@ -1,12 +1,13 @@
 # ADR-0020 — Đơn mới chưa có người phụ trách cho tới khi có người bấm "Nhận"; hướng dẫn viên nội bộ nhận được đơn
 
-- **Trạng thái:** **accepted phần điều 1, 2, 3 và 7** — chủ dự án duyệt 2026-09-27 cùng ADR-0030 lượt 1 ("duyệt cả hai lượt luôn"; lời duyệt do điều phối chuyển lại nguyên văn).
+- **Trạng thái:** **accepted phần điều 1, 2, 3, 7 và 9** — chủ dự án duyệt 2026-09-27 cùng ADR-0030 lượt 1 ("duyệt cả hai lượt luôn"; lời duyệt do điều phối chuyển lại nguyên văn). Điều 9 duyệt riêng ngày 2026-09-27 — hỏi lại trực tiếp qua AskUserQuestion SAU KHI người kiểm độc lập lượt 1 phát hiện dòng trạng thái này chưa khớp thực tế (M-2), KHÔNG PHẢI lúc thi công Task 1.6b — nội dung điều 9 (cách làm M1=A) đã chốt từ 2026-09-25, Task 1.6b thi công đúng cách đó trước khi dòng trạng thái này được cập nhật cho khớp.
   - Các điều được duyệt, theo ADR-0030 mục "Đếm quyết định":
     - **điều 2** — D2, dòng S20-5, S20-8, S20-9;
     - **điều 1 và điều 3** — D3, dòng S20-2…S20-4;
     - **điều 7** — dòng S20-13.
+  - **Điều 9** — duyệt riêng 2026-09-27 (ngoài "Đếm quyết định" của ADR-0030, vì nội dung là quyết định M1=A đã có từ 2026-09-25, không phải mục S20 mới); thi công ở Task 1.6b của kế hoạch `docs/superpowers/plans/2026-09-27-tu-choi-huy-hdv-thi-cong.md`.
   - Mọi dòng "nguyên văn → mới" của ADR-0030 Mục S20 (S20-1…S20-13) đã chép vào tệp này ngày 2026-09-27, mỗi chỗ ghi "(ADR-0030 S20-x)".
-  - **Điều 4, 6, 8, 9, 10 giữ proposed**: S20 không sửa, giữ nguyên nội dung cũ.
+  - **Điều 4, 6, 8, 10 giữ proposed**: S20 không sửa, giữ nguyên nội dung cũ.
   - **Điều 5 giữ proposed**: đã chép S20-7 cho khớp ADR-0030 điều 2, nhưng điều 5 không nằm trong danh sách lượt 1.
 
   Lịch sử: **proposed** — AI soạn 2026-09-25 theo quyết định **Q7** của chủ dự án (phiên chat 2026-09-25, sau khi nghe ba phương án; ghi ở `docs/superpowers/plans/2026-09-24-hang-rao-quyen-va-va-lo-hong-ho-so.md` §10): *"đơn mới chưa có người phụ trách cho tới khi hướng dẫn viên Nhận"*, làm **sau** việc tách cổng và thi công ADR-0017. AI đã nhắc một lần rằng điều này đảo một điều vừa duyệt ngày 24/9 (P18); chủ đã nghe và vẫn quyết. AI **không tự duyệt** (N3, Điều 7.2). Sau khi accepted chỉ sửa dòng trạng thái; thay đổi nội dung = ADR mới trỏ về ADR này.

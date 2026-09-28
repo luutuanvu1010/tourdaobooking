@@ -26,8 +26,8 @@ test("409 stale: nguy hiểm, nói rõ bản đang gõ sẽ mất, hành động
 
 test("409 client_outdated: thông tin, tải lại trang; 409 not_editable: nguy hiểm, khoá form, dùng lời của máy chủ", () => {
   assert.deepEqual([e(409, "client_outdated").tone, e(409, "client_outdated").title, e(409, "client_outdated").action], ["info", "Trang đã cũ. Hãy tải lại trang.", "reload_page"]);
-  const n = e(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp.");
-  assert.deepEqual([n.tone, n.title, n.action], ["danger", "Chỉ sửa được đơn ở trạng thái nháp.", "lock_form"]);
+  const n = e(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận.");
+  assert.deepEqual([n.tone, n.title, n.action], ["danger", "Chỉ sửa được đơn đang chờ xác nhận.", "lock_form"]);
 });
 
 test("409 incomplete_trip: mỗi dịch vụ thiếu một dòng '<tên> — <nhãn>' kèm serviceId cho liên kết 'Sửa'", () => {
@@ -61,6 +61,13 @@ test("400 catalog_unavailable: nêu dịch vụ và gợi ý chọn lại từ d
 test("400 'Dịch vụ n: không thuộc đơn này' (PUT /trip): đơn vừa được lưu lại ở nơi khác → tải lại đơn, thông báo ngắn", () => {
   const b = e(400, "invalid_input", "Dịch vụ 1: không thuộc đơn này.");
   assert.deepEqual([b.tone, b.title, b.action], ["info", "Đơn vừa được lưu lại ở nơi khác. Đã tải lại đơn — hãy kiểm tra rồi sửa tiếp.", "reload_order"]);
+});
+
+test("400 invalid_assignee (lập đơn kèm người phụ trách vừa nghỉ/mất quyền — Task 1.8 phần b): tiêu đề ĐÚNG lời máy chủ, một dòng nói đơn chưa lưu + cách sửa; KHÔNG khoá form, không tải lại, không cuộn tới thẻ dịch vụ", () => {
+  const b = e(400, "invalid_assignee", "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách.");
+  assert.deepEqual([b.tone, b.title, b.action, b.focusService, b.refreshCatalog], ["danger", "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách.", "none", null, false]);
+  assert.deepEqual(b.lines.map((l) => l.text), ["Đơn chưa được lưu. Bỏ chọn hoặc chọn người phụ trách khác rồi bấm Lưu lại."]);
+  assert.equal(e(400, "invalid_assignee", "").title, "Có lỗi xảy ra, thử lại sau.", "thiếu lời máy chủ: câu chung");
 });
 
 test("403 / 404 / lỗi lạ: lời của máy chủ, nguy hiểm; thiếu lời thì câu chung", () => {

@@ -18,6 +18,9 @@ export const ACCOUNTS = {
   accountant: { name: "Kế Toán Test", phone: "0900000005", pin: "224466", permissions: ["ACCOUNTING"] },
   field: { name: "Hiện Trường Test", phone: "0900000006", pin: "335577", permissions: ["FIELD"] },
   superAdmin: { name: "Super Admin Test", phone: "0900000007", pin: "446688", permissions: ["SUPER_ADMIN"] },
+  // Hai HDV cố định (ADR-0030 S20-8/9, Bảng tin `tests/e2e/bangtin.mjs` CA 11): cần PHÂN BIỆT hai tài khoản HDV để kiểm "HDV A không nhận
+  // tin về đơn HDV B đang phụ trách" — một tài khoản dùng một lần không đủ vì cả hai đầu của phép thử phải SỐNG SUỐT kịch bản.
+  fieldB: { name: "Hiện Trường B Test", phone: "0900000008", pin: "667788", permissions: ["FIELD"] },
 };
 
 let ipn = 0;

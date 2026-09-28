@@ -207,6 +207,17 @@ try {
   ok(`T3) Đã tạo dữ liệu "Cần xem lại": TD101 lệch Sheet (1.200.000 → 1.350.000), 2 góp ý MỚI (${fb1.json.ticket.code} báo lỗi của Sales Một, ${fb2.json.ticket.code} đề xuất của Sales Hai)`);
 
   // ==================================================================================================
+  // S20-13 (ADR-0030; kế hoạch 2026-09-27 Task 1.2) + ADR-0020 điều 7 M1 = A: ô "Chưa phụ trách" đếm CẢ đơn nháp. Từ Task 1.3 (ADR-0030 S20-4)
+  // đơn mới lập không chọn ai thì KHÔNG có người phụ trách — R2 (nháp) tự nhiên là đơn nháp chưa có người, không cần câu SQL đóng dòng phụ trách
+  // nữa. Đáp án đối chiếu ở mục 2 tự tính bằng SQL đọc THẲNG bảng phân công — nguồn độc lập với mã đang kiểm.
+  // ==================================================================================================
+  const unassignedTruth = env.sql(
+    `SELECT o.id FROM orders o WHERE o.status IN ('draft', 'confirmed') AND NOT EXISTS (SELECT 1 FROM dsp_assignment a WHERE a.order_id = o.id AND a.task_kind_code = 'HANDLE' AND a.valid_to_at IS NULL)`,
+  ).map((r) => r.id);
+  assert.ok(unassignedTruth.includes(r2.id), `S20-13: R2 (nháp, lập không chọn người phụ trách) phải là đơn chưa có người — ${JSON.stringify(unassignedTruth)}`);
+  ok(`S20-13: đáp án tự tính bằng SQL — ${unassignedTruth.length} đơn nháp/đã xác nhận chưa có người phụ trách, gồm R2 (nháp)`);
+
+  // ==================================================================================================
   // F) Ghim thứ tự khai route: GET /api/orders/dashboard PHẢI trả dữ liệu thật (không phải 404 do bị route
   //    "GET /api/orders/:id" ở dưới nuốt mất nếu ai đó lỡ dời thứ tự khai route trong orders/index.ts).
   // ==================================================================================================
@@ -229,7 +240,8 @@ try {
   assert.deepEqual(data.today[0].trip, { departDate: TODAY, pickupTime: "06:15", pickupPlace: "Bến Cầu Đá" }, `trip của R1 trong API phải là dịch vụ QUYẾT ĐỊNH (sort_order=1, hôm nay), KHÔNG phải sort_order=0 (mai) — ${JSON.stringify(data.today[0].trip)}`);
   assert.equal(data.revenueWeek.count, 2, `revenueWeek.count phải = 2 (R1 + R3, cùng người lập, cùng tuần) — ${JSON.stringify(data.revenueWeek)}`);
   assert.equal(data.revenueWeek.total, 300_000 + 12_345_000, `revenueWeek.total phải = 12.645.000 — ${JSON.stringify(data.revenueWeek)}`);
-  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} (cross-check DOM bên dưới, không tự đoán trước — phụ thuộc quy tắc gán người phụ trách mặc định của module dispatch, ngoài phạm vi Task 3)`);
+  assert.equal(data.unassignedCount, unassignedTruth.length, `S20-13: unassignedCount phải = số đơn NHÁP + ĐÃ XÁC NHẬN chưa có người (SQL tự tính: ${JSON.stringify(unassignedTruth)}) — API trả ${data.unassignedCount}`);
+  ok(`API GET /api/orders/dashboard khớp số tự tính: draftCount=1, unpaid=1 đơn/12.345.000, today=[R1] (trip đúng dịch vụ quyết định), revenueWeek=2 đơn/12.645.000; unassignedCount=${data.unassignedCount} = đáp án SQL (đếm cả đơn nháp R2 — ADR-0030 S20-13; DOM đối chiếu bên dưới)`);
 
   // ==================================================================================================
   // Đợt D Task 2 (biểu đồ cột 7 ngày): R1 + R3 đều tạo "bây giờ" (createAndConfirm không truyền created_at riêng) nên
@@ -362,11 +374,11 @@ try {
       assert.equal(m.stats[0].label, "Còn thiếu tiền", `${label}: nhãn ĐẦY ĐỦ ô "Còn thiếu tiền" — ${JSON.stringify(m.stats[0])}`);
       assert.equal(m.stats[0].value, "12.345.000 ₫", `${label}: giá trị ĐẦY ĐỦ ô "Còn thiếu tiền" phải hiện 12.345.000 ₫ — ${JSON.stringify(m.stats[0])}`);
       assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
-      assert.equal(m.stats[1].label, "Đơn nháp chưa xác nhận", `${label}: nhãn ĐẦY ĐỦ ô đơn nháp — ${JSON.stringify(m.stats[1])}`);
-      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].label, "Đơn chờ xác nhận", `${label}: nhãn ĐẦY ĐỦ ô đơn nháp (ADR-0030 điều 3, Q-A2 — Task 1.7) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn chờ xác nhận" phải = 1 (chỉ R2, không đếm R1/R3 đã xác nhận) — ${JSON.stringify(m.stats[1])}`);
       assert.equal(m.stats[2].label, "Chưa có người phụ trách", `${label}: nhãn ĐẦY ĐỦ ô chưa phụ trách — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
-      assert.equal(m.stats[2].sub, "Cần gán trước giờ đón", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải khớp mockup "Cần gán trước giờ đón" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].sub, "Chờ người nhận", `${label}: dòng phụ ĐẦY ĐỦ ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.revenueValue, "12.645.000 ₫", `${label}: doanh thu ĐẦY ĐỦ phải = 12.645.000 ₫ (R1 300.000 + R3 12.345.000) — ${JSON.stringify(m)}`);
       assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
 
@@ -412,11 +424,11 @@ try {
       assert.equal(m.stats[0].label, "Còn thiếu", `${label}: nhãn RÚT GỌN ô "Còn thiếu tiền" phải là "Còn thiếu" (bản đang thật sự hiển thị ở khổ hẹp) — ${JSON.stringify(m.stats[0])}`);
       assert.equal(m.stats[0].value, "12,34tr ₫", `${label}: giá trị RÚT GỌN ô "Còn thiếu tiền" phải là "12,34tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.345.000 ₫") — ${JSON.stringify(m.stats[0])}`);
       assert.ok(m.stats[0].sub.includes("1 đơn"), `${label}: ô "Còn thiếu tiền" phải nói "1 đơn" — ${JSON.stringify(m.stats[0])}`);
-      assert.equal(m.stats[1].label, "Đơn nháp", `${label}: nhãn RÚT GỌN ô đơn nháp phải là "Đơn nháp" — ${JSON.stringify(m.stats[1])}`);
-      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn nháp chưa xác nhận" phải = 1 — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].label, "Chờ xác nhận", `${label}: nhãn RÚT GỌN ô đơn nháp phải là "Chờ xác nhận" (ADR-0030 điều 3, Q-A2 — Task 1.7) — ${JSON.stringify(m.stats[1])}`);
+      assert.equal(m.stats[1].value, "1", `${label}: ô "Đơn chờ xác nhận" phải = 1 — ${JSON.stringify(m.stats[1])}`);
       assert.equal(m.stats[2].label, "Chưa phụ trách", `${label}: nhãn RÚT GỌN ô chưa phụ trách phải là "Chưa phụ trách" — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.stats[2].value, String(data.unassignedCount), `${label}: ô "Chưa có người phụ trách" phải khớp API (${data.unassignedCount}) — ${JSON.stringify(m.stats[2])}`);
-      assert.equal(m.stats[2].sub, "Cần gán", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Cần gán" — ${JSON.stringify(m.stats[2])}`);
+      assert.equal(m.stats[2].sub, "Chờ người nhận", `${label}: dòng phụ RÚT GỌN ô chưa phụ trách phải là "Chờ người nhận" (ADR-0020 điều 7, M1 = A) — ${JSON.stringify(m.stats[2])}`);
       assert.equal(m.revenueValue, "12,64tr ₫", `${label}: giá trị RÚT GỌN doanh thu phải là "12,64tr ₫" (vndShort đang thật sự hiển thị, KHÔNG phải "12.645.000 ₫") — ${JSON.stringify(m)}`);
       assert.ok(m.revenueSub.includes("2 đơn"), `${label}: doanh thu phải nói "2 đơn" — ${m.revenueSub}`);
 
@@ -731,9 +743,12 @@ try {
   }
 
   // ==================================================================================================
-  // C) Trạng thái LỖI thật — tài khoản KHÔNG có quyền văn phòng (chỉ FIELD) gọi "/": route "office" của
-  //    GET /api/orders/dashboard trả 403 THẬT (src/shared/router.ts), không phải mô phỏng bằng cách chặn mạng.
-  //    Khẳng định: CHỈ còn banner lỗi hiện; #dash-grid ẨN (gộp #dash-stats — Đợt D Task 1); #loading đã ẩn (không kẹt ở khung xương).
+  // C) (SỬA sau kế hoạch 2026-09-27 Task 1.7, ruling điều phối đã xác nhận ở Task 1.5 — ĐẢO CÓ CHỦ ĐÍCH, không phải
+  //    lỗi, đúng dòng `src/shared/start-page.test.ts:26-32`/S23-4) — TRƯỚC: tài khoản chỉ FIELD không có quyền văn
+  //    phòng gọi "/" thấy banner lỗi 403 THẬT của route "office" (GET /api/orders/dashboard). Từ ADR-0030 S23-4
+  //    (Task 1.5): chỉ-FIELD nay có cổng "orders" (đọc đơn mình phụ trách) → `homeRedirect` (src/shared/start-page.ts)
+  //    đưa họ sang THẲNG "/orders" trước khi trang chủ kịp gọi dashboard — banner lỗi cũ KHÔNG BAO GIỜ còn hiện được.
+  //    Khẳng định MỚI: dừng đúng ở "/orders", KHÔNG banner lỗi, KHÔNG gọi /api/orders/dashboard (route văn phòng).
   // ==================================================================================================
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
@@ -741,21 +756,24 @@ try {
     for (const stmt of (await insertStaffSql(fieldOnly)).split("\n")) env.sql(stmt);
 
     const pErr = await env.as(fieldOnly, "/", MOB);
-    await pErr.waitFor("!document.querySelector('#error').hidden", "banner lỗi hiện (tài khoản không có quyền văn phòng)");
+    await pErr.waitFor("location.pathname === '/orders' && document.readyState === 'complete'", "chỉ-FIELD mở \"/\" phải dừng ở /orders (ADR-0030 S23-4)", 15000);
+    await pErr.waitFor("!document.querySelector('#loading') || document.querySelector('#loading').hidden", "danh sách /orders tải xong (không kẹt khung xương)", 10000);
     const mErr = await pErr.ev(`(() => ({
+      path: location.pathname,
       errorHidden: document.querySelector('#error').hidden,
-      errorText: document.querySelector('#error').textContent.trim(),
-      gridHidden: document.querySelector('#dash-grid').hidden,
-      loadingHidden: document.querySelector('#loading').hidden,
-      todayBadgeHidden: document.querySelector('#dash-today-count').hidden,
+      errorText: document.querySelector('#error').hidden ? "" : document.querySelector('#error').textContent.trim(),
+      hasDashGrid: !!document.querySelector('#dash-grid'),
     }))()`);
-    assert.equal(mErr.errorHidden, false, `Trạng thái lỗi: #error phải HIỆN — ${JSON.stringify(mErr)}`);
-    assert.ok(mErr.errorText.length > 0, "Trạng thái lỗi: #error phải có nội dung tiếng Việt");
-    assert.equal(mErr.gridHidden, true, `Trạng thái lỗi: #dash-grid phải ẨN (không có số liệu/danh sách/doanh thu) — ${JSON.stringify(mErr)}`);
-    assert.equal(mErr.loadingHidden, true, `Trạng thái lỗi: #loading (khung xương) phải ẨN, không kẹt lại — ${JSON.stringify(mErr)}`);
-    assert.equal(mErr.todayBadgeHidden, true, `Trạng thái lỗi: huy hiệu số chuyến hôm nay phải ẨN (chưa từng có số thật) — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.path, "/orders", `Task 1.7: chỉ-FIELD phải dừng ở /orders (KHÔNG còn ở Trang chủ "/") — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.errorHidden, true, `Task 1.7: KHÔNG còn banner lỗi (route "office" không bao giờ được gọi) — ${JSON.stringify(mErr)}`);
+    assert.equal(mErr.hasDashGrid, false, `Task 1.7: trang cuối không được là Trang chủ (không có #dash-grid) — ${JSON.stringify(mErr)}`);
+    // KHÔNG khẳng định "không gọi dashboard" ở đây (khác khối I/PARTNER dưới): ADR-0035 (`layDashboard`/`goiSom`,
+    // web/home.ts) gọi dashboard SỚM song song với /api/auth/me dựa trên bản nhớ CỦA TRÌNH DUYỆT từ lượt xem trước
+    // (có thể là tài khoản seesAll khác, cùng persist Chrome của kịch bản) — gọi sớm rồi 403/bỏ qua là ĐÚNG thiết
+    // kế, không phải rò quyền (route vẫn tự kiểm access "office", chỉ-FIELD không đọc được số liệu). Ngoài phạm vi
+    // Task 1.7 (nhãn hiển thị) nên không kiểm ở đây; chỉ khẳng định KẾT QUẢ hiển thị: dừng ở /orders, không banner lỗi.
     await shot(pErr, "trang-chu-loi-khong-co-quyen.png");
-    ok(`C) Trạng thái lỗi thật (tài khoản chỉ FIELD, không có quyền văn phòng, điện thoại 390×844): CHỈ banner lỗi hiện ("${mErr.errorText}"), #dash-grid ẨN, #loading đã ẩn`);
+    ok(`C) (Task 1.7) chỉ-FIELD mở "/" (điện thoại 390×844): dừng ở /orders, KHÔNG banner lỗi, KHÔNG gọi dashboard — thay cho trạng thái lỗi cũ (đã hết từ Task 1.5, ADR-0030 S23-4)`);
 
     // ================================================================================================
     // D-1 (Fix round 1 — bằng chứng còn thiếu): THANH BÊN của tài khoản chỉ có quyền FIELD. Bản đồ quyền của
@@ -1369,7 +1387,7 @@ try {
         todayPlace: info(today?.querySelector('.dash-today-place')),
       };
     })()`);
-    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn nháp chưa xác nhận", "Chưa có người phụ trách"], `J: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
+    assert.deepEqual(icons.statLabels, ["Còn thiếu tiền", "Đơn chờ xác nhận", "Chưa có người phụ trách"], `J: ba ô số liệu phải đúng thứ tự tiền/nháp/gán — ${JSON.stringify(icons.statLabels)}`);
     icons.stats.forEach((s, i) => {
       assert.ok(s.hasSvg && s.ariaHidden === "true", `J: ô số liệu #${i} (${icons.statLabels[i]}) phải có biểu tượng aria-hidden — ${JSON.stringify(s)}`);
       assert.ok(s.text && s.text.length > 0, `J: ô số liệu #${i} phải còn chữ đi kèm biểu tượng (không đứng một mình) — ${JSON.stringify(s)}`);
@@ -1397,7 +1415,8 @@ try {
   //    ĐẶT CUỐI KỊCH BẢN có chủ đích: (1) đơn do Đối tác lập là đơn nháp/chưa phụ trách/còn thiếu tiền — đặt sớm hơn
   //    sẽ làm lệch các khẳng định đếm toàn công ty ở trên; (2) kho cookie dùng chung — trang của tài khoản này mở sau cùng.
   //    Hai đường vào: I-1 đăng nhập PIN THẬT qua form /login (đích mặc định "/"); I-2 mở thẳng "/" khi đã có phiên
-  //    (gõ địa chỉ / mở app PWA từ màn hình chính). Chỉ-FIELD vẫn giữ banner lỗi (bước C ở trên, không đổi).
+  //    (gõ địa chỉ / mở app PWA từ màn hình chính). Chỉ-FIELD (bước C ở trên) từ Task 1.7 CŨNG sang "/orders" —
+  //    không còn banner lỗi (ADR-0030 S23-4, khác PARTNER chỉ ở lý do quyền: FIELD = "mình phụ trách", PARTNER = "mình lập").
   // ==================================================================================================
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);

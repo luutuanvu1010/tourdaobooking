@@ -1,8 +1,9 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { assigneeRoleLabel } from "../../shared/assignee-pick.ts";
 import { PERMISSION_CODES, type PermissionCode } from "../../shared/permissions.ts";
 import {
-  MAX_HANDLER_LOOKUP, checkAssignee, defaultHandlerPartyId, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
+  MAX_HANDLER_LOOKUP, checkAssignee, describeHandlerChange, handlerChangeVerdict, isOpenHandlerCollision, mayChangeHandler,
   parseCancelReason, parseOrderIds, parseSetHandler,
 } from "./rules.ts";
 
@@ -76,6 +77,13 @@ test("người được giao: chỉ kế toán, không quyền nào, đã ngưng
   }
 });
 
+test("người được giao: tài khoản LAI (còn quyền Đối tác kèm quyền khác) không đủ điều kiện dù quyền khác đủ cấp (ADR-0030 S20-5)", () => {
+  for (const perms of [["PARTNER", "FIELD"], ["PARTNER", "SALES"]] as PermissionCode[][]) {
+    const r = checkAssignee(account(perms));
+    assert.ok(!r.ok && /Tài khoản có quyền Đối tác không làm người phụ trách được\./.test(r.message), `${perms.join("+")} → ${JSON.stringify(r)}`);
+  }
+});
+
 test("mọi quyền hiện có được xếp vào đúng nhóm được giao / không được giao (một nguồn: ô order.modify/order.money.edit của bản đồ quyền)", () => {
   const eligible = PERMISSION_CODES.filter((p) => checkAssignee(account([p])).ok);
   // ADR-0014 điều 2: SUPER_ADMIN = any ở MỌI thao tác. ADR-0014 điều 6: FIELD đủ điều kiện cấp hẹp qua order.money.edit=assigned (Phase B).
@@ -83,43 +91,53 @@ test("mọi quyền hiện có được xếp vào đúng nhóm được giao / 
   assert.deepEqual(eligible, ["SALES", "ADMIN", "FIELD", "SUPER_ADMIN"], "thêm mã quyền mới thì phải quyết định nó có được giao phụ trách không");
 });
 
-// --- Người phụ trách mặc định của đơn MỚI (ADR-0009 điều 4; ADR-0014 điều 9–10) ----------------------------------------
-test("người phụ trách mặc định: người lập SALES/ADMIN/SUPER_ADMIN có hồ sơ → chính hồ sơ của họ (ADR-0009 điều 4 giữ nguyên)", () => {
-  for (const perms of [["SALES"], ["ADMIN"], ["SUPER_ADMIN"]] as PermissionCode[][]) {
-    assert.equal(defaultHandlerPartyId(account(perms)), "pty-1", perms.join("+"));
-  }
-});
-
-test("người phụ trách mặc định: tài khoản CHỈ Đối tác lập đơn → không ai (ADR-0014 điều 9 'hoặc để trống', điều 10 'không tự thành người phụ trách')", () => {
-  assert.equal(defaultHandlerPartyId(account(["PARTNER"])), null);
-});
-
-test("người phụ trách mặc định: người lập chưa có hồ sơ → không ai (như cũ)", () => {
-  assert.equal(defaultHandlerPartyId(account(["SALES"], { partyId: null })), null);
-});
-
-test("người phụ trách mặc định = ĐÚNG luật người được giao (checkAssignee), không chép tay — mọi tổ hợp quyền, có/không hồ sơ, đang/đã ngưng", () => {
+test("nhãn nhóm roleLabel (bảng chọn trong form lập đơn, Task 1.8 phần b): với MỌI tổ hợp quyền mà checkAssignee nhận, nhãn luôn là một quyền người đó THẬT SỰ có — nhánh cuối “Bán hàng” của assigneeRoleLabel không bao giờ gắn nhầm", () => {
+  const holds: Record<string, (p: readonly PermissionCode[]) => boolean> = {
+    "Hướng dẫn viên": (p) => p.includes("FIELD"),
+    "Quản trị": (p) => p.includes("ADMIN") || p.includes("SUPER_ADMIN"),
+    "Bán hàng": (p) => p.includes("SALES"),
+  };
+  let eligible = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
-    const perms = PERMISSION_CODES.filter((_, i) => (mask & (1 << i)) !== 0);
-    for (const extra of [{}, { partyId: null }, { active: false }]) {
-      const who = account(perms, extra);
-      const checked = checkAssignee(who);
-      assert.equal(defaultHandlerPartyId(who), checked.ok ? checked.partyId : null, `${perms.join("+") || "(không quyền)"} ${JSON.stringify(extra)}`);
-    }
+    const perms = PERMISSION_CODES.filter((_, i) => mask & (1 << i));
+    if (!checkAssignee(account(perms)).ok) continue;
+    eligible++;
+    const label = assigneeRoleLabel(perms);
+    assert.ok(holds[label]?.(perms), `${perms.join("+")} → “${label}” nhưng không giữ quyền tương ứng — thêm cấp người được giao mới thì phải thêm nhóm ở src/shared/assignee-pick.ts`);
   }
+  assert.ok(eligible > 0, "điều kiện của phép kiểm: có tổ hợp đủ điều kiện");
 });
 
-// --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11) -------------------------------------------------------------------------
-test("lý do huỷ: đúng một trong hai mã đóng", () => {
+// --- Lý do huỷ đơn của FIELD (ADR-0014 điều 11; "other" — ADR-0030 điều 2, sửa đổi sau khi duyệt 2026-09-27) -----------------------------------------
+test("lý do huỷ: đúng một trong hai mã đóng cũ — note (nếu có gửi kèm) bị bỏ qua, không lỗi", () => {
   assert.deepEqual(parseCancelReason({ reason: "not_reachable" }), { ok: true, reason: "not_reachable" });
   assert.deepEqual(parseCancelReason({ reason: "customer_requested" }), { ok: true, reason: "customer_requested" });
+  assert.deepEqual(parseCancelReason({ reason: "not_reachable", note: "0905123456" }), { ok: true, reason: "not_reachable" }, "note thừa với mã cũ không gây lỗi và không lọt vào kết quả");
 });
 
-test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đóng → từ chối, thông điệp nêu cả hai lựa chọn hợp lệ", () => {
+test("lý do huỷ: thiếu, sai kiểu, tự do, hoặc ngoài danh sách đóng → từ chối, thông điệp nêu đủ ba lựa chọn hợp lệ", () => {
   for (const body of [null, {}, { reason: "" }, { reason: "khác" }, { reason: 1 }, { reason: "Không liên hệ được với khách" }, { reason: "NOT_REACHABLE" }]) {
     const r = parseCancelReason(body as Record<string, unknown> | null);
-    assert.ok(!r.ok && /Không liên hệ được với khách/.test(r.message) && /Khách yêu cầu huỷ/.test(r.message), JSON.stringify(body));
+    assert.ok(!r.ok && /Không liên hệ được với khách/.test(r.message) && /Khách yêu cầu huỷ/.test(r.message) && /Khác/.test(r.message), JSON.stringify(body));
   }
+});
+
+test('lý do "Khác": thiếu note, note rỗng, hoặc note toàn khoảng trắng → từ chối, nêu đúng lý do', () => {
+  for (const body of [{ reason: "other" }, { reason: "other", note: "" }, { reason: "other", note: "   " }, { reason: "other", note: 5 }]) {
+    const r = parseCancelReason(body as Record<string, unknown> | null);
+    assert.ok(!r.ok && /Cần nhập lý do khi chọn "Khác"/.test(r.message), JSON.stringify(body));
+  }
+});
+
+test('lý do "Khác": note chứa số điện thoại/dãy số dài (mọi cách viết) → từ chối, không ghi', () => {
+  for (const note of ["Gọi số 0905123456 không được", "Khách để lại số (0258) 3521 234 rồi mất liên lạc", "Đổi lịch, gọi +84 905 123 456 xác nhận"]) {
+    const r = parseCancelReason({ reason: "other", note });
+    assert.ok(!r.ok && /không được chứa số điện thoại hoặc dãy số dài/.test(r.message), JSON.stringify({ note, r }));
+  }
+});
+
+test('lý do "Khác": note hợp lệ (văn bản thường, đã trim) → ok, trả đúng note đã trim', () => {
+  assert.deepEqual(parseCancelReason({ reason: "other", note: "  Khách đổi lịch bất ngờ  " }), { ok: true, reason: "other", note: "Khách đổi lịch bất ngờ" });
 });
 
 // --- Ai được đặt/đổi người phụ trách (ADR-0009 điều 1–2) --------------------------------------------------------------
@@ -142,13 +160,14 @@ test("đổi người: người lập vẫn đổi được sau khi đã giao l�
   assert.ok(!mayChangeHandler(who("former", ["SALES"]), ORDER, { staffId: "someone-else" }, "former"), "người từng phụ trách không còn quyền");
 });
 
-test("nhận đơn chưa có người phụ trách: SALES/ADMIN nhận CHO CHÍNH MÌNH; nhận cho người khác thì phải là người lập/quản trị", () => {
+test("nhận đơn chưa có người phụ trách: SALES/ADMIN/FIELD nhận CHO CHÍNH MÌNH; nhận cho người khác thì phải là người lập/quản trị", () => {
   assert.ok(mayChangeHandler(who("other", ["SALES"]), ORDER, null, "other"), "SALES nhận cho mình");
   assert.ok(!mayChangeHandler(who("other", ["SALES"]), ORDER, null, "creator"), "SALES giao hộ người khác khi không phải người lập");
   assert.ok(mayChangeHandler(who("creator", ["SALES"]), ORDER, null, "other"), "người lập giao cho người khác");
   assert.ok(mayChangeHandler(who("boss", ["ADMIN"]), ORDER, null, "other"), "quản trị giao cho người khác");
   assert.ok(!mayChangeHandler(who("acc", ["ACCOUNTING"]), ORDER, null, "acc"), "kế toán không nhận");
-  assert.ok(!mayChangeHandler(who("field", ["FIELD"]), ORDER, null, "field"), "FIELD không nhận");
+  assert.ok(mayChangeHandler(who("field", ["FIELD"]), ORDER, null, "field"), "ADR-0030 S20-6/S20-12: FIELD nhận cho CHÍNH MÌNH đơn chưa có người");
+  assert.ok(!mayChangeHandler(who("field", ["FIELD"]), ORDER, null, "creator"), "FIELD KHÔNG giao hộ người khác (dispatch.assign = none)");
   assert.ok(mayChangeHandler(who("multi", ["ACCOUNTING", "SALES"]), ORDER, null, "multi"), "nhiều quyền: hợp các ô");
 });
 
@@ -170,7 +189,9 @@ test("phán quyết: vẫn 'forbidden' khi KHÔNG phải nhận cho chính mình
   const current = { staffId: "handler" };
   assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, current, "x"), "forbidden", "giao hộ người khác: không phải 'nhận', là vượt quyền");
   assert.equal(handlerChangeVerdict(who("acc", ["ACCOUNTING"]), ORDER, current, "acc"), "forbidden", "kế toán không có dispatch.claim");
-  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, current, "field"), "forbidden", "FIELD không có dispatch.claim");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, current, "field"), "stale", "ADR-0030 S20-6: FIELD có dispatch.claim — tự nhận đơn ĐÃ có người = thua đua (409), không phải vượt quyền");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, null, "field"), "allow", "FIELD nhận đơn chưa có người cho chính mình");
+  assert.equal(handlerChangeVerdict(who("field", ["FIELD"]), ORDER, null, "creator"), "forbidden", "FIELD giao hộ người khác: vượt quyền");
   assert.equal(handlerChangeVerdict(who("acc", ["ACCOUNTING"]), ORDER, null, "acc"), "forbidden", "chưa có người phụ trách nhưng kế toán vẫn không nhận được");
   assert.equal(handlerChangeVerdict(who("other", ["SALES"]), ORDER, null, "creator"), "forbidden", "chưa có người phụ trách: SALES giao hộ người khác");
   // được phép: đúng như mayChangeHandler (một nguồn)

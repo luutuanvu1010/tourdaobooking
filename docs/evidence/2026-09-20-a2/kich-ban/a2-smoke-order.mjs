@@ -41,7 +41,7 @@ try {
   // ---- 1) đơn nháp: hai khối dịch vụ, chip, số khách, chuyến, dòng tiền, nhãn lệch giá, tổng, thanh toán, nút ----
   let p = await env.as(ACCOUNTS.salesA, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "hai khối dịch vụ");
-  assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Nháp");
+  assert.equal(await p.ev("document.querySelector('#order .badge').textContent"), "Chờ xác nhận"); // ADR-0030 điều 3, Q-A2 — Task 1.7
   assert.equal(await p.ev(`${svc(0)}.querySelector('.svc-name').textContent`), "Tour 4 đảo Nha Trang");
   assert.deepEqual(await p.ev(`[...${svc(0)}.querySelectorAll('.chip')].map((c) => c.textContent)`), ["theo người", "TD101"]);
   assert.deepEqual(await p.ev(pairs(svc(0), ".svc-facts .kv")), [
@@ -163,12 +163,14 @@ try {
   await p.waitFor("document.querySelector('#order .badge')?.textContent === 'Đã huỷ'", "đã huỷ");
   assert.equal(await p.ev("document.querySelector('#order .badge').classList.contains('badge-cancelled')"), true);
   assert.equal(await p.ev("document.querySelectorAll('#actions .btn').length"), 0);
-  assert.equal(await p.ev("document.querySelectorAll('#order .chip-warn, #order .chip-muted').length"), 0, "đơn đã huỷ không có nhãn danh mục (máy chủ chỉ điền cho đơn nháp)");
+  // Chỉ đếm nhãn DANH MỤC (nằm trong khối dịch vụ .svc-view): từ ADR-0030 S20-4 đơn mới không tự gắn người lập, nên khối "Người phụ trách" của #order
+  // có chip "Chờ nhận" dùng CHUNG lớp .chip-warn (web/order.ts, handlerCard) — không phải nhãn danh mục (Task 1.9 thu hẹp bộ chọn, không đổi ý bài).
+  assert.equal(await p.ev("document.querySelectorAll('#order .svc-view .chip-warn, #order .svc-view .chip-muted').length"), 0, "đơn đã huỷ không có nhãn danh mục (máy chủ chỉ điền cho đơn nháp)");
   p.close();
   // đơn 1 đã xác nhận: danh mục đã đổi giá và ẩn dịch vụ nhưng KHÔNG nhãn
   p = await env.as(ACCOUNTS.salesA, `/order?id=${order.id}`);
   await p.waitFor("document.querySelectorAll('#order .svc-view').length === 2", "đơn 1");
-  assert.equal(await p.ev("document.querySelectorAll('#order .chip-warn, #order .chip-muted').length"), 0);
+  assert.equal(await p.ev("document.querySelectorAll('#order .svc-view .chip-warn, #order .svc-view .chip-muted').length"), 0, "đơn đã xác nhận không có nhãn danh mục");
   p.close();
   ok("nhãn 'Giá danh mục đã đổi' / 'Dịch vụ đã ẩn khỏi danh mục' chỉ ở đơn nháp; đơn huỷ: huy hiệu xám, không nút, không nhãn");
 

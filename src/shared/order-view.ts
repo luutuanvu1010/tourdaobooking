@@ -1,6 +1,7 @@
 // Trang đơn (A2, đặc tả 5.3): DTO → mô hình hiển thị (mỗi dịch vụ một khối chỉ-đọc) và bộ nút theo trạng thái/quyền. Thuần, không DOM.
 import type { CatalogStatus, OrderServiceDto, OrderStatus } from "./contracts.ts";
 import { priceDeviation } from "./order-lines.ts";
+import { seesOnlyAssignedOrders, type PermissionHolder } from "./permissions.ts";
 import { paxSummary, unitLabel } from "./service-form.ts";
 import { tripRows, type TripRow } from "./trip-form.ts";
 
@@ -77,6 +78,23 @@ export interface OrderActions {
   noPermission: boolean;
   /** Đơn đã xác nhận: dòng nhắc "dịch vụ, số khách và tiền đã khoá" và biểu tượng khoá. */
   locked: boolean;
+}
+
+/**
+ * Câu giải thích ở trang đơn khi người đang xem KHÔNG sửa/xác nhận/huỷ được (`orderActions(...).noPermission`). Hướng dẫn viên chỉ xem đơn mình ĐANG phụ
+ * trách (`seesOnlyAssignedOrders`) — họ LÀ người phụ trách nhưng ô `order.modify` của FIELD là `none` (chỉ người phụ trách thuộc bán hàng mới sửa được
+ * như người lập, ADR-0009) — nên câu chung "… người phụ trách đơn … mới được sửa" mâu thuẫn với chính họ (vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030,
+ * phát hiện I-2). Câu cho họ chỉ nói điều TRANG NÀY không làm và nhờ ai; đơn đã xác nhận thì chỉ tới mục "Việc của tôi" (nơi có nút của HDV, `myJobActions`)
+ * mà không hứa nút cụ thể (đã qua ngày đi thì không còn nút huỷ). Người khác giữ câu cũ.
+ */
+export function khongQuyenSuaText(input: { ownerName: string; status: OrderStatus; viewer: Pick<PermissionHolder, "permissions"> }): string {
+  const { ownerName, status, viewer } = input;
+  if (seesOnlyAssignedOrders(viewer)) {
+    return status === "confirmed"
+      ? `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`
+      : `Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ ${ownerName} (người lập đơn) hoặc văn phòng.`;
+  }
+  return `Chỉ ${ownerName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`;
 }
 
 /** `canModify` là cờ của máy chủ (`can(order.modify, owner)`), không suy ra ở client (D4). */

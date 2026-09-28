@@ -8,6 +8,7 @@ import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { DatabaseSync } from "node:sqlite";
 import { renderDictionaryMarkdown } from "../scripts/data-dictionary-lib.mjs";
+import { maskSource } from "../scripts/source-mask-lib.mjs";
 import { registeredSql, type SqlEntry } from "./shared/sql-registry.ts";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
@@ -495,6 +496,46 @@ test("tệp lớp DO modules/bangtin/tram: chỉ src/index.ts được import; k
     }
   }
   assert.deepEqual(problems, []);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0030 S20-13 (ADR-0006 điều 8, ADR-0007 điều 4(b), Hiến chương 5.3): `orders` KHÔNG đọc view công bố của `dispatch` (`v_dsp_*`). `orders` là
+// LEGACY nên SQL của nó không qua bài EXPLAIN ở trên — câu đếm "Chưa phụ trách" của Trang chủ từng đọc thẳng view người phụ trách của dispatch
+// (lệch H1/T3a). Nay tập "đơn đang có người" đi qua hàm tiêm `ctx.ordersWithHandler` (gốc lắp ráp nối vào dispatch); bài này khoá lại kết quả đó.
+// Quét MỌI tệp `.ts` của `src/modules/orders/` KỂ CẢ `*.test.ts` (`walkAll`, khớp lệnh nghiệm thu `grep -rn "v_dsp_" src/modules/orders`), trên bản
+// đã che CHÚ THÍCH nhưng KHÔNG che chuỗi: SQL nằm trong chuỗi/template, che chuỗi thì bài này mù. Không phân biệt hoa/thường (tên trong SQLite
+// không phân biệt). KHÔNG canh: tên ghép động ("v_" + "dsp_…"), đọc thẳng BẢNG `dsp_assignment` (không qua view) — hai lối đó chưa có rào.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Vị trí (`tệp:dòng`) có `v_dsp_` ngoài chú thích. */
+function dispatchViewHits(rel: string, source: string): string[] {
+  const code = maskSource(source, { strings: false, comments: true });
+  const out: string[] = [];
+  const re = /v_dsp_/gi;
+  for (let m = re.exec(code); m; m = re.exec(code)) out.push(`${rel}:${code.slice(0, m.index).split("\n").length}`);
+  return out;
+}
+
+test("bộ bắt `v_dsp_`: bắt trong SQL (chuỗi/template, mọi kiểu chữ), cho qua chú thích, báo đúng tệp:dòng", () => {
+  const cases: [string, boolean][] = [
+    ["db.prepare(`SELECT 1 FROM v_dsp_order_handler h WHERE h.order_id = o.id`)", true],
+    ['const SQL = "SELECT order_id FROM v_dsp_order_handler";', true],
+    ["db.prepare(`SELECT 1 FROM V_DSP_ORDER_HANDLER`)", true], // SQLite không phân biệt hoa/thường ở tên view
+    ["// orders không đọc v_dsp_order_handler — lời giải thích", false],
+    ["/* v_dsp_order_handler trong chú thích khối */ const x = 1;", false],
+    ["/**\n * v_dsp_order_handler\n */", false],
+    ["const x = 1; // v_dsp_ ở chú thích cuối dòng", false],
+  ];
+  for (const [src, caught] of cases) assert.equal(dispatchViewHits("mau.ts", src).length > 0, caught, src);
+  assert.deepEqual(dispatchViewHits("mau.ts", "const a = 1;\n// v_dsp_x\nconst q = `FROM v_dsp_order_handler`;"), ["mau.ts:3"], "báo đúng tệp:dòng");
+});
+
+test("ADR-0030 S20-13: không tệp nào trong src/modules/orders/ (kể cả *.test.ts) chứa `v_dsp_` ngoài chú thích — orders không đọc view của dispatch", () => {
+  const problems = walkAll(join(SRC, "modules", "orders")).flatMap((file) => dispatchViewHits(relative(ROOT, file).split(sep).join("/"), readFileSync(file, "utf8")));
+  assert.deepEqual(
+    problems,
+    [],
+    "`orders` không đọc view `v_dsp_*` của `dispatch` (ADR-0030 S20-13) — tập đơn đang có người phụ trách lấy qua hàm tiêm `ctx.ordersWithHandler` (gốc lắp ráp nối vào dispatch)",
+  );
 });
 
 test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu lực hoặc active = 0); UPDATE thì không", () => {

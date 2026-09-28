@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;600;700;800&family=Be+Vietnam+Pro:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--c-primary:#0c4a6e;--c-primary-soft:#dcebf6;--c-accent:#c0392b;--c-sand:#f5a623;--c-sand-soft:#fdf0d8;--c-surface:#fff;--c-border:#d3e1ec;--radius-md:12px;--s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--s7:48px;--tap-min:44px}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--c-primary-soft);color:var(--c-primary);font-family:'Nunito','Be Vietnam Pro',system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+a{color:var(--c-primary)}
+a:hover{color:var(--c-primary)}
+button{font-family:inherit}
+</style>
+</helmet>
+<div style="min-height:100vh;">
+  <header style="position:sticky;top:0;z-index:10;background:var(--c-surface);border-bottom:1px solid var(--c-border);">
+    <div style="max-width:1120px;margin:0 auto;padding:var(--s3) var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="display:flex;flex-direction:column;gap:var(--s1);">
+        <div style="font-size:14px;font-weight:700;">Tour Đảo Booking · Việc của tôi</div>
+        <div style="font-size:22px;font-weight:800;line-height:1.2;">HDV: {{ guideName }}</div>
+      </div>
+      <nav style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);">
+        <a href="#cho-nhan" style="min-height:var(--tap-min);display:flex;align-items:center;justify-content:space-between;gap:var(--s2);padding:0 var(--s3);border-radius:var(--radius-md);background:var(--c-sand-soft);text-decoration:none;font-weight:700;font-size:16px;">
+          <span>Chờ nhận</span><span style="min-width:28px;height:28px;padding:0 var(--s2);box-sizing:border-box;border-radius:var(--radius-md);background:var(--c-surface);border:1px solid var(--c-sand);display:flex;align-items:center;justify-content:center;font-weight:800;">{{ queueCount }}</span>
+        </a>
+        <a href="#cua-toi" style="min-height:var(--tap-min);display:flex;align-items:center;justify-content:space-between;gap:var(--s2);padding:0 var(--s3);border-radius:var(--radius-md);background:var(--c-primary-soft);text-decoration:none;font-weight:700;font-size:16px;">
+          <span>Đơn của tôi</span><span style="min-width:28px;height:28px;padding:0 var(--s2);box-sizing:border-box;border-radius:var(--radius-md);background:var(--c-primary);color:var(--c-surface);display:flex;align-items:center;justify-content:center;font-weight:800;">{{ mineCount }}</span>
+        </a>
+      </nav>
+    </div>
+  </header>
+
+  <main style="max-width:1120px;margin:0 auto;padding:var(--s4) var(--s4) var(--s7);display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:var(--s6) var(--s5);align-items:start;">
+
+    <section id="cho-nhan" style="scroll-margin-top:140px;display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="display:flex;flex-direction:column;gap:var(--s1);">
+        <h2 style="margin:0;font-size:20px;font-weight:800;">Đơn chờ nhận</h2>
+        <div style="font-size:15px;font-weight:600;">Chưa có ai phụ trách · ngày đi gần nhất lên trước</div>
+      </div>
+      <sc-if value="{{ queueEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:var(--s5) var(--s4);border-radius:var(--radius-md);background:var(--c-surface);border:1px dashed var(--c-border);font-size:16px;font-weight:600;text-align:center;">Không có đơn nào đang chờ nhận.</div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;">
+        <sc-for list="{{ queue }}" as="q" hint-placeholder-count="3">
+          <div style="display:grid;grid-template-rows:{{ q.rows }};opacity:{{ q.opacity }};transition:grid-template-rows .45s ease,opacity .3s ease;">
+            <div style="min-height:0;overflow:hidden;">
+              <div style="padding-bottom:var(--s3);">
+                <article class="order-card" style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s3);">
+                    <div style="display:flex;flex-direction:column;gap:var(--s1);">
+                      <div style="font-size:19px;font-weight:800;">{{ q.dateLabel }}</div>
+                      <div style="font-size:15px;font-weight:600;">{{ q.orderCode }} · {{ q.relLabel }}</div>
+                    </div>
+                    <span class="chip chip-warn" style="flex-shrink:0;padding:var(--s1) var(--s3);border-radius:var(--radius-md);background:var(--c-sand-soft);border:1px solid var(--c-sand);font-size:14px;font-weight:700;">Chờ nhận</span>
+                  </div>
+                  <div style="display:flex;flex-direction:column;border-top:1px solid var(--c-border);">
+                    <sc-for list="{{ q.services }}" as="s" hint-placeholder-count="1">
+                      <div style="display:grid;grid-template-columns:60px minmax(0,1fr);gap:var(--s3);padding:var(--s3) 0;border-bottom:1px solid var(--c-border);">
+                        <div style="font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.3;">{{ s.pickupTime }}</div>
+                        <div style="display:flex;flex-direction:column;gap:var(--s1);min-width:0;">
+                          <div style="font-size:17px;font-weight:700;line-height:1.3;text-wrap:pretty;">{{ s.name }}</div>
+                          <div style="font-size:16px;font-weight:600;"><strong style="font-weight:800;">{{ s.paxTotal }} khách</strong> · {{ s.paxDetail }}</div>
+                          <div style="font-size:16px;font-weight:600;line-height:1.4;overflow-wrap:anywhere;">Đón: {{ s.pickupPlace }}</div>
+                        </div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <button onClick="{{ q.onClaim }}" disabled="{{ q.claiming }}" style="min-height:52px;border:0;border-radius:var(--radius-md);background:var(--c-accent);color:var(--c-surface);font-size:18px;font-weight:800;cursor:pointer;">{{ q.claimLabel }}</button>
+                </article>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section id="cua-toi" style="scroll-margin-top:140px;display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="display:flex;flex-direction:column;gap:var(--s1);">
+        <h2 style="margin:0;font-size:20px;font-weight:800;">Đơn của tôi</h2>
+        <div style="font-size:15px;font-weight:600;">Đơn bạn đang phụ trách</div>
+      </div>
+      <sc-if value="{{ mineEmpty }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:var(--s5) var(--s4);border-radius:var(--radius-md);background:var(--c-surface);border:1px dashed var(--c-border);font-size:16px;font-weight:600;text-align:center;">Bạn chưa được giao phụ trách đơn nào.</div>
+      </sc-if>
+      <sc-for list="{{ mine }}" as="m" hint-placeholder-count="3">
+        <article class="order-card" style="background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:var(--s3);">
+            <div style="display:flex;flex-direction:column;gap:var(--s1);">
+              <div style="font-size:19px;font-weight:800;">{{ m.dateLabel }}</div>
+              <div style="font-size:15px;font-weight:600;">{{ m.orderCode }} · {{ m.relLabel }}</div>
+            </div>
+            <sc-if value="{{ m.isDraft }}" hint-placeholder-val="{{ false }}">
+              <span class="chip chip-warn" style="flex-shrink:0;padding:var(--s1) var(--s3);border-radius:var(--radius-md);background:var(--c-sand-soft);border:1px solid var(--c-sand);font-size:14px;font-weight:700;">Chờ xác nhận</span>
+            </sc-if>
+            <sc-if value="{{ m.isUpcoming }}" hint-placeholder-val="{{ true }}">
+              <span class="chip" style="flex-shrink:0;padding:var(--s1) var(--s3);border-radius:var(--radius-md);background:var(--c-primary-soft);border:1px solid var(--c-primary);font-size:14px;font-weight:700;">Đã xác nhận</span>
+            </sc-if>
+            <sc-if value="{{ m.isPast }}" hint-placeholder-val="{{ false }}">
+              <span class="chip chip-muted" style="flex-shrink:0;padding:var(--s1) var(--s3);border-radius:var(--radius-md);background:var(--c-surface);border:1px solid var(--c-border);font-size:14px;font-weight:700;">Đã đi tour</span>
+            </sc-if>
+            <sc-if value="{{ m.isCancelled }}" hint-placeholder-val="{{ false }}">
+              <span class="chip chip-muted" style="flex-shrink:0;padding:var(--s1) var(--s3);border-radius:var(--radius-md);background:var(--c-surface);border:1px solid var(--c-border);font-size:14px;font-weight:700;">Đã huỷ</span>
+            </sc-if>
+          </div>
+
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s3);padding:var(--s3);border-radius:var(--radius-md);background:var(--c-primary-soft);">
+            <div style="display:flex;flex-direction:column;gap:var(--s1);min-width:0;">
+              <div style="font-size:17px;font-weight:800;">{{ m.customerName }}</div>
+              <div style="font-size:16px;font-weight:600;font-variant-numeric:tabular-nums;">{{ m.customerPhone }}</div>
+            </div>
+            <a href="{{ m.tel }}" aria-label="Gọi khách" style="flex-shrink:0;min-height:var(--tap-min);padding:0 var(--s4);box-sizing:border-box;display:flex;align-items:center;gap:var(--s2);border-radius:var(--radius-md);background:var(--c-surface);border:1px solid var(--c-primary);font-weight:800;font-size:16px;text-decoration:none;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1.9.4 1.8.7 2.7a2 2 0 0 1-.5 2.1L8 9.8a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.4c.9.3 1.8.6 2.7.7a2 2 0 0 1 1.7 2z"></path></svg>
+              <span>Gọi</span>
+            </a>
+          </div>
+
+          <div style="display:flex;flex-direction:column;border-top:1px solid var(--c-border);">
+            <sc-for list="{{ m.services }}" as="s" hint-placeholder-count="1">
+              <div style="display:grid;grid-template-columns:60px minmax(0,1fr);gap:var(--s3);padding:var(--s3) 0;border-bottom:1px solid var(--c-border);">
+                <div style="font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.3;">{{ s.pickupTime }}</div>
+                <div style="display:flex;flex-direction:column;gap:var(--s1);min-width:0;">
+                  <div style="font-size:17px;font-weight:700;line-height:1.3;text-wrap:pretty;">{{ s.name }}</div>
+                  <div style="font-size:16px;font-weight:600;"><strong style="font-weight:800;">{{ s.paxTotal }} khách</strong> · {{ s.paxDetail }}</div>
+                  <div style="font-size:16px;font-weight:600;line-height:1.4;overflow-wrap:anywhere;">Đón: {{ s.pickupPlace }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="font-size:15px;font-weight:700;">HDV: {{ guideName }}</div>
+
+          <sc-if value="{{ m.isDraft }}" hint-placeholder-val="{{ false }}">
+            <div style="font-size:15px;font-weight:600;line-height:1.4;">Đơn đang chờ xác nhận — chưa thể huỷ hay sửa số khách.</div>
+          </sc-if>
+          <sc-if value="{{ m.hasActions }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;gap:var(--s2);flex-wrap:wrap;">
+              <button onClick="{{ m.onEdit }}" style="flex:1 1 160px;min-height:48px;border-radius:var(--radius-md);border:1px solid var(--c-primary);background:var(--c-primary);color:var(--c-surface);font-size:16px;font-weight:800;cursor:pointer;">Sửa số khách</button>
+              <sc-if value="{{ m.canCancel }}" hint-placeholder-val="{{ true }}">
+                <button onClick="{{ m.onCancel }}" style="flex:1 1 120px;min-height:48px;border-radius:var(--radius-md);border:1px solid var(--c-primary);background:var(--c-surface);color:var(--c-primary);font-size:16px;font-weight:800;cursor:pointer;">Huỷ đơn</button>
+              </sc-if>
+            </div>
+          </sc-if>
+        </article>
+      </sc-for>
+    </section>
+  </main>
+
+  <sc-if value="{{ sheetOpen }}" hint-placeholder-val="{{ false }}">
+    <div onClick="{{ closeSheet }}" style="position:fixed;inset:0;z-index:50;background:rgba(12,74,110,.45);display:flex;align-items:{{ sheetAlign }};justify-content:center;padding:{{ sheetPad }};box-sizing:border-box;">
+      <div onClick="{{ stop }}" role="dialog" style="width:100%;max-width:480px;background:var(--c-surface);border-radius:{{ sheetRadius }};padding:var(--s5) var(--s4);box-sizing:border-box;display:flex;flex-direction:column;gap:var(--s4);max-height:85vh;overflow:auto;">
+        <sc-if value="{{ isEditSheet }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:var(--s4);">
+            <div style="display:flex;flex-direction:column;gap:var(--s1);">
+              <div style="font-size:20px;font-weight:800;">Sửa số khách</div>
+              <div style="font-size:15px;font-weight:600;">{{ sheetCode }}</div>
+            </div>
+            <sc-for list="{{ editServices }}" as="es" hint-placeholder-count="1">
+              <div style="display:flex;flex-direction:column;gap:var(--s2);padding-bottom:var(--s3);border-bottom:1px solid var(--c-border);">
+                <div style="font-size:17px;font-weight:800;">{{ es.name }} · {{ es.pickupTime }}</div>
+                <sc-for list="{{ es.rows }}" as="r" hint-placeholder-count="4">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:var(--s3);">
+                    <div style="font-size:16px;font-weight:600;">{{ r.label }}</div>
+                    <div style="display:flex;align-items:center;gap:var(--s2);">
+                      <button onClick="{{ r.dec }}" aria-label="Bớt" style="width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-md);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:22px;font-weight:700;cursor:pointer;">−</button>
+                      <div style="min-width:32px;text-align:center;font-size:19px;font-weight:800;font-variant-numeric:tabular-nums;">{{ r.value }}</div>
+                      <button onClick="{{ r.inc }}" aria-label="Thêm" style="width:var(--tap-min);height:var(--tap-min);border-radius:var(--radius-md);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:22px;font-weight:700;cursor:pointer;">+</button>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-for>
+            <div style="display:flex;gap:var(--s2);">
+              <button onClick="{{ closeSheet }}" style="flex:1;min-height:52px;border-radius:var(--radius-md);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:16px;font-weight:800;cursor:pointer;">Đóng</button>
+              <button onClick="{{ saveEdit }}" style="flex:1;min-height:52px;border-radius:var(--radius-md);border:0;background:var(--c-accent);color:var(--c-surface);font-size:16px;font-weight:800;cursor:pointer;">Xác nhận</button>
+            </div>
+          </div>
+        </sc-if>
+        <sc-if value="{{ isCancelSheet }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;gap:var(--s4);">
+            <div style="font-size:20px;font-weight:800;">Huỷ đơn {{ sheetCode }}?</div>
+            <div style="font-size:16px;font-weight:600;line-height:1.5;">Đơn của {{ sheetCustomer }}, đi {{ sheetDate }}. Thao tác này không hoàn tác được.</div>
+            <div style="display:flex;gap:var(--s2);">
+              <button onClick="{{ closeSheet }}" style="flex:1;min-height:52px;border-radius:var(--radius-md);border:1px solid var(--c-border);background:var(--c-surface);color:var(--c-primary);font-size:16px;font-weight:800;cursor:pointer;">Giữ đơn</button>
+              <button onClick="{{ confirmCancel }}" style="flex:1;min-height:52px;border-radius:var(--radius-md);border:0;background:var(--c-primary);color:var(--c-surface);font-size:16px;font-weight:800;cursor:pointer;">Huỷ đơn</button>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;demoState&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Có dữ liệu&quot;,&quot;Hàng chờ trống&quot;,&quot;Cả hai trống&quot;],&quot;default&quot;:&quot;Có dữ liệu&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;simulateOthers&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const TODAY = new Date(2026, 8, 27);
+const WD = ['Chủ nhật','Thứ Hai','Thứ Ba','Thứ Tư','Thứ Năm','Thứ Sáu','Thứ Bảy'];
+const PAX = [['adult','Người lớn'],['child','Trẻ em'],['senior','Người cao tuổi'],['infant','Em bé']];
+const pd = s => { const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); };
+const days = s => Math.round((pd(s) - TODAY) / 86400000);
+const fmtDate = s => { const d = pd(s); return `${WD[d.getDay()]}, ${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`; };
+const rel = s => { const n = days(s); if (n === 0) return 'Hôm nay'; if (n === 1) return 'Ngày mai'; if (n > 1) return `Còn ${n} ngày`; return `Đã đi ${-n} ngày trước`; };
+const paxView = p => ({
+  paxTotal: PAX.reduce((a, [k]) => a + (p[k] || 0), 0),
+  paxDetail: PAX.filter(([k]) => p[k]).map(([k, l]) => `${p[k]} ${l.toLowerCase()}`).join(', '),
+});
+const svcView = s => ({ name: s.name, pickupPlace: s.pickupPlace, pickupTime: s.pickupTime, ...paxView(s.pax) });
+
+// Hàng chờ: đúng 4 khoá máy chủ gửi. pickupPlace đã được che sẵn.
+const QUEUE = [
+  { orderId:'o27', orderCode:'TDB-2427', departDate:'2026-10-02', services:[
+    { name:'Tour 4 đảo Nha Trang', pax:{adult:8,child:2,senior:0,infant:0}, pickupPlace:'Sảnh khách sạn Sheraton, 26-28 Trần Phú', pickupTime:'07:00' }]},
+  { orderId:'o18', orderCode:'TDB-2418', departDate:'2026-09-28', services:[
+    { name:'Tour 4 đảo Nha Trang', pax:{adult:4,child:1,senior:1,infant:0}, pickupPlace:'Khách sạn Liberty Central, 9 Biệt Thự', pickupTime:'07:15' },
+    { name:'Lặn ngắm san hô Hòn Mun', pax:{adult:4,child:0,senior:0,infant:0}, pickupPlace:'Cảng Cầu Đá', pickupTime:'13:30' }]},
+  { orderId:'o21', orderCode:'TDB-2421', departDate:'2026-09-29', services:[
+    { name:'Tham quan đảo Bình Ba', pax:{adult:7,child:0,senior:0,infant:1}, pickupPlace:'Đón ở •••• •••.••• cổng sau', pickupTime:'06:45' }]},
+  { orderId:'o24', orderCode:'TDB-2424', departDate:'2026-09-29', services:[
+    { name:'Xe đưa đón sân bay Cam Ranh', pax:{adult:2,child:1,senior:0,infant:0}, pickupPlace:'Homestay Mộc, hẻm 12 Hùng Vương – gọi •••••••••• khi tới', pickupTime:'05:30' },
+    { name:'Tour 4 đảo Nha Trang', pax:{adult:2,child:1,senior:0,infant:0}, pickupPlace:'Homestay Mộc, hẻm 12 Hùng Vương', pickupTime:'07:30' }]},
+];
+// Mô phỏng dữ liệu đầy đủ trả về SAU khi nhận thành công.
+const FULL = {
+  o27:{ customerName:'Phạm Quốc Bảo', customerPhone:'0912 448 305' },
+  o18:{ customerName:'Trần Thị Hồng', customerPhone:'0905 214 887' },
+  o21:{ customerName:'Lê Văn Khoa', customerPhone:'0935 812 447', pickup:{0:'Đón ở 0935 812.447 cổng sau'} },
+  o24:{ customerName:'Nguyễn Hải Yến', customerPhone:'0978 330 216', pickup:{0:'Homestay Mộc, hẻm 12 Hùng Vương – gọi 0978330216 khi tới'} },
+};
+const MINE = [
+  { orderId:'o96', orderCode:'TDB-2396', departDate:'2026-09-30', status:'draft', customerName:'Đỗ Minh Châu', customerPhone:'0903 667 120', services:[
+    { name:'Tour 4 đảo Nha Trang', pax:{adult:4,child:1,senior:0,infant:0}, pickupPlace:'Khách sạn Novotel, 50 Trần Phú', pickupTime:'07:15' }]},
+  { orderId:'o71', orderCode:'TDB-2371', departDate:'2026-10-01', status:'confirmed', customerName:'Vũ Thanh Hương', customerPhone:'0987 105 442', services:[
+    { name:'Tham quan đảo Bình Ba', pax:{adult:5,child:1,senior:1,infant:0}, pickupPlace:'Nhà nghỉ Sao Biển, 18 Nguyễn Thiện Thuật', pickupTime:'06:30' },
+    { name:'Bữa tối hải sản trên bè', pax:{adult:5,child:1,senior:1,infant:0}, pickupPlace:'Bến Bình Ba', pickupTime:'17:30' }]},
+  { orderId:'o50', orderCode:'TDB-2350', departDate:'2026-09-25', status:'confirmed', customerName:'Hoàng Gia Linh', customerPhone:'0916 902 381', services:[
+    { name:'Lặn ngắm san hô Hòn Mun', pax:{adult:3,child:0,senior:0,infant:1}, pickupPlace:'Cảng Cầu Đá, quầy số 3', pickupTime:'08:00' }]},
+];
+const sortQueue = a => [...a].sort((x, y) => x.departDate.localeCompare(y.departDate) || x.services[0].pickupTime.localeCompare(y.services[0].pickupTime));
+const rank = o => o.status === 'cancelled' ? 2 : days(o.departDate) < 0 && o.status !== 'draft' ? 1 : 0;
+const sortMine = a => [...a].sort((x, y) => rank(x) - rank(y) || (rank(x) ? y.departDate.localeCompare(x.departDate) : x.departDate.localeCompare(y.departDate)));
+
+class Component extends DCLogic {
+  state = { queue: sortQueue(QUEUE), mine: sortMine(MINE), leaving: [], claiming: null, sheet: null, draft: [], wide: typeof window !== 'undefined' && window.innerWidth >= 768 };
+
+  componentDidMount() {
+    this.onResize = () => this.setState({ wide: window.innerWidth >= 768 });
+    window.addEventListener('resize', this.onResize);
+    this.t = setTimeout(() => { if ((this.props.simulateOthers ?? true) && this.state.claiming !== 'o21') this.vanish('o21'); }, 8000);
+  }
+  componentWillUnmount() { clearTimeout(this.t); clearTimeout(this.t2); window.removeEventListener('resize', this.onResize); }
+
+  vanish(id) {
+    if (!this.state.queue.some(q => q.orderId === id)) return;
+    this.setState(s => ({ leaving: [...s.leaving, id] }));
+    setTimeout(() => this.setState(s => ({ queue: s.queue.filter(q => q.orderId !== id), leaving: s.leaving.filter(x => x !== id) })), 480);
+  }
+
+  claim(id) {
+    if (this.state.claiming) return;
+    this.setState({ claiming: id });
+    this.t2 = setTimeout(() => {
+      const q = this.state.queue.find(o => o.orderId === id), f = FULL[id] || {};
+      const order = { ...q, status:'draft', customerName: f.customerName, customerPhone: f.customerPhone,
+        services: q.services.map((s, i) => ({ ...s, pax: { ...s.pax }, pickupPlace: f.pickup?.[i] ?? s.pickupPlace })) };
+      this.setState(s => ({ claiming: null, mine: sortMine([...s.mine, order]) }));
+      this.vanish(id);
+    }, 700);
+  }
+
+  renderVals() {
+    const demo = this.props.demoState ?? 'Có dữ liệu';
+    const { queue, mine, leaving, claiming, sheet, draft, wide } = this.state;
+    const qList = demo === 'Có dữ liệu' ? queue : [];
+    const mList = demo === 'Cả hai trống' ? [] : mine;
+    const cur = sheet ? mine.find(m => m.orderId === sheet.id) : null;
+    const setPax = (i, k, d) => this.setState(st => ({ draft: st.draft.map((p, j) => j === i ? { ...p, [k]: Math.max(0, (p[k] || 0) + d) } : p) }));
+
+    return {
+      guideName: 'Nguyễn Minh Tâm',
+      queueCount: qList.filter(q => !leaving.includes(q.orderId)).length,
+      mineCount: mList.filter(m => m.status !== 'cancelled').length,
+      queueEmpty: qList.length === 0,
+      mineEmpty: mList.length === 0,
+      queue: qList.map(q => ({
+        orderCode: q.orderCode, dateLabel: fmtDate(q.departDate), relLabel: rel(q.departDate),
+        rows: leaving.includes(q.orderId) ? '0fr' : '1fr', opacity: leaving.includes(q.orderId) ? 0 : 1,
+        services: q.services.map(svcView),
+        claiming: !!claiming, claimLabel: claiming === q.orderId ? 'Đang nhận…' : 'Nhận',
+        onClaim: () => this.claim(q.orderId),
+      })),
+      mine: mList.map(m => {
+        const isDraft = m.status === 'draft', isCancelled = m.status === 'cancelled';
+        const isPast = m.status === 'confirmed' && days(m.departDate) < 0;
+        return {
+          orderCode: m.orderCode, dateLabel: fmtDate(m.departDate), relLabel: rel(m.departDate),
+          isDraft, isPast, isCancelled, isUpcoming: m.status === 'confirmed' && !isPast,
+          hasActions: m.status === 'confirmed', canCancel: m.status === 'confirmed' && !isPast,
+          customerName: m.customerName, customerPhone: m.customerPhone, tel: 'tel:' + m.customerPhone.replace(/\s/g, ''),
+          services: m.services.map(svcView),
+          onEdit: () => this.setState({ sheet: { type:'edit', id: m.orderId }, draft: m.services.map(s => ({ ...s.pax })) }),
+          onCancel: () => this.setState({ sheet: { type:'cancel', id: m.orderId } }),
+        };
+      }),
+      sheetOpen: !!cur, isEditSheet: sheet?.type === 'edit', isCancelSheet: sheet?.type === 'cancel',
+      sheetAlign: wide ? 'center' : 'flex-end', sheetPad: wide ? '24px' : '0',
+      sheetRadius: wide ? '12px' : '12px 12px 0 0',
+      sheetCode: cur?.orderCode, sheetCustomer: cur?.customerName, sheetDate: cur ? fmtDate(cur.departDate) : '',
+      editServices: cur && sheet.type === 'edit' ? cur.services.map((s, i) => ({
+        name: s.name, pickupTime: s.pickupTime,
+        rows: PAX.map(([k, l]) => ({ label: l, value: draft[i]?.[k] || 0, dec: () => setPax(i, k, -1), inc: () => setPax(i, k, 1) })),
+      })) : [],
+      closeSheet: () => this.setState({ sheet: null }),
+      stop: e => e.stopPropagation(),
+      saveEdit: () => this.setState(st => ({ sheet: null, mine: st.mine.map(m => m.orderId === sheet.id ? { ...m, services: m.services.map((s, i) => ({ ...s, pax: st.draft[i] })) } : m) })),
+      confirmCancel: () => this.setState(st => ({ sheet: null, mine: sortMine(st.mine.map(m => m.orderId === sheet.id ? { ...m, status:'cancelled' } : m)) })),
+    };
+  }
+}
+</script>
+</body>
+</html>

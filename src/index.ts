@@ -1,6 +1,8 @@
 // Gốc lắp ráp: danh sách module + nối auth vào router + Cron. Thêm module mới = thêm một dòng vào `modules`.
-// Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn" và có câu "đặt người phụ trách mặc định
-// cho đơn mới" nhưng KHÔNG được import `dispatch` (dispatch → orders là chiều được phép, chiều ngược lại sẽ thành vòng). Router chỉ chuyển chúng vào `ctx`.
+// Đây cũng là nơi TIÊM hàm nối chéo module (ADR-0007 điều 4(b)): `orders` cần biết "người dùng có phải người phụ trách đơn", cần câu "mở người phụ trách do
+// người lập CHỌN cho đơn mới" (ADR-0030 S20-4 — đơn mới không bao giờ tự gắn người lập), cần biết "trong các đơn này đơn nào đang có người" và "đơn nào tôi
+// đang phụ trách" (ADR-0030 S20-13) nhưng KHÔNG được import `dispatch` (dispatch → orders là chiều được phép, chiều ngược lại sẽ thành vòng) và không đọc view
+// `v_dsp_*` của nó. Router chỉ chuyển chúng vào `ctx`.
 // `parties` cần biết hồ sơ gắn tài khoản nào (ADR-0013) nhưng KHÔNG được import `staff` — tiêm `partyAccount`.
 // BẢNG TIN (ADR-0022): module `bangtin` là lá, không đọc cơ sở dữ liệu (KHONG_DB) — gốc lắp ráp đọc mã đơn/người lập (`orders`) + người phụ trách
 // (`dispatch`), tính nhãn người nhận (`nhanSuKien`) rồi đưa cho `phatDon`. Đây cũng là NƠI DUY NHẤT nạp lớp Durable Object `BangTin` (`tram.ts`) —
@@ -14,7 +16,7 @@ import { authModule, checkAuthConfig, currentStaff } from "./modules/auth";
 import { bangtinModule, dongCua, phatDon, xepHangDay } from "./modules/bangtin";
 import { catalogModule, runScheduledSync } from "./modules/catalog";
 import { companyModule } from "./modules/company";
-import { defaultHandlerStatement, dispatchModule, handlerOf, isOrderHandler } from "./modules/dispatch";
+import { dispatchModule, handledOrderIdsOf, handlerOf, isOrderHandler, newOrderHandler, ordersWithHandler } from "./modules/dispatch";
 import { locationsModule } from "./modules/locations";
 import { feedbackModule } from "./modules/feedback";
 import { maintenanceBlock, maintenanceModule } from "./modules/maintenance";
@@ -22,7 +24,7 @@ import { partiesModule } from "./modules/parties";
 import { findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty } from "./modules/staff";
 import { dayGoCua, tatMayStatement, thongbaoModule } from "./modules/thongbao";
-import { nhanSuKien } from "./shared/bang-tin";
+import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
 import { createApp } from "./shared/router";
 
@@ -49,7 +51,9 @@ const app = createApp({
   checkConfig: checkAuthConfig,
   injected: {
     isAssigned: (env, staffId, orderId) => isOrderHandler(env.DB, staffId, orderId),
-    defaultHandlerStatement: (env, staff, orderId, at) => defaultHandlerStatement(env.DB, staff, orderId, at),
+    newOrderHandler: (env, actor, staffId) => newOrderHandler(env.DB, actor.id, staffId),
+    ordersWithHandler: (env, orderIds) => ordersWithHandler(env.DB, orderIds),
+    handledOrderIdsOf: (env, staffId) => handledOrderIdsOf(env.DB, staffId),
     maintenanceBlock: (env, staff) => maintenanceBlock(env.DB, staff.phone),
     partyAccount: (env, staff, partyId) => accountOfParty(env.DB, staff, partyId),
     // BẢNG TIN (ADR-0022). Router gọi bắn-và-quên (exec.waitUntil + bắt lỗi → một dòng `bang_tin_loi`): việc phát được BẮT ĐẦU ở một microtask ngay khi route gọi, chạy SONG SONG
@@ -59,9 +63,13 @@ const app = createApp({
       if (!env.BANG_TIN && !khoaVapid(env)) return;
       const [ref, handlerSau] = await Promise.all([findOrderRef(env.DB, e.orderId), handlerOf(env.DB, e.orderId)]);
       if (!ref) return;
-      // Đơn mới mà không ai phụ trách (người lập không đủ điều kiện — Đối tác, chưa có hồ sơ) → loại sự kiện riêng (màn hình làm mới); ADR-0045:
-      // lưu nháp KHÔNG thông báo nổi / gõ cửa ai — tin "chờ nhận" nảy ra lúc xác nhận (luật ở src/shared/thong-bao.ts).
+      // Đơn mới mà không ai phụ trách (người lập không chọn ai — ADR-0030 S20-4 — hoặc không đủ điều kiện: Đối tác, chưa có hồ sơ) → loại sự kiện
+      // riêng (màn hình làm mới); ADR-0045: lưu nháp KHÔNG thông báo nổi / gõ cửa ai — tin "chờ nhận" nảy ra lúc xác nhận (luật ở src/shared/thong-bao.ts).
       const thayDoi = e.thayDoi === "tao" && !handlerSau.coNguoi ? "tao_cho_nhan" : e.thayDoi;
+      // ADR-0030 S20-8/9: route không tự đọc lại trạng thái trước khi ghi (chỉ `PUT .../handler` mới truyền `e.handlerTruoc` thật) mặc định
+      // là "KHÔNG BIẾT" — hằng dùng chung `HANDLER_TRUOC_KHONG_BIET` (`null`), KHÔNG PHẢI "chưa ai phụ trách": coi nhầm thành "chưa ai" làm
+      // `nhanSuKien` gắn `cho-nhan` sai cho đơn ĐÃ có người, lộ tin sang mọi HDV khác (xem chú thích `nhanSuKien`). KHÔNG viết tay giá trị
+      // mặc định ở đây: bài hàng rào "(2)" ở `src/shared/bang-tin.test.ts` đọc chính dòng này và đỏ nếu đối số khác `e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET`.
       const luc = new Date().toISOString();
       const action = hanhDongCuaThayDoi(thayDoi);
       // Hai việc ĐỘC LẬP: trạm lỗi thì vẫn gõ cửa, và ngược lại.
@@ -69,7 +77,7 @@ const app = createApp({
         ["tram", phatDon(
           env,
           { loai: "don", orderId: e.orderId, maDon: ref.orderCode, thayDoi, luc },
-          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? { coNguoi: false, staffId: null }, handlerSau }),
+          nhanSuKien({ ownerId: ref.staffId, handlerTruoc: e.handlerTruoc ?? HANDLER_TRUOC_KHONG_BIET, handlerSau }),
         )],
         ["day", action === null ? null : dayGoCua(env, {
           don: {

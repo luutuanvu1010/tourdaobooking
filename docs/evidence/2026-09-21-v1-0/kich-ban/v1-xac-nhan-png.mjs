@@ -24,9 +24,12 @@
 //   i  vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob trả null, getContext null): thông báo tiếng Việt + nút Thử lại, không kẹt (Esc đóng được), Thử lại ra ảnh
 //   j  hộp thoại: role=dialog + aria-modal + tên, nền inert, Esc/chạm nền đóng, trả focus; axe 0 vi phạm (390, 1040, trạng thái lỗi); vùng chạm ≥ 44 px; không tràn ngang; console/CSP sạch
 //   k  ảnh mẫu (một dịch vụ, nhiều dịch vụ, đơn dài) qua đúng đường giao diện + ảnh chụp hộp thoại 390×844 và 1040×800; thời gian dựng
+//   l  (vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-2, 2026-09-27) HƯỚNG DẪN VIÊN mở biên nhận đơn CHÍNH MÌNH phụ trách: ảnh GIỐNG từng byte bản dựng với
+//      tên HDV (dòng "Nhân viên phụ trách"), KHÁC bản bỏ dòng; KHÔNG gọi GET /api/dispatch/handlers (403 với HDV — trước vòng sửa ảnh MẤT dòng này)
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { pathToFileURL } from "node:url";
 import { build } from "esbuild";
 import { ACCOUNTS, clickText, ok, setInput, sleep, startEnv, vnDate } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 
@@ -224,6 +227,9 @@ const closeDialog = async (p) => {
   await p.waitFor(`${DIALOG} === null`, "hộp thoại đóng bằng Esc", 4000);
 };
 const downloadHref = "document.querySelector('.sheet a.confirm-download').href";
+// Đọc trạng thái người phụ trách THẬT từ máy chủ, BA trạng thái (khớp `loadHandlerName` của `web/confirmation-dialog.ts`, ADR-0020 điều 9): chuỗi tên;
+// `null` = máy chủ XÁC NHẬN chưa có người; `undefined` = CHƯA BIẾT (lỗi, mã khác 200, dữ liệu hỏng). Chạy TRONG trang bằng `p.ev(...)`.
+const readHandlerJs = (orderId) => `fetch('/api/dispatch/handlers?orderIds=${orderId}').then((r) => r.ok ? r.json() : Promise.reject(r.status)).then((j) => { const f = j?.handlers?.['${orderId}']; if (f === null) return null; return (f && typeof f.name === 'string' && f.name.trim() !== '') ? f.name : undefined; }).catch(() => undefined)`;
 
 // ---- Dữ liệu dựng bằng API (KHÔNG dùng để kiểm giao diện) ----
 const call = async (account, method, path, body) => {
@@ -366,7 +372,7 @@ await step("b", "PNG giải mã được, rộng ≥ 1440, cao đúng bố cục
   const { p } = ui;
   await ensureTools(p);
   const href = await p.ev(downloadHref);
-  const handler = await p.ev(`fetch('/api/dispatch/handlers?orderIds=${ui.id}').then((r) => r.ok ? r.json() : null).then((j) => j?.handlers?.['${ui.id}']?.name ?? null).catch(() => null)`);
+  const handler = await p.ev(readHandlerJs(ui.id));
   const a = await p.ev(`__t.analyze(${JSON.stringify(href)}, ${JSON.stringify(ui.id)}, ${JSON.stringify(handler)})`);
   results.anh.taoBangGiaoDien = { w: a.w, h: a.h, bytes: a.bytes, scale: a.scale, chu: a.texts };
   assert.equal(a.sig, "89504e470d0a1a0a", "chữ ký PNG");
@@ -510,7 +516,7 @@ await step("f", "đơn đã xác nhận / đã huỷ mở lại bằng nút, huy
     await openDialog(p);
     const a = await p.ev(`(async () => {
       const href = ${downloadHref};
-      const model = await __t.modelOf(${JSON.stringify(order.id)}, await fetch('/api/dispatch/handlers?orderIds=${order.id}').then((r) => r.ok ? r.json() : null).then((j) => j?.handlers?.['${order.id}']?.name ?? null).catch(() => null));
+      const model = await __t.modelOf(${JSON.stringify(order.id)}, await ${readHandlerJs(order.id)});
       const pr = await __lib.prepareConfirmation(model);
       const blob = await __t.blobOf(href); const d = await __t.decode(blob);
       const badge = pr.layout.ops.find((o) => o.kind === 'rect' && o.tag === 'status-badge');
@@ -791,7 +797,7 @@ await step("k", "ảnh mẫu (một dịch vụ, nhiều dịch vụ, đơn dài
   for (const [file, order] of samples) {
     const p = await openAs(ACCOUNTS.salesA, `/order?id=${order.id}`, { track: false });
     const ms = await openDialog(p, 30000);
-    const handler = await p.ev(`fetch('/api/dispatch/handlers?orderIds=${order.id}').then((r) => r.ok ? r.json() : null).then((j) => j?.handlers?.['${order.id}']?.name ?? null).catch(() => null)`);
+    const handler = await p.ev(readHandlerJs(order.id));
     const a = await p.ev(`__t.analyze(${downloadHref}, ${JSON.stringify(order.id)}, ${JSON.stringify(handler)})`);
     assert.equal(a.sig, "89504e470d0a1a0a");
     assert.ok(a.w >= 1440, `${file}: rộng ${a.w} (cao ${a.layoutH} px CSS, độ phân giải ${a.scale}) — đơn phải nằm trong giới hạn diện tích canvas ở độ phân giải 2`);
@@ -827,6 +833,39 @@ await step("k", "ảnh mẫu (một dịch vụ, nhiều dịch vụ, đơn dài
   }
   for (const s of ["hop-thoai-390", "hop-thoai-1040", "trang-don-390"]) results.anh[`chup-${s}`] = "đã lưu";
   assert.ok(Object.values(results.thoiGian).every((x) => typeof x !== "number" || x < 5000), `thời gian dựng ảnh: ${JSON.stringify(results.thoiGian)}`);
+});
+
+// ---- Bước l: HƯỚNG DẪN VIÊN mở biên nhận đơn CHÍNH MÌNH phụ trách (vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-2) ----
+// Trước vòng sửa: hộp thoại gọi GET /api/dispatch/handlers → 403 với HDV → "chưa biết" → ảnh gửi khách BỎ dòng "Nhân viên phụ trách" dù chính HDV đang phụ trách.
+// Nay tên lấy từ phiên (`nguoiPhuTrachTuPhien`). Kho cookie + bản nhớ khung (ADR-0035) dùng chung → bước CUỐI, mở /orders của HDV trước để khung nhớ đúng người.
+const HDV_L = { name: "HDV Biên Nhận", phone: "0900000209", pin: "246817", permissions: ["FIELD"] };
+await step("l", "HƯỚNG DẪN VIÊN mở biên nhận đơn mình phụ trách: ảnh GIỐNG từng byte bản dựng với tên HDV, KHÁC bản bỏ dòng; KHÔNG gọi GET /api/dispatch/handlers", async () => {
+  const f = await fx();
+  const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+  for (const stmt of (await insertStaffSql(HDV_L)).split("\n")) env.sql(stmt);
+  const hdvId = env.sql(`SELECT id FROM staff WHERE phone = '${HDV_L.phone}'`)[0].id;
+  const id = f.confirmed.id;
+  const giao = await call(ACCOUNTS.salesA, "PUT", `/api/orders/${id}/handler`, { staffId: hdvId });
+  assert.equal(giao.status, 200, `giao đơn đã xác nhận cho HDV: ${giao.status} ${JSON.stringify(giao.json)}`);
+  const p0 = await openAs(HDV_L, "/orders", { lib: false, track: false });
+  await p0.waitFor("document.querySelectorAll('#list .order-card').length >= 1", "danh sách của HDV", 10000);
+  p0.close();
+  const p = await openAs(HDV_L, `/order?id=${id}`);
+  await openDialog(p, 20000);
+  const sameAs = (handler) => p.ev(`(async () => __t.sameBytes(await __t.blobOf(${downloadHref}), await __lib.renderConfirmationPng(await __t.modelOf(${JSON.stringify(id)}, ${JSON.stringify(handler)}))))()`);
+  assert.equal(await sameAs(HDV_L.name), true, `ảnh biên nhận HDV mở phải in “Nhân viên phụ trách: ${HDV_L.name}” (giống từng byte bản dựng với tên HDV)`);
+  assert.equal(await sameAs(undefined), false, "đối chứng: KHÁC bản bỏ dòng người phụ trách (trạng thái trước vòng sửa — route 403 → chưa biết)");
+  const goi = p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
+  assert.deepEqual(goi, [], "trang đơn + hộp thoại của HDV KHÔNG được gọi GET /api/dispatch/handlers");
+  await p.send("Emulation.setDeviceMetricsOverride", { width: M.width, height: M.height, deviceScaleFactor: 1, mobile: true });
+  await sleep(600);
+  const r = await p.send("Page.captureScreenshot", { format: "png" });
+  writeFileSync(join(ANH, "xac-nhan-hdv-hop-thoai-390.png"), Buffer.from(r.result.data, "base64"));
+  results.anh["xac-nhan-hdv-hop-thoai-390.png"] = "390×844";
+  const png = await p.ev(`__t.b64(${downloadHref})`);
+  writeFileSync(join(ANH, "xac-nhan-hdv-bien-nhan.png"), Buffer.from(png, "base64"));
+  results.anh["xac-nhan-hdv-bien-nhan.png"] = "ảnh PNG biên nhận do HDV dựng";
+  await closeDialog(p);
 });
 
 } finally {

@@ -263,7 +263,10 @@ for (const [label, cookie, canModify, sees] of [
   assert.equal(d.canModify, canModify, `${label}: canModify`);
   assert.equal(d.history.length > 0, sees, `${label}: thấy nhật ký`);
 }
-assert.equal((await call(FIELD, "GET", `/api/orders/${h.id}`)).status, 403, "FIELD không dùng màn hình đơn");
+// ADR-0030 S23-4: hướng dẫn viên (chỉ-FIELD) KHÔNG phụ trách đơn này → 404 như đơn không tồn tại (không dò được đơn người khác); 403 cũ đổi ở lượt 1.
+r = await call(FIELD, "GET", `/api/orders/${h.id}`);
+assert.equal(r.status, 404, `FIELD không phụ trách đơn → 404: ${JSON.stringify(r.body)}`);
+assert.equal(r.body.error.code, "not_found");
 assert.deepEqual((await detail(Bc, h)).history.map((x) => x.action), ["created", "order_handler_changed"], "người phụ trách xem cả dòng đổi người");
 
 // --- người phụ trách sửa đơn NHÁP đủ: đổi dịch vụ, số khách, giảm giá, cọc — máy chủ tính lại tiền

@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { EffectiveService } from "../../shared/order-lines.ts";
-import { canTransition, orderCodePrefix, validateBookerChange, validateOrder, type ServiceContext } from "./rules.ts";
+import { canTransition, hasHandlerPick, orderCodePrefix, parseHandlerPick, validateBookerChange, validateOrder, type ServiceContext } from "./rules.ts";
 
 const tour: EffectiveService = {
   code: "TD101", name: "Tour 3 đảo", unit: "perPax", visible: true,
@@ -186,4 +186,25 @@ test("đổi khách: kiểm tên/SĐT như đơn, nhận người đặt, bắt 
   assert.equal(bad({ ...good, customerPhone: "abc" }), "Số điện thoại khách không hợp lệ.");
   assert.equal(bad({ ...good, bookerPartyId: "x" }), "Hồ sơ khách không hợp lệ.");
   assert.equal(bad({ ...good, expectedUpdatedAt: "" }), "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc).");
+});
+
+// --- Người phụ trách chọn lúc lập đơn: trường tuỳ chọn `handlerStaffId` (ADR-0030 S20-4) ----------------------------------------------------------
+test("handlerStaffId: vắng hoặc null = không chọn; thân không phải đối tượng = không chọn (validateOrder tự báo lỗi thân)", () => {
+  for (const body of [null, {}, { handlerStaffId: null }, { handlerStaffId: undefined }]) {
+    assert.equal(hasHandlerPick(body), false, JSON.stringify(body));
+    assert.deepEqual(parseHandlerPick(body), { ok: true, staffId: null }, JSON.stringify(body));
+  }
+});
+
+test("handlerStaffId: có mặt với BẤT KỲ giá trị nào khác null (kể cả chuỗi rỗng, số, đối tượng) → 'có chọn' (route hỏi quyền chọn trước khi kiểm dạng)", () => {
+  for (const v of ["", "x", 0, false, 7, {}, [], "11111111-1111-4111-8111-111111111111"]) assert.equal(hasHandlerPick({ handlerStaffId: v }), true, JSON.stringify(v));
+});
+
+test("handlerStaffId: có mặt thì phải là mã tài khoản (UUID) — sai dạng → lỗi, không đoán", () => {
+  const id = "11111111-1111-4111-8111-111111111111";
+  assert.deepEqual(parseHandlerPick({ handlerStaffId: id }), { ok: true, staffId: id });
+  for (const v of ["", "không phải id", 7, true, { id }, [id], ` ${id}`]) {
+    const r = parseHandlerPick({ handlerStaffId: v });
+    assert.ok(!r.ok && /Người phụ trách được chọn không hợp lệ/.test(r.message), JSON.stringify(v));
+  }
 });

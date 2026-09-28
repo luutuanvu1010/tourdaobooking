@@ -11,14 +11,26 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // T2b — hồ sơ công ty chủ (ADR-0024 điều 6, ADR-0043). SỐ TẠM "1.32" theo chỉ đạo D16 của điều phối (1.30 = vai IT đã phát hành, 1.31 = Thông báo
-    // ADR-0045); điều phối chốt số thật lúc gộp cuối.
-    version: "1.32",
+    // T2b — hồ sơ công ty chủ (ADR-0024 điều 6, ADR-0043). SỐ "1.34" theo chỉ đạo D19 của điều phối: main 356084a đã có 1.33 (HDV — ADR-0030 +
+    // ADR-0037) ngay trên 1.31, số 1.32 để trống đúng như main; điều phối chốt số thật lúc gộp cuối.
+    version: "1.34",
     date: "2026-09-28",
     items: [
       { kind: "doi", text: "Tên và mã số thuế ở cuối trang đăng nhập, cùng thông tin công ty trên ảnh xác nhận đơn, nay lấy từ hồ sơ công ty trong Danh bạ: sửa một nơi là đổi mọi nơi." },
       { kind: "doi", text: "Chỉ người phụ trách hệ thống sửa được tên, mã số thuế, địa chỉ, số liên hệ của hồ sơ công ty trong Danh bạ, và đổi sang hồ sơ công ty khác khi cần." },
       { kind: "sua", text: "Địa chỉ ở cuối trang đăng nhập viết lại đúng như hồ sơ công ty." },
+    ],
+  },
+  {
+    version: "1.33",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Đơn mới lập không còn tự ghi người lập là người phụ trách: đơn chưa có ai hiện “Chờ nhận”, chờ hướng dẫn viên hoặc nhân viên bấm Nhận." },
+      { kind: "moi", text: "Hướng dẫn viên thấy danh sách đơn chờ nhận (không có số điện thoại, không có tiền) và bấm Nhận; đơn mình đang phụ trách thì xem đủ thông tin." },
+      { kind: "moi", text: "Khi lập đơn, bạn chọn được hướng dẫn viên phụ trách ngay; chọn xong là có hiệu lực luôn." },
+      { kind: "doi", text: "Mục “Việc của tôi” làm lại theo mẫu mới: đơn chờ nhận và đơn của bạn (kể cả chưa xác nhận) trên một màn; mỗi đơn có Tổng tiền, Đã cọc, Còn thu, nút gọi khách." },
+      { kind: "doi", text: "Hướng dẫn viên sửa số khách hoặc huỷ đơn qua một bảng hỏi lại: sửa số khách có nút chọn nhanh lý do, huỷ đơn phải chọn lý do rồi mới bấm được." },
+      { kind: "doi", text: "Đơn đã lưu mà chưa chốt nay ghi “Chờ xác nhận” thay cho “Nháp”; người đang lo đơn hiện “HDV: tên người đó”." },
     ],
   },
   {

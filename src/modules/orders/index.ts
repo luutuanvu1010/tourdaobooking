@@ -4,29 +4,33 @@
 import { getAuditTrail } from "../audit";
 import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
+  PoolResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
-import { can, type PermissionHolder } from "../../shared/permissions";
+import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
   cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
-  updateDraftOrder, updateTrip,
+  listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
+import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
-import { canTransition, isOrderStatus, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
+import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
 import { loadOrderView, resolveBooker, validationContext, type OrderValidationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
 const CANNOT_CREATE = () => error(403, "forbidden", "Tài khoản này không được lập đơn.");
+/** Chọn người phụ trách lúc lập đơn cần `dispatch.assign` trên đơn của chính mình (ADR-0030 S20-4, G4) — Thực tập, Đối tác không có. */
+const CANNOT_PICK_HANDLER = () => error(403, "forbidden", "Tài khoản này không được chọn người phụ trách khi lập đơn. Bỏ chọn hướng dẫn viên rồi lưu lại.");
 /** Từ chối XEM (đơn, tiền, liên hệ khách — ADR-0019 điều 2): không cắt bớt trường, trả 403 cả phản hồi. */
 const FORBIDDEN_VIEW = () => error(403, "forbidden", "Tài khoản này không được xem thông tin này.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy đơn.");
-const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn ở trạng thái nháp. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
+const NOT_EDITABLE = () => error(409, "not_editable", "Chỉ sửa được đơn đang chờ xác nhận. Muốn đổi đơn đã xác nhận, hãy huỷ và tạo đơn mới.");
 const CANCELLED = () => error(409, "not_editable", "Đơn đã huỷ, không sửa được.");
 const STALE = () => error(409, "stale", "Đơn vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
@@ -58,7 +62,8 @@ function failure(f: Failure): Response {
 
 /**
  * API công khai cho module khác (`dispatch`, cạnh dispatch → orders — ADR-0006 điều 8): đơn có tồn tại không, AI LẬP, trạng thái, và mốc `updated_at`
- * (để `dispatch` truyền vào khoá lạc quan khi tự ghi qua `cancelOrderByHandler`). Chỉ trả các trường này, không lộ gì khác của đơn; null nếu không có đơn.
+ * (để `dispatch` truyền vào khoá lạc quan khi tự ghi qua `cancelOrderByHandler` — khoá theo CẢ `status` VÀ `updated_at`, T1d). Chỉ trả các trường này,
+ * không lộ gì khác của đơn; null nếu không có đơn.
  */
 export async function findOrderOwner(db: D1Database, id: string): Promise<{ staffId: string; status: OrderStatus; updatedAt: string } | null> {
   const meta = await getMeta(db, id);
@@ -85,7 +90,8 @@ export async function findOrderDepartDates(db: D1Database, id: string): Promise<
 /**
  * Huỷ đơn qua đường hẹp của người phụ trách CẤP HẸP (`FIELD`, ADR-0014 điều 11) — CHỈ đổi `status`/`updated_at`, không đụng dịch vụ hay cột tiền (đúng khoá
  * "đơn đã xác nhận không đổi tiền" — xem `docs/superpowers/specs/2026-09-22-khoa-tien-don-da-xac-nhan.md`). Route gọi hàm này SAU KHI đã tự kiểm
- * `status === "confirmed"` bằng `findOrderOwner`; hàm này chỉ còn lo tranh chấp (khoá lạc quan) nên vẫn ràng buộc `from: "confirmed"` cho chắc.
+ * `status === "confirmed"` bằng `findOrderOwner`; hàm này chỉ còn lo tranh chấp (khoá lạc quan khoá theo CẢ `status` VÀ `updated_at`, T1d) nên vẫn
+ * ràng buộc `from: "confirmed"` cho chắc.
  */
 export async function cancelOrderByHandler(db: D1Database, id: string, staffId: string, prevUpdatedAt: string, reasonLabel: string): Promise<boolean> {
   return cancelOrder(db, id, staffId, "confirmed", prevUpdatedAt, { action: "order_cancelled_by_field", detail: reasonLabel });
@@ -124,12 +130,16 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
 }
 
 /**
- * Dữ liệu cho màn "việc của tôi" của FIELD (`GET /api/dispatch/mine`, module dispatch) — tái dùng `loadOrderView` (đã có overlay điều chỉnh,
- * ADR-0014 điều 6) rồi LỌC BỎ mọi trường tiền trước khi trả ra, đúng ADR-0007 điều 3 ("không tiền, không bảng giá" cho FIELD). `orderIds` do
- * `dispatch` truyền vào (đơn mà staff gọi đang là người phụ trách — dispatch tự tra, orders không biết khái niệm "người phụ trách").
- * `editablePaxCodes` tính từ đơn GỐC (`findOrder`, trước overlay) qua `editablePaxCodesOf` — KHÔNG tính từ `items` của bản đã overlay
- * (`loadOrderView`), vì overlay có thể bỏ hẳn dòng của một loại khách đã bị sửa về 0, làm loại đó biến mất khỏi ô nhập (lỗi thật, kiểm độc lập
- * 2026-09-22).
+ * Dữ liệu cho màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch) — tái dùng `loadOrderView` (đã có overlay điều chỉnh, ADR-0014 điều 6)
+ * rồi dựng lại TỪNG trường được phép (không trải đối tượng nguồn). Từ bản 1.6 (ADR-0030 S23-8, lượt 1): trả CẢ đơn nháp, chỉ loại đơn đã huỷ — trước đó
+ * chỉ trả đơn đã xác nhận, nay HDV cũng thấy đơn nháp mình đang phụ trách (chưa có nút huỷ/sửa số khách cho đơn nháp: `myJobActions` ở giao diện quyết
+ * theo `status`). Tiền: chủ dự án quyết 2026-09-27 (Task 1.8): HDV cần biết còn thu bao nhiêu — mở ĐÚNG ba trường tiền cấp đơn (`total`,
+ * `depositAmount`, `remainingAmount`, số hiện hành sau điều chỉnh của `loadOrderView` — ADR-0017 điều 5), dựa trên quyền `money.view` (assigned) đã
+ * cấp từ Task 1.5/ADR-0017; route hỏi ô đó trước khi gọi hàm này. Không giá từng dòng, không giảm giá, không ghi chú thanh toán.
+ * `orderIds` do `dispatch` truyền vào (đơn mà staff gọi đang là người phụ trách — dispatch tự tra, orders
+ * không biết khái niệm "người phụ trách"). `editablePaxCodes` tính từ đơn GỐC (`findOrder`, trước overlay) qua `editablePaxCodesOf` — KHÔNG tính từ
+ * `items` của bản đã overlay (`loadOrderView`), vì overlay có thể bỏ hẳn dòng của một loại khách đã bị sửa về 0, làm loại đó biến mất khỏi ô nhập
+ * (lỗi thật, kiểm độc lập 2026-09-22).
  */
 export async function getMyAssignments(db: D1Database, orderIds: readonly string[]): Promise<MyAssignmentDto[]> {
   const [views, originals] = await Promise.all([
@@ -138,7 +148,7 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
   ]);
   const originalById = new Map(originals.flatMap((o) => (o ? [[o.id, o] as const] : [])));
   return views
-    .filter((o): o is OrderDetailDto => o !== null && o.status === "confirmed")
+    .filter((o): o is OrderDetailDto => o !== null && o.status !== "cancelled")
     .map((o) => {
       const editableById = new Map(originalById.get(o.id)!.services.map((s) => [s.id, editablePaxCodesOf(s)]));
       return {
@@ -146,6 +156,10 @@ export async function getMyAssignments(db: D1Database, orderIds: readonly string
         orderCode: o.orderCode,
         customerName: o.customerName,
         customerPhone: o.customerPhone,
+        status: o.status,
+        total: o.total,
+        depositAmount: o.depositAmount,
+        remainingAmount: o.remainingAmount,
         services: o.services.map((s) => ({
           id: s.id,
           name: s.name,
@@ -174,23 +188,47 @@ export const ordersModule: AppModule = {
     // không trả số toàn công ty (Review Focus 4).
     // PHẢI đứng TRƯỚC route "GET /api/orders/:id" ở dưới: router (`match()`) khớp path theo VỊ TRÍ đoạn, nên ":id" cũng khớp chuỗi "dashboard" —
     // `createApp` lấy candidate ĐẦU TIÊN cùng method trong mảng `routes` (thứ tự khai ở đây), route này đứng trước nên thắng.
-    route("GET", "/api/orders/dashboard", "orders", async ({ env, staff }) => {
+    // `ordersWithHandler` (ADR-0030 S20-13): tập đơn đang có người phụ trách cho ô "Chưa phụ trách" — gốc lắp ráp nối vào dispatch, orders không tự đọc.
+    route("GET", "/api/orders/dashboard", "orders", async ({ env, staff, ordersWithHandler }) => {
       if (!can(staff, "order.view") || !can(staff, "money.view") || !can(staff, "contact.view")) return FORBIDDEN_VIEW();
       const today = vnToday(new Date());
       const { from, to } = vnWeekRange(today);
-      const data = await getDashboard(env.DB, staff.id, today, from, to);
+      const data = await getDashboard(env.DB, staff.id, today, from, to, ordersWithHandler);
       return json({ ...data, revenueWeek: { ...data.revenueWeek, from, to } } satisfies DashboardResponse);
     }),
 
-    route("GET", "/api/orders", "orders", async ({ env, url, staff }) => {
-      // can(staff, "order.view") KHÔNG ngữ cảnh: "any" (SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → true → không lọc; "own" (PARTNER/INTERN) → false → lọc theo chính mình.
-      // An toàn CHỈ đúng vì cổng "orders" chỉ cho qua mã có order.view ≠ "none" (ORDERS_GATE; bài đối chiếu ở src/shared/cong-quyen.test.ts) — mã
-      // `none` lọt vào đây sẽ bị lọc theo chính mình (an toàn), nhưng đừng gọi listOrders ở cổng khác mà không tự lọc.
-      const ownerId = can(staff, "order.view") ? null : staff.id;
-      // ADR-0019 điều 2: danh sách trả tiền (`total`…) và liên hệ khách (`customerPhone`) — hỏi hai ô với ĐÚNG phạm vi của các đơn sẽ trả: không lọc
-      // = mọi đơn (không ngữ cảnh), lọc = đơn của chính mình. Đứng TRƯỚC đọc tham số (403 không đứng sau 400).
-      const scope = ownerId ? { ownerId } : {};
-      if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
+    // Hàng chờ nhận (ADR-0030 S23-1, S23-2): PHẦN HẸP của các đơn chưa có người phụ trách, chưa huỷ, chưa qua ngày đi — hướng dẫn viên xem để bấm Nhận
+    // (`PUT /api/orders/:id/handler`, module dispatch). PHẢI đứng TRƯỚC "GET /api/orders/:id" (cùng lý do với route dashboard ở trên — ":id" cũng khớp
+    // chữ "pool"; Review Focus 3). Kiểm quyền TRƯỚC mọi đọc: ô `order.pool.view` (Hướng dẫn viên, Toàn quyền — Quản trị KHÔNG có: đã thấy đủ mọi đơn
+    // qua `order.view`) VÀ không mang quyền Đối tác (tài khoản lai, Q-M — một trong "bốn cửa" của S20-5). Không đòi `contact.view`: nơi đón/giờ đón ở
+    // phần hẹp là ngoại lệ có tên của ô đó, bù bằng che dãy số (`pool.ts`). Tập đơn đang có người hỏi qua `ordersWithHandler` (gốc lắp ráp nối vào
+    // dispatch — S20-13), không SQL nào của orders đọc view của dispatch.
+    route("GET", "/api/orders/pool", "orders", async ({ env, staff, ordersWithHandler }) => {
+      if (!can(staff, "order.pool.view") || holdsPartner(staff)) return FORBIDDEN_VIEW();
+      const today = vnToday(new Date());
+      const sources = await listPoolSources(env.DB, today);
+      const withHandler = await ordersWithHandler(sources.map((o) => o.id));
+      return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
+    }),
+
+    route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds }) => {
+      // BA NHÁNH LỌC (ADR-0030 S23-4, Review Focus 1), mỗi nhánh hỏi bảng quyền với ĐÚNG ngữ cảnh của tập đơn nó trả:
+      //  (1) `can(order.view)` KHÔNG ngữ cảnh ("any" — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN) → mọi đơn, không lọc;
+      //  (2) "mình lập": `can(order.view, { ownerId: chính mình })` ("own" — PARTNER/INTERN) → đơn có người lập = chính mình;
+      //  (3) "mình phụ trách": `can(order.view, { assigned: true })` ("assigned" — FIELD) → đơn đang phụ trách, tập lấy qua `ctx.myHandledOrderIds` (gốc
+      //      lắp ráp nối vào dispatch; orders không đọc dữ liệu phân công). Tài khoản ghép (vd FIELD + INTERN) thấy HỢP (2) ∪ (3).
+      // Không nhánh nào đúng → 403 (mã `none` lọt qua cổng cũng không bao giờ thành "mọi đơn"). ADR-0019 điều 2: danh sách trả tiền (`total`…) và liên
+      // hệ khách (`customerPhone`) → hỏi `money.view`/`contact.view` cho TỪNG tập sẽ trả với đúng ngữ cảnh đó. Mọi câu hỏi quyền đứng TRƯỚC đọc tham
+      // số và trước mọi truy vấn (403 không đứng sau 400).
+      const seesAll = can(staff, "order.view");
+      const mine = { ownerId: staff.id };
+      const handling = { assigned: true };
+      const own = !seesAll && can(staff, "order.view", mine);
+      const handled = !seesAll && can(staff, "order.view", handling);
+      if (!seesAll && !own && !handled) return FORBIDDEN_VIEW();
+      if (seesAll && (!can(staff, "money.view") || !can(staff, "contact.view"))) return FORBIDDEN_VIEW();
+      if (own && (!can(staff, "money.view", mine) || !can(staff, "contact.view", mine))) return FORBIDDEN_VIEW();
+      if (handled && (!can(staff, "money.view", handling) || !can(staff, "contact.view", handling))) return FORBIDDEN_VIEW();
       const raw = url.searchParams.get("status");
       const status = raw ? (isOrderStatus(raw) ? raw : undefined) : null;
       if (status === undefined) return error(400, "invalid_input", "Trạng thái lọc không hợp lệ.");
@@ -199,33 +237,37 @@ export const ordersModule: AppModule = {
         status,
         limit: intParam(url.searchParams.get("limit"), 30, 1, 100),
         offset: intParam(url.searchParams.get("offset"), 0, 0, 100000),
-        ownerId,
+        ownerId: own ? staff.id : null,
+        // Tập rỗng (chưa phụ trách đơn nào) = danh sách rỗng, KHÔNG phải "không lọc" (listOrders coi [] là "không đơn nào").
+        orderIds: handled ? await myHandledOrderIds() : null,
       });
       return json(result satisfies OrderListResponse);
     }),
 
-    route("POST", "/api/orders", "orders", async ({ env, request, staff, defaultHandlerStatement, baoThayDoi }) => {
+    // Lập đơn. Đơn mới KHÔNG tự gắn người lập (ADR-0030 S20-4, ADR-0020 điều 1, Q-C): người lập chọn người phụ trách ngay trong form (`handlerStaffId`,
+    // tuỳ chọn); không chọn → đơn chờ người nhận. Thứ tự: 403 (không lập đơn được) → đọc thân → 403 (có chọn người mà không có `dispatch.assign` trên đơn
+    // của chính mình — Thực tập, Đối tác: G4; đứng TRƯỚC mọi 400 và mọi đọc CSDL) → 400 (dạng mã người được chọn) → 400/409 (đơn: validateOrder,
+    // priceGuard, người đặt) → 400 `invalid_assignee` (người được chọn không đủ điều kiện — `dispatch` xét bằng `checkAssignee`; KHÔNG tạo đơn) → ghi.
+    route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
+      const body = await readJson(request);
+      if (hasHandlerPick(body) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
+      const pick = parseHandlerPick(body);
+      if (!pick.ok) return error(400, "invalid_input", pick.message);
       const ctx = await validationContext(env.DB, null);
-      const parsed = validateOrder(await readJson(request), ctx);
+      const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx);
       if (guard) return guard;
       const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
-      // Đơn mới: người lập là người phụ trách mặc định — dòng do `dispatch` cung cấp, vào CÙNG db.batch() tạo đơn (ADR-0009 điều 4). `dispatch` tự quyết người lập
-      // có đủ điều kiện không (tài khoản chỉ Đối tác thì không — ADR-0014 điều 9/10); không đủ → không có dòng, đơn chưa có người phụ trách.
-      const id = await createOrder(
-        env.DB,
-        staff.id,
-        parsed.value,
-        (orderId, at) => {
-          const handler = defaultHandlerStatement(orderId, at);
-          return handler ? [handler] : [];
-        },
-        booker.write,
-      );
-      // Bảng tin (ADR-0022 điều 4/7): "tao" — gốc lắp ráp (src/index.ts) tự đổi thành "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, ADR-0045).
+      // Người được chọn: `dispatch` trả câu lệnh (mở dòng `HANDLE` + nhật ký `order_handler_changed`) để gộp vào CÙNG db.batch() tạo đơn — dựng theo id
+      // đơn và mốc `at` của TỪNG lần thử của `createOrder`, nên dòng phụ trách và nhật ký cùng mốc với dòng `created`. Không đạt → 400, không tạo đơn.
+      const handler = pick.staffId === null ? null : await newOrderHandler(pick.staffId);
+      if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
+      const id = await createOrder(env.DB, staff.id, parsed.value, handler?.statements, booker.write);
+      // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
+      // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
     }),
@@ -238,7 +280,9 @@ export const ordersModule: AppModule = {
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
       const scope = { ownerId: order.staffId, assigned };
       // ADR-0014 điều 3 (D-01): PARTNER chỉ xem được chi tiết đơn của chính mình — SALES/ACCOUNTING/ADMIN/SUPER_ADMIN (order.view = any) luôn qua.
-      if (!can(staff, "order.view", scope)) return FORBIDDEN();
+      // ADR-0030 S23-4: tài khoản CHỈ xem đơn mình phụ trách (chỉ-FIELD) nhận 404 như đơn không tồn tại (không dò được đơn người khác, kể cả đơn chờ nhận —
+      // hàng chờ có route riêng ở dạng phần hẹp); Đối tác/Thực tập mở đơn người khác vẫn 403 (Review Focus 2).
+      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN();
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
       const history = can(staff, "order.history.view", scope) ? await getAuditTrail(env.DB, order.id) : [];

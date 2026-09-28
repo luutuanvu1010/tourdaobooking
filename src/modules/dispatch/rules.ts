@@ -1,7 +1,8 @@
 // Luật THUẦN của module dispatch (không I/O): danh sách id đơn khi tra người phụ trách, điều kiện người được giao, ai được đặt/đổi người phụ trách,
 // câu nhật ký. Import kèm đuôi .ts (chạy trực tiếp bằng `node --test`). Ma trận quyền là MỘT nơi (`src/shared/permissions.ts`): ở đây chỉ HỎI `can()`.
 import { UUID_RE } from "../../shared/http.ts";
-import { can, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
+import { can, holdsPartner, MATRIX, type PermissionHolder } from "../../shared/permissions.ts";
+import { hasLongDigitRun } from "../../shared/text-guards.ts";
 
 /** Số đơn tối đa của một lần tra `GET /api/dispatch/handlers` (danh sách đơn có trang tối đa 100 đơn). */
 export const MAX_HANDLER_LOOKUP = 100;
@@ -46,11 +47,16 @@ export interface AssigneeCandidate extends PermissionHolder {
  * Không giao cho tài khoản chỉ kế toán hoặc không quyền nào. Vai trò hồ sơ (HDV, tài xế…) KHÔNG là điều kiện (ADR-0001 mục 4).
  * CỐ Ý CHƯA nhận `task.progress` (cấp thứ ba của PARTNER, ADR-0014 điều 10): việc đó cần thêm luật "chỉ qua duyệt yêu cầu đang chờ" ở `mayChangeHandler`
  * cùng lúc (Phase C) — nếu chỉ mở ở đây mà chưa có luật đó, một SALES gán thẳng được một PARTNER chưa từng xin việc, phá đúng điều 10 cấm.
+ * Tài khoản LAI (còn quyền `PARTNER` KÈM quyền khác, vd SALES+PARTNER hay FIELD+PARTNER) không đủ điều kiện, dù có quyền khác đủ cấp (ADR-0030 S20-5,
+ * `holdsPartner`) — bốn cửa chặn tài khoản lai dùng LẠI đúng hàm này (S20-5 dòng "checkAssignee"): giao/đổi người phụ trách đi qua route `PUT
+ * /api/orders/:id/handler` gọi `checkAssignee` cho TÀI KHOẢN ĐÍCH; tự nhận có thêm cửa riêng ở route đó (ADR-0014 điều 9/10 vẫn giữ PARTNER thuần không
+ * bao giờ được giao — tài khoản lai càng không).
  */
 export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: string; name: string }> {
   if (!who) return { ok: false, message: "Không tìm thấy nhân viên được chọn." };
   if (!who.active) return { ok: false, message: "Nhân viên này đã ngưng hoạt động, không thể giao phụ trách." };
   if (!who.partyId) return { ok: false, message: "Nhân viên này chưa có hồ sơ, không thể giao phụ trách." };
+  if (holdsPartner(who)) return { ok: false, message: "Tài khoản có quyền Đối tác không làm người phụ trách được." };
   const narrowTier = who.permissions.some((p) => MATRIX["order.money.edit"][p] === "assigned");
   const eligible = can(who, "order.modify", { assigned: true }) || narrowTier;
   if (!eligible) return { ok: false, message: "Chỉ giao phụ trách cho người có quyền Bán hàng, Quản trị hoặc Hướng dẫn viên." };
@@ -58,32 +64,35 @@ export function checkAssignee(who: AssigneeCandidate | null): Parsed<{ partyId: 
 }
 
 /**
- * Người phụ trách mặc định của đơn MỚI (ADR-0009 điều 4): hồ sơ của NGƯỜI LẬP — nhưng CHỈ KHI người lập đủ điều kiện làm người phụ trách theo ĐÚNG luật
- * `checkAssignee` ở trên (gọi lại, không chép tay: đổi luật người được giao thì luật này đổi theo). Hôm nay: SALES/ADMIN/SUPER_ADMIN có hồ sơ → chính họ.
- * Không đủ điều kiện → null, đơn chưa có người phụ trách (trạng thái hợp lệ; người đủ điều kiện nhận sau bằng `dispatch.claim`/`dispatch.assign`):
- *  - tài khoản CHỈ Đối tác (`PARTNER`): ADR-0014 điều 9 (với đơn do `PARTNER` lập, ADR-0009 điều 4 không áp dụng — chọn một hướng dẫn viên hoặc để trống)
- *    và điều 10 (`PARTNER` không tự thành người phụ trách bằng bất kỳ đường nào) — đúng chú thích "CỐ Ý CHƯA nhận" của `checkAssignee`;
- *  - tài khoản chưa có hồ sơ (`partyId` null) — như trước.
+ * Lý do huỷ đơn của FIELD qua route hẹp (ADR-0014 điều 11) — danh sách ĐÓNG, đúng nguyên văn câu trả lời của chủ dự án, không thêm/bớt.
+ * `"other"` ("Khác") thêm ở ADR-0030 điều 2, mục "Sửa đổi sau khi duyệt" (chủ dự án quyết trực tiếp 2026-09-27, khi thi công Task 1.8): KHÔNG có nhãn cố
+ * định — nhãn của nó CHÍNH LÀ `note` người dùng gõ (xem `parseCancelReason`), nên KHÔNG có mặt trong `CANCEL_REASON_LABEL`.
  */
-export function defaultHandlerPartyId(creator: AssigneeCandidate): string | null {
-  const checked = checkAssignee(creator);
-  return checked.ok ? checked.partyId : null;
-}
-
-/** Lý do huỷ đơn của FIELD qua route hẹp (ADR-0014 điều 11) — danh sách ĐÓNG, đúng nguyên văn câu trả lời của chủ dự án, không thêm/bớt. */
-export const CANCEL_REASONS = ["not_reachable", "customer_requested"] as const;
+export const CANCEL_REASONS = ["not_reachable", "customer_requested", "other"] as const;
 export type CancelReason = (typeof CANCEL_REASONS)[number];
-export const CANCEL_REASON_LABEL: Record<CancelReason, string> = {
+export const CANCEL_REASON_LABEL: Record<Exclude<CancelReason, "other">, string> = {
   not_reachable: "Không liên hệ được với khách",
   customer_requested: "Khách yêu cầu huỷ",
 };
 const isCancelReason = (v: unknown): v is CancelReason => typeof v === "string" && (CANCEL_REASONS as readonly string[]).includes(v);
 
-/** Thân `POST /api/orders/:id/handler-cancel`: `{ reason }`. */
-export function parseCancelReason(body: Record<string, unknown> | null): Parsed<{ reason: CancelReason }> {
+/**
+ * Thân `POST /api/orders/:id/handler-cancel`: `{ reason, note? }`.
+ *  - `reason` là một trong hai mã cũ: `note` (nếu có gửi kèm) bị BỎ QUA, không lỗi, không có trong kết quả — hai lý do đó vẫn không ô chữ.
+ *  - `reason === "other"`: `note` (đã `.trim()`) là lý do bắt buộc, KHÔNG được chứa dãy số dài giống số điện thoại (`hasLongDigitRun`, cùng luật/ngưỡng
+ *    với việc che nơi đón ở hàng chờ nhận — ở đây CHẶN HẲN bằng 400, không che rồi ghi, vì nhật ký chỉ-thêm không xoá được).
+ */
+export function parseCancelReason(body: Record<string, unknown> | null): Parsed<{ reason: CancelReason; note?: string }> {
   const reason = body?.reason;
-  if (!isCancelReason(reason)) return { ok: false, message: `Lý do huỷ phải là một trong: "${CANCEL_REASON_LABEL.not_reachable}", "${CANCEL_REASON_LABEL.customer_requested}".` };
-  return { ok: true, reason };
+  if (!isCancelReason(reason)) {
+    return { ok: false, message: `Lý do huỷ phải là một trong: "${CANCEL_REASON_LABEL.not_reachable}", "${CANCEL_REASON_LABEL.customer_requested}", "Khác".` };
+  }
+  if (reason !== "other") return { ok: true, reason };
+  const rawNote = body?.note;
+  const note = typeof rawNote === "string" ? rawNote.trim() : "";
+  if (note === "") return { ok: false, message: 'Cần nhập lý do khi chọn "Khác".' };
+  if (hasLongDigitRun(note)) return { ok: false, message: "Lý do không được chứa số điện thoại hoặc dãy số dài — chỉ ghi văn bản thường." };
+  return { ok: true, reason, note };
 }
 
 /**

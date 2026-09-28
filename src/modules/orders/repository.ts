@@ -4,6 +4,7 @@ import { escapeLike } from "../../shared/http";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
+import type { PoolSourceOrder, PoolSourceService } from "./pool";
 import type { FrozenLine } from "./price-guards";
 import { orderCodePrefix, type DepositMethod, type OrderStatus, type ValidOrder } from "./rules";
 import { confirmWindow, summarizeDeviations, type StoredService, type ValidService, type ValidTrip } from "./service-rules";
@@ -344,17 +345,29 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
   });
 }
 
+/**
+ * Danh sách đơn một trang. PHẠM VI (máy chủ thi hành, không chỉ ở tầng một bản ghi): `ownerId` = null VÀ `orderIds` = null → MỌI đơn (người xem được mọi
+ * đơn); có ít nhất một trong hai → CHỈ các đơn khớp MỘT trong hai (hợp): người lập = `ownerId` (ô `own` — ADR-0014 điều 3, D-01) HOẶC id thuộc `orderIds`
+ * (đơn đang phụ trách — ô `assigned`, ADR-0030 S23-4; tập do route lấy qua `ctx.myHandledOrderIds`, orders không tự đọc dữ liệu phân công). `orderIds` = []
+ * nghĩa là "không đơn nào" (KHÔNG phải "không lọc") — điều kiện json_each vẫn được đặt dù mảng rỗng. `orderIds` là trường BẮT BUỘC (không tuỳ chọn): mọi nơi
+ * gọi phải tự nói rõ phạm vi.
+ */
 export async function listOrders(
   db: D1Database,
-  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null },
+  opts: { q: string; status: OrderStatus | null; limit: number; offset: number; ownerId: string | null; orderIds: readonly string[] | null },
 ): Promise<{ orders: OrderSummaryDto[]; hasMore: boolean }> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
-  // ADR-0014 điều 3 (D-01): tài khoản Đối tác chỉ thấy đơn của chính mình — ownerId khác null là phạm vi "own" thực thi ở máy chủ, không chỉ ở tầng một bản ghi.
-  if (opts.ownerId) {
-    where.push("o.staff_id = ?");
+  const scope: string[] = [];
+  if (opts.ownerId !== null) {
+    scope.push("o.staff_id = ?");
     binds.push(opts.ownerId);
   }
+  if (opts.orderIds !== null) {
+    scope.push("o.id IN (SELECT value FROM json_each(?))");
+    binds.push(JSON.stringify(opts.orderIds));
+  }
+  if (scope.length) where.push(`(${scope.join(" OR ")})`);
   if (opts.status) {
     where.push("o.status = ?");
     binds.push(opts.status);
@@ -374,14 +387,65 @@ export async function listOrders(
   return { orders, hasMore: results.length > opts.limit };
 }
 
+/**
+ * Nguồn của hàng chờ nhận (`GET /api/orders/pool`, ADR-0030 S23-2) — CHỈ đọc đúng các cột phần hẹp cần (mã đơn, trạng thái; dịch vụ: tên, số khách, ngày
+ * khởi hành, nơi đón, giờ đón): không đọc tên/SĐT/email khách, tiền, ghi chú, người lập — lớp thứ nhất; lớp thứ hai là danh sách trường được phép ở
+ * `pool.ts`. Số khách là số HIỆN HÀNH (áp dòng điều chỉnh gần nhất — `applyAdjustedPax`, cùng kỹ thuật danh sách đơn), vì đơn đã xác nhận quay về hàng chờ
+ * có thể đã được người phụ trách trước sửa số khách.
+ * Câu SQL chỉ LỌC THÔ trước (một TẬP CHA của hàng chờ, cho đỡ đọc mọi đơn cũ đã xác nhận): đơn nháp/đã xác nhận mà CÓ dịch vụ ngày ≥ `today`, HOẶC không
+ * dịch vụ nào có ngày — đúng bằng phủ định của `tripDeparted` (ngày đi = ngày lớn nhất; đã qua ⇔ < hôm nay). Luật QUYẾT ĐỊNH (chưa huỷ, không có người
+ * phụ trách, chưa qua ngày đi) nằm ở `toPoolOrders` (thuần). "Đơn nào có người phụ trách" KHÔNG hỏi ở đây: route hỏi `ctx.ordersWithHandler` (S20-13).
+ * GIỚI HẠN ĐÃ BIẾT: không chia trang — trả mọi đơn chưa đi, chưa huỷ (hôm nay vài chục); nhiều hơn vài trăm thì phải xem lại.
+ */
+export async function listPoolSources(db: D1Database, today: string): Promise<PoolSourceOrder[]> {
+  const { results: orderRows } = await db
+    .prepare(
+      `SELECT o.id, o.order_code, o.status FROM orders o
+       WHERE o.status IN ('draft', 'confirmed')
+         AND (EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.depart_date >= ?)
+              OR NOT EXISTS (SELECT 1 FROM order_service s WHERE s.order_id = o.id AND s.depart_date IS NOT NULL AND s.depart_date <> ''))`,
+    )
+    .bind(today)
+    .all<{ id: string; order_code: string; status: OrderStatus }>();
+  if (orderRows.length === 0) return [];
+  const [{ results: serviceRows }, latest] = await Promise.all([
+    db
+      .prepare(
+        `SELECT id, order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
+         FROM order_service WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY order_id, sort_order`,
+      )
+      .bind(JSON.stringify(orderRows.map((r) => r.id)))
+      .all<ServiceSummaryRow>(),
+    // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc đơn đã xác nhận) — như `toSummaryDtos`.
+    getLatestAdjustments(db, orderRows.filter((r) => r.status !== "draft").map((r) => r.id)),
+  ]);
+  const afterByOrder = new Map(Array.from(latest, ([id, a]) => [id, a.after] as const));
+  const servicesByOrder = new Map<string, PoolSourceService[]>();
+  for (const s of applyAdjustedPax(serviceRows, afterByOrder)) {
+    const list = servicesByOrder.get(s.order_id) ?? [];
+    list.push({
+      name: s.name,
+      pax: { adult: s.pax_adult, child: s.pax_child, senior: s.pax_senior, infant: s.pax_infant },
+      departDate: s.depart_date,
+      pickupTime: s.pickup_time,
+      pickupPlace: s.pickup_place,
+    });
+    servicesByOrder.set(s.order_id, list);
+  }
+  return orderRows.map((r) => ({ id: r.id, orderCode: r.order_code, status: r.status, services: servicesByOrder.get(r.id) ?? [] }));
+}
+
 export interface DashboardData {
   /** "Chuyến đón hôm nay": đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay — sắp theo giờ đón. */
   today: OrderSummaryDto[];
   /** Đơn confirmed còn thiếu tiền (remainingAmount HIỆN HÀNH > 0, không phải cột gốc). */
   unpaid: { total: number; count: number; earliestDate: string | null };
-  /** Đơn nháp chưa xác nhận — ĐIỂM DUY NHẤT của trang chủ đếm cả đơn nháp. */
+  /** Đơn nháp chưa xác nhận (cùng `unassignedCount` là hai số duy nhất của Trang chủ có đếm đơn nháp). */
   draftCount: number;
-  /** Đơn confirmed chưa có người phụ trách (view công bố v_dsp_order_handler — orders KHÔNG import module dispatch). */
+  /**
+   * Đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13. Tập đơn đang có người
+   * lấy qua hàm tiêm `ordersWithHandler` (module `dispatch` trả lời, gốc lắp ráp nối) — `orders` không import `dispatch` và không đọc view của nó.
+   */
   unassignedCount: number;
   /**
    * Đơn confirmed CỦA CHÍNH `staffId` được lập trong tuần [weekFrom, weekTo] (giờ VN, hai đầu bao gồm) — "doanh thu của tôi tuần này".
@@ -397,8 +461,17 @@ export interface DashboardData {
  * dùng nơi khác, KHÔNG tự chế cách đổi múi giờ mới).
  * BÀI HỌC ĐỢT B: `unpaid`/`revenueWeek` không lọc/tổng hợp thẳng trên cột `remaining_amount`/`total` GỐC của bảng `orders` — phải áp
  * `getLatestAdjustments` + `effectiveMoney` cho TỪNG đơn trước (đúng kỹ thuật `toSummaryDtos`/`listOrders` đang dùng).
+ * `ordersWithHandler` = `ctx.ordersWithHandler` của route (gốc lắp ráp nối vào `dispatch`, ADR-0030 S20-13): trong các đơn đưa vào, đơn nào đang có
+ * người phụ trách — nguồn DUY NHẤT của `unassignedCount`.
  */
-export async function getDashboard(db: D1Database, staffId: string, today: string, weekFrom: string, weekTo: string): Promise<DashboardData> {
+export async function getDashboard(
+  db: D1Database,
+  staffId: string,
+  today: string,
+  weekFrom: string,
+  weekTo: string,
+  ordersWithHandler: (orderIds: readonly string[]) => Promise<ReadonlySet<string>>,
+): Promise<DashboardData> {
   // 1) "Chuyến đón hôm nay": id các đơn confirmed mà dịch vụ CÓ NGÀY sớm nhất của đơn (os.id = kết quả subquery) đúng bằng `today`.
   //    Đơn không có dịch vụ nào có ngày đón → subquery không ra dòng nào → không đơn nào khớp `os.id = NULL` → đơn đó không lọt vào (đúng ý §7).
   //    Sắp theo giờ đón của CHÍNH dịch vụ quyết định "hôm nay" (khác quy ước `summarizeServices` sắp theo sort_order — ở đây cần thứ tự lịch trình trong ngày).
@@ -473,10 +546,17 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
   // 3) Đơn nháp chưa xác nhận.
   const draftCountRow = await db.prepare(`SELECT COUNT(*) AS n FROM orders WHERE status = 'draft'`).first<{ n: number }>();
 
-  // 4) Đơn confirmed chưa có người phụ trách — CHỈ qua view công bố v_dsp_order_handler (orders không import dispatch — src/CLAUDE.md).
-  const unassignedRow = await db
-    .prepare(`SELECT COUNT(*) AS n FROM orders o WHERE o.status = 'confirmed' AND NOT EXISTS (SELECT 1 FROM v_dsp_order_handler h WHERE h.order_id = o.id)`)
-    .first<{ n: number }>();
+  // 4) "Chưa phụ trách" (ADR-0020 điều 7, M1 = A; ADR-0030 S20-13): đơn NHÁP hoặc ĐÃ XÁC NHẬN (không tính đơn huỷ) chưa có người phụ trách đang mở.
+  //    `orders` KHÔNG đọc dữ liệu phân công (không import `dispatch`, không đọc view của nó — `src/architecture.test.ts` canh): lấy id các đơn còn hiệu
+  //    lực ở đây, hỏi `ordersWithHandler` đơn nào đang có người (dispatch trả lời), đếm phần còn lại. Ngữ nghĩa "dòng đã đóng coi như chưa có ai", "hồ
+  //    sơ không có tài khoản vẫn là có người" thuộc dispatch (`src/modules/dispatch/handler-of.test.ts`).
+  //    GIỚI HẠN ĐÃ BIẾT: mảng id (MỌI đơn chưa huỷ, không lọc theo ngày) lớn dần theo số đơn và đi trong MỘT tham số JSON sang dispatch — cùng loại giới
+  //    hạn đã có ở khối 2 (`getLatestAdjustments` nhận mọi đơn đã xác nhận). Hôm nay vài trăm đơn; khi số đơn chưa huỷ vượt vài nghìn thì phải xem lại.
+  //    Đo 2026-09-27 trên node:sqlite (CHƯA đo trên D1): 2 000 đơn → chuỗi JSON 78 001 byte, cả hàm ~5 ms; 50 000 đơn → 1 950 001 byte — sát giới hạn
+  //    2 MB/chuỗi của D1 (tài liệu Cloudflare; tài liệu không nói rõ giới hạn đó có áp cho tham số ràng buộc hay không).
+  const { results: openRows } = await db.prepare(`SELECT id FROM orders WHERE status IN ('draft', 'confirmed')`).all<{ id: string }>();
+  const withHandler = await ordersWithHandler(openRows.map((r) => r.id));
+  const unassignedCount = openRows.filter((r) => !withHandler.has(r.id)).length;
 
   // 5) "Doanh thu của tôi tuần này": đơn confirmed do CHÍNH staffId lập, trong [weekFrom, weekTo] giờ VN (hai đầu bao gồm) — đổi sang mốc ISO UTC
   //    nửa-mở [đầu thứ Hai, đầu thứ Hai TUẦN SAU) bằng `vnLocalToIso` (đúng quy ước "00:00 giờ VN" đã dùng ở nơi khác, không tự chế).
@@ -513,7 +593,7 @@ export async function getDashboard(db: D1Database, staffId: string, today: strin
     today: todaySummaries,
     unpaid: { total: unpaidTotal, count: unpaidIds.length, earliestDate: earliestUnpaid?.d ?? null },
     draftCount: draftCountRow?.n ?? 0,
-    unassignedCount: unassignedRow?.n ?? 0,
+    unassignedCount,
     revenueWeek: { total: revenueTotal, count: weekRows.length, daily },
   };
 }
@@ -607,7 +687,9 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
  * (mã lớn nhất của ngày + 1) nên việc đọc-rồi-ghi là một bước nguyên tử: D1 ghi tuần tự, nhiều người
  * tạo cùng lúc vẫn ra mã khác nhau. UNIQUE vẫn là lưới an toàn cuối; nếu đụng thì thử lại.
  * `alsoCreate` = các câu (chưa chạy) module KHÁC cần chạy cùng giao dịch, dựng theo id đơn và thời điểm của TỪNG lần thử — id đơn đổi mỗi lần thử nên phải là hàm,
- * không phải danh sách dựng sẵn. Dùng cho dòng người phụ trách mặc định của `dispatch` (ADR-0009 điều 4); `orders` không biết đó là gì, chỉ ghép sau câu INSERT đơn.
+ * không phải danh sách dựng sẵn. Dùng cho người phụ trách do người lập CHỌN lúc lập (`dispatch`, ADR-0030 S20-4 — đơn mới không bao giờ tự gắn người lập; không
+ * chọn thì không có `alsoCreate`); `orders` không biết đó là gì, chỉ ghép sau câu INSERT đơn và dòng nhật ký `created`. MỘT mốc `at` cho cả lần thử: cùng giá
+ * trị đi vào `orders.created_at`, dòng nhật ký `created` và `alsoCreate(id, at)` — đừng đọc đồng hồ lần thứ hai ở đây (hệ thống Thông báo so các mốc này).
  * `booker.before` đứng đầu batch (hồ sơ mới, nếu có, phải tồn tại trước khi đơn trỏ khoá ngoại tới).
  */
 export async function createOrder(
@@ -709,14 +791,16 @@ export async function confirmOrder(db: D1Database, id: string, staffId: string, 
 }
 
 /**
- * Huỷ đơn có điều kiện `status = from` (chống hai người đổi cùng lúc). Trả false nếu điều kiện không còn đúng. Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)`
- * (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không
- * detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
+ * Huỷ đơn có điều kiện `status = from` VÀ `updated_at = prevUpdatedAt` (khoá lạc quan, chống hai người đổi cùng lúc — kể cả khi người kia chỉ đổi
+ * `updated_at` mà KHÔNG đổi `status`, ví dụ `PUT /trip` chen giữa lúc route đọc và lúc gọi hàm này). Trả false nếu điều kiện không còn đúng — KHÔNG
+ * đổi gì, KHÔNG ghi nhật ký (T1d, điều kiện tiên quyết ADR-0030 lượt 1: trước bản sửa này câu UPDATE chỉ khoá theo `status`, để lọt ca chen giữa
+ * trên). Mốc `updated_at` mới = `nextStamp(prevUpdatedAt)` (xem `confirmOrder`). `opts` cho phép đường huỷ hẹp của FIELD (ADR-0014 điều 11) ghi một
+ * hành động nhật ký riêng kèm lý do — mặc định vẫn là `cancelled` không detail, giữ nguyên hành vi cũ của mọi lời gọi khác.
  */
 export async function cancelOrder(db: D1Database, id: string, staffId: string, from: OrderStatus, prevUpdatedAt: string, opts?: { action?: AuditAction; detail?: string }): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const results = await db.batch([
-    db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ?`).bind(at, id, from),
+    db.prepare(`UPDATE orders SET status = 'cancelled', updated_at = ? WHERE id = ? AND status = ? AND updated_at = ?`).bind(at, id, from, prevUpdatedAt),
     auditStatement(db, { orderId: id, staffId, action: opts?.action ?? "cancelled", at, detail: opts?.detail }, "changes() > 0"),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;

@@ -26,7 +26,7 @@ const HANDLED_ORDER_IDS = defineSql("dispatch", "handled_order_ids", "SELECT ord
 // Dòng HANDLE mới: ?1 id, ?2 đơn, ?3 hồ sơ người nhận, ?4 thời điểm (UTC), ?5 người thao tác (cột WHO: TEXT NULL, không khoá ngoại — ADR-0003).
 const INSERT_COLUMNS = "id, order_id, task_kind_code, party_id, status_code, valid_from_at, created_at, created_by, updated_at, updated_by";
 const NEW_ROW = "?1, ?2, 'HANDLE', ?3, 'PENDING', ?4, ?4, ?5, ?4, ?5";
-/** Đơn MỚI: người lập là người phụ trách mặc định (gộp vào batch tạo đơn). */
+/** Đơn MỚI: người được CHỌN lúc lập đơn (gộp vào batch tạo đơn — ADR-0030 S20-4; đơn vừa tạo trong cùng lô nên chưa thể có dòng nào đang mở). */
 const INSERT_HANDLER = defineSql("dispatch", "insert_handler", `INSERT INTO dsp_assignment (${INSERT_COLUMNS}) VALUES (${NEW_ROW})`);
 /** Sau câu ĐÓNG dòng cũ: chỉ mở dòng mới nếu câu đóng đã áp dụng. */
 const INSERT_HANDLER_AFTER_CLOSE = defineSql("dispatch", "insert_handler_after_close", `INSERT INTO dsp_assignment (${INSERT_COLUMNS}) SELECT ${NEW_ROW} WHERE changes() > 0`);

@@ -9,13 +9,14 @@ import { icon } from "./icons";
 import { suKienVeDon, taoBoLamMoi } from "./lam-moi-logic";
 import { renderServices } from "./order-services";
 import { goiSom } from "./goi-som";
+import { layKhungNho } from "./khung-nho";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
-import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved } from "../src/shared/handler-view";
+import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { type PaxCounts } from "../src/shared/order-lines";
 import { banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
-import { orderActions } from "../src/shared/order-view";
+import { khongQuyenSuaText, orderActions } from "../src/shared/order-view";
 import type { SuKienDon } from "../src/shared/bang-tin";
 
 const id = new URLSearchParams(location.search).get("id");
@@ -38,7 +39,7 @@ if (autoOpenConfirmation) {
 const sendButton = (): HTMLButtonElement | null => sendEl.querySelector("button");
 /** Ảnh xác nhận gửi khách của đơn đang xem (mọi trạng thái, mọi người xem được đơn — ảnh chỉ in lại dữ liệu họ đã thấy). */
 function openConfirmation(): void {
-  if (current) openConfirmationDialog({ order: current, opener: sendButton });
+  if (current && staff) openConfirmationDialog({ order: current, viewer: staff, opener: sendButton });
 }
 
 /** `null` ẩn banner. Liên kết "Sửa" của banner incomplete_trip mở form ĐÚNG thẻ (`?focus=`, Task 7). */
@@ -278,7 +279,8 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
 
   const btns: HTMLElement[] = [];
   // Quyền sửa/xác nhận/huỷ do MÁY CHỦ quyết (`canModify`, kể cả người phụ trách — ADR-0009); câu này chỉ giải thích cho người không có quyền.
-  if (a.noPermission) btns.push(h("p", { class: "muted" }, `Chỉ ${order.staffName} (người lập đơn), người phụ trách đơn hoặc quản trị viên mới được sửa, xác nhận hoặc huỷ đơn này.`));
+  // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
+  if (a.noPermission) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff! })));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
   if (a.confirm) btns.push(change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent"));
   if (a.editTrip) btns.push(editTripButton(order));
@@ -357,7 +359,7 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify }, handler] = await layDon!();
+    const [{ order, history, canModify }, handler] = await Promise.all([layDon!(), layNguoiPhuTrach(id!)]);
     if (seq !== loadSeq) return;
     show(null);
     render(order, history, canModify, handler);
@@ -382,8 +384,17 @@ const lamMoi = taoBoLamMoi(async () => {
   await load(true);
 });
 
-// Gọi sớm (web/goi-som.ts): đơn + người phụ trách gửi NGAY, song song với /api/auth/me của initShell(); chỉ dựng trang sau khi initShell() xong.
-const layDon = id ? goiSom(() => Promise.all([api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id)}`), loadHandler(id)])) : null;
+// Gọi sớm (web/goi-som.ts): đơn gửi NGAY, song song với /api/auth/me của initShell(); chỉ dựng trang sau khi initShell() xong.
+const layDon = id ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id)}`)) : null;
+// Người phụ trách (vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-2): GET /api/dispatch/handlers chỉ mở cho người XEM ĐƯỢC MỌI ĐƠN (cổng `order.view`
+// không ngữ cảnh — đúng cờ `seesAll` của bản nhớ khung ADR-0035) → chỉ gọi SỚM khi bản nhớ khung nói vậy (tiền lệ web/order-form.ts). Quyết định thật đợi
+// `initShell()`: hướng dẫn viên (chỉ xem đơn mình phụ trách) → người phụ trách = chính họ, tên từ phiên, KHÔNG gọi route đó (403 với họ — ruling Task 1.6).
+const layNguoiPhuTrachSom = id && layKhungNho()?.seesAll === true ? goiSom(() => loadHandler(id)) : null;
+function layNguoiPhuTrach(orderId: string): Promise<Handler> {
+  const tuPhien = nguoiPhuTrachTuPhien(staff!);
+  if (tuPhien) return Promise.resolve(tuPhien);
+  return layNguoiPhuTrachSom ? layNguoiPhuTrachSom() : loadHandler(orderId);
+}
 staff = await initShell();
 if (!id) show(banner("danger", "Thiếu mã đơn."));
 else {

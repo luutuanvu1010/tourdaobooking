@@ -68,6 +68,8 @@ test("R3 PASS authz (ADR-0013, vá 2026-…): SALES không đổi tên/ngưng h�
 test("R3b PASS authz (ADR-0013, vá 2026-…): SALES không đổi được tên đồng nghiệp — 403; người phụ trách và người lập vẫn mang tên thật", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  // Từ ADR-0030 S20-4 đơn mới không tự gắn người lập: A Nhận tường minh để đơn có người phụ trách mang tên A (điều bài này kiểm).
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/handler`, { as: A, body: { staffId: A } })).status, 200);
   const p = (await w.call("GET", `/api/parties/pty-${A}`, { as: B })).json.party;
   const r = await w.call("PUT", `/api/parties/pty-${A}`, { as: B, body: { familyName: null, middleName: null, givenName: "Tên Giả", active: true, expectedUpdatedAt: p.updatedAt } });
   assert.equal(r.status, 403, r.text);
@@ -104,6 +106,9 @@ test("R3d FINDING identity: SALES ngưng hồ sơ KHÁCH đang là người đ�
 test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: order.view any), mọi đường SỬA → 403, đơn không đổi", async () => {
   const w = setup();
   const o = (await w.call("POST", "/api/orders", { as: A, body: orderBody() })).json.order;
+  // Từ ADR-0030 S20-4 đơn mới không tự gắn người lập (không dòng HANDLE nào lúc lập); A Nhận TRƯỚC khi B thử để đơn "đã có người phụ trách".
+  assert.equal(w.q("SELECT count(*) n FROM dsp_assignment WHERE order_id = ?", o.id)[0].n, 0, "lúc lập: 0 dòng phân công");
+  assert.equal((await w.call("PUT", `/api/orders/${o.id}/handler`, { as: A, body: { staffId: A } })).status, 200);
   assert.equal((await w.call("GET", `/api/orders/${o.id}`, { as: B })).status, 200);
   assert.equal((await w.call("PUT", `/api/orders/${o.id}`, { as: B, body: { ...orderBody(), expectedUpdatedAt: o.updatedAt } })).status, 403);
   assert.equal((await w.call("POST", `/api/orders/${o.id}/status`, { as: B, body: { status: "cancelled" } })).status, 403);
@@ -116,9 +121,11 @@ test("R4 PASS IDOR: SALES khác biết id đơn — xem được (thiết kế: 
   assert.equal(w.q("SELECT count(*) n FROM dsp_assignment WHERE order_id = ? AND valid_to_at IS NULL", o.id)[0].n, 1);
 });
 
-test("R5 PASS vertical: FIELD không vào API văn phòng; SALES không vào API admin; ACCOUNTING không lập đơn", async () => {
+test("R5 PASS vertical: FIELD không vào API văn phòng (danh sách đơn chỉ đơn mình phụ trách — ADR-0030 S23-4); SALES không vào API admin; ACCOUNTING không lập đơn", async () => {
   const w = setup();
-  assert.equal((await w.call("GET", "/api/orders", { as: F })).status, 403);
+  const own = await w.call("GET", "/api/orders", { as: F });
+  assert.equal(own.status, 200, own.text); // ADR-0030 S23-5: FIELD qua cổng orders; nhánh lọc thứ ba = đơn đang phụ trách
+  assert.deepEqual(own.json.orders, [], "FIELD chưa phụ trách đơn nào → rỗng");
   assert.equal((await w.call("GET", "/api/parties", { as: F })).status, 403);
   assert.equal((await w.call("GET", "/api/staff", { as: A })).status, 403);
   assert.equal((await w.call("PUT", `/api/staff/${A}/permissions`, { as: A, body: { permissions: ["ADMIN"] } })).status, 403);

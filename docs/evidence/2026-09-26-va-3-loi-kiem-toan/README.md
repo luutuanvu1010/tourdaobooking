@@ -1,5 +1,9 @@
 # Bằng chứng giao diện: vá DK-T3-02 và DK-T4-02 (2026-09-26)
 
+> **Cập nhật 2026-09-27 (Task 1.8 ADR-0030):** khối "Việc của tôi" đã dựng lại theo bản thiết kế của chủ dự án (`web/viec-cua-toi.ts`) — vùng `.myjob-cancel`/`confirm()`
+> không còn. Bước 3–6 của `va3-smoke.mjs` đã gỡ khỏi kịch bản; phần giao diện DK-T4-02 (hỏi lại trước khi huỷ, ẩn "Huỷ đơn" khi tour đã qua ngày đi) nay kiểm ở
+> `docs/evidence/2026-09-27-tu-choi-huy-hdv/kich-ban/hdv-viec-cua-toi-smoke.mjs` (bước 1 và 8). Kết quả bước 3–6 dưới đây là của lần đo 2026-09-26 trên mã cũ.
+
 Kịch bản Chrome cho hai lỗi kiểm toán 24/9 vá trên nhánh `va-3-loi-kiem-toan`. Hiến pháp §8.2: bằng chứng thay cho lời khai.
 **Mã được đo: commit `3c7fdb3`** (sau `0245f7d` DK-T3-02 và `f8d290c` DK-T4-02). Người viết + chạy kịch bản là subagent
 kiểm giao diện (không phải người thi công hai commit trên).

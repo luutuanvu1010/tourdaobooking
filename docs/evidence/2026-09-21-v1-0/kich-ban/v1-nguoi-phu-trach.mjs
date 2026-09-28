@@ -6,12 +6,12 @@
 // Không cần mạng ngoài (danh mục giả do a2-cdp.mjs chèn vào D1 tạm; phông tự lưu trữ). `web/handler-sheet.ts` KHÔNG có test tự động trong repo (như `trip-sheet.ts`): kịch bản này là bằng chứng duy nhất cho nó.
 // Tài khoản: A = "Sales Một" (người lập đơn), B = "Sales Hai", C = "Sales Ba" (tạo trong kịch bản: SALES thứ ba), kế toán, quản trị (a2-cdp.mjs); D = "Sales Tư" (tạo giữa chừng rồi cho ngưng).
 //
-//   a  danh sách đơn: A lập đơn BẰNG GIAO DIỆN → mỗi thẻ hiện "Phụ trách: <tên>" ở khổ 390 VÀ 1040; đúng MỘT lời gọi GET /api/dispatch/handlers cho cả trang, gửi đúng các mã đơn đang hiện
+//   a  danh sách đơn: A lập đơn BẰNG GIAO DIỆN → mỗi thẻ hiện "HDV: <tên>" ở khổ 390 VÀ 1040; đúng MỘT lời gọi GET /api/dispatch/handlers cho cả trang, gửi đúng các mã đơn đang hiện
 //   b  A đổi người phụ trách sang B bằng bảng chọn → bảng đóng, trang đơn tải lại thấy B + báo "Đã đổi…", trả focus; danh sách và nhật ký đơn thấy B
 //   c  ảnh PNG "Xác nhận gửi khách" SAU KHI đổi người in đúng tên B (giống từng byte bản dựng từ tên B, khác bản dựng từ tên A)
 //   d  B (không phải người lập) sửa được đơn NHÁP bằng giao diện: nút Sửa hiện, form mở được, lưu (PUT) thành công; B thấy nút "Đổi người phụ trách", không thấy "Nhận phụ trách"
 //   e  quyền: C (SALES khác) không thấy nút đổi/nhận (đơn đã có người) và không có Sửa/Xác nhận/Huỷ; kế toán không thấy nút nào; quản trị và người lập vẫn có nút đổi
-//   f  đơn CHƯA có người: chip "Chưa có người phụ trách" ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy "Nhận phụ trách"; người lập/quản trị thấy cả giao lẫn nhận; kế toán không có gì; C nhận được → sửa được đơn
+//   f  đơn CHƯA có người: chip "Chờ nhận" ở danh sách (390, 1040) và ở trang đơn; C chỉ thấy "Nhận phụ trách"; người lập/quản trị thấy cả giao lẫn nhận; kế toán không có gì; C nhận được → sửa được đơn
 //   g  bảng chọn: role=dialog, aria-modal, tên, nền inert, focus trong bảng, Esc / chạm nền / ✕ đóng và trả focus; danh sách khớp GET assignees (không có kế toán), người đang phụ trách bị khoá + chip;
 //      "Lưu" chỉ mở khi có lựa chọn; KHOÁ khi đang lưu (nút, danh sách, ✕/Esc/chạm nền không đóng; bấm đúp chỉ gửi một PUT); lỗi tải danh sách → thông báo + Thử lại; focus không rơi ra ngoài bảng (sau Thử lại, sau lỗi khi lưu)
 //   h  đổi song song → tải lại + thông báo tiếng Việt: 409 no_change (người khác đã giao đúng người đó), 409 stale (nhận đơn vừa có người), 403 (mất quyền); 400 invalid_assignee (người vừa nghỉ) giữ bảng mở, danh sách làm mới, focus còn trong bảng, axe 0 vi phạm
@@ -23,6 +23,9 @@
 //   m  (vòng sửa sau kiểm độc lập Đợt E, 2026-09-24, mục A) tên khách DÀI bị cắt bằng "…" ở dòng 1 (390px) NHƯNG phần xổ vẫn có ĐÚNG dòng "Khách: <tên đầy đủ>", ngay trước "Mã đơn"
 //   n  (vòng sửa sau kiểm độc lập Đợt E, mục B) bàn phím THẬT qua CDP: Tab từ thẻ đơn tới được nút xổ, Enter VÀ Space đều mở/đóng được (aria-expanded đổi đúng), KHÔNG điều hướng sang trang chi tiết
 //   o  (Đợt E task 9, việc nhỏ) lý do nhiều dòng ở "Lịch sử" (order_money_adjusted_by_field, reason có ký tự xuống dòng) hiện ĐÚNG nhiều dòng — CSS .history-detail thêm white-space: pre-line; đo bằng Range.getClientRects thật
+//   p  (vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-2, 2026-09-27) HƯỚNG DẪN VIÊN, danh sách đơn: mỗi thẻ "HDV: <tên mình>" (trước: dòng bị ẩn lặng lẽ); ảnh 390 + 1040
+//   q  (cùng vòng sửa) HƯỚNG DẪN VIÊN, trang đơn mình phụ trách: tên mình (trước: "Chưa tải được người phụ trách."), không nút đổi/nhận/sửa, câu giải thích riêng cho HDV; ảnh
+//      p và q: KHÔNG một lời gọi GET /api/dispatch/handlers nào (403 với HDV)
 import assert from "node:assert/strict";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -45,6 +48,7 @@ const ACC = ACCOUNTS.accounting;
 const C = { name: "Sales Ba", phone: "0900000205", pin: "246813", permissions: ["SALES"] };
 const D = { name: "Sales Tư", phone: "0900000206", pin: "246814", permissions: ["SALES"] };
 const FIELD_ACC = { name: "HDV Đo Dòng", phone: "0900000207", pin: "246815", permissions: ["FIELD"] }; // Task 9 Đợt E (bước o): đo CSS .history-detail
+const HDV_P = { name: "HDV Phụ Trách", phone: "0900000208", pin: "246816", permissions: ["FIELD"] }; // vòng sửa 1 lượt 1 ADR-0030 (bước p): HDV xem đơn mình phụ trách
 
 const results = { ghiChu: "Đo bằng Chrome headless trên wrangler dev cục bộ (D1 tạm, danh mục giả); không phải iPhone thật, không phải WebKit.", buoc: [], axe: {}, do: {}, anh: {}, dem: {} };
 let failures = 0;
@@ -172,15 +176,23 @@ const NO_TRIP = { departDate: "", departTime: "", pickupTime: "", pickupPlace: "
 const pax = (adult) => ({ adult, child: 0, senior: 0, infant: 0 });
 // 2026-09-26 (DK-T3-01 R1, chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay"): API không nhận dịch vụ nhập tay MỚI (400) → đơn dựng sẵn dùng dịch vụ danh mục
 // giả TTB06 của a2-cdp.mjs, VẪN 3 người lớn (bước a khẳng định "Số khách: 03 NL"); trước: dịch vụ nhập tay "Xe đưa đón riêng" 3 khách × 800.000.
+// ADR-0030 S20-4 (Task 1.7): đơn mới KHÔNG còn tự gắn người lập làm người phụ trách — `POST /api/orders` chỉ giao
+// khi thân có `handlerStaffId` (Task 1.8, chọn HDV trong form, còn chờ bản thiết kế của chủ, CHƯA làm ở đây). Kịch
+// bản này kiểm màn "đổi/giao" (`handler-sheet.ts`), không kiểm việc CHỌN HDV lúc lập đơn, nên `createOrder` tự giao
+// lại cho chính người lập NGAY SAU KHI tạo (gọi `assignVia`, mô phỏng bước "vào trang đơn bấm Chọn người phụ
+// trách") để giữ đúng trạng thái "đơn đã có người" mà phần lớn các bước dưới cần — các bước cần đơn CHƯA có người
+// (f, h.2, i, j, k) vẫn gọi `unassign()` ngay sau để bỏ lại, như trước.
 const createOrder = async (account, customer) => {
   const r = await call(account, "POST", "/api/orders", {
     customerName: customer, customerPhone: "0903 111 222", customerEmail: "", customerNote: "", discount: 0, depositAmount: 0, depositMethod: null, paymentNote: "",
     services: [{ kind: "catalog", catalogCode: "TTB06", pax: pax(3), catalogPriceSeen: { adult: 800000 }, ...NO_TRIP, departDate: vnDate(7), departTime: "07:30" }],
   });
   assert.equal(r.status, 201, `dựng đơn: ${r.status} ${JSON.stringify(r.json)}`);
+  await assignVia(account, r.json.order.id, account);
   return r.json.order;
 };
-/** Đơn CŨ chưa có người phụ trách (như đơn lập trước khi có `dispatch`): đóng dòng HANDLE đang mở (`valid_to_at` = `valid_from_at` thoả CHECK, chỉ mục duy nhất chỉ ràng dòng đang mở). */
+/** Trả đơn về "chưa có người phụ trách" cho các bước cần trạng thái đó (đơn qua `createOrder`/`getMain` nay LUÔN có người ngay sau khi dựng — xem chú
+ * thích ở `createOrder`): đóng dòng HANDLE đang mở (`valid_to_at` = `valid_from_at` thoả CHECK, chỉ mục duy nhất chỉ ràng dòng đang mở). */
 const unassign = (orderId) => env.sql(`UPDATE dsp_assignment SET valid_to_at = valid_from_at WHERE order_id = '${orderId}' AND task_kind_code = 'HANDLE' AND valid_to_at IS NULL`);
 const handlerOf = async (orderId, account = A) => (await call(account, "GET", `/api/dispatch/handlers?orderIds=${orderId}`)).json.handlers[orderId];
 const assigneesApi = async () => (await call(A, "GET", "/api/dispatch/assignees")).json.assignees;
@@ -269,6 +281,10 @@ function getMain() {
     await p.waitFor("location.pathname === '/order'", "chuyển tới trang đơn sau khi lưu", 15000);
     const id = await p.ev("new URLSearchParams(location.search).get('id')");
     p.close();
+    // ADR-0030 S20-4 (Task 1.7): form lập đơn CHƯA có ô chọn HDV (Task 1.8, chờ bản thiết kế của chủ) → đơn vừa lưu
+    // chưa có người phụ trách; tự giao lại cho A ngay đây (như `createOrder`) để "main" ở đúng trạng thái các bước
+    // dưới (b, d, e…) cần — mô phỏng bước thủ công "vào trang đơn bấm Chọn người phụ trách".
+    await assignVia(A, id, A);
     return (await call(A, "GET", `/api/orders/${id}`)).json.order;
   })();
   return mainPromise;
@@ -317,10 +333,10 @@ try {
   // ================= a) danh sách đơn =================
   // Đợt E: dòng người phụ trách nay nằm trong phần xổ xuống (mặc định ĐÓNG) — bước này kiểm CẢ hai trạng thái:
   // đóng (đúng 2 dòng, KHÔNG lộ người phụ trách) và mở (bấm nút xổ → hiện đúng tên, nằm gọn trong thẻ).
-  await step("a", "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “Phụ trách: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện", async () => {
+  await step("a", "danh sách đơn: đóng ĐÚNG 2 dòng ở CẢ 390 và 1040 (không lộ người phụ trách; GIỮ tên khách ở dòng 1 + mã đơn trong phần xổ); mở nút xổ thấy “HDV: <tên>”; đúng MỘT lời gọi handlers cho cả trang, gửi đúng các mã đơn đang hiện", async () => {
     const main = await getMain();
     const { a2, b1 } = await getExtra();
-    const expected = new Map([[main.id, "Phụ trách: Sales Một"], [a2.id, "Phụ trách: Sales Một"], [b1.id, "Phụ trách: Sales Hai"]]);
+    const expected = new Map([[main.id, "HDV: Sales Một"], [a2.id, "HDV: Sales Một"], [b1.id, "HDV: Sales Hai"]]);
     const expectedName = new Map([[main.id, main.customerName], [a2.id, a2.customerName], [b1.id, b1.customerName]]);
     const expectedCode = new Map([[main.id, main.orderCode], [a2.id, a2.orderCode], [b1.id, b1.orderCode]]);
     for (const [label, vp] of [["390", M], ["1040", DESK]]) {
@@ -404,7 +420,7 @@ try {
     const p = await openAs(A, `/order?id=${main.id}`);
     await p.waitFor(CARD_READY, "khối Người phụ trách", 10000);
     assert.equal(await p.ev("document.querySelector('.handler-card h2').textContent"), "Người phụ trách");
-    assert.equal(await p.ev(CARD_NAME), "Sales Một", "người lập là người phụ trách mặc định");
+    assert.equal(await p.ev(CARD_NAME), "Sales Một", "người lập đã được giao ngay sau khi lập (getMain gọi assignVia) — KHÔNG còn tự gắn mặc định (ADR-0030 S20-4)");
     assert.deepEqual(await p.ev(CARD_BUTTONS), ["Đổi người phụ trách"], "người phụ trách (cũng là người lập): chỉ có nút đổi, KHÔNG có nút nhận");
     await openSheet(p);
     const info = await p.ev(SHEET_INFO);
@@ -419,7 +435,9 @@ try {
     assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-info')"), true);
     assert.deepEqual(await p.ev(CARD_BUTTONS), ["Đổi người phụ trách"], "người lập vẫn đổi lại được (ADR-0009: giữ quyền)");
     assert.equal(await p.ev("document.activeElement === document.querySelector('[data-action=change-handler]')"), true, "focus trở về nút đổi (đã dựng lại)");
-    assert.deepEqual(await p.ev("[...document.querySelectorAll('.history li')].map((li) => li.textContent).filter((t) => /Đổi người phụ trách/.test(t)).length"), 1, "nhật ký đơn có một dòng “Đổi người phụ trách”");
+    // ADR-0030 S20-4 (Task 1.7): lần GIAO ĐẦU TIÊN (từ "chưa có người phụ trách", ở getMain qua assignVia) nay CŨNG ghi nhật ký `order_handler_changed`
+    // (trước đây người lập là mặc định, KHÔNG qua route nào nên không có dòng) — nên đơn "main" có 2 dòng: giao lần đầu (A) + đổi ở bước này (A → B).
+    assert.deepEqual(await p.ev("[...document.querySelectorAll('.history li')].map((li) => li.textContent).filter((t) => /Đổi người phụ trách/.test(t)).length"), 2, "nhật ký đơn có hai dòng “Đổi người phụ trách”: giao lần đầu (getMain) và đổi ở bước này");
     // Task 8 Đợt E: mục "Lịch sử" nay dựng thêm `detail` của audit_log (trước bản sửa: API đã trả đúng nhưng trang không dựng ra) — đo bằng
     // chính dòng "Đổi người phụ trách" vừa tạo ở bước này (KHÔNG dựng thêm đơn/điều chỉnh tiền riêng, tái dùng đúng thao tác đã có).
     assert.ok(
@@ -434,7 +452,7 @@ try {
     // danh sách sau khi đổi
     const list = await openAs(A, "/orders", { viewport: DESK });
     await list.waitFor(listReady(3), "danh sách");
-    assert.equal((await list.ev(LIST_ROWS)).find((r) => r.id === main.id).handler, "Phụ trách: Sales Hai");
+    assert.equal((await list.ev(LIST_ROWS)).find((r) => r.id === main.id).handler, "HDV: Sales Hai");
     list.close();
   });
 
@@ -515,9 +533,9 @@ try {
       await p.waitFor(listReady(4), `danh sách có 4 đơn (${label})`, 10000);
       const rows = await p.ev(LIST_ROWS);
       const un = rows.find((r) => r.id === unassigned.id);
-      assert.deepEqual([un.handler, un.chip, un.hidden], ["Chưa có người phụ trách", true, false], `${label}: đơn chưa có người → chip`);
+      assert.deepEqual([un.handler, un.chip, un.hidden], ["Chờ nhận", true, false], `${label}: đơn chưa có người → chip`);
       assert.equal(rows.filter((r) => r.chip).length, 1, `${label}: chỉ đơn chưa có người mới có chip`);
-      assert.ok(rows.filter((r) => !r.chip).every((r) => /^Phụ trách: /.test(r.handler)), `${label}: các đơn còn lại có tên`);
+      assert.ok(rows.filter((r) => !r.chip).every((r) => /^HDV: /.test(r.handler)), `${label}: các đơn còn lại có tên`);
       p.close();
     }
     for (const [who, expectButtons] of [[A, ["Chọn người phụ trách", "Nhận phụ trách"]], [ADMIN, ["Chọn người phụ trách", "Nhận phụ trách"]], [ACC, []]]) {
@@ -528,7 +546,7 @@ try {
     }
     const c = await openAs(C, `/order?id=${unassigned.id}`);
     await c.waitFor(CARD_READY, "khối Người phụ trách (C)", 10000);
-    assert.equal(await c.ev(CARD_NAME), "Chưa có người phụ trách");
+    assert.equal(await c.ev(CARD_NAME), "Chờ nhận");
     assert.equal(await c.ev("!!document.querySelector('.handler-card .handler-name .chip')"), true, "hiện dạng chip");
     assert.deepEqual(await c.ev(CARD_BUTTONS), ["Nhận phụ trách"], "C: chỉ được nhận, không được giao cho người khác");
     assert.deepEqual(await c.ev(ACTION_BUTTONS), [], "chưa nhận thì chưa sửa được đơn");
@@ -702,7 +720,7 @@ try {
       const rows = await p.ev(LIST_ROWS);
       assert.ok(rows.length >= 3, `${label}: danh sách vẫn hiện ${rows.length} đơn`);
       assert.ok(rows.every((r) => r.hidden === true && r.chip === false && (r.handler ?? "") === ""), `${label}: không dòng người phụ trách, không chip: ${JSON.stringify(rows.map((r) => [r.handler, r.hidden]))}`);
-      assert.equal(await p.ev("!!document.body.textContent.match(/Chưa có người phụ trách/)"), false, `${label}: chữ “Chưa có người phụ trách” KHÔNG được xuất hiện khi lời gọi lỗi`);
+      assert.equal(await p.ev("!!document.body.textContent.match(/Chờ nhận/)"), false, `${label}: chữ “Chờ nhận” KHÔNG được xuất hiện khi lời gọi lỗi`);
       assert.equal(await p.ev("document.getElementById('error').hidden"), true, `${label}: không banner lỗi`);
       assert.equal(await p.ev("document.getElementById('empty').hidden"), true);
     };
@@ -730,7 +748,7 @@ try {
     assert.deepEqual(await p.ev(CARD_BUTTONS), ["Thử lại"], "chưa biết người phụ trách: KHÔNG nút đổi/nhận, chỉ Thử lại");
     assert.deepEqual(await p.ev(ACTION_BUTTONS), ["Sửa", "Xác nhận đơn", "Huỷ đơn"], "đơn và nút Sửa/Xác nhận/Huỷ (theo canModify của máy chủ) vẫn hiện");
     assert.equal(await p.ev("document.getElementById('error').hidden"), true, "không banner lỗi");
-    assert.equal(await p.ev("document.body.textContent.includes('Chưa có người phụ trách')"), false);
+    assert.equal(await p.ev("document.body.textContent.includes('Chờ nhận')"), false);
     assert.equal(await p.ev("document.querySelectorAll('#order .svc-view').length >= 1"), true, "nội dung đơn vẫn dựng");
     await shoot(p, "nguoi-phu-trach-loi-handlers-390.png");
     await p.send("Network.setBlockedURLs", { urls: [] });
@@ -950,6 +968,74 @@ try {
     results.do["history-detail-nhieu-dong"] = m;
     await shoot(p, "nguoi-phu-trach-lich-su-nhieu-dong.png");
     p.close();
+  });
+
+  // ================= p) Hướng dẫn viên xem đơn CHÍNH MÌNH phụ trách (vòng sửa 1 sau kiểm độc lập lượt 1 ADR-0030, phát hiện I-2) =================
+  // Trước vòng sửa: /orders ẩn LẶNG LẼ dòng người phụ trách ở mọi thẻ, /order báo "Chưa tải được người phụ trách." — cả hai gọi GET /api/dispatch/handlers
+  // (403 với HDV: route hỏi order.view KHÔNG ngữ cảnh, không mở cho HDV — ruling Task 1.6). Nay tên HDV lấy từ PHIÊN (`nguoiPhuTrachTuPhien`,
+  // src/shared/handler-view.ts), không gọi handlers. Kho cookie DÙNG CHUNG (CLAUDE.md §10) → bước này để gần cuối, trang HDV mở sau cùng; bản nhớ khung
+  // (ADR-0035, localStorage dùng chung) do trang văn phòng mở trước để lại `seesAll=true` → mở /orders của HDV TRƯỚC /order để khung nhớ đúng người.
+  let hdvDonPromise = null;
+  /** Hai đơn A lập (một nháp, một đã xác nhận) giao cho HDV_P — dùng chung cho p và q (chạy lẻ `ONLY=q` vẫn tự dựng). */
+  const hdvDon = () =>
+    (hdvDonPromise ??= (async () => {
+      for (const stmt of (await insertStaffSql(HDV_P)).split("\n")) env.sql(stmt);
+      const hdvId = env.sql(`SELECT id FROM staff WHERE phone = '${HDV_P.phone}'`)[0].id;
+      const nhap = await createOrder(A, "Khách Của HDV (nháp)");
+      const xn = await createOrder(A, "Khách Của HDV (đã xác nhận)");
+      assert.equal((await call(A, "POST", `/api/orders/${xn.id}/status`, { status: "confirmed" })).status, 200, "xác nhận đơn dựng sẵn");
+      for (const o of [nhap, xn]) assert.equal((await call(A, "PUT", `/api/orders/${o.id}/handler`, { staffId: hdvId })).status, 200, `giao ${o.id} cho HDV`);
+      return { nhap, xn };
+    })());
+  const goiHandlers = (p) => p.requests.filter((r) => r.url.includes("/api/dispatch/handlers")).map((r) => r.url);
+  const hdvSeen = (results.do["hdv-xem-don-cua-minh"] = {});
+
+  await step("p", "HƯỚNG DẪN VIÊN, danh sách đơn: mỗi thẻ “HDV: <tên mình>” (390 + 1040), KHÔNG gọi GET /api/dispatch/handlers", async () => {
+    const { nhap, xn } = await hdvDon();
+    for (const vp of [M, DESK]) {
+      const p = await openAs(HDV_P, "/orders", { viewport: vp });
+      await p.waitFor(listReady(2), "danh sách của HDV: 2 đơn, dòng người phụ trách đã điền (hết is-pending)", 10000);
+      await expandAllCards(p);
+      const rows = await p.ev(LIST_ROWS);
+      assert.deepEqual(rows.map((r) => r.id).sort(), [nhap.id, xn.id].sort(), `HDV chỉ thấy đúng 2 đơn mình phụ trách: ${JSON.stringify(rows)}`);
+      for (const r of rows) {
+        assert.deepEqual({ handler: r.handler, hidden: r.hidden, chip: r.chip }, { handler: `HDV: ${HDV_P.name}`, hidden: false, chip: false }, `thẻ ${r.code} (${vp.width}px) phải hiện “HDV: ${HDV_P.name}” — trước vòng sửa dòng này bị ẩn lặng lẽ (403): ${JSON.stringify(r)}`);
+      }
+      assert.deepEqual(goiHandlers(p), [], `trang danh sách của HDV (${vp.width}px) KHÔNG được gọi GET /api/dispatch/handlers`);
+      hdvSeen[`danhSach${vp.width}`] = rows.map((r) => r.handler);
+      await shoot(p, `nguoi-phu-trach-hdv-danh-sach-${vp.width}.png`);
+      p.close();
+    }
+  });
+
+  // q) chạy SAU p: trang /orders của HDV đã để lại bản nhớ khung `seesAll=false` (ADR-0035) — trang đơn không gọi sớm handlers. Chạy lẻ `ONLY=q` thì mở
+  // /orders của HDV trước cho đúng điều kiện đó.
+  await step("q", "HƯỚNG DẪN VIÊN, trang đơn mình phụ trách (đã xác nhận 390 + 1040, chờ xác nhận 390): khối “Người phụ trách” là tên mình (không “Chưa tải được”), không nút đổi/nhận/sửa, câu giải thích riêng cho HDV; KHÔNG gọi GET /api/dispatch/handlers", async () => {
+    const { nhap, xn } = await hdvDon();
+    if (ONLY && !ONLY.includes("p")) {
+      const p0 = await openAs(HDV_P, "/orders", { track: false });
+      await p0.waitFor(listReady(2), "danh sách của HDV (ghi bản nhớ khung)", 10000);
+      p0.close();
+    }
+    const ghiChu = {
+      confirmed: "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ Sales Một (người lập đơn) hoặc văn phòng.",
+      draft: "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ Sales Một (người lập đơn) hoặc văn phòng.",
+    };
+    for (const [o, status, vp] of [[xn, "confirmed", M], [xn, "confirmed", DESK], [nhap, "draft", M]]) {
+      const p = await openAs(HDV_P, `/order?id=${o.id}`, { viewport: vp });
+      await p.waitFor(CARD_READY, "khối người phụ trách dựng xong", 10000);
+      const the = await p.ev("({ ten: document.querySelector('.handler-card .handler-name')?.textContent ?? null, chuaTai: document.querySelector('.handler-card .handler-unknown')?.textContent ?? null })");
+      assert.deepEqual(the, { ten: HDV_P.name, chuaTai: null }, `trang đơn ${status} (${vp.width}px): khối “Người phụ trách” phải là tên HDV — trước vòng sửa là “Chưa tải được người phụ trách.”: ${JSON.stringify(the)}`);
+      assert.deepEqual(await p.ev(CARD_BUTTONS), [], "HDV không có nút đổi/nhận/thử lại ở khối người phụ trách");
+      assert.deepEqual(await p.ev(ACTION_BUTTONS), [], "HDV không có Sửa/Xác nhận/Huỷ (order.modify FIELD = none)");
+      const note = await p.ev("document.querySelector('#actions p.muted')?.textContent ?? null");
+      assert.equal(note, ghiChu[status], `câu giải thích cho HDV (${status}) không được nói “người phụ trách đơn … mới được sửa”`);
+      assert.equal(await p.ev(BANNER), "", "không banner lỗi");
+      assert.deepEqual(goiHandlers(p), [], `trang đơn của HDV (${status}, ${vp.width}px) KHÔNG được gọi GET /api/dispatch/handlers`);
+      hdvSeen[`trangDon-${status}-${vp.width}`] = { ...the, note };
+      await shoot(p, `nguoi-phu-trach-hdv-trang-don-${status === "confirmed" ? "da-xac-nhan" : "cho-xac-nhan"}-${vp.width}.png`);
+      p.close();
+    }
   });
 
   // ================= l) console/CSP =================

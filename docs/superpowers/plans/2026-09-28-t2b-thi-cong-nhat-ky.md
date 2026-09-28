@@ -140,7 +140,7 @@ Ruling mới — **của người thi công** (P8: bề mặt, đảo ngược �
 - Lượt 1 Hoàn tất đơn: trang ghép gọi bất biến này là `R-BIL-7` — phải dùng lại `R-PTY-1`, không thêm kiểm trùng (đã ghi cả ở chú thích `scripts/audit-checks.mjs`).
 - Địa chỉ ở chân trang đăng nhập vẫn là chữ tĩnh (6.2 duyệt hai trường).
 - **Lớp CSDL không canh "ai được đổi công ty chủ"** (cơ chế Y cho phép chèn dòng mới ở CSDL): chỉ lớp route (`company.legal.write`). Đúng như D12, ghi để người sau không tưởng có hai lớp.
-- **Đóng liên hệ "Hotline" cuối cùng của công ty chủ HIỆN TẠI** vẫn làm `GET /api/company` 404 (biên nhận báo lỗi) — CHƯA chặn, để sau (Ruling D16.3); đã ghi là bẫy (bẫy 46 (2) của `docs/CHANGE-GUIDE.md`, Mục 5 tệp đề xuất luật). Đổi SANG hồ sơ thiếu thì nay đã chặn (D16.3).
+- **Đóng liên hệ "Hotline" cuối cùng của công ty chủ HIỆN TẠI** vẫn làm `GET /api/company` 404 (biên nhận báo lỗi) — CHƯA chặn, để sau (Ruling D16.3); đã ghi là bẫy (bẫy 48 (2) của `docs/CHANGE-GUIDE.md` — số 46 trước khi gộp main 356084a, xem D19; Mục 5 tệp đề xuất luật). Đổi SANG hồ sơ thiếu thì nay đã chặn (D16.3).
 - **Danh bạ vẫn hiện lựa chọn "Công ty chủ" trên hồ sơ tổ chức đang ngưng dùng** (máy chủ báo 409 `owner_company_inactive` bằng câu tiếng Việt) — ẩn ở giao diện: để sau (D17).
 - **Đổi đi rồi đổi lại trong cùng ngày** bị trigger chồng lấn 0011 chặn từ lần thứ ba (hồ sơ gieo hôm nay: ngay lần đổi lại) — Ruling T5.
 - **Kịch bản `dot-a-smoke.mjs` và `dot-c-smoke.mjs` đỏ sẵn có** (bước "nhat-ky" và "Chế độ bảo trì": Quản trị mất quyền theo ADR-0038) — không thuộc T2b, cần sửa kịch bản ở việc khác.

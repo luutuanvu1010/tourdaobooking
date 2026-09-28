@@ -28,10 +28,12 @@ const seedNotice = async ({ quanTrong = 1, createdAt = new Date().toISOString(),
 };
 const revoke = (id) => sql(`UPDATE ntf_notice SET valid_to = '${new Date().toISOString()}' WHERE id = '${id}'`);
 
-// A lập đơn (không chọn người phụ trách) trên danh mục giả.
+// A lập đơn KÈM chọn chính mình làm người phụ trách (ADR-0030 Task 1.3, đã lên main): "created" + "order_handler_changed" cùng mốc → MỘT tin
+// "lap" (không "cho_nhan" — lập đơn KHÔNG chọn ai mới ra loại đó, chỉ tài khoản có dispatch.claim mới thấy, xem loaiTinDon).
 await ensureFakeCatalog();
-const taoDon = async (cookie) => {
-  const x = await call(cookie, "POST", "/api/orders", orderInput());
+const aId = await idOf(ACCOUNTS.salesA.phone);
+const taoDon = async (cookie, handlerStaffId = aId) => {
+  const x = await call(cookie, "POST", "/api/orders", orderInput({ handlerStaffId }));
   assert.equal(x.status, 201, JSON.stringify(x.body));
   return x.body.order; // có .id và .orderCode
 };
@@ -381,7 +383,7 @@ console.log("✓ Web Push: bật/tắt bảo trì không tắt máy");
   await batMay(W.cookie);
   const g = await call(TQ, "POST", "/api/thong-bao", { tieuDe: "Gõ cửa không khoá", noiDung: "Kiểm e2e.", nguoiNhan: ["SALES"], quanTrong: true, clientRequestId: randomUUID() });
   assert.equal(g.status, 201, JSON.stringify(g.body));
-  await taoDon(W.cookie);
+  await taoDon(W.cookie, null); // không chọn ai — loại tin không quan trọng ở ca này, chỉ cần 201 và không đụng máy
   await new Promise((r) => setTimeout(r, 300));
   assert.equal(await soMayCua(W.id), 1, "thiếu khoá → không gửi, không đánh dấu hết hiệu lực");
 }

@@ -1,18 +1,15 @@
 import { ApiError, api, type Api } from "./api";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
-import { PAX_LABEL, type PaxCode } from "../src/shared/order-lines";
-import { tripDeparted } from "../src/shared/trip-rules";
-import { vnDateTimeText, vnLocalToIso, vnToday } from "../src/shared/vn-date";
-import { counter } from "./counter";
+import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
 import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
-import { coODaSua, nenHoanLamMoi, taoBoLamMoi } from "./lam-moi-logic";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
+import { initViecCuaToi } from "./viec-cua-toi";
 
 const errorEl = byId("error");
 const okEl = byId("ok");
@@ -456,163 +453,6 @@ async function initMaintenance(): Promise<void> {
 }
 void initMaintenance();
 
-// ---- Việc của tôi (FIELD đang phụ trách — ADR-0014 điều 6/11) ------------------------------------------------------
-// Route hẹp, đã có: POST /api/orders/:id/handler-money-edit (sửa số khách), POST /api/orders/:id/handler-cancel (huỷ, lý do đóng hai lựa chọn).
-// KHÔNG hiện giá/tổng tiền ở bất kỳ đâu trong khối này (ADR-0007 điều 3) — GET /api/dispatch/mine vốn đã không trả trường tiền nào.
-const CANCEL_REASONS: { code: string; label: string }[] = [
-  { code: "not_reachable", label: "Không liên hệ được với khách" },
-  { code: "customer_requested", label: "Khách yêu cầu huỷ" },
-];
-
-function myServiceCard(orderId: string, s: Api.MyAssignmentServiceDto, onSaved: () => void): HTMLElement {
-  const trip = [s.departDate, s.departTime].filter(Boolean).join(" ");
-  const pickup = [s.pickupTime, s.pickupPlace].filter(Boolean).join(" — ");
-  const editable = s.editablePaxCodes.length > 0;
-  const draft = new Map<PaxCode, number>(s.editablePaxCodes.map((code) => [code, s.pax[code]]));
-  const counters = s.editablePaxCodes.map((code) => counter({ label: PAX_LABEL[code], value: s.pax[code], onChange: (n) => draft.set(code, n) }));
-  const reasonInput = h("input", { type: "text", placeholder: "Lý do sửa (bắt buộc)", maxlength: 300 });
-  const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
-  const saveBtn = h("button", { class: "btn btn-primary", type: "button" }, "Lưu số khách mới");
-  saveBtn.addEventListener("click", async () => {
-    showError(errorBox, null);
-    const reason = reasonInput.value.trim();
-    if (!reason) return showError(errorBox, "Cần nhập lý do sửa.");
-    saveBtn.disabled = true;
-    try {
-      const pax = { adult: 0, child: 0, senior: 0, infant: 0, ...Object.fromEntries(draft) };
-      await api(`/api/orders/${orderId}/handler-money-edit`, { method: "POST", body: { reason, services: [{ id: s.id, pax }] } });
-      onSaved();
-    } catch (err) {
-      showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
-      saveBtn.disabled = false;
-    }
-  });
-  return h(
-    "div",
-    { class: "myjob-service" },
-    h("div", { class: "myjob-service-name" }, s.name, !editable && h("span", { class: "muted" }, " (nhập tay — không sửa được ở đây)")),
-    trip && h("div", { class: "muted" }, `Khởi hành: ${trip}`),
-    pickup && h("div", { class: "muted" }, `Đón: ${pickup}`),
-    s.note && h("div", { class: "muted" }, s.note),
-    editable && h("div", { class: "myjob-counters" }, ...counters.map((c) => c.root)),
-    editable && reasonInput,
-    editable && errorBox,
-    editable && saveBtn,
-  );
-}
-
-function myAssignmentCard(a: Api.MyAssignmentDto, onChanged: () => void): HTMLElement {
-  const cancelBtn = h("button", { class: "btn btn-danger", type: "button" }, "Huỷ đơn này");
-  const cancelBox = h("div", { hidden: true });
-  // DK-T4-02 (kiểm toán 24/9): chạm một lý do KHÔNG huỷ ngay — hỏi lại bằng confirm() cùng khuôn chữ với đường Sales/Admin (web/order.ts);
-  // cả vùng huỷ nằm trong khối riêng có đường ngăn (.myjob-cancel), tách khỏi nút "Lưu số khách mới" của dịch vụ cuối; có nút "Thôi" để đóng lại.
-  cancelBtn.addEventListener("click", () => {
-    cancelBtn.hidden = true;
-    const errorBox = h("div", { class: "alert", role: "alert", hidden: true });
-    let sending = false;
-    const doCancel = async (reason: { code: string; label: string }) => {
-      if (sending) return;
-      if (!confirm(`Huỷ đơn ${a.orderCode} của ${a.customerName}? Lý do: ${reason.label}. Việc huỷ không thể hoàn tác.`)) return;
-      sending = true;
-      showError(errorBox, null);
-      try {
-        await api(`/api/orders/${a.orderId}/handler-cancel`, { method: "POST", body: { reason: reason.code } });
-        onChanged();
-      } catch (err) {
-        showError(errorBox, err instanceof ApiError ? err.message : "Không kết nối được máy chủ.");
-        sending = false;
-      }
-    };
-    const closeBtn = h("button", { class: "btn", type: "button" }, "Thôi");
-    closeBtn.addEventListener("click", () => {
-      if (sending) return;
-      cancelBox.hidden = true;
-      replaceChildren(cancelBox);
-      cancelBtn.hidden = false;
-      cancelBtn.focus();
-    });
-    replaceChildren(
-      cancelBox,
-      h("p", { class: "myjob-cancel-title" }, "Huỷ đơn"),
-      h("p", { class: "muted" }, "Chọn lý do huỷ. Bạn sẽ được hỏi lại trước khi huỷ."),
-      h(
-        "div",
-        { class: "myjob-cancel-actions" },
-        ...CANCEL_REASONS.map((r) => {
-          const b = h("button", { class: "btn btn-danger", type: "button" }, r.label);
-          b.addEventListener("click", () => void doCancel(r));
-          return b;
-        }),
-        closeBtn,
-      ),
-      errorBox,
-    );
-    cancelBox.hidden = false;
-  });
-  // DK-T4-02 phía máy chủ (chủ dự án chốt 2026-09-26): tour đã qua ngày đi (ngày khởi hành lớn nhất < hôm nay giờ VN) thì máy chủ trả 409 `departed`
-  // cho handler-cancel → không hiện nút "Huỷ đơn này" (cùng luật thuần `tripDeparted`), chỉ một dòng nhắc nhờ văn phòng. Ngay trong ngày đi vẫn hiện.
-  const departed = tripDeparted(a.services.map((s) => s.departDate), vnToday(new Date()));
-  return h(
-    "section",
-    { class: "card myjob-card" },
-    h("h3", null, a.customerName, h("span", { class: "muted" }, ` · ${a.customerPhone}`)),
-    h("div", { class: "muted" }, `Mã đơn: ${a.orderCode}`),
-    ...a.services.map((s) => myServiceCard(a.orderId, s, onChanged)),
-    departed
-      ? h("div", { class: "myjob-cancel" }, h("p", { class: "muted" }, "Tour đã qua ngày đi — muốn huỷ đơn, nhờ văn phòng."))
-      : h("div", { class: "myjob-cancel" }, cancelBtn, cancelBox),
-  );
-}
-
-async function initMyAssignments(): Promise<void> {
-  if (!hasPermission(staff, "FIELD")) return;
-  const el = byId("myjobs");
-  const load = async (): Promise<void> => {
-    try {
-      const { assignments } = await api<Api.MyAssignmentsResponse>("/api/dispatch/mine");
-      if (assignments.length === 0) replaceChildren(el, h("h2", null, "Việc của tôi"), h("p", { class: "muted" }, "Bạn chưa được giao phụ trách đơn nào."));
-      else replaceChildren(el, h("h2", null, "Việc của tôi"), ...assignments.map((a) => myAssignmentCard(a, () => void load())));
-      // Ghi giá trị gốc của từng ô nhập lúc dựng: sau này so với giá trị hiện tại để biết người dùng đã sửa gì chưa (chỉnh về lại số cũ thì coi như chưa sửa).
-      for (const input of el.querySelectorAll("input")) input.dataset.goc = input.value;
-      el.hidden = false;
-    } catch {
-      // lỗi mạng: khối ẩn, không ảnh hưởng phần còn lại trang (cùng khuôn initMaintenance)
-    }
-  };
-  await load();
-  // Bảng tin (ADR-0022, TD-3): đơn đổi / vừa nối lại → tải lại "Việc của tôi". Đăng ký MỘT lần, sau lần tải đầu (chỉ người có FIELD — như trên);
-  // bộ gộp tránh hai lần tải song song. `load` của thao tác lưu/huỷ trong thẻ vẫn gọi trực tiếp (người dùng vừa chủ động làm).
-  // Khối có ô lý do + bộ đếm số khách + hộp huỷ: KHÔNG dựng lại dưới tay người đang dùng — đánh giá LÚC làm mới (không chốt cờ từ lần bấm trước, nếu không
-  // bấm "Huỷ đơn này" rồi "Thôi" là hết được làm mới). Khi hoãn thì báo bằng dải "Có cập nhật — Tải lại", và tự thử lại khi người dùng rời ô nhập.
-  const dangBan = (): boolean => {
-    const dangGo = document.activeElement instanceof HTMLInputElement && el.contains(document.activeElement);
-    const cacO = [...el.querySelectorAll("input")].map((i) => ({ value: i.value, goc: i.dataset.goc ?? "" }));
-    const hopHuyMo = el.querySelector(".myjob-cancel > div:not([hidden])") !== null;
-    return nenHoanLamMoi({ dangGo, coODaSua: coODaSua(cacO), hopHuyMo });
-  };
-  let choLamMoi = false;
-  const hienAviso = (): void => {
-    if (el.querySelector(".myjobs-update")) return;
-    const tai = h("button", { type: "button", class: "btn" }, "Tải lại");
-    tai.addEventListener("click", () => void load());
-    el.querySelector("h2")?.after(h("div", { class: "banner banner-info myjobs-update", role: "status" }, h("div", { class: "banner-title" }, "Có cập nhật"), h("div", { class: "banner-actions" }, tai)));
-  };
-  const lamMoi = taoBoLamMoi(async () => {
-    if (dangBan()) {
-      choLamMoi = true;
-      hienAviso();
-      return;
-    }
-    choLamMoi = false;
-    await load(); // dựng lại khối → dải cũ (nếu có) biến mất cùng khối
-  });
-  // Rời ô nhập (blur) hoặc bấm nút (vd "Thôi" đóng hộp huỷ) sau khi hoãn: đợi một nhịp cho cú chạm kế tiếp (vd bấm +/−) xong rồi đánh giá lại, không dựng lại giữa cú chạm.
-  const thuLai = (): void => {
-    if (choLamMoi) setTimeout(() => void lamMoi.yeuCau(), 400);
-  };
-  el.addEventListener("focusout", thuLai);
-  el.addEventListener("click", thuLai);
-  window.addEventListener("don-thay-doi", () => void lamMoi.yeuCau());
-  window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
-}
-void initMyAssignments();
+// ---- Việc của tôi (hướng dẫn viên — ADR-0014 điều 6/11, ADR-0030; bản thiết kế "Viec cua toi - HDV v2" của chủ dự án, Task 1.8) ----------------
+// Toàn bộ khối ở web/viec-cua-toi.ts: hàng chờ nhận + nút Nhận, đơn mình phụ trách (có Tổng tiền/Đã cọc/Còn thu), bảng sửa số khách, bảng huỷ đơn.
+if (hasPermission(staff, "FIELD")) void initViecCuaToi(byId("myjobs"), staff);

@@ -268,6 +268,11 @@ export interface OrderInput {
   newBooker?: { fullName: string; phone: string } | null;
   /** Bắt buộc khi sửa (PUT): `updatedAt` của đơn mà form đã đọc — lệch → 409 `stale`. */
   expectedUpdatedAt?: string;
+  /**
+   * CHỈ khi lập (POST /api/orders; PUT bỏ qua): người phụ trách người lập chọn ngay trong form (mã tài khoản — ADR-0030 S20-4). Vắng/`null` = không chọn
+   * (đơn "Chờ nhận"). Người gọi không có `dispatch.assign` trên đơn của mình → 403; người được chọn không đủ điều kiện → 400 `invalid_assignee`, không tạo đơn.
+   */
+  handlerStaffId?: string | null;
 }
 
 /** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */
@@ -293,12 +298,33 @@ export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean
 export interface OrderResponse { order: OrderDetailDto }
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean }
 
+/** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */
+export interface PoolServiceDto {
+  name: string;
+  pax: PaxCounts;
+  pickupPlace: string | null;
+  pickupTime: string | null;
+}
+/**
+ * Một đơn trong hàng chờ nhận `GET /api/orders/pool` (ADR-0030 S23-1, S23-2) — PHẦN HẸP, ĐÚNG bốn khoá: không tên/SĐT/email khách, không tiền, không
+ * ghi chú, không lịch sử, không người lập. `departDate` = ngày đi (ngày khởi hành lớn nhất; null nếu chưa có ngày). Dựng ở `orders/pool.ts` (danh sách
+ * trường được phép); thêm khoá = sửa cả bài khoá `src/modules/orders/pool.test.ts`.
+ */
+export interface PoolOrderDto {
+  orderId: string;
+  orderCode: string;
+  departDate: string | null;
+  services: PoolServiceDto[];
+}
+/** Đơn chờ nhận: chưa có người phụ trách đang mở, chưa huỷ, chưa qua ngày đi — xếp ngày đi gần nhất trước, chưa có ngày xuống cuối. */
+export interface PoolResponse { orders: PoolOrderDto[] }
+
 /**
  * `GET /api/orders/dashboard` (Trang chủ mới, `access: "office"`) — tổng quan cho nhân viên văn phòng.
  * `today`: đơn confirmed mà dịch vụ SỚM NHẤT có ngày đón (bỏ qua dịch vụ không có ngày) rơi đúng hôm nay.
  * `unpaid`: đơn confirmed còn thiếu tiền theo số HIỆN HÀNH (đã áp điều chỉnh, nếu có) — `earliestDate` = ngày đón sớm nhất trong số đó, null nếu không đơn nào có ngày.
- * `draftCount`: đơn nháp chưa xác nhận (điểm duy nhất của trang này đếm đơn nháp).
- * `unassignedCount`: đơn confirmed chưa có người phụ trách.
+ * `draftCount`: đơn nháp chưa xác nhận.
+ * `unassignedCount`: đơn nháp hoặc đã xác nhận (không tính đơn huỷ) chưa có người phụ trách — ADR-0020 điều 7 (M1 = A), ADR-0030 S20-13.
  * `revenueWeek`: doanh thu (tổng `total` hiện hành) của CHÍNH người xem trong tuần `from`..`to` (thứ Hai–Chủ nhật, giờ Việt Nam, hai đầu bao gồm).
  * `revenueWeek.daily`: ĐÚNG 7 phần tử (thứ Hai→Chủ nhật, cùng số hiện hành), ngày không có đơn vẫn có phần tử `total: 0` — dữ liệu cho
  * biểu đồ cột "Doanh thu của tôi" (Đợt D Task 2).
@@ -405,11 +431,19 @@ export interface HandlerDto {
 /** `GET /api/dispatch/handlers?orderIds=a,b,c` (tối đa 100 id): mọi id gửi lên đều có mặt; `null` = đơn chưa có người phụ trách (hoặc không có đơn đó). */
 export interface HandlersResponse { handlers: Record<string, HandlerDto | null> }
 
-/** Nhân sự có thể được giao phụ trách: đang hoạt động, có hồ sơ, có quyền Bán hàng hoặc Quản trị. Chỉ tên, KHÔNG có SĐT. */
+/**
+ * Nhân sự có thể được giao phụ trách (`checkAssignee` của dispatch): đang hoạt động, có hồ sơ, không mang quyền Đối tác, và có quyền Bán hàng, Quản trị
+ * (kể cả Toàn quyền) hoặc Hướng dẫn viên (cấp hẹp — ADR-0014 điều 6, ADR-0030). Chỉ tên, KHÔNG có SĐT.
+ */
 export interface AssigneeDto {
   staffId: string;
   partyId: string;
   name: string;
+  /**
+   * Nhãn nhóm HIỂN THỊ để bảng chọn gom người ("Hướng dẫn viên" / "Bán hàng" / "Quản trị" — Task 1.8 phần b ADR-0030), máy chủ tính bằng
+   * `assigneeRoleLabel` (`src/shared/assignee-pick.ts`): một nhãn cho mỗi người, ưu tiên Hướng dẫn viên > Quản trị > Bán hàng. KHÔNG phải luật quyền.
+   */
+  roleLabel: string;
 }
 export interface AssigneesResponse { assignees: AssigneeDto[] }
 
@@ -420,9 +454,12 @@ export interface HandlerCancelResponse { ok: true }
 export interface HandlerMoneyEditResponse { ok: true }
 
 /**
- * Màn "việc của tôi" của FIELD (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ `OrderDto`/
- * `OrderServiceDto`/`OrderItemDto` — để một lần đổi kiểu dữ liệu đơn sau này (thêm trường tiền) không vô tình lọt vào đây (ADR-0007 điều 3: FIELD
- * không bao giờ thấy giá/tổng tiền).
+ * Màn "việc của tôi" (`GET /api/dispatch/mine`, module dispatch — ADR-0014 điều 6/11, ADR-0030 S23-8). Viết ĐỘC LẬP, KHÔNG `Pick`/`Omit` từ
+ * `OrderDto`/`OrderServiceDto`/`OrderItemDto` — mỗi trường ở đây là một quyết định có chủ ý, một lần đổi kiểu dữ liệu đơn sau này không được tự lọt
+ * thêm trường nào (giá từng dòng, giảm giá, ghi chú thanh toán… vẫn KHÔNG có). Từ Task 1.8 (chủ dự án quyết 2026-09-27: HDV cần biết còn thu bao
+ * nhiêu) có ĐÚNG ba trường tiền cấp đơn — `total`, `depositAmount`, `remainingAmount` — số HIỆN HÀNH sau điều chỉnh (ADR-0017 điều 5), dựa trên ô
+ * `money.view` phạm vi `assigned` đã cấp cho HDV (ADR-0017, thu hẹp ở ADR-0030 S23-5); route hỏi ô đó (ADR-0019 điều 2). Không có bảng giá, không
+ * có tiền từng dịch vụ.
  */
 export interface MyAssignmentServiceDto extends TripInfoDto {
   id: string;
@@ -438,6 +475,14 @@ export interface MyAssignmentDto {
   orderCode: string;
   customerName: string;
   customerPhone: string;
+  /** Từ bản 1.6: đơn NHÁP cũng có trong danh sách (không chỉ đã xác nhận) — giao diện dùng `status` để ẩn nút huỷ/sửa số khách (`myJobActions`). */
+  status: OrderStatus;
+  /** Tổng tiền của đơn (VNĐ), số hiện hành sau điều chỉnh số khách — cùng số với `OrderDto.total` của chi tiết đơn. */
+  total: number;
+  /** Đã cọc (VNĐ) — cùng số với `OrderDto.depositAmount`. */
+  depositAmount: number;
+  /** Còn thu (VNĐ) — cùng số với `OrderDto.remainingAmount` (máy chủ tính, giao diện không tự trừ). */
+  remainingAmount: number;
   services: MyAssignmentServiceDto[];
 }
 export interface MyAssignmentsResponse { assignments: MyAssignmentDto[] }

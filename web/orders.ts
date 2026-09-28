@@ -1,5 +1,5 @@
 import { can } from "../src/shared/permissions";
-import { NO_HANDLER_TEXT, handlerText } from "../src/shared/handler-view";
+import { NO_HANDLER_TEXT, handlerText, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { ApiError, api, type OrderStatus, type OrderSummary, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { soDongCanTai, taoBoLamMoi } from "./lam-moi-logic";
@@ -82,14 +82,20 @@ function row(o: OrderSummary, index: number): Row {
  * Người phụ trách của các thẻ vừa dựng: MỘT lời gọi cho cả trang (`GET /api/dispatch/handlers?orderIds=…`, ≤ 30 mã ở đây, máy chủ nhận ≤ 100). Ba trạng thái, không hai:
  * chưa biết (chỗ trống rồi ẩn) · `null` = chưa có người (chip) · có tên. Lời gọi lỗi hoặc thiếu khoá cho một đơn → ẩn dòng đó, danh sách đơn không bị ảnh hưởng.
  * Thẻ đã bị thay (người dùng gõ tìm kiếm mới trong lúc chờ) thì `slot.isConnected` là false → bỏ qua.
+ * Hướng dẫn viên (chỉ thấy đơn mình phụ trách — ADR-0030 S23-4): mọi thẻ là đơn của chính họ → tên từ phiên (`nguoiPhuTrachTuPhien`), KHÔNG gọi route
+ * trên (403 với họ, không mở cho họ — ruling Task 1.6; vòng sửa 1 sau kiểm độc lập lượt 1, phát hiện I-2: trước đây dòng này bị ẩn lặng lẽ).
  */
 async function fillHandlers(rows: readonly Row[]): Promise<void> {
   if (rows.length === 0) return;
+  const tuPhien = nguoiPhuTrachTuPhien(await nhanVien);
   let handlers: Record<string, Api.HandlerDto | null> | null = null;
-  try {
-    handlers = (await api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${rows.map((r) => encodeURIComponent(r.id)).join(",")}`)).handlers;
-  } catch {
-    handlers = null; // danh sách vẫn dùng được; chỉ thiếu dòng người phụ trách
+  if (tuPhien) handlers = Object.fromEntries(rows.map((r) => [r.id, tuPhien]));
+  else {
+    try {
+      handlers = (await api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${rows.map((r) => encodeURIComponent(r.id)).join(",")}`)).handlers;
+    } catch {
+      handlers = null; // danh sách vẫn dùng được; chỉ thiếu dòng người phụ trách
+    }
   }
   for (const { id, slot } of rows) {
     if (!slot.isConnected) continue;
@@ -184,7 +190,10 @@ window.addEventListener("can-tai-lai", () => void lamMoi.yeuCau());
 // tài khoản chỉ-ACCOUNTING bấm vào sẽ bị máy chủ từ chối 403 sau khi đã điền cả form.
 // Tra cứu chịu được phần tử VẮNG (như setBarTitle ở shell.ts): nếu một bản HTML cũ còn nằm trong cache mà JS đã mới thì thiếu nút
 // vẫn phải để trang đơn hàng chạy bình thường — mặc định ẩn nên không có nút cũng là phía an toàn.
-const staff = await initShell();
+// `nhanVien` gọi `initShell()` TRƯỚC lần `await` đầu tiên của trang, nên mọi hàm gọi lại (ô tìm, bộ lọc, Bảng tin — chỉ chạy được sau khi trang nhường luồng)
+// đọc được nó; `fillHandlers` chờ nó để biết người đang xem có phải hướng dẫn viên không.
+const nhanVien = initShell();
+const staff = await nhanVien;
 const newOrderBtn = document.getElementById("new-order");
 if (newOrderBtn) newOrderBtn.hidden = !can(staff, "order.create");
 

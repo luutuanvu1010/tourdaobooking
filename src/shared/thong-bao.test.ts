@@ -35,11 +35,12 @@ test("K1: tên chỉ có khi người xem được xem lịch sử đơn; không
   const lan = hop(LAN, d);                                                            // Bán hàng, không lập/không phụ trách
   assert.equal(lan.tin[0]!.cau, "Có đơn mới TD-20260927-0001");
   assert.ok(!JSON.stringify(lan).includes("Hùng"), "JSON không được chứa tên");
-  // HDV Tâm đang phụ trách chính đơn này (không chỉ "không thấy tin nào" — phải THẤY tin rồi mới khoá được là tin không mang tên, K4).
+  // HDV Tâm đang phụ trách chính đơn này (không chỉ "không thấy tin nào" — phải THẤY tin rồi mới khoá được là tin không mang tên, K4):
+  // order.history.view = assigned cho FIELD (ADR-0030 S23-3) → THẤY tên.
   const dTam = [don({ action: "confirmed", ownerId: "hung", phuTrach: { coNguoi: true, staffId: "tam" } })];
   const tam = hop(TAM, dTam);
   assert.equal(tam.tin.length, 1, "HDV đang phụ trách phải THẤY tin — nếu rỗng thì khẳng định dưới vô nghĩa");
-  assert.ok(!JSON.stringify(tam).includes("Hùng"), "HDV (history none) không thấy tên dù đang phụ trách");
+  assert.ok(JSON.stringify(tam).includes("Hùng"), "HDV đang phụ trách (history assigned, ADR-0030 S23-3) phải thấy tên");
   const cuaLan = [don({ ownerId: "lan", actorId: "tri", tenNguoiLam: "Trị", action: "confirmed", phuTrach: { coNguoi: true, staffId: "lan" } })];
   assert.equal(hop(LAN, cuaLan).tin[0]!.cau, "Trị vừa xác nhận đơn TD-20260927-0001");  // đơn của Lan → có tên
   assert.equal(hop(LAN, [don({ actorId: null, tenNguoiLam: null, ownerId: "lan" })]).tin[0]!.cau, "Có đơn mới TD-20260927-0001"); // hệ thống → không tên
@@ -56,7 +57,9 @@ test("Đối tác/Thực tập không có tin về đơn; HDV chỉ thấy tin c
   assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: true, staffId: "hung" } })], [], "tat-ca").tin.length, 0);
   assert.equal(hop(BX, [don({ action: "confirmed", ownerId: "bx", actorId: "hung", phuTrach: { coNguoi: false, staffId: null } })], [], "tat-ca").tin.length, 0);
   assert.equal(hop(NGAN, d).tin.length, 0);
-  assert.equal(hop(TAM, d).tin.length, 0);
+  const tam = hop(TAM, d); // FIELD dispatch.claim = any (ADR-0030 S20-6/S20-12) → HDV THẤY tin chờ nhận
+  assert.equal(tam.tin.length, 1);
+  assert.equal(tam.tin[0]!.loai, "cho_nhan");
   const lan = hop(LAN, d, [], "cua-toi");
   assert.equal(lan.tin[0]!.loai, "cho_nhan");
   assert.equal(lan.tin[0]!.cuaToi, true);
