@@ -3,10 +3,12 @@
 // hồ sơ công ty chủ: chỉ người giữ ô company.legal.write (ADR-0024 6.4 — máy chủ tính `editable`). Lựa chọn "Công ty chủ" (= đổi công ty chủ, chủ dự án 2026-09-28)
 // chỉ hiện với người giữ ô đó, trên hồ sơ tổ chức, kèm câu xác nhận. Giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại.
 import { OWNER_COMPANY_ROLE } from "../src/shared/cong-ty-chu";
+import { NGUONG_MAC_DINH, chipHan, lichSuCua, ngayVN, tenGiayTo, xepTheoHan } from "../src/shared/giay-to-hien-thi";
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api, type Staff } from "./api";
 import { byId, h, replaceChildren, type Child } from "./dom";
 import { initials } from "./format";
+import { chipEl, loiCua, moFormGiayTo, moXacNhanXemSo, taoBoCheSo, type GiayToDong } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, showError } from "./shell";
 
@@ -23,6 +25,11 @@ let meta: Api.PartyMetaResponse = { roleTypes: [], relationshipTypes: [] };
 let locations: Api.LocationDto[] = [];
 let offset = 0;
 let openId: string | null = null;
+
+/** Bộ che số của mục "Giấy tờ" (ADR-0040 D2, bản vẽ 04): một dòng hiện đủ một lúc, tự che sau token --t-reveal / "Che lại" / rời trang / đóng hồ sơ. */
+const boCheSo = taoBoCheSo(detailEl);
+let metaGiayTo: Promise<Api.PersonDocumentMetaResponse> | null = null;
+const moLichSuGiayTo = new Set<string>();
 
 const STALE_NOTICE = "Hồ sơ vừa được người khác thay đổi nên bản đang xem đã cũ. Đã nạp bản mới — hãy kiểm tra rồi Lưu lại nếu vẫn cần.";
 /** Câu xác nhận trước khi đổi công ty chủ (ADR-0024 6.2: trang đăng nhập và biên nhận đọc hồ sơ công ty chủ). Không nói "Toàn quyền" (vai ẩn). */
@@ -203,6 +210,8 @@ async function reload(): Promise<void> {
 async function openDetail(id: string): Promise<void> {
   const r = await act(() => api<Api.PartyResponse>(`/api/parties/${id}`));
   if (!r) return;
+  boCheSo.che(); // hồ sơ trước đang hiện đủ số → che trước khi dựng lại
+  if (openId !== id) moLichSuGiayTo.clear();
   openId = id;
   const p = r.party;
 
@@ -305,6 +314,10 @@ async function openDetail(id: string): Promise<void> {
     void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
 
+  // Mục "Giấy tờ" (ADR-0040 D2; bản vẽ 04): chỉ hồ sơ CÁ NHÂN, chỉ người giữ ô party.document.write (Quản trị, Toàn quyền) — party.view KHÔNG mở giấy tờ.
+  const giayTo = can(me, "party.document.write") && p.kind === "PERSON" ? h("section", { id: "giay-to", class: "vc-gt-section", "aria-labelledby": "giay-to-title" }) : null;
+  if (giayTo) void veGiayTo(giayTo, p);
+
   replaceChildren(
     detailEl,
     h("h2", null, p.displayName, " ", h("span", { class: "muted" }, KIND_LABEL[p.kind])),
@@ -321,10 +334,192 @@ async function openDetail(id: string): Promise<void> {
     h("h3", null, "Người liên hệ"),
     h("table", { class: "items" }, h("tbody", null, ...relRows)),
     admin ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
-    h("div", { class: "actions", style: "margin-top:12px" }, button("Đóng", () => { detailEl.hidden = true; openId = null; }, "btn")),
+    giayTo,
+    h("div", { class: "actions", style: "margin-top:12px" }, button("Đóng", () => { boCheSo.che(); detailEl.hidden = true; openId = null; }, "btn")),
   );
   detailEl.hidden = false;
   detailEl.scrollIntoView({ block: "nearest" });
+}
+
+// ---- Giấy tờ của người (ADR-0040 D2; bản vẽ docs/design/van-chuyen-1a/project/04 Giay to cua mot nguoi.dc.html) ---------------------------------------
+// Số LUÔN che (máy chủ che — maskedNumber); "Xem đủ số" (ô party.document.reveal) = hộp xác nhận → POST …/reveal (một dòng nhật ký, không kèm số) → số hiện đủ
+// trong ô số, đếm ngược, tự che. Ghi (Thêm / Gia hạn / Sửa sai) và xem đủ số chỉ khi `editable` — cùng điều kiện máy chủ hỏi ở route ghi (hồ sơ gắn tài khoản cấp
+// trên → 403, Ruling R8). Điện thoại: danh sách + "Thêm giấy tờ" cuối mục; máy tính (≥900px): bảng, nút ở đầu mục.
+async function veGiayTo(sec: HTMLElement, p: Api.PartyDto): Promise<void> {
+  boCheSo.che();
+  const loi = h("div", { class: "vc-field-error vc-gt-error", role: "alert", hidden: true });
+  const baoLoi = (err: unknown) => {
+    replaceChildren(loi, icon("alert", 16, 2), loiCua(err));
+    loi.hidden = false;
+  };
+  let docs: Api.PersonDocumentDto[];
+  let meta: Api.PersonDocumentMetaResponse;
+  try {
+    metaGiayTo ??= api<Api.PersonDocumentMetaResponse>("/api/parties/documents/meta");
+    [docs, meta] = await Promise.all([api<Api.PersonDocumentListResponse>(`/api/parties/${p.id}/documents`).then((r) => r.documents), metaGiayTo]);
+  } catch (err) {
+    metaGiayTo = null;
+    replaceChildren(sec, h("div", { class: "vc-gt-head" }, h("h3", { id: "giay-to-title" }, "Giấy tờ")), loi);
+    return baoLoi(err);
+  }
+  const ghi = can(me, "party.document.write") && p.editable;
+  const xemSo = can(me, "party.document.reveal") && p.editable;
+  const url = `/api/parties/${encodeURIComponent(p.id)}/documents`;
+  const dongCua = (d: Api.PersonDocumentDto): GiayToDong => ({
+    typeCode: d.typeCode, typeName: d.typeName, className: d.className, classCode: d.classCode, soHien: d.maskedNumber, issuedDate: d.issuedDate, issuedPlace: d.issuedPlace, expiryDate: d.expiryDate, updatedAt: d.updatedAt,
+  });
+  const moBang = (kind: "add" | "renew" | "fix", opener: HTMLElement, d?: Api.PersonDocumentDto) =>
+    moFormGiayTo({
+      kind, cho: "nguoi", opener, types: meta.types, classes: meta.classes, doc: d ? dongCua(d) : undefined,
+      gui: async (body) => {
+        const duong = kind === "add" ? url : `${url}/${encodeURIComponent(d!.id)}/${kind === "renew" ? "renew" : "correct"}`;
+        try {
+          docs = (await api<Api.PersonDocumentListResponse>(duong, { method: "POST", body })).documents;
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 409) void veGiayTo(sec, p); // dòng đã cũ: nạp lại ngầm, bảng vẫn hiện câu của máy chủ
+          throw err;
+        }
+        ve();
+        byId("giay-to-title").focus();
+      },
+    });
+  const nut = (chu: string, lop: string, bam: (b: HTMLButtonElement) => void, them: Record<string, unknown> = {}): HTMLButtonElement => {
+    const b = h("button", { type: "button", class: lop, ...them }, chu);
+    b.addEventListener("click", () => bam(b));
+    return b;
+  };
+  const xemDu = (d: Api.PersonDocumentDto, opener: HTMLElement) =>
+    moXacNhanXemSo({
+      opener,
+      tieuDe: tenGiayTo(d),
+      soChe: d.maskedNumber ?? "",
+      xem: async () => (await api<Api.PersonDocumentRevealResponse>(`${url}/${encodeURIComponent(d.id)}/reveal`, { method: "POST" })).number,
+      khiCo: (so) => {
+        boCheSo.hien(d.id, so);
+        [...sec.querySelectorAll<HTMLElement>(`[data-hide-for="${CSS.escape(d.id)}"]`)].find((x) => x.getClientRects().length > 0)?.focus();
+      },
+    });
+  const coMat = (b: HTMLButtonElement, size: number): HTMLButtonElement => {
+    b.prepend(icon("eye", size));
+    return b;
+  };
+  const oSo = (d: Api.PersonDocumentDto): HTMLElement => h("span", { class: "vc-no-val", "data-no-for": d.id, "data-masked": d.maskedNumber ?? "" }, d.maskedNumber ?? "—");
+  const nutLichSu = (d: Api.PersonDocumentDto, n: number, lop: string): HTMLButtonElement => {
+    const b = nut(`Lịch sử (${n})`, lop, () => {
+      if (moLichSuGiayTo.has(d.id)) moLichSuGiayTo.delete(d.id);
+      else moLichSuGiayTo.add(d.id);
+      const trongBang = !!b.closest(".vc-docs-table");
+      ve();
+      sec.querySelector<HTMLElement>(`${trongBang ? ".vc-docs-table" : ".vc-docs-list"} [data-hist-for="${CSS.escape(d.id)}"]`)?.focus();
+    }, { "aria-expanded": String(moLichSuGiayTo.has(d.id)), "data-hist-for": d.id });
+    b.append(icon("chevron-down", 16, 2));
+    return b;
+  };
+  const dongCu = (o: Api.PersonDocumentDto): string => `${o.maskedNumber ? `${o.maskedNumber} · ` : ""}${o.issuedDate ? ngayVN(o.issuedDate) : "—"} → ${o.expiryDate ? ngayVN(o.expiryDate) : "không hạn"}`;
+
+  const ve = (): void => {
+    boCheSo.che();
+    const hienHanh = xepTheoHan(docs.filter((d) => d.current && !d.voided));
+    const themTren = ghi ? nut("Thêm giấy tờ", "vc-btn vc-btn-line vc-wide", (b) => moBang("add", b)) : null;
+    themTren?.prepend(icon("plus", 16));
+    const themDuoi = ghi ? nut("Thêm giấy tờ", "vc-btn vc-btn-soft", (b) => moBang("add", b)) : null;
+    themDuoi?.prepend(icon("plus", 18));
+    // Điện thoại (<900px)
+    const khoi = hienHanh.map((d) => {
+      const cu = lichSuCua(d, docs);
+      const chip = chipHan(d.daysLeft, NGUONG_MAC_DINH);
+      const dong = [d.issuedDate ? `Cấp ${ngayVN(d.issuedDate)}` : null, d.issuedPlace, d.expiryDate ? `hết hạn ${ngayVN(d.expiryDate)}` : "không hạn"].filter(Boolean).join(" · ");
+      const nutDong = [
+        ghi && d.expiryDate ? nut("Gia hạn", "vc-btn vc-btn-line", (b) => moBang("renew", b, d)) : null,
+        ghi ? nut("Sửa sai", "vc-btn vc-btn-ghost", (b) => moBang("fix", b, d)) : null,
+        cu.length ? nutLichSu(d, cu.length, "vc-btn vc-btn-text vc-hist-toggle") : null,
+      ].filter((x): x is HTMLButtonElement => x !== null);
+      return h(
+        "div",
+        { class: "vc-doc" },
+        h("div", { class: "vc-doc-top" }, h("span", { class: "vc-doc-title" }, tenGiayTo(d)), chipEl(chip)),
+        d.maskedNumber
+          ? h(
+              "div",
+              { class: "vc-no vc-no-row" },
+              oSo(d),
+              xemSo ? coMat(nut("Xem đủ số", "vc-btn vc-btn-text", (b) => xemDu(d, b), { "data-reveal-for": d.id }), 18) : null,
+              xemSo ? nut("Che lại", "vc-btn vc-btn-text", () => boCheSo.che(), { "data-hide-for": d.id, hidden: true }) : null,
+            )
+          : null,
+        d.maskedNumber && xemSo ? h("div", { class: "vc-countdown", "data-count-for": d.id, hidden: true }, "Tự che sau ", h("span", { class: "vc-count-n" }, ""), " giây · lần xem này đã ghi nhật ký") : null,
+        h("div", { class: "vc-doc-line" }, dong),
+        nutDong.length ? h("div", { class: "vc-doc-btns" }, ...nutDong) : null,
+        moLichSuGiayTo.has(d.id) && cu.length
+          ? h("div", { class: "vc-hist" }, ...cu.map((o) => h("div", { class: "vc-hist-row" }, h("span", null, dongCu(o)), h("span", { class: "vc-pill-old" }, "Đã thay"))))
+          : null,
+      );
+    });
+    // Máy tính (≥900px)
+    const hang = hienHanh.map((d) => {
+      const cu = lichSuCua(d, docs);
+      const lenMo = xemSo && d.maskedNumber ? coMat(nut("Xem đủ số", "vc-reveal-link", (b) => xemDu(d, b), { "data-reveal-for": d.id }), 16) : null;
+      return h(
+        "div",
+        { class: "vc-pt-item" },
+        h(
+          "div",
+          { class: "vc-pt-grid vc-pt-row vc-dt-row" },
+          h(
+            "span",
+            { class: "vc-dt-type" },
+            h("span", { class: "vc-doc-title" }, tenGiayTo(d)),
+            h("span", { class: "vc-doc-sub" }, [d.issuedDate ? ngayVN(d.issuedDate) : null, d.issuedPlace].filter(Boolean).join(" · ") || "—"),
+            cu.length ? nutLichSu(d, cu.length, "vc-reveal-link vc-hist-toggle") : null,
+          ),
+          h(
+            "span",
+            { class: "vc-no vc-pt-no" },
+            oSo(d),
+            lenMo,
+            lenMo
+              ? h("span", { class: "vc-countdown vc-countdown-sm", "data-count-for": d.id, hidden: true }, h("span", null, "Tự che sau ", h("span", { class: "vc-count-n" }, ""), " giây"), nut("Che lại", "vc-reveal-link", () => boCheSo.che(), { "data-hide-for": d.id }))
+              : null,
+          ),
+          h("span", { class: "vc-pt-exp" }, h("span", null, d.expiryDate ? ngayVN(d.expiryDate) : "Không hạn"), chipEl(chipHan(d.daysLeft, NGUONG_MAC_DINH))),
+          h(
+            "span",
+            { class: "vc-dt-actions" },
+            ghi ? nut("Sửa sai", "vc-btn vc-btn-ghost", (b) => moBang("fix", b, d)) : null,
+            ghi && d.expiryDate ? nut("Gia hạn", "vc-btn vc-btn-line", (b) => moBang("renew", b, d)) : null,
+          ),
+        ),
+        ...(moLichSuGiayTo.has(d.id)
+          ? cu.map((o) =>
+              h(
+                "div",
+                { class: "vc-pt-grid vc-dt-hist" },
+                h("span", null, `↳ Dòng cũ · cấp ${o.issuedDate ? ngayVN(o.issuedDate) : "—"}`),
+                h("span", null, o.maskedNumber ?? "—"),
+                h("span", null, o.expiryDate ? ngayVN(o.expiryDate) : "Không hạn"),
+                h("span", null, h("span", { class: "vc-pill-old" }, "Đã thay")),
+              ),
+            )
+          : []),
+      );
+    });
+    const trong = (): HTMLElement => h("p", { class: "vc-empty-line" }, "Chưa có giấy tờ nào.");
+    replaceChildren(
+      sec,
+      h("div", { class: "vc-gt-head" }, h("h3", { id: "giay-to-title", tabindex: -1 }, "Giấy tờ"), themTren),
+      ghi ? null : h("p", { class: "vc-readonly-note" }, "Tài khoản cấp trên: chỉ xem — không thêm, gia hạn, sửa hay xem đủ số."),
+      loi,
+      h("div", { class: "vc-docs-list vc-narrow" }, ...(khoi.length ? khoi : [trong()])),
+      h(
+        "div",
+        { class: "vc-docs-table vc-wide" },
+        h("div", { class: "vc-pt-grid vc-pt-head vc-th", "aria-hidden": "true" }, h("span", null, "LOẠI · CẤP"), h("span", null, "SỐ"), h("span", null, "HẾT HẠN"), h("span", null, "")),
+        ...(hang.length ? hang : [trong()]),
+      ),
+      themDuoi ? h("div", { class: "vc-gt-foot vc-narrow" }, themDuoi) : null,
+    );
+  };
+  ve();
 }
 
 byId<HTMLFormElement>("search-form").addEventListener("submit", (e) => {
@@ -342,3 +537,6 @@ if (l) locations = l.locations;
 replaceChildren(byId("role"), h("option", { value: "" }, "Tất cả"), ...meta.roleTypes.map((t) => h("option", { value: t.code }, t.name)));
 replaceChildren(byId("location"), h("option", { value: "" }, "Tất cả"), ...locations.filter((x) => x.active).map((x) => h("option", { value: x.id }, x.name)));
 await search();
+// Mở thẳng một hồ sơ theo ?id= (màn 06 "Giấy tờ sắp hết hạn" bấm dòng người → hồ sơ ở Danh bạ). Máy chủ kiểm quyền và id như mọi lần mở hồ sơ.
+const moTheoId = new URLSearchParams(location.search).get("id");
+if (moTheoId) await openDetail(moTheoId);
