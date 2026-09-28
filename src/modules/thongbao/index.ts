@@ -105,7 +105,7 @@ export const thongbaoModule: AppModule = {
     // Tự phục vụ (ADR-0036 điều 1–2; "ngoại lệ" ở docs/quyen-hoan.json): id luôn lấy từ phiên (staff.id), không tin thân yêu cầu.
     route("GET", "/api/account/thong-bao/may", "staff", async ({ env, staff, url }) => {
       const soMay = await demMay(env.DB, staff.id);
-      // khoaVapid kiểm CẢ HAI khoá CÓ MẶT VÀ KHỚP NHAU (bẫy 45) — không tự kiểm tay ở đây để tránh lệch với dayGoCua/guiLo.
+      // khoaVapid kiểm CẢ HAI khoá CÓ MẶT VÀ KHỚP NHAU (bẫy 47) — không tự kiểm tay ở đây để tránh lệch với dayGoCua/guiLo.
       const khoa = khoaVapid(env)?.congKhai ?? null;
       // I-2 (vòng rà 2026-09-28): `?endpoint=` (tuỳ chọn, trình duyệt tự thêm bằng subscription cục bộ nếu có) → "máy NÀY còn hiệu
       // lực không", CHỈ xét dòng của CHÍNH staff.id (không nhận staff id từ ngoài, không lộ máy người khác). Không truyền → false —

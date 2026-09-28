@@ -180,7 +180,7 @@ test("khoaVapid: khoá công khai KHỚP khoá bí mật → trả cặp; thiế
   assert.equal(khoaVapid({ VAPID_PRIVATE_KEY: jwkBiMat }), null);
 });
 
-test("khoaVapid: khoá công khai LỆCH khoá bí mật (hai cặp sinh riêng) → null, không ném (bẫy 45 — mọi lần gửi sau đó sẽ 403 nếu không bắt ở đây)", async () => {
+test("khoaVapid: khoá công khai LỆCH khoá bí mật (hai cặp sinh riêng) → null, không ném (bẫy 47 — mọi lần gửi sau đó sẽ 403 nếu không bắt ở đây)", async () => {
   const a = await sinhKhoaThu();
   const b = await sinhKhoaThu();
   const congKhaiCuaB = await congKhaiThat(b.pair);
