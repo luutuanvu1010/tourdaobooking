@@ -233,9 +233,10 @@ _Chép nguyên từ lời điều phối (người kiểm chỉ đọc); ngườ
 ## 10. Phát hành (chủ dự án tự chạy — Task K3)
 
 - Chủ đã duyệt tệp đề xuất luật: **2026-09-28 19:48 VN, "Duyệt tất cả, có mục Hiến chương"** (trực tiếp với điều phối); rồi "Áp ngay" (kèm sửa số mục thanh bên 14 → 13). Commit áp từng tệp luật (điều phối): `140c813`, `b7f36fe`, `6b51ac5`, `1861de9`, `262321a` — mục 12.
-- `npm run day-len -- <nhánh>`: _(điền: ngày giờ, kết quả)_
-- `npm run trien-khai` (có migration 0031–0033): _(điền: số phiên bản, Worker, mốc lùi, `audit-invariants --db remote`, cổng phiên bản sau deploy)_
-- AI kiểm bằng GET công khai sau triển khai: _(điền)_
+- `npm run day-len -- dac-ta-van-chuyen`: chủ chạy tối 2026-09-28 → `origin/main` = `main` = 3bb73f0 (AI đọc ref sau khi chủ báo "xong").
+- `npm run trien-khai` (có migration 0031–0033): chủ chạy, xong lúc 2026-09-28 21:17 VN. **Bản 1.35**, Worker 673d1843-2310-46e1-b03d-89b358432c1e (tạo 14:17:59Z), mốc lùi 88993f56 (1.34). AI kiểm lại bằng lệnh chỉ đọc lúc 21:20: `kiem-phien-ban.mjs --sau-deploy` ĐẠT 1.35; `wrangler d1 migrations list --remote` → "No migrations to apply!"; `audit-invariants --db remote` → "Mọi bất biến đạt" (R-PTY-1..4, R-VC-1..2 ✓).
+- AI kiểm bằng GET công khai sau triển khai: `/api/auth/config` → `version 1.35` (bảo trì đang bật tới 30/9 14:32 VN); `/api/van-chuyen/xe`, `/api/van-chuyen/sap-het-han`, `/api/parties/documents/mine` → 401 khi chưa đăng nhập.
+- Trạng thái ghi ở `docs/HANDOFF-N1.md` (nhánh `ghi-trang-thai-1-35`). Chưa thử tay bằng tài khoản thật, chưa thử iPhone thật: 15 bước thử và tiêu chí đạt đã gửi chủ.
 
 ## 11. Phần B — giao diện theo bản vẽ (người thi công Phần B, 2026-09-28)
 

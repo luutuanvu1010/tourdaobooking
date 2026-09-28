@@ -2,7 +2,20 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.34: hồ sơ công ty chủ (T2b — ADR-0024 điều 6, ADR-0043; migration `0030`) ĐÃ LÊN PRODUCTION (2026-09-28 12:00 giờ VN, chủ dự án tự chạy `npm run day-len` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.35: Vận chuyển lượt 1a (ADR-0040 — xe, giấy tờ xe, giấy tờ của người, tài khoản "Tài xế công ty", danh sách giấy tờ sắp hết hạn; migration `0031`–`0033`) ĐÃ LÊN PRODUCTION (2026-09-28 21:17 giờ VN, chủ dự án tự chạy `npm run day-len -- dac-ta-van-chuyen` rồi `npm run trien-khai`)
+
+AI (phiên điều phối) kiểm bằng lệnh chỉ đọc lúc 2026-09-28 21:20 giờ VN:
+
+- **Phiên bản: 1.35.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.35."; `GET /api/auth/config` trả `"version":"1.35"`.
+- **Chế độ bảo trì: ĐANG BẬT**, `endsAt` = 2026-09-30T07:32:00Z (14:32 giờ VN ngày 30/9) — người không có trong danh sách được phép chưa đăng nhập được để thử.
+- **Mã trên `main` / GitHub:** `origin/main` = `main` = 3bb73f0 (nhánh `dac-ta-van-chuyen`, 67 commit: Phần A máy chủ, Phần B giao diện, luật đã áp theo chủ duyệt, mục trạng thái 1.34). `npm test` 1306/1306, typecheck 0. Kiểm độc lập: mốc A24 ĐẠT CÓ ĐIỀU KIỆN; cuối K2 ĐẠT CÓ ĐIỀU KIỆN trên 1a2fe66 (e2e đủ bộ 24/24, 8/8 kịch bản Chrome Phần B, 0 CAO/VỪA); soát phần áp luật ĐẠT trên 3bb73f0. Nhật ký thi công: `docs/superpowers/plans/2026-09-28-van-chuyen-1a-thi-cong-nhat-ky.md`.
+- **Worker:** `wrangler deployments list` → mới nhất **673d1843-2310-46e1-b03d-89b358432c1e**, tạo 2026-09-28T14:17:59Z. Mốc lùi: 88993f56-4b18-4eba-bf8a-08693c4d13b0 (1.34). Lùi Worker an toàn về dữ liệu (migration chỉ thêm); dưới mã cũ tài khoản tài xế đăng nhập được nhưng không có quyền nào, vai hiện "chưa gán vai" (kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md` mục 11).
+- **Migration D1:** `0031_vai_quyen_tai_xe`, `0032_giay_to_cua_nguoi`, `0033_van_chuyen_xe` đã áp — `wrangler d1 migrations list --remote` → "No migrations to apply!". **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt (D1 remote)." (có R-PTY-1..4, R-VC-1..2).
+- **AI kiểm công khai (không đăng nhập):** `GET /api/van-chuyen/xe`, `/api/van-chuyen/sap-het-han`, `/api/parties/documents/mine` đều 401.
+- **Chưa kiểm:** thao tác thật bằng tài khoản đã đăng nhập (15 bước thử tay đã gửi chủ, theo kế hoạch mục 9 bước 7); iPhone thật; số hồ sơ còn giữ vai "Tài xế" cũ (truy vấn chỉ đọc chủ tự chạy, chỉ để biết).
+- **Còn mở:** Quản trị ghi / xem đủ số giấy tờ của tài khoản cấp trên — chủ đã chọn "có" rồi hoãn ("Đưa lên bản hiện tại, sửa sau"), `docs/BACKLOG.md` mục 4; nợ nhỏ ở sổ thi công mục 6 (mốc nhắc giấy tờ người cố định 30 ngày, số giấy tờ của xe trong danh sách, bước Chrome cho việc che số khi rời trang); lượt 1b (chuyến xe) chưa bắt đầu.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.34: hồ sơ công ty chủ (T2b — ADR-0024 điều 6, ADR-0043; migration `0030`) ĐÃ LÊN PRODUCTION (2026-09-28 12:00 giờ VN, chủ dự án tự chạy `npm run day-len` rồi `npm run trien-khai`)
 
 AI (phiên điều phối) kiểm bằng lệnh chỉ đọc lúc 2026-09-28 18:02 giờ VN:
 
