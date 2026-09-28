@@ -739,6 +739,7 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
   - `src/shared/cong-quyen.test.ts`:
     - `DOI_CO_CHU_Y_CANH_CUA_DON` (dòng 50) thêm `"FIELD+DRIVER"`, chú thích "qua cổng orders nhờ FIELD (ADR-0030 S23-5); DRIVER không thêm gì";
     - sửa chữ "Với 7 mã" → "Với 8 mã … ĐÚNG HAI tổ hợp";
+    - thêm `passesAdminGate` vào dòng import (dòng 6) — tệp test không được `tsc` phủ, thiếu import chỉ lộ lúc chạy;
     - **thêm** bài:
 
 ```ts
@@ -1208,7 +1209,7 @@ export interface PersonDocumentMetaResponse { types: DocumentTypeDto[]; classes:
 ```ts
 route("GET", "/api/parties/documents/mine", "staff", async ({ env, staff }) => {
   // Ruling R4 + R5 (chủ 28/9: mọi nhân viên nội bộ): cổng "staff"; ô own chặn Đối tác; CHỈ giấy tờ của chính người gọi; số che.
-  if (!can(staff, "party.document.view", { ownerId: staff.id })) return DOC_FORBIDDEN();
+  if (!can(staff, "party.document.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không có mục giấy tờ.");
   if (!staff.partyId) return json({ documents: [] } satisfies PersonDocumentListResponse);
   const today = vnToday(new Date());
   return json({ documents: (await listPersonDocuments(env.DB, staff.partyId)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);
