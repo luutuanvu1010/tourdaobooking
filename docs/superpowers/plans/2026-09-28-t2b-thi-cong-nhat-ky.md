@@ -77,7 +77,7 @@ Ruling mới — **chỉ đạo của điều phối** (lời giao việc 2026-0
   5. **`OWNER_COMPANY` `active = 0` nhưng `validateRole` không lọc `active`** — rà MỌI đường ghi bảng vai: chỉ hai route `parties` (`POST …/roles`, `POST …/roles/:rid/end`) ghi được dòng `OWNER_COMPANY`, cả hai hỏi `company.legal.write` trong thân. Các đường khác: tạo hồ sơ (`POST /api/parties` — không nhận vai; `newOrganizationStatements` không có tham số vai), vai tài khoản (`PUT /api/staff/:id/roles`, `POST /api/staff` — `parseRoleAssignment` chỉ nhận mã của `roles.ts`; đóng vai chỉ đóng mã tài khoản/`LEGACY_ACCOUNT_ROLES`; không tạo tài khoản trên hồ sơ tổ chức), người đặt đơn (`orders/service.ts` — mã cố định `CUSTOMER`). Test mới: Bán hàng, Kế toán gán/kết thúc "Công ty chủ" → 403 (cổng quản trị); `PUT /api/staff/:id/roles` với `OWNER_COMPANY` → 400 (kể cả Toàn quyền); `POST /api/parties` kèm `roles` → không sinh vai. Quản trị → 403 đã có (Task 8).
 - **D18 — người kiểm độc lập kết luận ĐẠT cho toàn bộ T2b trên `1bb3c11`; việc cuối trước khi trình chủ (tin thứ sáu):**
   1. **Gộp `main` (`548be6d`: thêm `docs/BACKLOG.md`) và `dac-ta-van-chuyen` (`3d4c48c`: bảng chia số, đề xuất ADR-0040 sửa số)** — nhánh T2b là nhánh DUY NHẤT chủ đưa lên nên nhánh tài liệu phải nằm trọn trong đó. `3d4c48c` đã chứa `548be6d` nên gộp một lần: commit `a72f219` (chữ Anh mặc định của git), không xung đột, chỉ thêm `docs/BACKLOG.md`. Kiểm: `git merge-base --is-ancestor dac-ta-van-chuyen HEAD` ĐÚNG; `git merge-base --is-ancestor main HEAD` ĐÚNG. `git diff 1bb3c11 HEAD -- src web migrations tests` RỖNG ⇒ không cần e2e (theo chỉ đạo).
-  2. **Sửa nhỏ tài liệu mô tả theo người kiểm (không đổi mã):** dòng sổ hàng rào D17 thêm câu khe nhỏ giữa lúc kiểm và lúc ghi (như dòng T8); bẫy 46 của `docs/CHANGE-GUIDE.md` thêm hai mã `owner_company_inactive`, `owner_company_keep_active` (nay "năm bẫy"); mục 8 chép kết luận hai lượt kiểm và phán quyết R1 chấp nhận (danh sách đột biến của người kiểm: người thi công không có nguyên văn — để điều phối chép).
+  2. **Sửa nhỏ tài liệu mô tả theo người kiểm (không đổi mã):** dòng sổ hàng rào D17 thêm câu khe nhỏ giữa lúc kiểm và lúc ghi (như dòng T8); bẫy 46 của `docs/CHANGE-GUIDE.md` thêm hai mã `owner_company_inactive`, `owner_company_keep_active` (nay "năm bẫy"); mục 8 chép kết luận hai lượt kiểm và phán quyết R1 chấp nhận; danh sách đột biến của người kiểm chép nguyên văn khi điều phối chuyển (tin thứ bảy).
   3. **CHƯA áp các diff của tệp đề xuất luật** vào `docs/ARCHITECTURE.md`, `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md` — chủ chưa duyệt; điều phối báo khi chủ duyệt.
   4. Chạy lại `npm test`, `npm run typecheck` (mã thoát) — kết quả ở mục 7.
 - **D17 — người kiểm độc lập T2b (trên `a8c36ec`) kết luận ĐẠT CÓ ĐIỀU KIỆN; điều phối giao sửa (tin thứ năm):**
@@ -176,7 +176,24 @@ Lần kiểm trước — trên đỉnh nhánh `133f8e0` (sau hai lần gộp `d
 - **Kết luận — hai lượt** (điều phối chuyển lời; nguyên văn báo cáo của người kiểm nằm ở phiên điều phối):
   - **Lượt 1: ĐẠT CÓ ĐIỀU KIỆN** — 2026-09-28, trên `a8c36ec`.
   - **Lượt 2: ĐẠT** cho toàn bộ T2b — 2026-09-28, trên `1bb3c11` (sau các sửa D17).
-- **Phép đột biến người kiểm tự làm:** người thi công CHƯA có nguyên văn danh sách này (điều phối chỉ chuyển kết luận và phát hiện) — **điều phối chép vào đây từ báo cáo của người kiểm**. Điều đã biết qua tin D17: ở lượt 1 người kiểm tái hiện qua `tests/audit/harness.mjs` hai ca lọt — đổi "Công ty chủ" sang hồ sơ đang ngưng dùng (201) và `PUT` ngưng dùng hồ sơ công ty chủ (200) — nay đã chặn 409 (D17.2), đột biến ngược của người thi công ghi ở dòng sổ hàng rào D17. Người thi công không tự điền thay (không bịa).
+- **Phép đột biến người kiểm tự làm** (nguyên văn phần người kiểm đề nghị chép, điều phối chuyển 2026-09-28; người kiểm làm MỌI đột biến trên bản sao ở `/tmp` dựng bằng `git archive`, không đụng cây làm việc thật):
+  - **Lượt 1** (trên `a8c36ec`):
+    - Đổi lệch giờ trigger (d) từ `+7 hours` → `+0 hours`: đỏ đúng ca trigger d, 16/17.
+    - Bỏ lớp hỏi `company.legal.write` thứ hai ở `index.ts:368` khi đổi công ty chủ: đỏ đúng ca 6.5(i), 12/13.
+    - 6 ca tay trên D1 local thật qua `wrangler d1 execute --local`:
+      - đổi A→B;
+      - đổi lại B→A bị chặn overlap;
+      - ngày lệch bị chặn trigger d;
+      - đóng dòng cuối bị chặn keep_last;
+      - mở lại dòng đã đóng bị chặn no_reopen;
+      - `audit-invariants --db local` vẫn `✓ R-PTY-1`.
+    - Mỗi lần đều hoàn nguyên và thấy lại xanh.
+  - **Lượt 2** (trên `1bb3c11`):
+    - Bỏ dòng kiểm D17(a) ở `index.ts:379`: đỏ đúng ca D17(a), 14/15.
+    - Bỏ dòng kiểm D17(b) ở `index.ts:290`: đỏ đúng ca D17(b), 14/15.
+    - Mỗi lần hoàn nguyên → 15/15.
+  - (Số dòng `index.ts:…` là số dòng của `src/modules/parties/index.ts` trên commit người kiểm đã kiểm ở từng lượt.)
+  - Hai ca lọt người kiểm tái hiện ở lượt 1 qua `tests/audit/harness.mjs` — đổi "Công ty chủ" sang hồ sơ đang ngưng dùng (201) và `PUT` ngưng dùng hồ sơ công ty chủ (200) — đã chặn 409 theo Ruling D17 (D17.2); đột biến ngược của người thi công ghi ở dòng sổ hàng rào D17.
 - **Phán quyết Ruling R1** (câu giữ chỗ `find_logo` ở `src/modules/company/repository.ts`, không export, không nơi nào gọi, để giữ luật "module nghiêm có ít nhất một câu SQL" mà không nới): **CHẤP NHẬN** như nợ có ghi — gỡ ở pha contract (thu hồi `company_profile`), theo D4 (điều phối chuyển kết luận).
 - **Phát hiện và cách xử lý** (lượt 1, theo tin của điều phối): *Important* — Mục 2b tệp đề xuất luật bị cắt dòng → đã dán đủ (D17.1); *Minor* — dòng `auth` Mục 1 lược → đã dán đủ; hai ca tái hiện được (đổi sang hồ sơ đang ngưng dùng; ngưng dùng hồ sơ công ty chủ) → Ruling D17 của điều phối, đã chặn 409 (D17.2); *Minor* — ba lệnh ghi ngoài `try/finally` trong `tests/e2e/company.mjs` → đã đưa vào (D17.3). Lượt 2 (trên `1bb3c11`) kết luận ĐẠT; sửa nhỏ tài liệu theo lượt 2 (tin thứ sáu, D18): khe kiểm–ghi ở dòng sổ hàng rào D17, hai mã 409 ở bẫy 46, mục này.
 
