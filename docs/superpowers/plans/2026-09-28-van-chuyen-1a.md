@@ -1588,6 +1588,9 @@ BEGIN SELECT RAISE(ABORT, 'expiry_policy_append_only: chính sách không xoá')
     - `VIEW_PREFIX` thêm `vc: "van-chuyen"`.
   - `STRICT` thêm ở Task A13, khi `repository.ts` có thật.
 - [ ] **Bước 5: Xanh:** `node --test src/migrations-van-chuyen-xe.test.ts src/architecture.test.ts` → xanh (khoá ngoại xuyên module đúng chiều nhờ cạnh mới; tiền tố đúng module). Rồi `npm test`.
+  - Vì sao A12 xanh được một mình dù chưa có `STRICT`: bài "module không nghiêm phải nằm trong LEGACY … hoặc KHONG_DB" (`src/architecture.test.ts:429-440`) duyệt **thư mục** module, mà `src/modules/van-chuyen/` chưa có tới Task A13.
+  - `dict.modules` chỉ được so với module của bảng/view (`:178`); bài vòng chỉ duyệt khoá `ALLOWED_EDGES` (`:133`).
+  - A13 thêm thư mục và `STRICT` **cùng một commit**.
 - [ ] **Bước 6: D1:** `npm run db:migrate:local` → áp `0033` không lỗi. Chép đầu ra.
 - [ ] **Bước 7: P16** — tạm xoá từng khối → đúng ca đỏ → hoàn nguyên; chép nguyên văn:
   - `vc_vehicle_plate_open_uq` → (d);
