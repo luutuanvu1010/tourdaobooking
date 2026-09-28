@@ -45,6 +45,17 @@ Nguồn: bản nháp thiết kế §0 (2026-09-27); lời giao việc của đi�
 6. **Dữ liệu thuộc về người; luật thuộc về phân hệ dùng luật đó** (bản nháp §0.12). Giấy tờ của tài xế đối tác ở `parties`, cùng chỗ với tài xế công ty.
 7. Giao diện: chủ vẽ trên Claude Design, rồi làm đúng bản vẽ (tiền lệ ADR-0040).
 
+**Chủ nói thêm 2026-09-28 tối** (điều phối chuyển lời, nguyên ý). Yêu cầu: "đúng Hiến pháp và triết lý Oracle (TCA: Bên / vai / tài sản tách bạch)".
+
+8. **Vận chuyển vừa là dịch vụ độc lập** (chuyến lẻ ngoài tour), **vừa là thành phần trong chuỗi dịch vụ** (vé Hòn Tằm kèm đón từ khách sạn ra cảng, một hoặc hai chiều). Lượt 1b soạn mô hình chặng/chuyến chung cho cả hai; **lượt 2 dùng lại mô hình đó**. Mọi luật lượt 2 (Từ chối, báo bận, thông báo, nhà xe) áp cho **mọi chuyến**, bất kể chuyến sinh từ đâu (giả định G1b-11).
+9. **Phương tiện là thực thể độc lập**, là tài sản của công ty **hoặc** của đối tác (nhà xe).
+   - Xe của nhà xe có **hồ sơ xe riêng** như xe công ty.
+   - Chủ xe là hồ sơ nhà xe mang vai phù hợp.
+   - ADR-0040 D1 hiện ghi chủ xe = công ty chủ. Mở cho đối tác là **quyết định mới của lượt 2 (D1)**; đề xuất này nêu rõ, không sửa ADR-0040.
+10. **Xe và tài xế đều có hồ sơ riêng.** Tài xế đối tác là **hồ sơ người**, giấy tờ ở hồ sơ người (dùng lại mô hình giấy tờ của lượt 1a), gắn với nhà xe qua quan hệ và vai.
+
+Các điểm 8–10 đã được áp vào D1, D2 và mục 3; không hỏi lại.
+
 ---
 
 ## 2. Hiện trạng mã liên quan (tra ở `3bb73f0`, chỉ đọc)
@@ -64,7 +75,9 @@ Nguồn: bản nháp thiết kế §0 (2026-09-27); lời giao việc của đi�
 | Quan hệ giữa hai hồ sơ: bảng có hiệu lực, cấm chồng lấn, `CHECK (from_party_id <> to_party_id)`; hiện chỉ có loại `CONTACT_OF` | `migrations/0011:106-135` | "Tài xế của nhà xe" là một **loại quan hệ mới**. Nhà xe cá nhân tự lái xe mình không nối được với chính mình (xem D1). |
 | Mã vai hồ sơ cũ `DRIVER` "Tài xế", nhóm OTHER, đã ngưng | `migrations/0011:76`, `0031:12` | Lượt 2 phải chốt số phận (D1). Production có dòng nào mang mã này hay không: **chưa kiểm** (mục 8). |
 | Giấy tờ sắp hết hạn của tài xế: hàm công bố `expiringDriverDocuments` lọc theo vai "Tài xế công ty" | `src/modules/parties/index.ts:82-91` | Thêm tài xế đối tác = **đổi hợp đồng công bố** của `parties` (D1). |
-| `thongbao` chỉ phụ thuộc `audit`, `orders`, `dispatch`, `staff`; ADR-0040 D1 ghi "không module nào import `van-chuyen`"; đọc view cũng tính là cạnh | `src/architecture.test.ts:19-42`, `:294-316` | Tính người nhận tin chuyến từ tài xế hiện tại cần **cạnh mới `thongbao → van-chuyen`** (D5). |
+| `thongbao` chỉ phụ thuộc `audit`, `orders`, `dispatch`, `staff`; ADR-0040 D1 ghi "không module nào import `van-chuyen`"; đọc view cũng tính là cạnh | `src/architecture.test.ts:19-42`, `:294-316` | `thongbao` không đọc được dữ liệu chuyến trực tiếp. `van-chuyen` cũng không import được `thongbao` nếu sau này `thongbao` cần chuyến (sẽ thành vòng). |
+| Gõ cửa màn hình khoá cho tin đơn: route gọi `ctx.baoThayDoi` → **gốc lắp ráp** đọc `orders` + `dispatch` rồi gọi `dayGoCua` của `thongbao`. `parties` biết tài khoản của hồ sơ qua hàm tiêm `partyAccount` | `src/index.ts:1-11`, `:52-100` | D5 dùng đúng khuôn **hàm tiêm từ gốc lắp ráp**, không thêm cạnh module. |
+| Quyền tài khoản là dòng có hiệu lực: đóng bằng `valid_to_at`, không xoá | `src/modules/staff/repository.ts:34`, `:80-81` | Trigger tài khoản lai (D2) chỉ được đếm dòng **đang mở**; thứ tự "đóng cũ → mở mới" khi đổi vai phải kiểm. |
 | Nhật ký: `audit_log(order_id, staff_id, action, target_type, target_id, detail, created_at)`; tin về đơn là hình chiếu qua view `v_aud_order_event` | `migrations/0007:6-15`, `0025:53-56` | Không lấy người nhận từ chữ trong `detail` (ADR-0030 điều 3: không phân tích chữ chi tiết). |
 | Chuyến xe, phân công tài xế, danh sách hành khách | **chưa có** (lượt 1b) | Mục 3. |
 
@@ -86,6 +99,10 @@ Mỗi giả định có hai phần: điều lượt 2 cần, và việc phải �
 | G1b-8 | Luật chồng lịch L2 (xe và tài xế) nằm ở **một hàm thuần** + trigger trên dữ liệu `vc_` (bản rà H6). | D4 thêm "khung bận" như một khoảng chặn vào cùng hàm và cùng trigger. Nếu 1b chỉ kiểm ở máy chủ, D4 vẫn thêm trigger riêng cho phần khung bận. |
 | G1b-9 | Chuyến có **mã hiển thị cho người** (không phải uuid). Nhật ký của chuyến ghi `target_type = 'trip'`, `target_id = <id chuyến>`, `detail` không có tên, SĐT, năm sinh (bản rà H8). | D5 cần mã hiển thị để viết tin; cần `target_type` để dựng view sự kiện. |
 | G1b-10 | Tài xế công ty (`DRIVER`) ở 1b đã có ô xem chuyến của mình. Chưa có Từ chối, báo bận, thông báo. | Nếu 1b đã làm thông báo xếp chuyến cho tài xế công ty, D5 chỉ mở rộng sang `DRIVER_PARTNER`. |
+| G1b-11 | **Một mô hình chặng/chuyến chung** cho vận chuyển độc lập (chuyến lẻ) và vận chuyển là thành phần của dịch vụ khác (vé kèm đón một hoặc hai chiều) — chủ nói 28/9 tối. Chuyến không phân biệt nguồn ở mức dòng lái, xe, trạng thái. | Nếu 1b tách hai loại chuyến thành hai bảng, D3–D5 phải áp cho cả hai: hai trigger, hai nguồn sự kiện. Đề nghị 1b giữ một bảng chuyến. |
+| G1b-12 | **Xe đối tác** (chủ xe là nhà xe) dùng chung bảng xe và luật xếp xe của 1b; 1b không giả định "mọi xe là của công ty" (điều phối cũng đang báo 1b điểm này). | Nếu 1b có luật chỉ đúng với xe công ty (vd bộ điều kiện xuất bến "xe công ty / xe thuê"), lượt 2 phải bổ sung nhánh xe đối tác. |
+
+**Người soạn 1b cần xác nhận G1b-1 trước tiên**: dòng phân công tài xế có hiệu lực. D3, D4, D5 đều đứng trên nó. Sau đó tới G1b-3 (chụp bên vận chuyển) và G1b-11, G1b-12 (một mô hình chuyến; xe đối tác dùng chung luật xe).
 
 **Chỗ phải chờ 1b:**
 - **Chờ ADR 1b được duyệt:** D3, D4, D5 và phần D2 về ô xem chuyến/DTO. Lượt duyệt II trình sau đó.
@@ -111,7 +128,11 @@ Mỗi giả định có hai phần: điều lượt 2 cần, và việc phải �
 - **Vai hồ sơ mới "Nhà xe đối tác"** (mã đề xuất `CARRIER`) trong `pty_role_type`, **nhóm `OTHER`**: không sinh quyền, không gắn tài khoản. Gắn cho hồ sơ tổ chức (công ty vận tải) **hoặc** hồ sơ người (nhà xe cá nhân). Nhà xe có đăng nhập hay không: câu Q5.
 - **Loại quan hệ mới "Tài xế của"** (mã đề xuất `DRIVES_FOR`) trong `pty_relationship_type`: từ hồ sơ **người** (tài xế) tới hồ sơ **nhà xe**, có ngày bắt đầu và kết thúc (bảng `pty_party_relationship` sẵn có, sẵn luật cấm chồng lấn). Một tài xế thuộc được **nhiều** nhà xe cùng lúc (tài xế tự do chạy cho nhiều nơi).
 - **Nhà xe cá nhân tự lái xe mình:** bảng quan hệ cấm nối một hồ sơ với chính nó. Luật: *tài xế T thuộc nhà xe X* ⇔ **T = X** (hồ sơ người đó vừa mở vai Nhà xe, vừa mở vai tài khoản Tài xế đối tác) **hoặc** T có quan hệ "Tài xế của" đang mở tới X. Luật này công bố **một lần** ở `parties`, bằng hàm công bố và view (đề xuất `v_pty_carrier_driver`: khoá nhà xe, khoá tài xế). Nơi khác không tự viết lại.
-- **Xe đối tác:** cùng bảng `vc_vehicle`, cùng giấy tờ xe `vc_vehicle_document`. `owner_party_id` được trỏ tới **công ty chủ** hoặc **hồ sơ đang mở vai Nhà xe**. Không thêm cột.
+- **Xe đối tác** (chủ đã chốt, mục 1 điểm 9–10: phương tiện là thực thể độc lập, tài sản của công ty hoặc của nhà xe; Bên / vai / tài sản tách bạch theo TCA):
+  - mỗi xe của nhà xe có **hồ sơ xe riêng** trong cùng bảng `vc_vehicle`, cùng giấy tờ xe `vc_vehicle_document`, cùng luật biển số, số khung, số người chở;
+  - `owner_party_id` trỏ tới **công ty chủ** hoặc **hồ sơ đang mở vai Nhà xe**. Không thêm cột;
+  - đây là **quyết định mới** so với ADR-0040 D1 ("chủ xe = công ty chủ"); không sửa ADR-0040, ADR lượt 2 ghi "bổ sung".
+- **Tài xế đối tác** là **hồ sơ người** (không phải bảng tài xế riêng). Giấy tờ ở hồ sơ người. Gắn với nhà xe bằng quan hệ "Tài xế của" (hoặc chính là hồ sơ nhà xe cá nhân) và mang vai tài khoản "Tài xế đối tác" (D2).
 - **Chuyển chủ xe** (xe công ty bán cho nhà xe, hoặc ngược lại): **không làm ở lượt 2** (ADR-0040 D1: "chuyển chủ xe là việc riêng").
 - **Nhà xe thôi hợp tác** = đóng vai Nhà xe. Không tự đóng quan hệ, không tự đổi trạng thái xe. Xe và tài xế của nhà xe đã thôi **không xếp được lên chuyến mới** (luật ở D1 bất biến B1.4, áp khi 1b có chuyến).
 - **Giấy tờ của tài xế đối tác:** cùng bảng giấy tờ của người (`pty_person_document`, ADR-0040 D2), cùng luật che số và nhật ký không số. Không bảng mới.
@@ -207,7 +228,7 @@ Không có.
 | # | Bất biến | Lớp CSDL | Lớp máy chủ |
 |---|---|---|---|
 | B2.1 | LC-1 mới: tài khoản có vai bên ngoài đang mở chỉ giữ `PARTNER` hoặc `DRIVER_PARTNER` | migration mới: **bỏ** `lc1_stf_permission_external_partner_only` và **tạo lại** với tập mới. Không sửa tệp 0024 | `effectivePermissions`, `roleAssignmentProblem` (`roles.ts`) |
-| B2.2 | LC-1b: `DRIVER_PARTNER` đứng một mình | trigger mới `BEFORE INSERT ON stf_permission`, hai chiều: chèn `DRIVER_PARTNER` khi đã có quyền khác → ABORT; chèn quyền khác khi đã có `DRIVER_PARTNER` → ABORT | một hàm thuần kiểm cho **mọi** đường ghi quyền: gán vai; `POST /api/staff` không kèm vai; `PUT /api/staff/:id/permissions`. Đây là đường cũ mà `holdsPartner` nêu |
+| B2.2 | LC-1b: `DRIVER_PARTNER` đứng một mình | trigger mới `BEFORE INSERT ON stf_permission`, hai chiều, **chỉ đếm dòng đang mở** (`valid_to_at IS NULL`): chèn `DRIVER_PARTNER` khi đang có quyền khác → ABORT; chèn quyền khác khi đang có `DRIVER_PARTNER` → ABORT. Lô đổi quyền phải **đóng dòng cũ trước, mở dòng mới sau**; kế hoạch kiểm thứ tự câu ở module `staff` | một hàm thuần kiểm cho **mọi** đường ghi quyền: gán vai; `POST /api/staff` không kèm vai; `PUT /api/staff/:id/permissions`. Đây là đường cũ mà `holdsPartner` nêu. `roleAssignmentProblem` từ chối **trước** trigger, với câu dễ hiểu, khi một hồ sơ được gán cùng lúc "Tài xế đối tác" và một vai bên ngoài khác (vd "Tài xế taxi") |
 | B2.3 | (phát hiện) Không tồn tại tài khoản vi phạm B2.1, B2.2 | — | câu kiểm mới ở `audit-invariants` |
 
 - **Thứ tự phát hành:**
@@ -316,25 +337,25 @@ Văn phòng điều xe (D5).
 
 ---
 
-## D4. Báo bận (khung không sẵn sàng)
+## D4. Báo bận của tài xế (khung không sẵn sàng)
 
 **Hiến chương áp:** 2.2 (khung bận là thực thể có vòng đời), 5.1, 5.5, 5.12.
 
+**Phạm vi gọn** (chủ giao "tài xế báo bận"; ghi nhớ dự án: "đơn giản, không cầu kỳ"): chỉ **tài xế tự báo, tự rút**; văn phòng **chỉ xem**. **Để sau, không làm ở lượt 2:** khung bận của **xe** (xe đã có trạng thái "bảo dưỡng" từ lượt 1a), văn phòng ghi thay hay rút thay. Bảng được thiết kế để thêm hai việc đó sau bằng migration chỉ-thêm, không dựng lại.
+
 ### Dữ liệu
-- **Bảng mới của `van-chuyen`** (đề xuất `vc_unavailability`), theo gợi ý của bản rà C: "khung không sẵn sàng dùng chung cho xe và người". Cột:
-  - đối tượng: **đúng một** trong hai, hồ sơ tài xế **hoặc** xe (`CHECK`);
+- **Bảng mới của `van-chuyen`** (đề xuất `vc_unavailability`). Cột:
+  - hồ sơ tài xế;
   - bắt đầu, kết thúc: mốc so sánh số học, và giờ VN để hiện;
   - lý do, tập đóng, **không ô chữ**:
     - "Việc riêng";
     - "Ốm";
-    - "Xe bảo dưỡng / sửa chữa" (chỉ cho xe);
     - "Khác";
-  - người ghi: tự báo hay văn phòng ghi thay;
   - rút lúc, rút bởi;
   - đủ cột dấu vết, khoá lạc quan.
 - **Không sửa giờ.** Đổi giờ = rút khung cũ + ghi khung mới. Không xoá cứng.
 - **Vì sao ở `van-chuyen`:** luật dùng nó (xếp chuyến) thuộc Vận chuyển. Dữ liệu thuộc người là **giấy tờ**; còn khung bận là lịch vận hành. Nếu sau này hướng dẫn viên cũng cần báo bận thì đó là việc của Phân công, ADR riêng. Chủ chọn chỗ ở tại **Q7**; chủ bảng là cửa một chiều.
-- Giới hạn: một khung ≤ 14 ngày; tự báo không được bắt đầu trong quá khứ (đề xuất; kế hoạch chốt số).
+- Giới hạn: một khung ≤ 14 ngày; không bắt đầu trong quá khứ (đề xuất; kế hoạch chốt số).
 
 ### Ô quyền
 - **Ô mới `unavailability.self`** (báo và rút khung **của chính mình**):
@@ -342,27 +363,24 @@ Văn phòng điều xe (D5).
   - `DRIVER = own` hoặc `none` (câu Q3);
   - `SUPER_ADMIN = any`;
   - cột khác `none`.
-- **Ô mới `unavailability.manage`** (xem mọi khung; ghi thay; rút thay; khung của xe):
-  - **cùng nhóm với ô điều xe của 1b** (G1b-5);
-  - `SUPER_ADMIN = any`.
+- **Văn phòng xem** lịch bận của mọi tài xế bằng **ô điều xe của 1b** (G1b-5). Không thêm ô: người điều xe cần thấy lịch bận để xếp, và chỉ họ cần.
 - Tài xế chỉ thấy khung của mình.
 
 ### Bất biến hai lớp
 | # | Bất biến | Lớp CSDL | Lớp máy chủ |
 |---|---|---|---|
-| B4.1 | Kết thúc > bắt đầu; đúng một đối tượng; lý do trong tập đóng | `CHECK` | hàm kiểm thân yêu cầu |
-| B4.2 | **Không ghi khung bận chồng lên chuyến mà tài xế hoặc xe đang được xếp** (chuyến chưa kết thúc, chưa huỷ). Cả khi văn phòng ghi thay. Không để báo bận thành đường vòng qua hạn chót Từ chối | trigger `BEFORE INSERT` trên `vc_unavailability`, đọc dòng lái/xe và chuyến (cùng module) | **409** "Bạn đang có chuyến <mã> lúc …, hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng" |
-| B4.3 | **Không xếp tài xế hoặc xe vào chuyến chồng lên khung bận đang hiệu lực** | trigger `BEFORE INSERT` trên dòng phân công của 1b (G1b-8) | hàm thuần chồng lịch của 1b nhận thêm khung bận như khoảng chặn; 409 kèm lý do |
-| B4.4 | Khung chỉ đi tiến: hiệu lực → đã rút; không sửa giờ, đối tượng; không xoá | trigger `BEFORE UPDATE` / `BEFORE DELETE` | câu rút có điều kiện |
-| B4.5 | Khung chồng khung (cùng đối tượng) | **cho phép** (không hại; hiện gộp) | — |
+| B4.1 | Kết thúc > bắt đầu; lý do trong tập đóng | `CHECK` | hàm kiểm thân yêu cầu |
+| B4.2 | **Không ghi khung bận chồng lên chuyến mà tài xế đang được xếp** (chuyến chưa kết thúc, chưa huỷ). Không để báo bận thành đường vòng qua hạn chót Từ chối | trigger `BEFORE INSERT` trên `vc_unavailability`, đọc dòng lái và chuyến (cùng module) | **409** "Bạn đang có chuyến <mã> lúc …, hãy Từ chối chuyến (nếu còn hạn) hoặc gọi văn phòng" |
+| B4.3 | **Không xếp tài xế vào chuyến chồng lên khung bận đang hiệu lực** | trigger `BEFORE INSERT` trên dòng phân công của 1b (G1b-8) | hàm thuần chồng lịch của 1b nhận thêm khung bận như khoảng chặn; 409 kèm lý do |
+| B4.4 | Khung chỉ đi tiến: hiệu lực → đã rút; không sửa giờ, người; không xoá | trigger `BEFORE UPDATE` / `BEFORE DELETE` | câu rút có điều kiện |
+| B4.5 | Khung chồng khung của cùng tài xế | **cho phép** (không hại; hiện gộp) | — |
 
 ### Route
-- `GET /api/van-chuyen/ban/cua-toi`, `POST /api/van-chuyen/ban` (tự báo), `POST /api/van-chuyen/ban/:id/rut`: cổng theo G1b-7, `can(unavailability.self, { ownerId })`.
-- `GET /api/van-chuyen/ban?tu=&den=`, `POST /api/van-chuyen/ban-thay`, `POST /api/van-chuyen/ban/:id/rut-thay`: cổng `office` + `can(unavailability.manage)`.
-- Khung của người khác → 404 với tài xế.
+- `GET /api/van-chuyen/ban/cua-toi`, `POST /api/van-chuyen/ban`, `POST /api/van-chuyen/ban/:id/rut`: cổng theo G1b-7, `can(unavailability.self, { ownerId })`. Khung của người khác → 404.
+- `GET /api/van-chuyen/ban?tu=&den=` (văn phòng xem): cổng `office` + ô điều xe của 1b.
 
 ### Thông báo
-Tài xế báo bận: không gửi ai; văn phòng thấy trên màn điều xe. Văn phòng ghi thay hoặc rút thay: tin cho tài xế (D5).
+Không gửi ai. Văn phòng thấy trên màn điều xe.
 
 ### Cửa
 - **Một chiều:** chủ bảng và tiền tố (`vc_`); chuyển sang module khác sau này phải di trú (Q7).
@@ -372,11 +390,11 @@ Tài xế báo bận: không gửi ai; văn phòng thấy trên màn điều xe.
 
 ## D5. Thông báo chuyến cho tài xế và cho văn phòng điều xe
 
-**Hiến chương áp:** K16, 4.1 (tin là hình chiếu của nhật ký), 5.10 (thông báo chạy sau lô, không kích hoạt tiền), 5.12, 5.16 (được phép thất lạc: tin chuyến là việc không quan trọng theo nghĩa 5.16; người điều xe vẫn thấy trạng thái thật trên màn chuyến).
+**Hiến chương áp:** K16, 4.1 (tin là hình chiếu của nhật ký), 5.3 (không vòng phụ thuộc), 5.10 (thông báo chạy sau lô, không kích hoạt tiền), 5.12, 5.16 (được phép thất lạc: tin chuyến là việc không quan trọng theo nghĩa 5.16; người điều xe vẫn thấy trạng thái thật trên màn chuyến).
 
 ### Dữ liệu
 - **Không bảng mới.** Tin về chuyến là **hình chiếu của `audit_log`**, khuôn ADR-0034 điều 1.
-- View công bố mới của `audit` (đề xuất `v_aud_trip_event`: id, `target_id` = chuyến, `staff_id` người làm, `action`, `created_at`). Lọc `target_type = 'trip'` và danh sách hành động dưới đây.
+- View công bố mới của `audit` (đề xuất `v_aud_trip_event`: id, `target_id` = chuyến, `staff_id` người làm, `action`, `created_at`). Lọc `target_type = 'trip'` và danh sách hành động dưới đây. `thongbao → audit` là cạnh đã có.
 - **Hành động nhật ký** (mã chốt ở kế hoạch; ghi bởi `van-chuyen` qua `auditStatement`, chi tiết **không** tên khách, SĐT, năm sinh, số giấy tờ):
 
 | Hành động | Ghi khi | Ai nhận tin (ngăn "Của tôi") |
@@ -386,40 +404,45 @@ Tài xế báo bận: không gửi ai; văn phòng thấy trên màn điều xe.
 | `trip_driver_refused` | D3 | **mọi tài khoản có ô điều xe phạm vi `any`** (G1b-5) |
 | `trip_schedule_changed` | đổi giờ hoặc điểm dừng của chuyến có tài xế | tài xế đang lái |
 | `trip_cancelled` | huỷ chuyến có tài xế | tài xế đang lái lúc huỷ |
-| `unavailability_set_by_office` / `…_withdrawn_by_office` | văn phòng ghi hoặc rút khung bận thay | tài xế đó |
 
-- **Người nhận tính lúc đọc** (khuôn ADR-0034 điều 3). Với sự kiện của chuyến C lúc t:
-  - tài xế nhận tin = hồ sơ có dòng lái trên C **mở lúc ≤ t và (còn mở hoặc đóng lúc ≥ t)**. Tài xế cũ vì thế thấy tin "bị gỡ" của chính mình, giống "người phụ trách cũ + mới" của ADR-0034;
-  - dữ liệu này lấy qua **view công bố mới của `van-chuyen`** (đề xuất `v_vc_trip_driver_period`: chuyến, hồ sơ tài xế, mở lúc, đóng lúc — chỉ khoá và mốc);
-  - đổi hồ sơ → tài khoản qua view `v_stf_*` sẵn có.
+- **Người nhận tính lúc đọc** (khuôn ADR-0034 điều 3). Với sự kiện của chuyến C lúc t, tài xế nhận tin = hồ sơ có dòng lái trên C **mở lúc ≤ t và (còn mở hoặc đóng lúc ≥ t)**. Tài xế cũ vì thế thấy tin "bị gỡ" của chính mình, giống "người phụ trách cũ + mới" của ADR-0034.
 - **Không lấy người nhận từ chữ `detail`** (ADR-0030 điều 3).
 - **Nội dung tin:** "Chuyến <mã> ngày <dd/mm> lúc <hh:mm>: bạn được xếp lái xe <biển số>". Không tên khách, không SĐT. Bấm vào mở chuyến; nếu người đó không còn quyền xem chuyến thì gặp 404 như thường.
 - Thông báo màn hình khoá (ADR-0036): cú gõ cửa không nội dung, **người nhận tính lúc gửi** theo cùng luật; giờ yên lặng theo ADR-0039. **Không có tin "quan trọng"** ở lượt 2 (gọn nhất).
 - Tin chuyến **không bao giờ** gắn nhãn `tat-ca` hay "Toàn công ty". Tài xế không thấy ngăn "Tất cả" của đơn (không có `order.view`).
 - **Bảng tin tức thì (ADR-0022) cho màn chuyến: KHÔNG làm ở lượt 2.** Màn chuyến tải lại khi mở hoặc khi kéo xuống. Hàng rào Bảng tin hôm nay chỉ canh `/api/orders*`; mở sang chuyến là việc riêng, cần ADR.
 
+### Nối module: hàm tiêm từ gốc lắp ráp, KHÔNG thêm cạnh module
+Khuôn sẵn có: tin đơn đi `ctx.baoThayDoi` → gốc lắp ráp (`src/index.ts`) → `dayGoCua` của `thongbao`; `parties` biết tài khoản qua hàm tiêm `partyAccount` (ADR-0007 điều 4(b)). Lượt 2 làm đúng như vậy:
+
+1. **Gõ cửa sau khi ghi.** Hàm tiêm mới (đề xuất `ctx.baoThayDoiChuyen(env, actor, { tripId, action })`). Route của `van-chuyen` gọi **sau** khi lô thành công. Gốc lắp ráp:
+   - đọc tài xế liên quan của chuyến qua **hàm công bố** của `van-chuyen` (đề xuất `taiXeCuaSuKien(db, tripId, luc)`, theo luật "mở ≤ t, đóng ≥ t" ở trên);
+   - đổi hồ sơ → tài khoản qua hàm công bố của `staff` hoặc `parties`;
+   - gọi `dayGoCua` của `thongbao`.
+   Gọi kiểu bắn-và-quên, lỗi không làm hỏng thao tác ghi (khuôn `baoThayDoi`).
+2. **Hộp thông báo đọc lúc mở.** Hàm tiêm mới cho `thongbao` (đề xuất `chuyenLienQuan(env, staffId, tuLuc)` → danh sách (chuyến, khoảng mở–đóng) mà tài khoản này từng lái trong 30 ngày giữ tin). Gốc lắp ráp nối nó vào hàm công bố của `van-chuyen`. `thongbao` lọc sự kiện của `v_aud_trip_event` theo danh sách đó. Người điều xe nhận tin Từ chối theo **quyền hiện có** (ô điều xe), `thongbao` tự biết.
+
+**Hệ quả:**
+- **Không thêm cạnh module.** `thongbao` không import `van-chuyen` và không đọc `v_vc_*`; `van-chuyen` không import `thongbao`. Không vòng. Câu "không module nào import `van-chuyen`" của ADR-0040 D1 **giữ nguyên**: gốc lắp ráp không phải module.
+- **Hai hàm tiêm và hai hàm công bố mới là hợp đồng giữa các phần** (`van-chuyen` ↔ gốc lắp ráp ↔ `thongbao`). Chúng được ghi vào ADR, có test đổi hợp đồng (đỏ trước) như `isAssigned`.
+- **Bổ sung** ADR-0034 điều 1, 5: nguồn tin thứ hai (sự kiện chuyến) ngoài sự kiện đơn; `thongbao` nhận thêm một hàm tiêm.
+
 ### Ô quyền
 Không ô mới. Hộp thông báo ở cổng `staff` (ADR-0034 điều 7).
-
-### Cạnh module (đổi đồ thị — ADR-0002)
-- **Thêm cạnh `thongbao → van-chuyen`** (đọc view `v_vc_trip_driver_period`) và view mới của `audit`. Không vòng: `van-chuyen` chỉ phụ thuộc `parties`, `audit`.
-- **Thay câu** ADR-0040 D1 "Không module nào import `van-chuyen`" → "chỉ `thongbao` đọc view công bố của `van-chuyen`".
-- **Bổ sung** ADR-0034 điều 5 (danh sách cạnh của `thongbao`).
-- `ALLOWED_EDGES` trong `src/architecture.test.ts` sửa trong cùng commit.
 
 ### Bất biến hai lớp
 | # | Bất biến | Lớp CSDL | Lớp máy chủ |
 |---|---|---|---|
 | B5.1 | Nhật ký chuyến không chứa SĐT, tên khách, năm sinh, số giấy tờ | trigger nhật ký chỉ-thêm (sẵn có, 0017) giữ không sửa được; **không** chặn nội dung ở CSDL | danh sách trường chi tiết cố định trong mã; bài quét "nhật ký không lộ" (khuôn `src/giay-to-khong-lo-so.test.ts`) chạy mọi route mới rồi quét `audit_log` |
-| B5.2 | Tin chuyến chỉ tới tài xế của chuyến (đúng khoảng) và văn phòng điều xe | — | **một** hàm thuần lọc người nhận, test theo mọi tập con quyền (khuôn NT-3, ADR-0030 S20-9) |
-| B5.3 | Tin phát sau lô thành công | — | khuôn sẵn có (`waitUntil` sau `db.batch`) |
+| B5.2 | Tin chuyến chỉ tới tài xế của chuyến (đúng khoảng) và văn phòng điều xe | — | **một** hàm thuần lọc người nhận, dùng chung cho hộp và cho gõ cửa; test theo mọi tập con quyền (khuôn NT-3, ADR-0030 S20-9) |
+| B5.3 | Tin phát sau lô thành công, lỗi gửi không làm hỏng lô | — | hàm tiêm `baoThayDoiChuyen` gọi sau `db.batch`, bắn-và-quên (khuôn `baoThayDoi`, `src/index.ts`) |
 
 ### Route
 - Không route mới. Hộp `GET /api/thong-bao…` sẵn có đọc thêm nguồn tin chuyến. `GET /api/thong-bao/moi-nhat` (cho máy) dùng cùng hàm lọc.
 
 ### Cửa
 - **Một chiều:** mỗi dòng nhật ký mới (chỉ-thêm). Vì vậy **danh sách trường của chi tiết phải chốt trước khi ghi dòng đầu tiên**.
-- **Hai chiều:** luật người nhận (hình chiếu tính lúc đọc), nội dung chữ, cạnh module.
+- **Hai chiều:** luật người nhận (hình chiếu tính lúc đọc), nội dung chữ, hai hàm tiêm (đổi được cùng một commit có test).
 
 ---
 
@@ -473,9 +496,10 @@ Lớp CSDL canh thêm: trigger LC-1 mới, trigger tài khoản lai, trigger ch�
 |---|---|
 | Dòng phân công tài xế của 1b (G1b-1) | lý do đóng `REFUSED` + mã lý do Từ chối + người đóng (nếu 1b chưa có) |
 | Bảng chính sách `vc_` | dòng chính sách **hạn chót Từ chối** (có ngày hiệu lực) |
-| `vc_unavailability` (mới) | khung bận của **tài xế** (công ty hoặc đối tác) **và** của **xe** (công ty hoặc đối tác) |
+| `vc_unavailability` (mới) | khung bận của **tài xế** (đối tác; công ty nếu Q3 = (a)). **Không** có khung của xe ở lượt 2 |
 | `audit_log` | hành động chuyến mới (bảng D5); view `v_aud_trip_event` |
 | `ntf_*` | **không** thêm dòng: tin chuyến là hình chiếu. `ntf_read_mark` và `ntf_push_sub` dùng như cũ |
+| Hợp đồng giữa các phần (không phải bảng) | hai hàm tiêm từ gốc lắp ráp (`baoThayDoiChuyen` cho route `van-chuyen`, `chuyenLienQuan` cho `thongbao`) + hàm công bố mới của `van-chuyen` (tài xế của một sự kiện chuyến; các chuyến một tài xế từng lái). Không cạnh module mới |
 
 **(2) Từng dòng bản đồ quyền chạm các bảng đó áp cho loại nào**
 
@@ -484,8 +508,7 @@ Lớp CSDL canh thêm: trigger LC-1 mới, trigger tài khoản lai, trigger ch�
 | xem chuyến (1b) | assigned | assigned | theo 1b | any |
 | `trip.refuse` (mới) | Q3 | assigned | none | any, **nhưng** route đòi "đang lái" (không Từ chối thay) |
 | `unavailability.self` (mới) | Q3 | own | none | any |
-| `unavailability.manage` (mới) | none | none | nhóm điều xe (G1b-5): khung của **mọi tài xế và mọi xe** | any |
-| điều xe (1b) | none | none | theo 1b; bị chặn bởi khung bận (B4.3) và luật nhà xe (B1.4) | any |
+| điều xe (1b) | none | none | theo 1b; **thêm nghĩa: xem lịch bận của mọi tài xế**; bị chặn bởi khung bận (B4.3) và luật nhà xe (B1.4) | any |
 | DTO chuyến: danh sách khách + SĐT liên hệ | theo 1b | **chỉ trong khung Q1** | theo 1b + `contact.view` | any |
 
 **(3) Cổng nào canh cửa nào**
@@ -494,9 +517,10 @@ Lớp CSDL canh thêm: trigger LC-1 mới, trigger tài khoản lai, trigger ch�
 |---|---|---|---|
 | `POST …/chuyen/:id/tu-choi` | cổng tài xế của 1b / `staff` | `trip.refuse` + chốt "đang lái" | B3.1–B3.4 |
 | `…/ban/cua-toi`, `POST …/ban`, `…/rut` | cổng tài xế / `staff` | `unavailability.self` (ownerId = chính mình) | B4.1, B4.2, B4.4 |
-| `…/ban?…`, `…/ban-thay`, `…/rut-thay` | `office` | `unavailability.manage` | B4.1, B4.2, B4.4 |
+| `GET …/ban?…` (văn phòng xem) | `office` | ô điều xe của 1b | — (chỉ đọc) |
 | xếp tài xế / xe (1b) | theo 1b | điều xe | **B4.3**, **B1.4** |
-| hộp thông báo | `staff` | lọc người nhận (hàm thuần B5.2) | — |
+| hộp thông báo | `staff` | lọc người nhận (hàm thuần B5.2), dữ liệu chuyến qua hàm tiêm `chuyenLienQuan` | — |
+| gõ cửa sau Từ chối / xếp / gỡ / đổi / huỷ chuyến | (không phải route) gốc lắp ráp qua `baoThayDoiChuyen` | cùng hàm thuần B5.2 | — |
 
 ---
 
@@ -505,41 +529,41 @@ Lớp CSDL canh thêm: trigger LC-1 mới, trigger tài khoản lai, trigger ch�
 > Các câu dưới đây chạm dữ liệu hoặc quyền nên phải hỏi (P8). Câu nào chủ trả "theo khuyến nghị" thì người soạn áp nguyên như khuyến nghị.
 
 **Q1. Tài xế đối tác thấy tên khách, năm sinh và số điện thoại người liên hệ từ lúc nào?**
-- (a) Chỉ từ lúc **hết hạn Từ chối** (xem Q2) tới hết ngày chạy chuyến. Được: không có kiểu "xem số rồi từ chối". Mất: tài xế được xếp sớm phải chờ mới thấy danh sách.
-- (b) Ngay khi được xếp. Được: tiện. Mất: xem rồi từ chối vẫn giữ được số, không rút lại được (như ADR-0030).
+- (a) Chỉ từ lúc **hết hạn Từ chối** (xem Q2) tới hết ngày chạy chuyến. Được: không có kiểu "xem số rồi từ chối". Mất: tài xế được xếp sớm phải chờ mới thấy danh sách. (Nếu Q2 chọn (c), "hết hạn Từ chối" là lúc xe xuất bến, tức tài xế chỉ thấy danh sách khi đã lên đường — khi đó nên chọn (b) hoặc đổi Q2.)
+- (b) Ngay khi được xếp. Được: tiện. Mất: xem rồi từ chối vẫn giữ được số, không rút lại được (giống điều đã chấp nhận với hướng dẫn viên nhận rồi trả đơn).
 - (c) Không bao giờ thấy số điện thoại, chỉ thấy tên + năm sinh (từ mốc (a)); cần gọi khách thì gọi qua văn phòng. Được: kín nhất. Mất: văn phòng phải trực máy lúc đón.
 - **Khuyến nghị: (a).**
 
 **Q2. Tài xế được Từ chối chuyến tới lúc nào?**
-- (a) Tới **12 giờ trước giờ chạy**; Toàn quyền đổi được con số này. Được: tài xế còn từ chối được chuyến sáng mai tới tối hôm trước. Mất: thêm một con số cài đặt.
+- (a) Tới **12 giờ trước giờ chạy**; bạn (tài khoản quản trị cao nhất) đổi được con số này. Được: tài xế còn từ chối được chuyến sáng mai tới tối hôm trước. Mất: thêm một con số cài đặt.
 - (b) Như hướng dẫn viên: không Từ chối khi chuyến chạy hôm nay hoặc ngày mai. Được: một luật chung. Mất: chuyến thường được xếp trước một ngày, nên gần như không bao giờ Từ chối được.
 - (c) Lúc nào cũng được trước khi xe xuất bến. Được: linh hoạt. Mất: văn phòng có thể mất tài xế sát giờ.
 - **Khuyến nghị: (a).**
 
-**Q3. Tài xế công ty (nhân viên) có được Từ chối chuyến và Báo bận như tài xế đối tác không?**
-- (a) Có cả hai, cùng luật. Được: một cách làm; khớp tiền lệ hướng dẫn viên nội bộ được Từ chối (ADR-0030). Mất: nhân viên có thể trả chuyến qua app.
+**Q3. Tài xế công ty (nhân viên) có được Từ chối chuyến và Báo bận như tài xế đối tác không?** Bạn mới giao hai việc này cho tài xế đối tác.
+- (a) Có cả hai, cùng luật. Được: một cách làm, giống hướng dẫn viên nội bộ đang được Từ chối đơn; làm thêm gần như không tốn (cùng nút, cùng máy chủ, chỉ mở thêm một cột quyền). Mất: nhân viên có thể trả chuyến qua app.
 - (b) Báo bận: có; Từ chối: không (nhân viên gọi văn phòng).
-- (c) Không cả hai; chỉ tài xế đối tác.
-- **Khuyến nghị: (a).**
+- (c) Không cả hai; chỉ tài xế đối tác. Được: đúng phạm vi đã giao, nhỏ nhất; mở cho nhân viên sau chỉ là đổi một ô quyền. Mất: tài xế công ty nghỉ phải gọi văn phòng.
+- **Khuyến nghị: (c)** — gọn nhất; mở sau dễ.
 
-**Q4. Một người vừa là "đối tác đặt đơn" (ví dụ Tài xế taxi mang khách tới) vừa lái xe cho nhà xe: một tài khoản có được giữ cả hai không?**
-- (a) **Không.** Một tài khoản chỉ một loại. Người đó chọn một; muốn cả hai thì cần tài khoản thứ hai với số điện thoại khác. Được: không lẫn giá đơn với danh sách khách của chuyến; theo tiền lệ chặn tài khoản lai ở ADR-0030; nới sau dễ. Mất: vài người phải chọn.
+**Q4. Một người vừa là "đối tác đặt đơn" (ví dụ Tài xế taxi mang khách tới) vừa lái xe cho nhà xe: có được giữ cả hai không?**
+- (a) **Không.** Mỗi người chọn một: hoặc là đối tác đặt đơn, hoặc là tài xế đối tác. Không có cách lách (vai gắn với hồ sơ của người, không gắn với số điện thoại, và mỗi người chỉ có một hồ sơ). Được: không lẫn giá đơn với danh sách khách của chuyến; giống cách đã chặn tài khoản lai ở hướng dẫn viên; nới sau dễ. Mất: vài người phải chọn một việc trên app.
 - (b) Có. Mỗi màn chỉ theo đúng quyền của nó. Được: tiện. Mất: khó rà; siết lại sau phải tách tài khoản đang dùng.
 - **Khuyến nghị: (a).**
 
-**Q5. Nhà xe có tài khoản đăng nhập không** (để tự xem chuyến của xe mình, tự báo xe bận, quản tài xế của mình)?
-- (a) **Không ở lượt 2.** Văn phòng nhập xe, tài xế, khung bận của xe thay nhà xe. Được: gọn, không thêm loại quyền. Mất: văn phòng làm thay.
+**Q5. Nhà xe có tài khoản đăng nhập không** (để tự xem chuyến của xe mình, quản tài xế của mình)?
+- (a) **Không ở lượt 2.** Văn phòng nhập xe, tài xế thay nhà xe. Được: gọn, không thêm loại quyền. Mất: văn phòng làm thay.
 - (b) Có, thêm loại quyền "Nhà xe". Được: nhà xe tự làm. Mất: thêm một lượt duyệt quyền (nhà xe thấy chuyến của mọi tài xế mình, có thể thấy giá ở lượt 3).
 - **Khuyến nghị: (a)**; xét lại khi làm lượt 3 (giá, công nợ nhà xe).
 
 **Q6. Xe và tài xế có được "chéo" nhau không?**
-- (a) **Không.** Xe của nhà xe chỉ do tài xế của chính nhà xe đó lái. Tài xế đối tác chỉ lái xe của nhà xe mình, không lái xe công ty. Tài xế công ty chỉ lái xe công ty. Được: đúng kiểu "thuê cả xe kèm lái" (Nghị định 158 — **chưa có người chuyên môn kiểm**); luật đơn giản. Mất: không thuê xe không kèm lái được.
+- (a) **Không.** Xe của nhà xe chỉ do tài xế của chính nhà xe đó lái. Tài xế đối tác chỉ lái xe của nhà xe mình, không lái xe công ty. Tài xế công ty chỉ lái xe công ty. Được: đúng kiểu "thuê cả xe kèm lái" của quy định xe hợp đồng (**chưa có người chuyên môn kiểm**); luật đơn giản. Mất: không thuê xe không kèm lái được.
 - (b) Cho phép: tài xế công ty lái xe thuê, hoặc tài xế đối tác lái xe công ty. Được: linh hoạt. Mất: thêm luật về bảo hiểm, hợp đồng; cần hỏi pháp lý.
-- **Khuyến nghị: (a)**; nới sau bằng ADR khi có nhu cầu thật.
+- **Khuyến nghị: (a)**; nới sau khi có nhu cầu thật.
 
-**Q7. Lịch bận lưu ở đâu?**
-- (a) Trong **phân hệ Vận chuyển**, dùng chung cho tài xế và xe. Được: gọn, luật xếp chuyến dùng trực tiếp. Mất: nếu sau này hướng dẫn viên cần báo bận thì làm riêng ở Phân công, hoặc chuyển dữ liệu.
-- (b) Ở **hồ sơ người**, dùng chung cho mọi người (tài xế, hướng dẫn viên) ngay từ đầu. Được: một chỗ. Mất: lượt 2 làm rộng hơn cần; lịch bận của xe vẫn phải ở Vận chuyển, thành hai chỗ.
+**Q7. Lịch bận của tài xế lưu ở đâu?**
+- (a) Trong **phân hệ Vận chuyển**. Được: gọn, luật xếp chuyến dùng trực tiếp. Mất: nếu sau này hướng dẫn viên cần báo bận thì làm riêng, hoặc chuyển dữ liệu.
+- (b) Ở **hồ sơ người**, dùng chung cho mọi người (tài xế, hướng dẫn viên) ngay từ đầu. Được: một chỗ. Mất: lượt 2 làm rộng hơn cần.
 - **Khuyến nghị: (a).**
 
 ---
@@ -585,11 +609,11 @@ npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT COUNT(*) AS 
 
 | Lát | Nội dung | Chờ | Việc lớn? | Người kiểm độc lập |
 |---|---|---|---|---|
-| 1 | **Máy chủ + CSDL lượt I.** Migration: vai `CARRIER`, `DRIVER_EXTERNAL`; quan hệ `DRIVES_FOR`; quyền `DRIVER_PARTNER`; bỏ/tạo lại trigger LC-1; trigger tài khoản lai; view `v_pty_carrier_driver` + view nhà xe đang mở; trigger chủ xe, trigger quan hệ. Mã: `roles.ts`, `permissions.ts` cột 9 + bài ghim cả hàng, `laNoiBo`, hàm kiểm tài khoản lai trên mọi đường ghi quyền, route xe nhận chủ là nhà xe, `GET /api/van-chuyen/nha-xe`, mở rộng `expiringDriverDocuments`, `audit-invariants`, `data-dictionary.json` | duyệt lượt I | có (dữ liệu + quyền) | có |
+| 1 | **Máy chủ + CSDL lượt I.** Trước khi viết trigger tài khoản lai: đọc thứ tự câu trong lô đổi quyền của `staff` (đóng cũ trước mở mới?). Migration: vai `CARRIER`, `DRIVER_EXTERNAL`; quan hệ `DRIVES_FOR`; quyền `DRIVER_PARTNER`; bỏ/tạo lại trigger LC-1; trigger tài khoản lai; view `v_pty_carrier_driver` + view nhà xe đang mở; trigger chủ xe, trigger quan hệ. Mã: `roles.ts`, `permissions.ts` cột 9 + bài ghim cả hàng, `laNoiBo`, hàm kiểm tài khoản lai trên mọi đường ghi quyền, route xe nhận chủ là nhà xe, `GET /api/van-chuyen/nha-xe`, mở rộng `expiringDriverDocuments`, `audit-invariants`, `data-dictionary.json` | duyệt lượt I | có (dữ liệu + quyền) | có |
 | 2 | **Giao diện lượt I:** màn nhà xe; chọn chủ xe; gán vai/quan hệ; trang đầu của tài xế đối tác (giấy tờ của mình; "chuyến sẽ hiện ở đây") | bản vẽ Claude Design | không (giao diện) | gom kiểm giao diện |
 | 3 | **Từ chối (D3)** + mốc mở danh sách khách trong DTO (Q1) | 1b thi công xong; duyệt lượt II | có | có |
 | 4 | **Báo bận (D4)** + nối vào hàm/trigger chồng lịch của 1b | lát 3 (hoặc song song nếu 1b xong) | có | có |
-| 5 | **Thông báo chuyến (D5):** view `v_aud_trip_event`, `v_vc_trip_driver_period`, cạnh `thongbao → van-chuyen`, hàm lọc người nhận | lát 3 | có (quyền đọc) | có — **gộp một người kiểm cho lát 3–5** nếu phát hành cùng lần |
+| 5 | **Thông báo chuyến (D5):** view `v_aud_trip_event`, hai hàm tiêm (`baoThayDoiChuyen`, `chuyenLienQuan`) + hai hàm công bố của `van-chuyen`, hàm lọc người nhận | lát 3 | có (quyền đọc) | có — **gộp một người kiểm cho lát 3–5** nếu phát hành cùng lần |
 | 6 | **Giao diện tài xế:** nút Từ chối, màn báo bận; màn văn phòng: lịch bận, nhãn "đã từ chối" | bản vẽ | không | gom kiểm giao diện |
 
 Lát 1–2 làm được **trong lúc 1b đang soạn**. Lát 3–5 có thể gộp thành một lần phát hành.
@@ -611,7 +635,8 @@ Mỗi hàng rào mới có một dòng ở `docs/SO-HANG-RAO.md`, kèm ngày **t
    - (d) tài khoản vai bên ngoài chèn `DRIVER_PARTNER` → được;
    - (e) tài khoản vai bên ngoài chèn `SALES` → ABORT (LC-1 cũ vẫn chặn);
    - (f) tài khoản vai bên ngoài chèn `DRIVER` → ABORT.
-5. Lớp máy chủ: `roleAssignmentProblem` và đường quản trị cũ (`POST /api/staff` không vai, `PUT /api/staff/:id/permissions`) trả 400 cho mỗi ca ở mục 4 (e2e).
+5. Lớp máy chủ: `roleAssignmentProblem` và đường quản trị cũ (`POST /api/staff` không vai, `PUT /api/staff/:id/permissions`) trả 400 cho mỗi ca ở mục 4 (e2e). Gán cùng lúc "Tài xế taxi" + "Tài xế đối tác" → 400 với câu dễ hiểu, **trước** khi chạm CSDL.
+5b. **Đổi vai hợp lệ không bị trigger chặn nhầm:** tài khoản đang "Tài xế taxi" (`PARTNER`) đổi sang "Tài xế đối tác" (`DRIVER_PARTNER`) bằng màn Quản lý tài khoản → thành công; sau đó đúng một quyền mở là `DRIVER_PARTNER`. Kèm ca ngược lại. (Kiểm thứ tự "đóng cũ → mở mới" trong lô đổi quyền của `staff`; trigger chỉ đếm dòng `valid_to_at IS NULL`.)
 6. `src/shared/thong-bao.test.ts`:
    - `laNoiBo(["DRIVER_PARTNER"]) = false`;
    - `laNoiBo(["DRIVER"]) = true`;
@@ -651,7 +676,7 @@ Mỗi hàng rào mới có một dòng ở `docs/SO-HANG-RAO.md`, kèm ngày **t
     - (nếu B3.3 lùi về máy chủ: dòng sổ hàng rào ghi "lệch có chủ ý 5.1, dựa vào kỷ luật + câu kiểm định kỳ").
 17. Báo bận:
     - chồng chuyến đang xếp → 409 **và** chèn thẳng SQL → ABORT;
-    - văn phòng xếp tài xế/xe vào khung bận → 409 **và** ABORT;
+    - văn phòng xếp tài xế vào khung bận → 409 **và** ABORT;
     - sửa giờ hoặc xoá khung → ABORT;
     - tài xế xem khung người khác → 404.
 18. Thông báo (hàm thuần, mọi tập con quyền như NT-3):
@@ -660,7 +685,7 @@ Mỗi hàng rào mới có một dòng ở `docs/SO-HANG-RAO.md`, kèm ngày **t
     - tin Từ chối tới mọi người có ô điều xe `any`, không tới tài xế khác;
     - tài xế đối tác không bao giờ nhận `tat-ca` / `noi-bo`.
 19. Bài quét nhật ký (khuôn `src/giay-to-khong-lo-so.test.ts`): chạy mọi route mới của lượt II với dữ liệu mẫu (tên khách, năm sinh, SĐT, số bằng lái), rồi quét `audit_log.detail`. Không có dãy ≥ 8 chữ số, không có tên hay năm sinh mẫu.
-20. `src/architecture.test.ts`: cạnh `thongbao → van-chuyen` đã khai; không vòng; SQL của `thongbao` chỉ đọc view `v_vc_*`, `v_aud_*`, `v_stf_*`.
+20. `src/architecture.test.ts` **không đổi `ALLOWED_EDGES`**: `thongbao` không import `van-chuyen`, không đọc `v_vc_*`; `van-chuyen` không import `thongbao`; vẫn không vòng. Test hợp đồng hai hàm tiêm: route Từ chối gọi `baoThayDoiChuyen` đúng một lần **sau** lô thành công, không gọi khi 409.
 
 ---
 
@@ -674,11 +699,11 @@ Mỗi hàng rào mới có một dòng ở `docs/SO-HANG-RAO.md`, kèm ngày **t
 | ADR-0018 điều 5 (LC-1) | tập quyền của tài khoản bên ngoài | D2 |
 | ADR-0018 điều 9 | "mọi thực thể bên ngoài là bên đặt" | D2 |
 | ADR-0034 điều 6 | nghĩa `noi-bo` / "Toàn công ty" | D2 |
-| ADR-0034 điều 5 | danh sách cạnh của `thongbao` | D5 |
-| ADR-0040 D1 | chủ xe chỉ là công ty chủ; "không module nào import `van-chuyen`"; một hàm công bố giấy tờ | D1, D5 |
+| ADR-0034 điều 1, 5 | nguồn tin thứ hai (sự kiện chuyến); `thongbao` nhận thêm một hàm tiêm. **Không** thêm cạnh | D5 |
+| ADR-0040 D1 | chủ xe chỉ là công ty chủ (→ thêm nhà xe, quyết định mới theo lời chủ 28/9 tối); một hàm công bố giấy tờ (mở rộng); `van-chuyen` thêm hàm công bố cho gốc lắp ráp. Câu "không module nào import `van-chuyen`" **giữ nguyên** | D1, D5 |
 | ADR-0040 D2 | ô "xem giấy tờ của mình" chỉ cho nội bộ | D2 |
 | ADR-0040 D3 | mã vai cũ `DRIVER` "lượt 2 quyết" | D1 |
-| ADR-0002 | đồ thị module (cạnh mới) | D5 |
+| ADR-0007 điều 4(b) | khuôn hàm tiêm từ gốc lắp ráp: thêm hai hàm (`baoThayDoiChuyen`, `chuyenLienQuan`). Đồ thị ADR-0002 **không đổi** | D5 |
 | ADR-0019 điều 1 | không đổi danh sách cổng; chỉ thêm khẳng định khoá. Nếu 1b lập cổng tài xế thì **1b** sửa điều này | D2 |
 
 **Không đụng, chỉ dùng làm khuôn:**
@@ -694,7 +719,7 @@ Mỗi hàng rào mới có một dòng ở `docs/SO-HANG-RAO.md`, kèm ngày **t
 5. **Tài xế đối tác nghỉ hợp tác:** đóng vai "Tài xế đối tác" làm mất quyền (cơ chế ADR-0018 điều 3); ngưng tài khoản tắt mọi máy nhận thông báo (ADR-0036/0046). Quan hệ "Tài xế của" đóng riêng. Chuyến tương lai đã xếp cho họ bị bắt ở câu kiểm B1.5, **không tự gỡ**.
 6. **Người nhận tin Từ chối** = mọi người có ô điều xe `any`, không riêng người đã xếp. Nhóm điều xe nhỏ; tin Từ chối cần người xử lý ngay. Chủ bác thì đổi thành "người đã xếp tài xế lần cuối".
 7. **Không có tin "quan trọng"** (rung trong giờ yên lặng) cho chuyến đổi sát giờ ở lượt 2. Nếu chủ muốn, đó là một dòng luật trong D5.
-8. **Khung bận của xe công ty** và trạng thái "bảo dưỡng" của xe (1a) trùng nghĩa một phần. Đề xuất: trạng thái "bảo dưỡng" = không nhận chuyến vô thời hạn; khung bận = khoảng có đầu có cuối. Hai thứ cùng chặn xếp chuyến. Kế hoạch ghi rõ cho người thi công.
+8. **Đã cắt khỏi lượt 2 cho gọn:** khung bận của **xe** (trùng một phần với trạng thái "bảo dưỡng" của lượt 1a), văn phòng ghi thay hay rút thay khung bận của tài xế. Làm sau được bằng migration chỉ-thêm (thêm cột xe có `CHECK` đúng một đối tượng; thêm ô "quản lý lịch bận").
 
 **Giới hạn đã biết của bản đề xuất:**
 - Chưa có người kiểm độc lập. Đề xuất chạm quyền và dữ liệu nên phải có người kiểm trước khi trình chủ (`CLAUDE.md` §3).
