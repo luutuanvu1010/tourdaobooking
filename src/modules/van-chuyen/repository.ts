@@ -146,6 +146,25 @@ const LIST_VEHICLE_DOC_TYPES = defineSql(
 export async function listVehicleDocumentTypes(db: D1Database): Promise<VehicleDocTypeRow[]> {
   return (await db.prepare(LIST_VEHICLE_DOC_TYPES).all<VehicleDocTypeRow>()).results;
 }
+// Khuôn loc_location (Ruling R7): dấu vết, active thay cho xoá, khoá lạc quan updated_at; khoá chính là mã (không sửa được sau khi tạo).
+const FIND_VEHICLE_DOC_TYPE = defineSql("van-chuyen", "find_vehicle_document_type", "SELECT code, name, has_expiry, sort_order, active, updated_at FROM vc_vehicle_document_type WHERE code = ?1");
+const INSERT_VEHICLE_DOC_TYPE = defineSql(
+  "van-chuyen",
+  "insert_vehicle_document_type",
+  `INSERT INTO vc_vehicle_document_type (code, name, has_expiry, sort_order, active, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?5, ?6)`,
+);
+const UPDATE_VEHICLE_DOC_TYPE = defineSql(
+  "van-chuyen",
+  "update_vehicle_document_type",
+  "UPDATE vc_vehicle_document_type SET name = ?2, has_expiry = ?3, sort_order = ?4, active = ?5, updated_at = ?6, updated_by = ?7 WHERE code = ?1 AND updated_at = ?8",
+);
+export const findVehicleDocumentType = (db: D1Database, code: string): Promise<VehicleDocTypeRow | null> => db.prepare(FIND_VEHICLE_DOC_TYPE).bind(code).first<VehicleDocTypeRow>();
+export const insertVehicleDocTypeStatement = (db: D1Database, t: { code: string; name: string; hasExpiry: boolean; sortOrder: number }, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_VEHICLE_DOC_TYPE).bind(t.code, t.name, t.hasExpiry ? 1 : 0, t.sortOrder, at, actorId);
+export const updateVehicleDocTypeStatement = (
+  db: D1Database, code: string, t: { name: string; hasExpiry: boolean; sortOrder: number; active: boolean; expectedUpdatedAt: string }, actorId: string, at: string,
+): D1PreparedStatement => db.prepare(UPDATE_VEHICLE_DOC_TYPE).bind(code, t.name, t.hasExpiry ? 1 : 0, t.sortOrder, t.active ? 1 : 0, at, actorId, t.expectedUpdatedAt);
 
 // ---- Chính sách ngưỡng "sắp hết hạn" (dòng có ngày hiệu lực — Hiến chương 5.2) --------------------------------------------------------------------------
 // Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
@@ -154,3 +173,11 @@ const CURRENT_WARN_DAYS = defineSql("van-chuyen", "current_warn_days", "SELECT w
 export async function currentWarnDays(db: D1Database, nowIso: string): Promise<number> {
   return (await db.prepare(CURRENT_WARN_DAYS).bind(nowIso).first<{ warn_days: number }>())?.warn_days ?? 30;
 }
+// Đổi ngưỡng = CHÈN dòng mới có hiệu lực NGAY (valid_from_at = bây giờ — giả định G10); không sửa, không xoá dòng cũ (trigger *_append_only giữ ở CSDL).
+const INSERT_POLICY = defineSql(
+  "van-chuyen",
+  "insert_expiry_policy",
+  "INSERT INTO vc_expiry_policy (id, warn_days, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?3, ?4, ?3, ?4)",
+);
+export const insertPolicyStatement = (db: D1Database, id: string, warnDays: number, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(INSERT_POLICY).bind(id, warnDays, at, actorId);

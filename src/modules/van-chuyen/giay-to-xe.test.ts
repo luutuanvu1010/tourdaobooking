@@ -93,6 +93,7 @@ test("sửa sai: dòng cũ → 409 document_not_current; 'Nhập sai nơi cấp'
     assert.equal(r.status, 400, `${reason}: ${r.text}`);
   }
   const moc = dong(w, d2).updated_at;
+  await new Promise((res) => setTimeout(res, 5)); // khoá lạc quan so mốc theo mili-giây: lần sửa đầu phải mang mốc KHÁC mốc tạo
   r = await suaSai(w, ADM, xe, d2, { reason: "SAI_NGAY_HET_HAN", value: ngay(390), expectedUpdatedAt: moc });
   assert.equal(r.status, 200, r.text);
   assert.equal(nhatKyCuoi(w, "vehicle_document_corrected").detail, `xe 79B-012.34: Kiểm định: Nhập sai ngày hết hạn (${ngay(385)} → ${ngay(390)})`);

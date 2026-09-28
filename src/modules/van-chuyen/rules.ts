@@ -205,3 +205,39 @@ export function chiTietNhatKyXe(bienSo: string, v: { loai: string; hetHan?: stri
   if (v.giaHan) return `${dau}: gia hạn, hết hạn ${ngay(v.truoc)} → ${ngay(v.sau)}`;
   return `${dau}, ${v.hetHan && isISODate(v.hetHan) ? `hết hạn ${v.hetHan}` : "không hạn"}`;
 }
+
+// ---- Ngưỡng "sắp hết hạn" và danh sách gộp (Task A15) ------------------------------------------------------------------------------------------------------
+/** Thân POST /api/van-chuyen/nguong-het-han — `{ warnDays }`: số nguyên 1–365 (khớp CHECK của vc_expiry_policy). */
+export function kiemNguong(body: Record<string, unknown> | null): Result<number> {
+  const v = body?.warnDays;
+  return typeof v === "number" && Number.isInteger(v) && v >= 1 && v <= 365 ? { ok: true, value: v } : fail("Số ngày nhắc trước là số nguyên từ 1 đến 365.");
+}
+
+export interface DongSapHetHan {
+  kind: "vehicle" | "person";
+  targetId: string;
+  label: string;
+  typeName: string;
+  className: string | null;
+  expiryDate: string;
+  daysLeft: number;
+  level: "soon" | "expired";
+}
+/**
+ * Gộp giấy tờ xe (xe chưa ngừng) và giấy tờ tài xế (hàm công bố của parties — KHÔNG số) thành MỘT danh sách, xếp theo ngày hết hạn rồi nhãn. Đầu vào đã lọc
+ * "hạn ≤ hôm nay + ngưỡng" ở câu SQL; `level` = "expired" khi đã quá hạn.
+ */
+export function gopSapHetHan(
+  xe: readonly { vehicleId: string; plateNumber: string; vehicleName: string; typeName: string; expiryDate: string }[],
+  nguoi: readonly { partyId: string; displayName: string; typeName: string; className: string | null; expiryDate: string }[],
+  homNay: string,
+): DongSapHetHan[] {
+  const dong = (kind: "vehicle" | "person", targetId: string, label: string, typeName: string, className: string | null, expiryDate: string): DongSapHetHan => {
+    const daysLeft = soNgayConLai(expiryDate, homNay);
+    return { kind, targetId, label, typeName, className, expiryDate, daysLeft, level: daysLeft < 0 ? "expired" : "soon" };
+  };
+  return [
+    ...xe.map((g) => dong("vehicle", g.vehicleId, `${g.plateNumber} · ${g.vehicleName}`, g.typeName, null, g.expiryDate)),
+    ...nguoi.map((g) => dong("person", g.partyId, g.displayName, g.typeName, g.className, g.expiryDate)),
+  ].sort((a, b) => (a.expiryDate < b.expiryDate ? -1 : a.expiryDate > b.expiryDate ? 1 : a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
+}

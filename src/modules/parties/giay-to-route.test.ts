@@ -420,6 +420,7 @@ const hangMoi = (w: any, as: string, body: unknown) => w.call("POST", "/api/part
 const suaHang = (w: any, as: string, code: string, body: unknown) => w.call("PUT", `/api/parties/license-classes/${code}`, { as, body });
 const mocLoai = (w: any, code: string): string => w.q("SELECT updated_at FROM pty_person_document_type WHERE code = ?", code)[0].updated_at;
 const mocHang = (w: any, code: string): string => w.q("SELECT updated_at FROM pty_license_class WHERE code = ?", code)[0].updated_at;
+const doiMiliGiay = () => new Promise((r) => setTimeout(r, 5));
 const nhatKyDanhMuc = (w: any): string[] => w.q("SELECT detail FROM audit_log WHERE action = 'party_document_catalog_changed' ORDER BY rowid").map((r: any) => r.detail);
 
 test("route 8–11 quyền: Bán hàng, Kế toán, Hướng dẫn viên, tài xế → 403 ở cổng quản trị; không ghi, không nhật ký", async () => {
@@ -451,6 +452,7 @@ test("route 8, 9 loại giấy tờ: thêm → 201 (mã trùng 409 code_taken, m
   assert.equal(r.json.error.code, "code_taken");
   assert.equal((await loaiMoi(w, ADM, { code: "the hdv", name: "Sai" })).status, 400);
   const moc = mocLoai(w, "THE_HDV");
+  await doiMiliGiay(); // khoá lạc quan so mốc theo mili-giây: lần sửa đầu phải mang mốc KHÁC mốc tạo
   r = await suaLoai(w, ADM, "THE_HDV", { name: "Thẻ HDV", hasExpiry: true, sortOrder: 6, active: true, expectedUpdatedAt: moc });
   assert.equal(r.status, 200, r.text);
   r = await suaLoai(w, ADM, "THE_HDV", { name: "Thẻ HDV cũ", hasExpiry: true, sortOrder: 6, active: true, expectedUpdatedAt: moc });
@@ -483,6 +485,7 @@ test("route 10, 11 hạng: thêm → 201 (trùng 409 code_taken); sửa có mố
   assert.equal((await hangMoi(w, ADM, { code: "C1", name: "Trùng" })).json.error.code, "code_taken");
   assert.equal((await hangMoi(w, ADM, { code: "c1", name: "Sai" })).status, 400);
   const moc = mocHang(w, "D1");
+  await doiMiliGiay();
   r = await suaHang(w, ADM, "D1", { name: "Hạng D1", sortOrder: 2, active: false, expectedUpdatedAt: moc });
   assert.equal(r.status, 200, r.text);
   assert.equal((await suaHang(w, ADM, "D1", { name: "Hạng D1", sortOrder: 2, active: true, expectedUpdatedAt: moc })).json.error.code, "stale");

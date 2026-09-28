@@ -677,6 +677,23 @@ export interface VehicleCreateRequest {
   status?: "active" | "maintenance";
   validFrom?: string;
 }
+/** GET /api/van-chuyen/meta — danh mục loại giấy tờ xe (cả loại đã ngưng, để hiện đúng tên dòng cũ) + ngưỡng "sắp hết hạn" đang hiệu lực (số ngày). */
+export interface VanChuyenMetaResponse { documentTypes: DocumentTypeDto[]; warnDays: number }
+/** Một dòng "giấy tờ sắp hết hạn" (xe hoặc tài xế) — KHÔNG có số giấy tờ (ADR-0040 D1, D2). */
+export interface ExpiringItemDto {
+  kind: "vehicle" | "person";
+  /** id xe hoặc id hồ sơ người (bấm dòng mở chi tiết xe / hồ sơ ở Danh bạ). */
+  targetId: string;
+  /** Xe: "biển số · tên xe"; người: tên hiển thị. */
+  label: string;
+  typeName: string;
+  className: string | null;
+  expiryDate: string;
+  daysLeft: number;
+  level: "soon" | "expired";
+}
+/** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
+export interface ExpiringListResponse { warnDays: number; count: number; items: ExpiringItemDto[] }
 /** Thân PUT /api/van-chuyen/xe/:id — đủ trường + khoá lạc quan. "Ngừng dùng" = status "retired"; "Dùng lại xe" = status "active"/"maintenance" (R15). */
 export interface VehicleUpdateRequest {
   plateNumber: string;

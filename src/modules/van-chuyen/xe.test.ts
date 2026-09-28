@@ -140,6 +140,7 @@ test("sửa xe: đổi biển sang biển của xe khác chưa ngừng → 409 v
   r = await suaXe(w, ADM, b, thanSua(w, b, { chassisNumber: "RL4GA3FV0M1027734" }));
   assert.equal(r.json.error.code, "vehicle_chassis_taken");
   const cuMoc = thanSua(w, a);
+  await new Promise((res) => setTimeout(res, 5)); // khoá lạc quan so mốc theo mili-giây: lần sửa đầu phải mang mốc KHÁC mốc tạo
   assert.equal((await suaXe(w, ADM, a, { ...cuMoc, name: "Ford Transit 16 chỗ", passengerCapacity: 15 })).status, 200);
   r = await suaXe(w, ADM, a, { ...cuMoc, name: "Tên cũ" });
   assert.equal(r.status, 409, r.text);

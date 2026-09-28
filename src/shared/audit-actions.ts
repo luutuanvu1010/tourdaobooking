@@ -61,6 +61,8 @@ export const AUDIT_ACTIONS = {
   vehicle_document_added: { label: "Thêm giấy tờ xe", group: "vehicle" },
   vehicle_document_renewed: { label: "Gia hạn giấy tờ xe", group: "vehicle" },
   vehicle_document_corrected: { label: "Sửa sai giấy tờ xe", group: "vehicle" },
+  vehicle_document_type_changed: { label: "Sửa danh mục loại giấy tờ xe", group: "vehicle" },
+  expiry_policy_changed: { label: "Đổi mốc nhắc giấy tờ sắp hết hạn", group: "vehicle" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

@@ -3,19 +3,20 @@
 // expiringDriverDocuments — giấy tờ tài xế, KHÔNG số) và audit (auditStatement). KHÔNG module nào import van-chuyen (không có gì xuất ra ngoài ngoài AppModule).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
-import { ownerCompany } from "../parties";
-import type { VehicleDocumentDto, VehicleDto, VehicleListResponse, VehicleResponse } from "../../shared/contracts";
-import { TRANG_THAI_XE, soNgayConLai } from "../../shared/giay-to";
+import { expiringDriverDocuments, ownerCompany } from "../parties";
+import type { ExpiringListResponse, VanChuyenMetaResponse, VehicleDocumentDto, VehicleDto, VehicleListResponse, VehicleResponse } from "../../shared/contracts";
+import { MA_LOAI_GIAY_TO_RE, TRANG_THAI_XE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { addDays, vnToday } from "../../shared/vn-date";
 import {
-  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, insertVehicleDocStatement, insertVehicleStatement, listVehicleDocumentTypes,
-  listVehicleDocuments, listVehicles, plateHolder, updateVehicleDocStatement, updateVehicleStatement, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
+  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, findVehicleDocumentType, insertPolicyStatement, insertVehicleDocStatement,
+  insertVehicleDocTypeStatement, insertVehicleStatement, listVehicleDocumentTypes, listVehicleDocuments, listVehicles, plateHolder, updateVehicleDocStatement,
+  updateVehicleDocTypeStatement, updateVehicleStatement, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
 } from "./repository";
 import {
-  CAU_BIEN_TRUNG, CAU_KHUNG_TRUNG, canhBaoXe, chiTietNhatKyXe, kiemGiaHanXe, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocXe,
+  CAU_BIEN_TRUNG, CAU_KHUNG_TRUNG, canhBaoXe, chiTietNhatKyXe, gopSapHetHan, kiemGiaHanXe, kiemNguong, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocXe,
   type CanhBaoXe, type DanhMucGiayToXe, type XeNhap, type XeSua,
 } from "./rules";
 
@@ -39,6 +40,16 @@ async function danhMucXe(db: D1Database, homNay: string): Promise<{ dm: DanhMucG
     dm: { loai: new Map(types.map((t) => [t.code, { hasExpiry: t.has_expiry === 1, active: t.active === 1 }])), homNay },
     tenLoai: (c) => types.find((t) => t.code === c)?.name ?? c,
   };
+}
+
+const ADMIN_ONLY = () => error(403, "forbidden", "Chỉ quản trị viên được thực hiện thao tác này.");
+/** Danh mục loại giấy tờ xe (cả loại đã ngưng) + ngưỡng đang hiệu lực. */
+async function respondMeta(db: D1Database, status = 200): Promise<Response> {
+  const [types, warnDays] = await Promise.all([listVehicleDocumentTypes(db), currentWarnDays(db, new Date().toISOString())]);
+  return json({
+    documentTypes: types.map((t) => ({ code: t.code, name: t.name, hasExpiry: t.has_expiry === 1, sortOrder: t.sort_order, active: t.active === 1, updatedAt: t.updated_at })),
+    warnDays,
+  } satisfies VanChuyenMetaResponse, status);
 }
 
 function dbProblem(e: unknown): Response | null {
@@ -277,6 +288,80 @@ export const vanChuyenModule: AppModule = {
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return DOC_STALE();
       return respondVehicle(env.DB, id);
+    }),
+
+    // ---- Danh mục loại giấy tờ xe + ngưỡng "sắp hết hạn" + danh sách giấy tờ sắp hết hạn (Task A15) ---------------------------------------------------------
+    route("GET", "/api/van-chuyen/meta", "office", async ({ env, staff }) => {
+      // Người quản lý xe (chọn loại khi thêm giấy tờ) và người sửa danh mục (admin.manage).
+      if (!can(staff, "vehicle.manage") && !can(staff, "admin.manage")) return FORBIDDEN();
+      return respondMeta(env.DB);
+    }),
+
+    // Danh mục loại giấy tờ xe — Quản trị sửa (ô admin.manage viết thẳng — luật (4) của hàng rào 2); khuôn loc_location (Ruling R7). Luật kiểm chung với loại
+    // giấy tờ của người (src/shared/giay-to.ts). Nhật ký cùng lô, chỉ mã + tên.
+    route("POST", "/api/van-chuyen/loai-giay-to-xe", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const parsed = kiemLoaiGiayToMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      try {
+        await env.DB.batch([
+          insertVehicleDocTypeStatement(env.DB, v, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_document_type_changed", at, detail: `loại giấy tờ xe: ${v.code} — ${v.name}` }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: vc_vehicle_document_type\.code/.test(e.message)) return error(409, "code_taken", "Mã này đã có trong danh mục.");
+        throw e;
+      }
+      return respondMeta(env.DB, 201);
+    }),
+
+    route("PUT", "/api/van-chuyen/loai-giay-to-xe/:code", "admin", async ({ request, env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const code = params.code ?? "";
+      if (!MA_LOAI_GIAY_TO_RE.test(code) || !(await findVehicleDocumentType(env.DB, code))) return error(404, "not_found", "Không tìm thấy loại giấy tờ xe.");
+      const parsed = kiemSuaLoaiGiayTo(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      const results = await env.DB.batch([
+        updateVehicleDocTypeStatement(env.DB, code, v, staff.id, at),
+        auditStatement(env.DB, { staffId: staff.id, action: "vehicle_document_type_changed", at, detail: `loại giấy tờ xe: ${code} — ${v.name}` }, "changes() > 0"),
+      ]);
+      if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "stale", "Danh mục vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+      return respondMeta(env.DB);
+    }),
+
+    // Ngưỡng "sắp hết hạn" (ADR-0040 D1) — chính sách có ngày hiệu lực, CHỈ Toàn quyền (ô settings.ops viết thẳng ở đầu thân). Đổi = chèn dòng mới, hiệu lực ngay.
+    route("POST", "/api/van-chuyen/nguong-het-han", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "settings.ops")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống đổi được mốc nhắc giấy tờ sắp hết hạn.");
+      const parsed = kiemNguong(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const now = new Date();
+      const at = now.toISOString();
+      const cu = await currentWarnDays(env.DB, at);
+      await env.DB.batch([
+        insertPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "expiry_policy_changed", at, detail: `mốc nhắc giấy tờ sắp hết hạn: ${cu} → ${parsed.value} ngày` }),
+      ]);
+      return respondMeta(env.DB);
+    }),
+
+    route("GET", "/api/van-chuyen/sap-het-han", "office", async ({ env, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const now = new Date();
+      const today = vnToday(now);
+      const warnDays = await currentWarnDays(env.DB, now.toISOString());
+      const until = addDays(today, warnDays);
+      // Giấy tờ xe (xe chưa ngừng, dòng hiện hành) + giấy tờ tài xế qua hàm công bố của parties (KHÔNG số, không nơi cấp, không id giấy tờ).
+      const [xe, nguoi] = await Promise.all([expiringVehicleDocuments(env.DB, until), expiringDriverDocuments(env.DB, { today, until })]);
+      const items = gopSapHetHan(
+        xe.map((r) => ({ vehicleId: r.vehicle_id, plateNumber: r.plate_number, vehicleName: r.vehicle_name, typeName: r.type_name, expiryDate: r.expiry_date })),
+        nguoi,
+        today,
+      );
+      return json({ warnDays, count: items.length, items } satisfies ExpiringListResponse);
     }),
   ],
 };
