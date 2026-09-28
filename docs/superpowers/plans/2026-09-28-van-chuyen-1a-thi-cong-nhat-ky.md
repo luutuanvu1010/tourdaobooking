@@ -7,7 +7,7 @@
   - danh sách màn `docs/superpowers/specs/2026-09-28-van-chuyen-1a-man-hinh-can-ve.md`.
 - **Nhánh thi công:** `worktree-agent-a9cf548897a76b7f7` (worktree `.claude/worktrees/agent-a9cf548897a76b7f7`). Tách từ `origin/main` @ `c276848` (bản 1.34), rồi gộp theo lệnh điều phối: `worktree-agent-ac0436b2bbf204613` @ `0d68af9` (kế hoạch, fast-forward) và `dac-ta-van-chuyen` @ `644a8ee` (ADR-0040 accepted + giữ chỗ migration 0031–0033) → đỉnh `3159fed`. Mã và migration giống hệt `c276848`.
 - **Cách thi công:** executing-plans — một phiên thi công (vai THI CÔNG do điều phối giao 2026-09-28) tự làm Task A0 → A23, không giao tiếp subagent. Dừng ở A24 (mốc kiểm giữa chừng) và báo điều phối.
-- **Trạng thái:** ĐANG THI CÔNG PHẦN A. Phần B **chờ bản vẽ** Claude Design của chủ. Chưa push, chưa gộp, chưa lên production.
+- **Trạng thái (2026-09-28, đỉnh nhánh sau commit này):** PHẦN A XONG TỚI TASK A23 (Task A19 hoãn sang Phần B — **chờ điều phối xác nhận**); **DỪNG Ở A24** — chờ điều phối quyết có giao kiểm độc lập giữa chừng hay không. Phần B làm SONG SONG ở nhánh riêng, gộp nhánh này định kỳ (Ruling R16). Chưa push, chưa gộp `main`, chưa lên production.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả của người kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
@@ -36,8 +36,8 @@
 | Q1 | Quản trị có được nhập / xem đủ số giấy tờ của tài khoản cấp trên | **Không** — Ruling R8 của điều phối (2026-09-28): áp luật cấp bậc hiện có (`mayManage` / ADR-0042) | Task A8, A9 |
 | Q2 | Thêm xe có bắt buộc số khung | **Bắt buộc ở máy chủ; cột CSDL để trống được** — Ruling R9 của điều phối (2026-09-28) | Task A13 |
 | Đề xuất luật | Duyệt `docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md` (mục 1–5; 2e tuỳ chọn) | _(điền)_ | Task K3 |
-| Truy vấn chỉ đọc (Ruling R1; kế hoạch mục 9 bước 4) | Số hồ sơ đang giữ vai "Tài xế" cũ (`DRIVER`) trên production: đang giữ / tổng số dòng | _(điền: hai con số)_ | Task K3 (chỉ để biết; lượt 1a không đổi các dòng đó) |
-| Bản vẽ | Link Claude Design bảy màn | _(điền: link, ngày)_ | Phần B |
+| Truy vấn chỉ đọc (Ruling R1; kế hoạch mục 9 bước 4) | Số hồ sơ đang giữ vai "Tài xế" cũ (`DRIVER`) trên production: đang giữ / tổng số dòng | **chờ chủ chạy** — lệnh chỉ đọc soạn sẵn trong báo cáo Phần A (`npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT (SELECT count(*) FROM pty_party_role WHERE role_type_code = 'DRIVER' AND valid_to_date IS NULL) AS dang_giu_vai_tai_xe_cu, (SELECT count(*) FROM pty_party_role WHERE role_type_code = 'DRIVER') AS tong_so_dong"`); câu `SELECT` đã chạy thử trên D1 local (`--local`, 0 / 0) — cú pháp và tên cột đúng. _(điền: hai con số khi chủ chạy)_ | Task K3 (chỉ để biết; lượt 1a không đổi các dòng đó) |
+| Bản vẽ | Link Claude Design bảy màn | Điều phối báo 2026-09-28 (lúc Task A3): chủ đã vẽ xong 7 màn; bản vẽ ở nhánh `dac-ta-van-chuyen` @ `65dde6a`, thư mục `docs/design/van-chuyen-1a/` (đọc `README.md` ở đó trước) — CHƯA gộp vào nhánh Phần A; yêu cầu máy chủ rút ra từ bản vẽ: Ruling R15 | Phần B |
 
 ## 3. Bảng từng task
 
@@ -68,8 +68,8 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 | A20 | E2E `van-chuyen` (`tests/e2e/van-chuyen.mjs`, 10 bước: tài khoản "Tài xế công ty" qua `POST /api/staff`; cổng 403; vai `DRIVER` cũ 409; giấy tờ người số che / xem đủ số + nhật ký / CCCD trùng / gia hạn chép số / sửa sai dòng cũ 409; xe + R15 dùng lại xe 409 `vehicle_plate_taken`; sắp hết hạn có `count`; ngưỡng Quản trị 403, Toàn quyền 7 → **khôi phục 30 ở `finally`**; nhật ký không số; **lớp CSDL bằng SQL gõ tay trên D1 local**: 6 lệnh bị trigger / chỉ mục chặn). `run.mjs`: đứng sau `roles`, trước `passkey`; `README.md` thêm dòng | (commit A20) | không đổi (e2e không thuộc `npm test`); `npm run test:e2e -- van-chuyen` ⇒ `E2E: 2/2 kịch bản xanh` (kịch bản + `audit-invariants --strict`) | — (kịch bản viết trên mã A1–A18 đã có). Hai lần đỏ đầu do CHÍNH kịch bản, diễn lại không nguyên văn: (1) câu INSERT biển trùng gõ `plate_number` quá ngắn → CHECK độ dài chặn trước chỉ mục ⇒ sửa kịch bản chép `plate_number` + `plate_key` của xe có thật để thử đúng chỉ mục `UNIQUE`; (2) gia hạn GPLX tới ngày xa làm giấy rơi khỏi danh sách sắp hết hạn ⇒ gia hạn tới `vnDate(12)` | 2026-09-28 · ô `vehicle.manage` của ADMIN → `"none"` ⇒ `E2E: 1/2 kịch bản LỖI` · `AssertionError [ERR_ASSERTION]: {"error":{"code":"forbidden","message":"Tài khoản này không quản lý được xe."}}` (`actual: 403`, `expected: 201`, bước 7) → hoàn nguyên (tệp chép lại từ bản sao lưu, không còn khác biệt) | chưa |
 | A21 | Sổ hàng rào: 20 dòng mới ở `docs/SO-HANG-RAO.md` (dòng 104–123, trước "Cách thêm dòng"), mỗi dòng có ngày thấy chặn thật + dòng đỏ nguyên văn từ bảng này + giới hạn | (commit A21 — chỉ `docs/SO-HANG-RAO.md`) | không đổi (chỉ tài liệu) | — | Làm THÊM ở task này, 2026-09-28 (hoàn nguyên mỗi lần): (a) R-PTY-3 bỏ vế `p.party_id <> n.party_id OR` ⇒ `not ok 43 - R-PTY-3 (ADR-0040 D2): …` (`error: 'nối sang người khác'`); (b) R-PTY-3 `HAVING count(*) > 1` → `> 2` ⇒ `not ok 43 …` (`expected: 1 / actual: 0`); (c) R-VC-2 bỏ vế `p.vehicle_id <> n.vehicle_id OR` ⇒ `not ok 46 - R-VC-2 (ADR-0040 D1): …` (`error: 'nối sang xe khác'`); (d) R-VC-2 `> 1` → `> 2` ⇒ `not ok 46 …` (`1 / 0`); (e) R-VC-1 `> 1` → `> 2` ⇒ `not ok 45 - R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — …` (`1 / 0`) → 46/46; (f) Chrome `vai-smoke`: tên vai `DRIVER_INTERNAL` → "Tài xế nội bộ" + `build:web` ⇒ `AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:` (`actual: 'Tài xế nội bộ'`, `expected: 'Tài xế công ty'`) → hoàn nguyên + build lại. Ghi rõ điều CHƯA có: `danh-muc-giay-to-smoke` (A19 hoãn); SQL gõ tay của e2e mới thấy XANH, chưa đột biến riêng trên D1 | chưa |
 | A22 | Tài liệu mô tả + đề xuất luật: `docs/SYSTEM-DESIGN.md` §5 (7 bảng, 2 dòng bất biến, migration 0031–0033, sơ đồ), §7 (109 route, 23 dòng route mới, lời hỏi ô), §8 (cổng, 4 ô mới, cột `DRIVER`, vai 13, vai đã ngưng), §9 (trang đầu tài xế, `giay-to.ts`, `start-page.ts`), §14 (lượt 1b / 2 / để sau), §15 (8 thuật ngữ), §17 (K2, K5, K10, K11, K15); `docs/CHANGE-GUIDE.md` §1 (3 dòng), §2 d (số kế tiếp `0034`, tiền tố `vc_`), §2 e (`row()` tám cột, bước 5 mới), §2 u (mục 6 vai tài xế + vai đã ngưng), công thức mới **y**, §3 (4 dòng), §4 bẫy 49; `tests/e2e/README.md` (A20); đề xuất luật: số dòng đo lại trên `fedffdf`, 4a CHỜ PHẦN B, thêm 4c (`start-page.ts` → `tai-xe-trang-dau-smoke`), 4d (`roles.ts` / `role-picker.ts` → `vai-smoke`, kèm ghi chú sửa kịch bản theo ADR-0042). `npm run dict`: không đổi (sổ dữ liệu đã đủ 7 bảng + module từ A5, A12). KHÔNG sửa `docs/ARCHITECTURE.md`, `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/adr/**` (R14) | (commit A22) | không đổi (chỉ tài liệu) | — | — | chưa |
-| A23 | Kiểm toàn bộ Phần A (tự khai) | — | _(điền)_ | — | — | — |
-| A24 | Kiểm độc lập giữa chừng (khuyến nghị) | — | — | — | — | _(điền hoặc "điều phối không chọn")_ |
+| A23 | Kiểm toàn bộ Phần A (tự khai) — chi tiết mục 7 | (commit cuối Phần A, cùng mục 7) | 1285/1285; tsc 0; `build:web` 0; e2e đủ bộ `24/24 kịch bản xanh`; `tests/audit` 36/36; Chrome: xem mục 7 | — | — | — |
+| A24 | Kiểm độc lập giữa chừng (khuyến nghị) | — | — | — | — | **chờ điều phối quyết** (người thi công dừng ở đây, không tự giao người kiểm — N8) |
 | B0–B8 | Phần B — giao diện theo bản vẽ | _(điền từng task)_ | _(điền)_ | _(điền)_ | _(điền)_ | _(điền)_ |
 | K1 | Nhật ký thay đổi (số bản chốt lúc gộp; tạm 1.35) | _(điền)_ | _(điền)_ | — | — | _(điền)_ |
 
@@ -151,13 +151,17 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
 
 ## 7. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
 
-- `npm test`: _(điền)_ · `npm run typecheck`: _(điền)_ · `npm run build:web`: _(điền)_
-- `npm run db:migrate:local` (D1 đọc được 0031–0033): _(điền đầu ra)_
-- `npm run test:e2e` đủ bộ + `audit-invariants --strict` (có `R-PTY-2..4`, `R-VC-1..2`): _(điền)_
-- `node scripts/audit-invariants.mjs --db local`: _(điền)_
-- `node --test "tests/audit/*.test.mjs"`: _(điền)_
-- Chrome Phần A: `vai-smoke` _(điền)_ · `dot-a-smoke` _(điền)_ · `trang-chu-smoke` _(điền)_ · `dot-c-smoke` _(điền)_ · `danh-muc-giay-to-smoke` _(điền)_
-- Chrome Phần B: _(điền từng kịch bản)_
+Đo 2026-09-28 trên đỉnh nhánh `5f868d7` (mã giống commit cuối; commit cuối chỉ thêm tài liệu). Máy: không có `trien-khai` đang chạy; nhánh Phần B chạy `wrangler dev` / Chrome song song (thư mục D1 tạm riêng).
+
+- `npm test`: **1285/1285** (thoát 0) · `npm run typecheck`: **thoát 0** (ba tsconfig) · `npm run build:web`: **thoát 0**.
+- `npm run db:migrate:local`: `✅ No migrations to apply!` — 0031, 0032, 0033 đã áp lên D1 local ở Task A2, A5, A12 (mỗi lần `✅`).
+- `npm run test:e2e` đủ bộ: **`E2E: 24/24 kịch bản xanh`** (thoát 0; `van-chuyen` đứng sau `roles`, trước `passkey`). So mốc A0 (21/23): `catalog`, `dispatch` nay XANH — do dữ liệu Google Sheet thật (bên ngoài), 1a không chạm hai kịch bản đó; KHÔNG phải "đã sửa". Đuôi `audit-invariants --strict`: "Mọi bất biến đạt, 2 cảnh báo (D1 local, --strict)" — có `R-PTY-2`, `R-PTY-3`, `R-PTY-4`, `R-VC-1`, `R-VC-2` (cả năm ✓). Hai cảnh báo `R-ORD-6a`, `R-ORD-6b` (mức cảnh báo, chuỗi điều chỉnh tiền đơn — không thuộc 1a) **không so được với mốc A0**: lúc đó `dispatch` đỏ sớm ở `tests/e2e/dispatch.mjs:69`, có thể chưa ghi các dòng điều chỉnh.
+- `node scripts/audit-invariants.mjs --db local`: thoát 1 — 28 ✓, 1 ✗ `R-N1-5` ("còn ít nhất một quản trị viên đang hoạt động"): D1 local của worktree có **0 tài khoản** (`SELECT count(*) FROM staff` → 0) — môi trường, không phải 1a (như A17). Năm kiểm mới ✓.
+- `node --test "tests/audit/*.test.mjs"`: **36/36** (thoát 0) — không có ca đỏ nào để phân loại.
+- Chrome Phần A (`OUT=/tmp/vc1a-chrome/<tên>`, không ghi vào repo): `vai-smoke` **7 ✓, thoát 0** (mốc A0 đỏ dòng 34 — kịch bản đã sửa theo ADR-0042 ở A2) · `dot-a-smoke` 8 ✓ rồi đỏ **đúng chỗ mốc A0** (`Error: hết giờ chờ: nhat-ky: thẻ đã dựng xong (máy tính)` — Nhật ký chỉ Toàn quyền, ADR-0038) · `trang-chu-smoke` 11 ✓ rồi đỏ **đúng chỗ mốc A0** (`trang-chu-smoke.mjs:450`, `actual: 1` / `expected: 2`) · `dot-c-smoke` (không có mốc A0) 2 ✓ rồi đỏ `dot-c-smoke.mjs:124` "Tôi (máy tính): thứ tự DOM gốc phải giữ nguyên" — kịch bản kỳ vọng 6 mục, trang có thêm `#push` (mục Thông báo trên điện thoại, ADR-0036) vốn nằm trong `public/account.html` của `c276848`; `web/`, `public/` KHÔNG đổi so `c276848` ⇒ đỏ sẵn có, không thuộc 1a (suy từ mã; **chưa chạy lại trên `c276848`** để thấy bằng máy) · `tai-xe-trang-dau-smoke` **2 ✓, thoát 0** · `danh-muc-giay-to-smoke`: **chưa có** (Task A19 hoãn).
+- `git diff --stat c276848 -- web public`: **rỗng**. `git diff --stat 3159fed -- CLAUDE.md .claude playbook docs/adr src/CLAUDE.md web/CLAUDE.md docs/ARCHITECTURE.md`: **rỗng** (Ruling R14).
+- Lệnh chỉ đọc cho chủ (đếm hồ sơ đang giữ vai `DRIVER` cũ trên production) đã chạy thử NGUYÊN câu `SELECT` trên D1 local bằng `--local`: cú pháp + tên cột đúng (local 0 / 0). Lệnh `--remote` là việc của chủ.
+- Chrome Phần B: _(Phần B điền từng kịch bản)_
 
 ## 8. Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc)
 
@@ -169,7 +173,13 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
 
 ## 9. Chưa kiểm (lúc viết mục này)
 
-- _(điền: ví dụ iPhone thật, tài khoản thật trên production, dữ liệu hồ sơ giữ vai "Tài xế" cũ)_
+- iPhone thật; tài khoản thật trên production.
+- Dữ liệu production: số hồ sơ đang giữ vai hồ sơ cũ `DRIVER` (chủ tự chạy lệnh chỉ đọc — báo cáo Phần A).
+- Giao diện có sẵn tự hiện mã quyền mới "Tài xế" (nhóm nhận ở trang Gửi thông báo, ô chỉnh tay ở bảng chọn vai) — chưa ai thử trên giao diện.
+- Tài khoản lai (Đối tác + quyền nội bộ) ở `GET /api/parties/documents/mine` — câu hỏi cho người kiểm (mục 6).
+- `dot-c-smoke` trên `c276848` (để thấy bằng máy rằng chỗ đỏ `:124` có sẵn).
+- Lớp CSDL của e2e (6 câu SQL gõ tay) mới thấy XANH, chưa đột biến riêng trên D1 (trigger / chỉ mục đã thấy chặn ở bài `node:sqlite` — `docs/SO-HANG-RAO.md`).
+- Toàn bộ Phần B (giao diện theo bản vẽ) và Task A19.
 
 ## 10. Phát hành (chủ dự án tự chạy — Task K3)
 
