@@ -47,6 +47,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0043](ADR-0043-doi-cong-ty-chu-khong-co-luc-trong.md) | **Đổi "công ty chủ"**: Toàn quyền đổi được sang hồ sơ tổ chức khác (gán cho hồ sơ mới thì hồ sơ cũ tự thôi trong cùng câu lệnh), không bao giờ có lúc trống, lịch sử giữ nguyên, ngày bắt đầu luôn là hôm nay. Bốn trigger thay "chỉ mục duy nhất + trigger cấm đóng" của ADR-0024 bổ sung 6.5(ii). "Người liên hệ của" công ty chủ giữ cho Quản trị | hai chiều | **accepted** — chủ dự án trả lời 2026-09-28 (câu 1: "Cho super Admin đổi…"; câu 2: 2A); thi công trong T2b |
 | [0044](ADR-0044-vai-it-cho-tai-khoan-toan-quyen.md) | **Bổ sung ADR-0042:** vai **"IT"** (cùng quyền Giám đốc, chỉ Toàn quyền gán) để mọi người thấy tài khoản chủ là "IT"; giữ tên vai "Giám đốc"; Quản trị vẫn đổi người phụ trách đơn của chủ | hai chiều | **accepted** (chủ, chat 2026-09-28; AI ghi lại) |
 | [0045](ADR-0045-thong-bao-don-khi-xac-nhan.md) | **Sửa ADR-0034 (tin lập đơn):** lưu nháp không báo ai (chỉ còn ở "Tất cả"); **xác nhận** đơn chưa có người phụ trách mới là tin "chờ nhận" — màn hình khoá và thông báo nổi theo cùng luật | hai chiều | **accepted** (chủ, chat 2026-09-28; AI ghi lại) |
+| [0046](ADR-0046-tat-thong-bao-dung-may.md) | **Sửa ADR-0036 điều 6 (tự tắt thông báo điện thoại):** đăng xuất chỉ tắt **đúng máy đó**; đổi vai/quyền **không** tắt; đổi PIN, gỡ Face ID, ngưng tài khoản, đổi SĐT vẫn tắt mọi máy — gốc lỗi "thông báo tự tắt sau mỗi lần phát hành" | hai chiều | **accepted** (chủ, chat 2026-09-28 "Chỉ tắt đúng máy"; AI ghi lại) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -54,7 +55,7 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (hiện không có số nào đang giữ chỗ; số ADR mới kế tiếp là 0046) | | |
+| — | (hiện không có số nào đang giữ chỗ; số ADR mới kế tiếp là 0047) | | |
 
 (0040, 0041, 0042 và 0044 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
