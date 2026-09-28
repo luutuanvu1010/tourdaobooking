@@ -525,6 +525,8 @@ try {
   // Vận chuyển 1a (ADR-0040, bản vẽ 00; Ruling R23 của điều phối 2026-09-28): nhóm QUẢN TRỊ thêm mục cha "Vận chuyển" + hai mục con "Xe", "Sắp hết hạn"
   // (ô vehicle.manage) ⇒ +3. CHỈ cộng phần 1a: từ ADR-0038 mục "Nhật ký" chỉ còn ở Toàn quyền nên Quản trị thiếu 1 mục so với số 11 cũ — ĐỎ SẴN trên main,
   // không do 1a, chưa sửa ở đây (kịch bản còn đỏ sẵn ở :450 trước dòng này).
+  // Tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ dự án 2026-09-28; ô admin.manage): thêm "Loại giấy tờ người" (sau "Địa điểm") + mục con "Loại giấy tờ xe" (dưới
+  // "Vận chuyển") ⇒ +2 ⇒ 16. Cũng CHỈ cộng phần của việc này: số THẬT của Quản trị nay là 15 (= 13 + 2) — con số 16 còn giữ nợ "Nhật ký" (ADR-0038, đỏ sẵn).
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
     return {
@@ -535,7 +537,7 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.equal(navMeasure.linkCount, 14, `Thanh điều hướng dọc (ADMIN) phải có 14 mục (9 mục cũ + "Của tôi" (trước 1.10 tên "Tài khoản") + "Trợ giúp" + "Vận chuyển", "Xe", "Sắp hết hạn" của Vận chuyển 1a) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 16, `Thanh điều hướng dọc (ADMIN) phải có 16 mục (9 mục cũ + "Của tôi" (trước 1.10 tên "Tài khoản") + "Trợ giúp" + "Vận chuyển", "Xe", "Sắp hết hạn" của Vận chuyển 1a + "Loại giấy tờ người", "Loại giấy tờ xe" (tách danh mục giấy tờ 2026-09-28); số THẬT là 15 — thiếu "Nhật ký" là nợ ADR-0038, đỏ sẵn) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -961,7 +963,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, 14, `${at}: thanh bên của ADMIN phải đủ 14 mục (gồm "Trợ giúp" và 3 mục Vận chuyển 1a — xem ghi chú ở bước D) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, 16, `${at}: thanh bên của ADMIN phải đủ 16 mục (gồm "Trợ giúp", 3 mục Vận chuyển 1a và 2 mục tách danh mục giấy tờ 2026-09-28; số THẬT 15 — nợ "Nhật ký" ADR-0038, xem ghi chú ở bước D) — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
