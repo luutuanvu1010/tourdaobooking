@@ -1,7 +1,8 @@
 # ADR-0040 — Phân hệ Vận chuyển, lượt 1a: hồ sơ xe, giấy tờ (xe và người), tài xế là nhân viên có tài khoản, danh sách sắp hết hạn
 
 - **Trạng thái:** **accepted** — chủ dự án duyệt 2026-09-28 trong phiên điều phối. Nguyên văn: *"Duyệt nhưng có điều chỉnh, ở mục 3, tài xế là người lao động trong công ty, giống như bán hàng hay hướng dẫn viên, vẫn có tài khoản đăng nhập để xem cuốc xe của mình. Về giao diện, vẽ trên Claude Design"*.
-  - D1 và D2 duyệt như đề xuất `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md`. Người kiểm độc lập đề xuất đó: ĐẠT CÓ ĐIỀU KIỆN, đã sửa.
+  - D1 duyệt như đề xuất `docs/superpowers/specs/2026-09-27-de-xuat-adr-0040-van-chuyen-luot-1a.md` (người kiểm độc lập đề xuất đó: ĐẠT CÓ ĐIỀU KIỆN, đã sửa).
+  - D2 như đề xuất, **cộng ô thứ ba "xem giấy tờ của chính mình (số che)"**. Ô này do điều phối thêm khi ghi văn bản, không có trong đề xuất. Người kiểm độc lập ADR-0040 phát hiện, và chủ xác nhận phạm vi ngày 2026-09-28: trả lời "Mọi nhân viên" cho câu "quyền xem giấy tờ của chính mình mở cho ai".
   - D3 viết lại theo điều chỉnh của chủ. Phần quyền cụ thể của tài xế ở lượt 1a là điều phối áp nguyên tắc "mặc định từ chối" (Hiến pháp 8.2, 8.5) vào mục đích chủ nêu: chỉ mở đúng phần phục vụ "xem của mình", không mở gì khác.
 - **Ngày:** 2026-09-28   **Loại:** **một chiều** cho tiền tố bảng `vc_` và chủ sở hữu bảng (khó đổi sau khi có dữ liệu); **hai chiều** cho ô quyền và danh mục.
 - **Liên quan:**
