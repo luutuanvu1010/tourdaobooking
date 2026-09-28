@@ -12,7 +12,8 @@ AI (phiên điều phối) kiểm bằng lệnh chỉ đọc lúc 2026-09-28 21:
 - **Worker:** `wrangler deployments list` → mới nhất **673d1843-2310-46e1-b03d-89b358432c1e**, tạo 2026-09-28T14:17:59Z. Mốc lùi: 88993f56-4b18-4eba-bf8a-08693c4d13b0 (1.34). Lùi Worker an toàn về dữ liệu (migration chỉ thêm); dưới mã cũ tài khoản tài xế đăng nhập được nhưng không có quyền nào, vai hiện "chưa gán vai" (kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md` mục 11).
 - **Migration D1:** `0031_vai_quyen_tai_xe`, `0032_giay_to_cua_nguoi`, `0033_van_chuyen_xe` đã áp — `wrangler d1 migrations list --remote` → "No migrations to apply!". **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt (D1 remote)." (có R-PTY-1..4, R-VC-1..2).
 - **AI kiểm công khai (không đăng nhập):** `GET /api/van-chuyen/xe`, `/api/van-chuyen/sap-het-han`, `/api/parties/documents/mine` đều 401.
-- **Chưa kiểm:** thao tác thật bằng tài khoản đã đăng nhập (15 bước thử tay đã gửi chủ, theo kế hoạch mục 9 bước 7); iPhone thật; số hồ sơ còn giữ vai "Tài xế" cũ (truy vấn chỉ đọc chủ tự chạy, chỉ để biết).
+- **Vai "Tài xế" cũ trên production:** chủ tự chạy truy vấn chỉ đọc sau triển khai → đang giữ 0, tổng 0 dòng — không hồ sơ nào cần chuyển; tài xế mới tạo bằng vai "Tài xế công ty".
+- **Chưa kiểm:** thao tác thật bằng tài khoản đã đăng nhập (15 bước thử tay đã gửi chủ, theo kế hoạch mục 9 bước 7); iPhone thật.
 - **Còn mở:** Quản trị ghi / xem đủ số giấy tờ của tài khoản cấp trên — chủ đã chọn "có" rồi hoãn ("Đưa lên bản hiện tại, sửa sau"), `docs/BACKLOG.md` mục 4; nợ nhỏ ở sổ thi công mục 6 (mốc nhắc giấy tờ người cố định 30 ngày, số giấy tờ của xe trong danh sách, bước Chrome cho việc che số khi rời trang); lượt 1b (chuyến xe) chưa bắt đầu.
 
 ## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.34: hồ sơ công ty chủ (T2b — ADR-0024 điều 6, ADR-0043; migration `0030`) ĐÃ LÊN PRODUCTION (2026-09-28 12:00 giờ VN, chủ dự án tự chạy `npm run day-len` rồi `npm run trien-khai`)
