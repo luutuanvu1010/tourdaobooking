@@ -611,3 +611,115 @@ test("R-PTY-1 (ADR-0024 điều 6): đúng một hồ sơ đang mở vai công t
            VALUES ('ptr-thu-hai', 'pty-xa', '${OWNER_COMPANY_ROLE}', '2026-09-21', '${T1}', '${T1}')`);
   assert.equal(violations(db, c), 1, "hai hồ sơ cùng mở vai");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0040 (Vận chuyển 1a, Task A17): giấy tờ của người R-PTY-2..4, xe R-VC-1..2 — lưới THỨ HAI sau trigger/chỉ mục (ca đỏ gỡ trigger/chỉ mục trước rồi chèn
+// dòng vi phạm, như SQL gõ tay trên D1). Mọi số ở đây là số GIẢ.
+// ---------------------------------------------------------------------------------------------------------------------
+let soDong = 0;
+function giayToNguoi(db: DatabaseSync, o: { id?: string; party: string; type?: string; key?: string | null; truoc?: string; huy?: boolean }): string {
+  const id = o.id ?? `gtn-${++soDong}`;
+  const type = o.type ?? "CCCD";
+  const key = o.key === undefined ? `07900000${String(soDong).padStart(4, "0")}` : o.key;
+  db.prepare(
+    `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, expiry_date, previous_id, voided_at, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, '2030-01-01', ?, ?, ?, ?)`,
+  ).run(id, o.party, type, key, key, type === "GPLX" ? "D2" : null, o.truoc ?? null, o.huy ? T1 : null, T1, T1);
+  return id;
+}
+const congTyChu = (db: DatabaseSync): string => (db.prepare(`SELECT party_id FROM pty_party_role WHERE role_type_code = '${OWNER_COMPANY_ROLE}' AND valid_to_date IS NULL`).get() as { party_id: string }).party_id;
+function xe(db: DatabaseSync, id: string, bien: string, trangThai = "active"): void {
+  db.prepare(
+    `INSERT INTO vc_vehicle (id, plate_number, plate_key, name, passenger_capacity, owner_party_id, status, valid_from_date, valid_to_date, created_at, updated_at)
+     VALUES (?, ?, ?, 'Xe thử', 15, ?, ?, '2026-09-01', ?, ?, ?)`,
+  ).run(id, bien, bien, congTyChu(db), trangThai, trangThai === "retired" ? "2026-09-20" : null, T1, T1);
+}
+function giayToXe(db: DatabaseSync, o: { id: string; xe: string; type?: string; truoc?: string; huy?: boolean }): void {
+  db.prepare(`INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, expiry_date, previous_id, voided_at, created_at, updated_at) VALUES (?, ?, ?, '2027-01-01', ?, ?, ?, ?)`)
+    .run(o.id, o.xe, o.type ?? "INSPECTION", o.truoc ?? null, o.huy ? T1 : null, T1, T1);
+}
+
+test("R-PTY-2 (ADR-0040 D2): một số CCCD thuộc đúng một người — khoẻ (khác số; chính người đó gia hạn cùng số; dòng đã huỷ không tính) → 0; hai người cùng số (trigger bị gỡ) → 1", () => {
+  const c = one("R-PTY-2");
+  assert.equal(c.level, "fail");
+  const db = build();
+  const a1 = giayToNguoi(db, { party: "pty-s-an", key: "079888777666" });
+  giayToNguoi(db, { party: "pty-s-an", key: "079888777666", truoc: a1 });
+  giayToNguoi(db, { party: "pty-xa", key: "079888777111" });
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER pty_person_document_cccd_one_person_ins");
+  giayToNguoi(db, { party: "pty-xa", key: "079888777666", huy: true });
+  assert.equal(violations(db, c), 0, "dòng đã huỷ không tính");
+  giayToNguoi(db, { party: "pty-xa", key: "079888777666" });
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-PTY-3 (ADR-0040 D2): dòng gia hạn cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ — khoẻ → 0; nối sai / tách nhánh (trigger, chỉ mục bị gỡ) → vi phạm", () => {
+  const c = one("R-PTY-3");
+  assert.equal(c.level, "fail");
+  let db = build();
+  const a1 = giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null });
+  const a2 = giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null, truoc: a1 });
+  giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null, truoc: a2, huy: true });
+  giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null, truoc: a2 }); // dòng gia hạn nhầm đã huỷ → gia hạn lại hợp lệ
+  assert.equal(violations(db, c), 0);
+  const a3 = giayToNguoi(db, { party: "pty-s-an", type: "TRANSPORT_TRAINING", key: null }); // dòng chưa có dòng gia hạn nào (chỉ mục _next_uq vẫn còn)
+  db.exec("DROP TRIGGER pty_person_document_renew_ins");
+  giayToNguoi(db, { party: "pty-xa", type: "TRANSPORT_TRAINING", key: null, truoc: a3 });
+  assert.ok(violations(db, c) >= 1, "nối sang người khác");
+  db = build();
+  const b1 = giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null });
+  giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null, truoc: b1 });
+  db.exec("DROP INDEX pty_person_document_next_uq");
+  giayToNguoi(db, { party: "pty-s-an", type: "HEALTH_CHECK", key: null, truoc: b1 });
+  assert.equal(violations(db, c), 1, "tách nhánh: hai dòng gia hạn chưa huỷ cùng dòng trước");
+});
+
+test("R-PTY-4 (ADR-0040 D2): nhật ký chứa số giấy tờ của người (viết cách quãng cũng bắt) → 1; chỉ số che '••••7666' → 0; mức warn-unless-strict (nhật ký chỉ-thêm)", () => {
+  const c = one("R-PTY-4");
+  assert.equal(c.level, "warn-unless-strict");
+  assert.match(c.note ?? "", /dữ liệu cá nhân/);
+  const db = build();
+  giayToNguoi(db, { party: "pty-s-an", key: "079888777666" });
+  giayToNguoi(db, { party: "pty-xa", type: "HEALTH_CHECK", key: "SK12" }); // số ngắn (< 8) không dò — tránh báo oan chuỗi ngắn trùng ngẫu nhiên
+  const log = (id: string, detail: string) => db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES (?, 'party_document_added', 'party', 'pty-s-an', ?, ?)").run(id, detail, T1);
+  log("l-1", "Căn cước công dân (CCCD), hết hạn 2030-01-01 · ••••7666");
+  log("l-2", "Khám sức khoẻ SK12");
+  assert.equal(violations(db, c), 0);
+  log("l-3", "Căn cước công dân (CCCD) 079 888.777-666");
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-VC-1 (ADR-0040 D1): biển số không trùng giữa các xe CHƯA NGỪNG — xe đã ngừng giữ biển cũ không tính → 0; hai xe đang dùng cùng biển (chỉ mục bị gỡ) → 1", () => {
+  const c = one("R-VC-1");
+  assert.equal(c.level, "fail");
+  const db = build();
+  xe(db, "xe-cu", "79B01234", "retired");
+  xe(db, "xe-moi", "79B01234");
+  xe(db, "xe-bd", "51F11111", "maintenance");
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP INDEX vc_vehicle_plate_open_uq");
+  xe(db, "xe-trung", "51F11111");
+  assert.equal(violations(db, c), 1, "xe bảo dưỡng vẫn giữ biển");
+});
+
+test("R-VC-2 (ADR-0040 D1): dòng gia hạn giấy tờ xe cùng xe, cùng loại; không tách nhánh — khoẻ → 0; nối sang xe khác / tách nhánh (trigger, chỉ mục bị gỡ) → vi phạm", () => {
+  const c = one("R-VC-2");
+  assert.equal(c.level, "fail");
+  let db = build();
+  xe(db, "xe-a", "79B00001");
+  xe(db, "xe-b", "79B00002");
+  giayToXe(db, { id: "g1", xe: "xe-a" });
+  giayToXe(db, { id: "g2", xe: "xe-a", truoc: "g1" });
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER vc_vehicle_document_renew_ins");
+  giayToXe(db, { id: "g3", xe: "xe-b", truoc: "g2" });
+  assert.ok(violations(db, c) >= 1, "nối sang xe khác");
+  db = build();
+  xe(db, "xe-a", "79B00001");
+  giayToXe(db, { id: "g1", xe: "xe-a" });
+  giayToXe(db, { id: "g2", xe: "xe-a", truoc: "g1" });
+  db.exec("DROP INDEX vc_vehicle_document_next_uq");
+  giayToXe(db, { id: "g2b", xe: "xe-a", truoc: "g1" });
+  assert.equal(violations(db, c), 1, "tách nhánh");
+});

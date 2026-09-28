@@ -57,10 +57,13 @@ test("0024: 11 vai có nhóm đúng; vai cũ mơ hồ ngưng gán mới; vai kh�
     assert.equal(by.get(c)?.role_group, "OTHER", c);
     assert.equal(by.get(c)?.active, 0, `${c} ngưng gán mới`);
   }
-  for (const c of ["CUSTOMER", "BOAT_CAPTAIN", "DRIVER"]) {
+  for (const c of ["CUSTOMER", "BOAT_CAPTAIN"]) {
     assert.equal(by.get(c)?.role_group, "OTHER", c);
     assert.equal(by.get(c)?.active, 1, c);
   }
+  // Ngưng gán mới từ migration *_vai_quyen_tai_xe (ADR-0040 D3, Ruling R1) — tệp này dựng tới migration CUỐI nên thấy trạng thái sau cùng.
+  assert.equal(by.get("DRIVER")?.role_group, "OTHER");
+  assert.equal(by.get("DRIVER")?.active, 0, "DRIVER cũ ngưng gán mới (vai tài xế công ty là DRIVER_INTERNAL)");
 });
 
 test("pty_role_type.role_group: tập đóng, ép bằng CHECK (ADR-0003 điều 3) — sai chữ hoa bị chặn ở CSDL", () => {

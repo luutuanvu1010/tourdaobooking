@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync, type SupportedValueType } from "node:sqlite";
-import { accountRolesOf, openRoleCodesFor, reopenRoleStatement, roleRowOf, roleTypeGroup } from "./repository.ts";
+import { accountRolesOf, openRoleCodesFor, reopenRoleStatement, roleRowOf, roleTypeOf } from "./repository.ts";
 
 const DIR = new URL("../../../migrations/", import.meta.url);
 const AT = "2026-09-24T03:00:00.000Z";
@@ -64,12 +64,14 @@ test("openRoleCodesFor: vai đang mở, gộp theo hồ sơ, một truy vấn", 
   assert.equal((await openRoleCodesFor(db, [])).size, 0);
 });
 
-test("roleTypeGroup / roleRowOf: đọc nhóm của loại vai; nhóm + mã của một dòng vai", async () => {
+test("roleTypeOf / roleRowOf: đọc nhóm + trạng thái 'đang dùng' của loại vai (Ruling R6); nhóm + mã của một dòng vai", async () => {
   const { db } = seed();
-  assert.equal(await roleTypeGroup(db, "SALES_STAFF"), "INTERNAL");
-  assert.equal(await roleTypeGroup(db, "COLLABORATOR"), "EXTERNAL");
-  assert.equal(await roleTypeGroup(db, "CUSTOMER"), "OTHER");
-  assert.equal(await roleTypeGroup(db, "KHONG_CO"), null);
+  assert.deepEqual(await roleTypeOf(db, "SALES_STAFF"), { group: "INTERNAL", active: true });
+  assert.deepEqual(await roleTypeOf(db, "COLLABORATOR"), { group: "EXTERNAL", active: true });
+  assert.deepEqual(await roleTypeOf(db, "CUSTOMER"), { group: "OTHER", active: true });
+  assert.deepEqual(await roleTypeOf(db, "GUIDE"), { group: "OTHER", active: false }, "mã cũ mơ hồ đã ngưng từ 0024");
+  assert.deepEqual(await roleTypeOf(db, "DRIVER"), { group: "OTHER", active: false }, "mã hồ sơ cũ DRIVER ngưng từ migration *_vai_quyen_tai_xe (ADR-0040 D3)");
+  assert.equal(await roleTypeOf(db, "KHONG_CO"), null);
   assert.deepEqual(await roleRowOf(db, "p-a", "r-acc"), { group: "INTERNAL", code: "ACCOUNTANT" });
   assert.equal(await roleRowOf(db, "p-b", "r-acc"), null, "dòng của hồ sơ khác");
 });

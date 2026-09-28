@@ -10,6 +10,7 @@ export const AUDIT_GROUPS = {
   location: "Địa điểm",
   feedback: "Góp ý",
   notice: "Thông báo",
+  vehicle: "Xe", // ADR-0040 D1 (giả định G12): trang Nhật ký không có nhãn đối tượng cho xe — `detail` mở đầu bằng biển số
   system: "Hệ thống",
 } as const;
 
@@ -48,6 +49,20 @@ export const AUDIT_ACTIONS = {
   party_role_added: { label: "Thêm vai trò hồ sơ", group: "party" },
   party_role_ended: { label: "Kết thúc vai trò hồ sơ", group: "party" },
   party_relationship_changed: { label: "Đổi quan hệ hồ sơ", group: "party" },
+  // ADR-0040 D2: giấy tờ của người — `detail` KHÔNG BAO GIỜ chứa số giấy tờ, nơi cấp (chiTietNhatKy của src/modules/parties/giay-to.ts).
+  party_document_added: { label: "Thêm giấy tờ của người", group: "party" },
+  party_document_renewed: { label: "Gia hạn giấy tờ của người", group: "party" },
+  party_document_corrected: { label: "Sửa sai giấy tờ của người", group: "party" },
+  party_document_number_viewed: { label: "Xem đủ số giấy tờ", group: "party" },
+  party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
+  vehicle_created: { label: "Thêm xe", group: "vehicle" },
+  vehicle_updated: { label: "Sửa xe", group: "vehicle" },
+  // Giấy tờ xe — `detail` mở đầu bằng biển số, KHÔNG số giấy tờ (một luật chung với giấy tờ của người — giả định G4).
+  vehicle_document_added: { label: "Thêm giấy tờ xe", group: "vehicle" },
+  vehicle_document_renewed: { label: "Gia hạn giấy tờ xe", group: "vehicle" },
+  vehicle_document_corrected: { label: "Sửa sai giấy tờ xe", group: "vehicle" },
+  vehicle_document_type_changed: { label: "Sửa danh mục loại giấy tờ xe", group: "vehicle" },
+  expiry_policy_changed: { label: "Đổi mốc nhắc giấy tờ sắp hết hạn", group: "vehicle" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

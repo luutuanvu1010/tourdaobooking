@@ -15,9 +15,12 @@ let r = await call(SALES, "GET", "/api/parties/meta");
 assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
 assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
-  "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
-  "HOTEL_RECEPTION", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b
+  "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
+  "HOTEL_RECEPTION", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040
 ]);
+// ADR-0040 D3 (Ruling R1, R12): vai tài khoản "Tài xế công ty" (nhóm Nội bộ); mã vai hồ sơ cũ DRIVER ngưng gán mới (migration *_vai_quyen_tai_xe).
+assert.deepEqual(r.body.roleTypes.find((t) => t.code === "DRIVER_INTERNAL"), { code: "DRIVER_INTERNAL", name: "Tài xế công ty", group: "INTERNAL", active: true });
+assert.equal(r.body.roleTypes.find((t) => t.code === "DRIVER").active, false);
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "SALES_STAFF"), { code: "SALES_STAFF", name: "Nhân viên kinh doanh", group: "INTERNAL", active: true });
 assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);
 // ADR-0024 điều 6 (T2b): vai "Công ty chủ" — nhóm OTHER, ngưng gán thường (active = false): ô "Thêm công việc" chung không liệt kê (Ruling T2 của nhật ký thi công T2b).
@@ -144,18 +147,25 @@ assert.equal(r.body.party.contacts.filter((x) => x.kind === "PHONE" && x.isPrima
 console.log("✓ liên hệ chính tự đặt sau khi đóng liên hệ chính");
 
 // --- vai trò theo nơi: chỉ quản trị viên; trùng đang mở → 409; nơi khác độc lập; đóng lại
-const role = { roleTypeCode: "GUIDE", locationId: vinpearl.id };
+// Loại công việc ĐANG DÙNG (Lái cano): GUIDE đã ngưng từ 0024 và máy chủ từ chối gán mới loại đã ngưng (ADR-0040 D3, Ruling R6 — ca riêng ở dưới).
+const role = { roleTypeCode: "BOAT_CAPTAIN", locationId: vinpearl.id };
 assert.equal((await call(SALES, "POST", `${P(A.id)}/roles`, role)).status, 403);
 r = await call(ADMIN, "POST", `${P(A.id)}/roles`, role);
 assert.equal(r.status, 201, JSON.stringify(r.body));
-const guide = r.body.party.roles.find((x) => x.roleTypeCode === "GUIDE");
-assert.equal(guide.locationName, "Bến cảng Vinpearl"); assert.equal(guide.validTo, null); assert.deepEqual(r.body.party.roleCodes, ["GUIDE"]);
+const guide = r.body.party.roles.find((x) => x.roleTypeCode === "BOAT_CAPTAIN");
+assert.equal(guide.locationName, "Bến cảng Vinpearl"); assert.equal(guide.validTo, null); assert.deepEqual(r.body.party.roleCodes, ["BOAT_CAPTAIN"]);
 r = await call(ADMIN, "POST", `${P(A.id)}/roles`, role);
 assert.equal(r.status, 409); assert.equal(r.body.error.code, "role_overlap");
-assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "GUIDE", locationId: pier.id })).status, 201, "nơi khác độc lập");
-assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "GUIDE", locationId: "00000000-0000-0000-0000-000000000000" })).status, 400, "nơi không tồn tại");
+assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "BOAT_CAPTAIN", locationId: pier.id })).status, 201, "nơi khác độc lập");
+assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "BOAT_CAPTAIN", locationId: "00000000-0000-0000-0000-000000000000" })).status, 400, "nơi không tồn tại");
 assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "KHONG_CO" })).status, 400, "loại vai trò không tồn tại");
 assert.equal((await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: "DRIVER", validFrom: "2026-02-30" })).status, 400);
+// ADR-0040 D3 + Ruling R6: loại công việc đã ngưng (GUIDE, DRIVER cũ…) không gán mới được qua API — 409 role_type_inactive (trước đây chỉ bị ẩn ở giao diện).
+for (const code of ["GUIDE", "DRIVER"]) {
+  const x = await call(ADMIN, "POST", `${P(A.id)}/roles`, { roleTypeCode: code });
+  assert.equal(x.status, 409, `${code}: ${JSON.stringify(x.body)}`);
+  assert.equal(x.body.error.code, "role_type_inactive");
+}
 
 // ADR-0018: vai quyết định quyền đăng nhập không gán/gỡ ở trang Hồ sơ.
 for (const code of ["SALES_STAFF", "COLLABORATOR"]) {
@@ -166,19 +176,19 @@ for (const code of ["SALES_STAFF", "COLLABORATOR"]) {
 console.log("✓ vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên");
 
 // Truy vấn của đợt N1: ai giữ vai HDV ở Bến cảng Vinpearl hôm nay
-r = await call(SALES, "GET", `/api/parties?role=GUIDE&location=${vinpearl.id}`);
+r = await call(SALES, "GET", `/api/parties?role=BOAT_CAPTAIN&location=${vinpearl.id}`);
 assert.deepEqual(r.body.parties.map((p) => p.id), [A.id]);
 assert.equal((await call(SALES, "GET", `/api/parties?role=DRIVER&location=${vinpearl.id}`)).body.parties.length, 0);
 // vai đã kết thúc TRƯỚC hôm nay thì không còn "hôm nay"
-r = await call(ADMIN, "POST", `${P(ORG.id)}/roles`, { roleTypeCode: "GUIDE", locationId: vinpearl.id, validFrom: vnDate(-10) });
+r = await call(ADMIN, "POST", `${P(ORG.id)}/roles`, { roleTypeCode: "BOAT_CAPTAIN", locationId: vinpearl.id, validFrom: vnDate(-10) });
 assert.equal(r.status, 201);
 const past = r.body.party.roles[0];
 r = await call(ADMIN, "POST", `${P(ORG.id)}/roles/${past.id}/end`, { validTo: vnDate(-1) });
 assert.equal(r.status, 200);
-assert.deepEqual((await call(SALES, "GET", `/api/parties?role=GUIDE&location=${vinpearl.id}`)).body.parties.map((p) => p.id), [A.id], "vai đã hết hạn không còn trong kết quả hôm nay");
+assert.deepEqual((await call(SALES, "GET", `/api/parties?role=BOAT_CAPTAIN&location=${vinpearl.id}`)).body.parties.map((p) => p.id), [A.id], "vai đã hết hạn không còn trong kết quả hôm nay");
 assert.equal((await call(ADMIN, "POST", `${P(ORG.id)}/roles/${past.id}/end`, {})).status, 409, "đã đóng");
 assert.equal((await call(SALES, "POST", `${P(A.id)}/roles/${guide.id}/end`, {})).status, 403);
-console.log("✓ vai trò theo nơi + truy vấn HDV @ Bến cảng Vinpearl");
+console.log("✓ vai trò theo nơi + truy vấn Lái cano @ Bến cảng Vinpearl; loại đã ngưng → 409 role_type_inactive");
 
 // --- quan hệ: người liên hệ của đại lý
 const rel = { fromPartyId: A.id, toPartyId: ORG.id, relationshipTypeCode: "CONTACT_OF" };

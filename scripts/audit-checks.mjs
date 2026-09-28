@@ -103,6 +103,51 @@ export const CHECKS = [
     level: "fail",
   },
 
+  // ---- Giấy tờ của người + xe (ADR-0040, Vận chuyển lượt 1a). Migration *_giay_to_cua_nguoi / *_van_chuyen_xe trở lên: D1 chưa áp thì các câu dưới lỗi
+  // "no such table" → script thoát mã 2 (không phải dữ liệu sạch) — `npm run trien-khai` chạy kiểm SAU khi áp migration. Là LƯỚI THỨ HAI sau trigger/chỉ mục
+  // của migration (bắt trường hợp trigger/chỉ mục bị gỡ nhầm hay SQL gõ tay đi vòng).
+  {
+    code: "R-PTY-2",
+    what: "một số CCCD thuộc đúng một người (dòng chưa huỷ)",
+    sql: `SELECT count(*) FROM (SELECT number_key FROM pty_person_document WHERE document_type_code = 'CCCD' AND voided_at IS NULL AND number_key IS NOT NULL
+          GROUP BY number_key HAVING count(DISTINCT party_id) > 1)`,
+    level: "fail",
+  },
+  {
+    code: "R-PTY-3",
+    what: "dòng gia hạn giấy tờ của người cùng người, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ",
+    sql: `SELECT (SELECT count(*) FROM pty_person_document n JOIN pty_person_document p ON p.id = n.previous_id
+                  WHERE p.party_id <> n.party_id OR p.document_type_code <> n.document_type_code)
+          + (SELECT count(*) FROM (SELECT previous_id FROM pty_person_document WHERE previous_id IS NOT NULL AND voided_at IS NULL GROUP BY previous_id HAVING count(*) > 1))`,
+    level: "fail",
+  },
+  // R-PTY-4: nhật ký KHÔNG chứa số giấy tờ của người (ADR-0040 D2). So `detail` đã bỏ khoảng trắng . - / và viết HOA với mọi number_key dài ≥ 8 (số ngắn
+  // hơn dễ trùng ngẫu nhiên với chữ khác). Mức warn-unless-strict: e2e chạy --strict nên ĐỎ; production (npm run trien-khai, không --strict) chỉ cảnh báo —
+  // nhật ký chỉ-thêm, một dòng lỡ ghi không xoá được, "fail" sẽ đỏ vĩnh viễn và chặn mọi lần triển khai sau.
+  {
+    code: "R-PTY-4",
+    what: "nhật ký không chứa số giấy tờ của người (CCCD, bằng lái…)",
+    sql: `SELECT count(*) FROM audit_log a WHERE a.detail IS NOT NULL AND EXISTS (
+            SELECT 1 FROM pty_person_document d WHERE d.number_key IS NOT NULL AND length(d.number_key) >= 8
+              AND instr(upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', '')), d.number_key) > 0)`,
+    level: "warn-unless-strict",
+    note: "nhật ký chỉ-thêm — không gỡ được; báo chủ dự án ngay, đây là dữ liệu cá nhân (số giấy tờ lọt vào nhật ký — tìm route ghi sai)",
+  },
+  {
+    code: "R-VC-1",
+    what: "biển số không trùng giữa các xe chưa ngừng",
+    sql: "SELECT count(*) FROM (SELECT plate_key FROM vc_vehicle WHERE status <> 'retired' GROUP BY plate_key HAVING count(*) > 1)",
+    level: "fail",
+  },
+  {
+    code: "R-VC-2",
+    what: "dòng gia hạn giấy tờ xe cùng xe, cùng loại với dòng trước; mỗi dòng tối đa một dòng gia hạn chưa huỷ",
+    sql: `SELECT (SELECT count(*) FROM vc_vehicle_document n JOIN vc_vehicle_document p ON p.id = n.previous_id
+                  WHERE p.vehicle_id <> n.vehicle_id OR p.document_type_code <> n.document_type_code)
+          + (SELECT count(*) FROM (SELECT previous_id FROM vc_vehicle_document WHERE previous_id IS NOT NULL AND voided_at IS NULL GROUP BY previous_id HAVING count(*) > 1))`,
+    level: "fail",
+  },
+
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.
   {

@@ -3,10 +3,11 @@
 import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
+import type { LyDoSuaSai } from "./giay-to.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 
-export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
+export type { AuditAction, AuditTargetType, FeedbackKind, FeedbackStatus, CatalogService, LyDoSuaSai, PaxCode, PaxCounts, PermissionCode, Prices, RoleCode };
 
 // ---- Nhân viên / phiên -------------------------------------------------------
 export interface StaffProfile {
@@ -582,6 +583,126 @@ export interface PartyMetaResponse {
   /** MỌI loại vai (cả vai đã ngưng — để hiện đúng tên); `group` OTHER là vai gán được ở trang Danh bạ (/parties), INTERNAL/EXTERNAL chỉ gán ở màn Quản lý tài khoản (/staff) (ADR-0018). */
   roleTypes: { code: string; name: string; group: "INTERNAL" | "EXTERNAL" | "OTHER"; active: boolean }[];
   relationshipTypes: { code: string; name: string }[];
+}
+
+// ---- Giấy tờ của người (ADR-0040 D2; module parties) — số LUÔN che ở mọi DTO dưới đây; số đầy đủ CHỈ có ở PersonDocumentRevealResponse. ----
+export interface PersonDocumentDto {
+  id: string;
+  typeCode: string;
+  typeName: string;
+  classCode: string | null;
+  className: string | null;
+  /** "••••6789" (4 ký tự cuối của số đã chuẩn hoá; số ngắn hơn 8 ký tự → "••••"); null = giấy không có số. */
+  maskedNumber: string | null;
+  issuedDate: string | null;
+  issuedPlace: string | null;
+  /** null = không hạn. */
+  expiryDate: string | null;
+  /** Số ngày còn lại tới ngày hết hạn (giờ VN); null = không hạn; âm = đã quá hạn. */
+  daysLeft: number | null;
+  /** Dòng này GIA HẠN dòng nào (giao diện gom "Lịch sử (N)" theo chuỗi này). */
+  previousId: string | null;
+  /** Chưa huỷ và không có dòng gia hạn còn hiệu lực — chỉ dòng hiện hành gia hạn / sửa sai được. */
+  current: boolean;
+  voided: boolean;
+  /** Khoá lạc quan của sửa sai (`expectedUpdatedAt`). */
+  updatedAt: string;
+}
+export interface PersonDocumentListResponse { documents: PersonDocumentDto[] }
+/** Chỉ ở POST /api/parties/:id/documents/:did/reveal ("Xem đủ số", ô party.document.reveal; mỗi lần một dòng nhật ký KHÔNG kèm số). */
+export interface PersonDocumentRevealResponse { number: string }
+export interface DocumentTypeDto { code: string; name: string; hasExpiry: boolean; sortOrder: number; active: boolean; updatedAt: string }
+export interface LicenseClassDto { code: string; name: string; sortOrder: number; active: boolean; updatedAt: string }
+export interface PersonDocumentMetaResponse { types: DocumentTypeDto[]; classes: LicenseClassDto[] }
+/** Thân POST /api/parties/:id/documents. */
+export interface PersonDocumentAddRequest {
+  typeCode: string;
+  number?: string | null;
+  classCode?: string | null;
+  issuedDate?: string | null;
+  issuedPlace?: string | null;
+  expiryDate?: string | null;
+}
+/** Thân POST …/documents/:did/renew — KHÔNG gửi `number` (hoặc null) thì máy chủ chép số của dòng trước; không gửi `classCode` thì chép hạng. */
+export type PersonDocumentRenewRequest = Omit<PersonDocumentAddRequest, "typeCode">;
+/** Thân POST …/documents/:did/correct (người) và …/giay-to/:did/sua-sai (xe) — `reason` thuộc LY_DO_SUA_SAI; `value` của đúng trường; NHAP_NHAM_DONG không gửi `value`. */
+export interface DocumentCorrectRequest { reason: LyDoSuaSai; value?: string | null; expectedUpdatedAt: string }
+
+// ---- Vận chuyển (ADR-0040 D1; module van-chuyen) ----
+export type VehicleStatus = "active" | "maintenance" | "retired";
+export interface VehicleDto {
+  id: string;
+  plateNumber: string;
+  chassisNumber: string | null;
+  name: string;
+  modelYear: number | null;
+  /** Số người được chở KHÔNG kể tài xế (giấy cũ ghi 16 chỗ thì là 15). */
+  passengerCapacity: number;
+  status: VehicleStatus;
+  validFrom: string;
+  /** Ngày ngừng dùng; null = chưa ngừng. */
+  validTo: string | null;
+  /** Giấy tờ xe hiện hành gần hạn nhất theo ngưỡng đang hiệu lực: "expired" đã hết, "soon" sắp hết, "none" không có (xe đã ngừng: luôn "none"). */
+  alert: "none" | "soon" | "expired";
+  /** Tên loại giấy gần hạn nhất và số ngày còn lại (âm = đã quá) — null khi `alert` = "none". */
+  alertTypeName: string | null;
+  alertDaysLeft: number | null;
+  /** Số giấy hiện hành đã hết + sắp hết hạn (bản vẽ màn 01: "… · 2 giấy sắp hết hạn"). */
+  alertCount: number;
+  updatedAt: string;
+}
+export interface VehicleDocumentDto {
+  id: string;
+  typeCode: string;
+  typeName: string;
+  /** Giấy tờ XE: số đầy đủ (không phải dữ liệu cá nhân — giả định G4); nhật ký vẫn không ghi số. */
+  number: string | null;
+  issuedDate: string | null;
+  expiryDate: string | null;
+  daysLeft: number | null;
+  previousId: string | null;
+  current: boolean;
+  voided: boolean;
+  updatedAt: string;
+}
+export interface VehicleListResponse { vehicles: VehicleDto[] }
+export interface VehicleResponse { vehicle: VehicleDto; documents: VehicleDocumentDto[] }
+/** Thân POST /api/van-chuyen/xe (thêm) — số khung bắt buộc ở máy chủ (Ruling R9). `status` mặc định "active" (xe mới không "retired"). */
+export interface VehicleCreateRequest {
+  plateNumber: string;
+  chassisNumber: string;
+  name: string;
+  modelYear?: number | null;
+  passengerCapacity: number;
+  status?: "active" | "maintenance";
+  validFrom?: string;
+}
+/** GET /api/van-chuyen/meta — danh mục loại giấy tờ xe (cả loại đã ngưng, để hiện đúng tên dòng cũ) + ngưỡng "sắp hết hạn" đang hiệu lực (số ngày). */
+export interface VanChuyenMetaResponse { documentTypes: DocumentTypeDto[]; warnDays: number }
+/** Một dòng "giấy tờ sắp hết hạn" (xe hoặc tài xế) — KHÔNG có số giấy tờ (ADR-0040 D1, D2). */
+export interface ExpiringItemDto {
+  kind: "vehicle" | "person";
+  /** id xe hoặc id hồ sơ người (bấm dòng mở chi tiết xe / hồ sơ ở Danh bạ). */
+  targetId: string;
+  /** Xe: "biển số · tên xe"; người: tên hiển thị. */
+  label: string;
+  typeName: string;
+  className: string | null;
+  expiryDate: string;
+  daysLeft: number;
+  level: "soon" | "expired";
+}
+/** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
+export interface ExpiringListResponse { warnDays: number; count: number; items: ExpiringItemDto[] }
+/** Thân PUT /api/van-chuyen/xe/:id — đủ trường + khoá lạc quan. "Ngừng dùng" = status "retired"; "Dùng lại xe" = status "active"/"maintenance" (R15). */
+export interface VehicleUpdateRequest {
+  plateNumber: string;
+  chassisNumber: string;
+  name: string;
+  modelYear: number | null;
+  passengerCapacity: number;
+  status: VehicleStatus;
+  expectedUpdatedAt: string;
 }
 
 // ---- Góp ý / Báo lỗi (module feedback) ----

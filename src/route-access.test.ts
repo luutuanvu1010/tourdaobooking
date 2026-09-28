@@ -42,7 +42,7 @@ async function loadModule(entry: string): Promise<Record<string, AppModule>> {
   return (await import(`data:text/javascript;base64,${code}`)) as Record<string, AppModule>;
 }
 
-/** 13 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
+/** 14 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
 const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/accounts/index.ts", exportName: "accountsModule" },
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
@@ -57,6 +57,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/orders/index.ts", exportName: "ordersModule" },
   { entry: "./modules/parties/index.ts", exportName: "partiesModule" },
   { entry: "./modules/thongbao/index.ts", exportName: "thongbaoModule" },
+  { entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }, // ADR-0040 D1
 ];
 
 /** Sắp xếp tất định: theo `path` rồi theo `method` (so sánh chuỗi thường, không qua `localeCompare`). */
@@ -143,6 +144,17 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/parties/:id/roles/:rid/end", access: "admin" },
   { method: "GET", path: "/api/parties/lookup", access: "office" },
   { method: "GET", path: "/api/parties/meta", access: "office" },
+  { method: "GET", path: "/api/parties/documents/mine", access: "staff" }, // ADR-0040 D2 (Ruling R4, R5): giấy tờ của CHÍNH MÌNH, số che — mọi nhân viên nội bộ; thân hỏi party.document.view (Đối tác 403)
+  { method: "GET", path: "/api/parties/documents/meta", access: "office" }, // ADR-0040 D2: danh mục loại giấy tờ của người + hạng GPLX; thân hỏi party.document.write / admin.manage
+  { method: "GET", path: "/api/parties/:id/documents", access: "office" }, // ADR-0040 D2: giấy tờ (số che) của một người; thân hỏi party.document.write (party.view KHÔNG mở giấy tờ)
+  { method: "POST", path: "/api/parties/:id/documents", access: "office" }, // ADR-0040 D2: thêm giấy tờ; thân hỏi party.document.write + cấp bậc (Ruling R8)
+  { method: "POST", path: "/api/parties/:id/documents/:did/renew", access: "office" }, // gia hạn = dòng mới (không gửi số thì chép số cũ); như trên
+  { method: "POST", path: "/api/parties/:id/documents/:did/correct", access: "office" }, // sửa sai có lý do / huỷ dòng nhập nhầm; như trên
+  { method: "POST", path: "/api/parties/:id/documents/:did/reveal", access: "office" }, // "xem đủ số" — route DUY NHẤT trả số đầy đủ; thân hỏi party.document.reveal + cấp bậc, ghi nhật ký TRƯỚC
+  { method: "POST", path: "/api/parties/document-types", access: "admin" }, // ADR-0040 D2: danh mục loại giấy tờ của người — admin.manage viết thẳng (luật 4)
+  { method: "PUT", path: "/api/parties/document-types/:code", access: "admin" }, // như trên; CCCD/GPLX không ngưng được (409 fixed_type)
+  { method: "POST", path: "/api/parties/license-classes", access: "admin" }, // ADR-0040 D2: danh mục hạng giấy phép lái xe — admin.manage
+  { method: "PUT", path: "/api/parties/license-classes/:code", access: "admin" }, // như trên
   { method: "GET", path: "/api/staff", access: "admin" },
   { method: "POST", path: "/api/staff", access: "admin" },
   { method: "PATCH", path: "/api/staff/:id", access: "admin" },
@@ -173,6 +185,18 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: khoá công khai (nếu có) + số máy đang bật của chính mình
   { method: "POST", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: tự phục vụ đăng ký một máy
   { method: "POST", path: "/api/account/thong-bao/may/huy", access: "staff" }, // Web Push: tự phục vụ tắt một máy hoặc mọi máy
+  { method: "GET", path: "/api/van-chuyen/xe", access: "office" }, // ADR-0040 D1: danh sách xe (cảnh báo giấy tờ); thân hỏi vehicle.manage — Quản trị + Toàn quyền
+  { method: "POST", path: "/api/van-chuyen/xe", access: "office" }, // thêm xe (chủ xe = công ty chủ); như trên
+  { method: "GET", path: "/api/van-chuyen/xe/:id", access: "office" }, // một xe + giấy tờ xe; như trên
+  { method: "PUT", path: "/api/van-chuyen/xe/:id", access: "office" }, // sửa / ngừng / dùng lại xe (R15); như trên
+  { method: "POST", path: "/api/van-chuyen/xe/:id/giay-to", access: "office" }, // ADR-0040 D1: thêm giấy tờ xe (xe đã ngừng → 409); thân hỏi vehicle.manage
+  { method: "POST", path: "/api/van-chuyen/xe/:id/giay-to/:did/gia-han", access: "office" }, // gia hạn = dòng mới (không gửi số thì chép số cũ); như trên
+  { method: "POST", path: "/api/van-chuyen/xe/:id/giay-to/:did/sua-sai", access: "office" }, // sửa sai có lý do (chỉ lý do dùng cho xe) / huỷ dòng; như trên
+  { method: "GET", path: "/api/van-chuyen/meta", access: "office" }, // loại giấy tờ xe + ngưỡng; thân hỏi vehicle.manage / admin.manage
+  { method: "POST", path: "/api/van-chuyen/loai-giay-to-xe", access: "admin" }, // danh mục loại giấy tờ xe — admin.manage viết thẳng (luật 4)
+  { method: "PUT", path: "/api/van-chuyen/loai-giay-to-xe/:code", access: "admin" }, // như trên
+  { method: "POST", path: "/api/van-chuyen/nguong-het-han", access: "admin" }, // ngưỡng "sắp hết hạn" (dòng chính sách mới) — CHỈ settings.ops (Toàn quyền), viết thẳng (luật 4)
+  { method: "GET", path: "/api/van-chuyen/sap-het-han", access: "office" }, // danh sách giấy tờ sắp hết hạn (xe + tài xế, KHÔNG số) + count (R15); thân hỏi vehicle.manage
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -187,7 +211,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 86 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 109 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -201,8 +225,15 @@ test("mức truy cập của 86 route hiện có khớp ảnh chụp đã duyệ
   // + 4 route module thongbao đọc (ADR-0034): GET /api/thong-bao, GET /api/thong-bao/tom-tat, POST /api/account/thong-bao/da-doc,
   // POST /api/account/thong-bao/:id/da-hieu = 78; + 4 route Toàn quyền (ADR-0034 điều 7: gửi, xem đã gửi, xem ai đã hiểu, thu hồi) = 82;
   // + 4 route Web Push màn hình khoá (ADR-0036, Task 1): GET /api/thong-bao/moi-nhat, GET/POST /api/account/thong-bao/may,
-  // POST /api/account/thong-bao/may/huy = 86.)
+  // POST /api/account/thong-bao/may/huy = 86.
+  // 2026-09-28 (ADR-0040, Vận chuyển 1a): + 3 route đọc giấy tờ của người (GET /api/parties/documents/mine, /documents/meta, /:id/documents) = 89;
+  // + 3 route ghi giấy tờ của người (POST /api/parties/:id/documents, …/renew, …/correct) = 92; + 1 route "xem đủ số" (…/reveal) = 93;
+  // + 4 route danh mục giấy tờ của người (POST/PUT /api/parties/document-types, POST/PUT /api/parties/license-classes) = 97;
+  // + 4 route xe của module mới van-chuyen (GET/POST /api/van-chuyen/xe, GET/PUT /api/van-chuyen/xe/:id) = 101;
+  // + 3 route giấy tờ xe (POST …/xe/:id/giay-to, …/gia-han, …/sua-sai) = 104;
+  // + 5 route danh mục loại giấy tờ xe, ngưỡng, danh sách sắp hết hạn (GET /api/van-chuyen/meta, POST/PUT …/loai-giay-to-xe, POST …/nguong-het-han,
+  // GET …/sap-het-han) = 109.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 86, "số route thực tế lệch 86 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 86, "SNAPSHOT phải có đúng 86 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 109, "số route thực tế lệch 109 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 109, "SNAPSHOT phải có đúng 109 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

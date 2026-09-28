@@ -404,7 +404,8 @@ const OPEN_ROLE_CODES_FOR = defineSql(
   `SELECT party_id, group_concat(role_type_code) AS codes FROM pty_party_role
    WHERE party_id IN (SELECT value FROM json_each(?1)) AND location_id IS NULL AND valid_to_date IS NULL GROUP BY party_id`,
 );
-const ROLE_TYPE_GROUP = defineSql("parties", "role_type_group", "SELECT role_group FROM pty_role_type WHERE code = ?1");
+// Nhóm + trạng thái "đang dùng" của MỘT loại vai (route thêm vai: vai tài khoản → màn Quản lý tài khoản; loại đã ngưng → không gán mới — Ruling R6, ADR-0040 D3).
+const ROLE_TYPE_OF = defineSql("parties", "role_type_of", "SELECT role_group, active FROM pty_role_type WHERE code = ?1");
 // Nhóm + mã vai của MỘT dòng vai thuộc hồ sơ ?2 (route kết thúc vai: vai tài khoản → màn Quản lý tài khoản; vai "Công ty chủ" → ô company.legal.write, ADR-0024 6.5).
 const ROLE_ROW_OF = defineSql(
   "parties",
@@ -431,8 +432,10 @@ export async function openRoleCodesFor(db: D1Database, partyIds: readonly string
   const { results } = await db.prepare(OPEN_ROLE_CODES_FOR).bind(JSON.stringify(partyIds)).all<{ party_id: string; codes: string }>();
   return new Map(results.map((r) => [r.party_id, r.codes.split(",")]));
 }
-export async function roleTypeGroup(db: D1Database, code: string): Promise<string | null> {
-  return (await db.prepare(ROLE_TYPE_GROUP).bind(code).first<{ role_group: string }>())?.role_group ?? null;
+/** Loại vai `code`: nhóm và còn dùng không; null nếu mã không có trong danh mục. */
+export async function roleTypeOf(db: D1Database, code: string): Promise<{ group: string; active: boolean } | null> {
+  const r = await db.prepare(ROLE_TYPE_OF).bind(code).first<{ role_group: string; active: number }>();
+  return r ? { group: r.role_group, active: r.active === 1 } : null;
 }
 export async function roleRowOf(db: D1Database, partyId: string, roleId: string): Promise<{ group: string; code: string } | null> {
   const r = await db.prepare(ROLE_ROW_OF).bind(roleId, partyId).first<{ role_group: string; role_type_code: string }>();
@@ -444,3 +447,190 @@ export async function relationshipEnds(db: D1Database, partyId: string, relation
 }
 export const reopenRoleStatement = (db: D1Database, partyId: string, roleId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(REOPEN_ROLE).bind(roleId, partyId, at, actorId);
+
+// ---- Giấy tờ của người (ADR-0040 D2) -------------------------------------------------------------------------------------------------------------------
+// Số giấy tờ là dữ liệu cá nhân: câu ĐỌC danh sách chỉ lấy `number_key` để CHE ở index.ts (cheSo) — không lấy `document_number`; số đầy đủ chỉ rời máy chủ
+// ở route "xem đủ số". "Hiện hành" = chưa huỷ và không có dòng gia hạn CHƯA huỷ nối tiếp (khớp trigger *_superseded của migration *_giay_to_cua_nguoi).
+export interface PersonDocRow {
+  id: string;
+  document_type_code: string;
+  type_name: string;
+  license_class_code: string | null;
+  class_name: string | null;
+  number_key: string | null;
+  issued_date: string | null;
+  issued_place: string | null;
+  expiry_date: string | null;
+  previous_id: string | null;
+  voided_at: string | null;
+  updated_at: string;
+  is_current: number;
+}
+const HIEN_HANH = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM pty_person_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
+// ?1 = hồ sơ; ?2 = 1 chỉ dòng hiện hành (giấy tờ của tôi — R15 điểm 6). Thứ tự (quyết định thiết kế 3 của bản vẽ): hiện hành trước; trong đó ngày hết hạn
+// tăng dần (đã hết → sắp hết → còn hạn), "không hạn" cuối; rồi thứ tự loại, mốc tạo.
+const LIST_PERSON_DOCS = defineSql(
+  "parties",
+  "list_person_documents",
+  `SELECT d.id, d.document_type_code, t.name AS type_name, d.license_class_code, c.name AS class_name, d.number_key, d.issued_date, d.issued_place, d.expiry_date,
+          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+   FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code LEFT JOIN pty_license_class c ON c.code = d.license_class_code
+   WHERE d.party_id = ?1 AND (?2 = 0 OR ${HIEN_HANH})
+   ORDER BY is_current DESC, d.expiry_date IS NULL, d.expiry_date, t.sort_order, d.created_at, d.id`,
+);
+const LIST_DOC_TYPES = defineSql(
+  "parties",
+  "list_person_document_types",
+  "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type ORDER BY sort_order, code",
+);
+const LIST_LICENSE_CLASSES = defineSql("parties", "list_license_classes", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class ORDER BY sort_order, code");
+
+export async function listPersonDocuments(db: D1Database, partyId: string, onlyCurrent: boolean): Promise<PersonDocRow[]> {
+  return (await db.prepare(LIST_PERSON_DOCS).bind(partyId, onlyCurrent ? 1 : 0).all<PersonDocRow>()).results;
+}
+export interface DocTypeRow { code: string; name: string; has_expiry: number; sort_order: number; active: number; updated_at: string }
+export interface LicenseClassRow { code: string; name: string; sort_order: number; active: number; updated_at: string }
+export async function listPersonDocumentTypes(db: D1Database): Promise<DocTypeRow[]> {
+  return (await db.prepare(LIST_DOC_TYPES).all<DocTypeRow>()).results;
+}
+export async function listLicenseClasses(db: D1Database): Promise<LicenseClassRow[]> {
+  return (await db.prepare(LIST_LICENSE_CLASSES).all<LicenseClassRow>()).results;
+}
+
+// Một dòng giấy tờ của hồ sơ ?2 kèm cờ hiện hành — route ghi đọc trước khi quyết (gia hạn chép số của dòng này; sửa sai so với giá trị đang có).
+// `document_number` chỉ ở trong máy chủ — KHÔNG bao giờ vào DTO, nhật ký, câu báo lỗi.
+export interface PersonDocFull {
+  id: string;
+  party_id: string;
+  document_type_code: string;
+  document_number: string | null;
+  number_key: string | null;
+  license_class_code: string | null;
+  issued_date: string | null;
+  issued_place: string | null;
+  expiry_date: string | null;
+  previous_id: string | null;
+  voided_at: string | null;
+  updated_at: string;
+  is_current: number;
+}
+const FIND_PERSON_DOC = defineSql(
+  "parties",
+  "find_person_document",
+  `SELECT d.id, d.party_id, d.document_type_code, d.document_number, d.number_key, d.license_class_code, d.issued_date, d.issued_place, d.expiry_date,
+          d.previous_id, d.voided_at, d.updated_at, ${HIEN_HANH} AS is_current
+   FROM pty_person_document d WHERE d.id = ?1 AND d.party_id = ?2`,
+);
+const INSERT_PERSON_DOC = defineSql(
+  "parties",
+  "insert_person_document",
+  `INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, issued_date, issued_place, expiry_date,
+     previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12, ?11, ?12)`,
+);
+// Sửa sai: MỘT câu tĩnh đặt đủ các trường sửa được (giá trị không đổi ghi lại như cũ) + khoá lạc quan updated_at. Không đổi người, loại, dòng trước (trigger
+// *_identity của migration giữ). Dòng đã có dòng gia hạn / đã huỷ bị trigger chặn (lớp CSDL — route đã kiểm "hiện hành" trước, lớp route).
+const UPDATE_PERSON_DOC = defineSql(
+  "parties",
+  "update_person_document",
+  `UPDATE pty_person_document SET document_number = ?4, number_key = ?5, license_class_code = ?6, issued_date = ?7, issued_place = ?8, expiry_date = ?9,
+     updated_at = ?10, updated_by = ?11
+   WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3`,
+);
+// "Nhập nhầm cả dòng" = huỷ dòng (không xoá — Hiến chương 5.5), cùng khoá lạc quan.
+const VOID_PERSON_DOC = defineSql(
+  "parties",
+  "void_person_document",
+  "UPDATE pty_person_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3",
+);
+
+// ---- Giấy tờ sắp hết / đã hết hạn của TÀI XẾ (ADR-0040 D1) — nguồn của hàm công bố expiringDriverDocuments (parties/index.ts) cho Vận chuyển ---------------
+// ?1 = mã vai tài khoản tài xế công ty, ?2 = hôm nay (giờ VN), ?3 = hạn cuối (hôm nay + ngưỡng). "Tài xế" = hồ sơ ĐANG DÙNG, đang mở vai ?1 — lọc BÁO CÁO
+// (không phải điều kiện cho phép; câu tra vai nằm trong parties — R-N1-12). Chỉ dòng HIỆN HÀNH có ngày hết hạn ≤ ?3 (kể cả đã quá hạn). KHÔNG chọn cột số,
+// nơi cấp, id giấy tờ (bài giay-to-sap-het-han.test.ts khoá văn bản câu này).
+const EXPIRING_DRIVER_DOCS = defineSql(
+  "parties",
+  "expiring_driver_documents",
+  `SELECT p.id AS party_id, p.display_name, t.name AS type_name, c.name AS class_name, d.expiry_date
+   FROM pty_person_document d JOIN pty_party p ON p.id = d.party_id JOIN pty_person_document_type t ON t.code = d.document_type_code
+     LEFT JOIN pty_license_class c ON c.code = d.license_class_code
+   WHERE p.active = 1 AND d.expiry_date IS NOT NULL AND d.expiry_date <= ?3 AND ${HIEN_HANH}
+     AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND r.role_type_code = ?1 AND r.valid_from_date <= ?2
+                   AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?2))
+   ORDER BY d.expiry_date, p.display_name, t.sort_order, d.id`,
+);
+export interface ExpiringDocRow { party_id: string; display_name: string; type_name: string; class_name: string | null; expiry_date: string }
+export async function expiringDocumentsOfRole(db: D1Database, roleCode: string, today: string, until: string): Promise<ExpiringDocRow[]> {
+  return (await db.prepare(EXPIRING_DRIVER_DOCS).bind(roleCode, today, until).all<ExpiringDocRow>()).results;
+}
+
+// ---- Danh mục loại giấy tờ của người + hạng GPLX (Quản trị sửa — khuôn loc_location: dấu vết, active, khoá lạc quan; khoá chính là mã, Ruling R7) --------
+const INSERT_DOC_TYPE = defineSql(
+  "parties",
+  "insert_person_document_type",
+  `INSERT INTO pty_person_document_type (code, name, has_expiry, sort_order, active, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, 1, ?5, ?6, ?5, ?6)`,
+);
+// Mã không đổi được sau khi tạo (khoá chính; câu UPDATE không đặt `code`).
+const UPDATE_DOC_TYPE = defineSql(
+  "parties",
+  "update_person_document_type",
+  "UPDATE pty_person_document_type SET name = ?2, has_expiry = ?3, sort_order = ?4, active = ?5, updated_at = ?6, updated_by = ?7 WHERE code = ?1 AND updated_at = ?8",
+);
+const FIND_DOC_TYPE = defineSql("parties", "find_person_document_type", "SELECT code, name, has_expiry, sort_order, active, updated_at FROM pty_person_document_type WHERE code = ?1");
+const INSERT_LICENSE_CLASS = defineSql(
+  "parties",
+  "insert_license_class",
+  `INSERT INTO pty_license_class (code, name, sort_order, active, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, 1, ?4, ?5, ?4, ?5)`,
+);
+const UPDATE_LICENSE_CLASS = defineSql(
+  "parties",
+  "update_license_class",
+  "UPDATE pty_license_class SET name = ?2, sort_order = ?3, active = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7",
+);
+const FIND_LICENSE_CLASS = defineSql("parties", "find_license_class", "SELECT code, name, sort_order, active, updated_at FROM pty_license_class WHERE code = ?1");
+
+export const findPersonDocumentType = (db: D1Database, code: string): Promise<DocTypeRow | null> => db.prepare(FIND_DOC_TYPE).bind(code).first<DocTypeRow>();
+export const findLicenseClass = (db: D1Database, code: string): Promise<LicenseClassRow | null> => db.prepare(FIND_LICENSE_CLASS).bind(code).first<LicenseClassRow>();
+export const insertPersonDocTypeStatement = (db: D1Database, t: { code: string; name: string; hasExpiry: boolean; sortOrder: number }, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_DOC_TYPE).bind(t.code, t.name, t.hasExpiry ? 1 : 0, t.sortOrder, at, actorId);
+export const updatePersonDocTypeStatement = (
+  db: D1Database, code: string, t: { name: string; hasExpiry: boolean; sortOrder: number; active: boolean; expectedUpdatedAt: string }, actorId: string, at: string,
+): D1PreparedStatement => db.prepare(UPDATE_DOC_TYPE).bind(code, t.name, t.hasExpiry ? 1 : 0, t.sortOrder, t.active ? 1 : 0, at, actorId, t.expectedUpdatedAt);
+export const insertLicenseClassStatement = (db: D1Database, c: { code: string; name: string; sortOrder: number }, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_LICENSE_CLASS).bind(c.code, c.name, c.sortOrder, at, actorId);
+export const updateLicenseClassStatement = (
+  db: D1Database, code: string, c: { name: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }, actorId: string, at: string,
+): D1PreparedStatement => db.prepare(UPDATE_LICENSE_CLASS).bind(code, c.name, c.sortOrder, c.active ? 1 : 0, at, actorId, c.expectedUpdatedAt);
+
+// "Xem đủ số" (ô party.document.reveal): số đầy đủ + tên loại của MỘT dòng thuộc hồ sơ ?2 — câu DUY NHẤT mà kết quả rời máy chủ có số đầy đủ.
+const FIND_PERSON_DOC_NUMBER = defineSql(
+  "parties",
+  "find_person_document_number",
+  `SELECT d.document_number, t.name AS type_name FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code
+   WHERE d.id = ?1 AND d.party_id = ?2`,
+);
+export function findPersonDocumentNumber(db: D1Database, docId: string, partyId: string): Promise<{ document_number: string | null; type_name: string } | null> {
+  return db.prepare(FIND_PERSON_DOC_NUMBER).bind(docId, partyId).first<{ document_number: string | null; type_name: string }>();
+}
+
+export function findPersonDocument(db: D1Database, docId: string, partyId: string): Promise<PersonDocFull | null> {
+  return db.prepare(FIND_PERSON_DOC).bind(docId, partyId).first<PersonDocFull>();
+}
+/** Giá trị của một dòng giấy tờ (đã kiểm ở luật thuần giay-to.ts). */
+export interface PersonDocValues {
+  typeCode: string;
+  number: string | null;
+  numberKey: string | null;
+  classCode: string | null;
+  issuedDate: string | null;
+  issuedPlace: string | null;
+  expiryDate: string | null;
+}
+export const insertPersonDocStatement = (db: D1Database, id: string, partyId: string, v: PersonDocValues, previousId: string | null, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_PERSON_DOC).bind(id, partyId, v.typeCode, v.number, v.numberKey, v.classCode, v.issuedDate, v.issuedPlace, v.expiryDate, previousId, at, actorId);
+export const updatePersonDocStatement = (db: D1Database, id: string, partyId: string, expectedUpdatedAt: string, v: PersonDocValues, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(UPDATE_PERSON_DOC).bind(id, partyId, expectedUpdatedAt, v.number, v.numberKey, v.classCode, v.issuedDate, v.issuedPlace, v.expiryDate, at, actorId);
+export const voidPersonDocStatement = (db: D1Database, id: string, partyId: string, expectedUpdatedAt: string, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(VOID_PERSON_DOC).bind(id, partyId, expectedUpdatedAt, at, actorId);

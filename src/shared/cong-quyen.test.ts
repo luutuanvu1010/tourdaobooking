@@ -3,7 +3,7 @@
 // phần B KHÔNG đổi hành vi với bất kỳ tổ hợp quyền nào (so với công thức cũ, chép nguyên văn vào đây).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { ADMIN_GATE, MATRIX, OFFICE_GATE, ORDERS_GATE, PERMISSION_CODES, can, canAccessOrders, isOffice, seesAllOrders, type PermissionCode } from "./permissions.ts";
+import { ADMIN_GATE, MATRIX, OFFICE_GATE, ORDERS_GATE, PERMISSION_CODES, can, canAccessOrders, isOffice, passesAdminGate, seesAllOrders, type PermissionCode } from "./permissions.ts";
 
 test("ADR-0019: ba danh sách cổng khai tường minh (khoá giá trị)", () => {
   assert.deepEqual([...ADMIN_GATE], ["ADMIN", "SUPER_ADMIN"]);
@@ -46,10 +46,11 @@ test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi
 });
 
 // ĐỔI CÓ CHỦ ĐÍCH (ADR-0030 S23-5): tổ hợp có FIELD mà KHÔNG có mã nào khác của ORDERS_GATE cũ (SALES, ACCOUNTING, ADMIN, PARTNER, SUPER_ADMIN, INTERN)
-// nay qua cổng orders. Với 7 mã hôm nay chỉ có ĐÚNG MỘT tổ hợp như vậy: chỉ-FIELD. Liệt kê TƯỜNG MINH, không suy.
-const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD"]);
+// nay qua cổng orders. Với 8 mã hôm nay có ĐÚNG HAI tổ hợp như vậy: chỉ-FIELD và FIELD+DRIVER. Liệt kê TƯỜNG MINH, không suy.
+// FIELD+DRIVER (ADR-0040 D3): qua cổng orders NHỜ FIELD (ADR-0030 S23-5); DRIVER không thêm gì (không nằm trong cổng nào).
+const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER"]);
 
-test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 7 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng tổ hợp liệt kê ở ADR-0030 S23-5 (chỉ-FIELD)", () => {
+test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 8 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (chỉ-FIELD, FIELD+DRIVER)", () => {
   const oldIsOffice = (w: { id: string; permissions: readonly PermissionCode[] }) => can(w, "order.view");
   const oldCanAccessOrders = (w: { id: string; permissions: readonly PermissionCode[] }) => oldIsOffice(w) || can(w, "order.view", { ownerId: w.id });
   const seen = new Set<string>();
@@ -68,4 +69,12 @@ test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 7 mã quy
     assert.equal(seesAllOrders(who), can(who, "order.view"), `seesAllOrders lệch: ${who.permissions.join("+")}`);
   }
   assert.deepEqual(seen, DOI_CO_CHU_Y_CANH_CUA_DON, "mọi tổ hợp đổi có chủ đích phải thật sự được gặp (danh sách không được cũ)");
+});
+
+test("ADR-0040 D3: Tài xế (DRIVER) không nằm trong cổng nào — tài khoản chỉ-DRIVER không qua admin/office/orders", () => {
+  for (const gate of [ADMIN_GATE, OFFICE_GATE, ORDERS_GATE]) assert.ok(!(gate as readonly string[]).includes("DRIVER"));
+  const driver = { id: "d", permissions: ["DRIVER"] as PermissionCode[] };
+  assert.equal(passesAdminGate(driver), false);
+  assert.equal(isOffice(driver), false);
+  assert.equal(canAccessOrders(driver), false);
 });

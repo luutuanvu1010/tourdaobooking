@@ -5,7 +5,7 @@
 import { PERMISSION_CODES, PERMISSION_LABEL, isPermissionCode, type PermissionCode } from "./permissions.ts";
 
 export const ROLE_CODES = [
-  "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT",
+  "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL",
   "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR",
 ] as const;
 export type RoleCode = (typeof ROLE_CODES)[number];
@@ -32,6 +32,9 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   ACCOUNTANT: { name: "Kế toán", group: "INTERNAL", defaults: ["ACCOUNTING"], handles: "ownOrGiven", superAdminOnly: false },
   // ADR-0044: vai hiện ra của tài khoản chủ (Toàn quyền là vai ẩn — người khác thấy "IT"); cùng bộ quyền Giám đốc, chỉ Toàn quyền gán.
   IT: { name: "IT", group: "INTERNAL", defaults: ["ADMIN", "SUPER_ADMIN"], handles: "substitute", superAdminOnly: true },
+  // ADR-0040 D3 (Ruling R1, R12): tài xế là NHÂN VIÊN có tài khoản; không nhận đơn (không phải người phụ trách đơn). Mã vai hồ sơ cũ DRIVER (nhóm OTHER,
+  // đã ngưng) KHÔNG phải vai này — không bao giờ sinh quyền. Quản trị gán được như "Hướng dẫn viên nội bộ".
+  DRIVER_INTERNAL: { name: "Tài xế công ty", group: "INTERNAL", defaults: ["DRIVER"], handles: "never", superAdminOnly: false },
   TRAVEL_AGENCY: { name: "Công ty lữ hành", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   GUIDE_FREELANCE: { name: "Hướng dẫn viên độc lập", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },

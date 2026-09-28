@@ -281,6 +281,8 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
     "staff.sheet.sync": "none",
     "company.legal.write": "none", // T2b (ADR-0024 6.4 + ADR-0038 điều 7): ô mới, chỉ Toàn quyền — thêm khi gộp main 356084a vào nhánh T2b (D19)
+    "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", // ADR-0040 D2: Đối tác không có giấy tờ trong app
+    "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

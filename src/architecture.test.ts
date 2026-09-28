@@ -41,6 +41,10 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   staff: ["parties", "audit"],
   // ADR-0034: đọc view công bố (sự kiện đơn, người lập, người phụ trách, nhãn) + auditStatement + getStaffAccount; không module nào import thongbao
   thongbao: ["audit", "orders", "dispatch", "staff"],
+  // ADR-0040 D1: Vận chuyển lượt 1a đọc parties qua hàm công bố (ownerCompany — chủ xe; expiringDriverDocuments — danh sách sắp hết hạn) và khoá ngoại
+  // vc_vehicle.owner_party_id; ghi nhật ký qua auditStatement. Không module nào import van-chuyen.
+  // NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md trước khi gộp.
+  "van-chuyen": ["parties", "audit"],
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
@@ -54,6 +58,7 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "parties", file: "modules/parties/repository.ts" },
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
+  { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
 ];
 
 /**
@@ -70,8 +75,9 @@ const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
  */
 const KHONG_DB = ["bangtin"] as const;
 
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao" };
-const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit" };
+// vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md trước khi gộp.
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen" };
+const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------
 // Đọc mã nguồn
