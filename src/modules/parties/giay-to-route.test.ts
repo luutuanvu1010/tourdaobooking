@@ -342,6 +342,20 @@ test("route 6 'Nhập nhầm cả dòng' → 200: dòng bị huỷ (voided), v�
   assert.equal(t.status, 201, `số đã rảnh: ${t.text}`);
 });
 
+test("route 6 (Ruling R22): sửa sai THIẾU lý do / lý do NGOÀI danh sách đóng → 400 invalid_input, dòng không đổi, không nhật ký — lớp máy chủ DUY NHẤT (CSDL không có cột lý do)", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  const truoc = { ...dong(w, g.cccd) };
+  for (const body of [{ value: "2038-01-01", expectedUpdatedAt: AT }, { reason: "KHAC", value: "2038-01-01", expectedUpdatedAt: AT }, { reason: "", value: "2038-01-01", expectedUpdatedAt: AT }]) {
+    const r = await suaSai(w, ADM, pty(DRIVER), g.cccd, body);
+    assert.equal(r.status, 400, `${JSON.stringify(body)}: ${r.text}`);
+    assert.equal(r.json.error.code, "invalid_input");
+    assert.match(r.json.error.message, /Lý do sửa sai không có trong danh sách/);
+  }
+  assert.deepEqual({ ...dong(w, g.cccd) }, truoc, "dòng không đổi");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'party_document_corrected'")[0].n, 0, "không nhật ký");
+});
+
 test("R8 (Q1): Quản trị ghi giấy tờ cho hồ sơ gắn tài khoản Quản trị khác hoặc Toàn quyền → 403; Toàn quyền ghi cho chính mình → 201; Quản trị ghi cho hồ sơ không tài khoản → 201", async () => {
   const w = setup();
   const ADM2 = "99999999-9999-4999-8999-999999999990";

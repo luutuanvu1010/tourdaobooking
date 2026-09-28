@@ -106,6 +106,9 @@ test("kiemSuaSaiXe: chỉ lý do dùng cho xe (không nơi cấp, không hạng)
   assert.equal(ok(kiemSuaSaiXe({ reason: "SAI_SO", value: "KD-0457", expectedUpdatedAt: "t1" }, GT_HH, DM_XE)).lyDo, "SAI_SO");
   assert.deepEqual(ok(kiemSuaSaiXe({ reason: "NHAP_NHAM_DONG", expectedUpdatedAt: "t1" }, GT_HH, DM_XE)), { lyDo: "NHAP_NHAM_DONG", huy: true, expectedUpdatedAt: "t1" });
   for (const reason of ["SAI_NOI_CAP", "SAI_HANG"]) assert.match(loi(kiemSuaSaiXe({ reason, value: "x", expectedUpdatedAt: "t1" }, GT_HH, DM_XE)), /giấy tờ xe/);
+  // Ruling R22: lý do thuộc danh sách đóng — thiếu / ngoài danh sách → lỗi có câu, không ném.
+  assert.match(loi(kiemSuaSaiXe({ reason: "KHAC", value: "x", expectedUpdatedAt: "t1" }, GT_HH, DM_XE)), /Lý do/);
+  assert.match(loi(kiemSuaSaiXe({ value: "2026-11-15", expectedUpdatedAt: "t1" }, GT_HH, DM_XE)), /Lý do/);
   loi(kiemSuaSaiXe({ reason: "SAI_SO", value: "KD-0456", expectedUpdatedAt: "t1" }, GT_HH, DM_XE)); // không đổi
   loi(kiemSuaSaiXe({ reason: "SAI_NGAY_HET_HAN", value: "2026-11-15" }, GT_HH, DM_XE)); // thiếu mốc
   loi(kiemSuaSaiXe({ reason: "NHAP_NHAM_DONG", value: "x", expectedUpdatedAt: "t1" }, GT_HH, DM_XE));

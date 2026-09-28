@@ -100,6 +100,14 @@ Lý do: ADR-0040 D2 siết 5.12 (nhật ký không chứa số giấy tờ). B�
 - thành "Nhật ký không chứa số điện thoại, email, mã số thuế, **số giấy tờ tuỳ thân (căn cước, bằng lái…)**."
 - Lý do: ADR-0040 đã siết cho phân hệ này; ghi vào Hiến chương thì áp cho mọi phân hệ sau. Không duyệt mục này thì ADR-0040 vẫn đủ.
 
+**2f. Phần I, bảng thi hành, dòng 147 ("5.1 Bất biến sát dữ liệu") — Ruling R22 của điều phối (2026-09-28, sau kiểm độc lập mốc A24, điểm THẤP-2).**
+Lý do (Hiến chương 6.2): bảng thi hành phải ghi đúng cơ chế thật. "Sửa sai giấy tờ phải có lý do" (ADR-0040) chỉ có lớp máy chủ — lý do nằm trong nhật ký, bảng giấy tờ không có cột lý do nên CSDL không kiểm được; hàng rào máy chủ đã có dòng ở `docs/SO-HANG-RAO.md` (P16 2026-09-28), lớp CSDL ghi "dựa vào kỷ luật". Số dòng 147 đúng trên `c276848` và trên nhánh thi công (tệp không đổi). Chỉ thêm vào cột "Lệch hiện có (nợ có tên)" (cột "chỗ còn hở").
+
+```diff
+-| 5.1 Bất biến sát dữ liệu | trigger 0008 (khoá dịch vụ), 0017 (trạng thái chỉ đi tiến), `audit-invariants` | khoá tiền đơn đã xác nhận **chỉ ở mã** (đặc tả 2026-09-22 bước B chưa làm) | ADR-0003 |
++| 5.1 Bất biến sát dữ liệu | trigger 0008 (khoá dịch vụ), 0017 (trạng thái chỉ đi tiến), `audit-invariants` | khoá tiền đơn đã xác nhận **chỉ ở mã** (đặc tả 2026-09-22 bước B chưa làm); sửa sai giấy tờ phải có lý do (ADR-0040) chỉ ở mã — lý do nằm trong nhật ký, CSDL không có cột để kiểm | ADR-0003 |
+```
+
 ## Mục 3 — `src/CLAUDE.md` (luật máy chủ)
 
 **3a. Dòng 6, danh sách module.**
@@ -191,6 +199,7 @@ Kèm, không phải luật (để người sửa hai kịch bản đang đỏ s�
 | 1 — cạnh `van-chuyen → parties`, `→ audit`; tiền tố `vc_`, `vc` | NỚI hàng rào đã duyệt (sẽ nằm trong mã nhánh từ Task A12) | Duyệt, hoặc chọn phương án ở cột "Nếu chủ KHÔNG duyệt" |
 | 2a–2d — `docs/ARCHITECTURE.md` | sửa tài liệu chuẩn tắc cho khớp mã (kèm hai chỗ đang thiếu `thongbao`, `ntf_`) | Duyệt |
 | 2e — chữ Hiến chương 5.12 | tuỳ chọn | Có / không |
+| 2f — `docs/ARCHITECTURE.md` bảng thi hành, dòng 5.1 (Ruling R22) | ghi đúng cơ chế thật: "sửa sai giấy tờ phải có lý do" chỉ ở mã | Duyệt |
 | 3 — `src/CLAUDE.md` | làm rõ luật, không đổi nghĩa (kèm `bangtin` đang thiếu) | Duyệt |
 | 4a (chờ Phần B), 4b (Phần B), 4c, 4d — `web/CLAUDE.md` | thêm dòng bảng kịch bản | Duyệt |
 | 5a, 5b — `CLAUDE.md` gốc | sửa số quyền + một bẫy | Duyệt |
