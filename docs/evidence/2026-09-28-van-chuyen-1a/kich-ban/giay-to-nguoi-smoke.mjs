@@ -3,6 +3,7 @@
 // 1) Quản trị mở hồ sơ tài xế thẳng theo id (/parties?id=…): mục "Giấy tờ" viền nhấn, bốn dòng xếp theo hạn, số CHE (••••0412), số đủ KHÔNG có trong DOM,
 //    "Xem đủ số" chỉ ở dòng có số, "Thêm giấy tờ", Gia hạn / Sửa sai.  2) "Xem đủ số" → hộp xác nhận (ghi nhật ký, tự che sau 10 giây) → số hiện đủ + đếm ngược +
 //    "Che lại"; nhật ký có MỘT dòng xem số, KHÔNG kèm số; "Che lại" → số đủ rời DOM.  3) Điện thoại: xem đủ số rồi CHỜ → tự che sau đúng thời gian token --t-reveal.
+//    Bước 2 và 3: số đủ KHÔNG nằm trong localStorage / sessionStorage, bộ nhớ đệm service worker không có phản hồi /api/, không có IndexedDB (lúc số hiện và sau khi che).
 // 4) Bán hàng (party.view nhưng không party.document.write): không có mục, không gọi /api/parties/:id/documents.
 // 5) Quản trị xem hồ sơ tài khoản cấp trên (Toàn quyền): chỉ xem, không nút ghi, không "Xem đủ số" (Ruling R8).
 // 6) Gia hạn giấy phép lái xe (390): chữ nhắc dùng số CHE; "Số mới" để trống → giữ số cũ; hạng, nơi cấp điền sẵn → Lịch sử (1).
@@ -43,6 +44,18 @@ try {
       }));
       return { heading: t(s.querySelector('h3')), rows, html: document.documentElement.outerHTML, add: [...s.querySelectorAll('button')].some((b) => b.getClientRects().length > 0 && t(b) === 'Thêm giấy tờ'), note: t(s.querySelector('.vc-readonly-note')) };
     })()`);
+  // Số đủ KHÔNG được ghi vào kho của trình duyệt (kế hoạch mục 7, điểm nối 4: "không lưu vào localStorage"): localStorage, sessionStorage, bộ nhớ đệm của
+  // service worker (không phản hồi /api/ nào), IndexedDB (ứng dụng không dùng). Đo LÚC số đang hiện và sau khi che.
+  const khongLuuSo = async (p, so, luc) => {
+    const k = await p.ev(`(async () => ({
+      luuTru: JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }),
+      cacheApi: (await Promise.all((await caches.keys()).map(async (n) => (await (await caches.open(n)).keys()).map((r) => r.url)))).flat().filter((u) => u.includes('/api/')),
+      idb: (await indexedDB.databases()).map((x) => x.name),
+    }))()`);
+    assert.ok(!k.luuTru.includes(so), `${luc}: số đủ nằm trong localStorage / sessionStorage — ${k.luuTru}`);
+    assert.deepEqual(k.cacheApi, [], `${luc}: bộ nhớ đệm service worker có phản hồi API`);
+    assert.deepEqual(k.idb, [], `${luc}: có cơ sở dữ liệu IndexedDB`);
+  };
 
   await dem.step("1", "04 máy tính (Quản trị, hồ sơ tài xế): mục “Giấy tờ” dưới “Người liên hệ”, bốn dòng theo hạn, số che, số đủ không trong DOM, nút đúng" + axeNote(), async () => {
     const p = await open(ADMIN, hung, DESK);
@@ -93,8 +106,10 @@ try {
       assert.equal(nk[0].target_id, hung);
       assert.ok(!nk[0].detail.includes(SO.cccd) && !nk[0].detail.includes("0412"), `nhật ký không kèm số: ${nk[0].detail}`);
       await shotFull(p, "04-xem-du-so-dang-hien-1040.png");
+      await khongLuuSo(p, SO.cccd, "đang hiện số (1040)");
       assert.ok(await p.ev(clickVisible("#giay-to .vc-docs-table", "Che lại")));
       await p.waitFor(`!document.documentElement.outerHTML.includes(${JSON.stringify(SO.cccd)})`, "số rời DOM sau Che lại", 3000);
+      await khongLuuSo(p, SO.cccd, "sau Che lại (1040)");
     } finally {
       p.close();
     }
@@ -119,6 +134,7 @@ try {
       const waited = Date.now() - t0;
       assert.ok(waited >= ms - 1500, `tự che quá sớm: ${waited}ms`);
       assert.equal(await p.ev(`[...document.querySelectorAll('#giay-to .vc-docs-list .vc-no-val')].map((e) => e.innerText.trim()).filter((x) => x.includes('0412')).length`), 2, "hai số lại che ••••0412");
+      await khongLuuSo(p, SO.gplx, "sau tự che (390)");
     } finally {
       p.close();
     }
