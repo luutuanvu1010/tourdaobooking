@@ -6,7 +6,7 @@
 - **Xây trên lỗ đang hở:** kiểm 2026-09-28 trên nhánh này (gốc `3bb73f0`): `docs/quyen-hoan.json` mục `phat_hien` **rỗng**. Mục `thao_tac` còn 6 ô hoãn; hai ô liên quan tới tiền là `payment.receive`, `payment.refund` (hạn **2026-12-31**, "để dành cho N3", chưa có route) — D3 dùng sổ của ADR-0026, nơi hai ô này được thi hành. D1, D2 không xây trên ô hoãn nào. **Phải kiểm lại ngày trình duyệt.**
 - **Sửa quyết định đã duyệt:** ADR-0040 D1 (đồ thị module của `van-chuyen`) và ADR-0004 (ranh giới phạm vi: thêm chi phí và phải trả nhà cung cấp) — bảng ở §7. Duyệt lượt 3 = duyệt cả hai chỗ sửa đó.
 - **Kiểm độc lập:** **chưa có.** Theo tiền lệ (đề xuất ADR-0040, đề xuất T2b), cần một người kiểm độc lập chỉ-đọc trước khi trình chủ.
-- **Điều Hiến chương áp** (Hiến chương 6.1): 1.4 (chuỗi bảy lớp), 2.1 (bên trước vai — nhà xe là vai), 2.2 (bốn loại), 4.2 (tiền là hình chiếu của sự kiện), 4.3 (một sổ), 4.4 (chứng từ danh sách trắng), 5.1 (bất biến hai lớp), 5.2 (chính sách có kiểu, có ngày hiệu lực), 5.3 (ranh giới module), 5.4 (một nguồn tính), 5.5 (chỉ-thêm, đảo), 5.6 (chụp tại mốc), 5.7 (giữ khi thiếu điều kiện), 5.9 (trả dư — **chỉ áp tương tự**, xem D3), 5.12 (kiểm toán), 5.14 (hai trục thời gian), 5.15 (lõi tất định), 5.17 (sổ vàng). Lệch có chủ ý: **không đề xuất lệch nào**; chỗ có nguy cơ lệch ghi ở §7.
+- **Điều Hiến chương áp** (Hiến chương 6.1): 1.4 (chuỗi bảy lớp), 2.1 (bên trước vai — nhà xe là vai), 2.2 (bốn loại), 4.2 (tiền là hình chiếu của sự kiện), 4.3 (một sổ), 4.4 (chứng từ danh sách trắng), 5.1 (bất biến hai lớp), 5.2 (chính sách có kiểu, có ngày hiệu lực), 5.3 (ranh giới module), 5.4 (một nguồn tính), 5.5 (chỉ-thêm, đảo), 5.6 (chụp tại mốc), 5.7 (giữ khi thiếu điều kiện), 5.9 (trả dư — **chỉ áp tương tự**, xem D3), 5.12 (kiểm toán), 5.14 (hai trục thời gian), 5.15 (lõi tất định), 5.17 (sổ vàng). Lệch có chủ ý: **hai lệch khỏi Hiến chương 5.1** (bất biến chỉ có lớp máy chủ, chưa có lớp CSDL) — **LCY-1** "nhà xe phải đang mang vai nhà xe" (D1) và **LCY-2** "chỉ ghi chi phí cho chuyến có bên vận chuyển ≠ công ty chủ" (D2), khai theo khuôn ADR-0029 ở §7a; chỉ hợp lệ khi chủ duyệt (Hiến chương 6.1). Chỗ có nguy cơ lệch khác ghi ở §7.
 
 ## 0. Tóm tắt cho người duyệt
 
@@ -37,10 +37,10 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | G3 | Chuyến ghi **bên vận chuyển** (`carrier_party_id` hoặc tương đương) = hồ sơ công ty chủ (xe công ty) **hoặc** hồ sơ nhà xe; được **chụp lúc xuất bến** (rà soát phụ lục C mục 10: "chụp bên vận chuyển và loại xe lúc xuất bến") | rà soát §3 (C), phụ lục C.10 | Nếu 1b/2 không có cột này: lượt 3 thêm cột bằng `ALTER TABLE … ADD COLUMN` trên bảng chuyến (chỉ thêm) — nhưng khi đó **lượt 3 sửa bảng của 1b**, phải đi cùng người soạn 1b | 3a-2 |
 | G4 | Có **một mốc** "chuyến được giao cho nhà xe" (điều xe gán nhà xe) và lượt 2 có "nhà xe/tài xế đối tác **từ chối**" **trước** mốc chụp giá của D2 | chủ §0.2 lượt 2: "từ chối chuyến" | Nếu lượt 2 có thêm bước "nhà xe **nhận**": đề xuất dời mốc chụp sang lúc nhận (câu Q4) | 3a-2 |
 | G5 | Xe thuê: **hoặc** đã khai trong `vc_vehicle` với `owner_party_id` = nhà xe (ADR-0040 D1 "chủ xe = khoá tới hồ sơ"), **hoặc** chuyến chỉ ghi **loại xe yêu cầu** khi nhà xe tự điều xe | ADR-0040 D1 | Loại xe dùng để tra giá lấy theo thứ tự: loại xe của xe cụ thể (nếu có) → loại xe yêu cầu trên chuyến. Nếu 1b không có "loại xe yêu cầu", D1 thêm cột đó (như G3) | 3a-1, 3a-2 |
-| G6 | **Nhà xe** là hồ sơ (người hoặc tổ chức, rà soát C.7 "nhà xe có thể là cá nhân") mang một **vai nhóm bên ngoài**, `handles: "never"`; lượt 2 sửa LC-1 (ADR-0018) để người ngoài không bị ép thành bên đặt | ADR-0040 D3 "lượt 2" | Nếu lượt 2 chưa có vai này: D1 **không** tự tạo vai (tránh hai nơi định nghĩa nhà xe); 3a-1 kẹt | 3a-1 |
+| G6 | **Nhà xe** là hồ sơ (người hoặc tổ chức, rà soát C.7 "nhà xe có thể là cá nhân") mang vai **`CARRIER`, nhóm `OTHER` (không sinh quyền)** theo đề xuất lượt 2; nhà xe **không có tài khoản** do vai này. Chỉ **tài xế đối tác** là vai nhóm `EXTERNAL` (lượt 2 sửa LC-1 của ADR-0018 cho vai đó) | đề xuất ADR lượt 2 (người kiểm độc lập soát chéo, L6) | Nếu lượt 2 chưa có vai này: D1 **không** tự tạo vai (tránh hai nơi định nghĩa nhà xe); 3a-1 kẹt | 3a-1 |
 | G7 | Lượt 1b có **tuyến** hay không là **chưa chắc**. Đề xuất: **tuyến là danh mục của lượt 3** (D1), chuyến chỉ nhận thêm một khoá tới tuyến (chọn khi điều xe) | — | Nếu 1b đã có tuyến: D1 dùng lại, bỏ phần danh mục tuyến | 3a-1 (thu nhỏ) |
-| G8 | Tài xế đối tác (lượt 2) có tài khoản nhưng **không** mở ô tiền nào; cột `DRIVER` giữ mọi ô nghiệp vụ = `none` ngoài "xem cuốc của mình" | ADR-0040 D3 | — | — |
-| G9 | `parties` công bố **hai view mới** cho trigger của `vc_`: (i) hồ sơ đang mở **một mã vai cụ thể** (nhà xe); (ii) id hồ sơ **công ty chủ**. Đã kiểm 28/9: chỉ có `v_pty_open_role_group` (nhóm vai) và `v_pty_party_label`; T2b công bố công ty chủ bằng **hàm** | `migrations/0024:26`, ADR-0024 6.2 | Không có view thì hai luật tương ứng chỉ giữ ở **máy chủ + kiểm định kỳ**, ghi rõ ở sổ hàng rào (không khai là "hai lớp") | 3a-1, 3a-2 (lớp CSDL) |
+| G8 | Tài xế đối tác (lượt 2) có tài khoản với **quyền app mới `DRIVER_PARTNER`** (cột thứ 9 của bản đồ quyền), **không** mở ô tiền nào: mọi ô `transport.*`, `ledger.*` = `none`. (`DRIVER` là **tài xế công ty**, ADR-0040 D3 — cũng `none` ở mọi ô tiền.) | đề xuất ADR lượt 2 D2 (`DRIVER_PARTNER`) | Nếu lượt 2 đổi tên/thứ tự cột: sửa bảng §4(2) theo, giá trị giữ `none` | — |
+| G9 | `parties` công bố **hai view mới** cho trigger của `vc_`: (i) hồ sơ đang mở **một mã vai cụ thể** (nhà xe); (ii) id hồ sơ **công ty chủ**. Đã kiểm 28/9: chỉ có `v_pty_open_role_group` (nhóm vai — và chỉ lọc nhóm `INTERNAL`/`EXTERNAL`, nên **không bao giờ** thấy vai `CARRIER` nhóm `OTHER`) và `v_pty_party_label`; T2b công bố công ty chủ bằng **hàm** | `migrations/0024:26`, ADR-0024 6.2 | Không có view thì hai luật tương ứng chỉ giữ ở **máy chủ + kiểm định kỳ**, ghi rõ ở sổ hàng rào (không khai là "hai lớp") | 3a-1, 3a-2 (lớp CSDL) |
 
 ## 3. Quyết định
 
@@ -66,7 +66,7 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | Có ít nhất tuyến hoặc loại xe | `CHECK (route_code IS NOT NULL OR vehicle_type_code IS NOT NULL)` | như trên |
 | Không chồng hiệu lực cùng khoá (nhà xe, tuyến, loại xe) | trigger chèn/sửa `…_overlap` (khuôn `pty_party_role_overlap`, `migrations/0011:97-104`) | kiểm trước, mã lỗi riêng |
 | Chỉ-thêm: không đổi tiền/khoá; chỉ được đặt `valid_to_date` **một lần** từ rỗng | trigger `BEFORE UPDATE` (khuôn `vc_vehicle_document_identity`) + trigger cấm `DELETE` | route không có đường sửa tiền |
-| Nhà xe phải đang mang vai nhà xe | trigger đọc **view công bố của `parties` theo mã vai** — **chưa có** (view hiện có `v_pty_open_role_group`, `migrations/0024:26`, chỉ trả **nhóm** vai, không trả mã vai); cần view mới ở `parties` (G9). Tới lúc có view: lớp CSDL **chưa giữ**, ghi "dựa vào máy chủ" ở sổ hàng rào | kiểm qua hàm công bố của `parties` |
+| Nhà xe phải đang mở vai `CARRIER` (nhóm `OTHER`, G6) | **chưa giữ — lệch có chủ ý LCY-1** (§7a): view hiện có `v_pty_open_role_group` (`migrations/0024:26`) chỉ trả nhóm `INTERNAL`/`EXTERNAL`, không thấy `CARRIER`; cần view mới ở `parties` theo mã vai (G9) | kiểm qua **hàm công bố** của `parties` "hồ sơ X đang mở vai `CARRIER`" (theo mã vai, không theo nhóm) + kiểm định kỳ `R-VC-RATE-1` |
 
 **Route** (cổng văn phòng, hỏi `can()` đầu thân route, 403 trước 400 — khuôn `van-chuyen/index.ts`):
 - `GET /api/van-chuyen/bang-gia?nha-xe=&ngay=` (`transport.rate.view`)
@@ -102,7 +102,7 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | Dòng đảo = âm đúng dòng gốc, mỗi gốc đảo tối đa một lần | trigger chèn + chỉ mục duy nhất một phần trên `reverses_id` | — |
 | Mỗi chuyến tối đa **một** dòng *chụp giá* chưa bị đảo | trigger chèn `NOT EXISTS` (chỉ đọc bảng `vc_`) | kiểm trong lô, câu có điều kiện |
 | Tổng chi phí chuyến ≥ 0 | trigger chèn (tổng hiện có + dòng mới ≥ 0) | hàm tổng + kiểm trước |
-| Chỉ ghi chi phí cho chuyến có bên vận chuyển ≠ công ty chủ | trigger đọc bảng chuyến (`vc_`) + **view công bố "công ty chủ" của `parties` — chưa có** (T2b công bố bằng **hàm** `ownerCompany`; trigger không gọi được hàm TypeScript); cần view mới (G9). Tới lúc có: chỉ lớp máy chủ + `R-VC-COST-3` | hàm `ownerCompany` |
+| Chỉ ghi chi phí cho chuyến có bên vận chuyển ≠ công ty chủ, và bên vận chuyển đang mở vai `CARRIER` | **chưa giữ — lệch có chủ ý LCY-2** (§7a): T2b công bố công ty chủ bằng **hàm** `ownerCompany` (trigger không gọi được hàm TypeScript), chưa có view; cần view mới (G9) | hàm `ownerCompany` + hàm vai `CARRIER` của `parties` + kiểm định kỳ `R-VC-COST-3` |
 | Không ghi *điều chỉnh* cho chuyến đã **chốt vào sổ** trừ qua lô của D3 | trigger (dấu "đã chốt" nằm ở bảng `vc_`, xem D3) | route từ chối 409 |
 | Bất biến dữ liệu định kỳ | `audit-invariants`: `R-VC-COST-1` chuyến giao nhà xe có đúng một dòng chụp còn hiệu lực **hoặc** được liệt kê "thiếu giá"; `R-VC-COST-2` dòng đảo khớp gốc; `R-VC-COST-3` không chuyến nào của công ty chủ có dòng chi phí | — |
 
@@ -171,19 +171,19 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | `audit_log` | mọi hành động | hành động mới: thêm/đóng giá, chụp/đảo/điều chỉnh chi phí, chốt |
 
 **(2) Từng dòng bản đồ quyền chạm các bảng này áp cho loại nào:**
-| Ô | Bảng/loại | SALES | ACC | ADMIN | FIELD | PARTNER | SUPER | INTERN | DRIVER |
-|---|---|---|---|---|---|---|---|---|---|
-| `transport.rate.view` *(mới)* | dòng giá thuê, danh mục tuyến/loại xe | none | any | any | none | none | any | none | none |
-| `transport.rate.manage` *(mới)* | như trên (ghi) | none | none | any | none | none | any | none | none |
-| `transport.cost.view` *(mới)* | dòng chi phí chuyến, bảng kê | none | any | any | none | none | any | none | none |
-| `transport.cost.adjust` *(mới)* | dòng chi phí (điều chỉnh/đảo/chụp lại) | none | any | none | none | none | any | none | none |
-| `vehicle.manage` *(có)* | xe (gồm cột loại xe mới) | none | none | any | none | none | any | none | none |
-| `ledger.view` *(ADR-0026, chưa có)* | dòng nợ **kể cả loại theo chuyến** | own | any | own | own | none | any | own | **cần quyết** — ADR-0026 chưa có cột `DRIVER`; đề xuất `none` |
-| `ledger.write` *(ADR-0026, chưa có)* | chốt, trả nhà xe | none | any | none | none | none | any | none | none |
-| `money.view` *(có)* | tiền **đơn** — **không** áp cho chi phí chuyến (bài quét số lạ, §6) | — | — | — | — | — | — | — | — |
+| Ô | Bảng/loại | SALES | ACC | ADMIN | FIELD | PARTNER | SUPER | INTERN | DRIVER | DRIVER_PARTNER *(lượt 2)* |
+|---|---|---|---|---|---|---|---|---|---|---|
+| `transport.rate.view` *(mới)* | dòng giá thuê, danh mục tuyến/loại xe | none | any | any | none | none | any | none | none | none |
+| `transport.rate.manage` *(mới)* | như trên (ghi) | none | none | any | none | none | any | none | none | none |
+| `transport.cost.view` *(mới)* | dòng chi phí chuyến, bảng kê | none | any | any | none | none | any | none | none | none |
+| `transport.cost.adjust` *(mới)* | dòng chi phí (điều chỉnh/đảo/chụp lại) | none | any | none | none | none | any | none | none | none |
+| `vehicle.manage` *(có)* | xe (gồm cột loại xe mới) | none | none | any | none | none | any | none | none | none |
+| `ledger.view` *(ADR-0026, chưa có)* | dòng nợ **kể cả loại theo chuyến** | own | any | own | own | none | any | own | **cần quyết** — ADR-0026 chưa có cột `DRIVER`; đề xuất `none` | none (đề xuất; ADR-0026 chưa có cột này) |
+| `ledger.write` *(ADR-0026, chưa có)* | chốt, trả nhà xe | none | any | none | none | none | any | none | none | none |
+| `money.view` *(có)* | tiền **đơn** — **không** áp cho chi phí chuyến (bài quét số lạ, §6) | — | — | — | — | — | — | — | — | — |
 
 - Dòng `ledger.view` = `own` của SALES/ADMIN/FIELD/INTERN (ADR-0026 điều 10) **không** lộ chi phí chuyến vì bên nợ của dòng *chi phí vận chuyển* là **công ty chủ**, không phải hồ sơ của nhân viên nào; nhưng phải có test khẳng định "Sổ của tôi" của mọi nhân viên không trả dòng loại này.
-- Cột `DRIVER`: mọi ô mới = `none` — bài ghim cả hàng của ADR-0040 phải vẫn xanh.
+- Cột `DRIVER` (tài xế công ty) và cột `DRIVER_PARTNER` (tài xế đối tác, lượt 2): mọi ô mới = `none` — bài ghim cả hàng của ADR-0040 phải vẫn xanh; lượt 2 có bài ghim tương ứng cho `DRIVER_PARTNER` thì cũng phải xanh.
 
 **(3) Cổng nào canh cửa nào:**
 - Route `/api/van-chuyen/bang-gia*`, `/tuyen`, `/loai-xe`, `/chuyen/:id/chi-phi*`, `/chi-phi`: **cổng văn phòng** (như route 1a), `DRIVER`/`PARTNER`/`FIELD` không qua cổng; thân route hỏi đúng ô ở trên, 403 trước 400.
@@ -196,7 +196,7 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 | Lát | Nội dung | Chờ gì | Việc lớn? |
 |---|---|---|---|
 | **3a-1** | Danh mục loại xe + tuyến; cột loại xe trên `vc_vehicle`; bảng giá thuê + luật "dòng nào thắng"; ô `transport.rate.*`; màn bảng giá (vẽ trên Claude Design theo ADR-0040) | Lượt 2 có vai nhà xe (G6); Q2, Q3, Q5 | Có (dữ liệu, tiền, quyền) → người kiểm độc lập |
-| **3a-2** | Dòng chi phí chuyến, chụp trong lô của route 1b/2, huỷ → đảo, thiếu giá → giữ, điều chỉnh, bảng kê; ô `transport.cost.*`; sổ vàng chi phí | 1b có chuyến + kết thúc (G1–G3); lượt 2 có giao nhà xe/từ chối (G4); 3a-1; Q4, Q6, Q7 | Có |
+| **3a-2** | Dòng chi phí chuyến, chụp trong lô của route 1b/2, huỷ → đảo, thiếu giá → giữ, điều chỉnh, bảng kê; ô `transport.cost.*`; sổ vàng chi phí | 1b có chuyến + kết thúc (G1–G3); lượt 2 có giao nhà xe/từ chối (G4); 3a-1; Q4, Q6, Q7. **Thêm cột vào `vc_trip` hoặc `vc_trip_departure_check` (bảng của 1b) phải được người soạn/thi công 1b xác nhận** (L5) | Có |
 | **3b** | Chốt vào sổ công nợ, trả nhà xe, trả dư | ADR-0026 + ADR-0024 điều 1–5 accepted **và** thi công lượt 1 của sổ; Q10, Q11, Q12 | Có |
 | *(ngoài lượt 3)* | Phân bổ chi phí chuyến vào đơn / lợi nhuận đơn; chi phí xe công ty; giá theo giờ/km; nhà xe tự xem sổ | Q8, Q9 | — |
 
@@ -221,6 +221,15 @@ Mỗi giả định có **phương án dự phòng** và ghi rõ lát nào bị 
 15. **Nhật ký:** mọi route ghi tiền của lượt 3 để lại đúng một dòng `audit_log` cùng lô (bài quét nhật ký hiện có mở rộng).
 
 ## 7. Tự rà: chỗ mơ hồ, chỗ đụng ADR đã duyệt / đang chờ (chỉ nêu, không tự hoà giải)
+
+### 7a. Lệch có chủ ý khỏi Hiến chương 5.1 (khuôn ADR-0029 — chủ duyệt mới hợp lệ)
+
+| Mã | Bất biến | Vì sao chưa có lớp CSDL | Lớp bù (hôm nay) | Điều kiện gỡ lệch |
+|---|---|---|---|---|
+| **LCY-1** (D1) | Dòng giá thuê chỉ gắn với hồ sơ **đang mở vai `CARRIER`** | Trigger của `vc_` chỉ được đọc bảng `vc_` hoặc **view công bố** (Hiến chương 5.3); `parties` chưa có view theo mã vai, và view nhóm vai hiện có bỏ qua nhóm `OTHER` | Máy chủ kiểm qua hàm công bố của `parties` trước khi ghi (409); `audit-invariants` `R-VC-RATE-1` liệt kê dòng giá đang hiệu lực của hồ sơ không còn vai `CARRIER`; dòng sổ hàng rào ghi "chỉ lớp máy chủ" | `parties` công bố view hồ sơ đang mở theo mã vai (G9) → thêm trigger ở `vc_`, thấy chặn thật một lần (P16), xoá dòng lệch |
+| **LCY-2** (D2) | Dòng chi phí chỉ cho chuyến có bên vận chuyển **≠ công ty chủ** và **đang mở vai `CARRIER`** | Công ty chủ chỉ công bố bằng **hàm** `ownerCompany` (ADR-0024 6.2); trigger không gọi được hàm | Máy chủ kiểm bằng `ownerCompany` + hàm vai `CARRIER` trong cùng route, trước lô ghi; `R-VC-COST-3` (không chuyến nào của công ty chủ có dòng chi phí); dòng sổ hàng rào ghi "chỉ lớp máy chủ" | `parties` công bố view id công ty chủ + view theo mã vai (G9) → thêm trigger, thấy chặn một lần, xoá dòng lệch |
+
+Hai lệch này có **phạm vi hẹp** (một luật mỗi cái), **không** nới hàng rào nào đã có; việc tạo hai view ở `parties` là việc của `parties` (người soạn lượt 2 hoặc T2b), không phải của lượt 3.
 
 **Câu đã duyệt bị đổi** (khuôn ADR-0024/ADR-0026; khi duyệt, ADR lượt 3 phải ghi rõ các câu này):
 
