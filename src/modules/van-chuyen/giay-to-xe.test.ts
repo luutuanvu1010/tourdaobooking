@@ -109,6 +109,20 @@ test("sửa sai: dòng cũ → 409 document_not_current; 'Nhập sai nơi cấp'
   for (const x of w.q("SELECT detail FROM audit_log WHERE action LIKE 'vehicle_document_%'")) assert.ok(!String(x.detail).includes("KD-04"), `nhật ký không số: ${x.detail}`);
 });
 
+test("sửa sai giấy tờ xe (Ruling R22): THIẾU lý do / lý do NGOÀI danh sách đóng → 400 invalid_input, dòng không đổi, không nhật ký — lớp máy chủ DUY NHẤT", async () => {
+  const { w, xe } = await setup();
+  const did = dongMoiNhat(await them(w, ADM, xe, { typeCode: "INSPECTION", number: "KD-0456", expiryDate: ngay(20) }), "INSPECTION").id;
+  const truoc = { ...dong(w, did) };
+  for (const body of [{ value: ngay(21), expectedUpdatedAt: truoc.updated_at }, { reason: "KHAC", value: ngay(21), expectedUpdatedAt: truoc.updated_at }]) {
+    const r = await suaSai(w, ADM, xe, did, body);
+    assert.equal(r.status, 400, `${JSON.stringify(body)}: ${r.text}`);
+    assert.equal(r.json.error.code, "invalid_input");
+    assert.match(r.json.error.message, /Lý do sửa sai không có trong danh sách/);
+  }
+  assert.deepEqual({ ...dong(w, did) }, truoc, "dòng không đổi");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'vehicle_document_corrected'")[0].n, 0, "không nhật ký");
+});
+
 test("xe đã ngừng: thêm / gia hạn giấy tờ → 409 vehicle_retired 'Xe đã ngừng dùng.'; sửa sai dữ liệu cũ vẫn được", async () => {
   const { w, xe } = await setup();
   const did = dongMoiNhat(await them(w, ADM, xe, { typeCode: "INSPECTION", number: "KD-0456", expiryDate: ngay(20) }), "INSPECTION").id;

@@ -7,7 +7,7 @@
   - danh sách màn `docs/superpowers/specs/2026-09-28-van-chuyen-1a-man-hinh-can-ve.md`.
 - **Nhánh thi công:** `worktree-agent-a9cf548897a76b7f7` (worktree `.claude/worktrees/agent-a9cf548897a76b7f7`). Tách từ `origin/main` @ `c276848` (bản 1.34), rồi gộp theo lệnh điều phối: `worktree-agent-ac0436b2bbf204613` @ `0d68af9` (kế hoạch, fast-forward) và `dac-ta-van-chuyen` @ `644a8ee` (ADR-0040 accepted + giữ chỗ migration 0031–0033) → đỉnh `3159fed`. Mã và migration giống hệt `c276848`.
 - **Cách thi công:** executing-plans — một phiên thi công (vai THI CÔNG do điều phối giao 2026-09-28) tự làm Task A0 → A23, không giao tiếp subagent. Dừng ở A24 (mốc kiểm giữa chừng) và báo điều phối.
-- **Trạng thái (2026-09-28, đỉnh nhánh sau commit này):** PHẦN A XONG TỚI TASK A23 + làm Ruling R18, R19 của điều phối; Task A19 hoãn sang Phần B (**R17 xác nhận**). **DỪNG, chờ kết quả kiểm độc lập giữa chừng (A24 — điều phối đã chọn CÓ)**. Phần B làm SONG SONG ở nhánh riêng, gộp nhánh này định kỳ (Ruling R16). Chưa push, chưa gộp `main`, chưa lên production.
+- **Trạng thái (2026-09-28, đỉnh nhánh sau commit này):** **PHẦN A XONG** — Task A0–A23 (A19 hoãn sang Phần B, R17), Ruling R18, R19, R22; kiểm độc lập mốc A24: **ĐẠT CÓ ĐIỀU KIỆN trên `30c2fef`** (mục 8; điều kiện: e2e đủ bộ dời sang người kiểm cuối Task K2). Người thi công Phần A **dừng hẳn**; Phần B (nhánh riêng, R16) gộp đỉnh mới. Chưa push, chưa gộp `main`, chưa lên production.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả của người kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
@@ -71,7 +71,8 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 | A23 | Kiểm toàn bộ Phần A (tự khai) — chi tiết mục 7 | (commit cuối Phần A, cùng mục 7) | 1285/1285; tsc 0; `build:web` 0; e2e đủ bộ `24/24 kịch bản xanh`; `tests/audit` 36/36; Chrome: xem mục 7 | — | — | — |
 | R18 | Route 1 chặn tài khoản LAI mang quyền Đối tác (`holdsPartner`, cùng câu 403) | `af356c5` | 1287/1287 (cùng R19); tsc 0; e2e `parties van-chuyen` `3/3 kịch bản xanh` | 2026-09-28: `not ok 3 - route 1 (Ruling R18): tài khoản LAI — …` (`expected: 403 / actual: 200`) | 2026-09-28 · bỏ dòng `if (holdsPartner(staff)) return …` ⇒ `not ok 3 - route 1 (Ruling R18): …` (`expected: 403 / actual: 200`) → hoàn nguyên → 21/21 | chưa |
 | R19 | Route 22: hai lần đổi mốc nhắc cùng mili-giây → 409 `stale` "Vừa có người đổi mốc nhắc, tải lại rồi thử lại." (không 500) | `0b35fa0` | (như trên) | 2026-09-28: `not ok 24 - route 22 (Ruling R19): …` (`expected: 409 / actual: 500`) — bài đứng đồng hồ bằng `mock.timers` (chỉ `Date`) | 2026-09-28 · tắt ánh xạ (`if (false)`) ⇒ `not ok 3 - route 22 (Ruling R19): …` (`expected: 409 / actual: 500`) → hoàn nguyên → 5/5 | chưa |
-| A24 | Kiểm độc lập giữa chừng (khuyến nghị) | — | — | — | — | **điều phối chọn CÓ** (R17–R21) — giao người kiểm sau R18, R19; người thi công dừng, chờ kết quả (N8) |
+| R22 | Sổ hàng rào: "sửa sai giấy tờ phải có lý do" (lớp máy chủ; lớp CSDL không có — dựa vào kỷ luật) + P16 lần đầu cho lời kiểm lý do; thêm bài tầng route (người, xe) và hai ca thuần cho xe (thiếu lý do / lý do ngoài danh sách); đề xuất luật Mục 2f | (commit R22) | 1289/1289; tsc 0 | — (bài canh hành vi đã có — xanh ngay trên mã hiện tại) | 2026-09-28 · bỏ lời kiểm danh sách đóng ở `kiemSuaSai` ⇒ `not ok 13 - route 6 (Ruling R22): …`, `not ok 30 - kiemSuaSai: …` (`expected: 400 / actual: 500`); ở `kiemSuaSaiXe` ⇒ `not ok 5 - sửa sai giấy tờ xe (Ruling R22): …`, `not ok 15 - kiemSuaSaiXe: …` (`400 / 500`); bỏ riêng dòng `choXe` ⇒ **KHÔNG đỏ** (nhánh cuối là lưới thứ hai, cùng câu); bỏ cả hai lưới ⇒ `not ok 4 - sửa sai: …`, `not ok 15 …` (`400 / 200`) → hoàn nguyên → 33/33, 16/16 | A24 không phủ (sau `30c2fef`) |
+| A24 | Kiểm độc lập giữa chừng (khuyến nghị) | — | — | — | — | **ĐẠT CÓ ĐIỀU KIỆN trên `30c2fef`** (mục 8) |
 | B0–B8 | Phần B — giao diện theo bản vẽ | _(điền từng task)_ | _(điền)_ | _(điền)_ | _(điền)_ | _(điền)_ |
 | K1 | Nhật ký thay đổi (số bản chốt lúc gộp; tạm 1.35) | _(điền)_ | _(điền)_ | — | — | _(điền)_ |
 
@@ -122,6 +123,9 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
   - **R20:** GT1–GT4 giữ nguyên.
   - **R21:** cạnh `van-chuyen → parties, audit` và tiền tố `vc_`/`vc` vẫn chờ chủ duyệt ở tệp đề xuất luật; điều phối trình cuối đợt, người thi công không làm gì thêm.
   - **A24: CÓ** — điều phối giao người kiểm độc lập ngay sau khi xong R18, R19. Người thi công dừng, chờ kết quả.
+- **R22** (điều phối, 2026-09-28, sau kiểm độc lập mốc A24 — điểm THẤP-2; chép nguyên ý):
+  - (a) thêm một dòng `docs/SO-HANG-RAO.md`: chặn "sửa sai giấy tờ (người và xe) phải chọn lý do trong danh sách đóng"; cơ chế: máy chủ (`LY_DO_SUA_SAI` ở `src/shared/giay-to.ts` + route sửa sai + test); lớp CSDL: KHÔNG CÓ (lý do chỉ nằm trong nhật ký), **dựa vào kỷ luật**; ngày quan sát chặn thật — nếu chưa từng P16 lời kiểm lý do ở máy chủ thì làm ngay (bỏ bước kiểm lý do → test đỏ → hoàn nguyên) rồi ghi ngày.
+  - (b) tệp đề xuất luật thêm **Mục 2f**: `docs/ARCHITECTURE.md` Phần I, bảng thi hành, dòng "5.1 Bất biến sát dữ liệu" (dòng 147 trên `c276848`), cột chỗ còn hở thêm "sửa sai giấy tờ phải có lý do (ADR-0040) chỉ ở mã — lý do nằm trong nhật ký, CSDL không có cột để kiểm"; lý do Hiến chương 6.2; thêm dòng vào bảng "Tóm tắt để chủ duyệt". Không sửa `docs/ARCHITECTURE.md` thật.
 - **Q1, Q2 của kế hoạch mục 12** coi như đã trả lời bằng R8, R9 (mặc định (a) cả hai) — ghi ở mục 2.
 - **Cấm của lượt thi công:** không `git push`, không gộp vào `main`; không lệnh `--remote`, `wrangler deploy`/`secret`; không sửa `CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/` (kể cả `docs/adr/README.md`), `src/CLAUDE.md`, `web/CLAUDE.md`. Truy vấn chỉ-đọc remote là việc của CHỦ (câu lệnh viết sẵn trong báo cáo).
 
@@ -175,8 +179,33 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
 
 ## 8. Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc)
 
-- **Giữa chừng — Task A24 (nếu điều phối chọn):** _(điền: ĐẠT / ĐẠT CÓ ĐIỀU KIỆN / KHÔNG ĐẠT, ngày, mã commit; phép đột biến tự làm; phán ba điểm ở kế hoạch mục 14)_
-- **Cuối — Task K2 (bắt buộc):**
+### Kiểm độc lập mốc A24 (2026-09-28)
+
+_Chép nguyên từ lời điều phối (người kiểm chỉ đọc); người thi công không đánh giá thêm._
+
+- **Kết luận:** ĐẠT CÓ ĐIỀU KIỆN trên `30c2fef`.
+- **Người kiểm tự chạy:**
+  - `npm test`: 1287/1287;
+  - typecheck: thoát 0;
+  - `tests/audit`: 36/36;
+  - `npm run dict` sinh lại trong bản sao riêng: diff rỗng;
+  - D1 local áp đủ 0031–0033 (`wrangler d1 migrations apply --local --persist-to` thư mục tạm). Việc này giải quyết điểm "chưa chắc" số 1 ở mục 14 của kế hoạch.
+- **P16, người kiểm tự phá trên bản `git archive` riêng, cả 4 đều đỏ rồi hoàn nguyên:**
+  - bỏ trigger CCCD một người: đỏ ở `migrations-giay-to-cua-nguoi.test.ts`;
+  - đảo thứ tự ghi nhật ký / trả số ở route reveal: đỏ ở `giay-to-route.test.ts`;
+  - thêm DRIVER vào `OFFICE_GATE`: đỏ ở `cong-quyen.test.ts` + `tai-xe-cong.test.ts`;
+  - phá trigger CCCD lần hai: xác nhận route 4/6 chỉ dịch lỗi CSDL, đúng như kế hoạch dòng 332.
+- **Điều kiện:** e2e đủ bộ CHƯA chạy vì máy bận (`wrangler dev` của Phần B chạy suốt buổi). Dời sang người kiểm cuối (Task K2).
+- **THẤP-1:** `docs/adr/README.md` đổi 1 dòng, do commit `644a8ee` của điều phối (giữ chỗ số migration), không phải của người thi công. Vô hại. Đã ghi nhận.
+- **THẤP-2:** "sửa sai phải có lý do" chỉ có lớp máy chủ. Không có lớp CSDL vì lý do chỉ nằm trong nhật ký. → Ruling R22 (mục 4; đã làm — mục 3 dòng R22).
+- **THẤP-3:** tài khoản lai PARTNER + ADMIN vẫn ghi / xem đủ số giấy tờ người khác như Quản trị.
+  - Là nợ kiến trúc có từ trước: đường gán quyền cũ `POST /api/staff` không gửi `roles`, và `PUT /api/staff/:id/permissions` khi đích chưa có vai. Đã ghi sẵn ở `src/shared/permissions.ts:188-192`.
+  - Chỉ Toàn quyền tạo được tổ hợp này (LC-4). Khi đã có ADMIN thật thì đúng ô ADR-0040 D2.
+  - THẤP với 1a. Không vào `docs/quyen-hoan.json`, vì sổ đó chỉ nhận HIGH trở lên. Không sửa trong 1a.
+
+### Kiểm độc lập cuối — Task K2
+
+- **Cuối — Task K2 (bắt buộc; phải chạy e2e đủ bộ — điều kiện của A24; phủ cả R22 sau `30c2fef`):**
   - **Kết luận:** _(điền: ĐẠT / ĐẠT CÓ ĐIỀU KIỆN / KHÔNG ĐẠT, ngày, trên mã commit nào)_
   - **Phép đột biến người kiểm tự làm:** _(điền)_
   - **Phát hiện và cách xử lý:** _(điền)_
@@ -190,6 +219,8 @@ Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng 
 - `dot-c-smoke` trên `c276848` (để thấy bằng máy rằng chỗ đỏ `:124` có sẵn).
 - Lớp CSDL của e2e (6 câu SQL gõ tay) mới thấy XANH, chưa đột biến riêng trên D1 (trigger / chỉ mục đã thấy chặn ở bài `node:sqlite` — `docs/SO-HANG-RAO.md`).
 - Toàn bộ Phần B (giao diện theo bản vẽ) và Task A19.
+- e2e đủ bộ do NGƯỜI KIỂM độc lập tự chạy — điều kiện của A24, dời sang người kiểm cuối Task K2 (người thi công đã chạy đủ bộ ở A23: `24/24`, trên `5f868d7` — trước R18, R19, R22).
+- R22 (sau `30c2fef`) chưa có người kiểm độc lập xem.
 
 ## 10. Phát hành (chủ dự án tự chạy — Task K3)
 
