@@ -17,7 +17,7 @@
 
 ## Quyền và bảo mật
 - Mặc định từ chối. Route khai `access: "public" | "staff" | "office" | "orders" | "admin"` (`"orders"` — ADR-0014: văn phòng HOẶC tài khoản Đối tác, dùng cho route `/api/orders*`); bản đồ quyền → thao tác ở **một** nơi: `src/shared/permissions.ts` (`can(staff, op, ctx)`). Giao diện chỉ ẩn/hiện; máy chủ luôn kiểm lại.
-- Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép (`architecture.test.ts` bắt mọi tệp ngoài `parties` nhắc `pty_party_role`).
+- Vai trò hồ sơ (HDV, tài xế…) **không bao giờ** là điều kiện cho phép (`architecture.test.ts` bắt mọi tệp ngoài `parties` nhắc `pty_party_role`). Riêng mã vai `OWNER_COMPANY` ("Công ty chủ", ADR-0024 6.4) chỉ đánh dấu hồ sơ ĐÍCH phải hỏi thêm ô `company.legal.write` — chỉ SIẾT, không bao giờ cho thêm quyền; câu tra nằm trong `parties` (`isOwnerCompanyParty`, không xuất ra ngoài).
 - Nhật ký (`audit_log`): hành động khai ở `src/shared/audit-actions.ts` (có nhãn tiếng Việt); **không ghi SĐT/email/MST**. `staff_updated` (`src/modules/accounts/index.ts`, route `PATCH /api/staff/:id`) từng ghi SĐT; đã sửa 2026-09-21 (chỉ ghi "đổi SĐT đăng nhập"), test ở `patch-staff.test.ts`. Nhật ký cũ trên production vẫn còn số (chỉ-thêm) — đừng lặp lại kiểu cũ.
 
 ## Dữ liệu
