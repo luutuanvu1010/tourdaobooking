@@ -82,6 +82,12 @@ Ruling mới — **chỉ đạo của điều phối** (lời giao việc 2026-0
   4. **Chữ khác duy nhất so với bản người kiểm độc lập đã đọc (`883396b`):** Mục 5 ghi "bẫy 48" thay "bẫy 46" — đổi ở D19 vì `main` chèn hai bẫy mới (44, 45), số 46 nay là bẫy Chrome headless; đã nêu trong báo cáo D19. Áp đúng bản hiện tại của tệp (48). `git diff 883396b fc2a29f -- <tệp đề xuất>` chỉ có một dòng đổi (dòng `+` của Mục 5). Nếu chủ duyệt trên bản cũ thì hoàn nguyên là đổi một con số.
   5. **Vị trí Mục 5** (đề xuất không ghi chỗ chèn): gạch mới đặt NGAY TRƯỚC gạch cuối "Hiện trạng production, số test, id Worker **không** ghi ở đây…" của §10 (gạch cuối là ghi chú khép mục) — sau gạch "Kịch bản Chrome: …". Chỉ vị trí, không đổi chữ.
   6. Kiểm sau khi áp: so bằng máy `git diff` từng tệp luật với dòng `-`/`+` của đề xuất (so từng chuỗi, đúng thứ tự); `npm test`, `npm run typecheck` (mã thoát). Kết quả ghi ở mục 7.
+  7. **Đã làm** (trên nền `67e0585` = commit ghi trạng thái ĐÃ DUYỆT + D20):
+     - `e13f2bc` — `docs/ARCHITECTURE.md`: Mục 2a (dòng 141) + 2b (dòng 175, 177).
+     - `f16683c` — `src/CLAUDE.md`: Mục 3 (dòng 20).
+     - `b329be9` — `web/CLAUDE.md`: Mục 4 (dòng 34 sửa + một dòng mới ngay sau).
+     - `0b062b6` — `CLAUDE.md`: Mục 5 (một gạch mới ở §10, dòng 121, trước gạch "Hiện trạng production…").
+     - Cả bốn chỉ sửa bằng công cụ Edit; không lần nào bị từ chối. Với `src/CLAUDE.md` và `web/CLAUDE.md`, môi trường báo "thêm thư mục làm việc …/src", "…/web" ngay sau lần sửa (người thi công không tự thấy hộp hỏi quyền — không khẳng định chủ đã bấm gì).
 - **D19 — tin thứ mười của điều phối: `main` lên `356084a` (nhánh HDV: ADR-0030 + ADR-0037, bản 1.33, chọn HDV lúc lập đơn); gộp vào nhánh T2b, số bản T2b thành 1.34:**
   1. **Gộp `main` @ `356084a`** → commit gộp `1ca810e` (thông điệp tiếng Việt, kê từng xung đột). Trước khi gộp: `main` = `origin/main` = `356084a`; `git ls-tree --name-only main migrations/` dừng ở `0028_vai_it.sql` ⇒ không có `0029`/`0030`, migration T2b giữ `0030`. Chạy thử `git merge-tree --write-tree --name-only HEAD main` trước: 5 tệp xung đột chữ. Kiểm sau gộp: `HEAD^1` = `edce370`, `HEAD^2` = `356084a`; `git merge-base --is-ancestor 356084a HEAD` ĐÚNG.
   2. **Xung đột chữ — cách gỡ:**
@@ -172,6 +178,11 @@ Ruling mới — **của người thi công** (P8: bề mặt, đảo ngược �
 - **Kịch bản `vai-smoke.mjs` đỏ sẵn có trên `main` @ `20e0c6e`** ở bước A (`9 !== 11` ô vai — ADR-0042 ẩn Giám đốc/Điều hành chung với Quản trị); đã chạy trên bản xuất của `main` (`/tmp/t2b-main`) → cùng lỗi. Không thuộc T2b; khẳng định T2b thêm ở bước D2 không tới được trên đỉnh nhánh (đã thấy chặn thật TRƯỚC khi gộp `main`, Task 10 (ii)). Cần sửa kịch bản ở việc khác.
 
 ## 7. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
+
+**Lần kiểm sau D20 — áp diff luật đã duyệt (Task 17), trên `0b062b6`:**
+- So bằng máy (`/tmp/t2b-so-khop-luat.py`, chỉ đọc — dòng `-`/`+` của `git diff -U0` so TỪNG CHUỖI, ĐÚNG THỨ TỰ với khối `diff` của đề xuất): `docs/ARCHITECTURE.md` (khối 2a + 2b) 3 `-`/3 `+` KHỚP; `src/CLAUDE.md` (khối 3) 1/1 KHỚP; `web/CLAUDE.md` (khối 4) 1/2 KHỚP; `CLAUDE.md` (khối 5) 0/1 KHỚP; gộp cả bốn tệp `git diff -U0 67e0585 HEAD` 5 `-`/7 `+` → "TRÙNG KHỚP NGUYÊN VĂN". `git diff --stat 67e0585 HEAD` chỉ có đúng bốn tệp đó (7 thêm, 5 bớt). Mục 1: `/tmp/t2b-kiem-de-xuat.py` khối 0 — 2 dòng `-` khớp `src/architecture.test.ts` của `main`, 7 dòng `+` khớp mã nhánh (không sửa).
+- `npm test`: **1175/1175, thoát 0** · `npm run typecheck`: **thoát 0** (11:39, máy không có tiến trình triển khai nào).
+- e2e không chạy lại (chỉ đổi tài liệu luật, không đổi mã so với lần e2e 23/23 trên `1ca810e`).
 
 **Lần kiểm sau D19 — trên commit gộp `1ca810e`** (gộp `main` @ `356084a`, bản 1.33 HDV; T2b = 1.34):
 - `npm test`: ngay sau khi gỡ xung đột chữ **1174/1175** — đỏ đúng bài ghim dòng Đối tác của `main` (D19.4); sửa xong **1175/1175, thoát 0**.
