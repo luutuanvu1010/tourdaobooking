@@ -180,6 +180,21 @@
       "kind": "lookup"
     },
     {
+      "name": "pty_person_document_type",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_license_class",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
+      "name": "pty_person_document",
+      "module": "parties",
+      "kind": "table"
+    },
+    {
       "name": "staff",
       "module": "staff",
       "kind": "table",

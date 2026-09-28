@@ -87,6 +87,9 @@
 | `pty_person` | bảng |  |
 | `pty_relationship_type` | bảng tra cứu |  |
 | `pty_role_type` | bảng tra cứu |  |
+| `pty_person_document_type` | bảng |  |
+| `pty_license_class` | bảng |  |
+| `pty_person_document` | bảng |  |
 | `v_pty_open_role_group` | view công bố | cột: party_id, role_group |
 | `v_pty_party_label` | view công bố | cột: id, display_name, party_kind, active, sort_key |
 
