@@ -124,10 +124,10 @@ test("nguoiPhuTrachTuPhien: người xem mọi đơn / Đối tác / Thực tậ
   }
 });
 
-test("nguoiPhuTrachTuPhien: 128 tập con quyền — có giá trị KHI VÀ CHỈ KHI máy chủ chỉ trả đơn đang phụ trách (nhánh (3) của GET /api/orders: không 'mọi đơn', không 'mình lập', có 'mình phụ trách')", () => {
+test("nguoiPhuTrachTuPhien: 256 tập con quyền — có giá trị KHI VÀ CHỈ KHI máy chủ chỉ trả đơn đang phụ trách (nhánh (3) của GET /api/orders: không 'mọi đơn', không 'mình lập', có 'mình phụ trách')", () => {
   const moiTapCon = <T,>(mang: readonly T[]): T[][] => (mang.length === 0 ? [[]] : ((con) => [...con, ...con.map((t) => [mang[0] as T, ...t])])(moiTapCon(mang.slice(1))));
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
-  assert.equal(tapCon.length, 128);
+  assert.equal(tapCon.length, 256); // 8 mã quyền (ADR-0040 D3 thêm DRIVER)
   let soCaTuPhien = 0;
   for (const permissions of tapCon) {
     const s = phien(permissions);

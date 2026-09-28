@@ -28,11 +28,20 @@ try {
     assert.deepEqual(v, [], `axe (${label}): ${JSON.stringify(v)}`);
   };
 
-  // ---- A. Form thêm (máy tính): 11 vai, Giám đốc/Điều hành tắt cho Quản trị; chọn Kế toán → nhóm Bên ngoài tắt, xem trước "Kế toán"
+  // ---- A. Form thêm (máy tính): Quản trị thấy 10 ô vai — 13 vai trừ 3 vai chỉ Toàn quyền gán (Giám đốc, Điều hành chung, IT) bị ẨN hẳn từ ADR-0042
+  // (trước đây là "tắt"; kịch bản cũ khoá 11 ô + ".disabled" đã đỏ sẵn từ ADR-0042 — đo ở Task A0 Vận chuyển 1a: 9 ô); ADR-0040 D3 thêm "Tài xế công ty"
+  // (nhóm Nội bộ). Chọn Kế toán → nhóm Bên ngoài tắt, xem trước "Kế toán".
   let p = await env.as(ACCOUNTS.admin, "/staff", DESK);
   await p.waitFor(`!!${box("#add-perms", "role", "ACCOUNTANT")}`, "khối chọn vai đã dựng");
-  assert.equal(await p.ev(`document.querySelectorAll('#add-perms input[data-kind=role]').length`), 11);
-  assert.equal(await p.ev(`${box("#add-perms", "role", "DIRECTOR")}.disabled && ${box("#add-perms", "role", "OPERATIONS_MANAGER")}.disabled`), true, "LC-4: Quản trị không chọn được vai Giám đốc/Điều hành");
+  assert.equal(await p.ev(`document.querySelectorAll('#add-perms input[data-kind=role]').length`), 10);
+  assert.equal(await p.ev(`${box("#add-perms", "role", "DIRECTOR")} === null && ${box("#add-perms", "role", "OPERATIONS_MANAGER")} === null && ${box("#add-perms", "role", "IT")} === null`), true, "LC-4 + ADR-0042: Quản trị không thấy vai chỉ Toàn quyền gán");
+  // ADR-0040 D3 (Ruling R12): ô "Tài xế công ty" ở nhóm Nội bộ; chọn thử → xem trước "Quyền sẽ có: Tài xế." rồi bỏ chọn (không ảnh hưởng các bước sau).
+  assert.equal(await p.ev(`${box("#add-perms", "role", "DRIVER_INTERNAL")}.closest('label').textContent.trim()`), "Tài xế công ty");
+  assert.equal(await p.ev(`${box("#add-perms", "role", "DRIVER_INTERNAL")}.closest('label').parentElement.querySelector('strong').textContent.trim()`), "Nội bộ", "vai Tài xế công ty nằm ở nhóm Nội bộ");
+  await p.ev(`(${box("#add-perms", "role", "DRIVER_INTERNAL")}).click(), true`);
+  assert.match(await p.ev(preview("#add-perms")), /Quyền sẽ có: Tài xế\./);
+  await p.ev(`(${box("#add-perms", "role", "DRIVER_INTERNAL")}).click(), true`);
+  ok("ADR-0040 D3: màn Quản lý tài khoản có ô 'Tài xế công ty' ở nhóm Nội bộ; chọn → xem trước 'Tài xế'");
   await p.ev(`(${box("#add-perms", "role", "ACCOUNTANT")}).click(), true`);
   assert.equal(await p.ev(`${box("#add-perms", "role", "COLLABORATOR")}.disabled`), true, "LC-3: chọn vai nội bộ thì tắt nhóm bên ngoài");
   assert.match(await p.ev(preview("#add-perms")), /Quyền sẽ có: Kế toán\./);
@@ -111,7 +120,7 @@ try {
   const addRoleOptions = `[...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Công việc tại đâu').nextElementSibling.nextElementSibling.querySelector('select').querySelectorAll('option')`;
   const options = await p.ev(`[...${addRoleOptions}].map((o) => o.textContent.trim())`);
   assert.ok(options.includes("Khách hàng"), `ô thêm vai trò thiếu mục nhóm khác (vd Khách hàng): ${JSON.stringify(options)}`);
-  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên"];
+  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Tài xế công ty", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên"];
   assert.deepEqual(options.filter((o) => ACCOUNT_ROLE_NAMES.includes(o)), [], `R18: ô thêm vai trò không được có mục Nội bộ/Bên ngoài, thấy: ${JSON.stringify(options)}`);
   // T2b (ADR-0024 6.5; chủ 2026-09-28): "Công ty chủ" không phải vai gán thường — chỉ người giữ ô company.legal.write thấy, trên hồ sơ tổ chức (t2b-danh-ba-smoke.mjs).
   assert.ok(!options.includes("Công ty chủ"), `ô thêm vai trò của Quản trị không được có "Công ty chủ", thấy: ${JSON.stringify(options)}`);

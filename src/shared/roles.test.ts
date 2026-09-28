@@ -8,16 +8,26 @@ import {
 
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
-test("danh mục: đủ 12 vai, 7 nội bộ + 5 bên ngoài (ADR-0044 thêm vai IT), bộ mặc định là mã quyền hợp lệ", () => {
-  assert.equal(ROLE_CODES.length, 12);
+test("danh mục: đủ 13 vai, 8 nội bộ + 5 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty), bộ mặc định là mã quyền hợp lệ", () => {
+  assert.equal(ROLE_CODES.length, 13);
   assert.deepEqual(Object.keys(ROLES).sort(), [...ROLE_CODES].sort());
-  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 7);
+  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 8);
   assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL").length, 5);
   for (const r of ROLE_CODES) for (const p of ROLES[r].defaults) assert.ok((PERMISSION_CODES as readonly string[]).includes(p), `${r} → ${p}`);
   for (const r of ROLE_CODES.filter((x) => ROLES[x].group === "EXTERNAL")) assert.deepEqual([...ROLES[r].defaults], ["PARTNER"], r);
   assert.deepEqual(ROLE_CODES.filter((r) => ROLES[r].superAdminOnly), ["DIRECTOR", "OPERATIONS_MANAGER", "IT"]);
   assert.equal(isRoleCode("SALES_STAFF"), true);
   assert.equal(isRoleCode("STAFF"), false, "vai cũ mơ hồ không thuộc mô hình mới");
+  assert.equal(isRoleCode("DRIVER"), false, "mã vai hồ sơ cũ DRIVER (nhóm OTHER, đã ngưng) không thuộc mô hình vai tài khoản — vai tài xế công ty là DRIVER_INTERNAL");
+});
+
+test("ADR-0040 D3 (Ruling R1, R12): vai 'Tài xế công ty' — nội bộ, bộ quyền mặc định chỉ Tài xế (DRIVER), không nhận đơn, Quản trị gán được", () => {
+  assert.deepEqual(defaultPermissions(["DRIVER_INTERNAL"]), ["DRIVER"]);
+  assert.equal(ROLES.DRIVER_INTERNAL.name, "Tài xế công ty");
+  assert.equal(ROLES.DRIVER_INTERNAL.group, "INTERNAL");
+  assert.equal(ROLES.DRIVER_INTERNAL.handles, "never", "vai này không nhận đơn (không phải người phụ trách đơn)");
+  assert.equal(ROLES.DRIVER_INTERNAL.superAdminOnly, false);
+  assert.equal(ROLE_CODES.indexOf("DRIVER_INTERNAL"), ROLE_CODES.indexOf("IT") + 1, "đứng ngay sau IT, cuối nhóm nội bộ — không xê dịch vai nội bộ nào đang có");
 });
 
 test("bộ mặc định đúng đặc tả §4 + ADR-0018 điều 4 (Giám đốc = Toàn quyền kèm Quản trị; Điều hành = Quản trị)", () => {

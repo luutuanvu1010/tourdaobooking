@@ -22,7 +22,7 @@ test("THAY_DOI đúng 9 giá trị (điều 4 + điều 7 ADR-0022)", () => {
   assert.deepEqual([...THAY_DOI], ["tao", "tao_cho_nhan", "nhan", "giao", "xac_nhan", "huy", "sua", "chuyen", "tien"]);
 });
 
-// 128 tập con của 7 mã quyền — suy kỳ vọng từ MATRIX/can(), không chép tay (P16: bài kiểm không được tự khoá giá trị đọc nhầm là luật).
+// 256 tập con của 8 mã quyền (ADR-0040 D3 thêm DRIVER) — suy kỳ vọng từ MATRIX/can(), không chép tay (P16: bài kiểm không được tự khoá giá trị đọc nhầm là luật).
 function moiTapCon<T>(mang: readonly T[]): T[][] {
   if (mang.length === 0) return [[]];
   const [dau, ...con] = mang;
@@ -30,9 +30,9 @@ function moiTapCon<T>(mang: readonly T[]): T[][] {
   return [...conCacTap, ...conCacTap.map((t) => [dau as T, ...t])];
 }
 
-test("nhanKetNoi: mọi tập con quyền (128) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner) suy từ MATRIX (ADR-0030 S20-8)", () => {
+test("nhanKetNoi: mọi tập con quyền (256) khớp can(order.view)/(can(dispatch.claim) && !holdsPartner) suy từ MATRIX (ADR-0030 S20-8)", () => {
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
-  assert.equal(tapCon.length, 128);
+  assert.equal(tapCon.length, 256);
   for (const permissions of tapCon) {
     const staff = { id: "nv1", permissions };
     const ky_vong = new Set<string>(["nguoi:nv1"]);
@@ -306,7 +306,7 @@ test("thongBaoNoi: Hướng dẫn viên (không văn phòng) thấy các loại 
 // (không cần báo việc mình làm) hoặc (2) đang chờ nhận (chủ: chỉ danh sách tự cập nhật). Nhãn `cho-nhan` VẪN gắn như cũ (khung vẫn tới, trang vẫn tải lại
 // danh sách hàng chờ) — chỉ bỏ CHỮ nổi. Mọi kết nối khác và mọi loại khác giữ nguyên: suy kỳ vọng từ `nhanKetNoi` + loại đối chứng `xac_nhan` (cùng
 // tập người được thông báo nổi như "nhan" trước vòng sửa), không chép tay.
-test("thongBaoNoi: 'nhan' → null ĐÚNG cho kết nối có cho-nhan mà không có tat-ca (theo nhanKetNoi); kết nối khác giữ như loại xac_nhan — 128 tập con quyền", () => {
+test("thongBaoNoi: 'nhan' → null ĐÚNG cho kết nối có cho-nhan mà không có tat-ca (theo nhanKetNoi); kết nối khác giữ như loại xac_nhan — 256 tập con quyền", () => {
   const tapCon = moiTapCon(PERMISSION_CODES as readonly PermissionCode[]);
   let soCaImLang = 0;
   for (const permissions of tapCon) {
