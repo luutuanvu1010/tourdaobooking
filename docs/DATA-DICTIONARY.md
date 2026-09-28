@@ -114,6 +114,15 @@
 | `ntf_read_mark` | bảng |  |
 | `ntf_push_sub` | bảng |  |
 
+## van-chuyen
+
+| Đối tượng | Loại | Ghi chú |
+|---|---|---|
+| `vc_vehicle` | bảng |  |
+| `vc_vehicle_document` | bảng |  |
+| `vc_vehicle_document_type` | bảng |  |
+| `vc_expiry_policy` | bảng |  |
+
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 
 - `audit_log` → `staff` — audit_log.staff_id — ADR-0002 điều 6

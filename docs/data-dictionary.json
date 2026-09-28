@@ -13,7 +13,8 @@
     "orders",
     "parties",
     "staff",
-    "thongbao"
+    "thongbao",
+    "van-chuyen"
   ],
   "tables": [
     {
@@ -247,6 +248,26 @@
     {
       "name": "ntf_push_sub",
       "module": "thongbao",
+      "kind": "table"
+    },
+    {
+      "name": "vc_vehicle",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_vehicle_document",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_vehicle_document_type",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_expiry_policy",
+      "module": "van-chuyen",
       "kind": "table"
     }
   ],
