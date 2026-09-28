@@ -3,7 +3,7 @@
 // `ctx.dongBangTin` là bắn-và-quên (exec.waitUntil của khung thử không chờ) → đợi một nhịp trước khi đọc bảng ntf_push_sub.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { randomUUID } from "node:crypto";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
@@ -87,7 +87,13 @@ test("ADR-0046 điểm 3: thao tác bảo mật vẫn tắt MỌI máy (lý do t
 test("ADR-0046 điểm 2–3: MỌI route gọi dongBangTin khai cờ tatThongBao đúng loại — 7 thao tác bảo mật true, đổi quyền/vai false; route mới gọi dongBangTin phải được xếp loại ở đây", () => {
   // Kiểm người kiểm độc lập 28/9 (VỪA): bài chạy-app ở trên chỉ phủ đổi SĐT/ngưng + đổi quyền/vai; 5 route bảo mật còn lại (gỡ Face ID, đổi PIN
   // bằng Face ID, quản trị đặt lại PIN / gỡ Face ID) cần giả lập WebAuthn/PIN thật — bài QUÉT NGUỒN này canh cờ của TỪNG route (tách theo `route(`).
-  const src = readFileSync(new URL("./modules/accounts/index.ts", import.meta.url), "utf8");
+  // Quét MỌI tệp .ts (không phải test) dưới src/modules/ — người kiểm cuối 28/9 (VỪA): bản trước chỉ đọc accounts + maintenance, route mới ở
+  // module khác gọi dongBangTin với cờ sai sẽ lọt. Module bảo trì chỉ được gọi "tat-ca" (kiểm riêng ở dưới), mọi lời gọi khác phải nằm trong bảng.
+  const goc = new URL("./modules/", import.meta.url);
+  const tep = (readdirSync(goc, { recursive: true }) as string[]).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+  const coGoi = tep.filter((f) => readFileSync(new URL(f, goc), "utf8").includes("dongBangTin("));
+  assert.deepEqual(coGoi.sort(), ["accounts/index.ts", "maintenance/index.ts"], "module mới gọi dongBangTin → thêm vào bảng dưới, xếp loại theo ADR-0046");
+  const src = coGoi.filter((f) => f !== "maintenance/index.ts").map((f) => readFileSync(new URL(f, goc), "utf8")).join("\n");
   const RE_ROUTE = /route\("(GET|POST|PUT|PATCH|DELETE)", "([^"]+)"/g;
   const moc = [...src.matchAll(RE_ROUTE)].map((m) => ({ ten: `${m[1]} ${m[2]}`, tu: m.index ?? 0 }));
   const thay: Record<string, boolean[]> = {};
