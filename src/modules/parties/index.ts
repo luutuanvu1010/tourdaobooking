@@ -8,6 +8,7 @@ import type {
 } from "../../shared/contracts";
 import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
+import type { RoleCode } from "../../shared/roles";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
@@ -16,7 +17,7 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
+  companyIdentityOf, expiringDocumentsOfRole, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
   listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
@@ -70,6 +71,24 @@ export async function ownerCompany(db: D1Database): Promise<OwnerCompany | null>
   if (rows.length !== 1) return null;
   const r = rows[0]!;
   return { partyId: r.id, displayName: r.display_name, legalName: r.legal_name, taxCode: r.tax_code, address: r.address, hotline: r.hotline, email: r.email };
+}
+
+/** Mã vai tài khoản "Tài xế công ty" (ADR-0040 D3; Ruling R12) — lấy kiểu từ ROLE_CODES để không viết chuỗi rời lệch danh mục vai. */
+const VAI_TAI_XE_CONG_TY = "DRIVER_INTERNAL" satisfies RoleCode;
+/**
+ * Một dòng "giấy tờ sắp hết hạn" của tài xế (ADR-0040 D1) cho module van-chuyen. KHÔNG có số giấy tờ, nơi cấp, id giấy tờ — chỉ đủ để hiện dòng
+ * (tên người, loại, hạng, ngày hết hạn) và mở hồ sơ người đó (partyId).
+ */
+export interface ExpiringPersonDocument { partyId: string; displayName: string; typeName: string; className: string | null; expiryDate: string }
+/**
+ * Giấy tờ sắp hết / đã hết hạn của TÀI XẾ (ADR-0040 D1): hồ sơ đang dùng, đang mở vai tài khoản "Tài xế công ty" (lọc BÁO CÁO trong parties — vai hồ sơ
+ * không bao giờ là điều kiện cho phép, R-N1-12; giả định G7), chỉ dòng hiện hành có ngày hết hạn ≤ `until` (kể cả đã quá hạn). HÀM CÔNG BỐ DUY NHẤT về
+ * giấy tờ của người cho module khác — không trả số, nơi cấp, id giấy tờ.
+ */
+export async function expiringDriverDocuments(db: D1Database, v: { today: string; until: string }): Promise<ExpiringPersonDocument[]> {
+  return (await expiringDocumentsOfRole(db, VAI_TAI_XE_CONG_TY, v.today, v.until)).map((r) => ({
+    partyId: r.party_id, displayName: r.display_name, typeName: r.type_name, className: r.class_name, expiryDate: r.expiry_date,
+  }));
 }
 
 const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");

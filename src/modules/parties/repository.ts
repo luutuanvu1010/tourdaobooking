@@ -544,6 +544,26 @@ const VOID_PERSON_DOC = defineSql(
   "UPDATE pty_person_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3",
 );
 
+// ---- Giấy tờ sắp hết / đã hết hạn của TÀI XẾ (ADR-0040 D1) — nguồn của hàm công bố expiringDriverDocuments (parties/index.ts) cho Vận chuyển ---------------
+// ?1 = mã vai tài khoản tài xế công ty, ?2 = hôm nay (giờ VN), ?3 = hạn cuối (hôm nay + ngưỡng). "Tài xế" = hồ sơ ĐANG DÙNG, đang mở vai ?1 — lọc BÁO CÁO
+// (không phải điều kiện cho phép; câu tra vai nằm trong parties — R-N1-12). Chỉ dòng HIỆN HÀNH có ngày hết hạn ≤ ?3 (kể cả đã quá hạn). KHÔNG chọn cột số,
+// nơi cấp, id giấy tờ (bài giay-to-sap-het-han.test.ts khoá văn bản câu này).
+const EXPIRING_DRIVER_DOCS = defineSql(
+  "parties",
+  "expiring_driver_documents",
+  `SELECT p.id AS party_id, p.display_name, t.name AS type_name, c.name AS class_name, d.expiry_date
+   FROM pty_person_document d JOIN pty_party p ON p.id = d.party_id JOIN pty_person_document_type t ON t.code = d.document_type_code
+     LEFT JOIN pty_license_class c ON c.code = d.license_class_code
+   WHERE p.active = 1 AND d.expiry_date IS NOT NULL AND d.expiry_date <= ?3 AND ${HIEN_HANH}
+     AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND r.role_type_code = ?1 AND r.valid_from_date <= ?2
+                   AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?2))
+   ORDER BY d.expiry_date, p.display_name, t.sort_order, d.id`,
+);
+export interface ExpiringDocRow { party_id: string; display_name: string; type_name: string; class_name: string | null; expiry_date: string }
+export async function expiringDocumentsOfRole(db: D1Database, roleCode: string, today: string, until: string): Promise<ExpiringDocRow[]> {
+  return (await db.prepare(EXPIRING_DRIVER_DOCS).bind(roleCode, today, until).all<ExpiringDocRow>()).results;
+}
+
 // ---- Danh mục loại giấy tờ của người + hạng GPLX (Quản trị sửa — khuôn loc_location: dấu vết, active, khoá lạc quan; khoá chính là mã, Ruling R7) --------
 const INSERT_DOC_TYPE = defineSql(
   "parties",
