@@ -52,6 +52,7 @@ export const AUDIT_ACTIONS = {
   party_document_added: { label: "Thêm giấy tờ của người", group: "party" },
   party_document_renewed: { label: "Gia hạn giấy tờ của người", group: "party" },
   party_document_corrected: { label: "Sửa sai giấy tờ của người", group: "party" },
+  party_document_number_viewed: { label: "Xem đủ số giấy tờ", group: "party" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

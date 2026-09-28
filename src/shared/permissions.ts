@@ -95,6 +95,9 @@ export const MATRIX = {
   // ghi giấy tờ của người (thêm, gia hạn, sửa sai) + xem danh sách giấy tờ (số che) của người khác — Quản trị + Toàn quyền; Quản trị còn theo luật cấp bậc
   // khi hồ sơ gắn tài khoản (Ruling R8). Route: GET/POST /api/parties/:id/documents…, GET /api/parties/documents/meta.
   "party.document.write": row("none", "none", "any", "none", "none", "any", "none", "none"),
+  // "xem đủ số" giấy tờ của người — Quản trị + Toàn quyền (+ cấp bậc, Ruling R8); mỗi lần xem một dòng nhật ký KHÔNG kèm số, ghi TRƯỚC khi trả số.
+  // Route DUY NHẤT trả số đầy đủ: POST /api/parties/:id/documents/:did/reveal.
+  "party.document.reveal": row("none", "none", "any", "none", "none", "any", "none", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

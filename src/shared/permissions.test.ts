@@ -44,6 +44,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "company.legal.write": ["none", "none", "none", "none", "none", "any", "none", "none"], // ADR-0038 điều 7 + ADR-0024 6.4: chỉ Toàn quyền sửa hồ sơ công ty chủ (và đổi công ty chủ — chủ trả lời 2026-09-28)
   "party.document.view": ["own", "own", "own", "own", "none", "any", "own", "own"], // ADR-0040 D2 + R5 (chủ 28/9: "Mọi nhân viên"): giấy tờ của CHÍNH MÌNH, số che; Đối tác không
   "party.document.write": ["none", "none", "any", "none", "none", "any", "none", "none"], // ADR-0040 D2: ghi giấy tờ của người + xem danh sách (số che) của người khác — Quản trị + Toàn quyền
+  "party.document.reveal": ["none", "none", "any", "none", "none", "any", "none", "none"], // ADR-0040 D2: "xem đủ số" — Quản trị + Toàn quyền; mỗi lần một dòng nhật ký không kèm số
 };
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER"];
 const OPS = Object.keys(ADR) as OperationCode[];
@@ -272,7 +273,7 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
     "feedback.submit": "any", "feedback.view": "own", // ngoại lệ có tên (Ruling R2)
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
-    "party.document.write": "none",
+    "party.document.write": "none", "party.document.reveal": "none",
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });

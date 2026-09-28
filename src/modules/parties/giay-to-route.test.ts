@@ -338,3 +338,77 @@ test("R8 (Q1): Quản trị ghi giấy tờ cho hồ sơ gắn tài khoản Qu�
   assert.equal((await giaHan(w, ADM, pty(SUP), g, { expiryDate: "2029-01-01" })).status, 403, "gia hạn trên cấp trên");
   assert.equal((await suaSai(w, ADM, pty(SUP), g, { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: AT })).status, 403, "sửa sai trên cấp trên");
 });
+
+// ---- Route 7: "xem đủ số" (ô party.document.reveal) — ghi nhật ký TRƯỚC rồi mới trả số; nhật ký không kèm số (Task A9; R15 điểm 5) ------------------------
+const xemSo = (w: any, as: string, party: string, did: string) => w.call("POST", `/api/parties/${party}/documents/${did}/reveal`, { as });
+const soDongXem = (w: any): number => w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_document_number_viewed'")[0].n;
+
+test("route 7: Bán hàng, Kế toán → 403 ĐÚNG câu, không dòng nhật ký (cả hồ sơ không tài khoản); Hướng dẫn viên, tài xế → 403 ở cổng", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  const kTk = await hoSoKhac(w, "Người Không Tài Khoản");
+  const kTkDoc = gieo(w, { party: kTk, type: "CCCD", so: "079000000002", het: "2030-01-01" });
+  const n0 = soNhatKy(w);
+  for (const as of [SALES, ACC]) {
+    for (const [party, did] of [[pty(DRIVER), g.cccd], [kTk, kTkDoc]] as const) {
+      const r = await xemSo(w, as, party, did);
+      assert.equal(r.status, 403, `${as}: ${r.text}`);
+      assert.match(r.json.error.message, /xem đủ số/, `${as}: 403 của ô trong thân`);
+      khongLoSo(r, `${as} xem số`);
+      assert.ok(!r.text.includes("079000000002"));
+    }
+  }
+  for (const as of [FIELD, DRIVER]) {
+    const r = await xemSo(w, as, pty(DRIVER), g.cccd);
+    assert.equal(r.status, 403, r.text);
+    assert.match(r.json.error.message, CAU_CONG_OFFICE);
+  }
+  assert.equal(soNhatKy(w), n0, "không dòng nhật ký nào");
+});
+
+test("route 7: Quản trị, Toàn quyền → 200 { number } ĐÚNG số và ĐÚNG MỘT dòng nhật ký party_document_number_viewed (đối tượng = hồ sơ, chi tiết = tên loại, không số)", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  for (const as of [ADM, SUP]) {
+    const truoc = soDongXem(w);
+    const r = await xemSo(w, as, pty(DRIVER), g.cccd);
+    assert.equal(r.status, 200, `${as}: ${r.text}`);
+    assert.deepEqual(r.json, { number: SO_CCCD });
+    assert.equal(soDongXem(w), truoc + 1, `${as}: đúng một dòng nhật ký`);
+    const nk = w.q("SELECT staff_id, target_type, target_id, detail FROM audit_log WHERE action = 'party_document_number_viewed' ORDER BY rowid DESC LIMIT 1")[0];
+    assert.deepEqual({ ...nk }, { staff_id: as, target_type: "party", target_id: pty(DRIVER), detail: "Căn cước công dân (CCCD)" });
+  }
+  const gplx = await xemSo(w, ADM, pty(DRIVER), g.gplx);
+  assert.deepEqual(gplx.json, { number: SO_GPLX });
+  assert.equal(w.q("SELECT detail FROM audit_log WHERE action = 'party_document_number_viewed' ORDER BY rowid DESC LIMIT 1")[0].detail, "Giấy phép lái xe");
+  for (const x of w.q("SELECT detail FROM audit_log WHERE action = 'party_document_number_viewed'")) assert.doesNotMatch(String(x.detail), /\d/, "chi tiết không có chữ số");
+});
+
+test("route 7: giấy tờ của hồ sơ khác → 404; giấy không có số → 409 no_number; Quản trị xem số trên hồ sơ gắn tài khoản Toàn quyền → 403 (R8), không nhật ký", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  const n0 = soNhatKy(w);
+  assert.equal((await xemSo(w, ADM, pty(SALES), g.cccd)).status, 404, "did thuộc hồ sơ khác");
+  const r = await xemSo(w, ADM, pty(DRIVER), g.suckhoe);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "no_number");
+  const sup = gieo(w, { party: pty(SUP), type: "CCCD", so: "079000000003", het: "2030-01-01" });
+  const t = await xemSo(w, ADM, pty(SUP), sup);
+  assert.equal(t.status, 403, t.text);
+  assert.ok(!t.text.includes("079000000003"));
+  assert.equal(soNhatKy(w), n0, "không dòng nhật ký nào");
+  assert.equal((await xemSo(w, SUP, pty(SUP), sup)).status, 200, "Toàn quyền xem số của chính mình");
+});
+
+test("route 7: ghi nhật ký LỖI thì KHÔNG trả số (ghi trước, trả sau)", async () => {
+  const w = setup();
+  const g = gieoTaiXe(w);
+  w.sqlite.exec("ALTER TABLE audit_log RENAME TO audit_log_tam");
+  try {
+    const r = await xemSo(w, ADM, pty(DRIVER), g.cccd);
+    assert.equal(r.status, 500, r.text);
+    khongLoSo(r, "thân 500");
+  } finally {
+    w.sqlite.exec("ALTER TABLE audit_log_tam RENAME TO audit_log");
+  }
+});

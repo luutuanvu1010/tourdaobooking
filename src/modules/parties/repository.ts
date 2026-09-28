@@ -544,6 +544,17 @@ const VOID_PERSON_DOC = defineSql(
   "UPDATE pty_person_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND party_id = ?2 AND updated_at = ?3",
 );
 
+// "Xem đủ số" (ô party.document.reveal): số đầy đủ + tên loại của MỘT dòng thuộc hồ sơ ?2 — câu DUY NHẤT mà kết quả rời máy chủ có số đầy đủ.
+const FIND_PERSON_DOC_NUMBER = defineSql(
+  "parties",
+  "find_person_document_number",
+  `SELECT d.document_number, t.name AS type_name FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code
+   WHERE d.id = ?1 AND d.party_id = ?2`,
+);
+export function findPersonDocumentNumber(db: D1Database, docId: string, partyId: string): Promise<{ document_number: string | null; type_name: string } | null> {
+  return db.prepare(FIND_PERSON_DOC_NUMBER).bind(docId, partyId).first<{ document_number: string | null; type_name: string }>();
+}
+
 export function findPersonDocument(db: D1Database, docId: string, partyId: string): Promise<PersonDocFull | null> {
   return db.prepare(FIND_PERSON_DOC).bind(docId, partyId).first<PersonDocFull>();
 }

@@ -4,7 +4,7 @@
 import { auditStatement } from "../audit";
 import type {
   ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
-  PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse,
+  PersonDocumentDto, PersonDocumentListResponse, PersonDocumentMetaResponse, PersonDocumentRevealResponse,
 } from "../../shared/contracts";
 import { soNgayConLai } from "../../shared/giay-to";
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
@@ -16,7 +16,7 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, findParty, findPartiesByPhone, findPersonDocument, getPartyDetail, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
+  companyIdentityOf, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, getPartyDetail, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
   listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
@@ -453,6 +453,23 @@ export const partiesModule: AppModule = {
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return DOC_STALE();
       return respondDocs(env.DB, id, 200);
+    }),
+
+    // "Xem đủ số" (ADR-0040 D2; R15 điểm 5): route DUY NHẤT trả số đầy đủ. POST (có ghi, và để router chặn gọi chéo trang). Thứ tự: 403 ô → 404 hồ sơ → 403
+    // cấp bậc (Ruling R8) → 404 dòng → GHI NHẬT KÝ (chi tiết = tên loại, KHÔNG số) → rồi mới trả số: ghi nhật ký lỗi thì ném lên (500), không trả số.
+    route("POST", "/api/parties/:id/documents/:did/reveal", "office", async (ctx) => {
+      const { env, params, staff } = ctx;
+      if (!can(staff, "party.document.reveal")) return error(403, "forbidden", "Tài khoản này không được xem đủ số giấy tờ.");
+      const id = idParam(params, "id", PARTY_ID_RE);
+      if (!id || !(await findParty(env.DB, id))) return NOT_FOUND();
+      const acc: PartyAccountVerdict = await ctx.partyAccount(id);
+      if (acc.linked && !acc.manageable) return error(403, "forbidden", "Tài khoản này không được xem đủ số giấy tờ của người này.");
+      const did = idParam(params, "did", DOC_ID_RE);
+      const row = did ? await findPersonDocumentNumber(env.DB, did, id) : null;
+      if (!did || !row) return DOC_NOT_FOUND();
+      if (row.document_number === null) return error(409, "no_number", "Giấy tờ này không có số để xem.");
+      await env.DB.batch([auditStatement(env.DB, { staffId: staff.id, action: "party_document_number_viewed", at: new Date().toISOString(), targetType: "party", targetId: id, detail: row.type_name })]);
+      return json({ number: row.document_number } satisfies PersonDocumentRevealResponse);
     }),
 
     // ---- Tạo / xem / sửa -----------------------------------------------------------------------------------------------
