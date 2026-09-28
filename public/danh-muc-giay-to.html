@@ -1,15 +1,7 @@
 <!doctype html>
-<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Danh mục giấy tờ — Island Booking System</title></head>
-<body data-title="Danh mục giấy tờ" data-back="/account">
-<header id="topbar"></header>
-<main>
-  <!-- Danh mục giấy tờ (ADR-0040 D1, D2; Task A19 — khuôn sẵn của trang Địa điểm, bản vẽ Vận chuyển không vẽ màn này). -->
-  <h1>Danh mục giấy tờ</h1>
-  <p class="muted">Loại giấy tờ của xe, của người và hạng giấy phép lái xe. Không xoá được — chỉ ngưng dùng; dòng giấy tờ đã nhập vẫn giữ tên cũ.</p>
-  <div id="error" class="alert" role="alert" hidden></div>
-  <section id="dm-xe" class="dm-khoi" hidden></section>
-  <section id="dm-nguoi" class="dm-khoi" hidden></section>
-  <section id="dm-hang" class="dm-khoi" hidden></section>
-</main>
-<script type="module" src="/js/danh-muc-giay-to.js"></script>
+<html lang="vi"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0; url=/loai-giay-to-nguoi"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Đang chuyển hướng — Island Booking System</title></head>
+<body>
+<!-- Trang "Danh mục giấy tờ" cũ (1.35) đã tách làm hai (2026-09-28): /loai-giay-to-nguoi (nhóm Quản trị) và /loai-giay-to-xe (Vận chuyển). Đường dẫn cũ còn
+     trong bản app lưu sẵn trên máy người dùng nên KHÔNG bỏ trang: chỉ chuyển hướng, khuôn public/home.html (không JS — CSP cấm script nội tuyến). -->
+<main><p>Trang này đã tách làm hai. Đang chuyển tới <a href="/loai-giay-to-nguoi">Loại giấy tờ người</a>… Nếu không tự chuyển, bấm vào tên trang. Loại giấy tờ xe nay nằm trong mục Vận chuyển: <a href="/loai-giay-to-xe">Loại giấy tờ xe</a>.</p></main>
 </body></html>
