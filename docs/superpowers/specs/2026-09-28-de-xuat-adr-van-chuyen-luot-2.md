@@ -2,7 +2,10 @@
 
 - **Ngày:** 2026-09-28.
 - **Vai:** người soạn thiết kế (lập kế hoạch). Không viết mã, không tự duyệt (Hiến pháp N3, P15).
-- **Trạng thái:** **BẢN ĐỀ XUẤT — CHƯA DUYỆT, CHƯA CÓ NGƯỜI KIỂM ĐỘC LẬP.**
+- **Trạng thái:**
+  - **Lượt duyệt I (D1, D2) ĐÃ DUYỆT → ADR-0048** (`docs/adr/ADR-0048-nha-xe-doi-tac-va-tai-xe-doi-tac.md`, accepted). Chủ trả lời trực tiếp phiên điều phối, khuya 2026-09-28: "Duyệt kèm 3 khuyến nghị" — Q4 = (a), Q5 = (a), Q6 = (a).
+  - **Lượt duyệt II (D3, D4, D5; Q1, Q2, Q3, Q7): CHƯA DUYỆT, chưa hỏi.** Trình sau ADR-0047 (lượt 1b).
+  - Bản đề xuất chưa có người kiểm độc lập.
   - **Chưa lấy số ADR.** Tệp không nằm trong `docs/adr/`. Số ADR đặt lúc chủ duyệt, theo bảng giữ chỗ ở `docs/adr/README.md`. Lưu ý: nhánh `thong-bao-tat-dung-may` (chưa gộp) đã dùng số 0046, nên số kế tiếp trên main chưa chắc là 0046.
   - **Chưa lấy số migration.** Số đặt sau khi lượt 1b có số. Lúc đó kiểm mọi nhánh và worktree chưa gộp (`CLAUDE.md` §10).
 - **Nguồn đã đọc (chỉ đọc):**
