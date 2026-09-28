@@ -57,6 +57,10 @@ export const AUDIT_ACTIONS = {
   party_document_catalog_changed: { label: "Sửa danh mục giấy tờ của người", group: "party" },
   vehicle_created: { label: "Thêm xe", group: "vehicle" },
   vehicle_updated: { label: "Sửa xe", group: "vehicle" },
+  // Giấy tờ xe — `detail` mở đầu bằng biển số, KHÔNG số giấy tờ (một luật chung với giấy tờ của người — giả định G4).
+  vehicle_document_added: { label: "Thêm giấy tờ xe", group: "vehicle" },
+  vehicle_document_renewed: { label: "Gia hạn giấy tờ xe", group: "vehicle" },
+  vehicle_document_corrected: { label: "Sửa sai giấy tờ xe", group: "vehicle" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

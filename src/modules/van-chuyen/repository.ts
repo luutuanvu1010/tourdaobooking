@@ -99,6 +99,54 @@ export async function expiringVehicleDocuments(db: D1Database, until: string): P
   return (await db.prepare(EXPIRING_VEHICLE_DOCS).bind(until).all<ExpiringVehicleDocRow>()).results;
 }
 
+// ---- Giấy tờ xe (ghi — Task A14) -------------------------------------------------------------------------------------------------------------------------
+const FIND_VEHICLE_DOC = defineSql(
+  "van-chuyen",
+  "find_vehicle_document",
+  `SELECT d.id, d.vehicle_id, d.document_type_code, t.name AS type_name, d.document_number, d.issued_date, d.expiry_date, d.previous_id, d.voided_at, d.updated_at,
+          ${HIEN_HANH} AS is_current
+   FROM vc_vehicle_document d JOIN vc_vehicle_document_type t ON t.code = d.document_type_code
+   WHERE d.id = ?1 AND d.vehicle_id = ?2`,
+);
+const INSERT_VEHICLE_DOC = defineSql(
+  "van-chuyen",
+  "insert_vehicle_document",
+  `INSERT INTO vc_vehicle_document (id, vehicle_id, document_type_code, document_number, issued_date, expiry_date, previous_id, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?8, ?9)`,
+);
+// Sửa sai: một câu tĩnh đặt đủ ba trường sửa được + khoá lạc quan updated_at. Không đổi xe, loại, dòng trước (trigger *_identity giữ ở CSDL).
+const UPDATE_VEHICLE_DOC = defineSql(
+  "van-chuyen",
+  "update_vehicle_document",
+  `UPDATE vc_vehicle_document SET document_number = ?4, issued_date = ?5, expiry_date = ?6, updated_at = ?7, updated_by = ?8
+   WHERE id = ?1 AND vehicle_id = ?2 AND updated_at = ?3`,
+);
+const VOID_VEHICLE_DOC = defineSql(
+  "van-chuyen",
+  "void_vehicle_document",
+  "UPDATE vc_vehicle_document SET voided_at = ?4, updated_at = ?4, updated_by = ?5 WHERE id = ?1 AND vehicle_id = ?2 AND updated_at = ?3",
+);
+export const findVehicleDocument = (db: D1Database, docId: string, vehicleId: string): Promise<VehicleDocRow | null> =>
+  db.prepare(FIND_VEHICLE_DOC).bind(docId, vehicleId).first<VehicleDocRow>();
+export interface VehicleDocValues { typeCode: string; number: string | null; issuedDate: string | null; expiryDate: string | null }
+export const insertVehicleDocStatement = (db: D1Database, id: string, vehicleId: string, v: VehicleDocValues, previousId: string | null, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(INSERT_VEHICLE_DOC).bind(id, vehicleId, v.typeCode, v.number, v.issuedDate, v.expiryDate, previousId, at, actorId);
+export const updateVehicleDocStatement = (db: D1Database, id: string, vehicleId: string, expectedUpdatedAt: string, v: VehicleDocValues, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(UPDATE_VEHICLE_DOC).bind(id, vehicleId, expectedUpdatedAt, v.number, v.issuedDate, v.expiryDate, at, actorId);
+export const voidVehicleDocStatement = (db: D1Database, id: string, vehicleId: string, expectedUpdatedAt: string, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(VOID_VEHICLE_DOC).bind(id, vehicleId, expectedUpdatedAt, at, actorId);
+
+// ---- Danh mục loại giấy tờ xe (đọc; ghi ở Task A15) -------------------------------------------------------------------------------------------------------
+export interface VehicleDocTypeRow { code: string; name: string; has_expiry: number; sort_order: number; active: number; updated_at: string }
+const LIST_VEHICLE_DOC_TYPES = defineSql(
+  "van-chuyen",
+  "list_vehicle_document_types",
+  "SELECT code, name, has_expiry, sort_order, active, updated_at FROM vc_vehicle_document_type ORDER BY sort_order, code",
+);
+export async function listVehicleDocumentTypes(db: D1Database): Promise<VehicleDocTypeRow[]> {
+  return (await db.prepare(LIST_VEHICLE_DOC_TYPES).all<VehicleDocTypeRow>()).results;
+}
+
 // ---- Chính sách ngưỡng "sắp hết hạn" (dòng có ngày hiệu lực — Hiến chương 5.2) --------------------------------------------------------------------------
 // Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
 const CURRENT_WARN_DAYS = defineSql("van-chuyen", "current_warn_days", "SELECT warn_days FROM vc_expiry_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1");

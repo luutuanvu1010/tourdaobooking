@@ -11,10 +11,13 @@ import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { addDays, vnToday } from "../../shared/vn-date";
 import {
-  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, insertVehicleStatement, listVehicleDocuments, listVehicles, plateHolder,
-  updateVehicleStatement, type VehicleDocRow, type VehicleRow,
+  chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, insertVehicleDocStatement, insertVehicleStatement, listVehicleDocumentTypes,
+  listVehicleDocuments, listVehicles, plateHolder, updateVehicleDocStatement, updateVehicleStatement, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
 } from "./repository";
-import { CAU_BIEN_TRUNG, CAU_KHUNG_TRUNG, canhBaoXe, kiemSuaXe, kiemXeMoi, loiRangBuocXe, type CanhBaoXe, type XeNhap, type XeSua } from "./rules";
+import {
+  CAU_BIEN_TRUNG, CAU_KHUNG_TRUNG, canhBaoXe, chiTietNhatKyXe, kiemGiaHanXe, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocXe,
+  type CanhBaoXe, type DanhMucGiayToXe, type XeNhap, type XeSua,
+} from "./rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không quản lý được xe.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy xe.");
@@ -23,6 +26,20 @@ const STALE = () => error(409, "stale", "Xe vừa được người khác sửa,
 const PLATE_TAKEN = () => error(409, "vehicle_plate_taken", CAU_BIEN_TRUNG);
 const CHASSIS_TAKEN = () => error(409, "vehicle_chassis_taken", CAU_KHUNG_TRUNG);
 const NO_OWNER = () => error(409, "no_owner_company", "Chưa có hồ sơ công ty chủ nên chưa thêm xe được. Báo người phụ trách hệ thống.");
+
+const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
+const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
+const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
+const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+
+/** Danh mục loại giấy tờ xe cho một lần kiểm (mọi loại, kể cả đã ngưng — sửa sai dòng cũ vẫn cần `hasExpiry`) + tra tên cho nhật ký. */
+async function danhMucXe(db: D1Database, homNay: string): Promise<{ dm: DanhMucGiayToXe; tenLoai: (c: string) => string }> {
+  const types = await listVehicleDocumentTypes(db);
+  return {
+    dm: { loai: new Map(types.map((t) => [t.code, { hasExpiry: t.has_expiry === 1, active: t.active === 1 }])), homNay },
+    tenLoai: (c) => types.find((t) => t.code === c)?.name ?? c,
+  };
+}
 
 function dbProblem(e: unknown): Response | null {
   const p = loiRangBuocXe(e instanceof Error ? e.message : "");
@@ -159,6 +176,106 @@ export const vanChuyenModule: AppModule = {
         throw e;
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return STALE();
+      return respondVehicle(env.DB, id);
+    }),
+
+    // ---- Giấy tờ xe (Task A14): thứ tự 403 ô → 404 xe → 409 xe đã ngừng (thêm, gia hạn) → 404 dòng → 400 thân → 409 dòng hiện hành → ghi + nhật ký cùng lô
+    // (chi tiết mở đầu bằng biển số, KHÔNG số) → 409 stale. Lớp CSDL (trigger) trả document_changed — khác document_not_current của lớp route.
+    route("POST", "/api/van-chuyen/xe/:id/giay-to", "office", async ({ request, env, params, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const id = params.id ?? "";
+      const xe = UUID_RE.test(id) ? await findVehicle(env.DB, id) : null;
+      if (!xe) return NOT_FOUND();
+      if (xe.status === "retired") return RETIRED();
+      const now = new Date();
+      const d = await danhMucXe(env.DB, vnToday(now));
+      const parsed = kiemThemGiayToXe(await readJson(request), d.dm);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = now.toISOString();
+      try {
+        await env.DB.batch([
+          insertVehicleDocStatement(env.DB, crypto.randomUUID(), id, v, null, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_document_added", at, targetType: "vehicle", targetId: id, detail: chiTietNhatKyXe(xe.plate_number, { loai: d.tenLoai(v.typeCode), hetHan: v.expiryDate }) }),
+        ]);
+      } catch (e) {
+        const p = dbProblem(e);
+        if (p) return p;
+        throw e;
+      }
+      return respondVehicle(env.DB, id, 201);
+    }),
+
+    route("POST", "/api/van-chuyen/xe/:id/giay-to/:did/gia-han", "office", async ({ request, env, params, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const id = params.id ?? "";
+      const xe = UUID_RE.test(id) ? await findVehicle(env.DB, id) : null;
+      if (!xe) return NOT_FOUND();
+      if (xe.status === "retired") return RETIRED();
+      const did = params.did ?? "";
+      const cu = UUID_RE.test(did) ? await findVehicleDocument(env.DB, did, id) : null;
+      if (!cu) return DOC_NOT_FOUND();
+      const now = new Date();
+      const d = await danhMucXe(env.DB, vnToday(now));
+      // Gia hạn = dòng MỚI; không gửi số thì chép số dòng trước.
+      const parsed = kiemGiaHanXe(await readJson(request), { typeCode: cu.document_type_code, number: cu.document_number }, d.dm);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (cu.is_current !== 1) return DOC_NOT_CURRENT();
+      const v = parsed.value;
+      const at = now.toISOString();
+      try {
+        await env.DB.batch([
+          insertVehicleDocStatement(env.DB, crypto.randomUUID(), id, v, did, staff.id, at),
+          auditStatement(env.DB, {
+            staffId: staff.id, action: "vehicle_document_renewed", at, targetType: "vehicle", targetId: id,
+            detail: chiTietNhatKyXe(xe.plate_number, { loai: d.tenLoai(v.typeCode), giaHan: true, truoc: cu.expiry_date, sau: v.expiryDate }),
+          }),
+        ]);
+      } catch (e) {
+        const p = dbProblem(e);
+        if (p) return p;
+        throw e;
+      }
+      return respondVehicle(env.DB, id, 201);
+    }),
+
+    route("POST", "/api/van-chuyen/xe/:id/giay-to/:did/sua-sai", "office", async ({ request, env, params, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const id = params.id ?? "";
+      const xe = UUID_RE.test(id) ? await findVehicle(env.DB, id) : null;
+      if (!xe) return NOT_FOUND();
+      const did = params.did ?? "";
+      const cu = UUID_RE.test(did) ? await findVehicleDocument(env.DB, did, id) : null;
+      if (!cu) return DOC_NOT_FOUND();
+      const now = new Date();
+      const d = await danhMucXe(env.DB, vnToday(now));
+      const hienHanh = { typeCode: cu.document_type_code, number: cu.document_number, issuedDate: cu.issued_date, expiryDate: cu.expiry_date };
+      const parsed = kiemSuaSaiXe(await readJson(request), hienHanh, d.dm);
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (cu.is_current !== 1) return DOC_NOT_CURRENT();
+      const s = parsed.value;
+      const at = now.toISOString();
+      const loai = d.tenLoai(cu.document_type_code);
+      let ghi: D1PreparedStatement;
+      let detail: string;
+      if (s.huy) {
+        ghi = voidVehicleDocStatement(env.DB, did, id, s.expectedUpdatedAt, staff.id, at);
+        detail = chiTietNhatKyXe(xe.plate_number, { loai, lyDo: s.lyDo });
+      } else {
+        const moi = { ...hienHanh, [s.truong]: s.giaTri };
+        ghi = updateVehicleDocStatement(env.DB, did, id, s.expectedUpdatedAt, moi, staff.id, at);
+        const ngay = s.truong === "issuedDate" || s.truong === "expiryDate";
+        detail = chiTietNhatKyXe(xe.plate_number, { loai, lyDo: s.lyDo, truoc: ngay ? hienHanh[s.truong] : null, sau: ngay ? moi[s.truong] : null });
+      }
+      let results: D1Result[];
+      try {
+        results = await env.DB.batch([ghi, auditStatement(env.DB, { staffId: staff.id, action: "vehicle_document_corrected", at, targetType: "vehicle", targetId: id, detail }, "changes() > 0")]);
+      } catch (e) {
+        const p = dbProblem(e);
+        if (p) return p;
+        throw e;
+      }
+      if ((results[0]!.meta.changes ?? 0) === 0) return DOC_STALE();
       return respondVehicle(env.DB, id);
     }),
   ],
