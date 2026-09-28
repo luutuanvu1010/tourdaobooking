@@ -6,7 +6,7 @@
 //   d  console sạch, không lỗi CSP; vùng chạm ≥ 44px, không tràn ngang ở 390 và 320 trên /help
 //   e  mất mạng (CDP giả lập offline, sau khi service worker đã lưu trang): tải lại /help vẫn đủ nhật ký + đúng dòng phiên bản (nhật ký vẽ TRƯỚC initShell)
 import assert from "node:assert/strict";
-import { mkdirSync } from "node:fs";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { ACCOUNTS, ok, startEnv } from "../../2026-09-20-a2/kich-ban/a2-cdp.mjs";
 import { CHANGELOG } from "../../../../src/shared/changelog.ts";
@@ -30,6 +30,12 @@ async function step(id, name, fn) {
   }
 }
 const q = (sel) => `document.querySelector(${JSON.stringify(sel)})`;
+// Ảnh trang /help chụp ĐÚNG KHUNG NHÌN (Ruling R23, 2026-09-28): nhật ký thay đổi dài dần (bản 1.35: trang cao ~11.000px), `p.shot` chụp cả trang
+// (captureBeyondViewport) treo Chrome headless ngay ở bước a — mọi phép kiểm vẫn đạt khi chỉ đổi cách chụp. Trang Tôi / Trang chủ (bước b, c) vẫn chụp cả trang.
+const shotKhung = async (p, path) => {
+  const r = await p.send("Page.captureScreenshot", { format: "png" });
+  writeFileSync(path, Buffer.from(r.result.data, "base64"));
+};
 const reload = async (p) => {
   await p.send("Page.reload", {});
   await p.waitFor("document.readyState === 'complete'", "tải lại xong");
@@ -67,7 +73,7 @@ try {
         assert.equal(await p.ev(`document.querySelectorAll('.release-note').length`), CHANGELOG.length, key);
         assert.match(await p.ev(`${q(".release-note h3")}.textContent`), new RegExp(`^Phiên bản ${CHANGELOG[0].version.replace(".", "\\.")} — `), key);
         assert.equal(await p.ev(`${q("main a.btn-primary")}.getAttribute('href')`), "/feedback?new=1&from=%2Fhelp", key);
-        if (key === "salesA") await p.shot(join(OUT, "anh/a-tro-giup-390.png"));
+        if (key === "salesA") await shotKhung(p, join(OUT, "anh/a-tro-giup-390.png"));
       } finally {
         p.close();
       }
@@ -151,7 +157,7 @@ try {
         assert.deepEqual([m.tapDuoi44, m.tranNgang <= 0], [[], true], `đo ${label}: ${JSON.stringify(m)}`);
         const csp = p.logEntries.filter((e) => /Content Security Policy|Refused to/i.test(e.text));
         assert.deepEqual([csp.length, p.consoleErrors.length], [0, 0], `console ${label}`);
-        await p.shot(join(OUT, `anh/d-tro-giup-${label}.png`));
+        await shotKhung(p, join(OUT, `anh/d-tro-giup-${label}.png`));
       } finally {
         p.close();
       }
@@ -176,7 +182,7 @@ try {
       assert.equal(await p.ev(`document.querySelectorAll('.release-note').length`), CHANGELOG.length, "đủ số bản khi mất mạng");
       assert.equal(await p.ev(`${q("#release")}.textContent`), `${APP_NAME} · ${formatReleaseLine()}`, "dòng phiên bản khi mất mạng");
       assert.equal(await p.ev("fetch('/api/auth/me').then(() => 'có mạng', () => 'mất mạng')"), "mất mạng", "vẫn đang mất mạng lúc kiểm");
-      await p.shot(join(OUT, "anh/e-mat-mang-390.png"));
+      await shotKhung(p, join(OUT, "anh/e-mat-mang-390.png"));
     } finally {
       await p.send("Network.emulateNetworkConditions", { offline: false, latency: 0, downloadThroughput: -1, uploadThroughput: -1 }).catch(() => undefined);
       p.close();

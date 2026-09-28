@@ -97,6 +97,8 @@ try {
   //    (như v1-bao-tri.mjs đã làm) để mục Chế độ bảo trì thật sự hiện ra (canToggle=true), đủ mọi khối.
   //    Máy tính: .account-layout là grid, #maintenance ở cột phải (grid-column:2), thứ tự DOM gốc
   //    #me,#myjobs,#links,#maintenance,#pin-form. Điện thoại: .account-layout là block, không tràn ngang.
+  //    Vận chuyển 1a (ADR-0040, bản vẽ 00; Ruling R23 của điều phối 2026-09-28): tài khoản có ô vehicle.manage (owner ở đây) có thêm #links-top, #vc-eyebrow,
+  //    #vc-links trước #links — CHỈ cộng phần 1a. #push (Thông báo trên điện thoại, ADR-0036) chưa có trong danh sách: ĐỎ SẴN trên main, không do 1a.
   // ==================================================================================================
   {
     env.sql(`UPDATE mnt_setting SET allowed_phones = '${ACCOUNTS.owner.phone}' WHERE id = 'default'`);
@@ -121,7 +123,7 @@ try {
     await p.waitFor("!!document.querySelector('#maintenance') && !document.querySelector('#maintenance').hidden", "mục Chế độ bảo trì hiện (máy tính)");
     let m = await measureAccount(p);
     assert.equal(m.layoutDisplay, "grid", `Tôi (máy tính): .account-layout phải display:grid — ${JSON.stringify(m)}`);
-    assert.deepEqual(m.domOrder, ["me", "myjobs", "links", "maintenance", "passkeys", "pin-form"], `Tôi (máy tính): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
+    assert.deepEqual(m.domOrder, ["me", "myjobs", "links-top", "vc-eyebrow", "vc-links", "links", "maintenance", "passkeys", "pin-form"], `Tôi (máy tính): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
     assert.equal(m.maintHidden, false, `Tôi (máy tính): #maintenance phải HIỆN (canToggle=true) — ${JSON.stringify(m)}`);
     assert.equal(m.meColumn, "1", `Tôi (máy tính): #me phải ở cột trái (grid-column 1) — ${JSON.stringify(m)}`);
     assert.equal(m.maintColumn, "2", `Tôi (máy tính): #maintenance phải ở cột phải (grid-column 2) — ${JSON.stringify(m)}`);
@@ -135,7 +137,7 @@ try {
     await p.waitFor("!!document.querySelector('#maintenance') && !document.querySelector('#maintenance').hidden", "mục Chế độ bảo trì hiện (điện thoại)");
     m = await measureAccount(p);
     assert.equal(m.layoutDisplay, "block", `Tôi (điện thoại): .account-layout phải display:block — ${JSON.stringify(m)}`);
-    assert.deepEqual(m.domOrder, ["me", "myjobs", "links", "maintenance", "passkeys", "pin-form"], `Tôi (điện thoại): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
+    assert.deepEqual(m.domOrder, ["me", "myjobs", "links-top", "vc-eyebrow", "vc-links", "links", "maintenance", "passkeys", "pin-form"], `Tôi (điện thoại): thứ tự DOM gốc phải giữ nguyên — ${JSON.stringify(m)}`);
     assert.ok(m.scrollOverflow <= 1, `Tôi (điện thoại): không được tràn ngang — lệch ${m.scrollOverflow}px`);
     assert.deepEqual(p.consoleErrors, [], `lỗi console (Tôi điện thoại): ${p.consoleErrors}`);
     await shot(p, "toi-dien-thoai.png");
