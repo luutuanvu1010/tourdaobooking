@@ -14,7 +14,11 @@
     "SERVICES_SHEET_ID": "1XPx1g0JVTdevdX35MeCpt6Cc6Dgxdmfer6okEWleD3s",
     // Đăng nhập bằng Face ID (passkey, ADR-0016): KHÔNG dùng tourdao.vn (website công khai là Worker khác).
     "PASSKEY_RP_ID": "booking.tourdao.vn",
-    "PASSKEY_ORIGIN": "https://booking.tourdao.vn"
+    "PASSKEY_ORIGIN": "https://booking.tourdao.vn",
+    // Thông báo màn hình khoá / Web Push (ADR-0036): khoá CÔNG KHAI VAPID (không phải bí mật) — chủ dự án tạo cặp khoá
+    // 2026-09-28 theo docs/HUONG-DAN-BAT-THONG-BAO-DIEN-THOAI.md Bước 3; nửa bí mật VAPID_PRIVATE_KEY chỉ đặt bằng
+    // `wrangler secret put`, không bao giờ vào tệp này. Lệch cặp → khoaVapid trả null, mục "Thông báo trên điện thoại" tự ẩn.
+    "VAPID_PUBLIC_KEY": "BHV2LNBkriTGu-5WlSl21vx_6NvVaRbxVPUILrBbyuFfOINyaoNPq5sEPFnYAG2Yf4lca_VsMysTXLTCfaTbr3w"
   },
   // UI tĩnh (public/) phục vụ qua Workers Assets; /api/* luôn vào Worker trước. JS trong public/js do `npm run build:web` sinh từ web/.
   "assets": { "directory": "./public", "binding": "ASSETS", "run_worker_first": ["/api/*"] },

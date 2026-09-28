@@ -48,3 +48,12 @@ export async function dongCua(env: Env, muc: { staffId: string } | "tat-ca"): Pr
   if (!env.BANG_TIN) return;
   await env.BANG_TIN.getByName(TEN_TRAM).dongCua(muc);
 }
+
+/**
+ * WEB PUSH (ADR-0036): giao danh sách địa chỉ nhận cho trạm chia lô ≤ 40 bằng báo thức. Trả địa chỉ 410 trạm đã gom ở các lượt trước. Không có trạm → `[]`
+ * (không gửi). Gốc lắp ráp tiêm hàm này vào `ctx.giaoLoDay` — `thongbao` không import module này.
+ */
+export async function xepHangDay(env: Env, ds: string[]): Promise<string[]> {
+  if (!env.BANG_TIN) return [];
+  return env.BANG_TIN.getByName(TEN_TRAM).xepHangDay(ds);
+}

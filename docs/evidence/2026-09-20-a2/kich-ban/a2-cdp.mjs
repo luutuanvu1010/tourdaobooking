@@ -42,7 +42,21 @@ export const TURNSTILE_TEST = { siteKey: "1x00000000000000000000AA", secret: "1x
  * `wrangler.jsonc` (`booking.tourdao.vn`) KHÔNG lọt vào các kịch bản Chrome cũ không chủ đích kiểm Face ID (B-22) — nút Face ID và lời mời sau đăng nhập PIN sẽ hiện
  * ở MỌI môi trường cục bộ nếu không ghi đè rỗng ở đây. Trình duyệt không cho tạo passkey trên địa chỉ IP nên khi bật phải dùng `localhost`, không phải `127.0.0.1`.
  */
-export async function startEnv({ turnstile = false, passkey = false } = {}) {
+/** Cặp khoá VAPID cục bộ CHỈ DÙNG CHO MÁY THỬ (Web Push màn hình khoá, ADR-0036) — sinh mới mỗi lần chạy bằng Web Crypto,
+ * không bao giờ ghi ra tệp hay commit. Trả `publicB64u` (đưa vào `--var VAPID_PUBLIC_KEY`, cũng là giá trị trang Tài khoản
+ * dùng làm `applicationServerKey`) và `privateJwk` (chuỗi JSON, đưa vào `--var VAPID_PRIVATE_KEY`). */
+export async function taoCapKhoaVapidThu() {
+  const pair = await crypto.subtle.generateKey({ name: "ECDSA", namedCurve: "P-256" }, true, ["sign", "verify"]);
+  const raw = new Uint8Array(await crypto.subtle.exportKey("raw", pair.publicKey));
+  const publicB64u = Buffer.from(raw).toString("base64url");
+  const privateJwk = JSON.stringify(await crypto.subtle.exportKey("jwk", pair.privateKey));
+  return { publicB64u, privateJwk };
+}
+
+/** `vapid: true` → máy chủ BẬT Web Push màn hình khoá (ADR-0036) bằng một cặp khoá VAPID sinh riêng cho lần chạy này (xem
+ * `taoCapKhoaVapidThu`); mặc định TẮT (rỗng, cùng lý do B-22 với `turnstile`/`passkey`: không lộ cho các kịch bản Chrome
+ * cũ không chủ đích kiểm mục này). Trả thêm `vapidPublicKey` trong kết quả `startEnv()` để kịch bản đối chiếu/log. */
+export async function startEnv({ turnstile = false, passkey = false, vapid = false } = {}) {
   const { insertStaffSql } = await import(pathToFileURL(join(ROOT, "scripts", "staff-lib.mjs")).href);
   const persist = mkdtempSync(join(tmpdir(), "tourdao-a2-"));
   const profile = mkdtempSync(join(tmpdir(), "tourdao-a2-chrome-"));
@@ -63,7 +77,8 @@ export async function startEnv({ turnstile = false, passkey = false } = {}) {
   // Face ID (ADR-0016) mặc định TẮT cùng lý do trên (B-22): rỗng ghi đè `vars` production của wrangler.jsonc. `startEnv({ passkey: true })` bật bằng `localhost`
   // (Chrome cấm tạo passkey trên địa chỉ IP) — kịch bản dùng `env.localBase` để điều hướng, KHÔNG dùng `env.base` (127.0.0.1) cho các bước cần WebAuthn.
   const passkeyVars = passkey ? ["localhost", localBase] : ["", ""];
-  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`],
+  const vapidKeys = vapid ? await taoCapKhoaVapidThu() : { publicB64u: "", privateJwk: "" };
+  const server = spawn("npx", ["wrangler", "dev", "--port", String(port), "--ip", "127.0.0.1", "--inspector-port", String(inspector), "--persist-to", persist, "--var", `SESSION_SECRET:${randomBytes(48).toString("base64url")}`, "--var", `TURNSTILE_SITE_KEY:${turnstileVars[0]}`, "--var", `TURNSTILE_SECRET_KEY:${turnstileVars[1]}`, "--var", `PASSKEY_RP_ID:${passkeyVars[0]}`, "--var", `PASSKEY_ORIGIN:${passkeyVars[1]}`, "--var", `VAPID_PUBLIC_KEY:${vapidKeys.publicB64u}`, "--var", `VAPID_PRIVATE_KEY:${vapidKeys.privateJwk}`],
     { cwd: ROOT, detached: true, stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, CI: "1" } });
   server.stdout.on("data", (d) => logs.push(String(d)));
   server.stderr.on("data", (d) => logs.push(String(d)));
@@ -74,7 +89,7 @@ export async function startEnv({ turnstile = false, passkey = false } = {}) {
   }
 
   const cdpPort = await freePort();
-  const chrome = spawn(CHROME, ["--headless=new", `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`, "--no-first-run", "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
+  const chrome = spawn(CHROME, [...(process.env.A2_HEADFUL ? [] : ["--headless=new"]), `--remote-debugging-port=${cdpPort}`, `--user-data-dir=${profile}`, "--no-first-run", "--disable-gpu", "--hide-scrollbars", "about:blank"], { stdio: "ignore" });
   for (let i = 0; ; i++) {
     if ((await fetch(`http://127.0.0.1:${cdpPort}/json/version`).catch(() => null))?.ok) break;
     if (i > 80) throw new Error("Chrome không lên");
@@ -193,7 +208,7 @@ export async function startEnv({ turnstile = false, passkey = false } = {}) {
       try { rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 }); } catch { /* còn tiến trình ghi vào thư mục: bỏ qua, không làm hỏng kết quả kiểm */ }
     }
   };
-  return { base, localBase, persist, sql, legacyManual, login, openPage, as, stop, logs };
+  return { base, localBase, persist, sql, legacyManual, login, openPage, as, stop, logs, vapidPublicKey: vapidKeys.publicB64u };
 }
 
 /** Biểu thức JS: gõ `value` vào phần tử `el` (biểu thức trả phần tử) và bắn sự kiện input/change. */

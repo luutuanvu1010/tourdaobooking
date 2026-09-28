@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { CompanyDto, OrderDetailDto, OrderItemDto, OrderServiceDto, OrderStatus } from "./contracts.ts";
-import { buildConfirmation, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
+import { buildConfirmation, HANDLER_HIDDEN, PENDING_HANDLER_TEXT, type ConfirmationBlock, type ConfirmationModel } from "./order-confirmation.ts";
 
 // ---- dữ liệu mẫu: đúng hình dạng OrderDetailDto (id/mã nội bộ có tên riêng để phép thử "không lộ" không đúng/sai do trùng chữ) ----
 const NO_TRIP = { departDate: null, departTime: null, pickupTime: null, pickupPlace: null, checkinDate: null, checkinTime: null, checkinPlace: null, note: null };
@@ -41,7 +41,7 @@ function one<K extends Kind>(m: ConfirmationModel, kind: K): Extract<Confirmatio
   assert.equal(all.length, 1, `phải có đúng một khối "${kind}"`);
   return all[0]!;
 }
-const build = (o: OrderDetailDto, handler: string | null | undefined = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel => buildConfirmation(o, company, handler);
+const build = (o: OrderDetailDto, handler: string | null | typeof HANDLER_HIDDEN = "Lê Minh Tuấn", company: CompanyDto = COMPANY): ConfirmationModel => buildConfirmation(o, company, handler);
 /** Giá trị của dòng nhãn/giá trị có nhãn `label` (undefined = không có dòng đó). */
 const value = (rows: { label: string; value: string }[], label: string): string | undefined => rows.find((r) => r.label === label)?.value;
 const details = (s: OrderServiceDto): { label: string; value: string }[] => one(build(order({ services: [s] })), "service").details;
@@ -56,6 +56,7 @@ test("đủ trường: khối theo thứ tự đầu trang → tiêu đề → k
     {
       kind: "title", title: "XÁC NHẬN ĐƠN DỊCH VỤ", status: { code: "draft", text: "Chờ xác nhận" },
       rows: [{ label: "Mã đơn", value: "TD-20260921-0007" }, { label: "Ngày lập", value: "21/09/2026" }, { label: "Nhân viên phụ trách", value: "Lê Minh Tuấn" }],
+      note: null,
     },
     {
       kind: "customer", heading: "Thông tin khách hàng",
@@ -196,15 +197,25 @@ test("trạng thái: nháp 'Chờ xác nhận', đã xác nhận 'Đã xác nh�
   for (const [code, text] of cases) assert.deepEqual(one(build(order({ status: code })), "title").status, { code, text });
 });
 
-test("nhân viên phụ trách (ADR-0020 điều 9): có tên → in tên; null (máy chủ XÁC NHẬN chưa có người) → 'Chưa có người phụ trách'; undefined/trống (CHƯA BIẾT: lỗi, hết giờ, dữ liệu hỏng) → bỏ hẳn dòng, KHÔNG bao giờ dùng tên người lập", () => {
-  // KHÔNG dùng `build()`: nó có tham số mặc định cho `handler`, và tham số mặc định của JS cũng áp dụng khi gọi tường minh với `undefined` — sẽ nuốt mất ca "CHƯA BIẾT" cần kiểm ở đây.
-  const rows = (o: OrderDetailDto, handler: string | null | undefined) => one(buildConfirmation(o, COMPANY, handler), "title").rows;
+test("nhân viên phụ trách: có tên thì in tên, không có câu chờ; null/trống → KHÔNG dòng, in câu chờ nhận; KHÔNG BAO GIỜ dùng tên người lập thay thế (chủ dự án 2026-09-28)", () => {
+  const title = (o: OrderDetailDto, handler: string | null) => one(build(o, handler), "title");
+  const rows = (o: OrderDetailDto, handler: string | null) => title(o, handler).rows;
   assert.equal(value(rows(order(), "Lê Minh Tuấn"), "Nhân viên phụ trách"), "Lê Minh Tuấn");
-  assert.equal(value(rows(order(), null), "Nhân viên phụ trách"), "Chưa có người phụ trách");
-  assert.equal(value(rows(order(), undefined), "Nhân viên phụ trách"), undefined);
-  assert.equal(value(rows(order(), "   "), "Nhân viên phụ trách"), undefined);
-  // tên người lập KHÔNG bao giờ xuất hiện trên phiếu, dù ở trạng thái nào (có tên, chưa có người, hay chưa biết)
-  for (const handler of ["Lê Minh Tuấn", null, undefined, "   "] as const) assert.ok(!JSON.stringify(buildConfirmation(order(), COMPANY, handler)).includes("Nguyễn Thu Hà"), `handler=${JSON.stringify(handler)}`);
+  assert.equal(title(order(), "Lê Minh Tuấn").note, null);
+  for (const handler of [null, "   "]) {
+    assert.equal(value(rows(order(), handler), "Nhân viên phụ trách"), undefined, `handler=${JSON.stringify(handler)}: không còn dòng "Nhân viên phụ trách"`);
+    assert.equal(title(order(), handler).note, PENDING_HANDLER_TEXT, `handler=${JSON.stringify(handler)}: phải có câu chờ nhận`);
+  }
+  // đơn nào cũng vậy kể cả staffName rỗng — tên người lập không bao giờ xuất hiện thay cho người phụ trách
+  assert.equal(title(order({ staffName: "" }), null).note, PENDING_HANDLER_TEXT);
+  assert.ok(!JSON.stringify(build(order(), null)).includes("Nguyễn Thu Hà"), "tên người lập không được in dù đơn chưa có người phụ trách");
+});
+
+test("người xem KHÔNG được biết người phụ trách (Đối tác — máy chủ trả 403): vẫn tạo ảnh, KHÔNG dòng phụ trách, KHÔNG câu chờ, KHÔNG tên người lập", () => {
+  const t = one(build(order(), HANDLER_HIDDEN), "title");
+  assert.equal(value(t.rows, "Nhân viên phụ trách"), undefined);
+  assert.equal(t.note, null, "không được khẳng định đơn đang chờ khi người xem không biết");
+  assert.ok(!JSON.stringify(build(order(), HANDLER_HIDDEN)).includes("Nguyễn Thu Hà"), "tên người lập không được in");
 });
 
 test("tổng kết: đúng số của đơn (không tự tính lại); chỉ Tổng cộng và Còn lại nổi bật; giảm giá 0 in '0 ₫'; còn lại âm giữ nguyên dấu", () => {

@@ -7,7 +7,9 @@ import { ACCOUNTS, call, session } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const SALES_B = await session(ACCOUNTS.salesB);
-const ADMIN = await session(ACCOUNTS.admin);
+// ADR-0038: người xử lý Góp ý là Toàn quyền; Quản trị chỉ gửi/xem yêu cầu của chính mình.
+const ADMIN = await session(ACCOUNTS.superAdmin);
+const QUAN_TRI = await session(ACCOUNTS.admin);
 const ACC = await session(ACCOUNTS.accountant);
 const FIELD = await session(ACCOUNTS.field);
 
@@ -45,6 +47,9 @@ assert.equal((await call(SALES_B, "POST", `/api/feedback/${t.id}/messages`, { bo
 assert.equal((await call(ACC, "GET", `/api/feedback/${t.id}`)).status, 404);
 assert.equal((await call(FIELD, "POST", "/api/feedback", input({ title: "FIELD góp ý" }))).status, 201, "mọi quyền đều được gửi");
 assert.equal((await call(SALES, "GET", "/api/feedback")).status, 403, "hàng đợi chỉ admin");
+assert.equal((await call(QUAN_TRI, "GET", "/api/feedback")).status, 403, "ADR-0038: Quản trị không vào hàng đợi");
+assert.equal((await call(QUAN_TRI, "GET", `/api/feedback/${t.id}`)).status, 404, "ADR-0038: Quản trị không đọc yêu cầu của người khác");
+assert.equal((await call(QUAN_TRI, "PATCH", `/api/feedback/${t.id}`, { status: "ACK" })).status, 403, "ADR-0038: Quản trị không đổi trạng thái");
 assert.equal((await call(FIELD, "PATCH", `/api/feedback/${t.id}`, { status: "ACK" })).status, 403);
 assert.equal((await call(SALES, "PATCH", `/api/feedback/${t.id}`, { status: "ACK" })).status, 403);
 console.log("✓ chỉ chủ và admin xem được; hàng đợi/đổi trạng thái chỉ admin");

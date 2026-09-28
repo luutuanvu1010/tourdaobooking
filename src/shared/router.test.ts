@@ -38,6 +38,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
       partyAccount: async () => ({ linked: false }),
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
+      giaoLoDay: async () => [],
     },
   });
   const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, {} as ExecutionContext);
@@ -136,6 +137,7 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
       partyAccount: async (_env, actor, partyId) => { seen.push(`${actor.id}:${partyId}`); return { linked: false }; },
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
+      giaoLoDay: async () => [],
     },
   });
   const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
@@ -254,6 +256,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
       // biến lỗi đồng bộ thành lời hứa bị từ chối, làm mất khả năng phân biệt hai bài kiểm "NÉM LỖI ĐỒNG BỘ" và "BỊ TỪ CHỐI" (vòng sửa 1, phát hiện 1).
       baoThayDoi: (env, actor, e) => (overrides.baoThayDoi ? overrides.baoThayDoi(env, actor, e) : Promise.resolve()) as Promise<void>,
       dongBangTin: (env, muc) => (overrides.dongBangTin ? overrides.dongBangTin(env, muc) : Promise.resolve()) as Promise<void>,
+      giaoLoDay: async () => [],
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -285,6 +288,7 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
       partyAccount: async () => ({ linked: false }),
       baoThayDoi: async () => { await baoThayDoi(); },
       dongBangTin: async () => {},
+      giaoLoDay: async () => [],
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -401,4 +405,31 @@ test("hàm tiêm dongBangTin NÉM LỖI ĐỒNG BỘ → phản hồi vẫn 200;
   const dong = JSON.parse(logs[0]!);
   assert.equal(dong.event, "bang_tin_loi");
   assert.equal(dong.viec, "dong");
+});
+
+// WEB PUSH (ADR-0036, Task 3) — ctx.giaoLoDay: hàm tiêm (khuôn dongBangTin) để `thongbao` giao lô gõ cửa cho trạm `BangTin` mà KHÔNG import `bangtin`
+// (không nới ALLOWED_EDGES). Khác baoThayDoi/dongBangTin: trả lời hứa (route cần danh sách địa chỉ 410 mà trạm trả về).
+test("ctx.giaoLoDay: chuyển env + danh sách tới hàm tiêm và trả nguyên kết quả", async () => {
+  const seen: unknown[] = [];
+  const env = { ten: "env-thu" } as unknown as Env;
+  const mod: AppModule = {
+    name: "giao-lo-gia",
+    routes: [route("GET", "/api/giao", "staff", async (ctx) => json({ het: await ctx.giaoLoDay(["a", "b"]) }))],
+  };
+  const app = createApp({
+    modules: [mod],
+    currentStaff: async () => staffOf(["SALES"]),
+    injected: {
+      isAssigned: async () => false,
+      defaultHandlerStatement: () => null,
+      maintenanceBlock: async () => null,
+      partyAccount: async () => ({ linked: false }),
+      baoThayDoi: async () => {},
+      dongBangTin: async () => {},
+      giaoLoDay: async (e, ds) => { seen.push([e, ds]); return ["b"]; },
+    },
+  });
+  const res = await app.fetch(new Request("http://x/api/giao"), env, {} as ExecutionContext);
+  assert.deepEqual(await res.json(), { het: ["b"] });
+  assert.deepEqual(seen, [[env, ["a", "b"]]]);
 });

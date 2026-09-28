@@ -1,4 +1,4 @@
-import { isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
+import { SILENT_AUDIT_ACTIONS, isAuditAction, type AuditAction, type AuditTargetType } from "../../shared/audit-actions";
 import type { AuditEntryDto, AuditListResponse, AuditRecordDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 
@@ -55,10 +55,16 @@ export async function listByOrder(db: D1Database, orderId: string): Promise<Audi
 /** Nhật ký toàn hệ thống, mới nhất trước; lọc theo hành động và/hoặc tìm theo đối tượng / tên người thao tác. */
 export async function listAll(
   db: D1Database,
-  opts: { action: AuditAction | null; q: string; limit: number; offset: number },
+  opts: { action: AuditAction | null; q: string; limit: number; offset: number; hideSilent: boolean },
 ): Promise<AuditListResponse> {
   const where: string[] = [];
   const binds: (string | number)[] = [];
+  if (opts.hideSilent) {
+    // ADR-0038: người xem không phải Toàn quyền → bỏ thao tác im lặng do người đang giữ Toàn quyền làm. Lọc TRONG SQL (trước LIMIT) để
+    // phân trang và hasMore không lộ số dòng bị giấu.
+    where.push(`NOT (a.action IN (${SILENT_AUDIT_ACTIONS.map(() => "?").join(", ")}) AND a.staff_id IN (SELECT staff_id FROM v_stf_toan_quyen))`);
+    binds.push(...SILENT_AUDIT_ACTIONS);
+  }
   if (opts.action) {
     where.push("a.action = ?");
     binds.push(opts.action);

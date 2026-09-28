@@ -137,6 +137,8 @@ assert.deepEqual([r.body.orders, r.body.hasMore], [[], false], "bỏ ACCOUNTING 
 r = await call(MC, "GET", `/api/orders/${order.id}`);
 assert.equal(r.status, 404, `bỏ ACCOUNTING → mở đơn người khác 404 (không phải 200 như lúc còn ACCOUNTING): ${r.status}`);
 assert.equal((await call(ADMIN, "PUT", `/api/staff/${M.id}/permissions`, { permissions: ["SALES", "FIELD"] })).status, 200);
+// Các lần đọc /api/catalog ở trên có thể là lần đồng bộ Sheet ĐẦU TIÊN của D1 này (khi catalog.mjs không chạy trước) — lần đó ẩn mã giả ZE*; bật lại.
+await ensureFakeCatalog();
 // Lập kèm CHÍNH MÌNH làm người phụ trách (ADR-0030 S20-4 — đơn mới không tự gắn người lập) để ca "người phụ trách đã nghỉ" ở dưới giữ đúng nghĩa.
 r = await call(MC, "POST", "/api/orders", orderInput({ handlerStaffId: M.id }));
 assert.equal(r.status, 201, `thêm SALES → lập đơn được ngay: ${JSON.stringify(r.body)}`);

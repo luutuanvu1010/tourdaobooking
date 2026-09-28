@@ -10,7 +10,8 @@ import { canAccessOrders, isOffice, passesAdminGate } from "./permissions.ts";
 export type Access = "public" | "staff" | "office" | "orders" | "admin";
 
 /** ADR-0013 điều 4: hồ sơ có gắn tài khoản không, và người đang đăng nhập có quản được tài khoản đó không (luật cấp bậc ADR-0014 điều 8, module `staff` tính). */
-export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean };
+/** `vaiAn` (ADR-0044): tài khoản gắn hồ sơ đang giữ Toàn quyền — vai ẩn; người xem không giữ Toàn quyền chỉ thấy vai đang mở của hồ sơ đó. */
+export type PartyAccountVerdict = { linked: false } | { linked: true; manageable: boolean; vaiAn?: boolean };
 
 /**
  * Kết luận của `dispatch` về người mà người lập CHỌN làm người phụ trách ngay lúc lập đơn (ADR-0030 S20-4, ADR-0020 điều 1, Q-C). Đạt → `statements`
@@ -73,6 +74,12 @@ export interface Ctx<A extends Access = Access> {
    * nối (`"tat-ca"`, khi bật chế độ bảo trì). Không phụ thuộc người đang gọi (không cần ai đăng nhập) — bắn-và-quên như `baoThayDoi`.
    */
   dongBangTin: (muc: { staffId: string } | "tat-ca") => void;
+  /**
+   * WEB PUSH (ADR-0036) — giao một danh sách địa chỉ nhận cho trạm `BangTin` chia lô ≤ 40 bằng báo thức (khi > 40 máy). Hàm tiêm để `thongbao` không
+   * import `bangtin` (không nới ALLOWED_EDGES). Trả địa chỉ đã nhận 410 ở các lượt trước của trạm (người gọi đánh dấu hết hiệu lực). Không có trạm → `[]`.
+   * Khác `baoThayDoi`: trả lời hứa — người gọi tự bọc `waitUntil` + bắt lỗi.
+   */
+  giaoLoDay: (ds: string[]) => Promise<string[]>;
 }
 
 export interface Route {
@@ -156,6 +163,8 @@ export interface AppOptions {
     baoThayDoi: (env: Env, actor: StaffProfile, e: { orderId: string; thayDoi: ThayDoiDon; handlerTruoc?: TrangThaiPhuTrach }) => Promise<void>;
     /** BẢNG TIN (ADR-0022). BẮT BUỘC. Bản thật ở `src/index.ts` (`dongCua` của module `bangtin`); chỉ là no-op khi môi trường không có binding `BANG_TIN`. */
     dongBangTin: (env: Env, muc: { staffId: string } | "tat-ca") => Promise<void>;
+    /** WEB PUSH (ADR-0036). BẮT BUỘC. Bản thật ở `src/index.ts` (`xepHangDay` của module `bangtin`); `[]` khi môi trường không có binding `BANG_TIN`. */
+    giaoLoDay: (env: Env, ds: string[]) => Promise<string[]>;
   };
 }
 
@@ -219,6 +228,7 @@ export function createApp(opts: AppOptions) {
       dongBangTin: (muc) => {
         exec.waitUntil(Promise.resolve().then(() => opts.injected.dongBangTin(env, muc)).catch((err) => ghiLoiBangTin("dong", err)));
       },
+      giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
     } as Ctx);
   }
 

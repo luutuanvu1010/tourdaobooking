@@ -82,6 +82,37 @@ const SHAPES = {
     ["path", { d: "M9.6 9.6a2.5 2.5 0 0 1 4.8 1c0 1.7-2.4 2.2-2.4 3.6" }],
     ["path", { d: "M12 17v.01" }],
   ],
+  // Thông báo hệ thống (ADR-0034, Task 7) — path chép ĐÚNG từ bản mẫu docs/design/thong-bao-mockup/ban-mau-thong-bao.html (biến ICON).
+  bell: [
+    ["path", { d: "M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" }],
+    ["path", { d: "M10.3 21a1.94 1.94 0 0 0 3.4 0" }],
+  ],
+  megaphone: [
+    ["path", { d: "M3 11v2a1 1 0 0 0 1 1h2l5 4V6L6 10H4a1 1 0 0 0-1 1z" }],
+    ["path", { d: "M15 9a4 4 0 0 1 0 6M18 6a8 8 0 0 1 0 12" }],
+  ],
+  // Loại tin "chờ nhận" (mockup: ICON.wait).
+  userPlus: [
+    ["circle", { cx: 9, cy: 8, r: 4 }],
+    ["path", { d: "M2 21a7 7 0 0 1 14 0M19 8v6M16 11h6" }],
+  ],
+  // Loại tin "nhận"/"xác nhận" (mockup: ICON.ok).
+  checkCircle: [
+    ["circle", { cx: 12, cy: 12, r: 9 }],
+    ["path", { d: "m8 12 3 3 5-6" }],
+  ],
+  // Loại tin "giao" (đổi người phụ trách, mockup: ICON.swap).
+  swap: [["path", { d: "M7 7h13l-3-3M17 17H4l3 3" }]],
+  // Loại tin "lập" (đơn mới, mockup: ICON.file).
+  filePlus: [
+    ["path", { d: "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z" }],
+    ["path", { d: "M14 3v6h6M12 12v6M9 15h6" }],
+  ],
+  // Loại tin "huỷ" (mockup: ICON.ban).
+  ban: [
+    ["circle", { cx: 12, cy: 12, r: 9 }],
+    ["path", { d: "m6 6 12 12" }],
+  ],
 } as const satisfies Record<string, readonly Shape[]>;
 
 export type IconName = keyof typeof SHAPES;

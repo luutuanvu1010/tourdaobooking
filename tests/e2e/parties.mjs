@@ -4,6 +4,7 @@ import { ACCOUNTS, call, randomPhone, session, vnDate } from "./lib.mjs";
 
 const SALES = await session(ACCOUNTS.salesA);
 const ADMIN = await session(ACCOUNTS.admin);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: trang Nhật ký, đặt lại PIN, gỡ Face ID, mở khoá chỉ Toàn quyền
 const tag = String(Date.now()).slice(-6);
 const phone = randomPhone();
 const P = (id) => `/api/parties/${id}`;
@@ -15,7 +16,7 @@ assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
 assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
   "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
-  "HOTEL_RECEPTION", "INTERN", "OPERATIONS_MANAGER", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY",
+  "HOTEL_RECEPTION", "INTERN", "IT", "OPERATIONS_MANAGER", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044
 ]);
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "SALES_STAFF"), { code: "SALES_STAFF", name: "Nhân viên kinh doanh", group: "INTERNAL", active: true });
 assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);
@@ -193,7 +194,7 @@ assert.equal((await call(ADMIN, "POST", `${P(ORG.id)}/relationships/${link.id}/e
 console.log("✓ quan hệ");
 
 // --- nhật ký: có dòng theo loại đối tượng "party"; KHÔNG lộ SĐT/email/MST
-r = await call(ADMIN, "GET", "/api/audit?limit=100&q=" + encodeURIComponent(""));
+r = await call(TOAN_QUYEN, "GET", "/api/audit?limit=100&q=" + encodeURIComponent(""));
 const partyLogs = r.body.entries.filter((e) => e.targetType === "party");
 for (const a of ["party_created", "party_updated", "party_contact_changed", "party_role_added", "party_role_ended", "party_relationship_changed"]) assert.ok(partyLogs.some((e) => e.action === a), `thiếu ${a}`);
 const dump = JSON.stringify(r.body);

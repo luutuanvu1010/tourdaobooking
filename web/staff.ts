@@ -20,6 +20,8 @@ const accessLabel = (s: StaffAccount): string => (s.roles.length ? rolesLabel(s.
 const EMPTY: RolePickerValue = { roles: [], adds: [], removes: [], reason: "" };
 const sameAssignment = (a: RolePickerValue, b: RolePickerValue): boolean => sameSet(a.roles, b.roles) && sameSet(a.adds, b.adds) && sameSet(a.removes, b.removes);
 let meSuper = false;
+// ADR-0038 điều 6: đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ từ Sheet chỉ Toàn quyền — Quản trị không thấy nút (máy chủ vẫn chặn 403).
+let canAccessManage = false;
 
 let me: { id: string };
 let accounts: StaffAccount[] = [];
@@ -61,6 +63,10 @@ async function act<T>(fn: () => Promise<T>): Promise<T | undefined> {
   }
 }
 
+// ADR-0042: Quản trị chỉ tác động được tài khoản cấp dưới (luật mayManage của máy chủ) — ẩn nút trên tài khoản Quản trị khác và tài khoản
+// Toàn quyền (máy chủ trả tài khoản Toàn quyền như Quản trị thường cho người không giữ Toàn quyền, nên chỉ cần xét ADMIN).
+const quanDuoc = (s: StaffAccount): boolean => meSuper || s.id === me.id || !s.permissions.includes("ADMIN");
+
 function row(s: StaffAccount): HTMLElement {
   const btn = (label: string, onclick: () => void, cls = "btn btn-link") => {
     const b = h("button", { type: "button", class: cls }, label);
@@ -79,9 +85,10 @@ function row(s: StaffAccount): HTMLElement {
     h(
       "td",
       { class: "row-actions" },
-      btn("Sửa", () => void openEdit(s)),
+      quanDuoc(s) && btn("Sửa", () => void openEdit(s)),
       // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
-      !isMe &&
+      canAccessManage && quanDuoc(s) &&
+        !isMe &&
         btn("Đặt lại PIN", async () => {
           if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -90,17 +97,19 @@ function row(s: StaffAccount): HTMLElement {
             await load();
           }
         }),
-      s.locked && btn("Mở khoá", async () => {
+      canAccessManage && quanDuoc(s) && s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
       // Không hiện trên hàng của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
-      !isMe &&
+      canAccessManage && quanDuoc(s) &&
+        !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
           if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
-      !isMe &&
+      quanDuoc(s) &&
+        !isMe &&
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
@@ -131,9 +140,10 @@ function card(s: StaffAccount): HTMLElement {
     h(
       "div",
       { style: "display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1)" },
-      btn("Sửa", () => void openEdit(s)),
+      quanDuoc(s) && btn("Sửa", () => void openEdit(s)),
       // DK-T3-02: không hiện trên hàng/thẻ của chính mình — máy chủ trả 403 (đặt lại không hỏi PIN cũ); đổi PIN của mình ở trang "Tôi".
-      !isMe &&
+      canAccessManage && quanDuoc(s) &&
+        !isMe &&
         btn("Đặt lại PIN", async () => {
           if (!confirm(`Đặt lại PIN của ${s.fullName}? PIN cũ, Face ID và mọi phiên đang đăng nhập sẽ mất hiệu lực.`)) return;
           const r = await act(() => api<Api.StaffWithPinResponse>(`/api/staff/${s.id}/reset-pin`, { method: "POST" }));
@@ -142,17 +152,19 @@ function card(s: StaffAccount): HTMLElement {
             await load();
           }
         }),
-      s.locked && btn("Mở khoá", async () => {
+      canAccessManage && quanDuoc(s) && s.locked && btn("Mở khoá", async () => {
         if (await act(() => api(`/api/staff/${s.id}/unlock`, { method: "POST" }))) await load();
       }),
       // Không hiện trên thẻ của chính admin đang đăng nhập: route quản trị đăng xuất người bị gỡ NGAY mà không cấp cookie mới cho người gọi — tự gỡ của mình làm ở trang "Tôi".
-      !isMe &&
+      canAccessManage && quanDuoc(s) &&
+        !isMe &&
         s.passkeyCount > 0 &&
         btn(`Gỡ Face ID (${s.passkeyCount})`, async () => {
           if (!confirm(`Gỡ Face ID của ${s.fullName} trên mọi máy? Mọi phiên đang đăng nhập của tài khoản này sẽ bị đăng xuất.`)) return;
           if (await act(() => api(`/api/staff/${s.id}/passkeys/remove-all`, { method: "POST" }))) await load();
         }),
-      !isMe &&
+      quanDuoc(s) &&
+        !isMe &&
         btn(
           s.active ? "Ngưng" : "Kích hoạt lại",
           async () => {
@@ -181,7 +193,7 @@ async function openEdit(s: StaffAccount): Promise<void> {
   const permissionBoxes = PERMISSION_CODES.map((code) => {
     const box = h("input", { type: "checkbox", checked: s.permissions.includes(code), disabled: isMe, style: "width:auto;display:inline;margin:0 6px 0 0" });
     boxes.set(code, box);
-    return h("label", { class: "check" }, box, PERMISSION_LABEL[code]);
+    return meSuper || code !== "SUPER_ADMIN" ? h("label", { class: "check" }, box, PERMISSION_LABEL[code]) : null; // ADR-0042: vai ẩn
   });
   const save = h("button", { type: "button", class: "btn btn-primary" }, "Lưu");
   const cancel = h("button", { type: "button", class: "btn" }, "Đóng");
@@ -366,6 +378,8 @@ byId("sheet-pull").addEventListener("click", async () => {
 const staff = await initShell();
 me = staff;
 meSuper = hasPermission(staff, "SUPER_ADMIN");
+canAccessManage = can(staff, "account.access.manage");
+byId("sheet-pull").hidden = !can(staff, "staff.sheet.sync");
 // Cổng trang theo ô admin.manage (Quản trị HOẶC Toàn quyền — cùng đối tượng với access "admin" của API), không riêng quyền ADMIN.
 if (!can(staff, "admin.manage")) showError(errorEl, "Chỉ quản trị viên được vào trang này.");
 else {

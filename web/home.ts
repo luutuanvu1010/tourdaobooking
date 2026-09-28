@@ -7,6 +7,7 @@ import { goiSom } from "./goi-som";
 import { layKhungNho } from "./khung-nho";
 import { initShell, showError } from "./shell";
 import { canSeeReviewAlerts, reviewAlerts, type ReviewAlerts } from "../src/shared/dashboard-review";
+import { can } from "../src/shared/permissions";
 import { homeRedirect } from "../src/shared/start-page";
 import { vnToday } from "../src/shared/vn-date";
 
@@ -185,10 +186,13 @@ function renderRevenue(rev: Api.DashboardResponse["revenueWeek"]): void {
  */
 async function loadReview(staff: Staff): Promise<ReviewAlerts | null> {
   if (!canSeeReviewAlerts(staff)) return null;
-  const [catalogRes, feedbackRes] = await Promise.allSettled([layCatalogAdmin(), layFeedback()]);
+  const [catalogRes, feedbackRes] = await Promise.allSettled([
+    layCatalogAdmin(),
+    can(staff, "feedback.triage") ? layFeedback() : Promise.resolve<Api.FeedbackQueueResponse | null>(null),
+  ]);
   return reviewAlerts(staff, {
     catalogItems: catalogRes.status === "fulfilled" ? catalogRes.value.items : [],
-    tickets: feedbackRes.status === "fulfilled" ? feedbackRes.value.tickets : [],
+    tickets: feedbackRes.status === "fulfilled" ? (feedbackRes.value?.tickets ?? []) : [],
   });
 }
 
@@ -240,7 +244,8 @@ const layDashboard = nho?.seesAll === true ? goiSom(() => api<Api.DashboardRespo
 // Khối "Cần xem lại" (hai API của quản trị): bản nhớ nói lần trước là quản trị → gửi sớm luôn. Vẫn chỉ DÙNG khi canSeeReviewAlerts(staff) thật đồng ý.
 const nhoAdmin = nho?.admin === true;
 const layCatalogAdmin = nhoAdmin ? goiSom(() => api<Api.CatalogAdminResponse>("/api/catalog/admin")) : () => api<Api.CatalogAdminResponse>("/api/catalog/admin");
-const layFeedback = nhoAdmin ? goiSom(() => api<Api.FeedbackQueueResponse>("/api/feedback")) : () => api<Api.FeedbackQueueResponse>("/api/feedback");
+// ADR-0038: hàng đợi Góp ý chỉ Toàn quyền (`feedback.triage`) — bản nhớ không biết điều đó nên KHÔNG gọi sớm; chỉ gọi khi can() đồng ý.
+const layFeedback = () => api<Api.FeedbackQueueResponse>("/api/feedback");
 
 async function main(): Promise<void> {
   initSectionIcons();

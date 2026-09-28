@@ -69,14 +69,19 @@ export const MATRIX = {
   "party.staff.write": row("none", "none", "any", "none", "none", "any", "none"), // sửa hồ sơ GẮN TÀI KHOẢN (tên, liên hệ) — ADR-0013; ADMIN còn phải quản được tài khoản đó (cấp bậc, ADR-0014 điều 8: ctx.partyAccount)
   "admin.manage": row("none", "none", "any", "none", "none", "any", "none"), // tài khoản, quyền, địa điểm, danh mục, vai trò hồ sơ, gộp hồ sơ — ADR-0014 điều 8: "cấp dưới" nằm NGOÀI MATRIX (canManageAccount)
   "admin.manage.superadmin": row("none", "none", "none", "none", "none", "any", "none"), // gán/gỡ quyền SUPER_ADMIN của một tài khoản — thao tác MỚI (ADR-0014 điều 2/8)
+  // ADR-0038 điều 6 (sửa bởi ADR-0042): việc KỸ THUẬT tách khỏi admin.manage — Sheet và Nhật ký chỉ Toàn quyền; đăng nhập (PIN, Face ID, mở khoá) Quản trị làm được cho cấp dưới. Route vẫn hỏi admin.manage TRƯỚC (hàng rào cổng quản trị), rồi hỏi ô dưới.
+  "account.access.manage": row("none", "none", "any", "none", "none", "any", "none"), // đặt lại PIN, gỡ Face ID, mở khoá đăng nhập của tài khoản khác — ADR-0042: Quản trị lấy lại (vẫn chỉ cấp dưới, luật mayManage)
+  "staff.sheet.sync": row("none", "none", "none", "none", "none", "any", "none"), // đồng bộ nhân viên từ Google Sheet (xem trước + áp)
+  "audit.view": row("none", "none", "none", "none", "none", "any", "none"), // xem trang Nhật ký toàn hệ thống (GET /api/audit)
   "feedback.submit": row("any", "any", "any", "any", "any", "any", "any"), // gửi báo lỗi/đề xuất (mọi tài khoản đăng nhập)
-  "feedback.view": row("own", "own", "any", "own", "own", "any", "own"), // xem yêu cầu: người thường chỉ của mình (ownerId = người gửi)
-  "feedback.triage": row("none", "none", "any", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi
+  "feedback.view": row("own", "own", "own", "own", "own", "any", "own"), // xem yêu cầu: chỉ của mình (ownerId = người gửi); đọc mọi yêu cầu chỉ Toàn quyền (ADR-0038)
+  "feedback.triage": row("none", "none", "none", "none", "none", "any", "none"), // tiếp nhận: đổi trạng thái/người xử lý, ghi chú nội bộ, hàng đợi — chỉ Toàn quyền (ADR-0038)
   "settings.ops": row("none", "none", "none", "none", "none", "any", "none"), // cài đặt vận hành: chế độ bảo trì (ADR-0019); thời hạn nhận, giờ làm việc (giai đoạn 5 mô hình vai — đặc tả §5, §9)
   // hàng chờ nhận — PHẦN HẸP của đơn chưa có người phụ trách (ADR-0030 S23-1, S23-2; route GET /api/orders/pool, module orders, còn chặn tài khoản có quyền
   // Đối tác). ADMIN "none": Quản trị đã thấy đủ mọi đơn qua order.view. Nơi đón/giờ đón ở phần hẹp là NGOẠI LỆ CÓ TÊN của chú thích ô contact.view (không
   // đòi contact.view; nơi đón đã che dãy từ 8 chữ số — src/modules/orders/pool.ts).
   "order.pool.view": row("none", "none", "none", "any", "none", "any", "none"),
+  "notice.send": row("none", "none", "none", "none", "none", "any", "none"), // gửi/thu hồi thông báo thủ công, xem ai đã hiểu — chỉ Toàn quyền (ADR-0034 điều 7)
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
@@ -90,6 +95,16 @@ export interface PermissionHolder {
 export interface OperationContext {
   readonly ownerId?: string;
   readonly assigned?: boolean;
+}
+
+/**
+ * ADR-0042: Toàn quyền là vai ẩn — người xem không giữ Toàn quyền thấy tài khoản Toàn quyền như Quản trị thường (SUPER_ADMIN → ADMIN,
+ * bỏ trùng, giữ thứ tự chuẩn). Chỉ dùng cho dữ liệu TRẢ VỀ người khác xem; không dùng để quyết quyền.
+ */
+export function quyenHienThi(perms: readonly PermissionCode[], viewerSeesHidden: boolean): PermissionCode[] {
+  if (viewerSeesHidden) return PERMISSION_CODES.filter((p) => perms.includes(p));
+  const set = new Set<PermissionCode>(perms.map((p) => (p === "SUPER_ADMIN" ? "ADMIN" : p)));
+  return PERMISSION_CODES.filter((p) => set.has(p));
 }
 
 export const hasPermission = (who: { readonly permissions: readonly PermissionCode[] }, code: PermissionCode): boolean => who.permissions.includes(code);

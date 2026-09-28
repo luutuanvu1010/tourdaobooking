@@ -13,6 +13,9 @@ export interface HandlerChange {
   actorId: string;
   /** Lúc thao tác (UTC): dòng cũ đóng và dòng mới mở CÙNG thời điểm. */
   at: string;
+  /** true = người thao tác tự đặt mình vào đơn CHƯA có người phụ trách (`thayDoiCuaHandler` === "nhan") — nhật ký ghi `order_claimed` thay vì
+   * `order_handler_changed` (ADR-0034 §4.3, để hộp thông báo phân biệt "vừa nhận" với "giao cho người khác"). */
+  tuNhan: boolean;
 }
 
 /**
@@ -47,6 +50,6 @@ const newRow = (c: HandlerChange) => ({ id: crypto.randomUUID(), orderId: c.orde
 const handlerAudit = (db: D1Database, c: HandlerChange): D1PreparedStatement =>
   auditStatement(
     db,
-    { staffId: c.actorId, action: "order_handler_changed", at: c.at, orderId: c.orderId, detail: describeHandlerChange(c.from?.name ?? null, c.to.name) },
+    { staffId: c.actorId, action: c.tuNhan ? "order_claimed" : "order_handler_changed", at: c.at, orderId: c.orderId, detail: describeHandlerChange(c.from?.name ?? null, c.to.name) },
     "changes() > 0",
   );

@@ -1,5 +1,5 @@
 import { AUDIT_ACTIONS, AUDIT_GROUPS, type AuditAction, type AuditGroup } from "../src/shared/audit-actions";
-import { hasPermission } from "../src/shared/permissions";
+import { can } from "../src/shared/permissions";
 import { ApiError, api, type AuditRecord, type Api } from "./api";
 import { append, byId, h, replaceChildren } from "./dom";
 import { actionLabel, dateTime } from "./format";
@@ -106,5 +106,5 @@ actionSel.addEventListener("change", () => void load(true));
 moreBtn.addEventListener("click", () => void load(false));
 
 const staff = await initShell();
-if (!hasPermission(staff, "ADMIN")) showError(errorEl, "Chỉ quản trị viên được xem nhật ký hệ thống.");
+if (!can(staff, "audit.view")) showError(errorEl, "Trang Nhật ký chỉ người phụ trách hệ thống xem được."); // ADR-0038 điều 6
 else await load(true);

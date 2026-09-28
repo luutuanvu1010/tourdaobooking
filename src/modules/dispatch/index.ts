@@ -84,7 +84,7 @@ export async function newOrderHandler(db: D1Database, actorId: string, staffId: 
   const target = checkAssignee(await getStaffAccount(db, staffId));
   if (!target.ok) return { ok: false, message: target.message };
   const to = { partyId: target.partyId, name: target.name };
-  return { ok: true, statements: (orderId, at) => newOrderHandlerStatements(db, { orderId, to, actorId, at }) };
+  return { ok: true, statements: (orderId, at) => newOrderHandlerStatements(db, { orderId, to, actorId, at, tuNhan: false }) };
 }
 
 export const dispatchModule: AppModule = {
@@ -171,12 +171,16 @@ export const dispatchModule: AppModule = {
       if (current?.party_id === target.partyId) return NO_CHANGE();
 
       // MỘT batch: đóng dòng cũ + mở dòng mới + nhật ký (hoặc mở dòng + nhật ký khi chưa có người). `changes` của câu ĐẦU = thắng/thua tranh chấp.
+      // `thayDoi` tính TRƯỚC khi ghi (không phụ thuộc thắng/thua tranh chấp — chỉ phụ thuộc trạng thái đã đọc): dùng để chọn hành động nhật ký
+      // (order_claimed/order_handler_changed) VÀ để báo bảng tin sau khi ghi — đúng MỘT nguồn, đúng MỘT lời gọi baoThayDoi.
+      const thayDoi = thayDoiCuaHandler({ nguoiGoi: staff.id, handlerTruoc: truoc, handlerSau: { coNguoi: true, staffId: input.staffId } });
       const statements = handlerChangeStatements(env.DB, {
         orderId,
         from: current ? { partyId: current.party_id, name: current.label } : null,
         to: { partyId: target.partyId, name: target.name },
         actorId: staff.id,
         at: new Date().toISOString(),
+        tuNhan: thayDoi === "nhan",
       });
       let results: D1Result[];
       try {
@@ -187,11 +191,7 @@ export const dispatchModule: AppModule = {
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return STALE();
       const now = await findHandlerOf(env.DB, orderId);
-      baoThayDoi({
-        orderId,
-        thayDoi: thayDoiCuaHandler({ nguoiGoi: staff.id, handlerTruoc: truoc, handlerSau: { coNguoi: true, staffId: input.staffId } }),
-        handlerTruoc: truoc,
-      });
+      baoThayDoi({ orderId, thayDoi, handlerTruoc: truoc });
       return json({ handler: toDto(now!) } satisfies SetHandlerResponse);
     }),
 

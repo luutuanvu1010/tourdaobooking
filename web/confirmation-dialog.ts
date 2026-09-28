@@ -1,13 +1,16 @@
 // Hộp thoại "Xác nhận đơn để gửi khách" (v1.0, đặc tả "Việc 2"): dựng ảnh PNG xác nhận từ đơn đang xem rồi cho xem trước, tải về ("Tải ảnh PNG") hoặc chia sẻ ("Chia sẻ" — chỉ khi
 // `navigator.canShare({ files })`, vd iPhone → Zalo). Cùng khuôn với bảng trượt "Sửa thông tin chuyến" (trip-sheet.ts, dùng chung CSS `.sheet*`): role=dialog + aria-modal, phần nền `inert`,
 // Esc / ✕ / chạm nền để đóng, trả focus về nút mở. Đóng được mọi lúc (kể cả lúc đang dựng ảnh): kết quả đến muộn bị bỏ và `blob:` URL luôn được thu hồi.
-// Dựng ảnh: tên người phụ trách (hướng dẫn viên: chính họ, từ phiên; người khác: GET /api/dispatch/handlers, tối đa 3 giây — BA trạng thái như web/order.ts: tên · null = máy chủ XÁC NHẬN chưa có người ·
-// undefined = CHƯA BIẾT khi lỗi/404/5xx/mất mạng/hết giờ/dữ liệu hỏng, ADR-0020 điều 9) + hồ sơ công ty (GET /api/company, nhớ lại sau lần đầu)
-// → buildConfirmation → renderConfirmationPng. Lỗi ở bất kỳ bước nào → thông báo tiếng Việt + nút "Thử lại", không bao giờ kẹt ở "Đang tạo ảnh…" (hạn chót 30 giây).
+// Dựng ảnh: tên người phụ trách (hướng dẫn viên xem đơn mình phụ trách: chính họ, từ phiên — không gọi route bị chặn; người khác: GET /api/dispatch/handlers,
+// tối đa 3 giây) + hồ sơ công ty (GET /api/company, nhớ lại sau lần đầu) → buildConfirmation → renderConfirmationPng. Người phụ trách có BA trạng thái,
+// không hai (quyết định chủ dự án 2026-09-28, xem loadHandlerName): có tên → in tên; CHẮC CHẮN chưa có (máy chủ trả lời rõ) → mô hình tự in câu chờ nhận,
+// KHÔNG BAO GIỜ dùng tên người lập; KHÔNG BIẾT (404/5xx/mất mạng/hết giờ/dữ liệu hỏng) → KHÔNG tạo ảnh, dừng lại ở thông báo "Chưa tải được người phụ
+// trách" + Thử lại — không được đoán. Riêng 403 (Đối tác/Thực tập không được biết) → `HANDLER_HIDDEN`, vẫn tạo ảnh, chỉ bỏ phần người phụ trách. Lỗi ở bất
+// kỳ bước nào khác → thông báo tiếng Việt + nút "Thử lại", không bao giờ kẹt ở "Đang tạo ảnh…" (hạn chót 30 giây).
 import type { CompanyDto } from "../src/shared/contracts";
 import { nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
-import { buildConfirmation } from "../src/shared/order-confirmation";
-import { api, type Api, type Order, type Staff } from "./api";
+import { buildConfirmation, HANDLER_HIDDEN, type HandlerInput } from "../src/shared/order-confirmation";
+import { api, ApiError, type Api, type Order, type Staff } from "./api";
 import { ConfirmationImageError, renderConfirmationPng, type ImageErrorCode } from "./confirmation-image";
 import { h, replaceChildren } from "./dom";
 import { icon } from "./icons";
@@ -37,34 +40,38 @@ function loadCompany(): Promise<CompanyDto> {
   return companyCache;
 }
 
+/** Sentinel riêng cho "hết giờ" — không được lẫn với `null` (nghĩa là máy chủ đã trả lời rõ "chưa có người phụ trách"). */
+const HANDLER_TIMED_OUT = Symbol("handler-timed-out");
+
 /**
- * Tên người phụ trách đang mở của đơn (`GET /api/dispatch/handlers?orderIds=<id>` → `{ handlers: { [id]: { name } | null } }`). KHÔNG bao giờ ném lỗi và không chặn ảnh quá 3 giây.
- * BA trạng thái, như `Handler` của `web/order.ts` (ADR-0020 điều 9): chuỗi = tên; `null` = máy chủ **XÁC NHẬN** đơn chưa có người phụ trách (dòng "HANDLE" nào đang mở cũng không có);
- * `undefined` = **CHƯA BIẾT** (404 API chưa có, 5xx, mất mạng, hết giờ, đáp ứng thiếu khoá hoặc `name` sai dạng) — KHÔNG được gộp vào `null`, kẻo một lần mạng chập chờn làm ảnh gửi khách
- * ghi "Chưa có người phụ trách" cho một đơn thật ra đã có người. Kiểm cấu trúc chặt vì đây là dữ liệu từ ngoài trang.
+ * Tên người phụ trách đang mở của đơn (`GET /api/dispatch/handlers?orderIds=<id>` → `{ handlers: { [id]: { name } | null } }`), tối đa 3 giây. BA trạng
+ * thái, không hai (quyết định chủ dự án 2026-09-28 — "một sự thật duy nhất", đừng gộp lại như hồi trước): chuỗi tên hợp lệ → dùng tên; `null` = máy chủ
+ * trả lời RÕ RÀNG "chưa có người phụ trách"; `undefined` = KHÔNG BIẾT (404, 5xx, mất mạng, hết giờ, thiếu khoá `handlers`/khoá `orderId`, hoặc `name`
+ * không phải chuỗi/rỗng) — không được đoán, `make()` phải dừng lại chứ không tạo ảnh. Riêng 403 → `HANDLER_HIDDEN` (người xem không được biết). Kiểm cấu trúc chặt vì đây là dữ liệu từ ngoài trang.
  */
-export async function loadHandlerName(orderId: string): Promise<string | null | undefined> {
+export async function loadHandlerName(orderId: string): Promise<HandlerInput | undefined> {
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const res = await Promise.race([
       api<Api.HandlersResponse>(`/api/dispatch/handlers?orderIds=${encodeURIComponent(orderId)}`),
-      new Promise<undefined>((resolve) => {
-        timer = setTimeout(() => resolve(undefined), HANDLER_TIMEOUT_MS);
+      new Promise<typeof HANDLER_TIMED_OUT>((resolve) => {
+        timer = setTimeout(() => resolve(HANDLER_TIMED_OUT), HANDLER_TIMEOUT_MS);
       }),
     ]);
-    if (res === undefined) return undefined; // hết giờ: CHƯA BIẾT, không phải "chưa có người"
-    const found = res.handlers?.[orderId];
-    if (found === null) return null; // máy chủ xác nhận: chưa có người phụ trách
-    const name: unknown = found?.name;
-    return typeof name === "string" && name.trim() !== "" ? name : undefined; // thiếu khoá/dữ liệu hỏng → CHƯA BIẾT
-  } catch {
-    return undefined;
+    if (res === HANDLER_TIMED_OUT) return undefined;
+    if (typeof res?.handlers !== "object" || res.handlers === null || !(orderId in res.handlers)) return undefined;
+    const found = res.handlers[orderId];
+    if (found === null) return null;
+    return found && typeof found.name === "string" && found.name.trim() !== "" ? found.name : undefined;
+  } catch (e) {
+    // 403 = người xem KHÔNG được biết người phụ trách (Đối tác/Thực tập, ADR-0019) — sự thật rõ ràng, không phải lỗi: ảnh bỏ phần người phụ trách.
+    return e instanceof ApiError && e.status === 403 ? HANDLER_HIDDEN : undefined;
   } finally {
     clearTimeout(timer);
   }
 }
 
-type Stage = ImageErrorCode | "company" | "timeout" | "other";
+type Stage = ImageErrorCode | "company" | "handler" | "timeout" | "other";
 class StageError extends Error {
   constructor(readonly stage: Stage) {
     super(stage);
@@ -73,6 +80,7 @@ class StageError extends Error {
 
 const MESSAGES: Record<Stage, string> = {
   company: "Chưa tải được thông tin công ty để in lên ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
+  handler: "Chưa tải được người phụ trách, vui lòng thử lại.",
   font: "Chưa tải được phông chữ để vẽ ảnh. Kiểm tra kết nối mạng rồi bấm “Thử lại”.",
   canvas: "Trình duyệt chưa vẽ được ảnh xác nhận. Bấm “Thử lại”; nếu vẫn lỗi, hãy đóng rồi mở lại đơn này.",
   encode: "Trình duyệt chưa vẽ được ảnh xác nhận (không tạo được tệp PNG). Bấm “Thử lại”.",
@@ -96,14 +104,16 @@ interface Made {
  */
 async function make(order: Order, viewer: Staff): Promise<Made> {
   const tuPhien = nguoiPhuTrachTuPhien(viewer);
-  const handler = tuPhien ? Promise.resolve(tuPhien.name) : loadHandlerName(order.id); // chạy song song với công ty và việc nạp phông; không bao giờ lỗi
+  const handler = tuPhien ? Promise.resolve(tuPhien.name) : loadHandlerName(order.id); // chạy song song với công ty và việc nạp phông; không bao giờ lỗi (ba trạng thái, xem loadHandlerName)
   let company: CompanyDto;
   try {
     company = await loadCompany();
   } catch {
     throw new StageError("company");
   }
-  const model = buildConfirmation(order, company, await handler);
+  const handlerName = await handler;
+  if (handlerName === undefined) throw new StageError("handler"); // KHÔNG BIẾT: dừng lại, không tạo ảnh, không đoán (chủ dự án 2026-09-28)
+  const model = buildConfirmation(order, company, handlerName);
   const blob = await renderConfirmationPng(model);
   return { blob, fileName: model.fileName, orderCode: model.orderCode };
 }

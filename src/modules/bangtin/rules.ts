@@ -75,3 +75,16 @@ export function keHoachTram(ketNoi: readonly KetNoiXet[], nhanSuKien: readonly s
   }
   return { dong, gui, baoThucKe };
 }
+
+/** Khoảng cách giữa hai lượt gửi lô gõ cửa (Web Push, ADR-0036) khi hàng đợi còn lô. */
+export const GIAN_CACH_LO_MS = 1000;
+
+/**
+ * Mốc báo thức kế của trạm — MỘT báo thức cho hai việc: `keKetNoi` (hạn sớm nhất của kết nối còn mở, null nếu không còn) và lô gõ cửa còn chờ
+ * (`conLo` → lượt kế sau `GIAN_CACH_LO_MS`). Lấy mốc sớm hơn; không việc nào → null (không đặt báo thức).
+ */
+export function mocBaoThuc(keKetNoi: number | null, conLo: boolean, now: number): number | null {
+  const lo = conLo ? now + GIAN_CACH_LO_MS : null;
+  if (keKetNoi === null) return lo;
+  return lo === null ? keKetNoi : Math.min(keKetNoi, lo);
+}

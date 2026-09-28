@@ -5,6 +5,7 @@ await ensureFakeCatalog(); // API không nhận dịch vụ nhập tay mới (ch
 const A = await session(ACCOUNTS.salesA);
 const Bc = await session(ACCOUNTS.salesB);
 const ADMIN = await session(ACCOUNTS.admin);
+const TOAN_QUYEN = await session(ACCOUNTS.superAdmin); // ADR-0038 điều 6: trang Nhật ký, đặt lại PIN, gỡ Face ID, mở khoá chỉ Toàn quyền
 const ACC = await session(ACCOUNTS.accountant);
 const FIELD = await session(ACCOUNTS.field);
 
@@ -138,21 +139,22 @@ r = await call(A, "GET", `/api/orders/${o.id}`);
 assert.equal(r.body.order.status, "cancelled");
 console.log("✓ TRIGGER 0017 chặn trạng thái đi lùi và sửa/xoá nhật ký ghi thẳng vào D1");
 
-// NHẬT KÝ TOÀN HỆ THỐNG: chỉ admin
+// NHẬT KÝ TOÀN HỆ THỐNG: chỉ Toàn quyền (ADR-0038 điều 6)
+assert.equal((await call(ADMIN, "GET", "/api/audit")).status, 403, "Quản trị không xem trang Nhật ký");
 assert.equal((await call(A, "GET", "/api/audit")).status, 403);
 assert.equal((await call(Bc, "GET", "/api/audit")).status, 403);
 assert.equal((await call(null, "GET", "/api/audit")).status, 401);
-r = await call(ADMIN, "GET", "/api/audit?limit=100");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?limit=100");
 assert.equal(r.status, 200);
 assert.ok(r.body.entries.length >= 5);
 assert.ok(r.body.entries.some((e) => e.targetLabel === o.orderCode && e.action === "cancelled" && e.staffName === "QTV Test"));
-r = await call(ADMIN, "GET", "/api/audit?action=cancelled&q=" + o.orderCode);
+r = await call(TOAN_QUYEN, "GET", "/api/audit?action=cancelled&q=" + o.orderCode);
 assert.equal(r.body.entries.length, 1);
-r = await call(ADMIN, "GET", "/api/audit?action=hack");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?action=hack");
 assert.equal(r.status, 400);
-r = await call(ADMIN, "GET", "/api/audit?q=%25");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?q=%25");
 assert.equal(r.body.entries.length, 0);
-r = await call(ADMIN, "GET", "/api/audit?limit=2");
+r = await call(TOAN_QUYEN, "GET", "/api/audit?limit=2");
 assert.equal(r.body.entries.length, 2); assert.equal(r.body.hasMore, true);
 
 // 404 / id rác

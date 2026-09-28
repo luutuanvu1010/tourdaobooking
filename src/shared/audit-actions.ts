@@ -9,6 +9,7 @@ export const AUDIT_GROUPS = {
   party: "Hồ sơ",
   location: "Địa điểm",
   feedback: "Góp ý",
+  notice: "Thông báo",
   system: "Hệ thống",
 } as const;
 
@@ -23,6 +24,7 @@ export const AUDIT_ACTIONS = {
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },
   order_money_adjusted_by_field: { label: "Sửa số khách (hướng dẫn viên đang phụ trách)", group: "order" },
   order_handler_changed: { label: "Đổi người phụ trách", group: "order" },
+  order_claimed: { label: "Tự nhận phụ trách đơn", group: "order" },
   booker_changed: { label: "Đổi khách", group: "order" },
   exported_png: { label: "Xuất PNG", group: "order" },
   exported_pdf: { label: "Xuất PDF", group: "order" },
@@ -58,12 +60,28 @@ export const AUDIT_ACTIONS = {
   feedback_replied: { label: "Trả lời yêu cầu góp ý", group: "feedback" },
   feedback_status_changed: { label: "Đổi trạng thái yêu cầu góp ý", group: "feedback" },
   feedback_assigned: { label: "Đổi người xử lý yêu cầu góp ý", group: "feedback" },
+  notice_sent: { label: "Gửi thông báo", group: "notice" },
+  notice_revoked: { label: "Thu hồi thông báo", group: "notice" },
+  notice_acknowledged: { label: "Xác nhận đã hiểu thông báo", group: "notice" },
 } as const satisfies Record<string, { label: string; group: AuditGroup }>;
 
 export type AuditAction = keyof typeof AUDIT_ACTIONS;
 
 /** Loại đối tượng của một dòng nhật ký — trùng với nhóm hành động. */
 export type AuditTargetType = AuditGroup;
+
+/**
+ * ADR-0038: thao tác "im lặng" — dòng nhật ký VẪN ghi, nhưng khi người làm đang giữ Toàn quyền thì chỉ Toàn quyền xem được ở trang Nhật ký
+ * (GET /api/audit). Thêm/bớt hành động ở đây là đổi quyền xem → cần chủ dự án duyệt (ADR mới hoặc sửa ADR-0038).
+ */
+export const SILENT_AUDIT_ACTIONS = [
+  "account_roles_changed",
+  "permission_changed",
+  "staff_role_changed",
+  "maintenance_changed",
+  "pin_reset",
+  "passkey_removed",
+] as const satisfies readonly AuditAction[];
 
 export const isAuditAction = (v: unknown): v is AuditAction => typeof v === "string" && Object.hasOwn(AUDIT_ACTIONS, v);
 

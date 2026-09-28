@@ -278,7 +278,8 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.trip.edit": "none", "task.progress": "assigned", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "dispatch.guides.view": "any", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none", "party.view": "none",
     "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none", "feedback.submit": "any", "feedback.view": "own",
-    "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none",
+    "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "account.access.manage": "none", "audit.view": "none", "notice.send": "none",
+    "staff.sheet.sync": "none",
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

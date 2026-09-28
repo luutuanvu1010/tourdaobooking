@@ -11,8 +11,8 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    version: "1.22",
-    date: "2026-09-27",
+    version: "1.31",
+    date: "2026-09-28",
     items: [
       { kind: "doi", text: "Đơn mới lập không còn tự ghi người lập là người phụ trách: đơn chưa có ai hiện “Chờ nhận”, chờ hướng dẫn viên hoặc nhân viên bấm Nhận." },
       { kind: "moi", text: "Hướng dẫn viên thấy danh sách đơn chờ nhận (không có số điện thoại, không có tiền) và bấm Nhận; đơn mình đang phụ trách thì xem đủ thông tin." },
@@ -20,6 +20,76 @@ export const CHANGELOG: readonly ReleaseNote[] = [
       { kind: "doi", text: "Mục “Việc của tôi” làm lại theo mẫu mới: đơn chờ nhận và đơn của bạn (kể cả chưa xác nhận) trên một màn; mỗi đơn có Tổng tiền, Đã cọc, Còn thu, nút gọi khách." },
       { kind: "doi", text: "Hướng dẫn viên sửa số khách hoặc huỷ đơn qua một bảng hỏi lại: sửa số khách có nút chọn nhanh lý do, huỷ đơn phải chọn lý do rồi mới bấm được." },
       { kind: "doi", text: "Đơn đã lưu mà chưa chốt nay ghi “Chờ xác nhận” thay cho “Nháp”; người đang lo đơn hiện “HDV: tên người đó”." },
+    ],
+  },
+  {
+    version: "1.30",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Thêm vai IT trong nhóm nội bộ." },
+    ],
+  },
+  {
+    version: "1.29",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Tài khoản Đối tác tạo lại được ảnh xác nhận đơn (bản 1.28 báo \"Chưa tải được người phụ trách\"); ảnh của Đối tác không in dòng người phụ trách." },
+    ],
+  },
+  {
+    version: "1.28",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Ảnh xác nhận đơn chưa có người phụ trách nay ghi \"Đơn khởi tạo thành công và đang chờ hướng dẫn viên nhận khách\" thay vì tên người lập." },
+      { kind: "doi", text: "Từ 22:00 đến 6:00 thông báo vẫn hiện trên màn hình khoá nhưng không rung, không kêu; tin quan trọng vẫn rung." },
+    ],
+  },
+  {
+    version: "1.27",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Quản trị đặt lại được mã PIN, mở khoá đăng nhập và gỡ Face ID cho nhân viên mình quản lý." },
+    ],
+  },
+  {
+    version: "1.26",
+    date: "2026-09-28",
+    items: [
+      { kind: "doi", text: "Góp ý và Báo lỗi do người phụ trách hệ thống tiếp nhận; tài khoản Quản trị không còn mở hàng đợi Góp ý. Mọi người vẫn gửi và xem góp ý của mình như cũ." },
+      { kind: "doi", text: "Quản trị tập trung việc kinh doanh, nhân sự. Đặt lại PIN, gỡ Face ID, mở khoá, đồng bộ từ Sheet và trang Nhật ký do người phụ trách hệ thống làm." },
+    ],
+  },
+  {
+    version: "1.25",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Thông báo hiện trên màn hình khoá điện thoại: vào trang Tài khoản, bấm \"Bật thông báo trên điện thoại\" rồi cho phép." },
+      { kind: "moi", text: "Trên iPhone, cần mở app từ biểu tượng ngoài màn hình chính thì mới bật được." },
+    ],
+  },
+  {
+    version: "1.24",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Chuẩn bị thông báo hiện trên màn hình khoá điện thoại; mục bật sẽ xuất hiện trong trang Tài khoản khi công ty mở tính năng." },
+      { kind: "doi", text: "Đăng xuất hoặc đổi mã PIN sẽ tắt thông báo trên mọi điện thoại của tài khoản; muốn nhận lại thì bấm Bật lần nữa." },
+    ],
+  },
+  {
+    version: "1.23",
+    date: "2026-09-28",
+    items: [
+      { kind: "sua", text: "Nút quay về trong ngăn Thông báo không còn bị phần tai thỏ và đồng hồ của iPhone che." },
+      { kind: "sua", text: "Chuông thông báo nằm đúng góc phải ở tài khoản Hướng dẫn viên và Đối tác trên máy tính." },
+    ],
+  },
+  {
+    version: "1.22",
+    date: "2026-09-28",
+    items: [
+      { kind: "moi", text: "Chuông thông báo trên thanh trên: báo khi có đơn mới, có người nhận đơn, giao đơn, xác nhận hay huỷ đơn liên quan tới bạn." },
+      { kind: "moi", text: "Bấm chuông để xem hai ngăn \"Của tôi\" và \"Tất cả\"; mở ra là coi như đã đọc hết, bấm một tin để mở đúng đơn." },
+      { kind: "moi", text: "Chủ công ty gửi được thông báo cho cả công ty hoặc từng nhóm; tin quan trọng hiện dải nhắc cho tới khi bạn bấm \"Đã hiểu\"." },
     ],
   },
   {

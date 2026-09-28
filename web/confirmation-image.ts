@@ -193,7 +193,10 @@ function titleBlock(c: Ctx, b: TitleBlock, y: number): number {
   c.ops.push({ kind: "rect", tag: "status-badge", x: badgeX, y: badgeY, w: badgeW, h: badgeH, fill: colors.bg, radius: badgeH / 2 });
   put(c, { text: b.status.text, x: badgeX + badgeW / 2, top: badgeY, lh: badgeH, font: badgeFont, color: colors.fg, align: "center", tag: "status-text" });
   if (!sameRow) end = badgeY + badgeH;
-  return rows(c, b.rows, { x: MG, y: end + 12, width: CW, size: 15, lh: 22 }) + 4;
+  const rowsEnd = rows(c, b.rows, { x: MG, y: end + 12, width: CW, size: 15, lh: 22 });
+  if (b.note === null) return rowsEnd + 4;
+  // Đơn CHƯA có người phụ trách: câu chờ nhận thay cho dòng "Nhân viên phụ trách" (quyết định chủ dự án 2026-09-28) — tự ngắt dòng gọn trong lề như mọi khối khác.
+  return flow(c, b.note, { x: MG, y: rowsEnd + 4, width: CW, lh: 22, font: fontOf(c, "body", 600, 15), color: c.theme.text, tag: "handler-note" }) + 4;
 }
 
 function headingBlock(c: Ctx, heading: string, y: number): number {

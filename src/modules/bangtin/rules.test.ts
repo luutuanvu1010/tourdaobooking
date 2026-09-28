@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { hetHan, ketNoiQuaHan, docHanGiay, kiemOrigin, keHoachTram } from "./rules.ts";
+import { hetHan, ketNoiQuaHan, docHanGiay, kiemOrigin, keHoachTram, mocBaoThuc } from "./rules.ts";
 
 test("hetHan: mốc hết hạn = bây giờ + hạn giây (đổi ra mili-giây)", () => {
   assert.equal(hetHan(1_000_000, 900), 1_000_000 + 900_000);
@@ -88,4 +88,13 @@ test("keHoachTram: lượt báo thức (nhãn sự kiện null) chỉ đóng qu�
   assert.deepEqual(keHoachTram(ketNoi, null, 2000), { dong: [0, 1], gui: [], baoThucKe: null });
   assert.deepEqual(keHoachTram([{ nhan: ["tat-ca"], hetHan: 7000, mo: true }], null, 2000), { dong: [], gui: [], baoThucKe: 7000 });
   assert.deepEqual(keHoachTram([], ["tat-ca"], 2000), { dong: [], gui: [], baoThucKe: null });
+});
+
+// Web Push (ADR-0036): một báo thức cho hai việc — hạn kết nối Bảng tin và lô gõ cửa còn chờ (lượt kế sau 1 giây).
+test("mocBaoThuc: không kết nối + còn lô → now+1000; có kết nối + hết lô → mốc kết nối; cả hai → mốc sớm hơn; không gì → null", () => {
+  assert.equal(mocBaoThuc(null, true, 5000), 6000);
+  assert.equal(mocBaoThuc(90_000, false, 5000), 90_000);
+  assert.equal(mocBaoThuc(90_000, true, 5000), 6000);
+  assert.equal(mocBaoThuc(5500, true, 5000), 5500);
+  assert.equal(mocBaoThuc(null, false, 5000), null);
 });

@@ -61,7 +61,8 @@ assert.equal(r.body.party.kind, "PERSON"); assert.equal(r.body.party.displayName
 assert.equal(r.body.party.familyName, "Nguyễn"); assert.equal(r.body.party.middleName, "Test"); assert.equal(r.body.party.givenName, "Một");
 assert.deepEqual(r.body.party.roleCodes, ["STAFF"]); assert.deepEqual(r.body.party.contacts, []);
 console.log("✓ tài khoản mới có hồ sơ + vai trò STAFF, không sao chép SĐT");
-r = await raw(ADMIN, "GET", "/api/audit?action=staff_created&limit=5");
+assert.equal((await raw(ADMIN, "GET", "/api/audit?action=staff_created&limit=5")).status, 403, "ADR-0038 điều 6: trang Nhật ký chỉ Toàn quyền");
+r = await raw(SUPER_ADMIN, "GET", "/api/audit?action=staff_created&limit=5");
 assert.equal(r.status, 200);
 const created = r.body.entries.find((e) => e.targetId === A.id);
 assert.ok(created, "staff_created phải hiện trong /api/audit");
@@ -104,7 +105,7 @@ assert.equal((await raw(A_COOKIE, "GET", "/api/auth/me")).status, 401);
 assert.equal((await login(A.phone, A.pin)).status, 401);
 assert.equal((await raw(ADMIN, "PATCH", `/api/staff/${A.id}`, { active: true })).status, 200);
 assert.equal((await login(A.phone, A.pin)).status, 200);
-r = await raw(ADMIN, "GET", "/api/audit?q=Nguyễn Test&limit=20");
+r = await raw(SUPER_ADMIN, "GET", "/api/audit?q=Nguyễn Test&limit=20");
 const actions = r.body.entries.filter((e) => e.targetId === A.id).map((e) => e.action);
 for (const a of ["staff_created", "staff_updated", "permission_changed", "staff_suspended", "staff_reactivated"]) assert.ok(actions.includes(a), `thiếu ${a}: ${actions}`);
 assert.ok(r.body.entries.some((e) => e.action === "permission_changed" && e.targetId === A.id && /Bán hàng/.test(e.detail)), "nhật ký đổi quyền có nhãn tiếng Việt");
@@ -121,20 +122,20 @@ for (const [who, cookie, account] of [["Quản trị", ADMIN, ACCOUNTS.admin], [
   assert.equal(r.body.pin, undefined, "không được trả PIN mới");
   assert.equal((await raw(cookie, "GET", "/api/auth/me")).status, 200, `${who}: phiên đang mở vẫn hợp lệ (không có gì bị ghi)`);
   assert.equal((await login(account.phone, account.pin)).status, 200, `${who}: PIN cũ vẫn đăng nhập được`);
-  r = await raw(cookie, "GET", "/api/audit?action=pin_reset&limit=50");
+  r = await raw(SUPER_ADMIN, "GET", "/api/audit?action=pin_reset&limit=50");
   assert.ok(!r.body.entries.some((e) => e.targetId === selfId), `${who}: không có dòng nhật ký pin_reset cho chính mình`);
 }
 console.log("✓ DK-T3-02: Quản trị/Toàn quyền tự đặt lại PIN của mình → 403, phiên và PIN cũ giữ nguyên");
 
 // --- đặt lại PIN thu hồi phiên cũ (cũng là vế "vẫn đặt lại được cho cấp dưới" của DK-T3-02: A đang chỉ có quyền Bán hàng)
 const s1 = cookieOf(await login(A.phone, A.pin));
-r = await raw(ADMIN, "POST", `/api/staff/${A.id}/reset-pin`);
+r = await raw(ADMIN, "POST", `/api/staff/${A.id}/reset-pin`); // ADR-0042: Quản trị đặt lại PIN cho cấp dưới
 assert.equal(r.status, 200); assert.match(r.body.pin, /^\d{6}$/); assert.notEqual(r.body.pin, A.pin);
 const oldPin = A.pin; A.pin = r.body.pin;
 assert.equal((await raw(s1, "GET", "/api/auth/me")).status, 401, "phiên cũ phải bị thu hồi");
 assert.equal((await login(A.phone, oldPin)).status, 401);
 assert.equal((await login(A.phone, A.pin)).status, 200);
-r = await raw(ADMIN, "GET", "/api/audit?action=pin_reset&limit=3");
+r = await raw(SUPER_ADMIN, "GET", "/api/audit?action=pin_reset&limit=3");
 assert.ok(r.body.entries.some((e) => e.targetId === A.id));
 assert.ok(!JSON.stringify(r.body).includes(A.pin));
 console.log("✓ đặt lại PIN thu hồi phiên cũ, nhật ký không lộ PIN");
@@ -166,7 +167,7 @@ assert.ok(Number(r.headers.get("retry-after")) > 0);
 assert.equal(r.body.error.code, "too_many_attempts");
 r = await raw(ADMIN, "GET", "/api/staff");
 assert.equal(r.body.staff.find((s) => s.id === A.id).locked, true);
-assert.equal((await raw(ADMIN, "POST", `/api/staff/${A.id}/unlock`)).status, 200);
+assert.equal((await raw(ADMIN, "POST", `/api/staff/${A.id}/unlock`)).status, 200); // ADR-0042
 assert.equal((await login(victim, A.pin, fresh())).status, 200);
 r = await raw(ADMIN, "GET", "/api/staff");
 assert.equal(r.body.staff.find((s) => s.id === A.id).locked, false);
@@ -196,12 +197,22 @@ assert.ok(ipBlocked, "cùng IP dò nhiều SĐT phải bị chặn");
 console.log("✓ giới hạn theo IP");
 
 // --- kéo từ Sheet (Sheet nhân viên thật, chưa có SĐT)
-r = await raw(ADMIN, "GET", "/api/staff/sheet");
+assert.equal((await raw(ADMIN, "GET", "/api/staff/sheet")).status, 403, "ADR-0038 điều 6: Quản trị không đồng bộ nhân viên từ Sheet");
+{ // ADR-0042: Toàn quyền là vai ẩn — danh sách tài khoản Quản trị nhận không có SUPER_ADMIN; tài khoản Toàn quyền không bị Quản trị tác động
+  const list = await raw(ADMIN, "GET", "/api/staff");
+  assert.ok(!JSON.stringify(list.body).includes("SUPER_ADMIN"), "Quản trị không thấy mã Toàn quyền");
+  const supId = (await raw(SUPER_ADMIN, "GET", "/api/auth/me")).body.staff.id;
+  const denied = await raw(ADMIN, "POST", `/api/staff/${supId}/reset-pin`);
+  assert.equal(denied.status, 403);
+  assert.doesNotMatch(JSON.stringify(denied.body), /Toàn quyền|Super Admin/i);
+}
+assert.equal((await raw(ADMIN, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 403);
+r = await raw(SUPER_ADMIN, "GET", "/api/staff/sheet");
 assert.equal(r.status, 200, JSON.stringify(r.body));
 console.log(`  Sheet: ${r.body.candidates.length} ứng viên, ${r.body.problems.length} vấn đề, ${r.body.notInSheet.length} có trong hệ thống nhưng không có trong Sheet`);
 assert.ok(Array.isArray(r.body.candidates) && Array.isArray(r.body.problems) && Array.isArray(r.body.notInSheet));
-assert.equal((await raw(ADMIN, "POST", "/api/staff/sheet/apply", { phones: [] })).status, 400);
-assert.equal((await raw(ADMIN, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 409); // không có trong Sheet → không tạo
+assert.equal((await raw(SUPER_ADMIN, "POST", "/api/staff/sheet/apply", { phones: [] })).status, 400);
+assert.equal((await raw(SUPER_ADMIN, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 409); // không có trong Sheet → không tạo
 assert.equal((await raw(SALES, "POST", "/api/staff/sheet/apply", { phones: ["0999999999"] })).status, 403);
 console.log("✓ kéo từ Sheet: xem trước + chỉ tin dữ liệu Sheet");
 console.log("E2E ADMIN OK");

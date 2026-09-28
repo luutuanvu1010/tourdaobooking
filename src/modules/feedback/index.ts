@@ -115,7 +115,7 @@ export const feedbackModule: AppModule = {
 
     // Hàng đợi (admin).
     route("GET", "/api/feedback", "admin", async ({ env, staff, url }) => {
-      if (!can(staff, "feedback.triage")) return error(403, "forbidden", "Chỉ quản trị viên được xử lý hàng đợi Góp ý.");
+      if (!can(staff, "feedback.triage")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống được xử lý Góp ý.");
       const status = url.searchParams.get("status");
       const kind = url.searchParams.get("kind");
       if ((status !== null && !isFeedbackStatus(status)) || (kind !== null && !isFeedbackKind(kind))) return error(400, "invalid_input", "Bộ lọc không hợp lệ.");
@@ -171,7 +171,7 @@ export const feedbackModule: AppModule = {
 
     // Admin đổi trạng thái / người xử lý. Trạng thái đi theo bảng luật (canTransition); khoá lạc quan theo trạng thái cũ.
     route("PATCH", "/api/feedback/:id", "admin", async ({ request, env, staff, params }) => {
-      if (!can(staff, "feedback.triage")) return error(403, "forbidden", "Chỉ quản trị viên được xử lý hàng đợi Góp ý.");
+      if (!can(staff, "feedback.triage")) return error(403, "forbidden", "Chỉ người phụ trách hệ thống được xử lý Góp ý.");
       const id = params.id!;
       if (!UUID_RE.test(id)) return NOT_FOUND();
       const raw = await readJson(request);
