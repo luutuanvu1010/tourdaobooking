@@ -628,6 +628,66 @@ export type PersonDocumentRenewRequest = Omit<PersonDocumentAddRequest, "typeCod
 /** Thân POST …/documents/:did/correct (người) và …/giay-to/:did/sua-sai (xe) — `reason` thuộc LY_DO_SUA_SAI; `value` của đúng trường; NHAP_NHAM_DONG không gửi `value`. */
 export interface DocumentCorrectRequest { reason: LyDoSuaSai; value?: string | null; expectedUpdatedAt: string }
 
+// ---- Vận chuyển (ADR-0040 D1; module van-chuyen) ----
+export type VehicleStatus = "active" | "maintenance" | "retired";
+export interface VehicleDto {
+  id: string;
+  plateNumber: string;
+  chassisNumber: string | null;
+  name: string;
+  modelYear: number | null;
+  /** Số người được chở KHÔNG kể tài xế (giấy cũ ghi 16 chỗ thì là 15). */
+  passengerCapacity: number;
+  status: VehicleStatus;
+  validFrom: string;
+  /** Ngày ngừng dùng; null = chưa ngừng. */
+  validTo: string | null;
+  /** Giấy tờ xe hiện hành gần hạn nhất theo ngưỡng đang hiệu lực: "expired" đã hết, "soon" sắp hết, "none" không có (xe đã ngừng: luôn "none"). */
+  alert: "none" | "soon" | "expired";
+  /** Tên loại giấy gần hạn nhất và số ngày còn lại (âm = đã quá) — null khi `alert` = "none". */
+  alertTypeName: string | null;
+  alertDaysLeft: number | null;
+  /** Số giấy hiện hành đã hết + sắp hết hạn (bản vẽ màn 01: "… · 2 giấy sắp hết hạn"). */
+  alertCount: number;
+  updatedAt: string;
+}
+export interface VehicleDocumentDto {
+  id: string;
+  typeCode: string;
+  typeName: string;
+  /** Giấy tờ XE: số đầy đủ (không phải dữ liệu cá nhân — giả định G4); nhật ký vẫn không ghi số. */
+  number: string | null;
+  issuedDate: string | null;
+  expiryDate: string | null;
+  daysLeft: number | null;
+  previousId: string | null;
+  current: boolean;
+  voided: boolean;
+  updatedAt: string;
+}
+export interface VehicleListResponse { vehicles: VehicleDto[] }
+export interface VehicleResponse { vehicle: VehicleDto; documents: VehicleDocumentDto[] }
+/** Thân POST /api/van-chuyen/xe (thêm) — số khung bắt buộc ở máy chủ (Ruling R9). `status` mặc định "active" (xe mới không "retired"). */
+export interface VehicleCreateRequest {
+  plateNumber: string;
+  chassisNumber: string;
+  name: string;
+  modelYear?: number | null;
+  passengerCapacity: number;
+  status?: "active" | "maintenance";
+  validFrom?: string;
+}
+/** Thân PUT /api/van-chuyen/xe/:id — đủ trường + khoá lạc quan. "Ngừng dùng" = status "retired"; "Dùng lại xe" = status "active"/"maintenance" (R15). */
+export interface VehicleUpdateRequest {
+  plateNumber: string;
+  chassisNumber: string;
+  name: string;
+  modelYear: number | null;
+  passengerCapacity: number;
+  status: VehicleStatus;
+  expectedUpdatedAt: string;
+}
+
 // ---- Góp ý / Báo lỗi (module feedback) ----
 export interface FeedbackContextDto {
   path?: string;

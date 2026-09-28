@@ -42,7 +42,7 @@ async function loadModule(entry: string): Promise<Record<string, AppModule>> {
   return (await import(`data:text/javascript;base64,${code}`)) as Record<string, AppModule>;
 }
 
-/** 13 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
+/** 14 module có route, đúng tên tệp + tên export như `src/index.ts` (gốc lắp ráp) dùng. */
 const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/accounts/index.ts", exportName: "accountsModule" },
   { entry: "./modules/audit/index.ts", exportName: "auditModule" },
@@ -57,6 +57,7 @@ const MODULES: readonly { entry: string; exportName: string }[] = [
   { entry: "./modules/orders/index.ts", exportName: "ordersModule" },
   { entry: "./modules/parties/index.ts", exportName: "partiesModule" },
   { entry: "./modules/thongbao/index.ts", exportName: "thongbaoModule" },
+  { entry: "./modules/van-chuyen/index.ts", exportName: "vanChuyenModule" }, // ADR-0040 D1
 ];
 
 /** Sắp xếp tất định: theo `path` rồi theo `method` (so sánh chuỗi thường, không qua `localeCompare`). */
@@ -184,6 +185,10 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "GET", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: khoá công khai (nếu có) + số máy đang bật của chính mình
   { method: "POST", path: "/api/account/thong-bao/may", access: "staff" }, // Web Push: tự phục vụ đăng ký một máy
   { method: "POST", path: "/api/account/thong-bao/may/huy", access: "staff" }, // Web Push: tự phục vụ tắt một máy hoặc mọi máy
+  { method: "GET", path: "/api/van-chuyen/xe", access: "office" }, // ADR-0040 D1: danh sách xe (cảnh báo giấy tờ); thân hỏi vehicle.manage — Quản trị + Toàn quyền
+  { method: "POST", path: "/api/van-chuyen/xe", access: "office" }, // thêm xe (chủ xe = công ty chủ); như trên
+  { method: "GET", path: "/api/van-chuyen/xe/:id", access: "office" }, // một xe + giấy tờ xe; như trên
+  { method: "PUT", path: "/api/van-chuyen/xe/:id", access: "office" }, // sửa / ngừng / dùng lại xe (R15); như trên
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -198,7 +203,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 97 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 101 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -215,8 +220,9 @@ test("mức truy cập của 97 route hiện có khớp ảnh chụp đã duyệ
   // POST /api/account/thong-bao/may/huy = 86.
   // 2026-09-28 (ADR-0040, Vận chuyển 1a): + 3 route đọc giấy tờ của người (GET /api/parties/documents/mine, /documents/meta, /:id/documents) = 89;
   // + 3 route ghi giấy tờ của người (POST /api/parties/:id/documents, …/renew, …/correct) = 92; + 1 route "xem đủ số" (…/reveal) = 93;
-  // + 4 route danh mục giấy tờ của người (POST/PUT /api/parties/document-types, POST/PUT /api/parties/license-classes) = 97.)
+  // + 4 route danh mục giấy tờ của người (POST/PUT /api/parties/document-types, POST/PUT /api/parties/license-classes) = 97;
+  // + 4 route xe của module mới van-chuyen (GET/POST /api/van-chuyen/xe, GET/PUT /api/van-chuyen/xe/:id) = 101.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 97, "số route thực tế lệch 97 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 97, "SNAPSHOT phải có đúng 97 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 101, "số route thực tế lệch 101 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 101, "SNAPSHOT phải có đúng 101 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

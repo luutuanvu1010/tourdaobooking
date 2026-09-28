@@ -98,6 +98,9 @@ export const MATRIX = {
   // "xem đủ số" giấy tờ của người — Quản trị + Toàn quyền (+ cấp bậc, Ruling R8); mỗi lần xem một dòng nhật ký KHÔNG kèm số, ghi TRƯỚC khi trả số.
   // Route DUY NHẤT trả số đầy đủ: POST /api/parties/:id/documents/:did/reveal.
   "party.document.reveal": row("none", "none", "any", "none", "none", "any", "none", "none"),
+  // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
+  // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
+  "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;
