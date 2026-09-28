@@ -341,10 +341,18 @@ export const vanChuyenModule: AppModule = {
       const now = new Date();
       const at = now.toISOString();
       const cu = await currentWarnDays(env.DB, at);
-      await env.DB.batch([
-        insertPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),
-        auditStatement(env.DB, { staffId: staff.id, action: "expiry_policy_changed", at, detail: `mốc nhắc giấy tờ sắp hết hạn: ${cu} → ${parsed.value} ngày` }),
-      ]);
+      try {
+        await env.DB.batch([
+          insertPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "expiry_policy_changed", at, detail: `mốc nhắc giấy tờ sắp hết hạn: ${cu} → ${parsed.value} ngày` }),
+        ]);
+      } catch (e) {
+        // Ruling R19 (điều phối 2026-09-28): hai lần đổi CÙNG một mili-giây vấp khoá duy nhất valid_from_at (cả lô huỷ, không dòng nhật ký) → 409, không 500.
+        if (e instanceof Error && /UNIQUE constraint failed: vc_expiry_policy\.valid_from_at/.test(e.message)) {
+          return error(409, "stale", "Vừa có người đổi mốc nhắc, tải lại rồi thử lại.");
+        }
+        throw e;
+      }
       return respondMeta(env.DB);
     }),
 

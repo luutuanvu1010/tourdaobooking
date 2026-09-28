@@ -10,7 +10,7 @@ import { LOAI_CO_DINH, MA_LOAI_GIAY_TO_RE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo,
 import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import type { RoleCode } from "../../shared/roles";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
-import { can } from "../../shared/permissions";
+import { can, holdsPartner } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
 import { route, type AppModule, type Ctx } from "../../shared/router";
 import type { PartyAccountVerdict } from "../../shared/router";
@@ -348,6 +348,9 @@ export const partiesModule: AppModule = {
       // Ruling R4 + R5 (chủ 28/9: mọi nhân viên nội bộ): cổng "staff"; ô own chặn Đối tác; CHỈ giấy tờ của chính người gọi, CHỈ dòng hiện hành (R15 điểm 6),
       // ngày hết hạn tăng dần; số che.
       if (!can(staff, "party.document.view", { ownerId: staff.id })) return error(403, "forbidden", "Tài khoản này không có mục giấy tờ.");
+      // Ruling R18 (điều phối 2026-09-28): tài khoản CÓ quyền Đối tác — kể cả LAI với quyền nội bộ (ô `own` của quyền nội bộ làm `can()` ở trên qua) —
+      // cũng không có mục này; tiền lệ "chặn tài khoản lai" của ADR-0030 (hàng chờ nhận, `holdsPartner`).
+      if (holdsPartner(staff)) return error(403, "forbidden", "Tài khoản này không có mục giấy tờ.");
       if (!staff.partyId) return json({ documents: [] } satisfies PersonDocumentListResponse);
       const today = vnToday(new Date());
       return json({ documents: (await listPersonDocuments(env.DB, staff.partyId, true)).map((r) => toPersonDocDto(r, today)) } satisfies PersonDocumentListResponse);

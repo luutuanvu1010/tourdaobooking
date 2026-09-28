@@ -3,6 +3,7 @@
 - **Ngày:** 2026-09-28.
 - **Người soạn:** phiên lập kế hoạch Vận chuyển 1a (nhánh `worktree-agent-ac0436b2bbf204613`).
 - **Người thi công** bổ sung số dòng thật và mục 4b ở Task A22 / B8 của kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md`.
+  - **Task A22 (người thi công Phần A, 2026-09-28):** số dòng mục 1–5 đo lại trên nhánh thi công `worktree-agent-a9cf548897a76b7f7` @ `fedffdf` (tệp luật mục 2–5 không đổi so với `c276848` — nhánh không sửa chúng). Mục 4a **chờ Phần B** (Task A19 hoãn — trang Danh mục giấy tờ chưa dựng). Thêm mục 4c, 4d (hai dòng bảng Chrome cho mã Phần A đã chạm).
 - **Vì sao có tệp này:**
   - Hiến pháp N9: AI không tự sửa luật chi phối chính mình.
   - Điều 9.4: hàng rào đã duyệt chỉ được SIẾT; muốn NỚI phải có chủ duyệt.
@@ -18,7 +19,7 @@ Ba chỗ nới và một chỗ siết:
 - ba chỗ nới nằm trong mã của nhánh từ Task A12 (để test chạy được);
 - chỗ siết (`STRICT`) từ Task A13.
 
-Số dòng đo trên `9ead2e7`.
+Số dòng đo trên `9ead2e7`; **đo lại trên `fedffdf` (Task A22):** `ALLOWED_EDGES` dòng 19, cạnh `van-chuyen` dòng 44–47 (ba dòng chú thích + dòng khai); `STRICT` dòng 51–62, mục `van-chuyen` dòng 61; `KHONG_DB` dòng 76; chú thích tiền tố dòng 78, `TABLE_PREFIX` dòng 79, `VIEW_PREFIX` dòng 80.
 
 ```diff
  const ALLOWED_EDGES: Record<string, readonly string[]> = {            // dòng 19
@@ -29,7 +30,7 @@ Số dòng đo trên `9ead2e7`.
 +  // NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md trước khi gộp.
 +  "van-chuyen": ["parties", "audit"],
  };
- const STRICT: readonly { module: string; file: string }[] = [       // dòng 47
+ const STRICT: readonly { module: string; file: string }[] = [       // dòng 47 (trên fedffdf: dòng 51)
    …
    { module: "thongbao", file: "modules/thongbao/repository.ts" },
 +  { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
@@ -53,7 +54,7 @@ Số dòng đo trên `9ead2e7`.
 - tập tới được từ `parties` = {`locations`, `audit`}; từ `audit` = ∅;
 - không cạnh nào trỏ vào `van-chuyen`.
 
-Lập luận đủ ở kế hoạch mục 1.2. Máy kiểm: test "đồ thị phụ thuộc module không có vòng" (`src/architecture.test.ts:124-134`).
+Lập luận đủ ở kế hoạch mục 1.2. Máy kiểm: test "đồ thị phụ thuộc module không có vòng" (`src/architecture.test.ts:124-134` trên `9ead2e7`; `:130-140` trên `fedffdf`).
 
 **Không đổi:** `LEGACY`, `KHONG_DB`, `GUARDS` và `ADMIN_OPS` của `src/route-write-guard.test.ts` (không thêm tên / ô nào — thêm là nới).
 
@@ -69,7 +70,8 @@ Lý do: tài liệu luật phải khớp đồ thị mà test ép. Chỉ thêm �
 
 **2b. Phần II, "Ranh giới SQL của module nghiêm", dòng 192.**
 - Thêm `van-chuyen`.
-- **Sửa kèm:** tài liệu đang thiếu `thongbao`, dù mã đã có `thongbao` trong `STRICT` (`src/architecture.test.ts:47-57`).
+- **Sửa kèm:** tài liệu đang thiếu `thongbao`, dù mã đã có `thongbao` trong `STRICT` (`src/architecture.test.ts:47-57` trên `9ead2e7`; `:51-62` trên `fedffdf`).
+- Số dòng 175, 192, 194, 155 (và 113 cho mục 2e) đúng trên `fedffdf` — `docs/ARCHITECTURE.md` không đổi trong nhánh.
 
 ```diff
 -- **Ranh giới SQL của module nghiêm** (`auth`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `parties`, `staff`): …
@@ -102,7 +104,8 @@ Lý do: ADR-0040 D2 siết 5.12 (nhật ký không chứa số giấy tờ). B�
 
 **3a. Dòng 6, danh sách module.**
 - Thêm `van-chuyen`.
-- **Sửa kèm:** thiếu `bangtin` — thư mục có thật; `src/architecture.test.ts:71` xếp nó hạng `KHONG_DB`.
+- **Sửa kèm:** thiếu `bangtin` — thư mục có thật; `src/architecture.test.ts:71` (trên `fedffdf`: `:76`) xếp nó hạng `KHONG_DB`.
+- Số dòng 6, 14, 20, 25 của `src/CLAUDE.md` đúng trên `fedffdf` (tệp không đổi trong nhánh).
 
 ```diff
 -- `src/index.ts` gốc lắp ráp (mảng `modules`, router, Cron). `src/modules/<tên>/`: `accounts`, `audit`, `auth`, `catalog`, `company`, `dispatch`, `feedback`, `locations`, `maintenance`, `orders`, `parties`, `staff`, `thongbao`.
@@ -132,10 +135,24 @@ Lý do: chữ `DRIVER` nằm ở hai bảng khác nghĩa. Người sau dễ đ�
 
 ## Mục 4 — `web/CLAUDE.md`, bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào"
 
-**4a. Phần A (Task A19):** thêm một dòng.
+**4a. Phần A (Task A19):** thêm một dòng. **CHỜ PHẦN B** — Task A19 hoãn (điều phối R15: "Không làm giao diện ở Phần A"); trang và kịch bản dưới CHƯA có trên nhánh Phần A. Người làm Phần B điền lại tên tệp / số bước thật trước khi trình.
 
 ```diff
 +| Trang Danh mục giấy tờ: `web/danh-muc-giay-to.ts`, `public/danh-muc-giay-to.html`, dòng "Danh mục giấy tờ" ở `web/account.ts` (ADR-0040, khuôn sẵn) | `danh-muc-giay-to-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (Quản trị thêm/sửa/ngưng; Bán hàng không thấy; 390 + 1040) + `dot-c-smoke.mjs` (bố cục trang Tôi) |
+```
+
+**4c. Phần A (Task A3, Ruling R10) — dòng mới, đặt ngay sau dòng `web/home.ts` (dòng 46 của `web/CLAUDE.md` trên `fedffdf`).**
+Lý do: `src/shared/start-page.ts` quyết trang đầu cho `web/home.ts` (tài khoản chỉ-`DRIVER` → `TRANG_DAU_TAI_XE`, tạm `/account`); sửa hàm này mà không chạy kịch bản thì "gọi dashboard rồi 403" quay lại mà không ai thấy.
+
+```diff
++| Trang đầu theo quyền: `src/shared/start-page.ts` (`homeRedirect`, `TRANG_DAU_TAI_XE`), phần chuyển hướng đầu `web/home.ts` | `tai-xe-trang-dau-smoke.mjs` ở `docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/` (2 bước: 390 + 1040 — tài xế mở "/" về trang đầu của tài xế, không lời gọi `/api/orders*`, không lỗi console) + `trang-chu-smoke.mjs` (người xem mọi đơn vẫn ở Trang chủ) |
+```
+
+**4d. Phần A (Task A2) — dòng mới cho màn Quản lý tài khoản (vai).**
+Lý do: `vai-smoke.mjs` là kịch bản duy nhất khoá danh sách vai theo nhóm (nay 10 ô, có "Tài xế công ty" ở nhóm Nội bộ) nhưng bảng của `web/CLAUDE.md` chưa có dòng trỏ tới nó. Ghi kèm: Task A2 đã sửa kịch bản cho khớp ADR-0042 (đỏ sẵn ở mốc A0: khoá 11 ô + `.disabled`, mã thật 9 ô ẩn vai cấp cao) — sửa KỊCH BẢN, không sửa mã; P16 thấy chặn thật 2026-09-28 (`docs/SO-HANG-RAO.md`).
+
+```diff
++| Vai và bộ quyền mặc định ở màn Quản lý tài khoản: `src/shared/roles.ts`, `web/role-picker.ts`, phần chọn vai của `web/staff.ts` | `vai-smoke.mjs` ở `docs/evidence/2026-09-24-mo-hinh-vai/kich-ban/` (ô vai theo nhóm, vai ẩn theo ADR-0042, "Tài xế công ty" ở nhóm Nội bộ → xem trước "Tài xế") + `dot-a-smoke.mjs` |
 ```
 
 **4b. Phần B (Task B8):**
@@ -145,14 +162,14 @@ Lý do: chữ `DRIVER` nằm ở hai bảng khác nghĩa. Người sau dễ đ�
 
 ## Mục 5 — `CLAUDE.md` gốc
 
-**5a. §1, dòng 10** — danh sách quyền app đã lệch mã từ lâu (7 mã). Lượt này thêm mã thứ tám.
+**5a. §1, dòng 10** (đúng trên `fedffdf`) — danh sách quyền app đã lệch mã từ lâu (7 mã). Lượt này thêm mã thứ tám.
 
 ```diff
 -- Bốn quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`. Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 +- Tám quyền app, một tài khoản có nhiều quyền: `SALES`, `ACCOUNTING`, `ADMIN`, `FIELD`, `PARTNER`, `SUPER_ADMIN`, `INTERN`, `DRIVER` (Tài xế — ADR-0040). Từ vựng: `docs/SYSTEM-DESIGN.md` §15.
 ```
 
-**5b. §10 (bẫy hay dính)** — thêm một gạch:
+**5b. §10 (bẫy hay dính, bắt đầu dòng 110 trên `fedffdf`)** — thêm một gạch (đặt trước gạch cuối "Hiện trạng production…"):
 
 ```diff
 +- **Giấy tờ của người + chữ `DRIVER`** (ADR-0040, migration `0031`–`0033`): số căn cước / bằng lái **không bao giờ** vào nhật ký, DTO mặc định, câu báo lỗi — chỉ route "xem đủ số" trả số, và ghi nhật ký TRƯỚC; route giấy tờ mới phải thêm ca vào `src/giay-to-khong-lo-so.test.ts`. Gia hạn = dòng mới (không gửi số thì máy chủ chép số cũ); sửa sai chỉ dòng hiện hành, có lý do. Mã QUYỀN `DRIVER` khác mã VAI hồ sơ cũ `DRIVER` (đã ngưng); vai tài xế công ty là `DRIVER_INTERNAL`. Thêm một mã quyền là nhân đôi mọi bài "tập con quyền" (256 hôm nay). Chi tiết: `docs/CHANGE-GUIDE.md` công thức y.
@@ -166,5 +183,5 @@ Lý do: chữ `DRIVER` nằm ở hai bảng khác nghĩa. Người sau dễ đ�
 | 2a–2d — `docs/ARCHITECTURE.md` | sửa tài liệu chuẩn tắc cho khớp mã (kèm hai chỗ đang thiếu `thongbao`, `ntf_`) | Duyệt |
 | 2e — chữ Hiến chương 5.12 | tuỳ chọn | Có / không |
 | 3 — `src/CLAUDE.md` | làm rõ luật, không đổi nghĩa (kèm `bangtin` đang thiếu) | Duyệt |
-| 4a (4b sau) — `web/CLAUDE.md` | thêm dòng bảng kịch bản | Duyệt |
+| 4a (chờ Phần B), 4b (Phần B), 4c, 4d — `web/CLAUDE.md` | thêm dòng bảng kịch bản | Duyệt |
 | 5a, 5b — `CLAUDE.md` gốc | sửa số quyền + một bẫy | Duyệt |
