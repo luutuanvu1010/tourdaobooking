@@ -21,12 +21,12 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   audit: [],
   // maintenance: đăng nhập bị chặn khi bảo trì; GET /api/auth/config và /me báo trạng thái (chỉ đọc).
   // parties: ADR-0024 6.2 — GET /api/auth/config trả tên + MST công ty chủ qua hàm công bố ownerCompany (chỉ đọc; auth vốn đã tới parties bắc cầu qua
-  // staff). NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md trước khi gộp.
+  // staff). NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'duyệt luật T2b'), xem docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md.
   auth: ["staff", "maintenance", "parties"],
   bangtin: [], // ADR-0022: lá, không import module nào — dữ liệu đơn (mã đơn, ai lập/phụ trách) do gốc lắp ráp đọc qua orders/dispatch rồi truyền vào, không phải bangtin tự đọc
   catalog: ["audit"],
   // ADR-0024 điều 6 (6.2): GET /api/company đọc định danh Tour Đảo qua hàm công bố ownerCompany của parties; company_profile chỉ còn logo_url (6.3).
-  // NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md trước khi gộp.
+  // NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'duyệt luật T2b'), xem docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md.
   company: ["parties"],
   // ADR-0006 điều 8: dispatch → orders, parties, locations (khoá ngoại của dsp_assignment). `orders` KHÔNG import dispatch và không có SQL đọc dsp_*:
   // `orders` cần "người dùng có phải người phụ trách" và "câu đặt người phụ trách mặc định cho đơn mới" thì gốc lắp ráp (src/index.ts) tiêm vào ctx (ADR-0007 điều 4(b)).

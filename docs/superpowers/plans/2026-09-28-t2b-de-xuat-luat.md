@@ -27,6 +27,8 @@ Hai cạnh này ĐÃ nằm trong mã của nhánh (để test chạy được), 
 
 Ghi chú: hôm nay `auth` đã tới `parties` **bắc cầu** (`auth → staff → parties`), nên cạnh thứ hai không đổi tập phụ thuộc của `auth`, chỉ làm thẳng đường.
 
+**Chú thích đổi thành "đã duyệt" sau khi chủ duyệt** — hai dòng chú thích "… — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md trước khi gộp." trong `src/architecture.test.ts` nay ghi "… — đã duyệt 2026-09-28 (chủ trả lời 'duyệt luật T2b'), xem docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md." (Ruling D21 của điều phối: Mục 1 chỉ MÔ TẢ mã có sẵn; hai cạnh và mã không đổi).
+
 ## Mục 2 — `docs/ARCHITECTURE.md` (Hiến chương + luật; tài liệu chuẩn tắc — AI không tự sửa)
 
 **2a. Bảng thi hành, dòng "2.1" (dòng 141)** — lệch "Tour Đảo chưa có hồ sơ" nay đã gỡ; ghi cưỡng chế thật. Lý do: bảng thi hành phải nói đúng hiện trạng mã.
