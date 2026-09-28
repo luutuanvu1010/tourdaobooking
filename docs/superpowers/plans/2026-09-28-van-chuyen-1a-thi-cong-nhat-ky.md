@@ -5,34 +5,36 @@
 - **Nguồn chuẩn tắc:**
   - ADR-0040 (accepted 2026-09-28; dòng trạng thái `9ead2e7`: chủ trả lời "Mọi nhân viên" cho ô xem giấy tờ của chính mình);
   - danh sách màn `docs/superpowers/specs/2026-09-28-van-chuyen-1a-man-hinh-can-ve.md`.
-- **Nhánh thi công:** _(điền)_. Tạo từ `main` @ _(điền mã commit)_, sau khi `main` có ADR-0040 và kế hoạch (hoặc từ đỉnh nhánh kế hoạch — ghi rõ).
-- **Cách thi công:** _(điền: subagent-driven-development / executing-plans; ai thi công task nào)_.
-- **Trạng thái:** CHƯA BẮT ĐẦU. Phần A làm ngay; Phần B **chờ bản vẽ** Claude Design của chủ. Chưa push, chưa gộp, chưa lên production.
+- **Nhánh thi công:** `worktree-agent-a9cf548897a76b7f7` (worktree `.claude/worktrees/agent-a9cf548897a76b7f7`). Tách từ `origin/main` @ `c276848` (bản 1.34), rồi gộp theo lệnh điều phối: `worktree-agent-ac0436b2bbf204613` @ `0d68af9` (kế hoạch, fast-forward) và `dac-ta-van-chuyen` @ `644a8ee` (ADR-0040 accepted + giữ chỗ migration 0031–0033) → đỉnh `3159fed`. Mã và migration giống hệt `c276848`.
+- **Cách thi công:** executing-plans — một phiên thi công (vai THI CÔNG do điều phối giao 2026-09-28) tự làm Task A0 → A23, không giao tiếp subagent. Dừng ở A24 (mốc kiểm giữa chừng) và báo điều phối.
+- **Trạng thái:** ĐANG THI CÔNG PHẦN A. Phần B **chờ bản vẽ** Claude Design của chủ. Chưa push, chưa gộp, chưa lên production.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả của người kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
 
 | Mục | Kết quả |
 |---|---|
-| Bước 1: ADR-0040 (accepted, có câu "Mọi nhân viên") trên nhánh thi công | _(điền)_ |
-| Bước 2: `docs/quyen-hoan.json` → `phat_hien` | _(điền; kế hoạch đo `[]` trên `9ead2e7`)_ |
-| Bước 3: `DRIVER` / `vehicle.manage` / `party.document.*` chưa có trong `permissions.ts`, `roles.ts` | _(điền)_ |
-| Bước 4: số migration lớn nhất trên nhánh; kết quả quét mọi nhánh; số dùng cho 1a | _(điền; kế hoạch dự kiến 0031–0033, 0029 giữ cho Thông báo)_ |
-| Bước 5: `npm test` (số test) / `npm run typecheck` | _(điền)_ |
-| Bước 6: `npm run test:e2e` đủ bộ — kịch bản đỏ sẵn có | _(điền)_ |
-| Bước 7: Chrome (`vai-smoke`, `dot-a-smoke`, `trang-chu-smoke`) — số ✓/✗; **số ô vai `vai-smoke.mjs:34` thật sự đếm được** | _(điền)_ |
-| Bước 8: số dòng trích dẫn lệch so với kế hoạch (đo trên `9ead2e7`) | _(điền)_ |
-| Bước 9: khẳng định "đúng số lượng / đúng danh sách" tìm thêm được | _(điền)_ |
+| Bước 1: ADR-0040 (accepted, có câu "Mọi nhân viên") trên nhánh thi công | Có (`git ls-tree HEAD docs/adr/` → `ADR-0040-van-chuyen-luot-1a-xe-giay-to-tai-xe.md`; dòng 3–5: "accepted", "Mọi nhân viên"). 2026-09-28 15:48. |
+| Bước 2: `docs/quyen-hoan.json` → `phat_hien` | `[]` (đo trên `3159fed`). Không xây trên lỗ đang hở. |
+| Bước 3: `DRIVER` / `vehicle.manage` / `party.document.*` chưa có trong `permissions.ts`, `roles.ts` | `grep` chỉ khớp `TAXI_DRIVER` (vai bên ngoài "Tài xế taxi", `roles.ts:9,38`) — mã khác, không phải `DRIVER`. Chưa ai thêm trước. |
+| Bước 4: số migration lớn nhất trên nhánh; kết quả quét mọi nhánh; số dùng cho 1a | Lớn nhất `0030_ho_so_cong_ty_chu.sql`. Quét mọi ref (kể cả stash) bằng MỘT lệnh `git log --all --name-only -- migrations/` (worktree cô lập không cho vòng lặp `for-each-ref`): tệp số ≥ 0029 duy nhất ở mọi nhánh là `0030_ho_so_cong_ty_chu.sql`. ⇒ **0031, 0032, 0033** trống (khớp R13). 0029 vẫn giữ cho Thông báo đính kèm. |
+| Bước 5: `npm test` (số test) / `npm run typecheck` | `npm test`: **1175/1175** đạt. `npm run typecheck`: mã thoát 0. (`uptime` 15:48: tải 1,67.) |
+| Bước 6: `npm run test:e2e` đủ bộ — kịch bản đỏ sẵn có | **21/23 xanh, 2 đỏ sẵn có**: `catalog` (`tests/e2e/catalog.mjs:188`: người đồng bộ kỳ vọng 'Hệ thống (tự động)', thấy 'QTV Test') và `dispatch` (`tests/e2e/dispatch.mjs:69`: 400 `catalog_unavailable` "dịch vụ ZE1 không còn trong danh mục"). Cả hai phụ thuộc Google Sheet thật (dữ liệu Sheet đổi), không chạm 1a. `audit-invariants --strict` đạt. |
+| Bước 7: Chrome (`vai-smoke`, `dot-a-smoke`, `trang-chu-smoke`) — số ✓/✗; **số ô vai `vai-smoke.mjs:34` thật sự đếm được** | Có Chrome (`/Applications/Google Chrome.app`, qua `chrome-wrap.sh`) và `axe.min.js` 4.13.0 (ngoài repo, `/private/tmp/vgt-axe/package/`). Ảnh ghi ra `/tmp/vc1a-chrome-moc/*` (`OUT=`), không bẩn repo. **Cả ba đỏ sẵn có:** `vai-smoke.mjs:34` — **9 ≠ 11** (Quản trị thấy 9 ô vai: 12 vai trừ 3 vai chỉ Toàn quyền — Giám đốc, Điều hành chung, IT — bị ẩn từ ADR-0042; dòng 35 còn hỏi `.disabled` của ô Giám đốc vốn không còn trong DOM). `dot-a-smoke.mjs` — 8 ✓ rồi đỏ ở "nhat-ky: thẻ đã dựng xong" (trang Nhật ký chỉ Toàn quyền từ ADR-0038; kịch bản đăng nhập Quản trị). `trang-chu-smoke.mjs` — 11 ✓ rồi đỏ ở dòng 450 "phải có đúng 2 dòng cảnh báo" (thấy 1: góp ý chỉ Toàn quyền xem từ ADR-0038). **Số ô vai thật: 9** ⇒ Task A2 đặt 10. |
+| Bước 8: số dòng trích dẫn lệch so với kế hoạch (đo trên `9ead2e7`) | Không lệch (mã giống hệt `c276848`). Soát ngẫu nhiên: `permissions.ts:28-30`, `start-page.ts:16-18`, `web/home.ts:255-258`, `parties/index.ts:350-405`, `parties/repository.ts:238-243,407,434-436`, `architecture.test.ts:19-44,47-57,73-74,124-134,191-210,429-440` đúng; `route-access.test.ts` bài 86 route ở 190-208 (kế hoạch ghi 191-209, lệch 1). |
+| Bước 9: khẳng định "đúng số lượng / đúng danh sách" tìm thêm được | Ngoài danh sách kế hoạch: (1) `src/shared/bang-tin.test.ts:309` (tên bài "128 tập con", không khẳng định số — suy từ MATRIX); (2) `src/modules/dispatch/rules.test.ts:87-92` (danh sách quyền được giao — DRIVER phải KHÔNG vào) và `:101` (vòng tập con, không khẳng định số); (3) giao diện tự thêm ô "Tài xế" khi `PERMISSION_CODES` có mã thứ tám: `web/role-picker.ts:73-74` (cộng/bớt tay), `web/staff.ts:193` (trình sửa quyền cũ), `web/gui-thong-bao.ts:149` (gửi thông báo theo nhóm quyền) — không kịch bản Chrome nào đếm các ô này; (4) `scripts/staff-lib.mjs:33`, `scripts/create-staff.mjs:11` (chữ trợ giúp liệt kê mã, tự đúng); (5) `tests/e2e/permissions.mjs:57` (nhãn PARTNER/INTERN, không đổi). Vai đã ngưng gán qua API (Task A4): chỉ `tests/e2e/parties.mjs:147-173` (GUIDE, DRIVER) và `src/modules/parties/ho-so-co-tai-khoan.test.ts:213,244,284` (DRIVER) — như kế hoạch; `src/modules/staff/index.ts:128` gieo vai STAFF bằng câu lệnh trực tiếp (không qua route) nên không bị lời kiểm A4 chạm. |
 
-**Đỏ sẵn có trên nhánh gốc** (không phải lỗi của 1a): _(điền)_
+**Đỏ sẵn có trên nhánh gốc** (không phải lỗi của 1a, đo 2026-09-28 15:48–16:05 trên `3159fed`):
+- e2e `catalog` và `dispatch` (dữ liệu Google Sheet thật đổi — xem bước 6).
+- Chrome `vai-smoke.mjs` (dòng 34–35, lệch ADR-0042), `dot-a-smoke.mjs` (Nhật ký chỉ Toàn quyền, ADR-0038), `trang-chu-smoke.mjs` (khối "Cần xem lại" chỉ còn 1 dòng cho Quản trị, ADR-0038).
 
 ## 2. Câu trả lời của chủ dự án
 
 | Câu | Nội dung | Trả lời (nguyên văn, ngày) | Ảnh hưởng |
 |---|---|---|---|
 | R5 (điều phối hỏi) | Ô "xem giấy tờ của chính mình (số che)" mở cho ai | **"Mọi nhân viên"** — phương án A, 2026-09-28 (ghi ở dòng trạng thái ADR-0040, `9ead2e7`) | Task A7 (không còn phụ thuộc) |
-| Q1 | Quản trị có được nhập / xem đủ số giấy tờ của tài khoản cấp trên | _(điền; mặc định (a) không — áp luật cấp bậc)_ | Task A8, A9 |
-| Q2 | Thêm xe có bắt buộc số khung | _(điền; mặc định (a) bắt buộc ở máy chủ)_ | Task A13 |
+| Q1 | Quản trị có được nhập / xem đủ số giấy tờ của tài khoản cấp trên | **Không** — Ruling R8 của điều phối (2026-09-28): áp luật cấp bậc hiện có (`mayManage` / ADR-0042) | Task A8, A9 |
+| Q2 | Thêm xe có bắt buộc số khung | **Bắt buộc ở máy chủ; cột CSDL để trống được** — Ruling R9 của điều phối (2026-09-28) | Task A13 |
 | Đề xuất luật | Duyệt `docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md` (mục 1–5; 2e tuỳ chọn) | _(điền)_ | Task K3 |
 | Truy vấn chỉ đọc (Ruling R1; kế hoạch mục 9 bước 4) | Số hồ sơ đang giữ vai "Tài xế" cũ (`DRIVER`) trên production: đang giữ / tổng số dòng | _(điền: hai con số)_ | Task K3 (chỉ để biết; lượt 1a không đổi các dòng đó) |
 | Bản vẽ | Link Claude Design bảy màn | _(điền: link, ngày)_ | Phần B |
@@ -43,7 +45,7 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 
 | Task | Việc | Commit | `npm test` sau | Dòng ĐỎ trước (đã thấy) | Đột biến P16 (ngày · đột biến · dòng đỏ) | Người kiểm |
 |---|---|---|---|---|---|---|
-| A0 | Điều kiện trước, mốc | — | _(điền)_ | — | — | — |
+| A0 | Điều kiện trước, mốc | (commit A0 — chỉ nhật ký) | 1175/1175; tsc 0 | — | — | — |
 | A1 | `src/shared/giay-to.ts` | _(điền)_ | _(điền)_ | _(điền)_ | — | _(điền)_ |
 | A2 | Quyền `DRIVER`, vai `DRIVER_INTERNAL`, migration 0031, cột thứ tám, 256 tập con | _(điền)_ | _(điền)_ | _(điền)_ | _(điền: ô `order.view` của DRIVER; DRIVER vào OFFICE_GATE; bỏ `active = 0`)_ | _(điền)_ |
 | A3 | Trang đầu `/tai-xe` | _(điền)_ | _(điền)_ | _(điền)_ | _(điền: bỏ nhánh DRIVER)_ | _(điền)_ |
@@ -92,8 +94,18 @@ Ruling đã có trong kế hoạch (mục 0), chép lại:
   - Route chỉ trả giấy tờ của chính người gọi, số che.
 - **R5:** Chủ trả lời 2026-09-28: ô "xem giấy tờ của chính mình" mở cho **mọi nhân viên nội bộ** (A). Task A7 không còn phụ thuộc.
 
-Ruling mới:
-- _(điền: số hiệu, nội dung, vì sao, giá nếu sai)_
+Ruling mới (điều phối giao cùng lệnh thi công, 2026-09-28; **thắng kế hoạch nếu lệch** — chép nguyên ý):
+- **R6.** Lời kiểm máy chủ "loại vai đã ngưng (`active = 0`) thì không gán mới → 409 `role_type_inactive`" áp cho MỌI loại vai đã ngưng, trừ đường đổi công ty chủ (`OWNER_COMPANY`, ADR-0043). Lý do: đúng nghĩa "ngưng dùng" đã duyệt ở 0024; giao diện vốn đã ẩn các loại này. Sửa các test cũ đang gán loại vai đã ngưng sang loại còn dùng, như kế hoạch nêu.
+- **R7.** Danh mục dùng `code` làm khoá chính (không UUID): chấp nhận. Vẫn đủ dấu vết, `active`, khoá lạc quan, nhật ký cùng lô.
+- **R8 (Q1).** Quản trị KHÔNG được nhập hay "xem đủ số" giấy tờ của tài khoản cấp trên (Quản trị khác, chủ). Áp luật cấp bậc hiện có (`mayManage` / ADR-0042).
+- **R9 (Q2).** Số khung bắt buộc ở máy chủ; cột CSDL để trống được.
+- **R10.** Khi chưa có màn `/tai-xe` (Phần B chờ bản vẽ), `homeRedirect` đưa tài khoản chỉ có `DRIVER` tới trang **Tài khoản** hiện có (không 404, không gọi dashboard đơn). Phần B sẽ đổi sang `/tai-xe`. Có test khoá. ⇒ **Thay Task A3 của kế hoạch**: hằng `TRANG_DAU_TAI_XE = "/account"` (trang Tài khoản trong `PAGES`), bài khoá hỏi thêm `PAGES.includes(TRANG_DAU_TAI_XE)`.
+- **R11.** Giữ A18 (bài cổng toàn tuyến, là siết thêm).
+- **R12.** Nhãn vai: "Tài xế công ty". Mã vai `DRIVER_INTERNAL`. Mã vai hồ sơ cũ `DRIVER` đặt `active = 0`.
+- **R13.** Migration 0031, 0032, 0033 (đã giữ chỗ). Số bản nhật ký thay đổi tạm 1.35, chốt lúc gộp.
+- **R14.** Tệp đề xuất luật (cạnh module, ALLOWED_EDGES…) CHƯA áp vào tài liệu luật. Chủ duyệt trước khi day-len; điều phối trình.
+- **Q1, Q2 của kế hoạch mục 12** coi như đã trả lời bằng R8, R9 (mặc định (a) cả hai) — ghi ở mục 2.
+- **Cấm của lượt thi công:** không `git push`, không gộp vào `main`; không lệnh `--remote`, `wrangler deploy`/`secret`; không sửa `CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/` (kể cả `docs/adr/README.md`), `src/CLAUDE.md`, `web/CLAUDE.md`. Truy vấn chỉ-đọc remote là việc của CHỦ (câu lệnh viết sẵn trong báo cáo).
 
 ## 5. Sự cố
 
