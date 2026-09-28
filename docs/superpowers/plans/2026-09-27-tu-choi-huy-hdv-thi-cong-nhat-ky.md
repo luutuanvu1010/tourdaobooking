@@ -264,3 +264,14 @@ Không cần hành động ngay ở Task 1.1 (task này không đụng các tệ
 - Đã xoá kịch bản dò tạm (`tmp-debug-maint.mjs`, không commit) sau khi dùng xong. `npm test`/`typecheck`/`audit-invariants` chạy lại ở mục kiểm cuối cùng của phiên này (xem commit kế tiếp).
 
 Việc này CHƯA làm — không chặn tiếp tục thi công Task 1.10 vòng 2/giao diện Task 1.8 (chưa gộp main), nhưng PHẢI làm trước khi soạn lệnh `day-len` cho nhánh này ở Task 1.11.
+
+## Gộp `origin/main` — 2026-09-28
+
+Gộp toàn bộ `origin/main` (đã đi từ 6a82ee7 lên 548be6d trong lúc thi công, gồm ADR-0038..0044 nhánh Thông báo hệ thống + 5 commit ADR-0045) vào `thi-cong-tu-choi-huy-hdv`, làm hai lượt vì `origin/main` tự đi tiếp giữa lượt 1 và lượt 2:
+
+- **Lượt 1** (commit `6b50e5e`): gộp tới `6a82ee7`. ~23 tệp xung đột (permissions.ts, bang-tin.ts, order-confirmation.ts + confirmation-dialog.ts [chọn nguyên thiết kế HANDLER_HIDDEN của main], route-access.test.ts [86 route], 4 tài liệu, app.css, CLAUDE.md…). Toàn bộ đối chiếu lại **mã thật đã gộp**, không đoán theo tài liệu. `npm test` 1126/1126, `typecheck` 0 lỗi, `test:e2e` 23/23, `audit-invariants` đạt.
+- **Lượt 2** (commit `89e8aeb`): gộp tiếp 5 commit ADR-0045 mới xuất hiện. **Phát hiện quan trọng**: một merge trước đó trên nhánh Thông báo (`50c49ac`) đã LÙI route `POST /api/orders` về thiết kế cũ "người lập tự động thành người phụ trách" — ngược ADR-0030 S20-4 đã duyệt (xác nhận bằng cách so `6a82ee7` với `548be6d`: tại `6a82ee7` route này còn đúng thiết kế picker). Giữ đúng thiết kế đã duyệt, KHÔNG lấy bản lùi. Đã báo phiên "Thông báo hệ thống" qua tin điều phối để họ tự kiểm lại `origin/main` thật (không phải chỉ nhánh của họ).
+- Số phiên bản: cả hai nhánh cùng nhận "1.31" cho hai đợt phát hành khác nhau; main's 1.31 (ADR-0045) đã lên **production** (theo tin điều phối) nên giữ nguyên, đổi mục của nhánh này sang **"1.33"** ("1.32" đang được nhánh T2b giữ tạm — nhánh nào day-len trước giữ 1.32, nhánh sau đổi 1.33; nếu T2b day-len trước, PHẢI đổi số của nhánh này lại trước khi day-len).
+- Hai test cũ (`bang-tin.test.ts`) còn ghim "tao_cho_nhan vẫn báo cho HDV" từ trước ADR-0045 — sửa theo đúng luật mới (không báo ai lúc lưu nháp).
+- Kiểm lần cuối sau cả hai lượt: `npm test` 1126/1126, `typecheck` 0 lỗi, `npm run test:e2e` 23/23 (2 cảnh báo R-ORD-6a/6b không chặn, đã có từ trước, không liên quan gộp), `audit-invariants` đạt. `origin/main` không đi thêm sau khi kiểm lại (fetch lần cuối vẫn `548be6d`).
+- **Còn treo trước khi đưa lệnh `day-len`:** xác nhận lại với chủ dự án số phiên bản cuối cùng (tuỳ thứ tự day-len giữa nhánh này và T2b).
