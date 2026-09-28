@@ -64,7 +64,7 @@ Lý do: T2b thêm một kịch bản Chrome mới và đổi số bước của 
 Lý do: hai bẫy dễ làm hỏng biên nhận/production mà người sau khó đoán.
 
 ```diff
-+- **Hồ sơ công ty chủ** (Tour Đảo, vai `OWNER_COMPANY`, migration `0030`): tên/MST/địa chỉ/hotline/email chỉ đọc qua `ownerCompany` của `parties` — `company_profile` đã chết cột pháp lý, đừng đọc lại. Vai này KHÔNG kết thúc được (409); đổi công ty chủ = người giữ `company.legal.write` gán vai cho hồ sơ tổ chức khác. Đóng liên hệ "Hotline" cuối cùng (hoặc đổi sang hồ sơ thiếu tên pháp lý/MST/địa chỉ/Hotline) làm `GET /api/company` 404 → biên nhận báo lỗi. e2e trên D1 chung đừng đổi công ty chủ (không đổi lại được trong ngày). Chi tiết: `docs/CHANGE-GUIDE.md` công thức j, bẫy 46.
++- **Hồ sơ công ty chủ** (Tour Đảo, vai `OWNER_COMPANY`, migration `0030`): tên/MST/địa chỉ/hotline/email chỉ đọc qua `ownerCompany` của `parties` — `company_profile` đã chết cột pháp lý, đừng đọc lại. Vai này KHÔNG kết thúc được (409); đổi công ty chủ = người giữ `company.legal.write` gán vai cho hồ sơ tổ chức khác. Đổi sang hồ sơ thiếu tên pháp lý/MST/địa chỉ/liên hệ "Hotline" đang dùng bị máy chủ chặn (409 `owner_company_incomplete`); nhưng ĐÓNG liên hệ "Hotline" cuối cùng của công ty chủ hiện tại chưa bị chặn và làm `GET /api/company` 404 → biên nhận báo lỗi (thêm Hotline mới TRƯỚC khi đóng cái cũ). e2e trên D1 chung đừng đổi công ty chủ (không đổi lại được trong ngày). Chi tiết: `docs/CHANGE-GUIDE.md` công thức j, bẫy 46.
 ```
 
 ## Tóm tắt để chủ duyệt

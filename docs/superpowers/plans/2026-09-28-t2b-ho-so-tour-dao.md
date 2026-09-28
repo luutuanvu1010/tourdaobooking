@@ -7,7 +7,9 @@
 > - **Task 9 bỏ** (chủ chọn 2A — quan hệ giữ `admin.manage`).
 > - **Mã vai gieo `active = 0`** (T2), lựa chọn "Công ty chủ" chỉ hiện với người giữ ô (Task 10 tối thiểu theo D7 + D12).
 > - **Chữ người dùng thấy không nói "Toàn quyền"** — dùng "người phụ trách hệ thống" (D5).
-> - Số bản nhật ký thay đổi tạm "1.30" (D9).
+> - Số bản nhật ký thay đổi tạm ~~"1.30" (D9)~~ → **"1.32"** (D16: 1.30 vai IT, 1.31 Thông báo đã trên `main`).
+> - **Đổi sang hồ sơ thiếu tên pháp lý / MST / địa chỉ / liên hệ "Hotline" đang dùng → 409 `owner_company_incomplete`** (Ruling T8 của điều phối, D16.3 — thay Ruling T8 cũ của người thi công).
+> - **Trigger (d)** `…_start_today` (ADR-0043 lượt 2) — nên là BỐN trigger (D15).
 
 > **Cho người thi công (AI):** BẮT BUỘC dùng superpowers:subagent-driven-development (khuyến nghị) hoặc superpowers:executing-plans để làm theo từng task. Các bước dùng ô `- [ ]` để đánh dấu. Đây là **việc lớn** theo `CLAUDE.md` §3 (dữ liệu: migration + dữ liệu thật; quyền: ô mới trong `MATRIX`; luật: đề xuất sửa `docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`). Người thi công **không tự nghiệm thu**: Task 16 là người kiểm độc lập chỉ đọc. AI **không deploy**: chủ dự án tự chạy `npm run day-len` rồi `npm run trien-khai` (Task 17).
 
