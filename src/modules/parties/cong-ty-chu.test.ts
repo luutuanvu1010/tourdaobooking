@@ -172,6 +172,37 @@ test("gán 'Công ty chủ' (SUPER_ADMIN): hồ sơ cá nhân, có nơi, có ng�
   assert.deepEqual({ vai: vaiMo(w), log: logCount(w, CT) + logCount(w, KHAC) }, truoc);
 });
 
+test("Ruling T8 của điều phối: đổi sang hồ sơ tổ chức THIẾU tên pháp lý / MST / địa chỉ / liên hệ Hotline đang dùng → 409 owner_company_incomplete nêu đúng các mục thiếu; không đổi gì, không nhật ký; bổ sung đủ thì đổi được", async () => {
+  const w = setup();
+  const CT = congTyChu(w);
+  let r = await w.call("POST", "/api/parties", { as: SALES, body: { kind: "ORGANIZATION", displayName: "Pháp nhân Thiếu" } });
+  assert.equal(r.status, 201, r.text);
+  const THIEU = r.json.party.id;
+  const truoc = { vai: vaiMo(w), log: logCount(w, CT) + logCount(w, THIEU) };
+  r = await ganVai(w, SUP, THIEU, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "owner_company_incomplete");
+  for (const muc of ["tên pháp lý", "mã số thuế", "địa chỉ", "Hotline"]) assert.match(r.json.error.message, new RegExp(muc), muc);
+  assert.doesNotMatch(r.text, /Toàn quyền|SQLITE|constraint/i);
+  // Bổ sung tên pháp lý, MST, địa chỉ — còn thiếu Hotline (một liên hệ PHONE ghi chú khác không tính)
+  const h = w.q("SELECT updated_at FROM pty_party WHERE id = ?", THIEU)[0];
+  r = await w.call("PUT", `/api/parties/${THIEU}`, { as: SALES, body: { displayName: "Pháp nhân Thiếu", legalName: "CÔNG TY THIẾU", taxCode: "0312345678", address: "3 Đường Thiếu", invoiceEmail: null, active: true, expectedUpdatedAt: h.updated_at } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal((await w.call("POST", `/api/parties/${THIEU}/contacts`, { as: SALES, body: { kind: "PHONE", value: "0901 234 568", label: "Zalo" } })).status, 201);
+  r = await ganVai(w, SUP, THIEU, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "owner_company_incomplete");
+  assert.doesNotMatch(r.json.error.message, /tên pháp lý|mã số thuế|địa chỉ/, "chỉ nêu mục còn thiếu");
+  assert.match(r.json.error.message, /Hotline/);
+  assert.deepEqual({ vai: vaiMo(w), log: logCount(w, CT) + logCount(w, THIEU) - 2 }, truoc, "chỉ hai dòng nhật ký của PUT + thêm liên hệ; hai lần đổi bị từ chối không ghi");
+  // Thêm liên hệ "Hotline" → đủ → đổi được
+  assert.equal((await w.call("POST", `/api/parties/${THIEU}/contacts`, { as: SALES, body: { kind: "PHONE", value: "0901 234 569", label: "Hotline" } })).status, 201);
+  r = await ganVai(w, SUP, THIEU, { roleTypeCode: "OWNER_COMPANY" });
+  assert.equal(r.status, 201, r.text);
+  assert.deepEqual(vaiMo(w).map((x: any) => x.party_id), [THIEU]);
+  assert.equal((await w.call("GET", "/api/company")).status, 200, "không lúc nào trống: biên nhận đọc được ngay");
+});
+
 test("gán lại 'Công ty chủ' cho CHÍNH hồ sơ đang giữ → 409 owner_company_already 'đang là công ty chủ' (không câu chung 'trùng thời gian'); không đổi gì", async () => {
   const w = setup();
   const CT = congTyChu(w);

@@ -7,6 +7,21 @@
  */
 export const OWNER_COMPANY_ROLE = "OWNER_COMPANY";
 
+/**
+ * Mục định danh mà thông tin công ty công khai (GET /api/company — biên nhận) BẮT BUỘC có. MỘT nguồn cho hai nơi: module `company` (thiếu → 404) và
+ * module `parties` (Ruling T8 của điều phối, áp ADR-0043 "không lúc nào trống": không cho đổi công ty chủ sang hồ sơ thiếu mục nào → 409). Email không bắt buộc.
+ * Trả danh sách nhãn tiếng Việt của mục THIẾU (rỗng = đủ), theo thứ tự cố định.
+ */
+export function thieuChoCongTyChu(c: { legalName: string | null; taxCode: string | null; address: string | null; hotline: string | null }): string[] {
+  const co = (v: string | null): boolean => typeof v === "string" && v.trim().length > 0;
+  const out: string[] = [];
+  if (!co(c.legalName)) out.push("tên pháp lý");
+  if (!co(c.taxCode)) out.push("mã số thuế");
+  if (!co(c.address)) out.push("địa chỉ");
+  if (!co(c.hotline)) out.push("liên hệ ghi chú “Hotline” đang dùng");
+  return out;
+}
+
 /** 10–14 ký tự chữ số/gạch, như CHECK của cột mã số thuế ở hồ sơ tổ chức (migrations/0011). */
 const MST_RE = /^[0-9][0-9-]{9,13}$/;
 

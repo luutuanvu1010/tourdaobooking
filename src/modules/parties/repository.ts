@@ -112,16 +112,27 @@ const RELATIONSHIP_TYPES = defineSql("parties", "relationship_types", "SELECT co
 // ADR-0024 điều 6 / 6.2: hồ sơ "công ty chủ" = hồ sơ đang mở vai ?1. LIMIT 2 để nơi gọi phân biệt "đúng một" với "không có / hơn một" (bốn trigger của
 // migration *_ho_so_cong_ty_chu giữ đúng một). Hotline = liên hệ PHONE đang mở có nhãn "Hotline" (6.1; không phân biệt hoa thường), ưu tiên liên hệ chính
 // rồi mới nhất; email = liên hệ EMAIL đang mở, ưu tiên liên hệ chính. KHÔNG trả Zalo (chưa nơi nào đọc; CompanyDto cố ý không có).
-const OWNER_COMPANY = defineSql(
-  "parties",
-  "owner_company",
-  `SELECT p.id, p.display_name, o.legal_name, o.tax_code, o.address,
+// Định danh công ty của hồ sơ `p` (+ tổ chức `o`): MỘT định nghĩa cho hai câu dưới (công ty chủ hiện tại; một hồ sơ sắp làm công ty chủ — Ruling T8),
+// để "Hotline là gì" không có hai bản.
+const DINH_DANH_CONG_TY = `p.id, p.display_name, o.legal_name, o.tax_code, o.address,
      (SELECT c.value FROM pty_contact_point c WHERE c.party_id = p.id AND c.contact_kind_code = 'PHONE' AND c.valid_to_date IS NULL AND lower(trim(c.label)) = 'hotline'
        ORDER BY c.is_primary DESC, c.valid_from_date DESC, c.created_at DESC, c.id LIMIT 1) AS hotline,
      (SELECT c.value FROM pty_contact_point c WHERE c.party_id = p.id AND c.contact_kind_code = 'EMAIL' AND c.valid_to_date IS NULL
-       ORDER BY c.is_primary DESC, c.valid_from_date DESC, c.created_at DESC, c.id LIMIT 1) AS email
+       ORDER BY c.is_primary DESC, c.valid_from_date DESC, c.created_at DESC, c.id LIMIT 1) AS email`;
+const OWNER_COMPANY = defineSql(
+  "parties",
+  "owner_company",
+  `SELECT ${DINH_DANH_CONG_TY}
    FROM pty_party_role r JOIN pty_party p ON p.id = r.party_id LEFT JOIN pty_organization o ON o.party_id = p.id
    WHERE r.role_type_code = ?1 AND r.valid_to_date IS NULL LIMIT 2`,
+);
+// Ruling T8 (điều phối, áp ADR-0043 "không lúc nào trống"): định danh của MỘT hồ sơ ?1 — route gán "Công ty chủ" kiểm đủ mục trước khi đổi. Không có hồ sơ → không dòng.
+const COMPANY_IDENTITY_OF = defineSql(
+  "parties",
+  "company_identity_of",
+  `SELECT ${DINH_DANH_CONG_TY}
+   FROM pty_party p LEFT JOIN pty_organization o ON o.party_id = p.id
+   WHERE p.id = ?1`,
 );
 
 export interface ListFilter {
@@ -179,6 +190,10 @@ export interface OwnerCompanyRow { id: string; display_name: string; legal_name:
 /** Các hồ sơ đang mở vai `roleCode` (tối đa 2) kèm định danh — chỉ `ownerCompany` của index.ts gọi, với mã vai công ty chủ. */
 export async function ownerCompanyRows(db: D1Database, roleCode: string): Promise<OwnerCompanyRow[]> {
   return (await db.prepare(OWNER_COMPANY).bind(roleCode).all<OwnerCompanyRow>()).results;
+}
+/** Định danh công ty của một hồ sơ (null nếu không có hồ sơ) — NỘI BỘ module: route gán "Công ty chủ" kiểm đủ mục (Ruling T8). KHÔNG xuất qua index.ts. */
+export async function companyIdentityOf(db: D1Database, partyId: string): Promise<OwnerCompanyRow | null> {
+  return db.prepare(COMPANY_IDENTITY_OF).bind(partyId).first<OwnerCompanyRow>();
 }
 export async function listRelationshipTypes(db: D1Database): Promise<TypeRow[]> {
   return (await db.prepare(RELATIONSHIP_TYPES).all<TypeRow>()).results;

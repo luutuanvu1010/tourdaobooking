@@ -5,7 +5,7 @@ import { auditStatement } from "../audit";
 import type {
   ContactPointDto, PartyDto, PartyListItemDto, PartyListResponse, PartyLookupResponse, PartyMetaResponse, PartyRelationshipDto, PartyResponse, PartyRoleDto,
 } from "../../shared/contracts";
-import { OWNER_COMPANY_ROLE } from "../../shared/cong-ty-chu";
+import { OWNER_COMPANY_ROLE, thieuChoCongTyChu } from "../../shared/cong-ty-chu";
 import { UUID_RE, error, escapeLike, intParam, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { normalizePhone } from "../../shared/phone";
@@ -14,7 +14,8 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements,
+  companyIdentityOf, findParty, findPartiesByPhone, getPartyDetail, isOwnerCompanyParty, listParties, listRelationshipTypes, listRoleTypes, newOrganizationStatements,
+  newPersonStatements,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeGroup, updatePartyStatements,
   type PartyListRow, type PartyRow, type ContactRow, type RelationshipRow, type RoleRow,
 } from "./repository";
@@ -89,6 +90,9 @@ const OWNER_COMPANY_LOCKED = () => error(409, "owner_company_locked", KHONG_KET_
 const OWNER_COMPANY_ALREADY = () => error(409, "owner_company_already", "Hồ sơ này đang là công ty chủ.");
 const OWNER_COMPANY_SAME_DAY = () => error(409, "owner_company_same_day", "Hồ sơ này vừa thôi làm công ty chủ hôm nay, gán lại vào ngày mai.");
 const NGAY_BAT_DAU_HOM_NAY = "Đổi công ty chủ có hiệu lực từ hôm nay — để trống ô ngày bắt đầu.";
+// Ruling T8 (điều phối, áp ADR-0043 "không lúc nào trống"): hồ sơ sắp làm công ty chủ phải đủ các mục biên nhận cần (một nguồn: thieuChoCongTyChu).
+const OWNER_COMPANY_INCOMPLETE = (thieu: string[]) =>
+  error(409, "owner_company_incomplete", `Hồ sơ này chưa đủ thông tin để làm công ty chủ — còn thiếu: ${thieu.join(", ")}. Bổ sung ở Danh bạ rồi thử lại.`);
 
 /** Lỗi ràng buộc của CSDL → phản hồi rõ nghĩa; lỗi lạ trả null để ném lên (500 có requestId). */
 function constraintProblem(e: unknown): Response | null {
@@ -365,6 +369,10 @@ export const partiesModule: AppModule = {
         const problem = ownerCompanyAssignProblem(party.party_kind, parsed.value, today);
         if (problem) return error(400, "invalid_input", problem);
         if (chu) return OWNER_COMPANY_ALREADY(); // câu hợp ngữ cảnh thay cho câu chung "trùng thời gian" của trigger chồng lấn 0011 (ADR-0043 điều 2)
+        // Ruling T8: điều kiện TRƯỚC khi đổi (không phải bất biến — không trigger): hồ sơ mới phải đủ mục mà GET /api/company cần, để không lúc nào trống.
+        const d = await companyIdentityOf(env.DB, id);
+        const thieu = thieuChoCongTyChu({ legalName: d?.legal_name ?? null, taxCode: d?.tax_code ?? null, address: d?.address ?? null, hotline: d?.hotline ?? null });
+        if (thieu.length > 0) return OWNER_COMPANY_INCOMPLETE(thieu);
         const cu = (await ownerCompanyRows(env.DB, OWNER_COMPANY_ROLE)).find((r) => r.id !== id);
         stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_added", at, targetType: "party", targetId: id, detail: cu ? `công ty chủ (thay "${cu.display_name}")` : "công ty chủ" }));
         if (cu) stmts.push(auditStatement(env.DB, { staffId: staff.id, action: "party_role_ended", at, targetType: "party", targetId: cu.id, detail: `thôi là công ty chủ (chuyển sang "${party.display_name}")` }));
