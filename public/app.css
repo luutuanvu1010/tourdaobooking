@@ -1172,7 +1172,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-alert { display: flex; align-items: center; gap: var(--s2); padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: 700; border: 1px solid; border-radius: var(--radius-sm); }
 .vc-alert svg, .vc-field-error svg, .vc-warnbox svg, .vc-renew-note svg { flex: none; }
 .vc-row-between { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
-.vc-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-ui); font-weight: 800; line-height: 1.2; text-decoration: none; border-radius: var(--radius-sm); cursor: pointer; }
+.vc-btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--s2); min-height: var(--tap-min); padding: 0 var(--s4); font: inherit; font-size: var(--fs-ui); font-weight: 800; line-height: 1.2; white-space: nowrap; text-decoration: none; border-radius: var(--radius-sm); cursor: pointer; }
 .vc-btn.btn-primary { border-color: var(--c-primary); }
 .vc-btn.btn-primary:hover { background: var(--c-primary-strong); border-color: var(--c-primary-strong); }
 .vc-btn-line { color: var(--c-primary); background: var(--c-surface); border: 1px solid var(--c-primary); }
@@ -1317,7 +1317,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-dt-row { min-height: var(--h-vc-row-lg); font-size: var(--fs-vc-sm); }
 .vc-dt-item { border-bottom: 1px solid var(--c-border); }
 .vc-dt-item:last-child { border-bottom: 0; }
-.vc-dt-type { display: flex; flex-direction: column; min-width: 0; }
+.vc-dt-type { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
 .vc-dt-actions { display: flex; justify-content: flex-end; align-items: center; gap: var(--s2); }
 .vc-dt-actions .vc-btn { padding: 0 var(--s3); font-size: var(--fs-label); }
 .vc-dt-actions .vc-btn-text { padding: 0 var(--s2); }
