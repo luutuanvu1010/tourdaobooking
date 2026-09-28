@@ -1,6 +1,6 @@
 // Danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn" có ngày hiệu lực, danh sách giấy tờ sắp hết hạn gộp xe + tài xế (ADR-0040 D1; kế hoạch Task A15; Ruling R15
 // điểm 2: có `count` cho huy hiệu menu). Chạy CẢ ứng dụng trên SQLite thật. Tài xế tạo bằng ĐƯỜNG THẬT POST /api/staff roles ["DRIVER_INTERNAL"]. Số là số GIẢ.
-import { test } from "node:test";
+import { test, mock } from "node:test";
 import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../../../tests/audit/harness.mjs";
@@ -84,6 +84,25 @@ test("route 22 ngưỡng: Quản trị → 403 (settings.ops chỉ Toàn quyền
   const l = await w.call("GET", "/api/van-chuyen/sap-het-han", { as: ADM });
   assert.deepEqual(l.json.items.map((i: any) => i.typeName), ["Giấy phép lái xe", "Kiểm định"]);
   assert.deepEqual([l.json.warnDays, l.json.count], [7, 2]);
+});
+
+test("route 22 (Ruling R19): hai lần đổi mốc nhắc CÙNG một mili-giây → lần sau 409 stale \"Vừa có người đổi mốc nhắc, tải lại rồi thử lại.\" (không 500); dòng và nhật ký của lần sau không ghi", async () => {
+  const w = world();
+  seedStaff(w.sqlite, { id: SUP, phone: "0900000007", name: "Chủ", perms: ["SUPER_ADMIN"] });
+  // Đồng hồ đứng yên: mọi `new Date()` trong máy chủ trả CÙNG một mốc ⇒ lần ghi thứ hai vấp khoá duy nhất valid_from_at.
+  mock.timers.enable({ apis: ["Date"], now: Date.now() });
+  try {
+    const a = await w.call("POST", "/api/van-chuyen/nguong-het-han", { as: SUP, body: { warnDays: 7 } });
+    assert.equal(a.status, 200, a.text);
+    const b = await w.call("POST", "/api/van-chuyen/nguong-het-han", { as: SUP, body: { warnDays: 10 } });
+    assert.equal(b.status, 409, b.text);
+    assert.equal(b.json.error.code, "stale");
+    assert.equal(b.json.error.message, "Vừa có người đổi mốc nhắc, tải lại rồi thử lại.");
+  } finally {
+    mock.timers.reset();
+  }
+  assert.deepEqual(w.q("SELECT warn_days FROM vc_expiry_policy ORDER BY valid_from_at").map((r: any) => r.warn_days), [30, 7], "lần sau không ghi dòng chính sách");
+  assert.equal(w.q("SELECT count(*) AS n FROM audit_log WHERE action = 'expiry_policy_changed'")[0].n, 1, "lần sau không ghi nhật ký (cùng lô, lô huỷ)");
 });
 
 test("route 19: Quản trị → 200, 6 loại giấy tờ xe + ngưỡng; Bán hàng → 403", async () => {
