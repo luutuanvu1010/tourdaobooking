@@ -258,7 +258,9 @@ try {
   // ---- 10g) Minor 2: lưu thành công phải THAY mục lịch sử của form (location.replace), không thêm mục: Back/bfcache không đưa người dùng về form đã lưu (bấm Lưu lần hai = POST /api/orders lần hai = đơn trùng) ----
   p = await env.as(ACCOUNTS.salesA, "/orders");
   await p.send("Page.navigate", { url: `${env.base}/order-form` }); // đi từ một trang trước tới form: form có một mục lịch sử riêng
-  await p.waitFor("location.pathname === '/order-form' && document.getElementById('add-manual') !== null", "form (đi từ trang trước)");
+  // Chờ ô tìm danh mục (JS dựng — web/catalog-picker.ts), KHÔNG chờ #add-manual (có sẵn trong HTML tĩnh nên xuất hiện TRƯỚC khi mã trang chạy — bước dưới gọi
+  // #catalog-q ngay và từng chập chờn khi máy bận, 29/9).
+  await p.waitFor("location.pathname === '/order-form' && document.getElementById('catalog-q') !== null", "form (đi từ trang trước)");
   // 2026-09-26 (DK-T3-01): máy chủ không nhận dịch vụ nhập tay MỚI (chủ dự án "loại bỏ hoàn toàn dịch vụ nhập tay") → bước lưu này dùng thẻ danh mục TD101
   // (trước đây bấm nút ẩn "+ Dịch vụ nhập tay"; lưu nay trả 400 nên kịch bản đổi, không phải lỗi mã).
   // Trang tới bằng Page.navigate (không qua env.as): GET /api/catalog có thể CHƯA xong lúc gõ, và ô tìm chỉ vẽ lại khi focus/gõ → gõ lại mỗi lần thăm dò.

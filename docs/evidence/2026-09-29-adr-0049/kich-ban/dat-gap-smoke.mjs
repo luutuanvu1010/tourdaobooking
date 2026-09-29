@@ -225,16 +225,20 @@ try {
     await d.waitFor(shown("#order .dg-mark"), "nhãn đặt gấp (Đối tác)");
     assert.equal(await d.ev(`document.querySelector('#order .dg-mark').dataset.datGap`), "co");
     assert.equal(await d.ev(txt("#order .dg-mark")), "Đặt gấp — Quản trị đã duyệt");
-    // Khối dịch vụ (phần V12) không có lý do / ghi chú. Nhật ký đơn ("Lịch sử") là dữ liệu của MÁY CHỦ (câu nhật ký `order_leg_short_notice` có nhãn lý do) —
-    // ghi lại cho điều phối (Q-B-5), không lọc ở giao diện.
+    // Khối dịch vụ (phần V12) không có lý do / ghi chú. Khối "Lịch sử" (nhật ký đơn của MÁY CHỦ) kiểm riêng ở bước 10b (bài canh R-P21).
     assert.equal(await d.ev(`(() => { const t = document.querySelector('#order .services').innerText; return t.includes('Ghi chú nội bộ') || t.includes('Khách đoàn gọi gấp'); })()`), false);
     assert.equal(await d.ev(`document.body.innerText.includes('Ghi chú nội bộ')`), false, "ghi chú đặt gấp không lộ ở đâu trên trang");
-    const lichSu = await d.ev(`[...document.querySelectorAll('.history li')].map((li) => li.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => t.includes('đặt gấp'))`);
-    console.log(`   (ghi nhận) Lịch sử đơn mà Đối tác thấy, dòng có "đặt gấp": ${JSON.stringify(lichSu)}`);
     const leg = legOf((await call(DOI_TAC, "GET", `/api/orders/${o2.id}`)).json.order);
     assert.deepEqual(leg.datGap, { daDuyet: true });
     await axe(d, "trang đơn Đối tác");
     await shotFull(d, "b7-don-doi-tac-dien-thoai.png");
+  });
+  // BÀI CANH R-P21 (Q-B-5, điều phối 29/9): chủ H4 — Đối tác / HDV / Thực tập chỉ biết "Quản trị đã duyệt". Nhật ký đơn mà máy chủ trả cho Đối tác KHÔNG được
+  // mang nhãn lý do đặt gấp hay tên người duyệt. Tới khi máy chủ vá R-P21, bước này ĐỎ ĐÚNG CHỖ ("đỏ chờ R-P21") — không sửa giao diện để che.
+  await b.step("10b", "BÀI CANH R-P21 — Lịch sử đơn của Đối tác không có lý do đặt gấp, không có tên người duyệt (đỏ chờ máy chủ vá R-P21)", async () => {
+    const lichSu = await d.ev(`[...document.querySelectorAll('.history li')].map((li) => li.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => /đặt gấp/i.test(t))`);
+    const lo = lichSu.filter((t) => t.includes("Khách đoàn gọi gấp") || t.includes(ACCOUNTS.admin.name));
+    assert.deepEqual(lo, [], `dòng nhật ký lộ lý do / người duyệt cho Đối tác: ${JSON.stringify(lichSu)}`);
   });
   await b.step("11", "Không lỗi console (trừ 401/403/409 của tài nguyên — 409 là lỗi cố ý ở bước 3, 4, 8)", async () => {
     await sleep(200);

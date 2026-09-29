@@ -139,7 +139,17 @@ try {
     const created = await postOrder(ACCOUNTS.admin, input);
     assert.equal(created.status, 201, `tạo đơn: ${JSON.stringify(created.json)}`);
     const id = created.json.order.id;
-    const confirmed = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+    let confirmed = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+    // ADR-0049 D2 (mốc tối thiểu 6 giờ, 2026-09-29): chặng đón HÔM NAY (giờ đã qua / sát giờ) bị chặn xác nhận — 409 `short_notice_required` kèm `legs`.
+    // Đi ĐÚNG đường nghiệp vụ: Quản trị đặt gấp từng chặng máy chủ nêu (route POST …/legs/:legId/short-notice) rồi xác nhận lại. Không nới máy chủ, không đổi
+    // ngày giờ của dữ liệu thử (Trang chủ cần chuyến đón HÔM NAY).
+    if (confirmed.status === 409 && confirmed.json?.error?.code === "short_notice_required") {
+      for (const { legId } of confirmed.json.error.legs) {
+        const g = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/legs/${legId}/short-notice`, { lyDo: "KHAC", ghiChu: null });
+        assert.equal(g.status, 200, `đặt gấp chặng ${legId} của đơn ${id}: ${JSON.stringify(g.json)}`);
+      }
+      confirmed = await call(ACCOUNTS.admin, "POST", `/api/orders/${id}/status`, { status: "confirmed" });
+    }
     assert.equal(confirmed.status, 200, `xác nhận đơn ${id}: ${JSON.stringify(confirmed.json)}`);
     return confirmed.json.order;
   };
@@ -445,9 +455,12 @@ try {
     // DESC ở GET /api/feedback).
     // ================================================================================================
     assert.ok(m.review.exists, `${label}: #dash-review phải có trong DOM — ${JSON.stringify(m)}`);
-    assert.equal(m.review.hiddenAttr, false, `${label}: #dash-review phải HIỆN (ADMIN, có 2 cảnh báo thật) — ${JSON.stringify(m.review)}`);
+    assert.equal(m.review.hiddenAttr, false, `${label}: #dash-review phải HIỆN (ADMIN, có cảnh báo Sheet đổi giá thật) — ${JSON.stringify(m.review)}`);
     assert.equal(m.review.shown, true, `${label}: #dash-review phải đang hiển thị THẬT (offsetParent), không chỉ bỏ thuộc tính hidden — ${JSON.stringify(m.review)}`);
-    assert.equal(m.review.rows.length, 2, `${label}: phải có đúng 2 dòng cảnh báo (Sheet đổi giá + góp ý) — ${JSON.stringify(m.review)}`);
+    // ADR-0038 (Quản trị vs Toàn quyền): hàng đợi Góp ý chỉ Toàn quyền (ô `feedback.triage`; web/home.ts chỉ gọi /api/feedback khi can() đồng ý) → "Cần xem
+    // lại" của Quản trị chỉ còn dòng Sheet đổi giá; hai góp ý MỚI (fb1, fb2) vẫn được dựng để khẳng định chúng KHÔNG lọt vào khối này của Quản trị.
+    // (Trước 29/9 kịch bản chờ 2 dòng — đỏ sẵn từ ADR-0038, sửa khi làm xanh kịch bản ở Phần B ADR-0049.)
+    assert.equal(m.review.rows.length, 1, `${label}: Quản trị có đúng 1 dòng cảnh báo (Sheet đổi giá) — góp ý chỉ Toàn quyền (ADR-0038) — ${JSON.stringify(m.review)}`);
     assert.equal(m.review.rows[0].title, "Sheet đã đổi giá TD101", `${label}: dòng 1 phải là cảnh báo Sheet đổi giá đúng mã TD101 — ${JSON.stringify(m.review)}`);
     assert.equal(
       m.review.rows[0].sub,
@@ -455,13 +468,7 @@ try {
       `${label}: dòng phụ dòng 1 phải đúng base → current (khớp công thức catalog/rules.ts applyOverride) — ${JSON.stringify(m.review)}`,
     );
     assert.equal(m.review.rows[0].href, "/catalog", `${label}: dòng Sheet đổi giá phải liên kết tới /catalog — ${JSON.stringify(m.review)}`);
-    assert.equal(m.review.rows[1].title, "2 góp ý mới chưa trả lời", `${label}: dòng 2 phải nói đúng số góp ý MỚI (2) — ${JSON.stringify(m.review)}`);
-    assert.equal(
-      m.review.rows[1].sub,
-      `${fb2.json.ticket.code} đề xuất · ${fb1.json.ticket.code} báo lỗi`,
-      `${label}: dòng phụ dòng 2 phải đúng mã + loại, MỚI NHẤT (fb2, Sales Hai) đứng TRƯỚC — ${JSON.stringify(m.review)}`,
-    );
-    assert.equal(m.review.rows[1].href, "/feedback", `${label}: dòng góp ý phải liên kết tới /feedback — ${JSON.stringify(m.review)}`);
+    assert.ok(!m.review.rows.some((r) => r.href === "/feedback"), `${label}: KHÔNG có dòng góp ý cho Quản trị (ADR-0038) dù có ${[fb1, fb2].length} góp ý mới — ${JSON.stringify(m.review)}`);
 
     // Kiểm gộp I-3: số liệu ô ("dash-stat-value", vd "500.000 ₫") KHÔNG được xuống dòng — ký hiệu tiền tệ từng rơi xuống dòng riêng
     // ở lưới 2 cột khổ điện thoại hẹp (≤639px). So chiều cao thật với chiều cao MỘT dòng (line-height tính được).
@@ -527,8 +534,15 @@ try {
   // không do 1a, chưa sửa ở đây (kịch bản còn đỏ sẵn ở :450 trước dòng này).
   // Tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ dự án 2026-09-28; ô admin.manage): thêm "Loại giấy tờ người" (sau "Địa điểm") + mục con "Loại giấy tờ xe" (dưới
   // "Vận chuyển") ⇒ +2 ⇒ 16. Cũng CHỈ cộng phần của việc này: số THẬT của Quản trị nay là 15 (= 13 + 2) — con số 16 còn giữ nợ "Nhật ký" (ADR-0038, đỏ sẵn).
-  // ADR-0049 B8 (bản vẽ Bảng điều phối vo-may-tinh, 2026-09-29): mục con "Lý do điều phối" (ô admin.manage) ⇒ +1 ⇒ 17; số THẬT 16. "Chính sách điều phối" chỉ
-  // Toàn quyền (ô settings.ops) — Quản trị không có. "Điều phối xe" (B1) chưa có trang nên chưa có mục.
+  // ADR-0049 B8 (bản vẽ Bảng điều phối vo-may-tinh, 2026-09-29): mục con "Lý do điều phối" (ô admin.manage) ⇒ +1. "Chính sách điều phối" chỉ Toàn quyền (ô
+  // settings.ops) — Quản trị không có. "Điều phối xe" (B1) chưa có trang nên chưa có mục.
+  // 29/9 (làm xanh kịch bản, Phần B ADR-0049): BỎ nợ "Nhật ký" — ADR-0038 đã quyết Nhật ký chỉ Toàn quyền, nên Quản trị KHÔNG có mục đó là ĐÚNG; kịch bản nay
+  // đếm số THẬT (16) và so ĐÚNG danh sách nhãn, thay cho con số 17 giữ chỗ nợ.
+  const ADMIN_NAV = [
+    "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
+    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
+    "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
+  ];
   const navMeasure = await p.ev(`(() => {
     const links = [...document.querySelectorAll('#sidebar .sidebar-item')];
     return {
@@ -539,7 +553,8 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.equal(navMeasure.linkCount, 17, `Thanh điều hướng dọc (ADMIN) phải có 17 mục (9 mục cũ + "Của tôi" (trước 1.10 tên "Tài khoản") + "Trợ giúp" + "Vận chuyển", "Xe", "Sắp hết hạn" của Vận chuyển 1a + "Loại giấy tờ người", "Loại giấy tờ xe" (tách danh mục giấy tờ 2026-09-28) + "Lý do điều phối" (ADR-0049 B8); số THẬT là 16 — thiếu "Nhật ký" là nợ ADR-0038, đỏ sẵn) — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 16 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 16, `Thanh điều hướng dọc (ADMIN) phải có 16 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -829,9 +844,17 @@ try {
   //    Hai trang sau CHỈ quét từ 641px: /order-form khai data-tabbar="off" nên ở ≤640px không có thanh tab —
   //    nhánh ≤640px là bằng chứng của riêng /staff, không đem áp cho trang có thiết kế điện thoại khác.
   // ==================================================================================================
+  // 29/9 (làm xanh kịch bản, Phần B ADR-0049): ADR-0038 — trang Nhật ký chỉ Toàn quyền (ô audit.view). Quản trị mở /audit chỉ thấy câu từ chối, ô "Lọc hành
+  // động" không bao giờ dựng → kịch bản cũ kẹt (đỏ sẵn). Trang /audit nay mở bằng tài khoản Quản trị + Toàn quyền (như chủ dự án); thanh bên của tài khoản đó
+  // có 19 mục = 16 của Quản trị + "Chính sách điều phối" (ADR-0049 B8), "Nhật ký", "Gửi thông báo".
+  const TOAN_QUYEN = { name: "Chủ Khung Thử", phone: "0900000396", pin: "998866", permissions: ["ADMIN", "SUPER_ADMIN"] };
+  {
+    const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
+    for (const stmt of (await insertStaffSql(TOAN_QUYEN)).split("\n")) if (stmt.trim()) env.sql(stmt);
+  }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN },
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 16 },
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -846,6 +869,8 @@ try {
         // (cùng khối bật bố cục 2 cột form+tóm tắt) — dưới 960px trang Lập đơn vẫn dùng trần chung --w-main
         // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
         mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
+        account: ACCOUNTS.admin,
+        sidebar: 16,
       },
       {
         path: "/audit",
@@ -854,6 +879,8 @@ try {
         // Ô chọn chỉ đạt bề rộng thật sau khi web/audit.ts sinh đủ optgroup/option từ src/shared/audit-actions.ts.
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
+        account: TOAN_QUYEN,
+        sidebar: 19,
       },
     ];
 
@@ -942,7 +969,7 @@ try {
     let pFrame = null; // trang /staff được GIỮ MỞ để G-2/G-3 dùng tiếp; hai trang kia đóng ngay sau khi quét xong.
     let sawRealClip = false; // A-1.1: phải THẬT SỰ đo được ít nhất một lần breadcrumb bị cắt trong lượt quét dưới đây, không thì khẳng định trên chỉ là lưới giả (không bao giờ chạy tới).
     for (const spec of FRAME_PAGES) {
-    const page = await env.as(ACCOUNTS.admin, spec.path, DESK);
+    const page = await env.as(spec.account, spec.path, DESK);
     await page.waitFor("document.querySelector('#sidebar') !== null", `thanh bên dựng xong (${spec.label})`);
     if (spec.ready) await page.waitFor(spec.ready, `nội dung quyết định bề rộng đã sẵn sàng (${spec.label})`);
     const frameRows = [];
@@ -965,7 +992,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, 17, `${at}: thanh bên của ADMIN phải đủ 17 mục (gồm "Trợ giúp", 3 mục Vận chuyển 1a, 2 mục tách danh mục giấy tờ 2026-09-28 và "Lý do điều phối" ADR-0049 B8; số THẬT 16 — nợ "Nhật ký" ADR-0038, xem ghi chú ở bước D) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 16 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối"; Toàn quyền 19) — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
@@ -1028,7 +1055,7 @@ try {
       }
     }
     ok(
-      `G-1) Quét ${spec.widths.length} khổ màn hình trên ${spec.label} (ADMIN) — mốc thanh bên MỚI là 641px:\n` +
+      `G-1) Quét ${spec.widths.length} khổ màn hình trên ${spec.label} (${spec.account === ACCOUNTS.admin ? "Quản trị" : "Quản trị + Toàn quyền"}) — mốc thanh bên MỚI là 641px:\n` +
         frameRows
           .map(
             (f) =>
@@ -1270,7 +1297,7 @@ try {
     // ================================================================================================
     const auditFresh = [];
     for (const width of [641, 645, 650, 768]) {
-      const pAudit = await env.as(ACCOUNTS.admin, "/audit", { width, height: 800, mobile: false });
+      const pAudit = await env.as(TOAN_QUYEN, "/audit", { width, height: 800, mobile: false }); // ADR-0038: Nhật ký chỉ Toàn quyền
       await pAudit.waitFor("document.querySelector('#sidebar') !== null", `thanh bên dựng xong (/audit ${width}px, tải mới)`);
       await pAudit.waitFor(`document.querySelector('.toolbar select option[value]:not([value=""])') !== null`, `ô chọn "Lọc hành động" đủ tuỳ chọn (/audit ${width}px)`);
       const a = await pAudit.ev(`(() => {

@@ -435,9 +435,12 @@ try {
     assert.equal(await p.ev("document.getElementById('error').classList.contains('banner-info')"), true);
     assert.deepEqual(await p.ev(CARD_BUTTONS), ["Đổi người phụ trách"], "người lập vẫn đổi lại được (ADR-0009: giữ quyền)");
     assert.equal(await p.ev("document.activeElement === document.querySelector('[data-action=change-handler]')"), true, "focus trở về nút đổi (đã dựng lại)");
-    // ADR-0030 S20-4 (Task 1.7): lần GIAO ĐẦU TIÊN (từ "chưa có người phụ trách", ở getMain qua assignVia) nay CŨNG ghi nhật ký `order_handler_changed`
-    // (trước đây người lập là mặc định, KHÔNG qua route nào nên không có dòng) — nên đơn "main" có 2 dòng: giao lần đầu (A) + đổi ở bước này (A → B).
-    assert.deepEqual(await p.ev("[...document.querySelectorAll('.history li')].map((li) => li.textContent).filter((t) => /Đổi người phụ trách/.test(t)).length"), 2, "nhật ký đơn có hai dòng “Đổi người phụ trách”: giao lần đầu (getMain) và đổi ở bước này");
+    // ADR-0030 S20-4 (Task 1.7): lần GIAO ĐẦU TIÊN (từ "chưa có người phụ trách", ở getMain qua assignVia) nay CŨNG ghi nhật ký (trước đây người lập là
+    // mặc định, KHÔNG qua route nào nên không có dòng). ADR-0034 §4.3 (commit 7db026c): getMain giao cho CHÍNH A (người gọi tự đặt mình vào đơn chưa có
+    // người) → máy chủ ghi `order_claimed` "Tự nhận phụ trách đơn", KHÔNG phải `order_handler_changed` — nên đơn "main" có 1 dòng "Tự nhận phụ trách đơn"
+    // (giao lần đầu) + 1 dòng "Đổi người phụ trách" (A → B ở bước này). (Kịch bản cũ chờ 2 dòng "Đổi…" — đỏ sẵn từ 7db026c; sửa 29/9, Phần B ADR-0049.)
+    const lichSuPhuTrach = await p.ev("[...document.querySelectorAll('.history li')].map((li) => li.textContent).filter((t) => /Đổi người phụ trách|Tự nhận phụ trách đơn/.test(t)).map((t) => (/Tự nhận phụ trách đơn/.test(t) ? 'nhận' : 'đổi')).sort()");
+    assert.deepEqual(lichSuPhuTrach, ["nhận", "đổi"].sort(), "nhật ký đơn: một dòng “Tự nhận phụ trách đơn” (giao lần đầu cho chính A ở getMain) và một dòng “Đổi người phụ trách” (bước này)");
     // Task 8 Đợt E: mục "Lịch sử" nay dựng thêm `detail` của audit_log (trước bản sửa: API đã trả đúng nhưng trang không dựng ra) — đo bằng
     // chính dòng "Đổi người phụ trách" vừa tạo ở bước này (KHÔNG dựng thêm đơn/điều chỉnh tiền riêng, tái dùng đúng thao tác đã có).
     assert.ok(

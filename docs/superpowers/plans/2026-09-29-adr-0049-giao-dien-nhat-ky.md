@@ -51,6 +51,14 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
    - Q2 "Đã gọi báo" + giờ hẹn cũ: làm lượt này nhưng cần quyết định bổ sung — CHƯA dựng (giữ chỗ trong bố cục "Cần xử lý" nếu tiện, không nối gì).
 3. **Máy chủ đã có R-P18 @`cf5dc91`, R-P15 @`56821fb`** (nhánh `thi-cong-adr-0049-tiep`): gộp `56821fb` vào nhánh này ở điểm sạch, rồi làm phần B7 còn lại (cảnh báo dưới mốc trên đơn CHƯA lưu qua route mới; "Duyệt đặt gấp" trên đơn chưa lưu = tự lưu nháp rồi gọi route 30; lý do lấy từ `LY_DO_DAT_GAP`). N-14 chưa có.
 
+4. **Điều phối trả lời Q-B-1…5 (29/9 tối, sau báo cáo `87d0d42`):**
+   - Q-B-5: đúng là lỗ — máy chủ vá (**R-P21**: lịch sử đơn của Đối tác / HDV / Thực tập không có lý do + tên người duyệt). Bước 10 của `dat-gap-smoke.mjs` giữ làm **bài canh** — đang đỏ đúng chỗ thì ghi "đỏ chờ R-P21"; khi có sha thì gộp và thấy nó xanh.
+   - Q-B-1: CÓ "ai lưu" theo bản vẽ — máy chủ thêm (**R-P23**); làm phần hiển thị khi điều phối báo.
+   - Q-B-2: chấp nhận mã lý do sinh từ nhãn ở giao diện; máy chủ kiểm định dạng + trùng (**R-P24**).
+   - Q-B-3: KHÔNG được ngưng mã hệ thống — máy chủ 409 + cờ `heThong` (**R-P22**); giao diện ẩn nút "Ngưng" theo cờ khi điều phối báo.
+   - Q-B-4: mục cha "Vận chuyển" hiện khi có `vehicle.manage` HOẶC `trip.view`; từng mục con theo ô quyền của nó — làm ở B1.
+   - Vòng tiếp (không phụ thuộc máy chủ): (1) làm xanh `trang-chu-smoke.mjs` (dựng dữ liệu vấp 409 mốc — đổi dữ liệu thử hoặc dùng đường đặt gấp của Quản trị, KHÔNG nới máy chủ; rồi đếm thật 17 mục — N-B-2), `dot-c-smoke.mjs`, `v1-nguoi-phu-trach.mjs` bước (b), `a2-smoke-form.mjs` bước 10g (N-B-1) — tìm nguyên nhân gốc trước; hành vi app sai → DỪNG phần đó, báo; (2) N-B-3: ca Chrome cho 503 nếu dựng được trên D1 local mà không sửa máy chủ; (3) không làm B1–B6 tới khi có A13 / A15.
+
 ## 2. Bản vẽ lệch ADR / kế hoạch / máy chủ — cách xử lý
 
 ### 2.1 B8 — V13 (08: khung 8a–8d)
