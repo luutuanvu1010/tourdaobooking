@@ -21,25 +21,11 @@ export function int(v: unknown, label: string, min: number, max: number, fallbac
   return { value: v };
 }
 
-// Ký tự điều khiển ASCII + dấu tách dòng/đoạn Unicode (U+2028/2029 — giả xuống dòng) + dấu điều hướng hai chiều (U+200E/F, 202A–202E, 2066–2069 — đảo chiều chữ).
-// Cố ý KHÔNG bỏ U+200B–200D (khoảng trắng/nối độ rộng 0): cần cho emoji ghép.
-const UNICODE_LAYOUT = "\\u2028\\u2029\\u200e\\u200f\\u202a-\\u202e\\u2066-\\u2069";
-const CONTROL_KEEP_NEWLINE = new RegExp(`[\\u0000-\\u0009\\u000b-\\u001f\\u007f${UNICODE_LAYOUT}]`, "g");
-const CONTROL_ALL = new RegExp(`[\\u0000-\\u001f\\u007f${UNICODE_LAYOUT}]`, "g");
-
 /**
- * Chuỗi tự do đi vào PNG/PDF (điểm đón, nơi check-in, ghi chú): bỏ ký tự điều khiển như booking (`schema.ts` của tourdaovn),
- * để xuống dòng giả không chen vào mẫu xuất. `multiline` = true chỉ giữ dấu xuống dòng; false gộp mọi khoảng trắng thành một dấu cách.
+ * Chuỗi tự do đi vào PNG/PDF (điểm đón, nơi check-in, ghi chú) — luật làm sạch nay ở `src/shared/text-guards.ts` (ADR-0047: chặng đưa đón kiểm ở luật
+ * thuần dùng chung, không import module); xuất lại ở đây để mã cũ của orders không đổi. MỘT luật cho mọi nơi đón.
  */
-export function cleanText(v: unknown, label: string, max: number, multiline: boolean): TextField {
-  if (v === undefined || v === null) return { value: null };
-  if (typeof v !== "string") return { value: null, error: `${label} không hợp lệ.` };
-  const unified = v.replace(/\r\n?/g, "\n");
-  const s = (multiline ? unified.replace(CONTROL_KEEP_NEWLINE, " ") : unified.replace(CONTROL_ALL, " ").replace(/\s+/g, " ")).trim();
-  if (!s) return { value: null };
-  if (s.length > max) return { value: null, error: `${label} tối đa ${max} ký tự.` };
-  return { value: s };
-}
+export { cleanText } from "../../shared/text-guards.ts";
 
 /** Ngày YYYY-MM-DD đúng lịch. Rỗng/vắng → null. */
 export function dateField(v: unknown, label: string): TextField {

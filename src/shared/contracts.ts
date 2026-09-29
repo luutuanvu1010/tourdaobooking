@@ -239,7 +239,15 @@ export interface TripInput {
  * Một dịch vụ trong đơn. `catalog`: chỉ gửi mã + số khách + đơn giá thực tế; dòng tiền do MÁY CHỦ sinh (không nhận số lượng từ client).
  * `id` = dịch vụ đã lưu của chính đơn này (giữ bản chụp nếu mã và số khách không đổi).
  */
-export type ServiceInput = { id?: string; pax: PaxCounts } & TripInput &
+export type ServiceInput = {
+  id?: string;
+  pax: PaxCounts;
+  /**
+   * Chặng đưa đón của dịch vụ (ADR-0047 A1). CÓ khoá (kể cả `[]`) = danh sách mới, thay hẳn chặng đang lưu (đơn nháp). VẮNG = giữ chặng đang lưu, trộn
+   * `pickupTime`/`pickupPlace` cũ vào chặng chiều đi đầu (tương thích phát hành 1 — R2b; máy chưa tải bản mới).
+   */
+  legs?: LegInput[];
+} & TripInput &
   (
     | {
         kind: "catalog";
@@ -267,6 +275,11 @@ export interface OrderInput {
   bookerPartyId?: string | null;
   /** Tạo hồ sơ cá nhân mới + vai CUSTOMER cùng lúc lưu đơn (ADR-0011 điều 1). Không gửi kèm `bookerPartyId`. */
   newBooker?: { fullName: string; phone: string } | null;
+  /**
+   * Danh sách hành khách của đơn NHÁP (ADR-0047 A2, Ruling R1). CÓ khoá (kể cả `[]`) = danh sách mới, thay hẳn danh sách đang lưu; VẮNG = giữ danh sách
+   * đang lưu (máy chưa tải bản mới không xoá mất tên khách). Có khoá thì máy chủ hỏi thêm ô `order.passenger.write`.
+   */
+  passengers?: PassengerInput[];
   /** Bắt buộc khi sửa (PUT): `updatedAt` của đơn mà form đã đọc — lệch → 409 `stale`. */
   expectedUpdatedAt?: string;
   /**
@@ -274,6 +287,76 @@ export interface OrderInput {
    * (đơn "Chờ nhận"). Người gọi không có `dispatch.assign` trên đơn của mình → 403; người được chọn không đủ điều kiện → 400 `invalid_assignee`, không tạo đơn.
    */
   handlerStaffId?: string | null;
+}
+
+// ---- Chặng đưa đón + hành khách (ADR-0047) ---------------------------------------------------------------------------------------------------
+
+/** Chiều của chặng đưa đón (tập đóng, ADR-0047 A1): chiều đi / chiều về. Không lộ mã ra người dùng — nhãn ở `CHIEU_LABEL` (src/shared/chang-dua-don.ts). */
+export type LegDirection = "OUT" | "RETURN";
+
+/**
+ * Một chặng client gửi lên (thân `POST/PUT /api/orders` trong `services[].legs`, hoặc `POST /api/orders/:id/legs`). `""` = chưa có. Nơi đón: ĐÚNG MỘT trong
+ * `pickupLocationId` (điểm danh mục đang dùng) / `pickupPlace` (chữ tự do); nơi trả: TỐI ĐA MỘT. `id` = chặng đã lưu của chính dịch vụ này (lưu nháp giữ id).
+ */
+export interface LegInput {
+  id?: string;
+  direction: LegDirection;
+  pickupDate: string;
+  pickupTime: string;
+  pickupLocationId: string | null;
+  pickupPlace: string;
+  dropoffLocationId: string | null;
+  dropoffPlace: string;
+}
+/** `PUT /api/orders/:id/legs/:legId` — sửa trường vận hành của chặng (không đổi chiều, không đổi dịch vụ). */
+export type LegEditInput = Omit<LegInput, "id" | "direction">;
+
+/** Một chặng CÒN HIỆU LỰC trả về trong chi tiết đơn. `pickupLabel`/`dropoffLabel` = tên điểm danh mục hoặc chữ tự do (null = nơi trả chưa chốt). */
+export interface LegDto {
+  id: string;
+  direction: LegDirection;
+  pickupDate: string | null;
+  pickupTime: string | null;
+  pickupLocationId: string | null;
+  pickupPlace: string | null;
+  pickupLabel: string;
+  dropoffLocationId: string | null;
+  dropoffPlace: string | null;
+  dropoffLabel: string | null;
+  updatedAt: string;
+}
+
+/** Hành khách client gửi lên (thân `POST/PUT /api/orders` khoá `passengers`, hoặc `them`/`sua` của `POST /api/orders/:id/passengers`). */
+export interface PassengerInput {
+  /** Lưu nháp: `rowId` của dòng đã lưu (giữ id). Sau xác nhận (`sua`): dùng `personKey`. */
+  id?: string;
+  fullName: string;
+  birthYear: number;
+  paxCode: PaxCode | null;
+}
+/** Một người trong danh sách hiện hành (dòng chưa huỷ, không có dòng thay thế chưa huỷ). */
+export interface PassengerDto {
+  personKey: string;
+  rowId: string;
+  fullName: string;
+  birthYear: number;
+  paxCode: PaxCode | null;
+  updatedAt: string;
+}
+/** `GET/POST /api/orders/:id/passengers`. `vuotSoKhach` = số người có tên > số khách hiệu lực của dịch vụ đông nhất (R9) — chỉ là cờ. */
+export interface PassengerListResponse {
+  passengers: PassengerDto[];
+  soNguoiCoTen: number;
+  soKhachDoan: number;
+  vuotSoKhach: boolean;
+  orderUpdatedAt: string;
+}
+/** `POST /api/orders/:id/passengers` (đơn đã xác nhận): thêm dòng mới, sửa = dòng mới trỏ dòng hiện hành, huỷ = mọi dòng của người đó. */
+export interface PassengerChangeInput {
+  expectedUpdatedAt: string;
+  them: PassengerInput[];
+  sua: (PassengerInput & { personKey: string })[];
+  huy: string[];
 }
 
 /** `PUT /api/orders/:id/trip` — sửa trường vận hành (đơn nháp hoặc đã xác nhận). */

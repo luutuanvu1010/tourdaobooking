@@ -37,6 +37,15 @@ export function vnLocalToIso(value: string): string | null {
   return exact ? new Date(utc).toISOString() : null;
 }
 
+/**
+ * Ngày "YYYY-MM-DD" + giờ "HH:MM" dân sự theo GIỜ VIỆT NAM → mốc máy (mili-giây kể từ epoch) — ADR-0047 A1 ("đổi sang mốc máy bằng MỘT hàm có test",
+ * mở rộng `vnLocalToIso`): chặng đón 22:30 hôm trước, chuyến bay 00:40 hôm sau so được với nhau. Sai khuôn dạng/lịch/giờ → null.
+ */
+export function vnLocalToMs(date: string, time: string): number | null {
+  const iso = vnLocalToIso(`${date}T${time}`);
+  return iso === null ? null : Date.parse(iso);
+}
+
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Đúng khuôn dạng YYYY-MM-DD và đúng lịch (30/02 → sai). */

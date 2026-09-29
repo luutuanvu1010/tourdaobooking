@@ -7,8 +7,10 @@
 // Đây là NGOẠI LỆ CÓ TÊN của chú thích ô `contact.view` (`src/shared/permissions.ts`, gộp "điểm đón, giờ" vào liên hệ): nơi đón/giờ đón ở phần hẹp
 // không đòi `contact.view` — bù lại nơi đón (chữ tự do, có thể chứa SĐT) bị che dãy số (`maskLongDigits`, Q-N).
 import type { OrderStatus, PaxCounts, PoolOrderDto } from "../../shared/contracts.ts";
-import { DIGIT_RUN, MIN_LONG_DIGIT_RUN } from "../../shared/text-guards.ts";
+import { maskLongDigits } from "../../shared/text-guards.ts";
 import { tripDeparted } from "../../shared/trip-rules.ts";
+
+export { maskLongDigits };
 
 /** Một dịch vụ của đơn nguồn — chỉ phần phần hẹp cần (nơi gọi có thể đưa đối tượng giàu hơn; `toPoolOrder` không đọc gì khác). */
 export interface PoolSourceService {
@@ -27,22 +29,9 @@ export interface PoolSourceOrder {
   services: readonly PoolSourceService[];
 }
 
-// Ngưỡng + regex nhận diện "dãy số dài" nay là MỘT nguồn sự thật ở `src/shared/text-guards.ts` (`MIN_LONG_DIGIT_RUN`, `DIGIT_RUN`) — tái dùng ở
-// `dispatch/rules.ts` (`parseCancelReason`, lý do "Khác" khi HDV huỷ đơn, ADR-0030 điều 2 sửa đổi 2026-09-27) để CHẶN HẲN thay vì che. Đổi ngưỡng/dấu
-// ngăn thì sửa ở tệp đó, không sửa ở đây.
-const MASK_CHAR = "•";
-
-/**
- * Che mọi dãy từ 8 chữ số trở lên (đếm sau khi bỏ dấu ngăn — xem `DIGIT_RUN` ở `src/shared/text-guards.ts`): thay TỪNG chữ số của dãy bằng "•", giữ
- * nguyên dấu ngăn và mọi chữ khác ("Đón ở 0905 123.456 cổng sau" → "Đón ở •••• •••.••• cổng sau"). Cách che là bề mặt (ADR-0030 S23-2 để người thi công
- * chọn): giữ dấu ngăn cho người đọc thấy "ở đây có một số đã được ẩn". Dãy dưới 8 chữ số (số phòng, số nhà, giờ) giữ nguyên. `null` → `null`.
- */
-export function maskLongDigits(text: string): string;
-export function maskLongDigits(text: string | null): string | null;
-export function maskLongDigits(text: string | null): string | null {
-  if (text === null) return null;
-  return text.replace(DIGIT_RUN, (run) => (run.replace(/\D/g, "").length >= MIN_LONG_DIGIT_RUN ? run.replace(/\d/g, MASK_CHAR) : run));
-}
+// Ngưỡng + regex nhận diện "dãy số dài" và cả hàm che `maskLongDigits` nay là MỘT nguồn sự thật ở `src/shared/text-guards.ts` (chuyển về đó ở
+// ADR-0047 — nhật ký chặng đưa đón cũng che; xuất lại tên cũ ở trên cho test và nơi gọi cũ). `dispatch/rules.ts` (`parseCancelReason`) dùng cùng
+// ngưỡng để CHẶN HẲN thay vì che. Đổi ngưỡng/dấu ngăn/cách che thì sửa ở tệp đó, không sửa ở đây.
 
 /**
  * Ngày đi của đơn = ngày khởi hành LỚN NHẤT trong các dịch vụ (cùng định nghĩa với `tripDeparted`, DK-T4-02 / ADR-0027 điều 3); null nếu chưa dịch vụ nào có
