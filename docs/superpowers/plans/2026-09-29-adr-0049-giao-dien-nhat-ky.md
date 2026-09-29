@@ -219,6 +219,8 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 | `dot-c-smoke.mjs` | xanh |
 | `v1-nguoi-phu-trach.mjs` | 17/17 |
 | `a2-smoke-form.mjs` | xanh |
-| `xe-smoke.mjs`, `danh-muc-giay-to-smoke.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `v1-xac-nhan-png.mjs` | không chạy lại ở vòng 2 (không đổi tệp chúng phủ kể từ lần xanh trước, trừ phần gộp máy chủ `df32e83` — A12 không chạm giao diện) |
+| `xe-smoke.mjs`, `danh-muc-giay-to-smoke.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `v1-xac-nhan-png.mjs` | chạy lại sau gộp `df32e83`: cả năm thoát 0 (13, 10, OK, OK, 13 bước) |
+
+Mọi kịch bản Chrome trong bảng `web/CLAUDE.md` mà Phần B chạm tới nay đều xanh trên đỉnh nhánh — không còn kịch bản "đỏ sẵn" nào trong nhóm này.
 
 **Chờ điều phối:** R-P23 ("ai lưu" trong lịch sử bản chính sách) — làm phần hiển thị khi có sha; B1–B6 khi có A13 / A15.
