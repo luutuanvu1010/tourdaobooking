@@ -59,3 +59,12 @@
 | Ngày đón được cách ngày đi của tour/dịch vụ bao xa? | **"Sớm 1 ngày, muộn 7 ngày"** — ngày đón trong [ngày đi − 1, ngày đi + 7], ngoài khoảng máy chặn. Đây là con số điền cho câu "khoảng cho phép (luật đổi được, ở mã)" mà ADR-0047 để cho mã, không phải sửa câu ADR (ADR-0047 kế hoạch Q2) |
 | Khi đã thêm xe, có sửa được "chủ xe" (công ty ↔ nhà xe, hoặc nhà xe A → B) không? | **"Sửa được, ghi nhật ký"** — sửa nhập nhầm, nhật ký ghi "chủ xe A → B" (ADR-0048 kế hoạch Q1) |
 | Hai chuyện giao diện, gộp: (a) "Chuyến đón hôm nay" ở Trang chủ vẫn lấy theo ngày đi như hiện nay; (b) không làm màn riêng "Nhà xe" — tìm nhà xe ở Danh bạ bằng ô lọc, danh sách xe lọc theo chủ xe. Đồng ý? | **"Đồng ý cả hai"** (ADR-0047 kế hoạch Q3; ADR-0048 kế hoạch Q2) |
+
+## Trả lời lần 4 (29/9, câu ĐP2(v) và lời duyệt ADR-0049)
+
+Người kiểm nhanh đề xuất ADR-0049 chỉ ra: ĐP2(iv) chưa hỏi trường hợp đơn có giờ hẹn ĐÃ dưới mốc 6 giờ ngay từ lúc gõ. Điều phối hỏi riêng, kèm lưu ý phương án khuyến nghị lỏng hơn câu "áp cả lúc khách đặt (biểu mẫu)" của chủ ngày 28/9.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| ĐP2(v): "Nhân viên lập đơn lúc 2 giờ 20 sáng cho khách cần đón lúc 6 giờ 30 (chỉ còn hơn 4 giờ, dưới mốc 6 giờ). Bấm Lưu nháp thì máy làm gì?" — hai phương án: "Cho lưu nháp, chặn ở Xác nhận" / "Chặn ngay từ lúc lưu" | **"Cho lưu nháp, chặn ở Xác nhận"** — đơn nháp lưu được (hiện cảnh báo), xác nhận bị chặn tới khi Quản trị / Toàn quyền bấm "Đặt gấp" kèm lý do |
+| "Duyệt quyết định Bảng điều phối chung, lượt 1 (9 điểm ở trên)?" — tóm tắt 9 điểm trình trong chat | **"Duyệt, ghi theo câu 1"** — điều kiện điều phối đã nêu: người kiểm xem lại bản cuối rồi mới ghi thành ADR-0049 chính thức |
