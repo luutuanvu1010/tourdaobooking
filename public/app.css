@@ -1908,3 +1908,20 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-gb.is-chua { color: var(--c-sand-text); }
 .dp-gb-btn { min-height: var(--tap-min); padding: 0 var(--s2); font-size: var(--fs-badge); }
 .dp-gb-dong { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
+
+/* Vòng 5b: thẻ "Khách trong chuyến" + "Rút khỏi xe" / "Chuyển sang xe khác" ở Chi tiết chuyến (chủ lần 15 — thợ tự đặt nút, lệch bản vẽ D-B2-4). Chỉ token. */
+.dp-khach-nhom-the { overflow: hidden; }
+.dp-khach-khoa { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-khach-nhom { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "t nut" "ten nut"; column-gap: var(--s3); row-gap: var(--gap-dp-hist); align-items: center; padding: var(--s3) var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
+.dp-khach-nhom:last-child { border-bottom: 0; }
+.dp-khach-nhom-t { display: flex; flex-direction: column; grid-area: t; min-width: 0; }
+.dp-khach-nhom-t strong { font-family: var(--font-display); }
+.dp-khach-nhom-tuyen { color: var(--c-text-muted); overflow-wrap: anywhere; }
+.dp-khach-nhom-ten { grid-area: ten; overflow-wrap: anywhere; }
+.dp-khach-nhom-nut { display: flex; flex-wrap: wrap; grid-area: nut; gap: var(--s2); justify-content: flex-end; }
+.dp-khach-nhom-btn { font-size: var(--fs-label); }
+@media (max-width: 640px) {
+  .dp-khach-nhom { grid-template-columns: minmax(0, 1fr); grid-template-areas: "t" "ten" "nut"; }
+  .dp-khach-nhom-nut { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); margin-top: var(--s2); }
+}
+.dp-sheet-khach .vc-reason { min-height: var(--h-dp-row); }

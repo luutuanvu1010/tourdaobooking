@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   cauKhoaMoc, changChuaXep, chipChang, dieuKienXuatBen, gioHien, hinhDongThoiGian, idChoLenh, kieuChuyen, nhanDiem, dongNhatKy, soLieuDieuPhoi, truongLoiChuyen,
-  viecCanXuLy, thayDieuPhoiXe, tuyenChuyen, nhanNgayXem, chuyenXepDuoc, dongGoiBao, dongBanChup,
+  viecCanXuLy, thayDieuPhoiXe, tuyenChuyen, nhanNgayXem, chuyenXepDuoc, dongGoiBao, dongBanChup, nhomKhach,
 } from "./dieu-phoi-man.ts";
 import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
 import type { PermissionCode } from "./permissions.ts";
@@ -303,4 +303,31 @@ test("dongBanChup: dòng 'Bản chụp lúc xuất bến' — nhãn tiếng Vi�
   assert.deepEqual(dongBanChup({ loai: "GPLX", hang: "D2", hetHan: "2029-06-20" }), { nhan: "Giấy phép lái xe", phu: "hạng D2 · hạn 20/06/2029" });
   assert.deepEqual(dongBanChup({ loai: "GIAY_TO_NGUOI", hang: null, hetHan: null }), { nhan: "Giấy tờ của tài xế", phu: "" });
   assert.equal(dongBanChup({ loai: "MA_LA", hang: null, hetHan: null }).nhan, "Điều kiện khác");
+});
+
+// Vòng 5b (chủ trả lời lần 15 — "Làm ngay, thợ tự đặt nút"): "Rút khỏi xe" / "Chuyển sang xe khác" trên từng nhóm khách của Chi tiết chuyến.
+test("nhomKhach: gom suất đang mở theo chặng (một đơn một nhóm), người đi kèm một nhóm riêng; tuyến lấy tên điểm; tên theo DTO; suất chưa gắn khoá người (DTO không có tên — máy chủ gắn khi xếp có khoá / khi xuất bến) chỉ đếm 'N khách chưa gắn tên'; bỏ suất đã có kết quả", () => {
+  const diem = [
+    { id: "d1", thuTu: 1, loai: "PICKUP" as const, tenNoi: "Sheraton Nha Trang" },
+    { id: "d2", thuTu: 2, loai: "PICKUP" as const, tenNoi: "Amiana Resort" },
+    { id: "d3", thuTu: 3, loai: "DROPOFF" as const, tenNoi: "Bến tàu du lịch Nha Trang" },
+  ];
+  const s = (id: string, legId: string | null, maDon: string | null, len: string | null, xuong: string | null, x: Partial<{ loai: "PASSENGER" | "CREW"; trangThai: string; hoTen: string; namSinh: number }> = {}) => ({
+    id, loai: x.loai ?? "PASSENGER", maDon, legId, chieu: legId ? "OUT" as const : null, diemLen: len, diemXuong: xuong, trangThai: (x.trangThai ?? "WAITING") as "WAITING", coTen: !!x.hoTen,
+    ...(x.hoTen ? { hoTen: x.hoTen, namSinh: x.namSinh ?? 1990 } : {}), daDon: null, daTra: null,
+  });
+  const g = nhomKhach([
+    s("a", "l1", "TD-1", "d1", "d3", { hoTen: "Nguyễn Thị Lan", namSinh: 1990 }),
+    s("b", "l2", "TD-2", "d2", "d3", { hoTen: "Lê Hoàng Yến" }),
+    s("c", "l1", "TD-1", "d1", "d3"),
+    s("e", null, null, null, null, { loai: "CREW", hoTen: "Trần Văn Phụ" }),
+    s("f", "l1", "TD-1", "d1", "d3", { trangThai: "DROPPED", hoTen: "Đã Trả" }),
+  ], diem);
+  assert.deepEqual(g.map((x) => [x.khoa, x.tieuDe, x.tuyen, x.ten, x.suatIds]), [
+    ["l1", "TD-1 · 2 khách", "Sheraton Nha Trang → Bến tàu du lịch Nha Trang", "Nguyễn Thị Lan 1990 · 1 khách chưa gắn tên", ["a", "c"]],
+    ["l2", "TD-2 · 1 khách", "Amiana Resort → Bến tàu du lịch Nha Trang", "Lê Hoàng Yến 1990", ["b"]],
+    ["CREW", "Người đi kèm · 1", "", "Trần Văn Phụ 1990", ["e"]],
+  ]);
+  assert.equal(nhomKhach([s("x", "l9", "TD-9", "d1", "d3"), s("y", "l9", "TD-9", "d1", "d3")], diem)[0]!.ten, "2 khách chưa gắn tên");
+  assert.deepEqual(nhomKhach([], diem), []);
 });

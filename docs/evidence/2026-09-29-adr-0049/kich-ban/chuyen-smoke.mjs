@@ -38,7 +38,7 @@ try {
     assert.match(await p.ev(txt(".dp-ct-when")), new RegExp(`^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật) ${d.NGAY_XA.slice(8, 10)}/${d.NGAY_XA.slice(5, 7)} · 14:30–16:30$`));
     assert.equal(await p.ev(`document.querySelector('#ct-back').getAttribute('href')`), `/dieu-phoi?ngay=${d.NGAY_XA}`);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="sua-chuyen"]').getAttribute('href')`), `/chuyen-sua?id=${d.T3.id}`);
-    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn"]);
+    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn", "Rút khỏi xe", "Chuyển sang xe khác"], "vòng 5b: thẻ Khách trong chuyến có hai nút (rut-doi-smoke kiểm hành vi)");
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]').disabled`), true, "bị giữ → khoá xuất bến thay (2.7)");
     for (const a of KHONG_CO) assert.equal(await p.ev(`document.querySelector('main').innerText.includes(${JSON.stringify(a)})`), false, `chuyến chưa chạy: không có ${a}`);
     assert.equal(await p.ev(`!!document.querySelector('.dp-ct-lock')`), false, "chưa vào vùng khoá → không dòng khoá");

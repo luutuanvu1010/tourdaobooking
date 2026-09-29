@@ -440,3 +440,47 @@ Xem mục 12.7.
 | `tai-xe-trang-dau-smoke`, `tai-xe-doi-tac-smoke`, `trang-chu-smoke` | xanh (menu tài xế / văn phòng sau T2) |
 
 Bài học: không chạy `test:e2e` song song với lô Chrome (cùng máy, hai máy chủ tạm tranh nhau).
+
+## 13. Vòng 5b — "Rút khỏi xe" / "Chuyển sang xe khác" (chủ trả lời lần 15: "Làm ngay, thợ tự đặt nút")
+
+### 13.1 Việc
+- Route 6 `rut` và route 7 `doi` của A13 (không đổi máy chủ). DTO / mã lỗi đọc ở `src/shared/contracts.ts` (`RutRequest`, `DoiRequest`, `LenhChuyenLoiBody`).
+- Khối thuần `nhomKhach` (`src/shared/dieu-phoi-man.ts`, test đỏ trước): gom suất CÒN CHỜ ĐÓN theo chặng (một đơn một nhóm), người đi kèm một nhóm; tuyến theo tên điểm; tên + năm sinh theo DTO.
+- `web/chuyen.ts` thẻ "Khách trong chuyến" dưới bảng điểm dừng (chuyến lên kế hoạch). Nút "Rút khỏi xe" / "Chuyển sang xe khác" khi có ô `trip.dispatch`; trong vùng khoá (`khoaMoc.dangKhoa` của máy chủ) Bán hàng chỉ thấy câu "Trong vùng khoá trước giờ xuất bến — rút hay chuyển khách cần Quản trị phá lệ." (không nút), Quản trị có nút và đi qua hộp "Phá lệ" khi máy chủ trả 409 `canQuyen` (khuôn huỷ chuyến H17: hộp lệnh đóng → hộp Phá lệ → gửi lại CHÍNH lệnh kèm `phaLe`, requestId mới).
+- "Chuyển sang xe khác": danh sách chuyến đích = chuyến LÊN KẾ HOẠCH cùng ngày từ `GET /lich` (máy chủ), trừ chuyến này (`chuyenXepDuoc` — có nhãn "đang khoá"); thân `{ version, denChuyenId, denVersion, suatIds }`. 409 (chéo xe / tài xế, hết chỗ, chặng không hợp lệ…) → câu máy chủ + từng lý do trong hộp; `stale` → "Chuyến vừa được người khác sửa — đóng hộp, tải lại rồi làm lại."
+- Sau mỗi lệnh đọc lại GET chi tiết (GA-55 — `docLai`), không dựng tên từ phản hồi.
+
+### 13.2 Lệch bản vẽ / giả định bề mặt
+- **D-B2-4**: bản vẽ không có chỗ bấm — thẻ "Khách trong chuyến" đặt dưới bảng "Điểm dừng" (cột chính); mỗi nhóm một dòng: mã đơn · số khách, tuyến, tên; hai nút bên phải (máy tính) / lưới hai cột dưới (điện thoại). Khuôn sẵn: `.vc-card`, `.dp-card-head`, `.vc-btn vc-btn-ghost-primary`, hộp `moBangTruot` + `nhomChon` như hộp "Xếp vào chuyến". Chờ chủ góp ý qua ảnh.
+- **Tên khách trên chuyến lên kế hoạch**: DTO chỉ có họ tên khi suất đã GẮN khoá người. Màn xếp của văn phòng lượt này không gửi khoá người (máy chủ gắn khi xuất bến — thấy ở `cuoc-smoke`), nên nhóm chưa gắn chỉ ghi "N khách chưa gắn tên" (không bịa "Khách 1", không ô trống). Kịch bản dựng một nhóm CÓ tên bằng đường thật: Quản trị rút O1 rồi xếp lại kèm `personKeys` (khoá đọc bằng SQL trên D1 tạm, như party id của dữ liệu thử). Câu hỏi **Q-B-18**: màn xếp có nên gửi khoá người (chọn khách theo tên) không — cần DTO lịch có khoá người?
+- 409 "hết chỗ" / "chéo xe – tài xế" của lệnh chuyển: đi chung nhánh câu máy chủ (tiếng Việt + lý do) — CHƯA có ca Chrome riêng (dữ liệu thử không có xe đủ nhỏ; ghi nợ).
+- KHÔNG làm Q-B-15 (sắp lại điểm khi chuyến đang chạy — BACKLOG mục 7). Mất mạng tài xế giữ nguyên (BACKLOG mục 6).
+
+### 13.3 Chrome — `rut-doi-smoke.mjs` (mới, 8 bước)
+1. 1040 Bán hàng: thẻ khách nhóm theo đơn, tên + năm sinh, hai nút; axe.
+2. "Chuyển sang xe khác": hộp chuyến đích cùng ngày (trừ chuyến này, nút khoá tới khi chọn) → chuyển O1 sang T2 → ở chuyến đích O1 ĐÚNG tên, O2 "2 khách chưa gắn tên"; axe.
+3. Ngoài khoá: "Rút khỏi xe" O2 → khách về cột "Chưa xếp" trên bảng Điều phối xe; thân không kèm phá lệ.
+4. 390 Bán hàng chuyến đang khoá: câu "cần Quản trị phá lệ", không nút; axe.
+4b. 390 Bán hàng ngoài khoá: nút lưới hai cột + hộp chuyển ở điện thoại; axe.
+5. 1040 Quản trị chuyến đang khoá: "Rút khỏi xe" → hộp Phá lệ → "Phá lệ và rút" (thân thứ hai có `phaLe`, requestId mới) → O4 về "Chưa xếp"; axe.
+6. Kế toán: thẻ khách, KHÔNG nút, không câu khoá, không lệnh ghi.
+7. Không lỗi console.
+- P16: bỏ điều kiện quyền (`coNut` không hỏi `trip.dispatch`) → bước 6 đỏ (7 ✓ / 1 ✗) → hoàn nguyên.
+- Ảnh (`docs/evidence/2026-09-29-adr-0049/anh/`): `b5b-khach-trong-chuyen-may-tinh.png`, `b5b-khach-trong-chuyen-dien-thoai.png` (trước khi bấm), `b5b-chuyen-xe-hop-may-tinh.png`, `b5b-chuyen-xe-hop-dien-thoai.png` (hộp chọn xe đích), `b5b-vung-khoa-ban-hang-dien-thoai.png` (Bán hàng trong vùng khoá), `b5b-pha-le-rut-may-tinh.png` (Quản trị phá lệ).
+- Lần chạy đầu đỏ ở bước 1–2 vì kỳ vọng tên trên suất chưa gắn khoá người (xem 13.2) — sửa cách hiển thị (đếm "chưa gắn tên", test thuần đỏ trước) và dữ liệu thử, không sửa máy chủ.
+
+### 13.4 Việc vặt trong phiên
+- Phiên trước bị ngắt để lại một `wrangler dev` mồ côi của chính kịch bản mình (02:30) — đã tắt (CLAUDE.md §10: tiến trình mồ côi gây "database is locked").
+
+### 13.5 Kết quả (tự khai, CHƯA có người kiểm độc lập)
+| Lệnh | Kết quả |
+|---|---|
+| `npm run typecheck` | 0 |
+| `npm run build:web` | 0 |
+| `npm test` | 1834/1835 — bài đỏ duy nhất `guard-remote: lệnh dị dạng không làm hook quá giờ` (đo giờ hook khi máy bận; máy chủ sắp tách bài này — `b187c97`, chưa gộp) |
+| `node --test --test-concurrency=1 "src/**/*.test.ts"` | 1835/1835 |
+| `npm run test:e2e -- pwa` (chạy riêng) | 2/2 — "31 trang" |
+| `rut-doi-smoke.mjs` (mới) | 8/8 |
+| `chuyen-smoke.mjs` | 8/8 (bước 1: danh sách nút nay có "Rút khỏi xe", "Chuyển sang xe khác" — sửa kỳ vọng) |
+
+Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đơn).

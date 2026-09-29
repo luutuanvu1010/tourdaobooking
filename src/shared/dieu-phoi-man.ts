@@ -404,3 +404,45 @@ export function dongBanChup(m: { loai: string; hang: string | null; hetHan: stri
   const han = m.hetHan ? `hạn ${m.hetHan.slice(8, 10)}/${m.hetHan.slice(5, 7)}/${m.hetHan.slice(0, 4)}` : null;
   return { nhan: NHAN_MUC_BAN_CHUP[m.loai] ?? "Điều kiện khác", phu: [m.hang ? `hạng ${m.hang}` : null, han].filter(Boolean).join(" · ") };
 }
+
+// ---- Vòng 5b: nhóm khách của Chi tiết chuyến ("Rút khỏi xe" / "Chuyển sang xe khác") ---------------------------------------------------------------------------
+export interface NhomKhach {
+  /** legId của chặng, hoặc "CREW" cho người đi kèm. */
+  khoa: string;
+  tieuDe: string;
+  /** "Nơi đón → nơi trả" theo tên điểm của chuyến; người đi kèm: "". */
+  tuyen: string;
+  /**
+   * "Họ tên năm sinh · …" theo DTO (chỉ GET chi tiết có — GA-55); suất chưa gắn khoá người (máy chủ gắn khi xếp có khoá / khi xuất bến) KHÔNG có tên trong DTO →
+   * chỉ đếm "N khách chưa gắn tên" (không bịa "Khách 1", không ô trống).
+   */
+  ten: string;
+  suatIds: string[];
+}
+/**
+ * Gom các suất CÒN CHỜ ĐÓN (WAITING — chuyến lên kế hoạch) theo chặng: một đơn một nhóm, người đi kèm một nhóm riêng; thứ tự theo lần xuất hiện. Máy chủ vẫn
+ * quyết mọi luật khi rút / chuyển (route 6, 7).
+ */
+export function nhomKhach(
+  suat: readonly { id: string; loai: "PASSENGER" | "CREW"; maDon: string | null; legId: string | null; diemLen: string | null; diemXuong: string | null; trangThai: string; hoTen?: string; namSinh?: number }[],
+  diem: readonly { id: string; tenNoi: string }[],
+): NhomKhach[] {
+  const tenDiem = new Map(diem.map((d) => [d.id, d.tenNoi]));
+  const nhom = new Map<string, { s: typeof suat[number][] }>();
+  for (const s of suat) {
+    if (s.trangThai !== "WAITING") continue;
+    const khoa = s.loai === "CREW" ? "CREW" : (s.legId ?? `suat:${s.id}`);
+    if (!nhom.has(khoa)) nhom.set(khoa, { s: [] });
+    nhom.get(khoa)!.s.push(s);
+  }
+  return [...nhom.entries()].map(([khoa, { s }]) => {
+    const dau = s[0]!;
+    const coTen = s.filter((x) => x.hoTen).map((x) => `${maskLongDigits(x.hoTen!)}${x.namSinh ? ` ${x.namSinh}` : ""}`);
+    const chuaGan = s.length - coTen.length;
+    const ten = [...coTen, ...(chuaGan ? [`${chuaGan} khách chưa gắn tên`] : [])].join(" · ");
+    if (khoa === "CREW") return { khoa, tieuDe: `Người đi kèm · ${s.length}`, tuyen: "", ten, suatIds: s.map((x) => x.id) };
+    const len = dau.diemLen ? tenDiem.get(dau.diemLen) : undefined;
+    const xuong = dau.diemXuong ? tenDiem.get(dau.diemXuong) : undefined;
+    return { khoa, tieuDe: `${dau.maDon ?? "Đơn"} · ${s.length} khách`, tuyen: `${len ?? "—"} → ${xuong ?? "nơi trả chưa chốt"}`, ten, suatIds: s.map((x) => x.id) };
+  });
+}
