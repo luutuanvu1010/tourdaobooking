@@ -134,10 +134,10 @@ export function summarizeServices(rows: readonly ServiceSummaryRow[]): Map<strin
  * vòng 2) nên MỌI phần tử ở đây đã đảm bảo `pax` hợp lệ (`isPaxCounts`) — hàm này không cần (và không nên) tự kiểm lại, tự kiểm lại là đúng kiểu
  * "hai luật khác nhau ở hai nơi" đã gây ra Lỗi 1. Thuần, không đụng DB — test độc lập ở repository.test.ts.
  */
-export function applyAdjustedPax(
-  rows: readonly ServiceSummaryRow[],
+export function applyAdjustedPax<R extends Pick<ServiceSummaryRow, "id" | "order_id" | "pax_adult" | "pax_child" | "pax_senior" | "pax_infant">>(
+  rows: readonly R[],
   afterByOrder: ReadonlyMap<string, readonly { serviceId: string; pax: PaxCounts }[]>,
-): ServiceSummaryRow[] {
+): R[] {
   return rows.map((r) => {
     const pax = afterByOrder.get(r.order_id)?.find((a) => a.serviceId === r.id)?.pax;
     return pax ? { ...r, pax_adult: pax.adult, pax_child: pax.child, pax_senior: pax.senior, pax_infant: pax.infant } : r;

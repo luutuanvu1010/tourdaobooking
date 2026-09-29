@@ -4,7 +4,7 @@
 import { getAuditTrail } from "../audit";
 import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
-  PoolResponse,
+  PaxCounts, PoolResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -12,9 +12,10 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
-  listPoolSources, updateDraftOrder, updateTrip,
+  applyAdjustedPax, cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getLatestAdjustments, getMeta, getOrderRef,
+  getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
+import { servicePaxByIds } from "./chang-hanh-khach-repo";
 import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
@@ -85,6 +86,20 @@ export async function findOrderRef(db: D1Database, id: string): Promise<{ staffI
  */
 export async function findOrderDepartDates(db: D1Database, id: string): Promise<(string | null)[]> {
   return getDepartDates(db, id);
+}
+
+/**
+ * API công khai (ADR-0047 A3) — SỐ KHÁCH HIỆU LỰC của từng dịch vụ: số đã lưu ở `order_service`, phủ dòng điều chỉnh GẦN NHẤT của chính đơn chứa dịch
+ * vụ đó (ADR-0014 điều 6) qua ĐÚNG `getLatestAdjustments` → `money-adjustment.ts:parseAdjustmentAfter` → `applyAdjustedPax` — một nguồn với danh sách
+ * đơn, Trang chủ, hàng chờ (bài học Đợt E: không viết bộ phân tích `after_json` thứ hai). Id lạ: không có trong Map. Không module nào khác đọc
+ * `order_money_adjustment`/`after_json` (bài quét src/orders-cong-bo.test.ts).
+ * KHÔNG tự kiểm quyền — nơi gọi phải đứng sau `can()` (bài quét nơi gọi ở src/orders-cong-bo.test.ts).
+ */
+export async function soKhachHieuLuc(db: D1Database, serviceIds: readonly string[]): Promise<Map<string, PaxCounts>> {
+  const rows = await servicePaxByIds(db, serviceIds);
+  const latest = await getLatestAdjustments(db, [...new Set(rows.map((r) => r.order_id))]);
+  const afterByOrder = new Map(Array.from(latest, ([id, a]) => [id, a.after] as const));
+  return new Map(applyAdjustedPax(rows, afterByOrder).map((r) => [r.id, { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant }] as const));
 }
 
 /**

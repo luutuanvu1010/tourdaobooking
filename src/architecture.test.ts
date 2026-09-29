@@ -363,8 +363,9 @@ test("bộ phân tích SQL: bắt đúng vi phạm và cho phép đúng cách d�
 });
 
 test("ADR-0002 điều 8(b): SQL đã đăng ký của module nghiêm chỉ chạm bảng của mình / view công bố / khoá ngoại được phép", async () => {
-  for (const s of STRICT) await import(pathToFileURL(join(SRC, s.file)).href);
-  for (const s of STRICT) assert.ok(registeredSql().some((e) => e.module === s.module), `module nghiêm "${s.module}" chưa đăng ký câu SQL nào (repository.ts phải dùng defineSql)`);
+  // ADR-0047 A3 (R5, siết): tệp "nửa nghiêm" (NUA_NGHIEM) cũng được nạp — câu của nó vào sổ đăng ký và chịu CÙNG bộ phân tích `violations`.
+  for (const s of [...STRICT, ...NUA_NGHIEM]) await import(pathToFileURL(join(SRC, s.file)).href);
+  for (const s of [...STRICT, ...NUA_NGHIEM]) assert.ok(registeredSql().some((e) => e.module === s.module), `module nghiêm "${s.module}" chưa đăng ký câu SQL nào (${s.file} phải dùng defineSql)`);
   const problems = registeredSql().flatMap((e) => violations(e).map((v) => `${e.module}.${e.name}: ${v}`));
   assert.deepEqual(problems, []);
 });
@@ -400,6 +401,11 @@ test("bộ bắt `.prepare(<chuỗi thô>)`: bắt chuỗi/template, cho qua h�
 
 test("ADR-0002 điều 8(b): tệp SQL của module nghiêm không được `.prepare(` với chuỗi/template thô", () => {
   const problems = STRICT.flatMap((s) => rawPrepareHits(s.file, readFileSync(join(SRC, s.file), "utf8")));
+  // ADR-0047 A3 (R5, siết): tệp "nửa nghiêm" — CHỈ tệp đó (repository.ts cũ của orders còn SQL thô, nợ LEGACY) — cấm cả `.prepare(`/`db.exec(` thô.
+  for (const n of NUA_NGHIEM) {
+    const code = readFileSync(join(SRC, n.file), "utf8");
+    problems.push(...rawPrepareHits(n.file, code), ...rawExecHits(n.file, code));
+  }
   assert.deepEqual(problems, [], "SQL viết thẳng vào .prepare(...) không qua defineSql nên bài kiểm ranh giới EXPLAIN không thấy — hãy khai bằng defineSql rồi .prepare(<hằng>)");
 });
 
