@@ -6,6 +6,7 @@ import assert from "node:assert/strict";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
+import { vnToday } from "./shared/vn-date.ts";
 
 interface Check {
   code: string;
@@ -771,4 +772,81 @@ test("R-PTY-5 (ADR-0048 B1.2): quan hệ 'Tài xế của' ĐANG MỞ đi từ h
   assert.equal(violations(db, c), 1);
   db.exec("UPDATE pty_party_relationship SET valid_to_date = '2026-09-28' WHERE id = 'q2'");
   assert.equal(violations(db, c), 0, "quan hệ đã đóng không tính");
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// K-01 / K-05 (đặc tả 2026-09-29 "Transportation Kernel và lỗ hệ thống", lỗ LH-04 / LH-06) — hai câu kiểm mức `warn`: chỉ PHÁT HIỆN trên dữ liệu thật
+// (route vẫn nhận dòng song song / ngày kết thúc tương lai); chặn thật là việc của đề xuất sau (VK3-B cho LH-04).
+// ---------------------------------------------------------------------------------------------------------------------
+test("R-VC-11 (LH-04): 'hiện hành' của câu kiểm là NGUYÊN VĂN HIEN_HANH của src/modules/van-chuyen/repository.ts (một luật, không hai); mức warn, có ghi chú", () => {
+  const c = one("R-VC-11");
+  assert.equal(c.level, "warn");
+  assert.match(c.note ?? "", /không chặn/);
+  const repo = readFileSync(new URL("./modules/van-chuyen/repository.ts", import.meta.url), "utf8");
+  const m = repo.match(/const HIEN_HANH = "([^"]+)";/);
+  assert.ok(m, "không thấy `const HIEN_HANH = \"…\";` trong van-chuyen/repository.ts — đổi tên/khuôn thì sửa cả R-VC-11 và bài này");
+  assert.ok(c.sql.includes(m[1]!), "R-VC-11 phải chứa NGUYÊN VĂN HIEN_HANH của van-chuyen/repository.ts (tránh hai luật 'hiện hành')");
+});
+
+test("R-VC-11 (LH-04): xe chưa ngừng có ≥ 2 dòng giấy tờ HIỆN HÀNH cùng loại → đếm theo cặp (xe, loại); khác loại / đã gia hạn / đã huỷ / xe đã ngừng → 0", () => {
+  const c = one("R-VC-11");
+  const db = build();
+  xe(db, "xe-a", "79B00001");
+  giayToXe(db, { id: "a-kd", xe: "xe-a", type: "INSPECTION" });
+  giayToXe(db, { id: "a-bh", xe: "xe-a", type: "TPL_INSURANCE" });
+  assert.equal(violations(db, c), 0, "khác loại: mỗi loại một dòng hiện hành");
+  giayToXe(db, { id: "a-kd2", xe: "xe-a", type: "INSPECTION", truoc: "a-kd" });
+  assert.equal(violations(db, c), 0, "một dòng hiện hành + một dòng đã gia hạn");
+  giayToXe(db, { id: "a-bh2", xe: "xe-a", type: "TPL_INSURANCE", truoc: "a-bh", huy: true });
+  giayToXe(db, { id: "a-kd-huy", xe: "xe-a", type: "INSPECTION", huy: true });
+  assert.equal(violations(db, c), 0, "dòng gia hạn đã huỷ (dòng trước hiện hành trở lại) và dòng đã huỷ không tính");
+  xe(db, "xe-ngung", "79B00009", "retired");
+  giayToXe(db, { id: "n-1", xe: "xe-ngung", type: "INSPECTION" });
+  giayToXe(db, { id: "n-2", xe: "xe-ngung", type: "INSPECTION" });
+  assert.equal(violations(db, c), 0, "xe đã ngừng không tính");
+  // Chuỗi song song: bấm "Thêm" thay vì "Gia hạn" — CSDL và route hôm nay đều nhận (LH-04).
+  xe(db, "xe-b", "79B00002");
+  giayToXe(db, { id: "b-1", xe: "xe-b", type: "INSPECTION" });
+  giayToXe(db, { id: "b-2", xe: "xe-b", type: "INSPECTION" });
+  assert.equal(violations(db, c), 1, "hai dòng hiện hành cùng loại cùng xe");
+  giayToXe(db, { id: "b-3", xe: "xe-b", type: "INSPECTION" });
+  assert.equal(violations(db, c), 1, "đếm CẶP (xe, loại), không đếm dòng");
+  xe(db, "xe-bd", "79B00003", "maintenance");
+  giayToXe(db, { id: "m-1", xe: "xe-bd", type: "REGISTRATION" });
+  giayToXe(db, { id: "m-2", xe: "xe-bd", type: "REGISTRATION" });
+  assert.equal(violations(db, c), 2, "xe bảo dưỡng là xe CHƯA ngừng");
+});
+
+test("R-PTY-6 (LH-06): 'hôm nay' là ngày giờ Việt Nam — câu kiểm dùng date('now', '+7 hours') (như migration), khớp vnToday; mức warn, có ghi chú", () => {
+  const c = one("R-PTY-6");
+  assert.equal(c.level, "warn");
+  assert.match(c.note ?? "", /không chặn/);
+  assert.ok(c.sql.includes("date('now', '+7 hours')"), "hôm nay theo giờ VN: date('now', '+7 hours') — date('now') là UTC, sai ngày 00:00–07:00 giờ VN");
+  assert.doesNotMatch(c.sql.replaceAll("date('now', '+7 hours')", ""), /'now'/, "không có mốc 'now' nào khác (UTC)");
+  const db = new DatabaseSync(":memory:");
+  const truoc = vnToday(new Date());
+  const sqlHomNay = (db.prepare("SELECT date('now', '+7 hours') AS d").get() as { d: string }).d;
+  const sau = vnToday(new Date());
+  assert.ok(sqlHomNay === truoc || sqlHomNay === sau, `date('now', '+7 hours') = ${sqlHomNay}, vnToday = ${truoc}/${sau}`);
+});
+
+test("R-PTY-6 (LH-06): vai / quan hệ hồ sơ có ngày kết thúc SAU hôm nay (giờ VN) → đếm dòng; còn mở / kết thúc hôm nay / hôm qua → 0", () => {
+  const c = one("R-PTY-6");
+  const db = build();
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at)
+           VALUES ('r-xa', 'pty-xa', 'CUSTOMER', NULL, '2020-01-01', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at)
+           VALUES ('q-xa', 'pty-xa', 'pty-s-an', 'CONTACT_OF', '2020-01-01', '${T1}', '${T1}')`);
+  assert.equal(violations(db, c), 0, "còn mở");
+  const ketThuc = (bang: string, id: string, lech: string) => db.exec(`UPDATE ${bang} SET valid_to_date = date('now', '+7 hours', '${lech}') WHERE id = '${id}'`);
+  ketThuc("pty_party_role", "r-xa", "-1 day");
+  assert.equal(violations(db, c), 0, "vai kết thúc hôm qua");
+  ketThuc("pty_party_role", "r-xa", "+0 days");
+  assert.equal(violations(db, c), 0, "vai kết thúc hôm nay (route 'Kết thúc' ghi hôm nay)");
+  ketThuc("pty_party_role", "r-xa", "+1 day");
+  assert.equal(violations(db, c), 1, "vai kết thúc ngày mai");
+  ketThuc("pty_party_relationship", "q-xa", "+0 days");
+  assert.equal(violations(db, c), 1, "quan hệ kết thúc hôm nay không tính");
+  ketThuc("pty_party_relationship", "q-xa", "+30 days");
+  assert.equal(violations(db, c), 2, "quan hệ kết thúc sau hôm nay cũng tính (đếm dòng của cả hai bảng)");
 });
