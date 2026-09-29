@@ -236,6 +236,7 @@ Mỗi việc là **siết**: chỉ báo hoặc chặn thêm, không đổi hợp
      - "giờ xe tới ghi đè muộn hơn giờ hẹn" — điểm đón có `planned_time` ghi đè muộn hơn giờ hẹn sớm nhất của các chặng đón tại điểm.
   4. Câu kiểm định kỳ R-VC-? mức `warn` cho ý thứ nhất.
 - **Ranh giới:** chỉ **cảnh báo**, không giữ chuyến, không thêm lệnh. Giữ chuyến và lệnh "cập nhật điểm theo chặng" chờ VK1-B.
+- **Hiển thị:** hai loại cảnh báo mới **hiện trên màn**. Cách hiện phải vào danh sách màn chủ vẽ trên Claude Design (`docs/superpowers/specs/2026-09-29-bang-dieu-phoi-luot-1-man-hinh-can-ve.md`); người thi công **không** tự nghĩ kiểu hiện (bài học "thứ nhìn thấy trên màn hình phải hỏi"). Phần A (luật thuần + dữ liệu API + kiểm định kỳ) làm trước được.
 - **Kiểm (P16):** ca luật thuần "sửa nơi đón của chặng đã xếp → có cảnh báo"; bỏ vế so nơi → đỏ; hoàn nguyên. Câu kiểm định kỳ có ca đỏ trên dữ liệu gieo.
 - **Sổ hàng rào:** hai dòng (cảnh báo, kiểm định kỳ).
 

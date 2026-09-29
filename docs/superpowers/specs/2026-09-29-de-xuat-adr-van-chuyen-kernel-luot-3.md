@@ -20,7 +20,7 @@
 - **Xây trên nền chưa có (5.13):** kiểm xếp / đổi xe / cổng xuất bến của ADR-0049 (đang thi công); chặng của ADR-0047 (chưa gộp). VK3-B chỉ cần production 1.37.
 - **Câu pháp lý còn treo — CHƯA CÓ NGƯỜI CHUYÊN MÔN KIỂM:**
   - xe hợp đồng (Nghị định 158/2024, sửa bởi NĐ 218/2026 theo [TRA]) có được **ghép khách của nhiều đơn / nhiều hợp đồng** vào một xe không. [TRA] ghi "chưa chắc".
-  - Câu này chạm cả mô hình "một chuyến gom khách của nhiều đơn" đã duyệt (`docs/superpowers/specs/2026-09-27-van-chuyen-design.md:57`; ADR-0049). Đề xuất này **không** trả lời nó; cột "xe riêng" dùng được với mọi câu trả lời.
+  - Câu này chạm cả mô hình "một chuyến gom khách của nhiều đơn" đã duyệt (`docs/superpowers/specs/2026-09-27-van-chuyen-design.md:52`; ADR-0049). Đề xuất này **không** trả lời nó; cột "xe riêng" dùng được với mọi câu trả lời.
 
 ---
 

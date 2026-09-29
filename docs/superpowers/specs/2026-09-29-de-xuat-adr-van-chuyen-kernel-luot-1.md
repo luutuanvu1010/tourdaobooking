@@ -322,5 +322,9 @@ Tài liệu thiết kế / kế hoạch phải sửa theo, không phải câu AD
 
 - Pháp lý: toàn bộ theo [TRA], **chưa có người chuyên môn kiểm** (giấy tờ bắt buộc; "chỉ đón / trả tại điểm trong hợp đồng").
 - Số xe hiện đã nhập Kiểm định / Bảo hiểm trên production: chưa đếm. Câu kiểm ở "Hệ quả" sẽ đếm.
+- **Mã đóng suất `MOVED` cho lệnh "cập nhật điểm theo đơn" (VK1-B) — phải chốt TRƯỚC khi viết `0042`**, như VK1-A:
+  - ADR-0049 và [TK] §1.5 định nghĩa `MOVED` là "văn phòng dời trước xuất bến", tức đọc như dời sang chuyến **khác**;
+  - tập `close_reason` là `CHECK` trong `0042` (cửa một chiều);
+  - điều phối / người kiểm soát: có hình chiếu, câu kiểm định kỳ hay màn "dòng dữ liệu" nào đọc `MOVED` = "đã sang chuyến khác" không. Có → thêm một giá trị riêng (vd `RESTOPPED`) vào `CHECK` của `0042` ngay từ đầu; không → dùng lại `MOVED`, ghi rõ nghĩa mở rộng.
 - `CHECK (occurred_at <= created_at)` so chuỗi ISO: đúng khi cả hai cùng khuôn `toISOString()` (có mili-giây, đuôi `Z`). Người thi công thử trên `node:sqlite` và D1 local (bài học R-P4).
 - Tệp đề xuất chưa có người kiểm độc lập.
