@@ -14,7 +14,9 @@ assert.equal(r.status, 200);
 const seeded = r.body.locations.map((l) => l.code);
 for (const c of ["VP_TRAN_PHU", "VP_2_THANG_4", "QUAY_VE_01", "QUAY_VE_04", "BEN_TAU_NHA_TRANG", "CANG_VINPEARL"]) assert.ok(seeded.includes(c), `thiếu địa điểm gieo ${c}`);
 assert.ok(r.body.locations.length >= 8);
-assert.deepEqual(r.body.types.map((t) => t.code), ["OFFICE", "TICKET_COUNTER", "PIER", "PORT"]);
+// ADR-0047 A1 (migration 0034): thêm ba loại điểm cho nơi đón/trả của chặng đưa đón — Khách sạn, Sân bay, Ga cáp treo (nối sau PORT).
+assert.deepEqual(r.body.types.map((t) => t.code), ["OFFICE", "TICKET_COUNTER", "PIER", "PORT", "HOTEL", "AIRPORT", "CABLE_CAR"]);
+assert.deepEqual(r.body.types.slice(4).map((t) => t.name), ["Khách sạn", "Sân bay", "Ga cáp treo"]);
 const vin = r.body.locations.find((l) => l.code === "CANG_VINPEARL");
 assert.equal(vin.locationTypeName, "Bến cảng"); assert.equal(vin.active, true); assert.match(vin.updatedAt, /^\d{4}-\d{2}-\d{2}T/);
 console.log("✓ đọc danh sách");

@@ -22,7 +22,7 @@ const ROOT = join(HERE, "..", "..");
 // "van-chuyen" (ADR-0040) đứng SAU "roles", TRƯỚC "passkey": tạo tài khoản tài xế + hồ sơ + xe dùng một lần (SĐT ngẫu nhiên, biển số theo Date.now()), đổi ngưỡng
 // "sắp hết hạn" rồi khôi phục 30 ở `finally`; không đụng salesB/field của passkey.
 // "passkey" đứng CUỐI CÙNG: đổi PIN của salesB, tạm ngưng rồi kích hoạt lại field — mọi kịch bản của một lần chạy dùng chung một D1 tạm.
-const ALL = ["platform", "pwa", "orders", "trip", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "maintenance", "roles", "van-chuyen", "passkey"];
+const ALL = ["platform", "pwa", "orders", "trip", "chang-hanh-khach", "nhap-tay-va-gia-doi-tac", "admin", "turnstile", "catalog", "dispatch", "admin-race", "locations", "parties", "booker", "permissions", "feedback", "company", "bangtin", "thongbao", "maintenance", "roles", "van-chuyen", "passkey"];
 const picked = process.argv.slice(2);
 const scripts = picked.length ? picked : ALL;
 for (const s of scripts) if (!ALL.includes(s)) throw new Error(`Không có kịch bản "${s}" (có: ${ALL.join(", ")})`);
