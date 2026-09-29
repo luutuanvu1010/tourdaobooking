@@ -1,11 +1,11 @@
 # Nhật ký thi công ADR-0048 (nhà xe đối tác, tài xế đối tác `DRIVER_PARTNER`)
 
 - **Kế hoạch:** `docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md` (vai lập kế hoạch, 2026-09-29; đo trên `377813d`).
-- **Đề xuất sửa luật:** `docs/superpowers/plans/2026-09-29-adr-0048-de-xuat-luat.md` (CHỜ CHỦ DUYỆT).
+- **Đề xuất sửa luật:** `docs/superpowers/plans/2026-09-29-adr-0048-de-xuat-luat.md` (mục 1, 3, 4, 6 chủ duyệt 29/9; mục 5 chờ chủ; điều phối áp lúc gộp).
 - **Nguồn chuẩn tắc:** ADR-0048 (accepted 2026-09-28: D1, D2; Q4 = Q5 = Q6 = (a)).
 - **Nhánh thi công:** `worktree-agent-ae0f600ceaab6d8b4` (worktree `.claude/worktrees/agent-ae0f600ceaab6d8b4`), tách từ `main` @ `ce831f8`; đã gộp nhánh kế hoạch `worktree-agent-a41aedf108f7e51a8` @ `2602301` (chứa `adr-van-chuyen-0047-0048` @ `96d7048`, ADR-0048 accepted) bằng `git merge --no-ff` → `3e6b719`.
 - **Cách thi công:** executing-plans, một phiên thi công (vai "người thi công Phần A", rồi Phần B trên cùng nhánh) do điều phối giao 2026-09-29. Không tự nghiệm thu.
-- **Trạng thái:** Phần A (A0 → A15) THI CÔNG XONG, kiểm độc lập ĐẠT ở `3d8f4b0` (mục 2). Phần B (B1 → B5, B-kết) THI CÔNG XONG, tự kiểm (mục 7) — CHƯA kiểm độc lập. Dừng trước K1/K2 (điều phối).
+- **Trạng thái:** Phần A (A0 → A15) THI CÔNG XONG, kiểm độc lập ĐẠT ở `3d8f4b0` (mục 2). Phần B (B1 → B5, B-kết) THI CÔNG XONG, tự kiểm (mục 7) — CHƯA kiểm độc lập. Ruling R-B1 và Task K1 xong (mục 3, 7). Dừng trước K2 (điều phối).
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
@@ -28,7 +28,7 @@
 |---|---|---|
 | Q1 — sửa chủ xe sau khi thêm | **"Sửa được, ghi nhật ký"** — chủ trả lời trực tiếp điều phối 2026-09-29, điều phối chuyển lại trong lời giao việc = phương án (a): nhật ký ghi "chủ A → B" | Task A9 bước 5 (làm theo (a)) |
 | Q2 — màn "Nhà xe" riêng | **Không làm màn riêng "Nhà xe"** — tìm nhà xe ở Danh bạ bằng ô lọc; danh sách xe lọc theo chủ xe (chủ ↔ điều phối 2026-09-29, điều phối chuyển lại) = phương án (a) | Phần B |
-| Duyệt tệp đề xuất luật (mục 1–6) | _(chờ)_ | Task K3 |
+| Duyệt tệp đề xuất luật (mục 1–6) | **"Duyệt"** cho mục 1 (1a–1d), 3, 4, 6 — chủ trả lời trực tiếp trong chat 2026-09-29, điều phối chuyển lại; nguồn bền: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` mục "Trả lời lần 5" trên nhánh `adr-van-chuyen-0047-0048`. **Mục 5** (bảng kịch bản của `web/CLAUDE.md`, điền ở B-kết) **chưa hỏi** — điều phối hỏi. Điều phối áp diff tệp luật LÚC GỘP (bài học 28/9); người thi công không tự áp. | Task K3 |
 
 Nguồn bền của Q1, Q2: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` mục "Trả lời lần 3 (29/9, câu của hai kế hoạch thi công ADR-0047 và ADR-0048)" trên nhánh `adr-van-chuyen-0047-0048` (dòng 52–61 ở đỉnh `8675cbb`): Q1 "Sửa được, ghi nhật ký"; Q2 "Đồng ý cả hai" (không làm màn riêng "Nhà xe" — tìm ở Danh bạ bằng ô lọc, danh sách xe lọc theo chủ xe). Người thi công KHÔNG gộp nhánh đó vào nhánh thi công (nó nay mang thêm ADR-0049 — ngoài phạm vi); chỉ dẫn nguồn.
 
@@ -61,7 +61,8 @@ Nguồn bền của Q1, Q2: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-da
 | B4 Giấy tờ sắp hết hạn: nhãn "Nhà xe: …" (`web/giay-to-sap-het-han.ts`) | `30701a6` | Kịch bản MỚI `docs/evidence/2026-09-29-adr-0048/kich-ban/tai-xe-doi-tac-smoke.mjs` (4 bước; bước 3–4 là B4) trên mã cũ → "✗ 3) 1040 Quản trị: dòng xe của nhà xe và dòng tài xế đối tác có nhãn “Nhà xe: …” … AssertionError: [\"79B-700.01 · Hyundai Solati Kiểm định 05/10/2026 Còn 6 ngày\", …, \"Lê Văn Đông Giấy phép lái xe hạng D2 08/10/2026 Còn 9 ngày\"]", "✗ 4) 390 …" | `typecheck` thoát 0; `build:web` thoát 0; Chrome `tai-xe-doi-tac-smoke` **4/4** (ảnh `sap-het-han-nha-xe-1040`, `-390`), `sap-het-han-smoke` ✓7 (không hồi quy) | 2026-09-29: `nhanNhaXe` luôn `null` → "✗ 3) … AssertionError: […]" và "✗ 4) …"; hoàn nguyên bằng bản sao + `build:web` → 4/4 | Khuôn dòng phụ `.vc-due-doc` sẵn có (điện thoại: dòng thứ hai dưới tên; máy tính: ô "XE / NGƯỜI" thành hai dòng `.vc-due-text` chỉ khi có nhãn). Chỉ TÊN nhà xe (máy chủ không trả liên hệ / MST); thân trang không có số (bài kiểm quét DOM). |
 | B5 Trang đầu tài xế + trang Tôi cho tài khoản Tài xế đối tác | (không mã — kịch bản cùng commit `30701a6`) | Bước 1–2 của `tai-xe-doi-tac-smoke.mjs` XANH ngay trên mã Phần A (đúng kế hoạch: "Task A3 đã sửa", không đổi bố cục) | Chrome `tai-xe-doi-tac-smoke` bước 1 (390: "/" → `/tai-xe`, không lời gọi `/api/orders*`, đúng hai tab Trang chủ + Tôi, giấy của mình, số đủ không trong DOM, axe) và bước 2 (1040 `/account`: "Giấy tờ của tôi" số che `••••0421`, không nút, mục đầu thanh bên "Trang chủ" → `/tai-xe`, không mục văn phòng); `tai-xe-trang-dau-smoke` ✓4 và `giay-to-cua-toi-smoke` ✓5 (tài xế công ty — không hồi quy) | 2026-09-29 (Chrome, thấy hàng rào `coPhanTaiXe` chặn thật ở giao diện): bỏ vế `DRIVER_PARTNER` khỏi `coPhanTaiXe` → "✗ 1) … Error: hết giờ chờ: được đưa sang /tai-xe", "✗ 2) … AssertionError: mục đầu là Trang chủ (/tai-xe): [\"Của tôi\",\"Góp ý / Báo lỗi\",\"Trợ giúp\"]"; hoàn nguyên + `build:web` → 4/4 | **Phát hiện khi viết kịch bản (có sẵn, không do ADR-0048):** lần chạy đầu mở trang Tài xế đối tác SAU các trang Quản trị trên CÙNG hồ sơ Chrome → `web/home.ts` gọi SỚM `/api/orders/dashboard` và `/api/catalog/admin` theo BẢN NHỚ KHUNG của máy (ADR-0035 — "máy này lần trước là người xem mọi đơn"), rồi mới chuyển sang `/tai-xe`; kết quả 403 bị bỏ, không lộ dữ liệu. Áp như nhau cho tài xế công ty (kịch bản 1a tránh bằng cách mở tài xế trước). Kịch bản mới cũng mở trang Tài xế đối tác TRƯỚC trên máy "sạch" (ghi ở chú thích đầu tệp). Rà lại sau (mục 6): KHÔNG phải lỗi sản phẩm — `env.as` gắn cookie thẳng, bỏ qua `/login` là chỗ xoá bản nhớ khung (`web/login.ts:15`); người dùng thật không gặp. Kịch bản mới thay vì chạy lại `tai-xe-trang-dau-smoke` / `giay-to-cua-toi-smoke` với tài khoản `DRIVER_PARTNER` (hai kịch bản đó khoá chữ riêng của tài xế công ty — "Chào Hùng", bốn giấy). |
 | B-kết tài liệu + bằng chứng Phần B | `81affb3` | — | — | — | `docs/evidence/2026-09-29-adr-0048/README.md` + `anh/` (10 ảnh, chụp bằng ba kịch bản mới, OUT mặc định); `docs/SYSTEM-DESIGN.md` §9 (dòng Hồ sơ, Xe, Thêm/sửa xe, Chi tiết xe, Giấy tờ sắp hết hạn, Trang đầu tài xế; đoạn Giao diện vai — mô tả, thua mã); tệp đề xuất luật mục 5 (bảng kịch bản Chrome của `web/CLAUDE.md` — CHỈ đề xuất, không sửa `web/CLAUDE.md` thật). Không có bản vẽ mới (Q2 = (a), khuôn sẵn) — README ghi rõ. |
-| K1 nhật ký thay đổi | | | | — | số bản: |
+| R-B1 câu lỗi quan hệ trung tính | `0317aef` | `node --test src/modules/parties/rules.test.ts src/modules/parties/nha-xe.test.ts` → pass 19 / fail 2: "not ok 4 - R-B1: thêm trùng 'Tài xế của' … expected: 'Quan hệ này đã được ghi trong khoảng thời gian trùng.' actual: 'Người liên hệ này đã được ghi trong khoảng thời gian trùng.'"; "not ok 16 - quan hệ: câu lỗi trung tính … expected: 'Quan hệ phải gắn với hồ sơ đang xem.' actual: 'Người liên hệ phải gắn với hồ sơ đang xem.'" | cùng lệnh → 21/21 | Bài mới đỏ thật trên chữ cũ (thấy chặn 2026-09-29) rồi xanh — không thêm dòng sổ hàng rào (khoá chữ, không phải hàng rào an toàn) | Chữ mới: "Quan hệ này đã được ghi trong khoảng thời gian trùng." (409 `relationship_overlap`); "Quan hệ phải gắn với hồ sơ đang xem."; "Một hồ sơ không thể có quan hệ với chính nó."; "Hồ sơ ở một đầu quan hệ không hợp lệ."; "Loại quan hệ không hợp lệ." Không câu nào hiện trong kịch bản Chrome (`nha-xe-danh-ba` khoá câu `drives_for_*`, không đổi). |
+| K1 nhật ký thay đổi | `779dd45` | `src/shared/app-info.test.ts` sửa trước → "not ok 3 - formatReleaseLine: dòng phiên bản của bản mới nhất … expected: 'Phiên bản 1.37 · ngày 29 tháng 9 năm 2026' actual: 'Phiên bản 1.36 · ngày 28 tháng 9 năm 2026'" | `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → 15/15; `node scripts/kiem-phien-ban.mjs` (GET công khai, chỉ đọc) → "ĐẠT: bản ở máy 1.37 mới hơn production 1.36." thoát 0 | — | số bản: **1.37 TẠM** (điều phối). Lúc đo: production **1.36** (không phải 1.35 như lời giao — đã triển khai), `main` mục đầu 1.36. Người gộp chốt số trống kế tiếp LÚC GỘP (nhánh ADR-0047 xếp hàng). Ba mục: hai `moi` (tài khoản tài xế nhà xe; Quản trị ghi nhà xe, tài xế, xe, lọc theo chủ xe), một `doi` (sắp hết hạn có xe và tài xế nhà xe, ghi tên nhà xe). |
 
 ## 4. Phán quyết của điều phối (Ruling) — kèm giá nếu sai
 
@@ -73,6 +74,9 @@ Diễn giải I1–I8 của kế hoạch mục 0 chờ điều phối xác nhậ
 | R-ĐP2 (điều phối 2026-09-29) | Migration dùng **0037, 0038, 0039**. Nhánh ADR-0047 thi công SONG SONG, dùng 0034–0035 | A1, A5, A8 | trùng số → đổi tên tệp nhánh lên sau |
 | R-ĐP3 (điều phối 2026-09-29) | Hai nhánh cùng đụng `src/shared/permissions.ts` + `permissions.test.ts`; ADR-0047 thêm ô `order.passenger.write`. Làm đúng mục 1.7 của kế hoạch, **KHÔNG tự thêm ô của nhánh kia**; nhánh gộp SAU xử lý cột thứ 9 cho ô của nhánh kia | A1 | ô lạ lọt vào bản đồ không qua ADR |
 | R-TC1 (người thi công tự diễn giải, 2026-09-29 — điều phối sửa nếu sai) | Lời giao "Nới LC-1 (trigger, `R-LC-1`, `EXTERNAL_ALLOWED`) chỉ ghi vào tệp đề xuất luật. Không sửa tệp luật thật" được hiểu là: **thi công trong mã** đúng như kế hoạch (trigger tạo lại ở migration 0037, `EXTERNAL_PERMISSIONS` thay `EXTERNAL_ALLOWED`, câu kiểm `R-LC-1` ở A11) — vì lời giao cũng đòi P16 cho "LC-1 mới" — và **ghi phần nới vào tệp đề xuất luật mục 1** để chủ xác nhận trước khi gộp. "Tệp luật thật" = `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/adr/`, `playbook/`, `.claude/`: **không sửa**. `src/architecture.test.ts` không sửa | A1, A11, A14 | nếu điều phối muốn chưa thi công phần nới: hoàn nguyên đoạn trigger LC-1 của 0037, hằng, `R-LC-1` — khi đó không cấp được tài khoản Tài xế đối tác |
+| R-B1 (điều phối 2026-09-29, bề mặt — P8) | Câu lỗi máy chủ còn chữ "Người liên hệ" (`src/modules/parties/index.ts:154`, `src/modules/parties/rules.ts:281`) → chữ trung tính đúng cho cả hai loại quan hệ; không đổi mã lỗi, không đổi logic; test đỏ → xanh. Người thi công đổi luôn ba câu cùng hàm `validateRelationship` có cùng lỗi chữ (`rules.ts:279`, `:280`, `:282`) — cùng lý do, cùng loại | commit `0317aef` | đảo ngược: trả lại chữ cũ + sửa hai bài test |
+| R-B2 (điều phối 2026-09-29, bề mặt — P8) | Nhãn "Nhà xe: …" với xe của công ty chủ CŨ (sau khi đổi công ty chủ) — **giữ nguyên, không sửa**; điều phối ghi `docs/BACKLOG.md` | — | chữ lệch với xe công ty cũ tới khi làm mục BACKLOG |
+| R-B3 (điều phối 2026-09-29) | Kế hoạch 14.2 điểm 2 (tài xế của nhà xe CHƯA có tài khoản không lên danh sách sắp hết hạn) — điều phối ghi `docs/BACKLOG.md`; người thi công KHÔNG làm | — | khoảng hở báo cáo như cũ |
 
 ## 5. Sự cố
 
@@ -81,15 +85,15 @@ Diễn giải I1–I8 của kế hoạch mục 0 chờ điều phối xác nhậ
 ## 6. Nợ còn lại (không chặn gộp)
 
 - Bàn giao lượt 1b / lượt II (kế hoạch mục 14.3): B1.4, B1.5; view `v_pty_carrier_driver` là "hiện tại"; cột `DRIVER_PARTNER` của các ô chuyến mặc định `none`.
-- Khoảng hở báo cáo "tài xế của nhà xe chưa có tài khoản không lên danh sách sắp hết hạn" (kế hoạch mục 14.2 điểm 2) — gợi ý ghi `docs/BACKLOG.md` (người thi công KHÔNG tự ghi — ngoài phạm vi Phần A).
+- Khoảng hở báo cáo "tài xế của nhà xe chưa có tài khoản không lên danh sách sắp hết hạn" (kế hoạch mục 14.2 điểm 2) — ruling R-B3: điều phối ghi `docs/BACKLOG.md` (người thi công không làm).
 - ~~**Giao diện `web/role-picker.ts` (nợ B1):**~~ ĐÃ TRẢ ở Task B1 (`6ce8cee`) — ghi lại để người kiểm đối chiếu: sau khi đổi hằng, nhóm vai bên ngoài nay MỞ ô "Cộng thêm Tài xế đối tác" (vì `DRIVER_PARTNER` là quyền bên ngoài) và chưa có khoá chéo "Tài xế đối tác ↔ vai bên ngoài khác". Máy chủ chặn 400 (Task A2) nên không có tài khoản lai; giao diện sẽ báo lỗi sau khi bấm Lưu thay vì tắt ô trước. Làm ở Task B1.
 - ~~**Trang đầu tài xế với tài khoản `DRIVER_PARTNER`** chưa chạy kịch bản Chrome (Task B5)~~ ĐÃ TRẢ ở Task B5 (`tai-xe-doi-tac-smoke.mjs` bước 1–2) — `homeRedirect` đã đúng ở hàm thuần và `web/shell.ts`/`web/tai-xe.ts` đi theo hàm đó.
 - **Nhánh ADR-0047** (0034–0036, ô `order.passenger.write`): chưa có migration thật lúc A0; nhánh gộp SAU thêm đối số thứ chín cho ô đó và thêm ô vào CẢ HAI bài ghim (`DRIVER`, `DRIVER_PARTNER`) — kế hoạch mục 1.7. K3 kiểm thứ tự lên `main` (đổi số nếu đảo).
 - Số bản nhật ký thay đổi (tạm 1.37) — chốt LÚC GỘP (Task K1, chưa làm).
 - **Phần B — giả định bề mặt (đảo ngược được, P8):** chữ nút "Thêm quan hệ tài xế" / "Thêm tài xế" và hai dòng lựa chọn của ô "Loại" (B2); ô "Chủ xe" ở `/xe-sua` và ô lọc "Chủ xe" ở `/xe` CHỈ hiện khi đã có ít nhất một nhà xe đang hợp tác (khi chưa có — giữ nguyên bản vẽ 1a màn 01–02) (B3); viết ba kịch bản Chrome MỚI thay cho chèn bước vào kịch bản 1a (giữ chữ khoá riêng của tài xế công ty).
-- **Phần B — nhãn "Nhà xe: …" dựa vào `ownerIsCompany` của máy chủ** (so với công ty chủ HIỆN TẠI): nếu chủ dự án đổi công ty chủ sang hồ sơ khác, xe của công ty chủ CŨ sẽ hiện "Nhà xe: <tên công ty cũ>" ở `/xe` và danh sách sắp hết hạn. Không sai dữ liệu (chỉ chữ); đổi công ty chủ hiếm và có cổng riêng (`company.legal.write`). Không sửa (ngoài khuôn sẵn — cần quyết định chữ cho "xe của công ty chủ cũ").
+- **Phần B — nhãn "Nhà xe: …" dựa vào `ownerIsCompany` của máy chủ** (ruling R-B2: giữ nguyên, điều phối ghi BACKLOG) (so với công ty chủ HIỆN TẠI): nếu chủ dự án đổi công ty chủ sang hồ sơ khác, xe của công ty chủ CŨ sẽ hiện "Nhà xe: <tên công ty cũ>" ở `/xe` và danh sách sắp hết hạn. Không sai dữ liệu (chỉ chữ); đổi công ty chủ hiếm và có cổng riêng (`company.legal.write`). Không sửa (ngoài khuôn sẵn — cần quyết định chữ cho "xe của công ty chủ cũ").
 - ~~**Gọi sớm theo bản nhớ khung (ADR-0035)**~~ **KHÔNG phải nợ** (người thi công tự rà lại khi viết mục 7): kịch bản dựng trên `a2-cdp.mjs` đăng nhập bằng `env.as` = gắn cookie phiên thẳng (`Network.setCookie`, `a2-cdp.mjs:191-194`), KHÔNG mở `/login`; mà `/login` mới là chỗ xoá bản nhớ khung (`web/login.ts:15` `xoaKhungNho()`; cũng xoá ở `logout()` `web/shell.ts:108`, hết phiên `web/api.ts:45`, màn bảo trì) — hàng rào đã có dòng ở `docs/SO-HANG-RAO.md` (kịch bản `trang-chu-smoke.mjs` bước I-1, ADR-0035, thấy chặn 2026-09-27). Người dùng thật đăng nhập qua `/login` nên không gặp; lời gọi sớm ở lần chạy đầu của B5 là giả tạo của cách đăng nhập trong kịch bản. Không cần ghi BACKLOG.
-- **Câu lỗi máy chủ còn chữ "Người liên hệ"** dù nay cũng áp cho quan hệ "Tài xế của": `src/modules/parties/index.ts:154` (409 `relationship_overlap` "Người liên hệ này đã được ghi trong khoảng thời gian trùng." — hiện khi thêm trùng một tài xế cho cùng nhà xe) và `src/modules/parties/rules.ts:281` ("Người liên hệ phải gắn với hồ sơ đang xem." — ít gặp, giao diện luôn gửi hồ sơ đang xem). Chỉ là chữ, không sai dữ liệu; mã máy chủ Phần A đã kiểm độc lập nên người thi công Phần B KHÔNG sửa — gợi ý đổi thành "Quan hệ này …" ở lượt sau (chủ/điều phối quyết).
+- ~~**Câu lỗi máy chủ còn chữ "Người liên hệ"**~~ ĐÃ SỬA theo ruling R-B1 (`0317aef`) — ghi lại để người kiểm đối chiếu: dù nay cũng áp cho quan hệ "Tài xế của": `src/modules/parties/index.ts:154` (409 `relationship_overlap` "Người liên hệ này đã được ghi trong khoảng thời gian trùng." — hiện khi thêm trùng một tài xế cho cùng nhà xe) và `src/modules/parties/rules.ts:281` ("Người liên hệ phải gắn với hồ sơ đang xem." — ít gặp, giao diện luôn gửi hồ sơ đang xem). Chỉ là chữ, không sai dữ liệu; mã máy chủ Phần A đã kiểm độc lập nên người thi công Phần B KHÔNG sửa — gợi ý đổi thành "Quan hệ này …" ở lượt sau (chủ/điều phối quyết).
 - **Ô `order.passenger.write`** (ADR-0047): người GỘP làm ở K3 (điều phối, kết quả kiểm độc lập Phần A).
 
 ## 7. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
@@ -129,6 +133,20 @@ Người thi công, 2026-09-29, đỉnh `81affb3` (trước commit nhật ký n�
 
 **P16 Phần B:** mỗi hàng rào giao diện mới đã thấy đỏ thật rồi hoàn nguyên — bảng mục 3, cột P16 của dòng B1–B5 (B1 hai đột biến, B2 một, B3 hai, B4 một, B5 một). Bốn kịch bản Chrome canh giao diện Phần B có dòng mới ở `docs/SO-HANG-RAO.md:144-147` (theo tiền lệ dòng `vai-smoke.mjs` LC-3); Phần B không thêm hàng rào máy chủ mới (hàng rào Phần A ở `:132-143`).
 
+### Sau ruling R-B1 + Task K1 — tự khai, CHƯA kiểm độc lập
+
+Đỉnh `779dd45` (mã) — 2026-09-29 12:38, tải 2.74 2.85 3.11; `ps aux | grep -i wrangler` rỗng trước khi chạy.
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm test` | **1375/1375** (Phần B 1373 + 2 bài R-B1) — thoát 0 |
+| `npm run typecheck` | thoát 0 |
+| `npm run build:web` | thoát 0 |
+| `npm run test:e2e` (đủ bộ, gồm `parties`, `tai-xe-doi-tac`) | **25/25** — thoát 0 |
+| `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` | 15/15 |
+| `node scripts/kiem-phien-ban.mjs` (GET công khai) | "ĐẠT: bản ở máy 1.37 mới hơn production 1.36." — thoát 0 |
+| Chrome `nha-xe-danh-ba-smoke.mjs` (`OUT=/tmp/adr48-chrome-out/k1/…`) | exit=0 ✓5 (năm câu lỗi đổi chữ KHÔNG hiện ở kịch bản này — chạy để chắc màn Danh bạ không hồi quy) |
+
 ## 8. Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc)
 
 ### Giữa chừng (tuỳ điều phối, sau Task A15)
@@ -138,9 +156,9 @@ Người thi công, 2026-09-29, đỉnh `81affb3` (trước commit nhật ký n�
 ## 9. Chưa kiểm (lúc viết mục này)
 
 - Phần B (B1–B5, B-kết) đã thi công, tự kiểm (mục 7) — CHƯA có người kiểm độc lập (K2). Phần A đã kiểm độc lập giữa chừng ĐẠT (`3d8f4b0`, mục 2).
-- K1 (nhật ký thay đổi, số bản), K2 (kiểm độc lập cuối), K3 (gộp, số migration so với nhánh ADR-0047, ô `order.passenger.write`) CHƯA làm — điều phối: dừng trước K1/K2.
+- K1 ĐÃ LÀM (`779dd45`, số 1.37 tạm). K2 (kiểm độc lập cuối), K3 (gộp, áp diff tệp luật đã duyệt, số migration so với nhánh ADR-0047, ô `order.passenger.write`, chốt số bản) CHƯA làm — điều phối: dừng trước K2.
 - Chưa thử iPhone thật; chưa thử trên D1 remote (AI không chạy `--remote`).
-- Tệp đề xuất luật: CHƯA được chủ duyệt (mục 1 nới LC-1; mục 3, 4, 6 sửa tệp luật).
+- Tệp đề xuất luật: mục 1, 3, 4, 6 chủ duyệt 29/9 (điều phối áp lúc gộp); mục 5 CHƯA hỏi chủ.
 
 ## 10. Phát hành (chủ dự án tự chạy — Task K3)
 
