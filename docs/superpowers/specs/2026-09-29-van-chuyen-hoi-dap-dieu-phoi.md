@@ -39,3 +39,85 @@
 - **Lõi cố định:** mỗi khách tại một thời điểm ở đúng một xe; tổng người ≤ số chỗ mọi lúc (kể cả sau chuyển điểm); xe/tài xế không chồng giờ; mọi thay đổi ghi thêm (ai, lúc nào, vì sao), không sửa đè; qua cổng mới xuất bến; chuyến kết thúc không sửa; tài xế chỉ thấy chuyến mình.
 - **Cấu hình (có ngày hiệu lực):** mốc tối thiểu 6 giờ; khoảng nghỉ; điều kiện xuất bến; danh sách lý do đổi; chiều về theo dịch vụ; bảng hạng bằng ↔ số khách.
 - **Máy tự quyết theo luật (người quyết cuối, trừ luồng tự xác nhận chủ đã chọn):** gợi ý xe/tài xế; kiểm lại cả hai xe khi chuyển điểm; cảnh báo trùng giờ, sát mốc 6 giờ.
+
+## Trả lời lần 2 (29/9, câu ĐP của bản thiết kế Bảng điều phối)
+
+| Câu | Chủ chọn |
+|---|---|
+| ĐP2 mốc 6 giờ | **"Theo 4 khuyến nghị"**: (i) lúc xếp tính tới giờ xe xuất bến của chuyến; (ii) chặng đã phá lệ lúc đặt thì lúc xếp không ghi lý do lần nữa; (iii) trong 6 giờ chỉ khoá "ai đi xe nào", đổi xe, đổi tài xế (chỉnh thứ tự điểm, giờ xe tới vẫn làm được, có ghi); (iv) kiểm lại mốc lúc xác nhận đơn và khi sửa nơi đón/trả |
+| ĐP3 ai phá lệ mốc 6 giờ và khoảng nghỉ | **"Chỉ Quản trị, Toàn quyền"** (cả lúc đặt lẫn lúc xếp — chặt hơn khuyến nghị) |
+| ĐP6 người xếp xe đổi giờ hẹn khách trên đơn người khác | **"Không, nhắc người phụ trách"** |
+| ĐP7 hợp đồng vận chuyển + ĐP8 cách xử lý nhiều người cùng thao tác | **"Đồng ý cả hai"**: hợp đồng để lượt riêng sau (công tắc khoá ở tắt); kiểm và ghi ngay trong một lần, đụng nhau thì tải lại (không trạm theo ngày, không hàng đợi) |
+
+## Trả lời lần 3 (29/9, câu của hai kế hoạch thi công ADR-0047 và ADR-0048)
+
+Điều phối hỏi chủ trực tiếp, rồi chuyển lại cho người thi công; ghi ở đây để có một nơi lưu bền (nhật ký thi công của từng nhánh cũng có).
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| Khi đơn còn là NHÁP, sửa phần đưa đón / danh sách hành khách thì máy làm theo cách nào? (hỏi lại lần hai cho rõ, sau khi chủ đề nghị "Hãy hỏi lại và rõ ý hơn") | **"Cách 1: chỉ giữ bản cuối"** — đơn nháp xoá hẳn rồi ghi lại chặng + danh sách khách cùng lô khi lưu; đơn đã xác nhận cấm xoá (ADR-0047 kế hoạch Q0) |
+| Ngày đón được cách ngày đi của tour/dịch vụ bao xa? | **"Sớm 1 ngày, muộn 7 ngày"** — ngày đón trong [ngày đi − 1, ngày đi + 7], ngoài khoảng máy chặn. Đây là con số điền cho câu "khoảng cho phép (luật đổi được, ở mã)" mà ADR-0047 để cho mã, không phải sửa câu ADR (ADR-0047 kế hoạch Q2) |
+| Khi đã thêm xe, có sửa được "chủ xe" (công ty ↔ nhà xe, hoặc nhà xe A → B) không? | **"Sửa được, ghi nhật ký"** — sửa nhập nhầm, nhật ký ghi "chủ xe A → B" (ADR-0048 kế hoạch Q1) |
+| Hai chuyện giao diện, gộp: (a) "Chuyến đón hôm nay" ở Trang chủ vẫn lấy theo ngày đi như hiện nay; (b) không làm màn riêng "Nhà xe" — tìm nhà xe ở Danh bạ bằng ô lọc, danh sách xe lọc theo chủ xe. Đồng ý? | **"Đồng ý cả hai"** (ADR-0047 kế hoạch Q3; ADR-0048 kế hoạch Q2) |
+
+## Trả lời lần 4 (29/9, câu ĐP2(v) và lời duyệt ADR-0049)
+
+Người kiểm nhanh đề xuất ADR-0049 chỉ ra: ĐP2(iv) chưa hỏi trường hợp đơn có giờ hẹn ĐÃ dưới mốc 6 giờ ngay từ lúc gõ. Điều phối hỏi riêng, kèm lưu ý phương án khuyến nghị lỏng hơn câu "áp cả lúc khách đặt (biểu mẫu)" của chủ ngày 28/9.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| ĐP2(v): "Nhân viên lập đơn lúc 2 giờ 20 sáng cho khách cần đón lúc 6 giờ 30 (chỉ còn hơn 4 giờ, dưới mốc 6 giờ). Bấm Lưu nháp thì máy làm gì?" — hai phương án: "Cho lưu nháp, chặn ở Xác nhận" / "Chặn ngay từ lúc lưu" | **"Cho lưu nháp, chặn ở Xác nhận"** — đơn nháp lưu được (hiện cảnh báo), xác nhận bị chặn tới khi Quản trị / Toàn quyền bấm "Đặt gấp" kèm lý do |
+| "Duyệt quyết định Bảng điều phối chung, lượt 1 (9 điểm ở trên)?" — tóm tắt 9 điểm trình trong chat | **"Duyệt, ghi theo câu 1"** — điều kiện điều phối đã nêu: người kiểm xem lại bản cuối rồi mới ghi thành ADR-0049 chính thức |
+
+Kết quả điều kiện: người kiểm xem bản cuối (đỉnh `dcea833`) ĐẠT 8/8 mục → điều phối ghi `docs/adr/ADR-0049-bang-dieu-phoi-chung-luot-1.md` (accepted, 29/9).
+
+## Trả lời lần 5 (29/9, duyệt hai tệp đề xuất sửa luật của ADR-0047 và ADR-0048)
+
+Hỏi sau khi người kiểm độc lập Phần A của cả hai nhánh báo: ADR-0048 (đỉnh `3d8f4b0`) ĐẠT; ADR-0047 (đỉnh `6bb67c8`) ĐẠT CÓ ĐIỀU KIỆN — điều kiện duy nhất là chủ duyệt bốn mục nới luật trước khi gộp. Điều phối xếp lượt: ba mục chạm dữ liệu/quyền (0047 mục 2, 0047 mục 3, 0048 mục 1) + hai mục chỉ là quy tắc đặt tên (0047 mục 1, mục 7) — trong trần 3 của `CLAUDE.md` §9.
+
+| Câu (điều phối hỏi, tóm đúng nội dung đã hiện cho chủ) | Chủ chọn |
+|---|---|
+| ADR-0047, tệp `docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md`: "cho phép 4 ngoại lệ luật để gộp được không? (1) bảng mới của phần Đơn đặt tên bắt đầu bằng 'ord_'; (2) đơn còn NHÁP: lưu lại thì xoá hẳn chặng + tên khách cũ rồi ghi mới (đúng câu bạn chọn 'chỉ giữ bản cuối'), đơn đã xác nhận máy vẫn cấm xoá; (3) tạm cho phần Đơn đọc sổ nhật ký để biết 'lần lưu này có thắng không' như đang làm, hạn tới 31/3/2027; (4) cột họ tên khách tên 'full_name' trùng chữ với một cột bỏ đi của bảng nhân viên — cho đúng một tệp được nhắc chữ này, có bài kiểm bảo đảm không đụng bảng nhân viên. Kèm ghi 4 điều vào tài liệu luật cho khớp máy." — ba phương án: "Duyệt cả 4" / "Duyệt 1–3, đổi tên cột" / "Chưa, giải thích thêm" | **"Duyệt cả 4"** — tức mục 1, 2 (kể cả 2b, 2c sửa `docs/ARCHITECTURE.md`), 3 (hạn `2027-03-31`), 7 của tệp đề xuất, và mục 4a, 4b (tài liệu luật). **Chưa hỏi:** 4c (`web/CLAUDE.md`, điền ở Phần B), 4d (dòng bẫy tuỳ chọn ở `CLAUDE.md` §10), mục 6 (phát hành 2) — hỏi khi tới |
+| ADR-0048, tệp `docs/superpowers/plans/2026-09-29-adr-0048-de-xuat-luat.md`: "duyệt đề xuất luật? Gồm: mở hàng rào 'tài khoản người ngoài chỉ giữ quyền Đối tác' thành 'Đối tác HOẶC Tài xế đối tác' (… kèm luật siết mới: Tài xế đối tác không giữ thêm quyền nào khác …), và ghi tài liệu luật cho khớp (Hiến chương phần kỹ thuật, luật thư mục mã, CLAUDE.md: 8 → 9 quyền). … Riêng dòng bảng kịch bản giao diện sẽ hỏi sau khi xong giao diện." — hai phương án: "Duyệt" / "Chưa duyệt" | **"Duyệt"** — tức mục 1 (1a–1d), 3, 4, 6 (6a, 6b). **Chưa hỏi:** mục 5 (`web/CLAUDE.md`, điền ở Phần B) |
+
+Cách áp (theo bài học 28/9: việc NỚI do phiên nhận lời chủ TRỰC TIẾP làm): điều phối áp các diff sửa tệp luật lúc gộp (Task K3 của từng kế hoạch), mỗi tệp một commit, chủ bấm Đồng ý ở hộp hỏi quyền; đổi chú thích "CHỜ CHỦ DUYỆT" trong `src/architecture.test.ts` thành "đã duyệt 2026-09-29"; người kiểm so khớp phần áp.
+
+## Trả lời lần 6 (29/9, ba câu của kế hoạch thi công ADR-0049 — mốc 6 giờ, "Đặt gấp")
+
+Kế hoạch `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md` mục 12 (Q1, Q2) + câu T-9/I14 mà người kiểm độc lập kế hoạch (ĐẠT CÓ ĐIỀU KIỆN) đề nghị đưa lên chủ vì là câu song sinh của Q1 (điều phối đặt là Q3). Mỗi câu chỉ chặn một bước thi công.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| Q1: "Đơn NHÁP sát giờ đã được Quản trị bấm "Đặt gấp". Sau đó người bán sửa đơn nháp đó (ví dụ thêm tên khách) rồi bấm Lưu. Dấu "Đặt gấp" còn giữ không?" — "Còn, nếu không đổi giờ/nơi" / "Mất sau mọi lần lưu" | **"Còn, nếu không đổi giờ/nơi"** — chặng không đổi ngày, giờ, nơi đón, nơi trả thì giữ dấu; chặng nào đổi thì mất, phải nhờ Quản trị bấm lại |
+| Q3 (T-9): "Đơn ĐÃ XÁC NHẬN, chặng đã "Đặt gấp" và đang dưới mốc 6 giờ. Khách đổi khách sạn nên cần sửa nơi đón (hoặc ngày, giờ, nơi trả) của chặng đó. Ai được sửa?" — "Chỉ Quản trị, Toàn quyền" / "Bán hàng tự sửa được" | **"Chỉ Quản trị, Toàn quyền"** — mỗi lần sửa ghi lý do; "Đặt gấp" chỉ duyệt đúng giờ/nơi lúc đó, đổi thì duyệt lại (điều phối diễn giải, không phải lời chủ — cách đọc chặt của ADR-0049: câu thay ADR-0047 A1 thắng vế "trừ khi chặng mang đặt gấp" của D2 đối với việc SỬA; vế đó vẫn áp cho việc XÁC NHẬN và XẾP) |
+| Q2: "Đã trong vòng 6 giờ trước giờ xe chạy, Bán hàng có được TẠO một chuyến xe mới (chọn xe, tài xế) không?" — "Được, chỉ cho khách đặt gấp" / "Không, cần Quản trị phá lệ" | **"Được, chỉ cho khách đặt gấp"** — chuyến mới trong 6 giờ chỉ xếp được chặng đã "Đặt gấp"; xếp khách khác vẫn cần Quản trị/Toàn quyền phá lệ |
+
+## Trả lời lần 7 (29/9, mục 4 đề xuất luật ADR-0049 — lượt riêng, một quyết định)
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Luật kỹ thuật chung (Hiến chương phần II, đứng trên mọi ADR) dạy một cách chống hai người sửa cùng lúc: xem "giờ sửa cuối" và tra sổ nhật ký. Bảng điều phối (ADR-0049 bạn đã duyệt) dùng cách khác: "số phiên bản" + "dấu lệnh" ghi ngay trên chuyến xe, vì phần Vận chuyển theo luật không được đọc sổ nhật ký. Hai chỗ viết khác nhau nên phải sửa một bên. Chọn cách nào?" — "Sửa luật chung cho khớp" / "Giữ luật chung, đổi Bảng điều phối" | **"Sửa luật chung cho khớp"** = phương án (a) mục 4 của `docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md` (đỉnh `5a7eb71`): diff `docs/ARCHITECTURE.md:194`, `:215` và `src/CLAUDE.md:26` — điều phối áp lúc gộp ADR-0049, mỗi tệp một commit. Mục 1–3 (nới) của tệp đó CHƯA hỏi — trình lúc gộp |
+
+## Kết quả truy vấn chỉ đọc của chủ (29/9, ADR-0047 kế hoạch mục 10 bước 3 — câu Q1)
+
+Chủ tự chạy `~/.claude/jobs/32bcd96e/tmp/kiem-q1-chang.sh` (`wrangler d1 execute … --remote`, chỉ `SELECT` đếm) và dán kết quả vào chat:
+
+| trang_thai | so_dich_vu_co_don | co_gio_khong_noi | chua_co_ngay_di | chua_co_noi_tra |
+|---|---|---|---|---|
+| cancelled | 18 | 2 | 0 | 18 |
+| confirmed | 27 | 0 | 0 | 27 |
+
+(Không có dòng `draft`: không đơn nháp nào có dữ liệu đón cũ.)
+
+Điều phối kết luận (không phải lời chủ):
+- **Q1 không cần chủ quyết:** "giờ không nơi" chỉ có 2 dịch vụ, đều thuộc đơn ĐÃ HUỶ; đơn đã xác nhận = 0. Giữ mặc định (a) "(chưa ghi nơi đón)" đang có trong `0034` (hằng `NOI_DON_CHUA_GHI`, giả định G10). Đảo ngược được: `0034` chưa áp remote.
+- **Ngày đi:** đủ ở mọi dịch vụ ⇒ không chặng chép nào thiếu ngày.
+- **Nơi trả:** 45/45 dịch vụ chưa có ⇒ sau phát hành, mọi chặng chép từ dữ liệu cũ mang "nơi trả chưa chốt" — `audit-invariants` báo CẢNH BÁO R-ORD-8 (không phải vi phạm, không chặn triển khai); nhân viên bổ sung khi cần.
+
+## Trả lời lần 8 (29/9, mục 5 đề xuất luật ADR-0048 — điều kiện cuối của người kiểm K2)
+
+Người kiểm độc lập cuối ADR-0048 (K2, đỉnh `5a024b4`): ĐẠT CÓ ĐIỀU KIỆN — điều kiện duy nhất là chủ duyệt mục 5. Hai chỉnh THẤP người kiểm đề nghị đã sửa ở `f575ffb` (thêm `public/xe.html` vào dòng B3; ghi chú `dot-a-smoke` đỏ sẵn từ ADR-0038).
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Nhà xe + tài xế đối tác: ghi thêm 4 dòng vào luật giao diện (web/CLAUDE.md) — mỗi dòng nói "sửa màn này thì phải chạy lại bài kiểm trình duyệt nào": (1) ô chọn vai "Tài xế đối tác" và khoá chéo; (2) quan hệ "Tài xế của" + vai "Nhà xe đối tác" ở Danh bạ; (3) ô "Chủ xe", nhãn "Nhà xe: …", ô lọc chủ xe ở màn Xe; (4) nhãn nhà xe ở Giấy tờ sắp hết hạn + trang của tài khoản Tài xế đối tác. Chỉ siết (bắt kiểm nhiều hơn), không nới gì. Kèm 2 chỉnh nhỏ người kiểm đề nghị (thêm một tệp màn Xe vào dòng 3; ghi chú một bài kiểm đang đỏ sẵn từ trước). Đây là điều kiện cuối để gộp và phát hành bản 1.37." — "Duyệt" / "Chưa duyệt" | **"Duyệt"** — mục 5 (bản ở `f575ffb`). Cùng mục 1, 3, 4, 6 đã duyệt ở lần 5 ⇒ toàn bộ tệp đề xuất luật ADR-0048 đã duyệt; điều phối áp ở nhánh phát hành 1.37 |
