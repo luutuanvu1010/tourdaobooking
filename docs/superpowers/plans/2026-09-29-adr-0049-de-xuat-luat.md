@@ -51,7 +51,7 @@
 
 | # | Việc | Loại | Vì sao cần | Nếu bạn KHÔNG duyệt |
 |---|---|---|---|---|
-| 0 | Năm quyền mới: xem chuyến, xếp xe, bấm tiến độ, phá lệ mốc 6 giờ, đặt gấp — đúng bảng bạn đã duyệt ở ADR-0049 | **Thêm** vào bảng quyền và bài đối chiếu (không nới bài khoá cũ nào; riêng cột tài xế công ty là mục 2) | Máy chủ chỉ cho làm việc gì có ô quyền; bài đối chiếu khoá giá trị từng ô đúng như ADR | Không ai dùng được Bảng điều phối; phá lệ và đặt gấp không có người bấm |
+| 0 | Bảy quyền mới: xem chuyến, xếp xe, bấm tiến độ, phá lệ mốc 6 giờ, đặt gấp — đúng bảng bạn đã duyệt ở ADR-0049; xem đủ dấu đặt gấp trên đơn (lời bạn "Trả lời lần 12"); "Đã gọi báo" khách khi giờ hẹn đổi (ADR-0051) | **Thêm** vào bảng quyền và bài đối chiếu (không nới bài khoá cũ nào; riêng cột tài xế công ty là mục 2) | Máy chủ chỉ cho làm việc gì có ô quyền; bài đối chiếu khoá giá trị từng ô đúng như ADR | Không ai dùng được Bảng điều phối; phá lệ và đặt gấp không có người bấm |
 | 1 | Cho phân hệ Vận chuyển **đọc** thông tin chặng đưa đón của đơn và danh sách địa điểm | **Nới** một hàng rào kiến trúc | Chuyến xe phải trỏ tới chặng đưa đón (để biết khách nào lên xe nào) và tới địa điểm (khách sạn, cảng). Bạn đã duyệt ở ADR-0049; hàng rào máy cần được mở đúng hai lối này | Cả Bảng điều phối không làm được |
 | 2 | Cho **tài xế công ty** xem chuyến mình lái và bấm tiến độ | **Nới** bài khoá quyền của tài xế | Hôm nay tài xế bị khoá mọi thứ trừ giấy tờ của mình. Bạn đã duyệt cho tài xế thấy chuyến mình và tự bấm Xuất bến / Đã đón… | Tài xế không dùng app cho chuyến; văn phòng phải bấm thay mọi nút |
 | 3 | Họ tên, năm sinh khách được hiện trên màn **tài xế** (chỉ trong ngày chạy, chỉ chuyến mình lái) và trên màn **chi tiết chuyến của văn phòng** (người vốn đã xem được tên khách ở màn đơn) | **Nới** nghĩa một hàng rào dữ liệu cá nhân | Hàng rào hôm nay ghi "tên khách chỉ ra khỏi máy chủ ở màn danh sách khách của đơn". Bạn đã duyệt cho tài xế thấy tên trong ngày chạy; văn phòng bấm thay nút cho tài xế cần thấy khách nào | Tài xế chỉ thấy số người, không thấy tên; phải gọi văn phòng hỏi. Văn phòng bấm thay theo số thứ tự khách |
@@ -65,9 +65,9 @@
 
 ---
 
-## Mục 0 — Năm ô mới trong `src/shared/permissions.ts` và bài đối chiếu ADR (THÊM — không nới bài ghim có sẵn, trừ hàng `DRIVER` ở mục 2)
+## Mục 0 — Bảy ô mới trong `src/shared/permissions.ts` và bài đối chiếu ADR (THÊM — không nới bài ghim có sẵn, trừ hàng `DRIVER` ở mục 2)
 
-**Bảng ô** (cột theo `PERMISSION_CODES`, `src/shared/permissions.ts:5@3d8f4b0`; `row()` 9 tham số :44–48; thêm vào `MATRIX` :71–124). Nguồn: ADR D3 :193–201; "Câu ADR bị thay" ADR-0019 bản đồ ô (:271).
+**Bảng ô** (cột theo `PERMISSION_CODES`, `src/shared/permissions.ts:5@3d8f4b0`; `row()` 9 tham số :44–48; thêm vào `MATRIX` :71–124). Nguồn: ADR D3 :193–201; "Câu ADR bị thay" ADR-0019 bản đồ ô (:271); `order.leg.short_notice.view` — chủ H4 / N-14 ("Trả lời lần 12", 29/9 — nhật ký thi công §10.11); `trip.call_ack` — ADR-0051 GB2 (accepted 29/9, "Trả lời lần 14").
 
 | Ô | SALES | ACC | ADMIN | FIELD | PARTNER | SA | INTERN | DRIVER | DRIVER_PARTNER |
 |---|---|---|---|---|---|---|---|---|---|
@@ -76,14 +76,17 @@
 | `trip.progress` | any | none | any | none | none | any | none | assigned | none |
 | `trip.override` | none | none | any | none | none | any | none | none | none |
 | `order.leg.short_notice` | none | none | any | none | none | any | none | none | none |
+| `order.leg.short_notice.view` | any | any | any | none | none | any | none | none | none |
+| `trip.call_ack` | ownOrAssigned | none | any | none | none | any | none | none | none |
 
 | # | Chỗ sửa | Đổi | Có phải nới không | Nếu chủ KHÔNG duyệt |
 |---|---|---|---|---|
-| 0a | `src/shared/permissions.ts` `MATRIX` (:71–124@3d8f4b0) | thêm năm hàng trên, chú thích mỗi hàng dẫn ADR-0049 D3. **Mỗi ô vào cùng commit với route đầu tiên hỏi nó** (hàng rào 1 `src/permission-enforcement.test.ts:9-14` đòi ô có nơi gọi `can(`; kế hoạch Task A10, A13, A15) | **Không nới hàng rào nào**: ô mới, bản đồ vẫn là nguồn duy nhất (ADR-0019). Nhưng là **mở quyền mới** cho SALES, ACC, ADMIN, SA và (phạm vi `assigned`) DRIVER — nội dung ADR-0049 đã duyệt | Không route nào của Bảng điều phối hỏi được quyền. Cả lượt 1 dừng. Không có ô thì hàng rào 1 đỏ |
-| 0b | `src/shared/permissions.test.ts` bảng `ADR` (:14–51@3d8f4b0) — bài "bản đồ quyền khớp TỪNG Ô …" (:55) | thêm năm hàng, **đúng** giá trị bảng trên; tên bài thêm "+ ADR-0049 D3" | **Không nới**: bài đối chiếu thêm hàng = khoá thêm giá trị (siết) | — |
-| 0c | cùng tệp — bài mới | `order.leg.short_notice`, `trip.override` chỉ ADMIN + SA; mọi mã có `trip.view = any` cũng có `contact.view = any`; hàng `DRIVER_PARTNER` năm khoá mới `none` | siết | — |
+| 0a | `src/shared/permissions.ts` `MATRIX` (:71–124@3d8f4b0) | thêm bảy hàng trên, chú thích mỗi hàng dẫn nguồn của nó (ADR-0049 D3; H4/N-14; ADR-0051 GB2). **Mỗi ô vào cùng commit với route đầu tiên hỏi nó** (hàng rào 1 `src/permission-enforcement.test.ts:9-14` đòi ô có nơi gọi `can(`; kế hoạch Task A10, A13, A15) | **Không nới hàng rào nào**: ô mới, bản đồ vẫn là nguồn duy nhất (ADR-0019). Nhưng là **mở quyền mới** cho SALES, ACC, ADMIN, SA và (phạm vi `assigned`) DRIVER — nội dung ADR-0049 đã duyệt | Không route nào của Bảng điều phối hỏi được quyền. Cả lượt 1 dừng. Không có ô thì hàng rào 1 đỏ |
+| 0b | `src/shared/permissions.test.ts` bảng `ADR` (:14–51@3d8f4b0) — bài "bản đồ quyền khớp TỪNG Ô …" (:55) | thêm bảy hàng, **đúng** giá trị bảng trên; tên bài thêm "+ ADR-0049 D3" | **Không nới**: bài đối chiếu thêm hàng = khoá thêm giá trị (siết) | — |
+| 0c | cùng tệp — bài mới | `order.leg.short_notice`, `trip.override` chỉ ADMIN + SA; mọi mã có `trip.view = any` cũng có `contact.view = any`; hàng `DRIVER_PARTNER` bảy khoá mới `none`; `order.leg.short_notice.view` = any ĐÚNG ở SALES, ACC, ADMIN, SA; `trip.call_ack` ⊆ `order.trip.edit` từng cột và kéo theo `trip.view = any`, `contact.view ≠ none` | siết | — |
 
 - Bài "512 tập con quyền" (:254–268) **không đổi số** (không thêm mã quyền).
+- **Sửa sau kiểm K2a (30/9, người thi công theo lệnh điều phối — bản đề xuất CHƯA được chủ duyệt nên được sửa):** bảng ghi "Năm ô mới" trong khi mã có BẢY ô → thêm `order.leg.short_notice.view` (chủ H4 / N-14, "Trả lời lần 12") và đưa `trip.call_ack` từ phụ lục ADR-0051 vào bảng (ADR-0051 GB2); tiêu đề "Bảy ô mới"; 0a / 0b / 0c và dòng tóm tắt cho chủ sửa theo. Giá trị khớp `src/shared/permissions.ts:81,85,136,137,138,142,146`.
 - `docs/quyen-hoan.json` không thêm ô hoãn nào.
 
 ## Mục 1 — NỚI `ALLOWED_EDGES`: cạnh `van-chuyen → orders`, `van-chuyen → locations`
@@ -101,10 +104,11 @@
 
 | # | Chỗ sửa | Đổi | Nguồn câu ADR | Nếu chủ KHÔNG duyệt |
 |---|---|---|---|---|
-| 2a | `src/shared/permissions.test.ts:274-286@3d8f4b0` — bài `"ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng"`, hằng `DRIVER_ROW` (:275–285) | Thêm `"trip.view": "assigned"`, `"trip.progress": "assigned"`. Thêm `"trip.dispatch": "none"`, `"trip.override": "none"`, `"order.leg.short_notice": "none"`. Tên bài → `"ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng"`. Ba ô cũ (`feedback.submit` any, `feedback.view` own, `party.document.view` own) giữ nguyên | ADR D3 :205 ("bài ghim hàng `DRIVER` (ADR-0040) đổi từ 'mọi ô nghiệp vụ `none`' sang 'đúng `trip.view`, `trip.progress` là `assigned`'"); "Câu ADR bị thay" ADR-0040 D3 (:264) | Tài xế công ty không dùng app cho chuyến (như tài xế đối tác ở lượt này). Văn phòng bấm thay mọi nút tiến độ. Route tài xế (kế hoạch mục 1.7, 19–29) vẫn làm được cho văn phòng; hoàn nguyên hai ô về `none` |
+| 2a | `src/shared/permissions.test.ts:274-286@3d8f4b0` — bài `"ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng"`, hằng `DRIVER_ROW` (:275–285) | Thêm BẢY khoá (khớp `DRIVER_ROW`): `"trip.view": "assigned"`, `"trip.progress": "assigned"`; `"trip.dispatch": "none"`, `"trip.override": "none"`, `"order.leg.short_notice": "none"`, `"order.leg.short_notice.view": "none"`, `"trip.call_ack": "none"`. Tên bài → `"ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng"`. Ba ô cũ (`feedback.submit` any, `feedback.view` own, `party.document.view` own) giữ nguyên | ADR D3 :205 ("bài ghim hàng `DRIVER` (ADR-0040) đổi từ 'mọi ô nghiệp vụ `none`' sang 'đúng `trip.view`, `trip.progress` là `assigned`'"); "Câu ADR bị thay" ADR-0040 D3 (:264) | Tài xế công ty không dùng app cho chuyến (như tài xế đối tác ở lượt này). Văn phòng bấm thay mọi nút tiến độ. Route tài xế (kế hoạch mục 1.7, 19–29) vẫn làm được cho văn phòng; hoàn nguyên hai ô về `none` |
 | 2b | `docs/SO-HANG-RAO.md:104@3d8f4b0` (dòng "Bài ghim hàng `DRIVER` … ADR-0040 D3") | Cột "Chặn cái gì": `lượt 1a mọi ô none, trừ party.document.view = own, feedback.submit = any, feedback.view = own` → `… trừ party.document.view = own, feedback.submit = any, feedback.view = own; từ ADR-0049: trip.view = assigned, trip.progress = assigned (chuyến mình đang lái)`. Thêm ngày thấy chặn thật của bài đã sửa | như trên | — (mô tả) |
 
-- **Không nới:** hàng `DRIVER_PARTNER` giữ nguyên nghĩa (mọi `trip.*` = `none` — ADR D3 :205, "Câu ADR bị thay" ADR-0048 :274). Chỉ thêm năm khoá mới đều `none`.
+- **Không nới:** hàng `DRIVER_PARTNER` giữ nguyên nghĩa (mọi `trip.*` = `none` — ADR D3 :205, "Câu ADR bị thay" ADR-0048 :274). Chỉ thêm bảy khoá mới đều `none`.
+- **Sửa sau kiểm K2a (30/9):** 2a ghi "năm khoá" → BẢY khoá, khớp `DRIVER_ROW` (`src/shared/permissions.test.ts:283–298`); hai khoá thêm (`order.leg.short_notice.view`, `trip.call_ack`) đều `none` — không mở gì cho tài xế.
 
 ## Mục 3 — NỚI nghĩa hàng rào "họ tên, năm sinh hành khách không lọt" (ADR-0047 A2)
 
@@ -231,7 +235,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 |---|---|---|---|
 | S1 | Hàng rào 2 cho cổng `staff`: mọi route cổng `staff` ngoài danh sách `TU_PHUC_VU_STAFF` (ảnh chụp hiện trạng 29/9, mỗi mục một lý do) phải hỏi `can()` và dùng kết quả để từ chối. **Thêm mục vào danh sách sau này = nới** | `src/route-write-guard.test.ts` (luật mới cạnh (1b) :204–207) | ADR D3 :212; "Câu ADR bị thay" ADR-0019 điều 6 (:270) |
 | S2 | `CONG_BO` thêm `lichChungChang`, `lienHeChoTaiXe` | `src/orders-cong-bo.test.ts:64@6bb67c8` | ADR "Hệ quả" (bài quét nơi gọi) |
-| S3 | Bài ghim mới: `order.leg.short_notice`, `trip.override` chỉ ADMIN + SUPER_ADMIN; mọi mã có `trip.view = any` cũng có `contact.view = any`; hàng `DRIVER_PARTNER` thêm năm khoá `none` | `src/shared/permissions.test.ts` | ADR D3, "Hệ quả" |
+| S3 | Bài ghim mới: `order.leg.short_notice`, `trip.override` chỉ ADMIN + SUPER_ADMIN; mọi mã có `trip.view = any` cũng có `contact.view = any`; hàng `DRIVER_PARTNER` thêm bảy khoá `none` | `src/shared/permissions.test.ts` | ADR D3, "Hệ quả" |
 | S4 | `BANG_STAFF` 11 dòng mới, mã **theo từng mã quyền** | `src/tai-xe-cong.test.ts` | ADR-0048 kế hoạch 14.3 :1056 |
 | S5 | Khối van-chuyen của bài "không lộ tên"; `TUYEN` + route đặt gấp; bài DTO tài xế liệt kê khoá | `src/hanh-khach-khong-lo-ten.test.ts`, `src/modules/van-chuyen/tai-xe-dto.test.ts` | ADR "Hệ quả" |
 | S6 | Route van-chuyen trả hạng/hạn bằng lái được gọi trong bài "không lộ số"; thêm quét **nơi cấp** cho ba route đó | `src/giay-to-khong-lo-so.test.ts` | ADR "Hệ quả"; `CLAUDE.md:122` |
@@ -257,7 +261,7 @@ Tệp luật thật (`docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `CLAUDE.md`, `web/
 
 | Mục | Chỗ (số dòng thật) | Ghi chú |
 |---|---|---|
-| 0a | `src/shared/permissions.ts`: `PERMISSION_CODES` :5; `row()` :44–48; `MATRIX` :71–229; `order.leg.short_notice` :81; `trip.view` :136, `trip.dispatch` :137, `trip.override` :138, `trip.progress` :142; `trip.call_ack` :146 (ADR-0051 GB2, ô thứ sáu — ngoài bảng mục 0) | đúng giá trị bảng mục 0 |
+| 0a | `src/shared/permissions.ts`: `PERMISSION_CODES` :5; `row()` :44–48; `MATRIX` :71–229; `order.leg.short_notice` :81; `trip.view` :136, `trip.dispatch` :137, `trip.override` :138, `trip.progress` :142; `order.leg.short_notice.view` :85; `trip.call_ack` :146 (bảy ô — bảng mục 0 đã sửa sau kiểm K2a) | đúng giá trị bảng mục 0 |
 | 0b | `src/shared/permissions.test.ts`: bảng `ADR` :14–59; bài "bản đồ quyền khớp TỪNG Ô … + ADR-0049" :63 | tên bài đã thêm "+ ADR-0049" |
 | 0c | cùng tệp: bài "ADR-0049 D3: trip.override CHỈ …; trip.view = any ⇒ contact.view = any …" :349; bài "ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN" :374; ghim `DRIVER_PARTNER` :307; bài 512 tập con :262–277 (số không đổi) | sổ hàng rào có dòng (A19) |
 | 1a | `src/architecture.test.ts`: `ALLOWED_EDGES` :20, dòng `"van-chuyen"` :51; `STRICT` :55, `chuyen-repo.ts` :66 | NỚI — mã mang chú thích CHỜ CHỦ DUYỆT |
