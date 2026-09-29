@@ -117,9 +117,9 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 
 ## 5. Nợ
 
-- **N-B-1:** `a2-smoke-form.mjs` bước 10g chờ `#add-manual` (có sẵn trong HTML) rồi gọi ngay `#catalog-q` (JS dựng) — chập chờn khi máy bận (thấy một lần 29/9). Sửa: chờ `#catalog-q`. Không sửa trong phiên này (ngoài phạm vi, kịch bản của A2).
-- **N-B-2:** `trang-chu-smoke.mjs`, `dot-c-smoke.mjs` đỏ sẵn (mục 1.1) — số mục menu mới (17) chưa được kịch bản đếm thật.
-- **N-B-3:** cảnh báo 503 `moc_toi_thieu_chua_co` chỉ có bài thuần, chưa có ca Chrome (không dựng được D1 thiếu chính sách).
+- **N-B-1:** `a2-smoke-form.mjs` bước 10g chờ `#add-manual` (có sẵn trong HTML) rồi gọi ngay `#catalog-q` (JS dựng) — chập chờn khi máy bận (thấy một lần 29/9). Sửa: chờ `#catalog-q`. Không sửa trong phiên này (ngoài phạm vi, kịch bản của A2). → **ĐÃ SỬA (vòng 2):** chờ `#catalog-q`; `a2-smoke-form.mjs` xanh (24 ✓) sau gộp `df32e83`.
+- **N-B-2:** `trang-chu-smoke.mjs`, `dot-c-smoke.mjs` đỏ sẵn (mục 1.1) — số mục menu mới (17) chưa được kịch bản đếm thật. → **ĐÃ SỬA (vòng 2):** `trang-chu-smoke.mjs` xanh (41 ✓), đếm THẬT 16 mục Quản trị + đúng danh sách nhãn; `dot-c-smoke.mjs` xanh.
+- **N-B-3:** cảnh báo 503 `moc_toi_thieu_chua_co` chỉ có bài thuần, chưa có ca Chrome (không dựng được D1 thiếu chính sách). → **ĐÃ CÓ (vòng 2):** `moc-chua-co-smoke.mjs` (6 bước) — chính sách rỗng dựng trên D1 TẠM của kịch bản (DROP TRIGGER + DELETE), không sửa máy chủ / migration.
 - **N-B-4:** khối thuần B1–B6 (`src/shared/dieu-phoi-hien-thi.ts`) mới là bộ ánh xạ chữ; khối DOM (`h()`) chưa dựng vì chưa có trang để kiểm bằng Chrome — dựng cùng B1–B6 khi có route A13 / A15.
 
 ## 6. P16 — quan sát kịch bản mới đỏ thật một lần
@@ -166,3 +166,59 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 **Chỗ yếu của các khẳng định trên (nói thẳng):** "đỏ trước" của kịch bản Chrome là SỬA CỐ Ý sau khi đã làm (P16), không phải chạy trước khi có mã; bài thuần thì đỏ trước thật (tệp chưa có). Số mục thanh bên 17 của `trang-chu-smoke.mjs` chưa từng chạy tới. Nhánh 503 chỉ có bài thuần. `a2-smoke-form.mjs` chập chờn một lần.
 
 **Chưa làm (chờ điều phối):** B1–B6 (cần route A13 / A15 và R-P12, R-P13, R-P14, R-P16, R-P17 gộp sang); khối DOM của B1–B6 (N-B-4); mục "Điều phối xe" trên menu (theo B1); Q2 "Đã gọi báo" (chờ quyết định bổ sung của chủ); thử iPhone thật.
+
+
+## 8. Vòng 2 (29/9 tối, sau trả lời Q-B-1…5 của điều phối)
+
+### 8.1 Làm xanh kịch bản Chrome đỏ sẵn — nguyên nhân gốc (đều là KỊCH BẢN cũ, app đúng theo quyết định đã duyệt; không có "hành vi app sai")
+
+| Kịch bản | Nguyên nhân gốc | Sửa kịch bản | Kết quả |
+|---|---|---|---|
+| `trang-chu-smoke.mjs` | (1) dựng dữ liệu xác nhận đơn đón HÔM NAY → 409 `short_notice_required` (ADR-0049 D2 — đúng luật); (2) "Cần xem lại" của Quản trị chờ dòng góp ý — ADR-0038: hàng đợi Góp ý chỉ Toàn quyền (`feedback.triage`; `web/home.ts:191`); (3) số mục thanh bên giữ "nợ Nhật ký" — ADR-0038: Nhật ký chỉ Toàn quyền; (4) mở `/audit` bằng Quản trị — ADR-0038 | (1) `createAndConfirm`: 409 → Quản trị đặt gấp đúng các chặng máy chủ nêu (route 30, lý do `KHAC`) rồi xác nhận lại — không nới máy chủ, không đổi ngày giờ dữ liệu; (2) Quản trị có đúng 1 dòng (Sheet), khẳng định KHÔNG có dòng `/feedback`; (3) đếm THẬT 16 + so đúng danh sách `ADMIN_NAV` (`:541`, `:556`); (4) `/audit` (FRAME_PAGES + G-8) mở bằng tài khoản Quản trị + Toàn quyền (19 mục) | TRANG CHU SMOKE OK (41 ✓) |
+| `dot-c-smoke.mjs` | thứ tự DOM trang Tôi thiếu `#push` (mục tĩnh của ADR-0036 ở `public/account.html:19`) | thêm `push` vào hai danh sách (máy tính, điện thoại) | DOT C SMOKE OK |
+| `v1-nguoi-phu-trach.mjs` (b) | `getMain` giao đơn chưa có người cho CHÍNH người gọi → máy chủ ghi `order_claimed` "Tự nhận phụ trách đơn" (ADR-0034 §4.3, commit `7db026c`), không phải `order_handler_changed` | chờ một dòng "Tự nhận phụ trách đơn" + một dòng "Đổi người phụ trách" | 17 bước ✓ |
+| `a2-smoke-form.mjs` 10g (N-B-1) | chờ `#add-manual` (HTML tĩnh) rồi gọi ngay `#catalog-q` (JS dựng) | chờ `#catalog-q` | UI SMOKE FORM OK |
+
+### 8.2 Bài canh R-P21 và gộp máy chủ `df32e83`
+
+- `dat-gap-smoke.mjs` tách bước **10b** (lịch sử đơn của Đối tác không có nhãn lý do đặt gấp, không có tên người duyệt). **Đỏ thật trước khi gộp** (máy chủ `9b48da1`): `["… — Đặt gấp chặng đưa đón · Quản Trị TD-20260929-0003 · Chiều đi · đặt gấp: Khách đoàn gọi gấp"]`, 11 ✓ / 1 ✗.
+- Gộp `df32e83` (gồm `b3aebd0` A12 migration 0042; `df32e83` R-P21, R-P22) bằng merge `--no-ff` → `d1f01a4`, **không xung đột**; `npm test` 1717/1717, typecheck 0.
+- **Sau gộp: 10b xanh** — DAT GAP SMOKE OK (12 bước). Đây là bằng chứng P16 phía giao diện cho R-P21 (đỏ → xanh do máy chủ vá, không sửa giao diện).
+
+### 8.3 R-P22 (Q-B-3) — ẩn "Ngưng" với lý do hệ thống
+
+- `nutBatTatLyDo` (`src/shared/chinh-sach-hien-thi.ts`, bài đỏ trước → xanh): `heThong` + đang dùng → không nút "Ngưng", ghi chú "Hệ thống tự dùng — không ngưng được"; đang ngưng → luôn "Dùng lại".
+- `web/ly-do-dieu-phoi.ts` dùng hàm đó; 409 `ly_do_he_thong` hiện câu của máy chủ ở dải lỗi ("Lý do này do hệ thống tự dùng nên không ngưng được — chỉ sửa được tên và thứ tự.").
+- `chinh-sach-dieu-phoi-smoke.mjs`: bước 8 thêm khẳng định (không nút Ngưng, có ghi chú; lý do thường vẫn có); bước **9b** mới — trang giả lập dữ liệu cũ (bọc `fetch` CHỈ trên một trang để GET trả `heThong: false`) → bấm Ngưng → máy chủ thật 409 → dải lỗi câu lời thường; máy chủ không ngưng. 14 bước ✓.
+
+### 8.4 N-B-3 — ca Chrome cho 503 `moc_toi_thieu_chua_co`
+
+- `moc-chua-co-smoke.mjs` (6 bước, 1040 + 390): dữ liệu dựng khi CÒN chính sách, rồi trên **D1 tạm của kịch bản** `DROP TRIGGER vc_dispatch_policy_no_delete` + `DELETE FROM vc_dispatch_policy` (không sửa máy chủ, migration hay D1 local của worktree). Kiểm: biểu mẫu không cảnh báo mốc (route mốc 503) và **Lưu nháp có giờ đón bị 503** (máy chủ I25) → dải đỏ; trang đơn không khoá Xác nhận, bấm → 503; bảng sửa chuyến đơn đã xác nhận → 503 (không mở khung Đặt gấp); Toàn quyền lưu bản chính sách đầu tiên từ trạng thái rỗng → route mốc 200, xác nhận được.
+- Phát hiện khi viết ca: lưu nháp có chặng cũng bị 503 (không chỉ xác nhận / sửa chuyến) → câu phụ của `order-errors` đổi thành "Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối." (bài thuần sửa theo).
+
+### 8.5 P16 vòng 2
+
+| Kịch bản | Sửa cố ý | Đỏ quan sát được | Hoàn nguyên |
+|---|---|---|---|
+| `moc-chua-co-smoke.mjs` | `order-errors.ts`: đổi mã nhánh 503 thành mã không tồn tại (build lại) | bước 1, 2, 4 ✗ (thiếu dòng phụ), 3 ✓ / 3 ✗, thoát 1 | chép lại bản lưu, `grep -c P16` = 0, build lại |
+| `chinh-sach-dieu-phoi-smoke.mjs` (R-P22) | `nutBatTatLyDo` luôn trả "Ngưng" | bước 8 ✗ "lý do hệ thống không có nút Ngưng", 13 ✓ / 1 ✗, thoát 1 | như trên |
+| `dat-gap-smoke.mjs` 10b | (không sửa cố ý — đỏ THẬT do máy chủ chưa vá) | xem 8.2 | máy chủ vá `df32e83` |
+
+### 8.6 Kết quả cuối vòng 2 (tự khai, chưa có người kiểm độc lập)
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm test` | 0 — 1718/1718 |
+| `npm run typecheck` | 0 |
+| `npm run build:web` | 0 |
+| `npm run test:e2e -- pwa orders chinh-sach-dieu-phoi` | 0 — 4/4 ("26 trang") |
+| `chinh-sach-dieu-phoi-smoke.mjs` | 14/14 |
+| `dat-gap-smoke.mjs` | 12/12 (10b xanh sau gộp R-P21) |
+| `moc-chua-co-smoke.mjs` (mới) | 6/6 |
+| `trang-chu-smoke.mjs` | xanh (41 ✓) |
+| `dot-c-smoke.mjs` | xanh |
+| `v1-nguoi-phu-trach.mjs` | 17/17 |
+| `a2-smoke-form.mjs` | xanh |
+| `xe-smoke.mjs`, `danh-muc-giay-to-smoke.mjs`, `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs`, `v1-xac-nhan-png.mjs` | không chạy lại ở vòng 2 (không đổi tệp chúng phủ kể từ lần xanh trước, trừ phần gộp máy chủ `df32e83` — A12 không chạm giao diện) |
+
+**Chờ điều phối:** R-P23 ("ai lưu" trong lịch sử bản chính sách) — làm phần hiển thị khi có sha; B1–B6 khi có A13 / A15.

@@ -235,7 +235,7 @@ try {
   });
   // BÀI CANH R-P21 (Q-B-5, điều phối 29/9): chủ H4 — Đối tác / HDV / Thực tập chỉ biết "Quản trị đã duyệt". Nhật ký đơn mà máy chủ trả cho Đối tác KHÔNG được
   // mang nhãn lý do đặt gấp hay tên người duyệt. Tới khi máy chủ vá R-P21, bước này ĐỎ ĐÚNG CHỖ ("đỏ chờ R-P21") — không sửa giao diện để che.
-  await b.step("10b", "BÀI CANH R-P21 — Lịch sử đơn của Đối tác không có lý do đặt gấp, không có tên người duyệt (đỏ chờ máy chủ vá R-P21)", async () => {
+  await b.step("10b", "BÀI CANH R-P21 — Lịch sử đơn của Đối tác không có lý do đặt gấp, không có tên người duyệt (đỏ trước khi gộp máy chủ df32e83, xanh sau)", async () => {
     const lichSu = await d.ev(`[...document.querySelectorAll('.history li')].map((li) => li.innerText.replace(/\\s+/g, ' ').trim()).filter((t) => /đặt gấp/i.test(t))`);
     const lo = lichSu.filter((t) => t.includes("Khách đoàn gọi gấp") || t.includes(ACCOUNTS.admin.name));
     assert.deepEqual(lo, [], `dòng nhật ký lộ lý do / người duyệt cho Đối tác: ${JSON.stringify(lichSu)}`);

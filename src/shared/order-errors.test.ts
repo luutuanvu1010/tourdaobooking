@@ -100,5 +100,5 @@ test("409 short_notice_required (ADR-0049 D2): banner cát, mỗi chặng dướ
 test("503 moc_toi_thieu_chua_co: nguy hiểm, lời máy chủ (không đoán mốc) + một dòng nói việc cần làm", () => {
   const b = e(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.");
   assert.deepEqual([b.tone, b.title, b.action], ["danger", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.", "none"]);
-  assert.deepEqual(b.lines.map((l) => l.text), ["Chưa xác nhận hay sửa chuyến được cho tới khi Toàn quyền đặt chính sách điều phối."]);
+  assert.deepEqual(b.lines.map((l) => l.text), ["Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối."]);
 });

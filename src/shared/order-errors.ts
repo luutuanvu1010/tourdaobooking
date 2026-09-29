@@ -92,7 +92,7 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
     });
   }
   if (e.status === 503 && e.code === "moc_toi_thieu_chua_co") {
-    return banner("danger", fallback, { lines: [{ text: "Chưa xác nhận hay sửa chuyến được cho tới khi Toàn quyền đặt chính sách điều phối." }] });
+    return banner("danger", fallback, { lines: [{ text: "Chưa lưu, xác nhận hay sửa chuyến có giờ đón được cho tới khi Toàn quyền đặt chính sách điều phối." }] });
   }
   if (e.status === 400 && e.code === "catalog_unavailable") {
     return banner("danger", fallback, { lines: [{ text: "Chọn lại dịch vụ này từ danh mục." }], focusService: serviceIndexOf(e.message) });
