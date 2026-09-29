@@ -111,19 +111,24 @@ const LIST_VEHICLE_DOCS = defineSql(
    WHERE d.vehicle_id = ?1
    ORDER BY is_current DESC, d.expiry_date IS NULL, d.expiry_date, t.sort_order, d.created_at, d.id`,
 );
-// Giấy HIỆN HÀNH có ngày hết hạn của mọi xe CHƯA NGỪNG, hạn ≤ ?1 — nguồn cảnh báo ở danh sách xe (canhBaoXe) và của danh sách "sắp hết hạn".
+// Giấy HIỆN HÀNH có ngày hết hạn của mọi xe CHƯA NGỪNG, hạn ≤ ?1 — nguồn cảnh báo ở danh sách xe (canhBaoXe) và của danh sách "sắp hết hạn". Tên chủ xe + cờ
+// "công ty chủ hiện tại" (ADR-0048 D1: nhãn nhà xe) đọc qua view công bố của parties — chỉ TÊN.
 const EXPIRING_VEHICLE_DOCS = defineSql(
   "van-chuyen",
   "expiring_vehicle_documents",
-  `SELECT d.vehicle_id, v.plate_number, v.name AS vehicle_name, t.name AS type_name, d.expiry_date
+  `SELECT d.vehicle_id, v.plate_number, v.name AS vehicle_name, t.name AS type_name, d.expiry_date,
+          COALESCE(l.display_name, '') AS owner_name, (oc.party_id IS NOT NULL) AS owner_is_company
    FROM vc_vehicle_document d JOIN vc_vehicle v ON v.id = d.vehicle_id JOIN vc_vehicle_document_type t ON t.code = d.document_type_code
+     LEFT JOIN v_pty_party_label l ON l.id = v.owner_party_id LEFT JOIN v_pty_owner_company oc ON oc.party_id = v.owner_party_id
    WHERE v.status <> 'retired' AND d.expiry_date IS NOT NULL AND d.expiry_date <= ?1 AND ${HIEN_HANH}
    ORDER BY d.expiry_date, v.plate_key, t.sort_order, d.id`,
 );
 export async function listVehicleDocuments(db: D1Database, vehicleId: string): Promise<VehicleDocRow[]> {
   return (await db.prepare(LIST_VEHICLE_DOCS).bind(vehicleId).all<VehicleDocRow>()).results;
 }
-export interface ExpiringVehicleDocRow { vehicle_id: string; plate_number: string; vehicle_name: string; type_name: string; expiry_date: string }
+export interface ExpiringVehicleDocRow {
+  vehicle_id: string; plate_number: string; vehicle_name: string; type_name: string; expiry_date: string; owner_name: string; owner_is_company: number;
+}
 export async function expiringVehicleDocuments(db: D1Database, until: string): Promise<ExpiringVehicleDocRow[]> {
   return (await db.prepare(EXPIRING_VEHICLE_DOCS).bind(until).all<ExpiringVehicleDocRow>()).results;
 }

@@ -58,9 +58,9 @@ test("route 23: Bán hàng → 403; Quản trị → 200, ngưỡng 30, ĐÚNG b
   assert.equal(r.json.warnDays, 30);
   assert.equal(r.json.count, 3, "R15 điểm 2: số đếm cho huy hiệu menu");
   assert.deepEqual(r.json.items, [
-    { kind: "person", targetId: taiXe, label: "Tài Xế Hùng", typeName: "Giấy phép lái xe", className: "Hạng D2", expiryDate: ngay(-2), daysLeft: -2, level: "expired" },
-    { kind: "vehicle", targetId: x, label: "79B-012.34 · Ford Transit", typeName: "Kiểm định", className: null, expiryDate: ngay(5), daysLeft: 5, level: "soon" },
-    { kind: "person", targetId: taiXe, label: "Tài Xế Hùng", typeName: "Căn cước công dân (CCCD)", className: null, expiryDate: ngay(10), daysLeft: 10, level: "soon" },
+    { kind: "person", targetId: taiXe, label: "Tài Xế Hùng", typeName: "Giấy phép lái xe", className: "Hạng D2", expiryDate: ngay(-2), daysLeft: -2, level: "expired", ownerLabel: null },
+    { kind: "vehicle", targetId: x, label: "79B-012.34 · Ford Transit", typeName: "Kiểm định", className: null, expiryDate: ngay(5), daysLeft: 5, level: "soon", ownerLabel: null },
+    { kind: "person", targetId: taiXe, label: "Tài Xế Hùng", typeName: "Căn cước công dân (CCCD)", className: null, expiryDate: ngay(10), daysLeft: 10, level: "soon", ownerLabel: null },
   ]);
   for (const so of SO_DANH_DAU) assert.ok(!r.text.includes(so), `không lộ số ${so}`);
 });
@@ -134,4 +134,32 @@ test("route 20, 21 loại giấy tờ xe: Quản trị thêm SO_BAO_DUONG → 20
   assert.deepEqual(w.q("SELECT detail FROM audit_log WHERE action = 'vehicle_document_type_changed' ORDER BY rowid").map((x: any) => x.detail), [
     "loại giấy tờ xe: SO_BAO_DUONG — Sổ bảo dưỡng", "loại giấy tờ xe: SO_BAO_DUONG — Sổ bảo dưỡng xe",
   ]);
+});
+
+// ADR-0048 D1 (I6, G4): mỗi dòng có nhãn chủ xe / nhà xe — `ownerLabel` = tên nhà xe (xe của nhà xe; tài xế đối tác: tên các nhà xe người đó "thuộc"); null = xe của
+// công ty chủ HIỆN TẠI / tài xế công ty. Xe của công ty chủ CŨ (sau khi đổi công ty chủ) hiện tên chủ cũ. Chỉ TÊN — không liên hệ, không MST, không số.
+test("ADR-0048 D1: nhãn nhà xe — xe của nhà xe X và tài xế đối tác thuộc X mang ownerLabel = tên X; xe công ty chủ và tài xế công ty null; xe của công ty chủ CŨ mang tên chủ cũ", async () => {
+  const { w, x, taiXe } = await setup();
+  const nx = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "ORGANIZATION", displayName: "Nhà Xe Xuân" } })).json.party.id as string;
+  assert.equal((await w.call("POST", `/api/parties/${nx}/roles`, { as: ADM, body: { roleTypeCode: "CARRIER" } })).status, 201);
+  const xeNx = (await w.call("POST", "/api/van-chuyen/xe", { as: ADM, body: { plateNumber: "79B-222.22", chassisNumber: "KHUNGNX0001", name: "Xe Nhà Xe", passengerCapacity: 15, ownerPartyId: nx } })).json.vehicle.id;
+  giayToXe(w, xeNx, "INSPECTION", "KD-DANHDAU-3", ngay(7));
+  const txDt = await taoTaiKhoan(w, "Tài Xế Đông", "0900000097", ["DRIVER_EXTERNAL"]);
+  assert.equal((await w.call("POST", `/api/parties/${nx}/relationships`, { as: ADM, body: { fromPartyId: txDt, toPartyId: nx, relationshipTypeCode: "DRIVES_FOR" } })).status, 201);
+  giayToNguoi(w, txDt, "GPLX", "790000000079", "D2", ngay(8));
+  const r = await w.call("GET", "/api/van-chuyen/sap-het-han", { as: ADM });
+  assert.equal(r.status, 200, r.text);
+  const nhan = (targetId: string) => r.json.items.filter((i: any) => i.targetId === targetId).map((i: any) => i.ownerLabel);
+  assert.deepEqual(nhan(xeNx), ["Nhà Xe Xuân"]);
+  assert.deepEqual(nhan(txDt), ["Nhà Xe Xuân"]);
+  assert.deepEqual(nhan(x), [null]);
+  assert.deepEqual(nhan(taiXe), [null, null]);
+  for (const so of [...SO_DANH_DAU, "KD-DANHDAU-3", "790000000079"]) assert.ok(!r.text.includes(so), `không lộ số ${so}`);
+  // Đổi công ty chủ (cơ chế sẵn có của migration *_ho_so_cong_ty_chu): xe X của công ty chủ CŨ mang tên chủ cũ, không null.
+  const at = new Date().toISOString();
+  w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('ct-moi', 'ORGANIZATION', 'Công ty chủ mới', 1, '${at}', '${at}')`);
+  w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at)
+    VALUES ('r-ct-moi', 'ct-moi', 'OWNER_COMPANY', NULL, date('${at}', '+7 hours'), '${at}', '${at}')`);
+  const sau = await w.call("GET", "/api/van-chuyen/sap-het-han", { as: ADM });
+  assert.deepEqual(sau.json.items.filter((i: any) => i.targetId === x).map((i: any) => i.ownerLabel), ["Công ty TNHH Tour Đảo"]);
 });

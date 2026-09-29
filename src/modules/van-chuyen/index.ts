@@ -412,7 +412,11 @@ export const vanChuyenModule: AppModule = {
       // Giấy tờ xe (xe chưa ngừng, dòng hiện hành) + giấy tờ tài xế qua hàm công bố của parties (KHÔNG số, không nơi cấp, không id giấy tờ).
       const [xe, nguoi] = await Promise.all([expiringVehicleDocuments(env.DB, until), expiringDriverDocuments(env.DB, { today, until })]);
       const items = gopSapHetHan(
-        xe.map((r) => ({ vehicleId: r.vehicle_id, plateNumber: r.plate_number, vehicleName: r.vehicle_name, typeName: r.type_name, expiryDate: r.expiry_date })),
+        xe.map((r) => ({
+          vehicleId: r.vehicle_id, plateNumber: r.plate_number, vehicleName: r.vehicle_name, typeName: r.type_name, expiryDate: r.expiry_date,
+          // ADR-0048 D1 (I6, G4): null = xe của công ty chủ HIỆN TẠI; nhà xe hay công ty chủ cũ → tên chủ.
+          ownerLabel: r.owner_is_company === 1 ? null : r.owner_name,
+        })),
         nguoi,
         today,
       );

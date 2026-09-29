@@ -31,10 +31,13 @@ const SO_GPLX = "790888777666";
 const SO_SUC_KHOE = "SK888777444";
 const NOI = "NOI CAP DANH DAU";
 const NOI_MOI = "NOI CAP DANH DAU MOI";
+// ADR-0048 D1: tài xế ĐỐI TÁC (vai "Tài xế đối tác", thuộc một nhà xe) cũng có giấy tờ — số đánh dấu riêng, sắp hết hạn để lên danh sách "sắp hết hạn".
+const SO_CCCD_DT = "079555444333";
+const SO_GPLX_DT = "790555444333";
 const SO_XE = "KD-DANHDAU-9";
 const SO_XE_MOI = "KD-DANHDAU-8";
 /** Mọi dạng lộ của số người: đủ số, 8 ký tự đầu, 8 ký tự cuối (số che chỉ để lộ 4 ký tự cuối). */
-const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
+const DAU_SO_NGUOI = [SO_CCCD, SO_CCCD_MOI, SO_GPLX, SO_SUC_KHOE, SO_CCCD_DT, SO_GPLX_DT].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
 const DAU_SO_XE = [SO_XE, SO_XE_MOI, "DANHDAU"];
 const HOM_NAY = new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 10);
 const ngay = (n: number) => new Date(Date.parse(`${HOM_NAY}T00:00:00Z`) + n * 864e5).toISOString().slice(0, 10);
@@ -121,7 +124,19 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   for (const k of Object.keys(TUYEN)) await TUYEN[k]!();
   await goi("hồ sơ người", "GET", `/api/parties/${P}`, ADM, undefined, 200);
-  await goi("sắp hết hạn", "GET", "/api/van-chuyen/sap-het-han", ADM, undefined, 200);
+  // ADR-0048 D1: tài xế đối tác của một nhà xe, giấy tờ có số đánh dấu, sắp hết hạn → lên danh sách "sắp hết hạn" (nhãn nhà xe, KHÔNG số).
+  const tkDt = await w.call("POST", "/api/staff", { as: ADM, body: { fullName: "Tài Xế Đối Tác Dò Số", phone: "0900000096", roles: ["DRIVER_EXTERNAL"] } });
+  assert.equal(tkDt.status, 201, tkDt.text);
+  const PDT = w.q("SELECT party_id FROM staff WHERE id = ?", tkDt.json.staff.id)[0].party_id as string;
+  const nhaXe = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "ORGANIZATION", displayName: "Nhà Xe Dò Số" } })).json.party.id as string;
+  await goi("gán Nhà xe đối tác", "POST", `/api/parties/${nhaXe}/roles`, ADM, { roleTypeCode: "CARRIER" }, 201);
+  await goi("Tài xế của", "POST", `/api/parties/${nhaXe}/relationships`, ADM, { fromPartyId: PDT, toPartyId: nhaXe, relationshipTypeCode: "DRIVES_FOR" }, 201);
+  await goi("thêm CCCD tài xế đối tác", "POST", `/api/parties/${PDT}/documents`, ADM, { typeCode: "CCCD", number: SO_CCCD_DT, issuedPlace: NOI, expiryDate: ngay(4) }, 201);
+  await goi("thêm GPLX tài xế đối tác", "POST", `/api/parties/${PDT}/documents`, ADM, { typeCode: "GPLX", number: SO_GPLX_DT, classCode: "D2", issuedPlace: NOI, expiryDate: ngay(6) }, 201);
+  const sapHet = await goi("sắp hết hạn", "GET", "/api/van-chuyen/sap-het-han", ADM, undefined, 200);
+  const dongDt = sapHet.json.items.filter((i: any) => i.targetId === PDT);
+  assert.equal(dongDt.length, 2, "chống bài rỗng: giấy tờ tài xế đối tác CÓ lên danh sách sắp hết hạn");
+  for (const d of dongDt) assert.equal(d.ownerLabel, "Nhà Xe Dò Số", "dòng tài xế đối tác mang nhãn nhà xe (tên, không số)");
   await goi("trang Nhật ký (Toàn quyền)", "GET", "/api/audit?limit=100", SUP, undefined, 200);
 
   // (2) NHẬT KÝ: không số (người lẫn xe), không nơi cấp; bỏ dấu cách/chấm/gạch cũng không có.

@@ -243,22 +243,26 @@ export interface DongSapHetHan {
   expiryDate: string;
   daysLeft: number;
   level: "soon" | "expired";
+  /** ADR-0048 D1 (I6, G4): tên nhà xe (xe của nhà xe; tài xế đối tác: tên các nhà xe người đó "thuộc"); null = của công ty chủ hiện tại / tài xế công ty. */
+  ownerLabel: string | null;
 }
 /**
  * Gộp giấy tờ xe (xe chưa ngừng) và giấy tờ tài xế (hàm công bố của parties — KHÔNG số) thành MỘT danh sách, xếp theo ngày hết hạn rồi nhãn. Đầu vào đã lọc
- * "hạn ≤ hôm nay + ngưỡng" ở câu SQL; `level` = "expired" khi đã quá hạn.
+ * "hạn ≤ hôm nay + ngưỡng" ở câu SQL; `level` = "expired" khi đã quá hạn. `ownerLabel` (ADR-0048 D1) chỉ là TÊN chủ / nhà xe — không liên hệ, MST, số.
  */
 export function gopSapHetHan(
-  xe: readonly { vehicleId: string; plateNumber: string; vehicleName: string; typeName: string; expiryDate: string }[],
-  nguoi: readonly { partyId: string; displayName: string; typeName: string; className: string | null; expiryDate: string }[],
+  xe: readonly { vehicleId: string; plateNumber: string; vehicleName: string; typeName: string; expiryDate: string; ownerLabel: string | null }[],
+  nguoi: readonly { partyId: string; displayName: string; typeName: string; className: string | null; expiryDate: string; carrierName: string | null }[],
   homNay: string,
 ): DongSapHetHan[] {
-  const dong = (kind: "vehicle" | "person", targetId: string, label: string, typeName: string, className: string | null, expiryDate: string): DongSapHetHan => {
+  const dong = (
+    kind: "vehicle" | "person", targetId: string, label: string, typeName: string, className: string | null, expiryDate: string, ownerLabel: string | null,
+  ): DongSapHetHan => {
     const daysLeft = soNgayConLai(expiryDate, homNay);
-    return { kind, targetId, label, typeName, className, expiryDate, daysLeft, level: daysLeft < 0 ? "expired" : "soon" };
+    return { kind, targetId, label, typeName, className, expiryDate, daysLeft, level: daysLeft < 0 ? "expired" : "soon", ownerLabel };
   };
   return [
-    ...xe.map((g) => dong("vehicle", g.vehicleId, `${g.plateNumber} · ${g.vehicleName}`, g.typeName, null, g.expiryDate)),
-    ...nguoi.map((g) => dong("person", g.partyId, g.displayName, g.typeName, g.className, g.expiryDate)),
+    ...xe.map((g) => dong("vehicle", g.vehicleId, `${g.plateNumber} · ${g.vehicleName}`, g.typeName, null, g.expiryDate, g.ownerLabel)),
+    ...nguoi.map((g) => dong("person", g.partyId, g.displayName, g.typeName, g.className, g.expiryDate, g.carrierName)),
   ].sort((a, b) => (a.expiryDate < b.expiryDate ? -1 : a.expiryDate > b.expiryDate ? 1 : a.label < b.label ? -1 : a.label > b.label ? 1 : 0));
 }
