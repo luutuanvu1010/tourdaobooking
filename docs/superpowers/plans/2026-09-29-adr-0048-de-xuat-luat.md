@@ -62,14 +62,18 @@ Thêm **một câu** cuối dòng (giữ nguyên phần trước):
 
 ## Mục 5 — `web/CLAUDE.md` bảng "sửa giao diện → chạy kịch bản Chrome" (điền ở Task B-kết)
 
-Dòng dự kiến (người thi công điền tên kịch bản và số bước thật):
+Người thi công Phần B điền 2026-09-29 (Task B-kết) — **CHỈ ĐỀ XUẤT**, không sửa `web/CLAUDE.md` thật (N9). Số bước là số bước thật đã chạy xanh. So với dòng dự kiến của người lập kế hoạch: ba kịch bản MỚI ở `docs/evidence/2026-09-29-adr-0048/kich-ban/` thay cho việc chèn bước vào các kịch bản 1a (giữ nguyên số bước và chữ khoá riêng của tài xế công ty ở kịch bản 1a).
 
-| Phần giao diện | Kịch bản |
-|---|---|
-| Khoá chéo vai "Tài xế đối tác" ở khối "Vai và quyền" (`web/role-picker.ts`) | `vai-smoke.mjs` (bước khoá chéo + đổi "Tài xế taxi" → "Tài xế đối tác") |
-| Quan hệ "Tài xế của" và vai "Nhà xe đối tác" ở Danh bạ (`web/parties.ts`) | _(điền)_ |
-| Chủ xe ở `/xe`, `/xe-sua`, `/xe-chi-tiet` | `xe-smoke.mjs`, `xe-chi-tiet-smoke.mjs` (bước chủ xe) |
-| Trang đầu tài xế với tài khoản Tài xế đối tác | `tai-xe-trang-dau-smoke.mjs` (chạy thêm với tài khoản `DRIVER_PARTNER`) |
+Bốn dòng đề xuất THÊM vào cuối bảng "Sửa tệp nào thì chạy lại kịch bản Chrome nào" của `web/CLAUDE.md`:
+
+```diff
++| Khoá chéo vai "Tài xế đối tác" và cộng tay tạo tài khoản lai ở khối "Vai và quyền" (ADR-0048 Task B1): `web/role-picker.ts`, `vaiTaiXeDoiTacXungDot` / `taiKhoanLaiProblem` của `src/shared/roles.ts` | `vai-smoke.mjs` ở `docs/evidence/2026-09-24-mo-hinh-vai/kich-ban/` (8 bước; bước B2: ô "Tài xế đối tác" ở nhóm Bên ngoài, khoá chéo, đổi "Tài xế taxi" → "Tài xế đối tác" lưu được) + `nhan-tai-xe-smoke.mjs` + `dot-a-smoke.mjs` |
++| Quan hệ "Tài xế của" và vai "Nhà xe đối tác" ở Danh bạ (ADR-0048 Task B2): ô "Loại" quan hệ, chữ nút, tiêu đề "Người liên hệ, tài xế" của `web/parties.ts` | `nha-xe-danh-ba-smoke.mjs` ở `docs/evidence/2026-09-29-adr-0048/kich-ban/` (5 bước, 1040 + 390, không cần mạng ngoài) + `giay-to-nguoi-smoke.mjs` (thứ tự tiêu đề mục) + `t2b-danh-ba-smoke.mjs` + `dot-a-smoke.mjs` |
++| Chủ xe ở `/xe` (dòng "Nhà xe: …", ô lọc "Chủ xe"), `/xe-sua` (ô "Chủ xe"), `/xe-chi-tiet` (dòng "Chủ xe"); `luaChonChuXe` / `thanXeMoi` của `src/shared/giay-to-hien-thi.ts`; khối `.vc-chu-loc` của `public/app.css` (ADR-0048 Task B3) | `xe-chu-xe-smoke.mjs` ở `docs/evidence/2026-09-29-adr-0048/kich-ban/` (5 bước, 1040 + 390) + `xe-smoke.mjs` + `xe-chi-tiet-smoke.mjs` |
++| Nhãn "Nhà xe: …" ở Giấy tờ sắp hết hạn (`web/giay-to-sap-het-han.ts`, Task B4) và trang của tài khoản Tài xế đối tác (`coPhanTaiXe` / `homeRedirect` của `src/shared/start-page.ts`, khối `#my-docs` của `web/account.ts`, Task B5) | `tai-xe-doi-tac-smoke.mjs` ở `docs/evidence/2026-09-29-adr-0048/kich-ban/` (4 bước; trang Tài xế đối tác mở TRƯỚC trên máy chưa có bản nhớ khung — ADR-0035) + `sap-het-han-smoke.mjs` + `tai-xe-trang-dau-smoke.mjs` + `giay-to-cua-toi-smoke.mjs` |
+```
+
+Kèm một sửa ĐI THEO (mô tả, không đổi nghĩa luật): dòng "Quyền / vai mới tự hiện ở trang có sẵn (ADR-0040 D3)" và dòng "Vai và bộ quyền mặc định ở màn Quản lý tài khoản" giữ nguyên (vẫn đúng: "Tài xế đối tác" tự hiện ở nhóm Bên ngoài của `role-picker` và nhóm gửi tin của `gui-thong-bao`).
 
 ## Mục 6 — `CLAUDE.md` gốc
 
