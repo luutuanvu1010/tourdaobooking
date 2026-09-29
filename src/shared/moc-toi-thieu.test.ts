@@ -3,7 +3,7 @@
 // nhận đơn — I15) và `kiemMocDat` (máy chủ + màn hình) là HAI cách nói của MỘT luật — bài tương đương dưới đây khoá điều đó (bẫy "hai luật", Đợt E).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { LENH_KHOA_THEO_MOC, LENH_XEP, kiemMocDat, kiemMocXep, mucMoc, nguongMocVn } from "./moc-toi-thieu.ts";
+import { LENH_KHOA_THEO_MOC, LENH_XEP, batDauSomNhatSauDoiGio, kiemMocDat, kiemMocXep, mucMoc, nguongMocVn } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
@@ -122,6 +122,33 @@ test("TC-42 (Q2 = (a)) kiemMocXep: TẠO chuyến trong mốc không cần phá 
   for (const loai of ["RUT", "DOI_DI", "DOI_XE", "DOI_TAI_XE", "HUY_CO_KHACH"] as const) {
     assert.equal(kiemMocXep(cx(batDau), now, 360, { loai, datGap: true }).canPhaLe, true, loai);
   }
+});
+
+test("R-P7 (tinh chỉnh R-P6): giờ sớm nhất SAU KHI SỬA giờ xuất bến — đang trong vùng khoá lúc sửa ⇒ MIN(sớm nhất, giờ mới) (giữ khoá dính); NGOÀI vùng ⇒ đặt lại = giờ mới", () => {
+  const goc = ms("2026-09-30", "05:50");
+  const doiRa = ms("2026-09-30", "12:00");
+  // (a) Đang trong vùng (02:30, còn 3 giờ 20 tới 05:50) mà dời ra 12:00 → giữ 05:50 ⇒ lệnh sau vẫn khoá (chuỗi lách 3 bước vẫn chặn).
+  const a = batDauSomNhatSauDoiGio(cx(goc), doiRa, ms("2026-09-30", "02:30"), 360);
+  assert.equal(a, goc);
+  assert.equal(kiemMocXep(cx(doiRa, a), ms("2026-09-30", "02:40"), 360, { loai: "DOI_TAI_XE" }).canPhaLe, true);
+  // Trong vùng mà dời SỚM hơn → giờ mới (nhỏ hơn) thành giờ sớm nhất.
+  assert.equal(batDauSomNhatSauDoiGio(cx(goc), ms("2026-09-30", "05:00"), ms("2026-09-30", "02:30"), 360), ms("2026-09-30", "05:00"));
+  // (b) Dời từ XA (hôm trước 20:00, chuyến 06:00 còn 10 giờ — chưa vào vùng) sang 10:00 → đặt lại = 10:00 ⇒ 00:00–04:00 hôm sau KHÔNG bị khoá thừa.
+  const sau = ms("2026-09-30", "06:00");
+  const moi = ms("2026-09-30", "10:00");
+  const b = batDauSomNhatSauDoiGio(cx(sau), moi, ms("2026-09-29", "20:00"), 360);
+  assert.equal(b, moi, "ngoài vùng khoá lúc sửa → đặt lại");
+  assert.equal(kiemMocXep(cx(moi, b), ms("2026-09-30", "01:00"), 360, { loai: "DOI_TAI_XE" }).canPhaLe, false, "01:00: còn 9 giờ tới 10:00 — không khoá");
+  assert.equal(kiemMocXep(cx(moi, b), ms("2026-09-30", "04:30"), 360, { loai: "DOI_TAI_XE" }).canPhaLe, true, "04:30: còn 5 giờ 30 tới 10:00 — khoá bình thường");
+  // Chuyến ĐÃ từng dính (sớm nhất 05:50 < giờ hiện hành 12:00) mà lúc sửa vẫn trong vùng theo giờ sớm nhất → vẫn giữ.
+  assert.equal(batDauSomNhatSauDoiGio(cx(doiRa, goc), ms("2026-09-30", "14:00"), ms("2026-09-30", "03:00"), 360), goc);
+  // (c) Vùng tính bằng chính sách HIỆN HÀNH lúc sửa: cùng chuyến, cùng lúc sửa — mốc 360 → trong vùng (giữ); mốc 120 → ngoài vùng (đặt lại).
+  const luc = ms("2026-09-30", "02:30");
+  assert.equal(batDauSomNhatSauDoiGio(cx(goc), doiRa, luc, 360), goc);
+  assert.equal(batDauSomNhatSauDoiGio(cx(goc), doiRa, luc, 120), doiRa);
+  // Ranh giới đúng mốc: còn ĐÚNG 360 phút là ngoài vùng (đặt lại); thiếu một giây là trong vùng (giữ).
+  assert.equal(batDauSomNhatSauDoiGio(cx(goc), doiRa, goc - 360 * PHUT, 360), doiRa);
+  assert.equal(batDauSomNhatSauDoiGio(cx(goc), doiRa, goc - 360 * PHUT + 1000, 360), goc);
 });
 
 test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + cảnh báo) → vàng; còn lại bình thường; ranh giới đúng phút", () => {

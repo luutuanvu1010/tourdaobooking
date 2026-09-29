@@ -7,6 +7,7 @@ import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
 import { kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
+import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
@@ -171,8 +172,10 @@ test("R-P6 khoá DÍNH — tái hiện chuỗi lách 3 bước (Q-A4-1, người
   // Bước 1: CHỈ dời giờ xuất bến ra xa — vẫn làm được (chủ: "Bán hàng vẫn dời giờ được").
   const b1 = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3 }, [], { lenh: "SUA", cu: goc, bayGioMs: trongMoc }));
   assert.equal(b1.ok, true, JSON.stringify(b1));
-  // Sau bước 1 CSDL giữ giờ sớm nhất = MIN(05:50, 13:50) = 05:50 (cột của 0042 — A12).
-  const sauDoi = { ...goc, batDauMs: doiRa, batDauSomNhatMs: BAT_DAU };
+  // Sau bước 1 (lúc sửa chuyến ĐANG trong vùng khoá) giờ sớm nhất giữ 05:50 — R-P7, cùng hàm câu SQL của A12 sẽ dùng.
+  const somNhat = batDauSomNhatSauDoiGio(goc, doiRa, trongMoc, CS.minLeadMinutes);
+  assert.equal(somNhat, BAT_DAU);
+  const sauDoi = { ...goc, batDauMs: doiRa, batDauSomNhatMs: somNhat };
   // Bước 2a: đổi tài xế khi giờ HIỆN TẠI đã ở xa → vẫn cần phá lệ.
   const b2 = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3, taiXe: taiXe("D1", null, { partyId: "tx-moi" }) }, [], { lenh: "SUA", cu: sauDoi, bayGioMs: trongMoc }));
   assert.deepEqual(ai(b2.canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"], "đổi tài xế sau khi dời giờ ra xa vẫn bị khoá");

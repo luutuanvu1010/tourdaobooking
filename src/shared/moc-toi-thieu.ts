@@ -77,6 +77,17 @@ export interface ChuyenMocXep {
   batDauSomNhatMs: number;
 }
 
+/**
+ * Giờ xuất bến sớm nhất SAU KHI SỬA giờ xuất bến của chuyến thành `gioMoiMs` (R-P7 — tinh chỉnh R-P6 cho đúng chữ chủ "chuyến đã vào vùng 6 giờ thì giữ
+ * khoá dù giờ bị dời ra xa"): nếu lúc sửa chuyến ĐANG trong vùng khoá — `gioXetMocXep(chuyen) < bây giờ + mốc` với mốc của chính sách HIỆN HÀNH — thì giữ
+ * khoá dính: `MIN(sớm nhất, giờ mới)`; nếu KHÔNG trong vùng thì đặt lại = giờ mới (dời từ xa không tạo khoá thừa). MỘT luật cho máy chủ lẫn câu SQL của
+ * A12 (`earliest_start_ms = CASE WHEN … THEN MIN(…) ELSE ?giờ mới END` — tham số tính bằng chính hàm này, không chép luật vào SQL).
+ */
+export function batDauSomNhatSauDoiGio(chuyen: ChuyenMocXep, gioMoiMs: number, bayGioMs: number, phut: number): number {
+  const trongVung = gioXetMocXep(chuyen) - bayGioMs < phut * PHUT;
+  return trongVung ? Math.min(chuyen.batDauSomNhatMs ?? chuyen.batDauMs, gioMoiMs) : gioMoiMs;
+}
+
 /** Mốc lúc XẾP cho một lệnh trên một chuyến. `canPhaLe` → route trả 409 `can_pha_le` trừ khi có phá lệ hợp lệ. Khoá dính: xét theo `gioXetMocXep`. */
 export function kiemMocXep(chuyen: ChuyenMocXep, bayGioMs: number, phut: number, lenh: LenhMocXep): KetQuaMocXep {
   const gio = gioXetMocXep(chuyen);
