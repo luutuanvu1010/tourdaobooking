@@ -320,8 +320,8 @@
       "module": "van-chuyen",
       "kind": "table",
       "logicalRefs": [
-        { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "trigger LC-09 lúc mở suất — R-P19" },
-        { "column": "passenger_key", "toTable": "ord_passenger", "viaView": "v_ord_passenger_key", "note": "person_key — trigger LC-10 lúc mở suất / gắn tên — R-P19" }
+        { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "trigger LC-09 lúc mở suất + kiểm định kỳ R-VC-19 — R-P19" },
+        { "column": "passenger_key", "toTable": "ord_passenger", "viaView": "v_ord_passenger_key", "note": "person_key — trigger LC-10 lúc mở suất / gắn tên + kiểm định kỳ R-VC-19 — R-P19" }
       ]
     },
     {

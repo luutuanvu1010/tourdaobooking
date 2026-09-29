@@ -138,7 +138,7 @@
 | `vc_trip` | bảng |  |
 | `vc_trip_driver` | bảng |  |
 | `vc_trip_stop` | bảng |  |
-| `vc_trip_allocation` | bảng | tham chiếu logic `leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (trigger LC-09 lúc mở suất — R-P19); tham chiếu logic `passenger_key` → `ord_passenger` qua view `v_ord_passenger_key`, không khoá ngoại (person_key — trigger LC-10 lúc mở suất / gắn tên — R-P19) |
+| `vc_trip_allocation` | bảng | tham chiếu logic `leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (trigger LC-09 lúc mở suất + kiểm định kỳ R-VC-19 — R-P19); tham chiếu logic `passenger_key` → `ord_passenger` qua view `v_ord_passenger_key`, không khoá ngoại (person_key — trigger LC-10 lúc mở suất / gắn tên + kiểm định kỳ R-VC-19 — R-P19) |
 | `vc_trip_event` | bảng |  |
 | `vc_trip_departure_check` | bảng |  |
 | `vc_trip_departure_check_item` | bảng |  |

@@ -729,7 +729,7 @@ Quyết định của chủ dự án (nguồn: `docs/HANDOFF-CHE-DO-BAO-TRI.md` 
 2. **Thêm lý do giữ:** mã ở `MA_GIU` (`src/shared/ly-do-giu.ts`) + nơi phát ở `kiemXuatBen` (một hàm) + ca mẫu `golden/dieu-phoi/` nếu đổi đáp án (báo chủ).
 3. **Đổi trigger lõi:** `0042` / `0043` đã áp local chỉ đổi bằng migration MỚI khi đã áp remote; chưa áp remote mà sửa tại chỗ → xoá `.wrangler/state/v3/d1` rồi `npm run db:migrate:local` (bẫy 51 (5)). Trigger BEFORE chạy TRƯỚC `CHECK` — bài `CHECK` phải tắt trigger để thấy `CHECK` chặn (khuôn `src/migrations-chuyen-xe.test.ts`).
 
-**Kiểm:** `node --test src/modules/van-chuyen/*.test.ts src/migrations-chuyen-xe.test.ts src/hanh-khach-khong-lo-ten.test.ts src/giay-to-khong-lo-so.test.ts src/audit-invariants.test.ts src/route-write-guard.test.ts src/route-access.test.ts src/tai-xe-cong.test.ts src/orders-cong-bo.test.ts src/architecture.test.ts` → `npm test` → `npm run typecheck` → e2e `npm run test:e2e -- dieu-phoi tai-xe-cuoc dieu-phoi-chay-dua` (chạm migration: ĐỦ BỘ, đuôi `audit-invariants --strict` có R-VC-3…18).
+**Kiểm:** `node --test src/modules/van-chuyen/*.test.ts src/migrations-chuyen-xe.test.ts src/hanh-khach-khong-lo-ten.test.ts src/giay-to-khong-lo-so.test.ts src/audit-invariants.test.ts src/route-write-guard.test.ts src/route-access.test.ts src/tai-xe-cong.test.ts src/orders-cong-bo.test.ts src/architecture.test.ts` → `npm test` → `npm run typecheck` → e2e `npm run test:e2e -- dieu-phoi tai-xe-cuoc dieu-phoi-chay-dua` (chạm migration: ĐỦ BỘ, đuôi `audit-invariants --strict` có R-VC-3…19).
 
 ## 3. Ma trận "đổi cái gì → chạy kiểm nào"
 

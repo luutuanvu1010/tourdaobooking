@@ -397,6 +397,19 @@ export const CHECKS = [
           + (SELECT count(*) FROM (SELECT leg_id FROM vc_leg_appt_ack GROUP BY leg_id HAVING min(seq) <> 1))`,
     level: "fail",
   },
+  // N-19 (R-P19 — chủ "Trả lời lần 13": suất trỏ chặng / người bằng tham chiếu LOGIC, không khoá ngoại; "danh sách khách của xe trỏ tới người không còn" do máy
+  // chủ VÀ kiểm định kỳ bắt). R-VC-10 phủ bản chốt; câu này phủ hai tham chiếu còn lại của SUẤT. GA-58: MỌI suất (mở lẫn đã đóng); "người còn" = CÓ dòng
+  // `ord_passenger` cùng `person_key`, thuộc đơn của chặng — dòng đã huỷ (`voided_at`) / đã thay vẫn tính là còn (khách huỷ sau khi xếp là tình trạng nghiệp
+  // vụ, lý do giữ + R-VC-3 lo). Chỉ đếm.
+  {
+    code: "R-VC-19",
+    what: "suất trỏ chặng không còn trong ord_transfer_leg, hoặc trỏ người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng",
+    sql: `SELECT count(*) FROM vc_trip_allocation a
+          WHERE (a.leg_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = a.leg_id))
+             OR (a.passenger_key IS NOT NULL AND NOT EXISTS (
+                   SELECT 1 FROM ord_passenger p JOIN ord_transfer_leg l ON l.id = a.leg_id WHERE p.person_key = a.passenger_key AND p.order_id = l.order_id))`,
+    level: "fail",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.
