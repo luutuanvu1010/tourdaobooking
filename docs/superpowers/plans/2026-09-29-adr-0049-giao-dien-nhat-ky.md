@@ -390,3 +390,53 @@ Không chạy lại ở đỉnh này: `xe-smoke`, `danh-muc-giay-to-smoke`, `chi
 | Chrome (12 kịch bản) | thoát 0 cả 12: `cuoc-smoke` 10/10, `goi-bao-smoke` 7/7, `chuyen-smoke` 8/8, `chuyen-sua-smoke` 12/12, `dieu-phoi-smoke` 10/10, `chinh-sach-dieu-phoi-smoke` 14/14, `tai-xe-trang-dau-smoke` 4/4, `tai-xe-doi-tac-smoke` 4/4, `xe-smoke` 13/13, `danh-muc-giay-to-smoke` 10/10, `trang-chu-smoke` OK, `dot-c-smoke` OK |
 
 Không chạy lại ở đỉnh này: `help-smoke`, `giay-to-cua-toi-smoke`, `sap-het-han-smoke` (xanh ở 9.8 trên `8666fa4`; vòng 4 không đụng phần của chúng). `v1-bao-tri.mjs` đỏ sẵn từ ADR-0019 (mục 9.7). e2e máy chủ (`dieu-phoi`, `tai-xe-cuoc`…) không chạy — nhánh giao diện không đổi route / migration.
+
+## 12. Vòng 5 — sửa theo kiểm độc lập K2b (người kiểm chấm Phần B @`fed514e`: ĐẠT CÓ ĐIỀU KIỆN, không lỗ dữ liệu / quyền)
+
+### 12.1 Commit (mỗi việc một commit, thân ghi "theo kiểm độc lập K2b")
+| Việc | Commit |
+|---|---|
+| Gộp máy chủ `ed3b59e` (sửa theo K2a: lệnh lặp "Đã gọi báo" / "Bỏ đánh dấu" trả kết quả lần đầu; không đổi DTO) | `f6427b5` |
+| T1 — Điều phối xe chặn `can(staff, "trip.view")` trước mọi lời gọi | `8fa1762` |
+| T2 — tài khoản vừa tài xế công ty vừa văn phòng có lối tới "Cuốc của tôi" | `51c7c66` |
+| Thanh tab che nút cuối? — ca Chrome "nút cuối không bị che" + nhật ký vòng 5 | commit ngay sau `51c7c66` |
+
+### 12.2 T1
+- `web/dieu-phoi.ts`: `main` hỏi `can(staff, "trip.view")` (như `web/chuyen.ts`); không có ô → ẩn ô ngày + nút đổi ngày, chỉ câu từ chối. `nap()` chặn cùng ô ở đầu (mọi đường tải lại: đổi ngày, sau lệnh). Trước đó: tài xế gõ thẳng `/dieu-phoi` thấy câu từ chối NHƯNG vẫn còn ô ngày; bấm "›" thì gọi `GET /api/van-chuyen/lich` (máy chủ trả 403 — không lộ dữ liệu, chỉ là lời gọi thừa).
+- `dieu-phoi-smoke` bước 7b (tài xế An): đỏ trước khi sửa ("không nút đổi ngày"); P16 sau khi sửa: bỏ chặn trong `nap()` → đỏ ở "không lời gọi lịch xe nào" → hoàn nguyên.
+
+### 12.3 T2 — giả định bề mặt GA-K2b-T2 (điều phối chốt, đảo ngược được)
+- Thanh bên: mục "Cuốc của tôi" ở nhóm TÔI khi `coCuocCuaToi(staff)` (trước: chỉ khi `chiTaiXe`).
+- Điện thoại: KHÔNG thêm tab cho tổ hợp này (thanh tab văn phòng: Quản trị đã 6 tab) — dòng "Cuốc của tôi" ở nhóm VẬN CHUYỂN của trang Tôi (sau "Điều phối xe"); ở `/cuoc` tab "Tôi" sáng. Tài khoản chỉ tài xế giữ tab riêng như Q5.
+- Trang đầu (Q5) KHÔNG đổi: DRIVER + SALES mở "/" vẫn ở Trang chủ.
+- Hoàn tác: đổi cờ cuối của `addNav` ở `web/shell.ts` về `chiTaiXe(staff) && coCuocCuaToi(staff)` và bỏ dòng ở `web/account.ts`.
+- Số mục menu của Quản trị / Toàn quyền KHÔNG đổi (17 / 20) — chỉ tài khoản có quyền DRIVER mới thêm mục.
+- Khung thử dựng được tổ hợp: `POST /api/staff` với `roles: ["DRIVER_INTERNAL", "SALES_STAFF"]` → 201.
+- `cuoc-smoke` bước 9b: P16 bật lại điều kiện `chiTaiXe` + tắt dòng trang Tôi → đỏ (thanh bên không có "Cuốc của tôi") → hoàn nguyên. Ghi chú: tệp kịch bản ở commit T2 là bản đã bỏ riêng phần "nút cuối" (tập con của bản đã chạy xanh).
+
+### 12.4 Thanh tab che nút cuối? (ảnh `b5-mat-mang-dien-thoai.png`)
+- Kết luận: DO CÁCH CHỤP, không phải lỗi bố cục. Ảnh cả trang (`captureBeyondViewport`) vẽ phần tử `fixed` (thanh tab) ở vị trí khung nhìn giữa ảnh dài. Đo thật ở khung 390×844: `body.has-tabbar main` đã có khoảng đệm đáy `calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s4))` (`public/app.css:524`); trang chuyến đang chạy của dữ liệu thử còn ngắn hơn khung (không cuộn), nút "Kết thúc gián đoạn" ở 732–784px, thanh tab từ 785px.
+- Vẫn thêm ca Chrome (hàng rào, không phải sửa lỗi): `khongBiChe` ở `cuoc-smoke` bước 1 (thẻ cuối ở `/cuoc`), 2 (nút "Xuất bến" dính đáy), 3 (nút cuối của chuyến đang chạy) — chèn tạm khối 1200px đầu `<main>` để nút cuối nằm ở đáy trang DÀI, cuộn tới đáy, `elementFromPoint` ở tâm nút phải trúng chính nút; kiểm TRƯỚC khi chụp cả trang và báo nếu khung bị nới (> 900px).
+- P16: bỏ khoảng đệm đáy (`padding-bottom: 0`) → bước 3 đỏ ("nút cuối (Kết thúc gián đoạn) không bị thanh tab che") → hoàn nguyên. Lần đầu (chưa có khối 1200px) KHÔNG đỏ — trang ngắn nên không đo được gì; đã sửa cách đo rồi mới quan sát đỏ. Bước 1 không đỏ dưới đột biến vì tâm thẻ cao (~150px) vẫn nằm trên thanh tab — đúng nghĩa "tâm nút".
+
+### 12.5 Chưa làm — chờ chủ (theo điều phối)
+Tự gửi lại khi mất mạng (V1 của người kiểm); nút rút / chuyển một chặng khỏi chuyến (Q-B-6 / Q-B-15). `v1-bao-tri.mjs` không sửa (điều phối đưa vào sổ nợ).
+
+### 12.6 Kết quả (tự khai, CHƯA có người kiểm độc lập)
+Xem mục 12.7.
+
+### 12.7 Kết quả cuối vòng 5 (tự khai, CHƯA có người kiểm độc lập)
+| Lệnh | Kết quả |
+|---|---|
+| `npm run typecheck` | 0 |
+| `npm run build:web` | 0 |
+| `npm test` | 1833/1834 — bài đỏ duy nhất `guard-remote: lệnh dị dạng không làm hook quá giờ` (đo giờ hook khi máy bận) |
+| `node --test --test-concurrency=1 "src/**/*.test.ts"` | 1834/1834 |
+| `npm run test:e2e -- pwa` | 2/2 — "31 trang" (lần chạy CHUNG lúc với lô Chrome không in kết quả; chạy lại riêng: xanh) |
+| `goi-bao-smoke` | 7/7 |
+| `cuoc-smoke` | 11/11 (lần chạy trong lô hỏng ở khâu gieo dữ liệu — 500 "Network connection lost" khi `test:e2e` chạy song song dựng một máy chủ khác; chạy lại riêng: 11/11) |
+| `chuyen-smoke` | 8/8 |
+| `dieu-phoi-smoke` | 11/11 |
+| `tai-xe-trang-dau-smoke`, `tai-xe-doi-tac-smoke`, `trang-chu-smoke` | xanh (menu tài xế / văn phòng sau T2) |
+
+Bài học: không chạy `test:e2e` song song với lô Chrome (cùng máy, hai máy chủ tạm tranh nhau).

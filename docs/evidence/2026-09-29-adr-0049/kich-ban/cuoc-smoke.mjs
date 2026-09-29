@@ -26,6 +26,10 @@ const SDT_O4 = "0903 100 205";
 
 const tt = (p) => p.ev(`[...document.querySelectorAll('#tabbar a')].filter((a) => a.getClientRects().length).map((a) => [a.getAttribute('href'), a.innerText.trim(), a.getAttribute('aria-current')])`);
 const html = (p) => p.ev(`document.querySelector('main').innerHTML`);
+// Nút CUỐI của trang không bị thanh tab che (điều phối vòng 5): cuộn tới đáy, `elementFromPoint` ở tâm nút phải trúng chính nút.
+// Khung phải đúng 844 cao (kiểm TRƯỚC khi chụp cả trang). Dữ liệu thử ngắn (trang không cuộn) nên chèn tạm một khối 1200px ĐẦU <main> để nút cuối
+// nằm ở đáy trang dài — đo đúng khoảng đệm đáy dành cho thanh tab, rồi gỡ khối.
+const khongBiChe = (sel) => `(() => { if (window.innerHeight > 900) return 'khung cao ' + window.innerHeight; const dem = document.createElement('div'); dem.style.height = '1200px'; document.querySelector('main').prepend(dem); try { window.scrollTo(0, document.documentElement.scrollHeight); const el = [...document.querySelectorAll(${JSON.stringify(sel)})].filter((x) => x.getClientRects().length).at(-1); if (!el) return 'không thấy'; const r = el.getBoundingClientRect(); const t = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2); if (!t) return 'ngoài khung'; return el === t || el.contains(t) ? 'ok' : t.closest('#tabbar') ? 'thanh tab che' : t.tagName + '.' + t.className; } finally { dem.remove(); window.scrollTo(0, 0); } })()`;
 const posts = (p, duoi) => apiCalls(p).filter((r) => r.method === "POST" && r.path.endsWith(duoi));
 
 try {
@@ -46,6 +50,7 @@ try {
     assert.equal(await p.ev(noCode), "");
     assert.ok(await p.ev(noOverflowX));
     await axe(p, "Cuốc của tôi 390");
+    assert.equal(await p.ev(khongBiChe(".dp-cuoc-the")), "ok", "390: thẻ cuối không bị thanh tab che");
     await shotFull(p, "b4-cuoc-cua-toi-dien-thoai.png");
   });
 
@@ -59,6 +64,7 @@ try {
     assert.equal(await p.ev(`document.querySelector('[data-action="xuat-ben"]').disabled`), true);
     assert.equal(await p.ev(txt(".dp-cc-foot")), "Chưa xuất bến được — văn phòng đang lo.");
     assert.equal(await p.ev(txt(".bar-title")), `Xuất bến ${T6.ma}`);
+    assert.equal(await p.ev(khongBiChe("#cc-day .vc-btn")), "ok", "390: nút Xuất bến dính đáy không bị thanh tab che");
     await shotFull(p, "b6-xuat-ben-chua-dat-dien-thoai.png");
   });
 
@@ -85,7 +91,9 @@ try {
     assert.equal(await p.ev(`document.querySelectorAll('.dp-thu-tu').length`), 4, "hai điểm chưa tới: nút lên / xuống (không kéo)");
     assert.equal(await p.ev(noCode), "");
     await axe(p, "chuyến đang chạy 390");
+    assert.equal(await p.ev(khongBiChe(".dp-run-end .vc-btn")), "ok", "390: nút cuối (Kết thúc gián đoạn) không bị thanh tab che");
     await shotFull(p, "b5-chuyen-dang-chay-dien-thoai.png");
+    await p.ev("window.scrollTo(0, 0), true");
   });
 
   await b.step("4", `5a: "Đã tới" → khách có Đã đón / Vắng / Khách đã huỷ; "Đã đón" khách 1 → "Đã đón"; phản hồi lệnh không kèm liên hệ — màn GIỮ dòng liên hệ của lần tải`, async () => {
