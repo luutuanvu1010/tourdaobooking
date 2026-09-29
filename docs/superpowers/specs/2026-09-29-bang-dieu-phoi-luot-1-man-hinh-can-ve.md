@@ -75,7 +75,7 @@
 4. **V5 — Cuốc của tôi** (tài xế công ty, điện thoại là chính)
    - Hôm nay / ngày mai: danh sách chuyến (mã, giờ, biển số, số khách, trạng thái).
    - Chuyến chưa đủ điều kiện hiện dòng "Chưa đủ điều kiện xuất bến: thiếu 2 tên (văn phòng lo)".
-   - *Bổ sung ADR-0050:* B, E.
+   - *Bổ sung ADR-0050:* E.
 5. **V6 — Chuyến đang chạy** (tài xế; văn phòng bấm thay dùng cùng màn)
    - Từng điểm theo thứ tự, nút "Đã tới".
    - Trong điểm, từng khách: họ tên + năm sinh (chỉ trong ngày chạy), nút "Đã đón" / "Vắng" / "Khách đã huỷ".
@@ -134,7 +134,7 @@ Chỉ ghi **màn nào, thành phần nào, trạng thái nào cần vẽ**. Ch�
      - đón / vắng / huỷ / trả của một khách sớm hơn lúc khách đó được xếp lên xe.
   5. Mất mạng: như khuôn "chưa gửi được — bấm lại"; bấm lại giữ đúng giờ đã khai.
 
-**B. Hai giờ "07:31 · ghi lúc 07:45 — Hoa"** (V1 lịch chung, V2 chi tiết chuyến và nhật ký chuyến, V5 Cuốc của tôi, V6 chuyến đang chạy)
+**B. Hai giờ "07:31 · ghi lúc 07:45 — Hoa"** (V1 lịch chung, V2 chi tiết chuyến và nhật ký chuyến, V6 chuyến đang chạy — cả khi tài xế mở. Danh sách V5 chỉ có giờ dự kiến, không cần)
 - **Áp cho** mỗi mốc tiến độ: xuất bến, đã tới, đã đón, vắng, khách đã huỷ, đã trả, kết thúc.
 - **Trạng thái cần vẽ:**
   1. Tài xế tự bấm, hoặc văn phòng bấm mà không đổi giờ: **một** giờ.
@@ -149,7 +149,8 @@ Chỉ ghi **màn nào, thành phần nào, trạng thái nào cần vẽ**. Ch�
   1. Chuyến **lên kế hoạch** bị giữ: lý do + "ai xử lý" + nút; nút "Xuất bến" khoá.
   2. **Sau khi bấm thành công:** hết giữ; điểm mới xuất hiện trong bảng điểm dừng; điểm cũ không còn khách hiện "bỏ qua — không còn khách".
   3. **Bấm khi không còn gì lệch** (ví dụ người khác vừa cập nhật): báo "không có điểm nào cần cập nhật", không đổi gì.
-  4. Chuyến **đang chạy:** **không** có nút; chỉ có cảnh báo ở bổ sung D ("xe đang chạy thì chỉ báo đỏ trên bảng để văn phòng gọi tài xế" — ý của ADR-0050).
+  4. **Chuyến vừa được người khác sửa** (đổi xe, giờ…) trong lúc màn đang mở: báo "chuyến vừa được người khác sửa — tải lại" (trạng thái chung của mọi lệnh sửa chuyến; vẽ một lần ở đây là đủ).
+  5. Chuyến **đang chạy:** **không** có nút; chỉ có cảnh báo ở bổ sung D ("xe đang chạy thì chỉ báo đỏ trên bảng để văn phòng gọi tài xế" — ý của ADR-0050).
 - **Cùng danh sách lý do giữ** (điều phối đã duyệt 29/9 — không hiện câu chung chung): "đơn đã huỷ", "chặng đã bỏ" (đơn bỏ chặng sau khi xếp), "giờ hẹn nằm ngoài chuyến" (ngày đón bị dời xa).
 
 **D. Hai cảnh báo mới ở cột "Cần xử lý"** (V1; V2 nếu chủ muốn hiện trong chi tiết chuyến)
@@ -195,8 +196,8 @@ Chỉ ghi **màn nào, thành phần nào, trạng thái nào cần vẽ**. Ch�
 > 8. Chính sách điều phối (Toàn quyền): mốc tối thiểu, cảnh báo sát mốc, khoảng nghỉ, "phải đủ danh sách khách", "phải có hợp đồng" (khoá tắt); mỗi lần lưu là một bản mới có ngày hiệu lực, xem lịch sử. Danh mục lý do (Quản trị): theo nhóm, thêm / sửa / ngưng.
 > 9. Bổ sung trên các màn trên (không phải màn mới):
 > (a) Khi văn phòng bấm thay tài xế (Xuất bến, Đã tới, Đã đón, Vắng, Khách đã huỷ, Đã trả, Kết thúc, Kết thúc gián đoạn — không có ở đổi thứ tự điểm), có ô "xảy ra lúc": để nguyên là lúc bấm; sửa được về trước, kèm dòng "Sớm nhất: 07:11". Vẽ các câu từ chối bằng lời: giờ ở tương lai; lùi quá 3 giờ; sai thứ tự các bước; xuất bến trước khi chuyến trước của cùng xe / tài xế kết thúc; xuất bến sớm hơn lần sửa lịch chuyến cuối. Tài xế tự bấm thì không có ô này.
-> (b) Ở lịch chung, chi tiết chuyến, Cuốc của tôi, Chuyến đang chạy: mốc do văn phòng khai hiện hai giờ "07:31 · ghi lúc 07:45 — Hoa" và dấu "giờ do văn phòng khai"; tài xế tự bấm chỉ một giờ; chỉ tên người bấm, không số điện thoại.
-> (c) Chuyến CX-3009-07 bị giữ vì khách đổi khách sạn từ Amiana sang Novotel sau khi đã xếp: lý do "Nơi đón / trả đã đổi — cập nhật điểm", ai xử lý "người xếp xe", nút "Cập nhật điểm theo đơn" (không cần phá lệ, kể cả trong 6 giờ). Sau khi bấm: điểm Novotel thêm vào, điểm Amiana "bỏ qua — không còn khách". Bấm khi không còn gì lệch thì báo "không có điểm nào cần cập nhật". Xe đang chạy thì không có nút, chỉ cảnh báo.
+> (b) Ở lịch chung, chi tiết chuyến, Chuyến đang chạy (cả khi tài xế mở): mốc do văn phòng khai hiện hai giờ "07:31 · ghi lúc 07:45 — Hoa" và dấu "giờ do văn phòng khai"; tài xế tự bấm chỉ một giờ; chỉ tên người bấm, không số điện thoại.
+> (c) Chuyến CX-3009-07 bị giữ vì khách đổi khách sạn từ Amiana sang Novotel sau khi đã xếp: lý do "Nơi đón / trả đã đổi — cập nhật điểm", ai xử lý "người xếp xe", nút "Cập nhật điểm theo đơn" (không cần phá lệ, kể cả trong 6 giờ). Sau khi bấm: điểm Novotel thêm vào, điểm Amiana "bỏ qua — không còn khách". Bấm khi không còn gì lệch thì báo "không có điểm nào cần cập nhật"; chuyến vừa bị người khác sửa thì báo "chuyến vừa được người khác sửa — tải lại". Xe đang chạy thì không có nút, chỉ cảnh báo.
 > (d) Cột "Cần xử lý" có thêm hai cảnh báo: "Nơi hẹn khác điểm xe" (cả chuyến đang chạy — để văn phòng gọi tài xế) và "Giờ xe tới muộn hơn giờ hẹn".
 > (e) Xe B 79B-678.90 thiếu Bảo hiểm trách nhiệm dân sự: chuyến bị giữ "Thiếu giấy tờ xe: 79B-678.90", ai xử lý "Quản trị". Vẽ thêm trường hợp giấy đã hết hạn và giấy hết hạn trước giờ kết thúc chuyến; màn tài xế hiện "(văn phòng lo)".
 > (f) Chính sách điều phối có thêm ô "Khai lùi tối đa (phút)" (1–1440, mặc định 180); danh sách điều kiện xuất bến có sẵn hai dòng "Kiểm định — mọi xe" và "Bảo hiểm trách nhiệm dân sự — mọi xe".
