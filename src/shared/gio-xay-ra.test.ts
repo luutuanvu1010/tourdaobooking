@@ -103,6 +103,17 @@ test("TC-46 TRUOC_DOI_THU_TU: đã tới sớm hơn giờ ghi nhận lần đổ
   assert.deepEqual(chan({ loai: "STOP_ARRIVED", xayRaMs: t("07:20"), ghiNhanMs: t("07:40"), suKien: coDoi, suatId: null }), []);
 });
 
+test("GA-25 (chủ chốt 29/9, Trả lời lần 11 — \"Chặn\"): đã tới điểm TRẢ ≤ đã trả khách ở điểm đó, hai chiều; khai ngược → DAO_THU_TU", () => {
+  // đã trả ở d-9 khai 08:00 khi "đã tới" d-9 xảy ra 08:05
+  const coToiXuong = [...NEN, sk("PASSENGER_BOARDED", "07:31", "07:32", { diemId: "d-1", suatId: "s-1" }), sk("STOP_ARRIVED", "08:05", "08:06", { diemId: "d-9" })];
+  assert.deepEqual(chan({ loai: "PASSENGER_DROPPED", diemId: "d-9", xayRaMs: t("08:00"), ghiNhanMs: t("08:20"), suKien: coToiXuong }), ["DAO_THU_TU"]);
+  assert.deepEqual(chan({ loai: "PASSENGER_DROPPED", diemId: "d-9", xayRaMs: t("08:05"), ghiNhanMs: t("08:20"), suKien: coToiXuong }), [], "trả = tới → đạt");
+  // đã tới d-9 khai 08:10 khi "đã trả" ở d-9 xảy ra 08:05
+  const coTraXuong = [...NEN, sk("PASSENGER_BOARDED", "07:31", "07:32", { diemId: "d-1", suatId: "s-1" }), sk("PASSENGER_DROPPED", "08:05", "08:06", { diemId: "d-9", suatId: "s-1" })];
+  assert.deepEqual(chan({ loai: "STOP_ARRIVED", diemId: "d-9", suatId: null, xayRaMs: t("08:10"), ghiNhanMs: t("08:20"), suKien: coTraXuong }), ["DAO_THU_TU"]);
+  assert.deepEqual(chan({ loai: "STOP_ARRIVED", diemId: "d-9", suatId: null, xayRaMs: t("08:05"), ghiNhanMs: t("08:20"), suKien: coTraXuong }), []);
+});
+
 test("TC-46 TRUOC_MO_SUAT: đã đón / vắng / khách huỷ / đã trả sớm hơn lúc MỞ suất → chặn", () => {
   for (const loai of ["PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED"] as const) {
     assert.deepEqual(chan({ loai, suatMoTuMs: t("07:35"), xayRaMs: t("07:31") }), ["TRUOC_MO_SUAT"], loai);

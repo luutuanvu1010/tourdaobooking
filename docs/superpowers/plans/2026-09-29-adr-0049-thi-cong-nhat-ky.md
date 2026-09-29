@@ -373,6 +373,10 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **N-16:** kế hoạch A10 bước 6 còn câu cũ "sửa các bài … bằng dòng chính sách 0 trong khung thử" (trái GA-5) — phiên này làm theo Ruling N-9; đề nghị người lập kế hoạch sửa chữ.
 - **N-17:** `planEditLeg` đọc `getStoredServices` + route đọc thêm mốc — mỗi lần sửa chặng thêm một truy vấn (mốc). Không đo tốc độ.
 - **N-18 (Phần B — PHỤ THUỘC CỨNG của lần phát hành):** biểu mẫu đơn trên web CHƯA xử lý phản hồi mới: 409 `short_notice_required` (kèm `legs`), 503 `moc_toi_thieu_chua_co`, `canhBaoMoc` / `mocToiThieuPhut` của lưu nháp và chi tiết đơn, khoá thân `datGap` của lệnh sửa / thêm chặng, route đặt gấp. Lên production phần máy chủ trước giao diện thì đơn dưới mốc kẹt ở Xác nhận (kế hoạch đã chốt: phát hành MỘT lần, sau Phần B).
+- **Q-A10-1 (logic — xin chấp nhận, GA-28):** sửa / thêm chặng làm đổi nội dung mà không kèm `datGap` thì dấu đặt gấp CŨ bị xoá (kể cả khi chặng mới ở xa mốc). Suy từ I16 + Q1 = (a); nếu điều phối muốn giữ dấu khi chặng mới ở xa mốc thì đổi `LEG_SET_DAT_GAP` + bài TC-24 ca cuối.
+- **Q-A10-2 (GA-25):** `kiemGioXayRa` xét thêm "đã tới điểm XUỐNG ≤ đã trả" (khuôn I20) — chặt hơn chữ ADR-0050 vế 3 một chút.
+- **Q-A10-3 (GA-32):** mốc giả ÂM (`-24 * 60`) của `doc-chang.test.ts` — N-9 (iii) nói "mốc cố định do bài chỉ định"; giá trị âm là cách duy nhất để giờ đón đã qua trong ngày vẫn xác nhận được mà không đổi ngày của bài. Nếu không chấp nhận: chuyển bài đó sang đường (ii) (Quản trị đặt gấp qua route trước khi xác nhận).
+- **Q-A11-1 (GA-33):** tên khoá `ChangLichChung` (tiếng Anh theo khuôn `ChangChoChuyen`, trộn vài khoá tiếng Việt) — cửa hai chiều tới khi A13 dùng.
 
 ### 10.8 Bổ sung sau lời khuyên (29/9 tối, trước khi bàn giao)
 
@@ -381,7 +385,15 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **TC-43 bổ sung:** đổi GIỜ (05:00 → 05:10, cùng ngày, xa mốc — chỉ đọc cột nên không phụ thuộc giờ chạy bài) → mất dấu; cùng giờ → giữ dấu.
 - **P16 chạy lại / bổ sung** (dòng sổ hàng rào đã cập nhật): che dãy số + nhật ký chép ghi chú (mã nay ở `docDatGap`); `PUT /trip` không truyền dấu; khớp bỏ vế giờ; router gọi thẳng hàm tiêm — đều đỏ, hoàn nguyên xanh.
 - **Tài liệu:** dòng "Kiểm" công thức z, z2 của `CHANGE-GUIDE` thêm sáu tệp bài mới; ma trận §3 thêm một dòng.
-- **Q-A10-1 (logic — xin chấp nhận, GA-28):** sửa / thêm chặng làm đổi nội dung mà không kèm `datGap` thì dấu đặt gấp CŨ bị xoá (kể cả khi chặng mới ở xa mốc). Suy từ I16 + Q1 = (a); nếu điều phối muốn giữ dấu khi chặng mới ở xa mốc thì đổi `LEG_SET_DAT_GAP` + bài TC-24 ca cuối.
-- **Q-A10-2 (GA-25):** `kiemGioXayRa` xét thêm "đã tới điểm XUỐNG ≤ đã trả" (khuôn I20) — chặt hơn chữ ADR-0050 vế 3 một chút.
-- **Q-A10-3 (GA-32):** mốc giả ÂM (`-24 * 60`) của `doc-chang.test.ts` — N-9 (iii) nói "mốc cố định do bài chỉ định"; giá trị âm là cách duy nhất để giờ đón đã qua trong ngày vẫn xác nhận được mà không đổi ngày của bài. Nếu không chấp nhận: chuyển bài đó sang đường (ii) (Quản trị đặt gấp qua route trước khi xác nhận).
-- **Q-A11-1 (GA-33):** tên khoá `ChangLichChung` (tiếng Anh theo khuôn `ChangChoChuyen`, trộn vài khoá tiếng Việt) — cửa hai chiều tới khi A13 dùng.
+
+### 10.9 Kiểm độc lập giữa chừng + ruling điều phối (29/9 đêm, đỉnh `9105306`)
+
+- **Kết quả người kiểm độc lập (chỉ đọc) — ĐẠT CÓ ĐIỀU KIỆN**, cho làm tiếp A12 → A21 trên nhánh này: tự chạy lại `npm test` 1633/1633, typecheck 0, `build:web` 0, `tests/audit` 36/36, e2e 27/27 + `audit --strict` đạt; gộp ba nhánh không mất nghĩa; 0040 / 0041 đúng; ô `order.leg.short_notice` đúng; cổng Xác nhận atomic; mốc giả chỉ qua khung thử; `kiemGioXayRa` khớp ADR-0050 dòng 113–142; P16 tái hiện 3/3. Không có lỗi CAO.
+- **Q-A10-1 / GA-28 — CHẤP NHẬN** (căn cứ "Trả lời lần 6" dòng 91 của `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`: "chặng nào đổi thì mất"; điều phối đính chính: lần 6, không phải lần 7).
+- **Q-A10-2 / GA-25 — CHỦ ĐÃ CHỐT "Chặn"** (29/9 tối, Trả lời lần 11 — `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`): giờ "đã tới điểm trả" phải ≤ giờ "đã trả khách" ở điểm đó; khai ngược → máy báo lỗi. (Trước đó điều phối ghi "đang hỏi chủ, tạm giữ bản chặt"; người kiểm: VỪA.) Đã làm: tách khối GA-25 riêng trong `src/shared/gio-xay-ra.ts` (vế ADR-0050 vế 3 — điểm LÊN — giữ khối riêng), chú thích "chủ chốt 29/9, Trả lời lần 11"; bài riêng `GA-25 …` trong `gio-xay-ra.test.ts` (hai chiều). P16: bỏ vế "đã trả khai trước đã tới" ⇒ `not ok 10 - GA-25 (chủ chốt 29/9, Trả lời lần 11 — "Chặn") …`; bỏ vế "đã tới khai sau đã trả" ⇒ cùng dòng → hoàn nguyên → 11/11.
+- **Q-A10-3 / GA-32 — CHẤP NHẬN** (người kiểm xác nhận không lọt production).
+- **Q-A11-1 / GA-33 — CHẤP NHẬN** tên `ChangLichChung`.
+- **N-16 — điều phối cho phép sửa chữ kế hoạch** A10 bước 6 cho khớp GA-5 / Ruling N-9 (đã sửa, ghi "điều phối cho phép 29/9").
+- **Siết thêm (THẤP, người kiểm đề xuất — làm ở A19):** bài kiến trúc "`taoAppChoKhungThu` chỉ được gọi từ `tests/audit/harness.mjs` (định nghĩa ở `src/index.ts`)" + P16 + dòng sổ hàng rào.
+- **Phối hợp song song:** người thi công GIAO DIỆN làm Phần B trên nhánh `giao-dien-dieu-phoi-luot-1` (tách từ `9105306`) — nhánh này KHÔNG sửa `web/` (trừ khi task A bắt buộc — khi đó ghi tên tệp); A13, A15 commit riêng, xanh; xong A15 báo điều phối một dòng rồi làm tiếp A16–A21. Nhật ký máy chủ ở tệp này; người giao diện ghi tệp riêng.
+- **Phạm vi phiên:** A12 → A21, dừng sau A21 (tự khai). K1–K3 KHÔNG làm. Migration 0042 là số đã giữ (kiểm lại `git log --all -- 'migrations/0042*'` trước khi tạo).
