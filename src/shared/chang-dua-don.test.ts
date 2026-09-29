@@ -122,6 +122,14 @@ test("chieuDiDau: chiều đi SỚM NHẤT (ngày, rồi giờ có trước gi�
   });
 });
 
+test("chieuDiDau: nơi đón là chữ tạm NOI_DON_CHUA_GHI → hai khoá cũ trả pickupPlace NULL (giao diện hôm nay không đổi — tiêu chí 3); nhãn của chính chặng giữ chữ tạm", () => {
+  const leg = stored({ pickupTime: "07:00", pickupPlace: NOI_DON_CHUA_GHI, pickupLabel: NOI_DON_CHUA_GHI });
+  assert.deepEqual(chieuDiDau([leg]), { pickupTime: "07:00", pickupPlace: null });
+  assert.equal(leg.pickupLabel, NOI_DON_CHUA_GHI, "không sửa chặng nguồn");
+  // thân cũ gửi lại "" cho nơi (vì hai khoá cũ trả null) cùng giờ cũ → chặng giữ chữ tạm, không đổi gì (bất biến lặp)
+  assert.deepEqual(tronChangCu([leg], { pickupTime: "07:00", pickupPlace: null }, "2026-10-10").legs[0]!.pickupPlace, NOI_DON_CHUA_GHI);
+});
+
 test("doiNgayChang: dời CÙNG số ngày (qua tháng, qua năm); ngày trống giữ trống; ngày đi từ trống sang có → điền ngày mới cho chặng trống; không có ngày mới → giữ", () => {
   const legs = [{ pickupDate: "2026-10-30" }, { pickupDate: "2026-10-31" }, { pickupDate: null }];
   assert.deepEqual(doiNgayChang(legs, "2026-10-31", "2026-11-02").map((l) => l.pickupDate), ["2026-11-01", "2026-11-02", null]);
