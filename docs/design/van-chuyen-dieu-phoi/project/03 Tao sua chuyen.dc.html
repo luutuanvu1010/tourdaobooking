@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><a href="02 Chi tiet chuyen.dc.html">02 Chi tiết chuyến</a><span>·</span><strong>03 Tạo / sửa chuyến</strong><span>·</span><a href="04 Cuoc cua toi.dc.html">04 Cuốc của tôi</a><span>·</span><a href="05 Chuyen dang chay.dc.html">05 Chuyến đang chạy</a><span>·</span><a href="06 Xuat ben.dc.html">06 Xuất bến</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 Biểu mẫu đơn — chặng đón</a><span>·</span><a href="08 Chinh sach dieu phoi.dc.html">08 Chính sách &amp; lý do</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">03 · Tạo / sửa chuyến</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Lỗi hiện bằng lời ngay dưới ô sau khi bấm Lưu. 3a: Bán hàng tạo chuyến mới — ba lỗi cùng lúc. 3b: Quản trị sửa CX-3009-11 — chưa đủ giờ nghỉ; trong 6 giờ thì lưu sẽ hỏi lý do phá lệ.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="3a" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">3a · Chuyến mới · 1040 · Bán hàng</div>
+      <dc-import name="vo-may-tinh" role="sales" active="dieuphoi" crumb="Vận chuyển › Điều phối xe › Chuyến mới" height="900px" hint-size="1040px,900px">
+        <a href="01 Dieu phoi xe.dc.html" style="font-size:var(--fs-label);font-weight:700;">‹ Điều phối xe 30/09</a>
+        <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">Chuyến mới · 30/09</h1>
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="danger" title="Chưa lưu được — sửa 3 ô có đánh dấu bên dưới." hint-size="100%,48px"></x-import>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:var(--s4);align-items:start;">
+          <div style="display:flex;flex-direction:column;gap:var(--s4);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Xe" options="{{ cars }}" default-value="a" hint="15 chỗ · xe công ty · chở tối đa 14 khách" hint-size="100%,80px"></x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Tài xế" options="{{ drivers }}" default-value="binh" error="Tài xế bằng B không chở được xe 15 chỗ. Chọn tài xế hạng D trở lên." hint-size="100%,90px"></x-import>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Giờ bắt đầu" default-value="10:50" error="Trong 6 giờ — cần Quản trị phá lệ. Mốc hôm nay là 13:50." hint-size="100%,110px"></x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Giờ kết thúc" default-value="15:00" error="Xe trùng giờ chuyến CX-3009-11 (14:30–16:15)." hint-size="100%,110px"></x-import>
+            </div>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="textarea" label="Ghi chú cho tài xế (không bắt buộc)" placeholder="Ví dụ: đón cổng phụ khách sạn" hint-size="100%,110px"></x-import>
+            <div style="display:flex;gap:var(--s2);justify-content:flex-end;">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="80px,44px">Huỷ bỏ</x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" dc-props="{{ nw }}" hint-size="120px,44px">Lưu chuyến</x-import>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div style="padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);font-family:var(--font-display);font-weight:700;">79B-123.45 trong ngày</div>
+            <sc-for list="{{ carDay }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);background:{{ c.bg }};">
+                <span style="display:flex;gap:var(--s2);align-items:center;"><strong style="font-family:var(--font-display);">{{ c.code }}</strong><span style="font-variant-numeric:tabular-nums;">{{ c.time }}</span></span>
+                <span style="font-size:var(--fs-badge);color:{{ c.nc }};font-weight:600;">{{ c.note }}</span>
+              </div>
+            </sc-for>
+            <div style="padding:var(--s3) var(--s4);font-size:var(--fs-badge);color:var(--c-text-muted);line-height:1.5;">Khoảng nghỉ tối thiểu của tài xế: 30 phút (Chính sách điều phối).</div>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="3b" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">3b · Sửa CX-3009-11 · 390 · Quản trị</div>
+      <dc-import name="vo-dien-thoai" role="admin" title="Sửa chuyến CX-3009-11" tabs="{{ false }}" hint-size="390px,844px">
+        <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Xe" options="{{ cars }}" default-value="a" hint="15 chỗ · đang có 10 khách xếp" hint-size="100%,80px"></x-import>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="select" label="Tài xế" options="{{ drivers }}" default-value="an" hint="Hạng D · hạn 05/11/2026" hint-size="100%,80px"></x-import>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Giờ bắt đầu" default-value="11:00" error="Chưa đủ 30 phút nghỉ — tài xế kết thúc CX-3009-07 lúc 10:45. Sớm nhất 11:15." hint-size="100%,130px"></x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Giờ kết thúc" default-value="12:45" hint-size="100%,72px"></x-import>
+          </div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="Trong 6 giờ trước giờ xuất bến" hint-size="100%,90px"><div style="margin-top:var(--s1);font-size:var(--fs-label);line-height:1.5;">Giờ mới 11:00 nằm trước mốc 13:50. Khi lưu, bạn sẽ chọn lý do phá lệ.</div></x-import>
+        </div>
+        <div style="position:sticky;bottom:0;display:flex;gap:var(--s2);padding:var(--s3) var(--s4) 34px;background:var(--c-surface);border-top:1px solid var(--c-border);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="90px,52px">Huỷ bỏ</x-import>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" size="lg" block="{{ true }}" style="flex:1;" hint-size="200px,52px">Lưu chuyến</x-import>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      nw: { style: { whiteSpace: 'nowrap' } },
+      cars: [
+        { value: 'a', label: '79B-123.45 · 15 chỗ · xe công ty' },
+        { value: 'b', label: '79B-678.90 · 29 chỗ · xe công ty' },
+        { value: 'c', label: '79B-555.66 · 45 chỗ · Minh Phát' },
+      ],
+      drivers: [
+        { value: 'an', label: 'Nguyễn Văn An · hạng D' },
+        { value: 'tuan', label: 'Trần Văn Tuấn · hạng E' },
+        { value: 'binh', label: 'Lê Văn Bình · hạng B' },
+      ],
+      carDay: [
+        { code: 'CX-3009-02', time: '06:40–08:25', note: 'Đang chạy', nc: 'var(--c-text-muted)', bg: 'transparent' },
+        { code: 'CX-3009-07', time: '09:00–10:45', note: 'Bị giữ', nc: 'var(--c-text-muted)', bg: 'transparent' },
+        { code: 'CX-3009-11', time: '14:30–16:15', note: 'Trùng với giờ bạn chọn', nc: 'var(--c-danger-text)', bg: 'var(--c-danger-soft)' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

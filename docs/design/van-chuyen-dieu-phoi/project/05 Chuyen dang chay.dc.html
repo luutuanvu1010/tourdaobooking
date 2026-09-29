@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><a href="02 Chi tiet chuyen.dc.html">02 Chi tiết chuyến</a><span>·</span><a href="03 Tao sua chuyen.dc.html">03 Tạo / sửa chuyến</a><span>·</span><a href="04 Cuoc cua toi.dc.html">04 Cuốc của tôi</a><span>·</span><strong>05 Chuyến đang chạy</strong><span>·</span><a href="06 Xuat ben.dc.html">06 Xuất bến</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 Biểu mẫu đơn — chặng đón</a><span>·</span><a href="08 Chinh sach dieu phoi.dc.html">08 Chính sách &amp; lý do</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">05 · Chuyến đang chạy</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">CX-3009-02 lúc 07:58. Tài xế tự bấm thì chỉ có một giờ, không có ô “xảy ra lúc”. Mốc Havana do văn phòng khai nên hiện hai giờ và dấu “giờ do văn phòng khai” — cả khi tài xế mở. Kéo tay nắm để đổi thứ tự điểm chưa tới (việc này không có ô “xảy ra lúc”). 5c: văn phòng bấm thay “Đã tới” lúc 07:45.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="5a" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">5a · Chuyến đang chạy · 390 · tài xế · có một thao tác chưa gửi được</div>
+      <dc-import name="vo-dien-thoai" role="driver" title="CX-3009-02" tab="cuoc" clock="7:58" height="2140px" hint-size="390px,2140px">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="Mất mạng — 1 thao tác chưa gửi được" hint-size="100%,80px"><div style="margin-top:var(--s1);font-size:var(--fs-label);">Máy tự gửi lại khi có mạng. Bạn cũng có thể bấm lại ở dòng đó.</div></x-import>
+          <div style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s2);font-size:var(--fs-label);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="70px,18px">Đang chạy</x-import>
+            <span><strong>79B-123.45</strong> · xuất bến 07:11 · trên xe <strong>5/15</strong></span>
+          </div>
+          <sc-for list="{{ stops }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;background:var(--c-card);border:{{ s.bd }};border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+              <div style="display:flex;align-items:flex-start;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+                <span style="flex:none;width:28px;height:28px;border-radius:50%;background:{{ s.nb }};color:{{ s.nc }};display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:14px;">{{ s.n }}</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-size:var(--fs-badge);font-weight:800;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);">{{ s.kind }} · HẸN {{ s.appt }}</span>
+                  <span style="font-family:var(--font-display);font-weight:700;font-size:17px;">{{ s.place }}</span>
+                  <sc-if value="{{ s.hasMark }}" hint-placeholder-val="{{ false }}">
+                    <span style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2);font-size:var(--fs-label);">{{ s.markLabel }} <strong style="font-variant-numeric:tabular-nums;">{{ s.markT }}</strong><span style="color:var(--c-text-muted);">{{ s.markRec }}</span></span>
+                  </sc-if>
+                  <sc-if value="{{ s.office }}" hint-placeholder-val="{{ false }}"><span><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="140px,18px">giờ do văn phòng khai</x-import></span></sc-if>
+                </span>
+                <sc-if value="{{ s.drag }}" hint-placeholder-val="{{ false }}">
+                  <span aria-label="Kéo để đổi thứ tự" style="flex:none;width:44px;height:44px;margin:-8px -12px 0 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;color:var(--c-text-muted);cursor:grab;"><span style="width:18px;height:2px;border-radius:1px;background:currentColor;"></span><span style="width:18px;height:2px;border-radius:1px;background:currentColor;"></span><span style="width:18px;height:2px;border-radius:1px;background:currentColor;"></span></span>
+                </sc-if>
+              </div>
+              <sc-if value="{{ s.hasContact }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="handset" size="{{ 16 }}" hint-size="16px,16px"></x-import>
+                  <span>Liên hệ: {{ s.contact }}</span>
+                  <a href="#" style="margin-left:auto;min-height:44px;display:flex;align-items:center;font-weight:700;">{{ s.phone }}</a>
+                </div>
+              </sc-if>
+              <sc-for list="{{ s.guests }}" as="g" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);background:{{ g.bg }};">
+                  <div style="display:flex;align-items:center;gap:var(--s2);min-height:32px;">
+                    <span style="font-weight:700;">{{ g.name }}</span><span style="color:var(--c-text-muted);font-size:var(--fs-label);">{{ g.year }}</span>
+                    <span style="margin-left:auto;font-size:var(--fs-label);font-weight:700;color:{{ g.rc }};">{{ g.result }}</span>
+                  </div>
+                  <sc-if value="{{ g.pending }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;align-items:center;gap:var(--s2);font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);">Đã đón — chưa gửi được<x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" style="margin-left:auto;" hint-size="90px,44px">Bấm lại</x-import></div>
+                  </sc-if>
+                  <sc-if value="{{ g.acts }}" hint-placeholder-val="{{ false }}">
+                    <div style="display:flex;gap:var(--s2);">
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" block="{{ true }}" dc-props="{{ gb }}" style="flex:1;" hint-size="100px,44px">Đã đón</x-import>
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" block="{{ true }}" dc-props="{{ gb }}" style="flex:1;" hint-size="80px,44px">Vắng</x-import>
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" block="{{ true }}" dc-props="{{ gb }}" style="flex:1.5;" hint-size="120px,44px">Khách đã huỷ</x-import>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+              <sc-if value="{{ s.hasBtn }}" hint-placeholder-val="{{ false }}">
+                <div style="padding:var(--s3) var(--s4);display:flex;flex-direction:column;gap:var(--s2);">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" size="lg" block="{{ true }}" hint-size="100%,52px">{{ s.btn }}</x-import>
+                  <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ s.btnHint }}</span>
+                </div>
+              </sc-if>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;gap:var(--s2);margin-top:var(--s2);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" size="lg" block="{{ true }}" disabled="{{ true }}" hint-size="100%,52px">Kết thúc chuyến</x-import>
+            <span style="font-size:var(--fs-badge);color:var(--c-text-muted);text-align:center;">Bấm được khi đã trả hết khách.</span>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" size="lg" block="{{ true }}" hint-size="100%,52px">Kết thúc gián đoạn</x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="5b" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">5b · Kết thúc gián đoạn · 390 · chọn lý do</div>
+      <div style="position:relative;width:390px;height:844px;border-radius:44px;overflow:hidden;border:1px solid var(--c-border);box-shadow:var(--shadow-overlay);background:var(--c-surface-alt);">
+        <div style="position:absolute;inset:0;background:var(--c-scrim);display:flex;align-items:flex-end;">
+          <div style="width:100%;border-radius:var(--radius-lg) var(--radius-lg) 0 0;overflow:hidden;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Kết thúc gián đoạn" hint-size="100%,600px">
+              <div style="display:flex;flex-direction:column;gap:var(--s3);padding-bottom:34px;">
+                <div style="font-size:var(--fs-label);line-height:1.5;">CX-3009-02 dừng ở đây. 5 khách còn trên xe và 2 khách chưa đón sẽ báo về văn phòng.</div>
+                <div role="radiogroup" style="display:flex;flex-direction:column;border:1px solid var(--c-border);border-radius:var(--radius-sm);">
+                  <sc-for list="{{ stopReasons }}" as="r" hint-placeholder-count="5">
+                    <div role="radio" style="display:flex;align-items:center;gap:var(--s3);min-height:48px;padding:0 var(--s3);border-bottom:1px solid var(--c-border);background:{{ r.bg }};font-weight:{{ r.w }};">
+                      <span style="flex:none;width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--c-primary);display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;background:{{ r.dot }};"></span></span>{{ r.label }}
+                    </div>
+                  </sc-for>
+                </div>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" as="textarea" label="Ghi chú ngắn (không bắt buộc)" placeholder="Ví dụ: xe nóng máy ở đường Trần Phú" hint-size="100%,100px"></x-import>
+                <div style="display:flex;gap:var(--s2);">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="80px,52px">Đóng</x-import>
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" size="lg" block="{{ true }}" style="flex:1;" hint-size="200px,52px">Kết thúc gián đoạn</x-import>
+                </div>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div id="5c" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">5c · Văn phòng bấm thay “Đã tới” · 1040 · lúc 07:45</div>
+      <div style="position:relative;">
+        <dc-import name="vo-may-tinh" role="admin" active="dieuphoi" crumb="Vận chuyển › Điều phối xe › CX-3009-02" height="760px" hint-size="1040px,760px">
+          <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">CX-3009-02 · đang chạy</h1>
+          <div style="font-size:var(--fs-label);color:var(--c-text-muted);">79B-123.45 · Nguyễn Văn An · xuất bến 07:11 (tài xế bấm)</div>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <sc-for list="{{ officeRows }}" as="o" hint-placeholder-count="4">
+              <div style="display:flex;align-items:center;gap:var(--s3);min-height:56px;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);">
+                <span style="font-family:var(--font-display);font-weight:800;width:20px;">{{ o.n }}</span>
+                <span style="flex:1;"><strong>{{ o.kind }}</strong> · {{ o.place }} <span style="color:var(--c-text-muted);">· hẹn {{ o.appt }}</span></span>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" dc-props="{{ nw }}" hint-size="150px,44px">{{ o.btn }}</x-import>
+              </div>
+            </sc-for>
+          </div>
+        </dc-import>
+        <div style="position:absolute;inset:0;border-radius:var(--radius-md);background:var(--c-scrim);display:flex;align-items:center;justify-content:center;padding:var(--s5);">
+          <div style="width:100%;max-width:var(--w-sheet);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Đã tới Havana Nha Trang — bấm thay tài xế" hint-size="100%,380px">
+              <div style="display:flex;flex-direction:column;gap:var(--s3);">
+                <div style="font-size:var(--fs-label);line-height:1.5;">Ghi thay tài xế Nguyễn Văn An. Tên bạn được ghi kèm mốc này.</div>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Xảy ra lúc" default-value="07:31" hint="Để nguyên là lúc bấm (07:45). Sớm nhất: 07:11 — lúc xuất bến." style="max-width:240px;" hint-size="240px,100px"></x-import>
+                <div style="display:flex;gap:var(--s2);justify-content:flex-end;">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="80px,44px">Đóng</x-import>
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" hint-size="120px,44px">Ghi “Đã tới”</x-import>
+                </div>
+              </div>
+            </x-import>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const G = (name, year, x = {}) => ({ name, year, result: x.result || '', rc: x.rc || 'var(--c-text-muted)', pending: !!x.pending, acts: !!x.acts, bg: x.pending ? 'var(--c-sand-soft)' : 'transparent' });
+    const ok = { result: 'Đã đón', rc: 'var(--c-green-text)' };
+    const done = { bd: '1px solid var(--c-border)', nb: 'var(--c-green-soft)', nc: 'var(--c-green-text)' };
+    const cur = { bd: '2px solid var(--c-primary)', nb: 'var(--c-primary)', nc: 'var(--c-on-dark)' };
+    const next = { bd: '1px solid var(--c-border)', nb: 'var(--c-primary-soft)', nc: 'var(--c-primary)' };
+    const stops = [
+      { n: '1', kind: 'ĐÓN', appt: '07:30', place: 'Havana Nha Trang', ...done, hasMark: true, markLabel: 'Đã tới', markT: '07:31', markRec: '· ghi lúc 07:45 — Hoa', office: true, drag: false, hasContact: false,
+        guests: [G('Nguyễn Thị Lan', '1990', ok), G('Phạm Văn Hùng', '1987', ok), G('Phạm Gia Bảo', '2016', ok), G('Trần Thu Hà', '1995', { result: 'Vắng', rc: 'var(--c-sand-text)' })], hasBtn: false },
+      { n: '2', kind: 'ĐÓN', appt: '07:45', place: 'Citadines Bayfront', ...cur, hasMark: true, markLabel: 'Đã tới', markT: '07:56', markRec: '', office: false, drag: false, hasContact: true, contact: 'Lê Minh Quân', phone: '0913 552 108',
+        guests: [G('Lê Minh Quân', '1979', { pending: true }), G('Lê Hoàng Yến', '1982', { acts: true }), G('Lê Minh Khang', '2012', { acts: true })], hasBtn: false },
+      { n: '3', kind: 'ĐÓN', appt: '08:05', place: 'Liberty Central', ...next, hasMark: false, office: false, drag: true, hasContact: true, contact: 'Đỗ Văn Tài', phone: '0935 118 640',
+        guests: [G('Đỗ Văn Tài', '1990'), G('Hoàng Thị Mai', '1993')], hasBtn: true, btn: 'Đã tới', btnHint: 'Bấm khi xe tới nơi, rồi đánh dấu từng khách.' },
+      { n: '4', kind: 'TRẢ', appt: '08:20', place: 'Ga cáp treo Vinpearl', ...next, hasMark: false, office: false, drag: true, hasContact: false, guests: [], hasBtn: true, btn: 'Đã trả', btnHint: 'Trả hết khách đang trên xe ở điểm này.' },
+    ];
+    const RS = ['Xe hỏng dọc đường', 'Va chạm giao thông', 'Khách huỷ giữa chừng', 'Thời tiết xấu', 'Lý do khác'];
+    return {
+      nw: { style: { whiteSpace: 'nowrap' } },
+      gb: { style: { whiteSpace: 'nowrap', padding: '0 8px', fontSize: 'var(--fs-label)' } },
+      stops,
+      stopReasons: RS.map((label, i) => ({ label, bg: i === 0 ? 'var(--c-soft-hover)' : 'transparent', w: i === 0 ? 700 : 500, dot: i === 0 ? 'var(--c-primary)' : 'transparent' })),
+      officeRows: [
+        { n: '1', kind: 'Đón', place: 'Havana Nha Trang', appt: '07:30', btn: 'Đã tới' },
+        { n: '2', kind: 'Đón', place: 'Citadines Bayfront', appt: '07:45', btn: 'Đã tới' },
+        { n: '3', kind: 'Đón', place: 'Liberty Central', appt: '08:05', btn: 'Đã tới' },
+        { n: '4', kind: 'Trả', place: 'Ga cáp treo Vinpearl', appt: '08:20', btn: 'Đã trả' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

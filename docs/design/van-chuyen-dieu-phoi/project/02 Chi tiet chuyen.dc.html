@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><strong>02 Chi tiết chuyến</strong><span>·</span><a href="03 Tao sua chuyen.dc.html">03 Tạo / sửa chuyến</a><span>·</span><a href="04 Cuoc cua toi.dc.html">04 Cuốc của tôi</a><span>·</span><a href="05 Chuyen dang chay.dc.html">05 Chuyến đang chạy</a><span>·</span><a href="06 Xuat ben.dc.html">06 Xuất bến</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 Biểu mẫu đơn — chặng đón</a><span>·</span><a href="08 Chinh sach dieu phoi.dc.html">08 Chính sách &amp; lý do</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">02 · Chi tiết chuyến</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">CX-3009-07 bị giữ vì đơn TD-20260930-0008 đổi khách sạn Amiana → Novotel sau khi đã xếp. “Cập nhật điểm theo đơn” không cần phá lệ, kể cả trong 6 giờ. 2c là sau khi bấm; 2d là chuyến đang chạy (không có nút, chỉ cảnh báo) và cách hiện giờ do văn phòng khai.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <sc-for list="{{ deskFrames }}" as="f" hint-placeholder-count="2">
+      <div id="{{ f.id }}" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">{{ f.id }} · {{ f.caption }}</div>
+        <dc-import name="vo-may-tinh" role="admin" active="dieuphoi" crumb="Vận chuyển › Điều phối xe › CX-3009-07" height="1180px" hint-size="1040px,1180px">
+          <a href="01 Dieu phoi xe.dc.html" style="font-size:var(--fs-label);font-weight:700;">‹ Điều phối xe 30/09</a>
+          <div style="display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;">
+            <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">CX-3009-07</h1>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ f.stTone }}" dc-props="{{ f.stP }}" hint-size="60px,18px">{{ f.stLabel }}</x-import>
+            <span style="font-size:var(--fs-label);color:var(--c-text-muted);">Thứ Tư 30/09 · 09:00–10:45</span>
+            <div style="margin-left:auto;display:flex;gap:var(--s2);flex-wrap:wrap;">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" href="03 Tao sua chuyen.dc.html" dc-props="{{ nw }}" hint-size="110px,44px">Sửa chuyến</x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" href="06 Xuat ben.dc.html" dc-props="{{ nw }}" hint-size="190px,44px">Xuất bến thay tài xế</x-import>
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" dc-props="{{ nw }}" hint-size="110px,44px">Huỷ chuyến</x-import>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import>Trong 6 giờ trước giờ xuất bến — xếp khách, đổi xe, đổi tài xế đang khoá. Bạn có thể phá lệ.
+          </div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="{{ f.bTone }}" title="{{ f.bTitle }}" hint-size="100%,96px">
+            <div style="margin-top:var(--s1);font-size:var(--fs-label);line-height:1.5;">{{ f.bText }}</div>
+            <sc-if value="{{ f.bBtn }}" hint-placeholder-val="{{ true }}">
+              <div style="display:flex;gap:var(--s2);margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" dc-props="{{ nw }}" hint-size="220px,44px">Cập nhật điểm theo đơn</x-import></div>
+            </sc-if>
+          </x-import>
+          <div style="display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:var(--s4);align-items:start;">
+            <div style="display:flex;flex-direction:column;gap:var(--s4);min-width:0;">
+              <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+                <sc-for list="{{ kv }}" as="k" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s3) var(--s4);border-right:1px solid var(--c-border);min-width:0;">
+                    <span style="font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);">{{ k.k }}</span>
+                    <span style="font-family:var(--font-display);font-weight:700;font-size:15px;">{{ k.v }}</span>
+                    <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ k.s }}</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);overflow:hidden;">
+                <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+                  <span style="font-family:var(--font-display);font-weight:700;">Điểm dừng</span>
+                  <span style="margin-left:auto;font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">Tải hiện tại <strong style="color:var(--c-text);">12/15</strong></span>
+                </div>
+                <div style="display:grid;grid-template-columns:28px 44px minmax(0,1fr) 60px 72px 48px 118px;gap:var(--s2);padding:var(--s2) var(--s4);font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);border-bottom:1px solid var(--c-border);background:var(--c-surface-alt);">
+                  <span>#</span><span>ĐÓN / TRẢ</span><span>NƠI</span><span>GIỜ HẸN</span><span>GIỜ XE TỚI</span><span>KHÁCH</span><span>TRẠNG THÁI</span>
+                </div>
+                <sc-for list="{{ f.stops }}" as="s" hint-placeholder-count="5">
+                  <div style="display:grid;grid-template-columns:28px 44px minmax(0,1fr) 60px 72px 48px 118px;gap:var(--s2);align-items:center;min-height:52px;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);background:{{ s.bg }};color:{{ s.fg }};">
+                    <span style="font-family:var(--font-display);font-weight:800;">{{ s.n }}</span>
+                    <span style="font-weight:700;">{{ s.kind }}</span>
+                    <span style="display:flex;flex-direction:column;min-width:0;"><span style="font-weight:700;text-decoration:{{ s.strike }};">{{ s.place }}</span><span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ s.note }}</span></span>
+                    <span style="font-variant-numeric:tabular-nums;font-weight:700;">{{ s.appt }}</span>
+                    <span style="display:flex;flex-direction:column;font-variant-numeric:tabular-nums;"><span>{{ s.eta }}</span><span style="font-size:var(--fs-badge);font-weight:700;color:var(--c-sand-text);">{{ s.late }}</span></span>
+                    <span style="font-variant-numeric:tabular-nums;">{{ s.pax }}</span>
+                    <span><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ s.tone }}" hint-size="80px,18px">{{ s.st }}</x-import></span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s4);">
+              <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+                <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+                  <span style="font-family:var(--font-display);font-weight:700;">Điều kiện xuất bến</span>
+                  <span style="margin-left:auto;padding:0 var(--s2);font-size:var(--fs-badge);font-weight:800;border-radius:var(--radius-pill);color:var(--c-danger-text);background:var(--c-danger-soft);">{{ f.condSum }}</span>
+                </div>
+                <sc-for list="{{ f.conds }}" as="c" hint-placeholder-count="6">
+                  <div style="display:flex;gap:var(--s2);padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);">
+                    <span style="flex:none;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:{{ c.bg }};color:{{ c.fg }};">{{ c.mark }}</span>
+                    <span style="display:flex;flex-direction:column;"><span style="font-weight:600;">{{ c.label }}</span><span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ c.sub }}</span></span>
+                  </div>
+                </sc-for>
+                <a href="06 Xuat ben.dc.html" style="padding:var(--s3) var(--s4);font-size:var(--fs-label);font-weight:700;">Mở màn Xuất bến ›</a>
+              </div>
+              <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+                <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+                  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="history" size="{{ 16 }}" hint-size="16px,16px"></x-import>
+                  <span style="font-family:var(--font-display);font-weight:700;">Nhật ký chuyến</span>
+                </div>
+                <sc-for list="{{ f.log }}" as="l" hint-placeholder-count="5">
+                  <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);">
+                    <span style="display:flex;gap:var(--s2);align-items:center;font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted);"><span style="font-variant-numeric:tabular-nums;">{{ l.t }}</span><span style="padding:0 6px;border-radius:var(--radius-pill);background:{{ l.wb }};color:{{ l.wc }};">{{ l.who }}</span></span>
+                    <span style="line-height:1.45;">{{ l.text }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:var(--s2);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" href="05 Chuyen dang chay.dc.html" dc-props="{{ nw }}" hint-size="170px,44px">Kết thúc gián đoạn</x-import>
+          </div>
+        </dc-import>
+      </div>
+    </sc-for>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="2b" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">2b · CX-3009-07 · 390 · trước khi cập nhật</div>
+      <dc-import name="vo-dien-thoai" role="admin" title="CX-3009-07" tab="toi" height="1500px" hint-size="390px,1500px">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="muted" dc-props="{{ red }}" hint-size="60px,18px">Bị giữ</x-import>
+            <span style="font-size:var(--fs-label);color:var(--c-text-muted);">30/09 · 09:00–10:45</span>
+          </div>
+          <div style="font-size:var(--fs-label);line-height:1.5;"><strong>79B-123.45</strong> · 15 chỗ · Nguyễn Văn An · tải <strong>12/15</strong></div>
+          <div style="display:flex;align-items:flex-start;gap:var(--s1);font-size:var(--fs-badge);font-weight:700;color:var(--c-sand-text);line-height:1.45;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 14 }}" hint-size="14px,14px"></x-import>Trong 6 giờ — xếp khách, đổi xe, đổi tài xế đang khoá.
+          </div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="danger" title="Nơi đón / trả đã đổi — cập nhật điểm" hint-size="100%,160px">
+            <div style="margin-top:var(--s1);font-size:var(--fs-label);line-height:1.5;">Đơn TD-20260930-0008 đổi Amiana → Novotel Nha Trang. Ai xử lý: người xếp xe. Không cần phá lệ.</div>
+            <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" block="{{ true }}" hint-size="100%,44px">Cập nhật điểm theo đơn</x-import></div>
+          </x-import>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <div style="padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);font-family:var(--font-display);font-weight:700;">Điểm dừng</div>
+            <sc-for list="{{ stopsBefore }}" as="s" hint-placeholder-count="5">
+              <div style="display:flex;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);background:{{ s.bg }};color:{{ s.fg }};">
+                <span style="flex:none;width:24px;height:24px;border-radius:50%;background:var(--c-primary-soft);color:var(--c-primary);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:800;font-size:13px;">{{ s.n }}</span>
+                <span style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;">
+                  <span style="font-weight:700;">{{ s.kind }} · {{ s.place }}</span>
+                  <span style="font-size:var(--fs-label);color:var(--c-text-muted);font-variant-numeric:tabular-nums;">Hẹn {{ s.appt }} · xe tới {{ s.eta }} · {{ s.pax }} khách</span>
+                  <span style="font-size:var(--fs-badge);font-weight:700;color:var(--c-sand-text);">{{ s.late }}</span>
+                  <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ s.note }}</span>
+                </span>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ s.tone }}" hint-size="70px,18px">{{ s.st }}</x-import>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <div style="display:flex;align-items:center;padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);"><span style="font-family:var(--font-display);font-weight:700;">Điều kiện xuất bến</span><span style="margin-left:auto;padding:0 var(--s2);font-size:var(--fs-badge);font-weight:800;border-radius:var(--radius-pill);color:var(--c-danger-text);background:var(--c-danger-soft);">2 chưa đạt</span></div>
+            <sc-for list="{{ condsBefore }}" as="c" hint-placeholder-count="6">
+              <div style="display:flex;gap:var(--s2);padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);">
+                <span style="flex:none;width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:{{ c.bg }};color:{{ c.fg }};">{{ c.mark }}</span>
+                <span style="display:flex;flex-direction:column;"><span style="font-weight:600;">{{ c.label }}</span><span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ c.sub }}</span></span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <div style="padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);font-family:var(--font-display);font-weight:700;">Nhật ký chuyến</div>
+            <sc-for list="{{ logBefore }}" as="l" hint-placeholder-count="4">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);">
+                <span style="display:flex;gap:var(--s2);font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted);"><span>{{ l.t }}</span><span style="padding:0 6px;border-radius:var(--radius-pill);background:{{ l.wb }};color:{{ l.wc }};">{{ l.who }}</span></span>
+                <span>{{ l.text }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s2);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" href="03 Tao sua chuyen.dc.html" hint-size="100%,44px">Sửa chuyến</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" href="06 Xuat ben.dc.html" hint-size="100%,44px">Xuất bến thay</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="100%,44px">Kết thúc gián đoạn</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" hint-size="100%,44px">Huỷ chuyến</x-import>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="2d" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">2d · CX-3009-02 đang chạy · 390 · giờ do văn phòng khai</div>
+      <dc-import name="vo-dien-thoai" role="admin" title="CX-3009-02" tab="toi" hint-size="390px,844px">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;align-items:center;gap:var(--s2);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="70px,18px">Đang chạy</x-import><span style="font-size:var(--fs-label);color:var(--c-text-muted);">30/09 · 06:40–08:25 · 79B-123.45</span></div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="Nơi hẹn khác điểm xe" hint-size="100%,110px">
+            <div style="margin-top:var(--s1);font-size:var(--fs-label);line-height:1.5;">Đơn TD-20260930-0009 hẹn ở cổng Citadines Bayfront. Xe đang chạy nên không cập nhật điểm — gọi tài xế Nguyễn Văn An.</div>
+          </x-import>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <div style="padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);font-family:var(--font-display);font-weight:700;">Mốc đã ghi</div>
+            <sc-for list="{{ runMarks }}" as="m" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+                <span style="font-weight:700;">{{ m.what }}</span>
+                <span style="display:flex;flex-wrap:wrap;align-items:center;gap:var(--s1) var(--s2);font-size:var(--fs-label);"><strong style="font-family:var(--font-display);font-size:16px;font-variant-numeric:tabular-nums;">{{ m.t }}</strong><span style="color:var(--c-text-muted);">{{ m.rec }}</span></span>
+                <sc-if value="{{ m.office }}" hint-placeholder-val="{{ false }}"><span><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="warn" hint-size="140px,18px">giờ do văn phòng khai</x-import></span></sc-if>
+              </div>
+            </sc-for>
+            <div style="padding:var(--s3) var(--s4);font-size:var(--fs-badge);color:var(--c-text-muted);line-height:1.5;">Chỉ hiện tên người bấm, không hiện số điện thoại.</div>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="2e" style="display:flex;flex-direction:column;gap:var(--s3);width:390px;">
+      <div style="font-size:var(--fs-label);font-weight:800;">2e · Câu báo sau khi bấm “Cập nhật điểm theo đơn”</div>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="ok" title="Đã cập nhật điểm theo đơn" hint-size="100%,80px"><div style="margin-top:var(--s1);font-size:var(--fs-label);">Thêm điểm Novotel Nha Trang; Amiana “bỏ qua — không còn khách”. Chuyến hết bị giữ.</div></x-import>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="info" title="Không có điểm nào cần cập nhật" hint-size="100%,80px"><div style="margin-top:var(--s1);font-size:var(--fs-label);">Điểm dừng đã khớp các đơn trong chuyến.</div></x-import>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="warning" title="Chuyến vừa được người khác sửa — tải lại" hint-size="100%,120px">
+        <div style="margin-top:var(--s1);font-size:var(--fs-label);">Phạm Thu Hoa sửa lúc 07:52. Tải lại để xem bản mới rồi bấm lại.</div>
+        <div style="display:flex;margin-top:var(--s3);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="90px,44px">Tải lại</x-import></div>
+      </x-import>
+      <div style="font-size:var(--fs-label);font-weight:800;margin-top:var(--s3);">2f · Hộp “Huỷ chuyến” (bắt chọn lý do)</div>
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Huỷ chuyến CX-3009-07" hint-size="100%,440px">
+        <div style="display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="font-size:var(--fs-label);line-height:1.5;">12 khách trong chuyến sẽ trở về cột “Chưa xếp”. Chuyến không bị xoá, vẫn xem được trong nhật ký.</div>
+          <div role="radiogroup" style="display:flex;flex-direction:column;border:1px solid var(--c-border);border-radius:var(--radius-sm);">
+            <sc-for list="{{ cancelReasons }}" as="r" hint-placeholder-count="4">
+              <div role="radio" style="display:flex;align-items:center;gap:var(--s3);min-height:48px;padding:0 var(--s3);border-bottom:1px solid var(--c-border);background:{{ r.bg }};font-weight:{{ r.w }};">
+                <span style="flex:none;width:20px;height:20px;box-sizing:border-box;border-radius:50%;border:2px solid var(--c-primary);display:flex;align-items:center;justify-content:center;"><span style="width:10px;height:10px;border-radius:50%;background:{{ r.dot }};"></span></span>{{ r.label }}
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:var(--s2);justify-content:flex-end;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="80px,44px">Đóng</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="danger" hint-size="120px,44px">Huỷ chuyến</x-import>
+          </div>
+        </div>
+      </x-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const red = { style: { color: 'var(--c-danger-text)', background: 'var(--c-danger-soft)', border: '1px solid var(--c-danger-border)' } };
+    const S = (n, kind, place, appt, eta, pax, st, tone, x = {}) => ({ n, kind, place, appt, eta, pax, st, tone, late: x.late || '', note: x.note || '', bg: x.bg || 'transparent', fg: x.fg || 'var(--c-text)', strike: x.strike || 'none' });
+    const common = [
+      S('1', 'Đón', 'Sheraton Nha Trang', '09:15', '09:12', '5', 'Chưa tới', 'muted', { note: 'Giờ hẹn đổi 09:00 → 09:15 — đã gọi báo khách' }),
+    ];
+    const stopsBefore = [
+      ...common,
+      S('2', 'Đón', 'Amiana Resort', '09:30', '09:32', '4', 'Lệch đơn', 'warn', { note: 'Đơn TD-20260930-0008 đã đổi sang Novotel Nha Trang', bg: 'var(--c-sand-soft)' }),
+      S('3', 'Đón', 'Mường Thanh Luxury', '09:45', '09:50', '3', 'Chưa tới', 'muted', { late: 'muộn 5 phút' }),
+      S('4', 'Trả', 'Cảng Vinpearl', '—', '10:20', '8', 'Chưa tới', 'muted'),
+      S('5', 'Trả', 'Bến Tàu Du lịch', '—', '10:40', '4', 'Chưa tới', 'muted'),
+    ];
+    const stopsAfter = [
+      ...common,
+      S('2', 'Đón', 'Novotel Nha Trang', '09:30', '09:28', '4', 'Mới thêm', 'unit', { note: 'Thêm theo đơn TD-20260930-0008', bg: 'var(--c-soft-hover)' }),
+      S('–', 'Đón', 'Amiana Resort', '—', '—', '0', 'Bỏ qua', 'muted', { note: 'bỏ qua — không còn khách', fg: 'var(--c-text-muted)', strike: 'line-through' }),
+      S('3', 'Đón', 'Mường Thanh Luxury', '09:45', '09:50', '3', 'Chưa tới', 'muted', { late: 'muộn 5 phút' }),
+      S('4', 'Trả', 'Cảng Vinpearl', '—', '10:20', '8', 'Chưa tới', 'muted'),
+      S('5', 'Trả', 'Bến Tàu Du lịch', '—', '10:40', '4', 'Chưa tới', 'muted'),
+    ];
+    const ok = (label, sub) => ({ label, sub, mark: '✓', bg: 'var(--c-green-soft)', fg: 'var(--c-green-text)' });
+    const no = (label, sub) => ({ label, sub, mark: '✕', bg: 'var(--c-danger-soft)', fg: 'var(--c-danger-text)' });
+    const condsTail = [ok('Giấy phép lái xe hạng D', 'Nguyễn Văn An · hạn 05/11/2026'), no('Đủ tên khách', 'Thiếu 2 tên · văn phòng lo'), ok('Không có đơn đã huỷ', ''), ok('Đủ chỗ', '12/15'), ok('Đủ giờ nghỉ', '35 phút sau CX-3009-02')];
+    const condsBefore = [ok('Giấy tờ xe', 'Kiểm định · Bảo hiểm trách nhiệm dân sự — còn hạn'), no('Điểm khớp đơn', 'Nơi đón đã đổi · người xếp xe'), ...condsTail];
+    const condsAfter = [ok('Giấy tờ xe', 'Kiểm định · Bảo hiểm trách nhiệm dân sự — còn hạn'), ok('Điểm khớp đơn', 'Cập nhật lúc 07:52'), ...condsTail];
+    const W = (who) => who === 'máy' ? { who, wb: 'var(--c-surface-alt)', wc: 'var(--c-text-muted)' } : { who, wb: 'var(--c-primary-soft)', wc: 'var(--c-primary)' };
+    const logBase = [
+      { t: '07:38', ...W('máy'), text: 'Giữ chuyến: nơi đón / trả đã đổi (đơn TD-20260930-0008).' },
+      { t: '07:38', ...W('máy'), text: 'Giờ hẹn Sheraton đổi 09:00 → 09:15.' },
+      { t: '06:10', ...W('Phạm Thu Hoa'), text: 'Xếp chặng TD-20260930-0012 vào chuyến.' },
+      { t: '29/09 17:05', ...W('máy'), text: 'Kiểm điều kiện: thiếu 2 tên khách.' },
+      { t: '29/09 17:05', ...W('Phạm Thu Hoa'), text: 'Tạo chuyến.' },
+    ];
+    const logBefore = logBase;
+    const logAfter = [
+      { t: '07:52', ...W('máy'), text: 'Hết giữ chuyến: điểm đã khớp đơn.' },
+      { t: '07:52', ...W('Phạm Thu Hoa'), text: 'Cập nhật điểm theo đơn: thêm Novotel Nha Trang; Amiana bỏ qua — không còn khách.' },
+      ...logBase,
+    ];
+    const deskFrames = [
+      { id: '2a', caption: 'CX-3009-07 · 1040 · Quản trị · trước khi cập nhật', stLabel: 'Bị giữ', stTone: 'muted', stP: red, bTone: 'danger', bTitle: 'Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm', bText: 'Đơn TD-20260930-0008 đổi khách sạn Amiana Resort → Novotel Nha Trang lúc 07:38 (Lê Thị Trang). Ai xử lý: người xếp xe. Không cần phá lệ, kể cả trong 6 giờ.', bBtn: true, stops: stopsBefore, conds: condsBefore, condSum: '2 chưa đạt', log: logBefore },
+      { id: '2c', caption: 'CX-3009-07 · 1040 · sau khi bấm “Cập nhật điểm theo đơn”', stLabel: 'Lên kế hoạch', stTone: 'unit', stP: {}, bTone: 'ok', bTitle: 'Đã cập nhật điểm theo đơn', bText: 'Thêm điểm Novotel Nha Trang, điểm Amiana Resort chuyển “bỏ qua — không còn khách”. Chuyến hết bị giữ; còn thiếu 2 tên khách (văn phòng lo).', bBtn: false, stops: stopsAfter, conds: condsAfter, condSum: '1 chưa đạt', log: logAfter },
+    ];
+    return {
+      nw: { style: { whiteSpace: 'nowrap' } }, red, deskFrames, stopsBefore, condsBefore, logBefore: logBefore.slice(0, 4),
+      kv: [
+        { k: 'XE', v: '79B-123.45', s: '15 chỗ · xe công ty' },
+        { k: 'TÀI XẾ', v: 'Nguyễn Văn An', s: 'Hạng D' },
+        { k: 'GIỜ', v: '09:00–10:45', s: 'Xuất bến dự kiến 09:00' },
+        { k: 'TẢI', v: '12/15', s: 'Còn 3 chỗ' },
+      ],
+      runMarks: [
+        { what: 'Xuất bến', t: '07:11', rec: 'tài xế bấm', office: false },
+        { what: 'Đã tới Havana Nha Trang', t: '07:31', rec: '· ghi lúc 07:45 — Hoa', office: true },
+        { what: 'Đã đón 4/4 khách ở Havana Nha Trang', t: '07:36', rec: 'tài xế bấm', office: false },
+      ],
+      cancelReasons: ['Khách huỷ cả đoàn', 'Gộp vào chuyến khác', 'Xe hỏng', 'Nhập nhầm'].map((label, i) => ({ label, bg: i === 1 ? 'var(--c-soft-hover)' : 'transparent', w: i === 1 ? 700 : 500, dot: i === 1 ? 'var(--c-primary)' : 'transparent' })),
+    };
+  }
+}
+</script>
+</body>
+</html>

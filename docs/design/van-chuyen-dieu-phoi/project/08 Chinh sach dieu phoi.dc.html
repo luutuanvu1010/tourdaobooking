@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><a href="02 Chi tiet chuyen.dc.html">02 Chi tiết chuyến</a><span>·</span><a href="03 Tao sua chuyen.dc.html">03 Tạo / sửa chuyến</a><span>·</span><a href="04 Cuoc cua toi.dc.html">04 Cuốc của tôi</a><span>·</span><a href="05 Chuyen dang chay.dc.html">05 Chuyến đang chạy</a><span>·</span><a href="06 Xuat ben.dc.html">06 Xuất bến</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 Biểu mẫu đơn — chặng đón</a><span>·</span><strong>08 Chính sách &amp; lý do</strong>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">08 · Chính sách điều phối &amp; danh mục lý do</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Chính sách chỉ Toàn quyền sửa; mỗi lần lưu là một bản mới có ngày hiệu lực, bản cũ giữ trong lịch sử. Danh mục lý do do Quản trị giữ, theo nhóm; lý do đã dùng thì chỉ ngưng, không xoá.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="8a" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">8a · Chính sách điều phối · 1040 · Toàn quyền</div>
+      <dc-import name="vo-may-tinh" role="owner" active="chinhsach" crumb="Vận chuyển › Chính sách điều phối" height="1000px" hint-size="1040px,1000px">
+        <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">Chính sách điều phối</h1>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:var(--s4);align-items:start;">
+          <div style="display:flex;flex-direction:column;gap:var(--s4);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--s3);">
+              <sc-for list="{{ nums }}" as="n" hint-placeholder-count="4">
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="number" inputmode="numeric" label="{{ n.label }}" default-value="{{ n.v }}" hint="{{ n.hint }}" hint-size="100%,96px"></x-import>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;border-top:1px solid var(--c-border);">
+              <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;align-items:center;gap:var(--s3);min-height:56px;padding:var(--s2) 0;border-bottom:1px solid var(--c-border);opacity:{{ t.op }};">
+                  <span style="flex:1;display:flex;flex-direction:column;"><span style="font-weight:700;">{{ t.label }}</span><span style="font-size:var(--fs-label);color:var(--c-text-muted);">{{ t.hint }}</span></span>
+                  <span role="switch" style="flex:none;width:44px;height:26px;border-radius:var(--radius-pill);background:{{ t.bg }};position:relative;"><span style="position:absolute;top:3px;left:{{ t.x }};width:20px;height:20px;border-radius:50%;background:var(--c-surface);box-shadow:var(--shadow-card);"></span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);">
+              <span style="font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">Điều kiện xuất bến có sẵn</span>
+              <div style="display:flex;flex-wrap:wrap;gap:var(--s2);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="140px,18px">Kiểm định — mọi xe</x-import><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="unit" hint-size="240px,18px">Bảo hiểm trách nhiệm dân sự — mọi xe</x-import></div>
+              <a href="#" style="font-size:var(--fs-label);font-weight:700;">Điều kiện theo cỡ xe, hạng bằng ›</a>
+            </div>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="date" label="Ngày hiệu lực của bản mới" default-value="2026-10-01" hint="Bản đang dùng giữ nguyên tới hết 30/09/2026." style="max-width:280px;" hint-size="280px,96px"></x-import>
+            <div style="display:flex;gap:var(--s2);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" dc-props="{{ nw }}" hint-size="170px,44px">Lưu thành bản mới</x-import></div>
+          </div>
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="history" size="{{ 16 }}" hint-size="16px,16px"></x-import><span style="font-family:var(--font-display);font-weight:700;">Lịch sử bản</span></div>
+            <sc-for list="{{ versions }}" as="v" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-label);background:{{ v.bg }};">
+                <span style="display:flex;align-items:center;gap:var(--s2);"><strong style="font-family:var(--font-display);">{{ v.name }}</strong><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ v.tone }}" hint-size="70px,18px">{{ v.st }}</x-import></span>
+                <span>{{ v.from }}</span>
+                <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ v.sum }}</span>
+                <span style="font-size:var(--fs-badge);color:var(--c-text-muted);">{{ v.by }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <div id="8b" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">8b · Chính sách điều phối · 390 · Toàn quyền</div>
+      <dc-import name="vo-dien-thoai" role="owner" title="Chính sách điều phối" tabs="{{ false }}" height="1240px" hint-size="390px,1240px">
+        <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;flex-direction:column;gap:var(--s3);padding:var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <sc-for list="{{ nums }}" as="n" hint-placeholder-count="4">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="number" inputmode="numeric" label="{{ n.label }}" default-value="{{ n.v }}" hint="{{ n.hint }}" hint-size="100%,96px"></x-import>
+            </sc-for>
+            <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="2">
+              <div style="display:flex;align-items:center;gap:var(--s3);min-height:56px;border-top:1px solid var(--c-border);opacity:{{ t.op }};">
+                <span style="flex:1;display:flex;flex-direction:column;"><span style="font-weight:700;">{{ t.label }}</span><span style="font-size:var(--fs-label);color:var(--c-text-muted);">{{ t.hint }}</span></span>
+                <span role="switch" style="flex:none;width:44px;height:26px;border-radius:var(--radius-pill);background:{{ t.bg }};position:relative;"><span style="position:absolute;top:3px;left:{{ t.x }};width:20px;height:20px;border-radius:50%;background:var(--c-surface);box-shadow:var(--shadow-card);"></span></span>
+              </div>
+            </sc-for>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="date" label="Ngày hiệu lực của bản mới" default-value="2026-10-01" hint-size="100%,72px"></x-import>
+          </div>
+          <a href="#" style="min-height:44px;display:flex;align-items:center;font-weight:700;">Lịch sử bản (2) ›</a>
+        </div>
+        <div style="position:sticky;bottom:0;padding:var(--s3) var(--s4) 34px;background:var(--c-surface);border-top:1px solid var(--c-border);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" size="lg" block="{{ true }}" hint-size="100%,52px">Lưu thành bản mới</x-import></div>
+      </dc-import>
+    </div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="8c" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">8c · Lý do điều phối · 1040 · Quản trị</div>
+      <dc-import name="vo-may-tinh" role="admin" active="lydo" crumb="Vận chuyển › Lý do điều phối" height="1100px" hint-size="1040px,1100px">
+        <div style="display:flex;align-items:center;gap:var(--s3);"><h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">Lý do điều phối</h1><span style="font-size:var(--fs-label);color:var(--c-text-muted);">Hiện trong các hộp chọn lý do</span></div>
+        <sc-for list="{{ groups }}" as="g" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+              <span style="font-family:var(--font-display);font-weight:700;">{{ g.title }}</span>
+              <span style="padding:0 var(--s2);font-size:var(--fs-badge);font-weight:700;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);">{{ g.count }}</span>
+              <span style="margin-left:auto;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" dc-props="{{ nw }}" hint-size="120px,44px">+ Thêm lý do</x-import></span>
+            </div>
+            <sc-for list="{{ g.items }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:var(--s3);min-height:48px;padding:0 var(--s4);border-bottom:1px solid var(--c-border);color:{{ r.fg }};">
+                <span style="flex:1;font-weight:600;">{{ r.label }}</span>
+                <sc-if value="{{ r.off }}" hint-placeholder-val="{{ false }}"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="muted" hint-size="60px,18px">Đã ngưng</x-import></sc-if>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" hint-size="40px,28px">Sửa</x-import>
+                <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" hint-size="70px,28px">{{ r.act }}</x-import>
+              </div>
+            </sc-for>
+          </div>
+        </sc-for>
+      </dc-import>
+    </div>
+    <div id="8d" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">8d · Lý do điều phối · 390 · Quản trị · đang thêm</div>
+      <dc-import name="vo-dien-thoai" role="admin" title="Lý do điều phối" tab="toi" hint-size="390px,844px">
+        <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);"><span style="font-family:var(--font-display);font-weight:700;">Bỏ chặng</span><span style="padding:0 var(--s2);font-size:var(--fs-badge);font-weight:700;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);">3</span></div>
+            <sc-for list="{{ boChang }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:var(--s2);min-height:48px;padding:0 var(--s4);border-bottom:1px solid var(--c-border);"><span style="flex:1;font-weight:600;">{{ r.label }}</span><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="link" hint-size="40px,28px">Sửa</x-import></div>
+            </sc-for>
+            <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--c-surface-alt);">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" label="Lý do mới" default-value="Khách tự đi" count="11/60" hint-size="100%,72px"></x-import>
+              <div style="display:flex;gap:var(--s2);"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" hint-size="80px,44px">Thêm</x-import><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="80px,44px">Đóng</x-import></div>
+            </div>
+          </div>
+          <div style="font-size:var(--fs-badge);color:var(--c-text-muted);line-height:1.5;">Lý do đã dùng không xoá được — chỉ ngưng, để nhật ký cũ vẫn đọc đúng.</div>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const R = (label, off) => ({ label, off: !!off, act: off ? 'Dùng lại' : 'Ngưng', fg: off ? 'var(--c-text-muted)' : 'var(--c-text)' });
+    const groups = [
+      { title: 'Phá lệ mốc 6 giờ', items: [R('Khách đặt gấp, đã duyệt'), R('Xe hỏng — đổi xe'), R('Tài xế ốm — đổi người'), R('Đổi điểm theo yêu cầu khách'), R('Lý do khác')] },
+      { title: 'Đặt gấp', items: [R('Khách đoàn gọi gấp'), R('Chuyến bay đổi giờ'), R('Đơn bù cho khách bị lỡ chuyến'), R('Khách quen, gọi trực tiếp', true)] },
+      { title: 'Bỏ chặng', items: [R('Khách không cần đưa đón nữa'), R('Nhập nhầm'), R('Đổi sang chặng khác')] },
+      { title: 'Huỷ chuyến', items: [R('Khách huỷ cả đoàn'), R('Gộp vào chuyến khác'), R('Xe hỏng'), R('Nhập nhầm')] },
+      { title: 'Kết thúc gián đoạn', items: [R('Xe hỏng dọc đường'), R('Va chạm giao thông'), R('Khách huỷ giữa chừng'), R('Thời tiết xấu'), R('Lý do khác')] },
+    ].map((g) => ({ ...g, count: g.items.length }));
+    return {
+      nw: { style: { whiteSpace: 'nowrap' } },
+      nums: [
+        { label: 'Mốc tối thiểu (giờ)', v: '6', hint: 'Trong mốc này trước giờ xuất bến: khoá xếp khách, đổi xe, đổi tài xế.' },
+        { label: 'Cảnh báo sát mốc (giờ)', v: '2', hint: 'Chặng chưa xếp trong 2 giờ trước mốc hiện nhãn “Sát mốc”.' },
+        { label: 'Khoảng nghỉ tài xế (phút)', v: '30', hint: 'Giữa hai chuyến của cùng tài xế.' },
+        { label: 'Khai lùi tối đa (phút)', v: '180', hint: 'Từ 1 đến 1440, mặc định 180.' },
+      ],
+      toggles: [
+        { label: 'Phải đủ danh sách khách', hint: 'Thiếu tên thì chưa xuất bến được.', bg: 'var(--c-primary)', x: '21px', op: 1 },
+        { label: 'Phải có hợp đồng', hint: 'Khoá tắt — chưa dùng ở lượt này.', bg: 'var(--c-border)', x: '3px', op: 0.6 },
+      ],
+      versions: [
+        { name: 'Bản 3', st: 'Đang soạn', tone: 'warn', from: 'Hiệu lực từ 01/10/2026', sum: 'Khai lùi tối đa 180 phút (mới)', by: 'Chưa lưu', bg: 'var(--c-soft-hover)' },
+        { name: 'Bản 2', st: 'Đang dùng', tone: 'unit', from: 'Hiệu lực 25/09 – 30/09/2026', sum: 'Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút', by: 'Lưu Tuấn Vũ lưu 24/09 16:20', bg: 'transparent' },
+        { name: 'Bản 1', st: 'Hết hiệu lực', tone: 'muted', from: 'Hiệu lực 15/09 – 24/09/2026', sum: 'Mốc 4 giờ · sát mốc 1 giờ · nghỉ 30 phút', by: 'Lưu Tuấn Vũ lưu 14/09 09:05', bg: 'transparent' },
+      ],
+      groups,
+      boChang: groups[2].items,
+    };
+  }
+}
+</script>
+</body>
+</html>

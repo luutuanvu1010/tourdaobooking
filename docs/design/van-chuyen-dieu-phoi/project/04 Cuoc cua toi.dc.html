@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><a href="02 Chi tiet chuyen.dc.html">02 Chi tiết chuyến</a><span>·</span><a href="03 Tao sua chuyen.dc.html">03 Tạo / sửa chuyến</a><span>·</span><strong>04 Cuốc của tôi</strong><span>·</span><a href="05 Chuyen dang chay.dc.html">05 Chuyến đang chạy</a><span>·</span><a href="06 Xuat ben.dc.html">06 Xuất bến</a><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 Biểu mẫu đơn — chặng đón</a><span>·</span><a href="08 Chinh sach dieu phoi.dc.html">08 Chính sách &amp; lý do</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">04 · Cuốc của tôi (tài xế)</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Hôm nay và ngày mai. Không có tên hay số điện thoại khách ở màn này — chỉ số khách. Việc chưa đạt mà văn phòng lo ghi rõ “(văn phòng lo)” để tài xế khỏi gọi hỏi. 4b là tài xế xe B: thiếu giấy tờ xe, giấy hết hạn trước giờ kết thúc chuyến, giấy đã hết hạn.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <sc-for list="{{ phones }}" as="p" hint-placeholder-count="2">
+      <div id="{{ p.id }}" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">{{ p.id }} · Cuốc của tôi · 390 · {{ p.name }}</div>
+        <dc-import name="vo-dien-thoai" role="driver" user-name="{{ p.name }}" title="Cuốc của tôi" back="{{ false }}" tab="cuoc" hint-size="390px,844px">
+          <div style="padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+            <sc-for list="{{ p.days }}" as="d" hint-placeholder-count="2">
+              <div style="display:flex;align-items:baseline;gap:var(--s2);margin-top:var(--s2);"><span style="font-family:var(--font-display);font-weight:800;font-size:20px;color:var(--c-primary);">{{ d.title }}</span><span style="font-size:var(--fs-label);color:var(--c-text-muted);">{{ d.date }}</span></div>
+              <sc-for list="{{ d.trips }}" as="t" hint-placeholder-count="2">
+                <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+                  <div style="display:flex;align-items:center;gap:var(--s2);">
+                    <span style="font-family:var(--font-display);font-weight:800;font-size:22px;font-variant-numeric:tabular-nums;">{{ t.time }}</span>
+                    <span style="font-size:var(--fs-label);color:var(--c-text-muted);font-variant-numeric:tabular-nums;">– {{ t.end }}</span>
+                    <span style="margin-left:auto;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ t.tone }}" dc-props="{{ t.p }}" hint-size="80px,18px">{{ t.st }}</x-import></span>
+                  </div>
+                  <div style="display:flex;flex-wrap:wrap;gap:var(--s1) var(--s2);font-size:var(--fs-label);"><strong style="font-family:var(--font-display);">{{ t.code }}</strong><span style="color:var(--c-text-muted);">·</span><span>{{ t.plate }}</span><span style="color:var(--c-text-muted);">·</span><span>{{ t.pax }} khách</span><span style="color:var(--c-text-muted);">·</span><span>{{ t.stops }}</span></div>
+                  <sc-for list="{{ t.issues }}" as="i" hint-placeholder-count="1">
+                    <div style="display:flex;gap:var(--s2);align-items:flex-start;padding:var(--s2) var(--s3);border-radius:var(--radius-sm);background:var(--c-sand-soft);border:1px solid var(--c-sand-border);color:var(--c-sand-text);font-size:var(--fs-label);font-weight:600;line-height:1.45;">
+                      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="alert" size="{{ 16 }}" style="margin-top:2px;" hint-size="16px,16px"></x-import><span>{{ i }}</span>
+                    </div>
+                  </sc-for>
+                  <sc-if value="{{ t.open }}" hint-placeholder-val="{{ false }}">
+                    <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="primary" block="{{ true }}" href="05 Chuyen dang chay.dc.html" hint-size="100%,44px">Mở chuyến đang chạy</x-import>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </sc-for>
+          </div>
+        </dc-import>
+      </div>
+    </sc-for>
+    <div id="4c" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">4c · Cuốc của tôi · 1040 · Nguyễn Văn An</div>
+      <dc-import name="vo-may-tinh" role="driver" active="cuoc" crumb="Cuốc của tôi" height="760px" hint-size="1040px,760px">
+        <div style="display:flex;align-items:baseline;gap:var(--s3);"><span style="font-family:var(--font-display);font-weight:800;font-size:26px;">Cuốc của tôi</span><span style="font-size:15px;color:var(--c-text-muted);">Thứ Tư, 30/09/2026</span></div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:var(--s4);align-items:start;">
+          <sc-for list="{{ deskDays }}" as="d" hint-placeholder-count="2">
+            <div style="display:flex;flex-direction:column;gap:var(--s2);">
+              <div style="display:flex;align-items:baseline;gap:var(--s2);"><span style="font-family:var(--font-display);font-weight:800;font-size:18px;color:var(--c-primary);">{{ d.title }}</span><span style="font-size:var(--fs-label);color:var(--c-text-muted);">{{ d.date }}</span></div>
+              <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+                <sc-for list="{{ d.trips }}" as="t" hint-placeholder-count="2">
+                  <div style="display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+                    <div style="display:flex;align-items:center;gap:var(--s2);"><span style="font-family:var(--font-display);font-weight:800;font-size:18px;font-variant-numeric:tabular-nums;">{{ t.time }}–{{ t.end }}</span><strong style="font-family:var(--font-display);font-size:14px;">{{ t.code }}</strong><span style="margin-left:auto;"><x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ t.tone }}" dc-props="{{ t.p }}" hint-size="80px,18px">{{ t.st }}</x-import></span></div>
+                    <div style="font-size:var(--fs-label);color:var(--c-text-muted);">{{ t.plate }} · {{ t.pax }} khách · {{ t.stops }}</div>
+                    <sc-for list="{{ t.issues }}" as="i" hint-placeholder-count="1"><div style="font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);">{{ i }}</div></sc-for>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </dc-import>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const red = { style: { color: 'var(--c-danger-text)', background: 'var(--c-danger-soft)', border: '1px solid var(--c-danger-border)' } };
+    const ST = { run: ['Đang chạy', 'unit', {}], held: ['Bị giữ', 'muted', red], plan: ['Lên kế hoạch', 'muted', {}] };
+    const T = (code, time, end, plate, pax, stops, st, issues = [], open = false) => ({ code, time, end, plate, pax, stops, st: ST[st][0], tone: ST[st][1], p: ST[st][2], issues, open });
+    const an = [
+      { title: 'Hôm nay', date: 'Thứ Tư 30/09', trips: [
+        T('CX-3009-02', '06:40', '08:25', '79B-123.45', 9, '2 điểm đón · 1 điểm trả', 'run', [], true),
+        T('CX-3009-07', '09:00', '10:45', '79B-123.45', 12, '3 điểm đón · 2 điểm trả', 'held', ['Chưa đủ điều kiện xuất bến: thiếu 2 tên (văn phòng lo)', 'Điểm đón đang được cập nhật (văn phòng lo)']),
+        T('CX-3009-11', '14:30', '16:15', '79B-123.45', 10, '2 điểm đón · 1 điểm trả', 'plan'),
+      ] },
+      { title: 'Ngày mai', date: 'Thứ Năm 01/10', trips: [
+        T('CX-0110-03', '07:30', '09:30', '79B-123.45', 14, '3 điểm đón · 1 điểm trả', 'plan', ['Chưa đủ điều kiện xuất bến: thiếu 2 tên (văn phòng lo)']),
+      ] },
+    ];
+    const tuan = [
+      { title: 'Hôm nay', date: 'Thứ Tư 30/09', trips: [
+        T('CX-3009-04', '08:30', '10:15', '79B-678.90', 18, '3 điểm đón · 1 điểm trả', 'held', ['Chưa đủ điều kiện xuất bến: xe 79B-678.90 thiếu Bảo hiểm trách nhiệm dân sự (văn phòng lo)']),
+        T('CX-3009-15', '22:00', '00:40', '79B-555.66', 30, '4 điểm đón · 1 điểm trả', 'plan', ['Chưa đủ điều kiện xuất bến: Bảo hiểm trách nhiệm dân sự của xe 79B-555.66 hết hạn 30/09, trước giờ kết thúc chuyến (văn phòng lo)']),
+      ] },
+      { title: 'Ngày mai', date: 'Thứ Năm 01/10', trips: [
+        T('CX-0110-02', '07:00', '09:00', '79B-555.66', 26, '3 điểm đón · 1 điểm trả', 'plan', ['Chưa đủ điều kiện xuất bến: Bảo hiểm trách nhiệm dân sự của xe 79B-555.66 đã hết hạn (văn phòng lo)']),
+      ] },
+    ];
+    return {
+      phones: [{ id: '4a', name: 'Nguyễn Văn An', days: an }, { id: '4b', name: 'Trần Văn Tuấn', days: tuan }],
+      deskDays: an,
+    };
+  }
+}
+</script>
+</body>
+</html>

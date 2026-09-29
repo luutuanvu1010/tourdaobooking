@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+<style>body{margin:0;background:#dfe7ee;font-family:var(--font);color:var(--c-text)}a{color:var(--c-primary)}a:hover{color:var(--c-primary-strong)}</style>
+</helmet>
+<section style="padding:var(--s7);display:flex;flex-direction:column;gap:var(--s5);">
+  <nav style="display:flex;flex-wrap:wrap;gap:var(--s2);font-size:var(--fs-label);font-weight:700;">
+    <a href="01 Dieu phoi xe.dc.html">01 Điều phối xe</a><span>·</span><a href="02 Chi tiet chuyen.dc.html">02 Chi tiết chuyến</a><span>·</span><a href="03 Tao sua chuyen.dc.html">03 Tạo / sửa chuyến</a><span>·</span><a href="04 Cuoc cua toi.dc.html">04 Cuốc của tôi</a><span>·</span><a href="05 Chuyen dang chay.dc.html">05 Chuyến đang chạy</a><span>·</span><strong>06 Xuất bến</strong><span>·</span><a href="07 Bieu mau don - chang don.dc.html">07 Biểu mẫu đơn — chặng đón</a><span>·</span><a href="08 Chinh sach dieu phoi.dc.html">08 Chính sách &amp; lý do</a>
+  </nav>
+  <div style="display:flex;flex-direction:column;gap:var(--s2);max-width:860px;">
+    <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:28px;color:var(--c-primary);">06 · Xuất bến</h1>
+    <div style="font-size:15px;line-height:1.6;text-wrap:pretty;">Mỗi điều kiện ghi ai xử lý. Nút “Xuất bến” chỉ bấm được khi đạt hết. Giấy tờ xe có ba cách chưa đạt: thiếu, đã hết hạn, hết hạn trước giờ kết thúc chuyến. Trên màn tài xế, việc của văn phòng ghi “(văn phòng lo)”.</div>
+  </div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="6a" style="display:flex;flex-direction:column;gap:var(--s3);">
+      <div style="font-size:var(--fs-label);font-weight:800;">6a · Xuất bến CX-3009-04 · 1040 · Quản trị · chưa đạt</div>
+      <dc-import name="vo-may-tinh" role="admin" active="dieuphoi" crumb="Vận chuyển › Điều phối xe › CX-3009-04 › Xuất bến" height="860px" hint-size="1040px,860px">
+        <a href="02 Chi tiet chuyen.dc.html" style="font-size:var(--fs-label);font-weight:700;">‹ CX-3009-04</a>
+        <div style="display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;">
+          <h1 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:26px;color:var(--c-primary);">Xuất bến CX-3009-04</h1>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="muted" dc-props="{{ red }}" hint-size="60px,18px">Bị giữ</x-import>
+        </div>
+        <div style="font-size:var(--fs-label);color:var(--c-text-muted);">79B-678.90 · 29 chỗ · Trần Văn Tuấn · 08:30–10:15 · 18 khách</div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:var(--s4);align-items:start;">
+          <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);">
+            <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);"><span style="font-family:var(--font-display);font-weight:700;">Điều kiện xuất bến</span><span style="margin-left:auto;font-size:var(--fs-label);font-weight:700;color:var(--c-danger-text);">7/8 đạt</span></div>
+            <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 150px;gap:var(--s3);padding:var(--s2) var(--s4);font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);background:var(--c-surface-alt);border-bottom:1px solid var(--c-border);"><span></span><span>ĐIỀU KIỆN</span><span>AI XỬ LÝ</span></div>
+            <sc-for list="{{ condsOffice }}" as="c" hint-placeholder-count="8">
+              <div style="display:grid;grid-template-columns:28px minmax(0,1fr) 150px;gap:var(--s3);align-items:center;min-height:52px;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);background:{{ c.rowBg }};">
+                <span style="width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:{{ c.bg }};color:{{ c.fg }};">{{ c.mark }}</span>
+                <span style="display:flex;flex-direction:column;"><span style="font-weight:700;">{{ c.label }}</span><span style="font-size:var(--fs-label);color:{{ c.sc }};">{{ c.sub }}</span></span>
+                <span style="font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">{{ c.who }}</span>
+              </div>
+            </sc-for>
+            <div style="display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);">
+              <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" disabled="{{ true }}" dc-props="{{ nw }}" hint-size="120px,44px">Xuất bến</x-import>
+              <span style="font-size:var(--fs-label);font-weight:600;color:var(--c-text-muted);">Còn 1 điều kiện chưa đạt.</span>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+            <span style="font-family:var(--font-display);font-weight:700;">Giấy tờ xe chưa đạt — ba cách hiện</span>
+            <sc-for list="{{ docCases }}" as="d" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:2px;padding:var(--s2) 0;border-top:1px solid var(--c-border);font-size:var(--fs-label);">
+                <span style="font-size:var(--fs-badge);font-weight:800;letter-spacing:var(--ls-eyebrow);color:var(--c-danger-text);">{{ d.k }}</span>
+                <span style="line-height:1.45;">{{ d.t }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </dc-import>
+    </div>
+    <sc-for list="{{ phones }}" as="p" hint-placeholder-count="2">
+      <div id="{{ p.id }}" style="display:flex;flex-direction:column;gap:var(--s3);">
+        <div style="font-size:var(--fs-label);font-weight:800;">{{ p.id }} · {{ p.caption }}</div>
+        <dc-import name="vo-dien-thoai" role="driver" user-name="{{ p.user }}" title="{{ p.title }}" tab="cuoc" clock="{{ p.clock }}" hint-size="390px,844px">
+          <div style="flex:1;padding:var(--s4);display:flex;flex-direction:column;gap:var(--s3);">
+            <div style="font-size:var(--fs-label);color:var(--c-text-muted);">{{ p.meta }}</div>
+            <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+              <div style="display:flex;align-items:center;padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);"><span style="font-family:var(--font-display);font-weight:700;">Điều kiện xuất bến</span><span style="margin-left:auto;font-size:var(--fs-label);font-weight:700;color:{{ p.sumC }};">{{ p.sum }}</span></div>
+              <sc-for list="{{ p.conds }}" as="c" hint-placeholder-count="8">
+                <div style="display:flex;gap:var(--s3);align-items:flex-start;padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);background:{{ c.rowBg }};">
+                  <span style="flex:none;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;background:{{ c.bg }};color:{{ c.fg }};">{{ c.mark }}</span>
+                  <span style="display:flex;flex-direction:column;"><span style="font-weight:700;">{{ c.label }}</span><span style="font-size:var(--fs-label);color:{{ c.sc }};">{{ c.dsub }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="position:sticky;bottom:0;display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) var(--s4);background:var(--c-surface);border-top:1px solid var(--c-border);">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" size="lg" block="{{ true }}" disabled="{{ p.dis }}" hint-size="100%,52px">Xuất bến</x-import>
+            <span style="font-size:var(--fs-badge);color:var(--c-text-muted);text-align:center;">{{ p.foot }}</span>
+          </div>
+        </dc-import>
+      </div>
+    </sc-for>
+  </div>
+</section>
+<section style="padding:0 var(--s7) var(--s7);display:flex;flex-direction:column;gap:var(--s4);">
+  <h2 style="margin:0;font-family:var(--font-display);font-weight:800;font-size:22px;color:var(--c-primary);">6d · Văn phòng bấm thay: ô “xảy ra lúc” và các câu từ chối</h2>
+  <div style="font-size:15px;line-height:1.6;max-width:860px;text-wrap:pretty;">Có ở Xuất bến, Đã tới, Đã đón, Vắng, Khách đã huỷ, Đã trả, Kết thúc, Kết thúc gián đoạn — không có ở đổi thứ tự điểm. Để nguyên là lúc bấm; sửa được về trước. Tài xế tự bấm thì không có ô này.</div>
+  <div style="display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start;">
+    <div id="6d" style="width:520px;">
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Sheet" inline="{{ true }}" title="Xuất bến CX-3009-07 — bấm thay tài xế" hint-size="520px,420px">
+        <div style="display:flex;flex-direction:column;gap:var(--s3);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Banner" tone="ok" title="Đạt đủ 8 điều kiện xuất bến" hint-size="100%,48px"></x-import>
+          <div style="font-size:var(--fs-label);line-height:1.5;">Ghi thay tài xế Nguyễn Văn An. Tên bạn được ghi kèm mốc này.</div>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="Xảy ra lúc" default-value="09:02" hint="Để nguyên là lúc bấm (09:04). Sớm nhất: 08:25 — CX-3009-02 kết thúc." style="max-width:260px;" hint-size="260px,100px"></x-import>
+          <div style="display:flex;gap:var(--s2);justify-content:flex-end;">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" hint-size="80px,44px">Đóng</x-import>
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="accent" hint-size="120px,44px">Xuất bến</x-import>
+          </div>
+        </div>
+      </x-import>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,300px);gap:var(--s4);">
+      <sc-for list="{{ rejects }}" as="r" hint-placeholder-count="6">
+        <div style="display:flex;flex-direction:column;gap:var(--s2);padding:var(--s3) var(--s4);background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);">
+          <span style="font-size:var(--fs-badge);font-weight:800;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);">{{ r.k }}</span>
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Field" type="time" label="{{ r.label }}" default-value="{{ r.v }}" error="{{ r.e }}" hint="{{ r.h }}" hint-size="100%,110px"></x-import>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const red = { style: { color: 'var(--c-danger-text)', background: 'var(--c-danger-soft)', border: '1px solid var(--c-danger-border)' } };
+    const C = (pass, label, sub, who, dsub) => ({ label, sub, who, dsub: dsub ?? sub, mark: pass ? '✓' : '✕', bg: pass ? 'var(--c-green-soft)' : 'var(--c-danger-soft)', fg: pass ? 'var(--c-green-text)' : 'var(--c-danger-text)', sc: pass ? 'var(--c-text-muted)' : 'var(--c-danger-text)', rowBg: pass ? 'transparent' : 'var(--c-danger-soft)' });
+    const tuanConds = [
+      C(true, 'Kiểm định — mọi xe', '79B-678.90 · hạn 14/03/2027', 'Quản trị'),
+      C(false, 'Bảo hiểm trách nhiệm dân sự — mọi xe', 'Thiếu giấy tờ xe: 79B-678.90', 'Quản trị', 'Xe 79B-678.90 chưa có giấy này (văn phòng lo)'),
+      C(true, 'Giấy phép lái xe', 'Trần Văn Tuấn · hạng E · hạn 20/06/2029', 'Quản trị'),
+      C(true, 'Đủ tên khách', '18/18 khách có tên', 'người phụ trách đơn'),
+      C(true, 'Không có đơn đã huỷ', 'Mọi đơn trong chuyến còn hiệu lực', 'người xếp xe'),
+      C(true, 'Đủ chỗ', '18/29', 'người xếp xe'),
+      C(true, 'Đủ giờ nghỉ', '80 phút sau CX-3009-01 (tối thiểu 30)', 'người xếp xe'),
+      C(true, 'Điểm khớp đơn', 'Không có nơi đón / trả đổi', 'người xếp xe'),
+    ];
+    const anConds = [
+      C(true, 'Kiểm định — mọi xe', '79B-123.45 · hạn 02/02/2027', ''),
+      C(true, 'Bảo hiểm trách nhiệm dân sự — mọi xe', '79B-123.45 · hạn 10/12/2026', ''),
+      C(true, 'Giấy phép lái xe', 'Hạng D · hạn 05/11/2026', ''),
+      C(true, 'Đủ tên khách', '10/10 khách có tên', ''),
+      C(true, 'Không có đơn đã huỷ', '', ''),
+      C(true, 'Đủ chỗ', '10/15', ''),
+      C(true, 'Đủ giờ nghỉ', '3 giờ 45 phút sau CX-3009-07', ''),
+      C(true, 'Điểm khớp đơn', '', ''),
+    ];
+    return {
+      red, nw: { style: { whiteSpace: 'nowrap' } },
+      condsOffice: tuanConds,
+      docCases: [
+        { k: 'THIẾU', t: 'Thiếu giấy tờ xe: 79B-678.90 — chưa có Bảo hiểm trách nhiệm dân sự.' },
+        { k: 'ĐÃ HẾT HẠN', t: 'Bảo hiểm trách nhiệm dân sự của 79B-555.66 đã hết hạn 30/09 — chuyến CX-0110-02 ngày 01/10.' },
+        { k: 'HẾT HẠN TRƯỚC GIỜ KẾT THÚC', t: 'Bảo hiểm trách nhiệm dân sự của 79B-555.66 hết hạn 30/09, chuyến CX-3009-15 kết thúc 00:40 ngày 01/10.' },
+      ],
+      phones: [
+        { id: '6b', caption: 'Xuất bến · 390 · tài xế Trần Văn Tuấn · chưa đạt', user: 'Trần Văn Tuấn', title: 'Xuất bến CX-3009-04', clock: '8:20', meta: '79B-678.90 · 08:30 · 18 khách', sum: '7/8 đạt', sumC: 'var(--c-danger-text)', conds: tuanConds, dis: true, foot: 'Chưa xuất bến được — văn phòng đang lo giấy tờ xe.' },
+        { id: '6c', caption: 'Xuất bến · 390 · tài xế Nguyễn Văn An · đạt hết', user: 'Nguyễn Văn An', title: 'Xuất bến CX-3009-11', clock: '14:26', meta: '79B-123.45 · 14:30 · 10 khách', sum: '8/8 đạt', sumC: 'var(--c-green-text)', conds: anConds, dis: false, foot: 'Bấm lúc xe lăn bánh — giờ ghi là lúc bấm.' },
+      ],
+      rejects: [
+        { k: 'GIỜ Ở TƯƠNG LAI', label: 'Xảy ra lúc', v: '09:20', e: 'Giờ này chưa tới — bây giờ là 09:04.', h: '' },
+        { k: 'LÙI QUÁ 3 GIỜ', label: 'Xảy ra lúc', v: '05:30', e: 'Chỉ khai lùi tối đa 180 phút — chọn từ 06:04 trở đi.', h: '' },
+        { k: 'SAI THỨ TỰ CÁC BƯỚC', label: 'Đã đón — xảy ra lúc', v: '07:25', e: 'Sai thứ tự: “Đã đón” không thể sớm hơn “Đã tới” Havana Nha Trang (07:31).', h: '' },
+        { k: 'CHUYẾN TRƯỚC CHƯA KẾT THÚC', label: 'Xuất bến — xảy ra lúc', v: '08:15', e: 'Chuyến trước của xe 79B-123.45 và tài xế Nguyễn Văn An (CX-3009-02) kết thúc lúc 08:25 — chọn từ 08:25 trở đi.', h: '' },
+        { k: 'SỚM HƠN LẦN SỬA LỊCH CUỐI', label: 'Xuất bến — xảy ra lúc', v: '08:30', e: 'Lịch chuyến sửa lần cuối lúc 08:41 — xuất bến phải từ 08:41 trở đi.', h: '' },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

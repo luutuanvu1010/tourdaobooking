@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<div style="position:relative;width:390px;height:{{ height }};border-radius:44px;overflow:hidden;border:1px solid var(--c-border);box-shadow:var(--shadow-overlay);background:var(--c-surface-alt);display:flex;flex-direction:column;font-family:var(--font);color:var(--c-text);font-size:var(--fs-ui);">
+  <div style="flex:none;height:47px;box-sizing:border-box;padding:0 32px 8px;background:var(--c-primary);color:var(--c-on-dark);display:flex;align-items:flex-end;font-size:15px;font-weight:700;">{{ clock }}</div>
+  <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.MobileBar" title="{{ title }}" on-back="{{ onBack }}" user="{{ userName }}" logo-src="assets/logo-96.png" hint-size="100%,60px"></x-import>
+  <div style="flex:1;min-height:0;overflow:auto;display:flex;flex-direction:column;">{{ children }}</div>
+  <sc-if value="{{ showTabs }}" hint-placeholder-val="{{ true }}">
+    <div style="flex:none;background:var(--c-surface);padding-bottom:34px;">
+      <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.TabBar" tabs="{{ tabs }}" active="{{ tab }}" hint-size="100%,57px"></x-import>
+    </div>
+  </sc-if>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:390,&quot;height&quot;:844},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;owner&quot;,&quot;sales&quot;,&quot;accountant&quot;,&quot;driver&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;title&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;Điều phối xe&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;back&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;tab&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;toi&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;tabs&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;height&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;844px&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;clock&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;7:50&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;children&quot;:{&quot;editor&quot;:null,&quot;tsType&quot;:&quot;ReactNode&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const role = this.props.role ?? 'admin';
+    const tabs = role === 'driver'
+      ? [{ id: 'home', label: 'Trang chủ', icon: 'home' }, { id: 'cuoc', label: 'Cuốc của tôi', icon: 'clock' }, { id: 'toi', label: 'Tôi', icon: 'me' }]
+      : [{ id: 'home', label: 'Trang chủ', icon: 'home' }, { id: 'don', label: 'Đơn hàng', icon: 'orders' }, { id: 'tao', label: 'Tạo đơn', icon: 'plus' }, { id: 'dv', label: 'Dịch vụ', icon: 'services' }, { id: 'tk', label: 'Tài khoản', icon: 'staff' }, { id: 'toi', label: 'Tôi', icon: 'me' }];
+    const NAME = { admin: 'Phạm Thu Hoa', owner: 'Lưu Tuấn Vũ', sales: 'Lê Thị Trang', accountant: 'Đỗ Minh Châu', driver: 'Nguyễn Văn An' };
+    return {
+      height: this.props.height ?? '844px',
+      clock: this.props.clock ?? '7:50',
+      title: this.props.title || undefined,
+      onBack: (this.props.back ?? true) ? () => {} : undefined,
+      userName: this.props.userName || NAME[role],
+      showTabs: this.props.tabs ?? true,
+      tabs, tab: this.props.tab ?? 'toi',
+    };
+  }
+}
+</script>
+</body>
+</html>

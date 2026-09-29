@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);min-width:0;">
+  <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+    <span style="font-family:var(--font-display);font-weight:700;">Cần xử lý</span>
+    <span style="padding:0 var(--s2);font-size:var(--fs-badge);font-weight:800;border-radius:var(--radius-pill);background:var(--c-sand);color:var(--c-sand-text);">{{ count }}</span>
+    <span style="margin-left:auto;font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted);">{{ roleLabel }}</span>
+  </div>
+  <sc-if value="{{ readOnly }}" hint-placeholder-val="{{ false }}">
+    <div style="padding:var(--s2) var(--s4);font-size:var(--fs-badge);font-weight:600;color:var(--c-primary);background:var(--c-primary-soft);border-bottom:1px solid var(--c-border);">Chỉ xem — Kế toán không xếp xe, không phá lệ.</div>
+  </sc-if>
+  <sc-for list="{{ items }}" as="it" hint-placeholder-count="6">
+    <div style="display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+      <span style="display:flex;align-items:center;gap:var(--s1);font-size:var(--fs-badge);font-weight:800;letter-spacing:var(--ls-eyebrow);text-transform:uppercase;color:{{ it.kc }};">
+        <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="{{ it.icon }}" size="{{ 14 }}" hint-size="14px,14px"></x-import>{{ it.kind }}
+      </span>
+      <span style="font-family:var(--font-display);font-weight:700;font-size:15px;line-height:1.35;text-wrap:pretty;">{{ it.title }}</span>
+      <span style="font-size:var(--fs-label);line-height:1.45;color:var(--c-text);text-wrap:pretty;">{{ it.text }}</span>
+      <span style="font-size:var(--fs-badge);font-weight:600;color:var(--c-text-muted);">Ai xử lý: {{ it.who }}</span>
+      <sc-if value="{{ it.hasLock }}" hint-placeholder-val="{{ false }}">
+        <span style="display:inline-flex;align-items:center;gap:var(--s1);margin-top:var(--s1);font-size:var(--fs-label);font-weight:700;color:var(--c-sand-text);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Icon" name="lock" size="{{ 16 }}" hint-size="16px,16px"></x-import>{{ it.lock }}
+        </span>
+      </sc-if>
+      <sc-if value="{{ it.hasActs }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-wrap:wrap;gap:var(--s2);margin-top:var(--s1);">
+          <sc-for list="{{ it.acts }}" as="a" hint-placeholder-count="1">
+            <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="{{ a.v }}" dc-props="{{ nw }}" hint-size="auto,44px">{{ a.label }}</x-import>
+          </sc-for>
+        </div>
+      </sc-if>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:240,&quot;height&quot;:900},&quot;role&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;admin&quot;,&quot;sales&quot;,&quot;accountant&quot;],&quot;default&quot;:&quot;admin&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;limit&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const role = this.props.role ?? 'admin';
+    const admin = role === 'admin' || role === 'owner', sales = role === 'sales', ro = role === 'accountant';
+    const RED = 'var(--c-danger-text)', SAND = 'var(--c-sand-text)', NAVY = 'var(--c-primary)';
+    const act = (...a) => (ro ? [] : a.filter(Boolean));
+    let items = [
+      { kind: 'Chuyến bị giữ', icon: 'alert', kc: RED, title: 'CX-3009-07 · 09:00 · 79B-123.45', text: 'Nơi đón / trả đã đổi — cập nhật điểm. Đơn TD-20260930-0008 đổi khách sạn Amiana → Novotel Nha Trang sau khi đã xếp.', who: 'người xếp xe', acts: act({ label: 'Cập nhật điểm theo đơn', v: 'primary' }) },
+      { kind: 'Chuyến bị giữ', icon: 'alert', kc: RED, title: 'CX-3009-04 · 08:30 · 79B-678.90', text: 'Thiếu giấy tờ xe: 79B-678.90 — chưa có Bảo hiểm trách nhiệm dân sự.', who: 'Quản trị', acts: admin ? [{ label: 'Mở giấy tờ xe', v: 'default' }] : [] },
+      { kind: 'Chặng quá mốc', icon: 'clock', kc: RED, title: '10:15 · Sunrise Nha Trang → Ga cáp treo Vinpearl', text: 'Chưa xếp chuyến, còn 2 giờ 25 phút. TD-20260930-0015 · 4 khách · đã duyệt đặt gấp.', who: 'người xếp xe', acts: admin && !ro ? [{ label: 'Phá lệ', v: 'default' }] : [], hasLock: sales, lock: 'Cần Quản trị phá lệ' },
+      { kind: 'Chưa có tài xế', icon: 'assign', kc: SAND, title: 'CX-3009-09 · 14:00 · 79B-555.66', text: 'Xe nhà xe Minh Phát, 45 chỗ. Xếp tài xế trước 08:00 để còn ngoài mốc 6 giờ.', who: 'người xếp xe', acts: act({ label: 'Chọn tài xế', v: 'default' }) },
+      { kind: 'Giờ hẹn đổi — gọi báo khách', icon: 'handset', kc: SAND, title: 'TD-20260930-0018 · Sheraton Nha Trang', text: 'Giờ hẹn đón đổi 09:00 → 09:15 theo chuyến CX-3009-07.', who: 'người phụ trách đơn', acts: act({ label: 'Đã gọi báo', v: 'default' }) },
+      { kind: 'Nơi hẹn khác điểm xe', icon: 'pin', kc: SAND, title: 'CX-3009-02 · đang chạy', text: 'Đơn TD-20260930-0009 hẹn đón ở cổng Citadines Bayfront, điểm xe ghi Havana Nha Trang — gọi tài xế.', who: 'văn phòng', acts: act({ label: 'Gọi tài xế', v: 'default' }) },
+      { kind: 'Giờ xe tới muộn hơn giờ hẹn', icon: 'clock', kc: SAND, title: 'CX-3009-02 · Citadines Bayfront', text: 'Hẹn 07:45, xe dự kiến tới 07:58 — muộn 13 phút.', who: 'người phụ trách đơn', acts: act({ label: 'Đã gọi báo', v: 'default' }) },
+    ];
+    if (admin) items.push({ kind: 'Đơn nháp chờ duyệt đặt gấp', icon: 'doc-check', kc: NAVY, title: 'TD-20260930-0019 · đón 11:40 hôm nay', text: 'Lê Thị Trang lập lúc 07:32. Giờ đón cách bây giờ 3 giờ 50 phút.', who: 'Quản trị', acts: [{ label: 'Xem đơn', v: 'default' }] });
+    const count = items.length;
+    if (this.props.limit) items = items.slice(0, this.props.limit);
+    items = items.map((i) => ({ ...i, hasActs: (i.acts || []).length > 0, hasLock: !!i.hasLock }));
+    const nw = { style: { whiteSpace: 'nowrap', fontSize: 'var(--fs-label)', padding: '10px 12px' } };
+    return { nw, items, count, readOnly: ro, roleLabel: { admin: 'Quản trị', owner: 'Toàn quyền', sales: 'Bán hàng', accountant: 'Kế toán' }[role] };
+  }
+}
+</script>
+</body>
+</html>

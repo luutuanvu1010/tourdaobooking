@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:var(--s3);min-width:0;">
+  <div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);min-width:0;overflow:hidden;">
+    <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+      <span style="font-family:var(--font-display);font-weight:700;">Dòng thời gian theo xe</span>
+      <span style="padding:0 var(--s2);font-size:var(--fs-badge);font-weight:700;border-radius:var(--radius-pill);background:var(--c-surface-alt);color:var(--c-text-muted);">6 chuyến</span>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:var(--s1) var(--s3);padding:var(--s2) var(--s4);border-bottom:1px solid var(--c-border);font-size:var(--fs-badge);font-weight:600;color:var(--c-text-muted);">
+      <sc-for list="{{ legend }}" as="g" hint-placeholder-count="4">
+        <span style="display:inline-flex;align-items:center;gap:var(--s1);"><span style="width:12px;height:12px;border-radius:3px;box-sizing:border-box;background:{{ g.bg }};border:{{ g.bd }};"></span>{{ g.label }}</span>
+      </sc-for>
+      <span style="display:inline-flex;align-items:center;gap:var(--s1);"><span style="width:2px;height:12px;background:var(--c-primary);"></span>Bây giờ</span>
+      <span style="display:inline-flex;align-items:center;gap:var(--s1);"><span style="width:0;height:12px;border-left:2px dashed var(--c-danger);"></span>Mốc 6 giờ</span>
+    </div>
+    <div ref="{{ scRef }}" style="overflow-x:auto;">
+      <div style="position:relative;width:{{ fullW }};">
+        <div style="display:flex;height:28px;border-bottom:1px solid var(--c-border);">
+          <div style="position:sticky;left:0;z-index:3;flex:none;width:{{ labW }};background:var(--c-card);border-right:1px solid var(--c-border);"></div>
+          <div style="position:relative;flex:none;width:{{ trackW }};">
+            <sc-for list="{{ hours }}" as="h" hint-placeholder-count="12">
+              <span style="position:absolute;top:6px;left:{{ h.x }};transform:translateX(-50%);font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted);font-variant-numeric:tabular-nums;">{{ h.t }}</span>
+            </sc-for>
+          </div>
+        </div>
+        <sc-for list="{{ groups }}" as="gr" hint-placeholder-count="2">
+          <div style="display:flex;border-bottom:1px solid var(--c-border);background:var(--c-surface-alt);">
+            <div style="position:sticky;left:0;z-index:3;padding:var(--s1) var(--s3);font-size:var(--fs-badge);font-weight:700;letter-spacing:var(--ls-eyebrow);color:var(--c-text-muted);background:var(--c-surface-alt);white-space:nowrap;">{{ gr.title }}</div>
+          </div>
+          <sc-for list="{{ gr.rows }}" as="r" hint-placeholder-count="2">
+            <div style="display:flex;height:64px;border-bottom:1px solid var(--c-border);">
+              <div style="position:sticky;left:0;z-index:3;flex:none;width:{{ labW }};box-sizing:border-box;padding:2px var(--s2);background:var(--c-card);border-right:1px solid var(--c-border);display:flex;flex-direction:column;justify-content:center;gap:0;line-height:1.25;">
+                <span style="font-family:var(--font-display);font-weight:700;font-size:13px;white-space:nowrap;">{{ r.plate }}</span>
+                <span style="font-size:var(--fs-badge);color:var(--c-text-muted);line-height:1.3;">{{ r.seats }}</span><span style="font-size:var(--fs-badge);font-weight:600;color:{{ r.subC }};line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ r.drv }}</span>
+              </div>
+              <div style="position:relative;flex:none;width:{{ trackW }};">
+                <sc-for list="{{ r.trips }}" as="t" hint-placeholder-count="2">
+                  <div title="{{ t.title }}" style="position:absolute;top:8px;bottom:8px;left:{{ t.x }};width:{{ t.w }};box-sizing:border-box;padding:3px 5px;border-radius:6px;background:{{ t.bg }};color:{{ t.fg }};border:{{ t.bd }};outline:{{ t.ol }};outline-offset:1px;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;cursor:pointer;z-index:1;">
+                    <span style="display:flex;flex-direction:column;line-height:1.2;font-variant-numeric:tabular-nums;white-space:nowrap;"><span style="font-size:var(--fs-badge);font-weight:800;">{{ t.label }}</span><span style="font-size:11px;font-weight:600;">{{ t.load }}</span></span>
+                    <span style="display:flex;align-items:center;gap:2px;font-size:8px;line-height:1;">
+                      <sc-for list="{{ t.stops }}" as="s" hint-placeholder-count="3">
+                        <span style="width:6px;height:6px;box-sizing:border-box;border-radius:{{ s.r }};background:{{ s.fill }};border:1.5px solid currentColor;"></span>
+                        <sc-if value="{{ s.arrow }}" hint-placeholder-val="{{ false }}"><span>►</span></sc-if>
+                      </sc-for>
+                    </span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+        </sc-for>
+        <div style="position:absolute;top:0;bottom:0;left:{{ lockX }};width:{{ lockW }};background:var(--c-soft-hover);pointer-events:none;z-index:0;"></div>
+        <div style="position:absolute;top:0;bottom:0;left:{{ nowX }};width:2px;background:var(--c-primary);z-index:2;pointer-events:none;">
+          <span style="position:absolute;top:4px;left:4px;padding:0 4px;font-size:11px;font-weight:800;color:var(--c-on-dark);background:var(--c-primary);border-radius:4px;white-space:nowrap;">07:50</span>
+        </div>
+        <div style="position:absolute;top:0;bottom:0;left:{{ mocX }};width:0;border-left:2px dashed var(--c-danger);z-index:2;pointer-events:none;">
+          <span style="position:absolute;top:4px;right:4px;padding:0 4px;font-size:11px;font-weight:800;color:var(--c-danger-text);background:var(--c-danger-soft);border:1px solid var(--c-danger-border);border-radius:4px;white-space:nowrap;">Mốc 6 giờ · 13:50</span>
+        </div>
+      </div>
+    </div>
+    <div style="padding:var(--s2) var(--s4);font-size:var(--fs-badge);color:var(--c-text-muted);">Vùng nền nhạt: trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. ● điểm đón · ■ điểm trả.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:360,&quot;height&quot;:420},&quot;phone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;selected&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;07&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;scroll&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  scRef = React.createRef();
+  componentDidMount() { requestAnimationFrame(() => { const el = this.scRef.current; if (!el) return; const moc = 96 + (13 + 50 / 60 - 6) * 34; el.scrollLeft = Math.max(this.props.scroll ?? 34, moc - el.clientWidth + 24); }); }
+  renderVals() {
+    const PX = 34, H0 = 6, H1 = 21;
+    const labW = 96;
+    const hm = (s) => { const [a, b] = s.split(':').map(Number); return a + b / 60; };
+    const x = (s) => Math.max(0, (hm(s) - H0) * PX);
+    const ST = {
+      plan: { bg: 'var(--c-primary-soft)', fg: 'var(--c-primary)', bd: '1px solid var(--c-border)' },
+      run: { bg: 'var(--c-primary)', fg: 'var(--c-on-dark)', bd: '1px solid var(--c-primary)' },
+      done: { bg: 'var(--c-green-soft)', fg: 'var(--c-green-text)', bd: '1px solid var(--c-green-border)' },
+      held: { bg: 'var(--c-danger-soft)', fg: 'var(--c-danger-text)', bd: '1px solid var(--c-danger-border)' },
+      nodrv: { bg: 'var(--c-surface)', fg: 'var(--c-primary)', bd: '1px dashed var(--c-primary)' },
+    };
+    const sel = this.props.selected ?? '07';
+    const trip = (code, a, b, st, load, p, d) => {
+      const s = ST[st];
+      const stops = [];
+      for (let i = 0; i < p; i++) stops.push({ r: '50%', fill: 'currentColor', arrow: i === p - 1 });
+      for (let i = 0; i < d; i++) stops.push({ r: '1px', fill: 'currentColor', arrow: false });
+      return { label: code, load, title: 'CX-3009-' + code + ' · ' + a + '–' + b + ' · ' + load, x: x(a) + 'px', w: (x(b) - x(a) - 2) + 'px', bg: s.bg, fg: s.fg, bd: s.bd, ol: code === sel ? '2px solid var(--c-primary)' : 'none', stops };
+    };
+    const groups = [
+      { title: 'XE CÔNG TY', rows: [
+        { plate: '79B-123.45', seats: '15 chỗ', drv: 'Nguyễn Văn An', subC: 'var(--c-text)', trips: [trip('02', '06:40', '08:25', 'run', '5/15', 3, 1), trip('07', '09:00', '10:45', 'held', '12/15', 3, 2), trip('11', '14:30', '16:15', 'plan', '10/15', 2, 1)] },
+        { plate: '79B-678.90', seats: '29 chỗ', drv: 'Trần Văn Tuấn', subC: 'var(--c-text)', trips: [trip('01', '06:00', '07:10', 'done', '22/29', 2, 1), trip('04', '08:30', '10:15', 'held', '18/29', 3, 1)] },
+      ] },
+      { title: 'NHÀ XE MINH PHÁT', rows: [
+        { plate: '79B-555.66', seats: '45 chỗ', drv: 'Chưa có tài xế', subC: 'var(--c-sand-text)', trips: [trip('09', '14:00', '16:00', 'nodrv', '32/45', 3, 1)] },
+      ] },
+    ];
+    const hours = [];
+    for (let h = H0 + 1; h < H1; h++) hours.push({ t: String(h).padStart(2, '0'), x: (h - H0) * PX + 'px' });
+    return {
+      scRef: this.scRef, labW: labW + 'px', trackW: (H1 - H0) * PX + 'px', fullW: labW + (H1 - H0) * PX + 'px',
+      hours, groups,
+      nowX: labW + x('07:50') + 'px', mocX: labW + x('13:50') + 'px', lockX: labW + x('07:50') + 'px', lockW: (x('13:50') - x('07:50')) + 'px',
+      legend: [
+        { label: 'Lên kế hoạch', ...ST.plan }, { label: 'Đang chạy', ...ST.run }, { label: 'Xong', ...ST.done }, { label: 'Bị giữ', ...ST.held }, { label: 'Chưa có tài xế', ...ST.nodrv },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

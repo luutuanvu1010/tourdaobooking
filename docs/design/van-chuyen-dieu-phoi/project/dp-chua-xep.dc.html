@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/styles.css">
+<script src="_ds/tour-o-booking-design-system-34f284df-c97a-4672-bb66-d7df03a0d97a/_ds_bundle.js"></script>
+</helmet>
+<div style="display:flex;flex-direction:column;background:var(--c-card);border:1px solid var(--c-border);border-radius:var(--radius-md);box-shadow:var(--shadow-card);min-width:0;">
+  <div style="display:flex;align-items:center;gap:var(--s2);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);">
+    <span style="font-family:var(--font-display);font-weight:700;">Chưa xếp</span>
+    <span style="padding:0 var(--s2);font-size:var(--fs-badge);font-weight:800;border-radius:var(--radius-pill);background:var(--c-sand);color:var(--c-sand-text);">5</span>
+  </div>
+  <sc-if value="{{ desk }}" hint-placeholder-val="{{ true }}">
+    <div style="padding:var(--s2) var(--s4);font-size:var(--fs-badge);font-weight:600;color:var(--c-text-muted);border-bottom:1px solid var(--c-border);">Kéo chặng thả vào một chuyến</div>
+  </sc-if>
+  <sc-for list="{{ legs }}" as="l" hint-placeholder-count="5">
+    <div style="display:flex;flex-direction:column;gap:var(--s1);padding:var(--s3) var(--s4);border-bottom:1px solid var(--c-border);background:{{ l.bg }};cursor:grab;outline:{{ l.outline }};outline-offset:-2px;">
+      <div style="display:flex;align-items:center;gap:var(--s2);flex-wrap:wrap;">
+        <span style="font-family:var(--font-display);font-weight:800;font-size:17px;font-variant-numeric:tabular-nums;">{{ l.time }}</span>
+        <sc-for list="{{ l.tags }}" as="t" hint-placeholder-count="1">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Chip" tone="{{ t.tone }}" dc-props="{{ t.p }}" hint-size="auto,18px">{{ t.label }}</x-import>
+        </sc-for>
+      </div>
+      <div style="font-size:var(--fs-label);font-weight:600;line-height:1.4;text-wrap:pretty;">{{ l.route }}</div>
+      <div style="font-size:var(--fs-badge);color:var(--c-text-muted);font-variant-numeric:tabular-nums;">{{ l.meta }}</div>
+      <sc-if value="{{ phone }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;gap:var(--s2);margin-top:var(--s1);">
+          <x-import component-from-global-scope="TourOBookingDesignSystem_34f284.Button" variant="pill" dc-props="{{ nw }}" hint-size="auto,44px">Xếp vào chuyến…</x-import>
+        </div>
+      </sc-if>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:220,&quot;height&quot;:640},&quot;phone&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const phone = !!this.props.phone;
+    const red = { style: { color: 'var(--c-danger-text)', background: 'var(--c-danger-soft)', border: '1px solid var(--c-danger-border)' } };
+    const T = {
+      qua: { label: 'Quá mốc', tone: 'muted', p: red },
+      sat: { label: 'Sát mốc', tone: 'warn', p: {} },
+      gap: { label: 'Đặt gấp', tone: 'unit', p: {} },
+      ten: { label: 'Thiếu tên', tone: 'warn', p: {} },
+    };
+    const legs = [
+      { time: '10:15', tags: [T.qua, T.gap], route: 'Sunrise Nha Trang → Ga cáp treo Vinpearl', meta: 'TD-20260930-0015 · 4 khách' },
+      { time: '14:20', tags: [T.sat], route: 'Citadines Bayfront → Cảng Vinpearl', meta: 'TD-20260930-0021 · 3 khách', drag: !phone },
+      { time: '15:00', tags: [T.sat, T.ten], route: 'Sân bay Cam Ranh → Novotel Nha Trang', meta: 'TD-20260929-0044 · 2 khách' },
+      { time: '17:30', tags: [], route: 'Nơi tự gõ — mở đơn để xem → Bến Tàu Du lịch', meta: 'TD-20260930-0023 · 5 khách' },
+      { time: '19:00', tags: [T.ten], route: 'Mường Thanh Luxury → nơi trả chưa chốt', meta: 'TD-20260930-0026 · 4 khách' },
+    ].map((l) => ({ ...l, bg: l.drag ? 'var(--c-soft-hover)' : 'transparent', outline: l.drag ? '2px dashed var(--c-primary)' : 'none' }));
+    const nw = { style: { whiteSpace: 'nowrap' } };
+    return { nw, legs, phone, desk: !phone };
+  }
+}
+</script>
+</body>
+</html>

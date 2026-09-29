@@ -1,0 +1,4 @@
+/* Spacing — 7-step scale (tourdaovn). Nothing outside this scale. */
+:root {
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px; --s5: 24px; --s6: 32px; --s7: 48px;
+}
