@@ -10,12 +10,18 @@
 - **Căn cứ:**
   - ADR-0047 (accepted 2026-09-28) A3: "Tiền tố bảng `ord_` cho module `orders` … kèm T3b"; "SQL chạm `ord_*` viết bằng `defineSql` trong tệp riêng và đưa tệp đó vào bài EXPLAIN. Nếu bài kiểm không nhận module 'nửa nghiêm' thì ghi **nợ có tên, có hạn** ở `src/architecture.test.ts`".
   - ADR-0047 A1 ("Lưu nháp… Chặng của đơn nháp bị xoá và chèn lại cùng lô") và A2 ("Đơn nháp: danh sách xoá–chèn lại cùng lô khi lưu nháp").
-- **Trạng thái:** **CHỜ CHỦ DUYỆT.**
+- **Trạng thái:** **CHỦ ĐÃ DUYỆT 2026-09-29 — "Duyệt cả 4"; CHƯA ÁP** (điều phối áp lúc gộp, Task K3).
+  - Nguồn bền: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` mục "Trả lời lần 5" (nhánh `adr-van-chuyen-0047-0048` @ `14136ca`). Chủ trả lời trực tiếp phiên điều phối, sau khi người kiểm độc lập Phần A (đỉnh `6bb67c8`) báo ĐẠT CÓ ĐIỀU KIỆN với điều kiện duy nhất là duyệt tệp này.
+  - **Phạm vi đã duyệt:** mục 1 (`ord_`), mục 2 (kể cả 2b, 2c sửa `docs/ARCHITECTURE.md`), mục 3 (hạn `2027-03-31`), mục 7 (`full_name` của `ord_passenger`), mục 4a, 4b.
+  - **Chưa hỏi (hỏi khi tới):** mục 4c (`web/CLAUDE.md`, điền ở Phần B), 4d (dòng bẫy tuỳ chọn ở `CLAUDE.md` §10), mục 6 (phát hành 2).
+  - **Cách áp:** điều phối áp các diff tệp luật lúc gộp (K3), mỗi tệp một commit, chủ bấm Đồng ý ở hộp hỏi quyền; đổi chú thích "CHỜ CHỦ DUYỆT" trong `src/architecture.test.ts` thành "đã duyệt 2026-09-29"; người kiểm so khớp phần áp. Người thi công KHÔNG tự áp ⇒ trên nhánh thi công các chú thích "CHỜ CHỦ DUYỆT" và tiêu đề tệp vẫn còn, cho tới K3.
+  - Lượt duyệt: điều phối xếp trong trần 3 của `CLAUDE.md` §9 — ba mục chạm dữ liệu/quyền (0047 mục 2, 0047 mục 3, 0048 mục 1) + hai mục chỉ là quy tắc đặt tên (0047 mục 1, mục 7).
+  - _Lịch sử trạng thái (trước khi duyệt):_
   - Mục 1 và mục 3: mã của nhánh thi công mang sẵn (tiền lệ 1a), kèm chú thích "CHỜ CHỦ DUYỆT" tại chỗ, để test chạy được.
   - Mục 2: chạm **Hiến chương 5.5** (đứng trên ADR) ⇒ chỉ đưa vào mã **sau khi chủ xác nhận Q0** (kế hoạch mục 13). **Cập nhật 2026-09-29 (người thi công):** chủ đã trả lời Q0 trực tiếp phiên điều phối — nguyên văn **"Cách 1: chỉ giữ bản cuối"** (điều phối chuyển lại) ⇒ mã nhánh thi công mang `XOA_CUNG_NHAP` + hai câu `*_delete_draft` + lô lưu nháp, kèm chú thích "CHỜ CHỦ DUYỆT" (tệp đề xuất luật này, và phần sửa `docs/ARCHITECTURE.md` ở 2b/2c, **vẫn chờ chủ duyệt chính thức**).
   - Mục 7 (**mới**, người thi công thêm 2026-09-29 ở Task A7): ngoại lệ có tên của bài R-N1-14 cho cột `ord_passenger.full_name` — kế hoạch chưa thấy va chạm này. Mã mang sẵn kèm "CHỜ CHỦ DUYỆT" như mục 1, 3.
-  - **Không gộp `main` khi chưa duyệt.**
-  - **Lượt duyệt (`CLAUDE.md` §9 — tối đa 3 quyết định chạm quyền/dữ liệu):** nay có BỐN mục NỚI (1, 2, 3, 7). Mục 1 chủ đã chốt trong ADR-0047 (Q-AA); mục 2 chủ đã trả lời Q0. Điều phối xem có cần tách lượt không.
+  - ~~**Không gộp `main` khi chưa duyệt.**~~ (đã duyệt 2026-09-29; gộp sau khi điều phối áp ở K3)
+  - **Lượt duyệt (`CLAUDE.md` §9 — tối đa 3 quyết định chạm quyền/dữ liệu):** nay có BỐN mục NỚI (1, 2, 3, 7). Mục 1 chủ đã chốt trong ADR-0047 (Q-AA); mục 2 chủ đã trả lời Q0. Điều phối xem có cần tách lượt không. (Đã xử lý: xem dòng "Lượt duyệt" ở trên.)
 - **Duyệt xong:**
   - mỗi tệp luật một commit, sửa đúng diff dưới đây;
   - đổi chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` thành "đã duyệt <ngày>" (tiền lệ Ruling D21 của T2b).
