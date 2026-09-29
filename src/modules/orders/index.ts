@@ -15,7 +15,9 @@ import {
   addLeg, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
   getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
-import { legById, servicePaxByIds } from "./chang-hanh-khach-repo";
+import { legById, legTripRows, passengerRowsByOrders, servicePaxByIds } from "./chang-hanh-khach-repo";
+import { dongHienHanh } from "../../shared/hanh-khach";
+import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
@@ -122,6 +124,62 @@ export async function findOrderDepartDates(db: D1Database, id: string): Promise<
  */
 export async function soKhachHieuLuc(db: D1Database, serviceIds: readonly string[]): Promise<Map<string, PaxCounts>> {
   return effectivePax(db, await servicePaxByIds(db, serviceIds));
+}
+
+/** Một chặng cho tài xế / chuyến xe (ADR-0047 A3) — ĐÚNG các khoá này; thêm khoá = sửa bài liệt kê khoá ở src/modules/orders/ham-cong-bo.test.ts. */
+export interface ChangChoChuyen {
+  legId: string;
+  orderId: string;
+  orderCode: string;
+  /** Tên dịch vụ (nhập tay là chữ tự do) — đã che dãy từ 8 chữ số. */
+  serviceName: string;
+  direction: "OUT" | "RETURN";
+  pickupDate: string | null;
+  pickupTime: string | null;
+  /** Tên điểm danh mục hoặc chữ tự do — đã che dãy số. */
+  noiDon: string;
+  noiTra: string | null;
+  /** Số khách HIỆU LỰC của dịch vụ (chờ lượt 2 nếu có `pax_override`). */
+  soNguoi: number;
+  /** Người có tên (dòng hiện hành): khoá bền `personKey`, bản tên đã dùng `rowId`. */
+  nguoi: { personKey: string; rowId: string; fullName: string; birthYear: number }[];
+}
+
+/**
+ * API công khai — hàm đọc HẸP cho Vận chuyển (ADR-0047 A3): chặng CÒN MỞ của đơn ĐÃ XÁC NHẬN theo danh sách id chặng, mỗi phần tử dựng MỚI TỪNG KHOÁ (danh
+ * sách trường được phép — khuôn `pool.ts`, Hiến chương 4.4): không tiền, ghi chú, người lập, SĐT, email. Chữ tự do (nơi, tên dịch vụ) che dãy số. Liên hệ
+ * cho tài xế: chờ lượt 2 (Q3). Chưa module nào gọi hàm này (hôm nay 0 nơi gọi).
+ * KHÔNG tự kiểm quyền — nơi gọi phải đứng sau `can()` (bài quét nơi gọi ở src/orders-cong-bo.test.ts).
+ */
+export async function hanhKhachChoChuyen(db: D1Database, legIds: readonly string[]): Promise<ChangChoChuyen[]> {
+  const legs = await legTripRows(db, legIds);
+  if (legs.length === 0) return [];
+  const orderIds = [...new Set(legs.map((l) => l.order_id))];
+  const [paxRows, people] = await Promise.all([servicePaxByIds(db, [...new Set(legs.map((l) => l.service_id))]), passengerRowsByOrders(db, orderIds)]);
+  const pax = await effectivePax(db, paxRows);
+  const current = new Map<string, ChangChoChuyen["nguoi"]>();
+  for (const orderId of orderIds) {
+    const rows = people.filter((p) => p.order_id === orderId).map((p) => ({
+      id: p.id, personKey: p.person_key, previousId: p.previous_id, voided: p.voided === 1, fullName: p.ten, birthYear: p.birth_year, paxCode: p.pax_code, updatedAt: p.updated_at,
+    }));
+    current.set(orderId, dongHienHanh(rows).map((p) => ({ personKey: p.personKey, rowId: p.id, fullName: p.fullName, birthYear: p.birthYear })));
+  }
+  return legs.map((l) => {
+    const p = pax.get(l.service_id);
+    return {
+      legId: l.id,
+      orderId: l.order_id,
+      orderCode: l.order_code,
+      serviceName: maskLongDigits(l.service_name),
+      direction: l.direction,
+      pickupDate: l.pickup_date,
+      pickupTime: l.pickup_time,
+      noiDon: maskLongDigits(l.noi_don),
+      noiTra: maskLongDigits(l.noi_tra),
+      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      nguoi: (current.get(l.order_id) ?? []).map((n) => ({ personKey: n.personKey, rowId: n.rowId, fullName: n.fullName, birthYear: n.birthYear })),
+    };
+  });
 }
 
 /**

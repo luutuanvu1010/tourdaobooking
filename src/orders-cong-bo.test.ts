@@ -53,3 +53,68 @@ test("ADR-0047 A3: ngoài src/modules/orders/, không tệp mã nào (src, web; 
   const problems = files.flatMap((f) => adjustmentHits(rel(f), readFileSync(f, "utf8")));
   assert.deepEqual(problems, [], "chỉ `orders` đọc số khách sau điều chỉnh — module khác gọi soKhachHieuLuc (src/modules/orders/index.ts)");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+//   (2) "NƠI GỌI hàm công bố đứng sau `can()`" (ADR-0047 A3): `soKhachHieuLuc`, `hanhKhachChoChuyen` KHÔNG tự kiểm quyền (hàm hẹp có họ tên, năm sinh
+//       khách). Ở module KHÁC `orders`: mỗi lời gọi phải nằm trong THÂN một `route(…)` của `src/modules/<m>/index.ts`, và trong thân đó có `can(` đứng TRƯỚC
+//       lời gọi. Gọi ở tệp khác `index.ts` (service.ts, repository.ts…) → đỏ ("chỉ gọi trong thân route"). Quét trên bản che chuỗi + chú thích.
+//       Hôm nay 0 nơi gọi. GIỚI HẠN: canh QUÊN, không canh CỐ Ý — không biết `can(` có đúng ô, có chặn thật (return) hay không; gọi qua bí danh
+//       (`const f = soKhachHieuLuc; f(…)`) không thấy.
+// ---------------------------------------------------------------------------------------------------------------------------------------------------
+const CONG_BO = /\b(soKhachHieuLuc|hanhKhachChoChuyen)\s*\(/g;
+
+/** Khoảng [mở, đóng] của thân `{…}` các handler `route(…, async (…) => { … })` trên bản ĐÃ CHE (chuỗi + chú thích). */
+function routeBodies(masked: string): { start: number; end: number }[] {
+  const out: { start: number; end: number }[] = [];
+  for (const m of masked.matchAll(/\broute\(/g)) {
+    const arrow = masked.indexOf("=>", m.index!);
+    const open = arrow === -1 ? -1 : masked.indexOf("{", arrow);
+    if (open === -1) continue;
+    let depth = 0;
+    for (let i = open; i < masked.length; i++) {
+      if (masked[i] === "{") depth++;
+      else if (masked[i] === "}" && --depth === 0) {
+        out.push({ start: open, end: i });
+        break;
+      }
+    }
+  }
+  return out;
+}
+
+/** Vị trí (`tệp:dòng`) gọi hàm công bố sai chỗ. `isIndex` = tệp là `index.ts` của module (nơi DUY NHẤT được gọi, và chỉ trong thân route sau `can(`). */
+export function congBoCallHits(relPath: string, source: string, isIndex: boolean): string[] {
+  const masked = maskSource(source);
+  const bodies = isIndex ? routeBodies(masked) : [];
+  const out: string[] = [];
+  for (const m of masked.matchAll(CONG_BO)) {
+    const where = `${relPath}:${masked.slice(0, m.index).split("\n").length}`;
+    if (!isIndex) {
+      out.push(`${where}: gọi ${m[1]} ngoài index.ts — chỉ gọi trong thân route, sau can()`);
+      continue;
+    }
+    const b = bodies.find((x) => m.index! > x.start && m.index! < x.end);
+    if (!b) out.push(`${where}: gọi ${m[1]} ngoài thân route — chỉ gọi trong thân route, sau can()`);
+    else if (!/\bcan\s*\(/.test(masked.slice(b.start, m.index))) out.push(`${where}: gọi ${m[1]} mà không có can( đứng trước trong thân route`);
+  }
+  return out;
+}
+
+test("bộ bắt nơi gọi hàm công bố: có can( trước trong thân route → qua; không có / ngoài route / ngoài index.ts → bắt; chú thích và chuỗi không tính", () => {
+  const ok = 'route("GET", "/x", "office", async ({ env, staff }) => {\n  if (!can(staff, "order.view")) return deny();\n  return json(await hanhKhachChoChuyen(env.DB, ids));\n});';
+  assert.deepEqual(congBoCallHits("mau/index.ts", ok, true), []);
+  const noCan = 'route("GET", "/x", "office", async ({ env }) => {\n  return json(await soKhachHieuLuc(env.DB, ids));\n});';
+  assert.deepEqual(congBoCallHits("mau/index.ts", noCan, true), ["mau/index.ts:2: gọi soKhachHieuLuc mà không có can( đứng trước trong thân route"]);
+  const canAfter = 'route("GET", "/x", "office", async ({ env, staff }) => {\n  const r = await hanhKhachChoChuyen(env.DB, ids);\n  if (!can(staff, "o")) return deny();\n  return json(r);\n});';
+  assert.equal(congBoCallHits("mau/index.ts", canAfter, true).length, 1, "can( đứng SAU lời gọi không tính");
+  assert.equal(congBoCallHits("mau/index.ts", "const x = await hanhKhachChoChuyen(db, ids);", true).length, 1, "ngoài thân route");
+  assert.equal(congBoCallHits("mau/service.ts", "if (can(s, \"o\")) await soKhachHieuLuc(db, ids);", false).length, 1, "ngoài index.ts");
+  assert.deepEqual(congBoCallHits("mau/index.ts", '// hanhKhachChoChuyen(db) — ví dụ\nconst s = "soKhachHieuLuc(";', true), [], "chú thích + chuỗi không tính");
+});
+
+test("ADR-0047 A3: ở module KHÁC orders, mọi lời gọi soKhachHieuLuc / hanhKhachChoChuyen nằm trong thân route của index.ts, sau can() (hôm nay 0 nơi gọi)", () => {
+  const files = walk(join(SRC, "modules")).filter((f) => !rel(f).startsWith("src/modules/orders/"));
+  assert.ok(files.some((f) => rel(f) === "src/modules/dispatch/index.ts"), "chống bài kiểm rỗng: phải quét cả src/modules/dispatch/index.ts");
+  const problems = files.flatMap((f) => congBoCallHits(rel(f), readFileSync(f, "utf8"), /\/index\.ts$/.test(f)));
+  assert.deepEqual(problems, [], "hàm công bố của orders không tự kiểm quyền — module khác chỉ gọi trong thân route, SAU can()");
+});
