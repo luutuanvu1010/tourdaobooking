@@ -1223,6 +1223,9 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .vc-xe-plate { font-family: var(--font-display); font-weight: 800; font-size: var(--fs-vc-lg); }
 .vc-xe-meta { font-size: var(--fs-vc-sm); color: var(--c-text-muted); }
 .vc-xe-meta svg { flex: none; }
+/* ADR-0048 Task B3: ô lọc "Chủ xe" ở danh sách xe — khuôn ô chọn của form Vận chuyển (.vc-field + .vc-input), không vẽ mới. */
+.vc-chu-loc { margin-bottom: var(--s4); }
+@media (min-width: 900px) { .vc-chu-loc { max-width: var(--w-narrow); } }
 .vc-filter-empty { margin: 0; padding: var(--s5) var(--s4); font-size: var(--fs-vc-sm); font-weight: 600; text-align: center; color: var(--c-text-muted); }
 .vc-table { overflow: hidden; }
 .vc-th { font-size: var(--fs-badge); font-weight: 700; letter-spacing: var(--ls-eyebrow); color: var(--c-text-muted); border-bottom: 1px solid var(--c-border); }

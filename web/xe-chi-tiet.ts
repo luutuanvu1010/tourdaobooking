@@ -86,6 +86,7 @@ function ve(): void {
       { class: "vc-xe-head-main" },
       h("div", { class: "vc-row-between" }, h("h1", { class: "vc-plate" }, xe.plateNumber), chipTrangThaiXe(xe.status)),
       h("div", { class: "vc-xe-sub" }, `${tenXe(xe)} · ${xe.passengerCapacity} người `, h("span", { class: "muted" }, "(không kể tài xế)")),
+      h("div", { class: "vc-xe-sub" }, `Chủ xe: ${xe.ownerName}`), // ADR-0048 D1 (Task B3): công ty chủ hoặc nhà xe đối tác
       h("a", { class: "vc-link-edit", href: sua }, "Sửa thông tin xe"),
     ),
     h("div", { class: "vc-xe-head-actions" }, h("a", { class: "vc-btn vc-btn-ghost-primary", href: sua }, "Sửa thông tin xe"), ngung ? null : themTren),
