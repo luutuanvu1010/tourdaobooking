@@ -130,6 +130,13 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/handler-money-edit", access: "staff" }, // module dispatch, ADR-0014 điều 6 — FIELD đang phụ trách, tự kiểm can() bên trong
   { method: "POST", path: "/api/orders/:id/status", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/trip", access: "orders" },
+  // ADR-0047 A1 (2026-09-29): chặng đưa đón SAU XÁC NHẬN — thân hỏi can(order.trip.edit, { ownerId, assigned }) trước khi đọc thân
+  { method: "POST", path: "/api/orders/:id/legs", access: "orders" },
+  { method: "PUT", path: "/api/orders/:id/legs/:legId", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/legs/:legId/close", access: "orders" },
+  // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
+  { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "GET", path: "/api/orders/dashboard", access: "orders" }, // Trang chủ — ADR-0019 điều 1: màn đơn; Đối tác/Thực tập vẫn 403 nhờ can(order.view/money.view/contact.view) không ngữ cảnh trong thân
   { method: "GET", path: "/api/orders/pool", access: "orders" }, // hàng chờ nhận (phần hẹp) — ADR-0030 S23-1/S23-2: thân hỏi can(order.pool.view) + !holdsPartner trước mọi đọc
   { method: "GET", path: "/api/parties", access: "office" },
@@ -224,7 +231,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 120 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 125 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -248,8 +255,10 @@ test("mức truy cập của 120 route hiện có khớp ảnh chụp đã duy�
   // GET …/sap-het-han) = 109.
   // 2026-09-29 (ADR-0048 D1): + 1 route danh sách nhà xe đối tác (GET /api/van-chuyen/nha-xe) = 110.
   // 2026-09-29 (ADR-0049 lát 1.1, nhánh song song từ main): + 7 route chính sách điều phối / điều kiện xuất bến / hạng bằng (cổng office, settings.ops)
-  // + 3 route danh mục lý do (cổng admin, admin.manage) = 120 (gộp trên nền main 1.37 = 110 route, 29/9). Khi gộp thêm nền ADR-0047 (+5) con số thành 125.)
+  // + 3 route danh mục lý do (cổng admin, admin.manage) = 120 (gộp trên nền main 1.37 = 110 route, 29/9).
+  // 2026-09-29 (ADR-0047 A1, gộp nền Phần A vào nhánh ADR-0049): + 3 route chặng đưa đón sau xác nhận (POST /api/orders/:id/legs, PUT …/legs/:legId,
+  // POST …/legs/:legId/close) + 2 route danh sách hành khách (GET/POST /api/orders/:id/passengers, ADR-0047 A2) = 125.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 120, "số route thực tế lệch 120 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 120, "SNAPSHOT phải có đúng 120 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 125, "số route thực tế lệch 125 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 125, "SNAPSHOT phải có đúng 125 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

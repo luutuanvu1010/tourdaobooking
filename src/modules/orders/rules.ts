@@ -2,7 +2,9 @@
 // Luật của TỪNG DỊCH VỤ (số khách, thông tin chuyến, dòng tiền sinh từ danh mục) nằm ở ./service-rules.ts.
 // Chỉ import file thuần của shared, không chạm I/O để kiểm thử độc lập bằng `npm test`.
 import { parseBooker, type BookerInput } from "../../shared/booker.ts";
+import { MAX_CHANG_MOI_DICH_VU, doiNgayChang, kiemChang, tronChangCu, type ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { DepositMethod, OrderStatus } from "../../shared/contracts.ts";
+import { kiemDanhSachHanhKhach, type HanhKhachHopLe } from "../../shared/hanh-khach.ts";
 import { MAX_AMOUNT_VND as MAX_AMOUNT } from "../../shared/order-lines.ts";
 import { UUID_RE } from "../../shared/http.ts";
 import { ONE_DATE_MESSAGE, sameDepartDate } from "../../shared/trip-rules.ts";
@@ -34,6 +36,55 @@ export interface ValidOrder {
   paymentNote: string | null;
   /** Chỉ dùng cho PUT: `updated_at` mà client đã đọc (khoá lạc quan). */
   expectedUpdatedAt: string | null;
+  /**
+   * Danh sách hành khách SẼ LƯU (ADR-0047 A2, Ruling R1 — chỉ đơn nháp đi trong thân này). `null` = thân KHÔNG có khoá `passengers` → GIỮ danh sách đang
+   * lưu (R2b: máy chưa tải bản mới không xoá mất tên khách). Có khoá (kể cả `[]`) → route hỏi thêm ô `order.passenger.write`.
+   */
+  passengers: HanhKhachHopLe[] | null;
+  /** Thân có khoá `legs` ở dịch vụ (thân mới) — false = đường tương thích (trộn `pickupTime`/`pickupPlace` cũ vào chặng đang lưu, R2b). */
+  legsGiven: boolean;
+}
+
+export type { ChangHopLe, HanhKhachHopLe };
+
+/**
+ * Chặng SẼ LƯU của từng dịch vụ (ADR-0047 A1). Thân MỚI (`services[].legs` — mọi dịch vụ đều phải có khoá, hoặc không dịch vụ nào): kiểm từng chặng
+ * (`kiemChang` — ngày đón trống → ngày đi, R4b), `id` phải là chặng CÒN HIỆU LỰC đang lưu của CHÍNH dịch vụ đó. Thân CŨ (không khoá `legs`): chặng đang
+ * lưu dời theo ngày đi mới (`doiNgayChang`, R4e), rồi trộn `pickupTime`/`pickupPlace` cũ vào chặng chiều đi đầu (`tronChangCu`, R2b) — khoá vắng = giữ.
+ * Điểm danh mục có đang dùng không là việc có I/O (`service.ts:resolveLegPlaces`, R7).
+ */
+function withLegs(rawServices: readonly unknown[], services: ValidService[], ctx: ServiceContext): { ok: true; services: ValidService[]; legsGiven: boolean } | Failure {
+  const hasKey = rawServices.map((raw) => !!raw && typeof raw === "object" && "legs" in (raw as object));
+  const legsGiven = hasKey.some(Boolean);
+  if (legsGiven && !hasKey.every(Boolean)) return fail("Dữ liệu đưa đón không đồng nhất giữa các dịch vụ — hãy tải lại trang rồi thử lại.");
+  const out: ValidService[] = [];
+  for (const [i, sv] of services.entries()) {
+    const raw = rawServices[i] as Record<string, unknown>;
+    const stored = sv.id !== null ? ctx.storedTrips?.get(sv.id) : undefined;
+    const at = `Dịch vụ ${i + 1}`;
+    if (legsGiven) {
+      if (!Array.isArray(raw.legs)) return fail(`${at}: danh sách chặng đưa đón không hợp lệ.`);
+      if (raw.legs.length > MAX_CHANG_MOI_DICH_VU) return fail(`${at}: tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.`);
+      const legs: ChangHopLe[] = [];
+      const seen = new Set<string>();
+      for (const [j, l] of raw.legs.entries()) {
+        const k = kiemChang(l, { at: `${at}, chặng ${j + 1}`, departDate: sv.trip.departDate });
+        if (!k.ok) return fail(k.message);
+        if (k.value.id !== null) {
+          if (!stored?.legs.some((x) => x.id === k.value.id)) return fail(`${at}, chặng ${j + 1}: chặng không thuộc dịch vụ này — hãy tải lại trang rồi thử lại.`);
+          if (seen.has(k.value.id)) return fail(`${at}, chặng ${j + 1}: trùng một chặng khác.`);
+          seen.add(k.value.id);
+        }
+        legs.push(k.value);
+      }
+      out.push({ ...sv, legs });
+    } else {
+      const shifted = stored ? doiNgayChang(stored.legs, stored.departDate, sv.trip.departDate) : [];
+      const cu = { pickupTime: "pickupTime" in raw ? sv.trip.pickupTime : undefined, pickupPlace: "pickupPlace" in raw ? sv.trip.pickupPlace : undefined };
+      out.push({ ...sv, legs: tronChangCu(shifted, cu, sv.trip.departDate).legs });
+    }
+  }
+  return { ok: true, services: out, legsGiven };
 }
 
 export type Failure = { ok: false; message: string; code?: ServiceFailure["code"] | "client_outdated"; details?: unknown };
@@ -104,6 +155,18 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
     services.push(r.value);
   }
   if (!sameDepartDate(services.map((s) => s.trip.departDate))) return fail(ONE_DATE_MESSAGE); // ADR-0021
+  const withLegsResult = withLegs(b.services, services, ctx);
+  if (!withLegsResult.ok) return withLegsResult;
+  services.splice(0, services.length, ...withLegsResult.services);
+  let passengers: HanhKhachHopLe[] | null = null;
+  if ("passengers" in b) {
+    const p = kiemDanhSachHanhKhach(b.passengers, ctx.today ?? vnToday(new Date()));
+    if (!p.ok) return fail(p.message);
+    for (const [i, x] of p.value.entries()) {
+      if (x.id !== null && !ctx.storedPassengerIds?.has(x.id)) return fail(`Hành khách ${i + 1}: không thuộc đơn này — hãy tải lại trang rồi thử lại.`);
+    }
+    passengers = p.value;
+  }
   const items = services.flatMap((s) => s.items);
   if (items.length > MAX_LINES_PER_ORDER) return fail(`Đơn tối đa ${MAX_LINES_PER_ORDER} dòng tiền.`);
   let subtotal = 0;
@@ -145,6 +208,8 @@ export function validateOrder(input: unknown, ctx: ServiceContext): Validated {
       remainingAmount: total - deposit.value,
       paymentNote: paymentNote.value,
       expectedUpdatedAt: typeof b.expectedUpdatedAt === "string" && b.expectedUpdatedAt ? b.expectedUpdatedAt : null,
+      passengers,
+      legsGiven: withLegsResult.legsGiven,
     },
   };
 }

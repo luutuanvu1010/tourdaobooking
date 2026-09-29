@@ -1,6 +1,13 @@
 import { auditStatement, type AuditAction } from "../audit";
-import type { OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
+import { chieuDiDau, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
+import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
+import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
+import {
+  legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
+  openLegsStatement, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded, serviceMirrorUpdateGuarded,
+  type LegFields, type LegRow, type LegWrite, type PassengerWrite, type ServicePaxRow,
+} from "./chang-hanh-khach-repo";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
 import { effectiveMoney, effectiveSubtotal, isAdjustmentSeqCollision, parseAdjustmentAfter, type AdjustmentEntry, type SubtotalServiceInput } from "./money-adjustment";
@@ -44,8 +51,6 @@ interface ServiceRow {
   pax_infant: number;
   depart_date: string | null;
   depart_time: string | null;
-  pickup_time: string | null;
-  pickup_place: string | null;
   checkin_date: string | null;
   checkin_time: string | null;
   checkin_place: string | null;
@@ -67,7 +72,9 @@ interface ItemRow {
 
 const ORDER_SELECT = `SELECT o.*, s.label AS staff_name, b.display_name AS booker_name FROM orders o
   JOIN v_stf_staff_label s ON s.id = o.staff_id LEFT JOIN v_pty_party_label b ON b.id = o.booker_party_id`;
-const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time, pickup_time, pickup_place,
+// ADR-0047 (Ruling R2a): KHÔNG đọc `pickup_time`/`pickup_place` của order_service nữa — hai khoá đó dẫn xuất từ chặng (`chieuDiDau`); cột cũ chỉ còn
+// được GHI KÉP ở phát hành 1 (R3).
+const SERVICE_SELECT = `SELECT id, catalog_code, name, unit, pax_adult, pax_child, pax_senior, pax_infant, depart_date, depart_time,
   checkin_date, checkin_time, checkin_place, note FROM order_service WHERE order_id = ? ORDER BY sort_order`;
 const ITEM_SELECT = `SELECT id, service_id, catalog_code, pax_code, description, detail, quantity, unit_price, catalog_price, line_total FROM order_item WHERE order_id = ? ORDER BY sort_order`;
 
@@ -134,10 +141,10 @@ export function summarizeServices(rows: readonly ServiceSummaryRow[]): Map<strin
  * vòng 2) nên MỌI phần tử ở đây đã đảm bảo `pax` hợp lệ (`isPaxCounts`) — hàm này không cần (và không nên) tự kiểm lại, tự kiểm lại là đúng kiểu
  * "hai luật khác nhau ở hai nơi" đã gây ra Lỗi 1. Thuần, không đụng DB — test độc lập ở repository.test.ts.
  */
-export function applyAdjustedPax(
-  rows: readonly ServiceSummaryRow[],
+export function applyAdjustedPax<R extends Pick<ServiceSummaryRow, "id" | "order_id" | "pax_adult" | "pax_child" | "pax_senior" | "pax_infant">>(
+  rows: readonly R[],
   afterByOrder: ReadonlyMap<string, readonly { serviceId: string; pax: PaxCounts }[]>,
-): ServiceSummaryRow[] {
+): R[] {
   return rows.map((r) => {
     const pax = afterByOrder.get(r.order_id)?.find((a) => a.serviceId === r.id)?.pax;
     return pax ? { ...r, pax_adult: pax.adult, pax_child: pax.child, pax_senior: pax.senior, pax_infant: pax.infant } : r;
@@ -171,16 +178,65 @@ function toDto(r: OrderRow): OrderDto {
 }
 
 const paxOf = (s: ServiceRow): PaxCounts => ({ adult: s.pax_adult, child: s.pax_child, senior: s.pax_senior, infant: s.pax_infant });
-const tripOf = (s: ServiceRow): ValidTrip => ({
+/** Thông tin chuyến của một dịch vụ; `pickupTime`/`pickupPlace` = DẪN XUẤT từ chặng còn hiệu lực của dịch vụ (`chieuDiDau` — ADR-0047 R2a). */
+const tripOf = (s: ServiceRow, legs: readonly StoredLeg[]): ValidTrip => ({
   departDate: s.depart_date,
   departTime: s.depart_time,
-  pickupTime: s.pickup_time,
-  pickupPlace: s.pickup_place,
+  ...chieuDiDau(legs),
   checkinDate: s.checkin_date,
   checkinTime: s.checkin_time,
   checkinPlace: s.checkin_place,
   note: s.note,
 });
+
+/** Chặng CÒN HIỆU LỰC đã lưu (ADR-0047): dạng luật cần (`ChangDaLuu`) + dịch vụ, dấu vết (giữ `created_*` khi lưu nháp xoá–chèn lại), mốc khoá lạc quan. */
+export type StoredLeg = ChangDaLuu & { serviceId: string; createdAt: string; createdBy: string | null; updatedAt: string };
+
+export const toStoredLeg = (r: LegRow): StoredLeg => ({
+  id: r.id,
+  direction: r.direction,
+  pickupDate: r.pickup_date,
+  pickupTime: r.pickup_time,
+  pickupLocationId: r.pickup_location_id,
+  pickupPlace: r.pickup_place,
+  pickupLabel: r.pickup_label,
+  dropoffLocationId: r.dropoff_location_id,
+  dropoffPlace: r.dropoff_place,
+  dropoffLabel: r.dropoff_label,
+  serviceId: r.order_service_id,
+  createdAt: r.created_at,
+  createdBy: r.created_by,
+  updatedAt: r.updated_at,
+});
+
+/** DTO một chặng — dựng TỪNG khoá (không trải dòng nguồn). */
+const toLegDto = (l: StoredLeg): LegDto => ({
+  id: l.id,
+  direction: l.direction,
+  pickupDate: l.pickupDate,
+  pickupTime: l.pickupTime,
+  pickupLocationId: l.pickupLocationId,
+  pickupPlace: l.pickupPlace,
+  pickupLabel: l.pickupLabel,
+  dropoffLocationId: l.dropoffLocationId,
+  dropoffPlace: l.dropoffPlace,
+  dropoffLabel: l.dropoffLabel,
+  updatedAt: l.updatedAt,
+});
+
+/** Chặng còn hiệu lực theo dịch vụ (xếp theo ngày, giờ đón, chiều — `xepChang`). */
+export function legsByService(rows: readonly LegRow[]): Map<string, StoredLeg[]> {
+  const out = new Map<string, StoredLeg[]>();
+  for (const r of rows) out.set(r.order_service_id, [...(out.get(r.order_service_id) ?? []), toStoredLeg(r)]);
+  for (const [k, v] of out) out.set(k, xepChang(v));
+  return out;
+}
+
+/** Giờ + nơi đón DẪN XUẤT (chiều đi đầu) của từng dịch vụ có chặng — nguồn DUY NHẤT cho danh sách đơn, Trang chủ, hàng chờ (R2a). */
+async function derivedPickupByService(db: D1Database, orderIds: readonly string[]): Promise<Map<string, { pickupTime: string | null; pickupPlace: string | null }>> {
+  const by = legsByService(await openLegsByOrders(db, orderIds));
+  return new Map(Array.from(by, ([serviceId, legs]) => [serviceId, chieuDiDau(legs)] as const));
+}
 
 function groupItems(rows: ItemRow[]): Map<string, ItemRow[]> {
   const by = new Map<string, ItemRow[]>();
@@ -207,46 +263,55 @@ const toItemDto = (i: ItemRow): OrderItemDto => ({
 
 /** Đơn + dịch vụ + dòng tiền. `catalogStatus` luôn null ở đây — do lớp điều phối (service.ts) điền cho đơn nháp. */
 export async function findOrder(db: D1Database, id: string): Promise<OrderDetailDto | null> {
-  const [orderRes, servicesRes, itemsRes] = await db.batch([
+  const [orderRes, servicesRes, itemsRes, legsRes] = await db.batch([
     db.prepare(`${ORDER_SELECT} WHERE o.id = ?`).bind(id),
     db.prepare(SERVICE_SELECT).bind(id),
     db.prepare(ITEM_SELECT).bind(id),
+    openLegsStatement(db, [id]),
   ]);
   const row = (orderRes!.results as OrderRow[])[0];
   if (!row) return null;
   const items = groupItems(itemsRes!.results as ItemRow[]);
-  const services = (servicesRes!.results as ServiceRow[]).map(
-    (s): OrderServiceDto => ({
+  const legs = legsByService(legsRes!.results as LegRow[]);
+  const services = (servicesRes!.results as ServiceRow[]).map((s): OrderServiceDto => {
+    const own = legs.get(s.id) ?? [];
+    return {
       id: s.id,
       kind: s.catalog_code === null ? "manual" : "catalog",
       catalogCode: s.catalog_code,
       name: s.name,
       unit: s.unit,
       pax: paxOf(s),
-      ...tripOf(s),
+      ...tripOf(s, own),
       items: (items.get(s.id) ?? []).map(toItemDto),
       catalogStatus: null,
-    }),
-  );
+      legs: own.map(toLegDto),
+    };
+  });
   return { ...toDto(row), services };
 }
 
-/** `lines` = nội dung dòng tiền đã lưu theo thứ tự (mô tả, chi tiết, số lượng, đơn giá) — cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01, `price-guards.ts`). */
-export type StoredServiceRow = StoredService & { trip: ValidTrip; lines: FrozenLine[] };
+/**
+ * `lines` = nội dung dòng tiền đã lưu theo thứ tự (mô tả, chi tiết, số lượng, đơn giá) — cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01, `price-guards.ts`).
+ * `legs` = chặng CÒN HIỆU LỰC của dịch vụ (ADR-0047) — cho trộn thân cũ (`tronChangCu`), dời ngày (`doiNgayChang`), giữ id chặng khi lưu nháp.
+ */
+export type StoredServiceRow = StoredService & { trip: ValidTrip; lines: FrozenLine[]; legs: StoredLeg[] };
 
 /** Dịch vụ đã lưu của đơn ở dạng luật cần: đủ để dựng "bản chụp" (Q11), so sánh thay đổi chuyến (Q9) và so "giữ nguyên" dịch vụ nhập tay (DK-T3-01). */
 export async function getStoredServices(db: D1Database, orderId: string): Promise<StoredServiceRow[]> {
-  const [servicesRes, itemsRes] = await db.batch([db.prepare(SERVICE_SELECT).bind(orderId), db.prepare(ITEM_SELECT).bind(orderId)]);
+  const [servicesRes, itemsRes, legsRes] = await db.batch([db.prepare(SERVICE_SELECT).bind(orderId), db.prepare(ITEM_SELECT).bind(orderId), openLegsStatement(db, [orderId])]);
   const items = groupItems(itemsRes!.results as ItemRow[]);
+  const legs = legsByService(legsRes!.results as LegRow[]);
   return (servicesRes!.results as ServiceRow[]).map((s) => ({
     id: s.id,
     catalogCode: s.catalog_code,
     name: s.name,
     unit: s.unit,
     pax: paxOf(s),
-    trip: tripOf(s),
+    trip: tripOf(s, legs.get(s.id) ?? []),
     items: (items.get(s.id) ?? []).map((i) => ({ paxCode: i.pax_code, detail: i.detail, catalogPrice: i.catalog_price, unitPrice: i.unit_price })),
     lines: (items.get(s.id) ?? []).map((i) => ({ description: i.description, detail: i.detail, quantity: i.quantity, unitPrice: i.unit_price })),
+    legs: legs.get(s.id) ?? [],
   }));
 }
 
@@ -286,6 +351,26 @@ export async function getMeta(db: D1Database, id: string): Promise<OrderMeta | n
 }
 
 /**
+ * Dòng tóm tắt dịch vụ của các đơn (sắp theo đơn, `sort_order`), `pickup_time`/`pickup_place` = DẪN XUẤT từ chặng chiều đi đầu (ADR-0047 R2a — một nguồn
+ * cho danh sách đơn, Trang chủ, hàng chờ). Hai câu TUẦN TỰ `prepare().bind().all()` (không `batch()` — D1 giả của dashboard.test.ts chỉ có vậy).
+ */
+async function summaryRows(db: D1Database, orderIds: readonly string[]): Promise<ServiceSummaryRow[]> {
+  if (orderIds.length === 0) return [];
+  const { results } = await db
+    .prepare(
+      `SELECT id, order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date
+       FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`,
+    )
+    .bind(JSON.stringify(orderIds))
+    .all<Omit<ServiceSummaryRow, "pickup_time" | "pickup_place">>();
+  const derived = await derivedPickupByService(db, orderIds);
+  return results.map((r) => {
+    const d = derived.get(r.id);
+    return { ...r, pickup_time: d?.pickupTime ?? null, pickup_place: d?.pickupPlace ?? null };
+  });
+}
+
+/**
  * Áp SỐ HIỆN HÀNH (gốc + điều chỉnh gần nhất, nếu có — bài học Đợt B: danh sách và chi tiết đơn từng lệch nhau vì chỉ trang chi tiết áp điều
  * chỉnh) rồi gộp tóm tắt dịch vụ (`summarizeServices`) cho ĐÚNG các đơn trong `rows` — dùng chung cho `listOrders` (một trang) và `getDashboard`
  * (các tập đơn rời rạc: hôm nay, còn thiếu tiền…), để tránh viết lại/viết lệch logic tính tiền ở hai nơi.
@@ -307,21 +392,9 @@ async function toSummaryDtos(db: D1Database, rows: readonly OrderRow[]): Promise
   // Đợt E: số khách hiệu lực (`applyAdjustedPax`, CÙNG map `latestAdjustments` vừa dùng cho tiền ở trên) — trước bản sửa này chỉ tiền được ghi đè,
   // số khách vẫn lấy thẳng từ order_service đã đóng băng nên hai con số cạnh nhau trên một thẻ lệch nhau (bài học Đợt E).
   const afterByOrder = new Map(Array.from(latestAdjustments, ([id, a]) => [id, a.after] as const));
+  // ADR-0047 R2a: giờ/nơi đón của thẻ = DẪN XUẤT từ chặng (`derivedPickupByService`), không đọc cột cũ của order_service.
   const summaries = page.length
-    ? summarizeServices(
-        applyAdjustedPax(
-          (
-            await db
-              .prepare(
-                `SELECT id, order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
-                 FROM order_service WHERE order_id IN (SELECT value FROM json_each(?1)) ORDER BY order_id, sort_order`,
-              )
-              .bind(JSON.stringify(page.map((d) => d.id)))
-              .all<ServiceSummaryRow>()
-          ).results,
-          afterByOrder,
-        ),
-      )
+    ? summarizeServices(applyAdjustedPax(await summaryRows(db, page.map((d) => d.id)), afterByOrder))
     : new Map<string, ServiceSummary>();
 
   return page.map((d) => {
@@ -408,14 +481,9 @@ export async function listPoolSources(db: D1Database, today: string): Promise<Po
     .bind(today)
     .all<{ id: string; order_code: string; status: OrderStatus }>();
   if (orderRows.length === 0) return [];
-  const [{ results: serviceRows }, latest] = await Promise.all([
-    db
-      .prepare(
-        `SELECT id, order_id, name, sort_order, pax_adult, pax_child, pax_senior, pax_infant, depart_date, pickup_time, pickup_place
-         FROM order_service WHERE order_id IN (SELECT value FROM json_each(?)) ORDER BY order_id, sort_order`,
-      )
-      .bind(JSON.stringify(orderRows.map((r) => r.id)))
-      .all<ServiceSummaryRow>(),
+  const [serviceRows, latest] = await Promise.all([
+    // ADR-0047 R2a: nơi đón/giờ đón của phần hẹp = DẪN XUẤT từ chặng chiều đi đầu (`summaryRows`); `pool.ts` giữ ĐÚNG bốn khoá, vẫn che dãy số.
+    summaryRows(db, orderRows.map((r) => r.id)),
     // Đơn NHÁP không thể có dòng điều chỉnh (route sửa số khách bắt buộc đơn đã xác nhận) — như `toSummaryDtos`.
     getLatestAdjustments(db, orderRows.filter((r) => r.status !== "draft").map((r) => r.id)),
   ]);
@@ -483,25 +551,34 @@ export async function getDashboard(
   // dòng CÓ giờ đón trước (`os2.pickup_time IS NULL` = 0 cho dòng có giờ, = 1 cho dòng NULL → ASC đẩy NULL xuống sau), rồi mới tới
   // chính giờ đón, rồi `sort_order`, rồi `id` (khoá tất định cuối cùng khi mọi khoá trên bằng nhau). Same lý do cho ORDER BY ngoài
   // (thứ tự hiển thị danh sách) — dòng không có giờ đón không được nổi lên đầu "Chuyến đón hôm nay".
-  const { results: todayOrder } = await db
+  // ADR-0047 (Q3 — chủ trả lời 2026-09-29: GIỮ theo ngày đi): tập đơn vẫn chọn theo NGÀY ĐI; giờ/nơi đón nay DẪN XUẤT từ chặng (R2a) nên phần "chọn dịch vụ
+  // quyết định" + "sắp" chuyển từ SQL sang TS với CÙNG khoá phá hoà (có giờ trước, rồi giờ, `sort_order`, `id` — Review Focus 9). SQL chỉ lấy dịch vụ
+  // ứng viên: dịch vụ ngày = hôm nay của đơn confirmed mà KHÔNG có dịch vụ nào ngày sớm hơn (⇔ ngày sớm nhất trong các dịch vụ có ngày = hôm nay).
+  const { results: candidates } = await db
     .prepare(
-      `SELECT o.id, os.depart_date, os.pickup_time, os.pickup_place FROM orders o
+      `SELECT os.id, os.order_id, os.depart_date, os.sort_order FROM orders o
        JOIN order_service os ON os.order_id = o.id
        WHERE o.status = 'confirmed'
          AND os.depart_date = ?1
-         AND os.id = (
-           SELECT id FROM order_service os2
-           WHERE os2.order_id = o.id AND os2.depart_date IS NOT NULL
-           ORDER BY os2.depart_date, (os2.pickup_time IS NULL), os2.pickup_time, os2.sort_order, os2.id
-           LIMIT 1
-         )
-       ORDER BY (os.pickup_time IS NULL), os.pickup_time, os.sort_order, os.id`,
+         AND NOT EXISTS (SELECT 1 FROM order_service x WHERE x.order_id = o.id AND x.depart_date IS NOT NULL AND x.depart_date < ?1)`,
     )
     .bind(today)
-    .all<{ id: string; depart_date: string; pickup_time: string | null; pickup_place: string | null }>();
-  const todayIds = todayOrder.map((r) => r.id);
+    .all<{ id: string; order_id: string; depart_date: string; sort_order: number }>();
+  const pickupOf = await derivedPickupByService(db, [...new Set(candidates.map((c) => c.order_id))]);
+  const withPickup = candidates.map((c) => ({ ...c, pickupTime: pickupOf.get(c.id)?.pickupTime ?? null, pickupPlace: pickupOf.get(c.id)?.pickupPlace ?? null }));
+  type Cand = (typeof withPickup)[number];
+  const cmp = (x: string, y: string): number => (x < y ? -1 : x > y ? 1 : 0); // so theo mã ký tự như ORDER BY của SQLite (không theo ngôn ngữ)
+  const byTie = (a: Cand, b: Cand): number =>
+    Number(a.pickupTime === null) - Number(b.pickupTime === null) || cmp(a.pickupTime ?? "", b.pickupTime ?? "") || a.sort_order - b.sort_order || cmp(a.id, b.id);
+  const deciding = new Map<string, Cand>();
+  for (const c of withPickup) {
+    const cur = deciding.get(c.order_id);
+    if (!cur || byTie(c, cur) < 0) deciding.set(c.order_id, c);
+  }
+  const todayOrder = [...deciding.values()].sort(byTie);
+  const todayIds = todayOrder.map((r) => r.order_id);
   // trip của CHÍNH dịch vụ quyết định "hôm nay" — dùng để ghi đè trường `trip` do toSummaryDtos() điền, CHỈ cho mảng `today` (không đụng listOrders()).
-  const todayTripById = new Map(todayOrder.map((r) => [r.id, { departDate: r.depart_date, pickupTime: r.pickup_time, pickupPlace: r.pickup_place } satisfies OrderSummaryTripDto] as const));
+  const todayTripById = new Map(todayOrder.map((r) => [r.order_id, { departDate: r.depart_date, pickupTime: r.pickupTime, pickupPlace: r.pickupPlace } satisfies OrderSummaryTripDto] as const));
   const todayRowsById = new Map(
     todayIds.length
       ? (await db.prepare(`${ORDER_SELECT} WHERE o.id IN (SELECT value FROM json_each(?1))`).bind(JSON.stringify(todayIds)).all<OrderRow>()).results.map((r) => [r.id, r] as const)
@@ -652,8 +729,12 @@ const SERVICE_COLS = [
 ];
 const ITEM_COLS = ["id", "order_id", "service_id", "catalog_code", "pax_code", "description", "detail", "quantity", "unit_price", "catalog_price", "line_total", "sort_order"];
 
-/** INSERT các dịch vụ rồi các dòng tiền của chúng (dịch vụ trước vì dòng tiền trỏ khoá ngoại vào dịch vụ). */
-function serviceInserts(db: D1Database, orderId: string, services: ValidService[], guard?: Guard): D1PreparedStatement[] {
+/**
+ * INSERT các dịch vụ rồi các dòng tiền của chúng (dịch vụ trước vì dòng tiền trỏ khoá ngoại vào dịch vụ). Trả CẢ mảng id dịch vụ theo thứ tự (ADR-0047:
+ * chặng của dịch vụ MỚI phải dùng đúng id vừa sinh — Review Focus 2). Hai cột `pickup_time`/`pickup_place` ghi GIÁ TRỊ DẪN XUẤT từ chặng (`trip` đã được
+ * `resolveLegPlaces` đặt lại) — GHI KÉP phát hành 1 (Ruling R3).
+ */
+function serviceInserts(db: D1Database, orderId: string, services: ValidService[], guard?: Guard): { stmts: D1PreparedStatement[]; ids: string[] } {
   const stmts: D1PreparedStatement[] = [];
   const ids = services.map((s) => s.id ?? crypto.randomUUID());
   services.forEach((s, i) => {
@@ -679,7 +760,40 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
       );
     }
   });
-  return stmts;
+  return { stmts, ids };
+}
+
+/** Dấu vết của chặng đang lưu (giữ `created_*` khi lưu nháp xoá–chèn lại cùng id) — theo id chặng. */
+export type LegMeta = ReadonlyMap<string, { createdAt: string; createdBy: string | null }>;
+
+/** Một thao tác trên chặng của `PUT /trip` tương thích (ADR-0047 R2c, R4e) — `service.ts:keHoachChangTrip` lập, `updateTrip` ghi. */
+export type LegOp =
+  | { kind: "update"; legId: string; fields: LegFields }
+  | { kind: "insert"; serviceId: string; leg: ChangHopLe }
+  | { kind: "close"; legId: string; reason: LyDoDongChang };
+
+/** Giá trị ghi MỘT chặng (chặng mới sinh id mới; giữ `created_*` theo `meta` khi chèn lại cùng id). */
+function legWriteOf(l: ChangHopLe, serviceId: string, orderId: string, staffId: string, at: string, meta: LegMeta = new Map()): LegWrite {
+  const id = l.id ?? crypto.randomUUID();
+  const m = meta.get(id);
+  return {
+    id, orderId, serviceId, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId,
+    pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
+    createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId,
+  };
+}
+
+/** Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này). */
+function legWrites(services: readonly ValidService[], serviceIds: readonly string[], orderId: string, staffId: string, at: string, meta: LegMeta = new Map()): LegWrite[] {
+  return services.flatMap((s, i) => s.legs.map((l) => legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta)));
+}
+
+/** Giá trị ghi danh sách hành khách của đơn NHÁP: mỗi người một dòng đầu chuỗi (`person_key` = id; giữ id gửi lại). */
+function passengerWrites(passengers: readonly HanhKhachHopLe[], orderId: string, staffId: string, at: string): PassengerWrite[] {
+  return passengers.map((p) => {
+    const id = p.id ?? crypto.randomUUID();
+    return { id, orderId, ten: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, previousId: null, personKey: id, at, by: staffId };
+  });
 }
 
 /**
@@ -705,6 +819,11 @@ export async function createOrder(
     const prefix = orderCodePrefix(now);
     const id = crypto.randomUUID();
     const at = now.toISOString();
+    // ADR-0047: chặng + hành khách dựng TRONG vòng thử — id đơn và id dịch vụ mới đổi mỗi lần thử (Review Focus 2).
+    const services = serviceInserts(db, id, order.services);
+    const legs = legWrites(order.services, services.ids, id, staffId, at).map((l) => legInsert(db, l));
+    const passengers = passengerWrites(order.passengers ?? [], id, staffId, at).map((p) => passengerInsert(db, p));
+    const paxNote = order.passengers === null ? null : moTaDanhSachNhap(order.passengers.length);
     try {
       await db.batch([
         ...booker.before,
@@ -720,8 +839,10 @@ export async function createOrder(
             order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote, at, at,
             booker.partyId, booker.partyId,
           ),
-        ...serviceInserts(db, id, order.services),
-        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note) }),
+        ...services.stmts,
+        ...legs,
+        ...passengers,
+        auditStatement(db, { orderId: id, staffId, action: "created", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote) }),
         ...(alsoCreate?.(id, at) ?? []),
       ]);
       return id;
@@ -734,14 +855,26 @@ export async function createOrder(
 /**
  * Sửa đơn (chỉ khi còn `draft` VÀ `updated_at` còn khớp mốc client đã đọc). Trả false nếu UPDATE đầu không áp dụng (đơn đã đổi trạng thái
  * hoặc đã bị người khác sửa) — khi đó MỌI câu sau đều không chạy vì cùng mang `wonGuard`.
- * Thứ tự cố định vì khoá ngoại: (`booker.before` — hồ sơ mới, nếu có) → UPDATE đơn → xoá dòng tiền → xoá dịch vụ → thêm dịch vụ → thêm dòng tiền.
+ * Thứ tự cố định vì khoá ngoại (ADR-0047 Review Focus 1): (`booker.before` — hồ sơ mới, nếu có) → UPDATE đơn → [nhật ký] → xoá dòng tiền → XOÁ CHẶNG
+ * (trỏ dịch vụ) → xoá dịch vụ → thêm dịch vụ → thêm dòng tiền → THÊM CHẶNG → (chỉ khi thân có khoá `passengers`) xoá rồi thêm hành khách. Chặng và
+ * hành khách của đơn NHÁP xoá–chèn lại (ngoại lệ có tên `XOA_CUNG_NHAP` — lệch có chủ ý hẹp của Hiến chương 5.5, chủ trả lời Q0 "Cách 1: chỉ giữ bản
+ * cuối"); giữ id chặng/khách gửi lại, giữ `created_*` của chặng (`legMeta`). MỌI câu sau nhật ký mang lính gác.
  * Audit đứng ngay sau UPDATE (idiom `changes() > 0`). Giới hạn đã biết: hồ sơ mới trong `booker.before` không mang điều kiện thắng của khoá lạc quan,
  * nên khi UPDATE đơn thua (đơn đã đổi/đã bị người khác sửa) thì hồ sơ vừa tạo vẫn còn lại — một hồ sơ thừa hiếm gặp, chấp nhận được ở lát này.
  */
-export async function updateDraftOrder(db: D1Database, id: string, staffId: string, order: ValidOrder & { expectedUpdatedAt: string }, booker: BookerWrite = NO_BOOKER): Promise<boolean> {
+export async function updateDraftOrder(
+  db: D1Database,
+  id: string,
+  staffId: string,
+  order: ValidOrder & { expectedUpdatedAt: string },
+  booker: BookerWrite = NO_BOOKER,
+  legMeta: LegMeta = new Map(),
+): Promise<boolean> {
   const at = nextStamp(order.expectedUpdatedAt);
   const auditId = crypto.randomUUID();
   const guard = wonGuard(auditId);
+  const services = serviceInserts(db, id, order.services, guard);
+  const paxNote = order.passengers === null ? null : moTaDanhSachNhap(order.passengers.length);
   const results = await db.batch([
     ...booker.before,
     db
@@ -756,10 +889,15 @@ export async function updateDraftOrder(db: D1Database, id: string, staffId: stri
         order.subtotal, order.discount, order.total, order.depositAmount, order.depositMethod, order.remainingAmount, order.paymentNote,
         booker.partyId, booker.partyId, at, id, order.expectedUpdatedAt,
       ),
-    auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note) }, "changes() > 0"),
+    auditStatement(db, { id: auditId, orderId: id, staffId, action: "updated", at, detail: joinDetail(summarizeDeviations(order.items), booker.note, paxNote) }, "changes() > 0"),
     db.prepare(`DELETE FROM order_item WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
+    legDeleteDraft(db, id, auditId),
     db.prepare(`DELETE FROM order_service WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
-    ...serviceInserts(db, id, order.services, guard),
+    ...services.stmts,
+    ...legWrites(order.services, services.ids, id, staffId, at, legMeta).map((l) => legInsertGuarded(db, l, auditId)),
+    ...(order.passengers === null
+      ? []
+      : [passengerDeleteDraft(db, id, auditId), ...passengerWrites(order.passengers, id, staffId, at).map((p) => passengerInsertGuarded(db, p, auditId))]),
   ]);
   return (results[booker.before.length]!.meta.changes ?? 0) > 0;
 }
@@ -770,11 +908,14 @@ export async function updateDraftOrder(db: D1Database, id: string, staffId: stri
  * Trigger `orders_confirm_requires_trip` (0008) là lưới thứ hai cho phần không đổi của luật. Trả false nếu điều kiện không còn đúng.
  * `prevUpdatedAt` là mốc `updated_at` route đọc lúc kiểm quyền: mốc mới đi qua `nextStamp` nên luôn lớn hơn nó (như `updateDraftOrder`/`updateTrip`),
  * để client còn giữ mốc cũ không lọt qua khoá lạc quan của `PUT /trip` dù xác nhận rơi vào cùng mili-giây với một lần ghi khác.
+ * ADR-0047 Ruling R4c: câu ĐẦU lô điền ngày đón = ngày đi cho chặng mở còn trống ngày (trigger `orders_confirm_requires_leg_date` xét lúc đổi trạng thái)
+ * — nên câu UPDATE đổi trạng thái nay là `results[1]`. Không thêm lý do "chưa đủ chuyến" mới cho người dùng (`confirmGaps` không đổi).
  */
 export async function confirmOrder(db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, detail?: string): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
   const results = await db.batch([
+    legFillDateOnConfirm(db, id, at),
     db
       .prepare(
         `UPDATE orders SET status = 'confirmed', updated_at = ?, confirmed_at = ?
@@ -787,7 +928,7 @@ export async function confirmOrder(db: D1Database, id: string, staffId: string, 
       .bind(at, at, id, from, to),
     auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
   ]);
-  return (results[0]!.meta.changes ?? 0) > 0;
+  return (results[1]!.meta.changes ?? 0) > 0;
 }
 
 /**
@@ -1008,6 +1149,7 @@ export async function updateTrip(
   updates: { id: string; trip: ValidTrip }[],
   expectedUpdatedAt: string,
   detail: string,
+  legOps: readonly LegOp[] = [],
 ): Promise<boolean> {
   const at = nextStamp(expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -1015,6 +1157,7 @@ export async function updateTrip(
   const results = await db.batch([
     db.prepare(`UPDATE orders SET updated_at = ? WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ?`).bind(at, orderId, expectedUpdatedAt),
     auditStatement(db, { id: auditId, orderId, staffId, action: "trip_updated", at, detail }, "changes() > 0"),
+    // `pickup_time`/`pickup_place` ghi GIÁ TRỊ DẪN XUẤT từ chặng sau khi trộn (ADR-0047 R3 — ghi kép; `keHoachChangTrip` đã đặt `trip`).
     ...updates.map(({ id, trip: t }) =>
       db
         .prepare(
@@ -1023,6 +1166,96 @@ export async function updateTrip(
         )
         .bind(t.departDate, t.departTime, t.pickupTime, t.pickupPlace, t.checkinDate, t.checkinTime, t.checkinPlace, t.note, id, orderId, ...guard.binds),
     ),
+    // ADR-0047 R2c/R4e: thao tác trên chặng (dời ngày, trộn giờ/nơi cũ, thêm/đóng chiều đi) — mọi câu có lính gác.
+    ...legOps.map((op) => {
+      if (op.kind === "update") return legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId);
+      if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
+      return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at), auditId);
+    }),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+/**
+ * SỐ KHÁCH HIỆU LỰC (ADR-0047 A3) của các dòng dịch vụ đã đọc: số đã lưu, phủ dòng điều chỉnh GẦN NHẤT của chính đơn chứa dịch vụ qua ĐÚNG
+ * `getLatestAdjustments` → `parseAdjustmentAfter` → `applyAdjustedPax` (một nguồn — bài học Đợt E). Dùng chung cho hàm công bố `soKhachHieuLuc` và cờ
+ * "danh sách nhiều hơn số khách" (R9).
+ */
+export async function effectivePax(db: D1Database, rows: readonly ServicePaxRow[]): Promise<Map<string, PaxCounts>> {
+  const latest = await getLatestAdjustments(db, [...new Set(rows.map((r) => r.order_id))]);
+  const afterByOrder = new Map(Array.from(latest, ([id, a]) => [id, a.after] as const));
+  return new Map(applyAdjustedPax(rows, afterByOrder).map((r) => [r.id, { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant }] as const));
+}
+
+/**
+ * Sửa danh sách hành khách của đơn ĐÃ XÁC NHẬN (ADR-0047 A2, Ruling R8) — khoá lạc quan theo `orders.updated_at` (câu đầu `order_touch`). Sau nhật ký
+ * (`detail` chỉ số lượng): chèn dòng mới (thêm; sửa = dòng trỏ dòng hiện hành, cùng person_key) rồi huỷ dòng (theo ĐÚNG thứ tự kế hoạch: mỗi người mới trước
+ * cũ sau). Mọi câu sau nhật ký mang lính gác. Trả true ⇔ câu đầu đã áp dụng.
+ */
+export async function writePassengerChange(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: { expected: string; chen: readonly { id: string; personKey: string; previousId: string | null; fullName: string; birthYear: number; paxCode: PaxCode | null }[]; huy: readonly string[]; detail: string },
+): Promise<boolean> {
+  const at = nextStamp(plan.expected);
+  const auditId = crypto.randomUUID();
+  const results = await db.batch([
+    orderTouch(db, orderId, at, plan.expected),
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_passenger_changed", at, detail: plan.detail }, "changes() > 0"),
+    ...plan.chen.map((p) =>
+      passengerInsertGuarded(db, { id: p.id, orderId, ten: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, previousId: p.previousId, personKey: p.personKey, at, by: staffId }, auditId),
+    ),
+    ...plan.huy.map((rowId) => passengerVoidGuarded(db, rowId, orderId, at, staffId, auditId)),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+// ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1) ---------------------------------------------------------------------------------------------------
+// Lô: câu ĐẦU tự quyết thắng/thua (khoá lạc quan) → nhật ký `changes() > 0` (id riêng) → mọi câu sau mang lính gác của CHÍNH dòng nhật ký đó:
+// ghi chặng / đẩy mốc đơn (form khác đang mở thấy "vừa có người sửa") / GHI KÉP hai cột cũ (R3). Trả true ⇔ câu đầu đã áp dụng.
+
+const later = (a: string, b: string): string => (a > b ? a : b);
+
+/** Thêm chặng — khoá lạc quan theo `orders.updated_at` (câu đầu `order_touch`: chỉ đơn ĐÃ XÁC NHẬN, đúng mốc). */
+export async function addLeg(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
+): Promise<boolean> {
+  const at = nextStamp(plan.expected);
+  const auditId = crypto.randomUUID();
+  const results = await db.batch([
+    orderTouch(db, orderId, at, plan.expected),
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_added", at, detail: plan.detail }, "changes() > 0"),
+    legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at), auditId),
+    serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+/** Sửa / đóng chặng — khoá lạc quan theo `updated_at` CỦA CHẶNG (câu đầu `leg_update_checked` / `leg_close_checked`); đẩy mốc đơn nếu mốc đơn còn đúng. */
+export async function changeLeg(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  orderUpdatedAt: string,
+  plan:
+    | { kind: "update"; legId: string; serviceId: string; fields: LegFields; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } }
+    | { kind: "close"; legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
+): Promise<boolean> {
+  const at = nextStamp(later(plan.expected, orderUpdatedAt));
+  const auditId = crypto.randomUUID();
+  const first =
+    plan.kind === "update"
+      ? legUpdateChecked(db, plan.legId, orderId, plan.fields, at, staffId, plan.expected)
+      : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
+  const results = await db.batch([
+    first,
+    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "update" ? "order_leg_updated" : "order_leg_closed", at, detail: plan.detail }, "changes() > 0"),
+    orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
+    serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }

@@ -71,8 +71,13 @@
 | `order_money_adjustment` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `ord_transfer_leg` | bảng |  |
+| `ord_passenger` | bảng |  |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
+| `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
+| `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
+| `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
 
 ## parties
 

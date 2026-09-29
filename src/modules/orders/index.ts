@@ -4,7 +4,7 @@
 import { getAuditTrail } from "../audit";
 import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
-  PoolResponse,
+  PassengerListResponse, PaxCounts, PoolResponse,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -12,15 +12,21 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders,
-  listPoolSources, updateDraftOrder, updateTrip,
+  addLeg, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
+  getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
+import { legById, legTripRows, passengerRowsByOrders, servicePaxByIds } from "./chang-hanh-khach-repo";
+import { dongHienHanh } from "../../shared/hanh-khach";
+import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
 import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
-import { loadOrderView, resolveBooker, validationContext, type OrderValidationContext } from "./service";
+import {
+  keHoachChangTrip, loadOrderView, passengerList, planAddLeg, planCloseLeg, planEditLeg, planPassengerChange, resolveBooker, resolveLegPlaces, validationContext,
+  type OrderValidationContext,
+} from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -36,6 +42,28 @@ const STALE = () => error(409, "stale", "Đơn vừa được người khác s�
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
 const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
 const PARTNER_DISCOUNT = () => error(403, "forbidden", PARTNER_DISCOUNT_MESSAGE);
+/** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
+const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
+const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
+const LEG_CLOSED = (message = "Chặng đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
+const CANNOT_WRITE_PASSENGERS = () => error(403, "forbidden", "Tài khoản này không được nhập danh sách hành khách của đơn này.");
+/** Thân yêu cầu CÓ khoá `passengers` (kể cả `[]`) — ADR-0047 R2b: vắng = giữ danh sách đang lưu, không hỏi ô. */
+const hasPassengersKey = (body: Record<string, unknown> | null): boolean => body !== null && typeof body === "object" && "passengers" in body;
+
+/** Lỗi lập kế hoạch sửa/đóng chặng → phản hồi. */
+function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed"; message: string }): Response {
+  if (f.code === "leg_not_found") return LEG_NOT_FOUND();
+  if (f.code === "leg_closed") return LEG_CLOSED(f.message);
+  return error(400, "invalid_input", f.message);
+}
+
+/** Câu đầu lô sửa/đóng chặng không áp dụng: vì chặng vừa bị bỏ, đơn vừa huỷ, hay vì mốc chặng đã cũ? Đọc lại để trả đúng lý do. */
+async function legRaced(db: D1Database, orderId: string, legId: string): Promise<Response> {
+  const [now, leg] = await Promise.all([getMeta(db, orderId), legById(db, legId, orderId)]);
+  if (now?.status === "cancelled") return CANCELLED();
+  if (leg?.closed_at) return LEG_CLOSED();
+  return STALE();
+}
 
 /**
  * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
@@ -85,6 +113,73 @@ export async function findOrderRef(db: D1Database, id: string): Promise<{ staffI
  */
 export async function findOrderDepartDates(db: D1Database, id: string): Promise<(string | null)[]> {
   return getDepartDates(db, id);
+}
+
+/**
+ * API công khai (ADR-0047 A3) — SỐ KHÁCH HIỆU LỰC của từng dịch vụ: số đã lưu ở `order_service`, phủ dòng điều chỉnh GẦN NHẤT của chính đơn chứa dịch
+ * vụ đó (ADR-0014 điều 6) qua ĐÚNG `getLatestAdjustments` → `money-adjustment.ts:parseAdjustmentAfter` → `applyAdjustedPax` — một nguồn với danh sách
+ * đơn, Trang chủ, hàng chờ (bài học Đợt E: không viết bộ phân tích `after_json` thứ hai). Id lạ: không có trong Map. Không module nào khác đọc
+ * `order_money_adjustment`/`after_json` (bài quét src/orders-cong-bo.test.ts).
+ * KHÔNG tự kiểm quyền — nơi gọi phải đứng sau `can()` (bài quét nơi gọi ở src/orders-cong-bo.test.ts).
+ */
+export async function soKhachHieuLuc(db: D1Database, serviceIds: readonly string[]): Promise<Map<string, PaxCounts>> {
+  return effectivePax(db, await servicePaxByIds(db, serviceIds));
+}
+
+/** Một chặng cho tài xế / chuyến xe (ADR-0047 A3) — ĐÚNG các khoá này; thêm khoá = sửa bài liệt kê khoá ở src/modules/orders/ham-cong-bo.test.ts. */
+export interface ChangChoChuyen {
+  legId: string;
+  orderId: string;
+  orderCode: string;
+  /** Tên dịch vụ (nhập tay là chữ tự do) — đã che dãy từ 8 chữ số. */
+  serviceName: string;
+  direction: "OUT" | "RETURN";
+  pickupDate: string | null;
+  pickupTime: string | null;
+  /** Tên điểm danh mục hoặc chữ tự do — đã che dãy số. */
+  noiDon: string;
+  noiTra: string | null;
+  /** Số khách HIỆU LỰC của dịch vụ (chờ lượt 2 nếu có `pax_override`). */
+  soNguoi: number;
+  /** Người có tên (dòng hiện hành): khoá bền `personKey`, bản tên đã dùng `rowId`. */
+  nguoi: { personKey: string; rowId: string; fullName: string; birthYear: number }[];
+}
+
+/**
+ * API công khai — hàm đọc HẸP cho Vận chuyển (ADR-0047 A3): chặng CÒN MỞ của đơn ĐÃ XÁC NHẬN theo danh sách id chặng, mỗi phần tử dựng MỚI TỪNG KHOÁ (danh
+ * sách trường được phép — khuôn `pool.ts`, Hiến chương 4.4): không tiền, ghi chú, người lập, SĐT, email. Chữ tự do (nơi, tên dịch vụ) che dãy số. Liên hệ
+ * cho tài xế: chờ lượt 2 (Q3). Chưa module nào gọi hàm này (hôm nay 0 nơi gọi).
+ * KHÔNG tự kiểm quyền — nơi gọi phải đứng sau `can()` (bài quét nơi gọi ở src/orders-cong-bo.test.ts).
+ */
+export async function hanhKhachChoChuyen(db: D1Database, legIds: readonly string[]): Promise<ChangChoChuyen[]> {
+  const legs = await legTripRows(db, legIds);
+  if (legs.length === 0) return [];
+  const orderIds = [...new Set(legs.map((l) => l.order_id))];
+  const [paxRows, people] = await Promise.all([servicePaxByIds(db, [...new Set(legs.map((l) => l.service_id))]), passengerRowsByOrders(db, orderIds)]);
+  const pax = await effectivePax(db, paxRows);
+  const current = new Map<string, ChangChoChuyen["nguoi"]>();
+  for (const orderId of orderIds) {
+    const rows = people.filter((p) => p.order_id === orderId).map((p) => ({
+      id: p.id, personKey: p.person_key, previousId: p.previous_id, voided: p.voided === 1, fullName: p.ten, birthYear: p.birth_year, paxCode: p.pax_code, updatedAt: p.updated_at,
+    }));
+    current.set(orderId, dongHienHanh(rows).map((p) => ({ personKey: p.personKey, rowId: p.id, fullName: p.fullName, birthYear: p.birthYear })));
+  }
+  return legs.map((l) => {
+    const p = pax.get(l.service_id);
+    return {
+      legId: l.id,
+      orderId: l.order_id,
+      orderCode: l.order_code,
+      serviceName: maskLongDigits(l.service_name),
+      direction: l.direction,
+      pickupDate: l.pickup_date,
+      pickupTime: l.pickup_time,
+      noiDon: maskLongDigits(l.noi_don),
+      noiTra: maskLongDigits(l.noi_tra),
+      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      nguoi: (current.get(l.order_id) ?? []).map((n) => ({ personKey: n.personKey, rowId: n.rowId, fullName: n.fullName, birthYear: n.birthYear })),
+    };
+  });
 }
 
 /**
@@ -251,6 +346,8 @@ export const ordersModule: AppModule = {
     route("POST", "/api/orders", "orders", async ({ env, request, staff, newOrderHandler, baoThayDoi }) => {
       if (!can(staff, "order.create")) return CANNOT_CREATE();
       const body = await readJson(request);
+      // ADR-0047 A2: thân có khoá `passengers` (danh sách khách của đơn nháp — Ruling R1) → hỏi thêm ô nhập tên khách trên đơn của chính mình.
+      if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: staff.id })) return CANNOT_WRITE_PASSENGERS();
       if (hasHandlerPick(body) && !can(staff, "dispatch.assign", { ownerId: staff.id })) return CANNOT_PICK_HANDLER();
       const pick = parseHandlerPick(body);
       if (!pick.ok) return error(400, "invalid_input", pick.message);
@@ -259,13 +356,16 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx);
       if (guard) return guard;
-      const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
+      // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
+      const placed = await resolveLegPlaces(env.DB, parsed.value, ctx);
+      if (!placed.ok) return error(400, "invalid_input", placed.message);
+      const booker = await resolveBooker(env.DB, placed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       // Người được chọn: `dispatch` trả câu lệnh (mở dòng `HANDLE` + nhật ký `order_handler_changed`) để gộp vào CÙNG db.batch() tạo đơn — dựng theo id
       // đơn và mốc `at` của TỪNG lần thử của `createOrder`, nên dòng phụ trách và nhật ký cùng mốc với dòng `created`. Không đạt → 400, không tạo đơn.
       const handler = pick.staffId === null ? null : await newOrderHandler(pick.staffId);
       if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
-      const id = await createOrder(env.DB, staff.id, parsed.value, handler?.statements, booker.write);
+      const id = await createOrder(env.DB, staff.id, placed.value, handler?.statements, booker.write);
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
@@ -297,12 +397,16 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.modify", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
       if (meta.status !== "draft") return NOT_EDITABLE();
       const body = await readJson(request);
+      // ADR-0047 A2: thân có khoá `passengers` → hỏi thêm ô nhập tên khách với phạm vi CỦA ĐƠN NÀY (trước validateOrder).
+      if (hasPassengersKey(body) && !can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
       const ctx = await validationContext(env.DB, id);
       const parsed = validateOrder(body, ctx);
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx);
       if (guard) return guard;
-      const expected = parsed.value.expectedUpdatedAt;
+      const placed = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
+      if (!placed.ok) return error(400, "invalid_input", placed.message);
+      const expected = placed.value.expectedUpdatedAt;
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");
       // Thân yêu cầu không có CẢ HAI khoá `bookerPartyId`/`newBooker` (một `order-form.js` PWA cũ trong bộ nhớ đệm chưa biết trường người đặt) → GIỮ NGUYÊN
       // người đặt đang lưu, không gọi resolveBooker (đơn đang phụ trách bởi hồ sơ đã bị ngưng sẽ 400 nếu resolveBooker chạy lại). `bookerPartyId: null`
@@ -310,9 +414,11 @@ export const ordersModule: AppModule = {
       const noBookerKeys = body !== null && typeof body === "object" && !("bookerPartyId" in body) && !("newBooker" in body);
       const booker = noBookerKeys
         ? { ok: true as const, write: { partyId: meta.bookerPartyId, before: [], note: null } }
-        : await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
+        : await resolveBooker(env.DB, placed.value.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
-      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...parsed.value, expectedUpdatedAt: expected }, booker.write))) {
+      // ADR-0047: lưu nháp xoá–chèn lại chặng — giữ `created_*` của chặng gửi lại cùng id.
+      const legMeta = new Map(ctx.stored.flatMap((s) => s.legs.map((l) => [l.id, { createdAt: l.createdAt, createdBy: l.createdBy }] as const)));
+      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
       }
@@ -331,14 +437,106 @@ export const ordersModule: AppModule = {
       const stored = await getStoredServices(env.DB, id);
       const parsed = validateTripUpdate(await readJson(request), stored.map((s) => ({ id: s.id, departDate: s.trip.departDate })), meta.status, vnToday(new Date()));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
-      const detail = describeTripUpdates(stored, parsed.value.updates);
+      // ADR-0047 (R2c, R4e, R3): trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu, dời chặng theo ngày đi mới; `trip` mang giá trị dẫn xuất (ghi kép + nhật ký).
+      const planned = keHoachChangTrip(stored, parsed.value.updates);
+      const detail = describeTripUpdates(stored, planned.updates) ?? (planned.ops.length ? "cập nhật chặng đưa đón" : null);
       if (detail === null) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
-      if (!(await updateTrip(env.DB, id, staff.id, parsed.value.updates, parsed.value.expectedUpdatedAt, detail))) {
+      if (!(await updateTrip(env.DB, id, staff.id, planned.updates, parsed.value.expectedUpdatedAt, detail, planned.ops))) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    // ---- Chặng đưa đón SAU XÁC NHẬN (ADR-0047 A1, Ruling R1): thêm / sửa trường vận hành / bỏ (= đóng dòng có lý do). Ô `order.trip.edit` { ownerId,
+    // assigned } (cùng loại dữ liệu với "Sửa thông tin chuyến"), hỏi TRƯỚC khi đọc thân. Đơn nháp → 409 `use_order_form` (chặng của nháp đi trong thân
+    // PUT /api/orders); đơn huỷ → 409. Khoá lạc quan: thêm theo mốc ĐƠN, sửa/đóng theo mốc CHẶNG. Mỗi lần ghi báo Bảng tin "chuyen" đúng một lần.
+    route("POST", "/api/orders/:id/legs", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      const plan = await planAddLeg(env.DB, id, await readJson(request), vnToday(new Date()));
+      if (!plan.ok) return error(400, "invalid_input", plan.message);
+      if (!(await addLeg(env.DB, id, staff.id, plan.value))) {
+        const now = await getMeta(env.DB, id);
+        return now?.status === "cancelled" ? CANCELLED() : STALE();
+      }
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
+    }),
+
+    route("PUT", "/api/orders/:id/legs/:legId", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      const legId = params.legId!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
+      const plan = await planEditLeg(env.DB, id, legId, await readJson(request), vnToday(new Date()));
+      if (!plan.ok) return legFailure(plan);
+      if (plan.value.detail === null) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
+      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "update", ...plan.value, detail: plan.value.detail }))) return legRaced(env.DB, id, legId);
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    route("POST", "/api/orders/:id/legs/:legId/close", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      const legId = params.legId!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
+      const plan = await planCloseLeg(env.DB, id, legId, await readJson(request));
+      if (!plan.ok) return legFailure(plan);
+      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value }))) return legRaced(env.DB, id, legId);
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    // ---- Danh sách hành khách (ADR-0047 A2). ĐỌC: khuôn chi tiết đơn — `order.view` theo phạm vi đơn (chỉ-FIELD không phụ trách → 404 như đơn không tồn
+    // tại), rồi `contact.view` (nay gồm họ tên + năm sinh). Chỉ dòng hiện hành; cờ "nhiều hơn số khách" (R9). Không tên/năm sinh trong nhật ký/Bảng tin.
+    route("GET", "/api/orders/:id/passengers", "orders", async ({ env, params, staff, isAssigned }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      const scope = { ownerId: meta.staffId, assigned };
+      if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN();
+      if (!can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
+      return json((await passengerList(env.DB, id)) satisfies PassengerListResponse);
+    }),
+
+    // GHI (đơn ĐÃ XÁC NHẬN — Ruling R1; đơn nháp đi trong thân PUT /api/orders): ô `order.passenger.write` { ownerId, assigned } TRƯỚC khi đọc thân; khoá
+    // lạc quan theo `orders.updated_at`; chỉ-thêm (R8); nhật ký ĐÚNG khuôn "thêm N, sửa N, huỷ N khách"; Bảng tin "sua" đúng một lần.
+    route("POST", "/api/orders/:id/passengers", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.passenger.write", { ownerId: meta.staffId, assigned })) return CANNOT_WRITE_PASSENGERS();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      const plan = await planPassengerChange(env.DB, id, await readJson(request), vnToday(new Date()));
+      if (!plan.ok) return error(400, "invalid_input", plan.message);
+      if (plan.value.none) return json((await passengerList(env.DB, id)) satisfies PassengerListResponse); // không đổi gì
+      if (!(await writePassengerChange(env.DB, id, staff.id, plan.value))) {
+        const now = await getMeta(env.DB, id);
+        return now?.status === "cancelled" ? CANCELLED() : STALE();
+      }
+      baoThayDoi({ orderId: id, thayDoi: "sua" });
+      return json((await passengerList(env.DB, id)) satisfies PassengerListResponse);
     }),
 
     // Đổi khách (hồ sơ người đặt + tên/SĐT trên đơn) — đơn nháp HOẶC đã xác nhận: coi như thông tin vận hành, cùng quyền với sửa chuyến (ADR-0011 điều 2).

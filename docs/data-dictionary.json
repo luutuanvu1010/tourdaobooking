@@ -136,6 +136,16 @@
       "legacy": true
     },
     {
+      "name": "ord_transfer_leg",
+      "module": "orders",
+      "kind": "table"
+    },
+    {
+      "name": "ord_passenger",
+      "module": "orders",
+      "kind": "table"
+    },
+    {
       "name": "pty_contact_kind",
       "module": "parties",
       "kind": "lookup"
@@ -397,6 +407,34 @@
       "columns": [
         "id",
         "staff_id"
+      ]
+    },
+    {
+      "name": "v_ord_order_flag",
+      "module": "orders",
+      "columns": [
+        "id",
+        "is_confirmed",
+        "is_cancelled"
+      ]
+    },
+    {
+      "name": "v_ord_leg_key",
+      "module": "orders",
+      "columns": [
+        "id",
+        "order_id",
+        "order_service_id",
+        "is_open"
+      ]
+    },
+    {
+      "name": "v_ord_passenger_key",
+      "module": "orders",
+      "columns": [
+        "person_key",
+        "order_id",
+        "has_current_row"
       ]
     },
     {

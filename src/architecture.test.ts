@@ -10,6 +10,7 @@ import { DatabaseSync } from "node:sqlite";
 import { renderDictionaryMarkdown } from "../scripts/data-dictionary-lib.mjs";
 import { maskSource } from "../scripts/source-mask-lib.mjs";
 import { registeredSql, type SqlEntry } from "./shared/sql-registry.ts";
+import { vnToday } from "./shared/vn-date.ts";
 
 const ROOT = fileURLToPath(new URL("../", import.meta.url));
 const SRC = join(ROOT, "src");
@@ -75,8 +76,61 @@ const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
  */
 const KHONG_DB = ["bangtin"] as const;
 
+/**
+ * ADR-0047 A3 (T3b) — SIẾT: tập bảng mang cờ `legacy: true` ở docs/data-dictionary.json bị KHOÁ đúng danh sách này (bảng tên cũ, có trước luật tiền tố).
+ * Bảng mới không được trốn luật tiền tố (ADR-0002 điều 2) bằng cách đánh dấu `legacy` — bài kiểm "tập bảng legacy" ở cuối tệp đỏ ngay. Danh sách
+ * chỉ được CO lại (một bảng cũ đổi tên sang có tiền tố); thêm tên vào đây là NỚI hàng rào (Điều 9.4) — cần chủ duyệt.
+ */
+const LEGACY_TABLES: readonly string[] = [
+  "audit_log", // module audit — nhật ký, có từ 0001
+  "catalog_item", // catalog — danh mục đồng bộ Sheet
+  "catalog_override", // catalog — ghi đè có chủ đích
+  "catalog_sync", // catalog — trạng thái đồng bộ
+  "company_profile", // company — chỉ còn logo_url (ADR-0024 6.3)
+  "login_attempt", // auth — chống dò PIN
+  "order_item", // orders — dòng tiền
+  "order_money_adjustment", // orders — dòng điều chỉnh chỉ-thêm (ADR-0014 điều 6)
+  "order_service", // orders — dịch vụ của đơn
+  "orders", // orders — đơn
+  "staff", // staff — tài khoản (cột chết role/full_name, ADR-0005)
+];
+
+/**
+ * TỆP "NỬA NGHIÊM" (ADR-0047 A3, Ruling R5) — SIẾT: module còn ở LEGACY nhưng TỆP này đã theo điều 8(b): mọi câu SQL đăng ký bằng `defineSql`, chịu bài
+ * EXPLAIN (chỉ chạm bảng của mình / view công bố / khoá ngoại được phép) và bài `.prepare(<chuỗi thô>)` / `db.exec(<chuỗi thô>)`. Không quét cả thư mục
+ * module (SQL cũ của `orders/repository.ts` vẫn là nợ LEGACY). Module lên STRICT thì bỏ khỏi đây.
+ */
+const NUA_NGHIEM: readonly { module: string; file: string }[] = [{ module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" }];
+
+/**
+ * NGOẠI LỆ CÓ TÊN của R-N1-9 ("không xoá cứng bảng mới") — ADR-0047 A1, A2: chặng và hành khách của ĐƠN NHÁP xoá–chèn lại cùng lô khi lưu nháp
+ * (như order_service). Lệch có chủ ý hẹp của Hiến chương 5.5 (chủ trả lời Q0 2026-09-29 "Cách 1: chỉ giữ bản cuối", điều phối chuyển lại). NỚI hàng
+ * rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 2. Chỉ tên trong danh sách; mỗi câu phải có
+ * điều kiện đơn nháp TRONG câu, và bảng đích phải có trigger `<bảng>_no_delete` (cấm xoá khi đơn không còn nháp). Danh sách chỉ được co lại (bài
+ * "ngoại lệ thừa" ở cuối tệp).
+ */
+const XOA_CUNG_NHAP: readonly string[] = ["orders.leg_delete_draft", "orders.passenger_delete_draft"];
+
+/**
+ * NỢ CÓ TÊN, CÓ HẠN (ADR-0047 A3 "ghi nợ có tên, có hạn"): câu của tệp nửa nghiêm được đọc thẳng `audit_log` CHỈ trong lính gác `wonGuard`
+ * (`EXISTS (SELECT 1 FROM audit_log WHERE id = ?)`) cùng lô với lưu nháp / sửa chuyến / route chặng / route hành khách (nợ LEGACY hiện có của orders:
+ * "`wonGuard` của orders (đọc audit_log) ở lại tới N2" — xem LEGACY ở trên; `v_aud_order_event` lọc bỏ `updated`/`trip_updated` nên không thay được).
+ * NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 3 (hạn ĐỀ XUẤT, chủ chốt). Quá hạn → đỏ.
+ * Gỡ khi: `orders` lên STRICT với lính gác qua view công bố của `audit`, hoặc ADR khác chọn cơ chế khác. Câu đầu lô (tự quyết thắng/thua, không lính gác)
+ * mang tên KHÁC câu có lính gác — chỉ tên có lính gác vào đây.
+ */
+const DOC_AUDIT_LOG_WONGUARD = {
+  han: "2027-03-31",
+  ten: [
+    "orders.leg_delete_draft", "orders.leg_insert_guarded", "orders.leg_update_guarded", "orders.leg_close_guarded", "orders.passenger_delete_draft",
+    "orders.passenger_insert_guarded", "orders.passenger_void_guarded", "orders.order_touch_guarded", "orders.service_mirror_update_guarded",
+  ],
+} as const;
+
 // vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen" };
+// ord_: ADR-0047 A3 (bảng mới của orders; bảng cũ orders/order_item/order_service/order_money_adjustment giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4),
+// CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -290,13 +344,17 @@ function touched(sql: string): { reads: Set<string>; writes: Set<string> } {
  */
 const isHardDelete = (sql: string): boolean => /^\s*(?:WITH\b[\s\S]*?\)\s*)?DELETE\b/i.test(sql) || /\bOR\s+REPLACE\b|^\s*REPLACE\b/i.test(sql);
 
-function violations(e: Pick<SqlEntry, "module" | "sql">): string[] {
+/** `exceptions: false` = bỏ qua hai ngoại lệ có tên của ADR-0047 (dùng cho bài "ngoại lệ không thừa" — câu trong danh sách PHẢI vi phạm khi không có ngoại lệ). */
+function violations(e: Pick<SqlEntry, "module" | "sql"> & { name?: string }, opts: { exceptions?: boolean } = {}): string[] {
   const deps = new Set([e.module, ...(ALLOWED_EDGES[e.module] ?? [])]);
   const integrity = new Set(dict.integrityEdges.map((x) => `${x.fromTable}>${x.toTable}`));
   const { reads, writes } = touched(e.sql);
   const out: string[] = [];
-  // R-N1-9 (ADR-0003 điều 8): không xoá cứng bản ghi bảng MỚI — đóng hiệu lực (`valid_to`) hoặc `active = 0`.
-  if (isHardDelete(e.sql)) for (const w of writes) if (dict.tables.find((t) => t.name === w)?.legacy !== true) out.push(`xoá cứng bảng ${w} (R-N1-9: đóng hiệu lực hoặc active = 0, không DELETE/REPLACE)`);
+  const key = `${e.module}.${e.name ?? ""}`;
+  const useExceptions = opts.exceptions !== false;
+  // R-N1-9 (ADR-0003 điều 8): không xoá cứng bản ghi bảng MỚI — đóng hiệu lực (`valid_to`) hoặc `active = 0`. Ngoại lệ có tên XOA_CUNG_NHAP (ADR-0047).
+  if (isHardDelete(e.sql) && !(useExceptions && XOA_CUNG_NHAP.includes(key)))
+    for (const w of writes) if (dict.tables.find((t) => t.name === w)?.legacy !== true) out.push(`xoá cứng bảng ${w} (R-N1-9: đóng hiệu lực hoặc active = 0, không DELETE/REPLACE)`);
   const parentsOfWrites = new Map<string, string[]>();
   for (const w of writes) {
     if (ownerOf(w) !== e.module) out.push(`ghi bảng ${w} của module ${ownerOf(w) ?? "không có trong sổ"}`);
@@ -313,7 +371,8 @@ function violations(e: Pick<SqlEntry, "module" | "sql">): string[] {
       // Khoá ngoại của bảng đang ghi buộc SQLite đọc bảng cha để kiểm toàn vẹn — hợp lệ nếu cạnh đó được phép.
       const ok = deps.has(owner) || (parentsOfWrites.get(r) ?? []).some((w) => integrity.has(`${w}>${r}`));
       if (!ok) out.push(`khoá ngoại tới ${r} của module ${owner}: cạnh ${e.module} → ${owner} chưa khai`);
-    } else out.push(`đọc TRỰC TIẾP bảng ${r} của module ${owner} (chỉ được đọc qua view công bố v_*)`);
+    } else if (r === "audit_log" && useExceptions && (DOC_AUDIT_LOG_WONGUARD.ten as readonly string[]).includes(key)) continue; // nợ có hạn (ADR-0047 A3)
+    else out.push(`đọc TRỰC TIẾP bảng ${r} của module ${owner} (chỉ được đọc qua view công bố v_*)`);
   }
   return out;
 }
@@ -335,8 +394,9 @@ test("bộ phân tích SQL: bắt đúng vi phạm và cho phép đúng cách d�
 });
 
 test("ADR-0002 điều 8(b): SQL đã đăng ký của module nghiêm chỉ chạm bảng của mình / view công bố / khoá ngoại được phép", async () => {
-  for (const s of STRICT) await import(pathToFileURL(join(SRC, s.file)).href);
-  for (const s of STRICT) assert.ok(registeredSql().some((e) => e.module === s.module), `module nghiêm "${s.module}" chưa đăng ký câu SQL nào (repository.ts phải dùng defineSql)`);
+  // ADR-0047 A3 (R5, siết): tệp "nửa nghiêm" (NUA_NGHIEM) cũng được nạp — câu của nó vào sổ đăng ký và chịu CÙNG bộ phân tích `violations`.
+  for (const s of [...STRICT, ...NUA_NGHIEM]) await import(pathToFileURL(join(SRC, s.file)).href);
+  for (const s of [...STRICT, ...NUA_NGHIEM]) assert.ok(registeredSql().some((e) => e.module === s.module), `module nghiêm "${s.module}" chưa đăng ký câu SQL nào (${s.file} phải dùng defineSql)`);
   const problems = registeredSql().flatMap((e) => violations(e).map((v) => `${e.module}.${e.name}: ${v}`));
   assert.deepEqual(problems, []);
 });
@@ -372,6 +432,11 @@ test("bộ bắt `.prepare(<chuỗi thô>)`: bắt chuỗi/template, cho qua h�
 
 test("ADR-0002 điều 8(b): tệp SQL của module nghiêm không được `.prepare(` với chuỗi/template thô", () => {
   const problems = STRICT.flatMap((s) => rawPrepareHits(s.file, readFileSync(join(SRC, s.file), "utf8")));
+  // ADR-0047 A3 (R5, siết): tệp "nửa nghiêm" — CHỈ tệp đó (repository.ts cũ của orders còn SQL thô, nợ LEGACY) — cấm cả `.prepare(`/`db.exec(` thô.
+  for (const n of NUA_NGHIEM) {
+    const code = readFileSync(join(SRC, n.file), "utf8");
+    problems.push(...rawPrepareHits(n.file, code), ...rawExecHits(n.file, code));
+  }
   assert.deepEqual(problems, [], "SQL viết thẳng vào .prepare(...) không qua defineSql nên bài kiểm ranh giới EXPLAIN không thấy — hãy khai bằng defineSql rồi .prepare(<hằng>)");
 });
 
@@ -554,8 +619,16 @@ test("R-N1-9: câu DELETE trên bảng mới bị bắt (phải đóng hiệu l�
 // Kiểm hai lớp: (1) KIỂU — StaffRecord/StaffProfile không có hai trường, đọc thuộc tính là lỗi `tsc`; (2) bài kiểm này quét mã nguồn.
 // Quét chuỗi không phải cơ chế ranh giới (ADR-0002 điều 8) — chỉ là lưới thêm cho hai tên cột đã biết; SQL của staff còn được EXPLAIN kiểm ở trên.
 // ---------------------------------------------------------------------------------------------------------------------
+/**
+ * NGOẠI LỆ CÓ TÊN của R-N1-14 (ADR-0047 A2): cột `ord_passenger.full_name` (họ tên hành khách — tên cột do ADR chốt) trùng TÊN với cột chết `staff.full_name`.
+ * Chỉ tệp SQL nửa nghiêm của orders được nhắc chữ `full_name`; bù lại: bài "câu SQL có full_name không chạm bảng staff" ở cuối tệp (EXPLAIN) + bài
+ * EXPLAIN của NUA_NGHIEM cấm tệp đó đọc thẳng bảng `staff`. NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở
+ * docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 7.
+ */
+const FULL_NAME_ORD_PASSENGER_FILES = new Set(["src/modules/orders/chang-hanh-khach-repo.ts"]);
+
 test("R-N1-14: không đọc staff.role / staff.full_name; không SELECT * FROM staff", () => {
-  const WRITE_ONLY_FILES = new Set(["src/modules/staff/repository.ts", "scripts/staff-lib.mjs"]); // câu INSERT ghi hằng 'sales' và ''
+  const WRITE_ONLY_FILES = new Set(["src/modules/staff/repository.ts", "scripts/staff-lib.mjs", ...FULL_NAME_ORD_PASSENGER_FILES]); // câu INSERT ghi hằng 'sales' và ''; ord_passenger (ADR-0047)
   const files = [...walk(SRC), ...readdirSync(join(ROOT, "scripts")).filter((f) => f.endsWith(".mjs")).map((f) => join(ROOT, "scripts", f))];
   const problems: string[] = [];
   for (const file of files) {
@@ -575,4 +648,75 @@ test("R-N1-14: không đọc staff.role / staff.full_name; không SELECT * FROM 
 
 test("sổ dữ liệu: cột đánh dấu chết (deprecatedColumns) có thật trong bảng", () => {
   for (const t of dict.tables) for (const c of t.deprecatedColumns ?? []) assert.ok(columns(t.name).some((x) => x.name === c), `${t.name}.${c} không tồn tại`);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0047 — tiền tố `ord_`, khoá danh sách bảng `legacy` (T3b), tệp "nửa nghiêm" của `orders`
+// ---------------------------------------------------------------------------------------------------------------------
+test("ADR-0047 A3 (T3b): tập bảng `legacy` bằng đúng LEGACY_TABLES — bảng mới không được trốn tiền tố", () => {
+  assert.deepEqual(
+    dict.tables.filter((t) => t.legacy === true).map((t) => t.name).sort(),
+    [...LEGACY_TABLES].sort(),
+    "bảng mới không được trốn tiền tố bằng cờ `legacy` — đặt tên có tiền tố module (TABLE_PREFIX); danh sách LEGACY_TABLES chỉ được co lại",
+  );
+});
+
+test("ADR-0047 A3 (R5): module của tệp NUA_NGHIEM phải đang ở LEGACY (lên STRICT thì bỏ khỏi NUA_NGHIEM); tệp nằm trong thư mục của module đó", () => {
+  for (const n of NUA_NGHIEM) {
+    assert.ok((LEGACY as readonly string[]).includes(n.module), `module "${n.module}" của ${n.file} không còn ở LEGACY — bỏ khỏi NUA_NGHIEM`);
+    assert.ok(n.file.startsWith(`modules/${n.module}/`), `${n.file} phải nằm trong thư mục modules/${n.module}/`);
+  }
+});
+
+/** Câu SQL đã đăng ký của tệp nửa nghiêm (nạp tệp để sổ đăng ký có câu của nó). */
+async function nuaNghiemSql(): Promise<readonly SqlEntry[]> {
+  for (const n of NUA_NGHIEM) await import(pathToFileURL(join(SRC, n.file)).href);
+  return registeredSql();
+}
+const sqlByKey = (entries: readonly SqlEntry[], key: string) => entries.find((x) => `${x.module}.${x.name}` === key);
+
+test("ADR-0047 A1/A2 (ngoại lệ XOA_CUNG_NHAP — CHỜ CHỦ DUYỆT, đề xuất luật mục 2): mỗi tên đang đăng ký, THẬT là câu xoá cứng (không ngoại lệ thì đỏ), có điều kiện đơn nháp TRONG câu, bảng đích có trigger <bảng>_no_delete", async () => {
+  const entries = await nuaNghiemSql();
+  const triggerNames = new Set((db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger'").all() as { name: string }[]).map((t) => t.name));
+  assert.deepEqual([...XOA_CUNG_NHAP].sort(), ["orders.leg_delete_draft", "orders.passenger_delete_draft"], "danh sách chỉ được co lại — thêm tên là NỚI, cần chủ duyệt");
+  for (const key of XOA_CUNG_NHAP) {
+    const e = sqlByKey(entries, key);
+    assert.ok(e, `${key}: không còn đăng ký — bỏ khỏi XOA_CUNG_NHAP (ngoại lệ thừa)`);
+    assert.ok(violations(e, { exceptions: false }).some((v) => v.startsWith("xoá cứng bảng")), `${key}: không còn xoá cứng — ngoại lệ thừa, bỏ khỏi XOA_CUNG_NHAP`);
+    assert.match(e.sql, /\bstatus = 'draft'/, `${key}: điều kiện "đơn nháp" phải nằm TRONG câu xoá`);
+    for (const w of touched(e.sql).writes) assert.ok(triggerNames.has(`${w}_no_delete`), `${key}: bảng ${w} phải có trigger ${w}_no_delete (cấm xoá khi đơn không còn nháp)`);
+  }
+});
+
+test("ADR-0047 A3 (nợ có hạn DOC_AUDIT_LOG_WONGUARD — CHỜ CHỦ DUYỆT, đề xuất luật mục 3): còn hạn (giờ VN); mỗi tên đang đăng ký, THẬT đọc audit_log (không ngoại lệ thì đỏ), và CHỈ qua lính gác `EXISTS (SELECT 1 FROM audit_log WHERE id = ?N)`", async () => {
+  const entries = await nuaNghiemSql();
+  assert.ok(DOC_AUDIT_LOG_WONGUARD.han >= vnToday(new Date()), `nợ DOC_AUDIT_LOG_WONGUARD quá hạn ${DOC_AUDIT_LOG_WONGUARD.han} — gỡ nợ hoặc chủ dự án gia hạn`);
+  for (const key of DOC_AUDIT_LOG_WONGUARD.ten) {
+    const e = sqlByKey(entries, key);
+    assert.ok(e, `${key}: không còn đăng ký — bỏ khỏi DOC_AUDIT_LOG_WONGUARD (ngoại lệ thừa)`);
+    assert.ok(
+      violations(e, { exceptions: false }).some((v) => v.startsWith("đọc TRỰC TIẾP bảng audit_log")),
+      `${key}: không còn đọc audit_log — ngoại lệ thừa, bỏ khỏi DOC_AUDIT_LOG_WONGUARD`,
+    );
+    assert.equal((e.sql.match(/audit_log/g) ?? []).length, 1, `${key}: chỉ được nhắc audit_log MỘT lần — trong lính gác`);
+    assert.match(e.sql, /EXISTS \(SELECT 1 FROM audit_log WHERE id = \?\d+\)/, `${key}: audit_log chỉ được đọc ở dạng lính gác wonGuard`);
+  }
+});
+
+test("ADR-0047 A2 (ngoại lệ R-N1-14 — CHỜ CHỦ DUYỆT, đề xuất luật mục 7): chỉ tệp nửa nghiêm được nhắc full_name; mọi câu có full_name chạm ord_passenger, KHÔNG chạm staff", async () => {
+  const entries = await nuaNghiemSql();
+  const nua = new Set(NUA_NGHIEM.map((n) => `src/${n.file}`));
+  for (const f of FULL_NAME_ORD_PASSENGER_FILES) {
+    assert.ok(nua.has(f), `${f}: ngoại lệ full_name chỉ dành cho tệp nửa nghiêm (có bài EXPLAIN)`);
+    assert.match(readFileSync(join(ROOT, f), "utf8"), /\bfull_name\b/, `${f}: không còn nhắc full_name — ngoại lệ thừa`);
+  }
+  const nuaModules = new Set(NUA_NGHIEM.map((n) => n.module));
+  const withFullName = entries.filter((e) => nuaModules.has(e.module) && /\bfull_name\b/.test(e.sql));
+  assert.ok(withFullName.length > 0, "chống bài rỗng: phải có câu SQL nhắc full_name (ord_passenger)");
+  for (const e of withFullName) {
+    const { reads, writes } = touched(e.sql);
+    const all = new Set([...reads, ...writes]);
+    assert.ok(all.has("ord_passenger"), `${e.module}.${e.name}: câu có full_name phải chạm ord_passenger`);
+    assert.ok(!all.has("staff"), `${e.module}.${e.name}: câu có full_name KHÔNG được chạm bảng staff (cột chết staff.full_name)`);
+  }
 });
