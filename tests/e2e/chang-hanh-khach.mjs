@@ -158,11 +158,11 @@ console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HD
   assert.equal(r.status, 409, JSON.stringify(r.body));
   assert.equal(r.body.error.code, "short_notice_required");
   assert.deepEqual(r.body.error.legs.map((x) => x.legId), [legId]);
-  assert.equal((await call(A, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DAT_SAT_GIO" })).status, 403, "Bán hàng không đặt gấp");
-  r = await call(ADM, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DAT_SAT_GIO", ghiChu: "Khách gọi, số 0905 123 456 78" });
+  assert.equal((await call(A, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP" })).status, 403, "Bán hàng không đặt gấp");
+  r = await call(ADM, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: "Khách gọi, số 0905 123 456 78" });
   assert.equal(r.status, 200, JSON.stringify(r.body));
   const cot = (await sqlRows(`SELECT short_notice_reason AS l, short_notice_lead_minutes AS p, short_notice_note AS n FROM ord_transfer_leg WHERE id = '${legId}'`))[0];
-  assert.deepEqual([cot.l, cot.p], ["KHACH_DAT_SAT_GIO", 360]);
+  assert.deepEqual([cot.l, cot.p], ["KHACH_DOAN_GOI_GAP", 360]);
   assert.ok(!String(cot.n).includes("0905"), "ghi chú đã che dãy số");
   r = await call(A, "POST", `/api/orders/${g.id}/status`, { status: "confirmed" });
   assert.equal(r.status, 200, JSON.stringify(r.body));

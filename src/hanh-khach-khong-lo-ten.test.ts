@@ -95,7 +95,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
     "POST /api/orders/:id/legs/:legId/short-notice": async () => {
       // ADR-0049 D3 (Toàn quyền giữ ô order.leg.short_notice): ghi chú đặt gấp chứa tên + SĐT — nhật ký chỉ mã đơn + chiều + NHÃN lý do (TC-28).
       const l = (await doc()).services[0].legs.find((x: any) => x.direction === "OUT");
-      await goi("đặt gấp", "POST", `/api/orders/${id}/legs/${l.id}/short-notice`, SUP, { lyDo: "KHACH_DAT_SAT_GIO", ghiChu: `${TEN[0]} gọi ${SDT}` }, 200);
+      await goi("đặt gấp", "POST", `/api/orders/${id}/legs/${l.id}/short-notice`, SUP, { lyDo: "KHACH_DOAN_GOI_GAP", ghiChu: `${TEN[0]} gọi ${SDT}` }, 200);
     },
     "POST /api/orders/:id/legs/:legId/close": async () => {
       const l = (await doc()).services[0].legs.find((x: any) => x.direction === "RETURN");

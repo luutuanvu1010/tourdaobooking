@@ -397,3 +397,15 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **Siết thêm (THẤP, người kiểm đề xuất — làm ở A19):** bài kiến trúc "`taoAppChoKhungThu` chỉ được gọi từ `tests/audit/harness.mjs` (định nghĩa ở `src/index.ts`)" + P16 + dòng sổ hàng rào.
 - **Phối hợp song song:** người thi công GIAO DIỆN làm Phần B trên nhánh `giao-dien-dieu-phoi-luot-1` (tách từ `9105306`) — nhánh này KHÔNG sửa `web/` (trừ khi task A bắt buộc — khi đó ghi tên tệp); A13, A15 commit riêng, xanh; xong A15 báo điều phối một dòng rồi làm tiếp A16–A21. Nhật ký máy chủ ở tệp này; người giao diện ghi tệp riêng.
 - **Phạm vi phiên:** A12 → A21, dừng sau A21 (tự khai). K1–K3 KHÔNG làm. Migration 0042 là số đã giữ (kiểm lại `git log --all -- 'migrations/0042*'` trước khi tạo).
+
+### 10.10 Ruling R-P12…R-P18 của điều phối (29/9 đêm — đối chiếu bản vẽ của chủ, bản đối chiếu mục 3)
+
+- **R-P12:** `GET /lich` trả thêm `mocToiThieuPhut`, `canhBaoPhut` của chính sách hiện hành → làm ở A13.
+- **R-P13:** mỗi chuyến ở `GET /lich` và `GET /chuyen/:id` có cờ khoá theo mốc (khoá dính `earliest_start_ms`, hàm thuần có sẵn) + thời điểm bắt đầu khoá → A13.
+- **R-P14:** `GET /chuyen/:id` trả `gioSomNhatKhai` cho từng lệnh văn phòng khai giờ (kẹp lùi của chính sách phía máy chủ); 409 `gio_xay_ra_ngoai_khoang` kèm `somNhat` + mốc gây chặn (mã chuyến trước + giờ, không tên người); dùng chung `kiemGioXayRa` → A13 (DTO) / A15 (409).
+- **R-P15 (I31, cách a):** route đọc mới cổng orders `GET /api/orders/moc-toi-thieu`, `can(order.create)`, trả `{ mocToiThieuPhut, canhBaoPhut }` qua `ctx.mocToiThieu` (thiếu hàm tiêm → 503); khai route-access, bài ghim; không đổi route 30 → làm SỚM (commit riêng).
+- **R-P16:** `GET /chuyen/:id` mỗi điểm có cờ `lechDon` (khoá nơi điểm ≠ khoá nơi chặng hiện hành; không lộ khoá) → A13.
+- **R-P17:** route 19 "Cuốc của tôi" mỗi chuyến: mã, giờ xuất bến dự kiến, trạng thái, biển số, số khách (suất PASSENGER mở), số điểm đón, số điểm trả, điều kiện còn thiếu (mã, câu, ai xử lý — không hạn, không số); không họ tên / SĐT → A15 + danh sách trắng DTO tài xế + bài ghim.
+- **R-P18:** `LY_DO_DAT_GAP` theo bản vẽ: `KHACH_DOAN_GOI_GAP` "Khách đoàn gọi gấp", `CHUYEN_BAY_DOI_GIO` "Chuyến bay đổi giờ", `DON_BU_LO_CHUYEN` "Đơn bù cho khách bị lỡ chuyến", `KHAC` "Lý do khác". **Đã làm (commit riêng):** 0040 KHÔNG có `CHECK` liệt kê mã (chỉ khuôn chữ HOA 1–40) ⇒ không sửa 0040; bài ghim mới trong `src/shared/chang-dua-don.test.ts` (đỏ trước: `not ok 1 - R-P18 (điều phối 29/9, theo bản vẽ của chủ 07:140-145): LY_DO_DAT_GAP đúng bốn mã + nhãn …`); đổi mã trong `dat-gap.test.ts`, `migrations-dat-gap.test.ts`, `hanh-khach-khong-lo-ten.test.ts`, `tests/e2e/chang-hanh-khach.mjs`, `docs/SYSTEM-DESIGN.md`. P16: đổi một nhãn ⇒ `not ok 1 - R-P18 …`; giữ lại mã cũ ⇒ cùng dòng → hoàn nguyên → xanh.
+- **CHƯA LÀM (chờ chủ):** H4 / N-14 (khoá đặt gấp trong DTO chi tiết đơn — ai thấy); ghi chú tự do trên chuyến (Q1), "Đã gọi báo" (Q2), hẹn ngày hiệu lực chính sách (Q3).
+
