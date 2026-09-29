@@ -24,8 +24,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2)
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI
   "trip.override": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — phá lệ luật cấu hình, chỉ Quản trị, Toàn quyền
-  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"],
-  "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2); văn phòng bấm thay (R-P1)
+  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2); văn phòng bấm thay (R-P1)
+  "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")

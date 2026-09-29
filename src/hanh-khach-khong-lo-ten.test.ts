@@ -13,9 +13,10 @@
 //       `trongNgayChay`; ngoài khoảng đó khoá vắng mặt (bài src/modules/van-chuyen/tai-xe-dto.test.ts). DTO văn phòng GET /api/van-chuyen/chuyen/:id có
 //       `hoTen`, `namSinh`, không `lienHe`; GET /lich không tên. Mọi lệnh ghi của van-chuyen có ca ở khối van-chuyen: nhật ký và cột chữ `vc_*` sạch.
 // Bài thứ hai — KHỐI VAN-CHUYỂN (ADR-0049 Task A18, TC-39, TC-50): mô tả ở đầu khối, cuối tệp.
+// Bài thứ ba — QUÉT MÃ đối "kèm tên" ở mọi nơi gọi `chiTietChuyen` / `cuocChiTiet` (kiểm độc lập K2a V2): cuối tệp.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import * as esbuild from "esbuild";
 import { maskSource } from "../scripts/source-mask-lib.mjs";
 import type { AppModule } from "./shared/router.ts";
@@ -185,11 +186,14 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     seedStaff(w.sqlite, { id: DRIVER4, phone: "0900000046", name: "Tài Xế Bốn", perms: ["DRIVER"] });
     thanhTaiXe(w, `pty-${DRIVER3}`);
     thanhTaiXe(w, `pty-${DRIVER4}`);
-    const than: { route: string; khoa: string; text: string; json: unknown }[] = [];
+    const than: { route: string; khoa: string; text: string; json: unknown; coCaiDeLo: boolean }[] = [];
+    /** Thân có mảng `suat` và ÍT NHẤT một suất trong đó đã gắn tên trong CSDL (lúc gọi) — nếu route lỡ kèm tên thì tên PHẢI hiện (kiểm độc lập K2a V2). */
+    const coCaiDeLo = (j: any): boolean =>
+      Array.isArray(j?.suat) && j.suat.some((x: any) => (w.q("SELECT passenger_key k FROM vc_trip_allocation WHERE id = ?", x.id)[0]?.k ?? null) !== null);
     const goi = async (route: string, khoa: string, method: string, path: string, as: string, body?: unknown, mongDoi = 200) => {
       const r = await w.call(method, path, { as, body });
       assert.equal(r.status, mongDoi, `${khoa}: ${r.text}`);
-      than.push({ route, khoa, text: r.text, json: r.json });
+      than.push({ route, khoa, text: r.text, json: r.json, coCaiDeLo: coCaiDeLo(r.json) });
       return r.json;
     };
     const rid = () => uuid();
@@ -197,7 +201,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     // Đơn (năm sinh đánh dấu 1911…): A, B chạy đủ tiến độ; C đổi giờ + nơi sau khi xếp; D, E kết thúc gián đoạn; F ngày mai.
     const dA = await don(w, { soNguoi: 3, gio: "13:00", namSinh: 1911 });
     const dB = await don(w, { soNguoi: 3, gio: "13:00", namSinh: 1911 });
-    const dC = await don(w, { soNguoi: 2, gio: "19:00", namSinh: 1911 });
+    const dC = await don(w, { soNguoi: 3, gio: "19:00", namSinh: 1911 });
     const dD = await don(w, { soNguoi: 1, gio: "16:30", namSinh: 1911 });
     const dE = await don(w, { soNguoi: 1, gio: "16:30", namSinh: 1911 });
     const dF = await don(w, { soNguoi: 2, gio: "08:30", ngay: NGAY_SAU, namSinh: 1911 });
@@ -215,7 +219,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
           as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180 },
         });
         assert.ok(r.status < 300, r.text);
-        than.push({ route: "POST /api/van-chuyen/chinh-sach-dieu-phoi", khoa: "lưu chính sách", text: r.text, json: r.json });
+        than.push({ route: "POST /api/van-chuyen/chinh-sach-dieu-phoi", khoa: "lưu chính sách", text: r.text, json: r.json, coCaiDeLo: false });
       },
       "POST /api/van-chuyen/chuyen": async () => {
         const tao = async (k: string, taiXe: string, bd: string, kt: string, ngay = NGAY) => {
@@ -232,10 +236,13 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         await tao("G", DRIVER4, "18:30", "20:30");
       },
       "POST /api/van-chuyen/chuyen/:id/phan-bo": async () => {
-        for (const [k, d, n] of [["A", dA, 3], ["B", dB, 3], ["C", dC, 2], ["D", dD, 1], ["E", dE, 1], ["F", dF, 2]] as const) {
+        // Chuyến C xếp KÈM khoá người (suất có tên ngay) — để mọi lệnh kế hoạch sau đó (sửa, cập nhật điểm, dời, rút) có cái để lộ.
+        const pkC = (await w.call("GET", `/api/orders/${dC.id}/passengers`, { as: SALES })).json.passengers.map((x: any) => x.personKey);
+        assert.equal(pkC.length, 3);
+        for (const [k, d, n] of [["A", dA, 3], ["B", dB, 3], ["C", dC, 3], ["D", dD, 1], ["E", dE, 1], ["F", dF, 2]] as const) {
           const c = await ct(T[k].chuyen.id);
           const r = await goi("POST /api/van-chuyen/chuyen/:id/phan-bo", `xếp ${k}`, "POST", `/api/van-chuyen/chuyen/${T[k].chuyen.id}/phan-bo`, SALES, {
-            version: c.chuyen.version, requestId: rid(), chang: [{ legId: d.legId, soSuat: n }],
+            version: c.chuyen.version, requestId: rid(), chang: [{ legId: d.legId, soSuat: n, ...(k === "C" ? { personKeys: pkC } : {}) }],
           });
           S[k] = { don: r.diem.find((x: any) => x.loai === "PICKUP").id, tra: r.diem.find((x: any) => x.loai === "DROPOFF").id, suat: r.suat.filter((s: any) => s.loai === "PASSENGER").map((s: any) => s.id) };
         }
@@ -271,7 +278,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         assert.equal(sua.status, 200, sua.text);
         const c = await ct(T.C.chuyen.id);
         const r = await goi("POST /api/van-chuyen/chuyen/:id/cap-nhat-diem", "cập nhật điểm C", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/cap-nhat-diem`, SALES, { version: c.chuyen.version, requestId: rid() });
-        assert.equal(r.daCapNhat, 2, "chống bài rỗng: có suất được cập nhật");
+        assert.equal(r.daCapNhat, 3, "chống bài rỗng: có suất được cập nhật");
       },
       "GET /api/van-chuyen/nhac-goi-khach": async () => {
         const r = await goi("GET /api/van-chuyen/nhac-goi-khach", "nhắc gọi khách", "GET", "/api/van-chuyen/nhac-goi-khach", SALES);
@@ -287,13 +294,13 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
         const c = await ct(T.C.chuyen.id);
         const g = await ct(T.G.chuyen.id);
         await goi("POST /api/van-chuyen/chuyen/:id/doi", "dời C → G", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/doi`, SALES, {
-          version: c.chuyen.version, requestId: rid(), denChuyenId: T.G.chuyen.id, denVersion: g.chuyen.version, suatIds: c.suat.filter((s: any) => s.loai === "PASSENGER").map((s: any) => s.id),
+          version: c.chuyen.version, requestId: rid(), denChuyenId: T.G.chuyen.id, denVersion: g.chuyen.version, suatIds: c.suat.filter((s: any) => s.loai === "PASSENGER").slice(0, 2).map((s: any) => s.id),
         });
       },
       "POST /api/van-chuyen/chuyen/:id/rut": async () => {
         const g = await ct(T.G.chuyen.id);
         assert.equal(g.suat.length, 2);
-        await goi("POST /api/van-chuyen/chuyen/:id/rut", "rút khỏi G", "POST", `/api/van-chuyen/chuyen/${T.G.chuyen.id}/rut`, SALES, { version: g.chuyen.version, requestId: rid(), suatIds: g.suat.map((s: any) => s.id) });
+        await goi("POST /api/van-chuyen/chuyen/:id/rut", "rút khỏi G", "POST", `/api/van-chuyen/chuyen/${T.G.chuyen.id}/rut`, SALES, { version: g.chuyen.version, requestId: rid(), suatIds: [g.suat[0].id] });
       },
       "POST /api/van-chuyen/chuyen/:id/huy": async () => {
         const g = await ct(T.G.chuyen.id);
@@ -382,6 +389,12 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
       assert.ok(!k.has("hoTen") && !k.has("namSinh"), `thân "${t.khoa}" (${t.route}) có khoá hoTen / namSinh`);
     }
     for (const r of TRA_TEN) assert.ok(than.some((t) => t.route === r && t.text.includes(TEN_VC[0]!)), `chống bài rỗng: ${r} CÓ tên`);
+    // K2a V2: phép (2) chỉ có nghĩa khi thân CÓ suất đã gắn tên. Bốn route bản chất không còn suất mở có tên (tạo chuyến — chuyến rỗng; huỷ chuyến, kết thúc
+    // gián đoạn ×2 — mọi suất đã đóng) do bài 3 (quét mã: đối `kemTen` / `hk` ở MỌI nơi gọi) canh.
+    const KHONG_THE_LO = new Set(["POST /api/van-chuyen/chuyen", "POST /api/van-chuyen/chuyen/:id/huy", `${R}/ket-thuc-gian-doan`, `${V}/ket-thuc-gian-doan`]);
+    const phaiCoCaiDeLo = TUYEN_VC_THAT.filter((k) => /^(POST|PUT) \/api\/van-chuyen\/(chuyen\/:id|cuoc-cua-toi\/:id)(\/|$)/.test(k) && !KHONG_THE_LO.has(k));
+    assert.equal(phaiCoCaiDeLo.length, 21, "5 lệnh kế hoạch (sửa, xếp, rút, dời, cập nhật điểm) + 8 lệnh tài xế + 8 lệnh văn phòng bấm thay");
+    for (const r of phaiCoCaiDeLo) assert.ok(than.some((t) => t.route === r && t.coCaiDeLo), `${r}: không lần gọi nào có suất đã gắn tên — phép "không lộ tên" vô nghĩa ở route này`);
 
     // (3) NHẬT KÝ + cột chữ vc_* — mọi cột, bỏ mã UUID.
     const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log")).replace(UUID, "");
@@ -414,4 +427,62 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
   } finally {
     tat();
   }
+});
+
+// ==== BÀI 3 — QUÉT MÃ: đối "kèm tên" ở MỌI nơi gọi (kiểm độc lập K2a V2) =================================================================================
+// Bài 2 chỉ bắt được route có suất ĐÃ GẮN TÊN trong thân; bốn route bản chất không còn suất mở có tên (tạo chuyến, huỷ chuyến, kết thúc gián đoạn ×2) thì
+// lỡ truyền `kemTen = true` cũng không lộ gì hôm nay — nhưng là lỗ chờ sẵn. Bài này đọc mã `src/modules/van-chuyen/*.ts` (bỏ chú thích):
+//   - `chiTietChuyen(` và `cuocChiTiet(` CHỈ được gọi trong `index.ts` (nơi khai route);
+//   - đối thứ 5 của `chiTietChuyen` (kemTen) là chữ `true` ĐÚNG ở GET /api/van-chuyen/chuyen/:id, chữ `false` ở MỌI nơi khác (không biến, không biểu thức);
+//   - đối thứ 4 (`hk`) và thứ 5 (`lienHe`) của `cuocChiTiet` là `[]` và `null` ở MỌI nơi khác GET /api/van-chuyen/cuoc-cua-toi/:id.
+/** Tách đối số của lời gọi bắt đầu ngay sau dấu "(" ở vị trí `mo` (đếm ngoặc; chuỗi đã được giữ nguyên nên không có ngoặc lạ trong mã này). */
+function doiSo(code: string, mo: number): string[] {
+  const ra: string[] = [];
+  let sau = 0;
+  let dau = mo;
+  for (let i = mo; i < code.length; i++) {
+    const c = code[i]!;
+    if (c === "(" || c === "[" || c === "{") sau++;
+    else if (c === ")" || c === "]" || c === "}") {
+      if (sau === 0) {
+        ra.push(code.slice(dau, i).trim());
+        return ra;
+      }
+      sau--;
+    } else if (c === "," && sau === 0) {
+      ra.push(code.slice(dau, i).trim());
+      dau = i + 1;
+    }
+  }
+  throw new Error("không đóng ngoặc");
+}
+test("khối van-chuyen (bài 3, quét mã — K2a V2): chỉ GET /chuyen/:id truyền kemTen = true, chỉ GET /cuoc-cua-toi/:id truyền hk + lienHe; mọi nơi gọi khác là chữ false / [] / null", () => {
+  const thuMuc = new URL("./modules/van-chuyen/", import.meta.url);
+  const tep = readdirSync(thuMuc).filter((f) => f.endsWith(".ts") && !f.endsWith(".test.ts"));
+  const loi: string[] = [];
+  const dem = { chiTiet: 0, cuoc: 0 };
+  for (const f of tep) {
+    const code = maskSource(readFileSync(new URL(f, thuMuc), "utf8"), { strings: false, comments: true });
+    for (const m of code.matchAll(/\b(chiTietChuyen|cuocChiTiet)\(/g)) {
+      const truoc = code.slice(Math.max(0, m.index! - 30), m.index!);
+      if (/function\s+$/.test(truoc)) continue; // chỗ khai hàm
+      if (f !== "index.ts") {
+        loi.push(`${f}: gọi ${m[1]} ngoài index.ts`);
+        continue;
+      }
+      const r = [...code.slice(0, m.index!).matchAll(/route\("([A-Z]+)", "([^"]+)"/g)].pop();
+      const khoa = r ? `${r[1]} ${r[2]}` : "(ngoài route)";
+      const a = doiSo(code, m.index! + m[0].length);
+      if (m[1] === "chiTietChuyen") {
+        dem.chiTiet++;
+        const mong = khoa === "GET /api/van-chuyen/chuyen/:id" ? "true" : "false";
+        if (a[4] !== mong) loi.push(`${khoa}: chiTietChuyen(…, kemTen = ${a[4]}, …) — phải là chữ ${mong}`);
+      } else {
+        dem.cuoc++;
+        if (khoa !== "GET /api/van-chuyen/cuoc-cua-toi/:id" && (a[3] !== "[]" || a[4] !== "null")) loi.push(`${khoa}: cuocChiTiet(…, hk = ${a[3]}, lienHe = ${a[4]}, …) — phải là [] và null`);
+      }
+    }
+  }
+  assert.deepEqual(loi, []);
+  assert.deepEqual(dem, { chiTiet: 17, cuoc: 10 }, "chống bài rỗng: 17 nơi gọi chiTietChuyen (1 GET + 16 lệnh), 10 nơi gọi cuocChiTiet (1 GET + 9 lệnh tài xế)");
 });

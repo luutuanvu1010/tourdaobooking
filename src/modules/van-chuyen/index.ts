@@ -61,7 +61,7 @@ import type { GoiBaoChangDto, NhacGoiKhachResponse } from "../../shared/contract
 import { NHAC_GOI_SO_NGAY } from "../../shared/goi-bao";
 import { changChoTrongKhoang, changChuDon, mocByRequest } from "./chuyen-repo";
 import { docBoDanhDauGoiBao, docDaGoiBao } from "./dieu-phoi-than";
-import { danhSachNhac, docGoiBao, goiBaoChang, nguoiBamGoiBao, xuLyMoc, type QuyenGoiBao } from "./goi-bao-lenh";
+import { danhSachNhac, docGoiBao, goiBaoChang, nguoiBamGoiBao, phanHoiLenhLap, xuLyMoc, type QuyenGoiBao } from "./goi-bao-lenh";
 const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
 const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
 /** `assigned` của route tài xế (kế hoạch mục 1.2): người gọi có hồ sơ và là tài xế ĐANG MỞ dòng lái của chuyến. */
@@ -1310,11 +1310,12 @@ export const vanChuyenModule: AppModule = {
       if (!can(staff, "trip.call_ack", { ownerId: chu.owner_id ?? undefined, assigned: await isAssigned(chu.order_id) })) return CAN_GOI_BAO();
       const than = docDaGoiBao(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
+      // Lệnh lặp → kết quả của LẦN ĐẦU, dựng từ dòng mốc mang requestId (ADR-0051 bước 4; K2a T2) — không đọc trạng thái mới nhất.
+      const lap = await mocByRequest(env.DB, than.value.requestId);
+      if (lap) return json((await phanHoiLenhLap(env.DB, lap, quyenGoiBaoCua(staff, isAssigned), await nhanNhanVien(lap.created_by ? [lap.created_by] : []))) satisfies GoiBaoChangDto);
       const hk = await hanhKhachChoChuyen(env.DB, [legId]);
-      if (!(await mocByRequest(env.DB, than.value.requestId))) {
-        const r = await xuLyMoc("DA_GOI", env.DB, legId, hk, than.value, staff.id, Date.now());
-        if (r) return r;
-      }
+      const r = await xuLyMoc("DA_GOI", env.DB, legId, hk, than.value, staff.id, Date.now());
+      if (r) return r;
       const d = await docGoiBao(env.DB, [legId]);
       const nhan = await nhanNhanVien(nguoiBamGoiBao(d));
       return json((await goiBaoChang(legId, hk, d, quyenGoiBaoCua(staff, isAssigned), nhan)) ?? { legId, maDon: null, gioHenDoi: null, daGoiBao: null } satisfies GoiBaoChangDto);
@@ -1330,11 +1331,12 @@ export const vanChuyenModule: AppModule = {
       if (!can(staff, "trip.call_ack", { ownerId: chu.owner_id ?? undefined, assigned: await isAssigned(chu.order_id) })) return CAN_GOI_BAO();
       const than = docBoDanhDauGoiBao(await readJson(request));
       if (!than.ok) return error(400, "invalid_input", than.message);
+      // Lệnh lặp → kết quả của LẦN ĐẦU, dựng từ dòng mốc mang requestId (ADR-0051 bước 4; K2a T2) — không đọc trạng thái mới nhất.
+      const lap = await mocByRequest(env.DB, than.value.requestId);
+      if (lap) return json((await phanHoiLenhLap(env.DB, lap, quyenGoiBaoCua(staff, isAssigned), await nhanNhanVien(lap.created_by ? [lap.created_by] : []))) satisfies GoiBaoChangDto);
       const hk = await hanhKhachChoChuyen(env.DB, [legId]);
-      if (!(await mocByRequest(env.DB, than.value.requestId))) {
-        const r = await xuLyMoc("BO_DANH_DAU", env.DB, legId, hk, than.value, staff.id, Date.now());
-        if (r) return r;
-      }
+      const r = await xuLyMoc("BO_DANH_DAU", env.DB, legId, hk, than.value, staff.id, Date.now());
+      if (r) return r;
       const d = await docGoiBao(env.DB, [legId]);
       const nhan = await nhanNhanVien(nguoiBamGoiBao(d));
       return json((await goiBaoChang(legId, hk, d, quyenGoiBaoCua(staff, isAssigned), nhan)) ?? { legId, maDon: null, gioHenDoi: null, daGoiBao: null } satisfies GoiBaoChangDto);
