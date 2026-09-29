@@ -159,25 +159,21 @@ test("guard-remote: kho ca của người kiểm — nhóm C (quên/nhầm) ph�
   assert.deepEqual(wrong, [], `${wrong.length} ca sai:\n${wrong.slice(0, 15).join("\n")}`);
 });
 
-test("guard-remote: lệnh dị dạng không làm hook quá giờ (timeout 10 s của hook)", () => {
-  // Đo thời gian CPU của chính tiến trình (process.cpuUsage), không đo đồng hồ: máy bận vì việc khác (nhiều phiên song song)
-  // từng đẩy thời gian đồng hồ lên 2–2,3 s và chặn nhầm `day-len`/`trien-khai`, trong khi hook vẫn chạy ~0,6 s. evaluateBash chạy
-  // đồng bộ, không chờ I/O, nên chậm thật của hook = tốn CPU và vẫn bị bắt. Ngưỡng giữ 1500 ms (chủ chọn 2026-09-24).
-  // TIỀN ĐỀ: guard-remote-lib.mjs thuần, không import, không đọc tệp/execSync/Atomics.wait. Thêm chờ đồng bộ vào đó thì test
-  // này BỎ LỌT (kiểm độc lập đã chứng minh bằng Atomics.wait 1 s) — khi ấy phải đo lại bằng đồng hồ hoặc thêm test riêng.
-  // ĐO 3 LẦN, LẤY LẦN NHANH NHẤT (chủ dự án duyệt 2026-09-24): trên MacBook Air, chip tự hạ xung khi nóng/bận nên CÙNG một
-  // việc có lúc tốn 1,2 s, có lúc 1,77 s CPU — một lần đo đơn lẻ từng chặn nhầm `day-len` hai lần liền. Hook chậm THẬT thì
-  // cả ba lần đều chậm → vẫn đỏ; ngưỡng giữ nguyên 1500 ms.
-  const runs: number[] = [];
-  for (let i = 0; i < 3; i++) {
-    const cpu = process.cpuUsage();
-    evaluateBash("echo " + "$(".repeat(3000), { branch: "worktree-x" });
-    evaluateBash("x".repeat(500_000), { branch: "worktree-x" });
-    const used = process.cpuUsage(cpu);
-    runs.push(Math.round((used.user + used.system) / 1000));
-  }
-  const ms = Math.min(...runs);
-  assert.ok(ms < 1500, `quá chậm: lần nhanh nhất ${ms} ms CPU (3 lần: ${runs.join(", ")} ms)`);
+// Bài ĐO GIỜ của hook ở tệp riêng src/claude-guard-thoi-gian.test.ts — `npm test` chạy nó MỘT MÌNH sau bộ chính (chủ "Trả lời lần 15", 30/9). Bài dưới canh
+// cách chạy đó không bị lặng lẽ bỏ: `npm test` = scripts/chay-test.mjs; kịch bản chạy tệp đo giờ riêng, song song 1; tệp đo giờ giữ ngưỡng + cách đo.
+test("guard-remote: bài đo giờ chạy RIÊNG trong npm test (chủ lần 15) — ngưỡng 1500 ms CPU, 3 lần lấy nhanh nhất, không công tắc bỏ qua", () => {
+  const pkg = JSON.parse(read("package.json")) as { scripts: Record<string, string> };
+  assert.equal(pkg.scripts.test, "node scripts/chay-test.mjs", "npm test phải đi qua kịch bản tách bài đo giờ");
+  const kb = read("scripts/chay-test.mjs");
+  assert.match(kb, /const TEP_DO_GIO = "src\/claude-guard-thoi-gian\.test\.ts";/);
+  assert.match(kb, /\["--test", "--test-concurrency=1", TEP_DO_GIO\]/, "bước 2 chạy tệp đo giờ một mình");
+  assert.match(kb, /process\.exit\(ma\(b1\) !== 0 \? ma\(b1\) : ma\(b2\)\)/, "một trong hai bước đỏ ⇒ thoát ≠ 0");
+  const doGio = read("src/claude-guard-thoi-gian.test.ts");
+  assert.match(doGio, /assert\.ok\(ms < 1500,/, "ngưỡng giữ 1500 ms");
+  assert.match(doGio, /for \(let i = 0; i < 3; i\+\+\)/, "đo 3 lần");
+  assert.match(doGio, /const ms = Math\.min\(\.\.\.runs\);/, "lấy lần nhanh nhất");
+  assert.match(doGio, /process\.cpuUsage\(/, "đo CPU, không đo đồng hồ");
+  assert.doesNotMatch(doGio, /\b(skip|todo)\b|process\.env/, "không công tắc bỏ qua");
 });
 
 test("guard-remote: script móc trả deny khi cấm, im lặng khi cho qua hoặc đầu vào hỏng", () => {

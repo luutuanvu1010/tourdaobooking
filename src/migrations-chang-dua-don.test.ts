@@ -70,7 +70,7 @@ test("(a) đúng một tệp *_chang_dua_don.sql; không phải B5; trigger mớ
   db.exec(sqlOf(FILE));
   assert.deepEqual(triggers(db).filter((t) => !truoc.has(t)), [
     "ord_transfer_leg_closed", "ord_transfer_leg_date_ins", "ord_transfer_leg_date_upd", "ord_transfer_leg_identity", "ord_transfer_leg_no_delete",
-    "ord_transfer_leg_scope_ins", "ord_transfer_leg_scope_upd", "orders_confirm_requires_leg_date",
+    "ord_transfer_leg_scope_ins", "ord_transfer_leg_scope_upd", "orders_confirm_requires_leg_date", "orders_no_delete",
   ]);
   assert.deepEqual(rows(db, "SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = 'ord_transfer_leg' AND name NOT LIKE 'sqlite_%' ORDER BY name").map((r) => r.name), [
     "ord_transfer_leg_date_ix", "ord_transfer_leg_order_ix", "ord_transfer_leg_service_ix",
@@ -245,4 +245,59 @@ test("(k) ngày đón bắt buộc sau xác nhận: chèn chặng thiếu ngày 
   fails(db, "UPDATE ord_transfer_leg SET pickup_date = NULL WHERE id = ?", /leg_date/, id);
   // đóng chặng thì không cần ngày
   db.prepare("UPDATE ord_transfer_leg SET closed_at = ?, close_reason_code = 'REPLACED' WHERE id = ?").run(AT, id);
+});
+
+// Chủ "Trả lời lần 15" (30/9, "Vá ngay đợt này"): KHÔNG xoá cứng đơn không còn nháp — trigger GỐC `orders_no_delete`. Lỗ cũ: trigger chỉ-thêm của chặng /
+// khách / dịch vụ xét `status` của đơn cha; dòng đơn mất trước (khoá ngoại TẮT, hoặc HOÃN trong một giao dịch) thì vế đó NULL ⇒ không chạy ⇒ xoá được trọn
+// đơn đã xác nhận. Ca: hai chế độ PRAGMA × hai thứ tự xoá (cha trước / con trước) × đơn đã xác nhận / đã huỷ ⇒ đều chặn; đơn nháp xoá như cũ.
+function donDu(db: DatabaseSync, o: string, s: string, trangThai: "draft" | "confirmed" | "cancelled") {
+  draftWithService(db, o, s);
+  const l = leg(db, { order: o, svc: s });
+  db.prepare("INSERT INTO ord_passenger (id, order_id, full_name, birth_year, person_key, created_at, updated_at) VALUES (?, ?, 'Khách Giả', 1990, ?, ?, ?)").run(`p-${o}`, o, `p-${o}`, AT, AT);
+  if (trangThai !== "draft") setStatus(db, o, "confirmed");
+  if (trangThai === "cancelled") setStatus(db, o, "cancelled");
+  return l;
+}
+/** Chạy `cau` trong một giao dịch; trả thông báo lỗi (hoặc null khi xoá được — giao dịch được hoàn tác để ca sau dùng lại dữ liệu). */
+function thuXoa(db: DatabaseSync, cau: string[], hoan: boolean): string | null {
+  db.exec("BEGIN");
+  try {
+    if (hoan) db.exec("PRAGMA defer_foreign_keys = ON");
+    for (const c of cau) db.exec(c);
+    db.exec("ROLLBACK");
+    return null;
+  } catch (e) {
+    db.exec("ROLLBACK");
+    return String((e as Error).message);
+  }
+}
+test("(l) chủ lần 15: đơn đã xác nhận / đã huỷ KHÔNG xoá được bằng SQL tay — khoá ngoại TẮT hay HOÃN, xoá cha trước hay con trước; đơn nháp xoá như cũ", () => {
+  const db = all();
+  staff(db);
+  assert.ok(triggers(db).includes("orders_no_delete"), "có trigger gốc orders_no_delete");
+  for (const [o, tt] of [["oc", "confirmed"], ["oh", "cancelled"]] as const) {
+    const l = donDu(db, o, `s-${o}`, tt);
+    const chaTruoc = [`DELETE FROM orders WHERE id = '${o}'`, `DELETE FROM order_service WHERE id = 's-${o}'`, `DELETE FROM ord_transfer_leg WHERE id = '${l}'`, `DELETE FROM ord_passenger WHERE order_id = '${o}'`];
+    const conTruoc = [`DELETE FROM ord_passenger WHERE order_id = '${o}'`, `DELETE FROM ord_transfer_leg WHERE id = '${l}'`, `DELETE FROM order_service WHERE id = 's-${o}'`, `DELETE FROM orders WHERE id = '${o}'`];
+    // (1) khoá ngoại TẮT
+    db.exec("PRAGMA foreign_keys = OFF");
+    assert.match(thuXoa(db, chaTruoc, false) ?? "ĐƯỢC", /order_frozen/, `${tt}: FK tắt, xoá đơn trước`);
+    assert.match(thuXoa(db, conTruoc, false) ?? "ĐƯỢC", /passenger_frozen|leg_frozen/, `${tt}: FK tắt, xoá con trước`);
+    db.exec("PRAGMA foreign_keys = ON");
+    // (2) khoá ngoại BẬT nhưng HOÃN tới cuối giao dịch
+    assert.match(thuXoa(db, chaTruoc, true) ?? "ĐƯỢC", /order_frozen/, `${tt}: FK hoãn, xoá đơn trước`);
+    assert.match(thuXoa(db, conTruoc, true) ?? "ĐƯỢC", /passenger_frozen|leg_frozen/, `${tt}: FK hoãn, xoá con trước`);
+    // (3) chỉ xoá dòng đơn (khoá ngoại bật) — trước đây bị khoá ngoại chặn, nay trigger gốc chặn trước
+    assert.throws(() => db.exec(`DELETE FROM orders WHERE id = '${o}'`), /order_frozen/);
+    assert.equal(rows(db, "SELECT count(*) n FROM orders WHERE id = ?", o)[0]!.n, 1, `${tt}: đơn còn nguyên`);
+  }
+  // Đơn NHÁP: xoá được như cũ (con trước rồi cha; và cha trước khi khoá ngoại hoãn).
+  const l = donDu(db, "on", "s-on", "draft");
+  assert.equal(thuXoa(db, [`DELETE FROM ord_passenger WHERE order_id = 'on'`, `DELETE FROM ord_transfer_leg WHERE id = '${l}'`, `DELETE FROM order_service WHERE id = 's-on'`, `DELETE FROM orders WHERE id = 'on'`], false), null, "nháp: xoá con trước rồi cha");
+  assert.equal(thuXoa(db, [`DELETE FROM orders WHERE id = 'on'`, `DELETE FROM order_service WHERE id = 's-on'`, `DELETE FROM ord_transfer_leg WHERE id = '${l}'`, `DELETE FROM ord_passenger WHERE order_id = 'on'`], true), null, "nháp: xoá cha trước (khoá ngoại hoãn)");
+  db.exec(`DELETE FROM ord_passenger WHERE order_id = 'on'`);
+  db.exec(`DELETE FROM ord_transfer_leg WHERE id = '${l}'`);
+  db.exec(`DELETE FROM order_service WHERE id = 's-on'`);
+  db.exec(`DELETE FROM orders WHERE id = 'on'`);
+  assert.equal(rows(db, "SELECT count(*) n FROM orders WHERE id = 'on'")[0]!.n, 0, "nháp: xoá thật được");
 });

@@ -97,3 +97,12 @@ CREATE TRIGGER orders_confirm_requires_leg_date BEFORE UPDATE ON orders
 WHEN NEW.status = 'confirmed' AND OLD.status <> 'confirmed'
   AND EXISTS (SELECT 1 FROM ord_transfer_leg WHERE order_id = NEW.id AND closed_at IS NULL AND pickup_date IS NULL)
 BEGIN SELECT RAISE(ABORT, 'incomplete_trip: chặng đưa đón thiếu ngày đón'); END;
+
+-- Chủ "Trả lời lần 15" (30/9, "Vá ngay đợt này" — sửa TẠI CHỖ vì 0034 chưa áp remote, đã kiểm bằng `wrangler d1 migrations list --remote` 30/9): KHÔNG xoá
+-- cứng ĐƠN không còn nháp — trigger GỐC. Lỗ cũ: trigger chỉ-thêm của chặng / khách (0034, 0035) và dịch vụ (0008) xét `status` của đơn cha; dòng đơn mất
+-- TRƯỚC (`PRAGMA foreign_keys = OFF`, hoặc `defer_foreign_keys = ON` trong một giao dịch) thì vế đó là NULL ⇒ không chạy ⇒ xoá được trọn đơn đã xác nhận kèm
+-- chặng + danh sách khách (suất của Vận chuyển treo — R-VC-19). Chặn ở gốc đóng CẢ HAI thứ tự xoá: cha trước ⇒ trigger này; con trước ⇒ trigger chặng /
+-- khách (đơn còn). Đơn NHÁP xoá như cũ (app hôm nay không có đường xoá dòng đơn; lưu nháp chỉ xoá–chèn lại con — XOA_CUNG_NHAP).
+CREATE TRIGGER orders_no_delete BEFORE DELETE ON orders
+WHEN OLD.status <> 'draft'
+BEGIN SELECT RAISE(ABORT, 'order_frozen: đơn không còn ở trạng thái nháp — không xoá; huỷ đơn thì chuyển trạng thái Đã huỷ'); END;
