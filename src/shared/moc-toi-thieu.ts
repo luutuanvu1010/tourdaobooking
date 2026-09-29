@@ -88,3 +88,12 @@ export function mucMoc(gioMs: number, bayGioMs: number, phut: number, phutCanhBa
   if (con < (Math.max(phut, 0) + phutCanhBao) * PHUT) return "SAT_MOC";
   return "BINH_THUONG";
 }
+
+/**
+ * Mốc tối thiểu ĐANG HIỆU LỰC (ADR-0049 D2; kế hoạch I25): số phút + khoá dòng chính sách đã dùng. Hàm công bố `mocToiThieuHienHanh` của van-chuyen trả
+ * kiểu này; gốc lắp ráp tiêm nó cho orders qua `ctx.mocToiThieu` (Task A10). `null` ở nơi dùng = chưa có chính sách → CHẶN, không đoán con số.
+ */
+export interface MocToiThieu {
+  phut: number;
+  policyId: string;
+}

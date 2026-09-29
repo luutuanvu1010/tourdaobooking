@@ -20,6 +20,10 @@ import {
   type CanhBaoXe, type DanhMucGiayToXe, type XeNhap, type XeSua,
 } from "./rules";
 
+// ADR-0049 D2 (lát 1.1): hàm công bố mốc tối thiểu (chỉ gốc lắp ráp gọi — không module nào import van-chuyen).
+import type { MocToiThieu } from "../../shared/moc-toi-thieu";
+import { currentDispatchPolicy } from "./repository";
+
 const FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không quản lý được xe.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy xe.");
 const STALE = () => error(409, "stale", "Xe vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
@@ -32,6 +36,16 @@ const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
 const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
 const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
 const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+
+/**
+ * HÀM CÔNG BỐ (ADR-0049 D2; kế hoạch I25, mục 1.6): mốc tối thiểu đang hiệu lực = dòng `vc_dispatch_policy` mới nhất có `valid_from_at` ≤ bây giờ. Không cần
+ * quyền (chính sách công khai trong công ty — [TK] §1.11). CHỈ gốc lắp ráp gọi, để tiêm `ctx.mocToiThieu` cho orders (Task A10) — orders không được đọc
+ * bảng vc_. `null` = bảng rỗng → orders CHẶN lệnh cần mốc, không đoán con số.
+ */
+export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu | null> {
+  const r = await currentDispatchPolicy(db, new Date().toISOString());
+  return r ? { phut: r.min_lead_minutes, policyId: r.id } : null;
+}
 
 /** Danh mục loại giấy tờ xe cho một lần kiểm (mọi loại, kể cả đã ngưng — sửa sai dòng cũ vẫn cần `hasExpiry`) + tra tên cho nhật ký. */
 async function danhMucXe(db: D1Database, homNay: string): Promise<{ dm: DanhMucGiayToXe; tenLoai: (c: string) => string }> {
