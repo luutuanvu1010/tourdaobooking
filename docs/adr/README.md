@@ -67,9 +67,11 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0029: nhánh Thông báo (đính kèm, ADR-0041), chưa thi công;
 - 0030: T2b (hồ sơ công ty chủ, ADR-0024 điều 6 và ADR-0043) (đã lên main, bản 1.34);
 - 0031, 0032, 0033: Vận chuyển lượt 1a (ADR-0040) — lần lượt vai + quyền tài xế, giấy tờ của người, xe (kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md`) (đã lên main, bản 1.35);
-- 0034, 0035, 0036: ADR-0047 (chặng đưa đón, danh sách hành khách, số khách hiệu lực + `ord_`) — giữ chỗ 2026-09-29, kế hoạch thi công đang soạn; dùng không hết thì nhả;
-- 0037, 0038, 0039: ADR-0048 (nhà xe đối tác, `DRIVER_PARTNER`, LC-1 mới) — giữ chỗ 2026-09-29, kế hoạch thi công đang soạn; dùng không hết thì nhả;
-- số kế tiếp cho việc khác là 0040 (bảng điều phối chung / chuyến xe xếp sau).
+- 0034, 0035: ADR-0047 (chặng đưa đón `0034_chang_dua_don`, danh sách hành khách `0035_hanh_khach`) — Phần A đã thi công, chưa gộp main;
+- 0036: **bỏ trống** — ADR-0047 trả số 2026-09-29 (Ruling R11: không làm trigger khoá cột cũ); không dùng lại cho việc khác để khỏi lệch thứ tự áp;
+- 0037, 0038, 0039: ADR-0048 (nhà xe đối tác, `DRIVER_PARTNER`, LC-1 mới) — Phần A đã thi công, chưa gộp main;
+- 0040, 0041, 0042: ADR-0049 (Bảng điều phối chung lượt 1) — lần lượt năm cột "đặt gấp" trên `ord_transfer_leg`, chính sách điều phối, chuyến xe `vc_trip*` — giữ chỗ 2026-09-29 (kế hoạch `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md`); dùng không hết thì nhả;
+- số kế tiếp cho việc khác là 0043.
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
