@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Chuyến mới — Island Booking System</title></head>
+<body data-title="Chuyến mới" data-back="/dieu-phoi">
+<header id="topbar"></header>
+<main>
+  <!-- Tạo / sửa chuyến (ADR-0049 V3; bản vẽ docs/design/van-chuyen-dieu-phoi/project/03 Tao sua chuyen.dc.html). /chuyen-sua?ngay=YYYY-MM-DD = tạo; ?id=<chuyến> = sửa. -->
+  <a id="cx-back" class="vc-back" href="/dieu-phoi">‹ Điều phối xe</a>
+  <div class="vc-page-head"><h1 id="cx-title">Chuyến mới</h1></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="cx-banner"></div>
+  <div id="cx-layout" class="dp-cx-layout" hidden>
+    <form id="cx-form" class="vc-card dp-cx-form" autocomplete="off" novalidate></form>
+    <section id="cx-ngay" class="vc-card dp-hist dp-cx-day" aria-labelledby="cx-ngay-title"></section>
+  </div>
+  <div id="cx-bottom" class="vc-bottom-bar dp-cx-bottom" hidden></div>
+</main>
+<script type="module" src="/js/chuyen-sua.js"></script>
+</body></html>

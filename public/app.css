@@ -1556,3 +1556,38 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dg-sheet-slot { margin-bottom: var(--s4); }
 .dg-lock { display: flex; align-items: center; gap: var(--s1); margin: 0; font-size: var(--fs-label); font-weight: 700; color: var(--c-sand-text); }
 .dg-lock.dg-lock-note { font-size: var(--fs-badge); font-weight: 600; color: var(--c-text-muted); }
+
+/* ---------- Bảng điều phối lượt 1 — màn văn phòng B2 Chi tiết chuyến, B3 Tạo / sửa chuyến (bản vẽ docs/design/van-chuyen-dieu-phoi/project/02, 03).
+   Chip trạng thái chung của ba màn (tone ở src/shared/dieu-phoi-man.ts). Chỉ token. ---------- */
+.chip[class*="dp-chip-"] { display: inline-block; white-space: nowrap; }
+.dp-chip-danger { color: var(--c-danger-text); background: var(--c-danger-soft); }
+.dp-chip-warn { color: var(--c-sand-text); background: var(--c-sand-soft); }
+.dp-chip-unit { color: var(--c-primary); background: var(--c-primary-soft); }
+.dp-chip-muted { color: var(--c-text-muted); background: var(--c-surface-alt); }
+.dp-chip-ok { color: var(--c-green-text); background: var(--c-green-soft); }
+.dp-chip-navy { color: var(--c-on-dark); background: var(--c-primary); }
+.dp-banner-ok { color: var(--c-green-text); background: var(--c-green-soft); border-color: var(--c-green-border); }
+.dp-sheet-sum { display: flex; flex-direction: column; gap: var(--s1); padding: var(--s3); margin-bottom: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+.dp-sheet-sum-title { font-family: var(--font-display); font-weight: 700; }
+.dp-sheet-text { margin: 0 0 var(--s3); line-height: 1.5; }
+.dp-card-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-card-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-ui); color: var(--c-text); }
+.dp-card-head > .chip, .dp-card-note { margin-left: auto; }
+.dp-card-note { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dp-card-note strong { color: var(--c-text); }
+
+/* B3 Tạo / sửa chuyến (03): form + cột "<biển số> trong ngày" 260px (máy tính); điện thoại: một cột, nút dính đáy. */
+.dp-cx-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-items: start; }
+@media (min-width: 900px) { .dp-cx-layout { grid-template-columns: minmax(0, 1fr) var(--w-dp-hist); } }
+.dp-cx-form { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4); }
+.dp-cx-form .banner { margin-bottom: 0; }
+.dp-cx-gio { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--s3); align-items: start; }
+.dp-cx-actions { display: flex; justify-content: flex-end; gap: var(--s2); }
+.dp-cx-day .dp-hist-row.is-trung { background: var(--c-danger-soft); }
+.dp-hist-sub.is-trung { font-weight: 600; color: var(--c-danger-text); }
+@media (max-width: 640px) {
+  .dp-cx-actions, .dp-cx-day { display: none; }
+  .dp-cx-bottom { display: flex; gap: var(--s2); }
+  .dp-cx-bottom .vc-btn:first-child { flex: none; width: auto; }
+}
+

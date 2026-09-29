@@ -1,0 +1,201 @@
+// Luật thuần của ba màn văn phòng B1 (Điều phối xe), B2 (Chi tiết chuyến), B3 (Tạo / sửa chuyến) — src/shared/dieu-phoi-man.ts.
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import {
+  cauKhoaMoc, changChuaXep, chipChang, dieuKienXuatBen, gioHien, hinhDongThoiGian, idChoLenh, kieuChuyen, nhanDiem, dongNhatKy, soLieuDieuPhoi, truongLoiChuyen,
+  viecCanXuLy,
+} from "./dieu-phoi-man.ts";
+import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
+import { vnLocalToMs } from "./vn-date.ts";
+
+const NGAY = "2026-09-30";
+const ms = (gio: string, ngay = NGAY) => vnLocalToMs(ngay, gio)!;
+const g = (gio: string, ngay = NGAY) => ({ ngay, gio });
+const ly = (ma: string, loiNhan: string, aiXuLy: LyDoGiuDto["aiXuLy"] = "VAN_PHONG"): LyDoGiuDto => ({ ma, loiNhan, aiXuLy, aiXuLyNhan: { VAN_PHONG: "Văn phòng", QUAN_TRI: "Quản trị", TOAN_QUYEN: "Toàn quyền" }[aiXuLy] });
+const chang = (o: Partial<ChangLichDto> = {}): ChangLichDto => ({
+  legId: "l1", orderId: "o1", maDon: "TD-1", tenDichVu: "Tour", chieu: "OUT", ngayDon: NGAY, gioDon: "10:15", noiDon: "Sunrise Nha Trang", noiTra: "Ga cáp treo Vinpearl", soNguoi: 4,
+  soNguoiCoTen: 4, datGap: false, trangThai: "CHUA_XEP", trangThaiNhan: "Chưa xếp", nhan: [], soDaXep: 0, soDaDon: 0, soDaTra: 0, soVang: 0, soKhachHuy: 0, chuyen: [], ...o,
+});
+const chuyen = (o: Partial<ChuyenTomTatDto> = {}): ChuyenTomTatDto => ({
+  id: "t1", ma: "CX-3009-07", trangThai: "PLANNED", trangThaiNhan: "Lên kế hoạch", version: 1, ngayChay: NGAY, batDau: g("09:00"), ketThuc: g("10:45"), batDauMs: ms("09:00"), ketThucMs: ms("10:45"),
+  xe: { id: "x1", bienSo: "79B-123.45", soCho: 15, chuXe: "Tour Đảo", chuLaCongTy: true }, taiXe: { partyId: "p1", ten: "Nguyễn Văn An", loai: "CONG_TY" }, tai: 12, lyDoGiu: [],
+  khoaMoc: { dangKhoa: false, tuLuc: g("03:00"), tuLucMs: ms("03:00") }, xuatBen: null, ketThucThat: null, diem: [], ...o,
+});
+const lich = (o: Partial<LichChungResponse> = {}): LichChungResponse => ({
+  ngay: NGAY, mocToiThieuPhut: 360, canhBaoPhut: 120, chang: [], chuyen: [], soNhap: 0, nhapChoDatGap: [], canhBao: [], lyDo: [], xe: [], taiXe: [], ...o,
+});
+
+test("gioHien: 'HH:MM' cùng ngày; khác ngày thêm 'dd/mm'", () => {
+  assert.equal(gioHien(g("09:00"), NGAY), "09:00");
+  assert.equal(gioHien(g("00:40", "2026-10-01"), NGAY), "00:40 01/10");
+});
+
+test("chipChang: nhãn tiếng Việt theo mã (quá mốc đỏ, sát mốc cát, đặt gấp, xếp một phần), 'Thiếu tên' khi chưa đủ tên — không lộ mã", () => {
+  assert.deepEqual(chipChang(chang({ nhan: ["QUA_MOC", "DAT_GAP"] })), [{ nhan: "Quá mốc", tone: "danger" }, { nhan: "Đặt gấp", tone: "unit" }]);
+  assert.deepEqual(chipChang(chang({ nhan: ["SAT_MOC"], soNguoiCoTen: 1 })), [{ nhan: "Sát mốc", tone: "warn" }, { nhan: "Thiếu tên", tone: "warn" }]);
+  assert.deepEqual(chipChang(chang({ nhan: ["XEP_MOT_PHAN", "CHUA_CHOT_GIO", "LA_MA"] })), [{ nhan: "Xếp một phần", tone: "warn" }, { nhan: "Chưa chốt giờ", tone: "muted" }]);
+});
+
+test("changChuaXep: chặng chưa xếp hoặc xếp một phần, còn lại = số người − đã xếp, xếp theo giờ đón; bỏ chặng đã xếp đủ / đã bỏ / nháp / giữ", () => {
+  const ds = changChuaXep(lich({
+    chang: [
+      chang({ legId: "b", gioDon: "14:20" }),
+      chang({ legId: "a", gioDon: "10:15" }),
+      chang({ legId: "c", trangThai: "DA_XEP", soDaXep: 4 }),
+      chang({ legId: "d", trangThai: "DA_XEP", soDaXep: 1, nhan: ["XEP_MOT_PHAN"] }),
+      chang({ legId: "e", trangThai: "DA_BO" }),
+      chang({ legId: "f", trangThai: "GIU" }),
+      chang({ legId: "g", gioDon: null }),
+    ],
+  }));
+  assert.deepEqual(ds.map((x) => [x.chang.legId, x.conLai]), [["a", 4], ["d", 3], ["b", 4], ["g", 4]]);
+});
+
+test("soLieuDieuPhoi: số liệu đầu màn (chặng, đã xếp, chưa xếp + sát / quá mốc, chuyến + bị giữ, cần xử lý, đơn nháp + chờ duyệt)", () => {
+  const s = soLieuDieuPhoi(lich({
+    chang: [chang({ legId: "a", nhan: ["QUA_MOC"] }), chang({ legId: "b", nhan: ["SAT_MOC"] }), chang({ legId: "c", trangThai: "DA_XEP", soDaXep: 4 }), chang({ legId: "d", trangThai: "DA_BO" })],
+    chuyen: [chuyen({ lyDoGiu: [ly("THIEU_TEN", "Chưa đủ tên khách")] }), chuyen({ id: "t2" }), chuyen({ id: "t3", trangThai: "CANCELLED" })],
+    soNhap: 2, nhapChoDatGap: [{ legId: "n", orderId: "o", maDon: "TD-9", ngayDon: NGAY, gioDon: "11:40" }],
+  }), 5);
+  assert.deepEqual(s, { chang: 3, daXep: 1, chuaXep: 2, satMoc: 1, quaMoc: 1, chuyen: 2, biGiu: 1, canXuLy: 5, nhap: 2, choDatGap: 1 });
+});
+
+test("viecCanXuLy: chuyến bị giữ (lý do + Ai xử lý theo NHAN_AI_XU_LY + nút theo cờ), cảnh báo lịch có nhãn, đơn nháp chờ duyệt; bỏ CHUYEN_GIU / NHAP_CHO_DAT_GAP / CHANG_SAT_MOC / CHINH_SACH_RONG; không nút Gọi / Đã gọi báo", () => {
+  const L = lich({
+    chang: [chang({ legId: "l1", nhan: ["QUA_MOC"], datGap: true }), chang({ legId: "l2", nhan: ["QUA_MOC"], gioDon: "11:00", noiTra: null })],
+    chuyen: [
+      chuyen({ lyDoGiu: [ly("NOI_HEN_DOI", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8")] }),
+      chuyen({ id: "t2", ma: "CX-3009-04", batDau: g("08:30"), batDauMs: ms("08:30"), xe: { id: "x2", bienSo: "79B-678.90", soCho: 29, chuXe: "Tour Đảo", chuLaCongTy: true }, lyDoGiu: [ly("DIEU_KIEN_GIAY_TO_XE", "Xe thiếu hoặc hết hạn giấy tờ bắt buộc: 79B-678.90", "QUAN_TRI")] }),
+      chuyen({ id: "t3", ma: "CX-3009-09", taiXe: null, lyDoGiu: [ly("CHUA_CO_TAI_XE", "Chuyến chưa có tài xế: CX-3009-09")] }),
+      chuyen({ id: "t4", ma: "CX-3009-02", trangThai: "RUNNING" }),
+    ],
+    canhBao: [
+      { loai: "CHANG_QUA_MOC", nhan: "Chặng đã quá mốc tối thiểu mà chưa xếp", legId: "l1", tripId: null, maDon: "TD-1" },
+      { loai: "CHANG_QUA_MOC", nhan: "Chặng đã quá mốc tối thiểu mà chưa xếp", legId: "l2", tripId: null, maDon: "TD-2" },
+      { loai: "CHANG_SAT_MOC", nhan: "Chặng sát mốc", legId: "l1", tripId: null, maDon: "TD-1" },
+      { loai: "CHUYEN_GIU", nhan: "Chuyến đang bị giữ", legId: null, tripId: "t1", maDon: null },
+      { loai: "NHAP_CHO_DAT_GAP", nhan: "Đơn nháp…", legId: "n", tripId: null, maDon: "TD-9" },
+      { loai: "CHINH_SACH_RONG", nhan: "Chưa có chính sách", legId: null, tripId: null, maDon: null },
+      { loai: "NOI_HEN_KHAC_DIEM", nhan: "Nơi đón / trả của đơn khác điểm của xe", legId: "l1", tripId: "t4", maDon: "TD-1" },
+      { loai: "GIO_XE_TOI_MUON_HON_HEN", nhan: "Giờ xe tới muộn hơn giờ hẹn", legId: "l1", tripId: "t4", maDon: "TD-1" },
+    ],
+    nhapChoDatGap: [{ legId: "n", orderId: "o9", maDon: "TD-9", ngayDon: NGAY, gioDon: "11:40" }],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, phaLe: false, quanLyXe: false });
+  assert.deepEqual(v.map((x) => x.loai), [
+    "Chuyến bị giữ", "Chuyến bị giữ", "Chưa có tài xế", "Chặng quá mốc", "Chặng quá mốc", "Nơi đón / trả của đơn khác điểm của xe", "Giờ xe tới muộn hơn giờ hẹn", "Đơn nháp chờ duyệt đặt gấp",
+  ]);
+  assert.deepEqual([v[0]!.tieuDe, v[0]!.noiDung, v[0]!.aiXuLy], ["CX-3009-07 · 09:00 · 79B-123.45", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8", "Văn phòng"]);
+  assert.deepEqual(v[0]!.hanhDong, [{ nhan: "Cập nhật điểm theo đơn", kieu: "cap-nhat-diem", tripId: "t1" }]);
+  assert.deepEqual(v[1]!.hanhDong, [], "không quản lý xe → không lối sang giấy tờ xe");
+  assert.equal(v[1]!.aiXuLy, "Quản trị");
+  assert.deepEqual(v[2]!.hanhDong, [{ nhan: "Chọn tài xế", kieu: "link", href: "/chuyen-sua?id=t3" }]);
+  // Chặng quá mốc: đặt gấp → không cần phá lệ (đối chiếu 2.1); chưa đặt gấp + không có ô phá lệ → dòng khoá.
+  assert.deepEqual([v[3]!.tieuDe, v[3]!.khoa], ["10:15 · Sunrise Nha Trang → Ga cáp treo Vinpearl", null]);
+  assert.match(v[3]!.noiDung, /TD-1 · 4 khách · đã duyệt đặt gấp$/);
+  assert.deepEqual([v[4]!.tieuDe, v[4]!.khoa], ["11:00 · Sunrise Nha Trang → nơi trả chưa chốt", "Cần Quản trị phá lệ"]);
+  assert.equal(v[5]!.tieuDe, "CX-3009-02 · TD-1");
+  assert.ok(v.slice(5, 7).every((x) => x.hanhDong.length === 0), "không nút Gọi tài xế / Đã gọi báo");
+  assert.deepEqual([v[7]!.tieuDe, v[7]!.hanhDong], ["TD-9 · đón 11:40", [{ nhan: "Xem đơn", kieu: "link", href: "/order?id=o9" }]]);
+  assert.ok(!JSON.stringify(v).match(/[A-Z]{2,}_[A-Z]/), "không lộ mã");
+  // Kế toán (không điều phối): không nút nào; Quản trị có ô quản lý xe → "Mở giấy tờ xe"; có ô phá lệ → không dòng khoá.
+  assert.ok(viecCanXuLy(L, { dieuPhoi: false, phaLe: false, quanLyXe: false }).every((x) => x.hanhDong.every((h) => h.kieu === "link" && h.href.startsWith("/order"))));
+  const qt = viecCanXuLy(L, { dieuPhoi: true, phaLe: true, quanLyXe: true });
+  assert.deepEqual(qt[1]!.hanhDong, [{ nhan: "Mở giấy tờ xe", kieu: "link", href: "/xe-chi-tiet?id=x2" }]);
+  assert.equal(qt[4]!.khoa, null);
+});
+
+test("kieuChuyen: màu theo trạng thái — bị giữ / chưa có tài xế / lên kế hoạch / đang chạy / xong", () => {
+  assert.deepEqual(kieuChuyen(chuyen()), { kieu: "plan", nhan: "Lên kế hoạch" });
+  assert.deepEqual(kieuChuyen(chuyen({ lyDoGiu: [ly("THIEU_TEN", "x")] })), { kieu: "held", nhan: "Bị giữ" });
+  assert.deepEqual(kieuChuyen(chuyen({ taiXe: null, lyDoGiu: [ly("CHUA_CO_TAI_XE", "x")] })), { kieu: "nodrv", nhan: "Chưa có tài xế" });
+  assert.deepEqual(kieuChuyen(chuyen({ trangThai: "RUNNING", trangThaiNhan: "Đang chạy" })), { kieu: "run", nhan: "Đang chạy" });
+  assert.deepEqual(kieuChuyen(chuyen({ trangThai: "ENDED", trangThaiNhan: "Kết thúc" })), { kieu: "done", nhan: "Kết thúc" });
+});
+
+test("hinhDongThoiGian: khoảng giờ theo dữ liệu (ít nhất 06–21, mở rộng qua nửa đêm), nhóm xe công ty rồi từng nhà xe, vạch bây giờ / mốc chỉ khi trong khung", () => {
+  const L = lich({
+    xe: [
+      { id: "x3", bienSo: "79B-555.66", soCho: 45, trangThai: "active", chuXe: "Minh Phát", chuLaCongTy: false },
+      { id: "x1", bienSo: "79B-123.45", soCho: 15, trangThai: "active", chuXe: "Tour Đảo", chuLaCongTy: true },
+    ],
+    chuyen: [
+      chuyen(),
+      chuyen({ id: "t9", ma: "CX-3009-12", batDau: g("22:00"), ketThuc: g("00:40", "2026-10-01"), batDauMs: ms("22:00"), ketThucMs: ms("00:40", "2026-10-01") }),
+      chuyen({ id: "tc", trangThai: "CANCELLED" }),
+    ],
+  });
+  const h = hinhDongThoiGian(L, ms("07:50"));
+  assert.deepEqual([h.gioDau, h.gioCuoi], [6, 25]);
+  assert.equal(h.nhanGio[0]!.nhan, "07");
+  assert.equal(h.nhanGio.at(-1)!.nhan, "00");
+  assert.deepEqual(h.nhom.map((n) => [n.tieuDe, n.hang.map((r) => r.bienSo)]), [["XE CÔNG TY", ["79B-123.45"]], ["NHÀ XE MINH PHÁT", ["79B-555.66"]]]);
+  const r = h.nhom[0]!.hang[0]!;
+  assert.deepEqual([r.soCho, r.taiXe], ["15 chỗ", "Nguyễn Văn An"]);
+  assert.deepEqual(r.khoi.map((k) => [k.id, k.trai, k.dai]), [["t1", 3, 1.75], ["t9", 16, 2.6667]], "làm tròn 4 chữ số (tránh sai số dấu phẩy động)");
+  assert.equal(h.nhom[1]!.hang[0]!.khoi.length, 0);
+  assert.deepEqual([h.bayGio, h.moc], [{ x: 1.8333, nhan: "07:50" }, { x: 7.8333, nhan: "Mốc 6 giờ · 13:50" }]);
+  // Ngày khác hôm nay → không vạch.
+  const h2 = hinhDongThoiGian(L, ms("07:50", "2026-09-28"));
+  assert.deepEqual([h2.bayGio, h2.moc], [null, null]);
+  // Không có mốc (chính sách rỗng) → chỉ vạch bây giờ.
+  assert.equal(hinhDongThoiGian({ ...L, mocToiThieuPhut: null }, ms("07:50")).moc, null);
+});
+
+test("cauKhoaMoc: câu khoá theo ô của người xem (phá lệ được / cần Quản trị / chỉ xem)", () => {
+  assert.equal(cauKhoaMoc(360, { phaLe: true, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Bạn có thể phá lệ. Cập nhật điểm theo đơn không cần phá lệ.");
+  assert.equal(cauKhoaMoc(360, { phaLe: false, dieuPhoi: true }), "Trong 6 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. Cần Quản trị phá lệ. Cập nhật điểm theo đơn không cần phá lệ.");
+  assert.equal(cauKhoaMoc(2880, { phaLe: false, dieuPhoi: false }), "Trong 48 giờ trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.");
+  assert.equal(cauKhoaMoc(null, { phaLe: false, dieuPhoi: false }), "Trong mốc tối thiểu trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.");
+});
+
+test("dieuKienXuatBen: danh mục cố định, ✕ kèm câu + ai xử lý từ lý do giữ, ✓ không kèm chi tiết (DTO không có chi tiết đạt)", () => {
+  const dk = dieuKienXuatBen([ly("THIEU_TEN", "Chưa đủ tên khách: TD-8 thiếu 2 tên"), ly("NOI_HEN_DOI", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8")]);
+  assert.deepEqual(dk.map((d) => [d.nhan, d.dat]), [
+    ["Giấy tờ xe", true], ["Giấy phép lái xe", true], ["Đủ tên khách", false], ["Không có đơn đã huỷ", true], ["Điểm khớp đơn", false], ["Đủ chỗ", true], ["Đủ giờ nghỉ", true],
+  ]);
+  assert.equal(dk[2]!.chiTiet, "Chưa đủ tên khách: TD-8 thiếu 2 tên · Ai xử lý: Văn phòng");
+  assert.equal(dk[0]!.chiTiet, "");
+  // Mã không thuộc danh mục nào → thêm dòng "Khác".
+  assert.equal(dieuKienXuatBen([ly("CHINH_SACH_RONG", "Chưa có chính sách", "TOAN_QUYEN")]).at(-1)!.nhan, "Khác");
+});
+
+test("nhanDiem: trạng thái điểm dừng + lệch đơn (R-P16) + muộn hơn hẹn", () => {
+  const d = { id: "s", thuTu: 2, loai: "PICKUP" as const, tenNoi: "Amiana", diemDanhMucId: null, gioHen: g("09:30"), gioXeToi: g("09:32"), trangThai: "PENDING" as const, soNguoi: 4, lechDon: true, daToi: null };
+  assert.deepEqual(nhanDiem(d), { nhan: "Lệch đơn", tone: "warn", ghiChu: "Nơi của đơn đã đổi — cần cập nhật điểm theo đơn", muon: "muộn 2 phút", loai: "Đón", so: "2" });
+  assert.deepEqual(nhanDiem({ ...d, lechDon: false, trangThai: "SKIPPED", gioXeToi: null }), { nhan: "Bỏ qua", tone: "muted", ghiChu: "bỏ qua — không còn khách", muon: "", loai: "Đón", so: "–" });
+  assert.equal(nhanDiem({ ...d, lechDon: false, loai: "DROPOFF", gioHen: null }).loai, "Trả");
+});
+
+test("dongNhatKy: giờ (hai giờ khi văn phòng khai), ai bấm (tên hoặc 'máy'), nội dung + số người + phá lệ", () => {
+  const n = (o: Partial<NhatKyChuyenDto>): NhatKyChuyenDto => ({ id: "e", loai: "ALLOCATED", nhan: "Xếp khách lên xe", gioXayRa: g("06:10"), gioGhiNhan: g("06:10"), vanPhongKhai: false, nguoiBam: "Phạm Thu Hoa", may: false, soNguoi: 4, phaLe: null, ...o });
+  assert.deepEqual(dongNhatKy(n({}), NGAY), { gio: "06:10", ai: "Phạm Thu Hoa", laMay: false, noiDung: "Xếp khách lên xe · 4 khách", vanPhongKhai: false });
+  assert.deepEqual(dongNhatKy(n({ may: true, nguoiBam: null, soNguoi: null, nhan: "Bỏ qua điểm" }), NGAY).ai, "máy");
+  assert.equal(dongNhatKy(n({ phaLe: { luat: "MOC_TOI_THIEU", lyDoNhan: "Sự cố vận hành" } }), NGAY).noiDung, "Xếp khách lên xe · 4 khách · phá lệ: Sự cố vận hành");
+  assert.equal(dongNhatKy(n({ vanPhongKhai: true, gioXayRa: g("07:31"), gioGhiNhan: g("07:45"), nguoiBam: "Hoa" }), NGAY).gio, "07:31 · ghi lúc 07:45");
+  assert.equal(dongNhatKy(n({ gioXayRa: g("17:05", "2026-09-29") }), NGAY).gio, "17:05 29/09");
+});
+
+test("truongLoiChuyen: 409 → câu dưới đúng ô (Xe / Tài xế / Giờ); mốc chỉ ở ô đang đổi; mã khác → dải chung", () => {
+  const r = truongLoiChuyen([
+    ly("HANG_BANG_KHONG_DU", "Hạng bằng lái không đủ chở số chỗ của xe"), ly("TRUNG_GIO_XE", "Xe trùng giờ với chuyến khác: CX-3009-11"), ly("KHOANG_NGHI", "Chưa đủ khoảng nghỉ…", "QUAN_TRI"),
+    ly("MOC_TOI_THIEU", "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ", "QUAN_TRI"), ly("CHINH_SACH_RONG", "Chưa có chính sách", "TOAN_QUYEN"),
+  ], { doiXe: false, doiTaiXe: true });
+  assert.deepEqual(r, {
+    xe: [], taiXe: ["Hạng bằng lái không đủ chở số chỗ của xe", "Trong mốc tối thiểu trước giờ xuất bến — cần Quản trị phá lệ"],
+    gioBatDau: ["Chưa đủ khoảng nghỉ…"], gioKetThuc: ["Xe trùng giờ với chuyến khác: CX-3009-11"], khac: ["Chưa có chính sách"],
+  });
+  assert.deepEqual(truongLoiChuyen([ly("MOC_TOI_THIEU", "m")], { doiXe: true, doiTaiXe: true }).xe, ["m"]);
+  assert.deepEqual(truongLoiChuyen([ly("VUOT_SO_CHO", "Vượt số chỗ của xe: 16/15"), ly("CHEO_XE_TAI_XE", "c")], { doiXe: false, doiTaiXe: false }), {
+    xe: ["Vượt số chỗ của xe: 16/15"], taiXe: ["c"], gioBatDau: [], gioKetThuc: [], khac: [],
+  });
+});
+
+test("idChoLenh: lệnh lặp sau mất mạng dùng lại requestId khi thân không đổi; thân đổi hoặc chưa có lệnh chờ → id mới", () => {
+  let n = 0;
+  const tao = () => `id${++n}`;
+  const a = idChoLenh(null, "k1", tao);
+  assert.deepEqual(a, { id: "id1", khoa: "k1" });
+  assert.deepEqual(idChoLenh(a, "k1", tao), a, "bấm lại sau mất mạng — cùng id");
+  assert.deepEqual(idChoLenh(a, "k2", tao), { id: "id2", khoa: "k2" }, "đổi ý (thân khác) — id mới, không bị máy chủ coi là lệnh lặp");
+});
