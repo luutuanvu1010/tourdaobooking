@@ -508,3 +508,11 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - `src/route-write-guard.test.ts` thêm luật (1c) + bài "không thừa". Đỏ trước (chưa điền danh sách): đúng 7 route — `GET /api/auth/me`, `/api/bang-tin`, `/api/feedback/mine`, `/api/locations`, `/api/thong-bao`, `/tom-tat`, `/moi-nhat` → `TU_PHUC_VU_STAFF`, mỗi mục một lý do. Kế hoạch dự kiến lấy "BANG_STAFF trừ documents/mine, handler-cancel, handler-money-edit, dispatch/mine" — đo lại: bốn route đó cùng 11 route tài xế và `/api/account/*` đã hỏi can() / thuộc SELF_SERVICE, nên danh sách là 7.
 - P16 ba phép đều đỏ (sổ hàng rào một dòng). Không sửa `docs/quyen-hoan.json`, không thêm tên vào GUARDS.
 
+### 10.21 A17 — Câu kiểm định kỳ R-VC-3…10, R-VC-12…16 (TC-40, TC-54)
+
+- `scripts/audit-checks.mjs`: 14 câu mới (R-VC-5 tách 5a fail / 5b warn). Đoạn dùng chung: `soKhachHieuLuc(s)` (R-ORD-9 đổi sang dùng — cùng chữ, bài R-ORD-9 xanh), `HIEN_HANH_GIAY_TO_XE`, `TAI_XE_KHONG_DAT` (cùng nghĩa `kiemLai`), `HANH_DONG_CO_SU_KIEN` (R-VC-6 — theo lời advisor: `trip_appt_*`, `trip_reason_*` không có sự kiện chuyến). R-VC-7 dùng `strftime('%Y-%m-%d %H:%M', 'now', '+7 hours', '+<mốc> minutes')` (mốc = chính sách hiện hành).
+- **GA-53 (hai chiều — câu kiểm):** R-VC-4 đếm suất khách CÓ TÊN + người đi kèm mở lúc xuất bến (suất chưa tên không có dòng bản chốt khi chính sách tắt "bắt đủ danh sách" — Q-A15-1 vẫn chờ; đổi định nghĩa là sửa một câu SQL).
+- **GA-54 (hai chiều):** R-VC-13 "chuyến kế" = chuyến khác cùng xe HOẶC cùng tài xế (dòng lái mở) có giờ xảy ra xuất bến ≥ giờ xảy ra kết thúc, và (giờ ghi nhận xuất bến − giờ ghi nhận kết thúc) < khoảng nghỉ chụp của chuyến kế; R-VC-15 "lần đổi thứ tự cuối" = sự kiện STOPS_REORDERED ghi TRƯỚC sự kiện đã tới.
+- Bài `src/audit-invariants.test.ts` +13 (dựng thô `tho()`: bỏ khoá ngoại + mọi trigger bảng chuyến; đơn qua nháp → xác nhận để qua `order_frozen`). P16 13 phép + 1 ca thêm cho R-VC-10, đều đỏ. Bài "mọi câu = 0 trên dữ liệu khoẻ" (có sẵn) chạy cả 14 câu mới.
+- TC-40 `node scripts/audit-invariants.mjs --db local` trên dữ liệu e2e: ở A21 (đuôi `--strict` của e2e đủ bộ).
+

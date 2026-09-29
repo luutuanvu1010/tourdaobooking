@@ -30,6 +30,42 @@ const handlerAccountEligible = (extra = "") =>
  */
 const HIEN_HANH_GIAY_TO_XE = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM vc_vehicle_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
 
+/**
+ * Số khách HIỆU LỰC của dịch vụ alias `s` (ADR-0047 L-A1): phần tử của CHÍNH dịch vụ trong `after_json` của dòng điều chỉnh gần nhất (có chắn JSON hỏng),
+ * không thì số đã lưu. MỘT đoạn cho R-ORD-9 và R-VC-3, R-VC-7 (ADR-0049 kế hoạch mục 4 điểm 11 — không chép lần hai). Alias nội bộ: a, b, je.
+ */
+const soKhachHieuLuc = (s) => `COALESCE(
+            (SELECT json_extract(je.value, '$.pax.adult') + json_extract(je.value, '$.pax.child') + json_extract(je.value, '$.pax.senior') + json_extract(je.value, '$.pax.infant')
+               FROM order_money_adjustment a, json_each(CASE WHEN json_valid(a.after_json) AND json_type(a.after_json) = 'array' THEN a.after_json ELSE '[]' END) je
+               WHERE a.order_id = ${s}.order_id AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = ${s}.order_id) AND json_extract(je.value, '$.serviceId') = ${s}.id
+               LIMIT 1),
+            ${s}.pax_adult + ${s}.pax_child + ${s}.pax_senior + ${s}.pax_infant)`;
+/** Mốc "bây giờ" dạng ISO UTC đúng khuôn `toISOString()` (so chuỗi với valid_from_at / created_at). */
+const BAY_GIO_ISO = "strftime('%Y-%m-%dT%H:%M:%fZ', 'now')";
+/** Mili-giây "bây giờ" (so với *_ms của vc_trip). */
+const BAY_GIO_MS = "(CAST(strftime('%s', 'now') AS INTEGER) * 1000)";
+/**
+ * Tài xế đang lái `dr` (dòng vc_trip_driver) KHÔNG đạt LC-12 cho chuyến `t` / xe `v` — cùng nghĩa `kiemLai` (src/shared/dieu-phoi-kiem.ts): không có GPLX HIỆN
+ * HÀNH còn hạn tới hết ngày VN của giờ kết thúc dự kiến mà hạng (dòng số khách đang hiệu lực) chở đủ số chỗ của xe (NULL = không giới hạn).
+ */
+const TAI_XE_KHONG_DAT = `NOT EXISTS (
+    SELECT 1 FROM pty_person_document g
+     WHERE g.party_id = dr.driver_party_id AND g.document_type_code = 'GPLX' AND g.voided_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM pty_person_document gn WHERE gn.previous_id = g.id AND gn.voided_at IS NULL)
+       AND (g.expiry_date IS NULL OR g.expiry_date >= date(t.planned_end_ms / 1000, 'unixepoch', '+7 hours'))
+       AND EXISTS (SELECT 1 FROM vc_license_capacity c WHERE c.license_class_code = g.license_class_code
+             AND c.valid_from_at = (SELECT max(c2.valid_from_at) FROM vc_license_capacity c2 WHERE c2.license_class_code = g.license_class_code AND c2.valid_from_at <= ${BAY_GIO_ISO})
+             AND (c.max_passengers IS NULL OR c.max_passengers >= v.passenger_capacity)))`;
+/**
+ * Hành động nhật ký của LỆNH CHUYẾN — mỗi dòng có ĐÚNG một `vc_trip_event` cùng id (dấu lệnh). KHÔNG gồm `trip_appt_*` (ADR-0051 — mốc giờ hẹn, không phải
+ * sự kiện chuyến), `trip_reason_*`, `dispatch_policy_changed`… (danh mục / chính sách — không có chuyến).
+ */
+const HANH_DONG_CO_SU_KIEN = [
+  "trip_created", "trip_edited", "trip_cancelled", "trip_allocated", "trip_allocation_removed", "trip_allocation_moved", "trip_stops_synced", "trip_departed",
+  "trip_stop_arrived", "trip_passenger_boarded", "trip_passenger_no_show", "trip_passenger_cancelled_at_stop", "trip_passenger_dropped", "trip_stops_reordered",
+  "trip_ended", "trip_ended_interrupted",
+];
+
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
 export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
@@ -198,6 +234,149 @@ export const CHECKS = [
           GROUP BY d.vehicle_id, d.document_type_code HAVING count(*) > 1)`,
     level: "warn",
     note: "cảnh báo, không chặn phát hành: có xe mang hai dòng giấy tờ cùng loại cùng đang dùng (bấm 'Thêm' thay vì 'Gia hạn') — Quản trị mở giấy tờ của xe, huỷ dòng nhập nhầm",
+  },
+  // ---- ĐIỀU PHỐI XE lượt 1 (ADR-0049 D1–D3 — Task A17, TC-40; ADR-0050 + [SOI] K-02 — TC-54; mã R-VC-3…10, R-VC-12…16 do điều phối cấp). Lưới THỨ HAI sau
+  // trigger / luật máy chủ; chỉ đếm (không biển số, không tên, không số giấy tờ). Mức theo kế hoạch: fail = dữ liệu hỏng; warn = tình trạng cần người xem.
+  {
+    code: "R-VC-3",
+    what: "chặng có số suất khách MỞ nhiều hơn số khách hiệu lực (L-D1)",
+    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN order_service s ON s.id = l.order_service_id
+          WHERE (SELECT count(*) FROM vc_trip_allocation a WHERE a.leg_id = l.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL) > ${soKhachHieuLuc("s")}`,
+    level: "warn",
+    note: "cảnh báo: số khách của dịch vụ vừa GIẢM sau khi xếp (HDV sửa số khách) — văn phòng rút bớt suất khỏi xe",
+  },
+  {
+    code: "R-VC-4",
+    what: "bản chốt danh sách lúc xuất bến ít dòng hơn suất khách có tên + người đi kèm đang mở lúc đó (L-B1)",
+    sql: `SELECT count(*) FROM vc_trip_departure_check c WHERE c.ket_qua = 'DAT'
+          AND (SELECT count(*) FROM vc_trip_manifest m WHERE m.check_id = c.id)
+            < (SELECT count(*) FROM vc_trip_allocation a WHERE a.trip_id = c.trip_id AND a.valid_from_at <= c.checked_at AND (a.valid_to_at IS NULL OR a.valid_to_at > c.checked_at)
+                 AND (a.kind = 'CREW' OR a.passenger_key IS NOT NULL))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-5a",
+    what: "chuyến ĐANG CHẠY có tài xế không đủ điều kiện lái (GPLX thiếu / hết hạn trước giờ kết thúc / hạng không chở đủ số chỗ) (L-B2)",
+    sql: `SELECT count(*) FROM vc_trip t JOIN vc_trip_driver dr ON dr.trip_id = t.id AND dr.valid_to_at IS NULL JOIN vc_vehicle v ON v.id = t.vehicle_id
+          WHERE t.status = 'RUNNING' AND ${TAI_XE_KHONG_DAT}`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-5b",
+    what: "chuyến CHƯA CHẠY xuất bến trong 48 giờ tới có tài xế không đủ điều kiện lái (L-B2)",
+    sql: `SELECT count(*) FROM vc_trip t JOIN vc_trip_driver dr ON dr.trip_id = t.id AND dr.valid_to_at IS NULL JOIN vc_vehicle v ON v.id = t.vehicle_id
+          WHERE t.status = 'PLANNED' AND t.planned_start_ms BETWEEN ${BAY_GIO_MS} AND ${BAY_GIO_MS} + 48 * 3600000 AND ${TAI_XE_KHONG_DAT}`,
+    level: "warn",
+    note: "cảnh báo: cổng xuất bến sẽ giữ chuyến — Quản trị cập nhật giấy tờ tài xế hoặc đổi tài xế",
+  },
+  {
+    code: "R-VC-6",
+    what: "sự kiện chuyến không có dòng nhật ký cùng id, hoặc nhật ký lệnh chuyến không có sự kiện cùng id",
+    sql: `SELECT (SELECT count(*) FROM vc_trip_event e WHERE NOT EXISTS (SELECT 1 FROM audit_log a WHERE a.id = e.id))
+          + (SELECT count(*) FROM audit_log a WHERE a.action IN (${HANH_DONG_CO_SU_KIEN.map((x) => `'${x}'`).join(", ")})
+               AND NOT EXISTS (SELECT 1 FROM vc_trip_event e WHERE e.id = a.id))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-7",
+    what: "chặng của đơn đã xác nhận, giờ đón đã vào mốc tối thiểu mà chưa xếp đủ khách lên xe",
+    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id JOIN order_service s ON s.id = l.order_service_id
+          WHERE o.status = 'confirmed' AND l.closed_at IS NULL AND l.pickup_date IS NOT NULL AND l.pickup_time IS NOT NULL
+            AND (l.pickup_date || ' ' || l.pickup_time) >= strftime('%Y-%m-%d %H:%M', 'now', '+7 hours')
+            AND (l.pickup_date || ' ' || l.pickup_time) < strftime('%Y-%m-%d %H:%M', 'now', '+7 hours',
+                  '+' || COALESCE((SELECT p.min_lead_minutes FROM vc_dispatch_policy p WHERE p.valid_from_at <= ${BAY_GIO_ISO} ORDER BY p.valid_from_at DESC LIMIT 1), 0) || ' minutes')
+            AND (SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+                  WHERE a.leg_id = l.id AND a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND t.status <> 'CANCELLED') < ${soKhachHieuLuc("s")}`,
+    level: "warn",
+    note: "cảnh báo: khách sắp tới giờ đón mà chưa có xe — văn phòng xếp ngay (trong mốc cần Quản trị phá lệ, trừ chặng đặt gấp)",
+  },
+  {
+    code: "R-VC-8",
+    what: "chuyến chưa kết thúc dùng xe của nhà xe đã thôi hợp tác, hoặc tài xế không còn là tài xế của nhà xe đó (B1.5)",
+    sql: `SELECT (SELECT count(*) FROM vc_trip t WHERE t.status IN ('PLANNED', 'RUNNING')
+                    AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = t.carrier_party_id AND r.role_type_code = 'CARRIER')
+                    AND NOT EXISTS (SELECT 1 FROM v_pty_carrier c WHERE c.party_id = t.carrier_party_id))
+          + (SELECT count(*) FROM vc_trip t JOIN vc_trip_driver dr ON dr.trip_id = t.id AND dr.valid_to_at IS NULL
+              WHERE t.status IN ('PLANNED', 'RUNNING')
+                AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = t.carrier_party_id AND r.role_type_code = 'CARRIER')
+                AND NOT EXISTS (SELECT 1 FROM v_pty_carrier_driver cd WHERE cd.carrier_party_id = t.carrier_party_id AND cd.driver_party_id = dr.driver_party_id))`,
+    level: "warn",
+    note: "cảnh báo: nhà xe / tài xế đã thôi sau khi xếp chuyến — văn phòng đổi xe hoặc tài xế",
+  },
+  {
+    code: "R-VC-9",
+    what: "chuyến chưa kết thúc chở quá số chỗ của xe, hoặc hai điểm dừng còn dùng trùng thứ tự",
+    sql: `SELECT (SELECT count(*) FROM vc_trip t JOIN vc_vehicle v ON v.id = t.vehicle_id WHERE t.status IN ('PLANNED', 'RUNNING')
+                    AND (SELECT count(*) FROM vc_trip_allocation a WHERE a.trip_id = t.id AND a.valid_to_at IS NULL AND a.status IN ('WAITING', 'BOARDED')) > v.passenger_capacity)
+          + (SELECT count(*) FROM (SELECT s.trip_id, s.seq FROM vc_trip_stop s JOIN vc_trip t ON t.id = s.trip_id
+                    WHERE t.status IN ('PLANNED', 'RUNNING') AND s.status NOT IN ('SKIPPED', 'MOVED') GROUP BY s.trip_id, s.seq HAVING count(*) > 1))`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-10",
+    what: "bản chốt trỏ dòng hành khách không thuộc đơn của chặng / không phải người của suất",
+    sql: `SELECT count(*) FROM vc_trip_manifest m JOIN vc_trip_allocation a ON a.id = m.allocation_id
+          WHERE m.passenger_row_id IS NOT NULL AND NOT EXISTS (
+            SELECT 1 FROM ord_passenger p JOIN ord_transfer_leg l ON l.id = a.leg_id WHERE p.id = m.passenger_row_id AND p.order_id = l.order_id AND p.person_key = a.passenger_key)`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-12",
+    what: "cột giờ nghiệp vụ (xuất bến, kết thúc, đã tới, xong điểm) khác giờ xảy ra của sự kiện tương ứng",
+    sql: `SELECT (SELECT count(*) FROM vc_trip t WHERE t.departed_at IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind = 'DEPARTED' AND e.occurred_at = t.departed_at AND e.occurred_ms = t.departed_ms))
+          + (SELECT count(*) FROM vc_trip t WHERE t.ended_at IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM vc_trip_event e WHERE e.trip_id = t.id AND e.kind IN ('ENDED', 'ENDED_INTERRUPTED') AND e.occurred_at = t.ended_at AND e.occurred_ms = t.ended_ms))
+          + (SELECT count(*) FROM vc_trip_stop s WHERE s.arrived_at IS NOT NULL AND NOT EXISTS (
+                    SELECT 1 FROM vc_trip_event e WHERE e.trip_id = s.trip_id AND e.kind = 'STOP_ARRIVED' AND e.stop_id = s.id AND e.occurred_at = s.arrived_at))
+          + (SELECT count(*) FROM vc_trip_stop s WHERE s.done_at IS NOT NULL AND NOT EXISTS (SELECT 1 FROM vc_trip_event e WHERE e.trip_id = s.trip_id AND e.occurred_at = s.done_at))`,
+    level: "warn",
+    note: "cảnh báo: giờ trên chuyến / điểm lệch giờ của sự kiện — dữ liệu sửa tay, xem nhật ký chuyến",
+  },
+  {
+    code: "R-VC-13",
+    what: "kết thúc khai lùi quá 15 phút mà chuyến kế cùng xe / tài xế đã xuất bến trong khoảng nghỉ tính theo GIỜ GHI NHẬN",
+    sql: `SELECT count(*) FROM vc_trip_event k JOIN vc_trip t ON t.id = k.trip_id
+            JOIN vc_trip n ON n.id <> t.id AND n.departed_ms IS NOT NULL AND (n.vehicle_id = t.vehicle_id OR EXISTS (
+                  SELECT 1 FROM vc_trip_driver a JOIN vc_trip_driver b ON b.driver_party_id = a.driver_party_id
+                   WHERE a.trip_id = t.id AND b.trip_id = n.id AND a.valid_to_at IS NULL AND b.valid_to_at IS NULL))
+            JOIN vc_trip_event d ON d.trip_id = n.id AND d.kind = 'DEPARTED'
+          WHERE k.kind IN ('ENDED', 'ENDED_INTERRUPTED') AND k.occurred_source = 'VAN_PHONG_KHAI'
+            AND (julianday(k.created_at) - julianday(k.occurred_at)) * 1440 > 15
+            AND d.occurred_ms >= k.occurred_ms
+            AND (julianday(d.created_at) - julianday(k.created_at)) * 1440 < n.rest_minutes_snapshot`,
+    level: "warn",
+    note: "cảnh báo: khoảng nghỉ chỉ đủ nhờ giờ kết thúc khai lùi — Quản trị xem lại giờ khai (ADR-0050 G-A3)",
+  },
+  {
+    code: "R-VC-14",
+    what: "xe chưa ngừng thiếu dòng hiện hành của một loại giấy tờ đang là điều kiện xuất bến",
+    sql: `SELECT count(*) FROM vc_vehicle v JOIN vc_departure_rule r ON r.subject = 'VEHICLE' AND r.valid_from_at <= ${BAY_GIO_ISO}
+            AND (r.valid_to_at IS NULL OR r.valid_to_at > ${BAY_GIO_ISO}) AND v.passenger_capacity >= r.min_capacity
+          WHERE v.status <> 'retired' AND NOT EXISTS (
+            SELECT 1 FROM vc_vehicle_document d WHERE d.vehicle_id = v.id AND d.document_type_code = r.vehicle_document_type_code AND ${HIEN_HANH_GIAY_TO_XE})`,
+    level: "warn",
+    note: "cảnh báo: xe này sẽ bị giữ ở cổng xuất bến — Quản trị thêm giấy tờ còn thiếu",
+  },
+  {
+    code: "R-VC-15",
+    what: "sự kiện của suất xảy ra sớm hơn lúc mở suất, hoặc 'đã tới' xảy ra sớm hơn lần đổi thứ tự điểm ghi trước nó",
+    sql: `SELECT (SELECT count(*) FROM vc_trip_event e JOIN vc_trip_allocation a ON a.id = e.allocation_id
+                    WHERE e.kind IN ('PASSENGER_BOARDED', 'PASSENGER_NO_SHOW', 'PASSENGER_CANCELLED_AT_STOP', 'PASSENGER_DROPPED') AND e.occurred_at < a.valid_from_at)
+          + (SELECT count(*) FROM vc_trip_event e WHERE e.kind = 'STOP_ARRIVED' AND EXISTS (
+                    SELECT 1 FROM vc_trip_event r WHERE r.trip_id = e.trip_id AND r.kind = 'STOPS_REORDERED' AND r.created_at < e.created_at AND e.occurred_at < r.created_at))`,
+    level: "warn",
+    note: "cảnh báo: giờ khai của văn phòng đi ngược thứ tự ghi nhận — xem nhật ký chuyến",
+  },
+  {
+    code: "R-VC-16",
+    what: "suất khách mở của chuyến chưa kết thúc có điểm DANH MỤC khác nơi đón / trả hiện hành của chặng (không phủ chữ tự do)",
+    sql: `SELECT count(*) FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id JOIN ord_transfer_leg l ON l.id = a.leg_id
+            LEFT JOIN vc_trip_stop b ON b.id = a.board_stop_id LEFT JOIN vc_trip_stop x ON x.id = a.alight_stop_id
+          WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND t.status IN ('PLANNED', 'RUNNING')
+            AND ((b.place_key GLOB 'L:*' AND b.place_key IS NOT ('L:' || l.pickup_location_id)) OR (x.place_key GLOB 'L:*' AND x.place_key IS NOT ('L:' || l.dropoff_location_id)))`,
+    level: "warn",
+    note: "cảnh báo: nơi hẹn đã đổi sau khi xếp — văn phòng bấm \"Cập nhật điểm theo đơn\" (chuyến chưa chạy) hoặc báo tài xế (chuyến đang chạy)",
   },
   // ADR-0051 GB1 (mốc "giờ hẹn đã biết" — migration 0043; mã R-VC-17, R-VC-18 do điều phối cấp): lưới THỨ HAI sau trigger vc_trip_allocation_needs_appt và
   // vc_leg_appt_ack_chain — mức fail (dữ liệu hỏng, không phải việc vận hành — G-GB-4). R-VC-17 còn là lưới cho KHUNG THỬ: bộ gieo chèn thẳng suất khách mà quên
@@ -393,12 +572,7 @@ export const CHECKS = [
     sql: `SELECT count(*) FROM orders o
       WHERE (SELECT count(DISTINCT p.person_key) FROM ord_passenger p WHERE p.order_id = o.id AND p.voided_at IS NULL
                AND NOT EXISTS (SELECT 1 FROM ord_passenger n WHERE n.previous_id = p.id AND n.voided_at IS NULL))
-        > COALESCE((SELECT max(COALESCE(
-            (SELECT json_extract(je.value, '$.pax.adult') + json_extract(je.value, '$.pax.child') + json_extract(je.value, '$.pax.senior') + json_extract(je.value, '$.pax.infant')
-               FROM order_money_adjustment a, json_each(CASE WHEN json_valid(a.after_json) AND json_type(a.after_json) = 'array' THEN a.after_json ELSE '[]' END) je
-               WHERE a.order_id = o.id AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = o.id) AND json_extract(je.value, '$.serviceId') = s.id
-               LIMIT 1),
-            s.pax_adult + s.pax_child + s.pax_senior + s.pax_infant)) FROM order_service s WHERE s.order_id = o.id), 0)`,
+        > COALESCE((SELECT max(${soKhachHieuLuc("s")}) FROM order_service s WHERE s.order_id = o.id), 0)`,
     level: "warn",
     note: "cảnh báo (cờ cho văn phòng, không chặn phát hành): danh sách có tên nhiều hơn số khách — sửa số khách hoặc huỷ dòng nhập nhầm",
   },

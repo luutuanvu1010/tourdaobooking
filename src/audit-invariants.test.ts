@@ -1050,3 +1050,316 @@ test("R-VC-18 (ADR-0051): chuỗi mốc hỏng — liền mạch (XEP → DA_GOI
   mocThang(db, "3", 2, "DA_GOI", "08:30", "07:45"); // giờ trước lệch dòng trước
   assert.equal(violations(db, c), 4);
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ĐIỀU PHỐI XE (ADR-0049 Task A17 — TC-40; ADR-0050 + K-02 — TC-54): R-VC-3…10, R-VC-12…16. Mỗi câu: dữ liệu KHOẺ → 0; gieo lỗi (gỡ trigger + khoá ngoại —
+// như SQL gõ tay trên D1) → đúng số. Dựng thô: bỏ khoá ngoại và MỌI trigger của bảng chuyến (bài kiểm CÂU KIỂM ĐỊNH KỲ, không kiểm lớp CSDL). Mọi tên / số GIẢ.
+// ---------------------------------------------------------------------------------------------------------------------
+function tho(): DatabaseSync {
+  const db = build();
+  db.exec("PRAGMA foreign_keys = OFF");
+  for (const t of db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND (tbl_name LIKE 'vc\\_trip%' ESCAPE '\\' OR tbl_name = 'vc_leg_appt_ack')").all() as { name: string }[]) {
+    db.exec(`DROP TRIGGER ${t.name}`);
+  }
+  return db;
+}
+const NOW_MS = Date.now();
+const H = 3_600_000;
+const isoMs = (ms: number) => new Date(ms).toISOString();
+const ngayVnMs = (ms: number) => new Date(ms + 7 * H).toISOString().slice(0, 10);
+let soVc = 0;
+function chuyenTho(db: DatabaseSync, o: { id?: string; xe?: string; status?: string; tu?: number; den?: number; carrier?: string; nghi?: number; departed?: number | null; ended?: number | null } = {}): string {
+  const id = o.id ?? `tr-${++soVc}`;
+  const tu = o.tu ?? NOW_MS + 2 * H;
+  db.prepare(`INSERT INTO vc_trip (id, code, vehicle_id, carrier_party_id, service_date, planned_start_ms, planned_end_ms, earliest_start_ms, rest_minutes_snapshot, status,
+      departed_at, departed_ms, ended_at, ended_ms, last_cmd_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(id, `CX-${id}`, o.xe ?? "xe-1", o.carrier ?? "p-cty", ngayVnMs(tu), tu, o.den ?? tu + 2 * H, tu, o.nghi ?? 30, o.status ?? "PLANNED",
+      o.departed == null ? null : isoMs(o.departed), o.departed ?? null, o.ended == null ? null : isoMs(o.ended), o.ended ?? null, "c".repeat(36), T1, T1);
+  return id;
+}
+const laiTho = (db: DatabaseSync, trip: string, party: string) =>
+  db.prepare("INSERT INTO vc_trip_driver (id, trip_id, driver_party_id, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(`dr-${++soVc}`, trip, party, T1, T1, T1);
+function suatTho(db: DatabaseSync, o: { trip: string; leg?: string | null; key?: string | null; kind?: string; status?: string; tu?: string; den?: string | null; board?: string | null; alight?: string | null; crew?: string | null }): string {
+  const id = `al-${++soVc}`;
+  const kind = o.kind ?? "PASSENGER";
+  db.prepare(`INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, crew_party_id, board_stop_id, alight_stop_id, status, valid_from_at, valid_to_at, close_reason,
+      created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(id, o.trip, kind, kind === "PASSENGER" ? (o.leg ?? "leg-x") : null, o.key ?? null, kind === "CREW" ? (o.crew ?? "pty-xa") : null, kind === "PASSENGER" ? (o.board ?? "st-x") : null,
+      o.alight ?? null, o.status ?? "WAITING", o.tu ?? T1, o.den ?? null, o.den ? "REMOVED" : null, T1, T1);
+  return id;
+}
+function suKienTho(db: DatabaseSync, o: { id?: string; trip: string; kind: string; stop?: string | null; alloc?: string | null; xayRa?: string; ghi?: string; nguon?: string; nhatKy?: string | null }): string {
+  const id = o.id ?? `e0000000-0000-4000-8000-${String(++soVc).padStart(12, "0")}`;
+  const ghi = o.ghi ?? T2;
+  const xayRa = o.xayRa ?? ghi;
+  const nguon = o.nguon ?? (xayRa === ghi ? "MAY_CHU" : "VAN_PHONG_KHAI");
+  db.prepare(`INSERT INTO vc_trip_event (id, trip_id, kind, stop_id, allocation_id, request_id, decided_mode, policy_id, occurred_at, occurred_ms, occurred_source, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, 'NGUOI', ?, ?, ?, ?, ?, ?)`).run(id, o.trip, o.kind, o.stop ?? null, o.alloc ?? null, `r${id.slice(1)}`,
+    nguon === "VAN_PHONG_KHAI" ? "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0" : null, xayRa, Date.parse(xayRa), nguon, ghi, ghi);
+  if (o.nhatKy !== null) db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES (?, ?, 'trip', ?, 'x', ?)").run(id, o.nhatKy ?? "trip_edited", o.trip, ghi);
+  return id;
+}
+function diemTho(db: DatabaseSync, o: { trip: string; seq?: number; kind?: string; loc?: string | null; status?: string; arrived?: string | null; done?: string | null }): string {
+  const id = `st-${++soVc}`;
+  const loc = o.loc === undefined ? "loc-1" : o.loc;
+  db.prepare(`INSERT INTO vc_trip_stop (id, trip_id, seq, kind, location_id, place_text, place_key, status, arrived_at, done_at, skip_reason_code, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`)
+    .run(id, o.trip, o.seq ?? 1, o.kind ?? "PICKUP", loc, loc ? null : "Nơi tự do", loc ? `L:${loc}` : `T:${"a".repeat(64)}`, o.status ?? "PENDING", o.arrived ?? null, o.done ?? null,
+      o.status === "SKIPPED" ? "BO_QUA_KHAC" : null, T1, T1);
+  return id;
+}
+/** Đơn xác nhận + dịch vụ `pax` người lớn + một chặng (đón `ngay gio` tại điểm `loc`) + hành khách `ten` người. */
+function donTho(db: DatabaseSync, o: { pax?: number; ngay?: string; gio?: string; loc?: string | null; ten?: number } = {}): { order: string; svc: string; leg: string; khach: string[] } {
+  const n = ++soVc;
+  const order = `o-${n}`;
+  db.prepare("INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at) VALUES (?, ?, 's-an', 'draft', 'K', '0900000009', ?, ?)").run(order, `TD-${n}`, T1, T1);
+  db.prepare("INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date) VALUES (?, ?, 0, 'ZH1', 'Tour', 'perPax', ?, ?)").run(`sv-${n}`, order, o.pax ?? 2, o.ngay ?? "2026-10-05");
+  db.prepare(`INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_location_id, dropoff_place, created_at, updated_at)
+      VALUES (?, ?, ?, 'OUT', ?, ?, ?, ?, NULL, 'Bến', ?, ?)`).run(`leg-${n}`, order, `sv-${n}`, o.ngay ?? "2026-10-05", o.gio ?? "09:00", o.loc === undefined ? "loc-1" : o.loc, o.loc === null ? "Khách sạn" : null, T1, T1);
+  const khach: string[] = [];
+  for (let i = 0; i < (o.ten ?? 0); i++) {
+    const k = `pax-${n}-${i}`;
+    db.prepare("INSERT INTO ord_passenger (id, order_id, full_name, birth_year, person_key, created_at, updated_at) VALUES (?, ?, 'Khách Thử', 1990, ?, ?, ?)").run(k, order, k, T1, T1);
+    khach.push(k);
+  }
+  db.prepare("UPDATE orders SET status = 'confirmed' WHERE id = ?").run(order);
+  return { order, svc: `sv-${n}`, leg: `leg-${n}`, khach };
+}
+
+test("R-VC-3 (L-D1): suất khách mở của chặng ≤ số khách hiệu lực → 0; nhiều hơn → 1 (warn); dùng CHUNG đoạn số khách hiệu lực với R-ORD-9", () => {
+  const c = one("R-VC-3");
+  assert.equal(c.level, "warn");
+  assert.ok(c.sql.includes("pax_adult + s.pax_child"), "đoạn số khách hiệu lực chung");
+  assert.ok(one("R-ORD-9").sql.includes("pax_adult + s.pax_child"));
+  const db = tho();
+  const d = donTho(db, { pax: 2 });
+  const t = chuyenTho(db);
+  suatTho(db, { trip: t, leg: d.leg });
+  suatTho(db, { trip: t, leg: d.leg });
+  suatTho(db, { trip: t, leg: d.leg, den: T2 }); // đã đóng
+  assert.equal(violations(db, c), 0);
+  suatTho(db, { trip: t, leg: d.leg });
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-VC-4 (L-B1): bản chốt đủ dòng cho suất khách CÓ TÊN + người đi kèm mở lúc xuất bến → 0; thiếu một dòng → 1 (fail)", () => {
+  const c = one("R-VC-4");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db, { status: "RUNNING", departed: NOW_MS - H });
+  const a = suatTho(db, { trip: t, key: "pk-1" });
+  const b = suatTho(db, { trip: t, kind: "CREW" });
+  suatTho(db, { trip: t }); // chưa tên — không có dòng bản chốt (câu hỏi Q-A15-1)
+  db.prepare(`INSERT INTO vc_trip_departure_check (id, trip_id, cmd_id, policy_id, ket_qua, vehicle_id, plate_number, passenger_capacity, owner_party_id, driver_party_id, rest_minutes_used,
+      checked_at, created_at, updated_at) VALUES ('ck-1', ?, ?, 'pol', 'DAT', 'xe-1', '79B-000.01', 15, 'p-cty', 'p-tx', 30, ?, ?, ?)`).run(t, "c".repeat(36), T2, T2, T2);
+  const chot = (al: string, row: string | null, crew: string | null) =>
+    db.prepare(`INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, crew_party_id, created_at, updated_at) VALUES (?, ?, 'ck-1', ?, ?, ?, ?, ?)`).run(`mf-${++soVc}`, t, al, row, crew, T2, T2);
+  chot(b, null, "pty-xa");
+  assert.equal(violations(db, c), 1, "thiếu dòng của suất có tên");
+  chot(a, "row-1", null);
+  assert.equal(violations(db, c), 0);
+});
+
+test("R-VC-5a / 5b (L-B2): tài xế có GPLX còn hạn, hạng đủ chở → 0; GPLX hết hạn trước giờ kết thúc → chuyến ĐANG CHẠY 1 (fail), chuyến chưa chạy trong 48 giờ 1 (warn), ngoài 48 giờ 0", () => {
+  const a = one("R-VC-5a");
+  const b = one("R-VC-5b");
+  assert.deepEqual([a.level, b.level], ["fail", "warn"]);
+  const db = tho();
+  xe(db, "xe-15", "79B09999");
+  const gplx = (party: string, het: string, hang = "D1") =>
+    db.prepare(`INSERT INTO pty_person_document (id, party_id, document_type_code, document_number, number_key, license_class_code, expiry_date, created_at, updated_at)
+        VALUES (?, ?, 'GPLX', ?, ?, ?, ?, ?, ?)`).run(`g-${++soVc}`, party, `79${soVc}`, `79${soVc}`, hang, het, T1, T1);
+  gplx("pty-s-an", "2099-12-31");
+  gplx("pty-xa", "2000-01-01");
+  const t1 = chuyenTho(db, { xe: "xe-15", status: "RUNNING", departed: NOW_MS - H });
+  laiTho(db, t1, "pty-s-an");
+  const t2 = chuyenTho(db, { xe: "xe-15", tu: NOW_MS + 5 * H });
+  laiTho(db, t2, "pty-s-an");
+  assert.deepEqual([violations(db, a), violations(db, b)], [0, 0]);
+  xe(db, "xe-15b", "79B09998");
+  const t3 = chuyenTho(db, { xe: "xe-15b", status: "RUNNING", departed: NOW_MS - H });
+  laiTho(db, t3, "pty-xa");
+  const t4 = chuyenTho(db, { xe: "xe-15", tu: NOW_MS + 5 * H });
+  laiTho(db, t4, "pty-xa");
+  const t5 = chuyenTho(db, { xe: "xe-15", tu: NOW_MS + 72 * H });
+  laiTho(db, t5, "pty-xa");
+  assert.deepEqual([violations(db, a), violations(db, b)], [1, 1]);
+  gplx("pty-s-an", "2099-12-31", "B"); // thêm GPLX hạng B (8 chỗ) — vẫn còn D1 đạt
+  assert.deepEqual([violations(db, a), violations(db, b)], [1, 1]);
+});
+
+test("R-VC-6: sự kiện ↔ nhật ký lệnh chuyến cùng id → 0; sự kiện mồ côi → 1; nhật ký trip_* của lệnh chuyến không sự kiện → 1; trip_appt_* / trip_reason_* không cần sự kiện (fail)", () => {
+  const c = one("R-VC-6");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const t = chuyenTho(db);
+  suKienTho(db, { trip: t, kind: "CREATED", nhatKy: "trip_created" });
+  db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES ('l-goi', 'trip_appt_called', 'trip', ?, 'x', ?)").run(t, T2);
+  db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES ('l-lydo', 'trip_reason_added', NULL, NULL, 'x', ?)").run(T2);
+  assert.equal(violations(db, c), 0);
+  suKienTho(db, { trip: t, kind: "UPDATED", nhatKy: null });
+  assert.equal(violations(db, c), 1, "sự kiện mồ côi");
+  db.prepare("INSERT INTO audit_log (id, action, target_type, target_id, detail, created_at) VALUES ('l-mo-coi', 'trip_departed', 'trip', ?, 'x', ?)").run(t, T2);
+  assert.equal(violations(db, c), 2, "nhật ký lệnh chuyến không sự kiện");
+});
+
+test("R-VC-7: chặng đã vào mốc (6 giờ) mà chưa xếp đủ → 1 (warn); xếp đủ / chưa vào mốc / đã qua giờ đón → 0", () => {
+  const c = one("R-VC-7");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const hen = (phut: number) => {
+    const iso = new Date(NOW_MS + 7 * H + phut * 60_000).toISOString();
+    return { ngay: iso.slice(0, 10), gio: iso.slice(11, 16) };
+  };
+  const trong = hen(120);
+  const d = donTho(db, { pax: 2, ...trong });
+  donTho(db, { pax: 2, ...hen(600) }); // chưa vào mốc
+  donTho(db, { pax: 2, ...hen(-120) }); // đã qua giờ đón
+  assert.equal(violations(db, c), 1);
+  const t = chuyenTho(db);
+  suatTho(db, { trip: t, leg: d.leg });
+  suatTho(db, { trip: t, leg: d.leg });
+  assert.equal(violations(db, c), 0);
+});
+
+test("R-VC-8 (B1.5): chuyến của nhà xe đang hợp tác, tài xế của nhà xe đó → 0; nhà xe thôi hợp tác → 1; tài xế không còn là tài xế của nhà xe → 1 (warn)", () => {
+  const c = one("R-VC-8");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  db.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('p-nx', 'ORGANIZATION', 'Nhà xe', 1, '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, valid_from_date, created_at, updated_at) VALUES ('r-nx', 'p-nx', 'CARRIER', '2026-09-01', '${T1}', '${T1}')`);
+  db.exec(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES ('q-1', 'pty-xa', 'p-nx', 'DRIVES_FOR', '2026-09-01', '${T1}', '${T1}')`);
+  const t = chuyenTho(db, { carrier: "p-nx" });
+  laiTho(db, t, "pty-xa");
+  assert.equal(violations(db, c), 0);
+  db.exec(`UPDATE pty_party_relationship SET valid_to_date = '2026-09-20' WHERE id = 'q-1'`);
+  assert.equal(violations(db, c), 1, "tài xế thôi");
+  db.exec(`UPDATE pty_party_role SET valid_to_date = '2026-09-20' WHERE id = 'r-nx'`);
+  assert.equal(violations(db, c), 2, "nhà xe thôi (+ tài xế không còn của nhà xe)");
+});
+
+test("R-VC-9: chuyến chưa kết thúc chở đúng số chỗ, điểm khác thứ tự → 0; vượt chỗ → 1; hai điểm còn dùng trùng thứ tự → 1; điểm đã bỏ trùng thứ tự không tính (fail)", () => {
+  const c = one("R-VC-9");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  db.prepare(`INSERT INTO vc_vehicle (id, plate_number, plate_key, name, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
+      VALUES ('xe-2', '79B00002', '79B00002', 'Xe', 2, ?, 'active', '2026-09-01', ?, ?)`).run(congTyChu(db), T1, T1);
+  const t = chuyenTho(db, { xe: "xe-2" });
+  suatTho(db, { trip: t });
+  suatTho(db, { trip: t, status: "NO_SHOW" });
+  suatTho(db, { trip: t });
+  diemTho(db, { trip: t, seq: 1 });
+  diemTho(db, { trip: t, seq: 2, kind: "DROPOFF" });
+  diemTho(db, { trip: t, seq: 2, status: "SKIPPED" });
+  assert.equal(violations(db, c), 0);
+  suatTho(db, { trip: t });
+  assert.equal(violations(db, c), 1, "vượt chỗ");
+  diemTho(db, { trip: t, seq: 1, kind: "DROPOFF" });
+  assert.equal(violations(db, c), 2, "trùng thứ tự");
+});
+
+test("R-VC-10: bản chốt trỏ dòng hành khách đúng người, đúng đơn → 0; dòng của đơn khác / người khác / không có → vi phạm (fail)", () => {
+  const c = one("R-VC-10");
+  assert.equal(c.level, "fail");
+  const db = tho();
+  const d = donTho(db, { ten: 2 });
+  const k = donTho(db, { ten: 1 });
+  const t = chuyenTho(db, { status: "RUNNING", departed: NOW_MS });
+  const chot = (al: string, row: string) =>
+    db.prepare(`INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, created_at, updated_at) VALUES (?, ?, 'ck', ?, ?, ?, ?)`).run(`mf-${++soVc}`, t, al, row, T2, T2);
+  chot(suatTho(db, { trip: t, leg: d.leg, key: d.khach[0] }), d.khach[0]!);
+  assert.equal(violations(db, c), 0);
+  chot(suatTho(db, { trip: t, leg: d.leg, key: d.khach[1] }), k.khach[0]!);
+  assert.equal(violations(db, c), 1, "dòng của đơn khác");
+  chot(suatTho(db, { trip: t, leg: d.leg, key: "pk-khac" }), "khong-co");
+  assert.equal(violations(db, c), 2);
+  // Cùng khoá người nhưng dòng thuộc ĐƠN KHÁC (SQL gõ tay — gỡ trigger hành khách): vẫn bắt nhờ vế "cùng đơn của chặng".
+  for (const tg of db.prepare("SELECT name FROM sqlite_master WHERE type = 'trigger' AND tbl_name = 'ord_passenger'").all() as { name: string }[]) db.exec(`DROP TRIGGER ${tg.name}`);
+  db.prepare("INSERT INTO ord_passenger (id, order_id, full_name, birth_year, person_key, created_at, updated_at) VALUES ('row-la', ?, 'Khách Thử', 1990, ?, ?, ?)").run(k.order, d.khach[0]!, T1, T1);
+  chot(suatTho(db, { trip: t, leg: d.leg, key: d.khach[0], den: T3 }), "row-la");
+  assert.equal(violations(db, c), 3, "dòng của đơn khác dù cùng khoá người");
+});
+
+test("R-VC-12: giờ trên chuyến / điểm = giờ xảy ra của sự kiện → 0; xuất bến lệch / đã tới lệch / xong điểm không khớp sự kiện nào → vi phạm (warn)", () => {
+  const c = one("R-VC-12");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const xb = NOW_MS - 2 * H;
+  const t = chuyenTho(db, { status: "RUNNING", departed: xb });
+  suKienTho(db, { trip: t, kind: "DEPARTED", xayRa: isoMs(xb), ghi: isoMs(xb + 60_000) });
+  const s = diemTho(db, { trip: t, status: "DONE", arrived: isoMs(xb + H), done: isoMs(xb + H + 60_000) });
+  suKienTho(db, { trip: t, kind: "STOP_ARRIVED", stop: s, xayRa: isoMs(xb + H), ghi: isoMs(xb + H) });
+  suKienTho(db, { trip: t, kind: "PASSENGER_BOARDED", xayRa: isoMs(xb + H + 60_000), ghi: isoMs(xb + H + 60_000) });
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE vc_trip SET departed_at = ?, departed_ms = ? WHERE id = ?").run(isoMs(xb + 1000), xb + 1000, t);
+  db.prepare("UPDATE vc_trip_stop SET done_at = ? WHERE id = ?").run(isoMs(xb + 3 * H), s);
+  assert.equal(violations(db, c), 2);
+});
+
+test("R-VC-13: kết thúc khai lùi > 15 phút mà chuyến kế cùng xe xuất bến trong khoảng nghỉ theo GIỜ GHI NHẬN → 1 (warn); khai lùi ít / xuất bến sau khoảng nghỉ → 0", () => {
+  const c = one("R-VC-13");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const kt = NOW_MS - 3 * H;
+  const a = chuyenTho(db, { xe: "xe-1", status: "ENDED", departed: kt - H, ended: kt });
+  suKienTho(db, { trip: a, kind: "ENDED", xayRa: isoMs(kt), ghi: isoMs(kt + 40 * 60_000) }); // khai lùi 40 phút
+  const b = chuyenTho(db, { xe: "xe-1", status: "RUNNING", departed: kt + 35 * 60_000, nghi: 30 });
+  suKienTho(db, { trip: b, kind: "DEPARTED", xayRa: isoMs(kt + 35 * 60_000), ghi: isoMs(kt + 50 * 60_000) }); // ghi 10 phút sau khi ghi kết thúc < 30
+  assert.equal(violations(db, c), 1);
+  const db2 = tho();
+  const a2 = chuyenTho(db2, { xe: "xe-1", status: "ENDED", departed: kt - H, ended: kt });
+  suKienTho(db2, { trip: a2, kind: "ENDED", xayRa: isoMs(kt), ghi: isoMs(kt + 10 * 60_000) }); // lùi 10 phút — không tính
+  const b2 = chuyenTho(db2, { xe: "xe-1", status: "RUNNING", departed: kt + 35 * 60_000, nghi: 30 });
+  suKienTho(db2, { trip: b2, kind: "DEPARTED", xayRa: isoMs(kt + 35 * 60_000), ghi: isoMs(kt + 36 * 60_000) });
+  assert.equal(violations(db2, c), 0);
+});
+
+test("R-VC-14: xe chưa ngừng có đủ Kiểm định + Bảo hiểm hiện hành (hai điều kiện gieo) → 0; thiếu Bảo hiểm → 1; xe đã ngừng không tính (warn); dùng CHUNG HIEN_HANH_GIAY_TO_XE với R-VC-11", () => {
+  const c = one("R-VC-14");
+  assert.equal(c.level, "warn");
+  assert.ok(c.sql.includes("n.previous_id = d.id AND n.voided_at IS NULL"), "đoạn hiện hành chung với R-VC-11");
+  const db = build();
+  xe(db, "xe-a", "79B10001");
+  giayToXe(db, { id: "gx-1", xe: "xe-a", type: "INSPECTION" });
+  giayToXe(db, { id: "gx-2", xe: "xe-a", type: "TPL_INSURANCE" });
+  xe(db, "xe-cu", "79B10002", "retired");
+  assert.equal(violations(db, c), 0);
+  xe(db, "xe-b", "79B10003");
+  giayToXe(db, { id: "gx-3", xe: "xe-b", type: "INSPECTION" });
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-VC-15: sự kiện suất sau lúc mở suất, 'đã tới' sau lần đổi thứ tự → 0; khai sớm hơn lúc mở suất / sớm hơn lần đổi thứ tự ghi trước → vi phạm (warn)", () => {
+  const c = one("R-VC-15");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const t = chuyenTho(db, { status: "RUNNING", departed: Date.parse(T1) });
+  const a = suatTho(db, { trip: t, tu: T2 });
+  suKienTho(db, { trip: t, kind: "PASSENGER_BOARDED", alloc: a, xayRa: T3, ghi: T4 });
+  suKienTho(db, { trip: t, kind: "STOPS_REORDERED", ghi: T3 });
+  suKienTho(db, { trip: t, kind: "STOP_ARRIVED", xayRa: T3, ghi: T4 });
+  assert.equal(violations(db, c), 0);
+  suKienTho(db, { trip: t, kind: "PASSENGER_NO_SHOW", alloc: a, xayRa: T1, ghi: T4 });
+  suKienTho(db, { trip: t, kind: "STOP_ARRIVED", xayRa: T2, ghi: T5 });
+  assert.equal(violations(db, c), 2);
+});
+
+test("R-VC-16 (K-02): điểm DANH MỤC của suất khớp nơi hiện hành của chặng → 0; chặng đổi nơi đón sang điểm khác / sang chữ tự do → 1; điểm chữ tự do không phủ (warn)", () => {
+  const c = one("R-VC-16");
+  assert.equal(c.level, "warn");
+  const db = tho();
+  const d = donTho(db, { loc: "loc-1" });
+  const t = chuyenTho(db);
+  const s = diemTho(db, { trip: t, loc: "loc-1" });
+  suatTho(db, { trip: t, leg: d.leg, board: s });
+  const d2 = donTho(db, { loc: null });
+  const s2 = diemTho(db, { trip: t, loc: null });
+  suatTho(db, { trip: t, leg: d2.leg, board: s2 });
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE ord_transfer_leg SET pickup_location_id = 'loc-2' WHERE id = ?").run(d.leg);
+  assert.equal(violations(db, c), 1);
+  db.prepare("UPDATE ord_transfer_leg SET pickup_location_id = NULL, pickup_place = 'Khách sạn mới' WHERE id = ?").run(d.leg);
+  assert.equal(violations(db, c), 1, "đổi sang chữ tự do vẫn bắt");
+  db.prepare("UPDATE ord_transfer_leg SET pickup_place = 'Khách sạn khác' WHERE id = ?").run(d2.leg);
+  assert.equal(violations(db, c), 1, "điểm chữ tự do: KHÔNG phủ (giới hạn đã ghi)");
+});
