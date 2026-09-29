@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./permissions.ts";
 import {
   ROLES, ROLE_CODES, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
-  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, type RoleAssignment,
+  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot, type RoleAssignment,
 } from "./roles.ts";
 
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
@@ -200,6 +200,17 @@ test("taiKhoanLaiProblem (LC-1b): DRIVER_PARTNER đứng một mình; kèm bất
   assert.equal(taiKhoanLaiProblem(["PARTNER"]), null);
   assert.equal(taiKhoanLaiProblem(["SALES", "ADMIN"]), null);
   assert.equal(taiKhoanLaiProblem([]), null, "không quyền nào — việc của lời kiểm 'còn ít nhất một quyền'");
+});
+
+// ADR-0048 B2.2 — MỘT hàm thuần cho máy chủ (roleAssignmentProblem) và giao diện (web/role-picker.ts khoá chéo ô vai, Task B1).
+test("vaiTaiXeDoiTacXungDot: 'Tài xế đối tác' cùng một vai bên ngoài khác → true; đứng một mình, hay chỉ vai bên ngoài khác → false", () => {
+  assert.equal(vaiTaiXeDoiTacXungDot(["DRIVER_EXTERNAL"]), false);
+  assert.equal(vaiTaiXeDoiTacXungDot(["TAXI_DRIVER", "COLLABORATOR"]), false, "hai vai bên ngoài sinh PARTNER không xung đột nhau");
+  for (const r of ["TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR"] as const) {
+    assert.equal(vaiTaiXeDoiTacXungDot([r, "DRIVER_EXTERNAL"]), true, r);
+  }
+  assert.equal(vaiTaiXeDoiTacXungDot(["SALES_STAFF", "DRIVER_EXTERNAL"]), false, "vai nội bộ + bên ngoài là việc của LC-3 (MIXED), không phải hàm này");
+  assert.equal(vaiTaiXeDoiTacXungDot([]), false);
 });
 
 test("roleAssignmentProblem (ADR-0048 B2.2): vai Tài xế đối tác không đi cùng vai bên ngoài khác; tài khoản lai qua cộng tay → 400 trước khi dựng câu", () => {

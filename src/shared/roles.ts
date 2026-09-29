@@ -51,6 +51,13 @@ export const isRoleCode = (v: unknown): v is RoleCode => typeof v === "string" &
 /** LC-4: quyền chỉ Toàn quyền được cấp hoặc gỡ. */
 export const SUPER_ADMIN_GRANTED: readonly PermissionCode[] = ["ADMIN", "SUPER_ADMIN"];
 
+/**
+ * ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" đi cùng một vai BÊN NGOÀI khác (mọi vai bên ngoài khác sinh PARTNER) — một người chọn một. MỘT nguồn cho
+ * roleAssignmentProblem (máy chủ, 400) và web/role-picker.ts (khoá chéo ô vai — Task B1). Vai nội bộ + bên ngoài là việc của LC-3 (groupOf → MIXED).
+ */
+export const vaiTaiXeDoiTacXungDot = (roles: readonly RoleCode[]): boolean =>
+  roles.includes("DRIVER_EXTERNAL") && roles.some((r) => r !== "DRIVER_EXTERNAL" && ROLES[r].group === "EXTERNAL");
+
 /** Nhóm của một tập vai: "NONE" khi chưa có vai mô hình mới; "MIXED" khi lẫn nội bộ và bên ngoài (LC-3 cấm). */
 export function groupOf(roles: readonly RoleCode[]): RoleGroup | "NONE" | "MIXED" {
   const groups = new Set(roles.map((r) => ROLES[r].group));
@@ -139,7 +146,7 @@ export function roleAssignmentProblem(a: {
   if (group === "MIXED") return { forbidden: false, message: "Một tài khoản không giữ cùng lúc vai nội bộ và vai bên ngoài." };
   // ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" không đi cùng vai bên ngoài khác (mọi vai bên ngoài khác sinh PARTNER) — báo câu theo VAI trước khi
   // LC-1b (taiKhoanLaiProblem ở dưới) báo câu chung theo quyền.
-  if (a.next.roles.includes("DRIVER_EXTERNAL") && a.next.roles.some((r) => r !== "DRIVER_EXTERNAL" && ROLES[r].group === "EXTERNAL")) {
+  if (vaiTaiXeDoiTacXungDot(a.next.roles)) {
     return { forbidden: false, message: "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác." };
   }
   if (group === "EXTERNAL" && a.next.adds.some((p) => !isExternalPermission(p))) {
