@@ -9,6 +9,9 @@
 //       truyền `{ orderId: id, thayDoi: "…" }`.
 //   (5) Chống bài rỗng: GET /passengers CÓ tên; có nhật ký order_passenger_changed / order_leg_* để quét.
 // Chạy CẢ ứng dụng trên SQLite thật. Tên là tên GIẢ có đánh dấu, năm sinh hiếm, SĐT giả.
+//   (6) ADR-0049 (NỚI nghĩa hàng rào — CHỜ CHỦ DUYỆT, đề xuất luật mục 3a): DTO tài xế GET /api/van-chuyen/cuoc-cua-toi/:id có `hoTen`, `namSinh` chỉ khi
+//       `trongNgayChay`; ngoài khoảng đó khoá vắng mặt (bài src/modules/van-chuyen/tai-xe-dto.test.ts). DTO văn phòng GET /api/van-chuyen/chuyen/:id có
+//       `hoTen`, `namSinh`, không `lienHe`; GET /lich không tên. Mọi lệnh ghi của van-chuyen có ca ở khối van-chuyen: nhật ký và cột chữ `vc_*` sạch.
 // Bài thứ hai — KHỐI VAN-CHUYỂN (ADR-0049 Task A18, TC-39, TC-50): mô tả ở đầu khối, cuối tệp.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -150,7 +153,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
 // ==== KHỐI VAN-CHUYỂN (ADR-0049 Task A18 bước 2 + 2b — kế hoạch mục 1.6–1.8, TC-39, TC-50) =================================================================
 //   (1) ĐỦ TUYẾN (siết): tập route thật của van-chuyen thuộc điều phối (lịch, chuyến, cuốc của tôi, chặng, nhắc gọi khách, chính sách điều phối) — lấy từ MÃ
 //       THẬT — phải BẰNG tập khoá của TUYEN_VC. Thêm route điều phối mới mà quên ca ở đây → đỏ (kể cả route 40 `cap-nhat-diem`, ba route gọi báo).
-//   (2) TÊN CHỈ Ở HAI ROUTE: họ tên / năm sinh (và khoá `hoTen`, `namSinh`) chỉ có trong thân GET /api/van-chuyen/chuyen/:id và GET /api/van-chuyen/cuoc-cua-toi/:id;
+//   (2) TÊN CHỈ Ở HAI ROUTE: họ tên / năm sinh (chuỗi tên, số năm sinh đứng riêng, khoá `hoTen`, `namSinh`) chỉ có trong thân GET /api/van-chuyen/chuyen/:id và GET /api/van-chuyen/cuoc-cua-toi/:id;
 //       mọi route khác (kể cả phản hồi lệnh ghi, lệnh tiến độ) KHÔNG. GET /cuoc-cua-toi/:id của chuyến NGOÀI ngày chạy không tên, không liên hệ.
 //   (3) NHẬT KÝ + mọi cột chữ của bảng `vc_*` không có tên / năm sinh đánh dấu.
 //   (4) [0050] TC-50: không DTO nào có khoá so sánh nơi (liệt kê khoá đệ quy); thân trả về + `audit_log` không có chuỗi `L:<id>` / `T:<hex>`; bản chụp, bản
@@ -374,6 +377,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     for (const t of than) {
       if (TRA_TEN.includes(t.route)) continue;
       for (const ten of TEN_VC) assert.ok(!t.text.includes(ten), `thân "${t.khoa}" (${t.route}) lộ tên "${ten}"`);
+      assert.doesNotMatch(t.text.replace(UUID, ""), NAM_VC, `thân "${t.khoa}" (${t.route}) lộ năm sinh`);
       const k = moiKhoa(t.json);
       assert.ok(!k.has("hoTen") && !k.has("namSinh"), `thân "${t.khoa}" (${t.route}) có khoá hoTen / namSinh`);
     }
