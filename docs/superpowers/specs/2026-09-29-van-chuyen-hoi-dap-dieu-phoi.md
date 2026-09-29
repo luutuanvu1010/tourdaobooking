@@ -81,3 +81,35 @@ Hỏi sau khi người kiểm độc lập Phần A của cả hai nhánh báo: 
 | ADR-0048, tệp `docs/superpowers/plans/2026-09-29-adr-0048-de-xuat-luat.md`: "duyệt đề xuất luật? Gồm: mở hàng rào 'tài khoản người ngoài chỉ giữ quyền Đối tác' thành 'Đối tác HOẶC Tài xế đối tác' (… kèm luật siết mới: Tài xế đối tác không giữ thêm quyền nào khác …), và ghi tài liệu luật cho khớp (Hiến chương phần kỹ thuật, luật thư mục mã, CLAUDE.md: 8 → 9 quyền). … Riêng dòng bảng kịch bản giao diện sẽ hỏi sau khi xong giao diện." — hai phương án: "Duyệt" / "Chưa duyệt" | **"Duyệt"** — tức mục 1 (1a–1d), 3, 4, 6 (6a, 6b). **Chưa hỏi:** mục 5 (`web/CLAUDE.md`, điền ở Phần B) |
 
 Cách áp (theo bài học 28/9: việc NỚI do phiên nhận lời chủ TRỰC TIẾP làm): điều phối áp các diff sửa tệp luật lúc gộp (Task K3 của từng kế hoạch), mỗi tệp một commit, chủ bấm Đồng ý ở hộp hỏi quyền; đổi chú thích "CHỜ CHỦ DUYỆT" trong `src/architecture.test.ts` thành "đã duyệt 2026-09-29"; người kiểm so khớp phần áp.
+
+## Trả lời lần 6 (29/9, ba câu của kế hoạch thi công ADR-0049 — mốc 6 giờ, "Đặt gấp")
+
+Kế hoạch `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md` mục 12 (Q1, Q2) + câu T-9/I14 mà người kiểm độc lập kế hoạch (ĐẠT CÓ ĐIỀU KIỆN) đề nghị đưa lên chủ vì là câu song sinh của Q1 (điều phối đặt là Q3). Mỗi câu chỉ chặn một bước thi công.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| Q1: "Đơn NHÁP sát giờ đã được Quản trị bấm "Đặt gấp". Sau đó người bán sửa đơn nháp đó (ví dụ thêm tên khách) rồi bấm Lưu. Dấu "Đặt gấp" còn giữ không?" — "Còn, nếu không đổi giờ/nơi" / "Mất sau mọi lần lưu" | **"Còn, nếu không đổi giờ/nơi"** — chặng không đổi ngày, giờ, nơi đón, nơi trả thì giữ dấu; chặng nào đổi thì mất, phải nhờ Quản trị bấm lại |
+| Q3 (T-9): "Đơn ĐÃ XÁC NHẬN, chặng đã "Đặt gấp" và đang dưới mốc 6 giờ. Khách đổi khách sạn nên cần sửa nơi đón (hoặc ngày, giờ, nơi trả) của chặng đó. Ai được sửa?" — "Chỉ Quản trị, Toàn quyền" / "Bán hàng tự sửa được" | **"Chỉ Quản trị, Toàn quyền"** — mỗi lần sửa ghi lý do; "Đặt gấp" chỉ duyệt đúng giờ/nơi lúc đó, đổi thì duyệt lại (điều phối diễn giải, không phải lời chủ — cách đọc chặt của ADR-0049: câu thay ADR-0047 A1 thắng vế "trừ khi chặng mang đặt gấp" của D2 đối với việc SỬA; vế đó vẫn áp cho việc XÁC NHẬN và XẾP) |
+| Q2: "Đã trong vòng 6 giờ trước giờ xe chạy, Bán hàng có được TẠO một chuyến xe mới (chọn xe, tài xế) không?" — "Được, chỉ cho khách đặt gấp" / "Không, cần Quản trị phá lệ" | **"Được, chỉ cho khách đặt gấp"** — chuyến mới trong 6 giờ chỉ xếp được chặng đã "Đặt gấp"; xếp khách khác vẫn cần Quản trị/Toàn quyền phá lệ |
+
+## Trả lời lần 7 (29/9, mục 4 đề xuất luật ADR-0049 — lượt riêng, một quyết định)
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Luật kỹ thuật chung (Hiến chương phần II, đứng trên mọi ADR) dạy một cách chống hai người sửa cùng lúc: xem "giờ sửa cuối" và tra sổ nhật ký. Bảng điều phối (ADR-0049 bạn đã duyệt) dùng cách khác: "số phiên bản" + "dấu lệnh" ghi ngay trên chuyến xe, vì phần Vận chuyển theo luật không được đọc sổ nhật ký. Hai chỗ viết khác nhau nên phải sửa một bên. Chọn cách nào?" — "Sửa luật chung cho khớp" / "Giữ luật chung, đổi Bảng điều phối" | **"Sửa luật chung cho khớp"** = phương án (a) mục 4 của `docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md` (đỉnh `5a7eb71`): diff `docs/ARCHITECTURE.md:194`, `:215` và `src/CLAUDE.md:26` — điều phối áp lúc gộp ADR-0049, mỗi tệp một commit. Mục 1–3 (nới) của tệp đó CHƯA hỏi — trình lúc gộp |
+
+## Kết quả truy vấn chỉ đọc của chủ (29/9, ADR-0047 kế hoạch mục 10 bước 3 — câu Q1)
+
+Chủ tự chạy `~/.claude/jobs/32bcd96e/tmp/kiem-q1-chang.sh` (`wrangler d1 execute … --remote`, chỉ `SELECT` đếm) và dán kết quả vào chat:
+
+| trang_thai | so_dich_vu_co_don | co_gio_khong_noi | chua_co_ngay_di | chua_co_noi_tra |
+|---|---|---|---|---|
+| cancelled | 18 | 2 | 0 | 18 |
+| confirmed | 27 | 0 | 0 | 27 |
+
+(Không có dòng `draft`: không đơn nháp nào có dữ liệu đón cũ.)
+
+Điều phối kết luận (không phải lời chủ):
+- **Q1 không cần chủ quyết:** "giờ không nơi" chỉ có 2 dịch vụ, đều thuộc đơn ĐÃ HUỶ; đơn đã xác nhận = 0. Giữ mặc định (a) "(chưa ghi nơi đón)" đang có trong `0034` (hằng `NOI_DON_CHUA_GHI`, giả định G10). Đảo ngược được: `0034` chưa áp remote.
+- **Ngày đi:** đủ ở mọi dịch vụ ⇒ không chặng chép nào thiếu ngày.
+- **Nơi trả:** 45/45 dịch vụ chưa có ⇒ sau phát hành, mọi chặng chép từ dữ liệu cũ mang "nơi trả chưa chốt" — `audit-invariants` báo CẢNH BÁO R-ORD-8 (không phải vi phạm, không chặn triển khai); nhân viên bổ sung khi cần.
