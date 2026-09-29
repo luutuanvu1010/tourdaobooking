@@ -39,6 +39,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
     },
   });
   const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, {} as ExecutionContext);
@@ -138,6 +139,7 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
     },
   });
   const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
@@ -257,6 +259,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
       baoThayDoi: (env, actor, e) => (overrides.baoThayDoi ? overrides.baoThayDoi(env, actor, e) : Promise.resolve()) as Promise<void>,
       dongBangTin: (env, muc) => (overrides.dongBangTin ? overrides.dongBangTin(env, muc) : Promise.resolve()) as Promise<void>,
       giaoLoDay: async () => [],
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -289,6 +292,7 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
       baoThayDoi: async () => { await baoThayDoi(); },
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -427,9 +431,39 @@ test("ctx.giaoLoDay: chuyển env + danh sách tới hàm tiêm và trả nguyê
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
       giaoLoDay: async (e, ds) => { seen.push([e, ds]); return ["b"]; },
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
     },
   });
   const res = await app.fetch(new Request("http://x/api/giao"), env, {} as ExecutionContext);
   assert.deepEqual(await res.json(), { het: ["b"] });
   assert.deepEqual(seen, [[env, ["a", "b"]]]);
+});
+
+// MỐC TỐI THIỂU (ADR-0049 D2, I25; TC-26) — ctx.mocToiThieu: hàm tiêm của gốc lắp ráp (orders không đọc bảng vc_). Thiếu hàm tiêm → null (route CHẶN,
+// không đoán con số) — khuôn "không bao giờ lặng lẽ có mặc định" của isAssigned.
+test("ctx.mocToiThieu: chuyển env tới hàm tiêm và trả nguyên kết quả; KHÔNG tiêm → null (không đoán)", async () => {
+  const seen: unknown[] = [];
+  const env = { ten: "env-thu" } as unknown as Env;
+  const mod: AppModule = {
+    name: "moc-gia",
+    routes: [route("GET", "/api/moc", "staff", async (ctx) => json({ moc: await ctx.mocToiThieu() }))],
+  };
+  const base = {
+    modules: [mod],
+    currentStaff: async () => staffOf(["SALES"]),
+  };
+  const injected = {
+    isAssigned: async () => false,
+    defaultHandlerStatement: () => null,
+    maintenanceBlock: async () => null,
+    partyAccount: async () => ({ linked: false }),
+    baoThayDoi: async () => {},
+    dongBangTin: async () => {},
+    giaoLoDay: async () => [],
+  };
+  const co = createApp({ ...base, injected: { ...injected, mocToiThieu: async (e: Env) => { seen.push(e); return { phut: 240, policyId: "cs-x" }; } } } as any);
+  assert.deepEqual(await (await co.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: { phut: 240, policyId: "cs-x" } });
+  assert.deepEqual(seen, [env]);
+  const khong = createApp({ ...base, injected } as any);
+  assert.deepEqual(await (await khong.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: null });
 });

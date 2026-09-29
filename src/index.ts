@@ -24,10 +24,10 @@ import { partiesModule } from "./modules/parties";
 import { findOrderRef, ordersModule } from "./modules/orders";
 import { accountOfParty } from "./modules/staff";
 import { dayGoCua, tatMayStatement, thongbaoModule } from "./modules/thongbao";
-import { vanChuyenModule } from "./modules/van-chuyen";
+import { mocToiThieuHienHanh, vanChuyenModule } from "./modules/van-chuyen";
 import { HANDLER_TRUOC_KHONG_BIET, nhanSuKien } from "./shared/bang-tin";
 import { hanhDongCuaThayDoi, khoaVapid } from "./shared/web-push";
-import { createApp } from "./shared/router";
+import { createApp, type AppOptions } from "./shared/router";
 
 export { BangTin } from "./modules/bangtin/tram";
 
@@ -46,7 +46,7 @@ async function nemNeuLoi(viec: [string, Promise<unknown> | null][]): Promise<voi
   }
 }
 
-const app = createApp({
+const APP_OPTIONS: AppOptions = {
   modules: [authModule, accountsModule, ordersModule, dispatchModule, catalogModule, auditModule, locationsModule, partiesModule, companyModule, maintenanceModule, feedbackModule, bangtinModule, thongbaoModule, vanChuyenModule],
   currentStaff,
   checkConfig: checkAuthConfig,
@@ -99,8 +99,20 @@ const app = createApp({
       ]);
     },
     giaoLoDay: (env, ds) => xepHangDay(env, ds),
+    // MỐC TỐI THIỂU (ADR-0049 D2, I25): `orders` không đọc bảng vc_ — gốc lắp ráp là NƠI DUY NHẤT gọi hàm công bố của van-chuyen (TC-26, A12 quét nơi gọi).
+    mocToiThieu: (env) => mocToiThieuHienHanh(env.DB),
   },
-});
+};
+const app = createApp(APP_OPTIONS);
+
+/**
+ * CHỈ khung thử (`tests/audit/harness.mjs`) gọi: dựng CÙNG ứng dụng với vài hàm tiêm GHI ĐÈ (vd mốc giả cho bài KHÔNG kiểm mốc — Ruling N-9 (iii); bỏ
+ * `mocToiThieu` cho bài TC-26). Không đọc env / binding nào: mã chạy thật (`export default` dưới) luôn dùng APP_OPTIONS nguyên vẹn — không có công tắc lách
+ * được từ production.
+ */
+export function taoAppChoKhungThu(ghiDe: Partial<AppOptions["injected"]>): ReturnType<typeof createApp> {
+  return createApp({ ...APP_OPTIONS, injected: { ...APP_OPTIONS.injected, ...ghiDe } });
+}
 
 export default {
   fetch: app.fetch,

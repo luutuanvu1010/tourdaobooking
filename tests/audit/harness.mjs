@@ -34,7 +34,9 @@ async function bundle(entry) {
   return import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0].text).toString("base64")}`);
 }
 // listAll: bộ lọc thao tác im lặng (ADR-0038) chỉ kiểm được ở tầng truy vấn — trang Nhật ký nay chỉ Toàn quyền gọi được.
-export const app = (await bundle('export { default } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository";'));
+export const app = (await bundle(
+  'export { default, taoAppChoKhungThu } from "./index"; export { createSessionToken } from "./modules/auth/session"; export { listAll } from "./modules/audit/repository";',
+));
 
 const isRead = (sql) => /^\s*(SELECT|WITH|PRAGMA|EXPLAIN)\b/i.test(sql);
 export function fakeD1(sqlite) {
@@ -68,8 +70,29 @@ export function seedStaff(sqlite, { id, phone, name, perms }) {
   for (const p of perms) sqlite.exec(`INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES ('${id}-${p}', '${id}', '${p}', '${NOW}', '${NOW}', '${NOW}')`);
 }
 
-export function world() {
+/** Mã chính sách của mốc GIẢ khung thử (Ruling N-9 (iii)) — bài thấy mã này trong dữ liệu là biết mình đang chạy mốc giả. */
+export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
+
+/**
+ * Dựng một "thế giới" thử: SQLite thật + CẢ ứng dụng. MẶC ĐỊNH dùng mốc tối thiểu THẬT (hàm tiêm của gốc lắp ráp đọc chính sách gieo 360 phút) — bài nào
+ * vô tình chạm mốc 6 giờ sẽ ĐỎ, không bị che. Tuỳ chọn (ADR-0049 D2 — Ruling N-9, TC-26):
+ * - `mocGiaChoBaiKhongKiemMoc: <phút>` — CHỈ cho bài KHÔNG kiểm mốc (vd xác nhận đơn đón "hôm nay" để kiểm việc khác): hàm tiêm GIẢ trả mốc do bài chỉ
+ *   định (`policyId` = MOC_GIA_POLICY_ID). Bài kiểm luật mốc / đặt gấp KHÔNG được dùng (bài canh ở src/modules/orders/dat-gap.test.ts).
+ * - `khongTiemMoc: true` — bỏ hàm tiêm mốc (TC-26: route phải trả 503, không đoán con số).
+ * - `demMoc: true` — mốc giả 360 phút có ĐẾM số lần gọi (`w.soLanGoiMoc()`) — TC-26 "đúng một lần mỗi request".
+ */
+export function world(tuyChon = {}) {
   const sqlite = openDb();
+  let soLanGoiMoc = 0;
+  let ungDung = app.default;
+  if (tuyChon.mocGiaChoBaiKhongKiemMoc !== undefined) {
+    const phut = tuyChon.mocGiaChoBaiKhongKiemMoc;
+    ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => ({ phut, policyId: MOC_GIA_POLICY_ID }) });
+  } else if (tuyChon.khongTiemMoc) {
+    ungDung = app.taoAppChoKhungThu({ mocToiThieu: undefined });
+  } else if (tuyChon.demMoc) {
+    ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID }) });
+  }
   const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, STAFF_SHEET_ID: "x", SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
   sqlite.exec(`UPDATE catalog_sync SET last_attempt_at = '${new Date().toISOString()}', last_success_at = '${new Date().toISOString()}' WHERE id = 'default'`);
@@ -80,10 +103,10 @@ export function world() {
     if (body !== undefined && h["content-type"] === undefined) h["content-type"] = "application/json";
     if (method !== "GET" && h.origin === undefined) h.origin = "https://booking.tourdao.vn";
     if (h.origin === null) delete h.origin;
-    const res = await app.default.fetch(new Request(`https://booking.tourdao.vn${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }), env, exec);
+    const res = await ungDung.fetch(new Request(`https://booking.tourdao.vn${path}`, { method, headers: h, body: body === undefined ? undefined : JSON.stringify(body) }), env, exec);
     const text = await res.text();
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text };
   }
-  return { sqlite, env, call, q: (sql, ...a) => sqlite.prepare(sql).all(...a) };
+  return { sqlite, env, call, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc };
 }

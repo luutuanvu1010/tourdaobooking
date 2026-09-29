@@ -4,6 +4,7 @@
 import type { StaffProfile } from "./contracts";
 import type { ThayDoiDon, TrangThaiPhuTrach } from "./bang-tin.ts";
 import { error, json } from "./http.ts";
+import type { MocToiThieu } from "./moc-toi-thieu.ts";
 import { canAccessOrders, isOffice, passesAdminGate } from "./permissions.ts";
 
 /** public: không cần đăng nhập; staff: mọi tài khoản đăng nhập; office: nhân sự văn phòng (mọi quyền trừ chỉ-FIELD — ADR-0007); orders: văn phòng HOẶC Đối tác (ADR-0014); admin: quyền ADMIN. */
@@ -82,6 +83,12 @@ export interface Ctx<A extends Access = Access> {
    * Khác `baoThayDoi`: trả lời hứa — người gọi tự bọc `waitUntil` + bắt lỗi.
    */
   giaoLoDay: (ds: string[]) => Promise<string[]>;
+  /**
+   * MỐC TỐI THIỂU đang hiệu lực (ADR-0049 D2, kế hoạch I25) — do gốc lắp ráp tiêm (`van-chuyen.mocToiThieuHienHanh`; `orders` KHÔNG đọc bảng `vc_`, không
+   * import `van-chuyen`). Mỗi lần gọi là MỘT truy vấn D1 — route gọi ĐÚNG MỘT lần mỗi request (TC-26). `null` = bảng chính sách rỗng HOẶC môi trường không
+   * tiêm hàm (khung thử cố ý) → route CHẶN lệnh cần mốc (503 `moc_toi_thieu_chua_co`), KHÔNG đoán con số. Không phụ thuộc người đang gọi.
+   */
+  mocToiThieu: () => Promise<MocToiThieu | null>;
 }
 
 export interface Route {
@@ -167,6 +174,11 @@ export interface AppOptions {
     dongBangTin: (env: Env, muc: { staffId: string; tatThongBao: boolean } | "tat-ca") => Promise<void>;
     /** WEB PUSH (ADR-0036). BẮT BUỘC. Bản thật ở `src/index.ts` (`xepHangDay` của module `bangtin`); `[]` khi môi trường không có binding `BANG_TIN`. */
     giaoLoDay: (env: Env, ds: string[]) => Promise<string[]>;
+    /**
+     * MỐC TỐI THIỂU (ADR-0049 D2, I25). BẮT BUỘC trong mã chạy thật (`src/index.ts`: `mocToiThieuHienHanh(env.DB)`); thiếu (chỉ khung thử cố ý — TC-26) thì
+     * router trả `null` ⇒ `orders` chặn lệnh cần mốc (khuôn `isAssigned`: không bao giờ lặng lẽ "không có mốc").
+     */
+    mocToiThieu: (env: Env) => Promise<MocToiThieu | null>;
   };
 }
 
@@ -231,6 +243,8 @@ export function createApp(opts: AppOptions) {
         exec.waitUntil(Promise.resolve().then(() => opts.injected.dongBangTin(env, muc)).catch((err) => ghiLoiBangTin("dong", err)));
       },
       giaoLoDay: (ds) => opts.injected.giaoLoDay(env, ds),
+      // Thiếu hàm tiêm (khung thử cố ý) → null: route chặn, không đoán (I25). Kiểm lúc GỌI, không lúc dựng app (typeof — JS không kiểm kiểu).
+      mocToiThieu: () => (typeof opts.injected.mocToiThieu === "function" ? opts.injected.mocToiThieu(env) : Promise.resolve(null)),
     } as Ctx);
   }
 
