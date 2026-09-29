@@ -39,7 +39,7 @@ try {
     assert.deepEqual(await p.ev(lichSu), ["Bản 1 Đang dùng Hiệu lực từ 01/09/2026 Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · phải đủ danh sách khách"]);
     const nav = await p.ev(vcSub);
     assert.deepEqual(nav.items.slice(-3), ["Loại giấy tờ xe", "Chính sách điều phối", "Lý do điều phối"]);
-    assert.ok(!nav.items.includes("Điều phối xe"), "chưa có trang B1 → không có mục Điều phối xe");
+    assert.equal(nav.items[0], "Điều phối xe", "B1 (vòng 3): mục con đầu dưới Vận chuyển");
     assert.equal(nav.current, "Chính sách điều phối");
     assert.equal(await p.ev(noCode), "");
     assert.ok(await p.ev(noOverflowX));
@@ -278,10 +278,10 @@ try {
 
   // ---- Bán hàng ----------------------------------------------------------------------------------------------------------------------------------------------
   const s = await env.as(ACCOUNTS.salesA, "/ly-do-dieu-phoi", DESK);
-  await b.step("12", "Bán hàng: không có mục Vận chuyển nào; mở thẳng hai trang → câu tiếng Việt, không dựng gì", async () => {
+  await b.step("12", "Bán hàng: nhóm Vận chuyển chỉ có \"Điều phối xe\" (B1, Q-B-4) — không Chính sách, không Lý do; mở thẳng hai trang → câu tiếng Việt, không dựng gì", async () => {
     await s.waitFor(`${txt("#error")} === 'Chỉ Quản trị, Toàn quyền xem và sửa được lý do điều phối.'`, "câu từ chối lý do");
     assert.equal(await s.ev(`document.querySelectorAll('.dp-group').length`), 0);
-    assert.deepEqual((await s.ev(vcSub)).items, []);
+    assert.deepEqual((await s.ev(vcSub)).items, ["Điều phối xe"]);
     await s.send("Page.navigate", { url: env.base + "/chinh-sach-dieu-phoi" });
     await s.waitFor(`${txt("#error")} === 'Chỉ Toàn quyền xem và đổi được chính sách điều phối.'`, "câu từ chối chính sách");
   });

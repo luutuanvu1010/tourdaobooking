@@ -84,7 +84,7 @@ try {
     try {
       await p.waitFor(`!!document.querySelector('#vc-links a[href="${XE}"]')`, "dòng Loại giấy tờ xe", 10000);
       // ADR-0049 B8 (2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm VẬN CHUYỂN.
-      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
+      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       await shotFull(p, "loai-giay-to-toi-390.png");
       assert.ok(await p.ev(clickVisible("#vc-links", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);
@@ -101,13 +101,14 @@ try {
     }
   });
 
-  await dem.step("d", "(d) Quản trị 1040: dưới “Vận chuyển” — Xe / Sắp hết hạn / Loại giấy tờ xe; bấm → mục con sáng, mục cha chữ trắng, breadcrumb “Vận chuyển › Loại giấy tờ xe”; 6 dòng" + axeNote(), async () => {
+  await dem.step("d", "(d) Quản trị 1040: dưới “Vận chuyển” — Điều phối xe / Xe / Sắp hết hạn / Loại giấy tờ xe; bấm → mục con sáng, mục cha chữ trắng, breadcrumb “Vận chuyển › Loại giấy tờ xe”; 6 dòng" + axeNote(), async () => {
     const p = await env.as(ADMIN, "/account", DESK);
     try {
       await p.waitFor(`!!document.querySelector('#sidebar a[href="${XE}"]')`, "mục con Loại giấy tờ xe", 10000);
       const qt = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ");
       const at = qt.items.findIndex((i) => i.parent && i.label === "Vận chuyển");
-      assert.deepEqual(qt.items.slice(at, at + 4).map((i) => [i.label, i.sub]), [["Vận chuyển", false], ["Xe", true], ["Sắp hết hạn", true], ["Loại giấy tờ xe", true]], JSON.stringify(qt.items));
+      // ADR-0049 B1 (vòng 3): mục con "Điều phối xe" (ô trip.view) đứng đầu dưới "Vận chuyển".
+      assert.deepEqual(qt.items.slice(at, at + 5).map((i) => [i.label, i.sub]), [["Vận chuyển", false], ["Điều phối xe", true], ["Xe", true], ["Sắp hết hạn", true], ["Loại giấy tờ xe", true]], JSON.stringify(qt.items));
       assert.ok(await p.ev(clickVisible("#sidebar", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);
       const moi = (await thanhBen(p)).find((g) => g.title === "QUẢN TRỊ").items;
@@ -199,7 +200,7 @@ try {
     }
   });
 
-  await dem.step("j", "(j) Bán hàng: không mục ở thanh bên, không dòng ở trang Tôi; mở thẳng hai trang → câu “Chỉ quản trị viên…”, không bảng nào, không gọi API danh mục", async () => {
+  await dem.step("j", "(j) Bán hàng: không mục danh mục giấy tờ ở thanh bên (nhóm QUẢN TRỊ chỉ Vận chuyển › Điều phối xe), không dòng ở trang Tôi; mở thẳng hai trang → câu “Chỉ quản trị viên…”, không bảng nào, không gọi API danh mục", async () => {
     const p = await env.as(ACCOUNTS.salesA, "/account", MOB);
     try {
       await p.waitFor("!!document.querySelector('#links .row-link')", "trang Tôi", 10000);
@@ -213,7 +214,10 @@ try {
       await d.waitFor("!!document.querySelector('#sidebar .sidebar-item')", "thanh bên", 10000);
       await sleep(800);
       assert.deepEqual(await coLienKet(d, [NGUOI, XE, CU]), [], "thanh bên + trang Tôi (1040)");
-      assert.deepEqual((await thanhBen(d)).map((g) => g.title), ["BÁN HÀNG", "TÔI"], "Bán hàng không có nhóm QUẢN TRỊ");
+      // ADR-0049 B1 (vòng 3, Q-B-4): Bán hàng nay có nhóm QUẢN TRỊ chỉ với "Vận chuyển › Điều phối xe" (ô trip.view) — vẫn không mục danh mục giấy tờ.
+      const nhom = await thanhBen(d);
+      assert.deepEqual(nhom.map((g) => g.title), ["BÁN HÀNG", "QUẢN TRỊ", "TÔI"]);
+      assert.deepEqual(nhom.find((g) => g.title === "QUẢN TRỊ").items.map((i) => i.label), ["Vận chuyển", "Điều phối xe"], "Bán hàng: nhóm QUẢN TRỊ chỉ có Vận chuyển › Điều phối xe");
     } finally {
       d.close();
     }

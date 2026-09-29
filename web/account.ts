@@ -2,6 +2,7 @@ import { ApiError, api, type Api } from "./api";
 import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
 import { coPhanTaiXe } from "../src/shared/start-page";
+import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -52,30 +53,34 @@ const lienKetSau = [
   h("a", { class: "row-link", href: "/help" }, "Trợ giúp", helpHasNews() && newDot(), icon("next", 20)),
   logoutBtn,
 ];
-if (can(staff, "vehicle.manage")) {
-  // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm / Loại giấy tờ người → nhãn "VẬN CHUYỂN" → Xe / Giấy tờ sắp hết hạn (huy hiệu cát) /
-  // Loại giấy tờ xe (tách 2026-09-28; thêm ô admin.manage — route sửa danh mục hỏi ô này) → phần còn lại.
-  // `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong #links vẫn đúng; tài khoản không có ô vehicle.manage: DOM như cũ.
+const quanLyXe = can(staff, "vehicle.manage");
+if (quanLyXe || thayDieuPhoiXe(staff)) {
+  // Vận chuyển (ADR-0040 D1; bản vẽ 00, điện thoại): Danh bạ / Địa điểm / Loại giấy tờ người → nhãn "VẬN CHUYỂN" → Điều phối xe (ô trip.view — Q-B-4, cả Bán
+  // hàng, Kế toán) / Xe / Giấy tờ sắp hết hạn (huy hiệu cát) / Loại giấy tờ xe (tách 2026-09-28; thêm ô admin.manage — route sửa danh mục hỏi ô này) → phần còn lại.
+  // `#links` giữ phần còn lại (Góp ý, Trợ giúp, Đăng xuất…) để mọi chỗ đang tìm các dòng đó trong #links vẫn đúng; tài khoản không có ô nào của nhóm: DOM như cũ.
   const soSapHet = h("span", { class: "vc-badge", hidden: true });
-  void demSapHetHan().then((n) => {
-    if (n > 0) {
-      soSapHet.textContent = String(n);
-      soSapHet.hidden = false;
-    }
-  });
+  if (quanLyXe) {
+    void demSapHetHan().then((n) => {
+      if (n > 0) {
+        soSapHet.textContent = String(n);
+        soSapHet.hidden = false;
+      }
+    });
+  }
   byId("links").before(
     h("section", { id: "links-top", class: "card list-card" }, ...lienKetDau),
     h("div", { id: "vc-eyebrow", class: "vc-eyebrow" }, "VẬN CHUYỂN"),
     h(
       "section",
       { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
-      h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
-      h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
-      can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-xe" }, h("span", { class: "vc-row-label" }, "Loại giấy tờ xe"), icon("next", 20)),
+      thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/dieu-phoi" }, h("span", { class: "vc-row-label" }, "Điều phối xe"), icon("next", 20)),
+      quanLyXe && h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
+      quanLyXe && h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
+      quanLyXe && can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-xe" }, h("span", { class: "vc-row-label" }, "Loại giấy tờ xe"), icon("next", 20)),
       // Bảng điều phối lượt 1 (ADR-0049; bản vẽ 08 khung 8b / 8d — điện thoại mở từ trang Tôi): Chính sách điều phối (chỉ Toàn quyền — ô settings.ops),
-      // Lý do điều phối (ô admin.manage). "Điều phối xe" chưa thêm (trang B1 chưa có).
-      can(staff, "settings.ops") && h("a", { class: "row-link", href: "/chinh-sach-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Chính sách điều phối"), icon("next", 20)),
-      can(staff, "admin.manage") && h("a", { class: "row-link", href: "/ly-do-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Lý do điều phối"), icon("next", 20)),
+      // Lý do điều phối (ô admin.manage). Giữ đúng điều kiện cũ (trong nhóm của người có ô vehicle.manage).
+      quanLyXe && can(staff, "settings.ops") && h("a", { class: "row-link", href: "/chinh-sach-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Chính sách điều phối"), icon("next", 20)),
+      quanLyXe && can(staff, "admin.manage") && h("a", { class: "row-link", href: "/ly-do-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Lý do điều phối"), icon("next", 20)),
     ),
   );
   replaceChildren(byId("links"), ...lienKetSau);

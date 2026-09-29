@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Điều phối xe — Island Booking System</title></head>
+<body data-title="Điều phối xe" data-back="/account">
+<header id="topbar"></header>
+<main class="dp-board">
+  <!-- Điều phối xe (ADR-0049 V1; bản vẽ docs/design/van-chuyen-dieu-phoi/project/01 Dieu phoi xe.dc.html + dp-chua-xep, dp-dong-thoi-gian, dp-can-xu-ly). /dieu-phoi?ngay=YYYY-MM-DD. -->
+  <div class="dp-head">
+    <h1 id="dp-title">Điều phối xe</h1>
+    <div class="dp-date">
+      <button id="dp-truoc" type="button" class="vc-btn vc-btn-ghost-primary dp-date-btn" aria-label="Ngày trước">‹</button>
+      <input id="dp-ngay" class="vc-input dp-date-input" type="date" aria-label="Ngày điều phối">
+      <button id="dp-sau" type="button" class="vc-btn vc-btn-ghost-primary dp-date-btn" aria-label="Ngày sau">›</button>
+    </div>
+    <span id="dp-ngay-nhan" class="dp-date-note"></span>
+    <a id="dp-moi" class="vc-btn btn btn-accent dp-new" href="/chuyen-sua" hidden>+ Chuyến mới</a>
+  </div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="dp-banner"></div>
+  <div id="dp-trang" hidden>
+    <div id="dp-so" class="vc-card dp-stats"></div>
+    <div id="dp-so-m" class="vc-card dp-stats-m"></div>
+    <div id="dp-so-phu" class="dp-stats-sub"></div>
+    <div id="dp-tabs" class="dp-tabs" role="tablist" aria-label="Phần của bảng điều phối"></div>
+    <div class="dp-cols">
+      <section id="dp-cot-chua-xep" class="vc-card dp-col dp-col-chua-xep" role="tabpanel" aria-labelledby="dp-tab-chua-xep"></section>
+      <section id="dp-cot-xe" class="dp-col dp-col-xe" role="tabpanel" aria-labelledby="dp-tab-xe"></section>
+      <section id="dp-cot-can-xu-ly" class="vc-card dp-col dp-col-cxl" role="tabpanel" aria-labelledby="dp-tab-can-xu-ly"></section>
+    </div>
+  </div>
+</main>
+<script type="module" src="/js/dieu-phoi.js"></script>
+</body></html>

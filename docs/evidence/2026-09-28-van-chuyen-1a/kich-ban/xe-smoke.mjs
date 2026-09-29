@@ -34,10 +34,12 @@ try {
       const labels = qt.items.map((i) => i.label);
       const at = labels.indexOf("Địa điểm");
       // "Loại giấy tờ người" (sau Địa điểm) và mục con "Loại giấy tờ xe": tách "Danh mục giấy tờ" 2026-09-28 (chủ dự án), không có trong bản vẽ 00.
-      assert.deepEqual(labels.slice(at, at + 6), ["Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
-      const [cha, xe, han, loaiXe] = qt.items.slice(at + 2, at + 6);
-      assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ hai mục con bấm được)");
+      // ADR-0049 B1 (vòng 3, bản vẽ Bảng điều phối vo-may-tinh): mục con "Điều phối xe" (ô trip.view) đứng ĐẦU dưới "Vận chuyển", trước "Xe".
+      assert.deepEqual(labels.slice(at, at + 7), ["Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe"], JSON.stringify(labels));
+      const [cha, dieuPhoi, xe, han, loaiXe] = qt.items.slice(at + 2, at + 7);
+      assert.equal(cha.tag, "DIV", "mục cha không phải liên kết (bản vẽ: luôn mở, chỉ các mục con bấm được)");
       assert.equal(cha.current, null);
+      assert.deepEqual([dieuPhoi.href, dieuPhoi.sub, dieuPhoi.current], ["/dieu-phoi", true, null]);
       assert.deepEqual([xe.href, xe.sub, xe.current], ["/xe", true, "page"]);
       assert.deepEqual([han.href, han.sub, han.current], ["/giay-to-sap-het-han", true, null]);
       assert.deepEqual([loaiXe.href, loaiXe.sub, loaiXe.current], ["/loai-giay-to-xe", true, null]);
@@ -64,7 +66,7 @@ try {
       assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ người"]);
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
       // ADR-0049 B8 (bản vẽ Bảng điều phối 08 khung 8d, 2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm (không có "Chính sách điều phối" — chỉ Toàn quyền).
-      assert.deepEqual(s.vc, [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
+      assert.deepEqual(s.vc, [{ href: "/dieu-phoi", text: "Điều phối xe" }, { href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       assert.ok(s.rest.some((r) => r.text?.startsWith("Góp ý")) && s.rest.some((r) => r.text === "Đăng xuất"), JSON.stringify(s.rest));
       const iTop = s.order.indexOf("links-top");
       assert.deepEqual(s.order.slice(iTop, iTop + 4), ["links-top", "vc-eyebrow", "vc-links", "links"], JSON.stringify(s.order));
@@ -75,13 +77,15 @@ try {
     }
   });
 
-  await dem.step("3", "Bán hàng: không mục Vận chuyển, không dòng ở trang Tôi, không gọi /api/van-chuyen/*; mở thẳng /xe → câu từ chối, không nút Thêm xe", async () => {
+  // ADR-0049 B1 (vòng 3, Q-B-4): Bán hàng có ô trip.view nên nay THẤY mục cha "Vận chuyển" với đúng một mục con "Điều phối xe" và dòng "Điều phối xe" ở trang Tôi —
+  // vẫn KHÔNG có Xe / Sắp hết hạn (ô vehicle.manage), không gọi /api/van-chuyen/* ở trang Tôi.
+  await dem.step("3", "Bán hàng: nhóm Vận chuyển chỉ có Điều phối xe (không Xe / Sắp hết hạn), trang Tôi chỉ dòng Điều phối xe, không gọi /api/van-chuyen/*; mở thẳng /xe → câu từ chối, không nút Thêm xe", async () => {
     const p = await env.as(ACCOUNTS.salesA, "/account", DESK);
     try {
       await p.waitFor("!!document.querySelector('#links .row-link')", "trang Tôi", 10000);
       await sleep(1000);
-      const s = await p.ev(`({ parent: !!document.querySelector('#sidebar .sidebar-parent'), vc: !!document.querySelector('#vc-links'), eyebrow: !!document.querySelector('.vc-eyebrow'), top: !!document.querySelector('#links-top') })`);
-      assert.deepEqual(s, { parent: false, vc: false, eyebrow: false, top: false });
+      const s = await p.ev(`({ parent: !!document.querySelector('#sidebar .sidebar-parent'), sub: [...document.querySelectorAll('#sidebar .sidebar-sub')].map((a) => a.innerText.trim()), vc: [...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim()), eyebrow: !!document.querySelector('.vc-eyebrow'), top: !!document.querySelector('#links-top') })`);
+      assert.deepEqual(s, { parent: true, sub: ["Điều phối xe"], vc: ["Điều phối xe"], eyebrow: true, top: true });
       assert.deepEqual(apiCalls(p).filter((c) => c.path.startsWith("/api/van-chuyen")), []);
     } finally {
       p.close();

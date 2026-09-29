@@ -3,9 +3,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   cauKhoaMoc, changChuaXep, chipChang, dieuKienXuatBen, gioHien, hinhDongThoiGian, idChoLenh, kieuChuyen, nhanDiem, dongNhatKy, soLieuDieuPhoi, truongLoiChuyen,
-  viecCanXuLy,
+  viecCanXuLy, thayDieuPhoiXe, tuyenChuyen, nhanNgayXem, chuyenXepDuoc,
 } from "./dieu-phoi-man.ts";
 import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
+import type { PermissionCode } from "./permissions.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const NGAY = "2026-09-30";
@@ -198,4 +199,64 @@ test("idChoLenh: lệnh lặp sau mất mạng dùng lại requestId khi thân k
   assert.deepEqual(a, { id: "id1", khoa: "k1" });
   assert.deepEqual(idChoLenh(a, "k1", tao), a, "bấm lại sau mất mạng — cùng id");
   assert.deepEqual(idChoLenh(a, "k2", tao), { id: "id2", khoa: "k2" }, "đổi ý (thân khác) — id mới, không bị máy chủ coi là lệnh lặp");
+});
+
+test("viecCanXuLy: 'nơi hẹn khác điểm' của chuyến CHƯA chạy đã bị giữ 'nơi đón / trả đã đổi' → không thành mục thứ hai (mục chuyến bị giữ đã có nút)", () => {
+  const L = lich({
+    chuyen: [
+      chuyen({ id: "t1", lyDoGiu: [ly("NOI_HEN_DOI", "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: TD-8")] }),
+      chuyen({ id: "t4", ma: "CX-3009-02", trangThai: "RUNNING" }),
+    ],
+    canhBao: [
+      { loai: "NOI_HEN_KHAC_DIEM", nhan: "Nơi đón / trả của đơn khác điểm của xe", legId: "l8", tripId: "t1", maDon: "TD-8" },
+      { loai: "NOI_HEN_KHAC_DIEM", nhan: "Nơi đón / trả của đơn khác điểm của xe", legId: "l9", tripId: "t4", maDon: "TD-9" },
+    ],
+  });
+  assert.deepEqual(viecCanXuLy(L, { dieuPhoi: true, phaLe: false, quanLyXe: false }).map((x) => x.tieuDe), ["CX-3009-07 · 09:00 · 79B-123.45", "CX-3009-02 · TD-9"]);
+});
+
+test("thayDieuPhoiXe: mục 'Điều phối xe' cho mọi mã có ô trip.view = any (Bán hàng, Kế toán, Quản trị, Toàn quyền); tài xế (assigned) và mã khác → không", () => {
+  const ai = (permissions: PermissionCode[]) => thayDieuPhoiXe({ id: "s1", permissions });
+  assert.deepEqual((["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as PermissionCode[]).map((p) => ai([p])), [true, true, true, true]);
+  assert.deepEqual((["FIELD", "PARTNER", "INTERN", "DRIVER", "DRIVER_PARTNER"] as PermissionCode[]).map((p) => ai([p])), [false, false, false, false, false]);
+  assert.equal(ai(["DRIVER", "SALES"]), true);
+});
+
+test("hinhDongThoiGian: khối mang cờ khoá của MÁY CHỦ (khoaMoc.dangKhoa) — không tự tính theo giờ hiện tại", () => {
+  const L = lich({
+    xe: [{ id: "x1", bienSo: "79B-123.45", soCho: 15, trangThai: "active", chuXe: "Tour Đảo", chuLaCongTy: true }],
+    chuyen: [chuyen({ id: "a", khoaMoc: { dangKhoa: true, tuLuc: g("03:00"), tuLucMs: ms("03:00") } }), chuyen({ id: "b", batDau: g("20:00"), ketThuc: g("21:00"), batDauMs: ms("20:00"), ketThucMs: ms("21:00") })],
+  });
+  // "bây giờ" = 23:00: tự tính theo giờ hiện tại thì cả hai chuyến đã qua giờ — kết quả phải đúng cờ máy chủ (a khoá, b không), không theo đồng hồ.
+  assert.deepEqual(hinhDongThoiGian(L, ms("23:00")).nhom[0]!.hang[0]!.khoi.map((k) => [k.id, k.khoa]), [["a", true], ["b", false]]);
+});
+
+test("tuyenChuyen: điểm đón theo thứ tự rồi điểm trả (bỏ điểm đã bỏ qua / đã chuyển)", () => {
+  const d = (thuTu: number, loai: "PICKUP" | "DROPOFF", tenNoi: string, trangThai = "PENDING") => ({ id: `d${thuTu}`, thuTu, loai, tenNoi, trangThai, daToi: null });
+  assert.deepEqual(tuyenChuyen([d(3, "PICKUP", "Mường Thanh"), d(1, "PICKUP", "Sheraton"), d(4, "DROPOFF", "Cảng Vinpearl"), d(2, "PICKUP", "Amiana", "SKIPPED"), d(5, "DROPOFF", "Bến Tàu"), d(6, "DROPOFF", "Cũ", "MOVED")]), {
+    don: ["Sheraton", "Mường Thanh"], tra: ["Cảng Vinpearl", "Bến Tàu"],
+  });
+  assert.deepEqual(tuyenChuyen([]), { don: [], tra: [] });
+});
+
+test("nhanNgayXem: thứ trong tuần + hôm nay / ngày mai / hôm qua theo lịch Việt Nam", () => {
+  assert.equal(nhanNgayXem("2026-09-30", "2026-09-30"), "Thứ Tư · hôm nay");
+  assert.equal(nhanNgayXem("2026-10-01", "2026-09-30"), "Thứ Năm · ngày mai");
+  assert.equal(nhanNgayXem("2026-09-29", "2026-09-30"), "Thứ Ba · hôm qua");
+  assert.equal(nhanNgayXem("2026-10-04", "2026-09-30"), "Chủ nhật");
+});
+
+test("chuyenXepDuoc: chỉ chuyến lên kế hoạch, theo giờ xuất bến; nhãn có giờ, xe, tải; 'khoa' theo khoaMoc (không tự tính)", () => {
+  const L = lich({
+    chuyen: [
+      chuyen({ id: "b", ma: "CX-3009-11", batDau: g("14:30"), ketThuc: g("16:15"), batDauMs: ms("14:30"), tai: 10 }),
+      chuyen({ id: "a", khoaMoc: { dangKhoa: true, tuLuc: g("03:00"), tuLucMs: ms("03:00") } }),
+      chuyen({ id: "c", trangThai: "RUNNING" }),
+      chuyen({ id: "d", trangThai: "CANCELLED" }),
+    ],
+  });
+  assert.deepEqual(chuyenXepDuoc(L).map((x) => [x.chuyen.id, x.nhan, x.khoa]), [
+    ["a", "CX-3009-07 · 09:00–10:45 · 79B-123.45 · tải 12/15", true],
+    ["b", "CX-3009-11 · 14:30–16:15 · 79B-123.45 · tải 10/15", false],
+  ]);
 });

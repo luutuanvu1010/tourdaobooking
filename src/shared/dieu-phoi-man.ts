@@ -6,6 +6,7 @@
 // - Nút / lối tắt theo CỜ quyền truyền vào (can() ở trang), không theo tên vai.
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioVnDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
+import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
 import { msToVnLocal, vnLocalToMs } from "./vn-date.ts";
 
@@ -17,6 +18,21 @@ const PHUT = 60_000;
 /** Giờ hiển thị: "HH:MM"; khác ngày đang xem → "HH:MM dd/mm". */
 export function gioHien(g: GioVnDto, ngayXem: string): string {
   return g.ngay === ngayXem ? g.gio : `${g.gio} ${g.ngay.slice(8, 10)}/${g.ngay.slice(5, 7)}`;
+}
+
+/** Mục "Điều phối xe" (menu, trang Tôi) + trang /dieu-phoi: ô trip.view KHÔNG kèm ngữ cảnh — tài xế (ô "assigned") và mã không có ô → không (Q-B-4). */
+export function thayDieuPhoiXe(who: PermissionHolder): boolean {
+  return can(who, "trip.view");
+}
+
+const THU = ["Chủ nhật", "Thứ Hai", "Thứ Ba", "Thứ Tư", "Thứ Năm", "Thứ Sáu", "Thứ Bảy"] as const;
+/** "Thứ Tư · hôm nay" cạnh ô ngày (bản vẽ 01) — lịch dân sự, không phụ thuộc múi giờ máy. */
+export function nhanNgayXem(ngay: string, homNay: string): string {
+  const [y, m, d] = ngay.split("-").map(Number) as [number, number, number];
+  const thu = THU[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]!;
+  const lech = Math.round((Date.UTC(y, m - 1, d) - Date.parse(`${homNay}T00:00:00Z`)) / 86_400_000);
+  const phu = lech === 0 ? "hôm nay" : lech === 1 ? "ngày mai" : lech === -1 ? "hôm qua" : "";
+  return phu ? `${thu} · ${phu}` : thu;
 }
 
 // ---- chặng ---------------------------------------------------------------------------------------------------------------------------------------------------
@@ -78,6 +94,20 @@ export function kieuChuyen(c: Pick<ChuyenTomTatDto, "trangThai" | "trangThaiNhan
   return { kieu, nhan: c.trangThaiNhan };
 }
 
+/** Tuyến của chuyến trên thẻ "đang chọn" (bản vẽ 01): điểm đón theo thứ tự → điểm trả; bỏ điểm đã bỏ qua / đã chuyển. */
+export function tuyenChuyen(diem: ChuyenTomTatDto["diem"]): { don: string[]; tra: string[] } {
+  const con = [...diem].filter((d) => d.trangThai !== "SKIPPED" && d.trangThai !== "MOVED").sort((a, b) => a.thuTu - b.thuTu);
+  return { don: con.filter((d) => d.loai === "PICKUP").map((d) => d.tenNoi), tra: con.filter((d) => d.loai === "DROPOFF").map((d) => d.tenNoi) };
+}
+
+/** Chuyến chọn được trong hộp "Xếp vào chuyến": chỉ chuyến lên kế hoạch, theo giờ xuất bến; `khoa` = `khoaMoc.dangKhoa` của máy chủ (không tự tính). */
+export function chuyenXepDuoc(l: Pick<LichChungResponse, "ngay" | "chuyen">): { chuyen: ChuyenTomTatDto; nhan: string; khoa: boolean }[] {
+  return l.chuyen
+    .filter((c) => c.trangThai === "PLANNED")
+    .sort((a, b) => a.batDauMs - b.batDauMs)
+    .map((c) => ({ chuyen: c, nhan: `${c.ma} · ${gioHien(c.batDau, l.ngay)}–${gioHien(c.ketThuc, l.ngay)} · ${c.xe.bienSo} · tải ${c.tai}/${c.xe.soCho}`, khoa: c.khoaMoc.dangKhoa }));
+}
+
 /** Câu khoá theo mốc (bản vẽ 01 LOCK) — chỉ hiện khi `khoaMoc.dangKhoa`. */
 export function cauKhoaMoc(mocPhut: number | null, co: { phaLe: boolean; dieuPhoi: boolean }): string {
   const dau = `Trong ${mocPhut === null ? "mốc tối thiểu" : nhanThoiLuong(mocPhut)} trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế.`;
@@ -136,6 +166,9 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe
   }
   for (const w of l.canhBao) {
     if (BO_QUA_CANH_BAO.has(w.loai)) continue;
+    // Chuyến chưa chạy đã bị giữ "nơi đón / trả đã đổi": mục chuyến bị giữ ở trên đã nói + có nút "Cập nhật điểm theo đơn" — không thêm mục thứ hai.
+    const tw = w.tripId ? chuyenTheoId.get(w.tripId) : undefined;
+    if (w.loai === "NOI_HEN_KHAC_DIEM" && tw?.trangThai === "PLANNED" && tw.lyDoGiu.some((x) => x.ma === "NOI_HEN_DOI")) continue;
     out.push(viecTuCanhBao(w, l.ngay, w.legId ? changTheoId.get(w.legId) : undefined, w.tripId ? chuyenTheoId.get(w.tripId) : undefined, co));
   }
   for (const n of l.nhapChoDatGap) {
@@ -177,6 +210,8 @@ export interface KhoiChuyen {
   tai: string;
   gio: string;
   diem: ("PICKUP" | "DROPOFF")[];
+  /** Đang khoá theo mốc — cờ `khoaMoc.dangKhoa` của máy chủ (R-P13), không tự tính. */
+  khoa: boolean;
 }
 export interface HangXe { xeId: string; bienSo: string; soCho: string; taiXe: string; thieuTaiXe: boolean; khoi: KhoiChuyen[] }
 export interface HinhDongThoiGian {
@@ -219,7 +254,7 @@ export function hinhDongThoiGian(l: Pick<LichChungResponse, "ngay" | "chuyen" | 
         const k = kieuChuyen(c);
         return {
           id: c.id, ma: c.ma, maNgan: c.ma.split("-").at(-1) ?? c.ma, trai: x(c.batDauMs), dai: r4((c.ketThucMs - c.batDauMs) / GIO), kieu: k.kieu, nhan: k.nhan,
-          tai: `${c.tai}/${c.xe.soCho}`, gio: `${gioHien(c.batDau, l.ngay)}–${gioHien(c.ketThuc, l.ngay)}`, diem: c.diem.map((d) => d.loai),
+          tai: `${c.tai}/${c.xe.soCho}`, gio: `${gioHien(c.batDau, l.ngay)}–${gioHien(c.ketThuc, l.ngay)}`, diem: c.diem.map((d) => d.loai), khoa: c.khoaMoc.dangKhoa,
         };
       }),
     };

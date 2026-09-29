@@ -74,9 +74,11 @@ export function dai(tone: "danger" | "warning" | "info" | "ok", tieuDe: string, 
 }
 
 /** Nhóm nút chọn một (khuôn "Sửa sai" của lượt 1a — `.vc-reasons`), có phím mũi tên. Trả phần tử + đọc giá trị. */
-export function nhomChon(id: string, nhanNhom: string, ds: readonly { code: string; nhan: string }[], onDoi: (code: string) => void): HTMLElement {
+export function nhomChon(id: string, nhanNhom: string, ds: readonly { code: string; nhan: string; phu?: string }[], onDoi: (code: string) => void, macDinh?: string): HTMLElement {
   const nut = ds.map((l) => {
-    const b = h("button", { type: "button", class: "vc-reason", role: "radio", "aria-checked": "false", tabindex: -1, "data-code": l.code }, h("span", { class: "vc-radio-dot", "aria-hidden": "true" }), l.nhan);
+    const b = h("button", { type: "button", class: "vc-reason", role: "radio", "aria-checked": String(l.code === macDinh), tabindex: -1, "data-code": l.code },
+      h("span", { class: "vc-radio-dot", "aria-hidden": "true" }),
+      l.phu ? h("span", { class: "dp-radio-text" }, l.nhan, h("span", { class: "dp-radio-sub" }, l.phu)) : l.nhan);
     b.addEventListener("click", () => chon(b));
     b.addEventListener("keydown", (e) => {
       const i = nut.indexOf(b);
@@ -89,7 +91,8 @@ export function nhomChon(id: string, nhanNhom: string, ds: readonly { code: stri
     });
     return b;
   });
-  if (nut[0]) nut[0].tabIndex = 0;
+  const dau = nut.find((b) => b.dataset.code === macDinh) ?? nut[0];
+  if (dau) dau.tabIndex = 0;
   function chon(b: HTMLButtonElement): void {
     for (const x of nut) {
       x.setAttribute("aria-checked", String(x === b));

@@ -535,12 +535,12 @@ try {
   // Tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ dự án 2026-09-28; ô admin.manage): thêm "Loại giấy tờ người" (sau "Địa điểm") + mục con "Loại giấy tờ xe" (dưới
   // "Vận chuyển") ⇒ +2 ⇒ 16. Cũng CHỈ cộng phần của việc này: số THẬT của Quản trị nay là 15 (= 13 + 2) — con số 16 còn giữ nợ "Nhật ký" (ADR-0038, đỏ sẵn).
   // ADR-0049 B8 (bản vẽ Bảng điều phối vo-may-tinh, 2026-09-29): mục con "Lý do điều phối" (ô admin.manage) ⇒ +1. "Chính sách điều phối" chỉ Toàn quyền (ô
-  // settings.ops) — Quản trị không có. "Điều phối xe" (B1) chưa có trang nên chưa có mục.
+  // settings.ops) — Quản trị không có. B1 (vòng 3, Q-B-4): mục con "Điều phối xe" (ô trip.view) đứng đầu dưới "Vận chuyển" ⇒ +1 ⇒ 17.
   // 29/9 (làm xanh kịch bản, Phần B ADR-0049): BỎ nợ "Nhật ký" — ADR-0038 đã quyết Nhật ký chỉ Toàn quyền, nên Quản trị KHÔNG có mục đó là ĐÚNG; kịch bản nay
   // đếm số THẬT (16) và so ĐÚNG danh sách nhãn, thay cho con số 17 giữ chỗ nợ.
   const ADMIN_NAV = [
     "Trang chủ", "Đơn hàng", "Tạo đơn", "Danh bạ",
-    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
+    "Dịch vụ & giá", "Quản lý tài khoản", "Địa điểm", "Loại giấy tờ người", "Vận chuyển", "Điều phối xe", "Xe", "Sắp hết hạn", "Loại giấy tờ xe", "Lý do điều phối",
     "Của tôi", "Góp ý / Báo lỗi", "Trợ giúp",
   ];
   const navMeasure = await p.ev(`(() => {
@@ -553,8 +553,8 @@ try {
       sidebarOverflow: document.querySelector('#sidebar').scrollWidth - document.querySelector('#sidebar').clientWidth,
     };
   })()`);
-  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 16 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
-  assert.equal(navMeasure.linkCount, 16, `Thanh điều hướng dọc (ADMIN) phải có 16 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
+  assert.deepEqual(navMeasure.labels, ADMIN_NAV, `Thanh điều hướng dọc (ADMIN): đúng 17 mục theo thứ tự — ${JSON.stringify(navMeasure.labels)}`);
+  assert.equal(navMeasure.linkCount, 17, `Thanh điều hướng dọc (ADMIN) phải có 17 mục (ADR-0038: không "Nhật ký"; ADR-0049 B8: có "Lý do điều phối"; B1: có "Điều phối xe") — thấy ${navMeasure.linkCount}: ${JSON.stringify(navMeasure.labels)}`);
   assert.ok(navMeasure.scrollOverflow <= 1, `Thanh điều hướng máy tính: trang không được tràn ngang — lệch ${navMeasure.scrollOverflow}px`);
   assert.ok(navMeasure.topbarOverflow <= 1, `Thanh điều hướng máy tính: #topbar tự nó không được tràn ngang (flex-wrap phải nhận đủ) — lệch ${navMeasure.topbarOverflow}px`);
   assert.ok(navMeasure.sidebarOverflow <= 1, `Thanh điều hướng dọc: #sidebar tự nó không được tràn ngang — lệch ${navMeasure.sidebarOverflow}px`);
@@ -846,7 +846,7 @@ try {
   // ==================================================================================================
   // 29/9 (làm xanh kịch bản, Phần B ADR-0049): ADR-0038 — trang Nhật ký chỉ Toàn quyền (ô audit.view). Quản trị mở /audit chỉ thấy câu từ chối, ô "Lọc hành
   // động" không bao giờ dựng → kịch bản cũ kẹt (đỏ sẵn). Trang /audit nay mở bằng tài khoản Quản trị + Toàn quyền (như chủ dự án); thanh bên của tài khoản đó
-  // có 19 mục = 16 của Quản trị + "Chính sách điều phối" (ADR-0049 B8), "Nhật ký", "Gửi thông báo".
+  // có 20 mục = 17 của Quản trị + "Chính sách điều phối" (ADR-0049 B8), "Nhật ký", "Gửi thông báo".
   const TOAN_QUYEN = { name: "Chủ Khung Thử", phone: "0900000396", pin: "998866", permissions: ["ADMIN", "SUPER_ADMIN"] };
   {
     const { insertStaffSql } = await import(pathToFileURL(join(process.cwd(), "scripts", "staff-lib.mjs")).href);
@@ -854,7 +854,7 @@ try {
   }
   {
     const FRAME_PAGES = [
-      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 16 },
+      { path: "/staff", label: "/staff", widths: [640, 641, 645, 650, 700, 768, 899, 900, 910, 929, 930, 1040, 1440, 1920], ready: null, mainCap: () => CSS_W_MAIN, account: ACCOUNTS.admin, sidebar: 17 },
       {
         // PHẢI là đơn NHÁP (R2). Đơn đã xác nhận (R1/R3) bị web/order-form.ts khoá form ("Chỉ sửa được đơn ở trạng
         // thái nháp") và KHÔNG gọi setBarTitle(`Sửa đơn <mã>`) — breadcrumb kẹt ở chữ "Sửa đơn" ngắn, lưới xanh giả.
@@ -870,7 +870,7 @@ try {
         // (đã tự đo: bản đầu của khẳng định này báo đỏ SAI ở 641px vì giả định --w-form áp dụng mọi khổ ≥641px).
         mainCap: (width) => (width >= 960 ? CSS_W_FORM : CSS_W_MAIN),
         account: ACCOUNTS.admin,
-        sidebar: 16,
+        sidebar: 17,
       },
       {
         path: "/audit",
@@ -880,7 +880,7 @@ try {
         ready: `document.querySelector('.toolbar select option[value]:not([value=""])') !== null`,
         mainCap: () => CSS_W_MAIN,
         account: TOAN_QUYEN,
-        sidebar: 19,
+        sidebar: 20,
       },
     ];
 
@@ -992,7 +992,7 @@ try {
         assert.equal(f.newBtnShown, false, `${at}: nút "Tạo đơn" trên thanh công việc chỉ từ 641px (điện thoại đã có tab "Tạo đơn") — ${JSON.stringify(f)}`);
       } else {
         assert.equal(f.sidebarShown, true, `${at}: thanh bên PHẢI hiện từ 641px (quyết định 9 của chủ dự án) — ${JSON.stringify(f)}`);
-        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 16 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối"; Toàn quyền 19) — ${JSON.stringify(f)}`);
+        assert.equal(f.sidebarLinks, spec.sidebar, `${at}: thanh bên phải đủ ${spec.sidebar} mục của tài khoản mở trang (Quản trị 17 — ADR-0038 không "Nhật ký", ADR-0049 B8 có "Lý do điều phối", B1 có "Điều phối xe"; Toàn quyền 20) — ${JSON.stringify(f)}`);
         assert.equal(f.tabbarLinks, 0, `${at}: thanh tab dưới đáy KHÔNG được hiện cùng thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.logoutShown, true, `${at}: "Đăng xuất" phải hiển thị thật trong thanh bên — ${JSON.stringify(f)}`);
         assert.equal(f.sidebarWidth, f.sidebarToken, `${at}: thanh bên phải rộng đúng token --w-sidebar (${f.sidebarToken}px) — ${JSON.stringify(f)}`);
