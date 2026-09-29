@@ -503,3 +503,8 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **Bài học chờ phiên khác:** trước hai lần e2e, `cho_wrangler.mjs` thấy 10–20 tiến trình wrangler / workerd của PHIÊN KHÁC (cổng 62417, 63298…) — đã CHỜ tới khi sạch (17 và 11 vòng 5 giây) rồi mới chạy.
 - **Nợ / câu hỏi:** Q-A15-1 (R-VC-4 với suất chưa tên) còn chờ; A17 phải định nghĩa R-VC-6 theo DANH SÁCH hành động có cặp sự kiện (không phải "mọi `trip_*`") — `trip_appt_called`, `trip_appt_call_undone`, `trip_reason_*` không có `vc_trip_event` (lời advisor, ghi trước để A17 không đỏ oan).
 
+### 10.20 A16 — Hàng rào 2 siết cho cổng `staff` (TC-37)
+
+- `src/route-write-guard.test.ts` thêm luật (1c) + bài "không thừa". Đỏ trước (chưa điền danh sách): đúng 7 route — `GET /api/auth/me`, `/api/bang-tin`, `/api/feedback/mine`, `/api/locations`, `/api/thong-bao`, `/tom-tat`, `/moi-nhat` → `TU_PHUC_VU_STAFF`, mỗi mục một lý do. Kế hoạch dự kiến lấy "BANG_STAFF trừ documents/mine, handler-cancel, handler-money-edit, dispatch/mine" — đo lại: bốn route đó cùng 11 route tài xế và `/api/account/*` đã hỏi can() / thuộc SELF_SERVICE, nên danh sách là 7.
+- P16 ba phép đều đỏ (sổ hàng rào một dòng). Không sửa `docs/quyen-hoan.json`, không thêm tên vào GUARDS.
+
