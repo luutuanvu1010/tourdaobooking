@@ -538,3 +538,21 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - Đề xuất luật: mục mới "Số dòng thật trên nhánh thi công" (bảng mục 0–8). **Đề nghị điều phối** (không tự sửa diff đã trình): câu mục 7a ghi `0040`–`0042` — nay `0043` cùng lần phát hành.
 - `node --test src/audit-invariants.test.ts` 73/73.
 
+### 10.25 A21 — Kết quả kiểm của người thi công (TỰ KHAI, chưa phải kiểm độc lập) — Phần A, A12 → A21 + A-GB
+
+Đo 2026-09-30 tại `f0c9862` (sau A20), máy dev, trước mỗi lần chạy wrangler: `ps` không còn wrangler / workerd (`/tmp/cho_wrangler.mjs` "sạch").
+
+| Lệnh | Kết quả | Thoát |
+|---|---|---|
+| `npm test` | 1775 bài, 1774 xanh, **1 đỏ = `guard-remote: lệnh dị dạng không làm hook quá giờ`** (`src/claude-guard.test.ts` — đo CPU: "lần nhanh nhất 1885 ms CPU (1961, 1930, 1885)" > ngưỡng 1500 ms khi chạy đủ bộ song song) | 1 |
+| `node --test src/claude-guard.test.ts` (chạy riêng) | 11/11 | 0 |
+| `npm run typecheck` | 0 lỗi (ba tsconfig) | 0 |
+| `npm run build:web` | xong | 0 |
+| `node --test "tests/audit/*.test.mjs"` | 36/36 (không đỏ mới) | 0 |
+| `npm run test:e2e` (ĐỦ BỘ) | **30/30 kịch bản** (có `dieu-phoi`, `tai-xe-cuoc`, `dieu-phoi-chay-dua`); đuôi `audit-invariants --strict` ĐẠT: mọi câu `fail` = 0, gồm R-VC-3, 4, 5a, 6, 9, 10, 17, 18 (TC-40); `warn`: R-VC-7 (1 — chặng trong mốc chưa xếp đủ, dữ liệu kịch bản), R-VC-14 (7 — xe của kịch bản 1a / nhà xe thiếu Kiểm định / Bảo hiểm, điều kiện gieo `0041`), R-ORD-6a/6b/8/12 (có từ trước) | 0 |
+
+- **Bài đo giờ hook đỏ khi chạy đủ bộ:** không do nhánh này — phiên KHÔNG sửa `.claude/`, `CLAUDE.md`, `src/CLAUDE.md`, `web/`, `playbook/`, `docs/adr/`, `docs/ARCHITECTURE.md`, `docs/quyen-hoan.json` (`git diff --stat 18f2a50~1..HEAD` trên các đường đó: rỗng). Bộ test lớn hơn (≈ 1775 bài chạy song song) làm máy nóng → CPU đo được của chính tiến trình tăng. Rủi ro: `npm run day-len` / `trien-khai` của chủ chạy `npm test` có thể bị chặn nhầm — **báo điều phối** (không tự sửa ngưỡng: đó là hàng rào, chủ đã chọn 1500 ms ngày 24/9).
+- **Chưa làm (ngoài phạm vi lần này):** K1–K3 (kiểm độc lập, gộp, áp luật); Phần B (giao diện — phiên khác). Kiểm độc lập giữa chừng trước Phần B: khuyến nghị (điều phối quyết).
+- **Câu hỏi còn mở:** Q-A15-1 (R-VC-4 với suất chưa tên khi tắt "bắt đủ danh sách" — nay áp GA-53); đề nghị sửa câu mục 7a của đề xuất luật (`0040`–`0043`).
+- **Nợ:** N-18 (biểu mẫu đơn trên web chưa xử lý 409 `short_notice_required` / 503 `moc_toi_thieu_chua_co` — PHỤ THUỘC CỨNG của lần phát hành), N-19 (suất trỏ `ord_*` bằng tham chiếu logic — xoá dòng `ord_*` của đơn đã xác nhận sẽ tạo suất mồ côi mà không câu kiểm nào bắt).
+
