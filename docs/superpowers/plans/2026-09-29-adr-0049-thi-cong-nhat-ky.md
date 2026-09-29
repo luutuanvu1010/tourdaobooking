@@ -372,6 +372,15 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **N-15:** `audit-actions.ts` thêm `order_leg_short_notice` (nhóm `order`) — Chrome `dot-a-smoke.mjs` (bộ lọc trang Nhật ký) KHÔNG tới được trang Nhật ký (đỏ sẵn từ ADR-0038, N-1) ⇒ nhóm `order` có hành động mới CHƯA kiểm bằng Chrome. Có thể mở rộng `nhat-ky-loc-smoke.mjs` sang nhóm `order`.
 - **N-16:** kế hoạch A10 bước 6 còn câu cũ "sửa các bài … bằng dòng chính sách 0 trong khung thử" (trái GA-5) — phiên này làm theo Ruling N-9; đề nghị người lập kế hoạch sửa chữ.
 - **N-17:** `planEditLeg` đọc `getStoredServices` + route đọc thêm mốc — mỗi lần sửa chặng thêm một truy vấn (mốc). Không đo tốc độ.
+- **N-18 (Phần B — PHỤ THUỘC CỨNG của lần phát hành):** biểu mẫu đơn trên web CHƯA xử lý phản hồi mới: 409 `short_notice_required` (kèm `legs`), 503 `moc_toi_thieu_chua_co`, `canhBaoMoc` / `mocToiThieuPhut` của lưu nháp và chi tiết đơn, khoá thân `datGap` của lệnh sửa / thêm chặng, route đặt gấp. Lên production phần máy chủ trước giao diện thì đơn dưới mốc kẹt ở Xác nhận (kế hoạch đã chốt: phát hành MỘT lần, sau Phần B).
+
+### 10.8 Bổ sung sau lời khuyên (29/9 tối, trước khi bàn giao)
+
+- **Soát nơi gọi** ba câu ghi chặng có năm cột đặt gấp (`legInsertGuarded`, `legUpdateGuarded`, `legUpdateChecked` — mặc định `datGap = null` = XOÁ dấu): chỉ bốn nơi (`updateDraftOrder` — dấu chép Q1; `updateTrip`, `addLeg`, `changeLeg` — nhánh `datGap`), đều đã xử lý có chủ ý; không module khác gọi `updateTrip` / `addLeg` / `changeLeg` / `updateDraftOrder`.
+- **TC-24 bổ sung:** Quản trị `PUT /trip` kèm `datGap` → 200, chặng chiều đi mang dấu MỚI (`SU_CO_VAN_HANH` thay `KHACH_DAT_SAT_GIO`), nhật ký `trip_updated` có "đặt gấp: Sự cố vận hành".
+- **TC-43 bổ sung:** đổi GIỜ (05:00 → 05:10, cùng ngày, xa mốc — chỉ đọc cột nên không phụ thuộc giờ chạy bài) → mất dấu; cùng giờ → giữ dấu.
+- **P16 chạy lại / bổ sung** (dòng sổ hàng rào đã cập nhật): che dãy số + nhật ký chép ghi chú (mã nay ở `docDatGap`); `PUT /trip` không truyền dấu; khớp bỏ vế giờ; router gọi thẳng hàm tiêm — đều đỏ, hoàn nguyên xanh.
+- **Tài liệu:** dòng "Kiểm" công thức z, z2 của `CHANGE-GUIDE` thêm sáu tệp bài mới; ma trận §3 thêm một dòng.
 - **Q-A10-1 (logic — xin chấp nhận, GA-28):** sửa / thêm chặng làm đổi nội dung mà không kèm `datGap` thì dấu đặt gấp CŨ bị xoá (kể cả khi chặng mới ở xa mốc). Suy từ I16 + Q1 = (a); nếu điều phối muốn giữ dấu khi chặng mới ở xa mốc thì đổi `LEG_SET_DAT_GAP` + bài TC-24 ca cuối.
 - **Q-A10-2 (GA-25):** `kiemGioXayRa` xét thêm "đã tới điểm XUỐNG ≤ đã trả" (khuôn I20) — chặt hơn chữ ADR-0050 vế 3 một chút.
 - **Q-A10-3 (GA-32):** mốc giả ÂM (`-24 * 60`) của `doc-chang.test.ts` — N-9 (iii) nói "mốc cố định do bài chỉ định"; giá trị âm là cách duy nhất để giờ đón đã qua trong ngày vẫn xác nhận được mà không đổi ngày của bài. Nếu không chấp nhận: chuyển bài đó sang đường (ii) (Quản trị đặt gấp qua route trước khi xác nhận).

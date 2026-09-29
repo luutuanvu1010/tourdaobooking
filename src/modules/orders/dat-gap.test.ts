@@ -254,6 +254,12 @@ test("TC-24 POST …/legs và PUT …/trip dưới mốc: Bán hàng → 409; Qu
   const t1 = await tripBody(SALES);
   assert.equal(t1.status, 409, t1.text);
   assert.equal(t1.json.error.code, "short_notice_required");
+  const outId = o2.services[0].legs.find((l: any) => l.direction === "OUT").id;
+  assert.equal(cot(w, outId).lyDo, "KHACH_DAT_SAT_GIO", "trước: dấu cũ");
+  const t2 = await tripBody(ADM, DAT_GAP);
+  assert.equal(t2.status, 200, t2.text);
+  assert.equal(cot(w, outId).lyDo, "SU_CO_VAN_HANH", "Quản trị kèm datGap qua PUT /trip: chặng sửa mang dấu MỚI");
+  assert.match(w.q("SELECT detail FROM audit_log WHERE action = 'trip_updated' ORDER BY rowid DESC LIMIT 1")[0].detail, /đặt gấp: Sự cố vận hành/);
   // Chặng xa hơn mốc (2 ngày): Bán hàng sửa được; dấu cũ (nếu có) bị bỏ vì nội dung đổi
   const xa = await nhap(w, SALES, vnSau(24 * 60 * 2));
   assert.equal((await datGap(w, xa, ADM, { lyDo: "KHAC" })).status, 200);
@@ -280,7 +286,7 @@ test("TC-25: thân lập / sửa nháp và thân sửa chặng mang shortNotice*
   assert.equal(cot(w, legId).lyDo, null);
 });
 
-test("TC-43 (Q1 = (a)) lưu lại đơn nháp: chặng KHÔNG đổi giờ / nơi GIỮ dấu đặt gấp; đổi nơi đón → MẤT dấu (xác nhận 409); hai chặng cũ giống hệt → không mang dấu", async () => {
+test("TC-43 (Q1 = (a)) lưu lại đơn nháp: chặng KHÔNG đổi giờ / nơi GIỮ dấu đặt gấp; đổi nơi đón → MẤT dấu (xác nhận 409); đổi giờ → MẤT dấu; hai chặng cũ giống hệt → không mang dấu", async () => {
   const w = setup();
   const gio = vnSau(120);
   const o = await nhap(w, SALES, gio);
@@ -300,6 +306,18 @@ test("TC-43 (Q1 = (a)) lưu lại đơn nháp: chặng KHÔNG đổi giờ / nơ
   assert.equal(r.status, 200, r.text);
   assert.equal(cot(w, r.json.order.services[0].legs[0].id).lyDo, null, "đổi nơi đón: mất dấu");
   assert.equal((await xacNhan(w, o.id, SALES)).status, 409);
+  // đổi GIỜ (cùng ngày, xa mốc — chỉ đọc cột, không phụ thuộc giờ chạy bài) → mất dấu
+  const xa = inDays(2);
+  const o4 = await nhap(w, SALES, { date: xa, time: "05:00" });
+  assert.equal((await datGap(w, o4, ADM, { lyDo: "KHAC" })).status, 200);
+  d = (await w.call("GET", `/api/orders/${o4.id}`, { as: SALES })).json.order;
+  r = await w.call("PUT", `/api/orders/${o4.id}`, { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", expectedUpdatedAt: d.updatedAt, services: [svc(xa, [leg(xa, "05:00")], { id: d.services[0].id })] } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(cot(w, r.json.order.services[0].legs[0].id).lyDo, "KHAC", "cùng giờ: giữ dấu");
+  d = r.json.order;
+  r = await w.call("PUT", `/api/orders/${o4.id}`, { as: SALES, body: { customerName: "Khách Thử", customerPhone: "0912345678", expectedUpdatedAt: d.updatedAt, services: [svc(xa, [leg(xa, "05:10")], { id: d.services[0].id })] } });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(cot(w, r.json.order.services[0].legs[0].id).lyDo, null, "đổi giờ 05:00 → 05:10: mất dấu");
   // hai chặng cũ giống hệt → không khớp một-một → không mang dấu (an toàn)
   const o3 = await nhap(w, SALES, gio);
   d = (await w.call("GET", `/api/orders/${o3.id}`, { as: SALES })).json.order;
