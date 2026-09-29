@@ -566,3 +566,7 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
   - **LỖ (không sửa trigger — theo lệnh):** trigger chỉ-thêm của `ord_transfer_leg`, `ord_passenger` (và `order_service_frozen_delete`) có điều kiện `(SELECT status FROM orders WHERE id = OLD.order_id) <> 'draft'` — khi dòng ĐƠN đã mất, vế này là NULL ⇒ trigger KHÔNG chạy. Bảng `orders` không có trigger chặn xoá, chỉ khoá ngoại giữ. Nên: (a) `PRAGMA foreign_keys = OFF` rồi xoá đơn → xoá được chặng + khách; (b) khoá ngoại BẬT nhưng `PRAGMA defer_foreign_keys = ON` trong MỘT giao dịch: xoá đơn → dịch vụ → chặng → khách ⇒ **ĐƯỢC** (thử thật trên `node:sqlite`; D1 cho phép `defer_foreign_keys` — chưa thử trên D1). Sau đó suất trỏ chặng / người không còn — chỉ R-VC-19 bắt. (c) `DROP TABLE` (dựng lại bảng) không chạy trigger DELETE. Cả ba chỉ qua SQL tay / migration, không qua route nào của app. Đề nghị điều phối đưa vào lượt hỏi chủ (vá bằng migration mới: vế `IS NOT 'draft'` hoặc trigger chặn xoá đơn đã xác nhận) — không tự quyết.
   - `vc_leg_appt_ack.leg_id` (tham chiếu logic thứ tư, ADR-0051) chưa có câu kiểm định kỳ riêng — ngoài phạm vi lệnh, ghi để điều phối quyết.
 
+### 10.27 Sửa đề xuất luật sau kiểm (lệnh điều phối 30/9)
+
+- **Mục 7a:** `0040`–`0042` → `0040`–`0043` (+ ADR-0051); thêm vế "mở suất khách mới phải có mốc giờ hẹn"; câu "tên chỉ trong DTO tài xế" sửa cho khớp mã (chi tiết chuyến văn phòng cũng có tên; phản hồi lệnh ghi không tên) — ghi rõ là phần ngoài lệnh, điều phối có thể bỏ; điền "công thức z3, bẫy 53". Dòng "Sửa sau kiểm" ngay dưới diff.
+
