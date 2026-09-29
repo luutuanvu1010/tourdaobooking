@@ -135,3 +135,21 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 - Sau B7 (chạy nối tiếp, `chay-chrome.sh sau-b7`): `dat-gap-smoke.mjs` 11/11; `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` xanh; `chinh-sach-dieu-phoi-smoke.mjs` 13/13 (sau gộp); `v1-nguoi-phu-trach.mjs` 16 ✓ / 1 ✗ — chỉ còn (b) đỏ sẵn như mốc (bước (h) nay xanh); `a2-smoke-form.mjs` **đỏ một lần** khi chạy nối tiếp — bước 10g gọi `#catalog-q` ngay sau khi chờ phần tử TĨNH `#add-manual` (mã trang chưa chạy xong → `catalog-q` chưa dựng; kịch bản chờ sai phần tử); **chạy lại riêng: xanh** ("UI SMOKE FORM OK"). Ghi là kịch bản chập chờn (nợ N-B-1), không đổi kịch bản.
 
 ## 7. Kết quả kiểm cuối phiên (tự khai)
+
+Đỉnh `5d92533` + tệp README bằng chứng (commit cuối phiên). **Chưa có người kiểm độc lập.**
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm test` | thoát 0 — 1667/1667 (1640 của máy chủ sau gộp + 13 `chinh-sach-hien-thi` + 6 `dat-gap-hien-thi` + 2 `order-errors` + 6 `dieu-phoi-hien-thi`) |
+| `npm run typecheck` | thoát 0 |
+| `npm run build:web` | thoát 0 |
+| `npm run test:e2e -- pwa orders trip chang-hanh-khach chinh-sach-dieu-phoi` | thoát 0 — 6/6 (pwa: "thẻ meta iOS … trên **26** trang" = 23 + 3 trang mới) |
+| `chinh-sach-dieu-phoi-smoke.mjs` | 13/13 (có axe), đã thấy đỏ thật (mục 6) |
+| `dat-gap-smoke.mjs` | 11/11 (có axe), đã thấy đỏ thật (mục 6) |
+| `xe-smoke.mjs`, `danh-muc-giay-to-smoke.mjs` | 13/13, 10/10 (sau khi sửa danh sách chờ — mục 6.1) |
+| `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` | xanh |
+| `a2-smoke-form.mjs` | xanh khi chạy riêng; một lần đỏ chập chờn khi chạy nối tiếp (N-B-1) |
+| `v1-nguoi-phu-trach.mjs` | 16 ✓ / 1 ✗ — (b) đỏ sẵn như mốc |
+| `trang-chu-smoke.mjs`, `dot-c-smoke.mjs` | đỏ sẵn như mốc (mục 1.1), không do Phần B |
+
+**Chưa làm (chờ điều phối):** B1–B6 (cần route A13 / A15 và R-P12, R-P13, R-P14, R-P16, R-P17 gộp sang); khối DOM của B1–B6 (N-B-4); mục "Điều phối xe" trên menu (theo B1); Q2 "Đã gọi báo" (chờ quyết định bổ sung của chủ); thử iPhone thật.
