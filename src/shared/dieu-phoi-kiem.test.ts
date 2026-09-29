@@ -364,3 +364,14 @@ test("TC-47 (I37) kiemXuatBen: khoảng nghỉ đo từ giờ XẢY RA xuất b�
   // đo từ lúc BẤM (8:45) thì đủ nghỉ 55 phút — sai: chính là lỗ khai lùi của ADR-0050
   assert.equal(kiemXuatBen(xb({ chuyen: c, chuyenKhac: [truoc], bayGioMs: bam, xuatBenMs: bam })).dat, true);
 });
+
+test("I38 (R-P9): chặng có suất trên chuyến mà RƠI khỏi lichChungChang → lý do CỤ THỂ theo cờ view (đơn đã huỷ / chặng đã bỏ / ngày đón ra ngoài khoảng đọc), không lý do chung; đơn huỷ / chặng bỏ KHÔNG kèm NOI_HEN_DOI", () => {
+  const ngoai = (lyDo: "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN") => xb({ chang: [], changNgoai: [{ legId: "leg-1", orderCode: "ĐH-1024", lyDo }] });
+  assert.deepEqual(ai(kiemXuatBen(ngoai("DON_DA_HUY")).lyDo), ["DON_DA_HUY:VAN_PHONG"]);
+  assert.deepEqual(ai(kiemXuatBen(ngoai("CHANG_DA_DONG")).lyDo), ["CHANG_DA_DONG:VAN_PHONG"]);
+  assert.deepEqual(ai(kiemXuatBen(ngoai("GIO_HEN_NGOAI_CHUYEN")).lyDo), ["GIO_HEN_NGOAI_CHUYEN:VAN_PHONG"]);
+  assert.match(kiemXuatBen(ngoai("GIO_HEN_NGOAI_CHUYEN")).lyDo[0]!.loiNhan, /ĐH-1024/);
+  // chặng CÓ trong dữ liệu vào nhưng đơn huỷ + khoá nơi lệch → chỉ DON_DA_HUY (không NOI_HEN_DOI — không bắt văn phòng "cập nhật điểm" cho khách đã huỷ)
+  assert.deepEqual(ai(kiemXuatBen(xb({ chang: [chang({ donDaHuy: true, khoaNoiDon: "L:noi-khac" })] })).lyDo), ["DON_DA_HUY:VAN_PHONG"]);
+  assert.deepEqual(ai(kiemXuatBen(xb({ chang: [chang({ changMo: false, khoaNoiDon: "L:noi-khac" })] })).lyDo), ["CHANG_DA_DONG:VAN_PHONG"]);
+});

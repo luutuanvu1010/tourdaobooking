@@ -7,7 +7,7 @@
 //   `order.leg.short_notice`), hàm này không biết quyền.
 // - Chính sách rỗng → cảnh báo, không đoán mốc.
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
-import { kiemXuatBen, noiLechCuaSuat } from "./dieu-phoi-kiem.ts";
+import { kiemXuatBen, noiLechCuaSuat, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import { trangThaiChang, type TrangThaiChangRa } from "./dieu-phoi-trang-thai.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
 import { kiemMocDat } from "./moc-toi-thieu.ts";
@@ -25,6 +25,8 @@ export interface ChangNhapVao {
 export interface LichChungVao {
   /** Chặng mở của đơn đã xác nhận trong khoảng ngày + MỌI chặng mà suất mở của các chuyến bên dưới trỏ tới (kèm cờ đơn huỷ / chặng đóng). */
   chang: ChangVao[];
+  /** I38 (R-P9): chặng có suất mà rơi khỏi `lichChungChang` — lý do CỤ THỂ theo cờ view, truyền nguyên xuống cổng xuất bến (`kiemXuatBen`). */
+  changNgoai?: KiemXuatBenVao["changNgoai"];
   nhap: ChangNhapVao[];
   /** Chuyến của khoảng ngày. */
   chuyen: ChuyenVao[];
@@ -153,6 +155,7 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
         chuyen: c,
         suat: suatCuaChuyen,
         chang: v.chang.filter((x) => legIds.has(x.legId)),
+        changNgoai: (v.changNgoai ?? []).filter((x) => legIds.has(x.legId)),
         suatMoCuaChang: v.suat.filter((s) => s.mo && s.legId !== null && legIds.has(s.legId)),
         diem: diemCuaChuyen,
         chuyenKhac: [...v.chuyen.filter((x) => x.id !== c.id).map(khung), ...v.chuyenKhac],

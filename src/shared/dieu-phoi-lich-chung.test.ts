@@ -158,3 +158,13 @@ test("TC-53 GIO_XE_TOI_MUON_HON_HEN: điểm đón có giờ xe tới ghi đè M
   assert.deepEqual(loaiCb(dungLichChung(voiGio("06:20")), "GIO_XE_TOI_MUON_HON_HEN"), []);
   assert.deepEqual(loaiCb(dungLichChung(voiGio(null)), "GIO_XE_TOI_MUON_HON_HEN"), []);
 });
+
+test("I38 (R-P9): lịch chung truyền `changNgoai` xuống cổng xuất bến — chuyến có suất của chặng rơi khỏi lichChungChang bị giữ ĐÚNG lý do (đơn đã huỷ), không lý do chung", () => {
+  const r = dungLichChung(vao({
+    chuyen: [chuyen("07")],
+    suat: [suat("s1", "x", "07")],
+    changNgoai: [{ legId: "x", orderCode: "ĐH-x", lyDo: "DON_DA_HUY" }],
+  }));
+  assert.deepEqual(r.chuyen[0]!.lyDoGiu.map((l) => l.ma), ["DON_DA_HUY"]);
+  assert.match(r.chuyen[0]!.lyDoGiu[0]!.loiNhan, /ĐH-x/);
+});

@@ -1015,3 +1015,198 @@ export interface TripReasonDto {
 export interface TripReasonListResponse { reasons: TripReasonDto[] }
 export interface TripReasonCreateRequest { code: string; group: NhomLyDo; label: string; sortOrder?: number }
 export interface TripReasonUpdateRequest { label: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }
+
+// ---- Chuyến xe, lịch chung (ADR-0049 D1–D3 lát 1.5 / 1.6; ADR-0050; kế hoạch mục 1.7, 1.8; module van-chuyen) ------------------------------------------------
+// Tên khoá tiếng Việt (mục 1.8). KHÔNG BAO GIỜ có: tiền, ghi chú đơn, người lập, người phụ trách, số giấy tờ, nơi cấp, khoá so sánh nơi (`L:…` / `T:…` —
+// ADR-0050 VK1-B), SĐT (trừ `lienHe` của DTO tài xế trong ngày chạy — A15). Giờ hiển thị luôn là giờ VN.
+/** Ngày + giờ VN ("YYYY-MM-DD", "HH:MM"). */
+export interface GioVnDto { ngay: string; gio: string }
+/** Một lý do giữ / chặn (src/shared/ly-do-giu.ts — chỗ sống duy nhất); `aiXuLyNhan` = nhãn "Văn phòng" / "Quản trị" / "Toàn quyền". */
+export interface LyDoGiuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN"; aiXuLyNhan: string }
+/**
+ * Một mốc tiến độ (ADR-0050 VK1-A — bảng "Nơi dùng giờ nào"): giờ XẢY RA + giờ GHI NHẬN; `vanPhongKhai` = văn phòng bấm thay khai giờ; `nguoiBam` = TÊN
+ * HIỂN THỊ người bấm, CHỈ có khi `vanPhongKhai` (R-P11: chuỗi tên, không SĐT, không id).
+ */
+export interface MocTienDoDto { gioXayRa: GioVnDto; gioGhiNhan: GioVnDto; vanPhongKhai: boolean; nguoiBam?: string }
+/** Khoá theo mốc tối thiểu lúc xếp (R-P13 — khoá dính R-P6/R-P7): `dangKhoa` tính bằng hàm thuần ở máy chủ; `tuLuc` = lúc bắt đầu khoá (giờ VN). */
+export interface KhoaMocDto { dangKhoa: boolean; tuLuc: GioVnDto; tuLucMs: number }
+export interface LyDoDangDungDto { code: string; nhom: NhomLyDo; nhan: string }
+/** Xe để chọn (văn phòng không có ô vehicle.manage nên không gọi /xe — mục 1.8). */
+export interface XeChonDto { id: string; bienSo: string; soCho: number; trangThai: "active" | "maintenance"; chuXe: string; chuLaCongTy: boolean }
+/** Tài xế để chọn (hàm công bố `taiXeChoDieuPhoi` của parties — không số, không nơi cấp). */
+export interface TaiXeChonDto { partyId: string; ten: string; loai: "CONG_TY" | "NHA_XE"; nhaXe: string[] }
+export interface CanhBaoLichDto { loai: string; nhan: string; legId: string | null; tripId: string | null; maDon: string | null }
+export interface ChuyenTomTatDto {
+  id: string;
+  ma: string;
+  trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+  trangThaiNhan: string;
+  version: number;
+  ngayChay: string;
+  batDau: GioVnDto;
+  ketThuc: GioVnDto;
+  batDauMs: number;
+  ketThucMs: number;
+  xe: { id: string; bienSo: string; soCho: number; chuXe: string; chuLaCongTy: boolean };
+  taiXe: { partyId: string; ten: string; loai: "CONG_TY" | "NHA_XE" } | null;
+  /** Suất đang chiếm chỗ (chờ đón + đã lên), kể cả người đi kèm. */
+  tai: number;
+  /** Lý do GIỮ (chuyến chưa chạy, dự phóng "xuất bến đúng giờ"); rỗng = đủ điều kiện. */
+  lyDoGiu: LyDoGiuDto[];
+  khoaMoc: KhoaMocDto;
+  xuatBen: MocTienDoDto | null;
+  ketThucThat: MocTienDoDto | null;
+  diem: { id: string; thuTu: number; loai: "PICKUP" | "DROPOFF"; tenNoi: string; trangThai: string; daToi: MocTienDoDto | null }[];
+}
+export interface ChangLichDto {
+  legId: string;
+  orderId: string;
+  maDon: string;
+  tenDichVu: string;
+  chieu: "OUT" | "RETURN";
+  ngayDon: string;
+  gioDon: string | null;
+  noiDon: string;
+  noiTra: string | null;
+  soNguoi: number;
+  /** Số người đã có tên = min(số người, số hành khách hiện hành của đơn) — I12. */
+  soNguoiCoTen: number;
+  datGap: boolean;
+  trangThai: string;
+  trangThaiNhan: string;
+  nhan: string[];
+  soDaXep: number;
+  soDaDon: number;
+  soDaTra: number;
+  soVang: number;
+  soKhachHuy: number;
+  chuyen: { id: string; ma: string }[];
+}
+/** GET /api/van-chuyen/lich?ngay= — lịch chung ngày D (hình chiếu lúc đọc). `mocToiThieuPhut` / `canhBaoPhut`: R-P12 (null = chưa có chính sách). */
+export interface LichChungResponse {
+  ngay: string;
+  mocToiThieuPhut: number | null;
+  canhBaoPhut: number | null;
+  chang: ChangLichDto[];
+  chuyen: ChuyenTomTatDto[];
+  /** Số chặng của đơn NHÁP (chỉ đếm — I11). */
+  soNhap: number;
+  /** Chặng nháp dưới mốc chờ duyệt đặt gấp — CHỈ người có ô `order.leg.short_notice` (khác: mảng rỗng). */
+  nhapChoDatGap: { legId: string; orderId: string; maDon: string; ngayDon: string; gioDon: string | null }[];
+  canhBao: CanhBaoLichDto[];
+  lyDo: LyDoDangDungDto[];
+  xe: XeChonDto[];
+  taiXe: TaiXeChonDto[];
+}
+export interface DiemChuyenDto {
+  id: string;
+  thuTu: number;
+  loai: "PICKUP" | "DROPOFF";
+  /** Tên điểm danh mục hoặc chữ tự do ĐÃ CHE dãy số. */
+  tenNoi: string;
+  diemDanhMucId: string | null;
+  /** Giờ hẹn sớm nhất của các chặng đón tại điểm (điểm trả: null). */
+  gioHen: GioVnDto | null;
+  /** Giờ xe tới GHI ĐÈ (null = theo giờ hẹn). */
+  gioXeToi: GioVnDto | null;
+  trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED";
+  soNguoi: number;
+  /** R-P16: nơi hiện hành của chặng khác điểm này (khoá so sánh nơi lệch — KHÔNG trả khoá, chỉ cờ). */
+  lechDon: boolean;
+  daToi: MocTienDoDto | null;
+}
+export interface SuatChuyenDto {
+  id: string;
+  loai: "PASSENGER" | "CREW";
+  maDon: string | null;
+  legId: string | null;
+  chieu: "OUT" | "RETURN" | null;
+  diemLen: string | null;
+  diemXuong: string | null;
+  trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
+  /** Có tên khách chưa (khoá người đã gắn). */
+  coTen: boolean;
+  /** Họ tên + năm sinh — CHỈ ở chi tiết chuyến của văn phòng (R-P1; `trip.view = any` ⇒ `contact.view = any`) và DTO tài xế trong ngày chạy (A15). */
+  hoTen?: string;
+  namSinh?: number;
+  daDon: MocTienDoDto | null;
+  daTra: MocTienDoDto | null;
+}
+export interface NhatKyChuyenDto {
+  id: string;
+  loai: string;
+  nhan: string;
+  gioXayRa: GioVnDto;
+  gioGhiNhan: GioVnDto;
+  vanPhongKhai: boolean;
+  /** Tên hiển thị người bấm (hàm tiêm `nhanNhanVien` — R-P20; không SĐT, không id); null = máy / không rõ. */
+  nguoiBam: string | null;
+  may: boolean;
+  soNguoi: number | null;
+  phaLe: { luat: string; lyDoNhan: string } | null;
+}
+export interface BanChupDto {
+  ketQua: "DAT" | "KHONG_DAT";
+  luc: GioVnDto;
+  bienSo: string;
+  soCho: number;
+  nghiDaDung: number;
+  /** Dòng con: loại, mã loại giấy tờ, hạng, hạn — KHÔNG số giấy tờ. */
+  muc: { loai: string; loaiGiayTo: string | null; hang: string | null; hetHan: string | null }[];
+  soNguoiChot: number;
+}
+/** GET /api/van-chuyen/chuyen/:id (và phản hồi mọi lệnh ghi của văn phòng). */
+export interface ChuyenChiTietResponse {
+  chuyen: ChuyenTomTatDto & { nghiPhaLe: boolean; lyDoHuy: string | null; lyDoKetThuc: string | null };
+  diem: DiemChuyenDto[];
+  suat: SuatChuyenDto[];
+  canhBao: CanhBaoLichDto[];
+  nhatKy: NhatKyChuyenDto[];
+  banChup: BanChupDto | null;
+  lyDo: LyDoDangDungDto[];
+  xe: XeChonDto[];
+  taiXe: TaiXeChonDto[];
+  mocToiThieuPhut: number | null;
+  canhBaoPhut: number | null;
+}
+/** Phá lệ đi kèm lệnh (I2) — chỉ ô `trip.override` (Quản trị, Toàn quyền); `lyDo` = mã lý do nhóm PHA_LE đang dùng. */
+export interface PhaLeRequest { lyDo: string }
+/** POST /api/van-chuyen/chuyen — tạo chuyến. */
+export interface TaoChuyenRequest {
+  requestId: string;
+  xeId: string;
+  taiXePartyId: string;
+  batDau: GioVnDto;
+  ketThuc: GioVnDto;
+  /** Phá lệ khoảng nghỉ (luật KHOANG_NGHI). */
+  nghiPhaLe?: PhaLeRequest;
+}
+/** PUT /api/van-chuyen/chuyen/:id — sửa kế hoạch (khoá `version`). Vắng = giữ. */
+export interface SuaChuyenRequest {
+  version: number;
+  requestId: string;
+  xeId?: string;
+  taiXePartyId?: string;
+  batDau?: GioVnDto;
+  ketThuc?: GioVnDto;
+  /** Thứ tự + giờ xe tới của điểm (chưa tới); `gioXeToi` null = theo giờ hẹn. */
+  diem?: { id: string; thuTu: number; gioXeToi: GioVnDto | null }[];
+  phaLe?: PhaLeRequest;
+  nghiPhaLe?: PhaLeRequest;
+}
+/** POST /api/van-chuyen/chuyen/:id/phan-bo — xếp khách theo chặng (tách đoàn: `soSuat` < số người) và / hoặc người đi kèm. */
+export interface XepRequest {
+  version: number;
+  requestId: string;
+  chang?: { legId: string; soSuat: number; personKeys?: string[] }[];
+  nguoiDiKem?: string[];
+  phaLe?: PhaLeRequest;
+}
+export interface RutRequest { version: number; requestId: string; suatIds: string[]; phaLe?: PhaLeRequest }
+export interface DoiRequest { version: number; requestId: string; denChuyenId: string; denVersion: number; suatIds: string[]; phaLe?: PhaLeRequest }
+export interface HuyChuyenRequest { version: number; requestId: string; lyDo: string; phaLe?: PhaLeRequest }
+export interface CapNhatDiemRequest { version: number; requestId: string }
+/** Phản hồi "cập nhật điểm theo đơn" (I42): số suất đã đổi điểm (0 = không suất nào lệch — không ghi gì). */
+export interface CapNhatDiemResponse extends ChuyenChiTietResponse { daCapNhat: number }
+/** 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần); `canQuyen` (can_pha_le) = người gọi có ô trip.override (đưa hộp phá lệ). */
+export interface LenhChuyenLoiBody { error: { code: string; message: string; lyDo?: LyDoGiuDto[]; canQuyen?: boolean } }

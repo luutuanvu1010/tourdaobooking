@@ -39,6 +39,22 @@ import {
   type DepartureRuleRow, type DispatchPolicyRow, type LicenseCapacityRow, type TripReasonRow,
 } from "./repository";
 
+// ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
+import { hanhKhachChoChuyen, lichChungChang } from "../orders";
+import type { CapNhatDiemResponse, ChuyenChiTietResponse } from "../../shared/contracts";
+import { kiemTaoSuaChuyen } from "../../shared/dieu-phoi-kiem";
+import { lyDoGiu } from "../../shared/ly-do-giu";
+import { isISODate, msToVnLocal } from "../../shared/vn-date";
+import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsTouching } from "./chuyen-repo";
+import { loTaoChuyen } from "./dieu-phoi";
+import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao } from "./dieu-phoi-doc";
+import { dungLichNgay, lenhCapNhatDiem, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhXep } from "./dieu-phoi-lenh";
+import {
+  CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
+} from "./dieu-phoi-route";
+import { docCapNhatDiem, docDoi, docHuy, docRut, docSuaChuyen, docTaoChuyen, docXep } from "./dieu-phoi-than";
+const NGAY_MS = 86_400_000;
+
 const FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không quản lý được xe.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy xe.");
 const STALE = () => error(409, "stale", "Xe vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
@@ -654,6 +670,204 @@ export const vanChuyenModule: AppModule = {
         today,
       );
       return json({ warnDays, count: items.length, items } satisfies ExpiringListResponse);
+    }),
+    // ---- CHUYẾN XE — route văn phòng lập kế hoạch (ADR-0049 D1–D3 lát 1.5; ADR-0050 VK1-B route 40; kế hoạch mục 1.7 route 1–8, 40; Task A13) -------------
+    // Mọi route: `can()` ĐẦU thân (403 trước 400). Hàm hẹp của orders (`lichChungChang`, `hanhKhachChoChuyen`) CHỈ gọi ở đây, SAU `can()`, rồi truyền xuống
+    // (dieu-phoi-doc.ts, dieu-phoi-route.ts không gọi). Mỗi lệnh ghi: một `db.batch` có thứ tự cố định (dieu-phoi.ts — bài thứ tự lô A14); lệnh lặp cùng
+    // `requestId` → 200 kết quả hiện tại (LC-11). Nhật ký `trip_*`: orderId NULL (I17).
+    route("GET", "/api/van-chuyen/lich", "office", async ({ env, url, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view")) return CAN_XEM_CHUYEN();
+      const ngay = url.searchParams.get("ngay") ?? vnToday(new Date());
+      if (!isISODate(ngay)) return error(400, "invalid_input", "Ngày xem lịch: YYYY-MM-DD.");
+      const bayGioMs = Date.now();
+      const trips = await tripsByDate(env.DB, ngay);
+      const lich = await lichChungChang(env.DB, addDays(ngay, -1), addDays(ngay, 1));
+      return json(await dungLichNgay(env.DB, ngay, trips, lich, nhanNhanVien, bayGioMs, can(staff, "order.leg.short_notice")));
+    }),
+
+    route("GET", "/api/van-chuyen/chuyen/:id", "office", async ({ env, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view")) return CAN_XEM_CHUYEN();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
+      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, nhanNhanVien, Date.now()) satisfies ChuyenChiTietResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen", "office", async ({ env, request, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docTaoChuyen(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const t = than.value;
+      if (t.nghiPhaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const lap = await eventByRequest(env.DB, t.requestId);
+      const bayGioMs = Date.now();
+      const nowIso = new Date(bayGioMs).toISOString();
+      if (!lap) {
+        const chung = await docChung(env.DB, nowIso, vnToday(new Date(bayGioMs)));
+        const xeRow = chung.xe.find((x) => x.id === t.xeId);
+        if (!xeRow) return error(400, "invalid_input", "Xe không có hoặc đã ngừng dùng.");
+        if (t.nghiPhaLe && !lyDoHopLe(chung, t.nghiPhaLe.lyDo, "PHA_LE")) return error(400, "invalid_input", "Lý do phá lệ không có trong danh mục.");
+        // LC-13 phần CHỈ máy chủ giữ (R-P8): hồ sơ không có trong `taiXeChoDieuPhoi` (không mở vai tài xế công ty, không thuộc nhà xe nào) → chéo xe – tài xế.
+        if (!chung.taiXe.some((x) => x.partyId === t.taiXePartyId)) return loi409("cheo_xe_tai_xe", [lyDoGiu("CHEO_XE_TAI_XE")]);
+        const khac = await tripsTouching(env.DB, t.batDauMs - NGAY_MS, t.ketThucMs + NGAY_MS);
+        const kq = kiemTaoSuaChuyen({
+          lenh: "TAO", chuyen: { id: null, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, xe: xeVao(xeRow, chung.giayToXe), taiXe: taiXeVao(t.taiXePartyId, chung.taiXe), nghiPhaLe: t.nghiPhaLe !== null },
+          chuyenKhac: khac.map(khungChuyen), chinhSach: chinhSachVao(chung.chinhSach), hangBang: chung.hangBang, bayGioMs,
+        });
+        const chan = loiKiem(kq, staff, null, { moc: false, nghi: t.nghiPhaLe !== null });
+        if (chan) return chan;
+        const ngayChay = msToVnLocal(t.batDauMs).date;
+        const id = crypto.randomUUID();
+        for (let lan = 0; ; lan++) {
+          const ma = `CX-${ngayChay.slice(8, 10)}${ngayChay.slice(5, 7)}-${String((await tripCountByDate(env.DB, ngayChay)) + 1 + lan).padStart(2, "0")}`;
+          const lo = loTaoChuyen(env.DB, {
+            cmd: crypto.randomUUID(), requestId: t.requestId, lucIso: nowIso, nguoiId: staff.id,
+            chuyen: { id, ma, xeId: xeRow.id, chuXePartyId: xeRow.owner_party_id, ngayChay, batDauMs: t.batDauMs, ketThucMs: t.ketThucMs, nghiChup: chung.chinhSach?.rest_minutes ?? 0, nghiPhaLeLyDo: t.nghiPhaLe?.lyDo ?? null },
+            taiXePartyId: t.taiXePartyId, policyId: chung.chinhSach?.id ?? null,
+            phaLeNghi: t.nghiPhaLe ? { luat: "KHOANG_NGHI", lyDo: t.nghiPhaLe.lyDo, policyId: chung.chinhSach?.id ?? null } : null,
+            detail: `${ma} · xe ${xeRow.plate_number} (${xeRow.passenger_capacity} chỗ) · ${gioNgan(t.batDauMs)} → ${gioNgan(t.ketThucMs)}${t.nghiPhaLe ? phaLeNhatKy("KHOANG_NGHI", nhanLyDo(chung, t.nghiPhaLe.lyDo)) : ""}`,
+          });
+          try {
+            const r = await chayLo(env.DB, lo, t.requestId);
+            if (!r.ok) return r.res;
+            break;
+          } catch (e) {
+            if (lan < 3 && e instanceof Error && /UNIQUE constraint failed: vc_trip\.service_date, vc_trip\.code/.test(e.message)) continue;
+            throw e;
+          }
+        }
+      }
+      const nen = await docNen(env.DB, lap?.trip_id ?? (await eventByRequest(env.DB, t.requestId))!.trip_id);
+      if (!nen) return KHONG_CO_CHUYEN();
+      const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
+      return json(await chiTietChuyen(env.DB, nen, lich.chang, hk, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse, lap ? 200 : 201);
+    }),
+
+    route("PUT", "/api/van-chuyen/chuyen/:id", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docSuaChuyen(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      if ((b.phaLe || b.nghiPhaLe) && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const r = await lenhSuaChuyen(env.DB, nen, b, staff, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docXep(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const r = await lenhXep(env.DB, nen, lich.chang, b, staff, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen/:id/rut", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docRut(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const r = await lenhRut(env.DB, nen, lich.chang, b, staff, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen/:id/doi", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docDoi(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const dich = b.denChuyenId === nen.trip.id ? null : await docNen(env.DB, b.denChuyenId);
+        if (!dich) return error(400, "invalid_input", "Chuyến đích không hợp lệ.");
+        const lich = await lichChungChang(env.DB, nen.tu < dich.tu ? nen.tu : dich.tu, nen.den > dich.den ? nen.den : dich.den);
+        const r = await lenhDoi(env.DB, nen, dich, lich.chang, b, staff, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    route("POST", "/api/van-chuyen/chuyen/:id/huy", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docHuy(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      if (b.phaLe && !can(staff, "trip.override")) return CAN_PHA_LE();
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, b.requestId))) {
+        const r = await lenhHuy(env.DB, nen, b, staff, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich.chang, hk, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // ADR-0050 VK1-B (route 40, I42): "Cập nhật điểm theo đơn" — máy tự tìm MỌI suất khách mở lệch nơi (không chọn tay), đóng STOP_CHANGED + mở suất mới ở điểm
+    // theo khoá nơi hiện hành. Chỉ chuyến PLANNED; KHÔNG khoá theo mốc (DOI_DIEM_THEO_CHANG ngoài LENH_KHOA_THEO_MOC), không cần phá lệ. Không suất nào lệch →
+    // 200 daCapNhat 0, không ghi gì — xét TRƯỚC câu cổng version (người thứ hai bấm sau khi người khác đã cập nhật nhận 200 / 0, không 409).
+    route("POST", "/api/van-chuyen/chuyen/:id/cap-nhat-diem", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.dispatch")) return CAN_DIEU_PHOI();
+      const than = docCapNhatDiem(await readJson(request));
+      if (!than.ok) return error(400, "invalid_input", than.message);
+      const b = than.value;
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      let daCapNhat = 0;
+      const lap = await eventByRequest(env.DB, b.requestId);
+      if (!lap) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const r = await lenhCapNhatDiem(env.DB, nen, lich.chang, b, staff, bayGioMs);
+        if (r instanceof Response) return r;
+        daCapNhat = r;
+      } else daCapNhat = (await eventsByTrips(env.DB, [nen.trip.id])).find((e) => e.id === lap.id)?.count ?? 0;
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, nhanNhanVien, bayGioMs)), daCapNhat } satisfies CapNhatDiemResponse);
     }),
   ],
 };

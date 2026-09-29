@@ -28,6 +28,8 @@ export const MA_GIU = {
   CHUA_CO_NOI_TRA: { loiNhan: "Chặng chưa có nơi trả", aiXuLy: "VAN_PHONG" },
   // ADR-0050 VK1-B: nơi đón / trả của chặng đổi sau khi xếp (khoá so sánh nơi lệch điểm của suất) → văn phòng bấm "cập nhật điểm theo đơn".
   NOI_HEN_DOI: { loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm", aiXuLy: "VAN_PHONG" },
+  // I38 (R-P9): chặng có suất trên chuyến mà ngày đón đã dời ra ngoài khoảng đọc quanh ngày chạy (không còn thuộc chuyến này).
+  GIO_HEN_NGOAI_CHUYEN: { loiNhan: "Ngày đón của chặng đã đổi ra ngoài ngày chạy của chuyến", aiXuLy: "VAN_PHONG" },
   // Chuyến, xe, tài xế (văn phòng)
   CHUYEN_KHONG_CON_LEN_KE_HOACH: { loiNhan: "Chuyến đã chạy, đã kết thúc hoặc đã huỷ", aiXuLy: "VAN_PHONG" },
   GIO_CHUYEN_KHONG_HOP_LE: { loiNhan: "Giờ kết thúc phải sau giờ bắt đầu và chuyến không quá 24 giờ", aiXuLy: "VAN_PHONG" },

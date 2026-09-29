@@ -64,6 +64,12 @@ const UPDATE_STAFF = defineSql(
   `UPDATE staff SET phone = COALESCE(?2, phone), active = COALESCE(?3, active) WHERE id = ?1 AND (?4 = 0 OR ${OTHER_ADMIN(1)})`,
 );
 const RECORD_LOGIN = defineSql("staff", "record_login", "UPDATE staff SET last_login_at = ?2 WHERE id = ?1");
+/** Tên HIỂN THỊ theo id tài khoản (view công bố của chính module) — ruling R-P20: CHỈ id + nhãn, không SĐT, không email, không quyền. */
+const LABELS_BY_IDS = defineSql("staff", "labels_by_ids", "SELECT id, label FROM v_stf_staff_label WHERE id IN (SELECT value FROM json_each(?1))");
+export async function labelsByIds(db: D1Database, ids: readonly string[]): Promise<Map<string, string>> {
+  if (ids.length === 0) return new Map();
+  return new Map((await db.prepare(LABELS_BY_IDS).bind(JSON.stringify(ids)).all<{ id: string; label: string }>()).results.map((r) => [r.id, r.label]));
+}
 const SET_PIN = defineSql("staff", "set_pin", "UPDATE staff SET pin_hash = ?2, credentials_changed_at = ?3 WHERE id = ?1");
 const TOUCH_CREDENTIALS = defineSql("staff", "touch_credentials", "UPDATE staff SET credentials_changed_at = ?2 WHERE id = ?1");
 // Chỉ đẩy khi câu NGAY TRƯỚC trong cùng batch có đổi dòng (gỡ passkey): changes() trong WHERE nhìn thấy câu đã hoàn tất trước đó — cùng cơ chế với nhật ký `onlyIf`.
