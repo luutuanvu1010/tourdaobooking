@@ -211,6 +211,14 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 +- `orders` KHÔNG import `dispatch` (và không import `van-chuyen`); "đang là người phụ trách" do gốc lắp ráp tiêm (`ctx.isAssigned`), mốc 6 giờ cũng vậy (`ctx.mocToiThieu`); route dùng ô `ownOrAssigned` phải truyền `assigned` vào `can()`.
 ```
 
+**7c. §5 dòng `npm test` (:52) và §8 câu "Kiểm hàng rào" (:98)** — thêm 30/9 theo chủ "Trả lời lần 15" ("Cho bài này chạy riêng"); CLAUDE.md §3 chỉ cho AI tự sửa số đếm / tên tệp, câu này đổi CÁCH CHẠY nên đưa vào đây (điều phối giao ghi ở "mục 5"; mục 5 của tệp này là `web/CLAUDE.md`, nên đặt ở mục 7 — `CLAUDE.md` gốc):
+```diff
+-| `npm test` | luật thuần + `src/architecture.test.ts` (`node --test "src/**/*.test.ts"`); một tệp: `node --test src/shared/service-form.test.ts` |
++| `npm test` | `node scripts/chay-test.mjs`: bộ chính song song (`src/**/*.test.ts` trừ bài đo giờ của hook) rồi bài đo giờ chạy MỘT MÌNH (`src/claude-guard-thoi-gian.test.ts`); một bước đỏ ⇒ thoát ≠ 0. Một tệp: `node --test src/shared/service-form.test.ts` |
+-… Kiểm hàng rào: `node --test src/claude-guard.test.ts`.
++… Kiểm hàng rào: `node --test src/claude-guard.test.ts` và (máy rảnh) `node --test --test-concurrency=1 src/claude-guard-thoi-gian.test.ts`.
+```
+
 ## Mục 8 — `docs/ARCHITECTURE.md`: mô tả đi cùng (theo nội dung đã duyệt, không phải quyết định mới)
 
 **8a. Phần II, sơ đồ tầng, dòng :175** — đoạn `van-chuyen (…)`. Dòng `-` là văn bản **sau khi áp** đề xuất luật ADR-0048 mục 3 (đã duyệt 29/9):

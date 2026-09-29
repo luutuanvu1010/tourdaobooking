@@ -867,7 +867,7 @@ Sáu cột quyền cũ ở trên (`SALES`/`ACCOUNTING`/`ADMIN`/`FIELD`/`PARTNER`
 | `npm run dev` | `wrangler dev` (tự chạy `build:web` nhờ `build.command` + `watch_dir: web`) |
 | `npm run build:web` | sinh MỘT `BUILD_ID` (dấu thời gian 14 chữ số) rồi esbuild 13 trang `web/*.ts` → `public/js/` (`--bundle --format=esm --target=es2022 --minify --define:__BUILD_ID__`), rồi `web/sw/sw.ts` → `public/sw.js` (`--format=iife`, cùng `__BUILD_ID__` đó — bundle trang và service worker luôn cùng một mã bản dựng) |
 | `npm run typecheck` | `tsc --noEmit` cho server, `-p web`, `-p web/sw` |
-| `npm test` | `node --test "src/**/*.test.ts"` |
+| `npm test` | `node scripts/chay-test.mjs` (chủ "Trả lời lần 15", 30/9 — nhánh thi công): bước 1 = `node --test` mọi tệp của glob `"src/**/*.test.ts"` TRỪ `src/claude-guard-thoi-gian.test.ts`, song song; bước 2 = riêng tệp đo giờ của hook, `--test-concurrency=1`; một bước đỏ ⇒ thoát ≠ 0 |
 | `npm run test:e2e` | `node tests/e2e/run.mjs` |
 | `npm run types` / `npm run dict` | sinh `worker-configuration.d.ts` / sinh lại `docs/DATA-DICTIONARY.md` từ `docs/data-dictionary.json` |
 | `npm run db:migrate:local` / `:remote` | `wrangler d1 migrations apply tourdao-sales-db --local` / `--remote` |
