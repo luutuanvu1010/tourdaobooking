@@ -3,7 +3,7 @@
 - **Trạng thái:** **ĐỀ XUẤT — chủ đã duyệt 29/9 "Duyệt, ghi theo câu 1"** (ĐP2(v) = lưu nháp được, chặn ở Xác nhận — [HĐ] "Trả lời lần 4"); **chờ người kiểm xem bản cuối** rồi điều phối chép sang `docs/adr/` (ADR-0049, số đã giữ chỗ ở `docs/adr/README.md`). Tệp này **không** nằm trong `docs/adr/`; AI không tự tạo tệp ở đó. Khi chép, điều phối ghi nguyên văn lời duyệt vào dòng trạng thái và cập nhật `docs/adr/README.md`. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2).
 - **Ngày:** 2026-09-29.
 - **Nguồn:** bản thiết kế `docs/superpowers/specs/2026-09-29-bang-dieu-phoi-chung-design.md` (gọi tắt **[TK]**), Phần 1–3, 6 và 8, phần của lượt duyệt 1 (D1, D2, D3). Lời chủ nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (gọi tắt **[HĐ]**), kể cả mục "Trả lời lần 2".
-- **Kiểm độc lập:** bản thiết kế [TK] — CÓ ĐIỀU KIỆN (4 lỗi CAO), đã sửa, kiểm lại **ĐẠT** (29/9). Tệp đề xuất: kiểm nhanh 29/9 — **CẦN SỬA nhẹ** (ĐP2(v), nguồn C21), đã sửa ở `__DINH__`.
+- **Kiểm độc lập:** bản thiết kế [TK] — CÓ ĐIỀU KIỆN (4 lỗi CAO), đã sửa, kiểm lại **ĐẠT** (29/9). Tệp đề xuất: kiểm nhanh 29/9 — **CẦN SỬA nhẹ** (ĐP2(v), nguồn C21), đã sửa ở commit `fd19085`.
 - **Thay:** lượt duyệt 2 (B1, B2, B3) của `docs/superpowers/specs/2026-09-28-de-xuat-adr-van-chuyen-1b.md` (chưa từng được duyệt).
 - **Loại:**
   - **một chiều:** tiền tố và chủ sở hữu các bảng `vc_trip*`; tập trạng thái đóng (chuyến, suất, điểm dừng); bản chụp xuất bến và danh sách hành khách đã chốt (chứng cứ, lưu ≥ 3 năm); dữ liệu cá nhân tài xế đã xem;
