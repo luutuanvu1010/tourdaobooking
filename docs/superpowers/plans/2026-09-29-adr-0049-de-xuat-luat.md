@@ -18,6 +18,20 @@
   - trên nhánh ADR-0048 `3d8f4b0` cho `src/shared/permissions.test.ts`;
   - trên nhánh ADR-0047 `6bb67c8` cho `src/hanh-khach-khong-lo-ten.test.ts`.
   - Hai nhánh nền chưa lên `main`, nên số dòng sẽ lệch sau khi gộp. Người thi công đo lại.
+- **GIẢ ĐỊNH NỀN — mọi diff dưới đây viết TRÊN nền đã áp luật của hai phần nền** (chủ duyệt 29/9, `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` mục "Trả lời lần 5", nhánh `adr-van-chuyen-0047-0048` @ `f3b916a`; điều phối áp lúc gộp):
+  - **ADR-0047** "Duyệt cả 4":
+    - mục 1: `ord_` trong `TABLE_PREFIX`;
+    - mục 2: `XOA_CUNG_NHAP` + `ARCHITECTURE.md` 2b (bảng thi hành 5.5), 2c (vế ngoại lệ ở Phần II :194);
+    - mục 3: `DOC_AUDIT_LOG_WONGUARD` hạn 2027-03-31, kèm 3b (bảng thi hành 5.3 :148);
+    - mục 4a: `ARCHITECTURE.md` :192 câu tệp nửa nghiêm; :194 thêm `ord_`; bảng thi hành 5.1;
+    - mục 4b: `src/CLAUDE.md` :14 "SQL mới của `orders` chỉ ở tệp nửa nghiêm — không viết câu `ord_*` thô trong `repository.ts`", câu `full_name`; :25 thêm `ord_`;
+    - mục 7: ngoại lệ R-N1-14 `full_name`.
+  - **ADR-0048** "Duyệt":
+    - mục 1: LC-1 mới, `EXTERNAL_PERMISSIONS`, `R-LC-1`, sổ hàng rào;
+    - mục 3: `ARCHITECTURE.md` :175 đoạn `parties` và `van-chuyen`;
+    - mục 4: `src/CLAUDE.md` :20 thêm một câu cuối;
+    - mục 6: `CLAUDE.md` :10 "Chín quyền app", :122 câu cuối.
+  - Vì vậy dòng "trước" (`-`) của mục 4, 6, 7, 8 dưới đây là **văn bản sau khi áp** các mục trên. Số dòng là số trên `main` hôm nay; áp xong nền có thể lệch. Người thi công đo lại (Task A20).
 - **Người thi công làm gì với phần NỚI** (kế hoạch I30):
   - **thi công trong mã** mục 1 và mục 2 (cần để mã chạy), kèm chú thích "CHỜ CHỦ DUYỆT";
   - **không** sửa tệp luật thật (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/adr/`);
@@ -30,17 +44,39 @@
 
 | # | Việc | Loại | Vì sao cần | Nếu bạn KHÔNG duyệt |
 |---|---|---|---|---|
+| 0 | Năm quyền mới: xem chuyến, xếp xe, bấm tiến độ, phá lệ mốc 6 giờ, đặt gấp — đúng bảng bạn đã duyệt ở ADR-0049 | **Thêm** vào bảng quyền và bài đối chiếu (không nới bài khoá cũ nào; riêng cột tài xế công ty là mục 2) | Máy chủ chỉ cho làm việc gì có ô quyền; bài đối chiếu khoá giá trị từng ô đúng như ADR | Không ai dùng được Bảng điều phối; phá lệ và đặt gấp không có người bấm |
 | 1 | Cho phân hệ Vận chuyển **đọc** thông tin chặng đưa đón của đơn và danh sách địa điểm | **Nới** một hàng rào kiến trúc | Chuyến xe phải trỏ tới chặng đưa đón (để biết khách nào lên xe nào) và tới địa điểm (khách sạn, cảng). Bạn đã duyệt ở ADR-0049; hàng rào máy cần được mở đúng hai lối này | Cả Bảng điều phối không làm được |
 | 2 | Cho **tài xế công ty** xem chuyến mình lái và bấm tiến độ | **Nới** bài khoá quyền của tài xế | Hôm nay tài xế bị khoá mọi thứ trừ giấy tờ của mình. Bạn đã duyệt cho tài xế thấy chuyến mình và tự bấm Xuất bến / Đã đón… | Tài xế không dùng app cho chuyến; văn phòng phải bấm thay mọi nút |
 | 3 | Họ tên, năm sinh khách được hiện trên màn **tài xế** (chỉ trong ngày chạy, chỉ chuyến mình lái) | **Nới** nghĩa một hàng rào dữ liệu cá nhân | Hàng rào hôm nay ghi "tên khách chỉ ra khỏi máy chủ ở màn danh sách khách của đơn". Bạn đã duyệt cho tài xế thấy tên trong ngày chạy | Tài xế chỉ thấy số người, không thấy tên; phải gọi văn phòng hỏi |
 | 4 | Hai chỗ trong Hiến chương Phần II viết khác cách ADR-0049 chống "hai người sửa cùng lúc" | **Mâu thuẫn — bạn quyết** | Phần II viết "dùng giờ sửa cuối + dò nhật ký". ADR-0049 (bạn đã duyệt) dùng "số phiên bản + dấu lệnh", vì phân hệ Vận chuyển không được đọc nhật ký. Hiến chương đứng trên ADR, nên phải sửa chữ Hiến chương cho khớp | Phải có quyết định mới đổi cách chống sửa trùng của chuyến xe; thi công dừng ở phần chuyến |
 | 5–8 | Cập nhật mô tả trong ba tệp luật cho AI (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`) và sổ hàng rào | Mô tả, theo nội dung đã duyệt | Tài liệu luật phải khớp mã | AI phiên sau đọc luật cũ, dễ làm sai |
 
-- **Đếm:** ba mục nới hàng rào (1, 2, 3), đều là nội dung ADR-0049 đã duyệt. Thêm một quyết định luật **mới** (mục 4) → **bốn** quyết định chạm quyền / dữ liệu, **vượt trần 3** của `CLAUDE.md` §9 (như đề xuất luật ADR-0047).
+- **Đếm:** mục 0 là thêm ô theo đúng bảng ADR (không nới). Ba mục nới hàng rào (1, 2, 3), đều là nội dung ADR-0049 đã duyệt. Thêm một quyết định luật **mới** (mục 4) → **bốn** quyết định chạm quyền / dữ liệu, **vượt trần 3** của `CLAUDE.md` §9 (như đề xuất luật ADR-0047).
 - **Đề nghị điều phối:** trình mục 4 **riêng, trước** (nó quyết cách viết mã phần chuyến). Mục 1–3 trình một lượt sau.
 - **Siết** (không cần duyệt riêng, ghi để bạn biết): mục "Bù lại" ở cuối tệp.
 
 ---
+
+## Mục 0 — Năm ô mới trong `src/shared/permissions.ts` và bài đối chiếu ADR (THÊM — không nới bài ghim có sẵn, trừ hàng `DRIVER` ở mục 2)
+
+**Bảng ô** (cột theo `PERMISSION_CODES`, `src/shared/permissions.ts:5@3d8f4b0`; `row()` 9 tham số :44–48; thêm vào `MATRIX` :71–124). Nguồn: ADR D3 :193–201; "Câu ADR bị thay" ADR-0019 bản đồ ô (:271).
+
+| Ô | SALES | ACC | ADMIN | FIELD | PARTNER | SA | INTERN | DRIVER | DRIVER_PARTNER |
+|---|---|---|---|---|---|---|---|---|---|
+| `trip.view` | any | any | any | none | none | any | none | assigned | none |
+| `trip.dispatch` | any | none | any | none | none | any | none | none | none |
+| `trip.progress` | any | none | any | none | none | any | none | assigned | none |
+| `trip.override` | none | none | any | none | none | any | none | none | none |
+| `order.leg.short_notice` | none | none | any | none | none | any | none | none | none |
+
+| # | Chỗ sửa | Đổi | Có phải nới không | Nếu chủ KHÔNG duyệt |
+|---|---|---|---|---|
+| 0a | `src/shared/permissions.ts` `MATRIX` (:71–124@3d8f4b0) | thêm năm hàng trên, chú thích mỗi hàng dẫn ADR-0049 D3. **Mỗi ô vào cùng commit với route đầu tiên hỏi nó** (hàng rào 1 `src/permission-enforcement.test.ts:9-14` đòi ô có nơi gọi `can(`; kế hoạch Task A10, A13, A15) | **Không nới hàng rào nào**: ô mới, bản đồ vẫn là nguồn duy nhất (ADR-0019). Nhưng là **mở quyền mới** cho SALES, ACC, ADMIN, SA và (phạm vi `assigned`) DRIVER — nội dung ADR-0049 đã duyệt | Không route nào của Bảng điều phối hỏi được quyền. Cả lượt 1 dừng. Không có ô thì hàng rào 1 đỏ |
+| 0b | `src/shared/permissions.test.ts` bảng `ADR` (:14–51@3d8f4b0) — bài "bản đồ quyền khớp TỪNG Ô …" (:55) | thêm năm hàng, **đúng** giá trị bảng trên; tên bài thêm "+ ADR-0049 D3" | **Không nới**: bài đối chiếu thêm hàng = khoá thêm giá trị (siết) | — |
+| 0c | cùng tệp — bài mới | `order.leg.short_notice`, `trip.override` chỉ ADMIN + SA; mọi mã có `trip.view = any` cũng có `contact.view = any`; hàng `DRIVER_PARTNER` năm khoá mới `none` | siết | — |
+
+- Bài "512 tập con quyền" (:254–268) **không đổi số** (không thêm mã quyền).
+- `docs/quyen-hoan.json` không thêm ô hoãn nào.
 
 ## Mục 1 — NỚI `ALLOWED_EDGES`: cạnh `van-chuyen → orders`, `van-chuyen → locations`
 
@@ -91,10 +127,10 @@ Hàng rào này nằm ở nhánh ADR-0047 (chưa lên `main`). Nó phải lên `
 
 **Diff (áp khi chủ chọn (a)):**
 
-`docs/ARCHITECTURE.md:194` — chỉ đổi đoạn cuối câu:
+`docs/ARCHITECTURE.md:194` — chỉ đổi đoạn cuối câu. Câu này sau khi áp ADR-0047 mục 2c, 4a có thêm `ord_` và vế "ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp…". Hai phần đó giữ nguyên:
 ```diff
--… khoá ngoại `NO ACTION`; khoá lạc quan bằng `updated_at`.
-+… khoá ngoại `NO ACTION`; khoá lạc quan bằng `updated_at` — trừ bảng gốc của một lô nhiều câu ở module nghiêm: cột `version INTEGER` tăng ở câu cổng (ADR-0049 D1, `vc_trip`).
+-… (ngoại lệ có tên duy nhất: dòng `ord_*` của **đơn nháp** xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`); khoá ngoại `NO ACTION`; khoá lạc quan bằng `updated_at`.
++… (ngoại lệ có tên duy nhất: dòng `ord_*` của **đơn nháp** xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`); khoá ngoại `NO ACTION`; khoá lạc quan bằng `updated_at` — trừ bảng gốc của một lô nhiều câu ở module nghiêm: cột `version INTEGER` tăng ở câu cổng (ADR-0049 D1, `vc_trip`).
 ```
 
 `docs/ARCHITECTURE.md:215` — giữ nguyên câu cũ, thêm một câu cuối:
@@ -139,7 +175,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 +  `orders` cũng KHÔNG import `van-chuyen` (không module nào import nó): mốc 6 giờ tới `orders` qua `ctx.mocToiThieu` do gốc lắp ráp tiêm (ADR-0049 D2); thiếu → chặn, không đoán con số.
 ```
 
-`src/CLAUDE.md:20` (vai hồ sơ / chữ `DRIVER`) — thêm cuối dòng:
+`src/CLAUDE.md:20` (vai hồ sơ / chữ `DRIVER`) — thêm cuối dòng, **sau** câu ADR-0048 mục 4 ("ADR-0048: vai hồ sơ `CARRIER` …"):
 ```diff
 + Quyền `DRIVER` (ADR-0049 D3) chỉ có `trip.view`, `trip.progress` phạm vi `assigned` = đang có dòng lái mở (`vc_trip_driver`) với `driver_party_id = staff.partyId` — tính trong `van-chuyen`, KHÔNG dùng `ctx.isAssigned` (người phụ trách đơn); chuyến không phải của mình → 404. Nhật ký `trip_*` ghi `order_id` NULL (lịch sử đơn không lộ chuyến cho HDV/Đối tác).
 ```
@@ -148,7 +184,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 
 `CLAUDE.md` §3 cho AI tự sửa số đếm, không cho thêm quy tắc. Mục này thêm một bẫy mới nên đưa chủ duyệt. **§1 dòng 10 không đổi**: không thêm mã quyền.
 
-**7a. §10, thêm một gạch sau dòng :122** ("Giấy tờ của người + chữ `DRIVER`"):
+**7a. §10, thêm một gạch sau dòng :122** ("Giấy tờ của người + chữ `DRIVER`" — dòng này đã có câu cuối mới của ADR-0048 mục 6b; không sửa nó):
 ```diff
 +- **Điều phối xe** (ADR-0049, migration `0040`–`0042`): mốc 6 giờ chặn **xác nhận** đơn có chặng dưới mốc tới khi Quản trị/Toàn quyền bấm "Đặt gấp" — bài/e2e xác nhận đơn đón trong ngày phải đặt chính sách mốc 0 ở khung thử; chỉ route đặt gấp ghi `short_notice_*`. Luật lõi chuyến ở CẢ trigger lẫn máy chủ; lệnh chuyến là MỘT `db.batch` theo thứ tự cổng → nhật ký → câu có dấu lệnh → trạng thái cuối (bài `thu-tu-lo.test.ts`); mỗi suất một câu `INSERT`. Tên, năm sinh, SĐT khách chỉ trong DTO tài xế **trong ngày chạy**. Chi tiết: `docs/CHANGE-GUIDE.md` công thức <điền>.
 ```
@@ -161,15 +197,15 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 
 ## Mục 8 — `docs/ARCHITECTURE.md`: mô tả đi cùng (theo nội dung đã duyệt, không phải quyết định mới)
 
-**8a. Phần II, sơ đồ tầng, dòng :175** — đoạn `van-chuyen (…)`. Áp **sau** diff của đề xuất luật ADR-0048 mục 3 (sửa cùng đoạn):
+**8a. Phần II, sơ đồ tầng, dòng :175** — đoạn `van-chuyen (…)`. Dòng `-` là văn bản **sau khi áp** đề xuất luật ADR-0048 mục 3 (đã duyệt 29/9):
 ```diff
--van-chuyen (Vận chuyển lượt 1a, ADR-0040 — bảng `vc_*` (xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng sắp hết hạn), route `/api/van-chuyen/*`; đọc `parties` qua hàm công bố `ownerCompany`, `expiringDriverDocuments`; không module nào import nó)
+-van-chuyen (Vận chuyển lượt 1a, ADR-0040; nhà xe đối tác, ADR-0048 — bảng `vc_*` (xe của công ty hoặc của nhà xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng sắp hết hạn), route `/api/van-chuyen/*`; đọc `parties` qua hàm công bố `ownerCompany`, `expiringDriverDocuments`, `nhaXeDangHopTac` và view `v_pty_party_label`, `v_pty_owner_company`, `v_pty_carrier` (trigger chủ xe); không module nào import nó)
 +van-chuyen (Vận chuyển lượt 1a, ADR-0040; nhà xe, ADR-0048; Bảng điều phối, ADR-0049 — bảng `vc_*` (xe, giấy tờ xe, danh mục, ngưỡng; chuyến, ai lái, điểm dừng, suất, sự kiện nối 1-1 `audit_log`, bản chụp xuất bến, bản chốt danh sách; chính sách điều phối, điều kiện xuất bến, hạng bằng, lý do), route `/api/van-chuyen/*`; lịch chung là HÌNH CHIẾU dựng lúc đọc (không bảng); đọc `orders` qua hàm hẹp `lichChungChang`, `hanhKhachChoChuyen`, `soKhachHieuLuc`, `lienHeChoTaiXe` (chỉ trong thân route sau `can()`) và view `v_ord_leg_key`, `v_ord_order_flag`, `v_ord_passenger_key` (trigger); `locations` qua khoá ngoại + `v_loc_location_label`; `parties` qua `ownerCompany`, `expiringDriverDocuments`, `nhaXeDangHopTac`, `taiXeChoDieuPhoi` và view `v_pty_*`; công bố `mocToiThieuHienHanh` cho gốc lắp ráp tiêm vào `orders`; không module nào import nó)
 ```
 
 **8b. Bảng thi hành**:
 - :151 (điều 5.7): cột "Cưỡng chế bằng" `**chưa có** — dựa vào kỷ luật` → `lần áp đầu: chuyến xe (ADR-0049) — kiểu \`LyDoGiu\` (\`src/shared/ly-do-giu.ts\`) một chỗ + \`kiemXuatBen\` dùng chung máy chủ/màn hình + trigger LC-05`; cột "Lệch hiện có" `chưa có khái niệm "giữ"` → `—`.
-- :148 (điều 5.3): cột "Lệch hiện có" thêm `; riêng trigger \`vc_\` của 0041/0042 có bài "thân trigger chỉ đọc \`vc_\` + view công bố" (ADR-0049)`.
+- :148 (điều 5.3): cột "Lệch hiện có" — văn bản sau khi áp ADR-0047 mục 3b kết thúc bằng `trigger đọc chéo module **chưa có bài kiểm**`. Nối thêm `; riêng trigger \`vc_\` của 0041/0042 có bài "thân trigger chỉ đọc \`vc_\` + view công bố" (ADR-0049)`.
 
 ## Bù lại — các chỗ SIẾT (không cần duyệt riêng; ghi để chủ thấy đủ)
 
@@ -187,6 +223,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 | S10 | Câu kiểm định kỳ R-VC-3…R-VC-10 (có R-VC-8 = B1.5 bàn giao từ ADR-0048) | `scripts/audit-checks.mjs` | ADR "Hệ quả"; ADR-0048 B1.5 |
 | S11 | Chỉ route đặt gấp ghi `short_notice_*` (bài có P16) | `src/modules/orders/dat-gap.test.ts` | ADR D2 |
 | S12 | Lệnh `vc_` không nhận chữ tự do; ghi chú đặt gấp không vào nhật ký; `trip_*` ghi `order_id` NULL | mã + bài | LC-18; C1 |
+| S13 | Câu xác nhận đơn (`UPDATE orders SET status='confirmed'`, hôm nay SQL thô LEGACY ở `src/modules/orders/repository.ts:921-926@6bb67c8`) chuyển sang tệp nửa nghiêm thành câu `defineSql` `orders.order_confirm` — thêm một câu vào vùng bài EXPLAIN soi; câu đặt gấp `orders.leg_short_notice` cũng ở đó. Không tên mới nào đọc `audit_log` | `src/modules/orders/chang-hanh-khach-repo.ts` | ADR-0047 A3 ("SQL chạm `ord_*` viết bằng `defineSql` trong tệp riêng"); kế hoạch I15 |
 
 ## Không đổi
 
