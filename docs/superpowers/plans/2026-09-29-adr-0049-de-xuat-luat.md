@@ -18,7 +18,7 @@
   - Duyệt xong mới gộp. Mỗi tệp luật một commit, sửa đúng diff dưới đây (kế hoạch Task K3).
 - **Cập nhật 29/9 tối — ADR-0050 (accepted; kế hoạch mục 0.2):**
   - **Không thêm mục NỚI nào.** Chỗ duy nhất có thể thành nới đã được tránh: [0050] cho phép "nếu kế hoạch dùng `hanhKhachChoChuyen` để dựng điểm dừng, hàm đó trả cùng hai khoá". Nhưng `src/modules/orders/ham-cong-bo.test.ts:59@7b0e2ae` ghim **đúng** tập khoá của hàm đó, nên thêm khoá là nới (Điều 9.4). Kế hoạch chọn **không** đổi `hanhKhachChoChuyen`, chỉ `lichChungChang` (hàm mới của ADR-0049, tập khoá do chính kế hoạch ghim ở TC-20) trả khoá — kế hoạch I38, T-12.
-  - Nếu điều phối chọn cách kia, phải thêm **mục nới thứ tư** vào tệp này. Mục 1–3 đã đúng trần 3 của `CLAUDE.md` §9, nên như vậy là **vượt trần** → tách lượt.
+  - **Điều phối đã chấp nhận cách này (29/9 tối, R-P9)** ⇒ không có mục nới thứ tư; mục 1–3 vẫn đúng trần 3 của `CLAUDE.md` §9.
   - Chỉ thêm **siết** (S15–S21) và câu mô tả ở mục 6, 7a, 8a.
 - **Số dòng:** đo lúc lập kế hoạch:
   - trên `main` = `ce831f8` cho `src/architecture.test.ts`, `docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `CLAUDE.md`. Bốn tệp này giống hệt ở `8675cbb`;
@@ -246,7 +246,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 | S18 | **[0050] + [SOI] K-02:** bài liệt kê khoá mọi DTO van-chuyen **không** có khoá so sánh nơi; bài quét nhật ký / thân trả về không có `L:<id>` / `T:<hex>` (mở rộng `src/hanh-khach-khong-lo-ten.test.ts`) | test | ADR-0050 "Hệ quả" |
 | S19 | **[SOI] K-03:** (a) `vc_trip_overlap_upd` xét cả tài xế khi đổi giờ chuyến; (b) danh tính suất cấm đổi `board_stop_id`, `alight_stop_id` (cấm hẳn) | `migrations/0042_*` | bản soi Kernel K-03 (siết, không cần chủ) |
 | S20 | **[0050] VK1-C:** `CHECK` kẹp lùi 1–1440 + hai điều kiện Kiểm định, Bảo hiểm gieo sẵn trong `0041` (xe thiếu giấy bị giữ) | `migrations/0041_*` | ADR-0050 VK1-C (chủ Q-L1-3) |
-| S21 | **[0050] + K-02:** câu kiểm định kỳ R-VC-12…16 (mức `warn`; số chờ điều phối cấp) | `scripts/audit-checks.mjs` | ADR-0050 "Hệ quả"; bản soi K-02 |
+| S21 | **[0050] + K-02:** câu kiểm định kỳ R-VC-12…16 (mức `warn`; mã điều phối đã cấp 29/9 tối) | `scripts/audit-checks.mjs` | ADR-0050 "Hệ quả"; bản soi K-02 |
 | S13 | Câu xác nhận đơn (`UPDATE orders SET status='confirmed'`, hôm nay SQL thô LEGACY ở `src/modules/orders/repository.ts:921-926@6bb67c8`) chuyển sang tệp nửa nghiêm thành câu `defineSql` `orders.order_confirm` — thêm một câu vào vùng bài EXPLAIN soi; câu đặt gấp `orders.leg_short_notice` cũng ở đó. Không tên mới nào đọc `audit_log` | `src/modules/orders/chang-hanh-khach-repo.ts` | ADR-0047 A3 ("SQL chạm `ord_*` viết bằng `defineSql` trong tệp riêng"); kế hoạch I15 |
 
 ## Không đổi
