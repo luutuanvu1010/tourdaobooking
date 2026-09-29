@@ -347,3 +347,32 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **GA-31 (A10):** đọc lại lý do khi xác nhận thua: `incomplete_trip` xét TRƯỚC `short_notice_required` (thiếu chuyến là lỗi cơ bản hơn). `canhBaoMoc` / `short_notice_required` dùng CÙNG mốc giờ `nowMs` với câu ghi (một luật hai cách nói — bài tương đương `moc-toi-thieu.test.ts`).
 - **GA-32 (A10 — khung thử):** mốc giả của `doc-chang.test.ts` là ÂM một ngày (`-24 * 60`): Ruling N-9 (iii) chọn "mốc cố định do bài chỉ định", mà giờ đón 07:00 HÔM NAY đã qua thì mọi mốc dương đều chặn (lý do N-9 loại phương án (i)). Hàm giả chỉ sống trong khung thử (`world({ mocGiaChoBaiKhongKiemMoc })`); `src/index.ts` có thêm `taoAppChoKhungThu` (không đọc env / binding — không có công tắc từ production).
 - **GA-33 (A11, bề mặt — người kiểm soi):** tên khoá của `ChangLichChung` theo khuôn `ChangChoChuyen` (`legId`, `orderCode`, `serviceName`, `direction`, `pickupDate`, `pickupTime`, `noiDon`, `noiTra`, `soNguoi`) + `noiDonDiemId`, `noiTraDiemId` (id điểm danh mục — A12/A13 cần cho `vc_trip_stop.location_id`), `nguoiCuaDon` (khoá người, không tên — I12), `datGap`, `khoaNoiDon`, `khoaNoiTra`. Không trả `donDaXacNhan` / `donDaHuy` / `changMo` (hàm chỉ trả chặng mở của đơn đã xác nhận chưa huỷ — hằng; cờ của chặng rơi khỏi kết quả đọc qua view công bố ở A13 — R-P9). `lienHeChoTaiXe` chỉ trả đơn ĐÃ XÁC NHẬN (siết — kế hoạch chỉ ghi "các đơn được hỏi").
+
+### 10.6 Kết quả kiểm cuối phiên (người thi công — tự khai, chưa phải kiểm độc lập)
+
+Đỉnh nhánh `thi-cong-adr-0049-tiep` lúc kiểm: `5bacc06`. Node v22.22.3.
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm test` | thoát **0** — **1633/1633** (sau gộp ba nhánh: 1575) |
+| `npm run typecheck` | thoát **0** |
+| `npm run build:web` | thoát **0** |
+| `node --test "tests/audit/*.test.mjs"` | thoát **0** — 36/36 |
+| `npm run test:e2e` ĐỦ BỘ (19:31 VN, tải 3.17; `ps` trước: không wrangler / workerd) | thoát **0** — **"E2E: 27/27 kịch bản xanh"** (gồm `chinh-sach-dieu-phoi`, `van-chuyen`, `chang-hanh-khach` có bước (9) mốc 6 giờ, `orders`, `trip`, `dispatch`, `bangtin`, `tai-xe-doi-tac`); đuôi `audit-invariants --strict` trên D1 tạm: "Mọi bất biến đạt, 4 cảnh báo" (R-ORD-6a 1, R-ORD-6b 2 — sẵn có; R-ORD-8 2, R-ORD-12 5 — dữ liệu thử của kịch bản ADR-0047) |
+| `node scripts/audit-invariants.mjs --db local` (D1 local của worktree — vừa áp 0001…0041, KHÔNG có dữ liệu) | thoát **1** — chỉ `R-N1-5 còn ít nhất một quản trị viên đang hoạt động` (CSDL rỗng không có tài khoản nào) — không phải lỗi của nhánh; lần chạy có nghĩa là đuôi e2e ở dòng trên |
+| Chrome `nhat-ky-loc-smoke.mjs` (A2b) | thoát **0**, 2/2 ✓ (7 hành động nhóm "Điều phối xe") |
+
+- **Không nới hàng rào nào ngoài danh sách:** không sửa `ALLOWED_EDGES`, `STRICT`, `LEGACY_TABLES`, `DOC_AUDIT_LOG_WONGUARD`, `XOA_CUNG_NHAP`, `FULL_NAME_ORD_PASSENGER_FILES`, `ADMIN_OPS`, `GUARDS`, `docs/quyen-hoan.json`; không tệp luật (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/`, `docs/ARCHITECTURE.md`). Thêm ô `order.leg.short_notice` (đúng kế hoạch mục 1.2 — ô MỚI, không phải nới bài ghim: hàng `DRIVER` / `DRIVER_PARTNER` / `PARTNER` ghi `none`). Chỉ SIẾT: `CONG_BO` + hai tên; bài canh "bài mốc không dùng mốc giả"; bài canh khoá nơi của bộ ca mẫu; bài đọc SQL `leg_lich_chung*` / `order_contact_for_driver`.
+- **Không** push, không merge vào `main`, không deploy, không `--remote`, không đọc `.dev.vars`. D1: `--local` (worktree) và `--persist-to /tmp/…` (A0 bước 14, đã xoá).
+- **Dừng trước A12** theo phạm vi ("A9 → A10 → A11, DỪNG"). Lời nhắn điều phối "dừng … trước A12 / trước các bước phía đơn hàng" được đọc là dừng TRƯỚC A12 (danh sách việc của chính lời nhắn có A9–A11 — phía đơn hàng); nếu ý điều phối là dừng trước A9 thì ba commit `e6c1f7b`, `a107dd9`…`61b722e`, `5bacc06` là phần làm thêm cần xem lại.
+
+### 10.7 Nợ (không chặn), câu hỏi cho điều phối / người kiểm
+
+- **N-14 (Phần B):** DTO chặng của chi tiết đơn CHƯA mang dấu đặt gấp (lý do, lúc) — màn V12 cần hiện "đã đặt gấp"; hôm nay chỉ có `canhBaoMoc` (phản hồi lưu nháp), `mocToiThieuPhut`, 409 `short_notice_required` kèm chặng. Thêm khoá vào `LegDto` là đổi hợp đồng giao diện — để lúc có bản vẽ.
+- **N-15:** `audit-actions.ts` thêm `order_leg_short_notice` (nhóm `order`) — Chrome `dot-a-smoke.mjs` (bộ lọc trang Nhật ký) KHÔNG tới được trang Nhật ký (đỏ sẵn từ ADR-0038, N-1) ⇒ nhóm `order` có hành động mới CHƯA kiểm bằng Chrome. Có thể mở rộng `nhat-ky-loc-smoke.mjs` sang nhóm `order`.
+- **N-16:** kế hoạch A10 bước 6 còn câu cũ "sửa các bài … bằng dòng chính sách 0 trong khung thử" (trái GA-5) — phiên này làm theo Ruling N-9; đề nghị người lập kế hoạch sửa chữ.
+- **N-17:** `planEditLeg` đọc `getStoredServices` + route đọc thêm mốc — mỗi lần sửa chặng thêm một truy vấn (mốc). Không đo tốc độ.
+- **Q-A10-1 (logic — xin chấp nhận, GA-28):** sửa / thêm chặng làm đổi nội dung mà không kèm `datGap` thì dấu đặt gấp CŨ bị xoá (kể cả khi chặng mới ở xa mốc). Suy từ I16 + Q1 = (a); nếu điều phối muốn giữ dấu khi chặng mới ở xa mốc thì đổi `LEG_SET_DAT_GAP` + bài TC-24 ca cuối.
+- **Q-A10-2 (GA-25):** `kiemGioXayRa` xét thêm "đã tới điểm XUỐNG ≤ đã trả" (khuôn I20) — chặt hơn chữ ADR-0050 vế 3 một chút.
+- **Q-A10-3 (GA-32):** mốc giả ÂM (`-24 * 60`) của `doc-chang.test.ts` — N-9 (iii) nói "mốc cố định do bài chỉ định"; giá trị âm là cách duy nhất để giờ đón đã qua trong ngày vẫn xác nhận được mà không đổi ngày của bài. Nếu không chấp nhận: chuyển bài đó sang đường (ii) (Quản trị đặt gấp qua route trước khi xác nhận).
+- **Q-A11-1 (GA-33):** tên khoá `ChangLichChung` (tiếng Anh theo khuôn `ChangChoChuyen`, trộn vài khoá tiếng Việt) — cửa hai chiều tới khi A13 dùng.
