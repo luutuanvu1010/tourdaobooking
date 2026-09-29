@@ -258,3 +258,46 @@ Mọi phép sửa cố ý làm trên bản sao cục bộ, hoàn nguyên bằng 
 - **Sau gộp:** `npm ci` (worktree mới) thoát 0; `npm test` thoát **0** — **1575/1575**; `npm run typecheck` thoát **0**.
 - **N-7 (đã sửa lúc gộp):** chú thích đầu `src/modules/van-chuyen/index.ts` nay ghi "ngoài AppModule chỉ xuất hàm công bố `mocToiThieuHienHanh` (chỉ gốc lắp ráp gọi)".
 - Kế hoạch §0.1 R-P10, §0.2 I36, mục 13 T-11, mục 15.2: "chấp nhận tạm" → "đã soi, chấp nhận (người kiểm kế hoạch `e150385` ĐẠT)".
+
+### 10.2 A0 bước 14–16 — ba phép thử THẬT cho "Chưa kiểm" của ADR-0050 (khuôn R-P4)
+
+Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá sau khi ghi). `ps aux | grep -i -E "wrangler|workerd"` rỗng trước và sau. D1 chỉ `--local --persist-to /tmp/…`; **không** `--remote`.
+
+**Bước 14 — so chuỗi ISO trong `CHECK` / trigger (I33).** Bảng nháp `thu_event` (`created_at`, `occurred_at`, `occurred_ms`, `occurred_source` + hai `CHECK` đúng chữ ADR-0050) và `thu_trip` + trigger `thu_trip_departed_after_plan` (`BEFORE UPDATE OF status … WHEN NEW.status = 'RUNNING' AND NEW.departed_at < (SELECT max(e.created_at) FROM thu_event e WHERE e.trip_id = NEW.id AND e.id <> NEW.last_cmd_id)` → `RAISE(ABORT, 'vk1a_departed_before_plan')`). Mỗi ca một CSDL mới (nhóm e dùng chung theo thứ tự).
+- `node /tmp/adr49-a0/thu-node.mjs` (SQLite 3.51.3, Node v22.22.3) và `node /tmp/adr49-a0/thu-d1.mjs <worktree>` (mỗi ca: `CI=1 npx wrangler d1 execute tourdao-sales-db --local --persist-to /tmp/adr49-a0/d1-<n> --file nhap-iso.sql` rồi `--command "<ca>"`) — **HAI NƠI CÙNG KẾT QUẢ, từng ca:**
+
+| Ca | node:sqlite | D1 local |
+|---|---|---|
+| (a) cùng mili-giây, `MAY_CHU` | ĐƯỢC | ĐƯỢC |
+| (b1) xảy ra sớm 1 ms, `VAN_PHONG_KHAI` | ĐƯỢC | ĐƯỢC |
+| (b2) xảy ra muộn 1 ms | `CHECK constraint failed: occurred_at <= created_at` | cùng câu `: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_CHECK)` |
+| (b3) `MAY_CHU` lệch 1 ms | `CHECK constraint failed: occurred_source <> 'MAY_CHU' OR occurred_at = created_at` | cùng |
+| (c1) qua nửa đêm UTC (xảy ra `…29T23:59:59.999Z`, ghi `…30T00:00:00.000Z`) | ĐƯỢC | ĐƯỢC |
+| (c2) qua năm (`2026-12-31T23:59:59.999Z` / `2027-01-01T00:00:00.000Z`) | ĐƯỢC | ĐƯỢC |
+| (c3) qua năm, chiều ngược | CHẶN `occurred_at <= created_at` | cùng |
+| (d1) **SAI KHUÔN** không mili-giây `…07:00:00Z` vs `…07:00:00.000Z` — CÙNG thời điểm, `MAY_CHU` | **CHẶN nhầm** (`'Z'` > `'.'`) | cùng |
+| (d2) **SAI KHUÔN** không mili-giây, xảy ra SỚM 500 ms | **CHẶN nhầm** | cùng |
+| (d3) **SAI KHUÔN** đuôi `+07:00` (`06:30+07:00` = `23:30Z` hôm trước), ghi `00:00Z` | **CHẶN nhầm** | cùng |
+| (d4) **SAI KHUÔN** đuôi `-05:00` (`07:00-05:00` = `12:00Z`, tương lai), ghi `08:00Z` | **ĐƯỢC — LỌT** | cùng |
+| (e0) chuyến + sự kiện kế hoạch 07:02 / 07:05 / 07:10 + `DEPARTED` của chính lô (`id = last_cmd_id`, ghi 07:45) | ĐƯỢC | ĐƯỢC |
+| (e1) xuất bến khai 07:00 | `vk1a_departed_before_plan` | `vk1a_departed_before_plan: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)` |
+| (e2) xuất bến khai 07:09:59.999 | CHẶN | CHẶN |
+| (e3) xuất bến khai 07:31 (≥ 07:10; sự kiện 07:45 của chính lô bị loại nhờ `e.id <> NEW.last_cmd_id`) | ĐƯỢC | ĐƯỢC |
+| (e4) chuyến chưa có sự kiện (max = NULL) | ĐƯỢC | ĐƯỢC |
+
+- **Phía JS** (`node -e`): `Date.parse` + `toISOString()` luôn ra 24 ký tự khuôn `YYYY-MM-DDTHH:mm:ss.sssZ` (kể cả năm 9999); `"2026-09-29T06:30:00+07:00"` → `2026-09-28T23:30:00.000Z`; `"…07:00:00.5Z"` → `…07:00:00.500Z`. **Bẫy thấy thêm:** chuỗi KHÔNG múi giờ `"2026-09-29T07:00"` được hiểu theo giờ MÁY (máy dev Asia/Ho_Chi_Minh → `…00:00:00.000Z`), Worker chạy UTC → khác kết quả ⇒ route (A15) phải **từ chối** `xayRaLuc` không có `Z` / `±HH:MM` (khớp TC-47 "không múi giờ → 400").
+- **Kết luận bước 14:** hai nơi **cùng** kết quả ⇒ **dùng so chuỗi như ADR-0050**, với điều kiện I33: máy chủ lấy `nowMs` một lần, mọi cột giờ = `new Date(ms).toISOString()`, không bao giờ lưu chuỗi của trình duyệt. Ca (d) chứng minh vì sao (chặn nhầm cả hai chiều, và lọt với múi giờ âm).
+
+**Bước 15 — `crypto.subtle.digest("SHA-256", …)` trên Node 22 và Worker.** Một tệp nháp `khoa-noi-nhap.js` (hàm `chuanHoaNoi` + `bamHex` qua `globalThis.crypto.subtle.digest`, hex thường) chạy ở hai nơi:
+- Node: `node /tmp/adr49-a0/thu-node-bam.mjs` (đối chiếu thêm `node:crypto` `createHash("sha256")` — hai cài đặt khác nhau, khớp);
+- Worker: `CI=1 npx wrangler dev --config /tmp/adr49-a0/worker/wrangler.jsonc --port 8799 --ip 127.0.0.1` (wrangler 4.135.0; Worker nháp không binding, không `--remote`), `curl http://127.0.0.1:8799/` → 200; dừng tiến trình nền, `ps` sạch.
+- Đầu ra (hai nơi **giống hệt từng ký tự** — `JSON.stringify` so bằng nhau `true`):
+  - "Khách sạn Sheraton Nha Trang" (dựng sẵn) → `eabf50a8821c80a64c8e59b894ca8afdea9982e316c0b13073a2d60641d70ca5`;
+  - cùng chữ dạng TỔ HỢP dấu (NFD) → **cùng** `eabf50a8…0ca5`;
+  - "Căn hộ 0905123456 Mường Thanh" → `8601fb9b301d5ae10e3826e7a872e36e7fb1efb33de128a450551ef60c5f8b5d`;
+  - `"  ĐƯỜNG  Ơ\tTRẦN PHÚ Ư \t"` → `"đường ơ trần phú ư"` → `22df0e21…eaa2` = **cùng** khoá với chữ thường gõ sẵn;
+  - `"ĐƯƠĂÂÊÔ".toLowerCase()` → `"đươăâêô"` ở cả hai nơi.
+- `tsc` của máy chủ nhận `crypto.subtle.digest`: đã có trong mã production (`src/modules/auth/webauthn.ts:23`; `tsconfig.json` `lib: ["ES2022"]` + `worker-configuration.d.ts`), `npm run typecheck` thoát 0.
+- **Kết luận bước 15:** có trong Worker, cùng kết quả ⇒ dùng `globalThis.crypto.subtle`, không thư viện.
+
+**Bước 16 — một hàm chuẩn hoá nơi (khuôn chốt, MỘT CHIỀU).** `chuanHoaNoi(s) = s.normalize("NFC").trim().replace(/\s+/g, " ").toLowerCase()` (không `toLocaleLowerCase`); `khoaNoi` = `"L:" + locationId` | `"T:" + hex SHA-256 (UTF-8) của chuanHoaNoi(chữ CHƯA che)` | `null`. NBSP, tab, khoảng trắng đầu / cuối, hai dấu cách được gộp; NFD = NFC; hoa = thường (kể cả Đ Ư Ơ Ă Â Ê Ô) — cùng kết quả Node / Worker. Đổi khuôn này sau khi có dữ liệu thật = mọi `place_key` cũ lệch (giữ nhầm cả loạt) → phải tính lại khoá (ADR-0050 "Cửa một chiều").
