@@ -5,7 +5,7 @@
 - **Nguồn chuẩn tắc:** ADR-0048 (accepted 2026-09-28: D1, D2; Q4 = Q5 = Q6 = (a)).
 - **Nhánh thi công:** `worktree-agent-ae0f600ceaab6d8b4` (worktree `.claude/worktrees/agent-ae0f600ceaab6d8b4`), tách từ `main` @ `ce831f8`; đã gộp nhánh kế hoạch `worktree-agent-a41aedf108f7e51a8` @ `2602301` (chứa `adr-van-chuyen-0047-0048` @ `96d7048`, ADR-0048 accepted) bằng `git merge --no-ff` → `3e6b719`.
 - **Cách thi công:** executing-plans, một phiên thi công (vai "người thi công Phần A", rồi Phần B trên cùng nhánh) do điều phối giao 2026-09-29. Không tự nghiệm thu.
-- **Trạng thái:** Phần A (A0 → A15) THI CÔNG XONG, kiểm độc lập ĐẠT ở `3d8f4b0` (mục 2). Phần B (B1 → B5, B-kết) THI CÔNG XONG, tự kiểm (mục 7) — CHƯA kiểm độc lập. Ruling R-B1 và Task K1 xong (mục 3, 7). Dừng trước K2 (điều phối).
+- **Trạng thái:** Phần A (A0 → A15) THI CÔNG XONG, kiểm độc lập ĐẠT ở `3d8f4b0` (mục 2). Phần B (B1 → B5, B-kết) THI CÔNG XONG, tự kiểm (mục 7) — CHƯA kiểm độc lập. Ruling R-B1 và Task K1 xong (mục 3, 7). K2 ĐẠT CÓ ĐIỀU KIỆN (mục 8). K3 do điều phối làm ở nhánh phát hành riêng.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
@@ -62,6 +62,7 @@ Nguồn bền của Q1, Q2: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-da
 | B5 Trang đầu tài xế + trang Tôi cho tài khoản Tài xế đối tác | (không mã — kịch bản cùng commit `30701a6`) | Bước 1–2 của `tai-xe-doi-tac-smoke.mjs` XANH ngay trên mã Phần A (đúng kế hoạch: "Task A3 đã sửa", không đổi bố cục) | Chrome `tai-xe-doi-tac-smoke` bước 1 (390: "/" → `/tai-xe`, không lời gọi `/api/orders*`, đúng hai tab Trang chủ + Tôi, giấy của mình, số đủ không trong DOM, axe) và bước 2 (1040 `/account`: "Giấy tờ của tôi" số che `••••0421`, không nút, mục đầu thanh bên "Trang chủ" → `/tai-xe`, không mục văn phòng); `tai-xe-trang-dau-smoke` ✓4 và `giay-to-cua-toi-smoke` ✓5 (tài xế công ty — không hồi quy) | 2026-09-29 (Chrome, thấy hàng rào `coPhanTaiXe` chặn thật ở giao diện): bỏ vế `DRIVER_PARTNER` khỏi `coPhanTaiXe` → "✗ 1) … Error: hết giờ chờ: được đưa sang /tai-xe", "✗ 2) … AssertionError: mục đầu là Trang chủ (/tai-xe): [\"Của tôi\",\"Góp ý / Báo lỗi\",\"Trợ giúp\"]"; hoàn nguyên + `build:web` → 4/4 | **Phát hiện khi viết kịch bản (có sẵn, không do ADR-0048):** lần chạy đầu mở trang Tài xế đối tác SAU các trang Quản trị trên CÙNG hồ sơ Chrome → `web/home.ts` gọi SỚM `/api/orders/dashboard` và `/api/catalog/admin` theo BẢN NHỚ KHUNG của máy (ADR-0035 — "máy này lần trước là người xem mọi đơn"), rồi mới chuyển sang `/tai-xe`; kết quả 403 bị bỏ, không lộ dữ liệu. Áp như nhau cho tài xế công ty (kịch bản 1a tránh bằng cách mở tài xế trước). Kịch bản mới cũng mở trang Tài xế đối tác TRƯỚC trên máy "sạch" (ghi ở chú thích đầu tệp). Rà lại sau (mục 6): KHÔNG phải lỗi sản phẩm — `env.as` gắn cookie thẳng, bỏ qua `/login` là chỗ xoá bản nhớ khung (`web/login.ts:15`); người dùng thật không gặp. Kịch bản mới thay vì chạy lại `tai-xe-trang-dau-smoke` / `giay-to-cua-toi-smoke` với tài khoản `DRIVER_PARTNER` (hai kịch bản đó khoá chữ riêng của tài xế công ty — "Chào Hùng", bốn giấy). |
 | B-kết tài liệu + bằng chứng Phần B | `81affb3` | — | — | — | `docs/evidence/2026-09-29-adr-0048/README.md` + `anh/` (10 ảnh, chụp bằng ba kịch bản mới, OUT mặc định); `docs/SYSTEM-DESIGN.md` §9 (dòng Hồ sơ, Xe, Thêm/sửa xe, Chi tiết xe, Giấy tờ sắp hết hạn, Trang đầu tài xế; đoạn Giao diện vai — mô tả, thua mã); tệp đề xuất luật mục 5 (bảng kịch bản Chrome của `web/CLAUDE.md` — CHỈ đề xuất, không sửa `web/CLAUDE.md` thật). Không có bản vẽ mới (Q2 = (a), khuôn sẵn) — README ghi rõ. |
 | R-B1 câu lỗi quan hệ trung tính | `0317aef` | `node --test src/modules/parties/rules.test.ts src/modules/parties/nha-xe.test.ts` → pass 19 / fail 2: "not ok 4 - R-B1: thêm trùng 'Tài xế của' … expected: 'Quan hệ này đã được ghi trong khoảng thời gian trùng.' actual: 'Người liên hệ này đã được ghi trong khoảng thời gian trùng.'"; "not ok 16 - quan hệ: câu lỗi trung tính … expected: 'Quan hệ phải gắn với hồ sơ đang xem.' actual: 'Người liên hệ phải gắn với hồ sơ đang xem.'" | cùng lệnh → 21/21 | Bài mới đỏ thật trên chữ cũ (thấy chặn 2026-09-29) rồi xanh — không thêm dòng sổ hàng rào (khoá chữ, không phải hàng rào an toàn) | Chữ mới: "Quan hệ này đã được ghi trong khoảng thời gian trùng." (409 `relationship_overlap`); "Quan hệ phải gắn với hồ sơ đang xem."; "Một hồ sơ không thể có quan hệ với chính nó."; "Hồ sơ ở một đầu quan hệ không hợp lệ."; "Loại quan hệ không hợp lệ." Không câu nào hiện trong kịch bản Chrome (`nha-xe-danh-ba` khoá câu `drives_for_*`, không đổi). |
+| K2-THẤP ba sửa tài liệu/chú thích sau kiểm độc lập | (commit K2-THẤP) | — | `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → 15/15; `npm test` → 1375/1375 thoát 0; `npm run typecheck` thoát 0 | — | Mục 8 "Cuối — Task K2" điểm 1–3. Chỉ chú thích + tài liệu đề xuất; không đổi hành vi. |
 | K1 nhật ký thay đổi | `779dd45` | `src/shared/app-info.test.ts` sửa trước → "not ok 3 - formatReleaseLine: dòng phiên bản của bản mới nhất … expected: 'Phiên bản 1.37 · ngày 29 tháng 9 năm 2026' actual: 'Phiên bản 1.36 · ngày 28 tháng 9 năm 2026'" | `node --test src/shared/changelog.test.ts src/shared/app-info.test.ts` → 15/15; `node scripts/kiem-phien-ban.mjs` (GET công khai, chỉ đọc) → "ĐẠT: bản ở máy 1.37 mới hơn production 1.36." thoát 0 | — | số bản: **1.37 TẠM** (điều phối). Lúc đo: production **1.36** (không phải 1.35 như lời giao — đã triển khai), `main` mục đầu 1.36. Người gộp chốt số trống kế tiếp LÚC GỘP (nhánh ADR-0047 xếp hàng). Ba mục: hai `moi` (tài khoản tài xế nhà xe; Quản trị ghi nhà xe, tài xế, xe, lọc theo chủ xe), một `doi` (sắp hết hạn có xe và tài xế nhà xe, ghi tên nhà xe). |
 
 ## 4. Phán quyết của điều phối (Ruling) — kèm giá nếu sai
@@ -81,6 +82,8 @@ Diễn giải I1–I8 của kế hoạch mục 0 chờ điều phối xác nhậ
 ## 5. Sự cố
 
 1. **Commit A9 (`a2f1d82`) có MỘT lỗi `tsc`** (`src/modules/van-chuyen/rules.ts:64` — `kiemThongTinXe` trả `Omit<XeNhap, "status" | "validFrom">` thiếu `ownerPartyId` mới). Nguyên nhân: người thi công lọc đầu ra `npm run typecheck` bằng `grep "error TS"`, mà đầu ra có mã màu (`error` và `TS2741` bị chèn mã màu ở giữa) nên không khớp → tưởng 0 lỗi. Phát hiện khi chạy lại và đọc MÃ THOÁT (`tsc exit 1`); sửa ở commit A9-Q1 (thêm `"ownerPartyId"` vào `Omit`). Từ đây mọi lần kiểm `typecheck` đọc **mã thoát**. Soát các commit trước: mọi tệp đổi ở A1–A8 không bị sửa lại sau đó trừ vùng Vận chuyển của A9, và `tsc` ở đỉnh sau sửa thoát 0 ⇒ chỉ commit A9 dính. `npm test` (không phủ bởi tsc) xanh ở mọi commit.
+
+2. **Người kiểm độc lập (K2) tự khai đã xoá nhầm `/tmp/adr48-chrome-out`** — thư mục ảnh TẠM của người thi công (các lượt chạy Chrome A0 → K1 với `OUT=/tmp/…`). Ảnh CHÍNH THỨC ở `docs/evidence/2026-09-29-adr-0048/anh/` (10 ảnh, đã commit ở `81affb3`) và ảnh của các kịch bản 1a trong repo còn nguyên; nhật ký chữ `/tmp/adr48-chrome-*.log` / `.summary` không nằm trong thư mục bị xoá. Hậu quả: không còn ảnh tạm để so lại bằng mắt các lượt trung gian; số ✓/✗ đã ghi ở mục 3 và 7 vẫn dùng được. Không phải làm lại.
 
 ## 6. Nợ còn lại (không chặn gộp)
 
@@ -153,10 +156,21 @@ Người thi công, 2026-09-29, đỉnh `81affb3` (trước commit nhật ký n�
 
 ### Cuối — Task K2
 
+**ĐẠT CÓ ĐIỀU KIỆN** trên đỉnh `5a024b4` (điều phối chuyển lại 2026-09-29). Điều kiện duy nhất: chủ duyệt mục 5 của tệp đề xuất luật (điều phối hỏi). Người kiểm tự chạy lại:
+- `npm test` 1375/1375; typecheck, build:web thoát 0; `tests/audit` 36/36; `npm run test:e2e` 25/25;
+- năm kịch bản Chrome Phần B xanh, hai kịch bản đỏ sẵn (`dot-a-smoke`, `trang-chu-smoke`) đỏ đúng chỗ cũ;
+- tự tái hiện P16 của B1 và B3;
+- thử thực nghiệm áp `0037`–`0039` TRƯỚC rồi `0034`–`0035` (nhánh ADR-0047) → schema giống hệt byte-for-byte so với thứ tự tên.
+
+Ba điểm THẤP (chỉ tài liệu/chú thích) — người thi công đã sửa ở commit "K2-THẤP" (mục 3):
+1. Tệp đề xuất luật mục 5, dòng B3: thêm `public/xe.html` (khối `#xe-chu-loc`).
+2. Mục 5, dòng B1 và B2: ghi rõ `dot-a-smoke.mjs` đang đỏ sẵn từ ADR-0038 ở "nhat-ky: thẻ đã dựng xong" (không do ADR-0048). GIỮ kịch bản đó trong hai dòng vì bảng `web/CLAUDE.md` hiện hành đã yêu cầu nó cho `web/role-picker.ts` (dòng "Vai và bộ quyền mặc định") và `web/parties.ts` (dòng "mốc bảng→thẻ", dòng "Giấy tờ của một người").
+3. `src/shared/changelog.ts`: chú thích đầu mảng sửa thành "production 1.36 từ 28/9 23:21 giờ VN; 1.37 là bản kế tiếp".
+
 ## 9. Chưa kiểm (lúc viết mục này)
 
 - Phần B (B1–B5, B-kết) đã thi công, tự kiểm (mục 7) — CHƯA có người kiểm độc lập (K2). Phần A đã kiểm độc lập giữa chừng ĐẠT (`3d8f4b0`, mục 2).
-- K1 ĐÃ LÀM (`779dd45`, số 1.37 tạm). K2 (kiểm độc lập cuối), K3 (gộp, áp diff tệp luật đã duyệt, số migration so với nhánh ADR-0047, ô `order.passenger.write`, chốt số bản) CHƯA làm — điều phối: dừng trước K2.
+- K1 ĐÃ LÀM (`779dd45`, số 1.37 tạm). K2 ĐẠT CÓ ĐIỀU KIỆN trên `5a024b4` (mục 8; điều kiện: chủ duyệt mục 5). K3 (gộp, áp diff tệp luật đã duyệt, số migration so với nhánh ADR-0047, ô `order.passenger.write`, chốt số bản) CHƯA làm — điều phối làm ở nhánh phát hành riêng.
 - Chưa thử iPhone thật; chưa thử trên D1 remote (AI không chạy `--remote`).
 - Tệp đề xuất luật: mục 1, 3, 4, 6 chủ duyệt 29/9 (điều phối áp lúc gộp); mục 5 CHƯA hỏi chủ.
 

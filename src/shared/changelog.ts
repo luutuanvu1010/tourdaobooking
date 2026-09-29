@@ -12,7 +12,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
     // ADR-0048 (nhà xe đối tác, tài xế đối tác; Task K1 của docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md). Số "1.37" TẠM theo điều phối
-    // (production 1.35, main có 1.36 chờ triển khai); người gộp chốt số trống kế tiếp LÚC GỘP (nhánh ADR-0047 đang xếp hàng).
+    // (production 1.36 từ 28/9 23:21 giờ VN; 1.37 là bản kế tiếp); người gộp chốt số trống kế tiếp LÚC GỘP (nhánh ADR-0047 đang xếp hàng).
     version: "1.37",
     date: "2026-09-29",
     items: [
