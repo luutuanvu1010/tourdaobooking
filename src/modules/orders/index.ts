@@ -1,7 +1,7 @@
 // Module orders — sổ đơn hàng (spec §2.1 order/order_service/order_item, §2.3 bất biến). Route: /api/orders*.
 // Mọi nhân viên đang hoạt động xem được mọi đơn (§2.4-4); chỉ người lập đơn, người phụ trách đang mở của đơn (ADR-0009) hoặc admin được sửa/xác nhận/huỷ.
 // "Người phụ trách" do module `dispatch` giữ: `orders` KHÔNG import `dispatch` mà hỏi qua `ctx.isAssigned(orderId)` (gốc lắp ráp tiêm — ADR-0007 điều 4(b)).
-import { getAuditTrail } from "../audit";
+import { auditStatement, getAuditTrail } from "../audit";
 import type {
   CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse, OrderResponse,
   PassengerListResponse, PaxCounts, PoolResponse,
@@ -15,7 +15,8 @@ import {
   addLeg, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
   getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
-import { legById, legTripRows, passengerRowsByOrders, servicePaxByIds } from "./chang-hanh-khach-repo";
+import { legById, legShortNotice, legTripRows, passengerRowsByOrders, servicePaxByIds } from "./chang-hanh-khach-repo";
+import { CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, isLyDoDatGap } from "../../shared/chang-dua-don";
 import { dongHienHanh } from "../../shared/hanh-khach";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
@@ -47,6 +48,10 @@ const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đ
 const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
 const LEG_CLOSED = (message = "Chặng đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
 const CANNOT_WRITE_PASSENGERS = () => error(403, "forbidden", "Tài khoản này không được nhập danh sách hành khách của đơn này.");
+/** ADR-0049 D3: đặt gấp chặng dưới mốc — chỉ Quản trị, Toàn quyền (ô `order.leg.short_notice`). */
+const CANNOT_SHORT_NOTICE = () => error(403, "forbidden", "Chỉ Quản trị hoặc Toàn quyền được đặt gấp chặng đưa đón.");
+/** Mốc tối thiểu chưa có (bảng chính sách rỗng / môi trường không tiêm) — CHẶN lệnh cần mốc, không đoán con số (I25). */
+const MOC_CHUA_CO = () => error(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.");
 /** Thân yêu cầu CÓ khoá `passengers` (kể cả `[]`) — ADR-0047 R2b: vắng = giữ danh sách đang lưu, không hỏi ô. */
 const hasPassengersKey = (body: Record<string, unknown> | null): boolean => body !== null && typeof body === "object" && "passengers" in body;
 
@@ -501,6 +506,40 @@ export const ordersModule: AppModule = {
       const plan = await planCloseLeg(env.DB, id, legId, await readJson(request));
       if (!plan.ok) return legFailure(plan);
       if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value }))) return legRaced(env.DB, id, legId);
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    // ---- ĐẶT GẤP (ADR-0049 D2, D3; kế hoạch Task A10, TC-22, TC-25, TC-28): Quản trị / Toàn quyền đóng dấu "đặt gấp" lên MỘT chặng còn mở của đơn nháp
+    // hoặc đã xác nhận → chặng đó được xác nhận / xếp dưới mốc tối thiểu. Ô hỏi ĐẦU thân (403 trước 400). Số phút = mốc HIỆN HÀNH (chụp tại mốc — 5.6);
+    // mốc chưa có → 503. Ghi chú che dãy số, lưu trên chặng, KHÔNG vào nhật ký (I18). Nhật ký: mã đơn + chiều + nhãn lý do.
+    route("POST", "/api/orders/:id/legs/:legId/short-notice", "orders", async ({ env, request, params, staff, baoThayDoi, mocToiThieu }) => {
+      if (!can(staff, "order.leg.short_notice")) return CANNOT_SHORT_NOTICE();
+      const id = params.id!;
+      const legId = params.legId!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const body = await readJson(request);
+      const lyDo = body?.lyDo;
+      if (!isLyDoDatGap(lyDo)) return error(400, "invalid_input", "Chọn lý do đặt gấp.");
+      const ghiChuVao = body?.ghiChu;
+      if (ghiChuVao !== undefined && ghiChuVao !== null && typeof ghiChuVao !== "string") return error(400, "invalid_input", "Ghi chú đặt gấp phải là chữ.");
+      const ghiChuSach = typeof ghiChuVao === "string" && ghiChuVao.trim() !== "" ? maskLongDigits(ghiChuVao.trim()) : null;
+      if (ghiChuSach !== null && ghiChuSach.length > GHI_CHU_DAT_GAP_TOI_DA) return error(400, "invalid_input", `Ghi chú đặt gấp tối đa ${GHI_CHU_DAT_GAP_TOI_DA} ký tự.`);
+      const [meta, moc] = await Promise.all([getMeta(env.DB, id), mocToiThieu()]);
+      if (!meta) return NOT_FOUND();
+      if (meta.status === "cancelled") return CANCELLED();
+      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
+      const [leg, ref] = await Promise.all([legById(env.DB, legId, id), getOrderRef(env.DB, id)]);
+      if (!leg) return LEG_NOT_FOUND();
+      if (leg.closed_at) return LEG_CLOSED();
+      if (!moc) return MOC_CHUA_CO();
+      const at = new Date().toISOString();
+      const detail = `${ref?.orderCode ?? ""} · ${CHIEU_LABEL[leg.direction]} · đặt gấp: ${LY_DO_DAT_GAP[lyDo]}`;
+      const results = await env.DB.batch([
+        legShortNotice(env.DB, legId, id, { lyDo, ghiChu: ghiChuSach, by: staff.id, at, phut: moc.phut }),
+        auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_leg_short_notice", at, detail }, "changes() > 0"),
+      ]);
+      if ((results[0]!.meta.changes ?? 0) === 0) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),

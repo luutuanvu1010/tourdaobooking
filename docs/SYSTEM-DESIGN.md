@@ -483,7 +483,7 @@ Các bước: `markAttempt` → `fetchSheetCsv` → `parseCatalogSheet` (cột b
 
 ## 7. Danh mục API
 
-Tất cả 125 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`; con số này ĐỔI theo thời gian, đừng tin số ghi ở đây hơn lệnh grep).
+Tất cả 126 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đếm lại: `grep -ho 'route("' src/modules/*/index.ts | wc -l`; con số này ĐỔI theo thời gian, đừng tin số ghi ở đây hơn lệnh grep).
 
 | Phương thức | Đường dẫn | Mức truy cập | Module | Mục đích |
 |---|---|---|---|---|
@@ -522,6 +522,7 @@ Tất cả 125 route khai bằng `route(...)` trong `src/modules/*/index.ts` (đ
 | POST | `/api/orders/:id/legs` | orders | orders | ADR-0047 A1: thêm chặng cho đơn ĐÃ XÁC NHẬN (`order.trip.edit` { ownerId, assigned }); thân `{ expectedUpdatedAt (của đơn), serviceId, leg }` → 201 `{ order }`; 400 `invalid_input`, 403, 404, 409 `use_order_form` (nháp) / `not_editable` (huỷ) / `stale` |
 | PUT | `/api/orders/:id/legs/:legId` | orders | orders | sửa trường vận hành của chặng mở (không đổi chiều); thân `{ expectedUpdatedAt (của CHẶNG), leg }` → 200 `{ order }`; 404 `leg_not_found`, 409 `leg_closed` / `stale` / `use_order_form` / `not_editable` |
 | POST | `/api/orders/:id/legs/:legId/close` | orders | orders | bỏ chặng = đóng dòng có lý do (`NOT_NEEDED`/`WRONG_ENTRY`/`REPLACED`); thân `{ expectedUpdatedAt (của CHẶNG), reasonCode }` → 200; mã lỗi như trên |
+| POST | `/api/orders/:id/legs/:legId/short-notice` | orders | orders | **ĐẶT GẤP** (ADR-0049 D2, D3 — nhánh thi công, CHƯA lên production): thân `{ lyDo, ghiChu? }` — `lyDo` ∈ `LY_DO_DAT_GAP` (`KHACH_DAT_SAT_GIO`, `SU_CO_VAN_HANH`, `KHAC`), ghi chú ≤ 120 ký tự SAU khi che dãy số (lưu trên chặng, KHÔNG vào nhật ký); đóng năm cột `short_notice_*` lên chặng còn mở của đơn nháp hoặc đã xác nhận, số phút = mốc tối thiểu HIỆN HÀNH (`ctx.mocToiThieu` — chưa có → **503 `moc_toi_thieu_chua_co`**); đóng dấu lại được (dấu mới thay dấu cũ). Đơn lạ 404, chặng lạ 404 `leg_not_found`, chặng đã bỏ 409 `leg_closed`, đơn huỷ 409. Nhật ký `order_leg_short_notice` (mã đơn · chiều · nhãn lý do). Bảng tin "chuyen". Ô `order.leg.short_notice` (chỉ Quản trị, Toàn quyền) hỏi ĐẦU thân |
 | GET | `/api/orders/:id/passengers` | orders | orders | ADR-0047 A2: danh sách hành khách (dòng hiện hành) + cờ `vuotSoKhach` (R9); khuôn chi tiết đơn: `order.view` rồi `contact.view` theo phạm vi đơn (chỉ-HDV không phụ trách → 404) |
 | POST | `/api/orders/:id/passengers` | orders | orders | thêm / sửa (dòng mới) / huỷ hành khách của đơn ĐÃ XÁC NHẬN (`order.passenger.write`); thân `{ expectedUpdatedAt (của đơn), them, sua, huy }` → 200 danh sách; 409 `use_order_form` (nháp — gửi `passengers` trong `PUT /api/orders`) |
 | PUT | `/api/orders/:id/booker` | orders | orders | đổi khách (hồ sơ người đặt + tên/SĐT chụp trên đơn) của đơn **nháp hoặc đã xác nhận** — cùng quyền `order.trip.edit` với sửa chuyến (ADR-0011 điều 2); nhận `bookerPartyId`/`newBooker` (không gửi cả hai); 400 `invalid_input`, 403 `forbidden`, 404 `not_found`, 409 `stale` (khoá lạc quan) / `not_editable` (đơn đã huỷ); nhật ký `booker_changed` "từ A sang B" bằng tên, không SĐT |
@@ -645,6 +646,7 @@ Hai tầng, cả hai **mặc định từ chối**:
 | `order.create` | any | none | any | none | any | `POST /api/orders`; `GET /api/catalog/for-order` (chốt chặn trước mọi truy vấn — ADR-0033; bài khoá "`order.create` ≠ none ⇒ `money.view` ≠ none" ở `src/shared/permissions.test.ts`); `web/shell.ts`, `web/orders.ts`, `web/order-form.ts` |
 | `order.modify` | ownOrAssigned | none | any | none | own | `PUT /api/orders/:id`, `POST /api/orders/:id/status`, cờ `canModify` |
 | `order.trip.edit` | ownOrAssigned | none | any | none | none | `PUT /api/orders/:id/trip`; ba route chặng sau xác nhận (ADR-0047 A1) |
+| `order.leg.short_notice` (ADR-0049 D3) | none | none | any | none | none | `POST /api/orders/:id/legs/:legId/short-notice` (đặt gấp); nhánh `datGap` của lệnh sửa chặng dưới mốc (A10 — Q3 chủ: chỉ Quản trị, Toàn quyền). Toàn quyền any. Tài xế, tài xế đối tác, Thực tập none |
 | `order.passenger.write` | ownOrAssigned | none | any | none | own | ADR-0047 A2 (ô MỚI, bằng `order.modify` — bài suy từ MATRIX; INTERN own, DRIVER none): `POST /api/orders/:id/passengers`; `POST`/`PUT /api/orders` khi thân có khoá `passengers` (bài khoá văn bản) |
 | `task.progress` | none | none | any | assigned | assigned | **chưa có route** (N2; PARTNER chỉ có tác dụng sau khi được duyệt "xin nhận" — Phase C) |
 | `order.money.edit` | own | any | any | assigned | none | `POST /api/orders/:id/handler-money-edit` (module `dispatch` — ADR-0014 điều 6, FIELD đang phụ trách sửa số khách; ghi qua bảng `order_money_adjustment`, không sửa đè `order_service`/`order_item`/cột tiền) |

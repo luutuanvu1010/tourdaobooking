@@ -284,6 +284,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "party.document.view": "none", "party.document.write": "none", "party.document.reveal": "none", // ADR-0040 D2: Đối tác không có giấy tờ trong app
     "vehicle.manage": "none", // ADR-0040 D1: quản lý xe chỉ Quản trị + Toàn quyền
     "order.passenger.write": "own", // ADR-0047 A2: bằng order.modify — Đối tác nhập tên khách cho đơn CỦA MÌNH
+    "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

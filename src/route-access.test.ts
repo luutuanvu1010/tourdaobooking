@@ -134,6 +134,7 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/orders/:id/legs", access: "orders" },
   { method: "PUT", path: "/api/orders/:id/legs/:legId", access: "orders" },
   { method: "POST", path: "/api/orders/:id/legs/:legId/close", access: "orders" },
+  { method: "POST", path: "/api/orders/:id/legs/:legId/short-notice", access: "orders" },
   // ADR-0047 A2 (2026-09-29): danh sách hành khách — GET hỏi can(order.view) rồi can(contact.view); POST hỏi can(order.passenger.write) trước khi đọc thân
   { method: "GET", path: "/api/orders/:id/passengers", access: "orders" },
   { method: "POST", path: "/api/orders/:id/passengers", access: "orders" },
@@ -231,7 +232,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 125 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 126 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -257,8 +258,9 @@ test("mức truy cập của 125 route hiện có khớp ảnh chụp đã duy�
   // 2026-09-29 (ADR-0049 lát 1.1, nhánh song song từ main): + 7 route chính sách điều phối / điều kiện xuất bến / hạng bằng (cổng office, settings.ops)
   // + 3 route danh mục lý do (cổng admin, admin.manage) = 120 (gộp trên nền main 1.37 = 110 route, 29/9).
   // 2026-09-29 (ADR-0047 A1, gộp nền Phần A vào nhánh ADR-0049): + 3 route chặng đưa đón sau xác nhận (POST /api/orders/:id/legs, PUT …/legs/:legId,
-  // POST …/legs/:legId/close) + 2 route danh sách hành khách (GET/POST /api/orders/:id/passengers, ADR-0047 A2) = 125.)
+  // POST …/legs/:legId/close) + 2 route danh sách hành khách (GET/POST /api/orders/:id/passengers, ADR-0047 A2) = 125.
+  // 2026-09-29 (ADR-0049 lát 1.4, Task A10): + 1 route đặt gấp (POST /api/orders/:id/legs/:legId/short-notice — cổng orders, ô order.leg.short_notice) = 126.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 125, "số route thực tế lệch 125 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 125, "SNAPSHOT phải có đúng 125 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 126, "số route thực tế lệch 126 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 126, "SNAPSHOT phải có đúng 126 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

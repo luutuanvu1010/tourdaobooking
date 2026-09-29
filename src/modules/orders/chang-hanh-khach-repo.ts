@@ -214,6 +214,30 @@ const LEG_FILL_DATE_ON_CONFIRM = defineSql(
 );
 export const legFillDateOnConfirm = (db: D1Database, orderId: string, at: string): D1PreparedStatement => db.prepare(LEG_FILL_DATE_ON_CONFIRM).bind(orderId, at);
 
+// ---- Đặt gấp (ADR-0049 D2, D3; kế hoạch Task A10) ----------------------------------------------------------------------------------------------
+
+/**
+ * ĐÓNG DẤU đặt gấp lên MỘT chặng còn mở của đơn nháp hoặc đã xác nhận — CÂU ĐẦU LÔ của route đặt gấp (không lính gác: chính nó quyết định thắng/thua;
+ * nhật ký theo sau bằng `changes() > 0`). Đẩy mốc CỦA CHẶNG (khoá lạc quan của route sửa chặng — form đang mở thấy "vừa có người sửa"). Đóng dấu lại
+ * (dấu mới thay dấu cũ) là hợp lệ (I14). Năm cột chỉ được ghi ở đây và ở nhánh `datGap` của lệnh sửa chặng (I16) — thân lập/sửa nháp không đọc khoá này.
+ */
+const LEG_SHORT_NOTICE = defineSql(
+  "orders",
+  "leg_short_notice",
+  `UPDATE ord_transfer_leg SET short_notice_reason = ?1, short_notice_note = ?2, short_notice_by = ?3, short_notice_at = ?4, short_notice_lead_minutes = ?5,
+     updated_at = ?4, updated_by = ?3
+   WHERE id = ?6 AND order_id = ?7 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM orders WHERE id = ?7 AND status IN ('draft', 'confirmed'))`,
+);
+export interface DatGapWrite {
+  lyDo: string;
+  ghiChu: string | null;
+  by: string;
+  at: string;
+  phut: number;
+}
+export const legShortNotice = (db: D1Database, legId: string, orderId: string, d: DatGapWrite): D1PreparedStatement =>
+  db.prepare(LEG_SHORT_NOTICE).bind(d.lyDo, d.ghiChu, d.by, d.at, d.phut, legId, orderId);
+
 // ---- Ghi kép hai cột cũ (Ruling R3, phát hành 1) ---------------------------------------------------------------------------------------------
 
 /**

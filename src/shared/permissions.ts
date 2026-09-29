@@ -76,6 +76,9 @@ export const MATRIX = {
   "order.create": row("any", "none", "any", "none", "any", "any", "any", "none", "none"), // lập đơn (đơn mới luôn là của người lập)
   "order.modify": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"), // sửa, xác nhận, huỷ đơn (ADR-0009: cả người phụ trách; ADR-0014: PARTNER của mình)
   "order.trip.edit": row("ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"), // thông tin vận hành sau xác nhận
+  // ADR-0049 D3: ĐẶT GẤP chặng dưới mốc tối thiểu (route POST /api/orders/:id/legs/:legId/short-notice + nhánh `datGap` của lệnh sửa chặng) — chỉ Quản trị,
+  // Toàn quyền (ĐP2, chủ Q3 29/9). Không phạm vi đơn: Quản trị duyệt đặt gấp cho mọi đơn.
+  "order.leg.short_notice": row("none", "none", "any", "none", "none", "any", "none", "none", "none"),
   "order.passenger.write": row("ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"), // ADR-0047 A2: nhập, sửa (dòng mới), huỷ dòng trong danh sách hành khách — bằng order.modify; tài xế không đi qua ô này
   "task.progress": row("none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"), // cập nhật trạng thái việc được giao — PARTNER chỉ có tác dụng khi đang phụ trách (ADR-0014 điều 10)
   "order.money.edit": row("own", "any", "any", "assigned", "none", "any", "none", "none", "none"), // số khách, dịch vụ, tiền sau xác nhận — ADR-0014 điều 6, route: POST /api/orders/:id/handler-money-edit (module dispatch, FIELD)

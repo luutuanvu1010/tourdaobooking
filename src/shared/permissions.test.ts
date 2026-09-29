@@ -19,6 +19,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.create": ["any", "none", "any", "none", "any", "any", "any", "none", "none"],
   "order.modify": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"],
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"],
+  "order.leg.short_notice": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; chỉ Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
@@ -53,7 +54,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER", "DRIVER_PARTNER"];
 const OPS = Object.keys(ADR) as OperationCode[];
 
-test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0013 + ADR-0014 + ADR-0018 (giai đoạn 1) + Góp ý + ADR-0019 + ADR-0024 (T2b) + ADR-0030 + ADR-0034 + ADR-0040 + ADR-0047 + ADR-0048 (mọi thao tác × 9 quyền)", () => {
+test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0013 + ADR-0014 + ADR-0018 (giai đoạn 1) + Góp ý + ADR-0019 + ADR-0024 (T2b) + ADR-0030 + ADR-0034 + ADR-0040 + ADR-0047 + ADR-0048 + ADR-0049 (mọi thao tác × 9 quyền)", () => {
   for (const op of OPS) assert.equal(ADR[op]!.length, ORDER.length, `bảng ADR: hàng ${op} phải đủ ${ORDER.length} cột`);
   assert.deepEqual([...PERMISSION_CODES], [...ORDER]);
   assert.deepEqual(Object.keys(MATRIX).sort(), Object.keys(ADR).sort(), "MATRIX và ADR phải có cùng danh sách thao tác");
@@ -277,6 +278,7 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
+    "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
@@ -298,6 +300,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2 × ADR-0048 D2 (mọi ô nghiệp vụ của tài xế đối tác = none): không nhập / sửa / huỷ danh sách hành khách
+    "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
@@ -321,4 +324,12 @@ test("quyenHienThi (ADR-0042): người xem không giữ Toàn quyền thấy SU
 // chép tay): ai đổi một ô của một trong hai hàng mà quên hàng kia thì đỏ ở đây — tách ô nhập tên khách khỏi ô sửa đơn phải là quyết định có chủ đích.
 test("ADR-0047 A2: order.passenger.write = order.modify ở MỌI cột quyền (suy từ MATRIX)", () => {
   for (const p of PERMISSION_CODES) assert.equal(MATRIX["order.passenger.write"][p], MATRIX["order.modify"][p], `order.passenger.write × ${p} phải bằng order.modify × ${p}`);
+});
+
+// ADR-0049 D3 (siết): đặt gấp chặng dưới mốc 6 giờ CHỈ Quản trị + Toàn quyền — lỡ mở cho Bán hàng / Thực tập / Đối tác thì đỏ ở đây.
+test("ADR-0049 D3: ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN (any); mọi mã khác none", () => {
+  const co = PERMISSION_CODES.filter((p) => MATRIX["order.leg.short_notice"][p] !== "none");
+  assert.deepEqual(co, ["ADMIN", "SUPER_ADMIN"]);
+  assert.equal(MATRIX["order.leg.short_notice"].ADMIN, "any");
+  assert.equal(MATRIX["order.leg.short_notice"].SUPER_ADMIN, "any");
 });

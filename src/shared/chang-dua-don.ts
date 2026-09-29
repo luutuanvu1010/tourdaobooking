@@ -25,6 +25,20 @@ export type LyDoDongChang = keyof typeof LY_DO_DONG_CHANG;
 export const isLyDoDongChang = (v: unknown): v is LyDoDongChang => typeof v === "string" && Object.hasOwn(LY_DO_DONG_CHANG, v);
 
 /**
+ * Lý do ĐẶT GẤP một chặng dưới mốc tối thiểu (ADR-0049 D2; kế hoạch I26 — giả định G-02 của thiết kế, đổi bằng mã). Danh sách ĐÓNG ở mã (khuôn
+ * `LY_DO_DONG_CHANG`); CSDL (0040) chỉ giữ khuôn chữ HOA. Chỉ Quản trị, Toàn quyền đặt gấp (ô `order.leg.short_notice`).
+ */
+export const LY_DO_DAT_GAP = {
+  KHACH_DAT_SAT_GIO: "Khách đặt sát giờ",
+  SU_CO_VAN_HANH: "Sự cố vận hành",
+  KHAC: "Khác",
+} as const;
+export type LyDoDatGap = keyof typeof LY_DO_DAT_GAP;
+export const isLyDoDatGap = (v: unknown): v is LyDoDatGap => typeof v === "string" && Object.hasOwn(LY_DO_DAT_GAP, v);
+/** Ghi chú đặt gấp tối đa (khớp `CHECK` của 0040) — đếm SAU khi che dãy số. */
+export const GHI_CHU_DAT_GAP_TOI_DA = 120;
+
+/**
  * Chữ tạm cho nơi đón còn thiếu (nơi đón là BẮT BUỘC ở chặng): (1) migration 0034 chép dịch vụ cũ có giờ đón mà không có điểm đón — Q1 (a), GIẢ ĐỊNH chờ
  * chủ chạy truy vấn đếm; (2) thân yêu cầu CŨ gửi giờ đón mà để trống điểm đón (`tronChangCu`). Kiểm định kỳ R-ORD-12 liệt kê chặng mở còn chữ này.
  */
