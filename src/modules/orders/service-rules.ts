@@ -1,5 +1,6 @@
 // Luật thuần cho MỘT dịch vụ trong đơn (docs/superpowers/specs/2026-09-19-thong-tin-chuyen-di-design.md §4.2):
 // số khách, thông tin chuyến, dòng tiền do MÁY CHỦ sinh, bản chụp cho nháp cũ, điều kiện xác nhận, sửa trường vận hành. Không I/O.
+import type { ChangDaLuu, ChangHopLe } from "../../shared/chang-dua-don.ts";
 import type { CatalogChangeDto, CatalogStatus, MissingReason, TripGapDto, TripInfoDto } from "../../shared/contracts.ts";
 import {
   CATALOG_CODE_RE, MAX_AMOUNT_VND, MAX_GUESTS_PER_SERVICE, PAX_LABEL, PAX_ORDER, buildLines, paxTotal, payingGuests, priceDeviation,
@@ -42,6 +43,11 @@ export interface ValidService {
   pax: PaxCounts;
   trip: ValidTrip;
   items: ValidItem[];
+  /**
+   * Chặng đưa đón SẼ LƯU của dịch vụ (ADR-0047 A1) — `validateOrder` điền (thân mới `legs`, hoặc trộn thân cũ vào chặng đang lưu — R2b). Nơi gọi khác
+   * (`validateService` đơn lẻ) để rỗng. `trip.pickupTime/pickupPlace` được đặt lại = dẫn xuất (`chieuDiDau`) sau khi biết tên điểm (ghi kép R3).
+   */
+  legs: ChangHopLe[];
 }
 
 /** Dịch vụ đã lưu của đơn đang sửa (từ D1), đủ để dựng lại "bản chụp". */
@@ -59,6 +65,12 @@ export interface ServiceContext {
   /** Danh mục hiệu lực theo mã (kể cả dịch vụ đang ẩn — có cờ `visible`). */
   catalog: ReadonlyMap<string, EffectiveService>;
   stored: readonly StoredService[];
+  /** ADR-0047: ngày đi + chặng CÒN HIỆU LỰC đang lưu của từng dịch vụ (theo id dịch vụ) — trộn thân cũ (R2b), dời ngày (R4e), kiểm id chặng gửi lên. */
+  storedTrips?: ReadonlyMap<string, { departDate: string | null; legs: readonly ChangDaLuu[] }>;
+  /** ADR-0047: id các dòng hành khách đang lưu của đơn nháp (kiểm `id` gửi lên khi lưu nháp). */
+  storedPassengerIds?: ReadonlySet<string>;
+  /** Hôm nay (giờ VN) — năm sinh hành khách. Vắng = tính lúc gọi. */
+  today?: string;
 }
 
 export type ServiceFailure = { ok: false; message: string; code?: "catalog_changed" | "catalog_unavailable"; details?: unknown };
@@ -211,7 +223,7 @@ function catalogService(s: Record<string, unknown>, at: string, index: number, p
     if (lineTotal > MAX_AMOUNT_VND) return fail(`${at}: thành tiền vượt giới hạn.`);
     items.push({ catalogCode: code, paxCode: l.pax, description: l.description, detail: l.detail || null, quantity: l.quantity, unitPrice: l.unitPrice, catalogPrice: l.catalogPrice, lineTotal });
   }
-  return { ok: true, value: { id: stored?.id ?? null, kind: "catalog", catalogCode: code, name: source.name, unit: source.unit, pax, trip, items } };
+  return { ok: true, value: { id: stored?.id ?? null, kind: "catalog", catalogCode: code, name: source.name, unit: source.unit, pax, trip, items, legs: [] } };
 }
 
 // ---- Dịch vụ nhập tay --------------------------------------------------------------------------------------------
@@ -239,7 +251,7 @@ function manualService(s: Record<string, unknown>, at: string, pax: PaxCounts, t
     items.push({ catalogCode: null, paxCode: null, description: description.value!, detail: detail.value, quantity: quantity.value, unitPrice: unitPrice.value, catalogPrice: null, lineTotal });
   }
   const stored = typeof s.id === "string" ? ctx.stored.find((x) => x.id === s.id) : undefined;
-  return { ok: true, value: { id: stored?.id ?? null, kind: "manual", catalogCode: null, name: name.value!, unit: "manual", pax, trip, items } };
+  return { ok: true, value: { id: stored?.id ?? null, kind: "manual", catalogCode: null, name: name.value!, unit: "manual", pax, trip, items, legs: [] } };
 }
 
 export function validateService(raw: unknown, index: number, ctx: ServiceContext): ServiceResult {

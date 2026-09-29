@@ -162,6 +162,10 @@ export interface TripInfoDto {
   note: string | null;
 }
 
+/**
+ * Một dịch vụ trong chi tiết đơn. Từ ADR-0047 (phát hành 1): `pickupTime`/`pickupPlace` (kế thừa từ `TripInfoDto`) là DẪN XUẤT của chặng chiều đi đầu
+ * (`chieuDiDau`, src/shared/chang-dua-don.ts — nơi = tên điểm danh mục hoặc chữ), không còn đọc từ cột cũ; `legs` = mọi chặng CÒN HIỆU LỰC.
+ */
 export interface OrderServiceDto extends TripInfoDto {
   id: string;
   kind: "catalog" | "manual";
@@ -172,6 +176,8 @@ export interface OrderServiceDto extends TripInfoDto {
   pax: PaxCounts;
   items: OrderItemDto[];
   catalogStatus: CatalogStatus | null;
+  /** Chặng đưa đón còn hiệu lực (ADR-0047 A1), xếp theo ngày, giờ đón, chiều. Rỗng = không có hẹn đón. */
+  legs: LegDto[];
 }
 
 export interface OrderDto {

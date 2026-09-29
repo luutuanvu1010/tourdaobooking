@@ -81,6 +81,16 @@ function insertService(sqlite: DatabaseSync, s: { id: string; orderId: string; s
   sqlite
     .prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date, pickup_time, pickup_place) VALUES (?, ?, ?, NULL, ?, 'manual', 1, ?, ?, ?)`)
     .run(s.id, s.orderId, s.sortOrder ?? 0, s.name ?? "Dịch vụ", s.departDate ?? null, s.pickupTime ?? null, s.pickupPlace ?? null);
+  // ADR-0047 (R2a, R3): giờ/nơi đón nay ĐỌC từ chặng đưa đón — cột cũ chỉ là bản sao ghi kép. Có dữ liệu đón thì gieo luôn một chặng chiều đi (đúng như
+  // migration 0034 chép: ngày đón = ngày đi, nơi trống → "(chưa ghi nơi đón)").
+  if (s.pickupTime != null || s.pickupPlace != null) {
+    sqlite
+      .prepare(
+        `INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_place, created_at, updated_at)
+         VALUES (?, ?, ?, 'OUT', ?, ?, ?, '2026-09-24T00:00:00.000Z', '2026-09-24T00:00:00.000Z')`,
+      )
+      .run(`leg-${s.id}`, s.orderId, s.id, s.departDate ?? null, s.pickupTime ?? null, s.pickupPlace ?? "(chưa ghi nơi đón)");
+  }
 }
 
 /**
@@ -185,7 +195,7 @@ test("today: chỉ đơn confirmed có dịch vụ SỚM NHẤT (trong các dị
 
   // o4: confirmed, 2 dịch vụ — SỚM NHẤT là hôm nay, dịch vụ còn lại ngày khác (mai) → VẪN có (không rơi rụng vì "còn dịch vụ khác ngày khác").
   insertDraftOrder(sqlite, { id: "o4", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
-  insertService(sqlite, { id: "sv4a", orderId: "o4", sortOrder: 0, departDate: TODAY, pickupTime: "06:00" });
+  insertService(sqlite, { id: "sv4a", orderId: "o4", sortOrder: 0, departDate: TODAY, pickupTime: "06:00", pickupPlace: "Khách sạn 4a" });
   insertService(sqlite, { id: "sv4b", orderId: "o4", sortOrder: 1, departDate: TOMORROW });
   confirm(sqlite, "o4");
 
@@ -203,7 +213,7 @@ test("today: chỉ đơn confirmed có dịch vụ SỚM NHẤT (trong các dị
   );
   const o4 = data.today.find((o) => o.id === "o4")!;
   assert.deepEqual(o4.pax, { adult: 2, child: 0, senior: 0, infant: 0 }, "pax cộng dồn CẢ HAI dịch vụ của đơn");
-  assert.deepEqual(o4.trip, { departDate: TODAY, pickupTime: "06:00", pickupPlace: null }, "trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (sv4a — ngày sớm nhất có ngày đón; ở đây trùng với sort_order nhỏ nhất, KHÔNG phải quy tắc chung, xem test 'trip lấy theo dịch vụ QUYẾT ĐỊNH…' bên dưới)");
+  assert.deepEqual(o4.trip, { departDate: TODAY, pickupTime: "06:00", pickupPlace: "Khách sạn 4a" }, "trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (sv4a — ngày sớm nhất có ngày đón; ở đây trùng với sort_order nhỏ nhất, KHÔNG phải quy tắc chung, xem test 'trip lấy theo dịch vụ QUYẾT ĐỊNH…' bên dưới)");
 });
 
 test("today: đơn có điều chỉnh tiền → total/remainingAmount trong danh sách hôm nay là số HIỆN HÀNH, không phải cột gốc (bài học Đợt B)", async () => {
@@ -451,8 +461,8 @@ test("today: trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (ngày sớm n
   // o7: sort_order=0 là NGÀY MAI (giờ 20:00), sort_order=1 là HÔM NAY (giờ 09:00) — dịch vụ quyết định "hôm nay" là sort_order=1,
   // nhưng summarizeServices() (dùng cho listOrders) sẽ chọn sort_order=0 nếu bị dùng nhầm ở đây.
   insertDraftOrder(sqlite, { id: "o7", staffId: "s-a", createdAt: "2026-09-20T01:00:00.000Z" });
-  insertService(sqlite, { id: "sv7a", orderId: "o7", sortOrder: 0, departDate: TOMORROW, pickupTime: "20:00" });
-  insertService(sqlite, { id: "sv7b", orderId: "o7", sortOrder: 1, departDate: TODAY, pickupTime: "09:00" });
+  insertService(sqlite, { id: "sv7a", orderId: "o7", sortOrder: 0, departDate: TOMORROW, pickupTime: "20:00", pickupPlace: "Khách sạn 7a" });
+  insertService(sqlite, { id: "sv7b", orderId: "o7", sortOrder: 1, departDate: TODAY, pickupTime: "09:00", pickupPlace: "Khách sạn 7b" });
   confirm(sqlite, "o7");
 
   const data = await getDashboard(db, "s-a", TODAY, WEEK.from, WEEK.to, NO_HANDLERS);
@@ -464,7 +474,7 @@ test("today: trip lấy theo dịch vụ QUYẾT ĐỊNH hôm nay (ngày sớm n
   const o7 = data.today.find((o) => o.id === "o7")!;
   assert.deepEqual(
     o7.trip,
-    { departDate: TODAY, pickupTime: "09:00", pickupPlace: null },
+    { departDate: TODAY, pickupTime: "09:00", pickupPlace: "Khách sạn 7b" },
     "trip phải là của sv7b (dịch vụ quyết định hôm nay), KHÔNG phải sv7a (sort_order nhỏ nhất, ngày mai lúc 20:00)",
   );
 });

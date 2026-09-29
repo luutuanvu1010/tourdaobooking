@@ -21,7 +21,7 @@ import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
 import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
-import { loadOrderView, resolveBooker, validationContext, type OrderValidationContext } from "./service";
+import { loadOrderView, resolveBooker, resolveLegPlaces, validationContext, type OrderValidationContext } from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -274,13 +274,16 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx);
       if (guard) return guard;
-      const booker = await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date());
+      // ADR-0047 (R7, R3): điểm danh mục của chặng phải đang dùng; đặt hai khoá cũ = dẫn xuất từ chặng (ghi kép vào cột cũ).
+      const placed = await resolveLegPlaces(env.DB, parsed.value, ctx);
+      if (!placed.ok) return error(400, "invalid_input", placed.message);
+      const booker = await resolveBooker(env.DB, placed.value.booker, staff.id, new Date());
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       // Người được chọn: `dispatch` trả câu lệnh (mở dòng `HANDLE` + nhật ký `order_handler_changed`) để gộp vào CÙNG db.batch() tạo đơn — dựng theo id
       // đơn và mốc `at` của TỪNG lần thử của `createOrder`, nên dòng phụ trách và nhật ký cùng mốc với dòng `created`. Không đạt → 400, không tạo đơn.
       const handler = pick.staffId === null ? null : await newOrderHandler(pick.staffId);
       if (handler && !handler.ok) return error(400, "invalid_assignee", handler.message);
-      const id = await createOrder(env.DB, staff.id, parsed.value, handler?.statements, booker.write);
+      const id = await createOrder(env.DB, staff.id, placed.value, handler?.statements, booker.write);
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
@@ -317,7 +320,9 @@ export const ordersModule: AppModule = {
       if (!parsed.ok) return failure(parsed);
       const guard = priceGuard(staff, parsed.value, ctx);
       if (guard) return guard;
-      const expected = parsed.value.expectedUpdatedAt;
+      const placed = await resolveLegPlaces(env.DB, parsed.value, ctx); // ADR-0047 (R7, R3)
+      if (!placed.ok) return error(400, "invalid_input", placed.message);
+      const expected = placed.value.expectedUpdatedAt;
       if (!expected) return error(400, "invalid_input", "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà form đã đọc).");
       // Thân yêu cầu không có CẢ HAI khoá `bookerPartyId`/`newBooker` (một `order-form.js` PWA cũ trong bộ nhớ đệm chưa biết trường người đặt) → GIỮ NGUYÊN
       // người đặt đang lưu, không gọi resolveBooker (đơn đang phụ trách bởi hồ sơ đã bị ngưng sẽ 400 nếu resolveBooker chạy lại). `bookerPartyId: null`
@@ -325,9 +330,11 @@ export const ordersModule: AppModule = {
       const noBookerKeys = body !== null && typeof body === "object" && !("bookerPartyId" in body) && !("newBooker" in body);
       const booker = noBookerKeys
         ? { ok: true as const, write: { partyId: meta.bookerPartyId, before: [], note: null } }
-        : await resolveBooker(env.DB, parsed.value.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
+        : await resolveBooker(env.DB, placed.value.booker, staff.id, new Date(), { id: meta.bookerPartyId, name: meta.bookerName });
       if (!booker.ok) return error(400, "invalid_input", booker.message);
-      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...parsed.value, expectedUpdatedAt: expected }, booker.write))) {
+      // ADR-0047: lưu nháp xoá–chèn lại chặng — giữ `created_*` của chặng gửi lại cùng id.
+      const legMeta = new Map(ctx.stored.flatMap((s) => s.legs.map((l) => [l.id, { createdAt: l.createdAt, createdBy: l.createdBy }] as const)));
+      if (!(await updateDraftOrder(env.DB, id, staff.id, { ...placed.value, expectedUpdatedAt: expected }, booker.write, legMeta))) {
         const now = await getMeta(env.DB, id);
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
       }

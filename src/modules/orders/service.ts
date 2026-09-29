@@ -6,8 +6,11 @@ import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
+import { chieuDiDau } from "../../shared/chang-dua-don";
+import { activeLocations, passengerRowsByOrders } from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder } from "./money-adjustment";
 import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type StoredServiceRow } from "./repository";
+import type { ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext } from "./service-rules";
 
 /** `ServiceContext` kèm dịch vụ đã lưu ĐẦY ĐỦ (có `lines`) — route dùng lại cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01) sau `validateOrder`. */
@@ -20,8 +23,56 @@ export interface OrderValidationContext extends ServiceContext {
  * các dịch vụ đã lưu của đơn đó (để giữ bản chụp cho nháp cũ, và để so "giữ nguyên" dịch vụ nhập tay cũ — `manualFreezeViolation`).
  */
 export async function validationContext(db: D1Database, orderId: string | null): Promise<OrderValidationContext> {
-  const [catalog, stored] = await Promise.all([getEffectiveServices(db), orderId ? getStoredServices(db, orderId) : Promise.resolve([])]);
-  return { catalog, stored };
+  const [catalog, stored, paxRows] = await Promise.all([
+    getEffectiveServices(db),
+    orderId ? getStoredServices(db, orderId) : Promise.resolve([]),
+    orderId ? passengerRowsByOrders(db, [orderId]) : Promise.resolve([]),
+  ]);
+  return {
+    catalog,
+    stored,
+    // ADR-0047: chặng còn hiệu lực + ngày đi đang lưu (trộn thân cũ, dời ngày, kiểm id chặng); id hành khách đang lưu (đơn nháp: giữ id khi lưu lại).
+    storedTrips: new Map(stored.map((s) => [s.id, { departDate: s.trip.departDate, legs: s.legs }] as const)),
+    storedPassengerIds: new Set(paxRows.filter((p) => !p.voided).map((p) => p.id)),
+    today: vnToday(new Date()),
+  };
+}
+
+/**
+ * ADR-0047 A1, Ruling R7 (có I/O): điểm danh mục ở nơi đón/nơi trả của chặng phải ĐANG DÙNG (`v_loc_location_label`, mọi loại điểm) — TRỪ chặng đang lưu
+ * giữ nguyên điểm cũ (điểm đã ngừng sau khi lưu không chặn lần lưu sau). Xong thì đặt `trip.pickupTime/pickupPlace` = DẪN XUẤT (`chieuDiDau`, nơi = tên điểm
+ * hoặc chữ) — nguồn của GHI KÉP hai cột cũ (Ruling R3) và của nhật ký. Trả đơn mới (không sửa đầu vào).
+ */
+export async function resolveLegPlaces(db: D1Database, order: ValidOrder, ctx: OrderValidationContext): Promise<{ ok: true; value: ValidOrder } | { ok: false; message: string }> {
+  const known = new Map<string, string>();
+  const kept = new Set<string>();
+  for (const s of ctx.stored) {
+    for (const l of s.legs) {
+      if (l.pickupLocationId) {
+        known.set(l.pickupLocationId, l.pickupLabel);
+        kept.add(`${l.id}|p|${l.pickupLocationId}`);
+      }
+      if (l.dropoffLocationId && l.dropoffLabel !== null) {
+        known.set(l.dropoffLocationId, l.dropoffLabel);
+        kept.add(`${l.id}|d|${l.dropoffLocationId}`);
+      }
+    }
+  }
+  const need = new Set<string>();
+  for (const s of order.services) {
+    for (const l of s.legs) {
+      if (l.pickupLocationId && !kept.has(`${l.id}|p|${l.pickupLocationId}`)) need.add(l.pickupLocationId);
+      if (l.dropoffLocationId && !kept.has(`${l.id}|d|${l.dropoffLocationId}`)) need.add(l.dropoffLocationId);
+    }
+  }
+  const active = await activeLocations(db, [...need]);
+  for (const id of need) if (!active.has(id)) return { ok: false, message: "Nơi đón / nơi trả: điểm đã chọn không còn dùng được — hãy chọn lại điểm khác hoặc gõ nơi đón." };
+  for (const [id, name] of active) known.set(id, name);
+  const services = order.services.map((s) => {
+    const labelled = s.legs.map((l) => ({ id: l.id ?? "", direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLabel: l.pickupLocationId ? known.get(l.pickupLocationId)! : l.pickupPlace! }));
+    return { ...s, trip: { ...s.trip, ...chieuDiDau(labelled) } };
+  });
+  return { ok: true, value: { ...order, services } };
 }
 
 /**

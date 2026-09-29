@@ -76,6 +76,8 @@ export async function openLegsByOrders(db: D1Database, orderIds: readonly string
   if (orderIds.length === 0) return [];
   return (await db.prepare(LEG_OPEN_BY_ORDERS).bind(JSON.stringify(orderIds)).all<LegRow>()).results;
 }
+/** Cùng câu, dạng CHƯA CHẠY để ghép vào `db.batch()` đọc (chi tiết đơn, dịch vụ đã lưu). */
+export const openLegsStatement = (db: D1Database, orderIds: readonly string[]): D1PreparedStatement => db.prepare(LEG_OPEN_BY_ORDERS).bind(JSON.stringify(orderIds));
 
 export async function legById(db: D1Database, legId: string, orderId: string): Promise<LegRow | null> {
   return db.prepare(LEG_BY_ID).bind(legId, orderId).first<LegRow>();
