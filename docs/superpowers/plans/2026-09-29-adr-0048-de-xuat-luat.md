@@ -1,7 +1,7 @@
 # ADR-0048 (nhà xe đối tác, tài xế đối tác) — đề xuất sửa luật (CHỜ CHỦ DUYỆT)
 
 - **Ngày:** 2026-09-29.
-- **Người soạn:** phiên lập kế hoạch ADR-0048 (nhánh `worktree-agent-a41aedf108f7e51a8`). Người thi công điền số dòng thật ở Task A14 (mục 1–4, 6) và Task B-kết (mục 5) của kế hoạch `docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md`.
+- **Người soạn:** phiên lập kế hoạch ADR-0048 (nhánh `worktree-agent-a41aedf108f7e51a8`). Người thi công điền số dòng thật ở Task A14 (mục 1–4, 6) và bước B-kết ở mục 7 (mục 5 của tệp này) của kế hoạch `docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md`.
 - **Vì sao có tệp này:**
   - Hiến pháp N9: AI không tự sửa luật chi phối chính mình.
   - Điều 9.4: hàng rào đã duyệt chỉ được SIẾT; NỚI phải có chủ duyệt.
