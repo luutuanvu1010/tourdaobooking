@@ -14,7 +14,11 @@ export function renderDictionaryMarkdown(dict) {
     if (tables.length === 0 && views.length === 0) continue;
     out.push(`## ${module}`, "", "| Đối tượng | Loại | Ghi chú |", "|---|---|---|");
     for (const t of tables) {
-      const notes = [t.legacy ? "tên cũ, giữ nguyên (ADR-0002 điều 2)" : null, t.deprecatedColumns?.length ? `cột chết: ${t.deprecatedColumns.join(", ")}` : null].filter(Boolean);
+      const notes = [
+        t.legacy ? "tên cũ, giữ nguyên (ADR-0002 điều 2)" : null,
+        t.deprecatedColumns?.length ? `cột chết: ${t.deprecatedColumns.join(", ")}` : null,
+        ...(t.logicalRefs ?? []).map((r) => `tham chiếu logic \`${r.column}\` → \`${r.toTable}\` qua view \`${r.viaView}\`, không khoá ngoại (${r.note})`),
+      ].filter(Boolean);
       out.push(`| \`${t.name}\` | ${t.kind === "lookup" ? "bảng tra cứu" : "bảng"} | ${notes.join("; ")} |`);
     }
     for (const v of views) out.push(`| \`${v.name}\` | view công bố | cột: ${v.columns.join(", ")} |`);

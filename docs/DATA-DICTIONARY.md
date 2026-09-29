@@ -78,6 +78,7 @@
 | `v_ord_order_flag` | view công bố | cột: id, is_confirmed, is_cancelled |
 | `v_ord_leg_key` | view công bố | cột: id, order_id, order_service_id, is_open |
 | `v_ord_passenger_key` | view công bố | cột: person_key, order_id, has_current_row |
+| `v_ord_passenger_row` | view công bố | cột: id, person_key, order_id, is_current |
 
 ## parties
 
@@ -134,6 +135,14 @@
 | `vc_departure_rule` | bảng |  |
 | `vc_license_capacity` | bảng |  |
 | `vc_reason` | bảng tra cứu |  |
+| `vc_trip` | bảng |  |
+| `vc_trip_driver` | bảng |  |
+| `vc_trip_stop` | bảng |  |
+| `vc_trip_allocation` | bảng | tham chiếu logic `leg_id` → `ord_transfer_leg` qua view `v_ord_leg_key`, không khoá ngoại (trigger LC-09 lúc mở suất — R-P19); tham chiếu logic `passenger_key` → `ord_passenger` qua view `v_ord_passenger_key`, không khoá ngoại (person_key — trigger LC-10 lúc mở suất / gắn tên — R-P19) |
+| `vc_trip_event` | bảng |  |
+| `vc_trip_departure_check` | bảng |  |
+| `vc_trip_departure_check_item` | bảng |  |
+| `vc_trip_manifest` | bảng | tham chiếu logic `passenger_row_id` → `ord_passenger` qua view `v_ord_passenger_row`, không khoá ngoại (id dòng đã dùng — trigger vc_trip_manifest_scope lúc chốt + kiểm định kỳ R-VC-10 — R-P19) |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 
