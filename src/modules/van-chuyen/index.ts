@@ -1,6 +1,6 @@
 // Module van-chuyen — phân hệ Vận chuyển, lượt 1a (ADR-0040 D1): xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn", danh sách giấy tờ sắp hết
 // hạn (xe + tài xế). Route: /api/van-chuyen/*. Tiền tố bảng vc_ (module nghiêm — STRICT). Phụ thuộc: parties (hàm công bố ownerCompany — chủ xe;
-// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen (không có gì xuất ra ngoài ngoài AppModule).
+// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen; ngoài AppModule chỉ xuất hàm công bố mocToiThieuHienHanh (ADR-0049 D2 — CHỈ gốc lắp ráp src/index.ts gọi).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
 import { expiringDriverDocuments, nhaXeDangHopTac, ownerCompany } from "../parties";

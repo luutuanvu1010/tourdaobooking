@@ -228,3 +228,33 @@ Mọi phép sửa cố ý làm trên bản sao cục bộ, hoàn nguyên bằng 
 - **Không nới hàng rào nào** (Điều 9.4): không sửa `ALLOWED_EDGES`, `STRICT`, `LEGACY`, `GUARDS`, `ADMIN_OPS`, `DOC_AUDIT_LOG_WONGUARD`, bài ghim quyền, `docs/quyen-hoan.json`; không thêm ô quyền; không sửa tệp luật (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/`, `docs/ARCHITECTURE.md`). Chỉ SIẾT: GA-1 (`vc_reason_identity`, `vc_departure_rule_close_once` chặn đổi nội dung).
 - **Không** push, không merge vào `main`, không deploy, không `--remote`, không đọc `.dev.vars` / tệp bí mật. D1 chỉ `--local --persist-to` thư mục tạm (đã xoá).
 - **Chưa làm (ngoài phạm vi phiên):** A9 trở đi (A9 cần nền ADR-0047); điền số dòng tệp đề xuất luật (A20). ~~A5~~ đã làm sau khi gộp nền ADR-0048; ~~N-1~~, ~~N-2~~ đã làm (mục 6).
+
+---
+
+## 10. Phiên thi công tiếp (29/9 tối) — nhánh `thi-cong-adr-0049-tiep`
+
+- **Nhánh:** `thi-cong-adr-0049-tiep` (worktree `.claude/worktrees/agent-a6e71c7e38dfbb4b5`), tách từ `main` = `b300f40` (bản 1.37 + tài liệu ADR-0050 + K-01/K-05).
+- **Phạm vi (điều phối giao):** A0 bước 14–16 → A1b, A2b, A4b, A7b, A8b → A9, A10, A11 → DỪNG (không A12 trở đi).
+- **Vai:** người thi công (P15), không tự nghiệm thu (N8).
+
+### 10.1 Gộp ba nhánh (lệnh git đơn, từng lệnh một)
+
+| Bước | Lệnh | Xung đột | Cách giải | Commit |
+|---|---|---|---|---|
+| 1 | `git merge thi-cong-adr-0049-song-song` (@`131105f` — A0–A8, A5, R-P1…R-P8) | `docs/CHANGE-GUIDE.md` (công thức y mục 6/7), `docs/SO-HANG-RAO.md` (dòng thêm cùng chỗ); `docs/SYSTEM-DESIGN.md` tự gộp | CHANGE-GUIDE: lấy **mục 6 bản dài** của nhánh thi công (có `taiXeChoDieuPhoi`, R-P8) + giữ **mục 7** (R-VC-11) của `main`; SO-HANG-RAO: giữ mọi dòng (main trước, nhánh sau) | `d2e5ead` |
+| 2 | `git merge worktree-agent-ac68c5ff0d389ca6c` (@`e150385` — kế hoạch + đề xuất luật theo ADR-0050) | `docs/SO-HANG-RAO.md`: hai dòng R-VC-11 / R-PTY-6 có ở cả hai bên, **giống hệt từng ký tự** (so bằng script), chỉ khác vị trí | giữ một bản (vị trí của HEAD) — không mất dòng nào | `354406e` |
+| 3 | `git merge worktree-agent-aa4ba1b121f98db87` (@`7b0e2ae` — nền ADR-0047 Phần A) | 8 tệp, đúng như kế hoạch dự báo: `docs/CHANGE-GUIDE.md`, `docs/SO-HANG-RAO.md`, `docs/SYSTEM-DESIGN.md`, `src/audit-invariants.test.ts`, `src/route-access.test.ts`, `src/shared/permissions.ts`, `src/shared/permissions.test.ts`, `tests/e2e/run.mjs` | xem dưới | `31b2d66` |
+
+**Giải từng tệp ở bước 3:**
+- `src/shared/permissions.ts`: giữ 9 cột của HEAD; ô **`order.passenger.write`** thêm cột thứ 9 `DRIVER_PARTNER` = **`none`** (ADR-0048 D2: mọi ô nghiệp vụ của tài xế đối tác = none — không đoán); chú thích `contact.view` lấy bản ADR-0047 (thêm câu "gồm họ tên + năm sinh hành khách"). So bằng script: ngoài hai điểm đó, mọi hàng của hai bên trùng nhau khi bỏ cột 9.
+- `src/shared/permissions.test.ts`: bảng `ADR` 9 cột của HEAD + hàng `order.passenger.write` (cột 9 `none`); tên bài "… ADR-0040 + ADR-0047 + ADR-0048 (mọi thao tác × 9 quyền)"; bài ghim `DRIVER` đã có sẵn `order.passenger.write: none` (tự gộp); **thêm** `order.passenger.write: none` vào bài ghim `DRIVER_PARTNER`. Bài 512 tập con không đổi (không thêm mã quyền).
+- `src/route-access.test.ts`: 120 (main 110 + 10 route chính sách / lý do) + 5 (ADR-0047: 3 route chặng, 2 route hành khách) = **125**; chú thích ghi thêm dòng ADR-0047. `grep -ho 'route("' src/modules/*/index.ts | wc -l` → 125.
+- `tests/e2e/run.mjs`: `"chang-hanh-khach"` sau `"trip"` (vị trí của nhánh ADR-0047), giữ `"tai-xe-doi-tac"`, `"chinh-sach-dieu-phoi"`.
+- `src/audit-invariants.test.ts`: giữ R-PTY-5, R-VC-11, R-PTY-6 (HEAD) rồi R-ORD-7…12 (ADR-0047); thêm `});` đóng bài giữa hai khối (dấu đóng chung nằm ngoài vùng xung đột).
+- `docs/CHANGE-GUIDE.md`: giữ cả hai công thức — **z** (ADR-0047) đặt TRƯỚC **z2** (ADR-0049); hai dòng ma trận §3; bẫy: 50 = ADR-0048, 51 = ADR-0049, bẫy ADR-0047 (nhánh đó đánh số 50) **đánh lại số 52**, câu dẫn của bẫy 51 sửa cho khớp. (Nhật ký ADR-0047 dòng 72 vẫn ghi "§4 bẫy 50" — là sổ lịch sử của nhánh đó, không sửa.)
+- `docs/SO-HANG-RAO.md`: giữ mọi dòng. `docs/SYSTEM-DESIGN.md`: bảng migration `0034`, `0035` đặt TRƯỚC `0037`; câu đếm route §7 120 → **125**.
+- **Tự gộp dễ lệch nghĩa — đã đọc lại:** `src/shared/vn-date.ts` còn **đúng một** `vnLocalToMs` (bản ADR-0047) + `msToVnLocal` cuối tệp; `src/shared/contracts.ts`, `src/shared/audit-actions.ts`, `scripts/audit-checks.mjs`, `docs/data-dictionary.json` (`npm run dict` không đổi `DATA-DICTIONARY.md`), `src/modules/orders/*` — xanh qua `npm test` / `typecheck`.
+- Chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` (bốn mục nới của ADR-0047) **giữ nguyên** — điều phối áp lúc gộp `main`.
+- **Sau gộp:** `npm ci` (worktree mới) thoát 0; `npm test` thoát **0** — **1575/1575**; `npm run typecheck` thoát **0**.
+- **N-7 (đã sửa lúc gộp):** chú thích đầu `src/modules/van-chuyen/index.ts` nay ghi "ngoài AppModule chỉ xuất hàm công bố `mocToiThieuHienHanh` (chỉ gốc lắp ráp gọi)".
+- Kế hoạch §0.1 R-P10, §0.2 I36, mục 13 T-11, mục 15.2: "chấp nhận tạm" → "đã soi, chấp nhận (người kiểm kế hoạch `e150385` ĐẠT)".
