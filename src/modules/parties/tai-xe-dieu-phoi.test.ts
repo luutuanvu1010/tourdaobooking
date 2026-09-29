@@ -29,9 +29,9 @@ function toChuc(w: any, id: string, ten: string) {
   w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'ORGANIZATION', '${ten}', 1, '${AT}', '${AT}')`);
   w.sqlite.exec(`INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES ('${id}', '${AT}', '${AT}')`);
 }
-function vai(w: any, party: string, code: string, den: string | null = null) {
+function vai(w: any, party: string, code: string, den: string | null = null, tu = "2026-09-01") {
   w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, updated_at)
-    VALUES ('r-${++n}', '${party}', '${code}', NULL, '2026-09-01', ${den ? `'${den}'` : "NULL"}, '${AT}', '${AT}')`);
+    VALUES ('r-${++n}', '${party}', '${code}', NULL, '${tu}', ${den ? `'${den}'` : "NULL"}, '${AT}', '${AT}')`);
 }
 function taiXeCua(w: any, taiXe: string, nhaXe: string) {
   w.sqlite.exec(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at)
@@ -113,6 +113,18 @@ test("TC-3 giấy tờ chỉ dòng HIỆN HÀNH (không dòng đã gia hạn, kh
   ]);
   const h = (await parties.taiXeChoDieuPhoi(w.env.DB, { today: HOM_NAY })).find((x) => x.partyId === "p-h")!;
   assert.deepEqual(h.giayTo, [], "tài xế nhà xe chưa nhập giấy tờ: mảng rỗng (điều phối sẽ chặn vì thiếu GPLX)");
+});
+
+test("R-P8 (Q-A5-1) \"vai tài xế công ty đang mở\" = valid_to_date IS NULL — CÙNG cách với nguồn sinh quyền tài khoản (v_pty_open_role_group, OPEN_ROLE_CODES_FOR) và v_pty_carrier_driver: vai kết thúc HÔM NAY → không còn; vai bắt đầu NGÀY MAI (chưa kết thúc) → có", async () => {
+  const w = gieo();
+  nguoi(w, "p-g", "Tài Xế Giã Từ");
+  vai(w, "p-g", "DRIVER_INTERNAL", HOM_NAY);
+  nguoi(w, "p-n", "Tài Xế Ngày Mai");
+  vai(w, "p-n", "DRIVER_INTERNAL", null, "2026-09-30");
+  const ds = await parties.taiXeChoDieuPhoi(w.env.DB, { today: HOM_NAY });
+  assert.equal(ds.find((x) => x.partyId === "p-g"), undefined, "vai kết thúc hôm nay: không còn là tài xế công ty (như quyền đăng nhập)");
+  assert.deepEqual(ds.filter((x) => x.partyId === "p-n").map((x) => [x.partyId, x.loai, x.carrierPartyIds]), [["p-n", "CONG_TY", []]], "vai bắt đầu ngày mai, chưa kết thúc: đã là tài xế công ty");
+  assert.deepEqual(ds.filter((x) => x.partyId === "p-c"), [], "vai kết thúc hôm qua: không có");
 });
 
 test("TC-3 liệt kê khoá: đúng năm khoá mỗi tài xế, đúng bốn khoá mỗi giấy — KHÔNG number / numberKey / documentNumber / issuedPlace; thân không chứa số hay nơi cấp", async () => {

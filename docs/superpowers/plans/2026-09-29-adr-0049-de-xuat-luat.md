@@ -212,6 +212,12 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 - :151 (điều 5.7): cột "Cưỡng chế bằng" `**chưa có** — dựa vào kỷ luật` → `lần áp đầu: chuyến xe (ADR-0049) — kiểu \`LyDoGiu\` (\`src/shared/ly-do-giu.ts\`) một chỗ + \`kiemXuatBen\` dùng chung máy chủ/màn hình + trigger LC-05`; cột "Lệch hiện có" `chưa có khái niệm "giữ"` → `—`.
 - :148 (điều 5.3): cột "Lệch hiện có" — văn bản sau khi áp ADR-0047 mục 3b kết thúc bằng `trigger đọc chéo module **chưa có bài kiểm**`. Nối thêm `; riêng trigger \`vc_\` của 0041/0042 có bài "thân trigger chỉ đọc \`vc_\` + view công bố" (ADR-0049)`.
 
+**8c. Phần II, sơ đồ tầng, dòng :175 — đoạn `parties (…)`** (N-12 của nhật ký thi công; thêm 29/9 theo lệnh điều phối — chỉ mô tả hàm công bố đã thi công ở Task A5, không phải quyết định mới). Dòng `-` là văn bản trên `main` `4c2913c` (1.37):
+```diff
+-parties (kể cả HỒ SƠ CÔNG TY CHỦ — Tour Đảo, vai `OWNER_COMPANY`, hàm công bố `ownerCompany`; nhà xe đối tác — vai `CARRIER`, quan hệ `DRIVES_FOR`, luật "tài xế thuộc nhà xe" công bố một lần ở view `v_pty_carrier_driver` và hàm `nhaXeDangHopTac` (ADR-0048); nằm DƯỚI `auth`, `staff`, `company` trong đồ thị)
++parties (kể cả HỒ SƠ CÔNG TY CHỦ — Tour Đảo, vai `OWNER_COMPANY`, hàm công bố `ownerCompany`; nhà xe đối tác — vai `CARRIER`, quan hệ `DRIVES_FOR`, luật "tài xế thuộc nhà xe" công bố một lần ở view `v_pty_carrier_driver` và hàm `nhaXeDangHopTac` (ADR-0048); tài xế cho điều phối xe — hàm `taiXeChoDieuPhoi` (loại công ty / nhà xe, nhà xe đang thuộc, giấy tờ hiện hành KHÔNG số, không nơi cấp; "vai đang mở" = chưa kết thúc, cùng cách với quyền tài khoản — ADR-0049); nằm DƯỚI `auth`, `staff`, `company` trong đồ thị)
+```
+
 ## Bù lại — các chỗ SIẾT (không cần duyệt riêng; ghi để chủ thấy đủ)
 
 | # | Siết | Nơi | Nguồn |

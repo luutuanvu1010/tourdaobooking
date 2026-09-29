@@ -119,9 +119,12 @@ export interface TaiXeDieuPhoi {
 /**
  * HÀM CÔNG BỐ về tài xế cho điều phối (ADR-0049 D2: "giấy tờ đọc qua hàm công bố của parties, không lấy số"): hồ sơ cá nhân đang dùng, đang mở vai "Tài xế
  * công ty" hoặc "thuộc" một nhà xe đang hợp tác (kể cả người chưa có tài khoản). Van-chuyen không tự đọc vai (R-N1-12) — lọc vai nằm ở đây. Xếp theo tên.
+ * "Đang mở vai" = chưa kết thúc (`valid_to_date IS NULL` — R-P8), cùng cách với quyền đăng nhập và v_pty_carrier_driver; KHÔNG theo ngày. `v.today` giữ
+ * trong chữ ký theo hợp đồng kế hoạch mục 1.1 nhưng hiện không dùng.
  */
 export async function taiXeChoDieuPhoi(db: D1Database, v: { today: string }): Promise<TaiXeDieuPhoi[]> {
-  const taiXe = await driversForDispatch(db, VAI_TAI_XE_CONG_TY, v.today);
+  void v; // R-P8: điều kiện vai không theo ngày — chữ ký giữ nguyên để nơi gọi (A13/A15) không đổi khi lượt 1b cần "vào ngày chạy"
+  const taiXe = await driversForDispatch(db, VAI_TAI_XE_CONG_TY);
   if (taiXe.length === 0) return [];
   const theoNguoi = new Map<string, TaiXeDieuPhoi["giayTo"]>();
   for (const g of await driverDocsForDispatch(db, taiXe.map((r) => r.party_id))) {
