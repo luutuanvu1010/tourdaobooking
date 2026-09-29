@@ -10,7 +10,10 @@
 - **Căn cứ:**
   - ADR-0047 (accepted 2026-09-28) A3: "Tiền tố bảng `ord_` cho module `orders` … kèm T3b"; "SQL chạm `ord_*` viết bằng `defineSql` trong tệp riêng và đưa tệp đó vào bài EXPLAIN. Nếu bài kiểm không nhận module 'nửa nghiêm' thì ghi **nợ có tên, có hạn** ở `src/architecture.test.ts`".
   - ADR-0047 A1 ("Lưu nháp… Chặng của đơn nháp bị xoá và chèn lại cùng lô") và A2 ("Đơn nháp: danh sách xoá–chèn lại cùng lô khi lưu nháp").
-- **Trạng thái:** **CHỜ CHỦ DUYỆT.** Mã của nhánh thi công đã mang ba chỗ nới (mục 1–3) để test chạy được, kèm chú thích "CHỜ CHỦ DUYỆT" tại chỗ. **Không gộp `main` khi chưa duyệt.**
+- **Trạng thái:** **CHỜ CHỦ DUYỆT.**
+  - Mục 1 và mục 3: mã của nhánh thi công mang sẵn (tiền lệ 1a), kèm chú thích "CHỜ CHỦ DUYỆT" tại chỗ, để test chạy được.
+  - Mục 2: chạm **Hiến chương 5.5** (đứng trên ADR) ⇒ chỉ đưa vào mã **sau khi chủ xác nhận Q0** (kế hoạch mục 13). Trong lúc chờ, chỉ hai câu `*_delete_draft`, danh sách `XOA_CUNG_NHAP` và lô lưu nháp (Task A9) đứng lại; phần khác đi tiếp.
+  - **Không gộp `main` khi chưa duyệt.**
 - **Duyệt xong:**
   - mỗi tệp luật một commit, sửa đúng diff dưới đây;
   - đổi chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` thành "đã duyệt <ngày>" (tiền lệ Ruling D21 của T2b).
@@ -132,6 +135,7 @@ Dòng "Trạng thái" đầu `docs/ARCHITECTURE.md` thêm một vế: "bảng th
   - hạn ≥ hôm nay (giờ VN) — quá hạn thì đỏ (khuôn `docs/quyen-hoan.json`);
   - tên trong danh sách không còn đăng ký, hoặc không còn đọc `audit_log`, → đỏ ("ngoại lệ thừa").
 - **Hạn đề xuất `2027-03-31`** (khoảng 6 tháng). Chủ chốt ngày khác thì sửa một chuỗi. Danh sách tên chốt ở Task A7; người thi công sửa diff này cho khớp **trước** khi trình chủ.
+- **Lưu ý khi chốt danh sách:** một câu vừa dùng **có** lính gác (cùng lô, sau câu thắng) vừa dùng **không** lính gác (câu mở đầu của route 2, 3 — tự nó là câu `UPDATE` có điều kiện) phải tách thành **hai tên SQL**. Chỉ tên có lính gác vào danh sách; không thì bài "ngoại lệ thừa" đỏ với tên không đọc `audit_log`.
 
 **3b. `docs/ARCHITECTURE.md` Phần I, bảng thi hành dòng "5.3 Modular monolith"** — cột "Lệch hiện có" thêm:
 

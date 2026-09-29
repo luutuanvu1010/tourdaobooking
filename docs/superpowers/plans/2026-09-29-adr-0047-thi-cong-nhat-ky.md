@@ -32,7 +32,7 @@
 
 | Câu | Nội dung | Trả lời (nguyên văn, ngày) | Ảnh hưởng |
 |---|---|---|---|
-| Q0 | Xác nhận lệch có chủ ý hẹp của Hiến chương 5.5: xoá–chèn lại chặng / hành khách của **đơn nháp** (khuyến nghị (a) xác nhận) — trả lời cùng lúc duyệt đề xuất luật mục 2 | _chờ_ | Task A7, A9 (chặn riêng phần lưu nháp) |
+| Q0 | Xác nhận lệch có chủ ý hẹp của Hiến chương 5.5: xoá–chèn lại chặng / hành khách của **đơn nháp** (khuyến nghị (a) xác nhận) — trả lời cùng lúc duyệt đề xuất luật mục 2 | _chờ_ | chặn **hẹp**: hai câu `*_delete_draft` + `XOA_CUNG_NHAP` (A7) và lô lưu nháp (A9); phần khác đi tiếp |
 | Q1 | Dịch vụ cũ có giờ đón mà không có điểm đón: chép thế nào (mặc định (a) "(chưa ghi nơi đón)") | _chờ_ | Task A4 (câu chép), A15 (R-ORD-12) |
 | Q2 | Khoảng ngày đón so với ngày đi (mặc định (a): −1 / +7 ngày) | _chờ_ | Task A3 (`khoangNgayDon`) |
 | Q3 | "Chuyến đón hôm nay" ở Trang chủ theo ngày đi hay ngày đón (mặc định (a) ngày đi) | _chờ_ | Task A8 (`getDashboard`) |
