@@ -141,3 +141,11 @@ Người kiểm độc lập cuối ADR-0048 (K2, đỉnh `5a024b4`): ĐẠT CÓ
 | Q-L1-2: "Xe đã được xếp đón khách ở Sheraton. Sau đó khách đổi sang Amiana và người bán sửa trên đơn. Máy làm gì với chuyến xe?" — "Giữ chuyến tới khi cập nhật" / "Chỉ báo đỏ, vẫn cho chạy" / "Máy tự đổi điểm đón" | **"Giữ chuyến tới khi cập nhật"** — không cho xuất bến tới khi người xếp xe bấm "Cập nhật điểm theo đơn"; không cần Quản trị duyệt kể cả sát giờ; xe đã chạy thì chỉ báo đỏ |
 | Q-L1-3: "Lúc xe xuất bến, máy có kiểm giấy tờ của XE không? (Hiện máy chỉ kiểm bằng lái của tài xế.)" — "Kiểm định + Bảo hiểm" / "Kiểm đủ mọi giấy (bảng 27/9)" / "Không kiểm sẵn, tự bật sau" | **"Kiểm định + Bảo hiểm"** — gieo sẵn Kiểm định và Bảo hiểm TNDS cho mọi xe; giấy khác chủ tự bật khi có người chuyên môn xác nhận; phải đếm và dọn xe có hai bản giấy cùng loại trước khi bật |
 | "Duyệt ghi lượt 1 này thành quyết định chính thức ADR-0050 theo 3 câu trả lời trên? (Tôi chỉ ghi sau khi người kiểm độc lập xem bản cuối và báo đạt.)" | **"Duyệt, ghi theo 3 câu"** — người kiểm đã báo bản cuối ĐẠT trước khi ghi |
+
+## Trả lời lần 11 (29/9 tối, câu GA-25 của người thi công ADR-0049 — người kiểm giữa chừng đề nghị hỏi thẳng)
+
+Người kiểm độc lập giữa chừng (nhánh `thi-cong-adr-0049-tiep` @ `9105306`): ĐẠT CÓ ĐIỀU KIỆN; điều kiện duy nhất trước khi nối luật vào route là câu này. Hàm `kiemGioXayRa` (`src/shared/gio-xay-ra.ts`) có thêm vế "đã tới điểm trả ≤ đã trả", chặt hơn chữ ADR-0050 dòng 113–121 (dòng 46 chỉ là câu tóm tắt "không đảo thứ tự các bước").
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Khi văn phòng khai giờ thay tài xế: giờ "xe đã tới điểm trả" có bắt buộc phải sớm hơn (hoặc bằng) giờ "đã trả khách" ở điểm đó không? Ví dụ: đã ghi "trả khách 9:00", sau đó khai "xe tới điểm trả 9:05" → máy có chặn không?" — "Chặn" / "Không chặn" | **"Chặn"** — xe phải tới nơi rồi mới trả khách; khai ngược thứ tự thì máy báo lỗi. Giữ nguyên mã đang có (GA-25 thành quyết định của chủ). Áp cho cách hiểu ADR-0050 vế 3 "thứ tự trong chuyến"; không sửa ADR (ADR đã duyệt), ghi ở đây và nhật ký thi công |
