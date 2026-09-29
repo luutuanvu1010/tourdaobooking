@@ -23,6 +23,13 @@ const handlerAccountEligible = (extra = "") =>
   `EXISTS (SELECT 1 FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.permission_type_code IN ('SALES', 'ADMIN', 'FIELD', 'SUPER_ADMIN') AND p.valid_to_at IS NULL WHERE s.party_id = a.party_id${extra}
      AND NOT EXISTS (SELECT 1 FROM stf_permission pp WHERE pp.staff_id = s.id AND pp.permission_type_code = 'PARTNER' AND pp.valid_to_at IS NULL))`;
 
+/**
+ * "Giấy tờ xe `d` đang hiện hành" — NGUYÊN VĂN hằng `HIEN_HANH` của `src/modules/van-chuyen/repository.ts` (màn giấy tờ xe, danh sách "sắp hết hạn" đọc
+ * bằng chính đoạn này). Tệp này thuần `.mjs`, không import được mã module, nên chép chữ — `src/audit-invariants.test.ts` đọc repository.ts và đỏ khi hai bản
+ * lệch nhau (một luật "hiện hành", không hai). Alias bắt buộc: `d` (dòng đang xét), `n` (dòng gia hạn) — câu dùng đoạn này không đặt alias `n` khác.
+ */
+const HIEN_HANH_GIAY_TO_XE = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM vc_vehicle_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
+
 /** @type {{ code: string, what: string, sql: string, level: 'fail' | 'warn-unless-strict' | 'warn', mode?: 'rows', note?: string }[]} */
 export const CHECKS = [
   { code: "R-N1-1", what: "mọi tài khoản có party_id", sql: "SELECT count(*) FROM staff WHERE party_id IS NULL", level: "warn-unless-strict" },
@@ -154,6 +161,17 @@ export const CHECKS = [
      WHERE r.relationship_type_code = 'DRIVES_FOR' AND r.valid_to_date IS NULL AND p.party_kind <> 'PERSON'`,
     level: "fail",
   },
+  // R-PTY-6 (đặc tả 2026-09-29 Transportation Kernel, K-05 / lỗ LH-06): API "Kết thúc" vai / quan hệ nhận ngày BẤT KỲ, còn mọi nơi đọc "đang mở" chỉ xét
+  // `valid_to_date IS NULL` — ghi ngày tương lai là đóng NGAY (màn hiện ngày tương lai). Giao diện luôn gửi hôm nay; chỉ gọi API tay mới gặp. Hôm nay theo
+  // giờ Việt Nam = `date('now', '+7 hours')` (như migration; `date('now')` là UTC). Mức warn: chỉ PHÁT HIỆN, không chặn — đổi luật nhận ngày là việc của parties.
+  {
+    code: "R-PTY-6",
+    what: "vai hồ sơ / quan hệ hồ sơ có ngày kết thúc sau hôm nay (giờ Việt Nam)",
+    sql: `SELECT (SELECT count(*) FROM pty_party_role WHERE valid_to_date > date('now', '+7 hours'))
+          + (SELECT count(*) FROM pty_party_relationship WHERE valid_to_date > date('now', '+7 hours'))`,
+    level: "warn",
+    note: "cảnh báo, không chặn phát hành: vai / quan hệ này đã bị coi là KẾT THÚC từ lúc bấm, dù màn hiện ngày trong tương lai — Quản trị xem lại dòng đó (ai gọi API với ngày tương lai)",
+  },
   {
     code: "R-VC-1",
     what: "biển số không trùng giữa các xe chưa ngừng",
@@ -167,6 +185,19 @@ export const CHECKS = [
                   WHERE p.vehicle_id <> n.vehicle_id OR p.document_type_code <> n.document_type_code)
           + (SELECT count(*) FROM (SELECT previous_id FROM vc_vehicle_document WHERE previous_id IS NOT NULL AND voided_at IS NULL GROUP BY previous_id HAVING count(*) > 1))`,
     level: "fail",
+  },
+  // R-VC-11 (đặc tả 2026-09-29 Transportation Kernel, K-01 / lỗ LH-04; R-VC-3…10 đã giữ cho ADR-0049): route "Thêm giấy tờ" luôn chèn dòng mới
+  // `previous_id = NULL`, không hỏi loại đó đã có dòng hiện hành chưa; CSDL chỉ canh "mỗi dòng tối đa một dòng gia hạn" — bấm "Thêm Kiểm định" thay vì
+  // "Gia hạn" sinh HAI chuỗi song song. Đếm CẶP (xe chưa ngừng, loại) có ≥ 2 dòng hiện hành. Chỉ đếm số (không biển số, không số giấy tờ). Mức warn:
+  // có thể đã có dữ liệu thật như vậy (số đếm trên production là đầu vào của đề xuất chặn VK3-B); không chặn phát hành.
+  {
+    code: "R-VC-11",
+    what: "xe chưa ngừng có từ 2 dòng giấy tờ HIỆN HÀNH cùng loại trở lên (hai chuỗi giấy tờ song song)",
+    sql: `SELECT count(*) FROM (SELECT d.vehicle_id, d.document_type_code FROM vc_vehicle_document d JOIN vc_vehicle v ON v.id = d.vehicle_id
+          WHERE v.status <> 'retired' AND ${HIEN_HANH_GIAY_TO_XE}
+          GROUP BY d.vehicle_id, d.document_type_code HAVING count(*) > 1)`,
+    level: "warn",
+    note: "cảnh báo, không chặn phát hành: có xe mang hai dòng giấy tờ cùng loại cùng đang dùng (bấm 'Thêm' thay vì 'Gia hạn') — Quản trị mở giấy tờ của xe, huỷ dòng nhập nhầm",
   },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
