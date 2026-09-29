@@ -57,7 +57,8 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (hiện không có số nào đang giữ chỗ; số ADR mới kế tiếp là 0049; bản đề xuất Vận chuyển 1b lượt 2 (B1–B3), lượt 2 lượt II (D3–D5), lượt 3 chưa lấy số) | | |
+| 0049 | Bảng điều phối chung, lượt duyệt 1 (chuyến xe và lịch chung; luật, chính sách, mốc 6 giờ; quyền và route tài xế công ty) — thay lượt duyệt 2 (B1–B3) của đề xuất Vận chuyển 1b | `docs/superpowers/specs/2026-09-29-de-xuat-adr-bang-dieu-phoi-luot-1.md` (nhánh `worktree-agent-a15944ea9dfd9031e`) | giữ chỗ 2026-09-29, chờ chủ duyệt |
+| — | (số ADR mới kế tiếp là 0050; bản đề xuất Vận chuyển lượt 2 lượt II (D3–D5), lượt 3 chưa lấy số) | | |
 
 (0040, 0041, 0042 và 0044 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
