@@ -2,7 +2,19 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.35: Vận chuyển lượt 1a (ADR-0040 — xe, giấy tờ xe, giấy tờ của người, tài khoản "Tài xế công ty", danh sách giấy tờ sắp hết hạn; migration `0031`–`0033`) ĐÃ LÊN PRODUCTION (2026-09-28 21:17 giờ VN, chủ dự án tự chạy `npm run day-len -- dac-ta-van-chuyen` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.36: thông báo điện thoại tắt đúng máy (ADR-0046) + tách Danh mục giấy tờ theo chủ dữ liệu (không migration) ĐÃ LÊN PRODUCTION (2026-09-28 23:21 giờ VN, chủ dự án tự chạy `npm run day-len -- thong-bao-tat-dung-may` rồi `npm run trien-khai`)
+
+AI (phiên điều phối) kiểm bằng lệnh chỉ đọc lúc 2026-09-29 (ghi muộn — phiên điều phối tưởng production còn 1.35 cho tới khi người thi công ADR-0048 chạy `kiem-phien-ban` thấy 1.36):
+
+- **Phiên bản: 1.36.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.36."; `GET /api/auth/config` trả `"version":"1.36"`.
+- **Chế độ bảo trì: TẮT** (`maintenance.on: false`, `endsAt: null`).
+- **Mã trên `main` / GitHub:** `origin/main` = `main` = ce831f8 (nhánh `thong-bao-tat-dung-may`: ADR-0046, tách hai trang Danh mục giấy tờ, hai dòng `web/CLAUDE.md` chủ duyệt 28/9 tối; nhật ký thay đổi 1.36 ở c9d1f28). Kiểm độc lập cuối ĐẠT (sổ `docs/superpowers/plans/` của ADR-0046 và việc tách Danh mục giấy tờ).
+- **Worker:** `wrangler deployments list` → mới nhất **d6db34a6-025d-4862-8ff0-fe4eca065f24**, tạo 2026-09-28T16:21:41Z. Mốc lùi: 673d1843-2310-46e1-b03d-89b358432c1e (1.35). Lùi an toàn về dữ liệu (1.36 không có migration).
+- **Migration D1:** không có migration mới; `wrangler d1 migrations list --remote` → "No migrations to apply!". **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt (D1 remote)."
+- **Chưa kiểm:** thông báo điện thoại còn bật sau đăng xuất ở MỘT máy khác (thử tay hai máy thật); iPhone thật.
+- **Kế tiếp:** Vận chuyển — ADR-0048 (nhà xe, tài xế đối tác; migration `0037`–`0039`; bản tạm 1.37) đang kiểm độc lập cuối; ADR-0047 (chặng đưa đón, danh sách khách; `0034`–`0035`) Phần A xong, Phần B chờ bản vẽ; ADR-0049 (Bảng điều phối; `0040`–`0042`) có kế hoạch, đang kiểm.
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.35: Vận chuyển lượt 1a (ADR-0040 — xe, giấy tờ xe, giấy tờ của người, tài khoản "Tài xế công ty", danh sách giấy tờ sắp hết hạn; migration `0031`–`0033`) ĐÃ LÊN PRODUCTION (2026-09-28 21:17 giờ VN, chủ dự án tự chạy `npm run day-len -- dac-ta-van-chuyen` rồi `npm run trien-khai`)
 
 AI (phiên điều phối) kiểm bằng lệnh chỉ đọc lúc 2026-09-28 21:20 giờ VN:
 
