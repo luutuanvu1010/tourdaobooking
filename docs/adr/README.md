@@ -52,6 +52,7 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0048](ADR-0048-nha-xe-doi-tac-va-tai-xe-doi-tac.md) | **Vận chuyển lượt 2, lượt duyệt I:** nhà xe đối tác (vai `CARRIER`, không sinh quyền), xe của nhà xe, tài xế thuộc nhà xe; quyền riêng `DRIVER_PARTNER` (tài khoản bên ngoài chỉ giữ một loại quyền), không lai với đối tác đặt đơn, nhà xe chưa có tài khoản, không chéo xe–tài xế. Thay câu của ADR-0018 điều 2/5/9, ADR-0034 điều 6, ADR-0040 D1/D2/D3 | một chiều (mã quyền) | **accepted** (chủ, chat 2026-09-28 khuya "Duyệt kèm 3 khuyến nghị"; AI ghi lại) |
 | [0049](ADR-0049-bang-dieu-phoi-chung-luot-1.md) | **Bảng điều phối chung, lượt duyệt 1 (module `van-chuyen`):** chuyến xe (`vc_trip*`: chuyến, ai lái, điểm dừng, suất, sự kiện — có hiệu lực, không sửa đè); **lịch chung là hình chiếu lúc đọc** (không bảng riêng); luật lõi LC-01…LC-18; chính sách có ngày hiệu lực; **mốc 6 giờ** (lưu nháp được, chặn ở Xác nhận; "đặt gấp" và phá lệ chỉ Quản trị, Toàn quyền); cổng xuất bến + "giữ"; ô `trip.*`, `order.leg.short_notice`; tài xế công ty thấy chuyến mình, tên/SĐT khách chỉ trong ngày chạy. Thay lượt duyệt 2 (B1–B3) của đề xuất 1b; thay câu của ADR-0006 điều 2/4/5/7, ADR-0040 D1/D3, ADR-0047 A1/A3, ADR-0019 điều 1/4/6 | một chiều (tiền tố, tập trạng thái, bản chụp) | **accepted** (chủ, chat 2026-09-29 "Duyệt, ghi theo câu 1"; ĐP2(v) "Cho lưu nháp, chặn ở Xác nhận"; người kiểm xem bản cuối ĐẠT; AI ghi lại) |
 | [0050](ADR-0050-van-chuyen-kernel-luot-1.md) | **Vận chuyển — thừa kế Transportation Kernel, lượt duyệt 1:** (VK1-A) **giờ xảy ra thật** khi văn phòng bấm thay — hai trục thời gian trên `vc_trip_event` (`occurred_*`), khai lùi tối đa theo chính sách (gieo 180 phút), không sớm hơn lần sửa kế hoạch cuối; tài xế tự bấm vẫn giờ máy chủ; (VK1-B) **giữ chuyến khi nơi hẹn đổi sau khi xếp** + lệnh "Cập nhật điểm theo đơn" (đóng suất `STOP_CHANGED` rồi mở, không khoá theo mốc), khoá so sánh nơi `place_key` (không hiển thị); (VK1-C) **gieo điều kiện xuất bến Kiểm định + Bảo hiểm TNDS** cho mọi xe (sau khi đếm + dọn giấy tờ xe song song). Thay câu của ADR-0049 D1 (LC-11, bảng `vc_trip_event`/`vc_trip_stop`/`vc_trip_allocation`, `lichChungChang`), D2 (khoảng nghỉ, chính sách, cổng xuất bến), D3 (route) và lời chủ Q2 "giờ theo máy chủ" cho vế văn phòng | một chiều (cột giờ xảy ra, `STOP_CHANGED`, `place_key`) | **accepted** (chủ, chat 2026-09-29: Q-L1-1 "Sửa được giờ thật", Q-L1-2 "Giữ chuyến tới khi cập nhật", Q-L1-3 "Kiểm định + Bảo hiểm", "Duyệt, ghi theo 3 câu"; người kiểm xem bản cuối ĐẠT; AI ghi lại) |
+| [0051](ADR-0051-nhac-goi-bao-khach-gio-hen-doi.md) | **Bảng điều phối lượt 1, bổ sung — nhắc "gọi báo khách" khi giờ hẹn đổi sau khi xếp xe:** bảng chỉ-thêm `vc_leg_appt_ack` (mốc "giờ hẹn đã biết" chụp lúc chặng lần đầu lên xe; `DA_GOI`; `BO_DANH_DAU`), trigger `vc_trip_allocation_needs_appt` bám bảng suất của `0042` (phải cùng lần phát hành); mục "Giờ hẹn đổi — gọi báo khách" tính lúc đọc, danh sách nhắc riêng [hôm nay − 1, hôm nay + 14] (route `GET /api/van-chuyen/nhac-goi-khach`); lệnh "Đã gọi báo" / "Bỏ đánh dấu" (lô hai câu `CONG_MOC`, không tăng `version`); ô mới `trip.call_ack` (Bán hàng `ownOrAssigned`, Quản trị/Toàn quyền `any`); thẻ "xe tới muộn" không có nút; tài xế không thấy; nhật ký không SĐT/tên. Thay câu của ADR-0049 D1 (bảng, lịch chung, thứ tự lô, LC-15), D3 (ô, route), trang ghép; ADR-0050 "Phương án bị loại" | một chiều (bảng, tập `kind`, định nghĩa mốc) | **accepted** (chủ, chat 2026-09-29 tối: lần 12 "Làm ngay lượt này"; lần 14 Q-GB-1 "Không, sửa giờ trên đơn", Q-GB-2 "Có nút Bỏ đánh dấu", Q-GB-3 "Hiện ngay hôm nay", "Duyệt, ghi theo 3 câu"; người kiểm xem bản cuối ĐẠT; AI ghi lại) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -59,9 +60,9 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (số ADR mới kế tiếp là 0051; đề xuất Kernel lượt 2, lượt 3 và Vận chuyển lượt 2 lượt II (D3–D5), lượt 3 tiền chưa lấy số) | | |
+| — | (số ADR mới kế tiếp là 0052; đề xuất Kernel lượt 2, lượt 3 và Vận chuyển lượt 2 lượt II (D3–D5), lượt 3 tiền chưa lấy số) | | |
 
-(0040, 0041, 0042, 0044, 0049 và 0050 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
+(0040, 0041, 0042, 0044, 0049, 0050 và 0051 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
 **Số migration đã giữ chỗ** (2026-09-28; nếu thứ tự lên main đảo thì nhánh lên sau đổi tên tệp):
 - 0028: vai "IT", ADR-0044 (đã lên main, bản 1.30);
@@ -72,7 +73,8 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0036: **bỏ trống** — ADR-0047 trả số 2026-09-29 (Ruling R11: không làm trigger khoá cột cũ); không dùng lại cho việc khác để khỏi lệch thứ tự áp;
 - 0037, 0038, 0039: ADR-0048 (nhà xe đối tác, `DRIVER_PARTNER`, LC-1 mới) — nhánh phát hành `phat-hanh-1-37` (bản 1.37), chờ chủ gộp + triển khai; áp TRƯỚC 0034–0035 của ADR-0047 được (người kiểm K2 thử: schema cuối giống hệt byte-for-byte);
 - 0040, 0041, 0042: ADR-0049 (Bảng điều phối chung lượt 1) — lần lượt năm cột "đặt gấp" trên `ord_transfer_leg`, chính sách điều phối, chuyến xe `vc_trip*` — giữ chỗ 2026-09-29 (kế hoạch `docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md`); dùng không hết thì nhả;
-- số kế tiếp cho việc khác là 0043.
+- 0043: ADR-0051 ("Đã gọi báo": bảng `vc_leg_appt_ack` + trigger trên `vc_trip_allocation` của `0042`) — giữ chỗ 2026-09-29; **phải lên cùng lần phát hành với 0042**;
+- số kế tiếp cho việc khác là 0044.
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
