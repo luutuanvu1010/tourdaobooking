@@ -70,6 +70,17 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 | D8-11 | 8d dòng lý do chỉ có "Sửa" (không "Ngưng") | cần ngưng / dùng lại trên điện thoại | Dòng có "Sửa" + "Ngưng"/"Dùng lại" ở cả hai cỡ (GB-B8-6). |
 | D8-12 | Liên kết "Điều kiện theo cỡ xe, hạng bằng ›" không có màn đích | [MH] "Dùng khuôn sẵn"; route 11–15 | Trang mới `/dieu-kien-xuat-ben` (khuôn danh mục, không bản vẽ) — GB-B8-7. |
 
+### 2.2 B7 — V12 (07: khung 7a–7c)
+
+| # | Bản vẽ | Căn cứ | Cách làm |
+|---|---|---|---|
+| D7-1 | 07 vẽ trình sửa CHẶNG (Chặng 1, Nơi trả, Bỏ chặng, + Thêm chiều về, + Thêm chặng) | bản đối chiếu mục 5: ADR-0047 Phần B CHƯA vẽ, CHƯA làm; web chưa có trình sửa chặng | Không dựng trình sửa chặng. Cảnh báo / đặt gấp gắn vào thẻ dịch vụ hiện có (ô ngày của cả đơn + giờ đón → chặng chiều đi, đúng cách máy chủ trộn `tronChangCu`). |
+| D7-2 | Nút "Xác nhận đơn" nằm TRÊN biểu mẫu (7a, 7b) | biểu mẫu thật chỉ có "Lưu, chờ xác nhận"; xác nhận ở trang đơn | Khoá "Xác nhận đơn" + dòng khoá đặt ở TRANG ĐƠN (7a: "Duyệt đặt gấp xong thì xác nhận được." chữ nhỏ xám; 7b: biểu tượng khoá + "Cần Quản trị duyệt đặt gấp" chữ cát đậm). Biểu mẫu hiện dải cảnh báo + (Quản trị) khung Đặt gấp. |
+| D7-3 | Dải cảnh báo nằm ngay dưới ô chặng | biểu mẫu không có khối chặng | Dải nằm cuối thẻ dịch vụ (dưới "Thông tin chuyến"); ở trang đơn nằm dưới dòng "Đón" của dịch vụ. |
+| D7-4 | Lý do đặt gấp "Khách đoàn gọi gấp"… (07:140-145) | R-P18 — máy chủ đã đổi `LY_DO_DAT_GAP` (@`cf5dc91`) | Ô lý do lấy từ `LY_DO_DAT_GAP` (không chép cứng) — khớp bốn lý do bản vẽ. |
+| D7-5 | Bộ đếm ghi chú "24/80" | `GHI_CHU_DAT_GAP_TOI_DA` = 120 (R-P18) | Đếm /120. |
+| D7-6 | Nhãn 7c "Đặt gấp — lý do — người duyệt HH:MM" + ghi chú | chủ H4 / N-14 (@`9b48da1`) | Hiện ĐÚNG khoá DTO trả: có `lyDoNhan` → "Đặt gấp — <lyDoNhan> — <nguoiDuyet> duyệt <giờ>" + “ghi chú”; chỉ `{ daDuyet: true }` → "Đặt gấp — Quản trị đã duyệt". Khác ngày thì thêm ngày ("16:10 29/09"). Không lọc theo vai ở trình duyệt. |
+| D7-7 | Sửa chặng đơn ĐÃ XÁC NHẬN dưới mốc (bản đối chiếu mục 1, V12 thiếu) | I14, [HĐ] lần 6 Q3 | Bảng "Sửa thông tin chuyến": 409 `short_notice_required` → Quản trị / Toàn quyền thấy khung Đặt gấp (khuôn 7a) và gửi lại cùng lệnh kèm `datGap`; người khác chỉ thấy câu máy chủ. |
 ## 3. Giả định bề mặt (P8 — đảo ngược được)
 
 - **GB-B8-1:** hai ô giờ nhận số thập phân ("1,5" hoặc "1.5"), gửi `Math.round(giờ × 60)` phút; giá trị đang lưu không tròn giờ hiện thập phân đủ để khứ hồi đúng số phút (bài `gioTuPhut`). Ô dùng `type="text"` + `inputmode` (không `type="number"` như bản vẽ) để nhận dấu phẩy và báo lỗi đúng câu thay vì trình duyệt tự xoá chữ sai.
@@ -82,14 +93,26 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 - **GB-B8-9:** lý do mới đứng sau lý do thường cuối cùng, trước "Khác" (thứ tự 99 của mã gieo) — `thuTuLyDoMoi`.
 - **GB-B8-10:** menu: mục con "Chính sách điều phối" (ô `settings.ops`) và "Lý do điều phối" (ô `admin.manage`) sau "Loại giấy tờ xe" — thứ tự bản vẽ `vo-may-tinh`; trang Tôi (điện thoại) thêm hai dòng cùng thứ tự trong nhóm VẬN CHUYỂN. **Chưa thêm "Điều phối xe"** (trang B1 chưa có — không để liên kết chết).
 
+- **GB-B7-1:** cảnh báo trên biểu mẫu tính bằng `kiemMocDat` (luật máy chủ) với mốc từ `GET /api/orders/moc-toi-thieu` (R-P15) và giờ máy người dùng; chỉ để HIỆN (máy chủ quyết lúc lưu / xác nhận). Sửa đơn nháp: chặng chiều đi đã đặt gấp mà ngày / giờ / nơi đón không đổi → hiện nhãn đặt gấp thay cảnh báo (máy chủ chép dấu cũ khi lưu — Q1 = (a)).
+- **GB-B7-2:** "Duyệt đặt gấp" trên biểu mẫu = lưu nháp (đúng luồng Lưu, đủ kiểm) rồi gọi route 30 cho chặng chiều đi SỚM NHẤT của dịch vụ đó (thứ tự dịch vụ phản hồi = thứ tự thẻ); lệnh đặt gấp hỏng → đơn vẫn đã lưu → sang trang đơn kèm `datgap=loi`, trang đơn báo một lần "Đơn đã lưu nhưng chưa duyệt đặt gấp được" và cho duyệt lại.
+- **GB-B7-3:** trang đơn tính "còn chặng phải đặt gấp" bằng `changDuoiMoc` (chỉ đơn NHÁP; chặng có ngày + giờ, `datGap` null, dưới mốc) từ `mocToiThieuPhut` + `legs[].datGap` của `GET /api/orders/:id`. Nút "Xác nhận đơn" khoá theo đó; đồng hồ máy người dùng chạy CHẬM hơn máy chủ thì nút có thể còn mở — máy chủ vẫn trả 409, trang hiện dải "Còn chặng đón dưới mốc…" (đã kiểm ở bước 3).
+- **GB-B7-4:** câu mốc: "Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ"; giờ đón đã qua → "Giờ đón đã qua — dưới mốc 6 giờ".
+- **GB-B7-5:** 503 `moc_toi_thieu_chua_co`: dải đỏ lời máy chủ + dòng "Chưa xác nhận hay sửa chuyến được cho tới khi Toàn quyền đặt chính sách điều phối." Chỉ kiểm bằng bài thuần (không dựng được D1 thiếu chính sách: bảng chính sách chỉ thêm, gieo sẵn).
+
 ## 4. Câu hỏi cho điều phối (Q-B…)
 
 - **Q-B-1 (D8-3):** lịch sử bản chính sách có cần "ai lưu" như bản vẽ không? Cần thì máy chủ thêm khoá (tên hiển thị người lưu) vào `DispatchPolicyDto` — tôi không tự thêm.
 - **Q-B-2 (D8-6):** mã lý do mới sinh từ nhãn (vd "Khách tự đi" ở Bỏ qua điểm → `BO_QUA_KHACH_TU_DI`; trùng → `_2`). Mã là định danh bền (nhật ký ghi mã). Chấp nhận, hay máy chủ nên tự sinh mã (bỏ `code` khỏi thân POST)?
 - **Q-B-3:** Quản trị "Ngưng" được lý do hệ thống `BO_QUA_KHONG_CON_KHACH` (máy tự ghi khi điểm không còn khách — kế hoạch I20). Máy chủ hôm nay cho phép; giao diện không chặn (chặn theo mã ở giao diện là luật đặt sai chỗ). Có cần máy chủ khoá mã này không?
+- **Q-B-5 (an toàn dữ liệu — xin điều phối xem, KHÔNG phải việc giao diện):** chủ H4 nói Đối tác / HDV / Thực tập chỉ thấy "Đặt gấp — Quản trị đã duyệt". DTO chặng đã đúng (`{ daDuyet: true }`), nhưng khối **"Lịch sử"** của trang đơn (nhật ký đơn, máy chủ trả trong `history`) cho Đối tác thấy dòng `Đặt gấp chặng đưa đón · Quản Trị · TD-… · Chiều đi · đặt gấp: Khách đoàn gọi gấp` — tức **nhãn lý do + tên người duyệt** (thấy thật ở `dat-gap-smoke.mjs` bước 10, dòng "(ghi nhận)"). Câu nhật ký do `orders/index.ts` route 30 ghi (`detail` có `LY_DO_DAT_GAP[lyDo]`). Ghi chú KHÔNG lộ. Có cần máy chủ bỏ nhãn lý do khỏi câu nhật ký / lọc dòng này với mã không có ô xem đủ không? Giao diện không tự lọc.
 - **Q-B-4 (menu B1):** mục cha "Vận chuyển" hôm nay chỉ hiện với ô `vehicle.manage` (Quản trị, Toàn quyền). Bản vẽ cho Bán hàng, Kế toán thấy "Vận chuyển › Điều phối xe" → khi làm B1 phải đổi điều kiện hiện mục cha (vd `trip.view`). Ghi trước để không quên.
 
 ## 5. Nợ
+
+- **N-B-1:** `a2-smoke-form.mjs` bước 10g chờ `#add-manual` (có sẵn trong HTML) rồi gọi ngay `#catalog-q` (JS dựng) — chập chờn khi máy bận (thấy một lần 29/9). Sửa: chờ `#catalog-q`. Không sửa trong phiên này (ngoài phạm vi, kịch bản của A2).
+- **N-B-2:** `trang-chu-smoke.mjs`, `dot-c-smoke.mjs` đỏ sẵn (mục 1.1) — số mục menu mới (17) chưa được kịch bản đếm thật.
+- **N-B-3:** cảnh báo 503 `moc_toi_thieu_chua_co` chỉ có bài thuần, chưa có ca Chrome (không dựng được D1 thiếu chính sách).
+- **N-B-4:** khối thuần B1–B6 (`src/shared/dieu-phoi-hien-thi.ts`) mới là bộ ánh xạ chữ; khối DOM (`h()`) chưa dựng vì chưa có trang để kiểm bằng Chrome — dựng cùng B1–B6 khi có route A13 / A15.
 
 ## 6. P16 — quan sát kịch bản mới đỏ thật một lần
 
@@ -97,11 +120,18 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 |---|---|---|---|
 | `chinh-sach-dieu-phoi-smoke.mjs` | `web/shell.ts`: mục con "Lý do điều phối" đổi điều kiện `danhMuc` → `chinhSach` (build lại) | bước 8 ✗ — thanh bên của Quản trị `{"items":["Xe","Sắp hết hạn","Loại giấy tờ xe"],"current":null}`; 12 ✓ / 1 ✗, thoát 1 | chép lại bản lưu (`shell.ts.bak` ở thư mục tạm), `grep` thấy lại `if (danhMuc) … TRANG_LY_DO`, build lại |
 | (lần chạy đầu, không cố ý) | — | bước 1, 2, 4, 6 ✗ — axe `color-contrast` ở `#cs-hop-dong-hint` (dòng khoá mờ .6 theo bản vẽ) | sửa CSS (D8-8) → 13/13 |
+| `dat-gap-smoke.mjs` | `src/shared/dat-gap-hien-thi.ts`: `tomTatChanXacNhan` luôn trả null (nút Xác nhận không bao giờ khoá) — build lại | bước 2 ✗ "nút Xác nhận khoá — false !== true"; bước 6 ✗ (không có dòng khoá); bước 7 ✗ theo (khung chưa điền); 8 ✓ / 3 ✗, thoát 1 | chép lại bản lưu (`dat-gap-hien-thi.ts.bak`), `grep -c "SỬA CỐ Ý"` = 0, build lại |
+| (lần chạy đầu, không cố ý) | — | bước 4, 8 ✗ axe `color-contrast` trong bảng "Sửa thông tin chuyến" (bảng ≥ 641px hiện dần bằng opacity — axe đo giữa chuyển động); bước 10 ✗ chữ "Khách đoàn gọi gấp" có trên trang Đối tác — ở khối Lịch sử (Q-B-5) | chờ 600 ms trước axe; bước 10 thu hẹp vào khối dịch vụ + ghi nhận dòng Lịch sử → 11/11 |
 
 ## 6.1 Kịch bản cũ bị đổi có chủ đích (B8)
 
 - `xe-smoke.mjs` bước 2 và `danh-muc-giay-to-smoke.mjs` bước c: nhóm VẬN CHUYỂN ở trang Tôi của Quản trị nay có thêm "Lý do điều phối" → đỏ sau B8 (đã thấy: 12 ✓ / 1 ✗ và 9 ✓ / 1 ✗) → sửa danh sách chờ → xanh lại (13/13, 10/10).
 - `trang-chu-smoke.mjs`: số mục thanh bên của Quản trị 16 → **17** (số thật 15 → 16, vẫn giữ nợ "Nhật ký" ADR-0038) ở `:542` và `:968`. **Chưa kiểm được** bằng lần chạy: kịch bản đỏ sẵn từ trước bước đếm (dựng dữ liệu bằng xác nhận đơn đón hôm nay → 409 `short_notice_required` — mục 1.1). Số 16 thật đã thấy gián tiếp ở `chinh-sach-dieu-phoi-smoke.mjs` bước 8 (thanh bên Quản trị có "Lý do điều phối").
 - `dot-c-smoke.mjs`: đỏ sẵn như mục 1.1 (cùng câu, không đổi do B8).
+
+## 6.2 Gộp máy chủ và chạy lại sau B7
+
+- Gộp `9b48da1` bằng merge `--no-ff` (gồm `cf5dc91` R-P18, `56821fb` R-P15, `9b48da1` N-14) → commit gộp `eacf01a`, **không xung đột**; `npm test` 1653/1653, `npm run typecheck` 0 ngay sau gộp.
+- Sau B7 (chạy nối tiếp, `chay-chrome.sh sau-b7`): `dat-gap-smoke.mjs` 11/11; `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` xanh; `chinh-sach-dieu-phoi-smoke.mjs` 13/13 (sau gộp); `v1-nguoi-phu-trach.mjs` 16 ✓ / 1 ✗ — chỉ còn (b) đỏ sẵn như mốc (bước (h) nay xanh); `a2-smoke-form.mjs` **đỏ một lần** khi chạy nối tiếp — bước 10g gọi `#catalog-q` ngay sau khi chờ phần tử TĨNH `#add-manual` (mã trang chưa chạy xong → `catalog-q` chưa dựng; kịch bản chờ sai phần tử); **chạy lại riêng: xanh** ("UI SMOKE FORM OK"). Ghi là kịch bản chập chờn (nợ N-B-1), không đổi kịch bản.
 
 ## 7. Kết quả kiểm cuối phiên (tự khai)

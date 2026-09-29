@@ -28,7 +28,7 @@ function lineRow(l: LineView): HTMLElement {
   );
 }
 
-function serviceBlock(v: ServiceView, locked: boolean): HTMLElement {
+function serviceBlock(v: ServiceView, locked: boolean, extra: HTMLElement | null): HTMLElement {
   const chips = [
     h("span", { class: "chip chip-unit" }, v.unit),
     v.code ? h("span", { class: "chip chip-code" }, v.code) : null,
@@ -39,12 +39,16 @@ function serviceBlock(v: ServiceView, locked: boolean): HTMLElement {
     { class: "svc svc-view", "data-service-id": v.id },
     h("div", { class: "svc-head" }, h("div", { class: "svc-title" }, h("h3", { class: "svc-name" }, v.name), h("div", { class: "svc-chips" }, ...chips))),
     h("div", { class: "svc-facts" }, kv("Số khách", v.pax, { lock: locked }), ...v.trip.map((r) => kv(r.label, r.value, { warn: r.warn }))),
+    extra,
     h("div", { class: "svc-lines" }, ...v.lines.map(lineRow)),
     h("div", { class: "svc-sum" }, h("span", null, locked ? lockIcon() : null, "Tổng dịch vụ"), h("span", { class: "svc-total-amount" }, vnd(v.subtotal))),
   );
 }
 
-/** `locked` = đơn đã xác nhận (số khách và tiền hiển thị kiểu chỉ-đọc kèm biểu tượng khoá). */
-export function renderServices(order: Order, locked: boolean): HTMLElement {
-  return h("section", { class: "services" }, h("h2", null, "Dịch vụ"), h("div", { class: "svc-list" }, ...order.services.map((s) => serviceBlock(serviceView(s), locked))));
+/**
+ * `locked` = đơn đã xác nhận (số khách và tiền hiển thị kiểu chỉ-đọc kèm biểu tượng khoá). `extra` (ADR-0049 V12): khối riêng của một dịch vụ đặt ngay dưới
+ * thông tin chuyến — nhãn đặt gấp / cảnh báo dưới mốc của các chặng (web/order.ts dựng); null = không có gì.
+ */
+export function renderServices(order: Order, locked: boolean, extra: (serviceId: string) => HTMLElement | null = () => null): HTMLElement {
+  return h("section", { class: "services" }, h("h2", null, "Dịch vụ"), h("div", { class: "svc-list" }, ...order.services.map((s) => serviceBlock(serviceView(s), locked, extra(s.id)))));
 }

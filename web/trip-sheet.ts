@@ -8,6 +8,8 @@ import { h, replaceChildren } from "./dom";
 import { vnd } from "./format";
 import { icon } from "./icons";
 import { tripFields } from "./trip-fields";
+import { taoKhungDatGap } from "./dat-gap-ui";
+import type { LyDoDatGap } from "../src/shared/chang-dua-don";
 import type { TripInput } from "../src/shared/contracts";
 import { NETWORK_BANNER, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { tripFromDto, tripPayload, tripSheetDateIssues, tripSheetRowDate } from "../src/shared/trip-form";
@@ -20,6 +22,11 @@ export interface TripSheetOptions {
   onSaved: () => void;
   /** Nút "Tải lại đơn" trong banner (đơn đã đổi ở nơi khác): bảng đã đóng; nơi gọi tải lại đơn. */
   onReload: () => void;
+  /**
+   * ADR-0049 I14 (chủ Q3): người giữ ô order.leg.short_notice (Quản trị, Toàn quyền). Lệnh sửa bị 409 `short_notice_required` (chặng dưới mốc) → bảng hiện khung
+   * "Đặt gấp" (lý do + ghi chú, khuôn bản vẽ 07 khung 7a) và gửi lại CÙNG lệnh kèm khoá `datGap`. Người khác chỉ thấy câu của máy chủ.
+   */
+  coDatGap?: boolean;
 }
 
 interface Row {
@@ -42,6 +49,8 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
   syncRowDates();
 
   const bannerEl = h("div", { class: "banner", role: "alert", hidden: true });
+  const datGapEl = h("div", { class: "dg-sheet-slot", hidden: true });
+  const khungDatGap = o.coDatGap ? taoKhungDatGap({ onDuyet: (than) => save(than) }) : null;
   const issuesEl = h("div", { class: "field-errors", "aria-live": "polite" });
   const saveBtn = h("button", { type: "button", class: "btn btn-primary btn-block" }, "Lưu thông tin chuyến");
   const closeBtn = h("button", { type: "button", class: "btn btn-link sheet-close", "aria-label": "Đóng" }, icon("close", 20));
@@ -83,7 +92,7 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
     "div",
     { class: "sheet", role: "dialog", "aria-modal": "true", "aria-labelledby": "trip-sheet-title", tabindex: -1 },
     h("div", { class: "sheet-head" }, h("h2", { id: "trip-sheet-title", class: "sheet-title" }, "Sửa thông tin chuyến"), closeBtn),
-    h("div", { class: "sheet-body" }, h("p", { class: "sheet-warn" }, icon("alert", 18), "Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại."), bannerEl, dateBlock, ...groups),
+    h("div", { class: "sheet-body" }, h("p", { class: "sheet-warn" }, icon("alert", 18), "Bản xác nhận đã gửi khách trước đó có thể lỗi thời — cần gửi lại."), bannerEl, datGapEl, dateBlock, ...groups),
     h("div", { class: "sheet-foot" }, issuesEl, saveBtn),
   );
   const root = h("div", { class: "sheet-root" }, scrim, dialog);
@@ -112,7 +121,7 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
     return b.action === "lock_form" ? { ...b, action: "reload_order" } : b;
   };
 
-  async function save(): Promise<void> {
+  async function save(datGap?: { lyDo: LyDoDatGap; ghiChu: string | null }): Promise<void> {
     if (saving) return;
     attempted = true;
     if (showIssues() > 0) return; // chặn phía trình duyệt; không gửi gì lên máy chủ
@@ -121,7 +130,8 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
     saveBtn.textContent = "Đang lưu…";
     renderBanner(bannerEl, null);
     try {
-      await api(`/api/orders/${encodeURIComponent(o.order.id)}/trip`, { method: "PUT", body: tripPayload(rows, o.order.updatedAt) });
+      const than = tripPayload(rows, o.order.updatedAt);
+      await api(`/api/orders/${encodeURIComponent(o.order.id)}/trip`, { method: "PUT", body: datGap ? { ...than, datGap } : than });
       close(false);
       o.onSaved();
     } catch (err) {
@@ -136,6 +146,12 @@ export function openTripSheet(o: TripSheetOptions, opener: HTMLElement): void {
         reloadPage: () => location.reload(),
       });
       bannerEl.scrollIntoView({ block: "nearest" });
+      // Chặng dưới mốc: Quản trị / Toàn quyền duyệt đặt gấp ngay trong bảng (gửi lại cùng lệnh kèm lý do).
+      if (khungDatGap && err instanceof ApiError && err.code === "short_notice_required" && !datGap) {
+        replaceChildren(datGapEl, khungDatGap.root);
+        datGapEl.hidden = false;
+        khungDatGap.mo();
+      }
     }
   }
 

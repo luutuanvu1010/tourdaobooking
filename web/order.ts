@@ -12,6 +12,10 @@ import { goiSom } from "./goi-som";
 import { layKhungNho } from "./khung-nho";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
+import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
+import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
+import { can } from "../src/shared/permissions";
+import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
 import { NO_BOOKER_TEXT } from "../src/shared/booker";
 import { NO_HANDLER_TEXT, handlerControls, handlerFailure, handlerSaved, nguoiPhuTrachTuPhien } from "../src/shared/handler-view";
 import { type PaxCounts } from "../src/shared/order-lines";
@@ -26,6 +30,17 @@ const actions = byId("actions");
 const sendEl = byId("send");
 let current: Order | null = null;
 let staff: Staff | null = null; // gán sau `initShell()`; các hàm dưới chỉ chạy sau đó
+/** Mốc tối thiểu đang hiệu lực (phút) từ GET /api/orders/:id (ADR-0049 I31); null = chưa có chính sách (máy chủ trả 503 lúc xác nhận). */
+let mocPhut: number | null = null;
+
+// Biểu mẫu lập đơn "Duyệt đặt gấp" (ADR-0049 R-P15) tự lưu nháp rồi gọi lệnh đặt gấp; lệnh đó hỏng thì chuyển tới đây kèm `datgap=loi` — báo một lần, bỏ tham số
+// NGAY (như `moi`) để tải lại trang không báo lại.
+let baoDatGapLoi = new URLSearchParams(location.search).get("datgap") === "loi";
+if (baoDatGapLoi) {
+  const url = new URL(location.href);
+  url.searchParams.delete("datgap");
+  history.replaceState(history.state, "", url.pathname + url.search + url.hash);
+}
 
 // Form lập đơn MỚI chuyển tới `/order?id=…&moi=1`: mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) đúng một lần, sau lần tải đơn đầu tiên. Bỏ `moi` khỏi URL NGAY (trước mọi await), để dù
 // bước dựng trang sau đó ném lỗi thì tải lại trang cũng không bật lại hộp thoại.
@@ -56,11 +71,59 @@ function errorBanner(err: unknown): Banner {
   if (!(err instanceof ApiError)) return banner("danger", "Không kết nối được máy chủ.");
   const b = classifyOrderError(
     { status: err.status, code: err.code, message: err.message, details: err.details },
-    { serviceNames: current?.services.map((s) => s.name) ?? [], formatMoney: vnd },
+    { serviceNames: current?.services.map((s) => s.name) ?? [], formatMoney: vnd, tenChang, mocPhut },
   );
   // 409 ở trang đơn (vd invalid_transition: đơn vừa đổi trạng thái ở nơi khác) phải có nút "Tải lại đơn" — PWA standalone không có tải lại của trình duyệt.
   // Trừ incomplete_trip: banner đó đã có liên kết "Sửa" tới đúng dịch vụ và ma trận đặc tả 5.2 ghi cột Hành động là "—" (stale đã có reload_order sẵn).
   return b.action === "none" && err.status === 409 && err.code !== "incomplete_trip" ? { ...b, action: "reload_order" } : b;
+}
+
+/** "Chiều đi · <dịch vụ>" của một chặng của đơn đang xem (dòng banner 409 `short_notice_required`). */
+function tenChang(legId: string): string | null {
+  for (const s of current?.services ?? []) {
+    const l = s.legs.find((x) => x.id === legId);
+    if (l) return `${CHIEU_LABEL[l.direction]} · ${s.name}`;
+  }
+  return null;
+}
+
+/**
+ * Khối V12 dưới thông tin chuyến của một dịch vụ (bản vẽ 07): nhãn "Đặt gấp — …" của chặng đã đặt gấp (theo khoá có trong DTO — chủ H4) và dải cảnh báo dưới mốc
+ * của chặng đơn NHÁP còn phải đặt gấp; người có ô order.leg.short_notice có nút "Đặt gấp" (route POST …/legs/:legId/short-notice).
+ */
+function khoiChang(order: Order, serviceId: string, canDatGap: readonly ChangCanDatGap[], duocDatGap: boolean): HTMLElement | null {
+  const s = order.services.find((x) => x.id === serviceId);
+  if (!s) return null;
+  const nhieuChang = s.legs.length > 1;
+  const khoi: HTMLElement[] = [];
+  for (const l of s.legs) {
+    const duoi = canDatGap.find((c) => c.legId === l.id);
+    if (!l.datGap && !duoi) continue;
+    const dau = nhieuChang ? h("span", { class: "chip chip-unit" }, CHIEU_LABEL[l.direction]) : null;
+    if (l.datGap) {
+      khoi.push(h("div", { class: "dg-leg", "data-leg-id": l.id }, dau, khoiNhanDatGap(l.datGap)));
+      continue;
+    }
+    const c = duoi!;
+    const w = khoiCanhBaoMoc({
+      cau: cauMoc(c.phutConLai, mocPhut!),
+      duocDatGap,
+      onDuyet: async (than) => {
+        show(null);
+        try {
+          await api(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(l.id)}/short-notice`, { method: "POST", body: than });
+        } catch (err) {
+          show(errorBanner(err));
+          bannerEl.scrollIntoView({ block: "nearest" });
+          return;
+        }
+        await load();
+        if (bannerEl.hidden) show(banner("info", `Đã duyệt đặt gấp: ${c.chieu} · ${c.tenDichVu}.`));
+      },
+    });
+    khoi.push(h("div", { class: "dg-leg", "data-leg-id": l.id }, dau, w.root));
+  }
+  return khoi.length ? h("div", { class: "dg-legs" }, ...khoi) : null;
 }
 
 function kv(label: string, value: string | null, cls = ""): HTMLElement {
@@ -199,6 +262,9 @@ function summaryBand(order: Order): HTMLElement {
 function render(order: Order, history: AuditEntry[], canModify: boolean, handler: Handler): void {
   current = order;
   const a = orderActions(order.status, canModify);
+  // ADR-0049 V12: chặng đơn nháp còn dưới mốc chưa đặt gấp (luật kiemMocDat, dữ liệu N-14) — chỉ để hiện; máy chủ vẫn quyết lúc xác nhận (409).
+  const canDatGap = changDuoiMoc(order, mocPhut, Date.now());
+  const duocDatGap = can(staff!, "order.leg.short_notice");
   document.title = `${order.orderCode} — Island Booking System`;
   setBarTitle(order.orderCode);
   replaceChildren(
@@ -229,7 +295,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
           a.editTrip ? bookerButton(order) : null,
         ),
 
-        renderServices(order, a.locked),
+        renderServices(order, a.locked, (sid) => khoiChang(order, sid, canDatGap, duocDatGap)),
       ),
       h(
         "div",
@@ -282,9 +348,16 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
   // Hướng dẫn viên LÀ người phụ trách mà không sửa được (order.modify FIELD = none) → câu riêng, không nói "người phụ trách đơn … mới được sửa" (`khongQuyenSuaText`).
   if (a.noPermission) btns.push(h("p", { class: "muted" }, khongQuyenSuaText({ ownerName: order.staffName, status: order.status, viewer: staff! })));
   if (a.edit) btns.push(h("a", { class: "btn", href: `/order-form?id=${encodeURIComponent(order.id)}` }, "Sửa"));
-  if (a.confirm) btns.push(change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent"));
+  // Bản vẽ 7a / 7b: còn chặng phải đặt gấp → nút Xác nhận khoá + dòng nói vì sao (Bán hàng: "Cần Quản trị duyệt đặt gấp"; Quản trị: "Duyệt đặt gấp xong thì xác nhận được.").
+  const chanXacNhan = a.confirm ? tomTatChanXacNhan(canDatGap, duocDatGap) : null;
+  if (a.confirm) {
+    const nut = change("Xác nhận đơn", "confirmed", "Xác nhận đơn này? Sau khi xác nhận, dịch vụ, số khách và tiền sẽ bị khoá — chỉ còn sửa được thông tin chuyến.", "btn btn-accent");
+    nut.disabled = chanXacNhan !== null;
+    btns.push(nut);
+  }
   if (a.editTrip) btns.push(editTripButton(order));
   if (a.cancel) btns.push(change("Huỷ đơn", "cancelled", "Huỷ đơn này? Việc huỷ không thể hoàn tác.", "btn btn-danger"));
+  if (chanXacNhan) btns.push(duocDatGap ? h("p", { class: "dg-lock dg-lock-note", "data-chan": "xac-nhan" }, chanXacNhan) : h("p", { class: "dg-lock", "data-chan": "xac-nhan" }, icon("lock", 16), chanXacNhan));
   replaceChildren(actions, ...btns);
   // Nút riêng, ngoài `#actions` (bộ nút sửa/xác nhận/huỷ phụ thuộc trạng thái và quyền; nút này luôn có).
   const send = h("button", { type: "button", class: "btn btn-primary", "data-action": "send-confirmation" }, "Xem biên nhận");
@@ -323,6 +396,7 @@ function editTripButton(order: Order): HTMLButtonElement {
     openTripSheet(
       {
         order,
+        coDatGap: can(staff!, "order.leg.short_notice"),
         onSaved: () =>
           void load().then(() => {
             if (bannerEl.hidden) show(banner("info", "Đã lưu thông tin chuyến.")); // tải lại lỗi thì giữ banner lỗi, không đè
@@ -359,10 +433,15 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify }, handler] = await Promise.all([layDon!(), layNguoiPhuTrach(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut }, handler] = await Promise.all([layDon!(), layNguoiPhuTrach(id!)]);
     if (seq !== loadSeq) return;
+    mocPhut = mocToiThieuPhut;
     show(null);
     render(order, history, canModify, handler);
+    if (baoDatGapLoi) {
+      baoDatGapLoi = false;
+      show(banner("warning", "Đơn đã lưu nhưng chưa duyệt đặt gấp được.", { lines: [{ text: "Bấm “Đặt gấp” ở chặng bên dưới để duyệt lại." }] }));
+    }
     if (autoOpenConfirmation) {
       autoOpenConfirmation = false;
       openConfirmation();

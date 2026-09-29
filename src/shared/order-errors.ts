@@ -1,5 +1,7 @@
 // Ma trận lỗi phía client (A2, đặc tả 5.2): phản hồi lỗi của máy chủ → MỘT banner (giọng, tiêu đề, danh sách dòng, hành động). Thuần, không DOM.
+import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
 import type { CatalogChangeDto, TripGapDto } from "./contracts.ts";
+import { cauMoc } from "./dat-gap-hien-thi.ts";
 import { PAX_LABEL, type PaxCode } from "./order-lines.ts";
 import { MISSING_LABEL } from "./trip-rules.ts";
 
@@ -34,6 +36,10 @@ export interface ErrorContext {
   /** Tên các thẻ dịch vụ theo thứ tự hiện tại (để dựng dòng "Tên · Loại: cũ → mới"). */
   serviceNames: readonly string[];
   formatMoney: (n: number) => string;
+  /** ADR-0049 (409 `short_notice_required`): tên chặng theo id ("Chiều đi · <dịch vụ>") — trang đơn tra từ `order.services[].legs`; vắng → "Chặng đưa đón". */
+  tenChang?: (legId: string) => string | null;
+  /** Mốc tối thiểu đang hiệu lực (phút) — để câu có "dưới mốc 6 giờ"; vắng / null → câu ngắn không nói mốc. */
+  mocPhut?: number | null;
 }
 
 /** Dựng một banner (dùng chung với trang lập đơn và trang đơn cho các câu ngắn không đi qua ma trận). */
@@ -74,6 +80,19 @@ export function classifyOrderError(e: ErrorInput, ctx: ErrorContext): Banner {
     return banner("danger", "Chưa đủ thông tin chuyến để xác nhận đơn.", {
       lines: missing.map((g) => ({ text: `${g.name} — ${g.reasons.map((r) => MISSING_LABEL[r]).join(", ")}`, serviceId: g.serviceId })),
     });
+  }
+  // ADR-0049 D2: xác nhận đơn còn chặng dưới mốc chưa đặt gấp (kèm `legs[]`); lệnh sửa chuyến đơn đã xác nhận dưới mốc (I14 — không kèm danh sách).
+  if (e.status === 409 && e.code === "short_notice_required") {
+    const legs = asArray<{ legId: string; phutConLai: number }>(e.details, "legs");
+    if (legs.length === 0) return banner("warning", fallback);
+    const moc = ctx.mocPhut ?? null;
+    const cau = (p: number) => (moc !== null ? cauMoc(p, moc) : p > 0 ? `giờ đón cách bây giờ ${nhanThoiLuong(p)}` : "giờ đón đã qua");
+    return banner("warning", "Còn chặng đón dưới mốc tối thiểu — cần Quản trị duyệt đặt gấp trước khi xác nhận.", {
+      lines: legs.map((l) => ({ text: `${ctx.tenChang?.(l.legId) ?? "Chặng đưa đón"}: ${cau(l.phutConLai)}` })),
+    });
+  }
+  if (e.status === 503 && e.code === "moc_toi_thieu_chua_co") {
+    return banner("danger", fallback, { lines: [{ text: "Chưa xác nhận hay sửa chuyến được cho tới khi Toàn quyền đặt chính sách điều phối." }] });
   }
   if (e.status === 400 && e.code === "catalog_unavailable") {
     return banner("danger", fallback, { lines: [{ text: "Chọn lại dịch vụ này từ danh mục." }], focusService: serviceIndexOf(e.message) });

@@ -2,7 +2,9 @@
 // Trang chỉ NỐI: luật ở src/shared (service-form, trip-form, order-errors), DOM ở các khối web/ (service-card, catalog-picker, banner).
 import { mayPickHandlerOnCreate } from "../src/shared/assignee-pick";
 import type { SuKienDon } from "../src/shared/bang-tin";
-import type { AssigneeDto, CatalogServiceDto } from "../src/shared/contracts";
+import type { AssigneeDto, CatalogServiceDto, LegDto } from "../src/shared/contracts";
+import { canhBaoChangForm, datGapGiuTrenForm } from "../src/shared/dat-gap-hien-thi";
+import type { LyDoDatGap } from "../src/shared/chang-dua-don";
 import { NETWORK_BANNER, banner, classifyOrderError, type Banner } from "../src/shared/order-errors";
 import { can, holdsPartner } from "../src/shared/permissions";
 import {
@@ -21,6 +23,7 @@ import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
+import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
 import { layKhungNho } from "./khung-nho";
@@ -52,6 +55,10 @@ byId("booker-slot").append(bookerPicker.root);
 interface Entry {
   draft: ServiceDraft;
   card: ServiceCard;
+  /** ADR-0049 V12: chỗ của nhãn đặt gấp / dải cảnh báo dưới mốc, cuối thẻ dịch vụ (dưới "Thông tin chuyến"). */
+  mocEl: HTMLElement;
+  /** Dải cảnh báo đang hiện (giữ lại giữa các lần gõ để khung "Đặt gấp" đang mở không mất chữ); null = không cảnh báo. */
+  canhBao: { datCau(cau: string): void; root: HTMLElement } | null;
 }
 const entries: Entry[] = [];
 let seq = 0;
@@ -59,6 +66,14 @@ let live = new Map<string, CatalogServiceDto>(); // dịch vụ danh mục ĐANG
 let orderUpdatedAt: string | null = null;
 let formLocked = false;
 let saving = false;
+
+// ---- mốc 6 giờ + đặt gấp (ADR-0049 V12; bản vẽ docs/design/van-chuyen-dieu-phoi/project/07; ruling R-P15) ----
+// Mốc đọc từ GET /api/orders/moc-toi-thieu (đơn CHƯA lưu cũng cảnh báo được); chỉ để HIỆN — máy chủ quyết lúc lưu (canhBaoMoc) và lúc xác nhận (409).
+// Người có ô order.leg.short_notice (Quản trị, Toàn quyền) có nút "Đặt gấp": "Duyệt đặt gấp" = LƯU NHÁP rồi gọi lệnh đặt gấp cho chặng chiều đi của dịch vụ đó.
+let mocPhut: number | null = null;
+let duocDatGap = false;
+/** Sửa đơn nháp: chặng chiều đi SỚM NHẤT đã lưu của từng dịch vụ (chặng mà ô giờ / nơi đón của thẻ ghi vào — `tronChangCu`) — để biết dấu đặt gấp có giữ không. */
+const changCu = new Map<string, LegDto>();
 
 const drafts = () => entries.map((e) => e.draft);
 const nameOf = (d: ServiceDraft, i: number) => d.name.trim() || `Dịch vụ ${i + 1}`;
@@ -90,7 +105,7 @@ byId("catalog-slot").append(picker.root);
 let retailOnly = false;
 
 function mount(d: ServiceDraft, open?: boolean): Entry {
-  const entry = { draft: d } as Entry;
+  const entry = { draft: d, mocEl: h("div", { class: "dg-form-slot" }), canhBao: null as Entry["canhBao"] } as Omit<Entry, "card"> as Entry;
   entry.card = createServiceCard({
     draft: d,
     today,
@@ -107,10 +122,34 @@ function mount(d: ServiceDraft, open?: boolean): Entry {
       picker.focus();
     },
   });
+  entry.card.root.append(entry.mocEl);
   entries.push(entry);
   servicesEl.append(entry.card.root);
   recompute();
   return entry;
+}
+
+/** Nhãn đặt gấp (dấu còn giữ khi lưu lại) hoặc dải cảnh báo dưới mốc của một thẻ; không có gì → trống. */
+function capNhatMoc(entry: Entry): void {
+  const d = entry.draft;
+  const cu = d.id ? changCu.get(d.id) : undefined;
+  const giu = datGapGiuTrenForm(cu, { departDate: orderDate, pickupTime: d.trip.pickupTime, pickupPlace: d.trip.pickupPlace });
+  if (giu && cu?.datGap) {
+    entry.canhBao = null;
+    replaceChildren(entry.mocEl, khoiNhanDatGap(cu.datGap));
+    return;
+  }
+  const cau = canhBaoChangForm({ ngayDon: orderDate, gioDon: d.trip.pickupTime, datGap: false }, mocPhut, Date.now());
+  if (!cau) {
+    entry.canhBao = null;
+    replaceChildren(entry.mocEl);
+    return;
+  }
+  if (entry.canhBao) entry.canhBao.datCau(cau);
+  else {
+    entry.canhBao = khoiCanhBaoMoc({ cau, duocDatGap, onDuyet: (than) => luu({ entry, than }) });
+    replaceChildren(entry.mocEl, entry.canhBao.root);
+  }
 }
 
 function unmount(entry: Entry): void {
@@ -189,6 +228,7 @@ function recompute(): void {
   limitEl.hidden = !full;
   limitEl.textContent = full ? `Đơn đã đủ ${MAX_SERVICES} dịch vụ — không thêm được nữa.` : "";
   for (const e of entries) e.card.refreshLimits(); // trần 50 dòng tính trên CẢ ĐƠN: nút "+ Thêm dòng" của mọi thẻ nhập tay bật/khoá đúng ngay
+  for (const e of entries) capNhatMoc(e);
   const tooMany = ds.some((d) => draftIssues(d).some((i) => i.code === "too_many_guests")); // vượt 50 khách khoá nút Lưu (đặc tả 5.1)
   saveBtn.disabled = formLocked || saving || tooMany;
   saveBtn.textContent = saving ? "Đang lưu…" : editId ? "Lưu thay đổi" : "Lưu, chờ xác nhận";
@@ -312,8 +352,16 @@ formEl.addEventListener("keydown", (e) => {
   if (e.key === "Enter" && e.target instanceof HTMLInputElement && e.target.type === "search") e.preventDefault();
 });
 
-formEl.addEventListener("submit", async (e) => {
+formEl.addEventListener("submit", (e) => {
   e.preventDefault();
+  void luu();
+});
+
+/**
+ * Lưu đơn nháp. `datGap` (ADR-0049 R-P15 — nút "Duyệt đặt gấp" của Quản trị trên thẻ): lưu xong gọi lệnh đặt gấp cho chặng chiều đi của đúng dịch vụ đó (thứ tự
+ * dịch vụ trong phản hồi = thứ tự thẻ). Lệnh đặt gấp hỏng thì đơn VẪN đã lưu → vẫn chuyển sang trang đơn, kèm `datgap=loi` để trang đơn báo và cho duyệt lại.
+ */
+async function luu(datGap?: { entry: Entry; than: { lyDo: LyDoDatGap; ghiChu: string | null } }): Promise<void> {
   if (formLocked || saving) return;
   renderBanner(saveErrorEl, null);
   assigneeErrorShown = false;
@@ -334,14 +382,24 @@ formEl.addEventListener("submit", async (e) => {
     const { order } = editId
       ? await api<Api.OrderResponse>(`/api/orders/${encodeURIComponent(editId)}`, { method: "PUT", body: collect() })
       : await api<Api.OrderResponse>("/api/orders", { method: "POST", body: collect() });
+    let datGapLoi = "";
+    if (datGap) {
+      const chang = order.services[entries.indexOf(datGap.entry)]?.legs.filter((l) => l.direction === "OUT").sort((a, b) => `${a.pickupDate} ${a.pickupTime}`.localeCompare(`${b.pickupDate} ${b.pickupTime}`))[0];
+      try {
+        if (!chang) throw new Error("không thấy chặng");
+        await api(`/api/orders/${encodeURIComponent(order.id)}/legs/${encodeURIComponent(chang.id)}/short-notice`, { method: "POST", body: datGap.than });
+      } catch {
+        datGapLoi = "&datgap=loi";
+      }
+    }
     // THAY mục lịch sử của form (không thêm): Back/bfcache không đưa người dùng về form đã lưu, nơi bấm Lưu lần hai sẽ POST /api/orders lần hai (đơn trùng).
     // Đơn MỚI kèm `moi=1`: trang đơn tự mở hộp thoại "Xác nhận đơn để gửi khách" (ảnh PNG) một lần rồi bỏ tham số; đơn SỬA thì không.
-    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}`);
+    location.replace(`/order?id=${encodeURIComponent(order.id)}${editId ? "" : "&moi=1"}${datGapLoi}`);
   } catch (err) {
     setSaving(false);
     await onSaveError(err);
   }
-});
+}
 
 // Sau khi lưu thành công `saving` không bao giờ về false (trang sắp bị thay). iOS đưa trang này vào bộ nhớ đệm (bfcache) và KHÔI PHỤC nguyên trạng khi người dùng vuốt Back từ /order
 // → form `inert` + "Đang lưu…" vĩnh viễn, mà PWA không có nút tải lại. `pageshow` với `persisted` báo đúng trường hợp đó: mở khoá lại form (dữ liệu đã gõ vẫn còn).
@@ -381,6 +439,11 @@ function fill(o: Api.OrderDetailDto): void {
   field("paymentNote").value = o.paymentNote ?? "";
   for (const en of [...entries]) unmount(en);
   orderUpdatedAt = o.updatedAt;
+  changCu.clear();
+  for (const s of o.services) {
+    const dau = s.legs.filter((l) => l.direction === "OUT").sort((a, b) => `${a.pickupDate} ${a.pickupTime}`.localeCompare(`${b.pickupDate} ${b.pickupTime}`))[0];
+    if (dau) changCu.set(s.id, dau);
+  }
   for (const s of o.services) {
     const entry = mount(draftFromDto(s, live, `k${++seq}`), s.id === focusId ? true : undefined);
     if (s.id === focusId) entry.card.reveal(); // liên kết "Sửa" của banner incomplete_trip: mở khối chuyến và cuộn tới thẻ
@@ -415,6 +478,11 @@ const layDanhMuc = layKhungNho()?.canCreate === true ? goiSom(() => api<Api.Cata
 const layDon = editId ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(editId)}`)) : null;
 const staff = await initShell();
 retailOnly = holdsPartner(staff); // trước loadCatalog/loadOrder: thẻ dịch vụ dựng sau dòng này
+duocDatGap = can(staff, "order.leg.short_notice");
+// R-P15: mốc cho biểu mẫu chưa lưu — chỉ người được lập đơn (máy chủ hỏi order.create). Lỗi / chưa có chính sách (503) → không cảnh báo; máy chủ vẫn chặn lúc xác nhận.
+const layMoc = can(staff, "order.create")
+  ? api<Api.MocToiThieuResponse>("/api/orders/moc-toi-thieu").then((r) => r.mocToiThieuPhut, () => null)
+  : Promise.resolve(null);
 // Khối "Người phụ trách": chỉ lập đơn mới, chỉ ai máy chủ cho chọn (Thực tập, Đối tác thuần: khối KHÔNG hiện — không phải hiện rồi báo lỗi).
 canPickHandler = !editId && mayPickHandlerOnCreate(staff);
 if (canPickHandler) {
@@ -442,6 +510,7 @@ if (editId) {
   // ADR-0007: kế toán xem được đơn nhưng không lập đơn; nút "Đơn mới" đã ẩn, đây là lớp chặn khi mở thẳng đường dẫn.
   lockForm(banner("danger", "Tài khoản này không được lập đơn."));
 }
+mocPhut = await layMoc;
 if (retailOnly) {
   // Sau loadOrder: đơn cũ đã lưu giảm giá > 0 thì để ô sửa được (đưa về 0), không thì khoá.
   const discountEl = field("discount") as HTMLInputElement;

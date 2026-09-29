@@ -80,3 +80,25 @@ test("mất mạng: giữ nguyên dữ liệu đã gõ", () => {
   assert.deepEqual([NETWORK_BANNER.tone, NETWORK_BANNER.title, NETWORK_BANNER.action], ["danger", "Không kết nối được máy chủ.", "none"]);
   assert.deepEqual(NETWORK_BANNER.lines.map((l) => l.text), ["Dữ liệu bạn đã nhập vẫn còn — kiểm tra kết nối rồi bấm Lưu lại."]);
 });
+
+test("409 short_notice_required (ADR-0049 D2): banner cát, mỗi chặng dưới mốc một dòng '<chiều · dịch vụ>: <câu mốc>'; thiếu tên / mốc thì câu dự phòng", () => {
+  const x = {
+    status: 409, code: "short_notice_required", message: "Có chặng đón dưới mốc tối thiểu — cần Quản trị hoặc Toàn quyền đặt gấp trước khi xác nhận.",
+    details: { code: "short_notice_required", legs: [{ legId: "l1", phutConLai: 250 }, { legId: "l9", phutConLai: -41 }] },
+  };
+  const b = classifyOrderError(x, { serviceNames: ["Vé cáp treo"], formatMoney: String, tenChang: (id) => (id === "l1" ? "Chiều đi · Vé cáp treo" : null), mocPhut: 360 });
+  assert.equal(b.tone, "warning");
+  assert.equal(b.title, "Còn chặng đón dưới mốc tối thiểu — cần Quản trị duyệt đặt gấp trước khi xác nhận.");
+  assert.deepEqual(b.lines.map((l) => l.text), ["Chiều đi · Vé cáp treo: Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ", "Chặng đưa đón: Giờ đón đã qua — dưới mốc 6 giờ"]);
+  const khongMoc = classifyOrderError(x, { serviceNames: [], formatMoney: String });
+  assert.deepEqual(khongMoc.lines.map((l) => l.text), ["Chặng đưa đón: giờ đón cách bây giờ 4 giờ 10 phút", "Chặng đưa đón: giờ đón đã qua"]);
+  // Lệnh sửa chuyến đơn đã xác nhận (I14): 409 cùng mã nhưng KHÔNG có danh sách chặng → tiêu đề là lời máy chủ, không dòng.
+  const sua = e(409, "short_notice_required", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.");
+  assert.deepEqual([sua.tone, sua.title, sua.lines], ["warning", "Chặng dưới mốc tối thiểu trước giờ đón — chỉ Quản trị hoặc Toàn quyền sửa được, kèm lý do đặt gấp.", []]);
+});
+
+test("503 moc_toi_thieu_chua_co: nguy hiểm, lời máy chủ (không đoán mốc) + một dòng nói việc cần làm", () => {
+  const b = e(503, "moc_toi_thieu_chua_co", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.");
+  assert.deepEqual([b.tone, b.title, b.action], ["danger", "Chưa có chính sách điều phối đang hiệu lực (mốc tối thiểu) — báo người phụ trách hệ thống.", "none"]);
+  assert.deepEqual(b.lines.map((l) => l.text), ["Chưa xác nhận hay sửa chuyến được cho tới khi Toàn quyền đặt chính sách điều phối."]);
+});

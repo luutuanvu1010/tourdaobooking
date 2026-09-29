@@ -1538,3 +1538,21 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .dp-dk-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
 @media (min-width: 641px) { .dp-dk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 .dp-note { margin: 0; font-size: var(--fs-badge); line-height: 1.5; color: var(--c-text-muted); }
+
+/* ---------- Bảng điều phối lượt 1 — V12: mốc 6 giờ + đặt gấp trên biểu mẫu đơn / trang đơn / bảng "Sửa thông tin chuyến"
+   (bản vẽ docs/design/van-chuyen-dieu-phoi/project/07 Bieu mau don - chang don.dc.html, khung 7a–7c). Chỉ token. ---------- */
+.dg-legs { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s3); }
+.dg-leg { display: flex; flex-direction: column; align-items: flex-start; gap: var(--s2); }
+.dg-leg > .dg-mark, .dg-leg > .dg-block { align-self: stretch; }
+.dg-mark { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: 700; line-height: 1.45; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-sm); }
+.dg-mark svg { flex: none; margin-top: var(--gap-dp-hist); }
+.dg-mark-note { display: block; font-weight: 500; }
+.dg-block { display: flex; flex-direction: column; gap: var(--s3); }
+.dg-block .dg-warn { margin-bottom: 0; }
+.dg-warn-sub { margin-top: var(--s1); font-size: var(--fs-label); }
+.dg-panel { display: flex; flex-direction: column; gap: var(--s3); padding: var(--s3); background: var(--c-surface-alt); border-radius: var(--radius-sm); }
+.dg-panel-title { font-family: var(--font-display); font-weight: 700; }
+.dg-form-slot:not(:empty) { margin-top: var(--s3); }
+.dg-sheet-slot { margin-bottom: var(--s4); }
+.dg-lock { display: flex; align-items: center; gap: var(--s1); margin: 0; font-size: var(--fs-label); font-weight: 700; color: var(--c-sand-text); }
+.dg-lock.dg-lock-note { font-size: var(--fs-badge); font-weight: 600; color: var(--c-text-muted); }
