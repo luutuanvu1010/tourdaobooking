@@ -88,7 +88,8 @@
 | Task | Việc | Commit | Kết quả |
 |---|---|---|---|
 | A0 | mốc, R-P4 (i)(ii), mở nhật ký | `6e4615f` | xong |
-| A1 | `migrations/0041_chinh_sach_dieu_phoi.sql` (bốn bảng, gieo, 7 trigger) + `src/migrations-chinh-sach-dieu-phoi.test.ts` (9 bài) + sổ dữ liệu (`vc_reason` = `lookup`) + `npm run dict` | (commit A1) | Đỏ trước: 9/9 đỏ — `phải có đúng một tệp *_chinh_sach_dieu_phoi.sql, thấy: []`, `no such table: vc_dispatch_policy`, `no such table: vc_license_capacity`. Xanh: 9/9; `node --test src/migrations-chinh-sach-dieu-phoi.test.ts src/architecture.test.ts` 34/34; `npm test` thoát 0, **1322/1322** (không bài nào đòi số migration liền mạch — khoảng trống 0034–0040 không làm đỏ gì). D1 local tạm (`--persist-to`, không `--remote`): `d1 migrations apply` → `0041_chinh_sach_dieu_phoi.sql ✅`; đếm gieo 1 / 8 / 13 / 0; `UPDATE vc_dispatch_policy` → `vc_policy_append_only: …: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)`; chèn `require_contract = 1` → `CHECK constraint failed: require_contract = 0: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_CHECK)`. |
+| A1 | `migrations/0041_chinh_sach_dieu_phoi.sql` (bốn bảng, gieo, 7 trigger) + `src/migrations-chinh-sach-dieu-phoi.test.ts` (9 bài) + sổ dữ liệu (`vc_reason` = `lookup`) + `npm run dict` | `b7d6216` | Đỏ trước: 9/9 đỏ — `phải có đúng một tệp *_chinh_sach_dieu_phoi.sql, thấy: []`, `no such table: vc_dispatch_policy`, `no such table: vc_license_capacity`. Xanh: 9/9; `node --test src/migrations-chinh-sach-dieu-phoi.test.ts src/architecture.test.ts` 34/34; `npm test` thoát 0, **1322/1322** (không bài nào đòi số migration liền mạch — khoảng trống 0034–0040 không làm đỏ gì). D1 local tạm (`--persist-to`, không `--remote`): `d1 migrations apply` → `0041_chinh_sach_dieu_phoi.sql ✅`; đếm gieo 1 / 8 / 13 / 0; `UPDATE vc_dispatch_policy` → `vc_policy_append_only: …: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)`; chèn `require_contract = 1` → `CHECK constraint failed: require_contract = 0: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_CHECK)`. |
+| A2 | `src/shared/dieu-phoi-kieu.ts` (hằng `NHOM_LY_DO`, `LOAI_SU_KIEN_CHUYEN`, `MA_LUAT_PHA_LE`, tập đóng bốn máy trạng thái, kiểu vào/ra của luật thuần) + **`src/shared/ly-do-giu.ts`** (kiểu `LyDoGiu`, bộ mã đóng `MA_GIU`, `lyDoGiu()`) + hai tệp test (9 bài) | (commit A2) | Đỏ trước: `ERR_MODULE_NOT_FOUND … dieu-phoi-kieu.ts`. Xanh 9/9; `tsc --noEmit` thoát 0. `ly-do-giu.ts` dựng ở A2 (kế hoạch xếp ở A4) vì kiểu ra của A2 (`KetQuaKiem`, `KetQuaXuatBen`) cần `LyDoGiu`; không đổi nội dung A4. |
 
 ## 4. P16 — hàng rào mới (sửa cố ý → đỏ → hoàn nguyên)
 
@@ -101,6 +102,8 @@ Mọi phép sửa cố ý làm trên bản sao cục bộ, hoàn nguyên bằng 
 | gieo bảng hạng bằng (0041) | gieo `D2` thành 30 | `not ok 2 - (c) dữ liệu gieo …` và `not ok 5 - (b) TC-1 bảng hạng bằng CHỈ THÊM …` | 2026-09-29 |
 | `vc_departure_rule_close_once` (0041) | bỏ các vế "không đổi cột nội dung" | `not ok 7 - (b) TC-1 điều kiện xuất bến …` / `error: 'Missing expected exception: đóng kèm đổi cỡ xe'` | 2026-09-29 |
 | `vc_reason_identity` (0041, siết thêm) | xoá trigger | `not ok 8 - (b) TC-1 danh mục lý do …` / `error: 'Missing expected exception: đổi nhóm'` | 2026-09-29 |
+| `ly-do-giu.test.ts` — "ai xử lý đúng vai" | `GPLX_HET_HAN.aiXuLy` → `VAN_PHONG` | `not ok 2 - ai xử lý đúng vai …` / `expected: 'QUAN_TRI'` `actual: 'VAN_PHONG'` | 2026-09-29 |
+| `dieu-phoi-kieu.test.ts` — nhóm lý do + đối chiếu gieo 0041 | bỏ `BO_QUA_DIEM` khỏi `NHOM_LY_DO` | `not ok 1 - NHOM_LY_DO: đúng bảy nhóm …`; `not ok 2 - mọi mã lý do gieo …` / `error: 'BO_QUA_KHONG_CON_KHACH: nhóm lạ BO_QUA_DIEM'` | 2026-09-29 |
 
 ## 5. Giả định (P8 — bề mặt, đảo ngược được)
 
