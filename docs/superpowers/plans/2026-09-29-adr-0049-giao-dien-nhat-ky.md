@@ -150,6 +150,11 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 | `a2-smoke-order.mjs`, `a2-smoke-sheet.mjs` | xanh |
 | `a2-smoke-form.mjs` | xanh khi chạy riêng; một lần đỏ chập chờn khi chạy nối tiếp (N-B-1) |
 | `v1-nguoi-phu-trach.mjs` | 16 ✓ / 1 ✗ — (b) đỏ sẵn như mốc |
+| `v1-xac-nhan-png.mjs` (phần `moi=1` — trang đơn nay bỏ thêm tham số `datgap`) | thoát 0 — 13 bước ✓ |
 | `trang-chu-smoke.mjs`, `dot-c-smoke.mjs` | đỏ sẵn như mốc (mục 1.1), không do Phần B |
+
+**Tài liệu mô tả:** `docs/SYSTEM-DESIGN.md` §9 thêm ba trang mới, lời gọi mới của Lập/sửa đơn và Chi tiết đơn, ba tệp thuần mới. `docs/CHANGE-GUIDE.md` công thức c (thêm trang web) đã đối chiếu: đủ bảy bước, không bước nào ngoài phần đã làm.
+
+**Chỗ yếu của các khẳng định trên (nói thẳng):** "đỏ trước" của kịch bản Chrome là SỬA CỐ Ý sau khi đã làm (P16), không phải chạy trước khi có mã; bài thuần thì đỏ trước thật (tệp chưa có). Số mục thanh bên 17 của `trang-chu-smoke.mjs` chưa từng chạy tới. Nhánh 503 chỉ có bài thuần. `a2-smoke-form.mjs` chập chờn một lần.
 
 **Chưa làm (chờ điều phối):** B1–B6 (cần route A13 / A15 và R-P12, R-P13, R-P14, R-P16, R-P17 gộp sang); khối DOM của B1–B6 (N-B-4); mục "Điều phối xe" trên menu (theo B1); Q2 "Đã gọi báo" (chờ quyết định bổ sung của chủ); thử iPhone thật.
