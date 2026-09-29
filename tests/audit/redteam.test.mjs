@@ -228,13 +228,13 @@ test("D2 FINDING: sửa tổng tiền của đơn ĐÃ XÁC NHẬN (giữ đúng
   assert.equal(w.q("SELECT total FROM orders WHERE id = ?", o.id)[0].total, 1);
 });
 
-test("D3 PASS: nhật ký không sửa/xoá được; trạng thái đơn không quay lui; xoá đơn có nhật ký bị khoá ngoại chặn", async () => {
+test("D3 PASS: nhật ký không sửa/xoá được; trạng thái đơn không quay lui; xoá đơn đã xác nhận bị trigger gốc orders_no_delete chặn (chủ lần 15 — trước đó khoá ngoại)", async () => {
   const w = setup();
   const o = await confirmedOrder(w);
   assert.throws(() => w.sqlite.exec("UPDATE audit_log SET detail = 'x'"), /audit_append_only/);
   assert.throws(() => w.sqlite.exec("DELETE FROM audit_log"), /audit_append_only/);
   assert.throws(() => w.sqlite.exec(`UPDATE orders SET status = 'draft' WHERE id = '${o.id}'`), /invalid_transition/);
-  assert.throws(() => w.sqlite.exec(`DELETE FROM orders WHERE id = '${o.id}'`), /FOREIGN KEY/);
+  assert.throws(() => w.sqlite.exec(`DELETE FROM orders WHERE id = '${o.id}'`), /order_frozen/); // trigger gốc chạy TRƯỚC khoá ngoại (0034, chủ lần 15)
 });
 
 // Đề xuất kiểm bất biến chạy trên DỮ LIỆU (bổ sung scripts/audit-checks.mjs): điều trigger không diễn đạt được vì dòng tiền chèn SAU đơn trong cùng batch.
