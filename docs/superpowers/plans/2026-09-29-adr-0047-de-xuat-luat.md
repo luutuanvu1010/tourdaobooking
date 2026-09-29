@@ -20,6 +20,11 @@
   - mỗi tệp luật một commit, sửa đúng diff dưới đây;
   - đổi chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` thành "đã duyệt <ngày>" (tiền lệ Ruling D21 của T2b).
 - Số dòng đo trên `9067d97` (= `main` `ce831f8` + tài liệu). Task A18 đo lại.
+- **Đo lại ở Task A18 (2026-09-29, nhánh thi công `worktree-agent-aa4ba1b121f98db87`):**
+  - `docs/ARCHITECTURE.md`: KHÔNG đổi trên nhánh ⇒ số dòng như bản gốc — bảng thi hành dòng 145 (4.2/5.5), 147 (5.1), 148 (5.3); Phần II dòng 192 (ranh giới SQL), 194 (bảng mới); dòng "Trạng thái" 15.
+  - `src/CLAUDE.md`: KHÔNG đổi ⇒ dòng 14 (module nghiêm), 25 (tiền tố).
+  - `src/architecture.test.ts` (mã nhánh thi công MANG SẴN, chú thích "CHỜ CHỦ DUYỆT"): `LEGACY_TABLES` dòng 84 (siết), `NUA_NGHIEM` 103 (siết), `XOA_CUNG_NHAP` 112 (mục 2), `DOC_AUDIT_LOG_WONGUARD` 122 (mục 3), `TABLE_PREFIX` có `ord_` 133 (mục 1), `violations` 348, `FULL_NAME_ORD_PASSENGER_FILES` 628 + bài R-N1-14 630 (mục 7); các bài kèm ở cuối tệp (khối "ADR-0047").
+  - Duyệt xong: đổi bốn chú thích "CHỜ CHỦ DUYỆT" (dòng ~99–131, ~626) thành "đã duyệt <ngày>".
 
 ## Tóm tắt cho chủ (lời thường)
 
@@ -174,6 +179,8 @@ Dòng "Trạng thái" đầu `docs/ARCHITECTURE.md` thêm một vế: "bảng th
 **4b. `src/CLAUDE.md`:**
 - Dòng 14, câu cuối, thêm: "Riêng `orders`: SQL mới chỉ ở tệp nửa nghiêm `orders/chang-hanh-khach-repo.ts` (`defineSql`, EXPLAIN) — không viết câu `ord_*` thô trong `repository.ts`."
 - Dòng 25: danh sách tiền tố thêm `ord_` sau `vc_`.
+- (Mục 7, người thi công thêm ở A18) Dòng 14 câu vừa thêm nối tiếp: "… Chữ `full_name` (cột họ tên hành khách `ord_passenger.full_name`) chỉ được xuất hiện trong chuỗi SQL của tệp đó, đọc ra dưới bí danh — ngoại lệ có tên của bài R-N1-14."
+- (Tuỳ chọn, thêm ở A18) Mục "Dữ liệu": "Giờ đón / điểm đón của dịch vụ nay ĐỌC từ chặng đưa đón `ord_transfer_leg` (dẫn xuất `chieuDiDau`); `order_service.pickup_time/pickup_place` chỉ còn GHI KÉP ở phát hành 1 — không viết SQL mới đọc hai cột này."
 
 **4c. `web/CLAUDE.md` — Phần B điền (Task B7):** các dòng bảng "đổi tệp nào → chạy kịch bản Chrome nào" cho màn chặng + hành khách, sửa dòng `web/order-form.ts`, `web/order.ts`, `web/trip-sheet.ts` (dòng 32) nếu bộ kịch bản đổi.
 
