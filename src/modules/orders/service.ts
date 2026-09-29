@@ -6,10 +6,12 @@ import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
-import { chieuDiDau, doiNgayChang, tronChangCu } from "../../shared/chang-dua-don";
-import { activeLocations, passengerRowsByOrders, type LegFields } from "./chang-hanh-khach-repo";
+import {
+  MAX_CHANG_MOI_DICH_VU, chieuDiDau, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
+} from "../../shared/chang-dua-don";
+import { activeLocations, legById, passengerRowsByOrders, type LegFields } from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder } from "./money-adjustment";
-import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type LegOp, type StoredServiceRow } from "./repository";
+import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow } from "./repository";
 import type { ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
 
@@ -71,6 +73,106 @@ export function keHoachChangTrip(
     return { id: u.id, trip: { ...u.trip, ...chieuDiDau(labelled) } };
   });
   return { updates: out, ops };
+}
+
+// ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1; Ruling R1) — lập kế hoạch ghi (có I/O đọc), repository ghi --------------------------------------------
+
+type Pickup = { pickupTime: string | null; pickupPlace: string | null };
+type Failed = { ok: false; code: "invalid_input" | "leg_not_found" | "leg_closed"; message: string };
+
+/** Nhãn nơi đón/trả của một chặng (tên điểm danh mục theo `names`, hoặc chữ). */
+function noiCua(l: LegFields, names: ReadonlyMap<string, string>): { noiDon: string; noiTra: string | null } {
+  return {
+    noiDon: l.pickupLocationId ? (names.get(l.pickupLocationId) ?? "") : (l.pickupPlace ?? ""),
+    noiTra: l.dropoffLocationId ? (names.get(l.dropoffLocationId) ?? null) : l.dropoffPlace,
+  };
+}
+const moTaVao = (l: LegFields & { direction: "OUT" | "RETURN" }, names: ReadonlyMap<string, string>) => ({ direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, ...noiCua(l, names) });
+
+/** Tên điểm đã biết từ chặng đang lưu của dịch vụ + điểm ĐANG DÙNG của những id mới (R7). Thiếu một id mới → lỗi. */
+async function tenDiem(db: D1Database, stored: readonly StoredLeg[], ids: readonly (string | null)[], keep: ReadonlySet<string>): Promise<{ ok: true; names: Map<string, string> } | Failed> {
+  const names = new Map<string, string>();
+  for (const l of stored) {
+    if (l.pickupLocationId) names.set(l.pickupLocationId, l.pickupLabel);
+    if (l.dropoffLocationId && l.dropoffLabel !== null) names.set(l.dropoffLocationId, l.dropoffLabel);
+  }
+  const need = ids.filter((x): x is string => x !== null && !keep.has(x));
+  const active = await activeLocations(db, need);
+  for (const x of need) if (!active.has(x)) return { ok: false, code: "invalid_input", message: "Nơi đón / nơi trả: điểm đã chọn không còn dùng được — hãy chọn lại điểm khác hoặc gõ nơi đón." };
+  for (const [k, v] of active) names.set(k, v);
+  return { ok: true, names };
+}
+
+/** Dẫn xuất hai khoá cũ của dịch vụ sau khi thay tập chặng mở (ghi kép R3). */
+const dauSau = (legs: readonly (LegFields & { id: string; direction: "OUT" | "RETURN" })[], names: ReadonlyMap<string, string>): Pickup =>
+  chieuDiDau(legs.map((l) => ({ id: l.id, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLabel: noiCua(l, names).noiDon })));
+
+const expectedOf = (body: Record<string, unknown> | null): string | null =>
+  body && typeof body.expectedUpdatedAt === "string" && body.expectedUpdatedAt ? body.expectedUpdatedAt : null;
+
+export interface AddLegPlan { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: Pickup }
+/** `POST /api/orders/:id/legs` — kiểm thân `{ expectedUpdatedAt (của đơn), serviceId, leg }`, trần chặng, điểm đang dùng; dựng nhật ký + dẫn xuất mới. */
+export async function planAddLeg(db: D1Database, orderId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: AddLegPlan } | Failed> {
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc)." };
+  const stored = await getStoredServices(db, orderId);
+  const svc = typeof body!.serviceId === "string" ? stored.find((s) => s.id === body!.serviceId) : undefined;
+  if (!svc) return { ok: false, code: "invalid_input", message: "Dịch vụ không thuộc đơn này — hãy tải lại trang." };
+  if (svc.legs.length >= MAX_CHANG_MOI_DICH_VU) return { ok: false, code: "invalid_input", message: `Mỗi dịch vụ tối đa ${MAX_CHANG_MOI_DICH_VU} chặng đưa đón.` };
+  const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
+  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, today });
+  if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
+  const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], new Set());
+  if (!named.ok) return named;
+  const detail = moTaChang(svc.name, null, moTaVao(k.value, named.names))!;
+  const mirror = dauSau([...svc.legs, { ...k.value, id: "~moi" }], named.names);
+  return { ok: true, value: { serviceId: svc.id, leg: k.value, expected, detail, mirror } };
+}
+
+export interface EditLegPlan { legId: string; serviceId: string; fields: LegFields; expected: string; detail: string | null; mirror: Pickup }
+/** `PUT /api/orders/:id/legs/:legId` — thân `{ expectedUpdatedAt (của CHẶNG), leg }`; không đổi chiều; điểm mới phải đang dùng; ngày đón đổi không được đã qua. */
+export async function planEditLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: EditLegPlan } | Failed> {
+  const row = await legById(db, legId, orderId);
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ — không sửa được." };
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
+  const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  const old = svc.legs.find((l) => l.id === legId)!;
+  const raw = body!.leg && typeof body!.leg === "object" && !Array.isArray(body!.leg) ? { ...(body!.leg as Record<string, unknown>), id: undefined } : body!.leg;
+  const k = kiemChang(raw, { at: "Chặng đưa đón", departDate: svc.trip.departDate, direction: old.direction, today, ngayCu: old.pickupDate });
+  if (!k.ok) return { ok: false, code: "invalid_input", message: k.message };
+  const keep = new Set([old.pickupLocationId, old.dropoffLocationId].filter((x): x is string => x !== null));
+  const named = await tenDiem(db, svc.legs, [k.value.pickupLocationId, k.value.dropoffLocationId], keep);
+  if (!named.ok) return named;
+  const fields: LegFields = {
+    pickupDate: k.value.pickupDate, pickupTime: k.value.pickupTime, pickupLocationId: k.value.pickupLocationId, pickupPlace: k.value.pickupPlace,
+    dropoffLocationId: k.value.dropoffLocationId, dropoffPlace: k.value.dropoffPlace,
+  };
+  const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao({ ...fields, direction: old.direction }, named.names));
+  const mirror = dauSau(svc.legs.map((l) => (l.id === legId ? { ...l, ...fields } : l)), named.names);
+  return { ok: true, value: { legId, serviceId: svc.id, fields, expected, detail, mirror } };
+}
+
+export interface CloseLegPlan { legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: Pickup }
+/** `POST /api/orders/:id/legs/:legId/close` — thân `{ expectedUpdatedAt (của CHẶNG), reasonCode }`; lý do thuộc danh sách đóng ở mã (R6). */
+export async function planCloseLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null): Promise<{ ok: true; value: CloseLegPlan } | Failed> {
+  const row = await legById(db, legId, orderId);
+  if (!row) return { ok: false, code: "leg_not_found", message: "Không tìm thấy chặng đưa đón của đơn này." };
+  if (row.closed_at !== null) return { ok: false, code: "leg_closed", message: "Chặng đưa đón này đã bỏ rồi." };
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, code: "invalid_input", message: "Thiếu expectedUpdatedAt (mốc cập nhật của chặng mà trang đã đọc)." };
+  if (!isLyDoDongChang(body!.reasonCode)) return { ok: false, code: "invalid_input", message: "Cần chọn lý do bỏ chặng đưa đón." };
+  const svc = (await getStoredServices(db, orderId)).find((s) => s.id === row.order_service_id)!;
+  const old = svc.legs.find((l) => l.id === legId)!;
+  const names = new Map<string, string>();
+  for (const l of svc.legs) {
+    if (l.pickupLocationId) names.set(l.pickupLocationId, l.pickupLabel);
+    if (l.dropoffLocationId && l.dropoffLabel !== null) names.set(l.dropoffLocationId, l.dropoffLabel);
+  }
+  const detail = moTaChang(svc.name, moTaVao(old, names), null, body!.reasonCode)!;
+  const mirror = dauSau(svc.legs.filter((l) => l.id !== legId), names);
+  return { ok: true, value: { legId, serviceId: svc.id, reason: body!.reasonCode, expected, detail, mirror } };
 }
 
 /**

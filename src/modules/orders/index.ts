@@ -12,16 +12,18 @@ import { route, type AppModule } from "../../shared/router";
 import { vnToday, vnWeekRange } from "../../shared/vn-date";
 import { editablePaxCodesOf, planMoneyEdit } from "./money-adjustment";
 import {
-  applyAdjustedPax, cancelOrder, changeBooker, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getLatestAdjustments, getMeta, getOrderRef,
-  getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip,
+  addLeg, applyAdjustedPax, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getLatestAdjustments,
+  getMeta, getOrderRef, getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip,
 } from "./repository";
-import { servicePaxByIds } from "./chang-hanh-khach-repo";
+import { legById, servicePaxByIds } from "./chang-hanh-khach-repo";
 import { toPoolOrders } from "./pool";
 import {
   PARTNER_DISCOUNT_CAP, PARTNER_DISCOUNT_MESSAGE, RETAIL_PRICE_MESSAGE, discountWithinCap, holdsPartner, manualFreezeViolation, retailPricesOnly,
 } from "./price-guards";
 import { canTransition, hasHandlerPick, isOrderStatus, parseHandlerPick, validateBookerChange, validateOrder, type Failure, type OrderStatus, type ValidOrder } from "./rules";
-import { keHoachChangTrip, loadOrderView, resolveBooker, resolveLegPlaces, validationContext, type OrderValidationContext } from "./service";
+import {
+  keHoachChangTrip, loadOrderView, planAddLeg, planCloseLeg, planEditLeg, resolveBooker, resolveLegPlaces, validationContext, type OrderValidationContext,
+} from "./service";
 import { confirmGaps, describeTripUpdates, summarizeDeviations, validateTripUpdate } from "./service-rules";
 
 const FORBIDDEN = () => error(403, "forbidden", "Chỉ người lập đơn, người phụ trách đơn hoặc quản trị viên mới được thay đổi đơn này.");
@@ -37,6 +39,25 @@ const STALE = () => error(409, "stale", "Đơn vừa được người khác s�
 const RACED = () => error(409, "invalid_transition", "Đơn vừa được người khác đổi trạng thái, hãy tải lại.");
 const PARTNER_PRICE = () => error(403, "forbidden", RETAIL_PRICE_MESSAGE);
 const PARTNER_DISCOUNT = () => error(403, "forbidden", PARTNER_DISCOUNT_MESSAGE);
+/** ADR-0047 Ruling R1: chặng / danh sách khách của ĐƠN NHÁP đi trong thân `POST/PUT /api/orders`; route riêng chỉ nhận đơn đã xác nhận. */
+const USE_ORDER_FORM = () => error(409, "use_order_form", "Đơn nháp: sửa đưa đón và danh sách hành khách ngay trong form đơn.");
+const LEG_NOT_FOUND = () => error(404, "leg_not_found", "Không tìm thấy chặng đưa đón của đơn này.");
+const LEG_CLOSED = (message = "Chặng đưa đón này đã bỏ — không sửa được.") => error(409, "leg_closed", message);
+
+/** Lỗi lập kế hoạch sửa/đóng chặng → phản hồi. */
+function legFailure(f: { code: "invalid_input" | "leg_not_found" | "leg_closed"; message: string }): Response {
+  if (f.code === "leg_not_found") return LEG_NOT_FOUND();
+  if (f.code === "leg_closed") return LEG_CLOSED(f.message);
+  return error(400, "invalid_input", f.message);
+}
+
+/** Câu đầu lô sửa/đóng chặng không áp dụng: vì chặng vừa bị bỏ, đơn vừa huỷ, hay vì mốc chặng đã cũ? Đọc lại để trả đúng lý do. */
+async function legRaced(db: D1Database, orderId: string, legId: string): Promise<Response> {
+  const [now, leg] = await Promise.all([getMeta(db, orderId), legById(db, legId, orderId)]);
+  if (now?.status === "cancelled") return CANCELLED();
+  if (leg?.closed_at) return LEG_CLOSED();
+  return STALE();
+}
 
 /**
  * DK-T3-01 (kiểm toán 24/9; chủ dự án trả lời 2026-09-26) — các kiểm RIÊNG chạy SAU `validateOrder` ở POST/PUT đơn (luật thuần: `price-guards.ts`),
@@ -361,6 +382,62 @@ export const ordersModule: AppModule = {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    // ---- Chặng đưa đón SAU XÁC NHẬN (ADR-0047 A1, Ruling R1): thêm / sửa trường vận hành / bỏ (= đóng dòng có lý do). Ô `order.trip.edit` { ownerId,
+    // assigned } (cùng loại dữ liệu với "Sửa thông tin chuyến"), hỏi TRƯỚC khi đọc thân. Đơn nháp → 409 `use_order_form` (chặng của nháp đi trong thân
+    // PUT /api/orders); đơn huỷ → 409. Khoá lạc quan: thêm theo mốc ĐƠN, sửa/đóng theo mốc CHẶNG. Mỗi lần ghi báo Bảng tin "chuyen" đúng một lần.
+    route("POST", "/api/orders/:id/legs", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      const plan = await planAddLeg(env.DB, id, await readJson(request), vnToday(new Date()));
+      if (!plan.ok) return error(400, "invalid_input", plan.message);
+      if (!(await addLeg(env.DB, id, staff.id, plan.value))) {
+        const now = await getMeta(env.DB, id);
+        return now?.status === "cancelled" ? CANCELLED() : STALE();
+      }
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
+    }),
+
+    route("PUT", "/api/orders/:id/legs/:legId", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      const legId = params.legId!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
+      const plan = await planEditLeg(env.DB, id, legId, await readJson(request), vnToday(new Date()));
+      if (!plan.ok) return legFailure(plan);
+      if (plan.value.detail === null) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
+      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "update", ...plan.value, detail: plan.value.detail }))) return legRaced(env.DB, id, legId);
+      baoThayDoi({ orderId: id, thayDoi: "chuyen" });
+      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+    }),
+
+    route("POST", "/api/orders/:id/legs/:legId/close", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
+      const id = params.id!;
+      const legId = params.legId!;
+      if (!UUID_RE.test(id)) return NOT_FOUND();
+      const [meta, assigned] = await Promise.all([getMeta(env.DB, id), isAssigned(id)]);
+      if (!meta) return NOT_FOUND();
+      if (!can(staff, "order.trip.edit", { ownerId: meta.staffId, assigned })) return FORBIDDEN();
+      if (meta.status === "draft") return USE_ORDER_FORM();
+      if (meta.status === "cancelled") return CANCELLED();
+      if (!UUID_RE.test(legId)) return LEG_NOT_FOUND();
+      const plan = await planCloseLeg(env.DB, id, legId, await readJson(request));
+      if (!plan.ok) return legFailure(plan);
+      if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value }))) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
       return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
     }),

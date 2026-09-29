@@ -4,8 +4,9 @@ import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, O
 import { escapeLike } from "../../shared/http";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
-  legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateGuarded, openLegsByOrders, openLegsStatement, passengerDeleteDraft,
-  passengerInsert, passengerInsertGuarded, type LegFields, type LegRow, type LegWrite, type PassengerWrite,
+  legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
+  openLegsStatement, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, serviceMirrorUpdateGuarded,
+  type LegFields, type LegRow, type LegWrite, type PassengerWrite,
 } from "./chang-hanh-khach-repo";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
@@ -1171,6 +1172,55 @@ export async function updateTrip(
       if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
       return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at), auditId);
     }),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+// ---- Route chặng SAU XÁC NHẬN (ADR-0047 A1) ---------------------------------------------------------------------------------------------------
+// Lô: câu ĐẦU tự quyết thắng/thua (khoá lạc quan) → nhật ký `changes() > 0` (id riêng) → mọi câu sau mang lính gác của CHÍNH dòng nhật ký đó:
+// ghi chặng / đẩy mốc đơn (form khác đang mở thấy "vừa có người sửa") / GHI KÉP hai cột cũ (R3). Trả true ⇔ câu đầu đã áp dụng.
+
+const later = (a: string, b: string): string => (a > b ? a : b);
+
+/** Thêm chặng — khoá lạc quan theo `orders.updated_at` (câu đầu `order_touch`: chỉ đơn ĐÃ XÁC NHẬN, đúng mốc). */
+export async function addLeg(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
+): Promise<boolean> {
+  const at = nextStamp(plan.expected);
+  const auditId = crypto.randomUUID();
+  const results = await db.batch([
+    orderTouch(db, orderId, at, plan.expected),
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_added", at, detail: plan.detail }, "changes() > 0"),
+    legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at), auditId),
+    serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+/** Sửa / đóng chặng — khoá lạc quan theo `updated_at` CỦA CHẶNG (câu đầu `leg_update_checked` / `leg_close_checked`); đẩy mốc đơn nếu mốc đơn còn đúng. */
+export async function changeLeg(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  orderUpdatedAt: string,
+  plan:
+    | { kind: "update"; legId: string; serviceId: string; fields: LegFields; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } }
+    | { kind: "close"; legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
+): Promise<boolean> {
+  const at = nextStamp(later(plan.expected, orderUpdatedAt));
+  const auditId = crypto.randomUUID();
+  const first =
+    plan.kind === "update"
+      ? legUpdateChecked(db, plan.legId, orderId, plan.fields, at, staffId, plan.expected)
+      : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
+  const results = await db.batch([
+    first,
+    auditStatement(db, { id: auditId, orderId, staffId, action: plan.kind === "update" ? "order_leg_updated" : "order_leg_closed", at, detail: plan.detail }, "changes() > 0"),
+    orderTouchGuarded(db, orderId, at, orderUpdatedAt, auditId),
+    serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }
