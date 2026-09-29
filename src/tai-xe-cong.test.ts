@@ -48,7 +48,12 @@ const CAU_CONG = new Set([
  * Route cổng "staff" → mã trạng thái kỳ vọng khi tài khoản CHỈ-DRIVER gọi (thân `{}` với POST/PUT/DELETE; tham số `:x` = id lạ, riêng route đơn dùng đơn có
  * thật) + lý do đối chiếu ADR-0040 D3. Ghi TAY lúc thi công (2026-09-28) sau khi đọc từng dòng; không có dòng nào trả dữ liệu đơn / khách / tiền.
  */
-const BANG_STAFF: Record<string, { ma: number; ly_do: string }> = {
+type MucBang = { ma: number; ly_do: string };
+/**
+ * Dòng CHUNG (một mã cho cả hai mã tài xế) hoặc dòng TÁCH theo mã quyền `{ DRIVER, DRIVER_PARTNER }` — ADR-0049 Task A15 (TC-36): route "Cuốc của tôi" và lệnh tiến
+ * độ của tài xế trả khác nhau: DRIVER (ô trip.view / trip.progress = assigned) → 200 danh sách / 404 chuyến lạ; DRIVER_PARTNER (ô none) → 403 ở bước đầu.
+ */
+const BANG_STAFF: Record<string, MucBang | { DRIVER: MucBang; DRIVER_PARTNER: MucBang }> = {
   "POST /api/account/change-pin": { ma: 400, ly_do: "tự phục vụ: đổi PIN của chính mình (trang Tài khoản); thân rỗng → 400" },
   "GET /api/account/passkeys": { ma: 503, ly_do: "tự phục vụ Face ID của chính mình; khung thử tắt Face ID → 503" },
   "POST /api/account/passkeys": { ma: 503, ly_do: "như trên" },
@@ -77,6 +82,22 @@ const BANG_STAFF: Record<string, { ma: number; ly_do: string }> = {
   "GET /api/thong-bao": { ma: 200, ly_do: "hộp thông báo gửi cho mình (D3)" },
   "GET /api/thong-bao/tom-tat": { ma: 200, ly_do: "như trên" },
   "GET /api/thong-bao/moi-nhat": { ma: 200, ly_do: "như trên (Web Push)" },
+  // ADR-0049 D3 (Task A15, TC-36): "Cuốc của tôi" + lệnh tiến độ của tài xế công ty — TÁCH theo mã (kế hoạch mục 1.2: 403 → 404 → 400).
+  "GET /api/van-chuyen/cuoc-cua-toi": {
+    DRIVER: { ma: 200, ly_do: "chuyến MÌNH đang lái (trip.view assigned) — tài khoản thử không lái chuyến nào → danh sách rỗng" },
+    DRIVER_PARTNER: { ma: 403, ly_do: "tài xế đối tác chưa dùng app cho chuyến (trip.view none — ADR-0048 D2 × ADR-0049 D3)" },
+  },
+  ...Object.fromEntries(
+    ["GET /api/van-chuyen/cuoc-cua-toi/:id", ...["xuat-ben", "diem/:sid/da-toi", "phan-bo/:aid/don", "phan-bo/:aid/vang", "phan-bo/:aid/khach-huy", "phan-bo/:aid/tra",
+      "ket-thuc", "ket-thuc-gian-doan", "thu-tu"].map((d) => `POST /api/van-chuyen/cuoc-cua-toi/:id/${d}`)].map((k) => [k, {
+      DRIVER: { ma: 404, ly_do: "chuyến lạ / không phải chuyến mình đang lái → 404 TRƯỚC khi đọc thân (mục 1.2)" },
+      DRIVER_PARTNER: { ma: 403, ly_do: "ô trip.view none → 403 ở bước đầu, trước mọi truy vấn" },
+    }]),
+  ),
+};
+const mucCua = (k: string, ma: string): MucBang => {
+  const m = BANG_STAFF[k]!;
+  return "ma" in m ? m : m[ma as "DRIVER" | "DRIVER_PARTNER"];
 };
 
 function setup() {
@@ -114,7 +135,8 @@ for (const [ma, id] of TAI_XE) {
     for (const r of ROUTES.filter((x) => x.access === "staff")) {
       const res = await w.call(r.method, dienThamSo(r.path), { as: id, body: r.method === "GET" ? undefined : {} });
       const k = khoa(r);
-      assert.equal(res.status, BANG_STAFF[k]!.ma, `${ma} — ${k} — ${BANG_STAFF[k]!.ly_do}: ${res.text.slice(0, 200)}`);
+      const muc = mucCua(k, ma);
+      assert.equal(res.status, muc.ma, `${ma} — ${k} — ${muc.ly_do}: ${res.text.slice(0, 200)}`);
       for (const lo of ["TD-THU-01", "Khách Thử", "0900000011"]) assert.ok(!res.text.includes(lo), `${ma} — ${k}: lộ dữ liệu đơn "${lo}"`);
     }
   });

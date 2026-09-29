@@ -136,6 +136,10 @@ export const MATRIX = {
   "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "none"),
   "trip.dispatch": row("any", "none", "any", "none", "none", "any", "none", "none", "none"),
   "trip.override": row("none", "none", "any", "none", "none", "any", "none", "none", "none"),
+  // ADR-0049 D3 (Task A15): lệnh TIẾN ĐỘ (xuất bến, đã tới, đã đón, vắng, khách huỷ, đã trả, kết thúc, kết thúc gián đoạn, đổi thứ tự điểm khi đang chạy).
+  // Tài xế công ty: CHỈ chuyến mình đang lái (`assigned` — route tài xế `…/cuoc-cua-toi/*`, cổng staff). Văn phòng (Bán hàng, Quản trị, Toàn quyền) bấm thay
+  // qua route RIÊNG `…/chuyen/:id/<lệnh>` (cổng office — R-P1), cùng một hàm xử lý. Kế toán: không. NỚI bài ghim hàng DRIVER — CHỜ CHỦ DUYỆT (đề xuất luật mục 2).
+  "trip.progress": row("any", "none", "any", "none", "none", "any", "none", "assigned", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

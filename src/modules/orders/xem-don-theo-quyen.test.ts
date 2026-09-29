@@ -286,7 +286,7 @@ test("ADR-0030 L1-12: MỌI ô của Đối tác (PARTNER) giữ nguyên — ghi
     "order.passenger.write": "own", // ADR-0047 A2: bằng order.modify — Đối tác nhập tên khách cho đơn CỦA MÌNH
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
     "order.leg.short_notice.view": "none", // chủ H4/N-14: Đối tác chỉ thấy cờ "đặt gấp — Quản trị đã duyệt"
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1)
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", // ADR-0049 D3: Đối tác không thấy lịch xe (C1)
   };
   const actual = Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].PARTNER]));
   assert.deepEqual(actual, PARTNER_ROW);

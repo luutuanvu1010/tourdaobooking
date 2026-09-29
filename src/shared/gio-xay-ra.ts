@@ -111,3 +111,29 @@ export function kiemGioXayRa(v: KiemGioXayRaVao): KetQuaGioXayRa {
   const ds = MA_GIO_XAY_RA.filter((m) => chan.has(m));
   return ds.length === 0 ? { ok: true } : { ok: false, chan: ds };
 }
+
+// ---- R-P14: giờ SỚM NHẤT văn phòng khai được ---------------------------------------------------------------------------------------------------------------
+/** Mốc gây chặn dưới của giờ khai (R-P14): kẹp lùi, một sự kiện đã có (theo giờ xảy ra hoặc ghi nhận), kết thúc chuyến trước (vị trí trong mảng), mở suất. */
+export type NguonSomNhat =
+  | { loai: "KEP" }
+  | { loai: "SU_KIEN"; suKien: SuKienDaCo }
+  | { loai: "CHUYEN_TRUOC"; viTri: number }
+  | { loai: "MO_SUAT" };
+/**
+ * Giờ SỚM NHẤT (phút chẵn — ô khai giờ của màn chọn theo phút) văn phòng khai được cho lệnh `v.loai`, cùng MỐC gây chặn. KHÔNG phải luật thứ hai: mọi vế
+ * chặn dưới của `kiemGioXayRa` có dạng "x ≥ một mốc đã biết" (kẹp lùi, giờ xảy ra / ghi nhận của sự kiện, kết thúc chuyến trước, lúc mở suất) và mọi vế chặn
+ * trên có dạng "x ≤ mốc" ⇒ tập giờ hợp lệ là MỘT khoảng; đầu dưới của nó là (phút chẵn làm tròn lên của) một trong các mốc đó. Hàm thử từng mốc bằng CHÍNH
+ * `kiemGioXayRa`, lấy mốc nhỏ nhất qua. `null` = không phút nào hợp lệ (hoặc loại không khai giờ được) — màn để "lúc bấm".
+ */
+export function somNhatKhai(v: Omit<KiemGioXayRaVao, "khai" | "xayRaMs">): { ms: number; nguon: NguonSomNhat } | null {
+  const lenPhut = (ms: number) => Math.ceil(ms / PHUT) * PHUT;
+  const ungVien: { ms: number; nguon: NguonSomNhat }[] = [
+    { ms: lenPhut(v.ghiNhanMs - v.kepLuiPhut * PHUT), nguon: { loai: "KEP" } as NguonSomNhat },
+    ...v.suKien.flatMap((e) => [{ ms: lenPhut(e.xayRaMs), nguon: { loai: "SU_KIEN" as const, suKien: e } }, { ms: lenPhut(e.ghiNhanMs), nguon: { loai: "SU_KIEN" as const, suKien: e } }]),
+    ...v.ketThucChuyenTruocMs.map((ms, viTri) => ({ ms: lenPhut(ms), nguon: { loai: "CHUYEN_TRUOC" as const, viTri } })),
+    ...(v.suatMoTuMs === null ? [] : [{ ms: lenPhut(v.suatMoTuMs), nguon: { loai: "MO_SUAT" } as NguonSomNhat }]),
+  ].sort((a, b) => a.ms - b.ms);
+  const vaoDu = (ms: number): KiemGioXayRaVao => ({ ...v, khai: true, xayRaMs: ms });
+  // Mốc gây chặn = ứng viên ĐẦU TIÊN qua (cùng phút với nhiều mốc: mốc đứng trước theo thứ tự trên — chỉ để nói cho người dùng, không đổi giờ trả về).
+  return ungVien.find((u) => kiemGioXayRa(vaoDu(u.ms)).ok) ?? null;
+}

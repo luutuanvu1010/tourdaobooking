@@ -6,12 +6,19 @@
 // không tên khách, năm sinh, SĐT, số giấy tờ, chữ nơi tự do, khoá so sánh nơi.
 import { auditStatement, type AuditAction } from "../audit";
 import {
-  ALLOC_CLOSE, ALLOC_INSERT, ALLOCS_CLOSE_ALL, DRIVER_CLOSE, DRIVER_INSERT, EVENT_INSERT, STOP_INSERT, STOP_SKIP, STOP_UPDATE_PLAN, STOPS_SKIP_ALL, TRIP_CANCEL,
-  TRIP_GATE, TRIP_GATE_DOI, TRIP_INSERT, TRIP_UPDATE_PLAN,
+  ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
+  EVENT_INSERT, MANIFEST_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
+  TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
 } from "./chuyen-repo";
-import { LENH_DONG_SUAT, type LoaiSuKienChuyen, type LyDoDongSuat, type MA_LY_DO_HE_THONG, type MaLuatPhaLe } from "../../shared/dieu-phoi-kieu";
+import {
+  LENH_DONG_SUAT, type GanTen, type LoaiSuKienChuyen, type LyDoDongSuat, type MA_LY_DO_HE_THONG, type MaLuatPhaLe, type MucChup, type NguonGioXayRa, type TrangThaiSuat,
+} from "../../shared/dieu-phoi-kieu";
 
-export type NhanCau = "CONG" | "CONG_DOI" | "NHAT_KY" | "SU_KIEN" | "GHI" | "TRANG_THAI_CUOI";
+/**
+ * Nhãn câu (bài thứ tự lô — thu-tu-lo.test.ts). `CHUYEN_TIEN_DO` = câu chuyển trạng thái suất / điểm của lệnh tiến độ khuôn (a): đứng ĐẦU lô, TỰ gác "chuyến
+ * đang chạy" + trạng thái nguồn (không có dấu lệnh — chưa có câu cổng), câu cổng đứng ngay sau với `changes() > 0`.
+ */
+export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "NHAT_KY" | "SU_KIEN" | "GHI" | "TRANG_THAI_CUOI";
 export interface CauCoNhan {
   nhan: NhanCau;
   stmt: D1PreparedStatement;
@@ -259,4 +266,171 @@ export function loCapNhatDiem(db: D1Database, l: LenhCapNhatDiem): CauCoNhan[] {
   }
   lo.push(...l.diemBoQua.map((id) => boQuaDiem(db, l, l.tripId, id, LY_DO_BO_QUA_KHONG_CON_KHACH)));
   return lo;
+}
+
+// =========================================================================================================================================================
+// LỆNH TIẾN ĐỘ (Task A15; kế hoạch mục 1.5; ADR-0050 VK1-A). Sự kiện mang giờ XẢY RA (`occurred_*`) + nguồn: `MAY_CHU` ⇒ đúng CHUỖI lúc bấm của request (I33 —
+// CHECK occurred_at = created_at); `VAN_PHONG_KHAI` ⇒ giờ văn phòng khai (đã qua kiemGioXayRa) + chính sách đã dùng (CHECK policy_id). Cột giờ trên điểm /
+// chuyến chép ĐÚNG cặp giờ xảy ra của sự kiện cùng lô.
+// =========================================================================================================================================================
+export interface XayRa {
+  iso: string;
+  ms: number;
+  nguon: NguonGioXayRa;
+}
+interface SuKienTienDoVao {
+  tripId: string;
+  loai: LoaiSuKienChuyen;
+  stopId?: string | null;
+  allocationId?: string | null;
+  soNguoi?: number | null;
+  xayRa: XayRa;
+  policyId: string | null;
+}
+const suKienTienDo = (db: D1Database, l: LenhChung, e: SuKienTienDoVao): CauCoNhan => ({
+  nhan: "SU_KIEN",
+  stmt: db.prepare(EVENT_INSERT).bind(
+    l.cmd, e.tripId, null, e.loai, e.stopId ?? null, e.allocationId ?? null, e.soNguoi ?? null, l.requestId, null, "NGUOI", null, null, e.policyId,
+    e.xayRa.iso, e.xayRa.ms, e.xayRa.nguon, l.lucIso, l.nguoiId,
+  ),
+});
+const congTienDo = (db: D1Database, l: LenhChung, tripId: string): CauCoNhan => ({ nhan: "CONG", stmt: db.prepare(TRIP_GATE_TIEN_DO).bind(tripId, l.cmd, l.lucIso, l.nguoiId) });
+const congDangChay = (db: D1Database, l: LenhChung, tripId: string): CauCoNhan => ({ nhan: "CONG", stmt: db.prepare(TRIP_GATE_DANG_CHAY).bind(tripId, l.cmd, l.lucIso, l.nguoiId) });
+const xongNeuHet = (db: D1Database, l: LenhChung, tripId: string, stopId: string, xayRa: XayRa): CauCoNhan =>
+  ghi(db.prepare(STOP_XONG_NEU_HET).bind(stopId, tripId, xayRa.iso, l.lucIso, l.nguoiId, l.cmd));
+
+// ---- Xuất bến (route 21 / 31 — lô xuất bến mục 1.5) ---------------------------------------------------------------------------------------------------------
+export interface LenhXuatBen extends LenhChung {
+  tripId: string;
+  /** version do MÁY CHỦ đọc (I23) — lệnh tiến độ không nhận version từ màn. */
+  version: number;
+  xayRa: XayRa;
+  policyId: string;
+  ganTen: readonly GanTen[];
+  chup: { id: string; xeId: string; bienSo: string; soCho: number; chuXePartyId: string; taiXePartyId: string; nghiDaDung: number };
+  muc: readonly MucChup[];
+  /** Bản chốt: mỗi suất mở một dòng — khách trỏ DÒNG hành khách đã dùng, người đi kèm trỏ hồ sơ. */
+  chot: readonly { allocationId: string; passengerRowId: string | null; crewPartyId: string | null }[];
+  soKhach: number;
+  detail: string;
+}
+/** Thứ tự (mục 1.5): cổng → nhật ký → sự kiện DEPARTED → gắn tên còn thiếu → bản chụp + dòng con → bản chốt → sang RUNNING (sau bản chụp — LC-05). */
+export function loXuatBen(db: D1Database, l: LenhXuatBen): CauCoNhan[] {
+  const c = l.chup;
+  return [
+    cong(db, l, l.tripId, l.version),
+    nhatKy(db, l, "trip_departed", l.tripId, l.detail),
+    suKienTienDo(db, l, { tripId: l.tripId, loai: "DEPARTED", soNguoi: l.soKhach, xayRa: l.xayRa, policyId: l.policyId }),
+    ...l.ganTen.map((g) => ghi(db.prepare(ALLOC_GAN_TEN).bind(g.suatId, g.personKey, l.cmd, l.lucIso, l.nguoiId, l.tripId))),
+    ghi(db.prepare(CHECK_INSERT).bind(c.id, l.tripId, l.cmd, l.policyId, c.xeId, c.bienSo, c.soCho, c.chuXePartyId, c.taiXePartyId, c.nghiDaDung, l.lucIso, l.nguoiId)),
+    ...l.muc.map((m) => ghi(db.prepare(CHECK_ITEM_INSERT).bind(
+      crypto.randomUUID(), c.id, m.loai, m.vehicleDocumentId, m.personDocumentId, m.documentTypeCode, m.licenseClassCode, m.expiryDate, m.ruleId, l.lucIso, l.nguoiId, l.tripId, l.cmd,
+    ))),
+    ...l.chot.map((m) => ghi(db.prepare(MANIFEST_INSERT).bind(crypto.randomUUID(), l.tripId, c.id, m.allocationId, m.passengerRowId, m.crewPartyId, l.lucIso, l.nguoiId, l.cmd))),
+    ghi(db.prepare(TRIP_XUAT_BEN).bind(l.tripId, l.cmd, l.xayRa.iso, l.xayRa.ms, l.lucIso, l.nguoiId)),
+  ];
+}
+
+// ---- Xe đã tới điểm (route 22 / 32) ------------------------------------------------------------------------------------------------------------------------
+export interface LenhDaToi extends LenhChung {
+  tripId: string;
+  stopId: string;
+  xayRa: XayRa;
+  policyId: string | null;
+  detail: string;
+}
+/** Khuôn (a): chuyển điểm → cổng `changes() > 0` → nhật ký → sự kiện → điểm tự xong nếu không còn ai phải xử lý (I20). */
+export function loDaToi(db: D1Database, l: LenhDaToi): CauCoNhan[] {
+  return [
+    { nhan: "CHUYEN_TIEN_DO", stmt: db.prepare(STOP_DA_TOI).bind(l.stopId, l.tripId, l.xayRa.iso, l.lucIso, l.nguoiId) },
+    congTienDo(db, l, l.tripId),
+    nhatKy(db, l, "trip_stop_arrived", l.tripId, l.detail),
+    suKienTienDo(db, l, { tripId: l.tripId, loai: "STOP_ARRIVED", stopId: l.stopId, xayRa: l.xayRa, policyId: l.policyId }),
+    xongNeuHet(db, l, l.tripId, l.stopId, l.xayRa),
+  ];
+}
+
+// ---- Suất: đã đón / vắng / khách huỷ / đã trả (route 23–26 / 33–36) --------------------------------------------------------------------------------------
+/** Một lệnh của suất: trạng thái mới, trạng thái nguồn hợp lệ (khớp trigger LC-07), điểm phải đã tới, loại sự kiện, hành động nhật ký. */
+export const LENH_SUAT = {
+  DA_DON: { moi: "BOARDED", tu: ["WAITING", "NO_SHOW"], phia: "LEN", suKien: "PASSENGER_BOARDED", action: "trip_passenger_boarded" },
+  VANG: { moi: "NO_SHOW", tu: ["WAITING"], phia: "LEN", suKien: "PASSENGER_NO_SHOW", action: "trip_passenger_no_show" },
+  KHACH_HUY: { moi: "CANCELLED_AT_STOP", tu: ["WAITING"], phia: "LEN", suKien: "PASSENGER_CANCELLED_AT_STOP", action: "trip_passenger_cancelled_at_stop" },
+  DA_TRA: { moi: "DROPPED", tu: ["BOARDED"], phia: "XUONG", suKien: "PASSENGER_DROPPED", action: "trip_passenger_dropped" },
+} as const satisfies Record<string, { moi: TrangThaiSuat; tu: readonly TrangThaiSuat[]; phia: "LEN" | "XUONG"; suKien: LoaiSuKienChuyen; action: AuditAction }>;
+export type LoaiLenhSuat = keyof typeof LENH_SUAT;
+export interface LenhSuat extends LenhChung {
+  tripId: string;
+  suatId: string;
+  lenh: LoaiLenhSuat;
+  /** Điểm của sự kiện (điểm lên, hoặc điểm xuống khi đã trả) — null với người đi kèm. */
+  stopId: string | null;
+  /** Điểm xét "tự xong" sau lệnh (điểm lên + điểm xuống của suất). */
+  diemXet: readonly string[];
+  xayRa: XayRa;
+  policyId: string | null;
+  detail: string;
+}
+export function loSuat(db: D1Database, l: LenhSuat): CauCoNhan[] {
+  const k = LENH_SUAT[l.lenh];
+  return [
+    { nhan: "CHUYEN_TIEN_DO", stmt: db.prepare(ALLOC_TIEN_DO).bind(l.suatId, l.tripId, k.moi, l.lucIso, l.nguoiId, JSON.stringify(k.tu), k.phia) },
+    congTienDo(db, l, l.tripId),
+    nhatKy(db, l, k.action, l.tripId, l.detail),
+    suKienTienDo(db, l, { tripId: l.tripId, loai: k.suKien, stopId: l.stopId, allocationId: l.suatId, soNguoi: 1, xayRa: l.xayRa, policyId: l.policyId }),
+    ...l.diemXet.map((id) => xongNeuHet(db, l, l.tripId, id, l.xayRa)),
+  ];
+}
+
+// ---- Kết thúc (route 27 / 37) ------------------------------------------------------------------------------------------------------------------------------
+export interface LenhKetThuc extends LenhChung {
+  tripId: string;
+  xayRa: XayRa;
+  policyId: string | null;
+  detail: string;
+}
+/** Khuôn (b): cổng (đang chạy) → nhật ký → sự kiện ENDED → trạng thái cuối (LC-16 ở CSDL giữ "không còn khách / điểm chưa xong"). */
+export function loKetThuc(db: D1Database, l: LenhKetThuc): CauCoNhan[] {
+  return [
+    congDangChay(db, l, l.tripId),
+    nhatKy(db, l, "trip_ended", l.tripId, l.detail),
+    suKienTienDo(db, l, { tripId: l.tripId, loai: "ENDED", xayRa: l.xayRa, policyId: l.policyId }),
+    { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_KET_THUC).bind(l.tripId, l.cmd, "ENDED", null, l.xayRa.iso, l.xayRa.ms, l.lucIso, l.nguoiId) },
+  ];
+}
+
+// ---- Kết thúc gián đoạn (route 28 / 38 — ADR D1 :110–117; [TK] §2.1a) ---------------------------------------------------------------------------------------
+export interface LenhKetThucGianDoan extends LenhKetThuc {
+  lyDo: string;
+  soSuatDong: number;
+}
+/**
+ * Cổng → nhật ký → sự kiện ENDED_INTERRUPTED (PHẢI đứng trước: hai ngoại lệ trigger — đóng suất khi đang chạy (LC-15), điểm ARRIVED → SKIPPED (LC-07) — tìm sự
+ * kiện mang dấu lệnh hiện hành) → đóng suất còn chờ / đang trên xe (TRIP_INTERRUPTED) → bỏ điểm chưa xong → trạng thái cuối.
+ */
+export function loKetThucGianDoan(db: D1Database, l: LenhKetThucGianDoan): CauCoNhan[] {
+  return [
+    congDangChay(db, l, l.tripId),
+    nhatKy(db, l, "trip_ended_interrupted", l.tripId, l.detail),
+    suKienTienDo(db, l, { tripId: l.tripId, loai: "ENDED_INTERRUPTED", soNguoi: l.soSuatDong, xayRa: l.xayRa, policyId: l.policyId }),
+    ghi(db.prepare(ALLOCS_DONG_GIAN_DOAN).bind(l.tripId, l.cmd, l.lucIso, l.nguoiId)),
+    ghi(db.prepare(STOPS_SKIP_ALL).bind(l.tripId, l.cmd, l.lyDo, l.lucIso, l.nguoiId)),
+    { nhan: "TRANG_THAI_CUOI", stmt: db.prepare(TRIP_KET_THUC).bind(l.tripId, l.cmd, "ENDED_INTERRUPTED", l.lyDo, l.xayRa.iso, l.xayRa.ms, l.lucIso, l.nguoiId) },
+  ];
+}
+
+// ---- Đổi thứ tự điểm chưa tới khi xe đang chạy (route 29 / 39) — luôn giờ máy chủ (không khai giờ — I35) ------------------------------------------------------
+export interface LenhDoiThuTu extends LenhChung {
+  tripId: string;
+  diem: readonly { id: string; seq: number }[];
+  policyId: string | null;
+  detail: string;
+}
+export function loDoiThuTu(db: D1Database, l: LenhDoiThuTu): CauCoNhan[] {
+  return [
+    congDangChay(db, l, l.tripId),
+    nhatKy(db, l, "trip_stops_reordered", l.tripId, l.detail),
+    suKienTienDo(db, l, { tripId: l.tripId, loai: "STOPS_REORDERED", soNguoi: l.diem.length, xayRa: { iso: l.lucIso, ms: Date.parse(l.lucIso), nguon: "MAY_CHU" }, policyId: l.policyId }),
+    ...l.diem.map((d) => ghi(db.prepare(STOP_SET_SEQ).bind(d.id, l.tripId, l.cmd, d.seq, l.lucIso, l.nguoiId))),
+  ];
 }

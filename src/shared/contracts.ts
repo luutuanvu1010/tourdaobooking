@@ -1170,6 +1170,8 @@ export interface ChuyenChiTietResponse {
   taiXe: TaiXeChonDto[];
   mocToiThieuPhut: number | null;
   canhBaoPhut: number | null;
+  /** R-P14 (A15): giờ sớm nhất văn phòng khai được cho từng lệnh bấm thay. */
+  gioSomNhatKhai: GioSomNhatKhaiDto;
 }
 /** Phá lệ đi kèm lệnh (I2) — chỉ ô `trip.override` (Quản trị, Toàn quyền); `lyDo` = mã lý do nhóm PHA_LE đang dùng. */
 export interface PhaLeRequest { lyDo: string }
@@ -1210,5 +1212,109 @@ export interface HuyChuyenRequest { version: number; requestId: string; lyDo: st
 export interface CapNhatDiemRequest { version: number; requestId: string }
 /** Phản hồi "cập nhật điểm theo đơn" (I42): số suất đã đổi điểm (0 = không suất nào lệch — không ghi gì). */
 export interface CapNhatDiemResponse extends ChuyenChiTietResponse { daCapNhat: number }
-/** 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần); `canQuyen` (can_pha_le) = người gọi có ô trip.override (đưa hộp phá lệ). */
-export interface LenhChuyenLoiBody { error: { code: string; message: string; lyDo?: LyDoGiuDto[]; canQuyen?: boolean } }
+/**
+ * 409 của lệnh chuyến: `lyDo` = mọi lý do (luật thuần); `canQuyen` (can_pha_le) = người gọi có ô trip.override (đưa hộp phá lệ).
+ * A15: `gio_xay_ra_ngoai_khoang` kèm `maGio` (mã kiemGioXayRa), `somNhat` (giờ sớm nhất khai được — R-P14; null = không phút nào) và `mocChan` (mốc gây chặn:
+ * mã chuyến trước + giờ, hoặc nhãn sự kiện + giờ — không tên người); `con_khach_chua_xong` kèm `goiY` "KET_THUC_GIAN_DOAN" + số suất / điểm còn dở.
+ */
+export interface LenhChuyenLoiBody {
+  error: {
+    code: string;
+    message: string;
+    lyDo?: LyDoGiuDto[];
+    canQuyen?: boolean;
+    maGio?: string[];
+    somNhat?: GioVnDto | null;
+    mocChan?: MocChanDto | null;
+    goiY?: "KET_THUC_GIAN_DOAN";
+    conSuat?: number;
+    conDiem?: number;
+  };
+}
+/** Mốc gây chặn giờ khai (R-P14): `loai` KEP (giới hạn khai lùi) / SU_KIEN (một mốc đã ghi của chuyến) / CHUYEN_TRUOC (chuyến trước của xe / tài xế) / MO_SUAT. */
+export interface MocChanDto { loai: "KEP" | "SU_KIEN" | "CHUYEN_TRUOC" | "MO_SUAT"; nhan: string; maChuyen: string | null; gio: GioVnDto }
+/**
+ * R-P14 — `GET /api/van-chuyen/chuyen/:id` → `gioSomNhatKhai`: giờ SỚM NHẤT văn phòng khai được cho từng lệnh bấm thay có khai giờ (phút chẵn, giờ VN; tính
+ * bằng CHÍNH `kiemGioXayRa` với kẹp lùi của chính sách hiện hành). `null` = lệnh không áp (sai trạng thái) hoặc không phút nào hợp lệ (để "lúc bấm").
+ * `lenXe` dùng cho đã đón / vắng / khách huỷ (cùng chặn dưới); `tra` cho đã trả.
+ */
+export interface GioSomNhatKhaiDto {
+  xuatBen: GioVnDto | null;
+  ketThuc: GioVnDto | null;
+  diem: { id: string; daToi: GioVnDto | null }[];
+  suat: { id: string; lenXe: GioVnDto | null; tra: GioVnDto | null }[];
+}
+
+// ---- Lệnh TIẾN ĐỘ (ADR-0049 D3; kế hoạch mục 1.7 route 19–29 tài xế, 31–39 văn phòng bấm thay — R-P1; Task A15) ------------------------------------------
+/**
+ * Thân lệnh tiến độ (xuất bến, đã tới, đã đón, vắng, khách huỷ, đã trả, kết thúc). `xayRaLuc` (chuỗi ISO CÓ múi giờ) CHỈ route văn phòng 31–38 nhận — văn
+ * phòng khai giờ xảy ra khi khác lúc bấm (ADR-0050 VK1-A, I34); route tài xế 21–29 và route 39 gửi khoá này → 400 `xay_ra_khong_nhan`.
+ */
+export interface TienDoRequest { requestId: string; xayRaLuc?: string }
+export interface KetThucGianDoanRequest extends TienDoRequest { lyDo: string }
+/** Đổi thứ tự điểm CHƯA TỚI khi xe đang chạy (route 29 / 39) — không khai giờ. */
+export interface DoiThuTuRequest { requestId: string; diem: { id: string; thuTu: number }[] }
+
+/**
+ * DTO TÀI XẾ (kế hoạch mục 1.8; ruling R-P11, R-P17) — dựng MỚI từng khoá (src/modules/van-chuyen/tai-xe-dto.ts). KHÔNG BAO GIỜ: tiền, dịch vụ khác, ghi chú
+ * đơn, người lập, người phụ trách, số giấy tờ, hạn GPLX, khoá so sánh nơi. `hoTen`, `namSinh`, `lienHe` CHỈ trong ngày chạy (hôm nay là ngày chạy, hoặc chuyến
+ * đang chạy) — ngoài ngày chạy các khoá đó VẮNG MẶT (không phải chuỗi rỗng). `lienHe` chỉ ở `GET /cuoc-cua-toi/:id` (phản hồi lệnh tiến độ không kèm —
+ * màn tải lại chi tiết).
+ */
+export interface DieuKienConThieuDto { ma: string; loiNhan: string; aiXuLy: "VAN_PHONG" | "QUAN_TRI" | "TOAN_QUYEN" }
+/** Route 19 — một chuyến của "Cuốc của tôi" (R-P17): không tên, không SĐT. */
+export interface CuocCuaToiItemDto {
+  id: string;
+  ma: string;
+  gioXuatBen: GioVnDto;
+  trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+  trangThaiNhan: string;
+  bienSo: string;
+  soKhach: number;
+  soDiemDon: number;
+  soDiemTra: number;
+  dieuKienConThieu: DieuKienConThieuDto[];
+}
+export interface CuocCuaToiResponse { tu: string; den: string; chuyen: CuocCuaToiItemDto[] }
+/** Route 20 (và phản hồi lệnh tiến độ của tài xế) — chi tiết một chuyến mình đang lái. */
+export interface CuocChiTietResponse {
+  chuyen: {
+    id: string;
+    ma: string;
+    bienSo: string;
+    soCho: number;
+    gioBatDau: GioVnDto;
+    gioKetThuc: GioVnDto;
+    trangThai: "PLANNED" | "RUNNING" | "ENDED" | "ENDED_INTERRUPTED" | "CANCELLED";
+    trangThaiNhan: string;
+    xuatBen: MocTienDoDto | null;
+    ketThucThat: MocTienDoDto | null;
+  };
+  diem: {
+    id: string;
+    thuTu: number;
+    loai: "PICKUP" | "DROPOFF";
+    tenNoi: string;
+    gioHen: GioVnDto | null;
+    gioXeToi: GioVnDto | null;
+    trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED";
+    soNguoi: number;
+    daToi: MocTienDoDto | null;
+  }[];
+  suat: {
+    id: string;
+    maDon: string | null;
+    diemLen: string | null;
+    diemXuong: string | null;
+    trangThai: "WAITING" | "BOARDED" | "NO_SHOW" | "CANCELLED_AT_STOP" | "DROPPED";
+    daDon: MocTienDoDto | null;
+    daTra: MocTienDoDto | null;
+    hoTen?: string;
+    namSinh?: number;
+  }[];
+  lienHe?: { maDon: string; tenLienHe: string; sdtLienHe: string }[];
+  dieuKienConThieu: DieuKienConThieuDto[];
+  /** Lý do kết thúc gián đoạn đang dùng (I5). */
+  lyDo: { code: string; nhan: string }[];
+  trongNgayChay: boolean;
+}

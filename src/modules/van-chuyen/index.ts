@@ -40,19 +40,29 @@ import {
 } from "./repository";
 
 // ADR-0049 D1–D3 (Task A13): chuyến xe — hàm hẹp của orders (chỉ gọi trong THÂN route, sau can() — bài src/orders-cong-bo.test.ts), đọc / dựng lô / DTO.
-import { hanhKhachChoChuyen, lichChungChang } from "../orders";
-import type { CapNhatDiemResponse, ChuyenChiTietResponse } from "../../shared/contracts";
-import { kiemTaoSuaChuyen } from "../../shared/dieu-phoi-kiem";
+import { hanhKhachChoChuyen, lichChungChang, lienHeChoTaiXe } from "../orders";
+import type { CapNhatDiemResponse, ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiResponse, StaffProfile } from "../../shared/contracts";
+import { kiemTaoSuaChuyen, trongNgayChay } from "../../shared/dieu-phoi-kiem";
 import { lyDoGiu } from "../../shared/ly-do-giu";
 import { isISODate, msToVnLocal } from "../../shared/vn-date";
-import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsTouching } from "./chuyen-repo";
+import { eventByRequest, eventsByTrips, tripCountByDate, tripsByDate, tripsCuaTaiXe, tripsTouching } from "./chuyen-repo";
 import { loTaoChuyen } from "./dieu-phoi";
-import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao } from "./dieu-phoi-doc";
+import { chinhSachVao, docChung, docNen, khungChuyen, taiXeVao, xeVao, type NenChuyen } from "./dieu-phoi-doc";
 import { dungLichNgay, lenhCapNhatDiem, lenhDoi, lenhHuy, lenhRut, lenhSuaChuyen, lenhXep } from "./dieu-phoi-lenh";
 import {
-  CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
+  CAN_DIEU_PHOI, CAN_PHA_LE, CAN_XEM_CHUYEN, KHONG_CO_CHUYEN, chayLo, chiTietChuyen, cuocChiTiet, danhSachCuoc, gioNgan, loi409, loiKiem, lyDoHopLe, nhanLyDo, phaLeNhatKy,
 } from "./dieu-phoi-route";
-import { docCapNhatDiem, docDoi, docHuy, docRut, docSuaChuyen, docTaoChuyen, docXep } from "./dieu-phoi-than";
+import { docCapNhatDiem, docDoi, docDoiThuTu, docHuy, docKetThucGianDoan, docRut, docSuaChuyen, docTaoChuyen, docTienDo, docXep } from "./dieu-phoi-than";
+// Task A15: lệnh tiến độ — MỘT hàm mỗi lệnh cho cả route tài xế lẫn route văn phòng bấm thay (R-P1).
+import {
+  lenhDaDon, lenhDaToi, lenhDaTra, lenhDoiThuTu, lenhKetThuc, lenhKetThucGianDoan, lenhKhachHuy, lenhVang, lenhXuatBen, type NguoiBam,
+} from "./dieu-phoi-tien-do";
+const CAN_XEM_CUOC = () => error(403, "forbidden", "Tài khoản này không có cuốc xe.");
+const CAN_BAM_THAY = () => error(403, "forbidden", "Tài khoản này không bấm thay tiến độ chuyến được.");
+/** `assigned` của route tài xế (kế hoạch mục 1.2): người gọi có hồ sơ và là tài xế ĐANG MỞ dòng lái của chuyến. */
+const dangLai = (nen: NenChuyen | null, staff: StaffProfile): boolean => nen !== null && staff.partyId !== null && nen.trip.driver_party_id === staff.partyId;
+/** Văn phòng bấm thay: người bấm = tài khoản văn phòng; `bamThay` trừ khi chính người đó là tài xế đang lái chuyến. */
+const nguoiBamVanPhong = (staff: StaffProfile, nen: NenChuyen): NguoiBam => ({ id: staff.id, bamThay: !dangLai(nen, staff) });
 const NGAY_MS = 86_400_000;
 
 const FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không quản lý được xe.");
@@ -878,6 +888,388 @@ export const vanChuyenModule: AppModule = {
       const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
       const hk = await hanhKhachChoChuyen(env.DB, nen2.legIds);
       return json({ ...(await chiTietChuyen(env.DB, nen2, lich2.chang, hk, nhanNhanVien, bayGioMs)), daCapNhat } satisfies CapNhatDiemResponse);
+    }),
+
+    // ---- LỆNH TIẾN ĐỘ — route TÀI XẾ (cổng staff; kế hoạch mục 1.7 route 19–29; Task A15) ------------------------------------------------------------------
+    // Khuôn hai bước (mục 1.2): (1) `can(trip.view, { assigned: true })` — tài khoản không có ô nào → 403 trước mọi truy vấn; (2) chuyến có dòng lái MỞ của
+    // CHÍNH người gọi (`assigned`) và ô của lệnh → không thì 404 (kể cả người có ô `any` — văn phòng bấm thay qua route office, R-P1); (3) rồi mới đọc thân
+    // (400). Thân có `xayRaLuc` → 400 `xay_ra_khong_nhan` (tài xế bấm = giờ máy chủ). Hàm hẹp của orders gọi ở đây, SAU `can()`; `lienHeChoTaiXe` CHỈ ở GET
+    // chi tiết và chỉ khi `trongNgayChay` (mục 1.6).
+    route("GET", "/api/van-chuyen/cuoc-cua-toi", "staff", async ({ env, url, staff }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const bayGioMs = Date.now();
+      const homNay = vnToday(new Date(bayGioMs));
+      const tu = url.searchParams.get("tu") ?? homNay;
+      const den = url.searchParams.get("den") ?? addDays(tu, 6);
+      if (!isISODate(tu) || !isISODate(den) || den < tu || den > addDays(tu, 31)) return error(400, "invalid_input", "Khoảng ngày: tu, den dạng YYYY-MM-DD, tối đa 31 ngày.");
+      const trips = staff.partyId ? await tripsCuaTaiXe(env.DB, staff.partyId, tu, den) : [];
+      const ngay = trips.map((t) => t.service_date).sort();
+      const lich = trips.length === 0 ? { chang: [] } : await lichChungChang(env.DB, addDays(ngay[0]!, -1), addDays(ngay[ngay.length - 1]!, 1));
+      return json({ tu, den, chuyen: await danhSachCuoc(env.DB, trips, lich.chang, bayGioMs) } satisfies CuocCuaToiResponse);
+    }),
+
+    route("GET", "/api/van-chuyen/cuoc-cua-toi/:id", "staff", async ({ env, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.view", { assigned })) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      const trongNgay = trongNgayChay({ ngayChay: nen.trip.service_date, trangThai: nen.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+      const hk = trongNgay ? await hanhKhachChoChuyen(env.DB, nen.legIds) : [];
+      const donIds = [...new Set(lich.chang.filter((c) => nen.allocs.some((a) => a.valid_to_at === null && a.leg_id === c.legId)).map((c) => c.orderId))];
+      const lienHe = trongNgay ? await lienHeChoTaiXe(env.DB, donIds) : null;
+      return json(await cuocChiTiet(env.DB, nen, lich.chang, hk, lienHe, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 21 ↔ 31
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/xuat-ben", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
+        const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 22 ↔ 32
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDaToi(env.DB, nen, params.sid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 23 ↔ 33
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDaDon(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 24 ↔ 34
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/vang", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhVang(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 25 ↔ 35
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/khach-huy", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhKhachHuy(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 26 ↔ 36
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDaTra(env.DB, nen, params.aid ?? "", than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 27 ↔ 37
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/ket-thuc", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docTienDo(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhKetThuc(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 28 ↔ 38
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/ket-thuc-gian-doan", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docKetThucGianDoan(await readJson(request), { nhanXayRa: false });
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhKetThucGianDoan(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // route 29 ↔ 39
+    route("POST", "/api/van-chuyen/cuoc-cua-toi/:id/thu-tu", "staff", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.view", { assigned: true })) return CAN_XEM_CUOC();
+      const nen = await docNen(env.DB, params.id ?? "");
+      const assigned = dangLai(nen, staff);
+      if (!nen || !assigned || !can(staff, "trip.progress", { assigned })) return KHONG_CO_CHUYEN();
+      const than = docDoiThuTu(await readJson(request));
+      if (!than.ok) return error(400, than.code, than.message);
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDoiThuTu(env.DB, nen, than.value, { id: staff.id, bamThay: false }, bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const trongNgay = trongNgayChay({ ngayChay: nen2.trip.service_date, trangThai: nen2.trip.status }, vnToday(new Date(bayGioMs)));
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = trongNgay ? await hanhKhachChoChuyen(env.DB, nen2.legIds) : [];
+      return json(await cuocChiTiet(env.DB, nen2, lich2.chang, hk2, null, nhanNhanVien, bayGioMs, trongNgay) satisfies CuocChiTietResponse);
+    }),
+
+    // ---- LỆNH TIẾN ĐỘ — route VĂN PHÒNG BẤM THAY (cổng office; kế hoạch mục 1.7 route 31–39; R-P1 — Task A15) ---------------------------------------------
+    // `can(trip.progress)` ĐẦU thân (Kế toán → 403), rồi gọi ĐÚNG hàm xử lý mà route tài xế cùng lệnh gọi (bài tien-do-mot-luat.test.ts). Route 31–38 nhận
+    // `xayRaLuc` (văn phòng khai giờ xảy ra — ADR-0050 VK1-A); route 39 (đổi thứ tự) thì không. Phản hồi = chi tiết chuyến của văn phòng.
+
+    // route 31 ↔ 21
+    route("POST", "/api/van-chuyen/chuyen/:id/xuat-ben", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const lich = await lichChungChang(env.DB, nen.tu, nen.den);
+        const hk = await hanhKhachChoChuyen(env.DB, nen.legIds);
+        const r = await lenhXuatBen(env.DB, nen, lich.chang, hk, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 32 ↔ 22
+    route("POST", "/api/van-chuyen/chuyen/:id/diem/:sid/da-toi", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDaToi(env.DB, nen, params.sid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 33 ↔ 23
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo/:aid/don", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDaDon(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 34 ↔ 24
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo/:aid/vang", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhVang(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 35 ↔ 25
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo/:aid/khach-huy", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhKhachHuy(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 36 ↔ 26
+    route("POST", "/api/van-chuyen/chuyen/:id/phan-bo/:aid/tra", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDaTra(env.DB, nen, params.aid ?? "", than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 37 ↔ 27
+    route("POST", "/api/van-chuyen/chuyen/:id/ket-thuc", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docTienDo(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhKetThuc(env.DB, nen, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 38 ↔ 28
+    route("POST", "/api/van-chuyen/chuyen/:id/ket-thuc-gian-doan", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docKetThucGianDoan(await readJson(request), { nhanXayRa: true });
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhKetThucGianDoan(env.DB, nen, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
+    }),
+
+    // route 39 ↔ 29
+    route("POST", "/api/van-chuyen/chuyen/:id/thu-tu", "office", async ({ env, request, params, staff, nhanNhanVien }) => {
+      if (!can(staff, "trip.progress")) return CAN_BAM_THAY();
+      const than = docDoiThuTu(await readJson(request));
+      if (!than.ok) return error(400, than.code, than.message);
+      const nen = await docNen(env.DB, params.id ?? "");
+      if (!nen) return KHONG_CO_CHUYEN();
+      const bayGioMs = Date.now();
+      if (!(await eventByRequest(env.DB, than.value.requestId))) {
+        const r = await lenhDoiThuTu(env.DB, nen, than.value, nguoiBamVanPhong(staff, nen), bayGioMs);
+        if (r) return r;
+      }
+      const nen2 = (await docNen(env.DB, nen.trip.id))!;
+      const lich2 = await lichChungChang(env.DB, nen2.tu, nen2.den);
+      const hk2 = await hanhKhachChoChuyen(env.DB, nen2.legIds);
+      return json(await chiTietChuyen(env.DB, nen2, lich2.chang, hk2, nhanNhanVien, bayGioMs) satisfies ChuyenChiTietResponse);
     }),
   ],
 };

@@ -2,7 +2,7 @@
 // loại sự kiện không phải tiến độ. Mỗi ca một mã; bỏ vế tương ứng trong hàm → ca đó đỏ (P16). Giờ trong bài là giờ Việt Nam.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { MA_GIO_XAY_RA, NHAN_GIO_XAY_RA, kiemGioXayRa, type KiemGioXayRaVao, type SuKienDaCo } from "./gio-xay-ra.ts";
+import { MA_GIO_XAY_RA, NHAN_GIO_XAY_RA, kiemGioXayRa, somNhatKhai, type KiemGioXayRaVao, type SuKienDaCo } from "./gio-xay-ra.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
@@ -119,4 +119,32 @@ test("TC-46 TRUOC_MO_SUAT: đã đón / vắng / khách huỷ / đã trả sớm
     assert.deepEqual(chan({ loai, suatMoTuMs: t("07:35"), xayRaMs: t("07:31") }), ["TRUOC_MO_SUAT"], loai);
     assert.deepEqual(chan({ loai, suatMoTuMs: t("07:31"), xayRaMs: t("07:31") }), [], loai);
   }
+});
+
+// ---- R-P14: giờ SỚM NHẤT văn phòng khai được — suy từ CHÍNH kiemGioXayRa (không viết luật thứ hai — bài học Đợt E "hai luật") ------------------------------
+const somNhat = (v: Partial<KiemGioXayRaVao>) => somNhatKhai(vao(v));
+test("R-P14 somNhatKhai: là PHÚT CHẴN nhỏ nhất kiemGioXayRa cho qua; một phút trước đó bị chặn; nguồn = mốc gây chặn", () => {
+  const ca: [string, Partial<KiemGioXayRaVao>, string, string][] = [
+    // [tên, đầu vào, giờ sớm nhất kỳ vọng, loại nguồn]
+    ["kẹp lùi 180 phút là mốc gây chặn", { loai: "DEPARTED", suKien: [sk("CREATED", "03:00")], ghiNhanMs: t("07:45") }, "04:45", "KEP"],
+    ["xuất bến: sửa kế hoạch lúc 07:10:30 (giây lẻ) → sớm nhất 07:11", { loai: "DEPARTED", suKien: [sk("CREATED", "05:00"), { ...sk("UPDATED", "07:10"), xayRaMs: t("07:10") + 30_000, ghiNhanMs: t("07:10") + 30_000 }] }, "07:11", "SU_KIEN"],
+    ["xuất bến: chuyến trước cùng xe kết thúc 07:20", { loai: "DEPARTED", suKien: [sk("CREATED", "05:00")], ketThucChuyenTruocMs: [t("06:00"), t("07:20")] }, "07:20", "CHUYEN_TRUOC"],
+    ["đã đón: sau khi xe tới điểm lên 07:25", { suKien: [...NEN, sk("STOP_ARRIVED", "07:25", "07:26", { diemId: "d-1" })] }, "07:25", "SU_KIEN"],
+    ["đã đón: sau lúc mở suất 06:50 (xếp khi đã xuất bến là không có — nhưng luật vẫn tính)", { suatMoTuMs: t("06:50"), suKien: [sk("CREATED", "05:00")] }, "06:50", "MO_SUAT"],
+    ["đã trả: sau khi đã đón 07:40", { loai: "PASSENGER_DROPPED", suKien: [...NEN, sk("PASSENGER_BOARDED", "07:40", "07:41", { suatId: "s-1", diemId: "d-0" })] }, "07:40", "SU_KIEN"],
+  ];
+  for (const [ten, v, ky, nguon] of ca) {
+    const r = somNhat(v);
+    assert.ok(r, ten);
+    assert.equal(r.ms, t(ky), ten);
+    assert.equal(r.ms % 60_000, 0, `${ten}: phút chẵn`);
+    assert.equal(r.nguon.loai, nguon, ten);
+    assert.deepEqual(kiemGioXayRa(vao({ ...v, khai: true, xayRaMs: r.ms })), { ok: true }, `${ten}: tại giờ sớm nhất phải đạt`);
+    assert.equal(kiemGioXayRa(vao({ ...v, khai: true, xayRaMs: r.ms - 60_000 })).ok, false, `${ten}: một phút trước phải bị chặn`);
+  }
+});
+test("R-P14 somNhatKhai: không phút nào hợp lệ (chặn trên thấp hơn chặn dưới) → null; loại không khai giờ được → null", () => {
+  // Đã đón lúc nào cũng phải ≤ lúc đã trả 07:30 của cùng suất, nhưng xe tới điểm lên lúc 07:35 → rỗng.
+  assert.equal(somNhat({ suKien: [...NEN, sk("STOP_ARRIVED", "07:35", "07:35", { diemId: "d-1" }), sk("PASSENGER_DROPPED", "07:30", "07:36", { suatId: "s-1" })] }), null);
+  assert.equal(somNhat({ loai: "STOPS_REORDERED" }), null);
 });

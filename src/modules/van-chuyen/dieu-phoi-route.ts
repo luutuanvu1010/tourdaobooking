@@ -1,8 +1,8 @@
 // PHẦN DÙNG CHUNG của các route chuyến xe (Task A13 / A15) — KHÔNG gọi hàm hẹp của orders (bài src/orders-cong-bo.test.ts): dữ liệu chặng (`lichChungChang`) và
 // tên khách (`hanhKhachChoChuyen`) do THÂN ROUTE đọc sau `can()` rồi truyền vào. Gồm: mã lỗi 409 từ lý do của luật thuần, chạy lô + đổi lỗi CSDL, dựng chi
 // tiết chuyến, chuỗi `detail` nhật ký (danh sách TRẮNG — mục 1.1), dựng điểm từ chặng (I40).
-import type { ChangChoChuyen, ChangLichChung } from "../orders";
-import type { ChuyenChiTietResponse, LenhChuyenLoiBody } from "../../shared/contracts";
+import type { ChangChoChuyen, ChangLichChung, LienHeTaiXe } from "../orders";
+import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, LenhChuyenLoiBody } from "../../shared/contracts";
 import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
 import type { KetQuaKiem, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
@@ -11,12 +11,14 @@ import type { LyDoGiu, MaGiu } from "../../shared/ly-do-giu";
 import { can, type PermissionHolder } from "../../shared/permissions";
 import { maskLongDigits } from "../../shared/text-guards";
 import { msToVnLocal } from "../../shared/vn-date";
-import { banChupCuoi, eventByRequest, type StopRow } from "./chuyen-repo";
+import { allocsByTrips, banChupCuoi, eventByRequest, eventsByTrips, stopsByTrips, type StopRow, type TripRow } from "./chuyen-repo";
 import type { CauCoNhan, DiemMoi } from "./dieu-phoi";
 import {
   banChupDto, canhBaoDto, chuyenTomTat, diemChuyenDto, lyDoDangDung, lyDoGiuDto, nhatKyChuyenDto, suatChuyenDto, taiXeChon, xeChon,
 } from "./dieu-phoi-dto";
-import { chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
+import { boSungXe, chinhSachVao, docChung, docNguCanh, type DuLieuChung, type NenChuyen, type NguCanhChuyen } from "./dieu-phoi-doc";
+import { gioSomNhatKhaiDto, ketThucTruoc } from "./dieu-phoi-gio";
+import { cuocChiTietDto, cuocCuaToiItem } from "./tai-xe-dto";
 import { loiRangBuocChuyen } from "./rules";
 
 // ---- Lỗi ----------------------------------------------------------------------------------------------------------------------------------------------------
@@ -44,6 +46,12 @@ const THONG_BAO_409: Record<string, string> = {
   chua_du_nghi: "Chưa đủ khoảng nghỉ giữa hai chuyến — cần Quản trị phá lệ.",
   con_khach_chua_xong: "Còn khách hoặc điểm chưa xong.",
   chua_du_dieu_kien_xuat_ben: "Chuyến chưa đủ điều kiện xuất bến.",
+  // Lệnh tiến độ (A15)
+  da_xuat_ben: "Chuyến đã xuất bến.",
+  chua_xuat_ben: "Chuyến chưa xuất bến — lệnh này chỉ dùng khi xe đang chạy (đổi thứ tự khi chưa chạy: sửa chuyến).",
+  diem_da_toi: "Điểm đã tới hoặc đã bỏ qua.",
+  diem_chua_toi: "Xe chưa tới điểm của khách này — bấm \"Đã tới\" trước.",
+  suat_da_co_ket_qua: "Khách này đã có kết quả — không đổi được.",
 };
 const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   NGUOI_DA_O_CHUYEN_KHAC: "nguoi_da_o_chuyen_khac", VUOT_SO_NGUOI_CHANG: "vuot_so_nguoi_chang", VUOT_SO_CHO: "vuot_so_cho", TRUNG_GIO_XE: "trung_gio_xe",
@@ -52,7 +60,7 @@ const MA_LOI_THEO_GIU: Partial<Record<MaGiu, string>> = {
   DON_DA_HUY: "chang_khong_hop_le", CHANG_DA_DONG: "chang_khong_hop_le", GIO_HEN_NGOAI_CHUYEN: "chang_khong_hop_le", KHACH_KHONG_THUOC_DON: "khach_khong_thuoc_don",
   CHEO_XE_TAI_XE: "cheo_xe_tai_xe", XE_KHONG_DUNG: "xe_khong_dung", GIO_CHUYEN_KHONG_HOP_LE: "gio_chuyen_khong_hop_le", CHINH_SACH_RONG: "chinh_sach_rong",
 };
-export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: { canQuyen?: boolean } = {}): Response {
+export function loi409(code: string, lyDo: readonly LyDoGiu[] = [], extra: Omit<LenhChuyenLoiBody["error"], "code" | "message" | "lyDo"> = {}): Response {
   return json({ error: { code, message: THONG_BAO_409[code] ?? "Lệnh chưa làm được.", lyDo: lyDo.map(lyDoGiuDto), ...extra } } satisfies LenhChuyenLoiBody, 409);
 }
 /**
@@ -133,14 +141,7 @@ export async function chiTietChuyen(
   const nc: NguCanhChuyen = await docNguCanh(db, nen, lich, c);
   const t = nen.trip;
   const cs = chinhSachVao(c.chinhSach);
-  let lyDoGiu: LyDoGiu[] = [];
-  if (t.status === "PLANNED") {
-    const vao: KiemXuatBenVao = {
-      chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
-      chinhSach: cs, hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs: Math.max(bayGioMs, t.planned_start_ms), xuatBenMs: Math.max(bayGioMs, t.planned_start_ms),
-    };
-    lyDoGiu = kiemXuatBen(vao).lyDo;
-  }
+  const lyDoGiu = lyDoGiuDuPhong(t, nc, c, bayGioMs);
   const lichRa = dungLichChung({
     chang: [...nc.chang.values()], changNgoai: nc.changNgoai, nhap: [], chuyen: [nc.chuyen], suat: [...nc.suat, ...nc.suatMoCuaChang.filter((s) => s.tripId !== t.id)],
     diem: nc.diem, chuyenKhac: nc.chuyenKhac, chinhSach: cs, hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs,
@@ -170,5 +171,61 @@ export async function chiTietChuyen(
     taiXe: taiXeChon(c),
     mocToiThieuPhut: c.chinhSach?.min_lead_minutes ?? null,
     canhBaoPhut: c.chinhSach?.warn_lead_minutes ?? null,
+    gioSomNhatKhai: gioSomNhatKhaiDto(
+      { events: nen.events, kepLuiPhut: c.chinhSach?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs }, t, nen.stops, nen.allocs,
+    ),
   };
+}
+
+/** Lý do GIỮ dự phóng "xuất bến đúng giờ" của chuyến chưa chạy (cổng xuất bến — cùng một hàm với lệnh xuất bến); chuyến khác trạng thái: rỗng. */
+function lyDoGiuDuPhong(t: TripRow, nc: NguCanhChuyen, c: DuLieuChung, bayGioMs: number): LyDoGiu[] {
+  if (t.status !== "PLANNED") return [];
+  const vao: KiemXuatBenVao = {
+    chuyen: nc.chuyen, suat: nc.suat, chang: [...nc.chang.values()], changNgoai: nc.changNgoai, suatMoCuaChang: nc.suatMoCuaChang, diem: nc.diem, chuyenKhac: nc.chuyenKhac,
+    chinhSach: chinhSachVao(c.chinhSach), hangBang: c.hangBang, dieuKien: c.dieuKien, bayGioMs: Math.max(bayGioMs, t.planned_start_ms), xuatBenMs: Math.max(bayGioMs, t.planned_start_ms),
+  };
+  return kiemXuatBen(vao).lyDo;
+}
+
+// ---- DTO TÀI XẾ (route 19, 20 và phản hồi lệnh tiến độ của tài xế — Task A15) ---------------------------------------------------------------------------------
+/**
+ * Chi tiết một chuyến tài xế đang lái. `lich` (chặng — mã đơn, giờ hẹn, điều kiện còn thiếu), `hk` (tên khách — rỗng ngoài ngày chạy), `lienHe` (chỉ GET
+ * chi tiết trong ngày chạy; null ở chỗ khác) do THÂN ROUTE đọc sau `can(trip.view / trip.progress, { assigned })`. Nhãn người văn phòng khai giờ qua hàm tiêm
+ * (R-P11 / R-P20 — một lần mỗi request).
+ */
+export async function cuocChiTiet(
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], lienHe: readonly LienHeTaiXe[] | null,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, trongNgay: boolean,
+): Promise<CuocChiTietResponse> {
+  const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
+  const nc = await docNguCanh(db, nen, lich, c);
+  const t = nen.trip;
+  const nhan = await nhanNhanVien([...new Set(nen.events.flatMap((e) => (e.created_by && e.occurred_source === "VAN_PHONG_KHAI" ? [e.created_by] : [])))]);
+  const ten = new Map<string, { fullName: string; birthYear: number }>();
+  if (trongNgay) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
+  return cuocChiTietDto({
+    trip: t, xe: c.xe.find((x) => x.id === t.vehicle_id), events: nen.events,
+    diem: nen.stops.map((s) => diemChuyenDto(s, { allocs: nen.allocs, chang: nc.chang, stops: nen.stops, events: nen.events, nhan })),
+    suat: nen.allocs.filter((a) => a.valid_to_at === null).map((a) => suatChuyenDto(a, { changLich: nc.changLich, changNgoai: nc.changNgoai, ten, events: nen.events, nhan })),
+    lienHe, conThieu: lyDoGiuDuPhong(t, nc, c, bayGioMs), lyDo: c.lyDo.filter((r) => r.reason_group === "KET_THUC_GIAN_DOAN"), nhan, trongNgay,
+  });
+}
+/** "Cuốc của tôi" (route 19, R-P17): mỗi chuyến — không tên, không SĐT; điều kiện còn thiếu = lý do giữ dự phóng (chuyến chưa chạy). */
+export async function danhSachCuoc(db: D1Database, trips: readonly TripRow[], lich: readonly ChangLichChung[], bayGioMs: number): Promise<CuocCuaToiItemDto[]> {
+  if (trips.length === 0) return [];
+  const c = await docChung(db, new Date(bayGioMs).toISOString(), msToVnLocal(bayGioMs).date);
+  const ids = trips.map((t) => t.id);
+  const [stops, allocs, events] = await Promise.all([stopsByTrips(db, ids), allocsByTrips(db, ids), eventsByTrips(db, ids)]);
+  await boSungXe(db, c, trips.map((t) => t.vehicle_id));
+  const ra: CuocCuaToiItemDto[] = [];
+  for (const t of trips) {
+    const a = allocs.filter((x) => x.trip_id === t.id);
+    const nen: NenChuyen = {
+      trip: t, stops: stops.filter((x) => x.trip_id === t.id), allocs: a, events: events.filter((e) => e.trip_id === t.id || e.related_trip_id === t.id),
+      legIds: [...new Set(a.flatMap((x) => (x.kind === "PASSENGER" && x.leg_id !== null ? [x.leg_id] : [])))], tu: "", den: "",
+    };
+    const conThieu = t.status === "PLANNED" ? lyDoGiuDuPhong(t, await docNguCanh(db, nen, lich, c), c, bayGioMs) : [];
+    ra.push(cuocCuaToiItem(t, { xe: c.xe.find((x) => x.id === t.vehicle_id), stops: nen.stops, allocs: a, conThieu }));
+  }
+  return ra;
 }
