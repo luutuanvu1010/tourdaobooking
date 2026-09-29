@@ -170,3 +170,14 @@ Người thi công (nhánh `thi-cong-adr-0049-tiep`) báo: khoá ngoại của 0
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
 | "Bảng chuyến xe cần "gắn" vào chặng đón và danh sách hành khách của đơn. Gắn bằng móc nối cứng của cơ sở dữ liệu thì một hàng rào kiểm kiến trúc báo đỏ (nó tưởng phần Đơn hàng đọc trộm bảng của phần Vận chuyển). Chọn cách nào?" — "Bỏ móc nối cứng" / "Giữ móc nối, sửa hàng rào" | **"Bỏ móc nối cứng"** — ruling R-P19 = (A). Chủ đã được nói điều mất: "danh sách khách của xe trỏ tới người không còn" do máy chủ và kiểm định kỳ bắt, không phải cơ sở dữ liệu tự chặn. Người thi công phải có trigger thay thế đọc view + P16 + dòng sổ hàng rào; `docs/data-dictionary.json` ghi "tham chiếu logic, không khoá ngoại (R-P19)" |
+
+## Trả lời lần 14 (29/9 tối, đề xuất "Đã gọi báo" — sau lời chủ lần 12 "Làm ngay lượt này")
+
+Đề xuất `docs/superpowers/specs/2026-09-29-de-xuat-adr-van-chuyen-da-goi-bao.md` (nhánh `de-xuat-adr-da-goi-bao` @ `9590327`). Người kiểm độc lập: ĐẠT CÓ ĐIỀU KIỆN (không lỗi CAO về an toàn / quyền; ô `trip.call_ack` có căn cứ Hiến chương 5.8 đã duyệt, giống hàng `order.trip.edit`); đề nghị thêm câu Q-GB-3 (giả định G-GB-5 không phải bề mặt). Điều phối cấp số: ADR-0051, migration 0043, kiểm định kỳ R-VC-17/18.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Thẻ "Giờ xe tới muộn hơn giờ hẹn" (ví dụ hẹn 07:45, xe dự kiến tới 07:58) có nút "Đã gọi báo" như bản vẽ không?" — "Không, sửa giờ trên đơn" / "Có, như bản vẽ" | **"Không, sửa giờ trên đơn"** — giờ hẹn chỉ ghi một chỗ; không thêm bảng thứ hai |
+| "Bấm nhầm "Đã gọi báo" (ví dụ chạm nhầm trên điện thoại) thì sửa thế nào?" — "Có nút "Bỏ đánh dấu"" / "Không, hỏi xác nhận trước" | **"Có nút "Bỏ đánh dấu""** |
+| "Nếu giờ hẹn đổi cho một chuyến chạy sau nhiều ngày (ví dụ thứ Bảy), bạn cần thấy nhắc gọi khách ngay hôm nay, hay chỉ thấy trên bảng của đúng ngày chuyến chạy?" — "Hiện ngay hôm nay" / "Chỉ đúng ngày chạy" | **"Hiện ngay hôm nay"** |
+| "Duyệt ghi phần "Đã gọi báo" thành quyết định chính thức (ADR-0051) theo 3 câu trên? Gồm: một bảng ghi "giờ hẹn đã biết / đã gọi"; người bấm được là Bán hàng (đơn mình lập hoặc phụ trách), Quản trị, Toàn quyền — giống quyền sửa chuyến đi của đơn; tài xế không thấy; nhật ký không ghi số điện thoại hay tên khách. (Tôi chỉ ghi sau khi người kiểm xem bản cuối và báo đạt.)" — "Duyệt, ghi theo 3 câu" / "Chưa duyệt, cho xem lại" | **"Duyệt, ghi theo 3 câu"** — ghi ADR-0051 sau khi người kiểm báo bản cuối ĐẠT |
