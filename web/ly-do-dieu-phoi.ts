@@ -2,7 +2,7 @@
 // Quản trị, Toàn quyền (ô admin.manage — máy chủ hỏi lại ở cả route đọc). Theo nhóm (nhãn nhóm từ NHAN_NHOM_LY_DO — một nguồn với nhật ký); thêm, sửa tên,
 // ngưng / dùng lại — không xoá (khuôn loc_location). Màn hình KHÔNG có ô mã (bản vẽ 8d chỉ "Lý do mới"): mã sinh từ nhãn (`maLyDoMoi`), trùng mã → thử hậu tố.
 // Nút trong khung thêm / sửa đều `type="button"`; mở khung thì đặt focus vào ô, đóng thì trả focus về nút đã mở.
-import { maLyDoMoi, nhomLyDoHien, thuTuLyDoMoi, type NhomHien } from "../src/shared/chinh-sach-hien-thi";
+import { maLyDoMoi, nhomLyDoHien, nutBatTatLyDo, thuTuLyDoMoi, type NhomHien } from "../src/shared/chinh-sach-hien-thi";
 import type { NhomLyDo } from "../src/shared/dieu-phoi-kieu";
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
@@ -128,8 +128,12 @@ function moKhung(k: Khung): void {
 function dongLyDo(n: NhomHien, l: Api.TripReasonDto): HTMLElement {
   const sua = h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": "sua", "aria-label": `Sửa lý do ${l.label}` }, "Sửa");
   sua.addEventListener("click", () => moKhung({ nhom: n.nhom, kieu: "sua", code: l.code }));
-  const bat = h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": l.active ? "ngung" : "dung-lai", "aria-label": `${l.active ? "Ngưng" : "Dùng lại"} lý do ${l.label}` }, l.active ? "Ngưng" : "Dùng lại");
-  bat.addEventListener("click", () =>
+  // R-P22 (Q-B-3): lý do HỆ THỐNG đang dùng không có nút "Ngưng" — chỉ ghi chú; máy chủ vẫn chặn (409 `ly_do_he_thong`, câu của máy chủ hiện ở dải lỗi).
+  const nb = nutBatTatLyDo(l);
+  const bat = nb.nut
+    ? h("button", { type: "button", class: "vc-btn vc-btn-text", "data-action": l.active ? "ngung" : "dung-lai", "aria-label": `${nb.nut} lý do ${l.label}` }, nb.nut)
+    : null;
+  bat?.addEventListener("click", () =>
     void ghi(async () => {
       reasons = (await api<Api.TripReasonListResponse>(`/api/van-chuyen/ly-do/${encodeURIComponent(l.code)}`, {
         method: "PUT", body: { label: l.label, sortOrder: l.sortOrder, active: !l.active, expectedUpdatedAt: l.updatedAt },
@@ -140,7 +144,7 @@ function dongLyDo(n: NhomHien, l: Api.TripReasonDto): HTMLElement {
   return h(
     "div",
     { class: l.active ? "dp-reason" : "dp-reason is-off", "data-code": l.code },
-    h("span", { class: "dp-reason-label" }, l.label),
+    h("span", { class: "dp-reason-label" }, l.label, nb.ghiChu ? h("span", { class: "dp-reason-sub", "data-he-thong": "1" }, nb.ghiChu) : null),
     l.active ? null : h("span", { class: "chip chip-muted" }, "Đã ngưng"),
     sua,
     bat,

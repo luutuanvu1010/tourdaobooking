@@ -167,12 +167,17 @@ try {
   // ---- Quản trị ----------------------------------------------------------------------------------------------------------------------------------------------
   const a = await env.as(ACCOUNTS.admin, "/ly-do-dieu-phoi", DESK);
   await a.waitFor(`document.querySelectorAll('.dp-group').length > 0`, "danh mục lý do dựng xong");
-  const nhom = `[...document.querySelectorAll('.dp-group')].map((g) => ({ nhom: g.querySelector('.dp-group-title').textContent, dem: g.querySelector('.dp-count').textContent, dong: [...g.querySelectorAll('.dp-reason-label')].map((l) => l.textContent) }))`;
+  const nhom = `[...document.querySelectorAll('.dp-group')].map((g) => ({ nhom: g.querySelector('.dp-group-title').textContent, dem: g.querySelector('.dp-count').textContent, dong: [...g.querySelectorAll('.dp-reason-label')].map((l) => l.firstChild.textContent) }))`;
   await b.step("8", "8c 1040 Quản trị: năm nhóm (Phá lệ, Huỷ chuyến, Kết thúc gián đoạn, Bỏ qua điểm, Đổi giờ xe tới) — KHÔNG 'Đặt gấp', 'Bỏ chặng'; số đếm; không lộ mã; thanh bên có 'Lý do điều phối', KHÔNG 'Chính sách điều phối'", async () => {
     const n = await a.ev(nhom);
     assert.deepEqual(n.map((x) => x.nhom), NHOM_BAN_VE);
     assert.deepEqual(n[0], { nhom: "Phá lệ", dem: "3", dong: ["Sự cố vận hành", "Đơn đặt gấp", "Khác"] });
     assert.deepEqual(n[3].dong, ["Không còn khách ở điểm", "Khác"]);
+    // R-P22 (Q-B-3): lý do HỆ THỐNG "Không còn khách ở điểm" — không có nút "Ngưng", có ghi chú; lý do thường cùng nhóm vẫn có "Ngưng".
+    const heThong = '.dp-reason[data-code="BO_QUA_KHONG_CON_KHACH"]';
+    assert.equal(await a.ev(`!!document.querySelector('${heThong} [data-action="ngung"]')`), false, "lý do hệ thống không có nút Ngưng");
+    assert.equal(await a.ev(txt(`${heThong} [data-he-thong]`)), "Hệ thống tự dùng — không ngưng được");
+    assert.equal(await a.ev(`!!document.querySelector('.dp-reason[data-code="BO_QUA_KHAC"] [data-action="ngung"]')`), true, "lý do thường vẫn có Ngưng");
     assert.equal(await a.ev(`document.body.innerText.includes('Đặt gấp') || document.body.innerText.includes('Bỏ chặng')`), false);
     assert.equal(await a.ev(txt(".dp-head-note")), "Hiện trong các hộp chọn lý do");
     const nav = await a.ev(vcSub);
@@ -214,6 +219,27 @@ try {
     assert.deepEqual([r.label, r.active], ["Khách tự đến bến", false]);
     assert.equal(await a.ev(noCode), "");
     await axe(a, "lý do sau sửa");
+  });
+
+  await b.step("9b", "R-P22: trang cũ vẫn hiện nút Ngưng cho lý do hệ thống (giả lập dữ liệu cũ thiếu cờ heThong) → bấm → máy chủ 409 `ly_do_he_thong` → dải lỗi câu lời thường; lý do vẫn đang dùng", async () => {
+    const ax = await env.openPage(DESK);
+    // Chỉ trang này: bọc fetch để GET danh mục lý do trả heThong = false (như bản app cũ / dữ liệu cũ) — máy chủ KHÔNG đổi; lệnh PUT đi thẳng tới máy chủ thật.
+    await ax.send("Page.addScriptToEvaluateOnNewDocument", {
+      source: `(() => { const f = window.fetch; window.fetch = async (u, init) => { const r = await f(u, init); if (String(u).endsWith('/api/van-chuyen/ly-do') && (!init || !init.method || init.method === 'GET')) { const j = await r.clone().json(); for (const x of j.reasons) x.heThong = false; return new Response(JSON.stringify(j), { status: r.status, headers: r.headers }); } return r; }; })();`,
+    });
+    const c = await env.login(ACCOUNTS.admin);
+    await ax.send("Network.setCookie", { name: c.name, value: c.value, url: env.base, httpOnly: true });
+    await ax.send("Page.navigate", { url: env.base + "/ly-do-dieu-phoi" });
+    await ax.waitFor(`!!document.querySelector('.dp-reason[data-code="BO_QUA_KHONG_CON_KHACH"] [data-action="ngung"]')`, "trang giả lập cũ có nút Ngưng ở lý do hệ thống");
+    await ax.ev(`document.querySelector('.dp-reason[data-code="BO_QUA_KHONG_CON_KHACH"] [data-action="ngung"]').click(); true`);
+    await ax.waitFor(`${txt("#error")} === 'Lý do này do hệ thống tự dùng nên không ngưng được — chỉ sửa được tên và thứ tự.'`, "câu 409 ly_do_he_thong");
+    const put = apiCalls(ax).filter((x) => x.method === "PUT");
+    assert.equal(put.length, 1);
+    const r = (await call(ACCOUNTS.admin, "GET", "/api/van-chuyen/ly-do")).json.reasons.find((x) => x.code === "BO_QUA_KHONG_CON_KHACH");
+    assert.deepEqual([r.active, r.heThong], [true, true], "máy chủ không ngưng");
+    assert.equal(await ax.ev(noCode), "");
+    await shotView(ax, "b8-ly-do-he-thong-409-may-tinh.png");
+    ax.close();
   });
 
   await b.step("10", "Quản trị mở thẳng /chinh-sach-dieu-phoi → câu tiếng Việt, không form; /dieu-kien-xuat-ben cũng vậy", async () => {

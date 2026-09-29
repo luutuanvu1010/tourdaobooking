@@ -198,3 +198,12 @@ export function thuTuLyDoMoi(trongNhom: readonly { sortOrder: number }[]): numbe
   const thuong = trongNhom.map((r) => r.sortOrder).filter((n) => n < 99);
   return thuong.length === 0 ? 1 : Math.min(98, Math.max(...thuong) + 1);
 }
+
+/**
+ * Nút bật / tắt của một lý do (R-P22, điều phối trả lời Q-B-3): lý do HỆ THỐNG đang dùng (`heThong` — máy tự ghi, vd "Không còn khách ở điểm") KHÔNG có nút
+ * "Ngưng", chỉ một ghi chú; lý do đang ngưng luôn "Dùng lại" được. Máy chủ vẫn chặn (409 `ly_do_he_thong`).
+ */
+export function nutBatTatLyDo(l: { active: boolean; heThong: boolean }): { nut: "Ngưng" | "Dùng lại" | null; ghiChu: string | null } {
+  if (!l.active) return { nut: "Dùng lại", ghiChu: null };
+  return l.heThong ? { nut: null, ghiChu: "Hệ thống tự dùng — không ngưng được" } : { nut: "Ngưng", ghiChu: null };
+}

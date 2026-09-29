@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  NHOM_LY_DO_HIEN, docDieuKienMoi, docFormChinhSach, docSoKhachHang, nhanSoKhachHang, dongLichSuChinhSach, formTuChinhSach, gioTuPhut, maLyDoMoi, nhanDieuKien, nhanThoiLuong, nhomLyDoHien, thayDoiChinhSach,
+  NHOM_LY_DO_HIEN, docDieuKienMoi, docFormChinhSach, docSoKhachHang, nhanSoKhachHang, nutBatTatLyDo, dongLichSuChinhSach, formTuChinhSach, gioTuPhut, maLyDoMoi, nhanDieuKien, nhanThoiLuong, nhomLyDoHien, thayDoiChinhSach,
   thuTuLyDoMoi, tomTatChinhSach,
 } from "./chinh-sach-hien-thi.ts";
 import { kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, MA_LY_DO_RE } from "../modules/van-chuyen/chinh-sach.ts";
@@ -189,4 +189,11 @@ test("nhanSoKhachHang + docSoKhachHang: lời thường của bảng hạng bằ
     const x = docSoKhachHang("B", v);
     assert.equal(x.ok ? "" : x.loi, "Số khách tối đa là số nguyên từ 1 đến 100, hoặc để trống = không giới hạn.");
   }
+});
+
+test("nutBatTatLyDo (R-P22): lý do hệ thống đang dùng → KHÔNG có nút Ngưng (chỉ ghi chú); đang ngưng thì luôn có 'Dùng lại'; lý do thường như cũ", () => {
+  assert.deepEqual(nutBatTatLyDo({ active: true, heThong: false }), { nut: "Ngưng", ghiChu: null });
+  assert.deepEqual(nutBatTatLyDo({ active: false, heThong: false }), { nut: "Dùng lại", ghiChu: null });
+  assert.deepEqual(nutBatTatLyDo({ active: true, heThong: true }), { nut: null, ghiChu: "Hệ thống tự dùng — không ngưng được" });
+  assert.deepEqual(nutBatTatLyDo({ active: false, heThong: true }), { nut: "Dùng lại", ghiChu: null });
 });
