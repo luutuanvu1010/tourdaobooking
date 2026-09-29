@@ -4,6 +4,8 @@
 - **Nguồn chuẩn tắc (đã duyệt 2026-09-29, không hỏi lại):** ADR-0024 điều 1–5 (+ "Bổ sung khi duyệt"), ADR-0025, ADR-0026 (+ M1 = A, M2 "không chặn, chờ hoàn", ngày phát sinh ngay, khoá kỳ = lệch có chủ ý tới lượt 2); bản làm mới `docs/superpowers/specs/2026-09-29-so-tien-luot-1-lam-moi-ho-so-duyet.md` (bảng quyền 9 cột §2, hệ quả chéo 12–16 §3, rào §4.1); trang ghép `docs/superpowers/specs/2026-09-25-luot1-hoan-tat-trang-ghep.md` (bảng (3) "cổng nào canh cửa nào"); `golden/hoan-tat-cong-no.json` + `golden/README.md`; Hiến chương `docs/ARCHITECTURE.md` 5.3, 5.4, 5.13, 5.14, 5.17.
 - **Loại việc:** việc lớn (dữ liệu + quyền + tiền + cửa một chiều). Mỗi task chạm dữ liệu/quyền/tiền xong phải qua người kiểm độc lập chỉ-đọc trước khi task sau dựa vào nó (gom kiểm được, nhưng không bỏ).
 - **Mốc đo mã:** mọi `tệp:dòng` dưới đây đo trên `f18aa69` (nhánh `worktree-so-tien-luot-1`, = `main` `b300f40` + 3 commit tài liệu). **Phải đo lại sau khi ADR-0049 lượt 1 gộp `main`** (Task 0) — nhánh đó sửa `orders`, `dispatch`, thêm migration và hàng rào.
+- **Kiểm độc lập 29/9: ĐẠT CÓ ĐIỀU KIỆN — đã sửa** (1 CAO: lô "Đã giao" không canh "đã thu = phải thu" trong lô; 4 VỪA: khuôn "Hoàn thành", `due_snapshot` thành Q4, phủ bài NT-R9, một bản phát hành; các điểm THẤP). Cách vá C1/V1 do điều phối chốt ở mức kỹ thuật (§3.3).
+- **Một bản phát hành duy nhất (V4):** Task 2–11 (kể cả Task 10 bỏ ô cọc trên form) lên production **cùng một lần**; không phát hành từng phần. Từ bản này **không lùi Worker về bản cũ được** (đơn mới ghi cọc = 0, tiền nằm ở `bil_`; Worker cũ sẽ hiện "chưa trả gì"); lùi chỉ bằng **điểm khôi phục Time Travel + Worker cũ cùng lúc**, và chỉ **trước khi** có ghi mới.
 - **Ký hiệu:** `NT-x` = tiêu chí nghiệm thu; `Qx` = câu hỏi mở cho chủ (§6); "GĐ" = giả định bề mặt, đảo được.
 
 ## 1. Tiêu chí nghiệm thu (viết trước — hành vi kiểm được)
@@ -22,7 +24,7 @@ Gộp ADR-0024 "Hệ quả" (5 tiêu chí), ADR-0025 "Hệ quả" (9), ADR-0026 
 | NT-R6 | Trigger khoá `orders` phủ **mọi** cột của `orders` (so `PRAGMA table_info(orders)` với thân trigger); thêm tạm một cột vào `orders` trong DB thử mà không thêm vào trigger → đỏ | U | ADR-0025 đ5 (lưới cho `ALTER` sau này) |
 | NT-R7 | Hàng rào Bảng tin phủ route ghi đơn của `billing`; bỏ `baoThayDoi` khỏi route "Đã giao" hoặc "Hoàn thành" → đỏ | U | ADR-0025 đ8, NT 9 |
 | NT-R8 | Hàng rào 1 (mỗi ô được máy chủ hỏi) xanh với 4 ô mới, không mục hoãn thừa; `payment.receive`, `payment.refund` không còn trong `docs/quyen-hoan.json` | U | ADR-0026 đ10, NT 9 |
-| NT-R9 | Chỉ **một** hàm tính "còn lại/đã thu" (trong `billing/rules.ts`); ngoài danh sách cho phép, không tệp chạy thật nào đọc `deposit_amount`/`deposit_method`/`remaining_amount`/`depositAmount`/`remainingAmount` | U | ADR-0026 đ9, NT 6; Hiến chương 5.4 |
+| NT-R9 | Chỉ **một** hàm tính "còn lại/đã thu" (trong `billing/rules.ts`); ngoài danh sách cho phép, không tệp chạy thật nào (`src/**`, `web/**`) đọc `deposit_amount`, `deposit_method`, `remaining_amount`, `depositAmount`, `depositMethod`, `remainingAmount`, `DEPOSIT_METHODS`, `DepositMethod`, và tên viết tắt `deposit`/`remaining` trong hàm tiền — phủ `src/shared/service-form.ts:383-394` (`orderSummary`) và `web/order-form.ts:179-181, 233-380` | U | ADR-0026 đ9, NT 6; Hiến chương 5.4 |
 
 ### 1.2 Dữ liệu (migration, trigger)
 
@@ -56,9 +58,12 @@ Gộp ADR-0024 "Hệ quả" (5 tiêu chí), ADR-0025 "Hệ quả" (9), ADR-0026 
 | NT-F4 | Người phụ trách bị đổi giữa lúc mở màn và lúc bấm → lô ghi không áp gì (không mốc, không phiếu, **không dòng nhật ký** `order_delivered`) | E |
 | NT-F5 | Số khách bị sửa (dòng điều chỉnh mới) giữa lúc máy chủ đọc và lúc ghi → lô thua, không dòng nhật ký `order_delivered` (xem Rủi ro R3) | E |
 | NT-F6 | Cố ý làm hỏng câu thứ 3 của lô (trigger `RAISE` tạm cài trên D1 local tạm bởi chính kịch bản e2e) → **không câu nào** được lưu | E |
+| NT-F6b | **Một lần thu hoặc dòng đảo chen vào** giữa lúc máy chủ đọc và lúc ghi (kịch bản chèn lần thu/đảo ngay trước lô) → trigger `bil_posting` từ chối phiếu `DELIVERED` → **cả lô huỷ**: đơn không khoá, không phiếu, không nhật ký | E |
+| NT-F6c | Đơn có dịch vụ **thiếu ngày đi** → từ chối "Đã giao" với câu rõ ("Dịch vụ … chưa có ngày đi — sửa đơn trước") (GĐ) | E |
 | NT-F7 | Sau "Đã giao", **mọi** route ghi của module `orders` và `dispatch` (danh sách sinh từ module thật, không danh sách tay; mỗi route có cột kết quả mong đợi; miễn trừ có tên + lý do, vd `POST /api/orders` tạo đơn mới) từ chối sớm bằng câu tiếng Việt; **và** SQL chạy tay bị trigger chặn (NT-D3). Route của `billing` (`completed`, sổ) không nằm trong danh sách này | U + E |
 | NT-F8 | "Hoàn thành": còn bên nợ công ty (kể cả "Công ty thu – CK" chưa xác nhận) → từ chối; sau khi Kế toán quyết toán/xác nhận → được; khoản công ty còn phải trả **không** chặn; `audit_log` có đúng một dòng `order_completed`, bên thua không để lại dòng | E |
 | NT-F9 | Nhãn "Đã giao – đã thu đủ", "Hoàn thành" ở danh sách, chi tiết, Trang chủ, biên nhận; không lộ `delivered`/`completed` | C |
+| NT-F11 | Màn đơn hiện **lý do đang giữ đơn + ai phải xử lý** (Kế toán / hướng dẫn viên / người lập) khi chưa "Đã giao" hoặc chưa "Hoàn thành" được — không chỉ báo lỗi khi bấm (Hiến chương 5.7) | E (`GET /api/orders/:id/payments`) + C |
 | NT-F10 | Không gửi thông báo màn hình khoá cho hai bước này (ADR-0045; GĐ ở bản làm mới §3.14) | U (bài tĩnh: `billing` không import `thongbao`) |
 
 ### 1.5 Sổ công nợ (ADR-0026)
@@ -72,6 +77,7 @@ Gộp ADR-0024 "Hệ quả" (5 tiêu chí), ADR-0025 "Hệ quả" (9), ADR-0026 
 | NT-S5 | Khách trả dư (bớt người sau khi trả trước): sửa số khách **không** bị chặn; màn đơn hiện "Khách đã trả dư X ₫ — chờ Kế toán hoàn"; Kế toán ghi hoàn → hết dư → "Đã giao" được | E |
 | NT-S6 | Form lập đơn hai bước: đơn lưu xong mới gọi route ghi lần thu; lỗi bước hai → "Đơn đã lưu, chưa ghi được tiền trả trước — thử lại", đơn không mất | E + C |
 | NT-S7 | Luật sinh dòng: sổ vàng SV-HT-06, SV-HT-07 + ca lượt 1 mới (trạng thái `cho_xac_nhan`) chạy trên **mã thật**; ca chưa xác nhận in "chưa áp dụng", không tính "đạt" | U |
+| NT-S9 | Lượt 1: mọi lần thu có `collected_for_party_id` = hồ sơ công ty chủ (Tour Đảo); route không nhận giá trị khác từ trình duyệt | U + E + A |
 | NT-S8 | Ngày phát sinh: mặc định `vnToday()`; Kế toán chọn được ngày khác cho phiếu mình ghi; người khác không chọn được | U + E |
 
 ### 1.6 Biên nhận, bất biến
@@ -124,7 +130,7 @@ Tên dưới đây là **tên thi công**; đổi tên trước khi migration á
 | `bil_collector_role` | `COMPANY` Công ty, `STAFF` Nhân viên, `BOOKER` Bên đặt (người hưởng), `SUPPLIER` Nhà cung cấp (`active = 0` — lượt 2), `UNKNOWN` Chưa rõ (chỉ cọc cũ) | |
 | `bil_receipt_kind` | `CUSTOMER_PAYMENT` thu của khách, `CUSTOMER_REFUND` trả lại khách | |
 | `bil_receipt_stage` | `PREPAID` trả trước, `AT_DELIVERY` lúc "Đã giao" | |
-| `bil_posting_kind` | `RECEIPT`, `DELIVERED`, `COMPANY_RECEIVED`, `SETTLEMENT`, `REFUND`, `ADJUSTMENT`, `REVERSAL` | |
+| `bil_posting_kind` | `RECEIPT`, `DELIVERED`, `COMPLETED` (không dòng nợ — V1), `COMPANY_RECEIVED`, `SETTLEMENT`, `REFUND`, `ADJUSTMENT`, `REVERSAL` | |
 | `bil_debt_kind` | `HELD` tiền đang giữ hộ, `SETTLEMENT` quyết toán, `REFUND` hoàn khách (lượt 2 thêm dòng) | |
 | `bil_payment_receipt` | `id`, `order_id` → `orders`, `kind_code`, `amount INTEGER CHECK (amount > 0)`, `collector_party_id` → `pty_party` NULL, `collector_role_code`, `method_code`, `collected_for_party_id` → `pty_party`, `stage_code`, `occurred_date TEXT NOT NULL`, `reverses_id` → chính bảng, `UNIQUE`, `note`, 4 cột WHO | `CHECK ((collector_party_id IS NULL) = (collector_role_code = 'UNKNOWN'))`; khoá ngoại `NO ACTION` |
 | `bil_posting` | `id`, `kind_code`, `order_id` NULL (phiếu nộp nhiều đơn), `reason`, `reverses_posting_id` UNIQUE NULL, `occurred_date`, `due_snapshot INTEGER NULL` (chỉ phiếu `DELIVERED`: "phải thu hiện hành" máy chủ tính lúc bấm), 4 cột WHO | lý do bắt buộc với `ADJUSTMENT`/`REVERSAL` (trigger); `due_snapshot` bắt buộc khi `kind_code='DELIVERED'` |
@@ -132,24 +138,35 @@ Tên dưới đây là **tên thi công**; đổi tên trước khi migration á
 
 - Trigger chỉ-thêm `bil_*_no_update`, `bil_*_no_delete` cho ba bảng; trigger "dòng đảo khớp gốc" (cùng số, đổi chỗ) cho `bil_debt_line`, `bil_payment_receipt`.
 - `updated_*` = `created_*` (lệch câu chữ ADR-0003 đ6 đã ghi ở ADR-0026 — bài kiểm đòi 4 cột).
-- **Vì sao có `due_snapshot`:** "phải thu hiện hành" không được lưu ở đâu (tính từ dòng dịch vụ + điều chỉnh); cột `order_money_adjustment.subtotal_after` đã được ghi chú là có thể sai với đơn cũ (`src/modules/orders/repository.ts:939`). `R-BIL-1` là câu SQL thuần trong `scripts/audit-checks.mjs` nên cần một con số đã lưu để so; đơn bị khoá từ "Đã giao" nên ảnh chụp lúc đó luôn đúng. Đây là **số đã lưu**, không phải nguồn tính thứ hai (5.4): chỉ bất biến đọc nó. **Người kiểm xem kỹ.**
+- **`due_snapshot` (chờ Q4, khuyến nghị đồng ý):** "phải thu hiện hành" không được lưu ở đâu (tính từ dòng dịch vụ + điều chỉnh); cột `order_money_adjustment.subtotal_after` đã được ghi chú là có thể sai với đơn cũ (`src/modules/orders/repository.ts:939`). Trigger trong lô "Đã giao" cần nó để so **ngay trong lô** (C1); `R-BIL-1` (câu SQL thuần trong `scripts/audit-checks.mjs`) cần nó để so định kỳ.
+  - **Ngữ nghĩa `R-BIL-1`:** tổng lần thu còn hiệu lực **tạo trước** phiếu `DELIVERED` (so theo thứ tự ghi — `rowid`/`created_at` không lớn hơn của phiếu) = `due_snapshot`. Hoàn khách, điều chỉnh, đảo ghi **sau** đó là phiếu riêng, không làm `R-BIL-1` đỏ.
+  - **Hiến chương 5.4:** `due_snapshot` là **bản chụp tại mốc** (5.6), không phải nguồn tính thứ hai — hàm tính "phải thu" vẫn là một (`orders` công bố); chỉ trigger và bất biến đọc bản chụp. **Người kiểm xem kỹ.**
+- **Trigger kiểm trong lô (C1, V1)** — module `billing`, chỉ đọc bảng `bil_` (thoả luật thân trigger):
+  - `bil_posting_delivered_paid` `BEFORE INSERT ON bil_posting WHEN NEW.kind_code = 'DELIVERED'` → `RAISE(ABORT, 'delivered_not_paid: …')` khi tổng lần thu còn hiệu lực của `NEW.order_id` ≠ `NEW.due_snapshot` **hoặc** còn lần thu vai `UNKNOWN` chưa bị đảo.
+  - `bil_posting_completed_settled` `BEFORE INSERT ON bil_posting WHEN NEW.kind_code = 'COMPLETED'` → `RAISE(ABORT, 'completed_unsettled: …')` khi còn bên nào có số dư nợ Tour Đảo > 0 trên đơn (từ `bil_debt_line`, gồm dòng *giữ hộ* của khoản "Công ty thu – CK" chưa được Kế toán xác nhận).
+  - "Còn hiệu lực" = `CUSTOMER_PAYMENT` − `CUSTOMER_REFUND`, bỏ cặp gốc/đảo. Cùng định nghĩa với hàm `conLai` (Task 5) — test đối chiếu hai nơi trên cùng dữ liệu mẫu.
 - View công bố (chỉ khoá + số): `v_bil_order_paid (order_id, paid_net, unknown_count)`, `v_bil_party_balance (party_id, counterparty_id, order_id, balance)`. Tên chốt khi viết `docs/data-dictionary.json`.
 - **Chuyển cọc cũ** (một lần, trong migration B, đọc cột `orders` — ghi rõ ở sổ dữ liệu là câu một lần): mỗi đơn `deposit_amount > 0` (kể cả huỷ) → một `bil_payment_receipt` `CUSTOMER_PAYMENT`, `PREPAID`, `UNKNOWN`, `method_code = deposit_method` (đơn cọc mà hình thức `NULL` → theo **Q3**), `collected_for_party_id` = hồ sơ công ty chủ (đọc `v_pty_owner_company`), `created_by = 'he-thong'`, `occurred_date` = **Q3**. Có dòng nợ hay không: **không** (người thu chưa rõ ⇒ không biết ai nợ; Kế toán đảo rồi ghi lại đúng người thu — ADR-0026 đ9).
 - `docs/data-dictionary.json`: mọi bảng/view mới, bốn cột mới, `deprecatedColumns` cho ba cột cọc ("không dùng nữa — xem ADR-0026") → `npm run dict`.
 
 ### 3.3 Lô ghi (một `db.batch()`, đúng chủ sở hữu — ADR-0024 đ4, ADR-0025 đ4)
 
-**"Đã giao – đã thu đủ"** (`POST /api/orders/:id/delivered`, module `billing`, cổng `orders`):
-1. Trước lô (đọc): `can(order.handover, { assigned: ctx.isAssigned })`; `orders` công bố "phải thu hiện hành" (`dueAmount` = hàm đã có `effectiveMoney` bỏ tham số cọc), `updated_at`, số thứ tự điều chỉnh mới nhất, ngày đi muộn nhất (`getDepartDates`, `repository.ts:254`), bên đặt; `billing` tự tính đã thu, lần thu "chưa rõ"; M1 qua `v_pty_open_role_group` (`migrations/0024:26`).
-Nối các câu bằng idiom `changes() > 0` đã chạy trên production (`src/modules/dispatch/repository.ts:32`, `INSERT_HANDLER_AFTER_CLOSE`) — **không** chèn nhật ký trước câu `UPDATE orders` (nhật ký chỉ-thêm: câu sau thua thì dòng nhật ký "đã giao" giả ở lại vĩnh viễn).
-2. Câu 1 — **từ `dispatch/index.ts`** (chỉ khi người gọi cần kiểm người phụ trách, mức `FIELD`): `UPDATE dsp_assignment SET updated_at = updated_at WHERE order_id=? AND task_kind_code='HANDLE' AND valid_to_at IS NULL AND party_id=<hồ sơ người gọi> AND EXISTS (SELECT 1 FROM v_ord_order_state WHERE id=? AND status='confirmed' AND delivered_at IS NULL)` — câu không đổi giá trị, chỉ để `changes()` = 1 khi người gọi còn là người phụ trách. Quản trị/Toàn quyền: bỏ câu này (câu 2 không mang vế `changes()`).
-3. Câu 2 — **từ `orders/index.ts`** (chưa chạy): `UPDATE orders SET delivered_at=?, delivered_by=?, updated_at=? WHERE id=? AND status='confirmed' AND delivered_at IS NULL AND updated_at=? AND <seq điều chỉnh mới nhất = ?> [AND changes() > 0]`.
-4. Câu 3 — nhật ký `order_delivered`: `auditStatement(…, onlyIf = "changes() > 0")` (tham số `onlyIf` có sẵn, `src/modules/audit/index.ts:19`).
-5. Câu 4.. — **của `billing`**: lần thu nhập ở bước này (nếu có), phiếu `DELIVERED` (kèm **ảnh chụp "phải thu" do máy chủ tính** — xem §3.2), dòng nợ `HELD` (nếu người thu không phải Công ty), mỗi câu `… WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id=? AND delivered_at=?)` với mốc do request sinh.
-6. Sau lô: đọc `v_ord_order_state.delivered_at` = mốc của mình ⇒ thắng (200 + `baoThayDoi`); khác ⇒ 409, câu tiếng Việt. Bên thua không để lại dòng nào (NT-F3–F5 kiểm cả `audit_log`).
-- **Người kiểm xem kỹ:** `changes()` trong `db.batch()` của D1 trả số dòng của câu **ngay trước** — đúng như `INSERT_HANDLER_AFTER_CLOSE` đang dựa vào; trigger chạy trong câu `UPDATE` không làm lệch `changes()` của câu đó (SQLite chỉ đếm dòng của câu cấp trên) — **chưa kiểm trên D1**, e2e NT-F4 chứng minh.
+**"Đã giao – đã thu đủ"** (`POST /api/orders/:id/delivered`, module `billing`, cổng `orders`) — **quyết định kỹ thuật của điều phối (C1, 29/9), người kiểm xem kỹ.** Lý do: bản trước chỉ đọc "đã thu = phải thu" **trước** lô; một lần thu/đảo chen vào sẽ khoá đơn vĩnh viễn với số sai. Nay điều kiện tiền được canh **trong** lô bằng trigger của `billing` (§3.2), một `RAISE` huỷ cả lô — phụ thuộc R1, kiểm ở bước đầu Task 6b.
+1. Trước lô (đọc — để trả câu dễ hiểu và tính số): `can(order.handover, { assigned: ctx.isAssigned })`; `orders` công bố "phải thu hiện hành" (`dueAmount` = `effectiveMoney` bỏ tham số cọc), `updated_at`, số thứ tự điều chỉnh mới nhất, ngày đi muộn nhất (`getDepartDates`, `repository.ts:254` — có dịch vụ ngày `NULL` ⇒ từ chối, NT-F6c, GĐ), bên đặt; `billing` tự tính đã thu, lần thu "chưa rõ". Lý do từ chối dùng `lyDoChuaGiaoDuoc` (Task 5).
+2. Câu bảo vệ **từ `dispatch/index.ts`** (chỉ mức `FIELD`): `UPDATE dsp_assignment SET updated_at = updated_at WHERE order_id=? AND task_kind_code='HANDLE' AND valid_to_at IS NULL AND party_id=<hồ sơ người gọi>` — không đổi giá trị, chỉ để `changes()` = 1 khi người gọi còn là người phụ trách (idiom `changes() > 0` đã chạy ở `src/modules/dispatch/repository.ts:32`). Nó đứng trước vì không ghi gì có nghĩa; **câu ghi có nghĩa đầu tiên là câu `orders`** (C1-1). Quản trị/Toàn quyền: bỏ câu này.
+3. **Câu `orders` đứng đầu** — từ `orders/index.ts` (chưa chạy): `UPDATE orders SET delivered_at=?, delivered_by=?, updated_at=? WHERE id=? AND status='confirmed' AND delivered_at IS NULL AND updated_at=? AND <seq điều chỉnh mới nhất = ?> AND ?vnToday >= (SELECT max(depart_date) FROM order_service WHERE order_id = orders.id) AND NOT EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id AND depart_date IS NULL) AND NOT EXISTS (<bên đặt đang mở vai nhóm bên ngoài, đọc view công bố v_pty_open_role_group>) [AND changes() > 0 nếu có câu 2]` — M1 qua `v_pty_open_role_group` (`migrations/0024:26`; cạnh `orders → parties` đã có; tên cột kiểm lúc viết). Mọi điều kiện ở đây chỉ đọc bảng `orders` hoặc view công bố.
+4. Lần thu nhập ở bước này (nếu có) — của `billing`, `WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id=? AND delivered_at=?)` với mốc do request sinh (tương đương "câu `orders` đã áp").
+5. `INSERT bil_posting` loại `DELIVERED` kèm `due_snapshot`, cùng điều kiện mốc (chỉ khi câu `orders` đã áp — C1-2). Trigger `bil_posting_delivered_paid` `RAISE` nếu tổng lần thu ≠ `due_snapshot` hoặc còn "chưa rõ" ⇒ **cả lô huỷ** (C1-3).
+6. Dòng nợ `HELD` (nếu người thu ở câu 4 không phải Công ty), cùng điều kiện mốc.
+7. Nhật ký `order_delivered`: `auditStatement(…, onlyIf = "EXISTS (… v_ord_order_state … delivered_at = mốc)")` (`src/modules/audit/index.ts:19`) — luôn **sau** câu `orders`, không bao giờ trước (nhật ký chỉ-thêm).
+8. Sau lô: lỗi `delivered_not_paid` ⇒ 409 + câu tiếng Việt (đọc lại lý do); lô chạy mà `delivered_at` ≠ mốc ⇒ 409 (thua khoá lạc quan / không còn phụ trách / chưa tới ngày / M1); thắng ⇒ 200 + `baoThayDoi`. Bên thua không để lại dòng nào (NT-F3–F6b kiểm cả `audit_log`).
+- **Người kiểm xem kỹ:** (a) `changes()` trong `db.batch()` của D1 trả số dòng của câu **ngay trước**, trigger trong câu không làm lệch — **chưa kiểm trên D1**, NT-F4 chứng minh; (b) `RAISE` của trigger huỷ **cả** lô D1 — **chưa kiểm** (R1).
 
-**"Hoàn thành"** (`POST /api/orders/:id/completed`, cổng `office`): câu 1 của `billing` — câu không đổi giá trị trên chính bảng `bil_` hoặc câu chèn phiếu điều kiện, chỉ áp khi `EXISTS (SELECT 1 FROM v_ord_order_state WHERE id=? AND delivered_at IS NOT NULL AND completed_at IS NULL)` **và** `NOT EXISTS` bên nào có số dư nợ công ty > 0 trên đơn (đọc `bil_` của chính nó); câu 2 của `orders` — `UPDATE orders SET completed_at…, completed_by…, updated_at… WHERE … completed_at IS NULL AND delivered_at IS NOT NULL AND changes() > 0`; câu 3 nhật ký `order_completed` `onlyIf changes() > 0`; sau lô đọc lại. (Cách cụ thể cho câu 1 — câu không đổi giá trị trên bảng nào của `billing` — chốt khi viết `repository.ts`; tiêu chí: bên thua không để lại dòng nào.)
+**"Hoàn thành"** (`POST /api/orders/:id/completed`, cổng `office`) — **cùng khuôn (V1, quyết định kỹ thuật của điều phối, người kiểm xem kỹ):**
+1. Câu đầu từ `orders`: `UPDATE orders SET completed_at=?, completed_by=?, updated_at=? WHERE id=? AND delivered_at IS NOT NULL AND completed_at IS NULL`.
+2. `INSERT bil_posting` loại `COMPLETED` (không dòng nợ) `WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id=? AND completed_at=?)`; trigger `bil_posting_completed_settled` `RAISE` nếu còn bên nợ Tour Đảo trên đơn (kể cả "Công ty thu – CK" chưa xác nhận) ⇒ cả lô huỷ.
+3. Nhật ký `order_completed` `onlyIf` cùng điều kiện mốc.
+4. Sau lô: lỗi `completed_unsettled` ⇒ 409 + câu tiếng Việt nêu bên còn nợ (không SĐT); `completed_at` ≠ mốc ⇒ 409.
 
 **Ghi lần thu** (`POST /api/orders/:id/payments`, cổng `orders`): `can(payment.receive, { ownerId, assigned })`; người thu ∈ {chính mình, Công ty} trừ Kế toán/Toàn quyền; câu bảo vệ "đơn chưa Đã giao" = `WHERE EXISTS (SELECT 1 FROM v_ord_order_state WHERE id=? AND delivered_at IS NULL)` — đúng chữ ADR-0026 đ10 ("trước Đã giao"), **không** thêm điều kiện trạng thái huỷ (đơn huỷ còn tiền phải có chỗ ghi — lý do của ADR-0026 đ4).
 
@@ -173,7 +190,7 @@ Nối các câu bằng idiom `changes() > 0` đã chạy trên production (`src/
 
 - `POST /api/ledger/balances` là POST chỉ-đọc (thân chứa danh sách id) — **GĐ**, đổi sang `GET ?ids=` được; phải có trong `cua_ghi`? Không: nó hỏi `can()` trong thân nên qua hàng rào 2. Nếu thứ tự khai route đụng `/api/orders/:id` (bẫy trang chủ), khai route `billing` **trước** trong mảng `modules` hoặc dùng tiền tố `/api/ledger/…` như trên.
 - Nhật ký mới ở `src/shared/audit-actions.ts` (nhãn tiếng Việt): `order_delivered`, `order_completed`, `payment_recorded`, `ledger_company_received`, `ledger_settlement`, `ledger_refund`, `ledger_adjustment`, `ledger_reversal`. Không ghi SĐT, không số tiền chi tiết trong `detail`.
-- Bảng tin: `THAY_DOI` (`src/shared/bang-tin.ts:9`) thêm hai loại "chỉ làm mới" cho "Đã giao", "Hoàn thành" (ADR-0025 đ8 — GĐ); ghi lần thu cũng báo làm mới đơn.
+- Bảng tin: `THAY_DOI` (`src/shared/bang-tin.ts:8`) hôm nay 9 khoá; **không** dùng `giao` (nghĩa là giao người phụ trách) cho "Đã giao – đã thu đủ". Ghi lần thu / xác nhận / hoàn trên một đơn dùng khoá có sẵn `tien`. Hai bước chốt thêm hai khoá **tên khác hẳn** — đề xuất `chot_giao`, `hoan_thanh` (GĐ), kiểu "chỉ làm mới" (ADR-0025 đ8); cập nhật bài `src/shared/bang-tin.test.ts:21-22` ("đúng 9 giá trị" → 11) và nhãn tiếng Việt. Sự kiện vẫn đúng 5 trường (ADR-0022 điều 4 không đổi).
 
 ## 4. Các task (thứ tự nền trước — Hiến chương 5.13)
 
@@ -190,7 +207,7 @@ Tệp: `src/architecture.test.ts`, `docs/SO-HANG-RAO.md`.
 - 1b Bài "orders không nhắc `bil_`" — khuôn `dispatchViewHits` (`architecture.test.ts:508-535`): tự kiểm bộ bắt trên đoạn mẫu + quét mọi `.ts` của `src/modules/orders/`. Đột biến: chèn chuỗi SQL `bil_` → đỏ → hoàn nguyên. NT-R4.
 - 1c Hạng `KHONG_BANG` + bài (không `.prepare(`/`.batch(`/`.exec(`; không mục sổ dữ liệu thuộc `receipt`; không đồng thời ở `STRICT`/`LEGACY`/`KHONG_DB`); sửa bài `:435-446` nhận hạng mới. Đột biến ở Task 8 (khi có thư mục `receipt`). NT-R3.
 - 1d Bài luật thân trigger — **cần thử trước (spike, ghi kết quả vào sổ thi công):** cách chính: với mỗi trigger ở `sqlite_master`, chạy trên `node:sqlite` một `EXPLAIN` của câu kích hoạt tối thiểu và đọc tập bảng/view bị mở (khuôn 8(b)); **chưa kiểm** EXPLAIN có lộ chương trình con của trigger trên Node 22 hay không. Cách dự phòng: tách thân trigger (`BEGIN…END`, vế `WHEN`) → thay `NEW.x`/`OLD.x` bằng hằng `NULL` → `EXPLAIN SELECT …` từng câu → đọc `OpenRead` theo `rootpage`, view mở bằng tên qua sổ. Có ca tự kiểm "đáp án biết trước" (3 trigger hiện có: `lc1_stf_permission_external_partner_only` → {`staff`, `v_pty_open_role_group`}; `orders_confirm_requires_trip` → {`order_service`}; `vc_vehicle_owner_ins` → {`v_pty_owner_company`, `v_pty_carrier`}). Đột biến: cài tạm trigger `orders` đọc `bil_payment_receipt` (trong DB thử của test, sau migration B) → đỏ. Nếu cả hai cách không đạt: dừng, báo điều phối (không hạ thành quét chuỗi mà không ghi "dựa vào kỷ luật"). NT-R5.
-- 1e Bảng tin: `src/bang-tin-guard.test.ts` `FILES` thêm `modules/billing/index.ts` (đột biến ở Task 6b). NT-R7.
+- 1e Bảng tin: `src/bang-tin-guard.test.ts` `FILES` thêm `modules/billing/index.ts`, kèm mục `MIEN` có lý do cho mọi route ghi của `billing` dưới `/api/orders*` mà **không ghi đơn** (nếu có — route sổ `/api/ledger/*` nằm ngoài tiền tố nên không bị bắt); route "Đã giao", "Hoàn thành", ghi lần thu **không** được miễn. Đột biến ở Task 6b. NT-R7.
 - Lệnh: `node --test src/architecture.test.ts`, `npm test`, `npm run typecheck`.
 - **Xong khi:** mỗi rào 1b/1d có dòng `docs/SO-HANG-RAO.md` với ngày + phép đột biến + thông báo đỏ quan sát được; 1c/1e ghi "chờ đột biến ở Task 8/6b".
 
@@ -228,8 +245,8 @@ Tệp: `src/modules/billing/rules.ts` + `rules.test.ts`; `golden/hoan-tat-cong-n
 ### Task 6 — Route `billing` (việc lớn; mỗi mục một commit)
 Tệp: `src/modules/billing/{index.ts,repository.ts,service.ts}`, `src/index.ts` (mảng `modules`), `src/architecture.test.ts` (`STRICT` thêm `billing` — NT-R2), `src/modules/orders/index.ts` (công bố: câu `UPDATE` chưa chạy "Đã giao"/"Hoàn thành", "phải thu hiện hành", mốc khoá lạc quan), `src/modules/dispatch/index.ts` (công bố câu bảo vệ người phụ trách), `src/shared/contracts.ts` (DTO mới), `src/shared/audit-actions.ts`, `src/shared/bang-tin.ts`, `src/route-access.test.ts` (ảnh chụp), `docs/quyen-hoan.json`, `tests/e2e/so-tien.mjs` (mới).
 - 6a Ghi/đọc lần thu + `POST /api/ledger/balances` + `GET /api/ledger/unpaid-summary`; gỡ `payment.receive` khỏi hoãn. NT-Q4, NT-S3.
-- 6b "Đã giao" (lô §3.3). E2e NT-Q2, NT-F1–F6 (F6: kịch bản tự cài trigger `RAISE` tạm trên D1 local tạm cho câu thứ 3, rồi gỡ — không móc thử nghiệm trong mã chạy thật). Đột biến hàng rào Bảng tin (NT-R7) → đỏ → hoàn nguyên → dòng `SO-HANG-RAO`.
-- 6c "Hoàn thành". NT-Q3, NT-F8.
+- 6b **Bước đầu — spike R1:** kịch bản e2e trên D1 local tạm chạy một `db.batch()` mà câu thứ hai bị trigger tạm `RAISE`, kiểm câu thứ nhất **không** lưu; ghi kết quả vào sổ thi công. Sai ⇒ dừng theo R1 (không viết route). Sau đó "Đã giao" (lô §3.3). E2e NT-Q2, NT-F1–F6c (F6b: chèn lần thu/đảo ngay trước lô; F6: kịch bản tự cài trigger `RAISE` tạm trên D1 local tạm cho câu thứ 3, rồi gỡ — không móc thử nghiệm trong mã chạy thật). Đột biến hàng rào Bảng tin (NT-R7) và bỏ trigger `bil_posting_delivered_paid` (NT-F6b đỏ) → hoàn nguyên. **Xong khi thêm:** dòng `docs/SO-HANG-RAO.md` **có ngày** cho hàng rào Bảng tin phủ `billing` và cho trigger `bil_posting_delivered_paid`.
+- 6c "Hoàn thành" (khuôn §3.3: câu `orders` đầu → phiếu `COMPLETED` → trigger `bil_posting_completed_settled`; đột biến bỏ trigger → NT-F8 đỏ → hoàn nguyên + dòng `SO-HANG-RAO`). NT-Q3, NT-F8.
 - 6d Sổ: xác nhận công ty đã nhận, nộp/trả, hoàn (gỡ `payment.refund` khỏi hoãn), điều chỉnh/đảo, `GET /api/ledger`, `GET /api/ledger/mine`. NT-Q5, NT-S1, S2, S4, S5, S8.
 - 6e Từ chối sớm sau "Đã giao" ở mọi route ghi của module `orders` **và** `dispatch` (đọc `delivered_at`: `orders` từ bảng mình; `dispatch` qua `v_ord_order_state`). Bài U mới nạp module thật (khuôn `src/route-access.test.ts`), lấy **route ghi theo module sở hữu** (`orders`, `dispatch` — không lọc theo đường dẫn, vì đường `/api/orders/:id/*` của `billing` như `completed` phải chạy được sau "Đã giao", và route của nhánh ADR-0049 ghi bảng `orders` có thể nằm ở đường khác), so với bảng ca (route → kết quả mong đợi) trong `tests/e2e/so-tien.mjs`; danh sách miễn trừ có tên + lý do (khuôn `MIEN` của `src/bang-tin-guard.test.ts`), vd `POST /api/orders`; mục miễn trừ trỏ route không tồn tại → đỏ; route mới không có ca → đỏ. NT-F7.
 - 6f Đột biến NT-R2 → dòng `SO-HANG-RAO`; NT-R8 xanh (không còn mục hoãn tiền).
@@ -249,11 +266,11 @@ Tệp: `src/modules/receipt/index.ts`, `src/shared/contracts.ts` (`ReceiptDto` �
 - `receipt` chuyển tay cầm `env.DB` cho hàm công bố của `orders`, `billing`, `parties` (`ownerCompany`), `company` — không tự có SQL.
 - Đỏ trước: NT-B1 (số lạ 480.017 ở mọi ô bí mật + quét JSON; thêm tạm trường giá vốn → đỏ); đột biến NT-R3 (chèn `.prepare(`) → đỏ → dòng `SO-HANG-RAO`; bài quét NT-B2.
 - Lệnh: `npm test`, `npm run typecheck`, `npm run test:e2e`, kịch bản `v1-xac-nhan-png.mjs` (bảng `web/CLAUDE.md`).
-- **Xong khi:** xanh; người kiểm độc lập đọc danh sách trắng.
+- **Xong khi:** xanh; dòng `docs/SO-HANG-RAO.md` **có ngày** cho rào `KHONG_BANG` (NT-R3) và test số lạ 480.017 (NT-B1); người kiểm độc lập đọc danh sách trắng.
 
 ### Task 9 — Bất biến `R-BIL-*`
 Tệp: `scripts/audit-checks.mjs` (sau `R-PTY-1` `:117-121`), `src/audit-invariants.test.ts`.
-- `R-BIL-1` (tổng lần thu còn hiệu lực của đơn đã "Đã giao" = `bil_posting.due_snapshot` của phiếu `DELIVERED`), `R-BIL-3` (lần thu + dòng nợ), `R-BIL-4`, `R-BIL-6`, hai bất biến mốc của ADR-0025 NT 8; `R-BIL-7` = ghi chú trỏ `R-PTY-1` (không kiểm trùng); `R-BIL-2`, `R-BIL-5` in "chưa áp dụng".
+- `R-BIL-1` (tổng lần thu còn hiệu lực **tạo trước** phiếu `DELIVERED` = `due_snapshot` của phiếu đó; phiếu hoàn/điều chỉnh/đảo sau đó không làm đỏ — §3.2), `R-BIL-3` (lần thu + dòng nợ), `R-BIL-4` (đơn "Đã giao" ⇔ đúng một phiếu `DELIVERED`; **đơn có `completed_at` ⇔ đúng một phiếu `COMPLETED`**), `R-BIL-6`, kiểm NT-S9 (`collected_for_party_id` = công ty chủ), hai bất biến mốc của ADR-0025 NT 8; `R-BIL-7` = ghi chú trỏ `R-PTY-1` (không kiểm trùng); `R-BIL-2`, `R-BIL-5` in "chưa áp dụng".
 - Đỏ trước: test đơn vị cho từng câu SQL trên `node:sqlite`; trên D1 local: chèn dòng đảo sai số (tạm gỡ trigger trong DB tạm) → `audit-invariants --db local` thoát 1 → hoàn nguyên. NT-A1.
 - **Xong khi:** xanh; dòng `SO-HANG-RAO` cho `R-BIL-*`.
 
@@ -272,14 +289,14 @@ Tệp (dự kiến): `web/order.ts` (nút "Đã giao – đã thu đủ" cho ng�
 
 ### Task 12 — Kiểm độc lập + bàn giao triển khai
 - Người kiểm độc lập chỉ-đọc (`nguoi-kiem-doc-lap`): đọc mã thật, chạy lại `npm test`, `npm run typecheck`, `npm run test:e2e`, `audit-invariants --db local`, tự đột biến lại ít nhất NT-R4, NT-R5, NT-D3; đối chiếu từng NT ở §1 và từng ô bảng §2 bản làm mới. "Đạt" chỉ dựa trên báo cáo đó.
-- Runbook (chủ tự chạy — `CLAUDE.md` §8; theo `docs/HANDOFF-N1.md` và `npm run trien-khai`): mục nhật ký thay đổi (A.0) → cổng chỉ-đọc → `kiem-phien-ban.mjs` ĐẠT → **điểm khôi phục Time Travel ghi TRƯỚC migration** (cửa một chiều: sau khi có dòng sổ/đơn "Đã giao" thật, lùi Worker không lùi dữ liệu) → test + typecheck + e2e xanh → migration A, B → `wrangler deploy` ngay → `audit-invariants --db remote` → `kiem-phien-ban.mjs --sau-deploy` → ghi trạng thái. AI chuẩn bị và đưa **nguyên lệnh**; không tự chạy lệnh ghi remote.
+- Runbook (chủ tự chạy — `CLAUDE.md` §8; theo `docs/HANDOFF-N1.md` và `npm run trien-khai`): mục nhật ký thay đổi (A.0) → cổng chỉ-đọc → `kiem-phien-ban.mjs` ĐẠT → **điểm khôi phục Time Travel ghi TRƯỚC migration** (cửa một chiều: sau khi có dòng sổ/đơn "Đã giao" thật, lùi Worker không lùi dữ liệu) → test + typecheck + e2e xanh → migration A, B → `wrangler deploy` ngay → `audit-invariants --db remote` → `kiem-phien-ban.mjs --sau-deploy` → ghi trạng thái. AI chuẩn bị và đưa **nguyên lệnh**; không tự chạy lệnh ghi remote. Runbook ghi rõ (V4): **không lùi Worker đơn lẻ** về bản trước — lùi = Time Travel về điểm khôi phục + Worker cũ cùng lúc, chỉ khi chưa có ghi mới; sau đó chỉ sửa tiến.
 - Sau phát hành (việc người): Kế toán xử lý lần thu "chưa rõ" (số từ kiểm "thông tin" Task 3); báo nhân viên; thử iPhone thật; chủ/Kế toán xác nhận ca sổ vàng.
 
 ## 5. Rủi ro và điểm cần người kiểm xem kỹ
 
 | # | Rủi ro | Cách chặn trong kế hoạch | Người kiểm xem |
 |---|---|---|---|
-| R1 | "Một câu hỏng thì cả lô D1 huỷ" **chưa kiểm** trên D1 thật | NT-F6 bằng trigger `RAISE` tạm trên D1 local tạm; nếu lô không huỷ trọn → dừng, báo chủ (thiết kế lô sai nền) | Kịch bản thật sự cài/gỡ trigger, và kiểm cả `audit_log`, `bil_*`, `orders` |
+| R1 | "Một câu hỏng (kể cả `RAISE` của trigger) thì cả lô D1 huỷ" **chưa kiểm** trên D1 thật — cách vá C1/V1 dựa hoàn toàn vào nó | Bước **đầu** Task 6b (spike e2e) trước khi viết route; NT-F6, NT-F6b. **Dự phòng nếu sai:** dừng Task 6b, báo điều phối — trong phạm vi ADR đã duyệt không có cách vá khác (`orders` không được đọc `bil_`, ADR-0024 đ4), phải trình chủ ADR mới; **không** tự lùi về "kiểm trước lô" | Kịch bản thật sự cài/gỡ trigger, và kiểm cả `audit_log`, `bil_*`, `orders` |
 | R1b | Chuỗi `changes() > 0` trong lô (§3.3): câu thua ở giữa phải làm mọi câu sau không áp, kể cả dòng nhật ký chỉ-thêm | Idiom đã chạy ở `dispatch/repository.ts:32`; e2e NT-F3–F5 kiểm `audit_log` | Thứ tự câu đúng như §3.3, không câu nhật ký nào đứng trước câu `UPDATE orders` |
 | R2 | Bài luật thân trigger (NT-R5) có thể không làm được bằng EXPLAIN trên Node 22 | Spike Task 1d, ca đáp án biết trước, cách dự phòng; không hạ cấp im lặng | Bài có tự kiểm bộ bắt; không "xanh vì rỗng" (đếm trigger > 0) |
 | R3 | Khoá lạc quan theo `orders.updated_at` **không** bắt sửa số khách (mã hôm nay, §2) | Điều kiện số thứ tự điều chỉnh trong câu `UPDATE orders`; trigger cấm chèn điều chỉnh sau "Đã giao"; NT-F5 | Mọi đường đổi "phải thu" (sửa nháp, `handler-money-edit`, đổi dịch vụ) đều bị điều kiện bắt; rà thêm đường mới của ADR-0049 |
@@ -293,11 +310,13 @@ Tệp (dự kiến): `web/order.ts` (nút "Đã giao – đã thu đủ" cho ng�
 | R11 | Sổ vàng "xanh vì rỗng" | Lớp 2 in "chưa áp dụng"; nghiệm thu mã tiền chặn tới khi chủ/Kế toán xác nhận ca | `so-vang.test.ts` không đếm ca chờ là đạt |
 | R12 | Lệch có chủ ý Hiến chương 5.14 (khoá kỳ) | Ghi ở đề xuất luật (Task 11) + `docs/SYSTEM-DESIGN.md` §16; hạn = cùng bản với lượt 2 | Không quên chép |
 
-## 6. Câu hỏi còn mở cho chủ (gom một lần; mỗi câu chỉ chặn task ghi kèm)
+## 6. Câu hỏi còn mở cho chủ (đúng 4 câu, gom một lần; mỗi câu chỉ chặn task ghi kèm)
 
 - **Q1 — Hai bảng mới của đơn (chặng đưa đón `ord_transfer_leg`, danh sách hành khách `ord_passenger`, của ADR-0047/0049) có bị khoá sau "Đã giao" không?** ADR-0025 khoá "tất cả" nhưng soạn khi chưa có hai bảng này; Vận chuyển có thể còn cần đóng chặng / sửa hành khách sau chuyến. *Khuyến nghị A:* khoá cả hai như `order_service`, trừ đúng câu "đóng chặng" (`closed_at` từ `NULL`) nếu Vận chuyển cần — hỏi kèm có cần không. *B:* không khoá (Vận chuyển tự quản). Chặn: phần trigger của hai bảng ở Task 2.
-- **Q2 — Đơn nháp cũ còn tiền cọc trên đơn** (cọc đã chuyển thành lần thu "chưa rõ"): khi sửa nháp làm tổng thấp hơn cọc cũ, cột cọc cũ làm cơ sở dữ liệu từ chối. *Khuyến nghị A:* khi sửa nháp, ghi cột cọc cũ về 0 (cột đã thôi mang nghĩa, số tiền đã nằm ở lần thu nên không mất; kiểm tổng khớp chỉ so lúc migration). *B:* giữ cột, từ chối bằng câu tiếng Việt (tạo ngõ cụt như M2 đã cảnh báo). Chạm dữ liệu ⇒ không tự chọn. Chặn: Task 7.
-- **Q3 — Hai trường của lần thu chuyển từ cọc cũ (dữ liệu tiền, ghi một lần):** (a) **"Ngày phát sinh"** là ngày nào? *Khuyến nghị A:* ngày tạo đơn theo giờ Việt Nam (gần nhất với lúc khách trả cọc). *B:* ngày chạy migration (theo chữ "mặc định = hôm nay" của bổ sung 5.14). (b) Đơn có cọc nhưng **không ghi hình thức** (cột `NULL`) thì ghi hình thức gì? *Khuyến nghị:* "Khác" (Kế toán sửa khi đảo lần thu "chưa rõ"). Chạm dữ liệu tiền ⇒ không tự chọn. Chặn: Task 3.
+- **Q2 — Đơn nháp cũ còn tiền cọc trên đơn** (cọc đã chuyển thành lần thu "chưa rõ"): khi sửa nháp làm tổng thấp hơn cọc cũ, cột cọc cũ làm cơ sở dữ liệu từ chối. *Khuyến nghị A:* **chỉ trong đúng trường hợp đó** (sửa nháp làm tổng < cọc cũ), đặt cột cọc cũ về 0 **kèm một dòng nhật ký ghi số cọc cũ** (không SĐT); mọi trường hợp khác giữ nguyên cột. Số tiền không mất vì đã nằm ở lần thu "chưa rõ". *B:* giữ cột, từ chối bằng câu tiếng Việt (tạo ngõ cụt như M2 đã cảnh báo). Chạm dữ liệu ⇒ không tự chọn. Chặn: Task 7.
+- **Q3 — Hai trường của lần thu chuyển từ cọc cũ (dữ liệu tiền, ghi một lần):** (a) **"Ngày phát sinh"** là ngày nào? *Khuyến nghị A:* ngày tạo đơn theo giờ Việt Nam (gần nhất với lúc khách trả cọc). *B:* ngày chạy migration (theo chữ "mặc định = hôm nay" của bổ sung 5.14). (b) Đơn có cọc nhưng **không ghi hình thức** (cột `NULL`) thì ghi hình thức gì? *Khuyến nghị:* "Khác" (Kế toán sửa khi đảo lần thu "chưa rõ"). Đếm số đơn như vậy trước khi chạy migration — có thể không có đơn nào. Chạm dữ liệu tiền ⇒ không tự chọn. Chặn: Task 3.
+
+- **Q4 — Lưu số phải thu tại lúc bấm "Đã giao" để máy đối chiếu?** Máy lưu kèm phiếu "Đã giao" con số khách phải trả lúc đó, dùng để chặn ngay trong lần ghi (tiền đã thu phải khớp đúng số này, nếu không thì cả lần bấm bị huỷ) và để kiểm định kỳ. Đây chỉ là ảnh chụp, không phải cách tính tiền thứ hai. *Khuyến nghị:* **đồng ý**. Không đồng ý ⇒ phải tìm cách khác chặn lỗi "một lần thu chen vào đúng lúc bấm" (khoá đơn với số sai). Chặn: Task 3, Task 6b.
 
 **Việc chủ/Kế toán phải làm (không phải câu hỏi, chặn nghiệm thu mã tiền):** xác nhận con số SV-HT-06, SV-HT-07 và các ca lượt 1 Task 5 thêm; xem ảnh phác hai màn sổ mới (Task 10).
 
@@ -312,7 +331,7 @@ Tệp (dự kiến): `web/order.ts` (nút "Đã giao – đã thu đủ" cho ng�
 ## 8. Điều chưa kiểm (lúc lập kế hoạch)
 
 - Chưa chạy `npm test`/`typecheck`/e2e (vai lập kế hoạch; mốc sẽ lấy ở Task 0).
-- Chưa kiểm D1 batch huỷ trọn lô (R1), chưa kiểm EXPLAIN thấy thân trigger trên Node 22 (R2).
+- Chưa kiểm D1 batch huỷ trọn lô khi trigger `RAISE` (R1 — nền của cách vá C1/V1), chưa kiểm EXPLAIN thấy thân trigger trên Node 22 (R2).
 - Số đơn có cọc, đơn "còn lại" âm, đơn nháp có cọc trên production: **không biết** (AI không truy vấn remote).
 - Mã nhánh ADR-0049 chỉ xem lướt migration (`git show`), chưa đọc route/mã; mọi dòng ở §2 đo trước khi gộp.
 - Chưa xác minh `ALTER TABLE … ADD COLUMN` với `CHECK` trên D1 (kế hoạch dùng trigger thay `CHECK` cho cột mốc).
