@@ -8,6 +8,9 @@
 //       không mục Vận chuyển; axe.
 //  3) tài xế chưa có giấy tờ: khối giấy tờ nói rõ "chưa có", vẫn hai tab.
 //  4) tài khoản KHÔNG phải tài xế mở /tai-xe → quay về "/" (không kẹt ở trang của tài xế).
+// ADR-0049 Q5 (điều phối vòng 3, 29/9): tài xế CÔNG TY mở "/" → "Cuốc của tôi" /cuoc (TRANG_CUOC — trang mở đầu theo bản vẽ Bảng điều phối 04); /tai-xe là tab
+// "Trang chủ" giữ giấy tờ; khối "Cuốc xe" giữ chỗ thành liên kết sang /cuoc; thanh tab ba mục Trang chủ / Cuốc của tôi / Tôi; menu máy tính thêm "Cuốc của tôi".
+// Tài xế chỉ gọi route TÀI XẾ của Vận chuyển (/api/van-chuyen/cuoc-cua-toi*), không route văn phòng; vẫn không mục "Vận chuyển".
 // Dùng vc-lib.mjs (trên a2-cdp.mjs). Tài khoản tài xế gieo bằng scripts/staff-lib.mjs (SĐT giả) + vai "Tài xế công ty"; giấy tờ nhập bằng API của Quản trị (số GIẢ).
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-28-van-chuyen-1a/kich-ban/tai-xe-trang-dau-smoke.mjs
@@ -16,7 +19,7 @@ import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { ACCOUNTS, DESK, DRIVER, DRIVER2, MOB, apiCalls, assert, axe, axeNote, boDem, dungMoiTruong, shotFull, sleep, vnDate } from "./vc-lib.mjs";
 
-const { TRANG_DAU_TAI_XE } = await import(pathToFileURL(join(process.cwd(), "src", "shared", "start-page.ts")).href);
+const { TRANG_DAU_TAI_XE, TRANG_CUOC } = await import(pathToFileURL(join(process.cwd(), "src", "shared", "start-page.ts")).href);
 const SO_DU = ["001090000412", "790100000412"]; // số GIẢ — không bao giờ được nằm trong DOM của tài xế (chỉ số che)
 const dem = boDem("TAI XE TRANG DAU SMOKE");
 
@@ -49,20 +52,24 @@ try {
     })()`);
 
   for (const [id, ten, viewport] of [["1", "390", MOB], ["2", "1040", DESK]]) {
-    await dem.step(id, `${ten}: tài xế mở "/" → ${TRANG_DAU_TAI_XE}; chào + ngày; khối cuốc xe giữ chỗ; hai giấy gần hạn nhất đúng chip; số đủ không có trong DOM; điều hướng đúng hai mục` + axeNote(), async () => {
+    await dem.step(id, `${ten}: tài xế mở "/" → ${TRANG_CUOC} (Q5); tab Trang chủ ${TRANG_DAU_TAI_XE}: chào + ngày; khối cuốc xe là liên kết sang ${TRANG_CUOC}; hai giấy gần hạn nhất đúng chip; số đủ không có trong DOM; điều hướng đúng ba mục` + axeNote(), async () => {
       const p = await env.as(DRIVER, "/", viewport);
       try {
-        await p.waitFor(`location.pathname === ${JSON.stringify(TRANG_DAU_TAI_XE)}`, `tài xế mở "/" được đưa sang ${TRANG_DAU_TAI_XE}`, 10000);
+        await p.waitFor(`location.pathname === ${JSON.stringify(TRANG_CUOC)}`, `tài xế mở "/" được đưa sang ${TRANG_CUOC}`, 10000);
+        await p.waitFor("!!document.querySelector('.dp-cuoc-day')", "Cuốc của tôi dựng xong", 10000);
+        await p.send("Page.navigate", { url: env.base + TRANG_DAU_TAI_XE });
+        await p.waitFor(`location.pathname === ${JSON.stringify(TRANG_DAU_TAI_XE)}`, `mở ${TRANG_DAU_TAI_XE}`, 10000);
         await p.waitFor("document.querySelectorAll('#tx-docs .vc-txdoc').length === 2", "khối Giấy tờ của tôi dựng xong", 10000);
         await sleep(1200); // chờ các lời gọi của khung (me, chuông, góp ý, bảng tin) về hết
         const s = await doc(p);
         const calls = apiCalls(p).map((c) => c.path);
         assert.deepEqual(calls.filter((u) => u.startsWith("/api/orders")), [], `không lời gọi màn đơn nào: ${JSON.stringify(calls)}`);
-        assert.deepEqual(calls.filter((u) => u.startsWith("/api/van-chuyen")), [], "tài xế không gọi API Vận chuyển");
+        assert.deepEqual(calls.filter((u) => u.startsWith("/api/van-chuyen") && !u.startsWith("/api/van-chuyen/cuoc-cua-toi")), [], "tài xế chỉ gọi route tài xế của Vận chuyển");
         assert.deepEqual(p.consoleErrors, [], `lỗi console: ${JSON.stringify(p.consoleErrors)}`);
         assert.equal(s.hello, "Chào Hùng");
         assert.match(s.date ?? "", /^(Thứ .+|Chủ nhật), \d{2}\/\d{2}\/\d{4}$/i, `ngày: ${s.date}`);
-        assert.equal(s.cuoc, "Cuốc xe của bạn sẽ hiện ở đây");
+        assert.equal(s.cuoc, "Xem cuốc của tôi — hôm nay và ngày mai");
+        assert.equal(await p.ev("document.querySelector('.vc-cuoc a')?.getAttribute('href')"), TRANG_CUOC);
         assert.equal(s.docsTitle, "Giấy tờ của tôi");
         assert.equal(s.all, "/account", "“Xem tất cả” mở trang Tôi (danh sách đủ)");
         const d = (n) => vnDate(n).split("-").reverse().join("/");
@@ -74,10 +81,11 @@ try {
         if (viewport === MOB) {
           assert.deepEqual(s.tabs, [
             { href: "/tai-xe", text: "Trang chủ", current: "page" },
+            { href: TRANG_CUOC, text: "Cuốc của tôi", current: null },
             { href: "/account", text: "Tôi", current: null },
-          ], "điện thoại: đúng hai tab của tài xế");
+          ], "điện thoại: đúng ba tab của tài xế công ty (Q5)");
         } else {
-          assert.deepEqual(s.side.map((x) => x.href), ["/tai-xe", "/account", `/feedback?new=1&from=${encodeURIComponent(TRANG_DAU_TAI_XE)}`, "/help"], `máy tính: menu tài xế ${JSON.stringify(s.side)}`);
+          assert.deepEqual(s.side.map((x) => x.href), ["/tai-xe", TRANG_CUOC, "/account", `/feedback?new=1&from=${encodeURIComponent(TRANG_DAU_TAI_XE)}`, "/help"], `máy tính: menu tài xế ${JSON.stringify(s.side)}`);
           assert.equal(s.side[0].text, "Trang chủ");
           assert.equal(s.side[0].current, "page");
           assert.ok(!s.side.some((x) => /Vận chuyển|Đơn hàng|Danh bạ/.test(x.text ?? "")), "tài xế không có mục văn phòng / Vận chuyển");
@@ -93,16 +101,16 @@ try {
     });
   }
 
-  await dem.step("3", "tài xế chưa có giấy tờ: khối nói rõ “chưa có”, vẫn hai tab (điện thoại)", async () => {
-    const p = await env.as(DRIVER2, "/", MOB);
+  await dem.step("3", "tài xế chưa có giấy tờ: khối nói rõ “chưa có”, vẫn ba tab (điện thoại)", async () => {
+    const p = await env.as(DRIVER2, TRANG_DAU_TAI_XE, MOB);
     try {
-      await p.waitFor(`location.pathname === ${JSON.stringify(TRANG_DAU_TAI_XE)}`, "sang trang đầu tài xế", 10000);
+      await p.waitFor(`location.pathname === ${JSON.stringify(TRANG_DAU_TAI_XE)}`, "trang giấy tờ của tài xế", 10000);
       await p.waitFor("!!document.querySelector('#tx-docs .vc-empty-line')", "dòng chưa có giấy tờ", 10000);
       const s = await doc(p);
       assert.equal(s.hello, "Chào Tuấn");
       assert.deepEqual(s.rows, []);
       assert.equal(s.empty, "Chưa có giấy tờ nào. Báo văn phòng để cập nhật.");
-      assert.equal(s.tabs.length, 2);
+      assert.equal(s.tabs.length, 3);
       await shotFull(p, "tai-xe-trang-dau-chua-co-giay-390.png");
     } finally {
       p.close();

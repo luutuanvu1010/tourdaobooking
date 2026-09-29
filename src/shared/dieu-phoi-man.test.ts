@@ -3,7 +3,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   cauKhoaMoc, changChuaXep, chipChang, dieuKienXuatBen, gioHien, hinhDongThoiGian, idChoLenh, kieuChuyen, nhanDiem, dongNhatKy, soLieuDieuPhoi, truongLoiChuyen,
-  viecCanXuLy, thayDieuPhoiXe, tuyenChuyen, nhanNgayXem, chuyenXepDuoc,
+  viecCanXuLy, thayDieuPhoiXe, tuyenChuyen, nhanNgayXem, chuyenXepDuoc, dongGoiBao, dongBanChup,
 } from "./dieu-phoi-man.ts";
 import type { ChangLichDto, ChuyenTomTatDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
 import type { PermissionCode } from "./permissions.ts";
@@ -259,4 +259,48 @@ test("chuyenXepDuoc: chỉ chuyến lên kế hoạch, theo giờ xuất bến; 
     ["a", "CX-3009-07 · 09:00–10:45 · 79B-123.45 · tải 12/15", true],
     ["b", "CX-3009-11 · 14:30–16:15 · 79B-123.45 · tải 10/15", false],
   ]);
+});
+
+// ADR-0051 (B-GB): mục "Giờ hẹn đổi — gọi báo khách" ở cột Cần xử lý (danh sách riêng GET /nhac-goi-khach, hiện ở MỌI ngày đang xem) + dòng ở chi tiết chuyến.
+const muc = (o: Partial<{ baoDuoc: boolean; ngayChuyen: string; moi: { ngay: string; gio: string | null } }> = {}) => ({
+  legId: "lg1", orderCode: "TD-20260930-0018", chieu: "OUT" as const, noiDon: "Sheraton Nha Trang", ngayChuyen: o.ngayChuyen ?? NGAY,
+  gioHenDoi: { cu: { ngay: NGAY, gio: "09:00" }, moi: o.moi ?? { ngay: NGAY, gio: "09:15" }, phienBan: 3, maChuyen: ["CX-3009-07"], baoDuoc: o.baoDuoc ?? true },
+});
+test("viecCanXuLy + nhắc gọi báo: mục 'Giờ hẹn đổi — gọi báo khách' (nhãn hằng goi-bao.ts), sau chặng quá mốc, trước cảnh báo khác; nút 'Đã gọi báo' CHỈ khi baoDuoc; khác ngày xem → 'Chuyến dd/mm'; không SĐT", () => {
+  const L = lich({
+    chang: [chang({ legId: "l2", nhan: ["QUA_MOC"], gioDon: "11:00" })],
+    chuyen: [chuyen({ id: "t4", ma: "CX-3009-02", trangThai: "RUNNING" })],
+    canhBao: [
+      { loai: "GIO_XE_TOI_MUON_HON_HEN", nhan: "Giờ xe tới muộn hơn giờ hẹn", legId: "l1", tripId: "t4", maDon: "TD-1" },
+      { loai: "CHANG_QUA_MOC", nhan: "Chặng đã quá mốc tối thiểu mà chưa xếp", legId: "l2", tripId: null, maDon: "TD-2" },
+    ],
+  });
+  const v = viecCanXuLy(L, { dieuPhoi: true, phaLe: false, quanLyXe: false }, [muc(), muc({ baoDuoc: false, ngayChuyen: "2026-10-02", moi: { ngay: "2026-10-02", gio: null } })]);
+  assert.deepEqual(v.map((x) => x.loai), ["Chặng quá mốc", "Giờ hẹn đổi — gọi báo khách", "Giờ hẹn đổi — gọi báo khách", "Giờ xe tới muộn hơn giờ hẹn"]);
+  assert.deepEqual([v[1]!.tieuDe, v[1]!.noiDung, v[1]!.aiXuLy, v[1]!.bieuTuong, v[1]!.tone], ["TD-20260930-0018 · Sheraton Nha Trang", "Giờ hẹn đón đổi 09:00 → 09:15 · CX-3009-07", "Người phụ trách đơn", "handset", "warn"]);
+  assert.deepEqual(v[1]!.hanhDong, [{ nhan: "Đã gọi báo", kieu: "goi-bao", legId: "lg1", phienBan: 3, gioMoi: { ngay: NGAY, gio: "09:15" }, maDon: "TD-20260930-0018" }]);
+  assert.equal(v[2]!.noiDung, "Giờ hẹn đón đổi 30/09 09:00 → 02/10 chưa chốt giờ · CX-3009-07 · Chuyến 02/10");
+  assert.deepEqual(v[2]!.hanhDong, [], "baoDuoc = false (Kế toán, Bán hàng không phụ trách): không nút");
+  assert.deepEqual(v[3]!.hanhDong, [], "thẻ 'xe tới muộn' KHÔNG có nút Đã gọi báo (Q-GB-1 = b)");
+});
+
+test("dongGoiBao (chi tiết chuyến): 'Giờ hẹn đổi … — chưa gọi báo' + 'Đã gọi báo' khi baoDuoc; '— đã gọi báo khách (tên, HH:MM)' + 'Bỏ đánh dấu' khi boDuoc", () => {
+  const cu = { ngay: NGAY, gio: "09:00" };
+  const moi = { ngay: NGAY, gio: "09:15" };
+  assert.deepEqual(dongGoiBao({ legId: "lg1", maDon: "TD-9", gioHenDoi: { cu, moi, phienBan: 3, maChuyen: ["CX-1"], baoDuoc: true }, daGoiBao: null }), {
+    chu: "TD-9 · Giờ hẹn đổi 09:00 → 09:15 — chưa gọi báo", nut: { kieu: "da-goi", nhan: "Đã gọi báo", phienBan: 3, gioMoi: moi },
+  });
+  assert.equal(dongGoiBao({ legId: "lg1", maDon: "TD-9", gioHenDoi: { cu, moi, phienBan: 3, maChuyen: [], baoDuoc: false }, daGoiBao: null })!.nut, null);
+  assert.deepEqual(dongGoiBao({ legId: "lg1", maDon: "TD-9", gioHenDoi: null, daGoiBao: { cu, moi, luc: "07:52", nguoiBam: "Lan", phienBan: 4, boDuoc: true } }), {
+    chu: "TD-9 · Giờ hẹn đổi 09:00 → 09:15 — đã gọi báo khách (Lan, 07:52)", nut: { kieu: "bo", nhan: "Bỏ đánh dấu", phienBan: 4 },
+  });
+  assert.equal(dongGoiBao({ legId: "lg1", maDon: null, gioHenDoi: null, daGoiBao: { cu, moi, luc: "07:52", nguoiBam: null, phienBan: 4, boDuoc: false } })!.chu, "Giờ hẹn đổi 09:00 → 09:15 — đã gọi báo khách (07:52)");
+  assert.equal(dongGoiBao({ legId: "lg1", maDon: null, gioHenDoi: null, daGoiBao: null }), null);
+});
+
+test("dongBanChup: dòng 'Bản chụp lúc xuất bến' — nhãn tiếng Việt theo loại, KHÔNG BAO GIỜ hiện mã (lỗi bắt được: 'GIAY_TO_XE' lộ ra ở màn chuyến đang chạy)", () => {
+  assert.deepEqual(dongBanChup({ loai: "GIAY_TO_XE", hang: null, hetHan: "2027-03-14" }), { nhan: "Giấy tờ xe", phu: "hạn 14/03/2027" });
+  assert.deepEqual(dongBanChup({ loai: "GPLX", hang: "D2", hetHan: "2029-06-20" }), { nhan: "Giấy phép lái xe", phu: "hạng D2 · hạn 20/06/2029" });
+  assert.deepEqual(dongBanChup({ loai: "GIAY_TO_NGUOI", hang: null, hetHan: null }), { nhan: "Giấy tờ của tài xế", phu: "" });
+  assert.equal(dongBanChup({ loai: "MA_LA", hang: null, hetHan: null }).nhan, "Điều kiện khác");
 });

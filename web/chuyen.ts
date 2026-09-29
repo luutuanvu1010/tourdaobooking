@@ -4,7 +4,9 @@
 // - "Cập nhật điểm theo đơn" (route 40, lý do giữ "Nơi đón / trả đã đổi"): không cần phá lệ; kết quả: đã cập nhật N / không có gì cần cập nhật / chuyến vừa bị sửa.
 // - Bảng điểm dừng (cờ `lechDon` → "Lệch đơn"), điều kiện xuất bến (danh mục cố định từ lý do giữ), nhật ký chuyến (ai bấm hoặc "máy"; hai giờ khi văn phòng khai).
 // - CHỜ A15 (chưa có route trên nhánh): "Xuất bến thay tài xế", nút tiến độ bấm thay, "Kết thúc gián đoạn", "Mở màn Xuất bến ›" — chưa dựng (không để nút chết).
-import { cauKhoaMoc, dieuKienXuatBen, dongNhatKy, gioHien, kieuChuyen, nhanDiem } from "../src/shared/dieu-phoi-man";
+import { cauKhoaMoc, dieuKienXuatBen, dongBanChup, dongGoiBao, dongNhatKy, gioHien, kieuChuyen, nhanDiem } from "../src/shared/dieu-phoi-man";
+import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
+import { ApiError } from "./api";
 import type { CapNhatDiemResponse, ChuyenChiTietResponse } from "../src/shared/contracts";
 import { can } from "../src/shared/permissions";
 import { api } from "./api";
@@ -13,6 +15,9 @@ import { chip, dai, docLoiLenh, moHuyChuyen, moPhaLe, taoLenh, thuNgay } from ".
 import { datCrumb, loiCua } from "./giay-to-ui";
 import { icon } from "./icons";
 import { initShell, setBarTitle, showError } from "./shell";
+import { dongMoc, moKhaiGio, veDiemChay, type LenhDiem } from "./tien-do-ui";
+import { giuTenKhach, ketThucDuoc } from "../src/shared/tien-do-man";
+import type { GioVnDto, GoiBaoChangDto } from "../src/shared/contracts";
 
 const errorEl = byId("error");
 const trangEl = byId("ct-trang");
@@ -22,6 +27,8 @@ const id = new URLSearchParams(location.search).get("id") ?? "";
 const staff = await initShell();
 const coDieuPhoi = can(staff, "trip.dispatch");
 const coPhaLe = can(staff, "trip.override");
+/** Bấm thay tài xế (A15, route 31–39): ô trip.progress — Bán hàng, Quản trị, Toàn quyền; Kế toán không. */
+const coTienDo = can(staff, "trip.progress");
 
 let duLieu: ChuyenChiTietResponse | null = null;
 let baoCao: HTMLElement | null = null;
@@ -45,6 +52,14 @@ function ve(): void {
   datCrumb("Vận chuyển › Điều phối xe", c.ma);
 
   const nutSua = keHoach && coDieuPhoi ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: `/chuyen-sua?id=${encodeURIComponent(c.id)}`, "data-action": "sua-chuyen" }, "Sửa chuyến") : null;
+  // Xuất bến thay tài xế (bản vẽ 2a + 6d): chuyến lên kế hoạch; bị giữ thì khoá (đối chiếu 2.7) — máy chủ vẫn kiểm.
+  const nutXuatBen = (lop: string) => {
+    if (!(keHoach && coTienDo)) return null;
+    const giu = c.lyDoGiu.length > 0;
+    const b = h("button", { type: "button", class: `vc-btn ${lop}`, disabled: giu, "data-action": "xuat-ben-thay", title: giu ? "Chưa đủ điều kiện xuất bến" : null }, "Xuất bến thay tài xế");
+    b.addEventListener("click", () => xuatBenThay(b));
+    return b;
+  };
   const nutHuy = (lop: string) => {
     if (!(keHoach && coDieuPhoi)) return null;
     const b = h("button", { type: "button", class: `vc-btn ${lop}`, "data-action": "huy-chuyen" }, "Huỷ chuyến");
@@ -57,8 +72,12 @@ function ve(): void {
     h("h1", { class: "dp-ct-title" }, c.ma),
     chip(k.nhan, k.kieu === "held" ? "danger" : k.kieu === "nodrv" ? "warn" : k.kieu === "run" ? "navy" : k.kieu === "done" ? "ok" : k.kieu === "cancel" ? "muted" : "unit"),
     h("span", { class: "dp-ct-when" }, `${thuNgay(ngay)} · ${gioHien(c.batDau, ngay)}–${gioHien(c.ketThuc, ngay)}`),
-    h("div", { class: "dp-ct-actions" }, nutSua, nutHuy("vc-btn-danger")),
+    h("div", { class: "dp-ct-actions" }, nutSua, nutXuatBen("vc-btn-ghost-primary"), nutHuy("vc-btn-danger")),
   );
+  // Mốc tiến độ đã có (thành phần B): xuất bến / kết thúc — một giờ, hoặc hai giờ khi văn phòng khai.
+  const moc = c.xuatBen || c.ketThucThat
+    ? h("div", { class: "dp-ct-moc" }, dongMoc("Xuất bến", c.xuatBen, ngay), c.ketThucThat ? dongMoc(c.trangThai === "ENDED_INTERRUPTED" ? "Kết thúc gián đoạn" : "Kết thúc", c.ketThucThat, ngay) : null)
+    : null;
   const khoa = c.khoaMoc.dangKhoa && keHoach
     ? h("div", { class: "dg-lock dp-ct-lock" }, icon("lock", 16), cauKhoaMoc(r.mocToiThieuPhut, { phaLe: coPhaLe, dieuPhoi: coDieuPhoi }))
     : null;
@@ -92,7 +111,8 @@ function ve(): void {
   // Điện thoại (bản vẽ 2b): một dòng thay dải bốn ô.
   const dongDt = h("div", { class: "dp-ct-line" }, h("strong", null, c.xe.bienSo), ` · ${c.xe.soCho} chỗ · ${c.taiXe?.ten ?? "Chưa có tài xế"} · tải `, h("strong", null, `${c.tai}/${c.xe.soCho}`));
 
-  const diem = h(
+  const chay = c.trangThai === "RUNNING";
+  const diem = chay ? diemChay() : h(
     "section",
     { class: "vc-card dp-stops", "aria-labelledby": "ct-diem-title" },
     h("div", { class: "dp-card-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
@@ -108,7 +128,7 @@ function ve(): void {
             { class: `dp-stop${d.lechDon && d.trangThai !== "SKIPPED" ? " is-lech" : ""}${d.trangThai === "SKIPPED" ? " is-bo" : ""}`, "data-diem": d.id },
             h("span", { class: "dp-stop-so" }, n.so),
             h("span", { class: "dp-stop-loai" }, n.loai),
-            h("span", { class: "dp-stop-noi" }, h("strong", null, h("span", { class: "dp-stop-loai-m" }, `${n.loai} · `), d.tenNoi), n.ghiChu ? h("span", { class: "dp-stop-note" }, n.ghiChu) : null),
+            h("span", { class: "dp-stop-noi" }, h("strong", null, h("span", { class: "dp-stop-loai-m" }, `${n.loai} · `), d.tenNoi), n.ghiChu ? h("span", { class: "dp-stop-note" }, n.ghiChu) : null, ...goiBaoCua(d.id)),
             h("span", { class: "dp-stop-hen" }, hen),
             h("span", { class: "dp-stop-toi" }, toi, n.muon ? h("span", { class: "dp-stop-muon" }, n.muon) : null),
             h("span", { class: "dp-stop-khach" }, String(d.soNguoi)),
@@ -139,7 +159,10 @@ function ve(): void {
       { class: "vc-card dp-side-card", "aria-labelledby": "ct-dk-title" },
       h("div", { class: "dp-card-head" }, h("h2", { id: "ct-dk-title", class: "dp-card-title" }, "Bản chụp lúc xuất bến"), chip(b.ketQua === "DAT" ? "Đạt" : "Chưa đạt", b.ketQua === "DAT" ? "ok" : "danger")),
       h("div", { class: "dp-cond" }, h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, `${gioHien(b.luc, ngay)} · ${b.bienSo} · ${b.soCho} chỗ`), h("span", { class: "dp-cond-sub" }, `${b.soNguoiChot} khách · nghỉ ${b.nghiDaDung} phút`))),
-      ...b.muc.map((m) => h("div", { class: "dp-cond" }, h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, m.loai), h("span", { class: "dp-cond-sub" }, [m.hang ? `hạng ${m.hang}` : null, m.hetHan ? `hạn ${m.hetHan.slice(8, 10)}/${m.hetHan.slice(5, 7)}/${m.hetHan.slice(0, 4)}` : null].filter(Boolean).join(" · "))))),
+      ...b.muc.map((m) => {
+        const x = dongBanChup(m);
+        return h("div", { class: "dp-cond" }, h("span", { class: "dp-cond-text" }, h("span", { class: "dp-cond-nhan" }, x.nhan), x.phu ? h("span", { class: "dp-cond-sub" }, x.phu) : null));
+      }),
     );
   } else {
     dieuKien = h("section", { class: "vc-card dp-side-card" }, h("div", { class: "dp-card-head" }, h("h2", { class: "dp-card-title" }, "Điều kiện xuất bến")), h("div", { class: "dp-cond dp-hist-sub" }, "Chuyến không còn lên kế hoạch."));
@@ -163,6 +186,7 @@ function ve(): void {
   replaceChildren(
     trangEl,
     head,
+    moc,
     khoa,
     baoCao,
     ...dais,
@@ -170,8 +194,175 @@ function ve(): void {
   );
   // Điện thoại: nút ở cuối trang, lưới hai cột (bản vẽ 2b); máy tính: nút ở đầu trang.
   const huyDay = nutHuy("vc-btn-danger");
-  replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, huyDay);
-  bottomEl.hidden = !(nutSua || huyDay);
+  const xbDay = nutXuatBen("vc-btn-ghost-primary");
+  replaceChildren(bottomEl, nutSua ? h("a", { class: "vc-btn vc-btn-ghost-primary", href: nutSua.getAttribute("href")!, "data-action": "sua-chuyen" }, "Sửa chuyến") : null, xbDay, huyDay);
+  bottomEl.hidden = !(nutSua || huyDay || xbDay);
+}
+
+/**
+ * GA-55 (máy chủ A18): phản hồi lệnh ghi KHÔNG còn họ tên / năm sinh khách — chỉ GET chi tiết có. Sau mỗi lệnh đọc lại GET; đọc lại hỏng thì giữ tên đã có
+ * theo id suất (không ô tên trống, không "undefined").
+ */
+async function docLai<T extends ChuyenChiTietResponse>(r: T): Promise<T> {
+  try {
+    return { ...r, ...(await api<ChuyenChiTietResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(r.chuyen.id)}`)) };
+  } catch {
+    return giuTenKhach(r, duLieu);
+  }
+}
+
+// ---- Bấm thay tài xế (A15; bản vẽ 5c, 6d; thành phần A) ------------------------------------------------------------------------------------------------------
+/** Mỗi đường lệnh một bộ requestId (bấm lại sau mất mạng cùng thân → cùng id; lệnh nhiều bước như "Đã trả" có một bộ cho từng khách). */
+const cacLenh = new Map<string, ReturnType<typeof taoLenh>>();
+const lenhCho = (url: string) => {
+  let l = cacLenh.get(url);
+  if (!l) cacLenh.set(url, (l = taoLenh()));
+  return l;
+};
+const goc = () => `/api/van-chuyen/chuyen/${encodeURIComponent(duLieu!.chuyen.id)}`;
+const guiTienDo = async (duoi: string, than: Record<string, unknown>): Promise<void> => {
+  duLieu = await docLai(await lenhCho(`${goc()}/${duoi}`).gui<ChuyenChiTietResponse>(`${goc()}/${duoi}`, "POST", than));
+};
+const moTaBamThay = () => `Ghi thay tài xế ${duLieu!.chuyen.taiXe?.ten ?? "của chuyến"}. Tên bạn được ghi kèm mốc này.`;
+const muonHon = (a: GioVnDto | null | undefined, b: GioVnDto | null | undefined): GioVnDto | null => {
+  if (!a) return b ?? null;
+  if (!b) return a;
+  return `${a.ngay} ${a.gio}` >= `${b.ngay} ${b.gio}` ? a : b;
+};
+const xong = (baoCaoMoi: HTMLElement | null = null) => {
+  baoCao = baoCaoMoi;
+  ve();
+};
+
+function xuatBenThay(nut: HTMLButtonElement): void {
+  const r = duLieu!;
+  const dk = dieuKienXuatBen(r.chuyen.lyDoGiu);
+  moKhaiGio({
+    tieuDe: `Xuất bến ${r.chuyen.ma} — bấm thay tài xế`,
+    dauHop: [dai("ok", `Đạt đủ ${dk.length} điều kiện xuất bến`)],
+    moTa: moTaBamThay(),
+    nutChinh: "Xuất bến",
+    nutLop: "btn btn-accent",
+    somNhat: r.gioSomNhatKhai.xuatBen,
+    ngayXem: r.chuyen.ngayChay,
+    opener: nut,
+    onGui: async (xayRaLuc) => {
+      await guiTienDo("xuat-ben", xayRaLuc ? { xayRaLuc } : {});
+      xong(dai("ok", `Đã ghi xuất bến ${duLieu!.chuyen.ma}`));
+    },
+  });
+}
+
+function diemChay(): HTMLElement {
+  const r = duLieu!;
+  const c = r.chuyen;
+  const ketThuc = h("button", { type: "button", class: "vc-btn btn btn-accent", disabled: !ketThucDuoc(r.suat), "data-action": "ket-thuc" }, "Kết thúc chuyến");
+  const gianDoan = h("button", { type: "button", class: "vc-btn vc-btn-danger", "data-action": "ket-thuc-gian-doan" }, "Kết thúc gián đoạn");
+  ketThuc.addEventListener("click", () => moKhaiGio({
+    tieuDe: `Kết thúc ${c.ma} — bấm thay tài xế`, moTa: moTaBamThay(), nutChinh: "Kết thúc chuyến", nutLop: "btn btn-accent",
+    somNhat: r.gioSomNhatKhai.ketThuc, ngayXem: c.ngayChay, opener: ketThuc,
+    onGui: async (xayRaLuc) => {
+      await guiTienDo("ket-thuc", xayRaLuc ? { xayRaLuc } : {});
+      xong(dai("ok", `Đã kết thúc ${duLieu!.chuyen.ma}`));
+    },
+  }));
+  gianDoan.addEventListener("click", () => moKhaiGio({
+    tieuDe: `Kết thúc gián đoạn ${c.ma} — bấm thay tài xế`,
+    moTa: `${moTaBamThay()} Khách còn trên xe và khách chưa đón sẽ báo về văn phòng.`,
+    nutChinh: "Kết thúc gián đoạn", nutLop: "vc-btn-danger",
+    lyDo: r.lyDo.filter((l) => l.nhom === "KET_THUC_GIAN_DOAN"),
+    somNhat: r.gioSomNhatKhai.ketThuc, ngayXem: c.ngayChay, opener: gianDoan,
+    onGui: async (xayRaLuc, lyDo) => {
+      await guiTienDo("ket-thuc-gian-doan", { lyDo, ...(xayRaLuc ? { xayRaLuc } : {}) });
+      xong(dai("info", `Đã kết thúc gián đoạn ${duLieu!.chuyen.ma}`));
+    },
+  }));
+  return h(
+    "section",
+    { class: "dp-run-list", "aria-labelledby": "ct-diem-title" },
+    h("div", { class: "dp-card-head dp-run-list-head" }, h("h2", { id: "ct-diem-title", class: "dp-card-title" }, "Điểm dừng"), h("span", { class: "dp-card-note" }, "Tải hiện tại ", h("strong", null, `${c.tai}/${c.xe.soCho}`))),
+    ...veDiemChay({ diem: r.diem, suat: r.suat, trangThai: c.trangThai, ngayXem: c.ngayChay, coNut: coTienDo, onLenh: lenhDiemChay, phuDiem: (b) => ({ duoi: goiBaoCua(b.diem.id).map((x) => h("div", { class: "dp-gb-dong" }, x)) }) }),
+    coTienDo ? h("div", { class: "dp-run-end" }, ketThuc, ketThuc.disabled ? h("span", { class: "dp-note" }, "Bấm được khi đã trả hết khách.") : null, gianDoan) : null,
+  );
+}
+
+function lenhDiemChay(l: LenhDiem, nut: HTMLButtonElement): void {
+  const r = duLieu!;
+  const d = l.buoc.diem;
+  const som = r.gioSomNhatKhai;
+  if (l.loai === "da-toi") {
+    moKhaiGio({
+      tieuDe: `Đã tới ${d.tenNoi} — bấm thay tài xế`, moTa: moTaBamThay(), nutChinh: "Ghi “Đã tới”",
+      somNhat: som.diem.find((x) => x.id === d.id)?.daToi ?? null, ngayXem: r.chuyen.ngayChay, opener: nut,
+      onGui: async (xayRaLuc) => {
+        await guiTienDo(`diem/${encodeURIComponent(d.id)}/da-toi`, xayRaLuc ? { xayRaLuc } : {});
+        xong();
+      },
+    });
+    return;
+  }
+  if (l.loai === "tra-het") {
+    const traCho = l.buoc.traCho;
+    const somTra = traCho.reduce<GioVnDto | null>((m, id) => muonHon(m, som.suat.find((x) => x.id === id)?.tra), d.trangThai === "PENDING" ? som.diem.find((x) => x.id === d.id)?.daToi ?? null : null);
+    moKhaiGio({
+      tieuDe: `Đã trả ở ${d.tenNoi} — bấm thay tài xế`, moTa: `${moTaBamThay()} Trả ${traCho.length} khách đang trên xe ở điểm này.`, nutChinh: "Ghi “Đã trả”",
+      somNhat: somTra, ngayXem: r.chuyen.ngayChay, opener: nut,
+      onGui: async (xayRaLuc) => {
+        const than = xayRaLuc ? { xayRaLuc } : {};
+        // Nhiều lệnh nối nhau (tới điểm, rồi trả từng khách): hỏng giữa chừng thì tải lại — bấm lại làm nốt phần còn lại.
+        try {
+          if (duLieu!.diem.find((x) => x.id === d.id)?.trangThai === "PENDING") await guiTienDo(`diem/${encodeURIComponent(d.id)}/da-toi`, than);
+          for (const id of traCho) {
+            if (duLieu!.suat.find((x) => x.id === id)?.trangThai !== "BOARDED") continue;
+            await guiTienDo(`phan-bo/${encodeURIComponent(id)}/tra`, than);
+          }
+        } finally {
+          ve();
+        }
+        xong();
+      },
+    });
+    return;
+  }
+  const lenh = l.loai;
+  const nhan = { don: "Đã đón", vang: "Vắng", "khach-huy": "Khách đã huỷ" }[lenh];
+  moKhaiGio({
+    tieuDe: `${nhan} — ${l.ten} — bấm thay tài xế`, moTa: moTaBamThay(), nutChinh: `Ghi “${nhan}”`,
+    somNhat: som.suat.find((x) => x.id === l.suatId)?.lenXe ?? null, ngayXem: r.chuyen.ngayChay, opener: nut,
+    onGui: async (xayRaLuc) => {
+      await guiTienDo(`phan-bo/${encodeURIComponent(l.suatId)}/${lenh}`, xayRaLuc ? { xayRaLuc } : {});
+      xong();
+    },
+  });
+}
+
+// ---- ADR-0051: "Đã gọi báo" / "Bỏ đánh dấu" ở dòng điểm dừng (V2) ----------------------------------------------------------------------------------------
+/** Dòng gọi báo của các chặng có khách LÊN ở điểm này (chặng ↔ điểm qua suất). Nút theo `baoDuoc` / `boDuoc` của máy chủ. */
+function goiBaoCua(diemId: string): HTMLElement[] {
+  const r = duLieu!;
+  const legs = new Set(r.suat.filter((x) => x.diemLen === diemId && x.legId).map((x) => x.legId));
+  return (r.goiBao ?? []).filter((g) => legs.has(g.legId)).flatMap((g) => {
+    const d = dongGoiBao(g);
+    if (!d) return [];
+    const nut = d.nut ? h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-gb-btn", "data-action": d.nut.kieu === "da-goi" ? "da-goi-bao" : "bo-danh-dau", "data-leg": g.legId }, d.nut.nhan) : null;
+    const x = d.nut;
+    nut?.addEventListener("click", () => void goiBao(g.legId, x!.kieu === "da-goi" ? { url: "da-goi-bao", than: { phienBan: x!.phienBan, gioMoi: (x as { gioMoi: unknown }).gioMoi } } : { url: "bo-danh-dau-goi-bao", than: { phienBan: x!.phienBan } }, nut));
+    return [h("span", { class: `dp-gb${g.gioHenDoi ? " is-chua" : ""}`, "data-leg": g.legId }, icon("handset", 14), h("span", null, d.chu), nut)];
+  });
+}
+async function goiBao(legId: string, lenh: { url: string; than: Record<string, unknown> }, nut: HTMLButtonElement): Promise<void> {
+  nut.disabled = true;
+  try {
+    const g = await lenhCho(`/api/van-chuyen/chang/${legId}/${lenh.url}`).gui<GoiBaoChangDto>(`/api/van-chuyen/chang/${encodeURIComponent(legId)}/${lenh.url}`, "POST", lenh.than);
+    duLieu = { ...duLieu!, goiBao: (duLieu!.goiBao ?? []).map((x) => (x.legId === legId ? g : x)) };
+    xong();
+  } catch (e) {
+    if (e instanceof ApiError && e.code in NHAN_TU_CHOI_GOI_BAO) xong(dai("warning", NHAN_TU_CHOI_GOI_BAO[e.code as MaTuChoiGoiBao], [], () => location.reload()));
+    else {
+      const l = docLoiLenh(e);
+      xong(dai("danger", l.tieuDe, l.dong));
+    }
+  }
 }
 
 const lenhDiem = taoLenh();
@@ -180,7 +371,7 @@ async function capNhatDiem(nut: HTMLButtonElement): Promise<void> {
   nut.disabled = true;
   try {
     const r = await lenhDiem.gui<CapNhatDiemResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/cap-nhat-diem`, "POST", { version: c.version });
-    duLieu = r;
+    duLieu = await docLai(r);
     baoCao = r.daCapNhat > 0
       ? dai("ok", "Đã cập nhật điểm theo đơn", [`Đổi điểm cho ${r.daCapNhat} khách theo nơi đón / trả mới của đơn; điểm không còn khách chuyển “bỏ qua — không còn khách”.`])
       : dai("info", "Không có điểm nào cần cập nhật", ["Điểm dừng đã khớp các đơn trong chuyến."]);
@@ -198,7 +389,7 @@ function huy(nut: HTMLButtonElement): void {
   const c = r.chuyen;
   const gui = async (lyDo: string, phaLe?: string) => {
     const kq = await lenhHuy.gui<ChuyenChiTietResponse>(`/api/van-chuyen/chuyen/${encodeURIComponent(c.id)}/huy`, "POST", { version: c.version, lyDo, ...(phaLe ? { phaLe: { lyDo: phaLe } } : {}) });
-    duLieu = kq;
+    duLieu = await docLai(kq);
     baoCao = dai("info", "Đã huỷ chuyến", [c.tai > 0 ? "Khách trong chuyến đã trở về cột “Chưa xếp”." : "Chuyến không bị xoá, vẫn xem được trong nhật ký."]);
     ve();
   };

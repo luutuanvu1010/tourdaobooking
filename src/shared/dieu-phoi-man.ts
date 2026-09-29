@@ -5,7 +5,8 @@
 //   trên dòng thời gian dùng `mocToiThieuPhut` (R-P12) chỉ để vẽ. Câu lý do giữ lấy nguyên `loiNhan`; ai xử lý lấy `aiXuLyNhan` (H14).
 // - Nút / lối tắt theo CỜ quyền truyền vào (can() ở trang), không theo tên vai.
 import { nhanThoiLuong } from "./chinh-sach-hien-thi.ts";
-import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioVnDto, LichChungResponse, LyDoGiuDto, NhatKyChuyenDto } from "./contracts.ts";
+import type { CanhBaoLichDto, ChangLichDto, ChuyenTomTatDto, DiemChuyenDto, GioHenDto, GioVnDto, GoiBaoChangDto, LichChungResponse, LyDoGiuDto, MucNhacGoiDto, NhatKyChuyenDto } from "./contracts.ts";
+import { AI_XU_LY_GIO_HEN_DOI, NHAN_GIO_HEN_DOI, moTaDoiGio } from "./goi-bao.ts";
 import { can, type PermissionHolder } from "./permissions.ts";
 import { maskLongDigits } from "./text-guards.ts";
 import { msToVnLocal, vnLocalToMs } from "./vn-date.ts";
@@ -116,11 +117,15 @@ export function cauKhoaMoc(mocPhut: number | null, co: { phaLe: boolean; dieuPho
 }
 
 // ---- "Cần xử lý" ---------------------------------------------------------------------------------------------------------------------------------------------
-export type HanhDong = { nhan: string; kieu: "link"; href: string } | { nhan: string; kieu: "cap-nhat-diem"; tripId: string };
+export type HanhDong =
+  | { nhan: string; kieu: "link"; href: string }
+  | { nhan: string; kieu: "cap-nhat-diem"; tripId: string }
+  /** ADR-0051: "Đã gọi báo" — gửi lại `phienBan` + giờ "mới" màn đã hiện. */
+  | { nhan: string; kieu: "goi-bao"; legId: string; phienBan: number; gioMoi: GioHenDto; maDon: string };
 export interface ViecCanXuLy {
   loai: string;
   tone: "danger" | "warn" | "navy";
-  bieuTuong: "alert" | "clock" | "assign" | "pin" | "doc-check";
+  bieuTuong: "alert" | "clock" | "assign" | "pin" | "doc-check" | "handset";
   tieuDe: string;
   /** Liên kết của tiêu đề (mở chuyến / mở đơn); null = không liên kết. */
   href: string | null;
@@ -140,7 +145,7 @@ const ICON_CANH_BAO: Readonly<Record<string, ViecCanXuLy["bieuTuong"]>> = { CHAN
  * nhãn NHAN_CANH_BAO_LICH, KHÔNG nút (không "Gọi tài xế" — H7; không "Đã gọi báo" — Q2 / ADR-0051 làm sau; Q-GB-1 = b); chặng quá mốc chưa đặt gấp: Bán hàng
  * thấy dòng khoá (đặt gấp thì không cần phá lệ — 2.1; không có nút "Phá lệ" riêng — 2.13); (3) đơn nháp chờ duyệt đặt gấp — không tên người lập (H8).
  */
-export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe: boolean; quanLyXe: boolean }): ViecCanXuLy[] {
+export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe: boolean; quanLyXe: boolean }, nhacGoi: readonly MucNhacGoiDto[] = []): ViecCanXuLy[] {
   const out: ViecCanXuLy[] = [];
   const chuyenTheoId = new Map(l.chuyen.map((c) => [c.id, c]));
   const changTheoId = new Map(l.chang.map((c) => [c.legId, c]));
@@ -164,13 +169,21 @@ export function viecCanXuLy(l: LichChungResponse, co: { dieuPhoi: boolean; phaLe
       hanhDong,
     });
   }
-  for (const w of l.canhBao) {
+  // Thứ tự bản vẽ dp-can-xu-ly: chuyến bị giữ → chặng quá mốc → giờ hẹn đổi (ADR-0051) → cảnh báo khác → đơn nháp chờ duyệt.
+  const canhBao = [...l.canhBao.filter((w) => w.loai === "CHANG_QUA_MOC"), ...l.canhBao.filter((w) => w.loai !== "CHANG_QUA_MOC")];
+  let daNhac = false;
+  for (const w of canhBao) {
+    if (!daNhac && w.loai !== "CHANG_QUA_MOC") {
+      out.push(...viecGoiBao(nhacGoi, l.ngay));
+      daNhac = true;
+    }
     if (BO_QUA_CANH_BAO.has(w.loai)) continue;
     // Chuyến chưa chạy đã bị giữ "nơi đón / trả đã đổi": mục chuyến bị giữ ở trên đã nói + có nút "Cập nhật điểm theo đơn" — không thêm mục thứ hai.
     const tw = w.tripId ? chuyenTheoId.get(w.tripId) : undefined;
     if (w.loai === "NOI_HEN_KHAC_DIEM" && tw?.trangThai === "PLANNED" && tw.lyDoGiu.some((x) => x.ma === "NOI_HEN_DOI")) continue;
     out.push(viecTuCanhBao(w, l.ngay, w.legId ? changTheoId.get(w.legId) : undefined, w.tripId ? chuyenTheoId.get(w.tripId) : undefined, co));
   }
+  if (!daNhac) out.push(...viecGoiBao(nhacGoi, l.ngay));
   for (const n of l.nhapChoDatGap) {
     const ngay = n.ngayDon === l.ngay ? "" : ` ${n.ngayDon.slice(8, 10)}/${n.ngayDon.slice(5, 7)}`;
     out.push({
@@ -345,4 +358,49 @@ export function truongLoiChuyen(lyDo: readonly LyDoGiuDto[], dang: { doiXe: bool
  */
 export function idChoLenh(dangCho: { id: string; khoa: string } | null, khoa: string, taoId: () => string): { id: string; khoa: string } {
   return dangCho && dangCho.khoa === khoa ? dangCho : { id: taoId(), khoa };
+}
+
+// ---- ADR-0051: nhắc "gọi báo khách" khi giờ hẹn đổi (Task B-GB) ------------------------------------------------------------------------------------------
+/**
+ * Mục "Giờ hẹn đổi — gọi báo khách" của cột Cần xử lý (danh sách riêng `GET /nhac-goi-khach` — hiện ở MỌI ngày đang xem; máy chủ đã sắp theo giờ mới). Nhãn,
+ * "Ai xử lý" và câu đổi giờ lấy HẰNG của goi-bao.ts (không tự gõ chữ). Nút "Đã gọi báo" CHỈ khi `baoDuoc` (máy chủ tính bằng can(trip.call_ack…)).
+ * Không tên, không SĐT khách (DTO không có).
+ */
+export function viecGoiBao(muc: readonly MucNhacGoiDto[], ngayXem: string): ViecCanXuLy[] {
+  return muc.map((m) => {
+    const g = m.gioHenDoi;
+    const khacNgay = m.ngayChuyen !== ngayXem ? ` · Chuyến ${m.ngayChuyen.slice(8, 10)}/${m.ngayChuyen.slice(5, 7)}` : "";
+    return {
+      loai: NHAN_GIO_HEN_DOI, tone: "warn", bieuTuong: "handset", tieuDe: `${m.orderCode} · ${m.noiDon}`, href: null,
+      noiDung: `Giờ hẹn đón đổi ${moTaDoiGio(g.cu, g.moi)}${g.maChuyen.length ? ` · ${g.maChuyen.join(", ")}` : ""}${khacNgay}`,
+      aiXuLy: AI_XU_LY_GIO_HEN_DOI, khoa: null,
+      hanhDong: g.baoDuoc ? [{ nhan: "Đã gọi báo", kieu: "goi-bao", legId: m.legId, phienBan: g.phienBan, gioMoi: g.moi, maDon: m.orderCode }] : [],
+    };
+  });
+}
+
+/** Dòng "gọi báo khách" của một chặng ở chi tiết chuyến (V2): còn mục → "— chưa gọi báo" (+ "Đã gọi báo" khi `baoDuoc`); đã gọi → "— đã gọi báo khách (tên, HH:MM)" (+ "Bỏ đánh dấu" khi `boDuoc`). */
+export function dongGoiBao(g: GoiBaoChangDto): { chu: string; nut: { kieu: "da-goi"; nhan: string; phienBan: number; gioMoi: GioHenDto } | { kieu: "bo"; nhan: string; phienBan: number } | null } | null {
+  const dau = g.maDon ? `${g.maDon} · ` : "";
+  if (g.gioHenDoi) {
+    const x = g.gioHenDoi;
+    return { chu: `${dau}Giờ hẹn đổi ${moTaDoiGio(x.cu, x.moi)} — chưa gọi báo`, nut: x.baoDuoc ? { kieu: "da-goi", nhan: "Đã gọi báo", phienBan: x.phienBan, gioMoi: x.moi } : null };
+  }
+  if (g.daGoiBao) {
+    const x = g.daGoiBao;
+    const ai = x.nguoiBam ? `${maskLongDigits(x.nguoiBam)}, ` : "";
+    return { chu: `${dau}Giờ hẹn đổi ${moTaDoiGio(x.cu, x.moi)} — đã gọi báo khách (${ai}${x.luc})`, nut: x.boDuoc ? { kieu: "bo", nhan: "Bỏ đánh dấu", phienBan: x.phienBan } : null };
+  }
+  return null;
+}
+
+// ---- Bản chụp lúc xuất bến (chi tiết chuyến sau khi xuất bến) --------------------------------------------------------------------------------------------------
+const NHAN_MUC_BAN_CHUP: Readonly<Record<string, string>> = { GPLX: "Giấy phép lái xe", GIAY_TO_XE: "Giấy tờ xe", GIAY_TO_NGUOI: "Giấy tờ của tài xế", DIEU_KIEN: "Điều kiện xuất bến" };
+/**
+ * Một dòng của "Bản chụp lúc xuất bến": nhãn theo loại (KHÔNG BAO GIỜ hiện mã); hạng, hạn "dd/mm/yyyy". DTO chỉ có MÃ loại giấy tờ (không tên) nên chưa nêu tên
+ * giấy — câu hỏi Q-B-16 ở nhật ký giao diện.
+ */
+export function dongBanChup(m: { loai: string; hang: string | null; hetHan: string | null }): { nhan: string; phu: string } {
+  const han = m.hetHan ? `hạn ${m.hetHan.slice(8, 10)}/${m.hetHan.slice(5, 7)}/${m.hetHan.slice(0, 4)}` : null;
+  return { nhan: NHAN_MUC_BAN_CHUP[m.loai] ?? "Điều kiện khác", phu: [m.hang ? `hạng ${m.hang}` : null, han].filter(Boolean).join(" · ") };
 }

@@ -21,10 +21,25 @@ import { canAccessOrders, hasPermission, seesAllOrders, type PermissionHolder } 
  */
 export const TRANG_DAU_TAI_XE = "/tai-xe";
 
+/**
+ * "Cuốc của tôi" (ADR-0049 V5, bản vẽ Bảng điều phối 04 — tab mở đầu của tài xế; Q5 điều phối vòng 3): trang đầu của tài xế CÔNG TY. "/tai-xe" giữ giấy tờ
+ * (tab "Trang chủ" của tài xế). Thanh tab / menu của tài xế (web/shell.ts) dựa vào hằng này.
+ */
+export const TRANG_CUOC = "/cuoc";
+/** Tài xế công ty (DRIVER — ô trip.view / trip.progress "assigned") có "Cuốc của tôi"; tài xế đối tác (DRIVER_PARTNER) chưa dùng chuyến (ADR-0049 D3 × ADR-0048 D2). */
+export const coCuocCuaToi = (who: Pick<PermissionHolder, "permissions">): boolean => hasPermission(who, "DRIVER");
+
+/** Tài khoản "chỉ tài xế" (công ty hoặc đối tác) — trang đầu là /cuoc hoặc /tai-xe: dùng thanh tab / menu của tài xế, mở được /tai-xe. */
+export const chiTaiXe = (who: PermissionHolder): boolean => {
+  const r = homeRedirect(who);
+  return r === TRANG_CUOC || r === TRANG_DAU_TAI_XE;
+};
+
 /** Đường dẫn phải chuyển sang khi người dùng mở "/", hoặc `null` = ở lại Trang chủ. */
 export function homeRedirect(who: PermissionHolder): string | null {
   if (seesAllOrders(who)) return null;
   if (canAccessOrders(who)) return "/orders";
+  if (coCuocCuaToi(who)) return TRANG_CUOC;
   if (coPhanTaiXe(who)) return TRANG_DAU_TAI_XE;
   return null;
 }

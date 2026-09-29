@@ -137,7 +137,8 @@ export async function dungDuLieuDieuPhoi(env, call) {
     dung(r, 201, `tài xế ${fullName}`);
     const [{ party_id: partyId }] = env.sql(`SELECT party_id FROM staff WHERE id = '${r.json.staff.id}'`);
     dung(await call(ACCOUNTS.admin, "POST", `/api/parties/${partyId}/documents`, { typeCode: "GPLX", number: `79${String(1e9 + soDt)}`, classCode, expiryDate: han }), 201, `GPLX ${fullName}`);
-    return { partyId, ten: fullName };
+    // Tài khoản đăng nhập được (PIN do POST /api/staff trả một lần) — cho kịch bản của màn tài xế (Cuốc của tôi, chuyến đang chạy).
+    return { partyId, ten: fullName, account: { name: fullName, phone: r.json.staff.phone, pin: r.json.pin, permissions: ["DRIVER"] } };
   };
   const AN = await taiXe("Nguyễn Văn An", "D2");
   const CUONG = await taiXe("Phạm Văn Cường", "D2");

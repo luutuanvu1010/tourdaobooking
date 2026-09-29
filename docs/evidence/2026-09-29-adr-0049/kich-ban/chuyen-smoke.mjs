@@ -1,7 +1,8 @@
 // B2 — V2 Chi tiết chuyến (/chuyen?id=) cho VĂN PHÒNG. ADR-0049 V2 (route 3, 8, 40), ADR-0050 thành phần C (lý do giữ "nơi đón / trả đã đổi" + "Cập nhật điểm theo
 // đơn"), E (điểm lệch đơn); bản vẽ docs/design/van-chuyen-dieu-phoi/project/02 Chi tiet chuyen.dc.html (2a–2c, 2f); bản đối chiếu DOI-CHIEU-2026-09-29.md 2.7, 2.12, H10
 // (stale = câu chung), H11 (nhật ký chỉ loại máy chủ trả), H14 (ai xử lý), H17 (huỷ chuyến có khách trong vùng khoá → phá lệ), R-P16 (cờ lechDon).
-// CHỜ A15 — không dựng ở lượt này: "Xuất bến thay tài xế", nút tiến độ bấm thay, "Kết thúc gián đoạn", "Mở màn Xuất bến ›" (bước 1 khẳng định KHÔNG có nút chết).
+// Sau gộp A15: "Xuất bến thay tài xế" có ở chuyến lên kế hoạch và KHOÁ khi chuyến bị giữ (đối chiếu 2.7); bấm thay khi đang chạy kiểm ở cuoc-smoke.mjs.
+// "Mở màn Xuất bến ›" (trang 6a riêng) không dựng — xem câu hỏi Q-B-14 ở nhật ký giao diện.
 // Chạy từ GỐC repo, sau `npm run build:web` (không cần mạng ngoài):
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0049/kich-ban/chuyen-smoke.mjs
 // Kho cookie của Chrome dùng CHUNG: Bán hàng → Quản trị → Kế toán (trang mở sau cùng là của Kế toán).
@@ -24,21 +25,22 @@ const kv = `[...document.querySelectorAll('.dp-kv')].map((k) => k.innerText.repl
 const diem = `[...document.querySelectorAll('.dp-stop[data-diem]')].map((r) => ({ so: r.querySelector('.dp-stop-so').innerText.trim(), noi: r.querySelector('.dp-stop-noi strong').innerText.replace(/\\s+/g, ' ').trim(), tt: r.querySelector('.dp-stop-tt').innerText.trim(), lech: r.classList.contains('is-lech'), note: r.querySelector('.dp-stop-note')?.innerText ?? '' }))`;
 const dieuKien = `[...document.querySelectorAll('.dp-cond[data-dat]')].map((r) => ({ dat: r.dataset.dat === 'true', nhan: r.querySelector('.dp-cond-nhan').innerText, sub: r.querySelector('.dp-cond-sub')?.innerText ?? '' }))`;
 const nhatKy = `[...document.querySelectorAll('.dp-log')].map((r) => ({ ai: r.querySelector('.dp-log-who').innerText, may: r.querySelector('.dp-log-who').classList.contains('is-may'), text: r.lastElementChild.innerText }))`;
-const A15 = ["Xuất bến thay tài xế", "Xuất bến thay", "Kết thúc gián đoạn", "Mở màn Xuất bến ›"];
+const KHONG_CO = ["Kết thúc gián đoạn", "Mở màn Xuất bến ›"];
 
 try {
   // ---- Bán hàng, máy tính ------------------------------------------------------------------------------------------------------------------------------------
   const p = await env.as(ACCOUNTS.salesA, `/chuyen?id=${d.T3.id}`, DESK);
   await cho(p);
 
-  await b.step("1", `2a 1040 Bán hàng ${d.T3.ma} bị giữ "nơi đón / trả đã đổi": đầu trang, dải + nút "Cập nhật điểm theo đơn", dải bốn ô, điểm "Lệch đơn", điều kiện xuất bến, nhật ký; KHÔNG nút chờ A15${axeNote()}`, async () => {
+  await b.step("1", `2a 1040 Bán hàng ${d.T3.ma} bị giữ "nơi đón / trả đã đổi": đầu trang, dải + nút "Cập nhật điểm theo đơn", dải bốn ô, điểm "Lệch đơn", điều kiện xuất bến, nhật ký; "Xuất bến thay tài xế" khoá vì bị giữ (2.7)${axeNote()}`, async () => {
     assert.equal(await p.ev(txt(".dp-ct-title")), d.T3.ma);
     assert.equal(await p.ev(txt(".dp-ct-head .chip")), "Bị giữ");
     assert.match(await p.ev(txt(".dp-ct-when")), new RegExp(`^(Thứ (Hai|Ba|Tư|Năm|Sáu|Bảy)|Chủ nhật) ${d.NGAY_XA.slice(8, 10)}/${d.NGAY_XA.slice(5, 7)} · 14:30–16:30$`));
     assert.equal(await p.ev(`document.querySelector('#ct-back').getAttribute('href')`), `/dieu-phoi?ngay=${d.NGAY_XA}`);
     assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="sua-chuyen"]').getAttribute('href')`), `/chuyen-sua?id=${d.T3.id}`);
-    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Huỷ chuyến", "Cập nhật điểm theo đơn"]);
-    for (const a of A15) assert.equal(await p.ev(`document.querySelector('main').innerText.includes(${JSON.stringify(a)})`), false, `chưa có nút chờ A15: ${a}`);
+    assert.deepEqual(await p.ev(nut), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến", "Cập nhật điểm theo đơn"]);
+    assert.equal(await p.ev(`document.querySelector('.dp-ct-actions [data-action="xuat-ben-thay"]').disabled`), true, "bị giữ → khoá xuất bến thay (2.7)");
+    for (const a of KHONG_CO) assert.equal(await p.ev(`document.querySelector('main').innerText.includes(${JSON.stringify(a)})`), false, `chuyến chưa chạy: không có ${a}`);
     assert.equal(await p.ev(`!!document.querySelector('.dp-ct-lock')`), false, "chưa vào vùng khoá → không dòng khoá");
     assert.equal(await p.ev(txt("#ct-trang > .banner-danger .banner-title")), "Chuyến bị giữ: Nơi đón / trả đã đổi — cập nhật điểm");
     assert.deepEqual(await p.ev(`[...document.querySelectorAll('#ct-trang > .banner-danger li')].map((x) => x.innerText)`), [
@@ -149,7 +151,7 @@ try {
       { dat: false, nhan: "Đủ tên khách", sub: `Chưa đủ tên khách: ${d.O2.ma} thiếu 1 tên · Ai xử lý: Văn phòng` },
     ]);
     assert.equal(await pm.ev(shown(".dp-ct-actions")), false);
-    assert.deepEqual(await pm.ev(`[...document.querySelectorAll('#ct-bottom .vc-btn')].map((x) => x.textContent)`), ["Sửa chuyến", "Huỷ chuyến"]);
+    assert.deepEqual(await pm.ev(`[...document.querySelectorAll('#ct-bottom .vc-btn')].map((x) => x.textContent)`), ["Sửa chuyến", "Xuất bến thay tài xế", "Huỷ chuyến"]);
     assert.ok(await pm.ev(noOverflowX));
     assert.equal(await pm.ev(noCode), "");
     await axe(pm, "chi tiết chuyến 390");

@@ -11,7 +11,9 @@ import {
   cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, thayDieuPhoiXe, tuyenChuyen, viecCanXuLy,
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
-import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, LichChungResponse } from "../src/shared/contracts";
+import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
+import { NHAN_TU_CHOI_GOI_BAO, type MaTuChoiGoiBao } from "../src/shared/goi-bao";
+import { ApiError } from "./api";
 import { can } from "../src/shared/permissions";
 import { nhanThoiLuong } from "../src/shared/chinh-sach-hien-thi";
 import { addDays, isISODate, vnToday } from "../src/shared/vn-date";
@@ -42,6 +44,8 @@ const homNay = vnToday(new Date());
 const tu = new URLSearchParams(location.search).get("ngay");
 let ngay = tu && isISODate(tu) ? tu : homNay;
 let lich: LichChungResponse | null = null;
+/** ADR-0051: danh sách nhắc "gọi báo khách" (theo HÔM NAY, không theo ngày đang xem) — tải lại cùng mỗi lần tải lịch. */
+let nhac: NhacGoiKhachResponse | null = null;
 let chon: string | null = null;
 let tab: "chua-xep" | "xe" | "can-xu-ly" = "chua-xep";
 
@@ -53,7 +57,10 @@ async function nap(): Promise<void> {
   nutMoi.href = `/chuyen-sua?ngay=${ngay}`;
   nutMoi.hidden = !co.dieuPhoi;
   try {
-    lich = await api<LichChungResponse>(`/api/van-chuyen/lich?ngay=${ngay}`);
+    [lich, nhac] = await Promise.all([
+      api<LichChungResponse>(`/api/van-chuyen/lich?ngay=${ngay}`),
+      api<NhacGoiKhachResponse>("/api/van-chuyen/nhac-goi-khach").catch(() => null),
+    ]);
   } catch (e) {
     trangEl.hidden = true;
     return showError(errorEl, loiCua(e));
@@ -78,7 +85,7 @@ oNgay.addEventListener("change", () => doiNgay(oNgay.value));
 // ---- vẽ ------------------------------------------------------------------------------------------------------------------------------------------------------
 function ve(): void {
   const l = lich!;
-  const viec = viecCanXuLy(l, co);
+  const viec = viecCanXuLy(l, co, nhac?.muc ?? []);
   const s = soLieuDieuPhoi(l, viec.length);
   const rong = l.canhBao.find((w) => w.loai === "CHINH_SACH_RONG");
   const daiRong = document.getElementById("dp-chinh-sach-rong");
@@ -294,6 +301,11 @@ function veCanXuLy(viec: ViecCanXuLy[]): void {
 function mucViec(v: ViecCanXuLy): HTMLElement {
   const nut = v.hanhDong.map((a) => {
     if (a.kieu === "link") return h("a", { class: "vc-btn vc-btn-ghost-primary dp-cxl-btn", href: a.href }, a.nhan);
+    if (a.kieu === "goi-bao") {
+      const b = h("button", { type: "button", class: "vc-btn vc-btn-ghost-primary dp-cxl-btn", "data-action": "da-goi-bao", "data-leg": a.legId }, a.nhan);
+      b.addEventListener("click", () => void daGoiBao(a, b));
+      return b;
+    }
     const c = lich!.chuyen.find((x) => x.id === a.tripId)!;
     const b = h("button", { type: "button", class: "vc-btn btn btn-primary dp-cxl-btn", "data-action": "cap-nhat-diem" }, a.nhan);
     b.addEventListener("click", () => void capNhatDiem(c, b));
@@ -312,6 +324,40 @@ function mucViec(v: ViecCanXuLy): HTMLElement {
 }
 
 // ---- lệnh ----------------------------------------------------------------------------------------------------------------------------------------------------
+/** ADR-0051: "Đã gọi báo" (thân: phienBan + giờ "mới" màn đã hiện) → dải "Đã ghi … — Bỏ đánh dấu"; 409 → câu hằng + "Tải lại". */
+const lenhGoiBao = new Map<string, ReturnType<typeof taoLenh>>();
+const guiGoiBao = (url: string, than: Record<string, unknown>) => {
+  let l = lenhGoiBao.get(url);
+  if (!l) lenhGoiBao.set(url, (l = taoLenh()));
+  return l.gui<GoiBaoChangDto>(url, "POST", than);
+};
+const loiGoiBao = (e: unknown): HTMLElement => {
+  if (e instanceof ApiError && e.code in NHAN_TU_CHOI_GOI_BAO) return dai("warning", NHAN_TU_CHOI_GOI_BAO[e.code as MaTuChoiGoiBao], [], () => void nap());
+  const l = docLoiLenh(e);
+  return dai("danger", l.tieuDe, l.dong);
+};
+async function daGoiBao(a: { legId: string; phienBan: number; gioMoi: { ngay: string; gio: string | null }; maDon: string }, nut: HTMLButtonElement): Promise<void> {
+  nut.disabled = true;
+  try {
+    const r = await guiGoiBao(`/api/van-chuyen/chang/${encodeURIComponent(a.legId)}/da-goi-bao`, { phienBan: a.phienBan, gioMoi: a.gioMoi });
+    const bo = r.daGoiBao?.boDuoc ? h("button", { type: "button", class: "btn", "data-action": "bo-danh-dau" }, "Bỏ đánh dấu") : null;
+    bo?.addEventListener("click", async () => {
+      bo.disabled = true;
+      try {
+        await guiGoiBao(`/api/van-chuyen/chang/${encodeURIComponent(a.legId)}/bo-danh-dau-goi-bao`, { phienBan: r.daGoiBao!.phienBan });
+        baoKetQua(dai("info", `Đã bỏ đánh dấu — mục gọi báo khách ${a.maDon} hiện lại.`));
+      } catch (e) {
+        baoKetQua(loiGoiBao(e));
+      }
+      await nap();
+    });
+    baoKetQua(dai("ok", `Đã ghi: đã gọi báo khách ${a.maDon}`, [], undefined, bo ? [h("div", { class: "banner-actions" }, bo)] : []));
+  } catch (e) {
+    baoKetQua(loiGoiBao(e));
+  }
+  await nap();
+}
+
 const lenhDiem = taoLenh();
 async function capNhatDiem(c: ChuyenTomTatDto, nut: HTMLButtonElement): Promise<void> {
   nut.disabled = true;

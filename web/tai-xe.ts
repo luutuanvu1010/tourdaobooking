@@ -2,7 +2,7 @@
 // chỗ (lượt 1b thay nội dung), "Giấy tờ của tôi" tóm tắt HAI giấy gần hạn nhất (điều phối chốt theo bản vẽ), "Xem tất cả" → trang Tôi (danh sách đủ).
 // Chỉ gọi GET /api/parties/documents/mine (cổng "staff", số CHE) — không lời gọi đơn hàng nào. Tài khoản không phải "chỉ tài xế" → về Trang chủ "/".
 import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, haiGiayGanHan, loiChao, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
-import { TRANG_DAU_TAI_XE, homeRedirect } from "../src/shared/start-page";
+import { chiTaiXe, coCuocCuaToi, TRANG_CUOC } from "../src/shared/start-page";
 import { api, type Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
 import { chipEl, loiCua } from "./giay-to-ui";
@@ -14,9 +14,13 @@ byId("tx-cuoc").prepend(icon("truck", 40, 1.5));
 async function main(): Promise<void> {
   const staff = await initShell();
   // Trang này chỉ dành cho tài khoản "chỉ tài xế" (homeRedirect của "/" đưa họ tới đây); tài khoản khác gõ thẳng địa chỉ thì về Trang chủ của mình.
-  if (homeRedirect(staff) !== TRANG_DAU_TAI_XE) {
+  if (!chiTaiXe(staff)) {
     location.replace("/");
     return;
+  }
+  // Q5 (điều phối vòng 3): tài xế công ty có "Cuốc của tôi" — khối giữ chỗ "Cuốc xe" thành liên kết sang đó (tài xế đối tác giữ câu cũ: chưa dùng chuyến).
+  if (coCuocCuaToi(staff)) {
+    replaceChildren(byId("tx-cuoc"), h("a", { class: "vc-cuoc-link", href: TRANG_CUOC }, icon("truck", 40, 1.5), h("span", null, "Xem cuốc của tôi — hôm nay và ngày mai"), icon("next", 20)));
   }
   const now = new Date();
   const thu = new Intl.DateTimeFormat("vi-VN", { timeZone: "Asia/Ho_Chi_Minh", weekday: "long" }).format(now);

@@ -302,3 +302,32 @@ Lỗi thật tìm ra nhờ người cố vấn (không phải kịch bản): b�
 | `npm run test:e2e -- pwa` | 2/2 — "29 trang" |
 | `npm test` | 1758/1759 — bài đỏ DUY NHẤT là `guard-remote: lệnh dị dạng không làm hook quá giờ` (đo thời gian của hook; máy đang có phiên khác chạy). Chạy riêng `node --test src/claude-guard.test.ts`: 11/11 (đúng như điều phối báo — bài đo CPU khi máy bận) |
 | `npm run typecheck` | 0 |
+
+## 10. Sau gộp máy chủ — bấm thay, B4–B6, Q5, B-GB, GA-55
+
+### 10.1 Gộp
+- `ef4c834` gộp `c98b0e9` (A15 + e2e + A14 + A-GB). Không đụng độ. `npm test` 1803/1804 (bài đỏ duy nhất: `guard-remote … quá giờ` — đo thời gian, chạy riêng 11/11), typecheck 0.
+- Lời nhắn sau đó của điều phối: điểm gộp đổi thành `3497be6` (A16–A18: phản hồi lệnh ghi / tiến độ KHÔNG còn `hoTen` / `namSinh`, tài xế bỏ cả `lienHe`) + việc GA-55 — xem 10.6.
+
+### 10.2 Khối thuần mới (đỏ trước, xanh sau)
+- `src/shared/tien-do-man.ts` (+ test 9): `xayRaLucTu` (giờ SAU lúc bấm = hôm qua — không bao giờ tương lai), `goiYKhaiGio`, `cauTuChoiKhaiGio` (câu theo mã + mốc gây chặn — bản vẽ 6d; không tên người), `cauConKhach`, `buocDiem`, `ketThucDuoc`, `nhomCuoc`, `giuTenKhach` (GA-55 — viết SAU mã, không đỏ trước; bước Chrome "tên sau lệnh" là bài chặn thật).
+- `src/shared/start-page.ts` Q5 (được điều phối cho sửa): `TRANG_CUOC = "/cuoc"`, `coCuocCuaToi` (quyền DRIVER), `chiTaiXe`; `homeRedirect`: tài xế công ty → `/cuoc`, tài xế đối tác → `/tai-xe` (chưa dùng chuyến). Test đỏ trước (thiếu export, rồi thiếu trang `/cuoc` trong PAGES) → xanh.
+- `src/shared/dieu-phoi-man.ts` (ADR-0051): `viecGoiBao` (nhãn / "Ai xử lý" / câu đổi giờ lấy HẰNG của `goi-bao.ts`; nút CHỈ khi `baoDuoc`; khác ngày xem → "Chuyến dd/mm"), `dongGoiBao`; thứ tự cột Cần xử lý theo bản vẽ (chuyến bị giữ → chặng quá mốc → giờ hẹn đổi → cảnh báo khác → đơn nháp). Test đỏ trước (thiếu export) → xanh.
+
+### 10.3 Màn
+- **Bấm thay trên V2** (`web/chuyen.ts` + khối chung `web/tien-do-ui.ts`): "Xuất bến thay tài xế" (khoá khi bị giữ — 2.7), chuyến đang chạy hiện từng điểm + khách (khuôn 5a — lệch bản vẽ D-B2-3: văn phòng dùng CÙNG thẻ điểm của tài xế thay các dòng gọn của 5c, để có nút từng khách), "Kết thúc chuyến" (khoá khi còn khách), "Kết thúc gián đoạn" (lý do, KHÔNG ô ghi chú — Q1). Mọi lệnh qua hộp có ô "Xảy ra lúc": mặc định lúc mở hộp, CHỈ gửi `xayRaLuc` khi đã đổi (I34); gợi ý "Sớm nhất" từ `gioSomNhatKhai`; 409 giờ → câu dưới ô; mất mạng → câu "Chưa gửi được — kiểm tra mạng rồi bấm lại.", hộp và giờ đã khai giữ nguyên, bấm lại cùng requestId. Gate `trip.progress` (Kế toán không).
+- **"Đã trả" ở điểm trả** = tới điểm (nếu chưa) rồi "đã trả" từng khách đang trên xe có điểm xuống ở đó — nhiều lệnh nối nhau, mỗi lệnh một requestId; hỏng giữa chừng thì đọc lại, bấm lại làm nốt (máy chủ không có lệnh "trả hết" một phát — ghi câu hỏi Q-B-13).
+- **B4 `/cuoc`** (bản vẽ 04): hôm nay + ngày mai; thẻ là liên kết sang `/cuoc-chuyen`; không tên / SĐT. Giờ kết thúc dự kiến ("06:40 – 08:25") KHÔNG có trong DTO route 19 → chỉ giờ xuất bến (Q-B-12).
+- **B5 + B6 `/cuoc-chuyen`** (bản vẽ 5a, 5b, 6b, 6c): chưa xuất bến → chỉ điều kiện còn thiếu "(văn phòng lo)" / "Đủ điều kiện xuất bến", nút "Xuất bến" dính đáy (không ô giờ); đang chạy → thẻ điểm + khách + liên hệ (tel:), đổi thứ tự điểm chưa tới bằng nút ↑ ↓ (lệch bản vẽ D-B5-1: thay tay nắm kéo — bấm được bằng bàn phím, không ô giờ), "Kết thúc chuyến", "Kết thúc gián đoạn". Mất mạng: dòng "Chưa gửi được" + "Bấm lại", dải "Mất mạng — N thao tác chưa gửi được"; KHÔNG tự gửi lại (lệnh điều phối — câu "Máy tự gửi lại khi có mạng" của 5a đã đổi).
+- **Q5**: thanh tab tài xế công ty "Trang chủ" (/tai-xe) · "Cuốc của tôi" · "Tôi"; menu máy tính thêm "Cuốc của tôi"; khối "Cuốc xe" của /tai-xe thành liên kết; tài xế vẫn không thấy "Vận chuyển".
+- **B-GB** (ADR-0051): cột Cần xử lý của Điều phối xe gọi `GET /nhac-goi-khach` cùng mỗi lần tải lịch (hiện ở mọi ngày đang xem); "Đã gọi báo" → dải "Đã ghi: đã gọi báo khách TD-…" + "Bỏ đánh dấu"; Chi tiết chuyến: dòng ở điểm đón (chặng ↔ điểm qua suất) + nút theo `baoDuoc` / `boDuoc`; 409 `khong_con_can_goi` / `gio_hen_vua_doi` → câu HẰNG `NHAN_TU_CHOI_GOI_BAO` + "Tải lại". Thẻ "xe tới muộn" không nút. Tài xế không có gì.
+
+### 10.4 Lỗi tìm ra khi chạy (đã sửa trước commit)
+- `dongMoc` đưa chuỗi "HH:MM dd/mm" vào `nhanMocTienDo` → `RangeError: Invalid time value` khi mốc khác ngày chuyến (xuất bến hôm nay cho chuyến ngày mai) → màn đứng sau lệnh "Đã tới". Bắt được nhờ ghi thêm nội dung trang + lỗi console vào câu báo của bước 4 `cuoc-smoke`. Sửa: đưa giờ TRẦN, nối ngày ở màn.
+- Bước 8 lần đầu khai "Đã tới" sớm hơn giờ xuất bến vừa ghi → máy chủ từ chối đúng (sai thứ tự). Đổi kịch bản: khai giờ ở lệnh xuất bến (đúng "Sớm nhất"), "Đã tới" để nguyên.
+
+### 10.5 Câu hỏi mới cho điều phối
+- **Q-B-12**: route 19 (`CuocCuaToiItemDto`) không có giờ kết thúc dự kiến — bản vẽ 04 hiện "06:40 – 08:25". Thêm khoá?
+- **Q-B-13**: "Đã trả" ở điểm trả (5a: "Trả hết khách đang trên xe ở điểm này") đang là nhiều lệnh nối nhau (tới điểm + từng suất). Cần một lệnh "trả hết" ở máy chủ không?
+- **Q-B-14**: bản vẽ 6a có TRANG "Xuất bến CX-…" riêng cho văn phòng (bảng điều kiện có cột "Ai xử lý" + nút) — màn làm "Xuất bến thay tài xế" ngay trong Chi tiết chuyến (bảng điều kiện đã có ở đó) + hộp 6d. Cần trang riêng không?
+- **Q-B-15**: văn phòng đổi thứ tự điểm khi chuyến đang chạy (route 39) — bản vẽ không vẽ chỗ bấm cho văn phòng; chưa dựng.

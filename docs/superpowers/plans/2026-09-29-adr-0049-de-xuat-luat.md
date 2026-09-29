@@ -187,6 +187,14 @@ Dòng dự kiến (người thi công điền tên kịch bản và số bước
 | Chi tiết chuyến (bản vẽ 02): `web/chuyen.ts`, `public/chuyen.html`, khối B2 `.dp-ct-*` / `.dp-stop*` / `.dp-cond*` / `.dp-log*` của `public/app.css`, `dieuKienXuatBen` / `nhanDiem` / `dongNhatKy` / `cauKhoaMoc` của `src/shared/dieu-phoi-man.ts`, `moHuyChuyen` của `web/dieu-phoi-ui.ts` | `chuyen-smoke.mjs` (8 bước, 1040 + 390; Bán hàng → Quản trị → Kế toán) |
 | Tạo / sửa chuyến (bản vẽ 03): `web/chuyen-sua.ts`, `public/chuyen-sua.html`, khối `.dp-cx-*` của `public/app.css`, `truongLoiChuyen` / `idChoLenh` của `src/shared/dieu-phoi-man.ts`, `taoLenh` / `docLoiLenh` của `web/dieu-phoi-ui.ts`, dữ liệu thử `dungDuLieuDieuPhoi` của `dp-lib.mjs` | `chuyen-sua-smoke.mjs` (12 bước, 1040 + 390; Bán hàng → Quản trị → Kế toán) + hai kịch bản trên (cùng dữ liệu thử) |
 
+**Sau gộp A15 / A-GB — thêm vào bảng của `web/CLAUDE.md`:**
+
+| Sửa | Chạy |
+|---|---|
+| Bấm thay tài xế + màn tài xế (bản vẽ 04, 05, 06): `web/tien-do-ui.ts`, `src/shared/tien-do-man.ts`, phần bấm thay của `web/chuyen.ts`, `web/cuoc.ts`, `web/cuoc-chuyen.ts`, `public/cuoc.html`, `public/cuoc-chuyen.html`, khối `.dp-run*` / `.dp-khach*` / `.dp-cuoc*` / `.dp-cc*` của `public/app.css` | `cuoc-smoke.mjs` ở `docs/evidence/2026-09-29-adr-0049/kich-ban/` (10 bước, 390 + 1040; Tài xế → Bán hàng → Kế toán; có mất mạng giả lập bằng CDP; chờ hơn hai phút để có giờ khai lùi hợp lệ) |
+| Trang đầu tài xế theo Q5: `TRANG_CUOC` / `coCuocCuaToi` / `chiTaiXe` của `src/shared/start-page.ts`, tab "Cuốc của tôi" của `web/shell.ts`, khối "Cuốc xe" của `web/tai-xe.ts` | `tai-xe-trang-dau-smoke.mjs` (tài xế mở "/" → `/cuoc`, ba tab) + `cuoc-smoke.mjs` |
+| Nhắc gọi báo khách (ADR-0051): `viecGoiBao` / `dongGoiBao` của `src/shared/dieu-phoi-man.ts`, phần "Đã gọi báo" của `web/dieu-phoi.ts` và `web/chuyen.ts`, khối `.dp-gb*` của `public/app.css` | `goi-bao-smoke.mjs` (7 bước; Bán hàng → Tài xế → Kế toán) |
+
 **Số mục menu ở `web/CLAUDE.md:53` (sau B1):** Quản trị **17** mục (thêm "Điều phối xe" dưới "Vận chuyển" — `ADMIN_NAV` ở `trang-chu-smoke.mjs:541`), trang `/audit` (Quản trị + Toàn quyền) **20**; Bán hàng, Kế toán nay có nhóm QUẢN TRỊ với "Vận chuyển › Điều phối xe" (Q-B-4).
 
 **Thêm vào dòng B7 (mốc 6 giờ + đặt gấp) ở bảng trên:** `moc-chua-co-smoke.mjs` (6 bước — 503 `moc_toi_thieu_chua_co`; D1 tạm của kịch bản xoá trigger + dòng chính sách để có "chưa có chính sách"; chỉ đụng D1 tạm). **Thêm vào dòng B8:** `chinh-sach-dieu-phoi-smoke.mjs` nay 14 bước (bước 9b — R-P22, lý do hệ thống không có nút "Ngưng" và câu 409 `ly_do_he_thong`).

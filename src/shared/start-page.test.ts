@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TRANG_DAU_TAI_XE, coPhanTaiXe, homeRedirect } from "./start-page.ts";
+import { TRANG_CUOC, TRANG_DAU_TAI_XE, chiTaiXe, coCuocCuaToi, coPhanTaiXe, homeRedirect } from "./start-page.ts";
 import { PERMISSION_CODES, canAccessOrders, seesAllOrders, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -46,12 +46,19 @@ test("homeRedirect: chỉ INTERN (Thực tập) → \"/orders\" (không có Tran
 
 // ADR-0040 D3 + Ruling R3, R10 (điều phối 2026-09-28): tài khoản chỉ có quyền Tài xế không qua cổng orders — ở lại Trang chủ thì web/home.ts sẽ gọi
 // GET /api/orders/dashboard và nhận 403. Phần A tạm đưa sang trang Tài khoản (R10); Phần B dựng màn /tai-xe theo bản vẽ 07 và đổi hằng này sang "/tai-xe".
-test("homeRedirect: chỉ Tài xế (DRIVER) → trang đầu của tài xế /tai-xe (màn 07 của bản vẽ, Phần B) — trang có thật (không 404), không phải Trang chủ (không vòng, không gọi dashboard đơn)", () => {
-  assert.equal(TRANG_DAU_TAI_XE, "/tai-xe", "Phần B: màn /tai-xe đã dựng (bản vẽ 07) — thay trang Tài khoản tạm của Ruling R10");
-  assert.ok(PAGES.includes(TRANG_DAU_TAI_XE), "trang đích phải là trang có thật của app (PAGES — src/shared/sw-policy.test.ts đối chiếu public/*.html)");
-  assert.notEqual(TRANG_DAU_TAI_XE, "/", "không vòng về Trang chủ");
-  assert.equal(homeRedirect(who("DRIVER")), TRANG_DAU_TAI_XE);
-  assert.equal(homeRedirect(who("DRIVER", "DRIVER")), TRANG_DAU_TAI_XE);
+// ADR-0049 Q5 (điều phối vòng 3, 29/9): tài xế CÔNG TY (DRIVER) mở app vào "Cuốc của tôi" (/cuoc — bản vẽ Bảng điều phối 04, tab mở đầu); "/tai-xe" giữ
+// giấy tờ ("Trang chủ" của tài xế). Tài xế đối tác (DRIVER_PARTNER) chưa dùng chuyến (ADR-0049 D3 × ADR-0048 D2) — vẫn /tai-xe.
+test("homeRedirect: chỉ Tài xế (DRIVER) → \"Cuốc của tôi\" /cuoc (Q5) — trang có thật (không 404), không phải Trang chủ (không vòng, không gọi dashboard đơn)", () => {
+  assert.equal(TRANG_DAU_TAI_XE, "/tai-xe", "màn giấy tờ của tài xế (bản vẽ Vận chuyển 07) — nay là tab \"Trang chủ\" của tài xế");
+  assert.equal(TRANG_CUOC, "/cuoc");
+  for (const t of [TRANG_DAU_TAI_XE, TRANG_CUOC]) assert.ok(PAGES.includes(t), `${t} phải là trang có thật của app (PAGES — src/shared/sw-policy.test.ts đối chiếu public/*.html)`);
+  assert.notEqual(TRANG_CUOC, "/", "không vòng về Trang chủ");
+  assert.equal(homeRedirect(who("DRIVER")), TRANG_CUOC);
+  assert.equal(homeRedirect(who("DRIVER", "DRIVER")), TRANG_CUOC);
+  assert.equal(coCuocCuaToi(who("DRIVER")), true);
+  assert.equal(coCuocCuaToi(who("DRIVER_PARTNER")), false, "tài xế đối tác chưa có Cuốc của tôi");
+  assert.equal(coCuocCuaToi(who("SALES")), false);
+  assert.deepEqual([chiTaiXe(who("DRIVER")), chiTaiXe(who("DRIVER_PARTNER")), chiTaiXe(who("DRIVER", "SALES")), chiTaiXe(who("SALES"))], [true, true, false, false]);
   for (const office of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(homeRedirect(who("DRIVER", office)), null, `DRIVER+${office}`);
   for (const p of ["FIELD", "PARTNER", "INTERN"] as const) assert.equal(homeRedirect(who(p, "DRIVER")), "/orders", `${p}+DRIVER`);
 });
@@ -74,7 +81,7 @@ test("homeRedirect: 512 tập con quyền — tập KHÔNG có phần tài xế 
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++, n++) {
     const w = who(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
     const coTaiXe = coPhanTaiXe(w);
-    const kyVong = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : TRANG_DAU_TAI_XE;
+    const kyVong = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : w.permissions.includes("DRIVER") ? TRANG_CUOC : TRANG_DAU_TAI_XE;
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");
   }
   assert.equal(n, 512);

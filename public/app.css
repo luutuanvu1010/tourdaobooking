@@ -238,6 +238,10 @@
   --bw-dp-dot: 1.5px;
   --dp-lg-o: 12px;             /* ô màu chú thích */
   --radius-dp-lg: 3px;
+  --dp-run-so: 28px;           /* vòng số điểm của chuyến đang chạy (05, khung 5a) */
+  --fs-dp-run-so: 14px;
+  --h-dp-khach: 32px;          /* dòng tên khách (05) */
+  --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -1825,3 +1829,82 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
   .dp-stats-sub { display: block; margin-bottom: var(--s3); font-size: var(--fs-badge); font-weight: 600; color: var(--c-text-muted); }
   .dp-leg.is-xep .dp-leg-pill { display: inline-flex; }
 }
+
+/* Tiến độ chuyến (A15): điểm dừng + khách của chuyến đang chạy (bản vẽ 05 khung 5a — tài xế; 5c — văn phòng bấm thay dùng cùng khối), ô "Xảy ra lúc"
+   (6d). Chỉ token. */
+.dp-ct-moc { display: flex; flex-wrap: wrap; gap: var(--s1) var(--s4); margin-bottom: var(--s3); font-size: var(--fs-label); }
+.dp-moc { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s1); }
+.dp-moc strong { font-variant-numeric: tabular-nums; }
+.dp-moc-ghi { color: var(--c-text-muted); }
+.dp-run-list { display: flex; flex-direction: column; gap: var(--s3); }
+.dp-run-list-head { padding: 0; border-bottom: 0; }
+.dp-run { display: flex; flex-direction: column; overflow: hidden; }
+.dp-run.is-dang { border: var(--bw-vc) solid var(--c-primary); }
+.dp-run-head { display: flex; align-items: flex-start; gap: var(--s3); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-run-so { display: flex; flex: none; align-items: center; justify-content: center; width: var(--dp-run-so); height: var(--dp-run-so); font-family: var(--font-display); font-size: var(--fs-dp-run-so); font-weight: 800; color: var(--c-primary); background: var(--c-primary-soft); border-radius: var(--radius-pill); }
+.dp-run.is-xong .dp-run-so { color: var(--c-green-text); background: var(--c-green-soft); }
+.dp-run.is-dang .dp-run-so { color: var(--c-on-dark); background: var(--c-primary); }
+.dp-run.is-bo { color: var(--c-text-muted); }
+.dp-run-text { display: flex; flex: 1; flex-direction: column; gap: var(--gap-dp-hist); min-width: 0; }
+.dp-run-loai { font-size: var(--fs-badge); font-weight: 800; letter-spacing: var(--ls-eyebrow); color: var(--c-text-muted); }
+.dp-run-noi { font-family: var(--font-display); font-size: var(--fs-vc-md); font-weight: 700; overflow-wrap: anywhere; }
+.dp-run-bo { font-size: var(--fs-label); }
+.dp-run-lien-he { display: flex; align-items: center; gap: var(--s2); padding: 0 var(--s4); font-size: var(--fs-label); border-bottom: 1px solid var(--c-border); }
+.dp-run-lien-he a { display: flex; align-items: center; min-height: var(--tap-min); margin-left: auto; font-weight: 700; white-space: nowrap; }
+.dp-run-foot { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); }
+.dp-run-foot .dp-run-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
+.dp-khach { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-khach:last-child { border-bottom: 0; }
+.dp-khach.is-cho { background: var(--c-sand-soft); }
+.dp-khach-dong { display: flex; align-items: center; gap: var(--s2); min-height: var(--h-dp-khach); }
+.dp-khach-ten { font-weight: 700; overflow-wrap: anywhere; }
+.dp-khach-nam { font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-khach-kq { margin-left: auto; font-size: var(--fs-label); font-weight: 700; color: var(--c-text-muted); }
+.dp-khach-kq.is-ok { color: var(--c-green-text); }
+.dp-khach-kq.is-vang { color: var(--c-sand-text); }
+.dp-khach-cho { display: flex; align-items: center; gap: var(--s2); font-size: var(--fs-label); font-weight: 700; color: var(--c-sand-text); }
+.dp-khach-cho .vc-btn { margin-left: auto; }
+.dp-khach-nut { display: flex; gap: var(--s2); }
+.dp-khach-nut .dp-khach-btn { flex: 1; padding: 0 var(--s2); font-size: var(--fs-label); }
+.dp-khach-nut .dp-khach-btn[data-action="khach-huy"] { flex: 1.5; }
+.dp-run-end { display: flex; flex-direction: column; gap: var(--s2); margin-top: var(--s2); }
+.dp-run-end .vc-btn { width: 100%; min-height: var(--h-field); font-size: var(--fs-vc-md); }
+.dp-run-end .dp-note { text-align: center; }
+.dp-khai-gio-field .dp-khai-gio { max-width: var(--w-dp-khai-gio); }
+
+/* Cuốc của tôi (04) + một chuyến của tài xế (05 khung 5a, 06 khung 6b / 6c). Chỉ token. */
+.dp-cuoc-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--s3); margin-bottom: var(--s3); }
+.dp-cuoc-head h1 { margin: 0; font-size: var(--fs-vc-h); font-weight: 800; }
+.dp-cuoc-date { font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-cuoc-days { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-items: start; }
+@media (min-width: 900px) { .dp-cuoc-days { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.dp-cuoc-day { display: flex; flex-direction: column; gap: var(--s3); }
+.dp-cuoc-day-head { display: flex; align-items: baseline; gap: var(--s2); }
+.dp-cuoc-day-title { margin: 0; font-size: var(--fs-dp-stat); font-weight: 800; }
+.dp-cuoc-the { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); color: var(--c-text); text-decoration: none; }
+.dp-cuoc-top { display: flex; align-items: center; gap: var(--s2); }
+.dp-cuoc-gio { font-family: var(--font-display); font-size: var(--fs-vc-step); font-weight: 800; font-variant-numeric: tabular-nums; }
+.dp-cuoc-ma { font-family: var(--font-display); font-size: var(--fs-label); font-weight: 700; }
+.dp-cuoc-top .chip { margin-left: auto; }
+.dp-cuoc-dong { font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-cuoc-canh-bao { display: flex; align-items: flex-start; gap: var(--s2); padding: var(--s2) var(--s3); font-size: var(--fs-label); font-weight: 600; line-height: 1.45; color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); border-radius: var(--radius-sm); }
+.dp-cuoc-canh-bao svg { flex: none; margin-top: var(--gap-dp-hist); }
+.dp-cuoc-mo { width: 100%; }
+.dp-cuoc-trong { margin: 0; font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-cc-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s2); margin-bottom: var(--s3); font-size: var(--fs-label); }
+.dp-cc-meta { margin-bottom: var(--s3); font-size: var(--fs-label); }
+.dp-cc-day { display: flex; flex-direction: column; gap: var(--s1); }
+.dp-cc-day .vc-btn { min-height: var(--h-field); }
+.dp-cc-foot { text-align: center; }
+@media (min-width: 641px) { .dp-cc-day { position: static; display: flex; margin: var(--s4) 0 0; padding: 0; background: none; border: 0; } }
+.dp-cc-day[hidden] { display: none; }
+.dp-thu-tu-nhom { display: flex; flex: none; gap: var(--s1); }
+.dp-thu-tu { width: var(--tap-min); padding: 0; font-size: var(--fs-vc-md); }
+.vc-cuoc-link { display: flex; align-items: center; gap: var(--s3); width: 100%; font-weight: 700; color: var(--c-primary); text-align: left; text-decoration: none; }
+.vc-cuoc-link span { flex: 1; }
+
+/* ADR-0051: dòng "Giờ hẹn đổi — gọi báo khách" ở điểm dừng của chi tiết chuyến (02). Chỉ token. */
+.dp-gb { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s1) var(--s2); margin-top: var(--s1); font-size: var(--fs-badge); font-weight: 600; color: var(--c-text-muted); }
+.dp-gb.is-chua { color: var(--c-sand-text); }
+.dp-gb-btn { min-height: var(--tap-min); padding: 0 var(--s2); font-size: var(--fs-badge); }
+.dp-gb-dong { padding: var(--s2) var(--s4); border-bottom: 1px solid var(--c-border); }
