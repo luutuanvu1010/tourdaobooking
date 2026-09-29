@@ -201,6 +201,11 @@ export interface KiemXuatBenVao {
   suat: SuatVao[];
   /** Mọi chặng có suất khách đang mở trên chuyến này — kèm cờ đơn / chặng. Suất trỏ chặng không có ở đây → giữ (không đoán). */
   chang: ChangVao[];
+  /**
+   * I38 (R-P9): chặng có suất mà RƠI khỏi hàm hẹp `lichChungChang` — route đọc cờ qua view công bố (`v_ord_leg_key` + `v_ord_order_flag`) và gán lý do CỤ THỂ.
+   * Chặng không có ở `chang` lẫn ở đây → CHANG_DA_DONG (không đoán "đủ điều kiện").
+   */
+  changNgoai?: { legId: string; orderCode: string; lyDo: "DON_DA_HUY" | "CHANG_DA_DONG" | "GIO_HEN_NGOAI_CHUYEN" | "CHANG_KHONG_HOP_LE" }[];
   /** Suất đang mở của các chặng đó trên MỌI chuyến (đủ / thiếu / thừa suất; tên đã dùng). */
   suatMoCuaChang: SuatVao[];
   /** Điểm dừng của CHUYẾN NÀY (`placeKey` — so nơi hẹn, ADR-0050 VK1-B). */
@@ -268,7 +273,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
   for (const legId of legIds) {
     const ch = v.chang.find((x) => x.legId === legId);
     if (!ch) {
-      lyDo.push(lyDoGiu("CHANG_DA_DONG"));
+      const ngoai = v.changNgoai?.find((x) => x.legId === legId);
+      lyDo.push(ngoai ? lyDoGiu(ngoai.lyDo, ngoai.orderCode) : lyDoGiu("CHANG_DA_DONG"));
       continue;
     }
     if (ch.donDaHuy) lyDo.push(lyDoGiu("DON_DA_HUY", ch.orderCode));
@@ -277,7 +283,8 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     if (!ch.coNoiTra) lyDo.push(lyDoGiu("CHUA_CO_NOI_TRA", ch.orderCode));
     if (ch.ngayDon === null || ch.gioDon === null) lyDo.push(lyDoGiu("CHUA_CO_GIO", ch.orderCode));
     // ADR-0050 VK1-B: nơi hẹn đổi sau khi xếp (chuyến CHƯA chạy) → giữ tới khi văn phòng "cập nhật điểm theo đơn". Một lý do mỗi chặng.
-    if (c.trangThai === "PLANNED") {
+    // Đơn huỷ / chặng bỏ / đơn chưa xác nhận: lý do riêng ở trên đã đủ — không bắt văn phòng "cập nhật điểm" cho khách không còn đi (I38).
+    if (c.trangThai === "PLANNED" && ch.donDaXacNhan && !ch.donDaHuy && ch.changMo) {
       const lech = v.suat.some((s) => {
         if (!(s.mo && s.loai === "PASSENGER" && s.legId === legId)) return false;
         const n = noiLechCuaSuat(s, v.diem.find((d) => d.id === s.boardStopId), s.alightStopId === null ? undefined : v.diem.find((d) => d.id === s.alightStopId), ch);

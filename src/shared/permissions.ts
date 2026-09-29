@@ -129,6 +129,13 @@ export const MATRIX = {
   // ADR-0040 D1: quản lý xe, giấy tờ xe, xem danh sách giấy tờ sắp hết hạn (xe + tài xế, không số) — Quản trị + Toàn quyền (việc kinh doanh, ADR-0038
   // điều 6). Route: /api/van-chuyen/* (module van-chuyen, cổng office). Danh mục loại giấy tờ xe: admin.manage; ngưỡng sắp hết hạn: settings.ops.
   "vehicle.manage": row("none", "none", "any", "none", "none", "any", "none", "none", "none"),
+  // ADR-0049 D3 (Task A13): CHUYẾN XE. `trip.view` — xem lịch chung, chi tiết chuyến (văn phòng: Bán hàng, Kế toán, Quản trị, Toàn quyền; Tài xế công ty:
+  // CHỈ chuyến mình đang lái — `assigned` = dòng lái mở trên chuyến, tính trong van-chuyen, route tài xế A15). NỚI bài ghim hàng DRIVER — CHỜ CHỦ DUYỆT
+  // (đề xuất luật mục 2). `trip.dispatch` — tạo / sửa / xếp / rút / dời / huỷ chuyến, cập nhật điểm theo đơn (Bán hàng, Quản trị, Toàn quyền). `trip.override`
+  // — phá lệ luật CẤU HÌNH (mốc tối thiểu, khoảng nghỉ) — chỉ Quản trị, Toàn quyền (ĐP3). Luật lõi LC-01…18 không ai phá lệ.
+  "trip.view": row("any", "any", "any", "none", "none", "any", "none", "assigned", "none"),
+  "trip.dispatch": row("any", "none", "any", "none", "none", "any", "none", "none", "none"),
+  "trip.override": row("none", "none", "any", "none", "none", "any", "none", "none", "none"),
 } as const satisfies Record<string, Row>;
 
 export type OperationCode = keyof typeof MATRIX;

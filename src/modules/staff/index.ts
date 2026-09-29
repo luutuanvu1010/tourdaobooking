@@ -10,7 +10,7 @@ import { hashPin, verifyDummy, verifyPin } from "./password";
 import { isValidPin, normalizePhone } from "./phone";
 import {
   accountIdOfParty, closeAdjustmentStatement, closePermissionStatement, countActiveAdmins, findById, findByPhone, insertAdjustmentStatement, insertPermissionStatement,
-  insertStaffStatement, listAll, openAdjustments, parsePermissions, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
+  insertStaffStatement, labelsByIds, listAll, openAdjustments, parsePermissions, recordLoginRow, setPinStatement as setPinRow, touchCredentialsStatement, updateStaffStatement,
   type AdjustmentRow, type StaffRow,
 } from "./repository";
 import { canManageAccount, checkAccountChange, generatePin, isWeakPin, partyAccountVerdict, validateFreshPin } from "./rules";
@@ -25,6 +25,12 @@ export {
   canManageAccount, checkAccountChange, countActiveAdmins, generatePin, hashPin, isValidPin, isWeakPin, normalizePhone,
   touchCredentialsStatement, updateStaffStatement, validateFreshPin,
 };
+
+/**
+ * HÀM CÔNG BỐ (ruling R-P20 của điều phối — ADR-0049 kế hoạch mục 1.8 / R-P11): TÊN HIỂN THỊ của các tài khoản theo id — nhãn "người bấm" trên nhật ký chuyến
+ * của van-chuyen. CHỈ gốc lắp ráp gọi (tiêm `ctx.nhanNhanVien`) — van-chuyen không import staff. Chỉ tên (view `v_stf_staff_label`): không SĐT, email, quyền.
+ */
+export const nhanNhanVienTheoId = (db: D1Database, ids: readonly string[]): Promise<Map<string, string>> => labelsByIds(db, ids);
 
 /**
  * Kiểm họ tên của tài khoản theo đúng giới hạn sẽ ghi vào hồ sơ (`pty_person`, CHECK của migration 0011) — trả thông báo lỗi hoặc null.

@@ -138,6 +138,20 @@ export function loiRangBuocXe(message: string): { status: number; code: string; 
   return null;
 }
 
+/**
+ * Lỗi ràng buộc CSDL của CHUYẾN XE (migration lõi chuyến — tiền tố `lc01_`…`lc16_`, `vk1a_`, `vc_trip_append_only`; chỉ mục duy nhất) → 409 `trip_rule` (kế hoạch
+ * mục 1.1 bảng mã lỗi: lớp CSDL KHÁC mã lớp route — lớp route nói trước bằng lời). Chỉ tới đây khi lớp route bị vượt (hai người ghi cùng lúc). Lỗi lạ → null.
+ */
+export const CAU_LUAT_CHUYEN = "Chuyến vừa thay đổi hoặc lệnh vi phạm luật chuyến xe — tải lại rồi làm lại.";
+export function loiRangBuocChuyen(message: string): { status: number; code: string; message: string } | null {
+  if (/\b(lc0[1-9]|lc1[0-6])_|\bvk1a_|vc_trip_append_only/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
+  if (/UNIQUE constraint failed: vc_trip_allocation\.leg_id|UNIQUE constraint failed: vc_trip\.vehicle_id|UNIQUE constraint failed: vc_trip_driver\.trip_id/.test(message)) {
+    return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
+  }
+  if (/CHECK constraint failed/.test(message)) return { status: 409, code: "trip_rule", message: CAU_LUAT_CHUYEN };
+  return null;
+}
+
 // ---- Giấy tờ XE (Task A14) — khuôn giấy tờ của người (parties/giay-to.ts), KHÁC ở ba chỗ: không CCCD / không hạng / không nơi cấp; không che số (giấy tờ xe
 // không phải dữ liệu cá nhân — giả định G4); chỉ lý do sửa sai `choXe`. Luật ngày chung ở src/shared/giay-to.ts. Nhật ký vẫn KHÔNG ghi số (một luật chung).
 export interface DanhMucGiayToXe { loai: ReadonlyMap<string, { hasExpiry: boolean; active: boolean }>; homNay: string }

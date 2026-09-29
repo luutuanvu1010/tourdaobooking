@@ -467,3 +467,40 @@ test("ctx.mocToiThieu: chuyển env tới hàm tiêm và trả nguyên kết qu�
   const khong = createApp({ ...base, injected } as any);
   assert.deepEqual(await (await khong.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: null });
 });
+
+// NHÃN NGƯỜI BẤM (ruling R-P20) — ctx.nhanNhanVien là hàm tiêm của gốc lắp ráp (van-chuyen không import staff). Thiếu hàm tiêm → null (route để
+// TRỐNG nhãn, không đoán); mảng rỗng → Map rỗng, KHÔNG gọi hàm tiêm (không truy vấn thừa); có tiêm → chuyển env + danh sách id, trả nguyên Map.
+test("ctx.nhanNhanVien (R-P20): chuyển env + id tới hàm tiêm; mảng rỗng → Map rỗng không gọi; KHÔNG tiêm → null", async () => {
+  const seen: unknown[] = [];
+  const env = { ten: "env-thu" } as unknown as Env;
+  const mod: AppModule = {
+    name: "nhan-gia",
+    routes: [route("GET", "/api/nhan", "staff", async (ctx) => {
+      const a = await ctx.nhanNhanVien(["s-1", "s-2"]);
+      const rong = await ctx.nhanNhanVien([]);
+      return json({ a: a === null ? null : [...a], rong: rong === null ? null : [...rong] });
+    })],
+  };
+  const base = { modules: [mod], currentStaff: async () => staffOf(["SALES"]) };
+  const injected = {
+    isAssigned: async () => false,
+    defaultHandlerStatement: () => null,
+    maintenanceBlock: async () => null,
+    partyAccount: async () => ({ linked: false }),
+    baoThayDoi: async () => {},
+    dongBangTin: async () => {},
+    giaoLoDay: async () => [],
+  };
+  const nhan = async (e: Env, ids: readonly string[]) => {
+    seen.push([e, [...ids]]);
+    return new Map(ids.map((i) => [i, `Tên ${i}`] as [string, string]));
+  };
+  const co = createApp({ ...base, injected: { ...injected, nhanNhanVien: nhan } } as any);
+  assert.deepEqual(await (await co.fetch(new Request("http://x/api/nhan"), env, {} as ExecutionContext)).json(), {
+    a: [["s-1", "Tên s-1"], ["s-2", "Tên s-2"]],
+    rong: [],
+  });
+  assert.deepEqual(seen, [[env, ["s-1", "s-2"]]], "mảng rỗng KHÔNG gọi hàm tiêm");
+  const khong = createApp({ ...base, injected } as any);
+  assert.deepEqual(await (await khong.fetch(new Request("http://x/api/nhan"), env, {} as ExecutionContext)).json(), { a: null, rong: null });
+});

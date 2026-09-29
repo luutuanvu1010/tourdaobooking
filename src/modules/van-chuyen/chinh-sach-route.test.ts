@@ -15,8 +15,8 @@ const PARTNER = "44444444-4444-4444-8444-444444444444";
 const DRIVER = "66666666-6666-4666-8666-666666666666";
 const INTERN = "88888888-8888-4888-8888-888888888881";
 
-function setup() {
-  const w = world();
+function setup(tuyChon: Record<string, unknown> = {}) {
+  const w = world(tuyChon);
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: ACC, phone: "0900000005", name: "Kế toán", perms: ["ACCOUNTING"] });
   seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
@@ -73,7 +73,7 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   assert.equal(r.status, 200, r.text);
   assert.deepEqual({ ...r.json.current, id: undefined, validFrom: undefined }, {
     id: undefined, minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
-    validFrom: undefined, current: true,
+    validFrom: undefined, current: true, nguoiLuu: null,
   });
   r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
   assert.equal(r.status, 201, r.text);
@@ -87,6 +87,33 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
     staff_id: SUP, order_id: null, target_type: null, target_id: null,
     detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút",
   });
+});
+
+test("R-P23 (điều phối 29/9 đêm): lịch sử bản chính sách có \"ai lưu\" = TÊN hiển thị (hàm tiêm nhãn R-P20) — bản gieo null; không SĐT, không id người; khung thử không tiêm → null", async () => {
+  const w = setup({ demNhan: true });
+  await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
+  const truoc = w.soLanGoiNhan();
+  const r = await w.call("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP });
+  assert.equal(r.status, 200, r.text);
+  assert.equal(w.soLanGoiNhan() - truoc, 1, "gọi nhãn MỘT lần cho cả lịch sử");
+  assert.deepEqual(r.json.history.map((h: any) => [h.minLeadMinutes, h.nguoiLuu]), [[240, `Nhãn ${SUP.slice(0, 4)}`], [360, null]]);
+  assert.equal(r.json.current.nguoiLuu, `Nhãn ${SUP.slice(0, 4)}`);
+  for (const h of r.json.history) {
+    assert.deepEqual(Object.keys(h).sort(), [
+      "current", "id", "minLeadMinutes", "nguoiLuu", "proxyBackdateMaxMinutes", "requireContract", "requireManifest", "restMinutes", "validFrom", "warnLeadMinutes",
+    ]);
+  }
+  assert.doesNotMatch(r.text, /0900000007|createdBy|created_by|staffId/, "không SĐT, không id người lưu");
+  // Gốc lắp ráp THẬT: tên hiển thị của hồ sơ; POST trả luôn "ai lưu" của bản vừa thêm.
+  const w2 = setup();
+  const p = await w2.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
+  assert.equal(p.status, 201, p.text);
+  assert.equal(p.json.current.nguoiLuu, "Chủ");
+  // Khung thử không tiêm nhãn → trống, không đoán.
+  const w3 = setup({ khongTiemNhan: true });
+  await w3.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
+  const g = await w3.call("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP });
+  assert.deepEqual(g.json.history.map((h: any) => h.nguoiLuu), [null, null]);
 });
 
 test("TC-2 route 10: thân mang ngày hiệu lực → 400 (không nhận); hợp đồng true → 400; sai khoảng → 400; không ghi, không nhật ký", async () => {

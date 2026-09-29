@@ -21,6 +21,9 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"],
   "order.leg.short_notice": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; chỉ Quản trị, Toàn quyền
   "order.leg.short_notice.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none"], // chủ H4/N-14 (29/9, Trả lời lần 12): ô MỚI — xem ĐỦ dấu đặt gấp; mã khác chỉ cờ
+  "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2)
+  "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI
+  "trip.override": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — phá lệ luật cấu hình, chỉ Quản trị, Toàn quyền
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
@@ -288,6 +291,8 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    // ADR-0049 D3 — NỚI (CHỜ CHỦ DUYỆT, đề xuất luật mục 2): tài xế công ty xem chuyến MÌNH ĐANG LÁI (`assigned`); trip.progress thêm ở A15.
+    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none",
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -311,6 +316,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
 });
@@ -336,6 +342,14 @@ test("H4/N-14: ô order.leg.short_notice.view = any ĐÚNG ở SALES, ACCOUNTING
 });
 
 // ADR-0049 D3 (siết): đặt gấp chặng dưới mốc 6 giờ CHỈ Quản trị + Toàn quyền — lỡ mở cho Bán hàng / Thực tập / Đối tác thì đỏ ở đây.
+// ADR-0049 D3 (siết, kế hoạch mục 1.2): phá lệ chuyến CHỈ Quản trị + Toàn quyền; mọi mã xem được lịch xe cho mọi chuyến (`trip.view = any`) cũng xem được
+// liên hệ khách mọi đơn (`contact.view = any`) — DTO chi tiết chuyến của văn phòng có họ tên khách, bài này chứng minh không lộ thêm cho ai.
+test("ADR-0049 D3: trip.override CHỈ ADMIN + SUPER_ADMIN; trip.view = any ⇒ contact.view = any; trip.dispatch không cho Kế toán / HDV / Đối tác / Thực tập / tài xế", () => {
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.override"][p] !== "none"), ["ADMIN", "SUPER_ADMIN"]);
+  for (const p of PERMISSION_CODES) if (MATRIX["trip.view"][p] === "any") assert.equal(MATRIX["contact.view"][p], "any", `${p}: trip.view any mà contact.view không any`);
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.dispatch"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
+});
+
 test("ADR-0049 D3: ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN (any); mọi mã khác none", () => {
   const co = PERMISSION_CODES.filter((p) => MATRIX["order.leg.short_notice"][p] !== "none");
   assert.deepEqual(co, ["ADMIN", "SUPER_ADMIN"]);

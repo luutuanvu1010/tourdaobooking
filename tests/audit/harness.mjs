@@ -80,10 +80,13 @@ export const MOC_GIA_POLICY_ID = "moc-gia-khung-thu";
  *   định (`policyId` = MOC_GIA_POLICY_ID). Bài kiểm luật mốc / đặt gấp KHÔNG được dùng (bài canh ở src/modules/orders/dat-gap.test.ts).
  * - `khongTiemMoc: true` — bỏ hàm tiêm mốc (TC-26: route phải trả 503, không đoán con số).
  * - `demMoc: true` — mốc giả 360 phút có ĐẾM số lần gọi (`w.soLanGoiMoc()`) — TC-26 "đúng một lần mỗi request".
+ * - `khongTiemNhan: true` — bỏ hàm tiêm nhãn người bấm (ruling R-P20: route để trống nhãn, không đoán). `demNhan: true` — nhãn GIẢ có ĐẾM số lần gọi
+ *   (`w.soLanGoiNhan()`, mỗi lần một mảng id) — "một lần mỗi request cho cả danh sách".
  */
 export function world(tuyChon = {}) {
   const sqlite = openDb();
   let soLanGoiMoc = 0;
+  const goiNhan = [];
   let ungDung = app.default;
   if (tuyChon.mocGiaChoBaiKhongKiemMoc !== undefined) {
     const phut = tuyChon.mocGiaChoBaiKhongKiemMoc;
@@ -92,6 +95,10 @@ export function world(tuyChon = {}) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: undefined });
   } else if (tuyChon.demMoc) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID, canhBaoPhut: 120 }) });
+  } else if (tuyChon.khongTiemNhan) {
+    ungDung = app.taoAppChoKhungThu({ nhanNhanVien: undefined });
+  } else if (tuyChon.demNhan) {
+    ungDung = app.taoAppChoKhungThu({ nhanNhanVien: async (_env, ids) => (goiNhan.push([...ids]), new Map(ids.map((id) => [id, `Nhãn ${id.slice(0, 4)}`]))) });
   }
   const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, STAFF_SHEET_ID: "x", SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.
@@ -108,5 +115,5 @@ export function world(tuyChon = {}) {
     let json = null; try { json = JSON.parse(text); } catch {}
     return { status: res.status, json, text };
   }
-  return { sqlite, env, call, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc };
+  return { sqlite, env, call, q: (sql, ...a) => sqlite.prepare(sql).all(...a), soLanGoiMoc: () => soLanGoiMoc, soLanGoiNhan: () => goiNhan.length, goiNhan: () => goiNhan };
 }

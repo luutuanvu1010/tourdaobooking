@@ -230,8 +230,10 @@ export interface DispatchPolicyRow {
   proxy_backdate_max_minutes: number;
   valid_from_at: string;
   created_at: string;
+  /** R-P23: tài khoản đã lưu bản này (null = bản gieo của migration). CHỈ để tra nhãn qua hàm tiêm `ctx.nhanNhanVien` — không ra DTO. */
+  created_by: string | null;
 }
-const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at";
+const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at, created_by";
 // Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
 const CURRENT_DISPATCH_POLICY = defineSql(
   "van-chuyen",

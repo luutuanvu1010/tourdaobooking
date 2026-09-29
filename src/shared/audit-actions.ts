@@ -80,6 +80,14 @@ export const AUDIT_ACTIONS = {
   trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
   trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
   trip_stops_synced: { label: "Cập nhật điểm theo đơn", group: "trip" }, // ADR-0050 VK1-B — route `cap-nhat-diem` (A13); detail chỉ mã đơn + tên nơi danh mục / "nơi tự do"
+  // ADR-0049 D1 (Task A13): lệnh KẾ HOẠCH của chuyến xe. orderId NULL, targetType "trip" (I17). "Sửa chuyến xe" mang tên `trip_edited` — `trip_updated`
+  // đã là hành động của orders ("Sửa thông tin chuyến" của ĐƠN, nhóm order) nên không dùng lại (GA-37).
+  trip_created: { label: "Tạo chuyến xe", group: "trip" },
+  trip_edited: { label: "Sửa chuyến xe", group: "trip" },
+  trip_cancelled: { label: "Huỷ chuyến xe", group: "trip" },
+  trip_allocated: { label: "Xếp khách lên xe", group: "trip" },
+  trip_allocation_removed: { label: "Rút khách khỏi xe", group: "trip" },
+  trip_allocation_moved: { label: "Dời khách sang chuyến khác", group: "trip" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },
