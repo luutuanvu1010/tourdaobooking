@@ -25,7 +25,7 @@ const handlerAccountEligible = (extra = "") =>
 
 /**
  * "Giấy tờ xe `d` đang hiện hành" — NGUYÊN VĂN hằng `HIEN_HANH` của `src/modules/van-chuyen/repository.ts` (màn giấy tờ xe, danh sách "sắp hết hạn" đọc
- * bằng chính đoạn này). Tệp này thuần `.mjs`, không import được mã module, nên chép chữ — `src/audit-invariants.test.ts` đọc repository.ts và đỏ khi hai bản
+ * bằng chính đoạn này). Hằng đó KHÔNG export (export phải sửa repository.ts — ngoài phạm vi việc siết K-01), nên chép chữ — `src/audit-invariants.test.ts` đọc repository.ts và đỏ khi hai bản
  * lệch nhau (một luật "hiện hành", không hai). Alias bắt buộc: `d` (dòng đang xét), `n` (dòng gia hạn) — câu dùng đoạn này không đặt alias `n` khác.
  */
 const HIEN_HANH_GIAY_TO_XE = "(d.voided_at IS NULL AND NOT EXISTS (SELECT 1 FROM vc_vehicle_document n WHERE n.previous_id = d.id AND n.voided_at IS NULL))";
