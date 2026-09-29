@@ -578,3 +578,8 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - Bài `src/audit-invariants.test.ts` R-VC-19: thêm mốc của chặng còn (→ 0) và mốc của chặng bị xoá (→ +1); đỏ trước (`'mốc giờ hẹn trỏ chặng không còn'`) → xanh. P16 bốn phép (chạy lại ba phép cũ vì câu SQL đổi dạng) đều đỏ đúng câu. Sổ hàng rào (dòng R-VC-19), sổ dữ liệu (ghi chú `vc_leg_appt_ack.leg_id`) + `npm run dict`.
 - Không chạy e2e (theo lệnh — người kiểm độc lập chạy đủ bộ).
 - Kiểm (tự khai): `npm test` 1776 bài, 1775 xanh, 1 đỏ = bài đo CPU của hook (`not ok 155 - guard-remote: lệnh dị dạng …` — không đụng, theo lệnh) → thoát 1; `npm run typecheck` thoát 0; `node --test "tests/audit/*.test.mjs"` 36/36 thoát 0; `node --test src/audit-invariants.test.ts` 74/74.
+
+### 10.29 Sửa theo kiểm độc lập K2a (Phần A @ `da38060` — ĐẠT CÓ ĐIỀU KIỆN, không lỗi CAO)
+
+- **V2 — lỗ P16 ở `kemTen`:** người kiểm đổi `false`→`true` ở `chiTietChuyen` của `POST /api/van-chuyen/chuyen` (index.ts:779) mà 1776 bài vẫn xanh — route tạo chuyến trả chuyến mới, chưa suất, nên bài 2 không có gì để lộ. Sửa hai lớp: (a) bài 2 — chuyến C xếp KÈM khoá người (đơn C 3 khách), dời 2/3, rút 1/2 để thân còn suất có tên; thêm vế chống bài rỗng "MỌI route ghi / tiến độ trả chi tiết chuyến (21 route, trừ tạo chuyến, huỷ chuyến, kết thúc gián đoạn ×2) có ít nhất một lần gọi mà thân CÓ suất đã gắn tên trong CSDL"; (b) bài 3 MỚI quét mã: `chiTietChuyen` / `cuocChiTiet` chỉ gọi ở `index.ts`; đối `kemTen` là chữ `true` đúng ở GET `/chuyen/:id`, chữ `false` ở 16 nơi khác; `hk` + `lienHe` của `cuocChiTiet` là `[]` + `null` ở 9 nơi khác GET `/cuoc-cua-toi/:id` (đếm 17 + 10 nơi gọi). P16: phép của người kiểm ⇒ đỏ bài 3; `rut` ⇒ đỏ bài 2 + bài 3; `huy` ⇒ đỏ bài 3.
+
