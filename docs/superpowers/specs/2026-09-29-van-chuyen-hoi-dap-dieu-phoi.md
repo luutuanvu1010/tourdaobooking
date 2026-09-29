@@ -113,3 +113,11 @@ Chủ tự chạy `~/.claude/jobs/32bcd96e/tmp/kiem-q1-chang.sh` (`wrangler d1 e
 - **Q1 không cần chủ quyết:** "giờ không nơi" chỉ có 2 dịch vụ, đều thuộc đơn ĐÃ HUỶ; đơn đã xác nhận = 0. Giữ mặc định (a) "(chưa ghi nơi đón)" đang có trong `0034` (hằng `NOI_DON_CHUA_GHI`, giả định G10). Đảo ngược được: `0034` chưa áp remote.
 - **Ngày đi:** đủ ở mọi dịch vụ ⇒ không chặng chép nào thiếu ngày.
 - **Nơi trả:** 45/45 dịch vụ chưa có ⇒ sau phát hành, mọi chặng chép từ dữ liệu cũ mang "nơi trả chưa chốt" — `audit-invariants` báo CẢNH BÁO R-ORD-8 (không phải vi phạm, không chặn triển khai); nhân viên bổ sung khi cần.
+
+## Trả lời lần 8 (29/9, mục 5 đề xuất luật ADR-0048 — điều kiện cuối của người kiểm K2)
+
+Người kiểm độc lập cuối ADR-0048 (K2, đỉnh `5a024b4`): ĐẠT CÓ ĐIỀU KIỆN — điều kiện duy nhất là chủ duyệt mục 5. Hai chỉnh THẤP người kiểm đề nghị đã sửa ở `f575ffb` (thêm `public/xe.html` vào dòng B3; ghi chú `dot-a-smoke` đỏ sẵn từ ADR-0038).
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Nhà xe + tài xế đối tác: ghi thêm 4 dòng vào luật giao diện (web/CLAUDE.md) — mỗi dòng nói "sửa màn này thì phải chạy lại bài kiểm trình duyệt nào": (1) ô chọn vai "Tài xế đối tác" và khoá chéo; (2) quan hệ "Tài xế của" + vai "Nhà xe đối tác" ở Danh bạ; (3) ô "Chủ xe", nhãn "Nhà xe: …", ô lọc chủ xe ở màn Xe; (4) nhãn nhà xe ở Giấy tờ sắp hết hạn + trang của tài khoản Tài xế đối tác. Chỉ siết (bắt kiểm nhiều hơn), không nới gì. Kèm 2 chỉnh nhỏ người kiểm đề nghị (thêm một tệp màn Xe vào dòng 3; ghi chú một bài kiểm đang đỏ sẵn từ trước). Đây là điều kiện cuối để gộp và phát hành bản 1.37." — "Duyệt" / "Chưa duyệt" | **"Duyệt"** — mục 5 (bản ở `f575ffb`). Cùng mục 1, 3, 4, 6 đã duyệt ở lần 5 ⇒ toàn bộ tệp đề xuất luật ADR-0048 đã duyệt; điều phối áp ở nhánh phát hành 1.37 |
