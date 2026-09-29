@@ -2,7 +2,7 @@
 
 - **Trạng thái:** **ĐỀ XUẤT — chờ chủ duyệt, sau lượt 1 và 2.**
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2).
-  - Chưa có người kiểm độc lập.
+  - Người kiểm độc lập bộ đề xuất (đỉnh `9cf9431`): ĐẠT CÓ ĐIỀU KIỆN; phần của tệp này chỉ phải sửa khuôn câu hỏi (đã sửa, chưa kiểm lại).
   - Không đặt tệp ở `docs/adr/`.
 - **Ngày:** 2026-09-29.
 - **Nguồn:**
@@ -110,7 +110,10 @@ Hai quyết định chạm dữ liệu (trần 3 — `CLAUDE.md` §9). Để lư
   - lớp route và lớp CSDL trả **mã khác nhau** (khuôn R15 của ADR-0040).
 - **[CSDL]:** trigger `BEFORE INSERT ON vc_vehicle_document WHEN NEW.previous_id IS NULL AND EXISTS (<dòng hiện hành cùng xe, cùng loại>)` → `RAISE`. Bảng của chính module (5.3).
 - **Giao diện:** form "Thêm giấy tờ" ẩn loại đã có dòng hiện hành, hiện gợi ý "Gia hạn" (`web/giay-to-ui.ts:72`).
-- **Dữ liệu cũ:** trigger chỉ canh dòng **mới**; dòng song song đã có (số đếm từ K-01) giữ nguyên tới khi Quản trị huỷ dòng nhập nhầm bằng "Sửa sai → Huỷ dòng" (có sẵn). Migration **không** tự sửa dữ liệu.
+- **Dữ liệu cũ:**
+  - trigger chỉ canh dòng **mới**; migration **không** tự sửa dữ liệu;
+  - dòng song song đã có **được dọn sớm hơn lượt này**: K-01 đếm, rồi Quản trị huỷ dòng nhập nhầm bằng "Sửa sai → Huỷ dòng" (có sẵn), **trước khi VK1-C (lượt 1) phát hành** — theo người kiểm độc lập, điểm 4.
+  - Lượt này chỉ **chặn tái phát**.
 - **Không áp** cho giấy tờ của người: một người có nhiều bằng lái khác hạng là hợp lệ.
 - **Ngoại lệ sau này:** nếu một loại thật sự cần nhiều dòng (vd nhiều hợp đồng bảo hiểm tự nguyện), thêm cột "cho nhiều dòng" vào danh mục loại bằng migration chỉ-thêm. Không làm bây giờ.
 - **Quyền:** không đổi — `vehicle.manage` (Quản trị, Toàn quyền).
@@ -206,18 +209,20 @@ Hai quyết định chạm dữ liệu (trần 3 — `CLAUDE.md` §9). Để lư
 
 ## Câu hỏi cho chủ (lời thường — trả lời một lần cho cả ba)
 
-**Q-L3-1 — Người xếp xe ghép khách đơn khác vào chặng "xe riêng", hoặc xếp vào xe nhỏ hơn số chỗ đã hứa. Máy làm gì?**
-- **(a) Chặn; Quản trị / Toàn quyền phá lệ kèm lý do (Khuyến nghị):** như khoảng nghỉ. Xe hỏng, khách đồng ý đi chung thì vẫn chạy được, có ghi ai cho phép.
-- **(b) Chỉ cảnh báo:** vẫn cho xếp, hiện đỏ trên bảng.
-- **(c) Chặn cứng, không ai phá lệ.**
+Khuôn `CLAUDE.md` §4: khuyến nghị đứng đầu; mỗi phương án một dòng "làm gì — Được: … Mất: …".
 
-**Q-L3-2 — "Hạng xe hứa với khách" nghĩa là gì?**
-- **(a) Chỉ số chỗ tối thiểu (Khuyến nghị):** vd "xe từ 15 chỗ". Làm được ngay.
-- **(b) Thêm danh mục "loại xe"** (Limousine, ghế da, thường…): mỗi xe khai loại, chặng hứa loại. Thêm một danh mục và một cột trên xe.
+**Q-L3-1 — Khách mua "xe riêng" (hoặc "xe từ 16 chỗ"), nhưng người xếp xe ghép thêm khách đơn khác (hoặc xếp vào xe 7 chỗ). Máy làm gì?**
+- **(a) Khuyến nghị — chặn; Quản trị / Toàn quyền cho phép được, kèm lý do (vd xe hỏng, khách đồng ý đi chung)** — Được: lời hứa với khách được giữ; lúc bất khả kháng vẫn chạy được và có người chịu trách nhiệm. Mất: thêm một bước duyệt khi có sự cố.
+- **(b) Chỉ cảnh báo, vẫn cho xếp** — Được: không vướng. Mất: dễ quên lời hứa, khách khiếu nại.
+- **(c) Chặn hẳn, không ai cho phép được** — Được: chắc chắn nhất. Mất: xe hỏng sát giờ thì không có cách chạy tạm.
 
-**Q-L3-3 — Xe đã có "Kiểm định" đang dùng, người nhập lại bấm "Thêm Kiểm định" (thay vì Gia hạn). Máy làm gì?**
-- **(a) Không cho thêm, bảo "dùng Gia hạn" (Khuyến nghị).** Dòng song song đã có thì Quản trị huỷ dòng nhập nhầm.
-- **(b) Cho thêm, chỉ cảnh báo** (câu kiểm định kỳ đã giao làm).
+**Q-L3-2 — "Hạng xe hứa với khách" nên hiểu thế nào?**
+- **(a) Khuyến nghị — chỉ là số chỗ tối thiểu (vd "xe từ 15 chỗ")** — Được: làm được ngay, dùng số chỗ đã khai của từng xe. Mất: không phân biệt được xe sang (Limousine) với xe thường cùng số chỗ.
+- **(b) Thêm danh sách "loại xe" (Limousine, ghế da, thường…); mỗi xe khai loại, đơn hứa loại** — Được: hứa đúng loại xe. Mất: thêm một danh sách phải quản lý và khai lại mọi xe.
+
+**Q-L3-3 — Xe đã có giấy Kiểm định đang dùng, người nhập lại bấm "Thêm Kiểm định" (thay vì "Gia hạn"). Máy làm gì?**
+- **(a) Khuyến nghị — không cho thêm, bảo "dùng Gia hạn"** — Được: mỗi loại giấy của một xe chỉ một bản đang dùng, máy không đọc nhầm hạn. Mất: người nhập phải bấm đúng nút; bản trùng đã có thì Quản trị huỷ tay.
+- **(b) Cho thêm, chỉ cảnh báo** — Được: không vướng. Mất: có thể có hai bản cùng loại, lúc xuất bến máy có thể lấy nhầm bản còn hạn.
 
 ## Giả định đã tự đặt (bề mặt, đảo ngược được)
 
@@ -230,4 +235,4 @@ Hai quyết định chạm dữ liệu (trần 3 — `CLAUDE.md` §9). Để lư
 - **Pháp lý ghép khách xe hợp đồng:** **chưa có người chuyên môn kiểm**.
 - Nhu cầu thật: bao nhiêu đơn mua xe riêng / xe cỡ lớn.
 - Số dòng giấy tờ xe song song trên production (chờ K-01).
-- Tệp đề xuất chưa có người kiểm độc lập.
+- Người kiểm độc lập đã xem bản `9cf9431`; bản sửa khuôn câu hỏi chưa được kiểm lại.

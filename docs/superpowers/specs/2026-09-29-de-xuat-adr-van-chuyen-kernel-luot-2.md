@@ -2,7 +2,7 @@
 
 - **Trạng thái:** **ĐỀ XUẤT — chờ chủ duyệt, sau lượt 1** (`2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-1.md`).
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2).
-  - Chưa có người kiểm độc lập.
+  - Người kiểm độc lập bộ đề xuất (đỉnh `9cf9431`): ĐẠT CÓ ĐIỀU KIỆN; phần của tệp này chỉ phải sửa khuôn câu hỏi (đã sửa, chưa kiểm lại).
   - Không đặt tệp ở `docs/adr/`.
 - **Ngày:** 2026-09-29.
 - **Nguồn:**
@@ -270,19 +270,21 @@ Ba quyết định chạm dữ liệu — trần của một lượt (`CLAUDE.md
 
 ## Câu hỏi cho chủ (lời thường — trả lời một lần cho cả ba)
 
-**Q-L2-1 — Quản trị ghi lịch xưởng cho xe, nhưng xe đã được xếp chuyến đúng khung đó. Máy làm gì?**
-- **(a) Không cho ghi (Khuyến nghị):** báo "xe đang có chuyến CX-… lúc …, dời chuyến trước". Không bao giờ có chuyến nằm trong khung bận.
-- **(b) Cho ghi, chuyến đó bị giữ:** chuyến hiện đỏ trên bảng tới khi người xếp đổi xe.
+Khuôn `CLAUDE.md` §4: khuyến nghị đứng đầu; mỗi phương án một dòng "làm gì — Được: … Mất: …".
 
-**Q-L2-2 — Tài xế vượt giờ lái trong ngày (cộng giờ các chuyến > 8 giờ), máy làm gì?**
-- **(a) Chỉ cảnh báo trên bảng và lúc xếp (Khuyến nghị):** vì giờ chuyến gồm cả giờ chờ, con số pháp lý chưa được kiểm.
-- **(b) Như khoảng nghỉ:** chặn, Quản trị / Toàn quyền phá lệ kèm lý do.
-- **(c) Chặn cứng**, không ai phá lệ.
+**Q-L2-1 — Quản trị ghi lịch đưa xe vào xưởng thứ Ba 8:00–17:00, nhưng xe đã được xếp một chuyến lúc 9:00 thứ Ba. Máy làm gì?**
+- **(a) Khuyến nghị — không cho ghi lịch xưởng, báo "xe đang có chuyến lúc 9:00, dời chuyến trước"** — Được: không bao giờ có chuyến rơi vào giờ xe nằm xưởng. Mất: phải dời chuyến trước rồi mới ghi được lịch.
+- **(b) Cho ghi, chuyến 9:00 bị giữ đỏ tới khi người xếp đổi xe** — Được: ghi lịch nhanh. Mất: không ai đổi xe thì sáng thứ Ba chuyến kẹt.
 
-**Q-L2-3 — Số hiệu chuyến bay làm tới đâu?**
-- **(a) Chỉ một ô số hiệu trên chặng (Khuyến nghị):** hiện cho người xếp xe và tài xế; tài xế tự tra khi trễ.
-- **(b) Thêm ô "giờ hạ cánh dự kiến":** máy cảnh báo khi giờ đón quá sát giờ hạ cánh.
-- **(c) Để sau:** chưa rõ bao nhiêu chuyến là đưa đón sân bay.
+**Q-L2-2 — Cộng giờ các chuyến trong ngày, một tài xế vượt 8 giờ (hoặc một chuyến dài quá 4 giờ). Máy làm gì?**
+- **(a) Khuyến nghị — chỉ cảnh báo trên bảng và lúc xếp, không chặn** — Được: không vướng việc; người xếp thấy để điều chỉnh. Mất: ai lờ đi thì tài xế vẫn chạy quá giờ. (Giờ chuyến gồm cả giờ chờ, và con số luật chưa có người chuyên môn kiểm, nên chặn dễ chặn nhầm.)
+- **(b) Chặn như khoảng nghỉ; Quản trị / Toàn quyền cho phép kèm lý do** — Được: vượt giờ luôn có người chịu trách nhiệm. Mất: Quản trị có thể phải duyệt gần như mỗi ngày vì giờ tính dư.
+- **(c) Chặn hẳn, không ai cho phép được** — Được: chặt nhất. Mất: chặn nhầm cả chuyến có nhiều giờ chờ.
+
+**Q-L2-3 — Ghi số hiệu chuyến bay (vd VN1553) cho khách đón / tiễn sân bay tới mức nào?**
+- **(a) Khuyến nghị — chỉ một ô số hiệu; người xếp xe và tài xế thấy, tài xế tự tra khi máy bay trễ** — Được: làm nhanh, đủ dùng. Mất: máy không tự biết máy bay trễ.
+- **(b) Thêm ô "giờ hạ cánh dự kiến" để máy nhắc khi giờ đón quá sát** — Được: bớt đón hụt. Mất: mỗi đơn thêm một ô phải nhập.
+- **(c) Để sau** — Được: không tốn công lúc này. Mất: tài xế vẫn phải hỏi văn phòng số chuyến bay.
 
 ## Giả định đã tự đặt (bề mặt, đảo ngược được)
 
@@ -297,4 +299,4 @@ Ba quyết định chạm dữ liệu — trần của một lượt (`CLAUDE.md
 - Pháp lý giờ lái: theo [TRA], **chưa có người chuyên môn kiểm**.
 - Nhu cầu thật: xe có lịch xưởng đặt trước bao nhiêu lần / tháng; tỉ lệ đưa đón sân bay.
 - `ALTER TABLE ADD COLUMN … NOT NULL DEFAULT … CHECK` trên D1 cho `vc_dispatch_policy`: thử trên `node:sqlite` và D1 local (bài học R-P4).
-- Tệp đề xuất chưa có người kiểm độc lập.
+- Người kiểm độc lập đã xem bản `9cf9431`; bản sửa khuôn câu hỏi chưa được kiểm lại.
