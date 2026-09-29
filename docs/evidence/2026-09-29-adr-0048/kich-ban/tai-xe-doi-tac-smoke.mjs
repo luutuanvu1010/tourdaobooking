@@ -5,7 +5,7 @@
 //  2) 1040 Tài xế đối tác /account: khối "Giấy tờ của tôi" (số che, không nút); menu không có mục văn phòng / Vận chuyển / Đơn hàng.
 //  3) 1040 Quản trị /giay-to-sap-het-han: dòng xe của nhà xe X và dòng tài xế đối tác thuộc X có nhãn phụ "Nhà xe: X"; dòng xe công ty KHÔNG có; không số.
 //  4) 390 Quản trị: như trên ở danh sách điện thoại; không tràn ngang; axe.
-// Kho cookie dùng chung (web/CLAUDE.md): mỗi trang đóng trước khi mở tài khoản khác; trang Tài xế đối tác chạy trước trên máy chưa có bản nhớ khung. Dựng trên vc-lib.mjs (a2-cdp.mjs). Số giấy tờ, SĐT là số GIẢ.
+// Kho cookie dùng chung (web/CLAUDE.md): mỗi trang đóng trước khi mở tài khoản khác; trang Tài xế đối tác chạy trước (env.as gắn cookie thẳng, KHÔNG qua /login nên không xoá bản nhớ khung ADR-0035). Dựng trên vc-lib.mjs (a2-cdp.mjs). Số giấy tờ, SĐT là số GIẢ.
 // Chạy từ GỐC repo, sau `npm run build:web`:
 //   AXE_JS=<…/axe.min.js> CHROME_BIN=docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh OUT=<thư mục ảnh> node docs/evidence/2026-09-29-adr-0048/kich-ban/tai-xe-doi-tac-smoke.mjs
 import { randomUUID } from "node:crypto";
@@ -39,8 +39,9 @@ try {
   await themGiayXe(xeCt.id, { typeCode: "INSPECTION", number: "KD-CONGTY-7", expiryDate: vnDate(7) });
   await themGiayNguoi(txParty, { typeCode: "GPLX", number: SO_DU[0], classCode: "D2", issuedDate: vnDate(-900), expiryDate: vnDate(9) });
 
-  // ---- Trang của tài khoản Tài xế đối tác chạy TRƯỚC trên máy "sạch": web/home.ts gọi sớm dashboard đơn theo BẢN NHỚ KHUNG của máy (ADR-0035) nếu người dùng
-  // trước trên máy xem được mọi đơn (kết quả 403 bị bỏ — hành vi có sẵn của máy dùng chung, không do ADR-0048). Mỗi trang đóng trước khi mở tài khoản khác.
+  // ---- Trang của tài khoản Tài xế đối tác chạy TRƯỚC trên máy "sạch": env.as gắn cookie phiên thẳng, KHÔNG đi qua /login — mà /login mới là chỗ xoá
+  // BẢN NHỚ KHUNG (ADR-0035, web/login.ts xoaKhungNho). Nếu trang Quản trị chạy trước, web/home.ts sẽ gọi sớm dashboard đơn theo khung của Quản trị
+  // (403 bị bỏ) — chỉ là giả tạo của cách đăng nhập trong kịch bản; người dùng thật qua /login không gặp. Mỗi trang đóng trước khi mở tài khoản khác.
   await dem.step("1", "390 Tài xế đối tác mở “/” → /tai-xe; không gọi /api/orders*; hai tab; giấy của mình; số đủ không trong DOM" + axeNote(), async () => {
     const p = await env.as(TX_DT, "/", MOB);
     try {
