@@ -68,3 +68,16 @@ Người kiểm nhanh đề xuất ADR-0049 chỉ ra: ĐP2(iv) chưa hỏi trư�
 |---|---|
 | ĐP2(v): "Nhân viên lập đơn lúc 2 giờ 20 sáng cho khách cần đón lúc 6 giờ 30 (chỉ còn hơn 4 giờ, dưới mốc 6 giờ). Bấm Lưu nháp thì máy làm gì?" — hai phương án: "Cho lưu nháp, chặn ở Xác nhận" / "Chặn ngay từ lúc lưu" | **"Cho lưu nháp, chặn ở Xác nhận"** — đơn nháp lưu được (hiện cảnh báo), xác nhận bị chặn tới khi Quản trị / Toàn quyền bấm "Đặt gấp" kèm lý do |
 | "Duyệt quyết định Bảng điều phối chung, lượt 1 (9 điểm ở trên)?" — tóm tắt 9 điểm trình trong chat | **"Duyệt, ghi theo câu 1"** — điều kiện điều phối đã nêu: người kiểm xem lại bản cuối rồi mới ghi thành ADR-0049 chính thức |
+
+Kết quả điều kiện: người kiểm xem bản cuối (đỉnh `dcea833`) ĐẠT 8/8 mục → điều phối ghi `docs/adr/ADR-0049-bang-dieu-phoi-chung-luot-1.md` (accepted, 29/9).
+
+## Trả lời lần 5 (29/9, duyệt hai tệp đề xuất sửa luật của ADR-0047 và ADR-0048)
+
+Hỏi sau khi người kiểm độc lập Phần A của cả hai nhánh báo: ADR-0048 (đỉnh `3d8f4b0`) ĐẠT; ADR-0047 (đỉnh `6bb67c8`) ĐẠT CÓ ĐIỀU KIỆN — điều kiện duy nhất là chủ duyệt bốn mục nới luật trước khi gộp. Điều phối xếp lượt: ba mục chạm dữ liệu/quyền (0047 mục 2, 0047 mục 3, 0048 mục 1) + hai mục chỉ là quy tắc đặt tên (0047 mục 1, mục 7) — trong trần 3 của `CLAUDE.md` §9.
+
+| Câu (điều phối hỏi, tóm đúng nội dung đã hiện cho chủ) | Chủ chọn |
+|---|---|
+| ADR-0047, tệp `docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md`: "cho phép 4 ngoại lệ luật để gộp được không? (1) bảng mới của phần Đơn đặt tên bắt đầu bằng 'ord_'; (2) đơn còn NHÁP: lưu lại thì xoá hẳn chặng + tên khách cũ rồi ghi mới (đúng câu bạn chọn 'chỉ giữ bản cuối'), đơn đã xác nhận máy vẫn cấm xoá; (3) tạm cho phần Đơn đọc sổ nhật ký để biết 'lần lưu này có thắng không' như đang làm, hạn tới 31/3/2027; (4) cột họ tên khách tên 'full_name' trùng chữ với một cột bỏ đi của bảng nhân viên — cho đúng một tệp được nhắc chữ này, có bài kiểm bảo đảm không đụng bảng nhân viên. Kèm ghi 4 điều vào tài liệu luật cho khớp máy." — ba phương án: "Duyệt cả 4" / "Duyệt 1–3, đổi tên cột" / "Chưa, giải thích thêm" | **"Duyệt cả 4"** — tức mục 1, 2 (kể cả 2b, 2c sửa `docs/ARCHITECTURE.md`), 3 (hạn `2027-03-31`), 7 của tệp đề xuất, và mục 4a, 4b (tài liệu luật). **Chưa hỏi:** 4c (`web/CLAUDE.md`, điền ở Phần B), 4d (dòng bẫy tuỳ chọn ở `CLAUDE.md` §10), mục 6 (phát hành 2) — hỏi khi tới |
+| ADR-0048, tệp `docs/superpowers/plans/2026-09-29-adr-0048-de-xuat-luat.md`: "duyệt đề xuất luật? Gồm: mở hàng rào 'tài khoản người ngoài chỉ giữ quyền Đối tác' thành 'Đối tác HOẶC Tài xế đối tác' (… kèm luật siết mới: Tài xế đối tác không giữ thêm quyền nào khác …), và ghi tài liệu luật cho khớp (Hiến chương phần kỹ thuật, luật thư mục mã, CLAUDE.md: 8 → 9 quyền). … Riêng dòng bảng kịch bản giao diện sẽ hỏi sau khi xong giao diện." — hai phương án: "Duyệt" / "Chưa duyệt" | **"Duyệt"** — tức mục 1 (1a–1d), 3, 4, 6 (6a, 6b). **Chưa hỏi:** mục 5 (`web/CLAUDE.md`, điền ở Phần B) |
+
+Cách áp (theo bài học 28/9: việc NỚI do phiên nhận lời chủ TRỰC TIẾP làm): điều phối áp các diff sửa tệp luật lúc gộp (Task K3 của từng kế hoạch), mỗi tệp một commit, chủ bấm Đồng ý ở hộp hỏi quyền; đổi chú thích "CHỜ CHỦ DUYỆT" trong `src/architecture.test.ts` thành "đã duyệt 2026-09-29"; người kiểm so khớp phần áp.
