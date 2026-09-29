@@ -3,31 +3,31 @@
 - **Kế hoạch:** `docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md` (vai lập kế hoạch, 2026-09-29; đo trên `377813d`).
 - **Đề xuất sửa luật:** `docs/superpowers/plans/2026-09-29-adr-0048-de-xuat-luat.md` (CHỜ CHỦ DUYỆT).
 - **Nguồn chuẩn tắc:** ADR-0048 (accepted 2026-09-28: D1, D2; Q4 = Q5 = Q6 = (a)).
-- **Nhánh thi công:** _(điền: tên nhánh, worktree, tách từ đâu @ mã commit, đã gộp những gì)_
-- **Cách thi công:** _(điền: subagent-driven / executing-plans; ai giao vai)_
-- **Trạng thái:** CHƯA BẮT ĐẦU.
+- **Nhánh thi công:** `worktree-agent-ae0f600ceaab6d8b4` (worktree `.claude/worktrees/agent-ae0f600ceaab6d8b4`), tách từ `main` @ `ce831f8`; đã gộp nhánh kế hoạch `worktree-agent-a41aedf108f7e51a8` @ `2602301` (chứa `adr-van-chuyen-0047-0048` @ `96d7048`, ADR-0048 accepted) bằng `git merge --no-ff` → `3e6b719`.
+- **Cách thi công:** executing-plans, một phiên thi công (vai "người thi công Phần A") do điều phối giao 2026-09-29. Không tự nghiệm thu.
+- **Trạng thái:** ĐANG THI CÔNG Phần A (A0 → A15). Phần B chưa làm (điều phối: dừng sau A15).
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
 
 | Bước | Kết quả |
 |---|---|
-| 1. ADR-0048 accepted trên nhánh | |
-| 2. `docs/quyen-hoan.json` → `phat_hien` | |
-| 3. Chưa ai thêm `DRIVER_PARTNER` / `DRIVER_EXTERNAL` / `CARRIER` / `DRIVES_FOR` | |
-| 4. Số migration; nhánh ADR-0047 đã gộp `main` chưa; 0034–0036 có chạm `stf_`/`pty_`/`vc_` không | |
-| 5. Mốc `npm test` / `typecheck` (số test, số lỗi, `uptime` nếu ca CPU đỏ) | |
-| 6. Mốc e2e (đỏ sẵn có) | |
-| 7. Độ lệch số dòng trích dẫn so với `377813d` | |
-| 8. Chỗ "đúng số lượng" mới tìm thấy (ngoài mục 1.2 của kế hoạch) | |
-| 9. Mốc Chrome (✓/✗ từng kịch bản; số ô vai màn hình đang có) | |
+| 1. ADR-0048 accepted trên nhánh | Có: `docs/adr/ADR-0048-nha-xe-doi-tac-va-tai-xe-doi-tac.md`, dòng Trạng thái "**accepted**", Q4 = Q5 = Q6 = (a) (đọc 2026-09-29 trên `3e6b719`). |
+| 2. `docs/quyen-hoan.json` → `phat_hien` | `[]` — không xây trên lỗ đang hở. |
+| 3. Chưa ai thêm `DRIVER_PARTNER` / `DRIVER_EXTERNAL` / `CARRIER` / `DRIVES_FOR` | `grep -rn` trong `src migrations web` → rỗng. |
+| 4. Số migration; nhánh ADR-0047 đã gộp `main` chưa; 0034–0036 có chạm `stf_`/`pty_`/`vc_` không | Số lớn nhất `0033_van_chuyen_xe.sql`. Nhật ký git trên MỌI nhánh (`--all`) lọc theo `migrations/0034*` … `migrations/004*` → rỗng: CHƯA nhánh nào (kể cả ADR-0047) có tệp 0034+ ⇒ ADR-0047 chưa gộp `main`, chưa có migration thật để soát; không áp phần "nhánh gộp sau" của mục 1.7 (không thêm ô `order.passenger.write`). Để K3 kiểm lại. |
+| 5. Mốc `npm test` / `typecheck` (số test, số lỗi, `uptime` nếu ca CPU đỏ) | `npm ci`; `npm test` **1313/1313** xanh (0 đỏ, kể cả ca CPU `claude-guard`; `uptime` lúc đo: tải 3.46 2.84 2.45); `npm run typecheck` **0 lỗi**. Node v22.22.3. |
+| 6. Mốc e2e (đỏ sẵn có) | `npm run test:e2e` (đủ bộ) **24/24 kịch bản xanh**, đuôi `audit-invariants` đạt (một cảnh báo sẵn có `R-ORD-6a` — mức cảnh báo, không chặn). Không đỏ sẵn có. Một người thi công khác chạy wrangler song song ở worktree `agent-aa4ba1b121f98db87` — không đụng tới tiến trình của họ. |
+| 7. Độ lệch số dòng trích dẫn so với `377813d` | 0 — mã và migration giống `ce831f8`; đã soát `permissions.ts:5,29-31,52-104,158-168`, `roles.ts:7-10,49,75-81,130-158`, `permissions.test.ts:11-53,249-280`, `cong-quyen.test.ts:50-84`, `accounts/index.ts:46-58,341-391,509-600`, `staff/index.ts:159-175,236-323`, `parties/index.ts:129-139,770-796`, `van-chuyen/rules.ts:109-118`, `migrations/0024:75-79`: khớp. |
+| 8. Chỗ "đúng số lượng" mới tìm thấy (ngoài mục 1.2 của kế hoạch) | Không có chỗ mới ngoài danh sách của kế hoạch: `permissions.test.ts:249-261`, `cong-quyen.test.ts:49-53`, `handler-view.test.ts:127-130`, `bang-tin.test.ts:25-35,309`, `start-page.test.ts:59-68`, `giay-to-hien-thi.test.ts:153-154`, `roles.test.ts:11-16`, `route-access.test.ts:214,237-238`, `tai-xe-cong.test.ts:88`, `vai-smoke.mjs:31-34`. Bẫy thêm: `roles.test.ts:17` khẳng định MỌI vai bên ngoài mặc định đúng `["PARTNER"]` — sẽ đỏ với `DRIVER_EXTERNAL` (sửa có ngoại lệ tường minh, không xoá vòng). |
+| 9. Mốc Chrome (✓/✗ từng kịch bản; số ô vai màn hình đang có) | `npm run build:web` rồi chạy (axe `/private/tmp/tach-dm-axe/package/axe.min.js`, `OUT=/tmp/adr48-chrome-out/a0/…`): `vai-smoke` ✓7 xanh (Quản trị thấy **10** ô vai); `xe-smoke` ✓13 xanh; `tai-xe-trang-dau-smoke` ✓4 xanh; `nhan-tai-xe-smoke` ✓4 xanh. **Đỏ sẵn có:** `dot-a-smoke` ✗ sau ✓8 ("hết giờ chờ: nhat-ky: thẻ đã dựng xong" — trang Nhật ký nay chỉ Toàn quyền, ADR-0038); `trang-chu-smoke` ✗ sau ✓11 ("phải có đúng 2 dòng cảnh báo (Sheet đổi giá + góp ý)", thấy 1 — góp ý nay chỉ Toàn quyền, ADR-0038). Hai đỏ này có trước, không do ADR-0048. |
 
 ## 2. Câu trả lời của chủ dự án
 
 | Câu | Trả lời (nguyên văn, ngày giờ, kênh) | Áp ở |
 |---|---|---|
-| Q1 — sửa chủ xe sau khi thêm | _(chờ)_ | Task A9 bước 5 |
-| Q2 — màn "Nhà xe" riêng | _(chờ)_ | Phần B |
+| Q1 — sửa chủ xe sau khi thêm | **"Sửa được, ghi nhật ký"** — chủ trả lời trực tiếp điều phối 2026-09-29, điều phối chuyển lại trong lời giao việc = phương án (a): nhật ký ghi "chủ A → B" | Task A9 bước 5 (làm theo (a)) |
+| Q2 — màn "Nhà xe" riêng | **Không làm màn riêng "Nhà xe"** — tìm nhà xe ở Danh bạ bằng ô lọc; danh sách xe lọc theo chủ xe (chủ ↔ điều phối 2026-09-29, điều phối chuyển lại) = phương án (a) | Phần B |
 | Duyệt tệp đề xuất luật (mục 1–6) | _(chờ)_ | Task K3 |
 
 ## 3. Bảng từng task
@@ -59,7 +59,10 @@ Diễn giải I1–I8 của kế hoạch mục 0 chờ điều phối xác nhậ
 
 | Mã | Nội dung | Áp ở | Giá nếu sai |
 |---|---|---|---|
-| | | | |
+| R-ĐP1 (điều phối 2026-09-29) | **I1–I8 và G1–G7 CHẤP NHẬN như kế hoạch đề xuất**, kể cả G2 (quan hệ "Tài xế của" không đặt trước ngày kết thúc lúc tạo → 400) | mọi task Phần A | bác G2 → bỏ một điều kiện ở Task A6 |
+| R-ĐP2 (điều phối 2026-09-29) | Migration dùng **0037, 0038, 0039**. Nhánh ADR-0047 thi công SONG SONG, dùng 0034–0035 | A1, A5, A8 | trùng số → đổi tên tệp nhánh lên sau |
+| R-ĐP3 (điều phối 2026-09-29) | Hai nhánh cùng đụng `src/shared/permissions.ts` + `permissions.test.ts`; ADR-0047 thêm ô `order.passenger.write`. Làm đúng mục 1.7 của kế hoạch, **KHÔNG tự thêm ô của nhánh kia**; nhánh gộp SAU xử lý cột thứ 9 cho ô của nhánh kia | A1 | ô lạ lọt vào bản đồ không qua ADR |
+| R-TC1 (người thi công tự diễn giải, 2026-09-29 — điều phối sửa nếu sai) | Lời giao "Nới LC-1 (trigger, `R-LC-1`, `EXTERNAL_ALLOWED`) chỉ ghi vào tệp đề xuất luật. Không sửa tệp luật thật" được hiểu là: **thi công trong mã** đúng như kế hoạch (trigger tạo lại ở migration 0037, `EXTERNAL_PERMISSIONS` thay `EXTERNAL_ALLOWED`, câu kiểm `R-LC-1` ở A11) — vì lời giao cũng đòi P16 cho "LC-1 mới" — và **ghi phần nới vào tệp đề xuất luật mục 1** để chủ xác nhận trước khi gộp. "Tệp luật thật" = `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/adr/`, `playbook/`, `.claude/`: **không sửa**. `src/architecture.test.ts` không sửa | A1, A11, A14 | nếu điều phối muốn chưa thi công phần nới: hoàn nguyên đoạn trigger LC-1 của 0037, hằng, `R-LC-1` — khi đó không cấp được tài khoản Tài xế đối tác |
 
 ## 5. Sự cố
 
