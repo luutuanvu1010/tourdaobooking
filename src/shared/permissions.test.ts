@@ -279,7 +279,7 @@ test("seesOnlyAssignedOrders: trên cả 512 tập con quyền — đúng bằng
 // ADR-0040 D3 + Ruling R2 (điều phối 2026-09-28): cột Tài xế (DRIVER) — lượt 1a MỌI ô nghiệp vụ = không. Ngoại lệ có tên: gửi/xem góp ý của mình
 // (ADR-0038, như mọi tài khoản) và xem giấy tờ của chính mình (ô thêm ở Task A7). Liệt kê TỪNG ô, không suy từ MATRIX: thêm ô mới mà quên cột
 // DRIVER thì đỏ ở đây — buộc người thêm QUYẾT giá trị cho tài xế (khuôn bài ghim hàng Đối tác, src/modules/orders/xem-don-theo-quyen.test.ts).
-test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", () => {
+test("ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", () => {
   const DRIVER_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",

@@ -783,6 +783,33 @@ test("ADR-0049 D2 (siết, kế hoạch mục 1.6): chỉ gốc lắp ráp (src/
   assert.deepEqual(problems, [], "orders nhận mốc qua ctx.mocToiThieu — không gọi thẳng hàm công bố của van-chuyen");
 });
 
+// ADR-0049 Task A19 (siết do điều phối giao): `taoAppChoKhungThu` (src/index.ts) dựng ứng dụng với hàm tiêm GHI ĐÈ (mốc giả, bỏ nhãn người bấm…) — chỉ khung
+// thử được gọi. Quét MỌI tệp mã của kho (src, web, scripts, tests, docs — .ts/.mjs/.js/.cjs, bỏ chú thích, GIỮ chuỗi vì khung thử nhắc tên trong chuỗi esbuild):
+// chỉ hai tệp được nhắc tên — src/index.ts (đúng MỘT lần: chỗ khai `export function`) và tests/audit/harness.mjs.
+function walkCode(dir: string): string[] {
+  return readdirSync(dir).flatMap((name) => {
+    if (name === "node_modules" || name.startsWith(".")) return [];
+    const p = join(dir, name);
+    if (statSync(p).isDirectory()) return walkCode(p);
+    return /\.(ts|mjs|js|cjs)$/.test(p) && !p.endsWith(".d.ts") ? [p] : [];
+  });
+}
+test("ADR-0049 A19 (siết): `taoAppChoKhungThu` chỉ được khai ở src/index.ts và chỉ khung thử tests/audit/harness.mjs gọi", () => {
+  const nhac = new Map<string, number>();
+  for (const goc of ["src", "web", "scripts", "tests", "docs"]) {
+    for (const file of walkCode(join(ROOT, goc))) {
+      const rel = relative(ROOT, file).split(sep).join("/");
+      if (rel === "src/architecture.test.ts") continue;
+      const n = (maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }).match(/\btaoAppChoKhungThu\b/g) ?? []).length;
+      if (n > 0) nhac.set(rel, n);
+    }
+  }
+  assert.deepEqual([...nhac.keys()].sort(), ["src/index.ts", "tests/audit/harness.mjs"], "chỉ gốc lắp ráp (khai) và khung thử (gọi) được nhắc taoAppChoKhungThu");
+  assert.equal(nhac.get("src/index.ts"), 1, "src/index.ts chỉ KHAI hàm — mã chạy thật (export default) không gọi nó");
+  const goc = maskSource(readFileSync(join(SRC, "index.ts"), "utf8"), { strings: false, comments: true });
+  assert.match(goc, /\bexport function taoAppChoKhungThu\(/, "chỗ nhắc duy nhất ở gốc là chỗ khai");
+});
+
 test("R-P19 (chủ chốt 29/9, Trả lời lần 13): mỗi tham chiếu LOGIC của sổ dữ liệu — cột có thật, KHÔNG khoá ngoại trên cột đó, bảng đích và view trung gian có thật, view thuộc module của bảng đích", () => {
   const refs = dict.tables.flatMap((t) => (t.logicalRefs ?? []).map((r) => ({ t, r })));
   assert.ok(refs.length >= 3, "chống bài rỗng: leg_id, passenger_key, passenger_row_id");

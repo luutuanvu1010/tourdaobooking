@@ -523,3 +523,10 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **GA-56 (hai chiều — phạm vi "đủ tuyến"):** "route ghi van-chuyen mới" = mọi route có đường dẫn `/api/van-chuyen/{lich, chuyen, cuoc-cua-toi, chang, nhac-goi-khach, chinh-sach-dieu-phoi}` (cả GET — để quét thân); route xe / giấy tờ xe / điều kiện / danh mục (lượt 1a) thuộc bài giấy tờ, không vào khối này.
 - P16: 9 phép khối tên + 3 phép khối số — đều đỏ đúng câu (sổ hàng rào hai dòng). `npm test` 1774 (1 đỏ = bài đo giờ hook `claude-guard` khi máy bận — chạy riêng 11/11 xanh, như A-GB).
 
+### 10.23 A19 — Sổ hàng rào
+
+- Đối chiếu danh sách 15 nhóm của kế hoạch với `docs/SO-HANG-RAO.md`: mọi nhóm đã có dòng (ghi dần ở A9…A18) TRỪ bài ghim `trip.override` + `trip.view = any ⇒ contact.view = any` (có bài từ A13/A15, chưa có dòng) → thêm dòng + P16 (hai phép đỏ). K-03 đã gộp vào dòng LC-03, LC-04 (A12); K-02 ở dòng R-VC-16 ("không phủ chữ tự do").
+- Sửa dòng cũ theo đề xuất luật: dòng ghim `DRIVER` (mục 2b — nghĩa mới, ngày thấy chặn lại của bài đã sửa); dòng "họ tên không lọt" (mục 3b — trừ hai route điều phối, trỏ ba dòng mới). Chú thích đầu `src/hanh-khach-khong-lo-ten.test.ts` thêm đoạn (6) (mục 3a) — đều ghi "CHỜ CHỦ DUYỆT".
+- **GA-57 (bề mặt, hai chiều):** mục 3a đề xuất đổi TÊN bài 1 của tệp; giữ tên cũ vì bài 1 chỉ chạy route `orders` — phần van-chuyen là bài 2 riêng có tên nói đúng hai route trả tên. Đổi tên = sửa một chuỗi.
+- Siết thêm (điều phối giao): bài `src/architecture.test.ts` "`taoAppChoKhungThu` chỉ được khai ở src/index.ts và chỉ khung thử gọi" — quét src, web, scripts, tests, docs; P16 hai phép đỏ; sổ một dòng.
+
