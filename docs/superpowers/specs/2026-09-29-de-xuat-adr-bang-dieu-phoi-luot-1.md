@@ -1,9 +1,9 @@
 # Đề xuất ADR-0049 — Bảng điều phối chung, lượt duyệt 1: chuyến xe và lịch chung; luật, chính sách, mốc 6 giờ; quyền và route tài xế công ty (Vận chuyển)
 
-- **Trạng thái:** **ĐỀ XUẤT — chờ chủ dự án bấm duyệt.** Tệp này **không** nằm trong `docs/adr/`. Khi chủ duyệt, điều phối chép phần "Quyết định" trở xuống sang `docs/adr/ADR-0049-….md`, ghi nguyên văn lời duyệt vào dòng trạng thái, và cập nhật `docs/adr/README.md`. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2).
+- **Trạng thái:** **ĐỀ XUẤT — chủ đã duyệt 29/9 "Duyệt, ghi theo câu 1"** (ĐP2(v) = lưu nháp được, chặn ở Xác nhận — [HĐ] "Trả lời lần 4"); **chờ người kiểm xem bản cuối** rồi điều phối chép sang `docs/adr/` (ADR-0049, số đã giữ chỗ ở `docs/adr/README.md`). Tệp này **không** nằm trong `docs/adr/`; AI không tự tạo tệp ở đó. Khi chép, điều phối ghi nguyên văn lời duyệt vào dòng trạng thái và cập nhật `docs/adr/README.md`. AI soạn (vai lập kế hoạch), không tự duyệt (Hiến pháp N3, Điều 7.2).
 - **Ngày:** 2026-09-29.
 - **Nguồn:** bản thiết kế `docs/superpowers/specs/2026-09-29-bang-dieu-phoi-chung-design.md` (gọi tắt **[TK]**), Phần 1–3, 6 và 8, phần của lượt duyệt 1 (D1, D2, D3). Lời chủ nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (gọi tắt **[HĐ]**), kể cả mục "Trả lời lần 2".
-- **Kiểm độc lập:** bản thiết kế [TK] — CÓ ĐIỀU KIỆN (4 lỗi CAO), đã sửa, kiểm lại **ĐẠT** (29/9). Tệp đề xuất này là bản rút của [TK], **chưa có người kiểm riêng**.
+- **Kiểm độc lập:** bản thiết kế [TK] — CÓ ĐIỀU KIỆN (4 lỗi CAO), đã sửa, kiểm lại **ĐẠT** (29/9). Tệp đề xuất: kiểm nhanh 29/9 — **CẦN SỬA nhẹ** (ĐP2(v), nguồn C21), đã sửa ở `__DINH__`.
 - **Thay:** lượt duyệt 2 (B1, B2, B3) của `docs/superpowers/specs/2026-09-28-de-xuat-adr-van-chuyen-1b.md` (chưa từng được duyệt).
 - **Loại:**
   - **một chiều:** tiền tố và chủ sở hữu các bảng `vc_trip*`; tập trạng thái đóng (chuyến, suất, điểm dừng); bản chụp xuất bến và danh sách hành khách đã chốt (chứng cứ, lưu ≥ 3 năm); dữ liệu cá nhân tài xế đã xem;
@@ -12,7 +12,7 @@
 - **Liên quan:** ADR-0002, ADR-0006, ADR-0007, ADR-0019, ADR-0040, ADR-0047, ADR-0048 (mục "Câu ADR bị thay"). **Không** đụng ADR-0022, ADR-0034 (thông báo, Bảng tin — lượt duyệt 2).
 - **Không xây trên lỗ đang hở:** `docs/quyen-hoan.json` mục `phat_hien` rỗng (kiểm 2026-09-29). Không dùng ô hoãn nào trong mục `thao_tac` (kể cả `task.progress`).
 - **Xây trên nền chưa có (Hiến chương 5.13):** ADR-0047 (chặng, hành khách, `soKhachHieuLuc`, view khoá + cờ, `ord_`) và ADR-0048 (`DRIVER_PARTNER`, `v_pty_carrier_driver`) đã duyệt, **chưa thi công**. Lát của ADR này đứng sau lát nền đó.
-- **Migration:** số dự kiến từ **0040** (0034–0036 giữ cho ADR-0047, 0037–0039 cho ADR-0048 — `docs/adr/README.md`). Năm cột "đặt gấp" trên `ord_transfer_leg`: gộp vào migration của ADR-0047 nếu chưa áp, không thì một migration chỉ thêm cột. Kiểm lại mọi nhánh, worktree lúc thi công.
+- **Migration:** số dự kiến từ **0040** (0034–0036 giữ cho ADR-0047, 0037–0039 cho ADR-0048 — `docs/adr/README.md`). Năm cột "đặt gấp" trên `ord_transfer_leg`: **một migration riêng chỉ thêm cột**, số từ 0040 trở đi — **không** chạm migration 0034–0036 của ADR-0047 đang thi công. Kiểm lại mọi nhánh, worktree lúc thi công.
 
 ---
 
@@ -22,12 +22,12 @@
 2. **Chuyến xe** = một xe + một tài xế + các điểm đón/trả. Mỗi khách là một **"suất"** trên đúng một xe; rời xe là đóng suất, ghi ai, lúc nào, vì sao. Không xoá, không ghi đè.
 3. **Máy chặn:** vượt số chỗ; xe hoặc tài xế trùng giờ; xuất bến khi thiếu điều kiện (giấy tờ, hạng bằng, đủ tên khách). Chuyến thiếu điều kiện bị **giữ**, hiện lý do và ai phải xử lý.
 4. **Mốc 6 giờ** tính tới giờ xe xuất bến. Trong 6 giờ, chỉ khoá "ai đi xe nào", đổi xe, đổi tài xế. **Chỉ Quản trị, Toàn quyền phá lệ**, kèm lý do.
-5. **Đặt gấp:** Bán hàng vẫn lưu nháp đơn sát giờ, nhưng **không xác nhận được** → nhờ Quản trị bấm "Đặt gấp" có lý do → xác nhận. Xếp chặng đó lên xe không phải phá lệ lần nữa.
+5. **Đặt gấp:** Bán hàng vẫn lưu nháp đơn sát giờ, nhưng không xác nhận được → nhờ Quản trị/Toàn quyền bấm "Đặt gấp" có lý do → xác nhận. Xếp chặng đó lên xe không phải phá lệ lần nữa.
 6. **Xếp xe:** Bán hàng, Quản trị, Toàn quyền. Kế toán chỉ xem. Hướng dẫn viên, Đối tác không thấy.
 7. **Tài xế công ty:** thấy chuyến mình lái; tự bấm Xuất bến / Đã tới / Đã đón / Vắng / Kết thúc (văn phòng bấm thay được). Thấy tên, năm sinh, SĐT khách **chỉ trong ngày chạy**. **Tài xế đối tác chưa dùng app cho chuyến** (lượt 3, hỏi riêng).
 8. **Xe đang chạy:** lượt này khoá hẳn kế hoạch, chỉ bấm tiến độ. Xe hỏng → "Kết thúc gián đoạn", văn phòng tạo chuyến cứu hộ mới.
 9. **Chưa có ở lượt này:** chuyển điểm giữa hai xe, văn phòng thêm/báo huỷ điểm khi xe chạy, tin báo điện thoại, gợi ý xếp xe, tài xế tự thêm tên khách.
-10. **Bạn cần:** bấm duyệt (hoặc chỉ chỗ sửa), rồi vẽ 8 màn theo `docs/superpowers/specs/2026-09-29-bang-dieu-phoi-luot-1-man-hinh-can-ve.md`.
+10. **Bạn cần:** bấm duyệt (hoặc chỉ chỗ sửa), rồi vẽ 8 màn theo danh sách màn cần vẽ điều phối gửi.
 
 ---
 
@@ -45,7 +45,8 @@ Lượt duyệt này gồm **ba quyết định chạm dữ liệu và quyền**
   - ĐP6: người xếp xe không đổi giờ hẹn khách của đơn người khác;
   - ĐP7: hợp đồng vận chuyển để sau;
   - ĐP8: kiểm và ghi ngay.
-- Kế hoạch ADR-0047: ngày đón trong [ngày đi − 1, ngày đi + 7]; đơn nháp chỉ giữ bản cuối.
+- [HĐ] "Trả lời lần 3", 29/9: ngày đón trong [ngày đi − 1, ngày đi + 7] — con số điền cho câu "khoảng cho phép (luật đổi được, ở mã — Phần II)" mà ADR-0047 A1 để cho mã, **không** phải câu ADR bị thay (vì vậy không có dòng ở bảng "Câu ADR bị thay"); đơn nháp chỉ giữ bản cuối (cùng mục).
+- [HĐ] "Trả lời lần 4", 29/9: ĐP2(v), chủ trả lời 29/9 ([HĐ] "Trả lời lần 4"): "Cho lưu nháp, chặn ở Xác nhận". Chủ đã được nói rõ cách này lỏng hơn câu "áp cả lúc khách đặt (biểu mẫu)" ngày 28/9 và vẫn chọn. Lời duyệt ADR này: "Duyệt, ghi theo câu 1".
 
 ---
 
@@ -153,7 +154,7 @@ Lượt duyệt này gồm **ba quyết định chạm dữ liệu và quyền**
 
 | Lúc | Luật | Ai phá lệ |
 |---|---|---|
-| **Đặt** | Lưu **nháp** chặng dưới mốc được (có cảnh báo). **Xác nhận đơn**, hoặc **sửa ngày, giờ, nơi đón, nơi trả** của chặng đơn đã xác nhận, khi giờ hẹn < bây giờ + mốc → chặn, trừ khi chặng mang **"đặt gấp"**. Điều kiện nằm **trong** câu xác nhận (khuôn `confirmWindow`) | **chỉ Quản trị, Toàn quyền** (ô mới `order.leg.short_notice`), kèm lý do |
+| **Đặt** | Lưu **nháp** chặng dưới mốc được (có cảnh báo) — ĐP2(v), chủ trả lời 29/9 ([HĐ] "Trả lời lần 4"): "Cho lưu nháp, chặn ở Xác nhận". Chủ đã được nói rõ cách này lỏng hơn câu "áp cả lúc khách đặt (biểu mẫu)" ngày 28/9 và vẫn chọn. **Xác nhận đơn**, hoặc **sửa ngày, giờ, nơi đón, nơi trả** của chặng đơn đã xác nhận, khi giờ hẹn < bây giờ + mốc → chặn, trừ khi chặng mang **"đặt gấp"**. Điều kiện nằm **trong** câu xác nhận (khuôn `confirmWindow`) | **chỉ Quản trị, Toàn quyền** (ô mới `order.leg.short_notice`), kèm lý do |
 | **Xếp** | Lệnh đổi **"ai đi xe nào"**, đổi xe, đổi tài xế của chuyến có **giờ xuất bến dự kiến** < bây giờ + mốc → chặn. Đổi thứ tự điểm, chỉnh giờ xe tới **vẫn làm được**, có ghi. Xếp **chính chặng đã đặt gấp** thì qua, không ghi lý do lần nữa | **chỉ Quản trị, Toàn quyền** (ô mới `trip.override`), kèm lý do nhóm `PHA_LE` |
 
 - **Cột "đặt gấp" trên `ord_transfer_leg`** (bổ sung ADR-0047 A1): `short_notice_reason`, `short_notice_note` (≤ 120 ký tự, che dãy số), `short_notice_by`, `short_notice_at`, `short_notice_lead_minutes` (số phút đã dùng — chụp tại mốc, 5.6).
@@ -358,7 +359,7 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 - **Cổng lô bằng `EXISTS(audit_log)`:** `van-chuyen` là module nghiêm, không được đọc `audit_log`. Thêm view `v_aud_*` thì phức tạp hơn dấu lệnh.
 - **Durable Object "điều phối" theo ngày; hàng đợi xử lý nền:** chủ chọn kiểm và ghi ngay (ĐP8).
 - **Bán hàng tự phá lệ mốc 6 giờ:** chủ chọn chỉ Quản trị, Toàn quyền (ĐP3).
-- **Chặn luôn cả lưu nháp chặng dưới mốc:** Bán hàng không nhập nổi đơn để Quản trị duyệt. Chọn: lưu nháp được, chặn ở xác nhận.
+- **Chặn luôn cả lưu nháp chặng dưới mốc:** chủ chọn ĐP2(v) = "Cho lưu nháp, chặn ở Xác nhận" (29/9, [HĐ] "Trả lời lần 4").
 - **Mở luôn cho tài xế đối tác:** dữ liệu cá nhân cho người ngoài công ty là một chiều — tách sang lượt 3, hỏi riêng (ĐP12).
 
 ## Chưa kiểm

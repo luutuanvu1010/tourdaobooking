@@ -92,7 +92,7 @@
    - Dưới chặng có giờ đón dưới 6 giờ: cảnh báo "Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ".
    - Quản trị, Toàn quyền: nút **"Đặt gấp"** (chọn lý do + ghi chú ngắn).
    - Bán hàng, Thực tập, Đối tác:
-     - vẫn lưu nháp được;
+     - vẫn lưu nháp được (ĐP2(v), chủ chọn 29/9: "Cho lưu nháp, chặn ở Xác nhận");
      - nút "Xác nhận" khoá, kèm câu "Cần Quản trị duyệt đặt gấp".
    - Chặng đã đặt gấp: nhãn "Đặt gấp — lý do — người duyệt".
 8. **V13 — Chính sách điều phối** (Toàn quyền) **và Danh mục lý do** (Quản trị)
