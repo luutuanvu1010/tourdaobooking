@@ -4,6 +4,7 @@ import type { AuditAction, AuditTargetType } from "./audit-actions.ts";
 import type { CatalogService, PaxCode, PaxCounts, Prices } from "./order-lines.ts";
 import type { FeedbackKind, FeedbackStatus } from "./feedback-catalog.ts";
 import type { LyDoSuaSai } from "./giay-to.ts";
+import type { NhomLyDo } from "./dieu-phoi-kieu.ts";
 import type { PermissionCode } from "./permissions.ts";
 import type { RoleCode } from "./roles.ts";
 
@@ -835,3 +836,60 @@ export interface NguoiDaHieuResponse { daHieu: { ten: string; quyen: string; luc
 export interface MayThongBaoResponse { khoa: string | null; soMay: number; mayNay: boolean }
 // `imLang` (ADR-0039): đang giờ yên lặng (22:00–06:00 VN) VÀ tin không quan trọng — service worker hiện `silent: true` (không rung/kêu).
 export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } | null; imLang: boolean }
+
+// ---- Chính sách điều phối xe (ADR-0049 D2, lát 1.1; module van-chuyen) -------------------------------------------------------------------------------------
+// Dòng có ngày hiệu lực, CHỈ THÊM: máy chủ đặt `validFrom` = lúc lưu (thân yêu cầu KHÔNG gửi ngày hiệu lực — I28). `current` = dòng đang hiệu lực.
+export interface DispatchPolicyDto {
+  id: string;
+  /** Mốc tối thiểu (phút) — một con số cho cả lúc đặt và lúc xếp; luôn > 0 (không tắt được — chủ trả lời lần 9). */
+  minLeadMinutes: number;
+  warnLeadMinutes: number;
+  restMinutes: number;
+  requireManifest: boolean;
+  /** Luôn false: khoá ở CSDL tới khi có ADR hợp đồng (ĐP7). */
+  requireContract: boolean;
+  validFrom: string;
+  current: boolean;
+}
+/** GET/POST /api/van-chuyen/chinh-sach-dieu-phoi — bản đang hiệu lực + lịch sử mọi bản (mới trước). */
+export interface DispatchPolicyResponse { current: DispatchPolicyDto | null; history: DispatchPolicyDto[] }
+export interface DispatchPolicyCreateRequest { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; requireContract?: false }
+export interface DepartureRuleDto {
+  id: string;
+  /** Áp cho xe từ số người này trở lên. */
+  minCapacity: number;
+  subject: "VEHICLE" | "DRIVER";
+  documentTypeCode: string;
+  /** Tên loại giấy tờ XE (danh mục của van-chuyen); giấy tờ của NGƯỜI chỉ có mã (danh mục của parties — màn hình tra tên ở /api/parties/documents/meta). */
+  documentTypeName: string | null;
+  validFrom: string;
+  validTo: string | null;
+  active: boolean;
+}
+/** GET/POST /api/van-chuyen/dieu-kien, POST …/dieu-kien/:id/dong — mọi điều kiện, đang áp trước. */
+export interface DepartureRuleListResponse { rules: DepartureRuleDto[] }
+export interface DepartureRuleCreateRequest { minCapacity: number; subject: "VEHICLE" | "DRIVER"; documentTypeCode: string }
+export interface LicenseCapacityDto {
+  id: string;
+  classCode: string;
+  /** null = không giới hạn. */
+  maxPassengers: number | null;
+  validFrom: string;
+  current: boolean;
+}
+/** GET/POST /api/van-chuyen/hang-bang — `current`: một dòng đang hiệu lực mỗi hạng; `history`: mọi dòng. */
+export interface LicenseCapacityResponse { current: LicenseCapacityDto[]; history: LicenseCapacityDto[] }
+export interface LicenseCapacityCreateRequest { classCode: string; maxPassengers: number | null }
+export interface TripReasonDto {
+  code: string;
+  group: NhomLyDo;
+  groupLabel: string;
+  label: string;
+  active: boolean;
+  sortOrder: number;
+  updatedAt: string;
+}
+/** GET/POST /api/van-chuyen/ly-do, PUT …/ly-do/:code (Quản trị) — danh mục lý do theo nhóm. */
+export interface TripReasonListResponse { reasons: TripReasonDto[] }
+export interface TripReasonCreateRequest { code: string; group: NhomLyDo; label: string; sortOrder?: number }
+export interface TripReasonUpdateRequest { label: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }

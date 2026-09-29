@@ -198,6 +198,18 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/nguong-het-han", access: "admin" }, // ngưỡng "sắp hết hạn" (dòng chính sách mới) — CHỈ settings.ops (Toàn quyền), viết thẳng (luật 4)
   { method: "GET", path: "/api/van-chuyen/sap-het-han", access: "office" }, // danh sách giấy tờ sắp hết hạn (xe + tài xế, KHÔNG số) + count (R15); thân hỏi vehicle.manage
   { method: "GET", path: "/api/van-chuyen/nha-xe", access: "office" }, // ADR-0048 D1: nhà xe đang hợp tác + công ty chủ + số xe, số tài xế; thân hỏi vehicle.manage
+  // ADR-0049 D2, D3 (kế hoạch mục 1.7 route 9–18): chính sách điều phối, điều kiện xuất bến, hạng bằng — cổng office, thân hỏi settings.ops (chỉ Toàn quyền);
+  // danh mục lý do — cổng admin, thân hỏi admin.manage viết thẳng (luật 4).
+  { method: "GET", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // bản đang hiệu lực + lịch sử; thân hỏi settings.ops
+  { method: "POST", path: "/api/van-chuyen/chinh-sach-dieu-phoi", access: "office" }, // thêm bản mới (hiệu lực ngay, không nhận ngày hiệu lực); như trên
+  { method: "GET", path: "/api/van-chuyen/dieu-kien", access: "office" }, // điều kiện xuất bến theo cỡ xe; thân hỏi settings.ops
+  { method: "POST", path: "/api/van-chuyen/dieu-kien", access: "office" }, // thêm điều kiện; như trên
+  { method: "POST", path: "/api/van-chuyen/dieu-kien/:id/dong", access: "office" }, // đóng hiệu lực một lần; như trên
+  { method: "GET", path: "/api/van-chuyen/hang-bang", access: "office" }, // hạng bằng → số khách (đang hiệu lực + lịch sử); thân hỏi settings.ops
+  { method: "POST", path: "/api/van-chuyen/hang-bang", access: "office" }, // thêm dòng mới cho một hạng; như trên
+  { method: "GET", path: "/api/van-chuyen/ly-do", access: "admin" }, // danh mục lý do điều phối — admin.manage viết thẳng (luật 4)
+  { method: "POST", path: "/api/van-chuyen/ly-do", access: "admin" }, // thêm lý do; như trên
+  { method: "PUT", path: "/api/van-chuyen/ly-do/:code", access: "admin" }, // sửa nhãn / thứ tự / ngưng (khoá lạc quan); như trên
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -212,7 +224,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 110 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 120 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -234,8 +246,10 @@ test("mức truy cập của 110 route hiện có khớp ảnh chụp đã duy�
   // + 3 route giấy tờ xe (POST …/xe/:id/giay-to, …/gia-han, …/sua-sai) = 104;
   // + 5 route danh mục loại giấy tờ xe, ngưỡng, danh sách sắp hết hạn (GET /api/van-chuyen/meta, POST/PUT …/loai-giay-to-xe, POST …/nguong-het-han,
   // GET …/sap-het-han) = 109.
-  // 2026-09-29 (ADR-0048 D1): + 1 route danh sách nhà xe đối tác (GET /api/van-chuyen/nha-xe) = 110.)
+  // 2026-09-29 (ADR-0048 D1): + 1 route danh sách nhà xe đối tác (GET /api/van-chuyen/nha-xe) = 110.
+  // 2026-09-29 (ADR-0049 lát 1.1, nhánh song song từ main): + 7 route chính sách điều phối / điều kiện xuất bến / hạng bằng (cổng office, settings.ops)
+  // + 3 route danh mục lý do (cổng admin, admin.manage) = 120 (gộp trên nền main 1.37 = 110 route, 29/9). Khi gộp thêm nền ADR-0047 (+5) con số thành 125.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 110, "số route thực tế lệch 110 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 110, "SNAPSHOT phải có đúng 110 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 120, "số route thực tế lệch 120 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 120, "SNAPSHOT phải có đúng 120 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

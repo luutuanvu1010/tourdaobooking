@@ -125,6 +125,10 @@
 | `vc_vehicle_document` | bảng |  |
 | `vc_vehicle_document_type` | bảng |  |
 | `vc_expiry_policy` | bảng |  |
+| `vc_dispatch_policy` | bảng |  |
+| `vc_departure_rule` | bảng |  |
+| `vc_license_capacity` | bảng |  |
+| `vc_reason` | bảng tra cứu |  |
 
 ## Cạnh toàn vẹn (khoá ngoại có sẵn, không phải phụ thuộc mã — ADR-0002 điều 6)
 

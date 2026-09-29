@@ -37,6 +37,15 @@ export function vnLocalToIso(value: string): string | null {
   return exact ? new Date(utc).toISOString() : null;
 }
 
+/**
+ * Ngày "YYYY-MM-DD" + giờ "HH:MM" dân sự theo GIỜ VIỆT NAM → mốc máy (mili-giây kể từ epoch) — ADR-0047 A1 ("đổi sang mốc máy bằng MỘT hàm có test",
+ * mở rộng `vnLocalToIso`): chặng đón 22:30 hôm trước, chuyến bay 00:40 hôm sau so được với nhau. Sai khuôn dạng/lịch/giờ → null.
+ */
+export function vnLocalToMs(date: string, time: string): number | null {
+  const iso = vnLocalToIso(`${date}T${time}`);
+  return iso === null ? null : Date.parse(iso);
+}
+
 const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Đúng khuôn dạng YYYY-MM-DD và đúng lịch (30/02 → sai). */
@@ -67,3 +76,12 @@ const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** HH:MM từ 00:00 đến 23:59 (24:00 không hợp lệ). */
 export const isHHMM = (s: string): boolean => TIME_RE.test(s);
+
+/**
+ * Hàm NGƯỢC của `vnLocalToMs` (ADR-0049, kế hoạch mục 1.1 — đúng một hàm đổi giờ thứ hai, không hơn): mốc máy (mili-giây) → ngày "YYYY-MM-DD" + giờ
+ * "HH:MM" dân sự theo GIỜ VIỆT NAM. Giây lẻ bị bỏ (làm tròn xuống phút). Dùng cho mốc tối thiểu (`src/shared/moc-toi-thieu.ts`) và ngày chạy của chuyến.
+ */
+export function msToVnLocal(ms: number): { date: string; time: string } {
+  const iso = new Date(ms + VN_OFFSET_MS).toISOString();
+  return { date: iso.slice(0, 10), time: iso.slice(11, 16) };
+}

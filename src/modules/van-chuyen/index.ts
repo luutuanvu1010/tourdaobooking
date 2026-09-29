@@ -23,6 +23,22 @@ import {
   type CanhBaoXe, type DanhMucGiayToXe, type XeNhap, type XeSua,
 } from "./rules";
 
+// ADR-0049 D2 (lát 1.1): hàm công bố mốc tối thiểu (chỉ gốc lắp ráp gọi — không module nào import van-chuyen); route chính sách điều phối, điều kiện xuất
+// bến, hạng bằng (cổng office + ô settings.ops), danh mục lý do (cổng admin + ô admin.manage).
+import type {
+  DepartureRuleDto, DepartureRuleListResponse, DispatchPolicyDto, DispatchPolicyResponse, LicenseCapacityDto, LicenseCapacityResponse, TripReasonDto, TripReasonListResponse,
+} from "../../shared/contracts";
+import { NHAN_NHOM_LY_DO, type NhomLyDo } from "../../shared/dieu-phoi-kieu";
+import type { MocToiThieu } from "../../shared/moc-toi-thieu";
+import {
+  MA_LY_DO_RE, chiTietChinhSach, chiTietDieuKien, chiTietHangBang, chiTietLyDo, kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSuaLyDo,
+} from "./chinh-sach";
+import {
+  closeDepartureRuleStatement, currentDispatchPolicy, currentLicenseCapacity, findDepartureRule, findTripReason, insertDepartureRuleStatement, insertDispatchPolicyStatement,
+  insertLicenseCapacityStatement, insertTripReasonStatement, listDepartureRules, listDispatchPolicies, listLicenseCapacity, listTripReasons, updateTripReasonStatement,
+  type DepartureRuleRow, type DispatchPolicyRow, type LicenseCapacityRow, type TripReasonRow,
+} from "./repository";
+
 const FORBIDDEN = () => error(403, "forbidden", "Tài khoản này không quản lý được xe.");
 const NOT_FOUND = () => error(404, "not_found", "Không tìm thấy xe.");
 const STALE = () => error(409, "stale", "Xe vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
@@ -38,6 +54,79 @@ const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
 const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
 const DOC_NOT_CURRENT = () => error(409, "document_not_current", "Dòng này đã được gia hạn hoặc đã huỷ — chỉ dòng hiện hành mới gia hạn hay sửa sai được.");
 const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+
+/**
+ * HÀM CÔNG BỐ (ADR-0049 D2; kế hoạch I25, mục 1.6): mốc tối thiểu đang hiệu lực = dòng `vc_dispatch_policy` mới nhất có `valid_from_at` ≤ bây giờ. Không cần
+ * quyền (chính sách công khai trong công ty — [TK] §1.11). CHỈ gốc lắp ráp gọi, để tiêm `ctx.mocToiThieu` cho orders (Task A10) — orders không được đọc
+ * bảng vc_. `null` = bảng rỗng → orders CHẶN lệnh cần mốc, không đoán con số.
+ */
+export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu | null> {
+  const r = await currentDispatchPolicy(db, new Date().toISOString());
+  return r ? { phut: r.min_lead_minutes, policyId: r.id } : null;
+}
+
+// ---- Chính sách điều phối, điều kiện xuất bến, hạng bằng, danh mục lý do (ADR-0049 D2; kế hoạch mục 1.7 route 9–18, Task A7) ------------------------------
+// Chính sách / điều kiện / hạng bằng: dòng có ngày hiệu lực, CHỈ THÊM, `valid_from_at` = lúc ghi (I28). Hai lần ghi cùng mili-giây vấp khoá duy nhất → 409
+// stale (tiền lệ Ruling R19). Mã lạ trỏ danh mục của parties vấp khoá ngoại → 400 (van-chuyen không đọc thẳng bảng của parties; cả lô huỷ, không nhật ký).
+const CHI_TOAN_QUYEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe.");
+const LOI_KHOA_NGOAI = /FOREIGN KEY constraint failed/;
+const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null): DispatchPolicyDto => ({
+  id: r.id,
+  minLeadMinutes: r.min_lead_minutes,
+  warnLeadMinutes: r.warn_lead_minutes,
+  restMinutes: r.rest_minutes,
+  requireManifest: r.require_manifest === 1,
+  requireContract: r.require_contract === 1,
+  validFrom: r.valid_from_at,
+  current: r.id === currentId,
+});
+async function respondChinhSach(db: D1Database, status = 200): Promise<Response> {
+  const rows = await listDispatchPolicies(db); // mới trước
+  const now = new Date().toISOString();
+  const cur = rows.find((r) => r.valid_from_at <= now) ?? null;
+  return json({ current: cur ? toPolicyDto(cur, cur.id) : null, history: rows.map((r) => toPolicyDto(r, cur?.id ?? null)) } satisfies DispatchPolicyResponse, status);
+}
+const toRuleDto = (r: DepartureRuleRow, now: string): DepartureRuleDto => ({
+  id: r.id,
+  minCapacity: r.min_capacity,
+  subject: r.subject,
+  documentTypeCode: r.vehicle_document_type_code ?? r.person_document_type_code ?? "",
+  documentTypeName: r.vehicle_document_type_name,
+  validFrom: r.valid_from_at,
+  validTo: r.valid_to_at,
+  active: r.valid_from_at <= now && (r.valid_to_at === null || r.valid_to_at > now),
+});
+async function respondDieuKien(db: D1Database, status = 200): Promise<Response> {
+  const now = new Date().toISOString();
+  return json({ rules: (await listDepartureRules(db)).map((r) => toRuleDto(r, now)) } satisfies DepartureRuleListResponse, status);
+}
+const tenLoaiDieuKien = (r: Pick<DepartureRuleRow, "vehicle_document_type_name" | "vehicle_document_type_code" | "person_document_type_code">): string =>
+  r.vehicle_document_type_name ?? r.vehicle_document_type_code ?? r.person_document_type_code ?? "";
+async function respondHangBang(db: D1Database, status = 200): Promise<Response> {
+  const rows = await listLicenseCapacity(db); // theo hạng, mới trước
+  const now = new Date().toISOString();
+  const currentIds = new Set<string>();
+  const hangDaCo = new Set<string>();
+  for (const r of rows) {
+    if (r.valid_from_at > now || hangDaCo.has(r.license_class_code)) continue;
+    hangDaCo.add(r.license_class_code);
+    currentIds.add(r.id);
+  }
+  const dto = (r: LicenseCapacityRow): LicenseCapacityDto => ({ id: r.id, classCode: r.license_class_code, maxPassengers: r.max_passengers, validFrom: r.valid_from_at, current: currentIds.has(r.id) });
+  return json({ current: rows.filter((r) => currentIds.has(r.id)).map(dto), history: rows.map(dto) } satisfies LicenseCapacityResponse, status);
+}
+const toReasonDto = (r: TripReasonRow): TripReasonDto => ({
+  code: r.code,
+  group: r.reason_group as NhomLyDo,
+  groupLabel: NHAN_NHOM_LY_DO[r.reason_group as NhomLyDo] ?? r.reason_group,
+  label: r.label,
+  active: r.active === 1,
+  sortOrder: r.sort_order,
+  updatedAt: r.updated_at,
+});
+async function respondLyDo(db: D1Database, status = 200): Promise<Response> {
+  return json({ reasons: (await listTripReasons(db)).map(toReasonDto) } satisfies TripReasonListResponse, status);
+}
 
 /** Danh mục loại giấy tờ xe cho một lần kiểm (mọi loại, kể cả đã ngưng — sửa sai dòng cũ vẫn cần `hasExpiry`) + tra tên cho nhật ký. */
 async function danhMucXe(db: D1Database, homNay: string): Promise<{ dm: DanhMucGiayToXe; tenLoai: (c: string) => string }> {
@@ -325,6 +414,141 @@ export const vanChuyenModule: AppModule = {
       }
       if ((results[0]!.meta.changes ?? 0) === 0) return DOC_STALE();
       return respondVehicle(env.DB, id);
+    }),
+
+    // ---- ADR-0049 D2 (Task A7): chính sách điều phối, điều kiện xuất bến, hạng bằng — cổng office + ô settings.ops (chỉ Toàn quyền) viết thẳng ở đầu thân,
+    // kể cả route ĐỌC (luật (1b) hàng rào 2). Khác tiền lệ `nguong-het-han` (cổng admin): ADR-0049 D3 ghi rõ cổng office.
+    route("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ env, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      return respondChinhSach(env.DB);
+    }),
+
+    route("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ request, env, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      const parsed = kiemChinhSachMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const at = new Date().toISOString();
+      const cu = await currentDispatchPolicy(env.DB, at);
+      const truoc = cu ? { minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1 } : null;
+      try {
+        await env.DB.batch([
+          insertDispatchPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "dispatch_policy_changed", at, detail: chiTietChinhSach(truoc, parsed.value) }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: vc_dispatch_policy\.valid_from_at/.test(e.message)) return error(409, "stale", "Vừa có người đổi chính sách, tải lại rồi thử lại.");
+        throw e;
+      }
+      return respondChinhSach(env.DB, 201);
+    }),
+
+    route("GET", "/api/van-chuyen/dieu-kien", "office", async ({ env, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      return respondDieuKien(env.DB);
+    }),
+
+    route("POST", "/api/van-chuyen/dieu-kien", "office", async ({ request, env, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      const parsed = kiemDieuKienMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      // Loại giấy tờ XE: danh mục của chính module → kiểm trước. Loại giấy tờ của NGƯỜI: danh mục của parties → khoá ngoại giữ (lỗi → 400 dưới).
+      const loaiXe = v.subject === "VEHICLE" ? await findVehicleDocumentType(env.DB, v.documentTypeCode) : null;
+      if (v.subject === "VEHICLE" && !loaiXe) return error(400, "invalid_input", "Không có loại giấy tờ xe này trong danh mục.");
+      const at = new Date().toISOString();
+      try {
+        await env.DB.batch([
+          insertDepartureRuleStatement(env.DB, crypto.randomUUID(), v, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "departure_rule_added", at, detail: chiTietDieuKien(v, loaiXe?.name ?? v.documentTypeCode) }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && LOI_KHOA_NGOAI.test(e.message)) return error(400, "invalid_input", "Không có loại giấy tờ này trong danh mục.");
+        throw e;
+      }
+      return respondDieuKien(env.DB, 201);
+    }),
+
+    route("POST", "/api/van-chuyen/dieu-kien/:id/dong", "office", async ({ env, params, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      const id = params.id ?? "";
+      const r = UUID_RE.test(id) ? await findDepartureRule(env.DB, id) : null;
+      if (!r) return error(404, "not_found", "Không tìm thấy điều kiện xuất bến.");
+      const DA_DONG = () => error(409, "rule_closed", "Điều kiện này đã đóng rồi — tải lại.");
+      if (r.valid_to_at !== null) return DA_DONG();
+      const at = new Date().toISOString();
+      const detail = chiTietDieuKien({ minCapacity: r.min_capacity, subject: r.subject, documentTypeCode: r.vehicle_document_type_code ?? r.person_document_type_code ?? "" }, tenLoaiDieuKien(r));
+      const results = await env.DB.batch([
+        closeDepartureRuleStatement(env.DB, id, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "departure_rule_closed", at, detail }, "changes() > 0"),
+      ]);
+      if ((results[0]!.meta.changes ?? 0) === 0) return DA_DONG();
+      return respondDieuKien(env.DB);
+    }),
+
+    route("GET", "/api/van-chuyen/hang-bang", "office", async ({ env, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      return respondHangBang(env.DB);
+    }),
+
+    route("POST", "/api/van-chuyen/hang-bang", "office", async ({ request, env, staff }) => {
+      if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
+      const parsed = kiemHangBangMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      const cu = await currentLicenseCapacity(env.DB, v.classCode, at);
+      try {
+        await env.DB.batch([
+          insertLicenseCapacityStatement(env.DB, crypto.randomUUID(), v, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "license_capacity_changed", at, detail: chiTietHangBang(v.classCode, cu ? cu.max_passengers : undefined, v.maxPassengers) }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: vc_license_capacity\./.test(e.message)) return error(409, "stale", "Vừa có người đổi hạng bằng này, tải lại rồi thử lại.");
+        if (e instanceof Error && LOI_KHOA_NGOAI.test(e.message)) return error(400, "invalid_input", "Không có hạng bằng này trong danh mục.");
+        throw e;
+      }
+      return respondHangBang(env.DB, 201);
+    }),
+
+    // Danh mục lý do (ADR-0049 D2 CH-06) — Quản trị sửa: cổng admin + ô admin.manage viết thẳng (luật (4) của hàng rào 2); khuôn loc_location (Ruling R7).
+    route("GET", "/api/van-chuyen/ly-do", "admin", async ({ env, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      return respondLyDo(env.DB);
+    }),
+
+    route("POST", "/api/van-chuyen/ly-do", "admin", async ({ request, env, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const parsed = kiemLyDoMoi(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      try {
+        await env.DB.batch([
+          insertTripReasonStatement(env.DB, v, at, staff.id),
+          auditStatement(env.DB, { staffId: staff.id, action: "trip_reason_added", at, detail: chiTietLyDo(v.code, v.group, v.label) }),
+        ]);
+      } catch (e) {
+        if (e instanceof Error && /UNIQUE constraint failed: vc_reason\.code/.test(e.message)) return error(409, "code_taken", "Mã này đã có trong danh mục lý do.");
+        throw e;
+      }
+      return respondLyDo(env.DB, 201);
+    }),
+
+    route("PUT", "/api/van-chuyen/ly-do/:code", "admin", async ({ request, env, params, staff }) => {
+      if (!can(staff, "admin.manage")) return ADMIN_ONLY();
+      const code = params.code ?? "";
+      const cu = MA_LY_DO_RE.test(code) ? await findTripReason(env.DB, code) : null;
+      if (!cu) return error(404, "not_found", "Không tìm thấy lý do.");
+      const parsed = kiemSuaLyDo(await readJson(request));
+      if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      const v = parsed.value;
+      const at = new Date().toISOString();
+      const results = await env.DB.batch([
+        updateTripReasonStatement(env.DB, code, v, at, staff.id),
+        auditStatement(env.DB, { staffId: staff.id, action: "trip_reason_updated", at, detail: chiTietLyDo(code, cu.reason_group as NhomLyDo, v.label, v.active) }, "changes() > 0"),
+      ]);
+      if ((results[0]!.meta.changes ?? 0) === 0) return error(409, "stale", "Danh mục lý do vừa được người khác sửa, hãy tải lại rồi sửa tiếp.");
+      return respondLyDo(env.DB);
     }),
 
     // ---- Danh mục loại giấy tờ xe + ngưỡng "sắp hết hạn" + danh sách giấy tờ sắp hết hạn (Task A15) ---------------------------------------------------------

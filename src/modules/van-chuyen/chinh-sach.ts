@@ -1,0 +1,123 @@
+// Luật thuần CHÍNH SÁCH ĐIỀU PHỐI của module van-chuyen (ADR-0049 D2; kế hoạch mục 1.1, Task A6/A7) — không I/O, không SQL. Import kèm đuôi .ts.
+// Kiểm thân yêu cầu của bốn nhóm route: chính sách điều phối (Toàn quyền), điều kiện xuất bến, bảng hạng bằng (Toàn quyền), danh mục lý do (Quản trị).
+// - Chính sách / điều kiện / hạng bằng là dòng có ngày hiệu lực, CHỈ THÊM; máy chủ đặt valid_from_at = lúc ghi → thân KHÔNG được mang ngày hiệu lực (I28 —
+//   "cấm đặt hiệu lực lùi ngày": không nhận thì không lùi được). Thân mang khoá kiểu ngày hiệu lực → 400 (TC-2), không lặng lẽ bỏ qua.
+// - Hợp đồng vận chuyển khoá ở 0 (ĐP7; CHECK ở CSDL) — thân gửi `requireContract: true` → 400 nói rõ.
+// - Nhóm lý do là danh sách MỞ kiểm ở mã (`NHOM_LY_DO`, I7). Mã và nhóm không đổi sau khi tạo (trigger vc_reason_identity giữ ở CSDL).
+// - Nhật ký: chỉ mã, con số, nhãn danh mục (`chiTiet*` dưới đây) — không dữ liệu cá nhân.
+import { NHAN_NHOM_LY_DO, isNhomLyDo, type NhomLyDo } from "../../shared/dieu-phoi-kieu.ts";
+import { MA_LOAI_GIAY_TO_RE, kiemTenDanhMuc, kiemThuTu } from "../../shared/giay-to.ts";
+
+export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
+const fail = (message: string): { ok: false; message: string } => ({ ok: false, message });
+const soNguyen = (v: unknown, min: number, max: number): v is number => typeof v === "number" && Number.isInteger(v) && v >= min && v <= max;
+/** Khoá mang nghĩa "ngày hiệu lực" (mọi cách viết thường gặp) — máy chủ tự đặt, thân không được gửi. */
+const KHOA_HIEU_LUC_RE = /^(valid|effective|hieu_?luc|tu_?ngay)/i;
+const coNgayHieuLuc = (body: Record<string, unknown>): boolean => Object.keys(body).some((k) => KHOA_HIEU_LUC_RE.test(k));
+const CAU_HIEU_LUC = "Không gửi ngày hiệu lực — dòng mới có hiệu lực ngay lúc lưu.";
+
+// ---- Chính sách điều phối ----------------------------------------------------------------------------------------------------------------------------------
+export interface ChinhSachMoi {
+  minLeadMinutes: number;
+  warnLeadMinutes: number;
+  restMinutes: number;
+  requireManifest: boolean;
+}
+export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<ChinhSachMoi> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
+  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract } = body;
+  if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
+  if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
+  if (!soNguyen(restMinutes, 0, 480)) return fail("Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến 480.");
+  if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");
+  if (requireContract !== undefined && requireContract !== false) return fail("Chưa bật được yêu cầu hợp đồng vận chuyển — cần một quyết định riêng.");
+  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest } };
+}
+export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
+  const co = (b: boolean) => (b ? "có" : "không");
+  const phan = (ten: string, a: string | null, b: string) => (a === null ? `${ten} ${b}` : `${ten} ${a} → ${b}`);
+  return `chính sách điều phối: ${[
+    phan("mốc tối thiểu", cu ? `${cu.minLeadMinutes}` : null, `${moi.minLeadMinutes} phút`),
+    phan("cảnh báo sát mốc", cu ? `${cu.warnLeadMinutes}` : null, `${moi.warnLeadMinutes} phút`),
+    phan("khoảng nghỉ", cu ? `${cu.restMinutes}` : null, `${moi.restMinutes} phút`),
+    phan("bắt đủ danh sách", cu ? co(cu.requireManifest) : null, co(moi.requireManifest)),
+  ].join("; ")}`;
+}
+
+// ---- Điều kiện xuất bến ------------------------------------------------------------------------------------------------------------------------------------
+export interface DieuKienMoi {
+  minCapacity: number;
+  subject: "VEHICLE" | "DRIVER";
+  documentTypeCode: string;
+}
+export function kiemDieuKienMoi(body: Record<string, unknown> | null): Result<DieuKienMoi> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
+  const { minCapacity, subject, documentTypeCode } = body;
+  if (!soNguyen(minCapacity, 1, 100)) return fail("Cỡ xe (số người) là số nguyên từ 1 đến 100.");
+  if (subject !== "VEHICLE" && subject !== "DRIVER") return fail("Điều kiện áp cho giấy tờ của xe hoặc của tài xế.");
+  if (typeof documentTypeCode !== "string" || !MA_LOAI_GIAY_TO_RE.test(documentTypeCode)) return fail("Chọn loại giấy tờ bắt buộc.");
+  return { ok: true, value: { minCapacity, subject, documentTypeCode } };
+}
+export const chiTietDieuKien = (d: DieuKienMoi, tenLoai: string): string =>
+  `điều kiện xuất bến: xe từ ${d.minCapacity} người — giấy tờ ${d.subject === "VEHICLE" ? "xe" : "tài xế"} ${tenLoai}`;
+
+// ---- Bảng hạng bằng → số khách -----------------------------------------------------------------------------------------------------------------------------
+export interface HangBangMoi {
+  classCode: string;
+  /** null = không giới hạn. */
+  maxPassengers: number | null;
+}
+const MA_HANG_RE = /^[A-Z0-9][A-Z0-9_]{0,19}$/;
+export function kiemHangBangMoi(body: Record<string, unknown> | null): Result<HangBangMoi> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
+  const { classCode, maxPassengers } = body;
+  if (typeof classCode !== "string" || !MA_HANG_RE.test(classCode)) return fail("Chọn hạng bằng lái.");
+  if (!("maxPassengers" in body)) return fail("Nhập số khách tối đa (để trống = không giới hạn).");
+  if (maxPassengers !== null && !soNguyen(maxPassengers, 1, 100)) return fail("Số khách tối đa là số nguyên từ 1 đến 100, hoặc để trống = không giới hạn.");
+  return { ok: true, value: { classCode, maxPassengers: maxPassengers as number | null } };
+}
+const soKhach = (n: number | null): string => (n === null ? "không giới hạn" : `${n} khách`);
+export const chiTietHangBang = (classCode: string, cu: number | null | undefined, moi: number | null): string =>
+  cu === undefined ? `hạng bằng ${classCode}: ${soKhach(moi)}` : `hạng bằng ${classCode}: ${soKhach(cu)} → ${soKhach(moi)}`;
+
+// ---- Danh mục lý do (Quản trị) -----------------------------------------------------------------------------------------------------------------------------
+export const MA_LY_DO_RE = /^[A-Z][A-Z0-9_]{1,39}$/;
+export interface LyDoMoi {
+  code: string;
+  group: NhomLyDo;
+  label: string;
+  sortOrder: number;
+}
+export interface LyDoSua {
+  label: string;
+  sortOrder: number;
+  active: boolean;
+  expectedUpdatedAt: string;
+}
+export function kiemLyDoMoi(body: Record<string, unknown> | null): Result<LyDoMoi> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const { code, group } = body;
+  if (typeof code !== "string" || !MA_LY_DO_RE.test(code)) return fail("Mã lý do: chữ HOA không dấu, số, gạch dưới; 2–40 ký tự.");
+  if (!isNhomLyDo(group)) return fail("Chọn nhóm lý do.");
+  const ten = kiemTenDanhMuc(body.label, 80);
+  if (!ten.ok) return fail(ten.message);
+  const thuTu = kiemThuTu(body.sortOrder);
+  if (!thuTu.ok) return fail(thuTu.message);
+  return { ok: true, value: { code, group, label: ten.value, sortOrder: thuTu.value } };
+}
+export function kiemSuaLyDo(body: Record<string, unknown> | null): Result<LyDoSua> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  if ("code" in body || "group" in body) return fail("Không đổi mã, nhóm của lý do — ngưng lý do cũ rồi thêm lý do mới.");
+  const ten = kiemTenDanhMuc(body.label, 80);
+  if (!ten.ok) return fail(ten.message);
+  const thuTu = kiemThuTu(body.sortOrder);
+  if (!thuTu.ok) return fail(thuTu.message);
+  if (typeof body.active !== "boolean") return fail("Chọn đang dùng hay ngưng.");
+  if (typeof body.expectedUpdatedAt !== "string" || body.expectedUpdatedAt === "") return fail("Thiếu mốc cập nhật — hãy tải lại rồi sửa.");
+  return { ok: true, value: { label: ten.value, sortOrder: thuTu.value, active: body.active, expectedUpdatedAt: body.expectedUpdatedAt } };
+}
+export const chiTietLyDo = (code: string, group: NhomLyDo, label: string, active = true): string =>
+  `lý do ${code} (${NHAN_NHOM_LY_DO[group]}): ${label}${active ? "" : " — ngưng dùng"}`;

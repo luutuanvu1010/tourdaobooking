@@ -11,6 +11,7 @@ export const AUDIT_GROUPS = {
   feedback: "Góp ý",
   notice: "Thông báo",
   vehicle: "Xe", // ADR-0040 D1 (giả định G12): trang Nhật ký không có nhãn đối tượng cho xe — `detail` mở đầu bằng biển số
+  trip: "Điều phối xe", // ADR-0049 (kế hoạch mục 1.1): chính sách điều phối, lý do; từ A13 thêm hành động chuyến `trip_*` (order_id luôn NULL — I17)
   system: "Hệ thống",
 } as const;
 
@@ -63,6 +64,14 @@ export const AUDIT_ACTIONS = {
   vehicle_document_corrected: { label: "Sửa sai giấy tờ xe", group: "vehicle" },
   vehicle_document_type_changed: { label: "Sửa danh mục loại giấy tờ xe", group: "vehicle" },
   expiry_policy_changed: { label: "Đổi mốc nhắc giấy tờ sắp hết hạn", group: "vehicle" },
+  // ADR-0049 D2 (lát 1.1): chính sách điều phối, điều kiện xuất bến, hạng bằng (Toàn quyền), danh mục lý do (Quản trị). `detail` chỉ mã, con số, nhãn
+  // danh mục; không order_id, không target (khuôn expiry_policy_changed).
+  dispatch_policy_changed: { label: "Đổi chính sách điều phối", group: "trip" },
+  departure_rule_added: { label: "Thêm điều kiện xuất bến", group: "trip" },
+  departure_rule_closed: { label: "Đóng điều kiện xuất bến", group: "trip" },
+  license_capacity_changed: { label: "Đổi số khách theo hạng bằng", group: "trip" },
+  trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
+  trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

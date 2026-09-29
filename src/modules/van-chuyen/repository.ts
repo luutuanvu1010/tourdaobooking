@@ -215,3 +215,139 @@ const INSERT_POLICY = defineSql(
 );
 export const insertPolicyStatement = (db: D1Database, id: string, warnDays: number, at: string, actorId: string): D1PreparedStatement =>
   db.prepare(INSERT_POLICY).bind(id, warnDays, at, actorId);
+
+// ---- Chính sách điều phối, điều kiện xuất bến, hạng bằng, danh mục lý do (ADR-0049 D2, lát 1.1 — migration *_chinh_sach_dieu_phoi) ------------------------
+// Dòng có ngày hiệu lực, CHỈ THÊM (trigger *_append_only / *_close_once giữ ở CSDL); máy chủ đặt valid_from_at = lúc ghi. Khoá ngoại sang danh mục của parties
+// (pty_license_class, pty_person_document_type) theo cạnh van-chuyen → parties đã khai; mã lạ vấp khoá ngoại (route đổi thành 400).
+export interface DispatchPolicyRow {
+  id: string;
+  min_lead_minutes: number;
+  warn_lead_minutes: number;
+  rest_minutes: number;
+  require_manifest: number;
+  require_contract: number;
+  valid_from_at: string;
+  created_at: string;
+}
+const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at";
+// Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
+const CURRENT_DISPATCH_POLICY = defineSql(
+  "van-chuyen",
+  "current_dispatch_policy",
+  `SELECT ${COT_CHINH_SACH} FROM vc_dispatch_policy WHERE valid_from_at <= ?1 ORDER BY valid_from_at DESC LIMIT 1`,
+);
+const LIST_DISPATCH_POLICIES = defineSql("van-chuyen", "list_dispatch_policies", `SELECT ${COT_CHINH_SACH} FROM vc_dispatch_policy ORDER BY valid_from_at DESC, id`);
+const INSERT_DISPATCH_POLICY = defineSql(
+  "van-chuyen",
+  "insert_dispatch_policy",
+  `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at, created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?6, ?7, ?6, ?7)`,
+);
+export const currentDispatchPolicy = (db: D1Database, nowIso: string): Promise<DispatchPolicyRow | null> =>
+  db.prepare(CURRENT_DISPATCH_POLICY).bind(nowIso).first<DispatchPolicyRow>();
+export async function listDispatchPolicies(db: D1Database): Promise<DispatchPolicyRow[]> {
+  return (await db.prepare(LIST_DISPATCH_POLICIES).all<DispatchPolicyRow>()).results;
+}
+export const insertDispatchPolicyStatement = (
+  db: D1Database, id: string, v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean }, at: string, actorId: string,
+): D1PreparedStatement => db.prepare(INSERT_DISPATCH_POLICY).bind(id, v.minLeadMinutes, v.warnLeadMinutes, v.restMinutes, v.requireManifest ? 1 : 0, at, actorId);
+
+export interface DepartureRuleRow {
+  id: string;
+  min_capacity: number;
+  subject: "VEHICLE" | "DRIVER";
+  vehicle_document_type_code: string | null;
+  person_document_type_code: string | null;
+  vehicle_document_type_name: string | null;
+  valid_from_at: string;
+  valid_to_at: string | null;
+}
+// Mọi dòng: đang mở trước (cỡ xe tăng dần), rồi dòng đã đóng (mới đóng trước). Tên loại giấy tờ XE đọc từ danh mục của chính module; loại giấy tờ của NGƯỜI
+// là danh mục của parties — chỉ trả mã (không JOIN thẳng bảng module khác).
+const LIST_DEPARTURE_RULES = defineSql(
+  "van-chuyen",
+  "list_departure_rules",
+  `SELECT r.id, r.min_capacity, r.subject, r.vehicle_document_type_code, r.person_document_type_code, t.name AS vehicle_document_type_name, r.valid_from_at, r.valid_to_at
+   FROM vc_departure_rule r LEFT JOIN vc_vehicle_document_type t ON t.code = r.vehicle_document_type_code
+   ORDER BY r.valid_to_at IS NOT NULL, r.valid_to_at DESC, r.min_capacity, r.valid_from_at, r.id`,
+);
+const FIND_DEPARTURE_RULE = defineSql(
+  "van-chuyen",
+  "find_departure_rule",
+  `SELECT r.id, r.min_capacity, r.subject, r.vehicle_document_type_code, r.person_document_type_code, t.name AS vehicle_document_type_name, r.valid_from_at, r.valid_to_at
+   FROM vc_departure_rule r LEFT JOIN vc_vehicle_document_type t ON t.code = r.vehicle_document_type_code
+   WHERE r.id = ?1`,
+);
+const INSERT_DEPARTURE_RULE = defineSql(
+  "van-chuyen",
+  "insert_departure_rule",
+  `INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, person_document_type_code, valid_from_at, valid_to_at, closed_by, created_at, created_by,
+     updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, ?6, NULL, NULL, ?6, ?7, ?6, ?7)`,
+);
+// Đóng MỘT lần: chỉ dòng còn mở (trigger vc_departure_rule_close_once giữ phần "không sửa nội dung" ở CSDL).
+const CLOSE_DEPARTURE_RULE = defineSql(
+  "van-chuyen",
+  "close_departure_rule",
+  "UPDATE vc_departure_rule SET valid_to_at = ?2, closed_by = ?3, updated_at = ?2, updated_by = ?3 WHERE id = ?1 AND valid_to_at IS NULL",
+);
+export async function listDepartureRules(db: D1Database): Promise<DepartureRuleRow[]> {
+  return (await db.prepare(LIST_DEPARTURE_RULES).all<DepartureRuleRow>()).results;
+}
+export const findDepartureRule = (db: D1Database, id: string): Promise<DepartureRuleRow | null> => db.prepare(FIND_DEPARTURE_RULE).bind(id).first<DepartureRuleRow>();
+export const insertDepartureRuleStatement = (
+  db: D1Database, id: string, v: { minCapacity: number; subject: "VEHICLE" | "DRIVER"; documentTypeCode: string }, at: string, actorId: string,
+): D1PreparedStatement =>
+  db.prepare(INSERT_DEPARTURE_RULE).bind(id, v.minCapacity, v.subject, v.subject === "VEHICLE" ? v.documentTypeCode : null, v.subject === "DRIVER" ? v.documentTypeCode : null, at, actorId);
+export const closeDepartureRuleStatement = (db: D1Database, id: string, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(CLOSE_DEPARTURE_RULE).bind(id, at, actorId);
+
+export interface LicenseCapacityRow { id: string; license_class_code: string; max_passengers: number | null; valid_from_at: string }
+const LIST_LICENSE_CAPACITY = defineSql(
+  "van-chuyen",
+  "list_license_capacity",
+  "SELECT id, license_class_code, max_passengers, valid_from_at FROM vc_license_capacity ORDER BY license_class_code, valid_from_at DESC, id",
+);
+// Dòng hiệu lực của MỘT hạng = valid_from_at mới nhất ≤ ?2.
+const CURRENT_LICENSE_CAPACITY = defineSql(
+  "van-chuyen",
+  "current_license_capacity",
+  "SELECT id, license_class_code, max_passengers, valid_from_at FROM vc_license_capacity WHERE license_class_code = ?1 AND valid_from_at <= ?2 ORDER BY valid_from_at DESC LIMIT 1",
+);
+const INSERT_LICENSE_CAPACITY = defineSql(
+  "van-chuyen",
+  "insert_license_capacity",
+  "INSERT INTO vc_license_capacity (id, license_class_code, max_passengers, valid_from_at, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, ?4, ?4, ?5, ?4, ?5)",
+);
+export async function listLicenseCapacity(db: D1Database): Promise<LicenseCapacityRow[]> {
+  return (await db.prepare(LIST_LICENSE_CAPACITY).all<LicenseCapacityRow>()).results;
+}
+export const currentLicenseCapacity = (db: D1Database, classCode: string, nowIso: string): Promise<LicenseCapacityRow | null> =>
+  db.prepare(CURRENT_LICENSE_CAPACITY).bind(classCode, nowIso).first<LicenseCapacityRow>();
+export const insertLicenseCapacityStatement = (db: D1Database, id: string, v: { classCode: string; maxPassengers: number | null }, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(INSERT_LICENSE_CAPACITY).bind(id, v.classCode, v.maxPassengers, at, actorId);
+
+export interface TripReasonRow { code: string; reason_group: string; label: string; active: number; sort_order: number; updated_at: string }
+const COT_LY_DO = "code, reason_group, label, active, sort_order, updated_at";
+const LIST_TRIP_REASONS = defineSql("van-chuyen", "list_trip_reasons", `SELECT ${COT_LY_DO} FROM vc_reason ORDER BY reason_group, sort_order, code`);
+const FIND_TRIP_REASON = defineSql("van-chuyen", "find_trip_reason", `SELECT ${COT_LY_DO} FROM vc_reason WHERE code = ?1`);
+const INSERT_TRIP_REASON = defineSql(
+  "van-chuyen",
+  "insert_trip_reason",
+  "INSERT INTO vc_reason (code, reason_group, label, active, sort_order, created_at, created_by, updated_at, updated_by) VALUES (?1, ?2, ?3, 1, ?4, ?5, ?6, ?5, ?6)",
+);
+// Khuôn loc_location (Ruling R7): khoá lạc quan updated_at; mã và nhóm không đổi (trigger vc_reason_identity).
+const UPDATE_TRIP_REASON = defineSql(
+  "van-chuyen",
+  "update_trip_reason",
+  "UPDATE vc_reason SET label = ?2, sort_order = ?3, active = ?4, updated_at = ?5, updated_by = ?6 WHERE code = ?1 AND updated_at = ?7",
+);
+export async function listTripReasons(db: D1Database): Promise<TripReasonRow[]> {
+  return (await db.prepare(LIST_TRIP_REASONS).all<TripReasonRow>()).results;
+}
+export const findTripReason = (db: D1Database, code: string): Promise<TripReasonRow | null> => db.prepare(FIND_TRIP_REASON).bind(code).first<TripReasonRow>();
+export const insertTripReasonStatement = (db: D1Database, v: { code: string; group: string; label: string; sortOrder: number }, at: string, actorId: string): D1PreparedStatement =>
+  db.prepare(INSERT_TRIP_REASON).bind(v.code, v.group, v.label, v.sortOrder, at, actorId);
+export const updateTripReasonStatement = (
+  db: D1Database, code: string, v: { label: string; sortOrder: number; active: boolean; expectedUpdatedAt: string }, at: string, actorId: string,
+): D1PreparedStatement => db.prepare(UPDATE_TRIP_REASON).bind(code, v.label, v.sortOrder, v.active ? 1 : 0, at, actorId, v.expectedUpdatedAt);

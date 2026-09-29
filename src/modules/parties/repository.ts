@@ -589,6 +589,42 @@ export async function listCarriers(db: D1Database): Promise<CarrierRow[]> {
   return (await db.prepare(CARRIERS).all<CarrierRow>()).results;
 }
 
+// ---- Tài xế cho điều phối xe (ADR-0049 D2) — nguồn của hàm công bố taiXeChoDieuPhoi (parties/index.ts) cho Vận chuyển -----------------------------------------
+// ?1 = mã vai tài khoản tài xế công ty. "Tài xế" = hồ sơ cá nhân ĐANG DÙNG, và đang mở vai ?1 (tài xế công ty) hoặc có trong view v_pty_carrier_driver (tài
+// xế nhà xe — luật một nguồn; kể cả người chưa có tài khoản, kể cả nhà xe cá nhân tự lái). "Đang mở" = `valid_to_date IS NULL` (R-P8, 29/9) — CÙNG cách với
+// nguồn sinh quyền tài khoản (v_pty_open_role_group, OPEN_ROLE_CODES_FOR) và v_pty_carrier_driver, KHÔNG theo ngày (EXPIRING_DRIVER_DOCS còn tính theo ngày —
+// nợ, nhật ký ADR-0049 N-13). carrier_ids = khoá các nhà xe người đó đang "thuộc" (nối ","), NULL = không thuộc nhà xe nào. Chỉ khoá + tên hiển thị.
+const DRIVERS_FOR_DISPATCH = defineSql(
+  "parties",
+  "tai_xe_cho_dieu_phoi",
+  `SELECT p.id AS party_id, p.display_name,
+          EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND r.role_type_code = ?1 AND r.valid_to_date IS NULL) AS la_cong_ty,
+          (SELECT group_concat(cd.carrier_party_id) FROM v_pty_carrier_driver cd WHERE cd.driver_party_id = p.id) AS carrier_ids
+   FROM v_pty_party_label p
+   WHERE p.party_kind = 'PERSON' AND p.active = 1
+     AND (EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND r.role_type_code = ?1 AND r.valid_to_date IS NULL)
+          OR EXISTS (SELECT 1 FROM v_pty_carrier_driver cd WHERE cd.driver_party_id = p.id))
+   ORDER BY p.sort_key COLLATE NOCASE, p.id`,
+);
+export interface DriverForDispatchRow { party_id: string; display_name: string; la_cong_ty: 0 | 1; carrier_ids: string | null }
+export async function driversForDispatch(db: D1Database, internalRole: string): Promise<DriverForDispatchRow[]> {
+  return (await db.prepare(DRIVERS_FOR_DISPATCH).bind(internalRole).all<DriverForDispatchRow>()).results;
+}
+// ?1 = mảng JSON khoá hồ sơ tài xế. Giấy tờ HIỆN HÀNH (mọi loại — điều kiện xuất bến có thể đòi giấy bất kỳ): khoá dòng, mã loại, hạng, ngày hết hạn. KHÔNG
+// chọn cột số, khoá số, nơi cấp, ngày cấp (bài tai-xe-dieu-phoi.test.ts khoá văn bản câu này).
+const DRIVER_DOCS_FOR_DISPATCH = defineSql(
+  "parties",
+  "giay_to_tai_xe_cho_dieu_phoi",
+  `SELECT d.party_id, d.id AS row_id, d.document_type_code, d.license_class_code, d.expiry_date
+   FROM pty_person_document d JOIN pty_person_document_type t ON t.code = d.document_type_code
+   WHERE d.party_id IN (SELECT value FROM json_each(?1)) AND ${HIEN_HANH}
+   ORDER BY d.party_id, t.sort_order, d.id`,
+);
+export interface DriverDocForDispatchRow { party_id: string; row_id: string; document_type_code: string; license_class_code: string | null; expiry_date: string | null }
+export async function driverDocsForDispatch(db: D1Database, partyIds: readonly string[]): Promise<DriverDocForDispatchRow[]> {
+  return (await db.prepare(DRIVER_DOCS_FOR_DISPATCH).bind(JSON.stringify(partyIds)).all<DriverDocForDispatchRow>()).results;
+}
+
 // ---- Danh mục loại giấy tờ của người + hạng GPLX (Quản trị sửa — khuôn loc_location: dấu vết, active, khoá lạc quan; khoá chính là mã, Ruling R7) --------
 const INSERT_DOC_TYPE = defineSql(
   "parties",
