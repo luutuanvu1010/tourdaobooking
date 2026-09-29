@@ -551,23 +551,42 @@ const VOID_PERSON_DOC = defineSql(
 );
 
 // ---- Giấy tờ sắp hết / đã hết hạn của TÀI XẾ (ADR-0040 D1) — nguồn của hàm công bố expiringDriverDocuments (parties/index.ts) cho Vận chuyển ---------------
-// ?1 = mã vai tài khoản tài xế công ty, ?2 = hôm nay (giờ VN), ?3 = hạn cuối (hôm nay + ngưỡng). "Tài xế" = hồ sơ ĐANG DÙNG, đang mở vai ?1 — lọc BÁO CÁO
-// (không phải điều kiện cho phép; câu tra vai nằm trong parties — R-N1-12). Chỉ dòng HIỆN HÀNH có ngày hết hạn ≤ ?3 (kể cả đã quá hạn). KHÔNG chọn cột số,
-// nơi cấp, id giấy tờ (bài giay-to-sap-het-han.test.ts khoá văn bản câu này).
+// ?1 = mã vai tài khoản tài xế công ty, ?4 = mã vai tài khoản tài xế ĐỐI TÁC (ADR-0048 D1), ?2 = hôm nay (giờ VN), ?3 = hạn cuối (hôm nay + ngưỡng).
+// "Tài xế" = hồ sơ ĐANG DÙNG, đang mở vai ?1 hoặc ?4 — lọc BÁO CÁO (không phải điều kiện cho phép; câu tra vai nằm trong parties — R-N1-12). Chỉ dòng HIỆN HÀNH
+// có ngày hết hạn ≤ ?3 (kể cả đã quá hạn). carrier_names = TÊN các nhà xe người đó đang "thuộc" (luật một nguồn ở view v_pty_carrier_driver), NULL = không
+// thuộc nhà xe nào. KHÔNG chọn cột số, nơi cấp, id giấy tờ, liên hệ, MST (bài giay-to-sap-het-han.test.ts khoá văn bản câu này).
 const EXPIRING_DRIVER_DOCS = defineSql(
   "parties",
   "expiring_driver_documents",
-  `SELECT p.id AS party_id, p.display_name, t.name AS type_name, c.name AS class_name, d.expiry_date
+  `SELECT p.id AS party_id, p.display_name, t.name AS type_name, c.name AS class_name, d.expiry_date,
+          (SELECT group_concat(cp.display_name, ', ') FROM v_pty_carrier_driver cd JOIN pty_party cp ON cp.id = cd.carrier_party_id
+            WHERE cd.driver_party_id = p.id) AS carrier_names
    FROM pty_person_document d JOIN pty_party p ON p.id = d.party_id JOIN pty_person_document_type t ON t.code = d.document_type_code
      LEFT JOIN pty_license_class c ON c.code = d.license_class_code
    WHERE p.active = 1 AND d.expiry_date IS NOT NULL AND d.expiry_date <= ?3 AND ${HIEN_HANH}
-     AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND r.role_type_code = ?1 AND r.valid_from_date <= ?2
+     AND EXISTS (SELECT 1 FROM pty_party_role r WHERE r.party_id = p.id AND r.role_type_code IN (?1, ?4) AND r.valid_from_date <= ?2
                    AND (r.valid_to_date IS NULL OR r.valid_to_date >= ?2))
    ORDER BY d.expiry_date, p.display_name, t.sort_order, d.id`,
 );
-export interface ExpiringDocRow { party_id: string; display_name: string; type_name: string; class_name: string | null; expiry_date: string }
-export async function expiringDocumentsOfRole(db: D1Database, roleCode: string, today: string, until: string): Promise<ExpiringDocRow[]> {
-  return (await db.prepare(EXPIRING_DRIVER_DOCS).bind(roleCode, today, until).all<ExpiringDocRow>()).results;
+export interface ExpiringDocRow { party_id: string; display_name: string; type_name: string; class_name: string | null; expiry_date: string; carrier_names: string | null }
+export async function expiringDocumentsOfRoles(db: D1Database, roleCodes: readonly [string, string], today: string, until: string): Promise<ExpiringDocRow[]> {
+  return (await db.prepare(EXPIRING_DRIVER_DOCS).bind(roleCodes[0], today, until, roleCodes[1]).all<ExpiringDocRow>()).results;
+}
+
+// ---- Nhà xe đang hợp tác (ADR-0048 D1) — nguồn của hàm công bố nhaXeDangHopTac (parties/index.ts) cho Vận chuyển ------------------------------------------
+// Hồ sơ đang mở vai Nhà xe (view v_pty_carrier) + tên, loại hồ sơ + số tài xế "thuộc" (view v_pty_carrier_driver — luật một nguồn). Xếp theo khoá sắp
+// tên kiểu Việt của v_pty_party_label. KHÔNG liên hệ, MST, tên pháp lý (bài giay-to-sap-het-han.test.ts khoá văn bản câu này).
+const CARRIERS = defineSql(
+  "parties",
+  "carriers",
+  `SELECT p.id AS party_id, p.display_name, p.party_kind,
+          (SELECT count(*) FROM v_pty_carrier_driver cd WHERE cd.carrier_party_id = p.id) AS driver_count
+   FROM v_pty_carrier c JOIN v_pty_party_label p ON p.id = c.party_id
+   ORDER BY p.sort_key COLLATE NOCASE, p.id`,
+);
+export interface CarrierRow { party_id: string; display_name: string; party_kind: "PERSON" | "ORGANIZATION"; driver_count: number }
+export async function listCarriers(db: D1Database): Promise<CarrierRow[]> {
+  return (await db.prepare(CARRIERS).all<CarrierRow>()).results;
 }
 
 // ---- Danh mục loại giấy tờ của người + hạng GPLX (Quản trị sửa — khuôn loc_location: dấu vết, active, khoá lạc quan; khoá chính là mã, Ruling R7) --------
