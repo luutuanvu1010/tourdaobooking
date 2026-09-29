@@ -261,6 +261,9 @@ export function ownerCompanyAssignProblem(kind: "PERSON" | "ORGANIZATION", r: Ro
   return null;
 }
 
+/** Mã loại quan hệ "Tài xế của" (ADR-0048 D1): từ hồ sơ NGƯỜI (tài xế) tới hồ sơ đang mở vai Nhà xe đối tác (CARRIER). */
+export const QUAN_HE_TAI_XE_CUA = "DRIVES_FOR";
+
 export interface RelationshipInput {
   fromPartyId: string;
   toPartyId: string;
@@ -269,14 +272,14 @@ export interface RelationshipInput {
   to: string | null;
 }
 
-/** `partyId` (từ đường dẫn) phải là một trong hai đầu của quan hệ. */
+/** `partyId` (từ đường dẫn) phải là một trong hai đầu của quan hệ. Câu lỗi trung tính — dùng chung cho "Người liên hệ của" và "Tài xế của" (ADR-0048, ruling R-B1). */
 export function validateRelationship(body: Record<string, unknown> | null, partyId: string, today: string): Result<RelationshipInput> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   const { fromPartyId, toPartyId, relationshipTypeCode } = body;
-  if (typeof fromPartyId !== "string" || typeof toPartyId !== "string" || !PARTY_ID_RE.test(fromPartyId) || !PARTY_ID_RE.test(toPartyId)) return fail("Hồ sơ người liên hệ không hợp lệ.");
-  if (fromPartyId === toPartyId) return fail("Một hồ sơ không thể là người liên hệ của chính nó.");
-  if (fromPartyId !== partyId && toPartyId !== partyId) return fail("Người liên hệ phải gắn với hồ sơ đang xem.");
-  if (typeof relationshipTypeCode !== "string" || !CODE_RE.test(relationshipTypeCode)) return fail("Loại liên hệ không hợp lệ.");
+  if (typeof fromPartyId !== "string" || typeof toPartyId !== "string" || !PARTY_ID_RE.test(fromPartyId) || !PARTY_ID_RE.test(toPartyId)) return fail("Hồ sơ ở một đầu quan hệ không hợp lệ.");
+  if (fromPartyId === toPartyId) return fail("Một hồ sơ không thể có quan hệ với chính nó.");
+  if (fromPartyId !== partyId && toPartyId !== partyId) return fail("Quan hệ phải gắn với hồ sơ đang xem.");
+  if (typeof relationshipTypeCode !== "string" || !CODE_RE.test(relationshipTypeCode)) return fail("Loại quan hệ không hợp lệ.");
   const period = validatePeriod(body.validFrom, body.validTo, today);
   return period.ok ? { ok: true, value: { fromPartyId, toPartyId, typeCode: relationshipTypeCode, from: period.value.from, to: period.value.to } } : period;
 }

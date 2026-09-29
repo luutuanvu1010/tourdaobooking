@@ -2,6 +2,7 @@
 // danh sách, xếp theo ngày hết hạn gần nhất (máy chủ xếp; giấy đã hết hạn tự nổi lên đầu), biểu tượng xe / người đầu dòng; bấm dòng mở chi tiết xe hoặc hồ sơ ở
 // Danh bạ. KHÔNG có số giấy tờ (máy chủ không trả). Mốc (mặc định 30 ngày) KHÔNG đổi ở màn này — Ruling R23 (điều phối 2026-09-28): bản vẽ và danh sách màn chủ
 // duyệt không có ô đổi mốc, chip giấy tờ người còn cố định 30 ngày nên đổi ở giao diện làm hai nơi lệch nhau; route máy chủ giữ nguyên, lượt 1b làm lại.
+// ADR-0048 D1 (Task B4, khuôn dòng phụ sẵn có): dòng có `ownerLabel` (xe của nhà xe; tài xế đối tác — tên nhà xe) thêm nhãn phụ "Nhà xe: <tên>" — chỉ TÊN.
 import { chipHan, duongDanDong, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import type { Api } from "./api";
 import { byId, h, replaceChildren } from "./dom";
@@ -17,6 +18,9 @@ const emptyEl = byId("due-empty");
 const listEl = byId("due-list");
 const tableEl = byId("due-table");
 emptyEl.prepend(icon("checkCircle", 44, 1.5));
+
+/** Nhãn phụ "Nhà xe: <tên>" (ADR-0048 D1); null = của công ty chủ hiện tại / tài xế công ty. */
+const nhanNhaXe = (it: Api.ExpiringItemDto): HTMLElement | null => (it.ownerLabel ? h("span", { class: "vc-due-doc vc-due-owner" }, `Nhà xe: ${it.ownerLabel}`) : null);
 
 const vong = (it: Api.ExpiringItemDto, size: number): HTMLElement =>
   h("span", { class: "vc-ring", role: "img", "aria-label": it.kind === "vehicle" ? "Xe" : "Người" }, icon(it.kind === "vehicle" ? "truck" : "me", size));
@@ -38,7 +42,14 @@ function ve(r: Api.ExpiringListResponse): void {
         "a",
         { class: "vc-due-row", href: duongDanDong(it) },
         vong(it, 22),
-        h("span", { class: "vc-due-text" }, h("span", { class: "vc-due-who" }, it.label), h("span", { class: "vc-due-doc" }, `${tenGiayTo(it)} · ${ngayVN(it.expiryDate)}`), chipEl(chipHan(it.daysLeft, r.warnDays))),
+        h(
+          "span",
+          { class: "vc-due-text" },
+          h("span", { class: "vc-due-who" }, it.label),
+          nhanNhaXe(it),
+          h("span", { class: "vc-due-doc" }, `${tenGiayTo(it)} · ${ngayVN(it.expiryDate)}`),
+          chipEl(chipHan(it.daysLeft, r.warnDays)),
+        ),
         h("span", { class: "vc-due-chevron" }, icon("next", 20)),
       ),
     ),
@@ -52,7 +63,7 @@ function ve(r: Api.ExpiringListResponse): void {
         "a",
         { class: "vc-due-grid vc-due-trow", href: duongDanDong(it) },
         vong(it, 20),
-        h("span", { class: "vc-due-who" }, it.label),
+        it.ownerLabel ? h("span", { class: "vc-due-text" }, h("span", { class: "vc-due-who" }, it.label), nhanNhaXe(it)) : h("span", { class: "vc-due-who" }, it.label),
         h("span", { class: "vc-due-doc" }, tenGiayTo(it)),
         h("span", { class: "vc-due-exp" }, ngayVN(it.expiryDate)),
         h("span", null, chipEl(chipHan(it.daysLeft, r.warnDays))),

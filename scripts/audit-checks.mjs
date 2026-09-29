@@ -75,12 +75,24 @@ export const CHECKS = [
   },
 
   // ---- Luật cứng ADR-0018 — trigger LC-1/LC-3 chặn ở CSDL (migration 0024); các kiểm này là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL. ----
+  // ADR-0048 B2.1 (NỚI — chờ chủ xác nhận ở tệp đề xuất luật mục 1c): quyền bên ngoài = {PARTNER, DRIVER_PARTNER} = EXTERNAL_PERMISSIONS của
+  // src/shared/permissions.ts, cùng tập với trigger LC-1 tạo lại ở migration *_tai_xe_doi_tac.
   {
     code: "R-LC-1",
-    what: "tài khoản có vai bên ngoài đang mở chỉ giữ quyền Đối tác",
-    sql: `SELECT count(*) FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code <> 'PARTNER'
+    what: "tài khoản có vai bên ngoài đang mở chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác)",
+    sql: `SELECT count(*) FROM staff s JOIN stf_permission p ON p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code NOT IN ('PARTNER', 'DRIVER_PARTNER')
      WHERE EXISTS (SELECT 1 FROM pty_party_role r JOIN pty_role_type t ON t.code = r.role_type_code
                    WHERE r.party_id = s.party_id AND r.valid_to_date IS NULL AND t.role_group = 'EXTERNAL')`,
+    level: "fail",
+  },
+  // LC-1b (ADR-0048 B2.2, B2.3 — Q4 = (a)): tài khoản giữ Tài xế đối tác không giữ quyền nào khác. Trigger lc1b_stf_permission_driver_partner_alone chỉ canh
+  // INSERT (mã không bao giờ mở lại dòng quyền) — kiểm này là lưới thứ hai cho SQL gõ tay / mở lại dòng bằng UPDATE. Đếm TÀI KHOẢN lai.
+  {
+    code: "R-LC-1b",
+    what: "tài khoản giữ quyền Tài xế đối tác không giữ thêm quyền nào khác (không tài khoản lai)",
+    sql: `SELECT count(*) FROM staff s
+     WHERE EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code = 'DRIVER_PARTNER')
+       AND EXISTS (SELECT 1 FROM stf_permission p WHERE p.staff_id = s.id AND p.valid_to_at IS NULL AND p.permission_type_code <> 'DRIVER_PARTNER')`,
     level: "fail",
   },
   {
@@ -132,6 +144,15 @@ export const CHECKS = [
               AND instr(upper(replace(replace(replace(replace(a.detail, ' ', ''), '.', ''), '-', ''), '/', '')), d.number_key) > 0)`,
     level: "warn-unless-strict",
     note: "nhật ký chỉ-thêm — không gỡ được; báo chủ dự án ngay, đây là dữ liệu cá nhân (số giấy tờ lọt vào nhật ký — tìm route ghi sai)",
+  },
+  // R-PTY-5 (ADR-0048 B1.2): quan hệ "Tài xế của" đang mở đi từ hồ sơ NGƯỜI — lưới thứ hai của trigger pty_relationship_drives_for_person (chỉ canh INSERT).
+  // KHÔNG kiểm "đầu tới đang là nhà xe": nhà xe thôi hợp tác (đóng vai) thì quan hệ còn mở vẫn hợp lệ (ADR-0048 D1 — quan hệ không tự đóng).
+  {
+    code: "R-PTY-5",
+    what: "quan hệ 'Tài xế của' đang mở đi từ hồ sơ cá nhân (người lái), không từ hồ sơ tổ chức",
+    sql: `SELECT count(*) FROM pty_party_relationship r JOIN pty_party p ON p.id = r.from_party_id
+     WHERE r.relationship_type_code = 'DRIVES_FOR' AND r.valid_to_date IS NULL AND p.party_kind <> 'PERSON'`,
+    level: "fail",
   },
   {
     code: "R-VC-1",

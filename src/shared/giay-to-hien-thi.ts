@@ -114,10 +114,27 @@ export interface XeForm {
   name: string;
   passengerCapacity: number;
   status: VehicleStatus;
+  /** ADR-0048 D1 (Task B3): ô "Chủ xe" — "" hoặc vắng = mặc định (thêm: công ty chủ; sửa: giữ chủ), KHÔNG gửi khoá; có giá trị thì gửi `ownerPartyId`. */
+  ownerPartyId?: string;
 }
 /** Thân POST /api/van-chuyen/xe — ô Tên/đời xe → name; modelYear null (xem tenXe). Trạng thái xe mới: Đang dùng / Bảo dưỡng (máy chủ chặn "retired"). */
-export function thanXeMoi(f: XeForm): { plateNumber: string; chassisNumber: string; name: string; modelYear: null; passengerCapacity: number; status: VehicleStatus } {
-  return { plateNumber: f.plateNumber.trim(), chassisNumber: f.chassisNumber.trim(), name: f.name.trim(), modelYear: null, passengerCapacity: f.passengerCapacity, status: f.status };
+export function thanXeMoi(f: XeForm): {
+  plateNumber: string; chassisNumber: string; name: string; modelYear: null; passengerCapacity: number; status: VehicleStatus; ownerPartyId?: string;
+} {
+  return {
+    plateNumber: f.plateNumber.trim(), chassisNumber: f.chassisNumber.trim(), name: f.name.trim(), modelYear: null, passengerCapacity: f.passengerCapacity, status: f.status,
+    ...(f.ownerPartyId ? { ownerPartyId: f.ownerPartyId } : {}),
+  };
+}
+/**
+ * Lựa chọn "Chủ xe" (ADR-0048 D1; Task B3) từ GET /api/van-chuyen/nha-xe: công ty chủ trước, rồi từng nhà xe đang hợp tác (máy chủ đã xếp theo tên). Nhãn ghi
+ * rõ loại chủ. Một nguồn cho ô chọn ở /xe-sua và ô lọc ở /xe.
+ */
+export function luaChonChuXe(r: { ownerCompany: { partyId: string; name: string } | null; carriers: readonly { partyId: string; name: string }[] }): { value: string; label: string }[] {
+  return [
+    ...(r.ownerCompany ? [{ value: r.ownerCompany.partyId, label: `${r.ownerCompany.name} (công ty)` }] : []),
+    ...r.carriers.map((c) => ({ value: c.partyId, label: `${c.name} (nhà xe đối tác)` })),
+  ];
 }
 type XeDaLuu = Pick<VehicleDto, "plateNumber" | "chassisNumber" | "name" | "modelYear" | "passengerCapacity" | "status" | "updatedAt">;
 /** Thân PUT /api/van-chuyen/xe/:id khi bấm "Lưu" (kể cả sau "Dùng lại xe"): giá trị trong form + modelYear ĐÃ LƯU (form không có ô năm) + khoá lạc quan. */

@@ -2,7 +2,21 @@
 
 Đặc tả: `docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md` (đã duyệt 2026-09-20). ADR: `docs/adr/ADR-0001…0008`. Kế hoạch: `docs/superpowers/plans/2026-09-20-n1-a-nen-du-lieu.md` và `…-n1-b-chuyen-quyen.md`.
 
-## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.36: thông báo điện thoại tắt đúng máy (ADR-0046) + tách Danh mục giấy tờ theo chủ dữ liệu (không migration) ĐÃ LÊN PRODUCTION (2026-09-28 23:21 giờ VN, chủ dự án tự chạy `npm run day-len -- thong-bao-tat-dung-may` rồi `npm run trien-khai`)
+## TRẠNG THÁI TRIỂN KHAI — Phiên bản 1.37: nhà xe đối tác + tài xế đối tác (ADR-0048 — vai `CARRIER`, quan hệ "Tài xế của", xe của nhà xe, quyền `DRIVER_PARTNER`, LC-1 mới + LC-1b; migration `0037`–`0039`) ĐÃ LÊN PRODUCTION (2026-09-29 14:48 giờ VN, chủ dự án tự chạy `npm run day-len -- phat-hanh-1-37` rồi `npm run trien-khai`)
+
+AI (phiên điều phối) kiểm bằng lệnh chỉ đọc sau khi chủ báo xong (2026-09-29, chiều):
+
+- **Phiên bản: 1.37.** `node scripts/kiem-phien-ban.mjs --sau-deploy` → "ĐẠT: production đang chạy đúng bản 1.37."; `GET /api/auth/config` trả `"version":"1.37"`.
+- **Chế độ bảo trì: ĐANG BẬT**, `endsAt` = 2026-10-02T07:16:00Z (14:16 giờ VN ngày 2/10). Lúc kiểm 1.36 (sáng 29/9) còn tắt. Chưa rõ chủ bật có chủ ý hay không — đã hỏi chủ.
+- **Mã trên `main` / GitHub:** `origin/main` = `main` = 4c2913c (nhánh `phat-hanh-1-37`: ADR-0048 Phần A + B, R-B1, K1; luật chủ duyệt đã áp — `CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/SO-HANG-RAO.md`; tài liệu ADR-0047/0049 + kế hoạch; tài liệu tham khảo `docs/Ref/transportation-kernel-travel-erp.md` của chủ). Kiểm độc lập: Phần A ĐẠT (3d8f4b0); K2 ĐẠT CÓ ĐIỀU KIỆN (5a024b4, điều kiện = chủ duyệt mục 5 — đã có); soát phần áp luật + lần gộp ĐẠT (149ffc1). `npm test` 1375/1375, typecheck 0.
+- **Triển khai:** e2e của `npm run trien-khai` đỏ thoáng qua hai lần (lần 1: `catalog`; lần 2: `catalog` + `dispatch`; một lần chạy riêng `catalog` đỏ ở `tests/e2e/catalog.mjs:121` = Google Sheet 502 `sheet_unreachable` lúc "kéo lại"). Điều phối chạy lại riêng `catalog` + `dispatch` trên đúng mã (4c2913c + một tệp tài liệu) → **2/2 xanh, thoát 0**; `curl` Sheet 200 hai lần. Chủ chọn đi tiếp ("c") ở câu hỏi e2e của lượt thứ hai. Nguyên nhân khả dĩ: Google Sheet chập chờn + máy bận vì nhiều phiên chạy e2e song song — **chưa kiểm chắc** cho `dispatch`.
+- **Worker:** `wrangler deployments list` → mới nhất **d886c111-a7d9-4c2d-ac9f-6e5620c9eaf5**, tạo 2026-09-29T07:48:19Z. Mốc lùi: d6db34a6-025d-4862-8ff0-fe4eca065f24 (1.36). Lùi Worker an toàn về dữ liệu (migration chỉ thêm; trigger LC-1 tạo lại chỉ nới thêm `DRIVER_PARTNER`, mã 1.36 không tạo quyền đó).
+- **Migration D1:** `0037_tai_xe_doi_tac`, `0038_nha_xe_doi_tac`, `0039_chu_xe_nha_xe` đã áp — `wrangler d1 migrations list --remote` → "No migrations to apply!". **Kiểm dữ liệu:** `audit-invariants --db remote` → "Mọi bất biến đạt (D1 remote)." (có R-LC-1 mới, R-LC-1b, R-PTY-5).
+- **AI kiểm công khai (không đăng nhập):** `GET /api/van-chuyen/nha-xe`, `/api/van-chuyen/xe?chu=cong-ty`, `/api/parties/documents/mine` đều 401.
+- **Chưa kiểm:** thao tác thật bằng tài khoản đã đăng nhập (tạo nhà xe, tài xế đối tác, xe của nhà xe, đăng nhập bằng tài khoản Tài xế đối tác); iPhone thật.
+- **Kế tiếp:** ADR-0047 (chặng đưa đón; `0034`–`0035`) Phần B chờ bản vẽ; ADR-0049 (Bảng điều phối; `0040`–`0042`) lát 1.1/1.3 xong ở nhánh `thi-cong-adr-0049-song-song`, chờ chủ trả lời kẽ hở mốc 6 giờ (Q-A4-1) và "mốc 0 = tắt hẳn" (GA-5).
+
+## TRẠNG THÁI TRIỂN KHAI (cũ) — Phiên bản 1.36: thông báo điện thoại tắt đúng máy (ADR-0046) + tách Danh mục giấy tờ theo chủ dữ liệu (không migration) ĐÃ LÊN PRODUCTION (2026-09-28 23:21 giờ VN, chủ dự án tự chạy `npm run day-len -- thong-bao-tat-dung-may` rồi `npm run trien-khai`)
 
 AI (phiên điều phối) kiểm bằng lệnh chỉ đọc lúc 2026-09-29 (ghi muộn — phiên điều phối tưởng production còn 1.35 cho tới khi người thi công ADR-0048 chạy `kiem-phien-ban` thấy 1.36):
 

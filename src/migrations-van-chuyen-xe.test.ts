@@ -26,8 +26,12 @@ type Row = Record<string, unknown>;
 const rows = (db: DatabaseSync, sql: string, ...a: string[]): Row[] => db.prepare(sql).all(...a).map((r) => ({ ...(r as Row) }));
 const triggers = (db: DatabaseSync): string[] => rows(db, "SELECT name FROM sqlite_master WHERE type = 'trigger' ORDER BY name").map((r) => String(r.name));
 
+// Từ migration *_chu_xe_nha_xe (ADR-0048 B1.1) chủ xe phải là công ty chủ hoặc hồ sơ đang mở vai Nhà xe đối tác (trigger): chủ xe thử mở vai CARRIER.
+// `before()` (dựng tới trước tệp 0033) chưa có mã vai đó — hàm này chỉ dùng với `all()`.
 function chuXe(db: DatabaseSync, id = "o-chu"): string {
   db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, 'ORGANIZATION', 'Chủ xe thử', 1, ?, ?)").run(id, AT, AT);
+  db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES (?, ?, 'CARRIER', NULL, '2026-09-01', ?, ?)")
+    .run(`r-${id}`, id, AT, AT);
   return id;
 }
 let n = 0;
@@ -128,7 +132,11 @@ test("(f) ngừng ⇔ có ngày ngừng; số người được chở 1–100", 
 
 test("(g) chủ xe là hồ sơ có thật (khoá ngoại tới pty_party)", () => {
   const db = all();
-  assert.throws(() => xe(db, { bien: "79B-400.01", chu: "khong-co" }), /FOREIGN KEY/);
+  // Từ migration *_chu_xe_nha_xe (ADR-0048 B1.1) trigger chủ xe BEFORE INSERT chạy trước khoá ngoại nên thông báo là vehicle_owner_not_allowed; khoá ngoại vẫn
+  // còn (src/architecture.test.ts đọc PRAGMA foreign_key_list) — khẳng định thêm dưới đây.
+  assert.throws(() => xe(db, { bien: "79B-400.01", chu: "khong-co" }), /vehicle_owner_not_allowed/);
+  const fk = (db.prepare("PRAGMA foreign_key_list(vc_vehicle)").all() as { from: string; table: string }[]).map((r) => `${r.from}>${r.table}`);
+  assert.ok(fk.includes("owner_party_id>pty_party"), `khoá ngoại owner_party_id → pty_party phải còn, thấy ${JSON.stringify(fk)}`);
 });
 
 test("(h) không xoá xe, không xoá giấy tờ xe (Hiến chương 5.5)", () => {

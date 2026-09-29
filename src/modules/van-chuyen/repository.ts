@@ -16,11 +16,30 @@ export interface VehicleRow {
   valid_from_date: string;
   valid_to_date: string | null;
   updated_at: string;
+  /** ADR-0048 D1: chủ xe — công ty chủ hoặc hồ sơ nhà xe; tên hiển thị qua view v_pty_party_label; cờ = chủ là công ty chủ HIỆN TẠI (view v_pty_owner_company). */
+  owner_party_id: string;
+  owner_name: string;
+  owner_is_company: number;
 }
-const COT_XE = "id, plate_number, chassis_number, name, model_year, passenger_capacity, status, valid_from_date, valid_to_date, updated_at";
+// Cột xe + chủ xe. Tên chủ và cờ "công ty chủ hiện tại" đọc qua VIEW công bố của parties (cạnh van-chuyen → parties đã khai; không JOIN bảng của parties).
+const COT_XE = `v.id, v.plate_number, v.chassis_number, v.name, v.model_year, v.passenger_capacity, v.status, v.valid_from_date, v.valid_to_date, v.updated_at,
+  v.owner_party_id, COALESCE(l.display_name, '') AS owner_name, (oc.party_id IS NOT NULL) AS owner_is_company`;
+const TU_XE = "vc_vehicle v LEFT JOIN v_pty_party_label l ON l.id = v.owner_party_id LEFT JOIN v_pty_owner_company oc ON oc.party_id = v.owner_party_id";
 // Xe đang dùng / bảo dưỡng trước, xe đã ngừng sau; trong nhóm theo biển số.
-const LIST_VEHICLES = defineSql("van-chuyen", "list_vehicles", `SELECT ${COT_XE} FROM vc_vehicle ORDER BY status = 'retired', plate_key, id`);
-const FIND_VEHICLE = defineSql("van-chuyen", "find_vehicle", `SELECT ${COT_XE} FROM vc_vehicle WHERE id = ?1`);
+const LIST_VEHICLES = defineSql("van-chuyen", "list_vehicles", `SELECT ${COT_XE} FROM ${TU_XE} ORDER BY v.status = 'retired', v.plate_key, v.id`);
+const FIND_VEHICLE = defineSql("van-chuyen", "find_vehicle", `SELECT ${COT_XE} FROM ${TU_XE} WHERE v.id = ?1`);
+// ADR-0048 D1: danh sách xe lọc theo chủ ?1 (câu riêng — không ghép điều kiện động).
+const LIST_VEHICLES_OF_OWNER = defineSql(
+  "van-chuyen",
+  "list_vehicles_of_owner",
+  `SELECT ${COT_XE} FROM ${TU_XE} WHERE v.owner_party_id = ?1 ORDER BY v.status = 'retired', v.plate_key, v.id`,
+);
+// ADR-0048 D1 (giả định G5): số xe CHƯA NGỪNG theo chủ — cột "số xe" của danh sách nhà xe.
+const VEHICLE_COUNT_BY_OWNER = defineSql(
+  "van-chuyen",
+  "vehicle_count_by_owner",
+  "SELECT owner_party_id, count(*) AS n FROM vc_vehicle WHERE status <> 'retired' GROUP BY owner_party_id",
+);
 // R15 điểm 1 (lớp route): biển số ?1 (đã chuẩn hoá) đang thuộc xe CHƯA NGỪNG nào khác xe ?2 không — kiểm TRƯỚC khi thêm, sửa, dùng lại xe.
 const PLATE_HOLDER = defineSql("van-chuyen", "plate_holder", "SELECT id FROM vc_vehicle WHERE plate_key = ?1 AND status <> 'retired' AND id <> ?2 LIMIT 1");
 // Số khung ?1 (đã chuẩn hoá) đã có ở xe nào khác xe ?2 (kể cả xe đã ngừng — định danh bền).
@@ -32,17 +51,25 @@ const INSERT_VEHICLE = defineSql(
      valid_to_date, created_at, created_by, updated_at, updated_by)
    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, ?12, ?13, ?12, ?13)`,
 );
-// Khoá lạc quan updated_at. Chủ xe KHÔNG đổi ở đây (ADR-0040 D1: chuyển chủ xe là việc riêng); ngày bắt đầu dùng không đổi.
+// Khoá lạc quan updated_at. Chủ xe ?14: SỬA NHẬP NHẦM (ADR-0048 D1, Q1 = (a) — chủ 29/9 "Sửa được, ghi nhật ký"; route gửi chủ hiện tại khi không đổi). Chuyển
+// chủ có lịch sử (bán xe, ai là chủ lúc nào) vẫn là việc riêng (ADR-0040 D1). Trigger vc_vehicle_owner_upd (0039) chỉ kiểm khi GIÁ TRỊ đổi. Ngày bắt đầu không đổi.
 const UPDATE_VEHICLE = defineSql(
   "van-chuyen",
   "update_vehicle",
   `UPDATE vc_vehicle SET plate_number = ?3, plate_key = ?4, chassis_number = ?5, chassis_key = ?6, name = ?7, model_year = ?8, passenger_capacity = ?9,
-     status = ?10, valid_to_date = ?11, updated_at = ?12, updated_by = ?13
+     status = ?10, valid_to_date = ?11, updated_at = ?12, updated_by = ?13, owner_party_id = ?14
    WHERE id = ?1 AND updated_at = ?2`,
 );
 
 export async function listVehicles(db: D1Database): Promise<VehicleRow[]> {
   return (await db.prepare(LIST_VEHICLES).all<VehicleRow>()).results;
+}
+export async function listVehiclesOfOwner(db: D1Database, ownerPartyId: string): Promise<VehicleRow[]> {
+  return (await db.prepare(LIST_VEHICLES_OF_OWNER).bind(ownerPartyId).all<VehicleRow>()).results;
+}
+export async function vehicleCountByOwner(db: D1Database): Promise<Map<string, number>> {
+  const rows = (await db.prepare(VEHICLE_COUNT_BY_OWNER).all<{ owner_party_id: string; n: number }>()).results;
+  return new Map(rows.map((r) => [r.owner_party_id, r.n]));
 }
 export const findVehicle = (db: D1Database, id: string): Promise<VehicleRow | null> => db.prepare(FIND_VEHICLE).bind(id).first<VehicleRow>();
 export async function plateHolder(db: D1Database, plateKey: string, exceptId: string): Promise<string | null> {
@@ -53,8 +80,10 @@ export async function chassisHolder(db: D1Database, chassisKey: string, exceptId
 }
 export const insertVehicleStatement = (db: D1Database, id: string, v: XeNhap, ownerPartyId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(INSERT_VEHICLE).bind(id, v.plateNumber, v.plateKey, v.chassisNumber, v.chassisKey, v.name, v.modelYear, v.passengerCapacity, ownerPartyId, v.status, v.validFrom, at, actorId);
-export const updateVehicleStatement = (db: D1Database, id: string, v: XeSua, actorId: string, at: string): D1PreparedStatement =>
-  db.prepare(UPDATE_VEHICLE).bind(id, v.expectedUpdatedAt, v.plateNumber, v.plateKey, v.chassisNumber, v.chassisKey, v.name, v.modelYear, v.passengerCapacity, v.status, v.validTo, at, actorId);
+export const updateVehicleStatement = (db: D1Database, id: string, v: XeSua, ownerPartyId: string, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(UPDATE_VEHICLE).bind(
+    id, v.expectedUpdatedAt, v.plateNumber, v.plateKey, v.chassisNumber, v.chassisKey, v.name, v.modelYear, v.passengerCapacity, v.status, v.validTo, at, actorId, ownerPartyId,
+  );
 
 // ---- Giấy tờ xe (đọc) ------------------------------------------------------------------------------------------------------------------------------------
 // "Hiện hành" = chưa huỷ và không có dòng gia hạn CHƯA huỷ nối tiếp (khớp trigger *_superseded của migration *_van_chuyen_xe).
@@ -82,19 +111,24 @@ const LIST_VEHICLE_DOCS = defineSql(
    WHERE d.vehicle_id = ?1
    ORDER BY is_current DESC, d.expiry_date IS NULL, d.expiry_date, t.sort_order, d.created_at, d.id`,
 );
-// Giấy HIỆN HÀNH có ngày hết hạn của mọi xe CHƯA NGỪNG, hạn ≤ ?1 — nguồn cảnh báo ở danh sách xe (canhBaoXe) và của danh sách "sắp hết hạn".
+// Giấy HIỆN HÀNH có ngày hết hạn của mọi xe CHƯA NGỪNG, hạn ≤ ?1 — nguồn cảnh báo ở danh sách xe (canhBaoXe) và của danh sách "sắp hết hạn". Tên chủ xe + cờ
+// "công ty chủ hiện tại" (ADR-0048 D1: nhãn nhà xe) đọc qua view công bố của parties — chỉ TÊN.
 const EXPIRING_VEHICLE_DOCS = defineSql(
   "van-chuyen",
   "expiring_vehicle_documents",
-  `SELECT d.vehicle_id, v.plate_number, v.name AS vehicle_name, t.name AS type_name, d.expiry_date
+  `SELECT d.vehicle_id, v.plate_number, v.name AS vehicle_name, t.name AS type_name, d.expiry_date,
+          COALESCE(l.display_name, '') AS owner_name, (oc.party_id IS NOT NULL) AS owner_is_company
    FROM vc_vehicle_document d JOIN vc_vehicle v ON v.id = d.vehicle_id JOIN vc_vehicle_document_type t ON t.code = d.document_type_code
+     LEFT JOIN v_pty_party_label l ON l.id = v.owner_party_id LEFT JOIN v_pty_owner_company oc ON oc.party_id = v.owner_party_id
    WHERE v.status <> 'retired' AND d.expiry_date IS NOT NULL AND d.expiry_date <= ?1 AND ${HIEN_HANH}
    ORDER BY d.expiry_date, v.plate_key, t.sort_order, d.id`,
 );
 export async function listVehicleDocuments(db: D1Database, vehicleId: string): Promise<VehicleDocRow[]> {
   return (await db.prepare(LIST_VEHICLE_DOCS).bind(vehicleId).all<VehicleDocRow>()).results;
 }
-export interface ExpiringVehicleDocRow { vehicle_id: string; plate_number: string; vehicle_name: string; type_name: string; expiry_date: string }
+export interface ExpiringVehicleDocRow {
+  vehicle_id: string; plate_number: string; vehicle_name: string; type_name: string; expiry_date: string; owner_name: string; owner_is_company: number;
+}
 export async function expiringVehicleDocuments(db: D1Database, until: string): Promise<ExpiringVehicleDocRow[]> {
   return (await db.prepare(EXPIRING_VEHICLE_DOCS).bind(until).all<ExpiringVehicleDocRow>()).results;
 }

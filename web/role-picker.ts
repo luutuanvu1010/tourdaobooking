@@ -1,9 +1,10 @@
 // Khối "Vai và quyền" của trang Nhân viên (ADR-0018): chọn vai theo hai nhóm, xem trước quyền sẽ có (và sẽ thêm/mất so với hiện tại), chỉnh riêng có lý do.
-// Mọi luật (nhóm vai, bộ quyền mặc định, LC-1/LC-3/LC-4) đến từ src/shared/roles.ts — giao diện chỉ tắt ô và xem trước; máy chủ luôn kiểm lại.
+// Mọi luật (nhóm vai, bộ quyền mặc định, LC-1/LC-1b/LC-3/LC-4) đến từ src/shared/roles.ts — giao diện chỉ tắt ô và xem trước; máy chủ luôn kiểm lại.
 // Ô vai mang data-kind="role", ô chỉnh tay data-kind="add"/"remove": mã INTERN vừa là mã vai vừa là mã quyền, chọn phần tử phải kèm data-kind.
-import { PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode } from "../src/shared/permissions";
+import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, type PermissionCode } from "../src/shared/permissions";
 import {
-  EXTERNAL_ALLOWED, ROLES, ROLE_CODES, ROLE_GROUP_LABEL, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, permissionsLabel, type RoleCode, type RoleGroup,
+  ROLES, ROLE_CODES, ROLE_GROUP_LABEL, SUPER_ADMIN_GRANTED, effectivePermissions, groupOf, permissionsLabel, taiKhoanLaiProblem, vaiTaiXeDoiTacXungDot,
+  type RoleCode, type RoleGroup,
 } from "../src/shared/roles";
 import { h } from "./dom";
 
@@ -31,13 +32,25 @@ export function rolePicker(opts: { initial: RolePickerValue; actorIsSuperAdmin: 
   const refresh = (): void => {
     const v = value();
     const group = groupOf(v.roles);
-    for (const c of ROLE_CODES) roleBoxes.get(c)!.disabled = roleLocked(c) || ((group === "INTERNAL" || group === "EXTERNAL") && ROLES[c].group !== group); // LC-3
+    // ADR-0048 B2.2 (LC-1b, Task B1): một ô CHƯA chọn bị tắt nếu chọn nó sẽ tạo xung đột — vai "Tài xế đối tác" cùng vai bên ngoài khác, hoặc tài khoản lai
+    // (Tài xế đối tác kèm quyền khác). Ô ĐANG chọn không bao giờ bị tắt vì luật này, để người dùng bỏ chọn được.
+    const vaiXungDot = (c: RoleCode): boolean => !v.roles.includes(c) && vaiTaiXeDoiTacXungDot([...v.roles, c]);
+    const congTayLai = (p: PermissionCode): boolean =>
+      !v.adds.includes(p) && taiKhoanLaiProblem(effectivePermissions(v.roles, { adds: [...v.adds, p], removes: v.removes }).permissions) !== null;
+    for (const c of ROLE_CODES) {
+      roleBoxes.get(c)!.disabled = roleLocked(c) || ((group === "INTERNAL" || group === "EXTERNAL") && ROLES[c].group !== group) || vaiXungDot(c); // LC-3, LC-1b
+    }
     for (const p of PERMISSION_CODES) {
-      addBoxes.get(p)!.disabled = permLocked(p) || (group === "EXTERNAL" && !EXTERNAL_ALLOWED.includes(p)); // LC-1
+      // LC-1 (ADR-0048: quyền bên ngoài = EXTERNAL_PERMISSIONS), LC-1b (cộng tay tạo tài khoản lai)
+      addBoxes.get(p)!.disabled = permLocked(p) || (group === "EXTERNAL" && !isExternalPermission(p)) || congTayLai(p);
       removeBoxes.get(p)!.disabled = permLocked(p);
     }
     const eff = effectivePermissions(v.roles, v).permissions;
     const parts = [`Quyền sẽ có: ${permissionsLabel(eff)}.`];
+    // Trạng thái xung đột chỉ tới được khi dữ liệu nạp vào đã sai (reset) — báo đúng câu của máy chủ.
+    if (vaiTaiXeDoiTacXungDot(v.roles)) parts.push("Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một.");
+    const lai = taiKhoanLaiProblem(eff);
+    if (lai) parts.push(lai.message);
     if (opts.current) {
       const gain = eff.filter((p) => !opts.current!.includes(p));
       const lose = opts.current.filter((p) => !eff.includes(p));

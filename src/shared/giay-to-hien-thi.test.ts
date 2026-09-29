@@ -93,6 +93,18 @@ test("thanXeMoi / thanDungLaiHoacSuaXe / thanNgungXe: thân đúng hợp đồng
   });
 });
 
+// ADR-0048 D1 (Task B3): ô "Chủ xe" — rỗng = mặc định (thêm: công ty chủ; sửa: giữ chủ), KHÔNG gửi khoá; có giá trị thì gửi `ownerPartyId` (thêm và sửa — Q1 = (a)).
+test("thanXeMoi / thanDungLaiHoacSuaXe (ADR-0048): ô Chủ xe rỗng → không gửi ownerPartyId; có chọn → gửi; Ngừng dùng không gửi chủ (giữ chủ)", () => {
+  const form = { plateNumber: "79B-123.45", chassisNumber: "KHUNG12345", name: "Ford Transit", passengerCapacity: 15, status: "active" as const, ownerPartyId: "" };
+  assert.equal("ownerPartyId" in thanXeMoi(form), false);
+  const NX = "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+  assert.equal(thanXeMoi({ ...form, ownerPartyId: NX }).ownerPartyId, NX);
+  const daLuu = { plateNumber: "79B-123.45", chassisNumber: "KHUNG12345", name: "Ford Transit", modelYear: null, passengerCapacity: 15, status: "active" as const, updatedAt: "2026-09-28T01:00:00.000Z" };
+  assert.equal(thanDungLaiHoacSuaXe({ ...form, ownerPartyId: NX }, daLuu).ownerPartyId, NX);
+  assert.equal("ownerPartyId" in thanDungLaiHoacSuaXe(form, daLuu), false);
+  assert.equal("ownerPartyId" in thanNgungXe(daLuu), false);
+});
+
 test("thanSuaSai: “Nhập nhầm cả dòng” KHÔNG có khoá value (máy chủ 400 nếu gửi, kể cả null); lý do khác gửi value (rỗng → null)", () => {
   assert.deepEqual(thanSuaSai("NHAP_NHAM_DONG", "bất kỳ", "t1"), { reason: "NHAP_NHAM_DONG", expectedUpdatedAt: "t1" });
   assert.equal(Object.hasOwn(thanSuaSai("NHAP_NHAM_DONG", null, "t1"), "value"), false);
@@ -150,7 +162,9 @@ test("coMucGiayToCuaToi: mọi nhân viên nội bộ có mục (R5); tài kho�
   assert.equal(coMucGiayToCuaToi(ai("PARTNER")), false);
   for (const p of ["SALES", "ADMIN", "FIELD", "DRIVER"] as const) assert.equal(coMucGiayToCuaToi(ai(p, "PARTNER")), false, `${p}+PARTNER (lai)`);
   assert.equal(coMucGiayToCuaToi(ai()), false, "không quyền nào");
-  // Cùng hai điều kiện route GET /api/parties/documents/mine hỏi, trên cả 256 tập con quyền.
+  // ADR-0048 D2: tài khoản chỉ Tài xế đối tác CÓ mục (ô party.document.view = own; LC-1b cấm kèm PARTNER nên holdsPartner sai).
+  assert.equal(coMucGiayToCuaToi(ai("DRIVER_PARTNER")), true, "DRIVER_PARTNER");
+  // Cùng hai điều kiện route GET /api/parties/documents/mine hỏi, trên cả 512 tập con quyền.
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const w = ai(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
     assert.equal(coMucGiayToCuaToi(w), can(w, "party.document.view", { ownerId: w.id }) && !holdsPartner(w), w.permissions.join("+"));

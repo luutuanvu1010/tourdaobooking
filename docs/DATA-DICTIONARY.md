@@ -92,6 +92,9 @@
 | `pty_person_document` | bảng |  |
 | `v_pty_open_role_group` | view công bố | cột: party_id, role_group |
 | `v_pty_party_label` | view công bố | cột: id, display_name, party_kind, active, sort_key |
+| `v_pty_owner_company` | view công bố | cột: party_id |
+| `v_pty_carrier` | view công bố | cột: party_id |
+| `v_pty_carrier_driver` | view công bố | cột: carrier_party_id, driver_party_id |
 
 ## staff
 

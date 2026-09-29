@@ -11,6 +11,17 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // ADR-0048 (nhà xe đối tác, tài xế đối tác; Task K1 của docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md). Số "1.37" TẠM theo điều phối
+    // (production 1.36 từ 28/9 23:21 giờ VN; 1.37 là bản kế tiếp); người gộp chốt số trống kế tiếp LÚC GỘP (nhánh ADR-0047 đang xếp hàng).
+    version: "1.37",
+    date: "2026-09-29",
+    items: [
+      { kind: "moi", text: "Có tài khoản cho tài xế của nhà xe đối tác: đăng nhập, xem giấy tờ của mình; không thấy đơn, giá hay tin nội bộ của công ty." },
+      { kind: "moi", text: "Quản trị ghi được nhà xe đối tác ở Danh bạ, tài xế của từng nhà xe và xe của nhà xe; danh sách xe lọc được theo chủ xe." },
+      { kind: "doi", text: "Danh sách giấy tờ sắp hết hạn có thêm xe và tài xế của nhà xe đối tác, ghi rõ tên nhà xe." },
+    ],
+  },
+  {
     // ADR-0046 (thông báo điện thoại tự tắt đúng máy — sửa ADR-0036 điều 6) + tách "Danh mục giấy tờ" theo chủ dữ liệu (chủ chọn 28/9).
     version: "1.36",
     date: "2026-09-28",

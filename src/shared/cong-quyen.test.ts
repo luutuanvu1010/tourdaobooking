@@ -46,11 +46,13 @@ test("ADR-0019 + ADR-0033: GET /api/catalog/for-order hỏi money.view phạm vi
 });
 
 // ĐỔI CÓ CHỦ ĐÍCH (ADR-0030 S23-5): tổ hợp có FIELD mà KHÔNG có mã nào khác của ORDERS_GATE cũ (SALES, ACCOUNTING, ADMIN, PARTNER, SUPER_ADMIN, INTERN)
-// nay qua cổng orders. Với 8 mã hôm nay có ĐÚNG HAI tổ hợp như vậy: chỉ-FIELD và FIELD+DRIVER. Liệt kê TƯỜNG MINH, không suy.
-// FIELD+DRIVER (ADR-0040 D3): qua cổng orders NHỜ FIELD (ADR-0030 S23-5); DRIVER không thêm gì (không nằm trong cổng nào).
-const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER"]);
+// nay qua cổng orders. Với 9 mã hôm nay có ĐÚNG BỐN tổ hợp như vậy: chỉ-FIELD, FIELD+DRIVER, FIELD+DRIVER_PARTNER, FIELD+DRIVER+DRIVER_PARTNER.
+// Liệt kê TƯỜNG MINH, không suy. FIELD+DRIVER (ADR-0040 D3): qua cổng orders NHỜ FIELD (ADR-0030 S23-5); DRIVER không thêm gì (không nằm trong cổng nào).
+// Hai tổ hợp có DRIVER_PARTNER (ADR-0048 D2): cũng qua NHỜ FIELD — DRIVER_PARTNER không nằm trong cổng nào. Hai tổ hợp này BẤT HỢP LỆ về dữ liệu (LC-1b:
+// tài khoản giữ DRIVER_PARTNER không giữ quyền nào khác — trigger + lời kiểm máy chủ) nhưng hàm cổng thuần không biết luật đó nên vẫn liệt kê.
+const DOI_CO_CHU_Y_CANH_CUA_DON = new Set(["FIELD", "FIELD+DRIVER", "FIELD+DRIVER_PARTNER", "FIELD+DRIVER+DRIVER_PARTNER"]);
 
-test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 8 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (chỉ-FIELD, FIELD+DRIVER)", () => {
+test("ADR-0019 phần B không đổi hành vi: với mọi tổ hợp 9 mã quyền, isOffice/canAccessOrders mới = công thức cũ — trừ đúng các tổ hợp liệt kê ở ADR-0030 S23-5 (bốn tổ hợp chỉ có FIELD trong cổng cũ)", () => {
   const oldIsOffice = (w: { id: string; permissions: readonly PermissionCode[] }) => can(w, "order.view");
   const oldCanAccessOrders = (w: { id: string; permissions: readonly PermissionCode[] }) => oldIsOffice(w) || can(w, "order.view", { ownerId: w.id });
   const seen = new Set<string>();
@@ -77,4 +79,12 @@ test("ADR-0040 D3: Tài xế (DRIVER) không nằm trong cổng nào — tài kh
   assert.equal(passesAdminGate(driver), false);
   assert.equal(isOffice(driver), false);
   assert.equal(canAccessOrders(driver), false);
+});
+
+test("ADR-0048 D2: Tài xế đối tác (DRIVER_PARTNER) không nằm trong cổng nào — tài khoản chỉ-DRIVER_PARTNER không qua admin/office/orders", () => {
+  for (const gate of [ADMIN_GATE, OFFICE_GATE, ORDERS_GATE]) assert.ok(!(gate as readonly string[]).includes("DRIVER_PARTNER"), `DRIVER_PARTNER lọt vào cổng ${JSON.stringify(gate)}`);
+  const driverPartner = { id: "dp", permissions: ["DRIVER_PARTNER"] as PermissionCode[] };
+  assert.equal(passesAdminGate(driverPartner), false);
+  assert.equal(isOffice(driverPartner), false);
+  assert.equal(canAccessOrders(driverPartner), false);
 });

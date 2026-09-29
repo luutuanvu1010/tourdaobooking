@@ -1,6 +1,7 @@
 import { ApiError, api, type Api } from "./api";
 import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
+import { coPhanTaiXe } from "../src/shared/start-page";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
 import { initials } from "./format";
@@ -87,7 +88,7 @@ async function initGiayToCuaToi(): Promise<void> {
   } catch {
     return; // lỗi mạng: không có khối (không ảnh hưởng phần còn lại của trang)
   }
-  if (docs.length === 0 && !hasPermission(staff, "DRIVER")) return;
+  if (docs.length === 0 && !coPhanTaiXe(staff)) return; // tài xế công ty HOẶC tài xế đối tác (ADR-0048) thấy khối kể cả khi chưa có giấy
   const dong = (d: Api.PersonDocumentDto): HTMLElement =>
     h(
       "div",

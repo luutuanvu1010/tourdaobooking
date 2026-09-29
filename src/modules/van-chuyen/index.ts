@@ -1,22 +1,25 @@
 // Module van-chuyen — phân hệ Vận chuyển, lượt 1a (ADR-0040 D1): xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng "sắp hết hạn", danh sách giấy tờ sắp hết
 // hạn (xe + tài xế). Route: /api/van-chuyen/*. Tiền tố bảng vc_ (module nghiêm — STRICT). Phụ thuộc: parties (hàm công bố ownerCompany — chủ xe;
-// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số) và audit (auditStatement). KHÔNG module nào import van-chuyen (không có gì xuất ra ngoài ngoài AppModule).
+// expiringDriverDocuments — giấy tờ tài xế, KHÔNG số; nhaXeDangHopTac — nhà xe đối tác, ADR-0048 D1) và audit (auditStatement). KHÔNG module nào import van-chuyen (không có gì xuất ra ngoài ngoài AppModule).
 // Ô quyền: vehicle.manage (Quản trị + Toàn quyền) hỏi ở ĐẦU thân mọi route, trước khi đọc thân yêu cầu (403 trước 400).
 import { auditStatement } from "../audit";
-import { expiringDriverDocuments, ownerCompany } from "../parties";
-import type { ExpiringListResponse, VanChuyenMetaResponse, VehicleDocumentDto, VehicleDto, VehicleListResponse, VehicleResponse } from "../../shared/contracts";
+import { expiringDriverDocuments, nhaXeDangHopTac, ownerCompany } from "../parties";
+import type {
+  CarrierListResponse, ExpiringListResponse, VanChuyenMetaResponse, VehicleDocumentDto, VehicleDto, VehicleListResponse, VehicleResponse,
+} from "../../shared/contracts";
 import { MA_LOAI_GIAY_TO_RE, TRANG_THAI_XE, kiemLoaiGiayToMoi, kiemSuaLoaiGiayTo, soNgayConLai } from "../../shared/giay-to";
 import { UUID_RE, error, json, readJson } from "../../shared/http";
+import { PARTY_ID_RE } from "../../shared/party-id";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import { addDays, vnToday } from "../../shared/vn-date";
 import {
   chassisHolder, currentWarnDays, expiringVehicleDocuments, findVehicle, findVehicleDocument, findVehicleDocumentType, insertPolicyStatement, insertVehicleDocStatement,
-  insertVehicleDocTypeStatement, insertVehicleStatement, listVehicleDocumentTypes, listVehicleDocuments, listVehicles, plateHolder, updateVehicleDocStatement,
-  updateVehicleDocTypeStatement, updateVehicleStatement, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
+  insertVehicleDocTypeStatement, insertVehicleStatement, listVehicleDocumentTypes, listVehicleDocuments, listVehicles, listVehiclesOfOwner, plateHolder,
+  updateVehicleDocStatement, updateVehicleDocTypeStatement, updateVehicleStatement, vehicleCountByOwner, voidVehicleDocStatement, type VehicleDocRow, type VehicleRow,
 } from "./repository";
 import {
-  CAU_BIEN_TRUNG, CAU_KHUNG_TRUNG, canhBaoXe, chiTietNhatKyXe, gopSapHetHan, kiemGiaHanXe, kiemNguong, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocXe,
+  CAU_BIEN_TRUNG, CAU_CHU_XE, CAU_KHUNG_TRUNG, canhBaoXe, chiTietNhatKyXe, gopSapHetHan, kiemGiaHanXe, kiemNguong, kiemSuaSaiXe, kiemSuaXe, kiemThemGiayToXe, kiemXeMoi, loiRangBuocXe,
   type CanhBaoXe, type DanhMucGiayToXe, type XeNhap, type XeSua,
 } from "./rules";
 
@@ -43,6 +46,9 @@ const STALE = () => error(409, "stale", "Xe vừa được người khác sửa,
 const PLATE_TAKEN = () => error(409, "vehicle_plate_taken", CAU_BIEN_TRUNG);
 const CHASSIS_TAKEN = () => error(409, "vehicle_chassis_taken", CAU_KHUNG_TRUNG);
 const NO_OWNER = () => error(409, "no_owner_company", "Chưa có hồ sơ công ty chủ nên chưa thêm xe được. Báo người phụ trách hệ thống.");
+// ADR-0048 B1.1 lớp ROUTE: chủ xe không phải công ty chủ / nhà xe đang hợp tác — mã riêng; lớp CSDL (trigger 0039) trả vehicle_owner_conflict (loiRangBuocXe).
+const OWNER_NOT_CARRIER = () => error(409, "vehicle_owner_not_carrier", CAU_CHU_XE);
+const BAD_OWNER_FILTER = () => error(400, "invalid_input", "Bộ lọc chủ xe không hợp lệ.");
 
 const RETIRED = () => error(409, "vehicle_retired", "Xe đã ngừng dùng.");
 const DOC_NOT_FOUND = () => error(404, "not_found", "Không tìm thấy giấy tờ này của xe.");
@@ -159,6 +165,9 @@ const toVehicleDto = (r: VehicleRow, cb: CanhBaoXe): VehicleDto => ({
   validTo: r.valid_to_date,
   ...(r.status === "retired" ? KHONG_CANH_BAO : cb),
   updatedAt: r.updated_at,
+  ownerPartyId: r.owner_party_id,
+  ownerName: r.owner_name,
+  ownerIsCompany: r.owner_is_company === 1,
 });
 const toVehicleDocDto = (d: VehicleDocRow, today: string): VehicleDocumentDto => ({
   id: d.id,
@@ -191,9 +200,11 @@ async function respondVehicle(db: D1Database, id: string, status = 200): Promise
   return json({ vehicle: toVehicleDto(row, cb(id)), documents: docs.map((d) => toVehicleDocDto(d, today)) } satisfies VehicleResponse, status);
 }
 
-/** Nhãn thay đổi cho nhật ký sửa xe — biển số là định danh của xe (không phải "số giấy tờ"), mở đầu `detail` (giả định G12). */
-function thayDoiXe(cu: VehicleRow, moi: XeSua): string {
+/** Nhãn thay đổi cho nhật ký sửa xe — biển số là định danh của xe (không phải "số giấy tờ"), mở đầu `detail` (giả định G12). `chuMoi` ≠ null khi đổi chủ
+ * xe (ADR-0048 Q1 = (a)): ghi "chủ xe <tên cũ> → <tên mới>" — TÊN hiển thị, không liên hệ, không MST. */
+function thayDoiXe(cu: VehicleRow, moi: XeSua, chuMoi: string | null = null): string {
   const doi: string[] = [];
+  if (chuMoi !== null) doi.push(`chủ xe ${cu.owner_name} → ${chuMoi}`);
   if (cu.plate_number !== moi.plateNumber) doi.push(`biển số ${cu.plate_number} → ${moi.plateNumber}`);
   if ((cu.chassis_number ?? "") !== moi.chassisNumber) doi.push("số khung");
   if (cu.name !== moi.name) doi.push(`tên ${cu.name} → ${moi.name}`);
@@ -201,6 +212,17 @@ function thayDoiXe(cu: VehicleRow, moi: XeSua): string {
   if (cu.passenger_capacity !== moi.passengerCapacity) doi.push(`số người được chở ${cu.passenger_capacity} → ${moi.passengerCapacity}`);
   if (cu.status !== moi.status) doi.push(`trạng thái ${TRANG_THAI_XE[cu.status]} → ${TRANG_THAI_XE[moi.status]}`);
   return `xe ${cu.plate_number}: ${doi.length ? doi.join("; ") : "không đổi gì"}`;
+}
+
+/**
+ * ADR-0048 D1, B1.1 (lớp route): chủ xe được chọn → hồ sơ chủ; `null` = công ty chủ (mặc định, như ADR-0040 D1). Chủ phải là công ty chủ HIỆN TẠI hoặc nhà xe
+ * đang hợp tác (hàm công bố nhaXeDangHopTac) — không thì 409 vehicle_owner_not_carrier. `tenNhaXe` ≠ null khi chủ là nhà xe (ghi nhật ký).
+ */
+async function xacDinhChuXe(db: D1Database, ownerPartyId: string | null): Promise<{ partyId: string; ten: string; tenNhaXe: string | null } | Response> {
+  const congTy = await ownerCompany(db);
+  if (ownerPartyId === null || ownerPartyId === congTy?.partyId) return congTy ? { partyId: congTy.partyId, ten: congTy.displayName, tenNhaXe: null } : NO_OWNER();
+  const nhaXe = (await nhaXeDangHopTac(db)).find((c) => c.partyId === ownerPartyId);
+  return nhaXe ? { partyId: nhaXe.partyId, ten: nhaXe.displayName, tenNhaXe: nhaXe.displayName } : OWNER_NOT_CARRIER();
 }
 
 /** R15 điểm 1 (lớp route): biển số / số khung đã thuộc xe khác → phản hồi 409; `exceptId` = chính xe đang sửa (thêm xe: chuỗi rỗng). */
@@ -213,9 +235,12 @@ async function trungXe(db: D1Database, v: XeNhap | XeSua, exceptId: string): Pro
 export const vanChuyenModule: AppModule = {
   name: "van-chuyen",
   routes: [
-    route("GET", "/api/van-chuyen/xe", "office", async ({ env, staff }) => {
+    route("GET", "/api/van-chuyen/xe", "office", async ({ env, staff, url }) => {
       if (!can(staff, "vehicle.manage")) return FORBIDDEN();
-      const [rows, cb] = await Promise.all([listVehicles(env.DB), canhBaoTheoXe(env.DB, new Date())]);
+      // ADR-0048 D1: `?chu=<partyId>` lọc theo chủ xe (vắng hoặc rỗng = mọi xe); sai khuôn → 400.
+      const chu = url.searchParams.get("chu") || null;
+      if (chu !== null && !PARTY_ID_RE.test(chu)) return BAD_OWNER_FILTER();
+      const [rows, cb] = await Promise.all([chu === null ? listVehicles(env.DB) : listVehiclesOfOwner(env.DB, chu), canhBaoTheoXe(env.DB, new Date())]);
       return json({ vehicles: rows.map((r) => toVehicleDto(r, cb(r.id))) } satisfies VehicleListResponse);
     }),
 
@@ -225,9 +250,10 @@ export const vanChuyenModule: AppModule = {
       const parsed = kiemXeMoi(await readJson(request), vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
-      // ADR-0040 D1: chủ xe = hồ sơ công ty chủ LÚC THÊM (đổi công ty chủ sau này không tự đổi chủ xe).
-      const chu = await ownerCompany(env.DB);
-      if (!chu) return NO_OWNER();
+      // ADR-0040 D1: chủ xe mặc định = hồ sơ công ty chủ LÚC THÊM (đổi công ty chủ sau này không tự đổi chủ xe). ADR-0048 D1 (B1.1 lớp route): chọn được nhà
+      // xe đang hợp tác — kiểm qua hàm công bố nhaXeDangHopTac của parties (không xuất hàm "isCarrier" riêng).
+      const chu = await xacDinhChuXe(env.DB, v.ownerPartyId);
+      if (chu instanceof Response) return chu;
       const trung = await trungXe(env.DB, v, "");
       if (trung) return trung;
       const id = crypto.randomUUID();
@@ -235,7 +261,11 @@ export const vanChuyenModule: AppModule = {
       try {
         await env.DB.batch([
           insertVehicleStatement(env.DB, id, v, chu.partyId, staff.id, at),
-          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_created", at, targetType: "vehicle", targetId: id, detail: `xe ${v.plateNumber}: thêm ${v.name}, ${v.passengerCapacity} người` }),
+          auditStatement(env.DB, {
+            staffId: staff.id, action: "vehicle_created", at, targetType: "vehicle", targetId: id,
+            // G7: tên nhà xe (tên hiển thị — không liên hệ, không MST) khi chủ không phải công ty chủ.
+            detail: `xe ${v.plateNumber}: thêm ${v.name}, ${v.passengerCapacity} người${chu.tenNhaXe ? `; chủ: ${chu.tenNhaXe}` : ""}`,
+          }),
         ]);
       } catch (e) {
         const p = dbProblem(e);
@@ -260,6 +290,13 @@ export const vanChuyenModule: AppModule = {
       const parsed = kiemSuaXe(await readJson(request), { status: cu.status, validFrom: cu.valid_from_date, validTo: cu.valid_to_date }, vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
+      // ADR-0048 D1, Q1 = (a): đổi chủ xe (sửa nhập nhầm) — chỉ kiểm khi chủ ĐỔI (không gửi, hoặc gửi đúng chủ hiện tại → giữ nguyên, kể cả xe của công ty chủ cũ).
+      let chuMoi: { partyId: string; ten: string } | null = null;
+      if (v.ownerPartyId !== null && v.ownerPartyId !== cu.owner_party_id) {
+        const chu = await xacDinhChuXe(env.DB, v.ownerPartyId);
+        if (chu instanceof Response) return chu;
+        chuMoi = chu;
+      }
       // R15 điểm 1: sửa biển, hoặc DÙNG LẠI xe đã ngừng (Ngừng → Đang dùng/Bảo dưỡng) — biển không được đang thuộc xe khác chưa ngừng.
       const trung = await trungXe(env.DB, v, id);
       if (trung) return trung;
@@ -267,8 +304,8 @@ export const vanChuyenModule: AppModule = {
       let results: D1Result[];
       try {
         results = await env.DB.batch([
-          updateVehicleStatement(env.DB, id, v, staff.id, at),
-          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_updated", at, targetType: "vehicle", targetId: id, detail: thayDoiXe(cu, v) }, "changes() > 0"),
+          updateVehicleStatement(env.DB, id, v, chuMoi?.partyId ?? cu.owner_party_id, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_updated", at, targetType: "vehicle", targetId: id, detail: thayDoiXe(cu, v, chuMoi?.ten ?? null) }, "changes() > 0"),
         ]);
       } catch (e) {
         const p = dbProblem(e);
@@ -580,6 +617,16 @@ export const vanChuyenModule: AppModule = {
       return respondMeta(env.DB);
     }),
 
+    // ADR-0048 D1: danh sách nhà xe đang hợp tác (hàm công bố của parties) + công ty chủ + số xe CHƯA NGỪNG theo chủ (bảng của chính module). Xếp theo tên.
+    route("GET", "/api/van-chuyen/nha-xe", "office", async ({ env, staff }) => {
+      if (!can(staff, "vehicle.manage")) return FORBIDDEN();
+      const [congTy, nhaXe, soXe] = await Promise.all([ownerCompany(env.DB), nhaXeDangHopTac(env.DB), vehicleCountByOwner(env.DB)]);
+      return json({
+        ownerCompany: congTy ? { partyId: congTy.partyId, name: congTy.displayName } : null,
+        carriers: nhaXe.map((c) => ({ partyId: c.partyId, name: c.displayName, kind: c.kind, vehicleCount: soXe.get(c.partyId) ?? 0, driverCount: c.driverCount })),
+      } satisfies CarrierListResponse);
+    }),
+
     route("GET", "/api/van-chuyen/sap-het-han", "office", async ({ env, staff }) => {
       if (!can(staff, "vehicle.manage")) return FORBIDDEN();
       const now = new Date();
@@ -589,7 +636,11 @@ export const vanChuyenModule: AppModule = {
       // Giấy tờ xe (xe chưa ngừng, dòng hiện hành) + giấy tờ tài xế qua hàm công bố của parties (KHÔNG số, không nơi cấp, không id giấy tờ).
       const [xe, nguoi] = await Promise.all([expiringVehicleDocuments(env.DB, until), expiringDriverDocuments(env.DB, { today, until })]);
       const items = gopSapHetHan(
-        xe.map((r) => ({ vehicleId: r.vehicle_id, plateNumber: r.plate_number, vehicleName: r.vehicle_name, typeName: r.type_name, expiryDate: r.expiry_date })),
+        xe.map((r) => ({
+          vehicleId: r.vehicle_id, plateNumber: r.plate_number, vehicleName: r.vehicle_name, typeName: r.type_name, expiryDate: r.expiry_date,
+          // ADR-0048 D1 (I6, G4): null = xe của công ty chủ HIỆN TẠI; nhà xe hay công ty chủ cũ → tên chủ.
+          ownerLabel: r.owner_is_company === 1 ? null : r.owner_name,
+        })),
         nguoi,
         today,
       );

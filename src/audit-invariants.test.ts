@@ -544,14 +544,17 @@ test("R-ADR13-1: tài khoản đang hoạt động mà hồ sơ bị ngưng là 
 // ---------------------------------------------------------------------------------------------------------------------
 // R-LC-1 / R-LC-3 (ADR-0018, migration 0024 — hai trigger luật cứng LC-1/LC-3 là lưới thứ nhất, chặn lúc ghi). Các kiểm dưới đây
 // là LƯỚI THỨ HAI (P21) cho dữ liệu sửa tay bằng SQL trên D1 thật (trigger có thể bị gỡ/sửa nhầm hoặc dữ liệu được ghi thẳng).
-// `schemaWithoutGuards`/`guardSeed` dựng dữ liệu vi phạm bằng cách gỡ ba trigger luật cứng trước khi chèn — mô phỏng đúng tình huống kiểm phải bắt.
+// `schemaWithoutGuards`/`guardSeed` dựng dữ liệu vi phạm bằng cách gỡ bốn trigger luật cứng trước khi chèn — mô phỏng đúng tình huống kiểm phải bắt.
+// ADR-0048: LC-1 tạo lại CÙNG TÊN ở migration *_tai_xe_doi_tac (nghĩa mới: quyền bên ngoài = Đối tác hoặc Tài xế đối tác) và thêm trigger LC-1b
+// (lc1b_stf_permission_driver_partner_alone — gỡ thêm để dựng được tài khoản lai).
 // ---------------------------------------------------------------------------------------------------------------------
-/** Schema đầy đủ NHƯNG gỡ ba trigger luật cứng — để dựng được dữ liệu vi phạm (như dữ liệu sửa tay bằng SQL trên D1 thật) mà kiểm phải bắt. */
+/** Schema đầy đủ NHƯNG gỡ bốn trigger luật cứng — để dựng được dữ liệu vi phạm (như dữ liệu sửa tay bằng SQL trên D1 thật) mà kiểm phải bắt. */
 function schemaWithoutGuards(): DatabaseSync {
   const db = new DatabaseSync(":memory:");
   db.exec("PRAGMA foreign_keys = ON");
   for (const f of FILES) db.exec(sqlText(f));
   db.exec("DROP TRIGGER lc1_stf_permission_external_partner_only; DROP TRIGGER pty_party_role_group_conflict_ins; DROP TRIGGER pty_party_role_group_conflict_upd;");
+  db.exec("DROP TRIGGER lc1b_stf_permission_driver_partner_alone;");
   return db;
 }
 function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[]): void {
@@ -562,14 +565,33 @@ function guardSeed(db: DatabaseSync, id: string, roles: string[], perms: string[
   perms.forEach((p) => db.prepare("INSERT INTO stf_permission (id, staff_id, permission_type_code, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").run(`g-${id}-${p}`, id, p, T1, T1, T1));
 }
 
-test("R-LC-1: tài khoản có vai bên ngoài mà giữ quyền khác Đối tác → vi phạm; hợp lệ → 0", () => {
+test("R-LC-1 (ADR-0048 B2.1): tài khoản có vai bên ngoài mà giữ quyền KHÔNG phải quyền bên ngoài → vi phạm; Đối tác hoặc Tài xế đối tác → 0", () => {
   const db = schemaWithoutGuards();
   guardSeed(db, "11", ["COLLABORATOR"], ["PARTNER"]);
   guardSeed(db, "12", ["SALES_STAFF"], ["SALES"]);
-  assert.equal(violations(db, one("R-LC-1")), 0);
+  guardSeed(db, "14", ["DRIVER_EXTERNAL"], ["DRIVER_PARTNER"]);
+  assert.equal(violations(db, one("R-LC-1")), 0, "Tài xế đối tác giữ DRIVER_PARTNER không còn là vi phạm LC-1");
   guardSeed(db, "13", ["TAXI_DRIVER"], ["PARTNER", "SALES"]);
   assert.equal(violations(db, one("R-LC-1")), 1);
+  guardSeed(db, "15", ["DRIVER_EXTERNAL"], ["DRIVER"]);
+  assert.equal(violations(db, one("R-LC-1")), 2, "vai bên ngoài giữ quyền tài xế CÔNG TY (DRIVER) → vi phạm");
   assert.equal(one("R-LC-1").level, "fail");
+});
+
+test("R-LC-1b (ADR-0048 B2.2, B2.3): tài khoản giữ Tài xế đối tác kèm BẤT KỲ quyền nào khác (đang mở) → vi phạm (đếm tài khoản); chỉ Tài xế đối tác → 0", () => {
+  const c = one("R-LC-1b");
+  assert.equal(c.level, "fail");
+  const db = schemaWithoutGuards();
+  guardSeed(db, "41", ["DRIVER_EXTERNAL"], ["DRIVER_PARTNER"]);
+  guardSeed(db, "42", ["TAXI_DRIVER"], ["PARTNER"]);
+  assert.equal(violations(db, c), 0);
+  guardSeed(db, "43", ["DRIVER_EXTERNAL"], ["DRIVER_PARTNER", "PARTNER"]);
+  assert.equal(violations(db, c), 1);
+  guardSeed(db, "44", [], ["DRIVER_PARTNER", "SALES", "ACCOUNTING"]);
+  assert.equal(violations(db, c), 2, "một tài khoản lai = MỘT vi phạm, dù kèm nhiều quyền");
+  // Dòng quyền ĐÃ ĐÓNG không tính (LC-1b chỉ đếm dòng đang mở — khớp trigger).
+  db.prepare("UPDATE stf_permission SET valid_to_at = ? WHERE staff_id = '43' AND permission_type_code = 'PARTNER'").run(T2);
+  assert.equal(violations(db, c), 1);
 });
 
 test("R-LC-3: một hồ sơ giữ cùng lúc vai nội bộ và vai bên ngoài đang mở → vi phạm", () => {
@@ -722,4 +744,31 @@ test("R-VC-2 (ADR-0040 D1): dòng gia hạn giấy tờ xe cùng xe, cùng loạ
   db.exec("DROP INDEX vc_vehicle_document_next_uq");
   giayToXe(db, { id: "g2b", xe: "xe-a", truoc: "g1" });
   assert.equal(violations(db, c), 1, "tách nhánh");
+});
+
+test("R-PTY-5 (ADR-0048 B1.2): quan hệ 'Tài xế của' ĐANG MỞ đi từ hồ sơ TỔ CHỨC → vi phạm; từ người → 0; đầu tới đã thôi vai Nhà xe KHÔNG là vi phạm", () => {
+  const c = one("R-PTY-5");
+  assert.equal(c.level, "fail");
+  const db = new DatabaseSync(":memory:");
+  db.exec("PRAGMA foreign_keys = ON");
+  for (const f of FILES) db.exec(sqlText(f));
+  db.exec("DROP TRIGGER pty_relationship_drives_for_person;"); // dựng được dữ liệu vi phạm như SQL gõ tay trên D1 thật
+  const party = (id: string, kind: string) =>
+    db.prepare("INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES (?, ?, ?, 1, ?, ?)").run(id, kind, id, T1, T1);
+  party("nx", "ORGANIZATION");
+  db.prepare("INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at) VALUES ('r-nx', 'nx', 'CARRIER', NULL, '2026-09-20', ?, ?)").run(T1, T1);
+  party("nguoi", "PERSON");
+  party("to-chuc", "ORGANIZATION");
+  const rel = (id: string, from: string) =>
+    db.prepare("INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at) VALUES (?, ?, 'nx', 'DRIVES_FOR', '2026-09-20', ?, ?)")
+      .run(id, from, T1, T1);
+  rel("q1", "nguoi");
+  assert.equal(violations(db, c), 0);
+  rel("q2", "to-chuc");
+  assert.equal(violations(db, c), 1);
+  // Nhà xe thôi hợp tác (đóng vai) — quan hệ còn mở KHÔNG tự đóng và vẫn hợp lệ (ADR-0048 D1); kiểm chỉ xét đầu "từ".
+  db.exec("UPDATE pty_party_role SET valid_to_date = '2026-09-28' WHERE id = 'r-nx'");
+  assert.equal(violations(db, c), 1);
+  db.exec("UPDATE pty_party_relationship SET valid_to_date = '2026-09-28' WHERE id = 'q2'");
+  assert.equal(violations(db, c), 0, "quan hệ đã đóng không tính");
 });

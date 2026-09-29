@@ -5,6 +5,9 @@
 //   (2) mọi route cổng "staff" có một dòng ở BANG_STAFF ghi TAY mã trạng thái kỳ vọng + lý do (đối chiếu ADR-0040 D3 từng dòng lúc thi công) — tập khoá phải
 //       BẰNG tập route "staff" thật: route "staff" mới mà chưa quyết cho tài xế → đỏ.
 // Danh sách route lấy từ MÃ THẬT: mọi thư mục src/modules/* có `export const xModule: AppModule` (gói bằng esbuild như src/route-access.test.ts).
+// ADR-0048 D2 (SIẾT, Task A4): hai bài (1), (2) chạy cho TỪNG mã tài xế — DRIVER (tài xế công ty) và DRIVER_PARTNER (tài xế đối tác: "không vào office,
+// orders, admin; chỉ staff"). BANG_STAFF giữ MỘT bảng vì mã trả GIỐNG NHAU ở mọi route (đối chiếu ADR-0048 D2 từng dòng 2026-09-29: ô party.document.view
+// = own ở cả hai cột nên /api/parties/documents/mine 200 cho cả hai; mọi ô đơn/tiền/liên hệ none ở cả hai). Route nào khác mã → tách giá trị theo mã.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readdirSync, readFileSync, statSync } from "node:fs";
@@ -28,6 +31,9 @@ for (const d of readdirSync(join(SRC, "modules")).sort()) {
 }
 
 const DRIVER = "66666666-6666-4666-8666-666666666666";
+const DRIVER_PARTNER = "66666666-6666-4666-8666-666666666667";
+/** Hai mã tài xế — mỗi bài cổng chạy cho TỪNG mã (tên bài mang mã). */
+const TAI_XE: readonly [string, string][] = [["DRIVER", DRIVER], ["DRIVER_PARTNER", DRIVER_PARTNER]];
 const SALES = "11111111-1111-4111-8111-111111111111";
 const DON = "99999999-9999-4999-8999-999999999991"; // đơn CÓ THẬT (gieo dưới) — route đơn cổng "staff" phải 403, không phải 404, không phải dữ liệu
 const LA = "99999999-9999-4999-8999-999999999999";
@@ -76,6 +82,7 @@ const BANG_STAFF: Record<string, { ma: number; ly_do: string }> = {
 function setup() {
   const w = world();
   seedStaff(w.sqlite, { id: DRIVER, phone: "0900000006", name: "Tài xế", perms: ["DRIVER"] });
+  seedStaff(w.sqlite, { id: DRIVER_PARTNER, phone: "0900000007", name: "Tài xế đối tác", perms: ["DRIVER_PARTNER"] });
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
   w.sqlite.exec(`INSERT INTO orders (id, order_code, staff_id, status, customer_name, customer_phone, created_at, updated_at)
                  VALUES ('${DON}', 'TD-THU-01', '${SALES}', 'confirmed', 'Khách Thử', '0900000011', '2026-09-01T00:00:00.000Z', '2026-09-01T00:00:00.000Z')`);
@@ -85,28 +92,30 @@ const dienThamSo = (path: string) => (path.startsWith("/api/orders/:id/") ? path
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
 test("danh sách route đủ: 14 module có route; mỗi route cổng staff có đúng một dòng ở BANG_STAFF (và ngược lại)", () => {
-  assert.ok(ROUTES.length >= 109, `ít nhất 109 route (ảnh chụp route-access), thấy ${ROUTES.length}`);
+  assert.ok(ROUTES.length >= 110, `ít nhất 110 route (ảnh chụp route-access), thấy ${ROUTES.length}`);
   assert.deepEqual(Object.keys(BANG_STAFF).sort(), ROUTES.filter((r) => r.access === "staff").map(khoa).sort(), "route staff mới phải được QUYẾT cho tài xế (thêm dòng BANG_STAFF)");
 });
 
-test("ADR-0040 D3: tài khoản CHỈ-DRIVER gọi MỌI route cổng office / orders / admin → 403 forbidden ở CỔNG (đúng câu của cổng)", async () => {
-  const w = setup();
-  const cong = ROUTES.filter((r) => r.access === "office" || r.access === "orders" || r.access === "admin");
-  assert.ok(cong.length >= 70, `chống bài rỗng: ${cong.length} route sau cổng`);
-  for (const r of cong) {
-    const res = await w.call(r.method, dienThamSo(r.path), { as: DRIVER, body: r.method === "GET" ? undefined : {} });
-    assert.equal(res.status, 403, `${khoa(r)} (${r.access}): ${res.text}`);
-    assert.equal(res.json?.error?.code, "forbidden", khoa(r));
-    assert.ok(CAU_CONG.has(res.json.error.message), `${khoa(r)}: 403 phải là của CỔNG, thấy "${res.json.error.message}"`);
-  }
-});
+for (const [ma, id] of TAI_XE) {
+  test(`ADR-0040 D3 + ADR-0048 D2: tài khoản CHỈ-${ma} gọi MỌI route cổng office / orders / admin → 403 forbidden ở CỔNG (đúng câu của cổng)`, async () => {
+    const w = setup();
+    const cong = ROUTES.filter((r) => r.access === "office" || r.access === "orders" || r.access === "admin");
+    assert.ok(cong.length >= 70, `chống bài rỗng: ${cong.length} route sau cổng`);
+    for (const r of cong) {
+      const res = await w.call(r.method, dienThamSo(r.path), { as: id, body: r.method === "GET" ? undefined : {} });
+      assert.equal(res.status, 403, `${ma} — ${khoa(r)} (${r.access}): ${res.text}`);
+      assert.equal(res.json?.error?.code, "forbidden", `${ma} — ${khoa(r)}`);
+      assert.ok(CAU_CONG.has(res.json.error.message), `${ma} — ${khoa(r)}: 403 phải là của CỔNG, thấy "${res.json.error.message}"`);
+    }
+  });
 
-test("ADR-0040 D3: mọi route cổng staff trả ĐÚNG mã đã quyết ở BANG_STAFF; không route nào trả dữ liệu đơn / khách / tiền", async () => {
-  const w = setup();
-  for (const r of ROUTES.filter((x) => x.access === "staff")) {
-    const res = await w.call(r.method, dienThamSo(r.path), { as: DRIVER, body: r.method === "GET" ? undefined : {} });
-    const k = khoa(r);
-    assert.equal(res.status, BANG_STAFF[k]!.ma, `${k} — ${BANG_STAFF[k]!.ly_do}: ${res.text.slice(0, 200)}`);
-    for (const lo of ["TD-THU-01", "Khách Thử", "0900000011"]) assert.ok(!res.text.includes(lo), `${k}: lộ dữ liệu đơn "${lo}"`);
-  }
-});
+  test(`ADR-0040 D3 + ADR-0048 D2: ${ma} — mọi route cổng staff trả ĐÚNG mã đã quyết ở BANG_STAFF; không route nào trả dữ liệu đơn / khách / tiền`, async () => {
+    const w = setup();
+    for (const r of ROUTES.filter((x) => x.access === "staff")) {
+      const res = await w.call(r.method, dienThamSo(r.path), { as: id, body: r.method === "GET" ? undefined : {} });
+      const k = khoa(r);
+      assert.equal(res.status, BANG_STAFF[k]!.ma, `${ma} — ${k} — ${BANG_STAFF[k]!.ly_do}: ${res.text.slice(0, 200)}`);
+      for (const lo of ["TD-THU-01", "Khách Thử", "0900000011"]) assert.ok(!res.text.includes(lo), `${ma} — ${k}: lộ dữ liệu đơn "${lo}"`);
+    }
+  });
+}

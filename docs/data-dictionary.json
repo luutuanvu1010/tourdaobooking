@@ -342,6 +342,28 @@
       ]
     },
     {
+      "name": "v_pty_owner_company",
+      "module": "parties",
+      "columns": [
+        "party_id"
+      ]
+    },
+    {
+      "name": "v_pty_carrier",
+      "module": "parties",
+      "columns": [
+        "party_id"
+      ]
+    },
+    {
+      "name": "v_pty_carrier_driver",
+      "module": "parties",
+      "columns": [
+        "carrier_party_id",
+        "driver_party_id"
+      ]
+    },
+    {
       "name": "v_stf_staff_label",
       "module": "staff",
       "columns": [

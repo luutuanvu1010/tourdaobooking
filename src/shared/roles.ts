@@ -2,11 +2,11 @@
 // cứng) và web/ (xem trước quyền khi gán vai) cùng import. Mã vai là DỮ LIỆU ở pty_role_type (migration 0024); src/roles-schema.test.ts giữ hai
 // nơi khớp nhau. Vai KHÔNG phải cổng cho phép (ADR-0001 điều 4): vai chỉ đi vào đây để SINH bộ quyền; cổng vẫn là can() của permissions.ts.
 // Đổi bảng này = đổi quyền của mọi tài khoản mang vai đó → chỉ qua chủ dự án duyệt + phát hành (ADR-0018 điều 2).
-import { PERMISSION_CODES, PERMISSION_LABEL, isPermissionCode, type PermissionCode } from "./permissions.ts";
+import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, isPermissionCode, type PermissionCode } from "./permissions.ts";
 
 export const ROLE_CODES = [
   "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL",
-  "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR",
+  "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR", "DRIVER_EXTERNAL",
 ] as const;
 export type RoleCode = (typeof ROLE_CODES)[number];
 export type RoleGroup = "INTERNAL" | "EXTERNAL";
@@ -40,15 +40,23 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   TAXI_DRIVER: { name: "Tài xế taxi", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   COLLABORATOR: { name: "Cộng tác viên", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
+  // ADR-0048 D2: tài xế của nhà xe đối tác — người lái chuyến, KHÔNG phải bên đặt (ADR-0018 điều 9 sửa bởi ADR-0048): sinh DRIVER_PARTNER, không PARTNER.
+  // Không đi cùng vai bên ngoài khác (LC-1b — roleAssignmentProblem). Quản trị gán được.
+  DRIVER_EXTERNAL: { name: "Tài xế đối tác", group: "EXTERNAL", defaults: ["DRIVER_PARTNER"], handles: "never", superAdminOnly: false },
 };
 
 export const ROLE_GROUP_LABEL: Readonly<Record<RoleGroup, string>> = { INTERNAL: "Nội bộ", EXTERNAL: "Bên ngoài" };
 export const isRoleCode = (v: unknown): v is RoleCode => typeof v === "string" && (ROLE_CODES as readonly string[]).includes(v);
 
-/** LC-1: tài khoản mang vai bên ngoài chỉ giữ các quyền này. */
-export const EXTERNAL_ALLOWED: readonly PermissionCode[] = ["PARTNER"];
 /** LC-4: quyền chỉ Toàn quyền được cấp hoặc gỡ. */
 export const SUPER_ADMIN_GRANTED: readonly PermissionCode[] = ["ADMIN", "SUPER_ADMIN"];
+
+/**
+ * ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" đi cùng một vai BÊN NGOÀI khác (mọi vai bên ngoài khác sinh PARTNER) — một người chọn một. MỘT nguồn cho
+ * roleAssignmentProblem (máy chủ, 400) và web/role-picker.ts (khoá chéo ô vai — Task B1). Vai nội bộ + bên ngoài là việc của LC-3 (groupOf → MIXED).
+ */
+export const vaiTaiXeDoiTacXungDot = (roles: readonly RoleCode[]): boolean =>
+  roles.includes("DRIVER_EXTERNAL") && roles.some((r) => r !== "DRIVER_EXTERNAL" && ROLES[r].group === "EXTERNAL");
 
 /** Nhóm của một tập vai: "NONE" khi chưa có vai mô hình mới; "MIXED" khi lẫn nội bộ và bên ngoài (LC-3 cấm). */
 export function groupOf(roles: readonly RoleCode[]): RoleGroup | "NONE" | "MIXED" {
@@ -69,7 +77,7 @@ export interface Adjustments {
 }
 
 /**
- * Quyền hiệu lực = mặc định của vai + cộng tay − bớt tay, rồi lọc LC-1 (nhóm bên ngoài chỉ giữ EXTERNAL_ALLOWED). `dropped` = quyền bị luật cứng gạt —
+ * Quyền hiệu lực = mặc định của vai + cộng tay − bớt tay, rồi lọc LC-1 (nhóm bên ngoài chỉ giữ EXTERNAL_PERMISSIONS — ADR-0048 B2.1). `dropped` = quyền bị luật cứng gạt —
  * lưới phòng thủ: đầu vào đã qua roleAssignmentProblem thì rỗng.
  */
 export function effectivePermissions(roles: readonly RoleCode[], adj: Adjustments): { permissions: PermissionCode[]; dropped: PermissionCode[] } {
@@ -77,7 +85,7 @@ export function effectivePermissions(roles: readonly RoleCode[], adj: Adjustment
   for (const p of adj.removes) want.delete(p);
   const ordered = PERMISSION_CODES.filter((p) => want.has(p));
   if (groupOf(roles) !== "EXTERNAL") return { permissions: ordered, dropped: [] };
-  return { permissions: ordered.filter((p) => EXTERNAL_ALLOWED.includes(p)), dropped: ordered.filter((p) => !EXTERNAL_ALLOWED.includes(p)) };
+  return { permissions: ordered.filter(isExternalPermission), dropped: ordered.filter((p) => !isExternalPermission(p)) };
 }
 
 export interface RoleAssignment extends Adjustments {
@@ -123,7 +131,7 @@ export function highPermissionProblem(actorIsSuper: boolean, current: readonly P
 }
 
 /**
- * LC-3 + LC-1 (cộng tay) + LC-4 + "còn ít nhất một quyền" cho MỘT lần gán vai. LC-4 còn chặn khi THAY ĐỔI dòng chỉnh tay Quản trị/Toàn quyền dù
+ * LC-3 + vai Tài xế đối tác đứng riêng (ADR-0048) + LC-1 (cộng tay) + LC-4 + LC-1b + "còn ít nhất một quyền" cho MỘT lần gán vai. LC-4 còn chặn khi THAY ĐỔI dòng chỉnh tay Quản trị/Toàn quyền dù
  * quyền hiệu lực hôm nay chưa đổi (chỉnh tay "ngủ", phát tác khi vai đổi sau này) — chỉ Toàn quyền được thêm/bớt một dòng như vậy; giữ NGUYÊN một
  * dòng đã có (không sửa) vẫn được phép (giao diện tự điền lại chỉnh tay hiện có). Máy chủ gọi TRƯỚC khi dựng câu lệnh.
  */
@@ -136,8 +144,13 @@ export function roleAssignmentProblem(a: {
 }): RoleProblem | null {
   const group = groupOf(a.next.roles);
   if (group === "MIXED") return { forbidden: false, message: "Một tài khoản không giữ cùng lúc vai nội bộ và vai bên ngoài." };
-  if (group === "EXTERNAL" && a.next.adds.some((p) => !EXTERNAL_ALLOWED.includes(p))) {
-    return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền Đối tác — bỏ phần cộng tay quyền khác." };
+  // ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" không đi cùng vai bên ngoài khác (mọi vai bên ngoài khác sinh PARTNER) — báo câu theo VAI trước khi
+  // LC-1b (taiKhoanLaiProblem ở dưới) báo câu chung theo quyền.
+  if (vaiTaiXeDoiTacXungDot(a.next.roles)) {
+    return { forbidden: false, message: "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác." };
+  }
+  if (group === "EXTERNAL" && a.next.adds.some((p) => !isExternalPermission(p))) {
+    return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác) — bỏ phần cộng tay quyền khác." };
   }
   if (!a.actorIsSuper) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];
@@ -153,8 +166,19 @@ export function roleAssignmentProblem(a: {
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);
   if (high) return high;
+  const lai = taiKhoanLaiProblem(next);
+  if (lai) return lai;
   if (next.length === 0) return { forbidden: false, message: "Tài khoản phải còn ít nhất một quyền." };
   return null;
+}
+
+/**
+ * LC-1b (ADR-0048 B2.2, Q4 = (a)) — MỘT hàm thuần cho MỌI đường ghi quyền (gán vai, POST /api/staff không vai, PUT /api/staff/:id/permissions): tài khoản giữ
+ * "Tài xế đối tác" (DRIVER_PARTNER) không giữ quyền nào khác, cả Đối tác lẫn quyền nội bộ. Lớp CSDL: trigger lc1b_stf_permission_driver_partner_alone
+ * (migration *_tai_xe_doi_tac). Máy chủ gọi TRƯỚC khi dựng câu lệnh (400 câu dễ hiểu thay vì lỗi trigger).
+ */
+export function taiKhoanLaiProblem(perms: readonly PermissionCode[]): RoleProblem | null {
+  return perms.includes("DRIVER_PARTNER") && perms.length > 1 ? { forbidden: false, message: "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác." } : null;
 }
 
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */

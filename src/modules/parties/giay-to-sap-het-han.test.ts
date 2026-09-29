@@ -2,6 +2,8 @@
 // danh sách "sắp hết hạn" của Vận chuyển. "Tài xế" = hồ sơ đang dùng, đang mở vai tài khoản "Tài xế công ty" — lọc BÁO CÁO trong parties (vai hồ sơ không
 // bao giờ là điều kiện cho phép, R-N1-12). Chỉ dòng hiện hành có ngày hết hạn ≤ `until`. KHÔNG trả số, nơi cấp, id giấy tờ.
 // Gọi đúng hàm xuất ở parties/index.ts (gói bằng esbuild như src/route-access.test.ts) trên SQLite thật (tests/audit/harness.mjs). Số ở đây là số GIẢ.
+// ADR-0048 D1 (đổi hợp đồng công bố, cùng commit với test): mở rộng sang hồ sơ đang mở vai "Tài xế đối tác" (DRIVER_EXTERNAL), mỗi dòng thêm `carrierName`
+// = tên các nhà xe người đó đang "thuộc" (luật ở view v_pty_carrier_driver), null = tài xế công ty. Hàm công bố MỚI `nhaXeDangHopTac` (một hàm + kiểu).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
@@ -13,6 +15,7 @@ import { world } from "../../../tests/audit/harness.mjs";
 const built = await esbuild.build({ entryPoints: [new URL("./index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
 const parties = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as {
   expiringDriverDocuments: (db: unknown, v: { today: string; until: string }) => Promise<Record<string, unknown>[]>;
+  nhaXeDangHopTac: (db: unknown) => Promise<Record<string, unknown>[]>;
 };
 await import("./repository.ts"); // đăng ký câu SQL của parties vào sổ để bài dưới đọc được
 
@@ -22,6 +25,15 @@ let n = 0;
 function nguoi(w: any, id: string, ten: string, active = 1) {
   w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'PERSON', '${ten}', ${active}, '${AT}', '${AT}')`);
   w.sqlite.exec(`INSERT INTO pty_person (party_id, given_name, created_at, updated_at) VALUES ('${id}', '${ten}', '${AT}', '${AT}')`);
+}
+function toChuc(w: any, id: string, ten: string) {
+  w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('${id}', 'ORGANIZATION', '${ten}', 1, '${AT}', '${AT}')`);
+  w.sqlite.exec(`INSERT INTO pty_organization (party_id, created_at, updated_at) VALUES ('${id}', '${AT}', '${AT}')`);
+}
+/** Quan hệ "Tài xế của" đang mở (người → nhà xe). */
+function taiXeCua(w: any, taiXe: string, nhaXe: string) {
+  w.sqlite.exec(`INSERT INTO pty_party_relationship (id, from_party_id, to_party_id, relationship_type_code, valid_from_date, created_at, updated_at)
+    VALUES ('q-${++n}', '${taiXe}', '${nhaXe}', 'DRIVES_FOR', '2026-09-01', '${AT}', '${AT}')`);
 }
 function vai(w: any, party: string, code: string, den: string | null = null) {
   w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, valid_to_date, created_at, updated_at)
@@ -60,24 +72,56 @@ function gieo() {
   nguoi(w, "p-e", "Tài Xế Không Hạn");
   vai(w, "p-e", "DRIVER_INTERNAL");
   giayTo(w, { party: "p-e", type: "HEALTH_CHECK", het: null }); // (f) không hạn
+  // ADR-0048 D1: nhà xe tổ chức X có tài xế đối tác E; nhà xe CÁ NHÂN F tự lái (vai Nhà xe + vai Tài xế đối tác); G đã thôi vai Tài xế đối tác.
+  toChuc(w, "p-x", "Nhà Xe Xuân");
+  vai(w, "p-x", "CARRIER");
+  nguoi(w, "p-tx-e", "Tài Xế Em");
+  vai(w, "p-tx-e", "DRIVER_EXTERNAL");
+  taiXeCua(w, "p-tx-e", "p-x");
+  giayTo(w, { party: "p-tx-e", type: "GPLX", so: "790000000021", cls: "D2", het: addDays(HOM_NAY, 7) });
+  nguoi(w, "p-f", "Nhà Xe Phúc");
+  vai(w, "p-f", "CARRIER");
+  vai(w, "p-f", "DRIVER_EXTERNAL");
+  giayTo(w, { party: "p-f", type: "CCCD", so: "079000000022", het: addDays(HOM_NAY, 3), noi: "Nơi cấp riêng" });
+  nguoi(w, "p-g", "Tài Xế Giang");
+  vai(w, "p-g", "DRIVER_EXTERNAL", addDays(HOM_NAY, -1));
+  giayTo(w, { party: "p-g", type: "CCCD", so: "079000000023", het: addDays(HOM_NAY, 5) });
   return w;
 }
 
-test("expiringDriverDocuments: đúng hai dòng hiện hành của tài xế đang mở vai, hạn ≤ until (kể cả đã hết hạn), xếp theo ngày hết hạn — không HDV, vai đã đóng, hồ sơ ngưng, dòng cũ/huỷ, không hạn, 60 ngày", async () => {
+test("expiringDriverDocuments: dòng hiện hành của tài xế CÔNG TY và tài xế ĐỐI TÁC đang mở vai, hạn ≤ until (kể cả đã hết hạn), xếp theo ngày hết hạn, có tên nhà xe — không HDV, vai đã đóng, hồ sơ ngưng, dòng cũ/huỷ, không hạn, 60 ngày", async () => {
   const w = gieo();
   const rows = await parties.expiringDriverDocuments(w.env.DB, { today: HOM_NAY, until: addDays(HOM_NAY, 30) });
   assert.deepEqual(rows, [
-    { partyId: "p-a", displayName: "Tài Xế An", typeName: "Giấy phép lái xe", className: "Hạng D2", expiryDate: addDays(HOM_NAY, -3) },
-    { partyId: "p-a", displayName: "Tài Xế An", typeName: "Căn cước công dân (CCCD)", className: null, expiryDate: addDays(HOM_NAY, 10) },
-  ]);
-  for (const r of rows) assert.deepEqual(Object.keys(r), ["partyId", "displayName", "typeName", "className", "expiryDate"], "không số, không nơi cấp, không id giấy tờ");
-  assert.ok(!JSON.stringify(rows).includes("0790000000") && !JSON.stringify(rows).includes("Nơi cấp riêng"));
-  const hep = await parties.expiringDriverDocuments(w.env.DB, { today: HOM_NAY, until: addDays(HOM_NAY, 7) });
-  assert.deepEqual(hep.map((r) => r.typeName), ["Giấy phép lái xe"], "ngưỡng 7 ngày: chỉ còn giấy đã hết hạn");
+    { partyId: "p-a", displayName: "Tài Xế An", typeName: "Giấy phép lái xe", className: "Hạng D2", expiryDate: addDays(HOM_NAY, -3), carrierName: null },
+    { partyId: "p-f", displayName: "Nhà Xe Phúc", typeName: "Căn cước công dân (CCCD)", className: null, expiryDate: addDays(HOM_NAY, 3), carrierName: "Nhà Xe Phúc" },
+    { partyId: "p-tx-e", displayName: "Tài Xế Em", typeName: "Giấy phép lái xe", className: "Hạng D2", expiryDate: addDays(HOM_NAY, 7), carrierName: "Nhà Xe Xuân" },
+    { partyId: "p-a", displayName: "Tài Xế An", typeName: "Căn cước công dân (CCCD)", className: null, expiryDate: addDays(HOM_NAY, 10), carrierName: null },
+  ], "tài xế đối tác G đã thôi vai → không có");
+  for (const r of rows) assert.deepEqual(Object.keys(r), ["partyId", "displayName", "typeName", "className", "expiryDate", "carrierName"], "đúng sáu khoá — không số, không nơi cấp, không id giấy tờ");
+  assert.ok(!JSON.stringify(rows).includes("0790000000") && !JSON.stringify(rows).includes("7900000000") && !JSON.stringify(rows).includes("Nơi cấp riêng"));
+  const hep = await parties.expiringDriverDocuments(w.env.DB, { today: HOM_NAY, until: addDays(HOM_NAY, 2) });
+  assert.deepEqual(hep.map((r) => r.typeName), ["Giấy phép lái xe"], "ngưỡng 2 ngày: chỉ còn giấy đã hết hạn");
 });
 
-test("câu SQL parties.expiring_driver_documents không chọn cột số, nơi cấp (khoá bằng văn bản câu đã đăng ký)", () => {
+test("nhaXeDangHopTac (ADR-0048 D1): nhà xe đang mở vai — tổ chức hai tài xế, cá nhân tự lái một; nhà xe đã thôi không có; xếp theo tên; KHÔNG liên hệ, MST", async () => {
+  const w = gieo();
+  nguoi(w, "p-tx-h", "Tài Xế Hoà");
+  taiXeCua(w, "p-tx-h", "p-x");
+  toChuc(w, "p-cu", "Nhà Xe Cũ");
+  vai(w, "p-cu", "CARRIER", addDays(HOM_NAY, -1));
+  const list = await parties.nhaXeDangHopTac(w.env.DB);
+  assert.deepEqual(list, [
+    { partyId: "p-f", displayName: "Nhà Xe Phúc", kind: "PERSON", driverCount: 1 },
+    { partyId: "p-x", displayName: "Nhà Xe Xuân", kind: "ORGANIZATION", driverCount: 2 },
+  ]);
+});
+
+test("câu SQL parties.expiring_driver_documents và parties.carriers không chọn cột số, nơi cấp, liên hệ, MST (khoá bằng văn bản câu đã đăng ký)", () => {
   const e = registeredSql().find((x) => x.module === "parties" && x.name === "expiring_driver_documents");
   assert.ok(e, "câu phải được đăng ký bằng defineSql");
   for (const cot of ["document_number", "number_key", "issued_place"]) assert.ok(!e.sql.includes(cot), `không chọn ${cot}`);
+  const c = registeredSql().find((x) => x.module === "parties" && x.name === "carriers");
+  assert.ok(c, "câu nhà xe phải được đăng ký bằng defineSql");
+  for (const cot of ["pty_contact_point", "tax_code", "legal_name", "document_number"]) assert.ok(!c.sql.includes(cot), `câu nhà xe không chọn ${cot}`);
 });

@@ -1,4 +1,5 @@
-// Trang Danh bạ (/parties; mỗi mục là một "hồ sơ"): tìm/lọc, tạo (cảnh báo trùng SĐT — ADR-0001 mục 8), xem/sửa, liên hệ, "Công việc tại đâu" (vai trò theo nơi) và "Người liên hệ" (quan hệ).
+// Trang Danh bạ (/parties; mỗi mục là một "hồ sơ"): tìm/lọc, tạo (cảnh báo trùng SĐT — ADR-0001 mục 8), xem/sửa, liên hệ, "Công việc tại đâu" (vai trò theo nơi) và
+// "Người liên hệ, tài xế" (quan hệ: người liên hệ; "Tài xế của" — người → nhà xe đối tác, ADR-0048 D1).
 // Vai trò và quan hệ chỉ quản trị viên sửa (ADR-0007); hồ sơ khách/đại lý: mọi nhân sự văn phòng; hồ sơ có tài khoản: chỉ quản trị viên cấp trên (ADR-0013, máy chủ tính `editable`);
 // hồ sơ công ty chủ: chỉ người giữ ô company.legal.write (ADR-0024 6.4 — máy chủ tính `editable`). Lựa chọn "Công ty chủ" (= đổi công ty chủ, chủ dự án 2026-09-28)
 // chỉ hiện với người giữ ô đó, trên hồ sơ tổ chức, kèm câu xác nhận. Giao diện chỉ ẩn/hiện, máy chủ luôn kiểm lại.
@@ -298,7 +299,16 @@ async function openDetail(id: string): Promise<void> {
   );
   const relQ = input("", { placeholder: "Gõ tên hồ sơ cần liên kết…" });
   const relPick = h("select", null);
-  const relDir = select([{ value: "from", label: "Hồ sơ này LÀ người liên hệ của…" }, { value: "to", label: "Hồ sơ này CÓ người liên hệ là…" }]);
+  // Loại + chiều của quan hệ. "Tài xế của" (DRIVES_FOR, ADR-0048 D1): từ hồ sơ NGƯỜI (tài xế) tới hồ sơ đang là nhà xe đối tác — máy chủ kiểm hai đầu và trả
+  // câu tiếng Việt (409) khi sai; giao diện chỉ gửi đúng chiều (Task B2, khuôn ô chọn sẵn có).
+  const LOAI_QUAN_HE = [
+    { value: "from", label: "Hồ sơ này LÀ người liên hệ của…", code: "CONTACT_OF", laDauTu: true, nut: "Thêm người liên hệ" },
+    { value: "to", label: "Hồ sơ này CÓ người liên hệ là…", code: "CONTACT_OF", laDauTu: false, nut: "Thêm người liên hệ" },
+    { value: "tx-from", label: "Hồ sơ này LÀ tài xế của nhà xe…", code: "DRIVES_FOR", laDauTu: true, nut: "Thêm quan hệ tài xế" },
+    { value: "tx-to", label: "Hồ sơ này là nhà xe CÓ tài xế…", code: "DRIVES_FOR", laDauTu: false, nut: "Thêm tài xế" },
+  ] as const;
+  const relDir = select(LOAI_QUAN_HE.map((x) => ({ value: x.value, label: x.label })));
+  const loaiQuanHe = () => LOAI_QUAN_HE.find((x) => x.value === relDir.value) ?? LOAI_QUAN_HE[0];
   let relTimer: number | undefined;
   relQ.addEventListener("input", () => {
     window.clearTimeout(relTimer);
@@ -308,11 +318,13 @@ async function openDetail(id: string): Promise<void> {
       replaceChildren(relPick, ...(found?.parties.filter((x) => x.id !== id).map((x) => h("option", { value: x.id }, `${x.displayName} (${KIND_LABEL[x.kind]})`)) ?? []));
     }, 300);
   });
-  const addRel = button("Thêm người liên hệ", (b) => {
+  const addRel = button(loaiQuanHe().nut, (b) => {
     if (!relPick.value) return showError(errorEl, "Chọn hồ sơ cần liên kết.");
-    const body = relDir.value === "from" ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: "CONTACT_OF" } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: "CONTACT_OF" };
+    const l = loaiQuanHe();
+    const body = l.laDauTu ? { fromPartyId: id, toPartyId: relPick.value, relationshipTypeCode: l.code } : { fromPartyId: relPick.value, toPartyId: id, relationshipTypeCode: l.code };
     void act(async () => { await api(`/api/parties/${id}/relationships`, { method: "POST", body }); await reload(); }, b);
   }, "btn");
+  relDir.addEventListener("change", () => { addRel.textContent = loaiQuanHe().nut; });
 
   // Mục "Giấy tờ" (ADR-0040 D2; bản vẽ 04): chỉ hồ sơ CÁ NHÂN, chỉ người giữ ô party.document.write (Quản trị, Toàn quyền) — party.view KHÔNG mở giấy tờ.
   const giayTo = can(me, "party.document.write") && p.kind === "PERSON" ? h("section", { id: "giay-to", class: "vc-gt-section", "aria-labelledby": "giay-to-title" }) : null;
@@ -331,7 +343,7 @@ async function openDetail(id: string): Promise<void> {
     admin
       ? h("div", null, h("div", { class: "grid three" }, field("Công việc", rType), field("Nơi làm", rLoc), field("Từ ngày (mặc định hôm nay)", rFrom)), h("div", { class: "actions" }, addRole))
       : h("p", { class: "muted" }, "Chỉ quản trị viên thêm hoặc kết thúc công việc."),
-    h("h3", null, "Người liên hệ"),
+    h("h3", null, "Người liên hệ, tài xế"), // G3 (ADR-0048): mục này nay gồm cả quan hệ "Tài xế của"
     h("table", { class: "items" }, h("tbody", null, ...relRows)),
     admin ? h("div", null, h("div", { class: "grid three" }, field("Loại", relDir), field("Tìm hồ sơ", relQ), field("Chọn", relPick)), h("div", { class: "actions" }, addRel)) : null,
     giayTo,

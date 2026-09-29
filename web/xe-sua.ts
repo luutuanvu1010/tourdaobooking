@@ -2,7 +2,9 @@
 // Trạng thái trong form chỉ Đang dùng / Bảo dưỡng; "Ngừng dùng xe" là nút viền đỏ riêng + hộp xác nhận "không bị xoá" (gửi NGAY giá trị đã lưu + trạng thái
 // Ngừng — chỗ đang sửa dở trong form không lẫn vào); xe đã Ngừng có "Dùng lại xe" (đổi trạng thái trong form, bấm Lưu mới gửi — máy chủ kiểm biển số, R15).
 // Số người được chở dùng bộ đếm −/+ (không kể tài xế). Biển số / số khung trùng → câu của máy chủ ngay dưới ô. Lưu xong → chi tiết xe (location.replace).
-import { thanDungLaiHoacSuaXe, thanNgungXe, thanXeMoi, type XeForm } from "../src/shared/giay-to-hien-thi";
+// ADR-0048 D1 (Task B3, khuôn ô chọn .vc-input sẵn có): ô "Chủ xe" dưới "Tên / đời xe" — công ty chủ hoặc nhà xe đang hợp tác (GET /api/van-chuyen/nha-xe); chỉ
+// hiện khi đã có nhà xe (hoặc xe đang thuộc chủ khác công ty chủ). Sửa chủ xe khi nhập nhầm được (chủ chọn Q1 = (a)); máy chủ kiểm chủ và ghi nhật ký.
+import { luaChonChuXe, thanDungLaiHoacSuaXe, thanNgungXe, thanXeMoi, type XeForm } from "../src/shared/giay-to-hien-thi";
 import { can } from "../src/shared/permissions";
 import { ApiError, api, type Api } from "./api";
 import { moBangTruot } from "./bang-truot";
@@ -23,6 +25,8 @@ datCrumb("Vận chuyển › Xe", id ? "Sửa xe" : "Thêm xe");
 async function main(): Promise<void> {
   if (!can(staff, "vehicle.manage")) return showError(errorEl, "Tài khoản này không quản lý được xe.");
   let xe: Api.VehicleDto | null = null;
+  // Danh sách chủ xe chọn được; lỗi đọc thì bỏ ô (máy chủ vẫn dùng mặc định: thêm → công ty chủ; sửa → giữ chủ).
+  const chuXe = api<Api.CarrierListResponse>("/api/van-chuyen/nha-xe").catch(() => null);
   if (id) {
     try {
       xe = (await api<Api.VehicleResponse>(`/api/van-chuyen/xe/${encodeURIComponent(id)}`)).vehicle;
@@ -35,12 +39,15 @@ async function main(): Promise<void> {
     datCrumb("Vận chuyển › Xe", tieuDe);
     document.title = `${tieuDe} — Island Booking System`;
   }
-  dung(xe);
+  dung(xe, await chuXe);
 }
 
-function dung(xeBanDau: Api.VehicleDto | null): void {
+function dung(xeBanDau: Api.VehicleDto | null, chuXe: Api.CarrierListResponse | null): void {
   let xe = xeBanDau;
-  const st: XeForm = { plateNumber: xe?.plateNumber ?? "", chassisNumber: xe?.chassisNumber ?? "", name: xe?.name ?? "", passengerCapacity: xe?.passengerCapacity ?? 15, status: xe?.status ?? "active" };
+  const st: XeForm = {
+    plateNumber: xe?.plateNumber ?? "", chassisNumber: xe?.chassisNumber ?? "", name: xe?.name ?? "", passengerCapacity: xe?.passengerCapacity ?? 15, status: xe?.status ?? "active",
+    ownerPartyId: xe?.ownerPartyId ?? chuXe?.ownerCompany?.partyId ?? "",
+  };
   let dangGui = false;
 
   const oGo = (key: "plateNumber" | "chassisNumber" | "name", idO: string, placeholder: string, maxLength: number, err?: HTMLElement): HTMLInputElement => {
@@ -65,6 +72,15 @@ function dung(xeBanDau: Api.VehicleDto | null): void {
   chassis.setAttribute("autocapitalize", "characters");
   const ten = oGo("name", "xe-name", "Ví dụ: Ford Transit 2019", 100);
   const truong = (label: string, input: HTMLElement, ...sau: (HTMLElement | null)[]): HTMLElement => h("div", { class: "vc-field" }, h("label", { for: input.id }, label), input, ...sau);
+
+  // Ô "Chủ xe": công ty chủ + nhà xe đang hợp tác; xe đang thuộc chủ KHÔNG còn trong danh sách (nhà xe đã thôi, công ty chủ cũ) thì thêm đúng chủ đó để Lưu không
+  // tự đổi chủ. Chưa có nhà xe nào (và xe thuộc công ty chủ) → không hiện ô (giữ bản vẽ 02 của lượt 1a).
+  const luaChon = chuXe ? luaChonChuXe(chuXe) : [];
+  if (xe && !luaChon.some((o) => o.value === xe!.ownerPartyId)) luaChon.push({ value: xe.ownerPartyId, label: xe.ownerName });
+  const coOChu = luaChon.length > 1;
+  const chu = h("select", { id: "xe-owner", class: "vc-input" }, ...luaChon.map((o) => h("option", { value: o.value }, o.label)));
+  chu.value = st.ownerPartyId ?? "";
+  chu.addEventListener("change", () => { st.ownerPartyId = chu.value; });
 
   // Bộ đếm −/+ (bản vẽ: hai nút riêng + số ở giữa; xe công ty chủ yếu 6 hoặc 15). Tối thiểu 1; mức trần do máy chủ kiểm (câu báo của máy chủ).
   const giam = h("button", { id: "xe-seats-dec", type: "button", class: "vc-step-btn", "aria-label": "Bớt một người" }, "−");
@@ -133,6 +149,7 @@ function dung(xeBanDau: Api.VehicleDto | null): void {
     form,
     h("div", { class: "vc-grid-2" }, truong("Biển số", plate, plateErr), truong("Số khung", chassis, chassisErr)),
     truong("Tên / đời xe", ten),
+    coOChu ? truong("Chủ xe", chu) : null,
     h(
       "div",
       { class: "vc-grid-2" },
