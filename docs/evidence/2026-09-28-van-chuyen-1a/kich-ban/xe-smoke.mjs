@@ -63,7 +63,8 @@ try {
       // "Loại giấy tờ người" / "Loại giấy tờ xe": tách dòng "Danh mục giấy tờ" cũ (Task A19) theo chủ dữ liệu, 2026-09-28 — không có trong bản vẽ 00.
       assert.deepEqual(s.top.map((r) => r.text), ["Danh bạ", "Địa điểm", "Loại giấy tờ người"]);
       assert.equal(s.eyebrow, "VẬN CHUYỂN");
-      assert.deepEqual(s.vc, [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }]);
+      // ADR-0049 B8 (bản vẽ Bảng điều phối 08 khung 8d, 2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm (không có "Chính sách điều phối" — chỉ Toàn quyền).
+      assert.deepEqual(s.vc, [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: "/loai-giay-to-xe", text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       assert.ok(s.rest.some((r) => r.text?.startsWith("Góp ý")) && s.rest.some((r) => r.text === "Đăng xuất"), JSON.stringify(s.rest));
       const iTop = s.order.indexOf("links-top");
       assert.deepEqual(s.order.slice(iTop, iTop + 4), ["links-top", "vc-eyebrow", "vc-links", "links"], JSON.stringify(s.order));

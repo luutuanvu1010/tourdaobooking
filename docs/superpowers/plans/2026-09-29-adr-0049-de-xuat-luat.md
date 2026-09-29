@@ -169,6 +169,14 @@ Dòng dự kiến (người thi công điền tên kịch bản và số bước
 | Biểu mẫu đơn — mốc 6 giờ, đặt gấp (`web/order-form.ts`, `web/order.ts`) | kịch bản biểu mẫu đơn hiện có + `dat-gap-smoke.mjs` |
 | Chính sách điều phối, danh mục lý do | `chinh-sach-dieu-phoi-smoke.mjs` |
 
+**Dòng thật đã làm (người thi công giao diện, nhánh `giao-dien-dieu-phoi-luot-1`; nhật ký `docs/superpowers/plans/2026-09-29-adr-0049-giao-dien-nhat-ky.md`) — đề xuất chép nguyên vào bảng của `web/CLAUDE.md`:**
+
+| Sửa | Chạy |
+|---|---|
+| Chính sách điều phối, Lý do điều phối, Điều kiện xuất bến (bản vẽ `docs/design/van-chuyen-dieu-phoi/project/08`): `web/chinh-sach-dieu-phoi.ts`, `web/ly-do-dieu-phoi.ts`, `web/dieu-kien-xuat-ben.ts`, ba tệp `public/*.html` cùng tên, `src/shared/chinh-sach-hien-thi.ts`, khối `.dp-*` đầu tiên của `public/app.css` (V13), mục con "Chính sách điều phối" / "Lý do điều phối" ở `web/shell.ts`, hai dòng cùng tên trong nhóm VẬN CHUYỂN của `web/account.ts` (ADR-0049 B8) | `chinh-sach-dieu-phoi-smoke.mjs` ở `docs/evidence/2026-09-29-adr-0049/kich-ban/` (13 bước, 390 + 1040, không cần mạng ngoài; mở theo thứ tự Toàn quyền → Quản trị → Bán hàng) + `xe-smoke.mjs`, `danh-muc-giay-to-smoke.mjs` (nhóm VẬN CHUYỂN ở trang Tôi của Quản trị nay 4 dòng) + `trang-chu-smoke.mjs` (đếm mục thanh bên) |
+
+**Sửa số mục menu ở `web/CLAUDE.md:53`** (dòng "Xe (bản vẽ 00–02)"): "Quản trị nay 15 mục … kịch bản khoá 16 ở `:540` / `:966`" → "Quản trị nay **16** mục (thêm mục con "Lý do điều phối" — ADR-0049 B8; "Chính sách điều phối" chỉ Toàn quyền) … kịch bản khoá **17** ở `:542` / `:968` — thiếu "Nhật ký" là nợ ADR-0038". Khi có trang B1 ("Điều phối xe") thì cộng tiếp.
+
 ## Mục 6 — `src/CLAUDE.md` (luật theo thư mục)
 
 Thêm câu, giữ nguyên phần trước của mỗi dòng.

@@ -83,7 +83,8 @@ try {
     const p = await env.as(ADMIN, "/account", MOB);
     try {
       await p.waitFor(`!!document.querySelector('#vc-links a[href="${XE}"]')`, "dòng Loại giấy tờ xe", 10000);
-      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }]);
+      // ADR-0049 B8 (2026-09-29): Quản trị có thêm dòng "Lý do điều phối" cuối nhóm VẬN CHUYỂN.
+      assert.deepEqual(await dongToi(p, "#vc-links"), [{ href: "/xe", text: "Xe" }, { href: "/giay-to-sap-het-han", text: "Giấy tờ sắp hết hạn" }, { href: XE, text: "Loại giấy tờ xe" }, { href: "/ly-do-dieu-phoi", text: "Lý do điều phối" }]);
       await shotFull(p, "loai-giay-to-toi-390.png");
       assert.ok(await p.ev(clickVisible("#vc-links", "Loại giấy tờ xe")));
       await p.waitFor(`location.pathname === '${XE}' && !document.querySelector('#dm-xe').hidden`, "trang Loại giấy tờ xe", 10000);

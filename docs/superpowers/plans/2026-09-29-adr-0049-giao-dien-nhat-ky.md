@@ -98,4 +98,10 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 | `chinh-sach-dieu-phoi-smoke.mjs` | `web/shell.ts`: mục con "Lý do điều phối" đổi điều kiện `danhMuc` → `chinhSach` (build lại) | bước 8 ✗ — thanh bên của Quản trị `{"items":["Xe","Sắp hết hạn","Loại giấy tờ xe"],"current":null}`; 12 ✓ / 1 ✗, thoát 1 | chép lại bản lưu (`shell.ts.bak` ở thư mục tạm), `grep` thấy lại `if (danhMuc) … TRANG_LY_DO`, build lại |
 | (lần chạy đầu, không cố ý) | — | bước 1, 2, 4, 6 ✗ — axe `color-contrast` ở `#cs-hop-dong-hint` (dòng khoá mờ .6 theo bản vẽ) | sửa CSS (D8-8) → 13/13 |
 
+## 6.1 Kịch bản cũ bị đổi có chủ đích (B8)
+
+- `xe-smoke.mjs` bước 2 và `danh-muc-giay-to-smoke.mjs` bước c: nhóm VẬN CHUYỂN ở trang Tôi của Quản trị nay có thêm "Lý do điều phối" → đỏ sau B8 (đã thấy: 12 ✓ / 1 ✗ và 9 ✓ / 1 ✗) → sửa danh sách chờ → xanh lại (13/13, 10/10).
+- `trang-chu-smoke.mjs`: số mục thanh bên của Quản trị 16 → **17** (số thật 15 → 16, vẫn giữ nợ "Nhật ký" ADR-0038) ở `:542` và `:968`. **Chưa kiểm được** bằng lần chạy: kịch bản đỏ sẵn từ trước bước đếm (dựng dữ liệu bằng xác nhận đơn đón hôm nay → 409 `short_notice_required` — mục 1.1). Số 16 thật đã thấy gián tiếp ở `chinh-sach-dieu-phoi-smoke.mjs` bước 8 (thanh bên Quản trị có "Lý do điều phối").
+- `dot-c-smoke.mjs`: đỏ sẵn như mục 1.1 (cùng câu, không đổi do B8).
+
 ## 7. Kết quả kiểm cuối phiên (tự khai)
