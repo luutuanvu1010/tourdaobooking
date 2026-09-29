@@ -370,3 +370,10 @@ Lỗi thật tìm ra nhờ người cố vấn (không phải kịch bản): b�
 | `trang-chu-smoke.mjs` | xanh |
 
 Không chạy lại ở đỉnh này: `xe-smoke`, `danh-muc-giay-to-smoke`, `chinh-sach-dieu-phoi-smoke`, `dot-c-smoke`, `help-smoke`, `giay-to-cua-toi-smoke`, `sap-het-han-smoke` (xanh ở mục 9.8 / 9.9; vòng 4 không đụng phần của chúng ngoài `web/shell.ts` — tab tài xế chỉ bật khi `chiTaiXe`). `v1-bao-tri.mjs` đỏ sẵn (mục 9.7).
+
+### 10.10 Sửa sau góp ý của người cố vấn (cùng phiên, trước khi báo cáo)
+- **Giờ khai gõ nhầm ở tương lai** không bao giờ tới máy chủ: `xayRaLucTu` cũ coi mọi giờ sau lúc bấm là hôm qua → câu "Giờ này chưa tới" của bản vẽ 6d không bao giờ hiện, thay bằng câu "lùi quá…" / "sai thứ tự" khó hiểu. Nay chọn ngày (hôm qua / hôm nay / ngày mai) GẦN lúc bấm nhất (test đỏ trước: 20 phút sau lúc bấm → hôm nay; 23:59 gõ 00:04 → ngày mai). `cuoc-smoke` bước 7 nay khẳng định "Giờ này chưa tới — bây giờ là HH:MM." — 10/10 (lần chạy đầu sau sửa rơi đúng 23:59 và lộ nhánh qua nửa đêm → thêm ứng viên "ngày mai", chạy lại 10/10).
+- **Hai bộ câu cho cùng một việc**: `cauTuChoiGioXayRa`, `nhanSomNhat`, `nhanAiXuLy` (dieu-phoi-hien-thi.ts, không nơi gọi) đã XOÁ cùng test; câu "Sớm nhất" / từ chối giờ khai chỉ còn ở `tien-do-man.ts`; đầu tệp + dòng SYSTEM-DESIGN sửa theo.
+- **Q-B-17**: câu từ chối "lùi quá giới hạn" không nêu được "tối đa 180 phút" như bản vẽ 6d — DTO 409 / chi tiết chuyến không có số phút kẹp lùi của chính sách. Thêm khoá?
+- **Lệch thứ tự** so với lệnh điều phối: bấm thay + B4–B6 + B-GB dựng trên `c98b0e9`, gộp `3497be6` SAU (lệnh: gộp + GA-55 trước). Bằng chứng GA-55 đứng vững trên `3497be6`: P16 GA-55 (10.8) chạy trên máy chủ `3497be6`; tám kịch bản xanh ở 10.9.
+- Lời nhắn cuối của điều phối: điểm gộp đổi thành `da38060` (bản cuối Phần A, không đổi DTO sau A18) — gộp ở điểm sạch kế tiếp (mục 11).

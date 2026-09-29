@@ -156,15 +156,16 @@ try {
     assert.match(await s.ev(txt("#tdo-gio-hint")), new RegExp(`^Để nguyên là lúc bấm \\(${mac}\\)\\. Sớm nhất: \\d\\d:\\d\\d( \\d\\d/\\d\\d)?\\.$`));
     await axe(s, "hộp khai giờ 1040");
     await shotView(s, "b2-xuat-ben-thay-may-tinh.png");
-    // Giờ SAU lúc bấm = hôm qua (không bao giờ tương lai) → lùi quá giới hạn → máy chủ từ chối, câu dưới ô.
-    const sau = `${String((Number(mac.slice(0, 2)) + 1) % 24).padStart(2, "0")}${mac.slice(2)}`;
+    // Giờ gõ nhầm 5 phút SAU lúc bấm → hôm nay (xayRaLucTu chọn ngày gần lúc bấm nhất) → máy chủ từ chối "chưa tới" (bản vẽ 6d); câu dưới ô (sát nửa đêm cũng vậy — xayRaLucTu xét cả ngày mai).
+    const [gh, gm] = mac.split(":").map(Number);
+    const sau = `${String(Math.floor(((gh * 60 + gm + 5) % 1440) / 60)).padStart(2, "0")}:${String((gm + 5) % 60).padStart(2, "0")}`;
     await s.ev(typeInto("#tdo-gio", sau));
     await s.ev(click('[data-action="khai-gio-gui"]'));
     await s.waitFor(`!document.querySelector('#tdo-gio-error').hidden`, "câu lỗi dưới ô");
-    assert.match(await s.ev(txt("#tdo-gio-error")), /— chọn từ \d\d:\d\d( \d\d\/\d\d)? trở đi\.$/);
+    assert.match(await s.ev(txt("#tdo-gio-error")), /^Giờ này chưa tới — bây giờ là \d\d:\d\d\.$/);
     assert.equal(await s.ev(`document.querySelector('#tdo-gio').getAttribute('aria-invalid')`), "true");
     await shotView(s, "b2-khai-gio-loi-may-tinh.png");
-    // Khai đúng giờ sớm nhất máy chủ cho (≥ 1 phút trước lúc bấm nhờ chờ 61 giây) → qua; mốc hiện hai giờ + dấu "giờ do văn phòng khai" (thành phần B).
+    // Khai đúng giờ sớm nhất máy chủ cho (≥ 1 phút trước lúc bấm nhờ chờ hơn hai phút) → qua; mốc hiện hai giờ + dấu "giờ do văn phòng khai" (thành phần B).
     const som = (await s.ev(txt("#tdo-gio-hint"))).match(/Sớm nhất: (\d\d:\d\d)/)[1];
     assert.notEqual(som, mac, "giờ sớm nhất khác lúc bấm (đã chờ hơn hai phút)");
     await s.ev(typeInto("#tdo-gio", som));

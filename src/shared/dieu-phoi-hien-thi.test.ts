@@ -1,7 +1,7 @@
 // Khối hiển thị THUẦN cho các màn B1–B6 (chưa nối trang — chờ route A13 / A15): src/shared/dieu-phoi-hien-thi.ts. Hình dữ liệu theo kế hoạch mục 1.8.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { cauTuChoiGioXayRa, dongDieuKienTaiXe, gioVn, nhanAiXuLy, nhanMocTienDo, nhanSomNhat } from "./dieu-phoi-hien-thi.ts";
+import { dongDieuKienTaiXe, gioVn, nhanMocTienDo } from "./dieu-phoi-hien-thi.ts";
 import { MA_GIO_XAY_RA, NHAN_GIO_XAY_RA } from "./gio-xay-ra.ts";
 import { lyDoGiu } from "./ly-do-giu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -22,17 +22,7 @@ test("nhanMocTienDo (thành phần B): tài xế tự bấm / văn phòng không
   assert.equal(nhanMocTienDo({ gioXayRa: "07:31", gioGhiNhan: "07:45", vanPhongKhai: true, nguoiBam: "Hoa 0913552108" }).chu, "07:31 · ghi lúc 07:45 — Hoa ••••••••••");
 });
 
-test("nhanSomNhat (thành phần A trạng thái 3): làm tròn LÊN phút kế — 'Sớm nhất: 07:11'", () => {
-  assert.equal(nhanSomNhat(vnLocalToMs("2026-09-30", "07:10")! + 1), "Sớm nhất: 07:11");
-  assert.equal(nhanSomNhat(vnLocalToMs("2026-09-30", "07:11")!), "Sớm nhất: 07:11");
-  assert.equal(nhanSomNhat(vnLocalToMs("2026-09-30", "23:59")! + 30_000), "Sớm nhất: 00:00");
-});
 
-test("cauTuChoiGioXayRa (thành phần A trạng thái 4): mỗi mã một câu lời thường (NHAN_GIO_XAY_RA); có 'sớm nhất' thì nối số", () => {
-  for (const ma of MA_GIO_XAY_RA) assert.equal(cauTuChoiGioXayRa(ma), `${NHAN_GIO_XAY_RA[ma]}.`);
-  assert.equal(cauTuChoiGioXayRa("LUI_QUA_KEP", vnLocalToMs("2026-09-30", "04:45")!), "Giờ khai lùi quá khoảng cho phép — sớm nhất 04:45.");
-  assert.doesNotMatch(cauTuChoiGioXayRa("DAO_THU_TU"), /[A-Z]{2,}_/);
-});
 
 test("dongDieuKienTaiXe (V5 / V7 màn tài xế — bản đối chiếu 2.5, H15): chỉ điều kiện CÒN THIẾU kèm '(văn phòng lo)', không hạn, không số; đạt hết → 'Đủ điều kiện'", () => {
   assert.deepEqual(dongDieuKienTaiXe([]), ["Đủ điều kiện xuất bến"]);
@@ -44,8 +34,3 @@ test("dongDieuKienTaiXe (V5 / V7 màn tài xế — bản đối chiếu 2.5, H1
   ]);
 });
 
-test("nhanAiXuLy (H14): 'Ai xử lý: <nhãn>' từ NHAN_AI_XU_LY — không mã", () => {
-  assert.equal(nhanAiXuLy(lyDoGiu("NOI_HEN_DOI", "TD-1")), "Ai xử lý: Văn phòng");
-  assert.equal(nhanAiXuLy(lyDoGiu("NGHI_THIEU")), "Ai xử lý: Quản trị");
-  assert.equal(nhanAiXuLy(lyDoGiu("KHONG_CO_HANG_BANG")), "Ai xử lý: Toàn quyền");
-});

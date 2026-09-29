@@ -9,11 +9,14 @@ import { vnLocalToMs } from "./vn-date.ts";
 
 const ms = (ngay: string, gio: string) => vnLocalToMs(ngay, gio)!;
 
-test("xayRaLucTu: 'HH:MM' → ISO có múi giờ; giờ sau lúc bấm hiểu là HÔM QUA (không bao giờ tương lai); sai khuôn → null", () => {
+test("xayRaLucTu: 'HH:MM' → ISO có múi giờ; ngày = hôm qua / hôm nay / ngày mai, chọn cái GẦN lúc bấm nhất (giờ gõ nhầm hơi sau lúc bấm vẫn là hôm nay → máy chủ báo 'chưa tới' như bản vẽ 6d); sai khuôn → null", () => {
   const bay = ms("2026-09-30", "08:00");
   assert.equal(xayRaLucTu("07:31", bay), new Date(ms("2026-09-30", "07:31")).toISOString());
   assert.equal(xayRaLucTu("08:00", bay), new Date(bay).toISOString());
   assert.equal(xayRaLucTu("23:50", bay), new Date(ms("2026-09-29", "23:50")).toISOString(), "qua nửa đêm: chuyến chạy từ tối hôm qua");
+  assert.equal(xayRaLucTu("08:20", bay), new Date(ms("2026-09-30", "08:20")).toISOString(), "20 phút SAU lúc bấm → hôm nay (tương lai — máy chủ từ chối TUONG_LAI)");
+  assert.equal(xayRaLucTu("23:50", ms("2026-10-01", "00:10")), new Date(ms("2026-09-30", "23:50")).toISOString(), "00:10 khai 23:50 → hôm qua");
+  assert.equal(xayRaLucTu("00:04", ms("2026-09-29", "23:59")), new Date(ms("2026-09-30", "00:04")).toISOString(), "23:59 gõ nhầm 00:04 → ngày mai (tương lai, máy chủ báo chưa tới) — không thành lùi gần một ngày");
   assert.equal(xayRaLucTu("7:31", bay), null);
   assert.equal(xayRaLucTu("", bay), null);
   assert.match(xayRaLucTu("07:31", bay)!, /Z$/);

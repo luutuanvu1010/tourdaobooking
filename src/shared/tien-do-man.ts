@@ -14,15 +14,17 @@ const hien = (g: GioVnDto, ngayXem: string): string => (g.ngay === ngayXem ? g.g
 
 // ---- ô "Xảy ra lúc" (thành phần A) ------------------------------------------------------------------------------------------------------------------------
 /**
- * Giờ văn phòng chọn ("HH:MM", giờ VN) → `xayRaLuc` ISO có múi giờ. Ngày = hôm nay theo lúc bấm; giờ SAU lúc bấm thì là hôm qua (giờ khai không bao giờ ở
- * tương lai — chuyến chạy qua nửa đêm). Sai khuôn → null. Màn CHỈ gửi khi người bấm đã đổi giờ (I34).
+ * Giờ văn phòng chọn ("HH:MM", giờ VN) → `xayRaLuc` ISO có múi giờ. Ngày = hôm qua / hôm nay / ngày mai theo lúc bấm, chọn cái GẦN lúc bấm nhất: khai lùi qua nửa
+ * đêm (00:10 khai 23:50) → hôm qua; gõ nhầm hơi sau lúc bấm → hôm nay, máy chủ từ chối "chưa tới" (bản vẽ 6d) thay vì hiểu thành "lùi gần một ngày". Sai khuôn
+ * → null. Màn CHỈ gửi khi người bấm đã đổi giờ (I34).
  */
 export function xayRaLucTu(gio: string, bayGioMs: number): string | null {
   if (!HHMM.test(gio)) return null;
   const bay = msToVnLocal(bayGioMs);
-  const ngay = gio > bay.time ? addDays(bay.date, -1) : bay.date;
-  const ms = vnLocalToMs(ngay, gio);
-  return ms === null ? null : new Date(ms).toISOString();
+  const ungVien = [-1, 0, 1].map((n) => vnLocalToMs(addDays(bay.date, n), gio));
+  if (ungVien.some((x) => x === null)) return null;
+  const gan = (ungVien as number[]).reduce((a, b) => (Math.abs(b - bayGioMs) < Math.abs(a - bayGioMs) ? b : a));
+  return new Date(gan).toISOString();
 }
 
 /** Gợi ý dưới ô "Xảy ra lúc" (bản vẽ 5c, 6d): lúc bấm + giờ sớm nhất của máy chủ. */
