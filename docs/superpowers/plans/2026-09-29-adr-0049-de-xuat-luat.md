@@ -249,6 +249,28 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 | S21 | **[0050] + K-02:** câu kiểm định kỳ R-VC-12…16 (mức `warn`; mã điều phối đã cấp 29/9 tối) | `scripts/audit-checks.mjs` | ADR-0050 "Hệ quả"; bản soi K-02 |
 | S13 | Câu xác nhận đơn (`UPDATE orders SET status='confirmed'`, hôm nay SQL thô LEGACY ở `src/modules/orders/repository.ts:921-926@6bb67c8`) chuyển sang tệp nửa nghiêm thành câu `defineSql` `orders.order_confirm` — thêm một câu vào vùng bài EXPLAIN soi; câu đặt gấp `orders.leg_short_notice` cũng ở đó. Không tên mới nào đọc `audit_log` | `src/modules/orders/chang-hanh-khach-repo.ts` | ADR-0047 A3 ("SQL chạm `ord_*` viết bằng `defineSql` trong tệp riêng"); kế hoạch I15 |
 
+## Số dòng thật trên nhánh thi công (Task A20 — đo 2026-09-30, `thi-cong-adr-0049-tiep` @ `ac83d36`, sau A19)
+
+Tệp luật thật (`docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `CLAUDE.md`, `web/CLAUDE.md`) trên nhánh này **chưa áp** đề xuất luật nền ADR-0047 / ADR-0048 (vd `src/CLAUDE.md:20` chưa có câu `CARRIER` của ADR-0048 mục 4) — số dòng dưới là số TRÊN NHÁNH; điều phối đo lại sau khi áp nền lúc gộp.
+
+| Mục | Chỗ (số dòng thật) | Ghi chú |
+|---|---|---|
+| 0a | `src/shared/permissions.ts`: `PERMISSION_CODES` :5; `row()` :44–48; `MATRIX` :71–229; `order.leg.short_notice` :81; `trip.view` :136, `trip.dispatch` :137, `trip.override` :138, `trip.progress` :142; `trip.call_ack` :146 (ADR-0051 GB2, ô thứ sáu — ngoài bảng mục 0) | đúng giá trị bảng mục 0 |
+| 0b | `src/shared/permissions.test.ts`: bảng `ADR` :14–59; bài "bản đồ quyền khớp TỪNG Ô … + ADR-0049" :63 | tên bài đã thêm "+ ADR-0049" |
+| 0c | cùng tệp: bài "ADR-0049 D3: trip.override CHỈ …; trip.view = any ⇒ contact.view = any …" :349; bài "ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN" :374; ghim `DRIVER_PARTNER` :307; bài 512 tập con :262–277 (số không đổi) | sổ hàng rào có dòng (A19) |
+| 1a | `src/architecture.test.ts`: `ALLOWED_EDGES` :20, dòng `"van-chuyen"` :51; `STRICT` :55, `chuyen-repo.ts` :66 | NỚI — mã mang chú thích CHỜ CHỦ DUYỆT |
+| 2a | `src/shared/permissions.test.ts:282` (bài đã đổi tên "ADR-0040 D3 + ADR-0049 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng"), `DRIVER_ROW` :283–298 | NỚI — chú thích CHỜ CHỦ DUYỆT :296 |
+| 2b | `docs/SO-HANG-RAO.md:104` (dòng ghim `DRIVER`) | đã sửa nghĩa ở A19, ghi "CHỜ CHỦ DUYỆT" |
+| 3a | `src/hanh-khach-khong-lo-ten.test.ts`: chú thích (6) :12–14; bài 1 :44 (GIỮ tên cũ — GA-57: bài 1 chỉ chạy route `orders`); bài 2 "khối van-chuyen" :180 | NỚI nghĩa — chú thích CHỜ CHỦ DUYỆT |
+| 3b | `docs/SO-HANG-RAO.md:226` (dòng "Toàn tuyến họ tên …") | đã sửa ở A19 |
+| 4 | `docs/ARCHITECTURE.md:194`, `:215`; `src/CLAUDE.md:26` | không đổi so với lúc soạn (đã duyệt — điều phối áp lúc gộp) |
+| 5 | `web/CLAUDE.md:28` (bảng kịch bản Chrome) | điền ở bước B-kết (người giao diện) |
+| 6 | `src/CLAUDE.md:13`, `:15`, `:20` | như lúc soạn |
+| 7a | `CLAUDE.md:122` (thêm gạch SAU dòng này) | **đề nghị điều phối:** câu mục 7a ghi "migration `0040`–`0042`" — nay `0043` (ADR-0051) cùng lần phát hành; nên đổi thành `0040`–`0043` và thêm vế "mở suất khách mới phải có mốc giờ hẹn (`gieoMocXep`)". Chưa sửa diff (đề xuất đã trình) |
+| 7b | `CLAUDE.md:119` | như lúc soạn |
+| 8a / 8c | `docs/ARCHITECTURE.md:175` (một dòng dài chứa cả đoạn `parties (…)` và `van-chuyen (…)`) | như lúc soạn |
+| 8b | `docs/ARCHITECTURE.md:148` (5.3), `:151` (5.7) | như lúc soạn |
+
 ## Không đổi
 
 - `LEGACY`, `KHONG_DB`, `TABLE_PREFIX`, `VIEW_PREFIX` (`src/architecture.test.ts`).

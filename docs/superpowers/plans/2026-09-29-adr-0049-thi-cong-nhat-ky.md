@@ -530,3 +530,11 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **GA-57 (bề mặt, hai chiều):** mục 3a đề xuất đổi TÊN bài 1 của tệp; giữ tên cũ vì bài 1 chỉ chạy route `orders` — phần van-chuyen là bài 2 riêng có tên nói đúng hai route trả tên. Đổi tên = sửa một chuỗi.
 - Siết thêm (điều phối giao): bài `src/architecture.test.ts` "`taoAppChoKhungThu` chỉ được khai ở src/index.ts và chỉ khung thử gọi" — quét src, web, scripts, tests, docs; P16 hai phép đỏ; sổ một dòng.
 
+### 10.24 A20 — Tài liệu mô tả; số dòng đề xuất luật
+
+- `docs/SYSTEM-DESIGN.md`: §6 mục mới (l) "Điều phối xe" — mô hình, lệnh kế hoạch / tiến độ, tên chỉ ở hai GET, bảng "Nơi dùng giờ nào" (tóm ADR-0050), vì sao giữ `NOI_HEN_DOI` (so khoá nơi, không so chữ đã che), route 40, điều kiện gieo Kiểm định + Bảo hiểm, gọi báo (ADR-0051); §14 trạng thái nhánh; §17 K5, K9, K10, K12. §5 / §7 / §8 đã cập nhật dần ở A12–A18 (bảng `vc_*`, 159 route, năm ô `trip.*`, luật (1c)). §16: không có lệch mới giữa tài liệu chuẩn tắc và mã.
+- `docs/CHANGE-GUIDE.md`: công thức z3 (chuyến, xếp, tiến độ, gọi báo — luật cứng, cách thêm lệnh / lý do giữ / đổi trigger, lệnh kiểm), dòng §1, dòng ma trận §3, bẫy 53 (sáu bẫy: gieo Kiểm định + Bảo hiểm, một mốc giờ mỗi request, khoá nơi không hiển thị + một hàm chuẩn hoá, sửa tại chỗ migration → xoá state D1 local, mở suất phải có mốc / tái mốc, suất theo số chưa có tên).
+- `docs/data-dictionary.json`: sổ chỉ liệt kê BẢNG (không cột) — `vc_trip_event`, `vc_trip_stop`, `vc_dispatch_policy`, `vc_leg_appt_ack` đã có; `npm run dict` không đổi tệp.
+- Đề xuất luật: mục mới "Số dòng thật trên nhánh thi công" (bảng mục 0–8). **Đề nghị điều phối** (không tự sửa diff đã trình): câu mục 7a ghi `0040`–`0042` — nay `0043` cùng lần phát hành.
+- `node --test src/audit-invariants.test.ts` 73/73.
+
