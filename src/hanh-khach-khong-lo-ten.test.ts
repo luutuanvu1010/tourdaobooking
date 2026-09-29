@@ -153,7 +153,7 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
 // ==== KHỐI VAN-CHUYỂN (ADR-0049 Task A18 bước 2 + 2b — kế hoạch mục 1.6–1.8, TC-39, TC-50) =================================================================
 //   (1) ĐỦ TUYẾN (siết): tập route thật của van-chuyen thuộc điều phối (lịch, chuyến, cuốc của tôi, chặng, nhắc gọi khách, chính sách điều phối) — lấy từ MÃ
 //       THẬT — phải BẰNG tập khoá của TUYEN_VC. Thêm route điều phối mới mà quên ca ở đây → đỏ (kể cả route 40 `cap-nhat-diem`, ba route gọi báo).
-//   (2) TÊN CHỈ Ở HAI ROUTE: họ tên / năm sinh (và khoá `hoTen`, `namSinh`) chỉ có trong thân GET /api/van-chuyen/chuyen/:id và GET /api/van-chuyen/cuoc-cua-toi/:id;
+//   (2) TÊN CHỈ Ở HAI ROUTE: họ tên / năm sinh (chuỗi tên, số năm sinh đứng riêng, khoá `hoTen`, `namSinh`) chỉ có trong thân GET /api/van-chuyen/chuyen/:id và GET /api/van-chuyen/cuoc-cua-toi/:id;
 //       mọi route khác (kể cả phản hồi lệnh ghi, lệnh tiến độ) KHÔNG. GET /cuoc-cua-toi/:id của chuyến NGOÀI ngày chạy không tên, không liên hệ.
 //   (3) NHẬT KÝ + mọi cột chữ của bảng `vc_*` không có tên / năm sinh đánh dấu.
 //   (4) [0050] TC-50: không DTO nào có khoá so sánh nơi (liệt kê khoá đệ quy); thân trả về + `audit_log` không có chuỗi `L:<id>` / `T:<hex>`; bản chụp, bản
@@ -377,6 +377,7 @@ test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/
     for (const t of than) {
       if (TRA_TEN.includes(t.route)) continue;
       for (const ten of TEN_VC) assert.ok(!t.text.includes(ten), `thân "${t.khoa}" (${t.route}) lộ tên "${ten}"`);
+      assert.doesNotMatch(t.text.replace(UUID, ""), NAM_VC, `thân "${t.khoa}" (${t.route}) lộ năm sinh`);
       const k = moiKhoa(t.json);
       assert.ok(!k.has("hoTen") && !k.has("namSinh"), `thân "${t.khoa}" (${t.route}) có khoá hoTen / namSinh`);
     }
