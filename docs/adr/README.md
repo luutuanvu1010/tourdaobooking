@@ -58,7 +58,8 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (số ADR mới kế tiếp là 0050; bản đề xuất Vận chuyển lượt 2 lượt II (D3–D5), lượt 3 chưa lấy số) | | |
+| 0050 | Vận chuyển — thừa kế Transportation Kernel, lượt duyệt 1 (VK1-A giờ xảy ra thật khi văn phòng bấm thay; VK1-B giữ chuyến khi nơi hẹn đổi + khoá so sánh nơi; VK1-C gieo điều kiện xuất bến Kiểm định + Bảo hiểm TNDS) — phải chốt trước migration 0042 của ADR-0049 | `docs/superpowers/specs/2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-1.md` (nhánh `worktree-agent-abd7ada78b75fe71c`) | giữ chỗ 2026-09-29, chờ chủ duyệt |
+| — | (số ADR mới kế tiếp là 0051; đề xuất Kernel lượt 2, lượt 3 và Vận chuyển lượt 2 lượt II (D3–D5), lượt 3 tiền chưa lấy số) | | |
 
 (0040, 0041, 0042, 0044 và 0049 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
