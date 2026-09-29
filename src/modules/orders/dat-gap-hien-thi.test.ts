@@ -107,6 +107,69 @@ test("H4/N-14: Đối tác và Thực tập (đơn tự lập) CHỈ thấy cờ
   }
 });
 
+// ---- R-P21 (điều phối 29/9 đêm — lỗ tìm thấy trước phát hành, áp lời chủ H4): khối LỊCH SỬ trên trang đơn -----------------------------------------------
+// Dòng nhật ký `order_leg_short_notice` (route đặt gấp) và dòng sửa / thêm chặng kèm `datGap` ("… · đặt gấp: <nhãn>") lộ lý do + tên người duyệt. Đối tác,
+// HDV, Thực tập: dòng đó chỉ còn "Đặt gấp — Quản trị đã duyệt", người làm = "Quản trị" (không tên, không id). Văn phòng giữ nguyên.
+const lichSu = async (w: any, id: string, as: string) => {
+  const r = await w.call("GET", `/api/orders/${id}`, { as });
+  assert.equal(r.status, 200, r.text);
+  return r.json.history as { action: string; staffId: string | null; staffName: string; detail: string | null }[];
+};
+function kiemLichSuCo(h: { action: string; staffId: string | null; staffName: string; detail: string | null }[], ai: string) {
+  const dong = h.filter((e) => e.action === "order_leg_short_notice" || /đặt gấp/iu.test(e.detail ?? ""));
+  assert.ok(dong.length > 0, `${ai}: chống bài rỗng — phải có dòng đặt gấp`);
+  for (const e of dong) {
+    assert.equal(e.staffName, "Quản trị", `${ai}: người làm chỉ là nhãn "Quản trị"`);
+    assert.equal(e.staffId, null, `${ai}: không lộ id người duyệt`);
+    assert.match(e.detail ?? "", /Đặt gấp — Quản trị đã duyệt/, `${ai}: ${e.detail}`);
+  }
+  const txt = JSON.stringify(h);
+  for (const lo of [TEN_DUYET, ADM, "Chuyến bay đổi giờ", "Khách đoàn gọi gấp", "CHUYEN_BAY_DOI_GIO", "Khách gọi"]) assert.ok(!txt.includes(lo), `${ai}: lịch sử lộ "${lo}"`);
+}
+
+test("R-P21: lịch sử đơn — Đối tác, Thực tập (đơn tự lập), HDV (đơn đang phụ trách) KHÔNG thấy lý do / tên người duyệt đặt gấp; văn phòng thấy đủ", async () => {
+  const w = setup();
+  for (const as of [PARTNER, INTERN]) {
+    const o = await nhap(w, as);
+    await datGapChieuDi(w, o);
+    kiemLichSuCo(await lichSu(w, o.id, as), as);
+    const vp = await lichSu(w, o.id, ACC);
+    const dong = vp.find((e) => e.action === "order_leg_short_notice")!;
+    assert.equal(dong.staffName, TEN_DUYET, "văn phòng: tên người duyệt");
+    assert.match(dong.detail!, /đặt gấp: Chuyến bay đổi giờ/, "văn phòng: nhãn lý do");
+  }
+  const o = await nhap(w, SALES, { handlerStaffId: FIELD });
+  await datGapChieuDi(w, o);
+  kiemLichSuCo(await lichSu(w, o.id, FIELD), "HDV");
+  for (const as of [SALES, ADM, SUP]) assert.ok((await lichSu(w, o.id, as)).some((e) => e.staffName === TEN_DUYET && /Chuyến bay đổi giờ/.test(e.detail ?? "")), as);
+});
+
+test("R-P21: lịch sử đơn — dòng SỬA CHẶNG đơn đã xác nhận dưới mốc kèm datGap ('… · đặt gấp: <nhãn>') cũng rút gọn với HDV đang phụ trách", async () => {
+  const w = setup();
+  // Ngày đi = ngày mai, chặng 23:00 ngày mai (luôn xa hơn mốc 6 giờ) → xác nhận được; rồi Quản trị dời giờ đón về 90 phút nữa (dưới mốc) kèm datGap.
+  const mai = inDays(1);
+  const tao = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: { ...than({ handlerStaffId: FIELD }), services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: mai, legs: [leg(mai, "23:00")] }] },
+  });
+  assert.equal(tao.status, 201, tao.text);
+  const o = tao.json.order;
+  const xn = await w.call("POST", `/api/orders/${o.id}/status`, { as: SALES, body: { status: "confirmed" } });
+  assert.equal(xn.status, 200, xn.text);
+  const don = (await w.call("GET", `/api/orders/${o.id}`, { as: ADM })).json.order;
+  const l = legsOf(don).find((x: any) => x.direction === "OUT");
+  const gan = new Date(Date.now() + 7 * 3600e3 + 90 * 60_000).toISOString();
+  const sua = await w.call("PUT", `/api/orders/${o.id}/legs/${l.id}`, {
+    as: ADM,
+    body: {
+      expectedUpdatedAt: l.updatedAt, leg: { pickupDate: gan.slice(0, 10), pickupTime: gan.slice(11, 16), pickupLocationId: null, pickupPlace: "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" },
+      datGap: { lyDo: "CHUYEN_BAY_DOI_GIO" },
+    },
+  });
+  assert.equal(sua.status, 200, sua.text);
+  kiemLichSuCo(await lichSu(w, o.id, FIELD), "HDV — dòng sửa chặng");
+});
+
 test("H4/N-14: chặng chưa đặt gấp → datGap null với mọi vai (khoá có mặt, giá trị null)", async () => {
   const w = setup();
   const o = await nhap(w, SALES, { handlerStaffId: FIELD });

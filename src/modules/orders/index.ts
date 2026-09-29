@@ -22,7 +22,7 @@ import {
 import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
 import { nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
-import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua } from "./dat-gap";
+import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua, ghiDatGapNhatKy, lichSuTheoVai } from "./dat-gap";
 import { dongHienHanh } from "../../shared/hanh-khach";
 import { maskLongDigits } from "../../shared/text-guards";
 import { toPoolOrders } from "./pool";
@@ -78,7 +78,7 @@ function xetDatGapSua(
 }
 /** Chủ H4 / N-14: người xem thấy ĐỦ dấu đặt gấp (lý do, người duyệt, lúc, ghi chú) hay chỉ cờ — MỘT câu hỏi bảng quyền cho mọi phản hồi chi tiết đơn. */
 const xemDuDatGap = (staff: PermissionHolder): boolean => can(staff, "order.leg.short_notice.view");
-const kemDatGap = (detail: string, d: DatGapWrite | null) => (d ? `${detail} · đặt gấp: ${LY_DO_DAT_GAP[d.lyDo as keyof typeof LY_DO_DAT_GAP]}` : detail);
+const kemDatGap = (detail: string, d: DatGapWrite | null) => (d ? `${detail}${ghiDatGapNhatKy(LY_DO_DAT_GAP[d.lyDo as keyof typeof LY_DO_DAT_GAP])}` : detail);
 
 /** Cảnh báo mốc (I27) + con số mốc (I31) cho phản hồi LẬP / SỬA NHÁP. `moc` null = nháp không chặng (không hỏi mốc). */
 async function phanHoiMoc(db: D1Database, orderId: string, order: OrderDetailDto, moc: MocToiThieu | null): Promise<{ canhBaoMoc: CanhBaoMocDto[]; mocToiThieuPhut: number | null }> {
@@ -540,7 +540,8 @@ export const ordersModule: AppModule = {
       if (!can(staff, "order.view", scope)) return seesOnlyAssignedOrders(staff) ? NOT_FOUND() : FORBIDDEN();
       // ADR-0019 điều 2: chi tiết đơn trả tiền và liên hệ khách — hỏi hai ô với phạm vi CỦA ĐƠN NÀY; sai thì 403 (không cắt bớt trường).
       if (!can(staff, "money.view", scope) || !can(staff, "contact.view", scope)) return FORBIDDEN_VIEW();
-      const history = can(staff, "order.history.view", scope) ? await getAuditTrail(env.DB, order.id) : [];
+      // R-P21 (áp lời chủ H4): dòng đặt gấp của lịch sử rút gọn theo vai (Đối tác, HDV, Thực tập không thấy lý do, tên người duyệt).
+      const history = can(staff, "order.history.view", scope) ? lichSuTheoVai(await getAuditTrail(env.DB, order.id), xemDuDatGap(staff)) : [];
       return json({ order, history, canModify: can(staff, "order.modify", scope), mocToiThieuPhut: moc?.phut ?? null } satisfies OrderDetailResponse);
     }),
 
@@ -715,7 +716,7 @@ export const ordersModule: AppModule = {
       if (leg.closed_at) return LEG_CLOSED();
       if (!moc) return MOC_CHUA_CO();
       const at = new Date().toISOString();
-      const detail = `${ref?.orderCode ?? ""} · ${CHIEU_LABEL[leg.direction]} · đặt gấp: ${LY_DO_DAT_GAP[lyDo]}`;
+      const detail = `${ref?.orderCode ?? ""} · ${CHIEU_LABEL[leg.direction]}${ghiDatGapNhatKy(LY_DO_DAT_GAP[lyDo])}`;
       const results = await env.DB.batch([
         legShortNotice(env.DB, legId, id, { lyDo, ghiChu: ghiChuSach, by: staff.id, at, phut: moc.phut }),
         auditStatement(env.DB, { orderId: id, staffId: staff.id, action: "order_leg_short_notice", at, detail }, "changes() > 0"),

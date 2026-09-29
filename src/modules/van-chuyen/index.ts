@@ -28,7 +28,7 @@ import {
 import type {
   DepartureRuleDto, DepartureRuleListResponse, DispatchPolicyDto, DispatchPolicyResponse, LicenseCapacityDto, LicenseCapacityResponse, TripReasonDto, TripReasonListResponse,
 } from "../../shared/contracts";
-import { NHAN_NHOM_LY_DO, type NhomLyDo } from "../../shared/dieu-phoi-kieu";
+import { NHAN_NHOM_LY_DO, laLyDoHeThong, type NhomLyDo } from "../../shared/dieu-phoi-kieu";
 import type { MocToiThieu } from "../../shared/moc-toi-thieu";
 import {
   MA_LY_DO_RE, chiTietChinhSach, chiTietDieuKien, chiTietHangBang, chiTietLyDo, kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSuaLyDo,
@@ -124,6 +124,7 @@ const toReasonDto = (r: TripReasonRow): TripReasonDto => ({
   active: r.active === 1,
   sortOrder: r.sort_order,
   updatedAt: r.updated_at,
+  heThong: laLyDoHeThong(r.code),
 });
 async function respondLyDo(db: D1Database, status = 200): Promise<Response> {
   return json({ reasons: (await listTripReasons(db)).map(toReasonDto) } satisfies TripReasonListResponse, status);
@@ -548,6 +549,8 @@ export const vanChuyenModule: AppModule = {
       const parsed = kiemSuaLyDo(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
+      // R-P22: mã lý do máy tự dùng không ngưng được (máy chủ sẽ ghi mã này dù màn không còn chọn được) — sửa nhãn / thứ tự vẫn được.
+      if (!v.active && laLyDoHeThong(code)) return error(409, "ly_do_he_thong", "Lý do này do hệ thống tự dùng nên không ngưng được — chỉ sửa được tên và thứ tự.");
       const at = new Date().toISOString();
       const results = await env.DB.batch([
         updateTripReasonStatement(env.DB, code, v, at, staff.id),
