@@ -149,3 +149,16 @@ Người kiểm độc lập giữa chừng (nhánh `thi-cong-adr-0049-tiep` @ `
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
 | "Khi văn phòng khai giờ thay tài xế: giờ "xe đã tới điểm trả" có bắt buộc phải sớm hơn (hoặc bằng) giờ "đã trả khách" ở điểm đó không? Ví dụ: đã ghi "trả khách 9:00", sau đó khai "xe tới điểm trả 9:05" → máy có chặn không?" — "Chặn" / "Không chặn" | **"Chặn"** — xe phải tới nơi rồi mới trả khách; khai ngược thứ tự thì máy báo lỗi. Giữ nguyên mã đang có (GA-25 thành quyết định của chủ). Áp cho cách hiểu ADR-0050 vế 3 "thứ tự trong chuyến"; không sửa ADR (ADR đã duyệt), ghi ở đây và nhật ký thi công |
+
+## Trả lời lần 12 (29/9 tối, bốn câu từ đối chiếu bản vẽ Bảng điều phối lượt 1)
+
+Bản vẽ chủ xuất từ Claude Design 29/9 19:54 (8 màn). Phiên đối chiếu (vai kiểm, chỉ đọc) báo: 12 chỗ trái quyết định đã duyệt (người thi công sửa theo căn cứ), ~10 khoảng hở dữ liệu (điều phối ruling R-P12…R-P18), 4 câu cần chủ. Toàn văn: `docs/design/van-chuyen-dieu-phoi/DOI-CHIEU-2026-09-29.md` (người thi công giao diện chép vào repo). Chủ đã được báo trước khi hỏi rằng màn Xuất bến của tài xế chỉ hiện giấy tờ còn thiếu, chặng đã đặt gấp xếp thẳng, danh mục Lý do bỏ nhóm "Đặt gấp"/"Bỏ chặng" — theo quyết định đã duyệt, khác bản vẽ.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Bản vẽ có ô ghi chú gõ tự do trong chuyến xe ("Ghi chú cho tài xế", ghi chú khi phá lệ, khi kết thúc gián đoạn). Lượt này có làm không?" — "Chưa làm" / "Làm, có che số" | **"Chưa làm"** — chỉ chọn lý do có sẵn; ghi `docs/BACKLOG.md` mục 5 |
+| "Cột "Cần xử lý" trong bản vẽ có nút "Đã gọi báo" và dòng "Giờ hẹn đổi 09:00 → 09:15". Lượt này có làm không?" — "Để lượt sau" (khuyến nghị) / "Làm ngay lượt này" | **"Làm ngay lượt này"** — trái khuyến nghị; chủ đã được nói "thêm dữ liệu "đã gọi" và giờ hẹn cũ; lượt 1 dài thêm, có thể cần quyết định bổ sung". Là dữ liệu mới ngoài ADR-0049 → điều phối cho soạn quyết định bổ sung (ADR mới, số kế tiếp 0051) trình chủ duyệt trước khi làm |
+| "Trang Chính sách điều phối: bản mới có hiệu lực ngay khi lưu, hay cho hẹn ngày hiệu lực (bản vẽ có ô ngày và bản "Đang soạn")?" — "Hiệu lực ngay" / "Hẹn ngày được" | **"Hiệu lực ngay"** — giữ kế hoạch I28 (`valid_from_at` = lúc máy chủ ghi); bỏ ô ngày và dòng "Đang soạn" của bản vẽ |
+| "Trên trang chi tiết đơn, nhãn "Đặt gấp — lý do — người duyệt" hiện cho ai? (Đơn còn được Đối tác, Hướng dẫn viên, Thực tập xem.)" — "Văn phòng đủ, ngoài gọn" / "Chỉ văn phòng thấy" / "Ai xem đơn cũng thấy đủ" | **"Văn phòng đủ, ngoài gọn"** — Bán hàng, Kế toán, Quản trị, Toàn quyền thấy lý do + người duyệt + lúc + ghi chú (đã che số); Đối tác, Hướng dẫn viên, Thực tập chỉ thấy "Đặt gấp — Quản trị đã duyệt". Gỡ nợ N-14 |
+
+Điều phối tự chốt (bề mặt, theo bản vẽ, ghi ở đây để chủ xem lại): thẻ "Xe" trên điện thoại giữ dòng thời gian cuộn ngang như bản vẽ (sửa chữ bị cắt); tài xế có tab "Cuốc của tôi" làm trang mở đầu như bản vẽ. Danh sách lý do đặt gấp theo bản vẽ (R-P18): "Khách đoàn gọi gấp", "Chuyến bay đổi giờ", "Đơn bù cho khách bị lỡ chuyến", "Lý do khác" — thay 3 lý do tạm trong mã, trước khi migration 0040 lên production.
