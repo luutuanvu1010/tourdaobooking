@@ -331,3 +331,42 @@ Lỗi thật tìm ra nhờ người cố vấn (không phải kịch bản): b�
 - **Q-B-13**: "Đã trả" ở điểm trả (5a: "Trả hết khách đang trên xe ở điểm này") đang là nhiều lệnh nối nhau (tới điểm + từng suất). Cần một lệnh "trả hết" ở máy chủ không?
 - **Q-B-14**: bản vẽ 6a có TRANG "Xuất bến CX-…" riêng cho văn phòng (bảng điều kiện có cột "Ai xử lý" + nút) — màn làm "Xuất bến thay tài xế" ngay trong Chi tiết chuyến (bảng điều kiện đã có ở đó) + hộp 6d. Cần trang riêng không?
 - **Q-B-15**: văn phòng đổi thứ tự điểm khi chuyến đang chạy (route 39) — bản vẽ không vẽ chỗ bấm cho văn phòng; chưa dựng.
+- **Q-B-16**: "Bản chụp lúc xuất bến" (`BanChupDto.muc[]`) chỉ có MÃ loại giấy tờ (`loaiGiayTo`), không tên — lần chạy đầu màn lộ "GIAY_TO_XE" (bắt được bằng `noCode` của `cuoc-smoke` bước 8). Nay hiện nhãn theo loại ("Giấy tờ xe", "Giấy phép lái xe"…) + hạng + hạn (`dongBanChup`, test đỏ trước). Thêm tên loại giấy vào DTO?
+
+### 10.6 GA-55 (máy chủ A18 — phản hồi lệnh không còn tên)
+- Cách chọn: đọc lại ĐÚNG GET chi tiết sau mỗi lệnh (`docLai` ở `web/chuyen.ts`; `gui` → `nap()` ở `web/cuoc-chuyen.ts`); đọc lại hỏng → `giuTenKhach` giữ tên theo id suất (không ô trống, không "undefined"). B3 (`/chuyen-sua`) sau lưu chuyển sang `/chuyen` (GET) nên không cần gì; B1 không hiện tên; B-GB không có tên.
+- Kiểm cả phần đã commit: B2 `ca73650` dựng tên từ phản hồi POST (huỷ, cập nhật điểm) — nay đọc lại; B3 `7037b7d` không dựng tên từ POST.
+- Bước Chrome "bấm lệnh → tên vẫn đúng": `cuoc-smoke` bước 4 (tài xế) và bước 8 (văn phòng).
+
+### 10.7 Commit
+| Việc | Commit |
+|---|---|
+| Gộp `c98b0e9` | `ef4c834` |
+| Bấm thay + B4–B6 + Q5 + B-GB (+ `dongBanChup`, GA-55 đọc lại) — MỘT commit vì hai phần dùng chung tệp (`dieu-phoi-man.ts`, `chuyen.ts`, `app.css`); hai kịch bản Chrome riêng | `d60adcb` |
+| Gộp `3497be6` (A16–A18) | `337d060` |
+
+### 10.8 P16 — quan sát đỏ thật
+| Kịch bản | Sửa cố ý (build lại) | Đỏ quan sát được | Hoàn nguyên |
+|---|---|---|---|
+| `cuoc-smoke.mjs` (GA-55, trên máy chủ `3497be6`) | `web/chuyen.ts` `docLai` trả thẳng phản hồi lệnh; `web/cuoc-chuyen.ts` `gui` gán thẳng phản hồi | bước 3 ✗ ("đang chạy: có tên khách"), 4 ✗ (tên sau lệnh), 8 ✗ (tên khách) — 7 ✓ / 3 ✗, thoát 1 | chép lại bản lưu, `grep P16-DOT-BIEN` rỗng, build lại |
+| `cuoc-smoke.mjs` (I34) | `web/tien-do-ui.ts`: `doi = true` (luôn gửi `xayRaLuc`) | bước 8 ✗ ("để nguyên → một giờ, không dấu văn phòng khai"), 9 ✓ / 1 ✗, thoát 1 | như trên |
+| `goi-bao-smoke.mjs` | `viecGoiBao`: bỏ điều kiện `baoDuoc` (luôn có nút) | bước 6 ✗ ("Kế toán: baoDuoc = false → không nút"), 6 ✓ / 1 ✗, thoát 1 | như trên |
+| `start-page.test.ts` (Q5) | (đỏ trước khi viết mã: thiếu export, rồi thiếu trang `/cuoc` trong PAGES) | 1 ✗ | viết mã + trang |
+
+### 10.9 Kết quả trên đỉnh sau gộp `3497be6` (tự khai, CHƯA có người kiểm độc lập)
+| Lệnh | Kết quả |
+|---|---|
+| `npm run typecheck` | 0 |
+| `npm test` | 1832/1833 — bài đỏ duy nhất `guard-remote: lệnh dị dạng không làm hook quá giờ` (đo thời gian của hook khi máy bận; chạy riêng `src/claude-guard.test.ts` 11/11 — như điều phối báo) |
+| `npm run build:web` | 0 |
+| `npm run test:e2e -- pwa` | 2/2 — "31 trang" |
+| `cuoc-smoke.mjs` | 10/10 |
+| `goi-bao-smoke.mjs` | 7/7 |
+| `chuyen-smoke.mjs` | 8/8 |
+| `chuyen-sua-smoke.mjs` | 12/12 |
+| `dieu-phoi-smoke.mjs` | 10/10 |
+| `tai-xe-trang-dau-smoke.mjs` (Q5) | 4/4 |
+| `tai-xe-doi-tac-smoke.mjs` | 4/4 (tài xế đối tác vẫn /tai-xe, không "Cuốc của tôi") |
+| `trang-chu-smoke.mjs` | xanh |
+
+Không chạy lại ở đỉnh này: `xe-smoke`, `danh-muc-giay-to-smoke`, `chinh-sach-dieu-phoi-smoke`, `dot-c-smoke`, `help-smoke`, `giay-to-cua-toi-smoke`, `sap-het-han-smoke` (xanh ở mục 9.8 / 9.9; vòng 4 không đụng phần của chúng ngoài `web/shell.ts` — tab tài xế chỉ bật khi `chiTaiXe`). `v1-bao-tri.mjs` đỏ sẵn (mục 9.7).
