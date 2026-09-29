@@ -15,7 +15,11 @@ import {
   addLeg, cancelOrder, changeBooker, changeLeg, confirmOrder, createOrder, effectivePax, findOrder, getDashboard, getDepartDates, getLatestAdjustment, getMeta, getOrderRef,
   getServicesForSubtotal, getStoredServices, insertMoneyAdjustment, listOrders, listPoolSources, updateDraftOrder, updateTrip, writePassengerChange,
 } from "./repository";
-import { legById, legDatGapByOrder, legShortNotice, legTripRows, passengerRowsByOrders, servicePaxByIds, type DatGapWrite } from "./chang-hanh-khach-repo";
+import {
+  legById, legDatGapByOrder, legLichChungNhapRows, legLichChungRows, legShortNotice, legTripRows, orderContactRows, passengerRowsByOrders, servicePaxByIds,
+  type DatGapWrite,
+} from "./chang-hanh-khach-repo";
+import { khoaNoi } from "../../shared/khoa-noi";
 import { CHIEU_LABEL, LY_DO_DAT_GAP } from "../../shared/chang-dua-don";
 import { nguongMocVn, type MocToiThieu } from "../../shared/moc-toi-thieu";
 import { canhBaoMocCua, chepDatGapNhap, docDatGap, duoiMocKhiSua } from "./dat-gap";
@@ -213,6 +217,105 @@ export async function hanhKhachChoChuyen(db: D1Database, legIds: readonly string
       nguoi: (current.get(l.order_id) ?? []).map((n) => ({ personKey: n.personKey, rowId: n.rowId, fullName: n.fullName, birthYear: n.birthYear })),
     };
   });
+}
+
+/** Một chặng cho LỊCH CHUNG điều phối (ADR-0049 D1) — ĐÚNG các khoá này; thêm khoá = sửa bài liệt kê khoá ở src/modules/orders/lich-chung-chang.test.ts. */
+export interface ChangLichChung {
+  legId: string;
+  orderId: string;
+  orderCode: string;
+  /** Tên dịch vụ — đã che dãy từ 8 chữ số. */
+  serviceName: string;
+  direction: "OUT" | "RETURN";
+  pickupDate: string;
+  pickupTime: string | null;
+  /** Tên điểm danh mục hoặc chữ tự do — ĐÃ CHE dãy số (hiển thị). */
+  noiDon: string;
+  noiDonDiemId: string | null;
+  noiTra: string | null;
+  noiTraDiemId: string | null;
+  /** Số khách HIỆU LỰC của dịch vụ (cả bốn loại tuổi — LC-02). */
+  soNguoi: number;
+  /** Khoá người (`person_key`) của hành khách HIỆN HÀNH của đơn — chỉ khoá, không tên (I12). */
+  nguoiCuaDon: string[];
+  /** Chặng mang dấu đặt gấp. */
+  datGap: boolean;
+  /**
+   * ADR-0050 VK1-B: KHOÁ SO SÁNH NƠI (`khoaNoi`, src/shared/khoa-noi.ts) tính trên chữ CHƯA che — CHỈ để so với `vc_trip_stop.place_key`; KHÔNG BAO GIỜ vào
+   * DTO, nhật ký, bản chụp của van-chuyen. `khoaNoiTra` null = chặng chưa có nơi trả.
+   */
+  khoaNoiDon: string;
+  khoaNoiTra: string | null;
+}
+/** Chặng của đơn NHÁP trên lịch chung (I11) — chỉ khoá, mã đơn, ngày giờ, cờ đặt gấp. */
+export interface ChangNhapLichChung {
+  legId: string;
+  orderId: string;
+  orderCode: string;
+  pickupDate: string;
+  pickupTime: string | null;
+  datGap: boolean;
+}
+
+/**
+ * API công khai — hàm đọc HẸP cho LỊCH CHUNG điều phối (ADR-0049 D1, lát 1.4; kế hoạch A11): chặng CÒN MỞ của đơn ĐÃ XÁC NHẬN có ngày đón trong
+ * [tuNgay, denNgay] + chặng của đơn NHÁP (chỉ để đếm / duyệt đặt gấp). Dựng MỚI TỪNG KHOÁ (khuôn `pool.ts`): không tiền, ghi chú, người lập, liên hệ khách,
+ * họ tên. Số người qua CÙNG `effectivePax` với `soKhachHieuLuc` (một nguồn). Hàm async vì băm khoá nơi (Web Crypto).
+ * KHÔNG tự kiểm quyền — nơi gọi phải đứng sau `can()` (bài quét nơi gọi ở src/orders-cong-bo.test.ts).
+ */
+export async function lichChungChang(db: D1Database, tuNgay: string, denNgay: string): Promise<{ chang: ChangLichChung[]; nhap: ChangNhapLichChung[] }> {
+  const [legs, nhap] = await Promise.all([legLichChungRows(db, tuNgay, denNgay), legLichChungNhapRows(db, tuNgay, denNgay)]);
+  const orderIds = [...new Set(legs.map((l) => l.order_id))];
+  const [paxRows, people] = legs.length === 0 ? [[], []] : await Promise.all([servicePaxByIds(db, [...new Set(legs.map((l) => l.service_id))]), passengerRowsByOrders(db, orderIds)]);
+  const pax = await effectivePax(db, paxRows);
+  const khoaNguoi = new Map<string, string[]>();
+  for (const orderId of orderIds) {
+    const rows = people.filter((p) => p.order_id === orderId).map((p) => ({
+      id: p.id, personKey: p.person_key, previousId: p.previous_id, voided: p.voided === 1, fullName: p.ten, birthYear: p.birth_year, paxCode: p.pax_code, updatedAt: p.updated_at,
+    }));
+    khoaNguoi.set(orderId, dongHienHanh(rows).map((p) => p.personKey));
+  }
+  const chang = await Promise.all(legs.map(async (l): Promise<ChangLichChung> => {
+    const p = pax.get(l.service_id);
+    return {
+      legId: l.id,
+      orderId: l.order_id,
+      orderCode: l.order_code,
+      serviceName: maskLongDigits(l.service_name),
+      direction: l.direction,
+      pickupDate: l.pickup_date,
+      pickupTime: l.pickup_time,
+      noiDon: maskLongDigits(l.noi_don),
+      noiDonDiemId: l.pickup_location_id,
+      noiTra: maskLongDigits(l.noi_tra),
+      noiTraDiemId: l.dropoff_location_id,
+      soNguoi: p ? p.adult + p.child + p.senior + p.infant : 0,
+      nguoiCuaDon: [...(khoaNguoi.get(l.order_id) ?? [])],
+      datGap: l.dat_gap === 1,
+      khoaNoiDon: (await khoaNoi({ locationId: l.pickup_location_id, placeText: l.pickup_place }))!,
+      khoaNoiTra: await khoaNoi({ locationId: l.dropoff_location_id, placeText: l.dropoff_place }),
+    };
+  }));
+  return {
+    chang,
+    nhap: nhap.map((n) => ({ legId: n.id, orderId: n.order_id, orderCode: n.order_code, pickupDate: n.pickup_date, pickupTime: n.pickup_time, datGap: n.dat_gap === 1 })),
+  };
+}
+
+/** Liên hệ khách cho tài xế (ADR-0049 D3) — ĐÚNG bốn khoá. */
+export interface LienHeTaiXe {
+  orderId: string;
+  orderCode: string;
+  tenLienHe: string;
+  sdtLienHe: string;
+}
+/**
+ * API công khai — tên + SĐT người liên hệ của các đơn ĐÃ XÁC NHẬN được hỏi (ADR-0049 D3: tài xế chỉ thấy TRONG ngày chạy — route van-chuyen kiểm
+ * `trongNgayChay` trước khi gọi). Rỗng → [] (không truy vấn).
+ * KHÔNG tự kiểm quyền — nơi gọi phải đứng sau `can()` (bài quét nơi gọi ở src/orders-cong-bo.test.ts).
+ */
+export async function lienHeChoTaiXe(db: D1Database, orderIds: readonly string[]): Promise<LienHeTaiXe[]> {
+  return (await orderContactRows(db, orderIds)).map((r) => ({ orderId: r.id, orderCode: r.order_code, tenLienHe: r.customer_name, sdtLienHe: r.customer_phone }));
 }
 
 /**

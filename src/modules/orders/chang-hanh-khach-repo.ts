@@ -447,3 +447,81 @@ export async function legTripRows(db: D1Database, legIds: readonly string[]): Pr
   if (legIds.length === 0) return [];
   return (await db.prepare(LEG_TRIP_VIEW).bind(JSON.stringify(legIds)).all<LegTripRow>()).results;
 }
+
+// ---- Hàm đọc hẹp cho LỊCH CHUNG điều phối (ADR-0049 D1, lát 1.4; kế hoạch A11; ADR-0050 VK1-B) ----------------------------------------------------------
+
+/**
+ * Nguồn của `lichChungChang` — chặng CÒN MỞ của đơn ĐÃ XÁC NHẬN có NGÀY ĐÓN trong [?1, ?2], CHỈ cột phần hẹp: mã đơn, tên dịch vụ, chiều, ngày giờ, nhãn nơi,
+ * id điểm danh mục, cờ đặt gấp. Đọc thêm chữ nơi CHƯA CHE (`pickup_place`, `dropoff_place`) CHỈ để tính khoá so sánh nơi (VK1-B) — hàm dựng bỏ chúng sau khi
+ * băm, không trả ra. Không tiền, ghi chú, người lập, liên hệ khách (lớp thứ nhất; lớp thứ hai là hàm dựng từng khoá ở index.ts).
+ */
+const LEG_LICH_CHUNG = defineSql(
+  "orders",
+  "leg_lich_chung",
+  `SELECT l.id, l.order_id, o.order_code, s.id AS service_id, s.name AS service_name, l.direction, l.pickup_date, l.pickup_time,
+     l.pickup_location_id, l.pickup_place, COALESCE(pl.name, l.pickup_place) AS noi_don,
+     l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS noi_tra,
+     l.short_notice_reason IS NOT NULL AS dat_gap
+   FROM ord_transfer_leg l
+   JOIN orders o ON o.id = l.order_id
+   JOIN order_service s ON s.id = l.order_service_id
+   LEFT JOIN v_loc_location_label pl ON pl.id = l.pickup_location_id
+   LEFT JOIN v_loc_location_label dl ON dl.id = l.dropoff_location_id
+   WHERE l.closed_at IS NULL AND o.status = 'confirmed' AND l.pickup_date BETWEEN ?1 AND ?2`,
+);
+export interface LegLichChungRow {
+  id: string;
+  order_id: string;
+  order_code: string;
+  service_id: string;
+  service_name: string;
+  direction: "OUT" | "RETURN";
+  pickup_date: string;
+  pickup_time: string | null;
+  pickup_location_id: string | null;
+  pickup_place: string | null;
+  noi_don: string;
+  dropoff_location_id: string | null;
+  dropoff_place: string | null;
+  noi_tra: string | null;
+  dat_gap: number;
+}
+export async function legLichChungRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungRow[]> {
+  return (await db.prepare(LEG_LICH_CHUNG).bind(tuNgay, denNgay).all<LegLichChungRow>()).results;
+}
+/** Chặng MỞ của đơn NHÁP có ngày đón trong [?1, ?2] (I11): CHỈ khoá, mã đơn, ngày giờ, cờ đặt gấp — không nơi, không số người. */
+const LEG_LICH_CHUNG_NHAP = defineSql(
+  "orders",
+  "leg_lich_chung_nhap",
+  `SELECT l.id, l.order_id, o.order_code, l.pickup_date, l.pickup_time, l.short_notice_reason IS NOT NULL AS dat_gap
+   FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id
+   WHERE l.closed_at IS NULL AND o.status = 'draft' AND l.pickup_date BETWEEN ?1 AND ?2`,
+);
+export interface LegLichChungNhapRow {
+  id: string;
+  order_id: string;
+  order_code: string;
+  pickup_date: string;
+  pickup_time: string | null;
+  dat_gap: number;
+}
+export async function legLichChungNhapRows(db: D1Database, tuNgay: string, denNgay: string): Promise<LegLichChungNhapRow[]> {
+  return (await db.prepare(LEG_LICH_CHUNG_NHAP).bind(tuNgay, denNgay).all<LegLichChungNhapRow>()).results;
+}
+
+/** Nguồn của `lienHeChoTaiXe` (ADR-0049 D3 — tài xế, TRONG ngày chạy): tên + SĐT người liên hệ chụp trên đơn ĐÃ XÁC NHẬN, theo danh sách id đơn (?1). */
+const ORDER_CONTACT_FOR_DRIVER = defineSql(
+  "orders",
+  "order_contact_for_driver",
+  `SELECT id, order_code, customer_name, customer_phone FROM orders WHERE id IN (SELECT value FROM json_each(?1)) AND status = 'confirmed'`,
+);
+export interface OrderContactRow {
+  id: string;
+  order_code: string;
+  customer_name: string;
+  customer_phone: string;
+}
+export async function orderContactRows(db: D1Database, orderIds: readonly string[]): Promise<OrderContactRow[]> {
+  if (orderIds.length === 0) return [];
+  return (await db.prepare(ORDER_CONTACT_FOR_DRIVER).bind(JSON.stringify(orderIds)).all<OrderContactRow>()).results;
+}

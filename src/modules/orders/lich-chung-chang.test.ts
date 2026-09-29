@@ -1,0 +1,130 @@
+// Hai hàm HẸP mới của orders cho Vận chuyển (ADR-0049 D1, lát 1.4; kế hoạch Task A11; TC-20, TC-21; ADR-0050 VK1-B — khoá so sánh nơi):
+//   `lichChungChang(db, tuNgay, denNgay)` → { chang, nhap } — chặng MỞ của đơn ĐÃ XÁC NHẬN theo NGÀY ĐÓN (không tiền, ghi chú, người lập, SĐT, họ tên, customer_*)
+//     + hai khoá so sánh nơi `khoaNoiDon` / `khoaNoiTra` (tính trên chữ CHƯA che — chỉ để so); chặng NHÁP chỉ khoá, mã đơn, ngày giờ, cờ đặt gấp (I11).
+//   `lienHeChoTaiXe(db, orderIds)` → ĐÚNG bốn khoá { orderId, orderCode, tenLienHe, sdtLienHe } của các đơn được hỏi (đơn đã xác nhận).
+// Hai hàm KHÔNG tự kiểm quyền (bài quét nơi gọi ở src/orders-cong-bo.test.ts). Chạy MÃ THẬT (gói esbuild) trên SQLite thật (khung thử — mốc thật).
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import * as esbuild from "esbuild";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
+import { world, seedStaff } from "../../../tests/audit/harness.mjs";
+import { registeredSql } from "../../shared/sql-registry.ts";
+import { khoaNoi } from "../../shared/khoa-noi.ts";
+import "./chang-hanh-khach-repo.ts";
+
+type Mod = typeof import("./index.ts");
+const built = await esbuild.build({ entryPoints: [new URL("./index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
+const { lichChungChang, lienHeChoTaiXe } = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as Mod;
+
+const SALES = "11111111-1111-4111-8111-111111111111";
+const ADM = "33333333-3333-4333-8333-333333333333";
+const FIELD = "44444444-4444-4444-8444-444444444444";
+const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
+const inDays = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+const D = inDays(3);
+const NOI_A = "Căn hộ 0905123456 Mường Thanh";
+const NOI_B = "Căn hộ 0905999999 Mường Thanh"; // chỉ khác dãy 8+ chữ số → chữ đã che GIỐNG NOI_A
+
+function setup() {
+  const w = world();
+  seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
+  seedStaff(w.sqlite, { id: ADM, phone: "0900000003", name: "Quản trị", perms: ["ADMIN"] });
+  seedStaff(w.sqlite, { id: FIELD, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
+  w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");
+  return w;
+}
+const OUT = (place: string) => ({ direction: "OUT", pickupDate: "", pickupTime: "06:30", pickupLocationId: null, pickupPlace: place, dropoffLocationId: LOC, dropoffPlace: "" });
+const RET = { direction: "RETURN", pickupDate: inDays(4), pickupTime: "16:00", pickupLocationId: LOC, pickupPlace: "", dropoffLocationId: null, dropoffPlace: "" };
+async function order(w: any, confirm: boolean, legs: unknown[], extra: Record<string, unknown> = {}) {
+  const r = await w.call("POST", "/api/orders", {
+    as: SALES,
+    body: {
+      customerName: "Khách Dò Tìm Chủ Đơn", customerPhone: "0912345678", customerEmail: "do.tim@example.com", customerNote: "Ghi chú kín", paymentNote: "Tiền mặt",
+      services: [{ kind: "catalog", catalogCode: "ZA1", pax: { adult: 2, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 500000 }, departDate: D, legs }],
+      passengers: [{ fullName: "Khách Dò Tìm Một", birthYear: 1911, paxCode: "adult" }], ...extra,
+    },
+  });
+  assert.equal(r.status, 201, r.text);
+  if (confirm) assert.equal((await w.call("POST", `/api/orders/${r.json.order.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  return (await w.call("GET", `/api/orders/${r.json.order.id}`, { as: SALES })).json.order;
+}
+
+test("TC-20 lichChungChang: ĐÚNG các khoá của chặng (có khoaNoiDon / khoaNoiTra) và của chặng nháp; chỉ chặng MỞ của đơn ĐÃ XÁC NHẬN theo ngày đón; không tiền / ghi chú / người lập / SĐT / họ tên", async () => {
+  const w = setup();
+  const o = await order(w, true, [OUT(NOI_A), RET]);
+  const nhap = await order(w, false, [OUT("Khách sạn nháp")]);
+  const huy = await order(w, true, [OUT("Khách sạn huỷ")]);
+  assert.equal((await w.call("POST", `/api/orders/${huy.id}/status`, { as: SALES, body: { status: "cancelled" } })).status, 200);
+  const dong = o.services[0].legs.find((l: any) => l.direction === "RETURN");
+  const kq = await lichChungChang(w.env.DB, D, inDays(4));
+  assert.deepEqual(kq.chang.map((c: any) => c.legId).sort(), o.services[0].legs.map((l: any) => l.id).sort(), "chỉ chặng của đơn đã xác nhận, chưa huỷ");
+  for (const c of kq.chang) {
+    assert.deepEqual(Object.keys(c).sort(), [
+      "datGap", "direction", "khoaNoiDon", "khoaNoiTra", "legId", "nguoiCuaDon", "noiDon", "noiDonDiemId", "noiTra", "noiTraDiemId", "orderCode", "orderId", "pickupDate",
+      "pickupTime", "serviceName", "soNguoi",
+    ]);
+  }
+  assert.deepEqual(kq.nhap, [{ legId: nhap.services[0].legs[0].id, orderId: nhap.id, orderCode: nhap.orderCode, pickupDate: D, pickupTime: "06:30", datGap: false }]);
+  for (const n of kq.nhap) assert.deepEqual(Object.keys(n).sort(), ["datGap", "legId", "orderCode", "orderId", "pickupDate", "pickupTime"]);
+  const out = kq.chang.find((c: any) => c.direction === "OUT")!;
+  assert.equal(out.soNguoi, 2);
+  assert.equal(out.nguoiCuaDon.length, 1, "khoá người (không tên)");
+  assert.equal(out.noiDon, "Căn hộ •••••••••• Mường Thanh", "chữ trả ra đã che");
+  assert.equal(out.khoaNoiDon, await khoaNoi({ locationId: null, placeText: NOI_A }), "khoá tính trên chữ CHƯA che");
+  assert.equal(out.khoaNoiTra, `L:${LOC}`);
+  assert.equal(out.noiTraDiemId, LOC);
+  const ret = kq.chang.find((c: any) => c.direction === "RETURN")!;
+  assert.equal(ret.khoaNoiDon, `L:${LOC}`);
+  assert.equal(ret.khoaNoiTra, null, "chưa có nơi trả → null");
+  const text = JSON.stringify(kq);
+  for (const leak of ["0912345678", "0905123456", "do.tim@example.com", "Ghi chú kín", "Tiền mặt", "500000", "Chủ Đơn", "Khách Dò Tìm Một", "1911", SALES]) assert.ok(!text.includes(leak), `lộ "${leak}"`);
+  // lọc theo NGÀY ĐÓN: chiều về (ngày +4) ra khỏi khoảng [D, D]
+  assert.deepEqual((await lichChungChang(w.env.DB, D, D)).chang.map((c: any) => c.direction), ["OUT"]);
+  // chặng đã đóng không có
+  const doc = (await w.call("GET", `/api/orders/${o.id}`, { as: SALES })).json.order;
+  const r = doc.services[0].legs.find((l: any) => l.id === dong.id);
+  assert.equal((await w.call("POST", `/api/orders/${o.id}/legs/${r.id}/close`, { as: SALES, body: { expectedUpdatedAt: r.updatedAt, reasonCode: "NOT_NEEDED" } })).status, 200);
+  assert.ok(!(await lichChungChang(w.env.DB, D, inDays(4))).chang.some((c: any) => c.legId === dong.id));
+});
+
+test("TC-20 [0050] hai nơi CHỈ khác ở dãy từ 8 chữ số: chữ đã che GIỐNG nhau nhưng hai khoá so sánh KHÁC nhau; cờ đặt gấp của chặng", async () => {
+  const w = setup();
+  const a = await order(w, true, [OUT(NOI_A)]);
+  const b = await order(w, false, [OUT(NOI_B)]);
+  assert.equal((await w.call("POST", `/api/orders/${b.id}/legs/${b.services[0].legs[0].id}/short-notice`, { as: ADM, body: { lyDo: "KHAC" } })).status, 200);
+  assert.equal((await w.call("POST", `/api/orders/${b.id}/status`, { as: SALES, body: { status: "confirmed" } })).status, 200);
+  const kq = await lichChungChang(w.env.DB, D, D);
+  const ca = kq.chang.find((c: any) => c.orderId === a.id)!;
+  const cb = kq.chang.find((c: any) => c.orderId === b.id)!;
+  assert.equal(ca.noiDon, cb.noiDon, "chữ đã che giống nhau");
+  assert.notEqual(ca.khoaNoiDon, cb.khoaNoiDon, "khoá so sánh khác nhau");
+  assert.match(ca.khoaNoiDon, /^T:[0-9a-f]{64}$/);
+  assert.deepEqual([ca.datGap, cb.datGap], [false, true]);
+});
+
+test("TC-21 lienHeChoTaiXe: ĐÚNG bốn khoá; chỉ các đơn được hỏi, đơn đã xác nhận; rỗng → [] (không truy vấn)", async () => {
+  const w = setup();
+  const a = await order(w, true, [OUT("Khách sạn A")]);
+  const b = await order(w, true, [OUT("Khách sạn B")], { customerName: "Người Liên Hệ B", customerPhone: "0987654321" });
+  const nhap = await order(w, false, [OUT("Khách sạn C")]);
+  const kq = await lienHeChoTaiXe(w.env.DB, [b.id, nhap.id]);
+  assert.deepEqual(kq, [{ orderId: b.id, orderCode: b.orderCode, tenLienHe: "Người Liên Hệ B", sdtLienHe: "0987654321" }]);
+  for (const k of kq) assert.deepEqual(Object.keys(k).sort(), ["orderCode", "orderId", "sdtLienHe", "tenLienHe"]);
+  assert.ok(!JSON.stringify(kq).includes(a.id), "chỉ các đơn được hỏi");
+  assert.deepEqual(await lienHeChoTaiXe(w.env.DB, []), []);
+});
+
+test("TC-20 lớp thứ nhất: câu SQL của lichChungChang (defineSql) không chọn tiền, ghi chú, người lập, liên hệ khách, họ tên hành khách", () => {
+  const cau = registeredSql().filter((x) => x.module === "orders" && /^leg_lich_chung/.test(x.name));
+  assert.ok(cau.length >= 2, `phải có câu leg_lich_chung*, thấy ${JSON.stringify(cau.map((x) => x.name))}`);
+  for (const c of cau) {
+    for (const cot of ["customer_", "subtotal", "total", "deposit", "note", "staff_id", "created_by", "full_name", "birth_year", "payment"]) {
+      assert.ok(!c.sql.includes(cot), `${c.name}: chọn cột "${cot}"`);
+    }
+  }
+  const lh = registeredSql().filter((x) => x.module === "orders" && x.name === "order_contact_for_driver");
+  assert.equal(lh.length, 1);
+  for (const cot of ["subtotal", "total", "deposit", "customer_note", "customer_email", "staff_id", "payment"]) assert.ok(!lh[0]!.sql.includes(cot), `liên hệ: "${cot}"`);
+});
+
+void FIELD;

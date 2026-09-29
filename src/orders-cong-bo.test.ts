@@ -61,7 +61,8 @@ test("ADR-0047 A3: ngoài src/modules/orders/, không tệp mã nào (src, web; 
 //       Hôm nay 0 nơi gọi. GIỚI HẠN: canh QUÊN, không canh CỐ Ý — không biết `can(` có đúng ô, có chặn thật (return) hay không; gọi qua bí danh
 //       (`const f = soKhachHieuLuc; f(…)`) không thấy.
 // ---------------------------------------------------------------------------------------------------------------------------------------------------
-const CONG_BO = /\b(soKhachHieuLuc|hanhKhachChoChuyen)\s*\(/g;
+// ADR-0049 A11 (siết — kế hoạch mục 1.6): thêm hai hàm hẹp mới `lichChungChang`, `lienHeChoTaiXe` (liên hệ khách có SĐT) — cùng luật "chỉ trong thân route, sau can()".
+const CONG_BO = /\b(soKhachHieuLuc|hanhKhachChoChuyen|lichChungChang|lienHeChoTaiXe)\s*\(/g;
 
 /** Khoảng [mở, đóng] của thân `{…}` các handler `route(…, async (…) => { … })` trên bản ĐÃ CHE (chuỗi + chú thích). */
 function routeBodies(masked: string): { start: number; end: number }[] {
@@ -109,7 +110,9 @@ test("bộ bắt nơi gọi hàm công bố: có can( trước trong thân route
   assert.equal(congBoCallHits("mau/index.ts", canAfter, true).length, 1, "can( đứng SAU lời gọi không tính");
   assert.equal(congBoCallHits("mau/index.ts", "const x = await hanhKhachChoChuyen(db, ids);", true).length, 1, "ngoài thân route");
   assert.equal(congBoCallHits("mau/service.ts", "if (can(s, \"o\")) await soKhachHieuLuc(db, ids);", false).length, 1, "ngoài index.ts");
-  assert.deepEqual(congBoCallHits("mau/index.ts", '// hanhKhachChoChuyen(db) — ví dụ\nconst s = "soKhachHieuLuc(";', true), [], "chú thích + chuỗi không tính");
+  assert.deepEqual(congBoCallHits("mau/index.ts", '// hanhKhachChoChuyen(db) — ví dụ\nconst s = "soKhachHieuLuc(";', true), [], "chú thích + chuỗi không tính");  // ADR-0049 A11: hai tên mới cũng bị bắt
+  assert.equal(congBoCallHits("mau/dieu-phoi.ts", "await lichChungChang(db, a, b);", false).length, 1, "lichChungChang ngoài index.ts");
+  assert.equal(congBoCallHits("mau/index.ts", 'route("GET", "/x", "office", async ({ env }) => {\n  return json(await lienHeChoTaiXe(env.DB, ids));\n});', true).length, 1, "lienHeChoTaiXe không có can(");
 });
 
 test("ADR-0047 A3: ở module KHÁC orders, mọi lời gọi soKhachHieuLuc / hanhKhachChoChuyen nằm trong thân route của index.ts, sau can() (hôm nay 0 nơi gọi)", () => {
