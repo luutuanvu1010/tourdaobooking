@@ -64,7 +64,7 @@ try {
       const s = await sec(p, "desk");
       assert.equal(s.heading, "Giấy tờ");
       const order = await p.ev(`[...document.querySelectorAll('#detail h3')].map((h) => h.innerText.trim())`);
-      assert.deepEqual(order.slice(-2), ["Người liên hệ", "Giấy tờ"], JSON.stringify(order));
+      assert.deepEqual(order.slice(-2), ["Người liên hệ, tài xế", "Giấy tờ"], JSON.stringify(order)); // G3 (ADR-0048): tiêu đề mục quan hệ đổi
       assert.deepEqual(s.rows.map((r) => [r.title, r.chip]), [
         ["Khám sức khoẻ", "Còn 2 ngày"],
         ["Giấy phép lái xe hạng D2", "Còn 38 ngày"],
