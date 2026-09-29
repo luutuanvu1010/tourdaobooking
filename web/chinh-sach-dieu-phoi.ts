@@ -113,6 +113,7 @@ function dongDom(d: DongLichSu): HTMLElement {
     h("span", { class: "dp-hist-name" }, h("strong", null, d.ten), h("span", { class: `chip chip-${d.tone}` }, d.trangThai)),
     h("span", null, d.hieuLuc),
     h("span", { class: "dp-hist-sub" }, d.tomTat),
+    d.nguoiLuu ? h("span", { class: "dp-hist-sub", "data-nguoi-luu": "1" }, d.nguoiLuu) : null,
   );
 }
 /** Các bản đã lưu, mới trước (máy chủ trả sẵn thứ tự). */

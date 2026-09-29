@@ -5,6 +5,7 @@
 // - Lý do: nhóm và nhãn nhóm lấy từ `NHAN_NHOM_LY_DO` (một nguồn với nhật ký); mã lý do mới SINH từ nhãn (màn hình không lộ mã — bản vẽ 8d chỉ có ô "Lý do mới").
 import type { DepartureRuleCreateRequest, DepartureRuleDto, DispatchPolicyCreateRequest, DispatchPolicyDto, LicenseCapacityCreateRequest, TripReasonDto } from "./contracts.ts";
 import { NHAN_NHOM_LY_DO, NHOM_LY_DO, type NhomLyDo } from "./dieu-phoi-kieu.ts";
+import { maskLongDigits } from "./text-guards.ts";
 import { msToVnLocal } from "./vn-date.ts";
 
 // ---- thời lượng ----------------------------------------------------------------------------------------------------------------------------------------------
@@ -100,6 +101,13 @@ export interface DongLichSu {
   tone: "unit" | "muted" | "warn";
   hieuLuc: string;
   tomTat: string;
+  /** R-P23: "<tên> lưu dd/mm HH:MM" (bản vẽ 8a "Lưu Tuấn Vũ lưu 24/09 16:20"); null = DTO không có người lưu (bản gieo) → màn không hiện dòng. */
+  nguoiLuu: string | null;
+}
+/** Mốc ISO → "dd/mm HH:MM" giờ VN (lúc lưu một bản). */
+function luuLuc(iso: string): string {
+  const { date, time } = msToVnLocal(Date.parse(iso));
+  return `${date.slice(8, 10)}/${date.slice(5, 7)} ${time}`;
 }
 /** Mốc ISO → ngày dân sự VN "dd/mm/yyyy". */
 function ngayVnTuIso(iso: string): { dm: string; y: string } {
@@ -108,7 +116,7 @@ function ngayVnTuIso(iso: string): { dm: string; y: string } {
 }
 /**
  * Lịch sử bản chính sách (máy chủ trả mới trước). Khoảng hiệu lực: bản cũ kết thúc đúng lúc bản kế tiếp bắt đầu (máy chủ đặt hiệu lực = lúc lưu) → ghi
- * "Hiệu lực <ngày bắt đầu> – <ngày bản sau bắt đầu>" theo ngày VN. DTO không có người lưu → không có dòng "… lưu lúc …" của bản vẽ (hỏi điều phối, Q-B).
+ * "Hiệu lực <ngày bắt đầu> – <ngày bản sau bắt đầu>" theo ngày VN. "Ai lưu" (R-P23): tên + lúc lưu (= lúc hiệu lực); tên đi qua `maskLongDigits`.
  */
 export function dongLichSuChinhSach(history: readonly DispatchPolicyDto[]): DongLichSu[] {
   const hienHanh = history.find((p) => p.current) ?? null;
@@ -129,6 +137,7 @@ export function dongLichSuChinhSach(history: readonly DispatchPolicyDto[]): Dong
       tone: p.current ? "unit" : chuaToi ? "warn" : "muted",
       hieuLuc,
       tomTat: tomTatChinhSach(p),
+      nguoiLuu: p.nguoiLuu ? `${maskLongDigits(p.nguoiLuu)} lưu ${luuLuc(p.validFrom)}` : null,
     };
   });
 }

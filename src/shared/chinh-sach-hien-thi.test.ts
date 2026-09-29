@@ -11,7 +11,7 @@ import type { DepartureRuleDto, DispatchPolicyDto, TripReasonDto } from "./contr
 
 const chinhSach = (o: Partial<DispatchPolicyDto> = {}): DispatchPolicyDto => ({
   id: "p1", minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
-  validFrom: "2026-09-01T00:00:00.000Z", current: true, ...o,
+  validFrom: "2026-09-01T00:00:00.000Z", current: true, nguoiLuu: null, ...o,
 });
 const form = (o: Partial<Parameters<typeof docFormChinhSach>[0]> = {}) => ({ mocGio: "6", satMocGio: "2", nghiPhut: "30", khaiLuiPhut: "180", duDanhSach: true, ...o });
 
@@ -99,7 +99,13 @@ test("dongLichSuChinhSach: đánh số từ bản cũ nhất; bản đang dùng 
     ["a", "Bản 1", "Hết hiệu lực", "muted", "Hiệu lực 01/09 – 25/09/2026"],
   ]);
   assert.equal(dong[2]!.tomTat, "Mốc 4 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · phải đủ danh sách khách");
-  assert.ok(dong.every((d) => !("nguoiLuu" in d)));
+  // R-P23 (điều phối trả lời Q-B-1): "ai lưu" — "<tên> lưu dd/mm HH:MM" (giờ VN của lúc lưu = lúc hiệu lực); null (bản gieo) → không có dòng.
+  assert.deepEqual(dong.map((d) => d.nguoiLuu), [null, null, null]);
+  const coTen = dongLichSuChinhSach([chinhSach({ validFrom: "2026-09-24T09:20:00.000Z", nguoiLuu: "Lưu Tuấn Vũ" }), chinhSach({ id: "g", validFrom: "2026-09-01T00:00:00.000Z", current: false })]);
+  assert.equal(coTen[0]!.nguoiLuu, "Lưu Tuấn Vũ lưu 24/09 16:20");
+  assert.equal(coTen[1]!.nguoiLuu, null);
+  // Tên lỡ lẫn dãy số (DTO sai) → che (lưới an toàn R-P11).
+  assert.equal(dongLichSuChinhSach([chinhSach({ validFrom: "2026-09-24T09:20:00.000Z", nguoiLuu: "Hoa 0913552108" })])[0]!.nguoiLuu, "Hoa •••••••••• lưu 24/09 16:20");
   assert.deepEqual(dongLichSuChinhSach([]), []);
   // Khác năm: ghi đủ năm ở cả hai đầu.
   const namKhac = dongLichSuChinhSach([chinhSach({ id: "y", validFrom: "2027-01-02T01:00:00.000Z" }), chinhSach({ id: "x", validFrom: "2026-12-20T01:00:00.000Z", current: false })]);

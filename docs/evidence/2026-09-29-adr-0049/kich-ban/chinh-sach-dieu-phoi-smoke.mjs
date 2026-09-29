@@ -89,7 +89,9 @@ try {
     assert.deepEqual(JSON.parse(post.body), { minLeadMinutes: 300, warnLeadMinutes: 120, restMinutes: 30, requireManifest: false, proxyBackdateMaxMinutes: 240 });
     const rows = await p.ev(lichSu);
     assert.equal(rows.length, 2);
-    assert.match(rows[0], /^Bản 2 Đang dùng Hiệu lực từ \d\d\/\d\d\/\d{4} Mốc 5 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 240 phút$/);
+    // R-P23: bản vừa lưu có "ai lưu" (tên tài khoản Toàn quyền + lúc lưu); bản gieo (không người lưu) không có dòng đó.
+    assert.match(rows[0], /^Bản 2 Đang dùng Hiệu lực từ \d\d\/\d\d\/\d{4} Mốc 5 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 240 phút Chủ Điều Phối lưu \d\d\/\d\d \d\d:\d\d$/);
+    assert.equal(await p.ev(`document.querySelectorAll('#cs-lich-su [data-nguoi-luu]').length`), 1, "chỉ bản có người lưu mới có dòng ai lưu");
     assert.match(rows[1], /^Bản 1 Hết hiệu lực Hiệu lực 01\/09 – \d\d\/\d\d\/\d{4} Mốc 6 giờ · sát mốc 2 giờ · nghỉ 30 phút · khai lùi 180 phút · phải đủ danh sách khách$/);
     const g = await call(CHU, "GET", "/api/van-chuyen/chinh-sach-dieu-phoi");
     assert.equal(g.json.current.minLeadMinutes, 300);
