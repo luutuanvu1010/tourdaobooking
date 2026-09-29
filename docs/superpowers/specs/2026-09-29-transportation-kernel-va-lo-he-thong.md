@@ -33,7 +33,7 @@
 
 ## Tóm tắt cho chủ (lời thường)
 
-1. **Phần lớn khung của tài liệu Kernel đã có trong thiết kế đã duyệt.** Soi mã thật, tìm ra **7 chỗ hở**: 2 mức cao, 3 mức vừa, 2 mức thấp.
+1. **Phần lớn khung của tài liệu Kernel đã có trong thiết kế đã duyệt.** Soi mã thật, tìm ra **8 chỗ hở**: 2 mức cao, 3 mức vừa, 3 mức thấp.
 2. **Hai chỗ cao, đều ở bản chuyến xe đang làm** (chưa lên mạng thật):
    - khách đổi khách sạn **sau khi đã xếp xe** thì xe vẫn đi đón ở khách sạn cũ, máy không giữ, không báo;
    - lúc xuất bến máy **chưa kiểm giấy tờ xe nào** (kiểm định, bảo hiểm), vì bảng điều kiện đang để trống — chỉ kiểm bằng lái.
@@ -80,6 +80,7 @@ Mỗi nguyên tắc: tìm chỗ **mã / migration / kế hoạch** thật có th
 | **LH-05** | VỪA, **chưa chắc** | (i) | Lớp CSDL của LC-03 (tài xế không chồng giờ) chỉ ghi trigger "khi chèn dòng lái" → **đổi giờ chuyến** có thể làm chồng giờ tài xế mà CSDL không bắt (máy chủ có bắt) | kế hoạch ADR-0049 (`0042` chưa viết) | [KH]:310; `src/shared/dieu-phoi-kiem.ts:95-105@fd78247` | (i) K-03 |
 | **LH-06** | THẤP | (i); đổi hẳn thì (ii) | "Kết thúc" vai / quan hệ nhận **ngày bất kỳ** qua API, nhưng "đang mở" chỉ = ngày kết thúc trống → ngày tương lai = đóng ngay | **production 1.37** | `src/modules/parties/rules.ts:92-96`; `src/modules/parties/index.ts:752-784`, `:826-849`; `migrations/0038_nha_xe_doi_tac.sql:8-21`; `web/parties.ts:279`, `:298` (giao diện luôn gửi `{}` = hôm nay) | (i) K-05 (tuỳ chọn); không đề xuất ADR lúc này |
 | **LH-07** | THẤP | để sau | Đổi xe / đổi nhà xe trước xuất bến **ghi đè cột** trên chuyến; lịch sử chỉ còn trong chữ nhật ký | kế hoạch ADR-0049 | [0049]:82; [KH]:292 | ghi cho lượt "chi phí nhà xe" ([L3$] của [ĐC]); không làm bây giờ |
+| **LH-08** | THẤP, **chưa chắc** | (i) | Trigger danh tính suất trong kế hoạch **không liệt kê điểm lên / điểm xuống** → sửa đè điểm của suất lọt lớp CSDL, trái LC-04 "không sửa nội dung" | kế hoạch ADR-0049 (`0042` chưa viết) | [KH]:311 (`vc_trip_allocation_identity` chỉ cấm đổi `trip_id`, `kind`, `leg_id`, `crew_party_id`); [KH]:295 (`alight_stop_id` được NULL khi chặng chưa có nơi trả); [0049]:126 | (i) K-03 (mở rộng) |
 
 Ngoài bảng — **đầu vào đã có lời chủ, không phải lỗ mới:** chủ chốt 29/9 "mốc tối thiểu phải > 0". Hệ quả lan ra:
 - `0041:14@fd78247` còn `CHECK (min_lead_minutes BETWEEN 0 AND 2880)`;
@@ -182,6 +183,15 @@ Việc này là của điều phối, không thiết kế ở đây.
 - Chỉ đáng lo khi làm "chi phí nhà xe": nhà xe A bị đổi sang B sát giờ có thể đòi phí huỷ, cần biết "A được giao từ lúc nào tới lúc nào" bằng cột có kiểu thay vì chữ.
 - Ghi vào đầu vào của lượt chi phí nhà xe; không đề xuất bây giờ.
 
+#### LH-08 (THẤP, chưa chắc) — điểm lên / xuống của suất không nằm trong trigger danh tính
+
+- ADR-0049 LC-04 ([0049]:126): "không sửa nội dung; chỉ đóng dòng, gắn tên, đổi trạng thái đi tiến".
+- Kế hoạch ghi lớp CSDL của LC-04 cho suất: `vc_trip_allocation_identity` (cấm đổi `trip_id`, `kind`, `leg_id`, `crew_party_id`), đóng một lần, gắn tên một lần ([KH]:311).
+- `board_stop_id`, `alight_stop_id` **không** có trong danh sách → một câu `UPDATE` sửa đè điểm lên của suất sẽ lọt lớp CSDL. Lớp máy chủ hôm nay không có lệnh nào làm vậy, nên đây là lỗ ở **lớp thứ hai**.
+- Kế hoạch cho `alight_stop_id` NULL khi chặng chưa có nơi trả ([KH]:295). Nếu sau đó định **đặt tại chỗ**, cần luật "đặt một lần từ NULL" như `passenger_key`; nếu định **đóng + mở** suất (khuôn VK1-B) thì cấm hẳn.
+- **Chưa chắc:** `0042` chưa viết.
+- **Bịt (i):** K-03 (mở rộng).
+
 ### A.3 Đã soát, không thấy lỗ (để người kiểm biết phạm vi đã phủ)
 
 | Nguyên tắc [REF] | Kết luận | Chỗ xem |
@@ -229,11 +239,13 @@ Mỗi việc là **siết**: chỉ báo hoặc chặn thêm, không đổi hợp
 - **Kiểm (P16):** ca luật thuần "sửa nơi đón của chặng đã xếp → có cảnh báo"; bỏ vế so nơi → đỏ; hoàn nguyên. Câu kiểm định kỳ có ca đỏ trên dữ liệu gieo.
 - **Sổ hàng rào:** hai dòng (cảnh báo, kiểm định kỳ).
 
-**K-03 — ca "đổi giờ chuyến chồng giờ tài xế" (LH-05)**
+**K-03 — hai ca lớp CSDL cho `0042` (LH-05, LH-08)**
 - **Ai làm:** người thi công ADR-0049, Task A12 (`0042`).
-- **Việc:** trigger `vc_trip_overlap_upd` (hoặc trigger riêng) xét cả **tài xế đang mở** của chuyến khi `planned_start_ms` / `planned_end_ms` đổi. TC-8 thêm ca: "đổi giờ chuyến T2 làm chồng giờ với T1 cùng tài xế → `RAISE`".
-- **Kiểm (P16):** bỏ vế tài xế trong trigger → ca mới đỏ; hoàn nguyên.
-- **Sổ hàng rào:** gộp vào dòng LC-03 sẵn có của kế hoạch.
+- **Việc:**
+  - (a) trigger `vc_trip_overlap_upd` (hoặc trigger riêng) xét cả **tài xế đang mở** của chuyến khi `planned_start_ms` / `planned_end_ms` đổi. TC-8 thêm ca "đổi giờ chuyến T2 làm chồng giờ với T1 cùng tài xế → `RAISE`";
+  - (b) `vc_trip_allocation_identity` cấm đổi `board_stop_id`; `alight_stop_id` chỉ được đặt **một lần từ NULL** (hoặc cấm hẳn nếu kế hoạch chọn đóng + mở). TC-10 thêm ca "sửa điểm lên của suất đang mở → `RAISE`".
+- **Kiểm (P16):** mỗi ca: bỏ vế tương ứng trong trigger → ca mới đỏ; hoàn nguyên.
+- **Sổ hàng rào:** gộp vào dòng LC-03 và LC-04 sẵn có của kế hoạch.
 
 **K-04 — không phải việc thiết kế:** khung thử với mốc > 0 (lời chủ lần 9). Điều phối đổi G2 / GA-5 / Review Focus 13 ([KH]:255, :758), ví dụ khung thử đặt mốc 1 phút thay cho 0.
 
@@ -292,7 +304,7 @@ Chỉ ghi khái niệm **chưa có** và **hợp quy mô** (~30 nhân viên, và
 
 ## Chưa chắc / chưa kiểm
 
-- **LH-05:** phụ thuộc chữ `0042` chưa viết.
+- **LH-05, LH-08:** phụ thuộc chữ `0042` chưa viết.
 - **LH-04:** production hiện có dòng song song hay không — chưa đếm (K-01 sẽ đếm). Giao diện có tắt nút khi đang gửi (chống bấm đúp) — chưa kiểm.
 - **LH-06:** có phải chủ ý cho phép ngày kết thúc tuỳ ý qua API — chưa rõ.
 - **Pháp lý** — toàn bộ theo [TRA], **chưa có người chuyên môn kiểm**:
