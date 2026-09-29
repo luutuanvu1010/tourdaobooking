@@ -17,7 +17,7 @@ import type { PartyAccountVerdict } from "../../shared/router";
 import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
-  companyIdentityOf, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
+  companyIdentityOf, driverDocsForDispatch, driversForDispatch, expiringDocumentsOfRoles, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
   insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listCarriers, listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
@@ -102,6 +102,40 @@ export interface CarrierSummary { partyId: string; displayName: string; kind: "P
  */
 export async function nhaXeDangHopTac(db: D1Database): Promise<CarrierSummary[]> {
   return (await listCarriers(db)).map((r) => ({ partyId: r.party_id, displayName: r.display_name, kind: r.party_kind, driverCount: r.driver_count }));
+}
+
+/**
+ * Một tài xế cho điều phối xe (ADR-0049 D2; kế hoạch mục 1.1). `loai` = "CONG_TY" khi hồ sơ đang mở vai tài khoản "Tài xế công ty", ngược lại "NHA_XE";
+ * `carrierPartyIds` = khoá các nhà xe người đó đang "thuộc" (luật ở v_pty_carrier_driver; tài xế công ty cũng có thể thuộc nhà xe — T-2). `giayTo` = mọi
+ * giấy tờ HIỆN HÀNH: khoá dòng, mã loại, hạng, ngày hết hạn. KHÔNG số giấy tờ, khoá số, nơi cấp, ngày cấp.
+ */
+export interface TaiXeDieuPhoi {
+  partyId: string;
+  displayName: string;
+  loai: "CONG_TY" | "NHA_XE";
+  carrierPartyIds: string[];
+  giayTo: { rowId: string; typeCode: string; classCode: string | null; expiryDate: string | null }[];
+}
+/**
+ * HÀM CÔNG BỐ về tài xế cho điều phối (ADR-0049 D2: "giấy tờ đọc qua hàm công bố của parties, không lấy số"): hồ sơ cá nhân đang dùng, đang mở vai "Tài xế
+ * công ty" hoặc "thuộc" một nhà xe đang hợp tác (kể cả người chưa có tài khoản). Van-chuyen không tự đọc vai (R-N1-12) — lọc vai nằm ở đây. Xếp theo tên.
+ */
+export async function taiXeChoDieuPhoi(db: D1Database, v: { today: string }): Promise<TaiXeDieuPhoi[]> {
+  const taiXe = await driversForDispatch(db, VAI_TAI_XE_CONG_TY, v.today);
+  if (taiXe.length === 0) return [];
+  const theoNguoi = new Map<string, TaiXeDieuPhoi["giayTo"]>();
+  for (const g of await driverDocsForDispatch(db, taiXe.map((r) => r.party_id))) {
+    const ds = theoNguoi.get(g.party_id) ?? [];
+    ds.push({ rowId: g.row_id, typeCode: g.document_type_code, classCode: g.license_class_code, expiryDate: g.expiry_date });
+    theoNguoi.set(g.party_id, ds);
+  }
+  return taiXe.map((r) => ({
+    partyId: r.party_id,
+    displayName: r.display_name,
+    loai: r.la_cong_ty ? "CONG_TY" : "NHA_XE",
+    carrierPartyIds: r.carrier_ids === null ? [] : r.carrier_ids.split(",").sort(),
+    giayTo: theoNguoi.get(r.party_id) ?? [],
+  }));
 }
 
 const ACCOUNT_ROLE = () => error(409, "role_via_account", "Vai này quyết định quyền đăng nhập nên chỉ gán hoặc gỡ ở màn Quản lý tài khoản.");
