@@ -9,11 +9,12 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen } from "./shared/dieu-phoi-kiem.ts";
 import { trangThaiChang } from "./shared/dieu-phoi-trang-thai.ts";
+import { kiemGioXayRa } from "./shared/gio-xay-ra.ts";
 import { isISODate, vnLocalToMs } from "./shared/vn-date.ts";
 
 const DIR = join(fileURLToPath(new URL(".", import.meta.url)), "..", "golden", "dieu-phoi");
 const FILES = readdirSync(DIR).filter((f) => f.endsWith(".json")).sort();
-const HAM = new Set(["kiemTaoSuaChuyen", "kiemXep", "kiemXuatBen", "kiemKetThuc", "trangThaiChang"]);
+const HAM = new Set(["kiemTaoSuaChuyen", "kiemXep", "kiemXuatBen", "kiemKetThuc", "trangThaiChang", "kiemGioXayRa"]); // kiemGioXayRa: ADR-0050 VK1-A (A8b)
 
 type Json = null | boolean | number | string | Json[] | { [k: string]: Json };
 interface Buoc { ma: string; mo_ta: string; ham: string; dau_vao: Record<string, Json>; dap_an: Record<string, Json> }
@@ -54,6 +55,10 @@ function chay(b: Buoc, nen: Record<string, Json>): Record<string, unknown> {
     if ("ai_xu_ly" in b.dap_an) out.ai_xu_ly = r.lyDo.map((x) => x.aiXuLy);
     out.so_gan_ten = r.ganTen.length;
     return out;
+  }
+  if (b.ham === "kiemGioXayRa") {
+    const r = kiemGioXayRa(v);
+    return r.ok ? { ok: true } : { ok: false, ma_luat: r.chan };
   }
   if (b.ham === "kiemKetThuc") {
     const r = kiemKetThuc(v);

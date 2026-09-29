@@ -1,5 +1,5 @@
 {
-  "mo_ta": "Bộ ca mẫu điều phối xe — ví dụ xe A / xe B của chủ dự án ([HĐ] mục 2; [MH] dữ liệu mẫu), PHẦN LƯỢT DUYỆT 1 của ADR-0049: tạo chuyến, xếp, giữ thiếu tên, nhập tên, xuất bến, mốc 6 giờ, vắng, đón muộn, kết thúc gián đoạn, chuyến cứu hộ. Mỗi bước: đầu vào, quyết định mong đợi, danh sách mã luật. Chạy qua luật thuần src/shared/dieu-phoi-kiem.ts, dieu-phoi-trang-thai.ts (src/dieu-phoi-ca-mau.test.ts). Giờ viết dạng 'YYYY-MM-DD HH:MM' GIỜ VIỆT NAM ở mọi khoá tận cùng 'Ms'. '$nen.<đường>' trỏ dữ liệu nền bên dưới. Tên người là tên giả; không số giấy tờ.",
+  "mo_ta": "Bộ ca mẫu điều phối xe — ví dụ xe A / xe B của chủ dự án ([HĐ] mục 2; [MH] dữ liệu mẫu), PHẦN LƯỢT DUYỆT 1 của ADR-0049: tạo chuyến, xếp, giữ thiếu tên, nhập tên, xuất bến, mốc 6 giờ, vắng, đón muộn, kết thúc gián đoạn, chuyến cứu hộ. Mỗi bước: đầu vào, quyết định mong đợi, danh sách mã luật. Chạy qua luật thuần src/shared/dieu-phoi-kiem.ts, dieu-phoi-trang-thai.ts, gio-xay-ra.ts (src/dieu-phoi-ca-mau.test.ts). Bước B17–B23 thêm theo ADR-0050 (nơi hẹn đổi sau khi xếp, cập nhật điểm theo đơn, văn phòng khai giờ xảy ra, khoảng nghỉ theo giờ xảy ra, giấy tờ xe bắt buộc) — cùng CHỜ CHỦ XÁC NHẬN. Giờ viết dạng 'YYYY-MM-DD HH:MM' GIỜ VIỆT NAM ở mọi khoá tận cùng 'Ms'. '$nen.<đường>' trỏ dữ liệu nền bên dưới. Tên người là tên giả; không số giấy tờ.",
   "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
   "nen": {
     "chinhSach": { "id": "cs-goc", "minLeadMinutes": 360, "warnLeadMinutes": 120, "restMinutes": 30, "requireManifest": true, "requireContract": false },
@@ -8,10 +8,15 @@
       { "classCode": "B2_OLD", "maxPassengers": 8 }, { "classCode": "C_OLD", "maxPassengers": 8 }, { "classCode": "D_OLD", "maxPassengers": 29 }, { "classCode": "E_OLD", "maxPassengers": null }
     ],
     "xe": {
-      "A": { "id": "xe-a", "bienSo": "79B-123.45", "soCho": 15, "trangThai": "active", "chuXePartyId": "cong-ty", "chuLaCongTy": true, "giayTo": [] },
-      "B": { "id": "xe-b", "bienSo": "79B-678.90", "soCho": 29, "trangThai": "active", "chuXePartyId": "cong-ty", "chuLaCongTy": true, "giayTo": [] },
-      "MP": { "id": "xe-mp", "bienSo": "79B-555.66", "soCho": 45, "trangThai": "active", "chuXePartyId": "nx-minh-phat", "chuLaCongTy": false, "giayTo": [] }
+      "A": { "id": "xe-a", "bienSo": "79B-123.45", "soCho": 15, "trangThai": "active", "chuXePartyId": "cong-ty", "chuLaCongTy": true, "giayTo": [{"rowId": "kd-a", "typeCode": "INSPECTION", "expiryDate": "2027-06-30"}, {"rowId": "bh-a", "typeCode": "TPL_INSURANCE", "expiryDate": "2027-06-30"}] },
+      "B": { "id": "xe-b", "bienSo": "79B-678.90", "soCho": 29, "trangThai": "active", "chuXePartyId": "cong-ty", "chuLaCongTy": true, "giayTo": [{"rowId": "kd-b", "typeCode": "INSPECTION", "expiryDate": "2027-06-30"}, {"rowId": "bh-b", "typeCode": "TPL_INSURANCE", "expiryDate": "2027-06-30"}] },
+      "MP": { "id": "xe-mp", "bienSo": "79B-555.66", "soCho": 45, "trangThai": "active", "chuXePartyId": "nx-minh-phat", "chuLaCongTy": false, "giayTo": [{"rowId": "kd-mp", "typeCode": "INSPECTION", "expiryDate": "2027-06-30"}, {"rowId": "bh-mp", "typeCode": "TPL_INSURANCE", "expiryDate": "2027-06-30"}] },
+      "MP_THIEU_BH": { "id": "xe-mp2", "bienSo": "79B-555.77", "soCho": 45, "trangThai": "active", "chuXePartyId": "nx-minh-phat", "chuLaCongTy": false, "giayTo": [{"rowId": "kd-mp2", "typeCode": "INSPECTION", "expiryDate": "2027-06-30"}] }
     },
+    "dieuKien": [
+      { "id": "dk-kiem-dinh", "minCapacity": 1, "subject": "VEHICLE", "documentTypeCode": "INSPECTION" },
+      { "id": "dk-bao-hiem", "minCapacity": 1, "subject": "VEHICLE", "documentTypeCode": "TPL_INSURANCE" }
+    ],
     "taiXe": {
       "A": { "partyId": "tx-a", "displayName": "Tài xế xe A", "loai": "CONG_TY", "carrierPartyIds": [], "giayTo": [{ "rowId": "gplx-a", "typeCode": "GPLX", "classCode": "D1", "expiryDate": "2028-12-31" }] },
       "B_D1": { "partyId": "tx-b", "displayName": "Tài xế xe B", "loai": "CONG_TY", "carrierPartyIds": [], "giayTo": [{ "rowId": "gplx-b", "typeCode": "GPLX", "classCode": "D1", "expiryDate": "2028-12-31" }] },
@@ -22,6 +27,7 @@
     "chang": {
       "SHERATON": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang" },
       "SHERATON_DU_TEN": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang" },
+      "SHERATON_DOI_AMIANA": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-cang" },
       "AMIANA": { "legId": "leg-amiana", "orderId": "don-1002", "orderCode": "ĐH-1002", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:15", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": ["k2-1", "k2-2", "k2-3"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-ben" },
       "MUONG_THANH": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang" },
       "MUONG_THANH_DU_TEN": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang" },
@@ -34,6 +40,24 @@
       { "id": "s-sh-2", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-2", "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
       { "id": "s-sh-3", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": null, "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
       { "id": "s-sh-4", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": null, "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-am-1", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-amiana", "personKey": "k2-1", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-ben", "trangThai": "WAITING", "mo": true },
+      { "id": "s-am-2", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-amiana", "personKey": "k2-2", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-ben", "trangThai": "WAITING", "mo": true },
+      { "id": "s-am-3", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-amiana", "personKey": "k2-3", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-ben", "trangThai": "WAITING", "mo": true },
+      { "id": "s-mt-1", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-muong-thanh", "personKey": null, "crewPartyId": null, "boardStopId": "d-muong-thanh", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-mt-2", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-muong-thanh", "personKey": null, "crewPartyId": null, "boardStopId": "d-muong-thanh", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-mt-3", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-muong-thanh", "personKey": null, "crewPartyId": null, "boardStopId": "d-muong-thanh", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-mt-4", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-muong-thanh", "personKey": null, "crewPartyId": null, "boardStopId": "d-muong-thanh", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-mt-5", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-muong-thanh", "personKey": null, "crewPartyId": null, "boardStopId": "d-muong-thanh", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true }
+    ],
+    "suatCx07SauCapNhat": [
+      { "id": "s-sh-1", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-1", "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": false },
+      { "id": "s-sh-2", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-2", "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": false },
+      { "id": "s-sh-3", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": null, "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": false },
+      { "id": "s-sh-4", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": null, "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": false },
+      { "id": "s-sh-1b", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-1", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-sh-2b", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-2", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-sh-3b", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": null, "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
+      { "id": "s-sh-4b", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": null, "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
       { "id": "s-am-1", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-amiana", "personKey": "k2-1", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-ben", "trangThai": "WAITING", "mo": true },
       { "id": "s-am-2", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-amiana", "personKey": "k2-2", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-ben", "trangThai": "WAITING", "mo": true },
       { "id": "s-am-3", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-amiana", "personKey": "k2-3", "crewPartyId": null, "boardStopId": "d-amiana", "alightStopId": "d-ben", "trangThai": "WAITING", "mo": true },
@@ -117,7 +141,7 @@
       "dau_vao": {
         "chuyen": "$nen.cx07", "suat": "$nen.suatCx07",
         "chang": ["$nen.chang.SHERATON", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH"], "suatMoCuaChang": "$nen.suatCx07", "diem": "$nen.diemCx07",
-        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": [], "bayGioMs": "2026-09-30 05:45", "xuatBenMs": "2026-09-30 05:45"
+        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 05:45", "xuatBenMs": "2026-09-30 05:45"
       },
       "dap_an": { "quyet_dinh": "GIU", "ma_luat": ["THIEU_TEN", "THIEU_TEN"], "ai_xu_ly": ["VAN_PHONG", "VAN_PHONG"], "so_gan_ten": 0 }
     },
@@ -128,7 +152,7 @@
       "dau_vao": {
         "chuyen": "$nen.cx07", "suat": "$nen.suatCx07",
         "chang": ["$nen.chang.SHERATON_DU_TEN", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH_DU_TEN"], "suatMoCuaChang": "$nen.suatCx07", "diem": "$nen.diemCx07",
-        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": [], "bayGioMs": "2026-09-30 05:48", "xuatBenMs": "2026-09-30 05:48"
+        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 05:48", "xuatBenMs": "2026-09-30 05:48"
       },
       "dap_an": { "quyet_dinh": "DAT", "ma_luat": [], "so_gan_ten": 7 }
     },
@@ -263,6 +287,55 @@
         "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 07:12"
       },
       "dap_an": { "quyet_dinh": "CAN_PHA_LE", "ma_luat": ["MOC_TOI_THIEU"] }
+    },
+    {
+      "ma": "B17-NOI-HEN-DOI-GIU",
+      "mo_ta": "ADR-0050 VK1-B: sau khi xếp, ĐH-1001 đổi nơi đón Sheraton → Amiana trên đơn. 05:48 bấm Xuất bến CX-3009-07 → GIỮ 'nơi đón / trả đã đổi — cập nhật điểm', văn phòng xử lý (so khoá nơi, không so chữ)",
+      "ham": "kiemXuatBen",
+      "dau_vao": {"chuyen": "$nen.cx07", "suat": "$nen.suatCx07", "chang": ["$nen.chang.SHERATON_DOI_AMIANA", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH_DU_TEN"], "suatMoCuaChang": "$nen.suatCx07", "diem": "$nen.diemCx07", "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 05:48", "xuatBenMs": "2026-09-30 05:48"},
+      "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["NOI_HEN_DOI"], "ai_xu_ly": ["VAN_PHONG"], "so_gan_ten": 7}
+    },
+    {
+      "ma": "B18-CAP-NHAT-DIEM-HET-GIU",
+      "mo_ta": "Văn phòng bấm 'Cập nhật điểm theo đơn': 4 suất Sheraton cũ đóng (STOP_CHANGED), 4 suất mới cùng khách ở điểm Amiana (có sẵn trên chuyến) → Xuất bến ĐẠT; vẫn gắn 7 tên còn thiếu",
+      "ham": "kiemXuatBen",
+      "dau_vao": {"chuyen": "$nen.cx07", "suat": "$nen.suatCx07SauCapNhat", "chang": ["$nen.chang.SHERATON_DOI_AMIANA", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH_DU_TEN"], "suatMoCuaChang": "$nen.suatCx07SauCapNhat", "diem": "$nen.diemCx07", "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 05:49", "xuatBenMs": "2026-09-30 05:49"},
+      "dap_an": {"quyet_dinh": "DAT", "ma_luat": [], "so_gan_ten": 7}
+    },
+    {
+      "ma": "B19-BAM-THAY-DA-DON-KHAI-GIO",
+      "mo_ta": "ADR-0050 VK1-A: tài xế gọi báo 'đón xong ĐH-1002 lúc 06:16', văn phòng bấm 'Đã đón' lúc 06:30 và khai 06:16 → được (giờ xảy ra 06:16, ghi nhận 06:30)",
+      "ham": "kiemGioXayRa",
+      "dau_vao": {"loai": "PASSENGER_BOARDED", "khai": true, "xayRaMs": "2026-09-30 06:16", "ghiNhanMs": "2026-09-30 06:30", "kepLuiPhut": 180, "suKien": [{"loai": "CREATED", "xayRaMs": "2026-09-29 21:00", "ghiNhanMs": "2026-09-29 21:00", "diemId": null, "suatId": null}, {"loai": "ALLOCATED", "xayRaMs": "2026-09-29 21:30", "ghiNhanMs": "2026-09-29 21:30", "diemId": null, "suatId": null}, {"loai": "DEPARTED", "xayRaMs": "2026-09-30 05:50", "ghiNhanMs": "2026-09-30 05:50", "diemId": null, "suatId": null}, {"loai": "STOP_ARRIVED", "xayRaMs": "2026-09-30 06:14", "ghiNhanMs": "2026-09-30 06:14", "diemId": "d-amiana", "suatId": null}], "diemId": "d-amiana", "suatId": "s-am-1", "suatMoTuMs": "2026-09-29 21:30", "ketThucChuyenTruocMs": []},
+      "dap_an": {"ok": true}
+    },
+    {
+      "ma": "B20-BAM-THAY-KHAI-TRUOC-XUAT-BEN",
+      "mo_ta": "Văn phòng khai 'đã đón' 05:40 — trước lúc xe xuất bến (05:50) và trước lúc xe tới Amiana (06:14) → từ chối: sai thứ tự",
+      "ham": "kiemGioXayRa",
+      "dau_vao": {"loai": "PASSENGER_BOARDED", "khai": true, "xayRaMs": "2026-09-30 05:40", "ghiNhanMs": "2026-09-30 06:30", "kepLuiPhut": 180, "suKien": [{"loai": "CREATED", "xayRaMs": "2026-09-29 21:00", "ghiNhanMs": "2026-09-29 21:00", "diemId": null, "suatId": null}, {"loai": "ALLOCATED", "xayRaMs": "2026-09-29 21:30", "ghiNhanMs": "2026-09-29 21:30", "diemId": null, "suatId": null}, {"loai": "DEPARTED", "xayRaMs": "2026-09-30 05:50", "ghiNhanMs": "2026-09-30 05:50", "diemId": null, "suatId": null}, {"loai": "STOP_ARRIVED", "xayRaMs": "2026-09-30 06:14", "ghiNhanMs": "2026-09-30 06:14", "diemId": "d-amiana", "suatId": null}], "diemId": "d-amiana", "suatId": "s-am-1", "suatMoTuMs": "2026-09-29 21:30", "ketThucChuyenTruocMs": []},
+      "dap_an": {"ok": false, "ma_luat": ["DAO_THU_TU"]}
+    },
+    {
+      "ma": "B21-NGHI-THEO-GIO-XAY-RA-THIEU",
+      "mo_ta": "CX-3009-07 kết thúc thật 07:50 (khai). CX-3009-08 cùng xe A, văn phòng bấm Xuất bến lúc 08:45 và khai xuất bến 08:10 → nghỉ 20 < 30 phút tính theo giờ XẢY RA → GIỮ (Quản trị phá lệ)",
+      "ham": "kiemXuatBen",
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:10"},
+      "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["NGHI_THIEU"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
+    },
+    {
+      "ma": "B22-NGHI-THEO-GIO-XAY-RA-DU",
+      "mo_ta": "Như trên nhưng khai xuất bến 08:20 → nghỉ đủ 30 phút theo giờ xảy ra → ĐẠT",
+      "ham": "kiemXuatBen",
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 08:10", "ketThucMs": "2026-09-30 10:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [{"id": "cx-3009-07", "ma": "CX-3009-07", "xeId": "xe-a", "taiXePartyId": "tx-a", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": "2026-09-30 07:50", "trangThai": "ENDED"}], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:45", "xuatBenMs": "2026-09-30 08:20"},
+      "dap_an": {"quyet_dinh": "DAT", "ma_luat": [], "so_gan_ten": 0}
+    },
+    {
+      "ma": "B23-XE-NHA-XE-THIEU-BAO-HIEM",
+      "mo_ta": "ADR-0050 VK1-C: xe 45 chỗ của nhà xe Minh Phát có Kiểm định nhưng CHƯA nhập Bảo hiểm trách nhiệm dân sự → Xuất bến bị GIỮ 'xe thiếu giấy tờ bắt buộc', Quản trị xử lý",
+      "ham": "kiemXuatBen",
+      "dau_vao": {"chuyen": {"id": "cx-3009-08", "ma": "CX-3009-08", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 09:00", "ketThucMs": "2026-09-30 11:00", "ketThucThatMs": null, "trangThai": "PLANNED", "xe": "$nen.xe.MP_THIEU_BH", "taiXe": "$nen.taiXe.MP", "nghiChup": 30, "nghiPhaLe": false}, "suat": [], "chang": [], "suatMoCuaChang": [], "diem": [], "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": "$nen.dieuKien", "bayGioMs": "2026-09-30 08:55", "xuatBenMs": "2026-09-30 08:55"},
+      "dap_an": {"quyet_dinh": "GIU", "ma_luat": ["DIEU_KIEN_GIAY_TO_XE"], "ai_xu_ly": ["QUAN_TRI"], "so_gan_ten": 0}
     }
   ]
 }
