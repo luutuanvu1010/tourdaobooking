@@ -1285,7 +1285,7 @@ test("R-VC-10: bản chốt trỏ dòng hành khách đúng người, đúng đ�
 // chiếu treo làm hỏng cả lịch sử); dòng hành khách đã huỷ (`voided_at`) hay đã thay (dòng mới trỏ `previous_id`) VẪN là "người còn" (khách huỷ sau khi xếp là
 // tình trạng nghiệp vụ — lý do giữ / R-VC-3 lo); chỉ đếm, không trả tên. Ca đỏ phải gỡ khoá ngoại + trigger chỉ-thêm của `ord_*` (xoá dòng đơn đã xác nhận bị
 // `leg_frozen` / `passenger_frozen` chặn — nhật ký thi công §10.26).
-test("R-VC-19 (N-19, R-P19): suất trỏ chặng / người không còn — đủ (kể cả suất đã đóng, người đã huỷ dòng, dòng thay thế) → 0; chặng bị xoá / người bị xoá / người thuộc đơn khác → vi phạm (fail)", () => {
+test("R-VC-19 (N-19, R-P19): tham chiếu logic từ vận chuyển sang chặng / khách bị treo — đủ (kể cả suất đã đóng, người đã huỷ dòng, dòng thay thế, mốc giờ hẹn của chặng còn) → 0; chặng bị xoá / người bị xoá / người thuộc đơn khác / mốc giờ hẹn trỏ chặng không còn → vi phạm (fail)", () => {
   const c = one("R-VC-19");
   assert.equal(c.level, "fail");
   const db = tho();
@@ -1296,6 +1296,7 @@ test("R-VC-19 (N-19, R-P19): suất trỏ chặng / người không còn — đ�
   suatTho(db, { trip: t, leg: d.leg, key: null }); // suất xếp theo số, chưa gắn tên
   suatTho(db, { trip: t, leg: d.leg, key: d.khach[1], den: T3 }); // suất đã đóng
   suatTho(db, { trip: t, kind: "CREW" }); // người đi kèm — không chặng, không khoá người
+  gieoMocXep(db, d.leg); // mốc giờ hẹn (ADR-0051) của chặng còn — tham chiếu logic thứ tư, không treo
   db.prepare("UPDATE ord_passenger SET voided_at = ? WHERE id = ?").run(T2, d.khach[1]); // khách huỷ sau khi xếp — tình trạng nghiệp vụ, không phải tham chiếu treo
   db.prepare("INSERT INTO ord_passenger (id, order_id, full_name, birth_year, previous_id, person_key, created_at, updated_at) VALUES ('thay-0', ?, 'Khách Sửa', 1990, ?, ?, ?, ?)")
     .run(d.order, d.khach[0], d.khach[0], T2, T2); // sửa tên = dòng mới cùng person_key
@@ -1313,6 +1314,10 @@ test("R-VC-19 (N-19, R-P19): suất trỏ chặng / người không còn — đ�
   suatTho(db, { trip: t, leg: e.leg, key: e.khach[0] });
   db.prepare("DELETE FROM ord_transfer_leg WHERE id = ?").run(e.leg);
   assert.equal(violations(db, c), 4, "chặng không còn — cả suất chưa tên lẫn suất có tên (mỗi suất đếm MỘT lần)");
+  // Vế thứ ba (vc_leg_appt_ack.leg_id — ADR-0051): mốc giờ hẹn của một chặng bị xoá (chặng không còn suất nào) — mỗi DÒNG mốc đếm một lần.
+  gieoMocXep(db, k.leg);
+  db.prepare("DELETE FROM ord_transfer_leg WHERE id = ?").run(k.leg);
+  assert.equal(violations(db, c), 5, "mốc giờ hẹn trỏ chặng không còn");
 });
 
 test("R-VC-12: giờ trên chuyến / điểm = giờ xảy ra của sự kiện → 0; xuất bến lệch / đã tới lệch / xong điểm không khớp sự kiện nào → vi phạm (warn)", () => {

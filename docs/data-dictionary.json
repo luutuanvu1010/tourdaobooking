@@ -352,7 +352,7 @@
       "module": "van-chuyen",
       "kind": "table",
       "logicalRefs": [
-        { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "mốc giờ hẹn của chặng (ADR-0051, 0043) — dòng XEP chỉ sinh trong lô mở suất (đã qua LC-09); dòng người bấm đòi chặng còn suất khách chờ đón — R-P19" }
+        { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "mốc giờ hẹn của chặng (ADR-0051, 0043) — dòng XEP chỉ sinh trong lô mở suất (đã qua LC-09); dòng người bấm đòi chặng còn suất khách chờ đón + kiểm định kỳ R-VC-19 — R-P19" }
       ]
     }
   ],

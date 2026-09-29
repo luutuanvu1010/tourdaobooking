@@ -398,16 +398,18 @@ export const CHECKS = [
     level: "fail",
   },
   // N-19 (R-P19 — chủ "Trả lời lần 13": suất trỏ chặng / người bằng tham chiếu LOGIC, không khoá ngoại; "danh sách khách của xe trỏ tới người không còn" do máy
-  // chủ VÀ kiểm định kỳ bắt). R-VC-10 phủ bản chốt; câu này phủ hai tham chiếu còn lại của SUẤT. GA-58: MỌI suất (mở lẫn đã đóng); "người còn" = CÓ dòng
-  // `ord_passenger` cùng `person_key`, thuộc đơn của chặng — dòng đã huỷ (`voided_at`) / đã thay vẫn tính là còn (khách huỷ sau khi xếp là tình trạng nghiệp
-  // vụ, lý do giữ + R-VC-3 lo). Chỉ đếm.
+  // chủ VÀ kiểm định kỳ bắt). R-VC-10 phủ bản chốt; câu này phủ BA tham chiếu còn lại: hai của SUẤT + `vc_leg_appt_ack.leg_id` (ADR-0051 — vế thứ ba, điều
+  // phối giao 30/9, cùng mã). GA-58: MỌI suất (mở lẫn đã đóng); "người còn" = CÓ dòng `ord_passenger` cùng `person_key`, thuộc đơn của chặng — dòng đã huỷ
+  // (`voided_at`) / đã thay vẫn tính là còn (khách huỷ sau khi xếp là tình trạng nghiệp vụ, lý do giữ + R-VC-3 lo); mốc giờ hẹn: MỖI DÒNG trỏ chặng không còn
+  // đếm một lần. Chỉ đếm.
   {
     code: "R-VC-19",
-    what: "suất trỏ chặng không còn trong ord_transfer_leg, hoặc trỏ người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng",
-    sql: `SELECT count(*) FROM vc_trip_allocation a
-          WHERE (a.leg_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = a.leg_id))
-             OR (a.passenger_key IS NOT NULL AND NOT EXISTS (
-                   SELECT 1 FROM ord_passenger p JOIN ord_transfer_leg l ON l.id = a.leg_id WHERE p.person_key = a.passenger_key AND p.order_id = l.order_id))`,
+    what: "tham chiếu logic từ vận chuyển sang chặng / khách của đơn bị treo: suất trỏ chặng không còn hoặc người (passenger_key) không có dòng ord_passenger nào thuộc đơn của chặng; dòng mốc giờ hẹn trỏ chặng không còn",
+    sql: `SELECT (SELECT count(*) FROM vc_trip_allocation a
+                  WHERE (a.leg_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = a.leg_id))
+                     OR (a.passenger_key IS NOT NULL AND NOT EXISTS (
+                           SELECT 1 FROM ord_passenger p JOIN ord_transfer_leg l ON l.id = a.leg_id WHERE p.person_key = a.passenger_key AND p.order_id = l.order_id)))
+          + (SELECT count(*) FROM vc_leg_appt_ack m WHERE NOT EXISTS (SELECT 1 FROM ord_transfer_leg l WHERE l.id = m.leg_id))`,
     level: "fail",
   },
 
