@@ -87,14 +87,26 @@
 
 | Task | Việc | Commit | Kết quả |
 |---|---|---|---|
-| A0 | mốc, R-P4 (i)(ii), mở nhật ký | (commit nhật ký này) | xong |
+| A0 | mốc, R-P4 (i)(ii), mở nhật ký | `6e4615f` | xong |
+| A1 | `migrations/0041_chinh_sach_dieu_phoi.sql` (bốn bảng, gieo, 7 trigger) + `src/migrations-chinh-sach-dieu-phoi.test.ts` (9 bài) + sổ dữ liệu (`vc_reason` = `lookup`) + `npm run dict` | (commit A1) | Đỏ trước: 9/9 đỏ — `phải có đúng một tệp *_chinh_sach_dieu_phoi.sql, thấy: []`, `no such table: vc_dispatch_policy`, `no such table: vc_license_capacity`. Xanh: 9/9; `node --test src/migrations-chinh-sach-dieu-phoi.test.ts src/architecture.test.ts` 34/34; `npm test` thoát 0, **1322/1322** (không bài nào đòi số migration liền mạch — khoảng trống 0034–0040 không làm đỏ gì). D1 local tạm (`--persist-to`, không `--remote`): `d1 migrations apply` → `0041_chinh_sach_dieu_phoi.sql ✅`; đếm gieo 1 / 8 / 13 / 0; `UPDATE vc_dispatch_policy` → `vc_policy_append_only: …: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_TRIGGER)`; chèn `require_contract = 1` → `CHECK constraint failed: require_contract = 0: SQLITE_CONSTRAINT (extended: SQLITE_CONSTRAINT_CHECK)`. |
 
 ## 4. P16 — hàng rào mới (sửa cố ý → đỏ → hoàn nguyên)
 
+Mọi phép sửa cố ý làm trên bản sao cục bộ, hoàn nguyên bằng bản lưu, rồi chạy lại xanh (`git status` không còn thay đổi ngoài ý muốn).
+
 | Hàng rào | Sửa cố ý | Dòng đỏ nguyên văn | Ngày |
 |---|---|---|---|
+| `vc_dispatch_policy_no_update` (0041) | xoá trigger | `not ok 3 - (b) TC-1 chính sách điều phối CHỈ THÊM …` / `error: 'Missing expected exception.'` | 2026-09-29 |
+| `CHECK (require_contract = 0)` (0041, ĐP7) | bỏ `CHECK` | `not ok 3 - (b) TC-1 chính sách điều phối CHỈ THÊM …` / `error: 'Missing expected exception.'` | 2026-09-29 |
+| gieo bảng hạng bằng (0041) | gieo `D2` thành 30 | `not ok 2 - (c) dữ liệu gieo …` và `not ok 5 - (b) TC-1 bảng hạng bằng CHỈ THÊM …` | 2026-09-29 |
+| `vc_departure_rule_close_once` (0041) | bỏ các vế "không đổi cột nội dung" | `not ok 7 - (b) TC-1 điều kiện xuất bến …` / `error: 'Missing expected exception: đóng kèm đổi cỡ xe'` | 2026-09-29 |
+| `vc_reason_identity` (0041, siết thêm) | xoá trigger | `not ok 8 - (b) TC-1 danh mục lý do …` / `error: 'Missing expected exception: đổi nhóm'` | 2026-09-29 |
 
 ## 5. Giả định (P8 — bề mặt, đảo ngược được)
+
+- **GA-1 (A1) — siết thêm ngoài kế hoạch:** `vc_reason_identity` (không đổi mã, nhóm, mốc tạo của lý do) — khuôn `vc_vehicle_document_identity` (0033). Lý do: máy rẽ nhánh theo NHÓM; đổi nhóm của một mã đã được sự kiện trỏ tới sẽ đổi nghĩa quá khứ. `vc_departure_rule_close_once` cũng chặn đổi mọi cột nội dung (không chỉ "đóng lần hai"). Cả hai là SIẾT; bỏ được bằng migration mới nếu điều phối không muốn.
+- **GA-2 (A1):** `vc_departure_rule` thêm `CHECK (valid_to_at IS NOT NULL OR closed_by IS NULL)` và `CHECK (valid_to_at IS NULL OR valid_to_at >= valid_from_at)`; `closed_by` được NULL khi đã đóng (NULL = hệ thống, như cột WHO). `vc_reason.reason_group` có `CHECK` KHUÔN (chữ HOA, 2–40 ký tự) — không phải liệt kê giá trị (Phần II "Luật dữ liệu" chỉ cấm `CHECK` liệt kê).
+- **GA-3 (A1):** nhãn lý do gieo (G4): "Sự cố vận hành", "Đơn đặt gấp", "Gộp vào chuyến khác", "Không còn khách", "Xe hỏng", "Tai nạn", "Xe tới sớm hơn giờ hẹn", "Không còn khách ở điểm", mỗi nhóm một "Khác" (thứ tự 99). Quản trị đổi được trong app.
 
 ## 6. Nợ (không chặn)
 

@@ -269,6 +269,26 @@
       "name": "vc_expiry_policy",
       "module": "van-chuyen",
       "kind": "table"
+    },
+    {
+      "name": "vc_dispatch_policy",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_departure_rule",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_license_capacity",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_reason",
+      "module": "van-chuyen",
+      "kind": "lookup"
     }
   ],
   "views": [
