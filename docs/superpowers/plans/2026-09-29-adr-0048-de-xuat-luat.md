@@ -1,4 +1,4 @@
-# ADR-0048 (nhà xe đối tác, tài xế đối tác) — đề xuất sửa luật (CHỜ CHỦ DUYỆT)
+# ADR-0048 (nhà xe đối tác, tài xế đối tác) — đề xuất sửa luật (CHỦ ĐÃ DUYỆT, ĐÃ ÁP 29/9)
 
 - **Ngày:** 2026-09-29.
 - **Người soạn:** phiên lập kế hoạch ADR-0048 (nhánh `worktree-agent-a41aedf108f7e51a8`). Người thi công điền số dòng thật ở Task A14 (mục 1–4, 6) và bước B-kết ở mục 7 (mục 5 của tệp này) của kế hoạch `docs/superpowers/plans/2026-09-29-adr-0048-thi-cong.md`.
@@ -7,7 +7,8 @@
   - Điều 9.4: hàng rào đã duyệt chỉ được SIẾT; NỚI phải có chủ duyệt.
   - Tiền lệ T2b (`docs/superpowers/plans/2026-09-28-t2b-de-xuat-luat.md` mục 1) và Vận chuyển 1a (`docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md`): **ADR đã có chữ, nhưng sửa hàng rào không tự thành được phép**.
 - **Căn cứ:** ADR-0048 (accepted 2026-09-28). D2 B2.1: "migration mới: **bỏ** trigger `lc1_stf_permission_external_partner_only` và **tạo lại** với tập mới"; "Tập này là một hằng dùng chung, thay `EXTERNAL_ALLOWED`".
-- **Trạng thái:** mục 1 (1a–1d), 3, 4, 6 **chủ duyệt 29/9** ("Duyệt", Trả lời lần 5 — `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` trên nhánh `adr-van-chuyen-0047-0048`); **mục 5 chờ chủ**; **điều phối áp lúc gộp** (người thi công KHÔNG tự áp diff vào tệp luật). Mỗi tệp luật một commit, sửa đúng diff dưới đây (Task K3).
+- **Trạng thái:** **CHỦ ĐÃ DUYỆT TOÀN BỘ, ĐÃ ÁP (29/9).** Mục 1 (1a–1d), 3, 4, 6: "Duyệt" (Trả lời lần 5); mục 5: "Duyệt" (Trả lời lần 8) — nguồn `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`. Điều phối áp ở nhánh phát hành `phat-hanh-1-37`, mỗi tệp luật một commit: `CLAUDE.md` (6a, 6b) 3c2fd41; `src/CLAUDE.md` (4) bcc93d6; `web/CLAUDE.md` (5, so khớp `cmp`) fe8a7a8; `docs/ARCHITECTURE.md` (3, so khớp bằng máy) 3e69a7c; `docs/SO-HANG-RAO.md` (1d) 4e28ea6. 1a–1c đã có trong mã từ Phần A.
+  - _Lịch sử:_ mục 1 (1a–1d), 3, 4, 6 **chủ duyệt 29/9** ("Duyệt", Trả lời lần 5 — `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` trên nhánh `adr-van-chuyen-0047-0048`); **mục 5 chờ chủ**; **điều phối áp lúc gộp** (người thi công KHÔNG tự áp diff vào tệp luật). Mỗi tệp luật một commit, sửa đúng diff dưới đây (Task K3).
 - **Số dòng thật** (người thi công Phần A điền 2026-09-29, nhánh `worktree-agent-ae0f600ceaab6d8b4`, đo sau Task A13): mục 3 `docs/ARCHITECTURE.md:175`, mục 4 `src/CLAUDE.md:20`, mục 6a `CLAUDE.md:10`, mục 6b `CLAUDE.md:122` — **khớp** số dòng người lập kế hoạch ghi (tệp luật không đổi trên nhánh). Mục 5 điền ở Phần B (B-kết).
 - **Người thi công đã làm gì với phần NỚI (mục 1)** — diễn giải R-TC1 ở nhật ký thi công mục 4 (điều phối sửa nếu sai): đã THI CÔNG trong mã 1a, 1b, 1c (để có P16 cho "LC-1 mới"), vì đó là nội dung ADR-0048 đã duyệt; KHÔNG sửa tệp luật thật (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `docs/ARCHITECTURE.md`, `docs/adr/`). Mục 1d: chỉ THÊM một câu trỏ ở cột Ghi chú của dòng cũ và thêm dòng MỚI cho trigger tạo lại — chưa viết lại mô tả dòng cũ (diff đề xuất ở mục 1d dưới). Chủ KHÔNG duyệt mục 1 ⇒ hoàn nguyên đoạn LC-1 của 0037, hằng, `R-LC-1` (khi đó không cấp được tài khoản Tài xế đối tác).
 
