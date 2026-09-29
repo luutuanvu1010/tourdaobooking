@@ -1,7 +1,7 @@
 import { ApiError, api, type Api } from "./api";
 import { NGUONG_MAC_DINH, chipHan, coMucGiayToCuaToi, ngayVN, tenGiayTo } from "../src/shared/giay-to-hien-thi";
 import { PERMISSION_LABEL, can, hasPermission, isOffice } from "../src/shared/permissions";
-import { coPhanTaiXe } from "../src/shared/start-page";
+import { chiTaiXe, coCuocCuaToi, coPhanTaiXe } from "../src/shared/start-page";
 import { thayDieuPhoiXe } from "../src/shared/dieu-phoi-man";
 import { vnDateTimeText, vnLocalToIso } from "../src/shared/vn-date";
 import { byId, h, replaceChildren } from "./dom";
@@ -74,6 +74,9 @@ if (quanLyXe || thayDieuPhoiXe(staff)) {
       "section",
       { id: "vc-links", class: "card list-card", "aria-labelledby": "vc-eyebrow" },
       thayDieuPhoiXe(staff) && h("a", { class: "row-link", href: "/dieu-phoi" }, h("span", { class: "vc-row-label" }, "Điều phối xe"), icon("next", 20)),
+      // Kiểm độc lập K2b T2 (điều phối chốt, GA-K2b-T2): tài khoản vừa tài xế công ty vừa văn phòng — lối tới "Cuốc của tôi" ở điện thoại (tài khoản chỉ tài xế
+      // có tab riêng; trang đầu của tổ hợp này KHÔNG đổi).
+      coCuocCuaToi(staff) && !chiTaiXe(staff) && h("a", { class: "row-link", href: "/cuoc" }, h("span", { class: "vc-row-label" }, "Cuốc của tôi"), icon("next", 20)),
       quanLyXe && h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
       quanLyXe && h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
       quanLyXe && can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-xe" }, h("span", { class: "vc-row-label" }, "Loại giấy tờ xe"), icon("next", 20)),

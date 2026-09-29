@@ -40,7 +40,8 @@ interface Tab {
  * Thanh tab dưới đáy (điện thoại): nhân sự lập được đơn 4 tab, admin 6 tab; kế toán (xem đơn nhưng không lập đơn — ADR-0007) không có tab Đơn mới; tài khoản chỉ-FIELD chỉ có tab Tôi (việc được giao thuộc N2).
  * /order thuộc tab Đơn hàng, /audit thuộc tab Tôi. Trang Danh bạ/Địa điểm có ở thanh điều hướng trên và ở mục liên kết của tab Tôi (chưa có thiết kế điện thoại riêng).
  * Tài xế (`taiXe` — tài khoản "chỉ tài xế", `chiTaiXe`; ADR-0040 D3, bản vẽ Vận chuyển vo-dien-thoai role=driver): tab Trang chủ (/tai-xe) + Tôi; tài xế công ty
- * (`cuoc`, Q5 — bản vẽ Bảng điều phối) thêm "Cuốc của tôi" (/cuoc, trang mở đầu) ở giữa.
+ * (`cuoc`, Q5 — bản vẽ Bảng điều phối) thêm "Cuốc của tôi" (/cuoc, trang mở đầu) ở giữa. Tài khoản vừa tài xế công ty vừa văn phòng (kiểm độc lập K2b T2,
+ * điều phối chốt — giả định bề mặt GA-K2b-T2): KHÔNG thêm tab (thanh tab văn phòng đã đủ chỗ), mở /cuoc từ trang Tôi; thanh bên có mục "Cuốc của tôi" ở nhóm TÔI.
  */
 function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = false, cuoc = false): Tab[] {
   const adminTabs: Tab[] =
@@ -62,7 +63,7 @@ function tabsFor(admin: boolean, seesAll: boolean, canCreate: boolean, taiXe = f
   return [
     ...officeTabs,
     ...adminTabs,
-    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) },
+    { href: "/account", label: "Tôi", icon: "me", active: (p) => p === "/account" || p === "/audit" || p === "/help" || p === "/gui-thong-bao" || TRANG_XE.includes(p) || p === TRANG_SAP_HET_HAN || p === TRANG_LOAI_GIAY_TO_XE || p === TRANG_LOAI_GIAY_TO_NGUOI || TRANG_CHINH_SACH.includes(p) || p === TRANG_LY_DO || TRANG_DIEU_PHOI.includes(p) || (!cuoc && TRANG_CUOC_CAC.includes(p)) },
   ];
 }
 
@@ -415,7 +416,8 @@ export async function initShell(): Promise<Staff> {
       }
     }
     if (tabbar === "off") return;
-    const tabs = tabBar(admin, seesAll, canCreate, path, taiXe, cuoc);
+    // Tab "Cuốc của tôi" CHỈ cho tài khoản "chỉ tài xế"; tài khoản vừa tài xế vừa văn phòng (K2b T2) mở /cuoc từ trang Tôi (tab "Tôi" sáng).
+    const tabs = tabBar(admin, seesAll, canCreate, path, taiXe, taiXe && cuoc);
     if (tatTam !== null) tabs.dataset.khungTam = "1";
     document.body.append(tabs);
     document.body.classList.add("has-tabbar");
@@ -479,7 +481,7 @@ export async function initShell(): Promise<Staff> {
 
   // `danhMuc` (ô admin.manage — hai trang Loại giấy tờ xe / người, Lý do điều phối) và `chinhSach` (ô settings.ops — Chính sách điều phối) như `vehicle`: chỉ
   // khung THẬT biết (bản nhớ khung chỉ 5 trường đã duyệt, ADR-0035).
-  addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), chiTaiXe(staff) && coCuocCuaToi(staff));
+  addNav(admin, seesAll, office, canCreate, staff, null, hasPermission(staff, "SUPER_ADMIN"), chiTaiXe(staff), can(staff, "vehicle.manage"), can(staff, "admin.manage"), can(staff, "settings.ops"), thayDieuPhoiXe(staff), coCuocCuaToi(staff));
   batDauBangTin(staff); // Bảng tin (ADR-0022): MỘT kết nối mỗi trang đã đăng nhập; nhánh mất mạng ở trên không tới đây (chưa có `staff`)
   return staff;
 }

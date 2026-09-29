@@ -195,6 +195,34 @@ try {
   });
   await s.close();
 
+  // ---- Tài khoản vừa tài xế công ty vừa Bán hàng (kiểm độc lập K2b T2 — giả định bề mặt GA-K2b-T2 do điều phối chốt) ------------------------------------
+  const tl = await call(ACCOUNTS.admin, "POST", "/api/staff", { fullName: "Lai Tài Xế Bán Hàng", phone: "0900000469", roles: ["DRIVER_INTERNAL", "SALES_STAFF"] });
+  assert.equal(tl.status, 201, `tạo tài khoản lai: ${tl.text}`);
+  const LAI = { name: "Lai Tài Xế Bán Hàng", phone: tl.json.staff.phone, pin: tl.json.pin, permissions: ["DRIVER", "SALES"] };
+  const l = await env.as(LAI, "/", DESK);
+  await b.step("9b", "K2b T2: tài khoản DRIVER + SALES — trang đầu KHÔNG đổi (ở Trang chủ); thanh bên có \"Cuốc của tôi\" → mở /cuoc; điện thoại: trang Tôi có dòng \"Cuốc của tôi\", thanh tab KHÔNG thêm tab, ở /cuoc tab \"Tôi\" sáng", async () => {
+    await l.waitFor(`!!document.querySelector('#sidebar .sidebar-item')`, "thanh bên");
+    await sleep(800);
+    assert.equal(await l.ev("location.pathname"), "/", "trang đầu của tổ hợp này không đổi (Q5 chỉ cho tài khoản chỉ tài xế)");
+    const muc = await l.ev(`[...document.querySelectorAll('#sidebar .sidebar-item')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`);
+    assert.ok(muc.some(([t, h]) => t === "Cuốc của tôi" && h === "/cuoc"), JSON.stringify(muc));
+    await l.ev(click('#sidebar a[href="/cuoc"]'));
+    await l.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 2`, "mở /cuoc");
+    assert.equal(await l.ev(`document.querySelector('#sidebar a[href="/cuoc"]').getAttribute('aria-current')`), "page");
+    assert.equal(await l.ev("!document.getElementById('error').hidden"), false);
+    await l.send("Emulation.setDeviceMetricsOverride", { width: 390, height: 844, deviceScaleFactor: 2, mobile: true });
+    await l.send("Page.navigate", { url: env.base + "/account" });
+    await l.waitFor(`!!document.querySelector('#vc-links')`, "trang Tôi");
+    assert.deepEqual(await l.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => [a.innerText.trim(), a.getAttribute('href')])`), [["Điều phối xe", "/dieu-phoi"], ["Cuốc của tôi", "/cuoc"]]);
+    const tabs = await tt(l);
+    assert.ok(!tabs.some(([h]) => h === "/cuoc"), `không tab Cuốc của tôi: ${JSON.stringify(tabs)}`);
+    await l.ev(click('#vc-links a[href="/cuoc"]'));
+    await l.waitFor(`location.pathname === '/cuoc' && document.querySelectorAll('.dp-cuoc-day').length === 2`, "mở /cuoc (điện thoại)");
+    assert.deepEqual((await tt(l)).filter(([, , c]) => c === "page").map(([h]) => h), ["/account"], "tab Tôi sáng ở /cuoc");
+    await shotFull(l, "b4-cuoc-tai-khoan-lai-dien-thoai.png");
+  });
+  await l.close();
+
   // ---- Kế toán (chỉ xem) ---------------------------------------------------------------------------------------------------------------------------------------
   const k = await env.as(ACCOUNTS.accounting, `/chuyen?id=${d.T1.id}`, DESK);
   await b.step("9", "Kế toán mở chuyến đang chạy: thấy điểm, mốc; KHÔNG nút bấm thay nào (ô trip.progress)", async () => {
@@ -205,7 +233,7 @@ try {
   await k.close();
 
   await b.step("10", "không lỗi console ở mọi trang đã mở", async () => {
-    for (const pg of [s, k]) assert.deepEqual(pg.consoleErrors, []);
+    for (const pg of [s, l, k]) assert.deepEqual(pg.consoleErrors, []);
   });
 } finally {
   b.xong();
