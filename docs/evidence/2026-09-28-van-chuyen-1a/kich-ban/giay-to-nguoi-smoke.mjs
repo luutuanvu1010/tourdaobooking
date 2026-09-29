@@ -1,4 +1,4 @@
-// Kịch bản Chrome — màn 04 Giấy tờ của một người (mục "Giấy tờ" trong hồ sơ ở Danh bạ, dưới "Người liên hệ") — ADR-0040 D2;
+// Kịch bản Chrome — màn 04 Giấy tờ của một người (mục "Giấy tờ" trong hồ sơ ở Danh bạ, dưới "Người liên hệ, tài xế" — tên mục từ ADR-0048) — ADR-0040 D2;
 // docs/design/van-chuyen-1a/project/04 Giay to cua mot nguoi.dc.html.
 // 1) Quản trị mở hồ sơ tài xế thẳng theo id (/parties?id=…): mục "Giấy tờ" viền nhấn, bốn dòng xếp theo hạn, số CHE (••••0412), số đủ KHÔNG có trong DOM,
 //    "Xem đủ số" chỉ ở dòng có số, "Thêm giấy tờ", Gia hạn / Sửa sai.  2) "Xem đủ số" → hộp xác nhận (ghi nhật ký, tự che sau 10 giây) → số hiện đủ + đếm ngược +
@@ -57,7 +57,7 @@ try {
     assert.deepEqual(k.idb, [], `${luc}: có cơ sở dữ liệu IndexedDB`);
   };
 
-  await dem.step("1", "04 máy tính (Quản trị, hồ sơ tài xế): mục “Giấy tờ” dưới “Người liên hệ”, bốn dòng theo hạn, số che, số đủ không trong DOM, nút đúng" + axeNote(), async () => {
+  await dem.step("1", "04 máy tính (Quản trị, hồ sơ tài xế): mục “Giấy tờ” dưới “Người liên hệ, tài xế”, bốn dòng theo hạn, số che, số đủ không trong DOM, nút đúng" + axeNote(), async () => {
     const p = await open(ADMIN, hung, DESK);
     try {
       await p.waitFor("document.querySelectorAll('#giay-to .vc-docs-table .vc-dt-row').length === 4", "bốn giấy tờ", 10000);

@@ -1346,7 +1346,7 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 
 /* 04 Giấy tờ của một người (hồ sơ ở Danh bạ) */
 .vc-gt-section { margin-top: var(--s4); overflow: hidden; background: var(--c-surface); border: var(--bw-vc) solid var(--c-primary); border-radius: var(--radius-md); }
-.vc-gt-section h3 { margin: 0; } /* cùng kiểu tiêu đề mục có sẵn của hồ sơ (h3 "Liên hệ", "Công việc tại đâu", "Người liên hệ") — bản vẽ: "cùng kiểu tiêu đề mục" */
+.vc-gt-section h3 { margin: 0; } /* cùng kiểu tiêu đề mục có sẵn của hồ sơ (h3 "Liên hệ", "Công việc tại đâu", "Người liên hệ, tài xế") — bản vẽ: "cùng kiểu tiêu đề mục" */
 .vc-gt-head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); padding: var(--s4) var(--s4) var(--s2); }
 .vc-gt-head .vc-btn { font-size: var(--fs-vc-sm); }
 .vc-gt-section .vc-doc { border-bottom: 0; border-top: 1px solid var(--c-border); }
