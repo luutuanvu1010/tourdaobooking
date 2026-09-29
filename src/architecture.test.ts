@@ -75,8 +75,36 @@ const LEGACY = ["accounts", "audit", "catalog", "orders"] as const;
  */
 const KHONG_DB = ["bangtin"] as const;
 
+/**
+ * ADR-0047 A3 (T3b) — SIẾT: tập bảng mang cờ `legacy: true` ở docs/data-dictionary.json bị KHOÁ đúng danh sách này (bảng tên cũ, có trước luật tiền tố).
+ * Bảng mới không được trốn luật tiền tố (ADR-0002 điều 2) bằng cách đánh dấu `legacy` — bài kiểm "tập bảng legacy" ở cuối tệp đỏ ngay. Danh sách
+ * chỉ được CO lại (một bảng cũ đổi tên sang có tiền tố); thêm tên vào đây là NỚI hàng rào (Điều 9.4) — cần chủ duyệt.
+ */
+const LEGACY_TABLES: readonly string[] = [
+  "audit_log", // module audit — nhật ký, có từ 0001
+  "catalog_item", // catalog — danh mục đồng bộ Sheet
+  "catalog_override", // catalog — ghi đè có chủ đích
+  "catalog_sync", // catalog — trạng thái đồng bộ
+  "company_profile", // company — chỉ còn logo_url (ADR-0024 6.3)
+  "login_attempt", // auth — chống dò PIN
+  "order_item", // orders — dòng tiền
+  "order_money_adjustment", // orders — dòng điều chỉnh chỉ-thêm (ADR-0014 điều 6)
+  "order_service", // orders — dịch vụ của đơn
+  "orders", // orders — đơn
+  "staff", // staff — tài khoản (cột chết role/full_name, ADR-0005)
+];
+
+/**
+ * TỆP "NỬA NGHIÊM" (ADR-0047 A3, Ruling R5) — SIẾT: module còn ở LEGACY nhưng TỆP này đã theo điều 8(b): mọi câu SQL đăng ký bằng `defineSql`, chịu bài
+ * EXPLAIN (chỉ chạm bảng của mình / view công bố / khoá ngoại được phép) và bài `.prepare(<chuỗi thô>)` / `db.exec(<chuỗi thô>)`. Không quét cả thư mục
+ * module (SQL cũ của `orders/repository.ts` vẫn là nợ LEGACY). Module lên STRICT thì bỏ khỏi đây.
+ */
+const NUA_NGHIEM: readonly { module: string; file: string }[] = [{ module: "orders", file: "modules/orders/chang-hanh-khach-repo.ts" }];
+
 // vc_/vc: ADR-0040 D1 — NỚI hàng rào đã duyệt (Điều 9.4), đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
-const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen" };
+// ord_: ADR-0047 A3 (bảng mới của orders; bảng cũ orders/order_item/order_service/order_money_adjustment giữ tên) — NỚI hàng rào đã duyệt (Điều 9.4),
+// CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 1.
+const TABLE_PREFIX: Record<string, string> = { pty_: "parties", loc_: "locations", stf_: "staff", fbk_: "feedback", dsp_: "dispatch", bil_: "billing", mnt_: "maintenance", aut_: "auth", ntf_: "thongbao", vc_: "van-chuyen", ord_: "orders" };
 const VIEW_PREFIX: Record<string, string> = { pty: "parties", loc: "locations", stf: "staff", ord: "orders", dsp: "dispatch", bil: "billing", aud: "audit", vc: "van-chuyen" };
 
 // ---------------------------------------------------------------------------------------------------------------------
@@ -575,4 +603,22 @@ test("R-N1-14: không đọc staff.role / staff.full_name; không SELECT * FROM 
 
 test("sổ dữ liệu: cột đánh dấu chết (deprecatedColumns) có thật trong bảng", () => {
   for (const t of dict.tables) for (const c of t.deprecatedColumns ?? []) assert.ok(columns(t.name).some((x) => x.name === c), `${t.name}.${c} không tồn tại`);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0047 — tiền tố `ord_`, khoá danh sách bảng `legacy` (T3b), tệp "nửa nghiêm" của `orders`
+// ---------------------------------------------------------------------------------------------------------------------
+test("ADR-0047 A3 (T3b): tập bảng `legacy` bằng đúng LEGACY_TABLES — bảng mới không được trốn tiền tố", () => {
+  assert.deepEqual(
+    dict.tables.filter((t) => t.legacy === true).map((t) => t.name).sort(),
+    [...LEGACY_TABLES].sort(),
+    "bảng mới không được trốn tiền tố bằng cờ `legacy` — đặt tên có tiền tố module (TABLE_PREFIX); danh sách LEGACY_TABLES chỉ được co lại",
+  );
+});
+
+test("ADR-0047 A3 (R5): module của tệp NUA_NGHIEM phải đang ở LEGACY (lên STRICT thì bỏ khỏi NUA_NGHIEM); tệp nằm trong thư mục của module đó", () => {
+  for (const n of NUA_NGHIEM) {
+    assert.ok((LEGACY as readonly string[]).includes(n.module), `module "${n.module}" của ${n.file} không còn ở LEGACY — bỏ khỏi NUA_NGHIEM`);
+    assert.ok(n.file.startsWith(`modules/${n.module}/`), `${n.file} phải nằm trong thư mục modules/${n.module}/`);
+  }
 });

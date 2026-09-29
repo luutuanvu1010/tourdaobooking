@@ -47,7 +47,7 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 | Task | Việc | Commit | `npm test` sau | Dòng ĐỎ trước (đã thấy) | Đột biến P16 (ngày · đột biến · dòng đỏ) | Người kiểm |
 |---|---|---|---|---|---|---|
 | A0 | Điều kiện trước, mốc | (commit tài liệu A0) | 1313/1313 | — | — | — |
-| A1 | `ord_` (chờ duyệt), khoá `legacy`, khung `NUA_NGHIEM` | | | | | chưa |
+| A1 | `ord_` (chờ duyệt), khoá `legacy`, khung `NUA_NGHIEM` | (commit A1) | 1315/1315 | 2026-09-29: hằng thiếu `staff` → `not ok 26 - ADR-0047 A3 (T3b): tập bảng \`legacy\` bằng đúng LEGACY_TABLES — bảng mới không được trốn tiền tố` … `+ 'staff'` | 2026-09-29 · (1) thêm tạm `order_x` `legacy: true` vào sổ + `migrations/9999_p16_tam.sql` `CREATE TABLE order_x` → `not ok 26 - ADR-0047 A3 (T3b) …` `+ 'order_x'` (kèm đỏ phụ "DATA-DICTIONARY.md khớp") → hoàn nguyên → xanh 27/27. (2) `NUA_NGHIEM` đổi module thành `locations` → `not ok 27 … error: 'module "locations" của modules/orders/chang-hanh-khach-repo.ts không còn ở LEGACY — bỏ khỏi NUA_NGHIEM'` → hoàn nguyên → xanh. `ord_` chưa có bảng để thấy chặn — bài dòng 187 (tiền tố đúng module) áp tự động cho `ord_*` ở A4 | chưa |
 | A2 | `soKhachHieuLuc` + quét `after_json` + bật EXPLAIN `NUA_NGHIEM` | | | | | chưa |
 | A3 | Luật thuần chặng + kiểu + `vnLocalToMs` | | | | — (luật thuần) | chưa |
 | A4 | Migration `0034` (chặng, loại điểm, chép dữ liệu) | | | | | chưa |
