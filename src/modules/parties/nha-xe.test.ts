@@ -94,3 +94,18 @@ test("G2: 'Tài xế của' có ngày kết thúc đặt trước → 400 (khi t
   const haiToChuc = await w.call("POST", `/api/parties/${daiLy}/relationships`, { as: ADM, body: { fromPartyId: nhaXe, toPartyId: daiLy, relationshipTypeCode: "CONTACT_OF" } });
   assert.equal(haiToChuc.status, 201, haiToChuc.text);
 });
+
+test("R-B1: thêm trùng 'Tài xế của' cho cùng nhà xe → 409 relationship_overlap, câu lỗi trung tính (không nói 'Người liên hệ'), không ghi thêm", async () => {
+  const w = setup();
+  const nhaXe = await toChuc(w, "Nhà xe Phương Nam");
+  assert.equal((await ganVai(w, ADM, nhaXe, "CARRIER")).status, 201);
+  const taiXe = await nguoi(w, "Phạm Văn Lái");
+  assert.equal((await quanHe(w, ADM, nhaXe, taiXe, nhaXe)).status, 201);
+  const [qh, log] = [soQuanHe(w), soNhatKy(w)];
+  const r = await quanHe(w, ADM, nhaXe, taiXe, nhaXe);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "relationship_overlap");
+  assert.equal(r.json.error.message, "Quan hệ này đã được ghi trong khoảng thời gian trùng.");
+  assert.equal(soQuanHe(w), qh);
+  assert.equal(soNhatKy(w), log);
+});

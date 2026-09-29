@@ -117,6 +117,20 @@ test("quan hệ: hai đầu hợp lệ, khác nhau, một đầu là hồ sơ đ
   for (const [body, partyId, why] of bad) assert.equal(validateRelationship(body, partyId, TODAY).ok, false, why);
 });
 
+test("quan hệ: câu lỗi trung tính — đúng cho cả 'Người liên hệ của' lẫn 'Tài xế của' (ADR-0048, ruling R-B1)", () => {
+  const U3 = "33333333-3333-3333-3333-333333333333";
+  const rel = (extra: Record<string, unknown> = {}) => ({ fromPartyId: U1, toPartyId: U2, relationshipTypeCode: "DRIVES_FOR", ...extra });
+  const loi = (body: Record<string, unknown>, partyId: string): string => {
+    const r = validateRelationship(body, partyId, TODAY);
+    assert.equal(r.ok, false, JSON.stringify(body));
+    return r.ok ? "" : r.message;
+  };
+  assert.equal(loi(rel(), U3), "Quan hệ phải gắn với hồ sơ đang xem.");
+  assert.equal(loi(rel({ toPartyId: U1 }), U1), "Một hồ sơ không thể có quan hệ với chính nó.");
+  assert.equal(loi(rel({ fromPartyId: "x" }), U2), "Hồ sơ ở một đầu quan hệ không hợp lệ.");
+  assert.equal(loi(rel({ relationshipTypeCode: "contact" }), U2), "Loại quan hệ không hợp lệ.");
+});
+
 test("mẫu id: UUID hoặc tiền tố do backfill", () => {
   assert.ok(PARTY_ID_RE.test(U1) && PARTY_ID_RE.test(`pty-${U1}`) && !PARTY_ID_RE.test("pty-x") && !PARTY_ID_RE.test(`ptr-${U1}`));
   assert.ok(ROW_ID_RE.test(U1) && ROW_ID_RE.test(`ptr-${U1}`) && !ROW_ID_RE.test(`pty-${U1}`));

@@ -151,7 +151,7 @@ function constraintProblem(e: unknown): Response | null {
   if (/party_relationship_drives_for_(person|carrier)/.test(m)) {
     return error(409, "drives_for_rule", "Quan hệ “Tài xế của” phải đi từ hồ sơ cá nhân tới hồ sơ đang là nhà xe đối tác.");
   }
-  if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Người liên hệ này đã được ghi trong khoảng thời gian trùng.");
+  if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Quan hệ này đã được ghi trong khoảng thời gian trùng.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại công việc, địa điểm hoặc hồ sơ liên quan không tồn tại.");
   return null;
 }
