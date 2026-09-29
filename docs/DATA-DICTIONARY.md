@@ -71,6 +71,7 @@
 | `order_money_adjustment` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `order_service` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
 | `orders` | bảng | tên cũ, giữ nguyên (ADR-0002 điều 2) |
+| `ord_transfer_leg` | bảng |  |
 | `v_ord_order_label` | view công bố | cột: id, order_code |
 | `v_ord_order_owner` | view công bố | cột: id, staff_id |
 

@@ -136,6 +136,11 @@
       "legacy": true
     },
     {
+      "name": "ord_transfer_leg",
+      "module": "orders",
+      "kind": "table"
+    },
+    {
       "name": "pty_contact_kind",
       "module": "parties",
       "kind": "lookup"
