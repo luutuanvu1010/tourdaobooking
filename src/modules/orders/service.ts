@@ -6,12 +6,12 @@ import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
-import { chieuDiDau } from "../../shared/chang-dua-don";
-import { activeLocations, passengerRowsByOrders } from "./chang-hanh-khach-repo";
+import { chieuDiDau, doiNgayChang, tronChangCu } from "../../shared/chang-dua-don";
+import { activeLocations, passengerRowsByOrders, type LegFields } from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder } from "./money-adjustment";
-import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type StoredServiceRow } from "./repository";
+import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type LegOp, type StoredServiceRow } from "./repository";
 import type { ValidOrder } from "./rules";
-import { catalogStatusOf, type ServiceContext } from "./service-rules";
+import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
 
 /** `ServiceContext` kèm dịch vụ đã lưu ĐẦY ĐỦ (có `lines`) — route dùng lại cho kiểm "dịch vụ nhập tay đóng băng" (DK-T3-01) sau `validateOrder`. */
 export interface OrderValidationContext extends ServiceContext {
@@ -36,6 +36,41 @@ export async function validationContext(db: D1Database, orderId: string | null):
     storedPassengerIds: new Set(paxRows.filter((p) => !p.voided).map((p) => p.id)),
     today: vnToday(new Date()),
   };
+}
+
+const sameFields = (a: LegFields, b: LegFields): boolean =>
+  a.pickupDate === b.pickupDate && a.pickupTime === b.pickupTime && a.pickupLocationId === b.pickupLocationId && a.pickupPlace === b.pickupPlace &&
+  a.dropoffLocationId === b.dropoffLocationId && a.dropoffPlace === b.dropoffPlace;
+const fieldsOf = (l: LegFields): LegFields => ({
+  pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId, pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
+});
+
+/**
+ * `PUT /api/orders/:id/trip` (bảng "Sửa thông tin chuyến" CŨ — ADR-0047 R2c, R4e; THUẦN): với mỗi dịch vụ, dời chặng đang lưu theo ngày đi mới
+ * (`doiNgayChang`), trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu (`tronChangCu` — vắng thì không đụng), rồi so với chặng đang lưu ra danh sách thao tác:
+ * sửa (trường vận hành đổi), thêm (chiều đi mới), ĐÓNG (giờ + nơi đều rỗng → lý do NOT_NEEDED — cả đơn nháp: không xoá ở đường này). Trả `trip` mới với
+ * `pickupTime`/`pickupPlace` = DẪN XUẤT sau khi trộn (ghi kép R3 + so nhật ký "trước → sau").
+ */
+export function keHoachChangTrip(
+  stored: readonly StoredServiceRow[],
+  updates: readonly { id: string; trip: ValidTrip; cu: { pickupTime?: string | null; pickupPlace?: string | null } }[],
+): { updates: { id: string; trip: ValidTrip }[]; ops: LegOp[] } {
+  const ops: LegOp[] = [];
+  const out = updates.map((u) => {
+    const st = stored.find((s) => s.id === u.id)!;
+    const merged = tronChangCu(doiNgayChang(st.legs, st.trip.departDate, u.trip.departDate), u.cu, u.trip.departDate);
+    for (const l of merged.legs) {
+      if (l.id === null) ops.push({ kind: "insert", serviceId: u.id, leg: l });
+      else if (!sameFields(st.legs.find((x) => x.id === l.id)!, l)) ops.push({ kind: "update", legId: l.id, fields: fieldsOf(l) });
+    }
+    if (merged.boChieuDi) ops.push({ kind: "close", legId: merged.boChieuDi, reason: "NOT_NEEDED" });
+    const labelled = merged.legs.map((l) => {
+      const old = l.id === null ? undefined : st.legs.find((x) => x.id === l.id);
+      return { id: l.id ?? "", direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLabel: l.pickupLocationId ? (old?.pickupLabel ?? "") : l.pickupPlace! };
+    });
+    return { id: u.id, trip: { ...u.trip, ...chieuDiDau(labelled) } };
+  });
+  return { updates: out, ops };
 }
 
 /**

@@ -1,11 +1,11 @@
 import { auditStatement, type AuditAction } from "../audit";
-import { chieuDiDau, xepChang, type ChangDaLuu } from "../../shared/chang-dua-don";
+import { chieuDiDau, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
-  legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, openLegsByOrders, openLegsStatement, passengerDeleteDraft, passengerInsert, passengerInsertGuarded,
-  type LegRow, type LegWrite, type PassengerWrite,
+  legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateGuarded, openLegsByOrders, openLegsStatement, passengerDeleteDraft,
+  passengerInsert, passengerInsertGuarded, type LegFields, type LegRow, type LegWrite, type PassengerWrite,
 } from "./chang-hanh-khach-repo";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
@@ -765,19 +765,26 @@ function serviceInserts(db: D1Database, orderId: string, services: ValidService[
 /** Dấu vết của chặng đang lưu (giữ `created_*` khi lưu nháp xoá–chèn lại cùng id) — theo id chặng. */
 export type LegMeta = ReadonlyMap<string, { createdAt: string; createdBy: string | null }>;
 
-/** Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này; chặng mới sinh id mới). */
+/** Một thao tác trên chặng của `PUT /trip` tương thích (ADR-0047 R2c, R4e) — `service.ts:keHoachChangTrip` lập, `updateTrip` ghi. */
+export type LegOp =
+  | { kind: "update"; legId: string; fields: LegFields }
+  | { kind: "insert"; serviceId: string; leg: ChangHopLe }
+  | { kind: "close"; legId: string; reason: LyDoDongChang };
+
+/** Giá trị ghi MỘT chặng (chặng mới sinh id mới; giữ `created_*` theo `meta` khi chèn lại cùng id). */
+function legWriteOf(l: ChangHopLe, serviceId: string, orderId: string, staffId: string, at: string, meta: LegMeta = new Map()): LegWrite {
+  const id = l.id ?? crypto.randomUUID();
+  const m = meta.get(id);
+  return {
+    id, orderId, serviceId, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId,
+    pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
+    createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId,
+  };
+}
+
+/** Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này). */
 function legWrites(services: readonly ValidService[], serviceIds: readonly string[], orderId: string, staffId: string, at: string, meta: LegMeta = new Map()): LegWrite[] {
-  return services.flatMap((s, i) =>
-    s.legs.map((l): LegWrite => {
-      const id = l.id ?? crypto.randomUUID();
-      const m = meta.get(id);
-      return {
-        id, orderId, serviceId: serviceIds[i]!, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId,
-        pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
-        createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId,
-      };
-    }),
-  );
+  return services.flatMap((s, i) => s.legs.map((l) => legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta)));
 }
 
 /** Giá trị ghi danh sách hành khách của đơn NHÁP: mỗi người một dòng đầu chuỗi (`person_key` = id; giữ id gửi lại). */
@@ -1141,6 +1148,7 @@ export async function updateTrip(
   updates: { id: string; trip: ValidTrip }[],
   expectedUpdatedAt: string,
   detail: string,
+  legOps: readonly LegOp[] = [],
 ): Promise<boolean> {
   const at = nextStamp(expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -1148,6 +1156,7 @@ export async function updateTrip(
   const results = await db.batch([
     db.prepare(`UPDATE orders SET updated_at = ? WHERE id = ? AND status IN ('draft', 'confirmed') AND updated_at = ?`).bind(at, orderId, expectedUpdatedAt),
     auditStatement(db, { id: auditId, orderId, staffId, action: "trip_updated", at, detail }, "changes() > 0"),
+    // `pickup_time`/`pickup_place` ghi GIÁ TRỊ DẪN XUẤT từ chặng sau khi trộn (ADR-0047 R3 — ghi kép; `keHoachChangTrip` đã đặt `trip`).
     ...updates.map(({ id, trip: t }) =>
       db
         .prepare(
@@ -1156,6 +1165,12 @@ export async function updateTrip(
         )
         .bind(t.departDate, t.departTime, t.pickupTime, t.pickupPlace, t.checkinDate, t.checkinTime, t.checkinPlace, t.note, id, orderId, ...guard.binds),
     ),
+    // ADR-0047 R2c/R4e: thao tác trên chặng (dời ngày, trộn giờ/nơi cũ, thêm/đóng chiều đi) — mọi câu có lính gác.
+    ...legOps.map((op) => {
+      if (op.kind === "update") return legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId);
+      if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
+      return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at), auditId);
+    }),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }

@@ -299,7 +299,11 @@ export function catalogStatusOf(
 
 export interface TripUpdate {
   expectedUpdatedAt: string;
-  updates: { id: string; trip: ValidTrip }[];
+  /**
+   * `cu` = hai khoá CŨ `pickupTime`/`pickupPlace` của thân (ADR-0047 Ruling R2c): `undefined` = khoá VẮNG (không đụng chặng); có mặt (kể cả rỗng → `null`) =
+   * trộn vào chặng chiều đi đầu (`tronChangCu`). `trip.pickupTime/pickupPlace` được route đặt lại = dẫn xuất sau khi trộn (ghi kép R3, so nhật ký).
+   */
+  updates: { id: string; trip: ValidTrip; cu: { pickupTime?: string | null; pickupPlace?: string | null } }[];
 }
 export type TripUpdateResult = { ok: true; value: TripUpdate } | { ok: false; message: string };
 
@@ -336,7 +340,8 @@ export function validateTripUpdate(
       if (!d) return { ok: false, message: `${at}: đơn đã xác nhận phải có ngày khởi hành.` };
       if (d !== cur.departDate && (d < from || d > to)) return { ok: false, message: `${at}: ngày khởi hành phải từ ${from} đến ${to}.` };
     }
-    updates.push({ id: cur.id, trip: trip.value });
+    const cu = { pickupTime: "pickupTime" in s ? trip.value.pickupTime : undefined, pickupPlace: "pickupPlace" in s ? trip.value.pickupPlace : undefined };
+    updates.push({ id: cur.id, trip: trip.value, cu });
   }
   if (!tripUpdateKeepsOneDate(stored, updates.map((u) => ({ id: u.id, departDate: u.trip.departDate })))) return { ok: false, message: ONE_DATE_MESSAGE }; // ADR-0021
   return { ok: true, value: { expectedUpdatedAt: b.expectedUpdatedAt, updates } };
