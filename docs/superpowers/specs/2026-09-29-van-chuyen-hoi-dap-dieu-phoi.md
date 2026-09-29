@@ -181,3 +181,30 @@ Người thi công (nhánh `thi-cong-adr-0049-tiep`) báo: khoá ngoại của 0
 | "Bấm nhầm "Đã gọi báo" (ví dụ chạm nhầm trên điện thoại) thì sửa thế nào?" — "Có nút "Bỏ đánh dấu"" / "Không, hỏi xác nhận trước" | **"Có nút "Bỏ đánh dấu""** |
 | "Nếu giờ hẹn đổi cho một chuyến chạy sau nhiều ngày (ví dụ thứ Bảy), bạn cần thấy nhắc gọi khách ngay hôm nay, hay chỉ thấy trên bảng của đúng ngày chuyến chạy?" — "Hiện ngay hôm nay" / "Chỉ đúng ngày chạy" | **"Hiện ngay hôm nay"** |
 | "Duyệt ghi phần "Đã gọi báo" thành quyết định chính thức (ADR-0051) theo 3 câu trên? Gồm: một bảng ghi "giờ hẹn đã biết / đã gọi"; người bấm được là Bán hàng (đơn mình lập hoặc phụ trách), Quản trị, Toàn quyền — giống quyền sửa chuyến đi của đơn; tài xế không thấy; nhật ký không ghi số điện thoại hay tên khách. (Tôi chỉ ghi sau khi người kiểm xem bản cuối và báo đạt.)" — "Duyệt, ghi theo 3 câu" / "Chưa duyệt, cho xem lại" | **"Duyệt, ghi theo 3 câu"** — ghi ADR-0051 sau khi người kiểm báo bản cuối ĐẠT |
+
+## Ruling điều phối sau kiểm độc lập K2a (30/9 — KHÔNG phải lời chủ)
+
+Người kiểm độc lập Phần A (máy chủ) @ `da38060`: **ĐẠT CÓ ĐIỀU KIỆN**, không lỗi CAO. Chi tiết: e2e 30/30 kèm đuôi `audit-invariants --strict`; chạy tuần tự 1776/1776; typecheck 0; điều kiện kiểm giữa kỳ @ `9105306` đã đóng hết. Người thi công sửa ở `ed3b59e` (chưa kiểm độc lập lại):
+- V2 lỗ P16 `kemTen` → `a9ca223`;
+- V3 đề xuất luật "Bảy ô mới" → `fededec`;
+- T2 lệnh lặp trả kết quả lần đầu → `904cee3`;
+- T3 → `3683fd2`;
+- T1 chỉ ghi nhật ký → `e8b7b44`.
+
+Trước đó, sau báo cáo A21:
+- R-VC-19 phủ đủ các tham chiếu logic còn lại của R-P19 → `d7309a9`, vế `vc_leg_appt_ack` → `da38060`;
+- đề xuất luật mục 7a → `a888a7f`;
+- mục 3a → `0cdf537`.
+
+| Mã | Câu | Điều phối chốt | Căn cứ |
+|---|---|---|---|
+| R-P25 | Q-A15-1 / GA-53: tắt "bắt đủ danh sách" thì R-VC-4 hiểu thế nào | Chấp nhận GA-53: R-VC-4 chỉ so bản chốt với suất có tên + người đi kèm | Chủ đã quyết nguyên tắc: có công tắc cho xe đi khi danh sách chưa đủ. Câu kiểm không được coi điều chủ cho phép là vi phạm. Câu kiểm chỉ đọc, đổi lại được |
+| R-P26 | GA-57: mục 3a lệch tên bài | Sửa đề xuất cho khớp mã, không đổi tên bài | Bản đề xuất chưa được chủ duyệt |
+| R-P27 | GA-58: định nghĩa R-VC-19 | Chấp nhận: xét mọi suất; "người còn" gồm cả dòng đã huỷ hay đã thay; CREW không xét | Khách huỷ sau khi xếp là tình trạng nghiệp vụ, R-VC-3 lo; R-VC-19 chỉ bắt tham chiếu treo |
+
+**Chờ chủ quyết** (gom một lượt hỏi, sau báo cáo người kiểm Phần B):
+- V1: bài đo CPU của hook đỏ CÓ HỆ THỐNG khi chạy `npm test` song song trên nhánh (nhánh thêm khoảng 400 bài; `main` xanh 2/2). Bài này chặn `day-len` / `trien-khai`. Không nới ngưỡng.
+- V4: lỗ xoá trọn đơn đã xác nhận bằng `PRAGMA foreign_keys=OFF` / `defer_foreign_keys`.
+  - Chỗ hở: trigger `ord_transfer_leg_no_delete` (`0034:70-72`) và `ord_passenger_no_delete` (`0035:32-34`) dùng `<> 'draft'`, nên thành NULL khi dòng đơn đã mất.
+  - `0034`–`0036` chưa có trên `main`, nên sửa tại chỗ được. Ở K3 phải xác nhận lại bằng lệnh chỉ-đọc rằng chưa áp remote.
+- GA-59: lệnh lặp "Bỏ đánh dấu" chỉ khớp lần đầu khi giờ hẹn và tập chuyến không đổi thêm. Khớp tuyệt đối cần thêm cột, tức đổi schema của `0043`.
