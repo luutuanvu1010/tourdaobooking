@@ -18,7 +18,7 @@ import { vnToday } from "../../shared/vn-date";
 import {
   accountRolesOf as accountRoleRows, addContactStatements, addRelationshipStatement, addRoleStatement, endContactStatement, endRelationshipStatement, endRoleStatement,
   companyIdentityOf, expiringDocumentsOfRole, findLicenseClass, findParty, findPartiesByPhone, findPersonDocument, findPersonDocumentNumber, findPersonDocumentType, getPartyDetail,
-  insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isOwnerCompanyParty, listLicenseClasses, listParties,
+  insertLicenseClassStatement, insertPersonDocTypeStatement, updateLicenseClassStatement, updatePersonDocTypeStatement, insertPersonDocStatement, isCarrierParty, isOwnerCompanyParty, listLicenseClasses, listParties,
   listPersonDocumentTypes, listPersonDocuments, listRelationshipTypes, listRoleTypes, newOrganizationStatements, newPersonStatements, updatePersonDocStatement,
   voidPersonDocStatement,
   openRoleCodesFor, ownerCompanyRows, relationshipEnds, renamePersonStatements, reopenRoleStatement, roleRowOf, roleTypeOf, updatePartyStatements,
@@ -26,7 +26,7 @@ import {
 } from "./repository";
 import { MA_HANG_RE, cheSo, chiTietNhatKy, chuanHoaSo, kiemGiaHan, kiemHangMoi, kiemSuaHang, kiemSuaSai, kiemThemGiayTo, type DanhMucGiayTo, type GiayToNhap } from "./giay-to";
 import {
-  PARTY_ID_RE, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
+  PARTY_ID_RE, QUAN_HE_TAI_XE_CUA, ROW_ID_RE, composePersonName, ownerCompanyAssignProblem, splitPersonName, validateContact, validateEndDate, validatePartyCreate, validatePartyUpdate,
   validatePersonFullName, validateRelationship, validateRole,
 } from "./rules";
 
@@ -133,6 +133,11 @@ function constraintProblem(e: unknown): Response | null {
   if (/owner_company_start_not_today/.test(m)) return error(409, "owner_company_start_not_today", NGAY_BAT_DAU_HOM_NAY);
   if (/party_role_group_conflict/.test(m)) return error(409, "role_group_conflict", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
   if (/party_role_overlap|pty_party_role_open_uq/.test(m)) return error(409, "role_overlap", "Hồ sơ này đã có công việc đó ở nơi đó trong khoảng thời gian trùng.");
+  // ADR-0048 B1.2 lớp CSDL (trigger *_drives_for_person / *_drives_for_carrier của migration *_nha_xe_doi_tac): chỉ tới đây khi lời kiểm route bị vượt —
+  // mã riêng, KHÁC drives_for_not_person / drives_for_not_carrier của lớp route (P16).
+  if (/party_relationship_drives_for_(person|carrier)/.test(m)) {
+    return error(409, "drives_for_rule", "Quan hệ “Tài xế của” phải đi từ hồ sơ cá nhân tới hồ sơ đang là nhà xe đối tác.");
+  }
   if (/party_relationship_overlap|UNIQUE constraint failed: pty_party_relationship/.test(m)) return error(409, "relationship_overlap", "Người liên hệ này đã được ghi trong khoảng thời gian trùng.");
   if (/FOREIGN KEY constraint failed/.test(m)) return error(400, "invalid_input", "Loại công việc, địa điểm hoặc hồ sơ liên quan không tồn tại.");
   return null;
@@ -777,6 +782,16 @@ export const partiesModule: AppModule = {
       const now = new Date();
       const parsed = validateRelationship(await readJson(request), id, vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
+      if (parsed.value.typeCode === QUAN_HE_TAI_XE_CUA) {
+        // ADR-0048 B1.2 (lớp route, TRƯỚC trigger 0038): G2 — không đặt trước ngày kết thúc ("đang mở" = không có ngày kết thúc; thôi thì bấm Kết thúc).
+        if (parsed.value.to !== null) return error(400, "invalid_input", "Quan hệ “Tài xế của” không đặt trước ngày kết thúc — khi tài xế thôi thì bấm “Kết thúc”.");
+        const tu = await findParty(env.DB, parsed.value.fromPartyId);
+        if (!tu) return error(400, "invalid_input", "Loại công việc, địa điểm hoặc hồ sơ liên quan không tồn tại.");
+        if (tu.party_kind !== "PERSON") return error(409, "drives_for_not_person", "Quan hệ “Tài xế của” phải đi từ hồ sơ cá nhân (người lái), không từ hồ sơ tổ chức.");
+        if (!(await isCarrierParty(env.DB, parsed.value.toPartyId))) {
+          return error(409, "drives_for_not_carrier", "Quan hệ “Tài xế của” phải trỏ tới hồ sơ đang là nhà xe đối tác — gán công việc “Nhà xe đối tác” cho hồ sơ đó trước.");
+        }
+      }
       // Đầu kia chỉ biết SAU khi đọc thân, nên 403 này đứng sau 400 thân sai (không ghi gì trước đó).
       const other = parsed.value.fromPartyId === id ? parsed.value.toPartyId : parsed.value.fromPartyId;
       const otherAcc: PartyAccountVerdict = await ctx.partyAccount(other);

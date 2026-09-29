@@ -261,6 +261,9 @@ export function ownerCompanyAssignProblem(kind: "PERSON" | "ORGANIZATION", r: Ro
   return null;
 }
 
+/** Mã loại quan hệ "Tài xế của" (ADR-0048 D1): từ hồ sơ NGƯỜI (tài xế) tới hồ sơ đang mở vai Nhà xe đối tác (CARRIER). */
+export const QUAN_HE_TAI_XE_CUA = "DRIVES_FOR";
+
 export interface RelationshipInput {
   fromPartyId: string;
   toPartyId: string;

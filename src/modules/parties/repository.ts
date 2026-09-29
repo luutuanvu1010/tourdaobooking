@@ -186,6 +186,12 @@ const IS_OWNER_COMPANY = defineSql("parties", "is_owner_company", "SELECT 1 AS x
 export async function isOwnerCompanyParty(db: D1Database, partyId: string, roleCode: string): Promise<boolean> {
   return (await db.prepare(IS_OWNER_COMPANY).bind(partyId, roleCode).first()) !== null;
 }
+// ADR-0048 B1.2 (lớp route): hồ sơ ?1 có đang mở vai Nhà xe đối tác không — đọc view v_pty_carrier của CHÍNH module (một định nghĩa "đang là nhà xe" với
+// trigger 0038). Dùng NỘI BỘ module (route quan hệ "Tài xế của"). KHÔNG xuất qua index.ts — module khác hỏi "nhà xe nào" qua nhaXeDangHopTac.
+const IS_CARRIER = defineSql("parties", "is_carrier", "SELECT 1 AS x FROM v_pty_carrier WHERE party_id = ?1 LIMIT 1");
+export async function isCarrierParty(db: D1Database, partyId: string): Promise<boolean> {
+  return (await db.prepare(IS_CARRIER).bind(partyId).first()) !== null;
+}
 export interface OwnerCompanyRow { id: string; display_name: string; legal_name: string | null; tax_code: string | null; address: string | null; hotline: string | null; email: string | null }
 /** Các hồ sơ đang mở vai `roleCode` (tối đa 2) kèm định danh — chỉ `ownerCompany` của index.ts gọi, với mã vai công ty chủ. */
 export async function ownerCompanyRows(db: D1Database, roleCode: string): Promise<OwnerCompanyRow[]> {
