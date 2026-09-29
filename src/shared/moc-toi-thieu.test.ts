@@ -9,14 +9,19 @@ import { vnLocalToMs } from "./vn-date.ts";
 const PHUT = 60_000;
 const ms = (d: string, t: string) => vnLocalToMs(d, t)!;
 const chang = (ngayDon: string | null, gioDon: string | null, datGap = false) => ({ ngayDon, gioDon, datGap });
+/** Chuyến cho luật mốc lúc xếp: giờ xuất bến HIỆN TẠI + giờ xuất bến dự kiến SỚM NHẤT từng có (R-P6 — mặc định bằng giờ hiện tại). */
+const cx = (batDauMs: number, batDauSomNhatMs = batDauMs) => ({ batDauMs, batDauSomNhatMs });
 
-test("nguongMocVn: chuỗi 'YYYY-MM-DD HH:MM' giờ VN của (bây giờ + mốc), làm tròn LÊN phút; qua nửa đêm; ca 00:00–07:00 VN; mốc 0 = tắt → null", () => {
+test("nguongMocVn: chuỗi 'YYYY-MM-DD HH:MM' giờ VN của (bây giờ + mốc), làm tròn LÊN phút; qua nửa đêm; ca 00:00–07:00 VN; KHÔNG có nhánh 'mốc 0 = tắt'", () => {
   assert.equal(nguongMocVn(ms("2026-09-30", "02:20"), 360), "2026-09-30 08:20");
   assert.equal(nguongMocVn(ms("2026-09-30", "20:15"), 360), "2026-10-01 02:15", "qua nửa đêm");
   assert.equal(nguongMocVn(Date.parse("2026-09-29T17:05:00.000Z"), 60), "2026-09-30 01:05", "00:05 VN (17:05 UTC hôm trước) + 60 phút");
   assert.equal(nguongMocVn(ms("2026-09-30", "02:20") + 30_000, 360), "2026-09-30 08:21", "có giây lẻ → làm tròn lên phút sau");
   assert.equal(nguongMocVn(ms("2026-09-30", "02:20") + 1, 360), "2026-09-30 08:21");
-  assert.equal(nguongMocVn(ms("2026-09-30", "02:20"), 0), null, "G2: mốc 0 = tắt mốc — không có ngưỡng");
+  // GA-5 (chủ trả lời lần 9: "Không cho tắt"): mốc phải > 0 (CHECK ở CSDL + kiemChinhSachMoi). Hàm không còn nhánh "0 = tắt → null": nếu dữ liệu hỏng
+  // lọt con số 0 thì ngưỡng = bây giờ (giờ đã qua vẫn là dưới mốc) — không bao giờ "không có ngưỡng".
+  assert.equal(nguongMocVn(ms("2026-09-30", "02:20"), 0), "2026-09-30 02:20", "không còn trả null vì 0");
+  assert.equal(nguongMocVn(ms("2026-09-30", "02:20"), 1), "2026-09-30 02:21");
 });
 
 test("TC-16 kiemMocDat ranh giới ĐÚNG mốc: 360 phút → đạt; 359 phút → dưới mốc; thiếu MỘT giây → dưới mốc", () => {
@@ -31,13 +36,13 @@ test("TC-16 kiemMocDat ranh giới ĐÚNG mốc: 360 phút → đạt; 359 phút
   assert.deepEqual(kiemMocDat(leg, legMs + 30 * PHUT, 360), { duoiMoc: true, phutConLai: -30 }, "giờ đón đã qua");
 });
 
-test("kiemMocDat: chặng chưa chốt giờ (hoặc chưa có ngày) → KHÔNG kiểm (I13); chặng đặt gấp → qua; mốc 0 → tắt", () => {
+test("kiemMocDat: chặng chưa chốt giờ (hoặc chưa có ngày) → KHÔNG kiểm (I13); chặng đặt gấp → qua; KHÔNG có nhánh 'mốc 0 = tắt' (GA-5)", () => {
   const bayGio = ms("2026-09-30", "05:00");
   assert.deepEqual(kiemMocDat(chang("2026-09-30", null), bayGio, 360), { duoiMoc: false, lyDo: "KHONG_GIO", phutConLai: null });
   assert.deepEqual(kiemMocDat(chang(null, "06:30"), bayGio, 360), { duoiMoc: false, lyDo: "KHONG_GIO", phutConLai: null });
   assert.deepEqual(kiemMocDat(chang("2026-09-30", "06:30", true), bayGio, 360), { duoiMoc: false, lyDo: "DAT_GAP", phutConLai: 90 });
-  assert.deepEqual(kiemMocDat(chang("2026-09-30", "06:30"), bayGio, 0), { duoiMoc: false, lyDo: "TAT_MOC", phutConLai: 90 });
-  assert.deepEqual(kiemMocDat(chang("2026-09-30", "04:00"), bayGio, 0), { duoiMoc: false, lyDo: "TAT_MOC", phutConLai: -60 }, "mốc tắt: giờ đã qua cũng không chặn");
+  assert.deepEqual(kiemMocDat(chang("2026-09-30", "06:30"), bayGio, 1), { duoiMoc: false, lyDo: "DU_MOC", phutConLai: 90 }, "mốc 1 phút: còn 90 phút là đạt");
+  assert.deepEqual(kiemMocDat(chang("2026-09-30", "04:00"), bayGio, 0), { duoiMoc: true, phutConLai: -60 }, "giờ đã qua luôn dưới mốc, kể cả khi dữ liệu hỏng lọt số 0");
 });
 
 test("MỘT luật, hai cách nói: `ngày giờ` < nguongMocVn(bây giờ, mốc) ⇔ kiemMocDat(...).duoiMoc — bây giờ có giây lẻ, giờ đón 00:00–07:00 VN, qua nửa đêm", () => {
@@ -72,30 +77,50 @@ test("kiemMocXep: trong mốc khoá 'ai đi xe nào', đổi xe, đổi tài x�
   const trongMoc = batDau - 359 * PHUT;
   assert.deepEqual([...LENH_KHOA_THEO_MOC].sort(), ["DOI_DEN", "DOI_DI", "DOI_TAI_XE", "DOI_XE", "HUY_CO_KHACH", "RUT", "XEP"]);
   for (const loai of LENH_KHOA_THEO_MOC) {
-    assert.deepEqual(kiemMocXep({ batDauMs: batDau }, trongMoc, 360, { loai }), { canPhaLe: true, phutConLai: 359 }, loai);
+    assert.deepEqual(kiemMocXep(cx(batDau), trongMoc, 360, { loai }), { canPhaLe: true, phutConLai: 359 }, loai);
   }
   for (const loai of ["DOI_THU_TU", "DOI_GIO_XE_TOI", "HUY_KHONG_KHACH"] as const) {
-    assert.deepEqual(kiemMocXep({ batDauMs: batDau }, trongMoc, 360, { loai }), { canPhaLe: false, lyDo: "LENH_KHONG_KHOA", phutConLai: 359 }, loai);
+    assert.deepEqual(kiemMocXep(cx(batDau), trongMoc, 360, { loai }), { canPhaLe: false, lyDo: "LENH_KHONG_KHOA", phutConLai: 359 }, loai);
   }
   // Ngoài mốc (đúng 360 phút) → không khoá gì.
   for (const loai of LENH_XEP) {
-    assert.equal(kiemMocXep({ batDauMs: batDau }, batDau - 360 * PHUT, 360, { loai }).canPhaLe, false, loai);
+    assert.equal(kiemMocXep(cx(batDau), batDau - 360 * PHUT, 360, { loai }).canPhaLe, false, loai);
   }
-  // Mốc tắt (0) → không khoá gì, kể cả chuyến đã tới giờ.
-  for (const loai of LENH_XEP) assert.equal(kiemMocXep({ batDauMs: batDau }, batDau + 5 * PHUT, 0, { loai }).canPhaLe, false, loai);
+  // Không còn nhánh "mốc 0 = tắt" (GA-5): mốc 1 phút, chuyến còn 30 phút → không khoá; chuyến đã tới giờ → khoá.
+  for (const loai of LENH_KHOA_THEO_MOC) {
+    assert.equal(kiemMocXep(cx(batDau), batDau - 30 * PHUT, 1, { loai }).canPhaLe, false, loai);
+    assert.equal(kiemMocXep(cx(batDau), batDau + 5 * PHUT, 1, { loai }).canPhaLe, true, loai);
+  }
+});
+
+test("R-P6 khoá DÍNH (Q-A4-1; chủ trả lời lần 9 \"Khoá dính\"): chuyến đã vào vùng mốc thì GIỮ khoá dù giờ xuất bến bị dời ra xa — mốc tính theo min(giờ sớm nhất từng có, giờ hiện tại)", () => {
+  const goc = ms("2026-09-30", "05:50");
+  const doiRa = ms("2026-09-30", "12:00");
+  const now = ms("2026-09-30", "02:30");
+  // Chuyến gốc 05:50 (đã vào vùng lúc 02:30), bị dời ra 12:00: TRƯỚC R-P6 (chỉ giờ hiện tại) là ngoài mốc — nay mọi lệnh bị khoá vẫn khoá.
+  for (const loai of LENH_KHOA_THEO_MOC) {
+    assert.deepEqual(kiemMocXep(cx(doiRa, goc), now, 360, { loai }), { canPhaLe: true, phutConLai: 200 }, loai);
+  }
+  // Lệnh không khoá vẫn không khoá; chặng đặt gấp vẫn được xếp (ĐP2(ii)); tạo chuyến mới không khoá (Q2 = (a)).
+  for (const loai of ["DOI_THU_TU", "DOI_GIO_XE_TOI", "HUY_KHONG_KHACH"] as const) assert.equal(kiemMocXep(cx(doiRa, goc), now, 360, { loai }).canPhaLe, false, loai);
+  assert.equal(kiemMocXep(cx(doiRa, goc), now, 360, { loai: "XEP", datGap: true }).canPhaLe, false);
+  // Chuyến CHƯA BAO GIỜ vào vùng (giờ sớm nhất cũng xa) → không khoá.
+  assert.equal(kiemMocXep(cx(doiRa, doiRa), now, 360, { loai: "XEP" }).canPhaLe, false);
+  // Giờ sớm nhất lệch (lớn hơn giờ hiện tại) → vẫn lấy giờ hiện tại: không bao giờ lỏng hơn luật cũ.
+  assert.equal(kiemMocXep(cx(goc, doiRa), now, 360, { loai: "XEP" }).canPhaLe, true);
 });
 
 test("TC-42 (Q2 = (a)) kiemMocXep: TẠO chuyến trong mốc không cần phá lệ; xếp CHẶNG ĐẶT GẤP qua; xếp chặng chưa đặt gấp, đổi xe / tài xế sau khi tạo → cần phá lệ", () => {
   const batDau = ms("2026-09-30", "05:50");
   const now = ms("2026-09-30", "02:30");
-  assert.deepEqual(kiemMocXep({ batDauMs: batDau }, now, 360, { loai: "TAO" }), { canPhaLe: false, lyDo: "TAO_CHUYEN", phutConLai: 200 });
-  assert.deepEqual(kiemMocXep({ batDauMs: batDau }, now, 360, { loai: "XEP", datGap: true }), { canPhaLe: false, lyDo: "DAT_GAP", phutConLai: 200 });
-  assert.deepEqual(kiemMocXep({ batDauMs: batDau }, now, 360, { loai: "DOI_DEN", datGap: true }), { canPhaLe: false, lyDo: "DAT_GAP", phutConLai: 200 });
-  assert.deepEqual(kiemMocXep({ batDauMs: batDau }, now, 360, { loai: "XEP" }), { canPhaLe: true, phutConLai: 200 });
-  assert.deepEqual(kiemMocXep({ batDauMs: batDau }, now, 360, { loai: "XEP", datGap: false }), { canPhaLe: true, phutConLai: 200 });
+  assert.deepEqual(kiemMocXep(cx(batDau), now, 360, { loai: "TAO" }), { canPhaLe: false, lyDo: "TAO_CHUYEN", phutConLai: 200 });
+  assert.deepEqual(kiemMocXep(cx(batDau), now, 360, { loai: "XEP", datGap: true }), { canPhaLe: false, lyDo: "DAT_GAP", phutConLai: 200 });
+  assert.deepEqual(kiemMocXep(cx(batDau), now, 360, { loai: "DOI_DEN", datGap: true }), { canPhaLe: false, lyDo: "DAT_GAP", phutConLai: 200 });
+  assert.deepEqual(kiemMocXep(cx(batDau), now, 360, { loai: "XEP" }), { canPhaLe: true, phutConLai: 200 });
+  assert.deepEqual(kiemMocXep(cx(batDau), now, 360, { loai: "XEP", datGap: false }), { canPhaLe: true, phutConLai: 200 });
   // Đặt gấp chỉ miễn cho CHÍNH chặng đó khi vào xe — rút / dời khách khỏi chuyến, đổi xe, đổi tài xế vẫn khoá (datGap không có tác dụng).
   for (const loai of ["RUT", "DOI_DI", "DOI_XE", "DOI_TAI_XE", "HUY_CO_KHACH"] as const) {
-    assert.equal(kiemMocXep({ batDauMs: batDau }, now, 360, { loai, datGap: true }).canPhaLe, true, loai);
+    assert.equal(kiemMocXep(cx(batDau), now, 360, { loai, datGap: true }).canPhaLe, true, loai);
   }
 });
 
@@ -105,6 +130,7 @@ test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + 
   assert.equal(mucMoc(leg, leg - 360 * PHUT, 360, 120), "SAT_MOC");
   assert.equal(mucMoc(leg, leg - 479 * PHUT, 360, 120), "SAT_MOC");
   assert.equal(mucMoc(leg, leg - 480 * PHUT, 360, 120), "BINH_THUONG");
-  assert.equal(mucMoc(leg, leg - 100 * PHUT, 0, 120), "SAT_MOC", "mốc tắt vẫn cảnh báo sát giờ theo phần cảnh báo");
-  assert.equal(mucMoc(leg, leg - 100 * PHUT, 0, 0), "BINH_THUONG");
+  assert.equal(mucMoc(leg, leg - 100 * PHUT, 1, 120), "SAT_MOC", "mốc 1 phút: còn 100 phút < 1 + 120 → sát mốc");
+  assert.equal(mucMoc(leg, leg - 100 * PHUT, 1, 0), "BINH_THUONG");
+  assert.equal(mucMoc(leg, leg + 10 * PHUT, 0, 0), "QUA_MOC", "không còn nhánh 'mốc 0 = tắt': giờ đã qua luôn quá mốc");
 });

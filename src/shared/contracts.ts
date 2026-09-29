@@ -841,7 +841,7 @@ export interface MoiNhatResponse { tin: { cau: string; lienKet: string | null } 
 // Dòng có ngày hiệu lực, CHỈ THÊM: máy chủ đặt `validFrom` = lúc lưu (thân yêu cầu KHÔNG gửi ngày hiệu lực — I28). `current` = dòng đang hiệu lực.
 export interface DispatchPolicyDto {
   id: string;
-  /** Mốc tối thiểu (phút) — một con số cho cả lúc đặt và lúc xếp; 0 = tắt mốc. */
+  /** Mốc tối thiểu (phút) — một con số cho cả lúc đặt và lúc xếp; luôn > 0 (không tắt được — chủ trả lời lần 9). */
   minLeadMinutes: number;
   warnLeadMinutes: number;
   restMinutes: number;

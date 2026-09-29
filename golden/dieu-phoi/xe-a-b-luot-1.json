@@ -82,7 +82,7 @@
       "mo_ta": "Xếp Sheraton (4 người, 2 tên), Amiana (3 người, đủ tên), Mường Thanh (5 người, chưa tên) vào CX-3009-07: 12/15 chỗ → cho qua",
       "ham": "kiemXep",
       "dau_vao": {
-        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "soCho": 15, "tai": 0 },
+        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 0 },
         "them": [
           { "chang": "$nen.chang.SHERATON", "soSuatMoi": 4, "personKeys": ["k1-1", "k1-2"], "suatMoCuaChang": [] },
           { "chang": "$nen.chang.AMIANA", "soSuatMoi": 3, "personKeys": ["k2-1", "k2-2", "k2-3"], "suatMoCuaChang": [] },
@@ -97,7 +97,7 @@
       "mo_ta": "Xếp thêm một chặng 4 người vào CX-3009-07 đang có 12 → 16/15 → chặn: vượt số chỗ (LC-02)",
       "ham": "kiemXep",
       "dau_vao": {
-        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
+        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.THEM_4", "soSuatMoi": 4, "personKeys": [], "suatMoCuaChang": [] }],
         "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-29 21:20"
       },
@@ -130,7 +130,7 @@
       "mo_ta": "02:00 ngày 30/09 (còn 3 giờ 50 tới 05:50) Bán hàng xếp chặng 2 người CHƯA đặt gấp vào CX-3009-07 → cần Quản trị phá lệ mốc 6 giờ",
       "ham": "kiemXep",
       "dau_vao": {
-        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
+        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.THEM_2", "soSuatMoi": 2, "personKeys": [], "suatMoCuaChang": [] }],
         "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:00"
       },
@@ -141,11 +141,22 @@
       "mo_ta": "Cùng lúc, xếp chặng đã được Quản trị bấm 'Đặt gấp' → cho qua, không phá lệ lần nữa (ĐP2(ii))",
       "ham": "kiemXep",
       "dau_vao": {
-        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
+        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 05:50", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
         "them": [{ "chang": "$nen.chang.DAT_GAP", "soSuatMoi": 2, "personKeys": [], "suatMoCuaChang": [] }],
         "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:00"
       },
       "dap_an": { "quyet_dinh": "CHO_QUA", "ma_luat": [] }
+    },
+    {
+      "ma": "B10B-KHOA-DINH-SAU-KHI-DOI-GIO",
+      "mo_ta": "02:40 Bán hàng dời giờ xuất bến CX-3009-07 từ 05:50 ra 12:00 (dời giờ vẫn làm được), rồi xếp chặng 2 người CHƯA đặt gấp → vẫn cần Quản trị phá lệ: chuyến đã vào vùng 6 giờ thì giữ khoá (khoá dính — chủ trả lời lần 9, R-P6)",
+      "ham": "kiemXep",
+      "dau_vao": {
+        "chuyen": { "id": "cx-3009-07", "ma": "CX-3009-07", "trangThai": "PLANNED", "batDauMs": "2026-09-30 12:00", "batDauSomNhatMs": "2026-09-30 05:50", "soCho": 15, "tai": 12 },
+        "them": [{ "chang": "$nen.chang.THEM_2", "soSuatMoi": 2, "personKeys": [], "suatMoCuaChang": [] }],
+        "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 02:40"
+      },
+      "dap_an": { "quyet_dinh": "CAN_PHA_LE", "ma_luat": ["MOC_TOI_THIEU"] }
     },
     {
       "ma": "B11-VANG",
@@ -240,7 +251,7 @@
       "mo_ta": "Xếp Mường Thanh (không đặt gấp) vào chuyến cứu hộ 07:30 → cần Quản trị / Toàn quyền phá lệ mốc, lý do 'Sự cố vận hành' ([TK] §5.9 lượt 1)",
       "ham": "kiemXep",
       "dau_vao": {
-        "chuyen": { "id": "cx-3009-12", "ma": "CX-3009-12", "trangThai": "PLANNED", "batDauMs": "2026-09-30 07:30", "soCho": 45, "tai": 0 },
+        "chuyen": { "id": "cx-3009-12", "ma": "CX-3009-12", "trangThai": "PLANNED", "batDauMs": "2026-09-30 07:30", "batDauSomNhatMs": "2026-09-30 07:30", "soCho": 45, "tai": 0 },
         "them": [{ "chang": "$nen.chang.MUONG_THANH_DU_TEN", "soSuatMoi": 5, "personKeys": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "suatMoCuaChang": [] }],
         "chinhSach": "$nen.chinhSach", "bayGioMs": "2026-09-30 07:12"
       },

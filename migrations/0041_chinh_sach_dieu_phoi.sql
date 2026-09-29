@@ -11,7 +11,7 @@
 -- chung"). require_contract KHOÁ Ở 0 tới khi có ADR hợp đồng (ĐP7): mở phải bằng migration mới + ADR — không ai bật được trong app.
 CREATE TABLE vc_dispatch_policy (
   id                 TEXT PRIMARY KEY,
-  min_lead_minutes   INTEGER NOT NULL CHECK (min_lead_minutes BETWEEN 0 AND 2880),   -- mốc tối thiểu (phút); 0 = tắt mốc (giả định G2 — cài đặt của Toàn quyền)
+  min_lead_minutes   INTEGER NOT NULL CHECK (min_lead_minutes BETWEEN 1 AND 2880),   -- mốc tối thiểu (phút); KHÔNG tắt được (chủ trả lời lần 9, 29/9: "Không cho tắt" — muốn nới thì giảm con số)
   warn_lead_minutes  INTEGER NOT NULL CHECK (warn_lead_minutes BETWEEN 0 AND 1440),  -- cảnh báo sát mốc (phút) trên lịch chung (MQ-04)
   rest_minutes       INTEGER NOT NULL CHECK (rest_minutes BETWEEN 0 AND 480),        -- khoảng nghỉ tối thiểu giữa hai chuyến (CH-02)
   require_manifest   INTEGER NOT NULL CHECK (require_manifest IN (0, 1)),           -- bắt đủ danh sách hành khách mới xuất bến

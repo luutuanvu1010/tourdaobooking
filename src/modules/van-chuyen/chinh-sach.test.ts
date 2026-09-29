@@ -38,12 +38,13 @@ const loi = (r: { ok: boolean; message?: string }): string => {
   return String((r as { message: string }).message);
 };
 
-test("kiemChinhSachMoi: đủ bốn giá trị trong khoảng; mốc 0 được (tắt — G2); hợp đồng chỉ nhận false; không nhận ngày hiệu lực (I28); thiếu / sai kiểu → từ chối", () => {
+test("kiemChinhSachMoi: đủ bốn giá trị trong khoảng; mốc KHÔNG tắt được (> 0 — chủ trả lời lần 9, GA-5); hợp đồng chỉ nhận false; không nhận ngày hiệu lực (I28); thiếu / sai kiểu → từ chối", () => {
   const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true };
   assert.deepEqual(kiemChinhSachMoi(du), { ok: true, value: du });
-  assert.deepEqual(kiemChinhSachMoi({ ...du, minLeadMinutes: 0, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, requireContract: false }), {
-    ok: true, value: { minLeadMinutes: 0, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false },
+  assert.deepEqual(kiemChinhSachMoi({ ...du, minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, requireContract: false }), {
+    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false },
   });
+  assert.match(loi(kiemChinhSachMoi({ ...du, minLeadMinutes: 0 })), /không tắt được/, "mốc 0 bị từ chối với câu nói rõ");
   assert.match(loi(kiemChinhSachMoi({ ...du, requireContract: true })), /hợp đồng/i);
   for (const k of ["validFrom", "validFromAt", "valid_from_at", "hieuLucTu", "effectiveFrom"]) assert.match(loi(kiemChinhSachMoi({ ...du, [k]: "2026-01-01" })), /hiệu lực/, k);
   for (const [k, v] of [["minLeadMinutes", 2881], ["minLeadMinutes", -1], ["minLeadMinutes", 1.5], ["minLeadMinutes", "360"], ["warnLeadMinutes", 1441], ["restMinutes", 481], ["requireManifest", 1]] as const) {

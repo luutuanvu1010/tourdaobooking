@@ -101,7 +101,7 @@ test("xe: ngừng dùng → chặn; bảo dưỡng → cho lên kế hoạch (b�
   assert.deepEqual(ma(kiemTaoSuaChuyen(tao({ xe: xe({ trangThai: "retired" }) })).chan), ["XE_KHONG_DUNG"]);
   assert.equal(kiemTaoSuaChuyen(tao({ xe: xe({ trangThai: "maintenance" }) })).ok, true);
   const sua = tao({ xe: xe({ id: "xe-nho", soCho: 7 }), taiXe: taiXe("B") }, [], {
-    lenh: "SUA", cu: { batDauMs: BAT_DAU, xeId: "xe-a", taiXePartyId: "tx-an", trangThai: "PLANNED" }, taiTrenChuyen: 9,
+    lenh: "SUA", cu: { batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, xeId: "xe-a", taiXePartyId: "tx-an", trangThai: "PLANNED" }, taiTrenChuyen: 9,
   });
   assert.deepEqual(ai(kiemTaoSuaChuyen(sua).chan), ["VUOT_SO_CHO:VAN_PHONG"]);
 });
@@ -109,7 +109,7 @@ test("xe: ngừng dùng → chặn; bảo dưỡng → cho lên kế hoạch (b�
 test("mốc lúc xếp (Q2 = (a)): TẠO trong mốc không cần phá lệ; SỬA đổi xe / đổi tài xế trong mốc → cần phá lệ; sửa chuyến đã chạy → chặn", () => {
   const trongMoc = BAT_DAU - 200 * PHUT;
   assert.equal(kiemTaoSuaChuyen(tao({}, [], { bayGioMs: trongMoc })).ok, true, "tạo chuyến trong 6 giờ");
-  const cu = { batDauMs: BAT_DAU, xeId: "xe-a", taiXePartyId: "tx-cu", trangThai: "PLANNED" as const };
+  const cu = { batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, xeId: "xe-a", taiXePartyId: "tx-cu", trangThai: "PLANNED" as const };
   const doiTaiXe = kiemTaoSuaChuyen(tao({}, [], { lenh: "SUA", cu, bayGioMs: trongMoc }));
   assert.deepEqual(ai(doiTaiXe.canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"]);
   const doiXe = kiemTaoSuaChuyen(tao({ taiXe: taiXe() }, [], { lenh: "SUA", cu: { ...cu, xeId: "xe-cu", taiXePartyId: "tx-an" }, bayGioMs: trongMoc }));
@@ -130,7 +130,7 @@ const chang = (v: Partial<ChangVao> = {}): ChangVao => ({
 const suat = (v: Partial<SuatVao>): SuatVao => ({
   id: "s-x", tripId: "cx-07", loai: "PASSENGER", legId: "leg-1", personKey: null, crewPartyId: null, boardStopId: "d-1", alightStopId: "d-9", trangThai: "WAITING", mo: true, ...v,
 });
-const CX = { id: "cx-07", ma: "CX-3009-07", trangThai: "PLANNED" as const, batDauMs: BAT_DAU, soCho: 15, tai: 0 };
+const CX = { id: "cx-07", ma: "CX-3009-07", trangThai: "PLANNED" as const, batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, soCho: 15, tai: 0 };
 const xep = (them: Parameters<typeof kiemXep>[0]["them"], v: Partial<Parameters<typeof kiemXep>[0]> = {}) => kiemXep({ chuyen: CX, them, chinhSach: CS, bayGioMs: HOM_TRUOC, ...v });
 
 test("kiemXep: xếp 4 người (2 có tên, 2 chưa tên) của chặng đã xác nhận vào xe 15 chỗ → đạt", () => {
@@ -162,6 +162,36 @@ test("kiemXep mốc (ĐP2(ii), Q2 = (a)): trong 6 giờ, chặng chưa đặt g�
   assert.equal(xep([{ chang: chang({ datGap: true }), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { bayGioMs: trongMoc }).ok, true);
   assert.deepEqual(ma(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chuyen: { ...CX, trangThai: "RUNNING" } }).chan), ["CHUYEN_KHONG_CON_LEN_KE_HOACH"]);
   assert.deepEqual(ai(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chinhSach: null }).chan), ["CHINH_SACH_RONG:TOAN_QUYEN"]);
+});
+
+test("R-P6 khoá DÍNH — tái hiện chuỗi lách 3 bước (Q-A4-1, người kiểm giữa chừng): dời giờ xuất bến ra xa → đổi tài xế / xếp / rút / dời / huỷ có khách → dời về: bước 2 PHẢI bị chặn", () => {
+  const trongMoc = BAT_DAU - 200 * PHUT; // 02:30, chuyến 05:50 đã vào vùng 6 giờ
+  const doiRa = BAT_DAU + 8 * 3600e3; // 13:50
+  const goc = { batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, xeId: "xe-a", taiXePartyId: "tx-an", trangThai: "PLANNED" as const };
+  // Bước 1: CHỈ dời giờ xuất bến ra xa — vẫn làm được (chủ: "Bán hàng vẫn dời giờ được").
+  const b1 = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3 }, [], { lenh: "SUA", cu: goc, bayGioMs: trongMoc }));
+  assert.equal(b1.ok, true, JSON.stringify(b1));
+  // Sau bước 1 CSDL giữ giờ sớm nhất = MIN(05:50, 13:50) = 05:50 (cột của 0042 — A12).
+  const sauDoi = { ...goc, batDauMs: doiRa, batDauSomNhatMs: BAT_DAU };
+  // Bước 2a: đổi tài xế khi giờ HIỆN TẠI đã ở xa → vẫn cần phá lệ.
+  const b2 = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3, taiXe: taiXe("D1", null, { partyId: "tx-moi" }) }, [], { lenh: "SUA", cu: sauDoi, bayGioMs: trongMoc }));
+  assert.deepEqual(ai(b2.canPhaLe), ["MOC_TOI_THIEU:QUAN_TRI"], "đổi tài xế sau khi dời giờ ra xa vẫn bị khoá");
+  // Bước 2b: đổi xe — như trên.
+  const b2x = kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3, xe: xe({ id: "xe-khac" }) }, [], { lenh: "SUA", cu: sauDoi, bayGioMs: trongMoc }));
+  assert.deepEqual(ma(b2x.canPhaLe), ["MOC_TOI_THIEU"]);
+  // Bước 2c: xếp chặng CHƯA đặt gấp (và dời vào) vào chuyến đã dời ra xa → vẫn cần phá lệ; chặng đặt gấp vẫn qua.
+  const cxDoi = { ...CX, batDauMs: doiRa, batDauSomNhatMs: BAT_DAU };
+  for (const lenh of ["XEP", "DOI_DEN"] as const) {
+    assert.deepEqual(ma(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chuyen: cxDoi, bayGioMs: trongMoc, lenh }).canPhaLe), ["MOC_TOI_THIEU"], lenh);
+  }
+  assert.equal(xep([{ chang: chang({ datGap: true }), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chuyen: cxDoi, bayGioMs: trongMoc }).ok, true);
+  // Bước 3: dời giờ về lại — việc dời giờ không bị khoá (không có khoá mới nào cần).
+  const b3 = kiemTaoSuaChuyen(tao({}, [], { lenh: "SUA", cu: { ...sauDoi, taiXePartyId: "tx-an" }, bayGioMs: trongMoc }));
+  assert.equal(b3.ok, true, JSON.stringify(b3));
+  // Đối chứng: chuyến CHƯA BAO GIỜ vào vùng (giờ sớm nhất cũng 13:50) → đổi tài xế, xếp đều không cần phá lệ.
+  const xaTuDau = { ...goc, batDauMs: doiRa, batDauSomNhatMs: doiRa };
+  assert.equal(kiemTaoSuaChuyen(tao({ batDauMs: doiRa, ketThucMs: KET_THUC + 8 * 3600e3, taiXe: taiXe("D1", null, { partyId: "tx-moi" }) }, [], { lenh: "SUA", cu: xaTuDau, bayGioMs: trongMoc })).ok, true);
+  assert.equal(xep([{ chang: chang(), soSuatMoi: 1, personKeys: [], suatMoCuaChang: [] }], { chuyen: { ...CX, batDauMs: doiRa, batDauSomNhatMs: doiRa }, bayGioMs: trongMoc }).ok, true);
 });
 
 // ---- kiemXuatBen --------------------------------------------------------------------------------------------------------------------------------------------

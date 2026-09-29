@@ -27,7 +27,7 @@ export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<C
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
   const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract } = body;
-  if (!soNguyen(minLeadMinutes, 0, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 0 đến 2880 (0 = tắt mốc).");
+  if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
   if (!soNguyen(restMinutes, 0, 480)) return fail("Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến 480.");
   if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");

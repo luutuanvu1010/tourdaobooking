@@ -70,8 +70,11 @@ export interface KiemTaoSuaChuyenVao {
   lenh: "TAO" | "SUA";
   /** Trạng thái MỚI của chuyến (sau lệnh). `id` null khi tạo. */
   chuyen: { id: string | null; batDauMs: number; ketThucMs: number; xe: XeVao; taiXe: TaiXeVao | null; nghiPhaLe: boolean };
-  /** Trạng thái CŨ (bắt buộc khi SUA) — để biết lệnh có đổi xe / đổi tài xế không và xét mốc theo giờ sớm hơn của cũ / mới. */
-  cu?: { batDauMs: number; xeId: string; taiXePartyId: string | null; trangThai: TrangThaiChuyen };
+  /**
+   * Trạng thái CŨ (bắt buộc khi SUA) — để biết lệnh có đổi xe / đổi tài xế không và xét mốc theo giờ sớm nhất của: giờ SỚM NHẤT từng có (khoá dính —
+   * R-P6, `vc_trip` cột của A12), giờ cũ, giờ mới.
+   */
+  cu?: { batDauMs: number; batDauSomNhatMs: number; xeId: string; taiXePartyId: string | null; trangThai: TrangThaiChuyen };
   /** Số suất đang chiếm chỗ trên chuyến (khi sửa — đổi sang xe ít chỗ hơn). */
   taiTrenChuyen?: number;
   /** Các chuyến khác (mọi trạng thái; chuyến huỷ bị bỏ qua) để xét trùng giờ và khoảng nghỉ. */
@@ -114,14 +117,14 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
     if (lai.lyDo) chan.push(lai.lyDo);
     if (!khongCheo(c.xe, c.taiXe)) chan.push(lyDoGiu("CHEO_XE_TAI_XE"));
   }
-  // Mốc lúc xếp: chỉ khi SỬA mà đổi xe / đổi tài xế (Q2 = (a): tạo chuyến trong mốc không khoá). Giờ xét = sớm hơn của cũ / mới — không lách mốc bằng cách
-  // dời giờ trong CÙNG lệnh.
+  // Mốc lúc xếp: chỉ khi SỬA mà đổi xe / đổi tài xế (Q2 = (a): tạo chuyến trong mốc không khoá). Giờ xét = sớm nhất của cũ / mới / giờ sớm nhất từng có —
+  // không lách mốc bằng cách dời giờ trong CÙNG lệnh, cũng không bằng chuỗi lệnh "dời ra → đổi → dời về" (khoá dính R-P6). Dời giờ một mình không khoá.
   if (v.lenh === "SUA" && v.cu && v.chinhSach) {
-    const batDau = Math.min(v.cu.batDauMs, c.batDauMs);
+    const batDau = Math.min(v.cu.batDauMs, c.batDauMs, v.cu.batDauSomNhatMs ?? v.cu.batDauMs);
     const lenh: LenhXep[] = [];
     if (v.cu.xeId !== c.xe.id) lenh.push("DOI_XE");
     if (v.cu.taiXePartyId !== (c.taiXe?.partyId ?? null)) lenh.push("DOI_TAI_XE");
-    if (lenh.some((loai) => kiemMocXep({ batDauMs: batDau }, v.bayGioMs, v.chinhSach!.minLeadMinutes, { loai }).canPhaLe)) canPhaLe.push(lyDoGiu("MOC_TOI_THIEU"));
+    if (lenh.some((loai) => kiemMocXep({ batDauMs: batDau, batDauSomNhatMs: batDau }, v.bayGioMs, v.chinhSach!.minLeadMinutes, { loai }).canPhaLe)) canPhaLe.push(lyDoGiu("MOC_TOI_THIEU"));
   }
   return ketQua(khongTrung(chan), khongTrung(canPhaLe));
 }
@@ -137,7 +140,8 @@ export interface ThemVaoXe {
   suatMoCuaChang: SuatVao[];
 }
 export interface KiemXepVao {
-  chuyen: { id: string; ma: string; trangThai: TrangThaiChuyen; batDauMs: number; soCho: number; /** số suất đang chiếm chỗ */ tai: number };
+  /** `batDauSomNhatMs` = giờ xuất bến dự kiến SỚM NHẤT từng có (khoá dính R-P6 — cột `vc_trip` của A12). */
+  chuyen: { id: string; ma: string; trangThai: TrangThaiChuyen; batDauMs: number; batDauSomNhatMs: number; soCho: number; /** số suất đang chiếm chỗ */ tai: number };
   them: ThemVaoXe[];
   /** Người đi kèm (HDV, phụ xe — G9) mới xếp: chiếm chỗ như khách. */
   soNguoiDiKemMoi?: number;
@@ -167,7 +171,7 @@ export function kiemXep(v: KiemXepVao): KetQuaKiem {
       else if (daCo.has(p)) chan.push(lyDoGiu("NGUOI_DA_O_CHUYEN_KHAC", c.orderCode));
       daCo.add(p);
     }
-    if (v.chinhSach && kiemMocXep({ batDauMs: v.chuyen.batDauMs }, v.bayGioMs, v.chinhSach.minLeadMinutes, { loai: v.lenh ?? "XEP", datGap: c.datGap }).canPhaLe) {
+    if (v.chinhSach && kiemMocXep(v.chuyen, v.bayGioMs, v.chinhSach.minLeadMinutes, { loai: v.lenh ?? "XEP", datGap: c.datGap }).canPhaLe) {
       canPhaLe.push(lyDoGiu("MOC_TOI_THIEU", c.orderCode));
     }
   }

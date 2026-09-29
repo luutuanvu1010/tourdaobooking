@@ -36,14 +36,14 @@ try {
   assert.equal(r.status, 201, JSON.stringify(r.body));
   assert.equal(r.body.current.minLeadMinutes, 240);
   assert.ok(r.body.history.length >= 2, "bản cũ còn trong lịch sử");
-  for (const body of [{ ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }]) {
+  for (const body of [{ ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }, { ...GOC, minLeadMinutes: 0 }]) {
     const x = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", body);
     assert.equal(x.status, 400, `${JSON.stringify(body)}: ${JSON.stringify(x.body)}`);
   }
   const nk = await nhatKy("dispatch_policy_changed");
   assert.match(nk.detail, /mốc tối thiểu \d+ → 240 phút/);
   assert.equal(nk.order_id, null);
-  console.log("✓ chính sách: Toàn quyền thêm bản 240 phút → 201, hiệu lực ngay; ngày hiệu lực / hợp đồng bật → 400; nhật ký trước → sau");
+  console.log("✓ chính sách: Toàn quyền thêm bản 240 phút → 201, hiệu lực ngay; ngày hiệu lực / hợp đồng bật / mốc 0 (không tắt được) → 400; nhật ký trước → sau");
 
   // --- 3. Hạng bằng: D2 = 30 → dòng mới, dòng cũ còn; hạng lạ → 400 (khoá ngoại do D1 giữ) ---
   await cho();
@@ -95,11 +95,16 @@ try {
          VALUES ('e2e-hd-${duoi}', 360, 120, 30, 1, 1, '2099-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z', '2099-01-01T00:00:00.000Z')`),
     /CHECK constraint failed/,
   );
+  await assert.rejects(
+    sql(`INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at, updated_at)
+         VALUES ('e2e-moc0-${duoi}', 0, 120, 30, 1, 0, '2099-01-02T00:00:00.000Z', '2099-01-02T00:00:00.000Z', '2099-01-02T00:00:00.000Z')`),
+    /CHECK constraint failed/,
+  );
   await assert.rejects(sql("UPDATE vc_license_capacity SET max_passengers = 99"), /vc_policy_append_only/);
   await assert.rejects(sql(`UPDATE vc_departure_rule SET valid_to_at = '2099-01-01T00:00:00.000Z' WHERE id = '${dkXe}'`), /vc_departure_rule_close_once/);
   await assert.rejects(sql(`DELETE FROM vc_reason WHERE code = '${MA_LY_DO}'`), /vc_reason_no_delete/);
   await assert.rejects(sql(`UPDATE vc_reason SET reason_group = 'HUY_CHUYEN' WHERE code = '${MA_LY_DO}'`), /vc_reason_identity/);
-  console.log("✓ D1 local: sửa / xoá chính sách, bật hợp đồng, sửa hạng bằng, đóng điều kiện lần hai, xoá / đổi nhóm lý do — đều bị CSDL chặn");
+  console.log("✓ D1 local: sửa / xoá chính sách, bật hợp đồng, mốc 0, sửa hạng bằng, đóng điều kiện lần hai, xoá / đổi nhóm lý do — đều bị CSDL chặn");
 } finally {
   // Khôi phục cho kịch bản sau (bảng chỉ thêm → thêm dòng mang giá trị gieo; đóng điều kiện còn mở đã thêm).
   await cho();

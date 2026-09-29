@@ -134,10 +134,11 @@ test("(b) TC-1 chính sách điều phối CHỈ THÊM: UPDATE → RAISE, DELETE
   assert.throws(() => chinhSach(db, { tu: "2026-11-01T00:00:00.000Z" }), /UNIQUE constraint failed: vc_dispatch_policy\.valid_from_at/);
 });
 
-test("(d) khoảng giá trị ở CSDL: mốc 0…2880, cảnh báo 0…1440, nghỉ 0…480 phút; số khách tối đa 1…100 hoặc NULL (không giới hạn)", () => {
+test("(d) khoảng giá trị ở CSDL: mốc 1…2880 (KHÔNG cho tắt — chủ trả lời lần 9, GA-5), cảnh báo 0…1440, nghỉ 0…480 phút; số khách tối đa 1…100 hoặc NULL", () => {
   const db = all();
-  chinhSach(db, { min: 0, warn: 0, rest: 0 }); // G2: mốc 0 = tắt mốc — hợp lệ
+  chinhSach(db, { min: 1, warn: 0, rest: 0 });
   chinhSach(db, { min: 2880, warn: 1440, rest: 480 });
+  assert.throws(() => chinhSach(db, { min: 0 }), /CHECK constraint failed/, "mốc 0 (tắt mốc) bị CSDL chặn");
   assert.throws(() => chinhSach(db, { min: 2881 }), /CHECK constraint failed/);
   assert.throws(() => chinhSach(db, { min: -1 }), /CHECK constraint failed/);
   assert.throws(() => chinhSach(db, { warn: 1441 }), /CHECK constraint failed/);
