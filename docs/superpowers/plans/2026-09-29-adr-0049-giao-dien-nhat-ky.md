@@ -484,3 +484,9 @@ Bài học: không chạy `test:e2e` song song với lô Chrome (cùng máy, hai
 | `chuyen-smoke.mjs` | 8/8 (bước 1: danh sách nút nay có "Rút khỏi xe", "Chuyển sang xe khác" — sửa kỳ vọng) |
 
 Chưa gộp máy chủ mới (điều phối: đợi HEAD sau phần vá xoá đơn).
+
+### 13.6 Sau commit 5b (e2e6894)
+- Điều phối báo máy chủ `d9b884b` và yêu cầu gộp. Lệnh `git merge --no-ff d9b884b` **bị bộ duyệt quyền của phiên từ chối** ("Modify Shared Resources"). Lần chạy lại `goi-bao-smoke` + `dieu-phoi-smoke` + `cuoc-smoke` trên e2e6894 cũng bị từ chối. **Chưa gộp, chưa chạy lại** — chờ chủ / điều phối chạy hoặc cho phép.
+- Kết quả Chrome vòng 5 (goi-bao 7/7, cuoc 11/11, dieu-phoi 11/11) đo ở `1b82078`, TRƯỚC 5b. 5b đo `rut-doi` 8/8 và `chuyen` 8/8 trên cùng nội dung với e2e6894. Chưa có số đo ba kịch bản vòng 5 ở e2e6894.
+- Mã lỗi của lệnh chuyển: 409 trả `message` theo bảng `THONG_BAO_409` (`src/modules/van-chuyen/dieu-phoi-route.ts:31`, mặc định "Lệnh chưa làm được."), lý do theo `loiNhan` / `aiXuLyNhan` (tiếng Việt). Giao diện chỉ ghép hai trường này (`docLoiLenh`), không hiện `code` — không lộ mã. Ca Chrome riêng cho "hết chỗ" / "chéo xe – tài xế" vẫn là nợ.
+- Trigger `orders_no_delete` (a364b12): kịch bản của nhánh này không xoá `orders` (chỉ `vc_dispatch_policy` ở `moc-chua-co-smoke`, `order_item` ở trình trợ giúp chung `a2-cdp.mjs`). Chưa chạy thật sau gộp.
