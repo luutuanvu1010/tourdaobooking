@@ -242,3 +242,42 @@ test("TC-GB-9c: phạm vi danh sách nhắc theo NGÀY CHUYẾN — hôm nay + 1
     tat();
   }
 });
+
+// Kiểm độc lập K2a T2 — ADR-0051 bước 4: "requestId đã có dòng → 200, trả kết quả của LẦN ĐẦU". Phản hồi lệnh lặp dựng từ ĐÚNG dòng mốc mang requestId đó,
+// không đọc trạng thái mới nhất (lệnh khác chen vào giữa không làm đổi phản hồi lệnh lặp). GA-59: "Bỏ đánh dấu" chỉ khớp tuyệt đối khi giờ hẹn không đổi
+// thêm sau lần gọi báo và tập chuyến chở khách chờ không đổi (`moi`, `maChuyen` không nằm trong dòng mốc) — ca dưới giữ nguyên hai thứ đó.
+test("K2a T2: lệnh lặp 'Đã gọi báo' / 'Bỏ đánh dấu' (cùng requestId) trả ĐÚNG phản hồi lần đầu dù lệnh khác đã chen vào; không thêm dòng", async () => {
+  const tat = batDongHo();
+  try {
+    const w = khung();
+    const a = await chuyenSan(w);
+    await doiGio(w, a.don.id, "13:15");
+    const dem0 = () => dem(w, "SELECT count(*) n FROM vc_leg_appt_ack WHERE leg_id = ?", a.don.legId);
+    // A: "Đã gọi báo" R1 → lưu phản hồi lần đầu.
+    const r1 = uuid();
+    const lan1 = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/da-goi-bao`, { as: SALES, body: { requestId: r1, phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:15" } } });
+    assert.equal(lan1.status, 200, lan1.text);
+    assert.notEqual(lan1.json.daGoiBao, null);
+    // B chen vào: "Bỏ đánh dấu" R2 → lưu phản hồi lần đầu của R2.
+    denGio("06:05");
+    const r2 = uuid();
+    const lan2 = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/bo-danh-dau-goi-bao`, { as: SALES, body: { requestId: r2, phienBan: 2 } });
+    assert.equal(lan2.status, 200, lan2.text);
+    assert.notEqual(lan2.json.gioHenDoi, null);
+    const soDong = dem0();
+    // Gọi lại R1 → đúng phản hồi lần đầu (dấu "đã gọi báo" của dòng R1), không phải trạng thái hiện tại (mục đã hiện lại).
+    const lap1 = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/da-goi-bao`, { as: SALES, body: { requestId: r1, phienBan: 1, gioMoi: { ngay: NGAY, gio: "13:15" } } });
+    assert.equal(lap1.status, 200, lap1.text);
+    assert.deepEqual(lap1.json, lan1.json, "lệnh lặp R1 = phản hồi lần đầu");
+    // Chen tiếp: "Đã gọi báo" R3 → gọi lại R2 → đúng phản hồi lần đầu của "Bỏ đánh dấu".
+    denGio("06:10");
+    const r3 = uuid();
+    assert.equal((await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/da-goi-bao`, { as: SALES, body: { requestId: r3, phienBan: 3, gioMoi: { ngay: NGAY, gio: "13:15" } } })).status, 200);
+    const lap2 = await w.call("POST", `/api/van-chuyen/chang/${a.don.legId}/bo-danh-dau-goi-bao`, { as: SALES, body: { requestId: r2, phienBan: 2 } });
+    assert.equal(lap2.status, 200, lap2.text);
+    assert.deepEqual(lap2.json, lan2.json, "lệnh lặp R2 = phản hồi lần đầu");
+    assert.equal(dem0(), soDong + 1, "lệnh lặp không thêm dòng (chỉ R3 thêm)");
+  } finally {
+    tat();
+  }
+});

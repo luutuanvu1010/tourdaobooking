@@ -555,10 +555,14 @@ export async function mocByLegs(db: D1Database, legIds: readonly string[]): Prom
   if (legIds.length === 0) return [];
   return (await db.prepare(MOC_BY_LEGS).bind(JSON.stringify(legIds)).all<MocRow>()).results;
 }
-/** Lệnh lặp của họ lệnh mốc (cùng requestId → 200 kết quả hiện tại). */
-const MOC_BY_REQUEST = defineSql("van-chuyen", "moc_by_request", "SELECT id, leg_id FROM vc_leg_appt_ack WHERE request_id = ?1");
-export async function mocByRequest(db: D1Database, requestId: string): Promise<{ id: string; leg_id: string } | null> {
-  return db.prepare(MOC_BY_REQUEST).bind(requestId).first();
+const MOC_BY_REQUEST = defineSql(
+  "van-chuyen",
+  "moc_by_request",
+  "SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by FROM vc_leg_appt_ack WHERE request_id = ?1",
+);
+/** Dòng mốc do lệnh `requestId` ghi (DA_GOI / BO_DANH_DAU — dòng XEP không mang requestId): lệnh lặp dựng phản hồi TỪ dòng này (ADR-0051 bước 4, K2a T2). */
+export async function mocByRequest(db: D1Database, requestId: string): Promise<MocRow | null> {
+  return db.prepare(MOC_BY_REQUEST).bind(requestId).first<MocRow>();
 }
 /** Suất KHÁCH đang mở của các chặng (mọi chuyến) + mã / ngày / trạng thái chuyến — điều 1 của mục "Giờ hẹn đổi". */
 export interface SuatChangRow { leg_id: string; trip_id: string; code: string; service_date: string; trip_status: TripRow["status"]; status: AllocRow["status"] }
