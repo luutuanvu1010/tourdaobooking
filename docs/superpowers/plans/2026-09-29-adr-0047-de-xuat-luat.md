@@ -12,8 +12,10 @@
   - ADR-0047 A1 ("Lưu nháp… Chặng của đơn nháp bị xoá và chèn lại cùng lô") và A2 ("Đơn nháp: danh sách xoá–chèn lại cùng lô khi lưu nháp").
 - **Trạng thái:** **CHỜ CHỦ DUYỆT.**
   - Mục 1 và mục 3: mã của nhánh thi công mang sẵn (tiền lệ 1a), kèm chú thích "CHỜ CHỦ DUYỆT" tại chỗ, để test chạy được.
-  - Mục 2: chạm **Hiến chương 5.5** (đứng trên ADR) ⇒ chỉ đưa vào mã **sau khi chủ xác nhận Q0** (kế hoạch mục 13). Trong lúc chờ, chỉ hai câu `*_delete_draft`, danh sách `XOA_CUNG_NHAP` và lô lưu nháp (Task A9) đứng lại; phần khác đi tiếp.
+  - Mục 2: chạm **Hiến chương 5.5** (đứng trên ADR) ⇒ chỉ đưa vào mã **sau khi chủ xác nhận Q0** (kế hoạch mục 13). **Cập nhật 2026-09-29 (người thi công):** chủ đã trả lời Q0 trực tiếp phiên điều phối — nguyên văn **"Cách 1: chỉ giữ bản cuối"** (điều phối chuyển lại) ⇒ mã nhánh thi công mang `XOA_CUNG_NHAP` + hai câu `*_delete_draft` + lô lưu nháp, kèm chú thích "CHỜ CHỦ DUYỆT" (tệp đề xuất luật này, và phần sửa `docs/ARCHITECTURE.md` ở 2b/2c, **vẫn chờ chủ duyệt chính thức**).
+  - Mục 7 (**mới**, người thi công thêm 2026-09-29 ở Task A7): ngoại lệ có tên của bài R-N1-14 cho cột `ord_passenger.full_name` — kế hoạch chưa thấy va chạm này. Mã mang sẵn kèm "CHỜ CHỦ DUYỆT" như mục 1, 3.
   - **Không gộp `main` khi chưa duyệt.**
+  - **Lượt duyệt (`CLAUDE.md` §9 — tối đa 3 quyết định chạm quyền/dữ liệu):** nay có BỐN mục NỚI (1, 2, 3, 7). Mục 1 chủ đã chốt trong ADR-0047 (Q-AA); mục 2 chủ đã trả lời Q0. Điều phối xem có cần tách lượt không.
 - **Duyệt xong:**
   - mỗi tệp luật một commit, sửa đúng diff dưới đây;
   - đổi chú thích "CHỜ CHỦ DUYỆT" ở `src/architecture.test.ts` thành "đã duyệt <ngày>" (tiền lệ Ruling D21 của T2b).
@@ -27,6 +29,7 @@
 | 2 | Cho phép **xoá hẳn** chặng và tên khách **khi đơn còn nháp** (lưu nháp xoá rồi ghi lại, như dịch vụ hôm nay). Đơn đã xác nhận thì máy vẫn **cấm** xoá. Đây là một ngoại lệ hẹp của điều "không xoá cứng" trong Hiến chương | Phải đổi cách lưu đơn nháp (việc lớn hơn, cần quyết định mới) |
 | 3 | Cho phép tạm (có hạn) câu lệnh mới đọc sổ nhật ký để biết "lần lưu này có thắng không" — cách phần Đơn đang làm từ trước | Cần thêm một "cửa sổ" mới của sổ nhật ký cho phần Đơn đọc (thay đổi giữa hai phần, cần quyết định mới) |
 | 4 | Ghi ba điều trên vào tài liệu luật (`docs/ARCHITECTURE.md`, `src/CLAUDE.md`, có thể cả `CLAUDE.md`) cho khớp với máy | Tài liệu luật lệch với máy |
+| 7 | (**Mới**) Cột "họ tên hành khách" tên là `full_name` — trùng chữ với một cột bỏ đi của bảng nhân viên mà một hàng rào đang cấm nhắc tới. Xin cho **một tệp** (tệp câu lệnh của chặng/hành khách) được nhắc chữ này; bù lại có bài kiểm riêng bảo đảm câu lệnh đó không bao giờ đụng bảng nhân viên | Phải đổi tên cột (trái ADR-0047 bạn đã duyệt) hoặc bỏ hàng rào cũ |
 | 5 | (Chỉ để biết) các hàng rào **siết** thêm | — |
 | 6 | (Phát hành 2, soạn sau) | — |
 
@@ -58,6 +61,7 @@
 - ADR-0047 (đã duyệt) ghi rõ: chặng và danh sách khách của **đơn nháp** "xoá và chèn lại cùng lô" khi lưu nháp. Nó dẫn 5.5 là "không xoá cứng **sau xác nhận**".
 - ADR-0047 **không** gọi việc này là "lệch có chủ ý", mà cách dùng Hiến chương đòi điều đó ("muốn lệch khỏi một điều khoản phải có ADR ghi 'lệch có chủ ý' + chủ duyệt").
 - ⇒ **Duyệt mục này = chủ xác nhận đây là lệch có chủ ý, hẹp, của 5.5.** Câu hỏi Q0 của kế hoạch (mục 13) hỏi đúng điều này bằng lời thường.
+- **Câu trả lời Q0 (2026-09-29):** chủ trả lời trực tiếp phiên điều phối, nguyên văn **"Cách 1: chỉ giữ bản cuối"** — đơn NHÁP: chặng và danh sách khách xoá hẳn rồi chèn lại cùng lô khi lưu nháp; đơn đã xác nhận cấm xoá. Chủ đồng ý ghi rõ điều này trong Hiến chương; phần sửa `docs/ARCHITECTURE.md` (2b, 2c) vẫn đi qua tệp này, **chờ chủ duyệt tệp**. Điều phối chuyển lại câu trả lời cho người thi công (không phải lời duyệt tệp).
 
 **Vì sao chỉ hẹp như vậy:**
 - dòng của đơn nháp **chưa ai tham chiếu** (Vận chuyển chỉ xếp chặng của đơn đã xác nhận, ADR-0047 A1);
@@ -79,11 +83,11 @@
 
 ```diff
 -  if (isHardDelete(e.sql)) for (const w of writes) if (dict.tables.find((t) => t.name === w)?.legacy !== true) out.push(`xoá cứng bảng ${w} (R-N1-9: …)`);
-+  if (isHardDelete(e.sql) && !XOA_CUNG_NHAP.includes(`${e.module}.${e.name}`))
++  if (isHardDelete(e.sql) && !(useExceptions && XOA_CUNG_NHAP.includes(key)))
 +    for (const w of writes) if (dict.tables.find((t) => t.name === w)?.legacy !== true) out.push(`xoá cứng bảng ${w} (R-N1-9: …)`);
 ```
 
-- `violations` nhận thêm `name` (`Pick<SqlEntry, "module" | "name" | "sql">`).
+- `violations` nhận thêm `name` (tuỳ chọn) và `opts.exceptions` (mặc định bật; `false` dùng cho bài "ngoại lệ không thừa": câu trong danh sách PHẢI vi phạm khi tắt ngoại lệ). Mã thật ở nhánh thi công (Task A7) — diff trên là ý chính.
 - Bài kèm (siết, cùng commit):
   - (i) mỗi tên trong `XOA_CUNG_NHAP` đang đăng ký, và câu của nó chứa `status = 'draft'`;
   - (ii) bảng đích có trigger `<bảng>_no_delete` trong schema;
@@ -127,14 +131,26 @@ Dòng "Trạng thái" đầu `docs/ARCHITECTURE.md` thêm một vế: "bảng th
 + * NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 3. Quá hạn → đỏ.
 + * Gỡ khi: `orders` lên STRICT với lính gác qua view công bố của `audit`, hoặc ADR khác chọn cơ chế khác.
 + */
-+const DOC_AUDIT_LOG_WONGUARD = { han: "2027-03-31", ten: ["orders.leg_delete_draft", "orders.leg_insert_guarded", "orders.passenger_delete_draft", "orders.passenger_insert_guarded", "orders.service_mirror_update_guarded", "orders.leg_fill_date_on_confirm", "orders.order_touch_guarded", "orders.leg_update", "orders.leg_close", "orders.passenger_insert", "orders.passenger_void"] } as const;
++const DOC_AUDIT_LOG_WONGUARD = {
++  han: "2027-03-31",
++  ten: [
++    "orders.leg_delete_draft", "orders.leg_insert_guarded", "orders.leg_update_guarded", "orders.leg_close_guarded", "orders.passenger_delete_draft",
++    "orders.passenger_insert_guarded", "orders.passenger_void_guarded", "orders.order_touch_guarded", "orders.service_mirror_update_guarded",
++  ],
++} as const;
 ```
 
+- **Danh sách tên ĐÃ CHỐT ở Task A7 (2026-09-29, người thi công) — 9 tên**, mọi tên đều có lính gác. Khác bản dự thảo của kế hoạch:
+  - câu đầu lô (tự quyết thắng/thua, KHÔNG đọc `audit_log`) mang tên riêng và **không** vào danh sách: `orders.order_touch` (route thêm chặng, route hành khách), `orders.leg_update_checked` (route sửa chặng), `orders.leg_close_checked` (route đóng chặng);
+  - `orders.leg_fill_date_on_confirm` **không** vào danh sách: câu này phải chạy TRƯỚC câu đổi trạng thái (Ruling R4c — trigger xét lúc đổi), nên không đứng sau dòng nhật ký được; nó chỉ có điều kiện "đơn còn nháp", không đọc `audit_log`;
+  - `orders.leg_insert`, `orders.passenger_insert` (không lính gác) chỉ dùng khi LẬP đơn (lô mới hoàn toàn) — không vào danh sách;
+  - tên có lính gác đặt đuôi `_guarded` / `_draft`.
 - `violations` bỏ qua **đúng** vi phạm "đọc TRỰC TIẾP bảng audit_log" cho các tên trên; mọi vi phạm khác của cùng câu vẫn đỏ.
 - **Bài kèm (siết):**
   - hạn ≥ hôm nay (giờ VN) — quá hạn thì đỏ (khuôn `docs/quyen-hoan.json`);
-  - tên trong danh sách không còn đăng ký, hoặc không còn đọc `audit_log`, → đỏ ("ngoại lệ thừa").
-- **Hạn đề xuất `2027-03-31`** (khoảng 6 tháng). Chủ chốt ngày khác thì sửa một chuỗi. Danh sách tên chốt ở Task A7; người thi công sửa diff này cho khớp **trước** khi trình chủ.
+  - tên trong danh sách không còn đăng ký, hoặc không còn đọc `audit_log`, → đỏ ("ngoại lệ thừa");
+  - (thêm ở A7) mỗi câu trong danh sách nhắc `audit_log` ĐÚNG MỘT lần và ở ĐÚNG dạng lính gác `EXISTS (SELECT 1 FROM audit_log WHERE id = ?N)`.
+- **Hạn đề xuất `2027-03-31`** (khoảng 6 tháng). Chủ chốt ngày khác thì sửa một chuỗi.
 - **Lưu ý khi chốt danh sách:** một câu vừa dùng **có** lính gác (cùng lô, sau câu thắng) vừa dùng **không** lính gác (câu mở đầu của route 2, 3 — tự nó là câu `UPDATE` có điều kiện) phải tách thành **hai tên SQL**. Chỉ tên có lính gác vào danh sách; không thì bài "ngoại lệ thừa" đỏ với tên không đọc `audit_log`.
 
 **3b. `docs/ARCHITECTURE.md` Phần I, bảng thi hành dòng "5.3 Modular monolith"** — cột "Lệch hiện có" thêm:
@@ -185,5 +201,31 @@ Lý do: bẫy này dễ dính (khoá ngoại làm đổ cả lô lưu nháp) và
 ## Mục 6 — Phát hành 2 (người thi công Phần C điền ở Task C5)
 
 - `order_service.pickup_time/pickup_place` vào `deprecatedColumns` + bài "cột chết không được đọc" (quét chữ + EXPLAIN mức cột): **siết**, không cần duyệt riêng.
-- `0036` (trigger khoá cột cũ): **tuỳ chọn**, điều phối quyết (Ruling R11). Nếu làm, ghi ở đây kèm câu "sau khi áp, không lùi Worker về phát hành 1".
+- `0036` (trigger khoá cột cũ): **tuỳ chọn**, điều phối quyết (Ruling R11). Nếu làm, ghi ở đây kèm câu "sau khi áp, không lùi Worker về phát hành 1". **Điều phối chốt 2026-09-29: KHÔNG làm `0036`, trả số.**
 - Dòng `CLAUDE.md` §10 (mục 4d) sửa vế "phát hành 1 / phát hành 2" thành trạng thái thật.
+
+## Mục 7 — NỚI (mới, người thi công thêm ở Task A7, 2026-09-29): ngoại lệ có tên của bài R-N1-14 cho cột `ord_passenger.full_name`
+
+- **Bối cảnh:** bài R-N1-14 (`src/architecture.test.ts`, "không đọc staff.role / staff.full_name") quét MỌI tệp `src/**/*.ts` (trừ test) và `scripts/*.mjs`; dòng mã nào có chữ `\bfull_name\b` là đỏ, chỉ miễn hai tệp của `staff` (ghi hằng `''`). Mục đích: không ai đọc cột CHẾT `staff.full_name` (ADR-0005).
+- **Va chạm:** ADR-0047 A2 (đã duyệt) chốt tên cột họ tên hành khách là `ord_passenger.full_name`. Câu SQL của tệp nửa nghiêm (`src/modules/orders/chang-hanh-khach-repo.ts`) buộc phải nhắc chữ này (chèn, đọc) ⇒ bài R-N1-14 đỏ. Kế hoạch thi công chưa thấy va chạm này (ghi ở nhật ký A0 bước 10).
+- **Đề xuất (mã nhánh thi công mang sẵn, chú thích CHỜ CHỦ DUYỆT):**
+
+```diff
++/**
++ * NGOẠI LỆ CÓ TÊN của R-N1-14 (ADR-0047 A2): cột `ord_passenger.full_name` (họ tên hành khách — tên cột do ADR chốt) trùng TÊN với cột chết `staff.full_name`.
++ * Chỉ tệp SQL nửa nghiêm của orders được nhắc chữ `full_name`; bù lại: bài "câu SQL có full_name không chạm bảng staff" ở cuối tệp (EXPLAIN) + bài
++ * EXPLAIN của NUA_NGHIEM cấm tệp đó đọc thẳng bảng `staff`. NỚI hàng rào đã duyệt (Điều 9.4) — CHỜ CHỦ DUYỆT ở
++ * docs/superpowers/plans/2026-09-29-adr-0047-de-xuat-luat.md mục 7.
++ */
++const FULL_NAME_ORD_PASSENGER_FILES = new Set(["src/modules/orders/chang-hanh-khach-repo.ts"]);
+ test("R-N1-14: không đọc staff.role / staff.full_name; không SELECT * FROM staff", () => {
+-  const WRITE_ONLY_FILES = new Set(["src/modules/staff/repository.ts", "scripts/staff-lib.mjs"]);
++  const WRITE_ONLY_FILES = new Set(["src/modules/staff/repository.ts", "scripts/staff-lib.mjs", ...FULL_NAME_ORD_PASSENGER_FILES]);
+```
+
+- **Bù lại (siết, cùng commit):** bài mới "ngoại lệ R-N1-14": (i) tệp được miễn phải là tệp nửa nghiêm (có bài EXPLAIN) và phải còn nhắc `full_name` (không thừa); (ii) MỌI câu SQL đã đăng ký của `orders` có chữ `full_name` phải chạm `ord_passenger` và KHÔNG chạm bảng `staff` (EXPLAIN); (iii) chống bài rỗng. Mã TS không bao giờ gõ chữ `full_name`: câu đọc trả họ tên dưới bí danh `ten`. `scripts/audit-checks.mjs` (R-ORD-9/11) không cần cột này.
+- **P16 (2026-09-29):** bỏ ngoại lệ → `not ok 24 - R-N1-14 …` đỏ; cắm câu `SELECT full_name FROM staff` vào tệp nửa nghiêm → bài EXPLAIN đỏ + bài ngoại lệ đỏ (`orders.thu_fn: câu có full_name phải chạm ord_passenger`).
+
+| Nếu chủ KHÔNG duyệt mục 7 |
+|---|
+| (a) Đổi tên cột thành tên khác (vd `passenger_name`) — trái chữ của ADR-0047 A2, cần sửa ADR (chủ duyệt); **hoặc** (b) thu hẹp bài R-N1-14 thành "không đọc cột `full_name` của BẢNG `staff`" bằng EXPLAIN mức cột (như bài cột chết của phát hành 2) — cũng là đổi hàng rào, cần chủ duyệt. Cách đề xuất ở trên hẹp nhất. |
