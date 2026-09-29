@@ -320,3 +320,36 @@ test("hàng rào cổng quản trị: bộ bóc thấy các route cổng admin �
     assert.ok(hasAdminDenial(r.body), `${k} phải được nhận là có if (!can(…, "<ô quản trị>")) return …`);
   }
 });
+
+// ---- Luật (1c) — hàng rào 2 SIẾT cho cổng "staff" (ADR-0049 D3; kế hoạch Task A16, TC-37; ADR-0019 điều 6 câu thay) ------------------------------------------
+// Cổng "staff" chỉ đòi ĐĂNG NHẬP. Route nghiệp vụ ở cổng này (vd route tài xế `…/cuoc-cua-toi*`) PHẢI hỏi bảng quyền trong thân (can() / hàm trong GUARDS, dùng
+// kết quả) — đúng như ba cổng office / orders / admin. Ngoại lệ DUY NHẤT: route TỰ PHỤC VỤ đã có hôm nay (ảnh chụp 2026-09-30), mỗi mục một lý do ở
+// TU_PHUC_VU_STAFF. THÊM MỤC = NỚI hàng rào (Hiến pháp Điều 9.4) — đổi tệp này, người kiểm soi; route `/api/account/*` (SELF_SERVICE) luôn là tự phục vụ.
+const TU_PHUC_VU_STAFF: Record<string, string> = {
+  "GET /api/auth/me": "phiên đăng nhập của CHÍNH MÌNH (tên, quyền để màn chọn trang) — không dữ liệu người khác",
+  "GET /api/bang-tin": "bắt tay Bảng tin — chỉ nhận tin gửi cho CHÍNH MÌNH; nhãn nhận tin tính bằng can() trong hàm dựng nhãn (tat-ca / cho-nhan / nguoi:<mình>)",
+  "GET /api/feedback/mine": "góp ý / báo lỗi CỦA CHÍNH MÌNH (ADR-0038) — không đọc góp ý người khác",
+  "GET /api/locations": "tên địa điểm danh mục — không nhạy cảm, mọi tài khoản đăng nhập (kể cả người làm hiện trường) cần đọc",
+  "GET /api/thong-bao": "hộp thông báo gửi cho CHÍNH MÌNH (ADR-0034) — lọc theo người nhận ở câu SQL",
+  "GET /api/thong-bao/tom-tat": "số tin chưa đọc của CHÍNH MÌNH (ADR-0034)",
+  "GET /api/thong-bao/moi-nhat": "tin mới nhất gửi cho CHÍNH MÌNH — Web Push (ADR-0036)",
+};
+
+test("hàng rào 2 (1c — ADR-0049 D3): mọi route cổng staff KHÔNG thuộc TU_PHUC_VU_STAFF / tự phục vụ /api/account/* hỏi bảng quyền trong thân handler", () => {
+  const staff = routes.filter((r) => r.access === "staff");
+  assert.ok(staff.length >= 30, `chống bài rỗng: ${staff.length} route cổng staff`);
+  const thieu = staff
+    .filter((r) => !r.path.startsWith(SELF_SERVICE.prefix) && TU_PHUC_VU_STAFF[key(r.method, r.path)] === undefined && !r.guarded)
+    .map((r) => `${r.method} ${r.path} (${r.module})`);
+  assert.deepEqual(thieu, [], `Route nghiệp vụ cổng staff chỉ dựa "đã đăng nhập": ${thieu.join("; ")}. Gọi can(staff, "<ô>") trong thân và DÙNG kết quả.`);
+});
+
+test("hàng rào 2 (1c): TU_PHUC_VU_STAFF không thừa — mỗi mục là route cổng staff CÓ THẬT, KHÔNG gọi can() (đã hỏi bảng thì bỏ khỏi danh sách), có lý do", () => {
+  for (const [k, lyDo] of Object.entries(TU_PHUC_VU_STAFF)) {
+    const r = routes.find((x) => key(x.method, x.path) === k);
+    assert.ok(r, `TU_PHUC_VU_STAFF: ${k} không còn là route`);
+    assert.equal(r!.access, "staff", `${k}: không phải cổng staff`);
+    assert.equal(r!.guarded, false, `${k}: đã hỏi bảng quyền — bỏ khỏi danh sách ngoại lệ (siết)`);
+    assert.ok(lyDo.trim().length >= 20, `${k}: thiếu lý do`);
+  }
+});

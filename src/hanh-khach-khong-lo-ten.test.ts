@@ -9,6 +9,7 @@
 //       truyền `{ orderId: id, thayDoi: "…" }`.
 //   (5) Chống bài rỗng: GET /passengers CÓ tên; có nhật ký order_passenger_changed / order_leg_* để quét.
 // Chạy CẢ ứng dụng trên SQLite thật. Tên là tên GIẢ có đánh dấu, năm sinh hiếm, SĐT giả.
+// Bài thứ hai — KHỐI VAN-CHUYỂN (ADR-0049 Task A18, TC-39, TC-50): mô tả ở đầu khối, cuối tệp.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -17,6 +18,7 @@ import { maskSource } from "../scripts/source-mask-lib.mjs";
 import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { DRIVER, DRIVER2, NGAY, NGAY_SAU, batDongHo, denGio, don, setup, thanhTaiXe, uuid, xe } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
   const built = await esbuild.build({ entryPoints: [new URL(entry, import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
@@ -142,5 +144,270 @@ test("họ tên, năm sinh hành khách chỉ rời máy chủ ở GET/POST /pas
     const calls = [...code.slice(start, next === -1 ? code.length : next).matchAll(/baoThayDoi\(([^)]*)\)/g)].map((x) => x[1]!.trim());
     assert.equal(calls.length, 1, `${k}: đúng một lời gọi baoThayDoi`);
     assert.match(calls[0]!, /^\{ orderId: id, thayDoi: "(chuyen|sua)" \}$/, `${k}: Bảng tin chỉ mang id đơn + loại thay đổi`);
+  }
+});
+
+// ==== KHỐI VAN-CHUYỂN (ADR-0049 Task A18 bước 2 + 2b — kế hoạch mục 1.6–1.8, TC-39, TC-50) =================================================================
+//   (1) ĐỦ TUYẾN (siết): tập route thật của van-chuyen thuộc điều phối (lịch, chuyến, cuốc của tôi, chặng, nhắc gọi khách, chính sách điều phối) — lấy từ MÃ
+//       THẬT — phải BẰNG tập khoá của TUYEN_VC. Thêm route điều phối mới mà quên ca ở đây → đỏ (kể cả route 40 `cap-nhat-diem`, ba route gọi báo).
+//   (2) TÊN CHỈ Ở HAI ROUTE: họ tên / năm sinh (và khoá `hoTen`, `namSinh`) chỉ có trong thân GET /api/van-chuyen/chuyen/:id và GET /api/van-chuyen/cuoc-cua-toi/:id;
+//       mọi route khác (kể cả phản hồi lệnh ghi, lệnh tiến độ) KHÔNG. GET /cuoc-cua-toi/:id của chuyến NGOÀI ngày chạy không tên, không liên hệ.
+//   (3) NHẬT KÝ + mọi cột chữ của bảng `vc_*` không có tên / năm sinh đánh dấu.
+//   (4) [0050] TC-50: không DTO nào có khoá so sánh nơi (liệt kê khoá đệ quy); thân trả về + `audit_log` không có chuỗi `L:<id>` / `T:<hex>`; bản chụp, bản
+//       chốt không có cột khoá nơi. DTO tài xế không có khoá gọi báo (`gioHenDoi`, `daGoiBao`, `phienBan`).
+// SALES, SUP ở trên trùng giá trị với khung thử điều phối (tests/audit/dieu-phoi-khung.mjs).
+const TUYEN_VC_THAT = (await routesOf("./modules/van-chuyen/index.ts", "vanChuyenModule"))
+  .filter((k) => /^\/api\/van-chuyen\/(lich|chuyen|cuoc-cua-toi|chang|nhac-goi-khach|chinh-sach-dieu-phoi)(\/|$)/.test(k.split(" ")[1]!))
+  .sort();
+const TRA_TEN = ["GET /api/van-chuyen/chuyen/:id", "GET /api/van-chuyen/cuoc-cua-toi/:id"];
+const TEN_VC = ["Khách Dò Tìm 1", "Khách Dò Tìm 2", "Khách Dò Tìm 3"];
+const NAM_VC = /(^|[^0-9])(1911|1912|1913)([^0-9]|$)/;
+const KHOA_NOI_RE = /\b[LT]:[0-9a-f-]{8,}/;
+const KHOA_NOI_KEY = /^(khoaNoi\w*|placeKey|place_key)$/;
+const KHOA_GOI_BAO_KEY = /^(gioHenDoi|daGoiBao|phienBan)$/;
+const DRIVER3 = "66666666-6666-4666-8666-666666666669";
+const DRIVER4 = "66666666-6666-4666-8666-66666666666a";
+/** Mọi khoá (đệ quy) của một giá trị JSON. */
+function moiKhoa(x: unknown, ra = new Set<string>()): Set<string> {
+  if (Array.isArray(x)) for (const v of x) moiKhoa(v, ra);
+  else if (x !== null && typeof x === "object") for (const [k, v] of Object.entries(x)) { ra.add(k); moiKhoa(v, ra); }
+  return ra;
+}
+
+test("khối van-chuyen: đủ tuyến; tên hành khách chỉ ở GET /chuyen/:id + GET /cuoc-cua-toi/:id (trong ngày chạy); nhật ký + cột vc_* sạch; không khoá nơi (TC-39, TC-50)", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    seedStaff(w.sqlite, { id: DRIVER3, phone: "0900000036", name: "Tài Xế Ba", perms: ["DRIVER"] });
+    seedStaff(w.sqlite, { id: DRIVER4, phone: "0900000046", name: "Tài Xế Bốn", perms: ["DRIVER"] });
+    thanhTaiXe(w, `pty-${DRIVER3}`);
+    thanhTaiXe(w, `pty-${DRIVER4}`);
+    const than: { route: string; khoa: string; text: string; json: unknown }[] = [];
+    const goi = async (route: string, khoa: string, method: string, path: string, as: string, body?: unknown, mongDoi = 200) => {
+      const r = await w.call(method, path, { as, body });
+      assert.equal(r.status, mongDoi, `${khoa}: ${r.text}`);
+      than.push({ route, khoa, text: r.text, json: r.json });
+      return r.json;
+    };
+    const rid = () => uuid();
+    const ct = (id: string) => goi("GET /api/van-chuyen/chuyen/:id", "chi tiết (đọc version)", "GET", `/api/van-chuyen/chuyen/${id}`, SALES);
+    // Đơn (năm sinh đánh dấu 1911…): A, B chạy đủ tiến độ; C đổi giờ + nơi sau khi xếp; D, E kết thúc gián đoạn; F ngày mai.
+    const dA = await don(w, { soNguoi: 3, gio: "13:00", namSinh: 1911 });
+    const dB = await don(w, { soNguoi: 3, gio: "13:00", namSinh: 1911 });
+    const dC = await don(w, { soNguoi: 2, gio: "19:00", namSinh: 1911 });
+    const dD = await don(w, { soNguoi: 1, gio: "16:30", namSinh: 1911 });
+    const dE = await don(w, { soNguoi: 1, gio: "16:30", namSinh: 1911 });
+    const dF = await don(w, { soNguoi: 2, gio: "08:30", ngay: NGAY_SAU, namSinh: 1911 });
+    const T: Record<string, any> = {};
+    const S: Record<string, { don: string; tra: string; suat: string[] }> = {};
+    const R = "POST /api/van-chuyen/cuoc-cua-toi/:id"; // tiền tố route tài xế
+    const V = "POST /api/van-chuyen/chuyen/:id"; // tiền tố route văn phòng bấm thay
+
+    const TUYEN_VC: Record<string, () => Promise<void>> = {
+      "GET /api/van-chuyen/chinh-sach-dieu-phoi": async () => {
+        await goi("GET /api/van-chuyen/chinh-sach-dieu-phoi", "đọc chính sách", "GET", "/api/van-chuyen/chinh-sach-dieu-phoi", SUP);
+      },
+      "POST /api/van-chuyen/chinh-sach-dieu-phoi": async () => {
+        const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", {
+          as: SUP, body: { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180 },
+        });
+        assert.ok(r.status < 300, r.text);
+        than.push({ route: "POST /api/van-chuyen/chinh-sach-dieu-phoi", khoa: "lưu chính sách", text: r.text, json: r.json });
+      },
+      "POST /api/van-chuyen/chuyen": async () => {
+        const tao = async (k: string, taiXe: string, bd: string, kt: string, ngay = NGAY) => {
+          T[k] = await goi("POST /api/van-chuyen/chuyen", `tạo chuyến ${k}`, "POST", "/api/van-chuyen/chuyen", SALES, {
+            requestId: rid(), xeId: xe(w), taiXePartyId: `pty-${taiXe}`, batDau: { ngay, gio: bd }, ketThuc: { ngay, gio: kt },
+          }, 201);
+        };
+        await tao("A", DRIVER, "12:30", "15:00");
+        await tao("B", DRIVER2, "12:30", "15:00");
+        await tao("C", DRIVER3, "18:30", "20:00");
+        await tao("D", DRIVER, "16:00", "18:00");
+        await tao("E", DRIVER2, "16:00", "18:00");
+        await tao("F", DRIVER, "08:00", "10:00", NGAY_SAU);
+        await tao("G", DRIVER4, "18:30", "20:30");
+      },
+      "POST /api/van-chuyen/chuyen/:id/phan-bo": async () => {
+        for (const [k, d, n] of [["A", dA, 3], ["B", dB, 3], ["C", dC, 2], ["D", dD, 1], ["E", dE, 1], ["F", dF, 2]] as const) {
+          const c = await ct(T[k].chuyen.id);
+          const r = await goi("POST /api/van-chuyen/chuyen/:id/phan-bo", `xếp ${k}`, "POST", `/api/van-chuyen/chuyen/${T[k].chuyen.id}/phan-bo`, SALES, {
+            version: c.chuyen.version, requestId: rid(), chang: [{ legId: d.legId, soSuat: n }],
+          });
+          S[k] = { don: r.diem.find((x: any) => x.loai === "PICKUP").id, tra: r.diem.find((x: any) => x.loai === "DROPOFF").id, suat: r.suat.filter((s: any) => s.loai === "PASSENGER").map((s: any) => s.id) };
+        }
+      },
+      "PUT /api/van-chuyen/chuyen/:id": async () => {
+        const c = await ct(T.C.chuyen.id);
+        await goi("PUT /api/van-chuyen/chuyen/:id", "sửa chuyến C", "PUT", `/api/van-chuyen/chuyen/${T.C.chuyen.id}`, SALES, { version: c.chuyen.version, requestId: rid(), ketThuc: { ngay: NGAY, gio: "20:15" } });
+      },
+      "GET /api/van-chuyen/lich": async () => {
+        await goi("GET /api/van-chuyen/lich", "lịch chung", "GET", `/api/van-chuyen/lich?ngay=${NGAY}`, SALES);
+      },
+      "GET /api/van-chuyen/chuyen/:id": async () => {
+        // Suất xếp theo SỐ (chưa gắn người) chưa có tên tới lúc xuất bến gắn tên (I19b) — ca "CÓ tên" ở sau xuất bến B.
+        await ct(T.A.chuyen.id);
+      },
+      "GET /api/van-chuyen/cuoc-cua-toi": async () => {
+        await goi("GET /api/van-chuyen/cuoc-cua-toi", "danh sách cuốc", "GET", "/api/van-chuyen/cuoc-cua-toi", DRIVER);
+      },
+      "GET /api/van-chuyen/cuoc-cua-toi/:id": async () => {
+        const f = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id", "cuốc NGÀY MAI", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.F.chuyen.id}`, DRIVER);
+        const txt = JSON.stringify(f);
+        for (const t of TEN_VC) assert.ok(!txt.includes(t), `DTO ngoài ngày chạy lộ tên "${t}"`);
+        const k = moiKhoa(f);
+        assert.ok(!k.has("hoTen") && !k.has("namSinh") && !k.has("lienHe"), "DTO ngoài ngày chạy: không hoTen / namSinh / lienHe");
+        assert.equal(f.suat.length, 2, "chống bài rỗng: cuốc ngày mai có suất");
+      },
+      "POST /api/van-chuyen/chuyen/:id/cap-nhat-diem": async () => {
+        // Người lập đổi giờ (19:00 → 19:15, vẫn trong khung chuyến) + nơi đón chặng của đơn C → cập nhật điểm theo đơn.
+        const l = (await w.call("GET", `/api/orders/${dC.id}`, { as: SALES })).json.order.services[0].legs[0];
+        const sua = await w.call("PUT", `/api/orders/${dC.id}/legs/${l.id}`, {
+          as: SALES, body: { expectedUpdatedAt: l.updatedAt, leg: { direction: "OUT", pickupDate: NGAY, pickupTime: "19:15", pickupLocationId: null, pickupPlace: "Khách sạn Đổi Nơi", dropoffLocationId: l.dropoffLocationId, dropoffPlace: "" } },
+        });
+        assert.equal(sua.status, 200, sua.text);
+        const c = await ct(T.C.chuyen.id);
+        const r = await goi("POST /api/van-chuyen/chuyen/:id/cap-nhat-diem", "cập nhật điểm C", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/cap-nhat-diem`, SALES, { version: c.chuyen.version, requestId: rid() });
+        assert.equal(r.daCapNhat, 2, "chống bài rỗng: có suất được cập nhật");
+      },
+      "GET /api/van-chuyen/nhac-goi-khach": async () => {
+        const r = await goi("GET /api/van-chuyen/nhac-goi-khach", "nhắc gọi khách", "GET", "/api/van-chuyen/nhac-goi-khach", SALES);
+        assert.equal(r.muc.length, 1, "chống bài rỗng: có mục nhắc");
+      },
+      "POST /api/van-chuyen/chang/:legId/da-goi-bao": async () => {
+        await goi("POST /api/van-chuyen/chang/:legId/da-goi-bao", "đã gọi báo", "POST", `/api/van-chuyen/chang/${dC.legId}/da-goi-bao`, SALES, { requestId: rid(), phienBan: 1, gioMoi: { ngay: NGAY, gio: "19:15" } });
+      },
+      "POST /api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao": async () => {
+        await goi("POST /api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao", "bỏ đánh dấu", "POST", `/api/van-chuyen/chang/${dC.legId}/bo-danh-dau-goi-bao`, SALES, { requestId: rid(), phienBan: 2 });
+      },
+      "POST /api/van-chuyen/chuyen/:id/doi": async () => {
+        const c = await ct(T.C.chuyen.id);
+        const g = await ct(T.G.chuyen.id);
+        await goi("POST /api/van-chuyen/chuyen/:id/doi", "dời C → G", "POST", `/api/van-chuyen/chuyen/${T.C.chuyen.id}/doi`, SALES, {
+          version: c.chuyen.version, requestId: rid(), denChuyenId: T.G.chuyen.id, denVersion: g.chuyen.version, suatIds: c.suat.filter((s: any) => s.loai === "PASSENGER").map((s: any) => s.id),
+        });
+      },
+      "POST /api/van-chuyen/chuyen/:id/rut": async () => {
+        const g = await ct(T.G.chuyen.id);
+        assert.equal(g.suat.length, 2);
+        await goi("POST /api/van-chuyen/chuyen/:id/rut", "rút khỏi G", "POST", `/api/van-chuyen/chuyen/${T.G.chuyen.id}/rut`, SALES, { version: g.chuyen.version, requestId: rid(), suatIds: g.suat.map((s: any) => s.id) });
+      },
+      "POST /api/van-chuyen/chuyen/:id/huy": async () => {
+        const g = await ct(T.G.chuyen.id);
+        await goi("POST /api/van-chuyen/chuyen/:id/huy", "huỷ G", "POST", `/api/van-chuyen/chuyen/${T.G.chuyen.id}/huy`, SALES, { version: g.chuyen.version, requestId: rid(), lyDo: "HUY_KHAC" });
+      },
+      [`${R}/xuat-ben`]: async () => {
+        denGio("12:40");
+        await goi(`${R}/xuat-ben`, "tài xế xuất bến A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/xuat-ben`, DRIVER, { requestId: rid() });
+        // Trong ngày chạy, sau xuất bến: DTO tài xế CÓ tên (chống bài rỗng cho route thứ hai được trả tên).
+        const a = await goi("GET /api/van-chuyen/cuoc-cua-toi/:id", "cuốc A trong ngày", "GET", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}`, DRIVER);
+        assert.deepEqual(a.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: cuốc trong ngày chạy CÓ tên");
+      },
+      [`${V}/xuat-ben`]: async () => {
+        await goi(`${V}/xuat-ben`, "văn phòng xuất bến B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/xuat-ben`, SALES, { requestId: rid() });
+        const b = await ct(T.B.chuyen.id);
+        assert.deepEqual(b.suat.map((s: any) => s.hoTen).sort(), TEN_VC, "chống bài rỗng: chi tiết chuyến văn phòng CÓ tên");
+      },
+      [`${R}/thu-tu`]: async () => {
+        await goi(`${R}/thu-tu`, "tài xế đổi thứ tự A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/thu-tu`, DRIVER, { requestId: rid(), diem: [{ id: S.A!.tra, thuTu: 7 }] });
+      },
+      [`${V}/thu-tu`]: async () => {
+        await goi(`${V}/thu-tu`, "văn phòng đổi thứ tự B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/thu-tu`, SALES, { requestId: rid(), diem: [{ id: S.B!.tra, thuTu: 7 }] });
+      },
+      [`${R}/diem/:sid/da-toi`]: async () => {
+        denGio("12:58");
+        await goi(`${R}/diem/:sid/da-toi`, "tài xế tới điểm đón A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/diem/${S.A!.don}/da-toi`, DRIVER, { requestId: rid() });
+      },
+      [`${V}/diem/:sid/da-toi`]: async () => {
+        await goi(`${V}/diem/:sid/da-toi`, "văn phòng tới điểm đón B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/diem/${S.B!.don}/da-toi`, SALES, { requestId: rid() });
+      },
+      [`${R}/phan-bo/:aid/don`]: async () => {
+        await goi(`${R}/phan-bo/:aid/don`, "tài xế đã đón", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/phan-bo/${S.A!.suat[0]}/don`, DRIVER, { requestId: rid() });
+      },
+      [`${V}/phan-bo/:aid/don`]: async () => {
+        await goi(`${V}/phan-bo/:aid/don`, "văn phòng đã đón", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${S.B!.suat[0]}/don`, SALES, { requestId: rid() });
+      },
+      [`${R}/phan-bo/:aid/vang`]: async () => {
+        await goi(`${R}/phan-bo/:aid/vang`, "tài xế khách vắng", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/phan-bo/${S.A!.suat[1]}/vang`, DRIVER, { requestId: rid() });
+      },
+      [`${V}/phan-bo/:aid/vang`]: async () => {
+        await goi(`${V}/phan-bo/:aid/vang`, "văn phòng khách vắng", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${S.B!.suat[1]}/vang`, SALES, { requestId: rid() });
+      },
+      [`${R}/phan-bo/:aid/khach-huy`]: async () => {
+        await goi(`${R}/phan-bo/:aid/khach-huy`, "tài xế khách huỷ", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/phan-bo/${S.A!.suat[2]}/khach-huy`, DRIVER, { requestId: rid() });
+      },
+      [`${V}/phan-bo/:aid/khach-huy`]: async () => {
+        await goi(`${V}/phan-bo/:aid/khach-huy`, "văn phòng khách huỷ", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${S.B!.suat[2]}/khach-huy`, SALES, { requestId: rid() });
+      },
+      [`${R}/phan-bo/:aid/tra`]: async () => {
+        denGio("13:40");
+        await goi(`${R}/diem/:sid/da-toi`, "tài xế tới điểm trả A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/diem/${S.A!.tra}/da-toi`, DRIVER, { requestId: rid() });
+        await goi(`${R}/phan-bo/:aid/tra`, "tài xế đã trả", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/phan-bo/${S.A!.suat[0]}/tra`, DRIVER, { requestId: rid() });
+      },
+      [`${V}/phan-bo/:aid/tra`]: async () => {
+        await goi(`${V}/diem/:sid/da-toi`, "văn phòng tới điểm trả B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/diem/${S.B!.tra}/da-toi`, SALES, { requestId: rid() });
+        await goi(`${V}/phan-bo/:aid/tra`, "văn phòng đã trả", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/phan-bo/${S.B!.suat[0]}/tra`, SALES, { requestId: rid() });
+      },
+      [`${R}/ket-thuc`]: async () => {
+        await goi(`${R}/ket-thuc`, "tài xế kết thúc A", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.A.chuyen.id}/ket-thuc`, DRIVER, { requestId: rid() });
+      },
+      [`${V}/ket-thuc`]: async () => {
+        await goi(`${V}/ket-thuc`, "văn phòng kết thúc B", "POST", `/api/van-chuyen/chuyen/${T.B.chuyen.id}/ket-thuc`, SALES, { requestId: rid() });
+      },
+      [`${R}/ket-thuc-gian-doan`]: async () => {
+        denGio("16:10");
+        await goi(`${R}/xuat-ben`, "tài xế xuất bến D", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.D.chuyen.id}/xuat-ben`, DRIVER, { requestId: rid() });
+        await goi(`${R}/ket-thuc-gian-doan`, "tài xế kết thúc gián đoạn D", "POST", `/api/van-chuyen/cuoc-cua-toi/${T.D.chuyen.id}/ket-thuc-gian-doan`, DRIVER, { requestId: rid(), lyDo: "GIAN_DOAN_XE_HONG" });
+      },
+      [`${V}/ket-thuc-gian-doan`]: async () => {
+        await goi(`${V}/xuat-ben`, "văn phòng xuất bến E", "POST", `/api/van-chuyen/chuyen/${T.E.chuyen.id}/xuat-ben`, SALES, { requestId: rid() });
+        await goi(`${V}/ket-thuc-gian-doan`, "văn phòng kết thúc gián đoạn E", "POST", `/api/van-chuyen/chuyen/${T.E.chuyen.id}/ket-thuc-gian-doan`, SALES, { requestId: rid(), lyDo: "GIAN_DOAN_XE_HONG" });
+      },
+    };
+
+    // (1) ĐỦ TUYẾN
+    assert.deepEqual(Object.keys(TUYEN_VC).sort(), TUYEN_VC_THAT, "mỗi route điều phối thật của van-chuyen phải có ca ở TUYEN_VC (và ngược lại)");
+    for (const k of Object.keys(TUYEN_VC)) await TUYEN_VC[k]!();
+    assert.deepEqual([...new Set(than.map((t) => t.route))].sort(), TUYEN_VC_THAT, "mọi route đã thật sự được gọi (thân được quét)");
+
+    // (2) TÊN CHỈ Ở HAI ROUTE
+    for (const t of than) {
+      if (TRA_TEN.includes(t.route)) continue;
+      for (const ten of TEN_VC) assert.ok(!t.text.includes(ten), `thân "${t.khoa}" (${t.route}) lộ tên "${ten}"`);
+      const k = moiKhoa(t.json);
+      assert.ok(!k.has("hoTen") && !k.has("namSinh"), `thân "${t.khoa}" (${t.route}) có khoá hoTen / namSinh`);
+    }
+    for (const r of TRA_TEN) assert.ok(than.some((t) => t.route === r && t.text.includes(TEN_VC[0]!)), `chống bài rỗng: ${r} CÓ tên`);
+
+    // (3) NHẬT KÝ + cột chữ vc_* — mọi cột, bỏ mã UUID.
+    const nhatKy = JSON.stringify(w.q("SELECT * FROM audit_log")).replace(UUID, "");
+    for (const ten of TEN_VC) assert.ok(!nhatKy.includes(ten), `nhật ký lộ tên "${ten}"`);
+    assert.doesNotMatch(nhatKy, NAM_VC, "nhật ký lộ năm sinh");
+    const soDong = w.q("SELECT count(*) n FROM audit_log WHERE action LIKE 'trip_%'")[0].n;
+    assert.ok(soDong >= 30, `chống bài rỗng: có nhật ký chuyến để quét (${soDong})`);
+    const bangVc = w.q("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'vc\\_%' ESCAPE '\\'").map((r: any) => r.name as string);
+    assert.ok(bangVc.includes("vc_trip_allocation") && bangVc.includes("vc_trip_manifest") && bangVc.includes("vc_leg_appt_ack"), "chống bài rỗng: có bảng chuyến");
+    for (const b of bangVc) {
+      const txt = JSON.stringify(w.q(`SELECT * FROM ${b}`)).replace(UUID, "");
+      for (const ten of TEN_VC) assert.ok(!txt.includes(ten), `bảng ${b} chứa tên "${ten}"`);
+      assert.doesNotMatch(txt, NAM_VC, `bảng ${b} chứa năm sinh`);
+    }
+
+    // (4) TC-50 — khoá nơi
+    for (const t of than) {
+      assert.doesNotMatch(t.text, KHOA_NOI_RE, `thân "${t.khoa}" (${t.route}) có chuỗi khoá nơi`);
+      const k = [...moiKhoa(t.json)];
+      assert.deepEqual(k.filter((x) => KHOA_NOI_KEY.test(x)), [], `thân "${t.khoa}" (${t.route}) có khoá so sánh nơi`);
+      if (t.route.includes("/cuoc-cua-toi")) assert.deepEqual(k.filter((x) => KHOA_GOI_BAO_KEY.test(x)), [], `DTO tài xế "${t.khoa}" có khoá gọi báo`);
+    }
+    assert.doesNotMatch(JSON.stringify(w.q("SELECT * FROM audit_log")), KHOA_NOI_RE, "nhật ký có chuỗi khoá nơi (L:<id> / T:<hex>)");
+    assert.ok(w.q("SELECT count(*) n FROM vc_trip_stop WHERE place_key GLOB 'T:*'")[0].n >= 1 && w.q("SELECT count(*) n FROM vc_trip_stop WHERE place_key GLOB 'L:*'")[0].n >= 1, "chống bài rỗng: có khoá T: và L: để dò");
+    for (const b of ["vc_trip_departure_check", "vc_trip_departure_check_item", "vc_trip_manifest"]) {
+      const cot = w.q(`PRAGMA table_info(${b})`).map((r: any) => r.name as string);
+      assert.ok(cot.length > 0, `bảng ${b} tồn tại`);
+      assert.deepEqual(cot.filter((c: string) => /place|khoa/i.test(c)), [], `bản chụp / bản chốt ${b} không có cột khoá nơi`);
+    }
+  } finally {
+    tat();
   }
 });

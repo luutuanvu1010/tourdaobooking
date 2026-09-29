@@ -85,6 +85,7 @@ r = await call(TX.cookie, "POST", `/api/van-chuyen/cuoc-cua-toi/${id}/xuat-ben`,
 assert.equal(r.status, 200, JSON.stringify(r.body));
 assert.equal(r.body.chuyen.trangThai, "RUNNING");
 assert.equal(r.body.trongNgayChay, true, "đang chạy → trong ngày chạy");
+assert.ok(r.body.suat.length > 0 && r.body.suat.every((s) => !("hoTen" in s) && !("namSinh" in s)) && !("lienHe" in r.body), "phản hồi lệnh tiến độ không kèm tên / liên hệ (TC-39 — chỉ GET chi tiết)");
 const [e] = await sqlRows(`SELECT occurred_source, occurred_at, created_at FROM vc_trip_event WHERE trip_id = '${id}' AND kind = 'DEPARTED'`);
 assert.deepEqual([e.occurred_source, e.occurred_at], ["MAY_CHU", e.created_at]);
 r = await call(TX.cookie, "GET", `/api/van-chuyen/cuoc-cua-toi/${id}`);

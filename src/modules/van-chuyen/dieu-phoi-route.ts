@@ -134,7 +134,7 @@ export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)
  * `can(trip.view)` — R-P1: `trip.view = any` ⇒ `contact.view = any`. Nhãn người bấm qua hàm tiêm (R-P20 — một lần cho cả danh sách id).
  */
 export async function chiTietChuyen(
-  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[],
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[], kemTen: boolean,
   nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, quyenGoiBao: QuyenGoiBao, bayGioMs: number, chung?: DuLieuChung,
 ): Promise<ChuyenChiTietResponse> {
   const nowIso = new Date(bayGioMs).toISOString();
@@ -154,7 +154,8 @@ export async function chiTietChuyen(
   const nguoiIds = [...new Set([...nen.events.flatMap((e) => (e.created_by ? [e.created_by] : [])), ...nguoiBamGoiBao(dGoiBao)])];
   const nhan = await nhanNhanVien(nguoiIds);
   const ten = new Map<string, { fullName: string; birthYear: number }>();
-  for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
+  // Họ tên + năm sinh CHỈ ở GET /chuyen/:id (kế hoạch mục 1.8, TC-39 — "đúng hai route van-chuyen trả tên"): phản hồi lệnh ghi không kèm tên (màn tải lại chi tiết).
+  if (kemTen) for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
   const lyDoNhan = new Map(c.lyDo.map((r) => [r.code, r.label]));
   const xeRow = c.xe.find((x) => x.id === t.vehicle_id);
   return {

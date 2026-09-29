@@ -7,12 +7,14 @@
 //       đánh dấu của NGƯỜI (giấy tờ xe hiện đủ số — không phải dữ liệu cá nhân). Nơi cấp được hiện ở danh sách giấy tờ, KHÔNG ở nhật ký.
 //   (4) Chống bài rỗng: thân "xem đủ số" CÓ đúng số.
 // Chạy CẢ ứng dụng trên SQLite thật (tests/audit/harness.mjs). Mọi số ở đây là số GIẢ, đánh dấu để dò.
+// Bài thứ hai (ADR-0049 Task A18 bước 1): ba route điều phối — GET /chuyen/:id, GET /cuoc-cua-toi/:id, POST …/xuat-ben — thêm luật quét NƠI CẤP (cuối tệp).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import * as esbuild from "esbuild";
 import type { AppModule } from "./shared/router.ts";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { world, seedStaff } from "../tests/audit/harness.mjs";
+import { DRIVER, DRIVER2, SALES, batDongHo, denGio, don, setup, taoChuyen, uuid, xe, xepHet } from "../tests/audit/dieu-phoi-khung.mjs";
 
 async function routesOf(entry: string, exportName: string): Promise<string[]> {
   const built = await esbuild.build({ entryPoints: [new URL(entry, import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false });
@@ -153,4 +155,92 @@ test("số giấy tờ của người chỉ rời máy chủ ở 'xem đủ số
 
   // (4) "xem đủ số" có đúng số.
   assert.ok(lanXemSo.includes(SO_CCCD_MOI), "thân 'xem đủ số' phải có số đầy đủ");
+});
+
+// ==== BA ROUTE ĐIỀU PHỐI (ADR-0049 Task A18 bước 1 — kế hoạch mục 1.6): GET /chuyen/:id, GET /cuoc-cua-toi/:id, POST …/xuat-ben ===============================
+// Tài xế + xe có số giấy tờ đánh dấu, chuyến có ĐIỀU KIỆN giấy tờ (khám sức khoẻ tài xế, phù hiệu xe) — một chuyến đủ (xuất bến ĐẠT), một chuyến thiếu (xuất bến
+// bị chặn, DTO kể "còn thiếu"). Thân trả về của ba route: không số của NGƯỜI (mọi dạng), KHÔNG NƠI CẤP (luật quét thêm — phần (3) ở trên chỉ quét số);
+// nhật ký + bản chụp xuất bến (`vc_trip_departure_check*`): không số (người lẫn xe), không nơi cấp.
+const SO_CCCD_TX = "079444333222";
+const SO_SK_TX = "SK444333222";
+const SO_CCCD_TX2 = "079444333221";
+const SO_PHU_HIEU = "PH-DANHDAU-7";
+const NOI_TX = "NOI CAP TAI XE DANH DAU";
+/** Số GPLX + nơi cấp khung thử gieo (tests/audit/dieu-phoi-khung.mjs `thanhTaiXe`): tài xế thứ nhất / thứ hai. */
+const SO_GPLX_KHUNG = ["791100000001", "791100000002"];
+const NOI_KHUNG = "Nơi cấp Dò Tìm";
+
+test("ba route điều phối (chi tiết chuyến, cuốc của tôi, xuất bến): thân không số của người, KHÔNG NƠI CẤP; nhật ký + bản chụp không số, không nơi cấp", async () => {
+  const tat = batDongHo();
+  try {
+    const w = setup();
+    const P1 = `pty-${DRIVER}`;
+    const P2 = `pty-${DRIVER2}`;
+    for (const [p, body] of [
+      [P1, { typeCode: "CCCD", number: SO_CCCD_TX, issuedPlace: NOI_TX, expiryDate: "2035-01-01" }],
+      [P1, { typeCode: "HEALTH_CHECK", number: SO_SK_TX, issuedPlace: NOI_TX, expiryDate: "2030-01-01" }],
+      [P2, { typeCode: "CCCD", number: SO_CCCD_TX2, issuedPlace: NOI_TX, expiryDate: "2035-01-01" }],
+    ] as const) {
+      const r = await w.call("POST", `/api/parties/${p}/documents`, { as: SUP, body });
+      assert.equal(r.status, 201, r.text);
+    }
+    for (const body of [{ minCapacity: 10, subject: "DRIVER", documentTypeCode: "HEALTH_CHECK" }, { minCapacity: 10, subject: "VEHICLE", documentTypeCode: "CONTRACT_BADGE" }]) {
+      const r = await w.call("POST", "/api/van-chuyen/dieu-kien", { as: SUP, body });
+      assert.ok(r.status < 300, r.text);
+    }
+    const xeDu = xe(w);
+    const ph = await w.call("POST", `/api/van-chuyen/xe/${xeDu}/giay-to`, { as: ADM, body: { typeCode: "CONTRACT_BADGE", number: SO_PHU_HIEU, expiryDate: "2030-01-01" } });
+    assert.equal(ph.status, 201, ph.text);
+    // Chuyến A đủ điều kiện (tài xế một có khám sức khoẻ, xe có phù hiệu); chuyến B thiếu cả hai (tài xế hai, xe không phù hiệu).
+    const dA = await don(w, { soNguoi: 2, gio: "13:00" });
+    const dB = await don(w, { soNguoi: 2, gio: "13:00" });
+    const A = await taoChuyen(w, { xe: xeDu, taiXe: P1 });
+    const B = await taoChuyen(w, { xe: xe(w), taiXe: P2 });
+    await xepHet(w, A, dA, 2);
+    await xepHet(w, B, dB, 2);
+
+    const than: { khoa: string; text: string }[] = [];
+    const goi = async (khoa: string, method: string, path: string, as: string, body?: unknown) => {
+      const r = await w.call(method, path, { as, body });
+      than.push({ khoa, text: r.text });
+      return r;
+    };
+    for (const [k, t] of [["A", A], ["B", B]] as const) {
+      assert.equal((await goi(`chi tiết chuyến ${k}`, "GET", `/api/van-chuyen/chuyen/${t.chuyen.id}`, SALES)).status, 200);
+      assert.equal((await goi(`chi tiết chuyến ${k} (Toàn quyền)`, "GET", `/api/van-chuyen/chuyen/${t.chuyen.id}`, SUP)).status, 200);
+    }
+    const cuocB = await goi("cuốc B (thiếu)", "GET", `/api/van-chuyen/cuoc-cua-toi/${B.chuyen.id}`, DRIVER2);
+    assert.equal(cuocB.status, 200, cuocB.text);
+    assert.ok(cuocB.json.dieuKienConThieu.length >= 2, `chống bài rỗng: cuốc thiếu điều kiện kể "còn thiếu" — ${cuocB.text}`);
+    denGio("12:40");
+    const xbB = await goi("xuất bến B (thiếu — tài xế)", "POST", `/api/van-chuyen/cuoc-cua-toi/${B.chuyen.id}/xuat-ben`, DRIVER2, { requestId: uuid() });
+    assert.equal(xbB.status, 409, `chống bài rỗng: thiếu điều kiện → xuất bến bị chặn — ${xbB.text}`);
+    const xbB2 = await goi("xuất bến B (thiếu — văn phòng)", "POST", `/api/van-chuyen/chuyen/${B.chuyen.id}/xuat-ben`, SALES, { requestId: uuid() });
+    assert.equal(xbB2.status, 409, xbB2.text);
+    const xbA = await goi("xuất bến A (đủ)", "POST", `/api/van-chuyen/cuoc-cua-toi/${A.chuyen.id}/xuat-ben`, DRIVER, { requestId: uuid() });
+    assert.equal(xbA.status, 200, xbA.text);
+    assert.equal((await goi("cuốc A sau xuất bến", "GET", `/api/van-chuyen/cuoc-cua-toi/${A.chuyen.id}`, DRIVER)).status, 200);
+    assert.equal((await goi("chi tiết A sau xuất bến", "GET", `/api/van-chuyen/chuyen/${A.chuyen.id}`, SALES)).status, 200);
+    const chup = w.q("SELECT id, ket_qua FROM vc_trip_departure_check WHERE trip_id = ?", A.chuyen.id);
+    assert.deepEqual(chup.map((c: any) => c.ket_qua), ["DAT"]);
+    const muc = w.q("SELECT * FROM vc_trip_departure_check_item WHERE check_id = ?", chup[0].id);
+    assert.ok(muc.length >= 5, `chống bài rỗng: bản chụp có GPLX + khám sức khoẻ + Kiểm định + Bảo hiểm + phù hiệu (${muc.length})`);
+
+    const soNguoi = [SO_CCCD_TX, SO_SK_TX, SO_CCCD_TX2, ...SO_GPLX_KHUNG].flatMap((s) => [s, s.slice(0, 8), s.slice(-8)]);
+    const noiCap = [NOI_TX, NOI_KHUNG];
+    // Thân của ba route: không số người, không nơi cấp.
+    for (const t of than) {
+      for (const s of soNguoi) assert.ok(!t.text.includes(s), `thân "${t.khoa}" lộ số "${s}"`);
+      for (const n of noiCap) assert.ok(!t.text.includes(n), `thân "${t.khoa}" lộ nơi cấp "${n}"`);
+    }
+    // Nhật ký + bản chụp: không số (người lẫn xe), không nơi cấp; bỏ dấu cách / chấm / gạch cũng không có.
+    for (const [ten, dl] of [["nhật ký", w.q("SELECT * FROM audit_log")], ["bản chụp xuất bến", [...w.q("SELECT * FROM vc_trip_departure_check"), ...w.q("SELECT * FROM vc_trip_departure_check_item")]]] as const) {
+      const txt = JSON.stringify(dl);
+      const gon = txt.replace(/[\s.\-]/g, "");
+      for (const s of [...soNguoi, SO_PHU_HIEU, "DANHDAU"]) assert.ok(!txt.includes(s) && !gon.includes(s.replace(/[\s.\-]/g, "")), `${ten} lộ số "${s}"`);
+      for (const n of noiCap) assert.ok(!txt.includes(n), `${ten} lộ nơi cấp "${n}"`);
+    }
+  } finally {
+    tat();
+  }
 });

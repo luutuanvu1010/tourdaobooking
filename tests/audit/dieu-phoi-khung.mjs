@@ -79,7 +79,8 @@ export function setup(tuyChon = {}) {
   return w;
 }
 
-/** Đơn ĐÃ XÁC NHẬN (Bán hàng) — `soNguoi` người lớn, một chặng chiều đi đón `gio` ngày `ngay` tại chữ tự do, trả ở bến (điểm danh mục); `ten` khách có tên. */
+/** Đơn ĐÃ XÁC NHẬN (Bán hàng) — `soNguoi` người lớn, một chặng chiều đi đón `gio` ngày `ngay` tại chữ tự do, trả ở bến (điểm danh mục); `ten` khách có tên
+ * "Khách Dò Tìm <i>", năm sinh `namSinh` + i (mặc định 1990). */
 export async function don(w, v) {
   const soNguoi = v.soNguoi ?? 2;
   const r = await w.call("POST", "/api/orders", {
@@ -91,7 +92,7 @@ export async function don(w, v) {
         kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
         legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio ?? "13:00", pickupLocationId: null, pickupPlace: v.noiDon ?? "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],
       }],
-      passengers: Array.from({ length: v.ten ?? soNguoi }, (_x, i) => ({ fullName: `Khách Dò Tìm ${i + 1}`, birthYear: 1990 + i, paxCode: "adult" })),
+      passengers: Array.from({ length: v.ten ?? soNguoi }, (_x, i) => ({ fullName: `Khách Dò Tìm ${i + 1}`, birthYear: (v.namSinh ?? 1990) + i, paxCode: "adult" })),
     },
   });
   assert.equal(r.status, 201, r.text);

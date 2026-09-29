@@ -503,3 +503,23 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **Bài học chờ phiên khác:** trước hai lần e2e, `cho_wrangler.mjs` thấy 10–20 tiến trình wrangler / workerd của PHIÊN KHÁC (cổng 62417, 63298…) — đã CHỜ tới khi sạch (17 và 11 vòng 5 giây) rồi mới chạy.
 - **Nợ / câu hỏi:** Q-A15-1 (R-VC-4 với suất chưa tên) còn chờ; A17 phải định nghĩa R-VC-6 theo DANH SÁCH hành động có cặp sự kiện (không phải "mọi `trip_*`") — `trip_appt_called`, `trip_appt_call_undone`, `trip_reason_*` không có `vc_trip_event` (lời advisor, ghi trước để A17 không đỏ oan).
 
+### 10.20 A16 — Hàng rào 2 siết cho cổng `staff` (TC-37)
+
+- `src/route-write-guard.test.ts` thêm luật (1c) + bài "không thừa". Đỏ trước (chưa điền danh sách): đúng 7 route — `GET /api/auth/me`, `/api/bang-tin`, `/api/feedback/mine`, `/api/locations`, `/api/thong-bao`, `/tom-tat`, `/moi-nhat` → `TU_PHUC_VU_STAFF`, mỗi mục một lý do. Kế hoạch dự kiến lấy "BANG_STAFF trừ documents/mine, handler-cancel, handler-money-edit, dispatch/mine" — đo lại: bốn route đó cùng 11 route tài xế và `/api/account/*` đã hỏi can() / thuộc SELF_SERVICE, nên danh sách là 7.
+- P16 ba phép đều đỏ (sổ hàng rào một dòng). Không sửa `docs/quyen-hoan.json`, không thêm tên vào GUARDS.
+
+### 10.21 A17 — Câu kiểm định kỳ R-VC-3…10, R-VC-12…16 (TC-40, TC-54)
+
+- `scripts/audit-checks.mjs`: 14 câu mới (R-VC-5 tách 5a fail / 5b warn). Đoạn dùng chung: `soKhachHieuLuc(s)` (R-ORD-9 đổi sang dùng — cùng chữ, bài R-ORD-9 xanh), `HIEN_HANH_GIAY_TO_XE`, `TAI_XE_KHONG_DAT` (cùng nghĩa `kiemLai`), `HANH_DONG_CO_SU_KIEN` (R-VC-6 — theo lời advisor: `trip_appt_*`, `trip_reason_*` không có sự kiện chuyến). R-VC-7 dùng `strftime('%Y-%m-%d %H:%M', 'now', '+7 hours', '+<mốc> minutes')` (mốc = chính sách hiện hành).
+- **GA-53 (hai chiều — câu kiểm):** R-VC-4 đếm suất khách CÓ TÊN + người đi kèm mở lúc xuất bến (suất chưa tên không có dòng bản chốt khi chính sách tắt "bắt đủ danh sách" — Q-A15-1 vẫn chờ; đổi định nghĩa là sửa một câu SQL).
+- **GA-54 (hai chiều):** R-VC-13 "chuyến kế" = chuyến khác cùng xe HOẶC cùng tài xế (dòng lái mở) có giờ xảy ra xuất bến ≥ giờ xảy ra kết thúc, và (giờ ghi nhận xuất bến − giờ ghi nhận kết thúc) < khoảng nghỉ chụp của chuyến kế; R-VC-15 "lần đổi thứ tự cuối" = sự kiện STOPS_REORDERED ghi TRƯỚC sự kiện đã tới.
+- Bài `src/audit-invariants.test.ts` +13 (dựng thô `tho()`: bỏ khoá ngoại + mọi trigger bảng chuyến; đơn qua nháp → xác nhận để qua `order_frozen`). P16 13 phép + 1 ca thêm cho R-VC-10, đều đỏ. Bài "mọi câu = 0 trên dữ liệu khoẻ" (có sẵn) chạy cả 14 câu mới.
+- TC-40 `node scripts/audit-invariants.mjs --db local` trên dữ liệu e2e: ở A21 (đuôi `--strict` của e2e đủ bộ).
+
+### 10.22 A18 — Không lộ số, không lộ tên (lát 1.6/1.7; TC-39, TC-50)
+
+- **Đổi mã (TC-39 "đúng hai route van-chuyen trả tên"):** `chiTietChuyen(…, kemTen, …)` — `true` CHỈ ở GET `/chuyen/:id`; 16 chỗ gọi khác (lệnh ghi, bấm thay, gọi báo) `false`. Chín lệnh tiến độ của tài xế trả `cuocChiTiet(…, hk = [], …)` — không `hoTen` / `namSinh` / `lienHe`. **GA-55 (hai chiều, bề mặt — đã nhắn điều phối):** màn tải lại GET `/chuyen/:id` hoặc GET `/cuoc-cua-toi/:id` sau mỗi lệnh nếu cần tên. `tai-xe-dto.test.ts` sửa kỳ vọng phản hồi tiến độ trong ngày (`ten: false`).
+- `src/giay-to-khong-lo-so.test.ts` bài 2 (ba route điều phối, thêm luật quét NƠI CẤP; bản chụp xuất bến không số / nơi cấp). `src/hanh-khach-khong-lo-ten.test.ts` bài 2 (khối van-chuyen: đủ tuyến 34 route điều phối, tên chỉ ở hai GET, DTO ngoài ngày chạy sạch, nhật ký + mọi bảng `vc_*` sạch, TC-50 liệt kê khoá + quét `L:` / `T:` + bản chụp / bản chốt không cột khoá, DTO tài xế không khoá gọi báo). Khung `don()` nhận `namSinh`.
+- **GA-56 (hai chiều — phạm vi "đủ tuyến"):** "route ghi van-chuyen mới" = mọi route có đường dẫn `/api/van-chuyen/{lich, chuyen, cuoc-cua-toi, chang, nhac-goi-khach, chinh-sach-dieu-phoi}` (cả GET — để quét thân); route xe / giấy tờ xe / điều kiện / danh mục (lượt 1a) thuộc bài giấy tờ, không vào khối này.
+- P16: 9 phép khối tên + 3 phép khối số — đều đỏ đúng câu (sổ hàng rào hai dòng). `npm test` 1774 (1 đỏ = bài đo giờ hook `claude-guard` khi máy bận — chạy riêng 11/11 xanh, như A-GB).
+

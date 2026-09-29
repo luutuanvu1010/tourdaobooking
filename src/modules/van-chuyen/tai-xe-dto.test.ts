@@ -39,7 +39,7 @@ test("TC-39: NGOÀI ngày chạy (chuyến ngày mai, chưa chạy) — khoá ho
   }
 });
 
-test("TC-39: TRONG ngày chạy — lienHe (maDon, tenLienHe, sdtLienHe) có mặt; suất đã gắn tên (sau xuất bến — I19b) có hoTen / namSinh; vẫn không tiền / ghi chú / số giấy tờ; phản hồi lệnh tiến độ không kèm lienHe", async () => {
+test("TC-39: TRONG ngày chạy — GET chi tiết có lienHe (maDon, tenLienHe, sdtLienHe) và hoTen / namSinh của suất đã gắn tên (sau xuất bến — I19b); vẫn không tiền / ghi chú / số giấy tờ; phản hồi LỆNH TIẾN ĐỘ không kèm lienHe, không kèm tên (chỉ hai GET trả tên)", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -55,7 +55,7 @@ test("TC-39: TRONG ngày chạy — lienHe (maDon, tenLienHe, sdtLienHe) có m�
     const x = await tienDo(w, "tai-xe", a.id, "xuat-ben");
     assert.equal(x.status, 200);
     assert.equal("lienHe" in x.json, false, "lienHe CHỈ ở GET chi tiết (kế hoạch mục 1.6)");
-    ghim(x.json, { lienHe: false, ten: true });
+    ghim(x.json, { lienHe: false, ten: false }); // tên CHỈ ở GET /cuoc-cua-toi/:id (TC-39)
     const sau = await w.call("GET", `/api/van-chuyen/cuoc-cua-toi/${a.id}`, { as: DRIVER });
     ghim(sau.json, { lienHe: true, ten: true });
     assert.deepEqual(sau.json.suat.map((s: any) => [s.hoTen, s.namSinh]).sort(), [["Khách Dò Tìm 1", 1990], ["Khách Dò Tìm 2", 1991]]);
