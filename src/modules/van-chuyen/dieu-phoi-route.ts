@@ -2,7 +2,8 @@
 // tên khách (`hanhKhachChoChuyen`) do THÂN ROUTE đọc sau `can()` rồi truyền vào. Gồm: mã lỗi 409 từ lý do của luật thuần, chạy lô + đổi lỗi CSDL, dựng chi
 // tiết chuyến, chuỗi `detail` nhật ký (danh sách TRẮNG — mục 1.1), dựng điểm từ chặng (I40).
 import type { ChangChoChuyen, ChangLichChung, LienHeTaiXe } from "../orders";
-import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, LenhChuyenLoiBody } from "../../shared/contracts";
+import type { ChuyenChiTietResponse, CuocChiTietResponse, CuocCuaToiItemDto, GoiBaoChangDto, LenhChuyenLoiBody } from "../../shared/contracts";
+import { docGoiBao, goiBaoChang, nguoiBamGoiBao, type QuyenGoiBao } from "./goi-bao-lenh";
 import { kiemXuatBen, type KiemXuatBenVao } from "../../shared/dieu-phoi-kiem";
 import type { KetQuaKiem, TrangThaiChuyen } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
@@ -134,7 +135,7 @@ export const maDonGon = (codes: readonly string[]): string => [...new Set(codes)
  */
 export async function chiTietChuyen(
   db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], hk: readonly ChangChoChuyen[],
-  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, bayGioMs: number, chung?: DuLieuChung,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>, quyenGoiBao: QuyenGoiBao, bayGioMs: number, chung?: DuLieuChung,
 ): Promise<ChuyenChiTietResponse> {
   const nowIso = new Date(bayGioMs).toISOString();
   const c = chung ?? (await docChung(db, nowIso, msToVnLocal(bayGioMs).date));
@@ -148,7 +149,9 @@ export async function chiTietChuyen(
   });
   const legCua = new Set(nen.legIds);
   const canhBao = lichRa.canhBao.filter((x) => x.tripId === t.id || (x.legId !== null && legCua.has(x.legId) && x.loai !== "CHUYEN_GIU"));
-  const nguoiIds = [...new Set(nen.events.flatMap((e) => (e.created_by ? [e.created_by] : [])))];
+  // ADR-0051: mốc giờ hẹn của các chặng trên chuyến (khối goiBao) — nhãn người bấm "Đã gọi báo" lấy CHUNG lời gọi nhãn (R-P20: một lần mỗi request).
+  const dGoiBao = await docGoiBao(db, nen.legIds);
+  const nguoiIds = [...new Set([...nen.events.flatMap((e) => (e.created_by ? [e.created_by] : [])), ...nguoiBamGoiBao(dGoiBao)])];
   const nhan = await nhanNhanVien(nguoiIds);
   const ten = new Map<string, { fullName: string; birthYear: number }>();
   for (const ch of hk) for (const n of ch.nguoi) ten.set(n.personKey, { fullName: n.fullName, birthYear: n.birthYear });
@@ -174,6 +177,7 @@ export async function chiTietChuyen(
     gioSomNhatKhai: gioSomNhatKhaiDto(
       { events: nen.events, kepLuiPhut: c.chinhSach?.proxy_backdate_max_minutes ?? null, truoc: ketThucTruoc(nc.chuyenKhacRow, t), bayGioMs }, t, nen.stops, nen.allocs,
     ),
+    goiBao: (await Promise.all(nen.legIds.map((id) => goiBaoChang(id, hk, dGoiBao, quyenGoiBao, nhan)))).filter((x): x is GoiBaoChangDto => x !== null),
   };
 }
 

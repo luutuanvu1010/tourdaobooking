@@ -133,6 +133,10 @@ export async function lenhXep(db: D1Database, nen: NenChuyen, lich: readonly Cha
   const ma = maDonGon(b.chang.map((c) => nc.changLich.get(c.legId)!.orderCode));
   const lo = loXep(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, suatMoi, phaLe, policyId: chung.chinhSach?.id ?? null,
+    mocXep: b.chang.map((c) => {
+      const ch = nc.changLich.get(c.legId)!;
+      return { legId: c.legId, ngay: ch.pickupDate, gio: ch.pickupTime };
+    }),
     detail: `${t.code}: xếp ${suatMoi.length} người${ma ? ` (${ma})` : ""}${phaLe ? phaLeNhatKy(phaLe.luat, nhanLyDo(chung, phaLe.lyDo)) : ""}`,
   });
   try {

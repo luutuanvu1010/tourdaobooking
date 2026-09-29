@@ -518,3 +518,88 @@ const TRIPS_CUA_TAI_XE = defineSql(
 export async function tripsCuaTaiXe(db: D1Database, partyId: string, tu: string, den: string): Promise<TripRow[]> {
   return (await db.prepare(TRIPS_CUA_TAI_XE).bind(partyId, tu, den).all<TripRow>()).results;
 }
+
+// ---- Mốc "giờ hẹn đã biết" của chặng (ADR-0051 GB1 — migration 0043) ---------------------------------------------------------------------------------------
+/**
+ * Câu CHỤP MỐC trong lô xếp (nhãn GHI): dòng XEP seq 1 = ngày giờ hẹn của chặng đọc trong CHÍNH request — CHỈ khi chặng chưa có mốc nào ("lần đầu lên xe";
+ * dời / cập nhật điểm / rút rồi xếp lại không chụp lại — bẫy "tái mốc"); lính gác dấu lệnh. Không `INSERT OR IGNORE` (nuốt cả lỗi CHECK / NOT NULL).
+ * ?1 id, ?2 chặng, ?3 ngày hẹn, ?4 giờ hẹn (NULL = chưa chốt), ?5 lúc, ?6 người, ?7 chuyến, ?8 dấu lệnh.
+ */
+export const MOC_XEP_INSERT = defineSql(
+  "van-chuyen",
+  "moc_xep_insert",
+  `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 1, 'XEP', ?3, ?4, ?5, ?6, ?5, ?6
+   WHERE NOT EXISTS (SELECT 1 FROM vc_leg_appt_ack WHERE leg_id = ?2) AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?7 AND last_cmd_id = ?8)`,
+);
+/** Mọi dòng mốc của các chặng (chuỗi theo seq). */
+export interface MocRow {
+  id: string;
+  leg_id: string;
+  seq: number;
+  kind: "XEP" | "DA_GOI" | "BO_DANH_DAU";
+  appt_date: string;
+  appt_time: string | null;
+  prev_appt_date: string | null;
+  prev_appt_time: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+const MOC_BY_LEGS = defineSql(
+  "van-chuyen",
+  "moc_by_legs",
+  `SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by FROM vc_leg_appt_ack
+   WHERE leg_id IN (SELECT value FROM json_each(?1)) ORDER BY leg_id, seq`,
+);
+export async function mocByLegs(db: D1Database, legIds: readonly string[]): Promise<MocRow[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(MOC_BY_LEGS).bind(JSON.stringify(legIds)).all<MocRow>()).results;
+}
+/** Lệnh lặp của họ lệnh mốc (cùng requestId → 200 kết quả hiện tại). */
+const MOC_BY_REQUEST = defineSql("van-chuyen", "moc_by_request", "SELECT id, leg_id FROM vc_leg_appt_ack WHERE request_id = ?1");
+export async function mocByRequest(db: D1Database, requestId: string): Promise<{ id: string; leg_id: string } | null> {
+  return db.prepare(MOC_BY_REQUEST).bind(requestId).first();
+}
+/** Suất KHÁCH đang mở của các chặng (mọi chuyến) + mã / ngày / trạng thái chuyến — điều 1 của mục "Giờ hẹn đổi". */
+export interface SuatChangRow { leg_id: string; trip_id: string; code: string; service_date: string; trip_status: TripRow["status"]; status: AllocRow["status"] }
+const SUAT_KHACH_MO_CUA_CHANG = defineSql(
+  "van-chuyen",
+  "suat_khach_mo_cua_chang",
+  `SELECT a.leg_id, a.trip_id, t.code, t.service_date, t.status AS trip_status, a.status FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+   WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND a.leg_id IN (SELECT value FROM json_each(?1)) ORDER BY t.service_date, t.code, a.id`,
+);
+export async function suatKhachMoCuaChang(db: D1Database, legIds: readonly string[]): Promise<SuatChangRow[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(SUAT_KHACH_MO_CUA_CHANG).bind(JSON.stringify(legIds)).all<SuatChangRow>()).results;
+}
+/** Chặng có khách CHỜ ĐÓN trên chuyến chưa kết thúc, ngày CHUYẾN trong [?1, ?2] — danh sách nhắc lọc theo NGÀY CHUYẾN, không theo ngày hẹn (ADR-0051 "Nơi hiện"). */
+const CHANG_CHO_TRONG_KHOANG = defineSql(
+  "van-chuyen",
+  "chang_cho_trong_khoang",
+  `SELECT DISTINCT a.leg_id FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+   WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND a.status = 'WAITING' AND t.status IN ('PLANNED', 'RUNNING') AND t.service_date BETWEEN ?1 AND ?2`,
+);
+export async function changChoTrongKhoang(db: D1Database, tu: string, den: string): Promise<string[]> {
+  return (await db.prepare(CHANG_CHO_TRONG_KHOANG).bind(tu, den).all<{ leg_id: string }>()).results.map((r) => r.leg_id);
+}
+/** Chặng → đơn → người lập, qua VIEW công bố của orders (`v_ord_leg_key`, `v_ord_order_owner` — tiền lệ thongbao). Không có dòng = chặng lạ (404). */
+const CHANG_CHU_DON = defineSql(
+  "van-chuyen",
+  "chang_chu_don",
+  `SELECT k.id, k.order_id, o.staff_id AS owner_id FROM v_ord_leg_key k LEFT JOIN v_ord_order_owner o ON o.id = k.order_id WHERE k.id IN (SELECT value FROM json_each(?1))`,
+);
+export async function changChuDon(db: D1Database, legIds: readonly string[]): Promise<{ id: string; order_id: string; owner_id: string | null }[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(CHANG_CHU_DON).bind(JSON.stringify(legIds)).all<{ id: string; order_id: string; owner_id: string | null }>()).results;
+}
+/**
+ * CÂU CỔNG của họ lệnh mốc giờ hẹn (nhãn CONG_MOC — ADR-0051; ruling VỪA-2): dòng mới seq = phienBan + 1 CHỈ khi mốc hiện hành của chặng đúng là `phienBan`
+ * (khoá lạc quan riêng — không chạm vc_trip, không tăng version). ?1 id (= dấu lệnh = id nhật ký), ?2 chặng, ?3 phienBan, ?4 loại (DA_GOI / BO_DANH_DAU),
+ * ?5 ngày mới, ?6 giờ mới, ?7 ngày trước, ?8 giờ trước, ?9 request_id, ?10 lúc, ?11 người.
+ */
+export const MOC_GOI_INSERT = defineSql(
+  "van-chuyen",
+  "moc_goi_insert",
+  `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3 + 1, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11 WHERE (SELECT max(seq) FROM vc_leg_appt_ack WHERE leg_id = ?2) = ?3`,
+);

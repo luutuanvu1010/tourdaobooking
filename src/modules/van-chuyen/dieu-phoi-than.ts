@@ -220,3 +220,29 @@ export function docDoiThuTu(body: Record<string, unknown> | null): KetQuaTienDo<
   if (new Set(diem.map((d) => d.id)).size !== diem.length || new Set(diem.map((d) => d.thuTu)).size !== diem.length) return sai("Một điểm hoặc một thứ tự xuất hiện hai lần.");
   return { ok: true, value: { requestId: rid.value, diem } };
 }
+
+// ---- Họ lệnh mốc giờ hẹn (ADR-0051 — "Đã gọi báo", "Bỏ đánh dấu") — chỉ mã / số / ngày giờ, không chữ tự do (lần 12 câu 1; I18) -----------------------------
+function docPhienBan(b: Record<string, unknown>): KetQua<number> {
+  return typeof b.phienBan === "number" && Number.isInteger(b.phienBan) && b.phienBan >= 1 && b.phienBan <= 10_000 ? { ok: true, value: b.phienBan } : fail("Thiếu phiên bản mốc giờ hẹn — tải lại.");
+}
+export interface DaGoiBaoThan { requestId: string; phienBan: number; gioMoi: { ngay: string; gio: string | null } }
+export function docDaGoiBao(body: Record<string, unknown> | null): KetQua<DaGoiBaoThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  const g = body.gioMoi as Record<string, unknown> | null | undefined;
+  if (!g || typeof g !== "object" || typeof g.ngay !== "string" || !NGAY_RE.test(g.ngay) || !(g.gio === null || (typeof g.gio === "string" && GIO_RE.test(g.gio)))) {
+    return fail("Giờ hẹn mới: ngày YYYY-MM-DD và giờ HH:MM (hoặc null = chưa chốt giờ).");
+  }
+  return { ok: true, value: { requestId: rid.value, phienBan: pb.value, gioMoi: { ngay: g.ngay, gio: g.gio as string | null } } };
+}
+export function docBoDanhDauGoiBao(body: Record<string, unknown> | null): KetQua<{ requestId: string; phienBan: number; gioMoi: null }> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  return { ok: true, value: { requestId: rid.value, phienBan: pb.value, gioMoi: null } };
+}

@@ -7,7 +7,7 @@
 import { auditStatement, type AuditAction } from "../audit";
 import {
   ALLOC_CLOSE, ALLOC_GAN_TEN, ALLOC_INSERT, ALLOC_TIEN_DO, ALLOCS_CLOSE_ALL, ALLOCS_DONG_GIAN_DOAN, CHECK_INSERT, CHECK_ITEM_INSERT, DRIVER_CLOSE, DRIVER_INSERT,
-  EVENT_INSERT, MANIFEST_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
+  EVENT_INSERT, MANIFEST_INSERT, MOC_GOI_INSERT, MOC_XEP_INSERT, STOP_DA_TOI, STOP_INSERT, STOP_SET_SEQ, STOP_SKIP, STOP_UPDATE_PLAN, STOP_XONG_NEU_HET, STOPS_SKIP_ALL, TRIP_CANCEL, TRIP_GATE,
   TRIP_GATE_DANG_CHAY, TRIP_GATE_DOI, TRIP_GATE_TIEN_DO, TRIP_INSERT, TRIP_KET_THUC, TRIP_UPDATE_PLAN, TRIP_XUAT_BEN,
 } from "./chuyen-repo";
 import {
@@ -16,9 +16,10 @@ import {
 
 /**
  * Nhãn câu (bài thứ tự lô — thu-tu-lo.test.ts). `CHUYEN_TIEN_DO` = câu chuyển trạng thái suất / điểm của lệnh tiến độ khuôn (a): đứng ĐẦU lô, TỰ gác "chuyến
- * đang chạy" + trạng thái nguồn (không có dấu lệnh — chưa có câu cổng), câu cổng đứng ngay sau với `changes() > 0`.
+ * đang chạy" + trạng thái nguồn (không có dấu lệnh — chưa có câu cổng), câu cổng đứng ngay sau với `changes() > 0`. `CONG_MOC` = câu cổng của họ lệnh trên
+ * mốc giờ hẹn (ADR-0051 — `lenhDaGoiBao`, `lenhBoDanhDauGoiBao`; không chạm vc_trip).
  */
-export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "NHAT_KY" | "SU_KIEN" | "GHI" | "TRANG_THAI_CUOI";
+export type NhanCau = "CONG" | "CONG_DOI" | "CHUYEN_TIEN_DO" | "CONG_MOC" | "NHAT_KY" | "SU_KIEN" | "GHI" | "TRANG_THAI_CUOI";
 export interface CauCoNhan {
   nhan: NhanCau;
   stmt: D1PreparedStatement;
@@ -151,6 +152,8 @@ export interface LenhXep extends LenhChung {
   tripId: string;
   version: number;
   diemMoi: DiemMoi[];
+  /** ADR-0051: mốc "giờ hẹn đã biết" của từng chặng được xếp (ngày giờ hẹn đọc trong request) — câu chụp chỉ ghi khi chặng CHƯA có mốc. */
+  mocXep: { legId: string; ngay: string; gio: string | null }[];
   suatMoi: SuatMoi[];
   phaLe: PhaLe | null;
   policyId: string | null;
@@ -162,6 +165,8 @@ export function loXep(db: D1Database, l: LenhXep): CauCoNhan[] {
     nhatKy(db, l, "trip_allocated", l.tripId, l.detail),
     suKien(db, l, { tripId: l.tripId, loai: "ALLOCATED", soNguoi: l.suatMoi.length, phaLe: l.phaLe, policyId: l.policyId }),
     ...l.diemMoi.map((d) => chenDiem(db, l, d)), // điểm trước suất (khoá ngoại board_stop_id / alight_stop_id)
+    // ADR-0051: chụp mốc giờ hẹn TRƯỚC câu mở suất (trigger vc_trip_allocation_needs_appt đòi chặng có mốc).
+    ...l.mocXep.map((m) => ghi(db.prepare(MOC_XEP_INSERT).bind(crypto.randomUUID(), m.legId, m.ngay, m.gio, l.lucIso, l.nguoiId, l.tripId, l.cmd))),
     ...l.suatMoi.map((s) => chenSuat(db, l, s)), // mỗi suất MỘT câu (trigger sức chứa theo dòng)
   ];
 }
@@ -433,4 +438,31 @@ export function loDoiThuTu(db: D1Database, l: LenhDoiThuTu): CauCoNhan[] {
     suKienTienDo(db, l, { tripId: l.tripId, loai: "STOPS_REORDERED", soNguoi: l.diem.length, xayRa: { iso: l.lucIso, ms: Date.parse(l.lucIso), nguon: "MAY_CHU" }, policyId: l.policyId }),
     ...l.diem.map((d) => ghi(db.prepare(STOP_SET_SEQ).bind(d.id, l.tripId, l.cmd, d.seq, l.lucIso, l.nguoiId))),
   ];
+}
+
+// =========================================================================================================================================================
+// HỌ LỆNH TRÊN MỐC GIỜ HẸN (ADR-0051 GB1 — "Đã gọi báo", "Bỏ đánh dấu"; ruling VỪA-2). KHÔNG chạm vc_trip* (không kiểm / tăng version — người xếp xe không
+// nhận 409 oan; làm được khi chuyến đang chạy): lô ĐÚNG HAI câu — câu cổng nhãn CONG_MOC (`INSERT … WHERE max(seq) = phienBan`) rồi nhật ký `changes() > 0`.
+// Bài thứ tự lô (thu-tu-lo.test.ts) có nhánh ngoại lệ luật 3 LIỆT KÊ TÊN hai hàm này; hàm khác dùng CONG_MOC → đỏ.
+// =========================================================================================================================================================
+export interface LenhMoc extends LenhChung {
+  legId: string;
+  /** seq của mốc hiện hành mà màn đã thấy. */
+  phienBan: number;
+  /** Giờ "đã biết" SAU dòng mới / TRƯỚC dòng mới (Bỏ đánh dấu: đảo của dòng DA_GOI). */
+  moi: { ngay: string; gio: string | null };
+  cu: { ngay: string; gio: string | null };
+  /** Chuyến đang chở khách chờ đón của chặng — đích nhật ký (targetType "trip"; orderId NULL — I17). */
+  tripId: string;
+  detail: string;
+}
+const congMoc = (db: D1Database, l: LenhMoc, loai: "DA_GOI" | "BO_DANH_DAU"): CauCoNhan => ({
+  nhan: "CONG_MOC",
+  stmt: db.prepare(MOC_GOI_INSERT).bind(l.cmd, l.legId, l.phienBan, loai, l.moi.ngay, l.moi.gio, l.cu.ngay, l.cu.gio, l.requestId, l.lucIso, l.nguoiId),
+});
+export function lenhDaGoiBao(db: D1Database, l: LenhMoc): CauCoNhan[] {
+  return [congMoc(db, l, "DA_GOI"), nhatKy(db, l, "trip_appt_called", l.tripId, l.detail)];
+}
+export function lenhBoDanhDauGoiBao(db: D1Database, l: LenhMoc): CauCoNhan[] {
+  return [congMoc(db, l, "BO_DANH_DAU"), nhatKy(db, l, "trip_appt_call_undone", l.tripId, l.detail)];
 }

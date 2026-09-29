@@ -98,6 +98,9 @@ export const AUDIT_ACTIONS = {
   trip_stops_reordered: { label: "Đổi thứ tự điểm khi đang chạy", group: "trip" },
   trip_ended: { label: "Kết thúc chuyến", group: "trip" },
   trip_ended_interrupted: { label: "Kết thúc chuyến gián đoạn", group: "trip" },
+  // ADR-0051 GB1: mốc giờ hẹn của chặng — orderId NULL (I17); detail danh sách trắng (mã đơn, chiều, "giờ hẹn đón A → B", mã chuyến).
+  trip_appt_called: { label: "Đã gọi báo khách giờ hẹn mới", group: "trip" },
+  trip_appt_call_undone: { label: "Bỏ đánh dấu đã gọi báo", group: "trip" },
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

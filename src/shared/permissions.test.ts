@@ -24,7 +24,8 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "trip.view": ["any", "any", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3: ô MỚI — DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2)
   "trip.dispatch": ["any", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI
   "trip.override": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — phá lệ luật cấu hình, chỉ Quản trị, Toàn quyền
-  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"], // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2); văn phòng bấm thay (R-P1)
+  "trip.progress": ["any", "none", "any", "none", "none", "any", "none", "assigned", "none"],
+  "trip.call_ack": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0051 GB2: ô MỚI — "Đã gọi báo" / "Bỏ đánh dấu": người lập / người phụ trách đơn, Quản trị, Toàn quyền // ADR-0049 D3 (A15): ô MỚI — lệnh tiến độ; DRIVER assigned (NỚI ghim DRIVER — CHỜ CHỦ DUYỆT, đề xuất luật mục 2); văn phòng bấm thay (R-P1)
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
@@ -293,7 +294,7 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
     "party.document.view": "own", // ngoại lệ có tên (Ruling R2, R5): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
     // ADR-0049 D3 — NỚI (CHỜ CHỦ DUYỆT, đề xuất luật mục 2): tài xế công ty xem + bấm tiến độ chuyến MÌNH ĐANG LÁI (`assigned` — A13 / A15).
-    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned",
+    "trip.view": "assigned", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "assigned", "trip.call_ack": "none",
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER])), DRIVER_ROW);
 });
@@ -317,7 +318,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "feedback.triage": "none", "settings.ops": "none", "order.pool.view": "none", "notice.send": "none", "company.legal.write": "none",
     "party.document.view": "own", // ngoại lệ có tên (ADR-0048 D2): xem giấy tờ của CHÍNH MÌNH, số che
     "party.document.write": "none", "party.document.reveal": "none", "vehicle.manage": "none",
-    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
+    "trip.view": "none", "trip.dispatch": "none", "trip.override": "none", "trip.progress": "none", "trip.call_ack": "none", // ADR-0049 D3 × ADR-0048 D2: tài xế đối tác chưa dùng app cho chuyến (D7 — lượt sau)
   };
   assert.deepEqual(Object.fromEntries((Object.keys(MATRIX) as OperationCode[]).map((op) => [op, MATRIX[op].DRIVER_PARTNER])), DRIVER_PARTNER_ROW);
 });
@@ -352,6 +353,22 @@ test("ADR-0049 D3: trip.override CHỈ ADMIN + SUPER_ADMIN; trip.view = any ⇒ 
   // TC-35 (A15): lệnh tiến độ — văn phòng bấm thay (Bán hàng, Quản trị, Toàn quyền — R-P1) + tài xế công ty CHỈ chuyến mình lái; Kế toán KHÔNG.
   assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.progress"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN", "DRIVER"]);
   assert.equal(MATRIX["trip.progress"].DRIVER, "assigned");
+});
+
+// ADR-0051 GB2 (siết): người không được đổi giờ hẹn thì không được xác nhận đã báo giờ hẹn — trip.call_ack KHÔNG rộng hơn order.trip.edit ở mọi cột; ai có ô
+// này phải thấy được bảng (trip.view = any) và SĐT khách để gọi (contact.view ≠ none).
+const BAC: Record<string, number> = { none: 0, own: 1, assigned: 1, ownOrAssigned: 2, any: 3 };
+test("ADR-0051 GB2: trip.call_ack ⊆ order.trip.edit theo từng cột; trip.call_ack ≠ none ⇒ trip.view = any và contact.view ≠ none", () => {
+  for (const p of PERMISSION_CODES) {
+    const a = MATRIX["trip.call_ack"][p];
+    const b = MATRIX["order.trip.edit"][p];
+    assert.ok(BAC[a]! <= BAC[b]! && !(a === "own" && b === "assigned") && !(a === "assigned" && b === "own"), `${p}: trip.call_ack ${a} rộng hơn order.trip.edit ${b}`);
+    if (a !== "none") {
+      assert.equal(MATRIX["trip.view"][p], "any", `${p}: có trip.call_ack mà không xem được bảng điều phối`);
+      assert.notEqual(MATRIX["contact.view"][p], "none", `${p}: có trip.call_ack mà không thấy SĐT khách để gọi`);
+    }
+  }
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["trip.call_ack"][p] !== "none"), ["SALES", "ADMIN", "SUPER_ADMIN"]);
 });
 
 test("ADR-0049 D3: ô order.leg.short_notice CHỈ ADMIN + SUPER_ADMIN (any); mọi mã khác none", () => {

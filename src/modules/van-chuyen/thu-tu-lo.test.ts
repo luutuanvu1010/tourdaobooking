@@ -7,7 +7,9 @@
 //   (3) MỌI câu sau nhật ký mang lính gác dấu lệnh — `EXISTS (SELECT 1 FROM vc_trip WHERE id = ?a AND last_cmd_id = ?b)` hoặc (câu sửa chính `vc_trip`)
 //       `WHERE id = ?a AND last_cmd_id = ?b` — và tham số `?b` bằng ĐÚNG dấu lệnh của lô, `?a` bằng chuyến được cổng (lệnh dời: chuyến ĐÍCH);
 //   (4) câu `TRANG_THAI_CUOI` (nếu có) đứng CUỐI, nhiều nhất một.
-// NGOẠI LỆ luật 3 (ruling VỪA-2 — ADR-0051 "Đã gọi báo", Task A-GB): hàm dựng lô có câu ghi bảng KHÔNG theo chuyến phải khai tên + lý do ở NGOAI_LE_LUAT_3.
+// NGOẠI LỆ luật 3 (ruling VỪA-2 — ADR-0051 "Đã gọi báo", Task A-GB): họ lệnh trên mốc giờ hẹn KHÔNG chạm vc_trip — chỉ các hàm LIỆT KÊ TÊN ở HO_LENH_MOC
+// được dùng nhãn `CONG_MOC`, và phải ĐÚNG HAI câu: `CONG_MOC` (INSERT có điều kiện `max(seq)`) rồi `NHAT_KY` (`changes() > 0`). Hàm khác dùng CONG_MOC → đỏ.
+// Danh sách hàm tự suy bằng quét MỌI `export function` của dieu-phoi.ts (không chỉ tên `lo…`).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -38,7 +40,7 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
     vao: { ...L, tripId: T, version: 3, moi: { xeId: "x-1", chuXePartyId: "p-1", ngayChay: "2027-03-11", batDauMs: 1, ketThucMs: 2, batDauSomNhatMs: 1, nghiPhaLeLyDo: null }, doiTaiXe: "p-tx2", diem: [{ id: "d-1", seq: 2, ngayXeToi: null, gioXeToi: null }], phaLe: null, policyId: null, detail: "d" },
     gac: T,
   },
-  loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, detail: "d" }, gac: T },
+  loXep: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], mocXep: [{ legId: "leg-1", ngay: "2027-03-11", gio: "09:00" }], suatMoi: [suat("a-1"), suat("a-2")], phaLe: null, policyId: null, detail: "d" }, gac: T },
   loRut: { vao: { ...L, tripId: T, version: 3, suatIds: ["a-1"], diemBoQua: ["d-1"], phaLe: null, policyId: null, detail: "d" }, gac: T },
   loDoi: {
     vao: { ...L, nguon: { tripId: T, version: 3 }, dich: { tripId: T2, version: 5 }, cap: [{ dongId: "a-1", mo: suat("a-9", T2) }], diemMoiDich: [diem("d-9", T2)], diemBoQuaNguon: ["d-1"], phaLe: null, policyId: null, detail: "d" },
@@ -60,17 +62,28 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   loKetThuc: { vao: { ...L, tripId: T, xayRa: XR, policyId: null, detail: "d" }, gac: T },
   loKetThucGianDoan: { vao: { ...L, tripId: T, xayRa: XR, policyId: null, lyDo: "GIAN_DOAN_KHAC", soSuatDong: 1, detail: "d" }, gac: T },
   loDoiThuTu: { vao: { ...L, tripId: T, diem: [{ id: "d-2", seq: 5 }], policyId: null, detail: "d" }, gac: T },
+  lenhDaGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 1, moi: { ngay: "2027-03-11", gio: "09:15" }, cu: { ngay: "2027-03-11", gio: "09:00" }, tripId: T, detail: "d" }, gac: T },
+  lenhBoDanhDauGoiBao: { vao: { ...L, legId: "leg-1", phienBan: 2, moi: { ngay: "2027-03-11", gio: "09:00" }, cu: { ngay: "2027-03-11", gio: "09:15" }, tripId: T, detail: "d" }, gac: T },
 };
-/** Ngoại lệ luật 3 (ruling VỪA-2): tên hàm → { chỉ số câu được miễn lính gác dấu lệnh: lý do }. Thêm mục = NỚI — người kiểm soi. */
-const NGOAI_LE_LUAT_3: Record<string, Record<number, string>> = {};
+/** Họ lệnh trên mốc giờ hẹn (ADR-0051; ruling VỪA-2) — LIỆT KÊ TÊN. Thêm tên = NỚI luật 3 — người kiểm soi. */
+const HO_LENH_MOC = ["lenhDaGoiBao", "lenhBoDanhDauGoiBao"];
+/** Luật riêng cho họ lệnh mốc: đúng hai câu CONG_MOC (INSERT … max(seq)) + NHAT_KY (changes() > 0). */
+export function viPhamLoMoc(ten: string, lo: readonly Cau[]): string[] {
+  const loi: string[] = [];
+  if (lo.length !== 2) loi.push(`${ten}: họ lệnh mốc phải đúng hai câu, thấy ${lo.length}`);
+  if (lo[0]?.nhan !== "CONG_MOC" || !/^INSERT INTO vc_leg_appt_ack/.test(lo[0].stmt.sql.trim()) || !/max\(seq\)/.test(lo[0].stmt.sql)) loi.push(`${ten}: câu đầu phải là CONG_MOC — INSERT có điều kiện max(seq)`);
+  if (lo[1]?.nhan !== "NHAT_KY" || !/changes\(\) > 0/.test(lo[1].stmt.sql)) loi.push(`${ten}: câu thứ hai phải là NHAT_KY với changes() > 0`);
+  return loi;
+}
 
 const LINH_GAC = /EXISTS \(SELECT 1 FROM vc_trip WHERE id = \?(\d+) AND last_cmd_id = \?(\d+)\)/;
 const SUA_CHUYEN = /^UPDATE vc_trip SET[\s\S]*WHERE id = \?(\d+) AND last_cmd_id = \?(\d+)$/;
 
 /** Kiểm bốn luật trên một lô; trả danh sách vi phạm (rỗng = đạt). */
-export function viPhamLo(ten: string, lo: readonly Cau[], gac: string, ngoaiLe: Record<number, string> = {}): string[] {
+export function viPhamLo(ten: string, lo: readonly Cau[], gac: string): string[] {
   const loi: string[] = [];
   const nhan = lo.map((c) => c.nhan);
+  if (nhan.includes("CONG_MOC")) loi.push(`${ten}: dùng nhãn CONG_MOC mà không có tên trong HO_LENH_MOC`);
   // (1) cổng đầu
   let sauCong: number;
   if (nhan[0] === "CONG") sauCong = nhan[1] === "CONG_DOI" ? 2 : 1;
@@ -88,7 +101,6 @@ export function viPhamLo(ten: string, lo: readonly Cau[], gac: string, ngoaiLe: 
   else if (!/changes\(\) > 0/.test(lo[sauCong]!.stmt.sql)) loi.push(`${ten}: nhật ký thiếu changes() > 0`);
   // (3) lính gác dấu lệnh ở MỌI câu sau nhật ký
   for (let i = sauCong + 1; i < lo.length; i++) {
-    if (ngoaiLe[i] !== undefined) continue;
     const { sql, args } = lo[i]!.stmt;
     const m = LINH_GAC.exec(sql) ?? SUA_CHUYEN.exec(sql.trim());
     if (!m) {
@@ -118,11 +130,20 @@ test("bộ bắt TC-32: đảo nhật ký với cổng, bỏ lính gác một c�
   assert.ok(viPhamLo("mau", [dung[0]!, dung[1]!, dung[3]!, dung[2]!], T).length > 0, "trạng thái cuối lên trước");
   assert.ok(viPhamLo("mau", [dung[0]!, dung[1]!, { nhan: "GHI", stmt: g(dung[2]!.stmt.sql, [T, "khac"]) }, dung[3]!], T).length > 0, "gác bằng tham số lạ");
   assert.ok(viPhamLo("mau", dung, T2).length > 0, "gác nhầm chuyến");
+  // Họ lệnh mốc: đúng hai câu; hàm KHÔNG có tên mà dùng CONG_MOC → đỏ.
+  const moc: Cau[] = [
+    { nhan: "CONG_MOC", stmt: g("INSERT INTO vc_leg_appt_ack (id) SELECT ?1 WHERE (SELECT max(seq) FROM vc_leg_appt_ack WHERE leg_id = ?2) = ?3", []) },
+    { nhan: "NHAT_KY", stmt: g("INSERT INTO audit_log SELECT … WHERE changes() > 0", []) },
+  ];
+  assert.deepEqual(viPhamLoMoc("moc", moc), []);
+  assert.ok(viPhamLoMoc("moc", [...moc, dung[2]!]).length > 0, "câu thứ ba");
+  assert.ok(viPhamLoMoc("moc", [{ nhan: "CONG_MOC", stmt: g("INSERT INTO vc_leg_appt_ack (id) SELECT ?1", []) }, moc[1]!]).length > 0, "bỏ điều kiện max(seq)");
+  assert.ok(viPhamLo("la", moc, T).some((l) => /CONG_MOC mà không có tên/.test(l)), "hàm lạ dùng CONG_MOC");
 });
 
 test("TC-32: MỌI hàm dựng lô của dieu-phoi.ts (tự suy từ tên xuất) có mẫu, ≥ 12 lệnh, và đúng bốn luật thứ tự lô", () => {
   const nguon = readFileSync(TEP, "utf8");
-  const ten = [...nguon.matchAll(/^export function (lo[A-Z]\w*)\(/gm)].map((m) => m[1]!).sort();
+  const ten = [...nguon.matchAll(/^export function (\w+)\(/gm)].map((m) => m[1]!).sort();
   assert.ok(ten.length >= 12, `chống bài rỗng: ${ten.length} hàm dựng lô`);
   assert.deepEqual(ten, Object.keys(MAU).sort(), "hàm dựng lô MỚI phải có mẫu ở MAU (và mẫu không trỏ hàm đã bỏ)");
   const loi: string[] = [];
@@ -130,7 +151,7 @@ test("TC-32: MỌI hàm dựng lô của dieu-phoi.ts (tự suy từ tên xuất
     const f = MOD[t] as (db: unknown, l: unknown) => Cau[];
     const lo = f(DB, MAU[t]!.vao);
     assert.ok(lo.length >= 2, `${t}: lô rỗng`);
-    loi.push(...viPhamLo(t, lo, MAU[t]!.gac, NGOAI_LE_LUAT_3[t]));
+    loi.push(...(HO_LENH_MOC.includes(t) ? viPhamLoMoc(t, lo) : viPhamLo(t, lo, MAU[t]!.gac)));
   }
   assert.deepEqual(loi, []);
 });

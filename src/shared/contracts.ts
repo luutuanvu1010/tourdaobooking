@@ -1172,7 +1172,25 @@ export interface ChuyenChiTietResponse {
   canhBaoPhut: number | null;
   /** R-P14 (A15): giờ sớm nhất văn phòng khai được cho từng lệnh bấm thay. */
   gioSomNhatKhai: GioSomNhatKhaiDto;
+  /** ADR-0051 (A-GB): mỗi chặng có suất trên chuyến mà còn mục "Giờ hẹn đổi — gọi báo khách" hoặc đang mang dấu "đã gọi báo". */
+  goiBao: GoiBaoChangDto[];
 }
+
+// ---- Nhắc "gọi báo khách" khi giờ hẹn đổi (ADR-0051 GB1, GB2 — Task A-GB) --------------------------------------------------------------------------------
+// KHÔNG BAO GIỜ: tên khách, năm sinh, SĐT, người lập, người phụ trách, khoá so sánh nơi. Giờ = giờ VN; `gio` null = "chưa chốt giờ".
+export interface GioHenDto { ngay: string; gio: string | null }
+/** Mục "Giờ hẹn đổi — gọi báo khách": cũ (mốc "đã biết") → mới (giờ hiện hành trên đơn); `phienBan` gửi lại khi bấm; `baoDuoc` = máy chủ tính bằng can(trip.call_ack…). */
+export interface GioHenDoiDto { cu: GioHenDto; moi: GioHenDto; phienBan: number; maChuyen: string[]; baoDuoc: boolean }
+/** Dấu "đã gọi báo khách (tên, HH:MM)": `nguoiBam` = nhãn tên (không SĐT, không id); `boDuoc` = được bấm "Bỏ đánh dấu". */
+export interface DaGoiBaoDto { cu: GioHenDto; moi: GioHenDto; luc: string; nguoiBam: string | null; phienBan: number; boDuoc: boolean }
+export interface GoiBaoChangDto { legId: string; maDon: string | null; gioHenDoi: GioHenDoiDto | null; daGoiBao: DaGoiBaoDto | null }
+/** Một mục của danh sách nhắc (`GET /api/van-chuyen/nhac-goi-khach`). */
+export interface MucNhacGoiDto { legId: string; orderCode: string; chieu: "OUT" | "RETURN"; noiDon: string; ngayChuyen: string; gioHenDoi: GioHenDoiDto }
+export interface NhacGoiKhachResponse { tu: string; den: string; muc: MucNhacGoiDto[] }
+/** `POST /api/van-chuyen/chang/:legId/da-goi-bao` — `gioMoi` = giờ "mới" màn đã hiện (`gio` null = chưa chốt giờ). Không nhận chữ nào khác. */
+export interface DaGoiBaoRequest { requestId: string; phienBan: number; gioMoi: GioHenDto }
+/** `POST /api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao`. */
+export interface BoDanhDauGoiBaoRequest { requestId: string; phienBan: number }
 /** Phá lệ đi kèm lệnh (I2) — chỉ ô `trip.override` (Quản trị, Toàn quyền); `lyDo` = mã lý do nhóm PHA_LE đang dùng. */
 export interface PhaLeRequest { lyDo: string }
 /** POST /api/van-chuyen/chuyen — tạo chuyến. */

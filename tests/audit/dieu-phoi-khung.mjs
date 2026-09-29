@@ -86,6 +86,7 @@ export async function don(w, v) {
     as: SALES,
     body: {
       customerName: "Khách Liên Hệ Dò Tìm", customerPhone: "0912345678", customerNote: "Ghi chú đơn Dò Tìm", paymentNote: "Thanh toán Dò Tìm",
+      ...(v.handler ? { handlerStaffId: v.handler } : {}),
       services: [{
         kind: "catalog", catalogCode: "ZA1", pax: { adult: soNguoi, child: 0, senior: 0, infant: 0 }, catalogPriceSeen: { adult: 777000 }, departDate: v.ngay ?? NGAY,
         legs: [{ direction: "OUT", pickupDate: v.ngay ?? NGAY, pickupTime: v.gio ?? "13:00", pickupLocationId: null, pickupPlace: v.noiDon ?? "Khách sạn Dò Tìm", dropoffLocationId: LOC, dropoffPlace: "" }],

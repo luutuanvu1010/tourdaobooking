@@ -130,3 +130,68 @@ await thu(`INSERT INTO vc_trip_event (id, trip_id, kind, request_id, decided_mod
   VALUES ('${uuid()}', '${tripId}', 'STOP_ARRIVED', '${uuid()}', 'NGUOI', '${new Date(Date.now() - 60_000).toISOString()}', ${Date.now()}, 'MAY_CHU', '${new Date().toISOString()}', '${new Date().toISOString()}')`, /CHECK constraint failed|constraint/i);
 await thu(`UPDATE vc_trip_event SET count = 99 WHERE trip_id = '${tripId}'`, /lc04|append|không sửa|no_update|ABORT|constraint/i);
 console.log("✓ (5) D1 thật: sự kiện MAY_CHU lệch giờ ghi nhận → CHECK chặn; sửa sự kiện → trigger chặn");
+
+// --- (6) ADR-0051 "Đã gọi báo" (TC-GB-12) + hai "Chưa kiểm" của ADR trên D1 LOCAL: so IS với giờ NULL trong thân trigger; hai người bấm song song ---
+const SALES_B = await session(ACCOUNTS.salesB);
+const xe2 = uuid();
+await sql(`INSERT INTO vc_vehicle (id, plate_number, plate_key, chassis_number, chassis_key, name, model_year, passenger_capacity, owner_party_id, status, valid_from_date, created_at, updated_at)
+  VALUES ('${xe2}', '79F-${duoi.slice(0, 3)}.${duoi.slice(3)}9', '79F${duoi}9', 'E2EGB${duoi}', 'E2EGB${duoi}', 'Xe gọi báo E2E', 2021, 15, '${chu}', 'active', '2026-09-01', '${AT}', '${AT}')`);
+const g = await donXacNhan([P(9), P(10)], `Khách sạn Gọi Báo E2E ${duoi}`);
+r = await call(SALES, "POST", "/api/van-chuyen/chuyen", { requestId: uuid(), xeId: xe2, taiXePartyId: txParty, batDau: { ngay: D, gio: "14:00" }, ketThuc: { ngay: D, gio: "16:00" } });
+assert.equal(r.status, 201, JSON.stringify(r.body));
+const tripG = r.body.chuyen.id;
+r = await call(SALES, "POST", `/api/van-chuyen/chuyen/${tripG}/phan-bo`, { version: r.body.chuyen.version, requestId: uuid(), chang: [{ legId: g.services[0].legs[0].id, soSuat: 2 }] });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+const legG = g.services[0].legs[0].id;
+assert.deepEqual((await sqlRows(`SELECT seq, kind, appt_time FROM vc_leg_appt_ack WHERE leg_id = '${legG}'`)).map((x) => [x.seq, x.kind, x.appt_time]), [[1, "XEP", "10:00"]]);
+const doiGioG = async (gio) => {
+  const l = (await call(SALES, "GET", `/api/orders/${g.id}`)).body.order.services[0].legs[0];
+  const x = await call(SALES, "PUT", `/api/orders/${g.id}/legs/${l.id}`, { expectedUpdatedAt: l.updatedAt, leg: { ...leg(l.pickupPlace), pickupDate: l.pickupDate, pickupTime: gio } });
+  assert.equal(x.status, 200, JSON.stringify(x.body));
+};
+const mucG = async (who = SALES) => (await call(who, "GET", "/api/van-chuyen/nhac-goi-khach")).body.muc.find((m) => m.legId === legG) ?? null;
+await doiGioG("10:15");
+let m = await mucG();
+assert.deepEqual([m.gioHenDoi.cu.gio, m.gioHenDoi.moi.gio, m.gioHenDoi.baoDuoc], ["10:00", "10:15", true]);
+assert.equal((await mucG(SALES_B)).gioHenDoi.baoDuoc, false, "Bán hàng khác thấy, không nút");
+r = await call(SALES_B, "POST", `/api/van-chuyen/chang/${legG}/da-goi-bao`, { requestId: uuid(), phienBan: m.gioHenDoi.phienBan, gioMoi: m.gioHenDoi.moi });
+assert.equal(r.status, 403, JSON.stringify(r.body));
+r = await call(SALES, "POST", `/api/van-chuyen/chang/${legG}/da-goi-bao`, { requestId: uuid(), phienBan: m.gioHenDoi.phienBan, gioMoi: m.gioHenDoi.moi });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+assert.equal(await mucG(), null, "mục hết");
+r = await call(SALES, "POST", `/api/van-chuyen/chang/${legG}/bo-danh-dau-goi-bao`, { requestId: uuid(), phienBan: r.body.daGoiBao.phienBan });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+m = await mucG();
+assert.deepEqual([m.gioHenDoi.cu.gio, m.gioHenDoi.moi.gio], ["10:00", "10:15"], "bỏ đánh dấu → mục hiện lại");
+r = await call(SALES, "POST", `/api/van-chuyen/chang/${legG}/da-goi-bao`, { requestId: uuid(), phienBan: m.gioHenDoi.phienBan, gioMoi: m.gioHenDoi.moi });
+assert.equal(r.status, 200, JSON.stringify(r.body));
+await doiGioG("10:30");
+m = await mucG();
+assert.deepEqual([m.gioHenDoi.cu.gio, m.gioHenDoi.moi.gio], ["10:15", "10:30"], "đổi giờ lần nữa → mục hiện lại");
+console.log("✓ (6) ADR-0051: xếp chụp mốc XEP; đổi giờ → mục; Bán hàng khác 403 (không nút); người lập bấm → hết; bỏ đánh dấu → lại; đổi tiếp → lại");
+
+// Hai người bấm SONG SONG cùng phiên bản → đúng một 200, còn lại 409 gio_hen_vua_doi, đúng một dòng mới (TC-GB-5 trên D1 local — ADR "Chưa kiểm").
+const ADMIN_S = await session(ACCOUNTS.admin);
+const truoc = (await sqlRows(`SELECT count(*) AS n FROM vc_leg_appt_ack WHERE leg_id = '${legG}'`))[0].n;
+const hai = await Promise.all([SALES, ADMIN_S].map((who) => call(who, "POST", `/api/van-chuyen/chang/${legG}/da-goi-bao`, { requestId: uuid(), phienBan: m.gioHenDoi.phienBan, gioMoi: m.gioHenDoi.moi })));
+assert.deepEqual(hai.map((x) => x.status).sort(), [200, 409], JSON.stringify(hai.map((x) => x.body)));
+// Người thua nhận 409: `gio_hen_vua_doi` (thua ở câu cổng max(seq) / UNIQUE — lớp CSDL) hoặc `khong_con_can_goi` (đọc SAU khi người kia đã ghi — lớp kiểm).
+const maThua = hai.find((x) => x.status === 409).body.error.code;
+assert.ok(["gio_hen_vua_doi", "khong_con_can_goi"].includes(maThua), maThua);
+assert.equal((await sqlRows(`SELECT count(*) AS n FROM vc_leg_appt_ack WHERE leg_id = '${legG}'`))[0].n, truoc + 1, "đúng một dòng mới");
+console.log(`✓ (6b) hai người bấm song song → một 200, một 409 (${maThua}), đúng một dòng mới`);
+
+// So IS với NULL trong thân trigger chuỗi trên D1 (ADR "Chưa kiểm"): mốc "chưa chốt giờ" → dòng đảo khôi phục đúng (giờ trước NULL IS NULL).
+const [{ s: seqCuoi, t: gioCuoi }] = await sqlRows(`SELECT max(seq) AS s, (SELECT appt_time FROM vc_leg_appt_ack WHERE leg_id = '${legG}' ORDER BY seq DESC LIMIT 1) AS t FROM vc_leg_appt_ack WHERE leg_id = '${legG}'`);
+await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
+  VALUES ('${uuid()}', '${legG}', ${seqCuoi + 1}, 'DA_GOI', '${D}', NULL, '${D}', '${gioCuoi}', '${uuid()}', '${AT}', '${AT}')`);
+await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
+  VALUES ('${uuid()}', '${legG}', ${seqCuoi + 2}, 'BO_DANH_DAU', '${D}', '${gioCuoi}', '${D}', NULL, '${uuid()}', '${AT}', '${AT}')`);
+try {
+  await sql(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
+    VALUES ('${uuid()}', '${legG}', ${seqCuoi + 3}, 'DA_GOI', '${D}', '11:00', '${D}', NULL, '${uuid()}', '${AT}', '${AT}')`);
+  assert.fail("giờ trước NULL mà dòng trước có giờ → trigger chuỗi phải chặn");
+} catch (err) {
+  assert.match(String(err.message ?? err), /gb_chain/);
+}
+console.log("✓ (6c) D1 thật: chuỗi mốc với giờ NULL ('chưa chốt giờ') — IS NULL nối đúng; lệch → gb_chain");
