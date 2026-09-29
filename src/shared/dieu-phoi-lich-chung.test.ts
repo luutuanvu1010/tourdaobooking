@@ -2,7 +2,7 @@
 // chặng + trạng thái, chuyến + tải + lý do giữ (chính `kiemXuatBen`, dự phóng "xuất bến đúng giờ"), cảnh báo, đơn nháp dưới mốc chờ Quản trị duyệt đặt gấp.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ChangVao, ChinhSachVao, ChuyenVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
+import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
 import { LOAI_CANH_BAO_LICH, NHAN_CANH_BAO_LICH, dungLichChung, type LichChungVao } from "./dieu-phoi-lich-chung.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -26,8 +26,16 @@ const chuyen = (id: string, v: Partial<ChuyenVao> = {}): ChuyenVao => ({
   xe: xe(), taiXe: tx(), nghiChup: 30, nghiPhaLe: false, ...v,
 });
 const BAY_GIO = ms("2026-09-29", "20:00");
+/** Điểm mặc định của một chuyến: d1 (đón) / d9 (trả) với khoá so sánh nơi GIẢ khớp khung `chang()` (ADR-0050 VK1-B). */
+function diemMacDinh(tripId: string): DiemVao[] {
+  return [
+    { id: "d1", tripId, seq: 1, loai: "PICKUP", trangThai: "PENDING", placeKey: "L:noi-d1", gioXeToiMs: null },
+    { id: "d9", tripId, seq: 9, loai: "DROPOFF", trangThai: "PENDING", placeKey: "L:noi-d9", gioXeToiMs: null },
+  ];
+}
 function vao(v: Partial<LichChungVao> = {}): LichChungVao {
-  return { chang: [], nhap: [], chuyen: [], suat: [], chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], bayGioMs: BAY_GIO, ...v };
+  const diem = (v.chuyen ?? []).flatMap((c) => diemMacDinh(c.id));
+  return { chang: [], nhap: [], chuyen: [], suat: [], diem, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], bayGioMs: BAY_GIO, ...v };
 }
 
 test("dungLichChung: chuyến đủ điều kiện (tải, không giữ); chặng xếp đủ 'Đã xếp'; chặng chưa xếp 'Chưa xếp'", () => {
@@ -114,4 +122,39 @@ test("LOAI_CANH_BAO_LICH có hai cảnh báo K-02 của bản soi Kernel (ADR-00
     assert.ok(NHAN_CANH_BAO_LICH[k].trim().length > 0, k);
     assert.doesNotMatch(NHAN_CANH_BAO_LICH[k], /[A-Z]{2,}_/, `${k}: nhãn không lộ mã`);
   }
+});
+
+// ---- [SOI] K-02 (ADR-0050; TC-53): cảnh báo trên bảng — cùng hàm noiLechCuaSuat với lý do giữ NOI_HEN_DOI (I47) --------------------------------------------
+const diemK = (id: string, tripId: string, loai: "PICKUP" | "DROPOFF", placeKey: string, v: Partial<DiemVao> = {}): DiemVao => ({
+  id, tripId, seq: loai === "PICKUP" ? 1 : 9, loai, trangThai: "PENDING", placeKey, gioXeToiMs: null, ...v,
+});
+const vaoK02 = (v: Partial<LichChungVao>): LichChungVao => ({
+  chang: [chang("a")], nhap: [], chuyen: [chuyen("t1")], suat: [suat("s1", "a", "t1", { personKey: "a-p1" }), suat("s2", "a", "t1", { personKey: "a-p2" })],
+  diem: [diemK("d1", "t1", "PICKUP", "L:noi-d1"), diemK("d9", "t1", "DROPOFF", "L:noi-d9")],
+  chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], bayGioMs: ms("2026-09-29", "20:00"), ...v,
+});
+const loaiCb = (r: ReturnType<typeof dungLichChung>, loai: string) => r.canhBao.filter((c) => c.loai === loai).map((c) => `${c.tripId}:${c.orderCode}`);
+
+test("TC-53 NOI_HEN_KHAC_DIEM: chuyến chưa chạy lệch nơi → vừa cảnh báo vừa giữ NOI_HEN_DOI; chuyến ĐANG CHẠY lệch → CHỈ cảnh báo; khớp → không; chuyến đã kết thúc → không", () => {
+  assert.deepEqual(loaiCb(dungLichChung(vaoK02({})), "NOI_HEN_KHAC_DIEM"), []);
+  const lech = dungLichChung(vaoK02({ chang: [chang("a", { khoaNoiDon: "L:noi-khac" })] }));
+  assert.deepEqual(loaiCb(lech, "NOI_HEN_KHAC_DIEM"), ["t1:ĐH-a"], "một cảnh báo cho một chặng lệch");
+  assert.ok(lech.chuyen[0]!.lyDoGiu.some((x) => x.ma === "NOI_HEN_DOI"), "chuyến chưa chạy bị giữ");
+  const chay = dungLichChung(vaoK02({ chang: [chang("a", { khoaNoiTra: "L:noi-khac" })], chuyen: [chuyen("t1", { trangThai: "RUNNING" })] }));
+  assert.deepEqual(loaiCb(chay, "NOI_HEN_KHAC_DIEM"), ["t1:ĐH-a"], "xe đang chạy: vẫn báo để văn phòng gọi tài xế");
+  assert.deepEqual(chay.chuyen[0]!.lyDoGiu, [], "xe đang chạy không có 'giữ'");
+  const xong = dungLichChung(vaoK02({ chang: [chang("a", { khoaNoiDon: "L:noi-khac" })], chuyen: [chuyen("t1", { trangThai: "ENDED", ketThucThatMs: ms("2026-09-30", "08:00") })] }));
+  assert.deepEqual(loaiCb(xong, "NOI_HEN_KHAC_DIEM"), []);
+  // xe đang chạy, khách ĐÃ LÊN xe: nơi ĐÓN đổi không còn ý nghĩa → không báo; nơi TRẢ đổi → báo
+  const daLen = [suat("s1", "a", "t1", { personKey: "a-p1", trangThai: "BOARDED" }), suat("s2", "a", "t1", { personKey: "a-p2", trangThai: "BOARDED" })];
+  assert.deepEqual(loaiCb(dungLichChung(vaoK02({ chang: [chang("a", { khoaNoiDon: "L:noi-khac" })], chuyen: [chuyen("t1", { trangThai: "RUNNING" })], suat: daLen })), "NOI_HEN_KHAC_DIEM"), []);
+  assert.deepEqual(loaiCb(dungLichChung(vaoK02({ chang: [chang("a", { khoaNoiTra: "L:noi-khac" })], chuyen: [chuyen("t1", { trangThai: "RUNNING" })], suat: daLen })), "NOI_HEN_KHAC_DIEM"), ["t1:ĐH-a"]);
+});
+
+test("TC-53 GIO_XE_TOI_MUON_HON_HEN: điểm đón có giờ xe tới ghi đè MUỘN hơn giờ hẹn sớm nhất của các chặng đón tại điểm → cảnh báo; bằng / sớm hơn / không ghi đè → không", () => {
+  const voiGio = (hhmm: string | null) => vaoK02({ diem: [diemK("d1", "t1", "PICKUP", "L:noi-d1", { gioXeToiMs: hhmm ? ms("2026-09-30", hhmm) : null }), diemK("d9", "t1", "DROPOFF", "L:noi-d9")] });
+  assert.deepEqual(loaiCb(dungLichChung(voiGio("06:40")), "GIO_XE_TOI_MUON_HON_HEN"), ["t1:ĐH-a"], "hẹn 06:30, xe tới 06:40");
+  assert.deepEqual(loaiCb(dungLichChung(voiGio("06:30")), "GIO_XE_TOI_MUON_HON_HEN"), []);
+  assert.deepEqual(loaiCb(dungLichChung(voiGio("06:20")), "GIO_XE_TOI_MUON_HON_HEN"), []);
+  assert.deepEqual(loaiCb(dungLichChung(voiGio(null)), "GIO_XE_TOI_MUON_HON_HEN"), []);
 });

@@ -7,6 +7,8 @@
 // - Trùng giờ (LC-03) theo khoảng NỬA MỞ [bắt đầu, kết thúc thật hoặc dự kiến) — chuyến huỷ không tính (I22). Khoảng nghỉ (CH-02) là luật cấu hình ở máy
 //   chủ (không trigger), tính từ giờ kết thúc THẬT của chuyến trước khi đã có.
 // - Lý do chỉ mang mã đơn, mã chuyến, biển số, con số — không tên, năm sinh, SĐT, số giấy tờ (LC-18).
+// - ADR-0050: nơi hẹn đổi sau khi xếp → giữ NOI_HEN_DOI (so KHOÁ so sánh nơi của chặng với `placeKey` của điểm — `noiLechCuaSuat`, MỘT hàm cho cả lý do giữ
+//   lẫn cảnh báo lịch chung K-02); khoảng nghỉ lúc xuất bến đo từ giờ XẢY RA xuất bến (`xuatBenMs`), không từ lúc bấm (I37).
 import type {
   BanChup, ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, DiemVao, GanTen, HangBangVao, KetQuaKiem, KetQuaXuatBen, KhungChuyen, MucChup, SuatVao, TaiXeVao,
   TrangThaiChuyen, XeVao,
@@ -179,6 +181,19 @@ export function kiemXep(v: KiemXepVao): KetQuaKiem {
   return ketQua(khongTrung(chan), khongTrung(canPhaLe));
 }
 
+// ---- So nơi hẹn (ADR-0050 VK1-B; I41, I47) ----------------------------------------------------------------------------------------------------------------
+/**
+ * MỘT hàm so nơi của một suất khách với chặng của nó: `don` = khoá nơi đón hiện hành của chặng ≠ `placeKey` điểm LÊN (hoặc không thấy điểm lên); `tra` = chặng
+ * ĐÃ có nơi trả mà điểm XUỐNG khác khoá (hoặc suất chưa có điểm xuống — I41). Khoá thiếu trong dữ liệu vào (undefined) → coi là LỆCH (không "khớp" im lặng).
+ * Dùng cho lý do giữ NOI_HEN_DOI (`kiemXuatBen`, chuyến chưa chạy) VÀ cảnh báo NOI_HEN_KHAC_DIEM (`dungLichChung`, mọi chuyến chưa kết thúc).
+ */
+export function noiLechCuaSuat(suat: SuatVao, diemLen: DiemVao | undefined, diemXuong: DiemVao | undefined, chang: ChangVao): { don: boolean; tra: boolean } {
+  void suat;
+  const don = diemLen === undefined || typeof chang.khoaNoiDon !== "string" || diemLen.placeKey !== chang.khoaNoiDon;
+  const tra = chang.khoaNoiTra !== null && (diemXuong === undefined || typeof chang.khoaNoiTra !== "string" || diemXuong.placeKey !== chang.khoaNoiTra);
+  return { don, tra };
+}
+
 // ---- Cổng xuất bến (LC-05, LC-12 — L-B2; "giữ") ----------------------------------------------------------------------------------------------------------
 export interface KiemXuatBenVao {
   chuyen: ChuyenVao;
@@ -188,6 +203,8 @@ export interface KiemXuatBenVao {
   chang: ChangVao[];
   /** Suất đang mở của các chặng đó trên MỌI chuyến (đủ / thiếu / thừa suất; tên đã dùng). */
   suatMoCuaChang: SuatVao[];
+  /** Điểm dừng của CHUYẾN NÀY (`placeKey` — so nơi hẹn, ADR-0050 VK1-B). */
+  diem: DiemVao[];
   /** Chuyến khác (mọi trạng thái) để xét xe / tài xế đang chạy chuyến khác và khoảng nghỉ từ giờ kết thúc thật. */
   chuyenKhac: KhungChuyen[];
   chinhSach: ChinhSachVao | null;
@@ -195,6 +212,11 @@ export interface KiemXuatBenVao {
   /** Điều kiện xuất bến ĐANG HIỆU LỰC. */
   dieuKien: DieuKienVao[];
   bayGioMs: number;
+  /**
+   * Giờ XẢY RA xuất bến (ADR-0050 VK1-A, I37) = giờ văn phòng khai, hoặc lúc bấm; lịch chung dự phóng = max(bây giờ, giờ bắt đầu). Khoảng nghỉ đo từ đây —
+   * đo từ lúc bấm là lệch khi văn phòng khai lùi (kế hoạch mục 4 điểm 23).
+   */
+  xuatBenMs: number;
 }
 
 /**
@@ -254,6 +276,15 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     if (!ch.changMo) lyDo.push(lyDoGiu("CHANG_DA_DONG", ch.orderCode));
     if (!ch.coNoiTra) lyDo.push(lyDoGiu("CHUA_CO_NOI_TRA", ch.orderCode));
     if (ch.ngayDon === null || ch.gioDon === null) lyDo.push(lyDoGiu("CHUA_CO_GIO", ch.orderCode));
+    // ADR-0050 VK1-B: nơi hẹn đổi sau khi xếp (chuyến CHƯA chạy) → giữ tới khi văn phòng "cập nhật điểm theo đơn". Một lý do mỗi chặng.
+    if (c.trangThai === "PLANNED") {
+      const lech = v.suat.some((s) => {
+        if (!(s.mo && s.loai === "PASSENGER" && s.legId === legId)) return false;
+        const n = noiLechCuaSuat(s, v.diem.find((d) => d.id === s.boardStopId), s.alightStopId === null ? undefined : v.diem.find((d) => d.id === s.alightStopId), ch);
+        return n.don || n.tra;
+      });
+      if (lech) lyDo.push(lyDoGiu("NOI_HEN_DOI", ch.orderCode));
+    }
     const moMoiChuyen = v.suatMoCuaChang.filter((s) => s.mo && s.legId === legId);
     if (moMoiChuyen.length < ch.soNguoi) lyDo.push(lyDoGiu("THIEU_SUAT", `${ch.orderCode} ${moMoiChuyen.length}/${ch.soNguoi}`));
     if (moMoiChuyen.length > ch.soNguoi) lyDo.push(lyDoGiu("THUA_SUAT", `${ch.orderCode} ${moMoiChuyen.length}/${ch.soNguoi}`));
@@ -278,7 +309,7 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
       if (cungXe) lyDo.push(lyDoGiu("TRUNG_GIO_XE", k.ma));
       if (cungTaiXe) lyDo.push(lyDoGiu("TRUNG_GIO_TAI_XE", k.ma));
     } else if ((k.trangThai === "ENDED" || k.trangThai === "ENDED_INTERRUPTED") && k.ketThucThatMs !== null && !c.nghiPhaLe && cs) {
-      if (k.ketThucThatMs <= v.bayGioMs && v.bayGioMs - k.ketThucThatMs < c.nghiChup * PHUT) lyDo.push(lyDoGiu("NGHI_THIEU", k.ma));
+      if (k.ketThucThatMs <= v.xuatBenMs && v.xuatBenMs - k.ketThucThatMs < c.nghiChup * PHUT) lyDo.push(lyDoGiu("NGHI_THIEU", k.ma));
     }
   }
   const chup: BanChup = {

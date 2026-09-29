@@ -20,14 +20,14 @@
       "MP": { "partyId": "tx-mp", "displayName": "Tài xế nhà xe Minh Phát", "loai": "NHA_XE", "carrierPartyIds": ["nx-minh-phat"], "giayTo": [{ "rowId": "gplx-mp", "typeCode": "GPLX", "classCode": "D", "expiryDate": null }] }
     },
     "chang": {
-      "SHERATON": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2"], "datGap": false },
-      "SHERATON_DU_TEN": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false },
-      "AMIANA": { "legId": "leg-amiana", "orderId": "don-1002", "orderCode": "ĐH-1002", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:15", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": ["k2-1", "k2-2", "k2-3"], "datGap": false },
-      "MUONG_THANH": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": [], "datGap": false },
-      "MUONG_THANH_DU_TEN": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "datGap": false },
-      "THEM_4": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": [], "datGap": false },
-      "THEM_2": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": false },
-      "DAT_GAP": { "legId": "leg-gap", "orderId": "don-1005", "orderCode": "ĐH-1005", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "07:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": true }
+      "SHERATON": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang" },
+      "SHERATON_DU_TEN": { "legId": "leg-sheraton", "orderId": "don-1001", "orderCode": "ĐH-1001", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": ["k1-1", "k1-2", "k1-3", "k1-4"], "datGap": false, "khoaNoiDon": "L:loc-sheraton", "khoaNoiTra": "L:loc-cang" },
+      "AMIANA": { "legId": "leg-amiana", "orderId": "don-1002", "orderCode": "ĐH-1002", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:15", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 3, "nguoiCuaDon": ["k2-1", "k2-2", "k2-3"], "datGap": false, "khoaNoiDon": "L:loc-amiana", "khoaNoiTra": "L:loc-ben" },
+      "MUONG_THANH": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang" },
+      "MUONG_THANH_DU_TEN": { "legId": "leg-muong-thanh", "orderId": "don-1003", "orderCode": "ĐH-1003", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:30", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 5, "nguoiCuaDon": ["k3-1", "k3-2", "k3-3", "k3-4", "k3-5"], "datGap": false, "khoaNoiDon": "L:loc-muong-thanh", "khoaNoiTra": "L:loc-cang" },
+      "THEM_4": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 4, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-them", "khoaNoiTra": "L:loc-cang" },
+      "THEM_2": { "legId": "leg-them", "orderId": "don-1004", "orderCode": "ĐH-1004", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "06:40", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": false, "khoaNoiDon": "L:loc-them", "khoaNoiTra": "L:loc-cang" },
+      "DAT_GAP": { "legId": "leg-gap", "orderId": "don-1005", "orderCode": "ĐH-1005", "chieu": "OUT", "ngayDon": "2026-09-30", "gioDon": "07:00", "coNoiTra": true, "donDaXacNhan": true, "donDaHuy": false, "changMo": true, "soNguoi": 2, "nguoiCuaDon": [], "datGap": true, "khoaNoiDon": "L:loc-gap", "khoaNoiTra": "L:loc-cang" }
     },
     "suatCx07": [
       { "id": "s-sh-1", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-sheraton", "personKey": "k1-1", "crewPartyId": null, "boardStopId": "d-sheraton", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true },
@@ -46,7 +46,14 @@
     "cx07": {
       "id": "cx-3009-07", "ma": "CX-3009-07", "ngayChay": "2026-09-30", "batDauMs": "2026-09-30 05:50", "ketThucMs": "2026-09-30 08:30", "ketThucThatMs": null, "trangThai": "PLANNED",
       "xe": "$nen.xe.A", "taiXe": "$nen.taiXe.A", "nghiChup": 30, "nghiPhaLe": false
-    }
+    },
+    "diemCx07": [
+      { "id": "d-sheraton", "tripId": "cx-3009-07", "seq": 1, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-sheraton", "gioXeToiMs": null },
+      { "id": "d-amiana", "tripId": "cx-3009-07", "seq": 2, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-amiana", "gioXeToiMs": null },
+      { "id": "d-muong-thanh", "tripId": "cx-3009-07", "seq": 3, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-muong-thanh", "gioXeToiMs": null },
+      { "id": "d-cang", "tripId": "cx-3009-07", "seq": 4, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-cang", "gioXeToiMs": null },
+      { "id": "d-ben", "tripId": "cx-3009-07", "seq": 5, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-ben", "gioXeToiMs": null }
+    ]
   },
   "cac_buoc": [
     {
@@ -109,8 +116,8 @@
       "ham": "kiemXuatBen",
       "dau_vao": {
         "chuyen": "$nen.cx07", "suat": "$nen.suatCx07",
-        "chang": ["$nen.chang.SHERATON", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH"], "suatMoCuaChang": "$nen.suatCx07",
-        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": [], "bayGioMs": "2026-09-30 05:45"
+        "chang": ["$nen.chang.SHERATON", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH"], "suatMoCuaChang": "$nen.suatCx07", "diem": "$nen.diemCx07",
+        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": [], "bayGioMs": "2026-09-30 05:45", "xuatBenMs": "2026-09-30 05:45"
       },
       "dap_an": { "quyet_dinh": "GIU", "ma_luat": ["THIEU_TEN", "THIEU_TEN"], "ai_xu_ly": ["VAN_PHONG", "VAN_PHONG"], "so_gan_ten": 0 }
     },
@@ -120,8 +127,8 @@
       "ham": "kiemXuatBen",
       "dau_vao": {
         "chuyen": "$nen.cx07", "suat": "$nen.suatCx07",
-        "chang": ["$nen.chang.SHERATON_DU_TEN", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH_DU_TEN"], "suatMoCuaChang": "$nen.suatCx07",
-        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": [], "bayGioMs": "2026-09-30 05:48"
+        "chang": ["$nen.chang.SHERATON_DU_TEN", "$nen.chang.AMIANA", "$nen.chang.MUONG_THANH_DU_TEN"], "suatMoCuaChang": "$nen.suatCx07", "diem": "$nen.diemCx07",
+        "chuyenKhac": [], "chinhSach": "$nen.chinhSach", "hangBang": "$nen.hangBang", "dieuKien": [], "bayGioMs": "2026-09-30 05:48", "xuatBenMs": "2026-09-30 05:48"
       },
       "dap_an": { "quyet_dinh": "DAT", "ma_luat": [], "so_gan_ten": 7 }
     },
@@ -212,11 +219,11 @@
           { "id": "s-mt-5", "tripId": "cx-3009-07", "loai": "PASSENGER", "legId": "leg-muong-thanh", "personKey": "k3-5", "crewPartyId": null, "boardStopId": "d-muong-thanh", "alightStopId": "d-cang", "trangThai": "WAITING", "mo": true }
         ],
         "diem": [
-          { "id": "d-sheraton", "tripId": "cx-3009-07", "seq": 1, "loai": "PICKUP", "trangThai": "DONE" },
-          { "id": "d-amiana", "tripId": "cx-3009-07", "seq": 2, "loai": "PICKUP", "trangThai": "ARRIVED" },
-          { "id": "d-muong-thanh", "tripId": "cx-3009-07", "seq": 3, "loai": "PICKUP", "trangThai": "PENDING" },
-          { "id": "d-cang", "tripId": "cx-3009-07", "seq": 4, "loai": "DROPOFF", "trangThai": "PENDING" },
-          { "id": "d-ben", "tripId": "cx-3009-07", "seq": 5, "loai": "DROPOFF", "trangThai": "PENDING" }
+          { "id": "d-sheraton", "tripId": "cx-3009-07", "seq": 1, "loai": "PICKUP", "trangThai": "DONE", "placeKey": "L:loc-sheraton", "gioXeToiMs": null },
+          { "id": "d-amiana", "tripId": "cx-3009-07", "seq": 2, "loai": "PICKUP", "trangThai": "ARRIVED", "placeKey": "L:loc-amiana", "gioXeToiMs": null },
+          { "id": "d-muong-thanh", "tripId": "cx-3009-07", "seq": 3, "loai": "PICKUP", "trangThai": "PENDING", "placeKey": "L:loc-muong-thanh", "gioXeToiMs": null },
+          { "id": "d-cang", "tripId": "cx-3009-07", "seq": 4, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-cang", "gioXeToiMs": null },
+          { "id": "d-ben", "tripId": "cx-3009-07", "seq": 5, "loai": "DROPOFF", "trangThai": "PENDING", "placeKey": "L:loc-ben", "gioXeToiMs": null }
         ]
       },
       "dap_an": { "duoc": false, "goi_y": "KET_THUC_GIAN_DOAN", "con_suat": 12, "con_diem": 4 }

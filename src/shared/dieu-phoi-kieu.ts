@@ -206,6 +206,8 @@ export interface DiemVao {
   trangThai: TrangThaiDiem;
   /** ADR-0050 VK1-B: khoá so sánh nơi của điểm (`vc_trip_stop.place_key`) — đặt lúc dựng điểm từ chặng, không đổi; CHỈ để so, không hiển thị. */
   placeKey: string;
+  /** Giờ xe tới GHI ĐÈ (`planned_date` + `planned_time`, I9) đổi ra mili-giây; null = theo giờ hẹn của chặng ([SOI] K-02: cảnh báo khi muộn hơn giờ hẹn). */
+  gioXeToiMs: number | null;
 }
 /** Khung giờ một chuyến khác, cho luật trùng giờ (LC-03) và khoảng nghỉ (CH-02). */
 export interface KhungChuyen {

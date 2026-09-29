@@ -4,8 +4,8 @@
 // hạng lạ → CHẶN (không đoán).
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import type { ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
+import { kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
@@ -206,8 +206,16 @@ const chuyenVao = (v: Partial<ChuyenVao> = {}): ChuyenVao => ({
 });
 const BON_SUAT = [suat({ id: "s1", personKey: "p1" }), suat({ id: "s2", personKey: "p2" }), suat({ id: "s3" }), suat({ id: "s4" })];
 const LUC_XUAT_BEN = BAT_DAU - 5 * PHUT;
+/** Điểm của chuyến — khoá so sánh nơi GIẢ khớp khung `chang()` (L:noi-don-1 / L:noi-tra-9 — ADR-0050 VK1-B). */
+const diemVao = (id: string, loai: "PICKUP" | "DROPOFF", placeKey: string, v: Partial<DiemVao> = {}): DiemVao => ({
+  id, tripId: "cx-07", seq: loai === "PICKUP" ? 1 : 9, loai, trangThai: "PENDING", placeKey, gioXeToiMs: null, ...v,
+});
+const DIEM = [diemVao("d-1", "PICKUP", "L:noi-don-1"), diemVao("d-9", "DROPOFF", "L:noi-tra-9")];
 function xb(v: Partial<KiemXuatBenVao> = {}): KiemXuatBenVao {
-  return { chuyen: chuyenVao(), suat: BON_SUAT, chang: [chang()], suatMoCuaChang: BON_SUAT, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [], bayGioMs: LUC_XUAT_BEN, ...v };
+  return {
+    chuyen: chuyenVao(), suat: BON_SUAT, chang: [chang()], suatMoCuaChang: BON_SUAT, diem: DIEM, chuyenKhac: [], chinhSach: CS, hangBang: HB, dieuKien: [],
+    bayGioMs: LUC_XUAT_BEN, xuatBenMs: LUC_XUAT_BEN, ...v,
+  };
 }
 
 test("kiemXuatBen đạt: đủ điều kiện → dat, không lý do; gắn 2 tên còn thiếu theo thứ tự khoá người (I19b); bản chụp có GPLX (khoá + hạng + hạn), không số", () => {
@@ -294,7 +302,7 @@ test("kiemXuatBen: câu lý do không bao giờ chứa tên tài xế / khoá ng
 
 // ---- kiemKetThuc, trongNgayChay ------------------------------------------------------------------------------------------------------------------------------
 test("kiemKetThuc (LC-16): mọi suất mở đã có kết quả cuối và mọi điểm đã xong / bỏ qua / chuyển → được; còn thì gợi ý 'Kết thúc gián đoạn'", () => {
-  const diem = (trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED", id = "d") => ({ id, tripId: "cx-07", seq: 1, loai: "PICKUP" as const, trangThai, placeKey: `L:${id}` });
+  const diem = (trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED", id = "d") => ({ id, tripId: "cx-07", seq: 1, loai: "PICKUP" as const, trangThai, placeKey: `L:${id}`, gioXeToiMs: null });
   const xong = [suat({ id: "a", trangThai: "DROPPED" }), suat({ id: "b", trangThai: "NO_SHOW" }), suat({ id: "c", trangThai: "CANCELLED_AT_STOP" }), suat({ id: "d", trangThai: "WAITING", mo: false })];
   assert.deepEqual(kiemKetThuc({ suat: xong, diem: [diem("DONE"), diem("SKIPPED", "e"), diem("MOVED", "f")] }), { duoc: true });
   assert.deepEqual(kiemKetThuc({ suat: [...xong, suat({ id: "w", trangThai: "WAITING" }), suat({ id: "x", trangThai: "BOARDED" })], diem: [diem("ARRIVED")] }), {
@@ -308,4 +316,51 @@ test("TC-18 trongNgayChay: hôm nay = ngày chạy → có; hôm qua + đang ch�
   assert.equal(trongNgayChay({ ngayChay: "2026-10-01", trangThai: "PLANNED" }, "2026-09-30"), false);
   assert.equal(trongNgayChay({ ngayChay: "2026-09-29", trangThai: "ENDED" }, "2026-09-30"), false);
   assert.equal(trongNgayChay({ ngayChay: "2026-09-30", trangThai: "ENDED" }, "2026-09-30"), true, "đã kết thúc trong ngày chạy vẫn là ngày chạy");
+});
+
+// ---- ADR-0050 VK1-B (TC-48, luật thuần — khoá GIẢ): giữ NOI_HEN_DOI khi nơi hẹn đổi sau khi xếp; VK1-A (TC-47, I37): nghỉ đo từ giờ XẢY RA xuất bến -------
+test("TC-48 noiLechCuaSuat: khoá nơi của chặng so với placeKey của điểm lên / điểm xuống; chặng có nơi trả mà suất chưa có điểm xuống → lệch (I41); thiếu khoá → lệch (không đoán)", () => {
+  const s = suat({ id: "s-1" });
+  const [len, xuong] = DIEM;
+  assert.deepEqual(noiLechCuaSuat(s, len, xuong, chang()), { don: false, tra: false });
+  assert.deepEqual(noiLechCuaSuat(s, len, xuong, chang({ khoaNoiDon: "L:noi-khac" })), { don: true, tra: false });
+  assert.deepEqual(noiLechCuaSuat(s, len, xuong, chang({ khoaNoiTra: "T:" + "a".repeat(64) })), { don: false, tra: true });
+  assert.deepEqual(noiLechCuaSuat(suat({ alightStopId: null }), len, undefined, chang()), { don: false, tra: true }, "có nơi trả, suất chưa có điểm xuống");
+  assert.deepEqual(noiLechCuaSuat(suat({ alightStopId: null }), len, undefined, chang({ khoaNoiTra: null, coNoiTra: false })), { don: false, tra: false }, "chặng chưa có nơi trả: không so (CHUA_CO_NOI_TRA lo)");
+  assert.deepEqual(noiLechCuaSuat(s, undefined, xuong, chang()), { don: true, tra: false }, "không thấy điểm lên → lệch");
+  const thieuKhoa = { ...chang() } as Partial<ChangVao>;
+  delete thieuKhoa.khoaNoiDon;
+  delete thieuKhoa.khoaNoiTra;
+  assert.deepEqual(noiLechCuaSuat(s, len, xuong, thieuKhoa as ChangVao), { don: true, tra: true }, "dữ liệu vào thiếu khoá (undefined) → lệch, không 'khớp' im lặng");
+});
+
+test("TC-48 kiemXuatBen: đổi nơi ĐÓN sau khi xếp → giữ NOI_HEN_DOI (văn phòng); đổi nơi TRẢ → giữ; chặng có nơi trả mà suất chưa có điểm xuống → giữ; khoá khớp → không giữ", () => {
+  const ca: [string, Partial<KiemXuatBenVao>][] = [
+    ["đổi nơi đón (Sheraton → Amiana)", { chang: [chang({ khoaNoiDon: "L:noi-khac" })] }],
+    ["đổi nơi trả", { chang: [chang({ khoaNoiTra: "L:noi-tra-khac" })] }],
+    ["chặng có nơi trả, suất chưa có điểm xuống", { suat: BON_SUAT.map((x) => ({ ...x, alightStopId: null })), suatMoCuaChang: BON_SUAT.map((x) => ({ ...x, alightStopId: null })) }],
+  ];
+  for (const [ten, v] of ca) {
+    const r = kiemXuatBen(xb(v));
+    assert.equal(r.dat, false, ten);
+    assert.deepEqual(ai(r.lyDo), ["NOI_HEN_DOI:VAN_PHONG"], ten);
+    assert.match(r.lyDo[0]!.loiNhan, /ĐH-1024/, `${ten}: câu có mã đơn`);
+    assert.doesNotMatch(r.lyDo[0]!.loiNhan, /L:|T:/, `${ten}: câu không lộ khoá nơi`);
+  }
+  assert.equal(kiemXuatBen(xb()).dat, true, "khoá khớp → không giữ");
+  // Nhiều suất của CÙNG chặng lệch → MỘT lý do cho chặng đó.
+  assert.equal(kiemXuatBen(xb({ chang: [chang({ khoaNoiDon: "L:noi-khac" })] })).lyDo.length, 1);
+});
+
+test("TC-47 (I37) kiemXuatBen: khoảng nghỉ đo từ giờ XẢY RA xuất bến — chuyến trước kết thúc thật 7:50, xuất bến khai 8:10 (bấm 8:45), nghỉ 30 → NGHI_THIEU; khai 8:20 → đạt", () => {
+  const bd = ms("2026-09-30", "08:10");
+  const kt = ms("2026-09-30", "10:00");
+  const c = chuyenVao({ batDauMs: bd, ketThucMs: kt });
+  const truoc = khung({ id: "cx-truoc", xeId: "xe-a", taiXePartyId: "tx-khac", batDauMs: ms("2026-09-30", "06:00"), ketThucMs: ms("2026-09-30", "07:50"), ketThucThatMs: ms("2026-09-30", "07:50"), trangThai: "ENDED" });
+  const bam = ms("2026-09-30", "08:45");
+  const thieu = kiemXuatBen(xb({ chuyen: c, chuyenKhac: [truoc], bayGioMs: bam, xuatBenMs: ms("2026-09-30", "08:10") }));
+  assert.deepEqual(ai(thieu.lyDo), ["NGHI_THIEU:QUAN_TRI"]);
+  assert.equal(kiemXuatBen(xb({ chuyen: c, chuyenKhac: [truoc], bayGioMs: bam, xuatBenMs: ms("2026-09-30", "08:20") })).dat, true);
+  // đo từ lúc BẤM (8:45) thì đủ nghỉ 55 phút — sai: chính là lỗ khai lùi của ADR-0050
+  assert.equal(kiemXuatBen(xb({ chuyen: c, chuyenKhac: [truoc], bayGioMs: bam, xuatBenMs: bam })).dat, true);
 });

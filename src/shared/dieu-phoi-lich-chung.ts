@@ -6,8 +6,8 @@
 // - Đơn nháp chỉ ĐẾM (I11); nháp có chặng dưới mốc chưa đặt gấp vào danh sách "chờ Quản trị duyệt đặt gấp" — route quyết ai được thấy (ô
 //   `order.leg.short_notice`), hàm này không biết quyền.
 // - Chính sách rỗng → cảnh báo, không đoán mốc.
-import type { ChangVao, ChinhSachVao, ChuyenVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
-import { kiemXuatBen } from "./dieu-phoi-kiem.ts";
+import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TrangThaiChuyen } from "./dieu-phoi-kieu.ts";
+import { kiemXuatBen, noiLechCuaSuat } from "./dieu-phoi-kiem.ts";
 import { trangThaiChang, type TrangThaiChangRa } from "./dieu-phoi-trang-thai.ts";
 import type { LyDoGiu } from "./ly-do-giu.ts";
 import { kiemMocDat } from "./moc-toi-thieu.ts";
@@ -30,6 +30,8 @@ export interface LichChungVao {
   chuyen: ChuyenVao[];
   /** Suất (mở và đóng) của các chuyến trên + suất mở của các chặng trên ở chuyến khác. */
   suat: SuatVao[];
+  /** Điểm dừng của các chuyến trên (`placeKey`, giờ xe tới ghi đè — ADR-0050 VK1-B, [SOI] K-02). */
+  diem: DiemVao[];
   /** Chuyến ngoài khoảng ngày có thể chạm (đang chạy, vừa kết thúc) — cho luật xe / tài xế đang chạy và nghỉ đủ. */
   chuyenKhac: KhungChuyen[];
   chinhSach: ChinhSachVao | null;
@@ -116,7 +118,34 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
 
   const chuyen: ChuyenLichRa[] = v.chuyen.map((c) => {
     const suatCuaChuyen = v.suat.filter((s) => s.tripId === c.id);
+    const diemCuaChuyen = v.diem.filter((d) => d.tripId === c.id);
     const tai = suatCuaChuyen.filter((s) => s.mo && (s.trangThai === "WAITING" || s.trangThai === "BOARDED")).length;
+    // [SOI] K-02 — mọi chuyến CHƯA kết thúc (kể cả đang chạy: chỉ báo, để văn phòng gọi tài xế). Cùng hàm so với lý do giữ NOI_HEN_DOI (I47). Khách đã lên xe
+    // thì nơi ĐÓN đổi không còn ý nghĩa — chỉ xét nơi TRẢ.
+    if (c.trangThai === "PLANNED" || c.trangThai === "RUNNING") {
+      const daBao = new Set<string>();
+      for (const s of suatCuaChuyen) {
+        if (!(s.mo && s.loai === "PASSENGER" && s.legId !== null && (s.trangThai === "WAITING" || s.trangThai === "BOARDED"))) continue;
+        const ch = v.chang.find((x) => x.legId === s.legId);
+        if (!ch || daBao.has(ch.legId)) continue;
+        const n = noiLechCuaSuat(s, diemCuaChuyen.find((d) => d.id === s.boardStopId), s.alightStopId === null ? undefined : diemCuaChuyen.find((d) => d.id === s.alightStopId), ch);
+        if ((n.don && s.trangThai === "WAITING") || n.tra) {
+          daBao.add(ch.legId);
+          cb("NOI_HEN_KHAC_DIEM", ch.legId, c.id, ch.orderCode);
+        }
+      }
+      for (const d of diemCuaChuyen) {
+        if (d.loai !== "PICKUP" || d.trangThai !== "PENDING" || d.gioXeToiMs === null) continue;
+        let somNhat: { ms: number; ch: ChangVao } | null = null;
+        for (const s of suatCuaChuyen) {
+          if (!(s.mo && s.loai === "PASSENGER" && s.boardStopId === d.id && s.legId !== null)) continue;
+          const ch = v.chang.find((x) => x.legId === s.legId);
+          const hen = ch && ch.ngayDon !== null && ch.gioDon !== null ? vnLocalToMs(ch.ngayDon, ch.gioDon) : null;
+          if (ch && hen !== null && (somNhat === null || hen < somNhat.ms)) somNhat = { ms: hen, ch };
+        }
+        if (somNhat && d.gioXeToiMs > somNhat.ms) cb("GIO_XE_TOI_MUON_HON_HEN", somNhat.ch.legId, c.id, somNhat.ch.orderCode);
+      }
+    }
     let lyDoGiu: LyDoGiu[] = [];
     if (c.trangThai === "PLANNED") {
       const legIds = new Set(suatCuaChuyen.filter((s) => s.mo && s.legId !== null).map((s) => s.legId));
@@ -125,11 +154,13 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
         suat: suatCuaChuyen,
         chang: v.chang.filter((x) => legIds.has(x.legId)),
         suatMoCuaChang: v.suat.filter((s) => s.mo && s.legId !== null && legIds.has(s.legId)),
+        diem: diemCuaChuyen,
         chuyenKhac: [...v.chuyen.filter((x) => x.id !== c.id).map(khung), ...v.chuyenKhac],
         chinhSach: v.chinhSach,
         hangBang: v.hangBang,
         dieuKien: v.dieuKien,
         bayGioMs: Math.max(v.bayGioMs, c.batDauMs),
+        xuatBenMs: Math.max(v.bayGioMs, c.batDauMs), // dự phóng "xuất bến đúng giờ" (GA-11)
       }).lyDo;
       if (lyDoGiu.length > 0) cb("CHUYEN_GIU", null, c.id, null);
     }

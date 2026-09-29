@@ -87,6 +87,32 @@ for (const f of FILES) {
     assert.doesNotMatch(readFileSync(join(DIR, f), "utf8"), /\d{8,}/, "không số điện thoại / số giấy tờ trong ca mẫu");
   });
 
+  // ADR-0050 (A4b): trường BẮT BUỘC mới của kiểu vào — tệp JSON không qua typecheck, thiếu khoá thì "undefined === undefined" có thể cho qua im lặng.
+  test(`ca mẫu ${f}: đầu vào đủ trường mới của ADR-0050 — chặng có khoaNoiDon / khoaNoiTra, điểm có placeKey / gioXeToiMs, bước xuất bến có diem + xuatBenMs`, () => {
+    let nChang = 0;
+    let nDiem = 0;
+    (function walk(o: unknown): void {
+      if (Array.isArray(o)) return o.forEach(walk);
+      if (o === null || typeof o !== "object") return;
+      const r = o as Record<string, unknown>;
+      if ("legId" in r && "orderCode" in r) {
+        nChang++;
+        assert.equal(typeof r.khoaNoiDon, "string", `chặng ${String(r.legId)}: thiếu khoaNoiDon`);
+        assert.ok("khoaNoiTra" in r && (r.khoaNoiTra === null || typeof r.khoaNoiTra === "string"), `chặng ${String(r.legId)}: thiếu khoaNoiTra`);
+      }
+      if ("seq" in r && "loai" in r && "tripId" in r) {
+        nDiem++;
+        assert.equal(typeof r.placeKey, "string", `điểm ${String(r.id)}: thiếu placeKey`);
+        assert.ok("gioXeToiMs" in r, `điểm ${String(r.id)}: thiếu gioXeToiMs`);
+      }
+      Object.values(r).forEach(walk);
+    })(tep);
+    assert.ok(nChang > 0 && nDiem > 0, "bài không rỗng");
+    for (const b of tep.cac_buoc.filter((x) => x.ham === "kiemXuatBen")) {
+      assert.ok("diem" in b.dau_vao && "xuatBenMs" in b.dau_vao, `${b.ma}: bước xuất bến thiếu diem / xuatBenMs`);
+    }
+  });
+
   for (const b of tep.cac_buoc) {
     test(`ca mẫu ${f} / ${b.ma}: ${b.mo_ta}`, () => {
       assert.deepEqual(chay(b, tep.nen), b.dap_an);
