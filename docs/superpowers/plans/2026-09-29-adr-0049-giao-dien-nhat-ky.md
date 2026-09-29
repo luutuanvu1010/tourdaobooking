@@ -224,3 +224,81 @@ Chạy bằng `chay-chrome.sh` (thư mục tạm; `OUT` trỏ ra ngoài repo, `A
 Mọi kịch bản Chrome trong bảng `web/CLAUDE.md` mà Phần B chạm tới nay đều xanh trên đỉnh nhánh — không còn kịch bản "đỏ sẵn" nào trong nhóm này.
 
 **Chờ điều phối:** R-P23 ("ai lưu" trong lịch sử bản chính sách) — làm phần hiển thị khi có sha; B1–B6 khi có A13 / A15.
+
+## 9. Vòng 3 (29/9 đêm) — B1–B3 phần VĂN PHÒNG
+
+### 9.1 Lệnh điều phối (ghi nguyên ý)
+Gộp máy chủ `857f54c` (A13 `18f2a50`: chín route văn phòng lich / chuyen / chuyen/:id / PUT / phan-bo / rut / doi / huy / cap-nhat-diem, ô trip.view / dispatch / override, `nhatKy[].nguoiBam`; R-P23 `nguoiLuu`); R-P23 hiện "ai lưu" (null → không dòng); dựng B1, B2, B3 cho văn phòng theo bản vẽ + bản đối chiếu + khối thuần; menu "Vận chuyển" hiện khi `vehicle.manage` HOẶC `trip.view`, thêm "Điều phối xe" (Q-B-4). Bấm thay / "xảy ra lúc" / nút tiến độ chờ A15 — dựng chỗ, chưa nối. "Giờ hẹn đổi — gọi báo khách" + "Đã gọi báo" (ADR-0051) KHÔNG làm vòng này (Task B-GB); thẻ "Giờ xe tới muộn hơn giờ hẹn" không có nút "Đã gọi báo" (Q-GB-1 = b). Mỗi màn: Chrome đỏ trước / xanh sau, 390 + 1040, ba vai, ảnh, commit riêng. Lời nhắn sau: R-P12/13/16 đã có trong A13 — màn dùng `khoaMoc`, KHÔNG tự tính vùng khoá theo giờ hiện tại; `/chuyen/:id` có `diem[].lechDon`. Lời nhắn cuối: A15 đã có `1bf2960` — làm SAU khi B1–B3 commit sạch (mục 10). Lời nhắn sau đó: điểm gộp đổi thành `c98b0e9` (chứa `1bf2960`, e2e `370b4a2`, A14 `520ebcd`, A-GB / ADR-0051 + migration 0043); thứ tự: B1–B3 → gộp `c98b0e9` → bấm thay + B4–B6 + Q5 trang đầu tài xế → B-GB (nhắc gọi báo khách: DTO ở `src/shared/contracts.ts` + hằng chữ ở `src/shared/goi-bao.ts` của `c98b0e9`; "Đã gọi báo" chỉ khi `baoDuoc`, "Bỏ đánh dấu" chỉ khi `boDuoc`; 409 `khong_con_can_goi` / `gio_hen_vua_doi` → "Giờ hẹn vừa đổi hoặc đã có người báo — tải lại." + Tải lại; tài xế không thấy gì; không SĐT khách ở danh sách nhắc; Chrome ba vai; P16 bỏ điều kiện `baoDuoc` → bước Kế toán đỏ). Điều phối hỏi trạng thái B1: commit `8666fa4`.
+
+### 9.2 Commit
+| Việc | Commit |
+|---|---|
+| Gộp máy chủ `857f54c` | `61c53be` |
+| R-P23 "ai lưu" | `8764a88` |
+| B3 Tạo / sửa chuyến (+ khối thuần `dieu-phoi-man.ts`, khối UI chung `web/dieu-phoi-ui.ts`, dữ liệu thử `dungDuLieuDieuPhoi`) | `7037b7d` |
+| B2 Chi tiết chuyến | `ca73650` |
+| B1 Điều phối xe + menu (Q-B-4) + sửa kịch bản cũ theo menu | `8666fa4` |
+| B1 sửa: khung dòng thời gian nhảy về chuyến đầu ngày mỗi lần vẽ lại (bấm khối, sau khi xếp / cập nhật) + ca Chrome; trang Tôi của Kế toán; tài liệu vòng 3 | commit "B1 sửa: …" ngay sau `8666fa4` |
+
+### 9.3 Lệch bản vẽ / giả định bề mặt (P8 — đảo ngược được)
+- **D-B2-1** (Chi tiết chuyến): bảng điểm dừng 7 cột của 2a (28 / 44 / 1fr / 60 / 72 / 48 / 118 px) cạnh cột phải 280px chỉ còn ~24px cho cột NƠI ở khổ 1040 (đo trên ảnh lần chạy đầu: tên nơi gãy từng chữ). Dưới 1200px hai thẻ "Điều kiện xuất bến" + "Nhật ký chuyến" xuống dưới bảng (xếp đôi); từ 1200px đúng bố cục 2a. Hoàn tác: một khối `@media` trong `public/app.css`.
+- **D-B1-1** (dòng thời gian): KHÔNG tô "vùng nền nhạt từ bây giờ tới mốc" của bản vẽ — lệnh điều phối "không tự tính vùng khoá theo giờ hiện tại". Khối chuyến mang ổ khoá theo `khoaMoc.dangKhoa`; vạch "Bây giờ" và vạch mốc (R-P12) vẫn vẽ để nhìn; câu chú thích đổi thành "Chuyến có 🔒 đang trong vùng khoá…".
+- **D-B1-2**: thẻ chặng là NÚT mở hộp "Xếp vào chuyến" (chọn chuyến lên kế hoạch theo giờ, số khách — ít hơn là tách đoàn), máy tính thêm kéo thả vào khối chuyến (mở cùng hộp, chuyến đã chọn sẵn). Bản vẽ chỉ có câu "Kéo chặng thả vào một chuyến" và nút "Xếp vào chuyến…" ở điện thoại, không vẽ hộp — dựng theo khuôn hộp Phá lệ (1f). Câu gợi ý đổi thành "Kéo chặng thả vào một chuyến, hoặc bấm chặng để chọn chuyến".
+- **D-B1-3**: đầu cột "Cần xử lý" không có nhãn vai ("Quản trị") — đó là chú thích so vai của bản vẽ.
+- **D-B1-4**: mục menu "Điều phối xe" không có huy hiệu số (bản vẽ: 8) — máy chủ chưa có nguồn số (Q-B-10).
+- **D-B1-5**: vị trí khối trên dòng thời gian đặt bằng biến CSS KHÔNG đơn vị (`--dp-x`, `--dp-dai`, `--dp-so-gio` qua `style.setProperty`) — mọi số đo là token (`--dp-gio` 34px / giờ, `--w-dp-tl-nhan` 96px, `--h-dp-tl-hang` 64px…).
+- **D-B1-6**: giữ tiêu đề trang (h1) ở điện thoại (bản vẽ chỉ có tên ở thanh trên) — như B2 / B3 và mọi trang khác.
+- **D-B2-2**: nút Sửa / Huỷ ở điện thoại là lưới hai cột CUỐI trang (bản vẽ 2b), không dính đáy.
+- **B3**: không ô "Ghi chú cho tài xế" (chủ Q1). Câu "cần phá lệ" mốc gắn vào ô đang đổi (Xe trước, rồi Tài xế); tạo mới / dời giờ không bao giờ cần phá lệ mốc (máy chủ quyết — 2.2, 2.3; bước 7 của `chuyen-sua-smoke` khẳng định dời giờ lưu được).
+- **Cần xử lý**: cảnh báo "nơi hẹn khác điểm" của chuyến CHƯA chạy đã bị giữ "nơi đón / trả đã đổi" không thành mục thứ hai (mục chuyến bị giữ đã nói và có nút) — test thuần mới; máy chủ trả cảnh báo này cả cho chuyến PLANNED (thấy khi dò).
+- **Trang Tôi** (Bán hàng, Kế toán): nay có nhóm VẬN CHUYỂN với một dòng "Điều phối xe" — "Danh bạ" chuyển từ `#links` sang `#links-top` như tài khoản Quản trị (khuôn sẵn của 1a).
+
+### 9.4 Chờ A15 — KHÔNG dựng ở vòng này (không để nút chết)
+B2: "Xuất bến thay tài xế", nút tiến độ bấm thay (ô "xảy ra lúc", "Sớm nhất: HH:MM"), "Kết thúc gián đoạn", "Mở màn Xuất bến ›". B1: thẻ chuyến đang chạy (mốc tiến độ, "giờ do văn phòng khai"). Màn chuyến RUNNING / ENDED chưa kiểm được bằng Chrome (dữ liệu thử không chạy chuyến được khi chưa có route A15). Nhánh hiển thị đã có sẵn: dải "Nơi hẹn khác điểm xe" của chuyến đang chạy (B2), "Bản chụp lúc xuất bến", chip "giờ do văn phòng khai" trong nhật ký.
+
+### 9.5 Câu hỏi cho điều phối
+- **Q-B-6**: rút khách (`/rut`), dời khách sang chuyến khác (`/doi`), người đi kèm (`nguoiDiKem`), sắp lại thứ tự điểm / giờ xe tới (`SuaChuyenRequest.diem`) — bản vẽ không vẽ chỗ bấm → CHƯA dựng. Cần bản vẽ, hay dựng theo khuôn sẵn?
+- **Q-B-7**: `TaiXeChonDto` không có hạng GPLX → ô Tài xế không hiện "· hạng D" như bản vẽ 3a; lỗi hạng chỉ hiện sau khi lưu (409). Thêm trường vào DTO?
+- **Q-B-8**: `ChangLichDto` không có cờ "nơi tự gõ" → không hiện được "Nơi tự gõ — mở đơn để xem" (bản vẽ 1a); màn hiện chữ máy chủ trả (đã che dãy số). Giữ vậy?
+- **Q-B-9**: "Chưa có tài xế" — `POST /chuyen` bắt buộc tài xế, nên trạng thái này chỉ có khi tài xế bị gỡ về sau; nhánh hiển thị + nút "Chọn tài xế" đã dựng, chưa kiểm được bằng Chrome.
+- **Q-B-10**: huy hiệu số ở mục "Điều phối xe" (bản vẽ: 8) — cần nguồn số từ máy chủ; chưa làm.
+- **Q-B-11**: hộp "Xếp vào chuyến" (D-B1-2) không có trong bản vẽ — chủ có muốn vẽ lại không?
+
+### 9.6 P16 — quan sát kịch bản mới đỏ thật một lần
+| Kịch bản | Sửa cố ý (build lại) | Đỏ quan sát được | Hoàn nguyên |
+|---|---|---|---|
+| `chuyen-sua-smoke.mjs` | `dieu-phoi-man.ts`: bỏ `TRUNG_GIO_XE` khỏi nhóm ô Giờ kết thúc | bước 3 ✗ ("hết giờ chờ: dải 2 ô"), 11 ✓ / 1 ✗, thoát 1 | sửa lại dòng, `grep -c P16-DOT-BIEN` = 0, build lại |
+| `chuyen-smoke.mjs` | `nhanDiem`: tắt nhánh `lechDon` | bước 1 ✗ (điểm không "Lệch đơn"), 7 ✓ / 1 ✗, thoát 1 | như trên |
+| `dieu-phoi-smoke.mjs` | `thayDieuPhoiXe` hỏi `vehicle.manage` thay `trip.view` | Bán hàng bị từ chối, bảng không dựng → thoát 1. Lần đó chờ "bảng dựng xong" nằm NGOÀI bước nên dòng tổng ghi "OK (0 bước)" dù thoát 1 — đã chuyển mọi lần chờ vào trong bước | như trên |
+| `dieu-phoi-smoke.mjs` bước 2 (ca mới: khung cuộn giữ chỗ) | `web/dieu-phoi.ts`: bỏ giữ `scrollLeft` (hành vi cũ — luôn cuộn về chuyến đầu ngày) | bước 2 ✗ "sau khi bấm (vẽ lại), khối vừa chọn vẫn trong khung", 9 ✓ / 1 ✗, thoát 1 | như trên |
+
+Lỗi thật tìm ra nhờ người cố vấn (không phải kịch bản): bấm một khối gọi vẽ lại cột Xe → khung cuộn dựng mới rồi `requestAnimationFrame` kéo về chuyến đầu ngày — ở 390 và ở cột giữa ~350px của khổ 1040, bấm chuyến 14:30 là chuyến đó văng khỏi khung; kịch bản bấm bằng JS nên không thấy. Sửa: giữ `scrollLeft` qua các lần vẽ lại, chỉ tự cuộn một lần mỗi ngày xem (và chỉ khi khung đang hiện — thẻ "Xe" ở điện thoại thử lại lúc mở thẻ); `focus({ preventScroll: true })`.
+
+### 9.7 Kịch bản cũ sửa theo menu mới (B1, Q-B-4)
+`trang-chu-smoke.mjs` (Quản trị 17 mục — `ADMIN_NAV` thêm "Điều phối xe"; khung `/staff`, `/order-form` 17; `/audit` Toàn quyền 20); `xe-smoke.mjs` bước 1 (mục con đầu "Điều phối xe"), 2 (dòng "Điều phối xe" đầu nhóm VẬN CHUYỂN của trang Tôi), 3 (Bán hàng nay có mục cha + đúng một mục con / một dòng "Điều phối xe", vẫn không Xe / Sắp hết hạn, không gọi `/api/van-chuyen` ở trang Tôi); `danh-muc-giay-to-smoke.mjs` bước c, d (thêm "Điều phối xe"), j (Bán hàng: nhóm QUẢN TRỊ chỉ "Vận chuyển › Điều phối xe"); `chinh-sach-dieu-phoi-smoke.mjs` bước 1 (Toàn quyền: "Điều phối xe" đầu), 12 (Bán hàng: `["Điều phối xe"]`). Kịch bản tài xế (`tai-xe-trang-dau-smoke`, `tai-xe-doi-tac-smoke`) không đổi: tài xế không có ô trip.view không ngữ cảnh.
+
+**Đỏ sẵn, KHÔNG do vòng 3, không sửa (ngoài phạm vi — báo điều phối):** `docs/evidence/2026-09-21-v1-0/kich-ban/v1-bao-tri.mjs` 15 bước ✗ từ bước đầu ("hết giờ chờ: mục bảo trì hiện"). Nguyên nhân gốc: kịch bản dùng `OWNER = ACCOUNTS.admin` (chỉ ADMIN) làm "chủ", còn `canToggle` của `GET /api/maintenance` từ ADR-0019 / ADR-0038 (26–27/9) cần ô `settings.ops` (chỉ Toàn quyền) — `src/modules/maintenance/index.ts:46`. `dot-c-smoke.mjs` đã đổi sang tài khoản ADMIN + SUPER_ADMIN vì đúng lý do này (chú thích dòng 20 của nó). Vòng 3 không đụng phần bảo trì của `web/account.ts` / `web/shell.ts`. Sửa = đổi `OWNER` sang tài khoản có SUPER_ADMIN (như `dot-c-smoke`) — chờ điều phối giao.
+
+### 9.8 Kết quả cuối vòng 3 (tự khai, chưa có người kiểm độc lập)
+| Lệnh | Kết quả |
+|---|---|
+| `node --test src/shared/dieu-phoi-man.test.ts` | 19/19 (13 của B3 + 6 mới của B1, đỏ trước xanh sau) |
+| `npm run typecheck` | 0 |
+| `npm run build:web` | 0 |
+| quét CSS khối PWA (biểu thức của `tests/e2e/pwa.mjs`) | sạch |
+| `chuyen-sua-smoke.mjs` | 12/12 |
+| `chuyen-smoke.mjs` | 8/8 |
+| `dieu-phoi-smoke.mjs` | xem dòng chạy lại sau sửa khung cuộn (mục 9.9) |
+| lô hồi quy (trên `8666fa4`): `trang-chu-smoke`, `chinh-sach-dieu-phoi-smoke`, `dot-c-smoke`, `help-smoke`, `tai-xe-trang-dau-smoke`, `tai-xe-doi-tac-smoke`, `giay-to-cua-toi-smoke`, `sap-het-han-smoke`, `dieu-phoi-smoke`, `chuyen-smoke`, `chuyen-sua-smoke` | thoát 0 cả 11 |
+| cùng lô: `xe-smoke`, `danh-muc-giay-to-smoke` | thoát 1 — đỏ ĐÚNG ở các bước lúc đó chưa sửa theo menu mới (`xe-smoke` bước 1: mục con "Điều phối xe" chen trước "Xe"; `danh-muc-giay-to-smoke` bước d như vậy, bước j: Bán hàng nay có nhóm QUẢN TRỊ); đã sửa trong `8666fa4`, chạy lại ở mục 9.9 |
+| cùng lô: `v1-bao-tri.mjs` | thoát 1 — đỏ sẵn, xem trên |
+
+### 9.9 Chạy lại sau sửa khung cuộn + trang Tôi Kế toán (đỉnh trước khi gộp máy chủ)
+| Lệnh | Kết quả |
+|---|---|
+| `dieu-phoi-smoke.mjs` | 10/10 (bước 2 có ca khung cuộn giữ chỗ; bước 8 có trang Tôi của Kế toán) |
+| `xe-smoke.mjs` | 13/13 |
+| `danh-muc-giay-to-smoke.mjs` | 10/10 |
+| `npm run test:e2e -- pwa` | 2/2 — "29 trang" |
+| `npm test` | 1758/1759 — bài đỏ DUY NHẤT là `guard-remote: lệnh dị dạng không làm hook quá giờ` (đo thời gian của hook; máy đang có phiên khác chạy). Chạy riêng `node --test src/claude-guard.test.ts`: 11/11 (đúng như điều phối báo — bài đo CPU khi máy bận) |
+| `npm run typecheck` | 0 |

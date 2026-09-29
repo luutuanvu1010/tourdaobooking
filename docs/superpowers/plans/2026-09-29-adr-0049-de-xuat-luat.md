@@ -179,6 +179,16 @@ Dòng dự kiến (người thi công điền tên kịch bản và số bước
 
 **Sửa số mục menu ở `web/CLAUDE.md:53`** (dòng "Xe (bản vẽ 00–02)"): "`trang-chu-smoke.mjs` (đếm mục thanh bên — Quản trị nay 15 mục … kịch bản khoá 16 ở `:540` / `:966` — thiếu "Nhật ký" là nợ ADR-0038, đỏ sẵn …)" → "`trang-chu-smoke.mjs` (đếm mục thanh bên — Quản trị nay **16** mục, so ĐÚNG danh sách nhãn ở `:556` (`ADMIN_NAV`) và số mục từng trang ở `:995` (Quản trị 16; trang `/audit` mở bằng Quản trị + Toàn quyền: 19). Nợ "Nhật ký" ĐÃ BỎ: ADR-0038 quyết Nhật ký chỉ Toàn quyền — sửa kịch bản 29/9, Phần B ADR-0049)". Khi có trang B1 ("Điều phối xe") thì cộng tiếp.
 
+**Vòng 3 (B1–B3 văn phòng) — thêm ba dòng vào bảng của `web/CLAUDE.md`:**
+
+| Sửa | Chạy |
+|---|---|
+| Điều phối xe (bản vẽ `…/project/01` + `dp-chua-xep`, `dp-dong-thoi-gian`, `dp-can-xu-ly`): `web/dieu-phoi.ts`, `public/dieu-phoi.html`, khối B1 của `.dp-*` ở cuối `public/app.css`, `viecCanXuLy` / `hinhDongThoiGian` / `changChuaXep` / `chuyenXepDuoc` của `src/shared/dieu-phoi-man.ts`, `nhomChon` / `moPhaLe` của `web/dieu-phoi-ui.ts`, mục con "Điều phối xe" ở `web/shell.ts` và dòng cùng tên ở `web/account.ts` (`thayDieuPhoiXe`) | `dieu-phoi-smoke.mjs` ở `docs/evidence/2026-09-29-adr-0049/kich-ban/` (10 bước, 1040 + 390, không cần mạng ngoài; Bán hàng → Quản trị → Kế toán) + `trang-chu-smoke.mjs` (đếm mục thanh bên) + `xe-smoke.mjs` (bước 2, 3), `danh-muc-giay-to-smoke.mjs`, `chinh-sach-dieu-phoi-smoke.mjs` (bước 1, 12) |
+| Chi tiết chuyến (bản vẽ 02): `web/chuyen.ts`, `public/chuyen.html`, khối B2 `.dp-ct-*` / `.dp-stop*` / `.dp-cond*` / `.dp-log*` của `public/app.css`, `dieuKienXuatBen` / `nhanDiem` / `dongNhatKy` / `cauKhoaMoc` của `src/shared/dieu-phoi-man.ts`, `moHuyChuyen` của `web/dieu-phoi-ui.ts` | `chuyen-smoke.mjs` (8 bước, 1040 + 390; Bán hàng → Quản trị → Kế toán) |
+| Tạo / sửa chuyến (bản vẽ 03): `web/chuyen-sua.ts`, `public/chuyen-sua.html`, khối `.dp-cx-*` của `public/app.css`, `truongLoiChuyen` / `idChoLenh` của `src/shared/dieu-phoi-man.ts`, `taoLenh` / `docLoiLenh` của `web/dieu-phoi-ui.ts`, dữ liệu thử `dungDuLieuDieuPhoi` của `dp-lib.mjs` | `chuyen-sua-smoke.mjs` (12 bước, 1040 + 390; Bán hàng → Quản trị → Kế toán) + hai kịch bản trên (cùng dữ liệu thử) |
+
+**Số mục menu ở `web/CLAUDE.md:53` (sau B1):** Quản trị **17** mục (thêm "Điều phối xe" dưới "Vận chuyển" — `ADMIN_NAV` ở `trang-chu-smoke.mjs:541`), trang `/audit` (Quản trị + Toàn quyền) **20**; Bán hàng, Kế toán nay có nhóm QUẢN TRỊ với "Vận chuyển › Điều phối xe" (Q-B-4).
+
 **Thêm vào dòng B7 (mốc 6 giờ + đặt gấp) ở bảng trên:** `moc-chua-co-smoke.mjs` (6 bước — 503 `moc_toi_thieu_chua_co`; D1 tạm của kịch bản xoá trigger + dòng chính sách để có "chưa có chính sách"; chỉ đụng D1 tạm). **Thêm vào dòng B8:** `chinh-sach-dieu-phoi-smoke.mjs` nay 14 bước (bước 9b — R-P22, lý do hệ thống không có nút "Ngưng" và câu 409 `ly_do_he_thong`).
 
 ## Mục 6 — `src/CLAUDE.md` (luật theo thư mục)

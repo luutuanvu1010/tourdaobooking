@@ -134,6 +134,7 @@ function chonTab(k: typeof tab): void {
     b.tabIndex = on ? 0 : -1;
   }
   for (const id of ["chua-xep", "xe", "can-xu-ly"]) byId(`dp-cot-${id}`).classList.toggle("is-active", id === k);
+  if (k === "xe") requestAnimationFrame(cuonDau);
 }
 
 const dauCot = (tieuDe: string, n: number | null, them: Child = null) =>
@@ -175,15 +176,10 @@ function veXe(): void {
   tl.style.setProperty("--dp-so-gio", String(hinh.gioCuoi - hinh.gioDau));
   const thuoc = h("div", { class: "dp-tl-thuoc" }, h("div", { class: "dp-tl-nhan" }), h("div", { class: "dp-tl-duong" }, ...hinh.nhanGio.map((g) => viTri(h("span", { class: "dp-tl-gio" }, g.nhan), g.x))));
   append(tl, [thuoc]);
-  let dau: HTMLElement | null = null;
   for (const n of hinh.nhom) {
     append(tl, [h("div", { class: "dp-tl-nhom" }, h("span", { class: "dp-tl-nhom-t" }, n.tieuDe))]);
     for (const hang of n.hang) {
-      const duong = h("div", { class: "dp-tl-duong" }, ...hang.khoi.map((k) => {
-        const el = khoi(k);
-        dau ??= el;
-        return el;
-      }));
+      const duong = h("div", { class: "dp-tl-duong" }, ...hang.khoi.map(khoi));
       append(tl, [h("div", { class: "dp-tl-hang" }, nhanHang(hang), duong)]);
     }
   }
@@ -203,10 +199,22 @@ function veXe(): void {
     cuon,
     h("div", { class: "dp-tl-note" }, "Chuyến có ", icon("lock", 12), " đang trong vùng khoá trước giờ xuất bến — khoá xếp khách, đổi xe, đổi tài xế. ● điểm đón · ■ điểm trả."),
   );
+  // Vẽ lại (bấm khối, sau khi xếp / cập nhật) GIỮ chỗ đang cuộn; chỉ tự cuộn tới chuyến đầu tiên MỘT lần mỗi ngày xem — và chỉ khi khung đang hiện (thẻ "Xe"
+  // ở điện thoại có thể đang ẩn: thử lại lúc mở thẻ).
+  const cu = cotXe.querySelector<HTMLElement>(".dp-tl-cuon");
+  const giu = cu && daCuon === ngay ? cu.scrollLeft : null;
   replaceChildren(cotXe, the, theChon());
-  requestAnimationFrame(() => {
-    if (dau) cuon.scrollLeft = Math.max(0, dau.offsetLeft - dau.offsetWidth / 2);
-  });
+  if (giu !== null) cuon.scrollLeft = giu;
+  else requestAnimationFrame(cuonDau);
+}
+/** Ngày đã tự cuộn tới chuyến đầu tiên (null = chưa). */
+let daCuon: string | null = null;
+function cuonDau(): void {
+  const cuon = cotXe.querySelector<HTMLElement>(".dp-tl-cuon");
+  if (daCuon === ngay || !cuon || cuon.clientWidth === 0) return;
+  const dau = [...cuon.querySelectorAll<HTMLElement>(".dp-khoi")].sort((a, b) => a.offsetLeft - b.offsetLeft)[0]; // chuyến sớm nhất trong ngày
+  if (dau) cuon.scrollLeft = Math.max(0, dau.offsetLeft - dau.offsetWidth / 2);
+  daCuon = ngay;
 }
 
 function viTri(el: HTMLElement, x: number): HTMLElement {
@@ -230,7 +238,7 @@ function khoi(k: KhoiChuyen): HTMLElement {
   el.addEventListener("click", () => {
     chon = chon === k.id ? null : k.id;
     veXe();
-    document.querySelector<HTMLElement>(`.dp-khoi[data-chuyen="${k.id}"]`)?.focus();
+    document.querySelector<HTMLElement>(`.dp-khoi[data-chuyen="${k.id}"]`)?.focus({ preventScroll: true });
   });
   if (co.dieuPhoi && c.trangThai === "PLANNED") {
     el.addEventListener("dragover", (e) => {

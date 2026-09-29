@@ -83,8 +83,14 @@ try {
   });
 
   await b.step("2", `bấm khối ${d.T3.ma} → thẻ "đang chọn" (xe · tài xế · giờ · tải, tuyến, "Mở chuyến", "Cập nhật điểm theo đơn") → bấm cập nhật → dải kết quả, chuyến hết bị giữ, mục Cần xử lý biến mất`, async () => {
+    // Cuộn tới khối 14:30 (nằm ngoài khung khi mới mở ở cột giữa ~350px) rồi bấm: vẽ lại KHÔNG được kéo khung về chuyến đầu ngày.
+    const trongKhung = (id) => `(() => { const c = document.querySelector('.dp-tl-cuon').getBoundingClientRect(); const k = document.querySelector('.dp-khoi[data-chuyen="${id}"]').getBoundingClientRect(); return k.left >= c.left - 1 && k.right <= c.right + 1; })()`;
+    await p.ev(`(() => { const c = document.querySelector('.dp-tl-cuon'); const k = document.querySelector('.dp-khoi[data-chuyen="${d.T3.id}"]'); c.scrollLeft = k.offsetLeft - 40; return true; })()`);
+    assert.ok(await p.ev(trongKhung(d.T3.id)), "khối 14:30 trong khung trước khi bấm");
     await p.ev(click(`.dp-khoi[data-chuyen="${d.T3.id}"]`));
     await p.waitFor(`!!document.querySelector('.dp-chon')`, "thẻ đang chọn");
+    await sleep(300);
+    assert.ok(await p.ev(trongKhung(d.T3.id)), "sau khi bấm (vẽ lại), khối vừa chọn vẫn trong khung — không nhảy về chuyến đầu ngày");
     assert.equal(await p.ev(`document.querySelector('.dp-khoi[data-chuyen="${d.T3.id}"]').getAttribute('aria-pressed')`), "true");
     assert.equal(await p.ev(txt(".dp-chon-head")), `${d.T3.ma} Bị giữ Đang chọn`);
     assert.equal(await p.ev(txt(".dp-chon-line")), "79A-111.11 · 15 chỗ · Nguyễn Văn An · 14:30–16:30 · tải 4/15");
@@ -252,6 +258,11 @@ try {
     assert.equal(await k.ev(noCode), "");
     await axe(k, "điều phối 1040 Kế toán");
     await shotFull(k, "b1-dieu-phoi-ke-toan-may-tinh.png");
+    // Trang Tôi của Kế toán: nhóm VẬN CHUYỂN chỉ "Điều phối xe"; thẻ liên kết đầu (#links-top) không rỗng.
+    await k.send("Page.navigate", { url: env.base + "/account" });
+    await k.waitFor(`!!document.querySelector('#vc-links')`, "trang Tôi Kế toán");
+    assert.deepEqual(await k.ev(`[...document.querySelectorAll('#vc-links .row-link')].map((a) => a.innerText.trim())`), ["Điều phối xe"]);
+    assert.ok(await k.ev(`document.querySelectorAll('#links-top .row-link').length > 0`), "thẻ #links-top không rỗng");
   });
   await k.close();
 
