@@ -195,6 +195,16 @@
   --w-vc-person-type: 200px;   /* cột LOẠI tối thiểu (giấy tờ của một người) */
   --w-vc-person-act: 164px;    /* cột nút (giấy tờ của một người) */
   --w-vc-chevron: 20px;        /* cột mũi tên cuối dòng (sắp hết hạn) */
+  /* Bảng điều phối lượt 1 (ADR-0049 + ADR-0050) — số đo từ bản vẽ docs/design/van-chuyen-dieu-phoi/project/ (chủ dự án vẽ 2026-09-29; làm đúng bản vẽ —
+     cùng tiền lệ Đăng nhập, Vận chuyển 1a: coi là duyệt các số đo dưới đây; bản đối chiếu mục 4). Màu đều là token sẵn có. */
+  --w-dp-hist: 260px;          /* cột "Lịch sử bản" cạnh form chính sách (08, khung 8a) */
+  --w-switch: 44px;            /* công tắc "Phải đủ danh sách khách" / "Phải có hợp đồng" (08) */
+  --h-switch: 26px;
+  --switch-knob: 20px;         /* nút tròn trong công tắc */
+  --switch-inset: 3px;         /* khoảng từ mép công tắc tới nút tròn */
+  --h-dp-toggle: 56px;         /* dòng công tắc (08) */
+  --h-dp-row: 48px;            /* dòng lý do trong danh mục lý do (08, khung 8c / 8d) */
+  --gap-dp-hist: 2px;          /* khoảng giữa các dòng chữ của một bản trong lịch sử (08) */
 }
 * { box-sizing: border-box; }
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
@@ -1460,3 +1470,71 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 @media (min-width: 900px) { .vc-narrow { display: none; } }
 @media (max-width: 640px) { .vc-desk { display: none; } }
 @media (min-width: 641px) { .vc-phone { display: none; } }
+
+/* ---------- Bảng điều phối lượt 1 (ADR-0049 + ADR-0050) — V13: Chính sách điều phối, Lý do điều phối, Điều kiện xuất bến
+   (bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 Chinh sach dieu phoi.dc.html; khối .vc-* của lượt 1a dùng lại). Chỉ token. ---------- */
+.dp-cs-layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s4); align-items: start; }
+@media (min-width: 900px) { .dp-cs-layout { grid-template-columns: minmax(0, 1fr) var(--w-dp-hist); } }
+.dp-cs-form { display: flex; flex-direction: column; gap: var(--s4); padding: var(--s4); }
+.dp-cs-nums { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+@media (min-width: 641px) { .dp-cs-nums { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.dp-toggles { display: flex; flex-direction: column; border-top: 1px solid var(--c-border); }
+.dp-toggle { display: flex; align-items: center; gap: var(--s3); min-height: var(--h-dp-toggle); padding: var(--s2) 0; border-bottom: 1px solid var(--c-border); }
+/* bản vẽ làm mờ CẢ dòng (opacity .6) → chữ gợi ý không đủ tương phản (axe color-contrast) → chỉ làm mờ công tắc; chữ "Khoá tắt — …" đã nói trạng thái */
+.dp-toggle.is-locked .dp-switch { opacity: .6; }
+.dp-toggle-text { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.dp-toggle-label { font-weight: 700; }
+.dp-toggle-hint { font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-switch { position: relative; flex: none; width: var(--w-switch); height: var(--h-switch); margin: 0; padding: 0; background: var(--c-border); border: 0; border-radius: var(--radius-pill); cursor: pointer; }
+.dp-switch[aria-checked="true"] { background: var(--c-primary); }
+.dp-switch:disabled { cursor: not-allowed; }
+.dp-switch-knob { position: absolute; top: var(--switch-inset); left: var(--switch-inset); width: var(--switch-knob); height: var(--switch-knob); background: var(--c-surface); border-radius: var(--radius-pill); box-shadow: var(--shadow-card); transition: left var(--m-fast); }
+.dp-switch[aria-checked="true"] .dp-switch-knob { left: calc(var(--w-switch) - var(--switch-knob) - var(--switch-inset)); }
+.dp-cs-rules { display: flex; flex-direction: column; gap: var(--s2); }
+.dp-cs-rules-label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
+.dp-chips { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dp-link { align-self: flex-start; display: inline-flex; align-items: center; min-height: var(--tap-min); font-size: var(--fs-label); font-weight: 700; }
+.dp-cs-note { margin: 0; }
+.dp-cs-actions { display: flex; gap: var(--s2); }
+@media (max-width: 640px) { .dp-cs-actions { display: none; } }
+/* lịch sử bản: cột phải (≥ 641px); điện thoại mở bảng trượt bằng dòng "Lịch sử bản (N) ›" (khung 8b) */
+.dp-hist { display: flex; flex-direction: column; }
+.dp-hist-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-hist-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-ui); }
+.dp-hist-row { display: flex; flex-direction: column; gap: var(--gap-dp-hist); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); font-size: var(--fs-label); }
+.dp-hist-row:last-child { border-bottom: 0; }
+.dp-hist-name { display: flex; align-items: center; gap: var(--s2); }
+.dp-hist-name strong { font-family: var(--font-display); }
+.dp-hist-sub { font-size: var(--fs-badge); color: var(--c-text-muted); }
+.dp-hist-sheet .dp-hist-row { padding-left: 0; padding-right: 0; }
+.dp-hist-open { display: none; align-items: center; min-height: var(--tap-min); margin-top: var(--s3); padding: 0; font: inherit; font-weight: 700; color: var(--c-primary); background: none; border: 0; cursor: pointer; }
+@media (max-width: 640px) {
+  #cs-lich-su { display: none; }
+  .dp-hist-open { display: flex; }
+}
+/* danh mục lý do (khung 8c / 8d) + trang điều kiện xuất bến (khuôn sẵn) */
+.dp-ly-do-head { justify-content: flex-start; flex-wrap: wrap; }
+.dp-head-note { font-size: var(--fs-label); color: var(--c-text-muted); }
+@media (max-width: 640px) { .dp-head-note { display: none; } }
+.dp-group { margin-bottom: var(--s4); overflow: hidden; }
+.dp-group-head { display: flex; align-items: center; gap: var(--s2); padding: var(--s3) var(--s4); border-bottom: 1px solid var(--c-border); }
+.dp-group-title { margin: 0; font-family: var(--font-display); font-weight: 700; font-size: var(--fs-ui); }
+.dp-count { padding: 0 var(--s2); font-size: var(--fs-badge); font-weight: 700; color: var(--c-text-muted); background: var(--c-surface-alt); border-radius: var(--radius-pill); }
+.dp-group-add { margin-left: auto; white-space: nowrap; }
+.dp-reason { display: flex; align-items: center; gap: var(--s3); min-height: var(--h-dp-row); padding: var(--s1) var(--s4); color: var(--c-text); border-bottom: 1px solid var(--c-border); }
+.dp-reason:last-child { border-bottom: 0; }
+.dp-reason.is-off { color: var(--c-text-muted); }
+.dp-reason-empty { font-size: var(--fs-label); color: var(--c-text-muted); }
+.dp-reason-label { flex: 1; display: flex; flex-direction: column; min-width: 0; font-weight: 600; }
+.dp-reason-sub { font-size: var(--fs-badge); font-weight: 500; color: var(--c-text-muted); }
+.dp-reason .vc-btn-text { flex: none; font-size: var(--fs-label); }
+.dp-panel { display: flex; flex-direction: column; gap: var(--s2); padding: var(--s3) var(--s4); background: var(--c-surface-alt); border-bottom: 1px solid var(--c-border); }
+.dp-panel:last-child { border-bottom: 0; }
+.dp-panel-title { margin: 0; font-size: var(--fs-label); font-weight: 700; }
+.dp-panel-actions { display: flex; flex-wrap: wrap; gap: var(--s2); }
+.dp-field-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--s2); }
+.dp-field-head label { font-size: var(--fs-label); font-weight: 700; }
+.dp-count-text { font-size: var(--fs-badge); color: var(--c-text-muted); }
+.dp-dk-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--s3); }
+@media (min-width: 641px) { .dp-dk-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.dp-note { margin: 0; font-size: var(--fs-badge); line-height: 1.5; color: var(--c-text-muted); }

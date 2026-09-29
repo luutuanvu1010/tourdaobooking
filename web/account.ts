@@ -72,6 +72,10 @@ if (can(staff, "vehicle.manage")) {
       h("a", { class: "row-link", href: "/xe" }, h("span", { class: "vc-row-label" }, "Xe"), icon("next", 20)),
       h("a", { class: "row-link", href: "/giay-to-sap-het-han" }, h("span", { class: "vc-row-label" }, "Giấy tờ sắp hết hạn"), soSapHet, icon("next", 20)),
       can(staff, "admin.manage") && h("a", { class: "row-link", href: "/loai-giay-to-xe" }, h("span", { class: "vc-row-label" }, "Loại giấy tờ xe"), icon("next", 20)),
+      // Bảng điều phối lượt 1 (ADR-0049; bản vẽ 08 khung 8b / 8d — điện thoại mở từ trang Tôi): Chính sách điều phối (chỉ Toàn quyền — ô settings.ops),
+      // Lý do điều phối (ô admin.manage). "Điều phối xe" chưa thêm (trang B1 chưa có).
+      can(staff, "settings.ops") && h("a", { class: "row-link", href: "/chinh-sach-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Chính sách điều phối"), icon("next", 20)),
+      can(staff, "admin.manage") && h("a", { class: "row-link", href: "/ly-do-dieu-phoi" }, h("span", { class: "vc-row-label" }, "Lý do điều phối"), icon("next", 20)),
     ),
   );
   replaceChildren(byId("links"), ...lienKetSau);

@@ -1,0 +1,14 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="robots" content="noindex"><meta name="theme-color" content="#0c4a6e"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Island Booking"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" type="image/png" href="/icons/icon-192.png"><link rel="apple-touch-icon" href="/icons/apple-touch-icon.png"><link rel="stylesheet" href="/app.css"><title>Lý do điều phối — Island Booking System</title></head>
+<body data-title="Lý do điều phối" data-back="/account">
+<header id="topbar"></header>
+<main>
+  <!-- Danh mục lý do điều phối (ADR-0049 D2 CH-06; Quản trị, Toàn quyền — ô admin.manage). Bản vẽ docs/design/van-chuyen-dieu-phoi/project/08 Chinh sach dieu phoi.dc.html (8c, 8d). -->
+  <div class="vc-page-head dp-ly-do-head"><h1>Lý do điều phối</h1><span class="dp-head-note">Hiện trong các hộp chọn lý do</span></div>
+  <div id="error" class="alert" role="alert" hidden></div>
+  <div id="ld-ok" class="alert ok" role="status" hidden></div>
+  <div id="ld-nhom"></div>
+  <p id="ld-note" class="dp-note" hidden>Lý do đã dùng không xoá được — chỉ ngưng, để nhật ký cũ vẫn đọc đúng.</p>
+</main>
+<script type="module" src="/js/ly-do-dieu-phoi.js"></script>
+</body></html>
