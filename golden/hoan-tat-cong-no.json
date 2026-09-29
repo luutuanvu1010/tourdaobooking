@@ -97,7 +97,7 @@
       "ma": "SV-HT-06",
       "mo_ta": "Khách lẻ đặt thẳng Tour Đảo (không người hưởng), vé Hòn Tằm 1.000.000, khách chuyển khoản thẳng vào tài khoản công ty — HDV không nợ gì (chủ dự án 25/9: 'Nếu cty đã thu thì phần đó loại khỏi phần nợ của HDV').",
       "nguon": "trả lời Q2 của chủ (đặc tả Hoàn tất §10)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Giám sát kinh doanh", "ngay": "2026-09-30" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "Tour Đảo",
         "gia_ban": 1000000,
@@ -114,7 +114,7 @@
       "ma": "SV-HT-07",
       "mo_ta": "Khách lẻ, 1.000.000: khách chuyển khoản trước 600.000 vào tài khoản công ty, trả HDV 400.000 tiền mặt tại bến — HDV chỉ nợ phần HDV thu.",
       "nguon": "trả lời Q2 của chủ (đặc tả Hoàn tất §10)",
-      "xac_nhan": { "trang_thai": "cho_xac_nhan", "nguoi": null, "ngay": null },
+      "xac_nhan": { "trang_thai": "da_xac_nhan", "nguoi": "Lưu Tuấn Vũ / Giám sát kinh doanh", "ngay": "2026-09-30" },
       "dau_vao": {
         "nguoi_ban_tren_bien_nhan": "Tour Đảo",
         "gia_ban": 1000000,
