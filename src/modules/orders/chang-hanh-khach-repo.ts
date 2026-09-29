@@ -116,6 +116,11 @@ export interface LegWrite {
   createdBy: string | null;
   updatedAt: string;
   updatedBy: string | null;
+  /**
+   * Dấu ĐẶT GẤP (ADR-0049 D2) ghi cùng dòng — CHỈ từ: nhánh `datGap` của lệnh sửa / thêm chặng (Quản trị, Toàn quyền), hoặc dấu CŨ của chính chặng khớp
+   * đúng một-một khi lưu lại đơn nháp (Q1 = (a) — giá trị đọc từ CSDL). Không bao giờ từ thân trình duyệt của lập / sửa nháp (I16). null = không dấu.
+   */
+  datGap?: DatGapWrite | null;
 }
 
 const LEG_INSERT_COLS = `id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_location_id, dropoff_place,
@@ -130,15 +135,18 @@ const LEG_INSERT = defineSql(
 const LEG_INSERT_GUARDED = defineSql(
   "orders",
   "leg_insert_guarded",
-  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS})
-   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?15)`,
+  `INSERT INTO ord_transfer_leg (${LEG_INSERT_COLS}, short_notice_reason, short_notice_note, short_notice_by, short_notice_at, short_notice_lead_minutes)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, NULL, NULL, ?11, ?12, ?13, ?14, ?16, ?17, ?18, ?19, ?20 WHERE EXISTS (SELECT 1 FROM audit_log WHERE id = ?15)`,
 );
+/** Năm giá trị cột đặt gấp (null cả năm = không dấu / bỏ dấu). */
+const datGapBinds = (d: DatGapWrite | null | undefined) => (d ? [d.lyDo, d.ghiChu, d.by, d.at, d.phut] : [null, null, null, null, null]);
 const legBinds = (l: LegWrite) => [
   l.id, l.orderId, l.serviceId, l.direction, l.pickupDate, l.pickupTime, l.pickupLocationId, l.pickupPlace, l.dropoffLocationId, l.dropoffPlace,
   l.createdAt, l.createdBy, l.updatedAt, l.updatedBy,
 ];
 export const legInsert = (db: D1Database, l: LegWrite): D1PreparedStatement => db.prepare(LEG_INSERT).bind(...legBinds(l));
-export const legInsertGuarded = (db: D1Database, l: LegWrite, auditId: string): D1PreparedStatement => db.prepare(LEG_INSERT_GUARDED).bind(...legBinds(l), auditId);
+export const legInsertGuarded = (db: D1Database, l: LegWrite, auditId: string): D1PreparedStatement =>
+  db.prepare(LEG_INSERT_GUARDED).bind(...legBinds(l), auditId, ...datGapBinds(l.datGap));
 
 /**
  * XOÁ CỨNG chặng của ĐƠN NHÁP — ngoại lệ có tên `XOA_CUNG_NHAP` (CHỜ CHỦ DUYỆT, đề xuất luật mục 2). Lưu nháp xoá–chèn lại chặng cùng lô, TRƯỚC câu xoá
@@ -152,11 +160,16 @@ const LEG_DELETE_DRAFT = defineSql(
 export const legDeleteDraft = (db: D1Database, orderId: string, auditId: string): D1PreparedStatement => db.prepare(LEG_DELETE_DRAFT).bind(orderId, auditId);
 
 const LEG_SET = `pickup_date = ?1, pickup_time = ?2, pickup_location_id = ?3, pickup_place = ?4, dropoff_location_id = ?5, dropoff_place = ?6, updated_at = ?7, updated_by = ?8`;
+/**
+ * Nội dung chặng đổi thì dấu ĐẶT GẤP cũ không còn duyệt nội dung mới (I16 — "dấu duyệt nội dung cũ"; cùng luật Q1 = (a) của lưu nháp): mọi câu sửa trường vận
+ * hành GHI LẠI năm cột đặt gấp — dấu MỚI (nhánh `datGap` của Quản trị / Toàn quyền) hoặc NULL cả năm (bỏ dấu).
+ */
+const LEG_SET_DAT_GAP = `short_notice_reason = ?12, short_notice_note = ?13, short_notice_by = ?14, short_notice_at = ?15, short_notice_lead_minutes = ?16`;
 /** Sửa trường vận hành của chặng MỞ, CÓ lính gác (`PUT /trip`: dời ngày, trộn giờ/nơi cũ). */
 const LEG_UPDATE_GUARDED = defineSql(
   "orders",
   "leg_update_guarded",
-  `UPDATE ord_transfer_leg SET ${LEG_SET} WHERE id = ?9 AND order_id = ?10 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?11)`,
+  `UPDATE ord_transfer_leg SET ${LEG_SET}, ${LEG_SET_DAT_GAP} WHERE id = ?9 AND order_id = ?10 AND closed_at IS NULL AND EXISTS (SELECT 1 FROM audit_log WHERE id = ?11)`,
 );
 /**
  * Sửa trường vận hành của chặng MỞ, CÂU ĐẦU LÔ của route sửa chặng (khoá lạc quan theo `updated_at` CỦA CHẶNG — ADR A1): chỉ khi đơn đã xác nhận, chặng
@@ -165,7 +178,7 @@ const LEG_UPDATE_GUARDED = defineSql(
 const LEG_UPDATE_CHECKED = defineSql(
   "orders",
   "leg_update_checked",
-  `UPDATE ord_transfer_leg SET ${LEG_SET}
+  `UPDATE ord_transfer_leg SET ${LEG_SET}, ${LEG_SET_DAT_GAP}
    WHERE id = ?9 AND order_id = ?10 AND closed_at IS NULL AND updated_at = ?11 AND EXISTS (SELECT 1 FROM orders WHERE id = ?10 AND status = 'confirmed')`,
 );
 export interface LegFields {
@@ -177,10 +190,11 @@ export interface LegFields {
   dropoffPlace: string | null;
 }
 const fieldBinds = (f: LegFields, at: string, by: string | null) => [f.pickupDate, f.pickupTime, f.pickupLocationId, f.pickupPlace, f.dropoffLocationId, f.dropoffPlace, at, by];
-export const legUpdateGuarded = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, auditId: string): D1PreparedStatement =>
-  db.prepare(LEG_UPDATE_GUARDED).bind(...fieldBinds(f, at, by), legId, orderId, auditId);
-export const legUpdateChecked = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, expectedLegUpdatedAt: string): D1PreparedStatement =>
-  db.prepare(LEG_UPDATE_CHECKED).bind(...fieldBinds(f, at, by), legId, orderId, expectedLegUpdatedAt);
+export const legUpdateGuarded = (db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, auditId: string, datGap: DatGapWrite | null = null): D1PreparedStatement =>
+  db.prepare(LEG_UPDATE_GUARDED).bind(...fieldBinds(f, at, by), legId, orderId, auditId, ...datGapBinds(datGap));
+export const legUpdateChecked = (
+  db: D1Database, legId: string, orderId: string, f: LegFields, at: string, by: string, expectedLegUpdatedAt: string, datGap: DatGapWrite | null = null,
+): D1PreparedStatement => db.prepare(LEG_UPDATE_CHECKED).bind(...fieldBinds(f, at, by), legId, orderId, expectedLegUpdatedAt, ...datGapBinds(datGap));
 
 /** Đóng chặng (bỏ chặng = đóng dòng có lý do — không xoá), CÓ lính gác (`PUT /trip` tương thích: giờ + nơi cũ đều rỗng → đóng chiều đi, lý do NOT_NEEDED). */
 const LEG_CLOSE_GUARDED = defineSql(
@@ -237,6 +251,61 @@ export interface DatGapWrite {
 }
 export const legShortNotice = (db: D1Database, legId: string, orderId: string, d: DatGapWrite): D1PreparedStatement =>
   db.prepare(LEG_SHORT_NOTICE).bind(d.lyDo, d.ghiChu, d.by, d.at, d.phut, legId, orderId);
+
+/**
+ * Chặng CÒN MỞ ĐÃ MANG DẤU đặt gấp của MỘT đơn, kèm mã danh mục + vị trí dịch vụ (khớp một-một khi lưu lại đơn nháp — Q1 = (a)) và năm cột dấu (chép từ CSDL,
+ * không từ trình duyệt). Cũng dùng để biết chặng nào đã đặt gấp (cảnh báo mốc, lý do 409 lúc xác nhận).
+ */
+const LEG_DAT_GAP_BY_ORDER = defineSql(
+  "orders",
+  "leg_dat_gap_by_order",
+  `SELECT l.id, s.catalog_code, s.sort_order, l.direction, l.pickup_date, l.pickup_time, l.pickup_location_id, l.pickup_place, l.dropoff_location_id, l.dropoff_place,
+     l.short_notice_reason, l.short_notice_note, l.short_notice_by, l.short_notice_at, l.short_notice_lead_minutes
+   FROM ord_transfer_leg l JOIN order_service s ON s.id = l.order_service_id
+   WHERE l.order_id = ?1 AND l.closed_at IS NULL AND l.short_notice_reason IS NOT NULL`,
+);
+export interface LegDatGapRow {
+  id: string;
+  catalog_code: string | null;
+  sort_order: number;
+  direction: "OUT" | "RETURN";
+  pickup_date: string | null;
+  pickup_time: string | null;
+  pickup_location_id: string | null;
+  pickup_place: string | null;
+  dropoff_location_id: string | null;
+  dropoff_place: string | null;
+  short_notice_reason: string;
+  short_notice_note: string | null;
+  short_notice_by: string;
+  short_notice_at: string;
+  short_notice_lead_minutes: number;
+}
+export async function legDatGapByOrder(db: D1Database, orderId: string): Promise<LegDatGapRow[]> {
+  return (await db.prepare(LEG_DAT_GAP_BY_ORDER).bind(orderId).all<LegDatGapRow>()).results;
+}
+
+/**
+ * XÁC NHẬN ĐƠN (chuyển từ SQL thô của repository.ts — kế hoạch I15; ADR-0047 A3 "SQL mới của orders chỉ ở tệp nửa nghiêm"). Giữ NGUYÊN mọi điều kiện cũ
+ * (có dịch vụ; mọi dịch vụ có ngày đi trong [?3, ?4] và ≥ 1 khách) + vế MỐC TỐI THIỂU LÚC ĐẶT (ADR-0049 D2): không còn chặng MỞ nào có giờ, KHÔNG mang dấu đặt
+ * gấp, có `ngày giờ` < ngưỡng ?5 (chuỗi 'YYYY-MM-DD HH:MM' giờ VN của bây giờ + mốc, tính bằng `nguongMocVn` — MỘT luật với `kiemMocDat`). Chặng chưa chốt
+ * giờ không bị xét (I13). Câu ĐẦU quyết định thắng/thua (sau câu điền ngày chặng); không đọc `audit_log` (nhật ký theo sau bằng `changes() > 0`).
+ */
+const ORDER_CONFIRM = defineSql(
+  "orders",
+  "order_confirm",
+  `UPDATE orders SET status = 'confirmed', updated_at = ?1, confirmed_at = ?1
+   WHERE id = ?2 AND status = 'draft'
+     AND EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id)
+     AND NOT EXISTS (
+       SELECT 1 FROM order_service s WHERE s.order_id = orders.id
+         AND (s.depart_date IS NULL OR s.depart_date < ?3 OR s.depart_date > ?4 OR s.pax_adult + s.pax_child + s.pax_senior + s.pax_infant < 1))
+     AND NOT EXISTS (
+       SELECT 1 FROM ord_transfer_leg l WHERE l.order_id = orders.id AND l.closed_at IS NULL AND l.pickup_time IS NOT NULL
+         AND l.short_notice_reason IS NULL AND l.pickup_date || ' ' || l.pickup_time < ?5)`,
+);
+export const orderConfirm = (db: D1Database, orderId: string, at: string, from: string, to: string, nguongMoc: string): D1PreparedStatement =>
+  db.prepare(ORDER_CONFIRM).bind(at, orderId, from, to, nguongMoc);
 
 // ---- Ghi kép hai cột cũ (Ruling R3, phát hành 1) ---------------------------------------------------------------------------------------------
 

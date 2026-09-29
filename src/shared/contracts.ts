@@ -386,8 +386,17 @@ export interface IncompleteTripBody { error: { code: "incomplete_trip"; message:
 export interface CatalogChangedBody { error: { code: "catalog_changed"; message: string; changes: CatalogChangeDto[] } }
 
 export interface OrderListResponse { orders: OrderSummaryDto[]; hasMore: boolean }
-export interface OrderResponse { order: OrderDetailDto }
-export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean }
+/** Cảnh báo mốc tối thiểu khi LƯU NHÁP (ADR-0049 I27 — không chặn lưu): chặng có giờ, chưa đặt gấp, dưới mốc. `legKey` = id chặng. */
+export interface CanhBaoMocDto { legKey: string; phutConLai: number }
+/**
+ * `canhBaoMoc`, `mocToiThieuPhut` (ADR-0049 I27, I31) có ở phản hồi LẬP / SỬA NHÁP (`POST/PUT /api/orders`) — màn hình hiện cảnh báo sau lần lưu; vắng ở các
+ * route khác. `mocToiThieuPhut` null = nháp không chặng (không hỏi mốc).
+ */
+export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocDto[]; mocToiThieuPhut?: number | null }
+/** `mocToiThieuPhut` (ADR-0049 I31): mốc tối thiểu đang hiệu lực (phút) để biểu mẫu cảnh báo trước khi xác nhận; null = chưa có chính sách. */
+export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null }
+/** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
+export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 
 /** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */
 export interface PoolServiceDto {

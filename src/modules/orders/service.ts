@@ -135,7 +135,16 @@ export async function planAddLeg(db: D1Database, orderId: string, body: Record<s
   return { ok: true, value: { serviceId: svc.id, leg: k.value, expected, detail, mirror } };
 }
 
-export interface EditLegPlan { legId: string; serviceId: string; fields: LegFields; expected: string; detail: string | null; mirror: Pickup }
+export interface EditLegPlan {
+  legId: string;
+  serviceId: string;
+  fields: LegFields;
+  expected: string;
+  detail: string | null;
+  mirror: Pickup;
+  /** Ngày / giờ đón ĐANG LƯU — xét "sửa dưới mốc" theo min(giờ cũ, giờ mới) (ADR-0049 I14). */
+  cu: { pickupDate: string | null; pickupTime: string | null };
+}
 /** `PUT /api/orders/:id/legs/:legId` — thân `{ expectedUpdatedAt (của CHẶNG), leg }`; không đổi chiều; điểm mới phải đang dùng; ngày đón đổi không được đã qua. */
 export async function planEditLeg(db: D1Database, orderId: string, legId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: EditLegPlan } | Failed> {
   const row = await legById(db, legId, orderId);
@@ -157,7 +166,7 @@ export async function planEditLeg(db: D1Database, orderId: string, legId: string
   };
   const detail = moTaChang(svc.name, moTaVao(old, named.names), moTaVao({ ...fields, direction: old.direction }, named.names));
   const mirror = dauSau(svc.legs.map((l) => (l.id === legId ? { ...l, ...fields } : l)), named.names);
-  return { ok: true, value: { legId, serviceId: svc.id, fields, expected, detail, mirror } };
+  return { ok: true, value: { legId, serviceId: svc.id, fields, expected, detail, mirror, cu: { pickupDate: old.pickupDate, pickupTime: old.pickupTime } } };
 }
 
 export interface CloseLegPlan { legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: Pickup }

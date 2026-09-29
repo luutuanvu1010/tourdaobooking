@@ -5,8 +5,8 @@ import { escapeLike } from "../../shared/http";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
   legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
-  openLegsStatement, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded, serviceMirrorUpdateGuarded,
-  type LegFields, type LegRow, type LegWrite, type PassengerWrite, type ServicePaxRow,
+  openLegsStatement, orderConfirm, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded,
+  serviceMirrorUpdateGuarded, type DatGapWrite, type LegFields, type LegRow, type LegWrite, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
@@ -773,19 +773,28 @@ export type LegOp =
   | { kind: "close"; legId: string; reason: LyDoDongChang };
 
 /** Giá trị ghi MỘT chặng (chặng mới sinh id mới; giữ `created_*` theo `meta` khi chèn lại cùng id). */
-function legWriteOf(l: ChangHopLe, serviceId: string, orderId: string, staffId: string, at: string, meta: LegMeta = new Map()): LegWrite {
+function legWriteOf(
+  l: ChangHopLe, serviceId: string, orderId: string, staffId: string, at: string, meta: LegMeta = new Map(), datGap: DatGapWrite | null = null,
+): LegWrite {
   const id = l.id ?? crypto.randomUUID();
   const m = meta.get(id);
   return {
     id, orderId, serviceId, direction: l.direction, pickupDate: l.pickupDate, pickupTime: l.pickupTime, pickupLocationId: l.pickupLocationId,
     pickupPlace: l.pickupPlace, dropoffLocationId: l.dropoffLocationId, dropoffPlace: l.dropoffPlace,
-    createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId,
+    createdAt: m?.createdAt ?? at, createdBy: m ? m.createdBy : staffId, updatedAt: at, updatedBy: staffId, datGap,
   };
 }
 
+/**
+ * Dấu đặt gấp CHÉP khi lưu lại đơn nháp (ADR-0049 Q1 = (a)): khoá `"<vị trí dịch vụ>|<vị trí chặng>"` → năm cột ĐỌC TỪ CSDL (`chepDatGapNhap`, dat-gap.ts).
+ */
+export type DatGapNhap = ReadonlyMap<string, DatGapWrite>;
+
 /** Giá trị ghi các chặng của mọi dịch vụ (id dịch vụ theo `serviceIds` của lần chèn này). */
-function legWrites(services: readonly ValidService[], serviceIds: readonly string[], orderId: string, staffId: string, at: string, meta: LegMeta = new Map()): LegWrite[] {
-  return services.flatMap((s, i) => s.legs.map((l) => legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta)));
+function legWrites(
+  services: readonly ValidService[], serviceIds: readonly string[], orderId: string, staffId: string, at: string, meta: LegMeta = new Map(), datGap: DatGapNhap = new Map(),
+): LegWrite[] {
+  return services.flatMap((s, i) => s.legs.map((l, j) => legWriteOf(l, serviceIds[i]!, orderId, staffId, at, meta, datGap.get(`${i}|${j}`) ?? null)));
 }
 
 /** Giá trị ghi danh sách hành khách của đơn NHÁP: mỗi người một dòng đầu chuỗi (`person_key` = id; giữ id gửi lại). */
@@ -869,6 +878,7 @@ export async function updateDraftOrder(
   order: ValidOrder & { expectedUpdatedAt: string },
   booker: BookerWrite = NO_BOOKER,
   legMeta: LegMeta = new Map(),
+  datGapNhap: DatGapNhap = new Map(),
 ): Promise<boolean> {
   const at = nextStamp(order.expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -894,7 +904,7 @@ export async function updateDraftOrder(
     legDeleteDraft(db, id, auditId),
     db.prepare(`DELETE FROM order_service WHERE order_id = ? AND ${guard.sql}`).bind(id, ...guard.binds),
     ...services.stmts,
-    ...legWrites(order.services, services.ids, id, staffId, at, legMeta).map((l) => legInsertGuarded(db, l, auditId)),
+    ...legWrites(order.services, services.ids, id, staffId, at, legMeta, datGapNhap).map((l) => legInsertGuarded(db, l, auditId)),
     ...(order.passengers === null
       ? []
       : [passengerDeleteDraft(db, id, auditId), ...passengerWrites(order.passengers, id, staffId, at).map((p) => passengerInsertGuarded(db, p, auditId))]),
@@ -911,21 +921,15 @@ export async function updateDraftOrder(
  * ADR-0047 Ruling R4c: câu ĐẦU lô điền ngày đón = ngày đi cho chặng mở còn trống ngày (trigger `orders_confirm_requires_leg_date` xét lúc đổi trạng thái)
  * — nên câu UPDATE đổi trạng thái nay là `results[1]`. Không thêm lý do "chưa đủ chuyến" mới cho người dùng (`confirmGaps` không đổi).
  */
-export async function confirmOrder(db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, detail?: string): Promise<boolean> {
+export async function confirmOrder(
+  db: D1Database, id: string, staffId: string, today: string, prevUpdatedAt: string, nguongMoc: string, detail?: string,
+): Promise<boolean> {
   const at = nextStamp(prevUpdatedAt);
   const { from, to } = confirmWindow(today);
+  // ADR-0049 D2 (I15): câu xác nhận ở tệp nửa nghiêm (`order_confirm`), thêm vế mốc tối thiểu lúc đặt — ngưỡng chuỗi do route tính bằng `nguongMocVn`.
   const results = await db.batch([
     legFillDateOnConfirm(db, id, at),
-    db
-      .prepare(
-        `UPDATE orders SET status = 'confirmed', updated_at = ?, confirmed_at = ?
-         WHERE id = ? AND status = 'draft'
-           AND EXISTS (SELECT 1 FROM order_service WHERE order_id = orders.id)
-           AND NOT EXISTS (
-             SELECT 1 FROM order_service s WHERE s.order_id = orders.id
-               AND (s.depart_date IS NULL OR s.depart_date < ? OR s.depart_date > ? OR s.pax_adult + s.pax_child + s.pax_senior + s.pax_infant < 1))`,
-      )
-      .bind(at, at, id, from, to),
+    orderConfirm(db, id, at, from, to, nguongMoc),
     auditStatement(db, { orderId: id, staffId, action: "confirmed", at, detail }, "changes() > 0"),
   ]);
   return (results[1]!.meta.changes ?? 0) > 0;
@@ -1150,6 +1154,8 @@ export async function updateTrip(
   expectedUpdatedAt: string,
   detail: string,
   legOps: readonly LegOp[] = [],
+  /** Dấu đặt gấp MỚI cho MỌI chặng đổi / thêm của lệnh này (nhánh `datGap`); null = bỏ dấu cũ của chặng đổi (I16). */
+  datGap: DatGapWrite | null = null,
 ): Promise<boolean> {
   const at = nextStamp(expectedUpdatedAt);
   const auditId = crypto.randomUUID();
@@ -1168,9 +1174,9 @@ export async function updateTrip(
     ),
     // ADR-0047 R2c/R4e: thao tác trên chặng (dời ngày, trộn giờ/nơi cũ, thêm/đóng chiều đi) — mọi câu có lính gác.
     ...legOps.map((op) => {
-      if (op.kind === "update") return legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId);
+      if (op.kind === "update") return legUpdateGuarded(db, op.legId, orderId, op.fields, at, staffId, auditId, datGap);
       if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
-      return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at), auditId);
+      return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at, new Map(), datGap), auditId);
     }),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
@@ -1222,14 +1228,14 @@ export async function addLeg(
   db: D1Database,
   orderId: string,
   staffId: string,
-  plan: { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
+  plan: { serviceId: string; leg: ChangHopLe; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null }; datGap?: DatGapWrite | null },
 ): Promise<boolean> {
   const at = nextStamp(plan.expected);
   const auditId = crypto.randomUUID();
   const results = await db.batch([
     orderTouch(db, orderId, at, plan.expected),
     auditStatement(db, { id: auditId, orderId, staffId, action: "order_leg_added", at, detail: plan.detail }, "changes() > 0"),
-    legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at), auditId),
+    legInsertGuarded(db, legWriteOf({ ...plan.leg, id: null }, plan.serviceId, orderId, staffId, at, new Map(), plan.datGap ?? null), auditId),
     serviceMirrorUpdateGuarded(db, plan.serviceId, orderId, plan.mirror, auditId),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
@@ -1242,14 +1248,18 @@ export async function changeLeg(
   staffId: string,
   orderUpdatedAt: string,
   plan:
-    | { kind: "update"; legId: string; serviceId: string; fields: LegFields; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } }
+    | {
+      kind: "update"; legId: string; serviceId: string; fields: LegFields; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null };
+      /** Dấu đặt gấp MỚI (nhánh `datGap`) hoặc null = bỏ dấu cũ (nội dung chặng đổi — I16). */
+      datGap: DatGapWrite | null;
+    }
     | { kind: "close"; legId: string; serviceId: string; reason: LyDoDongChang; expected: string; detail: string; mirror: { pickupTime: string | null; pickupPlace: string | null } },
 ): Promise<boolean> {
   const at = nextStamp(later(plan.expected, orderUpdatedAt));
   const auditId = crypto.randomUUID();
   const first =
     plan.kind === "update"
-      ? legUpdateChecked(db, plan.legId, orderId, plan.fields, at, staffId, plan.expected)
+      ? legUpdateChecked(db, plan.legId, orderId, plan.fields, at, staffId, plan.expected, plan.datGap)
       : legCloseChecked(db, plan.legId, orderId, plan.reason, at, staffId, plan.expected);
   const results = await db.batch([
     first,

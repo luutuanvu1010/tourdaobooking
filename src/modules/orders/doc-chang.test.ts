@@ -14,7 +14,9 @@ const vnToday = () => new Date(Date.now() + 7 * 3600e3).toISOString().slice(0, 1
 const AT = "2026-09-29T00:00:00.000Z";
 
 function setup() {
-  const w = world();
+  // Bài KHÔNG kiểm mốc 6 giờ (ADR-0049 D2): chặng đón 07:00 HÔM NAY (có thể đã qua) vẫn phải xác nhận được để kiểm dẫn xuất giờ / nơi đón — Ruling N-9 (iii):
+  // mốc GIẢ do bài chỉ định, ÂM một ngày (mọi giờ đón từ hôm qua trở đi đều "đủ mốc"). Bài luật mốc thật: src/modules/orders/dat-gap.test.ts.
+  const w = world({ mocGiaChoBaiKhongKiemMoc: -24 * 60 });
   seedStaff(w.sqlite, { id: SALES, phone: "0900000001", name: "An", perms: ["SALES"] });
   seedStaff(w.sqlite, { id: FIELD, phone: "0900000004", name: "Hướng Dẫn", perms: ["FIELD"] });
   w.sqlite.exec("INSERT INTO catalog_item (code, name, unit, price_adult, in_sheet, first_seen_at, updated_at) VALUES ('ZA1', 'Tour đảo', 'perPax', 500000, 1, '2026-01-01', '2026-01-01')");

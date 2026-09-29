@@ -8,7 +8,7 @@
 //   (8) cờ vượt số khách dùng số khách HIỆU LỰC (HDV sửa số khách).
 // Dùng danh mục GIẢ `ZE1` (`ensureFakeCatalog`, không cần Sheet — DK-T3-01 cấm dịch vụ nhập tay mới). Tên khách là tên GIẢ có đánh dấu, năm sinh hiếm.
 import assert from "node:assert/strict";
-import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sqlRows, vnDate } from "./lib.mjs";
+import { ACCOUNTS, call, catalogService, ensureFakeCatalog, orderInput, session, sql, sqlRows, vnDate } from "./lib.mjs";
 
 await ensureFakeCatalog();
 const A = await session(ACCOUNTS.salesA);
@@ -141,5 +141,38 @@ assert.equal(r.status, 200, JSON.stringify(r.body));
 ds = (await call(A, "GET", `/api/orders/${h.id}/passengers`)).body;
 assert.deepEqual([ds.soNguoiCoTen, ds.soKhachDoan, ds.vuotSoKhach], [3, 3, false]);
 console.log("✓ (8) cờ vượt số khách dùng số khách hiệu lực (HDV sửa 2 → 3 thì tắt)");
+
+// (9) ADR-0049 D2 — MỐC 6 GIỜ LÚC ĐẶT + ĐẶT GẤP trên D1 THẬT (đường thật: Quản trị đặt gấp qua route — Ruling N-9 (ii); mốc = chính sách gieo 360 phút).
+// Chặng đón sau 2 giờ: lưu nháp được (kèm cảnh báo), xác nhận → 409 `short_notice_required`; Bán hàng đặt gấp → 403; Quản trị đặt gấp → 200; xác nhận → 200.
+{
+  const ADM = await session(ACCOUNTS.admin);
+  const sau2 = new Date(Date.now() + 7 * 3600e3 + 120 * 60e3).toISOString();
+  const [ngay, gio] = [sau2.slice(0, 10), sau2.slice(11, 16)];
+  r = await call(A, "POST", "/api/orders", orderInput({ services: [catalogService({ pax: { adult: 2 }, departDate: ngay, legs: [{ ...OUT, pickupDate: ngay, pickupTime: gio }] })] }));
+  assert.equal(r.status, 201, JSON.stringify(r.body));
+  assert.equal(r.body.mocToiThieuPhut, 360, "mốc tối thiểu thật của chính sách gieo");
+  assert.equal(r.body.canhBaoMoc.length, 1, "lưu nháp dưới mốc: cảnh báo, không chặn");
+  const g = r.body.order;
+  const legId = g.services[0].legs[0].id;
+  r = await call(A, "POST", `/api/orders/${g.id}/status`, { status: "confirmed" });
+  assert.equal(r.status, 409, JSON.stringify(r.body));
+  assert.equal(r.body.error.code, "short_notice_required");
+  assert.deepEqual(r.body.error.legs.map((x) => x.legId), [legId]);
+  assert.equal((await call(A, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DAT_SAT_GIO" })).status, 403, "Bán hàng không đặt gấp");
+  r = await call(ADM, "POST", `/api/orders/${g.id}/legs/${legId}/short-notice`, { lyDo: "KHACH_DAT_SAT_GIO", ghiChu: "Khách gọi, số 0905 123 456 78" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const cot = (await sqlRows(`SELECT short_notice_reason AS l, short_notice_lead_minutes AS p, short_notice_note AS n FROM ord_transfer_leg WHERE id = '${legId}'`))[0];
+  assert.deepEqual([cot.l, cot.p], ["KHACH_DAT_SAT_GIO", 360]);
+  assert.ok(!String(cot.n).includes("0905"), "ghi chú đã che dãy số");
+  r = await call(A, "POST", `/api/orders/${g.id}/status`, { status: "confirmed" });
+  assert.equal(r.status, 200, JSON.stringify(r.body));
+  const nk = (await sqlRows(`SELECT detail FROM audit_log WHERE order_id = '${g.id}' AND action = 'order_leg_short_notice'`)).map((x) => x.detail);
+  assert.equal(nk.length, 1);
+  assert.ok(!nk[0].includes("0905") && !nk[0].includes("Khách gọi"), "nhật ký không chép ghi chú");
+  // D1 THẬT giữ CHECK của 0040: có lý do mà thiếu số phút → chặn (vế IS NOT NULL tường minh)
+  const legId2 = (await sqlRows(`SELECT id FROM ord_transfer_leg WHERE order_id = '${g.id}' AND closed_at IS NULL`))[0].id;
+  await assert.rejects(sql(`UPDATE ord_transfer_leg SET short_notice_lead_minutes = NULL WHERE id = '${legId2}'`), /CHECK constraint failed/);
+  console.log("✓ (9) mốc 6 giờ: lưu nháp có cảnh báo, xác nhận 409 short_notice_required; Bán hàng đặt gấp 403; Quản trị đặt gấp 200 (360 phút, ghi chú che số); xác nhận 200; CHECK 0040 giữ trên D1");
+}
 
 console.log("\nE2E CHẶNG + HÀNH KHÁCH OK");
