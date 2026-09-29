@@ -4,7 +4,7 @@
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
   CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse,
-  OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  MocToiThieuResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -76,6 +76,8 @@ function xetDatGapSua(
   if (!d.ok) return { ok: false, res: error(400, "invalid_input", d.message) };
   return { ok: true, value: { lyDo: d.value.lyDo, ghiChu: d.value.ghiChu, by: staff.id, at: new Date().toISOString(), phut: moc.phut } };
 }
+/** Chủ H4 / N-14: người xem thấy ĐỦ dấu đặt gấp (lý do, người duyệt, lúc, ghi chú) hay chỉ cờ — MỘT câu hỏi bảng quyền cho mọi phản hồi chi tiết đơn. */
+const xemDuDatGap = (staff: PermissionHolder): boolean => can(staff, "order.leg.short_notice.view");
 const kemDatGap = (detail: string, d: DatGapWrite | null) => (d ? `${detail} · đặt gấp: ${LY_DO_DAT_GAP[d.lyDo as keyof typeof LY_DO_DAT_GAP]}` : detail);
 
 /** Cảnh báo mốc (I27) + con số mốc (I31) cho phản hồi LẬP / SỬA NHÁP. `moc` null = nháp không chặng (không hỏi mốc). */
@@ -374,7 +376,7 @@ export async function editMoneyAsHandler(db: D1Database, orderId: string, staffI
  */
 export async function getMyAssignments(db: D1Database, orderIds: readonly string[]): Promise<MyAssignmentDto[]> {
   const [views, originals] = await Promise.all([
-    Promise.all(orderIds.map((id) => loadOrderView(db, id))),
+    Promise.all(orderIds.map((id) => loadOrderView(db, id, false))), // "việc của tôi" không trả chặng — không cần dấu đặt gấp
     Promise.all(orderIds.map((id) => findOrder(db, id))),
   ]);
   const originalById = new Map(originals.flatMap((o) => (o ? [[o.id, o] as const] : [])));
@@ -440,6 +442,17 @@ export const ordersModule: AppModule = {
       const sources = await listPoolSources(env.DB, today);
       const withHandler = await ordersWithHandler(sources.map((o) => o.id));
       return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
+    }),
+
+    // Mốc tối thiểu cho biểu mẫu đơn CHƯA lưu (ruling R-P15 của điều phối, 29/9 — kế hoạch I31 cách (a)): người LẬP đơn đọc con số mốc + cảnh báo sát mốc
+    // của chính sách HIỆN HÀNH để màn cảnh báo "dưới mốc" ngay khi gõ (CHỈ hiển thị — máy chủ vẫn quyết lúc lưu / xác nhận: `canhBaoMoc`, 409). Không đọc
+    // bảng vc_: qua hàm tiêm `ctx.mocToiThieu` (gốc lắp ráp); thiếu hàm tiêm / chính sách rỗng → 503 như cổng Xác nhận (không đoán con số). PHẢI đứng TRƯỚC
+    // "GET /api/orders/:id" (cùng lý do với route dashboard, pool ở trên — ":id" cũng khớp chữ "moc-toi-thieu").
+    route("GET", "/api/orders/moc-toi-thieu", "orders", async ({ staff, mocToiThieu }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần mốc tối thiểu.");
+      const moc = await mocToiThieu();
+      if (!moc) return MOC_CHUA_CO();
+      return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
     }),
 
     route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds }) => {
@@ -509,14 +522,14 @@ export const ordersModule: AppModule = {
       // Bảng tin (ADR-0022 điều 4/7): "tao" — KHÔNG truyền `handlerTruoc` (ADR-0030 Review Focus 5); gốc lắp ráp (src/index.ts) tự đổi thành
       // "tao_cho_nhan" khi đơn không có người phụ trách (chỉ làm mới màn hình, KHÔNG thông báo nổi/gõ cửa — ADR-0045). Không bao giờ phát "giao" cho đơn vừa lập.
       baoThayDoi({ orderId: id, thayDoi: "tao" });
-      const taoXong = (await loadOrderView(env.DB, id))!;
+      const taoXong = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
       return json({ order: taoXong, ...(await phanHoiMoc(env.DB, id, taoXong, moc)) } satisfies OrderResponse, 201);
     }),
 
     route("GET", "/api/orders/:id", "orders", async ({ env, params, staff, isAssigned, mocToiThieu }) => {
       if (!UUID_RE.test(params.id!)) return NOT_FOUND();
       // ADR-0049 I31: kèm mốc tối thiểu đang hiệu lực (biểu mẫu cảnh báo trước khi xác nhận) — đọc không bị chặn khi chưa có mốc (null).
-      const [order, assigned, moc] = await Promise.all([loadOrderView(env.DB, params.id!), isAssigned(params.id!), mocToiThieu()]);
+      const [order, assigned, moc] = await Promise.all([loadOrderView(env.DB, params.id!, xemDuDatGap(staff)), isAssigned(params.id!), mocToiThieu()]);
       if (!order) return NOT_FOUND();
       // ADR-0007/0009: nhật ký/lịch sử sửa đơn — SALES chỉ đơn của mình hoặc đơn mình đang phụ trách; ACCOUNTING và ADMIN mọi đơn.
       // `assigned` tính MỘT lần cho cả nhật ký và `canModify`.
@@ -570,7 +583,7 @@ export const ordersModule: AppModule = {
         return now && now.status !== "draft" ? NOT_EDITABLE() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "sua" });
-      const suaXong = (await loadOrderView(env.DB, id))!;
+      const suaXong = (await loadOrderView(env.DB, id, xemDuDatGap(staff)))!;
       return json({ order: suaXong, ...(await phanHoiMoc(env.DB, id, suaXong, moc)) } satisfies OrderResponse);
     }),
 
@@ -589,7 +602,7 @@ export const ordersModule: AppModule = {
       // ADR-0047 (R2c, R4e, R3): trộn hai khoá cũ CÓ MẶT vào chặng chiều đi đầu, dời chặng theo ngày đi mới; `trip` mang giá trị dẫn xuất (ghi kép + nhật ký).
       const planned = keHoachChangTrip(stored, parsed.value.updates);
       const moTa = describeTripUpdates(stored, planned.updates) ?? (planned.ops.length ? "cập nhật chặng đưa đón" : null);
-      if (moTa === null) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
+      if (moTa === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
       // ADR-0049 I14: đơn ĐÃ XÁC NHẬN mà lệnh đổi / thêm chặng dưới mốc (min giờ cũ, giờ mới) → Quản trị, Toàn quyền + `datGap`. Chặng đổi mà không dấu mới →
       // dấu cũ bỏ (I16). Đơn nháp: mốc xét lúc xác nhận; khoá `datGap` không dùng ở đây (dấu nháp đi qua route đặt gấp).
       let datGap: DatGapWrite | null = null;
@@ -610,7 +623,7 @@ export const ordersModule: AppModule = {
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
     // ---- Chặng đưa đón SAU XÁC NHẬN (ADR-0047 A1, Ruling R1): thêm / sửa trường vận hành / bỏ (= đóng dòng có lý do). Ô `order.trip.edit` { ownerId,
@@ -637,7 +650,7 @@ export const ordersModule: AppModule = {
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse, 201);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse, 201);
     }),
 
     route("PUT", "/api/orders/:id/legs/:legId", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
@@ -653,7 +666,7 @@ export const ordersModule: AppModule = {
       const body = await readJson(request);
       const plan = await planEditLeg(env.DB, id, legId, body, vnToday(new Date()));
       if (!plan.ok) return legFailure(plan);
-      if (plan.value.detail === null) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
+      if (plan.value.detail === null) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
       // ADR-0049 I14 (Q3 chủ): min(giờ cũ, giờ mới) dưới mốc → Quản trị, Toàn quyền + `datGap`; dấu cũ KHÔNG miễn. Không dấu mới → dấu cũ bỏ (I16).
       const moc = await mocToiThieu();
       if (!moc) return MOC_CHUA_CO();
@@ -662,7 +675,7 @@ export const ordersModule: AppModule = {
       const sua = { kind: "update" as const, ...plan.value, detail: kemDatGap(plan.value.detail, x.value), datGap: x.value };
       if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, sua))) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
     route("POST", "/api/orders/:id/legs/:legId/close", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi }) => {
@@ -679,7 +692,7 @@ export const ordersModule: AppModule = {
       if (!plan.ok) return legFailure(plan);
       if (!(await changeLeg(env.DB, id, staff.id, meta.updatedAt, { kind: "close", ...plan.value }))) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
     // ---- ĐẶT GẤP (ADR-0049 D2, D3; kế hoạch Task A10, TC-22, TC-25, TC-28): Quản trị / Toàn quyền đóng dấu "đặt gấp" lên MỘT chặng còn mở của đơn nháp
@@ -709,7 +722,7 @@ export const ordersModule: AppModule = {
       ]);
       if ((results[0]!.meta.changes ?? 0) === 0) return legRaced(env.DB, id, legId);
       baoThayDoi({ orderId: id, thayDoi: "chuyen" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
     // ---- Danh sách hành khách (ADR-0047 A2). ĐỌC: khuôn chi tiết đơn — `order.view` theo phạm vi đơn (chỉ-FIELD không phụ trách → 404 như đơn không tồn
@@ -761,13 +774,13 @@ export const ordersModule: AppModule = {
       if (!booker.ok) return error(400, "invalid_input", booker.message);
       const snapshotChanged = v.customerName !== meta.customerName || v.customerPhone !== meta.customerPhone;
       const detail = [booker.write.note, snapshotChanged ? "sửa tên/SĐT khách trên đơn" : null].filter(Boolean).join(" | ");
-      if (!detail) return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse); // không đổi gì
+      if (!detail) return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse); // không đổi gì
       if (!(await changeBooker(env.DB, id, staff.id, v, booker.write, detail))) {
         const now = await getMeta(env.DB, id);
         return now?.status === "cancelled" ? CANCELLED() : STALE();
       }
       baoThayDoi({ orderId: id, thayDoi: "sua" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
 
     route("POST", "/api/orders/:id/status", "orders", async ({ env, request, params, staff, isAssigned, baoThayDoi, mocToiThieu }) => {
@@ -817,7 +830,7 @@ export const ordersModule: AppModule = {
         }
       }
       baoThayDoi({ orderId: id, thayDoi: to === "cancelled" ? "huy" : "xac_nhan" });
-      return json({ order: (await loadOrderView(env.DB, id))! } satisfies OrderResponse);
+      return json({ order: (await loadOrderView(env.DB, id, xemDuDatGap(staff)))! } satisfies OrderResponse);
     }),
   ],
 };

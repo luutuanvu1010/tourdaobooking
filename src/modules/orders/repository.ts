@@ -1,5 +1,5 @@
 import { auditStatement, type AuditAction } from "../audit";
-import { chieuDiDau, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
+import { LY_DO_DAT_GAP, chieuDiDau, isLyDoDatGap, xepChang, type ChangDaLuu, type ChangHopLe, type LyDoDongChang } from "../../shared/chang-dua-don";
 import type { LegDto, OrderDetailDto, OrderDto, OrderItemDto, OrderServiceDto, OrderSummaryDto, OrderSummaryTripDto } from "../../shared/contracts";
 import { escapeLike } from "../../shared/http";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
@@ -190,7 +190,9 @@ const tripOf = (s: ServiceRow, legs: readonly StoredLeg[]): ValidTrip => ({
 });
 
 /** Chặng CÒN HIỆU LỰC đã lưu (ADR-0047): dạng luật cần (`ChangDaLuu`) + dịch vụ, dấu vết (giữ `created_*` khi lưu nháp xoá–chèn lại), mốc khoá lạc quan. */
-export type StoredLeg = ChangDaLuu & { serviceId: string; createdAt: string; createdBy: string | null; updatedAt: string };
+/** Dấu đặt gấp đã lưu của chặng (0040) — ĐỦ; lớp route rút gọn theo vai trước khi trả (`xemDuDatGap`, chủ H4 / N-14). */
+export interface DatGapDaLuu { lyDo: string; ghiChu: string | null; luc: string; nguoiDuyet: string | null }
+export type StoredLeg = ChangDaLuu & { serviceId: string; createdAt: string; createdBy: string | null; updatedAt: string; datGap: DatGapDaLuu | null };
 
 export const toStoredLeg = (r: LegRow): StoredLeg => ({
   id: r.id,
@@ -207,6 +209,9 @@ export const toStoredLeg = (r: LegRow): StoredLeg => ({
   createdAt: r.created_at,
   createdBy: r.created_by,
   updatedAt: r.updated_at,
+  datGap: r.short_notice_reason !== null && r.short_notice_at !== null
+    ? { lyDo: r.short_notice_reason, ghiChu: r.short_notice_note, luc: r.short_notice_at, nguoiDuyet: r.short_notice_by_label }
+    : null,
 });
 
 /** DTO một chặng — dựng TỪNG khoá (không trải dòng nguồn). */
@@ -222,6 +227,16 @@ const toLegDto = (l: StoredLeg): LegDto => ({
   dropoffPlace: l.dropoffPlace,
   dropoffLabel: l.dropoffLabel,
   updatedAt: l.updatedAt,
+  datGap: l.datGap
+    ? {
+        daDuyet: true,
+        lyDo: l.datGap.lyDo,
+        lyDoNhan: isLyDoDatGap(l.datGap.lyDo) ? LY_DO_DAT_GAP[l.datGap.lyDo] : "Lý do khác",
+        nguoiDuyet: l.datGap.nguoiDuyet,
+        luc: l.datGap.luc,
+        ghiChu: l.datGap.ghiChu,
+      }
+    : null,
 });
 
 /** Chặng còn hiệu lực theo dịch vụ (xếp theo ngày, giờ đón, chiều — `xepChang`). */

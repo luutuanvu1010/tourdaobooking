@@ -25,13 +25,15 @@ export type LyDoDongChang = keyof typeof LY_DO_DONG_CHANG;
 export const isLyDoDongChang = (v: unknown): v is LyDoDongChang => typeof v === "string" && Object.hasOwn(LY_DO_DONG_CHANG, v);
 
 /**
- * Lý do ĐẶT GẤP một chặng dưới mốc tối thiểu (ADR-0049 D2; kế hoạch I26 — giả định G-02 của thiết kế, đổi bằng mã). Danh sách ĐÓNG ở mã (khuôn
- * `LY_DO_DONG_CHANG`); CSDL (0040) chỉ giữ khuôn chữ HOA. Chỉ Quản trị, Toàn quyền đặt gấp (ô `order.leg.short_notice`).
+ * Lý do ĐẶT GẤP một chặng dưới mốc tối thiểu (ADR-0049 D2; kế hoạch I26). Danh sách ĐÓNG ở mã (khuôn `LY_DO_DONG_CHANG`); CSDL (0040) chỉ giữ khuôn chữ
+ * HOA. Chỉ Quản trị, Toàn quyền đặt gấp (ô `order.leg.short_notice`). Mã + nhãn theo BẢN VẼ của chủ (ruling R-P18 của điều phối 29/9 — thay giả định G-02;
+ * đổi TRƯỚC khi 0040 lên remote nên không có dữ liệu mang mã cũ).
  */
 export const LY_DO_DAT_GAP = {
-  KHACH_DAT_SAT_GIO: "Khách đặt sát giờ",
-  SU_CO_VAN_HANH: "Sự cố vận hành",
-  KHAC: "Khác",
+  KHACH_DOAN_GOI_GAP: "Khách đoàn gọi gấp",
+  CHUYEN_BAY_DOI_GIO: "Chuyến bay đổi giờ",
+  DON_BU_LO_CHUYEN: "Đơn bù cho khách bị lỡ chuyến",
+  KHAC: "Lý do khác",
 } as const;
 export type LyDoDatGap = keyof typeof LY_DO_DAT_GAP;
 export const isLyDoDatGap = (v: unknown): v is LyDoDatGap => typeof v === "string" && Object.hasOwn(LY_DO_DAT_GAP, v);

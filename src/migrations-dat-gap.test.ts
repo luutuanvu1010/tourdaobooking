@@ -39,7 +39,7 @@ const legCu = (db: DatabaseSync, id = `leg-${++n}`) => {
   return id;
 };
 interface Gap { reason?: string | null; note?: string | null; by?: string | null; at?: string | null; lead?: number | null }
-const DU: Required<Gap> = { reason: "KHACH_DAT_SAT_GIO", note: "Khách gọi lúc 5 giờ", by: "s1", at: AT, lead: 360 };
+const DU: Required<Gap> = { reason: "KHACH_DOAN_GOI_GAP", note: "Khách gọi lúc 5 giờ", by: "s1", at: AT, lead: 360 };
 const chen = (db: DatabaseSync, g: Gap) =>
   db.prepare(
     `INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_place, created_at, updated_at,
@@ -108,7 +108,7 @@ test("(c) 'có lý do thì có người + lúc + số phút' — thiếu MỘT t
   chen(db, { ...DU, note: null });
   const id = legCu(db);
   dong(db, id, { ...DU, lead: 1 });
-  dong(db, id, { ...DU, lead: 2880, reason: "SU_CO_VAN_HANH" });
+  dong(db, id, { ...DU, lead: 2880, reason: "CHUYEN_BAY_DOI_GIO" });
   dong(db, id, {}); // bỏ dấu (cả năm NULL) — hợp lệ ở CSDL; máy chủ không có đường này ở lượt 1
   assert.equal(rows(db, "SELECT count(*) AS c FROM ord_transfer_leg WHERE short_notice_reason IS NOT NULL")[0]!.c, 2);
 });

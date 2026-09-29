@@ -78,12 +78,24 @@ export function kiemGioXayRa(v: KiemGioXayRaVao): KetQuaGioXayRa {
   if (v.loai === "DEPARTED") {
     if (tienDo.some((e) => e.loai !== "DEPARTED" && e.xayRaMs < x)) chan.add("DAO_THU_TU");
   } else if (isSuKienKhaiGio(v.loai) && xuatBen && x < xuatBen.xayRaMs) chan.add("DAO_THU_TU");
+  // ADR-0050 vế 3: đã tới điểm ≤ đã đón / vắng / khách huỷ Ở ĐIỂM ĐÓ (điểm LÊN của suất) — hai chiều.
   if (v.loai === "STOP_ARRIVED" && v.diemId !== null) {
-    if (tienDo.some((e) => laSuKienSuat(e.loai) && e.diemId === v.diemId && e.xayRaMs < x)) chan.add("DAO_THU_TU");
+    if (tienDo.some((e) => SU_KIEN_SUAT_O_DIEM_LEN.has(e.loai) && e.diemId === v.diemId && e.xayRaMs < x)) chan.add("DAO_THU_TU");
   }
+  if (SU_KIEN_SUAT_O_DIEM_LEN.has(v.loai) && v.diemId !== null) {
+    if (tienDo.some((e) => e.loai === "STOP_ARRIVED" && e.diemId === v.diemId && e.xayRaMs > x)) chan.add("DAO_THU_TU");
+  }
+  // GA-25 — chủ chốt 29/9, Trả lời lần 11 — docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md ("Chặn"): giờ "đã tới điểm
+  // trả" phải ≤ giờ "đã trả khách" ở điểm đó; khai ngược → báo lỗi. Hai chiều (khuôn I20: "Đã trả" đòi điểm xuống đã tới). Bài: "GA-25 …"
+  // trong gio-xay-ra.test.ts.
+  if (v.loai === "STOP_ARRIVED" && v.diemId !== null) {
+    if (tienDo.some((e) => e.loai === "PASSENGER_DROPPED" && e.diemId === v.diemId && e.xayRaMs < x)) chan.add("DAO_THU_TU");
+  }
+  if (v.loai === "PASSENGER_DROPPED" && v.diemId !== null) {
+    if (tienDo.some((e) => e.loai === "STOP_ARRIVED" && e.diemId === v.diemId && e.xayRaMs > x)) chan.add("DAO_THU_TU");
+  }
+  // hết khối GA-25
   if (laSuKienSuat(v.loai)) {
-    // đã tới điểm (lên hoặc xuống) ≤ sự kiện của suất ở điểm đó (I20: "Đã đón" / "Đã trả" đòi điểm đã tới)
-    if (v.diemId !== null && tienDo.some((e) => e.loai === "STOP_ARRIVED" && e.diemId === v.diemId && e.xayRaMs > x)) chan.add("DAO_THU_TU");
     if (v.loai === "PASSENGER_DROPPED" && tienDo.some((e) => e.loai === "PASSENGER_BOARDED" && e.suatId === v.suatId && e.xayRaMs > x)) chan.add("DAO_THU_TU");
     if (v.loai === "PASSENGER_BOARDED" && tienDo.some((e) => e.loai === "PASSENGER_DROPPED" && e.suatId === v.suatId && e.xayRaMs < x)) chan.add("DAO_THU_TU");
   }

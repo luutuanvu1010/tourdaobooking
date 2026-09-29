@@ -331,7 +331,17 @@ export interface LegDto {
   dropoffPlace: string | null;
   dropoffLabel: string | null;
   updatedAt: string;
+  /**
+   * Dấu ĐẶT GẤP của chặng (ADR-0049 D2; chủ H4 / N-14, 29/9): `null` = chặng không đặt gấp. Văn phòng (ô `order.leg.short_notice.view`) nhận ĐỦ
+   * (`DatGapDayDuDto`); Đối tác, HDV, Thực tập CHỈ nhận cờ `{ daDuyet: true }` — khoá lý do, người, lúc, ghi chú VẮNG MẶT.
+   */
+  datGap: DatGapDto | null;
 }
+/** Cờ "đặt gấp — Quản trị đã duyệt" (mã không có ô xem đủ). */
+export interface DatGapCoDto { daDuyet: true }
+/** Dấu đặt gấp ĐỦ (văn phòng): mã + nhãn lý do, TÊN HIỂN THỊ người duyệt (không SĐT; null = tài khoản không còn hồ sơ), lúc duyệt (ISO UTC), ghi chú đã che số. */
+export interface DatGapDayDuDto { daDuyet: true; lyDo: string; lyDoNhan: string; nguoiDuyet: string | null; luc: string; ghiChu: string | null }
+export type DatGapDto = DatGapCoDto | DatGapDayDuDto;
 
 /** Hành khách client gửi lên (thân `POST/PUT /api/orders` khoá `passengers`, hoặc `them`/`sua` của `POST /api/orders/:id/passengers`). */
 export interface PassengerInput {
@@ -396,6 +406,8 @@ export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocD
 /** `mocToiThieuPhut` (ADR-0049 I31): mốc tối thiểu đang hiệu lực (phút) để biểu mẫu cảnh báo trước khi xác nhận; null = chưa có chính sách. */
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
+/** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
+export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 
 /** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */

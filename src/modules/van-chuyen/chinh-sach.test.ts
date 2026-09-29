@@ -11,7 +11,7 @@ import { kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSu
 // index.ts import module khác KHÔNG đuôi (đúng cho tsc/wrangler) → gói bằng esbuild rồi nạp, như src/route-access.test.ts: vẫn là MÃ THẬT của hàm công bố.
 const built = await esbuild.build({ entryPoints: [new URL("./index.ts", import.meta.url).pathname], bundle: true, format: "esm", platform: "neutral", target: "es2022", write: false, logLevel: "silent" });
 const vanChuyen = (await import(`data:text/javascript;base64,${Buffer.from(built.outputFiles[0]!.text).toString("base64")}`)) as {
-  mocToiThieuHienHanh: (db: unknown) => Promise<{ phut: number; policyId: string } | null>;
+  mocToiThieuHienHanh: (db: unknown) => Promise<{ phut: number; policyId: string; canhBaoPhut: number } | null>;
 };
 
 const chen = (sqlite: any, id: string, phut: number, tu: string) =>
@@ -25,10 +25,10 @@ test("TC-4 mocToiThieuHienHanh: gieo sẵn 360 phút; dòng mới đã tới hi�
   const sqlite = openDb();
   const db = fakeD1(sqlite);
   const goc = await vanChuyen.mocToiThieuHienHanh(db);
-  assert.deepEqual(goc, { phut: 360, policyId: "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0" });
+  assert.deepEqual(goc, { phut: 360, policyId: "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0", canhBaoPhut: 120 });
   chen(sqlite, "cs-moi", 240, new Date(Date.now() - 60_000).toISOString());
   chen(sqlite, "cs-tuong-lai", 30, "2099-01-01T00:00:00.000Z");
-  assert.deepEqual(await vanChuyen.mocToiThieuHienHanh(db), { phut: 240, policyId: "cs-moi" });
+  assert.deepEqual(await vanChuyen.mocToiThieuHienHanh(db), { phut: 240, policyId: "cs-moi", canhBaoPhut: 120 });
   const rong = openDb();
   rong.exec("DROP TRIGGER vc_dispatch_policy_no_delete; DELETE FROM vc_dispatch_policy");
   assert.equal(await vanChuyen.mocToiThieuHienHanh(fakeD1(rong)), null);

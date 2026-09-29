@@ -2,9 +2,21 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
-  CHIEU_LABEL, LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, NGAY_DON_SAU_NGAY_DI, NGAY_DON_TRUOC_NGAY_DI, NOI_DON_CHUA_GHI, chieuDiDau, doiNgayChang, isLyDoDongChang,
-  khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu,
+  CHIEU_LABEL, GHI_CHU_DAT_GAP_TOI_DA, LY_DO_DAT_GAP, LY_DO_DONG_CHANG, MAX_CHANG_MOI_DICH_VU, NGAY_DON_SAU_NGAY_DI, NGAY_DON_TRUOC_NGAY_DI, NOI_DON_CHUA_GHI, chieuDiDau, doiNgayChang, isLyDoDongChang,
+  isLyDoDatGap, khoangNgayDon, kiemChang, moTaChang, tronChangCu, type ChangDaLuu,
 } from "./chang-dua-don.ts";
+
+test("R-P18 (điều phối 29/9, theo bản vẽ của chủ 07:140-145): LY_DO_DAT_GAP đúng bốn mã + nhãn, thứ tự như bản vẽ; ghi chú tối đa 120 (khớp 0040)", () => {
+  assert.deepEqual(Object.entries(LY_DO_DAT_GAP), [
+    ["KHACH_DOAN_GOI_GAP", "Khách đoàn gọi gấp"],
+    ["CHUYEN_BAY_DOI_GIO", "Chuyến bay đổi giờ"],
+    ["DON_BU_LO_CHUYEN", "Đơn bù cho khách bị lỡ chuyến"],
+    ["KHAC", "Lý do khác"],
+  ]);
+  for (const ma of Object.keys(LY_DO_DAT_GAP)) assert.match(ma, /^[A-Z_]{1,40}$/, "khuôn CHECK của 0040: chữ HOA và gạch dưới, 1–40 ký tự");
+  assert.equal(isLyDoDatGap("KHACH_DAT_SAT_GIO"), false, "mã cũ (trước R-P18) không còn nhận");
+  assert.equal(GHI_CHU_DAT_GAP_TOI_DA, 120);
+});
 
 const LOC = "a941dd7d-faab-4098-9ab9-1df7fa6dd551";
 const LOC2 = "ec67ff94-bb00-4546-842a-aedb5f916b0a";
