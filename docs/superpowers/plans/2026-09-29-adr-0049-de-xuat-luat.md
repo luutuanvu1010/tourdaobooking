@@ -16,6 +16,10 @@
   - **Mục 4: chủ chọn (a) "Sửa luật chung cho khớp", 29/9** — Trả lời lần 7, `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (nhánh `adr-van-chuyen-0047-0048` @ `8e7336f`). Điều phối áp diff mục 4 lúc gộp ADR-0049, mỗi tệp một commit.
   - **Mục 0–3, 5–8: CHỜ CHỦ DUYỆT** — trình lúc gộp, như tiền lệ ADR-0047/0048 (ruling R-P5 của điều phối). Mã trên nhánh thi công mang chú thích "CHỜ CHỦ DUYỆT" cho mục 1, 2.
   - Duyệt xong mới gộp. Mỗi tệp luật một commit, sửa đúng diff dưới đây (kế hoạch Task K3).
+- **Cập nhật 29/9 tối — ADR-0050 (accepted; kế hoạch mục 0.2):**
+  - **Không thêm mục NỚI nào.** Chỗ duy nhất có thể thành nới đã được tránh: [0050] cho phép "nếu kế hoạch dùng `hanhKhachChoChuyen` để dựng điểm dừng, hàm đó trả cùng hai khoá". Nhưng `src/modules/orders/ham-cong-bo.test.ts:59@7b0e2ae` ghim **đúng** tập khoá của hàm đó, nên thêm khoá là nới (Điều 9.4). Kế hoạch chọn **không** đổi `hanhKhachChoChuyen`, chỉ `lichChungChang` (hàm mới của ADR-0049, tập khoá do chính kế hoạch ghim ở TC-20) trả khoá — kế hoạch I38, T-12.
+  - **Điều phối đã chấp nhận cách này (29/9 tối, R-P9)** ⇒ không có mục nới thứ tư; mục 1–3 vẫn đúng trần 3 của `CLAUDE.md` §9.
+  - Chỉ thêm **siết** (S15–S21) và câu mô tả ở mục 6, 7a, 8a.
 - **Số dòng:** đo lúc lập kế hoạch:
   - trên `main` = `ce831f8` cho `src/architecture.test.ts`, `docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `CLAUDE.md`. Bốn tệp này giống hệt ở `8675cbb`;
   - trên nhánh ADR-0048 `3d8f4b0` cho `src/shared/permissions.test.ts`;
@@ -53,6 +57,7 @@
 | 3 | Họ tên, năm sinh khách được hiện trên màn **tài xế** (chỉ trong ngày chạy, chỉ chuyến mình lái) và trên màn **chi tiết chuyến của văn phòng** (người vốn đã xem được tên khách ở màn đơn) | **Nới** nghĩa một hàng rào dữ liệu cá nhân | Hàng rào hôm nay ghi "tên khách chỉ ra khỏi máy chủ ở màn danh sách khách của đơn". Bạn đã duyệt cho tài xế thấy tên trong ngày chạy; văn phòng bấm thay nút cho tài xế cần thấy khách nào | Tài xế chỉ thấy số người, không thấy tên; phải gọi văn phòng hỏi. Văn phòng bấm thay theo số thứ tự khách |
 | 4 | Hai chỗ trong Hiến chương Phần II viết khác cách ADR-0049 chống "hai người sửa cùng lúc" | **Mâu thuẫn — ĐÃ QUYẾT 29/9: (a) sửa luật chung cho khớp** | Phần II viết "dùng giờ sửa cuối + dò nhật ký". ADR-0049 (bạn đã duyệt) dùng "số phiên bản + dấu lệnh", vì phân hệ Vận chuyển không được đọc nhật ký. Hiến chương đứng trên ADR, nên phải sửa chữ Hiến chương cho khớp | (đã chọn (a) — không áp dụng) |
 | 5–8 | Cập nhật mô tả trong ba tệp luật cho AI (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`) và sổ hàng rào | Mô tả, theo nội dung đã duyệt | Tài liệu luật phải khớp mã | AI phiên sau đọc luật cũ, dễ làm sai |
+| — | ADR-0050 (bạn duyệt 29/9: giờ thật khi văn phòng bấm thay; giữ chuyến khi khách đổi nơi đón; kiểm Kiểm định + Bảo hiểm) | **Không thêm chỗ nới nào**; chỉ thêm hàng rào chặt hơn và câu mô tả | Máy chặn thêm: khai giờ sai, đổi nơi mà quên cập nhật xe, xe thiếu giấy | — |
 
 - **Đếm:** mục 0 là thêm ô theo đúng bảng ADR (không nới). Ba mục nới hàng rào (1, 2, 3), đều là nội dung ADR-0049 đã duyệt. Thêm một quyết định luật **mới** (mục 4) → **bốn** quyết định chạm quyền / dữ liệu, **vượt trần 3** của `CLAUDE.md` §9 (như đề xuất luật ADR-0047).
 - **Đề nghị điều phối:** trình mục 4 **riêng, trước** (nó quyết cách viết mã phần chuyến). Mục 1–3 trình một lượt sau. **Đã làm:** mục 4 trình lượt riêng, chủ chọn (a) 29/9; mục 0–3 trình lúc gộp (R-P5) — ba quyết định nới, đúng trần 3.
@@ -171,7 +176,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 `src/CLAUDE.md:13` (đọc xuyên module):
 ```diff
  - Đọc xuyên module **chỉ qua view công bố** `v_<tiền tố>_*` (chỉ đọc, chỉ khoá + nhãn). Không JOIN thẳng bảng của module khác.
-+  Hàm đọc hẹp KHÔNG tự kiểm quyền của `orders` (`soKhachHieuLuc`, `hanhKhachChoChuyen`, `lichChungChang`, `lienHeChoTaiXe`) chỉ gọi trong THÂN một `route(…)` của `index.ts`, SAU `can(` (bài `src/orders-cong-bo.test.ts`); tệp `service.ts`/`dieu-phoi.ts` nhận dữ liệu do route truyền xuống.
++  Hàm đọc hẹp KHÔNG tự kiểm quyền của `orders` (`soKhachHieuLuc`, `hanhKhachChoChuyen`, `lichChungChang`, `lienHeChoTaiXe`) chỉ gọi trong THÂN một `route(…)` của `index.ts`, SAU `can(` (bài `src/orders-cong-bo.test.ts`); tệp `service.ts`/`dieu-phoi.ts` nhận dữ liệu do route truyền xuống. `lichChungChang` trả thêm KHOÁ SO SÁNH NƠI (`khoaNoiDon`/`khoaNoiTra`: `L:<id>` hoặc `T:<SHA-256 chữ chưa che>`, tính bằng MỘT hàm `src/shared/khoa-noi.ts` — ADR-0050 VK1-B): chỉ để so và lưu `vc_trip_stop.place_key`; không bao giờ vào DTO, nhật ký, bản chụp.
 ```
 
 `src/CLAUDE.md:15` (`orders` không import `dispatch`):
@@ -191,7 +196,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 
 **7a. §10, thêm một gạch sau dòng :122** ("Giấy tờ của người + chữ `DRIVER`" — dòng này đã có câu cuối mới của ADR-0048 mục 6b; không sửa nó):
 ```diff
-+- **Điều phối xe** (ADR-0049, migration `0040`–`0042`): mốc 6 giờ chặn **xác nhận** đơn có chặng dưới mốc tới khi Quản trị/Toàn quyền bấm "Đặt gấp" — bài/e2e xác nhận đơn đón trong ngày phải đặt chính sách mốc 0 ở khung thử; chỉ route đặt gấp ghi `short_notice_*`. Luật lõi chuyến ở CẢ trigger lẫn máy chủ; lệnh chuyến là MỘT `db.batch` theo thứ tự cổng → nhật ký → câu có dấu lệnh → trạng thái cuối (bài `thu-tu-lo.test.ts`); mỗi suất một câu `INSERT`. Tên, năm sinh, SĐT khách chỉ trong DTO tài xế **trong ngày chạy**. Chi tiết: `docs/CHANGE-GUIDE.md` công thức <điền>.
++- **Điều phối xe** (ADR-0049, ADR-0050, migration `0040`–`0042`): mốc 6 giờ chặn **xác nhận** đơn có chặng dưới mốc tới khi Quản trị/Toàn quyền bấm "Đặt gấp" — mốc KHÔNG tắt được (CSDL chặn 0): bài không kiểm mốc dùng hàm tiêm giả của khung thử, bài kiểm mốc đi đường thật (đặt gấp qua route); chỉ route đặt gấp ghi `short_notice_*`. Luật lõi chuyến ở CẢ trigger lẫn máy chủ; lệnh chuyến là MỘT `db.batch` theo thứ tự cổng → nhật ký → câu có dấu lệnh → trạng thái cuối (bài `thu-tu-lo.test.ts`); mỗi suất một câu `INSERT`. Tên, năm sinh, SĐT khách chỉ trong DTO tài xế **trong ngày chạy**. Giờ tiến độ có HAI trục: giờ ghi nhận (máy chủ) và giờ xảy ra (văn phòng bấm thay khai được trong khoảng kẹp; tài xế thì bằng giờ máy chủ) — MỘT mốc giờ mỗi request, luôn `toISOString()` của máy chủ (CSDL so chuỗi). Khoá so sánh nơi (`place_key`, `khoaNoi*`) KHÔNG BAO GIỜ hiển thị. Khung thử đi tới xuất bến phải gieo Kiểm định + Bảo hiểm cho xe (điều kiện gieo sẵn). Chi tiết: `docs/CHANGE-GUIDE.md` công thức <điền>.
 ```
 
 **7b. §10 dòng :119** ("`orders` KHÔNG import `dispatch`") — thêm vế:
@@ -205,7 +210,7 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 **8a. Phần II, sơ đồ tầng, dòng :175** — đoạn `van-chuyen (…)`. Dòng `-` là văn bản **sau khi áp** đề xuất luật ADR-0048 mục 3 (đã duyệt 29/9):
 ```diff
 -van-chuyen (Vận chuyển lượt 1a, ADR-0040; nhà xe đối tác, ADR-0048 — bảng `vc_*` (xe của công ty hoặc của nhà xe, giấy tờ xe, danh mục loại giấy tờ xe, ngưỡng sắp hết hạn), route `/api/van-chuyen/*`; đọc `parties` qua hàm công bố `ownerCompany`, `expiringDriverDocuments`, `nhaXeDangHopTac` và view `v_pty_party_label`, `v_pty_owner_company`, `v_pty_carrier` (trigger chủ xe); không module nào import nó)
-+van-chuyen (Vận chuyển lượt 1a, ADR-0040; nhà xe, ADR-0048; Bảng điều phối, ADR-0049 — bảng `vc_*` (xe, giấy tờ xe, danh mục, ngưỡng; chuyến, ai lái, điểm dừng, suất, sự kiện nối 1-1 `audit_log`, bản chụp xuất bến, bản chốt danh sách; chính sách điều phối, điều kiện xuất bến, hạng bằng, lý do), route `/api/van-chuyen/*`; lịch chung là HÌNH CHIẾU dựng lúc đọc (không bảng); đọc `orders` qua hàm hẹp `lichChungChang`, `hanhKhachChoChuyen`, `soKhachHieuLuc`, `lienHeChoTaiXe` (chỉ trong thân route sau `can()`) và view `v_ord_leg_key`, `v_ord_order_flag`, `v_ord_passenger_key` (trigger); `locations` qua khoá ngoại + `v_loc_location_label`; `parties` qua `ownerCompany`, `expiringDriverDocuments`, `nhaXeDangHopTac`, `taiXeChoDieuPhoi` và view `v_pty_*`; công bố `mocToiThieuHienHanh` cho gốc lắp ráp tiêm vào `orders`; không module nào import nó)
++van-chuyen (Vận chuyển lượt 1a, ADR-0040; nhà xe, ADR-0048; Bảng điều phối, ADR-0049, ADR-0050 — bảng `vc_*` (xe, giấy tờ xe, danh mục, ngưỡng; chuyến, ai lái, điểm dừng, suất, sự kiện nối 1-1 `audit_log` có giờ ghi nhận + giờ xảy ra, bản chụp xuất bến, bản chốt danh sách; chính sách điều phối, điều kiện xuất bến, hạng bằng, lý do), route `/api/van-chuyen/*`; lịch chung là HÌNH CHIẾU dựng lúc đọc (không bảng); đọc `orders` qua hàm hẹp `lichChungChang` (kèm khoá so sánh nơi, không hiển thị), `hanhKhachChoChuyen`, `soKhachHieuLuc`, `lienHeChoTaiXe` (chỉ trong thân route sau `can()`) và view `v_ord_leg_key`, `v_ord_order_flag`, `v_ord_passenger_key` (trigger); `locations` qua khoá ngoại + `v_loc_location_label`; `parties` qua `ownerCompany`, `expiringDriverDocuments`, `nhaXeDangHopTac`, `taiXeChoDieuPhoi` và view `v_pty_*`; công bố `mocToiThieuHienHanh` cho gốc lắp ráp tiêm vào `orders`; không module nào import nó)
 ```
 
 **8b. Bảng thi hành**:
@@ -235,12 +240,20 @@ Thêm câu, giữ nguyên phần trước của mỗi dòng.
 | S11 | Chỉ route đặt gấp ghi `short_notice_*` (bài có P16) | `src/modules/orders/dat-gap.test.ts` | ADR D2 |
 | S12 | Lệnh `vc_` không nhận chữ tự do; ghi chú đặt gấp không vào nhật ký; `trip_*` ghi `order_id` NULL | mã + bài | LC-18; C1 |
 | S14 | Route tài xế `…/cuoc-cua-toi*` chỉ phục vụ chuyến người gọi **đang lái** — 404 kể cả với người có ô `any`; văn phòng bấm thay qua 9 route cổng `office` hỏi `can(trip.progress)`; hai bộ route gọi **chung** một hàm xử lý mỗi lệnh (bài tĩnh `tien-do-mot-luat.test.ts`, có P16) | `src/modules/van-chuyen/index.ts`, `dieu-phoi.ts` + test mới | ruling R-P1 của điều phối (giữ đúng chữ ADR D3) |
+| S15 | **[0050] VK1-A:** hai `CHECK` giờ xảy ra; `CHECK` kết thúc ≥ xuất bến; trigger "sau xuất bến"; trigger "xuất bến ≥ giờ ghi nhận mọi sự kiện trước"; luật thuần `kiemGioXayRa` (năm vế) | `migrations/0042_*`, `src/shared/gio-xay-ra.ts` | ADR-0050 VK1-A, "Hệ quả" |
+| S16 | **[0050] VK1-A:** route tài xế và route văn phòng 39 gửi `xayRaLuc` → 400, không lặng lẽ bỏ qua | `src/modules/van-chuyen/index.ts` + test | ADR-0050 VK1-A "Ai được khai" |
+| S17 | **[0050] VK1-B:** giữ chuyến `NOI_HEN_DOI` khi nơi hẹn đổi sau khi xếp (so khoá chữ chưa che, có ca dãy 8 chữ số); khuôn `place_key` (2 `CHECK`) + danh tính điểm; lệnh cập nhật điểm đóng `STOP_CHANGED` + mở (bài khoá mã) | `migrations/0042_*`, `src/shared/{dieu-phoi-kiem,khoa-noi}.ts`, route 40 | ADR-0050 VK1-B |
+| S18 | **[0050] + [SOI] K-02:** bài liệt kê khoá mọi DTO van-chuyen **không** có khoá so sánh nơi; bài quét nhật ký / thân trả về không có `L:<id>` / `T:<hex>` (mở rộng `src/hanh-khach-khong-lo-ten.test.ts`) | test | ADR-0050 "Hệ quả" |
+| S19 | **[SOI] K-03:** (a) `vc_trip_overlap_upd` xét cả tài xế khi đổi giờ chuyến; (b) danh tính suất cấm đổi `board_stop_id`, `alight_stop_id` (cấm hẳn) | `migrations/0042_*` | bản soi Kernel K-03 (siết, không cần chủ) |
+| S20 | **[0050] VK1-C:** `CHECK` kẹp lùi 1–1440 + hai điều kiện Kiểm định, Bảo hiểm gieo sẵn trong `0041` (xe thiếu giấy bị giữ) | `migrations/0041_*` | ADR-0050 VK1-C (chủ Q-L1-3) |
+| S21 | **[0050] + K-02:** câu kiểm định kỳ R-VC-12…16 (mức `warn`; mã điều phối đã cấp 29/9 tối) | `scripts/audit-checks.mjs` | ADR-0050 "Hệ quả"; bản soi K-02 |
 | S13 | Câu xác nhận đơn (`UPDATE orders SET status='confirmed'`, hôm nay SQL thô LEGACY ở `src/modules/orders/repository.ts:921-926@6bb67c8`) chuyển sang tệp nửa nghiêm thành câu `defineSql` `orders.order_confirm` — thêm một câu vào vùng bài EXPLAIN soi; câu đặt gấp `orders.leg_short_notice` cũng ở đó. Không tên mới nào đọc `audit_log` | `src/modules/orders/chang-hanh-khach-repo.ts` | ADR-0047 A3 ("SQL chạm `ord_*` viết bằng `defineSql` trong tệp riêng"); kế hoạch I15 |
 
 ## Không đổi
 
 - `LEGACY`, `KHONG_DB`, `TABLE_PREFIX`, `VIEW_PREFIX` (`src/architecture.test.ts`).
 - `DOC_AUDIT_LOG_WONGUARD`, `XOA_CUNG_NHAP`, `FULL_NAME_ORD_PASSENGER_FILES`, `LEGACY_TABLES`, `NUA_NGHIEM` (nhánh ADR-0047). Người thi công cần thêm tên vào một trong số này → **DỪNG**, đó là nới mới.
+- Bài ghim tập khoá `hanhKhachChoChuyen` (`src/modules/orders/ham-cong-bo.test.ts:59@7b0e2ae`, ADR-0047) — kế hoạch I38; đổi là nới (xem "Cập nhật 29/9 tối" đầu tệp).
 - `GUARDS`, `ADMIN_OPS`, `SELF_SERVICE` (`src/route-write-guard.test.ts:48, 55-61, 100`).
 - `docs/quyen-hoan.json` (không ô hoãn, không `cua_ghi` mới).
 - Danh sách cổng (`OFFICE_GATE`, `ORDERS_GATE`, `ADMIN_GATE` — `src/shared/permissions.ts:178-188@3d8f4b0`); bài `src/shared/cong-quyen.test.ts`.
