@@ -723,3 +723,147 @@ test("R-VC-2 (ADR-0040 D1): dòng gia hạn giấy tờ xe cùng xe, cùng loạ
   giayToXe(db, { id: "g2b", xe: "xe-a", truoc: "g1" });
   assert.equal(violations(db, c), 1, "tách nhánh");
 });
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0047 — R-ORD-7…12 (chặng đưa đón, hành khách). Tên khách là tên GIẢ có đánh dấu.
+// ---------------------------------------------------------------------------------------------------------------------
+const LOC_BEN = "a941dd7d-faab-4098-9ab9-1df7fa6dd551"; // "Bến tàu du lịch Nha Trang" (0010)
+const vnNgay = (n: number) => new Date(Date.now() + 7 * 3600e3 + n * 86400e3).toISOString().slice(0, 10);
+function dvDon(db: DatabaseSync, s: { id: string; orderId: string; time?: string | null; place?: string | null; date?: string | null; pax?: number }): void {
+  db.prepare(`INSERT INTO order_service (id, order_id, sort_order, catalog_code, name, unit, pax_adult, depart_date, pickup_time, pickup_place) VALUES (?, ?, 0, 'ZH1', 'Tour', 'perPax', ?, ?, ?, ?)`)
+    .run(s.id, s.orderId, s.pax ?? 2, s.date ?? vnNgay(3), s.time ?? null, s.place ?? null);
+}
+function chang(db: DatabaseSync, l: { id: string; orderId: string; svc: string; dir?: string; date?: string | null; time?: string | null; locId?: string | null; place?: string | null; drop?: string | null; closed?: boolean }): void {
+  db.prepare(
+    `INSERT INTO ord_transfer_leg (id, order_id, order_service_id, direction, pickup_date, pickup_time, pickup_location_id, pickup_place, dropoff_place, closed_at, close_reason_code, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(l.id, l.orderId, l.svc, l.dir ?? "OUT", l.date === undefined ? vnNgay(3) : l.date, l.time ?? null, l.locId ?? null, l.locId ? null : (l.place ?? "Khách sạn A"), l.drop ?? null,
+    l.closed ? T2 : null, l.closed ? "NOT_NEEDED" : null, T1, T1);
+}
+function khach(db: DatabaseSync, p: { id: string; orderId: string; prev?: string | null; key?: string; voided?: boolean; source?: string }): void {
+  db.prepare(
+    `INSERT INTO ord_passenger (id, order_id, full_name, birth_year, pax_code, previous_id, person_key, voided_at, source, created_at, updated_at) VALUES (?, ?, 'Khách Dò Tìm', 1911, NULL, ?, ?, ?, ?, ?, ?)`,
+  ).run(p.id, p.orderId, p.prev ?? null, p.key ?? p.id, p.voided ? T2 : null, p.source ?? "OFFICE", T1, T1);
+}
+const xacNhan = (db: DatabaseSync, id: string) => db.prepare("UPDATE orders SET status = 'confirmed', updated_at = ? WHERE id = ?").run(T3, id);
+
+test("R-ORD-7 (ghi kép R3): cột cũ = dẫn xuất chặng chiều đi đầu → 0; lệch giờ / lệch nơi / còn cột cũ mà không chặng → vi phạm; tên điểm và chữ tạm '(chưa ghi nơi đón)' khớp", () => {
+  const c = one("R-ORD-7");
+  assert.equal(c.level, "warn-unless-strict");
+  const db = build();
+  addOrder(db, "o-1");
+  dvDon(db, { id: "s1", orderId: "o-1", time: "06:30", place: "Khách sạn A" });
+  chang(db, { id: "l1", orderId: "o-1", svc: "s1", time: "06:30", place: "Khách sạn A" });
+  chang(db, { id: "l0", orderId: "o-1", svc: "s1", dir: "RETURN", time: "01:00", place: "Về" }); // chiều về không dẫn xuất
+  dvDon(db, { id: "s2", orderId: "o-1", time: "07:00", place: "Bến tàu du lịch Nha Trang" });
+  chang(db, { id: "l2", orderId: "o-1", svc: "s2", time: "07:00", locId: LOC_BEN }); // điểm danh mục → tên điểm
+  dvDon(db, { id: "s3", orderId: "o-1", time: "05:00", place: null });
+  chang(db, { id: "l3", orderId: "o-1", svc: "s3", time: "05:00", place: "(chưa ghi nơi đón)" }); // Q1 (a)
+  dvDon(db, { id: "s4", orderId: "o-1", place: "  Sân bay  " });
+  chang(db, { id: "l4", orderId: "o-1", svc: "s4", place: "Sân bay" }); // cột cũ có khoảng trắng — câu chép cắt
+  dvDon(db, { id: "s5", orderId: "o-1" }); // không dữ liệu đón, không chặng
+  dvDon(db, { id: "s6", orderId: "o-1" });
+  chang(db, { id: "l6", orderId: "o-1", svc: "s6", time: "08:00", closed: true }); // chặng ĐÃ ĐÓNG không dẫn xuất
+  assert.equal(violations(db, c), 0);
+  db.prepare("UPDATE order_service SET pickup_time = '06:45' WHERE id = 's1'").run();
+  assert.equal(violations(db, c), 1, "lệch giờ");
+  db.prepare("UPDATE order_service SET pickup_place = 'Chỗ khác' WHERE id = 's2'").run();
+  assert.equal(violations(db, c), 2, "lệch nơi");
+  db.prepare("UPDATE order_service SET pickup_time = '09:00' WHERE id = 's5'").run();
+  assert.equal(violations(db, c), 3, "cột cũ có mà không có chặng");
+});
+
+test("R-ORD-8: chặng mở của đơn ĐÃ XÁC NHẬN, ngày đón từ hôm nay, chưa chốt nơi trả → đếm; có nơi trả / ngày đã qua / đơn nháp / chặng đóng → không", () => {
+  const c = one("R-ORD-8");
+  assert.equal(c.level, "warn");
+  const db = build();
+  addOrder(db, "o-1");
+  dvDon(db, { id: "s1", orderId: "o-1", date: vnNgay(3) });
+  chang(db, { id: "l1", orderId: "o-1", svc: "s1", date: vnNgay(3) }); // thiếu nơi trả → đếm (sau xác nhận)
+  chang(db, { id: "l2", orderId: "o-1", svc: "s1", date: vnNgay(3), drop: "Bến" });
+  chang(db, { id: "l3", orderId: "o-1", svc: "s1", date: vnNgay(-3) }); // ngày đã qua
+  chang(db, { id: "l4", orderId: "o-1", svc: "s1", date: vnNgay(3), closed: true });
+  addOrder(db, "o-2");
+  dvDon(db, { id: "s2", orderId: "o-2" });
+  chang(db, { id: "l5", orderId: "o-2", svc: "s2" }); // đơn nháp
+  assert.equal(violations(db, c), 0, "đơn chưa xác nhận: không đếm");
+  xacNhan(db, "o-1");
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-ORD-9 (L-A1): số người có tên > số khách hiệu lực của dịch vụ ĐÔNG NHẤT → đếm; dòng điều chỉnh gần nhất được áp; người đã huỷ không tính; JSON hỏng không ném lỗi", () => {
+  const c = one("R-ORD-9");
+  assert.equal(c.level, "warn");
+  const db = build();
+  addOrder(db, "o-1");
+  dvDon(db, { id: "s1", orderId: "o-1", pax: 2 });
+  dvDon(db, { id: "s2", orderId: "o-1", pax: 1 });
+  khach(db, { id: "p1", orderId: "o-1" });
+  khach(db, { id: "p2", orderId: "o-1" });
+  assert.equal(violations(db, c), 0, "2 người, dịch vụ đông nhất 2 khách");
+  khach(db, { id: "p3", orderId: "o-1" });
+  assert.equal(violations(db, c), 1, "3 người > 2 khách (không cộng dồn hai dịch vụ)");
+  xacNhan(db, "o-1");
+  addAdjustmentAfter(db, { id: "a1", orderId: "o-1", seq: 1, after: [{ serviceId: "s1", pax: { adult: 3, child: 0, senior: 0, infant: 0 } }, { serviceId: "s2", pax: { adult: 1, child: 0, senior: 0, infant: 0 } }] });
+  assert.equal(violations(db, c), 0, "số khách hiệu lực 3 (điều chỉnh gần nhất)");
+  db.prepare("UPDATE ord_passenger SET voided_at = ? WHERE id = 'p3'").run(T4);
+  khach(db, { id: "p4", orderId: "o-1" });
+  khach(db, { id: "p5", orderId: "o-1" });
+  assert.equal(violations(db, c), 1, "4 người hiện hành (p3 đã huỷ) > 3");
+  // dòng điều chỉnh gần nhất HỎNG (không phải JSON — bảng chỉ-thêm nên chèn dòng mới) → không ném lỗi, lùi về số đã lưu (2) ⇒ 4 > 2 vẫn là 1 đơn
+  db.prepare(`INSERT INTO order_money_adjustment (id, order_id, seq, before_json, after_json, subtotal_before, subtotal_after) VALUES ('a2', 'o-1', 2, '[]', 'không phải json', 0, 0)`).run();
+  assert.doesNotThrow(() => violations(db, c));
+  assert.equal(violations(db, c), 1);
+});
+
+test("R-ORD-10: nhật ký order_passenger_changed đúng khuôn đếm → 0; lọt tên / năm sinh / chữ lạ → vi phạm (fail)", () => {
+  const c = one("R-ORD-10");
+  assert.equal(c.level, "fail");
+  const db = build();
+  addOrder(db, "o-1");
+  const log = (id: string, detail: string) =>
+    db.prepare(`INSERT INTO audit_log (id, order_id, staff_id, action, detail, created_at) VALUES (?, 'o-1', 's-an', 'order_passenger_changed', ?, ?)`).run(id, detail, T1);
+  log("g1", "thêm 2, sửa 0, huỷ 1 khách");
+  log("g2", "thêm 10, sửa 12, huỷ 0 khách");
+  assert.equal(violations(db, c), 0);
+  log("b1", "thêm 1, sửa 0, huỷ 0 khách Khách Dò Tìm");
+  log("b2", "thêm 1 (1911), sửa 0, huỷ 0 khách");
+  log("b3", "thêm 1, sửa 0, huỷ 0 khách​");
+  assert.equal(violations(db, c), 3);
+});
+
+test("R-ORD-11: chuỗi hành khách đúng → 0; dòng thay thế khác đơn / khác person_key, đầu chuỗi person_key ≠ id, dòng nguồn DRIVER → vi phạm (trigger bị gỡ)", () => {
+  const c = one("R-ORD-11");
+  assert.equal(c.level, "fail");
+  const db = build();
+  addOrder(db, "o-1");
+  addOrder(db, "o-2");
+  dvDon(db, { id: "s1", orderId: "o-1" });
+  khach(db, { id: "a1", orderId: "o-1" });
+  xacNhan(db, "o-1");
+  khach(db, { id: "a2", orderId: "o-1", prev: "a1", key: "a1" });
+  khach(db, { id: "b1", orderId: "o-1" });
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER ord_passenger_chain_ins");
+  khach(db, { id: "x1", orderId: "o-1", key: "khac" }); // đầu chuỗi person_key ≠ id
+  khach(db, { id: "x2", orderId: "o-2", prev: "a2", key: "a1" }); // dòng thay thế khác đơn với dòng trước
+  khach(db, { id: "x3", orderId: "o-1", prev: "b1", key: "sai" }); // dòng thay thế khác person_key với dòng trước
+  assert.equal(violations(db, c), 3);
+  khach(db, { id: "d1", orderId: "o-2", source: "DRIVER" });
+  assert.equal(violations(db, c), 4, "dòng nguồn DRIVER khi chưa ADR nào mở");
+});
+
+test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' → đếm (cảnh báo); đơn huỷ / chặng đóng → không", () => {
+  const c = one("R-ORD-12");
+  assert.equal(c.level, "warn");
+  const db = build();
+  addOrder(db, "o-1");
+  dvDon(db, { id: "s1", orderId: "o-1" });
+  chang(db, { id: "l1", orderId: "o-1", svc: "s1", place: "(chưa ghi nơi đón)" });
+  chang(db, { id: "l2", orderId: "o-1", svc: "s1", place: "(chưa ghi nơi đón)", closed: true });
+  addOrder(db, "o-2");
+  dvDon(db, { id: "s2", orderId: "o-2" });
+  chang(db, { id: "l3", orderId: "o-2", svc: "s2", place: "(chưa ghi nơi đón)" });
+  db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-2'").run();
+  assert.equal(violations(db, c), 1);
+});

@@ -282,6 +282,84 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo (KHÔNG chặn phát hành — cùng lý do R-ORD-6a): lệch có thể là dữ liệu LỊCH SỬ từ trước bản vá Task 7, cần rà soát tay theo order_id",
   },
+  // ---- ADR-0047 (chặng đưa đón `ord_transfer_leg`, hành khách `ord_passenger`) — kế hoạch Task A15 -------------------------------------------------
+  // R-ORD-7 (Ruling R3 — GHI KÉP, chỉ phát hành 1; GỠ ở phát hành 2, cùng commit ngừng ghi kép): hai cột cũ `order_service.pickup_time/pickup_place` =
+  // DẪN XUẤT của chặng chiều đi đầu còn mở (ngày, rồi giờ có trước giờ trống, rồi giờ, rồi id — cùng thứ tự `chieuDiDau`); nơi = tên điểm hoặc chữ. So cột
+  // cũ đã cắt khoảng trắng (câu chép 0034 cắt); cột cũ TRỐNG khớp chặng mang chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có giờ không nơi — Q1 (a)).
+  // Mức warn-unless-strict (kế hoạch Review Focus 12): vài giây giữa lúc 0034 áp và Worker mới chạy, Worker 1.36 ghi cột cũ mà không ghi chặng — chữa
+  // bằng mở và lưu lại đơn (ghi kép đồng bộ lại). Đổi tên một điểm danh mục cũng làm lệch (cột cũ giữ tên cũ) — cùng cách chữa.
+  {
+    code: "R-ORD-7",
+    what: "hai cột cũ pickup_time/pickup_place của dịch vụ = dẫn xuất của chặng chiều đi đầu còn mở (ghi kép phát hành 1 — ADR-0047 R3)",
+    sql: `SELECT count(*) FROM (
+      SELECT s.pickup_time AS old_time, NULLIF(trim(s.pickup_place), '') AS old_place,
+        (SELECT l.pickup_time FROM ord_transfer_leg l WHERE l.order_service_id = s.id AND l.direction = 'OUT' AND l.closed_at IS NULL
+           ORDER BY (l.pickup_date IS NULL), l.pickup_date, (l.pickup_time IS NULL), l.pickup_time, l.id LIMIT 1) AS leg_time,
+        (SELECT COALESCE(loc.name, l.pickup_place) FROM ord_transfer_leg l LEFT JOIN loc_location loc ON loc.id = l.pickup_location_id
+           WHERE l.order_service_id = s.id AND l.direction = 'OUT' AND l.closed_at IS NULL
+           ORDER BY (l.pickup_date IS NULL), l.pickup_date, (l.pickup_time IS NULL), l.pickup_time, l.id LIMIT 1) AS leg_place
+      FROM order_service s
+    ) WHERE old_time IS NOT leg_time OR (old_place IS NOT leg_place AND NOT (old_place IS NULL AND leg_place = '(chưa ghi nơi đón)'))`,
+    level: "warn-unless-strict",
+    note: "cảnh báo (đỏ khi --strict): cột cũ lệch chặng — mở và lưu lại đơn đó để ghi kép đồng bộ lại (thường do Worker cũ chạy trong vài giây quanh lúc áp 0034, hoặc điểm danh mục vừa đổi tên)",
+  },
+  // R-ORD-8 (ADR-0047 A1): chặng mở của đơn đã xác nhận, ngày đón từ hôm nay (giờ VN) trở đi, CHƯA CHỐT nơi trả — việc văn phòng cần bổ sung (câu chép 0034
+  // để trống nơi trả khi dịch vụ cũ không có nơi check-in). Tình trạng nghiệp vụ hợp lệ → chỉ cảnh báo.
+  {
+    code: "R-ORD-8",
+    what: "chặng mở của đơn đã xác nhận, ngày đón từ hôm nay trở đi, chưa chốt nơi trả (văn phòng bổ sung)",
+    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id
+      WHERE o.status = 'confirmed' AND l.closed_at IS NULL AND l.pickup_date >= date('now', '+7 hours') AND l.dropoff_location_id IS NULL AND l.dropoff_place IS NULL`,
+    level: "warn",
+    note: "cảnh báo (tình trạng nghiệp vụ, không chặn phát hành): văn phòng bổ sung nơi trả cho các chặng này",
+  },
+  // R-ORD-9 (ADR-0047 L-A1 — lệch có chủ ý 5.1, LỚP BÙ): danh sách hành khách có nhiều người có tên hơn số khách HIỆU LỰC của dịch vụ đông nhất (R9). Số
+  // khách hiệu lực = phần tử của CHÍNH dịch vụ trong `after_json` của dòng điều chỉnh gần nhất (đọc như R-ORD-5, có chắn JSON hỏng), không thì số đã lưu.
+  // Chỉ là cờ cho văn phòng (N7: không tự tăng số khách) → cảnh báo.
+  {
+    code: "R-ORD-9",
+    what: "đơn có số người có tên (dòng hiện hành) nhiều hơn số khách hiệu lực của dịch vụ đông nhất (cờ cho văn phòng — ADR-0047 L-A1)",
+    sql: `SELECT count(*) FROM orders o
+      WHERE (SELECT count(DISTINCT p.person_key) FROM ord_passenger p WHERE p.order_id = o.id AND p.voided_at IS NULL
+               AND NOT EXISTS (SELECT 1 FROM ord_passenger n WHERE n.previous_id = p.id AND n.voided_at IS NULL))
+        > COALESCE((SELECT max(COALESCE(
+            (SELECT json_extract(je.value, '$.pax.adult') + json_extract(je.value, '$.pax.child') + json_extract(je.value, '$.pax.senior') + json_extract(je.value, '$.pax.infant')
+               FROM order_money_adjustment a, json_each(CASE WHEN json_valid(a.after_json) AND json_type(a.after_json) = 'array' THEN a.after_json ELSE '[]' END) je
+               WHERE a.order_id = o.id AND a.seq = (SELECT MAX(seq) FROM order_money_adjustment b WHERE b.order_id = o.id) AND json_extract(je.value, '$.serviceId') = s.id
+               LIMIT 1),
+            s.pax_adult + s.pax_child + s.pax_senior + s.pax_infant)) FROM order_service s WHERE s.order_id = o.id), 0)`,
+    level: "warn",
+    note: "cảnh báo (cờ cho văn phòng, không chặn phát hành): danh sách có tên nhiều hơn số khách — sửa số khách hoặc huỷ dòng nhập nhầm",
+  },
+  // R-ORD-10 (ADR-0047 A2, siết Hiến chương 5.12): nhật ký `order_passenger_changed` chỉ ghi SỐ LƯỢNG, ĐÚNG khuôn "thêm N, sửa N, huỷ N khách" — bỏ hết chữ
+  // số và dấu cách rồi phải còn đúng "thêm,sửa,huỷkhách" (script gộp mọi khoảng trắng của câu SQL nên chuỗi so không được có hai dấu cách liền) (không lọt tên, năm sinh… vào `detail`). Vi phạm là lỗi thật của nơi ghi.
+  {
+    code: "R-ORD-10",
+    what: "nhật ký order_passenger_changed ĐÚNG khuôn 'thêm N, sửa N, huỷ N khách' (không tên, không năm sinh)",
+    sql: `SELECT count(*) FROM audit_log WHERE action = 'order_passenger_changed' AND (detail IS NULL OR detail NOT GLOB 'thêm [0-9]*, sửa [0-9]*, huỷ [0-9]* khách'
+      OR replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(replace(detail, ' ', ''), '0', ''), '1', ''), '2', ''), '3', ''), '4', ''), '5', ''), '6', ''), '7', ''), '8', ''), '9', '') <> 'thêm,sửa,huỷkhách')`,
+    level: "fail",
+  },
+  // R-ORD-11 (ADR-0047 A2): chuỗi hành khách đúng — dòng thay thế cùng đơn, cùng person_key với dòng trước; dòng đầu chuỗi có person_key = id; KHÔNG có dòng
+  // nguồn 'DRIVER' (định sẵn trong CHECK, chỉ dùng khi ADR lượt 2 mở đường ghi cho tài xế). Trigger 0035 đã chặn — đây là lưới thứ hai.
+  {
+    code: "R-ORD-11",
+    what: "chuỗi hành khách đúng (dòng thay thế cùng đơn + person_key; dòng đầu person_key = id); chưa có dòng nguồn DRIVER",
+    sql: `SELECT
+      (SELECT count(*) FROM ord_passenger p JOIN ord_passenger prev ON prev.id = p.previous_id WHERE prev.order_id <> p.order_id OR prev.person_key <> p.person_key)
+      + (SELECT count(*) FROM ord_passenger WHERE previous_id IS NULL AND person_key <> id)
+      + (SELECT count(*) FROM ord_passenger WHERE source = 'DRIVER')`,
+    level: "fail",
+  },
+  // R-ORD-12 (ADR-0047 A1, câu hỏi Q1 (a) — GIẢ ĐỊNH chờ chủ chạy truy vấn đếm): chặng mở của đơn chưa huỷ còn chữ tạm "(chưa ghi nơi đón)" (dịch vụ cũ có
+  // giờ đón mà không có điểm đón, hoặc thân cũ gửi giờ mà trống điểm) — văn phòng bổ sung nơi đón. Cảnh báo.
+  {
+    code: "R-ORD-12",
+    what: "chặng mở của đơn chưa huỷ còn nơi đón tạm '(chưa ghi nơi đón)' (văn phòng bổ sung)",
+    sql: `SELECT count(*) FROM ord_transfer_leg l JOIN orders o ON o.id = l.order_id WHERE o.status <> 'cancelled' AND l.closed_at IS NULL AND l.pickup_place = '(chưa ghi nơi đón)'`,
+    level: "warn",
+    note: "cảnh báo (không chặn phát hành): văn phòng bổ sung nơi đón cho các chặng này",
+  },
   // R-AUT-1 (ADR-0016 điều 6/8): một tài khoản bị ngưng (`active = 0`) không được còn Face ID nào CÒN HIỆU LỰC (`valid_to_at IS NULL`) — đăng nhập
   // Face ID còn bị `getActiveStaff` chặn ở tầng ứng dụng, kiểm này là LƯỚI DỮ LIỆU cho bất biến đó, không phải đường chặn đăng nhập.
   // `PATCH /api/staff/:id` với `active: false` (ngưng tài khoản) gỡ mọi passkey trong CÙNG lô ghi với câu ngưng ("8b", chủ chọn A-4 phương án 1),
