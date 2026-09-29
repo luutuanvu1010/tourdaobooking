@@ -196,7 +196,7 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   assert.equal(r.status, 200, r.text);
   assert.equal(r.json.reasons.length, 13);
   assert.deepEqual(r.json.reasons.find((x: any) => x.code === "PHA_LE_SU_CO"), {
-    code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z",
+    code: "PHA_LE_SU_CO", group: "PHA_LE", groupLabel: "Phá lệ", label: "Sự cố vận hành", active: true, sortOrder: 1, updatedAt: "2026-09-29T00:00:00.000Z", heThong: false,
   });
   r = await w.call("POST", "/api/van-chuyen/ly-do", { as: ADM, body: { code: "PHA_LE_MUA_LON", group: "PHA_LE", label: "Mưa lớn", sortOrder: 3 } });
   assert.equal(r.status, 201, r.text);
@@ -225,6 +225,22 @@ test("TC-2 route 16–18 danh mục lý do: Quản trị thêm → 201; Bán hà
   assert.equal(cu.json.error.code, "stale");
   assert.equal((await w.call("PUT", "/api/van-chuyen/ly-do/KHONG_CO_MA", { as: ADM, body: { label: "x", sortOrder: 1, active: true, expectedUpdatedAt: moc } })).status, 404);
   assert.equal((await w.call("PUT", "/api/van-chuyen/ly-do/PHA_LE_SU_CO", { as: ADM, body: { label: "x", sortOrder: 1, active: true, expectedUpdatedAt: moc, group: "HUY_CHUYEN" } })).status, 400);
+});
+
+test("R-P22 (điều phối 29/9 đêm, siết): mã lý do HỆ THỐNG (máy tự dùng — BO_QUA_KHONG_CON_KHACH) KHÔNG ngưng được → 409 ly_do_he_thong, không ghi, không nhật ký; sửa nhãn / thứ tự vẫn được; DTO có cờ heThong đúng một mã", async () => {
+  const w = setup();
+  const ds = (await w.call("GET", "/api/van-chuyen/ly-do", { as: ADM })).json.reasons;
+  assert.deepEqual(ds.filter((x: any) => x.heThong).map((x: any) => x.code), ["BO_QUA_KHONG_CON_KHACH"]);
+  const moc = w.q("SELECT updated_at u FROM vc_reason WHERE code = 'BO_QUA_KHONG_CON_KHACH'")[0].u;
+  const n0 = soNhatKy(w);
+  const ngung = await w.call("PUT", "/api/van-chuyen/ly-do/BO_QUA_KHONG_CON_KHACH", { as: ADM, body: { label: "Không còn khách", sortOrder: 1, active: false, expectedUpdatedAt: moc } });
+  assert.equal(ngung.status, 409, ngung.text);
+  assert.equal(ngung.json.error.code, "ly_do_he_thong");
+  assert.doesNotMatch(ngung.json.error.message, /[A-Z]{2,}_[A-Z]/, "câu báo lời thường, không lộ mã");
+  assert.equal(w.q("SELECT active FROM vc_reason WHERE code = 'BO_QUA_KHONG_CON_KHACH'")[0].active, 1);
+  assert.equal(soNhatKy(w), n0);
+  const sua = await w.call("PUT", "/api/van-chuyen/ly-do/BO_QUA_KHONG_CON_KHACH", { as: ADM, body: { label: "Không còn khách ở điểm", sortOrder: 2, active: true, expectedUpdatedAt: moc } });
+  assert.equal(sua.status, 200, sua.text);
 });
 
 test("nhật ký sáu hành động mới: nhóm 'Điều phối xe'; chi tiết chỉ mã, con số, nhãn danh mục — không dãy ≥ 8 chữ số, không order_id", async () => {

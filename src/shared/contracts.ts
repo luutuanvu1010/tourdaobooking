@@ -1008,6 +1008,8 @@ export interface TripReasonDto {
   active: boolean;
   sortOrder: number;
   updatedAt: string;
+  /** R-P22: mã lý do HỆ THỐNG (máy tự dùng) — không ngưng được; màn ẩn nút "Ngưng". */
+  heThong: boolean;
 }
 /** GET/POST /api/van-chuyen/ly-do, PUT …/ly-do/:code (Quản trị) — danh mục lý do theo nhóm. */
 export interface TripReasonListResponse { reasons: TripReasonDto[] }

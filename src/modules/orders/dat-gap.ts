@@ -4,7 +4,7 @@
 import { GHI_CHU_DAT_GAP_TOI_DA, isLyDoDatGap, type ChangHopLe, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { kiemMocDat } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
-import type { OrderDetailDto } from "../../shared/contracts";
+import type { AuditEntryDto, OrderDetailDto } from "../../shared/contracts";
 import type { DatGapWrite, LegDatGapRow } from "./chang-hanh-khach-repo";
 import type { ValidService } from "./service-rules";
 
@@ -84,4 +84,26 @@ export function datGapTheoVai(order: OrderDetailDto, xemDu: boolean): OrderDetai
     ...order,
     services: order.services.map((s) => ({ ...s, legs: s.legs.map((l) => ({ ...l, datGap: l.datGap ? { daDuyet: true as const } : null })) })),
   };
+}
+
+/**
+ * Đoạn "đặt gấp" trong `detail` nhật ký của đơn — MỘT chỗ viết (route đặt gấp và nhánh `datGap` của lệnh sửa / thêm chặng) và MỘT chỗ đọc (`lichSuTheoVai`).
+ * Nhật ký ghi ĐỦ (mã đơn · chiều · nhãn lý do); rút gọn theo vai lúc TRẢ lịch sử.
+ */
+export const DAU_DAT_GAP = " · đặt gấp: ";
+export const ghiDatGapNhatKy = (nhanLyDo: string): string => `${DAU_DAT_GAP}${nhanLyDo}`;
+export const DAT_GAP_RUT_GON = " · Đặt gấp — Quản trị đã duyệt";
+/**
+ * Lịch sử đơn theo vai (ruling R-P21 — áp lời chủ H4 / N-14, "Trả lời lần 12"): người KHÔNG có ô `order.leg.short_notice.view` (Đối tác, HDV, Thực tập)
+ * thấy mọi dòng đặt gấp — dòng `order_leg_short_notice` và dòng có đoạn "đặt gấp: …" — chỉ là "Đặt gấp — Quản trị đã duyệt": bỏ nhãn lý do, người làm =
+ * nhãn "Quản trị" (không tên, không id). Dòng khác giữ nguyên. Dựng dòng MỚI (không sửa mảng vào).
+ */
+export function lichSuTheoVai(history: readonly AuditEntryDto[], xemDu: boolean): AuditEntryDto[] {
+  if (xemDu) return [...history];
+  return history.map((e) => {
+    const detail = e.detail ?? "";
+    const i = detail.indexOf(DAU_DAT_GAP);
+    if (e.action !== "order_leg_short_notice" && i < 0) return e;
+    return { action: e.action, staffId: null, staffName: "Quản trị", at: e.at, detail: `${i < 0 ? detail : detail.slice(0, i)}${DAT_GAP_RUT_GON}` };
+  });
 }

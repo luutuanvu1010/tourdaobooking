@@ -45,7 +45,10 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // ADR-0040 D1: Vận chuyển lượt 1a đọc parties qua hàm công bố (ownerCompany — chủ xe; expiringDriverDocuments — danh sách sắp hết hạn) và khoá ngoại
   // vc_vehicle.owner_party_id; ghi nhật ký qua auditStatement. Không module nào import van-chuyen.
   // NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
-  "van-chuyen": ["parties", "audit"],
+  // ADR-0049 D1: suất trỏ chặng `ord_transfer_leg` + hàm hẹp của `orders` (chỉ gọi trong thân route sau `can()` — bài src/orders-cong-bo.test.ts); điểm dừng
+  // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — CHỜ CHỦ DUYỆT
+  // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1 (trình lúc gộp).
+  "van-chuyen": ["parties", "audit", "orders", "locations"],
 };
 
 /** Module đã áp điều 8(b) (SQL đăng ký qua defineSql). Module cũ nằm ở LEGACY cho tới hạn ghi kèm. */
@@ -213,7 +216,11 @@ test("ADR-0002 điều 6/quy tắc 5: shared/ và web/ không import module", ()
 interface Dict {
   version: number;
   modules: string[];
-  tables: { name: string; module: string; kind: "table" | "lookup"; legacy?: boolean; deprecatedColumns?: string[] }[];
+  tables: {
+    name: string; module: string; kind: "table" | "lookup"; legacy?: boolean; deprecatedColumns?: string[];
+    /** Tham chiếu LOGIC sang bảng module khác qua view công bố, KHÔNG khoá ngoại (R-P19 — ADR-0049 lượt 1). */
+    logicalRefs?: { column: string; toTable: string; viaView: string; note: string }[];
+  }[];
   views: { name: string; module: string; columns: string[] }[];
   integrityEdges: { fromTable: string; toTable: string; note: string }[];
 }
@@ -718,5 +725,72 @@ test("ADR-0047 A2 (ngoại lệ R-N1-14 — CHỜ CHỦ DUYỆT, đề xuất lu
     const all = new Set([...reads, ...writes]);
     assert.ok(all.has("ord_passenger"), `${e.module}.${e.name}: câu có full_name phải chạm ord_passenger`);
     assert.ok(!all.has("staff"), `${e.module}.${e.name}: câu có full_name KHÔNG được chạm bảng staff (cột chết staff.full_name)`);
+  }
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0049 D1 (kế hoạch mục 1.4, 1.6; Task A12) — ba bài SIẾT đi cùng cạnh mới van-chuyen → orders, locations.
+// ---------------------------------------------------------------------------------------------------------------------
+test("ADR-0049 D1 (siết): KHÔNG module nào import van-chuyen — không cạnh nào trỏ tới \"van-chuyen\", không tệp src/modules/<khác>/** (kể cả *.test.ts) import ../van-chuyen", () => {
+  const problems: string[] = [];
+  for (const [m, edges] of Object.entries(ALLOWED_EDGES)) if (edges.includes("van-chuyen")) problems.push(`ALLOWED_EDGES["${m}"] trỏ tới van-chuyen`);
+  for (const m of MODULES.filter((x) => x !== "van-chuyen")) {
+    for (const file of walkAll(join(SRC, "modules", m))) {
+      for (const spec of relativeImports(file)) {
+        if (/^modules\/van-chuyen(?:\/|$)/.test(relSrc(file, spec))) problems.push(`${relative(ROOT, file)}: import "${spec}"`);
+      }
+    }
+  }
+  assert.deepEqual(problems, [], "orders nhận mốc tối thiểu qua hàm tiêm của gốc lắp ráp (ctx.mocToiThieu) — không module nào đọc van-chuyen (ADR-0049 D1)");
+});
+
+/**
+ * View công bố mà trigger của van-chuyen được đọc (ADR-0049 kế hoạch mục 1.4; Hiến chương 5.3): sáu view của kế hoạch + `v_ord_passenger_row` (R-P19 — chủ
+ * chốt 29/9, Trả lời lần 13: bỏ khoá ngoại sang ord_*, bản chốt kiểm bằng trigger đọc view). Thêm tên = NỚI (Điều 9.4).
+ */
+const VIEW_CHO_TRIGGER_VC = [
+  "v_ord_leg_key", "v_ord_order_flag", "v_ord_passenger_key", "v_ord_passenger_row", "v_pty_carrier_driver", "v_pty_carrier", "v_pty_owner_company",
+] as const;
+/** Tên bảng / view (khác `vc_*` và khác sáu view) xuất hiện trong thân một trigger — câu báo trong dấu nháy đơn bỏ qua. */
+function triggerDocNgoai(sql: string, objects: readonly string[]): string[] {
+  const text = sql.replace(/'(?:[^']|'')*'/g, "''");
+  return objects.filter((o) => !o.startsWith("vc_") && !(VIEW_CHO_TRIGGER_VC as readonly string[]).includes(o) && new RegExp(`\\b${o}\\b`, "i").test(text));
+}
+
+test("bộ bắt tên ngoài trong thân trigger: bắt JOIN orders / bảng pty_, cho qua vc_ + sáu view, bỏ qua chữ trong câu báo", () => {
+  const objs = [...names("table"), ...names("view")];
+  assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM orders o) BEGIN SELECT RAISE(ABORT, 'x'); END", objs), ["orders"]);
+  assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM pty_party_role r) BEGIN SELECT 1; END", objs), ["pty_party_role"]);
+  assert.deepEqual(triggerDocNgoai("CREATE TRIGGER x BEFORE INSERT ON vc_trip WHEN EXISTS (SELECT 1 FROM v_ord_leg_key k JOIN vc_trip t ON 1) BEGIN SELECT RAISE(ABORT, 'orders staff'); END", objs), []);
+});
+
+test("ADR-0049 D1 (siết, Hiến chương 5.3): thân MỌI trigger vc_* chỉ đọc bảng vc_ và view công bố đã liệt kê (v_ord_leg_key, v_ord_order_flag, v_ord_passenger_key, v_ord_passenger_row, v_pty_carrier_driver, v_pty_carrier, v_pty_owner_company)", () => {
+  const objs = [...names("table"), ...names("view")];
+  const trig = db.prepare("SELECT name, sql FROM sqlite_master WHERE type = 'trigger' AND name LIKE 'vc\\_%' ESCAPE '\\'").all() as { name: string; sql: string }[];
+  assert.ok(trig.length >= 60, `chống bài rỗng: phải có ≥ 60 trigger vc_ (0033, 0039, 0041, 0042), thấy ${trig.length}`);
+  const problems = trig.flatMap((t) => triggerDocNgoai(t.sql, objs).map((o) => `${t.name}: đọc ${o}`));
+  assert.deepEqual(problems, [], "trigger của van-chuyen chỉ đọc bảng của mình hoặc view công bố đã liệt kê — không đọc thẳng bảng module khác");
+});
+
+test("ADR-0049 D2 (siết, kế hoạch mục 1.6): chỉ gốc lắp ráp (src/index.ts) và module van-chuyen nhắc `mocToiThieuHienHanh` trong mã (bỏ chú thích)", () => {
+  const problems: string[] = [];
+  for (const file of walk(SRC)) {
+    const rel = relative(ROOT, file).split(sep).join("/");
+    if (rel === "src/index.ts" || rel.startsWith("src/modules/van-chuyen/")) continue;
+    if (/\bmocToiThieuHienHanh\b/.test(maskSource(readFileSync(file, "utf8"), { strings: false, comments: true }))) problems.push(rel);
+  }
+  assert.deepEqual(problems, [], "orders nhận mốc qua ctx.mocToiThieu — không gọi thẳng hàm công bố của van-chuyen");
+});
+
+test("R-P19 (chủ chốt 29/9, Trả lời lần 13): mỗi tham chiếu LOGIC của sổ dữ liệu — cột có thật, KHÔNG khoá ngoại trên cột đó, bảng đích và view trung gian có thật, view thuộc module của bảng đích", () => {
+  const refs = dict.tables.flatMap((t) => (t.logicalRefs ?? []).map((r) => ({ t, r })));
+  assert.ok(refs.length >= 3, "chống bài rỗng: leg_id, passenger_key, passenger_row_id");
+  for (const { t, r } of refs) {
+    assert.ok(columns(t.name).some((c) => c.name === r.column), `${t.name}.${r.column} không tồn tại`);
+    assert.ok(!fks(t.name).some((f) => f.from === r.column), `${t.name}.${r.column} có khoá ngoại — tham chiếu logic thì không (R-P19)`);
+    const dich = dict.tables.find((x) => x.name === r.toTable);
+    const view = dict.views.find((x) => x.name === r.viaView);
+    assert.ok(dich && view, `${t.name}.${r.column}: bảng ${r.toTable} / view ${r.viaView} không có trong sổ`);
+    assert.equal(view!.module, dich!.module, `${r.viaView} phải là view công bố của module chủ ${r.toTable}`);
   }
 });

@@ -23,6 +23,12 @@ export const NHAN_NHOM_LY_DO: Readonly<Record<NhomLyDo, string>> = {
   BO_QUA_DIEM: "Bỏ qua điểm",
 };
 export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" && (NHOM_LY_DO as readonly string[]).includes(v);
+/**
+ * Mã lý do HỆ THỐNG — máy chủ TỰ ghi (quyết định MAY, không người chọn), mã nguồn tham chiếu như hằng (ruling R-P22 của điều phối, 29/9): KHÔNG ngưng được
+ * (route sửa lý do trả 409; DTO có cờ `heThong` để màn ẩn nút). Nhãn, thứ tự vẫn sửa được. Thêm mã hệ thống = thêm vào đây (có bài kiểm).
+ */
+export const MA_LY_DO_HE_THONG = ["BO_QUA_KHONG_CON_KHACH"] as const;
+export const laLyDoHeThong = (code: string): boolean => (MA_LY_DO_HE_THONG as readonly string[]).includes(code);
 
 /** Loại sự kiện chuyến (`vc_trip_event.kind`) — một-một với hành động nhật ký `trip_*` của kế hoạch mục 1.1. Lượt 2–3 thêm loại ở đây, không dựng lại bảng. */
 export const LOAI_SU_KIEN_CHUYEN = [

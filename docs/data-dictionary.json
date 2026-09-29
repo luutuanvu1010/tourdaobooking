@@ -299,6 +299,53 @@
       "name": "vc_reason",
       "module": "van-chuyen",
       "kind": "lookup"
+    },
+    {
+      "name": "vc_trip",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_driver",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_stop",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_allocation",
+      "module": "van-chuyen",
+      "kind": "table",
+      "logicalRefs": [
+        { "column": "leg_id", "toTable": "ord_transfer_leg", "viaView": "v_ord_leg_key", "note": "trigger LC-09 lúc mở suất — R-P19" },
+        { "column": "passenger_key", "toTable": "ord_passenger", "viaView": "v_ord_passenger_key", "note": "person_key — trigger LC-10 lúc mở suất / gắn tên — R-P19" }
+      ]
+    },
+    {
+      "name": "vc_trip_event",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_departure_check",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_departure_check_item",
+      "module": "van-chuyen",
+      "kind": "table"
+    },
+    {
+      "name": "vc_trip_manifest",
+      "module": "van-chuyen",
+      "kind": "table",
+      "logicalRefs": [
+        { "column": "passenger_row_id", "toTable": "ord_passenger", "viaView": "v_ord_passenger_row", "note": "id dòng đã dùng — trigger vc_trip_manifest_scope lúc chốt + kiểm định kỳ R-VC-10 — R-P19" }
+      ]
     }
   ],
   "views": [
@@ -435,6 +482,16 @@
         "person_key",
         "order_id",
         "has_current_row"
+      ]
+    },
+    {
+      "name": "v_ord_passenger_row",
+      "module": "orders",
+      "columns": [
+        "id",
+        "person_key",
+        "order_id",
+        "is_current"
       ]
     },
     {
