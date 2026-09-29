@@ -45,6 +45,8 @@ try {
   assert.equal(r.body.current.minLeadMinutes, 240);
   assert.equal(r.body.current.proxyBackdateMaxMinutes, 90);
   assert.ok(r.body.history.length >= 2, "bản cũ còn trong lịch sử");
+  assert.ok(typeof r.body.current.nguoiLuu === "string" && r.body.current.nguoiLuu.length > 0, "R-P23: bản vừa lưu có \"ai lưu\" (tên hiển thị)");
+  assert.doesNotMatch(r.body.current.nguoiLuu, /\d{8,}/, "R-P23: \"ai lưu\" không phải SĐT");
   const { proxyBackdateMaxMinutes: _kep, ...thieuKep } = GOC;
   for (const body of [{ ...GOC, validFrom: "2026-01-01" }, { ...GOC, requireContract: true }, { ...GOC, minLeadMinutes: 0 }, thieuKep, { ...GOC, proxyBackdateMaxMinutes: 1441 }]) {
     const x = await call(TOAN_QUYEN, "POST", "/api/van-chuyen/chinh-sach-dieu-phoi", body);

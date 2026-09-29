@@ -86,7 +86,7 @@ export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu |
 // stale (tiền lệ Ruling R19). Mã lạ trỏ danh mục của parties vấp khoá ngoại → 400 (van-chuyen không đọc thẳng bảng của parties; cả lô huỷ, không nhật ký).
 const CHI_TOAN_QUYEN = () => error(403, "forbidden", "Chỉ người phụ trách hệ thống xem và đổi được chính sách điều phối xe.");
 const LOI_KHOA_NGOAI = /FOREIGN KEY constraint failed/;
-const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null): DispatchPolicyDto => ({
+const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null, nhan: ReadonlyMap<string, string> | null): DispatchPolicyDto => ({
   id: r.id,
   minLeadMinutes: r.min_lead_minutes,
   warnLeadMinutes: r.warn_lead_minutes,
@@ -96,12 +96,22 @@ const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null): DispatchPo
   proxyBackdateMaxMinutes: r.proxy_backdate_max_minutes,
   validFrom: r.valid_from_at,
   current: r.id === currentId,
+  nguoiLuu: r.created_by === null ? null : (nhan?.get(r.created_by) ?? null),
 });
-async function respondChinhSach(db: D1Database, status = 200): Promise<Response> {
+// R-P23: "ai lưu" = nhãn qua hàm tiêm `ctx.nhanNhanVien` (R-P20) — gom id rồi gọi MỘT lần; thiếu hàm tiêm → null (để trống, không đoán).
+async function respondChinhSach(
+  db: D1Database,
+  nhanNhanVien: (ids: readonly string[]) => Promise<Map<string, string> | null>,
+  status = 200,
+): Promise<Response> {
   const rows = await listDispatchPolicies(db); // mới trước
   const now = new Date().toISOString();
   const cur = rows.find((r) => r.valid_from_at <= now) ?? null;
-  return json({ current: cur ? toPolicyDto(cur, cur.id) : null, history: rows.map((r) => toPolicyDto(r, cur?.id ?? null)) } satisfies DispatchPolicyResponse, status);
+  const nhan = await nhanNhanVien([...new Set(rows.flatMap((r) => (r.created_by === null ? [] : [r.created_by])))]);
+  return json(
+    { current: cur ? toPolicyDto(cur, cur.id, nhan) : null, history: rows.map((r) => toPolicyDto(r, cur?.id ?? null, nhan)) } satisfies DispatchPolicyResponse,
+    status,
+  );
 }
 const toRuleDto = (r: DepartureRuleRow, now: string): DepartureRuleDto => ({
   id: r.id,
@@ -436,12 +446,12 @@ export const vanChuyenModule: AppModule = {
 
     // ---- ADR-0049 D2 (Task A7): chính sách điều phối, điều kiện xuất bến, hạng bằng — cổng office + ô settings.ops (chỉ Toàn quyền) viết thẳng ở đầu thân,
     // kể cả route ĐỌC (luật (1b) hàng rào 2). Khác tiền lệ `nguong-het-han` (cổng admin): ADR-0049 D3 ghi rõ cổng office.
-    route("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ env, staff }) => {
+    route("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ env, staff, nhanNhanVien }) => {
       if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
-      return respondChinhSach(env.DB);
+      return respondChinhSach(env.DB, nhanNhanVien);
     }),
 
-    route("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ request, env, staff }) => {
+    route("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", "office", async ({ request, env, staff, nhanNhanVien }) => {
       if (!can(staff, "settings.ops")) return CHI_TOAN_QUYEN();
       const parsed = kiemChinhSachMoi(await readJson(request));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
@@ -462,7 +472,7 @@ export const vanChuyenModule: AppModule = {
         if (e instanceof Error && /UNIQUE constraint failed: vc_dispatch_policy\.valid_from_at/.test(e.message)) return error(409, "stale", "Vừa có người đổi chính sách, tải lại rồi thử lại.");
         throw e;
       }
-      return respondChinhSach(env.DB, 201);
+      return respondChinhSach(env.DB, nhanNhanVien, 201);
     }),
 
     route("GET", "/api/van-chuyen/dieu-kien", "office", async ({ env, staff }) => {

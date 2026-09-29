@@ -962,6 +962,8 @@ export interface DispatchPolicyDto {
   proxyBackdateMaxMinutes: number;
   validFrom: string;
   current: boolean;
+  /** R-P23: "ai lưu" — TÊN hiển thị người lưu bản này (hàm tiêm nhãn R-P20; không SĐT, không id); null = bản gieo / khung thử không tiêm nhãn. */
+  nguoiLuu: string | null;
 }
 /** GET/POST /api/van-chuyen/chinh-sach-dieu-phoi — bản đang hiệu lực + lịch sử mọi bản (mới trước). */
 export interface DispatchPolicyResponse { current: DispatchPolicyDto | null; history: DispatchPolicyDto[] }

@@ -457,3 +457,9 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - **Bài:** `src/modules/van-chuyen/dieu-phoi.test.ts` 17 bài (TC-30 ×2, TC-42 ×2, TC-31 ×2, TC-44, TC-34 ×2, TC-48, TC-50, TC-51 ×2, I38, R-P12, R-P20, LC-11) + bài router R-P20. P16: 17 + 4 phép (sổ hàng rào — bốn dòng mới), đều đỏ.
 - `npm test` 1711/1711 (thoát 0); typecheck thoát 0 (0 lỗi).
 
+### 10.16 R-P23 — "ai lưu" bản chính sách điều phối
+
+- `DispatchPolicyDto.nguoiLuu: string | null` — tên hiển thị người lưu bản đó qua hàm tiêm `ctx.nhanNhanVien` (R-P20): gom mọi `created_by` của lịch sử, gọi MỘT lần; bản gieo (`created_by` NULL) và khung thử không tiêm → `null`. Không SĐT, không id người (bài ghim bộ khoá). GET và POST đều trả.
+- Đỏ trước: `not ok 2 - TC-2 route 9–10 …` (bộ khoá DTO thiếu `nguoiLuu`) + `not ok 3 - R-P23 …`; xanh sau. P16 ba phép (`/tmp/p16_rp23.json`) đều đỏ — dòng mới ở sổ hàng rào. e2e `chinh-sach-dieu-phoi.mjs` bước 2 thêm hai khẳng định (chạy ở A21).
+- Web: trường mới là THÊM (không phá) — giao diện dùng hay không là việc của người thi công giao diện; tôi không sửa `web/`.
+
