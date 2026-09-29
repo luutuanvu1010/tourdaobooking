@@ -135,3 +135,11 @@ test("kiemXeMoi (ADR-0048 D1): ownerPartyId tuỳ chọn — vắng / null / r�
   assert.equal(ok(kiemXeMoi({ ...XE, ownerPartyId: id }, HOM_NAY)).ownerPartyId, id);
   for (const sai of ["abc", 12, "3F1C2B4A-5D6E-4F70-8A9B-0C1D2E3F4A5B!"]) assert.equal(loi(kiemXeMoi({ ...XE, ownerPartyId: sai }, HOM_NAY)), "Chủ xe không hợp lệ.");
 });
+
+test("kiemSuaXe (ADR-0048 D1, Q1 = (a) — chủ trả lời 29/9 'Sửa được, ghi nhật ký'): ownerPartyId vắng / null / rỗng = GIỮ chủ (null); id đúng khuôn → giữ; sai khuôn → từ chối", () => {
+  const hienTai = { status: "active" as const, validFrom: "2026-01-01", validTo: null };
+  assert.equal(ok(kiemSuaXe({ ...XE, status: "active", expectedUpdatedAt: "t1" }, hienTai, HOM_NAY)).ownerPartyId, null);
+  const id = "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+  assert.equal(ok(kiemSuaXe({ ...XE, status: "active", expectedUpdatedAt: "t1", ownerPartyId: id }, hienTai, HOM_NAY)).ownerPartyId, id);
+  assert.equal(loi(kiemSuaXe({ ...XE, status: "active", expectedUpdatedAt: "t1", ownerPartyId: "abc" }, hienTai, HOM_NAY)), "Chủ xe không hợp lệ.");
+});

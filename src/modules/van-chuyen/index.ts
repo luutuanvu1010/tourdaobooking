@@ -111,9 +111,11 @@ async function respondVehicle(db: D1Database, id: string, status = 200): Promise
   return json({ vehicle: toVehicleDto(row, cb(id)), documents: docs.map((d) => toVehicleDocDto(d, today)) } satisfies VehicleResponse, status);
 }
 
-/** Nhãn thay đổi cho nhật ký sửa xe — biển số là định danh của xe (không phải "số giấy tờ"), mở đầu `detail` (giả định G12). */
-function thayDoiXe(cu: VehicleRow, moi: XeSua): string {
+/** Nhãn thay đổi cho nhật ký sửa xe — biển số là định danh của xe (không phải "số giấy tờ"), mở đầu `detail` (giả định G12). `chuMoi` ≠ null khi đổi chủ
+ * xe (ADR-0048 Q1 = (a)): ghi "chủ xe <tên cũ> → <tên mới>" — TÊN hiển thị, không liên hệ, không MST. */
+function thayDoiXe(cu: VehicleRow, moi: XeSua, chuMoi: string | null = null): string {
   const doi: string[] = [];
+  if (chuMoi !== null) doi.push(`chủ xe ${cu.owner_name} → ${chuMoi}`);
   if (cu.plate_number !== moi.plateNumber) doi.push(`biển số ${cu.plate_number} → ${moi.plateNumber}`);
   if ((cu.chassis_number ?? "") !== moi.chassisNumber) doi.push("số khung");
   if (cu.name !== moi.name) doi.push(`tên ${cu.name} → ${moi.name}`);
@@ -127,11 +129,11 @@ function thayDoiXe(cu: VehicleRow, moi: XeSua): string {
  * ADR-0048 D1, B1.1 (lớp route): chủ xe được chọn → hồ sơ chủ; `null` = công ty chủ (mặc định, như ADR-0040 D1). Chủ phải là công ty chủ HIỆN TẠI hoặc nhà xe
  * đang hợp tác (hàm công bố nhaXeDangHopTac) — không thì 409 vehicle_owner_not_carrier. `tenNhaXe` ≠ null khi chủ là nhà xe (ghi nhật ký).
  */
-async function xacDinhChuXe(db: D1Database, ownerPartyId: string | null): Promise<{ partyId: string; tenNhaXe: string | null } | Response> {
+async function xacDinhChuXe(db: D1Database, ownerPartyId: string | null): Promise<{ partyId: string; ten: string; tenNhaXe: string | null } | Response> {
   const congTy = await ownerCompany(db);
-  if (ownerPartyId === null || ownerPartyId === congTy?.partyId) return congTy ? { partyId: congTy.partyId, tenNhaXe: null } : NO_OWNER();
+  if (ownerPartyId === null || ownerPartyId === congTy?.partyId) return congTy ? { partyId: congTy.partyId, ten: congTy.displayName, tenNhaXe: null } : NO_OWNER();
   const nhaXe = (await nhaXeDangHopTac(db)).find((c) => c.partyId === ownerPartyId);
-  return nhaXe ? { partyId: nhaXe.partyId, tenNhaXe: nhaXe.displayName } : OWNER_NOT_CARRIER();
+  return nhaXe ? { partyId: nhaXe.partyId, ten: nhaXe.displayName, tenNhaXe: nhaXe.displayName } : OWNER_NOT_CARRIER();
 }
 
 /** R15 điểm 1 (lớp route): biển số / số khung đã thuộc xe khác → phản hồi 409; `exceptId` = chính xe đang sửa (thêm xe: chuỗi rỗng). */
@@ -199,6 +201,13 @@ export const vanChuyenModule: AppModule = {
       const parsed = kiemSuaXe(await readJson(request), { status: cu.status, validFrom: cu.valid_from_date, validTo: cu.valid_to_date }, vnToday(now));
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const v = parsed.value;
+      // ADR-0048 D1, Q1 = (a): đổi chủ xe (sửa nhập nhầm) — chỉ kiểm khi chủ ĐỔI (không gửi, hoặc gửi đúng chủ hiện tại → giữ nguyên, kể cả xe của công ty chủ cũ).
+      let chuMoi: { partyId: string; ten: string } | null = null;
+      if (v.ownerPartyId !== null && v.ownerPartyId !== cu.owner_party_id) {
+        const chu = await xacDinhChuXe(env.DB, v.ownerPartyId);
+        if (chu instanceof Response) return chu;
+        chuMoi = chu;
+      }
       // R15 điểm 1: sửa biển, hoặc DÙNG LẠI xe đã ngừng (Ngừng → Đang dùng/Bảo dưỡng) — biển không được đang thuộc xe khác chưa ngừng.
       const trung = await trungXe(env.DB, v, id);
       if (trung) return trung;
@@ -206,8 +215,8 @@ export const vanChuyenModule: AppModule = {
       let results: D1Result[];
       try {
         results = await env.DB.batch([
-          updateVehicleStatement(env.DB, id, v, staff.id, at),
-          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_updated", at, targetType: "vehicle", targetId: id, detail: thayDoiXe(cu, v) }, "changes() > 0"),
+          updateVehicleStatement(env.DB, id, v, chuMoi?.partyId ?? cu.owner_party_id, staff.id, at),
+          auditStatement(env.DB, { staffId: staff.id, action: "vehicle_updated", at, targetType: "vehicle", targetId: id, detail: thayDoiXe(cu, v, chuMoi?.ten ?? null) }, "changes() > 0"),
         ]);
       } catch (e) {
         const p = dbProblem(e);

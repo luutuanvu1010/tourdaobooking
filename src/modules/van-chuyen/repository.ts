@@ -51,12 +51,13 @@ const INSERT_VEHICLE = defineSql(
      valid_to_date, created_at, created_by, updated_at, updated_by)
    VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, NULL, ?12, ?13, ?12, ?13)`,
 );
-// Khoá lạc quan updated_at. Chủ xe KHÔNG đổi ở đây (ADR-0040 D1: chuyển chủ xe là việc riêng); ngày bắt đầu dùng không đổi.
+// Khoá lạc quan updated_at. Chủ xe ?14: SỬA NHẬP NHẦM (ADR-0048 D1, Q1 = (a) — chủ 29/9 "Sửa được, ghi nhật ký"; route gửi chủ hiện tại khi không đổi). Chuyển
+// chủ có lịch sử (bán xe, ai là chủ lúc nào) vẫn là việc riêng (ADR-0040 D1). Trigger vc_vehicle_owner_upd (0039) chỉ kiểm khi GIÁ TRỊ đổi. Ngày bắt đầu không đổi.
 const UPDATE_VEHICLE = defineSql(
   "van-chuyen",
   "update_vehicle",
   `UPDATE vc_vehicle SET plate_number = ?3, plate_key = ?4, chassis_number = ?5, chassis_key = ?6, name = ?7, model_year = ?8, passenger_capacity = ?9,
-     status = ?10, valid_to_date = ?11, updated_at = ?12, updated_by = ?13
+     status = ?10, valid_to_date = ?11, updated_at = ?12, updated_by = ?13, owner_party_id = ?14
    WHERE id = ?1 AND updated_at = ?2`,
 );
 
@@ -79,8 +80,10 @@ export async function chassisHolder(db: D1Database, chassisKey: string, exceptId
 }
 export const insertVehicleStatement = (db: D1Database, id: string, v: XeNhap, ownerPartyId: string, actorId: string, at: string): D1PreparedStatement =>
   db.prepare(INSERT_VEHICLE).bind(id, v.plateNumber, v.plateKey, v.chassisNumber, v.chassisKey, v.name, v.modelYear, v.passengerCapacity, ownerPartyId, v.status, v.validFrom, at, actorId);
-export const updateVehicleStatement = (db: D1Database, id: string, v: XeSua, actorId: string, at: string): D1PreparedStatement =>
-  db.prepare(UPDATE_VEHICLE).bind(id, v.expectedUpdatedAt, v.plateNumber, v.plateKey, v.chassisNumber, v.chassisKey, v.name, v.modelYear, v.passengerCapacity, v.status, v.validTo, at, actorId);
+export const updateVehicleStatement = (db: D1Database, id: string, v: XeSua, ownerPartyId: string, actorId: string, at: string): D1PreparedStatement =>
+  db.prepare(UPDATE_VEHICLE).bind(
+    id, v.expectedUpdatedAt, v.plateNumber, v.plateKey, v.chassisNumber, v.chassisKey, v.name, v.modelYear, v.passengerCapacity, v.status, v.validTo, at, actorId, ownerPartyId,
+  );
 
 // ---- Giấy tờ xe (đọc) ------------------------------------------------------------------------------------------------------------------------------------
 // "Hiện hành" = chưa huỷ và không có dòng gia hạn CHƯA huỷ nối tiếp (khớp trigger *_superseded của migration *_van_chuyen_xe).

@@ -137,3 +137,57 @@ test("GET /api/van-chuyen/nha-xe: Quản trị → công ty chủ + nhà xe (x�
   assert.equal(d.status, 403);
   assert.match(d.json.error.message, CAU_CONG_OFFICE);
 });
+
+// ---- Q1 = (a) (chủ trả lời điều phối 2026-09-29: "Sửa được, ghi nhật ký") — sửa chủ xe khi nhập nhầm; chuyển chủ có lịch sử vẫn là việc riêng (ADR-0040 D1).
+const thanSua = (v: any, doi: Record<string, unknown> = {}) => ({
+  plateNumber: v.plateNumber, chassisNumber: v.chassisNumber, name: v.name, modelYear: v.modelYear, passengerCapacity: v.passengerCapacity, status: v.status,
+  expectedUpdatedAt: v.updatedAt, ...doi,
+});
+const suaXe = (w: any, id: string, body: unknown, as = ADM) => w.call("PUT", `/api/van-chuyen/xe/${id}`, { as, body });
+const nhatKySuaCuoi = (w: any, id: string): string =>
+  w.q("SELECT detail FROM audit_log WHERE action = 'vehicle_updated' AND target_id = ? ORDER BY rowid DESC LIMIT 1", id)[0].detail as string;
+
+test("Q1 (a): PUT đổi chủ công ty chủ → nhà xe → 200 + nhật ký 'chủ xe A → B' (tên, không số); → hồ sơ thường → 409 vehicle_owner_not_carrier, không ghi; không gửi chủ → giữ nguyên", async () => {
+  const w = setup();
+  const px = await nhaXe(w, { kind: "ORGANIZATION", displayName: "Nhà xe Phương Nam" });
+  const daiLy = await hoSo(w, { kind: "ORGANIZATION", displayName: "Đại lý thường" });
+  let v = (await themXe(w, xe())).json.vehicle;
+  let r = await suaXe(w, v.id, thanSua(v, { ownerPartyId: px }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.vehicle.ownerPartyId, px);
+  assert.equal(r.json.vehicle.ownerIsCompany, false);
+  assert.match(nhatKySuaCuoi(w, v.id), /chủ xe Công ty TNHH Tour Đảo → Nhà xe Phương Nam/);
+  v = r.json.vehicle;
+  const [l0, chu0] = [soNhatKy(w), w.q("SELECT owner_party_id, updated_at FROM vc_vehicle WHERE id = ?", v.id)[0]];
+  r = await suaXe(w, v.id, thanSua(v, { ownerPartyId: daiLy }));
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "vehicle_owner_not_carrier");
+  assert.deepEqual(w.q("SELECT owner_party_id, updated_at FROM vc_vehicle WHERE id = ?", v.id)[0], chu0, "409 không ghi gì");
+  assert.equal(soNhatKy(w), l0);
+  r = await suaXe(w, v.id, thanSua(v, { name: "Ford Transit Mới" }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.vehicle.ownerPartyId, px, "không gửi chủ → giữ chủ");
+  assert.doesNotMatch(nhatKySuaCuoi(w, v.id), /chủ xe/);
+  r = await suaXe(w, r.json.vehicle.id, thanSua(r.json.vehicle, { ownerPartyId: congTyChu(w) }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.vehicle.ownerIsCompany, true, "đổi về công ty chủ được");
+});
+
+test("Q1 (a) + kế hoạch mục 4 điểm 4: xe của công ty chủ CŨ (đã đổi công ty chủ) — sửa tên KHÔNG gửi chủ → 200, chủ giữ nguyên; gửi lại đúng chủ cũ → 200 (không đổi thì không kiểm)", async () => {
+  const w = setup();
+  const cu = congTyChu(w);
+  const v = (await themXe(w, xe())).json.vehicle;
+  // Đổi công ty chủ bằng cơ chế sẵn có của migration *_ho_so_cong_ty_chu: chèn dòng OWNER_COMPANY hôm nay cho hồ sơ khác (trigger đóng dòng cũ).
+  const at = new Date().toISOString();
+  w.sqlite.exec(`INSERT INTO pty_party (id, party_kind, display_name, active, created_at, updated_at) VALUES ('ct-moi', 'ORGANIZATION', 'Công ty chủ mới', 1, '${at}', '${at}')`);
+  w.sqlite.exec(`INSERT INTO pty_party_role (id, party_id, role_type_code, location_id, valid_from_date, created_at, updated_at)
+    VALUES ('r-ct-moi', 'ct-moi', 'OWNER_COMPANY', NULL, date('${at}', '+7 hours'), '${at}', '${at}')`);
+  assert.notEqual(congTyChu(w), cu, "điều kiện của ca: công ty chủ đã đổi");
+  let r = await suaXe(w, v.id, thanSua(v, { name: "Xe đổi tên" }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.vehicle.ownerPartyId, cu);
+  assert.equal(r.json.vehicle.ownerIsCompany, false, "chủ là công ty chủ CŨ — không còn là công ty chủ hiện tại");
+  r = await suaXe(w, v.id, thanSua(r.json.vehicle, { name: "Xe đổi tên lần hai", ownerPartyId: cu }));
+  assert.equal(r.status, 200, r.text);
+  assert.equal(r.json.vehicle.ownerPartyId, cu);
+});

@@ -32,6 +32,8 @@ export interface XeNhap {
 }
 export interface XeSua extends Omit<XeNhap, "validFrom" | "ownerPartyId"> {
   validFrom: string;
+  /** ADR-0048 D1, Q1 = (a) (chủ 29/9: "Sửa được, ghi nhật ký"): chủ xe mới khi sửa nhập nhầm; null = GIỮ chủ hiện tại. */
+  ownerPartyId: string | null;
   validTo: string | null;
   expectedUpdatedAt: string;
 }
@@ -39,7 +41,7 @@ export interface XeSua extends Omit<XeNhap, "validFrom" | "ownerPartyId"> {
 const CAN_SO_KHUNG = "Cần số khung (in trên giấy đăng ký xe).";
 
 /** Phần chung của thêm và sửa: biển số, số khung (bắt buộc — R9), tên, đời xe, số người được chở (KHÔNG kể tài xế). */
-function kiemThongTinXe(b: Record<string, unknown>, homNay: string): Result<Omit<XeNhap, "status" | "validFrom">> {
+function kiemThongTinXe(b: Record<string, unknown>, homNay: string): Result<Omit<XeNhap, "status" | "validFrom" | "ownerPartyId">> {
   if (typeof b.plateNumber !== "string" || rong(b.plateNumber)) return fail("Cần biển số xe.");
   const plateNumber = squash(b.plateNumber);
   const plateKey = chuanHoaBienSo(plateNumber);
@@ -95,7 +97,9 @@ export function kiemSuaXe(body: Record<string, unknown> | null, hienTai: { statu
   if (!tt.ok) return tt;
   const status = body.status;
   const validTo = status === "retired" ? (hienTai.status === "retired" && hienTai.validTo ? hienTai.validTo : homNay) : null;
-  return { ok: true, value: { ...tt.value, status, validFrom: hienTai.validFrom, validTo, expectedUpdatedAt: body.expectedUpdatedAt } };
+  const chu = kiemChuXe(body.ownerPartyId);
+  if (!chu.ok) return chu;
+  return { ok: true, value: { ...tt.value, status, validFrom: hienTai.validFrom, validTo, expectedUpdatedAt: body.expectedUpdatedAt, ownerPartyId: chu.value } };
 }
 
 export type MucCanhBao = "none" | "soon" | "expired";

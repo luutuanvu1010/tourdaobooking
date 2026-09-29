@@ -715,6 +715,8 @@ export interface VehicleUpdateRequest {
   passengerCapacity: number;
   status: VehicleStatus;
   expectedUpdatedAt: string;
+  /** ADR-0048 D1, Q1 = (a): sửa chủ xe khi nhập nhầm — vắng = giữ chủ; khác chủ hiện tại thì phải là công ty chủ / nhà xe đang hợp tác (409 vehicle_owner_not_carrier). */
+  ownerPartyId?: string;
 }
 
 // ---- Góp ý / Báo lỗi (module feedback) ----
