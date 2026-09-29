@@ -124,7 +124,7 @@ export function highPermissionProblem(actorIsSuper: boolean, current: readonly P
 }
 
 /**
- * LC-3 + LC-1 (cộng tay) + LC-4 + "còn ít nhất một quyền" cho MỘT lần gán vai. LC-4 còn chặn khi THAY ĐỔI dòng chỉnh tay Quản trị/Toàn quyền dù
+ * LC-3 + vai Tài xế đối tác đứng riêng (ADR-0048) + LC-1 (cộng tay) + LC-4 + LC-1b + "còn ít nhất một quyền" cho MỘT lần gán vai. LC-4 còn chặn khi THAY ĐỔI dòng chỉnh tay Quản trị/Toàn quyền dù
  * quyền hiệu lực hôm nay chưa đổi (chỉnh tay "ngủ", phát tác khi vai đổi sau này) — chỉ Toàn quyền được thêm/bớt một dòng như vậy; giữ NGUYÊN một
  * dòng đã có (không sửa) vẫn được phép (giao diện tự điền lại chỉnh tay hiện có). Máy chủ gọi TRƯỚC khi dựng câu lệnh.
  */
@@ -137,6 +137,11 @@ export function roleAssignmentProblem(a: {
 }): RoleProblem | null {
   const group = groupOf(a.next.roles);
   if (group === "MIXED") return { forbidden: false, message: "Một tài khoản không giữ cùng lúc vai nội bộ và vai bên ngoài." };
+  // ADR-0048 B2.2 (Q4 = (a)): vai "Tài xế đối tác" không đi cùng vai bên ngoài khác (mọi vai bên ngoài khác sinh PARTNER) — báo câu theo VAI trước khi
+  // LC-1b (taiKhoanLaiProblem ở dưới) báo câu chung theo quyền.
+  if (a.next.roles.includes("DRIVER_EXTERNAL") && a.next.roles.some((r) => r !== "DRIVER_EXTERNAL" && ROLES[r].group === "EXTERNAL")) {
+    return { forbidden: false, message: "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác." };
+  }
   if (group === "EXTERNAL" && a.next.adds.some((p) => !isExternalPermission(p))) {
     return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác) — bỏ phần cộng tay quyền khác." };
   }
@@ -154,8 +159,19 @@ export function roleAssignmentProblem(a: {
   const next = effectivePermissions(a.next.roles, a.next).permissions;
   const high = highPermissionProblem(a.actorIsSuper, a.currentPermissions, next);
   if (high) return high;
+  const lai = taiKhoanLaiProblem(next);
+  if (lai) return lai;
   if (next.length === 0) return { forbidden: false, message: "Tài khoản phải còn ít nhất một quyền." };
   return null;
+}
+
+/**
+ * LC-1b (ADR-0048 B2.2, Q4 = (a)) — MỘT hàm thuần cho MỌI đường ghi quyền (gán vai, POST /api/staff không vai, PUT /api/staff/:id/permissions): tài khoản giữ
+ * "Tài xế đối tác" (DRIVER_PARTNER) không giữ quyền nào khác, cả Đối tác lẫn quyền nội bộ. Lớp CSDL: trigger lc1b_stf_permission_driver_partner_alone
+ * (migration *_tai_xe_doi_tac). Máy chủ gọi TRƯỚC khi dựng câu lệnh (400 câu dễ hiểu thay vì lỗi trigger).
+ */
+export function taiKhoanLaiProblem(perms: readonly PermissionCode[]): RoleProblem | null {
+  return perms.includes("DRIVER_PARTNER") && perms.length > 1 ? { forbidden: false, message: "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác." } : null;
 }
 
 /** Nhãn lời thường — dùng cho nhật ký và giao diện. */

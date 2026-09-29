@@ -23,7 +23,9 @@ import { phoneChangeProblem } from "../../shared/maintenance";
 import { PARTY_ID_RE } from "../../shared/party-id";
 import { PERMISSION_CODES, can, isPermissionCode, type PermissionCode, quyenHienThi } from "../../shared/permissions";
 import { route, type AppModule, type Ctx } from "../../shared/router";
-import { highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, type RoleAssignment, type RoleCode, type RoleProblem } from "../../shared/roles";
+import {
+  highPermissionProblem, parseRoleAssignment, permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, type RoleAssignment, type RoleCode, type RoleProblem,
+} from "../../shared/roles";
 import { SheetError, fetchSheetCsv } from "../../shared/sheets";
 import { vnToday } from "../../shared/vn-date";
 
@@ -47,6 +49,8 @@ function ruleViolation(e: unknown): Response | null {
   const m = e instanceof Error ? e.message : "";
   if (/party_role_group_conflict/.test(m)) return error(409, "account_rule", "Một hồ sơ không giữ cùng lúc vai nội bộ và vai bên ngoài.");
   if (/lc1_external_account_permission/.test(m)) return error(409, "account_rule", "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác).");
+  // LC-1b (ADR-0048 B2.2): lớp CSDL — chỉ tới đây khi lời kiểm máy chủ (taiKhoanLaiProblem / roleAssignmentProblem, 400 invalid_input) bị vượt.
+  if (/lc1b_driver_partner_alone/.test(m)) return error(409, "account_rule", "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.");
   if (/UNIQUE constraint failed: staff\.party_id/.test(m)) return error(409, "account_rule", "Hồ sơ này đã có tài khoản.");
   // R20 (điều phối viên 2026-09-24): tranh chấp ghi ĐỒNG THỜI trên cùng tài khoản (hai lần chỉnh tay trùng quyền, vai chồng lấn thời gian,
   // hoặc hai lần cùng mở một vai) — một bên thua cuộc đua, không phải lỗi hệ thống; báo tải lại rồi thử lại thay vì 500.
@@ -379,12 +383,16 @@ export const accountsModule: AppModule = {
       // LC-4 (ADR-0018 điều 5): chỉ Toàn quyền cấp Quản trị/Toàn quyền — thay luật cũ chỉ chặn SUPER_ADMIN (trước đây Quản trị cấp được Quản trị).
       const high = highPermissionProblem(actorIsSuper, [], perms.value!);
       if (high) return problemResponse(high);
+      const lai = taiKhoanLaiProblem(perms.value!); // LC-1b (ADR-0048 B2.2): đường cũ không qua roleAssignmentProblem
+      if (lai) return problemResponse(lai);
       if (await findStaffByPhone(db, phone)) return PHONE_TAKEN();
       const created = await createAccountStatements(db, { fullName: name.value!, phone, permissions: perms.value! }, admin.id);
       try {
         await db.batch([...created.statements, adminAudit(db, admin.id, "staff_created", created.id, `quyền: ${permissionsLabel(perms.value!)}`)]);
       } catch (e) {
         if (isUniqueViolation(e)) return PHONE_TAKEN();
+        const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
+        if (rule) return rule;
         throw e;
       }
       return json({ staff: await one(db, created.id), pin: created.pin } satisfies StaffWithPinResponse, 201);
@@ -524,6 +532,8 @@ export const accountsModule: AppModule = {
       if (problem) return error(409, "account_rule", problem);
       const high = highPermissionProblem(actorIsSuper, t.permissions, next); // LC-4 (ADR-0018 điều 5), thay luật riêng cho SUPER_ADMIN
       if (high) return problemResponse(high);
+      const lai = taiKhoanLaiProblem(next); // LC-1b (ADR-0048 B2.2): tài khoản chưa gán vai đổi quyền bằng đường cũ
+      if (lai) return problemResponse(lai);
 
       const at = new Date().toISOString();
       const plan = setPermissionStatements(db, { staffId: t.id, current: t.permissions, next, actorId: admin.id, at });
@@ -531,7 +541,14 @@ export const accountsModule: AppModule = {
       const detail = `${permissionsLabel(t.permissions)} → ${permissionsLabel(next)}`;
       // Khi bỏ ADMIN: câu đóng ADMIN có điều kiện đứng đầu; nhật ký chỉ ghi nếu nó thắng (changes() > 0); các câu còn lại mang cùng điều kiện.
       const stmts = [...(plan.guarded ? [plan.guarded] : []), adminAudit(db, admin.id, "permission_changed", t.id, detail, plan.guarded ? "changes() > 0" : undefined), ...plan.rest];
-      const results = await db.batch(stmts);
+      let results: D1Result[];
+      try {
+        results = await db.batch(stmts);
+      } catch (e) {
+        const rule = ruleViolation(e); // lưới cuối: lỗi trigger (LC-1b…) thành 409, không 500
+        if (rule) return rule;
+        throw e;
+      }
       if (plan.guarded && (results[0]!.meta.changes ?? 0) === 0) return LAST_ADMIN();
       ctx.dongBangTin({ staffId: t.id, tatThongBao: false }); // BẢNG TIN (KN-2): quyền vừa đổi. ADR-0046: đổi quyền KHÔNG tắt thông báo điện thoại.
       return json({ staff: await one(db, t.id) } satisfies StaffResponse);

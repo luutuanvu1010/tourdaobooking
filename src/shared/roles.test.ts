@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./permissions.ts";
 import {
   ROLES, ROLE_CODES, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
-  permissionsLabel, roleAssignmentProblem, rolesLabel, type RoleAssignment,
+  permissionsLabel, roleAssignmentProblem, rolesLabel, taiKhoanLaiProblem, type RoleAssignment,
 } from "./roles.ts";
 
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
@@ -189,6 +189,32 @@ test("roleAssignmentProblem (I-1 vòng 2, kiểm độc lập): chặn BỎ dòn
     next: assignment(["SALES_STAFF"]),
   });
   assert.deepEqual(problem, { forbidden: true, message: "Chỉ người phụ trách hệ thống mới cấp hoặc gỡ quyền Quản trị." });
+});
+
+// ADR-0048 B2.2 (LC-1b, Q4 = (a)): MỘT hàm thuần cho mọi đường ghi quyền — tài khoản giữ DRIVER_PARTNER không giữ quyền nào khác.
+test("taiKhoanLaiProblem (LC-1b): DRIVER_PARTNER đứng một mình; kèm bất kỳ quyền nào khác → 400", () => {
+  assert.equal(taiKhoanLaiProblem(["DRIVER_PARTNER"]), null);
+  for (const lai of [["DRIVER_PARTNER", "PARTNER"], ["DRIVER_PARTNER", "SALES"], ["DRIVER", "DRIVER_PARTNER"]] as const) {
+    assert.deepEqual(taiKhoanLaiProblem(lai), { forbidden: false, message: "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác." }, lai.join("+"));
+  }
+  assert.equal(taiKhoanLaiProblem(["PARTNER"]), null);
+  assert.equal(taiKhoanLaiProblem(["SALES", "ADMIN"]), null);
+  assert.equal(taiKhoanLaiProblem([]), null, "không quyền nào — việc của lời kiểm 'còn ít nhất một quyền'");
+});
+
+test("roleAssignmentProblem (ADR-0048 B2.2): vai Tài xế đối tác không đi cùng vai bên ngoài khác; tài khoản lai qua cộng tay → 400 trước khi dựng câu", () => {
+  const base = { actorIsSuper: false, currentRoles: [] as const, currentPermissions: [] as const, currentAdjustments: { adds: [], removes: [] } as const };
+  const haiVai = roleAssignmentProblem({ ...base, next: assignment(["TAXI_DRIVER", "DRIVER_EXTERNAL"]) });
+  assert.equal(haiVai?.forbidden, false);
+  assert.equal(haiVai?.message, "Vai Tài xế đối tác không đi cùng vai bên ngoài khác — một người chọn một: đối tác đặt đơn hoặc tài xế đối tác.");
+  const LAI = "Tài khoản Tài xế đối tác không giữ thêm quyền nào khác.";
+  assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["DRIVER_EXTERNAL"], { adds: ["PARTNER"], reason: "x" }) }), { forbidden: false, message: LAI });
+  assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["TAXI_DRIVER"], { adds: ["DRIVER_PARTNER"], reason: "x" }) }), { forbidden: false, message: LAI });
+  assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["DRIVER_PARTNER"], reason: "x" }) }), { forbidden: false, message: LAI });
+  assert.equal(roleAssignmentProblem({ ...base, next: assignment(["DRIVER_EXTERNAL"]) }), null);
+  assert.match(roleAssignmentProblem({ ...base, next: assignment(["COLLABORATOR"], { adds: ["SALES"], reason: "x" }) })!.message, /quyền bên ngoài/);
+  // Nội bộ bớt HẾT quyền nội bộ rồi cộng tay DRIVER_PARTNER: đứng một mình nên LC-1b cho qua (kế hoạch mục 14.2 điểm 3 — ADR không cấm; không thêm luật).
+  assert.equal(roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF"], { adds: ["DRIVER_PARTNER"], removes: ["SALES"], reason: "x" }) }), null);
 });
 
 test("nhãn lời thường", () => {
