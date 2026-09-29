@@ -33,7 +33,7 @@ try {
   // (nhóm Nội bộ). Chọn Kế toán → nhóm Bên ngoài tắt, xem trước "Kế toán".
   let p = await env.as(ACCOUNTS.admin, "/staff", DESK);
   await p.waitFor(`!!${box("#add-perms", "role", "ACCOUNTANT")}`, "khối chọn vai đã dựng");
-  assert.equal(await p.ev(`document.querySelectorAll('#add-perms input[data-kind=role]').length`), 10);
+  assert.equal(await p.ev(`document.querySelectorAll('#add-perms input[data-kind=role]').length`), 11); // ADR-0048 D2: + "Tài xế đối tác" (nhóm Bên ngoài) — 14 vai trừ 3 vai chỉ Toàn quyền gán
   assert.equal(await p.ev(`${box("#add-perms", "role", "DIRECTOR")} === null && ${box("#add-perms", "role", "OPERATIONS_MANAGER")} === null && ${box("#add-perms", "role", "IT")} === null`), true, "LC-4 + ADR-0042: Quản trị không thấy vai chỉ Toàn quyền gán");
   // ADR-0040 D3 (Ruling R12): ô "Tài xế công ty" ở nhóm Nội bộ; chọn thử → xem trước "Quyền sẽ có: Tài xế." rồi bỏ chọn (không ảnh hưởng các bước sau).
   assert.equal(await p.ev(`${box("#add-perms", "role", "DRIVER_INTERNAL")}.closest('label').textContent.trim()`), "Tài xế công ty");
@@ -120,7 +120,7 @@ try {
   const addRoleOptions = `[...document.querySelectorAll('#detail h3')].find((h) => h.textContent.trim() === 'Công việc tại đâu').nextElementSibling.nextElementSibling.querySelector('select').querySelectorAll('option')`;
   const options = await p.ev(`[...${addRoleOptions}].map((o) => o.textContent.trim())`);
   assert.ok(options.includes("Khách hàng"), `ô thêm vai trò thiếu mục nhóm khác (vd Khách hàng): ${JSON.stringify(options)}`);
-  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Tài xế công ty", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên"];
+  const ACCOUNT_ROLE_NAMES = ["Giám đốc", "Điều hành chung", "Hướng dẫn viên nội bộ", "Nhân viên kinh doanh", "Thực tập sinh", "Kế toán", "Tài xế công ty", "Công ty lữ hành", "Hướng dẫn viên độc lập", "Lễ tân khách sạn", "Tài xế taxi", "Cộng tác viên", "Tài xế đối tác"];
   assert.deepEqual(options.filter((o) => ACCOUNT_ROLE_NAMES.includes(o)), [], `R18: ô thêm vai trò không được có mục Nội bộ/Bên ngoài, thấy: ${JSON.stringify(options)}`);
   // T2b (ADR-0024 6.5; chủ 2026-09-28): "Công ty chủ" không phải vai gán thường — chỉ người giữ ô company.legal.write thấy, trên hồ sơ tổ chức (t2b-danh-ba-smoke.mjs).
   assert.ok(!options.includes("Công ty chủ"), `ô thêm vai trò của Quản trị không được có "Công ty chủ", thấy: ${JSON.stringify(options)}`);

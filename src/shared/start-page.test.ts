@@ -56,7 +56,7 @@ test("homeRedirect: chỉ Tài xế (DRIVER) → trang đầu của tài xế /t
   for (const p of ["FIELD", "PARTNER", "INTERN"] as const) assert.equal(homeRedirect(who(p, "DRIVER")), "/orders", `${p}+DRIVER`);
 });
 
-test("homeRedirect: 256 tập con quyền — tập KHÔNG có DRIVER cho đúng kết quả cũ; trang đầu tài xế chỉ khi có DRIVER và không xem đơn nào", () => {
+test("homeRedirect: 512 tập con quyền — tập KHÔNG có DRIVER cho đúng kết quả cũ; trang đầu tài xế chỉ khi có DRIVER và không xem đơn nào", () => {
   const cu = (w: { id: string; permissions: PermissionCode[] }) => (!seesAllOrders(w) && canAccessOrders(w) ? "/orders" : null); // công thức trước ADR-0040, chép nguyên
   let n = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++, n++) {
@@ -65,5 +65,5 @@ test("homeRedirect: 256 tập con quyền — tập KHÔNG có DRIVER cho đúng
     const kyVong = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : TRANG_DAU_TAI_XE;
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");
   }
-  assert.equal(n, 256);
+  assert.equal(n, 512);
 });

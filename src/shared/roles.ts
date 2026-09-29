@@ -2,11 +2,11 @@
 // cứng) và web/ (xem trước quyền khi gán vai) cùng import. Mã vai là DỮ LIỆU ở pty_role_type (migration 0024); src/roles-schema.test.ts giữ hai
 // nơi khớp nhau. Vai KHÔNG phải cổng cho phép (ADR-0001 điều 4): vai chỉ đi vào đây để SINH bộ quyền; cổng vẫn là can() của permissions.ts.
 // Đổi bảng này = đổi quyền của mọi tài khoản mang vai đó → chỉ qua chủ dự án duyệt + phát hành (ADR-0018 điều 2).
-import { PERMISSION_CODES, PERMISSION_LABEL, isPermissionCode, type PermissionCode } from "./permissions.ts";
+import { PERMISSION_CODES, PERMISSION_LABEL, isExternalPermission, isPermissionCode, type PermissionCode } from "./permissions.ts";
 
 export const ROLE_CODES = [
   "DIRECTOR", "OPERATIONS_MANAGER", "GUIDE_INTERNAL", "SALES_STAFF", "INTERN", "ACCOUNTANT", "IT", "DRIVER_INTERNAL",
-  "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR",
+  "TRAVEL_AGENCY", "GUIDE_FREELANCE", "HOTEL_RECEPTION", "TAXI_DRIVER", "COLLABORATOR", "DRIVER_EXTERNAL",
 ] as const;
 export type RoleCode = (typeof ROLE_CODES)[number];
 export type RoleGroup = "INTERNAL" | "EXTERNAL";
@@ -40,13 +40,14 @@ export const ROLES: Readonly<Record<RoleCode, RoleDef>> = {
   HOTEL_RECEPTION: { name: "Lễ tân khách sạn", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   TAXI_DRIVER: { name: "Tài xế taxi", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
   COLLABORATOR: { name: "Cộng tác viên", group: "EXTERNAL", defaults: ["PARTNER"], handles: "never", superAdminOnly: false },
+  // ADR-0048 D2: tài xế của nhà xe đối tác — người lái chuyến, KHÔNG phải bên đặt (ADR-0018 điều 9 sửa bởi ADR-0048): sinh DRIVER_PARTNER, không PARTNER.
+  // Không đi cùng vai bên ngoài khác (LC-1b — roleAssignmentProblem). Quản trị gán được.
+  DRIVER_EXTERNAL: { name: "Tài xế đối tác", group: "EXTERNAL", defaults: ["DRIVER_PARTNER"], handles: "never", superAdminOnly: false },
 };
 
 export const ROLE_GROUP_LABEL: Readonly<Record<RoleGroup, string>> = { INTERNAL: "Nội bộ", EXTERNAL: "Bên ngoài" };
 export const isRoleCode = (v: unknown): v is RoleCode => typeof v === "string" && (ROLE_CODES as readonly string[]).includes(v);
 
-/** LC-1: tài khoản mang vai bên ngoài chỉ giữ các quyền này. */
-export const EXTERNAL_ALLOWED: readonly PermissionCode[] = ["PARTNER"];
 /** LC-4: quyền chỉ Toàn quyền được cấp hoặc gỡ. */
 export const SUPER_ADMIN_GRANTED: readonly PermissionCode[] = ["ADMIN", "SUPER_ADMIN"];
 
@@ -69,7 +70,7 @@ export interface Adjustments {
 }
 
 /**
- * Quyền hiệu lực = mặc định của vai + cộng tay − bớt tay, rồi lọc LC-1 (nhóm bên ngoài chỉ giữ EXTERNAL_ALLOWED). `dropped` = quyền bị luật cứng gạt —
+ * Quyền hiệu lực = mặc định của vai + cộng tay − bớt tay, rồi lọc LC-1 (nhóm bên ngoài chỉ giữ EXTERNAL_PERMISSIONS — ADR-0048 B2.1). `dropped` = quyền bị luật cứng gạt —
  * lưới phòng thủ: đầu vào đã qua roleAssignmentProblem thì rỗng.
  */
 export function effectivePermissions(roles: readonly RoleCode[], adj: Adjustments): { permissions: PermissionCode[]; dropped: PermissionCode[] } {
@@ -77,7 +78,7 @@ export function effectivePermissions(roles: readonly RoleCode[], adj: Adjustment
   for (const p of adj.removes) want.delete(p);
   const ordered = PERMISSION_CODES.filter((p) => want.has(p));
   if (groupOf(roles) !== "EXTERNAL") return { permissions: ordered, dropped: [] };
-  return { permissions: ordered.filter((p) => EXTERNAL_ALLOWED.includes(p)), dropped: ordered.filter((p) => !EXTERNAL_ALLOWED.includes(p)) };
+  return { permissions: ordered.filter(isExternalPermission), dropped: ordered.filter((p) => !isExternalPermission(p)) };
 }
 
 export interface RoleAssignment extends Adjustments {
@@ -136,8 +137,8 @@ export function roleAssignmentProblem(a: {
 }): RoleProblem | null {
   const group = groupOf(a.next.roles);
   if (group === "MIXED") return { forbidden: false, message: "Một tài khoản không giữ cùng lúc vai nội bộ và vai bên ngoài." };
-  if (group === "EXTERNAL" && a.next.adds.some((p) => !EXTERNAL_ALLOWED.includes(p))) {
-    return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền Đối tác — bỏ phần cộng tay quyền khác." };
+  if (group === "EXTERNAL" && a.next.adds.some((p) => !isExternalPermission(p))) {
+    return { forbidden: false, message: "Tài khoản bên ngoài chỉ giữ quyền bên ngoài (Đối tác hoặc Tài xế đối tác) — bỏ phần cộng tay quyền khác." };
   }
   if (!a.actorIsSuper) {
     const touched = [...a.next.roles.filter((r) => !a.currentRoles.includes(r)), ...a.currentRoles.filter((r) => !a.next.roles.includes(r))];

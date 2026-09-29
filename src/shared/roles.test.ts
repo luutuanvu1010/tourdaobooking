@@ -1,20 +1,25 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { PERMISSION_CODES } from "./permissions.ts";
+import { EXTERNAL_PERMISSIONS, PERMISSION_CODES } from "./permissions.ts";
 import {
-  EXTERNAL_ALLOWED, ROLES, ROLE_CODES, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
+  ROLES, ROLE_CODES, defaultPermissions, effectivePermissions, groupOf, highPermissionProblem, isRoleCode, parseRoleAssignment,
   permissionsLabel, roleAssignmentProblem, rolesLabel, type RoleAssignment,
 } from "./roles.ts";
 
 const assignment = (roles: RoleAssignment["roles"], extra: Partial<RoleAssignment> = {}): RoleAssignment => ({ roles, adds: [], removes: [], reason: null, ...extra });
 
-test("danh mục: đủ 13 vai, 8 nội bộ + 5 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty), bộ mặc định là mã quyền hợp lệ", () => {
-  assert.equal(ROLE_CODES.length, 13);
+test("danh mục: đủ 14 vai, 8 nội bộ + 6 bên ngoài (ADR-0044 thêm vai IT; ADR-0040 D3 thêm vai Tài xế công ty; ADR-0048 D2 thêm vai Tài xế đối tác), bộ mặc định là mã quyền hợp lệ", () => {
+  assert.equal(ROLE_CODES.length, 14);
   assert.deepEqual(Object.keys(ROLES).sort(), [...ROLE_CODES].sort());
   assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "INTERNAL").length, 8);
-  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL").length, 5);
+  assert.equal(ROLE_CODES.filter((r) => ROLES[r].group === "EXTERNAL").length, 6);
   for (const r of ROLE_CODES) for (const p of ROLES[r].defaults) assert.ok((PERMISSION_CODES as readonly string[]).includes(p), `${r} → ${p}`);
-  for (const r of ROLE_CODES.filter((x) => ROLES[x].group === "EXTERNAL")) assert.deepEqual([...ROLES[r].defaults], ["PARTNER"], r);
+  // Mọi vai bên ngoài sinh ĐÚNG MỘT quyền bên ngoài: Đối tác, trừ ngoại lệ có tên "Tài xế đối tác" sinh Tài xế đối tác (ADR-0048 D2 — người lái chuyến,
+  // không phải bên đặt; ADR-0018 điều 9 sửa bởi ADR-0048).
+  for (const r of ROLE_CODES.filter((x) => ROLES[x].group === "EXTERNAL")) {
+    assert.deepEqual([...ROLES[r].defaults], r === "DRIVER_EXTERNAL" ? ["DRIVER_PARTNER"] : ["PARTNER"], r);
+    for (const p of ROLES[r].defaults) assert.ok((EXTERNAL_PERMISSIONS as readonly string[]).includes(p), `${r}: mặc định ${p} phải là quyền bên ngoài (LC-1)`);
+  }
   assert.deepEqual(ROLE_CODES.filter((r) => ROLES[r].superAdminOnly), ["DIRECTOR", "OPERATIONS_MANAGER", "IT"]);
   assert.equal(isRoleCode("SALES_STAFF"), true);
   assert.equal(isRoleCode("STAFF"), false, "vai cũ mơ hồ không thuộc mô hình mới");
@@ -28,6 +33,17 @@ test("ADR-0040 D3 (Ruling R1, R12): vai 'Tài xế công ty' — nội bộ, b�
   assert.equal(ROLES.DRIVER_INTERNAL.handles, "never", "vai này không nhận đơn (không phải người phụ trách đơn)");
   assert.equal(ROLES.DRIVER_INTERNAL.superAdminOnly, false);
   assert.equal(ROLE_CODES.indexOf("DRIVER_INTERNAL"), ROLE_CODES.indexOf("IT") + 1, "đứng ngay sau IT, cuối nhóm nội bộ — không xê dịch vai nội bộ nào đang có");
+});
+
+test("ADR-0048 D2: vai 'Tài xế đối tác' — bên ngoài, bộ quyền mặc định chỉ Tài xế đối tác (DRIVER_PARTNER), không nhận đơn, Quản trị gán được, đứng CUỐI", () => {
+  assert.deepEqual(defaultPermissions(["DRIVER_EXTERNAL"]), ["DRIVER_PARTNER"]);
+  assert.equal(ROLES.DRIVER_EXTERNAL.name, "Tài xế đối tác");
+  assert.equal(ROLES.DRIVER_EXTERNAL.group, "EXTERNAL");
+  assert.equal(ROLES.DRIVER_EXTERNAL.handles, "never");
+  assert.equal(ROLES.DRIVER_EXTERNAL.superAdminOnly, false);
+  assert.equal(ROLE_CODES[ROLE_CODES.length - 1], "DRIVER_EXTERNAL", "thêm CUỐI — không xê dịch vai nào đang có");
+  // Đường #3 (POST /api/staff/sheet/apply, vai cố định SALES_STAFF) không bao giờ sinh tài khoản lai (LC-1b).
+  assert.ok(!defaultPermissions(["SALES_STAFF"]).includes("DRIVER_PARTNER"));
 });
 
 test("bộ mặc định đúng đặc tả §4 + ADR-0018 điều 4 (Giám đốc = Toàn quyền kèm Quản trị; Điều hành = Quản trị)", () => {
@@ -51,12 +67,16 @@ test("groupOf: NONE / INTERNAL / EXTERNAL / MIXED", () => {
   assert.equal(groupOf(["SALES_STAFF", "COLLABORATOR"]), "MIXED");
 });
 
-test("effectivePermissions: mặc định + cộng − bớt; nhóm bên ngoài bị lọc về Đối tác (LC-1)", () => {
+test("effectivePermissions: mặc định + cộng − bớt; nhóm bên ngoài bị lọc về quyền bên ngoài (LC-1, ADR-0048 B2.1)", () => {
   assert.deepEqual(effectivePermissions(["SALES_STAFF"], { adds: ["ACCOUNTING"], removes: [] }), { permissions: ["SALES", "ACCOUNTING"], dropped: [] });
   assert.deepEqual(effectivePermissions(["DIRECTOR"], { adds: [], removes: ["ADMIN"] }), { permissions: ["SUPER_ADMIN"], dropped: [] });
   assert.deepEqual(effectivePermissions(["COLLABORATOR"], { adds: ["SALES"], removes: [] }), { permissions: ["PARTNER"], dropped: ["SALES"] });
   assert.deepEqual(effectivePermissions([], { adds: ["SALES"], removes: [] }), { permissions: ["SALES"], dropped: [] });
-  assert.deepEqual([...EXTERNAL_ALLOWED], ["PARTNER"]);
+  // ADR-0048 D2: vai Tài xế đối tác sinh DRIVER_PARTNER — quyền bên ngoài, không bị LC-1 gạt; quyền nội bộ cộng tay vẫn bị gạt (Tài xế công ty DRIVER cũng vậy).
+  assert.deepEqual(effectivePermissions(["DRIVER_EXTERNAL"], { adds: [], removes: [] }), { permissions: ["DRIVER_PARTNER"], dropped: [] });
+  assert.deepEqual(effectivePermissions(["DRIVER_EXTERNAL"], { adds: ["DRIVER"], removes: [] }), { permissions: ["DRIVER_PARTNER"], dropped: ["DRIVER"] });
+  // MỘT hằng (ADR-0048 B2.1: "thay EXTERNAL_ALLOWED"), đứng ở permissions.ts để cả roles.ts lẫn thong-bao.ts dùng.
+  assert.deepEqual([...EXTERNAL_PERMISSIONS], ["PARTNER", "DRIVER_PARTNER"]);
 });
 
 test("parseRoleAssignment: đúng dạng, thứ tự chuẩn, lý do bắt buộc khi chỉnh tay", () => {
@@ -87,7 +107,7 @@ test("roleAssignmentProblem: LC-3, LC-1 (cộng tay), LC-4, còn ít nhất mộ
   const mixed = roleAssignmentProblem({ ...base, next: assignment(["SALES_STAFF", "COLLABORATOR"]) });
   assert.equal(mixed?.forbidden, false);
   assert.match(mixed!.message, /cùng lúc vai nội bộ và vai bên ngoài/);
-  assert.match(roleAssignmentProblem({ ...base, next: assignment(["COLLABORATOR"], { adds: ["SALES"], reason: "x" }) })!.message, /chỉ giữ quyền Đối tác/);
+  assert.match(roleAssignmentProblem({ ...base, next: assignment(["COLLABORATOR"], { adds: ["SALES"], reason: "x" }) })!.message, /chỉ giữ quyền bên ngoài \(Đối tác hoặc Tài xế đối tác\)/);
   assert.deepEqual(roleAssignmentProblem({ ...base, next: assignment(["OPERATIONS_MANAGER"]) }), {
     forbidden: true,
     message: "Chỉ người phụ trách hệ thống mới gán hoặc gỡ vai Giám đốc, Điều hành chung.",

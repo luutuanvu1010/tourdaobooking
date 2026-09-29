@@ -15,11 +15,13 @@ let r = await call(SALES, "GET", "/api/parties/meta");
 assert.equal(r.status, 200);
 // ADR-0018: meta trả MỌI loại vai (kể cả vai cũ đã ngưng) kèm nhóm và trạng thái; vai nội bộ/bên ngoài chỉ gán ở trang Nhân viên.
 assert.deepEqual(r.body.roleTypes.map((t) => t.code).sort(), [
-  "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
-  "HOTEL_RECEPTION", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040
+  "ACCOUNTANT", "AGENT", "BOAT_CAPTAIN", "COLLABORATOR", "CUSTOMER", "DIRECTOR", "DRIVER", "DRIVER_EXTERNAL", "DRIVER_INTERNAL", "GUIDE", "GUIDE_FREELANCE", "GUIDE_INTERNAL",
+  "HOTEL_RECEPTION", "INTERN", "IT", "OPERATIONS_MANAGER", "OWNER_COMPANY", "SALES", "SALES_STAFF", "STAFF", "TAXI_DRIVER", "TRAVEL_AGENCY", // IT: ADR-0044; OWNER_COMPANY: T2b; DRIVER_INTERNAL: ADR-0040; DRIVER_EXTERNAL: ADR-0048
 ]);
 // ADR-0040 D3 (Ruling R1, R12): vai tài khoản "Tài xế công ty" (nhóm Nội bộ); mã vai hồ sơ cũ DRIVER ngưng gán mới (migration *_vai_quyen_tai_xe).
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "DRIVER_INTERNAL"), { code: "DRIVER_INTERNAL", name: "Tài xế công ty", group: "INTERNAL", active: true });
+// ADR-0048 D2: vai tài khoản "Tài xế đối tác" (nhóm Bên ngoài, migration *_tai_xe_doi_tac).
+assert.deepEqual(r.body.roleTypes.find((t) => t.code === "DRIVER_EXTERNAL"), { code: "DRIVER_EXTERNAL", name: "Tài xế đối tác", group: "EXTERNAL", active: true });
 assert.equal(r.body.roleTypes.find((t) => t.code === "DRIVER").active, false);
 assert.deepEqual(r.body.roleTypes.find((t) => t.code === "SALES_STAFF"), { code: "SALES_STAFF", name: "Nhân viên kinh doanh", group: "INTERNAL", active: true });
 assert.equal(r.body.roleTypes.find((t) => t.code === "STAFF").active, false);

@@ -116,12 +116,13 @@ test("LC-3: mở lại một vai đã đóng cũng bị chặn nếu va chạm n
   );
 });
 
-test("LC-1: tài khoản có vai bên ngoài chỉ nhận thêm quyền Đối tác — kể cả câu INSERT OR IGNORE", () => {
+test("LC-1: tài khoản có vai bên ngoài không nhận thêm quyền nội bộ nào (kể cả Tài xế công ty DRIVER) — kể cả câu INSERT OR IGNORE", () => {
   const db = schema();
   const ext = person(db);
   openRole(db, ext.party, "TAXI_DRIVER");
   grant(db, ext.staff, "PARTNER");
-  for (const code of ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "SUPER_ADMIN", "INTERN"]) {
+  // ADR-0048: LC-1 tạo lại ở *_tai_xe_doi_tac.sql (quyền bên ngoài = PARTNER, DRIVER_PARTNER); DRIVER (tài xế CÔNG TY) là quyền nội bộ — siết thêm mã này.
+  for (const code of ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "SUPER_ADMIN", "INTERN", "DRIVER"]) {
     assert.throws(() => grant(db, ext.staff, code), /lc1_external_account_permission/, code);
   }
   const internal = person(db);

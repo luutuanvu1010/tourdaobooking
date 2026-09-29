@@ -150,7 +150,9 @@ test("coMucGiayToCuaToi: mọi nhân viên nội bộ có mục (R5); tài kho�
   assert.equal(coMucGiayToCuaToi(ai("PARTNER")), false);
   for (const p of ["SALES", "ADMIN", "FIELD", "DRIVER"] as const) assert.equal(coMucGiayToCuaToi(ai(p, "PARTNER")), false, `${p}+PARTNER (lai)`);
   assert.equal(coMucGiayToCuaToi(ai()), false, "không quyền nào");
-  // Cùng hai điều kiện route GET /api/parties/documents/mine hỏi, trên cả 256 tập con quyền.
+  // ADR-0048 D2: tài khoản chỉ Tài xế đối tác CÓ mục (ô party.document.view = own; LC-1b cấm kèm PARTNER nên holdsPartner sai).
+  assert.equal(coMucGiayToCuaToi(ai("DRIVER_PARTNER")), true, "DRIVER_PARTNER");
+  // Cùng hai điều kiện route GET /api/parties/documents/mine hỏi, trên cả 512 tập con quyền.
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++) {
     const w = ai(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
     assert.equal(coMucGiayToCuaToi(w), can(w, "party.document.view", { ownerId: w.id }) && !holdsPartner(w), w.permissions.join("+"));
