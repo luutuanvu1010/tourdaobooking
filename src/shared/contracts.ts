@@ -650,6 +650,12 @@ export interface VehicleDto {
   /** Số giấy hiện hành đã hết + sắp hết hạn (bản vẽ màn 01: "… · 2 giấy sắp hết hạn"). */
   alertCount: number;
   updatedAt: string;
+  /** ADR-0048 D1: chủ xe — hồ sơ công ty chủ hoặc hồ sơ nhà xe đối tác. */
+  ownerPartyId: string;
+  /** Tên hiển thị của chủ xe (không liên hệ, không MST). */
+  ownerName: string;
+  /** Chủ xe là công ty chủ HIỆN TẠI (false = nhà xe, hoặc công ty chủ cũ sau khi đổi công ty chủ). */
+  ownerIsCompany: boolean;
 }
 export interface VehicleDocumentDto {
   id: string;
@@ -676,6 +682,8 @@ export interface VehicleCreateRequest {
   passengerCapacity: number;
   status?: "active" | "maintenance";
   validFrom?: string;
+  /** ADR-0048 D1: chủ xe — vắng = công ty chủ; khác thì phải là hồ sơ nhà xe đang hợp tác (409 vehicle_owner_not_carrier). */
+  ownerPartyId?: string;
 }
 /** GET /api/van-chuyen/meta — danh mục loại giấy tờ xe (cả loại đã ngưng, để hiện đúng tên dòng cũ) + ngưỡng "sắp hết hạn" đang hiệu lực (số ngày). */
 export interface VanChuyenMetaResponse { documentTypes: DocumentTypeDto[]; warnDays: number }
@@ -694,6 +702,10 @@ export interface ExpiringItemDto {
 }
 /** GET /api/van-chuyen/sap-het-han — `count` = số dòng (đã hết + sắp hết) cho huy hiệu trên menu (R15 điểm 2). */
 export interface ExpiringListResponse { warnDays: number; count: number; items: ExpiringItemDto[] }
+/** ADR-0048 D1: một nhà xe đang hợp tác — tên, loại hồ sơ, số xe CHƯA NGỪNG, số tài xế "thuộc". Không liên hệ, không MST. */
+export interface CarrierDto { partyId: string; name: string; kind: "PERSON" | "ORGANIZATION"; vehicleCount: number; driverCount: number }
+/** GET /api/van-chuyen/nha-xe — công ty chủ (null nếu chưa có) + nhà xe đang hợp tác, xếp theo tên. */
+export interface CarrierListResponse { ownerCompany: { partyId: string; name: string } | null; carriers: CarrierDto[] }
 /** Thân PUT /api/van-chuyen/xe/:id — đủ trường + khoá lạc quan. "Ngừng dùng" = status "retired"; "Dùng lại xe" = status "active"/"maintenance" (R15). */
 export interface VehicleUpdateRequest {
   plateNumber: string;

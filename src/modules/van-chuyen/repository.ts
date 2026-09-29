@@ -16,11 +16,30 @@ export interface VehicleRow {
   valid_from_date: string;
   valid_to_date: string | null;
   updated_at: string;
+  /** ADR-0048 D1: chủ xe — công ty chủ hoặc hồ sơ nhà xe; tên hiển thị qua view v_pty_party_label; cờ = chủ là công ty chủ HIỆN TẠI (view v_pty_owner_company). */
+  owner_party_id: string;
+  owner_name: string;
+  owner_is_company: number;
 }
-const COT_XE = "id, plate_number, chassis_number, name, model_year, passenger_capacity, status, valid_from_date, valid_to_date, updated_at";
+// Cột xe + chủ xe. Tên chủ và cờ "công ty chủ hiện tại" đọc qua VIEW công bố của parties (cạnh van-chuyen → parties đã khai; không JOIN bảng của parties).
+const COT_XE = `v.id, v.plate_number, v.chassis_number, v.name, v.model_year, v.passenger_capacity, v.status, v.valid_from_date, v.valid_to_date, v.updated_at,
+  v.owner_party_id, COALESCE(l.display_name, '') AS owner_name, (oc.party_id IS NOT NULL) AS owner_is_company`;
+const TU_XE = "vc_vehicle v LEFT JOIN v_pty_party_label l ON l.id = v.owner_party_id LEFT JOIN v_pty_owner_company oc ON oc.party_id = v.owner_party_id";
 // Xe đang dùng / bảo dưỡng trước, xe đã ngừng sau; trong nhóm theo biển số.
-const LIST_VEHICLES = defineSql("van-chuyen", "list_vehicles", `SELECT ${COT_XE} FROM vc_vehicle ORDER BY status = 'retired', plate_key, id`);
-const FIND_VEHICLE = defineSql("van-chuyen", "find_vehicle", `SELECT ${COT_XE} FROM vc_vehicle WHERE id = ?1`);
+const LIST_VEHICLES = defineSql("van-chuyen", "list_vehicles", `SELECT ${COT_XE} FROM ${TU_XE} ORDER BY v.status = 'retired', v.plate_key, v.id`);
+const FIND_VEHICLE = defineSql("van-chuyen", "find_vehicle", `SELECT ${COT_XE} FROM ${TU_XE} WHERE v.id = ?1`);
+// ADR-0048 D1: danh sách xe lọc theo chủ ?1 (câu riêng — không ghép điều kiện động).
+const LIST_VEHICLES_OF_OWNER = defineSql(
+  "van-chuyen",
+  "list_vehicles_of_owner",
+  `SELECT ${COT_XE} FROM ${TU_XE} WHERE v.owner_party_id = ?1 ORDER BY v.status = 'retired', v.plate_key, v.id`,
+);
+// ADR-0048 D1 (giả định G5): số xe CHƯA NGỪNG theo chủ — cột "số xe" của danh sách nhà xe.
+const VEHICLE_COUNT_BY_OWNER = defineSql(
+  "van-chuyen",
+  "vehicle_count_by_owner",
+  "SELECT owner_party_id, count(*) AS n FROM vc_vehicle WHERE status <> 'retired' GROUP BY owner_party_id",
+);
 // R15 điểm 1 (lớp route): biển số ?1 (đã chuẩn hoá) đang thuộc xe CHƯA NGỪNG nào khác xe ?2 không — kiểm TRƯỚC khi thêm, sửa, dùng lại xe.
 const PLATE_HOLDER = defineSql("van-chuyen", "plate_holder", "SELECT id FROM vc_vehicle WHERE plate_key = ?1 AND status <> 'retired' AND id <> ?2 LIMIT 1");
 // Số khung ?1 (đã chuẩn hoá) đã có ở xe nào khác xe ?2 (kể cả xe đã ngừng — định danh bền).
@@ -43,6 +62,13 @@ const UPDATE_VEHICLE = defineSql(
 
 export async function listVehicles(db: D1Database): Promise<VehicleRow[]> {
   return (await db.prepare(LIST_VEHICLES).all<VehicleRow>()).results;
+}
+export async function listVehiclesOfOwner(db: D1Database, ownerPartyId: string): Promise<VehicleRow[]> {
+  return (await db.prepare(LIST_VEHICLES_OF_OWNER).bind(ownerPartyId).all<VehicleRow>()).results;
+}
+export async function vehicleCountByOwner(db: D1Database): Promise<Map<string, number>> {
+  const rows = (await db.prepare(VEHICLE_COUNT_BY_OWNER).all<{ owner_party_id: string; n: number }>()).results;
+  return new Map(rows.map((r) => [r.owner_party_id, r.n]));
 }
 export const findVehicle = (db: D1Database, id: string): Promise<VehicleRow | null> => db.prepare(FIND_VEHICLE).bind(id).first<VehicleRow>();
 export async function plateHolder(db: D1Database, plateKey: string, exceptId: string): Promise<string | null> {

@@ -92,7 +92,7 @@ const dienThamSo = (path: string) => (path.startsWith("/api/orders/:id/") ? path
 const khoa = (r: { method: string; path: string }) => `${r.method} ${r.path}`;
 
 test("danh sách route đủ: 14 module có route; mỗi route cổng staff có đúng một dòng ở BANG_STAFF (và ngược lại)", () => {
-  assert.ok(ROUTES.length >= 109, `ít nhất 109 route (ảnh chụp route-access), thấy ${ROUTES.length}`);
+  assert.ok(ROUTES.length >= 110, `ít nhất 110 route (ảnh chụp route-access), thấy ${ROUTES.length}`);
   assert.deepEqual(Object.keys(BANG_STAFF).sort(), ROUTES.filter((r) => r.access === "staff").map(khoa).sort(), "route staff mới phải được QUYẾT cho tài xế (thêm dòng BANG_STAFF)");
 });
 

@@ -4,6 +4,7 @@
 import {
   LY_DO_SUA_SAI, TRANG_THAI_XE, isLyDoSuaSai, isTrangThaiXe, kiemNgayCap, kiemNgayHetHan, soNgayConLai, type LyDoSuaSai, type TrangThaiXe,
 } from "../../shared/giay-to.ts";
+import { PARTY_ID_RE } from "../../shared/party-id.ts";
 import { isISODate } from "../../shared/vn-date.ts";
 
 export type Result<T> = { ok: true; value: T } | { ok: false; message: string };
@@ -26,8 +27,10 @@ export interface XeNhap {
   passengerCapacity: number;
   status: TrangThaiXe;
   validFrom: string;
+  /** ADR-0048 D1: chủ xe do người thêm chọn; null = mặc định công ty chủ (route kiểm "công ty chủ hoặc nhà xe đang hợp tác" — lớp route của B1.1). */
+  ownerPartyId: string | null;
 }
-export interface XeSua extends Omit<XeNhap, "validFrom"> {
+export interface XeSua extends Omit<XeNhap, "validFrom" | "ownerPartyId"> {
   validFrom: string;
   validTo: string | null;
   expectedUpdatedAt: string;
@@ -59,6 +62,13 @@ function kiemThongTinXe(b: Record<string, unknown>, homNay: string): Result<Omit
   return { ok: true, value: { plateNumber, plateKey, chassisNumber, chassisKey, name, modelYear, passengerCapacity: cho } };
 }
 
+/** `ownerPartyId` của thân xe (ADR-0048 D1): vắng / null / rỗng → null (mặc định); id hồ sơ đúng khuôn → giữ; khác → lỗi. Chỉ kiểm KHUÔN — "là công ty chủ hoặc
+ * nhà xe đang hợp tác" là việc của route (đọc hàm công bố của parties) và của trigger CSDL. */
+export function kiemChuXe(v: unknown): Result<string | null> {
+  if (v === undefined || v === null || v === "") return { ok: true, value: null };
+  return typeof v === "string" && PARTY_ID_RE.test(v) ? { ok: true, value: v } : fail("Chủ xe không hợp lệ.");
+}
+
 /** Thân POST /api/van-chuyen/xe. Xe mới: trạng thái Đang dùng (mặc định) hoặc Bảo dưỡng — không thêm xe đã ngừng; ngày bắt đầu mặc định hôm nay, không sau hôm nay. */
 export function kiemXeMoi(body: Record<string, unknown> | null, homNay: string): Result<XeNhap> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
@@ -68,7 +78,9 @@ export function kiemXeMoi(body: Record<string, unknown> | null, homNay: string):
   if (status !== "active" && status !== "maintenance") return fail("Xe mới ở trạng thái Đang dùng hoặc Bảo dưỡng.");
   const validFrom = rong(body.validFrom) ? homNay : body.validFrom;
   if (typeof validFrom !== "string" || !isISODate(validFrom) || validFrom > homNay) return fail("Ngày bắt đầu dùng không hợp lệ (YYYY-MM-DD, không sau hôm nay).");
-  return { ok: true, value: { ...tt.value, status, validFrom } };
+  const chu = kiemChuXe(body.ownerPartyId);
+  if (!chu.ok) return chu;
+  return { ok: true, value: { ...tt.value, status, validFrom, ownerPartyId: chu.value } };
 }
 
 /**
@@ -102,6 +114,8 @@ export function canhBaoXe(giay: readonly { typeName: string; expiryDate: string 
 
 export const CAU_BIEN_TRUNG = "Biển số này đang dùng cho xe khác.";
 export const CAU_KHUNG_TRUNG = "Số khung này đã có ở xe khác.";
+/** ADR-0048 B1.1: câu báo chung của hai lớp (route 409 vehicle_owner_not_carrier, CSDL 409 vehicle_owner_conflict). */
+export const CAU_CHU_XE = "Chủ xe phải là công ty chủ hoặc nhà xe đối tác đang hợp tác.";
 /**
  * Lỗi ràng buộc CSDL của xe → phản hồi (lớp CSDL — chỉ tới đây khi lớp route bị vượt, vd hai người ghi cùng lúc). Mã KHÁC lớp route (`vehicle_plate_taken`,
  * `vehicle_chassis_taken`) để phép đột biến bỏ lời kiểm ở route thấy đỏ; câu báo giống nhau. Lỗi lạ → null (ném lên, 500).
@@ -113,6 +127,9 @@ export function loiRangBuocXe(message: string): { status: number; code: string; 
   if (/vehicle_document_superseded|vehicle_document_voided|vehicle_document_renew_mismatch|UNIQUE constraint failed: vc_vehicle_document\.previous_id/.test(message)) {
     return { status: 409, code: "document_changed", message: "Giấy tờ này vừa được người khác gia hạn hoặc sửa — tải lại rồi làm tiếp." };
   }
+  // ADR-0048 B1.1 lớp CSDL (trigger vc_vehicle_owner_* của migration *_chu_xe_nha_xe) — mã KHÁC lớp route (vehicle_owner_not_carrier). Đứng TRƯỚC nhánh khoá ngoại:
+  // trigger BEFORE INSERT chạy trước khoá ngoại nên chủ không tồn tại cũng ra thông báo này.
+  if (/vehicle_owner_not_allowed/.test(message)) return { status: 409, code: "vehicle_owner_conflict", message: CAU_CHU_XE };
   if (/FOREIGN KEY constraint failed/.test(message)) return { status: 400, code: "invalid_input", message: "Chủ xe hoặc loại giấy tờ không tồn tại." };
   return null;
 }

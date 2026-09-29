@@ -27,7 +27,7 @@ test("kiemXeMoi: đủ trường → giá trị chuẩn; mặc định trạng t
   const v = ok(kiemXeMoi({ ...XE, name: "  Ford   Transit " }, HOM_NAY));
   assert.deepEqual(v, {
     plateNumber: "79B-012.34", plateKey: "79B01234", chassisNumber: "RL4GA3FV0M1027734", chassisKey: "RL4GA3FV0M1027734", name: "Ford Transit",
-    modelYear: 2019, passengerCapacity: 15, status: "active", validFrom: HOM_NAY,
+    modelYear: 2019, passengerCapacity: 15, status: "active", validFrom: HOM_NAY, ownerPartyId: null,
   });
   assert.equal(ok(kiemXeMoi({ ...XE, modelYear: null, status: "maintenance", validFrom: "2026-01-01" }, HOM_NAY)).status, "maintenance");
 });
@@ -77,6 +77,11 @@ test("loiRangBuocXe: lỗi CSDL của xe → mã lớp CSDL RIÊNG (khác mã l�
   assert.deepEqual(loiRangBuocXe("UNIQUE constraint failed: vc_vehicle.chassis_key"), { status: 409, code: "vehicle_chassis_conflict", message: "Số khung này đã có ở xe khác." });
   assert.equal(loiRangBuocXe("FOREIGN KEY constraint failed")?.status, 400);
   assert.equal(loiRangBuocXe("không liên quan"), null);
+  // ADR-0048 B1.1 lớp CSDL (trigger vc_vehicle_owner_* của migration *_chu_xe_nha_xe): mã RIÊNG, khác vehicle_owner_not_carrier của lớp route; KHÔNG rơi vào
+  // nhánh khoá ngoại (trigger BEFORE INSERT đứng trước khoá ngoại nên chủ không tồn tại cũng ra thông báo này).
+  assert.deepEqual(loiRangBuocXe("D1_ERROR: vehicle_owner_not_allowed: chủ xe phải là công ty chủ hoặc nhà xe đối tác đang hợp tác: SQLITE_CONSTRAINT"), {
+    status: 409, code: "vehicle_owner_conflict", message: "Chủ xe phải là công ty chủ hoặc nhà xe đối tác đang hợp tác.",
+  });
 });
 
 // ---- Giấy tờ xe (Task A14) — khuôn giấy tờ của người, KHÁC ở ba chỗ: không CCCD, không che số, chỉ lý do sửa sai `choXe` ----------------------------------
@@ -120,4 +125,13 @@ test("chiTietNhatKyXe: mở đầu bằng biển số; KHÔNG BAO GIỜ số gi�
   assert.equal(chiTietNhatKyXe("79B-012.34", { loai: "Kiểm định", giaHan: true, truoc: "2026-10-15", sau: "2027-10-15" }), "xe 79B-012.34: Kiểm định: gia hạn, hết hạn 2026-10-15 → 2027-10-15");
   assert.equal(chiTietNhatKyXe("79B-012.34", { loai: "Kiểm định", lyDo: "SAI_NGAY_HET_HAN", truoc: "2026-10-15", sau: "2026-11-15" }), "xe 79B-012.34: Kiểm định: Nhập sai ngày hết hạn (2026-10-15 → 2026-11-15)");
   assert.equal(chiTietNhatKyXe("79B-012.34", { loai: "Kiểm định", lyDo: "SAI_SO", truoc: "KD-0456", sau: "KD-0457" }), "xe 79B-012.34: Kiểm định: Nhập sai số");
+});
+
+test("kiemXeMoi (ADR-0048 D1): ownerPartyId tuỳ chọn — vắng / null / rỗng = mặc định công ty chủ (null); id hồ sơ đúng khuôn → giữ; sai khuôn → từ chối", () => {
+  assert.equal(ok(kiemXeMoi(XE, HOM_NAY)).ownerPartyId, null);
+  assert.equal(ok(kiemXeMoi({ ...XE, ownerPartyId: null }, HOM_NAY)).ownerPartyId, null);
+  assert.equal(ok(kiemXeMoi({ ...XE, ownerPartyId: "" }, HOM_NAY)).ownerPartyId, null);
+  const id = "3f1c2b4a-5d6e-4f70-8a9b-0c1d2e3f4a5b";
+  assert.equal(ok(kiemXeMoi({ ...XE, ownerPartyId: id }, HOM_NAY)).ownerPartyId, id);
+  for (const sai of ["abc", 12, "3F1C2B4A-5D6E-4F70-8A9B-0C1D2E3F4A5B!"]) assert.equal(loi(kiemXeMoi({ ...XE, ownerPartyId: sai }, HOM_NAY)), "Chủ xe không hợp lệ.");
 });
