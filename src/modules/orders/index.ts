@@ -4,7 +4,7 @@
 import { auditStatement, getAuditTrail } from "../audit";
 import type {
   CanhBaoMocDto, CatalogChangeDto, CatalogChangedBody, DashboardResponse, IncompleteTripBody, MyAssignmentDto, OrderDetailDto, OrderDetailResponse, OrderListResponse,
-  OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
+  MocToiThieuResponse, OrderResponse, PassengerListResponse, PaxCounts, PoolResponse, ShortNoticeRequiredBody,
 } from "../../shared/contracts";
 import { UUID_RE, error, intParam, json, readJson } from "../../shared/http";
 import { can, seesOnlyAssignedOrders, type PermissionHolder } from "../../shared/permissions";
@@ -440,6 +440,17 @@ export const ordersModule: AppModule = {
       const sources = await listPoolSources(env.DB, today);
       const withHandler = await ordersWithHandler(sources.map((o) => o.id));
       return json({ orders: toPoolOrders(sources, withHandler, today) } satisfies PoolResponse);
+    }),
+
+    // Mốc tối thiểu cho biểu mẫu đơn CHƯA lưu (ruling R-P15 của điều phối, 29/9 — kế hoạch I31 cách (a)): người LẬP đơn đọc con số mốc + cảnh báo sát mốc
+    // của chính sách HIỆN HÀNH để màn cảnh báo "dưới mốc" ngay khi gõ (CHỈ hiển thị — máy chủ vẫn quyết lúc lưu / xác nhận: `canhBaoMoc`, 409). Không đọc
+    // bảng vc_: qua hàm tiêm `ctx.mocToiThieu` (gốc lắp ráp); thiếu hàm tiêm / chính sách rỗng → 503 như cổng Xác nhận (không đoán con số). PHẢI đứng TRƯỚC
+    // "GET /api/orders/:id" (cùng lý do với route dashboard, pool ở trên — ":id" cũng khớp chữ "moc-toi-thieu").
+    route("GET", "/api/orders/moc-toi-thieu", "orders", async ({ staff, mocToiThieu }) => {
+      if (!can(staff, "order.create")) return error(403, "forbidden", "Bạn không lập đơn nên không cần mốc tối thiểu.");
+      const moc = await mocToiThieu();
+      if (!moc) return MOC_CHUA_CO();
+      return json({ mocToiThieuPhut: moc.phut, canhBaoPhut: moc.canhBaoPhut } satisfies MocToiThieuResponse);
     }),
 
     route("GET", "/api/orders", "orders", async ({ env, url, staff, myHandledOrderIds }) => {

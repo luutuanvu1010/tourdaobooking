@@ -337,3 +337,26 @@ test("Ruling N-9: tệp bài mốc / đặt gấp KHÔNG dùng mốc giả của
   const src = readFileSync(new URL("./dat-gap.test.ts", import.meta.url), "utf8");
   assert.ok(!src.includes(TUY_CHON_MOC_GIA), "bài mốc thật không được dùng mốc giả");
 });
+
+// ---- R-P15 (điều phối 29/9 đêm — đối chiếu bản vẽ; I31 cách (a)): route đọc mốc cho biểu mẫu đơn CHƯA lưu --------------------------------------------------
+test("R-P15 GET /api/orders/moc-toi-thieu: người lập đơn (Bán hàng, Quản trị, Toàn quyền, Thực tập, Đối tác) → 200 { mocToiThieuPhut, canhBaoPhut } của chính sách HIỆN HÀNH; Kế toán (không lập đơn) → 403; không tiêm mốc → 503; không bị route /api/orders/:id nuốt", async () => {
+  const w = setup();
+  for (const as of [SALES, ADM, SUP, INTERN, PARTNER]) {
+    const r = await w.call("GET", "/api/orders/moc-toi-thieu", { as });
+    assert.equal(r.status, 200, `${as}: ${r.text}`);
+    assert.deepEqual(r.json, { mocToiThieuPhut: 360, canhBaoPhut: 120 }, "dòng gieo của 0041: 360 / 120");
+  }
+  const acc = await w.call("GET", "/api/orders/moc-toi-thieu", { as: ACC });
+  assert.equal(acc.status, 403, acc.text);
+  // Toàn quyền đổi chính sách (dòng mới có hiệu lực từ bây giờ) → route trả số MỚI, không cache.
+  const luc = new Date(Date.now() - 1000).toISOString();
+  w.sqlite.prepare(
+    `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at, updated_at)
+     VALUES ('cs-rp15', 240, 45, 30, 1, 0, 180, ?, ?, ?)`,
+  ).run(luc, luc, luc);
+  assert.deepEqual((await w.call("GET", "/api/orders/moc-toi-thieu", { as: SALES })).json, { mocToiThieuPhut: 240, canhBaoPhut: 45 });
+  const khong = setup({ khongTiemMoc: true });
+  const r503 = await khong.call("GET", "/api/orders/moc-toi-thieu", { as: SALES });
+  assert.equal(r503.status, 503, r503.text);
+  assert.equal(r503.json.error.code, "moc_toi_thieu_chua_co");
+});

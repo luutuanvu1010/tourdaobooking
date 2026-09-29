@@ -118,4 +118,6 @@ export function mucMoc(gioMs: number, bayGioMs: number, phut: number, phutCanhBa
 export interface MocToiThieu {
   phut: number;
   policyId: string;
+  /** Cảnh báo sát mốc (phút) của CÙNG dòng chính sách (`warn_lead_minutes`) — ruling R-P15: biểu mẫu đơn chưa lưu đọc qua route mốc của cổng orders. */
+  canhBaoPhut: number;
 }

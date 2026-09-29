@@ -39,7 +39,7 @@ function build(staff: StaffProfile | null, block: (staff: StaffProfile) => Respo
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
-      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
     },
   });
   const get = (path: string) => app.fetch(new Request(`http://x${path}`), {} as Env, {} as ExecutionContext);
@@ -139,7 +139,7 @@ test("ADR-0013 điều 4: ctx.partyAccount chuyển đúng người đang đăng
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
-      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
     },
   });
   const get = async (p: string) => (await app.fetch(new Request(`http://x${p}`), {} as Env, {} as ExecutionContext)).json();
@@ -259,7 +259,7 @@ function buildBangTin(staff: StaffProfile, overrides: BangTinOverrides = {}) {
       baoThayDoi: (env, actor, e) => (overrides.baoThayDoi ? overrides.baoThayDoi(env, actor, e) : Promise.resolve()) as Promise<void>,
       dongBangTin: (env, muc) => (overrides.dongBangTin ? overrides.dongBangTin(env, muc) : Promise.resolve()) as Promise<void>,
       giaoLoDay: async () => [],
-      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -292,7 +292,7 @@ function buildPublicBao(baoThayDoi: () => Promise<void> | void) {
       baoThayDoi: async () => { await baoThayDoi(); },
       dongBangTin: async () => {},
       giaoLoDay: async () => [],
-      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
     },
   });
   const waited: Promise<unknown>[] = [];
@@ -431,7 +431,7 @@ test("ctx.giaoLoDay: chuyển env + danh sách tới hàm tiêm và trả nguyê
       baoThayDoi: async () => {},
       dongBangTin: async () => {},
       giaoLoDay: async (e, ds) => { seen.push([e, ds]); return ["b"]; },
-      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router" }),
+      mocToiThieu: async () => ({ phut: 360, policyId: "moc-gia-router", canhBaoPhut: 120 }),
     },
   });
   const res = await app.fetch(new Request("http://x/api/giao"), env, {} as ExecutionContext);
@@ -461,8 +461,8 @@ test("ctx.mocToiThieu: chuyển env tới hàm tiêm và trả nguyên kết qu�
     dongBangTin: async () => {},
     giaoLoDay: async () => [],
   };
-  const co = createApp({ ...base, injected: { ...injected, mocToiThieu: async (e: Env) => { seen.push(e); return { phut: 240, policyId: "cs-x" }; } } } as any);
-  assert.deepEqual(await (await co.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: { phut: 240, policyId: "cs-x" } });
+  const co = createApp({ ...base, injected: { ...injected, mocToiThieu: async (e: Env) => { seen.push(e); return { phut: 240, policyId: "cs-x", canhBaoPhut: 60 }; } } } as any);
+  assert.deepEqual(await (await co.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: { phut: 240, policyId: "cs-x", canhBaoPhut: 60 } });
   assert.deepEqual(seen, [env]);
   const khong = createApp({ ...base, injected } as any);
   assert.deepEqual(await (await khong.fetch(new Request("http://x/api/moc"), env, {} as ExecutionContext)).json(), { moc: null });

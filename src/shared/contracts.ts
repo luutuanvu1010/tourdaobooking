@@ -396,6 +396,8 @@ export interface OrderResponse { order: OrderDetailDto; canhBaoMoc?: CanhBaoMocD
 /** `mocToiThieuPhut` (ADR-0049 I31): mốc tối thiểu đang hiệu lực (phút) để biểu mẫu cảnh báo trước khi xác nhận; null = chưa có chính sách. */
 export interface OrderDetailResponse { order: OrderDetailDto; history: AuditEntryDto[]; canModify: boolean; mocToiThieuPhut: number | null }
 /** 409 xác nhận đơn khi còn chặng dưới mốc chưa đặt gấp (ADR-0049 D2). */
+/** `GET /api/orders/moc-toi-thieu` (ruling R-P15): mốc tối thiểu + cảnh báo sát mốc (phút) của chính sách HIỆN HÀNH — chỉ để biểu mẫu đơn chưa lưu hiển thị. */
+export interface MocToiThieuResponse { mocToiThieuPhut: number; canhBaoPhut: number }
 export interface ShortNoticeRequiredBody { error: { code: "short_notice_required"; message: string; legs: { legId: string; phutConLai: number }[] } }
 
 /** Một dịch vụ trong PHẦN HẸP của hàng chờ nhận (ADR-0030 S23-2) — ĐÚNG bốn khoá này. `pickupPlace` (và `name`) đã che mọi dãy từ 8 chữ số. */

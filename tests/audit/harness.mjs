@@ -87,11 +87,11 @@ export function world(tuyChon = {}) {
   let ungDung = app.default;
   if (tuyChon.mocGiaChoBaiKhongKiemMoc !== undefined) {
     const phut = tuyChon.mocGiaChoBaiKhongKiemMoc;
-    ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => ({ phut, policyId: MOC_GIA_POLICY_ID }) });
+    ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => ({ phut, policyId: MOC_GIA_POLICY_ID, canhBaoPhut: 120 }) });
   } else if (tuyChon.khongTiemMoc) {
     ungDung = app.taoAppChoKhungThu({ mocToiThieu: undefined });
   } else if (tuyChon.demMoc) {
-    ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID }) });
+    ungDung = app.taoAppChoKhungThu({ mocToiThieu: async () => (soLanGoiMoc++, { phut: 360, policyId: MOC_GIA_POLICY_ID, canhBaoPhut: 120 }) });
   }
   const env = { DB: fakeD1(sqlite), SESSION_SECRET: SECRET, STAFF_SHEET_ID: "x", SERVICES_SHEET_ID: "x" };
   // Danh mục đã đồng bộ gần đây để POST /api/orders không đi gọi Google Sheet.

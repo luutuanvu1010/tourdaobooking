@@ -62,7 +62,7 @@ const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người
  */
 export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu | null> {
   const r = await chinhSachHienHanh(db);
-  return r ? { phut: r.min_lead_minutes, policyId: r.id } : null;
+  return r ? { phut: r.min_lead_minutes, policyId: r.id, canhBaoPhut: r.warn_lead_minutes } : null;
 }
 
 // ---- Chính sách điều phối, điều kiện xuất bến, hạng bằng, danh mục lý do (ADR-0049 D2; kế hoạch mục 1.7 route 9–18, Task A7) ------------------------------
