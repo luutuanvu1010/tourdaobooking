@@ -202,9 +202,32 @@ Trước đó, sau báo cáo A21:
 | R-P26 | GA-57: mục 3a lệch tên bài | Sửa đề xuất cho khớp mã, không đổi tên bài | Bản đề xuất chưa được chủ duyệt |
 | R-P27 | GA-58: định nghĩa R-VC-19 | Chấp nhận: xét mọi suất; "người còn" gồm cả dòng đã huỷ hay đã thay; CREW không xét | Khách huỷ sau khi xếp là tình trạng nghiệp vụ, R-VC-3 lo; R-VC-19 chỉ bắt tham chiếu treo |
 
-**Chờ chủ quyết** (gom một lượt hỏi, sau báo cáo người kiểm Phần B):
+**Chờ chủ quyết** (gom một lượt hỏi, sau báo cáo người kiểm Phần B). V1 và V4 đã được chủ trả lời ở lần 15. GA-59 KHÔNG hỏi riêng: chuyển vào trang duyệt đề xuất luật cuối đợt, dưới dạng một dòng "lệch có chủ ý" (SYSTEM-DESIGN §16) kèm phương án thêm cột.
 - V1: bài đo CPU của hook đỏ CÓ HỆ THỐNG khi chạy `npm test` song song trên nhánh (nhánh thêm khoảng 400 bài; `main` xanh 2/2). Bài này chặn `day-len` / `trien-khai`. Không nới ngưỡng.
 - V4: lỗ xoá trọn đơn đã xác nhận bằng `PRAGMA foreign_keys=OFF` / `defer_foreign_keys`.
   - Chỗ hở: trigger `ord_transfer_leg_no_delete` (`0034:70-72`) và `ord_passenger_no_delete` (`0035:32-34`) dùng `<> 'draft'`, nên thành NULL khi dòng đơn đã mất.
   - `0034`–`0036` chưa có trên `main`, nên sửa tại chỗ được. Ở K3 phải xác nhận lại bằng lệnh chỉ-đọc rằng chưa áp remote.
 - GA-59: lệnh lặp "Bỏ đánh dấu" chỉ khớp lần đầu khi giờ hẹn và tập chuyến không đổi thêm. Khớp tuyệt đối cần thêm cột, tức đổi schema của `0043`.
+
+## Trả lời lần 15 (30/9, sau hai người kiểm độc lập K2a máy chủ và K2b giao diện)
+
+Người kiểm Phần B (giao diện) @ `fed514e`: **ĐẠT CÓ ĐIỀU KIỆN**, không có lỗ dữ liệu hay quyền. Điều kiện là hai quyết định của chủ (câu 3, 4 dưới đây).
+
+Trước khi hỏi, điều phối đã kiểm bằng lệnh chỉ đọc (`CI=1 npx wrangler d1 migrations list tourdao-sales-db --remote`, chạy ở worktree nhánh máy chủ @ `ed3b59e`). Kết quả:
+- Chưa áp remote: `0034`, `0035`, `0040`, `0041`, `0042`, `0043`.
+- Đã áp: `0037`–`0039`.
+- Không có tệp `0036` trên nhánh này.
+
+Trước khi hỏi, điều phối cũng gửi chủ 4 ảnh bằng chứng giao diện: màn tài xế lúc mất mạng, chi tiết chuyến, Bảng điều phối, hộp "Xếp vào chuyến".
+
+Điều phối báo chủ ba điều tự quyết (chủ phản đối được):
+- R-P25 (GA-53);
+- thêm mục menu "Cuốc của tôi" cho tài khoản vừa DRIVER vừa có quyền văn phòng (K2b T2);
+- GA-59 đưa vào trang duyệt luật.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Có một bài kiểm đo tốc độ của hàng rào an toàn (bạn chọn ngày 24/9). Nay bài này đỏ mỗi lần chạy cả bộ, vì Vận chuyển thêm khoảng 400 bài kiểm chạy cùng lúc làm máy bận. Nếu để nguyên, lệnh gộp và lệnh triển khai của bạn bị chặn, và mọi phiên sau đều thấy đỏ. Xử lý thế nào?" — "Cho bài này chạy riêng" / "Cả bộ kiểm chạy chậm hơn" / "Làm nhẹ các bài kiểm mới" | **"Cho bài này chạy riêng"**: giữ ngưỡng 1500 ms CPU; bài đo chạy một mình sau bộ kiểm chính. Đây là đổi cách chạy hàng rào, nên phải có P16 mới, sửa dòng SO-HANG-RAO, và người kiểm độc lập xem lại |
+| "Người rành kỹ thuật, gõ lệnh thẳng vào dữ liệu (không qua app), vẫn xoá được trọn một đơn đã xác nhận, kèm chặng đón và danh sách khách. Qua app thì không làm được. Phần dữ liệu này chưa lên bản thật (mình đã kiểm), nên vá bây giờ rất rẻ. Vá không?" — "Vá ngay đợt này" / "Để sau" | **"Vá ngay đợt này"**: chặn xoá đơn không phải nháp ngay ở cơ sở dữ liệu; đơn nháp xoá được như cũ. Vá tại chỗ `0034` / `0035` (hoặc trigger gốc trên `orders` đặt trong migration chưa áp) |
+| "Lúc thi công, mình đã tự chốt khác bản vẽ của bạn mà chưa hỏi: khi tài xế mất mạng, máy KHÔNG tự gửi lại thao tác (Đã đón, Đã trả…). Tài xế thấy dòng "Chưa gửi được" và phải tự bấm lại (ảnh 1). Nếu tắt app trước khi bấm lại thì thao tác đó mất; văn phòng có thể bấm thay. Bạn chọn?" — "Giữ vậy, tự gửi lại để lượt sau" / "Làm tự gửi lại ngay đợt này" | **"Giữ vậy, tự gửi lại để lượt sau"**: ghi `docs/BACKLOG.md` mục 6 |
+| "Văn phòng chưa có nút rút hay chuyển MỘT nhóm khách ra khỏi chuyến, vì bản vẽ chưa có chỗ bấm. Xếp nhầm một nhóm thì phải huỷ CẢ chuyến rồi xếp lại tất cả. Trong 6 giờ trước giờ chạy, Bán hàng còn phải nhờ Quản trị phá lệ mới huỷ được. Máy chủ đã có sẵn lệnh, chỉ thiếu nút. Làm không?" — "Làm ngay, thợ tự đặt nút" / "Làm ngay, nhưng tôi vẽ trước" / "Để lượt sau" | **"Làm ngay, thợ tự đặt nút"**: thêm "Rút khỏi xe" và "Chuyển sang xe khác" trên từng nhóm khách ở Chi tiết chuyến. Gửi ảnh để chủ góp ý sau. Q-B-15 (sắp lại điểm khi chuyến đang chạy) KHÔNG nằm trong câu này, ghi BACKLOG mục 7 |
