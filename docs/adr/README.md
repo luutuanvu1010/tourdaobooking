@@ -48,6 +48,8 @@ Theo Hiến pháp: P5 (mọi quyết định để lại dấu vết), N3 (khôn
 | [0044](ADR-0044-vai-it-cho-tai-khoan-toan-quyen.md) | **Bổ sung ADR-0042:** vai **"IT"** (cùng quyền Giám đốc, chỉ Toàn quyền gán) để mọi người thấy tài khoản chủ là "IT"; giữ tên vai "Giám đốc"; Quản trị vẫn đổi người phụ trách đơn của chủ | hai chiều | **accepted** (chủ, chat 2026-09-28; AI ghi lại) |
 | [0045](ADR-0045-thong-bao-don-khi-xac-nhan.md) | **Sửa ADR-0034 (tin lập đơn):** lưu nháp không báo ai (chỉ còn ở "Tất cả"); **xác nhận** đơn chưa có người phụ trách mới là tin "chờ nhận" — màn hình khoá và thông báo nổi theo cùng luật | hai chiều | **accepted** (chủ, chat 2026-09-28; AI ghi lại) |
 | [0046](ADR-0046-tat-thong-bao-dung-may.md) | **Sửa ADR-0036 điều 6 (tự tắt thông báo điện thoại):** đăng xuất chỉ tắt **đúng máy đó**; đổi vai/quyền **không** tắt; đổi PIN, gỡ Face ID, ngưng tài khoản, đổi SĐT vẫn tắt mọi máy — gốc lỗi "thông báo tự tắt sau mỗi lần phát hành" | hai chiều | **accepted** (chủ, chat 2026-09-28 "Chỉ tắt đúng máy"; AI ghi lại) |
+| [0047](ADR-0047-chang-dua-don-va-danh-sach-hanh-khach.md) | **Vận chuyển 1b, lượt duyệt 1 (module `orders`):** "chặng đưa đón" dùng chung cho chuyến lẻ lẫn đưa đón kèm dịch vụ (thay hẳn ô giờ/nơi đón cũ, expand–contract); danh sách hành khách (họ tên + năm sinh) gắn đơn, chỉ-thêm; số khách hiệu lực một nguồn + tiền tố `ord_`. Thay câu của ADR-0001 dòng 42, ADR-0002 điều 2, ADR-0006 điều 5 | một chiều (bảng, tiền tố) | **accepted** (chủ, chat 2026-09-28 khuya "Duyệt", Q4 "Chặng thay hẳn ô cũ"; AI ghi lại) |
+| [0048](ADR-0048-nha-xe-doi-tac-va-tai-xe-doi-tac.md) | **Vận chuyển lượt 2, lượt duyệt I:** nhà xe đối tác (vai `CARRIER`, không sinh quyền), xe của nhà xe, tài xế thuộc nhà xe; quyền riêng `DRIVER_PARTNER` (tài khoản bên ngoài chỉ giữ một loại quyền), không lai với đối tác đặt đơn, nhà xe chưa có tài khoản, không chéo xe–tài xế. Thay câu của ADR-0018 điều 2/5/9, ADR-0034 điều 6, ADR-0040 D1/D2/D3 | một chiều (mã quyền) | **accepted** (chủ, chat 2026-09-28 khuya "Duyệt kèm 3 khuyến nghị"; AI ghi lại) |
 
 Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án → **ADR** → quy trình/playbook → đặc tả từng bước → mã. Đặc tả mô hình dữ liệu N1 (`docs/superpowers/specs/2026-09-20-n1-nen-danh-tinh-data-model.md`) viết sau khi ADR-0001…0007 được duyệt và **đã được chủ dự án duyệt cùng ADR-0008 (2026-09-20)**.
 
@@ -55,7 +57,7 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 
 | Số | Việc | Bản đề xuất | Trạng thái |
 |---|---|---|---|
-| — | (hiện không có số nào đang giữ chỗ; số ADR mới kế tiếp là 0047) | | |
+| — | (hiện không có số nào đang giữ chỗ; số ADR mới kế tiếp là 0049; bản đề xuất Vận chuyển 1b lượt 2 (B1–B3), lượt 2 lượt II (D3–D5), lượt 3 chưa lấy số) | | |
 
 (0040, 0041, 0042 và 0044 đã có văn bản thật ở bảng trên nên bỏ khỏi bảng giữ chỗ.)
 
@@ -63,7 +65,10 @@ Thứ tự tài liệu (Điều 3.1): Hiến pháp → ràng buộc dự án →
 - 0028: vai "IT", ADR-0044 (đã lên main, bản 1.30);
 - 0029: nhánh Thông báo (đính kèm, ADR-0041), chưa thi công;
 - 0030: T2b (hồ sơ công ty chủ, ADR-0024 điều 6 và ADR-0043) (đã lên main, bản 1.34);
-- 0031, 0032, 0033: Vận chuyển lượt 1a (ADR-0040) — lần lượt vai + quyền tài xế, giấy tờ của người, xe (kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md`); số kế tiếp cho việc khác là 0034.
+- 0031, 0032, 0033: Vận chuyển lượt 1a (ADR-0040) — lần lượt vai + quyền tài xế, giấy tờ của người, xe (kế hoạch `docs/superpowers/plans/2026-09-28-van-chuyen-1a.md`) (đã lên main, bản 1.35);
+- 0034, 0035, 0036: ADR-0047 (chặng đưa đón, danh sách hành khách, số khách hiệu lực + `ord_`) — giữ chỗ 2026-09-29, kế hoạch thi công đang soạn; dùng không hết thì nhả;
+- 0037, 0038, 0039: ADR-0048 (nhà xe đối tác, `DRIVER_PARTNER`, LC-1 mới) — giữ chỗ 2026-09-29, kế hoạch thi công đang soạn; dùng không hết thì nhả;
+- số kế tiếp cho việc khác là 0040 (bảng điều phối chung / chuyến xe xếp sau).
 
 Số 0019 vẫn giữ cho B5 (xem `docs/HANDOFF-N1.md`).
 
