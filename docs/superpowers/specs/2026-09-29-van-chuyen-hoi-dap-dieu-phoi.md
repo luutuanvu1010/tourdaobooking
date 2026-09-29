@@ -121,3 +121,12 @@ Người kiểm độc lập cuối ADR-0048 (K2, đỉnh `5a024b4`): ĐẠT CÓ
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
 | "Nhà xe + tài xế đối tác: ghi thêm 4 dòng vào luật giao diện (web/CLAUDE.md) — mỗi dòng nói "sửa màn này thì phải chạy lại bài kiểm trình duyệt nào": (1) ô chọn vai "Tài xế đối tác" và khoá chéo; (2) quan hệ "Tài xế của" + vai "Nhà xe đối tác" ở Danh bạ; (3) ô "Chủ xe", nhãn "Nhà xe: …", ô lọc chủ xe ở màn Xe; (4) nhãn nhà xe ở Giấy tờ sắp hết hạn + trang của tài khoản Tài xế đối tác. Chỉ siết (bắt kiểm nhiều hơn), không nới gì. Kèm 2 chỉnh nhỏ người kiểm đề nghị (thêm một tệp màn Xe vào dòng 3; ghi chú một bài kiểm đang đỏ sẵn từ trước). Đây là điều kiện cuối để gộp và phát hành bản 1.37." — "Duyệt" / "Chưa duyệt" | **"Duyệt"** — mục 5 (bản ở `f575ffb`). Cùng mục 1, 3, 4, 6 đã duyệt ở lần 5 ⇒ toàn bộ tệp đề xuất luật ADR-0048 đã duyệt; điều phối áp ở nhánh phát hành 1.37 |
+
+## Trả lời lần 9 (29/9 chiều, sau khi 1.37 lên production)
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Chế độ bảo trì trên mạng thật đang BẬT tới 14:16 ngày 2/10 (sáng nay còn tắt). Trong lúc bật, nhân viên không có trong danh sách cho phép KHÔNG vào được app. Bạn bật có chủ ý không?" | **"Có chủ ý, giữ nguyên"** |
+| Q-A4-1 (người thi công ADR-0049 tìm ra, người kiểm giữa chừng xác nhận rộng hơn — cả đổi xe/tài xế lẫn xếp/rút/đổi/huỷ có khách): "Kẽ hở mốc 6 giờ: trong 6 giờ trước giờ xe chạy, Bán hàng không được đổi xe/tài xế hay xếp/rút khách. Nhưng họ có thể dời giờ xuất bến ra xa (được phép) → đổi → dời giờ về, lách được mốc. Bịt thế nào?" — "Khoá "dính"" / "Khoá luôn việc dời giờ" / "Giữ như ADR, không bịt" | **"Khoá "dính""** — chuyến đã vào vùng 6 giờ thì giữ khoá dù giờ bị dời ra xa; Bán hàng vẫn dời giờ được; thêm một cột trên bảng chuyến (chưa lên production) |
+| GA-5: "Toàn quyền đặt mốc tối thiểu = 0 thì mốc 6 giờ TẮT HẲN (không ai cần xin phá lệ nữa, chỉ một dòng nhật ký lúc đặt). Cho phép không?" — "Không cho tắt" / "Cho tắt bằng 0" | **"Không cho tắt"** — mốc phải lớn hơn 0; muốn nới thì đổi con số |
+| "Từ tài liệu Transportation Kernel, bạn muốn tôi soạn đề xuất (để bạn duyệt) cho ý nào?" (chọn nhiều) — "Giờ xảy ra thật khi bấm thay" / "Xe riêng / hạng xe hứa khách" / "Lịch bận xe + giờ lái tối đa" / "Số hiệu chuyến bay" | **Cả bốn**, kèm lời chủ nguyên văn: *"chúng ta cần chạy 1 subagent để đối chiếu transportation-kernel-travel-erp.md với hệ thống, với phương châm bịt ngay những lỗ hổng và thừa kế lõi có thể áp dụng"* |
