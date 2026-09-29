@@ -27,7 +27,7 @@ export const isNhomLyDo = (v: unknown): v is NhomLyDo => typeof v === "string" &
 /** Loại sự kiện chuyến (`vc_trip_event.kind`) — một-một với hành động nhật ký `trip_*` của kế hoạch mục 1.1. Lượt 2–3 thêm loại ở đây, không dựng lại bảng. */
 export const LOAI_SU_KIEN_CHUYEN = [
   "CREATED", "UPDATED", "CANCELLED",
-  "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED",
+  "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED",
   "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED",
   "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
 ] as const;
@@ -39,6 +39,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   ALLOCATED: "Xếp khách lên xe",
   ALLOCATION_REMOVED: "Rút khách khỏi xe",
   ALLOCATION_MOVED: "Dời khách sang chuyến khác",
+  ALLOCATION_STOP_CHANGED: "Đổi điểm đón / trả theo đơn", // ADR-0050 VK1-B — lệnh "cập nhật điểm theo đơn" (cùng chuyến; khác ALLOCATION_MOVED — Ruling R-K1)
   DEPARTED: "Xuất bến",
   STOP_ARRIVED: "Đã tới điểm",
   PASSENGER_BOARDED: "Đã đón",
@@ -49,6 +50,19 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   ENDED: "Kết thúc",
   ENDED_INTERRUPTED: "Kết thúc gián đoạn",
 };
+
+/**
+ * ADR-0050 VK1-A (kế hoạch I35): loại sự kiện TIẾN ĐỘ mà văn phòng bấm thay được KHAI giờ xảy ra (`occurred_source = 'VAN_PHONG_KHAI'`) — tập con của
+ * `LOAI_SU_KIEN_CHUYEN`. Mọi loại khác (sự kiện kế hoạch, đổi thứ tự điểm) luôn `MAY_CHU`: giờ xảy ra = giờ ghi nhận. Danh sách ở MÃ (I7), có bài kiểm.
+ */
+export const LOAI_SU_KIEN_KHAI_GIO = [
+  "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED", "ENDED", "ENDED_INTERRUPTED",
+] as const satisfies readonly LoaiSuKienChuyen[];
+export type LoaiSuKienKhaiGio = (typeof LOAI_SU_KIEN_KHAI_GIO)[number];
+export const isSuKienKhaiGio = (v: unknown): v is LoaiSuKienKhaiGio => typeof v === "string" && (LOAI_SU_KIEN_KHAI_GIO as readonly string[]).includes(v);
+/** Ai quyết giờ xảy ra của một sự kiện (`vc_trip_event.occurred_source` — tập đóng, khớp `CHECK` của 0042). */
+export const NGUON_GIO_XAY_RA = ["MAY_CHU", "VAN_PHONG_KHAI"] as const;
+export type NguonGioXayRa = (typeof NGUON_GIO_XAY_RA)[number];
 
 /** Luật CẤU HÌNH được phá lệ (ADR-0049 D2; [TK] §2.4) — mỗi mã cũng là một mã của `MA_GIU` (cùng chữ, một chỗ sống). Luật lõi LC-01…18 không ai phá lệ. */
 export const MA_LUAT_PHA_LE = ["MOC_TOI_THIEU", "KHOANG_NGHI"] as const;
@@ -73,8 +87,19 @@ export type LoaiDiem = (typeof LOAI_DIEM)[number];
 export const LOAI_SUAT = ["PASSENGER", "CREW"] as const;
 export type LoaiSuat = (typeof LOAI_SUAT)[number];
 /** Rời chuyến = ĐÓNG dòng suất (không đổi trạng thái), kèm một lý do ([TK] §1.12). */
-export const LY_DO_DONG_SUAT = ["MOVED", "REMOVED", "TRIP_CANCELLED", "TRIP_INTERRUPTED", "TRANSFERRED"] as const;
+export const LY_DO_DONG_SUAT = ["MOVED", "REMOVED", "TRIP_CANCELLED", "TRIP_INTERRUPTED", "TRANSFERRED", "STOP_CHANGED"] as const;
 export type LyDoDongSuat = (typeof LY_DO_DONG_SUAT)[number];
+/**
+ * Lệnh nào đóng suất bằng mã nào — MỘT chỗ (bài kiểm khoá). `MOVED` = dời sang chuyến KHÁC; `STOP_CHANGED` = "cập nhật điểm theo đơn" trên CÙNG chuyến
+ * (ADR-0050 VK1-B; Ruling R-K1 — không dùng lại MOVED). `TRANSFERRED` là của lượt 2 (chuyển điểm giữa hai xe) — chưa có lệnh.
+ */
+export const LENH_DONG_SUAT = {
+  RUT: "REMOVED",
+  DOI_DI: "MOVED",
+  HUY_CO_KHACH: "TRIP_CANCELLED",
+  KET_THUC_GIAN_DOAN: "TRIP_INTERRUPTED",
+  DOI_DIEM_THEO_CHANG: "STOP_CHANGED",
+} as const satisfies Record<string, LyDoDongSuat>;
 
 // ---- Kiểu VÀO của luật thuần ------------------------------------------------------------------------------------------------------------------------------
 /** Chính sách điều phối đang hiệu lực (`vc_dispatch_policy`, dòng mới nhất ≤ bây giờ). `null` ở nơi dùng = bảng rỗng → CHẶN, không đoán. */
@@ -150,6 +175,12 @@ export interface ChangVao {
   nguoiCuaDon: string[];
   /** Chặng mang dấu "đặt gấp" (`short_notice_reason` có). */
   datGap: boolean;
+  /**
+   * ADR-0050 VK1-B: KHOÁ SO SÁNH nơi đón / nơi trả hiện hành (`khoaNoi` của src/shared/khoa-noi.ts, do orders tính trên chữ CHƯA che): `L:<id điểm>` hoặc
+   * `T:<sha256 hex>`; `khoaNoiTra` null = chặng chưa có nơi trả. CHỈ để so với `DiemVao.placeKey` — không bao giờ vào DTO, nhật ký, bản chụp.
+   */
+  khoaNoiDon: string;
+  khoaNoiTra: string | null;
 }
 /** Suất trên chuyến (`vc_trip_allocation`). `mo` = dòng còn hiệu lực (`valid_to_at IS NULL`). */
 export interface SuatVao {
@@ -163,6 +194,8 @@ export interface SuatVao {
   alightStopId: string | null;
   trangThai: TrangThaiSuat;
   mo: boolean;
+  /** ADR-0050 VK1-A vế 5: giờ ghi nhận MỞ suất (`valid_from_at`, mili-giây) — sự kiện của suất không được xảy ra sớm hơn. */
+  moTuMs: number;
 }
 /** Điểm dừng (`vc_trip_stop`). */
 export interface DiemVao {
@@ -171,6 +204,8 @@ export interface DiemVao {
   seq: number;
   loai: LoaiDiem;
   trangThai: TrangThaiDiem;
+  /** ADR-0050 VK1-B: khoá so sánh nơi của điểm (`vc_trip_stop.place_key`) — đặt lúc dựng điểm từ chặng, không đổi; CHỈ để so, không hiển thị. */
+  placeKey: string;
 }
 /** Khung giờ một chuyến khác, cho luật trùng giờ (LC-03) và khoảng nghỉ (CH-02). */
 export interface KhungChuyen {

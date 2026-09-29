@@ -13,10 +13,12 @@ const LEG = ms("2026-09-30", "06:30");
 const XA = LEG - 20 * 3600e3; // còn 20 giờ — bình thường
 const chang = (v: Partial<ChangVao> = {}): ChangVao => ({
   legId: "leg-1", orderId: "don-1", orderCode: "ĐH-1024", chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true,
-  donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 4, nguoiCuaDon: ["p1", "p2", "p3", "p4"], datGap: false, ...v,
+  donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 4, nguoiCuaDon: ["p1", "p2", "p3", "p4"], datGap: false,
+  khoaNoiDon: "L:noi-d1", khoaNoiTra: "L:noi-d9", ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B)
 });
 const suat = (id: string, trangThai: SuatVao["trangThai"], v: Partial<SuatVao> = {}): SuatVao => ({
-  id, tripId: "cx-07", loai: "PASSENGER", legId: "leg-1", personKey: null, crewPartyId: null, boardStopId: "d1", alightStopId: "d9", trangThai, mo: true, ...v,
+  id, tripId: "cx-07", loai: "PASSENGER", legId: "leg-1", personKey: null, crewPartyId: null, boardStopId: "d1", alightStopId: "d9", trangThai, mo: true,
+  moTuMs: LEG - 24 * 3600e3, ...v, // giờ ghi nhận mở suất GIẢ (ADR-0050 VK1-A vế 5)
 });
 const chuyen = (trangThai: TrangThaiChuyen, id = "cx-07") => ({ id, trangThai, batDauMs: LEG - 40 * PHUT, ketThucMs: LEG + 2 * 3600e3 });
 const bon = (st: SuatVao["trangThai"][]) => st.map((s, i) => suat(`s${i}`, s));

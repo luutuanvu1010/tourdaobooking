@@ -39,8 +39,25 @@ export interface LichChungVao {
 }
 export const LOAI_CANH_BAO_LICH = [
   "CHINH_SACH_RONG", "CHANG_QUA_MOC", "CHANG_SAT_MOC", "THIEU_SUAT", "THUA_SUAT", "CHANG_GIU", "GIO_HEN_NGOAI_CHUYEN", "CHUYEN_GIU", "NHAP_CHO_DAT_GAP",
+  // [SOI] K-02 (ADR-0050): nơi hiện hành của chặng khác điểm của suất đang mở (mọi chuyến chưa kết thúc — kể cả đang chạy: chỉ báo); điểm đón có giờ xe tới
+  // ghi đè MUỘN hơn giờ hẹn sớm nhất của các chặng đón tại điểm.
+  "NOI_HEN_KHAC_DIEM", "GIO_XE_TOI_MUON_HON_HEN",
 ] as const;
 export type LoaiCanhBaoLich = (typeof LOAI_CANH_BAO_LICH)[number];
+/** Nhãn tiếng Việt của cảnh báo lịch chung (màn hình không tự đặt chữ — một chỗ). */
+export const NHAN_CANH_BAO_LICH: Readonly<Record<LoaiCanhBaoLich, string>> = {
+  CHINH_SACH_RONG: "Chưa có chính sách điều phối đang hiệu lực",
+  CHANG_QUA_MOC: "Chặng đã quá mốc tối thiểu mà chưa xếp",
+  CHANG_SAT_MOC: "Chặng sát mốc tối thiểu mà chưa xếp",
+  THIEU_SUAT: "Chặng mới xếp một phần",
+  THUA_SUAT: "Chặng xếp nhiều người hơn số khách",
+  CHANG_GIU: "Chặng có khách trên xe nhưng đơn đã huỷ hoặc chặng đã bỏ",
+  GIO_HEN_NGOAI_CHUYEN: "Giờ hẹn nằm ngoài khung giờ chuyến",
+  CHUYEN_GIU: "Chuyến đang bị giữ",
+  NHAP_CHO_DAT_GAP: "Đơn nháp có chặng dưới mốc chờ duyệt đặt gấp",
+  NOI_HEN_KHAC_DIEM: "Nơi đón / trả của đơn khác điểm của xe",
+  GIO_XE_TOI_MUON_HON_HEN: "Giờ xe tới muộn hơn giờ hẹn",
+};
 export interface CanhBaoLich {
   loai: LoaiCanhBaoLich;
   legId: string | null;

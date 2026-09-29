@@ -3,7 +3,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { dungLichChung, type LichChungVao } from "./dieu-phoi-lich-chung.ts";
+import { LOAI_CANH_BAO_LICH, NHAN_CANH_BAO_LICH, dungLichChung, type LichChungVao } from "./dieu-phoi-lich-chung.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
 const PHUT = 60_000;
@@ -14,10 +14,12 @@ const xe = (v: Partial<XeVao> = {}): XeVao => ({ id: "xe-a", bienSo: "79B-123.45
 const tx = (v: Partial<TaiXeVao> = {}): TaiXeVao => ({ partyId: "tx-an", displayName: "Tài xế An", loai: "CONG_TY", carrierPartyIds: [], giayTo: [{ rowId: "g-an", typeCode: "GPLX", classCode: "D1", expiryDate: null }], ...v });
 const chang = (legId: string, v: Partial<ChangVao> = {}): ChangVao => ({
   legId, orderId: `don-${legId}`, orderCode: `ĐH-${legId}`, chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true,
-  donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 2, nguoiCuaDon: [`${legId}-p1`, `${legId}-p2`], datGap: false, ...v,
+  donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 2, nguoiCuaDon: [`${legId}-p1`, `${legId}-p2`], datGap: false,
+  khoaNoiDon: "L:noi-d1", khoaNoiTra: "L:noi-d9", ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B)
 });
 const suat = (id: string, legId: string, tripId: string, v: Partial<SuatVao> = {}): SuatVao => ({
-  id, tripId, loai: "PASSENGER", legId, personKey: null, crewPartyId: null, boardStopId: "d1", alightStopId: "d9", trangThai: "WAITING", mo: true, ...v,
+  id, tripId, loai: "PASSENGER", legId, personKey: null, crewPartyId: null, boardStopId: "d1", alightStopId: "d9", trangThai: "WAITING", mo: true,
+  moTuMs: Date.parse("2026-09-29T00:00:00.000Z"), ...v, // giờ ghi nhận mở suất GIẢ (ADR-0050 VK1-A vế 5)
 });
 const chuyen = (id: string, v: Partial<ChuyenVao> = {}): ChuyenVao => ({
   id, ma: `CX-${id}`, ngayChay: "2026-09-30", batDauMs: ms("2026-09-30", "06:00"), ketThucMs: ms("2026-09-30", "08:30"), ketThucThatMs: null, trangThai: "PLANNED",
@@ -102,4 +104,14 @@ test("giữ là dự phóng 'xuất bến đúng giờ': chuyến trước của
   // Chuyến chạy ngay bây giờ (giờ bắt đầu đã tới) thì nghỉ tính tới BÂY GIỜ → giữ.
   const r2 = dungLichChung(vao({ bayGioMs: bayGio, chuyen: [chuyen("07", { batDauMs: bayGio - PHUT, ketThucMs: bayGio + 3600e3 })], chuyenKhac: [truoc] }));
   assert.deepEqual(r2.chuyen[0]!.lyDoGiu.map((l) => l.ma), ["NGHI_THIEU"]);
+});
+
+test("LOAI_CANH_BAO_LICH có hai cảnh báo K-02 của bản soi Kernel (ADR-0050): NOI_HEN_KHAC_DIEM, GIO_XE_TOI_MUON_HON_HEN; MỌI loại có nhãn tiếng Việt (không lộ mã)", () => {
+  assert.ok((LOAI_CANH_BAO_LICH as readonly string[]).includes("NOI_HEN_KHAC_DIEM"));
+  assert.ok((LOAI_CANH_BAO_LICH as readonly string[]).includes("GIO_XE_TOI_MUON_HON_HEN"));
+  assert.deepEqual(Object.keys(NHAN_CANH_BAO_LICH).sort(), [...LOAI_CANH_BAO_LICH].sort());
+  for (const k of LOAI_CANH_BAO_LICH) {
+    assert.ok(NHAN_CANH_BAO_LICH[k].trim().length > 0, k);
+    assert.doesNotMatch(NHAN_CANH_BAO_LICH[k], /[A-Z]{2,}_/, `${k}: nhãn không lộ mã`);
+  }
 });

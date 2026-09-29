@@ -151,6 +151,14 @@ test("R-P7 (tinh chỉnh R-P6): giờ sớm nhất SAU KHI SỬA giờ xuất b�
   assert.equal(batDauSomNhatSauDoiGio(cx(goc), doiRa, goc - 360 * PHUT + 1000, 360), goc);
 });
 
+test("ADR-0050 VK1-B: lệnh 'cập nhật điểm theo đơn' (DOI_DIEM_THEO_CHANG) là lệnh lúc xếp nhưng KHÔNG khoá theo mốc — trong mốc không cần phá lệ (TC-51 (c))", () => {
+  assert.ok((LENH_XEP as readonly string[]).includes("DOI_DIEM_THEO_CHANG"));
+  assert.ok(!(LENH_KHOA_THEO_MOC as readonly string[]).includes("DOI_DIEM_THEO_CHANG"), "không vào LENH_KHOA_THEO_MOC");
+  const batDau = ms("2026-09-30", "06:00");
+  const r = kiemMocXep(cx(batDau), batDau - 60 * PHUT, 360, { loai: "DOI_DIEM_THEO_CHANG" });
+  assert.equal(r.canPhaLe, false, "một giờ trước xuất bến vẫn cập nhật điểm được");
+});
+
 test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + cảnh báo) → vàng; còn lại bình thường; ranh giới đúng phút", () => {
   const leg = ms("2026-09-30", "12:00");
   assert.equal(mucMoc(leg, leg - 359 * PHUT, 360, 120), "QUA_MOC");

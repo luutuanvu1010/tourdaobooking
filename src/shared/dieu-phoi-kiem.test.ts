@@ -126,10 +126,12 @@ test("mốc lúc xếp (Q2 = (a)): TẠO trong mốc không cần phá lệ; S�
 // ---- kiemXep ------------------------------------------------------------------------------------------------------------------------------------------------
 const chang = (v: Partial<ChangVao> = {}): ChangVao => ({
   legId: "leg-1", orderId: "don-1", orderCode: "ĐH-1024", chieu: "OUT", ngayDon: "2026-09-30", gioDon: "06:30", coNoiTra: true,
-  donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 4, nguoiCuaDon: ["p1", "p2", "p3", "p4"], datGap: false, ...v,
+  donDaXacNhan: true, donDaHuy: false, changMo: true, soNguoi: 4, nguoiCuaDon: ["p1", "p2", "p3", "p4"], datGap: false,
+  khoaNoiDon: "L:noi-don-1", khoaNoiTra: "L:noi-tra-9", ...v, // khoá so sánh nơi GIẢ (ADR-0050 VK1-B) — khớp placeKey của điểm d-1 / d-9
 });
 const suat = (v: Partial<SuatVao>): SuatVao => ({
-  id: "s-x", tripId: "cx-07", loai: "PASSENGER", legId: "leg-1", personKey: null, crewPartyId: null, boardStopId: "d-1", alightStopId: "d-9", trangThai: "WAITING", mo: true, ...v,
+  id: "s-x", tripId: "cx-07", loai: "PASSENGER", legId: "leg-1", personKey: null, crewPartyId: null, boardStopId: "d-1", alightStopId: "d-9", trangThai: "WAITING", mo: true,
+  moTuMs: Date.parse("2026-09-29T00:00:00.000Z"), ...v, // giờ ghi nhận mở suất GIẢ (ADR-0050 VK1-A vế 5)
 });
 const CX = { id: "cx-07", ma: "CX-3009-07", trangThai: "PLANNED" as const, batDauMs: BAT_DAU, batDauSomNhatMs: BAT_DAU, soCho: 15, tai: 0 };
 const xep = (them: Parameters<typeof kiemXep>[0]["them"], v: Partial<Parameters<typeof kiemXep>[0]> = {}) => kiemXep({ chuyen: CX, them, chinhSach: CS, bayGioMs: HOM_TRUOC, ...v });
@@ -292,7 +294,7 @@ test("kiemXuatBen: câu lý do không bao giờ chứa tên tài xế / khoá ng
 
 // ---- kiemKetThuc, trongNgayChay ------------------------------------------------------------------------------------------------------------------------------
 test("kiemKetThuc (LC-16): mọi suất mở đã có kết quả cuối và mọi điểm đã xong / bỏ qua / chuyển → được; còn thì gợi ý 'Kết thúc gián đoạn'", () => {
-  const diem = (trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED", id = "d") => ({ id, tripId: "cx-07", seq: 1, loai: "PICKUP" as const, trangThai });
+  const diem = (trangThai: "PENDING" | "ARRIVED" | "DONE" | "SKIPPED" | "MOVED", id = "d") => ({ id, tripId: "cx-07", seq: 1, loai: "PICKUP" as const, trangThai, placeKey: `L:${id}` });
   const xong = [suat({ id: "a", trangThai: "DROPPED" }), suat({ id: "b", trangThai: "NO_SHOW" }), suat({ id: "c", trangThai: "CANCELLED_AT_STOP" }), suat({ id: "d", trangThai: "WAITING", mo: false })];
   assert.deepEqual(kiemKetThuc({ suat: xong, diem: [diem("DONE"), diem("SKIPPED", "e"), diem("MOVED", "f")] }), { duoc: true });
   assert.deepEqual(kiemKetThuc({ suat: [...xong, suat({ id: "w", trangThai: "WAITING" }), suat({ id: "x", trangThai: "BOARDED" })], diem: [diem("ARRIVED")] }), {

@@ -35,3 +35,8 @@ test("lyDoGiu(ma, chiTiet): dựng đúng khoá; chi tiết nối vào câu; mã
   assert.equal(isMaGiu("THIEU_TEN"), true);
   for (const bad of ["thieu_ten", "KHONG_CO_MA_NAY", "", null]) assert.equal(isMaGiu(bad), false, String(bad));
 });
+
+test("ADR-0050 VK1-B: NOI_HEN_DOI — nơi đón / trả đổi sau khi xếp → văn phòng xử lý (bấm 'cập nhật điểm theo đơn'); câu không lộ mã", () => {
+  assert.deepEqual({ ...MA_GIU.NOI_HEN_DOI }, { loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm", aiXuLy: "VAN_PHONG" });
+  assert.deepEqual(lyDoGiu("NOI_HEN_DOI", "ĐH-1024"), { ma: "NOI_HEN_DOI", loiNhan: "Nơi đón / trả đã đổi sau khi xếp — cập nhật điểm: ĐH-1024", aiXuLy: "VAN_PHONG" });
+});

@@ -78,6 +78,7 @@ export const AUDIT_ACTIONS = {
   license_capacity_changed: { label: "Đổi số khách theo hạng bằng", group: "trip" },
   trip_reason_added: { label: "Thêm lý do điều phối", group: "trip" },
   trip_reason_updated: { label: "Sửa lý do điều phối", group: "trip" },
+  trip_stops_synced: { label: "Cập nhật điểm theo đơn", group: "trip" }, // ADR-0050 VK1-B — route `cap-nhat-diem` (A13); detail chỉ mã đơn + tên nơi danh mục / "nơi tự do"
   location_created: { label: "Thêm địa điểm", group: "location" },
   location_updated: { label: "Sửa địa điểm", group: "location" },
   maintenance_changed: { label: "Đổi chế độ bảo trì", group: "system" },

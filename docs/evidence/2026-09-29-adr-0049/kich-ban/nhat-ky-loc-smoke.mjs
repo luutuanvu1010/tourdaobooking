@@ -18,7 +18,8 @@ const DESK = { width: 1040, height: 800, mobile: false };
 const MOB = { width: 390, height: 844, mobile: true };
 const CHU = { name: "Chủ Chrome", phone: "0900000299", pin: "135791", permissions: ["SUPER_ADMIN"] };
 const NHOM = "Điều phối xe";
-const SAU_HANH_DONG = ["Đổi chính sách điều phối", "Thêm điều kiện xuất bến", "Đóng điều kiện xuất bến", "Đổi số khách theo hạng bằng", "Thêm lý do điều phối", "Sửa lý do điều phối"];
+// ADR-0050 VK1-B thêm hành động thứ bảy "Cập nhật điểm theo đơn" (trip_stops_synced — route ở A13).
+const SAU_HANH_DONG = ["Đổi chính sách điều phối", "Thêm điều kiện xuất bến", "Đóng điều kiện xuất bến", "Đổi số khách theo hạng bằng", "Thêm lý do điều phối", "Sửa lý do điều phối", "Cập nhật điểm theo đơn"];
 
 const env = await startEnv();
 try {
@@ -47,7 +48,7 @@ try {
       const g = [...document.querySelectorAll('#action optgroup')].find((x) => x.label === ${JSON.stringify(NHOM)});
       return { options: [...g.querySelectorAll('option')].map((o) => o.textContent), values: [...g.querySelectorAll('option')].map((o) => o.value) };
     })()`);
-    assert.deepEqual(nhom.options, SAU_HANH_DONG, `${kho}: đúng sáu hành động, nhãn tiếng Việt`);
+    assert.deepEqual(nhom.options, SAU_HANH_DONG, `${kho}: đúng bảy hành động, nhãn tiếng Việt`);
     assert.ok(nhom.values.every((v) => /^[a-z_]+$/.test(v)), `${kho}: giá trị là mã hành động`);
     // Chọn "Đổi chính sách điều phối" → danh sách chỉ còn dòng đó, chi tiết đúng câu máy chủ ghi.
     await p.ev(`(() => { const s = document.querySelector('#action'); s.value = 'dispatch_policy_changed'; s.dispatchEvent(new Event('change')); return true; })()`);
@@ -60,7 +61,7 @@ try {
     if (vp.mobile) await axe(p, `nhat-ky ${kho}`);
     assert.deepEqual(p.consoleErrors, [], `lỗi console (${kho}): ${p.consoleErrors}`);
     p.close();
-    ok(`${kho}: bộ lọc Nhật ký có nhóm "${NHOM}" (6 hành động); lọc "Đổi chính sách điều phối" ra đúng dòng, không lộ mã${vp.mobile ? ", axe không vi phạm critical/serious" : ""}`);
+    ok(`${kho}: bộ lọc Nhật ký có nhóm "${NHOM}" (${SAU_HANH_DONG.length} hành động); lọc "Đổi chính sách điều phối" ra đúng dòng, không lộ mã${vp.mobile ? ", axe không vi phạm critical/serious" : ""}`);
   }
 } finally {
   await env.stop();

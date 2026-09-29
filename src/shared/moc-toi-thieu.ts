@@ -53,7 +53,11 @@ export function kiemMocDat(chang: ChangMoc, bayGioMs: number, phut: number): Ket
  * Loại lệnh lúc XẾP (một chuyến chưa chạy). `DOI_DI` = dời suất RA khỏi chuyến này; `DOI_DEN` = dời suất VÀO chuyến này (route dời gọi hai lần, mỗi chuyến
  * một lần). `HUY_CO_KHACH` / `HUY_KHONG_KHACH` = huỷ chuyến còn / không còn suất mở (kế hoạch mục 1.7 route 8).
  */
-export const LENH_XEP = ["TAO", "XEP", "RUT", "DOI_DI", "DOI_DEN", "DOI_XE", "DOI_TAI_XE", "HUY_CO_KHACH", "HUY_KHONG_KHACH", "DOI_THU_TU", "DOI_GIO_XE_TOI"] as const;
+export const LENH_XEP = [
+  "TAO", "XEP", "RUT", "DOI_DI", "DOI_DEN", "DOI_XE", "DOI_TAI_XE", "HUY_CO_KHACH", "HUY_KHONG_KHACH", "DOI_THU_TU", "DOI_GIO_XE_TOI",
+  // ADR-0050 VK1-B: "cập nhật điểm theo đơn" — không đổi "ai đi xe nào" (ĐP2(iii)) → KHÔNG vào LENH_KHOA_THEO_MOC.
+  "DOI_DIEM_THEO_CHANG",
+] as const;
 export type LenhXep = (typeof LENH_XEP)[number];
 /** Lệnh bị KHOÁ trong mốc (đổi "ai đi xe nào", đổi xe, đổi tài xế — ADR-0049 D2; huỷ chuyến còn khách — kế hoạch route 8). Các lệnh khác không khoá. */
 export const LENH_KHOA_THEO_MOC = ["XEP", "RUT", "DOI_DI", "DOI_DEN", "DOI_XE", "DOI_TAI_XE", "HUY_CO_KHACH"] as const satisfies readonly LenhXep[];
