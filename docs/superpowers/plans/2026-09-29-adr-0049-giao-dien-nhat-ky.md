@@ -377,3 +377,16 @@ Không chạy lại ở đỉnh này: `xe-smoke`, `danh-muc-giay-to-smoke`, `chi
 - **Q-B-17**: câu từ chối "lùi quá giới hạn" không nêu được "tối đa 180 phút" như bản vẽ 6d — DTO 409 / chi tiết chuyến không có số phút kẹp lùi của chính sách. Thêm khoá?
 - **Lệch thứ tự** so với lệnh điều phối: bấm thay + B4–B6 + B-GB dựng trên `c98b0e9`, gộp `3497be6` SAU (lệnh: gộp + GA-55 trước). Bằng chứng GA-55 đứng vững trên `3497be6`: P16 GA-55 (10.8) chạy trên máy chủ `3497be6`; tám kịch bản xanh ở 10.9.
 - Lời nhắn cuối của điều phối: điểm gộp đổi thành `da38060` (bản cuối Phần A, không đổi DTO sau A18) — gộp ở điểm sạch kế tiếp (mục 11).
+
+## 11. Gộp `da38060` (bản cuối Phần A) — kết quả cuối (tự khai, CHƯA có người kiểm độc lập)
+- `453ebc9` gộp `da38060` (A19–A21, R-VC-19, sửa đề xuất luật; không đổi DTO sau A18). Không đụng độ; phần của nhánh giao diện ở SYSTEM-DESIGN, đề xuất luật còn nguyên.
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm run typecheck` | 0 |
+| `npm test` | 1831/1832 — bài đỏ duy nhất `guard-remote: lệnh dị dạng không làm hook quá giờ` (đo thời gian khi máy bận); chạy riêng `src/claude-guard.test.ts` 11/11 |
+| `npm run build:web` | 0 |
+| `npm run test:e2e -- pwa` | 2/2 — "31 trang" |
+| Chrome (12 kịch bản) | thoát 0 cả 12: `cuoc-smoke` 10/10, `goi-bao-smoke` 7/7, `chuyen-smoke` 8/8, `chuyen-sua-smoke` 12/12, `dieu-phoi-smoke` 10/10, `chinh-sach-dieu-phoi-smoke` 14/14, `tai-xe-trang-dau-smoke` 4/4, `tai-xe-doi-tac-smoke` 4/4, `xe-smoke` 13/13, `danh-muc-giay-to-smoke` 10/10, `trang-chu-smoke` OK, `dot-c-smoke` OK |
+
+Không chạy lại ở đỉnh này: `help-smoke`, `giay-to-cua-toi-smoke`, `sap-het-han-smoke` (xanh ở 9.8 trên `8666fa4`; vòng 4 không đụng phần của chúng). `v1-bao-tri.mjs` đỏ sẵn từ ADR-0019 (mục 9.7). e2e máy chủ (`dieu-phoi`, `tai-xe-cuoc`…) không chạy — nhánh giao diện không đổi route / migration.
