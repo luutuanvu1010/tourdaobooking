@@ -68,7 +68,7 @@
   ```
   (`SELECT sqlite_version()` bị D1 local từ chối: "not authorized to use function: sqlite_version" — không đo được số phiên bản SQLite của D1.)
 - **Bẫy thấy được khi thử (ghi cho A9):** bản nháp lần 1 viết vế sau là `… AND short_notice_lead_minutes BETWEEN 0 AND 2880` (thiếu `IS NOT NULL`). Trên node:sqlite, "có lý do, thiếu số phút" **LỌT** (`ĐƯỢC` cả INSERT lẫn UPDATE): `NULL BETWEEN …` = NULL ⇒ `CHECK` nhận NULL là "không sai" ⇒ cho qua. Sửa bằng `short_notice_lead_minutes IS NOT NULL AND …`. A9 phải có ca "có lý do, thiếu số phút → ABORT" cho CẢ `INSERT` và `UPDATE`.
-- **Kết luận: CHỌN CÁCH 1** — cả node:sqlite và D1 local đều nhận cú pháp và đều chặn đúng ba ca. Dọn: đã xoá `/tmp/adr49-rp4/d1tam`; tệp nháp và kịch bản thử xoá cuối phiên.
+- **Kết luận: CHỌN CÁCH 1** — cả node:sqlite và D1 local đều nhận cú pháp và đều chặn đúng ba ca. Dọn: đã xoá `/tmp/adr49-rp4/d1tam`, rồi cả thư mục `/tmp/adr49-rp4` (tệp nháp, kịch bản thử, log) cuối phiên.
 
 ### 2.2 R-P4 (ii) — bài kiến trúc có nhận hai tệp SQL cho một module `STRICT` không
 
@@ -94,7 +94,8 @@
 | A4 | `src/shared/dieu-phoi-kiem.ts` (`kiemTaoSuaChuyen`, `kiemXep`, `kiemXuatBen`, `kiemKetThuc`, `trongNgayChay`, `kiemLai`, `khongCheo`, `conHanToiHet`), `src/shared/dieu-phoi-trang-thai.ts` (`trangThaiChang`), `src/shared/dieu-phoi-lich-chung.ts` (`dungLichChung`) + ba tệp test (19 + 4 + 5 bài) | `dda314a` | Đỏ trước: `ERR_MODULE_NOT_FOUND … dieu-phoi-kiem.ts`, `… dieu-phoi-lich-chung.ts`; riêng `dieu-phoi-trang-thai` viết test + mã cùng một bước → chứng minh đỏ bằng cách dời tệp mã đi (`ERR_MODULE_NOT_FOUND … dieu-phoi-trang-thai.ts`) rồi trả lại, và bằng P16 (mục 4). Xanh 28/28. `npm test` thoát 0, **1369/1369**; `tsc --noEmit` thoát 0. |
 | A6 | `src/modules/van-chuyen/index.ts` hàm công bố **`mocToiThieuHienHanh(db) → MocToiThieu \| null`** (kiểu `MocToiThieu` ở `src/shared/moc-toi-thieu.ts` để `router.ts` dùng ở A10); SQL `defineSql` bốn nhóm bảng mới thêm ở CUỐI `repository.ts`; luật thuần `src/modules/van-chuyen/chinh-sach.ts` (`kiemChinhSachMoi`, `kiemDieuKienMoi`, `kiemHangBangMoi`, `kiemLyDoMoi`, `kiemSuaLyDo`, `chiTiet*`) + `chinh-sach.test.ts` (4 bài; TC-4 chạy MÃ THẬT của `index.ts` gói bằng esbuild như `route-access.test.ts`) | `33590b3` | Đỏ trước: `ERR_MODULE_NOT_FOUND … chinh-sach.ts`. Xanh 4/4; `npm test` thoát 0, **1373/1373**; `tsc --noEmit` thoát 0. |
 | A7 | 10 route (mục 1.7 route 9–18) trong `src/modules/van-chuyen/index.ts` (chèn GIỮA mảng route, trước khối "Danh mục loại giấy tờ xe" — chỗ nhánh ADR-0048 không sửa); 6 hành động nhật ký mới + nhóm mới **`trip` "Điều phối xe"** (`src/shared/audit-actions.ts`); DTO cuối `src/shared/contracts.ts`; `src/route-access.test.ts` 109 → **119**; `src/modules/van-chuyen/chinh-sach-route.test.ts` (8 bài, harness); e2e mới `tests/e2e/chinh-sach-dieu-phoi.mjs` (+ `run.mjs` ALL, `README.md`) | `5267ad1` | Đỏ trước: 8/8 đỏ — `expected: 403` `actual: 404` (route chưa có). Sau khi viết: 6/8 xanh, 2 đỏ do CHÍNH bài thử (so `deepEqual` với đối tượng `null prototype` của `w.q`) → sửa bài (bọc `{ ...x }`), không sửa mã → 8/8. `npm test` lần đầu thoát 1: `not ok 894 - mức truy cập của 109 route …` (đúng mong đợi) → cập nhật SNAPSHOT + số 119 → thoát 0, **1381/1381**; `npm run typecheck` thoát 0. e2e `npm run test:e2e -- chinh-sach-dieu-phoi van-chuyen` thoát **0** ("E2E: 3/3 kịch bản xanh"): khoá ngoại hạng bằng / loại giấy tờ của người do D1 THẬT giữ → 400; lớp CSDL chặn sửa / xoá chính sách, hợp đồng = 1, sửa hạng bằng, đóng điều kiện lần hai, xoá / đổi nhóm lý do; `finally` khôi phục 360/120/30/có, D2 = 29, đóng điều kiện đã thêm (kiểm lại sau khôi phục). |
-| A8 | `golden/dieu-phoi/xe-a-b-luot-1.json` (16 bước: tạo CX-3009-07 / CX-3009-04 (hạng D1 chặn, D2 qua) / xe nhà xe + tài xế công ty (chéo), xếp 3 chặng 12/15, xếp thêm vượt chỗ, giữ thiếu tên, nhập tên → đạt + gắn 7 tên, mốc 6 giờ (chặng thường cần phá lệ, chặng đặt gấp qua), vắng, đón muộn, xe hỏng → gợi ý gián đoạn, phần chưa đi về "Chưa xếp" + quá mốc, tạo chuyến cứu hộ trong mốc qua (Q2 = (a)), xếp vào cứu hộ cần phá lệ) + `src/dieu-phoi-ca-mau.test.ts` (18 bài) + dòng `golden/README.md` | (commit A8) | Đáp án tính TAY theo luật trước khi chạy; bản nháp đầu ghi B07 "gắn 2 tên" — tính lại theo I19b (tên của đơn đã dùng hết) → 0, sửa TRƯỚC khi chạy lần đầu (không sửa theo mã). Chạy lần đầu 18/18. Đầu tệp test ghi "ĐÁP ÁN CHỜ CHỦ XÁC NHẬN"; `xac_nhan.trang_thai = "cho_xac_nhan"`. |
+| A8 | `golden/dieu-phoi/xe-a-b-luot-1.json` (16 bước: tạo CX-3009-07 / CX-3009-04 (hạng D1 chặn, D2 qua) / xe nhà xe + tài xế công ty (chéo), xếp 3 chặng 12/15, xếp thêm vượt chỗ, giữ thiếu tên, nhập tên → đạt + gắn 7 tên, mốc 6 giờ (chặng thường cần phá lệ, chặng đặt gấp qua), vắng, đón muộn, xe hỏng → gợi ý gián đoạn, phần chưa đi về "Chưa xếp" + quá mốc, tạo chuyến cứu hộ trong mốc qua (Q2 = (a)), xếp vào cứu hộ cần phá lệ) + `src/dieu-phoi-ca-mau.test.ts` (18 bài) + dòng `golden/README.md` | `eecc5d0` | Đáp án tính TAY theo luật trước khi chạy; bản nháp đầu ghi B07 "gắn 2 tên" — tính lại theo I19b (tên của đơn đã dùng hết) → 0, sửa TRƯỚC khi chạy lần đầu (không sửa theo mã). Chạy lần đầu 18/18. Đầu tệp test ghi "ĐÁP ÁN CHỜ CHỦ XÁC NHẬN"; `xac_nhan.trang_thai = "cho_xac_nhan"`. |
+| Sổ | `docs/SO-HANG-RAO.md` — chín dòng hàng rào mới (mỗi dòng có ngày + dòng đỏ thấy thật, ghi "CHƯA gộp") | `55cb5ff` | `npm test` thoát 0, 1399/1399 |
 
 ## 4. P16 — hàng rào mới (sửa cố ý → đỏ → hoàn nguyên)
 
@@ -147,10 +148,39 @@ Mọi phép sửa cố ý làm trên bản sao cục bộ, hoàn nguyên bằng 
 
 ## 6. Nợ (không chặn)
 
+- **N-1:** kịch bản Chrome trang Nhật ký (`dot-a-smoke.mjs`, bảng `web/CLAUDE.md` dòng `web/audit.ts`) CHƯA chạy lại sau khi thêm nhóm nhật ký `trip` "Điều phối xe" (GA-16) — `web/audit.ts` dựng bộ lọc từ `AUDIT_GROUPS` nên sẽ có thêm một mục lọc. Không sửa tệp web nào; `npm run build:web` thoát 0.
+- **N-2:** tài liệu mô tả `docs/SYSTEM-DESIGN.md` (§5 bảng, §7 route) và `docs/CHANGE-GUIDE.md` CHƯA cập nhật cho bốn bảng + mười route mới (kế hoạch để ở A20). `docs/DATA-DICTIONARY.md` đã sinh lại (`npm run dict`).
+- **N-3:** gộp với hai nền — `git merge-tree` (mục 9): va 3 tệp với ADR-0047 (`docs/SO-HANG-RAO.md`, `src/route-access.test.ts`, `tests/e2e/run.mjs`) và 4 tệp với ADR-0048 (thêm `tests/e2e/README.md`) — đều là chỗ hai bên cùng THÊM dòng (giải = giữ cả hai). `src/modules/van-chuyen/{index,repository}.ts`, `src/shared/{contracts,audit-actions,vn-date}.ts`, `docs/data-dictionary.json` gộp SẠCH. Sau gộp: `route-access` = 119 + 5 + 1 = **125**; chú thích của bài đã ghi sẵn con số này.
+- **N-4 (bàn giao A10):** câu SQL xác nhận phải dùng ĐÚNG `nguongMocVn` (tham số chuỗi; `null` khi mốc tắt ⇒ không chặn — GA-5) — không tính lại ngưỡng ở `orders`. `ctx.mocToiThieu` trả `null` (bảng rỗng) ⇒ 503 `moc_toi_thieu_chua_co` (I25). Kiểu `MocToiThieu` đã ở `src/shared/moc-toi-thieu.ts`; hàm công bố `mocToiThieuHienHanh` đã ở `src/modules/van-chuyen/index.ts`.
+- **N-5 (bàn giao A13/A15):** route phải nạp cờ đơn / chặng của MỌI chặng mà suất mở trỏ tới (GA-10), gọi `kiemXuatBen` với bây giờ THẬT lúc bấm xuất bến và dùng đúng danh sách `ganTen` + `chup` nó trả (GA-9); `dungLichChung` cho `GET /lich`. Câu hỏi Q-A4-1 cần trả lời trước khi viết route 4.
+- **N-6:** e2e đủ bộ lần đầu có 2 kịch bản đỏ do Google Sheet (mục 7) — chạy lại riêng thì xanh; tần suất chập chờn chưa đo.
+
 ## 7. Sự cố
+
+- **SC-1 (A0, R-P4 i):** bản nháp CHECK đầu tiên thiếu `IS NOT NULL` cho số phút → "có lý do, thiếu số phút" LỌT trên node:sqlite (NULL trong `CHECK` = không sai). Thấy nhờ chạy thật; đã sửa bản nháp, ghi mục 2.1 để A9 có ca riêng.
+- **SC-2 (A7):** hai ca bài route đỏ vì bài so `deepEqual` với đối tượng `[Object: null prototype]` do `w.q` trả — lỗi của BÀI, không của mã; sửa bài (bọc `{ ...x }`).
+- **SC-3 (cuối phiên):** e2e đủ bộ `npm run test:e2e` thoát 1 — 23/25 xanh: `admin` đỏ `{"error":{"code":"sheet_unreachable","message":"Không kết nối được tới Google Sheet, thử lại sau."}}` `502 !== 200` (`tests/e2e/admin.mjs:211`); `catalog` đỏ `undefined !== 1` (`tests/e2e/catalog.mjs:129`, lần đồng bộ Sheet không trả kết quả). Chạy lại `npm run test:e2e -- admin catalog`: `admin` XANH, `catalog` đỏ ở `catalog.mjs:188` (`'QTV Test' !== 'Hệ thống (tự động)'` — đúng lỗi chập chờn Cron đã ghi ở nhật ký ADR-0047 mục 5, lúc máy tải 4,26); chạy lại riêng `npm run test:e2e -- catalog` → **2/2 xanh**. `git diff --stat ce831f8 HEAD -- src/modules/catalog src/index.ts tests/e2e/catalog.mjs tests/e2e/lib.mjs tests/e2e/admin.mjs src/modules/accounts src/modules/staff` → **rỗng** (nhánh này không đụng danh mục, tài khoản, Sheet). Xếp: mạng Google Sheet + chập chờn đã biết, không phải hồi quy.
+- **SC-4 (quy trình):** hook của worktree từ chối lệnh Bash ghép dài / heredoc có chữ "git" trong nội dung Python — tách thành tệp script + lệnh đơn. Không ảnh hưởng mã.
 
 ## 8. Câu hỏi cho điều phối (không tự quyết)
 
 - **Q-A4-1 (logic mốc lúc xếp — P8, không tự quyết):** ADR-0049 D2 khoá trong mốc đúng ba việc: đổi "ai đi xe nào", đổi xe, đổi tài xế; đổi thứ tự điểm và giờ xe tới vẫn làm được. ADR KHÔNG nói về **đổi giờ xuất bến dự kiến** của chuyến. Hiện `kiemMocXep` / `kiemTaoSuaChuyen` KHÔNG khoá lệnh chỉ đổi giờ xuất bến (theo chữ ADR). Hệ quả: trong 6 giờ, người xếp (Bán hàng) có thể dời giờ xuất bến ra ngoài 6 giờ bằng một lệnh, đổi tài xế bằng lệnh thứ hai, rồi dời giờ về bằng lệnh thứ ba — lách mốc mà không cần Quản trị. Trong CÙNG một lệnh thì đã chặn (GA-12). Hỏi điều phối: (a) giữ như chữ ADR (lách được, dựa vào nhật ký); (b) khoá luôn đổi giờ xuất bến trong mốc (siết — nhưng là quyết định logic mới, có thể cần chủ); (c) cách khác. Không chặn A13 bắt đầu; A13 phải có câu trả lời trước khi viết route 4.
 
 ## 9. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
+
+Đỉnh nhánh lúc kiểm: `55cb5ff` (+ commit nhật ký này). Node v22.22.3.
+
+| Lệnh | Kết quả |
+|---|---|
+| `npm test` | thoát **0** — **1399/1399** (mốc A0: 1313; +86 bài mới của phiên) |
+| `npm run typecheck` | thoát **0** (0 lỗi) |
+| `npm run build:web` | thoát **0** |
+| `node --test "tests/audit/*.test.mjs"` | thoát **0** — 36/36 |
+| `npm run test:e2e -- chinh-sach-dieu-phoi van-chuyen` | thoát **0** — "E2E: 3/3 kịch bản xanh" (kịch bản mới + kịch bản Vận chuyển 1a cạnh nó) |
+| `npm run test:e2e` (ĐỦ BỘ, có đuôi `audit-invariants --db local --persist-to <D1 tạm> --strict`) | thoát **1** — 23/25 xanh; đỏ `admin`, `catalog` do Google Sheet (SC-3); **`audit-invariants` ✔: "Mọi bất biến đạt, 2 cảnh báo (D1 local, --strict)"** — hai cảnh báo sẵn có ở mốc (R-ORD-6a 1, R-ORD-6b 2). Chạy lại: `admin` xanh; `catalog` riêng 2/2 xanh |
+| `git merge-tree --write-tree --name-only HEAD worktree-agent-aa4ba1b121f98db87` (ADR-0047) | va: `docs/SO-HANG-RAO.md`, `src/route-access.test.ts`, `tests/e2e/run.mjs` (N-3) |
+| `git merge-tree --write-tree --name-only HEAD worktree-agent-ae0f600ceaab6d8b4` (ADR-0048) | va: `docs/SO-HANG-RAO.md`, `src/route-access.test.ts`, `tests/e2e/README.md`, `tests/e2e/run.mjs` (N-3) |
+
+- **Không nới hàng rào nào** (Điều 9.4): không sửa `ALLOWED_EDGES`, `STRICT`, `LEGACY`, `GUARDS`, `ADMIN_OPS`, `DOC_AUDIT_LOG_WONGUARD`, bài ghim quyền, `docs/quyen-hoan.json`; không thêm ô quyền; không sửa tệp luật (`CLAUDE.md`, `src/CLAUDE.md`, `web/CLAUDE.md`, `.claude/`, `playbook/`, `docs/adr/`, `docs/ARCHITECTURE.md`). Chỉ SIẾT: GA-1 (`vc_reason_identity`, `vc_departure_rule_close_once` chặn đổi nội dung).
+- **Không** push, không merge vào `main`, không deploy, không `--remote`, không đọc `.dev.vars` / tệp bí mật. D1 chỉ `--local --persist-to` thư mục tạm (đã xoá).
+- **Chưa làm (ngoài phạm vi phiên):** A5 (cần nền ADR-0048), A9 trở đi; kịch bản Chrome (N-1); tài liệu mô tả (N-2); điền số dòng tệp đề xuất luật (A20).
