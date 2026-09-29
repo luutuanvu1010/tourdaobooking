@@ -569,4 +569,4 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 ### 10.27 Sửa đề xuất luật sau kiểm (lệnh điều phối 30/9)
 
 - **Mục 7a:** `0040`–`0042` → `0040`–`0043` (+ ADR-0051); thêm vế "mở suất khách mới phải có mốc giờ hẹn"; câu "tên chỉ trong DTO tài xế" sửa cho khớp mã (chi tiết chuyến văn phòng cũng có tên; phản hồi lệnh ghi không tên) — ghi rõ là phần ngoài lệnh, điều phối có thể bỏ; điền "công thức z3, bẫy 53". Dòng "Sửa sau kiểm" ngay dưới diff.
-
+- **Mục 3a (GA-57):** điều phối chọn SỬA ĐỀ XUẤT cho khớp mã — tên bài 1 của `src/hanh-khach-khong-lo-ten.test.ts` giữ nguyên (chỉ route `orders`), van-chuyen là bài 2 riêng; cột "Đổi" của mục 3a viết lại + dòng "Sửa sau kiểm". Không đổi tên bài.
