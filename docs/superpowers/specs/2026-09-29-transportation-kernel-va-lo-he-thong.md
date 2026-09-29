@@ -2,6 +2,16 @@
 
 - **Trạng thái:** tài liệu **MÔ TẢ + ĐỀ XUẤT**, chưa có gì được duyệt.
   - AI soạn ở vai **người thiết kế / lập đề xuất** (Hiến pháp P15), không thi công, không tự duyệt (N3, Điều 7.2).
+  - **Người kiểm độc lập** bộ đề xuất (đỉnh `9cf9431`): **ĐẠT CÓ ĐIỀU KIỆN**.
+    - Xác nhận cả 8 lỗ có thật; LH-04 tái hiện bằng SQLite thật trên `0033`.
+    - K-01…K-05 đúng là siết. Ba lượt đúng trần 3, có trang ghép, không hỏi lại điều đã chốt.
+    - 5 điểm sửa đã áp:
+      - mã đóng suất riêng thay `MOVED` (ruling R-K1);
+      - khoá so sánh nơi;
+      - kẹp xuất bến sau lần sửa kế hoạch cuối;
+      - K-01 trước VK1-C;
+      - khuôn câu hỏi.
+    - Bản sửa chưa được kiểm lại.
   - Phần A liệt kê lỗ **có bằng chứng**; mọi quyết định chạm dữ liệu/quyền nằm ở ba tệp đề xuất (Phần C), chờ chủ duyệt.
 - **Việc do chủ giao** (29/9, [HĐ] "Trả lời lần 9"):
   - chọn soạn đề xuất cho **cả bốn ý** của [REF];
@@ -112,7 +122,11 @@ Việc này là của điều phối, không thiết kế ở đây.
 - **Bịt:**
   - (i) **K-02** — cảnh báo trên bảng và câu kiểm định kỳ;
   - (ii) **VK1-B** — giữ chuyến + lệnh "cập nhật điểm theo chặng", không khoá theo mốc 6 giờ.
-  - Không cần bảng hay cột mới: `lichChungChang` đã được phép trả nơi đón / trả ([0049] D1, danh sách trường), điểm dừng đã mang nơi. So lúc đọc.
+  - Không cần bảng mới, không đổi bảng của `orders`. So **lúc đọc** bằng **khoá so sánh nơi**, **không** so chữ nơi đã che dãy số (người kiểm độc lập, điểm 2):
+    - hàm che chỉ thay dãy từ 8 chữ số (`src/shared/text-guards.ts:9`, `src/modules/orders/pool.ts:42-45`), nên hai nơi chỉ khác ở một dãy dài sẽ thành cùng một chữ;
+    - khoá = `L:<id điểm>` hoặc `T:<SHA-256 chữ chưa che>`, do `orders` tính trong `lichChungChang`;
+    - điểm dừng lưu khoá ở cột mới `vc_trip_stop.place_key` (trong `0042`);
+    - khoá không hiển thị, không vào DTO hay nhật ký.
 
 #### LH-02 (CAO nếu phát hành như kế hoạch) — xuất bến không kiểm giấy tờ xe
 
@@ -224,17 +238,26 @@ Mỗi việc là **siết**: chỉ báo hoặc chặn thêm, không đổi hợp
   - Mức `warn` vì có thể đã có dữ liệu thật như vậy; không được chặn triển khai.
 - **Kiểm (P16):** `src/audit-invariants.test.ts` gieo hai dòng hiện hành cùng loại cho một xe → câu đếm > 0; bỏ vế "cùng loại" khỏi câu → ca "khác loại" đỏ; hoàn nguyên.
 - **Sổ hàng rào:** một dòng `docs/SO-HANG-RAO.md` ("đếm giấy tờ xe song song — kiểm định kỳ — ngày thấy bắt").
-- **Sau đó:** chủ chạy lệnh chỉ đọc `node scripts/audit-invariants.mjs --db remote` (đã có trong quy trình triển khai) để biết production có bao nhiêu dòng. Kết quả đó là đầu vào của VK3-B.
+- **Sau đó:**
+  - chủ chạy lệnh chỉ đọc `node scripts/audit-invariants.mjs --db remote` (đã có trong quy trình triển khai) để biết production có bao nhiêu dòng;
+  - Quản trị **dọn tay** từng xe ("Sửa sai → Huỷ dòng", có sẵn).
+- **Trình tự bắt buộc** (người kiểm độc lập, điểm 4):
+  - K-01 + dọn tay phải **xong trước khi VK1-C (lượt 1) phát hành**. Khi cổng xuất bến bắt đầu kiểm giấy tờ xe, một dòng song song nhập nhầm hạn xa sẽ cho xe qua cổng sai.
+  - **Không** chờ VK3-B (lượt 3). VK3-B chỉ chặn tái phát. Điều phối đã giao K-01 thi công ngay trên `main`.
 
 **K-02 — cảnh báo nơi hẹn ≠ điểm của suất (LH-01, phần hiển thị)**
 - **Ai làm:** người thi công ADR-0049, qua điều phối. Lát 1.3 (luật thuần) + lát 1.7 (kiểm định kỳ), trước lát 1.5 (route).
 - **Việc:**
-  1. `ChangVao` thêm khoá nơi đón / nơi trả: id điểm danh mục, hoặc chữ tự do đã chuẩn hoá bằng **cùng một hàm** ở cả hai phía. Nguồn: `lichChungChang` — trường đã có trong danh sách ADR D1.
+  1. `ChangVao` thêm **khoá so sánh nơi** đón / nơi trả, theo thiết kế VK1-B của lượt 1: `L:<id điểm>` hoặc `T:<SHA-256 chữ chưa che>`, do `orders` tính.
+     - Khoá này là **trường mới** của hàm hẹp `lichChungChang` (thay câu ADR-0049 D1) → phần máy chủ của K-02 **chờ VK1-B được duyệt**. Trước đó K-02 chỉ làm được phần luật thuần với khoá giả trong bài kiểm.
+     - **Không** so chữ đã che dãy số (xem LH-01).
   2. Suất / điểm dừng đưa vào hàm mang khoá nơi của điểm lên / xuống.
   3. `dungLichChung` thêm hai loại cảnh báo vào `LOAI_CANH_BAO_LICH` (`dieu-phoi-lich-chung.ts:40-42@fd78247`):
      - "nơi hẹn khác điểm của xe" — suất mở của chuyến chưa kết thúc, nơi của điểm ≠ nơi hiện hành của chặng;
      - "giờ xe tới ghi đè muộn hơn giờ hẹn" — điểm đón có `planned_time` ghi đè muộn hơn giờ hẹn sớm nhất của các chặng đón tại điểm.
-  4. Câu kiểm định kỳ R-VC-? mức `warn` cho ý thứ nhất.
+  4. Câu kiểm định kỳ R-VC-? mức `warn` cho ý thứ nhất:
+     - câu kiểm là SQL chạy trên D1, mà SQLite **không có hàm băm**, nên chỉ so được nơi là **điểm danh mục**: `place_key` = `'L:' ||` id điểm của chặng;
+     - nơi chữ tự do chỉ lớp máy chủ bắt (hàm thuần so khoá). Ghi rõ ở sổ hàng rào: lưới thứ hai **không** phủ chữ tự do.
 - **Ranh giới:** chỉ **cảnh báo**, không giữ chuyến, không thêm lệnh. Giữ chuyến và lệnh "cập nhật điểm theo chặng" chờ VK1-B.
 - **Hiển thị:** hai loại cảnh báo mới **hiện trên màn**. Cách hiện phải vào danh sách màn chủ vẽ trên Claude Design (`docs/superpowers/specs/2026-09-29-bang-dieu-phoi-luot-1-man-hinh-can-ve.md`); người thi công **không** tự nghĩ kiểu hiện (bài học "thứ nhìn thấy trên màn hình phải hỏi"). Phần A (luật thuần + dữ liệu API + kiểm định kỳ) làm trước được.
 - **Kiểm (P16):** ca luật thuần "sửa nơi đón của chặng đã xếp → có cảnh báo"; bỏ vế so nơi → đỏ; hoàn nguyên. Câu kiểm định kỳ có ca đỏ trên dữ liệu gieo.
@@ -265,7 +288,7 @@ Chỉ ghi khái niệm **chưa có** và **hợp quy mô** (~30 nhân viên, và
 | # | Lõi [REF] | Cách thừa kế gọn ở đây | Nguyên tắc Hiến chương đã có | Rơi vào |
 |---|---|---|---|---|
 | B1 | **Hai trục thời gian** cho sự kiện vận hành: `occurred_at` / `recorded_at` ([REF]:97, :334) | sự kiện chuyến có "giờ xảy ra" + "giờ ghi nhận"; chỉ văn phòng bấm thay mới được khai giờ xảy ra khác; có kẹp | 5.14 (hai trục thời gian — hôm nay chỉ nói cho dòng tiền; áp cho vận hành là quyết định mới) | **VK1-A** (lượt 1) |
-| B2 | **Nhu cầu đổi thì kế hoạch phải được xem lại** — bản gọn của "nhu cầu có phiên bản" ([REF]:78) | **không** thêm số phiên bản: so **lúc đọc** nơi hẹn hiện hành của chặng với điểm dừng của suất (điểm dừng chính là kế hoạch); lệch → giữ | 5.7 (giữ), 1.4 (hình chiếu không tạo sự thật) | **VK1-B** (lượt 1) |
+| B2 | **Nhu cầu đổi thì kế hoạch phải được xem lại** — bản gọn của "nhu cầu có phiên bản" ([REF]:78) | **không** thêm số phiên bản: so **lúc đọc** khoá so sánh nơi hiện hành của chặng với khoá lưu trên điểm dừng của suất (điểm dừng chính là kế hoạch); lệch → giữ; sửa = đóng suất `STOP_CHANGED` + mở suất mới | 5.7 (giữ), 1.4 (hình chiếu không tạo sự thật), 5.5 (không sửa đè) | **VK1-B** (lượt 1) |
 | B3 | **Khung bận có giờ cho tài nguyên** — `Reservation` mục đích bảo dưỡng ([REF]:88, :163) | **một** bảng khung bận cho **xe và tài xế** (khuôn `vc_unavailability` của [L2] D4 / [TK] D9); LC-03 xét thêm khung bận | 2.2 (thực thể có vòng đời), 5.1 | **VK2-A** (lượt 2) |
 | B4 | **Ca / giờ làm của tài xế** — `Duty Period` ([REF]:87) | tính **lúc đọc** từ chuyến (thật khi có, dự kiến khi chưa); trần là cột chính sách; bản nhẹ = cảnh báo | 5.2 (chính sách có kiểu), 5.6 | **VK2-B** (lượt 2) |
 | B5 | **Neo giờ vào sự kiện ngoài** ([REF]:81) | **chỉ** ô số hiệu chuyến bay trên chặng; không tra ngoài, không tự dời giờ | — | **VK2-C** (lượt 2) |
@@ -281,7 +304,7 @@ Chỉ ghi khái niệm **chưa có** và **hợp quy mô** (~30 nhân viên, và
 
 | Lượt | Tệp | Quyết định (tối đa 3 chạm quyền / dữ liệu) | Vì sao ở lượt này |
 |---|---|---|---|
-| **1** | `2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-1.md` | **VK1-A** giờ xảy ra thật khi văn phòng bấm thay (ý 1) · **VK1-B** giữ chuyến khi nơi hẹn đổi sau khi xếp (LH-01) · **VK1-C** gieo điều kiện giấy tờ xe (LH-02, giá trị chính sách) | VK1-A phải chốt **trước khi viết `0042`**. VK1-B, VK1-C phải chốt **trước khi ADR-0049 lượt 1 phát hành** (lỗ CAO trong chính bản đang làm) |
+| **1** | `2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-1.md` | **VK1-A** giờ xảy ra thật khi văn phòng bấm thay (ý 1) · **VK1-B** giữ chuyến khi nơi hẹn đổi sau khi xếp (LH-01) · **VK1-C** gieo điều kiện giấy tờ xe (LH-02, giá trị chính sách) | **VK1-A và VK1-B** phải chốt **trước khi viết `0042`**: VK1-A thêm cột giờ xảy ra; VK1-B thêm cột `place_key` và giá trị đóng suất `STOP_CHANGED` trong `CHECK`. VK1-C phải chốt **trước khi ADR-0049 lượt 1 phát hành**, và K-01 + dọn tay phải xong trước đó (lỗ CAO trong chính bản đang làm) |
 | **2** | `2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-2.md` | **VK2-A** khung bận của xe (ý 3a) · **VK2-B** giờ lái tối đa, bản nhẹ (ý 3b) · **VK2-C** số hiệu chuyến bay (ý 4) | VK2-A cần `vc_trip` (`0042`) để mở rộng LC-03; thi công sau lát 1.2. VK2-C độc lập |
 | **3** | `2026-09-29-de-xuat-adr-van-chuyen-kernel-luot-3.md` | **VK3-A** xe riêng / cỡ xe tối thiểu (ý 2) · **VK3-B** một dòng giấy tờ hiện hành mỗi loại mỗi xe (LH-04) | VK3-A có câu pháp lý còn treo (ghép khách xe hợp đồng, NĐ 158/2024 — **chưa có người chuyên môn kiểm**) nên để sau; VK3-B chờ số đếm của K-01 |
 
@@ -306,6 +329,7 @@ Chỉ ghi khái niệm **chưa có** và **hợp quy mô** (~30 nhân viên, và
 ## Chưa chắc / chưa kiểm
 
 - **LH-05, LH-08:** phụ thuộc chữ `0042` chưa viết.
+- **Đã có đáp:** mã đóng suất cho lệnh "cập nhật điểm theo đơn". Điều phối chốt ruling R-K1: không dùng lại `MOVED` (nghĩa "dời sang chuyến khác" — `src/shared/dieu-phoi-kieu.ts:41@fd78247`), thêm `STOP_CHANGED` vào `CHECK` của `0042` (lượt 1, VK1-B).
 - **LH-04:** production hiện có dòng song song hay không — chưa đếm (K-01 sẽ đếm). Giao diện có tắt nút khi đang gửi (chống bấm đúp) — chưa kiểm.
 - **LH-06:** có phải chủ ý cho phép ngày kết thúc tuỳ ý qua API — chưa rõ.
 - **Pháp lý** — toàn bộ theo [TRA], **chưa có người chuyên môn kiểm**:
