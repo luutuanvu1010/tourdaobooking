@@ -4,6 +4,7 @@
 import { GHI_CHU_DAT_GAP_TOI_DA, isLyDoDatGap, type ChangHopLe, type LyDoDatGap } from "../../shared/chang-dua-don";
 import { kiemMocDat } from "../../shared/moc-toi-thieu";
 import { maskLongDigits } from "../../shared/text-guards";
+import type { OrderDetailDto } from "../../shared/contracts";
 import type { DatGapWrite, LegDatGapRow } from "./chang-hanh-khach-repo";
 import type { ValidService } from "./service-rules";
 
@@ -71,4 +72,16 @@ export function canhBaoMocCua(
     const k = kiemMocDat({ ngayDon: l.pickupDate, gioDon: l.pickupTime, datGap: daDatGap.has(l.id) }, bayGioMs, phut);
     return k.duoiMoc ? [{ legKey: l.id, phutConLai: k.phutConLai }] : [];
   });
+}
+
+/**
+ * Dấu đặt gấp trên chi tiết đơn THEO VAI (chủ H4 / N-14, 29/9 tối — "Trả lời lần 12"): `xemDu` (ô `order.leg.short_notice.view`) → giữ nguyên dấu ĐỦ;
+ * ngược lại mỗi chặng có dấu chỉ còn cờ `{ daDuyet: true }` (khoá lý do, người, lúc, ghi chú VẮNG MẶT), chặng không dấu giữ `null`. Dựng đối tượng MỚI.
+ */
+export function datGapTheoVai(order: OrderDetailDto, xemDu: boolean): OrderDetailDto {
+  if (xemDu) return order;
+  return {
+    ...order,
+    services: order.services.map((s) => ({ ...s, legs: s.legs.map((l) => ({ ...l, datGap: l.datGap ? { daDuyet: true as const } : null })) })),
+  };
 }

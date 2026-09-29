@@ -49,10 +49,13 @@ export async function servicePaxByOrder(db: D1Database, orderId: string): Promis
 
 const LEG_COLS = `l.id, l.order_id, l.order_service_id, l.direction, l.pickup_date, l.pickup_time, l.pickup_location_id, l.pickup_place,
   COALESCE(pl.name, l.pickup_place) AS pickup_label, l.dropoff_location_id, l.dropoff_place, COALESCE(dl.name, l.dropoff_place) AS dropoff_label,
-  l.closed_at, l.created_at, l.created_by, l.updated_at`;
+  l.closed_at, l.created_at, l.created_by, l.updated_at,
+  l.short_notice_reason, l.short_notice_note, l.short_notice_at, sl.label AS short_notice_by_label`;
+// Người duyệt đặt gấp: TÊN HIỂN THỊ qua view công bố của staff (không SĐT) — chủ H4 / N-14; lớp route quyết ai thấy tên (ô order.leg.short_notice.view).
 const LEG_JOIN = `FROM ord_transfer_leg l
   LEFT JOIN v_loc_location_label pl ON pl.id = l.pickup_location_id
-  LEFT JOIN v_loc_location_label dl ON dl.id = l.dropoff_location_id`;
+  LEFT JOIN v_loc_location_label dl ON dl.id = l.dropoff_location_id
+  LEFT JOIN v_stf_staff_label sl ON sl.id = l.short_notice_by`;
 
 /** Chặng CÒN HIỆU LỰC của các đơn (mảng JSON id đơn ở ?1), kèm nhãn nơi (tên điểm danh mục qua view công bố của locations, hoặc chữ). */
 const LEG_OPEN_BY_ORDERS = defineSql("orders", "leg_open_by_orders", `SELECT ${LEG_COLS} ${LEG_JOIN} WHERE l.closed_at IS NULL AND l.order_id IN (SELECT value FROM json_each(?1))`);
@@ -76,6 +79,11 @@ export interface LegRow {
   created_at: string;
   created_by: string | null;
   updated_at: string;
+  /** Dấu đặt gấp (0040): mã lý do, ghi chú đã che, lúc duyệt, TÊN HIỂN THỊ người duyệt (NULL khi chặng không đặt gấp). */
+  short_notice_reason: string | null;
+  short_notice_note: string | null;
+  short_notice_at: string | null;
+  short_notice_by_label: string | null;
 }
 
 export async function openLegsByOrders(db: D1Database, orderIds: readonly string[]): Promise<LegRow[]> {

@@ -20,6 +20,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.modify": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"],
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none", "none"],
   "order.leg.short_notice": ["none", "none", "any", "none", "none", "any", "none", "none", "none"], // ADR-0049 D3: ô MỚI — đặt gấp chặng dưới mốc 6 giờ; chỉ Quản trị, Toàn quyền
+  "order.leg.short_notice.view": ["any", "any", "any", "none", "none", "any", "none", "none", "none"], // chủ H4/N-14 (29/9, Trả lời lần 12): ô MỚI — xem ĐỦ dấu đặt gấp; mã khác chỉ cờ
   "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
@@ -279,6 +280,7 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
     "order.leg.short_notice": "none", // ADR-0049 D3: đặt gấp chỉ Quản trị, Toàn quyền
+    "order.leg.short_notice.view": "none", // chủ H4/N-14: tài xế không xem chi tiết đơn (không đổi)
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
@@ -301,6 +303,7 @@ test("ADR-0048 D2: MỌI ô của Tài xế đối tác (DRIVER_PARTNER) — ghi
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
     "order.passenger.write": "none", // ADR-0047 A2 × ADR-0048 D2 (mọi ô nghiệp vụ của tài xế đối tác = none): không nhập / sửa / huỷ danh sách hành khách
     "order.leg.short_notice": "none", // ADR-0049 D3 × ADR-0048 D2
+    "order.leg.short_notice.view": "none", // chủ H4/N-14 × ADR-0048 D2
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
@@ -324,6 +327,12 @@ test("quyenHienThi (ADR-0042): người xem không giữ Toàn quyền thấy SU
 // chép tay): ai đổi một ô của một trong hai hàng mà quên hàng kia thì đỏ ở đây — tách ô nhập tên khách khỏi ô sửa đơn phải là quyết định có chủ đích.
 test("ADR-0047 A2: order.passenger.write = order.modify ở MỌI cột quyền (suy từ MATRIX)", () => {
   for (const p of PERMISSION_CODES) assert.equal(MATRIX["order.passenger.write"][p], MATRIX["order.modify"][p], `order.passenger.write × ${p} phải bằng order.modify × ${p}`);
+});
+
+// Chủ H4/N-14 (29/9 tối, Trả lời lần 12): xem ĐỦ dấu đặt gấp đúng bốn mã văn phòng (any); Đối tác, HDV, Thực tập, hai mã tài xế none (chỉ cờ / không xem đơn).
+test("H4/N-14: ô order.leg.short_notice.view = any ĐÚNG ở SALES, ACCOUNTING, ADMIN, SUPER_ADMIN; mọi mã khác none", () => {
+  assert.deepEqual(PERMISSION_CODES.filter((p) => MATRIX["order.leg.short_notice.view"][p] !== "none"), ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"]);
+  for (const p of ["SALES", "ACCOUNTING", "ADMIN", "SUPER_ADMIN"] as const) assert.equal(MATRIX["order.leg.short_notice.view"][p], "any");
 });
 
 // ADR-0049 D3 (siết): đặt gấp chặng dưới mốc 6 giờ CHỈ Quản trị + Toàn quyền — lỡ mở cho Bán hàng / Thực tập / Đối tác thì đỏ ở đây.

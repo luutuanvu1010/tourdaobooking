@@ -8,6 +8,7 @@ import {
 import { describeBookerChange, type BookerInput } from "../../shared/booker";
 import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
+import { datGapTheoVai } from "./dat-gap";
 import { getEffectiveServices } from "../catalog";
 import { composePersonName, newPersonStatements, validatePersonFullName, type ContactInput, type RoleInput } from "../parties";
 import {
@@ -281,17 +282,22 @@ export async function resolveLegPlaces(db: D1Database, order: ValidOrder, ctx: O
  * rồi bị huỷ sau đó VẪN phải hiện đúng số đã sửa gần nhất — không được "quên" điều chỉnh và lùi lại số gốc chỉ vì đổi trạng thái (bản đầu có lỗi
  * này: chỉ overlay khi `status === "confirmed"`, khiến đơn đã huỷ hiện sai). `draft` không cần xét: không đường nào ghi được điều chỉnh cho đơn
  * nháp (route sửa số khách bắt buộc `status === "confirmed"`), và đơn không có đường quay lại `draft` sau khi đã `confirmed` (`rules.ts` TRANSITIONS).
+ * `xemDuDatGap` BẮT BUỘC (chủ H4 / N-14): người gọi hỏi ô `order.leg.short_notice.view` của người xem — thiếu thì mã không biên dịch; mọi DTO chặng trả ra
+ * đi qua `datGapTheoVai`.
  */
-export async function loadOrderView(db: D1Database, id: string): Promise<OrderDetailDto | null> {
+export async function loadOrderView(db: D1Database, id: string, xemDuDatGap: boolean): Promise<OrderDetailDto | null> {
   const order = await findOrder(db, id);
   if (!order) return null;
   if (order.status === "draft") {
     const codes = order.services.flatMap((s) => (s.catalogCode ? [s.catalogCode] : []));
     const catalog = await getEffectiveServices(db, codes);
-    return { ...order, services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })) };
+    return datGapTheoVai(
+      { ...order, services: order.services.map((s) => ({ ...s, catalogStatus: catalogStatusOf(s, s.catalogCode ? catalog.get(s.catalogCode) : undefined) })) },
+      xemDuDatGap,
+    );
   }
   const latest = await getLatestAdjustment(db, id);
-  return latest ? applyAdjustmentToOrder(order, latest.after) : order;
+  return datGapTheoVai(latest ? applyAdjustmentToOrder(order, latest.after) : order, xemDuDatGap);
 }
 
 export type ResolvedBooker = { ok: true; write: BookerWrite } | { ok: false; message: string };
