@@ -152,6 +152,7 @@ ADR-0047 (chặng, hành khách — orders)   ADR-0048 (nhà xe, tài xế đố
   - `status` tập đóng `CHECK IN ('PLANNED','RUNNING','ENDED','ENDED_INTERRUPTED','CANCELLED')` — định **trọn** từ đầu để khỏi dựng lại bảng;
   - `departed_at`/`departed_ms`, `ended_at`/`ended_ms` (máy chủ ghi); `cancel_reason_code`, `end_reason_code` (FK `vc_reason`);
   - `version` INTEGER — **khoá lạc quan của cả chuyến** (mọi lệnh đổi kế hoạch hoặc suất của chuyến tăng số này; §3.4);
+  - `last_cmd_id` — **dấu lệnh**: id của request vừa thắng câu cổng của lô (§3.3); câu ghi sau trong cùng lô chỉ chạy khi chuyến mang đúng dấu này. Cột kỹ thuật, không hiện cho người dùng;
   - đủ cột dấu vết.
 - **`vc_trip_driver`** (giữ G1b-1 của lượt 2): `trip_id`, `driver_party_id` (FK `pty_party`), `valid_from_at`, `valid_to_at`, `close_reason` tập đóng (`REASSIGNED`, `TRIP_CANCELLED`, `REFUSED` — mã cuối để sẵn cho D8), `closed_by`, dấu vết. Chỉ mục duy nhất: **một tài xế đang mở mỗi chuyến**.
 - Chiều về là **chuyến khác** (một chuyến chạy một lượt; chuyến có thể chở chặng chiều đi của đơn này và chặng chiều về của đơn khác nếu cùng lúc — máy không cấm).
@@ -194,7 +195,7 @@ ADR-0047 (chặng, hành khách — orders)   ADR-0048 (nhà xe, tài xế đố
 
 ### 1.7 Sự kiện: `vc_trip_event` nối một-một với `audit_log`
 
-- Mỗi lệnh làm đổi chuyến ghi **một** dòng `audit_log` (ai, hành động, lúc, lý do, chi tiết ngắn không tên) **và** một dòng `vc_trip_event` **cùng id** (khuôn ADR-0007 điều 2, Hiến chương 5.5 "nối một-một với dòng `audit_log` qua khoá chung"). **Không** khoá ngoại tới `audit_log` (đúng khuôn `order_money_adjustment`, migration 0021: `audit_log` đã từng dựng lại theo expand–contract nhiều lần, khoá ngoại sẽ làm khó mỗi lần dựng lại). Câu chèn sự kiện mang điều kiện `EXISTS(audit_log id)` trong cùng lô (Phần II "batch sau UPDATE điều kiện"); câu kiểm định kỳ bắt dòng sự kiện mồ côi.
+- Mỗi lệnh làm đổi chuyến ghi **một** dòng `audit_log` (ai, hành động, lúc, lý do, chi tiết ngắn không tên) **và** một dòng `vc_trip_event` **cùng id** (khuôn ADR-0007 điều 2, Hiến chương 5.5 "nối một-một với dòng `audit_log` qua khoá chung"). **Không** khoá ngoại tới `audit_log` (đúng khuôn `order_money_adjustment`, migration 0021: `audit_log` đã từng dựng lại theo expand–contract nhiều lần). Hai dòng cùng thắng hoặc cùng thua nhờ **cổng của lô** (§3.3): nhật ký chèn với `changes() > 0` ngay sau câu cổng, sự kiện chèn với điều kiện **dấu lệnh trên `vc_trip`** — `van-chuyen` là module nghiêm nên **không** đọc `audit_log`. Câu kiểm định kỳ (`scripts/audit-checks.mjs`, không phải SQL của module) bắt dòng sự kiện mồ côi.
 - `vc_trip_event` chỉ giữ **phần có kiểu** mà `audit_log` không có: `trip_id`, `kind` (tập đóng), `stop_id`, `allocation_id`, `transfer_id`, `count` (số người, **không tên**), `request_id` **UNIQUE** (chống bấm lặp, mất sóng), `client_at` (giờ máy tài xế, chỉ tham khảo), `decided_mode` (`NGUOI`/`MAY`).
 - Nhờ vậy: không chép "ai, lúc nào" hai nơi; màn "dòng dữ liệu" đọc cột có kiểu, không phân tích chữ nhật ký (ADR-0030 điều 3).
 - Chỉ-thêm: trigger cấm `UPDATE`/`DELETE`.
@@ -444,22 +445,40 @@ Một hàm thuần `trangThaiChang(chang, suat[], chuyen[], deNghi[], chinhSach,
  Xét (hàm thuần, tất định) ──► CHO_QUA | CHAN(lyDo[]) | CAN_PHA_LE(lyDo[]) | LEO_THANG(lyDo[])
    │                                  │ 409 + lý do bằng lời    │ hộp "Phá lệ" (ô trip.override)
    ▼
- Một lô ghi (db.batch — tất cả hoặc không gì, K8)
-   1. UPDATE vc_trip SET version = version + 1 WHERE id = ? AND version = ?   (mỗi chuyến bị chạm)
-   2. các câu ghi chính, mỗi câu mang EXISTS(audit_log id của chính lệnh này)  (Phần II "batch sau UPDATE điều kiện")
-   3. audit_log + vc_trip_event CÙNG id; vc_transfer_check nếu có
-   4. trigger CSDL chặn cuối (LC-01 … LC-16)
+ Một lô ghi (db.batch — tất cả hoặc không gì, K8). THỨ TỰ CÂU LÀ HỢP ĐỒNG
+ (cùng khuôn wonGuard của orders/repository.ts: cổng → nhật ký changes() > 0 → câu ghi chính có điều kiện):
+   1. CỔNG — MỘT câu quyết định lô thắng hay thua, và ĐÓNG DẤU LỆNH lên chuyến:
+        UPDATE vc_trip SET version = version + 1, last_cmd_id = :cmd, updated_at = :at
+         WHERE id = :T AND version = :v [AND điều kiện trạng thái của lệnh]
+      (lệnh chạm hai chuyến: "cổng đôi" bên dưới)
+   2. NHẬT KÝ — auditStatement({ id: :cmd, … }, "changes() > 0") ĐỨNG NGAY SAU câu cổng
+      (changes() chỉ thấy câu ngay trước nó)
+   3. CÂU GHI CHÍNH — mỗi câu của van-chuyen (defineSql) mang điều kiện đọc CHÍNH bảng vc_:
+        … AND EXISTS (SELECT 1 FROM vc_trip WHERE id = :T AND last_cmd_id = :cmd)
+      gồm vc_trip_event (id = :cmd), vc_transfer_check, suất, điểm…;
+      câu đổi trạng thái chuyến (kết thúc, huỷ) luôn ĐỨNG CUỐI (§2.1a)
+   4. trigger CSDL chặn cuối (LC-01 … LC-16) chạy ở từng câu
    │
-   ├─ changes() = 0 ở câu 1 → đọc lại, trả đúng lỗi: 409 "vừa có thay đổi" / "đề nghị đã hết giờ" / "không còn hợp lệ"
-   │
+   ├─ câu cổng chạm 0 dòng → mọi câu sau không chạy → đọc lại, trả đúng lỗi:
+   │    409 "vừa có thay đổi" / "đề nghị đã hết giờ" / "không còn hợp lệ"
    ▼
  Sau lô (Hiến chương 5.10, 5.16 — bắn-và-quên, lỗi không làm hỏng lô):
    ctx.baoThayDoiChuyen → Bảng tin (màn đang mở tải lại) + gõ cửa điện thoại (từ lượt duyệt 2)
 ```
 
-- **Lệnh kế hoạch** (xếp, dời, rút, đổi xe, đổi tài xế, đổi thứ tự, thêm điểm, báo huỷ, gửi/nhận/duyệt đề nghị) **kiểm và tăng** `version`.
-- **Lệnh tiến độ của tài xế** (đã tới, đã đón, vắng, khách đã huỷ, đã trả) **không kiểm** `version` (lệnh không dựa vào kế hoạch, chỉ dựa vào trạng thái của chính suất/điểm, đã có trong điều kiện câu ghi) nhưng **có tăng** `version` — để một quyết định kế hoạch đang dựa trên dữ liệu cũ bị phát hiện.
-- **Tự thử lại một lần** cho lệnh mà máy xét được hoàn toàn (B bấm Nhận): gặp `version` cũ → đọc lại, xét lại, ghi lại một lần; vẫn thua → trả kết quả xét mới (có thể là leo thang). Tài xế không phải bấm lại vì một thay đổi không liên quan.
+- **Vì sao "dấu lệnh" `vc_trip.last_cmd_id`, không phải `EXISTS(audit_log)`:** `van-chuyen` là module **nghiêm** (STRICT): SQL của nó chỉ được đọc bảng của chính nó hoặc view công bố (Phần II quy tắc 4 và mục "Ranh giới SQL của module nghiêm"); đọc thẳng `audit_log` chỉ là **ngoại lệ có hạn của `orders`** (LEGACY — "`wonGuard` của `orders` đọc `audit_log` (tới N2)"). Dấu lệnh là cột của chính `vc_trip`, mang **id riêng của request** (cùng vai trò `AuditInput.id` trong `wonGuard`): bên thua không bao giờ lọt qua, kể cả khi hai request đọc cùng một `version`. (So `version = v + 1` thì **không** được: bên thắng đã đặt `v + 1`, nên câu sau của bên thua cũng thấy đúng.) Cách này **đơn giản hơn** phương án còn lại — đưa một view `v_aud_*` vào lượt 1 — vì không thêm view, không thêm cạnh đọc `van-chuyen → audit` ở tầng SQL, không thêm quyết định nào; hàng rào `EXPLAIN` sẵn có tự kiểm được.
+- **Vì sao không chỉ nối `changes() > 0` như `dispatch`:** lô của điều phối có nhiều câu, trong đó có câu hợp lệ mà chạm 0 dòng (vd "thêm điểm trả nếu xe chưa có"); `changes()` chỉ thấy câu **ngay trước**, nên chuỗi sẽ gãy giữa chừng. `changes() > 0` chỉ dùng ở hai chỗ: câu nhật ký đứng ngay sau câu cổng (vì `auditStatement` nhận điều kiện là chữ SQL cố định, không nhận tham số) và câu cổng của lệnh tiến độ (dưới).
+- **Cổng đôi — lệnh chạm hai chuyến** (xác nhận chuyển điểm A → B; cứu hộ). Gộp hai khoá lạc quan thành **một** cổng:
+  1. `UPDATE vc_trip SET version = version + 1, last_cmd_id = :cmd … WHERE id = :A AND version = :vA AND EXISTS (SELECT 1 FROM vc_trip WHERE id = :B AND version = :vB)`
+  2. `UPDATE vc_trip SET version = version + 1, last_cmd_id = :cmd … WHERE id = :B AND version = :vB AND EXISTS (SELECT 1 FROM vc_trip WHERE id = :A AND last_cmd_id = :cmd)`
+  3. nhật ký `changes() > 0` ngay sau câu 2;
+  4. mọi câu sau mang `EXISTS (SELECT 1 FROM vc_trip WHERE id = :B AND last_cmd_id = :cmd)`.
+  - Lô là một giao dịch, không lệnh nào chen giữa câu 1 và câu 2. Vì vậy câu 1 thắng ⇔ cả hai `version` còn đúng ⇔ câu 2 thắng: **cả hai chuyến cùng được đóng dấu hoặc không chuyến nào**, không có chuyến bị tăng `version` lẻ. Dấu trên B là **cổng duy nhất** cho mọi câu sau (B chỉ mang dấu khi A đã mang).
+  - Tổng quát n chuyến: câu cổng đầu kiểm `version` của mọi chuyến; câu cổng thứ i đòi dấu của câu thứ i − 1; câu nhật ký và mọi câu sau dựa vào dấu của câu cổng cuối.
+- **Lệnh tiến độ của tài xế** (đã tới, đã đón, vắng, khách đã huỷ, đã trả): câu **đầu** là câu chuyển trạng thái của chính suất/điểm (`… WHERE id = ? AND status = 'WAITING'`); câu cổng đứng **ngay sau**: `UPDATE vc_trip SET version = version + 1, last_cmd_id = :cmd WHERE id = :T AND status = 'RUNNING' AND changes() > 0`; rồi nhật ký `changes() > 0`; rồi sự kiện có dấu. Không kiểm `version` (lệnh không dựa vào kế hoạch) nhưng **có tăng** — để quyết định kế hoạch đang dựa trên dữ liệu cũ bị phát hiện.
+- **Lệnh kế hoạch** (xếp, dời, rút, đổi xe, đổi tài xế, đổi thứ tự, thêm điểm, báo huỷ, gửi/nhận/duyệt đề nghị) kiểm và tăng `version` ở câu cổng. **Tạo chuyến mới:** câu cổng là chính câu `INSERT INTO vc_trip (…, last_cmd_id) VALUES (…, :cmd)`.
+- **Tự thử lại một lần** cho lệnh mà máy xét được hoàn toàn (B bấm Nhận): câu cổng thua → đọc lại, xét lại, ghi lại một lần với `version` mới; vẫn thua → trả kết quả xét mới (có thể là leo thang). Tài xế không phải bấm lại vì một thay đổi không liên quan.
+- **Hàng rào (lát 1.5):** bài kiểm dựng danh sách câu của từng lệnh rồi khẳng định: câu cổng đứng đầu (hoặc thứ hai với lệnh tiến độ), câu nhật ký ngay sau với `changes() > 0`, mọi câu sau có dấu lệnh, câu đổi trạng thái chuyến đứng cuối. Đảo một câu → đỏ.
 
 ### 3.4 Chống chạy đua — các ca đã nghĩ tới
 
@@ -1119,7 +1138,7 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 - hai chuyến chưa huỷ cùng xe chồng giờ → `RAISE`; cùng tài xế chồng giờ → `RAISE`; hai chuyến `RUNNING` cùng xe → UNIQUE;
 - `PLANNED → RUNNING` không có dòng kiểm đạt cùng lô → `RAISE`; `ENDED → PLANNED` → `RAISE`; sửa điểm/suất của chuyến `ENDED` → `RAISE`; `DELETE` mọi bảng `vc_trip*` → `RAISE`;
 - "Kết thúc" thường khi còn suất `WAITING` → `RAISE`; "Kết thúc gián đoạn" → được, điểm chờ thành `SKIPPED`;
-- `request_id` trùng → UNIQUE; chèn `vc_trip_event` trong lô mà dòng `audit_log` cùng id không được chèn (câu chính thua) → không có dòng sự kiện nào (điều kiện `EXISTS`); câu kiểm định kỳ "sự kiện mồ côi" thoát 1 trên dữ liệu gieo lỗi;
+- `request_id` trùng → UNIQUE; lô có câu cổng thua → **không** có dòng `audit_log`, `vc_trip_event` hay câu ghi chính nào của lô đó; hai lô cùng đọc một `version` → đúng một chuyến mang dấu lệnh của lô thắng; câu kiểm định kỳ "sự kiện mồ côi" (sự kiện không có `audit_log` cùng id) thoát 1 trên dữ liệu gieo lỗi;
 - tài xế đối tác với xe công ty → `RAISE` (LC-13);
 - chuyến `RUNNING`: mở suất, đóng suất, thêm điểm, đổi xe, đổi tài xế → `RAISE` (LC-15 lượt 1); đổi thứ tự điểm `PENDING`, đổi trạng thái tiến độ, gắn tên vào suất → được.
 
