@@ -792,3 +792,173 @@ Hai việc khác nhau, dễ lẫn:
 | **Từ chối chuyến được xếp** (lượt 2 D3 → D8 của bản này) | trước hạn chót Từ chối (lượt 2 Q2) | tài xế bấm Từ chối + lý do → đóng dòng `vc_trip_driver` với `close_reason = REFUSED` (cột đã định sẵn ở D1) → chuyến **không có tài xế** → **giữ** (MQ-05: "chưa có tài xế — văn phòng") → MQ-01 gợi ý tài xế thay → (lượt 2) tin tới người điều xe. Quá hạn chót: gọi văn phòng |
 
 - D8 dùng lại **nguyên** khuôn lượt 2 D3 (một lô, lý do tập đóng, chốt "đang lái", 404 cho chuyến không phải của mình), chỉ đổi tên bảng cho khớp D1.
+
+---
+
+## Phần 6 — Quyền, trang ghép, cửa một chiều, chia lượt duyệt
+
+### 6.1 Ô quyền (cột theo `PERMISSION_CODES`; `DRIVER_PARTNER` là cột thứ 9 của ADR-0048)
+
+| Ô | SALES | ACC | ADMIN | FIELD | PARTNER | SA | INTERN | DRIVER | DRIVER_PARTNER | Lượt | Ghi chú |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| `trip.view` **(mới)** — xem lịch chung, chuyến, dòng dữ liệu | any | any | any | none | none | any | none | assigned | assigned | 1 | C1. `assigned` = đang có dòng lái mở trên chuyến (tính trong `van-chuyen` từ `vc_trip_driver`, **không** nới `can(assigned)` của `HANDLE`) |
+| `trip.dispatch` **(mới)** — tạo/sửa/huỷ chuyến, xếp/dời/rút suất, đổi xe/tài xế; khi xe đang chạy chỉ **thêm điểm** và **báo huỷ** | any | none | any | none | none | any | none | none | none | 1 | C1; giới hạn "khi đang chạy" là luật LC-15, không phải ô riêng |
+| `trip.progress` **(mới)** — xuất bến, đã tới, đã đón, vắng, khách đã huỷ, đã trả, kết thúc (thường/gián đoạn), đổi thứ tự điểm chưa tới | any | none | any | none | none | any | none | assigned | assigned | 1 | C2: văn phòng bấm thay, ghi người bấm |
+| `trip.passenger.add` **(mới)** — bổ sung/sửa tên khách tại chỗ (ghi `ord_passenger`, `source = 'DRIVER'`, bằng câu lệnh do `orders` cấp) | none | none | any | none | none | any | none | assigned | assigned | 1 | C15. **Bán hàng = none** (khác 1b): Bán hàng nhập tên qua màn đơn bằng ô `order.passenger.write` (ADR-0047) — không mở đường vòng ghi tên vào đơn **người khác** |
+| `trip.override` **(mới)** — phá lệ mốc tối thiểu lúc xếp (CH-01), khoảng nghỉ (CH-02); duyệt đề nghị leo thang | **chờ Q3** (khuyến nghị any) | none | any | none | none | any | none | none | none | 1 | Q3, Q4 |
+| `order.leg.short_notice` **(mới)** — đặt gấp dưới mốc tối thiểu | **chờ Q3** (khuyến nghị ownOrAssigned) | none | any | none | none | any | none | none | none | 1 | ô của `orders`; phạm vi theo đơn như `order.modify` |
+| `trip.transfer` **(mới)** — gửi, rút, nhận, không nhận đề nghị chuyển điểm | none | none | none | none | none | any | none | assigned | assigned | 2 | route chốt thêm "người gửi đang lái chuyến nguồn / người nhận đang lái chuyến đích" — áp cả Toàn quyền (khuôn ADR-0030 điều 1); ngoại lệ bấm thay chỉ theo Q5. Tài xế đối tác ↔ tài xế công ty: Q11 |
+| `trip.refuse`, `unavailability.self` | theo lượt 2 D3, D4 | | | | | | | | | 3 | D8, D9 |
+| `settings.ops` (có sẵn) | — | — | — | — | — | any | — | — | — | 1 | chính sách điều phối, điều kiện xuất bến, bảng hạng |
+| `admin.manage` (có sẵn) | — | — | any | — | — | any | — | — | — | 1 | danh mục lý do `vc_reason` |
+
+- **`SUPER_ADMIN = any` ở mọi ô** (ADR-0014 điều 2) — kể cả ô mới.
+- **Nới hàng rào đã ghim (Điều 9.4), cần chủ duyệt từng ô:** bài ghim cả hàng `DRIVER` (ADR-0040) đổi từ "mọi ô nghiệp vụ none" sang "đúng các ô `trip.view`, `trip.progress`, `trip.passenger.add` (lượt 1) và `trip.transfer` (lượt 2) là `assigned`"; bài ghim cả hàng `DRIVER_PARTNER` (ADR-0048) đổi y hệt. Mỗi bài ghim mới có dòng ở `docs/SO-HANG-RAO.md` kèm ngày thấy chặn thật.
+- **Tài xế đối tác mở cùng lúc với tài xế công ty ở lượt 1** (không đợi lượt 3): lời chủ Q3 ("tài xế thấy SĐT… chỉ trong ngày chạy") được áp cho **cả hai** cột. Lượt 2 Q1 (tài xế đối tác thấy tên từ lúc nào) còn treo; nếu chủ chọn hẹp hơn thì lượt 3 **siết** thêm cho cột `DRIVER_PARTNER` (siết sau là thêm điều kiện, không phải nới). *Giả định G-03.*
+
+### 6.2 Cổng
+
+| Cửa | Cổng (ADR-0019) | Ô trong thân route (hỏi trước mọi truy vấn) |
+|---|---|---|
+| Bảng điều phối, chi tiết chuyến, dòng dữ liệu, xếp xe, phá lệ, duyệt leo thang | `office` (SALES, ACCOUNTING, ADMIN, SUPER_ADMIN) | `trip.view` / `trip.dispatch` / `trip.progress` / `trip.override` |
+| Chính sách điều phối, điều kiện xuất bến, bảng hạng | `office` | `settings.ops` |
+| Danh mục lý do | `admin` | `admin.manage` |
+| Màn tài xế: cuốc của tôi, chuyến đang chạy, bấm tiến độ, bổ sung tên, đề nghị chuyển | `staff` | `trip.*` với `assigned`; chuyến không phải của mình → **404** |
+| Chặng, đặt gấp | `orders` (có sẵn) | `order.modify` / `order.trip.edit` + `order.leg.short_notice` |
+| Bảng tin (lượt 2) | `staff` (có sẵn, `GET /api/bang-tin`) | nhãn tính ở máy chủ: `dieu-xe` khi `can(trip.view)` không ngữ cảnh |
+
+- `DRIVER`, `DRIVER_PARTNER` vẫn **không** vào `office`, `orders`, `admin` (bài `src/shared/cong-quyen.test.ts` giữ nguyên, thêm khẳng định cho `DRIVER_PARTNER` như ADR-0048).
+- Không lập cổng mới (tránh sửa ADR-0019 điều 1).
+
+### 6.3 Danh sách trường được phép cho tài xế (Hiến chương 4.4; khuôn `pool.ts` — dựng mới từng khoá)
+
+- **Được:** mã chuyến, biển số, số chỗ, giờ dự kiến, trạng thái; điểm dừng (tên nơi; chữ tự do che dãy từ 8 chữ số), giờ hẹn, giờ xe tới; mã đơn, số người mỗi điểm; **trong ngày chạy**: họ tên + năm sinh từng khách của chuyến, tên + SĐT người liên hệ của đơn có khách trên chuyến (C3); trạng thái từng suất; lời nhắn văn phòng (báo huỷ, thêm điểm); điều kiện xuất bến còn thiếu (chỉ tên điều kiện).
+- **Không bao giờ:** tiền (kể cả giá thuê ở lượt 3), dịch vụ khác của đơn, ghi chú đơn, người lập, người phụ trách, số giấy tờ.
+- **"Trong ngày chạy"** = ngày dân sự VN hôm nay bằng `service_date` của chuyến, **hoặc** chuyến đang chạy (chuyến qua nửa đêm). Ngoài khoảng đó các khoá tên, năm sinh, SĐT **vắng mặt** (không phải chuỗi rỗng). *Giả định G-04.*
+- **Danh sách xe khác khi chọn nơi chuyển (Q9):** khuyến nghị chỉ mã chuyến, tên tài xế, số chỗ còn, điểm sắp tới — **không** khách của xe khác.
+
+### 6.4 Chia lượt duyệt (mỗi lượt ≤ 3 quyết định chạm quyền/dữ liệu — `CLAUDE.md` §9)
+
+| Lượt | Quyết định | Nội dung | Chạm | Câu hỏi đi kèm |
+|---|---|---|---|---|
+| **1** | **D1** Mô hình chuyến và lịch chung | `vc_trip`, `vc_trip_driver`, `vc_trip_stop`, `vc_trip_allocation` (suất), `vc_trip_event` (nối 1-1 `audit_log`); lịch chung là hình chiếu; hàm hẹp mới của `orders` (`lichChungChang`, `lienHeChoTaiXe`, câu ghi hành khách của tài xế); cạnh `van-chuyen → orders, locations`; máy trạng thái **định trọn** (kể cả giá trị dùng ở D5, D8); thay ADR-0006 điều 2/4/5/7 cho xe đường bộ; LC-01…LC-04, LC-06, LC-07, LC-09…LC-11, LC-13, LC-16, LC-18 | dữ liệu | — |
+| | **D2** Luật, chính sách, cổng xuất bến, mốc tối thiểu | `vc_dispatch_policy` (cột lượt 1), `vc_departure_rule`, `vc_license_capacity`, `vc_reason`, bản chụp xuất bến; "giữ" (`LyDoGiu`); CH-01 ở **cả** lúc đặt (cột `short_notice_*` trên `ord_transfer_leg` — bổ sung ADR-0047 A1; hàm tiêm `ctx.mocToiThieu`) và lúc xếp; CH-02 … CH-06; LC-05, LC-12 | dữ liệu + hợp đồng giữa các phần | Q2, Q7 |
+| | **D3** Quyền và route | ô `trip.view`, `trip.dispatch`, `trip.progress`, `trip.passenger.add`, `trip.override`, `order.leg.short_notice`; cột `DRIVER`, `DRIVER_PARTNER`; DTO danh sách trắng; route văn phòng + tài xế; nới hai bài ghim hàng; LC-08 | quyền | Q3, Q6, Q8 |
+| **2** | **D4** Chuyển điểm đón giữa hai xe + máy tự xác nhận | `vc_transfer_request`, `vc_transfer_check`; cột `accept_wait_minutes`, `auto_confirm_transfer`; ô `trip.transfer`; LC-14; MQ-02, 03, 06, 08, 09; leo thang + phá lệ | dữ liệu + quyền | Q4, Q9, Q11 |
+| | **D5** Thay đổi khi xe đang chạy | LC-15 (văn phòng chỉ thêm + báo huỷ); cột `office_cancel_*` trên suất; điểm `added_while_running`; cứu hộ xe hỏng (phạm vi `ONBOARD` của đề nghị) | dữ liệu | Q5 |
+| | **D6** Thông báo + Bảng tin cho Vận chuyển (gộp lượt 2 D5) | loại sự kiện `chuyen` trên Bảng tin, nhãn `dieu-xe`; tin chuyến là hình chiếu `audit_log` (view `v_aud_trip_event`); tin MQ-07 từ `order_leg_updated`; hai hàm tiêm `baoThayDoiChuyen`, `chuyenLienQuan` (không thêm cạnh module); người nhận theo §3.5 | quyền đọc (ai thấy tin nào) | — (lượt 2 Q1 không thuộc đây) |
+| **3** | **D7** Chiều về theo dịch vụ | mẫu chặng theo dịch vụ (CH-09); lập đơn tự tạo chặng; số người riêng của chặng (nếu Q1 = a) | dữ liệu (`catalog`, `orders`) | Q1, Q10 |
+| | **D8** Từ chối chuyến (lượt 2 D3) | `close_reason = REFUSED` (đã định ở D1) + mã lý do; hạn chót Từ chối (cột mới của `vc_dispatch_policy`); ô `trip.refuse` | dữ liệu + quyền | lượt 2 Q1, Q2, Q3 |
+| | **D9** Báo bận (lượt 2 D4) | `vc_unavailability`; LC-03 mở rộng "khung bận"; ô `unavailability.self` | dữ liệu + quyền | lượt 2 Q3, Q7 |
+
+**Kiểm "không lượt nào dựa vào quyết định ở lượt sau":**
+
+| Lượt | Cần gì | Có ở lượt ≤ nó? |
+|---|---|---|
+| 1 | chặng, hành khách, `soKhachHieuLuc`, view khoá + cờ (ADR-0047); `DRIVER_PARTNER`, `v_pty_carrier_driver` (ADR-0048) | có (ADR đã duyệt) |
+| 1 | dữ liệu phá lệ mốc 6 giờ cho cổng xếp xe | có — D2 cùng lượt |
+| 1 | thông báo cho tài xế khi được xếp | **không cần**: lượt 1 tài xế mở app mới thấy; bảng điều phối tải lại bằng tin đơn **đã có** khi đơn đổi, và tải lại tay khi người khác sửa chuyến. Chấp nhận được cho tới lượt 2 |
+| 2 | D4 cần báo B có đề nghị | có — D6 cùng lượt |
+| 2 | D5 cứu hộ dùng đề nghị `ONBOARD` | có — D4 cùng lượt |
+| 3 | D8 cần mã `REFUSED` (D1), gợi ý thay (MQ-01, D1–D2), tin tới người điều xe (D6) | có |
+| 3 | D9 cần hàm chồng giờ (LC-03, D1) | có |
+| 1–2 | số người riêng của chặng về (Q1, D7) | **không cần**: tới lúc đó số người chặng = số khách hiệu lực; ai không về xe thì tài xế ghi "vắng" |
+
+### 6.5 Trang ghép (`CLAUDE.md` §9)
+
+#### 6.5.1 Lượt duyệt 1 (D1 + D2 + D3)
+
+**(1) Bảng nào chứa loại thực thể nào**
+
+| Bảng | Loại thực thể |
+|---|---|
+| `vc_trip` | chuyến (một lượt chạy của một xe) — một loại; kế hoạch + thực thi; chuyến của xe công ty và xe nhà xe **chung một bảng**, luật không rẽ nhánh theo chủ xe |
+| `vc_trip_driver` | ai lái chuyến, có hiệu lực — tài xế công ty hoặc tài xế đối tác (hồ sơ người) |
+| `vc_trip_stop` | điểm dừng (đón / trả) |
+| `vc_trip_allocation` | **hai loại dòng**: suất hành khách (trỏ chặng + người, tên gắn sau được) **và** suất người đi kèm (trỏ hồ sơ: HDV, phụ xe); `CHECK` đúng một loại |
+| `vc_trip_event` | sự kiện chuyến có kiểu, nối 1-1 `audit_log`; chỉ số người, không tên |
+| `vc_dispatch_policy`, `vc_departure_rule`, `vc_license_capacity` | chính sách có ngày hiệu lực |
+| `vc_reason` | danh mục lý do (dữ liệu tra cứu sửa được) |
+| `vc_trip_departure_check` (+ dòng con), `vc_trip_manifest` | bản chụp lúc xuất bến; chỉ-thêm; lưu ≥ 3 năm; manifest trỏ **dòng** `ord_passenger` đã dùng, không chép tên |
+| `ord_transfer_leg` (ADR-0047) | + cột "đặt gấp" (không thêm loại dòng) |
+| `ord_passenger` (ADR-0047) | + dòng `source = 'DRIVER'` (cùng thực thể, khác người nhập) |
+| `audit_log` | + hành động `trip_*`, `order_leg_short_notice`; không tên, năm sinh, SĐT, số giấy tờ |
+
+**(2) Dòng bản đồ quyền nào chạm bảng nào, áp cho loại nào**
+
+| Ô | Chạm | Áp cho |
+|---|---|---|
+| `trip.view` | đọc mọi bảng `vc_trip*`, lịch chung (qua hàm hẹp của `orders`) | văn phòng: mọi chuyến; tài xế: chuyến mình lái (DTO hẹp) |
+| `trip.dispatch` | `vc_trip`, `vc_trip_driver`, `vc_trip_stop`, `vc_trip_allocation` (cả hai loại dòng), `vc_trip_event` | mọi chuyến; khi đang chạy chỉ thêm + báo huỷ (LC-15) |
+| `trip.progress` | trạng thái chuyến, điểm, suất; `vc_trip_event`; **ghi** bản chụp xuất bến | tài xế: chuyến mình; văn phòng: mọi chuyến (bấm thay) |
+| `trip.passenger.add` | `ord_passenger` (qua câu do `orders` cấp) + gắn tên vào suất | chỉ đơn có chặng trên chuyến mình lái, chỉ trong ngày chạy |
+| `trip.override` | ghi sự kiện `PHA_LE`, `vc_trip.rest_override_reason_code` | mọi chuyến |
+| `order.leg.short_notice` | cột "đặt gấp" của `ord_transfer_leg` | đơn trong phạm vi `order.modify` của người đó |
+| `settings.ops` | ba bảng chính sách | — |
+| `admin.manage` | `vc_reason` | — |
+| `vehicle.manage` (1a) | **không đổi**, không mở chuyến | — |
+| `contact.view`, `order.passenger.write` (ADR-0047) | **không đổi**; tài xế không đi qua hai ô này — SĐT và tên trong DTO tài xế là **ngoại lệ có tên** dưới `trip.view` + "trong ngày chạy" | — |
+
+**(3) Cổng nào canh cửa nào:** bảng §6.2. **Cổng dữ liệu (CSDL):** LC-01 (chỉ mục), LC-02, LC-03, LC-04, LC-05, LC-06, LC-07, LC-09, LC-10, LC-11, LC-13, LC-16; trigger chỉ-thêm của bản chụp. **Cổng pháp lý:** `kiemXuatBen` (một hàm, máy chủ + màn hình). **Hợp đồng giữa các phần:** ba hàm hẹp của `orders` (không tự kiểm quyền — bài kiểm "nơi gọi đứng sau `can()`"), hàm tiêm `ctx.mocToiThieu`.
+
+#### 6.5.2 Lượt duyệt 2 (D4 + D5 + D6)
+
+| Hỏi | Trả lời |
+|---|---|
+| **(1) Bảng nào chứa loại nào** | `vc_transfer_request`: đề nghị chuyển, **hai loại phạm vi** — `STOP` (cụm đón chưa tới) và `ONBOARD` (khách đang trên xe, cứu hộ); `CHECK` đúng trường theo phạm vi. `vc_transfer_check`: kết quả từng luật của một lần xét, chỉ-thêm. `vc_trip_allocation`: + cột "văn phòng báo huỷ" (không thêm loại dòng). `vc_trip_stop`: + cờ "thêm khi đang chạy". `vc_dispatch_policy`: + hai cột. `audit_log`: + `trip_transfer_*`, `trip_stop_added_running`, `trip_office_cancel`; view mới `v_aud_trip_event` (chỉ khoá: id, chuyến, người làm, hành động, lúc). `ntf_*`: **không** thêm dòng (tin là hình chiếu). |
+| **(2) Ô nào chạm bảng nào, áp cho loại nào** | `trip.transfer` → `vc_transfer_request` (tạo, rút, nhận, không nhận) — tài xế của chuyến nguồn / đích; khi xác nhận ghi thêm `vc_trip_allocation`, `vc_trip_stop`, `vc_trip_manifest` (hệ quả của lệnh Nhận). `trip.override` → duyệt đề nghị `ESCALATED` (chỉ khi luật không đạt là luật cấu hình). `trip.dispatch` → thêm điểm, báo huỷ ở chuyến đang chạy. `settings.ops` → hai cột chính sách mới. Hộp thông báo: người nhận tính theo **quyền hiện có** + **dòng lái có hiệu lực lúc sự kiện** (khuôn lượt 2 D5). |
+| **(3) Cổng nào canh cửa nào** | Route đề nghị ở cổng `staff` (tài xế) + `office` (văn phòng duyệt). Bảng tin: `staff`, nhãn `dieu-xe` chỉ khi `can(trip.view)` không ngữ cảnh (tức `any`). **CSDL:** LC-14, LC-15, LC-02 (sức chứa sau chuyển). Không thêm cạnh module: `thongbao` nhận dữ liệu chuyến qua hàm tiêm từ gốc lắp ráp. |
+
+#### 6.5.3 Lượt duyệt 3 (D7 + D8 + D9)
+
+| Hỏi | Trả lời |
+|---|---|
+| **(1) Bảng nào chứa loại nào** | Mẫu chặng theo dịch vụ: bảng mới của `catalog` (tiền tố mới, bổ sung ADR-0002) **hoặc** cột Sheet — theo Q10. `ord_transfer_leg`: + cột số người riêng (nếu Q1 = a). `vc_trip_driver`: dùng mã `REFUSED` + cột mã lý do Từ chối. `vc_dispatch_policy`: + hạn chót Từ chối. `vc_unavailability`: khung bận của tài xế. |
+| **(2) Ô nào chạm bảng nào** | Mẫu chặng: Quản trị (`admin.manage`) nếu trong app. `trip.refuse` → đóng dòng lái của chính mình. `unavailability.self` → khung bận của chính mình. `trip.dispatch` → thêm nghĩa "xem khung bận của mọi tài xế". |
+| **(3) Cổng nào canh cửa nào** | Như lượt 2 D3, D4 (cổng `staff` + chốt "đang lái"; 404 chuyến không phải của mình). CSDL: trigger dòng lái chỉ đi tiến, trigger khung bận không chồng chuyến đã nhận (khuôn lượt 2 B3.x, B4.x). |
+
+### 6.6 Câu của ADR đã duyệt bị đụng (nguyên văn → mới)
+
+Tệp ADR cũ **không** sửa; ADR mới của từng lượt ghi các dòng này; `docs/adr/README.md` do điều phối cập nhật.
+
+| ADR | Nguyên văn | Mới | Lượt |
+|---|---|---|---|
+| ADR-0006 điều 4 | "**Nhiệm vụ** = dòng phạm vi `order_service_id`; một dịch vụ có nhiều nhiệm vụ đang mở (vd tài xế đón ở khách sạn, HDV đón ở cảng, lái cano)." | "… (vd HDV đón ở cảng, lái cano). **Việc đưa đón bằng xe đường bộ là Chuyến của phân hệ Vận chuyển**, không phải nhiệm vụ của Phân công." | 1 |
+| ADR-0006 điều 2 | "`task_kind_code` (… `PICKUP` đón, `DROPOFF` tiễn, `BOAT` lái cano, …)" | giữ nguyên danh sách; thêm: "`PICKUP`/`DROPOFF` của Phân công chỉ dùng cho **người** đón/tiễn không lái xe (vd HDV đón ở cảng); xe đường bộ dùng Chuyến." — **khác 1b** (1b đề xuất ngưng hẳn hai mã; ngưng thì mất chỗ ghi "HDV đón ở cảng" mà điều 4 còn giữ) | 1 |
+| ADR-0006 điều 5, vế thứ hai | "*giờ và nơi điều xe/đón thực tế* = `dsp_assignment.scheduled_time` / `location_id` / `place_text` của nhiệm vụ `PICKUP` … câu 'tài xế đón mấy giờ' đọc từ nhiệm vụ `PICKUP` của dịch vụ đó." | "… = giờ xe tới của điểm dừng `vc_trip_stop.planned_time` (trống = theo giờ hẹn của chặng) … câu 'tài xế đón mấy giờ' đọc từ điểm dừng của chuyến có suất của chặng đó." (Vế thứ nhất đã đổi ở ADR-0047.) | 1 |
+| ADR-0006 điều 7, vế "đã đón" | "Tiến độ **của từng nhiệm vụ** (đã gọi, đã đón) nằm ở `dsp_assignment.status_code`/`done_at`" | "… Với xe đường bộ, 'đã đón' = suất `vc_trip_allocation.status = 'BOARDED'` (một nguồn)." | 1 |
+| ADR-0040 D1 (phụ thuộc) | "Phụ thuộc `parties` (hàm công bố) và `audit` (`auditStatement`). Không module nào import `van-chuyen`." | "Phụ thuộc `parties`, `audit`, **`orders`** (suất trỏ chặng; hàm hẹp), **`locations`** (điểm dừng). Không module nào import `van-chuyen`." — sửa `ALLOWED_EDGES` là nới hàng rào (Điều 9.4) | 1 |
+| ADR-0040 D3 | "**Lượt 1b:** mở ô 'xem cuốc xe của mình'. Trang đầu của tài xế hiện các cuốc được giao." | "… mở `trip.view`, `trip.progress`, `trip.passenger.add` (phạm vi `assigned`); lượt duyệt 2 mở `trip.transfer` (`assigned`)." — nới bài ghim hàng `DRIVER` | 1, 2 |
+| ADR-0048 D2 (ô quyền) | "Ô xem chuyến, Từ chối, Báo bận: thuộc ADR-0047 và lượt duyệt II; tới lúc đó vẫn `none`." | "Ô xem chuyến, tiến độ, bổ sung tên (lượt duyệt 1 của bản thiết kế điều phối) và chuyển điểm (lượt duyệt 2) = `assigned`; Từ chối, Báo bận ở lượt duyệt 3." — nới bài ghim hàng `DRIVER_PARTNER` | 1, 2 |
+| ADR-0047 A1 (bảng cột) | bảng cột của `ord_transfer_leg` (không có cột đặt gấp) | thêm `short_notice_reason`, `short_notice_note`, `short_notice_by`, `short_notice_at`, `short_notice_lead_minutes`; `CHECK`: có lý do thì có người + lúc | 1 |
+| ADR-0047 A1 | "**Số người của riêng chặng** (`pax_override`, chiều về ít người hơn): **chờ lượt 2** (Q6)." | theo Q1 của bản này (lượt duyệt 3, D7) | 3 |
+| ADR-0047 A2 | "Giá trị `DRIVER` định sẵn để khỏi dựng lại bảng; **chỉ dùng khi ADR lượt 2 mở đường ghi cho tài xế**" | "… mở bằng ô `trip.passenger.add` (lượt duyệt 1 của bản thiết kế điều phối)." | 1 |
+| ADR-0047 A3 | "Hàm trả liên hệ (SĐT) cho tài xế: **chờ lượt 2** (Q3)." | "`lienHeChoTaiXe(db, orderIds)` — chỉ gọi sau `can(trip.view, assigned)` và chỉ trong ngày chạy (chủ trả lời Q3, 2026-09-28/29)." | 1 |
+| ADR-0022 điều 3 | "**Nhóm nhận suy từ ô `order.view` hiện hành** …" | bổ sung: "Sự kiện **chuyến** (loại `chuyen`) có nhóm nhận riêng: `dieu-xe` (có `trip.view = any`) + `nguoi:<tài khoản tài xế liên quan>`; không bao giờ gắn `tat-ca`." | 2 |
+| ADR-0022 điều 4 | "**Sự kiện chỉ gồm** mã/đơn, loại thay đổi, thời điểm." | bổ sung: "Sự kiện chuyến chỉ gồm mã chuyến, loại thay đổi, thời điểm." | 2 |
+| ADR-0034 điều 1 | "Tin về đơn là hình chiếu của `audit_log` … Nguồn: các hành động `created`, …" | bổ sung nguồn thứ hai: sự kiện chuyến (view `v_aud_trip_event`) và `order_leg_updated`, `order_leg_short_notice` (nhắc gọi khách, đặt gấp) — như lượt 2 D5 | 2 |
+| ADR-0007 điều 4(b) | khuôn hàm tiêm từ gốc lắp ráp | thêm `ctx.mocToiThieu` (lượt 1), `baoThayDoiChuyen`, `chuyenLienQuan` (lượt 2) | 1, 2 |
+| ADR-0019 | bản đồ ô | thêm các ô §6.1; không đổi danh sách cổng | 1, 2, 3 |
+
+### 6.7 Cửa một chiều / hai chiều
+
+- **Một chiều:**
+  - tiền tố và chủ sở hữu các bảng `vc_trip*`, `vc_transfer_*`;
+  - các **tập đóng** (trạng thái chuyến, suất, điểm, đề nghị; `kind`; `scope`; `rule_code`; `close_reason`) — đổi `CHECK` trong SQLite = dựng lại bảng, nên **định trọn ngay từ lượt 1**, kể cả giá trị chỉ dùng ở lượt sau;
+  - bản chụp xuất bến, manifest, `vc_transfer_check`, sự kiện, nhật ký — chỉ-thêm, chứng cứ, lưu ≥ 3 năm;
+  - dữ liệu cá nhân trong manifest (dòng `ord_passenger` đã trỏ) và mỗi lần tài xế đã xem tên/SĐT (không rút lại được);
+  - **danh sách trường của `detail` nhật ký** — phải chốt trước khi ghi dòng đầu (lượt 2 D5).
+- **Hai chiều:** ô quyền; giá trị chính sách (thêm dòng mới); danh mục lý do; luật thuần (đổi cùng test); gợi ý xếp; màn hình; hàm tiêm; phương án kỹ thuật PA-1 (chuyển PA-2 sau vẫn dùng lại luật).
+- **Tránh một chiều không cần:** không thêm lớp Durable Object (PA-2) — lớp mới làm Cloudflare chặn `wrangler rollback`.
+
+### 6.8 Lệch có chủ ý khỏi Hiến chương 5.1 (khuôn ADR-0029; chỉ hợp lệ khi chủ duyệt)
+
+| Mã | Phạm vi | Vì sao chỉ ở mã | Lớp bù | Điều kiện gỡ |
+|---|---|---|---|---|
+| **L-D1** (mới) | "số suất đang mở của một chặng ≤ số người của chặng" | số người sau sửa nằm trong JSON của `orders` (`after_json`); trigger `vc_` không đọc được | máy chủ lúc mở suất; **giữ** ở cổng xuất bến; [ĐK] "chặng có suất mở vượt số người" | số khách hiệu lực thành cột có kiểu (kế hoạch dọn nền T1 / ADR sổ công nợ) — cùng điều kiện với L-A1 |
+| **L-B1** (từ 1b) | "đủ tên cho số người của chặng lúc xuất bến" | như trên | `kiemXuatBen`; trigger đòi có dòng kiểm đạt cùng lô; [ĐK] "chuyến đã xuất bến mà manifest ít hơn số người" | như trên |
+| **L-B2** (từ 1b) | hạng và hạn GPLX, giấy tờ xe còn hạn tới hết chuyến | Phần II quy tắc 4 cấm view mang hạng/hạn; ADR-0040 D1 đã chọn hàm công bố | máy chủ lúc gán + lúc xuất bến; bản chụp; [ĐK] "chuyến 48 giờ tới / đang chạy có tài xế không đạt" | view cờ `v_pty_driver_eligible` nếu chủ nới quy tắc 4 — **không** đề xuất ở đây |
+| L-A1 | (đã duyệt ở ADR-0047) | — | — | — |
+
+- **Không phải lệch:** mốc tối thiểu (khoảng cho phép theo giờ hiện tại — §2.2); khoảng nghỉ (luật cấu hình phá lệ được, không phải "luật phải luôn đúng").
+- **Có lớp CSDL đủ:** LC-01 (người có tên), LC-02, LC-03, LC-04, LC-05, LC-06, LC-07, LC-09, LC-10, LC-11, LC-13, LC-14, LC-15, LC-16.
