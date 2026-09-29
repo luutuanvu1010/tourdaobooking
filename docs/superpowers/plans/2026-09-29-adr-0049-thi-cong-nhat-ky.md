@@ -516,3 +516,10 @@ Tệp nháp ngoài `migrations/` và ngoài `src/` (`/tmp/adr49-a0/`, đã xoá 
 - Bài `src/audit-invariants.test.ts` +13 (dựng thô `tho()`: bỏ khoá ngoại + mọi trigger bảng chuyến; đơn qua nháp → xác nhận để qua `order_frozen`). P16 13 phép + 1 ca thêm cho R-VC-10, đều đỏ. Bài "mọi câu = 0 trên dữ liệu khoẻ" (có sẵn) chạy cả 14 câu mới.
 - TC-40 `node scripts/audit-invariants.mjs --db local` trên dữ liệu e2e: ở A21 (đuôi `--strict` của e2e đủ bộ).
 
+### 10.22 A18 — Không lộ số, không lộ tên (lát 1.6/1.7; TC-39, TC-50)
+
+- **Đổi mã (TC-39 "đúng hai route van-chuyen trả tên"):** `chiTietChuyen(…, kemTen, …)` — `true` CHỈ ở GET `/chuyen/:id`; 16 chỗ gọi khác (lệnh ghi, bấm thay, gọi báo) `false`. Chín lệnh tiến độ của tài xế trả `cuocChiTiet(…, hk = [], …)` — không `hoTen` / `namSinh` / `lienHe`. **GA-55 (hai chiều, bề mặt — đã nhắn điều phối):** màn tải lại GET `/chuyen/:id` hoặc GET `/cuoc-cua-toi/:id` sau mỗi lệnh nếu cần tên. `tai-xe-dto.test.ts` sửa kỳ vọng phản hồi tiến độ trong ngày (`ten: false`).
+- `src/giay-to-khong-lo-so.test.ts` bài 2 (ba route điều phối, thêm luật quét NƠI CẤP; bản chụp xuất bến không số / nơi cấp). `src/hanh-khach-khong-lo-ten.test.ts` bài 2 (khối van-chuyen: đủ tuyến 34 route điều phối, tên chỉ ở hai GET, DTO ngoài ngày chạy sạch, nhật ký + mọi bảng `vc_*` sạch, TC-50 liệt kê khoá + quét `L:` / `T:` + bản chụp / bản chốt không cột khoá, DTO tài xế không khoá gọi báo). Khung `don()` nhận `namSinh`.
+- **GA-56 (hai chiều — phạm vi "đủ tuyến"):** "route ghi van-chuyen mới" = mọi route có đường dẫn `/api/van-chuyen/{lich, chuyen, cuoc-cua-toi, chang, nhac-goi-khach, chinh-sach-dieu-phoi}` (cả GET — để quét thân); route xe / giấy tờ xe / điều kiện / danh mục (lượt 1a) thuộc bài giấy tờ, không vào khối này.
+- P16: 9 phép khối tên + 3 phép khối số — đều đỏ đúng câu (sổ hàng rào hai dòng). `npm test` 1774 (1 đỏ = bài đo giờ hook `claude-guard` khi máy bận — chạy riêng 11/11 xanh, như A-GB).
+
