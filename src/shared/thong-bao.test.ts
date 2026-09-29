@@ -121,6 +121,25 @@ test("K3: 'Toàn công ty' = nội bộ; Đối tác thuần không nhận, Đ�
   assert.equal(nhanThayTinThuCong(MAI, ["quyen:SALES"]), false);
 });
 
+// ADR-0034 điều 6 sửa bởi ADR-0048: "Toàn công ty" = có ít nhất một quyền KHÔNG thuộc EXTERNAL_PERMISSIONS (Đối tác, Tài xế đối tác). Tài xế CÔNG TY (DRIVER)
+// vẫn nhận; tài xế ĐỐI TÁC không nhận. MỘT nguồn cho hộp thư lẫn màn hình khoá: đẩy tin thủ công đi qua locNguoiNhan → nhanThayTinThuCong → laNoiBo.
+test("ADR-0048: 'Toàn công ty' không gồm Tài xế đối tác; tài xế công ty vẫn nhận; gửi riêng nhóm quyen:DRIVER_PARTNER thì tới", () => {
+  const TX_DT = ai("tx-dt", "DRIVER_PARTNER");
+  const TX_CT = ai("tx-ct", "DRIVER");
+  assert.equal(laNoiBo(TX_DT), false);
+  assert.equal(laNoiBo(TX_CT), true);
+  assert.equal(laNoiBo(BX), false);
+  assert.equal(nhanThayTinThuCong(TX_DT, ["noi-bo"]), false);
+  assert.equal(nhanThayTinThuCong(TX_DT, ["quyen:DRIVER_PARTNER"]), true);
+  assert.equal(nhanThayTinThuCong(TX_CT, ["quyen:DRIVER_PARTNER"]), false, "nhóm Tài xế đối tác không gồm tài xế công ty");
+  assert.deepEqual(nhanNguoiNhan(["DRIVER_PARTNER"]), ["quyen:DRIVER_PARTNER"]);
+  assert.equal(nhanNhomNhan(["quyen:DRIVER_PARTNER"]), "Tài xế đối tác");
+  // Hộp thư: một tin "Toàn công ty" → tài khoản chỉ Tài xế đối tác không thấy gì; tin nhóm Tài xế đối tác → thấy.
+  assert.deepEqual(hop(TX_DT, [], [tin({ nhan: ["noi-bo"] })]).tin, []);
+  assert.equal(hop(TX_DT, [], [tin({ nhan: ["quyen:DRIVER_PARTNER"] })]).tin.length, 1);
+  assert.equal(hop(TX_CT, [], [tin({ nhan: ["noi-bo"] })]).tin.length, 1, "tài xế công ty vẫn nhận tin Toàn công ty");
+});
+
 // 5b (rà soát độc lập lượt 2): dòng người gửi ở hộp đọc cần "· Toàn công ty" / "· <nhóm>" đúng bản mẫu — TinDto.nhomNhan.
 test("nhomNhan: nhãn 'Gửi cho' của tin thủ công đúng bản mẫu; null cho tin về đơn", () => {
   assert.equal(nhanNhomNhan(["noi-bo"]), "Toàn công ty");

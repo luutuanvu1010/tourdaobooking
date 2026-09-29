@@ -25,6 +25,12 @@ export const TRANG_DAU_TAI_XE = "/tai-xe";
 export function homeRedirect(who: PermissionHolder): string | null {
   if (seesAllOrders(who)) return null;
   if (canAccessOrders(who)) return "/orders";
-  if (hasPermission(who, "DRIVER")) return TRANG_DAU_TAI_XE;
+  if (coPhanTaiXe(who)) return TRANG_DAU_TAI_XE;
   return null;
 }
+
+/**
+ * Tài khoản có phần Tài xế — tài xế công ty (DRIVER, ADR-0040) hoặc tài xế đối tác (DRIVER_PARTNER, ADR-0048; giả định I2/G1 của kế hoạch: dùng lại trang
+ * đầu và thanh tab của tài xế công ty). Một nguồn cho start-page và web/account.ts.
+ */
+export const coPhanTaiXe = (who: Pick<PermissionHolder, "permissions">): boolean => hasPermission(who, "DRIVER") || hasPermission(who, "DRIVER_PARTNER");

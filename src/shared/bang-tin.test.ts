@@ -42,6 +42,11 @@ test("nhanKetNoi: mọi tập con quyền (512) khớp can(order.view)/(can(disp
   }
 });
 
+// ADR-0048 D2 ("Bảng tin: không đổi luật"): nhanKetNoi suy từ can() nên tài khoản chỉ Tài xế đối tác chỉ mang nhãn của CHÍNH MÌNH — khẳng định tường minh.
+test("nhanKetNoi: tài khoản chỉ Tài xế đối tác (DRIVER_PARTNER) chỉ mang nguoi:<id> — không tat-ca, không cho-nhan (ADR-0048 D2)", () => {
+  assert.deepEqual(nhanKetNoi({ id: "tx-dt", permissions: ["DRIVER_PARTNER"] }), ["nguoi:tx-dt"]);
+});
+
 test("nhanKetNoi: tài khoản lai Đối tác + quyền có dispatch.claim (SALES/ADMIN/SUPER_ADMIN) KHÔNG có cho-nhan (ADR-0030 S20-8, Q-M)", () => {
   // holdsPartner áp bất kể quyền đi kèm (chủ dự án 2026-09-26: "Có quyền Đối tác là áp") — cùng luật với checkAssignee.
   assert.deepEqual(nhanKetNoi({ id: "x", permissions: ["PARTNER", "SALES"] }), ["nguoi:x", "tat-ca"], "lai PARTNER+SALES: tat-ca có (order.view=any qua SALES), cho-nhan KHÔNG");

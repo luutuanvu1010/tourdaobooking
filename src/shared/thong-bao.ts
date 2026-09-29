@@ -1,7 +1,7 @@
 // THÔNG BÁO HỆ THỐNG (ADR-0034) — luật thuần dùng chung server ↔ web/: tin về đơn là HÌNH CHIẾU của audit_log; một hàm lọc cho cả số đỏ
 // lẫn danh sách. Không I/O. Luật quyền chỉ qua can()/hasPermission/isOffice và các hàm của bang-tin.ts — không viết tay luật mới.
 import { duocThayTinDon, nhanKetNoi, nhanSuKien, type TrangThaiPhuTrach } from "./bang-tin.ts";
-import { can, hasPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
+import { can, hasPermission, isExternalPermission, isOffice, PERMISSION_CODES, PERMISSION_LABEL, type PermissionCode, type PermissionHolder } from "./permissions.ts";
 import type { GuiThongBaoRequest, HopThongBaoResponse, LoaiTin, NguoiNhanTin, TinDto } from "./contracts.ts";
 
 export const HANH_DONG_TIN_DON = ["created", "order_claimed", "order_handler_changed", "confirmed", "cancelled", "order_cancelled_by_field"] as const;
@@ -42,8 +42,11 @@ const CAU: Record<LoaiTinDon, { coTen: (ten: string, ma: string) => string; khon
   huy: { coTen: (t, m) => `${t} vừa huỷ đơn ${m}`, khongTen: (m) => `Đơn ${m} vừa bị huỷ` },
 };
 
-/** "Toàn công ty" (K3): có ít nhất một quyền khác PARTNER. */
-export const laNoiBo = (staff: PermissionHolder): boolean => staff.permissions.some((p) => p !== "PARTNER");
+/**
+ * "Toàn công ty" (K3; ADR-0034 điều 6 sửa bởi ADR-0048): có ít nhất một quyền KHÔNG thuộc EXTERNAL_PERMISSIONS (Đối tác, Tài xế đối tác) — cùng hằng với LC-1.
+ * Tài xế công ty (DRIVER) vẫn nhận; tài khoản chỉ Đối tác hay chỉ Tài xế đối tác không nhận. MỘT nguồn cho hộp thư lẫn màn hình khoá (locNguoiNhan dùng lại).
+ */
+export const laNoiBo = (staff: PermissionHolder): boolean => staff.permissions.some((p) => !isExternalPermission(p));
 export function nhanNguoiNhan(n: NguoiNhanTin): string[] {
   return n === "noi-bo" ? ["noi-bo"] : [...new Set(n)].map((p) => `quyen:${p}`).sort();
 }

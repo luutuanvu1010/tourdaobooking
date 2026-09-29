@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { TRANG_DAU_TAI_XE, homeRedirect } from "./start-page.ts";
+import { TRANG_DAU_TAI_XE, coPhanTaiXe, homeRedirect } from "./start-page.ts";
 import { PERMISSION_CODES, canAccessOrders, seesAllOrders, type PermissionCode } from "./permissions.ts";
 import { PAGES } from "./sw-policy.ts";
 
@@ -56,12 +56,24 @@ test("homeRedirect: chỉ Tài xế (DRIVER) → trang đầu của tài xế /t
   for (const p of ["FIELD", "PARTNER", "INTERN"] as const) assert.equal(homeRedirect(who(p, "DRIVER")), "/orders", `${p}+DRIVER`);
 });
 
-test("homeRedirect: 512 tập con quyền — tập KHÔNG có DRIVER cho đúng kết quả cũ; trang đầu tài xế chỉ khi có DRIVER và không xem đơn nào", () => {
+// ADR-0048 D2 (giả định I2/G1 của kế hoạch — đã được điều phối chấp nhận): tài khoản chỉ Tài xế đối tác cũng không qua cổng orders; ở lại Trang chủ thì gọi
+// dashboard đơn và nhận 403 — đưa tới CÙNG trang đầu tài xế /tai-xe (trang chỉ gọi GET /api/parties/documents/mine).
+test("homeRedirect: chỉ Tài xế đối tác (DRIVER_PARTNER) → /tai-xe; kèm văn phòng → Trang chủ; kèm FIELD → /orders (hai tổ hợp sau bất hợp lệ theo LC-1b, hàm thuần vẫn đúng công thức)", () => {
+  assert.equal(homeRedirect(who("DRIVER_PARTNER")), TRANG_DAU_TAI_XE);
+  assert.equal(homeRedirect(who("DRIVER_PARTNER", "SALES")), null);
+  assert.equal(homeRedirect(who("DRIVER_PARTNER", "FIELD")), "/orders");
+  assert.equal(coPhanTaiXe(who("DRIVER")), true);
+  assert.equal(coPhanTaiXe(who("DRIVER_PARTNER")), true);
+  assert.equal(coPhanTaiXe(who("PARTNER")), false);
+  assert.equal(coPhanTaiXe(who("SALES", "FIELD")), false);
+});
+
+test("homeRedirect: 512 tập con quyền — tập KHÔNG có phần tài xế (DRIVER hoặc DRIVER_PARTNER) cho đúng kết quả cũ; trang đầu tài xế chỉ khi có phần tài xế và không xem đơn nào", () => {
   const cu = (w: { id: string; permissions: PermissionCode[] }) => (!seesAllOrders(w) && canAccessOrders(w) ? "/orders" : null); // công thức trước ADR-0040, chép nguyên
   let n = 0;
   for (let mask = 0; mask < 1 << PERMISSION_CODES.length; mask++, n++) {
     const w = who(...PERMISSION_CODES.filter((_, i) => mask & (1 << i)));
-    const coTaiXe = w.permissions.includes("DRIVER");
+    const coTaiXe = coPhanTaiXe(w);
     const kyVong = !coTaiXe || seesAllOrders(w) || canAccessOrders(w) ? cu(w) : TRANG_DAU_TAI_XE;
     assert.equal(homeRedirect(w), kyVong, w.permissions.join("+") || "(không quyền)");
   }
