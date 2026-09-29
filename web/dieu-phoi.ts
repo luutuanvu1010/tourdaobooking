@@ -8,7 +8,7 @@
 // - Kế toán (ô trip.view, không trip.dispatch): xem đủ, không nút, dải "Chỉ xem". Không "Gọi tài xế" (H7), không "Đã gọi báo" (Q2 / ADR-0051 — Task B-GB sau).
 // - CHỜ A15: thẻ chuyến đang chạy (mốc tiến độ, "giờ do văn phòng khai") — chưa dựng.
 import {
-  cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, thayDieuPhoiXe, tuyenChuyen, viecCanXuLy,
+  cauKhoaMoc, changChuaXep, chipChang, chuyenXepDuoc, hinhDongThoiGian, kieuChuyen, nhanNgayXem, soLieuDieuPhoi, tuyenChuyen, viecCanXuLy,
   type HangXe, type KhoiChuyen, type ViecCanXuLy,
 } from "../src/shared/dieu-phoi-man";
 import type { ChangLichDto, ChuyenChiTietResponse, ChuyenTomTatDto, CapNhatDiemResponse, GoiBaoChangDto, LichChungResponse, NhacGoiKhachResponse } from "../src/shared/contracts";
@@ -52,6 +52,8 @@ let tab: "chua-xep" | "xe" | "can-xu-ly" = "chua-xep";
 datCrumb("Vận chuyển", "Điều phối xe");
 
 async function nap(): Promise<void> {
+  // Kiểm độc lập K2b T1: chặn ô trip.view TRƯỚC mọi lời gọi (cả khi bấm đổi ngày), như web/chuyen.ts.
+  if (!can(staff, "trip.view")) return;
   oNgay.value = ngay;
   byId("dp-ngay-nhan").textContent = nhanNgayXem(ngay, homNay);
   nutMoi.href = `/chuyen-sua?ngay=${ngay}`;
@@ -474,7 +476,12 @@ function moXep(c: ChangLichDto, conLai: number, chuyenId: string | null, opener:
 }
 
 async function main(): Promise<void> {
-  if (!thayDieuPhoiXe(staff)) return showError(errorEl, "Tài khoản này không xem được lịch xe.");
+  if (!can(staff, "trip.view")) {
+    // Không ô trip.view (tài xế gõ thẳng địa chỉ): không dựng ô ngày / nút đổi ngày — chỉ câu từ chối.
+    byId("dp-truoc").closest<HTMLElement>(".dp-date")!.hidden = true;
+    byId("dp-ngay-nhan").hidden = true;
+    return showError(errorEl, "Tài khoản này không xem được lịch xe.");
+  }
   await nap();
 }
 await main();

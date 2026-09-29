@@ -242,6 +242,19 @@ try {
   });
   await q.close();
 
+  // ---- Tài xế (không có ô trip.view không ngữ cảnh) — kiểm độc lập K2b T1 -------------------------------------------------------------------------------------
+  const tx = await env.as(d.AN.account, `/dieu-phoi?ngay=${d.NGAY_XA}`, DESK);
+  await b.step("7b", "K2b T1: tài xế gõ thẳng /dieu-phoi → câu từ chối, KHÔNG ô ngày / nút đổi ngày; bấm đổi ngày (nếu còn) cũng KHÔNG gọi /api/van-chuyen/*", async () => {
+    await tx.waitFor(`!document.getElementById('error').hidden`, "câu từ chối");
+    assert.equal(await tx.ev(txt("#error")), "Tài khoản này không xem được lịch xe.");
+    assert.equal(await tx.ev(shown("#dp-sau")), false, "không nút đổi ngày");
+    assert.equal(await tx.ev(shown("#dp-moi")), false);
+    await tx.ev(`document.getElementById('dp-sau').click(), true`);
+    await sleep(800);
+    assert.deepEqual(apiCalls(tx).filter((r) => r.path.startsWith("/api/van-chuyen")).map((r) => r.path), [], "không lời gọi lịch xe nào");
+  });
+  await tx.close();
+
   // ---- Kế toán (chỉ xem) ---------------------------------------------------------------------------------------------------------------------------------------
   const k = await env.as(ACCOUNTS.accounting, `/dieu-phoi?ngay=${d.NGAY_XA}`, DESK);
   await b.step("8", `1e Kế toán: dải "Chỉ xem", không "+ Chuyến mới", thẻ chặng / việc không nút; bấm khối chỉ có "Mở chuyến"; menu chỉ Điều phối xe; không lệnh ghi${axeNote()}`, async () => {
@@ -267,7 +280,7 @@ try {
   await k.close();
 
   await b.step("9", "không lỗi console ở mọi trang đã mở", async () => {
-    for (const pg of [p, pa, pm, q, k]) assert.deepEqual(pg.consoleErrors, []);
+    for (const pg of [p, pa, pm, q, tx, k]) assert.deepEqual(pg.consoleErrors, []);
   });
 } finally {
   b.xong();
