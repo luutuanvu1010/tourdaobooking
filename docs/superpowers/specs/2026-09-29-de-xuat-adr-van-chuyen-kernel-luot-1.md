@@ -1,6 +1,6 @@
 # Đề xuất ADR-00xx (điều phối cấp số) — Vận chuyển, thừa kế Transportation Kernel, lượt duyệt 1: giờ xảy ra thật khi văn phòng bấm thay; giữ chuyến khi nơi hẹn đổi sau khi xếp; gieo điều kiện giấy tờ xe
 
-- **Trạng thái:** **ĐỀ XUẤT — chờ chủ duyệt.**
+- **Trạng thái:** **ĐÃ GHI THÀNH `docs/adr/ADR-0050-van-chuyen-kernel-luot-1.md` (accepted, 2026-09-29)** — chủ chọn (a) cả ba câu và "Duyệt, ghi theo 3 câu" ([HĐ] "Trả lời lần 10"); người kiểm xem bản cuối `73d3c2d` ĐẠT. Tệp này giữ làm bản nháp lịch sử; **văn bản có hiệu lực là tệp ở `docs/adr/`**. Dưới đây là trạng thái trước khi duyệt:
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2).
   - **Người kiểm độc lập** bộ đề xuất (đỉnh `9cf9431`): **ĐẠT CÓ ĐIỀU KIỆN**, 5 điểm sửa. Đã sửa ở bản này:
     - mã đóng suất riêng `STOP_CHANGED`, không dùng lại `MOVED` — ruling R-K1 của điều phối;
