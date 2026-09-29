@@ -1,6 +1,10 @@
 // Điều phối có I/O của module orders: dựng ngữ cảnh kiểm (danh mục hiệu lực + dịch vụ đã lưu của đơn) và bản xem đơn kèm
 // trạng thái so với danh mục hiện tại. Luật thuần nằm ở rules.ts / service-rules.ts; SQL ở repository.ts.
-import type { OrderDetailDto } from "../../shared/contracts";
+import type { OrderDetailDto, PassengerDto, PassengerListResponse } from "../../shared/contracts";
+import {
+  dongHienHanh, keHoachHanhKhach, kiemDanhSachHanhKhach, kiemHanhKhach, moTaThayDoiKhach, soKhachDoan, vuotSoKhach, type DongHanhKhach, type KeHoach,
+  type ThayDoiHanhKhach,
+} from "../../shared/hanh-khach";
 import { describeBookerChange, type BookerInput } from "../../shared/booker";
 import { vnToday } from "../../shared/vn-date";
 import { auditStatement } from "../audit";
@@ -9,9 +13,11 @@ import { composePersonName, newPersonStatements, validatePersonFullName, type Co
 import {
   MAX_CHANG_MOI_DICH_VU, chieuDiDau, doiNgayChang, isLyDoDongChang, kiemChang, moTaChang, tronChangCu, type ChangHopLe, type LyDoDongChang,
 } from "../../shared/chang-dua-don";
-import { activeLocations, legById, passengerRowsByOrders, type LegFields } from "./chang-hanh-khach-repo";
+import { activeLocations, legById, passengerRowsByOrders, servicePaxByOrder, type LegFields, type PassengerRow } from "./chang-hanh-khach-repo";
 import { applyAdjustmentToOrder } from "./money-adjustment";
-import { findOrder, getLatestAdjustment, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow } from "./repository";
+import {
+  effectivePax, findOrder, getLatestAdjustment, getMeta, getStoredServices, type BookerWrite, type LegOp, type StoredLeg, type StoredServiceRow,
+} from "./repository";
 import type { ValidOrder } from "./rules";
 import { catalogStatusOf, type ServiceContext, type ValidTrip } from "./service-rules";
 
@@ -173,6 +179,52 @@ export async function planCloseLeg(db: D1Database, orderId: string, legId: strin
   const detail = moTaChang(svc.name, moTaVao(old, names), null, body!.reasonCode)!;
   const mirror = dauSau(svc.legs.filter((l) => l.id !== legId), names);
   return { ok: true, value: { legId, serviceId: svc.id, reason: body!.reasonCode, expected, detail, mirror } };
+}
+
+// ---- Danh sách hành khách (ADR-0047 A2) ---------------------------------------------------------------------------------------------------------
+
+const toDong = (r: PassengerRow): DongHanhKhach => ({
+  id: r.id, personKey: r.person_key, previousId: r.previous_id, voided: r.voided === 1, fullName: r.ten, birthYear: r.birth_year, paxCode: r.pax_code, updatedAt: r.updated_at,
+});
+
+/**
+ * `GET/POST /api/orders/:id/passengers` — CHỈ dòng hiện hành (giả định G3: tên cũ không hiện), mỗi người dựng TỪNG khoá; cờ "danh sách nhiều hơn số khách"
+ * so với số khách HIỆU LỰC của dịch vụ đông nhất (R9, G4 — `effectivePax`, một nguồn với danh sách đơn). Chỉ là cờ, không tự tăng số khách (N7).
+ */
+export async function passengerList(db: D1Database, orderId: string): Promise<PassengerListResponse> {
+  const [rows, paxRows, meta] = await Promise.all([passengerRowsByOrders(db, [orderId]), servicePaxByOrder(db, orderId), getMeta(db, orderId)]);
+  const passengers = dongHienHanh(rows.map(toDong)).map((p): PassengerDto => ({ personKey: p.personKey, rowId: p.id, fullName: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, updatedAt: p.updatedAt }));
+  const soKhach = soKhachDoan([...(await effectivePax(db, paxRows)).values()]);
+  return { passengers, soNguoiCoTen: passengers.length, soKhachDoan: soKhach, vuotSoKhach: vuotSoKhach(passengers.length, soKhach), orderUpdatedAt: meta?.updatedAt ?? "" };
+}
+
+export interface PassengerChangePlan { expected: string; chen: KeHoach["chen"]; huy: KeHoach["huy"]; detail: string; none: boolean }
+/**
+ * `POST /api/orders/:id/passengers` (đơn ĐÃ XÁC NHẬN — R1): thân `{ expectedUpdatedAt (của đơn), them: [...], sua: [{ personKey, ... }], huy: [personKey] }`.
+ * Kiểm từng người (`kiemHanhKhach`), lập kế hoạch chỉ-thêm (`keHoachHanhKhach` — R8). `none` = không có gì để ghi (sửa y nguyên).
+ */
+export async function planPassengerChange(db: D1Database, orderId: string, body: Record<string, unknown> | null, today: string): Promise<{ ok: true; value: PassengerChangePlan } | { ok: false; message: string }> {
+  const expected = expectedOf(body);
+  if (!expected) return { ok: false, message: "Thiếu expectedUpdatedAt (mốc cập nhật của đơn mà trang đã đọc)." };
+  const b = body!;
+  const them = kiemDanhSachHanhKhach(b.them ?? [], today, "Khách thêm");
+  if (!them.ok) return them;
+  if (!Array.isArray(b.sua ?? [])) return { ok: false, message: "Danh sách khách cần sửa không hợp lệ." };
+  const sua: ThayDoiHanhKhach["sua"] = [];
+  for (const [i, raw] of ((b.sua ?? []) as unknown[]).entries()) {
+    const personKey = raw && typeof raw === "object" ? (raw as Record<string, unknown>).personKey : undefined;
+    if (typeof personKey !== "string" || !personKey) return { ok: false, message: `Khách sửa ${i + 1}: thiếu mã người (personKey).` };
+    const k = kiemHanhKhach({ ...(raw as Record<string, unknown>), id: undefined }, { at: `Khách sửa ${i + 1}`, today });
+    if (!k.ok) return k;
+    sua.push({ personKey, fullName: k.value.fullName, birthYear: k.value.birthYear, paxCode: k.value.paxCode });
+  }
+  const huy = b.huy ?? [];
+  if (!Array.isArray(huy) || !huy.every((x) => typeof x === "string" && x)) return { ok: false, message: "Danh sách khách cần huỷ không hợp lệ." };
+  const rows = (await passengerRowsByOrders(db, [orderId])).map(toDong);
+  const plan = keHoachHanhKhach(rows, { them: them.value.map((t) => ({ ...t, id: null })), sua, huy: huy as string[] }, () => crypto.randomUUID());
+  if (!plan.ok) return plan;
+  const none = plan.value.chen.length === 0 && plan.value.huy.length === 0;
+  return { ok: true, value: { expected, chen: plan.value.chen, huy: plan.value.huy, detail: moTaThayDoiKhach(plan.value.dem), none } };
 }
 
 /**

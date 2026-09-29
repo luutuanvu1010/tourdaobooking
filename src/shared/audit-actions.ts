@@ -24,6 +24,8 @@ export const AUDIT_ACTIONS = {
   order_leg_added: { label: "Thêm chặng đưa đón", group: "order" },
   order_leg_updated: { label: "Sửa chặng đưa đón", group: "order" },
   order_leg_closed: { label: "Bỏ chặng đưa đón", group: "order" },
+  // ADR-0047 A2: `detail` ĐÚNG khuôn "thêm N, sửa N, huỷ N khách" — KHÔNG tên, KHÔNG năm sinh (Hiến chương 5.12; kiểm định kỳ R-ORD-10).
+  order_passenger_changed: { label: "Sửa danh sách hành khách", group: "order" },
   confirmed: { label: "Xác nhận đơn", group: "order" },
   cancelled: { label: "Huỷ đơn", group: "order" },
   order_cancelled_by_field: { label: "Huỷ đơn (hướng dẫn viên đang phụ trách)", group: "order" },

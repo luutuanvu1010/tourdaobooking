@@ -5,8 +5,8 @@ import { escapeLike } from "../../shared/http";
 import { moTaDanhSachNhap, type HanhKhachHopLe } from "../../shared/hanh-khach";
 import {
   legCloseChecked, legCloseGuarded, legDeleteDraft, legFillDateOnConfirm, legInsert, legInsertGuarded, legUpdateChecked, legUpdateGuarded, openLegsByOrders,
-  openLegsStatement, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, serviceMirrorUpdateGuarded,
-  type LegFields, type LegRow, type LegWrite, type PassengerWrite,
+  openLegsStatement, orderTouch, orderTouchGuarded, passengerDeleteDraft, passengerInsert, passengerInsertGuarded, passengerVoidGuarded, serviceMirrorUpdateGuarded,
+  type LegFields, type LegRow, type LegWrite, type PassengerWrite, type ServicePaxRow,
 } from "./chang-hanh-khach-repo";
 import type { PaxCode, PaxCounts } from "../../shared/order-lines";
 import { addDays, vnLocalToIso, vnToday } from "../../shared/vn-date";
@@ -1172,6 +1172,41 @@ export async function updateTrip(
       if (op.kind === "close") return legCloseGuarded(db, op.legId, orderId, op.reason, at, staffId, auditId);
       return legInsertGuarded(db, legWriteOf(op.leg, op.serviceId, orderId, staffId, at), auditId);
     }),
+  ]);
+  return (results[0]!.meta.changes ?? 0) > 0;
+}
+
+/**
+ * SỐ KHÁCH HIỆU LỰC (ADR-0047 A3) của các dòng dịch vụ đã đọc: số đã lưu, phủ dòng điều chỉnh GẦN NHẤT của chính đơn chứa dịch vụ qua ĐÚNG
+ * `getLatestAdjustments` → `parseAdjustmentAfter` → `applyAdjustedPax` (một nguồn — bài học Đợt E). Dùng chung cho hàm công bố `soKhachHieuLuc` và cờ
+ * "danh sách nhiều hơn số khách" (R9).
+ */
+export async function effectivePax(db: D1Database, rows: readonly ServicePaxRow[]): Promise<Map<string, PaxCounts>> {
+  const latest = await getLatestAdjustments(db, [...new Set(rows.map((r) => r.order_id))]);
+  const afterByOrder = new Map(Array.from(latest, ([id, a]) => [id, a.after] as const));
+  return new Map(applyAdjustedPax(rows, afterByOrder).map((r) => [r.id, { adult: r.pax_adult, child: r.pax_child, senior: r.pax_senior, infant: r.pax_infant }] as const));
+}
+
+/**
+ * Sửa danh sách hành khách của đơn ĐÃ XÁC NHẬN (ADR-0047 A2, Ruling R8) — khoá lạc quan theo `orders.updated_at` (câu đầu `order_touch`). Sau nhật ký
+ * (`detail` chỉ số lượng): chèn dòng mới (thêm; sửa = dòng trỏ dòng hiện hành, cùng person_key) rồi huỷ dòng (theo ĐÚNG thứ tự kế hoạch: mỗi người mới trước
+ * cũ sau). Mọi câu sau nhật ký mang lính gác. Trả true ⇔ câu đầu đã áp dụng.
+ */
+export async function writePassengerChange(
+  db: D1Database,
+  orderId: string,
+  staffId: string,
+  plan: { expected: string; chen: readonly { id: string; personKey: string; previousId: string | null; fullName: string; birthYear: number; paxCode: PaxCode | null }[]; huy: readonly string[]; detail: string },
+): Promise<boolean> {
+  const at = nextStamp(plan.expected);
+  const auditId = crypto.randomUUID();
+  const results = await db.batch([
+    orderTouch(db, orderId, at, plan.expected),
+    auditStatement(db, { id: auditId, orderId, staffId, action: "order_passenger_changed", at, detail: plan.detail }, "changes() > 0"),
+    ...plan.chen.map((p) =>
+      passengerInsertGuarded(db, { id: p.id, orderId, ten: p.fullName, birthYear: p.birthYear, paxCode: p.paxCode, previousId: p.previousId, personKey: p.personKey, at, by: staffId }, auditId),
+    ),
+    ...plan.huy.map((rowId) => passengerVoidGuarded(db, rowId, orderId, at, staffId, auditId)),
   ]);
   return (results[0]!.meta.changes ?? 0) > 0;
 }

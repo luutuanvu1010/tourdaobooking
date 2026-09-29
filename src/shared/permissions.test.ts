@@ -17,6 +17,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
   "order.create": ["any", "none", "any", "none", "any", "any", "any", "none"],
   "order.modify": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none"],
   "order.trip.edit": ["ownOrAssigned", "none", "any", "none", "none", "any", "none", "none"],
+  "order.passenger.write": ["ownOrAssigned", "none", "any", "none", "own", "any", "own", "none"], // ADR-0047 A2: ô MỚI — nhập/sửa (dòng mới)/huỷ dòng trong danh sách hành khách; bằng order.modify
   "task.progress": ["none", "none", "any", "assigned", "assigned", "any", "none", "none"],
   "order.money.edit": ["own", "any", "any", "assigned", "none", "any", "none", "none"], // ADR-0014 điều 6: FIELD đang phụ trách (đổi từ ADR-0009 điều 1 "KHÔNG đổi")
   "order.cancel": ["none", "none", "none", "assigned", "none", "any", "none", "none"], // ADR-0014 điều 11: thao tác MỚI
@@ -50,7 +51,7 @@ const ADR: Record<string, [Scope, Scope, Scope, Scope, Scope, Scope, Scope, Scop
 const ORDER: readonly PermissionCode[] = ["SALES", "ACCOUNTING", "ADMIN", "FIELD", "PARTNER", "SUPER_ADMIN", "INTERN", "DRIVER"];
 const OPS = Object.keys(ADR) as OperationCode[];
 
-test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0013 + ADR-0014 + ADR-0018 (giai đoạn 1) + Góp ý + ADR-0019 + ADR-0024 (T2b) + ADR-0030 + ADR-0034 + ADR-0040 (mọi thao tác × 8 quyền)", () => {
+test("bản đồ quyền khớp TỪNG Ô của ADR-0007 + ADR-0009 + ADR-0013 + ADR-0014 + ADR-0018 (giai đoạn 1) + Góp ý + ADR-0019 + ADR-0024 (T2b) + ADR-0030 + ADR-0034 + ADR-0040 + ADR-0047 (mọi thao tác × 8 quyền)", () => {
   assert.deepEqual([...PERMISSION_CODES], [...ORDER]);
   assert.deepEqual(Object.keys(MATRIX).sort(), Object.keys(ADR).sort(), "MATRIX và ADR phải có cùng danh sách thao tác");
   for (const op of OPS) ORDER.forEach((p, i) => assert.equal(MATRIX[op][p], ADR[op]![i], `${op} × ${p}`));
@@ -268,6 +269,7 @@ test("ADR-0040 D3: MỌI ô của Tài xế (DRIVER) — ghim nguyên dòng", ()
   const DRIVER_ROW: Record<string, Scope> = {
     "order.view": "none", "money.view": "none", "order.history.view": "none", "contact.view": "none", "order.create": "none", "order.modify": "none",
     "order.trip.edit": "none", "task.progress": "none", "order.money.edit": "none", "order.cancel": "none", "dispatch.assign": "none", "dispatch.claim": "none",
+    "order.passenger.write": "none", // ADR-0047 A2: tài xế KHÔNG đi qua ô này (đường ghi của tài xế, nếu có, do ADR lượt 2 quyết)
     "dispatch.guides.view": "none", "payment.receive": "none", "payment.refund": "none", "invoice.request": "none", "invoice.issue": "none",
     "party.view": "none", "party.write": "none", "party.staff.write": "none", "admin.manage": "none", "admin.manage.superadmin": "none",
     "account.access.manage": "none", "staff.sheet.sync": "none", "audit.view": "none",
@@ -285,4 +287,10 @@ test("quyenHienThi (ADR-0042): người xem không giữ Toàn quyền thấy SU
   assert.deepEqual(quyenHienThi(["SUPER_ADMIN", "SALES"], false), ["SALES", "ADMIN"]);
   assert.deepEqual(quyenHienThi(["SALES"], false), ["SALES"]);
   assert.deepEqual(quyenHienThi(["SUPER_ADMIN", "ADMIN"], true), ["ADMIN", "SUPER_ADMIN"]);
+});
+
+// ADR-0047 A2: "order.passenger.write mang giá trị bằng order.modify — ai lập, sửa được đơn thì nhập được tên khách của đơn đó". SUY TỪ MATRIX (không
+// chép tay): ai đổi một ô của một trong hai hàng mà quên hàng kia thì đỏ ở đây — tách ô nhập tên khách khỏi ô sửa đơn phải là quyết định có chủ đích.
+test("ADR-0047 A2: order.passenger.write = order.modify ở MỌI cột quyền (suy từ MATRIX)", () => {
+  for (const p of PERMISSION_CODES) assert.equal(MATRIX["order.passenger.write"][p], MATRIX["order.modify"][p], `order.passenger.write × ${p} phải bằng order.modify × ${p}`);
 });

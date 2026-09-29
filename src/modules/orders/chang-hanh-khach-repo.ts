@@ -39,6 +39,12 @@ export async function servicePaxByIds(db: D1Database, serviceIds: readonly strin
   return (await db.prepare(SERVICE_PAX_BY_IDS).bind(JSON.stringify(serviceIds)).all<ServicePaxRow>()).results;
 }
 
+/** Số khách ĐÃ LƯU của mọi dịch vụ của MỘT đơn (cờ "danh sách nhiều hơn số khách" — R9). */
+const SERVICE_PAX_BY_ORDER = defineSql("orders", "service_pax_by_order", `SELECT id, order_id, pax_adult, pax_child, pax_senior, pax_infant FROM order_service WHERE order_id = ?1`);
+export async function servicePaxByOrder(db: D1Database, orderId: string): Promise<ServicePaxRow[]> {
+  return (await db.prepare(SERVICE_PAX_BY_ORDER).bind(orderId).all<ServicePaxRow>()).results;
+}
+
 // ---- Đọc chặng --------------------------------------------------------------------------------------------------------------------------------
 
 const LEG_COLS = `l.id, l.order_id, l.order_service_id, l.direction, l.pickup_date, l.pickup_time, l.pickup_location_id, l.pickup_place,
