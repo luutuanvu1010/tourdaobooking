@@ -7,7 +7,7 @@
   - danh sách màn `docs/superpowers/specs/2026-09-29-adr-0047-man-hinh-can-ve.md`.
 - **Nhánh thi công:** `worktree-agent-aa4ba1b121f98db87` (worktree `.claude/worktrees/agent-aa4ba1b121f98db87`), tách từ `main` `ce831f8` (bản 1.36); đã gộp nhánh kế hoạch `worktree-agent-ad6521054d4dcefcf` @ `d8bbe95` (chứa `adr-van-chuyen-0047-0048` @ `96d7048`, ADR-0047 accepted) bằng commit gộp `24ae5cb`. Đỉnh: xem bảng mục 3.
 - **Cách thi công:** executing-plans, một phiên thi công (subagent do điều phối giao vai 2026-09-29): Phần A từ A0 đến A19, rồi dừng ở A20 (R10) để điều phối giao người kiểm độc lập. Nhánh ADR-0048 thi công SONG SONG (dùng `0037`–`0039`).
-- **Trạng thái:** Phần A đang thi công (cập nhật ở mục 3). Chưa kiểm độc lập. Chưa lên production. Phần B chờ bản vẽ; Phần C chưa làm.
+- **Trạng thái:** Phần A đã thi công A0–A19, **dừng ở A20** chờ điều phối giao người kiểm độc lập (R10). Chưa kiểm độc lập. Chưa lên production. Phần B chờ bản vẽ; Phần C chưa làm. Bốn mục nới luật (đề xuất luật mục 1, 2, 3, 7) **chờ chủ duyệt**.
 - **Người ghi nhật ký này không tự nghiệm thu** (N8). Kết quả của người kiểm độc lập ghi ở mục 8.
 
 ## 1. Mốc ban đầu (Task A0)
@@ -34,7 +34,7 @@
 | Câu | Nội dung | Trả lời (nguyên văn, ngày) | Ảnh hưởng |
 |---|---|---|---|
 | Q0 | Xác nhận lệch có chủ ý hẹp của Hiến chương 5.5: xoá–chèn lại chặng / hành khách của **đơn nháp** (khuyến nghị (a) xác nhận) — trả lời cùng lúc duyệt đề xuất luật mục 2 | **"Cách 1: chỉ giữ bản cuối"** — chủ trả lời trực tiếp phiên điều phối 2026-09-29, **điều phối chuyển lại** cho người thi công. Nghĩa: đơn NHÁP xoá hẳn rồi chèn lại chặng + danh sách khách cùng lô khi lưu nháp; đơn đã xác nhận cấm xoá. Ngoại lệ hẹp của Hiến chương 5.5, ghi "lệch có chủ ý" ở đề xuất luật mục 2; chủ đồng ý ghi rõ trong Hiến chương, nhưng sửa `docs/ARCHITECTURE.md` vẫn đi qua tệp đề xuất luật (chưa duyệt chính thức tệp đó) | Hai câu `*_delete_draft` + `XOA_CUNG_NHAP` (A7) và lô lưu nháp (A9) KHÔNG còn chờ. Chú thích "CHỜ CHỦ DUYỆT" trong mã giữ nguyên tới khi chủ duyệt tệp đề xuất luật |
-| Q1 | Dịch vụ cũ có giờ đón mà không có điểm đón: chép thế nào (mặc định (a) "(chưa ghi nơi đón)") | **chưa hỏi** (cần truy vấn chỉ đọc trước). Điều phối: tạm áp khuyến nghị (a) `(chưa ghi nơi đón)` — **giả định chờ chủ chạy truy vấn mục 10 bước 3** | Task A4 (câu chép), A15 (R-ORD-12) |
+| Q1 | Dịch vụ cũ có giờ đón mà không có điểm đón: chép thế nào (mặc định (a) "(chưa ghi nơi đón)") | **chưa hỏi** (cần truy vấn chỉ đọc trước). Điều phối: tạm áp khuyến nghị (a) `(chưa ghi nơi đón)` — **giả định chờ chủ chạy truy vấn mục 10 bước 3** | Task A4 (câu chép), A15 (R-ORD-12). **Ghi thêm (G12, commit `e162eb9`):** chữ tạm KHÔNG hiện ở các màn hôm nay — hai khoá dẫn xuất cũ (`pickupPlace`) đổi chữ tạm thành trống, nên người dùng vẫn thấy "07:00" như trước; chữ tạm chỉ nằm trong bảng chặng (Phần B sẽ hiện). Nếu chủ chọn cách khác cho Q1: đổi một câu chép ở `0034` (chưa áp remote) + hằng `NOI_DON_CHUA_GHI` |
 | Q2 | Khoảng ngày đón so với ngày đi (mặc định (a): −1 / +7 ngày) | **"Sớm 1 ngày, muộn 7 ngày"** — chủ trả lời phiên điều phối 2026-09-29, điều phối chuyển lại. Ngày đón cách ngày đi của dịch vụ từ −1 tới +7 ngày; ngoài khoảng đó máy chặn | Task A3 (`khoangNgayDon`, hai hằng 1 / 7) |
 | Q3 | "Chuyến đón hôm nay" ở Trang chủ theo ngày đi hay ngày đón (mặc định (a) ngày đi) | **Giữ theo ngày đi như hiện nay** — chủ trả lời phiên điều phối 2026-09-29, điều phối chuyển lại | Task A8 (`getDashboard`: chọn đơn theo ngày đi, giờ/nơi lấy từ chặng) |
 | Truy vấn chỉ đọc (kế hoạch mục 10 bước 3) | Số dịch vụ có dữ liệu đón cũ theo trạng thái; số "giờ không nơi", "chưa có ngày đi", "chưa có nơi trả" | _chờ chủ chạy_ (AI chạy thử câu `SELECT` trên D1 **local** trước — ghi kết quả thử ở đây) | Q1; kiểm sau triển khai |
@@ -70,8 +70,11 @@ Cột "Đột biến P16": sửa cố ý → đỏ → hoàn nguyên → xanh. C
 **Ghi chú A17 (sổ hàng rào):** 10 dòng mới ở CUỐI bảng `docs/SO-HANG-RAO.md` — trigger chặng; trigger hành khách; `ord_` + khoá `legacy`; `NUA_NGHIEM` + ba ngoại lệ (xoá cứng nháp, `audit_log` lính gác có hạn, `full_name`); quét `after_json`; quét nơi gọi hàm công bố; toàn tuyến "không lộ tên" + R-ORD-10; khoá giá trị `order.passenger.write` = `order.modify`; khoá văn bản POST/PUT /api/orders; R-ORD-7…12. Mỗi dòng có ngày thấy chặn thật 2026-09-29 + giới hạn; ghi "**Chưa kiểm độc lập**".
 
 **Ghi chú A18 (tài liệu):** `docs/SYSTEM-DESIGN.md` — §5 (bảng `ord_transfer_leg`, `ord_passenger`, ba view, ba loại điểm, `order_service` = bản sao ghi kép; hai dòng bất biến; migration 0034, 0035, số kế tiếp 0040), §6 tiểu mục mới "(k) Chặng đưa đón và hành khách (ADR-0047)", §7 năm route mới + ghi chú `PUT /trip`, §8 ô `order.passenger.write` + chú thích `contact.view`. `docs/CHANGE-GUIDE.md` — §1 dòng tra nhanh, a2 (giờ/điểm đón nay ở chặng; ngoại lệ khoá vắng của `PUT /trip`), công thức mới **z** (sau y), §3 ma trận, §4 bẫy 50. Tệp đề xuất luật: đo lại số dòng (mục đầu), mục 2 ghi câu trả lời Q0, mục 3 danh sách 9 tên đã chốt, mục 4b thêm câu cho mục 7, **mục 7 mới** (ngoại lệ R-N1-14). `src/CLAUDE.md`, `docs/ARCHITECTURE.md`, `CLAUDE.md` KHÔNG sửa (chỉ qua đề xuất luật).
-| A19 | Tự kiểm Phần A | | | — | — | — |
-| A20 | Kiểm độc lập giữa chừng (nếu điều phối chọn) | | | — | — | |
+| Task | Việc | Commit | `npm test` sau | Dòng ĐỎ trước (đã thấy) | Đột biến P16 (ngày · đột biến · dòng đỏ) | Người kiểm |
+|---|---|---|---|---|---|---|
+| A19a | Sửa do tự kiểm Chrome (G12) | `e162eb9` | 1413/1413; typecheck 0 | 2026-09-29 tự kiểm A19 (đỉnh `37c5bf1`): `a2-smoke-sheet.mjs:154` đỏ sau 7 ✓ — `'Đón'` `+ '07:00 · (chưa ghi nơi đón)'` `- '07:00'` (bảng sửa chuyến CŨ lưu giờ + xoá nơi đón qua `PUT /trip` ⇒ G10 sinh chữ tạm ⇒ `pickupPlace` dẫn xuất lộ chữ tạm lên màn hôm nay ⇒ vi phạm tiêu chí 3). Thêm ca đỏ-trước ở `chang-dua-don.test.ts` (`chieuDiDau`: chữ tạm → `pickupPlace: null`) | — (hành vi). **Giả định G12 (bề mặt, đảo ngược được):** `chieuDiDau` đổi `NOI_DON_CHUA_GHI` thành `null` ⇒ `pickupPlace` của DTO cũ và cột ghi kép `order_service.pickup_place` trống như trước khi có chặng; R-ORD-7 đã coi chữ tạm ≡ trống từ A15 nên vẫn ✓. Sau sửa: `a2-smoke-sheet` 14 ✓ (= mốc A0) | chưa |
+| A19 | Tự kiểm Phần A | (commit tài liệu A19) | 1413/1413; typecheck thoát 0 (đỉnh `e162eb9`) | — | — (tự kiểm; chi tiết mục 7) | — |
+| A20 | Kiểm độc lập giữa chừng (điều phối giao — R10) | | | — | — | **chờ điều phối** |
 | B0–B7 | Giao diện theo bản vẽ | | | | | chưa |
 | C0–C6 | Phát hành 2 (contract) | | | | | chưa |
 | K1–K3 | Mỗi lần phát hành | | | | | |
@@ -98,21 +101,55 @@ Kế hoạch mục 0 đề nghị R1–R11. Điều phối chốt, hoặc sửa,
 
 _(ghi theo thời gian: gì xảy ra, ảnh hưởng, đã làm gì)_
 
+- **2026-09-29, A7 — hàng rào chữ R-N1-14 va cột `ord_passenger.full_name`.** Kế hoạch chưa nêu. Ảnh hưởng: phải thêm ngoại lệ có tên (NỚI) ⇒ đề xuất luật **mục 7** mới ⇒ lượt duyệt có **bốn** mục nới (mục 1, 2, 3, 7), vượt trần 3 của `CLAUDE.md` §9 — điều phối quyết tách lượt. Mã: `FULL_NAME_ORD_PASSENGER_FILES` + bài đi kèm (chỉ tệp nửa nghiêm, chỉ câu chạm `ord_passenger`).
+- **2026-09-29, A8 — đọc chặng trước khi ghi chặng làm đỏ hàng chờ HDV.** Đơn lập bằng thân cũ chưa sinh chặng ⇒ `xem-don-theo-quyen.test.ts` đỏ 2 ca giữa hai commit ⇒ gộp A8 + A9 thành một commit `2e51689` (không để một commit đỏ).
+- **2026-09-29, A15 — `audit-invariants.mjs` gộp khoảng trắng của SQL.** Chuỗi so của R-ORD-10 có hai dấu cách liền bị gộp ⇒ so sai. Sửa: bỏ chữ số và dấu cách rồi so `'thêm,sửa,huỷkhách'`.
+- **2026-09-29, A16 — e2e `locations` đỏ** vì khẳng định cứng danh sách bốn loại điểm (`tests/e2e/locations.mjs:17`). Sửa kèm ba loại mới + tên tiếng Việt; chạy lại 2/2 xanh.
+- **2026-09-29, A19 — Chrome `a2-smoke-sheet` đỏ** (chữ tạm lộ lên màn hôm nay). Sửa G12 ở `e162eb9` (xem dòng A19a). Bài học: bài test đơn vị/harness không bắt được — chỉ kịch bản Chrome giữ "giao diện hôm nay không đổi".
+- **2026-09-29, A19 — e2e đủ bộ lần cuối: `catalog` đỏ một lần** (`tests/e2e/catalog.mjs:188`: nhật ký `catalog_synced` mới nhất là `'QTV Test'` chứ không phải `'Hệ thống (tự động)'` — Cron giả lập chưa ghi xong trong 3 giây chờ, lúc máy đang tải nặng và đọc Sheet thật). `git diff 24ae5cb HEAD` trên `src/modules/catalog`, `src/index.ts`, `tests/e2e/catalog.mjs`, `tests/e2e/lib.mjs`: **rỗng** (việc này không đụng danh mục). Chạy lại riêng `npm run test:e2e -- catalog` (không có wrangler khác chạy): **2/2 xanh**, gồm "✓ Cron tự kéo, nhật ký ghi 'Hệ thống (tự động)'". Xếp: **chập chờn do thời gian chờ + mạng**, không phải hồi quy; ghi để người kiểm chạy lại.
+
 ## 6. Nợ còn lại (không chặn gộp)
 
-- _(điền)_
-- **Đã biết từ kế hoạch:** ngoại lệ `DOC_AUDIT_LOG_WONGUARD` có hạn (chủ chốt ngày ở đề xuất luật mục 3); hết hạn thì `npm test` đỏ.
+- **Bốn mục nới luật chờ chủ duyệt** (đề xuất luật mục 1 `ord_`, mục 2 xoá cứng nháp, mục 3 đọc `audit_log` lính gác, mục 7 `full_name` của `ord_passenger`). Mã đã chạy theo đề xuất, có chú thích "CHỜ CHỦ DUYỆT". Bốn mục > trần 3 của `CLAUDE.md` §9 — điều phối quyết tách lượt. Chủ bác mục nào thì phải sửa mã tương ứng TRƯỚC khi gộp (mục 1: đổi tiền tố hai bảng + view — migration chưa áp remote nên còn đổi được; mục 2: bỏ `leg_delete_draft`/`passenger_delete_draft`, lưu nháp chuyển sang đóng/huỷ; mục 3: đổi cách khoá lạc quan của 9 câu; mục 7: đổi tên cột).
+- **Ngoại lệ `DOC_AUDIT_LOG_WONGUARD` có hạn `2027-03-31`** (người thi công đặt theo kế hoạch; chủ chốt ngày ở đề xuất luật mục 3); qua hạn thì `npm test` đỏ.
+- **Q1 + truy vấn đếm** (kế hoạch mục 10 bước 3) chưa chạy trên dữ liệu thật — chủ tự chạy (lệnh chỉ đọc remote); câu SQL đã chạy thử được trên D1 local (0 dòng).
+- **Giả định G10, G11, G12** (bề mặt, đảo ngược được) — chủ không cần trả lời trừ khi muốn đổi: G10 thân cũ gửi giờ mà trống điểm đón → nơi đón = chữ tạm; G11 dời ngày đón theo ngày đi KHÔNG xét "đã qua"; G12 chữ tạm dẫn xuất thành trống ở hai khoá cũ.
+- **Ca Đối tác / Tài xế chỉ có ở test harness** (`chang-route.test.ts`, `hanh-khach-route.test.ts`), không có ở e2e (không có tài khoản thử cố định).
+- **Gộp với nhánh ADR-0048:** cả hai nhánh sửa `src/shared/permissions.ts` + `permissions.test.ts`. Nhánh gộp SAU thêm cột thứ 9 (`DRIVER_PARTNER`) cho dòng `order.passenger.write` — người thi công này KHÔNG tự đoán giá trị (kế hoạch mục 1.9).
+- **Số `0036` trả lại điều phối** (R11 — không làm trigger khoá cột cũ).
+- **Đỏ sẵn có không thuộc việc này:** Chrome `trang-chu-smoke.mjs` (đòi dòng góp ý đã chuyển sang Toàn quyền theo ADR-0038); cảnh báo R-ORD-6a/6b trên dữ liệu e2e.
+- **Cảnh báo e2e mới (mức cảnh báo, đúng thiết kế):** R-ORD-8 (2 chặng chưa chốt nơi trả), R-ORD-12 (5 chặng còn chữ tạm — kịch bản cũ gửi giờ mà trống điểm đón).
 
 ## 7. Kết quả kiểm của người thi công (tự khai, chưa phải kiểm độc lập)
 
 | Lệnh | Kết quả |
 |---|---|
-| `npm test` | |
-| `npm run typecheck` | |
-| `npm run build:web` | |
-| `npm run test:e2e` (đủ bộ) | |
-| Chrome (mốc A0 + mới) | |
-| Tiêu chí mục 3 kế hoạch, từng dòng | |
+| `npm test` | 2026-09-29, đỉnh `e162eb9`: **1413/1413 pass, 0 fail** (mốc A0: 1313 ⇒ +100 test) |
+| `npm run typecheck` | 2026-09-29, đỉnh `e162eb9`: **thoát 0** (server, `web/`, `web/sw/`; KHÔNG phủ `*.test.ts`, `scripts/`, `tests/`) |
+| `npm run build:web` | 2026-09-29: **thoát 0** (log `/tmp/adr0047-build-a19.log`) |
+| `npm run test:e2e` (đủ bộ) | 2026-09-29, đỉnh `e162eb9` (log `/tmp/adr0047-e2e-a19.log`): **24/25 xanh**, đỏ `catalog` một lần (chập chờn — mục 5); chạy lại riêng `catalog`: **2/2 xanh** (log `/tmp/adr0047-e2e-a19-catalog.log`). Xanh: `platform pwa orders trip chang-hanh-khach nhap-tay-va-gia-doi-tac admin turnstile dispatch admin-race locations parties booker permissions feedback company bangtin thongbao maintenance roles van-chuyen passkey audit-invariants`. Đuôi `audit-invariants --strict`: R-ORD-7 ✓, R-ORD-9 ✓, R-ORD-10 ✓, R-ORD-11 ✓; ⚠ R-ORD-8 (2), ⚠ R-ORD-12 (5), ⚠ R-ORD-6a (1), ⚠ R-ORD-6b (2) — mức cảnh báo. Trước đó ở A16: 24/25 (đỏ `locations`, đã sửa) |
+| Chrome (mốc A0 + mới) | 2026-09-29, đỉnh `e162eb9` (`/tmp/adr0047-chrome.sh`, cùng cấu hình mốc A0): `a2-smoke-form` 24 ✓; `a2-smoke-order` 11 ✓; `a2-smoke-sheet` 14 ✓; `v1-xac-nhan-png` 13 bước ✓; `hdv-viec-cua-toi-smoke` 9 ✓ 0 ✗; `trang-chu-smoke` đỏ ĐÚNG chỗ như mốc A0 (sau 11 ✓, "phải có đúng 2 dòng cảnh báo"). **= mốc A0 ở cả sáu kịch bản.** (Lần tự kiểm trước ở `37c5bf1`: `a2-smoke-sheet` đỏ ⇒ sửa G12 — dòng A19a) |
+| Tiêu chí mục 3 kế hoạch, từng dòng | xem danh sách ngay dưới |
+
+**Tiêu chí 3.1 (phát hành 1), từng dòng — người thi công tự khai, CHƯA kiểm độc lập:**
+
+1. Lệnh kiểm chung — **đạt có ghi chú**: test/typecheck/build xanh; e2e đủ bộ 24/25 + `catalog` chạy lại xanh (chập chờn, không hồi quy); R-ORD-7…12 có mặt ở đuôi `--strict`. Đỏ sẵn có ghi ở mục 1.
+2. Chép dữ liệu `0034` — **đạt**: `src/migrations-chang-dua-don.test.ts` (SQLite thật, từng dạng mục 1.6); `db:migrate:local` áp được (dòng A4); R-ORD-7 ✓ sau e2e.
+3. Giao diện hôm nay không đổi — **đạt** sau G12: sáu kịch bản Chrome = mốc A0; `src/modules/orders/pool.test.ts` không sửa (`git diff 24ae5cb HEAD` rỗng) và xanh.
+4. Tương thích thân cũ (R2) — **đạt**: e2e `chang-hanh-khach` ca (4)(5) và (4) `PUT /trip`; harness `luu-nhap-chang.test.ts`, `trip-chang.test.ts`.
+5. Ghi kép (R3) — **đạt**: e2e đọc cột cũ bằng SQL + R-ORD-7 ✓.
+6. Chặng sau xác nhận — **đạt**: e2e ca (6) (Kế toán/HDV 403, nháp 409 `use_order_form`, mốc cũ 409 `stale`); Đối tác 403 và đơn huỷ 409 ở harness `chang-route.test.ts`.
+7. Hành khách — **đạt**: e2e ca (7); Đối tác (của mình/người khác) và "chỉ Tài xế → 403 ở cổng" ở harness `hanh-khach-route.test.ts`.
+8. Cờ vượt số khách — **đạt**: e2e ca (8) + harness.
+9. Nhật ký không tên — **đạt**: `src/hanh-khach-khong-lo-ten.test.ts` (toàn tuyến) + R-ORD-10 ✓.
+10. Số khách hiệu lực — **đạt**: `src/modules/orders/so-khach-hieu-luc.test.ts` (4 ca).
+11. Hàm hẹp — **đạt**: `src/modules/orders/ham-cong-bo.test.ts` (liệt kê khoá; đóng/nháp/huỷ/id lạ vắng mặt).
+12. Kiến trúc — **đạt phần máy; CHƯA đạt phần duyệt**: `ord_` ở `TABLE_PREFIX` nhưng **chủ CHƯA duyệt** (đề xuất luật mục 1); khoá `legacy` xanh; EXPLAIN chạy cho tệp nửa nghiêm; ngoại lệ đúng danh sách (`XOA_CUNG_NHAP` 2 tên, `DOC_AUDIT_LOG_WONGUARD` 9 tên, thêm `FULL_NAME_ORD_PASSENGER_FILES` 1 tệp — ngoài kế hoạch, mục 7); sổ dữ liệu 2 bảng + 3 view, `npm run dict` không sinh khác biệt; `route-access` 114.
+13. Hai bài quét — **đạt**: `src/orders-cong-bo.test.ts` (P16 ở A2, A13); hôm nay 0 nơi gọi ngoài `orders`.
+14. Sổ hàng rào — **đạt**: 10 dòng mới ở `docs/SO-HANG-RAO.md`, mỗi dòng có ngày thấy chặn thật 2026-09-29, ghi "Chưa kiểm độc lập".
+15. Tài liệu — **đạt phần viết; CHƯA đạt phần duyệt**: `SYSTEM-DESIGN.md`, `CHANGE-GUIDE.md`, `data-dictionary.json` khớp mã; tệp đề xuất luật đủ mục; **chủ chưa duyệt** mục 1–4 (+ mục 7).
+16. Người kiểm độc lập — **chưa** (A20 do điều phối giao).
+17. AI không deploy — **ngoài phạm vi** lượt này (không deploy, không `--remote`).
 
 ## 8. Kiểm độc lập (`nguoi-kiem-doc-lap`, chỉ đọc)
 
@@ -128,7 +165,12 @@ _(điền: mốc commit, phạm vi, kết luận ĐẠT / ĐẠT CÓ ĐIỀU KI�
 
 ## 9. Chưa kiểm (lúc viết mục này)
 
-- _(điền)_
+- **Kiểm độc lập**: chưa có (A20 — điều phối giao). Mọi "đạt" ở mục 7 là tự khai.
+- **Dữ liệu thật**: `0034`/`0035` chưa áp remote; câu chép `0034` chỉ chạy trên SQLite thử + D1 local (rỗng) + D1 tạm của e2e; truy vấn đếm Q1 chưa chạy trên production.
+- **Đối tác / Tài xế qua API thật**: chỉ kiểm bằng harness (D1 giả trên `node:sqlite`), chưa có tài khoản e2e.
+- **Gộp với nhánh ADR-0048**: chưa thử gộp (cột thứ 9 của bản đồ quyền, số route của `route-access` sẽ cộng dồn).
+- **iPhone thật / giao diện mới**: không có (Phần B chưa làm; giao diện hôm nay chỉ kiểm bằng sáu kịch bản Chrome).
+- **Chập chờn `catalog`**: mới chạy lại MỘT lần xanh; chưa đo tần suất.
 
 ## 10. Phát hành (chủ dự án tự chạy — Task K3)
 
