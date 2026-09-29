@@ -1,7 +1,7 @@
 # Bảng điều phối chung của phân hệ Vận chuyển — bản thiết kế
 
 - **Ngày:** 2026-09-29. **Vai:** kiến trúc sư thiết kế (lập kế hoạch). Chỉ soạn tài liệu, không viết mã, không tự duyệt (Hiến pháp N3, P15).
-- **Trạng thái:** **BẢN THIẾT KẾ — CHƯA DUYỆT, CHƯA CÓ NGƯỜI KIỂM ĐỘC LẬP.** Trình chủ **từng phần** (Phần 1 → 8). Chưa lấy số ADR, chưa lấy số migration. Mọi tên bảng, tên ô, tên route dưới đây là **tên đề xuất**; kế hoạch thi công chốt tên.
+- **Trạng thái:** **BẢN THIẾT KẾ — CHƯA DUYỆT.** Người kiểm độc lập: CÓ ĐIỀU KIỆN (4 lỗi CAO) → đã sửa, kiểm lại **ĐẠT** (29/9). Chủ đã trả lời ĐP2, ĐP3, ĐP6, ĐP7, ĐP8 (29/9, [HĐ] "Trả lời lần 2") — đã áp. **Lượt duyệt 1 (D1–D3) đã soạn thành đề xuất ADR-0049:** `docs/superpowers/specs/2026-09-29-de-xuat-adr-bang-dieu-phoi-luot-1.md`; màn cần vẽ: `docs/superpowers/specs/2026-09-29-bang-dieu-phoi-luot-1-man-hinh-can-ve.md`. Mọi tên bảng, tên ô, tên route là **tên đề xuất**; kế hoạch thi công chốt tên.
 - **Thay thế:** lượt duyệt 2 (B1, B2, B3) của `docs/superpowers/specs/2026-09-28-de-xuat-adr-van-chuyen-1b.md` (chưa duyệt). Những gì B1–B3 đã nghĩ đúng được giữ và ghi rõ ở từng chỗ; chỗ đổi có lý do.
 - **Ghép với:** lượt duyệt II (D3 Từ chối, D4 Báo bận, D5 Thông báo) của `docs/superpowers/specs/2026-09-28-de-xuat-adr-van-chuyen-luot-2.md` (chưa duyệt) — xếp vào lượt duyệt 2 và 3 của bản này (§6.4), không soạn lại từ đầu. Lượt 3 (tiền: `…-luot-3.md`) chỉ được để sẵn chỗ gắn.
 - **Căn cứ chính:** lời chủ nguyên văn ở `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md` (gọi tắt **[HĐ]**, số mục theo tệp đó).
@@ -46,6 +46,11 @@
 | C14 | Xe và tài xế có hồ sơ riêng; xe là tài sản của công ty **hoặc** nhà xe; không chéo xe–tài xế | ADR-0048 | §2.1 LC-13 |
 | C15 | Đủ tên cho số khách đã đặt **lúc xuất bến**; tài xế sửa/bổ sung lúc đón; **phân bổ từng người**; giấy tờ không sửa đè; đủ điều kiện lái xét bằng giấy tờ | rà soát §6 (điều phối ghi, chủ không phản đối) | §1.5, §2.1 |
 | C16 | Chặng có ngày + giờ hẹn riêng; chặng thay hẳn hai ô đón cũ | ADR-0047 A1, Q4 | §1.3 |
+| C17 | Mốc 6 giờ: lúc xếp tính tới **giờ xuất bến** của chuyến; chặng đã đặt gấp thì lúc xếp **không** ghi lý do lần nữa; trong 6 giờ chỉ khoá "ai đi xe nào", đổi xe, đổi tài xế; **kiểm lại lúc xác nhận đơn** và khi **sửa nơi đón/nơi trả** | ĐP2, "Theo 4 khuyến nghị" (29/9) | CH-01, MQ-10, §2.4 |
+| C18 | **Chỉ Quản trị, Toàn quyền** được phá lệ mốc 6 giờ và khoảng nghỉ, ở **cả** lúc đặt lẫn lúc xếp | ĐP3 (29/9) | §2.4, §5.2, §6.1 |
+| C19 | Người xếp xe **không** đổi giờ hẹn khách trên đơn người khác; máy nhắc người phụ trách | ĐP6 (29/9) | §5.4 |
+| C20 | Hợp đồng vận chuyển để lượt riêng (công tắc khoá ở tắt); mỗi thao tác kiểm và ghi ngay, đụng nhau thì tải lại (PA-1) | ĐP7, ĐP8 (29/9) | CH-04, Phần 3 |
+| C21 | Ngày đón của chặng trong khoảng **[ngày đi − 1, ngày đi + 7]**; đơn nháp chỉ giữ **bản cuối** (lưu nháp xoá–chèn lại chặng, hành khách) | kế hoạch thi công ADR-0047 (điều phối chuyển, 29/9) | §1.3 |
 
 ### 0.2 Bản này đứng ở đâu
 
@@ -136,6 +141,7 @@ ADR-0047 (chặng, hành khách — orders)   ADR-0048 (nhà xe, tài xế đố
    - Hàm **không tự kiểm quyền**; nơi gọi đứng sau `can(trip.view)` (bài kiểm quét nơi gọi — khuôn ADR-0047 A3).
 2. `van-chuyen` đọc bảng của chính nó: suất đang mở của các chặng đó, chuyến, điểm dừng, đề nghị chuyển đang chờ.
 3. Hàm thuần `dungLichChung(chang[], suat[], chuyen[], chinhSach, bayGio)` (đặt ở `src/shared/`) trả: từng chặng + trạng thái (§2.5) + cảnh báo + "giữ"; từng chuyến + tải hiện tại + lý do giữ.
+- **Lịch chung ngày D lấy theo ngày đón của chặng**, không theo ngày đi của dịch vụ; ngày đón nằm trong [ngày đi − 1, ngày đi + 7] (C21 — luật của `orders`). Đơn nháp chỉ giữ bản cuối nên id chặng của đơn nháp không bền — thêm một lý do để chỉ xếp chặng của đơn đã xác nhận (LC-09).
 - **Số đơn nháp có đưa đón ngày D** hiện thành **một con số** trên đầu màn ("còn 5 đơn nháp có hẹn đón ngày này"), không hiện chi tiết và không xếp được (luật LC-09: chỉ chặng của đơn đã xác nhận). *Giả định bề mặt G-01, đổi được.*
 - **Giờ xe tới một điểm** (`vc_trip_stop.planned_time`) để **trống = theo giờ hẹn sớm nhất** của các chặng đón tại điểm đó (tính lúc đọc, không chép). Người xếp xe **ghi đè** được (vd xe tới trước 15 phút) — lúc đó là một giá trị riêng của điểm dừng, đúng "giờ xe tới thực tế" của ADR-0006 điều 5. Giờ hẹn đổi mà điểm dừng đang ghi đè → máy cảnh báo "giờ hẹn vừa đổi, xem lại giờ xe tới" (MQ-07).
 
@@ -362,10 +368,10 @@ Ba luật gặp nhau ở lệnh kết thúc gián đoạn: LC-06 cấm sửa su�
 
 | Mã | Cấu hình | Giá trị gieo | Bảng | Ai sửa | Kích hoạt, chụp ở đâu (5.6) | Kết quả khi vi phạm | Thông báo (từ lượt 2) |
 |---|---|---|---|---|---|---|---|
-| CH-01 | **Mốc tối thiểu** trước giờ khởi hành — **một con số cho cả lúc đặt và lúc xếp** (chủ: luật "ghép điều kiện chung") | 360 phút | `vc_dispatch_policy.min_lead_minutes` | Toàn quyền (`settings.ops`) | **Lúc đặt:** lập chặng hoặc sửa ngày/giờ của chặng có giờ hẹn < bây giờ + mốc (sửa nơi đón/nơi trả và kiểm lại lúc xác nhận đơn: theo ĐP2(iv)); phá lệ thì chụp **số phút đã dùng** vào `short_notice_lead_minutes` (không trỏ khoá chính sách — `orders` không được trỏ bảng `vc_`). **Lúc xếp:** lệnh **thay đổi xếp xe** (phạm vi theo ĐP2(iii)) của chuyến có mốc tham chiếu (ĐP2(i)) < bây giờ + mốc; phá lệ thì sự kiện `PHA_LE` ghi `policy_id` | chặn (409 bằng lời), mở hộp "Đặt gấp" / "Phá lệ" cho người có ô (ĐP3) | chặng đặt gấp: người điều xe |
-| CH-02 | **Khoảng nghỉ** tối thiểu giữa hai chuyến của cùng xe / cùng tài xế | 30 phút | `vc_dispatch_policy.rest_minutes` | Toàn quyền | tạo/sửa chuyến, gán tài xế; chụp vào `vc_trip.rest_minutes_snapshot`; xuất bến kiểm lại từ giờ **kết thúc thật** của chuyến trước (1b L2b) | chặn; phá lệ được (ĐP3) | — |
+| CH-01 | **Mốc tối thiểu** trước giờ khởi hành — **một con số cho cả lúc đặt và lúc xếp** (chủ: luật "ghép điều kiện chung") | 360 phút | `vc_dispatch_policy.min_lead_minutes` | Toàn quyền (`settings.ops`) | **Lúc đặt** (C17, C18): lưu **nháp** chặng dưới mốc vẫn được (có cảnh báo); **xác nhận đơn**, và **sửa ngày, giờ, nơi đón, nơi trả** của chặng đơn đã xác nhận, khi giờ hẹn < bây giờ + mốc → chặn, **trừ khi** chặng mang "đặt gấp" do **Quản trị / Toàn quyền** ghi; đặt gấp chụp **số phút đã dùng** vào `short_notice_lead_minutes` (không trỏ khoá chính sách — `orders` không được trỏ bảng `vc_`). **Lúc xếp** (C17): lệnh đổi "ai đi xe nào", đổi xe, đổi tài xế của chuyến có **giờ xuất bến dự kiến** < bây giờ + mốc → chặn; chặng đã đặt gấp thì xếp **chính chặng đó** không phải phá lệ lần nữa; phá lệ (Quản trị / Toàn quyền) thì sự kiện `PHA_LE` ghi `policy_id` | chặn (409 bằng lời); hộp "Đặt gấp" / "Phá lệ" **chỉ hiện cho Quản trị, Toàn quyền** (C18); người khác thấy "Cần Quản trị duyệt" | chặng đặt gấp: người điều xe |
+| CH-02 | **Khoảng nghỉ** tối thiểu giữa hai chuyến của cùng xe / cùng tài xế | 30 phút | `vc_dispatch_policy.rest_minutes` | Toàn quyền | tạo/sửa chuyến, gán tài xế; chụp vào `vc_trip.rest_minutes_snapshot`; xuất bến kiểm lại từ giờ **kết thúc thật** của chuyến trước (1b L2b) | chặn; chỉ Quản trị, Toàn quyền phá lệ được (C18) | — |
 | CH-03 | **Cảnh báo sát mốc**: còn bao lâu nữa tới mốc thì chặng chưa xếp chuyển màu cảnh báo | 120 phút | `vc_dispatch_policy.warn_lead_minutes` | Toàn quyền | mỗi lần dựng lịch chung (MQ-04) | chỉ hiển thị | — (đẩy điện thoại theo giờ là việc sau, §3.8) |
-| CH-04 | **Điều kiện xuất bến**: đủ danh sách; hợp đồng (khoá tắt tới khi có ADR, ĐP7); giấy tờ bắt buộc theo cỡ xe | như 1b B2 | `vc_dispatch_policy.require_*`, `vc_departure_rule` | Toàn quyền | bấm Xuất bến; chụp vào `vc_trip_departure_check` | chuyến bị **giữ** (MQ-05); không ai phá lệ | tài xế, văn phòng thấy lý do giữ trên màn |
+| CH-04 | **Điều kiện xuất bến**: đủ danh sách; hợp đồng (khoá tắt tới khi có ADR riêng — C20); giấy tờ bắt buộc theo cỡ xe | như 1b B2 | `vc_dispatch_policy.require_*`, `vc_departure_rule` | Toàn quyền | bấm Xuất bến; chụp vào `vc_trip_departure_check` | chuyến bị **giữ** (MQ-05); không ai phá lệ | tài xế, văn phòng thấy lý do giữ trên màn |
 | CH-05 | **Hạng bằng → số khách tối đa** (không kể lái) | B 8; D1 16; D2 29; D không giới hạn; B2 cũ 8; C cũ 8; D cũ 29; E cũ không giới hạn (bảng tra 27/9, **chưa có người chuyên môn kiểm**) | `vc_license_capacity` | Toàn quyền | gán tài xế, đổi xe, xuất bến; chụp như CH-04 | chặn gán; giữ ở cổng; không ai phá lệ | — |
 | CH-06 | **Danh mục lý do** (đổi giờ xe, báo huỷ điểm, phá lệ, từ chối nhận chuyển, kết thúc gián đoạn, huỷ chuyến, bỏ qua điểm) | vài lý do mỗi nhóm + "Khác" | `vc_reason` | Quản trị (`admin.manage`) | mọi lệnh đòi lý do; mã lý do lưu trên dòng dùng nó | thiếu lý do hoặc lý do đã ngưng → 400 | — |
 | CH-07 | **Thời gian chờ B nhận** đề nghị chuyển | 10 phút | `vc_dispatch_policy.accept_wait_minutes` (lượt duyệt 2) | Toàn quyền | tính lúc đọc (§3.8); chụp `policy_id` vào đề nghị | quá giờ → đề nghị hết hạn (MQ-08) | A thấy trên màn |
@@ -385,25 +391,25 @@ Mọi việc ở tầng này là **mã tất định có test** (Hiến chương
 | MQ-01 | **Gợi ý xếp xe** | người xếp xe mở ngày D hoặc bấm "Gợi ý"; tài xế Từ chối (D8) | chặng chưa xếp, chuyến đang lên kế hoạch, xe rảnh, tài xế đủ điều kiện, chính sách | danh sách gợi ý "chặng → chuyến có sẵn" hoặc "mở chuyến mới với xe X, tài xế Y"; mỗi gợi ý kèm lý do. Cách gom: **cùng nơi trả + giờ hẹn gần nhau** (máy không biết đường đi — G-05). **Không ghi gì.** Người bấm "Áp dụng" = một lệnh xếp bình thường, qua đủ luật | đề xuất — **thi công ở lát 2.5**, sau lượt 1 (thiết kế giữ nguyên) | — |
 | MQ-02 | **Tự xác nhận chuyển điểm đón** | tài xế B bấm Nhận | hai chuyến, suất, điểm, chính sách, giấy tờ | mọi luật đạt **và** công tắc CH-08 bật → `CONFIRMED`, `decided_mode = MAY`, đổi suất trong cùng lô. Có luật không đạt → `ESCALATED` kèm danh sách luật | **quyết định** / leo thang | xác nhận: A, B, người điều xe (tin thường); leo thang: người điều xe (cần xử lý) + A, B |
 | MQ-03 | **Kiểm lại cả hai xe khi chuyển** (bộ luật MQ-02 chạy) | như MQ-02 | — | ghi từng dòng `vc_transfer_check`: `SUC_CHUA_DICH` (LC-02 xe B sau chuyển), `TRUNG_GIO_DICH` (LC-03), `KHOANG_NGHI_DICH` (CH-02 với chuyến kế của B), `HANG_BANG_DICH` + `GIAY_TO_DICH` (LC-12; xe B không đổi nên thường đạt), `DIEM_CHUA_TOI` (LC-14), `KHONG_CHEO` (LC-13). Xe A chỉ bớt người nên không cần kiểm sức chứa; vẫn ghi dòng `SUC_CHUA_NGUON` để bằng chứng đủ. **Chuyến sau của B có thể trễ:** máy **không biết thời gian đi đường** nên chỉ ghi `CANH_BAO` khi B có chuyến kế trong vòng 2 × khoảng nghỉ | quyết định (phần của MQ-02) | như MQ-02 |
-| MQ-04 | **Cảnh báo trên bảng** | mỗi lần dựng lịch chung (đọc) | lịch chung, chính sách, bây giờ | chặng **sát mốc** / **quá mốc** chưa xếp; thiếu/thừa suất; giờ hẹn đổi sau khi xếp; đơn huỷ hay chặng đóng sau khi xếp; giấy tờ hết hạn trước khi chuyến kết thúc; thiếu tên trước xuất bến; đề nghị chờ quá hạn; chuyến chưa có tài xế | cảnh báo | lượt duyệt 2: chỉ các cảnh báo **sinh từ một sự kiện đã ghi** (§3.5); cảnh báo **theo giờ** (sát mốc, quá mốc) chỉ hiện trên bảng — đẩy lên điện thoại là việc sau (§3.8) |
+| MQ-04 | **Cảnh báo trên bảng** | mỗi lần dựng lịch chung (đọc) | lịch chung, chính sách, bây giờ | chặng **sát mốc** / **quá mốc** chưa xếp; thiếu/thừa suất; giờ hẹn đổi sau khi xếp; đơn huỷ hay chặng đóng sau khi xếp; giấy tờ hết hạn trước khi chuyến kết thúc; thiếu tên trước xuất bến; đề nghị chờ quá hạn; chuyến chưa có tài xế; **đơn nháp có chặng dưới mốc chờ Quản trị duyệt đặt gấp** (hiện cho Quản trị, Toàn quyền) | cảnh báo | lượt duyệt 2: chỉ các cảnh báo **sinh từ một sự kiện đã ghi** (§3.5); cảnh báo **theo giờ** (sát mốc, quá mốc) chỉ hiện trên bảng — đẩy lên điện thoại là việc sau (§3.8) |
 | MQ-05 | **Giữ chuyến** (Hiến chương 5.7) | mỗi lần đọc chuyến; bấm Xuất bến | `kiemXuatBen` (1b B2) + thiếu/thừa suất + đơn huỷ + chặng đóng + chưa có tài xế | chuyến ở `PLANNED`, hiện **lý do + ai xử lý** (văn phòng / Quản trị / Toàn quyền); không lưu cột "giữ" — tính lại mỗi lần đọc (G7 của 1b); kiểu `LyDoGiu` ở `src/shared/` | giữ | tài xế thấy "chưa đủ điều kiện xuất bến: …" |
 | MQ-06 | **Tự thêm điểm vào xe nhận** | xác nhận chuyển (MQ-02) | nơi đón/nơi trả của các chặng được chuyển; điểm hiện có của B | thêm điểm đón (sau điểm đón chưa tới cuối cùng, trước điểm trả đầu tiên) và điểm trả nếu B chưa có nơi đó; B đổi thứ tự được sau | quyết định (cùng lô) | B (trong phản hồi) |
 | MQ-07 | **Nhắc gọi khách khi giờ hẹn đổi** (không tự báo khách — C11) | `orders` ghi sự kiện sửa chặng (`order_leg_updated`, ADR-0047) cho chặng đang có suất mở | chặng, suất, chuyến | nhắc: "Giờ hẹn đón ĐH-… đổi 07:00 → 06:30 — gọi báo khách"; nếu điểm dừng đang ghi đè giờ xe tới → cảnh báo "xem lại giờ xe" | cảnh báo | người phụ trách đơn + tài xế đang lái chuyến có suất của chặng đó |
 | MQ-08 | **Đề nghị quá thời gian chờ** | đọc đề nghị `PENDING` quá CH-07 | `proposed_at`, CH-07, bây giờ | hiện "đã hết giờ chờ"; lệnh kế tiếp chạm đề nghị (A rút, A gửi đề nghị mới, B bấm Nhận muộn, văn phòng mở) **đóng** nó thành `EXPIRED` trong lô của lệnh đó | quyết định (cùng lô lệnh sau) | A thấy trên màn: "B chưa nhận — gửi xe khác hoặc gọi văn phòng" |
 | MQ-09 | **Tự huỷ đề nghị không còn hợp lệ** | lệnh làm đổi nguồn/đích: A bấm "đã tới" điểm đó, A hoặc B kết thúc chuyến, văn phòng báo huỷ điểm đó | đề nghị `PENDING`/`ESCALATED` liên quan | đề nghị thành `VOID` trong **cùng lô** của lệnh đó | quyết định (cùng lô) | A, B |
-| MQ-10 | **Khoá theo mốc khi xếp** | lệnh **thay đổi xếp xe** của một chuyến (phạm vi theo ĐP2(iii); CH-01) | mốc tham chiếu (ĐP2(i)), bây giờ, CH-01 | chặn, mở hộp "Phá lệ" cho người có ô `trip.override` (ĐP3) | chặn | — |
+| MQ-10 | **Khoá theo mốc khi xếp** | lệnh đổi "ai đi xe nào", đổi xe, đổi tài xế của một chuyến (C17; CH-01) | giờ xuất bến dự kiến, bây giờ, CH-01, cờ đặt gấp của chặng | chặn; hộp "Phá lệ" chỉ cho Quản trị, Toàn quyền (C18); xếp chính chặng đã đặt gấp thì qua | chặn | — |
 
 ### 2.4 Phá lệ: luật nào, ai, ghi gì
 
 | Luật | Phá lệ được? | Ai | Ghi gì |
 |---|---|---|---|
 | LC-01 … LC-18 (lõi) | **Không** — kể cả Toàn quyền. Đổi = ADR mới | — | — |
-| CH-01 lúc đặt | Có | ô mới `order.leg.short_notice` (**chờ ĐP3**) | cột `short_notice_*` trên chặng (mã lý do, ghi chú ngắn, người, lúc, số phút đã dùng) + nhật ký `order_leg_short_notice` |
-| CH-01 lúc xếp; CH-02 | Có | ô mới `trip.override` (**chờ ĐP3**) | sự kiện `PHA_LE` (mã luật, mã lý do, `policy_id`) + nhật ký; với CH-02: `vc_trip.rest_override_reason_code` |
+| CH-01 lúc đặt | Có | ô mới `order.leg.short_notice` — **chỉ Quản trị, Toàn quyền** (C18) | cột `short_notice_*` trên chặng (mã lý do, ghi chú ngắn, người, lúc, số phút đã dùng) + nhật ký `order_leg_short_notice` |
+| CH-01 lúc xếp; CH-02 | Có | ô mới `trip.override` — **chỉ Quản trị, Toàn quyền** (C18) | sự kiện `PHA_LE` (mã luật, mã lý do, `policy_id`) + nhật ký; với CH-02: `vc_trip.rest_override_reason_code` |
 | CH-04, CH-05 (điều kiện xuất bến, hạng bằng) | **Không** (chủ, 27/9: "chuyến sai điều kiện thì không cho xuất bến") | — | — |
-| Đề nghị chuyển bị leo thang (MQ-02) | Chỉ khi luật **không đạt là luật cấu hình** (CH-02); luật lõi không đạt thì chỉ có thể bác | ô `trip.override` (**chờ ĐP4**) | đề nghị `CONFIRMED`, `decided_mode = NGUOI`, `override_reason_code` |
+| Đề nghị chuyển bị leo thang (MQ-02) | Chỉ khi luật **không đạt là luật cấu hình** (CH-02); luật lõi không đạt thì chỉ có thể bác | ô `trip.override` (Quản trị, Toàn quyền) nếu ĐP4 = (a) | đề nghị `CONFIRMED`, `decided_mode = NGUOI`, `override_reason_code` |
 
-- **Luồng thay đổi khi xe đang chạy có kiểm CH-01 không?** Chủ đã cho phép rõ các thay đổi "trong lúc chạy", nên **chuyển điểm giữa hai xe không kiểm CH-01**. Văn phòng thêm một chặng **chưa từng xếp** vào xe đang chạy **có** kiểm CH-01 cho chính chặng đó (chặng chưa xếp tới sát giờ là chặng bị sót, phải có người chịu và ghi lý do), **trừ khi** chặng đã mang cờ "đặt gấp" từ lúc đặt — chờ ĐP2(ii).
+- **Luồng thay đổi khi xe đang chạy có kiểm CH-01 không?** Chủ đã cho phép rõ các thay đổi "trong lúc chạy", nên **chuyển điểm giữa hai xe không kiểm CH-01**. Văn phòng thêm một chặng **chưa từng xếp** vào xe đang chạy **có** kiểm CH-01 cho chính chặng đó (chặng chưa xếp tới sát giờ là chặng bị sót, phải có người chịu và ghi lý do), **trừ khi** chặng đã mang cờ "đặt gấp" từ lúc đặt (C17: không phá lệ lần nữa).
 
 ### 2.5 Dòng dữ liệu: trạng thái của một chặng (hình chiếu)
 
@@ -587,6 +593,7 @@ Khung chữ dưới đây chỉ để **nói nội dung và bố cục thô**. G
 - **Cột phải "Cần xử lý":** chuyến bị giữ (lý do + ai xử lý), đề nghị chuyển leo thang, nhắc gọi khách, chặng quá mốc, chuyến chưa có tài xế.
 - **Thao tác:** tạo chuyến (xe, tài xế, giờ), kéo chặng vào/ra (trước xuất bến), đổi thứ tự điểm, ghi đè giờ xe tới, đổi xe/tài xế, huỷ chuyến (lý do), **xuất bến bấm thay** (hiện danh sách điều kiện), phá lệ (lý do), duyệt/bác đề nghị leo thang, **khi xe đang chạy**: lượt 1 không có thao tác kế hoạch nào (chỉ bấm tiến độ thay tài xế); từ lượt 2 có đúng hai nút "Thêm điểm đón" và "Báo huỷ điểm" (LC-15).
 - **Nút "Gợi ý xếp"** chỉ có từ lát 2.5 (MQ-01); lượt 1 người xếp xe tự chọn.
+- **Trong 6 giờ trước giờ xuất bến** (C17, C18): Bán hàng thấy khối chuyến bị khoá phần "ai đi xe nào", đổi xe, đổi tài xế, kèm dòng "Cần Quản trị phá lệ"; vẫn đổi được thứ tự điểm, giờ xe tới (có ghi). Quản trị, Toàn quyền thấy nút "Phá lệ" (chọn lý do). Cột "Cần xử lý" của Quản trị có mục **"Đơn nháp chờ duyệt đặt gấp"**.
 - **Trên điện thoại** (người xếp xe hay dùng iPhone): ba cột thành ba thẻ trượt "Chưa xếp / Xe / Cần xử lý"; dòng thời gian thành danh sách chuyến theo giờ.
 
 ### 4.2 Chi tiết một chuyến (bấm vào khối chuyến)
@@ -664,7 +671,8 @@ Ba cách nhìn, cùng đọc **một** hàm `trangThaiChang` (§2.5):
  Dịch vụ: Vé cáp treo Vinpearl  (danh mục: hai chiều)  → máy tạo sẵn 2 chặng, sửa được
  ┌ Chiều đi ─ ngày 30/09 ─ giờ đón [06:30] ─ nơi đón [Sheraton ▾] ─ nơi trả [Ga cáp treo ▾] ┐
  │ [!] Giờ đón cách bây giờ 4 giờ 10 phút — dưới mốc 6 giờ.                                    │
- │     Người có quyền: [Đặt gấp — chọn lý do ▾] [ghi chú ngắn]    Người khác: gọi văn phòng    │
+ │     Quản trị / Toàn quyền: [Đặt gấp — chọn lý do ▾] [ghi chú ngắn]                            │
+ │     Bán hàng, Thực tập, Đối tác: [Lưu nháp] được — nút Xác nhận khoá: "Cần Quản trị duyệt"  │
  └────────────────────────────────────────────────────────────────────────────────────────────┘
  ┌ Chiều về ─ ngày 30/09 ─ giờ đón [16:00] ─ nơi đón [Ga cáp treo] ─ nơi trả [Sheraton] ─ [Bỏ chặng] ┐
 ```
@@ -713,15 +721,20 @@ Mỗi bảng: **Ai** làm gì · **Máy** làm gì · **Ghi** gì (một lô tr�
 | 3 | Lan xác nhận đơn | — | `confirmed`; tin đơn hiện có tới `tat-ca` |
 | 4 | — | bảng điều phối của người đang mở tải lại: chặng hiện ở "Chưa xếp", nhãn "thiếu 2 tên" | — |
 
-### 5.2 Đặt gấp (dưới 6 giờ)
+### 5.2 Đặt gấp (dưới 6 giờ) — Bán hàng nhờ Quản trị (C18)
 
 | Bước | Ai | Máy | Ghi |
 |---|---|---|---|
-| 1 | Lan lập đơn lúc 02:20 cho giờ đón 06:30 | mốc: còn 4 giờ 10 < 6 giờ → **chặn**, hiện hộp "Đặt gấp" nếu Lan có ô `order.leg.short_notice` (ĐP3) | — |
-| 2a | Lan có quyền: chọn lý do "Khách đặt sát giờ" | kiểm mã lý do trong danh sách | chặng mang `short_notice_*` (lý do, người, lúc, số phút đã dùng 360) + nhật ký `order_leg_short_notice` |
-| 2b | Lan không có quyền (vd Thực tập, Đối tác) | không lưu được chặng dưới mốc; hướng dẫn "gọi văn phòng" | — |
-| 3 | Xác nhận đơn | — | tin đơn; (lượt 2) tin "đặt gấp" tới người điều xe |
-| 4 | Người xếp xe xếp chặng vào một chuyến xuất bến 05:50 | mốc lúc xếp (ĐP2): chuyến đã trong 6 giờ → cần phá lệ, **trừ khi** ĐP2(ii) = "một lần phá lệ lúc đặt dùng luôn lúc xếp" | suất + sự kiện `PHA_LE` (nếu cần) |
+| 1 | Lan (Bán hàng) lập đơn lúc 02:20 cho giờ đón 06:30 | mốc: còn 4 giờ 10 < 6 giờ → cảnh báo "Dưới mốc 6 giờ — cần Quản trị duyệt đặt gấp" | — |
+| 2 | Lan lưu nháp | lưu được (nháp chưa phải lượt đặt, chưa xếp được — LC-09) | đơn nháp + chặng (bản cuối) |
+| 3 | Lan bấm Xác nhận | kiểm lại mốc **trong** câu xác nhận (C17): chặng dưới mốc, chưa đặt gấp → **chặn** 409 "Cần Quản trị duyệt đặt gấp" | — |
+| 4 | Lan gọi Quản trị (lượt 1 chưa có tin tự động); Quản trị thấy đơn ở mục "Đơn nháp chờ duyệt đặt gấp" trên bảng điều phối (MQ-04) | — | — |
+| 5 | Quản trị (hoặc Toàn quyền) mở đơn, bấm "Đặt gấp", chọn lý do "Khách đặt sát giờ" | ô `order.leg.short_notice` (chỉ Quản trị, Toàn quyền); kiểm mã lý do | chặng mang `short_notice_*` (lý do, người, lúc, số phút đã dùng 360) + nhật ký `order_leg_short_notice` |
+| 6 | Lan (hoặc Quản trị) xác nhận | mốc: chặng đã đặt gấp → qua | tin đơn; (lượt 2) tin "đặt gấp" tới người điều xe |
+| 7 | Người xếp xe (kể cả Bán hàng) xếp chặng vào chuyến xuất bến 05:50 | chuyến đã trong 6 giờ, nhưng **chính chặng này** đã đặt gấp → qua, không ghi lý do lần nữa (C17). Dời **khách khác** trong chuyến đó vẫn cần Quản trị phá lệ | suất |
+
+- Thực tập, Đối tác: như Bán hàng (lưu nháp được, không xác nhận được dưới mốc; nhờ văn phòng).
+- Sửa ngày, giờ, nơi đón, nơi trả của **đơn đã xác nhận** khi đã dưới mốc: chỉ Quản trị, Toàn quyền, kèm lý do (C17, C18).
 
 ### 5.3 Xếp xe (tối hôm trước)
 
@@ -741,13 +754,13 @@ Mỗi bảng: **Ai** làm gì · **Máy** làm gì · **Ghi** gì (một lô tr�
 
 | Bước | Ai | Máy | Ghi |
 |---|---|---|---|
-| 1 | Người phụ trách đơn sửa chặng (ô `order.trip.edit`) | mốc: giờ mới còn ≥ 6 giờ? không thì cần đặt gấp (như 5.2) | chặng đổi giờ + nhật ký `order_leg_updated` (trước → sau) |
+| 1 | Người phụ trách đơn sửa chặng (ô `order.trip.edit`) | mốc: giờ mới còn ≥ 6 giờ? không thì **chỉ Quản trị, Toàn quyền** sửa được, kèm lý do đặt gấp (C17, C18) | chặng đổi giờ + nhật ký `order_leg_updated` (trước → sau) |
 | 2 | — | MQ-07: chặng đang có suất trên CX-07 → nhắc "gọi báo khách" (người phụ trách đơn đã tự đổi nên chính họ là người gọi) + tài xế CX-07 thấy giờ mới; điểm dừng không ghi đè giờ → giờ xe tới tự theo giờ mới | không ghi gì ở `vc_` |
 | 3 | Người xếp xe xem lại thứ tự điểm nếu cần | LC-03, CH-01 (nếu chuyến đã trong 6 giờ → phá lệ) | sự kiện đổi thứ tự |
 
 **(b) Người xếp xe muốn xe tới sớm hơn** mà không đổi giờ hẹn khách: ghi đè `vc_trip_stop.planned_time` (lý do nhóm `DOI_GIO_XE`) — không đụng `orders`.
 
-**(c) Người xếp xe (Bán hàng) muốn đổi giờ hẹn của đơn người khác:** hôm nay ô `order.trip.edit` của Bán hàng là `ownOrAssigned` — **không** sửa được. Máy nhắc người phụ trách đơn. Mở quyền này hay không: **ĐP6**.
+**(c) Người xếp xe (Bán hàng) muốn đổi giờ hẹn của đơn người khác:** hôm nay ô `order.trip.edit` của Bán hàng là `ownOrAssigned` — **không** sửa được. Máy nhắc người phụ trách đơn. **Chủ chọn (ĐP6, 29/9): giữ như vậy** — không mở quyền.
 
 ### 5.5 Tài xế A đề nghị chuyển điểm cho tài xế B (xe đang chạy) — từ lượt duyệt 2
 
@@ -780,7 +793,7 @@ Tình huống của chủ: kẹt xe, A (CX-07) không kịp Mường Thanh; B (C
 | Bước | Ai | Máy | Ghi |
 |---|---|---|---|
 | 1 | Khách đặt gấp lúc 06:05 (có "đặt gấp" từ lúc đặt) | — | chặng mới |
-| 2 | Hùng (văn phòng) kéo chặng vào CX-04 đang chạy ("Thêm điểm đón") | LC-15: văn phòng **được thêm**; LC-02 sức chứa; LC-09; CH-01: chặng đã mang đặt gấp → theo ĐP2(ii) | suất mới `added_after_departure = 1`, điểm mới `added_while_running = 1`, dòng manifest mới, sự kiện, `version` |
+| 2 | Hùng (văn phòng) kéo chặng vào CX-04 đang chạy ("Thêm điểm đón") | LC-15: văn phòng **được thêm**; LC-02 sức chứa; LC-09; CH-01: chặng đã mang đặt gấp → qua, không phá lệ lần nữa (C17); chặng chưa đặt gấp → chỉ Quản trị, Toàn quyền phá lệ (C18) | suất mới `added_after_departure = 1`, điểm mới `added_while_running = 1`, dòng manifest mới, sự kiện, `version` |
 | 3 | — | (lượt 2) tin tới tài xế CX-04: "Văn phòng thêm điểm đón AB Square 06:40, 2 khách" | — |
 | 4 | Tài xế đón, bổ sung tên nếu thiếu (ô `trip.passenger.add`) | LC-10 | hành khách `source = 'DRIVER'` + gắn tên vào suất |
 
@@ -807,7 +820,7 @@ Tình huống của chủ: kẹt xe, A (CX-07) không kịp Mường Thanh; B (C
 
 ### 5.9 Xe hỏng giữa đường
 
-*Ở lượt 1 (chưa có đề nghị chuyển):* tài xế A (hoặc văn phòng bấm thay) bấm "Kết thúc gián đoạn", lý do "Xe hỏng" → điểm chờ bỏ qua, suất đang mở đóng với `TRIP_INTERRUPTED`, các chặng quay về cột "Chưa xếp" → văn phòng **tạo chuyến cứu hộ mới** (xe C, điểm đón đầu tiên là nơi gặp — chữ tự do) và xếp các chặng đó vào (phá lệ mốc 6 giờ kèm lý do "Sự cố vận hành"). Không đụng chuyến đang chạy nào, đúng câu "văn phòng chỉ thêm".
+*Ở lượt 1 (chưa có đề nghị chuyển):* tài xế A (hoặc văn phòng bấm thay) bấm "Kết thúc gián đoạn", lý do "Xe hỏng" → điểm chờ bỏ qua, suất đang mở đóng với `TRIP_INTERRUPTED`, các chặng quay về cột "Chưa xếp" → văn phòng **tạo chuyến cứu hộ mới** (xe C, điểm đón đầu tiên là nơi gặp — chữ tự do) và xếp các chặng đó vào (Quản trị hoặc Toàn quyền phá lệ mốc 6 giờ kèm lý do "Sự cố vận hành" — C18). Không đụng chuyến đang chạy nào, đúng câu "văn phòng chỉ thêm".
 
 *Từ lượt 2:* cách làm **phụ thuộc ĐP5** (ai chuyển khách sang xe cứu hộ **đang chạy**). Phương án khuyến nghị:
 
@@ -853,8 +866,8 @@ Hai việc khác nhau, dễ lẫn:
 | `trip.dispatch` **(mới)** — tạo/sửa/huỷ chuyến, xếp/dời/rút suất, đổi xe/tài xế **khi chuyến chưa chạy**; từ lượt 2 thêm: **thêm điểm** và **báo huỷ** khi xe đang chạy | any | none | any | none | none | any | none | none | none | 1 | C1; giới hạn "khi đang chạy" là luật LC-15 (lượt 1 khoá hẳn, lượt 2 nới đúng hai đường), không phải ô riêng |
 | `trip.progress` **(mới)** — xuất bến, đã tới, đã đón, vắng, khách đã huỷ, đã trả, kết thúc (thường/gián đoạn), đổi thứ tự điểm chưa tới | any | none | any | none | none | any | none | assigned | none (lượt 3 nếu ĐP12 cho mở — D7) | 1 | C2: văn phòng bấm thay, ghi người bấm |
 | `trip.passenger.add` **(mới)** — bổ sung/sửa tên khách tại chỗ (ghi `ord_passenger`, `source = 'DRIVER'`, bằng câu lệnh do `orders` cấp) | none | none | any | none | none | any | none | assigned | none (lượt 3 nếu ĐP12 cho mở — D7) | 2 | C15. **Bán hàng = none** (khác 1b): Bán hàng nhập tên qua màn đơn bằng ô `order.passenger.write` (ADR-0047) — không mở đường vòng ghi tên vào đơn **người khác**. Đánh đổi này hỏi chủ ở **ĐP13** |
-| `trip.override` **(mới)** — phá lệ mốc tối thiểu lúc xếp (CH-01), khoảng nghỉ (CH-02); duyệt đề nghị leo thang | **chờ ĐP3** (khuyến nghị any) | none | any | none | none | any | none | none | none | 1 | ĐP3, ĐP4 |
-| `order.leg.short_notice` **(mới)** — đặt gấp dưới mốc tối thiểu | **chờ ĐP3** (khuyến nghị ownOrAssigned) | none | any | none | none | any | none | none | none | 1 | ô của `orders`; phạm vi theo đơn như `order.modify` |
+| `trip.override` **(mới)** — phá lệ mốc tối thiểu lúc xếp (CH-01), khoảng nghỉ (CH-02); duyệt đề nghị leo thang | none | none | any | none | none | any | none | none | none | 1 | C18 (ĐP3: **chỉ Quản trị, Toàn quyền**); duyệt leo thang theo ĐP4 |
+| `order.leg.short_notice` **(mới)** — đặt gấp dưới mốc tối thiểu | none | none | any | none | none | any | none | none | none | 1 | ô của `orders`; C18 (ĐP3: **chỉ Quản trị, Toàn quyền**) — Bán hàng, Thực tập, Đối tác lưu nháp được nhưng nhờ Quản trị đặt gấp |
 | `trip.transfer` **(mới)** — gửi, rút, nhận, không nhận đề nghị chuyển điểm | none | none | none | none | none | any | none | assigned | none (lượt 3 nếu ĐP12 cho mở — D7) | 2 | route chốt thêm "người gửi đang lái chuyến nguồn / người nhận đang lái chuyến đích" — áp cả Toàn quyền (khuôn ADR-0030 điều 1); ngoại lệ bấm thay chỉ theo ĐP5. Tài xế đối tác ↔ tài xế công ty: ĐP11 (lượt 3) |
 | `trip.refuse`, `unavailability.self` | theo lượt 2 D3, D4 | | | | | | | | | 3 | D8, D9 |
 | `settings.ops` (có sẵn) | — | — | — | — | — | any | — | — | — | 1 | chính sách điều phối, điều kiện xuất bến, bảng hạng |
@@ -892,8 +905,8 @@ Hai việc khác nhau, dễ lẫn:
 | Lượt | Quyết định | Nội dung | Chạm | Câu hỏi đi kèm |
 |---|---|---|---|---|
 | **1** | **D1** Mô hình chuyến và lịch chung | `vc_trip`, `vc_trip_driver`, `vc_trip_stop`, `vc_trip_allocation` (suất), `vc_trip_event` (nối 1-1 `audit_log`); lịch chung là hình chiếu; hàm hẹp mới của `orders` (`lichChungChang`, `lienHeChoTaiXe`); cạnh `van-chuyen → orders, locations`; máy trạng thái **định trọn** (kể cả giá trị dùng ở D5, D8); thay ADR-0006 điều 2/4/5/7 cho xe đường bộ; LC-01…LC-04, LC-06, LC-07, LC-09…LC-11, LC-13, LC-16, LC-18; **LC-15 dạng khoá hẳn** (chuyến đang chạy không đổi kế hoạch) | dữ liệu | — |
-| | **D2** Luật, chính sách, cổng xuất bến, mốc tối thiểu | `vc_dispatch_policy` (cột lượt 1), `vc_departure_rule`, `vc_license_capacity`, `vc_reason`, bản chụp xuất bến; "giữ" (`LyDoGiu`); CH-01 ở **cả** lúc đặt (cột `short_notice_*` trên `ord_transfer_leg` — bổ sung ADR-0047 A1; hàm tiêm `ctx.mocToiThieu`) và lúc xếp; CH-02 … CH-06; LC-05, LC-12 | dữ liệu + hợp đồng giữa các phần | ĐP2, ĐP7 |
-| | **D3** Quyền và route | ô `trip.view`, `trip.dispatch`, `trip.progress`, `trip.override`, `order.leg.short_notice`; cột `DRIVER` (tài xế công ty) — **không** mở `DRIVER_PARTNER`; DTO danh sách trắng; route văn phòng + tài xế; nới bài ghim hàng `DRIVER`; LC-08 | quyền | ĐP3, ĐP6, ĐP8 |
+| | **D2** Luật, chính sách, cổng xuất bến, mốc tối thiểu | `vc_dispatch_policy` (cột lượt 1), `vc_departure_rule`, `vc_license_capacity`, `vc_reason`, bản chụp xuất bến; "giữ" (`LyDoGiu`); CH-01 ở **cả** lúc đặt (cột `short_notice_*` trên `ord_transfer_leg` — bổ sung ADR-0047 A1; hàm tiêm `ctx.mocToiThieu`) và lúc xếp; CH-02 … CH-06; LC-05, LC-12 | dữ liệu + hợp đồng giữa các phần | ĐP2, ĐP7 — **đã trả lời** |
+| | **D3** Quyền và route | ô `trip.view`, `trip.dispatch`, `trip.progress`, `trip.override`, `order.leg.short_notice`; cột `DRIVER` (tài xế công ty) — **không** mở `DRIVER_PARTNER`; DTO danh sách trắng; route văn phòng + tài xế; nới bài ghim hàng `DRIVER`; LC-08 | quyền | ĐP3, ĐP6, ĐP8 — **đã trả lời** |
 | **2** | **D4** Chuyển điểm đón giữa hai xe + máy tự xác nhận | `vc_transfer_request`, `vc_transfer_check`; cột `accept_wait_minutes`, `auto_confirm_transfer`; ô `trip.transfer`; LC-14; MQ-02, 03, 06, 08, 09; leo thang + phá lệ | dữ liệu + quyền | ĐP4, ĐP9 |
 | | **D5** Thay đổi khi xe đang chạy | **nới** LC-15 đúng hai đường: văn phòng thêm + báo huỷ (đường chuyển qua đề nghị thuộc D4); cột `office_cancel_*` trên suất; điểm `added_while_running`; cứu hộ xe hỏng (phạm vi `ONBOARD` của đề nghị); **tài xế tự bổ sung, sửa tên khách tại chỗ** — ô `trip.passenger.add` + câu ghi hành khách do `orders` cấp (`source = 'DRIVER'`) | dữ liệu + quyền | ĐP5, ĐP13 |
 | | **D6** Thông báo + Bảng tin cho Vận chuyển (gộp lượt 2 D5) | loại sự kiện `chuyen` trên Bảng tin, nhãn `dieu-xe`; tin chuyến là hình chiếu `audit_log` (view `v_aud_trip_event`); tin MQ-07 từ `order_leg_updated`; hai hàm tiêm `baoThayDoiChuyen`, `chuyenLienQuan` (không thêm cạnh module); người nhận theo §3.5 | quyền đọc (ai thấy tin nào) | — (câu Q1 cũ của lượt 2 không thuộc đây) |
@@ -1040,7 +1053,7 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 
 | Lượt duyệt | Câu |
 |---|---|
-| 1 | ĐP2, ĐP3, ĐP6, ĐP7, ĐP8 |
+| 1 | **Đã trả lời hết (29/9):** ĐP2 theo 4 khuyến nghị; ĐP3 chỉ Quản trị, Toàn quyền; ĐP6 không; ĐP7, ĐP8 đồng ý |
 | 2 | ĐP4, ĐP5, ĐP9, ĐP13 |
 | 3 | ĐP11, ĐP12 + bốn câu còn treo của lượt 2 cũ (cuối phần này) |
 | 4 | ĐP1, ĐP10 |
@@ -1055,6 +1068,7 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 ### Về Phần 2 (luật)
 
 **ĐP2. Mốc 6 giờ tính tới lúc nào?** *(lượt 1)*
+> **Chủ đã trả lời 29/9:** "Theo 4 khuyến nghị" — (i) giờ xuất bến; (ii) không phá lệ lần nữa; (iii) chỉ khoá "ai đi xe nào", đổi xe, đổi tài xế; (iv) kiểm lại lúc xác nhận và khi sửa nơi đón/trả. Đã áp (C17).
 - (i) Lúc **xếp xe**, 6 giờ tính tới:
   - (a) **giờ xe xuất bến** của chuyến (xe thường chạy trước giờ đón khách đầu tiên). Được: đúng chữ "giờ khởi hành" bạn dùng; cả chuyến khoá cùng lúc. Mất: khoá sớm hơn một chút.
   - (b) **giờ đón của từng chặng**. Được: linh hoạt hơn một ít. Mất: một chuyến có chặng đã khoá, chặng chưa khoá — khó hiểu trên màn.
@@ -1073,13 +1087,14 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
   - **Khuyến nghị: (a) cho cả hai.**
 
 **ĐP3. Ai được phá lệ mốc 6 giờ (và khoảng nghỉ giữa hai chuyến)?** *(lượt 1)*
+> **Chủ đã trả lời 29/9:** "Chỉ Quản trị, Toàn quyền" — cả lúc đặt lẫn lúc xếp (chặt hơn khuyến nghị). Đã áp (C18).
 - (a) **Lúc đặt:** người lập đơn trong công ty (Bán hàng với đơn mình lập hoặc phụ trách, Quản trị, Toàn quyền). **Lúc xếp:** người xếp xe (Bán hàng, Quản trị, Toàn quyền). Thực tập và Đối tác không được — gọi văn phòng. Được: không chặn bán hàng lúc khuya; mọi lần phá lệ có tên, lý do, và đếm được trên màn "dòng dữ liệu". Mất: luật chỉ mạnh bằng kỷ luật của người bán.
 - (b) **Chỉ Quản trị và Toàn quyền**, cả hai lúc. Được: chặt nhất. Mất: đơn sát giờ ban đêm phải chờ Quản trị.
 - (c) Lúc đặt như (a); lúc xếp chỉ Quản trị và Toàn quyền. Được: người bán vẫn nhận khách; kế hoạch xe do người cấp trên chịu. Mất: Bán hàng xếp xe buổi sáng sớm phải gọi Quản trị.
 - **Khuyến nghị: (a).**
 
 **ĐP4. Tài xế B đã bấm Nhận nhưng máy thấy không đạt — văn phòng có được duyệt thay không?** *(lượt 2)* Chỗ ngồi, trùng giờ, bằng lái là luật lõi: **không ai** duyệt thay được. Câu này chỉ hỏi về luật cài đặt được (khoảng nghỉ giữa hai chuyến).
-- (a) **Có.** Người có quyền phá lệ (theo ĐP3) duyệt kèm lý do; nhật ký ghi "người duyệt", không phải "máy". Được: không mắc kẹt vì một con số cài đặt. Mất: thêm một việc cho văn phòng.
+- (a) **Có.** Quản trị hoặc Toàn quyền (người được phá lệ theo ĐP3) duyệt kèm lý do; nhật ký ghi "người duyệt", không phải "máy". Được: không mắc kẹt vì một con số cài đặt. Mất: thêm một việc cho văn phòng.
 - (b) **Không.** Không đạt là dừng; văn phòng thêm điểm đó vào xe khác. Được: đơn giản. Mất: có khi phải huy động thêm xe chỉ vì thiếu vài phút nghỉ.
 - **Khuyến nghị: (a).**
 
@@ -1090,11 +1105,13 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 - **Khuyến nghị: (a).**
 
 **ĐP6. Người xếp xe (Bán hàng) có được đổi giờ hẹn với khách trên đơn của người khác không?** *(lượt 1)* Hôm nay Bán hàng chỉ sửa được thông tin chuyến của đơn mình lập hoặc mình phụ trách.
+> **Chủ đã trả lời 29/9:** "Không, nhắc người phụ trách". Đã áp (C19).
 - (a) **Không.** Người xếp xe chỉ đổi **giờ xe tới**; muốn đổi **giờ hẹn khách** thì máy nhắc người phụ trách đơn gọi khách rồi sửa. Được: giữ "đơn của ai người đó lo"; người gọi khách là người đã hứa với khách. Mất: thêm một bước khi gấp.
 - (b) **Có** — mở cho người xếp xe sửa giờ hẹn của mọi đơn. Được: nhanh. Mất: người phụ trách đơn có thể không biết khách đã được hẹn giờ mới.
 - **Khuyến nghị: (a).**
 
 **ĐP7. "Hợp đồng vận chuyển" của chuyến (luật đòi với xe hợp đồng) làm lúc nào?** *(lượt 1; câu Q5 cũ của đề xuất 1b, chưa trả lời)*
+> **Chủ đã trả lời 29/9:** đồng ý (a) — để lượt riêng, công tắc khoá ở tắt. Đã áp (C20).
 - (a) **Chưa làm ở bốn lượt này.** Công tắc "phải có hợp đồng" khoá ở tắt tới khi có một lượt riêng làm hợp đồng (số, bên thuê, điểm được phép). Được: gọn. Mất: tạm thời máy chưa kiểm hợp đồng.
 - (b) **Làm luôn bản đơn giản** (số hợp đồng, bên thuê, ngày). Được: có sớm. Mất: thêm một quyết định dữ liệu, phải thêm một lượt duyệt.
 - **Khuyến nghị: (a).** Việc "ghép khách nhiều đơn vào một xe hợp đồng" **chưa có người chuyên môn pháp lý kiểm** — nên hỏi người chuyên môn trước khi làm (b).
@@ -1102,6 +1119,7 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 ### Về Phần 3 (bộ máy)
 
 **ĐP8. Khi nhiều người cùng thao tác (văn phòng xếp xe, tài xế bấm nút), máy xử lý theo cách nào?** *(lượt 1)*
+> **Chủ đã trả lời 29/9:** đồng ý (a) — PA-1. Đã áp (C20).
 - (a) **Mỗi thao tác được kiểm luật và ghi ngay trong một lần.** Hai người đụng nhau thì người sau thấy "vừa có thay đổi, tải lại"; riêng lúc tài xế bấm Nhận, máy tự thử lại một lần. Được: không thêm thành phần nào, không thêm tiền; mọi luật kiểm được bằng máy. Mất: thỉnh thoảng có người phải tải lại.
 - (b) **Một "trạm điều phối" riêng cho mỗi ngày**, xếp hàng mọi thao tác. Được: không bao giờ đụng nhau. Mất: thêm một thành phần mà **sau khi bật, Cloudflare không cho quay về bản cũ bằng một lệnh**; hai nơi giữ dữ liệu dễ lệch; phức tạp hơn nhiều.
 - (c) **Hàng đợi xử lý nền.** Được: chịu tải lớn. Mất: tài xế bấm Nhận xong phải chờ mới biết kết quả; thêm hạ tầng. Không phù hợp.
@@ -1212,8 +1230,8 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 
 **Lát 1.4**
 - `lichChungChang`: test liệt kê khoá — không có khoá tiền, ghi chú, người lập, SĐT, họ tên; chỉ chặng mở của đơn đã xác nhận, chưa huỷ.
-- Lập chặng dưới mốc: không có ô `order.leg.short_notice` → 403; có ô, thiếu lý do → 400; có lý do → 201 và đủ cột `short_notice_*` (kể cả số phút đã dùng); nhật ký không chứa tên, năm sinh.
-- Theo ĐP2(iv) = (a): xác nhận đơn có chặng đã xuống dưới mốc mà chưa "đặt gấp" → 409 (điều kiện nằm **trong** câu xác nhận, khuôn `confirmWindow` của `orders/repository.ts`); sửa nơi đón của chặng dưới mốc không "đặt gấp" → 409.
+- Mốc lúc đặt (C17, C18): Bán hàng lưu nháp chặng dưới mốc → 200 kèm cảnh báo; Bán hàng xác nhận → 409 `short_notice_required`; Bán hàng gọi route đặt gấp → 403; Quản trị đặt gấp thiếu lý do → 400; có lý do → 200, đủ cột `short_notice_*` (kể cả số phút đã dùng); sau đó xác nhận → 200. Thực tập, Đối tác như Bán hàng. Nhật ký không chứa tên, năm sinh.
+- ĐP2(iv) (đã chọn): điều kiện mốc nằm **trong** câu xác nhận (khuôn `confirmWindow` của `orders/repository.ts`); Bán hàng sửa nơi đón của chặng đơn đã xác nhận khi dưới mốc → 409; Quản trị sửa kèm lý do → 200.
 - Test hợp đồng: route lập/sửa chặng gọi `ctx.mocToiThieu` đúng một lần; thiếu hàm tiêm (khung thử) → **chặn** (không đoán con số).
 - Bài quét: mọi nơi gọi `lichChungChang`, `lienHeChoTaiXe` đều đứng sau `can(trip.*)` trong cùng hàm route (lát 2.2 thêm câu ghi hành khách của tài xế vào cùng bài quét).
 
@@ -1221,7 +1239,7 @@ Chỉ gồm điều chủ **chưa** trả lời. Không hỏi lại: ai xếp xe
 - e2e `van-chuyen-dieu-phoi`: tạo chuyến → xếp 3 chặng → bị giữ "thiếu 2 tên" → nhập tên → xuất bến 200, có dòng `vc_trip_departure_check` và `vc_trip_manifest`.
 - Hai người sửa cùng `version` → đúng một 409 "vừa có thay đổi".
 - Kế toán `POST` xếp xe → 403.
-- Sửa chuyến có giờ xuất bến trong 6 giờ không phá lệ → 409; phá lệ (người có ô theo ĐP3) → 200 + sự kiện `PHA_LE` có `policy_id`.
+- Trong 6 giờ trước giờ xuất bến (C17): Bán hàng dời khách, đổi xe, đổi tài xế → 409; Bán hàng gọi route phá lệ → 403; Quản trị phá lệ → 200 + sự kiện `PHA_LE` có `policy_id`; Bán hàng đổi thứ tự điểm, chỉnh giờ xe tới → 200 (có sự kiện); Bán hàng xếp **chặng đã đặt gấp** vào chuyến đó → 200, không cần phá lệ.
 - **Bài chạy đua** (kiểm giả định "D1 chạy lô lần lượt"): 10 yêu cầu song song xếp vào một chuyến còn 3 chỗ → đúng 3 thành công, số suất mở không bao giờ vượt số chỗ. Đỏ trước bằng cách tạm tắt trigger sức chứa.
 
 **Lát 1.6**
