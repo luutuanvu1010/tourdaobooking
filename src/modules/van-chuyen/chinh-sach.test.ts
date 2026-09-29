@@ -16,8 +16,9 @@ const vanChuyen = (await import(`data:text/javascript;base64,${Buffer.from(built
 
 const chen = (sqlite: any, id: string, phut: number, tu: string) =>
   sqlite.prepare(
-    `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at, created_by, updated_at, updated_by)
-     VALUES (?, ?, 120, 30, 1, 0, ?, ?, 'nv', ?, 'nv')`,
+    `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at,
+       created_by, updated_at, updated_by)
+     VALUES (?, ?, 120, 30, 1, 0, 180, ?, ?, 'nv', ?, 'nv')`,
   ).run(id, phut, tu, tu, tu);
 
 test("TC-4 mocToiThieuHienHanh: gieo sẵn 360 phút; dòng mới đã tới hiệu lực thắng; dòng TƯƠNG LAI chưa có hiệu lực; bảng rỗng → null", async () => {
@@ -38,12 +39,14 @@ const loi = (r: { ok: boolean; message?: string }): string => {
   return String((r as { message: string }).message);
 };
 
-test("kiemChinhSachMoi: đủ bốn giá trị trong khoảng; mốc KHÔNG tắt được (> 0 — chủ trả lời lần 9, GA-5); hợp đồng chỉ nhận false; không nhận ngày hiệu lực (I28); thiếu / sai kiểu → từ chối", () => {
-  const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true };
+test("kiemChinhSachMoi: đủ NĂM giá trị trong khoảng (kẹp lùi giờ khai 1…1440 — ADR-0050 VK1-A, BẮT BUỘC — I43); mốc KHÔNG tắt được (> 0 — chủ trả lời lần 9, GA-5); hợp đồng chỉ nhận false; không nhận ngày hiệu lực (I28); thiếu / sai kiểu → từ chối", () => {
+  const du = { minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, proxyBackdateMaxMinutes: 180 };
   assert.deepEqual(kiemChinhSachMoi(du), { ok: true, value: du });
-  assert.deepEqual(kiemChinhSachMoi({ ...du, minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, requireContract: false }), {
-    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false },
+  assert.deepEqual(kiemChinhSachMoi({ ...du, minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, requireContract: false, proxyBackdateMaxMinutes: 1 }), {
+    ok: true, value: { minLeadMinutes: 1, warnLeadMinutes: 0, restMinutes: 0, requireManifest: false, proxyBackdateMaxMinutes: 1 },
   });
+  assert.deepEqual(kiemChinhSachMoi({ ...du, proxyBackdateMaxMinutes: 1440 }), { ok: true, value: { ...du, proxyBackdateMaxMinutes: 1440 } });
+  for (const v of [0, 1441, -1, 1.5, "180", null]) assert.match(loi(kiemChinhSachMoi({ ...du, proxyBackdateMaxMinutes: v })), /khai lùi/, `kẹp lùi ${String(v)}`);
   assert.match(loi(kiemChinhSachMoi({ ...du, minLeadMinutes: 0 })), /không tắt được/, "mốc 0 bị từ chối với câu nói rõ");
   assert.match(loi(kiemChinhSachMoi({ ...du, requireContract: true })), /hợp đồng/i);
   for (const k of ["validFrom", "validFromAt", "valid_from_at", "hieuLucTu", "effectiveFrom"]) assert.match(loi(kiemChinhSachMoi({ ...du, [k]: "2026-01-01" })), /hiệu lực/, k);

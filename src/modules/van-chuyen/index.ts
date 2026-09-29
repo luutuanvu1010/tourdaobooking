@@ -34,7 +34,7 @@ import {
   MA_LY_DO_RE, chiTietChinhSach, chiTietDieuKien, chiTietHangBang, chiTietLyDo, kiemChinhSachMoi, kiemDieuKienMoi, kiemHangBangMoi, kiemLyDoMoi, kiemSuaLyDo,
 } from "./chinh-sach";
 import {
-  closeDepartureRuleStatement, currentDispatchPolicy, currentLicenseCapacity, findDepartureRule, findTripReason, insertDepartureRuleStatement, insertDispatchPolicyStatement,
+  chinhSachHienHanh, closeDepartureRuleStatement, currentDispatchPolicy, currentLicenseCapacity, findDepartureRule, findTripReason, insertDepartureRuleStatement, insertDispatchPolicyStatement,
   insertLicenseCapacityStatement, insertTripReasonStatement, listDepartureRules, listDispatchPolicies, listLicenseCapacity, listTripReasons, updateTripReasonStatement,
   type DepartureRuleRow, type DispatchPolicyRow, type LicenseCapacityRow, type TripReasonRow,
 } from "./repository";
@@ -61,7 +61,7 @@ const DOC_STALE = () => error(409, "stale", "Giấy tờ vừa được người
  * bảng vc_. `null` = bảng rỗng → orders CHẶN lệnh cần mốc, không đoán con số.
  */
 export async function mocToiThieuHienHanh(db: D1Database): Promise<MocToiThieu | null> {
-  const r = await currentDispatchPolicy(db, new Date().toISOString());
+  const r = await chinhSachHienHanh(db);
   return r ? { phut: r.min_lead_minutes, policyId: r.id } : null;
 }
 
@@ -77,6 +77,7 @@ const toPolicyDto = (r: DispatchPolicyRow, currentId: string | null): DispatchPo
   restMinutes: r.rest_minutes,
   requireManifest: r.require_manifest === 1,
   requireContract: r.require_contract === 1,
+  proxyBackdateMaxMinutes: r.proxy_backdate_max_minutes,
   validFrom: r.valid_from_at,
   current: r.id === currentId,
 });
@@ -429,7 +430,12 @@ export const vanChuyenModule: AppModule = {
       if (!parsed.ok) return error(400, "invalid_input", parsed.message);
       const at = new Date().toISOString();
       const cu = await currentDispatchPolicy(env.DB, at);
-      const truoc = cu ? { minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1 } : null;
+      const truoc = cu
+        ? {
+          minLeadMinutes: cu.min_lead_minutes, warnLeadMinutes: cu.warn_lead_minutes, restMinutes: cu.rest_minutes, requireManifest: cu.require_manifest === 1,
+          proxyBackdateMaxMinutes: cu.proxy_backdate_max_minutes,
+        }
+        : null;
       try {
         await env.DB.batch([
           insertDispatchPolicyStatement(env.DB, crypto.randomUUID(), parsed.value, at, staff.id),

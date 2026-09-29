@@ -30,12 +30,13 @@ let k = 0;
 /** Mốc hiệu lực độc nhất trong một lần chạy (mỗi lần gọi cách nhau 1 giây) — không đụng khoá duy nhất vc_dispatch_policy.valid_from_at ngoài ý muốn. */
 const moc = () => new Date(Date.parse("2026-10-01T00:00:00.000Z") + ++k * 1000).toISOString();
 
-function chinhSach(db: DatabaseSync, v: { min?: number; warn?: number; rest?: number; manifest?: number; contract?: number; tu?: string } = {}): string {
+function chinhSach(db: DatabaseSync, v: { min?: number; warn?: number; rest?: number; manifest?: number; contract?: number; kep?: number | null; tu?: string } = {}): string {
   const id = uid();
   db.prepare(
-    `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at, created_by, updated_at, updated_by)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'nv-1', ?, 'nv-1')`,
-  ).run(id, v.min ?? 360, v.warn ?? 120, v.rest ?? 30, v.manifest ?? 1, v.contract ?? 0, v.tu ?? moc(), AT, AT);
+    `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at,
+       created_by, updated_at, updated_by)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'nv-1', ?, 'nv-1')`,
+  ).run(id, v.min ?? 360, v.warn ?? 120, v.rest ?? 30, v.manifest ?? 1, v.contract ?? 0, v.kep === undefined ? 180 : v.kep, v.tu ?? moc(), AT, AT);
   return id;
 }
 function dieuKien(db: DatabaseSync, v: { cho?: number; subject?: string; xe?: string | null; nguoi?: string | null }): string {
@@ -75,11 +76,14 @@ test("(a) đúng một tệp *_chinh_sach_dieu_phoi.sql; không phải B5; mọi
   assert.doesNotMatch(code, /@/);
 });
 
-test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 hiệu lực từ 01/09; tám dòng hạng bằng đúng mã của 0032; danh mục lý do theo nhóm (G4), mỗi nhóm có 'Khác'", () => {
+test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 + kẹp lùi 180 (ADR-0050 VK1-A, G-A1) hiệu lực từ 01/09; tám dòng hạng bằng đúng mã của 0032; danh mục lý do theo nhóm (G4), mỗi nhóm có 'Khác'", () => {
   const db = all();
   assert.deepEqual(
-    rows(db, "SELECT min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_by FROM vc_dispatch_policy"),
-    [{ min_lead_minutes: 360, warn_lead_minutes: 120, rest_minutes: 30, require_manifest: 1, require_contract: 0, valid_from_at: "2026-09-01T00:00:00.000Z", created_by: null }],
+    rows(db, "SELECT min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_by FROM vc_dispatch_policy"),
+    [{
+      min_lead_minutes: 360, warn_lead_minutes: 120, rest_minutes: 30, require_manifest: 1, require_contract: 0, proxy_backdate_max_minutes: 180,
+      valid_from_at: "2026-09-01T00:00:00.000Z", created_by: null,
+    }],
   );
   assert.deepEqual(rows(db, "SELECT license_class_code AS c, max_passengers AS m, valid_from_at AS tu FROM vc_license_capacity ORDER BY license_class_code"), [
     { c: "B", m: 8, tu: "2026-09-01T00:00:00.000Z" },
@@ -96,7 +100,16 @@ test("(c) dữ liệu gieo: đúng một dòng chính sách 360/120/30/1/0 hiệ
     rows(db, "SELECT code FROM pty_license_class WHERE code NOT IN (SELECT license_class_code FROM vc_license_capacity)"),
     [],
   );
-  assert.deepEqual(rows(db, "SELECT count(*) AS n FROM vc_departure_rule"), [{ n: 0 }], "G3: điều kiện xuất bến không gieo dòng nào");
+  // ADR-0050 VK1-C (chủ Q-L1-3 = "Kiểm định + Bảo hiểm", thay G3 "không gieo"): ĐÚNG HAI điều kiện gieo, đang hiệu lực, cho MỌI xe (từ 1 người).
+  assert.deepEqual(
+    rows(db, `SELECT min_capacity, subject, vehicle_document_type_code AS xe, person_document_type_code AS nguoi, valid_from_at, valid_to_at, closed_by, created_by
+              FROM vc_departure_rule ORDER BY vehicle_document_type_code`),
+    [
+      { min_capacity: 1, subject: "VEHICLE", xe: "INSPECTION", nguoi: null, valid_from_at: "2026-09-01T00:00:00.000Z", valid_to_at: null, closed_by: null, created_by: null },
+      { min_capacity: 1, subject: "VEHICLE", xe: "TPL_INSURANCE", nguoi: null, valid_from_at: "2026-09-01T00:00:00.000Z", valid_to_at: null, closed_by: null, created_by: null },
+    ],
+    "VK1-C: hai điều kiện giấy tờ xe gieo sẵn (Kiểm định, Bảo hiểm trách nhiệm dân sự)",
+  );
   const lyDoGieo = rows(db, "SELECT code, reason_group, active, created_by FROM vc_reason ORDER BY reason_group, sort_order, code");
   assert.deepEqual(lyDoGieo.map((r) => `${r.reason_group}:${r.code}`), [
     "BO_QUA_DIEM:BO_QUA_KHONG_CON_KHACH",
@@ -134,7 +147,7 @@ test("(b) TC-1 chính sách điều phối CHỈ THÊM: UPDATE → RAISE, DELETE
   assert.throws(() => chinhSach(db, { tu: "2026-11-01T00:00:00.000Z" }), /UNIQUE constraint failed: vc_dispatch_policy\.valid_from_at/);
 });
 
-test("(d) khoảng giá trị ở CSDL: mốc 1…2880 (KHÔNG cho tắt — chủ trả lời lần 9, GA-5), cảnh báo 0…1440, nghỉ 0…480 phút; số khách tối đa 1…100 hoặc NULL", () => {
+test("(d) khoảng giá trị ở CSDL: mốc 1…2880 (KHÔNG cho tắt — chủ trả lời lần 9, GA-5), cảnh báo 0…1440, nghỉ 0…480, kẹp lùi 1…1440 phút (TC-52); số khách tối đa 1…100 hoặc NULL", () => {
   const db = all();
   chinhSach(db, { min: 1, warn: 0, rest: 0 });
   chinhSach(db, { min: 2880, warn: 1440, rest: 480 });
@@ -143,6 +156,18 @@ test("(d) khoảng giá trị ở CSDL: mốc 1…2880 (KHÔNG cho tắt — ch�
   assert.throws(() => chinhSach(db, { min: -1 }), /CHECK constraint failed/);
   assert.throws(() => chinhSach(db, { warn: 1441 }), /CHECK constraint failed/);
   assert.throws(() => chinhSach(db, { rest: 481 }), /CHECK constraint failed/);
+  // ADR-0050 VK1-A: kẹp lùi giờ khai 1…1440 phút; KHÔNG có giá trị mặc định (mỗi dòng là một bản đầy đủ — I43): thiếu → NOT NULL.
+  chinhSach(db, { kep: 1 });
+  chinhSach(db, { kep: 1440 });
+  assert.throws(() => chinhSach(db, { kep: 0 }), /CHECK constraint failed/, "kẹp lùi 0");
+  assert.throws(() => chinhSach(db, { kep: 1441 }), /CHECK constraint failed/, "kẹp lùi 1441");
+  assert.throws(() => chinhSach(db, { kep: null }), /NOT NULL constraint failed: vc_dispatch_policy\.proxy_backdate_max_minutes/, "thiếu kẹp lùi");
+  assert.throws(
+    () => db.prepare(`INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, valid_from_at, created_at, updated_at)
+                      VALUES (?, 360, 120, 30, 1, ?, ?, ?)`).run(uid(), moc(), AT, AT),
+    /NOT NULL constraint failed: vc_dispatch_policy\.proxy_backdate_max_minutes/,
+    "câu chèn không nêu cột kẹp lùi → CSDL không tự điền (không DEFAULT)",
+  );
   hangBang(db, "D2", 30);
   hangBang(db, "D", null, "2026-10-02T00:00:00.000Z");
   assert.throws(() => hangBang(db, "B", 0, "2026-10-03T00:00:00.000Z"), /CHECK constraint failed/);

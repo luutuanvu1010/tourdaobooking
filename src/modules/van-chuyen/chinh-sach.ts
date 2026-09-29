@@ -22,17 +22,20 @@ export interface ChinhSachMoi {
   warnLeadMinutes: number;
   restMinutes: number;
   requireManifest: boolean;
+  /** ADR-0050 VK1-A: kẹp lùi TỐI ĐA (phút) khi văn phòng bấm thay khai giờ xảy ra; 1…1440; BẮT BUỘC (kế hoạch I43 — không chép ngầm từ dòng cũ). */
+  proxyBackdateMaxMinutes: number;
 }
 export function kiemChinhSachMoi(body: Record<string, unknown> | null): Result<ChinhSachMoi> {
   if (!body) return fail("Dữ liệu không hợp lệ.");
   if (coNgayHieuLuc(body)) return fail(CAU_HIEU_LUC);
-  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract } = body;
+  const { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, requireContract, proxyBackdateMaxMinutes } = body;
   if (!soNguyen(minLeadMinutes, 1, 2880)) return fail("Mốc tối thiểu là số phút nguyên từ 1 đến 2880 — không tắt được; muốn nới thì giảm con số.");
   if (!soNguyen(warnLeadMinutes, 0, 1440)) return fail("Cảnh báo sát mốc là số phút nguyên từ 0 đến 1440.");
   if (!soNguyen(restMinutes, 0, 480)) return fail("Khoảng nghỉ giữa hai chuyến là số phút nguyên từ 0 đến 480.");
   if (typeof requireManifest !== "boolean") return fail("Chọn có hay không bắt đủ danh sách hành khách.");
   if (requireContract !== undefined && requireContract !== false) return fail("Chưa bật được yêu cầu hợp đồng vận chuyển — cần một quyết định riêng.");
-  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest } };
+  if (!soNguyen(proxyBackdateMaxMinutes, 1, 1440)) return fail("Giờ văn phòng khai lùi tối đa là số phút nguyên từ 1 đến 1440.");
+  return { ok: true, value: { minLeadMinutes, warnLeadMinutes, restMinutes, requireManifest, proxyBackdateMaxMinutes } };
 }
 export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): string {
   const co = (b: boolean) => (b ? "có" : "không");
@@ -42,6 +45,7 @@ export function chiTietChinhSach(cu: ChinhSachMoi | null, moi: ChinhSachMoi): st
     phan("cảnh báo sát mốc", cu ? `${cu.warnLeadMinutes}` : null, `${moi.warnLeadMinutes} phút`),
     phan("khoảng nghỉ", cu ? `${cu.restMinutes}` : null, `${moi.restMinutes} phút`),
     phan("bắt đủ danh sách", cu ? co(cu.requireManifest) : null, co(moi.requireManifest)),
+    phan("kẹp lùi giờ khai", cu ? `${cu.proxyBackdateMaxMinutes}` : null, `${moi.proxyBackdateMaxMinutes} phút`),
   ].join("; ")}`;
 }
 

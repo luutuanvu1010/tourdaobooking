@@ -226,10 +226,12 @@ export interface DispatchPolicyRow {
   rest_minutes: number;
   require_manifest: number;
   require_contract: number;
+  /** ADR-0050 VK1-A: kẹp lùi tối đa (phút) khi văn phòng bấm thay khai giờ xảy ra. */
+  proxy_backdate_max_minutes: number;
   valid_from_at: string;
   created_at: string;
 }
-const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at";
+const COT_CHINH_SACH = "id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at";
 // Dòng hiệu lực = valid_from_at mới nhất ≤ ?1 (mốc UTC ISO của lúc gọi).
 const CURRENT_DISPATCH_POLICY = defineSql(
   "van-chuyen",
@@ -240,17 +242,28 @@ const LIST_DISPATCH_POLICIES = defineSql("van-chuyen", "list_dispatch_policies",
 const INSERT_DISPATCH_POLICY = defineSql(
   "van-chuyen",
   "insert_dispatch_policy",
-  `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at, created_by, updated_at, updated_by)
-   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?6, ?6, ?7, ?6, ?7)`,
+  `INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at,
+     created_by, updated_at, updated_by)
+   VALUES (?1, ?2, ?3, ?4, ?5, 0, ?8, ?6, ?6, ?7, ?6, ?7)`,
 );
 export const currentDispatchPolicy = (db: D1Database, nowIso: string): Promise<DispatchPolicyRow | null> =>
   db.prepare(CURRENT_DISPATCH_POLICY).bind(nowIso).first<DispatchPolicyRow>();
+/**
+ * Chính sách điều phối ĐANG HIỆU LỰC, đủ cột (kế hoạch A7b) — hàm NỘI BỘ của module (không xuất qua index.ts): hàm công bố `mocToiThieuHienHanh` đọc qua
+ * đây; route bấm thay / xuất bến (A15) sẽ đọc `rest_minutes`, `proxy_backdate_max_minutes`, `id` (policy_id) cùng một chỗ. `null` = bảng rỗng → CHẶN.
+ */
+export const chinhSachHienHanh = (db: D1Database): Promise<DispatchPolicyRow | null> => currentDispatchPolicy(db, new Date().toISOString());
 export async function listDispatchPolicies(db: D1Database): Promise<DispatchPolicyRow[]> {
   return (await db.prepare(LIST_DISPATCH_POLICIES).all<DispatchPolicyRow>()).results;
 }
 export const insertDispatchPolicyStatement = (
-  db: D1Database, id: string, v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean }, at: string, actorId: string,
-): D1PreparedStatement => db.prepare(INSERT_DISPATCH_POLICY).bind(id, v.minLeadMinutes, v.warnLeadMinutes, v.restMinutes, v.requireManifest ? 1 : 0, at, actorId);
+  db: D1Database,
+  id: string,
+  v: { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; proxyBackdateMaxMinutes: number },
+  at: string,
+  actorId: string,
+): D1PreparedStatement =>
+  db.prepare(INSERT_DISPATCH_POLICY).bind(id, v.minLeadMinutes, v.warnLeadMinutes, v.restMinutes, v.requireManifest ? 1 : 0, at, actorId, v.proxyBackdateMaxMinutes);
 
 export interface DepartureRuleRow {
   id: string;

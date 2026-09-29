@@ -28,7 +28,7 @@ try {
   const r = await fetch(env.base + "/api/van-chuyen/chinh-sach-dieu-phoi", {
     method: "POST",
     headers: { "content-type": "application/json", origin: env.base, cookie: `${c.name}=${c.value}` },
-    body: JSON.stringify({ minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true }),
+    body: JSON.stringify({ minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 180 }),
   });
   assert.equal(r.status, 201, await r.text());
 

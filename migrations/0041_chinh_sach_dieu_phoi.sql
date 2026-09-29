@@ -3,6 +3,8 @@
 -- Bốn bảng, khuôn vc_expiry_policy (0033): chính sách có ngày hiệu lực (Hiến chương 5.2 — dòng hiệu lực = valid_from_at mới nhất ≤ bây giờ; đổi = chèn
 -- dòng mới, máy chủ đặt valid_from_at = lúc ghi, không lùi ngày), điều kiện xuất bến theo cỡ xe (thêm và ĐÓNG hiệu lực một lần), bảng hạng bằng → số khách
 -- (chỉ thêm), danh mục lý do (Quản trị sửa trong app — khuôn loc_location; khoá chính là mã; ngưng = active 0).
+-- ADR-0050 (accepted 29/9) sửa TẠI CHỖ tệp này (chưa từng lên main / remote — kế hoạch I44): VK1-A thêm cột kẹp lùi proxy_backdate_max_minutes (gieo 180);
+-- VK1-C gieo HAI điều kiện giấy tờ xe cho mọi xe (Kiểm định, Bảo hiểm — chủ Q-L1-3). D1 local đã áp bản cũ KHÔNG áp lại (wrangler theo tên tệp): xoá D1 local.
 -- Trigger chỉ đọc bảng vc_ (Hiến chương 5.3). Khoá ngoại sang danh mục của parties (hạng bằng, loại giấy tờ của người) đi theo cạnh van-chuyen → parties
 -- đã khai. Nhóm lý do là danh sách MỞ theo lượt (lượt 2 thêm nhóm) → kiểm ở MÃ (hằng NHOM_LY_DO, src/shared/dieu-phoi-kieu.ts), không CHECK liệt kê
 -- (docs/ARCHITECTURE.md Phần II "Luật dữ liệu"; kế hoạch I7).
@@ -16,22 +18,27 @@ CREATE TABLE vc_dispatch_policy (
   rest_minutes       INTEGER NOT NULL CHECK (rest_minutes BETWEEN 0 AND 480),        -- khoảng nghỉ tối thiểu giữa hai chuyến (CH-02)
   require_manifest   INTEGER NOT NULL CHECK (require_manifest IN (0, 1)),           -- bắt đủ danh sách hành khách mới xuất bến
   require_contract   INTEGER NOT NULL DEFAULT 0 CHECK (require_contract = 0),       -- ĐP7: khoá ở CSDL
+  -- ADR-0050 VK1-A: kẹp lùi TỐI ĐA (phút) khi văn phòng bấm thay khai giờ xảy ra (G-A1: gieo 180; Toàn quyền đổi). KHÔNG DEFAULT: mỗi dòng là một bản đầy đủ,
+  -- câu chèn quên cột thì CSDL chặn (NOT NULL) chứ không tự điền (kế hoạch I43).
+  proxy_backdate_max_minutes INTEGER NOT NULL CHECK (proxy_backdate_max_minutes BETWEEN 1 AND 1440),
   valid_from_at      TEXT NOT NULL UNIQUE,
   created_at         TEXT NOT NULL,
   created_by         TEXT,
   updated_at         TEXT NOT NULL,
   updated_by         TEXT
 );
-INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, valid_from_at, created_at, updated_at) VALUES
-  ('d53b6dd9-60e2-4644-8e63-9ca7dcff35d0', 360, 120, 30, 1, 0, '2026-09-01T00:00:00.000Z', '2026-09-29T00:00:00.000Z', '2026-09-29T00:00:00.000Z');
+INSERT INTO vc_dispatch_policy (id, min_lead_minutes, warn_lead_minutes, rest_minutes, require_manifest, require_contract, proxy_backdate_max_minutes, valid_from_at, created_at,
+    updated_at) VALUES
+  ('d53b6dd9-60e2-4644-8e63-9ca7dcff35d0', 360, 120, 30, 1, 0, 180, '2026-09-01T00:00:00.000Z', '2026-09-29T00:00:00.000Z', '2026-09-29T00:00:00.000Z');
 CREATE TRIGGER vc_dispatch_policy_no_update BEFORE UPDATE ON vc_dispatch_policy
 BEGIN SELECT RAISE(ABORT, 'vc_policy_append_only: chính sách điều phối chỉ thêm dòng mới, không sửa'); END;
 CREATE TRIGGER vc_dispatch_policy_no_delete BEFORE DELETE ON vc_dispatch_policy
 BEGIN SELECT RAISE(ABORT, 'vc_policy_append_only: chính sách điều phối không xoá'); END;
 
 -- Điều kiện xuất bến theo cỡ xe (thiết kế 1b B2, giữ nguyên): "xe từ min_capacity người trở lên → bắt buộc giấy tờ X của XE hoặc của TÀI XẾ còn hạn tới hết
--- chuyến". Đúng MỘT mã giấy tờ theo đối tượng. Toàn quyền thêm và đóng hiệu lực; không sửa nội dung, không mở lại, không xoá. Gieo: không dòng nào (G3 —
--- sàn cứng GPLX nằm trong mã). Đang hiệu lực = valid_from_at ≤ bây giờ và (valid_to_at trống hoặc > bây giờ).
+-- chuyến". Đúng MỘT mã giấy tờ theo đối tượng. Toàn quyền thêm và đóng hiệu lực; không sửa nội dung, không mở lại, không xoá. Gieo Kiểm định + Bảo hiểm
+-- theo ADR-0050 VK1-C (chủ Q-L1-3, 29/9 — thay G3 "không gieo"); sàn cứng GPLX vẫn nằm trong mã. Đang hiệu lực = valid_from_at ≤ bây giờ và (valid_to_at
+-- trống hoặc > bây giờ).
 CREATE TABLE vc_departure_rule (
   id                          TEXT PRIMARY KEY,
   min_capacity                INTEGER NOT NULL CHECK (min_capacity BETWEEN 1 AND 100),
@@ -51,6 +58,13 @@ CREATE TABLE vc_departure_rule (
   CHECK (valid_to_at IS NOT NULL OR closed_by IS NULL)
 );
 CREATE INDEX vc_departure_rule_open_ix ON vc_departure_rule(valid_to_at, min_capacity);
+-- ADR-0050 VK1-C: MỌI xe (từ 1 người) phải có Kiểm định và Bảo hiểm trách nhiệm dân sự còn hạn tới hết chuyến (mã có sẵn ở 0033). Chèn TRƯỚC trigger bên dưới.
+INSERT INTO vc_departure_rule (id, min_capacity, subject, vehicle_document_type_code, person_document_type_code, valid_from_at, valid_to_at, closed_by, created_at, created_by,
+    updated_at, updated_by) VALUES
+  ('1a6f3c52-4d0e-4b8a-9c21-7e5d0b3a9f11', 1, 'VEHICLE', 'INSPECTION', NULL, '2026-09-01T00:00:00.000Z', NULL, NULL, '2026-09-29T00:00:00.000Z', NULL,
+    '2026-09-29T00:00:00.000Z', NULL),
+  ('2b7e4d63-5e1f-4c9b-8d32-8f6e1c4b0a22', 1, 'VEHICLE', 'TPL_INSURANCE', NULL, '2026-09-01T00:00:00.000Z', NULL, NULL, '2026-09-29T00:00:00.000Z', NULL,
+    '2026-09-29T00:00:00.000Z', NULL);
 -- Chỉ một kiểu UPDATE hợp lệ: ĐÓNG (valid_to_at từ trống → có), không đổi cột nội dung nào. Đóng lần hai, mở lại, sửa nội dung → chặn.
 CREATE TRIGGER vc_departure_rule_close_once BEFORE UPDATE ON vc_departure_rule
 WHEN OLD.valid_to_at IS NOT NULL OR NEW.valid_to_at IS NULL

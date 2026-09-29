@@ -33,7 +33,7 @@ const dem = (w: any, bang: string): number => w.q(`SELECT count(*) n FROM ${bang
 const CAU_CONG_OFFICE = /chỉ dùng cho việc được giao/;
 const CAU_CONG_ADMIN = /^Chỉ quản trị viên được thực hiện thao tác này\.$/;
 const CAU_O_CHINH_SACH = /Chỉ người phụ trách hệ thống/;
-const CS = { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true };
+const CS = { minLeadMinutes: 240, warnLeadMinutes: 60, restMinutes: 45, requireManifest: true, proxyBackdateMaxMinutes: 90 };
 
 const ROUTE_CHINH_SACH: [string, string, unknown][] = [
   ["GET", "/api/van-chuyen/chinh-sach-dieu-phoi", undefined],
@@ -72,24 +72,29 @@ test("TC-2 route 9–10: Toàn quyền xem (bản gieo 360/120/30) và thêm b�
   let r = await w.call("GET", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP });
   assert.equal(r.status, 200, r.text);
   assert.deepEqual({ ...r.json.current, id: undefined, validFrom: undefined }, {
-    id: undefined, minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, validFrom: undefined, current: true,
+    id: undefined, minLeadMinutes: 360, warnLeadMinutes: 120, restMinutes: 30, requireManifest: true, requireContract: false, proxyBackdateMaxMinutes: 180,
+    validFrom: undefined, current: true,
   });
   r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body: CS });
   assert.equal(r.status, 201, r.text);
   assert.equal(r.json.current.minLeadMinutes, 240);
+  assert.equal(r.json.current.proxyBackdateMaxMinutes, 90, "TC-52: dòng mới mang kẹp lùi đã gửi");
+  assert.equal(w.q("SELECT proxy_backdate_max_minutes k FROM vc_dispatch_policy WHERE id = ?", r.json.current.id)[0].k, 90);
   assert.equal(r.json.history.length, 2);
   assert.deepEqual(r.json.history.map((h: any) => [h.minLeadMinutes, h.current]), [[240, true], [360, false]]);
   const nk = nhatKyCuoi(w, "dispatch_policy_changed");
   assert.deepEqual(nk, {
     staff_id: SUP, order_id: null, target_type: null, target_id: null,
-    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có",
+    detail: "chính sách điều phối: mốc tối thiểu 360 → 240 phút; cảnh báo sát mốc 120 → 60 phút; khoảng nghỉ 30 → 45 phút; bắt đủ danh sách có → có; kẹp lùi giờ khai 180 → 90 phút",
   });
 });
 
 test("TC-2 route 10: thân mang ngày hiệu lực → 400 (không nhận); hợp đồng true → 400; sai khoảng → 400; không ghi, không nhật ký", async () => {
   const w = setup();
   const n0 = soNhatKy(w);
-  for (const body of [{ ...CS, validFrom: "2026-01-01" }, { ...CS, validFromAt: "2026-01-01T00:00:00.000Z" }, { ...CS, requireContract: true }, { ...CS, minLeadMinutes: 2881 }, { ...CS, requireManifest: "có" }, null]) {
+  const { proxyBackdateMaxMinutes: _kep, ...thieuKep } = CS; // TC-52 / I43: thiếu kẹp lùi → 400 (không chép ngầm từ dòng cũ)
+  for (const body of [{ ...CS, validFrom: "2026-01-01" }, { ...CS, validFromAt: "2026-01-01T00:00:00.000Z" }, { ...CS, requireContract: true }, { ...CS, minLeadMinutes: 2881 }, { ...CS, requireManifest: "có" }, null,
+    thieuKep, { ...CS, proxyBackdateMaxMinutes: 0 }, { ...CS, proxyBackdateMaxMinutes: 1441 }]) {
     const r = await w.call("POST", "/api/van-chuyen/chinh-sach-dieu-phoi", { as: SUP, body });
     assert.equal(r.status, 400, `${JSON.stringify(body)}: ${r.text}`);
     assert.equal(r.json.error.code, "invalid_input");
@@ -142,6 +147,16 @@ test("TC-2 route 14–15: Toàn quyền thêm hạng D2 = 30 → dòng mới hi�
   }
 });
 
+test("TC-52 (ADR-0050 VK1-C): CSDL mới — GET /dieu-kien trả ĐÚNG HAI điều kiện đang áp, gieo sẵn cho MỌI xe: Kiểm định, Bảo hiểm trách nhiệm dân sự", async () => {
+  const w = setup();
+  const r = await w.call("GET", "/api/van-chuyen/dieu-kien", { as: SUP });
+  assert.equal(r.status, 200, r.text);
+  assert.deepEqual(r.json.rules.map((x: any) => [x.minCapacity, x.subject, x.documentTypeCode, x.documentTypeName, x.validFrom, x.validTo, x.active]), [
+    [1, "VEHICLE", "INSPECTION", "Kiểm định", "2026-09-01T00:00:00.000Z", null, true],
+    [1, "VEHICLE", "TPL_INSURANCE", "Bảo hiểm trách nhiệm dân sự", "2026-09-01T00:00:00.000Z", null, true],
+  ]);
+});
+
 test("route 11–13 điều kiện xuất bến: thêm (xe / tài xế) → 201; loại giấy tờ lạ → 400; đóng → 200 một lần, lần hai 409, id lạ 404; nhật ký có cỡ xe + loại, không số", async () => {
   const w = setup();
   let r = await w.call("POST", "/api/van-chuyen/dieu-kien", { as: SUP, body: { minCapacity: 16, subject: "VEHICLE", documentTypeCode: "CONTRACT_BADGE" } });
@@ -150,6 +165,8 @@ test("route 11–13 điều kiện xuất bến: thêm (xe / tài xế) → 201;
   r = await w.call("POST", "/api/van-chuyen/dieu-kien", { as: SUP, body: { minCapacity: 10, subject: "DRIVER", documentTypeCode: "HEALTH_CHECK" } });
   assert.equal(r.status, 201, r.text);
   assert.deepEqual(r.json.rules.map((x: any) => [x.minCapacity, x.subject, x.documentTypeCode, x.documentTypeName, x.active]), [
+    [1, "VEHICLE", "INSPECTION", "Kiểm định", true], // gieo ADR-0050 VK1-C
+    [1, "VEHICLE", "TPL_INSURANCE", "Bảo hiểm trách nhiệm dân sự", true], // gieo ADR-0050 VK1-C
     [10, "DRIVER", "HEALTH_CHECK", null, true],
     [16, "VEHICLE", "CONTRACT_BADGE", "Phù hiệu xe hợp đồng", true],
   ]);
@@ -159,7 +176,7 @@ test("route 11–13 điều kiện xuất bến: thêm (xe / tài xế) → 201;
     assert.equal(x.status, 400, `${JSON.stringify(body)}: ${x.text}`);
   }
   assert.equal(soNhatKy(w), n1);
-  const id = r.json.rules.find((x: any) => x.subject === "VEHICLE").id;
+  const id = r.json.rules.find((x: any) => x.subject === "VEHICLE" && x.documentTypeCode === "CONTRACT_BADGE").id; // không phải hai dòng gieo (VK1-C)
   r = await w.call("POST", `/api/van-chuyen/dieu-kien/${id}/dong`, { as: SUP, body: {} });
   assert.equal(r.status, 200, r.text);
   const dong = r.json.rules.find((x: any) => x.id === id);

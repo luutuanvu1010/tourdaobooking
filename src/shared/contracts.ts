@@ -937,12 +937,22 @@ export interface DispatchPolicyDto {
   requireManifest: boolean;
   /** Luôn false: khoá ở CSDL tới khi có ADR hợp đồng (ĐP7). */
   requireContract: boolean;
+  /** ADR-0050 VK1-A: kẹp lùi tối đa (phút) khi văn phòng bấm thay khai giờ xảy ra (1…1440; gieo 180). */
+  proxyBackdateMaxMinutes: number;
   validFrom: string;
   current: boolean;
 }
 /** GET/POST /api/van-chuyen/chinh-sach-dieu-phoi — bản đang hiệu lực + lịch sử mọi bản (mới trước). */
 export interface DispatchPolicyResponse { current: DispatchPolicyDto | null; history: DispatchPolicyDto[] }
-export interface DispatchPolicyCreateRequest { minLeadMinutes: number; warnLeadMinutes: number; restMinutes: number; requireManifest: boolean; requireContract?: false }
+export interface DispatchPolicyCreateRequest {
+  minLeadMinutes: number;
+  warnLeadMinutes: number;
+  restMinutes: number;
+  requireManifest: boolean;
+  /** BẮT BUỘC (kế hoạch I43): thiếu → 400, không chép ngầm từ dòng cũ. */
+  proxyBackdateMaxMinutes: number;
+  requireContract?: false;
+}
 export interface DepartureRuleDto {
   id: string;
   /** Áp cho xe từ số người này trở lên. */
