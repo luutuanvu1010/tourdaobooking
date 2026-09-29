@@ -165,3 +165,84 @@ export function docCapNhatDiem(body: Record<string, unknown> | null): KetQua<{ v
   if (!rid.ok) return rid;
   return { ok: true, value: { version: v.value, requestId: rid.value } };
 }
+
+// ---- Lệnh TIẾN ĐỘ (Task A15; ADR-0050 VK1-A, I34) ----------------------------------------------------------------------------------------------------------
+// `xayRaLuc` — giờ XẢY RA văn phòng khai: CHỈ route văn phòng 31–38 nhận (`nhanXayRa: true`). Route tài xế 21–29 và route 39 (đổi thứ tự) gửi khoá này →
+// 400 `xay_ra_khong_nhan` (không lặng lẽ bỏ qua — TC-38). Chuỗi ISO BẮT BUỘC có múi giờ; máy chủ chỉ giữ mili-giây rồi tự định dạng lại (I33).
+export type KetQuaTienDo<T> = { ok: true; value: T } | { ok: false; message: string; code: "invalid_input" | "xay_ra_khong_nhan" };
+const XAY_RA_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/;
+const KHONG_NHAN = (): { ok: false; message: string; code: "xay_ra_khong_nhan" } => ({
+  ok: false, code: "xay_ra_khong_nhan", message: "Lệnh này không khai giờ được — giờ ghi là lúc bấm.",
+});
+const sai = (message: string): { ok: false; message: string; code: "invalid_input" } => ({ ok: false, message, code: "invalid_input" });
+function docXayRa(body: Record<string, unknown>, nhanXayRa: boolean): KetQuaTienDo<number | null> {
+  if (!("xayRaLuc" in body)) return { ok: true, value: null };
+  if (!nhanXayRa) return KHONG_NHAN();
+  const v = body.xayRaLuc;
+  if (v === null) return { ok: true, value: null };
+  if (typeof v !== "string" || !XAY_RA_RE.test(v)) return sai("Giờ xảy ra: chuỗi ngày giờ có múi giờ (vd 2026-09-30T07:31:00+07:00).");
+  const ms = Date.parse(v);
+  return Number.isFinite(ms) ? { ok: true, value: ms } : sai("Giờ xảy ra không hợp lệ.");
+}
+export interface TienDoThan { requestId: string; xayRaMs: number | null }
+export function docTienDo(body: Record<string, unknown> | null, v: { nhanXayRa: boolean }): KetQuaTienDo<TienDoThan> {
+  if (!body) return sai("Dữ liệu không hợp lệ.");
+  const x = docXayRa(body, v.nhanXayRa);
+  if (!x.ok) return x;
+  const rid = docRequestId(body);
+  if (!rid.ok) return sai(rid.message);
+  return { ok: true, value: { requestId: rid.value, xayRaMs: x.value } };
+}
+export interface KetThucGianDoanThan extends TienDoThan { lyDo: string }
+export function docKetThucGianDoan(body: Record<string, unknown> | null, v: { nhanXayRa: boolean }): KetQuaTienDo<KetThucGianDoanThan> {
+  const t = docTienDo(body, v);
+  if (!t.ok) return t;
+  const lyDo = body!.lyDo;
+  if (typeof lyDo !== "string" || !MA_RE.test(lyDo)) return sai("Chọn lý do kết thúc gián đoạn.");
+  return { ok: true, value: { ...t.value, lyDo } };
+}
+export interface DoiThuTuThan { requestId: string; diem: { id: string; thuTu: number }[] }
+/** Đổi thứ tự khi đang chạy — luôn giờ máy chủ: `xayRaLuc` → 400 `xay_ra_khong_nhan` ở CẢ route 29 lẫn 39. */
+export function docDoiThuTu(body: Record<string, unknown> | null): KetQuaTienDo<DoiThuTuThan> {
+  if (!body) return sai("Dữ liệu không hợp lệ.");
+  const x = docXayRa(body, false);
+  if (!x.ok) return x;
+  const rid = docRequestId(body);
+  if (!rid.ok) return sai(rid.message);
+  if (!Array.isArray(body.diem) || body.diem.length < 1 || body.diem.length > 200) return sai("Chọn thứ tự các điểm chưa tới.");
+  const diem: DoiThuTuThan["diem"] = [];
+  for (const d of body.diem) {
+    if (!d || typeof d !== "object") return sai("Danh sách điểm không hợp lệ.");
+    const r = d as Record<string, unknown>;
+    if (!idHopLe(r.id) || typeof r.thuTu !== "number" || !Number.isInteger(r.thuTu) || r.thuTu < 1 || r.thuTu > 500) return sai("Thứ tự điểm là số nguyên từ 1.");
+    diem.push({ id: r.id, thuTu: r.thuTu });
+  }
+  if (new Set(diem.map((d) => d.id)).size !== diem.length || new Set(diem.map((d) => d.thuTu)).size !== diem.length) return sai("Một điểm hoặc một thứ tự xuất hiện hai lần.");
+  return { ok: true, value: { requestId: rid.value, diem } };
+}
+
+// ---- Họ lệnh mốc giờ hẹn (ADR-0051 — "Đã gọi báo", "Bỏ đánh dấu") — chỉ mã / số / ngày giờ, không chữ tự do (lần 12 câu 1; I18) -----------------------------
+function docPhienBan(b: Record<string, unknown>): KetQua<number> {
+  return typeof b.phienBan === "number" && Number.isInteger(b.phienBan) && b.phienBan >= 1 && b.phienBan <= 10_000 ? { ok: true, value: b.phienBan } : fail("Thiếu phiên bản mốc giờ hẹn — tải lại.");
+}
+export interface DaGoiBaoThan { requestId: string; phienBan: number; gioMoi: { ngay: string; gio: string | null } }
+export function docDaGoiBao(body: Record<string, unknown> | null): KetQua<DaGoiBaoThan> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  const g = body.gioMoi as Record<string, unknown> | null | undefined;
+  if (!g || typeof g !== "object" || typeof g.ngay !== "string" || !NGAY_RE.test(g.ngay) || !(g.gio === null || (typeof g.gio === "string" && GIO_RE.test(g.gio)))) {
+    return fail("Giờ hẹn mới: ngày YYYY-MM-DD và giờ HH:MM (hoặc null = chưa chốt giờ).");
+  }
+  return { ok: true, value: { requestId: rid.value, phienBan: pb.value, gioMoi: { ngay: g.ngay, gio: g.gio as string | null } } };
+}
+export function docBoDanhDauGoiBao(body: Record<string, unknown> | null): KetQua<{ requestId: string; phienBan: number; gioMoi: null }> {
+  if (!body) return fail("Dữ liệu không hợp lệ.");
+  const rid = docRequestId(body);
+  if (!rid.ok) return rid;
+  const pb = docPhienBan(body);
+  if (!pb.ok) return pb;
+  return { ok: true, value: { requestId: rid.value, phienBan: pb.value, gioMoi: null } };
+}

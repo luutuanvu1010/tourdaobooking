@@ -392,3 +392,214 @@ export const ALLOCS_CLOSE_ALL = defineSql(
   `UPDATE vc_trip_allocation SET valid_to_at = ?4, close_reason = ?3, closed_by = ?5, updated_at = ?4, updated_by = ?5
    WHERE trip_id = ?1 AND valid_to_at IS NULL AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
 );
+
+// ---- Lệnh TIẾN ĐỘ (Task A15; kế hoạch mục 1.5 "lệnh tiến độ", "lô xuất bến", "lô kết thúc gián đoạn") --------------------------------------------------------
+// Hai khuôn lô: (a) câu CHUYỂN TRẠNG THÁI của suất / điểm ĐỨNG ĐẦU (nó là cổng tranh chấp — bấm hai lần chỉ một lần đổi), tự gác "chuyến đang chạy" + trạng thái
+// nguồn; câu cổng THỨ HAI `changes() > 0`; (b) lệnh không có câu chuyển (kết thúc, kết thúc gián đoạn, đổi thứ tự) — câu cổng đứng đầu, chỉ kiểm RUNNING.
+// Xuất bến dùng câu cổng kế hoạch TRIP_GATE (version do máy chủ đọc — I23).
+/** Câu cổng lệnh tiến độ khuôn (a): chỉ thắng khi câu chuyển trạng thái NGAY TRƯỚC đã đổi dòng. ?1 chuyến, ?2 dấu lệnh, ?3 lúc, ?4 người. */
+export const TRIP_GATE_TIEN_DO = defineSql(
+  "van-chuyen",
+  "trip_gate_tien_do",
+  "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'RUNNING' AND changes() > 0",
+);
+/** Câu cổng lệnh tiến độ khuôn (b): chuyến đang chạy. ?1 chuyến, ?2 dấu lệnh, ?3 lúc, ?4 người. */
+export const TRIP_GATE_DANG_CHAY = defineSql(
+  "van-chuyen",
+  "trip_gate_dang_chay",
+  "UPDATE vc_trip SET version = version + 1, last_cmd_id = ?2, updated_at = ?3, updated_by = ?4 WHERE id = ?1 AND status = 'RUNNING'",
+);
+/**
+ * Câu CHUYỂN của suất (đã đón / vắng / khách huỷ / đã trả) — đứng ĐẦU lô, tự gác: suất mở của chuyến ?2, trạng thái nguồn thuộc ?6 (mảng JSON), chuyến đang
+ * chạy, và điểm của lệnh (?7 = 'LEN' điểm lên, 'XUONG' điểm xuống) đã tới (ARRIVED / DONE) — người đi kèm (CREW) không có điểm. ?1 suất, ?3 trạng thái mới,
+ * ?4 lúc, ?5 người.
+ */
+export const ALLOC_TIEN_DO = defineSql(
+  "van-chuyen",
+  "alloc_tien_do",
+  `UPDATE vc_trip_allocation SET status = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?2 AND valid_to_at IS NULL AND status IN (SELECT value FROM json_each(?6))
+     AND EXISTS (SELECT 1 FROM vc_trip t WHERE t.id = ?2 AND t.status = 'RUNNING')
+     AND (kind = 'CREW' OR EXISTS (SELECT 1 FROM vc_trip_stop s WHERE s.trip_id = ?2 AND s.status IN ('ARRIVED', 'DONE')
+           AND s.id = CASE ?7 WHEN 'XUONG' THEN vc_trip_allocation.alight_stop_id ELSE vc_trip_allocation.board_stop_id END))`,
+);
+/** Câu CHUYỂN "xe đã tới điểm" — đứng ĐẦU lô, tự gác: điểm PENDING của chuyến đang chạy. ?1 điểm, ?2 chuyến, ?3 giờ xảy ra (chuỗi), ?4 lúc, ?5 người. */
+export const STOP_DA_TOI = defineSql(
+  "van-chuyen",
+  "stop_da_toi",
+  `UPDATE vc_trip_stop SET status = 'ARRIVED', arrived_at = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?2 AND status = 'PENDING' AND EXISTS (SELECT 1 FROM vc_trip t WHERE t.id = ?2 AND t.status = 'RUNNING')`,
+);
+/**
+ * Điểm TỰ XONG khi không còn ai phải xử lý ở đó (I20): điểm ARRIVED, không còn suất mở chờ đón ở điểm lên này, không còn suất mở chờ / đang trên xe xuống ở
+ * điểm này. ?1 điểm, ?2 chuyến, ?3 giờ xong (= giờ xảy ra của sự kiện cùng lô), ?4 lúc, ?5 người, ?6 dấu lệnh.
+ */
+export const STOP_XONG_NEU_HET = defineSql(
+  "van-chuyen",
+  "stop_xong_neu_het",
+  `UPDATE vc_trip_stop SET status = 'DONE', done_at = ?3, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?2 AND status = 'ARRIVED'
+     AND NOT EXISTS (SELECT 1 FROM vc_trip_allocation a WHERE a.trip_id = ?2 AND a.valid_to_at IS NULL
+                      AND ((a.board_stop_id = ?1 AND a.status = 'WAITING') OR (a.alight_stop_id = ?1 AND a.status IN ('WAITING', 'BOARDED'))))
+     AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?6)`,
+);
+/** Gắn tên còn thiếu lúc xuất bến (I19b) — một lần (passenger_key NULL). ?1 suất, ?2 khoá người, ?3 dấu lệnh, ?4 lúc, ?5 người, ?6 chuyến. */
+export const ALLOC_GAN_TEN = defineSql(
+  "van-chuyen",
+  "alloc_gan_ten",
+  `UPDATE vc_trip_allocation SET passenger_key = ?2, updated_at = ?4, updated_by = ?5
+   WHERE id = ?1 AND trip_id = ?6 AND passenger_key IS NULL AND valid_to_at IS NULL AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?6 AND last_cmd_id = ?3)`,
+);
+/**
+ * Bản chụp điều kiện xuất bến ĐẠT (LC-05: cmd_id = dấu lệnh). ?1 id, ?2 chuyến, ?3 dấu lệnh, ?4 chính sách, ?5 xe, ?6 biển số, ?7 số chỗ, ?8 chủ xe, ?9 tài xế,
+ * ?10 phút nghỉ đã dùng, ?11 lúc, ?12 người.
+ */
+export const CHECK_INSERT = defineSql(
+  "van-chuyen",
+  "check_insert",
+  `INSERT INTO vc_trip_departure_check (id, trip_id, cmd_id, policy_id, ket_qua, vehicle_id, plate_number, passenger_capacity, owner_party_id, driver_party_id,
+     rest_minutes_used, checked_at, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, 'DAT', ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?11, ?12, ?11, ?12 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
+/**
+ * Dòng con bản chụp (không số giấy tờ). ?1 id, ?2 bản chụp, ?3 loại dòng, ?4 giấy tờ xe, ?5 giấy tờ người, ?6 mã loại giấy tờ, ?7 hạng, ?8 hạn, ?9 điều kiện,
+ * ?10 lúc, ?11 người, ?12 chuyến, ?13 dấu lệnh.
+ */
+export const CHECK_ITEM_INSERT = defineSql(
+  "van-chuyen",
+  "check_item_insert",
+  `INSERT INTO vc_trip_departure_check_item (id, check_id, item_kind, vehicle_document_id, person_document_id, document_type_code, license_class_code, expiry_date,
+     rule_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?12 AND last_cmd_id = ?13)`,
+);
+/** Bản chốt danh sách lúc xuất bến — trỏ DÒNG hành khách đã dùng (không chép tên). ?1 id, ?2 chuyến, ?3 bản chụp, ?4 suất, ?5 dòng hành khách, ?6 người đi kèm, ?7 lúc, ?8 người, ?9 dấu lệnh. */
+export const MANIFEST_INSERT = defineSql(
+  "van-chuyen",
+  "manifest_insert",
+  `INSERT INTO vc_trip_manifest (id, trip_id, check_id, allocation_id, passenger_row_id, crew_party_id, added_after_departure, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3, ?4, ?5, ?6, 0, ?7, ?8, ?7, ?8 WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?9)`,
+);
+/** Sang RUNNING (không phải trạng thái cuối; đứng SAU bản chụp vì LC-05). Giờ xuất bến = ĐÚNG cặp giờ xảy ra của sự kiện cùng lô (I33). ?1 chuyến, ?2 dấu lệnh, ?3 chuỗi, ?4 ms, ?5 lúc, ?6 người. */
+export const TRIP_XUAT_BEN = defineSql(
+  "van-chuyen",
+  "trip_xuat_ben",
+  "UPDATE vc_trip SET status = 'RUNNING', departed_at = ?3, departed_ms = ?4, updated_at = ?5, updated_by = ?6 WHERE id = ?1 AND last_cmd_id = ?2",
+);
+/** Kết thúc (thường / gián đoạn) — câu TRẠNG THÁI CUỐI (cuối lô). ?1 chuyến, ?2 dấu lệnh, ?3 trạng thái, ?4 lý do gián đoạn, ?5 chuỗi giờ, ?6 ms, ?7 lúc, ?8 người. */
+export const TRIP_KET_THUC = defineSql(
+  "van-chuyen",
+  "trip_ket_thuc",
+  "UPDATE vc_trip SET status = ?3, end_reason_code = ?4, ended_at = ?5, ended_ms = ?6, updated_at = ?7, updated_by = ?8 WHERE id = ?1 AND last_cmd_id = ?2",
+);
+/** Kết thúc gián đoạn: đóng suất còn chờ / đang trên xe (TRIP_INTERRUPTED — ngoại lệ LC-15). ?1 chuyến, ?2 dấu lệnh, ?3 lúc, ?4 người. */
+export const ALLOCS_DONG_GIAN_DOAN = defineSql(
+  "van-chuyen",
+  "allocs_dong_gian_doan",
+  `UPDATE vc_trip_allocation SET valid_to_at = ?3, close_reason = 'TRIP_INTERRUPTED', closed_by = ?4, updated_at = ?3, updated_by = ?4
+   WHERE trip_id = ?1 AND valid_to_at IS NULL AND status IN ('WAITING', 'BOARDED') AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?1 AND last_cmd_id = ?2)`,
+);
+/** Đổi thứ tự MỘT điểm chưa tới khi xe đang chạy (chỉ `seq` — không đụng giờ xe tới). ?1 điểm, ?2 chuyến, ?3 dấu lệnh, ?4 thứ tự, ?5 lúc, ?6 người. */
+export const STOP_SET_SEQ = defineSql(
+  "van-chuyen",
+  "stop_set_seq",
+  `UPDATE vc_trip_stop SET seq = ?4, updated_at = ?5, updated_by = ?6
+   WHERE id = ?1 AND trip_id = ?2 AND status = 'PENDING' AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?2 AND last_cmd_id = ?3)`,
+);
+
+/** "Cuốc của tôi" (route 19): chuyến tài xế ?1 đang có dòng lái MỞ, ngày chạy trong [?2, ?3] hoặc đang chạy. */
+const TRIPS_CUA_TAI_XE = defineSql(
+  "van-chuyen",
+  "trips_cua_tai_xe",
+  `SELECT ${COT_CHUYEN} FROM vc_trip t
+   WHERE EXISTS (SELECT 1 FROM vc_trip_driver d WHERE d.trip_id = t.id AND d.valid_to_at IS NULL AND d.driver_party_id = ?1)
+     AND (t.status = 'RUNNING' OR t.service_date BETWEEN ?2 AND ?3)
+   ORDER BY t.planned_start_ms, t.code`,
+);
+export async function tripsCuaTaiXe(db: D1Database, partyId: string, tu: string, den: string): Promise<TripRow[]> {
+  return (await db.prepare(TRIPS_CUA_TAI_XE).bind(partyId, tu, den).all<TripRow>()).results;
+}
+
+// ---- Mốc "giờ hẹn đã biết" của chặng (ADR-0051 GB1 — migration 0043) ---------------------------------------------------------------------------------------
+/**
+ * Câu CHỤP MỐC trong lô xếp (nhãn GHI): dòng XEP seq 1 = ngày giờ hẹn của chặng đọc trong CHÍNH request — CHỈ khi chặng chưa có mốc nào ("lần đầu lên xe";
+ * dời / cập nhật điểm / rút rồi xếp lại không chụp lại — bẫy "tái mốc"); lính gác dấu lệnh. Không `INSERT OR IGNORE` (nuốt cả lỗi CHECK / NOT NULL).
+ * ?1 id, ?2 chặng, ?3 ngày hẹn, ?4 giờ hẹn (NULL = chưa chốt), ?5 lúc, ?6 người, ?7 chuyến, ?8 dấu lệnh.
+ */
+export const MOC_XEP_INSERT = defineSql(
+  "van-chuyen",
+  "moc_xep_insert",
+  `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, 1, 'XEP', ?3, ?4, ?5, ?6, ?5, ?6
+   WHERE NOT EXISTS (SELECT 1 FROM vc_leg_appt_ack WHERE leg_id = ?2) AND EXISTS (SELECT 1 FROM vc_trip WHERE id = ?7 AND last_cmd_id = ?8)`,
+);
+/** Mọi dòng mốc của các chặng (chuỗi theo seq). */
+export interface MocRow {
+  id: string;
+  leg_id: string;
+  seq: number;
+  kind: "XEP" | "DA_GOI" | "BO_DANH_DAU";
+  appt_date: string;
+  appt_time: string | null;
+  prev_appt_date: string | null;
+  prev_appt_time: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+const MOC_BY_LEGS = defineSql(
+  "van-chuyen",
+  "moc_by_legs",
+  `SELECT id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, created_at, created_by FROM vc_leg_appt_ack
+   WHERE leg_id IN (SELECT value FROM json_each(?1)) ORDER BY leg_id, seq`,
+);
+export async function mocByLegs(db: D1Database, legIds: readonly string[]): Promise<MocRow[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(MOC_BY_LEGS).bind(JSON.stringify(legIds)).all<MocRow>()).results;
+}
+/** Lệnh lặp của họ lệnh mốc (cùng requestId → 200 kết quả hiện tại). */
+const MOC_BY_REQUEST = defineSql("van-chuyen", "moc_by_request", "SELECT id, leg_id FROM vc_leg_appt_ack WHERE request_id = ?1");
+export async function mocByRequest(db: D1Database, requestId: string): Promise<{ id: string; leg_id: string } | null> {
+  return db.prepare(MOC_BY_REQUEST).bind(requestId).first();
+}
+/** Suất KHÁCH đang mở của các chặng (mọi chuyến) + mã / ngày / trạng thái chuyến — điều 1 của mục "Giờ hẹn đổi". */
+export interface SuatChangRow { leg_id: string; trip_id: string; code: string; service_date: string; trip_status: TripRow["status"]; status: AllocRow["status"] }
+const SUAT_KHACH_MO_CUA_CHANG = defineSql(
+  "van-chuyen",
+  "suat_khach_mo_cua_chang",
+  `SELECT a.leg_id, a.trip_id, t.code, t.service_date, t.status AS trip_status, a.status FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+   WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND a.leg_id IN (SELECT value FROM json_each(?1)) ORDER BY t.service_date, t.code, a.id`,
+);
+export async function suatKhachMoCuaChang(db: D1Database, legIds: readonly string[]): Promise<SuatChangRow[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(SUAT_KHACH_MO_CUA_CHANG).bind(JSON.stringify(legIds)).all<SuatChangRow>()).results;
+}
+/** Chặng có khách CHỜ ĐÓN trên chuyến chưa kết thúc, ngày CHUYẾN trong [?1, ?2] — danh sách nhắc lọc theo NGÀY CHUYẾN, không theo ngày hẹn (ADR-0051 "Nơi hiện"). */
+const CHANG_CHO_TRONG_KHOANG = defineSql(
+  "van-chuyen",
+  "chang_cho_trong_khoang",
+  `SELECT DISTINCT a.leg_id FROM vc_trip_allocation a JOIN vc_trip t ON t.id = a.trip_id
+   WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND a.status = 'WAITING' AND t.status IN ('PLANNED', 'RUNNING') AND t.service_date BETWEEN ?1 AND ?2`,
+);
+export async function changChoTrongKhoang(db: D1Database, tu: string, den: string): Promise<string[]> {
+  return (await db.prepare(CHANG_CHO_TRONG_KHOANG).bind(tu, den).all<{ leg_id: string }>()).results.map((r) => r.leg_id);
+}
+/** Chặng → đơn → người lập, qua VIEW công bố của orders (`v_ord_leg_key`, `v_ord_order_owner` — tiền lệ thongbao). Không có dòng = chặng lạ (404). */
+const CHANG_CHU_DON = defineSql(
+  "van-chuyen",
+  "chang_chu_don",
+  `SELECT k.id, k.order_id, o.staff_id AS owner_id FROM v_ord_leg_key k LEFT JOIN v_ord_order_owner o ON o.id = k.order_id WHERE k.id IN (SELECT value FROM json_each(?1))`,
+);
+export async function changChuDon(db: D1Database, legIds: readonly string[]): Promise<{ id: string; order_id: string; owner_id: string | null }[]> {
+  if (legIds.length === 0) return [];
+  return (await db.prepare(CHANG_CHU_DON).bind(JSON.stringify(legIds)).all<{ id: string; order_id: string; owner_id: string | null }>()).results;
+}
+/**
+ * CÂU CỔNG của họ lệnh mốc giờ hẹn (nhãn CONG_MOC — ADR-0051; ruling VỪA-2): dòng mới seq = phienBan + 1 CHỈ khi mốc hiện hành của chặng đúng là `phienBan`
+ * (khoá lạc quan riêng — không chạm vc_trip, không tăng version). ?1 id (= dấu lệnh = id nhật ký), ?2 chặng, ?3 phienBan, ?4 loại (DA_GOI / BO_DANH_DAU),
+ * ?5 ngày mới, ?6 giờ mới, ?7 ngày trước, ?8 giờ trước, ?9 request_id, ?10 lúc, ?11 người.
+ */
+export const MOC_GOI_INSERT = defineSql(
+  "van-chuyen",
+  "moc_goi_insert",
+  `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, created_by, updated_at, updated_by)
+   SELECT ?1, ?2, ?3 + 1, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?10, ?11 WHERE (SELECT max(seq) FROM vc_leg_appt_ack WHERE leg_id = ?2) = ?3`,
+);

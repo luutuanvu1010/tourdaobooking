@@ -230,6 +230,29 @@ const SNAPSHOT: RouteSnapshot[] = sortRoutes([
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/doi", access: "office" },
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/huy", access: "office" },
   { method: "POST", path: "/api/van-chuyen/chuyen/:id/cap-nhat-diem", access: "office" }, // ADR-0050 VK1-B route 40
+  { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi", access: "staff" }, // ADR-0049 Task A15 route 19 — tài xế (ô trip.view assigned)
+  { method: "GET", path: "/api/van-chuyen/cuoc-cua-toi/:id", access: "staff" }, // route 20
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/xuat-ben", access: "staff" }, // route 21 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/diem/:sid/da-toi", access: "staff" }, // route 22 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/don", access: "staff" }, // route 23 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/vang", access: "staff" }, // route 24 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/khach-huy", access: "staff" }, // route 25 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/phan-bo/:aid/tra", access: "staff" }, // route 26 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/ket-thuc", access: "staff" }, // route 27 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/ket-thuc-gian-doan", access: "staff" }, // route 28 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/cuoc-cua-toi/:id/thu-tu", access: "staff" }, // route 29 — tài xế (trip.progress assigned)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/xuat-ben", access: "office" }, // route 31 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/diem/:sid/da-toi", access: "office" }, // route 32 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/don", access: "office" }, // route 33 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/vang", access: "office" }, // route 34 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/khach-huy", access: "office" }, // route 35 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/phan-bo/:aid/tra", access: "office" }, // route 36 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/ket-thuc", access: "office" }, // route 37 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/ket-thuc-gian-doan", access: "office" }, // route 38 — văn phòng bấm thay (R-P1)
+  { method: "POST", path: "/api/van-chuyen/chuyen/:id/thu-tu", access: "office" }, // route 39 — văn phòng bấm thay (R-P1)
+  { method: "GET", path: "/api/van-chuyen/nhac-goi-khach", access: "office" }, // ADR-0051 GB1 — danh sách nhắc gọi khách (trip.view)
+  { method: "POST", path: "/api/van-chuyen/chang/:legId/da-goi-bao", access: "office" }, // ADR-0051 — trip.call_ack
+  { method: "POST", path: "/api/van-chuyen/chang/:legId/bo-danh-dau-goi-bao", access: "office" }, // ADR-0051 — trip.call_ack
 ]);
 
 // Lưới cho chính danh sách MODULES ở trên: nếu ai thêm một module mới có khai `export const xModule: AppModule` (tức có route) mà quên
@@ -244,7 +267,7 @@ test("MODULES liệt kê ĐỦ mọi thư mục module có khai `...Module: AppM
   assert.deepEqual(routedDirs, listed, "có thư mục module khai AppModule nhưng chưa có trong MODULES của bài kiểm route-access này — thêm vào MODULES và SNAPSHOT");
 });
 
-test("mức truy cập của 136 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
+test("mức truy cập của 159 route hiện có khớp ảnh chụp đã duyệt (đổi access/thêm/bớt route phải tự tay sửa SNAPSHOT)", async () => {
   const actual = await collectRealRoutes();
   // deepEqual TRƯỚC: khi có route mới/bị xoá, thông báo của nó chỉ ra ĐÚNG route lệch — hai assert.equal độ dài bên dưới chỉ để phòng hờ
   // (không bao giờ tự chạy tới nếu deepEqual đã trượt) và tài liệu hoá con số 86 để đối chiếu nhanh bằng mắt.
@@ -273,8 +296,11 @@ test("mức truy cập của 136 route hiện có khớp ảnh chụp đã duy�
   // POST …/legs/:legId/close) + 2 route danh sách hành khách (GET/POST /api/orders/:id/passengers, ADR-0047 A2) = 125.
   // 2026-09-29 (ADR-0049 lát 1.4, Task A10): + 1 route đặt gấp (POST /api/orders/:id/legs/:legId/short-notice — cổng orders, ô order.leg.short_notice) = 126.
   // 2026-09-29 đêm (ruling R-P15 của điều phối): + 1 route đọc mốc (GET /api/orders/moc-toi-thieu — cổng orders, ô order.create) = 127.
-  // 2026-09-29 đêm (ADR-0049 Task A13): + 9 route chuyến xe của văn phòng (route 1–8, 40 — cổng office) = 136.)
+  // 2026-09-29 đêm (ADR-0049 Task A13): + 9 route chuyến xe của văn phòng (route 1–8, 40 — cổng office) = 136.
+  // 2026-09-30 (ADR-0049 Task A15): + 11 route tài xế (19–29 — cổng staff) + 9 route văn phòng bấm thay (31–39 — cổng office) = 156. Kế hoạch mục 1.7 ghi 155:
+  // lệch MỘT vì route đọc mốc của ruling R-P15 (GET /api/orders/moc-toi-thieu) không có trong bảng kế hoạch.
+  // 2026-09-30 (ADR-0051, Task A-GB): + 3 route nhắc "gọi báo khách" (GET …/nhac-goi-khach, POST …/chang/:legId/da-goi-bao, …/bo-danh-dau-goi-bao) = 159.)
   assert.deepEqual(actual, SNAPSHOT);
-  assert.equal(actual.length, 136, "số route thực tế lệch 136 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
-  assert.equal(SNAPSHOT.length, 136, "SNAPSHOT phải có đúng 136 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
+  assert.equal(actual.length, 159, "số route thực tế lệch 159 — có route mới chưa vào SNAPSHOT hoặc route bị xoá còn sót trong SNAPSHOT");
+  assert.equal(SNAPSHOT.length, 159, "SNAPSHOT phải có đúng 159 dòng (khớp `grep -c 'route(' src/modules/*/index.ts` cộng lại)");
 });

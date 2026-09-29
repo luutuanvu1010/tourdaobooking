@@ -6,13 +6,18 @@ import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051, 0043: suất khách đòi chặng có mốc)
+import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
 
 const DIR = new URL("../migrations/", import.meta.url);
 const files = readdirSync(DIR).filter((f) => f.endsWith(".sql")).sort();
 const FILE = files.filter((f) => /^\d{4}_chuyen_xe\.sql$/.test(f))[0]!; // KHÔNG khớp 0033_van_chuyen_xe.sql
 /** Cho kịch bản P16 (sửa cố ý): biến môi trường trỏ bản sao đã sửa của migration lõi chuyến. */
 const SQL_CHUYEN_XE = process.env.CHUYEN_XE_SQL ? readFileSync(process.env.CHUYEN_XE_SQL, "utf8") : null;
-const sqlOf = (f: string) => (f === FILE && SQL_CHUYEN_XE !== null ? SQL_CHUYEN_XE : readFileSync(new URL(f, DIR), "utf8"));
+/** P16 cho 0043 (ADR-0051): bản sao đã sửa của migration mốc giờ hẹn. */
+const SQL_GOI_BAO = process.env.NHAC_GOI_BAO_SQL ? readFileSync(process.env.NHAC_GOI_BAO_SQL, "utf8") : null;
+const sqlOf = (f: string) =>
+  f === FILE && SQL_CHUYEN_XE !== null ? SQL_CHUYEN_XE : /^0043_/.test(f) && SQL_GOI_BAO !== null ? SQL_GOI_BAO : readFileSync(new URL(f, DIR), "utf8");
 
 const AT = "2026-09-29T03:00:00.000Z";
 const POLICY = "d53b6dd9-60e2-4644-8e63-9ca7dcff35d0"; // dòng chính sách gieo của 0041
@@ -130,6 +135,7 @@ function chuyenChuan(db: Db, o: { cho?: number; tu?: number; den?: number } = {}
 }
 function suat(db: Db, c: { id: string; di: string; tra?: string | null }, leg: string, o: { key?: string | null; status?: string; id?: string } = {}): string {
   const id = o.id ?? nid("al");
+  gieoMocXep(db, leg);
   run(db, `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, passenger_key, board_stop_id, alight_stop_id, status, valid_from_at, created_at, updated_at)
      VALUES (?, ?, 'PASSENGER', ?, ?, ?, ?, ?, ?, ?, ?)`, id, c.id, leg, o.key ?? null, c.di, c.tra === undefined ? null : c.tra, o.status ?? "WAITING", AT, AT, AT);
   return id;
@@ -643,6 +649,7 @@ test("TC-14 cổng lô: lô có câu cổng THUA (version cũ) → không dòng 
     run(db, "INSERT INTO audit_log (id, order_id, staff_id, action, target_type, target_id, detail, created_at) SELECT ?, NULL, NULL, 'trip_allocated', 'trip', ?, 'x', ? WHERE changes() > 0", cmd, c.id, AT);
     run(db, `INSERT INTO vc_trip_event (id, trip_id, kind, request_id, decided_mode, occurred_at, occurred_ms, occurred_source, created_at, updated_at)
        SELECT ?, ?, 'ALLOCATED', ?, 'NGUOI', ?, ?, 'MAY_CHU', ?, ? WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ? AND last_cmd_id = ?)`, cmd, c.id, randomUUID(), AT, Date.parse(AT), AT, AT, c.id, cmd);
+    gieoMocXep(db, d.legs[0]!); // chụp mốc cùng lô (lô xếp thật: câu MOC_XEP_INSERT)
     run(db, `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, board_stop_id, alight_stop_id, status, valid_from_at, created_at, updated_at)
        SELECT ?, ?, 'PASSENGER', ?, ?, ?, 'WAITING', ?, ?, ? WHERE EXISTS (SELECT 1 FROM vc_trip WHERE id = ? AND last_cmd_id = ?)`, nid("al"), c.id, d.legs[0]!, c.di, c.tra, AT, AT, AT, c.id, cmd);
     db.exec("COMMIT");
@@ -748,6 +755,7 @@ test("ràng buộc hình dạng: suất PASSENGER thiếu chặng / thiếu đi�
   const db = openDb();
   const c = chuyenChuan(db);
   const d = don(db);
+  gieoMocXep(db, d.legs[0]!);
   const chen = (kind: string, leg: string | null, crew: string | null, board: string | null) => run(db, `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, crew_party_id,
      board_stop_id, status, valid_from_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 'WAITING', ?, ?, ?)`, nid("al"), c.id, kind, leg, crew, board, AT, AT, AT);
   loi(() => chen("PASSENGER", null, null, c.di), /CHECK constraint failed|lc09_leg/);
@@ -791,4 +799,97 @@ test("R-P19: chặng / hành khách của đơn ĐÃ XÁC NHẬN không xoá đ�
   suat(db, c, d.legs[0]!, { key: d.khach[0]! });
   loi(() => run(db, "DELETE FROM ord_transfer_leg WHERE id = ?", d.legs[0]!), /leg_frozen/);
   loi(() => run(db, "DELETE FROM ord_passenger WHERE id = ?", d.khach[0]!), /passenger_frozen/);
+});
+
+// =========================================================================================================================================================
+// 0043 — MỐC "GIỜ HẸN ĐÃ BIẾT" (ADR-0051 GB1; TC-GB-1). P16: biến môi trường NHAC_GOI_BAO_SQL trỏ bản sao đã sửa của 0043.
+// =========================================================================================================================================================
+const RID = () => randomUUID();
+/** Chèn một dòng mốc (kind, seq, giờ mới, giờ trước). */
+function moc(db: Db, leg: string, o: { seq: number; kind: string; ngay?: string; gio?: string | null; truocNgay?: string | null; truocGio?: string | null; rid?: string | null }) {
+  run(db, `INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`, randomUUID(), leg, o.seq, o.kind, o.ngay ?? DAY, o.gio === undefined ? "07:00" : o.gio,
+    o.truocNgay === undefined ? DAY : o.truocNgay, o.truocGio === undefined ? "07:00" : o.truocGio, o.rid === undefined ? (o.kind === "XEP" ? null : RID()) : o.rid, AT, AT);
+}
+/** Chặng có khách chờ đón trên chuyến chưa chạy + mốc XEP 07:00. */
+function changTrenXe(db: Db): { leg: string; c: Chuyen; a: string } {
+  const c = chuyenChuan(db);
+  const d = don(db);
+  const a = suat(db, c, d.legs[0]!); // gieoMocXep: XEP seq 1 (DAY, 09:00)
+  return { leg: d.legs[0]!, c, a };
+}
+
+test("TC-GB-1 (0043): chỉ-thêm — UPDATE / DELETE dòng mốc → gb_append_only", () => {
+  const db = openDb();
+  const { leg } = changTrenXe(db);
+  loi(() => run(db, "UPDATE vc_leg_appt_ack SET appt_time = '08:00' WHERE leg_id = ?", leg), /gb_append_only/);
+  loi(() => run(db, "DELETE FROM vc_leg_appt_ack WHERE leg_id = ?", leg), /gb_append_only/);
+});
+
+test("TC-GB-1: chuỗi — nhảy seq (3 khi mới có 1) → gb_chain; giờ 'trước' lệch dòng trước → gb_chain; nối đúng → được; hai dòng cùng seq → UNIQUE", () => {
+  const db = openDb();
+  const { leg } = changTrenXe(db); // XEP 09:00
+  loi(() => moc(db, leg, { seq: 3, kind: "DA_GOI", gio: "09:15", truocGio: "09:00" }), /gb_chain/, "nhảy seq");
+  loi(() => moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "08:00" }), /gb_chain/, "prev lệch appt của seq 1");
+  moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "09:00" });
+  loi(() => moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:30", truocGio: "09:00" }), /UNIQUE constraint failed: vc_leg_appt_ack\.leg_id, vc_leg_appt_ack\.seq|gb_chain/);
+});
+
+test("TC-GB-1: CHECK — dòng người bấm KHÔNG đổi giờ; XEP có giờ trước / request_id; DA_GOI ở seq 1; request_id sai độ dài → CHECK", () => {
+  const db = openDb();
+  const { leg } = changTrenXe(db);
+  loi(() => moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:00", truocGio: "09:00" }), /CHECK constraint failed/, "không đổi giờ");
+  const d = don(db);
+  loi(() => moc(db, d.legs[0]!, { seq: 1, kind: "XEP", truocNgay: DAY, truocGio: null }), /CHECK constraint failed/, "XEP có giờ trước");
+  loi(() => moc(db, d.legs[0]!, { seq: 1, kind: "XEP", truocNgay: null, truocGio: null, rid: RID() }), /CHECK constraint failed/, "XEP có request_id");
+  // Dòng người bấm ở seq 1 — trigger "còn khách chờ" (BEFORE INSERT) chạy trước CHECK: bị chặn ở lớp nào cũng được, miễn không vào bảng.
+  loi(() => moc(db, d.legs[0]!, { seq: 1, kind: "DA_GOI", truocNgay: null, truocGio: null }), /CHECK constraint failed|gb_active/, "seq 1 phải XEP");
+  loi(() => moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "09:00", rid: "ngan" }), /CHECK constraint failed/);
+});
+
+test("TC-GB-1: BO_DANH_DAU — sau XEP → gb_chain; không khôi phục đúng giờ trước khi bấm → gb_chain; khôi phục đúng → được; so IS với giờ NULL ('chưa chốt giờ') đúng", () => {
+  const db = openDb();
+  const { leg } = changTrenXe(db); // XEP 09:00
+  loi(() => moc(db, leg, { seq: 2, kind: "BO_DANH_DAU", gio: "08:00", truocGio: "09:00" }), /gb_chain/, "dòng trước là XEP");
+  moc(db, leg, { seq: 2, kind: "DA_GOI", gio: null, truocGio: "09:00" }); // 09:00 → chưa chốt giờ
+  loi(() => moc(db, leg, { seq: 3, kind: "BO_DANH_DAU", gio: "09:30", truocGio: null }), /gb_chain/, "khôi phục sai giờ");
+  moc(db, leg, { seq: 3, kind: "BO_DANH_DAU", gio: "09:00", truocGio: null }); // khôi phục 09:00; giờ trước NULL IS NULL
+  moc(db, leg, { seq: 4, kind: "DA_GOI", gio: null, truocGio: "09:00" });
+  assert.equal(one<{ n: number }>(db, "SELECT count(*) n FROM vc_leg_appt_ack WHERE leg_id = ?", leg).n, 4);
+});
+
+test("TC-GB-1: dòng người bấm chỉ khi chặng còn khách CHỜ ĐÓN trên xe chưa kết thúc — suất đã đóng / đã lên / chuyến huỷ → gb_active; XEP không bị điều kiện này", () => {
+  const db = openDb();
+  const { leg, c, a } = changTrenXe(db);
+  run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'REMOVED' WHERE id = ?", AT, a);
+  loi(() => moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "09:00" }), /gb_active/, "suất đã đóng");
+  const b = suat(db, c, leg);
+  moc(db, leg, { seq: 2, kind: "DA_GOI", gio: "09:15", truocGio: "09:00" });
+  run(db, "UPDATE vc_trip_allocation SET status = 'NO_SHOW' WHERE id = ?", b);
+  loi(() => moc(db, leg, { seq: 3, kind: "BO_DANH_DAU", gio: "09:00", truocGio: "09:15" }), /gb_active/, "không còn ai chờ");
+  const d = don(db);
+  moc(db, d.legs[0]!, { seq: 1, kind: "XEP", truocNgay: null, truocGio: null }); // XEP: không đòi suất
+});
+
+test("TC-GB-1: mở suất KHÁCH cho chặng CHƯA có mốc → gb_needs_appt; có mốc → được; suất người đi kèm không cần mốc", () => {
+  const db = openDb();
+  const c = chuyenChuan(db);
+  const d = don(db);
+  const chen = () => run(db, `INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, board_stop_id, alight_stop_id, status, valid_from_at, created_at, updated_at)
+     VALUES (?, ?, 'PASSENGER', ?, ?, ?, 'WAITING', ?, ?, ?)`, nid("al"), c.id, d.legs[0]!, c.di, c.tra, AT, AT, AT);
+  loi(chen, /gb_needs_appt/);
+  gieoMocXep(db, d.legs[0]!);
+  chen();
+  run(db, `INSERT INTO vc_trip_allocation (id, trip_id, kind, crew_party_id, status, valid_from_at, created_at, updated_at) VALUES (?, ?, 'CREW', ?, 'WAITING', ?, ?, ?)`,
+    nid("al"), c.id, hoSo(db, "PERSON", "HDV"), AT, AT, AT);
+});
+
+test("TC-GB-1: CHECK loại dòng TỰ ĐỨNG (khi trigger chuỗi / 'còn khách chờ' bị gỡ — SQL gõ tay): DA_GOI ở seq 1, XEP ở seq 2 → CHECK", () => {
+  const db = openDb();
+  db.exec("DROP TRIGGER vc_leg_appt_ack_active");
+  db.exec("DROP TRIGGER vc_leg_appt_ack_chain");
+  const d = don(db);
+  loi(() => moc(db, d.legs[0]!, { seq: 1, kind: "DA_GOI", truocNgay: DAY, truocGio: "08:00" }), /CHECK constraint failed/, "DA_GOI ở seq 1");
+  moc(db, d.legs[0]!, { seq: 1, kind: "XEP", truocNgay: null, truocGio: null });
+  loi(() => moc(db, d.legs[0]!, { seq: 2, kind: "XEP", truocNgay: null, truocGio: null }), /CHECK constraint failed/, "XEP ở seq 2");
 });

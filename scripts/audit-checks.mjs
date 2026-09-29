@@ -199,6 +199,25 @@ export const CHECKS = [
     level: "warn",
     note: "cảnh báo, không chặn phát hành: có xe mang hai dòng giấy tờ cùng loại cùng đang dùng (bấm 'Thêm' thay vì 'Gia hạn') — Quản trị mở giấy tờ của xe, huỷ dòng nhập nhầm",
   },
+  // ADR-0051 GB1 (mốc "giờ hẹn đã biết" — migration 0043; mã R-VC-17, R-VC-18 do điều phối cấp): lưới THỨ HAI sau trigger vc_trip_allocation_needs_appt và
+  // vc_leg_appt_ack_chain — mức fail (dữ liệu hỏng, không phải việc vận hành — G-GB-4). R-VC-17 còn là lưới cho KHUNG THỬ: bộ gieo chèn thẳng suất khách mà quên
+  // mốc XEP (tests/audit/gieo-vc.mjs `gieoMocXep`) làm đỏ đuôi `audit-invariants --strict` của e2e.
+  {
+    code: "R-VC-17",
+    what: "suất khách đang mở mà chặng không có dòng mốc giờ hẹn nào",
+    sql: `SELECT count(*) FROM vc_trip_allocation a
+          WHERE a.kind = 'PASSENGER' AND a.valid_to_at IS NULL AND NOT EXISTS (SELECT 1 FROM vc_leg_appt_ack m WHERE m.leg_id = a.leg_id)`,
+    level: "fail",
+  },
+  {
+    code: "R-VC-18",
+    what: "chuỗi mốc giờ hẹn của chặng hỏng: không bắt đầu từ seq 1 / đứt đoạn, seq 1 không phải XEP, giờ 'trước' lệch giờ của dòng trước",
+    sql: `SELECT (SELECT count(*) FROM vc_leg_appt_ack m WHERE m.seq > 1 AND NOT EXISTS (
+                    SELECT 1 FROM vc_leg_appt_ack p WHERE p.leg_id = m.leg_id AND p.seq = m.seq - 1 AND p.appt_date IS m.prev_appt_date AND p.appt_time IS m.prev_appt_time))
+          + (SELECT count(*) FROM vc_leg_appt_ack WHERE seq = 1 AND kind <> 'XEP')
+          + (SELECT count(*) FROM (SELECT leg_id FROM vc_leg_appt_ack GROUP BY leg_id HAVING min(seq) <> 1))`,
+    level: "fail",
+  },
 
   // ---- Người phụ trách đơn (ADR-0006 điều 3, ADR-0009). Migration 0014 trở lên: trên D1 chưa có 0014 các câu dưới lỗi "no such table" → script thoát mã 2. ----
   // R-DSP-1: chỉ mục duy nhất một phần đã chặn ở CSDL; kiểm này bắt trường hợp chỉ mục bị gỡ/sửa nhầm.

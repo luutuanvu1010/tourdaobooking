@@ -105,7 +105,8 @@ export function dungLichChung(v: LichChungVao): LichChungRa {
       else if (tt.nhan.includes("SAT_MOC")) cb("CHANG_SAT_MOC", c.legId, null, c.orderCode);
       if (tt.nhan.includes("XEP_MOT_PHAN")) cb("THIEU_SUAT", c.legId, null, c.orderCode);
       if (tt.nhan.includes("THUA_SUAT")) cb("THUA_SUAT", c.legId, null, c.orderCode);
-      // "Giờ hẹn đổi sau khi xếp" (MQ-04) — lượt 1 nhận ra khi giờ hẹn nằm NGOÀI khung giờ của chuyến chưa chạy đang chở chặng.
+      // GIO_HEN_NGOAI_CHUYEN = giờ hẹn nằm NGOÀI khung giờ của chuyến chưa chạy đang chở chặng (người XẾP XE dời khách sang chuyến khác). "Giờ hẹn đổi — gọi báo
+      // khách" (MỌI lần đổi giờ của khách đã xếp, kể cả trong khung — người PHỤ TRÁCH ĐƠN gọi khách) là danh sách nhắc RIÊNG của ADR-0051 (src/shared/goi-bao.ts).
       const gio = c.ngayDon !== null && c.gioDon !== null ? vnLocalToMs(c.ngayDon, c.gioDon) : null;
       if (gio !== null) {
         const tripIds = [...new Set(v.suat.filter((s) => s.mo && s.legId === c.legId).map((s) => s.tripId))];

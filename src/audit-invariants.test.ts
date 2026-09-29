@@ -7,6 +7,8 @@ import { readdirSync, readFileSync } from "node:fs";
 import { DatabaseSync } from "node:sqlite";
 import { OWNER_COMPANY_ROLE } from "./shared/cong-ty-chu.ts";
 import { vnToday } from "./shared/vn-date.ts";
+// tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts — hàm gieo DÙNG CHUNG mốc giờ hẹn (ADR-0051)
+import { gieoMocXep } from "../tests/audit/gieo-vc.mjs";
 
 interface Check {
   code: string;
@@ -993,4 +995,58 @@ test("R-ORD-12: chặng mở của đơn chưa huỷ còn nơi đón tạm '(ch�
   chang(db, { id: "l3", orderId: "o-2", svc: "s2", place: "(chưa ghi nơi đón)" });
   db.prepare("UPDATE orders SET status = 'cancelled' WHERE id = 'o-2'").run();
   assert.equal(violations(db, c), 1);
+});
+
+// ---------------------------------------------------------------------------------------------------------------------
+// ADR-0051 GB1 (Task A-GB, TC-GB-10): mốc giờ hẹn R-VC-17 (suất khách mở không có mốc), R-VC-18 (chuỗi mốc hỏng) — lưới THỨ HAI: ca đỏ gỡ trigger rồi chèn thẳng
+// như SQL gõ tay. Suất khách chèn qua hàm gieo DÙNG CHUNG `gieoMocXep` (tests/audit/gieo-vc.mjs) — cùng một cửa với bài migration.
+// ---------------------------------------------------------------------------------------------------------------------
+/** Bỏ ràng buộc chèn thẳng suất (trigger LC + khoá ngoại) — bài chỉ kiểm câu KIỂM ĐỊNH KỲ, không kiểm lớp CSDL. */
+function thaTrigSuat(db: DatabaseSync, giuNeedsAppt = true): void {
+  db.exec("PRAGMA foreign_keys = OFF");
+  const ten = ["vc_trip_allocation_leg_open", "vc_trip_allocation_capacity_ins", "vc_trip_allocation_stop_scope", "vc_trip_allocation_person_order_ins",
+    "vc_trip_running_locked_alloc_ins", "vc_trip_allocation_trip_final_ins", ...(giuNeedsAppt ? [] : ["vc_trip_allocation_needs_appt"])];
+  for (const t of ten) db.exec(`DROP TRIGGER IF EXISTS ${t}`);
+}
+const suatThang = (db: DatabaseSync, id: string, leg: string) =>
+  db.prepare(`INSERT INTO vc_trip_allocation (id, trip_id, kind, leg_id, board_stop_id, status, valid_from_at, created_at, updated_at) VALUES (?, 'tr-x', 'PASSENGER', ?, 'st-x', 'WAITING', ?, ?, ?)`)
+    .run(id, leg, T1, T1, T1);
+const mocThang = (db: DatabaseSync, leg: string, seq: number, kind: string, gio: string, truoc: string | null) =>
+  db.prepare(`INSERT INTO vc_leg_appt_ack (id, leg_id, seq, kind, appt_date, appt_time, prev_appt_date, prev_appt_time, request_id, created_at, updated_at)
+     VALUES (?, ?, ?, ?, '2026-10-05', ?, ?, ?, ?, ?, ?)`).run(`m-${leg}-${seq}`, leg, seq, kind, gio, truoc === null ? null : "2026-10-05", truoc, kind === "XEP" ? null : `r0000000-0000-4000-8000-${leg.padStart(6, "0")}${String(seq).padStart(6, "0")}`, T1, T1);
+
+test("R-VC-17 (ADR-0051): suất khách MỞ mà chặng không có mốc — có mốc (gieoMocXep) / suất đã đóng / suất người đi kèm → 0; chèn thẳng khi trigger bị gỡ → 1", () => {
+  const c = one("R-VC-17");
+  assert.equal(c.level, "fail");
+  const db = build();
+  thaTrigSuat(db);
+  gieoMocXep(db, "leg-a");
+  suatThang(db, "al-a", "leg-a");
+  db.prepare(`INSERT INTO vc_trip_allocation (id, trip_id, kind, crew_party_id, status, valid_from_at, created_at, updated_at) VALUES ('al-crew', 'tr-x', 'CREW', 'pty-xa', 'WAITING', ?, ?, ?)`).run(T1, T1, T1);
+  assert.equal(violations(db, c), 0);
+  assert.throws(() => suatThang(db, "al-b", "leg-b"), /gb_needs_appt/, "lớp CSDL chặn trước");
+  db.exec("DROP TRIGGER vc_trip_allocation_needs_appt");
+  suatThang(db, "al-b", "leg-b");
+  assert.equal(violations(db, c), 1);
+  db.prepare("UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'REMOVED' WHERE id = 'al-b'").run(T2);
+  assert.equal(violations(db, c), 0, "suất đã đóng không tính");
+});
+
+test("R-VC-18 (ADR-0051): chuỗi mốc hỏng — liền mạch (XEP → DA_GOI → BO_DANH_DAU) → 0; đứt đoạn / không bắt đầu từ 1 / seq 1 không phải XEP / giờ trước lệch (trigger bị gỡ) → vi phạm", () => {
+  const c = one("R-VC-18");
+  assert.equal(c.level, "fail");
+  const db = build();
+  mocThang(db, "1", 1, "XEP", "09:00", null);
+  db.exec("DROP TRIGGER vc_leg_appt_ack_active"); // dòng người bấm đòi khách chờ trên xe — bài này không dựng chuyến
+  mocThang(db, "1", 2, "DA_GOI", "09:15", "09:00");
+  mocThang(db, "1", 3, "BO_DANH_DAU", "09:00", "09:15");
+  assert.equal(violations(db, c), 0);
+  db.exec("DROP TRIGGER vc_leg_appt_ack_chain");
+  mocThang(db, "1", 5, "DA_GOI", "09:30", "09:00"); // đứt đoạn (thiếu seq 4)
+  assert.equal(violations(db, c), 1);
+  mocThang(db, "2", 2, "DA_GOI", "09:15", "09:00"); // không bắt đầu từ 1 (+ không có dòng trước)
+  assert.equal(violations(db, c), 3);
+  mocThang(db, "3", 1, "XEP", "08:00", null);
+  mocThang(db, "3", 2, "DA_GOI", "08:30", "07:45"); // giờ trước lệch dòng trước
+  assert.equal(violations(db, c), 4);
 });
