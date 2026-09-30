@@ -206,9 +206,20 @@ const MERGE_FORBIDDEN = () =>
 const MERGE_LOST_RACE = () => error(409, "merge_lost_race", "Hồ sơ vừa được gộp hoặc sửa ở nơi khác — tải lại, xem trước lại rồi thử lại.");
 // Hợp đồng lỗi của lô (phán quyết điều phối, Task 5–6): lô ném lỗi mà A chưa gộp → dữ liệu đổi giữa lúc tính kế hoạch và lúc ghi (cả lô đã huỷ, không đổi gì).
 const MERGE_STALE = () => error(409, "merge_stale", "Dữ liệu vừa thay đổi, hãy xem trước lại.");
-// Lô ném lỗi trigger tiền của đơn (cột cọc cũ không đọc được lúc tính kế hoạch — phán quyết Task 4): ở đây không biết mã đơn nên câu chung.
-const MERGE_ORDER_INVALID = () =>
-  error(409, "merge_order_invalid", "Có đơn của hồ sơ phụ đang lệch số tiền nên chưa đổi được người đặt — sửa đơn đó trước khi gộp.");
+// Lô ném lỗi trigger tiền của đơn (cột cọc cũ không đọc được lúc tính kế hoạch — phán quyết Task 4). ADR-0068 Đ1 bước 5: câu lỗi NÊU MÃ ĐƠN — trigger không nói
+// đơn nào nên nêu các đơn lô định đổi người đặt (đọc lại sau khi lô huỷ); không đọc được thì câu chung.
+const MERGE_ORDER_INVALID = (maDon: string[]) =>
+  error(409, "merge_order_invalid", maDon.length > 0
+    ? `Có đơn của hồ sơ phụ đang lệch số tiền nên chưa đổi được người đặt — một trong các đơn: ${maDon.join(", ")}. Sửa đơn đó trước khi gộp.`
+    : "Có đơn của hồ sơ phụ đang lệch số tiền nên chưa đổi được người đặt — sửa đơn đó trước khi gộp.");
+/**
+ * Tên ràng buộc / trigger trong câu lỗi CSDL, để ghi log khi lô gộp hỏng vì lý do lạ — CHỈ tên (chữ thường, gạch dưới, dấu chấm), KHÔNG BAO GIỜ giá trị
+ * (SĐT, email, số giấy tờ không lọt: mẫu không nhận chữ số, '@', khoảng trắng trong tên).
+ */
+function tenRangBuoc(m: string): string {
+  const r = /(?:UNIQUE|NOT NULL|CHECK) constraint failed: [a-z_.]+(?:, [a-z_.]+)*|FOREIGN KEY constraint failed|\b[a-z]+(?:_[a-z]+)+\b/.exec(m);
+  return r ? r[0] : "khong_ro";
+}
 const MERGE_CONFIRM = () => error(409, "merge_confirm_mismatch", "Gõ lại đúng tên hồ sơ phụ để xác nhận gộp.");
 const LY_DO_HUY_GIAY_TO_GOP = "đã gộp vào hồ sơ khác"; // ADR-0068 Đ1 bước 4 — bảng giấy tờ không có cột lý do (kế hoạch R5): lý do nằm ở nhật ký
 const intoParam = (b: Record<string, unknown> | null): string | null =>
@@ -776,8 +787,9 @@ export const partiesModule: AppModule = {
       const now = new Date();
       const t = await tinhGop(ctx, id, into, vnToday(now));
       if (t instanceof Response) return t;
-      // Đặc tả G13 (phán quyết F7): A đã gộp xong (bấm đúp / người khác vừa gộp) = thua cuộc đua, không phải "đã ngưng dùng".
-      if (t.A.hs.mergedIntoId !== null) return MERGE_LOST_RACE();
+      // Đặc tả G13 (phán quyết F7): A vừa gộp xong vào CHÍNH hồ sơ này (bấm đúp / người khác vừa gộp) = thua cuộc đua. A đã gộp vào hồ sơ KHÁC thì để kế
+      // hoạch trả lời (merge_inactive).
+      if (t.A.hs.mergedIntoId === into) return MERGE_LOST_RACE();
       const dau = t.ke.chan[0];
       if (dau) return error(409, dau.code, dau.message);
       if (chuanHoaTen(typeof body?.xacNhan === "string" ? body.xacNhan : "") !== chuanHoaTen(t.A.hs.displayName)) return MERGE_CONFIRM();
@@ -799,7 +811,9 @@ export const partiesModule: AppModule = {
         // Hợp đồng lỗi của lô (phán quyết điều phối): mọi lệch giữa lúc tính và lúc ghi (lô thua có giấy tờ, dòng mở mới của A, giấy tờ / liên hệ chính đổi
         // trong khe…) làm trigger / chỉ mục / NOT NULL huỷ CẢ lô — không dòng nào đổi. Không bao giờ 500, không lộ câu lỗi CSDL.
         if ((await findParty(env.DB, id))?.merged_into_id) return MERGE_LOST_RACE();
-        if (e instanceof Error && /money_invariant/.test(e.message)) return MERGE_ORDER_INVALID();
+        const m = e instanceof Error ? e.message : "";
+        if (/money_invariant/.test(m)) return MERGE_ORDER_INVALID(await ctx.gopHoSo.donNguoiDat(id).then((d) => d.maDoi, () => []));
+        console.error(JSON.stringify({ level: "error", event: "merge_batch_failed", constraint: tenRangBuoc(m) }));
         return MERGE_STALE();
       }
       if ((results[stmts.length - 3]!.meta.changes ?? 0) === 0) return MERGE_LOST_RACE();

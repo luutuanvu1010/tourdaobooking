@@ -32,7 +32,7 @@ const booker = (w: any, id: string) => w.q("SELECT booker_party_id b, updated_at
 
 test("donCuaNguoiDat: đếm đơn sẽ đổi / giữ, không đơn lệch tiền", async () => {
   const w = nen();
-  assert.deepEqual(await donCuaNguoiDat(w.env.DB, "pa"), { doi: 2, giuDaGiao: 1, giuDaHuy: 1, lechTien: [] });
+  assert.deepEqual(await donCuaNguoiDat(w.env.DB, "pa"), { doi: 2, giuDaGiao: 1, giuDaHuy: 1, lechTien: [], maDoi: ["TD-o1", "TD-o2"] });
 });
 
 test("G7: câu đổi người đặt chỉ chạm đơn nháp + đã xác nhận chưa giao; updated_at = mốc lô", async () => {

@@ -34,6 +34,7 @@ export async function donCuaNguoiDat(db: D1Database, partyId: string): Promise<D
     giuDaGiao: results.filter((r) => r.delivered_at !== null).length,
     giuDaHuy: results.filter((r) => r.status === "cancelled").length,
     lechTien: seDoi.filter((r) => r.lech === 1).map((r) => r.order_code),
+    maDoi: seDoi.map((r) => r.order_code),
   };
 }
 export const cauDoiNguoiDat = (db: D1Database, tuPartyId: string, sangPartyId: string, at: string): D1PreparedStatement =>

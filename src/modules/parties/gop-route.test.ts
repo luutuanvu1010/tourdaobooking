@@ -53,6 +53,17 @@ function donCua(w: any, id: string, booker: string, trangThai: "draft" | "confir
   if (trangThai !== "draft" && trangThai !== "cancelled") w.sqlite.prepare("UPDATE orders SET status = 'confirmed', confirmed_at = ? WHERE id = ?").run(AT, id);
   if (trangThai === "delivered") w.sqlite.prepare("UPDATE orders SET delivered_at = ?, delivered_by = ? WHERE id = ?").run(AT, SUP, id);
 }
+/** Chạy `f` và thu các dòng console.error (không in ra). */
+async function thuLog<T>(f: () => Promise<T>): Promise<{ kq: T; log: string[] }> {
+  const log: string[] = [];
+  const goc = console.error;
+  console.error = (...a: unknown[]) => void log.push(a.map(String).join(" "));
+  try {
+    return { kq: await f(), log };
+  } finally {
+    console.error = goc;
+  }
+}
 /** Chặn lô GỘP (câu lật có `merged_into_id = (SELECT`) để giả lập việc xảy ra giữa lúc tính kế hoạch và lúc ghi. Lô khác đi thẳng. */
 function chanLoGop(w: any, lam: (goc: (s: unknown[]) => Promise<unknown>, stmts: any[]) => Promise<unknown>) {
   const goc = w.env.DB.batch.bind(w.env.DB);
@@ -202,25 +213,52 @@ test("Hợp đồng lỗi lô: dữ liệu đổi trong khe → 409 merge_stale;
         VALUES ('ptc-khe', ?, 'PHONE', '0913000888', '0913000888', NULL, 1, '2026-09-01', ?, ?)`).run(B.partyId, AT, AT);
       return goc(stmts);
     });
-    const r = await gop(w, ADM, A, B.partyId);
+    const { kq: r, log } = await thuLog(() => gop(w, ADM, A, B.partyId));
     assert.equal(r.status, 409, r.text);
     assert.equal(r.json.error.code, "merge_stale");
     assert.equal(r.json.error.message, "Dữ liệu vừa thay đổi, hãy xem trước lại.");
+    // Vòng sửa 1 (điểm 2): lỗi lạ có MỘT dòng log chỉ tên ràng buộc — không giá trị.
+    assert.equal(log.length, 1, log.join("\n"));
+    assert.equal(JSON.parse(log[0]!).event, "merge_batch_failed");
+    assert.match(JSON.parse(log[0]!).constraint, /^UNIQUE constraint failed: pty_contact_point\./);
+    assert.doesNotMatch(log[0]!, /\d{6,}|@/);
     assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 0);
   }
-  // (b) trigger tiền của đơn (cột cũ không đọc được lúc tính kế hoạch) huỷ lô.
+  // (b) đơn nháp của A lệch ở CỘT CỌC CŨ (kế hoạch không đọc được — NT-R9) → trigger tiền 0007 huỷ lô → 409 merge_order_invalid NÊU MÃ ĐƠN (ADR-0068 Đ1 bước 5).
+  {
+    const w = nen();
+    const A = await taoA(w);
+    const B = await taoB(w);
+    const don = "00000000-0000-4000-8000-00000000d201";
+    donCua(w, don, A, "draft");
+    const trg = w.q("SELECT sql FROM sqlite_master WHERE type = 'trigger' AND name = 'orders_money_update'")[0].sql as string;
+    w.sqlite.exec("DROP TRIGGER orders_money_update");
+    w.sqlite.prepare("UPDATE orders SET remaining_amount = 5 WHERE id = ?").run(don); // dữ liệu cũ lệch (remaining ≠ total − cọc)
+    w.sqlite.exec(trg);
+    assert.deepEqual((await xemTruoc(w, ADM, A, B.partyId)).json.chan, [], "kế hoạch không thấy lệch ở cột cũ");
+    const { kq: r, log } = await thuLog(() => gop(w, ADM, A, B.partyId));
+    assert.equal(r.status, 409, r.text);
+    assert.equal(r.json.error.code, "merge_order_invalid");
+    assert.match(r.json.error.message, /TD-d201/);
+    assert.doesNotMatch(r.json.error.message, /money_invariant|SQLITE/);
+    assert.deepEqual(log, []);
+    assert.equal(w.q("SELECT active FROM pty_party WHERE id = ?", A)[0].active, 1);
+    assert.equal(w.q("SELECT booker_party_id b FROM orders WHERE id = ?", don)[0].b, A);
+  }
+  // (b2) câu lỗi lạ chứa giá trị (SĐT, email) → log chỉ có tên ràng buộc, không chữ số dài, không '@'.
   {
     const w = nen();
     const A = await taoA(w);
     const B = await taoB(w);
     chanLoGop(w, async () => {
-      throw new Error("D1_ERROR: money_invariant: SQLITE_CONSTRAINT");
+      throw new Error("D1_ERROR: party_role_overlap: 0912000111 phuong@example.com SQLITE_CONSTRAINT");
     });
-    const r = await gop(w, ADM, A, B.partyId);
-    assert.equal(r.status, 409, r.text);
-    assert.equal(r.json.error.code, "merge_order_invalid");
-    assert.doesNotMatch(r.json.error.message, /money_invariant|SQLITE/);
+    const { kq: r, log } = await thuLog(() => gop(w, ADM, A, B.partyId));
+    assert.equal(r.json.error.code, "merge_stale", r.text);
+    assert.equal(log.length, 1);
+    assert.equal(JSON.parse(log[0]!).constraint, "party_role_overlap");
+    assert.doesNotMatch(log[0]!, /\d{6,}|@/);
   }
   // (c) bên kia thắng (lô thật chạy xong), rồi lô của mình ném → đọc lại A đã gộp → merge_lost_race.
   {
@@ -250,6 +288,18 @@ test("Hợp đồng lỗi lô: dữ liệu đổi trong khe → 409 merge_stale;
     assert.equal(w.q("SELECT count(*) n FROM pty_contact_point WHERE party_id = ? AND valid_to_date IS NULL", B.partyId)[0].n, 1);
     assert.equal(w.q("SELECT count(*) n FROM audit_log WHERE action = 'party_merged'")[0].n, 2);
   }
+});
+
+test("Vòng sửa 1 (điểm 3): A đã gộp vào C từ trước, yêu cầu gộp A → B → 409 merge_inactive (không phải merge_lost_race)", async () => {
+  const w = nen();
+  const A = await taoA(w);
+  const B = await taoB(w);
+  const C = (await w.call("POST", "/api/parties", { as: ADM, body: { kind: "PERSON", fullName: "Người Chính Khác", contacts: [] } })).json.party.id as string;
+  assert.equal((await gop(w, ADM, A, C)).status, 200);
+  const r = await gop(w, ADM, A, B.partyId);
+  assert.equal(r.status, 409, r.text);
+  assert.equal(r.json.error.code, "merge_inactive");
+  assert.equal(w.q("SELECT merged_into_id m FROM pty_party WHERE id = ?", A)[0].m, C);
 });
 
 test("Review Focus 4 + xác nhận: gõ lại tên dạng NFD, chữ hoa, thừa khoảng trắng → được; gõ sai tên → 409 merge_confirm_mismatch, không đổi gì", async () => {
