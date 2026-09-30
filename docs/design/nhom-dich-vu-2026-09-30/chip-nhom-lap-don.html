@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lập đơn: hai cách đặt chip Nhóm dịch vụ</title>
+<!-- ẢNH PHÁC TĨNH (ADR-0058 Đ8, câu Q1) — CHƯA phải màn thật; số liệu, tên, giá là giả. Chủ chọn cách rồi mới dựng. -->
+<style>
+:root{
+  /* Bản chép GIÁ TRỊ token từ đầu public/app.css (chỉ để ảnh phác tự đứng một mình; nguồn thật vẫn là app.css) */
+  --c-primary:#0c4a6e;--c-primary-strong:#082f49;--c-primary-soft:#dcebf6;--c-accent:#c0392b;--c-accent-soft:#fef2f0;
+  --c-sand-soft:#fbe3b3;--c-sand-text:#5a4109;--c-sand-border:#e9d3a4;--c-surface:#ffffff;--c-surface-alt:#eaf2f8;
+  --c-text:#0f172a;--c-text-muted:#475569;--c-border:#d3e1ec;--c-green-soft:#dcfce7;--c-green-text:#166534;--c-green-border:#a7e3bc;
+  --c-danger:#b01235;--c-danger-text:#8e0e2b;--c-danger-soft:#fde9ee;--c-danger-border:#f1c3cf;--c-on-dark:#ffffff;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--radius-sm:8px;--radius-md:12px;--radius-lg:18px;--radius-pill:999px;
+  --shadow-card:0 1px 3px rgba(15,23,42,.08);--shadow-overlay:0 12px 32px rgba(15,23,42,.16);--c-scrim:rgba(15,23,42,.45);
+  --fs-ui:16px;--fs-label:14px;--fs-badge:12px;--fs-title:18px;--tap-min:44px;--bar-h:60px;--tabbar-h:56px;
+  --font:"Nunito","Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:var(--c-text);font:var(--fs-ui)/1.5 var(--font);padding:var(--s5)}
+h1{font-size:22px;margin:0 0 var(--s2)} .lead{color:var(--c-text-muted);margin:0 0 var(--s5);max-width:900px}
+.row{display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:var(--fs-label);font-weight:700;color:var(--c-text-muted);margin:0 0 var(--s2);max-width:390px}
+.phone{width:390px;min-height:760px;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:28px;overflow:hidden;position:relative;box-shadow:var(--shadow-overlay)}
+.desk{width:1040px;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-overlay)}
+.bar{height:var(--bar-h);background:var(--c-primary);color:var(--c-on-dark);display:flex;align-items:center;padding:0 var(--s4);font-weight:800;font-size:var(--fs-title)}
+.pad{padding:var(--s3) var(--s4) calc(var(--tabbar-h) + var(--s3))}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--tabbar-h);background:var(--c-surface);border-top:1px solid var(--c-border);display:flex;justify-content:space-around;align-items:center;font-size:var(--fs-badge);color:var(--c-text-muted)}
+.tabbar b{color:var(--c-primary)}
+.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s3) var(--s4);margin-bottom:var(--s2)}
+.muted{color:var(--c-text-muted);font-size:var(--fs-label)}
+.input{min-height:var(--tap-min);border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);display:flex;align-items:center;padding:0 var(--s3);font-size:var(--fs-ui);color:var(--c-text-muted);flex:1}
+.btn{min-height:var(--tap-min);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);display:inline-flex;align-items:center;justify-content:center;padding:0 var(--s4);font-weight:700;font-size:var(--fs-ui);color:var(--c-primary);gap:var(--s2);white-space:nowrap}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-dark)}
+.chip{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--radius-pill);background:var(--c-surface);border:1px solid var(--c-border);font-size:var(--fs-label);font-weight:700;color:var(--c-text);white-space:nowrap}
+.chip.on{background:var(--c-primary-soft);border-color:var(--c-primary);color:var(--c-primary)}
+.chip .x{font-weight:800;color:var(--c-text-muted)}
+.chips{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+.link{color:var(--c-primary);font-weight:700;font-size:var(--fs-label);text-decoration:underline}
+.badge{font-size:var(--fs-badge);font-weight:800;padding:2px var(--s2);border-radius:var(--radius-pill);white-space:nowrap}
+.b-draft{background:var(--c-sand-soft);color:var(--c-sand-text)} .b-ok{background:var(--c-green-soft);color:var(--c-green-text)} .b-no{background:var(--c-danger-soft);color:var(--c-danger-text)}
+.oc-top{display:flex;gap:var(--s2);align-items:baseline} .oc-top .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oc-l{font-size:var(--fs-label);color:var(--c-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow-overlay);max-height:88%;display:flex;flex-direction:column}
+.scrim{position:absolute;inset:0;background:var(--c-scrim)}
+.sh-head{padding:var(--s4);border-bottom:1px solid var(--c-border);font-weight:800;font-size:var(--fs-title);display:flex;justify-content:space-between;align-items:center}
+.sh-body{padding:var(--s3) var(--s4);overflow:hidden;flex:1}
+.sh-foot{padding:var(--s3) var(--s4);border-top:1px solid var(--c-border);display:flex;gap:var(--s2)}
+.sh-foot .btn{flex:1}
+.grp{margin-bottom:var(--s4)} .grp h3{font-size:var(--fs-badge);margin:0 0 var(--s2);text-transform:uppercase;letter-spacing:.08em;color:var(--c-text-muted)}
+.chk{display:flex;align-items:center;gap:var(--s3);min-height:var(--tap-min);border-bottom:1px solid var(--c-border);font-size:var(--fs-label)}
+.box{width:22px;height:22px;border:2px solid var(--c-border);border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--c-on-dark)}
+.box.on{background:var(--c-primary);border-color:var(--c-primary)}
+.note{background:var(--c-surface);border:1px dashed var(--c-primary);border-radius:var(--radius-md);padding:var(--s3) var(--s4);font-size:var(--fs-label);max-width:360px}
+.note b{color:var(--c-primary)}
+.steps{display:flex;align-items:flex-start;margin:var(--s3) 0}
+.step{flex:1;text-align:center;position:relative;font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted)}
+.step .dot{width:28px;height:28px;border-radius:50%;margin:0 auto var(--s1);display:flex;align-items:center;justify-content:center;background:var(--c-surface);border:2px solid var(--c-border);font-size:var(--fs-label);position:relative;z-index:1}
+.step::before{content:"";position:absolute;top:13px;left:-50%;right:50%;height:2px;background:var(--c-border)}
+.step:first-child::before{display:none}
+.step.done .dot{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-dark)} .step.done::before,.step.cur::before,.step.dong::before{background:var(--c-primary)}
+.step.cur .dot{border-color:var(--c-primary);color:var(--c-primary);box-shadow:0 0 0 4px var(--c-primary-soft)} .step.cur{color:var(--c-primary)}
+.step.dong .dot{background:var(--c-green-text);border-color:var(--c-green-text);color:var(--c-on-dark)} .step.dong{color:var(--c-green-text)}
+.status-big{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-title)}
+.seg{display:flex;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-pill);padding:3px;gap:3px}
+.seg span{flex:1;text-align:center;border-radius:var(--radius-pill);padding:var(--s1) 0;font-weight:700;font-size:var(--fs-label);color:var(--c-text-muted)}
+.seg span.on{background:var(--c-primary);color:var(--c-on-dark)}
+.trip{display:flex;gap:var(--s3);border-bottom:1px solid var(--c-border);padding:var(--s2) 0}
+.trip:last-child{border-bottom:0}
+.trip .t{width:76px;flex:none;font-weight:800} .trip .t small{display:block;font-weight:600;color:var(--c-text-muted);font-size:var(--fs-badge)}
+.sec-title{font-weight:800;font-size:var(--fs-title);margin:var(--s1) 0 var(--s2)}
+.q{background:var(--c-surface);border-left:4px solid var(--c-accent);padding:var(--s3) var(--s4);border-radius:var(--radius-sm);margin-top:var(--s5);max-width:900px}
+
+.phone{min-height:800px}
+.scrollx{display:flex;gap:var(--s2);overflow-x:auto;padding:var(--s1) 0}
+.chip{height:var(--tap-min);flex:none}
+.rowlbl{font-size:var(--fs-badge);font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--c-text-muted);margin:var(--s2) 0 var(--s1)}
+.code{font-weight:800}
+.pair{display:flex;gap:40px;flex-wrap:wrap;align-items:flex-start}
+</style></head><body>
+<h1>Lập đơn: hai cách đặt chip “Nhóm dịch vụ”</h1>
+<p class="lead">Ô chọn dịch vụ khi lập đơn. Hai ảnh chỉ khác nhau ở chỗ đặt chip nhóm dịch vụ (Tour đảo, Thể thao biển…). Cả hai đang lọc nhóm “Thể thao biển” (23 dịch vụ). Tên dịch vụ, giá là giả.</p>
+<div class="pair">
+<div><p class="cap">Cách 1 (khuyến nghị): hàng riêng “Nhóm dịch vụ” dưới hàng lọc sẵn có — dùng cùng lúc được</p><div class="phone"><div class="bar">Lập đơn</div><div class="pad"><div class="card"><b>Chọn từ danh mục</b><div class="input" style="margin:8px 0">🔍 Gõ tên hoặc mã dịch vụ…</div><div class="rowlbl">Lọc sẵn có</div><div class="scrollx"><span class="chip on">★ Hay dùng</span><span class="chip">Theo người</span><span class="chip">Giá theo nhóm</span></div>
+<div class="rowlbl">Nhóm dịch vụ</div><div class="scrollx"><span class="chip">Tất cả</span><span class="chip">Tour đảo</span><span class="chip">Long Phú</span><span class="chip">Hòn Tằm</span><span class="chip">Harbour</span><span class="chip">Vinwonders</span><span class="chip">Du thuyền</span><span class="chip on">Thể thao biển</span><span class="chip">I Resort</span><span class="chip">Kong Forest</span><span class="chip">Trăm trứng</span><span class="chip">Nhà hát Đó</span><span class="chip">Tháp Bà</span><span class="chip">Thuê xe</span><span class="chip">Buýt City Tour</span><span class="chip">Chưa phân loại</span></div>
+<p class="muted" style="margin:6px 0 0">Đang lọc: ★ Hay dùng <b>và</b> Thể thao biển — 4 dịch vụ · <span class="link">Bỏ lọc</span></p><div class="chk" style="justify-content:space-between"><span><span class="code">TTB01</span> Dù lượn đôi</span><span class="muted">450.000 ₫</span></div><div class="chk" style="justify-content:space-between"><span><span class="code">TTB02</span> Lặn biển ngắm san hô</span><span class="muted">900.000 ₫</span></div><div class="chk" style="justify-content:space-between"><span><span class="code">TTB03</span> Mô tô nước 15 phút</span><span class="muted">350.000 ₫</span></div><div class="chk" style="justify-content:space-between"><span><span class="code">TTB04</span> Chuối bay</span><span class="muted">250.000 ₫</span></div><p class="muted" style="margin:6px 0 0">Chỉ hiện dịch vụ đã ghim ★ trong nhóm này.</p></div></div><div class="tabbar"><span>Trang chủ</span><span>Đơn hàng</span><b>＋ Lập đơn</b><span>Tôi</span></div></div>
+<div class="note" style="margin-top:12px"><b>Lưu ý:</b> chip “Theo nhóm” của hàng lọc sẵn có (nghĩa là giá tính theo nhóm khách) được đổi chữ thành “Giá theo nhóm” cho khỏi nhầm với nhóm dịch vụ. Nếu chủ không muốn đổi chữ thì giữ nguyên “Theo nhóm”.</div></div>
+<div><p class="cap">Cách 2: nối vào cuối hàng lọc sẵn có — mỗi lần chỉ một bộ lọc</p><div class="phone"><div class="bar">Lập đơn</div><div class="pad"><div class="card"><b>Chọn từ danh mục</b><div class="input" style="margin:8px 0">🔍 Gõ tên hoặc mã dịch vụ…</div><div class="scrollx"><span class="chip">★ Hay dùng</span><span class="chip">Theo người</span><span class="chip">Theo nhóm</span><span class="chip">Tất cả nhóm</span><span class="chip">Tour đảo</span><span class="chip">Long Phú</span><span class="chip">Hòn Tằm</span><span class="chip">Harbour</span><span class="chip">Vinwonders</span><span class="chip">Du thuyền</span><span class="chip on">Thể thao biển</span><span class="chip">I Resort</span><span class="chip">Kong Forest</span><span class="chip">Trăm trứng</span><span class="chip">Nhà hát Đó</span><span class="chip">Tháp Bà</span><span class="chip">Thuê xe</span><span class="chip">Buýt City Tour</span><span class="chip">Chưa phân loại</span></div>
+<p class="muted" style="margin:6px 0 0">Đang lọc: Thể thao biển — 23 dịch vụ · <span class="link">Bỏ lọc</span></p><div class="chk" style="justify-content:space-between"><span><span class="code">TTB01</span> Dù lượn đôi</span><span class="muted">450.000 ₫</span></div><div class="chk" style="justify-content:space-between"><span><span class="code">TTB02</span> Lặn biển ngắm san hô</span><span class="muted">900.000 ₫</span></div><div class="chk" style="justify-content:space-between"><span><span class="code">TTB03</span> Mô tô nước 15 phút</span><span class="muted">350.000 ₫</span></div><div class="chk" style="justify-content:space-between"><span><span class="code">TTB04</span> Chuối bay</span><span class="muted">250.000 ₫</span></div><p class="muted" style="margin:6px 0 0">… và 19 dịch vụ khác (vuốt xuống)</p></div></div><div class="tabbar"><span>Trang chủ</span><span>Đơn hàng</span><b>＋ Lập đơn</b><span>Tôi</span></div></div>
+<div class="note" style="margin-top:12px"><b>Lưu ý:</b> giữ nguyên chữ “Theo nhóm” (giá theo nhóm khách) rồi nối thêm chip nhóm dịch vụ; vì thế cần chip “Tất cả nhóm” để phân biệt, và hàng rất dài, phải vuốt ngang nhiều. Chọn chip nhóm thì “★ Hay dùng” tự tắt, và ngược lại.</div></div>
+</div><script>document.querySelectorAll(".scrollx").forEach(function(r){var o=r.querySelector(".chip.on");if(o&&r.scrollWidth>r.clientWidth){r.scrollLeft=o.offsetLeft-r.offsetLeft-60}})</script></body></html>
