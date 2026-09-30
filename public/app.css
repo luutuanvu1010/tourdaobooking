@@ -1,11 +1,15 @@
 /* Token: tên và giá trị chuẩn của tourdaovn/src/styles/tokens.css (bản trên máy, đồng bộ 2026-09-20 — KHÔNG dùng bản GitHub cũ), sao chép, không import runtime.
-   Font Nunito / Be Vietnam Pro tự lưu trữ ở /fonts (service worker nạp sẵn). Tên cũ --c-bg / --c-alt / --c-line / --c-muted giữ làm BÍ DANH để trang chưa làm lại không gãy. */
-@font-face { font-family: "Nunito"; src: url("/fonts/nunito-latin-viet-var.woff2") format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Nunito"; src: url("/fonts/nunito-vietnamese-var.woff2") format("woff2"); font-weight: 400 800; font-style: normal; font-display: swap; unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
-@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-latin-viet-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-vietnamese-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
-@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-latin-viet-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
-@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-vietnamese-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; unicode-range: U+0102-0103, U+0110-0111, U+0128-0129, U+0168-0169, U+01A0-01A1, U+01AF-01B0, U+0300-0301, U+0303-0304, U+0308-0309, U+0323, U+0329, U+1EA0-1EF9, U+20AB; }
+   Tên cũ --c-bg / --c-alt / --c-line / --c-muted giữ làm BÍ DANH để trang chưa làm lại không gãy.
+   PHÔNG (rà soát 2026-09-30, chủ dự án giao chọn phông tiếng Việt chuẩn — lỗi phông nhẹ trên Windows): MỌI chữ dùng Be Vietnam Pro (phông thiết kế cho
+   tiếng Việt), tự lưu trữ ở /fonts (service worker nạp sẵn), MỘT tệp mỗi độ đậm 400/500/600/700/800 chứa đủ Latin + tiếng Việt + dấu tổ hợp.
+   KHÔNG tách tệp theo unicode-range: chữ gõ kiểu "Unicode tổ hợp" (Unikey trên Windows, dữ liệu dán từ Sheet) có chữ gốc và dấu ở hai tệp khác nhau
+   thì trình duyệt không đặt được dấu lên chữ → dấu lệch/rời. Mũi tên, ✓, ✕, ▾ phông không có → rơi về phông hệ thống trong chồng --font
+   (Windows: Segoe UI / Segoe UI Symbol; Apple: San Francisco). Tạo lại tệp: docs/CHANGE-GUIDE.md công thức "Phông chữ". src/phong-chu.test.ts canh. */
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-400.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-500.woff2") format("woff2"); font-weight: 500; font-style: normal; font-display: swap; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-600.woff2") format("woff2"); font-weight: 600; font-style: normal; font-display: swap; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-700.woff2") format("woff2"); font-weight: 700; font-style: normal; font-display: swap; }
+@font-face { font-family: "Be Vietnam Pro"; src: url("/fonts/be-vietnam-pro-800.woff2") format("woff2"); font-weight: 800; font-style: normal; font-display: swap; }
 :root {
   /* — tourdaovn (tên và giá trị chuẩn) — */
   --c-primary: #0c4a6e;
@@ -36,8 +40,11 @@
   --shadow-overlay: 0 12px 32px rgba(15, 23, 42, 0.16);
   --m-fast: 180ms;
   --m-base: 300ms;
-  --font-display: "Be Vietnam Pro", "Nunito", system-ui, sans-serif;
-  --font: "Nunito", "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  /* Hai vai phông giữ tách (tiêu đề / nội dung) nhưng từ 2026-09-30 cùng trỏ Be Vietnam Pro — LỆCH tourdaovn (nội dung ở đó là Nunito), chủ dự án giao
+     chọn. Chồng dự phòng cho ký tự phông không có (→ ✓ ✕ ▾) và lúc phông chưa nạp: Apple → Windows (Segoe UI, Segoe UI Symbol) → Android. */
+  --font-display: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", "Segoe UI Symbol", Roboto, "Noto Sans", sans-serif;
+  --font: "Be Vietnam Pro", system-ui, -apple-system, "Segoe UI", "Segoe UI Symbol", Roboto, "Noto Sans", sans-serif;
+  --font-mono: ui-monospace, Menlo, Consolas, "Courier New", monospace; /* mã PIN tạm — Windows có Consolas, không rơi về Courier New */
   /* — bí danh tên cũ (trỏ về token mới; giá trị đổi về chuẩn tourdaovn, màu chữ/viền các trang cũ nhích nhẹ — chấp nhận, đặc tả Q3) — */
   --c-bg: var(--c-surface);
   --c-alt: var(--c-surface-alt);
@@ -56,12 +63,36 @@
   --focus-ring: 2px;          /* vòng :focus-visible */
   --w-sheet: 520px;           /* bề rộng tối đa bảng trượt / hộp thoại ở màn hình rộng */
   --c-scrim: rgba(15, 23, 42, 0.45); /* lớp phủ sau bảng trượt */
-  --fs-ui: 16px;
-  --fs-label: 14px;
-  --fs-badge: 12px;
+  /* THANG CỠ CHỮ (rà soát 2026-09-30): mọi cỡ chữ của app là MỘT bậc dưới đây; token cỡ chữ theo vai (--fs-ui, --fs-hdv-*, --fs-vc-*, --fs-dp-*…)
+     chỉ trỏ var(--fs-step-N), không ghi số riêng (src/phong-chu.test.ts canh). Bậc nhỏ nhất 12px: dưới đó dấu tiếng Việt chồng hai tầng (ấ, ở, ễ)
+     nhoè trên màn Windows 100%. Giá trị giữ nguyên như trước khi gom (trừ 11px → 12px). Đề xuất rút gọn thang: docs/superpowers/specs/2026-09-30-phong-chu-va-co-chu.md. */
+  --fs-step-1: 12px;
+  --fs-step-2: 13px;
+  --fs-step-3: 14px;
+  --fs-step-4: 15px;
+  --fs-step-5: 16px;
+  --fs-step-6: 17px;
+  --fs-step-7: 18px;
+  --fs-step-8: 19px;
+  --fs-step-9: 20px;
+  --fs-step-10: 22px;
+  --fs-step-11: 24px;
+  --fs-step-12: 26px;
+  --fs-step-13: 28px;
+  --fs-step-14: 32px;
+  --fs-ui: var(--fs-step-5);
+  --fs-label: var(--fs-step-3);
+  --fs-badge: var(--fs-step-1);
   --dot-size: 8px;
-  --fs-title: 18px;
-  --fs-counter: 20px;
+  --fs-title: var(--fs-step-7);
+  --fs-counter: var(--fs-step-9);
+  /* Cỡ chữ các khối cũ (trước đây viết cứng bằng rem ngay trong luật; gom vào token 2026-09-30, GIÁ TRỊ KHÔNG ĐỔI — lệch bậc thang nên nằm trong đề xuất rút gọn) */
+  --fs-h1: 1.5rem;
+  --fs-h2: 1.1rem;            /* cũng: .brand, .kv.strong, --fs-name */
+  --fs-old-muted: .9rem;      /* .muted */
+  --fs-old-label: .85rem;     /* label */
+  --fs-old-badge: .8rem;      /* .badge, giá gốc gạch ngang */
+  --fs-pin: 1.25rem;          /* mã PIN tạm */
   --lh-heading: 1.16;         /* Đợt D Task 7: KHÔNG dùng ở đâu (grep --lh-heading = 0). Chú thích cũ ("giữ để dấu
      tiếng Việt của tiêu đề không bị cắt") không đúng: `h1`/`h2` và các tiêu đề một dòng của Trang chủ mới
      (.dash-revenue-title, .dash-review-heading, "Chuyến đón hôm nay") đều dùng line-height MẶC ĐỊNH của body
@@ -80,7 +111,7 @@
   --tabbar-h: 56px;         /* thanh tab dưới đáy, chưa tính vùng an toàn */
   --h-trang-toi-thieu: calc(100vh + env(safe-area-inset-bottom)); /* trang có thanh tab luôn cao ≥ cả màn hình kể cả vùng vạch vuốt: iPhone (app cài ra màn hình chính) đặt thanh tab cao hơn đúng một vùng an toàn khi trang NGẮN hơn màn hình → thanh nhảy khi dữ liệu về (video của chủ dự án 2026-09-27) */
   --tab-icon: 36px;
-  --fs-tab: 12px;           /* = --fs-xs của tourdaovn; nhãn thanh tab */
+  --fs-tab: var(--fs-step-1);           /* = --fs-xs của tourdaovn; nhãn thanh tab */
   --row-h: 48px;            /* dòng liên kết trong trang Tôi */
   --avatar: 48px;
   --logo-bar: 30px;
@@ -89,12 +120,12 @@
   --w-login: 400px;         /* bề rộng cột giữa */
   --login-side: 20px;       /* lề hai bên / đáy ở điện thoại */
   --login-body-bottom: 16px; /* khoảng từ dòng phiên bản tới vạch chân trang (điện thoại) — chủ dự án 2026-09-24 bỏ khoảng trống để trang không phải kéo (bản thiết kế 40px + phần giãn) */
-  --fs-login-title: 26px;   /* tiêu đề "Tour Đảo Booking" — điện thoại */
-  --fs-login-title-wide: 32px; /* tiêu đề — màn ≥ 900px */
+  --fs-login-title: var(--fs-step-12);   /* tiêu đề "Tour Đảo Booking" — điện thoại */
+  --fs-login-title-wide: var(--fs-step-14); /* tiêu đề — màn ≥ 900px */
   --h-field: 52px;          /* ô gõ, nút Đăng nhập, nút sinh trắc học — điện thoại (bản thiết kế 56px; thu 52px = cỡ máy tính để vừa một màn hình, chủ dự án 2026-09-24) */
   --logo-login-phone: 48px; /* logo trên điện thoại (bản thiết kế 72px; thu nhỏ để vừa một màn hình kể cả Safari + widget Turnstile, chủ dự án 2026-09-24) */
   --h-field-wide: 52px;     /* cùng các ô/nút đó — màn ≥ 900px */
-  --fs-field: 17px;         /* chữ trong ô gõ (≥ 16px nên iOS không tự phóng to) */
+  --fs-field: var(--fs-step-6);         /* chữ trong ô gõ (≥ 16px nên iOS không tự phóng to) */
   --ring-field: 3px;        /* vành xanh nhạt quanh ô đang gõ */
   --pin-toggle-space: 88px; /* chừa chỗ bên phải ô PIN cho nút Hiện/Ẩn */
   --radius-xs: 6px;         /* bo góc nút Hiện/Ẩn */
@@ -106,12 +137,12 @@
   --c-spinner-track: rgba(255, 255, 255, 0.4); /* vòng mờ của vòng quay trên nút navy */
   --radius-icon: 22.37%;    /* độ bo góc icon iOS */
   --w-narrow: 420px;        /* bề rộng tối đa của thẻ hẹp (trang Tôi) */
-  --fs-name: 1.1rem;        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
-  --fs-bar-title: 1.125rem; /* tiêu đề trên thanh đầu trang (điện thoại) */
+  --fs-name: var(--fs-h2);        /* tên và chữ viết tắt trong thẻ hồ sơ (trang Tôi) */
+  --fs-bar-title: var(--fs-step-7); /* tiêu đề trên thanh đầu trang (điện thoại) */
   --h-turnstile: 65px;      /* chiều cao cố định của widget Cloudflare Turnstile (cỡ "flexible"/"normal"): khung giữ chỗ để widget dựng xong không đẩy nút Đăng nhập */
   --w-confirm: 640px;       /* bề rộng hộp thoại "Xác nhận đơn để gửi khách" ở màn hình rộng: ảnh xem trước (khổ 720) chỉ thu nhỏ nhẹ nên chữ còn đọc được */
-  --fs-stat: 26px;          /* Trang chủ mới: cỡ chữ số liệu lớn (ô số liệu, doanh thu) */
-  --fs-stat-sm: 20px;       /* Trang chủ mới (kiểm gộp I-3): cỡ chữ số liệu ở khổ điện thoại hẹp (lưới 2 cột ≤639px) — 26px làm "₫" rơi xuống dòng riêng với số tiền lớn */
+  --fs-stat: var(--fs-step-12);          /* Trang chủ mới: cỡ chữ số liệu lớn (ô số liệu, doanh thu) */
+  --fs-stat-sm: var(--fs-step-9);       /* Trang chủ mới (kiểm gộp I-3): cỡ chữ số liệu ở khổ điện thoại hẹp (lưới 2 cột ≤639px) — 26px làm "₫" rơi xuống dòng riêng với số tiền lớn */
   --w-time-col: 76px;       /* Trang chủ mới: bề rộng cụm giờ đón + nơi đón (cùng dịch vụ quyết định) trong danh sách "Chuyến đón hôm nay" */
   --h-chart: 56px;          /* Đợt D Task 2: chiều cao vùng 7 cột biểu đồ "Doanh thu của tôi" */
   --icon-badge: 30px;       /* Đợt D Task 3: ô vuông bo góc quanh icon cảnh báo của khối "Cần xem lại" */
@@ -128,11 +159,11 @@
   --w-toast: 360px;            /* Bảng tin (ADR-0022): bề rộng thông báo nổi ở máy tính (điện thoại: gần hết bề ngang) */
   /* "Việc của tôi" của hướng dẫn viên (Task 1.8 ADR-0030) — số đo từ bản thiết kế "Viec cua toi - HDV v2.dc.html" (Claude Design 2026-09-27; chủ dự án
      yêu cầu làm đúng bản thiết kế — coi là duyệt các cỡ chữ/số đo dưới đây, cùng tiền lệ trang Đăng nhập). Màu đều là token sẵn có. */
-  --fs-hdv-title: 22px;        /* "HDV: <tên>" đầu khối */
-  --fs-hdv-h: 20px;            /* tiêu đề "Đơn chờ nhận" / "Đơn của tôi", tiêu đề bảng sửa/huỷ */
-  --fs-hdv-lg: 19px;           /* ngày đi, giờ đón */
-  --fs-hdv-md: 17px;           /* tên dịch vụ, tên khách */
-  --fs-hdv-sm: 15px;           /* mã đơn · nhãn ngày, dòng phụ, "HDV: <tên>" trong thẻ */
+  --fs-hdv-title: var(--fs-step-10);        /* "HDV: <tên>" đầu khối */
+  --fs-hdv-h: var(--fs-step-9);            /* tiêu đề "Đơn chờ nhận" / "Đơn của tôi", tiêu đề bảng sửa/huỷ */
+  --fs-hdv-lg: var(--fs-step-8);           /* ngày đi, giờ đón */
+  --fs-hdv-md: var(--fs-step-6);           /* tên dịch vụ, tên khách */
+  --fs-hdv-sm: var(--fs-step-4);           /* mã đơn · nhãn ngày, dòng phụ, "HDV: <tên>" trong thẻ */
   --w-hdv-col: 440px;          /* bề rộng tối thiểu một cột (hai khối đứng cạnh nhau khi đủ chỗ) */
   --w-hdv-time: 60px;          /* cột giờ đón của từng dịch vụ */
   --w-hdv-act: 160px;          /* nút "Sửa số khách" — cỡ gốc trước khi giãn */
@@ -161,13 +192,13 @@
   --pad-vc-no: 2px var(--s2);  /* nền quanh số đang hiện đủ */
   --gap-vc-label: 6px;         /* nhãn ô ↔ ô gõ */
   --bw-vc: 2px;                /* viền nhấn: mục "Giấy tờ" ở Danh bạ, nhóm VẬN CHUYỂN ở trang Tôi, ô gõ đang lỗi */
-  --fs-vc-sm: 15px;            /* chữ phụ, nút phụ, ô lọc */
-  --fs-vc-md: 17px;            /* nút chính dính đáy, số che, tiêu đề mục "Giấy tờ" */
-  --fs-vc-lg: 19px;            /* biển số trên thẻ, tiêu đề trạng thái trống */
-  --fs-vc-step: 22px;          /* dấu − / + của bộ đếm số người được chở */
-  --fs-vc-plate: 24px;         /* biển số ở đầu chi tiết xe (điện thoại) */
-  --fs-vc-h: 26px;             /* tiêu đề trang ở máy tính, lời chào trang đầu tài xế */
-  --fs-vc-plate-lg: 28px;      /* biển số ở đầu chi tiết xe (máy tính) */
+  --fs-vc-sm: var(--fs-step-4);            /* chữ phụ, nút phụ, ô lọc */
+  --fs-vc-md: var(--fs-step-6);            /* nút chính dính đáy, số che, tiêu đề mục "Giấy tờ" */
+  --fs-vc-lg: var(--fs-step-8);            /* biển số trên thẻ, tiêu đề trạng thái trống */
+  --fs-vc-step: var(--fs-step-10);          /* dấu − / + của bộ đếm số người được chở */
+  --fs-vc-plate: var(--fs-step-11);         /* biển số ở đầu chi tiết xe (điện thoại) */
+  --fs-vc-h: var(--fs-step-12);             /* tiêu đề trang ở máy tính, lời chào trang đầu tài xế */
+  --fs-vc-plate-lg: var(--fs-step-13);      /* biển số ở đầu chi tiết xe (máy tính) */
   --ls-vc-no: .04em;           /* giãn chữ số giấy tờ */
   --sidebar-sub-indent: 42px;  /* thụt lề mục con "Xe", "Sắp hết hạn" dưới "Vận chuyển" (bản vẽ: 42px, không biểu tượng) */
   --h-vc-sub: 36px;            /* mục con thanh bên, dòng lịch sử gia hạn */
@@ -214,23 +245,23 @@
   --w-dp-stop-tt: 118px;       /* cột TRẠNG THÁI */
   --h-dp-stop: 52px;           /* dòng điểm dừng (máy tính) */
   --dp-stop-dot: 24px;         /* vòng số điểm dừng (điện thoại, khung 2b) */
-  --fs-dp-dot: 13px;           /* số trong vòng điểm dừng */
+  --fs-dp-dot: var(--fs-step-2);           /* số trong vòng điểm dừng */
   --dp-cond-mark: 20px;        /* vòng ✓ / ✕ của điều kiện xuất bến (02) */
-  --fs-dp-mark: 12px;          /* dấu trong vòng điều kiện */
+  --fs-dp-mark: var(--fs-step-1);          /* dấu trong vòng điều kiện */
   --pad-dp-who: 0 6px;         /* nền "ai bấm" / "máy" trong nhật ký chuyến (02) */
   --w-dp-chua-xep: 188px;      /* cột "Chưa xếp" (01, khung 1a) */
   --w-dp-can-xu-ly: 212px;     /* cột "Cần xử lý" (01, khung 1a) */
   --w-dp-ngay: 172px;          /* ô ngày điều phối (01) */
-  --fs-dp-stat: 20px;          /* số trong dải số liệu (máy tính) */
-  --fs-dp-stat-m: 18px;        /* số trong dải số liệu (điện thoại) */
-  --fs-dp-tiny: 11px;          /* chữ nhỏ nhất: nhãn số liệu điện thoại, tải trên khối chuyến, nhãn vạch bây giờ / mốc */
+  --fs-dp-stat: var(--fs-step-9);          /* số trong dải số liệu (máy tính) */
+  --fs-dp-stat-m: var(--fs-step-7);        /* số trong dải số liệu (điện thoại) */
+  --fs-dp-tiny: var(--fs-step-1);          /* (bản vẽ 11px, nâng lên bậc nhỏ nhất 12px 2026-09-30) chữ nhỏ nhất: nhãn số liệu điện thoại, tải trên khối chuyến, nhãn vạch bây giờ / mốc */
   --h-dp-tab: 40px;            /* thẻ Chưa xếp / Xe / Cần xử lý (điện thoại) */
   --radius-dp-tab: 6px;
   --dp-gio: 34px;              /* dòng thời gian: bề rộng một giờ (dp-dong-thoi-gian) */
   --w-dp-tl-nhan: 96px;        /* cột biển số / tài xế dính trái */
   --h-dp-tl-hang: 64px;        /* một hàng xe */
   --h-dp-tl-thuoc: 28px;       /* thước giờ */
-  --fs-dp-bien: 13px;          /* biển số ở cột trái */
+  --fs-dp-bien: var(--fs-step-2);          /* biển số ở cột trái */
   --dp-tl-inset: 8px;          /* khối chuyến cách mép trên / dưới hàng */
   --pad-dp-khoi: 3px 5px;      /* đệm trong khối chuyến */
   --radius-dp-khoi: 6px;
@@ -239,22 +270,23 @@
   --dp-lg-o: 12px;             /* ô màu chú thích */
   --radius-dp-lg: 3px;
   --dp-run-so: 28px;           /* vòng số điểm của chuyến đang chạy (05, khung 5a) */
-  --fs-dp-run-so: 14px;
+  --fs-dp-run-so: var(--fs-step-3);
   --h-dp-khach: 32px;          /* dòng tên khách (05) */
   --w-dp-khai-gio: 260px;      /* ô "Xảy ra lúc" (06, khung 6d) */
 }
 * { box-sizing: border-box; }
+button, input, select, textarea { font-family: inherit; } /* nút/ô của trình duyệt KHÔNG kế thừa phông: Windows vẽ bằng Arial/Segoe UI giữa chữ Be Vietnam Pro (rà soát 2026-09-30) */
 [hidden] { display: none !important; } /* để thuộc tính hidden luôn thắng các quy tắc display của class (vd .btn) */
-body { margin: 0; font: 16px/1.5 var(--font); color: var(--c-text); background: var(--c-alt); }
+body { margin: 0; font: var(--fs-step-5)/1.5 var(--font); color: var(--c-text); background: var(--c-alt); }
 h1, h2 { font-family: var(--font-display); color: var(--c-primary); margin: 0 0 var(--s3); }
-h1 { font-size: 1.5rem; } h2 { font-size: 1.1rem; }
+h1 { font-size: var(--fs-h1); } h2 { font-size: var(--fs-h2); }
 a { color: var(--c-primary); }
-.muted { color: var(--c-muted); font-size: .9rem; }
+.muted { color: var(--c-muted); font-size: var(--fs-old-muted); }
 .num { text-align: right; white-space: nowrap; }
 
 #topbar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s3) var(--s5); padding: calc(var(--s3) + env(safe-area-inset-top)) max(var(--s4), env(safe-area-inset-right)) var(--s3) max(var(--s4), env(safe-area-inset-left)); background: var(--c-primary); color: #fff; }
 #topbar a { color: #fff; text-decoration: none; }
-.brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: 1.1rem; } .brand span { font-weight: 400; opacity: .8; }
+.brand { display: flex; align-items: center; gap: var(--s2); font-weight: 800; font-size: var(--fs-h2); } .brand span { font-weight: 400; opacity: .8; }
 .brand .brand-name { min-width: 0; font-weight: inherit; line-height: 1.25; opacity: 1; } /* chữ tên app là MỘT khối: "Island Booking System" hẹp chỗ thì ngắt dòng như câu (sidebar máy tính), không tách "System" thành cột riêng */
 .brand-logo { width: var(--logo-bar); height: var(--logo-bar); border-radius: var(--radius-pill); display: block; } /* Đợt D Task 7: sửa cho khớp bản mẫu 00 Trang chu v2.dc.html (dòng 44 VÀ 280 đều vẽ logo tròn hết cỡ) — luật gốc trước đây bo góc nhẹ (--radius-sm), chỉ thanh bên máy tính được sửa tròn riêng (:310), bỏ sót thanh đầu trang điện thoại */
 
@@ -262,7 +294,7 @@ main { max-width: var(--w-main); margin: 0 auto; padding: var(--s4) max(var(--s4
 .card { background: var(--c-bg); border-radius: var(--radius-md); padding: var(--s4); margin-bottom: var(--s4); }
 .card h2 { margin-bottom: var(--s3); }
 
-label { display: block; font-size: .85rem; color: var(--c-muted); }
+label { display: block; font-size: var(--fs-old-label); color: var(--c-muted); }
 input, select, textarea { display: block; width: 100%; margin-top: var(--s1); padding: 10px 12px; font: inherit; font-size: var(--fs-ui); color: var(--c-text); background: #fff; border: 1px solid var(--c-line); border-radius: var(--radius-sm); }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--c-primary); outline-offset: 0; }
 textarea { min-height: 72px; resize: vertical; }
@@ -332,7 +364,7 @@ textarea { min-height: 72px; resize: vertical; }
 .skeleton-row { height: var(--h-order-skeleton); border-radius: var(--radius-md); background: var(--c-surface); border: 1px solid var(--c-border); animation: skeleton-pulse 1.2s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .skeleton-row { animation: none; } }
 @keyframes skeleton-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .6; } }
-.badge { padding: 2px 10px; font-size: .8rem; font-weight: 700; border-radius: 999px; }
+.badge { padding: 2px 10px; font-size: var(--fs-old-badge); font-weight: 700; border-radius: 999px; }
 .badge-draft { color: var(--c-sand-text); background: var(--c-sand-soft); }
 .badge-confirmed { color: var(--c-green-text); background: var(--c-green-soft); }
 .badge-cancelled { color: var(--c-text-muted); background: var(--c-surface-alt); }
@@ -341,7 +373,7 @@ textarea { min-height: 72px; resize: vertical; }
 .summary { display: grid; gap: var(--s2); margin-top: var(--s4); }
 .kv { display: flex; justify-content: space-between; gap: var(--s4); padding: 4px 0; }
 .kv > span:last-child { text-align: right; overflow-wrap: anywhere; }
-.kv.strong { font-weight: 800; color: var(--c-accent); font-size: 1.1rem; }
+.kv.strong { font-weight: 800; color: var(--c-accent); font-size: var(--fs-h2); }
 .form-actions { display: flex; gap: var(--s3); position: sticky; bottom: 0; padding: var(--s3) 0; }
 
 /* chi tiết */
@@ -369,13 +401,13 @@ table.items th.num, table.items td.num { text-align: right; }
 /* quản trị */
 .alert.ok { color: var(--c-green-text); background: var(--c-green-soft); border-color: var(--c-green-border); }
 .secret { border: 2px solid var(--c-accent); }
-.pin { font: 700 1.25rem/1 ui-monospace, Menlo, monospace; letter-spacing: .15em; color: var(--c-accent); }
+.pin { font: 700 var(--fs-pin)/1 var(--font-mono); letter-spacing: .15em; color: var(--c-accent); }
 .row-off { opacity: .6; }
 .row-actions { text-align: right; white-space: nowrap; }
 .row-actions .btn-link { padding: 4px 6px; }
 .badge + .badge, td > .badge { margin-left: 8px; }
-label.check { display: flex; align-items: center; font-size: 1rem; color: var(--c-text); padding: 4px 0; }
-h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
+label.check { display: flex; align-items: center; font-size: var(--fs-step-5); color: var(--c-text); padding: 4px 0; }
+h3 { font-size: var(--fs-step-5); margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 
 /* chọn nhanh dịch vụ từ danh mục */
 .catalog { margin-bottom: var(--s3); }
@@ -385,7 +417,7 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .catalog-list button[aria-disabled="true"] { opacity: .5; cursor: not-allowed; }
 .catalog-list .price { white-space: nowrap; color: var(--c-muted); }
 .price-cell { white-space: nowrap; }
-.price-cell .sheet { display: block; font-size: .8rem; color: var(--c-muted); text-decoration: line-through; }
+.price-cell .sheet { display: block; font-size: var(--fs-old-badge); color: var(--c-muted); text-decoration: line-through; }
 .price-cell .mark { color: var(--c-accent); font-weight: 700; }
 
 /* ---------- app iPhone (PWA) — từ dấu mốc này đến cuối file: KHÔNG viết cứng màu/px, dùng token (tests/e2e/pwa.mjs kiểm) ---------- */
@@ -491,7 +523,7 @@ h3 { font-size: 1rem; margin: var(--s4) 0 var(--s2); color: var(--c-primary); }
 .hdv-reason { margin-bottom: var(--s3); }
 .hdv-reason-label { font-size: var(--fs-label); font-weight: 600; color: var(--c-text-muted); }
 .hdv-quick { display: flex; flex-wrap: wrap; gap: var(--s2); margin: var(--s2) 0; }
-.hdv-quick .pill-btn { font-family: inherit; } /* nút mặc định của trình duyệt không kế thừa phông — giữ Nunito như chữ quanh nó */
+.hdv-quick .pill-btn { font-family: inherit; } /* (nay luật `button` chung ở đầu tệp đã lo; giữ cho rõ) nút không kế thừa phông nếu không khai */
 .hdv-cancel-text { margin: 0 0 var(--s4); font-weight: 600; line-height: 1.5; }
 .hdv-nowrap { white-space: nowrap; }
 .hdv-sheet-foot { display: flex; gap: var(--s2); }

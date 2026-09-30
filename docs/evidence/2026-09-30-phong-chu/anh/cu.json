@@ -1,0 +1,42 @@
+{
+  "h1": [
+    "Be Vietnam Pro [tệp web] ×29"
+  ],
+  "nfc-400": [
+    "Nunito ExtraLight [tệp web] ×86"
+  ],
+  "nfc-600": [
+    "Nunito ExtraLight [tệp web] ×70"
+  ],
+  "nfc-800": [
+    "Nunito ExtraLight [tệp web] ×43"
+  ],
+  "nfd-400": [
+    "Nunito ExtraLight [tệp web] ×71",
+    ".SF NS [hệ thống] ×2"
+  ],
+  "nfd-800": [
+    "Nunito ExtraLight [tệp web] ×21",
+    ".SF NS [hệ thống] ×5"
+  ],
+  "button": [
+    "Arial [hệ thống] ×28"
+  ],
+  "pill": [
+    "Arial [hệ thống] ×12"
+  ],
+  "input": [
+    "Nunito ExtraLight [tệp web] ×20"
+  ],
+  "symbols": [
+    "Nunito ExtraLight [tệp web] ×45",
+    ".SF NS [hệ thống] ×5",
+    "Zapf Dingbats [hệ thống] ×1"
+  ],
+  "tiny": [
+    "Nunito ExtraLight [tệp web] ×69"
+  ],
+  "pin": [
+    "Menlo [hệ thống] ×7"
+  ]
+}

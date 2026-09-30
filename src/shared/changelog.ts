@@ -11,6 +11,16 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Rà soát phông + cỡ chữ (chủ dự án giao 30/9: "chọn phông tiếng Việt chuẩn", lỗi phông nhẹ trên Windows) — đặc tả
+    // docs/superpowers/specs/2026-09-30-phong-chu-va-co-chu.md. Số "1.39" TẠM (production 1.38); người gộp chốt số trống kế tiếp LÚC GỘP.
+    version: "1.39",
+    date: "2026-09-30",
+    items: [
+      { kind: "sua", text: "Sửa lỗi chữ tiếng Việt trên máy tính Windows: dấu có lúc bị lệch hoặc tách khỏi chữ, nút bấm hiện phông khác." },
+      { kind: "doi", text: "Toàn bộ app dùng một phông chữ thiết kế riêng cho tiếng Việt (Be Vietnam Pro), hiển thị giống nhau trên iPhone, Android và máy tính." },
+    ],
+  },
+  {
     // Phát hành 1.38 (phân hệ Vận chuyển lượt 1): ADR-0049 (bảng điều phối chung, mốc 6 giờ + đặt gấp, cuốc tài xế — Task K1 của
     // docs/superpowers/plans/2026-09-29-adr-0049-thi-cong.md), ADR-0047 (chặng đưa đón + danh sách hành khách), Q-L3-B (ADR-0053 D7.2). Production 1.37
     // (kiem-phien-ban 30/9). Chủ quyết 30/9: phát hành nhưng CHƯA dùng Điều phối cho chuyến thật tới khi có màn nhập tên khách (ADR-0047 Phần B).

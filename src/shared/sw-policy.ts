@@ -24,9 +24,8 @@ const STATIC_FILE = /^\/(?:app\.css|manifest\.webmanifest|js\/[A-Za-z0-9_-]+\.js
 export const PRECACHE: readonly string[] = [
   "/", "/orders", "/home", "/login", "/order-form", "/order", "/account", "/catalog", "/staff", "/audit", "/parties", "/locations", "/feedback", "/help", "/gui-thong-bao", "/tai-xe", "/xe", "/xe-sua", "/xe-chi-tiet", "/giay-to-sap-het-han", "/danh-muc-giay-to", "/loai-giay-to-xe", "/loai-giay-to-nguoi", "/chinh-sach-dieu-phoi", "/ly-do-dieu-phoi", "/dieu-kien-xuat-ben", "/chuyen-sua", "/chuyen", "/dieu-phoi", "/cuoc", "/cuoc-chuyen",
   "/app.css",
-  "/fonts/nunito-latin-viet-var.woff2", "/fonts/nunito-vietnamese-var.woff2",
-  "/fonts/be-vietnam-pro-latin-viet-700.woff2", "/fonts/be-vietnam-pro-vietnamese-700.woff2",
-  "/fonts/be-vietnam-pro-latin-viet-800.woff2", "/fonts/be-vietnam-pro-vietnamese-800.woff2",
+  "/fonts/be-vietnam-pro-400.woff2", "/fonts/be-vietnam-pro-500.woff2", "/fonts/be-vietnam-pro-600.woff2",
+  "/fonts/be-vietnam-pro-700.woff2", "/fonts/be-vietnam-pro-800.woff2",
   "/js/login.js", "/js/home.js", "/js/orders.js", "/js/order-form.js", "/js/order.js", "/js/account.js",
   "/js/catalog.js", "/js/staff.js", "/js/audit.js", "/js/parties.js", "/js/locations.js", "/js/feedback.js", "/js/help.js", "/js/gui-thong-bao.js", "/js/tai-xe.js", "/js/xe.js", "/js/xe-sua.js", "/js/xe-chi-tiet.js", "/js/giay-to-sap-het-han.js", "/js/loai-giay-to-xe.js", "/js/loai-giay-to-nguoi.js", "/js/chinh-sach-dieu-phoi.js", "/js/ly-do-dieu-phoi.js", "/js/dieu-kien-xuat-ben.js", "/js/chuyen-sua.js", "/js/chuyen.js", "/js/dieu-phoi.js", "/js/cuoc.js", "/js/cuoc-chuyen.js",
   "/manifest.webmanifest",
