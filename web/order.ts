@@ -14,6 +14,7 @@ import { layKhungNho } from "./khung-nho";
 import { initShell, setBarTitle } from "./shell";
 import { openTripSheet } from "./trip-sheet";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
+import { khoiNhapKeToan } from "./nhap-ke-toan-ui";
 import { CHIEU_LABEL } from "../src/shared/chang-dua-don";
 import { can } from "../src/shared/permissions";
 import { cauMoc, changDuoiMoc, tomTatChanXacNhan, type ChangCanDatGap } from "../src/shared/dat-gap-hien-thi";
@@ -36,6 +37,8 @@ let staff: Staff | null = null; // gán sau `initShell()`; các hàm dưới ch�
 let mocPhut: number | null = null;
 /** Tiền của đơn từ billing (`GET /api/orders/:id/payments` — sổ tiền lượt 1); null = chưa tải được / không được xem (khối tiền hiện "—", không đoán). */
 let tien: Api.OrderPaymentsResponse | null = null;
+/** Dấu "đã nhập phần mềm kế toán" (ADR-0060, route billing); null = không được xem / chưa tải được — ẩn khối. */
+let nhapKt: Api.NhapKeToanResponse | null = null;
 
 // Form lập đơn ghi tiền trả trước ở BƯỚC HAI (sổ tiền lượt 1, NT-S6); bước đó hỏng thì chuyển tới đây kèm `thutruoc=loi` — báo một lần, bỏ tham số ngay.
 let baoThuTruocLoi = new URLSearchParams(location.search).get("thutruoc") === "loi";
@@ -575,6 +578,7 @@ function render(order: Order, history: AuditEntry[], canModify: boolean, handler
         "div",
         { class: "side" },
         tienCard(order),
+        nhapKt ? khoiNhapKeToan(order.id, nhapKt, hangXacNhan) : null,
       ),
     ),
 
@@ -697,10 +701,11 @@ async function load(quiet = false): Promise<void> {
   const seq = ++loadSeq;
   try {
     // Người phụ trách tải song song với đơn; lời gọi của nó không bao giờ ném lỗi (xem loadHandler) nên đơn luôn hiển thị được.
-    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!)]);
+    const [{ order, history, canModify, mocToiThieuPhut }, handler, tienDon, nhapKtDon] = await Promise.all([layDon!(), layNguoiPhuTrach(id!), layTien(id!), layNhapKt(id!)]);
     if (seq !== loadSeq) return;
     mocPhut = mocToiThieuPhut;
     tien = tienDon;
+    nhapKt = nhapKtDon;
     show(null);
     render(order, history, canModify, handler);
     if (baoThuTruocLoi) {
@@ -735,6 +740,12 @@ const lamMoi = taoBoLamMoi(async () => {
 /** Tiền của đơn (billing). KHÔNG ném lỗi: 403 / lỗi mạng → null — khối tiền hiện "—", đơn vẫn hiển thị. */
 const layTien = (orderId: string): Promise<Api.OrderPaymentsResponse | null> =>
   api<Api.OrderPaymentsResponse>(`/api/orders/${encodeURIComponent(orderId)}/payments`).catch(() => null);
+
+/** ADR-0060: chỉ hỏi khi ô xem dấu có ít nhất một phạm vi (tài khoản chỉ-Đối tác KHÔNG bao giờ gửi); máy chủ quyết theo đơn — 403/404 → ẩn khối. */
+const layNhapKt = (orderId: string): Promise<Api.NhapKeToanResponse | null> =>
+  can(staff!, "accounting.entry.view", { ownerId: staff!.id, assigned: true })
+    ? api<Api.NhapKeToanResponse>(`/api/orders/${encodeURIComponent(orderId)}/nhap-ke-toan`).catch(() => null)
+    : Promise.resolve(null);
 
 // Gọi sớm (web/goi-som.ts): đơn gửi NGAY, song song với /api/auth/me của initShell(); chỉ dựng trang sau khi initShell() xong.
 const layDon = id ? goiSom(() => api<Api.OrderDetailResponse>(`/api/orders/${encodeURIComponent(id)}`)) : null;

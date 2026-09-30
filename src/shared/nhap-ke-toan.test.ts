@@ -50,3 +50,18 @@ test("moTaDauNhap / lenhKhongDoi / laDongNhapKeToan / soNgayKhoang", () => {
   assert.equal(soNgayKhoang("2026-10-01", "2026-10-01"), 1);
   assert.equal(soNgayKhoang("2026-10-01", "2026-12-31"), 92);
 });
+
+test("bộ lọc màn Đơn hàng (loc-don.ts) × ADR-0060: tham số, chip, bỏ khoảng ngày bỏ luôn lọc dấu, kiểm khoảng ngày, bộ lọc nhớ sai bị bỏ", async () => {
+  const { LOC_TRONG, boDieuKien, chipLocDon, docLocDaNho, kiemLocNhapKeToan, thamSoLocDon } = await import("./loc-don.ts");
+  const loc = { ...LOC_TRONG, tu: "2026-10-01", den: "2026-10-31", nhapKeToan: "chua" as const };
+  assert.deepEqual(thamSoLocDon(loc, "x"), [["tu", "2026-10-01"], ["den", "2026-10-31"], ["nhapKeToan", "chua"]]);
+  assert.deepEqual(chipLocDon(loc, new Map()).map((c) => c.nhan), ["Ngày đi 01/10 – 31/10", "Chưa nhập PM kế toán"]);
+  assert.equal(boDieuKien(loc, "ngay").nhapKeToan, null);
+  assert.equal(boDieuKien(loc, "nhapKeToan").tu, "2026-10-01");
+  assert.equal(kiemLocNhapKeToan(loc), null);
+  assert.match(kiemLocNhapKeToan({ ...loc, den: null })!, /Từ ngày và Đến ngày/);
+  assert.match(kiemLocNhapKeToan({ ...loc, den: "2027-01-01" })!, /tối đa 92 ngày/);
+  assert.equal(kiemLocNhapKeToan({ ...LOC_TRONG }), null);
+  assert.deepEqual(docLocDaNho(JSON.stringify({ nhapKeToan: "da" })), LOC_TRONG, "nhớ lọc dấu mà thiếu khoảng ngày → bỏ");
+  assert.equal(docLocDaNho(JSON.stringify({ tu: "2026-10-01", den: "2026-10-02", nhapKeToan: "da" })).nhapKeToan, "da");
+});

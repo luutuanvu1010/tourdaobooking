@@ -8,6 +8,7 @@ import { CATALOG_CODE_RE } from "./order-lines.ts";
 import { STATUS_LABEL } from "./order-status-label.ts";
 import { addDays, isISODate, vnWeekRange } from "./vn-date.ts";
 import type { OrderStatus } from "./contracts.ts";
+import { LOC_NHAP_TOI_DA_NGAY, soNgayKhoang } from "./nhap-ke-toan.ts";
 
 export const LOC_DON_TOI_DA_DICH_VU = 20;
 const TRANG_THAI: readonly OrderStatus[] = ["draft", "confirmed", "cancelled"];
@@ -52,9 +53,19 @@ export interface LocDonMan {
   dichVu: string[];
   trangThai: OrderStatus[];
   cuaToi: boolean;
+  /** ADR-0060: "đã / chưa nhập phần mềm kế toán" — chỉ người có ô xem dấu không ngữ cảnh; bắt buộc kèm khoảng ngày (`kiemLocNhapKeToan`). */
+  nhapKeToan: "da" | "chua" | null;
 }
-export const LOC_TRONG: LocDonMan = { tu: null, den: null, dichVu: [], trangThai: [], cuaToi: false };
-export type KhoaDieuKien = "ngay" | "dichVu" | "trangThai" | "nguoiLap";
+export const LOC_TRONG: LocDonMan = { tu: null, den: null, dichVu: [], trangThai: [], cuaToi: false, nhapKeToan: null };
+export type KhoaDieuKien = "ngay" | "dichVu" | "trangThai" | "nguoiLap" | "nhapKeToan";
+
+/** ADR-0060 A-6 (cùng luật máy chủ): lọc theo dấu kế toán phải có Từ ngày + Đến ngày, tối đa 92 ngày tính cả hai đầu. null = hợp lệ. */
+export function kiemLocNhapKeToan(loc: Pick<LocDonMan, "tu" | "den" | "nhapKeToan">): string | null {
+  if (loc.nhapKeToan === null) return null;
+  if (!loc.tu || !loc.den) return "Lọc theo nhập phần mềm kế toán phải chọn Từ ngày và Đến ngày.";
+  if (soNgayKhoang(loc.tu, loc.den) > LOC_NHAP_TOI_DA_NGAY) return `Lọc theo nhập phần mềm kế toán chỉ trong tối đa ${LOC_NHAP_TOI_DA_NGAY} ngày.`;
+  return null;
+}
 
 /** Tham số `GET /api/orders` của bộ lọc màn (máy chủ đọc lại bằng `docLocDon`). */
 export function thamSoLocDon(loc: LocDonMan, toiId: string): [string, string][] {
@@ -64,6 +75,7 @@ export function thamSoLocDon(loc: LocDonMan, toiId: string): [string, string][] 
   for (const c of loc.dichVu) p.push(["dichVu", c]);
   for (const t of loc.trangThai) p.push(["status", t]);
   if (loc.cuaToi) p.push(["nguoiLap", toiId]);
+  if (loc.nhapKeToan) p.push(["nhapKeToan", loc.nhapKeToan]);
   return p;
 }
 
@@ -83,13 +95,16 @@ export function chipLocDon(loc: LocDonMan, tenDv: ReadonlyMap<string, string>): 
   }
   if (loc.trangThai.length) out.push({ khoa: "trangThai", nhan: loc.trangThai.map((t) => STATUS_LABEL[t]).join(", ") });
   if (loc.cuaToi) out.push({ khoa: "nguoiLap", nhan: "Đơn tôi lập" });
+  if (loc.nhapKeToan) out.push({ khoa: "nhapKeToan", nhan: loc.nhapKeToan === "da" ? "Đã nhập PM kế toán" : "Chưa nhập PM kế toán" });
   return out;
 }
 
 export const soDieuKienLoc = (loc: LocDonMan): number => chipLocDon(loc, new Map()).length;
 
 export function boDieuKien(loc: LocDonMan, khoa: KhoaDieuKien): LocDonMan {
-  if (khoa === "ngay") return { ...loc, tu: null, den: null };
+  // Bỏ khoảng ngày thì bỏ luôn lọc dấu kế toán (không có khoảng ngày thì máy chủ từ chối lọc đó — A-6).
+  if (khoa === "ngay") return { ...loc, tu: null, den: null, nhapKeToan: null };
+  if (khoa === "nhapKeToan") return { ...loc, nhapKeToan: null };
   if (khoa === "dichVu") return { ...loc, dichVu: [] };
   if (khoa === "trangThai") return { ...loc, trangThai: [] };
   return { ...loc, cuaToi: false };
@@ -119,8 +134,9 @@ export function docLocDaNho(raw: string | null): LocDonMan {
     const dichVu = mang(o.dichVu);
     const trangThai = mang(o.trangThai);
     if (!dichVu || !trangThai) return LOC_TRONG;
-    const loc: LocDonMan = { tu: chuoi(o.tu), den: chuoi(o.den), dichVu, trangThai: trangThai as OrderStatus[], cuaToi: o.cuaToi === true };
-    return docLocDon(new URLSearchParams(thamSoLocDon(loc, "x"))).ok ? loc : LOC_TRONG;
+    const nhapKeToan = o.nhapKeToan === "da" || o.nhapKeToan === "chua" ? o.nhapKeToan : null;
+    const loc: LocDonMan = { tu: chuoi(o.tu), den: chuoi(o.den), dichVu, trangThai: trangThai as OrderStatus[], cuaToi: o.cuaToi === true, nhapKeToan };
+    return docLocDon(new URLSearchParams(thamSoLocDon(loc, "x"))).ok && kiemLocNhapKeToan(loc) === null ? loc : LOC_TRONG;
   } catch {
     return LOC_TRONG;
   }
