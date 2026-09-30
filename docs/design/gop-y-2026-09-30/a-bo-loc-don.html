@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bộ lọc đơn nhiều điều kiện</title>
+<!-- ẢNH PHÁC TĨNH (góp ý người dùng 30/9) — CHƯA phải màn thật; số liệu, tên, mã là giả. Chủ duyệt rồi mới dựng. Sinh từ một kịch bản tạm, sửa tay thoải mái. -->
+<style>
+:root{
+  /* Bản chép GIÁ TRỊ token từ đầu public/app.css (chỉ để ảnh phác tự đứng một mình; nguồn thật vẫn là app.css) */
+  --c-primary:#0c4a6e;--c-primary-strong:#082f49;--c-primary-soft:#dcebf6;--c-accent:#c0392b;--c-accent-soft:#fef2f0;
+  --c-sand-soft:#fbe3b3;--c-sand-text:#5a4109;--c-sand-border:#e9d3a4;--c-surface:#ffffff;--c-surface-alt:#eaf2f8;
+  --c-text:#0f172a;--c-text-muted:#475569;--c-border:#d3e1ec;--c-green-soft:#dcfce7;--c-green-text:#166534;--c-green-border:#a7e3bc;
+  --c-danger:#b01235;--c-danger-text:#8e0e2b;--c-danger-soft:#fde9ee;--c-danger-border:#f1c3cf;--c-on-dark:#ffffff;
+  --s1:4px;--s2:8px;--s3:12px;--s4:16px;--s5:24px;--s6:32px;--radius-sm:8px;--radius-md:12px;--radius-lg:18px;--radius-pill:999px;
+  --shadow-card:0 1px 3px rgba(15,23,42,.08);--shadow-overlay:0 12px 32px rgba(15,23,42,.16);--c-scrim:rgba(15,23,42,.45);
+  --fs-ui:16px;--fs-label:14px;--fs-badge:12px;--fs-title:18px;--tap-min:44px;--bar-h:60px;--tabbar-h:56px;
+  --font:"Nunito","Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#f1f5f9;color:var(--c-text);font:var(--fs-ui)/1.5 var(--font);padding:var(--s5)}
+h1{font-size:22px;margin:0 0 var(--s2)} .lead{color:var(--c-text-muted);margin:0 0 var(--s5);max-width:900px}
+.row{display:flex;gap:var(--s6);flex-wrap:wrap;align-items:flex-start}
+.cap{font-size:var(--fs-label);font-weight:700;color:var(--c-text-muted);margin:0 0 var(--s2);max-width:390px}
+.phone{width:390px;min-height:760px;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:28px;overflow:hidden;position:relative;box-shadow:var(--shadow-overlay)}
+.desk{width:1040px;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-md);overflow:hidden;box-shadow:var(--shadow-overlay)}
+.bar{height:var(--bar-h);background:var(--c-primary);color:var(--c-on-dark);display:flex;align-items:center;padding:0 var(--s4);font-weight:800;font-size:var(--fs-title)}
+.pad{padding:var(--s3) var(--s4) calc(var(--tabbar-h) + var(--s3))}
+.tabbar{position:absolute;left:0;right:0;bottom:0;height:var(--tabbar-h);background:var(--c-surface);border-top:1px solid var(--c-border);display:flex;justify-content:space-around;align-items:center;font-size:var(--fs-badge);color:var(--c-text-muted)}
+.tabbar b{color:var(--c-primary)}
+.card{background:var(--c-surface);border:1px solid var(--c-border);border-radius:var(--radius-md);padding:var(--s3) var(--s4);margin-bottom:var(--s2)}
+.muted{color:var(--c-text-muted);font-size:var(--fs-label)}
+.input{min-height:var(--tap-min);border:1px solid var(--c-border);border-radius:var(--radius-sm);background:var(--c-surface);display:flex;align-items:center;padding:0 var(--s3);font-size:var(--fs-ui);color:var(--c-text-muted);flex:1}
+.btn{min-height:var(--tap-min);border-radius:var(--radius-sm);border:1px solid var(--c-border);background:var(--c-surface);display:inline-flex;align-items:center;justify-content:center;padding:0 var(--s4);font-weight:700;font-size:var(--fs-ui);color:var(--c-primary);gap:var(--s2);white-space:nowrap}
+.btn-primary{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-dark)}
+.chip{display:inline-flex;align-items:center;gap:var(--s1);height:32px;padding:0 var(--s3);border-radius:var(--radius-pill);background:var(--c-surface);border:1px solid var(--c-border);font-size:var(--fs-label);font-weight:700;color:var(--c-text);white-space:nowrap}
+.chip.on{background:var(--c-primary-soft);border-color:var(--c-primary);color:var(--c-primary)}
+.chip .x{font-weight:800;color:var(--c-text-muted)}
+.chips{display:flex;gap:var(--s2);flex-wrap:wrap;align-items:center}
+.link{color:var(--c-primary);font-weight:700;font-size:var(--fs-label);text-decoration:underline}
+.badge{font-size:var(--fs-badge);font-weight:800;padding:2px var(--s2);border-radius:var(--radius-pill);white-space:nowrap}
+.b-draft{background:var(--c-sand-soft);color:var(--c-sand-text)} .b-ok{background:var(--c-green-soft);color:var(--c-green-text)} .b-no{background:var(--c-danger-soft);color:var(--c-danger-text)}
+.oc-top{display:flex;gap:var(--s2);align-items:baseline} .oc-top .n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.oc-l{font-size:var(--fs-label);color:var(--c-text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--c-surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;box-shadow:var(--shadow-overlay);max-height:88%;display:flex;flex-direction:column}
+.scrim{position:absolute;inset:0;background:var(--c-scrim)}
+.sh-head{padding:var(--s4);border-bottom:1px solid var(--c-border);font-weight:800;font-size:var(--fs-title);display:flex;justify-content:space-between;align-items:center}
+.sh-body{padding:var(--s3) var(--s4);overflow:hidden;flex:1}
+.sh-foot{padding:var(--s3) var(--s4);border-top:1px solid var(--c-border);display:flex;gap:var(--s2)}
+.sh-foot .btn{flex:1}
+.grp{margin-bottom:var(--s4)} .grp h3{font-size:var(--fs-badge);margin:0 0 var(--s2);text-transform:uppercase;letter-spacing:.08em;color:var(--c-text-muted)}
+.chk{display:flex;align-items:center;gap:var(--s3);min-height:var(--tap-min);border-bottom:1px solid var(--c-border);font-size:var(--fs-label)}
+.box{width:22px;height:22px;border:2px solid var(--c-border);border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--c-on-dark)}
+.box.on{background:var(--c-primary);border-color:var(--c-primary)}
+.note{background:var(--c-surface);border:1px dashed var(--c-primary);border-radius:var(--radius-md);padding:var(--s3) var(--s4);font-size:var(--fs-label);max-width:360px}
+.note b{color:var(--c-primary)}
+.steps{display:flex;align-items:flex-start;margin:var(--s3) 0}
+.step{flex:1;text-align:center;position:relative;font-size:var(--fs-badge);font-weight:700;color:var(--c-text-muted)}
+.step .dot{width:28px;height:28px;border-radius:50%;margin:0 auto var(--s1);display:flex;align-items:center;justify-content:center;background:var(--c-surface);border:2px solid var(--c-border);font-size:var(--fs-label);position:relative;z-index:1}
+.step::before{content:"";position:absolute;top:13px;left:-50%;right:50%;height:2px;background:var(--c-border)}
+.step:first-child::before{display:none}
+.step.done .dot{background:var(--c-primary);border-color:var(--c-primary);color:var(--c-on-dark)} .step.done::before,.step.cur::before,.step.dong::before{background:var(--c-primary)}
+.step.cur .dot{border-color:var(--c-primary);color:var(--c-primary);box-shadow:0 0 0 4px var(--c-primary-soft)} .step.cur{color:var(--c-primary)}
+.step.dong .dot{background:var(--c-green-text);border-color:var(--c-green-text);color:var(--c-on-dark)} .step.dong{color:var(--c-green-text)}
+.status-big{display:flex;align-items:center;gap:var(--s2);font-weight:800;font-size:var(--fs-title)}
+.seg{display:flex;background:var(--c-surface-alt);border:1px solid var(--c-border);border-radius:var(--radius-pill);padding:3px;gap:3px}
+.seg span{flex:1;text-align:center;border-radius:var(--radius-pill);padding:var(--s1) 0;font-weight:700;font-size:var(--fs-label);color:var(--c-text-muted)}
+.seg span.on{background:var(--c-primary);color:var(--c-on-dark)}
+.trip{display:flex;gap:var(--s3);border-bottom:1px solid var(--c-border);padding:var(--s2) 0}
+.trip:last-child{border-bottom:0}
+.trip .t{width:76px;flex:none;font-weight:800} .trip .t small{display:block;font-weight:600;color:var(--c-text-muted);font-size:var(--fs-badge)}
+.sec-title{font-weight:800;font-size:var(--fs-title);margin:var(--s1) 0 var(--s2)}
+.q{background:var(--c-surface);border-left:4px solid var(--c-accent);padding:var(--s3) var(--s4);border-radius:var(--radius-sm);margin-top:var(--s5);max-width:900px}
+</style></head><body>
+<h1>Bộ lọc đơn nhiều điều kiện</h1><p class="lead">Góp ý T4 / YC-0008, YC-0012. Máy chủ ĐÃ nhận đủ bốn điều kiện chọn cùng lúc (ngày đi, dịch vụ, trạng thái, người lập) — đây là cách bày trên màn, chờ duyệt rồi mới dựng. Thẻ đơn trong ảnh đã có dòng “Đón tại” (đã làm, xem ảnh phác README).</p>
+<div class="row"><div><p class="cap">1 · Điện thoại 390 — danh sách đang lọc: chip cho biết đang lọc gì, × bỏ từng điều kiện</p><div class="phone"><div class="bar">Đơn hàng</div>
+<div class="pad"><div style="display:flex;gap:8px"><div class="input">🔍 Tìm mã đơn, tên, SĐT…</div><span class="btn">Lọc <span class="badge b-draft">3</span></span></div>
+<div class="chips" style="margin:12px 0"><span class="chip on">Ngày đi 01/10 – 03/10 <span class="x">×</span></span><span class="chip on">Tour 4 đảo +1 <span class="x">×</span></span><span class="chip on">Chờ xác nhận, Đã xác nhận <span class="x">×</span></span><span class="link">Xoá lọc</span></div>
+<p class="muted" style="margin:0 0 8px">12 đơn khớp</p><div class="card"><div class="oc-top"><b>01/10 · 07:30</b><span class="n">Nguyễn Thị Lan</span><span class="badge b-draft">Chờ xác nhận</span></div><div class="oc-l">☎ 0901 234 567 · 👥 4 NL, 1 TE · Còn thu <b>1,2 tr ₫</b></div><div class="oc-l">📍 Đón tại KS Novotel, 50 Trần Phú</div></div><div class="card"><div class="oc-top"><b>01/10 · 08:00</b><span class="n">Trần Văn Bình</span><span class="badge b-ok">Đã xác nhận</span></div><div class="oc-l">☎ 0912 345 678 · 👥 2 NL · Còn thu <b>0 ₫</b></div><div class="oc-l">📍 Đón tại Cảng Cầu Đá</div></div><div class="card"><div class="oc-top"><b>02/10 · 06:45</b><span class="n">Lê Hoàng Yến</span><span class="badge b-ok">Đã xác nhận</span></div><div class="oc-l">☎ 0988 111 222 · 👥 3 NL · Còn thu <b>850 k ₫</b></div><div class="oc-l">📍 Đón tại Homestay Mộc</div></div></div><div class="tabbar"><span>Trang chủ</span><b>Đơn hàng</b><span>＋ Lập đơn</span><span>Tôi</span></div></div></div><div><p class="cap">2 · Điện thoại 390 — bấm “Lọc”: bảng trượt, chọn nhiều điều kiện cùng lúc</p><div class="phone"><div class="bar">Đơn hàng</div><div class="pad"><div class="card"><div class="oc-top"><b>01/10 · 07:30</b><span class="n">Nguyễn Thị Lan</span><span class="badge b-draft">Chờ xác nhận</span></div><div class="oc-l">☎ 0901 234 567 · 👥 4 NL, 1 TE · Còn thu <b>1,2 tr ₫</b></div><div class="oc-l">📍 Đón tại KS Novotel, 50 Trần Phú</div></div><div class="card"><div class="oc-top"><b>01/10 · 08:00</b><span class="n">Trần Văn Bình</span><span class="badge b-ok">Đã xác nhận</span></div><div class="oc-l">☎ 0912 345 678 · 👥 2 NL · Còn thu <b>0 ₫</b></div><div class="oc-l">📍 Đón tại Cảng Cầu Đá</div></div><div class="card"><div class="oc-top"><b>02/10 · 06:45</b><span class="n">Lê Hoàng Yến</span><span class="badge b-ok">Đã xác nhận</span></div><div class="oc-l">☎ 0988 111 222 · 👥 3 NL · Còn thu <b>850 k ₫</b></div><div class="oc-l">📍 Đón tại Homestay Mộc</div></div></div>
+<div class="scrim"></div><div class="sheet"><div class="sh-head">Lọc đơn <span class="link">Xoá lọc</span></div><div class="sh-body">
+<div class="grp"><h3>Ngày đi</h3><div class="chips" style="margin-bottom:8px"><span class="chip">Hôm nay</span><span class="chip">Ngày mai</span><span class="chip on">3 ngày tới</span><span class="chip">Tuần này</span></div>
+<div style="display:flex;gap:8px"><div class="input">Từ 01/10/2026</div><div class="input">Đến 03/10/2026</div></div></div>
+<div class="grp"><h3>Trạng thái</h3><div class="chips"><span class="chip on">✓ Chờ xác nhận</span><span class="chip on">✓ Đã xác nhận</span><span class="chip">Đã huỷ</span></div></div>
+<div class="grp"><h3>Dịch vụ · 2 đã chọn</h3><div class="input" style="margin-bottom:4px">🔍 Tìm dịch vụ…</div>
+<div class="chk"><span class="box on">✓</span>TD101 · Tour 4 đảo</div><div class="chk"><span class="box on">✓</span>TTB06 · Lặn biển Hòn Mun</div><div class="chk"><span class="box"></span>DD01 · Đưa đón sân bay</div></div>
+<div class="grp"><h3>Người lập</h3><div class="input">Mọi người ▾</div></div>
+</div><div class="sh-foot"><span class="btn">Huỷ</span><span class="btn btn-primary">Xem 12 đơn</span></div></div></div></div></div><div class="row" style="margin-top:32px"><div><p class="cap" style="max-width:none">3 · Máy tính 1040 — thanh lọc nằm ngang trên danh sách (mỗi nút mở một hộp chọn nhỏ)</p><div class="desk"><div class="bar">Đơn hàng</div><div class="pad" style="padding-bottom:12px">
+<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center"><div class="input" style="flex:2">🔍 Tìm mã đơn, tên, SĐT…</div><span class="btn">Ngày đi: 01/10 – 03/10 ▾</span><span class="btn">Dịch vụ (2) ▾</span><span class="btn">Trạng thái (2) ▾</span><span class="btn">Người lập ▾</span><span class="link">Xoá lọc</span></div>
+<p class="muted">12 đơn khớp · Ngày đi 01/10 – 03/10 · Tour 4 đảo, Lặn biển Hòn Mun · Chờ xác nhận, Đã xác nhận</p><div class="card"><div class="oc-top"><b>01/10 · 07:30</b><span class="n">Nguyễn Thị Lan</span><span class="badge b-draft">Chờ xác nhận</span></div><div class="oc-l">☎ 0901 234 567 · 👥 4 NL, 1 TE · Còn thu <b>1,2 tr ₫</b></div><div class="oc-l">📍 Đón tại KS Novotel, 50 Trần Phú</div></div><div class="card"><div class="oc-top"><b>01/10 · 08:00</b><span class="n">Trần Văn Bình</span><span class="badge b-ok">Đã xác nhận</span></div><div class="oc-l">☎ 0912 345 678 · 👥 2 NL · Còn thu <b>0 ₫</b></div><div class="oc-l">📍 Đón tại Cảng Cầu Đá</div></div><div class="card"><div class="oc-top"><b>02/10 · 06:45</b><span class="n">Lê Hoàng Yến</span><span class="badge b-ok">Đã xác nhận</span></div><div class="oc-l">☎ 0988 111 222 · 👥 3 NL · Còn thu <b>850 k ₫</b></div><div class="oc-l">📍 Đón tại Homestay Mộc</div></div></div></div></div></div>
+<div class="q"><b>Câu hỏi cho chủ</b><ol><li>Mở màn Đơn hàng có NHỚ bộ lọc lần trước trên máy không, hay luôn mở “không lọc”? (Khuyến nghị: nhớ trên máy, luôn có chip + “Xoá lọc” để thấy rõ đang lọc.)</li><li>Nút chọn nhanh ngày “Hôm nay / Ngày mai / 3 ngày tới / Tuần này” — đủ chưa?</li><li>Ô “Người lập” chỉ hiện cho người xem mọi đơn (Bán hàng, Kế toán, Quản trị, Toàn quyền); Đối tác / Thực tập / Hướng dẫn viên không thấy ô này — đồng ý?</li><li>Lọc theo “Người phụ trách” để lượt sau (cần làm thêm phía máy chủ) — đồng ý?</li></ol></div>
+</body></html>
