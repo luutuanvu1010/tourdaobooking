@@ -1,5 +1,7 @@
 # Trang ghép — lượt duyệt A của Bảng điều phối chung (ADR-0052, ADR-0053, ADR-0054 — số tạm)
 
+> **Ghi chú gộp 2026-09-30:** "Trả lời lần 16–22" trong tệp này là số cũ; nay là **lần 19–25** (bảng đối chiếu cuối sổ hỏi đáp Vận chuyển). GA-59: lời sau của chủ (sửa khớp ADR-0051, lần 16 mới) thắng "Chấp nhận lệch".
+
 > **Lượt A đã duyệt đủ (2026-09-30):** A-1 + A-1b = `docs/adr/ADR-0052-dieu-phoi-luot-2-chuyen-diem-va-xe-dang-chay.md`, A-2 = `docs/adr/ADR-0053-dieu-phoi-luot-3-tai-xe-doi-tac.md`, A-3 = `docs/adr/ADR-0054-dieu-phoi-luot-4-chieu-ve-theo-dich-vu.md`.
 
 > **Câu hỏi của trang này ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 7 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR đã được chủ duyệt đủ theo lượt (A-1, A-1b, A-2, A-3) ngày 2026-09-30 — xem khung đầu trang.

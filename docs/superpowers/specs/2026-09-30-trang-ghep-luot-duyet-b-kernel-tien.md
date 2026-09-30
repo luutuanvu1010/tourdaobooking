@@ -1,5 +1,7 @@
 # Trang ghép — lượt duyệt B: Kernel lượt 2, Kernel lượt 3, Tiền xe thuê (`CLAUDE.md` §9 "bước ghép khi duyệt")
 
+> **Ghi chú gộp 2026-09-30:** "Trả lời lần 16–22" trong tệp này là số cũ; nay là **lần 19–25** (bảng đối chiếu cuối sổ hỏi đáp Vận chuyển). GA-59: lời sau của chủ (sửa khớp ADR-0051, lần 16 mới) thắng "Chấp nhận lệch".
+
 > **Lượt B đã duyệt đủ (2026-09-30):** B1 = `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`, B2 = `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md`, B3 = `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md`.
 
 > **Câu hỏi của trang này (§6) ĐÃ ĐƯỢC CHỦ TRẢ LỜI 2026-09-30 — chọn khuyến nghị ở cả 9 câu.** Nguyên văn: `docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md`, mục "Trả lời lần 17". Các ADR đã được chủ duyệt đủ (B1, B2, B3) ngày 2026-09-30 — xem khung đầu trang.

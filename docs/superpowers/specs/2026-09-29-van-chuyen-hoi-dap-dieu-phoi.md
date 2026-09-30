@@ -254,14 +254,118 @@ Trước khi hỏi, điều phối cũng gửi chủ 4 ảnh bằng chứng giao
 
 Bài học vận hành: điều phối dùng EnterWorktree đổi thư mục phiên chính sang worktree giao diện để gộp. Trong vài phút đó, lệnh Bash của người kiểm K2c (subagent không ghim thư mục) bị cách ly theo. Không đổi worktree của phiên chính khi subagent đang chạy.
 
-## Trả lời lần 16 (30/9, 28 câu gom — `docs/superpowers/specs/2026-09-30-van-chuyen-cau-hoi-cho-chu.md` mục 10, nhánh `cau-hoi-chu-van-chuyen` @ `ca57b28`)
+**K2c giao diện** @ `01b3d15`, gồm cả commit gộp `dd665b3`: **ĐẠT CÓ ĐIỀU KIỆN**. Không có lỗi bảo mật hay dữ liệu.
+- **Máy chủ tự chặn:** Kế toán gọi rút / chuyển → 403; Bán hàng gửi phá lệ giả → 403; vùng khoá → 409 `can_pha_le`. Các chặn này có unit test gọi thẳng route.
+- **Commit gộp:** không mất nội dung của bên nào.
+- **Lệnh:** e2e 30/30. Chrome đủ bộ xanh. Riêng `v1-nguoi-phu-trach` đỏ thoáng qua một lần do máy bận, chạy lại được 17/17.
+- **Điều phối xử lý:**
+  - VỪA-1: khoảng trống P16. Bỏ `docLai` mà không kịch bản nào đỏ. Giao phiên giao diện thêm bước kiểm tên nhóm còn lại trên cùng trang, cùng lúc gộp `1f8b498` (I19(a)).
+  - VỪA-2: `web/CLAUDE.md:53` ghi 15/16 mục menu, thực tế 17. Áp khi chủ duyệt mục 5 của đề xuất luật. Không sửa riêng giữa chừng.
+  - VỪA-3: T3 và T4 chuyển vào BACKLOG mục 7.
+  - Q-B-18 đóng theo R-P28.
+
+## Trả lời lần 16 (30/9, sau người kiểm độc lập K2d — máy tự gắn tên lúc xếp)
+
+K2d @ `1f8b498`: **ĐẠT CÓ ĐIỀU KIỆN**, có một lỗi **CAO**. Người kiểm dựng lại được bằng kịch bản thật:
+- Đơn có hai khách A, B, xếp lên xe, máy tự gắn tên A, B. Sau đó huỷ A khỏi đơn và thêm C.
+- Màn văn phòng báo lý do giữ rỗng, nhưng lệnh xuất bến trả 409 `THIEU_TEN` "tải lại"; tải lại vẫn 409.
+- Thêm suất thì bị 409 vượt số người, rút thì 409 cần phá lệ. Chuyến bị kẹt.
+- Gốc lỗi: `kiemXuatBen` chỉ đếm số lượng; phép chặn thật nằm riêng ở `dieu-phoi-tien-do.ts:82-93`, tức luật thứ hai, lệch D2 "một hàm".
+- Bản chốt không bao giờ trỏ khách đã huỷ (route + trigger `vc_trip_manifest_scope`).
+
+Điều phối tra trước khi hỏi: ADR-0050 VK1-B đã có nguyên tắc cho nơi hẹn đổi sau khi xếp. Áp vào tên khách là một quyết định cụ thể chạm dữ liệu, nên phải hỏi chủ.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Khách A đã được xếp lên xe (máy tự gắn tên). Sau đó bán hàng bỏ A khỏi đơn và thêm khách C, nên số người không đổi. Hiện màn văn phòng báo "đạt hết" nhưng bấm xuất bến bị chặn, và văn phòng không tự gỡ được. Dữ liệu không sai: danh sách hành khách chốt lúc xuất bến không bao giờ chứa người đã bị bỏ, chỉ là chuyến bị kẹt. Sửa theo cách nào?" — "Giữ xe + nút cập nhật" / "Máy tự thay lúc xuất bến" / "Bỏ tự gắn tên lúc xếp" | **"Giữ xe + nút cập nhật (Recommended)"**, theo khuôn ADR-0050 VK1-B: máy giữ chuyến, báo rõ "khách không còn trong đơn — cập nhật theo đơn"; văn phòng bấm một nút để thay bằng khách hiện có của đơn, không cần Quản trị phá lệ |
+| "Khi mạng chập chờn, điện thoại có thể gửi lại hai lần cùng một lệnh "Bỏ đánh dấu đã gọi báo khách". ADR-0051 (bạn đã duyệt) ghi: lần gửi lại phải trả đúng kết quả của lần đầu. Hiện máy trả gần đúng. …" — "Sửa cho khớp ADR" / "Chấp nhận lệch nhỏ" | **"Sửa cho khớp ADR (Recommended)"**: lưu kết quả lần đầu để lần gửi lại trả y hệt. `0043` chưa áp remote nên sửa tại chỗ. GA-59 **không** còn là dòng §16 |
+
+Điều phối chốt hình dạng lệnh (R-P29, theo khuôn `/cap-nhat-diem`):
+- lý do giữ mới `KHACH_DA_DOI`, nằm TRONG `kiemXuatBen`; lệnh xuất bến dùng đúng kết luận đó, bỏ luật thứ hai;
+- route `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach`, thân `{ version, requestId }`, ô `trip.dispatch`, không xét mốc khoá; chỉ chuyến `PLANNED`, `RUNNING` → 409 `xe_dang_chay`;
+- mã đóng suất mới `PASSENGER_CHANGED` trong `CHECK` của `0042` (chưa áp remote); sự kiện chỉ ghi số lượng, không ghi tên.
+
+Người thi công được đổi tên mã nếu vướng, nhưng phải báo lại dưới dạng GA.
+
+Giao diện vòng 5d @ `997ee14` (chưa đổi mã). Điều phối tự quyết hai điểm bề mặt, đảo ngược được:
+- Nút "Cập nhật khách theo đơn" KHÔNG có hộp xác nhận, cùng khuôn nút "Cập nhật điểm theo đơn". Nút đặt ở 4 chỗ như nút cũ.
+- `KHACH_DA_DOI` xếp vào dòng "Đủ tên khách" của danh sách điều kiện xuất bến.
+
+Sắp tên theo thứ tự trong đơn: DTO và `ord_passenger` chưa có thứ tự, nên chuyển BACKLOG mục 7.
+
+**Thi công chủ lần 16** (nhánh máy chủ, tự khai): `337f5e9`, sau đó `01ba476`.
+- `f81d7e1` — R-P29:
+  - lý do giữ `KHACH_DA_DOI` nằm trong `kiemXuatBen`;
+  - thêm route `/cap-nhat-khach`, mã đóng `PASSENGER_CHANGED`, sự kiện `ALLOCATION_PASSENGER_CHANGED`.
+- `68ed147` — GA-59: thêm cột bản chụp `bo_gio_hen_doi` ở `0043`, sửa tại chỗ. GA-59 ĐÓNG.
+- Ba mục NỚI có phép theo lời chủ lần 16: mã đóng mới, loại sự kiện mới, lệnh không khoá theo mốc. Cả ba ghi ở bảng "Chủ lần 16" của đề xuất luật.
+- GA-61…66: hình dạng lệnh, do người thi công ghi.
+
+| Mã | Câu | Điều phối chốt | Căn cứ |
+|---|---|---|---|
+| R-P30 | GA-67: phản hồi LẦN ĐẦU của "Đã gọi báo" đọc trạng thái sau lô. Khi có lệnh khác chen vào, nó khác kết quả của lệnh lặp | Sửa như "Bỏ đánh dấu": lần đầu cũng dựng từ dòng mốc, dùng `phanHoiLenhLap`. Làm ở `b813fe0`, không thêm cột. GA-67 ĐÓNG | Chủ lần 16 chọn "Sửa cho khớp ADR" (ADR-0051 bước 4). Câu "giữ như cũ" của điều phối có kèm điều kiện "nếu đã khớp tuyệt đối", mà thực tế không khớp tuyệt đối |
+| — | GA-68: `baoDuoc` / `boDuoc` trong phản hồi lặp là quyền của người gọi lúc gọi | Chấp nhận | Đây là cờ cho nút của người đang xem, không phải kết quả lệnh |
+
+K2e (kiểm độc lập `1f8b498..01ba476`) đang chạy.
+
+**K2e (30/9)** — cả hai lượt kiểm đều ĐẠT.
+- **Máy chủ** @ `01ba476`: không có lỗi CAO hay VỪA.
+  - Người kiểm thử thật trên D1 local: `CHECK` hình và trigger bản chụp đều chặn được.
+  - Bốn điểm THẤP đã sửa ở `92dd556`. Trong đó GA-69: lưới thứ hai của lệnh xuất bến tính lại `kiemXuatBen` bằng danh sách người vừa đọc, nên câu 409 luôn trùng với lý do màn hiện sau khi tải lại.
+- **Giao diện** @ `40b6833`: không có lỗi CAO.
+  - Kịch bản Chrome và kiểm tiếp cận (axe) đều xanh.
+  - VỪA:
+    - chưa có bài kiểm cho ca `THIEU_TEN` và `KHACH_DA_DOI` xuất hiện cùng lúc;
+    - nhánh `stale` của nút mới chưa có bước Chrome.
+    - Cả hai giao vòng 5g, cùng lúc với gộp `92dd556`.
+- Tóm tắt báo cáo của điều phối: `K2e-bao-cao-may-chu.md`, `K2e-bao-cao-giao-dien.md` (thư mục tạm của phiên).
+
+## Trả lời lần 17 (30/9 — duyệt đề xuất luật ADR-0049 lúc gộp, sau K2f)
+
+**K2f** (lượt kiểm cuối, bản tích hợp `giao-dien-dieu-phoi-luot-1` @ `728c643`): **ĐẠT CÓ ĐIỀU KIỆN**, được trình chủ.
+- Kiểm chéo toàn bộ 311 tệp đổi so với `main`: NỚI chỉ gồm mục 1–3, bảng "Chủ lần 16" và phần nền ADR-0047 đã duyệt.
+- Không tệp luật nào bị sửa trên nhánh.
+- e2e 30/30. Chrome 8 kịch bản xanh.
+- Ba điểm THẤP (số bước 13 → 14 ở mục 5; bài cho nhánh `stale` của lưới thứ hai; đếm 409 ở bước 6) giao vòng 5h.
+
+| Câu (điều phối hỏi, tóm nguyên văn) | Chủ chọn |
+|---|---|
+| "Duyệt 4 mục về quyền và hàng rào của Bảng điều phối xe? … (0) Bảy quyền mới … (1) Cho phần Vận chuyển đọc chặng đưa đón của đơn và danh sách địa điểm. (2) Cho tài xế công ty xem chuyến mình lái và tự bấm tiến độ. (3) Cho hiện họ tên, năm sinh khách trên màn tài xế (chỉ trong ngày chạy, chỉ chuyến mình lái) và trên màn chi tiết chuyến của văn phòng. …" | **"Duyệt cả 4 mục (Recommended)"** |
+| "Duyệt phần mô tả trong bốn tệp luật cho AI, để luật khớp với mã mới? … Kèm bốn dòng sổ hàng rào đang ghi "chờ chủ duyệt" của lượt này. …" | **"Duyệt (Recommended)"**: mục 5, 6, 7a, 7b, 7c, 8 và 4 dòng sổ hàng rào |
+| "Mấy nhãn cũ trong sổ hàng rào và trong chú thích mã vẫn ghi "chờ chủ duyệt", dù bạn đã duyệt các lượt đó: Vận chuyển 1a ngày 28/9 … và ADR-0047 ngày 29/9 … Đổi chúng thành "đã duyệt (ngày, nguồn)" không?" | **"Đổi thành "đã duyệt" (Recommended)"**: chỉ sửa chữ nhãn và chú thích, không đổi mã |
+
+Cách áp:
+- Điều phối chép đúng diff đã duyệt vào tệp luật trên nhánh tích hợp, mỗi tệp một commit.
+- Thứ tự: phần nền ADR-0047 và ADR-0048 (đã duyệt lần 5), rồi ADR-0049 mục 4 (lần 7), rồi mục 5–8.
+- Đổi chú thích "CHỜ CHỦ DUYỆT" ở mã mục 1–2 và bốn dòng sổ hàng rào thành "ĐÃ DUYỆT 2026-09-30 (lần 17)".
+- Xong thì có người kiểm độc lập (việc lớn, loại "luật").
+
+## Trả lời lần 18 (30/9 — ba chỗ chữ cho luật khớp mã, phát hiện khi lập danh sách áp luật)
+
+| Câu (điều phối hỏi, tóm nguyên văn) | Chủ chọn |
+|---|---|
+| "(1) Hiến chương phần kỹ thuật: câu mô tả Vận chuyển đọc đơn bạn đã duyệt thiếu tên một bảng tra cứu (đã duyệt ở lần 13) và thừa tên một hàm không còn dùng. Sửa cho đúng. (2) … CLAUDE.md gốc và luật mã máy chủ vẫn ghi "không xoá cứng" mà không nêu ngoại lệ [đơn nháp, ADR-0047] … Chép cùng câu đó vào hai tệp. (3) Thêm lưu ý: "giờ đón và điểm đón nay đọc từ chặng đưa đón; hai cột cũ trên dịch vụ chỉ còn là bản sao, đừng đọc". Câu này là mục 4d của ADR-0047, trước đây chưa hỏi bạn." — "Duyệt cả 3" / "Chỉ duyệt 1 và 2" / "Xem nguyên văn trước" | **"Duyệt cả 3 (Recommended)"** |
+
+Cách áp:
+- **(1)** `docs/ARCHITECTURE.md:175`, sau A-10: thêm `v_ord_passenger_row` vào danh sách view của trigger, bỏ `soKhachHieuLuc`. Diff ở mục 3.1 của danh sách áp luật.
+- **(2)** `CLAUDE.md` §7 "Dữ liệu" và `src/CLAUDE.md` câu "không xoá cứng": thêm vế ngoại lệ, đúng chữ đã duyệt ở `docs/ARCHITECTURE.md` (A-7): "ngoại lệ có tên duy nhất: dòng `ord_*` của đơn nháp xoá–chèn lại khi lưu nháp — ADR-0047, `XOA_CUNG_NHAP`".
+- **(3)** Mục 4d ADR-0047: một gạch ở `CLAUDE.md` §10, chép nguyên văn đoạn của đề xuất ADR-0047 mục 4d.
+  - Gạch "(Tuỳ chọn)" của mục 4b ở `src/CLAUDE.md` KHÔNG thuộc câu hỏi này, vẫn chưa hỏi.
+
+Còn để sau, không chặn phát hành:
+- ADR-0047 4c (màn chặng và hành khách chưa có trên nhánh) và mục 6 (phát hành 2);
+- gạch tuỳ chọn 4b;
+- dòng `nhat-ky-loc-smoke` ở `web/CLAUDE.md`;
+- vế mục 8b ở dòng Trạng thái của `docs/ARCHITECTURE.md`.
+
+## Trả lời lần 19 (30/9, 28 câu gom — `docs/superpowers/specs/2026-09-30-van-chuyen-cau-hoi-cho-chu.md` mục 10, nhánh `cau-hoi-chu-van-chuyen` @ `ca57b28`)
 
 Chủ trả lời trực tiếp trong phiên (hộp chọn; mỗi câu hiện phương án khuyến nghị đầu tiên). Câu hỏi đầy đủ và phương án: mục 1–7 của tệp câu hỏi (dẫn nguồn từng câu). Ghi **nguyên văn nhãn chủ chọn**. Đây là lời chủ cho CÂU HỎI; từng lượt vẫn phải qua soạn ADR → người kiểm độc lập → chủ duyệt ADR (N3). Người ghi vào sổ: phiên lập kế hoạch sổ tiền (theo lệnh chủ 30/9: "ghi các câu trả lời vào sổ hỏi đáp, rồi soạn đề xuất ADR cho lượt 2–4, Kernel lượt 2–3 và tiền").
 
 | Nhóm | Mã | Chủ chọn (nguyên văn nhãn) | Hệ quả ghi nhận |
 |---|---|---|---|
 | Gấp — ADR-0049 | 1.1 Luật ADR-0049 | **"Xem từng mục lúc gộp"** | Không duyệt gộp một lần. Điều phối trình **từng mục** 0–3, 5–8 của `2026-09-29-adr-0049-de-xuat-luat.md` lúc gộp; mục nào không duyệt thì hoàn nguyên phần mã đó |
-| Gấp — ADR-0049 | 1.2 GA-59 | **"Chấp nhận lệch"** | "Bỏ đánh dấu gọi báo" bấm lặp chỉ khớp lần đầu khi giờ hẹn/tập chuyến không đổi thêm — ghi **lệch có chủ ý** ở `docs/SYSTEM-DESIGN.md` §16 (dòng GA-59), không thêm cột, không đổi `0043` |
+| Gấp — ADR-0049 | 1.2 GA-59 | **"Chấp nhận lệch"** — **ĐÃ BỊ THAY bởi lời sau của chủ ở "Trả lời lần 16"** (ghi 09:42, sửa cho khớp ADR-0051, mã đã thêm cột ở `0043`): **lời sau thắng**, không ghi lệch §16 | "Bỏ đánh dấu gọi báo" bấm lặp chỉ khớp lần đầu khi giờ hẹn/tập chuyến không đổi thêm — ghi **lệch có chủ ý** ở `docs/SYSTEM-DESIGN.md` §16 (dòng GA-59), không thêm cột, không đổi `0043` |
 | Điều phối lượt 2 | ĐP4 | **a** — "Có, kèm lý do" | Tài xế xe kia đã "Nhận" mà thiếu khoảng nghỉ: Quản trị / Toàn quyền duyệt thay, lý do bắt buộc |
 | Điều phối lượt 2 | ĐP5 | **a** — "Tài xế đề nghị" | Xe hỏng: tài xế gửi đề nghị chuyển khách, xe cứu hộ nhận; văn phòng bấm thay được |
 | Điều phối lượt 2 | ĐP9 | **a** — "Mã, tài xế, chỗ trống" | Tài xế chọn xe nhờ đón thấy: mã chuyến, tên tài xế, chỗ trống, điểm sắp tới — **không thấy khách** |
@@ -295,7 +399,7 @@ Chủ trả lời trực tiếp trong phiên (hộp chọn; mỗi câu hiện ph
 - **Tiền Q10 × ADR-0026 đã duyệt.** Câu Q10 hỏi sửa *đề xuất* sổ công nợ; nhưng ADR-0026 đã được chủ duyệt 29/9 (kèm kế hoạch `docs/superpowers/plans/2026-09-29-so-tien-luot-1-ke-hoach.md`), `bil_debt_line` chưa có cột chuyến. ADR đã duyệt chỉ đổi bằng **ADR mới trỏ về nó** ⇒ đề xuất ADR tiền xe thuê phải có mục "Sửa câu nào của ADR-0026" (thêm tham chiếu chuyến tuỳ chọn vào dòng nợ) và nên được duyệt **trước khi** thi công Task 3 (migration B) của sổ tiền, để không phải dựng lại bảng chỉ-thêm.
 - **Tiền Q1 "Làm trước" × hướng 29/9.** Ngày 29/9 chủ chọn "ưu tiên sổ tiền trước tính năng mới" (sổ tiền lượt 1 thi công ngay sau ADR-0049 gộp). "Làm trước" ở Q1 nghĩa là không chờ **sổ công nợ** để làm giá xe; nó chưa nói **thứ tự thi công** so với sổ tiền lượt 1 ⇒ đề xuất ADR tiền hỏi chủ một câu thứ tự (khuyến nghị: sổ tiền lượt 1 trước, tiền xe thuê sau — dùng chung dòng nợ có cột chuyến).
 
-## Trả lời lần 17 (30/9, 16 câu phát sinh khi soạn đề xuất lượt A và lượt B)
+## Trả lời lần 20 (30/9, 16 câu phát sinh khi soạn đề xuất lượt A và lượt B)
 
 Nguồn câu hỏi: trang ghép lượt A `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-a-dieu-phoi.md` (mục câu hỏi, 7 câu Q-L2-A…Q-L4-B) và trang ghép lượt B `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md` §6 (9 câu Q-K1, Q-T1…Q-T8). Cả hai lượt đã qua người kiểm độc lập chỉ-đọc (lượt A: 3 vòng, kết thúc ĐẠT sau khi sửa dòng Q-L2-B; lượt B: 4 vòng, kết thúc ĐẠT CÓ ĐIỀU KIỆN nhỏ — đã sửa chữ ở `73ec521`). Chủ trả lời qua bốn hộp chọn, mỗi câu phương án khuyến nghị đứng đầu; **chủ chọn khuyến nghị ở cả 16 câu**. Nhãn dưới đây là nguyên văn nhãn chủ bấm. Đây là lời chủ cho CÂU HỎI; các ADR 0052–0057 (số tạm) vẫn chờ chủ **duyệt** theo lượt (A-1, A-1b, A-2, A-3; B1, B2, B3).
 
@@ -320,13 +424,13 @@ Nguồn câu hỏi: trang ghép lượt A `docs/superpowers/specs/2026-09-30-tra
 
 **Việc kèm:** Q-L3-B chạm hành vi tài xế công ty của ADR-0049 (đang thi công, chưa phát hành) — điều phối ADR-0049 cần biết để quyết siết ngay trong lượt 1 hay ở lượt 3 (ghi nợ nếu để sau). Còn lại không đổi: 1.3, 1.4, tiền Q11–Q12, việc vẽ, hỏi pháp lý ghép khách.
 
-## Trả lời lần 18 (30/9, khi xem kỹ ADR-0057 tiền xe thuê trước lúc duyệt — chủ chưa duyệt, đổi hai điểm)
+## Trả lời lần 21 (30/9, khi xem kỹ ADR-0057 tiền xe thuê trước lúc duyệt — chủ chưa duyệt, đổi hai điểm)
 
 Chủ được trình bảy điểm lời thường của ADR-0057 (bản `docs/superpowers/specs/2026-09-30-de-xuat-adr-tien-xe-thue.md`), chọn **"Chưa duyệt, cần xem kỹ"**, nghe giải thích từng điểm bằng ví dụ, rồi trả lời nguyên văn:
 
 > "ADR-0057 (tiền xe thuê) : 3- Chưa có giá thì không được chạy, giá phải có niêm yết hoặc thoả thuận giá trước, đây là nguyên tắc của thị trường, cũng là phù hợp với luật. 5- Quản trị có quyền ngang kế toán -"
 
-**Hệ quả:** điểm 3 **thay** lời chủ lần 16 tiền Q6 a ("Cho chạy, hiện 'thiếu giá'") — chủ tự đổi, có nêu lý do; lời mới thắng. Điểm 5 thay một phần Q5 a ("Chia hai vai") và Q-T7 lần 17.
+**Hệ quả:** điểm 3 **thay** lời chủ lần 19 tiền Q6 a ("Cho chạy, hiện 'thiếu giá'") — chủ tự đổi, có nêu lý do; lời mới thắng. Điểm 5 thay một phần Q5 a ("Chia hai vai") và Q-T7 lần 20.
 
 Ba câu làm rõ (hộp chọn, khuyến nghị đầu; chủ chọn khuyến nghị cả ba — nguyên văn nhãn):
 
@@ -336,11 +440,11 @@ Ba câu làm rõ (hộp chọn, khuyến nghị đầu; chủ chọn khuyến ng
 | "'Quản trị có quyền ngang Kế toán' nghĩa là gì với tiền xe thuê?" | **"Hai vai giống hệt"** — Quản trị và Kế toán đều: nhập bảng giá, xem bảng kê, sửa tiền chuyến (có lý do) |
 | "Xe hỏng giữa đường, văn phòng cần gọi gấp một xe cứu hộ của nhà xe mà chưa có giá. Xử lý thế nào?" | **"Vẫn phải nhập giá thoả thuận trước"** — không ngoại lệ, không phá lệ |
 
-Kéo theo (để người soạn sửa ADR-0057, người kiểm soát lại): xuất bến bị chặn khi chuyến xe thuê không có nguồn giá (bảng giá đã chụp hoặc giá thoả thuận nhập trước); "giá ghi tay sau chuyến" của Q-T3 lần 17 không còn cần cho chuyến mới (chuyến không thể chạy khi chưa có giá) — người soạn đánh giá và nêu; lệch L-T1, T3 (dòng nợ gắn chuyến) không đổi.
+Kéo theo (để người soạn sửa ADR-0057, người kiểm soát lại): xuất bến bị chặn khi chuyến xe thuê không có nguồn giá (bảng giá đã chụp hoặc giá thoả thuận nhập trước); "giá ghi tay sau chuyến" của Q-T3 lần 20 không còn cần cho chuyến mới (chuyến không thể chạy khi chưa có giá) — người soạn đánh giá và nêu; lệch L-T1, T3 (dòng nợ gắn chuyến) không đổi.
 
-## Trả lời lần 19 (30/9, duyệt ADR-0057 tiền xe thuê — lượt duyệt B1)
+## Trả lời lần 22 (30/9, duyệt ADR-0057 tiền xe thuê — lượt duyệt B1)
 
-Sau lần 18 và các vòng kiểm độc lập (kết thúc **ĐẠT** @ `082c308`), chủ được trình bảy điểm lời thường của bản cuối kèm một kẽ hiếm nói một lần (C2a: xe của nhà xe đã thôi hợp tác nếu được xếp chuyến mới thì máy chưa đòi giá; cảnh báo `R-VC-COST-6`, nợ N-T1).
+Sau lần 21 và các vòng kiểm độc lập (kết thúc **ĐẠT** @ `082c308`), chủ được trình bảy điểm lời thường của bản cuối kèm một kẽ hiếm nói một lần (C2a: xe của nhà xe đã thôi hợp tác nếu được xếp chuyến mới thì máy chưa đòi giá; cảnh báo `R-VC-COST-6`, nợ N-T1).
 
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
@@ -348,9 +452,9 @@ Sau lần 18 và các vòng kiểm độc lập (kết thúc **ĐẠT** @ `082c3
 
 Đã ghi: `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md` (accepted); dòng trỏ ở ADR-0004, ADR-0024, ADR-0026, ADR-0040, ADR-0049; mục lục `docs/adr/README.md` (giữ chỗ 0052–0056 cho các đề xuất còn chờ); kế hoạch sổ tiền §3.2 (bảng `bil_debt_line` đúng một nguồn). Còn chờ duyệt: A-1, A-1b, A-2, A-3 (ADR-0052…0054), B2 (ADR-0055), B3 (ADR-0056).
 
-## Trả lời lần 20 (30/9, duyệt lượt B2 và B3)
+## Trả lời lần 23 (30/9, duyệt lượt B2 và B3)
 
-Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước khi trình, người soạn ghi câu trả lời lần 16–17 vào quyết định và thêm hệ quả của ADR-0057; người kiểm độc lập kiểm nhanh @ `0cae449`: **ĐẠT**, không câu mới.
+Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước khi trình, người soạn ghi câu trả lời lần 19–20 vào quyết định và thêm hệ quả của ADR-0057; người kiểm độc lập kiểm nhanh @ `0cae449`: **ĐẠT**, không câu mới.
 
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
@@ -359,7 +463,7 @@ Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước 
 
 Đã ghi: `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md`, `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md` (accepted); dòng trỏ ở ADR-0040, ADR-0047, ADR-0049; mục lục. Lượt B (B1–B3) đã duyệt đủ. Còn chờ: lượt A (A-1, A-1b, A-2, A-3 — ADR-0052…0054).
 
-## Trả lời lần 21 (30/9, duyệt lượt A-3)
+## Trả lời lần 24 (30/9, duyệt lượt A-3)
 
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
@@ -367,9 +471,9 @@ Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước 
 
 Đã ghi: `docs/adr/ADR-0054-dieu-phoi-luot-4-chieu-ve-theo-dich-vu.md` (accepted); dòng trỏ ở ADR-0047, ADR-0049; mục lục. Còn chờ: A-1, A-1b (ADR-0052), A-2 (ADR-0053) — người soạn đang sửa hai chỗ tự mâu thuẫn của ADR-0052 theo kiểm nhanh @ `c4551d6`.
 
-## Trả lời lần 22 (30/9, duyệt lượt A-1, A-1b, A-2)
+## Trả lời lần 25 (30/9, duyệt lượt A-1, A-1b, A-2)
 
-Trước khi trình, người soạn ghi câu trả lời lần 17 vào quyết định, thêm hệ quả ADR-0057, và sửa theo ba lần kiểm nhanh (LC-15 bốn đường có tên; tin `trip_stops_synced` không tên, nhãn nơi che số; lô "cập nhật điểm theo đơn" đóng → mở → câu chốt đếm theo `trip_id`, tách suất có tên / chưa tên). Người kiểm độc lập: **ĐẠT** @ `3bc38d7` (sửa chữ ở `eebcf15`).
+Trước khi trình, người soạn ghi câu trả lời lần 20 vào quyết định, thêm hệ quả ADR-0057, và sửa theo ba lần kiểm nhanh (LC-15 bốn đường có tên; tin `trip_stops_synced` không tên, nhãn nơi che số; lô "cập nhật điểm theo đơn" đóng → mở → câu chốt đếm theo `trip_id`, tách suất có tên / chưa tên). Người kiểm độc lập: **ĐẠT** @ `3bc38d7` (sửa chữ ở `eebcf15`).
 
 | Câu (nguyên văn điều phối hỏi) | Chủ chọn |
 |---|---|
@@ -379,4 +483,23 @@ Trước khi trình, người soạn ghi câu trả lời lần 17 vào quyết 
 
 Đã ghi: `docs/adr/ADR-0052-dieu-phoi-luot-2-chuyen-diem-va-xe-dang-chay.md`, `docs/adr/ADR-0053-dieu-phoi-luot-3-tai-xe-doi-tac.md` (accepted); dòng trỏ ở ADR-0007, 0019, 0022, 0034, 0047, 0048, 0049, 0050, 0051; mục lục.
 
-**Tất cả đề xuất của lần 16 đã duyệt:** ADR-0052…0057. **Việc cho phiên điều phối ADR-0049:** (1) siết tài xế công ty chỉ thấy khách trong ngày chạy (Q-L3-B, ADR-0053) — khuyến nghị áp trước khi Bảng điều phối lượt 1 phát hành, nếu không thì ghi nợ có hạn; (2) A-1b và A-2 thi công sau bản phát hành T2 của ADR-0057 (cổng giá). Việc của chủ: vẽ V4, V8–V11, V12, V14, V15; xác nhận bộ ca mẫu xe A/B; hỏi pháp lý ghép khách; thử tài khoản tài xế đối tác thật trước khi báo nhà xe.
+**Tất cả đề xuất của lần 19 đã duyệt:** ADR-0052…0057. **Việc cho phiên điều phối ADR-0049:** (1) siết tài xế công ty chỉ thấy khách trong ngày chạy (Q-L3-B, ADR-0053) — khuyến nghị áp trước khi Bảng điều phối lượt 1 phát hành, nếu không thì ghi nợ có hạn; (2) A-1b và A-2 thi công sau bản phát hành T2 của ADR-0057 (cổng giá). Việc của chủ: vẽ V4, V8–V11, V12, V14, V15; xác nhận bộ ca mẫu xe A/B; hỏi pháp lý ghép khách; thử tài khoản tài xế đối tác thật trước khi báo nhà xe.
+
+## Bảng đối chiếu số "Trả lời lần N" sau khi gộp hai nhánh (30/9)
+
+Hai phiên cùng ghi sổ này song song trên hai nhánh (`ghi-trang-thai-1-37` của phiên điều phối chung; `van-chuyen-de-xuat-luot-2-4` của phiên sổ tiền) nên số "lần 16–22" bị trùng. Khi gộp (phiên sổ tiền làm, theo phát hiện của phiên điều phối chung): **giữ nguyên lần 16, 17, 18 của phiên điều phối** (đã được các tệp luật đã duyệt trích tới), **đổi số bảy mục của phiên sổ tiền thành lần 19–25**. Số không theo đúng giờ ghi; giờ ghi thật (theo commit) ở cột cuối.
+
+| Số mới | Số cũ (nhánh phiên sổ tiền) | Nội dung | Giờ ghi (30/9) |
+|---|---|---|---|
+| lần 16 | — (phiên điều phối) | khách bị thay sau khi xếp: giữ xe + nút cập nhật; GA-59 sửa khớp ADR-0051 | 09:42 |
+| lần 17 | — (phiên điều phối) | duyệt đề xuất luật ADR-0049 (mục 0–3, 5–8) | 12:39 |
+| lần 18 | — (phiên điều phối) | ba chỗ chữ cho luật khớp mã | 13:07 |
+| **lần 19** | lần 16 | 28 câu gom (lượt 2–4, Kernel 2–3, tiền) | 07:46 |
+| **lần 20** | lần 17 | 16 câu phát sinh khi soạn đề xuất lượt A, B | 09:59 |
+| **lần 21** | lần 18 | chủ đổi hai điểm ADR-0057 | 10:15 |
+| **lần 22** | lần 19 | duyệt ADR-0057 | 10:57 |
+| **lần 23** | lần 20 | duyệt ADR-0055, ADR-0056 | 12:27 |
+| **lần 24** | lần 21 | duyệt ADR-0054 | 12:28 |
+| **lần 25** | lần 22 | duyệt ADR-0052, ADR-0053 | 13:09 |
+
+**Các tệp viết trước khi gộp vẫn ghi số cũ:** `docs/adr/ADR-0052`…`ADR-0057`, bản đề xuất `docs/superpowers/specs/2026-09-30-de-xuat-adr-*.md`, hai trang ghép `2026-09-30-trang-ghep-luot-duyet-*.md`, `docs/adr/README.md` — "lần 16–22" ở các tệp đó nghĩa là **lần 19–25** ở bảng trên (dòng trạng thái mỗi ADR có ghi chú). **GA-59:** lời sau (lần 16, sửa khớp ADR) thắng lời "Chấp nhận lệch" ở lần 19.

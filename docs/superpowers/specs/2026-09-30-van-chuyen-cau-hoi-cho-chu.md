@@ -1,5 +1,7 @@
 # Vận chuyển — mọi câu đang chờ chủ, gom một lượt (2026-09-30)
 
+> **Ghi chú gộp 2026-09-30:** "Trả lời lần 16–22" trong tệp này là số cũ; nay là **lần 19–25** (bảng đối chiếu cuối sổ hỏi đáp Vận chuyển). GA-59: lời sau của chủ (sửa khớp ADR-0051, lần 16 mới) thắng "Chấp nhận lệch".
+
 - **Loại:** tài liệu MÔ TẢ (không chuẩn tắc). Chủ yêu cầu 30/9: "gom câu hỏi cho chủ". Chỉ GOM lại câu đã có trong các tài liệu; không thêm câu mới, không tự trả lời.
 - **Nguồn:** trích bằng một trợ lý chỉ đọc sáng 30/9. Bản mới nhất nằm ở nhánh chưa gộp: `@GT` = nhánh `ghi-trang-thai-1-37`, `@GD` = nhánh `giao-dien-dieu-phoi-luot-1`. Mỗi câu có dẫn nguồn; câu hỏi và phương án xem nguyên văn ở nguồn.
 - **Cách trả lời:** ghi mã + chữ cái, ví dụ "ĐP4 a, ĐP5 a…". Câu nào chưa muốn trả lời thì bỏ qua — chỉ phần đó chờ.
