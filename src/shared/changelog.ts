@@ -11,6 +11,15 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
+    // Số TẠM 1.48 (nhánh khung trợ lý kéo / đổi cỡ, 1/10 — kế hoạch docs/superpowers/plans/2026-10-01-khung-tro-ly-keo-doi-co.md); người gộp chốt số.
+    version: "1.48",
+    date: "2026-10-01",
+    items: [
+      { kind: "doi", text: "Khung Hỗ trợ gọn hơn, nằm ở góc phải phía dưới trên mọi máy; vẫn dùng được trang phía sau khi khung đang mở." },
+      { kind: "moi", text: "Kéo thanh tiêu đề để dời khung Hỗ trợ, kéo góc trên bên trái để đổi cỡ. Máy nhớ chỗ đã đặt; bấm \"Về góc\" để trả về như cũ." },
+    ],
+  },
+  {
     // Bản 1.47 = bảng điều khiển trợ lý (ADR-0069, migration 0054, kiểm độc lập + 4 đột biến 30/9) + khoá phóng to (chủ quyết 30/9) + e2e chạy
     // song song (chỉ bộ kiểm, không đổi app). Số 1.47 vì main đã có 1.46 (chưa deploy lúc gộp).
     version: "1.47",

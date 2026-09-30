@@ -188,7 +188,9 @@
   /* Trợ lý Hỗ trợ (ADR-0066 điều 9) — riêng của Tour Đảo Booking; màu đều là token sẵn có (không màu mới). */
   --z-tl-fab: 35;              /* nút nổi "Hỗ trợ": trên thanh tab (30), dưới toast (40), ngăn thông báo (45), bảng trượt (50) */
   --tl-nang-0: 0px;            /* mặc định của --tl-nang (JS đặt = chiều cao thanh nút dính đáy của trang, nếu có) */
-  --h-tl-khung: 280px;         /* chiều cao tối thiểu vùng hỏi đáp trong khung Hỗ trợ */
+  --z-tl-khung: 36;            /* khung Hỗ trợ nổi (không modal): trên nút (35), dưới toast (40) và bảng trượt (50) — bảng trượt mở thì phủ lên khung */
+  --tl-co-net: 2px;            /* nét góc của tay nắm đổi cỡ khung Hỗ trợ */
+  /* Vị trí / cỡ khung Hỗ trợ (--tl-x, --tl-y, --tl-w, --tl-h) do web/tro-ly.ts đặt lúc chạy (src/shared/tro-ly-khung.ts tính, kẹp trong khung nhìn). */
   --w-tl-tin: 88%;             /* bong bóng tin tối đa ~9/10 bề rộng khung */
   /* Vận chuyển lượt 1a (ADR-0040) — số đo từ bản vẽ Claude Design docs/design/van-chuyen-1a/ (chủ dự án vẽ 2026-09-28; làm đúng bản vẽ — cùng tiền lệ
      Đăng nhập, Việc của tôi: coi là duyệt các số đo dưới đây). Hai token đầu là token MỚI của chính bản vẽ (bảng "Token đã dùng", dòng "MỚI"); các token
@@ -2077,7 +2079,21 @@ body.sheet-open .tl-fab { visibility: hidden; }
 @media (max-width: 640px) {
   body.has-tabbar .tl-fab { bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3) + var(--tl-nang, var(--tl-nang-0))); }
 }
-.tl-khung .sheet-body { min-height: var(--h-tl-khung); }
+/* Khung nổi góc phải dưới ở MỌI khổ (1/10): không nền tối, không trượt từ đáy; kéo bằng thanh tiêu đề, đổi cỡ bằng tay nắm góc trên-trái. */
+.tl-khung { position: fixed; z-index: var(--z-tl-khung); left: var(--tl-x); top: var(--tl-y); width: var(--tl-w); height: var(--tl-h); display: flex; flex-direction: column; overflow: hidden; background: var(--c-surface); border: 1px solid var(--c-border); border-radius: var(--radius-lg); box-shadow: var(--shadow-overlay); }
+.tl-khung.is-keo { user-select: none; -webkit-user-select: none; }
+.tl-do-an-toan { position: fixed; top: 0; left: 0; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); visibility: hidden; pointer-events: none; }
+.tl-dau { flex: none; display: flex; align-items: center; gap: var(--s1); padding-right: var(--s1); background: var(--c-surface-alt); border-bottom: 1px solid var(--c-border); touch-action: none; }
+.tl-keo { flex: 1; min-width: 0; display: flex; align-items: center; min-height: var(--tap-min); cursor: move; touch-action: none; user-select: none; -webkit-user-select: none; }
+.tl-tieu-de { margin: 0; font-size: var(--fs-title); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tl-co { flex: none; display: flex; align-items: flex-start; justify-content: flex-start; width: var(--tap-min); height: var(--tap-min); padding: var(--s2); color: var(--c-text-muted); background: none; border: 0; cursor: nwse-resize; touch-action: none; }
+.tl-co::before { content: ""; width: var(--s3); height: var(--s3); border-top: var(--tl-co-net) solid currentColor; border-left: var(--tl-co-net) solid currentColor; border-top-left-radius: var(--radius-xs); }
+.tl-co:hover, .tl-keo:hover { color: var(--c-primary); }
+.tl-ve-goc { flex: none; font-size: var(--fs-label); white-space: nowrap; }
+.tl-dong { flex: none; min-width: var(--tap-min); min-height: var(--tap-min); padding: 0; }
+.tl-than { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: var(--s3); }
+.tl-chan { flex: none; padding: var(--s2) var(--s3) var(--s2); background: var(--c-surface); border-top: 1px solid var(--c-border); }
+.tl-chan .tl-luu-y { margin-top: var(--s1); }
 .tl-ds { display: flex; flex-direction: column; gap: var(--s3); margin: 0; padding: 0; list-style: none; }
 .tl-tin { max-width: var(--w-tl-tin); padding: var(--s2) var(--s3); border-radius: var(--radius-md); }
 .tl-tin-nguoi { align-self: flex-end; background: var(--c-primary-soft); }
