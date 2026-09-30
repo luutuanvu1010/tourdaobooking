@@ -1,5 +1,5 @@
 -- Module: tro-ly — trợ lý AI "Hỗ trợ" trả lời cách dùng app (ADR-0066, accepted 2026-09-30). CHỈ THÊM hai bảng mới (expand); không đụng bảng đã có.
--- Số 0050: 0044–0049 đã được điều phối giữ chỗ cho các nhánh khác (xem docs/CHANGE-GUIDE.md công thức d).
+-- Số 0050: 0044–0045 đã có (sổ tiền lượt 1); 0046–0049 được điều phối giữ chỗ cho các nhánh khác (xem docs/CHANGE-GUIDE.md công thức d).
 --
 -- tl_luot_hoi — MỘT dòng cho MỖI câu hỏi đã tới bước gọi (kể cả lỗi và chạm trần). KHÔNG có cột nội dung câu hỏi / câu trả lời (ADR-0066 điều 7;
 --   src/migrations-tro-ly.test.ts ghim đúng tập cột). Chỉ thêm: trigger chặn UPDATE / DELETE.

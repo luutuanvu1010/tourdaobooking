@@ -8,7 +8,7 @@ import { error, json, readJson } from "../../shared/http";
 import { can } from "../../shared/permissions";
 import { route, type AppModule } from "../../shared/router";
 import {
-  CAU_CHUA_BAT, CAU_CHUA_CO, CAU_HET_TRAN_THANG, CAU_LOI, HET_GIO_MS, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chonDoan, docPhanHoi, khoangThang, kiemCaiDat,
+  CAU_CHUA_BAT, CAU_CHUA_CO, CAU_HET_TRAN_THANG, CAU_HOI_THO_TOI_DA, CAU_LOI, CAU_QUA_DAI, HET_GIO_MS, cauHetTranNgay, cheCauHoi, chiPhiMicroUsd, chonDoan, docPhanHoi, khoangThang, kiemCaiDat,
   quyetDinhTran, tachNguon, thanYeuCau, type SuDung,
 } from "../../shared/tro-ly";
 import { vnToday } from "../../shared/vn-date";
@@ -71,6 +71,8 @@ export const troLyModule: AppModule = {
       const body = await readJson(request);
       const raw = body?.cauHoi;
       if (typeof raw !== "string" || !raw.trim()) return error(400, "invalid_input", "Gõ câu hỏi trước khi gửi.");
+      // Kiểm độc lập I-1: câu thô quá dài bị từ chối TRƯỚC khi che (không đọc CSDL, không ghi dòng, không gọi mạng).
+      if (raw.length > CAU_HOI_THO_TOI_DA) return error(400, "invalid_input", CAU_QUA_DAI);
       const db = env.DB;
       const caiDat = await docCaiDat(db);
       const khoa = khoaCua(env);

@@ -75,8 +75,8 @@ const STRICT: readonly { module: string; file: string }[] = [
   { module: "staff", file: "modules/staff/repository.ts" },
   { module: "thongbao", file: "modules/thongbao/repository.ts" },
   { module: "van-chuyen", file: "modules/van-chuyen/repository.ts" }, // ADR-0040 D1 (siết: SQL đi qua defineSql, EXPLAIN)
-  { module: "van-chuyen", file: "modules/van-chuyen/chuyen-repo.ts" },
-  { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu // ADR-0049 D1 (siết, Task A13 — R-P4 (ii) "bài nhận hai tệp"): SQL chuyến xe
+  { module: "van-chuyen", file: "modules/van-chuyen/chuyen-repo.ts" }, // ADR-0049 D1 (siết, Task A13 — R-P4 (ii) "bài nhận hai tệp"): SQL chuyến xe
+  { module: "tro-ly", file: "modules/tro-ly/repository.ts" }, // ADR-0066: nghiêm từ ngày đầu
 ];
 
 /**

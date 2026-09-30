@@ -33,6 +33,14 @@ test("cheCauHoi: CHE TRƯỚC rồi mới cắt 500 — SĐT vắt ngang mốc 5
   assert.equal([...cheCauHoi("x".repeat(900))].length, CAU_HOI_TOI_DA);
 });
 
+test("cheCauHoi(2.000 ký tự không '@') chạy dưới 50 ms (kiểm độc lập I-1)", () => {
+  for (const s of ["a".repeat(2000), "a.".repeat(1000), "a-b ".repeat(500)]) {
+    const t0 = performance.now();
+    cheCauHoi(s);
+    assert.ok(performance.now() - t0 < 50, JSON.stringify(s.slice(0, 8)));
+  }
+});
+
 test("cheCauHoi: bỏ ký tự điều khiển / đảo chiều chữ, gộp khoảng trắng", () => {
   assert.equal(cheCauHoi("  lập\u0000 đơn‮ \n\n thế nào  "), "lập đơn thế nào");
 });

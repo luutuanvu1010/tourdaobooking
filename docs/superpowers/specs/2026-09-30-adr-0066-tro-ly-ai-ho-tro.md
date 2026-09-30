@@ -57,6 +57,7 @@
 9. **Tự mở một lần:** cờ `sessionStorage` đặt ngay sau POST đăng nhập thành công (PIN và Face ID), đọc-rồi-xoá ở trang đầu; không đặt ở nhánh "đã có phiên → vào thẳng".
 10. **Lịch sử hỏi đáp chỉ trong bộ nhớ của trang** (không lưu máy, không lưu máy chủ): chuyển trang là mất — đúng tinh thần "không lưu nội dung".
 11. **Trần tháng nhận USD ở giao diện** (0–100, lưu micro-USD); số câu / người / ngày 0–200.
+12. **Câu hỏi thô > 2.000 ký tự ⇒ 400 "Câu hỏi quá dài — tối đa 500 ký tự."** trước khi che, không ghi dòng, không gọi mạng (kiểm độc lập I-1: biểu thức email cũ chạy bậc hai với chuỗi dài). `EMAIL_TRONG_CHU` nay có neo ranh giới, cùng kết quả khớp.
 
 ### Lệch / chưa làm so với giao việc
 - Ca e2e "thiếu khoá → 503" KHÔNG chạy trên `wrangler dev` dùng chung (khoá giả luôn có, env không gỡ được lúc chạy) — phủ ở `src/modules/tro-ly/tro-ly-route.test.ts` (chạy CẢ ứng dụng trên SQLite thật, `fetch` giả).

@@ -24,6 +24,12 @@ export const HET_GIO_MS = 20_000;
 export const GIA_NGHIN_MICRO_USD_MOI_TOKEN = { vao: 50, vaoDem: 5, ra: 400 } as const;
 /** Câu hỏi tối đa (ký tự) SAU khi che (ADR-0066 điều 5). */
 export const CAU_HOI_TOI_DA = 500;
+/**
+ * Câu hỏi THÔ tối đa (ký tự) máy chủ chịu che (kiểm độc lập I-1, 30/9): dài hơn ⇒ 400 `CAU_QUA_DAI` ngay, trước khi che — chặn câu cực dài làm Worker tốn CPU.
+ * Rộng hơn 500 để câu hợp lệ có SĐT / email dài vẫn được che TRƯỚC rồi mới cắt 500.
+ */
+export const CAU_HOI_THO_TOI_DA = 2000;
+export const CAU_QUA_DAI = "Câu hỏi quá dài — tối đa 500 ký tự.";
 /** Ngân sách tài liệu gửi kèm mỗi câu (ADR-0066 điều 3: "tổng ≤ khoảng 6.000 token"). */
 export const NGAN_SACH_TOKEN = 6000;
 /**

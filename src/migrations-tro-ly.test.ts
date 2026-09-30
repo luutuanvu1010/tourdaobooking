@@ -23,7 +23,7 @@ const luot = (id: string) =>
   `INSERT INTO tl_luot_hoi (id, staff_id, ngay_vn, token_vao, token_vao_dem, token_ra, chi_phi_micro_usd, ket_qua, created_at, created_by, updated_at, updated_by)
    VALUES ('${id}', 's1', '2026-09-30', 100, 0, 50, 25, 'ok', '${NOW}', 's1', '${NOW}', 's1')`;
 
-test("tệp migration *_tro_ly.sql có và mang số 0050 (0044–0049 giữ chỗ cho nhánh khác)", () => {
+test("tệp migration *_tro_ly.sql có và mang số 0050 (0044–0045 đã có trong main, 0046–0049 giữ chỗ cho nhánh khác)", () => {
   assert.ok(TEP, "thiếu migrations/*_tro_ly.sql");
   assert.equal(TEP!.slice(0, 4), "0050");
 });

@@ -166,6 +166,22 @@ test("không đoạn tài liệu nào khớp → trả câu 'chưa có' ngay, KH
   assert.deepEqual(luot(w).map((x) => [x.ket_qua, x.chi_phi_micro_usd]), [["ok", 0]]);
 });
 
+// HÀNG RÀO cỡ câu hỏi (kiểm độc lập I-1, 30/9): biểu thức che email từng chạy bậc hai với chuỗi dài không có "@" (100k ký tự ≈ 4,4 s) — máy chủ phải từ chối
+// câu hỏi thô quá CAU_HOI_THO_TOI_DA ký tự TRƯỚC khi che: 400 lời thường, không ghi dòng, không gọi mạng, nhanh.
+test("HÀNG RÀO cỡ: câu hỏi thô 200.000 ký tự → 400 'Câu hỏi quá dài' dưới 200 ms, không ghi dòng, không gọi OpenAI; 2.000 ký tự vẫn được", async () => {
+  const w = setup();
+  const goi = openAiGia();
+  const t0 = performance.now();
+  const r = await hoi(w, SALES, "a".repeat(200_000));
+  const ms = performance.now() - t0;
+  assert.equal(r.status, 400, r.text.slice(0, 200));
+  assert.equal(r.json.error.message, "Câu hỏi quá dài — tối đa 500 ký tự.");
+  assert.ok(ms < 200, `mất ${Math.round(ms)} ms`);
+  assert.equal(goi.length, 0);
+  assert.equal(luot(w).length, 0);
+  assert.equal((await hoi(w, SALES, `đổi PIN ${"x".repeat(1990)}`)).status, 200, "2.000 ký tự: che rồi cắt 500 như cũ");
+});
+
 test("đầu vào sai → 400 (không phải chuỗi, rỗng, chỉ khoảng trắng); không ghi dòng", async () => {
   const w = setup();
   openAiGia();
