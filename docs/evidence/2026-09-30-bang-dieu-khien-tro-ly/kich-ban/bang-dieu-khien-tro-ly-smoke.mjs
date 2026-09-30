@@ -23,7 +23,7 @@ mkdirSync(join(OUT, "anh"), { recursive: true });
 const M = { width: 390, height: 844, mobile: true };
 const NARROW = { width: 320, height: 568, mobile: true };
 const DESK = { width: 1040, height: 800, mobile: false };
-const KHOA = "khoa-gia-chrome-bang-dieu-khien-QZ7K";
+const KHOA = "sk-Xq9Zr7Lw2Vn4Tb8Pk3Jm6QZ7K"; // ngẫu nhiên — tránh chuỗi con trùng chữ thật của trang (bản đầu "…-dieu-…" khớp nhầm "chinh-sach-dieu-phoi")
 ACCOUNTS.owner = { name: "Chủ Hệ Thống", phone: "0900000299", pin: "135246", permissions: ["SUPER_ADMIN"] }; // startEnv gieo mọi ACCOUNTS vào D1 tạm
 ACCOUNTS.partner = { name: "Đối Tác Thử", phone: "0900000298", pin: "135247", permissions: ["PARTNER"] };
 
