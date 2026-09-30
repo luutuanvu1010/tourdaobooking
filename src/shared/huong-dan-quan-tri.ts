@@ -173,7 +173,7 @@ Mở [[Loại giấy tờ người]] (có cả [[Hạng giấy phép lái xe]]) 
 
 ### Trợ lý Hỗ trợ (chỉ Toàn quyền)
 Mở [[Trợ lý Hỗ trợ]] ở nhóm QUẢN TRỊ (điện thoại: trang **Tôi**). Trang có năm phần, mỗi phần có nút [[Lưu]] riêng, lưu có hiệu lực ngay:
-1. **Tình trạng**: bật hoặc tắt cho cả công ty, trần chi phí tháng, chi phí và số câu. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; bấm [[Thử key]] để biết key còn dùng được, sai hay hết tiền. Đổi key làm trên Cloudflare, không nhập trong app.
+1. **Tình trạng**: bật hoặc tắt cho cả công ty, trần chi phí tháng, chi phí và số câu. Key chỉ hiện đã đặt hay chưa và bốn ký tự cuối; bấm [[Thử key]] để biết key còn dùng được, sai hay hết tiền. Đổi key làm ngoài app, không nhập trong app.
 2. **Ai được dùng**: bật hoặc tắt theo từng vai và số câu mỗi người mỗi ngày. Tài khoản nhiều vai được dùng khi ít nhất một vai đang bật.
 3. **Lời dặn**: câu chào, giọng trả lời, lời dặn thêm, câu hỏi mẫu. Bấm [[Lưu thành bản mới]]; muốn trở lại bản trước thì mở lịch sử bản, bấm [[Quay lại bản này]].
 4. **Ngữ cảnh bổ sung**: gõ tiêu đề và nội dung, bấm [[Thêm đoạn]]; bỏ tick **Đang dùng** để tắt một đoạn.
