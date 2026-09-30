@@ -541,6 +541,9 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
   /* Bước 2 Đợt B: số tiền cạnh nút Lưu ở thanh dính đáy — chỉ điện thoại, máy tính đã có card Tóm tắt riêng */
   .form-actions { flex-direction: column; }
   .mobile-actions-summary { display: block; margin-bottom: var(--s2); }
+  /* bản 1.39: MỘT dòng "N dịch vụ · Tổng …" (+ "Còn lại …" khi có thanh toán trước); số lớn thì xuống dòng, không cao hơn hai dòng cũ */
+  .mobile-sum-line { flex-wrap: wrap; column-gap: var(--s3); row-gap: 0; }
+  .mobile-actions-summary .mobile-sum-line > span:first-child { flex: 0 1 auto; } /* thắng `.kv > span:first-child { flex: none }` đứng sau trong tệp */
 
   /* Đợt D Task 4 (ADR-0015 điều 3): thanh đầu trang điện thoại giữ NGUYÊN kiểu cũ (logo/back/tiêu đề), chỉ thêm
      avatar chữ cái đầu bên phải (bản mẫu điện thoại có) — thanh bên (sidebar) không hiện ở khổ này. */
@@ -660,6 +663,7 @@ body.login-page::before { content: ""; display: block; height: env(safe-area-ins
 .chip-unit { color: var(--c-primary); background: var(--c-primary-soft); }
 .chip-code, .chip-muted { color: var(--c-text-muted); background: var(--c-surface-alt); }
 .chip-warn { color: var(--c-sand-text); background: var(--c-sand-soft); border: 1px solid var(--c-sand-border); }
+.chip-picked { color: var(--c-green-text); background: var(--c-green-soft); border: 1px solid var(--c-green-border); } /* bản 1.39: kết quả tìm danh mục đã có trong đơn */
 .tag-price { padding: 0 var(--s2); font-size: var(--fs-label); font-weight: 600; color: var(--c-accent-strong); background: var(--c-accent-soft); border-radius: var(--radius-sm); }
 .price-old { font-size: var(--fs-label); color: var(--c-text-muted); }
 
@@ -1092,6 +1096,11 @@ body.login-page main.login { display: flex; flex-direction: column; height: 100%
 .toast-vung { position: fixed; z-index: 40; display: flex; flex-direction: column; gap: var(--s2); pointer-events: none; left: max(var(--s4), env(safe-area-inset-left)); right: max(var(--s4), env(safe-area-inset-right)); bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + var(--s3)); }
 .toast { pointer-events: auto; display: flex; align-items: center; min-height: var(--tap-min); padding: var(--s2) var(--s4); font-size: var(--fs-label); font-weight: 600; line-height: 1.35; text-decoration: none; color: var(--c-text); background: var(--c-surface); border: 1px solid var(--c-border); border-left: var(--s1) solid var(--c-primary); border-radius: var(--radius-md); box-shadow: var(--shadow-overlay); }
 .toast:hover { background: var(--c-soft-hover); }
+.toast-bao, .toast-bao:hover { pointer-events: none; background: var(--c-surface); } /* bản 1.39: báo ngắn, không bấm được */
+/* Trang không có thanh tab (form lập đơn: thanh Lưu dính đáy): điện thoại đặt thông báo ở TRÊN, dưới thanh đầu trang — không che nút Lưu. */
+@media (max-width: 640px) {
+  body[data-tabbar="off"] .toast-vung { bottom: auto; top: calc(var(--bar-h) + env(safe-area-inset-top) + var(--s3)); }
+}
 @media (min-width: 641px) {
   .toast-vung { left: auto; right: var(--s4); bottom: auto; top: calc(var(--bar-h) + var(--s3)); width: var(--w-toast); max-width: calc(100vw - 2 * var(--s4)); }
 }

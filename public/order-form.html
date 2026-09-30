@@ -13,7 +13,7 @@
         <p class="muted" id="orderDate-hint">Ngày này áp cho mọi dịch vụ trong đơn.</p>
       </section>
       <section class="card">
-        <h2>Dịch vụ</h2>
+        <h2 id="services-title">Dịch vụ</h2>
         <div id="catalog-slot"></div>
         <button id="add-manual" class="btn btn-block" type="button" hidden>+ Dịch vụ nhập tay</button>
         <p id="services-limit" class="muted" hidden></p>
@@ -45,6 +45,7 @@
       <section class="card summary-card">
         <h2>Tóm tắt</h2>
         <div class="summary">
+          <div class="kv"><span class="muted">Dịch vụ</span><span id="sum-count">0 dịch vụ</span></div>
           <div class="kv"><span class="muted">Tạm tính</span><span id="sum-subtotal">0 ₫</span></div>
           <div class="kv strong"><span>Tổng cộng</span><span id="sum-total">0 ₫</span></div>
           <div class="kv strong"><span>Còn lại</span><span id="sum-remaining">0 ₫</span></div>
@@ -56,8 +57,7 @@
       <div id="save-error" class="banner" role="alert" hidden></div>
       <div class="form-actions">
         <div class="mobile-actions-summary">
-          <div class="kv strong"><span>Tổng cộng</span><span id="mobile-total">0 ₫</span></div>
-          <div class="kv strong"><span>Còn lại</span><span id="mobile-due">0 ₫</span></div>
+          <div class="kv strong mobile-sum-line"><span><span id="mobile-count">0 dịch vụ</span> · Tổng <span id="mobile-total">0 ₫</span></span><span id="mobile-due-wrap" hidden>Còn lại <span id="mobile-due">0 ₫</span></span></div>
         </div>
         <button id="save" class="btn btn-primary" type="submit">Lưu, chờ xác nhận</button>
         <a class="btn" href="/orders">Quay lại</a>

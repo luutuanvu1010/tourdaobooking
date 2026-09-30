@@ -23,6 +23,7 @@ import { grouped, parseMoney, vnd } from "./format";
 import { suKienVeDon } from "./lam-moi-logic";
 import { regroupMoney } from "./money-input";
 import { createServiceCard, type ServiceCard } from "./service-card";
+import { hienBaoNgan } from "./toast";
 import { khoiCanhBaoMoc, khoiNhanDatGap } from "./dat-gap-ui";
 import { goiSom } from "./goi-som";
 import { icon } from "./icons";
@@ -96,6 +97,7 @@ const picker = createCatalogPicker({
   onPick: (item) => {
     const entry = mount(withOrderDate(newCatalogDraft(item, `k${++seq}`)));
     entry.card.root.scrollIntoView({ block: "nearest" });
+    hienBaoNgan(`Đã thêm ${item.name} — đơn có ${entries.length} dịch vụ`); // bản 1.39: sau khi chọn, ô tìm đóng và thẻ mới ở cuối — báo ngắn để biết đã thêm
   },
 });
 byId("catalog-slot").append(picker.root);
@@ -217,6 +219,13 @@ function recompute(): void {
   byId("sum-remaining").textContent = vnd(s.remaining);
   byId("mobile-total").textContent = vnd(s.total); // thanh dính đáy điện thoại: cùng giá trị đã tính ở trên, hiện lại cạnh nút Lưu (Bước 2 Đợt B)
   byId("mobile-due").textContent = vnd(s.remaining);
+  // Bản 1.39: đếm dịch vụ ở tiêu đề khối, Tóm tắt và thanh dính đáy (một dòng "N dịch vụ · Tổng …"; "Còn lại" chỉ khi có thanh toán trước).
+  const n = entries.length;
+  byId("services-title").textContent = n > 0 ? `Dịch vụ (${n})` : "Dịch vụ";
+  byId("sum-count").textContent = `${n} dịch vụ`;
+  byId("mobile-count").textContent = `${n} dịch vụ`;
+  byId("mobile-due-wrap").hidden = s.deposit <= 0;
+  picker.setSelected(ds.flatMap((d) => (d.kind === "catalog" ? [d.code] : [])));
   const warn = byId("sum-warning");
   warn.textContent = s.warning ?? "";
   warn.hidden = !s.warning;

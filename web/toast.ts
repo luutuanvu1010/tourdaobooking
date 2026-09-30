@@ -35,3 +35,16 @@ export function hienThongBao(tb: ThongBaoNoi): void {
   vungThongBao().append(el);
   setTimeout(() => go(el), TU_AN_MS);
 }
+
+/**
+ * Báo ngắn KHÔNG phải liên kết (bản 1.39, form lập đơn: "Đã thêm … — đơn có N dịch vụ"): `div.toast.toast-bao`, cùng vùng aria-live, cùng thời gian tự ẩn
+ * và trần 3 cái như thông báo Bảng tin. Không bấm được (CSS `pointer-events: none`) — trang đang có dữ liệu nhập dở, không được dẫn đi nơi khác.
+ */
+export function hienBaoNgan(cau: string): void {
+  const el = h("div", { class: "toast toast-bao" }, cau);
+  const { con, bo } = ganThongBao(hienCo, el);
+  for (const cu of bo) cu.remove();
+  hienCo.splice(0, hienCo.length, ...con);
+  vungThongBao().append(el);
+  setTimeout(() => go(el), TU_AN_MS);
+}

@@ -1,5 +1,5 @@
 // Ô "Chọn từ danh mục": ô tìm + danh sách kết quả (tên, mã, đơn vị, giá người lớn). Chạm một kết quả = thêm thẻ (onPick).
-// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (gợi ý nhập tay): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
+// Dịch vụ chưa hỗ trợ đơn vị hoặc chưa có giá hiện mờ, không chạm được (ghi "chưa hỗ trợ" / "chưa có giá" — dịch vụ nhập tay đã bỏ từ bản 1.11): `aria-disabled` chứ không `disabled`, để vẫn nằm trong cây truy cập (người dùng đọc màn hình biết có mục này). Dịch vụ đã ẩn không có trong /api/catalog/for-order (nguồn của form lập đơn, ADR-0033) nên không hiện.
 // Danh sách là các nút thường (không role listbox/option: listbox đòi tên + mô hình phím mũi tên mà ở đây không có).
 import type { CatalogServiceDto } from "../src/shared/contracts";
 import { unitLabel } from "../src/shared/service-form";
@@ -13,6 +13,8 @@ export interface CatalogPicker {
   setNotice(text: string | null): void;
   /** Khoá ô tìm kèm lý do (vd "Đơn đã đủ 20 dịch vụ."); null = mở lại. */
   setDisabled(reason: string | null): void;
+  /** Bản 1.39: mã dịch vụ đang có trong đơn — kết quả tìm trùng mã gắn nhãn "đã chọn" (KHÔNG chặn chọn trùng, chủ quyết). */
+  setSelected(codes: Iterable<string>): void;
   focus(): void;
 }
 
@@ -25,6 +27,7 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
   const list = h("div", { id: "catalog-list", class: "catalog-list", hidden: true });
   const root = h("div", { class: "catalog" }, notice, h("label", null, "Chọn từ danh mục", q), reason, list);
   let items: readonly CatalogServiceDto[] = [];
+  let selected = new Set<string>();
 
   function render(): void {
     const needle = q.value.trim().toLowerCase();
@@ -36,8 +39,8 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
         const b = h(
           "button",
           { type: "button", "aria-disabled": usable ? false : "true" },
-          h("span", { class: "catalog-name" }, h("strong", null, c.code), " ", c.name, c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null),
-          h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : "nhập tay"),
+          h("span", { class: "catalog-name" }, h("strong", null, c.code), " ", c.name, c.supported ? h("span", { class: "chip chip-unit" }, unitLabel(c.unit)) : null, selected.has(c.code) ? h("span", { class: "chip chip-picked" }, "đã chọn") : null),
+          h("span", { class: "price" }, c.supported ? (c.prices.adult === null ? "chưa có giá" : vnd(c.prices.adult)) : "chưa hỗ trợ"),
         );
         b.addEventListener("click", () => {
           if (!usable) return; // mục không chọn được: bỏ qua (danh sách vẫn mở)
@@ -71,6 +74,10 @@ export function createCatalogPicker(o: { onPick: (item: CatalogServiceDto) => vo
       reason.textContent = why ?? "";
       reason.hidden = why === null;
       if (why !== null) list.hidden = true;
+    },
+    setSelected(codes) {
+      selected = new Set(codes);
+      if (!list.hidden) render();
     },
     focus: () => q.focus(),
   };
