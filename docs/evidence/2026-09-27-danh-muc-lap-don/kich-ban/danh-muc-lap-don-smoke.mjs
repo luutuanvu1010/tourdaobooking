@@ -161,6 +161,20 @@ try {
   // Kế toán (không có order.create) mở thẳng /order-form: form khoá bằng banner như cũ; KHÔNG gọi danh mục (route mới trả 403 cho Kế toán —
   // gọi thì hiện thêm "Không tải được danh mục dịch vụ — tải lại trang để thử lại", một lời khuyên sai vì tải lại không giúp gì).
   await step("4", `Kế toán (390): /order-form khoá bằng banner "Tài khoản này không được lập đơn.", KHÔNG gọi danh mục, KHÔNG có "${CATALOG_ERR}"`, async () => {
+    // Sửa 30/9 (ADR-0058, Task A7): các trang dùng CHUNG hồ sơ Chrome nên "bản nhớ khung" (localStorage `td-khung-v1`, web/khung-nho.ts — ADR-0035)
+    // của tài khoản trước (Thực tập, canCreate:true) còn nằm lại → form Kế toán gọi sớm /api/catalog/for-order một lần và nhận 403 (app đúng theo
+    // ADR-0033; lỗi bị nuốt). Người dùng thật đổi tài khoản qua /login (goLogin xoá bản nhớ); kịch bản đăng nhập bằng cookie nên phải tự xoá.
+    // Không sửa mã app — nợ ghi ở docs/BACKLOG.md ("Bản nhớ khung không theo tài khoản").
+    const sach = await env.openPage(MOB);
+    try {
+      await sach.send("Page.navigate", { url: `${env.base}/app.css` });
+      await sach.waitFor("document.readyState === 'complete'", "trang cùng origin để dọn bản nhớ khung");
+      assert.notEqual(await sach.ev("localStorage.getItem('td-khung-v1')"), null, "tiền đề: bản nhớ khung của tài khoản trước còn trên máy");
+      await sach.ev("localStorage.removeItem('td-khung-v1'); true");
+      assert.equal(await sach.ev("localStorage.getItem('td-khung-v1')"), null, "đã xoá bản nhớ khung");
+    } finally {
+      sach.close();
+    }
     const p = await env.as(ACCOUNTS.accounting, "/order-form", MOB);
     try {
       await p.waitFor("document.body.textContent.includes('Tài khoản này không được lập đơn.')", "banner không được lập đơn (Kế toán)", 8000);
