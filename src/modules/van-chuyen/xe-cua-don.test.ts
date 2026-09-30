@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 // tệp .mjs không có khai kiểu; typecheck không phủ *.test.ts
 import { seedStaff } from "../../../tests/audit/harness.mjs";
 import {
-  ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, INTERN, PARTNER, SALES, SUP, batDongHo, chiTiet, don, setup, taoChuyen, uuid, xe,
+  ACC, ADM, DRIVER, DRIVER2, DRIVER_PARTNER, FIELD, INTERN, PARTNER, SALES, SUP, batDongHo, chiTiet, don, setup, taoChuyen, thanhTaiXe, uuid, xe,
 } from "../../../tests/audit/dieu-phoi-khung.mjs";
 
 const LAI_SALES_FIELD = "abababab-abab-4bab-8bab-ababababab01";
@@ -49,7 +49,7 @@ async function theGioi() {
   const huy = await w.call("POST", `/api/van-chuyen/chuyen/${C.chuyen.id}/huy`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), lyDo: "HUY_KHAC" } });
   assert.equal(huy.status, 200, huy.text);
   const bien = (id: string) => w.q("SELECT plate_number p FROM vc_vehicle WHERE id = ?", id)[0].p as string;
-  return { w, d1, d2, d3, bienA: bien(xeA), bienB: bien(xeB) };
+  return { w, d1, d2, d3, A, bienA: bien(xeA), bienB: bien(xeB) };
 }
 
 test("ADR-0059 (4): chặng chia hai xe → hai dòng (biển số, tên tài xế, số khách mở, trạng thái); suất đã đóng không tính; chuyến huỷ không hiện; chặng chưa xếp → xe rỗng", async () => {
@@ -125,6 +125,29 @@ test("ADR-0059 (5)(6): danh sách trắng — đúng khoá, không SĐT / tên k
     assert.equal(o.status, 200, o.text);
     assert.ok(o.json.history.length > 0, "chống bài rỗng: lịch sử đơn có dòng");
     assert.ok(!o.json.history.some((h: any) => String(h.action).startsWith("trip_")), JSON.stringify(o.json.history.map((h: any) => h.action)));
+  } finally {
+    tat();
+  }
+});
+
+test("ADR-0059: đổi tài xế của chuyến (đóng dòng lái cũ, mở dòng mới) → chỉ hiện tài xế HIỆN HÀNH, không nhân dòng", async () => {
+  const tat = batDongHo();
+  try {
+    const { w, d1, A, bienA } = await theGioi();
+    const TX3 = "66666666-6666-4666-8666-66666666666b";
+    seedStaff(w.sqlite, { id: TX3, phone: "0900000073", name: "Tài Xế Ba", perms: ["DRIVER"] });
+    thanhTaiXe(w, `pty-${TX3}`);
+    const c = await chiTiet(w, A.chuyen.id);
+    const sua = await w.call("PUT", `/api/van-chuyen/chuyen/${A.chuyen.id}`, { as: SALES, body: { version: c.chuyen.version, requestId: uuid(), taiXePartyId: `pty-${TX3}` } });
+    assert.equal(sua.status, 200, sua.text);
+    const dong = w.q("SELECT driver_party_id p, valid_to_at t FROM vc_trip_driver WHERE trip_id = ? ORDER BY valid_from_at", A.chuyen.id);
+    assert.equal(dong.length, 2, "chống bài rỗng: có dòng lái cũ đã đóng + dòng mới");
+    assert.ok(dong[0].t !== null && dong[1].t === null);
+    const r = await goiXe(w, d1.id, SALES);
+    assert.equal(r.status, 200, r.text);
+    const xeA = r.json.chang[0].xe.filter((x: any) => x.bienSo === bienA);
+    assert.deepEqual(xeA, [{ bienSo: bienA, tenTaiXe: "Tài Xế Ba", soKhach: 2, trangThai: "PLANNED" }], "một dòng, tài xế hiện hành");
+    assert.equal(r.json.chang[0].xe.length, 2, "tổng vẫn hai xe");
   } finally {
     tat();
   }
