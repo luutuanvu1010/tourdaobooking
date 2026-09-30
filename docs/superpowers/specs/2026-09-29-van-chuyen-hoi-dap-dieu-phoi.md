@@ -347,3 +347,14 @@ Sau lần 18 và các vòng kiểm độc lập (kết thúc **ĐẠT** @ `082c3
 | "Bạn có duyệt ADR-0057 (tiền xe thuê) bản cuối như 7 điểm trên, kèm kẽ hiếm đã nêu (bịt ở lượt sau)?" | **"Duyệt ADR-0057"** |
 
 Đã ghi: `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md` (accepted); dòng trỏ ở ADR-0004, ADR-0024, ADR-0026, ADR-0040, ADR-0049; mục lục `docs/adr/README.md` (giữ chỗ 0052–0056 cho các đề xuất còn chờ); kế hoạch sổ tiền §3.2 (bảng `bil_debt_line` đúng một nguồn). Còn chờ duyệt: A-1, A-1b, A-2, A-3 (ADR-0052…0054), B2 (ADR-0055), B3 (ADR-0056).
+
+## Trả lời lần 20 (30/9, duyệt lượt B2 và B3)
+
+Chủ nói "ok chúng ta duyệt với Subagent ở đây luôn nhé". Trước khi trình, người soạn ghi câu trả lời lần 16–17 vào quyết định và thêm hệ quả của ADR-0057; người kiểm độc lập kiểm nhanh @ `0cae449`: **ĐẠT**, không câu mới.
+
+| Câu (nguyên văn điều phối hỏi) | Chủ chọn |
+|---|---|
+| "Bạn có duyệt B2 — ADR-0055 (lịch xe vào xưởng, giờ lái chỉ cảnh báo, số hiệu chuyến bay) không?" | **"Duyệt ADR-0055"** |
+| "Bạn có duyệt B3 — ADR-0056 (xe riêng / số chỗ tối thiểu, mỗi loại giấy tờ xe một bản) không?" | **"Duyệt ADR-0056"** |
+
+Đã ghi: `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md`, `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md` (accepted); dòng trỏ ở ADR-0040, ADR-0047, ADR-0049; mục lục. Lượt B (B1–B3) đã duyệt đủ. Còn chờ: lượt A (A-1, A-1b, A-2, A-3 — ADR-0052…0054).

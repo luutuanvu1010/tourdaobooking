@@ -1,5 +1,7 @@
 # Đề xuất ADR-0056 (số tạm — điều phối cấp số thật) — Vận chuyển, thừa kế Transportation Kernel, lượt 3: cam kết xe riêng / số chỗ tối thiểu trên chặng; mỗi xe mỗi loại giấy tờ một dòng hiện hành
 
+> **ĐÃ THÀNH `docs/adr/ADR-0056-van-chuyen-kernel-luot-3.md` (accepted 2026-09-30).** Tệp này giữ làm bản nguồn; không sửa tiếp.
+
 - **Trạng thái:** **ĐỀ XUẤT — câu hỏi đã trả lời (lần 16), người kiểm độc lập ĐẠT; chờ chủ duyệt lượt B3.** Lượt B1 (ADR-0057) **đã duyệt** 30/9.
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2). Không đặt ở `docs/adr/`.
   - Thuộc **lượt duyệt B** (cùng ADR-0055 tạm, ADR-0057 tạm); trang ghép: `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md` (mục 0 đề nghị tách: B1 tiền, B2 Kernel lượt 2, **B3 = tệp này**).

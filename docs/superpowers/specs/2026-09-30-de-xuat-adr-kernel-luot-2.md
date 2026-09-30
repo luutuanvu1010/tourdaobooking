@@ -1,5 +1,7 @@
 # Đề xuất ADR-0055 (số tạm — điều phối cấp số thật) — Vận chuyển, thừa kế Transportation Kernel, lượt 2: khung bận của xe; giờ lái tối đa (chỉ cảnh báo); số hiệu chuyến bay trên chặng
 
+> **ĐÃ THÀNH `docs/adr/ADR-0055-van-chuyen-kernel-luot-2.md` (accepted 2026-09-30).** Tệp này giữ làm bản nguồn; không sửa tiếp.
+
 - **Trạng thái:** **ĐỀ XUẤT — câu hỏi đã trả lời (lần 16, lần 17), người kiểm độc lập ĐẠT; chờ chủ duyệt lượt B2.** Lượt B1 (ADR-0057 tiền xe thuê) **đã duyệt** 30/9 — `docs/adr/ADR-0057-van-chuyen-tien-xe-thue.md`.
   - AI soạn ở vai người thiết kế (P15); không tự duyệt (N3, Điều 7.2). Không đặt ở `docs/adr/`: chủ duyệt xong, điều phối chép sang và cấp số (tiền lệ: bản đề xuất lượt 1 → `docs/adr/ADR-0050-van-chuyen-kernel-luot-1.md`).
   - Thuộc **lượt duyệt B** (cùng ADR-0056 tạm, ADR-0057 tạm); trang ghép chung: `docs/superpowers/specs/2026-09-30-trang-ghep-luot-duyet-b-kernel-tien.md`. Trang ghép mục 0 đề nghị (theo cách đếm chặt của `CLAUDE.md` §9 — tối đa 3 quyết định chạm quyền/dữ liệu mỗi lượt) tách thành **B1** = tiền (ADR-0057 — **đã duyệt**), **B2** = tệp này (3 quyết định), **B3** = ADR-0056.
