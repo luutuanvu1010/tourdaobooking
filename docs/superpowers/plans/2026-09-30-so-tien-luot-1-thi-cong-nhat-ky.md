@@ -151,6 +151,7 @@
 - R-3: không cần ngoại lệ Q1 cho `van-chuyen` — module đó không ghi bảng `ord_*`.
 - R-4: không có đường tự đóng đơn nào (R4 của kế hoạch) — không phải chặn thêm.
 - R-5: ca đua (NT-F3/F4/F6b…) chạy trên khung thử thay e2e (tất định); D1 thật chỉ ca R1.
+- R-9: trường `keToan` của `GET /api/orders/:id/payments` — quyết định tạm của điều phối 30/9 cho thao tác Kế toán trên trang đơn; gỡ khi dựng hai màn sổ theo bản vẽ Claude Design của chủ. (Kiểm độc lập vòng 2 đạt có điều kiện; điều phối chấp nhận.)
 - R-8: "Việc của tôi" dùng nhãn 1.40 "Thanh toán trước / Còn lại" với số đã thu của billing (bề mặt, đảo ngược được).
 - R-7: R-BIL-1 so "tại mốc" bằng `created_at ≤` (xem Task 9).
 - R-6: tiền trả trước ở form lập đơn = hai bước (lưu đơn rồi ghi lần thu), không gộp vào `POST /api/orders` — giữ `orders` không biết `bil_` (NT-R1).
@@ -162,3 +163,4 @@
 - N-3: `v1-xac-nhan-png` bước b (phông Nunito) — ĐÃ XÁC NHẬN đỏ sẵn trên origin/main `3a39b5a7`; phiên phông chữ sửa khẳng định.
 - N-4: hai màn "Sổ của tôi" / "Sổ công nợ" chưa dựng — chủ sẽ vẽ lại trên Claude Design; thao tác Kế toán tạm ở trang đơn.
 - N-5: Task 12 (kiểm độc lập + runbook triển khai) chưa làm.
+- Kiểm độc lập vòng 2 (V-B): thêm ca 403 Quản trị / Bán hàng cho `settlements` và `company-receipts/:id/confirm` + ca tài khoản lai (Bán hàng + Đối tác) `keToan = null` (`lo-ghi.test.ts` "V-B"). Xanh ngay (hành vi đã đúng) — đột biến bỏ cổng `ledger.write` ở `settlements` → `expected 403 actual 201` → hoàn nguyên.
