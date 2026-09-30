@@ -133,7 +133,7 @@ test("ADR-0033 (đảo có chủ đích so với bản 1.15): GET /api/catalog v
 });
 
 // ---- ADR-0058 Đ5 (Task A3, NT-A9): nhóm trong DTO danh mục -------------------------------------------------------------------------------------
-// Khung thử áp migration 0053 trên catalog_item RỖNG → 14 nhóm, 0 dòng gán. Gán thẳng bằng SQL ở đây (bài route ghi ở nhom-route.test.ts).
+// Khung thử áp migration 0055 trên catalog_item RỖNG → 14 nhóm, 0 dòng gán. Gán thẳng bằng SQL ở đây (bài route ghi ở nhom-route.test.ts).
 const GAN = (code: string, group: string | null, seq = 1) =>
   `INSERT INTO ctl_service_group (id, service_code, group_code, seq, valid_from_at, created_at, created_by, updated_at, updated_by)
    VALUES ('t-${code}-${seq}', '${code}', ${group === null ? "NULL" : `'${group}'`}, ${seq}, '${NOW}', '${NOW}', NULL, '${NOW}', NULL)`;

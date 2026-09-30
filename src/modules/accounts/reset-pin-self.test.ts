@@ -109,7 +109,7 @@ async function callResetPin(sqlite: DatabaseSync, actor: StaffProfile, targetId:
 
 const scalar = (sqlite: DatabaseSync, sql: string): unknown => Object.values(sqlite.prepare(sql).get() ?? {})[0];
 const pinHash = (sqlite: DatabaseSync, id: string): unknown => scalar(sqlite, `SELECT pin_hash FROM staff WHERE id = '${id}'`);
-const auditCount = (sqlite: DatabaseSync): number => Number(scalar(sqlite, "SELECT count(*) FROM audit_log WHERE action != 'catalog_groups_seeded'")); // bỏ dòng gieo của migration 0053 (ADR-0058)
+const auditCount = (sqlite: DatabaseSync): number => Number(scalar(sqlite, "SELECT count(*) FROM audit_log WHERE action != 'catalog_groups_seeded'")); // bỏ dòng gieo của migration 0055 (ADR-0058)
 
 for (const [label, id, permissions] of [
   ["Quản trị", ADMIN, ["ADMIN"]],

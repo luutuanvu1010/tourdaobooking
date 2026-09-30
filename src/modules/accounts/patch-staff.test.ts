@@ -78,7 +78,7 @@ const account = (id: string, fullName: string, phone: string): StaffAccount =>
 
 const one = (sqlite: DatabaseSync, sql: string): unknown => Object.values(sqlite.prepare(sql).get() ?? {})[0];
 const auditActions = (sqlite: DatabaseSync): string[] =>
-  // bỏ dòng gieo của migration 0053 (catalog_groups_seeded, ADR-0058) — không phải dấu vết của thao tác đang thử
+  // bỏ dòng gieo của migration 0055 (catalog_groups_seeded, ADR-0058) — không phải dấu vết của thao tác đang thử
   (sqlite.prepare("SELECT action FROM audit_log WHERE action != 'catalog_groups_seeded' ORDER BY rowid").all() as { action: string }[]).map((r) => r.action);
 
 /** Chạy một PATCH như route: dựng câu, batch, rồi trả `changes` của câu chốt (0 = bên thua → route trả 409 account_rule). */

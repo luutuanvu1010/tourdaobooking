@@ -117,8 +117,8 @@ assert.equal(partnerLine.lineTotal, partnerTd101.prices.adult * 2);
 console.log("✓ Đối tác + Thực tập đọc danh mục qua /api/catalog/for-order (200, cùng nội dung, không thấy lỗi đồng bộ), /api/catalog 403; Kế toán + Hướng dẫn viên 403 ở route mới; Đối tác lập đơn từ danh mục đúng giá");
 
 // --- ADR-0058 (Task A3): nhóm dịch vụ — năm route quản trị, nhóm trong DTO danh mục, nhật ký mỗi dịch vụ một dòng, khoá ngoại × đồng bộ Sheet.
-// D1 e2e mới: migration 0053 chạy khi catalog_item còn RỖNG → 14 nhóm, 0 dòng gán. Không ghim 23 mã TTB: lấy giao của danh sách gieo (chép từ
-// migrations/0053_nhom_dich_vu.sql) với danh mục vừa đồng bộ — Sheet thật đã từng bỏ mã (TTB03). Không gán mã giả ZZ*/ZT*/ZH* (kịch bản khác xoá cứng chúng).
+// D1 e2e mới: migration 0055 chạy khi catalog_item còn RỖNG → 14 nhóm, 0 dòng gán. Không ghim 23 mã TTB: lấy giao của danh sách gieo (chép từ
+// migrations/0055_nhom_dich_vu.sql) với danh mục vừa đồng bộ — Sheet thật đã từng bỏ mã (TTB03). Không gán mã giả ZZ*/ZT*/ZH* (kịch bản khác xoá cứng chúng).
 const TTB_GIEO = ["TTBSNO", "TTBPC", "TTBDD2", "TTBFLY", "TTBL215", "TTBSW", "TTBSD", "TTBDD1", "TTBL230", "TTBL260", "TTBL115", "TTBL130", "TTBL160", "TTBPP5", "TTBPR5", "TTBPR8", "TTBPB", "TTBLV", "TTBS30", "TTBS60", "TTBS90", "TTBTD30", "TTBTD60"];
 const dsAdmin = (await call(ADMIN, "GET", "/api/catalog/admin")).body;
 const coTrongDanhMuc = new Set(dsAdmin.items.map((i) => i.code));

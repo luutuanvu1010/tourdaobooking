@@ -159,6 +159,8 @@ Kết luận: thứ tự "hỏi quyền trước khi đọc thân" trong THÂN r
 
 **Ruling A-0 (2026-09-30, điều phối):** đổi số migration nhóm dịch vụ `0046` → `0053` (tệp `migrations/0053_nhom_dich_vu.sql`, test `src/migrations-0053.test.ts`). Lý do: `main` đã có `0050_tro_ly.sql` (bản 1.44); luật CLAUDE.md §10 số kế tiếp = số lớn nhất + 1; `0051`/`0052` đã cấp cho phiên khác (ADR-0060/0061). Các dòng cũ ở bảng trên còn ghi `0046` là lịch sử lúc thi công A1. ADR-0058 Đ7 (số giữ chỗ) và tệp kế hoạch giữ nguyên (tệp đã duyệt).
 
+**Ruling A-0b (2026-10-01, điều phối; thi công: người dựng A6):** đổi số migration nhóm dịch vụ `0053` → `0055` (đổi tên → `migrations/0055_nhom_dich_vu.sql`, test `src/migrations-0055.test.ts`) vì `0054_tl_bang_dieu_khien.sql` (bản 1.47, ADR-0069) lên `main` trước — luật "số = lớn nhất trong `migrations/` của main lúc gộp + 1". Chỉ đổi SỐ ở mã, test, tài liệu mô tả, sổ dữ liệu (`npm run dict`), `docs/ARCHITECTURE.md` (dòng tiền tố `ctl_`), `docs/adr/README.md` (dòng 0058 + dòng lịch sử giữ chỗ) và kế hoạch; không đổi nghĩa câu nào. Các chỗ `0053` ghi lịch sử của ruling A-0 ở trên giữ nguyên. Nhật ký thay đổi: mục nhóm dịch vụ đổi `1.47` → **`1.48`** (trên mục 1.47 của main).
+
 ## 5. Kiểm độc lập
 
 | Vòng | Phần | Đỉnh được kiểm | Kết luận | Mục CAO / VỪA / THẤP | Đã sửa ở |

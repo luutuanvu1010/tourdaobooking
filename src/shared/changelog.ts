@@ -11,7 +11,7 @@ export interface ReleaseNote { readonly version: string; readonly date: string; 
 /** Mới nhất ở ĐẦU. */
 export const CHANGELOG: readonly ReleaseNote[] = [
   {
-    // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0053). Số 1.48 chốt lúc gộp main 1.47 (bảng điều khiển trợ lý) — 2026-10-01.
+    // Nhóm dịch vụ (ADR-0058, lượt 1a, migration 0055). Số 1.48 chốt lúc gộp main 1.47 (bảng điều khiển trợ lý) — 2026-10-01.
     // Chip cũ "Theo nhóm" (giá tính theo nhóm khách) đổi chữ thành "Giá theo nhóm" cho khỏi nhầm (chủ chọn cách 1).
     version: "1.48",
     date: "2026-10-01",

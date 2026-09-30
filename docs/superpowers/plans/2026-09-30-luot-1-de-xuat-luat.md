@@ -22,17 +22,17 @@ Lý do: hai kịch bản mới của ADR-0058 chưa có dòng nào trong bảng 
 Lý do: Phần II có liệt kê tiền tố theo migration; `ctl_` (nới `TABLE_PREFIX` đã duyệt trong câu duyệt ADR-0058) chưa có.
 ```diff
 -(`pty_`, `loc_`, `stf_`, `dsp_` từ migration 0014, `mnt_` từ `0016_maintenance`, `fbk_` từ `0016_feedback`, `aut_` từ `0023_auth_passkey`, `ntf_` từ `0025_thong_bao`, `vc_` từ `0033_van_chuyen_xe`, `ord_` từ `0034_chang_dua_don`, sau này `bil_`)
-+(`pty_`, `loc_`, `stf_`, `dsp_` từ migration 0014, `mnt_` từ `0016_maintenance`, `fbk_` từ `0016_feedback`, `aut_` từ `0023_auth_passkey`, `ntf_` từ `0025_thong_bao`, `vc_` từ `0033_van_chuyen_xe`, `ord_` từ `0034_chang_dua_don`, `ctl_` từ `0053_nhom_dich_vu` (module `catalog`, ADR-0058), sau này `bil_`)
++(`pty_`, `loc_`, `stf_`, `dsp_` từ migration 0014, `mnt_` từ `0016_maintenance`, `fbk_` từ `0016_feedback`, `aut_` từ `0023_auth_passkey`, `ntf_` từ `0025_thong_bao`, `vc_` từ `0033_van_chuyen_xe`, `ord_` từ `0034_chang_dua_don`, `ctl_` từ `0055_nhom_dich_vu` (module `catalog`, ADR-0058), sau này `bil_`)
 ```
 
 ### A-4. `docs/adr/README.md`
-Lý do: dòng 0058 còn ghi migration `0046` giữ chỗ, mà 0050–0052 đã lên main trước nên số thật là `0053`; bảng giữ chỗ 0046–0049 đã lỗi thời sau luật "không giữ chỗ" của 1.46.
+Lý do: dòng 0058 còn ghi migration `0046` giữ chỗ, mà 0050–0054 đã lên main trước nên số thật là `0055`; bảng giữ chỗ 0046–0049 đã lỗi thời sau luật "không giữ chỗ" của 1.46.
 ```diff
 -...; `catalog` còn LEGACY hạn 2027-03-31; migration `0046` (giữ chỗ). Bổ sung ADR-0033 điều 2, ADR-0028 điều 2–3 | một chiều (bảng, dữ liệu gieo) | **accepted** 2026-09-30 (lượt duyệt 1a, phiên điều phối chung) |
-+...; `catalog` còn LEGACY hạn 2027-03-31; **đã thi công**, migration `0053` (đổi từ giữ chỗ `0046` vì `0050`–`0052` lên main trước). Bổ sung ADR-0033 điều 2, ADR-0028 điều 2–3 | một chiều (bảng, dữ liệu gieo) | **accepted** 2026-09-30 (lượt duyệt 1a, phiên điều phối chung) |
++...; `catalog` còn LEGACY hạn 2027-03-31; **đã thi công**, migration `0055` (đổi từ giữ chỗ `0046` vì `0050`–`0054` lên main trước). Bổ sung ADR-0033 điều 2, ADR-0028 điều 2–3 | một chiều (bảng, dữ liệu gieo) | **accepted** 2026-09-30 (lượt duyệt 1a, phiên điều phối chung) |
 ```
 Bảng giữ chỗ (khối các dòng "- 0040, 0041, 0042 …"):
 ```diff
 -- 0046: ADR-0058 (nhóm dịch vụ); 0047: ADR-0062 (view báo tin); 0048: ADR-0063 (bảng đếm lượt đổi giờ, phải sau 0044); 0049: ADR-0065 (cột số khách đi xe, phải sau 0044) — giữ chỗ 2026-09-30, phiên điều phối chung;
-+- (Đã bỏ giữ chỗ 0046–0049 — lịch sử: 0046 dự định cho ADR-0058 nay là `0053_nhom_dich_vu`.) Số migration = số lớn nhất trong `migrations/` của main lúc gộp + 1 (luật từ 1.46); ADR-0062 / 0063 / 0065 nếu có migration thì lấy số theo luật đó.
++- (Đã bỏ giữ chỗ 0046–0049 — lịch sử: 0046 dự định cho ADR-0058 nay là `0055_nhom_dich_vu`.) Số migration = số lớn nhất trong `migrations/` của main lúc gộp + 1 (luật từ 1.46); ADR-0062 / 0063 / 0065 nếu có migration thì lấy số theo luật đó.
 ```
