@@ -285,6 +285,20 @@ Tệp luật thật (`docs/ARCHITECTURE.md`, `src/CLAUDE.md`, `CLAUDE.md`, `web/
 | 8a / 8c | `docs/ARCHITECTURE.md:175` (một dòng dài chứa cả đoạn `parties (…)` và `van-chuyen (…)`) | như lúc soạn |
 | 8b | `docs/ARCHITECTURE.md:148` (5.3), `:151` (5.7) | như lúc soạn |
 
+## Chủ lần 16 (30/9) — danh sách ghim bị chạm (R-P29 + GA-59): SIẾT hay NỚI?
+
+| Chỗ ghim | Thay đổi | Loại | Căn cứ |
+|---|---|---|---|
+| `MA_GIU` (`src/shared/ly-do-giu.ts`) | + `KHACH_DA_DOI` | SIẾT (thêm một điều kiện giữ chuyến) | chủ lần 16 |
+| `LY_DO_DONG_SUAT` / `LENH_DONG_SUAT` + `CHECK close_reason` của `0042` (sửa tại chỗ, chưa áp remote) | + `PASSENGER_CHANGED` (`DOI_KHACH_THEO_DON`) | Mở thêm MỘT giá trị hợp lệ — hình dạng lệnh chủ duyệt lần 16 (R-P29); không nới ràng buộc nào khác của suất (danh tính, gắn tên một lần, LC-01/09/10/15 giữ nguyên) | chủ lần 16 |
+| `LOAI_SU_KIEN_CHUYEN` | + `ALLOCATION_PASSENGER_CHANGED` (sự kiện kế hoạch, `MAY_CHU`) | theo hình dạng chủ duyệt; `LOAI_SU_KIEN_KHAI_GIO` KHÔNG đổi | chủ lần 16 |
+| `LENH_XEP` (`moc-toi-thieu.ts`) | + `DOI_KHACH_THEO_DON`, NGOÀI `LENH_KHOA_THEO_MOC` | theo chữ R-P29 "không xét mốc khoá, không cần phá lệ" | chủ lần 16 |
+| `SNAPSHOT` route (`src/route-access.test.ts`) | + `POST /api/van-chuyen/chuyen/:id/cap-nhat-khach` (office, `can(trip.dispatch)`) | không nới hàng rào 1/2 (route hỏi đúng ô; bài quét `kemTen` + đủ tuyến phủ) | chủ lần 16 |
+| `AUDIT_ACTIONS` + `HANH_DONG_CO_SU_KIEN` (R-VC-6) | + `trip_passengers_synced` | SIẾT (R-VC-6 canh thêm một hành động) | chủ lần 16 |
+| `vc_leg_appt_ack` (`0043`, sửa tại chỗ) | + cột bản chụp `bo_gio_hen_doi` + `CHECK` | SIẾT (dòng BO_DANH_DAU BẮT BUỘC có bản chụp hợp lệ) | chủ lần 16 (GA-59 "Sửa cho khớp ADR") |
+
+Không mục nào NỚI một hàng rào đã ghim trong `docs/SO-HANG-RAO.md` ngoài quyết định chủ lần 16 — không cần mục đề xuất mới.
+
 ## Không đổi
 
 - `LEGACY`, `KHONG_DB`, `TABLE_PREFIX`, `VIEW_PREFIX` (`src/architecture.test.ts`).

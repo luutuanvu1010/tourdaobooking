@@ -133,6 +133,20 @@ export function kiemTaoSuaChuyen(v: KiemTaoSuaChuyenVao): KetQuaKiem {
 
 // ---- Xếp (mở suất) ----------------------------------------------------------------------------------------------------------------------------------------
 /**
+ * Chặng được xét "theo đơn" (nơi hẹn đổi — VK1-B; khách đã đổi — R-P29): đơn đã xác nhận, chưa huỷ, chặng còn mở. Đơn huỷ / chặng bỏ / đơn chưa xác nhận có
+ * lý do giữ RIÊNG (DON_DA_HUY, CHANG_DA_DONG, …) — không bắt văn phòng "cập nhật theo đơn" cho khách không còn đi (I38). MỘT điều kiện cho cổng xuất bến và
+ * hai lệnh "cập nhật … theo đơn".
+ */
+export const changXetTheoDon = (ch: ChangVao): boolean => ch.donDaXacNhan && !ch.donDaHuy && ch.changMo;
+/**
+ * R-P29 (chủ lần 16): suất KHÁCH MỞ của chặng `legId` trong `suat` (suất của CHUYẾN này) mang khoá người KHÔNG còn là hành khách hiện hành của đơn
+ * (`nguoiCuaDon`) — khách bị bỏ / thay sau khi gắn tên. MỘT định nghĩa cho lý do giữ KHACH_DA_DOI (`kiemXuatBen`) và lệnh "Cập nhật khách theo đơn".
+ */
+export function suatKhachDaDoi(v: { legId: string; nguoiCuaDon: readonly string[]; suat: readonly SuatVao[] }): SuatVao[] {
+  const hienHanh = new Set(v.nguoiCuaDon);
+  return v.suat.filter((s) => s.mo && s.loai === "PASSENGER" && s.legId === v.legId && s.personKey !== null && !hienHanh.has(s.personKey));
+}
+/**
  * KHOÁ NGƯỜI RẢNH của một chặng — MỘT luật cho cả hai điểm gắn tên (I19): (a) lúc xếp, (b) lúc xuất bến. = hành khách HIỆN HÀNH của đơn (`nguoiCuaDon`)
  * chưa có suất MỞ nào ở chặng `legId` trên MỌI chuyến (LC-01: UNIQUE (chặng, khoá người) khi mở); sắp theo khoá người. "Chưa bị chính lệnh này dùng" không
  * cần tham số: một chặng chỉ xuất hiện một lần trong thân xếp (`docXep`) và `tenLucXep` / lô xuất bến không lặp khoá trong một chặng (K2d THẤP: gỡ tham số thừa).
@@ -141,6 +155,15 @@ export function khoaNguoiRanh(v: { legId: string; nguoiCuaDon: readonly string[]
   const daDung = new Set<string>();
   for (const s of v.suatMoCuaChang) if (s.mo && s.legId === v.legId && s.personKey !== null) daDung.add(s.personKey);
   return [...new Set(v.nguoiCuaDon)].filter((p) => !daDung.has(p)).sort();
+}
+/**
+ * R-P29 (chủ lần 16) — khoá cho các suất MỞ LẠI sau khi đóng `soDong` suất khách đã đổi của MỘT chặng: mở lại tối đa tới SỐ NGƯỜI của chặng (L-D1 — cùng
+ * cách đếm với `kiemXep`: suất MỞ của chặng trên MỌI chuyến, ở đây là số còn lại SAU khi đóng), mỗi suất mang khoá rảnh kế tiếp theo thứ tự (`khoaNguoiRanh`),
+ * hết khoá rảnh → null (I19b bù lúc xuất bến). Đơn đã giảm người → mở ít hơn / không mở (chỉ đóng).
+ */
+export function moLaiSauDoiKhach(v: { soNguoi: number; soMoSauDong: number; soDong: number; ranh: readonly string[] }): (string | null)[] {
+  const k = Math.max(0, Math.min(v.soDong, v.soNguoi - v.soMoSauDong));
+  return Array.from({ length: k }, (_x, i) => v.ranh[i] ?? null);
 }
 /**
  * I19(a) — tên cho `soSuat` suất khách MỚI của một chặng lúc xếp: khoá người thân gửi (`personKeys`, đã qua `kiemXep`) đứng trước; phần còn lại lấp bằng
@@ -304,7 +327,9 @@ export function kiemXuatBen(v: KiemXuatBenVao): KetQuaXuatBen {
     if (ch.ngayDon === null || ch.gioDon === null) lyDo.push(lyDoGiu("CHUA_CO_GIO", ch.orderCode));
     // ADR-0050 VK1-B: nơi hẹn đổi sau khi xếp (chuyến CHƯA chạy) → giữ tới khi văn phòng "cập nhật điểm theo đơn". Một lý do mỗi chặng.
     // Đơn huỷ / chặng bỏ / đơn chưa xác nhận: lý do riêng ở trên đã đủ — không bắt văn phòng "cập nhật điểm" cho khách không còn đi (I38).
-    if (c.trangThai === "PLANNED" && ch.donDaXacNhan && !ch.donDaHuy && ch.changMo) {
+    if (c.trangThai === "PLANNED" && changXetTheoDon(ch)) {
+      // R-P29 (chủ lần 16): suất mang khoá người không còn trong đơn → giữ tới khi văn phòng "Cập nhật khách theo đơn" (khuôn VK1-B). Một lý do mỗi chặng.
+      if (suatKhachDaDoi({ legId, nguoiCuaDon: ch.nguoiCuaDon, suat: v.suat }).length > 0) lyDo.push(lyDoGiu("KHACH_DA_DOI", ch.orderCode));
       const lech = v.suat.some((s) => {
         if (!(s.mo && s.loai === "PASSENGER" && s.legId === legId)) return false;
         const n = noiLechCuaSuat(s, v.diem.find((d) => d.id === s.boardStopId), s.alightStopId === null ? undefined : v.diem.find((d) => d.id === s.alightStopId), ch);

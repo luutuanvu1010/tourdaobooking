@@ -158,6 +158,12 @@ test("ADR-0050 VK1-B: lệnh 'cập nhật điểm theo đơn' (DOI_DIEM_THEO_CH
   const r = kiemMocXep(cx(batDau), batDau - 60 * PHUT, 360, { loai: "DOI_DIEM_THEO_CHANG" });
   assert.equal(r.canPhaLe, false, "một giờ trước xuất bến vẫn cập nhật điểm được");
 });
+test("R-P29 (chủ lần 16): lệnh 'cập nhật khách theo đơn' (DOI_KHACH_THEO_DON) là lệnh lúc xếp nhưng KHÔNG khoá theo mốc — trong mốc không cần phá lệ", () => {
+  assert.ok((LENH_XEP as readonly string[]).includes("DOI_KHACH_THEO_DON"));
+  assert.ok(!(LENH_KHOA_THEO_MOC as readonly string[]).includes("DOI_KHACH_THEO_DON"), "không vào LENH_KHOA_THEO_MOC");
+  const batDau = ms("2026-09-30", "06:00");
+  assert.equal(kiemMocXep(cx(batDau), batDau - 60 * PHUT, 360, { loai: "DOI_KHACH_THEO_DON" }).canPhaLe, false, "một giờ trước xuất bến vẫn cập nhật khách được");
+});
 
 test("mucMoc: quá mốc (dưới mốc) → đỏ; sát mốc (dưới mốc + cảnh báo) → vàng; còn lại bình thường; ranh giới đúng phút", () => {
   const leg = ms("2026-09-30", "12:00");

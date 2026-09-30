@@ -468,7 +468,7 @@ test("TC-10 [SOI] K-03 (b) / I41: đổi board_stop_id của suất đang mở �
   loi(() => suat(db, { id: c.id, di: c2.di, tra: c.tra }, d.legs[0]!), /lc04_stop_scope/, "điểm lên của chuyến khác");
   loi(() => suat(db, { id: c.id, di: c.di, tra: c.di }, d.legs[0]!), /lc04_stop_scope/, "điểm xuống là điểm ĐÓN");
 });
-test("TC-10 [0050] VK1-B: đổi place_key / location_id / place_text / kind của điểm → RAISE (vc_trip_stop_identity); khuôn place_key sai → CHECK; đóng suất STOP_CHANGED → được, mã lạ → CHECK", () => {
+test("TC-10 [0050] VK1-B: đổi place_key / location_id / place_text / kind của điểm → RAISE (vc_trip_stop_identity); khuôn place_key sai → CHECK; đóng suất STOP_CHANGED / PASSENGER_CHANGED (R-P29, chủ lần 16) → được, mã lạ → CHECK", () => {
   const db = openDb();
   const c = chuyenChuan(db);
   const d = don(db);
@@ -484,6 +484,8 @@ test("TC-10 [0050] VK1-B: đổi place_key / location_id / place_text / kind c�
   loi(() => run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'LA_LUNG' WHERE id = ?", AT, a), /CHECK constraint failed/);
   run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'STOP_CHANGED' WHERE id = ?", AT, a);
   loi(() => run(db, "UPDATE vc_trip_allocation SET status = 'BOARDED' WHERE id = ?", a), /lc04_close_once/, "suất đã đóng không sửa");
+  const a2 = suat(db, c, d.legs[0]!);
+  run(db, "UPDATE vc_trip_allocation SET valid_to_at = ?, close_reason = 'PASSENGER_CHANGED' WHERE id = ?", AT, a2); // R-P29: "cập nhật khách theo đơn"
 });
 test("TC-10 LC-04: dòng tài xế chỉ ĐÓNG một lần, không đổi người / chuyến; chuyến không đổi mã", () => {
   const db = openDb();

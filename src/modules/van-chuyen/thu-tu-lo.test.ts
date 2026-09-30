@@ -48,6 +48,8 @@ const MAU: Record<string, { vao: Record<string, unknown>; gac: string }> = {
   },
   loHuy: { vao: { ...L, tripId: T, version: 3, lyDo: "HUY_KHAC", phaLe: null, policyId: null, soSuatMo: 2, detail: "d" }, gac: T },
   loCapNhatDiem: { vao: { ...L, tripId: T, version: 3, diemMoi: [diem("d-9")], cap: [{ dongId: "a-1", mo: suat("a-9") }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
+  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — một suất đóng + mở lại, một suất chỉ đóng (đơn giảm người).
+  loCapNhatKhach: { vao: { ...L, tripId: T, version: 3, cap: [{ dongId: "a-1", mo: suat("a-9") }, { dongId: "a-2", mo: null }], diemBoQua: ["d-1"], detail: "d" }, gac: T },
   loXuatBen: {
     vao: {
       ...L, tripId: T, version: 3, xayRa: XR, policyId: "cs-1", ganTen: [{ suatId: "a-1", personKey: "pk-1" }],

@@ -5,8 +5,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import type { ChangVao, ChinhSachVao, ChuyenVao, DiemVao, DieuKienVao, HangBangVao, KhungChuyen, SuatVao, TaiXeVao, XeVao } from "./dieu-phoi-kieu.ts";
-import { khoaNguoiRanh, kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
-import type { LyDoGiu } from "./ly-do-giu.ts";
+import { changXetTheoDon, khoaNguoiRanh, kiemKetThuc, kiemTaoSuaChuyen, kiemXep, kiemXuatBen, noiLechCuaSuat, suatKhachDaDoi, tenLucXep, trongNgayChay, type KiemTaoSuaChuyenVao, type KiemXuatBenVao } from "./dieu-phoi-kiem.ts";
+import { NUT_CAP_NHAT_KHACH, type LyDoGiu } from "./ly-do-giu.ts";
 import { batDauSomNhatSauDoiGio } from "./moc-toi-thieu.ts";
 import { vnLocalToMs } from "./vn-date.ts";
 
@@ -406,4 +406,35 @@ test("I19(b) kiemXuatBen dùng CHUNG khoaNguoiRanh: khoá đã có suất mở �
   const khac = sv({ id: "x", tripId: "t2", personKey: "p1" });
   const kq = khoaNguoiRanh({ legId: "L", nguoiCuaDon: ["p1", "p2", "p3"], suatMoCuaChang: [...suat, khac] });
   assert.deepEqual(kq, ["p2", "p3"]);
+});
+
+// ---- R-P29 (chủ lần 16): KHACH_DA_DOI — suất mang khoá người không còn trong đơn → giữ; MỘT định nghĩa (`suatKhachDaDoi`) cho cổng và lệnh cập nhật -------
+test("R-P29 suatKhachDaDoi: suất khách MỞ của chặng mang khoá KHÔNG còn trong đơn; bỏ suất đã đóng, suất chưa tên, người đi kèm, chặng khác", () => {
+  const ds = [
+    suat({ id: "a", personKey: "p1" }),
+    suat({ id: "b", personKey: "px" }), // khoá không còn trong đơn → đã đổi
+    suat({ id: "c", personKey: "py", mo: false }), // đã đóng → không tính
+    suat({ id: "d", personKey: null }), // chưa tên → không tính (THIEU_TEN / I19b lo)
+    suat({ id: "e", personKey: "pz", legId: "leg-khac" }), // chặng khác
+    suat({ id: "f", loai: "CREW", personKey: null, legId: null }),
+  ];
+  assert.deepEqual(suatKhachDaDoi({ legId: "leg-1", nguoiCuaDon: ["p1", "p2"], suat: ds }).map((s) => s.id), ["b"]);
+  assert.deepEqual(suatKhachDaDoi({ legId: "leg-1", nguoiCuaDon: ["p1", "px"], suat: ds }), []);
+  assert.equal(changXetTheoDon(chang()), true);
+  assert.equal(changXetTheoDon(chang({ donDaHuy: true })), false);
+  assert.equal(changXetTheoDon(chang({ changMo: false })), false);
+  assert.equal(changXetTheoDon(chang({ donDaXacNhan: false })), false);
+});
+test("R-P29 kiemXuatBen: suất mang khoá không còn trong đơn → giữ KHACH_DA_DOI (văn phòng, câu có mã đơn + chữ nút, không khoá người); chuyến đang chạy / đơn huỷ → không (lý do riêng)", () => {
+  // Đơn thay p2 bằng p5 sau khi xếp (số người giữ 4): suất s2 còn mang p2.
+  const doi = kiemXuatBen(xb({ chang: [chang({ nguoiCuaDon: ["p1", "p3", "p4", "p5"] })] }));
+  assert.equal(doi.dat, false);
+  assert.deepEqual(ai(doi.lyDo), ["KHACH_DA_DOI:VAN_PHONG"]);
+  assert.equal(doi.lyDo[0]!.loiNhan, `Khách trong xe không còn trong đơn — bấm ${NUT_CAP_NHAT_KHACH}: ĐH-1024`);
+  assert.doesNotMatch(JSON.stringify(doi.lyDo), /p1|p2|p5/);
+  // Đơn huỷ → DON_DA_HUY, KHÔNG thêm KHACH_DA_DOI (không bắt văn phòng cập nhật khách không còn đi).
+  assert.ok(!ma(kiemXuatBen(xb({ chang: [chang({ nguoiCuaDon: ["p1", "p3", "p4", "p5"], donDaHuy: true })] })).lyDo).includes("KHACH_DA_DOI"));
+  // Chuyến đang chạy → không giữ theo đơn (bản chốt đã trỏ dòng lúc xuất bến).
+  assert.ok(!ma(kiemXuatBen(xb({ chuyen: chuyenVao({ trangThai: "RUNNING" }), chang: [chang({ nguoiCuaDon: ["p1", "p3", "p4", "p5"] })] })).lyDo).includes("KHACH_DA_DOI"));
+  assert.equal(kiemXuatBen(xb()).dat, true, "khoá còn trong đơn → không giữ");
 });

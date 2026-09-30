@@ -33,7 +33,7 @@ export const laLyDoHeThong = (code: string): boolean => (MA_LY_DO_HE_THONG as re
 /** Loại sự kiện chuyến (`vc_trip_event.kind`) — một-một với hành động nhật ký `trip_*` của kế hoạch mục 1.1. Lượt 2–3 thêm loại ở đây, không dựng lại bảng. */
 export const LOAI_SU_KIEN_CHUYEN = [
   "CREATED", "UPDATED", "CANCELLED",
-  "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED",
+  "ALLOCATED", "ALLOCATION_REMOVED", "ALLOCATION_MOVED", "ALLOCATION_STOP_CHANGED", "ALLOCATION_PASSENGER_CHANGED",
   "DEPARTED", "STOP_ARRIVED", "PASSENGER_BOARDED", "PASSENGER_NO_SHOW", "PASSENGER_CANCELLED_AT_STOP", "PASSENGER_DROPPED",
   "STOPS_REORDERED", "ENDED", "ENDED_INTERRUPTED",
 ] as const;
@@ -46,6 +46,7 @@ export const NHAN_SU_KIEN_CHUYEN: Readonly<Record<LoaiSuKienChuyen, string>> = {
   ALLOCATION_REMOVED: "Rút khách khỏi xe",
   ALLOCATION_MOVED: "Dời khách sang chuyến khác",
   ALLOCATION_STOP_CHANGED: "Đổi điểm đón / trả theo đơn", // ADR-0050 VK1-B — lệnh "cập nhật điểm theo đơn" (cùng chuyến; khác ALLOCATION_MOVED — Ruling R-K1)
+  ALLOCATION_PASSENGER_CHANGED: "Cập nhật khách theo đơn", // R-P29 (chủ lần 16) — lệnh "cập nhật khách theo đơn" (cùng chuyến; chỉ số lượng, không tên)
   DEPARTED: "Xuất bến",
   STOP_ARRIVED: "Đã tới điểm",
   PASSENGER_BOARDED: "Đã đón",
@@ -93,7 +94,7 @@ export type LoaiDiem = (typeof LOAI_DIEM)[number];
 export const LOAI_SUAT = ["PASSENGER", "CREW"] as const;
 export type LoaiSuat = (typeof LOAI_SUAT)[number];
 /** Rời chuyến = ĐÓNG dòng suất (không đổi trạng thái), kèm một lý do ([TK] §1.12). */
-export const LY_DO_DONG_SUAT = ["MOVED", "REMOVED", "TRIP_CANCELLED", "TRIP_INTERRUPTED", "TRANSFERRED", "STOP_CHANGED"] as const;
+export const LY_DO_DONG_SUAT = ["MOVED", "REMOVED", "TRIP_CANCELLED", "TRIP_INTERRUPTED", "TRANSFERRED", "STOP_CHANGED", "PASSENGER_CHANGED"] as const;
 export type LyDoDongSuat = (typeof LY_DO_DONG_SUAT)[number];
 /**
  * Lệnh nào đóng suất bằng mã nào — MỘT chỗ (bài kiểm khoá). `MOVED` = dời sang chuyến KHÁC; `STOP_CHANGED` = "cập nhật điểm theo đơn" trên CÙNG chuyến
@@ -105,6 +106,8 @@ export const LENH_DONG_SUAT = {
   HUY_CO_KHACH: "TRIP_CANCELLED",
   KET_THUC_GIAN_DOAN: "TRIP_INTERRUPTED",
   DOI_DIEM_THEO_CHANG: "STOP_CHANGED",
+  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — suất mang khoá người không còn trong đơn đóng bằng mã RIÊNG (không dùng lại STOP_CHANGED / REMOVED).
+  DOI_KHACH_THEO_DON: "PASSENGER_CHANGED",
 } as const satisfies Record<string, LyDoDongSuat>;
 
 // ---- Kiểu VÀO của luật thuần ------------------------------------------------------------------------------------------------------------------------------

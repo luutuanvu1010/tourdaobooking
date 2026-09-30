@@ -57,6 +57,8 @@ export const LENH_XEP = [
   "TAO", "XEP", "RUT", "DOI_DI", "DOI_DEN", "DOI_XE", "DOI_TAI_XE", "HUY_CO_KHACH", "HUY_KHONG_KHACH", "DOI_THU_TU", "DOI_GIO_XE_TOI",
   // ADR-0050 VK1-B: "cập nhật điểm theo đơn" — không đổi "ai đi xe nào" (ĐP2(iii)) → KHÔNG vào LENH_KHOA_THEO_MOC.
   "DOI_DIEM_THEO_CHANG",
+  // R-P29 (chủ lần 16): "cập nhật khách theo đơn" — máy theo đúng đơn, không đổi xe của ai theo ý người → KHÔNG vào LENH_KHOA_THEO_MOC (không cần phá lệ).
+  "DOI_KHACH_THEO_DON",
 ] as const;
 export type LenhXep = (typeof LENH_XEP)[number];
 /** Lệnh bị KHOÁ trong mốc (đổi "ai đi xe nào", đổi xe, đổi tài xế — ADR-0049 D2; huỷ chuyến còn khách — kế hoạch route 8). Các lệnh khác không khoá. */

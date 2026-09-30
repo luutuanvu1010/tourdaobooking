@@ -130,7 +130,7 @@ CREATE TABLE vc_trip_allocation (
   status                 TEXT NOT NULL DEFAULT 'WAITING' CHECK (status IN ('WAITING', 'BOARDED', 'NO_SHOW', 'CANCELLED_AT_STOP', 'DROPPED')),
   valid_from_at          TEXT NOT NULL,
   valid_to_at            TEXT,
-  close_reason           TEXT CHECK (close_reason IS NULL OR close_reason IN ('MOVED', 'REMOVED', 'TRIP_CANCELLED', 'TRIP_INTERRUPTED', 'TRANSFERRED', 'STOP_CHANGED')),
+  close_reason           TEXT CHECK (close_reason IS NULL OR close_reason IN ('MOVED', 'REMOVED', 'TRIP_CANCELLED', 'TRIP_INTERRUPTED', 'TRANSFERRED', 'STOP_CHANGED', 'PASSENGER_CHANGED')),
   closed_by              TEXT,
   added_after_departure  INTEGER NOT NULL DEFAULT 0 CHECK (added_after_departure IN (0, 1)),
   created_at             TEXT NOT NULL,

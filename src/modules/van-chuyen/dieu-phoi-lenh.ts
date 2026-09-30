@@ -3,7 +3,7 @@
 // chặng (`lichChungChang`) do thân route đọc sau `can()` và truyền vào (bài src/orders-cong-bo.test.ts).
 import type { ChangLichChung, ChangNhapLichChung } from "../orders";
 import type { StaffProfile } from "../../shared/contracts";
-import { khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, noiLechCuaSuat, tenLucXep } from "../../shared/dieu-phoi-kiem";
+import { changXetTheoDon, khoaNguoiRanh, kiemTaoSuaChuyen, kiemXep, moLaiSauDoiKhach, noiLechCuaSuat, suatKhachDaDoi, tenLucXep } from "../../shared/dieu-phoi-kiem";
 import type { ChangVao, KetQuaKiem } from "../../shared/dieu-phoi-kieu";
 import { dungLichChung } from "../../shared/dieu-phoi-lich-chung";
 import { error } from "../../shared/http";
@@ -12,7 +12,7 @@ import { batDauSomNhatSauDoiGio, kiemMocXep } from "../../shared/moc-toi-thieu";
 import { msToVnLocal } from "../../shared/vn-date";
 import type { LichChungResponse } from "../../shared/contracts";
 import { allocsByTrips, allocsOpenByLegs, eventsByTrips, legFlags, stopsByTrips, tenDiem, tripsTouching, type TripRow } from "./chuyen-repo";
-import { loCapNhatDiem, loDoi, loHuy, loRut, loSuaChuyen, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
+import { loCapNhatDiem, loCapNhatKhach, loDoi, loHuy, loRut, loSuaChuyen, loXep, type DiemMoi, type PhaLe, type SuatMoi } from "./dieu-phoi";
 import {
   boSungXe, changVao, chinhSachVao, chuyenVao, diemVao, docChung, docNguCanh, khungChuyen, lyDoChangNgoai, suatVao, taiXeVao, xeVao, type DuLieuChung, type NenChuyen,
 } from "./dieu-phoi-doc";
@@ -307,6 +307,58 @@ export async function lenhCapNhatDiem(
   const lo = loCapNhatDiem(db, {
     ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, diemMoi, cap, diemBoQua: diemKhongConKhach(nen.stops, t.id, conMo),
     detail: `${t.code}: ${[...new Set(doi)].join("; ")}`,
+  });
+  const r = await chayLo(db, lo, b.requestId);
+  return r.ok ? cap.length : r.res;
+}
+
+// ---- Cập nhật khách theo đơn (route 41 — R-P29, chủ lần 16; khuôn route 40) ------------------------------------------------------------------------------
+/**
+ * Máy tự tìm MỌI suất khách mở mang khoá người KHÔNG còn trong đơn (`suatKhachDaDoi` — CÙNG định nghĩa với lý do giữ KHACH_DA_DOI của `kiemXuatBen`, cùng
+ * điều kiện chặng `changXetTheoDon`): đóng PASSENGER_CHANGED; mở lại tới số người của chặng (`moLaiSauDoiKhach`), khoá rảnh theo thứ tự (`khoaNguoiRanh` —
+ * MỘT luật với I19) hoặc null; điểm hết khách → SKIPPED. Không suất nào đã đổi → 0, KHÔNG ghi (kể cả version cũ — I42). Không khoá theo mốc (máy theo đúng
+ * đơn). Nhật ký + sự kiện chỉ SỐ khách, mã đơn — không tên.
+ */
+export async function lenhCapNhatKhach(
+  db: D1Database, nen: NenChuyen, lich: readonly ChangLichChung[], b: { version: number; requestId: string }, staff: StaffProfile, bayGioMs: number,
+): Promise<Response | number> {
+  const t = nen.trip;
+  const dung = khongConKeHoach(t);
+  if (dung) return dung;
+  const chung = await docChung(db, nowIsoOf(bayGioMs), homNay(bayGioMs));
+  const cs = chinhSachVao(chung.chinhSach);
+  if (cs && kiemMocXep({ batDauMs: t.planned_start_ms, batDauSomNhatMs: t.earliest_start_ms }, bayGioMs, cs.minLeadMinutes, { loai: "DOI_KHACH_THEO_DON" }).canPhaLe) {
+    return loi409("can_pha_le", [lyDoGiu("MOC_TOI_THIEU", t.code)], { canQuyen: false });
+  }
+  const nc = await docNguCanh(db, nen, lich, chung);
+  const cap: { dongId: string; mo: SuatMoi | null }[] = [];
+  const doi: string[] = [];
+  const legIds = [...new Set(nc.suat.filter((s) => s.mo && s.loai === "PASSENGER" && s.legId !== null).map((s) => s.legId as string))];
+  for (const legId of legIds) {
+    const ch = nc.chang.get(legId);
+    if (!ch || !changXetTheoDon(ch)) continue;
+    const lech = suatKhachDaDoi({ legId, nguoiCuaDon: ch.nguoiCuaDon, suat: nc.suat });
+    if (lech.length === 0) continue;
+    const soMo = nc.suatMoCuaChang.filter((s) => s.mo && s.legId === legId).length;
+    const ranh = khoaNguoiRanh({ legId, nguoiCuaDon: ch.nguoiCuaDon, suatMoCuaChang: nc.suatMoCuaChang });
+    const khoa = moLaiSauDoiKhach({ soNguoi: ch.soNguoi, soMoSauDong: soMo - lech.length, soDong: lech.length, ranh });
+    lech.forEach((s, i) => cap.push({
+      dongId: s.id,
+      mo: i < khoa.length
+        ? { id: crypto.randomUUID(), tripId: t.id, loai: "PASSENGER", legId, personKey: khoa[i] ?? null, crewPartyId: null, boardStopId: s.boardStopId, alightStopId: s.alightStopId }
+        : null,
+    }));
+    doi.push(`${ch.orderCode}: ${lech.length} khách${khoa.length < lech.length ? ` (bớt ${lech.length - khoa.length} chỗ)` : ""}`);
+  }
+  if (cap.length === 0) return 0;
+  const dong = new Set(cap.map((c) => c.dongId));
+  const conMo = [
+    ...nen.allocs.filter((a) => a.valid_to_at === null && !dong.has(a.id)).map((a) => ({ board: a.board_stop_id, alight: a.alight_stop_id })),
+    ...cap.flatMap((c) => (c.mo ? [{ board: c.mo.boardStopId, alight: c.mo.alightStopId }] : [])),
+  ];
+  const lo = loCapNhatKhach(db, {
+    ...lenhChung(b.requestId, staff, bayGioMs), tripId: t.id, version: b.version, cap, diemBoQua: diemKhongConKhach(nen.stops, t.id, conMo),
+    detail: `${t.code}: cập nhật khách theo đơn — ${doi.join("; ")}`,
   });
   const r = await chayLo(db, lo, b.requestId);
   return r.ok ? cap.length : r.res;

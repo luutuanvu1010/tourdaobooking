@@ -199,12 +199,11 @@ test("K2d VỪA — đua LC-01 hai chuyến: hai lệnh xếp cùng chặng, cù
   }
 });
 
-// K2d CAO (người kiểm độc lập K2d @1f8b498 — CHỜ CHỦ chọn cách sửa: (1) giữ + "Cập nhật theo đơn", (2) máy tự thay lúc xuất bến, (3) bỏ tự gắn lúc xếp).
-// Điều BẮT BUỘC dù chủ chọn cách nào (ADR-0049 D2 "một hàm cho máy chủ và màn hình"): màn văn phòng (lý do giữ của GET chi tiết — `kiemXuatBen`) và lệnh xuất
-// bến phải CÙNG một kết luận. Kịch bản: đơn 2 khách A, B → xếp (máy gắn A, B — I19a) → huỷ A khỏi đơn → thêm C → màn nói "đạt" mà lệnh 409 THIEU_TEN.
-// ĐANG ĐỎ — đánh dấu `todo` (hiện trong kết quả `npm test` là "# todo", không chặn) cho tới khi điều phối báo lựa chọn của chủ; khi sửa lỗi CAO thì BỎ `todo`
-// (nợ chặn gộp — nhật ký thi công §10.33). KHÔNG được để `todo` này lại ở nhánh gộp.
-test("K2d CAO: khách được gắn tên lúc xếp rồi bị huỷ khỏi đơn (thêm khách mới) → màn văn phòng và lệnh xuất bến CÙNG kết luận (không 'màn đạt, nút không')", { todo: "chờ chủ — K2d CAO: cách sửa (1)/(2)/(3) chưa chọn" }, async () => {
+// K2d CAO (người kiểm độc lập K2d @1f8b498) — ĐÃ SỬA theo chủ lần 16 ("Giữ xe + nút cập nhật", R-P29). Điều BẮT BUỘC (ADR-0049 D2 "một hàm cho máy chủ và
+// màn hình"): màn văn phòng (lý do giữ của GET chi tiết — `kiemXuatBen`) và lệnh xuất bến CÙNG một kết luận. Kịch bản: đơn 2 khách A, B → xếp (máy gắn A, B —
+// I19a) → huỷ A khỏi đơn → thêm C → trước đây màn "đạt" mà lệnh 409 THIEU_TEN "tải lại"; nay CẢ HAI giữ KHACH_DA_DOI (gỡ bằng "Cập nhật khách theo đơn" —
+// src/modules/van-chuyen/cap-nhat-khach.test.ts). Bài từng là `todo` (§10.33) — đã bỏ.
+test("K2d CAO: khách được gắn tên lúc xếp rồi bị huỷ khỏi đơn (thêm khách mới) → màn văn phòng và lệnh xuất bến CÙNG kết luận (không 'màn đạt, nút không')", async () => {
   const tat = batDongHo();
   try {
     const w = setup();
@@ -222,6 +221,8 @@ test("K2d CAO: khách được gắn tên lúc xếp rồi bị huỷ khỏi đ�
     const lyDo = man.chuyen.lyDoGiu.map((l: any) => l.ma);
     const x = await tienDo(w, "van-phong", t.chuyen.id, "xuat-ben");
     assert.equal(lyDo.length === 0, x.status === 200, `màn: ${JSON.stringify(lyDo)} — lệnh xuất bến: ${x.status} ${x.text}`);
+    assert.deepEqual(lyDo, ["KHACH_DA_DOI"], "màn giữ KHACH_DA_DOI (R-P29)");
+    assert.deepEqual(x.json.error.lyDo.map((l: any) => l.ma), ["KHACH_DA_DOI"], "lệnh xuất bến giữ CÙNG lý do");
   } finally {
     tat();
   }
