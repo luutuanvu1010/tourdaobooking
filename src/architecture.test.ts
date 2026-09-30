@@ -47,7 +47,7 @@ const ALLOWED_EDGES: Record<string, readonly string[]> = {
   // NỚI hàng rào đã duyệt (Điều 9.4) — đã duyệt 2026-09-28 (chủ trả lời 'Duyệt tất cả, có mục Hiến chương'), xem docs/superpowers/plans/2026-09-28-van-chuyen-1a-de-xuat-luat.md.
   // ADR-0049 D1: suất trỏ chặng `ord_transfer_leg` + hàm hẹp của `orders` (chỉ gọi trong thân route sau `can()` — bài src/orders-cong-bo.test.ts); điểm dừng
   // trỏ `loc_location`. Vẫn KHÔNG module nào import van-chuyen (bài "không module nào import van-chuyen" ở dưới). NỚI hàng rào (Điều 9.4) — ĐÃ DUYỆT 2026-09-30 (lần 17)
-  // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1 (trình lúc gộp).
+  // ở docs/superpowers/plans/2026-09-29-adr-0049-de-xuat-luat.md mục 1.
   "van-chuyen": ["parties", "audit", "orders", "locations"],
 };
 
