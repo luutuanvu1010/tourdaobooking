@@ -100,6 +100,13 @@
 - e2e: `orders.mjs` (trả trước = lần thu, còn lại qua billing), `dispatch.mjs` (MyAssignment chỉ `total`; D5 + G ghi lần thu 300.000 rồi kiểm `conLai` ở chi tiết + danh sách + HDV). `redteam` R8 nay ĐẠT.
 - `npm test` 1936/1936 + 1/1; typecheck 0; `build:web` được.
 
+## Task 9 — Bất biến R-BIL-* (xong 30/9)
+
+- `scripts/audit-checks.mjs` sau `R-PTY-1`: `R-BIL-1`, `R-BIL-3a` (lần thu), `R-BIL-3b` (dòng nợ), `R-BIL-4a` (Đã giao ⇔ đúng một phiếu), `R-BIL-4b` (Hoàn thành ⇔ đúng một phiếu), `R-BIL-6`, `R-BIL-S9` (NT-S9), `R-BIL-M1` (Hoàn thành ⇒ Đã giao), `R-BIL-M2` (Đã giao ⇒ `confirmed`) — mọi kiểm mức `fail`. Danh sách `GHI_CHU` mới (không phải câu kiểm): `R-BIL-2`, `R-BIL-5` "chưa áp dụng", `R-BIL-7` = `R-PTY-1`; `audit-invariants.mjs` in dòng `·` cho chúng (không in "đạt").
+- **Chênh kế hoạch §3.2:** R-BIL-1 xếp "tạo trước phiếu" theo `created_at ≤` thay vì `rowid` — rowid của hai bảng khác nhau (`bil_payment_receipt`, `bil_posting`) không so được với nhau; lô Đã giao ghi mọi câu với CÙNG một giờ máy chủ (`service.ts:daGiao`), nên "≤" gồm lần thu cùng lô.
+- NT-S9 so với MỌI hồ sơ từng giữ vai công ty chủ (đổi công ty chủ không làm lần thu cũ thành vi phạm).
+- Đỏ trước: 9 bài mới `src/audit-invariants.test.ts` đỏ 9/9 khi chưa có kiểm → xanh 83/83. Đột biến trên D1 local tạm: dòng SO-HANG-RAO.
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 - R-1 (bề mặt): mã hình thức thu viết HOA (`CASH`/`BANK_TRANSFER`/`OTHER`) như bảng tra 0045; cọc cũ chữ thường đổi bằng `upper()` lúc chuyển.
@@ -107,6 +114,7 @@
 - R-3: không cần ngoại lệ Q1 cho `van-chuyen` — module đó không ghi bảng `ord_*`.
 - R-4: không có đường tự đóng đơn nào (R4 của kế hoạch) — không phải chặn thêm.
 - R-5: ca đua (NT-F3/F4/F6b…) chạy trên khung thử thay e2e (tất định); D1 thật chỉ ca R1.
+- R-7: R-BIL-1 so "tại mốc" bằng `created_at ≤` (xem Task 9).
 - R-6: tiền trả trước ở form lập đơn = hai bước (lưu đơn rồi ghi lần thu), không gộp vào `POST /api/orders` — giữ `orders` không biết `bil_` (NT-R1).
 
 ## Nợ / việc còn lại

@@ -6,7 +6,7 @@
 // Mỗi kiểm = một câu SQL trả SỐ dòng vi phạm (0 = đạt). Thoát mã 1 nếu có vi phạm. Một lần gọi wrangler cho mọi kiểm.
 // Thoát mã 2 = không chạy được (D1 chưa áp đủ migration — vd chưa có bảng dsp_* của 0014 —, mất mạng, sai --db): KHÔNG có nghĩa là dữ liệu sạch.
 import { execFileSync } from "node:child_process";
-import { CHECKS } from "./audit-checks.mjs";
+import { CHECKS, GHI_CHU } from "./audit-checks.mjs";
 
 const args = process.argv.slice(2);
 const opt = (name) => (args.includes(name) ? args[args.indexOf(name) + 1] : undefined);
@@ -44,5 +44,6 @@ CHECKS.forEach(({ code, what, level, mode, note }, i) => {
   const text = note ?? (level === "warn" ? "cảnh báo, không làm hỏng kiểm: cần người rà soát" : DEFAULT_NOTE);
   console.log(`${isFail ? "✗" : bad ? "⚠" : "✓"} ${code.padEnd(8)} ${what}${bad ? ` — ${n} vi phạm${isFail ? "" : ` (${text})`}` : ""}`);
 });
+for (const { code, text } of GHI_CHU) console.log(`· ${code.padEnd(8)} ${text}`);
 console.log(`\n${failed ? `${failed} bất biến BỊ VI PHẠM` : "Mọi bất biến đạt"}${warned ? `, ${warned} cảnh báo` : ""} (D1 ${db}${strict ? ", --strict" : ""}).`);
 process.exit(failed ? 1 : 0);
