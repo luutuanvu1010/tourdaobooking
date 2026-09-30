@@ -148,7 +148,7 @@ Ghi chú áp loại:
 
 ## 6. Câu hỏi cho chủ của lượt B — ĐÃ TRẢ LỜI (lần 17, lần 18)
 
-**Câu còn mở cho chủ: không có.** Chỉ còn các câu duyệt (sau khi người kiểm báo đạt bản sửa theo lần 18).
+**Câu còn mở cho chủ: không có.** Chỉ còn các câu duyệt (sau khi người kiểm báo đạt bản sửa theo lần 18). Báo chủ một lần (P18, không chặn duyệt): kẽ hiếm C2a của ADR-0057 — xe của nhà xe đã thôi hợp tác, nếu được xếp chuyến mới, máy chưa đòi giá; lưới `R-VC-COST-6` (warn) + nợ N-T1 (hạn: lượt duyệt kế tiếp của tiền xe thuê). Kiểm độc lập cuối ADR-0057 @ `082c308`: **ĐẠT**.
 
 | Mã | Chủ chọn (nguyên văn nhãn) | Lần | Áp vào |
 |---|---|---|---|
