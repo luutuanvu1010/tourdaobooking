@@ -678,7 +678,7 @@ await step("i", "vẽ lỗi (công ty lỗi, phông lỗi, phông treo, toBlob t
     const ot = HTMLCanvasElement.prototype.toBlob; HTMLCanvasElement.prototype.toBlob = function (cb, ...r) { return window.__fail.blob ? cb(null) : ot.call(this, cb, ...r); };
     const og = HTMLCanvasElement.prototype.getContext; HTMLCanvasElement.prototype.getContext = function (...a) { return window.__fail.ctx ? null : og.apply(this, a); };
     const of = window.fetch.bind(window);
-    window.fetch = (u, i) => window.__fail.company && String(u).endsWith('/api/company') ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'internal', message: 'giả lập' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : of(u, i);
+    window.fetch = (u, i) => window.__fail.company && String(u).endsWith('/receipt') ? Promise.resolve(new Response(JSON.stringify({ error: { code: 'internal', message: 'giả lập' } }), { status: 500, headers: { 'content-type': 'application/json' } })) : of(u, i);
     return true; })()`);
   const VI = /[ăâđêôơưáàảãạấầẩẫậắằẳẵặéèẻẽẹếềểễệíìỉĩịóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]/i;
   const errorState = (p2) => p2.ev(`(() => { const e = document.querySelector('.sheet .confirm-error'); return e ? { role: e.getAttribute('role'), text: e.textContent, retry: !!e.querySelector('button.confirm-retry'), img: !!document.querySelector('.sheet .confirm-img'), dl: document.querySelector('.sheet a.confirm-download')?.hidden ?? null, busy: !!document.querySelector('.sheet .confirm-status') && !document.querySelector('.sheet .confirm-status').hidden } : null; })()`);

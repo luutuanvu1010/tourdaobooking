@@ -86,7 +86,8 @@ const BLOB_COUNTERS = `(() => { const c = URL.createObjectURL.bind(URL); window.
 const PAGE_JS = `(() => { window.__t = {
   blobOf(url) { const b = window.__blob.blobs.get(url); if (!b) throw new Error('không có Blob của ' + url); return b; },
   async sameBytes(a, b) { const [p, q] = await Promise.all([a.arrayBuffer(), b.arrayBuffer()]); if (p.byteLength !== q.byteLength) return false; const u = new Uint8Array(p), v = new Uint8Array(q); for (let i = 0; i < u.length; i++) if (u[i] !== v[i]) return false; return true; },
-  async modelOf(orderId, handler) { const [o, c] = await Promise.all([fetch('/api/orders/' + orderId).then((r) => r.json()), fetch('/api/company').then((r) => r.json())]); return __lib.buildConfirmation(o.order, c.company, handler); },
+  /* sổ tiền lượt 1 (ADR-0026 đ11): ảnh dựng từ biên nhận danh sách trắng GET /api/orders/:id/receipt */
+  async modelOf(orderId, handler) { const r = await fetch('/api/orders/' + orderId + '/receipt').then((x) => x.json()); return __lib.buildConfirmation(r.receipt, handler); },
 }; })();`;
 
 // ---- Giả lập lời gọi trong trang (sau khi trang tải): mỗi luật { match, method?, mode } — `500`, `empty` (handlers: {}), `gate` (giữ tới khi gọi releaseAll) ----

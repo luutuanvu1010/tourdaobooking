@@ -217,8 +217,9 @@ function handlerCard(order: Order, handler: Handler): HTMLElement {
     buttons.push(retry);
   } else {
     summary = h("p", { class: "handler-name" }, handler === null ? h("span", { class: "chip chip-warn" }, NO_HANDLER_TEXT) : handler.name);
-    if (controls.assign) buttons.push(changeButton(order, handler, controls.assignLabel));
-    if (controls.claim) buttons.push(claimButton(order));
+    // Sổ tiền lượt 1 (ADR-0025 đ4): sau "Đã giao" máy chủ từ chối đổi / nhận người phụ trách (409 order_delivered) — không hiện nút.
+    if (controls.assign && !order.deliveredAt) buttons.push(changeButton(order, handler, controls.assignLabel));
+    if (controls.claim && !order.deliveredAt) buttons.push(claimButton(order));
   }
   return h(
     "section",
@@ -291,7 +292,7 @@ function tienCard(order: Order): HTMLElement {
     t && t.lanThu.length
       ? h(
           "ul",
-          { class: "history", "data-khoi": "lan-thu" },
+          { class: "pay-list", "data-khoi": "lan-thu" },
           ...t.lanThu.map((l) =>
             h(
               "li",

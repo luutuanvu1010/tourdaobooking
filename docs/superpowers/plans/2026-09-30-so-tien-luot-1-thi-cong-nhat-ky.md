@@ -107,6 +107,26 @@
 - NT-S9 so với MỌI hồ sơ từng giữ vai công ty chủ (đổi công ty chủ không làm lần thu cũ thành vi phạm).
 - Đỏ trước: 9 bài mới `src/audit-invariants.test.ts` đỏ 9/9 khi chưa có kiểm → xanh 83/83. Đột biến trên D1 local tạm: dòng SO-HANG-RAO.
 
+## Task 11 — Tài liệu mô tả + đề xuất luật + nhật ký thay đổi (xong 30/9)
+
+- `docs/SYSTEM-DESIGN.md` §5 (trigger 0044/0045, bảng migration), §6 (m) luồng tiền, §7 (13 route), §8 (sáu ô), §14, §16 (lệch 5.14 có chủ ý tới lượt 2), §17 K13; `docs/CHANGE-GUIDE.md` công thức z4 + bẫy 55 + bảng §1.
+- Đề xuất luật (chưa áp — N9): `docs/superpowers/plans/2026-09-29-so-tien-luot-1-de-xuat-luat.md` (ARCHITECTURE 5.3/5.14/5.17 + Phần II, `src/CLAUDE.md`, `CLAUDE.md` §7/§10, `web/CLAUDE.md`).
+- Ảnh phác TĨNH hai màn sổ mới: `docs/evidence/2026-09-29-so-tien-luot-1/anh-phac/{so-cua-toi,so-cong-no}.html` — chờ chủ xem, CHƯA dựng màn thật.
+- Nhật ký thay đổi: mục **1.41** (điều phối 30/9: production 1.40; ban đầu 1.39, đổi sau khi gộp main); bài ghim dòng phiên bản `src/shared/app-info.test.ts`.
+
+## Gộp origin/main 3d0d2fe5 (1.39 phông chữ + 1.40 giao diện nhỏ) — theo điều phối 30/9, KHÔNG push
+
+- Xung đột giải cộng dồn (commit `c10747fe`): nhật ký 1.41 / 1.40 / 1.39; form lập đơn giữ đếm dịch vụ của 1.39, thanh đáy hiện "Trả trước" thay "Còn lại" tự trừ; "Việc của tôi" giữ nhãn 1.40 "Thanh toán trước / Còn lại" nhưng SỐ lấy từ billing (giả định bề mặt: "Thanh toán trước" = đã thu của billing), giữ "Xem đơn" + nhóm "Đã đi tour", bỏ liên kết riêng "Thu tiền · Đã giao" (cùng đích với "Xem đơn"); trang đơn: câu khoá theo quyền sửa chuyến (1.39) + câu khoá sau Đã giao.
+
+## Kiểm cuối (30/9)
+
+- `npm test` 1954/1954 + 1/1 (bài đo giờ riêng); `npm run typecheck` 0 lỗi; `build:web` được.
+- `npm run test:e2e` ĐỦ BỘ trên commit gộp `c10747fe`: **31/31 xanh**, `audit-invariants --strict` đuôi e2e "Mọi bất biến đạt, 6 cảnh báo". (Lần trước gộp, `6c72bb16`: 31/31.) Sau `c10747fe` chỉ đổi `web/order.ts` (giao diện) + kịch bản Chrome — e2e không phủ `web/`, không chạy lại.
+- `npm run db:migrate:local` (D1 local của worktree, áp tới 0045) → `node scripts/audit-invariants.mjs --db local` thoát **1**: DUY NHẤT `R-N1-5` (D1 local của worktree trống, không có quản trị viên); 9 kiểm `R-BIL-*` ✓.
+- Kịch bản Chrome (chạy lần lượt, sau e2e): `so-tien-smoke` (mới) 3/3; `a2-smoke-form` 25 ✓; `a2-smoke-order` 11 ✓; `a2-smoke-sheet` 14 ✓; `hdv-viec-cua-toi-smoke` 11 ✓; `v1-nguoi-phu-trach` 17/17; `doi-tac-lap-don-smoke` 6 ✓; `chon-hdv-lap-don-smoke` 13 ✓; `trang-chu-smoke` 41 ✓; `help-smoke` 5 ✓ (lần đầu bước c đỏ "trang Tôi phải được phục hồi từ bộ đệm lùi/tiến" — chạy lại xanh, chập chờn bộ đệm trình duyệt); `v1-xac-nhan-png` 12/13 — bước **b đỏ**: "hai họ phông (tập con tiếng Việt) phải đã nạp: []" — khẳng định còn đòi phông Nunito, bản 1.39 (main) đã đổi sang một phông Be Vietnam Pro mà KHÔNG sửa kịch bản này (dòng khẳng định giống hệt trên `origin/main`) ⇒ nhiều khả năng đỏ sẵn từ 1.39, CHƯA kiểm trên main.
+- Sửa nhờ kịch bản Chrome: (1) sau Đã giao khối "Người phụ trách" vẫn hiện nút đổi / nhận (máy chủ sẽ 409) → ẩn; (2) danh sách lần thu dùng lớp `.history` trùng khối Lịch sử (người không xem được lịch sử vẫn "thấy" `.history`) → lớp riêng `.pay-list`.
+- Người kiểm độc lập: **CHƯA** (Task 12 ngoài phạm vi giao) — việc tiền / dữ liệu / quyền này chưa được coi là "đạt".
+
 ## Ruling / giả định (ghi theo thứ tự gặp)
 
 - R-1 (bề mặt): mã hình thức thu viết HOA (`CASH`/`BANK_TRANSFER`/`OTHER`) như bảng tra 0045; cọc cũ chữ thường đổi bằng `upper()` lúc chuyển.
@@ -114,9 +134,14 @@
 - R-3: không cần ngoại lệ Q1 cho `van-chuyen` — module đó không ghi bảng `ord_*`.
 - R-4: không có đường tự đóng đơn nào (R4 của kế hoạch) — không phải chặn thêm.
 - R-5: ca đua (NT-F3/F4/F6b…) chạy trên khung thử thay e2e (tất định); D1 thật chỉ ca R1.
+- R-8: "Việc của tôi" dùng nhãn 1.40 "Thanh toán trước / Còn lại" với số đã thu của billing (bề mặt, đảo ngược được).
 - R-7: R-BIL-1 so "tại mốc" bằng `created_at ≤` (xem Task 9).
 - R-6: tiền trả trước ở form lập đơn = hai bước (lưu đơn rồi ghi lần thu), không gộp vào `POST /api/orders` — giữ `orders` không biết `bil_` (NT-R1).
 
 ## Nợ / việc còn lại
 
 - N-1: đua hiếm giữa lúc route `orders` đọc mốc và lúc ghi (người khác bấm Đã giao giữa chừng) → trigger `order_delivered` chặn dữ liệu đúng, nhưng người dùng thấy lỗi 500 chung thay vì câu tiếng Việt. Chưa dịch.
+- N-2: kịch bản Chrome NGOÀI danh sách chạy lại vẫn gửi cọc > 0 trong thân đơn → sẽ gặp 409 `client_outdated`: `docs/evidence/2026-09-24-lo-hong-ho-so/kich-ban/lo-hong.mjs:21`, `docs/evidence/2026-09-19-pwa/kich-ban/kiem-tra-giao-dien.mjs:59`, `docs/evidence/2026-09-20-a2/kich-ban/a2-evidence.mjs:162`.
+- N-3: `v1-xac-nhan-png` bước b (phông Nunito) — đỏ, nhiều khả năng từ bản 1.39; cần phiên phông chữ sửa khẳng định.
+- N-4: hai màn "Sổ của tôi" / "Sổ công nợ" chưa dựng (chờ chủ duyệt ảnh phác); route đã có.
+- N-5: Task 12 (kiểm độc lập + runbook triển khai) chưa làm.

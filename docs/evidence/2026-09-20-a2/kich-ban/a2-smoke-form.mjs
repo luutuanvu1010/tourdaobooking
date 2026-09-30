@@ -413,8 +413,8 @@ try {
   await p.ev(setInput(`${card(0)}.querySelector('input[placeholder="Vd: Xe 7 chỗ 2 chiều"]')`, "Xe 7 chỗ 2 chiều"));
   await p.ev(setInput(`${card(0)}.querySelector('.price-field')`, "500000"));
   await p.waitFor("document.getElementById('mobile-total').textContent.includes('500.000')", "khối tóm tắt điện thoại cập nhật số tiền");
-  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, due: document.getElementById('mobile-due').textContent }; })()`);
-  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", due: "500.000 ₫" }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền");
+  const readMobileSummary = () => p.ev(`(() => { const s = getComputedStyle(document.querySelector('.mobile-actions-summary')); return { display: s.display, total: document.getElementById('mobile-total').textContent, prepaid: !document.getElementById('mobile-prepaid-row').hidden }; })()`);
+  assert.deepEqual(await readMobileSummary(), { display: "block", total: "500.000 ₫", prepaid: false }, "390px (điện thoại): khối tóm tắt PHẢI hiện, đúng số tiền (sổ tiền lượt 1: không trả trước → không dòng 'Trả trước', không tự trừ 'Còn lại')");
   await p.send("Emulation.setDeviceMetricsOverride", { width: 800, height: 900, deviceScaleFactor: 1, mobile: false });
   assert.equal((await readMobileSummary()).display, "none", "800px (khổ giữa, vd iPad dọc): khối tóm tắt PHẢI ẩn");
   await p.send("Emulation.setDeviceMetricsOverride", { width: 1040, height: 800, deviceScaleFactor: 1, mobile: false });
@@ -431,12 +431,12 @@ try {
   await p.ev("document.querySelector('#catalog-list button').click(); true");
   await p.waitFor(`${cards}.length === 1`, "thẻ để đo");
   // ---- 12a) bản 1.39: đếm dịch vụ (tiêu đề khối, Tóm tắt, thanh dính đáy một dòng), báo ngắn sau khi chọn, nhãn "đã chọn" (không chặn chọn trùng) ----
-  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-due-wrap').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
+  const dem = () => p.ev(`({ title: document.getElementById('services-title').textContent, sum: document.getElementById('sum-count').textContent, mob: document.querySelector('.mobile-sum-line > span:first-child').textContent, due: !document.getElementById('mobile-prepaid-row').hidden, toast: [...document.querySelectorAll('.toast-bao')].map((t) => t.textContent), bar: Math.round(document.querySelector('.form-actions').getBoundingClientRect().height) })`);
   const d1 = await dem();
   assert.equal(d1.title, "Dịch vụ (1)");
   assert.equal(d1.sum, "1 dịch vụ");
   assert.match(d1.mob, /^1 dịch vụ · Tổng /);
-  assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Còn lại'");
+  assert.equal(d1.due, false, "chưa có thanh toán trước: không hiện 'Trả trước' (sổ tiền lượt 1 — thay 'Còn lại')");
   assert.match(d1.toast.at(-1) ?? "", /^Đã thêm .+ — đơn có 1 dịch vụ$/);
   assert.equal(await p.ev("getComputedStyle(document.querySelector('.toast-bao')).pointerEvents"), "none", "báo ngắn không bấm được");
   const toastR = await p.ev("(() => { const a = document.querySelector('.toast-bao').getBoundingClientRect(), b = document.getElementById('save').getBoundingClientRect(); return a.bottom <= b.top || a.top >= b.bottom; })()");
@@ -450,12 +450,12 @@ try {
   const d2 = await dem();
   assert.equal(d2.title, "Dịch vụ (2)");
   assert.match(d2.toast.at(-1) ?? "", /— đơn có 2 dịch vụ$/);
-  await p.ev(setInput("document.getElementById('depositAmount')", "100000"));
-  await p.waitFor("!document.getElementById('mobile-due-wrap').hidden", "có thanh toán trước: hiện 'Còn lại'");
+  await p.ev(setInput("document.getElementById('prepaidAmount')", "100000"));
+  await p.waitFor("!document.getElementById('mobile-prepaid-row').hidden", "có thanh toán trước: hiện 'Trả trước'");
   const d3 = await dem();
   console.log(`   thanh dính đáy 390px: không thanh toán trước ${d2.bar}px, có thanh toán trước ${d3.bar}px`);
-  await p.ev(setInput("document.getElementById('depositAmount')", ""));
-  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Còn lại chỉ khi có thanh toán trước; ${d2.bar}/${d3.bar}px), báo ngắn không che Lưu, nhãn 'đã chọn' không chặn chọn trùng`);
+  await p.ev(setInput("document.getElementById('prepaidAmount')", ""));
+  ok(`đếm dịch vụ: 'Dịch vụ (N)', Tóm tắt 'N dịch vụ', thanh đáy một dòng (Trả trước chỉ khi có thanh toán trước — sổ tiền lượt 1; ${d2.bar}/${d3.bar}px), báo ngắn không che Lưu, nhãn 'đã chọn' không chặn chọn trùng`);
   const m = await p.ev(`(() => {
     const small = [...document.querySelectorAll('.counter-btn, .svc-remove, #save, .catalog-list button, .trip > summary')].filter((el) => { const r = el.getBoundingClientRect(); return r.width > 0 && (r.height < 43.5 || r.width < 43.5); }).map((el) => el.className + ' ' + Math.round(el.getBoundingClientRect().width) + 'x' + Math.round(el.getBoundingClientRect().height));
     const smallFont = [...document.querySelectorAll('input, select, textarea')].filter((el) => el.getBoundingClientRect().width > 0 && parseFloat(getComputedStyle(el).fontSize) < 16).map((el) => el.id || el.className);

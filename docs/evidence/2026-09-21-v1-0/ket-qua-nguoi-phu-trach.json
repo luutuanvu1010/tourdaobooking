@@ -72,6 +72,16 @@
       "dat": true
     },
     {
+      "id": "p",
+      "name": "HƯỚNG DẪN VIÊN, danh sách đơn: mỗi thẻ “HDV: <tên mình>” (390 + 1040), KHÔNG gọi GET /api/dispatch/handlers",
+      "dat": true
+    },
+    {
+      "id": "q",
+      "name": "HƯỚNG DẪN VIÊN, trang đơn mình phụ trách (đã xác nhận 390 + 1040, chờ xác nhận 390): khối “Người phụ trách” là tên mình (không “Chưa tải được”), không nút đổi/nhận/sửa, câu giải thích riêng cho HDV; KHÔNG gọi GET /api/dispatch/handlers",
+      "dat": true
+    },
+    {
       "id": "l",
       "name": "console/CSP sạch ở mọi trang đã theo dõi (trừ các dòng mạng đã biết của lỗi cố ý)",
       "dat": true
@@ -194,6 +204,31 @@
       "caoDiv": 65,
       "whiteSpace": "pre-line",
       "text": "Khách gọi lại xin đổi:\n- Thêm 1 người lớn\n- Đổi giờ đón sang 8:00"
+    },
+    "hdv-xem-don-cua-minh": {
+      "danhSach390": [
+        "HDV: HDV Phụ Trách",
+        "HDV: HDV Phụ Trách"
+      ],
+      "danhSach1040": [
+        "HDV: HDV Phụ Trách",
+        "HDV: HDV Phụ Trách"
+      ],
+      "trangDon-confirmed-390": {
+        "ten": "HDV Phụ Trách",
+        "chuaTai": null,
+        "note": "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ Sales Một (người lập đơn) hoặc văn phòng."
+      },
+      "trangDon-confirmed-1040": {
+        "ten": "HDV Phụ Trách",
+        "chuaTai": null,
+        "note": "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này. Việc hướng dẫn viên làm được với đơn đã xác nhận nằm ở mục “Việc của tôi” (trang Tôi); việc khác, nhờ Sales Một (người lập đơn) hoặc văn phòng."
+      },
+      "trangDon-draft-390": {
+        "ten": "HDV Phụ Trách",
+        "chuaTai": null,
+        "note": "Hướng dẫn viên không sửa, xác nhận hoặc huỷ đơn ở trang này — cần đổi gì, nhờ Sales Một (người lập đơn) hoặc văn phòng."
+      }
     }
   },
   "anh": {
@@ -214,7 +249,12 @@
     "nguoi-phu-trach-chua-co-nguoi-390.png": "390×844",
     "nguoi-phu-trach-danh-sach-chip-390.png": "390×844",
     "nguoi-phu-trach-danh-sach-chip-1040.png": "1040×800",
-    "nguoi-phu-trach-lich-su-nhieu-dong.png": "390×844"
+    "nguoi-phu-trach-lich-su-nhieu-dong.png": "390×844",
+    "nguoi-phu-trach-hdv-danh-sach-390.png": "390×844",
+    "nguoi-phu-trach-hdv-danh-sach-1040.png": "1040×800",
+    "nguoi-phu-trach-hdv-trang-don-da-xac-nhan-390.png": "390×844",
+    "nguoi-phu-trach-hdv-trang-don-da-xac-nhan-1040.png": "1040×800",
+    "nguoi-phu-trach-hdv-trang-don-cho-xac-nhan-390.png": "390×844"
   },
   "dem": {
     "the-dong-390": [
@@ -276,10 +316,10 @@
       "trang-don-chua-biet-1040",
       "danh-sach-handlers-loi-1040"
     ],
-    "trang-theo-doi-console": 45
+    "trang-theo-doi-console": 50
   },
   "tongKet": {
-    "dat": 15,
+    "dat": 17,
     "hong": 0
   }
 }

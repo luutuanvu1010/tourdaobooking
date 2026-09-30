@@ -63,6 +63,7 @@ try {
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"da-giao\"]')"), false, "hết nút Đã giao");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"hoan-thanh\"]')"), false, "Quản trị KHÔNG có nút Hoàn thành (order.complete = none)");
   assert.equal(await q.ev("!!document.querySelector('[data-action=\"ghi-lan-thu\"]')"), false, "đơn đã khoá: không ghi lần thu");
+  assert.equal(await q.ev("document.querySelectorAll('.handler-card button').length"), 0, "đơn đã khoá: không nút đổi / nhận người phụ trách");
   assert.ok(/Đã giao – đã thu đủ/.test(await q.ev("document.body.textContent")), "nhãn trạng thái tiếng Việt");
   assert.equal(await q.ev("document.documentElement.scrollWidth - document.documentElement.clientWidth <= 1"), true, "không tràn ngang 390");
   await q.shot(`${OUT}/3-da-giao-390.png`);

@@ -401,7 +401,7 @@ table.items th.num, table.items td.num { text-align: right; }
 }
 .pill-btn { font-size: var(--fs-label); font-weight: 600; color: var(--c-primary); background: var(--c-primary-soft); border: none; border-radius: var(--radius-sm); padding: 0 var(--s4); min-height: var(--tap-min); cursor: pointer; }
 .pill-btn.pill-btn-danger { color: var(--c-accent-strong); background: var(--c-accent-soft); }
-.history { margin: 0; padding-left: var(--s5); }
+.history, .pay-list { margin: 0; padding-left: var(--s5); } /* .pay-list: danh sách lần thu ở mục Thanh toán (sổ tiền lượt 1) — lớp riêng, không lẫn với khối Lịch sử */
 .history-detail { margin-top: var(--s1); overflow-wrap: anywhere; white-space: pre-line; } /* Task 8 Đợt E: lý do/mô tả (audit_log.detail) của một dòng lịch sử — dài hoặc không dấu cách vẫn không tràn ngang. Task 9: `detail` có thể có ký tự xuống dòng (vd lý do sửa nhiều dòng do FIELD gõ) — `e.detail` là MỘT text node (h(), không innerHTML) nên trình duyệt vẫn giữ \n trong DOM, chỉ CSS mặc định (white-space: normal) collapse nó thành một dòng; pre-line giữ xuống dòng nhưng vẫn tự ngắt dòng dài/khoảng trắng bình thường như trước. */
 
 /* quản trị */
