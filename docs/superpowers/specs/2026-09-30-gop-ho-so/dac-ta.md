@@ -23,16 +23,16 @@ Ký hiệu: A = hồ sơ phụ, B = hồ sơ chính. "409" = máy chủ từ ch�
 - G1. Quản trị gộp A (khách, có SĐT X chính, vai "Lái cano" ở Bến A) vào B (không SĐT, có tài khoản Điều hành chung): sau gộp, B có SĐT X (liên hệ chính) và vai "Lái cano" ở Bến A mở từ hôm nay; A `active = 0`, `merged_into_id = B`; liên hệ và vai của A đã đóng hôm nay; quyền tài khoản của B **không đổi** (so `stf_permission` trước/sau).
 - G2. `GET /api/parties/lookup?phone=X` sau gộp chỉ trả B.
 - G3. Danh sách Danh bạ và ô chọn khách trên đơn không còn A; `GET /api/parties/:A` trả hồ sơ A kèm `mergedInto: { id: B, displayName }`; `GET /api/parties/:B` kèm `mergedFrom: [{ id: A, displayName, mergedAt }]`.
-- G4. Trùng thì không nhân đôi: B đã có SĐT X mở → sau gộp B vẫn đúng một dòng X mở; B đã có vai "Lái cano" ở Bến A mở → không mở dòng thứ hai.
+- G4. Trùng thì không nhân đôi: B đã có SĐT X mở → sau gộp B vẫn đúng một dòng X mở; B đã có vai "Lái cano" ở Bến A mở → không mở dòng thứ hai. B có vai "Lái cano" ở Bến A **đã kết thúc hôm nay** → không mở lại, lô không bị trigger chồng lấn chặn, xem trước ghi lý do.
 - G5. Liên hệ chính: B đã có SĐT chính Y, A có SĐT chính X → X sang B **không** phải chính, Y giữ chính.
 - G6. Quan hệ: A "Người liên hệ của" công ty C → sau gộp B "Người liên hệ của" C mở, của A đóng. Quan hệ giữa A và B → chỉ đóng, không sinh B↔B.
-- G7. Đơn: đơn nháp và đơn đã xác nhận (chưa giao) của A → người đặt thành B; đơn đã giao và đơn đã huỷ của A → giữ A. Trang đơn đã giao vẫn hiện tên A như cũ.
-- G8. Giấy tờ: A có bằng lái hiện hành, B không có → A's dòng bị huỷ (lý do cố định), B có dòng mới cùng nội dung (số, hạng, ngày cấp, nơi cấp, hạn). B đã có bằng lái hiện hành → giấy tờ A giữ nguyên. Không số giấy tờ nào xuất hiện trong nhật ký / phản hồi xem trước / câu lỗi (thêm ca vào `src/giay-to-khong-lo-so.test.ts`).
+- G7. Đơn: đơn `draft` và `confirmed` có `delivered_at IS NULL` của A → người đặt thành B và `updated_at` đổi (người đang mở đơn đó lưu lại → bị khoá lạc quan báo đơn đã đổi, không ghi đè người đặt); đơn đã giao (`delivered_at` ≠ NULL) và đơn `cancelled` của A → giữ A. Trang đơn đã giao vẫn hiện tên A như cũ.
+- G8. Giấy tờ: A có bằng lái hiện hành, B không có → A's dòng bị huỷ (lý do cố định), B có dòng mới cùng nội dung (số, hạng, ngày cấp, nơi cấp, hạn). B đã có bằng lái hiện hành → giấy tờ A giữ nguyên. **Ca chuỗi gia hạn:** A có CCCD đã gia hạn một lần (hai dòng cùng số, dòng mới trỏ `previous_id` dòng cũ), B không có CCCD → cả hai dòng của A bị huỷ (mới trước, cũ sau), B có một dòng mang nội dung dòng mới; lô không bị `person_document_cccd_other_person` chặn. Không số giấy tờ nào xuất hiện trong nhật ký / phản hồi xem trước / câu lỗi (thêm ca vào `src/giay-to-khong-lo-so.test.ts`).
 - G9. Nhật ký: đúng **hai** dòng `party_merged` (target A và target B), `detail` chỉ có tên hai hồ sơ + số dòng chuyển theo loại; không SĐT/email/số giấy tờ.
-- G10. Xem trước (`POST …/merge/preview`, không ghi gì): trả danh sách "sẽ chuyển / sẽ giữ ở hồ sơ phụ / sẽ bỏ vì trùng" theo loại (liên hệ hiện nguyên giá trị — người xem giữ `admin.manage`, vốn thấy liên hệ trong Danh bạ; giấy tờ chỉ hiện loại + hạng, **không** số), số đơn đổi người đặt, số đơn giữ; và lý do chặn nếu có.
+- G10. Xem trước (kể cả số dòng công nợ còn mở của A — giữ ở A) (`POST …/merge/preview`, không ghi gì): trả danh sách "sẽ chuyển / sẽ giữ ở hồ sơ phụ / sẽ bỏ vì trùng" theo loại (liên hệ hiện nguyên giá trị — người xem giữ `admin.manage`, vốn thấy liên hệ trong Danh bạ; giấy tờ chỉ hiện loại + hạng, **không** số), số đơn đổi người đặt, số đơn giữ; và lý do chặn nếu có.
 - G11. Từ chối 409 khi: A = B; một bên là tổ chức; một bên đã gộp hoặc `active = 0`; A gắn tài khoản; cả hai gắn tài khoản; A còn vai tài khoản mở; kết quả vi phạm LC-3; A đang là người phụ trách đơn chưa xong hoặc đang ở chuyến chưa chốt; một bên là công ty chủ.
 - G12. Quyền: Bán hàng / Kế toán / HDV / Đối tác / Thực tập / Tài xế → 403. Quản trị gộp vào B gắn tài khoản của **Quản trị khác** hoặc Toàn quyền → 403; Toàn quyền → được.
-- G13. Hai yêu cầu gộp A cùng lúc (bấm đúp hoặc hai người): đúng một lần thành công; lần kia 409; không dòng nào bị chuyển hai lần (đếm liên hệ/vai mở của B).
+- G13. Hai yêu cầu gộp A cùng lúc (bấm đúp hoặc hai người): đúng một lần thành công; lần kia 409 `merge_lost_race`; không dòng nào bị chuyển hai lần (đếm liên hệ/vai mở của B). Cách thử: bài đơn vị dựng hai lô từ **cùng** một kế hoạch đã tính rồi chạy lần lượt trên D1 thử (lô thứ hai phải không đổi gì); e2e gửi hai yêu cầu bằng `Promise.all`.
 - G14. CSDL chặn (trigger, thử bằng SQL trực tiếp trong test): đổi / xoá `merged_into_id` đã đặt; trỏ chính mình; trỏ hồ sơ đã gộp (chuỗi); đặt `merged_into_id` mà `active` còn 1; mở lại (`active` 1) hồ sơ đã gộp.
 - G15. `audit-invariants` có kiểm mới: không chuỗi gộp; hồ sơ đã gộp không còn liên hệ / vai / quan hệ mở và không gắn tài khoản. Thấy kiểm mới **chặn thật một lần** (gieo dữ liệu sai → đỏ → hoàn nguyên, P16) và ghi dòng vào `docs/SO-HANG-RAO.md`.
 - G16. Các route ghi khác của `parties` từ chối hồ sơ đã gộp (409 `party_merged`): sửa tên, thêm liên hệ, thêm công việc, thêm quan hệ, giấy tờ; `POST /api/staff` với `partyId` = A → 409.
@@ -80,7 +80,9 @@ Ký hiệu: A = hồ sơ phụ, B = hồ sơ chính. "409" = máy chủ từ ch�
 - `parties`: sinh câu chưa chạy cho liên hệ / vai / quan hệ / giấy tờ / cột gộp + hàm tính kế hoạch (thuần, có test) + route preview/merge/duplicates/lookup.
 - `orders`: hàm công bố trả câu `UPDATE orders SET booker_party_id = B WHERE booker_party_id = A AND <chưa giao, chưa huỷ>` và hàm đếm (đọc) — `parties` **không** được import `orders` (`ALLOWED_EDGES`: parties → locations, audit).
 - `staff`: "hồ sơ có tài khoản không", "người gọi quản được tài khoản đó không" (đã có luật cấp bậc).
-- Điều phối / vận chuyển: đọc "A đang bận" qua view công bố `v_dsp_*` / `v_vc_*` (kế hoạch xác minh view nào đã có).
+- Điều phối / vận chuyển: "A đang bận" do **gốc lắp ráp tiêm** hàm đọc của module chủ (`parties` không đọc `dsp_*`/`vc_*`; hiện chỉ có `v_dsp_order_handler`, `v_dsp_first_handler`, không có `v_vc_*`). Câu bảo vệ trong lô nếu module chủ công bố được; không thì ghi khe thời gian được chấp nhận.
+- `staff`: SĐT đăng nhập cho lý do `LOGIN_PHONE` (P2) — hàm công bố của `staff`, tiêm ở gốc lắp ráp.
+- `accounts`: kiểm C2 đặt ở route `POST /api/staff`, **không** trong `createAccountWithRolesStatements` (dùng chung với đồng bộ Sheet — C3).
 - **Nơi ghép lô:** kế hoạch thi công chọn gốc lắp ráp (tiêm hàm vào ctx của route `parties`, như `ctx.isAssigned`) — **không thêm cạnh phụ thuộc**. Nếu kế hoạch thấy bắt buộc phải thêm cạnh → dừng, trình chủ tệp đề xuất luật (Điều 9.4).
 
 ## 7. Kiểm thử
@@ -127,7 +129,8 @@ npx wrangler d1 execute tourdao-sales-db --remote --command "SELECT COUNT(*) AS 
 ## 10. Giả định và điều chưa chắc
 
 - **Giả định (bề mặt):** tên nút / chữ trên màn như §5; màn nghi trùng đặt trong trang Danh bạ; so tên giữ dấu (bỏ dấu sẽ gom nhầm nhiều hơn — đổi được sau).
-- **Chưa chắc — kế hoạch phải xác minh bằng đọc mã:** (a) view công bố nào cho "A đang bận" ở điều phối / vận chuyển; nếu thiếu view thì cần view mới của module chủ (thêm vào kế hoạch, không cần ADR mới nếu chỉ là view đọc); (b) trạng thái "đã huỷ" của đơn có chặn đổi `booker_party_id` không (chỉ thấy khoá cho đã giao); (c) hồ sơ gộp có liên hệ loại EMAIL chính trùng — cùng luật như SĐT.
+- **Chưa chắc — kế hoạch phải xác minh bằng đọc mã:** (a) hàm đọc "A đang bận" của `dispatch` / `van-chuyen` đã có chưa, có câu bảo vệ dùng được trong lô không; (b) liên hệ EMAIL — cùng luật như SĐT.
+- **Đã xác minh (người kiểm độc lập 30/9):** trạng thái đơn là `draft|confirmed|cancelled` (0003), "đã giao" là `delivered_at` ≠ NULL; không trigger nào chặn đổi người đặt của đơn `cancelled` — giữ A là chính sách; `orders_money_update` chỉ chặn khi tiền trên đơn đang lệch.
 - **Rủi ro:** gộp nhầm không tách lại được (chủ chấp nhận). Giảm bằng: xem trước bắt buộc, gõ lại tên, chỉ Quản trị/Toàn quyền.
 
 ## 11. Việc tiếp theo
