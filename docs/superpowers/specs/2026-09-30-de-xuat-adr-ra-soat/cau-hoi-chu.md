@@ -40,6 +40,8 @@ Hôm nay họ không nhận tin nào về đơn.
 - **(Khuyến nghị)** Có — chỉ loại tin này, chỉ đơn **họ** lập, ở chuông và màn hình khoá (không hiện bảng nổi). Lý do: họ vốn xem được giờ đón / số khách đơn mình và phải báo lại khách của họ.
 - Khác: không — văn phòng tự gọi báo đối tác như hôm nay.
 
+*Lưu ý:* khi bạn chưa trả lời, bản nháp tạm để **không nhận** (giữ như hôm nay, vì đây là chuyện ai được thấy tin về đơn nên máy không tự chọn). Nếu bạn trả lời theo khuyến nghị (**Có**) thì mặc định tạm này **đổi thành Có**, và ADR-0062 thêm các câu sửa kèm theo đã soạn sẵn.
+
 **Câu 6. Tin có ghi nơi đón mới không?**
 - **(Khuyến nghị)** Không — tin chỉ ghi "đổi nơi đón"; bấm vào xem đơn. Lý do: nơi đón là chữ gõ tay, có thể có tên hoặc địa chỉ nhà khách, mà màn hình khoá ai cầm máy cũng đọc được.
 - Khác: ghi tên nơi chỉ khi nơi đón được chọn từ danh bạ địa điểm (khách sạn, bến); vẫn không ghi chữ gõ tay.

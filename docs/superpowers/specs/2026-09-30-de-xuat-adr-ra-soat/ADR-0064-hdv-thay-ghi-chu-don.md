@@ -4,7 +4,8 @@
   - lần 1 theo báo cáo người kiểm độc lập;
   - lần 2 theo điều phối: đổi số từ nháp "0061" sang 0064 (0059–0061 đã được phiên khác dùng, chủ đã duyệt); bỏ route xe riêng của bản nháp vì đã có ADR-0059 accepted;
   - lần 3 theo lời chủ chốt 30/9 (hộp hỏi của phiên điều phối chung): **"Thêm HDV phụ trách, làm sau ADR-0059"** ⇒ D2 là **bổ sung ADR-0059**, không lặp route.
-  - AI không tự duyệt (Hiến pháp N3, Điều 7.2). Bản sửa lần 2–3 **chưa có người kiểm độc lập** đọc.
+  - lần 4 theo người kiểm độc lập vòng 2: bảng "Câu thay" thêm mọi chỗ của ADR-0059 nay ngược lại; chặn tài khoản lai Đối tác + HDV ở nhánh `assigned` (`!holdsPartner`); câu duyệt 2b nói thật D2 thay những quyết định nào của ADR-0059.
+  - AI không tự duyệt (Hiến pháp N3, Điều 7.2). Bản nháp **đã qua kiểm độc lập 2 vòng** (ĐẠT CÓ ĐIỀU KIỆN, các điều kiện đã sửa ở commit này); bản sửa lần 4 **chưa được kiểm lại**.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt **2b** (cùng ADR-0065). ADR này có **2** quyết định chạm quyền/dữ liệu: D1 (thêm trường vào DTO của HDV), D2 (mở route xe của ADR-0059 cho HDV phụ trách — một ô quyền mới). Trang ghép: `trang-ghep-luot-2.md` phần 2b. ADR-0063 là lượt 2a, duyệt riêng.
 - **Mốc đo mã:** `824193f1` (= `origin/main` bản 1.38 + commit giao diện 1.39; các tệp máy chủ trích dẫn không khác `1db777f4`). ADR-0059 đọc ở nhánh `worktree-phan-tich-gop-y` (`4f1507a1`).
@@ -71,14 +72,19 @@
    2. đơn qua hàm công bố `findOrderOwner` của `orders` (cạnh `van-chuyen → orders` có sẵn), không có → 404;
    3. `assigned = await ctx.isAssigned(orderId)`;
    4. `can(staff, "order.view", { ownerId, assigned })` sai → **404** (không lộ đơn tồn tại — khuôn chi tiết đơn);
-   5. `can(staff, "order.vehicle.view", { assigned })` sai → 403. **Không truyền `ownerId`**: ô không có phạm vi `own`, và Đối tác lập đơn không được qua;
+   5. quyết nhánh xem xe (hàm thuần một nơi, **thứ tự cố định**):
+      - `can(staff, "order.vehicle.view")` **không ngữ cảnh** đúng (ô `any`) ⇒ **nhánh đầy đủ** (DTO của ADR-0059). Kiểm nhánh này **trước**, nên tài khoản lai SALES + PARTNER vẫn thấy như ADR-0059 đã chấp nhận có chủ ý;
+      - không thì `!holdsPartner(staff) && can(staff, "order.vehicle.view", { assigned })` đúng ⇒ **nhánh hẹp** (DTO của HDV);
+      - còn lại ⇒ **403**.
+      - **Không truyền `ownerId`**: ô không có phạm vi `own`, và Đối tác lập đơn không được qua.
+      - **Vì sao `!holdsPartner` chỉ ở nhánh `assigned`** (sửa theo người kiểm vòng 2): lời chủ V5 "văn phòng + HDV phụ trách (**Đối tác chưa**)". Tài khoản lai PARTNER + FIELD (còn gán được qua đường quản trị cũ — `src/shared/permissions.ts:227-238`, chú thích `holdsPartner`: "Có quyền Đối tác là áp") đang phụ trách một đơn sẽ qua `assigned` của FIELD nếu không chặn. Đặt `holdsPartner` bao cả hàm thì lại **thu hồi** điều ADR-0059 đã duyệt (SALES + PARTNER thấy) ⇒ chỉ đặt ở nhánh hẹp;
    6. truy vấn như ADR-0059 (đọc `v_ord_leg_key` lọc `order_id`, `vc_trip_allocation`, `vc_trip`, `vc_vehicle`, `vc_trip_driver`, nhãn hồ sơ tài xế).
 5. **Danh sách trường theo người xem (4.4, dựng mới từng khoá):**
    - người qua bằng ô `any` (văn phòng): **đúng** DTO của ADR-0059, không đổi;
    - người chỉ qua bằng phạm vi `assigned` (HDV phụ trách): **DTO hẹp** `{ chang: [{ legId, xe: [{ bienSo, tenTaiXe | null }] }] }` — đúng lời chủ "biển số và tên tài xế". **Không** `soKhach`, **không** `trangThai` chuyến; và như ADR-0059: không SĐT tài xế, không khách khác, không `place_key`, không mã chuyến, không tiền.
-   - Chọn DTO nào do **máy chủ** quyết theo nhánh quyền đã qua ở bước 4.5 (hàm thuần một nơi), không theo tham số trình duyệt.
+   - Chọn DTO nào do **máy chủ** quyết theo nhánh quyền đã qua ở bước 4.5 (hàm thuần một nơi, nhánh `any` trước, nhánh `assigned` có `!holdsPartner`), không theo tham số trình duyệt.
    - *Giả định người soạn (đảo được):* bỏ `soKhach`/`trangThai` cho HDV vì lời chủ chỉ nói "biển số và tên tài xế". Muốn HDV thấy thêm thì nới danh sách trường, không đổi quyền.
-6. **Giao diện:** chi tiết đơn gọi route khi `can(me, "order.vehicle.view", { assigned: true })` đúng phía trình duyệt (HDV chỉ mở được đơn mình phụ trách nên đơn đang mở là đơn phụ trách; máy chủ vẫn là chốt thật). Khối hiện "Xe 79B-123.45 · Tài xế Nguyễn Văn A" + dòng nhỏ **"Có thể thay đổi"**; chặng chưa xếp: "Chưa xếp xe". Lỗi / 403 ⇒ ẩn khối, không hỏng trang.
+6. **Giao diện:** chi tiết đơn gọi route khi phía trình duyệt thấy `can(me, "order.vehicle.view")` đúng, **hoặc** `!holdsPartner(me) && can(me, "order.vehicle.view", { assigned: true })` đúng (cùng hàm quyết nhánh của bước 4.5, dùng chung ở `src/shared/`) (HDV chỉ mở được đơn mình phụ trách nên đơn đang mở là đơn phụ trách; máy chủ vẫn là chốt thật). Khối hiện "Xe 79B-123.45 · Tài xế Nguyễn Văn A" + dòng nhỏ **"Có thể thay đổi"**; chặng chưa xếp: "Chưa xếp xe". Lỗi / 403 ⇒ ẩn khối, không hỏng trang.
 7. **Nhật ký chuyến vẫn không gắn đơn** (ADR-0059 Quyết định 5 giữ): HDV không thấy xe qua lịch sử đơn.
 8. **Quan hệ với V6** ("HDV và tài xế liên lạc"): ADR này chỉ cho HDV **biết tên** tài xế và biển số. SĐT hai chiều vẫn là câu V6 còn mở.
 9. **Thứ tự:** thi công **sau** ADR-0059 (sửa route đã có); nếu cùng một lát thì làm ADR-0059 trước rồi bổ sung, mỗi phần một commit.
@@ -97,10 +103,12 @@
 1. **V2 (e2e):** HDV phụ trách gọi `/api/dispatch/mine` → có `customerNote` đúng; bài khoá khoá của `MyAssignmentDto` (liệt kê chính xác) — thêm tạm một khoá lạ → đỏ.
 2. **V2 không lan:** `tai-xe-dto.test.ts` vẫn xanh; bài mới "DTO hàng chờ không có `customerNote`" (thêm tạm → đỏ).
 3. **D2 quyền (e2e):** Bán hàng, Kế toán, Quản trị, Toàn quyền → 200 (DTO đầy đủ của ADR-0059, không đổi so với trước); HDV **đang phụ trách** → 200 (DTO hẹp); HDV **không** phụ trách → 404; Đối tác (đơn tự lập), Thực tập (đơn tự lập) → 403; Tài xế → chặn ở cổng.
+   - **Tài khoản lai** (thêm theo người kiểm vòng 2): **PARTNER + FIELD đang phụ trách** → **403** (lời chủ "Đối tác chưa"; bỏ tạm `!holdsPartner` khỏi nhánh hẹp → đỏ); SALES + PARTNER → 200 DTO đầy đủ (giữ điều ADR-0059 đã chấp nhận); SALES + FIELD → 200 DTO đầy đủ (nhánh `any` thắng); FIELD + INTERN đang phụ trách → 200 DTO hẹp (trước đây ADR-0059 ghi "không" — xem Câu thay).
 4. **D2 danh sách trường:** bài liệt kê khoá chính xác của **cả hai** DTO; DTO của HDV không có `soKhach`, `trangThai`; số lạ đặt vào SĐT tài xế và tên khách cùng chuyến **không** xuất hiện trong JSON (khuôn số lạ của Sổ tiền NT-B1).
 5. **D2 không mở lịch:** HDV gọi `/api/van-chuyen/lich`, `…/chuyen/:id` vẫn 403 (ô `trip.view` không đổi).
 6. **Hàng rào 1:** bỏ tạm câu `can(order.vehicle.view…)` khỏi route → `src/permission-enforcement.test.ts` đỏ.
 7. Các bài của ADR-0059 vẫn xanh cho bốn quyền văn phòng.
+7b. **Bài ghim thay bài ghim của ADR-0059** (`src/shared/permissions.test.ts`): "mọi mã quyền có `order.vehicle.view = any` đều có `order.view = any`" và "`order.vehicle.view = assigned` chỉ ở mã quyền có `order.view = assigned`". Thêm tạm `order.vehicle.view: any` cho INTERN → đỏ (thay tiêu chí 7 của ADR-0059); dòng `docs/SO-HANG-RAO.md` của bài ghim cũ đổi sang bài ghim mới.
 8. `npm test`, `npm run typecheck`, `npm run test:e2e`; kịch bản Chrome trang đơn (văn phòng + HDV) + "Việc của tôi" (bảng `web/CLAUDE.md`; nhớ: trang của tài khoản nào mở SAU CÙNG).
 
 ## Phương án bị loại
@@ -122,6 +130,12 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 | ADR-0059 Quyết định 3 (danh sách trường) | "`{ chang: [{ legId, xe: [{ bienSo, tenTaiXe \| null, soKhach, trangThai }] }] }`" | giữ cho người qua bằng ô `any`; thêm "HDV đang phụ trách: `{ chang: [{ legId, xe: [{ bienSo, tenTaiXe \| null }] }] }` (ADR-0064 D2.5)." |
 | ADR-0059 Quyết định 4 (giao diện) | "chi tiết đơn gọi route **chỉ khi** `can(me, "trip.view")` và `can(me, "order.view")` đúng ở phía trình duyệt" | "… chỉ khi `can(me, "order.vehicle.view", { assigned: true })` đúng; thêm dòng nhỏ "Có thể thay đổi" (ADR-0064 D2.6)." |
 | ADR-0059 bảng quyền, dòng FIELD | "\| FIELD (HDV) \| **Không** \| `trip.view` none — luật ADR-0049 \|" | "\| FIELD (HDV) \| **Chỉ đơn đang phụ trách**, chỉ biển số + tên tài xế \| `order.vehicle.view` = assigned (ADR-0064) \|" |
+| ADR-0059 "Tóm tắt (lời thường)" | "Đây đúng là những người đã xem được Bảng điều phối — không mở quyền mới. Hướng dẫn viên, Đối tác, Thực tập, Tài xế **không** thấy." | "… Thêm: Hướng dẫn viên **đang phụ trách** đơn thấy biển số + tên tài xế của đơn đó (ô mới `order.vehicle.view`, ADR-0064 D2). Đối tác, Thực tập, Tài xế **không** thấy." |
+| ADR-0059 "Tiêu chí nghiệm thu" 2 | "Cùng đơn, tài khoản chỉ-HDV đang phụ trách, tài khoản Đối tác lập đơn, tài khoản Thực tập lập đơn: màn không có khối xe; gọi thẳng route ⇒ 403." | "Cùng đơn, tài khoản chỉ-HDV đang phụ trách: thấy khối xe hẹp (biển số + tên tài xế), gọi route ⇒ 200 DTO hẹp; tài khoản Đối tác lập đơn, Thực tập lập đơn, lai PARTNER + FIELD đang phụ trách: không có khối xe, gọi route ⇒ 403 (ADR-0064 bài 3)." |
+| ADR-0059 "Hệ quả", dòng e2e | "e2e (tên tạm `tests/e2e/xe-tren-don.mjs`): lập đơn → xếp xe → Bán hàng thấy biển số; HDV phụ trách gọi route → 403; chuyến huỷ → không hiện." | "… HDV phụ trách gọi route → 200 DTO hẹp (không `soKhach`, `trangThai`); HDV không phụ trách → 404; …" |
+| ADR-0059 "Hệ quả", dòng test route | "Route: 9 quyền + tài khoản lai (SALES+FIELD thấy; FIELD+INTERN không; DRIVER một mình 403)." | "Route: 9 quyền + tài khoản lai (SALES+FIELD thấy đầy đủ; FIELD+INTERN đang phụ trách thấy hẹp; PARTNER+FIELD đang phụ trách 403; SALES+PARTNER thấy đầy đủ; DRIVER một mình 403)." |
+| ADR-0059 "Hệ quả", bài ghim; "Hàng rào mới cần dòng ở `docs/SO-HANG-RAO.md`"; Tiêu chí nghiệm thu 7 | "**Bài ghim mới** (`src/shared/permissions.test.ts`): "mọi mã quyền có `trip.view = any` đều có `order.view = any`"." — "bài ghim "trip.view any ⇒ order.view any" …" — "Thêm tạm `trip.view: any` cho INTERN trong bản đồ ⇒ bài ghim đỏ (quan sát chặn một lần, P16)." | Thay bằng bài ghim theo ô mới (ADR-0064 bài 7b): "`order.vehicle.view = any` ⇒ `order.view = any`; `order.vehicle.view = assigned` ⇒ `order.view = assigned`"; tiêu chí: "Thêm tạm `order.vehicle.view: any` cho INTERN ⇒ đỏ". Bài ghim cũ không còn căn cứ vì route không hỏi `trip.view` nữa. |
+| ADR-0059 bảng quyền, dòng PARTNER | "\| PARTNER \| **Không** \| `trip.view` none; không qua cổng `office` \|" | "\| PARTNER \| **Không** \| `order.vehicle.view` none; **qua** cổng `orders` nhưng bị chặn trong thân (403); tài khoản lai PARTNER + FIELD cũng 403 (`!holdsPartner` ở nhánh hẹp) \|" |
 | ADR-0049 tóm tắt điểm 6 (`:31`) | "Hướng dẫn viên, Đối tác không thấy." | "… không thấy (ngoại lệ hẹp ADR-0064 D2: HDV đang phụ trách thấy biển số + tên tài xế của xe chở khách **đơn đó** trên trang đơn; vẫn không thấy lịch, chuyến, khách khác, SĐT tài xế)." |
 | [HĐ] Q1 (`docs/superpowers/specs/2026-09-29-van-chuyen-hoi-dap-dieu-phoi.md:10`) — lời chủ | "HDV, Đối tác không thấy lịch xe" | **Giữ nguyên** (trang đơn không phải lịch xe); ngoại lệ như dòng trên. |
 | ADR-0049 D3 danh sách trường cho tài xế (`:238`) | "Không bao giờ: … ghi chú đơn …" | **Không đổi** (lời chủ V2 "tài xế KHÔNG"). |
@@ -135,4 +149,4 @@ Không còn câu mở cho chủ: phạm vi đã có lời chốt 30/9. Giả đ�
 
 - Mã của ADR-0059 chưa có trên `main`; D2 đo theo nội dung ADR-0059 (nhánh `worktree-phan-tich-gop-y`), chưa đo theo mã thi công.
 - Sau khi chuyến kết thúc, suất có còn "mở" không (ADR-0059 chọn: chuyến đã kết thúc vẫn hiện) — chưa đọc luật đóng suất của `0042`.
-- Bản sửa lần 2–3 chưa có người kiểm độc lập.
+- Bản nháp đã qua kiểm độc lập 2 vòng (ĐẠT CÓ ĐIỀU KIỆN, các điều kiện đã sửa ở commit này); bản sửa lần 4 chưa được kiểm lại.

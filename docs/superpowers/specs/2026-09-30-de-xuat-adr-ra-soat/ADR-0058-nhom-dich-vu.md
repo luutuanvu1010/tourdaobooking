@@ -1,6 +1,6 @@
 # ADR-0058 — Nhóm dịch vụ quản lý trong app: gieo một lần từ Sheet, mỗi dịch vụ đúng một nhóm, chip lọc ở ô chọn dịch vụ của form đơn
 
-- **Trạng thái:** **proposed — đề xuất, CHƯA duyệt.** Bản nháp của người soạn (phiên soạn ADR 2026-09-30), **đã sửa lần 1 theo báo cáo người kiểm độc lập** cùng ngày. Chủ dự án chưa duyệt; từ khi duyệt chỉ sửa dòng trạng thái.
+- **Trạng thái:** **proposed — đề xuất, CHƯA duyệt.** Bản nháp của người soạn (phiên soạn ADR 2026-09-30), **đã sửa lần 1 theo báo cáo người kiểm độc lập** cùng ngày; sửa lần 2 theo người kiểm độc lập vòng 2 (chỉ dòng "Chưa kiểm"). Chủ dự án chưa duyệt; từ khi duyệt chỉ sửa dòng trạng thái.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt **1a** (trang ghép `trang-ghep-luot-1.md` cùng thư mục nháp). ADR-0062 là lượt **1b**, duyệt riêng (đếm trần 3 ở trang ghép).
 - **Nguồn (lời chủ, chuẩn — không hỏi lại):** báo cáo rà soát `docs/superpowers/specs/2026-09-30-ra-soat-luong-giao-dien-phan-loai-huong-dan.md` (nhánh `ra-soat-luong-giao-dien`), §6 dòng 3, nguyên văn lựa chọn: **"Trong app, gieo sẵn 15 nhóm"** — một lần từ Sheet (sửa nhóm của ATV), Quản trị sửa sau; mỗi dịch vụ một nhóm, thẻ để sau. Lời chủ chuyển qua điều phối 30/9: bộ lọc là chip nhóm ở ô chọn dịch vụ của form đơn, có "Chưa phân loại" và nhãn "Đang lọc: … — N dịch vụ"; lựa chọn lọc nhớ theo từng người trên máy (không mặc định theo vai); **KHÔNG** đọc cột nhóm của Sheet định kỳ; **KHÔNG** sửa §2.5 đặc tả.
@@ -311,4 +311,4 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 - Mọi dòng CSV đã khớp mã `catalog_item` trên **production** hay chưa (chưa đọc D1 remote). Bước kiểm sau áp ở Đ7 bắt được.
 - *(Đã kiểm:)* `audit_log` không còn `CHECK` liệt kê hành động từ `0007` (`migrations/0007_audit_open_actions_catalog_code_money_guards.sql:10-11`: `action TEXT NOT NULL -- kiểm ở code`, `target_type` kiểm ở code) ⇒ ba hành động mới + `catalog_groups_seeded` không cần migration riêng; dòng nhật ký gieo trong `0046` hợp lệ về cấu trúc.
 - Nhánh `worktree-agent-*` tạo **sau** lần quét 30/9 có thể lấy 0046. Lập kế hoạch thì quét lại.
-- Bản nháp này **chưa có người kiểm độc lập**.
+- Bản nháp này **đã qua kiểm độc lập 2 vòng** (ĐẠT CÓ ĐIỀU KIỆN, các điều kiện đã sửa ở commit này); bản sửa theo vòng 2 **chưa được kiểm lại**.

@@ -1,6 +1,6 @@
 # ADR-0062 — Báo tin khi đơn đã xác nhận đổi giờ, nơi đón hoặc số khách: tới HDV phụ trách và người lập / phụ trách đơn, trong app và màn hình khoá
 
-- **Trạng thái:** **proposed — đề xuất, CHƯA duyệt.** Bản nháp của người soạn (phiên soạn ADR 2026-09-30), **đã sửa lần 1 theo báo cáo người kiểm độc lập** (2026-09-30); **sửa lần 2 theo điều phối**: đổi số từ nháp "0059" sang 0062 (0059–0061 đã được phiên khác dùng, chủ đã duyệt). Chủ dự án chưa duyệt; từ khi duyệt chỉ sửa dòng trạng thái.
+- **Trạng thái:** **proposed — đề xuất, CHƯA duyệt.** Bản nháp của người soạn (phiên soạn ADR 2026-09-30), **đã sửa lần 1 theo báo cáo người kiểm độc lập** (2026-09-30); **sửa lần 2 theo điều phối**: đổi số từ nháp "0059" sang 0062 (0059–0061 đã được phiên khác dùng, chủ đã duyệt); **sửa lần 3 theo người kiểm độc lập vòng 2** (khai trước `order_money_adjusted`, thứ tự đoạn `detail`, luật an toàn hàm đọc, chiều phụ thuộc nhãn). Chủ dự án chưa duyệt; từ khi duyệt chỉ sửa dòng trạng thái.
 - **Ngày:** 2026-09-30.
 - **Thuộc gói:** lượt duyệt **1b** (trang ghép `trang-ghep-luot-1.md` cùng thư mục nháp). Duyệt riêng với ADR-0058 (lượt 1a) để giữ trần 3.
 - **Nguồn (lời chủ, chuẩn — không hỏi lại):**
@@ -18,7 +18,7 @@
   - ADR-0014 điều 6 và 12 (HDV sửa số khách; báo CTV bằng chấm đếm);
   - ADR-0023 điều 8 (**proposed**, thông báo nổi khi HDV đổi số khách — **bị thay một phần**, xem "Câu thay");
   - ADR-0030 (người phụ trách, HDV xem đơn đang phụ trách);
-  - ADR-0063 (dùng lại hằng "giờ" `TRUONG_GIO_TINH_LUOT` do ADR này định nghĩa ở Đ1; hành động `order_money_adjusted` của văn phòng; đoạn đuôi lượt đổi giờ) và ADR-0065 (đoạn "số khách đi xe") — hai ADR lượt 2, khi được duyệt thì khớp vào tập nguồn ở Đ1 **không cần sửa ADR này** (Đ1 đã dành chỗ).
+  - ADR-0063 (dùng lại hằng "giờ" `TRUONG_GIO_TINH_LUOT` do ADR này định nghĩa ở Đ1; hành động `order_money_adjusted` của văn phòng — **ADR này khai sẵn** trong `src/shared/audit-actions.ts` và **liệt kê sẵn** trong tập nguồn + view `0047`, ADR-0063 là nơi đầu tiên ghi dòng; đoạn đuôi lượt đổi giờ) và ADR-0065 (đoạn "số khách đi xe", đi trong `trip_updated` hoặc dòng sửa số khách — hai hành động đã có trong tập nguồn) — hai ADR lượt 2, khi được duyệt thì khớp vào Đ1 **không cần sửa ADR này, không cần migration tạo lại view**.
 - **Hiến chương Phần I (đã duyệt) áp:** 1.4 (hình chiếu không tạo sự thật), 4.1, K16, 5.3, 5.10, 5.12, 5.13, 5.16 (tin được phép lỡ).
 - **Xây trên lỗ đang hở:** **không có.** `docs/quyen-hoan.json` mục `phat_hien` = `[]` (đọc 2026-09-30 @`824193f1`).
 
@@ -79,17 +79,22 @@
   - **A (khuyến nghị):** dịch vụ — ngày khởi hành, giờ khởi hành, giờ đón (ô cũ ghi kép), ngày check-in, giờ check-in; chặng — ngày đón, giờ đón.
   - **B:** chỉ ngày/giờ đón (giờ đón của dịch vụ; ngày khởi hành coi như ngày đón của dịch vụ; ngày/giờ đón của chặng).
   - Phương án **C** của câu 3 (như A, thêm nơi đón / nơi trả vào **lượt**) chỉ đổi cách đếm của ADR-0063; với tin của ADR này C giống A (nơi đón vốn có tin riêng, nơi trả không có tin).
+  - **Chiều phụ thuộc của nhãn (sửa theo người kiểm vòng 2):** bảng **nhãn** mọi trường thời gian (tên đề xuất `NHAN_TRUONG_THOI_GIAN`, gồm đủ năm trường của dịch vụ `departDate`, `departTime`, `pickupTime`, `checkinDate`, `checkinTime` và hai trường của chặng) đặt ở `src/shared/`; `TRUONG_GIO_TINH_LUOT` là **tập con** khoá của bảng đó (theo câu 3). `TRIP_VALUE_FIELDS` của module `orders` (`src/modules/orders/service-rules.ts:367-369`, hôm nay tự viết nhãn) **lấy nhãn từ** bảng ở `src/shared/`, **không** ngược lại (`src/shared/` không import `src/modules/` — `CLAUDE.md` §7). Bảng nhãn phải là **tập cha**: nếu chủ chọn B ở câu 3 (bỏ giờ khởi hành, check-in khỏi "giờ"), `describeTripChange` vẫn cần nhãn của cả năm trường để ghi nhật ký như hôm nay.
   - ADR-0063 D3.2 (lượt 2a) **dùng lại** hằng này để đếm lượt "đổi giờ" và chỉ thêm luật đếm riêng của nó (thêm chặng tính một lần, đóng chặng không tính, các loại trừ). Nếu 2a chưa duyệt, hằng vẫn đứng một mình cho tin. Không nơi nào khác được liệt kê trường "giờ" riêng; bài kiểm Đ1-a ép.
 - **Hành động nguồn** (tập đóng, khai **một nơi** trong `src/shared/thong-bao.ts`). Tập đoạn nhận = **hằng "giờ"** ∪ **nơi đón** ∪ **số khách** ∪ thêm/bỏ chặng:
   - `trip_updated`, **chỉ khi** `detail` có một trong các đoạn sau:
-    - đoạn "<nhãn> A → B" của một trường thuộc hằng "giờ" (nhãn lấy từ `TRIP_VALUE_FIELDS`, `src/modules/orders/service-rules.ts:367-369`);
+    - đoạn "<nhãn> A → B" của một trường thuộc hằng "giờ" (nhãn lấy từ bảng nhãn ở `src/shared/` — cùng bảng mà `TRIP_VALUE_FIELDS` của `orders` đọc, xem trên);
     - "đổi điểm đón";
     - chữ cố định `"cập nhật chặng đưa đón"`. Route ghi chữ này khi `describeTripUpdates` trả `null` mà lệnh vẫn đổi chặng (`src/modules/orders/index.ts:605`). Đoạn này có tin với câu chung "Đơn <mã> vừa đổi chặng đưa đón" (Đ2), vì không phân biệt được đổi giờ, nơi đón hay nơi trả; chấp nhận báo thừa hơn bỏ sót;
     - **đoạn dành sẵn cho ADR-0065** (chỉ có mặt khi ADR-0065 được duyệt và thi công): "số khách đi xe A → B". Đổi `ride_pax` sau xác nhận đi qua `PUT /trip` (ADR-0065 D3) nên nằm trong **cùng** dòng `trip_updated`. Chọn cách này thay vì hành động riêng: một lệnh = một dòng nhật ký = một tin; cờ `doiSoKhach` giữ đúng nghĩa "ghi `order_money_adjustment`".
     - Mọi `trip_updated` khác (chỉ ghi chú, nơi check-in, và — nếu hằng "giờ" không gồm chúng — các trường thời gian ngoài hằng) **không** có tin;
   - `order_leg_updated`, **chỉ khi** đổi một trường chặng thuộc hằng "giờ" (ngày đón, giờ đón) hoặc nơi đón. Chỉ đổi nơi trả thì không có tin;
   - `order_leg_added`, `order_leg_closed`: thêm / bỏ một chặng đón. *Giả định người soạn, xem cuối tệp*;
-  - **mọi hành động mang cờ `doiSoKhach: true`** ở `src/shared/audit-actions.ts`: hôm nay `order_money_adjusted_by_field`; ADR-0063 D1 thêm `order_money_adjusted` (văn phòng). Luật cờ (ép bằng bài kiểm, Đ1-a): **mọi hành động ghi dòng `order_money_adjustment` phải mang cờ `doiSoKhach`**, và mọi hành động mang cờ đều nằm trong tập nguồn.
+  - **mọi hành động mang cờ `doiSoKhach: true`** ở `src/shared/audit-actions.ts`: `order_money_adjusted_by_field` (có dòng ghi từ hôm nay) và `order_money_adjusted` (văn phòng — ADR-0063 D1). Luật cờ (ép bằng bài kiểm, Đ1-a): **mọi hành động ghi dòng `order_money_adjustment` phải mang cờ `doiSoKhach`**, và mọi hành động mang cờ đều nằm trong tập nguồn.
+  - **`order_money_adjusted` khai TRƯỚC (chọn cách (a) của người kiểm vòng 2):** khi thi công ADR này, `order_money_adjusted` được khai vào `src/shared/audit-actions.ts` kèm cờ `doiSoKhach` và có mặt trong tập nguồn + trong danh sách hành động của view `v_aud_order_change` (`0047`), dù chưa route nào ghi nó. ADR-0063 D1 chỉ là **nơi ghi đầu tiên**, không khai lại.
+    - **Lý do chọn (a)** thay cho (b) "lát ADR-0063 kèm migration tạo lại view": view là cửa công bố (tạo lại = một chiều nhẹ, thêm một migration, thêm một chỗ phải khớp hằng); khai trước giữ đúng câu "duyệt lượt 2 sau không phải sửa ADR-0062", và bài 3 (view lọc **đúng** hằng tập nguồn) vẫn so với một hằng duy nhất.
+    - **Luật thứ tự:** việc nào lên `main` trước (thi công ADR-0062 hay lát ADR-0063 D1) thì **khai** `order_money_adjusted` (kèm cờ); việc sau **dùng lại**, không khai lần hai (bài `AUDIT_ACTIONS` không trùng khoá đã có).
+    - **Nếu lượt 2a bị bác:** hành động khai sẵn là **chết nhưng vô hại** — không route nào ghi, view không bao giờ trả dòng của nó, không tin nào sinh ra. Muốn dọn thì gỡ khỏi hằng + migration mới tạo lại view (không bắt buộc).
   - **Không** gồm: `order_leg_short_notice` (đặt gấp), `passengers` (danh sách tên), `booker`, ghi chú, nơi check-in, nơi trả.
 - **Đoạn đuôi không sinh tin:** hàm đọc bỏ qua (không đưa vào câu tin, không làm dòng thành tin) đoạn đuôi đặt gấp do `kemDatGap` nối (`index.ts:81`) và đoạn đuôi lượt đổi giờ " · tính 1 lượt đổi giờ" / " · đổi giờ (Toàn quyền, không tính lượt)" do ADR-0063 D3.5 nối. Hai hàm viết đó có mặt trong bài khứ hồi (Đ2).
 - **"Sau xác nhận" tính, không đoán:** dòng nguồn chỉ thành tin khi đơn có dòng `confirmed` với `created_at` **nhỏ hơn** `created_at` của dòng nguồn.
@@ -98,11 +103,11 @@
   - Lý do cần luật: `PUT /trip` nhận cả đơn nháp (`index.ts:598`); các route chặng và sửa số khách vốn chỉ nhận đơn đã xác nhận. Đơn nháp không sinh tin: ADR-0045 điều 1 giữ nguyên tinh thần.
 - **Mốc bắt đầu:** chỉ dòng ghi **sau** thời điểm phát hành bản có ADR này (hằng trong mã). Tránh việc ngay sau triển khai "Của tôi" bật lên hàng loạt tin cũ trong 30 ngày giữ tin.
 - **Đọc qua view công bố mới của `audit`** `v_aud_order_change` (id, `order_id`, `staff_id`, `action`, `detail`, `created_at`):
-  - lọc `order_id IS NOT NULL` và đúng tập hành động nguồn;
+  - lọc `order_id IS NOT NULL` và đúng tập hành động nguồn — **gồm sẵn `order_money_adjusted`** (khai trước, xem trên), để lát ADR-0063 không phải tạo lại view;
   - `thongbao` (module nghiêm) đọc view này, không đọc `audit_log`;
   - **chỉ `thongbao` được đọc view này** (view có cột `detail`, là chữ nhật ký): bài kiến trúc mới — tên `v_aud_order_change` chỉ được xuất hiện trong SQL của `src/modules/thongbao/` (và migration tạo nó); module khác cần đọc thì phải có ADR. Không thu hẹp cột `detail` được vì hàm đọc cần nó để dựng câu tin; thay vào đó view chỉ lọc đúng tập hành động nguồn (bài 3);
   - **không** sửa `v_aud_order_event` (ADR-0034 điều 5 "không sửa view đang có").
-  - Migration **`0047`** (bảng số: 0046 = ADR-0058, 0047 = ADR-0062, 0048 = ADR-0063, 0049 = ADR-0065; ADR-0054…0057 lấy số ≥ 0050). Lập kế hoạch vẫn quét lại mọi nhánh/worktree trước khi đặt tệp (`CLAUDE.md` §10).
+  - Migration **`0047`** (bảng số: 0046 = ADR-0058, 0047 = ADR-0062, 0048 = ADR-0063, 0049 = ADR-0065; ADR-0054…0057 và ADR-0060, ADR-0061 (phiên Góp ý, mỗi ADR một migration) lấy số ≥ 0050). Lập kế hoạch vẫn quét lại mọi nhánh/worktree trước khi đặt tệp (`CLAUDE.md` §10).
 - **Cùng lô = một tin:** các dòng nguồn cùng đơn, cùng người làm, cùng `created_at` (một lệnh ghi nhiều dòng) gộp thành **một** tin.
 
 ### Đ2. Nội dung tin — chỉ phần có khuôn do máy chủ viết; không bao giờ chữ tự do
@@ -121,9 +126,15 @@
   - dòng `trip_updated` (`describeTripChange`, tiền tố `<tên dịch vụ>:`) và `order_leg_*` (`moTaChang`, "Chiều đi · <tên dịch vụ>") **đã** mang tên dịch vụ, kể cả tên nhập tay. Hàm **đọc** **bỏ** phần tên đó, chỉ giữ chiều ("Chiều đi" / "Chiều về") và phần đổi. Kết quả: tin đổi giờ / nơi không có tên dịch vụ; tin số khách có tên danh mục hoặc "dịch vụ nhập tay".
 - **Việc kèm theo (đổi khuôn `detail`, chỉ cho dòng mới):**
   - `order_money_adjusted_by_field` hôm nay chỉ có lý do (`repository.ts:1150`). Đường ghi thêm **một đoạn đầu có khuôn** bắt đầu bằng **`"số khách: "`** (có dấu hai chấm), vd "số khách: Tour 3 đảo: người lớn 4 → 3", dựng từ `before`/`after` sẵn có bằng một hàm thuần; lý do đứng sau, tách bằng ký hiệu cố định " · lý do: ".
+  - **Thứ tự đoạn cố định (khớp ADR-0065 D3):** `"số khách: …"` [` · số khách đi xe A → B` — chỉ khi máy tự hạ số khách đi xe, ADR-0065 câu 8 = A] ` · lý do: …`. **Lý do LUÔN ở cuối.** Hàm đọc cắt `detail` tại lần xuất hiện **đầu tiên** của `" · lý do: "` và bỏ toàn bộ phần sau (lý do của route HDV còn là chữ tự do).
+  - **Tin có mang đoạn tự hạ:** câu tin đổi số khách **có** kèm "số khách đi xe A → B" khi dòng có đoạn này (vd "Đơn TD-0123: đổi số khách (Tour 3 đảo: người lớn 4 → 3) · số khách đi xe 4 → 3"). Lý do: đoạn "số khách đi xe A → B" đã là đoạn nhận ở Đ1 (dòng `trip_updated`); đọc nó ở cả hai hành động giữ **một** luật cho một đoạn, và HDV cần biết xe giữ bớt chỗ. *Giả định người soạn, đảo được* (bỏ = hàm đọc dừng sau đoạn "số khách: …"); chỉ có nghĩa khi câu 8 = A.
   - Cùng khuôn áp cho `order_money_adjusted` của văn phòng (ADR-0063 D1). Hai hành động dùng **cùng** hàm viết (tham số hành động của `insertMoneyAdjustment`, ADR-0063 D1.8).
   - **Tiền tố không lẫn nhau:** đoạn số khách dịch vụ bắt đầu bằng "số khách: " (dấu hai chấm ngay sau "khách"); đoạn của ADR-0065 bắt đầu bằng "số khách đi xe " (dấu cách). Hàm đọc so **nguyên tiền tố kể cả ký tự thứ chín**, không so "số khách"; bài khứ hồi có **ca chéo** (đoạn này không bị đọc thành đoạn kia).
-  - Hàm đọc chỉ lấy đoạn đầu có khuôn, không bao giờ lấy lý do.
+  - Hàm đọc chỉ lấy các đoạn có khuôn đứng trước " · lý do: ", không bao giờ lấy lý do.
+- **Luật an toàn của hàm đọc (bất biến, sửa theo người kiểm vòng 2):**
+  - **Không tách theo ":"** (giờ "07:00" có dấu hai chấm) và không tin dấu ", " / " | " / " → " làm ranh giới khi chúng có thể nằm trong tên dịch vụ hay chữ nơi tự do. Hàm đọc khớp theo **ngữ pháp chặt**: nhãn cố định (bảng nhãn ở `src/shared/`, chữ cố định "đổi …", "thêm chặng đón", "bỏ chặng đón", "số khách: ", "số khách đi xe ") + **giá trị đã kiểm dạng**: ngày `YYYY-MM-DD`, giờ `HH:MM`, `(trống)`, số nguyên cho số khách.
+  - Phần tên dịch vụ (tiền tố `<tên>: ` của `describeTripChange`, "Chiều đi · <tên>" của `moTaChang`) là chữ bất kỳ và **bị bỏ**. Nếu `detail` phân tích được theo **nhiều hơn một** cách (tên chứa ": ", " | ", " → " hay một nhãn trường), hoặc có phần không khớp ngữ pháp ⇒ dùng **câu chung** (Đ2 dưới) cho cả dòng.
+  - **Không bao giờ** in ra một mẩu chữ thô của `detail`: câu tin chỉ ghép từ nhãn cố định + giá trị đã kiểm dạng + tên danh mục đã kiểm ở đường viết.
   - Dòng cũ không có đoạn này ⇒ câu chung "Đơn <mã>: đổi số khách".
 - **Một nguồn khuôn chữ:**
   - hàm viết (`describeTripChange`, `moTaChang`, hàm viết đoạn số khách, **`kemDatGap`** (`index.ts:81`), hàm viết đoạn đuôi lượt đổi giờ của ADR-0063, hàm viết đoạn "số khách đi xe" của ADR-0065 khi có) và hàm đọc `phanDoiCuaTin` có bài **khứ hồi**: mọi đầu ra của hàm viết đọc ra đúng phần đổi, và đoạn đuôi (đặt gấp, lượt đổi giờ) không lọt vào câu tin;
@@ -246,12 +257,20 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
    - dòng có đuôi đặt gấp / "tính 1 lượt đổi giờ" → câu tin không chứa đuôi đó;
    - **ca chéo tiền tố:** "số khách: …" không đọc thành "số khách đi xe …" và ngược lại;
    - dịch vụ nhập tay tên "Anh Nam 0901234567" → tin số khách ghi "dịch vụ nhập tay"; tin đổi giờ của dịch vụ đó không chứa tên;
-   - chữ nơi tự do, lý do, tên dịch vụ nhập tay, dãy số **không bao giờ** xuất hiện trong câu tin (quét bằng bộ ca có SĐT giả, tên giả).
+   - chữ nơi tự do, lý do, tên dịch vụ nhập tay, dãy số **không bao giờ** xuất hiện trong câu tin (quét bằng bộ ca có SĐT giả, tên giả);
+   - **tên dịch vụ đối kháng** (thêm theo người kiểm vòng 2) — mỗi ca ghi rõ kết quả mong đợi:
+     - tên chứa ":" (vd "Tour: đảo") và đổi giờ đón thật 07:00 → 06:30 → tin "giờ đón 07:00 → 06:30", không chứa "đảo";
+     - tên chứa " | " và một đổi giờ giả (vd "Tour | giờ đón 01:00 → 02:00") → tin chỉ có đổi thật "giờ đón 07:00 → 06:30"; **không bao giờ** có "01:00 → 02:00";
+     - tên chứa " → " hay chứa một nhãn trường khiến `detail` phân tích được nhiều cách → **câu chung** "Đơn <mã> vừa đổi chặng đưa đón", không in mẩu thô;
+     - tên chứa " · lý do: " ở dòng số khách (tên danh mục lạ) → cắt sớm, phần trước không khớp ngữ pháp → câu chung "… đổi số khách";
+     - lý do tự do chứa "số khách đi xe 1 → 9" → không vào câu tin (cắt tại " · lý do: " đầu tiên);
+     - giá trị sai dạng (vd "giờ đón 7h → 6h30") → câu chung, không in giá trị.
 3. **Tập nguồn một nơi (Đ1-a):**
    - mọi hành động có cờ `doiSoKhach` ∈ tập nguồn; tập nguồn ⊂ `AUDIT_ACTIONS`;
    - **mọi hành động ghi `order_money_adjustment` mang cờ `doiSoKhach`**: tham số hành động của `insertMoneyAdjustment` có kiểu chỉ nhận hành động mang cờ (kiểu dẫn từ `AUDIT_ACTIONS`), cộng bài quét mã nguồn — mọi câu `INSERT INTO order_money_adjustment` chỉ nằm trong `insertMoneyAdjustment` (thêm tạm một câu chèn thứ hai ở chỗ khác → đỏ);
    - nhãn trường giờ dùng trong hàm đọc lấy từ **đúng** hằng `TRUONG_GIO_TINH_LUOT` (không danh sách thứ hai; thêm tạm một mảng trường giờ riêng trong `thong-bao.ts` → đỏ);
-   - view `v_aud_order_change` lọc **đúng** tập nguồn (so chuỗi SQL với hằng, khuôn `src/migrations-0025.test.ts`);
+   - view `v_aud_order_change` lọc **đúng** tập nguồn (so chuỗi SQL với hằng, khuôn `src/migrations-0025.test.ts`). Hằng so sánh là tập **đã khai** — gồm `order_money_adjusted` khai trước (Đ1) dù chưa có dòng ghi; bỏ nó khỏi view hoặc khỏi hằng → đỏ;
+   - bảng nhãn trường thời gian ở `src/shared/` là tập cha của `TRUONG_GIO_TINH_LUOT`; `TRIP_VALUE_FIELDS` (`orders`) đọc nhãn từ bảng đó (viết lại một nhãn tay trong `service-rules.ts` → đỏ);
    - **chỉ `thongbao` đọc `v_aud_order_change`** (quét SQL mọi module; thêm tạm một câu đọc view ở `orders` → đỏ).
 4. **Cùng lô một tin:** một lệnh sửa sinh hai dòng nhật ký cùng mốc → một tin.
 5. **Chống trùng MQ-07** (bài chờ, cài khi D6 có mặt): một dòng `order_leg_updated` của chặng có suất mở → người lập (Bán hàng) nhận đúng một tin.
@@ -281,4 +300,4 @@ Tệp ADR cũ **không** sửa; `docs/adr/README.md` do điều phối cập nh�
 - Hiệu năng câu đọc `confirmed` không giới hạn 30 ngày (chỉ theo các `order_id` có dòng nguồn): chưa đo.
 - Hiệu năng: `v_aud_order_change` thêm dòng vào vòng lọc bằng JS của hộp (ADR-0034 "Hệ quả" đã hẹn đo). Chưa đo.
 - iPhone cắt câu dài ở màn hình khoá bao nhiêu ký tự. Chưa thử.
-- Bản nháp này **chưa có người kiểm độc lập**.
+- Bản nháp này **đã qua kiểm độc lập 2 vòng** (ĐẠT CÓ ĐIỀU KIỆN, các điều kiện đã sửa ở commit này); bản sửa theo vòng 2 **chưa được kiểm lại**.

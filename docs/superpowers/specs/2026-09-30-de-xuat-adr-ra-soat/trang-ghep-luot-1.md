@@ -1,6 +1,6 @@
 # Trang ghép — lượt duyệt 1 (ADR-0058 nhóm dịch vụ; ADR-0062 báo tin khi đơn đổi sau xác nhận)
 
-- **Loại:** trang ghép theo `CLAUDE.md` §9 "Bước ghép khi duyệt". Bản nháp của người soạn, 2026-09-30, **đã sửa lần 1 theo báo cáo người kiểm độc lập** cùng ngày.
+- **Loại:** trang ghép theo `CLAUDE.md` §9 "Bước ghép khi duyệt". Bản nháp của người soạn, 2026-09-30, **đã sửa lần 1 theo báo cáo người kiểm độc lập** cùng ngày; sửa lần 2 theo người kiểm độc lập vòng 2 (khai trước `order_money_adjusted`; bản sửa này chưa được kiểm lại).
 - **Mốc mã:** `origin/main` = `1db777f4` (bản 1.38). Cột "Nguồn" trỏ `tệp:dòng` ở mốc đó.
 - **Xây trên lỗ đang hở:** không. `docs/quyen-hoan.json` `phat_hien = []`.
 
@@ -15,7 +15,7 @@ Mỗi lượt duyệt tối đa **3** quyết định chạm quyền hoặc dữ
 
 Không quyết định nào của lượt 1b phụ thuộc lượt 1a (không bảng, route, ô chung) ⇒ duyệt theo thứ tự nào cũng được.
 
-**Chỗ nối với lượt 2:** ADR-0062 **định nghĩa** hằng "giờ" `TRUONG_GIO_TINH_LUOT` (Đ1); ADR-0063 (lượt 2a) dùng lại hằng đó để đếm lượt đổi giờ — câu 3 của `cau-hoi-chu.md` quyết cho cả hai; lượt 2a chậm hay bị bác thì hằng vẫn đứng một mình cho tin; ADR-0062 Đ1 dành sẵn chỗ cho hành động `order_money_adjusted` (ADR-0063) và đoạn "số khách đi xe" (ADR-0065, lượt 2b), nên duyệt lượt 2 sau **không** phải sửa ADR-0062.
+**Chỗ nối với lượt 2:** ADR-0062 **định nghĩa** hằng "giờ" `TRUONG_GIO_TINH_LUOT` (Đ1); ADR-0063 (lượt 2a) dùng lại hằng đó để đếm lượt đổi giờ — câu 3 của `cau-hoi-chu.md` quyết cho cả hai; lượt 2a chậm hay bị bác thì hằng vẫn đứng một mình cho tin; ADR-0062 Đ1 **khai sẵn** hành động `order_money_adjusted` (ADR-0063 là nơi ghi đầu tiên) trong `src/shared/audit-actions.ts`, tập nguồn và danh sách hành động của view `v_aud_order_change` (`0047`); đoạn "số khách đi xe" (ADR-0065, lượt 2b) đi trong hai hành động đã có trong tập nguồn. Vì vậy duyệt lượt 2 sau **không** phải sửa ADR-0062 và **không** cần migration tạo lại view. Lượt 2a bị bác thì hành động khai sẵn chết nhưng vô hại (không dòng nào ghi).
 
 ---
 
@@ -27,7 +27,7 @@ Không quyết định nào của lượt 1b phụ thuộc lượt 1a (không b�
 | `catalog_override`, `catalog_sync` | `catalog` | ghi đè giá / ẩn; trạng thái đồng bộ | 0058 | **không** chạm |
 | **`ctl_group`** (mới) | `catalog` | nhóm dịch vụ (bảng tra cứu) — **một loại** | 0058 | tạo + gieo 14 dòng |
 | **`ctl_service_group`** (mới) | `catalog` | nhóm hiện hành / lịch sử nhóm của **dịch vụ** — **một loại** (không người, không đơn, không tiền); dòng hiện hành = `seq` lớn nhất | 0058 | tạo + gieo ≤ 110 dòng (`seq` = 1) |
-| `audit_log` | `audit` | nhật ký chung: sự kiện của **đơn, tài khoản, danh mục, hồ sơ, chuyến, thông báo…** (nhiều loại, phân biệt bằng `target_type` + `order_id`) | 0058, 0062 | 0058: thêm dòng `catalog_*` (ghi qua `auditStatement`). 0062: **đọc** qua view mới; ghi thêm đoạn đầu "số khách: …" vào `detail` của mọi hành động mang cờ `doiSoKhach` (hôm nay `order_money_adjusted_by_field`; sau ADR-0063 thêm `order_money_adjusted`) |
+| `audit_log` | `audit` | nhật ký chung: sự kiện của **đơn, tài khoản, danh mục, hồ sơ, chuyến, thông báo…** (nhiều loại, phân biệt bằng `target_type` + `order_id`) | 0058, 0062 | 0058: thêm dòng `catalog_*` (ghi qua `auditStatement`). 0062: **đọc** qua view mới (view liệt kê sẵn cả `order_money_adjusted` chưa có dòng); ghi thêm đoạn đầu "số khách: …" vào `detail` của mọi hành động mang cờ `doiSoKhach` (hôm nay `order_money_adjusted_by_field`; sau ADR-0063 thêm `order_money_adjusted`) |
 | **`v_aud_order_change`** (view mới) | `audit` | **chỉ** dòng nhật ký **của đơn** (`order_id IS NOT NULL`) thuộc tập hành động "đổi sau xác nhận" — không dòng tài khoản, hồ sơ, chuyến | 0062 | tạo; **chỉ `thongbao` được đọc** (bài kiến trúc mới) |
 | `v_aud_order_event` | `audit` | sáu hành động vòng đời đơn | 0062 | **không** sửa; thêm một **cách đọc**: dòng `confirmed` của đúng các đơn có dòng nguồn (không giới hạn 30 ngày) để quyết "sau xác nhận" |
 | `order_money_adjustment` | `orders` | dòng điều chỉnh số khách / tiền chỉ-thêm | 0062 | **không** đổi bảng; đường ghi dùng `before`/`after` sẵn có để viết đoạn "số khách …" vào `detail` nhật ký |
@@ -72,7 +72,7 @@ Giá trị ô theo thứ tự `SALES, ACCOUNTING, ADMIN, FIELD, PARTNER, SUPER_A
 | Các route đổi đơn: `PUT /api/orders/:id/trip`, `POST/PUT /api/orders/:id/legs…`, `POST /api/orders/:id/handler-money-edit` | như hiện có | ô hiện có (`order.trip.edit`; route hẹp HDV `order.money.edit = assigned` + đang phụ trách, hoặc Toàn quyền) | 0062 | **không đổi cửa**; chỉ thêm việc sau lô: gọi `baoThayDoi` kèm tham số nội bộ |
 | `GET /api/thong-bao`, `/tom-tat`, `/moi-nhat` (hộp, số đỏ, màn hình khoá) | `staff` | hàm lọc một nguồn `locHopThongBao` (người lập / phụ trách, bỏ người sửa, `duocThayTinDon`, `order.history.view` cho tên) | 0062 | bảng ca `thong-bao.test.ts`; `nguoiNhanDay` dùng cùng hàm |
 | Sự kiện Bảng tin (WebSocket) | nhãn `nhanKetNoi` | đúng 5 khoá (`laSuKienHopLe`) | 0062 | **không đổi** — tham số mới không vào sự kiện |
-| Migration `0046` (0058), `0047` (0062) | — | **chủ tự áp remote** theo runbook (`CLAUDE.md` §8) | cả hai | bảng số chung: 0046 = ADR-0058, 0047 = ADR-0062, 0048 = ADR-0063, 0049 = ADR-0065; ADR-0054…0057 ≥ 0050; quét lại mọi nhánh lúc lập kế hoạch |
+| Migration `0046` (0058), `0047` (0062) | — | **chủ tự áp remote** theo runbook (`CLAUDE.md` §8) | cả hai | bảng số chung: 0046 = ADR-0058, 0047 = ADR-0062, 0048 = ADR-0063, 0049 = ADR-0065; ADR-0054…0057, ADR-0060, ADR-0061 ≥ 0050; quét lại mọi nhánh lúc lập kế hoạch |
 
 ---
 
