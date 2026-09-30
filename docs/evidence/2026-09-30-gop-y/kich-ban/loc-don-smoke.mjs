@@ -1,5 +1,7 @@
 // Bộ lọc đơn nhiều điều kiện ở /orders (góp ý T4 — chủ duyệt ảnh phác docs/design/gop-y-2026-09-30/a-bo-loc-don.html, 30/9): nút "Lọc" + số điều kiện,
 // bảng trượt chọn ngày đi / trạng thái / dịch vụ / người lập, chip "đang lọc" bỏ từng điều kiện, "Xoá lọc", nhớ bộ lọc trên máy, câu lỗi khi Từ > Đến.
+// ADR-0067 (30/9): ô "Người lập" = "Mọi người" / "Đơn tôi lập" + ô gõ tìm chọn từng người đã lập đơn (bỏ chính mình); bộ lọc "Đơn tôi lập" nhớ từ bản cũ
+// (`cuaToi: true`) vẫn lọc đúng đơn của mình.
 // Chạy từ GỐC repo (không cần mạng ngoài): npm run build:web && CHROME_BIN=<…/docs/evidence/2026-09-20-a2/kich-ban/chrome-wrap.sh> node docs/evidence/2026-09-30-gop-y/kich-ban/loc-don-smoke.mjs
 // Kho cookie dùng chung: chỉ một tài khoản (Bán hàng A); Bán hàng B chỉ lập đơn qua API.
 import assert from "node:assert/strict";
@@ -79,11 +81,40 @@ try {
   await p.ev(setInput("document.querySelector('#loc-tu')", ""));
   await p.ev(setInput("document.querySelector('#loc-den')", ""));
   await p.ev("document.querySelector('.sheet [data-trang-thai=\"draft\"]').click()");
-  await p.ev(setInput("document.querySelector('#loc-nguoi')", "toi"));
+  await p.waitFor("!!document.querySelector('.sheet .loc-nguoi-dau input[type=radio]')", "ô Người lập có lối tắt");
+  assert.deepEqual(await p.ev("[...document.querySelectorAll('.sheet .loc-nguoi-dau label')].map((l) => l.textContent)"), ["Mọi người", "Đơn tôi lập"]);
+  await p.ev("document.querySelectorAll('.sheet .loc-nguoi-dau input[type=radio]')[1].click()");
   await p.ev("document.querySelector('.sheet [data-action=\"ap-dung-loc\"]').click()");
   await doiDanhSach(p, [A1, A2], "đơn tôi lập, chờ xác nhận");
   assert.deepEqual(await p.ev(chip), ["Chờ xác nhận", "Đơn tôi lập"]);
   ok("Từ > Đến: câu \"Từ ngày không được sau Đến ngày.\", bảng giữ nguyên; Chờ xác nhận + Đơn tôi lập → 2 đơn của mình");
+
+  // 4b) ADR-0067: gõ tìm một người đã lập đơn (không dấu) → chọn → chỉ đơn người đó, chip đúng tên; chính mình không nằm trong danh sách dưới.
+  const dsNguoi = `[...document.querySelectorAll('.sheet [data-ds=\"nguoiLap\"] label')].map((l) => l.textContent)`;
+  await moBang(p);
+  await p.waitFor(`${dsNguoi}.length > 0`, "danh sách người lập tải xong", 10000);
+  assert.ok(!(await p.ev(dsNguoi)).includes(ACCOUNTS.salesA.name), "chính mình không ở danh sách dưới (đã có lối tắt Đơn tôi lập)");
+  assert.ok((await p.ev(dsNguoi)).includes(ACCOUNTS.salesB.name), "người đã lập đơn có trong danh sách");
+  assert.ok((await p.ev("parseFloat(getComputedStyle(document.querySelector('#loc-nguoi-tim')).fontSize)")) >= 16, "ô tìm người lập ≥ 16px");
+  await p.ev(setInput("document.querySelector('#loc-nguoi-tim')", "hai"));
+  await p.waitFor(`JSON.stringify(${dsNguoi}) === ${JSON.stringify(JSON.stringify([ACCOUNTS.salesB.name]))}`, "gõ 'hai' chỉ còn Sales Hai");
+  await p.ev("document.querySelector('.sheet [data-ds=\"nguoiLap\"] input[type=radio]').click()");
+  await p.ev("document.querySelector('.sheet [data-action=\"ap-dung-loc\"]').click()");
+  await doiDanhSach(p, [B1], "lọc người lập Sales Hai");
+  assert.deepEqual(await p.ev(chip), ["Chờ xác nhận", ACCOUNTS.salesB.name]);
+  await p.shot("/tmp/loc-don-390-nguoi-lap.png");
+  ok("ADR-0067: ô Người lập — lối tắt Mọi người / Đơn tôi lập; danh sách không có chính mình; gõ 'hai' lọc tại chỗ; chọn Sales Hai → đúng 1 đơn, chip ghi tên");
+
+  // 4c) Bộ lọc "Đơn tôi lập" nhớ từ bản cũ (`cuaToi: true`) → sau khi cập nhật vẫn lọc đúng đơn của mình; bộ nhớ ghi lại dạng mới (mã chính mình).
+  await p.ev(`localStorage.setItem('td.locDon.v1', JSON.stringify({ tu: null, den: null, dichVu: [], trangThai: ["draft"], cuaToi: true })); true`);
+  await p.send("Page.reload", {});
+  await sleep(300);
+  await doiDanhSach(p, [A1, A2], "bộ lọc cũ Đơn tôi lập");
+  await p.waitFor(`JSON.stringify(${chip}) === ${JSON.stringify(JSON.stringify(["Chờ xác nhận", "Đơn tôi lập"]))}`, "chip của bộ lọc cũ");
+  const nhoMoi = JSON.parse(await p.ev("localStorage.getItem('td.locDon.v1')"));
+  assert.equal(nhoMoi.cuaToi, undefined, "không còn khoá cũ");
+  assert.match(nhoMoi.nguoiLap, /^[0-9a-f-]{36}$/, "nhớ dạng mới: mã chính mình");
+  ok("Bộ lọc 'Đơn tôi lập' nhớ từ bản cũ → vẫn 2 đơn của mình, chip 'Đơn tôi lập'; bộ nhớ ghi lại bằng mã chính mình");
 
   // 5) Chọn nhanh "Ngày mai" đánh dấu nút; khổ máy tính: hộp giữa màn, không tràn.
   await moBang(p);
