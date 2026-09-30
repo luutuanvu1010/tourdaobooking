@@ -10,6 +10,7 @@ import { helpHasNews, newDot } from "./help-seen";
 import { icon } from "./icons";
 import { renderMaintenanceMessage } from "./maintenance-screen";
 import { ganCaiDatTroLy } from "./tro-ly";
+import { ganCaiDatNhapTay } from "./nhap-tay-cai-dat";
 import { enableFlow, getAssertion, passkeyErrorMessage, platformAuthenticatorAvailable } from "./passkey";
 import { b64uSangBytes, thietBiTu } from "./push-ui";
 import { feedbackBadge, initShell, logout, setMaintenanceStrip, showError } from "./shell";
@@ -534,6 +535,9 @@ void initMaintenance();
 
 // ---- Trợ lý Hỗ trợ (ADR-0066): bật / tắt, trần, chi phí tháng — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại) ----
 if (can(staff, "settings.ops")) void ganCaiDatTroLy(byId("tro-ly-cai-dat"));
+
+// ---- Dịch vụ nhập tay (ADR-0061 điều 6): công tắc bật / tắt — chỉ Toàn quyền (ô settings.ops; máy chủ kiểm lại) ----
+if (can(staff, "settings.ops")) void ganCaiDatNhapTay(byId("nhap-tay-cai-dat"));
 
 // ---- Việc của tôi (hướng dẫn viên — ADR-0014 điều 6/11, ADR-0030; bản thiết kế "Viec cua toi - HDV v2" của chủ dự án, Task 1.8) ----------------
 // Toàn bộ khối ở web/viec-cua-toi.ts: hàng chờ nhận + nút Nhận, đơn mình phụ trách (có Tổng tiền/Đã cọc/Còn thu), bảng sửa số khách, bảng huỷ đơn.

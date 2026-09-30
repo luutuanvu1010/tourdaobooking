@@ -292,6 +292,9 @@ test("isFrozenManual (DK-T3-01, chủ dự án 2026-09-26): dịch vụ nhập t
   assert.equal(isFrozenManual(newManualDraft("k9")), false, "thẻ nhập tay mới (không id) — nút thêm vẫn ẩn, máy chủ sẽ từ chối");
   assert.equal(isFrozenManual(newCatalogDraft(tour, "k1")), false);
   assert.equal(isFrozenManual(draftFromDto(savedTour, live, "k2")), false, "dịch vụ danh mục đã lưu");
+  // ADR-0061: người ĐƯỢC nhập tay (công tắc bật, có ô, không phải Đối tác — máy chủ trả `duocDung`) sửa được tên/giá dịch vụ nhập tay đã lưu
+  assert.equal(isFrozenManual(draftFromDto(savedManual, live, "k3"), true), false, "được nhập tay: nhập tay đã lưu sửa được");
+  assert.equal(isFrozenManual(draftFromDto(savedManual, live, "k3"), false), true, "không được nhập tay: chỉ xem");
   // Thân gửi lên của thẻ đóng băng khớp ĐÚNG bản đã lưu (máy chủ so tên + dòng tiền sau khi bỏ khoảng trắng; chi tiết trống gửi "")
   const d = draftFromDto(savedManual, live, "k3");
   const input = toServiceInput(d);
