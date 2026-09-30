@@ -60,6 +60,20 @@ const s = (id: string, diemLen: string, diemXuong: string, trangThai: SuatVao["t
   id, loai: "PASSENGER", maDon: "TD-1", diemLen, diemXuong, trangThai, ...(ten ? { hoTen: ten, namSinh: 1990 } : {}), daDon: null, daTra: null,
 });
 
+test("buocDiem: nhãn điểm đón có giờ hẹn; giờ xe tới hiện thêm khi khác giờ hẹn (góp ý T5) — điểm trả giữ 'TRẢ'", () => {
+  const g = (gio: string) => ({ ngay: "2026-09-30", gio });
+  const diem: DiemVao[] = [
+    { ...d(1, "PICKUP"), gioXeToi: g("07:20") },
+    { ...d(2, "PICKUP"), gioXeToi: g("07:30") },
+    { ...d(3, "PICKUP"), gioHen: null, gioXeToi: g("08:00") },
+    { ...d(4, "PICKUP"), gioXeToi: { ngay: "2026-10-01", gio: "06:50" } },
+    { ...d(5, "DROPOFF"), gioXeToi: g("09:00") },
+  ];
+  assert.deepEqual(buocDiem(diem, [], "PLANNED", "2026-09-30").map((x) => x.nhanLoai), [
+    "ĐÓN · HẸN 07:30 · XE TỚI 07:20", "ĐÓN · HẸN 07:30", "ĐÓN · XE TỚI 08:00", "ĐÓN · HẸN 07:30 · XE TỚI 06:50 01/10", "TRẢ",
+  ]);
+});
+
 test("buocDiem: điểm đón chưa tới → nút 'Đã tới', chưa có nút khách; đã tới → khách chờ có Đã đón / Vắng / Khách đã huỷ, khách vắng còn 'Đã đón'; điểm trả → 'Đã trả' khi còn khách trên xe", () => {
   const diem = [d(1, "PICKUP", "ARRIVED"), d(2, "PICKUP"), d(3, "DROPOFF")];
   const suat = [s("a", "d1", "d3", "BOARDED", "Nguyễn Thị Lan"), s("b", "d1", "d3", "WAITING", "Lê Hoàng Yến"), s("c", "d1", "d3", "NO_SHOW"), s("e", "d2", "d3", "WAITING")];

@@ -110,6 +110,12 @@ export interface BuocDiem {
   /** Suất sẽ "đã trả" khi bấm "Đã trả" ở điểm này. */
   traCho: string[];
 }
+/** "ĐÓN · HẸN 07:30 · XE TỚI 07:20" — giờ xe tới (văn phòng đặt) chỉ hiện khi khác giờ hẹn (góp ý T5: tài xế thấy giờ ngay cạnh điểm đón). */
+function nhanDon(d: DiemVao, ngayXem: string): string {
+  const hen = d.gioHen ? hien(d.gioHen, ngayXem) : null;
+  const toi = d.gioXeToi ? hien(d.gioXeToi, ngayXem) : null;
+  return ["ĐÓN", hen && `HẸN ${hen}`, toi && toi !== hen && `XE TỚI ${toi}`].filter(Boolean).join(" · ");
+}
 /** Bước từng điểm của chuyến ĐANG CHẠY (nút chỉ khi `RUNNING`). Khách của điểm đón = suất lên ở đó; điểm trả không liệt kê khách (bản vẽ 5a). */
 export function buocDiem(diem: readonly DiemVao[], suat: readonly SuatVao[], trangThaiChuyen: string, ngayXem: string): BuocDiem[] {
   const chay = trangThaiChuyen === "RUNNING";
@@ -133,7 +139,7 @@ export function buocDiem(diem: readonly DiemVao[], suat: readonly SuatVao[], tra
     return {
       diem: d,
       so: bo ? "–" : String(d.thuTu),
-      nhanLoai: d.loai === "PICKUP" ? `ĐÓN${d.gioHen ? ` · HẸN ${hien(d.gioHen, ngayXem)}` : ""}` : "TRẢ",
+      nhanLoai: d.loai === "PICKUP" ? nhanDon(d, ngayXem) : "TRẢ",
       trangThaiHien: bo ? "bo" : !daToi ? "sau" : conViec ? "dang" : "xong",
       khach,
       nut,
