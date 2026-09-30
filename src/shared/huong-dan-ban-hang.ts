@@ -190,7 +190,7 @@ Huỷ được cả đơn chờ xác nhận lẫn đã xác nhận, nếu là đ
 - Sửa, xác nhận, huỷ đơn người khác lập mà bạn không phụ trách → người lập đơn, người phụ trách, hoặc **Quản trị** (đơn đang [[Chờ nhận]] thì bạn tự bấm [[Nhận phụ trách]]).
 - Sửa số khách sau khi đã xác nhận → hướng dẫn viên đang phụ trách đơn, tới hết ngày đi (Quản trị không sửa được); qua ngày đi → tài khoản Toàn quyền. Dịch vụ, tiền → chỉ tài khoản Toàn quyền.
 - Thêm, sửa dịch vụ và giá trong danh mục; dịch vụ "chưa có giá" → **Quản trị**.
-- Tiền thu thêm, hoàn tiền, hoá đơn → **Kế toán** (app chưa có chỗ ghi thu tiền ở bản này).
+- Khách trả thêm: bấm [[Ghi lần thu]] trên đơn bạn lập. Hoàn tiền, hoá đơn → **Kế toán**.
 - Quên mã PIN, bị khoá đăng nhập → **Quản trị**.
 - Điều xe cho chuyến thật → làm như cũ, ngoài app.
 - Báo lỗi app, góp ý → [[Góp ý / Báo lỗi]].`,

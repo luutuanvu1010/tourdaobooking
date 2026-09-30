@@ -6,12 +6,12 @@ export const HD_KE_TOAN: NhomHuongDan = {
   tieuDe: "Kế toán",
   quyen: ["ACCOUNTING"],
   gioiThieu:
-    "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Bạn không lập, không sửa, không xác nhận, không huỷ đơn.",
+    "Bạn là kế toán của công ty. Bạn xem được mọi đơn: khách, dịch vụ, số khách, tiền, lịch sử sửa đơn, và mở được biên nhận để gửi khách. Trên trang đơn, bạn ghi và đối chiếu tiền, bấm Hoàn thành, đánh dấu đã nhập phần mềm kế toán. Bạn không lập, không sửa, không xác nhận, không huỷ đơn.",
   batDauNhanh: `1. Mở app. App vào thẳng [[Trang chủ]].
 2. Nhìn ba ô số trên cùng: **Còn thiếu tiền**, **Đơn chờ xác nhận**, **Chưa có người phụ trách**. Đây là số của cả công ty.
 3. Bấm [[Đơn hàng]] để xem danh sách đơn.
 4. Gõ tên khách, số điện thoại hoặc mã đơn vào ô tìm kiếm của danh sách.
-5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, thanh toán trước và còn lại.
+5. Bấm vào một đơn, xem khối **Thanh toán** để biết tổng tiền, đã thu và còn lại.
 6. Cần gửi phiếu cho khách: trong đơn, bấm [[Xem biên nhận]].`,
   muc: [
     {
@@ -49,9 +49,9 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       tieuDe: "Tìm và lọc đơn",
       noiDung: `1. Bấm [[Đơn hàng]].
 2. Gõ vào ô tìm kiếm của danh sách: mã đơn, tên hoặc số điện thoại. Danh sách tự lọc sau khi bạn ngừng gõ.
-3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
+3. Muốn lọc thì bấm nút **Lọc**: chọn cùng lúc ngày đi (có nút nhanh [[Hôm nay]], [[Ngày mai]], [[3 ngày tới]], [[Tuần này]]), dịch vụ, trạng thái (**Chờ xác nhận**, **Đã xác nhận**, **Đã huỷ**) và người lập (gõ tên để chọn từng người đã lập đơn), rồi bấm [[Áp dụng]]. Ô **Nhập phần mềm kế toán** lọc đơn chưa nhập / đã nhập, cần chọn cả Từ ngày và Đến ngày. Bấm × trên nhãn để bỏ từng điều kiện, [[Xoá lọc]] để bỏ hết; máy nhớ bộ lọc cho lần sau.
 4. Cuối danh sách có nút [[Tải thêm]] nếu còn đơn.
-5. Mỗi thẻ đơn có nút xổ xuống để xem thêm: tiền thanh toán trước, còn lại, người phụ trách.
+5. Mỗi thẻ đơn ghi **Còn thu**; nút xổ xuống cho xem thêm **Đã trả**, **Tổng**, người phụ trách. Đơn đã nhập phần mềm kế toán có nhãn riêng.
 
 > Ví dụ: Khách "Trần Thị B" gọi hỏi tiền chuyển khoản đã được ghi nhận chưa. Chị Lan gõ số điện thoại của khách vào ô tìm kiếm. Danh sách còn đúng một đơn. Chị bấm vào đơn để xem.
 
@@ -62,12 +62,10 @@ Thanh tab dưới đáy có [[Trang chủ]], [[Đơn hàng]] và [[Tôi]]. Các 
       noiDung: `1. Bấm vào một đơn trong danh sách. Trang **Chi tiết đơn** mở ra.
 2. Dải trên cùng ghi: **MÃ ĐƠN** và trạng thái, **ĐÓN**, **KHÁCH**, **SỐ KHÁCH**, **CÒN LẠI**.
 3. Khối **Thanh toán** ghi đủ các dòng:
-   - **Tạm tính**
-   - **Giảm giá**
-   - **Tổng cộng**
-   - **Thanh toán trước**, kèm cách trả: Tiền mặt, Chuyển khoản hoặc Khác
-   - **Còn lại**
+   - **Tạm tính**, **Giảm giá**, **Tổng cộng**
+   - **Đã thu**, rồi **Còn lại** (khách trả dư thì ghi **Khách trả dư**)
    - **Ghi chú thanh toán**
+   - Từng lần thu: ngày, số tiền, hình thức, người thu
 4. Khối **Lịch sử** ở cuối trang ghi ai đã làm gì với đơn, lúc nào. Hướng dẫn viên sửa số khách thì lý do cũng hiện ở đây.
 
 Đơn đã xác nhận có dòng khoá: "Đơn đã xác nhận: dịch vụ, số khách và tiền đã khoá."
@@ -110,7 +108,23 @@ Bạn không sửa được. Ghi lại mã đơn rồi báo người lập đơn
 
 ### Khách đã trả thêm tiền, muốn ghi vào đơn
 
-Ghi thu tiền, hoàn tiền, hoá đơn trong app (chưa có ở bản này). Tạm thời ghi theo cách công ty đang dùng ngoài app. Khi đơn còn **Chờ xác nhận**, người lập đơn sửa được số **Thanh toán trước**.
+Trong khối **Thanh toán**, bấm [[Ghi lần thu]]: số tiền, hình thức, người nhận tiền; riêng Kế toán chọn được **Ngày phát sinh**. Bấm [[Ghi]]. Sau khi đơn **Đã giao – đã thu đủ** thì không ghi thêm lần thu được.
+
+### Đối chiếu tiền trên trang đơn
+
+Chưa có màn sổ riêng; mọi việc làm ngay trên trang đơn:
+- Lần thu người khác khai là tiền vào công ty: đối chiếu tài khoản, bấm [[Xác nhận đã nhận]] rồi [[Công ty đã nhận]].
+- Lần thu ghi sai: bấm [[Đảo]], ghi lý do (bắt buộc). Sổ giữ dòng cũ và thêm một dòng đảo.
+- Khối **Kế toán** ghi ai đang giữ tiền của công ty: nhận tiền rồi bấm [[Đã nộp về công ty]].
+- Khách trả dư: bấm [[Ghi hoàn cho khách]].
+
+### Hoàn thành đơn
+
+Sau khi người phụ trách bấm **Đã giao – đã thu đủ** và không còn ai giữ tiền của công ty vì đơn, bấm [[Hoàn thành]] rồi đồng ý. **Không mở lại được.** Nút mờ thì dòng **Đang giữ đơn** ghi lý do.
+
+### Đánh dấu đã nhập phần mềm kế toán
+
+App **không xuất hoá đơn**. Khi đã nhập đơn vào phần mềm kế toán, ở khối **Phần mềm kế toán** bấm [[Đánh dấu đã nhập]], gõ số hoá đơn (không bắt buộc), bấm [[Đánh dấu]]. Chỉ đơn đã xác nhận mới đánh dấu được. Sửa số: [[Sửa số hoá đơn]]. Nhầm: [[Bỏ dấu]], ghi lý do.
 
 ### Cần danh sách đơn để làm sổ
 
@@ -132,7 +146,8 @@ Chuông ở thanh trên báo khi có đơn mới, có người nhận đơn, đ�
 - Nhận phụ trách, giao đơn cho người khác: không. Nhờ nhân viên bán hàng hoặc Quản trị.
 - Duyệt "Đặt gấp": không. Nhờ Quản trị.
 - Xếp xe, tạo chuyến, bấm tiến độ chuyến: không, bạn chỉ xem. Nhờ nhân viên bán hàng hoặc Quản trị.
-- Ghi thu tiền, hoàn tiền, xuất hoá đơn trong app (chưa có ở bản này).
+- Bấm **Đã giao – đã thu đủ**: không. Người phụ trách đơn hoặc Quản trị bấm.
+- Xuất hoá đơn trong app: không có. Xuất ở phần mềm kế toán rồi đánh dấu trên đơn.
 - Sửa bảng giá dịch vụ, quản lý tài khoản nhân viên: không. Nhờ Quản trị.`,
     },
     {
